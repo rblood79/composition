@@ -1,7 +1,7 @@
 # Table
 
-A table displays data in rows and columns and enables a user to navigate its contents via directional navigation keys,
-and optionally supports row selection and sorting.
+A table displays data in rows and columns and enables a user to navigate its contents via
+directional navigation keys, and optionally supports row selection and sorting.
 
 ## Vanilla CSS example
 
@@ -10,30 +10,60 @@ import {Table, TableHeader, Column, Row, TableBody, Cell} from 'vanilla-starter/
 
 <Table>
   <TableHeader>
-    <Column isRowHeader>Name</Column>
-    <Column>Type</Column>
-    <Column>Date Modified</Column>
+    <Column id="name" isRowHeader>Name</Column>
+    <Column id="type">Type</Column>
+    <Column id="date">Date Modified</Column>
   </TableHeader>
   <TableBody>
-    <Row id="row-1">
+    <Row id="games">
       <Cell>Games</Cell>
-      <Cell>File folder</Cell>
-      <Cell>6/7/2020</Cell>
+      <Cell>Folder</Cell>
+      <Cell>6/7/2023</Cell>
+      <Row id="mario">
+        <Cell>Mario Kart</Cell>
+        <Cell>Game</Cell>
+        <Cell>8/27/1992</Cell>
+      </Row>
+      <Row id="tetris">
+        <Cell>Tetris</Cell>
+        <Cell>Game</Cell>
+        <Cell>1/27/1988</Cell>
+      </Row>
+      <Row id="pacman">
+        <Cell>Pac-Man</Cell>
+        <Cell>Game</Cell>
+        <Cell>5/22/1980</Cell>
+      </Row>
     </Row>
-    <Row id="row-2">
-      <Cell>Program Files</Cell>
-      <Cell>File folder</Cell>
-      <Cell>4/7/2021</Cell>
+    <Row id="apps">
+      <Cell>Applications</Cell>
+      <Cell>Folder</Cell>
+      <Cell>4/7/2025</Cell>
+      <Row id="ps">
+        <Cell>Photoshop</Cell>
+        <Cell>Application</Cell>
+        <Cell>2/19/1990</Cell>
+      </Row>
+      <Row id="premiere">
+        <Cell>Premiere</Cell>
+        <Cell>Application</Cell>
+        <Cell>9/24/2003</Cell>
+      </Row>
+      <Row id="lightroom">
+        <Cell>Lightroom</Cell>
+        <Cell>Application</Cell>
+        <Cell>10/18/2017</Cell>
+      </Row>
     </Row>
-    <Row id="row-3">
-      <Cell>bootmgr</Cell>
-      <Cell>System file</Cell>
-      <Cell>11/20/2010</Cell>
+    <Row id="report">
+      <Cell>2024 Financial Report</Cell>
+      <Cell>PDF Document</Cell>
+      <Cell>12/30/2024</Cell>
     </Row>
-    <Row id="row-4">
-      <Cell>log.txt</Cell>
+    <Row id="job">
+      <Cell>Job Posting</Cell>
       <Cell>Text Document</Cell>
-      <Cell>1/18/2016</Cell>
+      <Cell>1/18/2025</Cell>
     </Row>
   </TableBody>
 </Table>
@@ -47,26 +77,29 @@ import {
   Button,
   Collection,
   Column as AriaColumn,
-  ColumnProps as AriaColumnProps,
+  type ColumnProps as AriaColumnProps,
   Row as AriaRow,
-  RowProps,
+  type RowProps,
   Table as AriaTable,
   TableHeader as AriaTableHeader,
-  TableHeaderProps,
-  TableProps,
+  type TableHeaderProps,
+  type TableProps,
   useTableOptions,
-  TableBodyProps,
+  type TableBodyProps,
   TableBody as AriaTableBody,
-  CellProps,
+  type CellProps,
   Cell as AriaCell,
   ColumnResizer,
-  Group,
   TableLoadMoreItem as AriaTableLoadMoreItem,
-  TableLoadMoreItemProps
-} from 'react-aria-components';
+  type TableLoadMoreItemProps,
+  TableFooter as AriaTableFooter,
+  type TableFooterProps
+} from 'react-aria-components/Table';
+import {Group} from 'react-aria-components/Group';
+import {composeRenderProps} from 'react-aria-components/composeRenderProps';
 import {Checkbox} from './Checkbox';
 import {ProgressCircle} from './ProgressCircle';
-import {ChevronUp, ChevronDown, GripVertical} from 'lucide-react';
+import {ChevronUp, ChevronDown, GripVertical, ChevronRight} from 'lucide-react';
 import './Table.css';
 
 export function Table(props: TableProps) {
@@ -74,20 +107,15 @@ export function Table(props: TableProps) {
 }
 
 interface ColumnProps extends AriaColumnProps {
-  allowsResizing?: boolean
+  allowsResizing?: boolean;
 }
 
-export function Column(
-  props: Omit<ColumnProps, 'children'> & { children?: React.ReactNode }
-) {
+export function Column(props: Omit<ColumnProps, 'children'> & {children?: React.ReactNode}) {
   return (
     <AriaColumn {...props} className="react-aria-Column button-base">
-      {({ allowsSorting, sortDirection }) => (
+      {({allowsSorting, sortDirection}) => (
         <div className="column-header">
-          <Group
-            role="presentation"
-            tabIndex={-1}
-            className="column-name">
+          <Group role="presentation" tabIndex={-1} className="column-name">
             {props.children}
           </Group>
           {allowsSorting && (
@@ -102,61 +130,79 @@ export function Column(
   );
 }
 
-export function TableHeader<T extends object>(
-  { columns, children, ...otherProps }: TableHeaderProps<T>
-) {
-  let { selectionBehavior, selectionMode, allowsDragging } = useTableOptions();
+export function TableHeader<T>({columns, children, ...otherProps}: TableHeaderProps<T>) {
+  let {selectionBehavior, selectionMode, allowsDragging} = useTableOptions();
 
   return (
-    (
-      <AriaTableHeader {...otherProps}>
-        {/* Add extra columns for drag and drop and selection. */}
-        {allowsDragging && <AriaColumn width={20} minWidth={20} style={{width: 20}} className="react-aria-Column button-base" />}
-        {selectionBehavior === 'toggle' && (
-          <AriaColumn width={32} minWidth={32} style={{width: 32}} className="react-aria-Column button-base">
-            {selectionMode === 'multiple' && <Checkbox slot="selection" />}
-          </AriaColumn>
-        )}
-        <Collection items={columns}>
-          {children}
-        </Collection>
-      </AriaTableHeader>
-    )
+    <AriaTableHeader {...otherProps}>
+      {/* Add extra columns for drag and drop and selection. */}
+      {allowsDragging && (
+        <AriaColumn
+          width={20}
+          minWidth={20}
+          style={{width: 20}}
+          className="react-aria-Column button-base"
+        />
+      )}
+      {selectionBehavior === 'toggle' && (
+        <AriaColumn
+          width={32}
+          minWidth={32}
+          style={{width: 32}}
+          className="react-aria-Column button-base">
+          {selectionMode === 'multiple' && <Checkbox slot="selection" />}
+        </AriaColumn>
+      )}
+      <Collection items={columns}>{children}</Collection>
+    </AriaTableHeader>
   );
 }
 
-export function Row<T extends object>(
-  { id, columns, children, ...otherProps }: RowProps<T>
-) {
-  let { selectionBehavior, allowsDragging } = useTableOptions();
+export function Row<T>({id, columns, children, ...otherProps}: RowProps<T>) {
+  let {selectionBehavior, allowsDragging} = useTableOptions();
 
   return (
-    (
-      <AriaRow id={id} {...otherProps}>
-        {allowsDragging && (
-          <Cell>
-            <Button slot="drag" className="drag-button"><GripVertical /></Button>
-          </Cell>
-        )}
-        {selectionBehavior === 'toggle' && (
-          <Cell>
-            <Checkbox slot="selection" />
-          </Cell>
-        )}
-        <Collection items={columns}>
-          {children}
-        </Collection>
-      </AriaRow>
-    )
+    <AriaRow id={id} {...otherProps}>
+      {allowsDragging && (
+        <Cell>
+          <Button slot="drag" className="drag-button">
+            <GripVertical />
+          </Button>
+        </Cell>
+      )}
+      {selectionBehavior === 'toggle' && (
+        <Cell>
+          <Checkbox slot="selection" />
+        </Cell>
+      )}
+      <Collection items={columns}>{children}</Collection>
+    </AriaRow>
   );
 }
 
-export function TableBody<T extends object>(props: TableBodyProps<T>) {
+export function TableBody<T>(props: TableBodyProps<T>) {
   return <AriaTableBody {...props} />;
 }
 
+export function TableFooter<T>(props: TableFooterProps<T>) {
+  return <AriaTableFooter {...props} />;
+}
+
 export function Cell(props: CellProps) {
-  return <AriaCell {...props} />;
+  return (
+    <AriaCell {...props}>
+      {composeRenderProps(props.children, (children, {hasChildItems, isTreeColumn}) => (
+        <>
+          {isTreeColumn && hasChildItems && (
+            <Button slot="chevron">
+              <ChevronRight />
+            </Button>
+          )}
+          {children}
+        </>
+      ))}
+    </AriaCell>
+  );
 }
 
 export function TableLoadMoreItem(props: TableLoadMoreItemProps) {
@@ -174,8 +220,8 @@ export function TableLoadMoreItem(props: TableLoadMoreItemProps) {
 ### Table.css
 
 ```css
-@import "./theme.css";
-@import "./utilities.css";
+@import './theme.css';
+@import './utilities.css';
 
 .react-aria-Table {
   border: 0.5px solid var(--border-color);
@@ -190,7 +236,7 @@ export function TableLoadMoreItem(props: TableLoadMoreItemProps) {
   forced-color-adjust: none;
   font: var(--font-size) system-ui;
 
-  &div {
+  div& {
     padding: 0;
   }
 
@@ -200,7 +246,7 @@ export function TableLoadMoreItem(props: TableLoadMoreItemProps) {
 
   &[data-drop-target] {
     outline: 2px solid var(--highlight-background);
-    background: var(--highlight-overlay)
+    background: var(--highlight-overlay);
   }
 
   &:has(.react-aria-TableBody[data-empty]) {
@@ -232,7 +278,7 @@ export function TableLoadMoreItem(props: TableLoadMoreItemProps) {
   transition-duration: 200ms;
   -webkit-tap-highlight-color: transparent;
 
-  &tr:last-child {
+  tr:last-child& {
     border-radius: 0 0 var(--radius) var(--radius);
   }
 
@@ -319,7 +365,7 @@ export function TableLoadMoreItem(props: TableLoadMoreItemProps) {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 
-  &div {
+  div& {
     display: flex;
     align-items: center;
     height: 100%;
@@ -414,15 +460,15 @@ export function TableLoadMoreItem(props: TableLoadMoreItemProps) {
   box-sizing: content-box;
   background-clip: content-box;
 
-  &[data-resizable-direction=both] {
+  &[data-resizable-direction='both'] {
     cursor: ew-resize;
   }
 
-  &[data-resizable-direction=left] {
+  &[data-resizable-direction='left'] {
     cursor: e-resize;
   }
 
-  &[data-resizable-direction=right] {
+  &[data-resizable-direction='right'] {
     cursor: w-resize;
   }
 
@@ -452,14 +498,47 @@ export function TableLoadMoreItem(props: TableLoadMoreItemProps) {
   @media (forced-colors: active) {
     --border-color: ButtonBorder;
   }
+
+  &[data-tree-column] {
+    --chevron-placeholder: var(--spacing-5);
+    padding-inline-start: calc(
+      var(--spacing-2) + (var(--table-row-level) - 1) * var(--spacing-4) +
+        var(--chevron-placeholder)
+    );
+
+    &[data-has-child-items] {
+      --chevron-placeholder: 0px;
+    }
+  }
+
+  .react-aria-Button[slot='chevron'] {
+    all: unset;
+    vertical-align: middle;
+    margin-inline-end: var(--spacing-1);
+
+    svg {
+      rotate: 0deg;
+      transition: rotate 200ms;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 3px;
+      width: var(--spacing-4);
+      height: var(--spacing-4);
+    }
+  }
+
+  &[data-expanded] .react-aria-Button[slot='chevron'] svg {
+    rotate: 90deg;
+  }
 }
 
 .react-aria-DropIndicator[data-drop-target] {
   outline: 1px solid var(--highlight-background);
   transform: translateZ(0);
+  translate: calc(68px + (var(--table-row-level) - 1) * var(--spacing-4)) 0;
 }
 
-:where(.react-aria-Row) .react-aria-Checkbox {
+.react-aria-Row .react-aria-CheckboxButton {
   --checkmark-color: var(--highlight-background);
   &[data-selected] .indicator {
     --indicator-color: var(--highlight-foreground);
@@ -509,6 +588,11 @@ export function TableLoadMoreItem(props: TableLoadMoreItemProps) {
   position: relative;
 }
 
+.react-aria-TableFooter {
+  font-weight: bold;
+  background: var(--gray-200);
+}
+
 ```
 
 ## Tailwind example
@@ -518,30 +602,60 @@ import {Table, TableHeader, TableBody, Column, Row, Cell} from 'tailwind-starter
 
 <Table>
   <TableHeader>
-    <Column isRowHeader>Name</Column>
-    <Column>Type</Column>
-    <Column>Date Modified</Column>
+    <Column id="name" isRowHeader>Name</Column>
+    <Column id="type">Type</Column>
+    <Column id="date">Date Modified</Column>
   </TableHeader>
   <TableBody>
-    <Row id="row-1">
+    <Row id="games">
       <Cell>Games</Cell>
-      <Cell>File folder</Cell>
-      <Cell>6/7/2020</Cell>
+      <Cell>Folder</Cell>
+      <Cell>6/7/2023</Cell>
+      <Row id="mario">
+        <Cell>Mario Kart</Cell>
+        <Cell>Game</Cell>
+        <Cell>8/27/1992</Cell>
+      </Row>
+      <Row id="tetris">
+        <Cell>Tetris</Cell>
+        <Cell>Game</Cell>
+        <Cell>1/27/1988</Cell>
+      </Row>
+      <Row id="pacman">
+        <Cell>Pac-Man</Cell>
+        <Cell>Game</Cell>
+        <Cell>5/22/1980</Cell>
+      </Row>
     </Row>
-    <Row id="row-2">
-      <Cell>Program Files</Cell>
-      <Cell>File folder</Cell>
-      <Cell>4/7/2021</Cell>
+    <Row id="apps">
+      <Cell>Applications</Cell>
+      <Cell>Folder</Cell>
+      <Cell>4/7/2025</Cell>
+      <Row id="ps">
+        <Cell>Photoshop</Cell>
+        <Cell>Application</Cell>
+        <Cell>2/19/1990</Cell>
+      </Row>
+      <Row id="premiere">
+        <Cell>Premiere</Cell>
+        <Cell>Application</Cell>
+        <Cell>9/24/2003</Cell>
+      </Row>
+      <Row id="lightroom">
+        <Cell>Lightroom</Cell>
+        <Cell>Application</Cell>
+        <Cell>10/18/2017</Cell>
+      </Row>
     </Row>
-    <Row id="row-3">
-      <Cell>bootmgr</Cell>
-      <Cell>System file</Cell>
-      <Cell>11/20/2010</Cell>
+    <Row id="report">
+      <Cell>2024 Financial Report</Cell>
+      <Cell>PDF Document</Cell>
+      <Cell>12/30/2024</Cell>
     </Row>
-    <Row id="row-4">
-      <Cell>log.txt</Cell>
+    <Row id="job">
+      <Cell>Job Posting</Cell>
       <Cell>Text Document</Cell>
-      <Cell>1/18/2016</Cell>
+      <Cell>1/18/2025</Cell>
     </Row>
   </TableBody>
 </Table>
@@ -551,7 +665,7 @@ import {Table, TableHeader, TableBody, Column, Row, Cell} from 'tailwind-starter
 
 ```tsx
 'use client';
-import { ArrowUp } from 'lucide-react';
+import {ArrowUp, ChevronRight} from 'lucide-react';
 import React from 'react';
 import {
   Cell as AriaCell,
@@ -561,32 +675,42 @@ import {
   TableHeader as AriaTableHeader,
   TableBody as AriaTableBody,
   Button,
-  CellProps,
+  type CellProps,
   Collection,
-  ColumnProps,
+  type ColumnProps,
   ColumnResizer,
-  Group,
   ResizableTableContainer,
-  RowProps,
-  TableHeaderProps,
-  TableProps as AriaTableProps,
-  composeRenderProps,
+  type RowProps,
+  type TableHeaderProps,
+  type TableProps as AriaTableProps,
   useTableOptions,
-  TableBodyProps
-} from 'react-aria-components';
-import { twMerge } from 'tailwind-merge';
-import { tv } from 'tailwind-variants';
-import { Checkbox } from './Checkbox';
-import { composeTailwindRenderProps, focusRing } from './utils';
+  type TableBodyProps,
+  TableFooter as AriaTableFooter,
+  type TableFooterProps
+} from 'react-aria-components/Table';
+import {Group} from 'react-aria-components/Group';
+import {composeRenderProps} from 'react-aria-components/composeRenderProps';
+import {twMerge} from 'tailwind-merge';
+import {tv} from 'tailwind-variants';
+import {Checkbox} from './Checkbox';
+import {composeTailwindRenderProps, focusRing} from './utils';
 
 interface TableProps extends Omit<AriaTableProps, 'className'> {
-  className?: string
+  className?: string;
 }
 
 export function Table(props: TableProps) {
   return (
-    <ResizableTableContainer onScroll={props.onScroll} className={twMerge('w-full max-h-[320px] overflow-auto scroll-pt-[2.281rem] relative bg-white dark:bg-neutral-900 box-border border border-neutral-300 dark:border-neutral-700 rounded-lg font-sans', props.className)}>
-      <AriaTable {...props} className="border-separate border-spacing-0 box-border overflow-hidden has-[>[data-empty]]:h-full" />
+    <ResizableTableContainer
+      onScroll={props.onScroll}
+      className={twMerge(
+        'w-full max-h-[320px] overflow-auto scroll-pt-[2.281rem] relative bg-white dark:bg-neutral-900 box-border border border-neutral-300 dark:border-neutral-700 rounded-lg font-sans',
+        props.className
+      )}>
+      <AriaTable
+        {...props}
+        className="border-separate border-spacing-0 box-border overflow-hidden has-[>[data-empty]]:h-full"
+      />
     </ResizableTableContainer>
   );
 }
@@ -603,22 +727,27 @@ const resizerStyles = tv({
 
 export function Column(props: ColumnProps) {
   return (
-    <AriaColumn {...props} className={composeTailwindRenderProps(props.className, 'box-border h-1 [&:hover]:z-20 focus-within:z-20 text-start text-sm font-semibold text-neutral-700 dark:text-neutral-300 cursor-default')}>
-      {composeRenderProps(props.children, (children, { allowsSorting, sortDirection }) => (
+    <AriaColumn
+      {...props}
+      className={composeTailwindRenderProps(
+        props.className,
+        'box-border h-1 [&:hover]:z-20 focus-within:z-20 text-start text-sm font-semibold text-neutral-700 dark:text-neutral-300 cursor-default'
+      )}>
+      {composeRenderProps(props.children, (children, {allowsSorting, sortDirection}) => (
         <div className="flex items-center">
-          <Group
-            role="presentation"
-            tabIndex={-1}
-            className={columnStyles}
-          >
+          <Group role="presentation" tabIndex={-1} className={columnStyles}>
             <span className="truncate">{children}</span>
             {allowsSorting && (
               <span
                 className={`w-4 h-4 flex items-center justify-center transition ${
                   sortDirection === 'descending' ? 'rotate-180' : ''
-                }`}
-              >
-                {sortDirection && <ArrowUp aria-hidden className="w-4 h-4 text-neutral-500 dark:text-neutral-400 forced-colors:text-[ButtonText]" />}
+                }`}>
+                {sortDirection && (
+                  <ArrowUp
+                    aria-hidden
+                    className="w-4 h-4 text-neutral-500 dark:text-neutral-400 forced-colors:text-[ButtonText]"
+                  />
+                )}
               </span>
             )}
           </Group>
@@ -629,31 +758,37 @@ export function Column(props: ColumnProps) {
   );
 }
 
-export function TableHeader<T extends object>(props: TableHeaderProps<T>) {
-  let { selectionBehavior, selectionMode, allowsDragging } = useTableOptions();
+export function TableHeader<T>(props: TableHeaderProps<T>) {
+  let {selectionBehavior, selectionMode, allowsDragging} = useTableOptions();
 
   return (
-    <AriaTableHeader {...props} className={composeTailwindRenderProps(props.className, 'sticky top-0 z-10 bg-neutral-100/60 dark:bg-neutral-700/60 backdrop-blur-md supports-[-moz-appearance:none]:bg-neutral-100 dark:supports-[-moz-appearance:none]:bg-neutral-700 forced-colors:bg-[Canvas] rounded-t-lg border-b border-b-neutral-200 dark:border-b-neutral-700')}>
+    <AriaTableHeader
+      {...props}
+      className={composeTailwindRenderProps(
+        props.className,
+        'sticky top-0 z-10 bg-neutral-100/60 dark:bg-neutral-700/60 backdrop-blur-md supports-[-moz-appearance:none]:bg-neutral-100 dark:supports-[-moz-appearance:none]:bg-neutral-700 forced-colors:bg-[Canvas] rounded-t-lg border-b border-b-neutral-200 dark:border-b-neutral-700'
+      )}>
       {/* Add extra columns for drag and drop and selection. */}
       {allowsDragging && <Column />}
       {selectionBehavior === 'toggle' && (
-        <AriaColumn width={36} minWidth={36} className="box-border p-2 text-sm font-semibold cursor-default text-start">
+        <AriaColumn
+          width={36}
+          minWidth={36}
+          className="box-border p-2 text-sm font-semibold cursor-default text-start">
           {selectionMode === 'multiple' && <Checkbox slot="selection" />}
         </AriaColumn>
       )}
-      <Collection items={props.columns}>
-        {props.children}
-      </Collection>
+      <Collection items={props.columns}>{props.children}</Collection>
     </AriaTableHeader>
   );
 }
 
-export function TableBody<T extends object>(props: TableBodyProps<T>) {
-  return (
-    <AriaTableBody
-      {...props}
-      className="empty:italic empty:text-center empty:text-sm" />
-  );
+export function TableBody<T>(props: TableBodyProps<T>) {
+  return <AriaTableBody {...props} className="empty:italic empty:text-center empty:text-sm" />;
+}
+
+export function TableFooter<T>(props: TableFooterProps<T>) {
+  return <AriaTableFooter {...props} className="bg-neutral-200 dark:bg-neutral-700 font-bold" />;
 }
 
 const rowStyles = tv({
@@ -661,10 +796,8 @@ const rowStyles = tv({
   base: 'group/row relative cursor-default select-none -outline-offset-2 text-neutral-900 disabled:text-neutral-300 dark:text-neutral-200 dark:disabled:text-neutral-600 text-sm hover:bg-neutral-100 pressed:bg-neutral-100 dark:hover:bg-neutral-800 dark:pressed:bg-neutral-800 selected:bg-blue-100 selected:hover:bg-blue-200 selected:pressed:bg-blue-200 dark:selected:bg-blue-700/30 dark:selected:hover:bg-blue-700/40 dark:selected:pressed:bg-blue-700/40 last:rounded-b-lg'
 });
 
-export function Row<T extends object>(
-  { id, columns, children, ...otherProps }: RowProps<T>
-) {
-  let { selectionBehavior, allowsDragging } = useTableOptions();
+export function Row<T>({id, columns, children, ...otherProps}: RowProps<T>) {
+  let {selectionBehavior, allowsDragging} = useTableOptions();
 
   return (
     <AriaRow id={id} {...otherProps} className={rowStyles}>
@@ -678,9 +811,7 @@ export function Row<T extends object>(
           <Checkbox slot="selection" />
         </Cell>
       )}
-      <Collection items={columns}>
-        {children}
-      </Collection>
+      <Collection items={columns}>{children}</Collection>
     </AriaRow>
   );
 }
@@ -690,9 +821,52 @@ const cellStyles = tv({
   base: 'box-border [-webkit-tap-highlight-color:transparent] border-b border-b-neutral-200 dark:border-b-neutral-700 group-last/row:border-b-0 [--selected-border:var(--color-blue-200)] dark:[--selected-border:var(--color-blue-900)] group-selected/row:border-(--selected-border) [:is(:has(+[data-selected])_*)]:border-(--selected-border) p-2 truncate -outline-offset-2 group-last/row:first:rounded-bl-lg group-last/row:last:rounded-br-lg'
 });
 
+const expandButton = tv({
+  extend: focusRing,
+  base: 'border-0 p-0 pr-1 bg-transparent shrink-0 align-middle cursor-default [-webkit-tap-highlight-color:transparent]',
+  variants: {
+    isDisabled: {
+      true: 'text-neutral-300 dark:text-neutral-600 forced-colors:text-[GrayText]'
+    }
+  }
+});
+
+const chevron = tv({
+  base: 'w-4.5 h-4.5 text-neutral-500 dark:text-neutral-400 transition-transform duration-200 ease-in-out',
+  variants: {
+    isExpanded: {
+      true: 'transform rotate-90'
+    },
+    isDisabled: {
+      true: 'text-neutral-300 dark:text-neutral-600 forced-colors:text-[GrayText]'
+    }
+  }
+});
+
 export function Cell(props: CellProps) {
   return (
-    <AriaCell {...props} className={cellStyles} />
+    <AriaCell
+      {...props}
+      className={cellStyles}
+      style={({hasChildItems, isTreeColumn, level}) => ({
+        paddingInlineStart: isTreeColumn
+          ? 4 + (hasChildItems ? 0 : 20) + (level - 1) * 16
+          : undefined
+      })}>
+      {composeRenderProps(
+        props.children,
+        (children, {hasChildItems, isTreeColumn, isExpanded, isDisabled}) => (
+          <>
+            {hasChildItems && isTreeColumn && (
+              <Button slot="chevron" className={expandButton({isDisabled})}>
+                <ChevronRight aria-hidden className={chevron({isExpanded, isDisabled})} />
+              </Button>
+            )}
+            {children}
+          </>
+        )
+      )}
+    </AriaCell>
   );
 }
 
@@ -704,43 +878,44 @@ export function Cell(props: CellProps) {
 In this example, both the columns and the rows are provided to the table via a render function, enabling the user to hide and show columns and add additional rows.
 
 ```tsx
-import {Table, TableHeader, Column, Row, TableBody, Cell} from 'vanilla-starter/Table';
+import {Table, TableHeader, Column, Row, TableBody, Cell, TableFooter} from 'vanilla-starter/Table';
 import {CheckboxGroup} from 'vanilla-starter/CheckboxGroup';
 import {Checkbox} from 'vanilla-starter/Checkbox';
 import {Button} from 'vanilla-starter/Button';
 import {useState} from 'react';
 
 const columns = [
-  {name: 'Name', id: 'name', isRowHeader: true},
-  {name: 'Type', id: 'type'},
-  {name: 'Date Modified', id: 'date'}
+  {name: 'Title', id: 'title', isRowHeader: true},
+  {name: 'Status', id: 'status'},
+  {name: 'Payment Method', id: 'paymentMethod'},
+  {name: 'Price', id: 'price'}
 ];
 
 const initialRows = [
-  {id: 1, name: 'Games', date: '6/7/2020', type: 'File folder'},
-  {id: 2, name: 'Program Files', date: '4/7/2021', type: 'File folder'},
-  {id: 3, name: 'bootmgr', date: '11/20/2010', type: 'System file'},
-  {id: 4, name: 'log.txt', date: '1/18/2016', type: 'Text Document'}
+  {id: 1, title: 'Website Design', status: 'Paid', paymentMethod: 'Credit Card', price: 1200},
+  {id: 2, title: 'Logo Creation', status: 'Pending', paymentMethod: 'PayPal', price: 350},
+  {id: 3, title: 'SEO Optimization', status: 'Overdue', paymentMethod: 'Bank Transfer', price: 800},
+  {id: 4, title: 'Social Media Setup', status: 'Paid', paymentMethod: 'Debit Card', price: 450},
+  {id: 5, title: 'Content Writing', status: 'Pending', paymentMethod: 'Credit Card', price: 600}
 ];
 
 function FileTable() {
-  let [showColumns, setShowColumns] = useState(['name', 'type', 'date']);
+  let [showColumns, setShowColumns] = useState(['title', 'status', 'paymentMethod', 'price']);
   let visibleColumns = columns.filter(column => showColumns.includes(column.id));
 
   let [rows, setRows] = useState(initialRows);
   let addRow = () => {
-    let date = new Date().toLocaleDateString();
     setRows(rows => [
       ...rows,
-      {id: rows.length + 1, name: 'file.txt', date, type: 'Text Document'}
+      {id: rows.length + 1, title: 'New Invoice', status: 'Pending', paymentMethod: 'Credit Card', price: 250}
     ]);
   };
 
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'start', width: '100%'}}>
       <CheckboxGroup aria-label="Show columns" value={showColumns} onChange={setShowColumns} orientation="horizontal">
-        <Checkbox value="type">Type</Checkbox>
-        <Checkbox value="date">Date Modified</Checkbox>
+        <Checkbox value="status">Status</Checkbox>
+        <Checkbox value="paymentMethod">Payment Method</Checkbox>
       </CheckboxGroup>
       <Table aria-label="Files" style={{width: '100%'}}>
         <TableHeader columns={visibleColumns}>
@@ -755,10 +930,22 @@ function FileTable() {
           {item => (
             /*- end highlight -*/
             <Row columns={visibleColumns}>
-              {column => <Cell>{item[column.id]}</Cell>}
+              {column => (
+                <Cell>
+                  {column.id === 'price' 
+                    ? item.price.toLocaleString('en-US', {style: 'currency', currency: 'USD', maximumFractionDigits: 0})
+                    : item[column.id]}
+                </Cell>
+              )}
             </Row>
           )}
         </TableBody>
+        <TableFooter>
+          <Row>
+            <Cell colSpan={showColumns.length - 1}>Total</Cell>
+            <Cell>{rows.reduce((p, row) => p + row.price, 0).toLocaleString('en-US', {style: 'currency', currency: 'USD', maximumFractionDigits: 0})}</Cell>
+          </Row>
+        </TableFooter>
       </Table>
       <Button onPress={addRow}>Add row</Button>
     </div>
@@ -772,12 +959,75 @@ function FileTable() {
   on external state (e.g. `columns` in this example).</Content>
 </InlineAlert>
 
+### Expandable rows
+
+Rows can be nested to display hierarchical data. Use the `treeColumn` prop to designate a column, and render a `<Button slot="chevron">` within the cells in that column to allow users to expand and collapse the row. Use the `expandedKeys` prop to control the expanded rows.
+
+```tsx
+import {Table, TableHeader, Column, Row, TableBody, Cell} from 'vanilla-starter/Table';
+import {Collection, type Key} from 'react-aria-components/Collection';
+import {useState} from 'react';
+
+/*- begin collapse -*/
+const rows = [
+  {id: '1', title: 'Documents', type: 'Directory', date: '10/20/2025', children: [
+    {id: '2', title: 'Project', type: 'Directory', date: '8/2/2025', children: [
+      {id: '3', title: 'Weekly Report', type: 'File', date: '7/10/2025', children: []},
+      {id: '4', title: 'Budget', type: 'File', date: '8/20/2025', children: []}
+    ]}
+  ]},
+  {id: '5', title: 'Photos', type: 'Directory', date: '2/3/2026', children: [
+    {id: '6', title: 'Image 1', type: 'File', date: '1/23/2026', children: []},
+    {id: '7', title: 'Image 2', type: 'File', date: '2/3/2026', children: []}
+  ]}
+];
+/*- end collapse -*/
+
+function Example() {
+  let [expandedKeys, setExpandedKeys] = useState(new Set<Key>(['1']))
+
+  return (
+    <Table
+      aria-label="Files"
+      /*- begin highlight -*/
+      treeColumn="name"
+      expandedKeys={expandedKeys}
+      onExpandedChange={setExpandedKeys}>
+      {/*- end highlight -*/}
+      <TableHeader>
+        <Column id="name" isRowHeader>Name</Column>
+        <Column id="type">Type</Column>
+        <Column id="date">Date Modified</Column>
+      </TableHeader>
+      <TableBody items={rows}>
+        {function renderItem(item) {
+          return (
+            <Row id={item.id}>
+              <Cell>{item.title}</Cell>
+              <Cell>{item.type}</Cell>
+              <Cell>{item.date}</Cell>
+              {/*- begin highlight -*/}
+              {/* recursively render children */}
+              <Collection items={item.children}>
+                {renderItem}
+              </Collection>
+              {/*- end highlight -*/}
+            </Row>
+          );
+        }}
+      </TableBody>
+    </Table>
+  );
+}
+```
+
 ### Asynchronous loading
 
 Use [renderEmptyState](#empty-state) to display a spinner during initial load. To enable infinite scrolling, render a `<TableLoadMoreItem>` at the end of the list. Use whatever data fetching library you prefer – this example uses `useAsyncList` from `react-stately`.
 
 ```tsx
-import {Collection, useAsyncList} from 'react-aria-components';
+import {Collection} from 'react-aria-components/Collection';
+import {useAsyncList} from 'react-aria-components/useAsyncList';
 import {Table, TableHeader, Column, Row, TableBody, Cell, TableLoadMoreItem} from 'vanilla-starter/Table';
 import {ProgressCircle} from 'vanilla-starter/ProgressCircle';
 
@@ -926,7 +1176,7 @@ import {Table, TableHeader, Column, TableBody} from 'vanilla-starter/Table';
 Use the `selectionMode` prop to enable single or multiple selection. The selected rows can be controlled via the `selectedKeys` prop, matching the `id` prop of the rows. The `onRowAction` event handles item actions. Rows can be disabled with the `isDisabled` prop. See the [selection guide](selection.md) for more details.
 
 ```tsx
-import type {Selection} from 'react-aria-components';
+import type {Selection} from 'react-aria-components/Table';
 import {Table, TableHeader, Column, Row, TableBody, Cell} from 'vanilla-starter/Table';
 import {useState} from 'react';
 
@@ -982,7 +1232,7 @@ function Example(props) {
 Set the `allowsSorting` prop on a `<Column>` to make it sortable. When the column header is pressed, `onSortChange` is called with a `SortDescriptor` including the sorted column and direction (ascending or descending). Use this to sort the data accordingly, and pass the `sortDescriptor` prop to the `<Table>` to display the sorted column.
 
 ```tsx
-import {type SortDescriptor} from 'react-aria-components';
+import {type SortDescriptor} from 'react-aria-components/Table';
 import {Table, TableHeader, Column, TableBody, Row, Cell} from 'vanilla-starter/Table';
 import {useState} from 'react';
 
@@ -1043,7 +1293,7 @@ Wrap the `<Table>` with a `<ResizableTableContainer>`, and add a `<ColumnResizer
 
 ```tsx
 import {Table, TableHeader, Column, Row, TableBody, Cell} from 'vanilla-starter/Table';
-import {ResizableTableContainer} from 'react-aria-components';
+import {ResizableTableContainer} from 'react-aria-components/Table';
 
 const rows = [
   {id: 1, name: '2022 Roadmap Proposal Revision 012822 Copy (2)', date: 'November 27, 2022 at 4:56PM', size: '214 KB'},
@@ -1080,7 +1330,7 @@ The ResizableTableContainer's `onResize` event is called when a column resizer i
 
 ```tsx
 import {Table, TableHeader, Column, Row, TableBody, Cell} from 'vanilla-starter/Table';
-import {ResizableTableContainer} from 'react-aria-components';
+import {ResizableTableContainer} from 'react-aria-components/Table';
 import {useSyncExternalStore} from 'react';
 
 const rows = [
@@ -1175,27 +1425,43 @@ Table supports drag and drop interactions when the `dragAndDropHooks` prop is pr
 
 ```tsx
 import {Table, TableHeader, TableBody, Column, Row, Cell} from 'vanilla-starter/Table';
-import {useDragAndDrop, useListData} from 'react-aria-components';
+import {useDragAndDrop} from 'react-aria-components/useDragAndDrop';
+import {useTreeData} from 'react-aria-components/useTreeData';
+import {Collection} from 'react-aria-components/Collection';
 
 function ReorderableTable() {
-  let list = useListData({
+  let tree = useTreeData({
     initialItems: [
-      {id: 1, name: 'Games', date: '6/7/2020', type: 'File folder'},
-      {id: 2, name: 'Program Files', date: '4/7/2021', type: 'File folder'},
-      {id: 3, name: 'bootmgr', date: '11/20/2010', type: 'System file'},
-      {id: 4, name: 'log.txt', date: '1/18/2016', type: 'Text Document'}
+      {id: '1', title: 'Documents', type: 'Directory', date: '10/20/2025', children: [
+        {id: '2', title: 'Project', type: 'Directory', date: '8/2/2025', children: [
+          {id: '3', title: 'Weekly Report', type: 'File', date: '7/10/2025', children: []},
+          {id: '4', title: 'Budget', type: 'File', date: '8/20/2025', children: []}
+        ]}
+      ]},
+      {id: '5', title: 'Photos', type: 'Directory', date: '2/3/2026', children: [
+        {id: '6', title: 'Image 1', type: 'File', date: '1/23/2026', children: []},
+        {id: '7', title: 'Image 2', type: 'File', date: '2/3/2026', children: []}
+      ]}
     ]
   });
 
   let {dragAndDropHooks} = useDragAndDrop({
-    getItems: (keys, items: typeof list.items) => items.map(item => ({
-      'text/plain': item.name
-    })),
-    onReorder(e) {
+    getItems: (keys, items: typeof tree.items) => items.map(item => ({'text/plain': item.value.title})),
+    onMove(e) {
       if (e.target.dropPosition === 'before') {
-        list.moveBefore(e.target.key, e.keys);
+        tree.moveBefore(e.target.key, e.keys);
       } else if (e.target.dropPosition === 'after') {
-        list.moveAfter(e.target.key, e.keys);
+        tree.moveAfter(e.target.key, e.keys);
+      } else if (e.target.dropPosition === 'on') {
+        // Move items to become children of the target
+        let targetNode = tree.getItem(e.target.key);
+        if (targetNode) {
+          let targetIndex = targetNode.children ? targetNode.children.length : 0;
+          let keyArray = Array.from(e.keys);
+          for (let i = 0; i < keyArray.length; i++) {
+            tree.move(keyArray[i], e.target.key, targetIndex + i);
+          }
+        }
       }
     }
   });
@@ -1204,21 +1470,28 @@ function ReorderableTable() {
     <Table
       aria-label="Files"
       selectionMode="multiple"
+      treeColumn="name"
+      defaultExpandedKeys={['5']}
       dragAndDropHooks={dragAndDropHooks}
     >
       <TableHeader>
-        <Column isRowHeader>Name</Column>
-        <Column>Type</Column>
-        <Column>Date Modified</Column>
+        <Column id="name" isRowHeader>Name</Column>
+        <Column id="type">Type</Column>
+        <Column id="date">Date Modified</Column>
       </TableHeader>
-      <TableBody items={list.items}>
-        {item => (
-          <Row>
-            <Cell>{item.name}</Cell>
-            <Cell>{item.type}</Cell>
-            <Cell>{item.date}</Cell>
-          </Row>
-        )}
+      <TableBody items={tree.items}>
+        {function renderItem(item) {
+          return (
+            <Row id={item.key}>
+              <Cell>{item.value.title}</Cell>
+              <Cell>{item.value.type}</Cell>
+              <Cell>{item.value.date}</Cell>
+              {item.children && <Collection items={item.children}>
+                {renderItem}
+              </Collection>}
+            </Row>
+          );
+        }}
       </TableBody>
     </Table>
   );
@@ -1244,16 +1517,26 @@ function ReorderableTable() {
       <Column />
     </TableHeader>
     <TableBody>
-      <Row id="row-1">
+      <Row>
         <Cell><Button slot="drag" /></Cell>
         <Cell>
           <Checkbox slot="selection" /> or <SelectionIndicator />
         </Cell>
+        <Cell>
+          <Button slot="chevron" />
+        </Cell>
         <Cell />
-        <Cell />
+        <Row>
+          {/* ... */}
+        </Row>
       </Row>
       <TableLoadMoreItem />
     </TableBody>
+    <TableFooter>
+      <Row>
+        <Cell />
+      </Row>
+    </TableFooter>
   </Table>
 </ResizableTableContainer>
 ```
@@ -1268,13 +1551,15 @@ function ReorderableTable() {
 | `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
 | `children` | `React.ReactNode` | — | The elements that make up the table. Includes the TableHeader, TableBody, Columns, and Rows. |
 | `className` | `ClassNameOrFunction<TableRenderProps> | undefined` | 'react-aria-Table' | The CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. A function may be provided to compute the class based on component state. |
-| `defaultSelectedKeys` | `Iterable<Key> | "all" | undefined` | — | The initial selected keys in the collection (uncontrolled). |
+| `defaultExpandedKeys` | `Iterable<Key> | undefined` | — | The initial expanded keys in the collection (uncontrolled). |
+| `defaultSelectedKeys` | `"all" | Iterable<Key> | undefined` | — | The initial selected keys in the collection (uncontrolled). |
 | `dir` | `string | undefined` | — |  |
-| `disabledBehavior` | `DisabledBehavior | undefined` | "all" | Whether `disabledKeys` applies to all interactions, or only selection. |
+| `disabledBehavior` | `DisabledBehavior | undefined` | 'all' | Whether `disabledKeys` applies to all interactions, or only selection. |
 | `disabledKeys` | `Iterable<Key> | undefined` | — | A list of row keys to disable. |
 | `disallowEmptySelection` | `boolean | undefined` | — | Whether the collection allows empty selection. |
 | `dragAndDropHooks` | `DragAndDropHooks | undefined` | — | The drag and drop hooks returned by `useDragAndDrop` used to enable drag and drop behavior for the Table. |
-| `escapeKeyBehavior` | `"none" | "clearSelection" | undefined` | 'clearSelection' | Whether pressing the escape key should clear selection in the table or not. Most experiences should not modify this option as it eliminates a keyboard user's ability to easily clear selection. Only use if the escape key is being handled externally or should not trigger selection clearing contextually. |
+| `escapeKeyBehavior` | `"clearSelection" | "none" | undefined` | 'clearSelection' | Whether pressing the escape key should clear selection in the table or not. Most experiences should not modify this option as it eliminates a keyboard user's ability to easily clear selection. Only use if the escape key is being handled externally or should not trigger selection clearing contextually. |
+| `expandedKeys` | `Iterable<Key> | undefined` | — | The currently expanded keys in the collection (controlled). |
 | `hidden` | `boolean | undefined` | — |  |
 | `inert` | `boolean | undefined` | — |  |
 | `lang` | `string | undefined` | — |  |
@@ -1292,6 +1577,7 @@ function ReorderableTable() {
 | `onContextMenuCapture` | `React.MouseEventHandler<HTMLTableElement> | undefined` | — |  |
 | `onDoubleClick` | `React.MouseEventHandler<HTMLTableElement> | undefined` | — |  |
 | `onDoubleClickCapture` | `React.MouseEventHandler<HTMLTableElement> | undefined` | — |  |
+| `onExpandedChange` | `((keys: Set<Key>) => any) | undefined` | — | Handler that is called when items are expanded or collapsed. |
 | `onGotPointerCapture` | `React.PointerEventHandler<HTMLTableElement> | undefined` | — |  |
 | `onGotPointerCaptureCapture` | `React.PointerEventHandler<HTMLTableElement> | undefined` | — |  |
 | `onLostPointerCapture` | `React.PointerEventHandler<HTMLTableElement> | undefined` | — |  |
@@ -1345,21 +1631,22 @@ function ReorderableTable() {
 | `onTransitionStartCapture` | `React.TransitionEventHandler<HTMLTableElement> | undefined` | — |  |
 | `onWheel` | `React.WheelEventHandler<HTMLTableElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLTableElement> | undefined` | — |  |
-| `render` | `DOMRenderFunction<"div" | "table", TableRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
-| `selectedKeys` | `Iterable<Key> | "all" | undefined` | — | The currently selected keys in the collection (controlled). |
-| `selectionBehavior` | `SelectionBehavior | undefined` | "toggle" | How multiple selection should behave in the collection. |
+| `render` | `DOMRenderFunction<"table" | "div", TableRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
+| `selectedKeys` | `"all" | Iterable<Key> | undefined` | — | The currently selected keys in the collection (controlled). |
+| `selectionBehavior` | `SelectionBehavior | undefined` | 'toggle' | How multiple selection should behave in the collection. |
 | `selectionMode` | `SelectionMode | undefined` | — | The type of selection that is allowed in the collection. |
 | `shouldSelectOnPressUp` | `boolean | undefined` | — | Whether selection should occur on press up instead of press down. |
 | `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
 | `sortDescriptor` | `SortDescriptor | undefined` | — | The current sorted column and direction. |
-| `style` | `(React.CSSProperties | ((values: TableRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `style` | `(((values: TableRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `translate` | `"no" | "yes" | undefined` | — |  |
+| `treeColumn` | `Key | undefined` | — | The id of the column that displays hierarchical data. |
 
 ### TableHeader
 
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
-| `children` | `React.ReactNode | ((item: T) => ReactElement)` | — | A list of `Column(s)` or a function. If the latter, a list of columns must be provided using the `columns` prop. |
+| `children` | `((item: T) => ReactElement) | React.ReactNode` | — | A list of `Column(s)` or a function. If the latter, a list of columns must be provided using the `columns` prop. |
 | `className` | `ClassNameOrFunction<TableHeaderRenderProps> | undefined` | 'react-aria-TableHeader' | The CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. A function may be provided to compute the class based on component state. |
 | `columns` | `Iterable<T> | undefined` | — | A list of table columns. |
 | `dependencies` | `readonly any[] | undefined` | — | Values that should invalidate the column cache when using dynamic collections. |
@@ -1434,9 +1721,9 @@ function ReorderableTable() {
 | `onTransitionStartCapture` | `React.TransitionEventHandler<HTMLTableSectionElement> | undefined` | — |  |
 | `onWheel` | `React.WheelEventHandler<HTMLTableSectionElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLTableSectionElement> | undefined` | — |  |
-| `render` | `DOMRenderFunction<"div" | "thead", TableHeaderRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
-| `style` | `(React.CSSProperties | ((values: TableHeaderRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `render` | `DOMRenderFunction<"div" | "thead", TableHeaderRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
+| `style` | `(((values: TableHeaderRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `translate` | `"no" | "yes" | undefined` | — |  |
 
 ### Column
 
@@ -1518,17 +1805,17 @@ function ReorderableTable() {
 | `onTransitionStartCapture` | `React.TransitionEventHandler<HTMLTableHeaderCellElement> | undefined` | — |  |
 | `onWheel` | `React.WheelEventHandler<HTMLTableHeaderCellElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLTableHeaderCellElement> | undefined` | — |  |
-| `render` | `DOMRenderFunction<"div" | "th", ColumnRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
-| `style` | `(React.CSSProperties | ((values: ColumnRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `render` | `DOMRenderFunction<"div" | "th", ColumnRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
+| `style` | `(((values: ColumnRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
 | `textValue` | `string | undefined` | — | A string representation of the column's contents, used for accessibility announcements. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `translate` | `"no" | "yes" | undefined` | — |  |
 | `width` | `ColumnSize | null | undefined` | — | The width of the column. This prop only applies when the `<Table>` is wrapped in a `<ResizableTableContainer>`. |
 
 ### TableBody
 
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
-| `children` | `React.ReactNode | ((item: T) => ReactNode)` | — | The contents of the collection. |
+| `children` | `((item: T) => ReactNode) | React.ReactNode` | — | The contents of the collection. |
 | `className` | `ClassNameOrFunction<TableBodyRenderProps> | undefined` | 'react-aria-TableBody' | The CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. A function may be provided to compute the class based on component state. |
 | `dependencies` | `readonly any[] | undefined` | — | Values that should invalidate the item cache when using dynamic collections. |
 | `dir` | `string | undefined` | — |  |
@@ -1600,21 +1887,23 @@ function ReorderableTable() {
 | `onTransitionStartCapture` | `React.TransitionEventHandler<HTMLTableSectionElement> | undefined` | — |  |
 | `onWheel` | `React.WheelEventHandler<HTMLTableSectionElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLTableSectionElement> | undefined` | — |  |
-| `render` | `DOMRenderFunction<"div" | "tbody", TableBodyRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
+| `render` | `DOMRenderFunction<"div" | "tbody", TableBodyRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
 | `renderEmptyState` | `((props: TableBodyRenderProps) => ReactNode) | undefined` | — | Provides content to display when there are no rows in the table. |
-| `style` | `(React.CSSProperties | ((values: TableBodyRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `style` | `(((values: TableBodyRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `translate` | `"no" | "yes" | undefined` | — |  |
 
 ### Row
 
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
-| `children` | `React.ReactNode | ((item: T) => ReactElement)` | — | The cells within the row. Supports static items or a function for dynamic rendering. |
+| `children` | `((item: T) => ReactElement) | React.ReactNode` | — | The cells within the row. Supports static items or a function for dynamic rendering. |
 | `className` | `ClassNameOrFunction<RowRenderProps> | undefined` | 'react-aria-Row' | The CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. A function may be provided to compute the class based on component state. |
 | `columns` | `Iterable<T> | undefined` | — | A list of columns used when dynamically rendering cells. |
 | `dependencies` | `readonly any[] | undefined` | — | Values that should invalidate the cell cache when using dynamic collections. |
 | `dir` | `string | undefined` | — |  |
-| `download` | `string | boolean | undefined` | — | Causes the browser to download the linked URL. A string may be provided to suggest a file name. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#download). |
+| `disabledBehavior` | `DisabledBehavior | undefined` | — | Whether `disabledKeys` applies to all interactions, or only selection. |
+| `download` | `boolean | string | undefined` | — | Causes the browser to download the linked URL. A string may be provided to suggest a file name. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#download). |
+| `hasChildItems` | `boolean | undefined` | — | Whether this row has children, even if not loaded yet. |
 | `hidden` | `boolean | undefined` | — |  |
 | `href` | `string | undefined` | — | A URL to link to. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#href). |
 | `hrefLang` | `string | undefined` | — | Hints at the human language of the linked URL. See[MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#hreflang). |
@@ -1631,7 +1920,7 @@ function ReorderableTable() {
 | `onAnimationStartCapture` | `React.AnimationEventHandler<HTMLTableRowElement> | undefined` | — |  |
 | `onAuxClick` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
 | `onAuxClickCapture` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
-| `onClick` | `((e: React.MouseEvent<FocusableElement>) => void) | undefined` | — | **Not recommended – use `onPress` instead.** `onClick` is an alias for `onPress` provided for compatibility with other libraries. `onPress` provides  additional event details for non-mouse interactions. |
+| `onClick` | `((e: React.MouseEvent<FocusableElement>) => void) | undefined` | — | **Not recommended – use `onPress` instead.** `onClick` is an alias for `onPress` provided for compatibility with other libraries. `onPress` provides additional event details for non-mouse interactions. |
 | `onClickCapture` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
 | `onContextMenu` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
 | `onContextMenuCapture` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
@@ -1698,12 +1987,12 @@ function ReorderableTable() {
 | `ping` | `string | undefined` | — | A space-separated list of URLs to ping when the link is followed. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#ping). |
 | `referrerPolicy` | `React.HTMLAttributeReferrerPolicy | undefined` | — | How much of the referrer to send when following the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#referrerpolicy). |
 | `rel` | `string | undefined` | — | The relationship between the linked resource and the current page. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel). |
-| `render` | `DOMRenderFunction<"div" | "tr", RowRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
+| `render` | `DOMRenderFunction<"div" | "tr", RowRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
 | `routerOptions` | `undefined` | — | Options for the configured client side router. |
-| `style` | `(React.CSSProperties | ((values: RowRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `style` | `(((values: RowRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
 | `target` | `React.HTMLAttributeAnchorTarget | undefined` | — | The target window for the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#target). |
 | `textValue` | `string | undefined` | — | A string representation of the row's contents, used for features like typeahead. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `translate` | `"no" | "yes" | undefined` | — |  |
 | `value` | `T | undefined` | — | The object value that this row represents. When using dynamic collections, this is set automatically. |
 
 ### Cell
@@ -1782,10 +2071,89 @@ function ReorderableTable() {
 | `onTransitionStartCapture` | `React.TransitionEventHandler<HTMLTableCellElement> | undefined` | — |  |
 | `onWheel` | `React.WheelEventHandler<HTMLTableCellElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLTableCellElement> | undefined` | — |  |
-| `render` | `DOMRenderFunction<"div" | "td", CellRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
-| `style` | `(React.CSSProperties | ((values: CellRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `render` | `DOMRenderFunction<"div" | "td", CellRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
+| `style` | `(((values: CellRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
 | `textValue` | `string | undefined` | — | A string representation of the cell's contents, used for features like typeahead. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `translate` | `"no" | "yes" | undefined` | — |  |
+
+### TableFooter
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `((item: T) => ReactNode) | React.ReactNode` | — | The contents of the collection. |
+| `className` | `string | undefined` | 'react-aria-TableFooter' | The CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. |
+| `dependencies` | `readonly any[] | undefined` | — | Values that should invalidate the item cache when using dynamic collections. |
+| `dir` | `string | undefined` | — |  |
+| `hidden` | `boolean | undefined` | — |  |
+| `inert` | `boolean | undefined` | — |  |
+| `items` | `Iterable<T> | undefined` | — | Item objects in the collection. |
+| `lang` | `string | undefined` | — |  |
+| `onAnimationEnd` | `React.AnimationEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onAnimationEndCapture` | `React.AnimationEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onAnimationIteration` | `React.AnimationEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onAnimationIterationCapture` | `React.AnimationEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onAnimationStart` | `React.AnimationEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onAnimationStartCapture` | `React.AnimationEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onAuxClick` | `React.MouseEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onAuxClickCapture` | `React.MouseEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onClick` | `React.MouseEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onClickCapture` | `React.MouseEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onContextMenu` | `React.MouseEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onContextMenuCapture` | `React.MouseEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onDoubleClick` | `React.MouseEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onDoubleClickCapture` | `React.MouseEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onGotPointerCapture` | `React.PointerEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onGotPointerCaptureCapture` | `React.PointerEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onLostPointerCapture` | `React.PointerEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onLostPointerCaptureCapture` | `React.PointerEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onMouseDown` | `React.MouseEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onMouseDownCapture` | `React.MouseEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onMouseEnter` | `React.MouseEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onMouseLeave` | `React.MouseEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onMouseMove` | `React.MouseEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onMouseMoveCapture` | `React.MouseEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onMouseOut` | `React.MouseEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onMouseOutCapture` | `React.MouseEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onMouseOver` | `React.MouseEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onMouseOverCapture` | `React.MouseEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onMouseUp` | `React.MouseEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onMouseUpCapture` | `React.MouseEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onPointerCancel` | `React.PointerEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onPointerCancelCapture` | `React.PointerEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onPointerDown` | `React.PointerEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onPointerDownCapture` | `React.PointerEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onPointerEnter` | `React.PointerEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onPointerLeave` | `React.PointerEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onPointerMove` | `React.PointerEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onPointerMoveCapture` | `React.PointerEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onPointerOut` | `React.PointerEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onPointerOutCapture` | `React.PointerEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onPointerOver` | `React.PointerEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onPointerOverCapture` | `React.PointerEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onPointerUp` | `React.PointerEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onPointerUpCapture` | `React.PointerEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onScroll` | `React.UIEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onScrollCapture` | `React.UIEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onTouchCancel` | `React.TouchEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onTouchCancelCapture` | `React.TouchEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onTouchEnd` | `React.TouchEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onTouchEndCapture` | `React.TouchEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onTouchMove` | `React.TouchEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onTouchMoveCapture` | `React.TouchEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onTouchStart` | `React.TouchEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onTouchStartCapture` | `React.TouchEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onTransitionCancel` | `React.TransitionEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onTransitionCancelCapture` | `React.TransitionEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onTransitionEnd` | `React.TransitionEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onTransitionEndCapture` | `React.TransitionEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onTransitionRun` | `React.TransitionEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onTransitionRunCapture` | `React.TransitionEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onTransitionStart` | `React.TransitionEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onTransitionStartCapture` | `React.TransitionEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onWheel` | `React.WheelEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `onWheelCapture` | `React.WheelEventHandler<HTMLTableSectionElement> | undefined` | — |  |
+| `style` | `React.CSSProperties | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. |
+| `translate` | `"no" | "yes" | undefined` | — |  |
 
 ### ResizableTableContainer
 
@@ -1865,9 +2233,9 @@ function ReorderableTable() {
 | `onTransitionStartCapture` | `React.TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheel` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
-| `render` | `DOMRenderFunction<"div", undefined> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
+| `render` | `DOMRenderFunction<"div", undefined> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
 | `style` | `React.CSSProperties | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `translate` | `"no" | "yes" | undefined` | — |  |
 
 ### ColumnResizer
 
@@ -1947,9 +2315,9 @@ function ReorderableTable() {
 | `onTransitionStartCapture` | `React.TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheel` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
-| `render` | `DOMRenderFunction<"div", ColumnResizerRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
-| `style` | `(React.CSSProperties | ((values: ColumnResizerRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `render` | `DOMRenderFunction<"div", ColumnResizerRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
+| `style` | `(((values: ColumnResizerRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `translate` | `"no" | "yes" | undefined` | — |  |
 
 ### TableLoadMoreItem
 
@@ -2027,10 +2395,10 @@ function ReorderableTable() {
 | `onTransitionStartCapture` | `React.TransitionEventHandler<HTMLTableRowElement> | undefined` | — |  |
 | `onWheel` | `React.WheelEventHandler<HTMLTableRowElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLTableRowElement> | undefined` | — |  |
-| `render` | `DOMRenderFunction<"div" | "tr", undefined> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
+| `render` | `DOMRenderFunction<"div" | "tr", undefined> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
 | `scrollOffset` | `number | undefined` | 1 | The amount of offset from the bottom of your scrollable region that should trigger load more. Uses a percentage value relative to the scroll body's client height. Load more is then triggered when your current scroll position's distance from the bottom of the currently loaded list of items is less than or equal to the provided value. (e.g. 1 = 100% of the scroll region's height). |
 | `style` | `React.CSSProperties | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `translate` | `"no" | "yes" | undefined` | — |  |
 
 ## Related Types
 
@@ -2045,28 +2413,29 @@ function ReorderableTable() {
 
 `useDragAndDrop(options: DragAndDropOptions<T>): DragAndDrop<T>`
 
-Provides the hooks required to enable drag and drop behavior for a drag and drop compatible collection component.
+Provides the hooks required to enable drag and drop behavior for a drag and drop compatible
+collection component.
 
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
+| `acceptedDragTypes` | `"all" | (string | symbol)[] | undefined` | 'all' | The drag types that the droppable collection accepts. If the collection accepts directories, include `DIRECTORY_DRAG_TYPE` in your array of allowed types. |
+| `dropTargetDelegate` | `DropTargetDelegate | undefined` | — | A custom delegate object that provides drop targets for pointer coordinates within the collection. |
+| `getAllowedDropOperations` | `(() => DropOperation[]) | undefined` | — | Function that returns the drop operations that are allowed for the dragged items. If not provided, all drop operations are allowed. |
+| `getDropOperation` | `((target: DropTarget, types: DragTypes, allowedOperations: DropOperation[]) => DropOperation) | undefined` | — | A function returning the drop operation to be performed when items matching the given types are dropped on the drop target. |
 | `getItems` | `((keys: Set<Key>, items: T[]) => DragItem[]) | undefined` | () => \[] | A function that returns the items being dragged. If not specified, we assume that the collection is not draggable. |
+| `isDisabled` | `boolean | undefined` | — | Whether the drag and drop events should be disabled. |
+| `onDragEnd` | `((e: DraggableCollectionEndEvent) => void) | undefined` | — | Handler that is called when the drag operation is ended, either as a result of a drop or a cancellation. |
+| `onDragMove` | `((e: DraggableCollectionMoveEvent) => void) | undefined` | — | Handler that is called when the drag is moved. |
+| `onDragStart` | `((e: DraggableCollectionStartEvent) => void) | undefined` | — | Handler that is called when a drag operation is started. |
+| `onDrop` | `((e: DroppableCollectionDropEvent) => void) | undefined` | — | Handler that is called when a valid drag is dropped on a drop target. When defined, this overrides other drop handlers such as `onInsert`, and `onItemDrop`. |
+| `onDropActivate` | `((e: DroppableCollectionActivateEvent) => void) | undefined` | — | Handler that is called after a valid drag is held over a drop target for a period of time. |
+| `onDropEnter` | `((e: DroppableCollectionEnterEvent) => void) | undefined` | — | Handler that is called when a valid drag enters a drop target. |
+| `onDropExit` | `((e: DroppableCollectionExitEvent) => void) | undefined` | — | Handler that is called when a valid drag exits a drop target. |
+| `onInsert` | `((e: DroppableCollectionInsertDropEvent) => void) | undefined` | — | Handler that is called when external items are dropped "between" items. |
+| `onItemDrop` | `((e: DroppableCollectionOnItemDropEvent) => void) | undefined` | — | Handler that is called when items are dropped "on" an item. |
+| `onMove` | `((e: DroppableCollectionReorderEvent) => void) | undefined` | — | Handler that is called when items are moved within the source collection. This handler allows dropping both on or between items, and items may be moved to a different parent item within a tree. |
+| `onReorder` | `((e: DroppableCollectionReorderEvent) => void) | undefined` | — | Handler that is called when items are reordered within the collection. This handler only allows dropping between items, not on items. It does not allow moving items to a different parent item within a tree. |
+| `onRootDrop` | `((e: DroppableCollectionRootDropEvent) => void) | undefined` | — | Handler that is called when external items are dropped on the droppable collection's root. |
 | `renderDragPreview` | `((items: DragItem[]) => JSX.Element | { element: JSX.Element; x: number; y: number; }) | undefined` | — | A function that renders a drag preview, which is shown under the user's cursor while dragging. By default, a copy of the dragged element is rendered. |
 | `renderDropIndicator` | `((target: DropTarget) => JSX.Element) | undefined` | — | A function that renders a drop indicator element between two items in a collection. This should render a `<DropIndicator>` element. If this function is not provided, a default DropIndicator is provided. |
-| `dropTargetDelegate` | `DropTargetDelegate | undefined` | — | A custom delegate object that provides drop targets for pointer coordinates within the collection. |
-| `isDisabled` | `boolean | undefined` | — | Whether the drag and drop events should be disabled. |
-| `onDragStart` | `((e: DraggableCollectionStartEvent) => void) | undefined` | — | Handler that is called when a drag operation is started. |
-| `onDragMove` | `((e: DraggableCollectionMoveEvent) => void) | undefined` | — | Handler that is called when the drag is moved. |
-| `onDragEnd` | `((e: DraggableCollectionEndEvent) => void) | undefined` | — | Handler that is called when the drag operation is ended, either as a result of a drop or a cancellation. |
-| `getAllowedDropOperations` | `(() => DropOperation[]) | undefined` | — | Function that returns the drop operations that are allowed for the dragged items. If not provided, all drop operations are allowed. |
-| `acceptedDragTypes` | `"all" | (string | symbol)[] | undefined` | 'all' | The drag types that the droppable collection accepts. If the collection accepts directories, include `DIRECTORY_DRAG_TYPE` in your array of allowed types. |
-| `onInsert` | `((e: DroppableCollectionInsertDropEvent) => void) | undefined` | — | Handler that is called when external items are dropped "between" items. |
-| `onRootDrop` | `((e: DroppableCollectionRootDropEvent) => void) | undefined` | — | Handler that is called when external items are dropped on the droppable collection's root. |
-| `onItemDrop` | `((e: DroppableCollectionOnItemDropEvent) => void) | undefined` | — | Handler that is called when items are dropped "on" an item. |
-| `onReorder` | `((e: DroppableCollectionReorderEvent) => void) | undefined` | — | Handler that is called when items are reordered within the collection. This handler only allows dropping between items, not on items. It does not allow moving items to a different parent item within a tree. |
-| `onMove` | `((e: DroppableCollectionReorderEvent) => void) | undefined` | — | Handler that is called when items are moved within the source collection. This handler allows dropping both on or between items, and items may be moved to a different parent item within a tree. |
 | `shouldAcceptItemDrop` | `((target: ItemDropTarget, types: DragTypes) => boolean) | undefined` | — | A function returning whether a given target in the droppable collection is a valid "on" drop target for the current drag types. |
-| `onDropEnter` | `((e: DroppableCollectionEnterEvent) => void) | undefined` | — | Handler that is called when a valid drag enters a drop target. |
-| `onDropActivate` | `((e: DroppableCollectionActivateEvent) => void) | undefined` | — | Handler that is called after a valid drag is held over a drop target for a period of time. |
-| `onDropExit` | `((e: DroppableCollectionExitEvent) => void) | undefined` | — | Handler that is called when a valid drag exits a drop target. |
-| `onDrop` | `((e: DroppableCollectionDropEvent) => void) | undefined` | — | Handler that is called when a valid drag is dropped on a drop target. When defined, this overrides other drop handlers such as `onInsert`, and `onItemDrop`. |
-| `getDropOperation` | `((target: DropTarget, types: DragTypes, allowedOperations: DropOperation[]) => DropOperation) | undefined` | — | A function returning the drop operation to be performed when items matching the given types are dropped on the drop target. |

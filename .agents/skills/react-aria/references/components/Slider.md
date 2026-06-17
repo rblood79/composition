@@ -11,47 +11,55 @@ A slider allows a user to select one or more values within a range.
 import {
   Slider as AriaSlider,
   SliderOutput,
-  SliderProps as AriaSliderProps,
+  type SliderProps as AriaSliderProps,
   SliderThumb,
-  SliderTrack
-} from 'react-aria-components';
+  SliderTrack,
+  SliderFill
+} from 'react-aria-components/Slider';
 import {Label} from './Form';
 import './Slider.css';
 
 export interface SliderProps<T> extends AriaSliderProps<T> {
+  /** Label for the slider. */
   label?: string;
+  /** Aria labels for each thumb. */
   thumbLabels?: string[];
+  /**
+   * The offset from which to start the fill.
+   *
+   * @default 0
+   */
+  fillOffset?: number;
 }
 
-export function Slider<T extends number | number[]>(
-  { label, thumbLabels, ...props }: SliderProps<T>
-) {
+export function Slider<T extends number | number[]>({
+  label,
+  thumbLabels,
+  fillOffset,
+  ...props
+}: SliderProps<T>) {
   return (
-    (
-      <AriaSlider {...props}>
-        {label && <Label>{label}</Label>}
-        <SliderOutput>
-          {({ state }) =>
-            state.values.map((_, i) => state.getThumbValueLabel(i)).join(' – ')}
-        </SliderOutput>
-        <SliderTrack>
-          {({ state, isDisabled }) => (<>
+    <AriaSlider {...props}>
+      {label && <Label>{label}</Label>}
+      <SliderOutput />
+      <SliderTrack>
+        {({state, isDisabled}) => (
+          <>
             <div className="track inset" data-disabled={isDisabled || undefined}>
-              {state.values.length === 1
-                // Single thumb, render fill from the end
-                ? <div className="fill" style={{'--size': state.getThumbPercent(0) * 100 + '%'} as any} />
-                : state.values.length === 2
-                  // Range slider, render fill between the thumbs
-                  ? <div className="fill" style={{'--start': state.getThumbPercent(0) * 100 + '%', '--size': (state.getThumbPercent(1) - state.getThumbPercent(0)) * 100 + '%'} as any} />
-                  : null}
+              <SliderFill offset={fillOffset} />
             </div>
             {state.values.map((_, i) => (
-              <SliderThumb key={i} index={i} aria-label={thumbLabels?.[i]} className="react-aria-SliderThumb indicator" />
+              <SliderThumb
+                key={i}
+                index={i}
+                aria-label={thumbLabels?.[i]}
+                className="react-aria-SliderThumb indicator"
+              />
             ))}
-          </>)}
-        </SliderTrack>
-      </AriaSlider>
-    )
+          </>
+        )}
+      </SliderTrack>
+    </AriaSlider>
   );
 }
 
@@ -60,13 +68,14 @@ export function Slider<T extends number | number[]>(
 ### Slider.css
 
 ```css
-@import "./theme.css";
-@import "./utilities.css";
+@import './theme.css';
+@import './utilities.css';
 
 .react-aria-Slider {
   display: grid;
-  grid-template-areas: "label output"
-                       "track track";
+  grid-template-areas:
+    'label output'
+    'track track';
   grid-template-columns: 1fr auto;
   max-width: min(calc(100% - 12px), 300px);
   font: var(--font-size) system-ui;
@@ -91,9 +100,7 @@ export function Slider<T extends number | number[]>(
       border-radius: 9999px;
     }
 
-    .fill {
-      position: absolute;
-      margin: 1px 0 0 1px;
+    .react-aria-SliderFill {
       border-radius: inherit;
       background: var(--tint-900);
 
@@ -116,7 +123,7 @@ export function Slider<T extends number | number[]>(
     }
   }
 
-  &[data-orientation=horizontal] {
+  &[data-orientation='horizontal'] {
     flex-direction: column;
     width: 100%;
 
@@ -131,14 +138,19 @@ export function Slider<T extends number | number[]>(
         transform: translateY(-50%);
       }
 
-      .fill {
-        inset-inline-start: var(--start, 0);
-        width: var(--size);
-        height: calc(100% - 2px);
-        box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 2px 2px rgb(255 255 255 / 0.2), 0 1px 0 lch(from var(--tint) 42% c h), 0 0 0 1px var(--tint-900);
-    
+      .react-aria-SliderFill {
+        box-shadow:
+          inset 0 -1px 0 lch(from var(--tint) 42% c h),
+          inset 0 0 0 1px var(--tint-900),
+          inset 0 2px 0 rgb(255 255 255 / 0.3),
+          inset 0 3px 2px rgb(255 255 255 / 0.2);
+
         @media (prefers-color-scheme: dark) {
-          box-shadow: 0 -1px 0 rgb(255 255 255 / 0.6), inset 0 2px 2px rgb(255 255 255 / 0.2), 0 1px 0 lch(from var(--tint) 42% c h), 0 0 0 1px var(--tint-900);
+          box-shadow:
+            inset 0 -1px 0 lch(from var(--tint) 42% c h),
+            inset 0 1px 0 rgb(255 255 255 / 0.6),
+            inset 0 0 0 1px var(--tint-900),
+            inset 0 3px 2px rgb(255 255 255 / 0.2);
         }
 
         @media (forced-colors: active) {
@@ -152,7 +164,7 @@ export function Slider<T extends number | number[]>(
     }
   }
 
-  &[data-orientation=vertical] {
+  &[data-orientation='vertical'] {
     height: 150px;
     display: block;
     margin: var(--spacing-3) 0;
@@ -173,14 +185,19 @@ export function Slider<T extends number | number[]>(
         transform: translateX(-50%);
       }
 
-      .fill {
-        inset-block-end: var(--start, 0);
-        height: var(--size);
-        width: calc(100% - 2px);
-        box-shadow: inset 1px 0 0 rgb(255 255 255 / 0.3), inset 2px 0 2px rgb(255 255 255 / 0.2), 1px 0 0 lch(from var(--tint) 42% c h), 0 0 0 1px var(--tint-900);
-    
+      .react-aria-SliderFill {
+        box-shadow:
+          inset -1px 0 0 lch(from var(--tint) 42% c h),
+          inset 0 0 0 1px var(--tint-900),
+          inset 2px 0 0 rgb(255 255 255 / 0.3),
+          inset 3px 0 2px rgb(255 255 255 / 0.2);
+
         @media (prefers-color-scheme: dark) {
-          box-shadow: -1px 0 0 rgb(255 255 255 / 0.6), inset 2px 0 2px rgb(255 255 255 / 0.2), 1px 0 0 lch(from var(--tint) 42% c h), 0 0 0 1px var(--tint-900);
+          box-shadow:
+            inset -1px 0 0 lch(from var(--tint) 42% c h),
+            inset 1px 0 0 rgb(255 255 255 / 0.6),
+            inset 0 0 0 1px var(--tint-900),
+            inset 3px 0 2px rgb(255 255 255 / 0.2);
         }
 
         @media (forced-colors: active) {
@@ -201,7 +218,7 @@ export function Slider<T extends number | number[]>(
         --border-color: var(--border-color-disabled);
       }
 
-      .fill {
+      .react-aria-SliderFill {
         background: var(--border-color-disabled);
         box-shadow: none;
       }
@@ -220,17 +237,18 @@ export function Slider<T extends number | number[]>(
 import React from 'react';
 import {
   Slider as AriaSlider,
-  SliderProps as AriaSliderProps,
+  type SliderProps as AriaSliderProps,
   SliderOutput,
   SliderThumb,
-  SliderTrack
-} from 'react-aria-components';
-import { tv } from 'tailwind-variants';
-import { Label } from './Field';
-import { composeTailwindRenderProps, focusRing } from './utils';
+  SliderTrack,
+  SliderFill
+} from 'react-aria-components/Slider';
+import {tv} from 'tailwind-variants';
+import {Label} from './Field';
+import {composeTailwindRenderProps, focusRing} from './utils';
 
 const trackStyles = tv({
-  base: 'rounded-full',
+  base: 'relative rounded-full',
   variants: {
     orientation: {
       horizontal: 'w-full h-[6px]',
@@ -244,12 +262,8 @@ const trackStyles = tv({
 });
 
 const fillStyles = tv({
-  base: 'absolute rounded-full',
+  base: 'rounded-full',
   variants: {
-    orientation: {
-      horizontal: 'w-(--size) h-[6px] start-(--start,0)',
-      vertical: 'h-(--size) w-[6px] bottom-(--start,0) ml-[50%] -translate-x-[50%]'
-    },
     isDisabled: {
       false: 'bg-blue-500 forced-colors:bg-[Highlight]',
       true: 'bg-neutral-300 dark:bg-neutral-600 forced-colors:bg-[GrayText]'
@@ -271,35 +285,49 @@ const thumbStyles = tv({
 });
 
 export interface SliderProps<T> extends AriaSliderProps<T> {
+  /** Label for the slider. */
   label?: string;
+  /** Aria labels for each thumb. */
   thumbLabels?: string[];
+  /**
+   * The offset from which to start the fill.
+   *
+   * @default 0
+   */
+  fillOffset?: number;
 }
 
-export function Slider<T extends number | number[]>(
-  { label, thumbLabels, ...props }: SliderProps<T>
-) {
+export function Slider<T extends number | number[]>({
+  label,
+  thumbLabels,
+  fillOffset,
+  ...props
+}: SliderProps<T>) {
   return (
-    <AriaSlider {...props} className={composeTailwindRenderProps(props.className, 'font-sans orientation-horizontal:grid orientation-vertical:flex grid-cols-[1fr_auto] flex-col items-center gap-2 orientation-horizontal:w-64 orientation-horizontal:max-w-[calc(100%-10px)]')}>
+    <AriaSlider
+      {...props}
+      className={composeTailwindRenderProps(
+        props.className,
+        'font-sans orientation-horizontal:grid orientation-vertical:flex grid-cols-[1fr_auto] flex-col items-center gap-2 orientation-horizontal:w-64 orientation-horizontal:max-w-[calc(100%-10px)]'
+      )}>
       <Label>{label}</Label>
-      <SliderOutput className="text-sm text-neutral-500 dark:text-neutral-400 orientation-vertical:hidden">
-        {({ state }) => state.values.map((_, i) => state.getThumbValueLabel(i)).join(' – ')}
-      </SliderOutput>
+      <SliderOutput className="text-sm text-neutral-500 dark:text-neutral-400 orientation-vertical:hidden" />
       <SliderTrack className="group col-span-2 orientation-horizontal:h-5 orientation-vertical:w-5 orientation-vertical:h-38 flex items-center">
-        {({ state, ...renderProps }) => <>
-          <div className={trackStyles(renderProps)} />
-          {state.values.length === 1
-            // Single thumb, render fill from the end
-            ? <div
-                className={fillStyles(renderProps)}
-                style={{'--size': state.getThumbPercent(0) * 100 + '%'} as any} />
-            : state.values.length === 2
-              // Range slider, render fill between the thumbs
-              ? <div
-                  className={fillStyles(renderProps)}
-                  style={{'--start': state.getThumbPercent(0) * 100 + '%', '--size': (state.getThumbPercent(1) - state.getThumbPercent(0)) * 100 + '%'} as any} />
-              : null}
-          {state.values.map((_, i) => <SliderThumb key={i} index={i} aria-label={thumbLabels?.[i]} className={thumbStyles} />)}
-        </>}
+        {({state, ...renderProps}) => (
+          <>
+            <div className={trackStyles(renderProps)}>
+              <SliderFill offset={fillOffset} className={fillStyles(renderProps)} />
+            </div>
+            {state.values.map((_, i) => (
+              <SliderThumb
+                key={i}
+                index={i}
+                aria-label={thumbLabels?.[i]}
+                className={thumbStyles}
+              />
+            ))}
+          </>
+        )}
       </SliderTrack>
     </AriaSlider>
   );
@@ -374,6 +402,7 @@ import {VanillaSlider} from '@react-spectrum/s2';
   <Label />
   <SliderOutput />
   <SliderTrack>
+    <SliderFill />
     <SliderThumb />
     <SliderThumb>
       <Label />
@@ -469,11 +498,11 @@ import {VanillaSlider} from '@react-spectrum/s2';
 | `onWheel` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
 | `orientation` | `Orientation | undefined` | 'horizontal' | The orientation of the Slider. |
-| `render` | `DOMRenderFunction<"div", SliderRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
+| `render` | `DOMRenderFunction<"div", SliderRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
 | `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
 | `step` | `number | undefined` | 1 | The slider's step value. |
-| `style` | `(React.CSSProperties | ((values: SliderRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `style` | `(((values: SliderRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `translate` | `"no" | "yes" | undefined` | — |  |
 | `value` | `T | undefined` | — | The current value (controlled). |
 
 ### SliderOutput
@@ -550,9 +579,9 @@ import {VanillaSlider} from '@react-spectrum/s2';
 | `onTransitionStartCapture` | `React.TransitionEventHandler<HTMLOutputElement> | undefined` | — |  |
 | `onWheel` | `React.WheelEventHandler<HTMLOutputElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLOutputElement> | undefined` | — |  |
-| `render` | `DOMRenderFunction<"output", SliderRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
-| `style` | `(React.CSSProperties | ((values: SliderRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `render` | `DOMRenderFunction<"output", SliderRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
+| `style` | `(((values: SliderRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `translate` | `"no" | "yes" | undefined` | — |  |
 
 ### SliderTrack
 
@@ -631,9 +660,91 @@ import {VanillaSlider} from '@react-spectrum/s2';
 | `onTransitionStartCapture` | `React.TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheel` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
-| `render` | `DOMRenderFunction<"div", SliderTrackRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
-| `style` | `(React.CSSProperties | ((values: SliderTrackRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `render` | `DOMRenderFunction<"div", SliderTrackRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
+| `style` | `(((values: SliderTrackRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `translate` | `"no" | "yes" | undefined` | — |  |
+
+### SliderFill
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `ChildrenOrFunction<SliderFillRenderProps>` | — | The children of the component. A function may be provided to alter the children based on component state. |
+| `className` | `ClassNameOrFunction<SliderFillRenderProps> | undefined` | 'react-aria-SliderFill' | The CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. A function may be provided to compute the class based on component state. |
+| `dir` | `string | undefined` | — |  |
+| `hidden` | `boolean | undefined` | — |  |
+| `inert` | `boolean | undefined` | — |  |
+| `lang` | `string | undefined` | — |  |
+| `offset` | `number | undefined` | 0 | The offset from which to start the fill. |
+| `onAnimationEnd` | `React.AnimationEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onAnimationEndCapture` | `React.AnimationEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onAnimationIteration` | `React.AnimationEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onAnimationIterationCapture` | `React.AnimationEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onAnimationStart` | `React.AnimationEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onAnimationStartCapture` | `React.AnimationEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onAuxClick` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onAuxClickCapture` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onClick` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onClickCapture` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onContextMenu` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onContextMenuCapture` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onDoubleClick` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onDoubleClickCapture` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onGotPointerCapture` | `React.PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onGotPointerCaptureCapture` | `React.PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onHoverChange` | `((isHovering: boolean) => void) | undefined` | — | Handler that is called when the hover state changes. |
+| `onHoverEnd` | `((e: HoverEvent) => void) | undefined` | — | Handler that is called when a hover interaction ends. |
+| `onHoverStart` | `((e: HoverEvent) => void) | undefined` | — | Handler that is called when a hover interaction starts. |
+| `onLostPointerCapture` | `React.PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onLostPointerCaptureCapture` | `React.PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseDown` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseDownCapture` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseEnter` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseLeave` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseMove` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseMoveCapture` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseOut` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseOutCapture` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseOver` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseOverCapture` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseUp` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseUpCapture` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerCancel` | `React.PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerCancelCapture` | `React.PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerDown` | `React.PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerDownCapture` | `React.PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerEnter` | `React.PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerLeave` | `React.PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerMove` | `React.PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerMoveCapture` | `React.PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerOut` | `React.PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerOutCapture` | `React.PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerOver` | `React.PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerOverCapture` | `React.PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerUp` | `React.PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerUpCapture` | `React.PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onScroll` | `React.UIEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onScrollCapture` | `React.UIEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTouchCancel` | `React.TouchEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTouchCancelCapture` | `React.TouchEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTouchEnd` | `React.TouchEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTouchEndCapture` | `React.TouchEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTouchMove` | `React.TouchEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTouchMoveCapture` | `React.TouchEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTouchStart` | `React.TouchEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTouchStartCapture` | `React.TouchEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTransitionCancel` | `React.TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTransitionCancelCapture` | `React.TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTransitionEnd` | `React.TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTransitionEndCapture` | `React.TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTransitionRun` | `React.TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTransitionRunCapture` | `React.TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTransitionStart` | `React.TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTransitionStartCapture` | `React.TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onWheel` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onWheelCapture` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
+| `render` | `DOMRenderFunction<"div", SliderFillRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
+| `style` | `(((values: SliderFillRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `translate` | `"no" | "yes" | undefined` | — |  |
 
 ### SliderThumb
 
@@ -655,8 +766,6 @@ import {VanillaSlider} from '@react-spectrum/s2';
 | `inert` | `boolean | undefined` | — |  |
 | `inputRef` | `RefObject<HTMLInputElement | null> | undefined` | — | A ref for the HTML input element. |
 | `isDisabled` | `boolean | undefined` | — | Whether the Thumb is disabled. |
-| `isInvalid` | `boolean | undefined` | — |  |
-| `isRequired` | `boolean | undefined` | — |  |
 | `lang` | `string | undefined` | — |  |
 | `name` | `string | undefined` | — | The name of the input element, used when submitting an HTML form. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#htmlattrdefname). |
 | `onAnimationEnd` | `React.AnimationEventHandler<HTMLDivElement> | undefined` | — |  |
@@ -731,7 +840,6 @@ import {VanillaSlider} from '@react-spectrum/s2';
 | `onTransitionStartCapture` | `React.TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheel` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
-| `orientation` | `Orientation | undefined` | 'horizontal' | The orientation of the Slider. |
-| `render` | `DOMRenderFunction<"div", SliderThumbRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
-| `style` | `(React.CSSProperties | ((values: SliderThumbRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `render` | `DOMRenderFunction<"div", SliderThumbRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
+| `style` | `(((values: SliderThumbRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `translate` | `"no" | "yes" | undefined` | — |  |

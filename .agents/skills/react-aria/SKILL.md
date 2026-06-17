@@ -6,6 +6,9 @@ compatibility: Requires React project with react-aria-components installed.
 metadata:
   author: Adobe
   website: https://react-aria.adobe.com/
+  snapshotVersion: 1.18.0
+  snapshotDate: 2026-06-17
+  snapshotSource: https://react-aria.adobe.com/llms.txt
 ---
 
 # React Aria Components
@@ -17,6 +20,7 @@ React Aria Components is a library of unstyled, accessible UI components that yo
 The `references/` directory contains detailed documentation organized as follows:
 
 ### Guides
+
 - [Collections](references/guides/collections.md): Many components display a collection of items, and provide functionality such as keyboard navigation, and selection. Learn how to load and render collections using React Aria's compositional API.
 - [Customization](references/guides/customization.md): React Aria is built using a flexible and composable API. Learn how to use contexts and slots to create custom component patterns, or mix and match with the lower level Hook-based API for even more control over rendering and behavior.
 - [Drag and Drop](references/guides/dnd.md): React Aria collection components support drag and drop with mouse and touch interactions, and full keyboard and screen reader accessibility. Learn how to provide drag data and handle drop events to move, insert, or reorder items.
@@ -29,11 +33,12 @@ The `references/` directory contains detailed documentation organized as follows
 - [Working with AI](references/guides/ai.md): Learn how to use the React Aria MCP Server, Agent Skills, and more to help you build with AI.
 
 ### Components
+
 - [Autocomplete](references/components/Autocomplete.md): An autocomplete allows users to search or filter a list of suggestions.
 - [Breadcrumbs](references/components/Breadcrumbs.md): Breadcrumbs display a hierarchy of links to the current page or resource in an application.
 - [Button](references/components/Button.md): A button allows a user to perform an action, with mouse, touch, and keyboard interactions.
-- [Calendar](references/components/Calendar.md): A calendar displays one or more date grids and allows users to select a single date.
-- [Checkbox](references/components/Checkbox.md): A checkbox allows a user to select multiple items from a list of individual items, or
+- [Calendar](references/components/Calendar.md): A calendar displays one or more date grids and allows users to select a single date. (v1.18.0: multiple date selection; `CalendarHeading`, `CalendarMonthPicker`, `CalendarYearPicker` for month/year navigation)
+- [Checkbox](references/components/Checkbox.md): A checkbox allows a user to select multiple items from a list of individual items, or (v1.18.0: `description` and error message support)
 - [CheckboxGroup](references/components/CheckboxGroup.md): A CheckboxGroup allows users to select one or more items from a list of choices.
 - [ColorArea](references/components/ColorArea.md): A color area allows users to adjust two channels of an RGB, HSL or HSB color value against a two-dimensional gradient background.
 - [ColorField](references/components/ColorField.md): A color field allows users to edit a hex color or individual color channel value.
@@ -62,14 +67,14 @@ The `references/` directory contains detailed documentation organized as follows
 - [NumberField](references/components/NumberField.md): A number field allows a user to enter a number, and increment or decrement the value using stepper buttons.
 - [Popover](references/components/Popover.md): A popover is an overlay element positioned relative to a trigger.
 - [ProgressBar](references/components/ProgressBar.md): Progress bars show either determinate or indeterminate progress of an operation
-- [RadioGroup](references/components/RadioGroup.md): A radio group allows a user to select a single item from a list of mutually exclusive options.
-- [RangeCalendar](references/components/RangeCalendar.md): RangeCalendars display a grid of days in one or more months and allow users to select a contiguous range of dates.
+- [RadioGroup](references/components/RadioGroup.md): A radio group allows a user to select a single item from a list of mutually exclusive options. (v1.18.0: per-Radio `description` and error message support)
+- [RangeCalendar](references/components/RangeCalendar.md): RangeCalendars display a grid of days in one or more months and allow users to select a contiguous range of dates. (v1.18.0: dynamic available dates based on the first selected date)
 - [SearchField](references/components/SearchField.md): A search field allows a user to enter and clear a search query.
 - [Select](references/components/Select.md): A select displays a collapsible list of options and allows a user to select one of them.
 - [Separator](references/components/Separator.md): A separator is a visual divider between two groups of content, e.g. groups of menu items or sections of a page.
-- [Slider](references/components/Slider.md): A slider allows a user to select one or more values within a range.
-- [Switch](references/components/Switch.md): A switch allows a user to turn a setting on or off.
-- [Table](references/components/Table.md): A table displays data in rows and columns and enables a user to navigate its contents via directional navigation keys,
+- [Slider](references/components/Slider.md): A slider allows a user to select one or more values within a range. (v1.18.0: `SliderFill` component for styling the filled track portion)
+- [Switch](references/components/Switch.md): A switch allows a user to turn a setting on or off. (v1.18.0: `description` and error message support)
+- [Table](references/components/Table.md): A table displays data in rows and columns and enables a user to navigate its contents via directional navigation keys, (v1.18.0: `TableFooter` component for footer rows)
 - [Tabs](references/components/Tabs.md): Tabs organize content into multiple sections and allow users to navigate between them.
 - [TagGroup](references/components/TagGroup.md): A tag group is a focusable list of labels, categories, keywords, filters, or other items, with support for keyboard navigation, selection, and removal.
 - [TextField](references/components/TextField.md): A text field allows a user to enter a plain text value with a keyboard.
@@ -83,6 +88,7 @@ The `references/` directory contains detailed documentation organized as follows
 - [Virtualizer](references/components/Virtualizer.md): A Virtualizer renders a scrollable collection of data using customizable layouts.
 
 ### Interactions
+
 - [FocusRing](references/interactions/FocusRing.md): A utility component that applies a CSS class when an element has keyboard focus.
 - [FocusScope](references/interactions/FocusScope.md): A FocusScope manages focus for its descendants. It supports containing focus inside
 - [useClipboard](references/interactions/useClipboard.md): Handles clipboard interactions for a focusable element. Supports items of multiple
@@ -100,6 +106,7 @@ The `references/` directory contains detailed documentation organized as follows
 - [usePress](references/interactions/usePress.md): Handles press interactions across mouse, touch, keyboard, and screen readers.
 
 ### Utilities
+
 - [I18nProvider](references/utilities/I18nProvider.md): Provides the locale for the application to all child components.
 - [mergeProps](references/utilities/mergeProps.md): Merges multiple props objects together. Event handlers are chained,
 - [PortalProvider](references/utilities/PortalProvider.md): Sets the portal container for all overlay elements rendered by its children.
@@ -117,6 +124,7 @@ The `references/` directory contains detailed documentation organized as follows
 - [VisuallyHidden](references/utilities/VisuallyHidden.md): VisuallyHidden hides its children visually, while keeping content visible
 
 ### Internationalization
+
 - [Calendar](references/internationalized/date/Calendar.md)
 - [CalendarDate](references/internationalized/date/CalendarDate.md)
 - [CalendarDateTime](references/internationalized/date/CalendarDateTime.md)
@@ -129,6 +137,7 @@ The `references/` directory contains detailed documentation organized as follows
 - [ZonedDateTime](references/internationalized/date/ZonedDateTime.md)
 
 ### Testing
+
 - [Testing CheckboxGroup](references/testing/CheckboxGroup/testing.md)
 - [Testing ComboBox](references/testing/ComboBox/testing.md)
 - [Testing GridList](references/testing/GridList/testing.md)
