@@ -695,6 +695,19 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
       disabled: { opacity: 0.38, pointerEvents: "none" },
     },
   },
+  // ADR-912 단계5 step4 (2026-06-17) — Body (Body.spec.ts 삭제 대상, 페이지 루트 컨테이너).
+  //   archetype "default": Nav 동형 → DEFAULT_BASE_STYLES emit. BodySpec.states 는 전부 빈 객체
+  //   이고 disabled opacity 미정의지만, 기본 states({disabled:{opacity:0.38}})를 그대로 쓰면
+  //   기존 Body.css 의 [data-disabled]{opacity:0.38} 와 일치(meta.states 생략 = 기본값).
+  //   색상/사이즈는 componentRulesTable.body(fill {color.base}/text {color.neutral}/fontSize
+  //   {typography.text-md}/borderRadius {radius.none}/height 0) 정본 파생. Skia 는 이미
+  //   spec-free(isCatalogSkiaCutover("body")=true) generic box.
+  {
+    name: "Body",
+    archetype: "default",
+    element: "body",
+    containerStyles: undefined,
+  },
   // ADR-912 box+text leaf 군 일괄 (2026-06-11) — catalog 발효 완료 leaf 7개 (Label 제외).
   //   shape 동형(box+text/icon) — Text/Link 와 동일 변환 경로. archetype/element/containerStyles
   //   /cssEmitMode 는 각 *.spec.ts 에서 추출. Skia 는 이미 spec-free(isCatalogSkiaCutover 또는
@@ -3893,7 +3906,11 @@ function buildVirtualSpecs(): ComponentSpec<unknown>[] {
   const result: ComponentSpec<unknown>[] = [];
 
   for (const [name, meta] of STRUCTURE_META) {
-    const rule = table[name];
+    // ADR-912 단계5 step4 (2026-06-17): rule key 는 대부분 spec name 과 동일(PascalCase)이나
+    //   일부 container shell(body/frame)은 canonical element.type 정합 위해 lowercase key 로
+    //   등재됨(componentRulesTable.body L472). spec name(Body)→selector/파일명은 PascalCase
+    //   유지하되 rule lookup 만 lowercase fallback.
+    const rule = table[name] ?? table[name.toLowerCase()];
     if (!rule) {
       console.warn(`  ⚠ virtual: no rule for ${name}, skipping`);
       continue;

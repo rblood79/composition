@@ -255,9 +255,8 @@ export type { ComponentVisualRule } from "./renderers";
 //   (spec 삭제 — catalog rule + generate-css STRUCTURE_META virtual override 로 generated CSS 재생성,
 //    Skia = skiaPrimitive popover_shadow/popover_arrow escape + generic box). 사용자 명시 삭제 승인.
 
-// ADR-902 후속: Body 는 페이지 루트 theme-aware 배경을 Spec SSOT 로 선언.
-export { BodySpec } from "./components/Body.spec";
-export type { BodyProps } from "./components/Body.spec";
+// ADR-912 단계5 step4 (2026-06-17): BodySpec/BodyProps export 제거 — catalog cutover spec 물리 삭제.
+//   시각 = componentRulesTable.body + generate-css virtual(STRUCTURE_META "Body"). Skia = generic box.
 
 // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroupSpec/Props export 제거 —
 //   catalog cutover spec 삭제. 시각 = componentRulesTable + generate-css virtual(STRUCTURE_META indicatorMode/
@@ -423,8 +422,8 @@ export type { DatePickerShapesInput } from "./renderers/datePickerShapes";
 export { DateFieldSpec } from "./components/DateField.spec";
 export type { DateFieldProps } from "./components/DateField.spec";
 
-export { DateInputSpec } from "./components/DateInput.spec";
-export type { DateInputProps } from "./components/DateInput.spec";
+// ADR-912 단계5 step4 (2026-06-17): DateInputSpec/DateInputProps export 제거 — catalog cutover spec 물리 삭제.
+//   Skia = datefield_segments replace primitive. layout height = utils.ts rule 인라인 미러.
 
 // Calendar (calendar archetype) — ADR-912 단계5 step4 date-color (2026-06-16): barrel export 제거
 //   (spec 삭제 — catalog rule + STRUCTURE_META virtual override(calendar archetype). Skia 는

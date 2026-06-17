@@ -56,7 +56,8 @@ import { SlotSpec } from "../components/Slot.spec";
 // ADR-912 단계5 step4 date-color (2026-06-17): DatePicker/DateRangePickerSpec import 제거 — spec 물리 삭제
 //   (catalog cutover, isCatalogCutover('DatePicker'/'DateRangePicker')=true). Skia = datefield_trigger primitive.
 import { DateFieldSpec } from "../components/DateField.spec";
-import { DateInputSpec } from "../components/DateInput.spec";
+// ADR-912 단계5 step4 (2026-06-17): DateInputSpec import 제거 — catalog cutover spec 물리 삭제
+//   (isCatalogSkiaCutover("DateInput")=true, datefield_segments replace primitive escape).
 // ADR-912 단계5 step4 date-color (2026-06-16): Calendar/RangeCalendarSpec import 제거 —
 //   catalog cutover spec 삭제, BASE_TAG_SPEC_MAP entry 제거. STRUCTURE_META virtual override + skia
 //   calendar_grid escape. CalendarHeader/CalendarGrid 는 별도(small 그룹, replace primitive 대체).
@@ -81,7 +82,8 @@ import { InlineAlertSpec } from "../components/InlineAlert.spec";
 // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroupSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
 // ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): TooltipSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
 // ADR-912 단계5: ProgressCircleSpec 삭제 — catalog cutover(value_fill_arc escape) + generate-css virtual
-import { BodySpec } from "../components/Body.spec";
+// ADR-912 단계5 step4 (2026-06-17): BodySpec import 제거 — catalog cutover spec 물리 삭제
+//   (isCatalogSkiaCutover("body")=true, generated CSS = STRUCTURE_META virtual).
 // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): IllustratedMessageSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
 // ADR-912 R7 G1-b: CardViewSpec/TableViewSpec 삭제 — catalog cutover (BASE_TAG_SPEC_MAP 등록 제거)
 // ADR-912 단계5 value-fill-track: SliderTrackSpec 삭제 — BASE_TAG_SPEC_MAP 등록 제거.
@@ -100,7 +102,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   // ADR-912 R6 (2026-06-15): Card 본체 catalog cutover → BASE entry 제거 (R5 에서 childSpecs 이미 제거됨).
   // Dialog — ADR-912 단계5 step4 Dialog 단건 (2026-06-16): catalog cutover spec 삭제로 제거.
   // Popover — ADR-912 단계5 step4 Popover 단건 (2026-06-16): catalog cutover spec 삭제로 제거.
-  Body: BodySpec,
+  // Body — ADR-912 단계5 step4 (2026-06-17): catalog cutover spec 삭제로 제거 (generic box + catalog rule.body).
   // ToggleButtonGroup — ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): catalog cutover spec 삭제로 제거.
   // Tooltip — ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): catalog cutover spec 삭제로 제거.
   // Checkbox/Radio/Switch — ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): catalog cutover spec 삭제로 제거.
@@ -153,7 +155,8 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   // DatePicker/DateRangePicker — ADR-912 단계5 step4 date-color (2026-06-17): spec 물리 삭제,
   //   BASE_TAG_SPEC_MAP entry 제거. isCatalogCutover=true → catalog rule + STRUCTURE_META 로 처리.
   DateField: DateFieldSpec,
-  DateInput: DateInputSpec,
+  // DateInput — ADR-912 단계5 step4 (2026-06-17): catalog cutover spec 삭제로 제거.
+  //   isCatalogSkiaCutover("DateInput")=true → datefield_segments replace primitive 으로 Skia 처리.
   // Calendar — ADR-912 단계5 step4 date-color (2026-06-16): catalog cutover spec 삭제로 제거.
   // CalendarHeader/CalendarGrid — ADR-912 단계5 step4 small 그룹 (2026-06-16): catalog cutover,
   //   BASE entry 제거. isCatalogCutover=true → Skia 진입 게이트 spec 없이 통과(replace primitive 대체).

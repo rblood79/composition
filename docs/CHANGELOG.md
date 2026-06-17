@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Body/DateInput spec 물리 삭제 — ADR-912 단계5 step4] - 2026-06-17
+
+### Breaking Changes
+
+- **`@composition/specs` BodySpec/BodyProps/DateInputSpec/DateInputProps export 제거** (ADR-912 단계5 step4):
+  - Body/DateInput 의 catalog cutover(FAMILY_1_CUTOVER) 완결 → spec 파일 물리 삭제
+  - 위치: `packages/specs/src/components/{Body,DateInput}.spec.ts`
+  - BodyProps/DateInputProps 외부 소비 0 확인 (`react-aria-starter` 의 `DateInputProps` 는 RAC 타입, `createDefaultBodyProps`/`TableBodyProps` 는 별개 심볼)
+
+### Architecture
+
+- **Body generated CSS = STRUCTURE_META virtual input 전환** (ADR-912 단계5 step4):
+  - `generate-css.ts` STRUCTURE_META_ENTRIES 에 `Body`(archetype "default") virtual entry 추가 → spec 파일 스캔 대신 `componentRulesTable.body`(fill `{color.base}`/text `{color.neutral}`) 정본 파생으로 `Body.css` 재생성
+  - **Why**: spec 삭제 후에도 `.react-aria-Body` CSS byte-identical(diff-0) 유지 — Nav/TabPanel virtual 선례 동형. publish `useBodyElement` 의 className 매칭 보존
+  - `buildVirtualSpecs` rule lookup 에 lowercase fallback 추가 (`table[name] ?? table[name.toLowerCase()]`) — container shell(body/frame)이 canonical element.type 정합 위해 lowercase rule key 로 등재된 경우 대응
+- **DateInput layout intrinsic height = rule 인라인 미러 전환** (ADR-912 단계5 step4):
+  - `utils.ts` 의 `DateInputSpec.sizes[size].height` 직접 참조 → 인라인 미러(`{xs:20,sm:22,md:30,lg:42,xl:54}`, `componentRulesTable.DateInput.sizes.height` 와 byte-identical) — CalendarHeader/CalendarGrid 동형
+  - **Why**: DateInput 은 Skia 가 이미 `datefield_segments` replace primitive(spec-free)로 그리므로 layout consumer 만 spec 의존 잔존 → 인라인 미러로 끊기
+- **builder `BUILDER_ALIAS_MAP` body alias 제거** (ADR-912 단계5 step4):
+  - `body: BodySpec` alias 제거 → 빈 맵(메커니즘 보존). body 는 `isCatalogSkiaCutover("body")=true` 라 `buildSpecNodeData` 게이트가 spec 부재 흡수
+  - **Why**: Verify 가 적발한 builder-app hard import 축 — `tagToElement` 축(packages/specs)이 커버 못 하는 별도 게이트
+
 ## [TagGroup/Tag catalog cutover + spec 물리 삭제 + containerVariants fallback 메커니즘 — ADR-912 단계5 step4] - 2026-06-17
 
 ### Breaking Changes

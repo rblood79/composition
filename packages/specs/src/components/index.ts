@@ -38,9 +38,7 @@
 
 // Section
 
-// Body (ADR-902 후속 — 페이지 루트 theme-aware 배경)
-export { BodySpec } from "./Body.spec";
-export type { BodyProps } from "./Body.spec";
+// Body — ADR-912 단계5 step4 (2026-06-17): catalog cutover → spec 물리 삭제 (export 제거).
 
 // Tooltip — ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): catalog cutover → spec 삭제.
 //   시각 SSOT = componentRulesTable.Tooltip + STRUCTURE_META virtual override. arrow maxWidth 는
@@ -135,9 +133,7 @@ export type { DatePickerShapesInput } from "../renderers/datePickerShapes";
 export { DateFieldSpec } from "./DateField.spec";
 export type { DateFieldProps } from "./DateField.spec";
 
-// DateInput (DateField/TimeField 입력 영역)
-export { DateInputSpec } from "./DateInput.spec";
-export type { DateInputProps } from "./DateInput.spec";
+// DateInput — ADR-912 단계5 step4 (2026-06-17): catalog cutover → spec 물리 삭제 (export 제거).
 
 // TimeField
 

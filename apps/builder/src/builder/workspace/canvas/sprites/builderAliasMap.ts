@@ -13,17 +13,16 @@
  * `0c60d/2b0bb`). SelectTrigger/Value/Icon spec 자체도 같은 slice 에서 삭제
  * (rule table + buildCatalogShapes generic + icon_font escape 로 이전).
  *
- * 잔여 1 — body: 페이지 루트 lowercase 규약 alias. Skia 는 catalog rule 경로지만
- * Style 패널 소비처가 spec 직접 의존 → 별도 slice 에서 해소.
+ * ADR-912 단계5 step4 (2026-06-17): body alias 제거 — BodySpec 물리 삭제. body 는 catalog
+ * cutover(FAMILY_1_CUTOVER, isCatalogSkiaCutover("body")=true) 로 buildSpecNodeData 게이트
+ * (`if(!spec && !isCatalogSkiaCutover) return null`)가 spec 부재를 흡수하고 generic box(catalog
+ * rule.body fill {color.base}) 로 그린다. Style 패널 소비처(specPresetResolver)는 spec?.sizes
+ * optional chaining 으로 빈 preset degrade(height/padding 0 = auto marker 라 무영향),
+ * useElementStyleContext 는 body 가 ref 아니라 element.type 직접 반환 경로(spec lookup 미경유).
+ * → alias 불요. BUILDER_ALIAS_MAP 메커니즘 자체는 향후 alias 위해 보존(빈 맵).
  */
 
 import type { ComponentSpec } from "@composition/specs";
-import { BodySpec } from "@composition/specs";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const BUILDER_ALIAS_MAP: Record<string, ComponentSpec<any>> = {
-  // ADR-902 후속: 페이지 루트 element.type 가 lowercase "body" 로 저장되지만
-  // BASE_TAG_SPEC_MAP 은 PascalCase 규약이므로 Builder 측에 lowercase alias 로 노출.
-  // getSpecForTag("body") → BodySpec 해석되어 Skia spec 경로 진입.
-  body: BodySpec,
-};
+export const BUILDER_ALIAS_MAP: Record<string, ComponentSpec<any>> = {};

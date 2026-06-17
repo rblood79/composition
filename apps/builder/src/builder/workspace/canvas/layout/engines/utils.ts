@@ -45,7 +45,8 @@ import {
   // ADR-912 box+text leaf 군 (2026-06-11): IconSpec import 제거 — iconSize 를 catalog rule(resolveSkiaRule)
   //   기반으로 전환(spec 끊기). Button/Badge/ToggleButton/StatusLight 도 동형(SIZE_CONFIG rule 파생).
   // ADR-912 (B+icon): CalendarHeaderSpec import 제거 — height 분기 rule 인라인 미러로 전환(spec 끊기).
-  DateInputSpec,
+  // ADR-912 단계5 step4 (2026-06-17): DateInputSpec import 제거 — dateinput height 분기 rule 인라인
+  //   미러로 전환(spec 삭제 대상, CalendarHeader 동형).
   ComboBoxSpec,
   // ADR-912 R1 (2026-06-12): SelectTriggerSpec import 제거 — contentHeight 를
   //   resolveSkiaRule("SelectTrigger") 유도식으로 이관 (spec 끊기).
@@ -2409,11 +2410,22 @@ export function calculateContentHeight(
     return headerHeights[sizeName] ?? 30;
   }
 
-  // DateInput: intrinsic height — DateInputSpec.sizes.height 직접 참조 (ADR-091 Phase 3).
+  // DateInput: intrinsic height
+  // ADR-912 단계5 step4 (2026-06-17): spec(DateInputSpec.sizes.height) 직접 참조 제거 → rule 인라인
+  //   미러 (componentRulesTable.DateInput.sizes.height 동형, xs20/sm22/md30/lg42/xl54 byte-identical
+  //   검증). CalendarHeader/CalendarGrid 분기(:2405/:2419)와 동일 인라인 미러 패턴. catalog 발효 후
+  //   spec 삭제 안전.
   if (type === "dateinput") {
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = (props?.size as string) ?? "md";
-    return DateInputSpec.sizes[sizeName]?.height ?? 30;
+    const inputHeights: Record<string, number> = {
+      xs: 20,
+      sm: 22,
+      md: 30,
+      lg: 42,
+      xl: 54,
+    };
+    return inputHeights[sizeName] ?? 30;
   }
 
   // CalendarGrid: intrinsic height = weekdayRow + dateRows
