@@ -24,17 +24,17 @@ import {
   // ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): DropZoneSpec import 제거 — catalog cutover,
   //   GenericPropertyEditor 가 binding.accepts(DropZone.binding.ts)로 properties 생성.
   // ADR-912 단계5 step4 trivial 그룹 (2026-06-16): FieldSpec import 제거 — catalog cutover, binding.accepts D2.
-  GridListSpec,
+  // ADR-912 단계5 step4 경량 이관 (2026-06-17): GridListSpec import 제거 — catalog cutover, binding.accepts D2 (dead getEditor 경로).
   GroupSpec,
   // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): IllustratedMessageSpec import 제거 — catalog cutover, binding.accepts D2.
   ImageSpec,
   InlineAlertSpec,
   ListBoxSpec,
-  MenuSpec,
-  MeterSpec,
+  // ADR-912 단계5 step4 경량 이관 (2026-06-17): MenuSpec import 제거 — catalog cutover, binding.accepts D2 (dead getEditor 경로).
+  // ADR-912 단계5 step4 경량 이관 (2026-06-17): MeterSpec import 제거 — catalog cutover, binding.accepts D2 (dead getEditor 경로).
   // ADR-912 단계5 step4 small-B (2026-06-16): ModalSpec import 제거 — catalog cutover, binding.accepts D2.
   // ADR-912 단계5 step4 Popover 단건 (2026-06-16): PopoverSpec import 제거 — catalog cutover, binding.accepts D2.
-  ProgressBarSpec,
+  // ADR-912 단계5 step4 경량 이관 (2026-06-17): ProgressBarSpec import 제거 — catalog cutover, binding.accepts D2 (dead getEditor 경로).
   // ADR-912 단계5: ProgressCircleSpec 삭제 (catalog binding.accepts 가 D2 properties 대체)
   // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): RadioSpec/SwitchSpec import 제거 — catalog cutover, binding.accepts D2.
   SelectSpec,
@@ -99,7 +99,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   // DropZone — ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): catalog cutover → entry 제거.
   //   GenericPropertyEditor 가 binding.accepts(DropZone.binding.ts)로 properties 생성.
   // Field — ADR-912 단계5 step4 trivial 그룹 (2026-06-16): catalog cutover → entry 제거 (binding.accepts D2).
-  GridList: GridListSpec as ComponentSpec<Record<string, unknown>>,
+  // GridList — ADR-912 단계5 step4 경량 이관 (2026-06-17): catalog cutover → entry 제거.
+  //   GenericPropertyEditor 가 binding.accepts(GridList.binding.ts)로 properties 생성 (dead getEditor 경로).
   Group: GroupSpec as ComponentSpec<Record<string, unknown>>,
   // IllustratedMessage — ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): catalog cutover → entry 제거.
   //   GenericPropertyEditor 가 binding.accepts(IllustratedMessage.binding.ts)로 properties 생성.
@@ -108,8 +109,10 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   // Link — ADR-912 단계5 step5: catalog cutover → GenericPropertyEditor 가 binding.accepts
   //   (Link.binding.ts) 로 properties 생성(spec.properties dead). spec 삭제로 등록 제거.
   ListBox: ListBoxSpec as ComponentSpec<Record<string, unknown>>,
-  Menu: MenuSpec as ComponentSpec<Record<string, unknown>>,
-  Meter: MeterSpec as ComponentSpec<Record<string, unknown>>,
+  // Menu — ADR-912 단계5 step4 경량 이관 (2026-06-17): catalog cutover → entry 제거.
+  //   GenericPropertyEditor 가 binding.accepts(Menu.binding.ts)로 properties 생성 (dead getEditor 경로).
+  // Meter — ADR-912 단계5 step4 경량 이관 (2026-06-17): catalog cutover → entry 제거.
+  //   GenericPropertyEditor 가 binding.accepts(Meter.binding.ts)로 properties 생성 (dead getEditor 경로).
   // Modal — ADR-912 단계5 step4 small-B (2026-06-16): catalog cutover → entry 제거.
   //   GenericPropertyEditor 가 binding.accepts(Modal.binding.ts)로 properties 생성.
   // Nav — ADR-912 container shell catalog 완결: catalog cutover → GenericPropertyEditor 가
@@ -117,7 +120,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   // Popover — ADR-912 단계5 step4 Popover 단건 (2026-06-16): catalog cutover → entry 제거.
   //   GenericPropertyEditor 가 binding.accepts(Popover.binding.ts: variant/size/placement/offset/
   //   crossOffset/containerPadding/shouldFlip)로 D2 properties 생성. spec.properties dead.
-  ProgressBar: ProgressBarSpec as ComponentSpec<Record<string, unknown>>,
+  // ProgressBar — ADR-912 단계5 step4 경량 이관 (2026-06-17): catalog cutover → entry 제거.
+  //   GenericPropertyEditor 가 binding.accepts(ProgressBar.binding.ts)로 properties 생성 (dead getEditor 경로).
   // ADR-912 단계5: ProgressCircle 제거 — cutover type 은 GenericPropertyEditor 가
   //   binding.accepts(PropContract) 로 D2 properties 생성 (spec.properties dead)
   // Radio/Switch — ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): catalog cutover → entry 제거.

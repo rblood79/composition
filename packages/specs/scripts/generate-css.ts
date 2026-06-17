@@ -338,6 +338,295 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
     element: "div",
     containerStyles: { display: "grid" },
   },
+  // ADR-912 단계5 step4 경량 이관 (2026-06-17): ProgressBar 본체 (ProgressBar.spec.ts 삭제 대상).
+  //   catalog cutover → Skia 는 value_fill_bar escape, DOM CSS 는 composition(grid label/value/bar
+  //   레이아웃 + variant fill-color + size selectors + indeterminate 애니메이션)으로 emit.
+  //   composition/states 는 구 ProgressBar.spec verbatim 이관 (diff-0 보장).
+  {
+    name: "ProgressBar",
+    archetype: "progress",
+    element: "div",
+    containerStyles: {
+      display: "grid",
+      gridTemplateAreas: '"label value" "bar bar"',
+      gridTemplateColumns: "1fr auto",
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: { opacity: 0.38, pointerEvents: "none" },
+      focusVisible: {},
+    },
+    composition: {
+      layout: "grid",
+      containerStyles: {
+        "box-sizing": "border-box",
+        "row-gap": "var(--spacing-xs)",
+        "column-gap": "var(--spacing-md)",
+        width: "100%",
+        color: "var(--fg)",
+        "font-size": "var(--text-sm)",
+        "--label-font-size": "var(--text-sm)",
+        "--fill-color": "var(--accent)",
+        "--track-color": "var(--accent-subtle)",
+      },
+      staticSelectors: {
+        ".react-aria-Label": {
+          "grid-area": "label",
+          "white-space": "nowrap",
+        },
+        ".value": {
+          "grid-area": "value",
+          "font-size": "var(--text-sm)",
+          color: "var(--fg-muted)",
+          "white-space": "nowrap",
+        },
+        ".bar": {
+          "grid-area": "bar",
+          "box-shadow": "var(--inset-shadow-xs)",
+          "forced-color-adjust": "none",
+          height: "var(--spacing-sm)",
+          "border-radius": "var(--radius-sm)",
+          overflow: "hidden",
+          "will-change": "transform",
+          background: "var(--track-color)",
+        },
+        ".fill": {
+          "border-radius": "var(--radius-sm)",
+          background: "var(--fill-color)",
+          height: "100%",
+          transition: "width 200ms ease-out",
+        },
+      },
+      containerVariants: {
+        variant: {
+          default: {
+            styles: {
+              "--fill-color": "var(--accent)",
+              "--track-color": "var(--accent-subtle)",
+            },
+          },
+          accent: {
+            styles: {
+              "--fill-color": "var(--accent)",
+              "--track-color": "var(--accent-subtle)",
+            },
+          },
+          neutral: {
+            styles: {
+              "--fill-color": "var(--fg-muted)",
+              "--track-color": "var(--bg-muted)",
+            },
+          },
+        },
+        indeterminate: {
+          true: {
+            nested: [
+              {
+                selector: ".fill",
+                styles: {
+                  width: "120px",
+                  "border-radius": "inherit",
+                  animation:
+                    "ProgressBar-indeterminate 1.5s infinite ease-in-out",
+                  "will-change": "transform",
+                },
+              },
+            ],
+          },
+        },
+        disabled: {
+          true: {
+            styles: {
+              opacity: "0.38",
+              cursor: "not-allowed",
+              "pointer-events": "none",
+            },
+          },
+        },
+        size: {
+          sm: { styles: { "--label-font-size": "var(--text-xs)" } },
+          md: { styles: { "--label-font-size": "var(--text-sm)" } },
+          lg: { styles: { "--label-font-size": "var(--text-base)" } },
+          xl: { styles: { "--label-font-size": "var(--text-lg)" } },
+        },
+      },
+      sizeSelectors: {
+        sm: {
+          ".bar": {
+            height: "var(--spacing-xs)",
+            "border-radius": "var(--radius-sm)",
+          },
+          ".fill": { "border-radius": "var(--radius-sm)" },
+          ".value": { "font-size": "var(--text-xs)" },
+        },
+        md: {
+          ".bar": {
+            height: "var(--spacing-sm)",
+            "border-radius": "var(--radius-sm)",
+          },
+          ".fill": { "border-radius": "var(--radius-sm)" },
+          ".value": { "font-size": "var(--text-sm)" },
+        },
+        lg: {
+          ".bar": {
+            height: "var(--spacing-md)",
+            "border-radius": "var(--radius-lg)",
+          },
+          ".fill": { "border-radius": "var(--radius-md)" },
+          ".value": { "font-size": "var(--text-base)" },
+        },
+        xl: {
+          ".bar": {
+            height: "var(--spacing-lg)",
+            "border-radius": "var(--radius-lg)",
+          },
+          ".fill": { "border-radius": "var(--radius-lg)" },
+          ".value": { "font-size": "var(--text-lg)" },
+        },
+      },
+      animations: {
+        indeterminate: {
+          keyframes: {
+            from: { transform: "translateX(-100%)" },
+            to: { transform: "translateX(250px)" },
+          },
+          reducedMotion: { "transition-duration": "0s" },
+        },
+      },
+      delegation: [],
+    },
+  },
+  // ADR-912 단계5 step4 경량 이관 (2026-06-17): Meter 본체 (Meter.spec.ts 삭제 대상).
+  //   ProgressBar 와 동형 (grid label/value/bar + variant fill-color + size selectors).
+  //   다른 점: variant 색 토큰(informative/positive/warning/critical) + indeterminate/animations 없음.
+  //   composition/states 는 구 Meter.spec verbatim 이관 (diff-0 보장).
+  {
+    name: "Meter",
+    archetype: "progress",
+    element: "div",
+    containerStyles: {
+      display: "grid",
+      gridTemplateAreas: '"label value" "bar bar"',
+      gridTemplateColumns: "1fr auto",
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: { opacity: 0.38, pointerEvents: "none" },
+      focusVisible: {},
+    },
+    composition: {
+      layout: "grid",
+      containerStyles: {
+        "box-sizing": "border-box",
+        "row-gap": "var(--spacing-xs)",
+        "column-gap": "var(--spacing-md)",
+        width: "100%",
+        color: "var(--fg)",
+        "font-size": "var(--text-sm)",
+        "--label-font-size": "var(--text-sm)",
+        "--fill-color": "var(--color-info-600)",
+      },
+      staticSelectors: {
+        ".react-aria-Label": {
+          "grid-area": "label",
+          "white-space": "nowrap",
+        },
+        ".value": {
+          "grid-area": "value",
+          "font-size": "var(--text-sm)",
+          color: "var(--fg-muted)",
+          "white-space": "nowrap",
+        },
+        ".bar": {
+          "grid-area": "bar",
+          "box-shadow": "var(--inset-shadow-xs)",
+          "forced-color-adjust": "none",
+          height: "var(--spacing-sm)",
+          "border-radius": "var(--radius-sm)",
+          overflow: "hidden",
+          background: "var(--accent-subtle)",
+        },
+        ".fill": {
+          background: "var(--fill-color)",
+          height: "100%",
+          transition: "width 200ms ease-out",
+          "forced-color-adjust": "auto",
+        },
+      },
+      containerVariants: {
+        variant: {
+          informative: {
+            styles: {
+              "--fill-color": "var(--color-info-600)",
+            },
+          },
+          positive: {
+            styles: {
+              "--fill-color": "var(--color-green-600)",
+            },
+          },
+          warning: {
+            styles: {
+              "--fill-color": "var(--color-warning-600)",
+            },
+          },
+          critical: {
+            styles: {
+              "--fill-color": "var(--negative)",
+            },
+          },
+        },
+        size: {
+          sm: { styles: { "--label-font-size": "var(--text-xs)" } },
+          md: { styles: { "--label-font-size": "var(--text-sm)" } },
+          lg: { styles: { "--label-font-size": "var(--text-base)" } },
+          xl: { styles: { "--label-font-size": "var(--text-lg)" } },
+        },
+        disabled: {
+          true: {
+            styles: {
+              opacity: "0.38",
+              cursor: "not-allowed",
+              "pointer-events": "none",
+            },
+          },
+        },
+      },
+      sizeSelectors: {
+        sm: {
+          ".bar": {
+            height: "var(--spacing-xs)",
+            "border-radius": "var(--radius-sm)",
+          },
+          ".value": { "font-size": "var(--text-xs)" },
+        },
+        md: {
+          ".bar": {
+            height: "var(--spacing-sm)",
+            "border-radius": "var(--radius-sm)",
+          },
+          ".value": { "font-size": "var(--text-sm)" },
+        },
+        lg: {
+          ".bar": {
+            height: "var(--spacing-md)",
+            "border-radius": "var(--radius-lg)",
+          },
+          ".value": { "font-size": "var(--text-base)" },
+        },
+        xl: {
+          ".bar": {
+            height: "var(--spacing-lg)",
+            "border-radius": "var(--radius-lg)",
+          },
+          ".value": { "font-size": "var(--text-lg)" },
+        },
+      },
+      delegation: [],
+    },
+  },
   // ADR-912 단계5 value-fill-track proof — ProgressBarTrack (progress archetype, ProgressBarTrack.spec.ts 삭제 대상).
   //   catalog 발효 완료(FAMILY_3_CUTOVER) → Skia 는 value_fill_bar escape. DOM CSS 는
   //   ARCHETYPE_BASE_STYLES["progress"] grid 구조 + rule.variants(fill=neutral-subtle).
@@ -3196,6 +3485,40 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
       },
       focusVisible: {
         focusRing: "{focus.ring.default}",
+      },
+    },
+  },
+  // ADR-912 단계5 step4 경량 이관 (2026-06-17): Menu 본체 (Menu.spec.ts 삭제 대상).
+  //   archetype "collection". catalog cutover → Skia 는 generic(buildCatalogShapes), DOM CSS 는
+  //   containerStyles(popover 컨테이너 시각 ADR-071 + layout) + size별 fontSize/lineHeight 로 emit.
+  //   containerStyles/states 는 구 Menu.spec verbatim 이관 (diff-0 보장). composition 블록 없음.
+  {
+    name: "Menu",
+    archetype: "collection",
+    element: "div",
+    containerStyles: {
+      background: "{color.raised}",
+      text: "{color.neutral}",
+      border: "{color.border}",
+      borderWidth: 1,
+      borderRadius: "{radius.md}",
+      padding: "{spacing.xs}",
+      gap: "{spacing.2xs}",
+      display: "flex",
+      flexDirection: "column",
+      width: "100%",
+      maxHeight: "300px",
+      overflow: "auto",
+      outline: "none",
+    },
+    states: {
+      hover: {},
+      focusVisible: {
+        focusRing: "{focus.ring.default}",
+      },
+      disabled: {
+        opacity: 0.38,
+        pointerEvents: "none",
       },
     },
   },

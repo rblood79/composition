@@ -19,12 +19,13 @@ import {
   TagGroupSpec,
   DateFieldSpec,
   SliderSpec,
-  ProgressBarSpec,
-  MeterSpec,
+  // ADR-912 단계5 step4 경량 이관 (2026-06-17): ProgressBarSpec/MeterSpec import 제거 — catalog cutover spec 삭제.
+  //   propagation.rules(label/size → Label/Track/Value)는 createPropagationOnlySpec 인라인 이관(아래).
   // ADR-912 단계5 step4 date-color (2026-06-16): Calendar/RangeCalendarSpec import 제거 —
   //   catalog cutover spec 삭제. propagation.rules(variant/size/locale/calendarSystem/defaultToday →
   //   CalendarHeader/CalendarGrid)는 createPropagationOnlySpec 인라인 이관(아래).
-  GridListSpec,
+  // ADR-912 단계5 step4 경량 이관 (2026-06-17): GridListSpec import 제거 — catalog cutover spec 삭제.
+  //   propagation.rules(variant → GridListItem)는 createPropagationOnlySpec 인라인 이관(아래).
   ListBoxSpec,
   // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroupSpec import 제거 —
   //   catalog cutover, propagation.rules(isEmphasized/size → ToggleButton)는 createPropagationOnlySpec 인라인 이관.
@@ -136,6 +137,40 @@ const cardContentPropagationSpec = createPropagationOnlySpec("CardContent", [
     styleValue: "100%",
     skipIfSet: ["width", "flex"],
   },
+]);
+
+// ADR-912 단계5 step4 경량 이관 (2026-06-17): GridList.spec 삭제 — propagation.rules 인라인 보존.
+//   variant → GridListItem 전파(카드 accent 색). childPath string 이라 spec 객체 의존 0.
+const gridListPropagationSpec = createPropagationOnlySpec("GridList", [
+  { parentProp: "variant", childPath: "GridListItem", override: true },
+]);
+
+// ADR-912 단계5 step4 경량 이관 (2026-06-17): ProgressBar.spec 삭제 — propagation.rules 인라인 보존.
+//   label → Label.children + size → ProgressBarTrack/ProgressBarValue/Label. childPath string 이라 spec 의존 0.
+const progressBarPropagationSpec = createPropagationOnlySpec("ProgressBar", [
+  {
+    parentProp: "label",
+    childPath: "Label",
+    childProp: "children",
+    override: true,
+  },
+  { parentProp: "size", childPath: "ProgressBarTrack", override: true },
+  { parentProp: "size", childPath: "ProgressBarValue", override: true },
+  { parentProp: "size", childPath: "Label", override: true },
+]);
+
+// ADR-912 단계5 step4 경량 이관 (2026-06-17): Meter.spec 삭제 — propagation.rules 인라인 보존.
+//   label → Label.children + size → MeterTrack/MeterValue/Label. childPath string 이라 spec 의존 0.
+const meterPropagationSpec = createPropagationOnlySpec("Meter", [
+  {
+    parentProp: "label",
+    childPath: "Label",
+    childProp: "children",
+    override: true,
+  },
+  { parentProp: "size", childPath: "MeterTrack", override: true },
+  { parentProp: "size", childPath: "MeterValue", override: true },
+  { parentProp: "size", childPath: "Label", override: true },
 ]);
 
 // ADR-912 단계5 step4 small-B (2026-06-16): TextField.spec 삭제 — propagation.rules 인라인 보존.
@@ -547,8 +582,9 @@ registerPropagationSpec("DateField", DateFieldSpec);
 registerPropagationSpec("TimeField", timeFieldPropagationSpec);
 registerPropagationSpec("ColorField", colorFieldPropagationSpec);
 registerPropagationSpec("Slider", SliderSpec);
-registerPropagationSpec("ProgressBar", ProgressBarSpec);
-registerPropagationSpec("Meter", MeterSpec);
+// ADR-912 단계5 step4 경량 이관 (2026-06-17): ProgressBar/Meter spec 삭제 → propagation-only 인라인 spec.
+registerPropagationSpec("ProgressBar", progressBarPropagationSpec);
+registerPropagationSpec("Meter", meterPropagationSpec);
 registerPropagationSpec("Calendar", calendarPropagationSpec);
 registerPropagationSpec("RangeCalendar", rangeCalendarPropagationSpec);
 // ADR-912 R6 (2026-06-15): Card 본체 spec 삭제 → propagation-only 인라인 spec(cardPropagationSpec).
@@ -557,7 +593,7 @@ registerPropagationSpec("Card", cardPropagationSpec);
 //   ADR-912 (2026-06-15): CardHeader/CardContent spec 삭제 → propagation-only 인라인 spec 으로 보존.
 registerPropagationSpec("CardHeader", cardHeaderPropagationSpec);
 registerPropagationSpec("CardContent", cardContentPropagationSpec);
-registerPropagationSpec("GridList", GridListSpec);
+registerPropagationSpec("GridList", gridListPropagationSpec);
 registerPropagationSpec("ListBox", ListBoxSpec);
 registerPropagationSpec("ToggleButtonGroup", toggleButtonGroupPropagationSpec);
 // ADR-912 영역 B (A): Tabs → TabList items/selectedKey/variant/size/showIndicator 전파.

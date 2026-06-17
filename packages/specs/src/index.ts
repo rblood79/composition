@@ -309,12 +309,10 @@ export {
 export { SliderSpec, SLIDER_FILL_COLORS } from "./components/Slider.spec";
 export type { SliderProps } from "./components/Slider.spec";
 
-export {
-  MeterSpec,
-  METER_FILL_COLORS,
-  METER_DIMENSIONS,
-} from "./components/Meter.spec";
-export type { MeterProps } from "./components/Meter.spec";
+// ADR-912 단계5 step4 경량 이관 (2026-06-17): Meter.spec 물리 삭제(catalog cutover).
+//   METER_DIMENSIONS 는 valueFillMetrics 로 이관. METER_FILL_COLORS(rule.variants.fillBar 로 이관됨,
+//   dead) + MeterSpec/MeterProps 제거.
+export { METER_DIMENSIONS } from "./renderers/utils/valueFillMetrics";
 
 // ADR-912 단계5 value-fill-track: MeterTrackSpec 삭제 — catalog 발효(value_fill_bar escape)
 //   + generate-css virtual(archetype:progress) + layout 로컬 미러(VALUE_FILL_TRACK_HEIGHT) 로 대체.
@@ -322,12 +320,10 @@ export type { MeterProps } from "./components/Meter.spec";
 // ADR-912 value-label (2026-06-11): MeterValueSpec 삭제 — catalog 발효(buildCatalogShapes text)
 //   + generate-css virtual(archetype:progress) + specTextStyle catalogType 측정으로 대체.
 
-export {
-  ProgressBarSpec,
-  PROGRESSBAR_FILL_COLORS,
-  PROGRESSBAR_DIMENSIONS,
-} from "./components/ProgressBar.spec";
-export type { ProgressBarProps } from "./components/ProgressBar.spec";
+// ADR-912 단계5 step4 경량 이관 (2026-06-17): ProgressBar.spec 물리 삭제(catalog cutover).
+//   PROGRESSBAR_DIMENSIONS 는 valueFillMetrics 로 이관. PROGRESSBAR_FILL_COLORS(rule.variants.fillBar
+//   로 이관됨, dead) + ProgressBarSpec/ProgressBarProps 제거.
+export { PROGRESSBAR_DIMENSIONS } from "./renderers/utils/valueFillMetrics";
 
 // ADR-912 단계5 value-fill-track: ProgressBarTrackSpec 삭제 — catalog 발효(value_fill_bar escape)
 //   + generate-css virtual(archetype:progress) + layout 로컬 미러(PROGRESSBARTRACK_HEIGHT) 로 대체.
@@ -348,8 +344,9 @@ export type { ProgressBarProps } from "./components/ProgressBar.spec";
 // ADR-912 projection 3 cutover (2026-06-15): TabListSpec/TabSpec/TabListProps/TabProps export 제거
 //   — catalog cutover, spec 삭제. 시각 SSOT = componentRulesTable + tablist_divider/tab_indicator escape.
 
-export { MenuSpec } from "./components/Menu.spec";
-export type { MenuProps } from "./components/Menu.spec";
+// Menu — ADR-912 단계5 step4 경량 이관 (2026-06-17): spec 물리 삭제(catalog cutover).
+//   MenuSpec/MenuProps + MENU_ITEM_DIMENSIONS(dead, 외부 소비 0) 제거. 측정은 specTextStyle
+//   catalogType:"Menu" (resolveSkiaRule), CSS 는 STRUCTURE_META virtual override.
 
 // ADR-912 단계5 step4 (2026-06-16): Breadcrumbs.spec.ts 삭제 — catalog cutover 완료.
 //   시각 SSOT = componentRulesTable + STRUCTURE_META(generate-css). Property Panel =
@@ -369,18 +366,17 @@ export type { TagGroupProps } from "./components/TagGroup.spec";
 export { TagSpec } from "./components/Tag.spec";
 export type { TagProps as TagSpecProps } from "./components/Tag.spec";
 
+// ADR-912 단계5 step4 경량 이관 (2026-06-17): GridList.spec 물리 삭제(catalog cutover).
+//   resolveGridListSpacingMetric + 2 타입은 collectionItemMetrics 로 이관(아래). GridListSpec/Props 제거.
+// ADR-912 (2026-06-14): GridListItem.spec 물리 삭제(catalog cutover). metric resolver 만 유지.
 export {
-  GridListSpec,
+  resolveGridListItemMetric,
   resolveGridListSpacingMetric,
-} from "./components/GridList.spec";
+} from "./renderers/utils/collectionItemMetrics";
 export type {
-  GridListProps,
   GridListSpacingMetric,
   GridListSpacingInput,
-} from "./components/GridList.spec";
-
-// ADR-912 (2026-06-14): GridListItem.spec 물리 삭제(catalog cutover). metric resolver 만 유지.
-export { resolveGridListItemMetric } from "./renderers/utils/collectionItemMetrics";
+} from "./renderers/utils/collectionItemMetrics";
 
 // ADR-912 Disclosure 군 일괄 cutover (2026-06-10) — Disclosure/DisclosureGroup spec 삭제.
 //   시각 SSOT = componentRulesTable catalog rule.

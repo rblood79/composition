@@ -25,8 +25,8 @@ import { SelectSpec } from "../components/Select.spec";
 import { ComboBoxSpec } from "../components/ComboBox.spec";
 import { ListBoxSpec } from "../components/ListBox.spec";
 import { SliderSpec } from "../components/Slider.spec";
-import { MeterSpec } from "../components/Meter.spec";
-import { ProgressBarSpec } from "../components/ProgressBar.spec";
+// Meter/ProgressBar — ADR-912 단계5 step4 경량 이관 (2026-06-17): catalog cutover, BASE entry 제거.
+//   isCatalogCutover('Meter'|'ProgressBar')=true → Skia 진입 게이트 spec 없이 통과 + DOM virtual CSS.
 // ADR-912 단계5 step4 trivial 그룹 (2026-06-16): Table/Tree.spec import 제거 — catalog cutover,
 //   BASE_TAG_SPEC_MAP entry 제거. skipCSSGeneration:true, box-only generic 대체.
 // ADR-912 R1 후속 (2026-06-12): TreeItemSpec 삭제 — catalog cutover (rule leadingIcon +
@@ -34,13 +34,15 @@ import { ProgressBarSpec } from "../components/ProgressBar.spec";
 //   BASE_TAG_SPEC_MAP 등록 제거. 시각 SSOT = componentRulesTable.TreeItem.
 // ADR-912 단계5 step4 (2026-06-17): TabsSpec import 제거 — catalog cutover, spec 삭제. BASE entry 제거.
 // ADR-912 projection 3 cutover (2026-06-15): TabListSpec/TabSpec import 제거 — catalog cutover, BASE entry 제거.
-import { MenuSpec } from "../components/Menu.spec";
+// Menu — ADR-912 단계5 step4 경량 이관 (2026-06-17): catalog cutover, BASE entry 제거.
+//   isCatalogCutover('Menu')=true → Skia 진입 게이트 spec 없이 통과 + DOM virtual CSS.
 // ADR-912 단계5 step4 (2026-06-16): BreadcrumbsSpec import 제거 — catalog cutover, spec 삭제. BASE entry 제거.
 // ADR-912 projection 3 cutover (2026-06-15): BreadcrumbSpec import 제거 — catalog cutover, BASE entry 제거.
 // ADR-912 R7 G1-c (2026-06-15): PaginationSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
 import { TagGroupSpec } from "../components/TagGroup.spec";
 import { TagSpec } from "../components/Tag.spec";
-import { GridListSpec } from "../components/GridList.spec";
+// GridList — ADR-912 단계5 step4 경량 이관 (2026-06-17): catalog cutover, BASE entry 제거.
+//   isCatalogCutover('GridList')=true → Skia 진입 게이트 spec 없이 통과(skipCSSGeneration:true 동형).
 // ADR-912 단계5 step4 small-B (2026-06-16): ModalSpec import 제거 — catalog cutover, BASE entry 제거.
 // ADR-912 단계5 step4 trivial 그룹 (2026-06-16): FieldSpec import 제거 — catalog cutover,
 //   BASE entry 제거. skipCSSGeneration:true + render.shapes=()=>[] (Skia 0 shape).
@@ -104,8 +106,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   ComboBox: ComboBoxSpec,
   ListBox: ListBoxSpec,
   Slider: SliderSpec,
-  Meter: MeterSpec,
-  ProgressBar: ProgressBarSpec,
+  // Meter/ProgressBar — ADR-912 단계5 step4 경량 이관 (2026-06-17): catalog cutover, BASE entry 제거.
   // ProgressBarTrack/MeterTrack — ADR-912 단계5: catalog cutover type, BASE_TAG_SPEC_MAP 등록 제거
   // ProgressBarValue/MeterValue — ADR-912 value-label (2026-06-11): catalog cutover, 등록 제거
   // SliderTrack — ADR-912 단계5: catalog cutover type, BASE_TAG_SPEC_MAP 등록 제거
@@ -118,7 +119,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   //   isCatalogCutover('Tabs')=true → Skia 진입 게이트 spec 없이 통과. binding.accepts D2.
   // ADR-912 projection 3 cutover (2026-06-15): TabList/Tab catalog cutover → BASE_TAG_SPEC_MAP entry
   //   제거. isCatalogCutover('TabList'/'Tab')=true → Skia 진입 게이트 spec 없이 통과. binding.accepts D2.
-  Menu: MenuSpec,
+  // Menu — ADR-912 단계5 step4 경량 이관 (2026-06-17): catalog cutover, BASE entry 제거.
   // ADR-912 단계5 step4 (2026-06-16): Breadcrumbs catalog cutover → BASE_TAG_SPEC_MAP entry 제거.
   //   isCatalogCutover('Breadcrumbs')=true → Skia 진입 게이트 spec 없이 통과. binding.accepts D2.
   // ADR-912 projection 3 cutover (2026-06-15): Breadcrumb catalog cutover → BASE_TAG_SPEC_MAP entry 제거.
@@ -126,7 +127,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   //   isCatalogCutover('Pagination')=true → Skia 진입 게이트 spec 없이 통과. binding.accepts D2.
   TagGroup: TagGroupSpec,
   Tag: TagSpec,
-  GridList: GridListSpec,
+  // GridList — ADR-912 단계5 step4 경량 이관 (2026-06-17): catalog cutover, BASE entry 제거.
   // Modal — ADR-912 단계5 step4 small-B (2026-06-16): catalog cutover, BASE entry 제거.
   //   isCatalogCutover('Modal')=true → Skia 진입 게이트 spec 없이 통과(render.shapes=()=>[] 동형).
   // Field — ADR-912 단계5 step4 trivial 그룹 (2026-06-16): catalog cutover, BASE entry 제거.

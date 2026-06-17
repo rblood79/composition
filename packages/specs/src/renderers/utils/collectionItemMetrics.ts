@@ -15,6 +15,8 @@
  * @packageDocumentation
  */
 
+import { resolveContainerSpacing } from "../../primitives/containerSpacing";
+
 /**
  * ADR-078 Phase 3: ListBox/ListBoxItem metric 단일 소스 resolver.
  *
@@ -117,5 +119,69 @@ export function resolveGridListItemMetric(fontSize: number): {
     cardPaddingY: 10,
     cardBorderRadius: 8,
     descGap: 4,
+  };
+}
+
+/**
+ * ADR-907 Layer D: GridList 컨테이너 spacing metric 단일 소스 resolver.
+ *
+ * **ADR-912 GridList spec 삭제 (2026-06-17)**: 본 resolver 는 GridList.spec.ts 에서 이관됐다.
+ * `render.shapes`(Skia)는 catalog rule + `gridlist_card` skiaPrimitive escape 로 이미 전환됐고,
+ * 부모 GridList 의 layout `calculateContentHeight` GridList 분기(builder `utils.ts`)는 본 resolver 를
+ * 직접 소비한다. spec body(ComponentSpec 객체) 삭제와 무관하게 보존되어야 하므로 본 모듈로 분리한다.
+ *
+ * 호출자:
+ *  - Layout: `apps/builder/.../engines/utils.ts` `calculateContentHeight` GridList 분기
+ *  - Preview: 별도 진입 없음 (DOM/CSS 가 직접 style 소비)
+ */
+export interface GridListSpacingMetric {
+  paddingTop: number;
+  paddingRight: number;
+  paddingBottom: number;
+  paddingLeft: number;
+  rowGap: number;
+  columnGap: number;
+  borderWidth: number;
+  fontSize: number;
+  numCols: number;
+  cardPaddingX: number;
+  cardPaddingY: number;
+  cardBorderRadius: number;
+  descGap: number;
+}
+
+export interface GridListSpacingInput {
+  /** element.props.style — padding/gap/borderWidth/fontSize 우선 소스 */
+  style?: Record<string, unknown>;
+  /** "stack" | "grid". stack 은 numCols=1 강제, grid 는 columns 사용 */
+  layout?: "stack" | "grid";
+  /** grid 모드에서만 사용. 1 미만은 1 로 clamp */
+  columns?: number;
+  /** style.gap 미지정 시 기본 row/columnGap. 기본 12 */
+  defaultGap?: number;
+  /** style.fontSize 미지정 시 기본 fontSize. 기본 14 */
+  defaultFontSize?: number;
+}
+
+export function resolveGridListSpacingMetric(
+  input: GridListSpacingInput,
+): GridListSpacingMetric {
+  const base = resolveContainerSpacing({
+    style: input.style,
+    defaults: {
+      rowGap: input.defaultGap ?? 12,
+      columnGap: input.defaultGap ?? 12,
+      fontSize: input.defaultFontSize ?? 14,
+    },
+  });
+  const numCols = input.layout === "grid" ? Math.max(1, input.columns ?? 2) : 1;
+  const itemMetric = resolveGridListItemMetric(base.fontSize);
+  return {
+    ...base,
+    numCols,
+    cardPaddingX: itemMetric.cardPaddingX,
+    cardPaddingY: itemMetric.cardPaddingY,
+    cardBorderRadius: itemMetric.cardBorderRadius,
+    descGap: itemMetric.descGap,
   };
 }

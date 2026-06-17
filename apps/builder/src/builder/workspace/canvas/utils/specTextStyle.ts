@@ -23,7 +23,8 @@ import {
   // ADR-912 projection 3 cutover (2026-06-15): TabSpec/BreadcrumbSpec import 제거 — catalog cutover,
   //   측정이 resolveSkiaRule("Tab"/"Breadcrumb") 기반(catalogType). normalizeBreadcrumbRspSizeKey 는 유지.
   normalizeBreadcrumbRspSizeKey,
-  MenuSpec,
+  // ADR-912 단계5 step4 경량 이관 (2026-06-17): MenuSpec import 제거 — catalog cutover spec 삭제.
+  //   측정이 resolveSkiaRule("Menu").sizes 기반 산출 (catalogType 전환, StatusLight/SelectValue 동형).
   resolveToken,
   buildCatalogShapes,
   resolveComponentVisual,
@@ -108,10 +109,9 @@ const TEXT_BEARING_SPECS: Record<
   // ADR-912 R1 (2026-06-12): SelectValue catalog 발효 → spec 생략, 측정이 resolveSkiaRule
   //   ("SelectValue") 기반 산출 (구 ComboBoxInput/SearchInput 도 factory retype 으로 합류).
   selectvalue: { defaultSize: "md", catalogType: "SelectValue" },
-  menu: {
-    spec: MenuSpec as ComponentSpec<Record<string, unknown>>,
-    defaultSize: "md",
-  },
+  // ADR-912 단계5 step4 경량 이관 (2026-06-17): Menu catalog cutover → spec 생략,
+  //   측정이 resolveSkiaRule("Menu").sizes 기반 산출 (rule fontSize/lineHeight 가 구 spec.sizes 정합).
+  menu: { defaultSize: "md", catalogType: "Menu" },
   // ADR-912 value-label 군 (2026-06-11): catalog 발효 → spec 생략, catalogType 측정.
   //   resolveSkiaRule(catalogType).sizes[size] 의 fontSize/lineHeight 로 산출 (Skia 동일 경로).
   progressbarvalue: {
