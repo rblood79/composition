@@ -92,6 +92,7 @@ export const rendererMap: Record<
   DisclosureHeader: LayoutRenderers.renderDisclosureHeader,
   DisclosureContent: LayoutRenderers.renderDisclosureContent,
   DisclosureGroup: LayoutRenderers.renderDisclosureGroup,
+  ColorPicker: LayoutRenderers.renderColorPicker,
   ColorSwatch: LayoutRenderers.renderColorSwatch,
   ColorSwatchPicker: LayoutRenderers.renderColorSwatchPicker,
   // Phase 3: Extended Controls (ADR-030)

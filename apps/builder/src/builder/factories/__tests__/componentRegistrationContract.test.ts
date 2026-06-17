@@ -30,6 +30,7 @@ import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
 
 import { rendererMap } from "@composition/shared/renderers";
+import { getCatalogCutoverTypes } from "@composition/shared";
 import { TAG_SPEC_MAP } from "@composition/specs";
 import { TAG_SPEC_MAP as BUILDER_TAG_SPEC_MAP } from "@/builder/workspace/canvas/sprites/tagSpecMap";
 import { ComponentFactory } from "@/builder/factories/ComponentFactory";
@@ -71,6 +72,10 @@ const exceptions = readJson("componentRegistrationException.json");
 const rendererKeys = new Set(Object.keys(rendererMap));
 const tagSpecKeys = new Set(Object.keys(TAG_SPEC_MAP));
 const builderTagSpecKeys = new Set(Object.keys(BUILDER_TAG_SPEC_MAP));
+const tagSpecOrCatalogKeys = new Set([
+  ...tagSpecKeys,
+  ...getCatalogCutoverTypes(),
+]);
 const placeable = ComponentFactory.getRegisteredTypes();
 const defaultPropsKeys = new Set(Object.keys(DEFAULT_PROPS_MAP));
 
@@ -130,12 +135,12 @@ describe("ADR-139 컴포넌트 등록·대칭 gate", () => {
     // (123→91→90, 2026-06-11; SwitcherSpec cleanup 으로 90; R1 Select 3 + TreeItem 등
     // 누적 cutover 로 tagSpecKeys 81). universe 하한은 cutover 완결까지 계속 낮아진다.
     // sanity 의미(빈 디렉토리/glob 실패 검출)는 유지하되 삭제 방향과 충돌하지 않게 하향.
-    // tagSpecKeys 80→50 하향 (2026-06-16, R3~R7 + List + MaskedFrame cutover/폐기 누적으로
-    // universe 56 도달 — 이전 80 하한이 누락된 stale. sanity 하한은 빈 디렉토리 검출 목적의
-    // 50 으로 재고정, cutover 완결 시점에 0 근접 후 본 sanity 자체 졸업 예정).
-    expect(universe.length).toBeGreaterThanOrEqual(50);
+    // ADR-912 Color container cutover (2026-06-17): catalog cutover 대상 spec 이 모두 제거되고
+    // TAG_SPEC_MAP 잔존은 Group/frame/Slot 3개로 수렴. universe 는 Image 등 TAG_SPEC_MAP 과
+    // 직교하는 properties-panel spec 파일을 포함하므로 낮은 sanity 만 유지한다.
+    expect(universe.length).toBeGreaterThanOrEqual(3);
     expect(placeable.length).toBeGreaterThan(40);
-    expect(tagSpecKeys.size).toBeGreaterThanOrEqual(50);
+    expect(tagSpecKeys.size).toBeGreaterThanOrEqual(3);
   });
 
   // ── 불변식 A: spec 파일 ⟹ TAG_SPEC_MAP ──
@@ -156,11 +161,15 @@ describe("ADR-139 컴포넌트 등록·대칭 gate", () => {
     ).toEqual([]);
   });
 
-  it("불변식 B — placeable 컴포넌트는 TAG_SPEC_MAP 에 등록", () => {
-    const missing = unexpectedMissing(placeable, tagSpecKeys, "TAG_SPEC_MAP");
+  it("불변식 B — placeable 컴포넌트는 TAG_SPEC_MAP 또는 catalog cutover 에 등록", () => {
+    const missing = unexpectedMissing(
+      placeable,
+      tagSpecOrCatalogKeys,
+      "TAG_SPEC_MAP",
+    );
     expect(
       missing,
-      `placeable 이나 TAG_SPEC_MAP 미등록: ${missing.join(", ")}`,
+      `placeable 이나 TAG_SPEC_MAP/catalog cutover 미등록: ${missing.join(", ")}`,
     ).toEqual([]);
   });
 

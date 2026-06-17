@@ -6,7 +6,7 @@
  * 비-box 시각(6주 × 7일 cell + 헤더) → DOM 은 RAC 가 grid 자동 합성, Skia 는 `calendar_grid`
  * skiaPrimitive(replace) escape 로 grid 시각 재현(ADR-912 단계 5 (1b) — skiaLegacy 제거).
  *
- * color(TailSwatch/ColorPicker/ColorArea 등)는 사용자 지시로 family ⑦ 제외(별도 처리).
+ * color 계열은 ADR-912 단계5에서 leaf/container 별도 slice 로 catalog cutover 완료.
  */
 
 import type { PrimitiveBinding } from "../types";

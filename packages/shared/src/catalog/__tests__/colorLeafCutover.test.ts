@@ -18,7 +18,8 @@ import { getPrimitiveBinding } from "../bindings";
  *     (props accepts)만 — 시각은 catalog generic. TailSwatch 는 ColorPicker alias placeholder.
  *
  * 기존 색 제외 lock(cutover.test.ts "color 는 cutover 제외") 은 본 방침 전환으로 ColorWheel 을
- * 제외 명단에서 제거(box-only cutover 로 전환). TailSwatch/ColorPicker 는 별도 처리 유지.
+ * 제외 명단에서 제거(box-only cutover 로 전환). TailSwatch 는 leaf proof 에 포함됐고,
+ * ColorPicker/ColorSwatchPicker 는 별도 color container proof 로 처리.
  *
  * 본 oracle 은 spec 물리 삭제와 직교 — 삭제는 통과 후 별도 gate.
  */

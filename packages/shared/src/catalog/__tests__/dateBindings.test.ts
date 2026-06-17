@@ -18,7 +18,7 @@ import { toRacProps } from "../outputs/toRacProps";
  * **color leaf 5종 box-only cutover (사용자 방침 2026-06-11)**: ColorSwatch/ColorArea/ColorWheel/
  * ColorSlider/TailSwatch 는 box-only catalog cutover 로 전환됨(colorLeafCutover.test.ts). arc/wheel/
  * gradient 정교 시각은 빌더 완성 후 ProgressCircle 구조로 복원 — 지금은 generic box(의도적 손실).
- * container(ColorPicker/ColorSwatchPicker)는 자식 처리가 달라 다음 slice 로 분리 → 미등록 유지.
+ * container(ColorPicker/ColorSwatchPicker)는 2026-06-17 shell-only container slice 로 cutover.
  */
 
 const DATE_TYPES = [
@@ -72,11 +72,11 @@ describe("family ⑦ date — catalog 등록 + Skia generic 발효", () => {
     }
   });
 
-  it("color container(ColorPicker/ColorSwatchPicker)는 catalog 미등록 (다음 slice 분리)", () => {
+  it("color container(ColorPicker/ColorSwatchPicker)는 catalog 등록", () => {
     // 사용자 방침 2026-06-11: color leaf 5종(ColorSwatch/Area/Wheel/Slider/TailSwatch)은 box-only
-    // catalog cutover 로 등록됨(colorLeafCutover.test.ts). container 만 다음 slice 분리 → 미등록 유지.
-    expect(getCatalogEntry("ColorPicker")).toBeUndefined();
-    expect(getCatalogEntry("ColorSwatchPicker")).toBeUndefined();
+    // catalog cutover 로 등록됨(colorLeafCutover.test.ts). container 도 shell-only slice 로 cutover.
+    expect(getCatalogEntry("ColorPicker")).toBeDefined();
+    expect(getCatalogEntry("ColorSwatchPicker")).toBeDefined();
   });
 
   it("toRacProps: Calendar variant/size data-* 라우팅", () => {

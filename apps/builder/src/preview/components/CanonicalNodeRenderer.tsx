@@ -227,6 +227,10 @@ export const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
   "listbox",
   "gridlist",
   "menu",
+  // ADR-912 Color container cutover (2026-06-17): rendererMap 이 factory child tree 를 받아
+  //   기존 div shell(ColorPicker) / RAC ColorSwatchPickerItem 합성(ColorSwatchPicker)을 유지.
+  "colorpicker",
+  "colorswatchpicker",
 ]);
 
 /**

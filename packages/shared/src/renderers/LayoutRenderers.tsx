@@ -1659,6 +1659,36 @@ export const renderDisclosureContent = (
 };
 
 /**
+ * ColorPicker 렌더링
+ * 기존 spec-backed fallback 과 같은 div shell. 자식 ColorArea/ColorSlider/ColorField 가 UI를 그린다.
+ */
+export const renderColorPicker = (
+  element: PreviewElement,
+  context: RenderContext,
+): React.ReactNode => {
+  const children = context.childrenByParent.get(element.id) ?? [];
+  const className = ["react-aria-ColorPicker", element.props.className]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <div
+      key={element.id}
+      data-element-id={element.id}
+      data-custom-id={element.customId}
+      data-size={String(element.props.size ?? "md")}
+      data-variant={
+        element.props.variant ? String(element.props.variant) : undefined
+      }
+      style={element.props.style}
+      className={className}
+    >
+      {children.map((child) => context.renderElement(child, child.id))}
+    </div>
+  );
+};
+
+/**
  * ColorSwatch 렌더링
  * React Aria ColorSwatch — 단일 색상 박스
  */

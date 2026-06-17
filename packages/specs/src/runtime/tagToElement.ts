@@ -66,8 +66,6 @@ import { SlotSpec } from "../components/Slot.spec";
 // ADR-912 단계5 step4 date-color (2026-06-16): Calendar/RangeCalendarSpec import 제거 —
 //   catalog cutover spec 삭제, BASE_TAG_SPEC_MAP entry 제거. STRUCTURE_META virtual override + skia
 //   calendar_grid escape. CalendarHeader/CalendarGrid 는 별도(small 그룹, replace primitive 대체).
-import { ColorPickerSpec } from "../components/ColorPicker.spec";
-import { ColorSwatchPickerSpec } from "../components/ColorSwatchPicker.spec";
 // ADR-912 단계5 step4 (2026-06-17): InputSpec import 제거 — catalog cutover spec 물리 삭제.
 //   BASE_TAG_SPEC_MAP.Input entry 제거. STRUCTURE_META virtual override(generate-css) + Skia 는
 //   isCatalogSkiaCutover("input")=true generic box+text. 측정은 resolveSkiaRule("Input").sizes.
@@ -147,8 +145,10 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   // ADR-912 Disclosure 군 일괄 cutover (2026-06-10) — Disclosure/DisclosureGroup/DisclosureHeader/
   //   DisclosureContent spec entry 삭제 (catalog cutover 완결). 시각 = catalog rule.
   // ADR-912 6 registry collapse (2026-06-11) — TailSwatch/ColorSlider/ColorArea/ColorWheel/ColorSwatch
-  //   spec entry 삭제 (color leaf box-only cutover, 시각 = catalog rule). ColorPicker/ColorField/
-  //   ColorSwatchPicker(container/field) 보존.
+  //   spec entry 삭제 (color leaf box-only cutover, 시각 = catalog rule).
+  // ADR-912 Color container cutover (2026-06-17) — ColorPicker/ColorSwatchPicker spec entry 삭제
+  //   (factory child UI + catalog generic shell). ColorField(field)는 보존하지 않음: 이미 catalog
+  //   cutover 되어 BASE entry 없음.
   // ADR-912 R7 G1-c (2026-06-15): Toast 순수 box-shell catalog cutover → BASE_TAG_SPEC_MAP entry 제거.
   //   isCatalogCutover('Toast')=true → Skia 진입 게이트(buildSpecNodeData) spec 없이 통과. binding.accepts D2.
   Group: GroupSpec,
@@ -168,8 +168,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   // CalendarHeader/CalendarGrid — ADR-912 단계5 step4 small 그룹 (2026-06-16): catalog cutover,
   //   BASE entry 제거. isCatalogCutover=true → Skia 진입 게이트 spec 없이 통과(replace primitive 대체).
   // RangeCalendar — ADR-912 단계5 step4 date-color (2026-06-16): catalog cutover spec 삭제로 제거.
-  ColorPicker: ColorPickerSpec,
-  ColorSwatchPicker: ColorSwatchPickerSpec,
+  // ColorPicker/ColorSwatchPicker — ADR-912 Color container cutover (2026-06-17): BASE entry 제거.
   // ADR-912 단계5 step4 (2026-06-17): Input 제거 — catalog cutover spec-free (isCatalogCutover 게이트)
   // ADR-912 단계5 step4 Phase 1 batch 1: Avatar 제거 — catalog cutover spec-free (isCatalogCutover 게이트)
   // ADR-912 R7 G1-a: AvatarGroup 제거 — catalog cutover spec-free (isCatalogCutover 게이트)

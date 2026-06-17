@@ -432,14 +432,15 @@ export type { DatePickerShapesInput } from "./renderers/datePickerShapes";
 // RangeCalendar (calendar archetype, ...CalendarSpec spread) — ADR-912 단계5 step4 date-color
 //   (2026-06-16): barrel export 제거 (spec 삭제 — Calendar 와 시각 동형 STRUCTURE_META virtual).
 
-export { ColorPickerSpec } from "./components/ColorPicker.spec";
-export type { ColorPickerProps } from "./components/ColorPicker.spec";
+// ColorPicker — ADR-912 Color container cutover (2026-06-17): spec export 제거.
+//   시각 SSOT = componentRulesTable + buildCatalogShapes generic shell.
 
 // ADR-912 6 registry collapse — Color leaf 5종 box-only cutover (2026-06-11):
-//   ColorSlider/ColorArea/ColorWheel/ColorSwatch/TailSwatch spec 삭제. ColorSwatchPicker(container) 보존.
+//   ColorSlider/ColorArea/ColorWheel/ColorSwatch/TailSwatch spec 삭제.
+// ADR-912 Color container cutover (2026-06-17):
+//   ColorPicker/ColorSwatchPicker spec 삭제. DOM child 합성은 rendererMap, Skia 는 catalog shell.
 
-export { ColorSwatchPickerSpec } from "./components/ColorSwatchPicker.spec";
-export type { ColorSwatchPickerProps } from "./components/ColorSwatchPicker.spec";
+// ColorSwatchPicker — ADR-912 Color container cutover (2026-06-17): spec export 제거.
 
 // ADR-912 단계5 step4 (2026-06-17): InputSpec/InputProps export 제거 — catalog cutover spec 물리 삭제.
 //   시각 SSOT = componentRulesTable.Input (generate-css virtual + Skia generic). Field.Input 의

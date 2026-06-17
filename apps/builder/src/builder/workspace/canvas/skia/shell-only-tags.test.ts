@@ -16,22 +16,6 @@
  */
 
 import { describe, expect, it } from "vitest";
-import {
-  // ADR-912 Disclosure 군 catalog cutover (2026-06-10) + Card 본체 R6 + ButtonGroup R7 G1-c (2026-06-15) — spec 삭제로 이 테스트 대상에서 제외 (시각 검증은 catalog rule + buildCatalogShapes 경로)
-  // ADR-912 단계5 step4 small-B (2026-06-16): Section/CheckboxGroup/RadioGroup/Form spec import 제거 —
-  //   catalog cutover spec 삭제로 _hasChildren 검증 대상에서 제외 (시각 = catalog rule + buildCatalogShapes shell 경로).
-  // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroupSpec import 제거 —
-  //   catalog cutover spec 삭제로 제외 (시각 = catalog rule + generate-css virtual indicatorMode/delegation carry).
-  // ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): TooltipSpec import 제거 — catalog cutover spec 삭제로
-  //   phase2B 검증 대상에서 제외 (시각 = catalog rule + buildCatalogShapes box+text + tooltip_arrow append).
-  // ADR-912 단계5 step4 Dialog 단건 (2026-06-16): DialogSpec import 제거 — catalog cutover spec 삭제로
-  //   phase1 검증 대상에서 제외 (시각 = catalog rule + skiaPrimitive overlay_backdrop/dialog_shadow escape).
-  //   SHELL_ONLY 멤버십(SHELL_ONLY_CONTAINER_TAGS)은 유지(자식 독립 렌더 — buildSpecNodeData.ts).
-  // ADR-912 단계5 step4 Popover 단건 (2026-06-16): PopoverSpec import 제거 — catalog cutover spec 삭제로
-  //   phase2B 검증 대상에서 제외 (시각 = catalog rule + buildCatalogShapes box + skiaPrimitive
-  //   popover_shadow prepend / popover_arrow append). SHELL_ONLY 멤버십은 buildSpecNodeData.ts 에서 유지.
-  ColorPickerSpec,
-} from "@composition/specs";
 import type { ComponentSpec } from "@composition/specs";
 import {
   SHELL_ONLY_CONTAINER_TAGS,
@@ -67,7 +51,8 @@ const phase2BCandidates: Array<{ type: string; spec: AnySpec }> = [
   //   기반 _hasChildren 분기 검증 대상 소멸. SHELL_ONLY 멤버십은 buildSpecNodeData.ts 에서 유지.
   // ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): Tooltip 후보 제거 — spec 삭제로 render.shapes
   //   기반 _hasChildren 분기 검증 대상 소멸. SHELL_ONLY 멤버십은 buildSpecNodeData.ts 에서 유지.
-  { type: "ColorPicker", spec: ColorPickerSpec as unknown as AnySpec },
+  // ADR-912 Color container cutover (2026-06-17): ColorPicker spec 삭제로 phase2B 검증 대상에서 제외.
+  //   SHELL_ONLY 멤버십은 colorContainerCutover.test.ts 가 정적 회귀로 잠근다.
 ];
 
 // Phase 3 (TabPanel/TabPanels): ADR-912 catalog 발효 + spec 파일 삭제(2026-06-11)로
@@ -93,6 +78,9 @@ function callShapes(spec: AnySpec, hasChildren: boolean) {
 
 describe("ADR-072 Phase 1 + 2-A + 2-B: SHELL_ONLY_CONTAINER_TAGS 재분류", () => {
   describe("Set membership", () => {
+    if (candidates.length === 0) {
+      it.skip("placeholder — 모든 shell-only spec 후보 catalog cutover 됨", () => {});
+    }
     for (const { type } of candidates) {
       it(`${type}: SHELL_ONLY_CONTAINER_TAGS 포함`, () => {
         expect(SHELL_ONLY_CONTAINER_TAGS.has(type)).toBe(true);
@@ -137,6 +125,9 @@ describe("ADR-072 Phase 1 + 2-A + 2-B: SHELL_ONLY_CONTAINER_TAGS 재분류", () 
     // Phase 2-B 태그들은 standalone 분기에 text/gradient/arrow 등 다양한 실렌더
     // shape이 존재. Shell-only 이동 후에도 _hasChildren=true 시에는 이들이
     // 생성되지 않고 shell(bg/border 등)만 유지됨을 검증.
+    if (phase2BCandidates.length === 0) {
+      it.skip("placeholder — 모든 phase2B 후보 catalog cutover 됨", () => {});
+    }
     for (const { type, spec } of phase2BCandidates) {
       it(`${type}: shell shapes < standalone shapes`, () => {
         const shellShapes = callShapes(spec, true);

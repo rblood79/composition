@@ -20,8 +20,10 @@ import { checkboxGroupBinding } from "./CheckboxGroup.binding";
 import { codeBinding } from "./Code.binding";
 import { colorAreaBinding } from "./ColorArea.binding";
 import { colorFieldBinding } from "./ColorField.binding";
+import { colorPickerBinding } from "./ColorPicker.binding";
 import { colorSliderBinding } from "./ColorSlider.binding";
 import { colorSwatchBinding } from "./ColorSwatch.binding";
+import { colorSwatchPickerBinding } from "./ColorSwatchPicker.binding";
 import { colorWheelBinding } from "./ColorWheel.binding";
 import { comboBoxBinding } from "./ComboBox.binding";
 import { dateFieldBinding } from "./DateField.binding";
@@ -129,8 +131,10 @@ export * from "./CheckboxGroup.binding";
 export * from "./Code.binding";
 export * from "./ColorArea.binding";
 export * from "./ColorField.binding";
+export * from "./ColorPicker.binding";
 export * from "./ColorSlider.binding";
 export * from "./ColorSwatch.binding";
+export * from "./ColorSwatchPicker.binding";
 export * from "./ColorWheel.binding";
 export * from "./ComboBox.binding";
 export * from "./DateField.binding";
@@ -303,14 +307,14 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   DateField: dateFieldBinding,
   TimeField: timeFieldBinding,
   ColorField: colorFieldBinding,
-  // ADR-912 Color leaf 5종 box-only cutover (2026-06-11): 사용자 방침 — 빌더 완성 후 제일 나중에
-  //   ProgressCircle 구조(react-aria.adobe.com/ColorWheel 레퍼런스)로 진짜 구현. 지금은 spec 제거 +
-  //   catalog cutover 등록(6 registry collapse)을 위해 box 영역만 등록. 동적 색/gradient/wheel/thumb 는
-  //   generic buildCatalogShapes(box)로 재현 안 함(의도적 손실). TailSwatch=ColorPicker alias placeholder.
+  // ADR-912 Color cutover: leaf 5종은 box-only, container 2종은 factory child UI 를 보존하는
+  //   shell-only container 로 catalog 등록. ColorPicker/ColorSwatchPicker DOM 은 rendererMap 위임.
+  ColorPicker: colorPickerBinding,
   ColorSwatch: colorSwatchBinding,
   ColorArea: colorAreaBinding,
   ColorWheel: colorWheelBinding,
   ColorSlider: colorSliderBinding,
+  ColorSwatchPicker: colorSwatchPickerBinding,
   TailSwatch: tailSwatchBinding,
   Form: formBinding,
   // ADR-912 childSpec→catalog cutover (2026-06-15): Form 필드 그룹 슬롯 컨테이너 sub-part
@@ -418,8 +422,7 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // ADR-912 R7 G1-c: Toast box-shell catalog cutover (좌측 accent bar = toast_accent_bar escape).
   Toast: toastBinding,
   DropZone: dropZoneBinding,
-  // family ⑦ date (internal source — composition wrapper, 날짜 grid/portal, skiaLegacy).
-  // color(TailSwatch/ColorPicker 등)는 사용자 지시로 제외.
+  // family ⑦ date/color (internal source — composition wrapper, 날짜 grid/portal + color shells).
   Calendar: calendarBinding,
   // ADR-912 (B+icon): CalendarHeader leaf (inline_icon_text replace — 좌 chevron + center text + 우 chevron).
   //   DOM 은 부모 Calendar self-compose(독립 노드 0), Skia 만 자기 노드 발효.

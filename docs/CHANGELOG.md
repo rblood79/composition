@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Color container spec 물리 삭제 — ADR-912 단계5 step4] - 2026-06-17
+
+### Breaking Changes
+
+- **`ColorPickerSpec` / `ColorPickerProps` / `ColorSwatchPickerSpec` / `ColorSwatchPickerProps` export 제거**:
+  - `packages/specs/src/components/ColorPicker.spec.ts` 와 `packages/specs/src/components/ColorSwatchPicker.spec.ts` 물리 삭제.
+  - `@composition/specs` 의 두 container spec re-export 제거. 시각/편집 SSOT 는 catalog binding + rendererMap delegation + shell-only Skia path 로 이전.
+
+### Architecture
+
+- **Color container 2종 catalog cutover** (ADR-912 단계5 step4):
+  - `ColorPicker` / `ColorSwatchPicker` primitiveEntry + binding.accepts 추가. catalog count 110→112.
+  - Skia: `ColorPicker` / `ColorSwatchPicker` 를 shell-only container 로 취급하고 factory child UI 를 자식 렌더가 담당.
+  - DOM/Preview: `rendererMap` delegation 으로 `ColorPicker` div shell 과 `ColorSwatchPickerItem` 합성을 유지.
+  - TAG_SPEC_MAP/specRegistry/barrel export 제거 후 현 정본은 spec map 3 / catalog 112 / 미등록 1(`Group`).
+
 ## [Slider spec 물리 삭제 — ADR-912 단계5 step4 (잔여 deletable 소진)] - 2026-06-17
 
 ### Breaking Changes

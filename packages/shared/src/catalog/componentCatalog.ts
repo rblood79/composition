@@ -948,7 +948,8 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
  * ColorWheel 레퍼런스)로 진짜 구현 예정. 지금은 spec 제거 + catalog cutover 등록(6 registry collapse)
  * 만을 위해 **box 영역만** 가진 형태로 등록 — 동적 색/gradient/wheel/thumb 시각은 generic
  * buildCatalogShapes(box)로 재현 안 함(의도적 손실, escape 없음). 후속 작업에서 arc/wheel skiaPrimitive
- * 로 복원. ColorPicker/ColorSwatchPicker(container)는 자식 처리가 달라 다음 slice 로 분리.
+ * 로 복원. ColorPicker/ColorSwatchPicker(container)는 factory child UI 를 보존하는 shell-only
+ * container slice 로 후속 cutover.
  */
 const FAMILY_7_CUTOVER: CutoverState = "catalog";
 
@@ -997,6 +998,21 @@ const FAMILY_7_ENTRIES: ComponentCatalogEntry[] = [
     category: "color",
     label: "color slider",
     icon: "Sliders",
+  }),
+  // ADR-912 Color container cutover (2026-06-17): factory children(ColorArea/ColorSlider/ColorField)
+  //   가 visible UI 를 소유하므로 parent 는 shell-only div container. DOM 은 rendererMap/fallback,
+  //   Skia 는 componentRulesTable.ColorPicker generic shell.
+  primitiveEntry("ColorPicker", "date-color", FAMILY_7_CUTOVER, {
+    category: "color",
+    label: "color picker",
+    icon: "Palette",
+  }),
+  // ADR-912 Color container cutover (2026-06-17): factory children(ColorSwatch[]) 를 rendererMap 이
+  //   RAC ColorSwatchPickerItem 으로 합성. Skia 는 parent shell + child ColorSwatch 독립 렌더.
+  primitiveEntry("ColorSwatchPicker", "date-color", FAMILY_7_CUTOVER, {
+    category: "color",
+    label: "color swatch picker",
+    icon: "LayoutGrid",
   }),
   primitiveEntry("TailSwatch", "date-color", FAMILY_7_CUTOVER, {
     category: "color",
@@ -1049,7 +1065,8 @@ const FAMILY_8_ENTRIES: ComponentCatalogEntry[] = [
 /**
  * 컴포넌트 카탈로그 — 등록 SSOT. family cutover 진행 시 family 별 entry 가 누적된다.
  * 현재 family ①~⑧ 등록 — ⑦ date-color 에 color leaf 5종(ColorSwatch/Area/Wheel/Slider/TailSwatch)
- * box-only cutover 포함(2026-06-11). ColorPicker/ColorSwatchPicker(container)는 다음 slice 분리.
+ * box-only cutover 포함(2026-06-11). ColorPicker/ColorSwatchPicker(container)는 2026-06-17
+ * shell-only container slice 로 cutover.
  * ⑧ native(frame/Slot)는 metadata-only(cutover 게이트 미포함, canonical-native 렌더 유지).
  *   (MaskedFrame 은 2026-06-16 dead orphan 폐기)
  */

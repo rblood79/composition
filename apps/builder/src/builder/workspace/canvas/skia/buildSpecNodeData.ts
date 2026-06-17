@@ -163,13 +163,15 @@ export const SHELL_ONLY_CONTAINER_TAGS = new Set([
   // ADR-072 Phase 2-B: factory가 자식 CanvasSceneNode로 시각 콘텐츠 렌더링 대체.
   // Disclosure: DisclosureHeader/Content / Form: Heading/Description/FormField /
   // Popover: Heading/Description (arrow는 RAC OverlayArrow DOM 전용) /
-  // Tooltip: Description / ColorPicker: ColorArea/ColorSlider/ColorField (각자 Spec).
+  // Tooltip: Description / ColorPicker: ColorArea/ColorSlider/ColorField / ColorSwatchPicker:
+  // ColorSwatch[] (각자 독립 렌더).
   // standalone 실렌더는 레거시 fallback이며 factory 자식이 모두 대체 커버함.
   "Disclosure",
   "Form",
   "Popover",
   "Tooltip",
   "ColorPicker",
+  "ColorSwatchPicker",
   // ADR-902 후속: Body 는 페이지 루트. factory 가 자식 CanvasSceneNode 를 자동 생성하지
   // 않지만 빈 페이지에서도 배경이 렌더되어야 하므로 shell-only 규칙 필요.
   // Key 는 lowercase — element.type 가 "body" 이고 Set.has 는 정확 매칭.
@@ -1301,10 +1303,11 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   //
   // **fallback = catalog 미등록 type 전용 임시 경로 (단계 5 step 2, 사용자 결정 2026-06-04)**:
   //   `: spec.render.shapes(...)` 는 더 이상 "skiaLegacy collection fallback" 이 아니다 —
-  //   catalog 미등록 36 type(2026-06-09 카운트 SSOT 동기화 set-difference 실측: BASE_TAG_SPEC_MAP 108 − catalog 72; color scope 외 6 / sub-part / 미발효 leaf / legacy)의 **유일한**
+  //   catalog 미등록 type(2026-06-09 당시 set-difference 실측은 BASE_TAG_SPEC_MAP 108 − catalog 72;
+  //   이후 color leaf/container 포함 대부분 catalog cutover)의 **유일한**
   //   Skia 렌더 경로다. catalog registered runtime 은 항상 첫 분기로 가야 한다(spec.render.shapes
   //   도달 0건). catalog 등록 type 이 이 fallback 으로 새면 게이트 비동치 회귀이므로 dev 에서 검출.
-  //   미등록 type 의 generic 전환/catalog 등록은 단계 5 후속 inventory (color 는 사용자 scope 외).
+  //   미등록 type 의 generic 전환/catalog 등록은 단계 5 후속 inventory 가 관리한다.
   const usesGeneric = isCatalogSkiaCutover(type);
   if (import.meta.env.DEV && !usesGeneric && isCatalogCutover(type)) {
     // eslint-disable-next-line no-console

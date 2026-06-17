@@ -136,19 +136,18 @@ export type { DatePickerShapesInput } from "../renderers/datePickerShapes";
 // RangeCalendar (...CalendarSpec spread) — ADR-912 단계5 step4 date-color (2026-06-16): export 제거
 //   (spec 삭제 — Calendar 와 시각 동형 STRUCTURE_META virtual).
 
-// ColorPicker
-export { ColorPickerSpec } from "./ColorPicker.spec";
-export type { ColorPickerProps } from "./ColorPicker.spec";
+// ColorPicker — ADR-912 Color container cutover (2026-06-17): spec 물리 삭제.
+//   시각 SSOT = componentRulesTable + buildCatalogShapes generic shell.
 
 // ColorField
 
-// ADR-912 6 registry collapse — Color leaf 5종 box-only cutover (2026-06-11):
+// ADR-912 6 registry collapse — Color leaf 5종 box-only cutover (2026-06-11) +
+//   ColorPicker/ColorSwatchPicker container shell cutover (2026-06-17):
 //   ColorSlider/ColorArea/ColorWheel/ColorSwatch/TailSwatch spec 삭제 (catalog cutover 완결,
-//   시각 SSOT = componentRulesTable). ColorSwatchPicker(container)는 다음 slice 분리 → 보존.
+//   시각 SSOT = componentRulesTable). ColorPicker/ColorSwatchPicker 도 catalog cutover 완료.
 
-// ColorSwatchPicker
-export { ColorSwatchPickerSpec } from "./ColorSwatchPicker.spec";
-export type { ColorSwatchPickerProps } from "./ColorSwatchPicker.spec";
+// ColorSwatchPicker — ADR-912 Color container cutover (2026-06-17): spec 물리 삭제.
+//   factory ColorSwatch[] children + rendererMap DOM 합성 / Skia generic shell.
 
 // Switcher — ADR-912 Switcher cleanup 으로 제거 (RAC ToggleButtonGroup 으로 대체).
 
