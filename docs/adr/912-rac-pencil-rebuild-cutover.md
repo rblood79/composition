@@ -2,9 +2,9 @@
 
 ## Status
 
-Proposed — 2026-06-02
+Implemented — 2026-06-18 (Proposed 2026-06-02 → Implemented 승격, 사용자 confirm)
 
-> **🟢 진행 상태 (2026-06-17 color container slice cutover — dist 런타임 재실측)**: `ColorPicker` / `ColorSwatchPicker` 2종을 color container 후속 slice 로 catalog cutover + spec 물리 삭제 완료. 현 정본은 **spec map 3 / catalog 112 / 미등록 1**. **TAG_SPEC_MAP 잔존 3 entry = `Group, frame, Slot`**(childSpecs 자동확장 0). **미등록 1 = `Group`**(D1 ARIA semantic 보존). `frame`/`Slot` 은 catalog `nativeEntry`(canonical layout / projected-slot infra)라 set-diff 상 미등록 아님, cutover 게이트 외 영구 보존. `ColorPicker` / `ColorSwatchPicker` 는 `componentCatalog` primitiveEntry + binding.accepts + rendererMap delegation + shell-only Skia 경로로 이전했고 `ColorPicker.spec.ts` / `ColorSwatchPicker.spec.ts` 및 TAG_SPEC_MAP/specRegistry/barrel export 는 제거. 별개 축: `Image.spec.ts` 는 물리 존재하나 `TAG_SPEC_MAP`/catalog 모두 미등록(`specRegistry.ts` properties-panel 용 export 만) — ADR-912 cutover 직교. **Status 전이 판단은 사용자 몫으로 보류** — 본 갱신은 진행 상태 정합화만 수행.
+> **🟢 Implemented 승격 (2026-06-18, dist 런타임 재실측 확증)**: catalog cutover 대상 spec 전수 물리 삭제 + 전환기 seam 정화(`resolveComponentVisual` adapter production 경로 차단, `1a84c8f2b`) 완결 → ADR 핵심 결정인 dual-SSOT 소멸 land 완료. **승격 자격 실측 확증**: (1) TAG_SPEC_MAP 잔존 = `Group, Slot, frame` 3 (childSpecs 자동확장 0) — cutover 대상 0; (2) `frame`/`Slot` = `nativeEntry`(componentCatalog.ts:1052/1057, canonical layout / projected-slot infra, cutover 게이트 외 영구 보존); (3) `Group` = D1 ARIA semantic(RAC 권위 보존); (4) `Image.spec.ts` = 물리 존재하나 TAG_SPEC_MAP/catalog 미등록(`specRegistry.ts` properties-panel 용 export 만) — cutover **직교**. 즉 잔존 spec 4 는 전부 의도된 영구 잔존, 삭제 대상 0. **검증**: type-check PASS(builder baseline 71, new 0) / specs test 448 PASS(snapshot byte diff 0) / production seam 함수 import 0건(grep) / live(Chrome MCP): console error 0 + Skia 캔버스 정상 렌더 + generated CSS 109 rule 정상 주입.
 >
 > <details><summary>이전 진행 상태 (2026-06-17 후반 catch-up, color container 이전)</summary>
 >

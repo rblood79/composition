@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-912 Implemented 승격 — RAC core + Pencil 백지 직행 컴포넌트 아키텍처 완결] - 2026-06-18
+
+ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 컴포넌트 spec 의 물리 삭제와 전환기 seam 부채 정화가 완결되어, 컴포넌트 시각 SSOT 가 `*.spec.ts` (구 dual-SSOT) 에서 `COMPONENT_RULES_TABLE` catalog 단일 정본으로 전환됐다.
+
+### Architecture
+
+- **전환기 seam 정화 완결** (ADR-912 단계5):
+  - `resolveComponentVisual` / `variantToVisual` (spec→ComponentVisualRule 어댑터) 의 production 호출 경로를 전수 제거. CSS 생성은 `_variantSource`(rule table 파생) 단독, Skia 텍스트 스타일은 `resolveSkiaVisualRule`(rule table) 단독으로 읽는다.
+  - 두 함수의 barrel re-export(`renderers/index.ts` / `src/index.ts`) 제거 → production 이 `@composition/specs` 로 어댑터를 끌어올 경로 차단. **Why**: 어댑터가 살아 있으면 spec→catalog 이중 경로(dual-SSOT)가 잠재적으로 부활.
+  - 두 함수는 test-only utility 로 재분류(물리 삭제 아님) — test fixture 가 spec.variants → ComponentVisualRule 변환에 쓰는 정당한 test 자산. `ComponentVisualRule` 타입은 DOM↔Skia 대칭의 데이터 계약이라 production 정본으로 유지.
+  - 위치: `packages/specs/src/renderers/utils/resolveComponentVisual.ts`, `packages/specs/src/renderers/CSSGenerator.ts`, `apps/builder/src/builder/workspace/canvas/utils/specTextStyle.ts` (commit: `1a84c8f2b`)
+- **dual-SSOT 소멸 — catalog cutover 대상 spec 전수 물리 삭제 완료**:
+  - dist 런타임 재실측: `TAG_SPEC_MAP` 잔존 = `Group, Slot, frame` 3 (childSpecs 자동확장 0) → catalog cutover 대상 spec 0건.
+  - 잔존 spec 4 는 전부 의도된 영구 잔존: `frame`/`Slot` = `nativeEntry`(canonical layout / projected-slot infra, cutover 게이트 외) / `Group` = D1 ARIA semantic(RAC 권위) / `Image` = TAG_SPEC_MAP·catalog 미등록(properties-panel export 만, cutover 직교).
+  - 검증: type-check PASS(builder baseline 71, new violation 0) / specs test 448 PASS(snapshot byte diff 0) / production seam 함수 import 0건 / live(Chrome MCP): console error 0 + Skia 캔버스 정상 렌더 + generated CSS 109 rule 정상 주입.
+
 ## [Color container spec 물리 삭제 — ADR-912 단계5 step4] - 2026-06-17
 
 ### Breaking Changes
