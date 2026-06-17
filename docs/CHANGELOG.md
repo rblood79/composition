@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Input spec 물리 삭제 — ADR-912 단계5 step4] - 2026-06-17
+
+### Breaking Changes
+
+- **`@composition/specs` InputSpec/InputProps export 제거** (ADR-912 단계5 step4):
+  - Input 의 catalog cutover(FAMILY_1_CUTOVER, rac source) 완결 → spec 파일 물리 삭제
+  - 위치: `packages/specs/src/components/Input.spec.ts`
+  - InputProps 외부 소비 0 확인 (`Field.tsx` 의 `InputProps` 는 `react-aria-components` 타입, `ScrubInputProps`/`PropertyInputProps` 등은 별개 심볼)
+
+### Architecture
+
+- **Input generated CSS = STRUCTURE_META virtual input 전환** (ADR-912 단계5 step4):
+  - `generate-css.ts` STRUCTURE_META_ENTRIES 에 `Input`(archetype "input-base", containerStyles `{display:flex, alignItems:center}`, states verbatim) virtual entry 추가 → spec 파일 스캔 대신 `componentRulesTable.Input` 정본 파생으로 `Input.css` 재생성
+  - **Why**: spec 삭제 후에도 `.react-aria-Input` CSS byte-identical(diff-0) 유지 — `ARCHETYPE_BASE_STYLES["input-base"]` 4줄(display:flex/align-items/box-sizing/font-family)이 base 블록 재현. TextArea(input-base)는 `ownsContainerBox` 라 gap 만 보강했지만 Input 은 non-composition leaf 라 paddingY+gap 둘 다 emit
+- **componentRulesTable.Input.sizes 에 paddingY/gap 보충** (ADR-912 단계5 step4):
+  - 기존 rule sizes 는 fontSize/borderRadius/height/paddingX 만 보유 → InputSpec.sizes 미러로 `paddingY`(xs1/sm2/md4/lg8/xl12) + `gap`(xs2/sm4/md6/lg8/xl10) 추가
+  - **Why**: generate-css virtual 이 `padding: {paddingY}px {paddingX}px` + `gap: {gap}px` emit 하려면 필수 — 누락 시 `padding: 0px ...` + gap 미emit 으로 CSS drift. ComponentRuleSize 스키마는 paddingY/gap 필드 기보유(Button rule 선례)
+- **Input layout/measure consumer = catalog rule read-through 이관** (ADR-912 단계5 step4):
+  - `utils.ts` 의 `InputSpec.sizes[size].fontSize` 직접 참조 → `resolveSkiaRule("Input").sizes` read-through (DateInput/Menu/Breadcrumb 동형)
+  - measure 2곳(`specTextStyle.ts`/`specTextStyleForOverlay.ts`)의 `input: { spec: InputSpec }` → `input: { defaultSize: "sm", catalogType: "Input" }` (checkbox/menu 동형)
+  - **Why**: Skia 진입 게이트 `buildSpecNodeData` 는 `isCatalogSkiaCutover("Input")=true` 로 spec 부재 흡수(generic box+text). 측정/layout 만 spec 의존 잔존 → rule 경유로 끊기. 검증: `calculateContentHeight` 가 size 반응(md=20/sm=16)
+- **HTML_PRIMITIVE_DEFAULT_WIDTHS 에 `input: 180` 재이관** (ADR-912 단계5 step4):
+  - `InputSpec.defaultWidth`(180) 삭제로 `getDefaultWidth` lookup 체인 5b(`HTML_PRIMITIVE_DEFAULT_WIDTHS[type]`)가 받도록 귀속
+  - **Why**: 누락 시 `DEFAULT_WIDTH=80` 폴백으로 신규 Input 기본폭 180→80 회귀(사용자-가시). 적대적 Verify 가 적발한 회귀 축
+  - 위치: `packages/specs/src/primitives/elementDefaults.ts`
+
 ## [Body/DateInput spec 물리 삭제 — ADR-912 단계5 step4] - 2026-06-17
 
 ### Breaking Changes

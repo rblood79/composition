@@ -3120,35 +3120,48 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // ADR-912 단계5 step4 (2026-06-17): paddingY/gap 보강 — InputSpec.spec 삭제 대비
+      //   generate-css virtual emit(padding: {paddingY}px {paddingX}px + gap)이 기존 Input.css
+      //   (padding 1px 4px~12px 24px / gap 2~10) byte-identical 재현하려면 필수. InputSpec.sizes 미러.
       xs: {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
         height: 20,
         paddingX: 4,
+        paddingY: 1,
+        gap: 2,
       },
       sm: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 22,
         paddingX: 8,
+        paddingY: 2,
+        gap: 4,
       },
       md: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 30,
         paddingX: 12,
+        paddingY: 4,
+        gap: 6,
       },
       lg: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 42,
         paddingX: 16,
+        paddingY: 8,
+        gap: 8,
       },
       xl: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 54,
         paddingX: 24,
+        paddingY: 12,
+        gap: 10,
       },
     },
   },

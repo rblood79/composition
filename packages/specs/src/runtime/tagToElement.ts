@@ -63,7 +63,9 @@ import { DateFieldSpec } from "../components/DateField.spec";
 //   calendar_grid escape. CalendarHeader/CalendarGrid 는 별도(small 그룹, replace primitive 대체).
 import { ColorPickerSpec } from "../components/ColorPicker.spec";
 import { ColorSwatchPickerSpec } from "../components/ColorSwatchPicker.spec";
-import { InputSpec } from "../components/Input.spec";
+// ADR-912 단계5 step4 (2026-06-17): InputSpec import 제거 — catalog cutover spec 물리 삭제.
+//   BASE_TAG_SPEC_MAP.Input entry 제거. STRUCTURE_META virtual override(generate-css) + Skia 는
+//   isCatalogSkiaCutover("input")=true generic box+text. 측정은 resolveSkiaRule("Input").sizes.
 // ADR-912 Switcher cleanup — SwitcherSpec import 제거 (RAC ToggleButtonGroup 으로 대체).
 // ADR-912 box+text leaf 군 일괄 (2026-06-11) — Label/Icon/ToggleButton/StatusLight/Button/Badge/
 //   Separator/Skeleton Spec 삭제. 시각 SSOT = componentRulesTable (generate-css virtual / Skia escape).
@@ -163,7 +165,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   // RangeCalendar — ADR-912 단계5 step4 date-color (2026-06-16): catalog cutover spec 삭제로 제거.
   ColorPicker: ColorPickerSpec,
   ColorSwatchPicker: ColorSwatchPickerSpec,
-  Input: InputSpec,
+  // ADR-912 단계5 step4 (2026-06-17): Input 제거 — catalog cutover spec-free (isCatalogCutover 게이트)
   // ADR-912 단계5 step4 Phase 1 batch 1: Avatar 제거 — catalog cutover spec-free (isCatalogCutover 게이트)
   // ADR-912 R7 G1-a: AvatarGroup 제거 — catalog cutover spec-free (isCatalogCutover 게이트)
   InlineAlert: InlineAlertSpec,

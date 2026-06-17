@@ -446,8 +446,9 @@ export type { ColorPickerProps } from "./components/ColorPicker.spec";
 export { ColorSwatchPickerSpec } from "./components/ColorSwatchPicker.spec";
 export type { ColorSwatchPickerProps } from "./components/ColorSwatchPicker.spec";
 
-export { InputSpec } from "./components/Input.spec";
-export type { InputProps } from "./components/Input.spec";
+// ADR-912 단계5 step4 (2026-06-17): InputSpec/InputProps export 제거 — catalog cutover spec 물리 삭제.
+//   시각 SSOT = componentRulesTable.Input (generate-css virtual + Skia generic). Field.Input 의
+//   InputProps 는 react-aria-components 출처(spec 무관).
 
 // ADR-912 Switcher cleanup — SwitcherSpec 제거 (RAC ToggleButtonGroup 으로 대체).
 

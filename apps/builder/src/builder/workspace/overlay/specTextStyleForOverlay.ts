@@ -16,7 +16,7 @@ import type {
 import {
   // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): Checkbox/Radio/Switch Spec import 제거 —
   //   catalog cutover(FAMILY_3) → size/visual/textDecoration 이 resolveSkiaRule(catalogType)에서 산출.
-  InputSpec,
+  // ADR-912 단계5 step4 (2026-06-17): InputSpec import 제거 — catalog cutover spec 삭제 (rule 측정).
   resolveColor,
   buildCatalogShapes,
   resolveComponentVisual,
@@ -58,7 +58,8 @@ const TEXT_BEARING_SPECS: Record<
   checkbox: { defaultSize: "md", catalogType: "Checkbox" },
   radio: { defaultSize: "md", catalogType: "Radio" },
   switch: { defaultSize: "md", catalogType: "Switch" },
-  input: { spec: InputSpec, defaultSize: "sm" },
+  // ADR-912 단계5 step4 (2026-06-17): Input catalog cutover → spec 생략 (rule 기반 측정).
+  input: { defaultSize: "sm", catalogType: "Input" },
 };
 
 /**

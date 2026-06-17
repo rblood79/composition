@@ -15,7 +15,8 @@ import type { Margin, BoxModel, VerticalAlign } from "./types";
 import type { CanvasLayoutNode } from "../layoutNode";
 import {
   fontFamily as specFontFamily,
-  InputSpec,
+  // ADR-912 단계5 step4 (2026-06-17): InputSpec import 제거 — input height 분기를
+  //   resolveSkiaRule("Input").sizes read-through 로 이관(spec 삭제 선행, Breadcrumbs/Menu 동형).
   // ADR-912 단계5 step4 (2026-06-17): TagSpec import 제거 — TAG_SIZE_CONFIG 가
   //   ruleSizesToSizeSpecMap("Tag") 파생으로 이관(아래, Tab/Card 동형 consumer 이관).
   // ADR-912 projection 3 cutover (2026-06-15): TabSpec import 제거 — TAB_SIZE_CONFIG 가
@@ -1601,7 +1602,7 @@ export function calculateContentWidth(
 //   - Spec 있는 태그 (button/select/textarea/image) → `ComponentSpec.defaultHeight`
 //   - HTML primitive (p/span/h1~h6/div/section/... 26 type) → `HTML_PRIMITIVE_DEFAULT_HEIGHTS`
 //   lookup 체인: spec.defaultHeight → HTML_PRIMITIVE_DEFAULT_HEIGHTS → estimateTextHeight() fallback
-//   - input: InputSpec.sizes 기반 동적 계산 (step 2.5) — defaultHeight 미설정
+//   - input: resolveSkiaRule("Input").sizes 기반 동적 계산 (step 2.5) — defaultHeight 미설정
 //   - label: Tailwind CSS v4 line-height:1.5 적용 → step 7에서 동적 계산 (fontSize*1.5)
 
 /**
@@ -2103,12 +2104,15 @@ export function calculateContentHeight(
   }
 
   // 2.5. Input: fontSize 기반 동적 높이 계산 (Text 컴포넌트와 동일 패턴)
-  // InputSpec.sizes에서 fontSize를 읽고, line-height: 1.5 기준으로 텍스트 높이 반환
+  // ADR-912 단계5 step4 (2026-06-17): InputSpec.sizes 직접 참조 → resolveSkiaRule("Input").sizes
+  //   read-through 이관 (spec 삭제 선행). rule.Input.sizes 의 fontSize 가 구 InputSpec.sizes 정합
+  //   (TokenRef 동일). DateInput/Menu/Breadcrumb 동형 패턴.
   if (type === "input") {
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = (props?.size as string) ?? "md";
-    const sizeConfig = InputSpec.sizes[sizeName] ?? InputSpec.sizes.md;
-    const rawFontSize = sizeConfig.fontSize;
+    const inputRule = resolveSkiaRule("Input");
+    const sizeConfig = inputRule?.sizes[sizeName] ?? inputRule?.sizes.md;
+    const rawFontSize = sizeConfig?.fontSize;
     const specFontSize =
       typeof rawFontSize === "number"
         ? rawFontSize

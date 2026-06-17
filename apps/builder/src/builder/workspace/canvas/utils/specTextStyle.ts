@@ -19,7 +19,8 @@ import {
   // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): Checkbox/Radio/Switch Spec import 제거 —
   //   catalog cutover(FAMILY_3) → 측정이 buildCatalogShapes(catalogType) 기반(rule variant textWeight:400
   //   명시로 replace-mode drift 0). spec 은 fallback 안전망이었을 뿐 — Text/Button 동형 spec 생략.
-  InputSpec,
+  // ADR-912 단계5 step4 (2026-06-17): InputSpec import 제거 — catalog cutover spec 삭제, 측정이
+  //   resolveSkiaRule("Input").sizes 기반(checkbox/menu 동형).
   // ADR-912 projection 3 cutover (2026-06-15): TabSpec/BreadcrumbSpec import 제거 — catalog cutover,
   //   측정이 resolveSkiaRule("Tab"/"Breadcrumb") 기반(catalogType). normalizeBreadcrumbRspSizeKey 는 유지.
   normalizeBreadcrumbRspSizeKey,
@@ -99,7 +100,9 @@ const TEXT_BEARING_SPECS: Record<
   checkbox: { defaultSize: "md", catalogType: "Checkbox" },
   radio: { defaultSize: "md", catalogType: "Radio" },
   switch: { defaultSize: "md", catalogType: "Switch" },
-  input: { spec: InputSpec, defaultSize: "sm" },
+  // ADR-912 단계5 step4 (2026-06-17): Input catalog cutover → spec 생략, 측정이
+  //   resolveSkiaRule("Input").sizes 기반 산출 (checkbox/menu/selectvalue 동형). defaultSize "sm" 유지.
+  input: { defaultSize: "sm", catalogType: "Input" },
   // ADR-912 projection 3 cutover (2026-06-15): Breadcrumb catalog cutover → spec 생략,
   //   측정이 resolveSkiaRule("Breadcrumb").sizes 기반 산출 (Tab/SelectValue 동형).
   breadcrumb: { defaultSize: "M", catalogType: "Breadcrumb" },

@@ -107,9 +107,7 @@ export { PROGRESSBAR_DIMENSIONS } from "../renderers/utils/valueFillMetrics";
 // ProgressBarTrack — ADR-912 단계5 value-fill-track: spec 삭제 (catalog cutover + virtual CSS)
 // ProgressBarValue — ADR-912 value-label (2026-06-11): spec 삭제 (catalog cutover + virtual CSS)
 
-// Input
-export { InputSpec } from "./Input.spec";
-export type { InputProps } from "./Input.spec";
+// Input — ADR-912 단계5 step4 (2026-06-17): InputSpec/InputProps export 제거 (catalog cutover spec 물리 삭제)
 
 // DatePicker / DateRangePicker
 // ADR-912 단계5 step4 (2026-06-17): DatePicker.spec/DateRangePicker.spec 물리 삭제.

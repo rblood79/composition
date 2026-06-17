@@ -19,12 +19,19 @@
  *
  * Spec 없는 media/embed 태그 한정. 그 외 알 수 없는 태그는 layout engine 의
  * `DEFAULT_WIDTH = 80` 폴백이 담당.
+ *
+ * ADR-912 단계5 step4 (2026-06-17): `input: 180` 재이관 — Input.spec.ts 삭제로
+ * `InputSpec.defaultWidth`(180) 가 사라지면서 getDefaultWidth lookup 체인 5b
+ * (`HTML_PRIMITIVE_DEFAULT_WIDTHS[type]`) 가 받도록 귀속. 누락 시 `DEFAULT_WIDTH = 80`
+ * 폴백으로 신규 Input 기본폭 180→80 회귀(사용자-가시). ADR-096 Phase 3 가 input 을
+ * spec 으로 이관했으나 catalog cutover 후 spec 자체가 삭제되므로 generic 폴백으로 복귀.
  */
 export const HTML_PRIMITIVE_DEFAULT_WIDTHS: Readonly<Record<string, number>> = {
   img: 150,
   video: 300,
   canvas: 200,
   iframe: 300,
+  input: 180,
 };
 
 /**
