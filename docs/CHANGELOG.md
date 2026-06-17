@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [TagGroup/Tag catalog cutover + spec 물리 삭제 + containerVariants fallback 메커니즘 — ADR-912 단계5 step4] - 2026-06-17
+
+### Breaking Changes
+
+- **`@composition/specs` TagGroupSpec/TagSpec/TagGroupProps/TagSpecProps export 제거** (ADR-912 단계5 step4):
+  - TagGroup/Tag 의 시각 SSOT 가 `COMPONENT_RULES_TABLE.TagGroup`/`Tag` (catalog rule)로 완전 이관
+  - spec 파일 물리 삭제: `packages/specs/src/components/{TagGroup,Tag}.spec.ts`
+  - TagGroupProps/TagSpecProps 외부 소비 0 확인 (unified.types `TagGroupElementProps` / RAC `AriaTagGroupProps` 는 별개 타입)
+
+### Bug Fixes
+
+- **side label variant Skia layout 회귀 6건 복구** (ADR-912 단계5 step4):
+  - 대상: CheckboxGroup / RadioGroup / DatePicker / NumberField / TextField / TextArea
+  - **Why**: 이들 spec 이 이전 cutover 에서 물리 삭제됐으나, `resolveActiveContainerVariants` 가 `LOWERCASE_TAG_SPEC_MAP`(spec)만 읽고 catalog rule 은 안 봐서 `labelPosition="side"`(RSP 정본) 시 Skia layout 이 `flex-direction:row` 로 전환되지 않고 column 으로 회귀 (side variant test 4 FAIL, DOM 은 수동 CSS selector 라 정상)
+  - 수정: catalog rule fallback 메커니즘 + `componentRulesTable` 에 `containerVariants.label-position.side` 보충. CheckboxGroup/RadioGroup/DatePicker=`flex-direction:row`, NumberField/TextField/TextArea=`display:grid` form-field layout
+  - textfield/textarea 분기를 `resolveActiveContainerVariants` 경유 + `injectSideLabelLabelAndContentStyles`(NumberField 동형)로 통일
+  - 검증: `sideLabelImplicitStyles.test.ts` 8/8 PASS (작업 전 4 FAIL → 0)
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`, `packages/shared/src/catalog/generated/componentRulesTable.ts`
+
+### Architecture
+
+- **containerVariants/containerStyles catalog fallback 메커니즘** (ADR-912 단계5 step4):
+  - `ComponentRule`(shared) 타입에 `containerStyles?`/`containerVariants?` + `ComponentRuleContainerVariantStyles` 추가 — spec `composition.containerStyles`/`containerVariants` 의 catalog 대응
+  - builder `resolveActiveContainerVariants`: spec → (부재 시) catalog rule.containerVariants fallback. `resolveContainerStylesFallback`(builder wrapper): spec 부재 시 catalog rule.containerStyles 보강
+  - **Why**: `specs ← shared` 패키지 경계로 `resolveContainerVariants`(specs)는 `COMPONENT_RULES_TABLE`(shared) import 불가 → builder 측에서 `LOWERCASE_COMPONENT_RULE_CONTAINER` 1회 구축 (RULE_SIZES 동형)
+  - containerVariants 보유 컨테이너군(Select/ComboBox/Slider/DateField/TagGroup) 중 첫 spec 삭제 — 공통 cutover 기반 확립
+  - 위치: `packages/shared/src/types/composition-document.types.ts`, `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`
+- **TagGroup/Tag consumer 6축 이관**:
+  - layout `TAG_SIZE_CONFIG` = `deriveSizeConfig(ruleSizesToSizeSpecMap("Tag"))` (Tab/Card 동형, Tag rule.sizes paddingY 보강)
+  - propagation `tagGroupPropagationSpec`(createPropagationOnlySpec 11 rules) / specRegistry entry 제거 / tagToElement BASE entry 제거 / barrel export 제거
+
 ## [복합 컴포넌트 추가 후 Delete 불가 수정 — canonical/elementsMap 동기화] - 2026-06-17
 
 ### Bug Fixes
