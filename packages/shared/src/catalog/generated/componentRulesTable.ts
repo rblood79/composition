@@ -3565,6 +3565,24 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // ADR-912 단계5 step4 (2026-06-17): Menu.spec.containerStyles 의 layout primitive 8필드 이관
+    //   (ListBox 동형). Menu.spec 은 별도 세션(a53cc0f5c)에서 삭제됐으나 rule containerStyles 보충이
+    //   누락 → resolveContainerStylesFallback("menu") 가 {} 반환 → column-flex 붕괴(Skia/Taffy 만,
+    //   DOM 은 generated Menu.css 정상 = 비대칭 회귀). builder resolveContainerStylesFallback 의
+    //   LOWERCASE_COMPONENT_RULE_CONTAINER catalog 합성이 본 필드를 layout 보강으로 읽음. 색상
+    //   (background/border)은 fallback KEYS 비대상 → Skia render shell variant 담당. gap 은
+    //   spec `{spacing.2xs}`(=2), padding 은 `{spacing.xs}`(=4). CSS emit 무관(STRUCTURE_META Menu
+    //   entry 의 containerStyles 만 emit → generated Menu.css diff-0).
+    containerStyles: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "{spacing.2xs}",
+      padding: "{spacing.xs}",
+      width: "100%",
+      maxHeight: "300px",
+      overflow: "auto",
+      outline: "none",
+    },
     sizes: {
       sm: {
         paddingX: 8,

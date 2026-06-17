@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Menu layout fallback 회귀 수정 — ADR-912 단계5 step4] - 2026-06-17
+
+### Bug Fixes
+
+- **Menu Skia/Taffy column-flex 붕괴 회귀 수정** (ADR-912 단계5 step4):
+  - **Why**: Menu.spec 이 별도 작업(commit a53cc0f5c)에서 catalog cutover 로 삭제됐으나 `componentRulesTable.Menu` 에 `containerStyles` 보충이 누락 → `resolveContainerStylesFallback("menu")` 가 `{}` 반환 → display/flexDirection/gap/padding/maxHeight 8 layout 필드 소실 → Menu 컨테이너 column-flex 붕괴(DOM 은 generated Menu.css 라 정상 = 비대칭 회귀). ListBox 삭제 작업 중 `resolveContainerStylesFallback.test` menu 1 fail 로 발견
+  - 수정: `componentRulesTable.Menu.containerStyles` 8필드 추가(ListBox 동형, Menu virtual STRUCTURE_META 의 containerStyles 와 동일 값) → builder `resolveContainerStylesFallback` 의 `LOWERCASE_COMPONENT_RULE_CONTAINER` catalog 합성이 layout 보강. CSS emit 무관(STRUCTURE_META Menu entry 의 containerStyles 만 generated Menu.css 로 emit → diff-0 유지)
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`
+
 ## [ListBox spec 물리 삭제 — ADR-912 단계5 step4] - 2026-06-17
 
 ### Breaking Changes
