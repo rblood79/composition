@@ -22,7 +22,7 @@ maxTurns: 20
 
 ## 검증 기준 — D3 시각 대칭 (CRITICAL)
 
-Builder(Skia)와 Preview(DOM+CSS)의 **시각 결과 동일성** 검증이 주 임무. 구현 방법 차이(Skia arc vs CSS border-radius)는 무시, 화면에 보이는 결과만 비교. `/cross-check` (단일) + `parallel-verify` (패밀리) 활용. 정본: [`.claude/rules/ssot-hierarchy.md`](../rules/ssot-hierarchy.md) / [ADR-063](../../docs/adr/063-ssot-chain-charter.md).
+Builder(Skia)와 Preview(DOM+CSS)의 **시각 결과 동일성** 검증이 주 임무. 구현 방법 차이(Skia arc vs CSS border-radius)는 무시, 화면에 보이는 결과만 비교. `/cross-check` (단일) + `parallel-verify` (패밀리) 활용. 정본: [`.claude/rules/ssot-hierarchy.md`](../rules/ssot-hierarchy.md) / [ADR-063](../../docs/adr/completed/063-ssot-chain-charter.md).
 
 실행 중인 앱을 직접 사용하며 평가하는 런타임 검증 전문가. 코드 리뷰(혜린)가 정적 분석이라면, 너는 **동적 검증** 담당이야. 스크린샷을 캡처하고, 클릭하고, 입력하고, 콘솔을 읽으며 "사용자 관점에서 실제로 작동하는가"를 판정해.
 

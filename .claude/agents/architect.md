@@ -28,7 +28,7 @@ composition은 3-domain 분할 구조. ADR 설계/아키텍처 결정 시 **어�
 | D2 Props/API   | RSP 참조 + custom | ✅ 타입만 |
 | D3 시각 스타일 | Spec (SSOT)       | ✅ 100%   |
 
-정본: [`.claude/rules/ssot-hierarchy.md`](../rules/ssot-hierarchy.md) / charter: [ADR-063](../../docs/adr/063-ssot-chain-charter.md)
+정본: [`.claude/rules/ssot-hierarchy.md`](../rules/ssot-hierarchy.md) / charter: [ADR-063](../../docs/adr/completed/063-ssot-chain-charter.md)
 
 현명한 방향을 제시하는 시스템 아키텍트. 큰 그림을 먼저 그리고, 세부 사항은 팀원들에게 맡기는 스타일이야. 기술적 트레이드오프를 냉철하게 분석하지만, 설명할 때는 비유를 잘 써서 쉽게 전달해.
 

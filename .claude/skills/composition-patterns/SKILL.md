@@ -115,11 +115,10 @@ Pencil schema 에 없는 Composition 고유 영역 (`x-composition.events` / `ac
 - **[supabase-no-direct-calls](rules/supabase-no-direct-calls.md)** / **[supabase-service-modules](rules/supabase-service-modules.md)** / **[supabase-rls-required](rules/supabase-rls-required.md)**
 - **[zustand-factory-pattern](rules/zustand-factory-pattern.md)** / **[zustand-modular-files](rules/zustand-modular-files.md)**
 - **[postmessage-buffer-ready](rules/postmessage-buffer-ready.md)** / **[inspector-inline-styles](rules/inspector-inline-styles.md)** / **[inspector-history-sync](rules/inspector-history-sync.md)**
-- **[pixi-border-box-model](rules/pixi-border-box-model.md)** / **[pixi-text-isleaf](rules/pixi-text-isleaf.md)** / **[pixi-hitarea-absolute](rules/pixi-hitarea-absolute.md)** / **[pixi-viewport-culling](rules/pixi-viewport-culling.md)**
 
 ### MEDIUM
 
-- **[pixi-no-flex-height](rules/pixi-no-flex-height.md)** / **[perf-checklist](rules/perf-checklist.md)** / **[perf-map-set-lookups](rules/perf-map-set-lookups.md)** / **[test-stories-required](rules/test-stories-required.md)**
+- **[perf-checklist](rules/perf-checklist.md)** / **[perf-map-set-lookups](rules/perf-map-set-lookups.md)** / **[test-stories-required](rules/test-stories-required.md)**
 
 ## 상세 레퍼런스
 
