@@ -15,7 +15,7 @@ import type { PrimitiveBinding } from "../types";
  *   chip projection 의 owner 다. `appendTagRowProjection` 이 TagList 아래 `rowsGroup`(type:"Rows",
  *   style display:flex/flexWrap:wrap/width:100%, 코드 직접 생성) → chip(Tag) 노드 배열을 전개한다.
  *   chip wrap 은 rowsGroup 의 flexWrap:wrap(Taffy 배치)이 전담 — TagList.spec.containerStyles 는
- *   Skia 에서 dead. buildSpecNodeData 가 `isCatalogSkiaCutover("TagList")` → transparent box shell.
+ *   Skia 에서 dead. buildSpecNodeData 가 `isCatalogCutover("TagList")` → transparent box shell.
  *
  * **DOM = 부모 TagGroup self-compose**: renderTagGroup(useResolvedCollectionItems / items[] SSOT)이
  *   RAC `<TagGroup>` > `.tag-list-wrapper`(수동 CSS, display:flex/flex-wrap) > `<TagList

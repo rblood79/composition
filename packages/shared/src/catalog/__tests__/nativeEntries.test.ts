@@ -1,12 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { getPrimitiveBinding } from "../bindings";
-import {
-  getCatalogCutoverTypes,
-  getCatalogEntry,
-  getCatalogSkiaCutoverTypes,
-} from "../componentCatalog";
-import { isCatalogCutover, isCatalogSkiaCutover } from "../cutover";
+import { getCatalogCutoverTypes, getCatalogEntry } from "../componentCatalog";
+import { isCatalogCutover } from "../cutover";
 
 /**
  * ADR-142 family ⑧(composition-native) — frame/Slot 계약 검증.
@@ -14,7 +10,7 @@ import { isCatalogCutover, isCatalogSkiaCutover } from "../cutover";
  *
  * native 는 RAC primitive 도 reusable 문서도 아닌 canonical 일급 노드(FrameNode, ADR-130).
  * **metadata-only 등록 (사용자 결정 2026-05-31)** — binding/reusableId/cutover 없음, cutover
- * 게이트(isCatalogCutover/isCatalogSkiaCutover) 미포함. 렌더는 기존 canonical-native 유지
+ * 게이트(isCatalogCutover) 미포함. 렌더는 기존 canonical-native 유지
  * (frame→div generic / Slot renderer). catalog 등록은 팔레트/factory metadata SSOT 통합 목적.
  */
 
@@ -41,14 +37,9 @@ describe("family ⑧ composition-native — metadata-only 등록", () => {
 
   it("native 는 cutover 게이트(DOM/Skia) 둘 다 제외 — canonical-native 렌더 유지", () => {
     const domGate = getCatalogCutoverTypes();
-    const skiaGate = getCatalogSkiaCutoverTypes();
     for (const type of NATIVE_TYPES) {
-      expect(domGate.has(type), `${type} NOT in DOM gate`).toBe(false);
-      expect(skiaGate.has(type), `${type} NOT in Skia gate`).toBe(false);
+      expect(domGate.has(type), `${type} NOT in cutover gate`).toBe(false);
       expect(isCatalogCutover(type), `${type} isCatalogCutover`).toBe(false);
-      expect(isCatalogSkiaCutover(type), `${type} isCatalogSkiaCutover`).toBe(
-        false,
-      );
     }
   });
 

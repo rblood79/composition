@@ -30,7 +30,7 @@ import {
   buildCatalogShapes,
   resolveComponentVisual,
 } from "@composition/specs";
-import { isCatalogSkiaCutover } from "@composition/shared";
+import { isCatalogCutover } from "@composition/shared";
 import {
   resolveSkiaVisualRule,
   resolveSkiaRule,
@@ -58,7 +58,7 @@ export interface SpecTextStyle {
  * type → Spec + 기본 size 매핑 (텍스트 폭 측정이 필요한 inline 컴포넌트만).
  *
  * **catalogType (ADR-912 선행 — 측정 source generic 전환)**: 해당 mapKey 가 가리키는
- * componentCatalog type 이름. `isCatalogSkiaCutover(catalogType)===true` 이면 측정 source 가
+ * componentCatalog type 이름. `isCatalogCutover(catalogType)===true` 이면 측정 source 가
  * render.shapes → **buildCatalogShapes**(그리기와 같은 source = 측정·그리기 SSOT 일치)로
  * 전환된다. catalogType 미설정 또는 비-발효(false)면 기존 render.shapes 측정 유지
  * (skiaLegacy collection / catalog 미등록 sub-part / TEXT_LEAF — 모두 render.shapes 측정 잔류).
@@ -192,7 +192,7 @@ export function extractSpecTextStyle(
 
   const { spec } = entry;
   const useCatalog =
-    entry.catalogType != null && isCatalogSkiaCutover(entry.catalogType);
+    entry.catalogType != null && isCatalogCutover(entry.catalogType);
 
   // ADR-912 단계 5 step 4(선행 — 측정 source spec 끊기, 2026-06-09):
   //   size source 도 builder dispatch(buildSpecNodeData:920-939)와 동일하게 catalog 발효 시
@@ -232,7 +232,7 @@ export function extractSpecTextStyle(
         : { ...(props ?? {}) };
 
   // ADR-912 단계 5 step 2/4 — 측정 source 의 spec 의존 끊기:
-  //   catalog 발효 type(catalogType + isCatalogSkiaCutover)은 측정도 **rule 기반**
+  //   catalog 발효 type(catalogType + isCatalogCutover)은 측정도 **rule 기반**
   //   buildCatalogShapes 로 산출한다. visual/defaultVariant/textDecoration 전부
   //   resolveSkiaRule(componentRulesTable rule 파생) — builder dispatch(buildSpecNodeData)와
   //   동일 rule SSOT 를 읽어 측정·그리기 정합 + spec 참조 0. spec 미보유 leaf 도 동작.
@@ -240,7 +240,7 @@ export function extractSpecTextStyle(
   // **replace-mode 포함 (checkbox/radio/switch)**: Checkbox/Radio/Switch rule variant 에
   //   `textWeight: 400` 명시(componentRulesTable)로 rule 측정도 400 산출 → drift 0.
   //
-  // 비-발효(catalog 미등록 sub-part)는 catalogType 미설정 또는 isCatalogSkiaCutover false →
+  // 비-발효(catalog 미등록 sub-part)는 catalogType 미설정 또는 isCatalogCutover false →
   //   spec.render.shapes 측정 유지 (catalog 미등록 전용 임시 경로, 단계 5 후속 inventory).
   let shapes: Shape[];
   if (useCatalog) {

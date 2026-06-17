@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  isCatalogSkiaCutover,
-  getComponentRulesTable,
-} from "@composition/shared";
+import { isCatalogCutover, getComponentRulesTable } from "@composition/shared";
 import { resolveComponentVisual } from "@composition/specs";
 import { getSpecForTag } from "../sprites/tagSpecMap";
 import {
@@ -83,8 +80,8 @@ function stripAllowedDrift(
 
 describe("resolveSkiaVisualRule — table(정본) ← spec(추종) drift 검출 (ADR-912 1A-(a))", () => {
   const rulesTable = getComponentRulesTable();
-  // catalog Skia cutover 된 type 만 generic 렌더 경로 → drift 검출 대상.
-  const cutoverTypes = Object.keys(rulesTable).filter(isCatalogSkiaCutover);
+  // catalog cutover 된 type 만 generic 렌더 경로 → drift 검출 대상.
+  const cutoverTypes = Object.keys(rulesTable).filter(isCatalogCutover);
 
   it("검출 대상 type 이 1개 이상 존재 (게이트 sanity)", () => {
     expect(cutoverTypes.length).toBeGreaterThan(0);
@@ -133,8 +130,8 @@ describe("resolveSkiaVisualRule — table(정본) ← spec(추종) drift 검출 
  * ButtonSpec.sizes 없이 동작함(seam 실제 제거)이 구조적으로 증명된다.
  */
 describe("resolveSkiaRule — Button size source = theme rule table (ADR-912 1C seam 제거)", () => {
-  it("Button 은 catalog Skia cutover (table size 경로 진입 조건)", () => {
-    expect(isCatalogSkiaCutover("Button")).toBe(true);
+  it("Button 은 catalog cutover (table size 경로 진입 조건)", () => {
+    expect(isCatalogCutover("Button")).toBe(true);
   });
 
   it("table Button size 가 paddingX 를 포함 (1C 이전 완료 — leaf 텍스트 inset base)", () => {

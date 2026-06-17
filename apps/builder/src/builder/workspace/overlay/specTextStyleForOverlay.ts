@@ -21,7 +21,7 @@ import {
   buildCatalogShapes,
   resolveComponentVisual,
 } from "@composition/specs";
-import { isCatalogSkiaCutover } from "@composition/shared";
+import { isCatalogCutover } from "@composition/shared";
 import {
   resolveSkiaVisualRule,
   resolveSkiaRule,
@@ -78,7 +78,7 @@ export function extractFullSpecTextStyle(
 
   const { spec } = entry;
   const useCatalog =
-    entry.catalogType != null && isCatalogSkiaCutover(entry.catalogType);
+    entry.catalogType != null && isCatalogCutover(entry.catalogType);
 
   // ADR-912 단계 5 step 5 — overlay size source 의 spec 의존 끊기: catalog 발효 type 은
   //   resolveSkiaRule(catalogType).sizes(rule 테이블) → ruleSizeToSizeSpec. spec 미보유 leaf

@@ -11,7 +11,7 @@ import type { PrimitiveBinding } from "../types";
  *
  * **Skia = transparent box generic + tablist_divider append**: TabList 은 자식 Tab projection 의
  *   owner scene node 다(appendTabRowProjection 이 owner=TabList 에 tab-row 전개). buildSpecNodeData 가
- *   `isCatalogSkiaCutover("TabList")` → transparent box + append divider. 폭/높이는
+ *   `isCatalogCutover("TabList")` → transparent box + append divider. 폭/높이는
  *   CONTAINER_DIMENSION_TAGS 가 주입한 `_containerWidth`/`_containerHeight`(전체 탭 폭).
  *
  * **DOM = 부모 Tabs self-compose (독립 노드 0)**: renderTabs(RAC `<TabList>`)가 합성. canonical 문서에

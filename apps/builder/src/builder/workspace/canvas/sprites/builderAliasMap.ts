@@ -14,8 +14,8 @@
  * (rule table + buildCatalogShapes generic + icon_font escape 로 이전).
  *
  * ADR-912 단계5 step4 (2026-06-17): body alias 제거 — BodySpec 물리 삭제. body 는 catalog
- * cutover(FAMILY_1_CUTOVER, isCatalogSkiaCutover("body")=true) 로 buildSpecNodeData 게이트
- * (`if(!spec && !isCatalogSkiaCutover) return null`)가 spec 부재를 흡수하고 generic box(catalog
+ * cutover(FAMILY_1_CUTOVER, isCatalogCutover("body")=true) 로 buildSpecNodeData 게이트
+ * (`if(!spec && !isCatalogCutover) return null`)가 spec 부재를 흡수하고 generic box(catalog
  * rule.body fill {color.base}) 로 그린다. Style 패널 소비처(specPresetResolver)는 spec?.sizes
  * optional chaining 으로 빈 preset degrade(height/padding 0 = auto marker 라 무영향),
  * useElementStyleContext 는 body 가 ref 아니라 element.type 직접 반환 경로(spec lookup 미경유).

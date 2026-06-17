@@ -15,7 +15,7 @@ import type { PrimitiveBinding } from "../types";
  *
  * **Skia = box+text generic (text-only)**: TableCell 은 render-space projection 노드
  *   (appendTableRowProjection → type:"TableCell" SceneNode)다. buildSpecNodeData 가
- *   `isCatalogSkiaCutover("TableCell")` → `buildCatalogShapesOrPrimitive`(text)로 그린다
+ *   `isCatalogCutover("TableCell")` → `buildCatalogShapesOrPrimitive`(text)로 그린다
  *   (skiaPrimitive 없음 — 셀 배경은 부모 TableRow 가 담당, 셀은 text 만). 셀 배경/구분선은 행이
  *   그리므로 TableCell variant fill 은 `{color.transparent}`(투명 box → text 만).
  *

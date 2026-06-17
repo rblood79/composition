@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { getPrimitiveBinding } from "../bindings";
-import {
-  getCatalogCutoverTypes,
-  getCatalogEntry,
-  getCatalogSkiaCutoverTypes,
-} from "../componentCatalog";
+import { getCatalogCutoverTypes, getCatalogEntry } from "../componentCatalog";
 import { toRacProps } from "../outputs/toRacProps";
 
 /**
@@ -46,12 +42,10 @@ describe("family ⑤ Tree·Table — catalog 등록 + cutover gate", () => {
     }
   });
 
-  it("DOM·Skia 게이트 모두 Tree/Table 포함 (단계 4 C1 + step 1)", () => {
-    const domGate = getCatalogCutoverTypes();
-    const skiaGate = getCatalogSkiaCutoverTypes();
+  it("cutover 게이트가 Tree/Table 포함 (단계 4 C1 + step 1)", () => {
+    const gate = getCatalogCutoverTypes();
     for (const type of TREE_TABLE_TYPES) {
-      expect(domGate.has(type), `${type} in DOM gate`).toBe(true);
-      expect(skiaGate.has(type), `${type} in Skia gate`).toBe(true);
+      expect(gate.has(type), `${type} in cutover gate`).toBe(true);
     }
   });
 

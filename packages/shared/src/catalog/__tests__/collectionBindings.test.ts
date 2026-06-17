@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { getPrimitiveBinding } from "../bindings";
-import {
-  getCatalogCutoverTypes,
-  getCatalogEntry,
-  getCatalogSkiaCutoverTypes,
-} from "../componentCatalog";
+import { getCatalogCutoverTypes, getCatalogEntry } from "../componentCatalog";
 import { toRacProps } from "../outputs/toRacProps";
 
 /**
@@ -53,13 +49,11 @@ describe("family ④ collections — catalog 등록 + DOM cutover", () => {
     }
   });
 
-  it("DOM·Skia 게이트(getCatalogCutoverTypes/SkiaCutoverTypes)는 7 collection 전부 포함", () => {
-    const domGate = getCatalogCutoverTypes();
-    const skiaGate = getCatalogSkiaCutoverTypes();
+  it("cutover 게이트(getCatalogCutoverTypes)는 7 collection 전부 포함", () => {
+    const gate = getCatalogCutoverTypes();
     for (const type of COLLECTION_TYPES) {
-      expect(domGate.has(type), `${type} in DOM gate`).toBe(true);
-      // ADR-912 단계 4 + 5 step 1: 7 collection 전부 Skia generic 발효.
-      expect(skiaGate.has(type), `${type} in Skia gate`).toBe(true);
+      // ADR-912 단계 4 + 5 step 1: 7 collection 전부 generic 발효 (단일 게이트).
+      expect(gate.has(type), `${type} in cutover gate`).toBe(true);
     }
   });
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isCatalogCutover, isCatalogSkiaCutover } from "../cutover";
+import { isCatalogCutover } from "../cutover";
 import { getCatalogEntry } from "../componentCatalog";
 import { getPrimitiveBinding } from "../bindings";
 
@@ -23,9 +23,8 @@ describe("ADR-912 — Color container catalog cutover", () => {
       expect(binding?.source.kind).toBe("internal");
     });
 
-    it(`${type} passes DOM and Skia catalog cutover gates`, () => {
+    it(`${type} passes catalog cutover gate`, () => {
       expect(isCatalogCutover(type)).toBe(true);
-      expect(isCatalogSkiaCutover(type)).toBe(true);
     });
   }
 });

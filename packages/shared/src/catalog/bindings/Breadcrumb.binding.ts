@@ -15,7 +15,7 @@ import type { PrimitiveBinding } from "../types";
  *
  * **Skia = breadcrumb_crumb replace**: Breadcrumb 은 render-space projection 노드
  *   (appendBreadcrumbRowProjection → type:"Breadcrumb" SceneNode)다. buildSpecNodeData 가
- *   `isCatalogSkiaCutover("Breadcrumb")` → breadcrumb_crumb replace(box 미생성, label+separator 만).
+ *   `isCatalogCutover("Breadcrumb")` → breadcrumb_crumb replace(box 미생성, label+separator 만).
  *
  * **DOM = 부모 Breadcrumbs self-compose (독립 노드 0)**: renderBreadcrumbs(RAC `<Breadcrumbs>
  *   <Breadcrumb><Link>`)가 합성. canonical 문서에 Breadcrumb element 가 없다(Breadcrumbs.props.items

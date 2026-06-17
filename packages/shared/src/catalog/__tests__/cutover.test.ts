@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isCatalogCutover, isCatalogSkiaCutover } from "../cutover";
+import { isCatalogCutover } from "../cutover";
 import { componentCatalog } from "../componentCatalog";
 
 /**
@@ -8,8 +8,9 @@ import { componentCatalog } from "../componentCatalog";
  *
  * **ADR-912 단계 5 step 1 (2026-06-04) — 채널 통합 (dead gate)**: 단계 5 (1b) 에서 skiaLegacy
  * 0건 도달 → Skia generic 렌더가 전 catalog entry 발효. DOM/Skia 채널이 더 이상 갈리지 않음.
- * `isCatalogSkiaCutover` 는 `isCatalogCutover` 위임으로 collapse. 본 테스트는 그 invariant
- * (모든 non-native entry catalog cutover + skiaLegacy 0건 + 두 게이트 동치)를 잠근다.
+ * **P1-B (2026-06-17)**: 호출처 정리 완료로 deprecated `isCatalogSkiaCutover` export 삭제 —
+ * 단일 게이트(`isCatalogCutover`)만 남는다. 본 테스트는 그 invariant
+ * (모든 non-native entry catalog cutover + skiaLegacy 0건)를 잠근다.
  */
 describe("isCatalogCutover (DOM/Inspector gate) — family ①~④ flip 후", () => {
   it("family ① 8 primitive 는 catalog cutover (gate 열림)", () => {
@@ -120,25 +121,11 @@ describe("ADR-912 단계 5 step 1 — dead gate invariant (channel 통합 잠금
 
   it("invariant 2 — entry 에 skiaLegacy 속성 0건 (필드 dead 제거)", () => {
     // skiaLegacy 필드는 단계 5 step 1 에서 type union 에서 제거됨. runtime entry 에도 0건이어야
-    // isCatalogSkiaCutover === isCatalogCutover collapse 가 성립한다.
+    // 단일 게이트(isCatalogCutover) collapse 가 성립한다.
     const withSkiaLegacy = componentCatalog.filter(
       (e) => (e as Record<string, unknown>).skiaLegacy !== undefined,
     );
     expect(withSkiaLegacy.map((e) => e.type)).toEqual([]);
-  });
-
-  it("invariant 3 — isCatalogSkiaCutover 는 모든 type 에서 isCatalogCutover 와 동치 (게이트 collapse)", () => {
-    // 채널 분리가 의미 소멸했음을 잠근다. 향후 skiaLegacy 류 재도입 시 본 테스트 FAIL.
-    const types = [
-      ...componentCatalog.map((e) => e.type),
-      // native(frame/Slot)는 게이트 false. color leaf/container 는 componentCatalog.map 에 포함됨.
-      "frame",
-      "Slot",
-      "UnknownType",
-    ];
-    for (const type of types) {
-      expect(isCatalogSkiaCutover(type)).toBe(isCatalogCutover(type));
-    }
   });
 
   it("invariant 4 — Skia generic 발효 = 전 cutover catalog entry (date 4 + Tooltip 은 skiaPrimitive escape)", () => {
@@ -160,7 +147,7 @@ describe("ADR-912 단계 5 step 1 — dead gate invariant (channel 통합 잠금
       "DatePicker",
       "DateRangePicker",
     ]) {
-      expect(isCatalogSkiaCutover(type)).toBe(true);
+      expect(isCatalogCutover(type)).toBe(true);
     }
   });
 });

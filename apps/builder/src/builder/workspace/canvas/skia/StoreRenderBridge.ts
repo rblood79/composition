@@ -36,7 +36,7 @@ import { getSyntheticElementsMap } from "../layout/engines/fullTreeLayout";
 import type { TransitionManager } from "./transitionManager";
 import { ANIMATABLE_NUMERIC_PROPERTIES } from "./interpolators";
 import type { CanonicalNode } from "@composition/shared";
-import { isCatalogSkiaCutover } from "@composition/shared";
+import { isCatalogCutover } from "@composition/shared";
 import { parsePxValue } from "@composition/specs";
 // ADR-912 단계5 step4 (2026-06-17): InlineAlertSpec import 제거 — InlineAlert 자식 font 분기를
 //   resolveSkiaRule("InlineAlert").sizes read-through 로 이관(spec 삭제 선행, rule fallback).
@@ -133,7 +133,7 @@ export function parseTransitionShorthand(value: string): TransitionDef[] {
  *   자체를 못 해(buildSpecNodeData 호출 누락) Skia 노드 미생성 → 텍스트 미표시.
  */
 function isSpecPath(element: CanvasSceneNode): boolean {
-  return !!getSpecForTag(element.type) || isCatalogSkiaCutover(element.type);
+  return !!getSpecForTag(element.type) || isCatalogCutover(element.type);
 }
 
 // ---------------------------------------------------------------------------

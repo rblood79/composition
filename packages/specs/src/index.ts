@@ -260,7 +260,7 @@ export type { ComponentVisualRule } from "./renderers";
 
 // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroupSpec/Props export 제거 —
 //   catalog cutover spec 삭제. 시각 = componentRulesTable + generate-css virtual(STRUCTURE_META indicatorMode/
-//   delegation carry). Skia = catalog generic(buildSpecNodeData isCatalogSkiaCutover 게이트).
+//   delegation carry). Skia = catalog generic(buildSpecNodeData isCatalogCutover 게이트).
 
 // ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): TooltipSpec/TOOLTIP_MAX_WIDTH/TooltipProps export
 //   제거 — catalog cutover, spec 삭제. 시각 SSOT = componentRulesTable.Tooltip + STRUCTURE_META virtual
@@ -334,7 +334,7 @@ export { PROGRESSBAR_DIMENSIONS } from "./renderers/utils/valueFillMetrics";
 
 // TabsSpec/TabsProps/TabItem — ADR-912 단계5 step4 (2026-06-17): Tabs.spec.ts 삭제 — catalog cutover 완료.
 //   시각 SSOT = componentRulesTable + STRUCTURE_META(generate-css). Property Panel = binding.props.accepts.
-//   layout height = resolveSkiaRule("Tabs"). Skia 게이트 = isCatalogSkiaCutover (catalog 자동).
+//   layout height = resolveSkiaRule("Tabs"). Skia 게이트 = isCatalogCutover (catalog 자동).
 //   items propagation(Tabs → TabList)은 propagationRegistry.ts 의 tabsPropagationSpec 인라인.
 // ADR-912 projection 3 cutover (2026-06-15): TabListSpec/TabSpec/TabListProps/TabProps export 제거
 //   — catalog cutover, spec 삭제. 시각 SSOT = componentRulesTable + tablist_divider/tab_indicator escape.
@@ -346,7 +346,7 @@ export { PROGRESSBAR_DIMENSIONS } from "./renderers/utils/valueFillMetrics";
 // ADR-912 단계5 step4 (2026-06-16): Breadcrumbs.spec.ts 삭제 — catalog cutover 완료.
 //   시각 SSOT = componentRulesTable + STRUCTURE_META(generate-css). Property Panel =
 //   binding.props.accepts(resolveEditContract). layout height = resolveSkiaRule("Breadcrumbs").
-//   Skia 게이트 = isCatalogSkiaCutover (catalog 자동). BreadcrumbSpec/BreadcrumbItemProps 도 동일 삭제.
+//   Skia 게이트 = isCatalogCutover (catalog 자동). BreadcrumbSpec/BreadcrumbItemProps 도 동일 삭제.
 
 // ADR-912 R7 G1-c (2026-06-15): PaginationSpec/PaginationProps export 제거 — catalog cutover.
 //   시각 SSOT = COMPONENT_RULES_TABLE.Pagination + generate-css virtual. binding.accepts D2.

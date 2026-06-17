@@ -32,7 +32,6 @@ import {
   type SizeSpec,
 } from "@composition/specs";
 import {
-  isCatalogSkiaCutover,
   isCatalogCutover,
   getPrimitiveBinding,
   toSkiaStyle,
@@ -960,11 +959,12 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   // ADR-912 단계 5 step 4 (TEXT_LEAF spec 삭제 후속, 2026-06-09): catalog Skia cutover type 은
   //   spec 파일이 삭제되어 getSpecForTag → null 일 수 있다. 이때도 generic 경로
   //   (buildCatalogShapesOrPrimitive)는 rule 테이블만으로 그릴 수 있으므로 spec 없이 진행한다.
-  //   비-cutover(catalog 미등록 36 type)는 여전히 spec.render.shapes fallback 이 유일 경로 →
-  //   spec 필수. **Why**: 이전 게이트(`if (!spec) return null`)가 spec 삭제된 catalog type 의
-  //   Skia 노드 생성을 차단 → 측정(specTextStyle, spec-free)은 작동(크기 변함)하나 그리기 누락.
+  //   비-cutover(catalog 미등록 native 3종 Group/frame/Slot)는 여전히 spec.render.shapes
+  //   fallback 이 유일 경로 → spec 필수. **Why**: 이전 게이트(`if (!spec) return null`)가
+  //   spec 삭제된 catalog type 의 Skia 노드 생성을 차단 → 측정(specTextStyle, spec-free)은
+  //   작동(크기 변함)하나 그리기 누락.
   const spec = getSpecForTag(type);
-  if (!spec && !isCatalogSkiaCutover(type)) return null;
+  if (!spec && !isCatalogCutover(type)) return null;
 
   const w = layout?.width ?? 0;
   const h = layout?.height ?? 0;
@@ -982,7 +982,7 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   //   → ButtonSpec.sizes(spec seam) 의존 제거: Button 이 ButtonSpec 없이도 size 정상. paddingX
   //   포함(1C 에서 table 에 이전). 비-cutover family 는 단계 5 까지 spec.sizes 경로 유지.
   //   defaultSize 도 catalog 우선(spec.defaultSize fallback) — size 해석 전체가 table 파생.
-  const catalogRule = isCatalogSkiaCutover(type)
+  const catalogRule = isCatalogCutover(type)
     ? resolveSkiaRule(type)
     : undefined;
   const defaultSize = catalogRule?.defaultSize ?? spec?.defaultSize;
@@ -1301,21 +1301,14 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   //   - 없음 → buildCatalogShapes(모든 frame 공유 보편 box+text 시각).
   //   컴포넌트 식별 분기(isDot/divider/iconName)를 buildCatalogShapes 안에 인라인하지 않는다.
   //
-  // **fallback = catalog 미등록 type 전용 임시 경로 (단계 5 step 2, 사용자 결정 2026-06-04)**:
-  //   `: spec.render.shapes(...)` 는 더 이상 "skiaLegacy collection fallback" 이 아니다 —
-  //   catalog 미등록 type(2026-06-09 당시 set-difference 실측은 BASE_TAG_SPEC_MAP 108 − catalog 72;
-  //   이후 color leaf/container 포함 대부분 catalog cutover)의 **유일한**
-  //   Skia 렌더 경로다. catalog registered runtime 은 항상 첫 분기로 가야 한다(spec.render.shapes
-  //   도달 0건). catalog 등록 type 이 이 fallback 으로 새면 게이트 비동치 회귀이므로 dev 에서 검출.
-  //   미등록 type 의 generic 전환/catalog 등록은 단계 5 후속 inventory 가 관리한다.
-  const usesGeneric = isCatalogSkiaCutover(type);
-  if (import.meta.env.DEV && !usesGeneric && isCatalogCutover(type)) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      `[ADR-912 단계5] catalog 등록 type "${type}" 이 spec.render.shapes fallback 으로 샘 ` +
-        `— isCatalogSkiaCutover/isCatalogCutover 게이트 비동치 회귀 (skiaLegacy 재도입?).`,
-    );
-  }
+  // **fallback = catalog 미등록 type 전용 경로 (단계 5 step 2, 사용자 결정 2026-06-04)**:
+  //   `: spec.render.shapes(...)` 는 catalog 미등록 type 의 **유일한** Skia 렌더 경로다.
+  //   ADR-912 P1-B (2026-06-17): isCatalogSkiaCutover deprecated 게이트 collapse 완료 —
+  //   단일 게이트(isCatalogCutover)로 치환. 게이트 위임 동치였으므로 비동치 회귀 검출
+  //   DEV warn 은 영구 dead 가 되어 제거. catalog 미등록 = native 3종(Group/frame/Slot)
+  //   뿐이며, 이들만 spec.render.shapes 경로에 도달한다(frame/Slot=metadata-only native,
+  //   Group=RAC ARIA semantic). catalog 등록 type 은 항상 첫 분기(usesGeneric=true).
+  const usesGeneric = isCatalogCutover(type);
   // usesGeneric=false(비-cutover)면 진입 게이트(`!spec && !cutover → return`)가 spec 을 보장.
   //   타입 시스템은 이를 추론 못 하므로 `?? []` 안전망(도달 시 spec non-null).
   const shapes = usesGeneric

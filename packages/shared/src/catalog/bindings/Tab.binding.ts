@@ -15,7 +15,7 @@ import type { PrimitiveBinding } from "../types";
  *
  * **Skia = box+text generic + tab_indicator append**: Tab 은 render-space projection 노드
  *   (appendTabRowProjection → type:"Tab" SceneNode)다. buildSpecNodeData 가
- *   `isCatalogSkiaCutover("Tab")` → `buildCatalogShapesOrPrimitive`(transparent box + text) +
+ *   `isCatalogCutover("Tab")` → `buildCatalogShapesOrPrimitive`(transparent box + text) +
  *   append indicator. Tab 은 CONTAINER_DIMENSION_TAGS 등록(buildSpecNodeData) — `_containerWidth`
  *   주입으로 indicator full-width.
  *

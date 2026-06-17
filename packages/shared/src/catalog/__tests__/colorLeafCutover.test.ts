@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isCatalogCutover, isCatalogSkiaCutover } from "../cutover";
+import { isCatalogCutover } from "../cutover";
 import { getCatalogEntry } from "../componentCatalog";
 import { getPrimitiveBinding } from "../bindings";
 
@@ -45,9 +45,8 @@ describe("ADR-912 — Color leaf 5종 box-only catalog cutover", () => {
       expect(binding, `${type} binding 미등록`).toBeDefined();
     });
 
-    it(`RED — ${type} 가 isCatalogCutover / isCatalogSkiaCutover 게이트 통과 (box-only)`, () => {
+    it(`RED — ${type} 가 isCatalogCutover 게이트 통과 (box-only)`, () => {
       expect(isCatalogCutover(type)).toBe(true);
-      expect(isCatalogSkiaCutover(type)).toBe(true);
     });
 
     it(`RED — ${type} panel metadata 보유 (placeable 등록)`, () => {

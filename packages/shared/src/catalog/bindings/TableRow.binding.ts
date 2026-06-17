@@ -17,7 +17,7 @@ import type { PrimitiveBinding } from "../types";
  *
  * **Skia = box(bg) generic + table_row_divider append**: TableRow 는 render-space projection 노드
  *   (appendTableRowProjection → type:"TableRow" SceneNode)다. buildSpecNodeData 가
- *   `isCatalogSkiaCutover("TableRow")` → `buildCatalogShapesOrPrimitive`(bg box) + append divider.
+ *   `isCatalogCutover("TableRow")` → `buildCatalogShapesOrPrimitive`(bg box) + append divider.
  *   셀 텍스트는 자식 TableCell projection 노드가 독립 self-draw → 행은 bg+divider 만.
  *
  * **DOM = 부모 Table self-compose (독립 노드 0)**: renderTable(RAC `<Row>`)이 합성. canonical 문서에

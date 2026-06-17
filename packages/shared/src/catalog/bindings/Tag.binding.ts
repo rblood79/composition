@@ -14,7 +14,7 @@ import type { PrimitiveBinding } from "../types";
  *   DOM(Button slot=remove ✕) ↔ Skia(SelectIcon ✕) 시각 대칭 복원.
  *
  * **Skia = box+text generic (+ projection 이 SelectIcon "x" 자식 전개)**: Tag chip 은
- *   render-space projection 노드(appendTagRowProjection)다. buildSpecNodeData 가 `isCatalogSkiaCutover("Tag")`
+ *   render-space projection 노드(appendTagRowProjection)다. buildSpecNodeData 가 `isCatalogCutover("Tag")`
  *   → `buildCatalogShapesOrPrimitive`(box+text) 로 그린다(skiaPrimitive 없음 — X 는 자식 SelectIcon 이
  *   독립 icon_font 노드로 담당, chip 본체 shape 아님). 컴포넌트별 if 아님 — projection 이 데이터(allowsRemoving)
  *   유무로만 SelectIcon 자식 전개(ADR-142 §3).

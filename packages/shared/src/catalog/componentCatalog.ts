@@ -1116,16 +1116,6 @@ export function getCatalogCutoverTypes(): ReadonlySet<string> {
 }
 
 /**
- * @deprecated ADR-912 단계 5 step 1 (2026-06-04) — `skiaLegacy` 게이트 의미 소멸.
- * 단계 5 (1b) 에서 skiaLegacy 0건 도달 → Skia generic 발효 집합이 DOM/Inspector 집합
- * (`getCatalogCutoverTypes`) 과 항상 동일. 본 함수는 `getCatalogCutoverTypes` 위임으로
- * collapse 됐고, 호출처 정리(step 2 — buildSpecNodeData fallback 제거) 후 삭제 예정.
- */
-export function getCatalogSkiaCutoverTypes(): ReadonlySet<string> {
-  return getCatalogCutoverTypes();
-}
-
-/**
  * type → catalog binding accepts 의 default 집합 (D2/D3 prop default 의 SSOT).
  *
  * **ADR-912 6 registry collapse §2-5 #3 (Factory/default props)**: `primitive` entry 의

@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { getPrimitiveBinding } from "../bindings";
-import {
-  getCatalogCutoverTypes,
-  getCatalogEntry,
-  getCatalogSkiaCutoverTypes,
-} from "../componentCatalog";
+import { getCatalogCutoverTypes, getCatalogEntry } from "../componentCatalog";
 import { isCatalogCutover } from "../cutover";
 import { toRacProps } from "../outputs/toRacProps";
 
@@ -61,12 +57,10 @@ describe("family ⑥ overlays — catalog 등록 + cutover 상태", () => {
     }
   });
 
-  it("DOM·Skia 게이트 모두 5 overlay 전부 포함 (skiaLegacy 0건)", () => {
-    const domGate = getCatalogCutoverTypes();
-    const skiaGate = getCatalogSkiaCutoverTypes();
+  it("cutover 게이트가 5 overlay 전부 포함 (skiaLegacy 0건)", () => {
+    const gate = getCatalogCutoverTypes();
     for (const type of OVERLAY_TYPES) {
-      expect(domGate.has(type), `${type} in DOM gate`).toBe(true);
-      expect(skiaGate.has(type), `${type} in Skia gate`).toBe(true);
+      expect(gate.has(type), `${type} in cutover gate`).toBe(true);
     }
   });
 

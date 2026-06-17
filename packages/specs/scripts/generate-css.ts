@@ -764,7 +764,7 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
   //   archetype "default": ARCHETYPE_BASE_STYLES 미정의 → DEFAULT_BASE_STYLES(display:inline-flex
   //   /align-items:center/transition/font-family) emit. underline 류 특수 selector 없어 composition
   //   불요. rule.sizes 의 paddingY/gap(2026-06-11 보강)으로 padding 세로축 + gap 재생성.
-  //   Skia 는 이미 spec-free(isCatalogSkiaCutover) generic box. states 는 disabled 에
+  //   Skia 는 이미 spec-free(isCatalogCutover) generic box. states 는 disabled 에
   //   pointerEvents:none 추가라 meta.states 로 명시(NavSpec.states 미러).
   {
     name: "Nav",
@@ -783,7 +783,7 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
   //   기존 Body.css 의 [data-disabled]{opacity:0.38} 와 일치(meta.states 생략 = 기본값).
   //   색상/사이즈는 componentRulesTable.body(fill {color.base}/text {color.neutral}/fontSize
   //   {typography.text-md}/borderRadius {radius.none}/height 0) 정본 파생. Skia 는 이미
-  //   spec-free(isCatalogSkiaCutover("body")=true) generic box.
+  //   spec-free(isCatalogCutover("body")=true) generic box.
   {
     name: "Body",
     archetype: "default",
@@ -792,7 +792,7 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
   },
   // ADR-912 box+text leaf 군 일괄 (2026-06-11) — catalog 발효 완료 leaf 7개 (Label 제외).
   //   shape 동형(box+text/icon) — Text/Link 와 동일 변환 경로. archetype/element/containerStyles
-  //   /cssEmitMode 는 각 *.spec.ts 에서 추출. Skia 는 이미 spec-free(isCatalogSkiaCutover 또는
+  //   /cssEmitMode 는 각 *.spec.ts 에서 추출. Skia 는 이미 spec-free(isCatalogCutover 또는
   //   skiaPrimitive escape). 측정은 specTextStyle 가 catalog rule 기반(spec 끊김).
   // Button/ToggleButton: cssEmitMode "button-base" (변수 + .button-base color-mix 파생).
   //   states.pressed.scale:0.95 (press-scale, ADR-140 DD1) — 기본 states 는 scale 미emit 이라 명시.
@@ -2125,7 +2125,7 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
   //   (Modal 동형). variant default(fill={color.layer-1}→--bg-overlay + text neutral)는 rule 파생.
   //   sizes xs~xl(paddingX/paddingY/gap 2026-06-16 rule 보강 + fontSize/borderRadius/height:0)는 rule
   //   emit. Skia 는 spec render.shapes(backdrop/shadow/bg) 대신 skiaPrimitive escape(overlay_backdrop
-  //   prepend + dialog_shadow prepend) — isCatalogSkiaCutover generic box. composition 불요.
+  //   prepend + dialog_shadow prepend) — isCatalogCutover generic box. composition 불요.
   //   states={} — spec.states={} 미러. disabled(opacity+cursor+pointerEvents) + focus-visible +
   //   reduced-motion 은 CSSGenerator overlay 기본 emit(Modal.css 와 블록 동일 확증). hover/pressed root
   //   빈 블록 미생성(states:{} 라야 diff 0). utils.ts/skiaPrimitives 코드 import 0 + sub-part 0.
@@ -2142,7 +2142,7 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
   //   componentRulesTable.Popover.variants 에 fill/border 정의되어 [data-variant] 블록 3개 rule 파생.
   //   sizes sm~lg(paddingX/paddingY/gap 2026-06-16 rule 보강 + fontSize/borderRadius/height:0)는 rule
   //   emit(padding NNpx NNpx / gap). Skia 는 spec render.shapes(shadow/bg/border/arrow) 대신
-  //   skiaPrimitive escape(popover_shadow prepend + popover_arrow append) — isCatalogSkiaCutover generic
+  //   skiaPrimitive escape(popover_shadow prepend + popover_arrow append) — isCatalogCutover generic
   //   box. composition 불요. states={} — spec.states={} 미러. disabled(opacity+cursor+pointerEvents) +
   //   focus-visible + reduced-motion 은 CSSGenerator overlay 기본 emit. hover/pressed root 빈 블록
   //   미생성(states:{} 라야 diff 0). utils.ts/skiaPrimitives 코드 import 0(주석만) + sub-part 0.
@@ -2160,7 +2160,7 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
   //   text/border)에서 [data-variant] 블록 + &[data-hovered]/&[data-pressed] nested rule 파생.
   //   sizes sm~lg(paddingX/paddingY/gap 2026-06-16 rule 보강 + fontSize/borderRadius/height:0/iconSize
   //   → --icon-size)는 rule emit(padding NNpx NNpx / gap / --icon-size). Skia 는 spec render.shapes(월
-  //   grid) 대신 skiaPrimitive calendar_grid escape — isCatalogSkiaCutover. composition 불요(자식
+  //   grid) 대신 skiaPrimitive calendar_grid escape — isCatalogCutover. composition 불요(자식
   //   CalendarHeader/CalendarGrid 가 별도 spec, staticSelectors 없음). states 는 spec.states 미러
   //   (hover:{}/pressed:{} 빈 + disabled opacity+pointerEvents + focusVisible focusRing). propagation
   //   (variant/size/locale/calendarSystem/defaultToday → CalendarHeader/CalendarGrid)는
@@ -2207,7 +2207,7 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
   //   rule.sizes 재생성). composition(containerVariants label-position/quiet + externalStyles Popover/
   //   time-field + delegation 7 childSelector)은 spec verbatim carry — STRUCTURE_META externalStyles
   //   첫 사용 사례. sizes(fontSize/borderRadius/height/iconSize)는 rule emit. variants 없음(rule.variants={}).
-  //   Skia 는 datefield_trigger replace primitive(buildDatePickerShapes, isCatalogSkiaCutover). states 는
+  //   Skia 는 datefield_trigger replace primitive(buildDatePickerShapes, isCatalogCutover). states 는
   //   spec.states(DATE_PICKER_STATES) 미러. propagation(label/granularity/size/locale/calendarSystem/
   //   maxVisibleMonths/defaultToday → Calendar 서브트리)은 propagationRegistry createPropagationOnlySpec 인라인.
   {

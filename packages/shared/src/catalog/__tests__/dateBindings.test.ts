@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { getPrimitiveBinding } from "../bindings";
-import {
-  getCatalogCutoverTypes,
-  getCatalogEntry,
-  getCatalogSkiaCutoverTypes,
-} from "../componentCatalog";
+import { getCatalogCutoverTypes, getCatalogEntry } from "../componentCatalog";
 import { toRacProps } from "../outputs/toRacProps";
 
 /**
@@ -53,12 +49,10 @@ describe("family ⑦ date — catalog 등록 + Skia generic 발효", () => {
     }
   });
 
-  it("DOM·Skia 게이트 모두 date 4 포함 (단계 5 (1b) escape 발효)", () => {
-    const domGate = getCatalogCutoverTypes();
-    const skiaGate = getCatalogSkiaCutoverTypes();
+  it("cutover 게이트가 date 4 포함 (단계 5 (1b) escape 발효)", () => {
+    const gate = getCatalogCutoverTypes();
     for (const type of DATE_TYPES) {
-      expect(domGate.has(type), `${type} in DOM gate`).toBe(true);
-      expect(skiaGate.has(type), `${type} in Skia gate`).toBe(true);
+      expect(gate.has(type), `${type} in cutover gate`).toBe(true);
     }
   });
 

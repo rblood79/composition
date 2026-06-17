@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isCatalogCutover, isCatalogSkiaCutover } from "../cutover";
+import { isCatalogCutover } from "../cutover";
 import { getCatalogEntry } from "../componentCatalog";
 import { getPrimitiveBinding } from "../bindings";
 
@@ -35,9 +35,8 @@ describe("ADR-912 T1 — Field catalog cutover", () => {
     expect(binding?.source.kind).toBe("internal");
   });
 
-  it("RED #1 — Field 가 isCatalogCutover / isCatalogSkiaCutover 게이트 통과", () => {
+  it("RED #1 — Field 가 isCatalogCutover 게이트 통과", () => {
     expect(isCatalogCutover("Field")).toBe(true);
-    expect(isCatalogSkiaCutover("Field")).toBe(true);
   });
 
   it("RED #1 — Field panel placeable=true 이나 palette 미노출은 ComponentList overlay 가 결정 (catalog entry 는 등록)", () => {
