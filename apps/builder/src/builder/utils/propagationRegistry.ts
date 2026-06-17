@@ -20,7 +20,9 @@ import {
   //   catalog cutover, propagation.rules(size/children → Label)는 createPropagationOnlySpec 인라인 이관.
   // ADR-912 단계5 step4 (2026-06-17): TagGroupSpec import 제거 — catalog cutover spec 삭제,
   //   propagation.rules 11건은 tagGroupPropagationSpec(createPropagationOnlySpec 인라인)로 이관.
-  DateFieldSpec,
+  // ADR-912 단계5 step4 (2026-06-17): DateFieldSpec import 제거 — DateField.spec 물리 삭제(catalog cutover).
+  //   propagation.rules 3건(size → Label/DateInput, label → Label children)은 dateFieldPropagationSpec
+  //   (createPropagationOnlySpec 인라인)로 이관(아래). TimeField(timeFieldPropagationSpec) 동형 형제.
   SliderSpec,
   // ADR-912 단계5 step4 경량 이관 (2026-06-17): ProgressBarSpec/MeterSpec import 제거 — catalog cutover spec 삭제.
   //   propagation.rules(label/size → Label/Track/Value)는 createPropagationOnlySpec 인라인 이관(아래).
@@ -233,6 +235,18 @@ const numberFieldPropagationSpec = createPropagationOnlySpec("NumberField", [
     parentProp: "placeholder",
     childPath: ["SelectTrigger", "SelectValue"],
     childProp: "placeholder",
+    override: true,
+  },
+]);
+
+// ADR-912 단계5 step4 (2026-06-17): DateField.spec 삭제 — propagation.rules 인라인 보존 (TimeField 동형).
+const dateFieldPropagationSpec = createPropagationOnlySpec("DateField", [
+  { parentProp: "size", childPath: "Label", override: true },
+  { parentProp: "size", childPath: "DateInput", override: true },
+  {
+    parentProp: "label",
+    childPath: "Label",
+    childProp: "children",
     override: true,
   },
 ]);
@@ -666,7 +680,7 @@ registerPropagationSpec("Switch", switchPropagationSpec);
 registerPropagationSpec("TextField", textFieldPropagationSpec);
 registerPropagationSpec("TextArea", textAreaPropagationSpec);
 registerPropagationSpec("NumberField", numberFieldPropagationSpec);
-registerPropagationSpec("DateField", DateFieldSpec);
+registerPropagationSpec("DateField", dateFieldPropagationSpec);
 registerPropagationSpec("TimeField", timeFieldPropagationSpec);
 registerPropagationSpec("ColorField", colorFieldPropagationSpec);
 registerPropagationSpec("Slider", SliderSpec);

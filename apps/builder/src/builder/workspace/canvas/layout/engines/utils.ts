@@ -52,8 +52,9 @@ import {
   //   resolveSkiaRule("ComboBox").sizes 로 이관(spec 삭제 대상, Select 는 utils 미참조).
   // ADR-912 R1 (2026-06-12): SelectTriggerSpec import 제거 — contentHeight 를
   //   resolveSkiaRule("SelectTrigger") 유도식으로 이관 (spec 끊기).
-  // ADR-091 Addendum 2: DateField intrinsic height SSOT.
-  DateFieldSpec,
+  // ADR-912 단계5 step4 (2026-06-17): DateFieldSpec import 제거 — datefield intrinsicHeight 분기를
+  //   resolveSkiaRule("DateField").sizes 로 이관 (spec 삭제 대상, ComboBox 동형). rule.sizes.intrinsicHeight
+  //   는 CSS 미emit layout-only 필드 (ComponentRuleSize 에 추가됨).
   // ADR-096 Phase 4: HTML primitive defaults 직접 참조 — DEFAULT_ELEMENT_WIDTHS/HEIGHTS 해체.
   HTML_PRIMITIVE_DEFAULT_WIDTHS,
   HTML_PRIMITIVE_DEFAULT_HEIGHTS,
@@ -2481,12 +2482,16 @@ export function calculateContentHeight(
   }
 
   // 3.6b. DateField: intrinsic height from size (sm:32, md:40, lg:48, xl:62)
-  // ADR-091 Addendum 2: dfHeights Record → DateFieldSpec.sizes.intrinsicHeight 직접 참조.
-  //   Label + gap + DateInput 합산 파생값을 spec 에 표면화 (composite 전체 intrinsic).
+  // ADR-912 단계5 step4 (2026-06-17): DateFieldSpec.sizes.intrinsicHeight → resolveSkiaRule read-through.
+  //   Label + gap + DateInput 합산 파생값(composite 전체 intrinsic)을 rule.sizes.intrinsicHeight 에서 읽음
+  //   (CSS 미emit layout-only 필드). ComboBox 동형, undefined 가드는 md fallback → 40.
   if (type === "datefield") {
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = (props?.size as string) ?? "md";
-    return DateFieldSpec.sizes[sizeName]?.intrinsicHeight ?? 40;
+    const rule = resolveSkiaRule("DateField");
+    return (rule?.sizes[sizeName]?.intrinsicHeight ??
+      rule?.sizes.md?.intrinsicHeight ??
+      40) as number;
   }
 
   // 3.6c. ComboBox/Select: 자식 기반 동적 높이 계산 (Card 패턴)

@@ -121,9 +121,8 @@ export {
 } from "../renderers/datePickerShapes";
 export type { DatePickerShapesInput } from "../renderers/datePickerShapes";
 
-// DateField
-export { DateFieldSpec } from "./DateField.spec";
-export type { DateFieldProps } from "./DateField.spec";
+// DateField — ADR-912 단계5 step4 (2026-06-17): catalog cutover → spec 물리 삭제 (export 제거).
+//   Skia = 투명 컨테이너(빈 shapes). layout intrinsicHeight = utils.ts rule 인라인 미러. TimeField 동형.
 
 // DateInput — ADR-912 단계5 step4 (2026-06-17): catalog cutover → spec 물리 삭제 (export 제거).
 

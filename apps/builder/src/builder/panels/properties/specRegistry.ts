@@ -19,7 +19,8 @@ import {
   // ADR-912 단계5 step4 (2026-06-17): ComboBoxSpec import 제거 — catalog cutover spec 삭제.
   //   Property Panel 은 binding.accepts(ComboBox.binding.ts) 구동(CatalogEditContractEditor, dead
   //   getEditor 경로). entry 동시 제거.
-  DateFieldSpec,
+  // ADR-912 단계5 step4 (2026-06-17): DateFieldSpec import 제거 — DateField.spec 물리 삭제(catalog cutover).
+  //   Property Panel 은 binding.accepts(DateField.binding.ts) 구동(DEAD getEditor 경로, entry 동시 제거).
   // ADR-912 단계5 step4 date-color (2026-06-17): DatePicker/DateRangePickerSpec import 제거 — spec 물리 삭제.
   //   Property Panel 은 binding.accepts(DatePicker.binding.ts) 구동(DEAD getEditor 경로, entry 동시 제거).
   // ADR-912 단계5 step4 Dialog 단건 (2026-06-16): DialogSpec import 제거 — catalog cutover, binding.accepts D2.
@@ -92,7 +93,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   >,
   // ComboBox — ADR-912 단계5 step4 (2026-06-17): catalog cutover spec 삭제 → entry 제거.
   //   Property Panel 은 CatalogEditContractEditor(binding.accepts) 구동.
-  DateField: DateFieldSpec as ComponentSpec<Record<string, unknown>>,
+  // DateField — ADR-912 단계5 step4 (2026-06-17): catalog cutover spec 물리 삭제 → entry 제거.
+  //   Property Panel 은 CatalogEditContractEditor(binding.accepts) 구동(DEAD getEditor 경로).
   // DatePicker/DateRangePicker — ADR-912 단계5 step4 date-color (2026-06-17): spec 물리 삭제 → entry 제거.
   //   Property Panel 은 binding.accepts(DatePicker.binding.ts) 구동(DEAD getEditor 경로).
   // Dialog — ADR-912 단계5 step4 Dialog 단건 (2026-06-16): catalog cutover → entry 제거.

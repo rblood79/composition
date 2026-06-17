@@ -416,8 +416,8 @@ export {
 } from "./renderers/datePickerShapes";
 export type { DatePickerShapesInput } from "./renderers/datePickerShapes";
 
-export { DateFieldSpec } from "./components/DateField.spec";
-export type { DateFieldProps } from "./components/DateField.spec";
+// ADR-912 단계5 step4 (2026-06-17): DateFieldSpec/DateFieldProps export 제거 — catalog cutover spec 물리 삭제.
+//   Skia = 투명 컨테이너(빈 shapes). layout intrinsicHeight = utils.ts rule 인라인 미러. TimeField 동형.
 
 // ADR-912 단계5 step4 (2026-06-17): DateInputSpec/DateInputProps export 제거 — catalog cutover spec 물리 삭제.
 //   Skia = datefield_segments replace primitive. layout height = utils.ts rule 인라인 미러.

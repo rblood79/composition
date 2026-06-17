@@ -55,7 +55,9 @@ import { SlotSpec } from "../components/Slot.spec";
 // ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): DropZoneSpec import 제거 — catalog cutover.
 // ADR-912 단계5 step4 date-color (2026-06-17): DatePicker/DateRangePickerSpec import 제거 — spec 물리 삭제
 //   (catalog cutover, isCatalogCutover('DatePicker'/'DateRangePicker')=true). Skia = datefield_trigger primitive.
-import { DateFieldSpec } from "../components/DateField.spec";
+// ADR-912 단계5 step4 (2026-06-17): DateFieldSpec import 제거 — DateField.spec 물리 삭제
+//   (catalog cutover, isCatalogCutover('DateField')=true). Skia = 투명 컨테이너(빈 shapes).
+//   layout intrinsicHeight = utils.ts resolveSkiaRule("DateField") 인라인 미러. TimeField 동형 형제.
 // ADR-912 단계5 step4 (2026-06-17): DateInputSpec import 제거 — catalog cutover spec 물리 삭제
 //   (isCatalogSkiaCutover("DateInput")=true, datefield_segments replace primitive escape).
 // ADR-912 단계5 step4 date-color (2026-06-16): Calendar/RangeCalendarSpec import 제거 —
@@ -155,7 +157,8 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   //   isCatalogCutover("DropZone")=true → buildSpecNodeData/generate-css 가 catalog rule 로 처리.
   // DatePicker/DateRangePicker — ADR-912 단계5 step4 date-color (2026-06-17): spec 물리 삭제,
   //   BASE_TAG_SPEC_MAP entry 제거. isCatalogCutover=true → catalog rule + STRUCTURE_META 로 처리.
-  DateField: DateFieldSpec,
+  // DateField — ADR-912 단계5 step4 (2026-06-17): catalog cutover spec 물리 삭제, BASE_TAG_SPEC_MAP entry 제거.
+  //   isCatalogCutover("DateField")=true → buildSpecNodeData 가 catalog rule + STRUCTURE_META 로 처리(투명 컨테이너).
   // DateInput — ADR-912 단계5 step4 (2026-06-17): catalog cutover spec 삭제로 제거.
   //   isCatalogSkiaCutover("DateInput")=true → datefield_segments replace primitive 으로 Skia 처리.
   // Calendar — ADR-912 단계5 step4 date-color (2026-06-16): catalog cutover spec 삭제로 제거.

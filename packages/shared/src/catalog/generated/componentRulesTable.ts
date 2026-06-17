@@ -1827,6 +1827,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   DateField: {
+    // ADR-912 단계5 step4 (2026-06-17): DateField.spec.ts 삭제 — gap 은 base/size block byte-identical
+    //   (composition flex-column → CSSGenerator size.gap emit), intrinsicHeight 는 layout-only
+    //   (CSS 미emit, utils.ts calculateContentHeight datefield 분기가 resolveSkiaRule read-through).
     defaultSize: "md",
     variants: {},
     sizes: {
@@ -1834,21 +1837,43 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         borderRadius: 0,
         height: 22,
+        gap: 4,
+        intrinsicHeight: 32,
       },
       md: {
         fontSize: "{typography.text-base}",
         borderRadius: 0,
         height: 30,
+        gap: 6,
+        intrinsicHeight: 40,
       },
       lg: {
         fontSize: "{typography.text-lg}",
         borderRadius: 0,
         height: 42,
+        gap: 8,
+        intrinsicHeight: 48,
       },
       xl: {
         fontSize: "{typography.text-xl}",
         borderRadius: 0,
         height: 54,
+        gap: 10,
+        intrinsicHeight: 62,
+      },
+    },
+    // ADR-912 단계5 step4 (2026-06-17): DateField.spec.composition.containerVariants 의
+    //   label-position:side Skia 복구 — spec 삭제 회귀. DatePicker/TimeField 동형
+    //   (flex-direction:row). resolveActiveContainerVariants 가 spec→catalog fallback 으로 읽음.
+    //   Skia sideMode 트리거 styles 만 — quiet nested(.react-aria-DateInput)는 DOM generated CSS 전용 제외.
+    containerVariants: {
+      "label-position": {
+        side: {
+          styles: {
+            "flex-direction": "row",
+            "align-items": "flex-start",
+          },
+        },
       },
     },
   },

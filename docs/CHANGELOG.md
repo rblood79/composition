@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [DateField spec 물리 삭제 — ADR-912 단계5 step4] - 2026-06-17
+
+### Breaking Changes
+
+- **`DateFieldSpec` / `DateFieldProps` export 제거** (ADR-912 단계5 step4):
+  - `@composition/specs` 에서 `DateFieldSpec` value + `DateFieldProps` type barrel export 제거 (catalog cutover spec 물리 삭제)
+  - 시각 SSOT 는 `COMPONENT_RULES_TABLE.DateField` + generate-css `STRUCTURE_META` virtual override 로 이전 — TimeField(이미 삭제된 동형 형제)와 1:1 구조
+  - RAC 출처 `DateFieldProps<T>` (react-aria-starter / shared 컴포넌트) 와 factory `createDefaultDateFieldProps` 는 spec 무관 — 영향 없음
+
+### Bug Fixes
+
+- **DateField label-position=side Skia layout 회귀 선제 차단** (ADR-912 단계5 step4):
+  - **Why**: containerVariants(label-position:side) 보유 spec 삭제 시 `resolveActiveContainerVariants` 가 spec-only 라 Skia side variant(flex-direction:row)가 column 으로 회귀 — TagGroup/DatePicker 삭제 때와 동형
+  - 수정: `componentRulesTable.DateField.containerVariants` 에 label-position.side(`flex-direction:row`) 보충 → `LOWERCASE_COMPONENT_RULE_CONTAINER` 자동 fallback Map 이 spec→catalog 로 읽음 (quiet nested 는 DOM generated CSS 전용 제외)
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`, `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`
+
+### Architecture
+
+- **DateField intrinsicHeight layout-only SSOT 이관** (ADR-912 단계5 step4):
+  - `ComponentRuleSize` 에 `intrinsicHeight?: number|string` optional 필드 추가 — Label + gap + DateInput 합산 composite 전체 높이 (CSS 미emit, layout 전용 — minHeight 선례)
+  - `utils.ts` calculateContentHeight 의 datefield 분기를 `DateFieldSpec.sizes.intrinsicHeight` 직접 참조 → `resolveSkiaRule("DateField").sizes[size].intrinsicHeight` read-through 로 전환 (ComboBox 동형). sm:32 / md:40 / lg:48 / xl:62
+  - `componentRulesTable.DateField.sizes` 에 gap(4/6/8/10) 보충 — composition flex-column base/size block byte-identical (CSSGenerator size.gap emit). diff-0 유지 (DateField.css `2ef4bf98...` 불변)
+  - propagation.rules(size→Label/DateInput, label→Label children) 는 `dateFieldPropagationSpec`(createPropagationOnlySpec 인라인)로 이관 — TimeField 동형
+  - specRegistry / tagToElement BASE_TAG_SPEC_MAP / index barrel / components barrel 의 DateField 참조 일괄 제거. Skia 진입 게이트는 `isCatalogCutover("DateField")=true`(FAMILY_2_CUTOVER) 로 흡수
+  - 위치: `packages/specs/scripts/generate-css.ts`(STRUCTURE_META), `packages/shared/src/types/composition-document.types.ts`, `apps/builder/src/builder/{workspace/canvas/layout/engines/utils.ts,utils/propagationRegistry.ts,panels/properties/specRegistry.ts}`, `packages/specs/src/{index.ts,components/index.ts,runtime/tagToElement.ts}`
+
 ## [Select + ComboBox spec 물리 삭제 — ADR-912 단계5 step4] - 2026-06-17
 
 ### Breaking Changes

@@ -3736,6 +3736,203 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
     },
   },
   {
+    // ADR-912 단계5 step4 (2026-06-17): DateField.spec.ts 물리 삭제 — STRUCTURE_META virtual.
+    //   TimeField(이미 삭제됨, 동형 형제)와 1:1 구조, prefix 만 df-* / segment placeholder 에
+    //   font-style: italic 추가 (DateField.css:182 byte-identical). composition 은 spec verbatim carry.
+    name: "DateField",
+    archetype: "default",
+    element: "div",
+    containerStyles: {
+      display: "flex",
+    },
+    composition: {
+      layout: "flex-column",
+      gap: "var(--spacing-xs)",
+      containerVariants: {
+        "label-position": {
+          side: {
+            styles: {
+              "flex-direction": "row",
+              "align-items": "flex-start",
+            },
+          },
+        },
+        quiet: {
+          true: {
+            nested: [
+              {
+                selector: ".react-aria-DateInput",
+                styles: {
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-radius": "0",
+                  "border-bottom": "1px solid var(--border)",
+                },
+              },
+              {
+                selector: ".react-aria-DateInput:where([data-focused])",
+                styles: {
+                  outline: "none",
+                  "border-bottom-color": "var(--accent)",
+                },
+              },
+              {
+                selector: ".react-aria-DateInput:where([data-invalid])",
+                styles: { "border-bottom-color": "var(--negative)" },
+              },
+            ],
+          },
+        },
+      },
+      delegation: [
+        {
+          childSelector: ".react-aria-Label",
+          prefix: "df-label",
+          variables: {
+            xs: { "--df-label-size": "var(--text-2xs)" },
+            sm: { "--df-label-size": "var(--text-xs)" },
+            md: { "--df-label-size": "var(--text-sm)" },
+            lg: { "--df-label-size": "var(--text-base)" },
+            xl: { "--df-label-size": "var(--text-lg)" },
+          },
+          bridges: {
+            "--label-font-size": "var(--df-label-size)",
+            "--label-font-weight": "600",
+            "--label-margin": "var(--spacing-xs)",
+          },
+        },
+        {
+          childSelector: ".react-aria-DateInput",
+          prefix: "df-input",
+          variables: {
+            xs: {
+              "--df-input-padding": "var(--spacing-3xs) var(--spacing-xs)",
+              "--df-input-size": "var(--text-2xs)",
+              "--df-input-line-height": "var(--text-2xs--line-height)",
+              "--df-input-min-width": "100px",
+            },
+            sm: {
+              "--df-input-padding": "var(--spacing-2xs) var(--spacing-sm)",
+              "--df-input-size": "var(--text-xs)",
+              "--df-input-line-height": "var(--text-xs--line-height)",
+              "--df-input-min-width": "120px",
+            },
+            md: {
+              "--df-input-padding": "var(--spacing-xs) var(--spacing-md)",
+              "--df-input-size": "var(--text-sm)",
+              "--df-input-line-height": "var(--text-sm--line-height)",
+              "--df-input-min-width": "150px",
+            },
+            lg: {
+              "--df-input-padding": "var(--spacing-sm) var(--spacing-lg)",
+              "--df-input-size": "var(--text-base)",
+              "--df-input-line-height": "var(--text-base--line-height)",
+              "--df-input-min-width": "180px",
+            },
+            xl: {
+              "--df-input-padding": "var(--spacing-md) var(--spacing-xl)",
+              "--df-input-size": "var(--text-lg)",
+              "--df-input-line-height": "var(--text-lg--line-height)",
+              "--df-input-min-width": "220px",
+            },
+          },
+          bridges: {
+            display: "inline-flex",
+            padding: "var(--df-input-padding)",
+            border: "1px solid",
+            "border-radius": "var(--border-radius)",
+            width: "100%",
+            "min-width": "var(--df-input-min-width)",
+            "white-space": "nowrap",
+            "forced-color-adjust": "none",
+            "font-size": "var(--df-input-size)",
+            "line-height": "var(--df-input-line-height)",
+            transition: "border-color 200ms ease, background-color 200ms ease",
+          },
+        },
+        {
+          childSelector: ".react-aria-DateSegment",
+          prefix: "df-segment",
+          variables: {
+            xs: { "--df-segment-size": "var(--text-2xs)" },
+            sm: { "--df-segment-size": "var(--text-xs)" },
+            md: { "--df-segment-size": "var(--text-sm)" },
+            lg: { "--df-segment-size": "var(--text-base)" },
+            xl: { "--df-segment-size": "var(--text-lg)" },
+          },
+          bridges: {
+            padding: "0 2px",
+            border: "none",
+            background: "transparent",
+            height: "auto",
+            "font-variant-numeric": "tabular-nums",
+            "text-align": "end",
+            color: "var(--fg)",
+            "border-radius": "var(--radius-xs)",
+            "font-size": "var(--df-segment-size)",
+            transition: "all 150ms ease",
+          },
+          states: {
+            '[data-type="literal"]': { padding: "0" },
+            "[data-placeholder]": {
+              color: "var(--fg-muted)",
+              "font-style": "italic",
+              opacity: "0.6",
+            },
+            ":focus": {
+              color: "var(--fg)",
+              background: "var(--accent-subtle)",
+              outline: "none",
+              "border-radius": "var(--radius-xs)",
+              "caret-color": "transparent",
+            },
+            "[data-invalid]": { color: "var(--negative)" },
+            "[data-invalid]:focus": {
+              background:
+                "color-mix(in srgb, var(--negative) 15%, transparent)",
+              color: "var(--negative)",
+            },
+            "[data-disabled]": {
+              color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+              cursor: "not-allowed",
+            },
+          },
+        },
+        {
+          childSelector: ".react-aria-FieldError",
+          prefix: "df-hint",
+          variables: {
+            xs: { "--df-hint-size": "var(--text-2xs)" },
+            sm: { "--df-hint-size": "var(--text-xs)" },
+            md: { "--df-hint-size": "var(--text-xs)" },
+            lg: { "--df-hint-size": "var(--text-sm)" },
+            xl: { "--df-hint-size": "var(--text-base)" },
+          },
+          bridges: {
+            "--error-font-size": "var(--df-hint-size)",
+            "--error-margin": "var(--spacing-xs)",
+          },
+        },
+        {
+          childSelector: '[slot="description"]',
+          bridges: {
+            "font-size": "var(--df-hint-size)",
+            color: "var(--fg-muted)",
+          },
+        },
+      ],
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: { opacity: 0.38 },
+      focusVisible: {
+        focusRing: "{focus.ring.default}",
+      },
+    },
+  },
+  {
     name: "TimeField",
     archetype: "default",
     element: "div",

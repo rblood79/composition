@@ -273,6 +273,15 @@ export interface ComponentRuleSize {
    * IllustratedMessageSpec.sizes.headingFontSize 에만 존재. TokenRef(`{typography.text-lg}`).
    */
   headingFontSize?: number | string;
+  /**
+   * composite field 전체 intrinsic 높이 base (ADR-912 단계5 step4 — DateField catalog cutover).
+   * Label + gap + DateInput 합산 파생값으로, CSS 로는 emit 되지 않는 **layout 전용** 필드
+   * (DateField.css 에 intrinsic-height 출력 없음 — ruleSizeToSizeSpec 변환·CSSGenerator 무관).
+   * utils.ts calculateContentHeight 의 datefield 분기가 `resolveSkiaRule("DateField").sizes[size]
+   * .intrinsicHeight` 로 read-through (이전엔 DateFieldSpec.sizes.intrinsicHeight 직접 참조).
+   * sm:32 / md:40 / lg:48 / xl:62 (DateField.spec SSOT 미러).
+   */
+  intrinsicHeight?: number | string;
 }
 
 /** 단일 컴포넌트의 시각 규칙. */
