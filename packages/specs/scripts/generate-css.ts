@@ -151,6 +151,20 @@ function ruleSizeToSizeSpec(
     ...(s.descFontWeight !== undefined
       ? { descFontWeight: s.descFontWeight as SizeSpec["descFontWeight"] }
       : {}),
+    // ADR-912 단계5 step4 (2026-06-17): Slider 의 column-gap (Label↔SliderOutput 가로 간격) 이
+    //   rule.sizes.columnGap 에서 emit 되도록 변환에 포함 (CSSGenerator 가 size.columnGap 소비).
+    //   sm/md 16 · lg/xl 20. gap(row 축)은 기존 처리. 미정의 leaf 는 미emit.
+    ...(s.columnGap !== undefined
+      ? { columnGap: s.columnGap as SizeSpec["columnGap"] }
+      : {}),
+    // ADR-912 단계5 step4 (2026-06-17): Slider 의 size별 track/thumb metric 이 nested indicator 에서
+    //   emit 되도록 변환에 포함. generateSliderSizeMetrics 가 size.indicator.{trackHeight,thumbSize} 를
+    //   nested 로 읽어 `.slider-track-bg/.slider-fill { height }` + `.react-aria-SliderThumb { width/height }`
+    //   를 emit. ComponentRuleSize 의 nested indicator 를 SizeSpec.indicator(IndicatorSpec)로 그대로 전달.
+    //   flat thumbSize(SliderTrack escape 전용)와 별개. 미정의 leaf 는 미emit.
+    ...(s.indicator !== undefined
+      ? { indicator: s.indicator as SizeSpec["indicator"] }
+      : {}),
   } as SizeSpec;
 }
 
@@ -673,6 +687,57 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
       pressed: {},
       disabled: { opacity: 0.38, pointerEvents: "none" },
       focusVisible: {},
+    },
+  },
+  // ADR-912 단계5 step4 (2026-06-17) — Slider 부모 본체 (Slider.spec.ts 삭제 대상).
+  //   archetype "slider": ARCHETYPE_BASE_STYLES["slider"] 가 grid 구조 + .slider-track-bg/.slider-fill/
+  //   .react-aria-SliderThumb 자식 마크업 CSS 를 emit (라인 11-13/9-45). top-level containerStyles(grid)
+  //   는 라인 48-50 재현 (archetype base 와 동일 3줄 benign 중복 — 기존 spec 출력에 이미 존재).
+  //   size별 column-gap(16/16/20/20) + track/thumb metric(generateSliderSizeMetrics 가 size.indicator
+  //   에서 emit) + 자식 .react-aria-Label/.react-aria-SliderOutput font-size(composition.sizeSelectors)
+  //   는 componentRulesTable.Slider.sizes(columnGap/indicator) + 본 entry 의 composition 으로 재생성.
+  //   states 는 disabled 에 cursor:not-allowed + pointerEvents:none + focusVisible focusRing (Slider.spec
+  //   .states 미러 — 기본값과 다르므로 meta.states 명시 필수). 자식 SliderTrack/SliderOutput entry 와 별개.
+  {
+    name: "Slider",
+    archetype: "slider",
+    element: "div",
+    containerStyles: {
+      display: "grid",
+      gridTemplateAreas: '"label output" "track track"',
+      gridTemplateColumns: "1fr auto",
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: {
+        opacity: 0.38,
+        cursor: "not-allowed",
+        pointerEvents: "none",
+      },
+      focusVisible: { focusRing: "{focus.ring.default}" },
+    },
+    composition: {
+      // Slider.spec.ts:210-228 verbatim — size별 자식 Label/SliderOutput font-size.
+      sizeSelectors: {
+        sm: {
+          ".react-aria-Label": { "font-size": "var(--text-xs)" },
+          ".react-aria-SliderOutput": { "font-size": "var(--text-xs)" },
+        },
+        md: {
+          ".react-aria-Label": { "font-size": "var(--text-sm)" },
+          ".react-aria-SliderOutput": { "font-size": "var(--text-sm)" },
+        },
+        lg: {
+          ".react-aria-Label": { "font-size": "var(--text-base)" },
+          ".react-aria-SliderOutput": { "font-size": "var(--text-base)" },
+        },
+        xl: {
+          ".react-aria-Label": { "font-size": "var(--text-lg)" },
+          ".react-aria-SliderOutput": { "font-size": "var(--text-lg)" },
+        },
+      },
+      delegation: [],
     },
   },
   // ADR-912 단계5 value-fill-track 확장 — SliderTrack (SliderTrack.spec.ts 삭제 대상).

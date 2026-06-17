@@ -42,7 +42,7 @@ import {
   // ADR-912 단계5: ProgressCircleSpec 삭제 (catalog binding.accepts 가 D2 properties 대체)
   // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): RadioSpec/SwitchSpec import 제거 — catalog cutover, binding.accepts D2.
   // ADR-912 단계5 step4 (2026-06-17): SelectSpec import 제거 — catalog cutover spec 삭제, binding.accepts D2 (dead getEditor 경로).
-  SliderSpec,
+  // ADR-912 단계5 step4 (2026-06-17): SliderSpec import 제거 — Slider.spec 물리 삭제(catalog cutover), binding.accepts D2 (Slider.binding.ts, dead getEditor 경로).
   SlotSpec,
   // ADR-912 R7 G1-b (2026-06-15): TableViewSpec import 제거 — catalog cutover, binding.accepts D2.
   // ADR-912 단계5 step4 (2026-06-17): TagGroupSpec import 제거 — catalog cutover spec 삭제,
@@ -136,7 +136,7 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   // Radio/Switch — ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): catalog cutover → entry 제거.
   //   GenericPropertyEditor 가 binding.accepts(Radio/Switch.binding.ts)로 properties 생성.
   // Select — ADR-912 단계5 step4 (2026-06-17): catalog cutover spec 삭제 → entry 제거.
-  Slider: SliderSpec as ComponentSpec<Record<string, unknown>>,
+  // Slider — ADR-912 단계5 step4 (2026-06-17): Slider.spec 물리 삭제 → entry 제거 (binding.accepts D2, dead getEditor 경로).
   Slot: SlotSpec as ComponentSpec<Record<string, unknown>>,
   // ADR-912 6 registry collapse — TailSwatch box-only cutover (2026-06-11): catalog binding.accepts
   //   가 D2 properties 대체. ColorPicker alias placeholder 는 catalog rule box 시각 유지.

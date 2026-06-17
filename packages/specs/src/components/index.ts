@@ -82,9 +82,8 @@ export type {
   ListBoxSpacingMetric,
 } from "../renderers/utils/collectionItemMetrics";
 
-// Slider
-export { SliderSpec, SLIDER_FILL_COLORS } from "./Slider.spec";
-export type { SliderProps } from "./Slider.spec";
+// Slider — ADR-912 단계5 step4 (2026-06-17): Slider.spec.ts 물리 삭제(catalog cutover). export 제거.
+//   시각 SSOT = componentRulesTable.Slider + STRUCTURE_META virtual(slider archetype).
 
 // Meter — ADR-912 단계5 step4 경량 이관 (2026-06-17): spec 물리 삭제(catalog cutover).
 //   METER_DIMENSIONS 는 valueFillMetrics 로 이관. METER_FILL_COLORS(dead) + Spec/Props 제거.

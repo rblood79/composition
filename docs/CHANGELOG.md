@@ -7,7 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [InlineAlert spec 물리 삭제 — ADR-912 단계5 step4] - 2026-06-17
+## [Slider spec 물리 삭제 — ADR-912 단계5 step4 (잔여 deletable 소진)] - 2026-06-17
+
+### Breaking Changes
+
+- **`SliderSpec` / `SliderProps` / `SLIDER_FILL_COLORS` export 제거**:
+  - `packages/specs/src/components/Slider.spec.ts` 물리 삭제 (catalog cutover 완결). `@composition/specs` 의 `SliderSpec` / `SliderProps` / `SLIDER_FILL_COLORS` re-export 소멸.
+  - 시각 SSOT = `componentRulesTable.Slider` + STRUCTURE_META virtual (slider archetype). `SLIDER_FILL_COLORS` 외부 소비처 0건 (SliderTrack/SliderThumb rule variant fill `{color.accent}` 로 대체), `SliderProps` 외부 import 0건 — runtime 영향 없음.
+
+### Architecture
+
+- **ComponentRuleSize nested `indicator` + `columnGap` 스키마 확장** (ADR-912 단계5 step4):
+  - `columnGap?: number | string` (Slider Label↔SliderOutput 가로 간격) + nested `indicator?: { trackHeight?; thumbSize? }` (트랙 두께 + thumb 지름) 신규 필드.
+  - **Why**: `generateSliderSizeMetrics`(CSS, CSSGenerator.ts:1608) 와 `specSizeField("slider",...,"indicator")?.thumbSize`(layout, implicitStyles.ts) 둘 다 nested `indicator.{trackHeight,thumbSize}` 로 읽음 — flat 평탄화 시 reader 2곳 동시 정정 필요 → nested 가 변경 표면 최소. 기존 flat `thumbSize`(SliderTrack escape 전용)와 별개.
+  - 위치: `packages/shared/src/types/composition-document.types.ts`
+- **ruleSizeToSizeSpec columnGap + indicator passthrough** (ADR-912 단계5 step4):
+  - virtual SizeSpec 합성 시 rule.sizes 의 columnGap/indicator 를 SizeSpec 으로 전달 (미정의 leaf 는 미emit).
+  - 위치: `packages/specs/scripts/generate-css.ts`
+- **STRUCTURE_META Slider 본체 virtual entry** (ADR-912 단계5 step4):
+  - archetype `slider` + containerStyles(grid) + states + composition.sizeSelectors (Label/SliderOutput size별 font-size) carry. spec 삭제 후 generated/Slider.css 를 byte-identical 재생성 (diff-0 불변식). 자식 SliderTrack/SliderOutput virtual entry 와 별개.
+  - 위치: `packages/specs/scripts/generate-css.ts`
+- **componentRulesTable.Slider 시각/layout 값 보충** (ADR-912 단계5 step4):
+  - containerStyles(grid 3필드 — `resolveContainerStylesFallback` 경유 Skia/Taffy grid 배치) + sizes 의 gap(4) / columnGap(sm·md 16, lg·xl 20) / indicator(trackHeight 4·8·12·16, thumbSize 14·18·22·26). Slider.spec SSOT 1:1 미러.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`
+- **propagation + 소비처 catalog 전환**:
+  - propagation.rules 8건 → `sliderPropagationSpec`(createPropagationOnlySpec 인라인, 손자 childPath 배열 `["SliderTrack","SliderThumb"]` 보존). specRegistry(dead getEditor 경로 — binding.accepts D2) / tagToElement BASE entry / index·components re-export / CSSGenerator snapshot 엔트리 / buildCatalogShapes.selection.test Slider suite 제거.
+  - 위치: `apps/builder/src/builder/utils/propagationRegistry.ts` 외
 
 ### Breaking Changes
 

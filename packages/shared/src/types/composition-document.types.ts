@@ -252,6 +252,13 @@ export interface ComponentRuleSize {
    */
   gap?: number | string;
   /**
+   * column 축 gap base (ADR-912 단계5 step4 — Slider columnGap 이전).
+   * generate-css virtual 이 `column-gap: {columnGap}px` 로 emit (CSSGenerator 가 size.columnGap 소비).
+   * Slider 의 Label↔SliderOutput 가로 간격 (sm/md 16 · lg/xl 20). gap(row 축)과 직교.
+   * implicitStyles slider 분기도 `specSizeField("slider", size, "columnGap")` rule fallback 으로 소비.
+   */
+  columnGap?: number | string;
+  /**
    * icon ↔ text CSS 변수 `--icon-gap` base (ADR-912 box+text leaf — Button 등 spec.sizes.iconGap 이전).
    * generate-css virtual 이 `--icon-gap: {iconGap}px` 로 emit. iconSize(--icon-size)와 대칭.
    */
@@ -302,6 +309,21 @@ export interface ComponentRuleSize {
    * sm:32 / md:40 / lg:48 / xl:62 (DateField.spec SSOT 미러).
    */
   intrinsicHeight?: number | string;
+  /**
+   * slider 트랙/thumb 치수 base (ADR-912 단계5 step4 — Slider catalog cutover).
+   *
+   * **flat `thumbSize`(line 240)와 별개**: 그 필드는 SliderTrack value-fill escape 의 thumb 반지름용
+   * (SliderTrack rule entry 전용). 본 nested `indicator` 는 **부모 Slider** 의 size별 CSS metric +
+   * layout thumb 박스용으로, 두 consumer 가 모두 nested 구조를 읽으므로 nested 로 도입한다:
+   * - generate-css virtual (CSSGenerator.generateSliderSizeMetrics) 가 `size.indicator.{trackHeight,
+   *   thumbSize}` 를 읽어 `.slider-track-bg/.slider-fill { height }` + `.react-aria-SliderThumb
+   *   { width/height }` size별 CSS 를 emit.
+   * - implicitStyles slider 분기가 `specSizeField("slider", size, "indicator")?.thumbSize` rule
+   *   fallback 으로 thumb 박스 layout 크기를 소비.
+   * flat 평탄화하면 위 두 reader 를 모두 정정해야 하므로 nested 가 변경 표면 최소.
+   * Slider.spec.sizes.*.indicator SSOT 미러 — trackHeight sm4/md8/lg12/xl16, thumbSize sm14/md18/lg22/xl26.
+   */
+  indicator?: { trackHeight?: number; thumbSize?: number };
 }
 
 /** 단일 컴포넌트의 시각 규칙. */

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { SliderSpec } from "../../components/Slider.spec";
+// ADR-912 단계5 step4 (2026-06-17): SliderSpec + callCatalogShapes import 제거 — Slider.spec.ts 물리 삭제로
+//   Slider 빈 shell parity suite 삭제. callCatalogShapes 는 해당 suite 단독 사용처였음.
 import { getSkiaPrimitive } from "../skiaPrimitives";
 import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
-import { callCatalogShapes as buildCatalogShapes } from "./callCatalogShapes";
 import type { Shape, SizeSpec, TokenRef } from "../../types";
 
 /**
@@ -252,27 +252,9 @@ describe("skiaPrimitive 'radio' — Radio indicator (rule 미러 절대값)", ()
   }
 });
 
-describe("Slider — variant 없는 컨테이너 빈 shell parity", () => {
-  // Slider 는 보류(단계5 step4 후속) — SliderSpec 유지. skiaPrimitive 없음 → buildCatalogShapes
-  // 로 간다. track/thumb 은 자식 SliderTrack/Thumb sub-part 가 그리므로 부모는 _hasChildren 빈 shell.
-  it("_hasChildren=true 면 빈 배열 (variant 없음 → 배경 box 생략)", () => {
-    const legacy = SliderSpec.render.shapes(
-      { _hasChildren: true, style: {} } as Parameters<
-        typeof SliderSpec.render.shapes
-      >[0],
-      SliderSpec.sizes.md,
-      "default",
-    );
-    const catalog = buildCatalogShapes(
-      SliderSpec,
-      { _hasChildren: true, style: {} },
-      SliderSpec.sizes.md,
-      "default",
-    );
-    expect(legacy).toEqual([]);
-    expect(catalog).toEqual([]);
-  });
-});
+// Slider — ADR-912 단계5 step4 (2026-06-17): Slider.spec.ts 물리 삭제로 본 suite 제거.
+//   부모 Slider 는 _hasChildren 빈 shell(variant 없음 → buildCatalogShapes generic 이 빈 배열 produce) —
+//   회귀 가드 불요. track/thumb 은 자식 SliderTrack/Thumb sub-part 의 slider_fill_bar/slider_thumb escape 담당.
 
 // ── Switch rule 미러 ───────────────────────────────────────────────────────
 const switchSize = (

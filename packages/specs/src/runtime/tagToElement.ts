@@ -25,7 +25,9 @@ import type { ComponentSpec } from "../types/spec.types";
 //   getSpecForTag → null, buildSpecNodeData 가 isCatalogSkiaCutover 게이트로 통과(generic).
 // ListBox — ADR-912 단계5 step4 (2026-06-17): catalog cutover → ListBox.spec 물리 삭제. BASE entry 제거.
 //   getSpecForTag → null, buildSpecNodeData 가 isCatalogSkiaCutover("ListBox")=true 게이트로 통과(generic).
-import { SliderSpec } from "../components/Slider.spec";
+// Slider — ADR-912 단계5 step4 (2026-06-17): catalog cutover → Slider.spec 물리 삭제. BASE entry 제거.
+//   getSpecForTag → null, buildSpecNodeData 가 isCatalogSkiaCutover("Slider")=true 게이트로 통과(generic).
+//   자식 SliderTrack/SliderThumb/SliderOutput 은 이미 삭제됨(slider_fill_bar/slider_thumb escape).
 // Meter/ProgressBar — ADR-912 단계5 step4 경량 이관 (2026-06-17): catalog cutover, BASE entry 제거.
 //   isCatalogCutover('Meter'|'ProgressBar')=true → Skia 진입 게이트 spec 없이 통과 + DOM virtual CSS.
 // ADR-912 단계5 step4 trivial 그룹 (2026-06-16): Table/Tree.spec import 제거 — catalog cutover,
@@ -113,7 +115,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   // Checkbox/Radio/Switch — ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): catalog cutover spec 삭제로 제거.
   // Select/ComboBox — ADR-912 단계5 step4 (2026-06-17): catalog cutover spec 삭제로 BASE entry 제거.
   // ListBox — ADR-912 단계5 step4 (2026-06-17): ListBox.spec 물리 삭제 → BASE entry 제거(catalog cutover).
-  Slider: SliderSpec,
+  // Slider — ADR-912 단계5 step4 (2026-06-17): Slider.spec 물리 삭제 → BASE entry 제거(catalog cutover).
   // Meter/ProgressBar — ADR-912 단계5 step4 경량 이관 (2026-06-17): catalog cutover, BASE entry 제거.
   // ProgressBarTrack/MeterTrack — ADR-912 단계5: catalog cutover type, BASE_TAG_SPEC_MAP 등록 제거
   // ProgressBarValue/MeterValue — ADR-912 value-label (2026-06-11): catalog cutover, 등록 제거

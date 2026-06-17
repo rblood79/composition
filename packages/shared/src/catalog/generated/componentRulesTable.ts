@@ -5289,33 +5289,55 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // ADR-912 단계5 step4 (2026-06-17): Slider.spec.ts 삭제 대비 시각/layout 값 SSOT 보강.
+  //   containerStyles(grid) → resolveContainerStylesFallback 경유 Skia/Taffy grid 배치 fallback
+  //   (spec.containerStyles 끊김 대체). sizes 의 gap/columnGap/indicator → generated CSS column-gap +
+  //   track/thumb metric 재생성 (ruleSizeToSizeSpec passthrough) + implicitStyles specSizeField rule
+  //   fallback (columnGap/indicator.thumbSize). Slider.spec.ts:100-160 SSOT 1:1 미러.
   Slider: {
     defaultSize: "md",
     variants: {},
+    containerStyles: {
+      display: "grid",
+      gridTemplateAreas: '"label output" "track track"',
+      gridTemplateColumns: "1fr auto",
+    },
     sizes: {
       sm: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.full}",
         height: 4,
+        gap: 4,
+        columnGap: 16,
+        indicator: { trackHeight: 4, thumbSize: 14 },
       },
       md: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.full}",
         height: 8,
+        gap: 4,
+        columnGap: 16,
+        indicator: { trackHeight: 8, thumbSize: 18 },
       },
       lg: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.full}",
         height: 12,
+        gap: 4,
+        columnGap: 20,
+        indicator: { trackHeight: 12, thumbSize: 22 },
       },
       xl: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.full}",
         height: 16,
+        gap: 4,
+        columnGap: 20,
+        indicator: { trackHeight: 16, thumbSize: 26 },
       },
     },
   },

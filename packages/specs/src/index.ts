@@ -301,9 +301,9 @@ export {
 
 // Header (ADR-099 Phase 3 — section 헤더). ADR-912 단계5 step4 (2026-06-16): Header.spec.ts 삭제 —
 //   시각 SSOT = componentRulesTable.Header + ListBox.spec inline child spec (childSpecs CSS emit).
-export { SliderSpec, SLIDER_FILL_COLORS } from "./components/Slider.spec";
-export type { SliderProps } from "./components/Slider.spec";
-
+// Slider — ADR-912 단계5 step4 (2026-06-17): Slider.spec.ts 물리 삭제(catalog cutover). export 제거.
+//   시각 SSOT = componentRulesTable.Slider + STRUCTURE_META virtual(slider archetype). SLIDER_FILL_COLORS
+//   외부 소비처 0건(SliderTrack/SliderThumb rule variant fill {color.accent} 로 대체). SliderProps 외부 import 0.
 // ADR-912 단계5 step4 경량 이관 (2026-06-17): Meter.spec 물리 삭제(catalog cutover).
 //   METER_DIMENSIONS 는 valueFillMetrics 로 이관. METER_FILL_COLORS(rule.variants.fillBar 로 이관됨,
 //   dead) + MeterSpec/MeterProps 제거.

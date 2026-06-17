@@ -6,40 +6,44 @@
  * 모든 키는 소문자로 정규화.
  */
 import type { ComponentSpec, PropagationRule, Shape } from "@composition/specs";
-import {
-  // ADR-912 단계5 step4 date-color (2026-06-17): DatePicker/DateRangePickerSpec import 제거 —
-  //   DatePicker.spec/DateRangePicker.spec 물리 삭제(catalog cutover). propagation.rules(15+25건,
-  //   Calendar/RangeCalendar 서브트리)는 createPropagationOnlySpec 인라인 이관(아래). Tabs(6d907be54) 동일 패턴.
-  // ADR-912 단계5 step4 (2026-06-17): SelectSpec/ComboBoxSpec import 제거 — catalog cutover spec 삭제.
-  //   propagation.rules(size/label/placeholder → SelectTrigger/SelectValue/SelectIcon/Label)는
-  //   select/comboBoxPropagationSpec(createPropagationOnlySpec 인라인)로 이관(아래). placeholder childProp
-  //   이 Select=children / ComboBox=placeholder 로 달라 별도 spec 필수(동형 아님).
-  // Phase 2: 기존 delegation 컴포넌트
-  // ADR-912 단계5 step4 small-B (2026-06-16): SearchField/CheckboxGroup/RadioGroup/TextField/TextArea/NumberField/TimeField/ColorField Spec import 제거 — catalog cutover, propagation.rules 는 createPropagationOnlySpec 인라인 이관(Card 선례).
-  // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): Checkbox/Radio/Switch Spec import 제거 —
-  //   catalog cutover, propagation.rules(size/children → Label)는 createPropagationOnlySpec 인라인 이관.
-  // ADR-912 단계5 step4 (2026-06-17): TagGroupSpec import 제거 — catalog cutover spec 삭제,
-  //   propagation.rules 11건은 tagGroupPropagationSpec(createPropagationOnlySpec 인라인)로 이관.
-  // ADR-912 단계5 step4 (2026-06-17): DateFieldSpec import 제거 — DateField.spec 물리 삭제(catalog cutover).
-  //   propagation.rules 3건(size → Label/DateInput, label → Label children)은 dateFieldPropagationSpec
-  //   (createPropagationOnlySpec 인라인)로 이관(아래). TimeField(timeFieldPropagationSpec) 동형 형제.
-  SliderSpec,
-  // ADR-912 단계5 step4 경량 이관 (2026-06-17): ProgressBarSpec/MeterSpec import 제거 — catalog cutover spec 삭제.
-  //   propagation.rules(label/size → Label/Track/Value)는 createPropagationOnlySpec 인라인 이관(아래).
-  // ADR-912 단계5 step4 date-color (2026-06-16): Calendar/RangeCalendarSpec import 제거 —
-  //   catalog cutover spec 삭제. propagation.rules(variant/size/locale/calendarSystem/defaultToday →
-  //   CalendarHeader/CalendarGrid)는 createPropagationOnlySpec 인라인 이관(아래).
-  // ADR-912 단계5 step4 경량 이관 (2026-06-17): GridListSpec import 제거 — catalog cutover spec 삭제.
-  //   propagation.rules(variant → GridListItem)는 createPropagationOnlySpec 인라인 이관(아래).
-  // ADR-912 단계5 step4 (2026-06-17): ListBoxSpec import 제거 — ListBox.spec 물리 삭제(catalog cutover).
-  //   ListBox.spec 은 propagation.rules 부재(정적 모드 shapes 가 부모 variant 직접 참조, ListBox.spec:352)
-  //   → 기존 registerPropagationSpec("ListBox", ListBoxSpec) 은 no-op → 빈 propagation-only spec 으로 대체.
-  // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroupSpec import 제거 —
-  //   catalog cutover, propagation.rules(isEmphasized/size → ToggleButton)는 createPropagationOnlySpec 인라인 이관.
-  // ADR-912 단계5 step4 (2026-06-17): TabsSpec import 제거 — Tabs.spec 물리 삭제(catalog cutover).
-  //   propagation.rules 7건(items/selectedKey/defaultSelectedKey/showIndicator/variant/size/orientation
-  //   → TabList)은 createPropagationOnlySpec 인라인 이관(아래). Breadcrumbs(a736fedb5) 동일 패턴.
-} from "@composition/specs";
+// ADR-912 단계5 step4: 아래 컴포넌트들은 모두 catalog cutover spec 삭제로 @composition/specs 의
+//   named Spec import 가 전부 제거됨 (전부 createPropagationOnlySpec 인라인 이관). value import 0건이라
+//   import 구문 자체 제거 — 이력은 아래 주석으로 보존.
+// ADR-912 단계5 step4 date-color (2026-06-17): DatePicker/DateRangePickerSpec import 제거 —
+//   DatePicker.spec/DateRangePicker.spec 물리 삭제(catalog cutover). propagation.rules(15+25건,
+//   Calendar/RangeCalendar 서브트리)는 createPropagationOnlySpec 인라인 이관(아래). Tabs(6d907be54) 동일 패턴.
+// ADR-912 단계5 step4 (2026-06-17): SelectSpec/ComboBoxSpec import 제거 — catalog cutover spec 삭제.
+//   propagation.rules(size/label/placeholder → SelectTrigger/SelectValue/SelectIcon/Label)는
+//   select/comboBoxPropagationSpec(createPropagationOnlySpec 인라인)로 이관(아래). placeholder childProp
+//   이 Select=children / ComboBox=placeholder 로 달라 별도 spec 필수(동형 아님).
+// Phase 2: 기존 delegation 컴포넌트
+// ADR-912 단계5 step4 small-B (2026-06-16): SearchField/CheckboxGroup/RadioGroup/TextField/TextArea/NumberField/TimeField/ColorField Spec import 제거 — catalog cutover, propagation.rules 는 createPropagationOnlySpec 인라인 이관(Card 선례).
+// ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): Checkbox/Radio/Switch Spec import 제거 —
+//   catalog cutover, propagation.rules(size/children → Label)는 createPropagationOnlySpec 인라인 이관.
+// ADR-912 단계5 step4 (2026-06-17): TagGroupSpec import 제거 — catalog cutover spec 삭제,
+//   propagation.rules 11건은 tagGroupPropagationSpec(createPropagationOnlySpec 인라인)로 이관.
+// ADR-912 단계5 step4 (2026-06-17): DateFieldSpec import 제거 — DateField.spec 물리 삭제(catalog cutover).
+//   propagation.rules 3건(size → Label/DateInput, label → Label children)은 dateFieldPropagationSpec
+//   (createPropagationOnlySpec 인라인)로 이관(아래). TimeField(timeFieldPropagationSpec) 동형 형제.
+// ADR-912 단계5 step4 (2026-06-17): SliderSpec import 제거 — Slider.spec 물리 삭제(catalog cutover).
+//   propagation.rules 8건(size → SliderTrack/SliderOutput/[SliderTrack,SliderThumb]/Label, label →
+//   Label children, value/minValue/maxValue → SliderTrack)은 sliderPropagationSpec(createPropagationOnlySpec
+//   인라인)로 이관(아래). 손자 childPath 는 배열 ["SliderTrack","SliderThumb"] 보존(string 은 직계만 매칭=DEAD).
+// ADR-912 단계5 step4 경량 이관 (2026-06-17): ProgressBarSpec/MeterSpec import 제거 — catalog cutover spec 삭제.
+//   propagation.rules(label/size → Label/Track/Value)는 createPropagationOnlySpec 인라인 이관(아래).
+// ADR-912 단계5 step4 date-color (2026-06-16): Calendar/RangeCalendarSpec import 제거 —
+//   catalog cutover spec 삭제. propagation.rules(variant/size/locale/calendarSystem/defaultToday →
+//   CalendarHeader/CalendarGrid)는 createPropagationOnlySpec 인라인 이관(아래).
+// ADR-912 단계5 step4 경량 이관 (2026-06-17): GridListSpec import 제거 — catalog cutover spec 삭제.
+//   propagation.rules(variant → GridListItem)는 createPropagationOnlySpec 인라인 이관(아래).
+// ADR-912 단계5 step4 (2026-06-17): ListBoxSpec import 제거 — ListBox.spec 물리 삭제(catalog cutover).
+//   ListBox.spec 은 propagation.rules 부재(정적 모드 shapes 가 부모 variant 직접 참조, ListBox.spec:352)
+//   → 기존 registerPropagationSpec("ListBox", ListBoxSpec) 은 no-op → 빈 propagation-only spec 으로 대체.
+// ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroupSpec import 제거 —
+//   catalog cutover, propagation.rules(isEmphasized/size → ToggleButton)는 createPropagationOnlySpec 인라인 이관.
+// ADR-912 단계5 step4 (2026-06-17): TabsSpec import 제거 — Tabs.spec 물리 삭제(catalog cutover).
+//   propagation.rules 7건(items/selectedKey/defaultSelectedKey/showIndicator/variant/size/orientation
+//   → TabList)은 createPropagationOnlySpec 인라인 이관(아래). Breadcrumbs(a736fedb5) 동일 패턴.
 
 // ─── Collection Item propagation-only specs ─────────────────────────────────
 // 독립 Spec 파일이 없는 컴포넌트의 label/description → 자식 전파 전용
@@ -182,6 +186,30 @@ const meterPropagationSpec = createPropagationOnlySpec("Meter", [
   { parentProp: "size", childPath: "MeterTrack", override: true },
   { parentProp: "size", childPath: "MeterValue", override: true },
   { parentProp: "size", childPath: "Label", override: true },
+]);
+
+// ADR-912 단계5 step4 (2026-06-17): Slider.spec 물리 삭제 — propagation.rules 8건 인라인 보존.
+//   Slider.spec.ts:176-197 verbatim. rule #3 childPath 는 손자(Slider → SliderTrack → SliderThumb)라
+//   배열 ["SliderTrack","SliderThumb"] 필수(string 은 직계 자식만 매칭 → DEAD). prop 명은 정확히
+//   value/minValue/maxValue (min/max 아님).
+const sliderPropagationSpec = createPropagationOnlySpec("Slider", [
+  { parentProp: "size", childPath: "SliderTrack", override: true },
+  { parentProp: "size", childPath: "SliderOutput", override: true },
+  {
+    parentProp: "size",
+    childPath: ["SliderTrack", "SliderThumb"],
+    override: true,
+  },
+  { parentProp: "size", childPath: "Label", override: true },
+  {
+    parentProp: "label",
+    childPath: "Label",
+    childProp: "children",
+    override: true,
+  },
+  { parentProp: "value", childPath: "SliderTrack", override: true },
+  { parentProp: "minValue", childPath: "SliderTrack", override: true },
+  { parentProp: "maxValue", childPath: "SliderTrack", override: true },
 ]);
 
 // ADR-912 단계5 step4 small-B (2026-06-16): TextField.spec 삭제 — propagation.rules 인라인 보존.
@@ -689,7 +717,7 @@ registerPropagationSpec("NumberField", numberFieldPropagationSpec);
 registerPropagationSpec("DateField", dateFieldPropagationSpec);
 registerPropagationSpec("TimeField", timeFieldPropagationSpec);
 registerPropagationSpec("ColorField", colorFieldPropagationSpec);
-registerPropagationSpec("Slider", SliderSpec);
+registerPropagationSpec("Slider", sliderPropagationSpec);
 // ADR-912 단계5 step4 경량 이관 (2026-06-17): ProgressBar/Meter spec 삭제 → propagation-only 인라인 spec.
 registerPropagationSpec("ProgressBar", progressBarPropagationSpec);
 registerPropagationSpec("Meter", meterPropagationSpec);
