@@ -276,6 +276,24 @@ export interface ComponentRuleSize {
 }
 
 /** 단일 컴포넌트의 시각 규칙. */
+/**
+ * 컨테이너 variant 스타일 (spec `ContainerVariantStyles` 의 catalog 대응).
+ *
+ * ADR-912 단계5 step4 (2026-06-17): containerVariants 보유 컨테이너(TagGroup/CheckboxGroup/
+ *   RadioGroup 등)의 catalog cutover 기반. spec 삭제 후에도 `data-{dataAttr}="{value}"` 기반
+ *   variant(예: label-position="side" → flex-direction:row, RSP TagGroup `labelPosition` 정본)를
+ *   Skia layout(resolveActiveContainerVariants)이 catalog fallback 으로 읽도록 보존한다.
+ * - `styles`: 컨테이너 자신에 적용할 CSS 속성 (kebab-case key — CSS / resolveContainerVariants 동일 포맷)
+ * - `nested`: 자식 element 주입용 중첩 rule (consumer 가 selector 매칭 후 머지)
+ */
+export interface ComponentRuleContainerVariantStyles {
+  styles?: Record<string, string>;
+  nested?: Array<{
+    selector: string;
+    styles: Record<string, string>;
+  }>;
+}
+
 export interface ComponentRule {
   defaultVariant?: string;
   defaultSize?: string;
@@ -286,6 +304,29 @@ export interface ComponentRule {
    * underline 등 시각상 의미 있는 값만 — "none"(기본값 동일)은 생성기에서 생략.
    */
   textDecoration?: string;
+  /**
+   * 컨테이너 base layout 스타일 (spec `composition.containerStyles` 의 catalog 대응).
+   *
+   * ADR-912 단계5 step4 (2026-06-17): self-render 컨테이너(TagGroup 등)의 display/flexDirection/
+   *   gap 등 layout primitive. spec 삭제 후 `resolveContainerStylesFallback`(Skia/Taffy)이 spec
+   *   부재 시 본 필드를 fallback 으로 읽는다(builder 측 catalog 합성 경유 — `specs ← shared` boundary).
+   * kebab-case 또는 camelCase 혼용 가능(consumer 가 정규화). 예: `{ display: "flex",
+   *   flexDirection: "column", gap: "8px" }`.
+   */
+  containerStyles?: Record<string, string>;
+  /**
+   * 컨테이너 variant (spec `composition.containerVariants` 의 catalog 대응).
+   *
+   * 구조: `{ [dataAttr]: { [attrValue]: ComponentRuleContainerVariantStyles } }`
+   * - `dataAttr`: `data-` 접두 제외 kebab-case (예: `label-position`)
+   * - `attrValue`: 속성 값 (boolean 은 `"true"`/`"false"`, enum 은 해당 값)
+   * 예: `{ "label-position": { side: { styles: { "flex-direction": "row",
+   *   "align-items": "flex-start" } } } }` (RSP TagGroup `labelPosition="side"` 정본).
+   */
+  containerVariants?: Record<
+    string,
+    Record<string, ComponentRuleContainerVariantStyles>
+  >;
 }
 
 /**

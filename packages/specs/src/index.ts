@@ -18,6 +18,7 @@ export type {
   FillTokenSpec,
   SizeSpec,
   RenderSpec,
+  ContainerVariantStyles,
   PropertySchema,
   SectionDef,
   FieldDef,

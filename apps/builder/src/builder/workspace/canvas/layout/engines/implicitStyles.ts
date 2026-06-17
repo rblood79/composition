@@ -21,9 +21,13 @@ import {
   resolveToken,
   resolveContainerStylesFallback as _resolveContainerStylesFallback,
   resolveContainerVariants,
-  matchNestedSelector,
+  isValidTokenRef,
 } from "@composition/specs";
-import type { SizeSpec } from "@composition/specs";
+import type {
+  SizeSpec,
+  ContainerVariantStyles,
+  TokenRef,
+} from "@composition/specs";
 import { getNecessityIndicatorSuffix } from "@composition/shared/components";
 import { getComponentRulesTable } from "@composition/shared";
 import type { ComponentRuleSize } from "@composition/shared";
@@ -110,6 +114,43 @@ const LOWERCASE_COMPONENT_RULE_SIZES: ReadonlyMap<
   return m;
 })();
 
+// ADR-912 단계5 step4 (2026-06-17): containerVariants/containerStyles 의 catalog fallback.
+//   spec 삭제된 cutover 컨테이너(TagGroup/CheckboxGroup/RadioGroup 등)의 label-position:side
+//   variant(RSP `labelPosition` 정본) + base layout(display/flexDirection/gap)을 spec 부재 시
+//   rule table 에서 읽는다. `resolveContainerVariants`(specs)는 `specs ← shared` boundary 로
+//   rule 직접 접근 불가 → builder 측에서 lowercase map 1회 구축(RULE_SIZES 동형).
+const LOWERCASE_COMPONENT_RULE_CONTAINER: ReadonlyMap<
+  string,
+  {
+    containerStyles?: Record<string, string>;
+    containerVariants?: Record<string, Record<string, ContainerVariantStyles>>;
+  }
+> = (() => {
+  const m = new Map<
+    string,
+    {
+      containerStyles?: Record<string, string>;
+      containerVariants?: Record<
+        string,
+        Record<string, ContainerVariantStyles>
+      >;
+    }
+  >();
+  for (const [k, v] of Object.entries(getComponentRulesTable())) {
+    if (v.containerStyles || v.containerVariants) {
+      m.set(k.toLowerCase(), {
+        containerStyles: v.containerStyles,
+        // ComponentRuleContainerVariantStyles ↔ ContainerVariantStyles 동형 구조
+        //   (styles?/nested?) — spec-shape 어댑터(resolveContainerVariants 재사용)용 cast.
+        containerVariants: v.containerVariants as
+          | Record<string, Record<string, ContainerVariantStyles>>
+          | undefined,
+      });
+    }
+  }
+  return m;
+})();
+
 function ruleSizeRecord(
   type: string,
   sizeName: string,
@@ -174,12 +215,54 @@ export function resolveContainerStylesFallback(
   type: string,
   parentStyle: Record<string, unknown>,
 ): Record<string, unknown> {
-  return _resolveContainerStylesFallback(
+  const specOut = _resolveContainerStylesFallback(
     type,
     parentStyle,
     LOWERCASE_TAG_SPEC_MAP,
   );
+  // ADR-912 단계5 step4 (2026-06-17): spec 삭제된 cutover 컨테이너(TagGroup 등)는 catalog
+  //   rule.containerStyles 를 fallback 으로 읽는다(display/flexDirection/gap base layout). spec
+  //   존재 시 specOut 이 이미 채워지므로 본 보강은 spec 부재 시에만 효과(spec ← shared boundary
+  //   로 specs 측 resolveContainerStylesFallback 은 rule 접근 불가 → builder 에서 합성).
+  const ruleContainer = LOWERCASE_COMPONENT_RULE_CONTAINER.get(type);
+  const cs = ruleContainer?.containerStyles;
+  if (!cs) return specOut;
+  const out: Record<string, unknown> = { ...specOut };
+  for (const key of CONTAINER_STYLES_FALLBACK_KEYS) {
+    if (parentStyle[key] !== undefined) continue; // 사용자/factory 편집 우선
+    if (out[key] !== undefined) continue; // spec fallback 우선
+    const value = cs[key];
+    if (value === undefined) continue;
+    out[key] =
+      typeof value === "string" && isValidTokenRef(value)
+        ? resolveToken(value as TokenRef)
+        : value;
+  }
+  return out;
 }
+
+/**
+ * `resolveContainerStylesFallback` 의 catalog 보강 대상 layout primitive 키.
+ * specs `CONTAINER_STYLES_FALLBACK_KEYS` 와 동일 집합 (camelCase) — spec ↔ catalog rule
+ * containerStyles 양쪽이 같은 키를 쓰므로 보강이 1:1.
+ */
+const CONTAINER_STYLES_FALLBACK_KEYS = [
+  "display",
+  "flexDirection",
+  "flexWrap",
+  "alignItems",
+  "justifyContent",
+  "width",
+  "maxHeight",
+  "overflow",
+  "outline",
+  "gap",
+  "padding",
+  "gridTemplateAreas",
+  "gridTemplateColumns",
+  "gridTemplateRows",
+  "position",
+] as const;
 
 // ─── 내부 상수 ──────────────────────────────────────────────────────
 
@@ -484,34 +567,33 @@ function resolveActiveContainerVariants(
   containerTag: string,
   containerProps: Record<string, unknown> | undefined,
 ) {
-  return resolveContainerVariants(
-    LOWERCASE_TAG_SPEC_MAP.get(containerTag),
-    containerProps ?? undefined,
-  );
+  const spec = LOWERCASE_TAG_SPEC_MAP.get(containerTag);
+  if (spec?.composition?.containerVariants) {
+    return resolveContainerVariants(spec, containerProps ?? undefined);
+  }
+  // ADR-912 단계5 step4 (2026-06-17): spec 삭제된 cutover 컨테이너(TagGroup/CheckboxGroup/
+  //   RadioGroup) 는 catalog rule.containerVariants 를 fallback 으로 읽는다. rule 을 spec-shape
+  //   ({ composition: { containerVariants } }) 로 어댑트하여 `resolveContainerVariants` 단일
+  //   로직 재사용(label-position:side → flex-direction:row, RSP `labelPosition` 정본 보존).
+  const ruleContainer = LOWERCASE_COMPONENT_RULE_CONTAINER.get(containerTag);
+  if (ruleContainer?.containerVariants) {
+    return resolveContainerVariants(
+      {
+        composition: { containerVariants: ruleContainer.containerVariants },
+      } as Parameters<typeof resolveContainerVariants>[0],
+      containerProps ?? undefined,
+    );
+  }
+  return resolveContainerVariants(spec, containerProps ?? undefined);
 }
 
 function hasResolvedSideLabelVariant(styles: Record<string, string>): boolean {
   return styles.display === "grid" || styles["flex-direction"] === "row";
 }
 
-function injectMatchedSideLabelContentStyles(
-  children: CanvasLayoutNode[],
-  nested: Array<{ selector: string }>,
-  contentTags: ReadonlySet<string>,
-): CanvasLayoutNode[] {
-  return children.map((child) => {
-    const childTag = child.type ?? "";
-    const matches = nested.some((n) =>
-      matchNestedSelector(n.selector, { type: childTag }, true),
-    );
-    if (!matches) return child;
-    const [adapted] = injectSideLabelLabelAndContentStyles(
-      [child],
-      contentTags,
-    );
-    return adapted ?? child;
-  });
-}
+// ADR-912 단계5 step4 (2026-06-17): injectMatchedSideLabelContentStyles 제거 — textfield/textarea
+//   분기가 nested 기반 spec 매칭에서 catalog fallback + injectSideLabelLabelAndContentStyles(NumberField
+//   동형 nested-비의존)로 전환되어 dead. matchNestedSelector import 도 동반 제거.
 
 function getDelegatedSize(
   el: CanvasLayoutNode,
@@ -1276,21 +1358,21 @@ export function applyImplicitStyles(
         c.type === "FieldError",
     );
 
-    const tfSpec = LOWERCASE_TAG_SPEC_MAP.get(containerTag);
-    const tfVariant = resolveContainerVariants(
-      tfSpec,
-      containerProps ?? undefined,
+    // ADR-912 단계5 step4 (2026-06-17): resolveActiveContainerVariants 경유 — spec 삭제
+    //   (TextField/TextArea, 91c2be0dd) 후 catalog rule.containerVariants fallback 을 읽는다
+    //   (이전 resolveContainerVariants(tfSpec) 직접 호출은 spec-only → side variant 회귀).
+    //   sideMode/자식 보정을 NumberField 분기와 동형화: hasResolvedSideLabelVariant(styles) 판정 +
+    //   injectSideLabelLabelAndContentStyles(nested 불요 — catalog rule 은 styles 만 보유, nested
+    //   DOM selector 는 generated CSS 전용).
+    const tfVariant = resolveActiveContainerVariants(
+      containerTag,
+      containerProps,
     );
-    const tfSideMode =
-      Object.keys(tfVariant.styles).length > 0 || tfVariant.nested.length > 0;
+    const tfSideMode = hasResolvedSideLabelVariant(tfVariant.styles);
 
     if (tfSideMode) {
-      // spec nested[] 에 매칭된 자식만 Canvas side-label flex 시뮬레이션 적용.
-      //   TextField.spec.ts:320/329 는 Label + `:not(Label)` 양쪽을 덮어 Input/FieldError
-      //   포함. 미매칭 자식 (예: spec 변형 후 새 태그) 은 원본 유지.
-      filteredChildren = injectMatchedSideLabelContentStyles(
+      filteredChildren = injectSideLabelLabelAndContentStyles(
         filteredChildren,
-        tfVariant.nested,
         new Set(["Input"]),
       );
       effectiveParent = withParentStyle(

@@ -19,6 +19,7 @@ export type {
   RenderSpec,
   SpecRenderContext,
   CompositionSpec,
+  ContainerVariantStyles,
   DelegationSpec,
   PropertySchema,
   SectionDef,

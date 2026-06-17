@@ -1366,6 +1366,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 16,
       },
     },
+    // ADR-912 단계5 step4 (2026-06-17): CheckboxGroup.spec.composition.containerVariants 의
+    //   label-position:side Skia 복구 — spec 삭제(91c2be0dd) 시 resolveActiveContainerVariants 가
+    //   spec-only 라 side variant(flex-direction:row) 가 Skia layout 에서 회귀했다(side variant
+    //   test FAIL). catalog fallback 메커니즘 + 본 필드로 복구. CSS 변수(--cb-items-gap)/orientation
+    //   nested 는 DOM generated CSS 전용(Skia 무관)이라 이관 제외 — Skia 가 읽는 styles 만.
+    containerVariants: {
+      "label-position": {
+        side: {
+          styles: {
+            "flex-direction": "row",
+            "align-items": "flex-start",
+          },
+        },
+      },
+    },
   },
   Code: {
     defaultVariant: "default",
@@ -1944,6 +1959,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 52,
         iconSize: 24,
         gap: 8,
+      },
+    },
+    // ADR-912 단계5 step4 (2026-06-17): DatePicker.spec.composition.containerVariants 의
+    //   label-position:side Skia 복구 — spec 삭제(daaae6b82) 회귀. TagGroup/Checkbox 동형
+    //   (flex-direction:row, Group 보정은 datepicker 분기 별도). Skia sideMode 트리거 styles 만.
+    containerVariants: {
+      "label-position": {
+        side: {
+          styles: {
+            "flex-direction": "row",
+            "align-items": "flex-start",
+          },
+        },
       },
     },
   },
@@ -3933,6 +3961,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 28,
       },
     },
+    // ADR-912 단계5 step4 (2026-06-17): NumberField.spec.composition.containerVariants 의
+    //   label-position:side Skia 복구 — spec 삭제(91c2be0dd) 로 side variant 회귀. Skia layout 은
+    //   styles.display==="grid" 로 sideMode 판정 후 getSideLabelParentStyle(flex/row/wrap 하드코딩)
+    //   적용 — styles 만 필요. nested(> .react-aria-Label DOM selector)는 generated CSS 전용 제외.
+    containerVariants: {
+      "label-position": {
+        side: {
+          styles: {
+            display: "grid",
+            "grid-template-columns":
+              "var(--form-label-width, max-content) minmax(0, 1fr)",
+            "column-gap": "var(--form-field-gap, var(--spacing-md))",
+            "row-gap": "var(--spacing-xs)",
+            "align-items": "start",
+            width: "100%",
+          },
+        },
+      },
+    },
   },
   Pagination: {
     defaultVariant: "default",
@@ -4481,6 +4528,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.none}",
         height: 0,
         gap: 20,
+      },
+    },
+    // ADR-912 단계5 step4 (2026-06-17): RadioGroup.spec.composition.containerVariants 의
+    //   label-position:side Skia 복구 — CheckboxGroup 동형(spec 삭제 91c2be0dd 로 side variant 회귀).
+    //   catalog fallback 메커니즘 + 본 필드. CSS 변수/orientation nested 는 DOM generated CSS 전용.
+    containerVariants: {
+      "label-position": {
+        side: {
+          styles: {
+            "flex-direction": "row",
+            "align-items": "flex-start",
+          },
+        },
       },
     },
   },
@@ -6083,6 +6143,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 40,
       },
     },
+    // ADR-912 단계5 step4 (2026-06-17): TagGroup.spec.containerStyles 이관 — self-render 컨테이너
+    //   base layout(Label↔TagList 세로 배치). spec 삭제 후 resolveContainerStylesFallback(builder
+    //   catalog 합성)이 본 필드를 읽는다. gap 은 spec `{spacing.xs}` 동일.
+    containerStyles: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "{spacing.xs}",
+    },
+    // ADR-912 단계5 step4 (2026-06-17): TagGroup.spec.composition.containerVariants 이관 —
+    //   RSP TagGroup `labelPosition="side"` 정본(label 옆 가로 배치). spec 삭제 후
+    //   resolveActiveContainerVariants(builder catalog fallback)이 Skia layout 에 적용.
+    //   DOM 은 수동 TagGroup.css `[data-label-position="side"]` selector 가 담당(별도 축).
+    containerVariants: {
+      "label-position": {
+        side: {
+          styles: {
+            "flex-direction": "row",
+            "align-items": "flex-start",
+          },
+        },
+      },
+    },
   },
   // TagList — chip 컨테이너 shell (ADR-912 collection sub-part cutover, 2026-06-15). 시각 없음:
   //   chip 시각은 cutover 된 Tag(appendTagRowProjection → Tag SceneNode)가 단독 담당. TagList
@@ -6256,6 +6338,24 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 10,
       },
     },
+    // ADR-912 단계5 step4 (2026-06-17): TextArea.spec.composition.containerVariants 의
+    //   label-position:side Skia 복구 — NumberField/TextField 동형(grid form-field layout). spec
+    //   삭제(91c2be0dd) 회귀. Skia sideMode 트리거 styles 만(nested DOM selector 제외).
+    containerVariants: {
+      "label-position": {
+        side: {
+          styles: {
+            display: "grid",
+            "grid-template-columns":
+              "var(--form-label-width, max-content) minmax(0, 1fr)",
+            "column-gap": "var(--form-field-gap, var(--spacing-md))",
+            "row-gap": "var(--spacing-xs)",
+            "align-items": "start",
+            width: "100%",
+          },
+        },
+      },
+    },
   },
   TextField: {
     defaultSize: "md",
@@ -6298,6 +6398,24 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.xl}",
         height: 54,
         gap: 10,
+      },
+    },
+    // ADR-912 단계5 step4 (2026-06-17): TextField.spec.composition.containerVariants 의
+    //   label-position:side Skia 복구 — NumberField/TextArea 동형(grid form-field layout). spec
+    //   삭제(91c2be0dd) 회귀. Skia sideMode 트리거 styles 만(nested DOM selector 제외).
+    containerVariants: {
+      "label-position": {
+        side: {
+          styles: {
+            display: "grid",
+            "grid-template-columns":
+              "var(--form-label-width, max-content) minmax(0, 1fr)",
+            "column-gap": "var(--form-field-gap, var(--spacing-md))",
+            "row-gap": "var(--spacing-xs)",
+            "align-items": "start",
+            width: "100%",
+          },
+        },
       },
     },
   },
