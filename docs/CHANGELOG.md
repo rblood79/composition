@@ -30,8 +30,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     요소를 auto-select (단순/복합/ref 공통). 추가 직후 selection 이 body 에 머물러
     Delete 가드에 걸리던 부수 문제 해소. `useErrorHandler.retryOperation` 을
     제네릭화하여 생성 id 전파. 위치: `apps/builder/src/builder/hooks/{useElementCreator,useErrorHandler}.ts`
-  - 가드: `addElementsToStore` 의 canonical→setState→_rebuildIndexes 호출 순서 정적
-    계약 테스트 추가. 위치: `apps/builder/src/builder/factories/utils/__tests__/elementCreation.indexSync.test.ts`
+  - 수정 3 (focus): auto-select 직후 `.canvas-container` 에 DOM 포커스를 옮김.
+    **Why**: 수정 2 의 auto-select 는 store selection(선택 표시)만 갱신하고 포커스는
+    클릭한 팔레트 카드(BUTTON.list-item)에 남는다. Delete/Backspace 단축키 scope 는
+    "canvas-focused" (document.activeElement 가 `.canvas-container` 내부)이므로,
+    포커스를 옮기지 않으면 추가 직후 바로 Delete 가 핸들러 scope 필터에서 탈락해
+    실행조차 안 됐음 — "추가 → 선택 표시는 됨 → 바로 삭제 안 됨, 캔버스 다시 클릭하면
+    삭제 가능" 잔존 증상. BuilderCanvas onPointerDown 의 `containerRef.focus()` 와 동일
+    패턴. 위치: `apps/builder/src/builder/hooks/useElementCreator.ts`
+  - 가드: `addElementsToStore` 의 canonical→setState→_rebuildIndexes 호출 순서 +
+    handleAddElement 의 auto-select→canvas-focus 순서 정적 계약 테스트. 위치:
+    `apps/builder/src/builder/factories/utils/__tests__/elementCreation.indexSync.test.ts`,
+    `apps/builder/src/builder/hooks/useElementCreator.static.test.ts`
 
 ## [DatePicker + DateRangePicker catalog cutover + spec 물리 삭제 — ADR-912 단계5 step4] - 2026-06-17
 

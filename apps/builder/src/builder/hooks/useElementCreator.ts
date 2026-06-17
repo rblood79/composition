@@ -273,6 +273,18 @@ export const useElementCreator = (): UseElementCreatorReturn => {
           // 즉시 유효하다.
           if (createdTopLevelId) {
             useStore.getState().setSelectedElement(createdTopLevelId);
+
+            // 캔버스 컨테이너에 DOM 포커스를 옮긴다.
+            // setSelectedElement 는 store selection 만 갱신하고 포커스는 클릭한 팔레트
+            // 카드(BUTTON.list-item)에 남는다. Delete/Backspace 단축키 scope 는
+            // "canvas-focused" (= document.activeElement 가 .canvas-container 내부)
+            // 이므로, 포커스를 옮기지 않으면 추가 직후 바로 Delete 가 핸들러 scope
+            // 필터에서 탈락해 동작하지 않는다 (사용자가 캔버스를 다시 클릭해야만
+            // 삭제 가능하던 증상). BuilderCanvas onPointerDown 의 containerRef.focus()
+            // 와 동일 패턴 — 여기선 hook 밖이라 DOM selector 로 접근.
+            const canvasContainer =
+              document.querySelector<HTMLElement>(".canvas-container");
+            canvasContainer?.focus({ preventScroll: true });
           }
         }
       } catch (error) {
