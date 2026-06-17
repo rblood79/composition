@@ -1,19 +1,28 @@
 /**
- * ADR-142 G2(b) A 단계 — 컴포넌트 시각 규칙 단일 어댑터 seam.
+ * 컴포넌트 시각 규칙 어댑터 — `ComponentVisualRule` 타입(정본) + `variantToVisual` /
+ *   `resolveComponentVisual` (**test-only utility**).
  *
- * ⚠️ **production-dead (ADR-912 1A-(a), 2026-06-03)**: 아래 `resolveComponentVisual` / `variantToVisual`
- *   함수는 더 이상 production 경로에서 호출되지 않는다. 마지막 production 소비자였던 `CSSGenerator.ts:232`
- *   가 ②-6-A 로 정본 table 주입(`_variantSource`)으로 전환했고, Skia 는 이미 별도 `ruleVariantToVisual`
- *   (builder)을 쓴다. 현재 유일 사용처는 **test fixture**(resolveSkiaVisualRule.test.ts 의 spec 추종 검증 +
- *   buildCatalogShapes/composeCatalogShapes/skiaPrimitives test 의 visual 생성). **단계 5 에서 spec 124 +
- *   본 함수 물리 삭제** 예정. `ComponentVisualRule` *타입* 은 buildCatalogShapes/skiaPrimitives 가 계속
- *   import 하므로 **유지**(살아있는 시각 규칙 인터페이스 — 함수만 dead).
+ * **`ComponentVisualRule` 타입 = production 정본 (영구 유지)**: buildCatalogShapes / skiaPrimitives /
+ *   CSSGenerator / resolveSkiaVisualRule(builder) / generate-css 가 import 하는 살아있는 시각 규칙
+ *   인터페이스. DOM(CSSGenerator) ↔ Skia(buildCatalogShapes) 대칭의 데이터 shape 계약.
  *
- * (역사) ADR-142: buildCatalogShapes(Skia)와 CSSGenerator(DOM)가 `spec.variants[name]` 색상을 각자 직접
- *   읽던 것을 본 어댑터 1개로 수렴. ADR-912 ②-6-A 에서 DOM 이 정본 table 주입으로 전환하며 함수 dead 화.
+ * ⚠️ **`resolveComponentVisual` / `variantToVisual` 함수 = test-only (ADR-912 단계5, 2026-06-18)**:
+ *   production 경로에서 호출 0. CSSGenerator 는 `_variantSource`(rule table 파생, generate-css 의
+ *   `variantSourceFor`) 단독으로 variant 색상을 읽고, Skia 는 builder `ruleVariantToVisual` 를 쓴다.
+ *   본 두 함수는 **test fixture 가 spec.variants → ComponentVisualRule 로 변환**하는 데만 쓰인다
+ *   (callCatalogShapes / buildCatalogShapes.test / CSSGenerator snapshot·containerStyles test /
+ *   resolveComponentVisual.test 의 필드-매핑 계약 검증 + builder resolveSkiaVisualRule.test 의 drift
+ *   검증). production `variantSourceFor`(rule 기반) 와 동형 출력을 내는 **대칭 쌍 (spec fixture 기반)** —
+ *   test 가 production 과 같은 _variantSource 입력을 합성할 수 있게 하는 정당한 test 자산.
+ *
+ * **production import 차단**: barrel(`renderers/index.ts` / `src/index.ts`)에서 두 함수의 re-export 를
+ *   제거했다(ADR-912 단계5). production 코드가 `@composition/specs` 로 이 함수를 끌어올 경로 없음 —
+ *   test 는 직접 경로(`../utils/resolveComponentVisual`)로만 import. (타입 ComponentVisualRule 은
+ *   barrel re-export 유지 — production 정본 인터페이스.)
  *
  * **불변식**: `ComponentVisualRule` 의 필드 집합 = VariantSpec 의 색상 필드 전수. (table 정본의
- *   `ruleVariantToVisual`[builder/generate-css] 도 동일 필드 매핑 — DOM↔Skia 대칭 유지.)
+ *   `ruleVariantToVisual`[builder/generate-css] 도 동일 필드 매핑 — DOM↔Skia 대칭 유지.
+ *   `resolveComponentVisual.test.ts` 가 본 불변식을 계약으로 검증.)
  */
 
 import type {

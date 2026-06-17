@@ -37,11 +37,9 @@ export { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 // ADR-142 #5 — generic shape-descriptor 생성기 (render.shapes 대체)
 export { buildCatalogShapes } from "./buildCatalogShapes";
 
-// ADR-142 G2(b) — 컴포넌트 시각 규칙 어댑터 (variant 색상 단일 진입점)
-export {
-  resolveComponentVisual,
-  variantToVisual,
-} from "./utils/resolveComponentVisual";
+// ADR-912 단계5: ComponentVisualRule 타입만 production 정본으로 re-export.
+//   resolveComponentVisual / variantToVisual 함수는 test-only(production 호출 0) → barrel
+//   제외. test 는 직접 경로(./utils/resolveComponentVisual)로 import.
 export type { ComponentVisualRule } from "./utils/resolveComponentVisual";
 
 // ADR-142 §3 — 비-DOM-trivial primitive(원/선/아이콘) skiaPrimitive draw module
