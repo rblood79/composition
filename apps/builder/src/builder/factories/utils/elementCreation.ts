@@ -132,10 +132,25 @@ export function addElementsToStore(
   const currentElements = store.elements;
   const newElements = [...currentElements, parent, ...children];
 
-  // 1. 메모리 스토어 업데이트 (UI 즉시 반영) — ADR-116 G4 wrapper 경유
+  // 1. canonical document 1차 갱신 — ADR-116 G4 wrapper 경유.
+  //    mergeElementsCanonicalPrimary 는 "canonical store mutation only.
+  //    Derived store cache updates are caller-owned" 계약 (canonicalMutations.ts).
   mergeElementsCanonicalPrimary([parent, ...children]);
 
-  // 2. 히스토리 기록
+  // 2. derived store cache 갱신 — 단순 컴포넌트 경로 createAddElementAction 과 동일.
+  //    이 단계를 누락하면 복합 컴포넌트(NumberField/Select 등)가 canonical 에는
+  //    들어가 Skia 화면엔 보이지만 legacy elementsMap 에는 없어, Delete 핸들러의
+  //    elementsMap.get(id) 가 undefined → "Only body elements selected" 로 삭제
+  //    불가 (새로고침 후에야 hydrate 로 회복되던 버그).
+  //    순서 엄수: canonical merge 1차 → set → _rebuildIndexes
+  //    (set 1차로 두면 _rebuildIndexes 가 stale canonical mirror 빌드 race).
+  useStore.setState((prev) => ({
+    elements: [...prev.elements, parent, ...children],
+    layoutVersion: prev.layoutVersion + 1,
+  }));
+  useStore.getState()._rebuildIndexes();
+
+  // 3. 히스토리 기록
   const { saveSnapshot } = store as unknown as {
     saveSnapshot: (elements: Element[], description: string) => void;
   };
@@ -143,7 +158,7 @@ export function addElementsToStore(
     saveSnapshot(newElements, "복합 컴포넌트 생성");
   }
 
-  // 3. Canonical document 저장 (백그라운드, 에러 발생 시에도 UI는 정상 동작)
+  // 4. Canonical document 저장 (백그라운드, 에러 발생 시에도 UI는 정상 동작)
   setTimeout(async () => {
     try {
       await persistActiveCanonicalDocument();

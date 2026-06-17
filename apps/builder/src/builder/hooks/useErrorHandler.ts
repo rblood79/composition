@@ -46,10 +46,10 @@ export interface UseErrorHandlerReturn {
   clearErrorHistory: () => void;
   addRollbackPoint: (info: RollbackInfo) => void;
   rollback: (steps?: number) => Promise<boolean>;
-  retryOperation: (
-    operation: () => Promise<void>,
+  retryOperation: <T = void>(
+    operation: () => Promise<T>,
     maxRetries?: number,
-  ) => Promise<void>;
+  ) => Promise<T | undefined>;
   validateElements: (elements: Element[]) => {
     isValid: boolean;
     errors: string[];
@@ -244,19 +244,19 @@ export const useErrorHandler = (): UseErrorHandlerReturn => {
   );
 
   const retryOperation = useCallback(
-    async (
-      operation: () => Promise<void>,
+    async <T = void>(
+      operation: () => Promise<T>,
       maxRetries: number = 3,
-    ): Promise<void> => {
+    ): Promise<T | undefined> => {
       const operationId = ElementUtils.generateId();
       let retryCount = retryCountRef.current.get(operationId) || 0;
 
       while (retryCount < maxRetries) {
         try {
-          await operation();
+          const result = await operation();
           // 성공 시 재시도 카운트 초기화
           retryCountRef.current.delete(operationId);
-          return;
+          return result;
         } catch (error) {
           retryCount++;
           retryCountRef.current.set(operationId, retryCount);

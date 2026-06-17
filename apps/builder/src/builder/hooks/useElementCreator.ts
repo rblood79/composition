@@ -16,7 +16,7 @@ import {
   COMPONENT_ROLE_MIRROR_FIELD,
   COMPONENT_MASTER_ID_MIRROR_FIELD,
 } from "../../adapters/canonical/componentSemanticsMirror";
-//import { useStore } from '../stores';
+import { useStore } from "../stores";
 
 export interface UseElementCreatorReturn {
   getDefaultProps: (type: string) => ComponentElementProps;
@@ -86,7 +86,7 @@ export function resolveCreationParentId({
 export const useElementCreator = (): UseElementCreatorReturn => {
   const isProcessingRef = useRef(false);
   const elementsRef = useRef<Element[]>([]);
-  const lastOperationRef = useRef<(() => Promise<void>) | null>(null);
+  const lastOperationRef = useRef<(() => Promise<string | null>) | null>(null);
   const isConfiguredRef = useRef(false);
 
   const {
@@ -152,7 +152,8 @@ export const useElementCreator = (): UseElementCreatorReturn => {
 
           // 복합 컴포넌트인지 확인 (공유 상수 사용)
 
-          const operation = async () => {
+          // 생성된 최상위 element id (auto-select 용). 각 분기에서 설정.
+          const operation = async (): Promise<string | null> => {
             const reusableCompositeOriginId =
               getReusableCompositeOriginId(type);
             if (reusableCompositeOriginId) {
@@ -187,6 +188,7 @@ export const useElementCreator = (): UseElementCreatorReturn => {
               );
 
               addElement(refElement);
+              return refElement.id;
             } else if (COMPLEX_COMPONENT_TAGS.has(type)) {
               // ComponentFactory를 사용하여 복합 컴포넌트 생성
               const result = await ComponentFactory.createComplexComponent(
@@ -197,7 +199,7 @@ export const useElementCreator = (): UseElementCreatorReturn => {
                 layoutId, // ⭐ Layout/Slot System: layoutId 전달
                 doc,
               );
-              void result;
+              return result.parent.id;
             } else {
               // 단순 컴포넌트 생성 (캐시 활용)
               // selectedElementId 는 page-level selection id 일 수 있으므로
@@ -255,6 +257,7 @@ export const useElementCreator = (): UseElementCreatorReturn => {
 
               // addElement 호출 (내부에서 DB 저장 처리)
               addElement(newElement);
+              return newElement.id;
             }
           };
 
@@ -262,7 +265,15 @@ export const useElementCreator = (): UseElementCreatorReturn => {
           lastOperationRef.current = operation;
 
           // 재시도 로직과 함께 작업 실행
-          await retryOperation(operation, 3);
+          const createdTopLevelId = await retryOperation(operation, 3);
+
+          // 추가 직후 새 요소를 선택 (단순/복합/ref 공통).
+          // 미선택 시 selection 이 직전 상태(보통 body)에 머물러, 추가 직후 Delete 가
+          // body 가드에 걸린다. Fix 1 로 elementsMap 동기화가 보장되므로 select 한 id 가
+          // 즉시 유효하다.
+          if (createdTopLevelId) {
+            useStore.getState().setSelectedElement(createdTopLevelId);
+          }
         }
       } catch (error) {
         handleError(error, `요소 생성 실패: ${type}`, {

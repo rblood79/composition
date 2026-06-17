@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [복합 컴포넌트 추가 후 Delete 불가 수정 — canonical/elementsMap 동기화] - 2026-06-17
+
+### Bug Fixes
+
+- **복합 컴포넌트(NumberField/TextField/Select 등) 패널 추가 후 Delete 불가**:
+  - 컴포넌트 패널에서 복합 컴포넌트를 추가한 뒤 선택·Delete 하면
+    `[Keyboard] Delete: Only body elements selected, skipping` 만 찍히고 삭제되지
+    않던 버그. 브라우저 새로고침 후에는 정상 삭제되던 증상.
+  - **Why**: 복합 컴포넌트 추가 경로 `addElementsToStore` 가
+    `mergeElementsCanonicalPrimary` (canonical document 갱신)만 호출하고, 그 계약상
+    caller 의무인 `useStore.setState({ elements })` + `_rebuildIndexes()` (derived
+    legacy `elementsMap` 갱신)를 누락. 결과로 추가된 요소가 canonical 에는 있어 Skia
+    화면엔 보이지만 `elementsMap` 에는 없어, Delete 핸들러의 `elementsMap.get(id)` 가
+    `undefined` → body 필터에서 탈락 → "Only body" 로 삭제 거부. 새로고침 시
+    canonical → elementsMap hydrate 로만 회복됐음. 단순 컴포넌트 경로
+    `createAddElementAction` 은 셋 다 호출하여 정상이었음.
+  - 수정 1 (근본): `addElementsToStore` 가 canonical merge 직후 `setState` +
+    `_rebuildIndexes` 호출 (순서 엄수: canonical 1차 → set → \_rebuildIndexes,
+    layoutVersion+1 포함). 위치: `apps/builder/src/builder/factories/utils/elementCreation.ts`
+  - 수정 2 (UX): `useElementCreator.handleAddElement` 가 추가 직후 생성된 최상위
+    요소를 auto-select (단순/복합/ref 공통). 추가 직후 selection 이 body 에 머물러
+    Delete 가드에 걸리던 부수 문제 해소. `useErrorHandler.retryOperation` 을
+    제네릭화하여 생성 id 전파. 위치: `apps/builder/src/builder/hooks/{useElementCreator,useErrorHandler}.ts`
+  - 가드: `addElementsToStore` 의 canonical→setState→_rebuildIndexes 호출 순서 정적
+    계약 테스트 추가. 위치: `apps/builder/src/builder/factories/utils/__tests__/elementCreation.indexSync.test.ts`
+
 ## [DatePicker + DateRangePicker catalog cutover + spec 물리 삭제 — ADR-912 단계5 step4] - 2026-06-17
 
 ### Architecture
