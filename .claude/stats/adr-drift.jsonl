@@ -25,3 +25,4 @@
 {"sha":"e704ad4b4611c460337e07b7f94b5bfa69785513","date":"2026-05-27T19:26:34+09:00","promoted_adrs":["docs/adr/completed/145-listbox-template-element-single-component-proof.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"b804655738d3bd5346415456ccc240520f016287","date":"2026-05-28T14:51:42+09:00","promoted_adrs":["docs/adr/completed/146-listboxitem-ref-template-row-projection.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"a1d7e56d58c69c7dd7536f57264a133a7303591d","date":"2026-06-02T01:01:39+09:00","promoted_adrs":["docs/adr/142-starter-spec-component-system-cutover.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
+{"sha":"0569332f8342918db8c128a1d9f281e06ae251ab","date":"2026-06-18T03:09:03+09:00","promoted_adrs":["docs/adr/912-rac-pencil-rebuild-cutover.md"],"readme_updated":true,"changelog_updated":true,"synced":true}

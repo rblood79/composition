@@ -1667,9 +1667,6 @@ export const renderColorPicker = (
   context: RenderContext,
 ): React.ReactNode => {
   const children = context.childrenByParent.get(element.id) ?? [];
-  const className = ["react-aria-ColorPicker", element.props.className]
-    .filter(Boolean)
-    .join(" ");
 
   return (
     <div
@@ -1681,7 +1678,7 @@ export const renderColorPicker = (
         element.props.variant ? String(element.props.variant) : undefined
       }
       style={element.props.style}
-      className={className}
+      className={`react-aria-ColorPicker ${element.props.className || ""}`}
     >
       {children.map((child) => context.renderElement(child, child.id))}
     </div>

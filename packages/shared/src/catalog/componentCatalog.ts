@@ -1106,13 +1106,15 @@ export function getPanelMeta(type: string): PanelMeta | undefined {
  * **ADR-912 단계 5 step 1 (2026-06-04)**: skiaLegacy 0건 도달 → 본 집합이 DOM/Skia 공통 전환
  * 집합. native(frame/Slot)는 cutover 개념 없음(metadata-only)으로 제외.
  */
+const CATALOG_CUTOVER_TYPES: ReadonlySet<string> = new Set(
+  componentCatalog
+    // native(frame/Slot)는 cutover 개념 없음 — metadata-only, canonical-native 렌더 유지.
+    .filter((e) => e.kind !== "native" && e.cutover === "catalog")
+    .map((e) => e.type),
+);
+
 export function getCatalogCutoverTypes(): ReadonlySet<string> {
-  return new Set(
-    componentCatalog
-      // native(frame/Slot)는 cutover 개념 없음 — metadata-only, canonical-native 렌더 유지.
-      .filter((e) => e.kind !== "native" && e.cutover === "catalog")
-      .map((e) => e.type),
-  );
+  return CATALOG_CUTOVER_TYPES;
 }
 
 /**
