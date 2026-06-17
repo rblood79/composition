@@ -13,7 +13,8 @@
 import type { CanvasLayoutNode } from "../layoutNode";
 import { parsePadding, PHANTOM_INDICATOR_CONFIGS } from "./utils";
 import {
-  InlineAlertSpec,
+  // ADR-912 단계5 step4 (2026-06-17): InlineAlertSpec import 제거 — InlineAlert padding/gap/자식 font
+  //   분기를 resolveSkiaRule("InlineAlert").sizes read-through 로 이관(spec 삭제 선행, rule fallback).
   // ADR-912 단계5 step4 (2026-06-16): BreadcrumbsSpec import 제거 — breadcrumbs height 분기를
   //   specSizeField("breadcrumbs", ...) read-through 로 이관(spec 삭제 선행, rule fallback).
   resolveGridListItemMetric,
@@ -32,6 +33,7 @@ import { getNecessityIndicatorSuffix } from "@composition/shared/components";
 import { getComponentRulesTable } from "@composition/shared";
 import type { ComponentRuleSize } from "@composition/shared";
 import { findAncestorByTag } from "../../skia/ancestorLookup";
+import { resolveSkiaRule } from "../../skia/resolveSkiaVisualRule";
 import { LOWERCASE_TAG_SPEC_MAP } from "./tagSpecLookup";
 
 // ─── 헬퍼 ────────────────────────────────────────────────────────────
@@ -1919,11 +1921,12 @@ export function applyImplicitStyles(
   // ── InlineAlert: spec size → padding/gap/자식 font 주입 (Taffy는 CSS 못 읽음) ──
   if (containerTag === "inlinealert") {
     const sizeName = (containerProps?.size as string) ?? "md";
-    const specSize = (InlineAlertSpec.sizes[sizeName] ??
-      InlineAlertSpec.sizes[InlineAlertSpec.defaultSize]) as unknown as Record<
-      string,
-      unknown
-    >;
+    // ADR-912 단계5 step4 (2026-06-17): InlineAlertSpec.sizes 직독 → resolveSkiaRule read-through.
+    //   rule.sizes 에 paddingX/paddingY/gap + heading/desc font 4필드 보충됨(spec 삭제 대비).
+    const inlineAlertRule = resolveSkiaRule("InlineAlert");
+    const specSize = (inlineAlertRule?.sizes[sizeName] ??
+      inlineAlertRule?.sizes[inlineAlertRule.defaultSize ?? "md"] ??
+      {}) as unknown as Record<string, unknown>;
     const s = {
       px: (specSize.paddingX as number) ?? 16,
       py: (specSize.paddingY as number) ?? 16,

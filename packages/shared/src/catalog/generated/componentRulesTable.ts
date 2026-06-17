@@ -3084,24 +3084,61 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // ADR-912 단계5 step4 (2026-06-17): InlineAlert spec 삭제 대비 containerStyles 보충.
+    //   factory createDefaultInlineAlertProps()={} 라 InlineAlert 컨테이너 base layout 이 100%
+    //   spec.containerStyles 의존 → spec 삭제 시 resolveContainerStylesFallback("inlinealert")가
+    //   {} 반환 → Skia/Taffy flexDirection:column 소실(자식 Heading/Description 가로 배치 회귀,
+    //   DOM generated CSS 는 flex/column emit → D3 대칭 위반). builder LOWERCASE_COMPONENT_RULE_CONTAINER
+    //   fallback 이 본 필드를 읽어 복구(ListBox/Menu/TagGroup 동형). STRUCTURE_META.containerStyles(CSS emit)와
+    //   별개 역할 — 둘 다 동일 4필드 보유 필수.
+    containerStyles: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-start",
+      width: "100%",
+    },
     sizes: {
+      // ADR-912 단계5 step4 (2026-06-17): InlineAlert spec 삭제 대비 sizes 보충.
+      //   paddingY/gap = generated CSS base block(`padding`/`gap`) emit + layout consumer
+      //   (implicitStyles/StoreRenderBridge/fullTreeLayout) resolveSkiaRule read-through.
+      //   headingFontSize/headingFontWeight/descFontSize/descFontWeight = `.alert-heading` +
+      //   `.react-aria-Description` 자식 CSS emit (CSSGenerator.generateChildFontStyles).
+      //   accentWidth(3/4/4)는 generated CSS/Skia 미emit dead 필드 → 미이관.
       sm: {
         paddingX: 8,
+        paddingY: 8,
+        gap: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: "auto",
+        headingFontSize: 14,
+        headingFontWeight: 700,
+        descFontSize: 12,
+        descFontWeight: 400,
       },
       md: {
         paddingX: 16,
+        paddingY: 16,
+        gap: 12,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: "auto",
+        headingFontSize: 16,
+        headingFontWeight: 700,
+        descFontSize: 14,
+        descFontWeight: 400,
       },
       lg: {
         paddingX: 24,
+        paddingY: 24,
+        gap: 16,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: "auto",
+        headingFontSize: 18,
+        headingFontWeight: 700,
+        descFontSize: 16,
+        descFontWeight: 400,
       },
     },
   },

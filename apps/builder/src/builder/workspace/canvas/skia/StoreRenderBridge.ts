@@ -37,7 +37,10 @@ import type { TransitionManager } from "./transitionManager";
 import { ANIMATABLE_NUMERIC_PROPERTIES } from "./interpolators";
 import type { CanonicalNode } from "@composition/shared";
 import { isCatalogSkiaCutover } from "@composition/shared";
-import { InlineAlertSpec, parsePxValue } from "@composition/specs";
+import { parsePxValue } from "@composition/specs";
+// ADR-912 단계5 step4 (2026-06-17): InlineAlertSpec import 제거 — InlineAlert 자식 font 분기를
+//   resolveSkiaRule("InlineAlert").sizes read-through 로 이관(spec 삭제 선행, rule fallback).
+import { resolveSkiaRule } from "./resolveSkiaVisualRule";
 import { resolveInstanceWithSharedCache } from "@/resolvers/canonical/storeBridge";
 import { resolveCanonicalRefElement } from "../../../utils/canonicalRefResolution";
 
@@ -507,10 +510,11 @@ export class StoreRenderBridge {
       if (parent?.type === "InlineAlert") {
         const parentSize =
           ((parent.props as Record<string, unknown>)?.size as string) ?? "md";
-        const specSize = (InlineAlertSpec.sizes[parentSize] ??
-          InlineAlertSpec.sizes[
-            InlineAlertSpec.defaultSize
-          ]) as unknown as Record<string, unknown>;
+        // ADR-912 단계5 step4 (2026-06-17): InlineAlertSpec.sizes 직독 → resolveSkiaRule read-through.
+        const inlineAlertRule = resolveSkiaRule("InlineAlert");
+        const specSize = (inlineAlertRule?.sizes[parentSize] ??
+          inlineAlertRule?.sizes[inlineAlertRule.defaultSize ?? "md"] ??
+          {}) as unknown as Record<string, unknown>;
         const cs = (effectiveElement.props?.style ?? {}) as Record<
           string,
           unknown

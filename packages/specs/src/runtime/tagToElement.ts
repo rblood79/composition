@@ -82,7 +82,7 @@ import { ColorSwatchPickerSpec } from "../components/ColorSwatchPicker.spec";
 // ADR-912 단계5 step4 Phase 1 batch 1 (2026-06-16): AvatarSpec import 제거 — catalog cutover
 //   (BASE_TAG_SPEC_MAP 등록 제거, isCatalogCutover 게이트로 spec-free 통과)
 // ADR-912 R7 G1-a: AvatarGroupSpec 삭제 — catalog cutover (BASE_TAG_SPEC_MAP 등록 제거)
-import { InlineAlertSpec } from "../components/InlineAlert.spec";
+// ADR-912 단계5 step4 (2026-06-17): InlineAlertSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
 // ADR-912 R7 G1-c (2026-06-15): ButtonGroupSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
 // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroupSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
 // ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): TooltipSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
@@ -171,7 +171,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   // ADR-912 단계5 step4 (2026-06-17): Input 제거 — catalog cutover spec-free (isCatalogCutover 게이트)
   // ADR-912 단계5 step4 Phase 1 batch 1: Avatar 제거 — catalog cutover spec-free (isCatalogCutover 게이트)
   // ADR-912 R7 G1-a: AvatarGroup 제거 — catalog cutover spec-free (isCatalogCutover 게이트)
-  InlineAlert: InlineAlertSpec,
+  // ADR-912 단계5 step4 (2026-06-17): InlineAlert 제거 — catalog cutover spec-free (isCatalogCutover 게이트)
   // ADR-912 R7 G1-c (2026-06-15): ButtonGroup 제거 — catalog cutover spec-free (isCatalogCutover 게이트,
   //   factory 자식 Button×2 box-shell). isCatalogSkiaCutover('ButtonGroup')=true → Skia 진입 게이트 통과.
   // ADR-912 단계5: ProgressCircle 제거 — catalog cutover spec-free (buildSpecNodeData:908 isCatalogSkiaCutover 게이트)

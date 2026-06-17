@@ -134,6 +134,23 @@ function ruleSizeToSizeSpec(
     ...(s.headingFontSize !== undefined
       ? { headingFontSize: s.headingFontSize as SizeSpec["headingFontSize"] }
       : {}),
+    // ADR-912 단계5 step4 (2026-06-17): InlineAlert 의 `.alert-heading` font-weight +
+    //   `.react-aria-Description` font-size/weight 자식 CSS 가 rule.sizes 에서 emit 되도록 변환에 포함
+    //   (CSSGenerator.generateChildFontStyles 가 size.headingFontWeight/descFontSize/descFontWeight 소비).
+    //   IllustratedMessage(headingFontSize 만)와 달리 InlineAlert 는 heading weight + description 2축까지 emit.
+    //   미정의 leaf 는 미emit.
+    ...(s.headingFontWeight !== undefined
+      ? {
+          headingFontWeight:
+            s.headingFontWeight as SizeSpec["headingFontWeight"],
+        }
+      : {}),
+    ...(s.descFontSize !== undefined
+      ? { descFontSize: s.descFontSize as SizeSpec["descFontSize"] }
+      : {}),
+    ...(s.descFontWeight !== undefined
+      ? { descFontWeight: s.descFontWeight as SizeSpec["descFontWeight"] }
+      : {}),
   } as SizeSpec;
 }
 
@@ -4745,6 +4762,28 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
   //   이미 emit 되므로 states 기본값(hover/pressed:{}) 사용 시 root 빈 블록 추가 → diff. states={} 로 차단.
   {
     name: "IllustratedMessage",
+    archetype: "alert",
+    element: "div",
+    containerStyles: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-start",
+      width: "100%",
+    },
+    states: {},
+  },
+  // ADR-912 단계5 step4 (2026-06-17) — InlineAlert (alert archetype, InlineAlert.spec.ts 삭제 대상).
+  //   IllustratedMessage 동형(alert archetype base flex-column/align-flex-start/box-sizing/font-family +
+  //   containerStyles spec 미러). variant 5종(neutral/info/positive/notice/negative fill + border) +
+  //   sizes(paddingX/paddingY/gap/fontSize/borderRadius/height + headingFontSize/headingFontWeight/
+  //   descFontSize/descFontWeight 2026-06-17 rule 보강)는 rule 파생. `.alert-heading` +
+  //   `.react-aria-Description` 자식 CSS 는 heading/desc font 4필드가 ruleSizeToSizeSpec 경유로
+  //   virtual.sizes 에 실려 CSSGenerator.generateChildFontStyles 가 emit. composition 불요(spec 에 없음).
+  //   states={}: spec.states={} 미러 — IllustratedMessage 와 동일(variant fill 의 hover/pressed 가
+  //   [data-variant] 블록에서 이미 emit 되므로 root 빈 블록 추가 방지). accentWidth 는 generated CSS
+  //   미emit dead 필드(border 1px solid variant border 만) → 미반영.
+  {
+    name: "InlineAlert",
     archetype: "alert",
     element: "div",
     containerStyles: {

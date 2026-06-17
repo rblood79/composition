@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [InlineAlert spec 물리 삭제 — ADR-912 단계5 step4] - 2026-06-17
+
+### Breaking Changes
+
+- **InlineAlertSpec / InlineAlertProps 제거** (ADR-912 단계5 step4):
+  - `packages/specs/src/components/InlineAlert.spec.ts` 물리 삭제 (dual-SSOT 소멸 — catalog cutover 완결)
+  - `@composition/specs` re-export (`InlineAlertSpec` / `InlineAlertProps`) 제거 — 외부 import 불가
+  - 시각 SSOT = `componentRulesTable.InlineAlert` + STRUCTURE_META virtual CSS, D2 properties = `InlineAlert.binding.ts` accepts
+
+### Bug Fixes
+
+- **InlineAlert 컨테이너 layout fallback 회귀 선제 차단** (ADR-912 단계5 step4):
+  - **Why**: `createDefaultInlineAlertProps()` 가 `{}` 라 InlineAlert 컨테이너 base layout(`display:flex / flexDirection:column / alignItems:flex-start / width:100%`)이 100% spec.containerStyles 의존 → spec 삭제 시 `resolveContainerStylesFallback("inlinealert")` 가 `{}` 반환 → Skia/Taffy flexDirection:column 소실(자식 Heading/Description 가로 배치, DOM generated CSS 는 flex/column emit → D3 대칭 위반)
+  - 수정: `componentRulesTable.InlineAlert.containerStyles` 4필드 추가 → builder `LOWERCASE_COMPONENT_RULE_CONTAINER` fallback 이 spec→rule 자연 전환 (ListBox/Menu/TagGroup 동형). STRUCTURE_META.containerStyles(CSS emit)와 별개 역할 — 둘 다 동일 4필드 보유
+  - 적대적 Workflow Verify 가 적발한 HIGH 회귀 — live `resolveContainerStylesFallback("inlinealert")` `{}` → 4필드 복구 확인
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`
+
+### Architecture
+
+- **ComponentRuleSize 자식 폰트 스키마 3필드 확장** (ADR-912 단계5 step4):
+  - `headingFontWeight` / `descFontSize` / `descFontWeight` 추가 (`headingFontSize` 는 IllustratedMessage 작업에서 기존 존재)
+  - `ruleSizeToSizeSpec`(generate-css) passthrough 3필드 추가 → virtual.sizes 에 실려 `CSSGenerator.generateChildFontStyles` 가 `.alert-heading` font-weight + `.react-aria-Description` font-size/weight emit
+  - 위치: `packages/shared/src/types/composition-document.types.ts`, `packages/specs/scripts/generate-css.ts`
+- **InlineAlert STRUCTURE_META virtual entry 추가** (ADR-912 단계5 step4):
+  - IllustratedMessage 동형 (archetype "alert", element "div", containerStyles flex-column/align-flex-start/width 100%, states {})
+  - spec 삭제 후 `pnpm build:specs` 가 rule table 에서 virtual 합성 → generated/InlineAlert.css **byte-identical 재생성**(diff-0 invariant)
+  - 위치: `packages/specs/scripts/generate-css.ts`
+- **layout consumer 3곳 resolveSkiaRule read-through 이관** (ADR-912 단계5 step4):
+  - `implicitStyles.ts` / `StoreRenderBridge.ts` / `fullTreeLayout.ts` 가 `InlineAlertSpec.sizes` 직독 → `resolveSkiaRule("InlineAlert").sizes` read-through (Input/ComboBox/DateField 동형)
+  - 자식 Heading/Description 의 headingFontSize/Weight·descFontSize/Weight + paddingX/paddingY/gap 을 rule.sizes 7필드 보충값에서 소비 → DOM generated CSS 와 D3 대칭
+  - 위치: `apps/builder/src/builder/workspace/canvas/{layout/engines,skia}/*`
+
 ## [Menu layout fallback 회귀 수정 — ADR-912 단계5 step4] - 2026-06-17
 
 ### Bug Fixes

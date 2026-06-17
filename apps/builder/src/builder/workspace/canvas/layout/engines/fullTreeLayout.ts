@@ -51,10 +51,10 @@ import {
   getParentTagsForChild,
 } from "../../../../utils/propagationRegistry";
 import { extractSpecTextStyle } from "../../utils/specTextStyle";
-import {
-  InlineAlertSpec,
-  fontFamily as specFontFamily,
-} from "@composition/specs";
+import { fontFamily as specFontFamily } from "@composition/specs";
+// ADR-912 단계5 step4 (2026-06-17): InlineAlertSpec import 제거 — InlineAlert 자식 font 분기를
+//   resolveSkiaRule("InlineAlert").sizes read-through 로 이관(spec 삭제 선행, rule fallback).
+import { resolveSkiaRule } from "../../skia/resolveSkiaVisualRule";
 import { getNecessityIndicatorSuffix } from "@composition/shared/components";
 import { useScrollState } from "../../../../stores/scrollState";
 
@@ -939,10 +939,11 @@ function traversePostOrder(
       const parentSize =
         ((parent.props as Record<string, unknown> | undefined)
           ?.size as string) ?? "md";
-      const specSize = (InlineAlertSpec.sizes[parentSize] ??
-        InlineAlertSpec.sizes[
-          InlineAlertSpec.defaultSize
-        ]) as unknown as Record<string, unknown>;
+      // ADR-912 단계5 step4 (2026-06-17): InlineAlertSpec.sizes 직독 → resolveSkiaRule read-through.
+      const inlineAlertRule = resolveSkiaRule("InlineAlert");
+      const specSize = (inlineAlertRule?.sizes[parentSize] ??
+        inlineAlertRule?.sizes[inlineAlertRule.defaultSize ?? "md"] ??
+        {}) as unknown as Record<string, unknown>;
       const cs = (rawElement.props?.style ?? {}) as Record<string, unknown>;
       const injected: Record<string, unknown> = { ...cs };
       if (rawElement.type === "Heading") {

@@ -249,9 +249,8 @@ export type { SlotProps } from "./Slot.spec";
 
 // StatusLight
 
-// InlineAlert
-export { InlineAlertSpec } from "./InlineAlert.spec";
-export type { InlineAlertProps } from "./InlineAlert.spec";
+// InlineAlert — ADR-912 단계5 step4 (2026-06-17): spec 물리 삭제(catalog cutover). 시각 SSOT =
+//   componentRulesTable.InlineAlert + STRUCTURE_META virtual CSS.
 
 // ButtonGroup — ADR-912 R7 G1-c (2026-06-15): catalog cutover, spec 삭제. binding.accepts D2.
 

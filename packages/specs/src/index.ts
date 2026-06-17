@@ -478,8 +478,9 @@ export type { ColorSwatchPickerProps } from "./components/ColorSwatchPicker.spec
 // ADR-912 R7 G1-a (2026-06-15): AvatarGroupSpec 삭제 — catalog cutover. 시각 SSOT =
 //   COMPONENT_RULES_TABLE.AvatarGroup, D2 properties = binding.accepts(AvatarGroup.binding.ts).
 
-export { InlineAlertSpec } from "./components/InlineAlert.spec";
-export type { InlineAlertProps } from "./components/InlineAlert.spec";
+// ADR-912 단계5 step4 (2026-06-17): InlineAlertSpec/InlineAlertProps re-export 제거 — InlineAlert.spec
+//   물리 삭제(catalog cutover). 자식 font/padding/gap 은 componentRulesTable.InlineAlert.sizes +
+//   STRUCTURE_META virtual(generated CSS) + resolveSkiaRule read-through(layout consumer)로 갈음.
 
 // ─── Phase 6: ADR-030 Phase 2 Components ────────────────────────────────────
 // ADR-912 R7 G1-c (2026-06-15): ButtonGroupSpec/ButtonGroupProps 삭제 — catalog cutover. 시각 SSOT =

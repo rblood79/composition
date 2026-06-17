@@ -274,6 +274,26 @@ export interface ComponentRuleSize {
    */
   headingFontSize?: number | string;
   /**
+   * 자식 heading 폰트 두께 base (ADR-912 단계5 step4 — InlineAlert catalog cutover).
+   * generate-css virtual 이 size 별 `.alert-heading { font-weight: ... }` 자식 CSS 를 emit
+   * (CSSGenerator.generateChildFontStyles 가 `size.headingFontWeight` 소비). InlineAlert heading 은
+   * 700(bold) 고정 — IllustratedMessage(headingFontSize 만)와 달리 weight 까지 D3 SSOT(rule)에 귀속.
+   * layout consumer(implicitStyles/StoreRenderBridge/fullTreeLayout)도 resolveSkiaRule read-through 로 소비.
+   */
+  headingFontWeight?: number | string;
+  /**
+   * 자식 description 폰트 크기 base (ADR-912 단계5 step4 — InlineAlert catalog cutover).
+   * generate-css virtual 이 size 별 `.react-aria-Description { font-size: ... }` 자식 CSS 를 emit
+   * (CSSGenerator.generateChildFontStyles 가 `size.descFontSize` 소비). sm:12 / md:14 / lg:16.
+   */
+  descFontSize?: number | string;
+  /**
+   * 자식 description 폰트 두께 base (ADR-912 단계5 step4 — InlineAlert catalog cutover).
+   * generate-css virtual 이 size 별 `.react-aria-Description { font-weight: ... }` 자식 CSS 를 emit
+   * (CSSGenerator.generateChildFontStyles 가 `size.descFontWeight` 소비). 400(regular) 고정.
+   */
+  descFontWeight?: number | string;
+  /**
    * composite field 전체 intrinsic 높이 base (ADR-912 단계5 step4 — DateField catalog cutover).
    * Label + gap + DateInput 합산 파생값으로, CSS 로는 emit 되지 않는 **layout 전용** 필드
    * (DateField.css 에 intrinsic-height 출력 없음 — ruleSizeToSizeSpec 변환·CSSGenerator 무관).
