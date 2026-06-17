@@ -48,7 +48,8 @@ import {
   // ADR-912 (B+icon): CalendarHeaderSpec import 제거 — height 분기 rule 인라인 미러로 전환(spec 끊기).
   // ADR-912 단계5 step4 (2026-06-17): DateInputSpec import 제거 — dateinput height 분기 rule 인라인
   //   미러로 전환(spec 삭제 대상, CalendarHeader 동형).
-  ComboBoxSpec,
+  // ADR-912 단계5 step4 (2026-06-17): ComboBoxSpec import 제거 — comboBoxHeight 를
+  //   resolveSkiaRule("ComboBox").sizes 로 이관(spec 삭제 대상, Select 는 utils 미참조).
   // ADR-912 R1 (2026-06-12): SelectTriggerSpec import 제거 — contentHeight 를
   //   resolveSkiaRule("SelectTrigger") 유도식으로 이관 (spec 끊기).
   // ADR-091 Addendum 2: DateField intrinsic height SSOT.
@@ -2492,8 +2493,11 @@ export function calculateContentHeight(
   // Select/ComboBox: 실제 visible 자식들의 높이 합산 + gap (flexDirection:column)
   // Dropdown: 레거시 spec shapes 기반 계산
   // ADR-091 Phase 3: COMBOBOX_INPUT_HEIGHTS Record → ComboBoxSpec.sizes.height 직접 참조.
-  const comboBoxHeight = (sz: string): number =>
-    ComboBoxSpec.sizes[sz]?.height ?? 30;
+  // ADR-912 단계5 step4 (2026-06-17): spec 삭제 — resolveSkiaRule("ComboBox").sizes read-through 로 이관.
+  const comboBoxHeight = (sz: string): number => {
+    const rule = resolveSkiaRule("ComboBox");
+    return (rule?.sizes[sz]?.height ?? rule?.sizes.md?.height ?? 30) as number;
+  };
   // ADR-073: SelectItem/ComboBoxItem element 소멸 → props.items SSOT 로 이관되어 childElements 에 애초 등장하지 않음.
   // ListBoxItem 만 드롭다운 전용 자식으로 남아 collapsed 상태에서 비표시.
   const SELECT_HIDDEN_CHILDREN = new Set(["ListBoxItem"]);

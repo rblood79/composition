@@ -10,9 +10,11 @@ import {
   // ADR-912 단계5 step4 date-color (2026-06-17): DatePicker/DateRangePickerSpec import 제거 —
   //   DatePicker.spec/DateRangePicker.spec 물리 삭제(catalog cutover). propagation.rules(15+25건,
   //   Calendar/RangeCalendar 서브트리)는 createPropagationOnlySpec 인라인 이관(아래). Tabs(6d907be54) 동일 패턴.
+  // ADR-912 단계5 step4 (2026-06-17): SelectSpec/ComboBoxSpec import 제거 — catalog cutover spec 삭제.
+  //   propagation.rules(size/label/placeholder → SelectTrigger/SelectValue/SelectIcon/Label)는
+  //   select/comboBoxPropagationSpec(createPropagationOnlySpec 인라인)로 이관(아래). placeholder childProp
+  //   이 Select=children / ComboBox=placeholder 로 달라 별도 spec 필수(동형 아님).
   // Phase 2: 기존 delegation 컴포넌트
-  SelectSpec,
-  ComboBoxSpec,
   // ADR-912 단계5 step4 small-B (2026-06-16): SearchField/CheckboxGroup/RadioGroup/TextField/TextArea/NumberField/TimeField/ColorField Spec import 제거 — catalog cutover, propagation.rules 는 createPropagationOnlySpec 인라인 이관(Card 선례).
   // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): Checkbox/Radio/Switch Spec import 제거 —
   //   catalog cutover, propagation.rules(size/children → Label)는 createPropagationOnlySpec 인라인 이관.
@@ -588,11 +590,72 @@ const tagGroupPropagationSpec = createPropagationOnlySpec("TagGroup", [
   { parentProp: "selectionMode", childPath: "TagList", override: true },
 ]);
 
+// ADR-912 단계5 step4 (2026-06-17): Select.spec 삭제 — propagation.rules 6건 인라인 보존.
+//   시각/CSS 는 STRUCTURE_META virtual 이 담당, builder runtime 의 size/label/placeholder → 자식 전파만
+//   여기서 유지. placeholder → SelectValue.children (Select 고유, ComboBox 와 다름).
+const selectPropagationSpec = createPropagationOnlySpec("Select", [
+  { parentProp: "size", childPath: "SelectTrigger", override: true },
+  {
+    parentProp: "size",
+    childPath: ["SelectTrigger", "SelectValue"],
+    override: true,
+  },
+  {
+    parentProp: "size",
+    childPath: ["SelectTrigger", "SelectIcon"],
+    override: true,
+  },
+  { parentProp: "size", childPath: "Label", override: true },
+  {
+    parentProp: "label",
+    childPath: "Label",
+    childProp: "children",
+    override: true,
+  },
+  {
+    parentProp: "placeholder",
+    childPath: ["SelectTrigger", "SelectValue"],
+    childProp: "children",
+    override: true,
+  },
+]);
+
+// ADR-912 단계5 step4 (2026-06-17): ComboBox.spec 삭제 — propagation.rules 6건 인라인 보존.
+//   Select 동형이나 placeholder → SelectValue.placeholder (HTML input attribute, Select 의 children 과
+//   다름) → 별도 spec 필수. R1(2026-06-12)에서 ComboBox 자식이 Select family 공용 type(SelectTrigger/
+//   Value/Icon)으로 retype 됐으므로 childPath 는 Select 와 동일 type 명 사용.
+const comboBoxPropagationSpec = createPropagationOnlySpec("ComboBox", [
+  { parentProp: "size", childPath: "SelectTrigger", override: true },
+  {
+    parentProp: "size",
+    childPath: ["SelectTrigger", "SelectValue"],
+    override: true,
+  },
+  {
+    parentProp: "size",
+    childPath: ["SelectTrigger", "SelectIcon"],
+    override: true,
+  },
+  { parentProp: "size", childPath: "Label", override: true },
+  {
+    parentProp: "label",
+    childPath: "Label",
+    childProp: "children",
+    override: true,
+  },
+  {
+    parentProp: "placeholder",
+    childPath: ["SelectTrigger", "SelectValue"],
+    childProp: "placeholder",
+    override: true,
+  },
+]);
+
 // ─── Auto-register specs with propagation rules ────────────────────────────
 registerPropagationSpec("DatePicker", datePickerPropagationSpec);
 registerPropagationSpec("DateRangePicker", dateRangePickerPropagationSpec);
-registerPropagationSpec("Select", SelectSpec);
-registerPropagationSpec("ComboBox", ComboBoxSpec);
+registerPropagationSpec("Select", selectPropagationSpec);
+registerPropagationSpec("ComboBox", comboBoxPropagationSpec);
 registerPropagationSpec("SearchField", searchFieldPropagationSpec);
 registerPropagationSpec("CheckboxGroup", checkboxGroupPropagationSpec);
 registerPropagationSpec("RadioGroup", radioGroupPropagationSpec);

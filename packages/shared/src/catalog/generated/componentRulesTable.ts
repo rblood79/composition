@@ -1780,6 +1780,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   ComboBox: {
     defaultSize: "md",
     variants: {},
+    // ADR-912 단계5 step4 (2026-06-17): ComboBoxSpec.spec 삭제 대비 — generate-css virtual emit 이
+    //   base/size block 의 `gap: Npx` 를 byte-identical 재현하려면 gap 필수(Select 동형). paddingY 는
+    //   미보충(padding 은 composition.delegation .combobox-container --combo-container-padding 가 담당).
     sizes: {
       xs: {
         paddingX: 4,
@@ -1787,6 +1790,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.xs}",
         height: 20,
         iconSize: 10,
+        gap: 2,
       },
       sm: {
         paddingX: 8,
@@ -1794,6 +1798,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.sm}",
         height: 22,
         iconSize: 14,
+        gap: 4,
       },
       md: {
         paddingX: 12,
@@ -1801,6 +1806,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.md}",
         height: 30,
         iconSize: 18,
+        gap: 6,
       },
       lg: {
         paddingX: 16,
@@ -1808,6 +1814,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.lg}",
         height: 42,
         iconSize: 22,
+        gap: 8,
       },
       xl: {
         paddingX: 24,
@@ -1815,6 +1822,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.xl}",
         height: 54,
         iconSize: 28,
+        gap: 10,
       },
     },
   },
@@ -4770,6 +4778,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Select: {
     defaultSize: "md",
     variants: {},
+    // ADR-912 단계5 step4 (2026-06-17): SelectSpec.spec 삭제 대비 — generate-css virtual emit 이
+    //   base/size block 의 `gap: Npx` 를 byte-identical 재현하려면 gap 필수(CSSGenerator.ts:983 size.gap
+    //   → emit, composition.containerStyles.gap 미정의라 skipGap=false). paddingY 는 미보충(컨테이너
+    //   box 가 ownsContainerBox=true → skipPadding, padding 은 composition.delegation --select-btn-padding
+    //   가 담당, base block 미emit). Input 과 달리 padding 은 delegation 위임이라 paddingY 불요.
     sizes: {
       xs: {
         paddingX: 4,
@@ -4777,6 +4790,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.xs}",
         height: 20,
         iconSize: 10,
+        gap: 2,
       },
       sm: {
         paddingX: 8,
@@ -4784,6 +4798,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.sm}",
         height: 22,
         iconSize: 14,
+        gap: 4,
       },
       md: {
         paddingX: 12,
@@ -4791,6 +4806,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.md}",
         height: 30,
         iconSize: 18,
+        gap: 6,
       },
       lg: {
         paddingX: 16,
@@ -4798,6 +4814,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.lg}",
         height: 42,
         iconSize: 22,
+        gap: 8,
       },
       xl: {
         paddingX: 24,
@@ -4805,6 +4822,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.xl}",
         height: 54,
         iconSize: 28,
+        gap: 10,
       },
     },
   },

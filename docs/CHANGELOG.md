@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Select + ComboBox spec 물리 삭제 — ADR-912 단계5 step4] - 2026-06-17
+
+### Breaking Changes
+
+- **SelectSpec / SelectProps / ComboBoxSpec / ComboBoxProps export 제거**:
+  - `@composition/specs` barrel 및 `components` re-export 에서 4 심볼 제거 (catalog cutover 완결로 spec 물리 삭제)
+  - Property Panel / Skia 렌더 / 측정 / generated CSS 모두 catalog rule + STRUCTURE_META virtual 로 이전 — 사용자-가시 동작 변화 0
+  - `StoredSelectItem` / `StoredComboBoxItem` 등 items 타입은 `types/select-items.ts` / `types/combobox-items.ts` 별도 거주 → 영향 없음
+
+### Architecture
+
+- **ADR-912 단계5 step4 — Select / ComboBox dual-SSOT 소멸** (Input 선례 후속, self-compose collection wrapper batch):
+  - `Select.spec.ts` / `ComboBox.spec.ts` (각 ~330줄) 물리 삭제 → generated CSS 는 `generate-css.ts` STRUCTURE_META virtual entry 로 재생성. **diff-0 불변식 유지** (Select.css 해시 `a01f08ff…` / ComboBox.css `775509d9…` byte-identical)
+  - **rule.sizes gap 보강**: `componentRulesTable.ts` Select/ComboBox sizes 각 xs~xl 에 `gap` 추가 (xs=2/sm=4/md=6/lg=8/xl=10). **Why**: composition wrapper 의 `gap` 은 base/size block 에 직접 emit (CSSGenerator `size.gap` → `gap:Npx`) → rule 만으로 재현하려면 필수. `paddingY` 는 미보강 — padding 은 `composition.delegation` (`--select-btn-padding` / `--combo-container-padding`) 이 자식에게 위임 (Input 과 다른 점)
+  - **STRUCTURE_META 별도 entry 2종**: Select / ComboBox 는 동형 아님 — placeholder propagation childProp (Select=`children` / ComboBox=`placeholder`), padding 위임 대상 (`.react-aria-Button` / `.combobox-container`), quiet containerVariants selector (`&:has()` 부모 selector 는 ComboBox 만) 이 달라 각각 composition (layout/containerVariants/externalStyles/delegation) verbatim carry. DatePicker virtual 선례
+  - **propagation-only spec 인라인 이관**: `propagationRegistry.ts` 에 `selectPropagationSpec` / `comboBoxPropagationSpec` (createPropagationOnlySpec) 신설 — size/label/placeholder → SelectTrigger/SelectValue/SelectIcon/Label 전파 보존. Card/Tabs/TagGroup 선례
+  - **measure consumer 이관**: `utils.ts` 의 `comboBoxHeight` 가 `ComboBoxSpec.sizes` → `resolveSkiaRule("ComboBox").sizes` read-through (Input 선례). Select 는 utils 미참조
+  - **Property Panel 무영향 확정**: `PropertiesPanel` cutover 타입은 `CatalogEditContractEditor` (binding.accepts) 단일 진입 — spec.properties 는 이미 dead 경로 (getEditor per-type 은 non-cutover legacy 전용). specRegistry entry 제거가 정상 절차 (Input/Body 선례)
+  - **DELEGATING 유지**: `CanonicalNodeRenderer` `DELEGATING_INTERNAL_RENDERERS` 의 `select`/`combobox` self-compose 등록 보존 (R1 2026-06-12) — DOM 자식 raw tag 방지
+  - 위치: `packages/specs/scripts/generate-css.ts`, `packages/shared/src/catalog/generated/componentRulesTable.ts`, `apps/builder/src/builder/utils/propagationRegistry.ts`, `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`, `apps/builder/src/builder/panels/properties/specRegistry.ts`, `packages/specs/src/runtime/tagToElement.ts`, `packages/specs/src/{index,components/index}.ts`
+
 ## [Input spec 물리 삭제 — ADR-912 단계5 step4] - 2026-06-17
 
 ### Breaking Changes

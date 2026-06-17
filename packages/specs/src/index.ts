@@ -282,11 +282,8 @@ export type { ComponentVisualRule } from "./renderers";
 // ADR-912 childSpec→catalog cutover (2026-06-15): FormFieldSpec 삭제 — catalog 등록(FAMILY_2)으로
 //   Skia/Taffy/DOM 시각을 rule + buildCatalogShapes generic 으로 이전. DialogFooter 동형.
 
-export { SelectSpec } from "./components/Select.spec";
-export type { SelectProps } from "./components/Select.spec";
-
-export { ComboBoxSpec } from "./components/ComboBox.spec";
-export type { ComboBoxProps } from "./components/ComboBox.spec";
+// Select/ComboBox — ADR-912 단계5 step4 (2026-06-17): catalog cutover spec 삭제로 export 제거.
+//   시각/CSS 는 STRUCTURE_META virtual, Skia 는 buildCatalogShapes generic 으로 이전.
 
 export {
   ListBoxSpec,

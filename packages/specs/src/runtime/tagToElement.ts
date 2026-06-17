@@ -21,8 +21,8 @@ import type { ComponentSpec } from "../types/spec.types";
 // ADR-912 단계5 step4 Popover 단건 (2026-06-16): PopoverSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
 // Checkbox/Radio/Switch — ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): catalog cutover →
 //   spec 삭제. getSpecForTag → null, buildSpecNodeData 가 isCatalogSkiaCutover 게이트로 통과(generic).
-import { SelectSpec } from "../components/Select.spec";
-import { ComboBoxSpec } from "../components/ComboBox.spec";
+// Select/ComboBox — ADR-912 단계5 step4 (2026-06-17): catalog cutover → spec 삭제.
+//   getSpecForTag → null, buildSpecNodeData 가 isCatalogSkiaCutover 게이트로 통과(generic).
 import { ListBoxSpec } from "../components/ListBox.spec";
 import { SliderSpec } from "../components/Slider.spec";
 // Meter/ProgressBar — ADR-912 단계5 step4 경량 이관 (2026-06-17): catalog cutover, BASE entry 제거.
@@ -108,8 +108,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   // ToggleButtonGroup — ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): catalog cutover spec 삭제로 제거.
   // Tooltip — ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): catalog cutover spec 삭제로 제거.
   // Checkbox/Radio/Switch — ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): catalog cutover spec 삭제로 제거.
-  Select: SelectSpec,
-  ComboBox: ComboBoxSpec,
+  // Select/ComboBox — ADR-912 단계5 step4 (2026-06-17): catalog cutover spec 삭제로 BASE entry 제거.
   ListBox: ListBoxSpec,
   Slider: SliderSpec,
   // Meter/ProgressBar — ADR-912 단계5 step4 경량 이관 (2026-06-17): catalog cutover, BASE entry 제거.

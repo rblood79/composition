@@ -72,13 +72,7 @@
 // ADR-912 childSpec→catalog cutover (2026-06-15): FormFieldSpec 삭제 — catalog 등록(FAMILY_2).
 //   DialogFooter 동형. 시각은 rule + buildCatalogShapes generic, layout 은 factory props.style.
 
-// Select
-export { SelectSpec } from "./Select.spec";
-export type { SelectProps } from "./Select.spec";
-
-// ComboBox
-export { ComboBoxSpec } from "./ComboBox.spec";
-export type { ComboBoxProps } from "./ComboBox.spec";
+// Select/ComboBox — ADR-912 단계5 step4 (2026-06-17): catalog cutover spec 삭제로 re-export 제거.
 
 // ListBox
 export { ListBoxSpec, resolveListBoxSpacingMetric } from "./ListBox.spec";

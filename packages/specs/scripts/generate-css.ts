@@ -938,6 +938,722 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
       focusVisible: { focusRing: "{focus.ring.inset}" },
     },
   },
+  // ADR-912 단계5 step4 (2026-06-17) — Select (부모 컨테이너, Select.spec.ts 삭제 대상).
+  //   composition wrapper(layout="flex-column") — base 는 COMPOSITION_LAYOUT_STYLES["flex-column"]
+  //   (display:flex/flex-direction:column/align-items:flex-start/box-sizing) + composition.containerStyles
+  //   color:var(--fg). top-level containerStyles 는 미설정(Select.css 에 "Container styles" 블록 없음 —
+  //   DatePicker 와 다름, generated CSS 와 1:1 정합). sizes(gap/fontSize/borderRadius/iconSize)는 rule.sizes
+  //   (gap 보강됨) emit — padding 은 base block 미emit(composition.delegation .react-aria-Button
+  //   --select-btn-padding 가 위임). composition.{containerVariants(label-position/disabled/quiet) +
+  //   externalStyles(Popover) + delegation(Label/Button/SelectValue/select-chevron/FieldError)} verbatim
+  //   carry. states = SelectSpec.states 미러. propagation(size/label/placeholder → SelectTrigger/Value/Icon/
+  //   Label)은 propagationRegistry createPropagationOnlySpec 인라인. measure/layout(ComboBox 만 utils.ts
+  //   참조, Select 는 미참조)은 resolveSkiaRule 경유.
+  {
+    name: "Select",
+    archetype: "default",
+    element: "div",
+    composition: {
+      layout: "flex-column",
+      gap: "var(--spacing-xs)",
+      containerStyles: {
+        color: "var(--fg)",
+      },
+      containerVariants: {
+        "label-position": {
+          side: {
+            styles: {
+              "flex-direction": "row",
+              "align-items": "flex-start",
+            },
+          },
+        },
+        disabled: {
+          true: {
+            nested: [
+              {
+                selector: ".react-aria-Button",
+                styles: {
+                  background: "color-mix(in srgb, var(--fg) 4%, transparent)",
+                  "border-color":
+                    "color-mix(in srgb, var(--fg) 12%, transparent)",
+                  color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+                  cursor: "not-allowed",
+                  opacity: "0.38",
+                },
+              },
+              {
+                selector: ".react-aria-Button .select-chevron",
+                styles: {
+                  background: "color-mix(in srgb, var(--fg) 12%, transparent)",
+                  color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+                },
+              },
+            ],
+          },
+        },
+        quiet: {
+          true: {
+            nested: [
+              {
+                selector: ".react-aria-Button",
+                styles: {
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-radius": "0",
+                  "border-bottom": "1px solid var(--border)",
+                },
+              },
+              {
+                selector:
+                  ".react-aria-Button[data-hovered]:not([data-pressed]):not([data-disabled])",
+                styles: {
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-bottom-color": "var(--border-hover)",
+                },
+              },
+              {
+                selector:
+                  ".react-aria-Button[data-focus-visible]:not([data-disabled])",
+                styles: {
+                  outline: "none",
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-bottom-color": "var(--accent)",
+                },
+              },
+              {
+                selector:
+                  ".react-aria-Button[data-focused]:not([data-disabled])",
+                styles: {
+                  outline: "none",
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-bottom-color": "var(--accent)",
+                },
+              },
+              {
+                selector:
+                  ".react-aria-Button[data-pressed]:not([data-disabled])",
+                styles: {
+                  outline: "none",
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-bottom-color": "var(--accent)",
+                },
+              },
+              {
+                selector: "&[data-invalid] .react-aria-Button",
+                styles: {
+                  "border-color": "transparent",
+                  "border-bottom-color": "var(--negative)",
+                },
+              },
+            ],
+          },
+        },
+      },
+      externalStyles: [
+        {
+          selector: '.react-aria-Popover[data-trigger="Select"]',
+          styles: {
+            "min-width": "var(--trigger-width)",
+            "max-height": "300px",
+            overflow: "auto",
+            border: "1px solid var(--border)",
+            "border-radius": "var(--border-radius)",
+            background: "var(--bg-raised)",
+            "box-shadow": "var(--shadow-lg)",
+            contain: "layout style",
+          },
+          nested: [
+            {
+              selector: ".react-aria-ListBox",
+              styles: {
+                border: "none",
+                background: "transparent",
+                "max-height": "none",
+                "min-height": "24px",
+              },
+            },
+          ],
+        },
+      ],
+      delegation: [
+        {
+          childSelector: ".react-aria-Label",
+          prefix: "select-label",
+          variables: {
+            xs: { "--select-label-size": "var(--text-2xs)" },
+            sm: { "--select-label-size": "var(--text-xs)" },
+            md: { "--select-label-size": "var(--text-sm)" },
+            lg: { "--select-label-size": "var(--text-base)" },
+            xl: { "--select-label-size": "var(--text-lg)" },
+          },
+          bridges: {
+            "--label-font-size": "var(--select-label-size)",
+            "--label-font-weight": "600",
+            "--label-margin": "var(--spacing-xs)",
+          },
+        },
+        {
+          childSelector: ".react-aria-Button",
+          prefix: "select-btn",
+          variables: {
+            xs: {
+              "--select-btn-padding":
+                "var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs)",
+              "--select-btn-font-size": "var(--text-2xs)",
+              "--select-btn-line-height": "var(--text-2xs--line-height)",
+            },
+            sm: {
+              "--select-btn-padding":
+                "var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm)",
+              "--select-btn-font-size": "var(--text-xs)",
+              "--select-btn-line-height": "var(--text-xs--line-height)",
+            },
+            md: {
+              "--select-btn-padding":
+                "var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)",
+              "--select-btn-font-size": "var(--text-sm)",
+              "--select-btn-line-height": "var(--text-sm--line-height)",
+            },
+            lg: {
+              "--select-btn-padding":
+                "var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg)",
+              "--select-btn-font-size": "var(--text-base)",
+              "--select-btn-line-height": "var(--text-base--line-height)",
+            },
+            xl: {
+              "--select-btn-padding":
+                "var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl)",
+              "--select-btn-font-size": "var(--text-lg)",
+              "--select-btn-line-height": "var(--text-lg--line-height)",
+            },
+          },
+          bridges: {
+            width: "100%",
+            padding: "var(--select-btn-padding)",
+            "text-align": "left",
+            border: "1px solid var(--border)",
+            "border-radius": "var(--border-radius)",
+            background: "var(--bg-inset)",
+            color: "var(--fg)",
+            "forced-color-adjust": "none",
+            "font-size": "var(--select-btn-font-size)",
+            "line-height": "var(--select-btn-line-height)",
+          },
+          states: {
+            "[data-hovered]:not([data-pressed]):not([data-disabled])": {
+              "border-color": "var(--border-hover)",
+              background: "var(--bg-overlay)",
+            },
+            "[data-pressed]:not([data-disabled])": {
+              background: "var(--accent-subtle)",
+              outline: "2px solid var(--accent)",
+              "outline-offset": "-1px",
+            },
+            "[data-focus-visible]": {
+              outline: "2px solid var(--accent)",
+              "outline-offset": "-1px",
+            },
+            "[data-disabled]": {
+              background: "color-mix(in srgb, var(--fg) 4%, transparent)",
+              "border-color": "color-mix(in srgb, var(--fg) 12%, transparent)",
+              color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+              cursor: "not-allowed",
+              opacity: "0.38",
+            },
+          },
+        },
+        {
+          childSelector: ".react-aria-SelectValue",
+          bridges: {
+            "font-size": "var(--select-btn-font-size)",
+            color: "var(--fg)",
+            flex: "1",
+            display: "flex",
+            "white-space": "nowrap",
+            "text-overflow": "ellipsis",
+            overflow: "hidden",
+          },
+          states: {
+            "[data-placeholder]": {
+              "font-style": "normal",
+              color: "var(--fg-muted)",
+              opacity: "0.6",
+            },
+          },
+        },
+        {
+          childSelector: '.react-aria-SelectValue [slot="description"]',
+          bridges: {
+            display: "none",
+          },
+        },
+        {
+          childSelector: ".select-chevron",
+          prefix: "select-chevron",
+          variables: {
+            xs: {
+              "--select-chevron-size": "14px",
+              "--select-chevron-margin": "var(--spacing-xs)",
+            },
+            sm: {
+              "--select-chevron-size": "16px",
+              "--select-chevron-margin": "var(--spacing-sm)",
+            },
+            md: {
+              "--select-chevron-size": "18px",
+              "--select-chevron-margin": "var(--spacing)",
+            },
+            lg: {
+              "--select-chevron-size": "22px",
+              "--select-chevron-margin": "var(--spacing-md)",
+            },
+            xl: {
+              "--select-chevron-size": "28px",
+              "--select-chevron-margin": "var(--spacing-lg)",
+            },
+          },
+          bridges: {
+            display: "flex",
+            "align-items": "center",
+            "justify-content": "center",
+            width: "var(--select-chevron-size)",
+            height: "var(--select-chevron-size)",
+            "margin-left": "var(--select-chevron-margin)",
+            "border-radius": "var(--radius-xs)",
+            background: "var(--bg-overlay)",
+            color: "var(--fg)",
+            transition: "all 150ms ease",
+            "forced-color-adjust": "none",
+            "box-shadow": "var(--shadow-sm)",
+          },
+        },
+        {
+          childSelector: ".react-aria-FieldError",
+          prefix: "select-hint",
+          variables: {
+            xs: { "--select-hint-size": "var(--text-2xs)" },
+            sm: { "--select-hint-size": "var(--text-2xs)" },
+            md: { "--select-hint-size": "var(--text-xs)" },
+            lg: { "--select-hint-size": "var(--text-sm)" },
+            xl: { "--select-hint-size": "var(--text-base)" },
+          },
+          bridges: {
+            "--error-font-size": "var(--select-hint-size)",
+            "--error-margin": "var(--spacing-xs)",
+          },
+        },
+        {
+          childSelector: '[slot="description"]',
+          bridges: {
+            "font-size": "var(--select-hint-size)",
+            color: "var(--fg-muted)",
+          },
+        },
+      ],
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: {
+        opacity: 0.38,
+        cursor: "not-allowed",
+        pointerEvents: "none",
+      },
+      focusVisible: {
+        focusRing: "{focus.ring.default}",
+      },
+    },
+  },
+  // ADR-912 단계5 step4 (2026-06-17) — ComboBox (부모 컨테이너, ComboBox.spec.ts 삭제 대상).
+  //   Select 동형 composition wrapper 이나 비대칭: padding 위임이 .react-aria-Button(Select) 이 아니라
+  //   .combobox-container(ComboBox, --combo-container-padding) + .react-aria-Input/.react-aria-Button
+  //   2자식 delegation + quiet containerVariants 가 &:has() 부모 selector 사용. composition 전체 verbatim
+  //   carry. sizes(gap 보강)는 rule.sizes emit. states = ComboBoxSpec.states 미러. propagation 은
+  //   propagationRegistry 인라인(placeholder childProp=placeholder, Select 의 children 과 다름).
+  {
+    name: "ComboBox",
+    archetype: "default",
+    element: "div",
+    composition: {
+      layout: "flex-column",
+      gap: "var(--spacing-xs)",
+      containerStyles: {
+        color: "var(--fg)",
+      },
+      containerVariants: {
+        "label-position": {
+          side: {
+            styles: {
+              "flex-direction": "row",
+              "align-items": "flex-start",
+            },
+          },
+        },
+        quiet: {
+          true: {
+            nested: [
+              {
+                selector: ".react-aria-Button",
+                styles: {
+                  background: "transparent",
+                  "box-shadow": "none",
+                  outline: "none",
+                  "border-color": "transparent",
+                },
+              },
+              {
+                selector: ".react-aria-Button[data-hovered]",
+                styles: {
+                  background: "transparent",
+                  "box-shadow": "none",
+                  outline: "none",
+                  "border-color": "transparent",
+                },
+              },
+              {
+                selector: ".react-aria-Button[data-pressed]",
+                styles: {
+                  background: "transparent",
+                  "box-shadow": "none",
+                  outline: "none",
+                  "border-color": "transparent",
+                },
+              },
+              {
+                selector: ".react-aria-Button[data-focus-visible]",
+                styles: {
+                  background: "transparent",
+                  "box-shadow": "none",
+                  outline: "none",
+                  "border-color": "transparent",
+                },
+              },
+              {
+                selector: ".combobox-container",
+                styles: {
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-radius": "0",
+                  "border-bottom": "1px solid var(--border)",
+                },
+              },
+              {
+                selector:
+                  "&:has(.react-aria-Input[data-hovered]:not([data-focused]):not([data-disabled])) .combobox-container",
+                styles: {
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "border-bottom-color": "var(--border-hover)",
+                },
+              },
+              {
+                selector:
+                  "&:has(.react-aria-Button[data-hovered]:not([data-disabled])) .combobox-container",
+                styles: {
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "border-bottom-color": "var(--border-hover)",
+                },
+              },
+              {
+                selector:
+                  "&:has(.react-aria-Input[data-focused]:not([data-disabled])) .combobox-container",
+                styles: {
+                  outline: "none",
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "border-bottom-color": "var(--accent)",
+                },
+              },
+              {
+                selector:
+                  "&:has(.react-aria-Input[data-focus-within]:not([data-disabled])) .combobox-container",
+                styles: {
+                  outline: "none",
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "border-bottom-color": "var(--accent)",
+                },
+              },
+              {
+                selector:
+                  "&:has(.react-aria-Button[data-focus-visible]:not([data-disabled])) .combobox-container",
+                styles: {
+                  outline: "none",
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "border-bottom-color": "var(--accent)",
+                },
+              },
+              {
+                selector:
+                  "&:has(.react-aria-Button[data-pressed]:not([data-disabled])) .combobox-container",
+                styles: {
+                  outline: "none",
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "border-bottom-color": "var(--accent)",
+                },
+              },
+            ],
+          },
+        },
+      },
+      externalStyles: [
+        {
+          selector: '.react-aria-Popover[data-trigger="ComboBox"]',
+          styles: {
+            width: "var(--trigger-width)",
+            "max-width": "none",
+            "max-height": "300px",
+            overflow: "auto",
+            "box-sizing": "border-box",
+            border: "1px solid var(--border)",
+            "border-radius": "var(--border-radius)",
+            background: "var(--bg-raised)",
+            "box-shadow": "var(--shadow-lg)",
+            contain: "layout style",
+          },
+          nested: [
+            {
+              selector: ".react-aria-ListBox",
+              styles: {
+                border: "none",
+                background: "transparent",
+                "max-height": "none",
+                "min-height": "24px",
+              },
+            },
+          ],
+        },
+      ],
+      delegation: [
+        {
+          childSelector: ".react-aria-Label",
+          prefix: "combo-label",
+          variables: {
+            xs: { "--combo-label-size": "var(--text-2xs)" },
+            sm: { "--combo-label-size": "var(--text-xs)" },
+            md: { "--combo-label-size": "var(--text-sm)" },
+            lg: { "--combo-label-size": "var(--text-base)" },
+            xl: { "--combo-label-size": "var(--text-lg)" },
+          },
+          bridges: {
+            "--label-font-size": "var(--combo-label-size)",
+            "--label-font-weight": "600",
+            "--label-margin": "var(--spacing-xs)",
+          },
+        },
+        {
+          childSelector: ".combobox-container",
+          prefix: "combo-container",
+          variables: {
+            xs: {
+              "--combo-container-padding":
+                "var(--spacing-3xs) var(--spacing-xs)",
+              "--combo-container-padding-right": "var(--spacing-3xs)",
+            },
+            sm: {
+              "--combo-container-padding":
+                "var(--spacing-2xs) var(--spacing-sm)",
+              "--combo-container-padding-right": "var(--spacing-2xs)",
+            },
+            md: {
+              "--combo-container-padding":
+                "var(--spacing-xs) var(--spacing-md)",
+              "--combo-container-padding-right": "var(--spacing-xs)",
+            },
+            lg: {
+              "--combo-container-padding":
+                "var(--spacing-sm) var(--spacing-lg)",
+              "--combo-container-padding-right": "var(--spacing-sm)",
+            },
+            xl: {
+              "--combo-container-padding":
+                "var(--spacing-md) var(--spacing-xl)",
+              "--combo-container-padding-right": "var(--spacing-md)",
+            },
+          },
+          bridges: {
+            display: "flex",
+            "align-items": "center",
+            gap: "var(--btn-gap, var(--spacing-xs))",
+            width: "100%",
+            border: "1px solid var(--border)",
+            "border-radius": "var(--border-radius)",
+            background: "var(--bg-inset)",
+            overflow: "hidden",
+            transition: "border-color 200ms ease, background-color 200ms ease",
+            padding: "var(--combo-container-padding)",
+            "padding-right": "var(--combo-container-padding-right)",
+          },
+          states: {
+            ":has(.react-aria-Input[data-hovered]:not([data-focused]):not([data-disabled]))":
+              {
+                "border-color": "var(--border-hover)",
+                background: "var(--bg-overlay)",
+              },
+            ":has(.react-aria-Button[data-hovered]:not([data-disabled]))": {
+              "border-color": "var(--border-hover)",
+              background: "var(--bg-overlay)",
+            },
+            ":has(.react-aria-Input[data-focused])": {
+              outline: "2px solid var(--accent)",
+              "outline-offset": "-1px",
+            },
+            ":has(.react-aria-Input[data-focus-within])": {
+              outline: "2px solid var(--accent)",
+              "outline-offset": "-1px",
+            },
+            ":has(.react-aria-Button[data-focus-visible])": {
+              outline: "2px solid var(--accent)",
+              "outline-offset": "-1px",
+            },
+            ":has([data-invalid])": {
+              "border-color": "var(--negative)",
+            },
+            ":has([data-disabled])": {
+              background: "color-mix(in srgb, var(--fg) 4%, transparent)",
+              "border-color": "color-mix(in srgb, var(--fg) 12%, transparent)",
+              opacity: "0.38",
+            },
+          },
+        },
+        {
+          childSelector: ".react-aria-Input",
+          prefix: "combo-input",
+          variables: {
+            xs: {
+              "--combo-input-padding": "0",
+              "--combo-input-font-size": "var(--text-2xs)",
+              "--combo-input-line-height": "var(--text-2xs--line-height)",
+            },
+            sm: {
+              "--combo-input-padding": "0",
+              "--combo-input-font-size": "var(--text-xs)",
+              "--combo-input-line-height": "var(--text-xs--line-height)",
+            },
+            md: {
+              "--combo-input-padding": "0",
+              "--combo-input-font-size": "var(--text-sm)",
+              "--combo-input-line-height": "var(--text-sm--line-height)",
+            },
+            lg: {
+              "--combo-input-padding": "0",
+              "--combo-input-font-size": "var(--text-base)",
+              "--combo-input-line-height": "var(--text-base--line-height)",
+            },
+            xl: {
+              "--combo-input-padding": "0",
+              "--combo-input-font-size": "var(--text-lg)",
+              "--combo-input-line-height": "var(--text-lg--line-height)",
+            },
+          },
+          bridges: {
+            flex: "1 1 auto",
+            "min-width": "0",
+            border: "none",
+            "border-radius": "0",
+            background: "transparent",
+            outline: "none",
+            "forced-color-adjust": "none",
+            padding: "0",
+            "font-size": "var(--combo-input-font-size)",
+            "line-height": "var(--combo-input-line-height)",
+            "--input-padding": "var(--combo-input-padding)",
+            "--input-font-size": "var(--combo-input-font-size)",
+            "--input-line-height": "var(--combo-input-line-height)",
+          },
+        },
+        {
+          childSelector: ".react-aria-Button",
+          prefix: "combo-btn",
+          variables: {
+            xs: { "--combo-btn-size": "10px" },
+            sm: { "--combo-btn-size": "14px" },
+            md: { "--combo-btn-size": "18px" },
+            lg: { "--combo-btn-size": "22px" },
+            xl: { "--combo-btn-size": "28px" },
+          },
+          bridges: {
+            position: "static",
+            flex: "0 0 auto",
+            padding: "0",
+            "border-width": "0",
+            width: "var(--combo-btn-size)",
+            height: "var(--combo-btn-size)",
+            background: "var(--bg-overlay)",
+            color: "var(--fg)",
+            "forced-color-adjust": "none",
+            "box-shadow": "var(--shadow-sm)",
+          },
+          states: {
+            "[data-hovered]:not([data-disabled])": {
+              background: "var(--accent-subtle)",
+            },
+            "[data-pressed]:not([data-disabled])": {
+              background:
+                "color-mix(in srgb, var(--fg) 12%, var(--bg-overlay))",
+            },
+            "[data-focus-visible]": {
+              outline: "2px solid var(--accent)",
+              "outline-offset": "2px",
+            },
+            "[data-disabled]": {
+              background: "color-mix(in srgb, var(--fg) 12%, transparent)",
+              color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+              cursor: "not-allowed",
+            },
+          },
+        },
+        {
+          childSelector: ".react-aria-FieldError",
+          prefix: "combo-hint",
+          variables: {
+            xs: { "--combo-hint-size": "var(--text-2xs)" },
+            sm: { "--combo-hint-size": "var(--text-xs)" },
+            md: { "--combo-hint-size": "var(--text-xs)" },
+            lg: { "--combo-hint-size": "var(--text-sm)" },
+            xl: { "--combo-hint-size": "var(--text-base)" },
+          },
+          bridges: {
+            "--error-font-size": "var(--combo-hint-size)",
+            "--error-margin": "var(--spacing-xs)",
+          },
+        },
+        {
+          childSelector: '[slot="description"]',
+          bridges: {
+            "font-size": "var(--combo-hint-size)",
+            color: "var(--fg-muted)",
+          },
+        },
+      ],
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: {
+        opacity: 0.38,
+        cursor: "not-allowed",
+        pointerEvents: "none",
+      },
+      focusVisible: {
+        focusRing: "{focus.ring.default}",
+      },
+    },
+  },
   // ADR-912 simple catalog 발효 — MenuItem (MenuItem.spec.ts 삭제 대상).
   //   archetype "simple": ARCHETYPE_BASE_STYLES["simple"](display:inline-flex/center/box-sizing)
   //   자동 emit. Skia shapes=[] — CSS 전용. paddingX/paddingY/gap 은 rule sizes 에서 emit.
