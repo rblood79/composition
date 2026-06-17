@@ -19,7 +19,6 @@ import {
   // ADR-912 단계5 step4 (2026-06-17): InputSpec import 제거 — catalog cutover spec 삭제 (rule 측정).
   resolveColor,
   buildCatalogShapes,
-  resolveComponentVisual,
 } from "@composition/specs";
 import { isCatalogCutover } from "@composition/shared";
 import {
@@ -111,9 +110,9 @@ export function extractFullSpecTextStyle(
       (propsForShapes.variant as string | undefined) ??
       catalogRule?.defaultVariant ??
       spec?.defaultVariant;
-    const visual =
-      resolveSkiaVisualRule(entry.catalogType!, variantName) ??
-      (spec ? resolveComponentVisual(spec, variantName) : undefined);
+    // ADR-912 단계5: useCatalog 경로 spec 은 항상 undefined → 구 resolveComponentVisual
+    //   fallback 은 dead 였음. rule 기반 visual 단독 (variant 없는 shell 은 undefined 허용).
+    const visual = resolveSkiaVisualRule(entry.catalogType!, variantName);
     const textDecoration =
       catalogRule?.textDecoration ??
       spec?.composition?.rootSelectors?.["&"]?.styles?.["text-decoration"];

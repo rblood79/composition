@@ -29,17 +29,6 @@
   border-radius: var(--radius-none);
 }
 
-.react-aria-Body[data-variant="default"] {
-  background: var(--bg);
-  color: var(--fg);
-
-  &[data-hovered] {
-  }
-
-  &[data-pressed] {
-  }
-}
-
 .react-aria-Body[data-size="md"] {
   height: auto;
   padding: 0px 0px;

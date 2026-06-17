@@ -28,7 +28,6 @@ import {
   //   측정이 resolveSkiaRule("Menu").sizes 기반 산출 (catalogType 전환, StatusLight/SelectValue 동형).
   resolveToken,
   buildCatalogShapes,
-  resolveComponentVisual,
 } from "@composition/specs";
 import { isCatalogCutover } from "@composition/shared";
 import {
@@ -248,10 +247,10 @@ export function extractSpecTextStyle(
       (propsForShapes.variant as string | undefined) ??
       catalogRule?.defaultVariant ??
       spec?.defaultVariant;
-    // rule 기반 visual (spec 미참조) — 미존재 시 spec 어댑터로 fallback(spec 보유 시 안전망).
-    const visual =
-      resolveSkiaVisualRule(entry.catalogType!, variantName) ??
-      (spec ? resolveComponentVisual(spec, variantName) : undefined);
+    // rule 기반 visual (spec 미참조). ADR-912 단계5: useCatalog 경로의 spec 은 항상
+    //   undefined(catalogType 보유 항목 전부 spec 생략)라 구 resolveComponentVisual fallback
+    //   은 dead 였음 — 제거. variant 없는 컨테이너 shell 은 undefined(buildCatalogShapes 허용).
+    const visual = resolveSkiaVisualRule(entry.catalogType!, variantName);
     // text-decoration: catalog rule(ComponentRule.textDecoration) 우선, spec.composition fallback.
     const textDecoration =
       catalogRule?.textDecoration ??

@@ -21,12 +21,9 @@ import { tokenToCSSVar, resolveFocusRingToken } from "./utils/tokenResolver";
 import { deriveAutoDelegationVariables } from "../runtime/deriveAutoDelegationVariables";
 // ADR-908 Phase 3-A + 3-B: Fill token dual-read seam — VariantSpec + IndicatorModeSpec
 import { resolveFillTokens, resolveIndicatorFill } from "../utils/fillTokens";
-// ADR-142 G2(b) A: variant 색상 단일 어댑터 — spec.variants 직접 접근을 본 seam 으로 수렴.
-//   B 단계에서 variantToVisual 의 source 만 rule 테이블로 swap → CSSGenerator 호출부 불변.
-import {
-  variantToVisual,
-  type ComponentVisualRule,
-} from "./utils/resolveComponentVisual";
+// ADR-912 단계5: variant 색상은 _variantSource(정본 table 파생) 단독 — 구 variantToVisual
+//   어댑터 의존 제거. ComponentVisualRule 타입만 계약으로 유지.
+import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
 
 // ─── ADR-059 B5: cssEmitMode helper ─────────────────────────────────────────
 
@@ -317,12 +314,15 @@ export function generateCSS<Props>(
     !spec.skipVariantCss &&
     !isSliderTrackLeaf(spec) // 자식 .slider-track-bg 가 트랙 시각 소유 — 컨테이너 variant background skip
   )
-    for (const [variantName, variantSpec] of Object.entries(spec.variants)) {
-      // ADR-912 ②-6-A (1A-(a)): variant 색상 source swap — 주입된 정본 table 파생(_variantSource) 우선,
-      //   미주입 시 기존 spec.variants→variantToVisual fallback (전환기). 순회 키는 spec.variants 유지
-      //   (table 누락 variant 안전). 이로써 DOM generated CSS 가 Skia runtime rule 과 같은 table 파생.
-      const visual =
-        _variantSource?.[variantName] ?? variantToVisual(variantSpec);
+    for (const variantName of Object.keys(spec.variants)) {
+      // ADR-912 단계5: variant 색상은 정본 table 파생(_variantSource)만 source.
+      //   구 `?? variantToVisual(spec.variants[name])` fallback 제거 — production 은
+      //   generateAllCSS 가 variantSourceFor 로 _variantSource 를 전량 주입(spec.variants 와
+      //   _variantSource 는 둘 다 rule.variants 파생이라 키 1:1). 미주입(embed 재귀·test)
+      //   variant 는 skip — embed 재귀는 production 도달 0(childSpecs 보유 spec 전수 삭제),
+      //   test 는 variantSource 명시 주입.
+      const visual = _variantSource?.[variantName];
+      if (!visual) continue;
       const fill = visual.fill!;
       lines.push(`.react-aria-${spec.name}[data-variant="${variantName}"] {`);
       lines.push(

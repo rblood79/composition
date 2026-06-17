@@ -5,6 +5,22 @@ import type {
 } from "../../types/spec.types";
 import type { TokenRef } from "../../types/token.types";
 import { emitContainerStyles, generateCSS } from "../CSSGenerator";
+// ADR-912 단계5: variantToVisual 은 test-only utility — production CSSGenerator 는
+//   _variantSource(rule table 파생) 단독이라 spec→visual fallback 이 사라졌다. test 는
+//   fixture spec.variants 에서 _variantSource 를 직접 구성(production variantSourceFor 동형).
+import { variantToVisual } from "../utils/resolveComponentVisual";
+import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
+
+/** fixture spec.variants → _variantSource 맵 (production variantSourceFor 동형). */
+function variantSourceFromSpec(
+  spec: ComponentSpec<{ variant?: string }>,
+): Record<string, ComponentVisualRule> {
+  const map: Record<string, ComponentVisualRule> = {};
+  for (const [name, v] of Object.entries(spec.variants ?? {})) {
+    map[name] = variantToVisual(v);
+  }
+  return map;
+}
 
 describe("emitContainerStyles — ADR-071", () => {
   it("emits TokenRef colors via tokenToCSSVar", () => {
@@ -121,7 +137,8 @@ describe("generateCSS — containerStyles S3 semantic (ADR-071)", () => {
   });
 
   it("keeps defaultVariant injection + variants block when containerStyles absent (baseline)", () => {
-    const css = generateCSS(baseSpec);
+    // ADR-912 단계5: production 동형으로 _variantSource 주입 (구 variantToVisual fallback 제거).
+    const css = generateCSS(baseSpec, false, variantSourceFromSpec(baseSpec));
     expect(css).toContain("background: var(--fg);");
     expect(css).toContain('[data-variant="primary"]');
   });
