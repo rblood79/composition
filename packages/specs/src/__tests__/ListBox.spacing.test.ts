@@ -9,7 +9,9 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { resolveListBoxSpacingMetric } from "../components/ListBox.spec";
+// ADR-912 단계5 step4 (2026-06-17): resolveListBoxSpacingMetric 이 ListBox.spec → collectionItemMetrics
+//   이관(GridList.spacing.test.ts 선례). ListBox.spec 물리 삭제 대비 직접 경로 전환.
+import { resolveListBoxSpacingMetric } from "../renderers/utils/collectionItemMetrics";
 
 describe("resolveListBoxSpacingMetric — defaults", () => {
   it("style 미지정 → defaults (padding 4, gap 2, fontSize 14, borderWidth 1)", () => {

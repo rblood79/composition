@@ -1,0 +1,70 @@
+/* ============================================================
+ * AUTO-GENERATED from HeaderSpec — DO NOT EDIT MANUALLY
+ * Source: packages/specs/src/components/Header.spec.ts
+ * Archetype: simple
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Header {
+  /* Base styles — archetype: simple */
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  background: var(--bg-raised);
+  color: var(--fg-muted);
+  position: sticky;
+
+  /* Default size */
+  height: auto;
+  padding: 6px 12px;
+  font-size: var(--text-xs);
+  border-radius: var(--radius-none);
+  font-weight: 700;
+}
+
+.react-aria-Header[data-size="sm"] {
+  height: auto;
+  padding: 4px 12px;
+  font-size: var(--text-xs);
+  border-radius: var(--radius-none);
+  font-weight: 700;
+}
+
+.react-aria-Header[data-size="md"] {
+  height: auto;
+  padding: 6px 12px;
+  font-size: var(--text-xs);
+  border-radius: var(--radius-none);
+  font-weight: 700;
+}
+
+.react-aria-Header[data-size="lg"] {
+  height: auto;
+  padding: 8px 16px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-none);
+  font-weight: 700;
+}
+
+.react-aria-Header[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Header[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-Header {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */

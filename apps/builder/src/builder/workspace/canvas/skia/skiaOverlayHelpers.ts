@@ -1,7 +1,9 @@
-import {
-  parsePadding4Way,
-  resolveContainerStylesFallback,
-} from "@composition/specs";
+import { parsePadding4Way } from "@composition/specs";
+// ADR-912 단계5 step4 (2026-06-17): specs 정본 resolveContainerStylesFallback 은 spec-only
+//   (LOWERCASE_TAG_SPEC_MAP lookup) — ListBox 등 catalog cutover spec 삭제 시 {} 반환 → padding 소실.
+//   builder 버전(implicitStyles)은 spec 부재 시 LOWERCASE_COMPONENT_RULE_CONTAINER catalog rule
+//   fallback 을 합성하므로 cutover 컨테이너 padding(rule.containerStyles) 정확히 복구.
+import { resolveContainerStylesFallback } from "../layout/engines/implicitStyles";
 import { measureWorkspacePanelInsets } from "../../utils/panelLayoutRuntime";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import { isListBoxTemplateAnchor } from "../../../components/listbox/listBoxTemplateOrigins";

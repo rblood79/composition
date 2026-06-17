@@ -185,3 +185,77 @@ export function resolveGridListSpacingMetric(
     descGap: itemMetric.descGap,
   };
 }
+
+/**
+ * ListBox 컨테이너 spacing + item/header metric.
+ *
+ * **ADR-912 ListBox spec 삭제 (2026-06-17)**: 본 resolver 는 ListBox.spec.ts 에서 이관됐다
+ * (resolveGridListSpacingMetric 동형 선례). `render.shapes`(Skia)는 catalog rule + collection
+ * shell 로 이미 전환됐고, 부모 ListBox 의 layout `calculateContentHeight` ListBox 분기(builder
+ * `utils.ts`)는 본 resolver 를 직접 소비한다. spec body(ComponentSpec 객체) 삭제와 무관하게
+ * 보존되어야 하므로 본 모듈로 분리한다. `resolveListBoxItemMetric`(동일 모듈) 위에
+ * ListBox-specific 확장(itemPaddingX / itemHeight / headerHeight / sectionTopPad)을 합성.
+ *
+ * 호출자:
+ *  - Layout: `apps/builder/.../engines/utils.ts` `calculateContentHeight` ListBox 분기
+ */
+export interface ListBoxSpacingMetric {
+  paddingTop: number;
+  paddingRight: number;
+  paddingBottom: number;
+  paddingLeft: number;
+  rowGap: number;
+  columnGap: number;
+  borderWidth: number;
+  fontSize: number;
+  itemPaddingX: number;
+  itemHeight: number;
+  /** description(label+desc) 행 높이 — render.shapes 와 정합. 잘림 방지용. */
+  itemHeightWithDescription: number;
+  headerHeight: number;
+  headerFontSize: number;
+  sectionTopPad: number;
+}
+
+export interface ListBoxSpacingInput {
+  /** element.props.style — padding/gap/borderWidth/fontSize 우선 소스 */
+  style?: Record<string, unknown>;
+  /** style.gap/rowGap 미지정 시 기본 rowGap (= item 수직 간격). 기본 2 */
+  defaultGap?: number;
+  /** style.fontSize 미지정 시 기본 fontSize (TokenRef 는 caller 가 resolveSpecFontSize 로 해소). 기본 14 */
+  defaultFontSize?: number;
+  /** style.padding* 미지정 시 기본 좌우 padding. 기본 4 */
+  defaultPaddingX?: number;
+  /** style.padding* 미지정 시 기본 상하 padding. 기본 4 */
+  defaultPaddingY?: number;
+}
+
+export function resolveListBoxSpacingMetric(
+  input: ListBoxSpacingInput,
+): ListBoxSpacingMetric {
+  const defaultPaddingX = input.defaultPaddingX ?? 4;
+  const defaultPaddingY = input.defaultPaddingY ?? 4;
+  const base = resolveContainerSpacing({
+    style: input.style,
+    defaults: {
+      paddingTop: defaultPaddingY,
+      paddingRight: defaultPaddingX,
+      paddingBottom: defaultPaddingY,
+      paddingLeft: defaultPaddingX,
+      rowGap: input.defaultGap ?? 2,
+      columnGap: input.defaultGap ?? 2,
+      borderWidth: 1,
+      fontSize: input.defaultFontSize ?? 14,
+    },
+  });
+  const itemMetric = resolveListBoxItemMetric(base.fontSize);
+  return {
+    ...base,
+    itemPaddingX: itemMetric.paddingX,
+    itemHeight: itemMetric.itemHeight,
+    itemHeightWithDescription: itemMetric.itemHeightWithDescription,
+    headerHeight: Math.round(base.fontSize * 1.75),
+    headerFontSize: Math.round(base.fontSize * 0.85),
+    sectionTopPad: Math.round(base.fontSize * 0.5),
+  };
+}

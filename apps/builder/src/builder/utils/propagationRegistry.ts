@@ -31,7 +31,9 @@ import {
   //   CalendarHeader/CalendarGrid)는 createPropagationOnlySpec 인라인 이관(아래).
   // ADR-912 단계5 step4 경량 이관 (2026-06-17): GridListSpec import 제거 — catalog cutover spec 삭제.
   //   propagation.rules(variant → GridListItem)는 createPropagationOnlySpec 인라인 이관(아래).
-  ListBoxSpec,
+  // ADR-912 단계5 step4 (2026-06-17): ListBoxSpec import 제거 — ListBox.spec 물리 삭제(catalog cutover).
+  //   ListBox.spec 은 propagation.rules 부재(정적 모드 shapes 가 부모 variant 직접 참조, ListBox.spec:352)
+  //   → 기존 registerPropagationSpec("ListBox", ListBoxSpec) 은 no-op → 빈 propagation-only spec 으로 대체.
   // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroupSpec import 제거 —
   //   catalog cutover, propagation.rules(isEmphasized/size → ToggleButton)는 createPropagationOnlySpec 인라인 이관.
   // ADR-912 단계5 step4 (2026-06-17): TabsSpec import 제거 — Tabs.spec 물리 삭제(catalog cutover).
@@ -149,6 +151,10 @@ const cardContentPropagationSpec = createPropagationOnlySpec("CardContent", [
 const gridListPropagationSpec = createPropagationOnlySpec("GridList", [
   { parentProp: "variant", childPath: "GridListItem", override: true },
 ]);
+// ADR-912 단계5 step4 (2026-06-17): ListBox.spec 물리 삭제 → 빈 propagation-only spec. 구
+//   ListBox.spec 은 propagation.rules 부재(ADR-076: 정적 shapes 가 부모 variant 직접 참조)라
+//   registerPropagationSpec("ListBox", ListBoxSpec) 가 이미 no-op 이었음 → rules [] 로 동일 보존.
+const listBoxPropagationSpec = createPropagationOnlySpec("ListBox", []);
 
 // ADR-912 단계5 step4 경량 이관 (2026-06-17): ProgressBar.spec 삭제 — propagation.rules 인라인 보존.
 //   label → Label.children + size → ProgressBarTrack/ProgressBarValue/Label. childPath string 이라 spec 의존 0.
@@ -696,7 +702,9 @@ registerPropagationSpec("Card", cardPropagationSpec);
 registerPropagationSpec("CardHeader", cardHeaderPropagationSpec);
 registerPropagationSpec("CardContent", cardContentPropagationSpec);
 registerPropagationSpec("GridList", gridListPropagationSpec);
-registerPropagationSpec("ListBox", ListBoxSpec);
+// ADR-912 단계5 step4 (2026-06-17): ListBox.spec 삭제 → 빈 propagation-only spec(rules 부재 = 구
+//   no-op 동작 동일). 정적 모드 shapes 가 부모 variant 직접 참조라 자식 전파 불필요(ListBox.spec:352).
+registerPropagationSpec("ListBox", listBoxPropagationSpec);
 registerPropagationSpec("ToggleButtonGroup", toggleButtonGroupPropagationSpec);
 // ADR-912 영역 B (A): Tabs → TabList items/selectedKey/variant/size/showIndicator 전파.
 //   chip projection(appendTabRowProjection)이 TabList.props.items 를 읽는 invariant 충족.

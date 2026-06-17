@@ -1693,6 +1693,63 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
       disabled: { opacity: 0.38, cursor: "not-allowed", pointerEvents: "none" },
     },
   },
+  // ADR-912 단계5 step4 (2026-06-17): Section Header — ListBox.spec.childSpecs(listBoxHeaderChildSpec)
+  //   inline emit 을 standalone generated/Header.css virtual 로 분리(ListBoxItem 선례). ListBox.spec
+  //   물리 삭제 후 `.react-aria-Header` flat selector 가 generated ListBox.css inline 에서 사라지므로
+  //   별도 파일로 동등 emit(파일 분할만, 동일 @layer + flat selector → 최종 적용 CSS 동등).
+  //   `.react-aria-Header` 는 ListBox/GridList/Menu/Tree section header 전역 적용(cross-component).
+  //   시각값 SSOT = componentRulesTable.Header.sizes (paddingX/paddingY/fontSize/borderRadius/fontWeight 700).
+  //   archetype "simple": ARCHETYPE base(inline-flex/center/box-sizing). containerStyles 는 구
+  //   listBoxHeaderChildSpec verbatim(position:sticky + raised bg + muted text). states {} (정적
+  //   텍스트 — hover/pressed/disabled 의미 없음, diff-0 보존 위해 명시).
+  {
+    name: "Header",
+    archetype: "simple",
+    element: "div",
+    containerStyles: {
+      position: "sticky",
+      background: "{color.raised}",
+      text: "{color.neutral-subdued}",
+    },
+    states: {},
+  },
+  // ADR-912 단계5 step4 (2026-06-17): ListBox 본체 (ListBox.spec.ts 삭제 대상). archetype "collection"
+  //   (Menu STRUCTURE_META 선례). catalog cutover → Skia 는 generic(buildCatalogShapes + row
+  //   projection), DOM CSS 는 containerStyles(popover 컨테이너 ADR-071/076 + layout) + size별
+  //   fontSize 로 emit. containerStyles/states 는 구 ListBox.spec verbatim 이관(diff-0 보장).
+  //   Menu 와 차이: borderRadius {radius.lg}(Menu 는 md) + states 에 pressed 포함. variants 는
+  //   Skia 전용(render.shapes)이라 CSS emit 무관 → 본 entry 미포함.
+  {
+    name: "ListBox",
+    archetype: "collection",
+    element: "div",
+    containerStyles: {
+      background: "{color.raised}",
+      text: "{color.neutral}",
+      border: "{color.border}",
+      borderWidth: 1,
+      borderRadius: "{radius.lg}",
+      padding: "{spacing.xs}",
+      gap: "{spacing.2xs}",
+      display: "flex",
+      flexDirection: "column",
+      width: "100%",
+      maxHeight: "300px",
+      overflow: "auto",
+      outline: "none",
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: {
+        opacity: 0.38,
+        pointerEvents: "none",
+      },
+      focusVisible: {
+        focusRing: "{focus.ring.default}",
+      },
+    },
+  },
   // ADR-912 value-label 군 (2026-06-11) — Meter/ProgressBar 의 value text leaf.
   //   progress archetype: ARCHETYPE_BASE_STYLES["progress"](grid label/value/track)가 자동 emit.
   //   variant 4색 transparent bg + text color 는 rule.variants 가 제공(states 메타 불요 —

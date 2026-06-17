@@ -3,7 +3,11 @@ import {
   inferSizeMode,
   type SizeMode,
 } from "../../../stores/utils/sizeModeResolver";
-import { TAG_SPEC_MAP } from "../../../workspace/canvas/sprites/tagSpecMap";
+// ADR-912 단계5 step4 (2026-06-17): TAG_SPEC_MAP 직독 → builder resolveContainerStylesFallback.
+//   TAG_SPEC_MAP[type].containerStyles 는 catalog cutover spec(ListBox 등) 삭제 시 undefined →
+//   부모 display/flexDirection fallback 소실(9-grid 정렬 비활성 회귀). builder fallback 은 spec
+//   부재 시 LOWERCASE_COMPONENT_RULE_CONTAINER catalog rule.containerStyles 를 합성하므로 복구.
+import { resolveContainerStylesFallback } from "../../../workspace/canvas/layout/engines/implicitStyles";
 import { useCanonicalPropertyElement } from "../../properties/hooks/useCanonicalPropertyRead";
 
 function useParentId(id: string | null): string | null {
@@ -30,8 +34,10 @@ function resolveParentContainerStyle(
   if (typeof inline === "string" && inline) return inline;
   const type = parent?.type;
   if (type) {
-    const spec = TAG_SPEC_MAP[type];
-    const specValue = spec?.containerStyles?.[property];
+    // ADR-912 단계5 step4: spec.containerStyles → builder catalog-aware fallback.
+    //   spec 존재 시 spec.containerStyles, catalog cutover spec 삭제 시 rule.containerStyles 합성.
+    const fb = resolveContainerStylesFallback(type.toLowerCase(), {});
+    const specValue = fb[property];
     if (typeof specValue === "string") return specValue;
   }
   return fallback;

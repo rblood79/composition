@@ -3404,6 +3404,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // ADR-912 단계5 step4 (2026-06-17): ListBox.spec.containerStyles 의 layout primitive 8필드 이관
+    //   (Menu/TagGroup 선례). spec 삭제 후 builder resolveContainerStylesFallback 의 catalog 합성이
+    //   본 필드를 읽어 Skia/Taffy layout(column-flex/gap/padding/maxHeight)을 보강 — 누락 시
+    //   resolveContainerStylesFallback("listbox") 가 {} 반환 → column-flex 붕괴(DOM 정상=비대칭 회귀).
+    //   색상(background/border)은 fallback KEYS 비대상 → Skia render shell variant 가 담당. gap 은
+    //   spec `{spacing.2xs}`(=2), padding 은 `{spacing.xs}`(=4) 동일.
+    containerStyles: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "{spacing.2xs}",
+      padding: "{spacing.xs}",
+      width: "100%",
+      maxHeight: "300px",
+      overflow: "auto",
+      outline: "none",
+    },
     sizes: {
       md: {
         paddingX: 4,

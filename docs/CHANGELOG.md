@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ListBox spec 물리 삭제 — ADR-912 단계5 step4] - 2026-06-17
+
+### Breaking Changes
+
+- **`ListBoxSpec` / `ListBoxProps` export 제거** (ADR-912 단계5 step4):
+  - `@composition/specs` 에서 `ListBoxSpec` value + `ListBoxProps` type barrel export 제거 (catalog cutover spec 물리 삭제)
+  - 시각 SSOT 는 `COMPONENT_RULES_TABLE.ListBox` (variants + containerStyles) + generate-css `STRUCTURE_META` virtual override (Menu 동형 collection archetype) 로 이전
+  - RAC 출처 `ListBoxProps<T>` (react-aria-starter / shared 컴포넌트) 와 builder 자체 타입(`ListBoxElementProps` / `EditableListBoxProps`)은 spec 무관 — 영향 없음
+  - `resolveListBoxSpacingMetric` + `ListBoxSpacingMetric` / `ListBoxSpacingInput` 타입은 `renderers/utils/collectionItemMetrics` 로 이관(출처 변경, GridList 선례) — barrel export 경로만 변경, 호출 시그니처 불변
+
+### Bug Fixes
+
+- **ListBox layout fallback 회귀 선제 차단 (Skia/Taffy column-flex 붕괴)** (ADR-912 단계5 step4):
+  - **Why**: `componentRulesTable.ListBox` 에 `containerStyles` 필드가 없어 spec 삭제 시 `resolveContainerStylesFallback("listbox")` 가 `{}` 반환 → display/flexDirection/gap/padding/maxHeight 8 layout 필드 소실 → ListBox 컨테이너 column-flex 붕괴(DOM 은 generated CSS 라 정상 = 비대칭 회귀, Menu cutover 가 한 번 놓친 차단 축과 동형)
+  - 수정: `componentRulesTable.ListBox.containerStyles` 8필드 추가(ListBoxSpec.containerStyles 와 1:1) → builder `resolveContainerStylesFallback` 의 `LOWERCASE_COMPONENT_RULE_CONTAINER` catalog 합성이 spec→rule 자연 전환. CSS emit 무관(STRUCTURE_META entry 의 containerStyles 만 emit, rule 은 layout fallback 전용 → diff-0 유지)
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`
+
+- **ListBox 부모 9-grid 정렬 + slot marker padding 회귀 차단 (production fallback 전환)** (ADR-912 단계5 step4):
+  - **Why**: `useTransformAuxiliary.ts` 는 `TAG_SPEC_MAP[type].containerStyles` 직독, `skiaOverlayHelpers.ts` 는 specs 정본 `resolveContainerStylesFallback`(spec-only) import — 둘 다 catalog cutover spec 삭제 시 undefined/`{}` 반환 → ListBoxItem 선택 시 부모 display fallback 소실(9-grid 비활성) + slot marker padding 0px 회귀
+  - 수정: 양쪽 모두 builder `resolveContainerStylesFallback`(implicitStyles, spec 부재 시 catalog rule 합성) 경유로 전환 — 모든 catalog cutover 컨테이너에 동일 복구
+  - 위치: `apps/builder/.../panels/styles/hooks/useTransformAuxiliary.ts`, `apps/builder/.../workspace/canvas/skia/skiaOverlayHelpers.ts`
+
+### Architecture
+
+- **Section Header childSpec → standalone generated/Header.css virtual 분리 (cross-component)** (ADR-912 단계5 step4):
+  - 구 `ListBox.spec.childSpecs(listBoxHeaderChildSpec)` inline emit 이 `generated/ListBox.css` 의 `.react-aria-Header` 블록(flat selector)을 생성 — ListBox/GridList/Menu/Tree section header 전역 적용(cross-component, generated 계열 유일 source)
+  - spec 삭제 시 inline emit 소실 → generate-css `STRUCTURE_META` 에 `Header` virtual entry 신설 → standalone `generated/Header.css` 동등 emit (ListBoxItem 분리 선례 — 파일 분할만, 동일 `@layer` + flat selector → 최종 적용 CSS 동등). 시각값 SSOT = `componentRulesTable.Header.sizes`
+  - `styles/index.css` 에 `@import "./generated/Header.css"` 추가 (수동 `./ListBox.css` 의 `.react-aria-Header` override 보다 먼저 — cascade 보존)
+  - 위치: `packages/specs/scripts/generate-css.ts`, `packages/shared/src/components/styles/generated/Header.css` (신규), `packages/shared/src/components/styles/index.css`
+
+- **resolveListBoxSpacingMetric + 타입 collectionItemMetrics 이관** (ADR-912 단계5 step4):
+  - `resolveListBoxSpacingMetric` 함수 + `ListBoxSpacingMetric` / `ListBoxSpacingInput` 타입을 `ListBox.spec.ts` → `renderers/utils/collectionItemMetrics.ts` 로 이관 (resolveGridListSpacingMetric 동형 선례, resolveListBoxItemMetric 동거 → 순환 0)
+  - re-export 2곳(`components/index.ts` + `index.ts`) value+type 출처 전환, 직접 import 1곳(`ListBox.spacing.test.ts`) 경로 수정. barrel 경유 consumer(`utils.ts:1712`)는 무수정
+  - propagation: `registerPropagationSpec("ListBox", ListBoxSpec)` → `createPropagationOnlySpec("ListBox", [])` (구 spec 은 propagation.rules 부재 = no-op 였음, 동일 보존). specRegistry / tagToElement BASE entry 제거
+  - Skia 게이트 SAFE: `isCatalogSkiaCutover("ListBox")=true`(FAMILY_4 catalog) → buildSpecNodeData 가 spec 없이 generic 통과
+  - 위치: `packages/specs/src/renderers/utils/collectionItemMetrics.ts`, `packages/specs/src/runtime/tagToElement.ts`, `apps/builder/.../utils/propagationRegistry.ts`, `apps/builder/.../panels/properties/specRegistry.ts`
+
 ## [DateField spec 물리 삭제 — ADR-912 단계5 step4] - 2026-06-17
 
 ### Breaking Changes

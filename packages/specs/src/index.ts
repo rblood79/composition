@@ -285,15 +285,13 @@ export type { ComponentVisualRule } from "./renderers";
 // Select/ComboBox — ADR-912 단계5 step4 (2026-06-17): catalog cutover spec 삭제로 export 제거.
 //   시각/CSS 는 STRUCTURE_META virtual, Skia 는 buildCatalogShapes generic 으로 이전.
 
-export {
-  ListBoxSpec,
-  resolveListBoxSpacingMetric,
-} from "./components/ListBox.spec";
+// ListBox — ADR-912 단계5 step4 (2026-06-17): ListBox.spec 물리 삭제(catalog cutover).
+//   resolveListBoxSpacingMetric + 2 타입은 collectionItemMetrics 로 이관(GridList 선례). ListBoxSpec/Props 제거.
+export { resolveListBoxSpacingMetric } from "./renderers/utils/collectionItemMetrics";
 export type {
-  ListBoxProps,
   ListBoxSpacingInput,
   ListBoxSpacingMetric,
-} from "./components/ListBox.spec";
+} from "./renderers/utils/collectionItemMetrics";
 
 // ListBoxItem — ADR-912 (2026-06-14): spec 물리 삭제(catalog cutover). metric resolver 만 유지.
 export {

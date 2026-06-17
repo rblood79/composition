@@ -74,13 +74,13 @@
 
 // Select/ComboBox — ADR-912 단계5 step4 (2026-06-17): catalog cutover spec 삭제로 re-export 제거.
 
-// ListBox
-export { ListBoxSpec, resolveListBoxSpacingMetric } from "./ListBox.spec";
+// ListBox — ADR-912 단계5 step4 (2026-06-17): ListBox.spec 물리 삭제(catalog cutover).
+//   resolveListBoxSpacingMetric + 2 타입은 collectionItemMetrics 로 이관. ListBoxSpec/Props 제거.
+export { resolveListBoxSpacingMetric } from "../renderers/utils/collectionItemMetrics";
 export type {
-  ListBoxProps,
   ListBoxSpacingInput,
   ListBoxSpacingMetric,
-} from "./ListBox.spec";
+} from "../renderers/utils/collectionItemMetrics";
 
 // Slider
 export { SliderSpec, SLIDER_FILL_COLORS } from "./Slider.spec";

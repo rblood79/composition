@@ -32,7 +32,8 @@ import {
   // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): IllustratedMessageSpec import 제거 — catalog cutover, binding.accepts D2.
   ImageSpec,
   InlineAlertSpec,
-  ListBoxSpec,
+  // ADR-912 단계5 step4 (2026-06-17): ListBoxSpec import 제거 — ListBox.spec 물리 삭제(catalog cutover).
+  //   Property Panel 은 binding.accepts(ListBox.binding.ts) 구동(dead getEditor 경로, entry 동시 제거).
   // ADR-912 단계5 step4 경량 이관 (2026-06-17): MenuSpec import 제거 — catalog cutover, binding.accepts D2 (dead getEditor 경로).
   // ADR-912 단계5 step4 경량 이관 (2026-06-17): MeterSpec import 제거 — catalog cutover, binding.accepts D2 (dead getEditor 경로).
   // ADR-912 단계5 step4 small-B (2026-06-16): ModalSpec import 제거 — catalog cutover, binding.accepts D2.
@@ -114,7 +115,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   InlineAlert: InlineAlertSpec as ComponentSpec<Record<string, unknown>>,
   // Link — ADR-912 단계5 step5: catalog cutover → GenericPropertyEditor 가 binding.accepts
   //   (Link.binding.ts) 로 properties 생성(spec.properties dead). spec 삭제로 등록 제거.
-  ListBox: ListBoxSpec as ComponentSpec<Record<string, unknown>>,
+  // ListBox — ADR-912 단계5 step4 (2026-06-17): catalog cutover spec 물리 삭제 → entry 제거.
+  //   Property Panel 은 CatalogEditContractEditor(binding.accepts, ListBox.binding.ts) 구동(DEAD getEditor 경로).
   // Menu — ADR-912 단계5 step4 경량 이관 (2026-06-17): catalog cutover → entry 제거.
   //   GenericPropertyEditor 가 binding.accepts(Menu.binding.ts)로 properties 생성 (dead getEditor 경로).
   // Meter — ADR-912 단계5 step4 경량 이관 (2026-06-17): catalog cutover → entry 제거.
