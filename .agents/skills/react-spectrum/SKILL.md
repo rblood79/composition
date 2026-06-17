@@ -6,6 +6,9 @@ compatibility: Requires a React project with react-aria-components or @react-spe
 metadata:
   author: Adobe
   website: https://react-spectrum.adobe.com/
+  snapshotVersion: "@react-spectrum/s2 1.4.0"
+  snapshotDate: 2026-06-17
+  snapshotSource: https://react-spectrum.adobe.com/llms.txt
 ---
 
 # React Spectrum 공식 Props API
@@ -44,10 +47,10 @@ The `references/` directory contains detailed documentation organized as follows
 - [Breadcrumbs](references/components/Breadcrumbs.md): Breadcrumbs show hierarchy and navigational context for a user's location within an application.
 - [Button](references/components/Button.md): Buttons allow users to perform an action.
 - [ButtonGroup](references/components/ButtonGroup.md): ButtonGroup handles overflow for a grouping of buttons whose actions are related to each other.
-- [Calendar](references/components/Calendar.md): Calendars display a grid of days in one or more months and allow users to select a single date.
+- [Calendar](references/components/Calendar.md): Calendars display a grid of days in one or more months and allow users to select a single date. (S2 v1.4.0: multiple date selection)
 - [Card](references/components/Card.md): A Card summarizes an object that a user can select or navigate to.
 - [CardView](references/components/CardView.md): A CardView displays a group of related objects, with support for selection and bulk actions.
-- [Checkbox](references/components/Checkbox.md): Checkboxes allow users to select multiple items from a list of individual items,
+- [Checkbox](references/components/Checkbox.md): Checkboxes allow users to select multiple items from a list of individual items, (S2 v1.4.0: description/error message)
 - [CheckboxGroup](references/components/CheckboxGroup.md): A CheckboxGroup allows users to select one or more items from a list of choices.
 - [ColorArea](references/components/ColorArea.md): A ColorArea allows users to adjust two channels of an RGB, HSL or HSB color value against a two-dimensional gradient background.
 - [ColorField](references/components/ColorField.md): A color field allows users to edit a hex color or individual color channel value.
@@ -55,7 +58,7 @@ The `references/` directory contains detailed documentation organized as follows
 - [ColorSwatch](references/components/ColorSwatch.md): A ColorSwatch displays a preview of a selected color.
 - [ColorSwatchPicker](references/components/ColorSwatchPicker.md): A ColorSwatchPicker displays a list of color swatches and allows a user to select one of them.
 - [ColorWheel](references/components/ColorWheel.md): A ColorWheel allows users to adjust the hue of an HSL or HSB color value on a circular track.
-- [ComboBox](references/components/ComboBox.md): ComboBox allow users to choose a single option from a collapsible list of options when space is limited.
+- [ComboBox](references/components/ComboBox.md): ComboBox allow users to choose a single option from a collapsible list of options when space is limited. (S2 v1.4.0: custom prefix)
 - [ContextualHelp](references/components/ContextualHelp.md): Contextual help shows a user extra information about the state of an adjacent component, or a total view.
 - [DateField](references/components/DateField.md): DateFields allow users to enter and edit date and time values using a keyboard.
 - [DatePicker](references/components/DatePicker.md): DatePickers combine a DateField and a Calendar popover to allow users to enter or select a date and time value.
@@ -70,8 +73,10 @@ The `references/` directory contains detailed documentation organized as follows
 - [Illustrations](references/components/illustrations.md): React Spectrum offers a collection of illustrations that can be imported from .
 - [Image](references/components/Image.md): An image with support for skeleton loading and custom error states.
 - [InlineAlert](references/components/InlineAlert.md): Inline alerts display a non-modal message associated with objects in a view.
+- [LabeledValue](references/components/LabeledValue.md): A LabeledValue displays a non-editable value with a label. It formats numbers, dates, times, and other values. (S2 v1.4.0 신규)
 - [Link](references/components/Link.md): Links allow users to navigate to a different location.
 - [LinkButton](references/components/LinkButton.md): A LinkButton combines the functionality of a link with the appearance of a button. Useful for allowing users to navigate to another page.
+- [ListView](references/components/ListView.md): A ListView displays a list of interactive items, and allows a user to navigate, select, or perform actions on them. (S2 v1.2.0 신규; v1.4.0 drag and drop 지원)
 - [mcp](references/components/mcp.md)
 - [Menu](references/components/Menu.md): Menus display a list of actions or options that a user can choose.
 - [Meter](references/components/Meter.md): Meters are visual representations of a quantity or an achievement.
@@ -81,7 +86,7 @@ The `references/` directory contains detailed documentation organized as follows
 - [ProgressBar](references/components/ProgressBar.md): ProgressBars show the progression of a system operation: downloading, uploading, processing, etc., in a visual way.
 - [ProgressCircle](references/components/ProgressCircle.md): ProgressCircles show the progression of a system operation such as downloading, uploading, or processing, in a visual way.
 - [Provider](references/components/Provider.md): Provider is the container for all React Spectrum components.
-- [RadioGroup](references/components/RadioGroup.md): Radio groups allow users to select a single option from a list of mutually exclusive options.
+- [RadioGroup](references/components/RadioGroup.md): Radio groups allow users to select a single option from a list of mutually exclusive options. (S2 v1.4.0: per-Radio description/error message)
 - [RangeCalendar](references/components/RangeCalendar.md): RangeCalendars display a grid of days in one or more months and allow users to select a contiguous range of dates.
 - [RangeSlider](references/components/RangeSlider.md): RangeSliders allow users to quickly select a subset range. They should be used when the upper and lower bounds to the range are invariable.
 - [SearchField](references/components/SearchField.md): A SearchField is a text field designed for searches.
@@ -90,18 +95,18 @@ The `references/` directory contains detailed documentation organized as follows
 - [Skeleton](references/components/Skeleton.md): A Skeleton wraps around content to render it as a placeholder.
 - [Slider](references/components/Slider.md): Sliders allow users to quickly select a value within a range. They should be used when the upper and lower bounds to the range are invariable.
 - [StatusLight](references/components/StatusLight.md): Status lights are used to color code categories and labels commonly found in data visualization.
-- [Switch](references/components/Switch.md): Switches allow users to turn an individual option on or off.
-- [TableView](references/components/TableView.md): Tables are containers for displaying information. They allow users to quickly scan, sort, compare, and take action on large amounts of data.
+- [Switch](references/components/Switch.md): Switches allow users to turn an individual option on or off. (S2 v1.4.0: description/error message)
+- [TableView](references/components/TableView.md): Tables are containers for displaying information. They allow users to quickly scan, sort, compare, and take action on large amounts of data. (S2 v1.4.0: drag and drop, highlight selection, `TableFooter`)
 - [Tabs](references/components/Tabs.md): Tabs organize content into multiple sections and allow users to navigate between them. The content under the set of tabs should be related and form a coherent unit.
 - [TagGroup](references/components/TagGroup.md): Tags allow users to categorize content. They can represent keywords or people, and are grouped to describe an item or a search request.
 - [TextArea](references/components/TextArea.md): A textarea allows a user to input mult-line text.
-- [TextField](references/components/TextField.md): TextFields are text inputs that allow users to input custom text entries
+- [TextField](references/components/TextField.md): TextFields are text inputs that allow users to input custom text entries (S2 v1.4.0: custom prefix)
 - [TimeField](references/components/TimeField.md): TimeFields allow users to enter and edit time values using a keyboard.
 - [Toast](references/components/Toast.md): A ToastContainer renders the queued toasts in an application. It should be placed
 - [ToggleButton](references/components/ToggleButton.md): ToggleButtons allow users to toggle a selection on or off, for example
 - [ToggleButtonGroup](references/components/ToggleButtonGroup.md): A ToggleButtonGroup is a grouping of related ToggleButtons, with single or multiple selection.
 - [Tooltip](references/components/Tooltip.md): Display container for Tooltip content. Has a directional arrow dependent on its placement.
-- [TreeView](references/components/TreeView.md): A tree view provides users with a way to navigate nested hierarchical information.
+- [TreeView](references/components/TreeView.md): A tree view provides users with a way to navigate nested hierarchical information. (S2 v1.4.0: drag and drop)
 
 ### Testing
 

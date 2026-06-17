@@ -1,137 +1,106 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/Checkbox.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # Checkbox
 
-## Description
+Checkboxes allow users to select multiple items from a list of individual items,
+or to mark one individual item as selected.
 
-Checkboxes allow users to select multiple items from a list of individual items, or to mark one individual item as selected.
+```tsx
+import {Checkbox} from '@react-spectrum/s2/Checkbox';
 
-## Installation
-
-```bash
-yarn add @adobe/react-spectrum
+<Checkbox />
 ```
 
-```javascript
-import { Checkbox } from "@adobe/react-spectrum";
-```
+## Selection
 
-## Usage Examples
+Use the `isSelected` or `defaultSelected` prop to set the selection state, and `onChange` to handle selection changes. The `isIndeterminate` prop overrides the selection state regardless of user interaction.
 
-### Basic
+```tsx
+import {Checkbox} from '@react-spectrum/s2/Checkbox';
+import {useState} from 'react';
 
-```jsx
-<Checkbox>Unsubscribe</Checkbox>
-```
-
-### Controlled and Uncontrolled
-
-```jsx
-function Example() {
-  let [selected, setSelected] = React.useState(true);
+function Example(props) {
+  let [selected, setSelection] = useState(false);
 
   return (
-    <Flex direction="row">
-      <Checkbox defaultSelected>Subscribe (uncontrolled)</Checkbox>
-      <Checkbox isSelected={selected} onChange={setSelected}>
-        Subscribe (controlled)
+    <>
+      <Checkbox 
+        {...props}
+        isSelected={selected}
+        onChange={setSelection}
+        
+      >
+        Subscribe
       </Checkbox>
-    </Flex>
+      <p>{`You are ${props.isIndeterminate ? 'partially subscribed' : selected ? 'subscribed' : 'unsubscribed'}`}</p>
+    </>
   );
 }
 ```
 
-### Indeterminate State
+## Forms
 
-```jsx
-<Checkbox isIndeterminate>Subscribe</Checkbox>
+Use the `name` and `value` props to submit the checkbox to the server. Set the `isRequired` prop to validate the user selects the checkbox, or implement custom client or server-side validation. See the [Forms](forms.md) guide to learn more.
+
+```tsx
+import {Checkbox} from '@react-spectrum/s2/Checkbox';
+import {Button} from '@react-spectrum/s2/Button';
+import {Form} from '@react-spectrum/s2/Form';
+
+<Form>
+  <Checkbox
+    name="terms"
+    value="agree"
+    isRequired
+    description="By clicking this checkbox, you agree to the terms and conditions.">
+    {/*- end highlight -*/}
+    Accept terms and conditions
+  </Checkbox>
+  <Button type="submit">Submit</Button>
+</Form>
 ```
 
-The `isIndeterminate` prop presents a visually indeterminate state regardless of user interaction until explicitly set to false.
+## API
 
-### HTML Forms
-
-```jsx
-<Checkbox name="newsletter" value="subscribe">
-  Subscribe
-</Checkbox>
-```
-
-### Validation
-
-```jsx
-<Checkbox isInvalid>I accept the terms and conditions</Checkbox>
-```
-
-### Disabled
-
-```jsx
-<Checkbox isDisabled>Subscribe</Checkbox>
-```
-
-### Emphasized
-
-```jsx
-<Checkbox isEmphasized defaultSelected>
-  Subscribe
-</Checkbox>
-```
-
-## Props API
-
-| Name                  | Type                                                               | Default  | Description                                      |
-| --------------------- | ------------------------------------------------------------------ | -------- | ------------------------------------------------ |
-| `children`            | `ReactNode`                                                        | --       | Label text                                       |
-| `isEmphasized`        | `boolean`                                                          | --       | Provides visual prominence                       |
-| `isIndeterminate`     | `boolean`                                                          | --       | Visual-only indeterminate state                  |
-| `value`               | `string`                                                           | --       | Value for HTML form submission                   |
-| `defaultSelected`     | `boolean`                                                          | --       | Initial selection state (uncontrolled)           |
-| `isSelected`          | `boolean`                                                          | --       | Selection state (controlled)                     |
-| `isDisabled`          | `boolean`                                                          | --       | Disables the input                               |
-| `isReadOnly`          | `boolean`                                                          | --       | Selectable but not changeable by user            |
-| `isRequired`          | `boolean`                                                          | --       | Requires user input before form submission       |
-| `isInvalid`           | `boolean`                                                          | --       | Indicates invalid value                          |
-| `validationBehavior`  | `'aria' \| 'native'`                                               | `'aria'` | Validation approach (native prevents submission) |
-| `validate`            | `(value: boolean) => ValidationError \| true \| null \| undefined` | --       | Custom validation function                       |
-| `autoFocus`           | `boolean`                                                          | --       | Receives focus on render                         |
-| `name`                | `string`                                                           | --       | Name attribute for form submission               |
-| `form`                | `string`                                                           | --       | Associated `<form>` element ID                   |
-| `id`                  | `string`                                                           | --       | Unique element identifier                        |
-| `excludeFromTabOrder` | `boolean`                                                          | --       | Excluded from keyboard tab order                 |
-| `aria-controls`       | `string`                                                           | --       | Controls referenced element(s)                   |
-| `aria-label`          | `string`                                                           | --       | Accessible label string                          |
-| `aria-labelledby`     | `string`                                                           | --       | ID of labeling element                           |
-| `aria-describedby`    | `string`                                                           | --       | ID of describing element(s)                      |
-| `aria-details`        | `string`                                                           | --       | ID of detailed description element(s)            |
-| `aria-errormessage`   | `string`                                                           | --       | ID of error message element                      |
-| `UNSAFE_className`    | `string`                                                           | --       | CSS class name (last resort)                     |
-| `UNSAFE_style`        | `CSSProperties`                                                    | --       | Inline styles (last resort)                      |
-
-(layout props omitted)
-
-## Events
-
-| Name            | Type                            | Description                                     |
-| --------------- | ------------------------------- | ----------------------------------------------- |
-| `onChange`      | `(isSelected: boolean) => void` | Triggered when selection state changes          |
-| `onFocus`       | `(e: FocusEvent) => void`       | Triggered when element receives focus           |
-| `onBlur`        | `(e: FocusEvent) => void`       | Triggered when element loses focus              |
-| `onFocusChange` | `(isFocused: boolean) => void`  | Triggered when focus status changes             |
-| `onKeyDown`     | `(e: KeyboardEvent) => void`    | Triggered on key press                          |
-| `onKeyUp`       | `(e: KeyboardEvent) => void`    | Triggered on key release                        |
-| `onPress`       | `(e: PressEvent) => void`       | Triggered on press release over target          |
-| `onPressStart`  | `(e: PressEvent) => void`       | Triggered when press interaction starts         |
-| `onPressEnd`    | `(e: PressEvent) => void`       | Triggered when press interaction ends           |
-| `onPressChange` | `(isPressed: boolean) => void`  | Triggered when press state changes              |
-| `onPressUp`     | `(e: PressEvent) => void`       | Triggered on press release regardless of origin |
-
-## Accessibility
-
-- When a visible label is not provided, an `aria-label` attribute must be supplied
-- If another element provides the label, use `aria-labelledby` with the labeling element's ID
-- Set `isInvalid` based on custom validation logic; communicate validation errors through additional UI elements
-
-## Internationalization
-
-Pass localized text to the `children` or `aria-label` prop. The component automatically flips layout for right-to-left languages like Hebrew and Arabic.
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-controls` | `string | undefined` | — | Identifies the element (or elements) whose contents or presence are controlled by the current element. |
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-errormessage` | `string | undefined` | — | Identifies the element that provides an error message for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `autoFocus` | `boolean | undefined` | — | Whether the element should receive focus on render. |
+| `children` | `ReactNode` | — | The label for the element. |
+| `defaultSelected` | `boolean | undefined` | — | Whether the element should be selected (uncontrolled). |
+| `description` | `ReactNode` | — | A description for the field. Provides a hint such as specific requirements for what to choose. |
+| `errorMessage` | `((v: ValidationResult) => ReactNode) | ReactNode` | — | An error message for the field. |
+| `excludeFromTabOrder` | `boolean | undefined` | — | Whether to exclude the element from the sequential tab order. If true, the element will not be focusable via the keyboard by tabbing. This should be avoided except in rare scenarios where an alternative means of accessing the element or its functionality via the keyboard is available. |
+| `form` | `string | undefined` | — | The `<form>` element to associate the input with. The value of this attribute must be the id of a `<form>` in the same document. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#form). |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `inputRef` | `RefObject<HTMLInputElement | null> | undefined` | — | A ref for the HTML input element. |
+| `isDisabled` | `boolean | undefined` | — | Whether the input is disabled. |
+| `isEmphasized` | `boolean | undefined` | — | Whether the Checkbox should be displayed with an emphasized style. |
+| `isIndeterminate` | `boolean | undefined` | — | Indeterminism is presentational only. The indeterminate visual representation remains regardless of user interaction. |
+| `isInvalid` | `boolean | undefined` | — | Whether the input value is invalid. |
+| `isReadOnly` | `boolean | undefined` | — | Whether the input can be selected but not changed by the user. |
+| `isRequired` | `boolean | undefined` | — | Whether user input is required on the input before form submission. |
+| `isSelected` | `boolean | undefined` | — | Whether the element should be selected (controlled). |
+| `name` | `string | undefined` | — | The name of the input element, used when submitting an HTML form. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#htmlattrdefname). |
+| `onBlur` | `((e: FocusEvent<Element>) => void) | undefined` | — | Handler that is called when the element loses focus. |
+| `onChange` | `((isSelected: boolean) => void) | undefined` | — | Handler that is called when the element's selection state changes. |
+| `onFocus` | `((e: FocusEvent<Element>) => void) | undefined` | — | Handler that is called when the element receives focus. |
+| `onFocusChange` | `((isFocused: boolean) => void) | undefined` | — | Handler that is called when the element's focus status changes. |
+| `onKeyDown` | `((e: KeyboardEvent) => void) | undefined` | — | Handler that is called when a key is pressed. |
+| `onKeyUp` | `((e: KeyboardEvent) => void) | undefined` | — | Handler that is called when a key is released. |
+| `onPress` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when the press is released over the target. |
+| `onPressChange` | `((isPressed: boolean) => void) | undefined` | — | Handler that is called when the press state changes. |
+| `onPressEnd` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when a press interaction ends, either over the target or when the pointer leaves the target. |
+| `onPressStart` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when a press interaction starts. |
+| `onPressUp` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when a press is released over the target, regardless of whether it started on the target or not. |
+| `size` | `"L" | "M" | "S" | "XL" | undefined` | 'M' | The size of the Checkbox. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `validate` | `((value: boolean) => true | undefined) | ValidationError | null | undefined` | — | A function that returns an error message if a given value is invalid. Validation errors are displayed to the user when the form is submitted if `validationBehavior="native"`. For realtime validation, use the `isInvalid` prop instead. |
+| `validationBehavior` | `"aria" | "native" | undefined` | 'native' | Whether to use native HTML form validation to prevent form submission when the value is missing or invalid, or mark the field as required or invalid via ARIA. |
+| `value` | `string | undefined` | — | The value of the input element, used when submitting an HTML form. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#htmlattrdefvalue). |

@@ -1,294 +1,163 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/RadioGroup.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # RadioGroup
 
-Radio buttons allow users to select a single option from a list of mutually exclusive options. All possible options are exposed up front for users to compare.
+Radio groups allow users to select a single option from a list of mutually exclusive options.
+All possible options are exposed up front for users to compare.
 
-```jsx
-import { RadioGroup, Radio } from "@adobe/react-spectrum";
+```tsx
+import {RadioGroup, Radio} from '@react-spectrum/s2/RadioGroup';
 
-<RadioGroup label="Favorite pet">
-  <Radio value="dogs">Dogs</Radio>
-  <Radio value="cats">Cats</Radio>
-</RadioGroup>;
+<RadioGroup>
+  <Radio
+    value="standard"
+    description="Delivers in 5–7 business days">
+    Standard Shipping (Free)
+  </Radio>
+  <Radio
+    value="expedited"
+    description="Delivers in 2–3 business days">
+    Expedited Shipping ($9.99)
+  </Radio>
+  <Radio
+    value="dragon"
+    description="Next-day delivery">
+    Overnight Shipping ($19.99)
+  </Radio>
+</RadioGroup>
 ```
-
-**Note:** A Radio cannot be used outside of a RadioGroup.
 
 ## Value
 
-### Uncontrolled
+Use the `value` or `defaultValue` prop to set the selected item, and `onChange` to handle selection changes.
 
-```jsx
-<RadioGroup label="Are you a wizard?" defaultValue="yes">
-  <Radio value="yes">Yes</Radio>
-  <Radio value="no">No</Radio>
-</RadioGroup>
-```
+```tsx
+import {RadioGroup, Radio} from '@react-spectrum/s2/RadioGroup';
+import {useState} from 'react';
 
-### Controlled
-
-```jsx
 function Example() {
-  let [selected, setSelected] = React.useState("yes");
+  let [selected, setSelected] = useState<string | null>(null);
 
   return (
-    <RadioGroup
-      label="Are you a wizard?"
-      value={selected}
-      onChange={setSelected}
-    >
-      <Radio value="yes">Yes</Radio>
-      <Radio value="no">No</Radio>
-    </RadioGroup>
+    <>
+      <RadioGroup
+        label="Favorite sport"
+        /*- begin highlight -*/
+        value={selected}
+        onChange={setSelected}>
+        {/*- end highlight -*/}
+        <Radio value="soccer">Soccer</Radio>
+        <Radio value="baseball">Baseball</Radio>
+        <Radio value="basketball">Basketball</Radio>
+      </RadioGroup>
+      <p>Current selection: {selected || 'None'}</p>
+    </>
   );
 }
 ```
 
-### HTML Forms
+## Forms
 
-```jsx
-<RadioGroup label="Favorite pet" name="pet">
-  <Radio value="dogs">Dogs</Radio>
-  <Radio value="cats">Cats</Radio>
-</RadioGroup>
-```
+Use the `name` prop to submit the selected radio to the server. Set the `isRequired` prop to validate that the user selects an option, or implement custom client or server-side validation. See the [Forms](forms.md) guide to learn more.
 
-## Labeling
+```tsx
+import {RadioGroup, Radio} from '@react-spectrum/s2/RadioGroup';
+import {Button} from '@react-spectrum/s2/Button';
+import {Form} from '@react-spectrum/s2/Form';
 
-```jsx
-<Flex gap="size-300" wrap>
-  <RadioGroup label="Favorite avatar">
-    <Radio value="wizard">Wizard</Radio>
-    <Radio value="dragon">Dragon</Radio>
-  </RadioGroup>
-
-  <RadioGroup label="Favorite avatar" isRequired necessityIndicator="icon">
-    <Radio value="wizard">Wizard</Radio>
-    <Radio value="dragon">Dragon</Radio>
-  </RadioGroup>
-
-  <RadioGroup label="Favorite avatar" isRequired necessityIndicator="label">
-    <Radio value="wizard">Wizard</Radio>
-    <Radio value="dragon">Dragon</Radio>
-  </RadioGroup>
-
-  <RadioGroup label="Favorite avatar" necessityIndicator="label">
-    <Radio value="wizard">Wizard</Radio>
-    <Radio value="dragon">Dragon</Radio>
-  </RadioGroup>
-</Flex>
-```
-
-## Orientation
-
-```jsx
-<RadioGroup label="Favorite avatar" orientation="horizontal">
-  <Radio value="wizard">Wizard</Radio>
-  <Radio value="dragon">Dragon</Radio>
-</RadioGroup>
-```
-
-## Label Position and Alignment
-
-```jsx
-<RadioGroup label="Favorite avatar" labelPosition="side" labelAlign="end">
-  <Radio value="wizard">Wizard</Radio>
-  <Radio value="dragon">Dragon</Radio>
-</RadioGroup>
-```
-
-## Help Text (Description & Error Messages)
-
-```jsx
-function Example() {
-  let [selected, setSelected] = React.useState("dogs");
-  let isValid = selected === "dogs";
-
+function Example(props) {
   return (
-    <RadioGroup
-      aria-label="Favorite pet"
-      onChange={setSelected}
-      isInvalid={!isValid}
-      description="Please select a pet."
-      errorMessage={
-        selected === "cats" ? "No cats allowed." : "Please select dogs."
-      }
-    >
-      <Radio value="dogs">Dogs</Radio>
-      <Radio value="cats">Cats</Radio>
-      <Radio value="dragons">Dragons</Radio>
-    </RadioGroup>
+    <Form>
+      <RadioGroup
+        {...props}
+        label="Favorite pet"
+        /*- begin highlight -*/
+        name="pet"
+        
+        /*- end highlight -*/
+      >
+        <Radio value="dog">Dog</Radio>
+        <Radio value="cat">Cat</Radio>
+        <Radio value="dragon">Komodo Dragon</Radio>
+      </RadioGroup>
+      <Button type="submit">Submit</Button>
+    </Form>
   );
 }
 ```
 
-## Contextual Help
+## API
 
-```jsx
-import { Content, ContextualHelp, Heading } from "@adobe/react-spectrum";
-
-<RadioGroup
-  label="T-shirt size"
-  contextualHelp={
-    <ContextualHelp variant="info">
-      <Heading>Size and fit</Heading>
-      <Content>Our sizes run small. Choose a size up from your usual.</Content>
-    </ContextualHelp>
-  }
->
-  <Radio value="S">Small</Radio>
-  <Radio value="M">Medium</Radio>
-  <Radio value="L">Large</Radio>
-</RadioGroup>;
-```
-
-## Validation
-
-```jsx
-import { Form, ButtonGroup, Button } from "@adobe/react-spectrum";
-
-<Form validationBehavior="native">
-  <RadioGroup label="Favorite pet" name="pet" isRequired>
-    <Radio value="dogs">Dog</Radio>
-    <Radio value="cats">Cat</Radio>
-    <Radio value="dragon">Dragon</Radio>
-  </RadioGroup>
-  <ButtonGroup>
-    <Button type="submit" variant="primary">
-      Submit
-    </Button>
-    <Button type="reset" variant="secondary">
-      Reset
-    </Button>
-  </ButtonGroup>
-</Form>;
-```
-
-## Disabled
-
-```jsx
-<RadioGroup label="Favorite avatar" isDisabled>
-  <Radio value="wizard">Wizard</Radio>
-  <Radio value="dragon">Dragon</Radio>
-</RadioGroup>;
-
-{
-  /* Individual radio disabled */
-}
-<RadioGroup label="Favorite avatar">
-  <Radio value="wizard">Wizard</Radio>
-  <Radio value="dragon" isDisabled>
-    Dragon
-  </Radio>
-</RadioGroup>;
-```
-
-## Read Only
-
-```jsx
-<RadioGroup label="Favorite avatar" defaultValue="wizard" isReadOnly>
-  <Radio value="wizard">Wizard</Radio>
-  <Radio value="dragon">Dragon</Radio>
+```tsx
+<RadioGroup>
+  <Radio />
 </RadioGroup>
 ```
 
-## Emphasized
+### RadioGroup
 
-```jsx
-<RadioGroup label="Favorite avatar" defaultValue="dragon" isEmphasized>
-  <Radio value="wizard">Wizard</Radio>
-  <Radio value="dragon">Dragon</Radio>
-</RadioGroup>
-```
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-errormessage` | `string | undefined` | — | Identifies the element that provides an error message for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `children` | `React.ReactNode` | — | The Radios contained within the RadioGroup. |
+| `contextualHelp` | `React.ReactNode` | — | A ContextualHelp element to place next to the label. |
+| `defaultValue` | `string | null | undefined` | — | The default value (uncontrolled). |
+| `description` | `React.ReactNode` | — | A description for the field. Provides a hint such as specific requirements for what to choose. |
+| `errorMessage` | `((v: ValidationResult) => ReactNode) | React.ReactNode` | — | An error message for the field. |
+| `form` | `string | undefined` | — | The `<form>` element to associate the input with. The value of this attribute must be the id of a `<form>` in the same document. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#form). |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `isDisabled` | `boolean | undefined` | — | Whether the input is disabled. |
+| `isEmphasized` | `boolean | undefined` | — | Whether the RadioGroup should be displayed with an emphasized style. |
+| `isInvalid` | `boolean | undefined` | — | Whether the input value is invalid. |
+| `isReadOnly` | `boolean | undefined` | — | Whether the input can be selected but not changed by the user. |
+| `isRequired` | `boolean | undefined` | — | Whether user input is required on the input before form submission. |
+| `label` | `React.ReactNode` | — | The content to display as the label. |
+| `labelAlign` | `Alignment | undefined` | 'start' | The label's horizontal alignment relative to the element it is labeling. |
+| `labelPosition` | `LabelPosition | undefined` | 'top' | The label's overall position relative to the element it is labeling. |
+| `name` | `string | undefined` | — | The name of the input element, used when submitting an HTML form. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#htmlattrdefname). |
+| `necessityIndicator` | `NecessityIndicator | undefined` | 'icon' | Whether the required state should be shown as an icon or text. |
+| `onBlur` | `((e: React.FocusEvent<Element>) => void) | undefined` | — | Handler that is called when the element loses focus. |
+| `onChange` | `((value: string) => void) | undefined` | — | Handler that is called when the value changes. |
+| `onFocus` | `((e: React.FocusEvent<Element>) => void) | undefined` | — | Handler that is called when the element receives focus. |
+| `onFocusChange` | `((isFocused: boolean) => void) | undefined` | — | Handler that is called when the element's focus status changes. |
+| `orientation` | `Orientation | undefined` | 'vertical' | The axis the radio elements should align with. |
+| `size` | `"L" | "M" | "S" | "XL" | undefined` | 'M' | The size of the RadioGroup. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `React.CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `validate` | `((value: string) => true | undefined) | ValidationError | null | undefined` | — | A function that returns an error message if a given value is invalid. Validation errors are displayed to the user when the form is submitted if `validationBehavior="native"`. For realtime validation, use the `isInvalid` prop instead. |
+| `validationBehavior` | `"aria" | "native" | undefined` | 'native' | Whether to use native HTML form validation to prevent form submission when the value is missing or invalid, or mark the field as required or invalid via ARIA. |
+| `value` | `string | null | undefined` | — | The current value (controlled). |
 
-## RadioGroup Props
+### Radio
 
-| Name                 | Type                                                              | Default      | Description                                                    |
-| -------------------- | ----------------------------------------------------------------- | ------------ | -------------------------------------------------------------- |
-| `children`           | `ReactElement<RadioProps> \| ReactElement<RadioProps>[]`          | --           | Radio elements contained within the group.                     |
-| `isEmphasized`       | `boolean`                                                         | --           | Provides visual prominence with blue styling vs. default gray. |
-| `orientation`        | `'vertical' \| 'horizontal'`                                      | `'vertical'` | Alignment axis for Radio elements.                             |
-| `value`              | `string \| null`                                                  | --           | Current value (controlled).                                    |
-| `defaultValue`       | `string \| null`                                                  | --           | Default value (uncontrolled).                                  |
-| `isDisabled`         | `boolean`                                                         | --           | Disables the input.                                            |
-| `isReadOnly`         | `boolean`                                                         | --           | Selection is immutable but focusable.                          |
-| `name`               | `string`                                                          | --           | HTML form element name.                                        |
-| `isRequired`         | `boolean`                                                         | --           | User input required before submission.                         |
-| `isInvalid`          | `boolean`                                                         | --           | Marks input value as invalid.                                  |
-| `validationBehavior` | `'aria' \| 'native'`                                              | `'aria'`     | Native HTML validation vs. ARIA marking.                       |
-| `validate`           | `(value: string) => ValidationError \| true \| null \| undefined` | --           | Custom validation function.                                    |
-| `label`              | `ReactNode`                                                       | --           | Label content.                                                 |
-| `description`        | `ReactNode`                                                       | --           | Field hint or requirements.                                    |
-| `errorMessage`       | `ReactNode \| (v: ValidationResult) => ReactNode`                 | --           | Error message text.                                            |
-| `form`               | `string`                                                          | --           | Associated `<form>` id.                                        |
-| `labelPosition`      | `'top' \| 'side'`                                                 | `'top'`      | Label position relative to group.                              |
-| `labelAlign`         | `'start' \| 'end'`                                                | `'start'`    | Label horizontal alignment.                                    |
-| `necessityIndicator` | `'icon' \| 'label'`                                               | `'icon'`     | Required/optional display method.                              |
-| `contextualHelp`     | `ReactNode`                                                       | --           | ContextualHelp element next to label.                          |
-| `showErrorIcon`      | `boolean`                                                         | --           | Renders error icon if present.                                 |
-
-### RadioGroup Events
-
-| Name            | Type                              | Description                       |
-| --------------- | --------------------------------- | --------------------------------- |
-| `onChange`      | `(value: string) => void`         | Triggered when selection changes. |
-| `onFocus`       | `(e: FocusEvent<Target>) => void` | Element receives focus.           |
-| `onBlur`        | `(e: FocusEvent<Target>) => void` | Element loses focus.              |
-| `onFocusChange` | `(isFocused: boolean) => void`    | Focus status changes.             |
-
-### RadioGroup Accessibility Props
-
-| Name                | Type     | Description                          |
-| ------------------- | -------- | ------------------------------------ |
-| `id`                | `string` | Element's unique identifier.         |
-| `aria-label`        | `string` | Labels the current element.          |
-| `aria-labelledby`   | `string` | References labeling element id(s).   |
-| `aria-describedby`  | `string` | References describing element id(s). |
-| `aria-details`      | `string` | References detailed description.     |
-| `aria-errormessage` | `string` | References error message element.    |
-
-### Layout/Spacing/Sizing/Positioning Props (all Responsive)
-
-Layout: `flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, `gridColumnStart`, `gridColumnEnd`, `gridRowStart`, `gridRowEnd`
-
-Spacing: `margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY`
-
-Sizing: `width`, `minWidth`, `maxWidth`, `height`, `minHeight`, `maxHeight`
-
-Positioning: `position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden`
-
-Advanced: `UNSAFE_className`, `UNSAFE_style`
-
-## Radio Props
-
-| Name         | Type        | Description                            |
-| ------------ | ----------- | -------------------------------------- |
-| `value`      | `string`    | Value used when submitting HTML forms. |
-| `children`   | `ReactNode` | Label text/renderable node.            |
-| `isDisabled` | `boolean`   | Disabled state; selection immutable.   |
-| `autoFocus`  | `boolean`   | Receives focus on render.              |
-
-### Radio Events
-
-| Name            | Type                              | Description                            |
-| --------------- | --------------------------------- | -------------------------------------- |
-| `onFocus`       | `(e: FocusEvent<Target>) => void` | Element receives focus.                |
-| `onBlur`        | `(e: FocusEvent<Target>) => void` | Element loses focus.                   |
-| `onFocusChange` | `(isFocused: boolean) => void`    | Focus status changes.                  |
-| `onKeyDown`     | `(e: KeyboardEvent) => void`      | Key press detected.                    |
-| `onKeyUp`       | `(e: KeyboardEvent) => void`      | Key release detected.                  |
-| `onPress`       | `(e: PressEvent) => void`         | Press released over target.            |
-| `onPressStart`  | `(e: PressEvent) => void`         | Press interaction starts.              |
-| `onPressEnd`    | `(e: PressEvent) => void`         | Press interaction ends.                |
-| `onPressChange` | `(isPressed: boolean) => void`    | Press state changes.                   |
-| `onPressUp`     | `(e: PressEvent) => void`         | Press released (regardless of target). |
-
-## Accessibility
-
-If a visible label isn't specified for a RadioGroup, an `aria-label` must be provided for accessibility. If labeled by a separate element, use `aria-labelledby` with the labeling element's id. Radio elements should always have visible labels.
-
-## Internationalization
-
-Localized strings should be passed to the `label` prop and Radio children. For RTL languages (Hebrew, Arabic), Radio automatically positions to the right of text. The `necessityIndicator="label"` prop provides automatic localization for "(required)" or "(optional)".
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `autoFocus` | `boolean | undefined` | — | Whether the element should receive focus on render. |
+| `children` | `React.ReactNode` | — | The label for the element. |
+| `description` | `React.ReactNode` | — | A description for the field. Provides a hint such as specific requirements for what to choose. |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `inputRef` | `RefObject<HTMLInputElement | null> | undefined` | — | A ref for the HTML input element. |
+| `isDisabled` | `boolean | undefined` | — | Whether the radio button is disabled or not. Shows that a selection exists, but is not available in that circumstance. |
+| `onBlur` | `((e: React.FocusEvent<Element>) => void) | undefined` | — | Handler that is called when the element loses focus. |
+| `onFocus` | `((e: React.FocusEvent<Element>) => void) | undefined` | — | Handler that is called when the element receives focus. |
+| `onFocusChange` | `((isFocused: boolean) => void) | undefined` | — | Handler that is called when the element's focus status changes. |
+| `onKeyDown` | `((e: KeyboardEvent) => void) | undefined` | — | Handler that is called when a key is pressed. |
+| `onKeyUp` | `((e: KeyboardEvent) => void) | undefined` | — | Handler that is called when a key is released. |
+| `onPress` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when the press is released over the target. |
+| `onPressChange` | `((isPressed: boolean) => void) | undefined` | — | Handler that is called when the press state changes. |
+| `onPressEnd` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when a press interaction ends, either over the target or when the pointer leaves the target. |
+| `onPressStart` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when a press interaction starts. |
+| `onPressUp` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when a press is released over the target, regardless of whether it started on the target or not. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `React.CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `value` | `string` | — | The value of the radio button, used when submitting an HTML form. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/radio#Value). |

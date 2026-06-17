@@ -1,275 +1,280 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/TableView.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # TableView
 
-Tables are containers for displaying information. They allow users to quickly scan, sort, compare, and take action on large amounts of data.
+Tables are containers for displaying information. They allow users to quickly scan, sort,
+compare, and take action on large amounts of data.
 
-```jsx
-import {
-  Cell,
-  Column,
-  Row,
-  TableView,
-  TableBody,
-  TableHeader,
-} from "@adobe/react-spectrum";
+```tsx
+import {TableView, TableHeader, Column, TableBody, Row, Cell} from '@react-spectrum/s2/TableView';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 <TableView
-  aria-label="Example table with static contents"
-  selectionMode="multiple"
->
+  
+  styles={style({width: 'full'})}>
   <TableHeader>
-    <Column>Name</Column>
-    <Column>Type</Column>
-    <Column align="end">Date Modified</Column>
+    <Column id="name" isRowHeader>Name</Column>
+    <Column id="type">Type</Column>
+    <Column id="date">Date Modified</Column>
   </TableHeader>
   <TableBody>
-    <Row>
+    <Row id="games">
       <Cell>Games</Cell>
-      <Cell>File folder</Cell>
-      <Cell>6/7/2020</Cell>
+      <Cell>Folder</Cell>
+      <Cell>6/7/2023</Cell>
+      <Row id="mario">
+        <Cell>Mario Kart</Cell>
+        <Cell>Game</Cell>
+        <Cell>8/27/1992</Cell>
+      </Row>
+      <Row id="tetris">
+        <Cell>Tetris</Cell>
+        <Cell>Game</Cell>
+        <Cell>1/27/1988</Cell>
+      </Row>
+      <Row id="pacman">
+        <Cell>Pac-Man</Cell>
+        <Cell>Game</Cell>
+        <Cell>5/22/1980</Cell>
+      </Row>
     </Row>
-    <Row>
-      <Cell>Program Files</Cell>
-      <Cell>File folder</Cell>
-      <Cell>4/7/2021</Cell>
+    <Row id="apps">
+      <Cell>Applications</Cell>
+      <Cell>Folder</Cell>
+      <Cell>4/7/2025</Cell>
+      <Row id="ps">
+        <Cell>Photoshop</Cell>
+        <Cell>Application</Cell>
+        <Cell>2/19/1990</Cell>
+      </Row>
+      <Row id="premiere">
+        <Cell>Premiere</Cell>
+        <Cell>Application</Cell>
+        <Cell>9/24/2003</Cell>
+      </Row>
+      <Row id="lightroom">
+        <Cell>Lightroom</Cell>
+        <Cell>Application</Cell>
+        <Cell>10/18/2017</Cell>
+      </Row>
     </Row>
-  </TableBody>
-</TableView>;
-```
-
-## Dynamic Collections
-
-```jsx
-let columns = [
-  { name: "Name", uid: "name" },
-  { name: "Type", uid: "type" },
-  { name: "Date Modified", uid: "date" },
-];
-
-let rows = [
-  { id: 1, name: "Games", date: "6/7/2020", type: "File folder" },
-  { id: 2, name: "Program Files", date: "4/7/2021", type: "File folder" },
-  { id: 3, name: "bootmgr", date: "11/20/2010", type: "System file" },
-  { id: 4, name: "log.txt", date: "1/18/2016", type: "Text Document" },
-];
-
-<TableView aria-label="Example table with dynamic content" maxWidth="size-6000">
-  <TableHeader columns={columns}>
-    {(column) => (
-      <Column key={column.uid} align={column.uid === "date" ? "end" : "start"}>
-        {column.name}
-      </Column>
-    )}
-  </TableHeader>
-  <TableBody items={rows}>
-    {(item) => <Row>{(columnKey) => <Cell>{item[columnKey]}</Cell>}</Row>}
-  </TableBody>
-</TableView>;
-```
-
-## Selection
-
-### Multiple Selection
-
-```jsx
-<TableView
-  aria-label="Example table with multiple selection"
-  selectionMode="multiple"
-  defaultSelectedKeys={["2", "4"]}
->
-  <TableHeader>
-    <Column>Name</Column>
-    <Column>Type</Column>
-    <Column align="end">Level</Column>
-  </TableHeader>
-  <TableBody>
-    <Row key="1">
-      <Cell>Charizard</Cell>
-      <Cell>Fire, Flying</Cell>
-      <Cell>67</Cell>
+    <Row id="report">
+      <Cell>2024 Financial Report</Cell>
+      <Cell>PDF Document</Cell>
+      <Cell>12/30/2024</Cell>
     </Row>
-    <Row key="2">
-      <Cell>Blastoise</Cell>
-      <Cell>Water</Cell>
-      <Cell>56</Cell>
+    <Row id="job">
+      <Cell>Job Posting</Cell>
+      <Cell>Text Document</Cell>
+      <Cell>1/18/2025</Cell>
     </Row>
   </TableBody>
 </TableView>
 ```
 
-### Controlled Selection
+## Content
 
-```jsx
-import type {Selection} from '@adobe/react-spectrum';
+`TableView` follows the [Collection Components API](collections.md?component=Table), accepting both static and dynamic collections.
+In this example, both the columns and the rows are provided to the table via a render function, enabling the user to hide and show columns and add additional rows.
 
-function PokemonTable(props) {
-  let [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set([2]));
+```tsx
+import {TableView, TableHeader, Column, TableBody, Row, Cell, TableFooter} from '@react-spectrum/s2/TableView';
+import {CheckboxGroup, Checkbox} from '@react-spectrum/s2/CheckboxGroup';
+import {ActionButton} from '@react-spectrum/s2/ActionButton';
+import {useState} from 'react';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+
+const columns = [
+  {name: 'Title', id: 'title', isRowHeader: true},
+  {name: 'Status', id: 'status'},
+  {name: 'Payment Method', id: 'paymentMethod'},
+  {name: 'Price', id: 'price'}
+];
+
+const initialRows = [
+  {id: 1, title: 'Website Design', status: 'Paid', paymentMethod: 'Credit Card', price: 1200},
+  {id: 2, title: 'Logo Creation', status: 'Pending', paymentMethod: 'PayPal', price: 350},
+  {id: 3, title: 'SEO Optimization', status: 'Overdue', paymentMethod: 'Bank Transfer', price: 800},
+  {id: 4, title: 'Social Media Setup', status: 'Paid', paymentMethod: 'Debit Card', price: 450},
+  {id: 5, title: 'Content Writing', status: 'Pending', paymentMethod: 'Credit Card', price: 600}
+];
+
+function FileTable() {
+  let [showColumns, setShowColumns] = useState(['title', 'status', 'paymentMethod', 'price']);
+  let visibleColumns = columns.filter(column => showColumns.includes(column.id));
+
+  let [rows, setRows] = useState(initialRows);
+  let addRow = () => {
+    setRows(rows => [
+      ...rows,
+      {id: rows.length + 1, title: 'New Invoice', status: 'Pending', paymentMethod: 'Credit Card', price: 250}
+    ]);
+  };
 
   return (
-    <TableView
-      aria-label="Table with controlled selection"
-      selectionMode="multiple"
-      selectedKeys={selectedKeys}
-      onSelectionChange={setSelectedKeys}
-      {...props}
-    >
-      {/* Table content */}
-    </TableView>
+    <div className={style({display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'start', width: 'full'})}>
+      <CheckboxGroup aria-label="Show columns" value={showColumns} onChange={setShowColumns} orientation="horizontal">
+        <Checkbox value="status">Status</Checkbox>
+        <Checkbox value="paymentMethod">Payment Method</Checkbox>
+      </CheckboxGroup>
+      <TableView aria-label="Files" styles={style({width: 'full'})}>
+        <TableHeader columns={visibleColumns}>
+          {column => (
+            <Column isRowHeader={column.isRowHeader}>
+              {column.name}
+            </Column>
+          )}
+        </TableHeader>
+        {/*- begin highlight -*/}
+        <TableBody items={rows} dependencies={[visibleColumns]}>
+          {item => (
+            /*- end highlight -*/
+            <Row columns={visibleColumns}>
+              {column => (
+                <Cell>
+                  {column.id === 'price'
+                    ? item.price.toLocaleString('en-US', {style: 'currency', currency: 'USD', maximumFractionDigits: 0})
+                    : item[column.id]}
+                </Cell>
+              )}
+            </Row>
+          )}
+        </TableBody>
+        <TableFooter>
+          <Row>
+            <Cell colSpan={showColumns.length - 1}>Total</Cell>
+            <Cell>{rows.reduce((p, row) => p + row.price, 0).toLocaleString('en-US', {style: 'currency', currency: 'USD', maximumFractionDigits: 0})}</Cell>
+          </Row>
+        </TableFooter>
+      </TableView>
+      <ActionButton onPress={addRow}>Add row</ActionButton>
+    </div>
   );
 }
 ```
 
-### Highlight Selection Style
+<InlineAlert variant="notice">
+  <Heading>Memoization</Heading>
+  <Content>Dynamic collections are automatically memoized to improve performance. Use the `dependencies` prop to invalidate cached elements that depend
+  on external state (e.g. `columns` in this example).</Content>
+</InlineAlert>
 
-```jsx
-<PokemonTable selectionMode="multiple" selectionStyle="highlight" />
-```
+### Expandable rows
 
-### Disabled Rows
+Rows can be nested to display hierarchical data. Use the `treeColumn` prop to designate the expandable column, and `expandedKeys` to control the expanded rows.
 
-```jsx
-<PokemonTable selectionMode="multiple" disabledKeys={[3]} />
-```
+```tsx
+import {TableView, TableHeader, Column, TableBody, Row, Cell, Collection, type Key} from '@react-spectrum/s2/TableView';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+import {useState} from 'react';
 
-## Row Actions
+/*- begin collapse -*/
+const rows = [
+  {id: '1', title: 'Documents', type: 'Directory', date: '10/20/2025', children: [
+    {id: '2', title: 'Project', type: 'Directory', date: '8/2/2025', children: [
+      {id: '3', title: 'Weekly Report', type: 'File', date: '7/10/2025', children: []},
+      {id: '4', title: 'Budget', type: 'File', date: '8/20/2025', children: []}
+    ]}
+  ]},
+  {id: '5', title: 'Photos', type: 'Directory', date: '2/3/2026', children: [
+    {id: '6', title: 'Image 1', type: 'File', date: '1/23/2026', children: []},
+    {id: '7', title: 'Image 2', type: 'File', date: '2/3/2026', children: []}
+  ]}
+];
+/*- end collapse -*/
 
-```jsx
-<TableView
-  aria-label="Pokemon table with row actions"
-  selectionMode="multiple"
-  onAction={(key) => alert(`Opening item ${key}...`)}
->
-  {/* Table content */}
-</TableView>
-```
-
-### Row Links
-
-```jsx
-<TableView aria-label="Bookmarks" selectionMode="multiple">
-  <TableHeader>
-    <Column>Name</Column>
-    <Column>URL</Column>
-    <Column>Date added</Column>
-  </TableHeader>
-  <TableBody>
-    <Row href="https://adobe.com/" target="_blank">
-      <Cell>Adobe</Cell>
-      <Cell>https://adobe.com/</Cell>
-      <Cell>January 28, 2023</Cell>
-    </Row>
-  </TableBody>
-</TableView>
-```
-
-## Asynchronous Loading
-
-```jsx
-import { useAsyncList } from "react-stately";
-
-function AsyncTable() {
-  let columns = [
-    { name: "Name", key: "name" },
-    { name: "Height", key: "height" },
-    { name: "Mass", key: "mass" },
-    { name: "Birth Year", key: "birth_year" },
-  ];
-
-  let list = useAsyncList({
-    async load({ signal, cursor }) {
-      if (cursor) {
-        cursor = cursor.replace(/^http:\/\//i, "https://");
-      }
-      let res = await fetch(
-        cursor || `https://swapi.py4e.com/api/people/?search=`,
-        { signal },
-      );
-      let json = await res.json();
-      return { items: json.results, cursor: json.next };
-    },
-  });
+function Example() {
+  let [expandedKeys, setExpandedKeys] = useState(new Set<Key>(['1']))
 
   return (
-    <TableView aria-label="example async loading table" height="size-3000">
-      <TableHeader columns={columns}>
-        {(column) => (
-          <Column align={column.key !== "name" ? "end" : "start"}>
-            {column.name}
-          </Column>
-        )}
+    <TableView
+      aria-label="Files"
+      styles={style({width: 'full'})}
+      /*- begin highlight -*/
+      treeColumn="name"
+      expandedKeys={expandedKeys}
+      onExpandedChange={setExpandedKeys}>
+      {/*- end highlight -*/}
+      <TableHeader>
+        <Column id="name" isRowHeader>Name</Column>
+        <Column id="type">Type</Column>
+        <Column id="date">Date Modified</Column>
       </TableHeader>
-      <TableBody
-        items={list.items}
-        loadingState={list.loadingState}
-        onLoadMore={list.loadMore}
-      >
-        {(item) => (
-          <Row key={item.name}>{(key) => <Cell>{item[key]}</Cell>}</Row>
-        )}
+      <TableBody items={rows}>
+        {function renderItem(item) {
+          return (
+            <Row id={item.id}>
+              <Cell>{item.title}</Cell>
+              <Cell>{item.type}</Cell>
+              <Cell>{item.date}</Cell>
+              {/*- begin highlight -*/}
+              {/* recursively render children */}
+              <Collection items={item.children}>
+                {renderItem}
+              </Collection>
+              {/*- end highlight -*/}
+            </Row>
+          );
+        }}
       </TableBody>
     </TableView>
   );
 }
 ```
 
-## Sorting
+### Asynchronous loading
 
-```jsx
-import { useCollator } from "@adobe/react-spectrum";
+Use the `loadingState` and `onLoadMore` props to enable async loading and infinite scrolling.
+
+```tsx
+import {TableView, TableHeader, Column, TableBody, Row, Cell} from '@react-spectrum/s2/TableView';
+import {useAsyncList} from '@react-spectrum/s2/useAsyncList';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+
+interface Character {
+  name: string;
+  height: number;
+  mass: number;
+  birth_year: number;
+}
 
 function AsyncSortTable() {
-  let collator = useCollator({ numeric: true });
+  let list = useAsyncList<Character>({
+    async load({ signal, cursor }) {
+      if (cursor) {
+        cursor = cursor.replace(/^http:\/\//i, 'https://');
+      }
 
-  let list = useAsyncList({
-    async load({ signal }) {
-      let res = await fetch(`https://swapi.py4e.com/api/people/?search`, {
-        signal,
-      });
+      let res = await fetch(
+        cursor || 'https://swapi.py4e.com/api/people/?search=',
+        { signal }
+      );
       let json = await res.json();
-      return { items: json.results };
-    },
-    async sort({ items, sortDescriptor }) {
+
       return {
-        items: items.sort((a, b) => {
-          let first = a[sortDescriptor.column];
-          let second = b[sortDescriptor.column];
-          let cmp = collator.compare(first, second);
-          if (sortDescriptor.direction === "descending") {
-            cmp *= -1;
-          }
-          return cmp;
-        }),
+        items: json.results,
+        cursor: json.next
       };
-    },
+    }
   });
 
   return (
     <TableView
-      aria-label="Example table with client side sorting"
-      sortDescriptor={list.sortDescriptor}
-      onSortChange={list.sort}
-      height="size-3000"
-    >
+      aria-label="Star Wars characters"
+      loadingState={list.loadingState}
+      onLoadMore={list.loadMore}
+      styles={style({width: 'full', height: 320})}>
       <TableHeader>
-        <Column key="name" allowsSorting>
-          Name
-        </Column>
-        <Column key="height" allowsSorting>
-          Height
-        </Column>
-        <Column key="mass" allowsSorting>
-          Mass
-        </Column>
-        <Column key="birth_year" allowsSorting>
-          Birth Year
-        </Column>
+        <Column id="name" isRowHeader>Name</Column>
+        <Column id="height">Height</Column>
+        <Column id="mass">Mass</Column>
+        <Column id="birth_year">Birth Year</Column>
       </TableHeader>
-      <TableBody items={list.items} loadingState={list.loadingState}>
+      <TableBody items={list.items}>
         {(item) => (
-          <Row key={item.name}>
-            {(columnKey) => <Cell>{item[columnKey]}</Cell>}
+          <Row id={item.name}>
+            <Cell>{item.name}</Cell>
+            <Cell>{item.height}</Cell>
+            <Cell>{item.mass}</Cell>
+            <Cell>{item.birth_year}</Cell>
           </Row>
         )}
       </TableBody>
@@ -278,217 +283,969 @@ function AsyncSortTable() {
 }
 ```
 
-## Column Widths
+### Links
 
-```jsx
-<TableView aria-label="Example table for column widths" maxWidth={320}>
-  <TableHeader>
-    <Column defaultWidth="1fr" align="start">
-      Name
-    </Column>
-    <Column maxWidth={80}>Type</Column>
-    <Column width={80}>Size</Column>
-    <Column minWidth={100} align="end">
-      Date Modified
-    </Column>
-  </TableHeader>
-  <TableBody>
-    <Row>
-      <Cell>2021406_Proposal</Cell>
-      <Cell>PDF</Cell>
-      <Cell>86 KB</Cell>
-      <Cell>April 12</Cell>
-    </Row>
-  </TableBody>
-</TableView>
-```
+Use the `href` prop on a Row to create a link. See the [getting started guide](getting-started.md) to learn how to integrate with your framework. Link interactions vary depending on the selection behavior.  See the [selection guide](selection.md) for more details.
 
-## Column Resizing
+```tsx
+import {TableView, TableHeader, Column, TableBody, Row, Cell} from '@react-spectrum/s2/TableView';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
-```jsx
 <TableView
-  aria-label="TableView with resizable columns"
-  maxWidth={320}
-  height={210}
->
+  
+  styles={style({width: 'full'})}>
   <TableHeader>
-    <Column key="file" allowsResizing maxWidth={500}>
-      File Name
-    </Column>
-    <Column key="size" width={80}>
-      Size
-    </Column>
-    <Column key="date" allowsResizing minWidth={100}>
-      Date Modified
-    </Column>
+    <Column isRowHeader>Name</Column>
+    <Column>URL</Column>
+    <Column>Date added</Column>
   </TableHeader>
   <TableBody>
-    <Row>
-      <Cell>2022-Roadmap-Proposal-Revision-012822-Copy(2)</Cell>
-      <Cell>214 KB</Cell>
-      <Cell>November 27, 2022 at 4:56PM</Cell>
+    {/*- begin highlight -*/}
+    <Row href="https://adobe.com/" target="_blank" id="Adobe">
+      {/*- end highlight -*/}
+      <Cell>Adobe</Cell>
+      <Cell>https://adobe.com/</Cell>
+      <Cell>January 28, 2023</Cell>
+    </Row>
+    <Row href="https://google.com/" target="_blank" id="Google">
+      <Cell>Google</Cell>
+      <Cell>https://google.com/</Cell>
+      <Cell>April 5, 2023</Cell>
+    </Row>
+    <Row href="https://nytimes.com/" target="_blank" id="NYTimes">
+      <Cell>New York Times</Cell>
+      <Cell>https://nytimes.com/</Cell>
+      <Cell>July 12, 2023</Cell>
     </Row>
   </TableBody>
 </TableView>
 ```
 
-## Drag and Drop
+### Empty state
 
-```jsx
-import { useDragAndDrop, useListData } from "@adobe/react-spectrum";
+Use `renderEmptyState` to render placeholder content when the table is empty.
 
-function DragIntoTable() {
-  let columns = [
-    { name: "Name", id: "name" },
-    { name: "Type", id: "type" },
-    { name: "Date Modified", id: "date" },
-  ];
+```tsx
+import {TableView, TableHeader, Column, TableBody} from '@react-spectrum/s2/TableView';
+import {IllustratedMessage, Heading, Content} from '@react-spectrum/s2/IllustratedMessage';
+import {Link} from '@react-spectrum/s2/Link';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+import FolderOpen from '@react-spectrum/s2/illustrations/linear/FolderOpen';
 
-  let sourceList = useListData({
-    initialItems: [
-      { id: "1", type: "file", name: "Adobe Photoshop", date: "6/7/2020" },
-      { id: "2", type: "file", name: "Adobe XD", date: "4/7/2021" },
-    ],
-  });
+<TableView aria-label="Search results" styles={style({width: 'full', height: 320})}>
+  <TableHeader>
+    <Column isRowHeader>Name</Column>
+    <Column>Type</Column>
+    <Column>Date Modified</Column>
+  </TableHeader>
+  {/*- begin highlight -*/}
+  <TableBody
+    /*- begin highlight -*/
+    renderEmptyState={() => (
+      <IllustratedMessage>
+        <FolderOpen />
+        <Heading>No results</Heading>
+        <Content>Press <Link href="https://adobe.com">here</Link> for more info.</Content>
+      </IllustratedMessage>
+    )}>
+    {/*- end highlight -*/}
+    {[]}
+  </TableBody>
+</TableView>
+```
 
-  let { dragAndDropHooks } = useDragAndDrop({
-    getItems: (keys) =>
-      [...keys].map((key) => {
-        let item = sourceList.getItem(key);
-        return {
-          "custom-app-type": JSON.stringify(item),
-          "text/plain": item.name,
-        };
-      }),
-  });
+### Cell options
 
+Use the `align` prop on a Column and Cell to set the text alignment. `showDivider` adds a divider between a cell and the next cell. `colSpan` makes a cell span multiple columns.
+
+```tsx
+import {TableView, TableHeader, Column, TableBody, Row, Cell, Collection, TableFooter} from '@react-spectrum/s2/TableView';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+
+const rows = [
+  {id: 1, name: 'Charizard', type: 'Fire, Flying', level: 67},
+  {id: 2, name: 'Blastoise', type: 'Water', level: 56},
+  {id: 3, name: 'Venusaur', type: 'Grass, Poison', level: 83},
+  {id: 4, name: 'Pikachu', type: 'Electric', level: 100}
+];
+
+const columns = [
+  {id: 'name', name: 'Name', isRowHeader: true, showDivider: true, align: undefined},
+  {id: 'type', name: 'Type', isRowHeader: false, showDivider: true, align: 'center'},
+  {id: 'level', name: 'Level', isRowHeader: false, showDivider: false, align: 'end'}
+] as const;
+
+function TableWithDividers() {
   return (
     <TableView
-      aria-label="Draggable TableView"
-      selectionMode="multiple"
-      width="size-5000"
-      height="size-2400"
-      dragAndDropHooks={dragAndDropHooks}
-    >
+      aria-label="Favorite pokemon"
+      styles={style({width: 400, maxWidth: 'full'})}>
       <TableHeader columns={columns}>
         {(column) => (
           <Column
-            key={column.id}
-            align={column.id === "date" ? "end" : "start"}
-          >
+            /*- begin highlight -*/
+            showDivider={column.showDivider}
+            align={column.align}
+            /*- end highlight -*/
+            isRowHeader={column.isRowHeader}>
             {column.name}
           </Column>
         )}
       </TableHeader>
-      <TableBody items={sourceList.items}>
-        {(item) => <Row>{(columnKey) => <Cell>{item[columnKey]}</Cell>}</Row>}
+      <TableBody>
+        <Collection items={rows}>
+          {item => (
+            <Row id={item.id} columns={columns}>
+              {(column) => (
+                <Cell
+                  /*- begin highlight -*/
+                  showDivider={column.showDivider}
+                  align={column.align}>
+                  {/*- end highlight -*/}
+                  {item[column.id]}
+                </Cell>
+              )}
+            </Row>
+          )}
+        </Collection>
+      </TableBody>
+      <TableFooter>
+        <Row>
+          {/*- begin highlight -*/}
+          <Cell colSpan={2} align="end" showDivider>Total:</Cell>
+          {/*- end highlight -*/}
+          <Cell align="end">{rows.reduce((p, v) => p + v.level, 0)}</Cell>
+        </Row>
+      </TableFooter>
+    </TableView>
+  );
+}
+```
+
+### Column menus
+
+Use the `menuItems` prop to add custom menu items to a Column. See the [Menu](Menu.md) docs for more details.
+
+```tsx
+import {TableView, TableHeader, Column, TableBody, Row, Cell} from '@react-spectrum/s2/TableView';
+import {MenuSection, MenuItem} from '@react-spectrum/s2/Menu';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+
+const rows = [
+  {id: 1, name: 'Charizard', type: 'Fire, Flying', level: 67},
+  {id: 2, name: 'Blastoise', type: 'Water', level: 56},
+  {id: 3, name: 'Venusaur', type: 'Grass, Poison', level: 83},
+  {id: 4, name: 'Pikachu', type: 'Electric', level: 100}
+];
+
+const columns = [
+  {id: 'name', name: 'Name', isRowHeader: true},
+  {id: 'type', name: 'Type'},
+  {id: 'level', name: 'Level'}
+];
+
+function CustomMenusTable() {
+  return (
+    <TableView aria-label="Favorite pokemon" styles={style({width: 400, maxWidth: 'full'})}>
+      <TableHeader columns={columns}>
+        {(column) => (
+          <Column
+            menuItems={
+              <>
+                <MenuSection>
+                  <MenuItem onAction={() => alert(`Filtering "${column.name}" column`)}>Filter</MenuItem>
+                </MenuSection>
+                <MenuSection>
+                  <MenuItem onAction={() => alert(`Hiding "${column.name}" column`)}>Hide column</MenuItem>
+                  <MenuItem onAction={() => alert(`Managing the "${column.name}" column`)}>Manage columns</MenuItem>
+                </MenuSection>
+              </>
+            }
+            isRowHeader={column.isRowHeader}>
+            {column.name}
+          </Column>
+        )}
+      </TableHeader>
+      <TableBody items={rows}>
+        {item => (
+          <Row id={item.id} columns={columns}>
+            {(column) => {
+              return <Cell>{item[column.id]}</Cell>;
+            }}
+          </Row>
+        )}
       </TableBody>
     </TableView>
   );
 }
 ```
 
-## Layout
+### Editable cells
 
-TableView should not be placed in a scrollable container. Use Flex for proper layout:
+Render an `<EditableCell>` instead of a `<Cell>` to allow users to edit the value. Editing is triggered by an `<ActionButton slot="edit">` and occurs in a popover that can contain one or more inputs.
 
-```jsx
-<Flex height="size-5000" width="100%" direction="column" gap="size-150">
-  <ActionButton alignSelf="start">Add</ActionButton>
-  <TableView flex aria-label="Example table">
-    {/* Table content */}
-  </TableView>
-</Flex>
+```tsx
+import {TableView, TableHeader, Column, TableBody, Row, Cell, EditableCell, type Key, type ColumnProps,} from '@react-spectrum/s2/TableView';
+import {TextField} from '@react-spectrum/s2/TextField';
+import {ActionButton, Text} from '@react-spectrum/s2/ActionButton';
+import {Picker, PickerItem} from '@react-spectrum/s2/Picker';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+import User from '@react-spectrum/s2/icons/User';
+import Edit from '@react-spectrum/s2/icons/Edit';
+import {useCallback} from 'react';
+import {useListData} from '@react-stately/data';
+
+let defaultItems = [
+  {id: 1, fruits: 'Apples', task: 'Collect', farmer: 'Eva'},
+  {id: 2, fruits: 'Oranges', task: 'Collect', farmer: 'Steven'},
+  {id: 3, fruits: 'Pears', task: 'Collect', farmer: 'Michael'},
+  {id: 4, fruits: 'Cherries', task: 'Collect', farmer: 'Sara'},
+  {id: 5, fruits: 'Dates', task: 'Collect', farmer: 'Karina'},
+  {id: 6, fruits: 'Bananas', task: 'Collect', farmer: 'Otto'},
+  {id: 7, fruits: 'Melons', task: 'Collect', farmer: 'Matt'},
+  {id: 8, fruits: 'Figs', task: 'Collect', farmer: 'Emily'},
+  {id: 9, fruits: 'Blueberries', task: 'Collect', farmer: 'Amelia'},
+  {id: 10, fruits: 'Blackberries', task: 'Collect', farmer: 'Isla'}
+];
+
+let editableColumns: Array<Omit<ColumnProps, 'children'> & {name: string}> = [
+  {name: 'Fruits', id: 'fruits', isRowHeader: true, width: '2fr', minWidth: 200},
+  {name: 'Task', id: 'task', width: '1fr', minWidth: 150},
+  {name: 'Farmer', id: 'farmer', width: '1fr', minWidth: 150}
+];
+
+export default function EditableTable(props) {
+  let columns = editableColumns;
+  let data = useListData({initialItems: defaultItems});
+
+  let onChange = useCallback((id: Key, columnId: Key, values: any) => {
+    let value = values[columnId];
+    if (value == null) {
+      return;
+    }
+    data.update(id, (prevItem) => ({...prevItem, [columnId]: value}));
+  }, [data]);
+
+  return (
+    <TableView aria-label="Dynamic table" {...props} styles={style({height: 208, width: 'full'})}>
+      <TableHeader columns={columns}>
+        {(column) => (
+          <Column {...column}>{column.name}</Column>
+        )}
+      </TableHeader>
+      <TableBody items={data.items}>
+        {item => (
+          <Row id={item.id} columns={columns}>
+            {(column) => {
+              if (column.id === 'fruits') {
+                return (
+                  <EditableCell
+                    aria-label={`Edit ${item[column.id]} in ${column.name}`}
+                    align={column.align}
+                    showDivider={column.showDivider}
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      let formData = new FormData(e.target as HTMLFormElement);
+                      let values = Object.fromEntries(formData.entries());
+                      onChange(item.id, column.id!, values);
+                    }}
+                    renderEditing={() => (
+                      <TextField
+                        aria-label="Fruit name edit field"
+                        autoFocus
+                        validate={value => value.length > 0 ? null : 'Fruit name is required'}
+                        styles={style({flexGrow: 1, flexShrink: 1, minWidth: 0})}
+                        defaultValue={item[column.id!]}
+                        name={column.id! as string} />
+                    )}>
+                    <div className={style({display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between'})}>
+                      <span className={style({minWidth: 0, truncate: true})}>
+                        {item[column.id]}
+                      </span>
+                      <ActionButton slot="edit" aria-label="Edit fruit">
+                        <Edit />
+                      </ActionButton>
+                    </div>
+                  </EditableCell>
+                );
+              }
+              if (column.id === 'farmer') {
+                return (
+                  <EditableCell
+                    align={column.align}
+                    showDivider={column.showDivider}
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      let formData = new FormData(e.target as HTMLFormElement);
+                      let values = Object.fromEntries(formData.entries());
+                      onChange(item.id, column.id!, values);
+                    }}
+                    renderEditing={() => (
+                      <Picker
+                        aria-label="Edit farmer"
+                        autoFocus
+                        styles={style({flexGrow: 1, flexShrink: 1, minWidth: 0})}
+                        defaultValue={item[column.id!]}
+                        name={column.id! as string}
+                        items={defaultItems}>
+                        {item => (
+                          <PickerItem textValue={item.farmer} id={item.farmer}>
+                            <User />
+                            <Text>{item.farmer}</Text>
+                          </PickerItem>
+                        )}
+                      </Picker>
+                    )}>
+                    <div className={style({display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between'})}>
+                      {item[column.id]}
+                      <ActionButton slot="edit" aria-label="Edit fruit"><Edit /></ActionButton>
+                    </div>
+                  </EditableCell>
+                );
+              }
+              return <Cell align={column.align} showDivider={column.showDivider}>{item[column.id!]}</Cell>;
+            }}
+          </Row>
+        )}
+      </TableBody>
+    </TableView>
+  );
+}
 ```
 
-## Row Headers
+## Selection and actions
 
-```jsx
-<TableView aria-label="Example table with static contents">
+Use `selectionMode` to enable single or multiple selection, and `selectedKeys` (matching each row's `id`) to control the selected rows. Return an [ActionBar](ActionBar.md) from `renderActionBar` to handle bulk actions, and use `onAction` for row navigation. Disable rows with `isDisabled`. See the [selection guide](selection.md) for details.
+
+```tsx
+import {TableView, TableHeader, Column, TableBody, Row, Cell, type Selection} from '@react-spectrum/s2/TableView';
+import {ActionBar, ActionButton} from '@react-spectrum/s2/ActionBar';
+import {Text} from '@react-spectrum/s2/ActionButton';
+import Edit from '@react-spectrum/s2/icons/Edit';
+import Copy from '@react-spectrum/s2/icons/Copy';
+import Delete from '@react-spectrum/s2/icons/Delete';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+import {useState} from 'react';
+
+function Example(props) {
+  let [selected, setSelected] = useState<Selection>(new Set());
+
+  return (
+    <>
+      <TableView
+        {...props}
+        aria-label="Favorite pokemon"
+        styles={style({width: 'full', height: 200})}
+        
+        selectedKeys={selected}
+        onSelectionChange={setSelected}
+        onAction={key => alert(`Clicked ${key}`)}
+        renderActionBar={(selectedKeys) => {
+          let selection = selectedKeys === 'all' ? 'all' : [...selectedKeys].join(', ');
+          return (
+            <ActionBar>
+              <ActionButton onPress={() => alert(`Edit ${selection}`)}>
+                <Edit />
+                <Text>Edit</Text>
+              </ActionButton>
+              <ActionButton onPress={() => alert(`Copy ${selection}`)}>
+                <Copy />
+                <Text>Copy</Text>
+              </ActionButton>
+              <ActionButton onPress={() => alert(`Delete ${selection}`)}>
+                <Delete />
+                <Text>Delete</Text>
+              </ActionButton>
+            </ActionBar>
+          );
+        }}>
+        <TableHeader>
+          <Column isRowHeader>Name</Column>
+          <Column>Type</Column>
+          <Column>Level</Column>
+        </TableHeader>
+        <TableBody>
+          <Row id="charizard">
+            <Cell>Charizard</Cell>
+            <Cell>Fire, Flying</Cell>
+            <Cell>67</Cell>
+          </Row>
+          <Row id="blastoise">
+            <Cell>Blastoise</Cell>
+            <Cell>Water</Cell>
+            <Cell>56</Cell>
+          </Row>
+          <Row id="venusaur" isDisabled>
+            <Cell>Venusaur</Cell>
+            <Cell>Grass, Poison</Cell>
+            <Cell>83</Cell>
+          </Row>
+          <Row id="pikachu">
+            <Cell>Pikachu</Cell>
+            <Cell>Electric</Cell>
+            <Cell>100</Cell>
+          </Row>
+        </TableBody>
+      </TableView>
+      <p>Current selection: {selected === 'all' ? 'all' : [...selected].join(', ')}</p>
+    </>
+  );
+}
+```
+
+## Sorting
+
+Set the `allowsSorting` prop on a Column to make it sortable. When the column header is pressed, `onSortChange` is called with a `SortDescriptor` including the sorted column and direction (ascending or descending). Use this to sort the data accordingly, and pass the `sortDescriptor` prop to the TableView to display the sorted column.
+
+```tsx
+import {TableView, TableHeader, Column, TableBody, Row, Cell, type SortDescriptor} from '@react-spectrum/s2/TableView';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+import {useState} from 'react';
+
+const rows = [
+  {id: 1, name: 'Charizard', type: 'Fire, Flying', level: 67},
+  {id: 2, name: 'Blastoise', type: 'Water', level: 56},
+  {id: 3, name: 'Venusaur', type: 'Grass, Poison', level: 83},
+  {id: 4, name: 'Pikachu', type: 'Electric', level: 100}
+];
+
+function SortableTable() {
+  let [sortDescriptor, setSortDescriptor] = useState<SortDescriptor | null>(null);
+  let sortedRows = rows;
+  if (sortDescriptor) {
+    sortedRows = rows.toSorted((a, b) => {
+      let first = a[sortDescriptor.column];
+      let second = b[sortDescriptor.column];
+      let cmp = first < second ? -1 : 1;
+      if (sortDescriptor.direction === 'descending') {
+        cmp = -cmp;
+      }
+      return cmp;
+    });
+  }
+
+  return (
+    <TableView
+      aria-label="Favorite pokemon"
+      styles={style({width: 400, maxWidth: 'full'})}
+      sortDescriptor={sortDescriptor ?? undefined}
+      onSortChange={setSortDescriptor}
+    >
+      <TableHeader>
+        {/*- begin highlight -*/}
+        <Column id="name" isRowHeader allowsSorting>Name</Column>
+        <Column id="type" allowsSorting>Type</Column>
+        <Column id="level" allowsSorting>Level</Column>
+        {/*- end highlight -*/}
+      </TableHeader>
+      <TableBody items={sortedRows}>
+        {item => (
+          <Row>
+            <Cell>{item.name}</Cell>
+            <Cell>{item.type}</Cell>
+            <Cell>{item.level}</Cell>
+          </Row>
+        )}
+      </TableBody>
+    </TableView>
+  );
+}
+```
+
+## Column resizing
+
+Set the `allowsResizing` prop on a Column to make it resizable. Use the `defaultWidth`, `width`, `minWidth`, and `maxWidth` props on a Column to control resizing behavior. These accept pixels, percentages, or fractional values (the [fr](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Grid_Layout/Basic_Concepts_of_Grid_Layout#the_fr_unit) unit). The default column width is `1fr`.
+
+```tsx
+import {TableView, TableHeader, Column, TableBody, Row, Cell} from '@react-spectrum/s2/TableView';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+
+const rows = [
+  {id: 1, name: '2022 Roadmap Proposal Revision 012822 Copy (2)', date: 'November 27, 2022 at 4:56PM', size: '214 KB'},
+  {id: 2, name: 'Budget', date: 'January 27, 2021 at 1:56AM', size: '14 MB'},
+  {id: 3, name: 'Welcome Email Template', date: 'July 24, 2022 at 2:48 PM', size: '20 KB'},
+  {id: 4, name: 'Job Posting_8301', date: 'May 30, 2025', size: '139 KB'}
+];
+
+<TableView aria-label="Table with resizable columns" styles={style({width: 400, maxWidth: 'full'})}>
   <TableHeader>
-    <Column isRowHeader>First Name</Column>
-    <Column isRowHeader>Last Name</Column>
-    <Column align="end">Age</Column>
+    {/*- begin highlight -*/}
+    <Column id="file" isRowHeader maxWidth={500} allowsResizing>
+      File Name
+    </Column>
+    <Column id="size" width={80}>Size</Column>
+    <Column id="date" minWidth={100} allowsResizing>
+      Date Modified
+    </Column>
+    {/*- end highlight -*/}
   </TableHeader>
-  <TableBody>
-    <Row>
-      <Cell>John</Cell>
-      <Cell>Doe</Cell>
-      <Cell>45</Cell>
-    </Row>
+  <TableBody items={rows}>
+    {item => (
+      <Row>
+        <Cell>{item.name}</Cell>
+        <Cell>{item.size}</Cell>
+        <Cell>{item.date}</Cell>
+      </Row>
+    )}
   </TableBody>
 </TableView>
 ```
 
-## TableView Props
+### Resize events
 
-| Name                     | Type                                              | Default      | Description                     |
-| ------------------------ | ------------------------------------------------- | ------------ | ------------------------------- |
-| `aria-label`             | `string`                                          | required     | Accessible label for the table. |
-| `aria-labelledby`        | `string`                                          | --           | ID of labeling element.         |
-| `selectionMode`          | `'none' \| 'single' \| 'multiple'`                | `'none'`     | Selection behavior.             |
-| `selectedKeys`           | `Set<string> \| 'all'`                            | --           | Controlled selected row keys.   |
-| `defaultSelectedKeys`    | `Set<string> \| 'all'`                            | --           | Default selected rows.          |
-| `onSelectionChange`      | `(keys: Selection) => void`                       | --           | Selection change callback.      |
-| `disabledKeys`           | `Iterable<string>`                                | --           | Keys of disabled rows.          |
-| `disallowEmptySelection` | `boolean`                                         | `false`      | Prevent deselecting all rows.   |
-| `selectionStyle`         | `'checkbox' \| 'highlight'`                       | `'checkbox'` | Visual selection style.         |
-| `sortDescriptor`         | `SortDescriptor`                                  | --           | Current sort state.             |
-| `onSortChange`           | `(desc: SortDescriptor) => void`                  | --           | Sort change callback.           |
-| `onAction`               | `(key: string) => void`                           | --           | Row action callback.            |
-| `onResize`               | `(widths: Map) => void`                           | --           | Column resize callback.         |
-| `onResizeEnd`            | `(widths: Map) => void`                           | --           | Column resize end callback.     |
-| `dragAndDropHooks`       | `DragAndDropHooks`                                | --           | Drag and drop configuration.    |
-| `loadingState`           | `'loading' \| 'loadingMore' \| 'idle' \| 'error'` | `'idle'`     | Async load state.               |
-| `onLoadMore`             | `() => void`                                      | --           | Infinite scroll callback.       |
-| `width`                  | `string \| number`                                | --           | Table width.                    |
-| `height`                 | `string \| number`                                | --           | Table height.                   |
-| `maxWidth`               | `string \| number`                                | --           | Maximum width.                  |
-| `flex`                   | `boolean \| string \| number`                     | --           | Flex grow value.                |
+The TableView's `onResize` event is called when a column resizer is moved by the user. The `onResizeEnd` event is called when the user finishes resizing. These receive a `Map` containing the widths of all columns in the TableView. This example persists the column widths in `localStorage`.
 
-## Column Props
+```tsx
+import {TableView, TableHeader, Column, TableBody, Row, Cell} from '@react-spectrum/s2/TableView';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+import {useSyncExternalStore} from 'react';
 
-| Name             | Type                           | Default   | Description                          |
-| ---------------- | ------------------------------ | --------- | ------------------------------------ |
-| `key`            | `string`                       | required  | Unique column identifier.            |
-| `align`          | `'start' \| 'center' \| 'end'` | `'start'` | Content alignment.                   |
-| `isRowHeader`    | `boolean`                      | `false`   | Use as row header for accessibility. |
-| `allowsSorting`  | `boolean`                      | `false`   | Enable column sorting.               |
-| `allowsResizing` | `boolean`                      | `false`   | Enable column resizing.              |
-| `width`          | `string \| number`             | --        | Fixed column width.                  |
-| `defaultWidth`   | `string \| number`             | --        | Initial uncontrolled width.          |
-| `minWidth`       | `string \| number`             | --        | Minimum column width.                |
-| `maxWidth`       | `string \| number`             | --        | Maximum column width.                |
+const rows = [
+  {id: 1, name: '2022 Roadmap Proposal Revision 012822 Copy (2)', date: 'November 27, 2022 at 4:56PM', size: '214 KB'},
+  {id: 2, name: 'Budget', date: 'January 27, 2021 at 1:56AM', size: '14 MB'},
+  {id: 3, name: 'Welcome Email Template', date: 'July 24, 2022 at 2:48 PM', size: '20 KB'},
+  {id: 4, name: 'Job Posting_8301', date: 'May 30, 2025', size: '139 KB'}
+];
 
-## Row Props
+const columns = [
+  {id: 'file', name: 'File Name'},
+  {id: 'size', name: 'Size'},
+  {id: 'date', name: 'Date'}
+];
 
-| Name     | Type     | Default  | Description                    |
-| -------- | -------- | -------- | ------------------------------ |
-| `key`    | `string` | required | Unique row identifier.         |
-| `href`   | `string` | --       | Link destination URL.          |
-| `target` | `string` | --       | Link target (e.g., '\_blank'). |
+const initialWidths = new Map<string, string | number>([
+  ['file', '1fr'],
+  ['size', 80],
+  ['date', 100]
+]);
 
-## Cell Props
+export default function ResizableTable() {
+  let columnWidths = useSyncExternalStore(subscribe, getColumnWidths, getInitialWidths);
 
-| Name      | Type     | Default | Description                |
-| --------- | -------- | ------- | -------------------------- |
-| `colSpan` | `number` | `1`     | Number of columns spanned. |
+  return (
+    <TableView
+      aria-label="Table with resizable columns"
+      onResize={setColumnWidths}
+      styles={style({width: 400, maxWidth: 'full'})}>
+      <TableHeader columns={columns} dependencies={[columnWidths]}>
+        {column => (
+          <Column
+            isRowHeader={column.id === 'file'}
+            allowsResizing
+            width={columnWidths.get(column.id)}
+          >
+            {column.name}
+          </Column>
+        )}
+      </TableHeader>
+      <TableBody items={rows}>
+        {item => (
+          <Row>
+            <Cell>{item.name}</Cell>
+            <Cell>{item.size}</Cell>
+            <Cell>{item.date}</Cell>
+          </Row>
+        )}
+      </TableBody>
+    </TableView>
+  );
+}
 
-## Events
+let parsedWidths;
+function getColumnWidths() {
+  // Parse column widths from localStorage.
+  if (!parsedWidths) {
+    let data = localStorage.getItem('table-widths');
+    if (data) {
+      parsedWidths = new Map(JSON.parse(data));
+    }
+  }
+  return parsedWidths || initialWidths;
+}
 
-| Name                | Type                             | Description                                          |
-| ------------------- | -------------------------------- | ---------------------------------------------------- |
-| `onSelectionChange` | `(keys: Selection) => void`      | Fires when selected rows change.                     |
-| `onSortChange`      | `(desc: SortDescriptor) => void` | Fires when sort column/direction changes.            |
-| `onAction`          | `(key: string) => void`          | Fires when a row is activated.                       |
-| `onResize`          | `(widths: Map) => void`          | Fires during column resizing.                        |
-| `onResizeEnd`       | `(widths: Map) => void`          | Fires when column resizing completes.                |
-| `onLoadMore`        | `() => void`                     | Fires when reaching scroll end for infinite loading. |
+function setColumnWidths(widths) {
+  // Store new widths in localStorage, and trigger subscriptions.
+  localStorage.setItem('table-widths', JSON.stringify(Array.from(widths)));
+  window.dispatchEvent(new Event('storage'));
+}
 
-## Accessibility
+function getInitialWidths() {
+  return initialWidths;
+}
 
-Customize which columns serve as row headers using `isRowHeader` on Column. An `aria-label` must be provided to the TableView.
+function subscribe(fn) {
+  let onStorage = () => {
+    // Invalidate cache.
+    parsedWidths = null;
+    fn();
+  };
 
-## Internationalization
+  window.addEventListener('storage', onStorage);
+  return () => window.removeEventListener('storage', onStorage);
+}
+```
 
-Text content within TableView supports localization. For RTL languages (Hebrew, Arabic), layout automatically flips.
+## Drag and drop
+
+Table supports drag and drop interactions when the `dragAndDropHooks` prop is provided using the `useDragAndDrop` hook. Users can drop data on the table as a whole, on individual rows, insert new rows between existing ones, or reorder rows. See the [drag and drop guide](dnd.md?component=TableView) to learn more.
+
+You can customize the drag preview by passing `DragPreview` or your own custom drag preview element to `useDragAndDrop`'s `renderDragPreview`. `DragPreview` supports leading icons and `Text` with `label` and `description` slots.
+
+```tsx
+import {TableView, TableHeader, TableBody, Column, Row, Cell, Collection} from '@react-spectrum/s2/TableView';
+import {Text} from '@react-spectrum/s2';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+import {DragPreview, useDragAndDrop} from '@react-spectrum/s2/useDragAndDrop';
+import {useTreeData} from '@react-spectrum/s2/useTreeData';
+import File from '@react-spectrum/s2/icons/File';
+import Folder from '@react-spectrum/s2/icons/Folder';
+
+function ReorderableTable() {
+  let tree = useTreeData({
+    initialItems: [
+      {id: '1', title: 'Documents', type: 'Directory', date: '10/20/2025', children: [
+        {id: '2', title: 'Project', type: 'Directory', date: '8/2/2025', children: [
+          {id: '3', title: 'Weekly Report', type: 'File', date: '7/10/2025', children: []},
+          {id: '4', title: 'Budget', type: 'File', date: '8/20/2025', children: []}
+        ]}
+      ]},
+      {id: '5', title: 'Photos', type: 'Directory', date: '2/3/2026', children: [
+        {id: '6', title: 'Image 1', type: 'File', date: '1/23/2026', children: []},
+        {id: '7', title: 'Image 2', type: 'File', date: '2/3/2026', children: []}
+      ]}
+    ]
+  });
+
+  let {dragAndDropHooks} = useDragAndDrop({
+    getItems: (keys, items: typeof tree.items) => items.map(item => ({'text/plain': item.value.title, type: item.value.type})),
+    onMove(e) {
+      if (e.target.dropPosition === 'before') {
+        tree.moveBefore(e.target.key, e.keys);
+      } else if (e.target.dropPosition === 'after') {
+        tree.moveAfter(e.target.key, e.keys);
+      } else if (e.target.dropPosition === 'on') {
+        let targetNode = tree.getItem(e.target.key);
+        if (targetNode) {
+          let targetIndex = targetNode.children ? targetNode.children.length : 0;
+          let keyArray = Array.from(e.keys);
+          for (let i = 0; i < keyArray.length; i++) {
+            tree.move(keyArray[i], e.target.key, targetIndex + i);
+          }
+        }
+      }
+    },
+    renderDragPreview: (items) => (
+      <DragPreview items={items}>
+        {items[0].type === 'Directory' ? <Folder /> : <File />}
+        <Text>{items[0]['text/plain']}</Text>
+        <Text slot="description">{items[0].type}</Text>
+      </DragPreview>
+    )
+  });
+
+  return (
+    <TableView
+      aria-label="Files"
+      selectionMode="multiple"
+      treeColumn="name"
+      defaultExpandedKeys={['5']}
+      dragAndDropHooks={dragAndDropHooks}
+      styles={style({width: 'full', maxWidth: 480})}>
+      <TableHeader>
+        <Column id="name" isRowHeader>Name</Column>
+        <Column id="type">Type</Column>
+        <Column id="date">Date Modified</Column>
+      </TableHeader>
+      <TableBody items={tree.items}>
+        {function renderItem(item) {
+          return (
+            <Row id={item.key}>
+              <Cell>{item.value.title}</Cell>
+              <Cell>{item.value.type}</Cell>
+              <Cell>{item.value.date}</Cell>
+              <Collection items={item.children ?? []}>
+                {renderItem}
+              </Collection>
+            </Row>
+          );
+        }}
+      </TableBody>
+    </TableView>
+  );
+}
+```
+
+## API
+
+```tsx
+<TableView>
+  <TableHeader>
+    <Column />
+  </TableHeader>
+  <TableBody>
+    <Row>
+      <Cell />
+      <EditableCell />
+    </Row>
+  </TableBody>
+  <TableFooter>
+    <Row>
+      <Cell />
+    </Row>
+  </TableFooter>
+</TableView>
+```
+
+### TableView
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `children` | `React.ReactNode` | — | The elements that make up the table. Includes the TableHeader, TableBody, Columns, and Rows. |
+| `defaultExpandedKeys` | `Iterable<Key> | undefined` | — | The initial expanded keys in the collection (uncontrolled). |
+| `defaultSelectedKeys` | `"all" | Iterable<Key> | undefined` | — | The initial selected keys in the collection (uncontrolled). |
+| `density` | `"compact" | "regular" | "spacious" | undefined` | 'regular' | Sets the amount of vertical padding within each cell. |
+| `disabledBehavior` | `DisabledBehavior | undefined` | 'all' | Whether `disabledKeys` applies to all interactions, or only selection. |
+| `disabledKeys` | `Iterable<Key> | undefined` | — | A list of row keys to disable. |
+| `disallowEmptySelection` | `boolean | undefined` | — | Whether the collection allows empty selection. |
+| `dragAndDropHooks` | `DragAndDropHooks | undefined` | — | The drag and drop hooks returned by `useDragAndDrop` used to enable drag and drop behavior for the Table. |
+| `escapeKeyBehavior` | `"clearSelection" | "none" | undefined` | 'clearSelection' | Whether pressing the escape key should clear selection in the table or not. Most experiences should not modify this option as it eliminates a keyboard user's ability to easily clear selection. Only use if the escape key is being handled externally or should not trigger selection clearing contextually. |
+| `expandedKeys` | `Iterable<Key> | undefined` | — | The currently expanded keys in the collection (controlled). |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `isQuiet` | `boolean | undefined` | — | Whether the Table should be displayed with a quiet style. |
+| `loadingState` | `LoadingState | undefined` | — | The current loading state of the table. |
+| `onAction` | `((key: Key) => void) | undefined` | — | Handler that is called when a user performs an action on a row. |
+| `onExpandedChange` | `((keys: Set<Key>) => any) | undefined` | — | Handler that is called when items are expanded or collapsed. |
+| `onLoadMore` | `(() => any) | undefined` | — | Handler that is called when more items should be loaded, e.g. while scrolling near the bottom. |
+| `onResize` | `((widths: Map<Key, ColumnSize>) => void) | undefined` | — | Handler that is called when a user performs a column resize. Can be used with the width property on columns to put the column widths into a controlled state. |
+| `onResizeEnd` | `((widths: Map<Key, ColumnSize>) => void) | undefined` | — | Handler that is called after a user performs a column resize. Can be used to store the widths of columns for another future session. |
+| `onResizeStart` | `((widths: Map<Key, ColumnSize>) => void) | undefined` | — | Handler that is called when a user starts a column resize. |
+| `onSelectionChange` | `((keys: Selection) => void) | undefined` | — | Handler that is called when the selection changes. |
+| `onSortChange` | `((descriptor: SortDescriptor) => any) | undefined` | — | Handler that is called when the sorted column or direction changes. |
+| `overflowMode` | `"truncate" | "wrap" | undefined` | 'truncate' | Sets the overflow behavior for the cell contents. |
+| `renderActionBar` | `((selectedKeys: "all" | Set<Key>) => ReactElement) | undefined` | — | Provides the ActionBar to display when rows are selected in the TableView. |
+| `selectedKeys` | `"all" | Iterable<Key> | undefined` | — | The currently selected keys in the collection (controlled). |
+| `selectionMode` | `SelectionMode | undefined` | — | The type of selection that is allowed in the collection. |
+| `selectionStyle` | `"checkbox" | "highlight" | undefined` | 'checkbox' | How selection should be displayed. |
+| `shouldSelectOnPressUp` | `boolean | undefined` | — | Whether selection should occur on press up instead of press down. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `sortDescriptor` | `SortDescriptor | undefined` | — | The current sorted column and direction. |
+| `styles` | `StylesPropWithHeight | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `treeColumn` | `Key | undefined` | — | The id of the column that displays hierarchical data. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `React.CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+
+### TableHeader
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `((item: T) => ReactElement) | React.ReactNode` | — | A list of `Column(s)` or a function. If the latter, a list of columns must be provided using the `columns` prop. |
+| `columns` | `Iterable<T> | undefined` | — | A list of table columns. |
+| `dependencies` | `readonly any[] | undefined` | — | Values that should invalidate the column cache when using dynamic collections. |
+
+### Column
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `align` | `"center" | "end" | "start" | undefined` | 'start' | The alignment of the column's contents relative to its allotted width. |
+| `allowsResizing` | `boolean | undefined` | — | Whether the column allows resizing. |
+| `allowsSorting` | `boolean | undefined` | — | Whether the column allows sorting. |
+| `children` | `React.ReactNode` | — | The content to render as the column header. |
+| `defaultWidth` | `ColumnSize | null | undefined` | — | The default width of the column. This prop only applies when the `<Table>` is wrapped in a `<ResizableTableContainer>`. |
+| `id` | `Key | undefined` | — | The unique id of the column. |
+| `isRowHeader` | `boolean | undefined` | — | Whether a column is a [row header](https://www.w3.org/TR/wai-aria-1.1/#rowheader) and should be announced by assistive technology during row navigation. |
+| `maxWidth` | `ColumnStaticSize | null | undefined` | — | The maximum width of the column. This prop only applies when the `<Table>` is wrapped in a `<ResizableTableContainer>`. |
+| `menuItems` | `React.ReactNode` | — | Menu fragment to be rendered inside the column header's menu. |
+| `minWidth` | `ColumnStaticSize | null | undefined` | — | The minimum width of the column. This prop only applies when the `<Table>` is wrapped in a `<ResizableTableContainer>`. |
+| `showDivider` | `boolean | undefined` | — | Whether the column should render a divider between it and the next column. |
+| `textValue` | `string | undefined` | — | A string representation of the column's contents, used for accessibility announcements. |
+| `width` | `ColumnSize | null | undefined` | — | The width of the column. This prop only applies when the `<Table>` is wrapped in a `<ResizableTableContainer>`. |
+
+### TableBody
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `((item: T) => ReactNode) | React.ReactNode` | — | The contents of the collection. |
+| `dependencies` | `readonly any[] | undefined` | — | Values that should invalidate the item cache when using dynamic collections. |
+| `items` | `Iterable<T> | undefined` | — | Item objects in the collection. |
+| `renderEmptyState` | `((props: TableBodyRenderProps) => ReactNode) | undefined` | — | Provides content to display when there are no rows in the table. |
+
+### Row
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `((item: T) => ReactElement) | React.ReactNode` | — | The cells within the row. Supports static items or a function for dynamic rendering. |
+| `columns` | `Iterable<T> | undefined` | — | A list of columns used when dynamically rendering cells. |
+| `dependencies` | `readonly any[] | undefined` | — | Values that should invalidate the cell cache when using dynamic collections. |
+| `dir` | `string | undefined` | — |  |
+| `download` | `boolean | string | undefined` | — | Causes the browser to download the linked URL. A string may be provided to suggest a file name. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#download). |
+| `hidden` | `boolean | undefined` | — |  |
+| `href` | `string | undefined` | — | A URL to link to. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#href). |
+| `hrefLang` | `string | undefined` | — | Hints at the human language of the linked URL. See[MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#hreflang). |
+| `id` | `Key | undefined` | — | The unique id of the row. |
+| `inert` | `boolean | undefined` | — |  |
+| `isDisabled` | `boolean | undefined` | — | Whether the row is disabled. |
+| `lang` | `string | undefined` | — |  |
+| `onAction` | `(() => void) | undefined` | — | Handler that is called when a user performs an action on the row. The exact user event depends on the collection's `selectionBehavior` prop and the interaction modality. |
+| `onAnimationEnd` | `React.AnimationEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onAnimationEndCapture` | `React.AnimationEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onAnimationIteration` | `React.AnimationEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onAnimationIterationCapture` | `React.AnimationEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onAnimationStart` | `React.AnimationEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onAnimationStartCapture` | `React.AnimationEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onAuxClick` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onAuxClickCapture` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onClick` | `((e: React.MouseEvent<FocusableElement>) => void) | undefined` | — | **Not recommended – use `onPress` instead.** `onClick` is an alias for `onPress` provided for compatibility with other libraries. `onPress` provides additional event details for non-mouse interactions. |
+| `onClickCapture` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onContextMenu` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onContextMenuCapture` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onDoubleClick` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onDoubleClickCapture` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onGotPointerCapture` | `React.PointerEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onGotPointerCaptureCapture` | `React.PointerEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onLostPointerCapture` | `React.PointerEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onLostPointerCaptureCapture` | `React.PointerEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onMouseDown` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onMouseDownCapture` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onMouseEnter` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onMouseLeave` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onMouseMove` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onMouseMoveCapture` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onMouseOut` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onMouseOutCapture` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onMouseOver` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onMouseOverCapture` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onMouseUp` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onMouseUpCapture` | `React.MouseEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onPointerCancel` | `React.PointerEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onPointerCancelCapture` | `React.PointerEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onPointerDown` | `React.PointerEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onPointerDownCapture` | `React.PointerEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onPointerEnter` | `React.PointerEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onPointerLeave` | `React.PointerEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onPointerMove` | `React.PointerEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onPointerMoveCapture` | `React.PointerEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onPointerOut` | `React.PointerEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onPointerOutCapture` | `React.PointerEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onPointerOver` | `React.PointerEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onPointerOverCapture` | `React.PointerEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onPointerUp` | `React.PointerEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onPointerUpCapture` | `React.PointerEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onScroll` | `React.UIEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onScrollCapture` | `React.UIEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onTouchCancel` | `React.TouchEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onTouchCancelCapture` | `React.TouchEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onTouchEnd` | `React.TouchEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onTouchEndCapture` | `React.TouchEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onTouchMove` | `React.TouchEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onTouchMoveCapture` | `React.TouchEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onTouchStart` | `React.TouchEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onTouchStartCapture` | `React.TouchEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onTransitionCancel` | `React.TransitionEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onTransitionCancelCapture` | `React.TransitionEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onTransitionEnd` | `React.TransitionEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onTransitionEndCapture` | `React.TransitionEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onTransitionRun` | `React.TransitionEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onTransitionRunCapture` | `React.TransitionEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onTransitionStart` | `React.TransitionEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onTransitionStartCapture` | `React.TransitionEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onWheel` | `React.WheelEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `onWheelCapture` | `React.WheelEventHandler<HTMLTableRowElement> | undefined` | — |  |
+| `ping` | `string | undefined` | — | A space-separated list of URLs to ping when the link is followed. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#ping). |
+| `referrerPolicy` | `React.HTMLAttributeReferrerPolicy | undefined` | — | How much of the referrer to send when following the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#referrerpolicy). |
+| `rel` | `string | undefined` | — | The relationship between the linked resource and the current page. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel). |
+| `routerOptions` | `undefined` | — | Options for the configured client side router. |
+| `target` | `React.HTMLAttributeAnchorTarget | undefined` | — | The target window for the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#target). |
+| `textValue` | `string | undefined` | — | A string representation of the row's contents, used for features like typeahead. |
+| `translate` | `"no" | "yes" | undefined` | — |  |
+
+### Cell
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `align` | `"center" | "end" | "start" | undefined` | 'start' | The alignment of the column's contents relative to its allotted width. |
+| `children` | `React.ReactNode` | — | The content to render as the cell children. |
+| `colSpan` | `number | undefined` | — | Indicates how many columns the data cell spans. |
+| `id` | `Key | undefined` | — | The unique id of the cell. |
+| `showDivider` | `boolean | undefined` | — | Whether the column should render a divider between it and the next column. |
+| `textValue` | `string | undefined` | — | A string representation of the cell's contents, used for features like typeahead. |
+
+### TableFooter
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `((item: T) => ReactNode) | React.ReactNode` | — | The contents of the collection. |
+| `dependencies` | `readonly any[] | undefined` | — | Values that should invalidate the item cache when using dynamic collections. |
+| `items` | `Iterable<T> | undefined` | — | Item objects in the collection. |
+
+### EditableCell
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `action` | `string | ((formData: FormData) => void | Promise<void>) | undefined` | — | The action to submit the form to. Only available in React 19+. |
+| `align` | `"center" | "end" | "start" | undefined` | 'start' | The alignment of the column's contents relative to its allotted width. |
+| `children` | `React.ReactNode` | — | The content to render as the cell children. |
+| `colSpan` | `number | undefined` | — | Indicates how many columns the data cell spans. |
+| `id` | `Key | undefined` | — | The unique id of the cell. |
+| `isSaving` | `boolean | undefined` | — | Whether the cell is currently being saved. |
+| `onCancel` | `(() => void) | undefined` | — | Handler that is called when the user cancels the edit. |
+| `onSubmit` | `((e: FormEvent<HTMLFormElement>) => void) | undefined` | — | Handler that is called when the value has been changed and is ready to be saved. |
+| `renderEditing` | `() => ReactNode` | — | The component which will handle editing the cell. For example, a `TextField` or a `Picker`. |
+| `showDivider` | `boolean | undefined` | — | Whether the column should render a divider between it and the next column. |
+| `textValue` | `string | undefined` | — | A string representation of the cell's contents, used for features like typeahead. |
+
+## Related Types
+
+### SortDescriptor
+
+| Name | Type | Description |
+|------|------|-------------|
+| `column` \* | `Key` | The key of the column to sort by. |
+| `direction` \* | `SortDirection` | The direction to sort by. |
+
+### useDragAndDrop
+
+`useDragAndDrop(options: DragAndDropOptions<T>): DragAndDrop<T>`
+
+Provides the hooks required to enable drag and drop behavior for a drag and drop compatible
+collection component.
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `acceptedDragTypes` | `"all" | (string | symbol)[] | undefined` | 'all' | The drag types that the droppable collection accepts. If the collection accepts directories, include `DIRECTORY_DRAG_TYPE` in your array of allowed types. |
+| `dropTargetDelegate` | `DropTargetDelegate | undefined` | — | A custom delegate object that provides drop targets for pointer coordinates within the collection. |
+| `getAllowedDropOperations` | `(() => DropOperation[]) | undefined` | — | Function that returns the drop operations that are allowed for the dragged items. If not provided, all drop operations are allowed. |
+| `getDropOperation` | `((target: DropTarget, types: DragTypes, allowedOperations: DropOperation[]) => DropOperation) | undefined` | — | A function returning the drop operation to be performed when items matching the given types are dropped on the drop target. |
+| `getItems` | `((keys: Set<Key>, items: T[]) => DragItem[]) | undefined` | () => \[] | A function that returns the items being dragged. If not specified, we assume that the collection is not draggable. |
+| `isDisabled` | `boolean | undefined` | — | Whether the drag and drop events should be disabled. |
+| `onDragEnd` | `((e: DraggableCollectionEndEvent) => void) | undefined` | — | Handler that is called when the drag operation is ended, either as a result of a drop or a cancellation. |
+| `onDragMove` | `((e: DraggableCollectionMoveEvent) => void) | undefined` | — | Handler that is called when the drag is moved. |
+| `onDragStart` | `((e: DraggableCollectionStartEvent) => void) | undefined` | — | Handler that is called when a drag operation is started. |
+| `onDrop` | `((e: DroppableCollectionDropEvent) => void) | undefined` | — | Handler that is called when a valid drag is dropped on a drop target. When defined, this overrides other drop handlers such as `onInsert`, and `onItemDrop`. |
+| `onDropActivate` | `((e: DroppableCollectionActivateEvent) => void) | undefined` | — | Handler that is called after a valid drag is held over a drop target for a period of time. |
+| `onDropEnter` | `((e: DroppableCollectionEnterEvent) => void) | undefined` | — | Handler that is called when a valid drag enters a drop target. |
+| `onDropExit` | `((e: DroppableCollectionExitEvent) => void) | undefined` | — | Handler that is called when a valid drag exits a drop target. |
+| `onInsert` | `((e: DroppableCollectionInsertDropEvent) => void) | undefined` | — | Handler that is called when external items are dropped "between" items. |
+| `onItemDrop` | `((e: DroppableCollectionOnItemDropEvent) => void) | undefined` | — | Handler that is called when items are dropped "on" an item. |
+| `onMove` | `((e: DroppableCollectionReorderEvent) => void) | undefined` | — | Handler that is called when items are moved within the source collection. This handler allows dropping both on or between items, and items may be moved to a different parent item within a tree. |
+| `onReorder` | `((e: DroppableCollectionReorderEvent) => void) | undefined` | — | Handler that is called when items are reordered within the collection. This handler only allows dropping between items, not on items. It does not allow moving items to a different parent item within a tree. |
+| `onRootDrop` | `((e: DroppableCollectionRootDropEvent) => void) | undefined` | — | Handler that is called when external items are dropped on the droppable collection's root. |
+| `renderDragPreview` | `((items: DragItem[]) => JSX.Element | { element: JSX.Element; x: number; y: number; }) | undefined` | — | A function that renders a drag preview, which is shown under the user's cursor while dragging. By default, a copy of the dragged element is rendered. |
+| `shouldAcceptItemDrop` | `((target: ItemDropTarget, types: DragTypes) => boolean) | undefined` | — | A function returning whether a given target in the droppable collection is a valid "on" drop target for the current drag types. |
+
+### DragPreview
+
+`DragPreview(props: DragPreviewProps): JSX.Element`
+
+The default drag preview rendered by the collection element during drag and drop. Pass this to
+your drag hooks' \`renderDragPreview\` to match the default visual. To customize the drag preview's
+contents, use Text with the "label" and "description" slots and/or a Icon for the leading icon.
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `ReactNode` | — | The contents of the drag preview. Supports the `label`, `description`, and `icon` slots. If no children are provided, defaults to the first drag item's plain text content. |
+| `items` | `DragItem[]` | — | The currently dragged items, sourced from renderDragPreview. |
+| `overflowMode` | `"truncate" | "wrap" | undefined` | — | The overflow mode to be applied on the drag preview. |

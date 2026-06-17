@@ -1,380 +1,552 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/ComboBox.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # ComboBox
 
-A ComboBox combines a text input with a picker menu, enabling users to filter a list of options to match a query.
+ComboBox allow users to choose a single option from a collapsible list of options when space is
+limited.
 
-Available since v3.12.0.
+```tsx
+import {ComboBox, ComboBoxItem} from '@react-spectrum/s2/ComboBox';
 
-## Installation
-
-```bash
-yarn add @adobe/react-spectrum
-```
-
-```jsx
-import { ComboBox, Item, Section } from "@adobe/react-spectrum";
-```
-
-## Basic Example
-
-```jsx
-<ComboBox label="Favorite Animal">
-  <Item key="red panda">Red Panda</Item>
-  <Item key="cat">Cat</Item>
-  <Item key="dog">Dog</Item>
-  <Item key="aardvark">Aardvark</Item>
-  <Item key="kangaroo">Kangaroo</Item>
-  <Item key="snake">Snake</Item>
+<ComboBox>
+  <ComboBoxItem>Chocolate</ComboBoxItem>
+  <ComboBoxItem>Mint</ComboBoxItem>
+  <ComboBoxItem>Strawberry</ComboBoxItem>
+  <ComboBoxItem>Vanilla</ComboBoxItem>
+  <ComboBoxItem>Chocolate Chip Cookie Dough</ComboBoxItem>
 </ComboBox>
 ```
 
-## Dynamic Collections
+## Content
 
-```jsx
+`ComboBox` follows the [Collection Components API](collections.md?component=ComboBox), accepting both static and dynamic collections. This example shows a dynamic collection, passing a list of objects to the `items` prop, and a function to render the children.
+
+```tsx
+import {ComboBox, ComboBoxItem} from '@react-spectrum/s2/ComboBox';
+import Binoculars from '@react-spectrum/s2/icons/Binoculars';
+
 function Example() {
   let options = [
-    { id: 1, name: "Aerospace" },
-    { id: 2, name: "Mechanical" },
-    { id: 3, name: "Civil" },
+    { id: 1, name: 'Aardvark' },
+    { id: 2, name: 'Cat' },
+    { id: 3, name: 'Dog' },
+    { id: 4, name: 'Kangaroo' },
+    { id: 5, name: 'Koala' },
+    { id: 6, name: 'Penguin' },
+    { id: 7, name: 'Snake' },
+    { id: 8, name: 'Turtle' },
+    { id: 9, name: 'Wombat' }
   ];
-  let [majorId, setMajorId] = React.useState(null);
 
   return (
-    <ComboBox
-      label="Pick an engineering major"
-      defaultItems={options}
-      onSelectionChange={setMajorId}
-    >
-      {(item) => <Item>{item.name}</Item>}
+    /*- begin highlight -*/
+    <ComboBox label="Animals" defaultItems={options} placeholder="Select an animal" prefix={<Binoculars />}>
+      {(item) => <ComboBoxItem>{item.name}</ComboBoxItem>}
     </ComboBox>
+    /*- end highlight -*/
   );
 }
 ```
 
-## Value Management
+### Slots
 
-### Uncontrolled Input Value
+`ComboBoxItem` supports icons, avatars, and `label` and `description` text slots.
 
-```jsx
-<ComboBox
-  label="Adobe product"
-  defaultItems={options}
-  defaultInputValue="Adobe XD"
->
-  {(item) => <Item>{item.name}</Item>}
+```tsx
+import {Avatar} from '@react-spectrum/s2/Avatar';
+import {ComboBox, ComboBoxItem, Text} from '@react-spectrum/s2/ComboBox';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+import Comment from '@react-spectrum/s2/icons/Comment';
+import Edit from '@react-spectrum/s2/icons/Edit';
+import UserSettings from '@react-spectrum/s2/icons/UserSettings';
+
+const users = Array.from({length: 5}, (_, i) => ({
+  id: `user${i + 1}`,
+  name: `User ${i + 1}`,
+  email: `user${i + 1}@example.com`,
+  avatar: 'https://i.imgur.com/kJOwAdv.png'
+}));
+
+<div className={style({display: 'flex', gap: 12, flexWrap: 'wrap'})}>
+  <ComboBox label="Permissions" defaultSelectedKey="read" placeholder="Select a permission level">
+    <ComboBoxItem id="read" textValue="Read">
+      {/*- begin highlight -*/}
+      <Comment />
+      <Text slot="label">Read</Text>
+      <Text slot="description">Comment only</Text>
+      {/*- end highlight -*/}
+    </ComboBoxItem>
+    <ComboBoxItem id="write" textValue="Write">
+      <Edit />
+      <Text slot="label">Write</Text>
+      <Text slot="description">Read and write only</Text>
+    </ComboBoxItem>
+    <ComboBoxItem id="admin" textValue="Admin">
+      <UserSettings />
+      <Text slot="label">Admin</Text>
+      <Text slot="description">Full access</Text>
+    </ComboBoxItem>
+  </ComboBox>
+  <ComboBox label="Share" defaultItems={users} defaultSelectedKey="user1" placeholder="Select a user">
+    {(item) => (
+      <ComboBoxItem id={item.id} textValue={item.name}>
+        {/*- begin highlight -*/}
+        <Avatar slot="avatar" src={item.avatar} />
+        {/*- end highlight -*/}
+        <Text slot="label">{item.name}</Text>
+        <Text slot="description">{item.email}</Text>
+      </ComboBoxItem>
+    )}
+  </ComboBox>
+</div>
+
+```
+
+<InlineAlert variant="notice">
+  <Heading>Accessibility</Heading>
+  <Content>Interactive elements (e.g. buttons) within ComboBox items are not allowed. This will break keyboard and screen reader navigation. Only add textual or decorative graphics (e.g. icons) as children.</Content>
+</InlineAlert>
+
+### Sections
+
+Use the `<ComboBoxSection>` component to group options. A `<Header>` element, with a `<Heading>` and optional `description` slot can be included to label a section. Sections without a header must have an `aria-label`.
+
+```tsx
+import {ComboBox, ComboBoxItem, ComboBoxSection, Header, Heading, Text} from '@react-spectrum/s2/ComboBox';
+
+<ComboBox label="Preferred fruit or vegetable" placeholder="Select an option">
+  {/*- begin highlight -*/}
+  <ComboBoxSection>
+    <Header>
+      <Heading>Fruit</Heading>
+      <Text slot="description">Sweet and nutritious</Text>
+    </Header>
+    {/*- end highlight -*/}
+    <ComboBoxItem id="apple">Apple</ComboBoxItem>
+    <ComboBoxItem id="banana">Banana</ComboBoxItem>
+    <ComboBoxItem id="orange">Orange</ComboBoxItem>
+    <ComboBoxItem id="grapes">Grapes</ComboBoxItem>
+  </ComboBoxSection>
+  <ComboBoxSection>
+    <Header>
+      <Heading>Vegetable</Heading>
+      <Text slot="description">Healthy and savory</Text>
+    </Header>
+    <ComboBoxItem id="broccoli">Broccoli</ComboBoxItem>
+    <ComboBoxItem id="carrots">Carrots</ComboBoxItem>
+    <ComboBoxItem id="spinach">Spinach</ComboBoxItem>
+    <ComboBoxItem id="lettuce">Lettuce</ComboBoxItem>
+  </ComboBoxSection>
 </ComboBox>
 ```
 
-### Controlled Input Value
+### Asynchronous loading
 
-```jsx
-<ComboBox
-  label="Pick an Adobe product"
-  defaultItems={options}
-  inputValue={value}
-  onInputChange={setValue}
->
-  {(item) => <Item>{item.name}</Item>}
-</ComboBox>
-```
+Use the `loadingState` and `onLoadMore` props to enable async loading and infinite scrolling.
 
-### Custom Values
+```tsx
+import {ComboBox, ComboBoxItem} from '@react-spectrum/s2/ComboBox';
+import {useAsyncList} from '@react-spectrum/s2/useAsyncList';
 
-The `allowsCustomValue` prop permits users to provide input that doesn't match existing options:
-
-```jsx
-<ComboBox label="Preferred fruit" defaultItems={options} allowsCustomValue>
-  {(item) => <Item key={item.name}>{item.name}</Item>}
-</ComboBox>
-```
-
-### HTML Form Integration
-
-```jsx
-<ComboBox label="Ice cream flavor" name="iceCream" allowsCustomValue>
-  <Item>Chocolate</Item>
-  <Item>Mint</Item>
-  <Item>Strawberry</Item>
-  <Item>Vanilla</Item>
-</ComboBox>
-```
-
-The `formValue` prop determines whether text or the item key is submitted ("text" by default).
-
-## Selection
-
-### Uncontrolled Selection
-
-```jsx
-<ComboBox
-  label="Pick an Adobe product"
-  defaultItems={options}
-  defaultSelectedKey={9}
->
-  {(item) => <Item>{item.name}</Item>}
-</ComboBox>
-```
-
-### Controlled Selection
-
-```jsx
-import type {Key} from '@adobe/react-spectrum';
+interface Character {
+  name: string
+}
 
 function Example() {
-  let [productId, setProductId] = React.useState<Key>(9);
-  return (
-    <ComboBox
-      label="Pick an Adobe product"
-      defaultItems={options}
-      selectedKey={productId}
-      onSelectionChange={selected => setProductId(selected)}
-    >
-      {item => <Item>{item.name}</Item>}
-    </ComboBox>
-  );
-}
-```
+  let list = useAsyncList<Character>({
+    async load({signal, cursor, filterText}) {
+      if (cursor) {
+        cursor = cursor.replace(/^http:\/\//i, 'https://');
+      }
 
-## Sections
-
-```jsx
-<ComboBox label="Preferred fruit or vegetable">
-  <Section title="Fruit">
-    <Item key="Apple">Apple</Item>
-    <Item key="Banana">Banana</Item>
-    <Item key="Orange">Orange</Item>
-  </Section>
-  <Section title="Vegetable">
-    <Item key="Cabbage">Cabbage</Item>
-    <Item key="Broccoli">Broccoli</Item>
-    <Item key="Carrots">Carrots</Item>
-  </Section>
-</ComboBox>
-```
-
-## Links in Items
-
-```jsx
-<ComboBox label="Tech company websites">
-  <Item href="https://adobe.com/" target="_blank">
-    Adobe
-  </Item>
-  <Item href="https://apple.com/" target="_blank">
-    Apple
-  </Item>
-  <Item href="https://google.com/" target="_blank">
-    Google
-  </Item>
-</ComboBox>
-```
-
-## Complex Items
-
-```jsx
-<ComboBox label="Select action">
-  <Item textValue="Add to queue">
-    <Add />
-    <Text>Add to queue</Text>
-    <Text slot="description">Add to current watch queue.</Text>
-  </Item>
-  <Item textValue="Add review">
-    <Draw />
-    <Text>Add review</Text>
-    <Text slot="description">Post a review for the episode.</Text>
-  </Item>
-</ComboBox>
-```
-
-## Asynchronous Loading
-
-```jsx
-import { useAsyncList } from "react-stately";
-
-function AsyncLoadingExample() {
-  let list = useAsyncList({
-    async load({ signal, cursor, filterText }) {
-      let res = await fetch(
-        cursor || `https://swapi.py4e.com/api/people/?search=${filterText}`,
-        { signal },
-      );
+      let res = await fetch(cursor || `https://swapi.py4e.com/api/people/?search=${filterText}`, {signal});
       let json = await res.json();
-      return { items: json.results, cursor: json.next };
-    },
+
+      return {
+        items: json.results,
+        cursor: json.next
+      };
+    }
   });
 
   return (
     <ComboBox
       label="Star Wars Character Lookup"
+      placeholder="Select a character"
       items={list.items}
       inputValue={list.filterText}
       onInputChange={list.setFilterText}
+      /*- begin highlight -*/
       loadingState={list.loadingState}
-      onLoadMore={list.loadMore}
-    >
-      {(item) => <Item key={item.name}>{item.name}</Item>}
+      onLoadMore={list.loadMore}>
+      {/*- end highlight -*/}
+      {item => <ComboBoxItem id={item.name} textValue={item.name}>{item.name}</ComboBoxItem>}
     </ComboBox>
   );
 }
 ```
 
-## Events
+### Actions
 
-```jsx
+Use the `onAction` prop on a `<ComboBoxItem>` to perform a custom action when the item is pressed. This example adds a "Create" action for the current input value.
+
+```tsx
+import {ComboBox, ComboBoxItem} from '@react-spectrum/s2/ComboBox';
+import {useState} from 'react';
+
 function Example() {
-  let [value, setValue] = React.useState("");
-  let [majorId, setMajorId] = React.useState("");
+  let [inputValue, setInputValue] = useState('');
 
   return (
-    <>
-      <p>Current selected major id: {majorId}</p>
-      <p>Current input text: {value}</p>
-      <ComboBox
-        label="Pick an engineering major"
-        defaultItems={options}
-        selectedKey={majorId}
-        onSelectionChange={setMajorId}
-        onInputChange={setValue}
-      >
-        {(item) => <Item>{item.name}</Item>}
-      </ComboBox>
-    </>
+    <ComboBox
+      label="Favorite Animal"
+      placeholder="Select an animal"
+      inputValue={inputValue}
+      onInputChange={setInputValue}>
+      {/*- begin highlight -*/}
+      {inputValue.length > 0 && (
+        <ComboBoxItem onAction={() => alert('Creating ' + inputValue)}>
+          {`Create "${inputValue}"`}
+        </ComboBoxItem>
+      )}
+      {/*- end highlight -*/}
+      <ComboBoxItem>Aardvark</ComboBoxItem>
+      <ComboBoxItem>Cat</ComboBoxItem>
+      <ComboBoxItem>Dog</ComboBoxItem>
+      <ComboBoxItem>Kangaroo</ComboBoxItem>
+      <ComboBoxItem>Panda</ComboBoxItem>
+      <ComboBoxItem>Snake</ComboBoxItem>
+    </ComboBox>
   );
 }
 ```
 
-## Validation
+### Links
 
-```jsx
-import { Form, ButtonGroup, Button } from "@adobe/react-spectrum";
+Use the `href` prop on a `<ComboBoxItem>` to create a link. See the [getting started guide](getting-started.md) to learn how to integrate with your framework. Link items in a `ComboBox` are not selectable.
 
-<Form validationBehavior="native" maxWidth="size-3000">
-  <ComboBox label="Favorite animal" name="animal" isRequired>
-    <Item>Aardvark</Item>
-    <Item>Cat</Item>
-    <Item>Dog</Item>
-    <Item>Kangaroo</Item>
-    <Item>Panda</Item>
-    <Item>Snake</Item>
-  </ComboBox>
-  <ButtonGroup>
-    <Button type="submit" variant="primary">
-      Submit
-    </Button>
-    <Button type="reset" variant="secondary">
-      Reset
-    </Button>
-  </ButtonGroup>
-</Form>;
-```
+```tsx
+import {ComboBox, ComboBoxItem} from '@react-spectrum/s2/ComboBox';
 
-## Menu Trigger Options
-
-Control when the menu displays using `menuTrigger`:
-
-```jsx
-<ComboBox label="Select action" menuTrigger="focus">
-  <Item textValue="Add to queue">...</Item>
-</ComboBox>
-
-<ComboBox label="Select action" menuTrigger="manual">
-  <Item textValue="Add to queue">...</Item>
+<ComboBox label="Bookmarks" placeholder="Select a bookmark">
+  <ComboBoxItem href="https://adobe.com/" target="_blank">Adobe</ComboBoxItem>
+  <ComboBoxItem href="https://apple.com/" target="_blank">Apple</ComboBoxItem>
+  <ComboBoxItem href="https://google.com/" target="_blank">Google</ComboBoxItem>
+  <ComboBoxItem href="https://microsoft.com/" target="_blank">Microsoft</ComboBoxItem>
 </ComboBox>
 ```
 
-## Props API
+## Selection
 
-### Core Props
+Use the `defaultSelectedKey` or `selectedKey` prop to set the selected item. The selected key corresponds to the `id` prop of an item. Items can be disabled with the `isDisabled` prop. See the [selection guide](selection.md?component=ComboBox#single-selection) for more details.
 
-| Name                 | Type                             | Default    | Description                            |
-| -------------------- | -------------------------------- | ---------- | -------------------------------------- |
-| `children`           | `CollectionChildren<object>`     | --         | Collection content                     |
-| `menuTrigger`        | `'input' \| 'focus' \| 'manual'` | `'input'`  | Interaction opening the menu           |
-| `isQuiet`            | `boolean`                        | --         | Quiet styling                          |
-| `align`              | `'start' \| 'end'`               | `'start'`  | Menu alignment relative to input       |
-| `direction`          | `'bottom' \| 'top'`              | `'bottom'` | Menu render direction                  |
-| `loadingState`       | `LoadingState`                   | --         | Loading progress indicator state       |
-| `shouldFlip`         | `boolean`                        | `true`     | Auto-flip when space limited           |
-| `menuWidth`          | `DimensionValue`                 | --         | Menu width (min equals combobox width) |
-| `formValue`          | `'text' \| 'key'`                | `'text'`   | Form submission value type             |
-| `shouldFocusWrap`    | `boolean`                        | --         | Circular keyboard navigation           |
-| `defaultItems`       | `Iterable<object>`               | --         | Uncontrolled items                     |
-| `items`              | `Iterable<object>`               | --         | Controlled items                       |
-| `inputValue`         | `string`                         | --         | Controlled input value                 |
-| `defaultInputValue`  | `string`                         | --         | Uncontrolled default input             |
-| `allowsCustomValue`  | `boolean`                        | --         | Allow non-matching input values        |
-| `disabledKeys`       | `Iterable<Key>`                  | --         | Non-interactive items                  |
-| `selectedKey`        | `Key \| null`                    | --         | Controlled selection                   |
-| `defaultSelectedKey` | `Key \| null`                    | --         | Uncontrolled initial selection         |
+```tsx
+import {ComboBox, ComboBoxItem, type Key} from '@react-spectrum/s2/ComboBox';
+import {useState} from 'react';
 
-### State Props
+function Example() {
+  let [animal, setAnimal] = useState<Key | null>("bison");
 
-| Name                 | Type                                                                               | Default  | Description                |
-| -------------------- | ---------------------------------------------------------------------------------- | -------- | -------------------------- |
-| `isDisabled`         | `boolean`                                                                          | --       | Disable input              |
-| `isReadOnly`         | `boolean`                                                                          | --       | Read-only mode             |
-| `isRequired`         | `boolean`                                                                          | --       | Required field validation  |
-| `validationBehavior` | `'aria' \| 'native'`                                                               | `'aria'` | Form validation approach   |
-| `validate`           | `(value: ComboBoxValidationValue) => ValidationError \| true \| null \| undefined` | --       | Custom validation function |
-| `validationState`    | `ValidationState`                                                                  | --       | Valid/invalid visual state |
-| `autoFocus`          | `boolean`                                                                          | --       | Focus on render            |
+  return (
+    <div>
+      <ComboBox
+        label="Pick an animal"
+        placeholder="Select an animal"
+        /*- begin highlight -*/
+        selectedKey={animal}
+        onSelectionChange={setAnimal}>
+        {/*- end highlight -*/}
+        <ComboBoxItem id="koala">Koala</ComboBoxItem>
+        <ComboBoxItem id="kangaroo">Kangaroo</ComboBoxItem>
+        <ComboBoxItem id="platypus" isDisabled>Platypus</ComboBoxItem>
+        <ComboBoxItem id="eagle">Bald Eagle</ComboBoxItem>
+        <ComboBoxItem id="bison">Bison</ComboBoxItem>
+        <ComboBoxItem id="skunk">Skunk</ComboBoxItem>
+      </ComboBox>
+      <p>Current selection: {animal}</p>
+    </div>
+  );
+}
+```
 
-### Label Props
+### Input value
 
-| Name                 | Type                                              | Default   | Description                |
-| -------------------- | ------------------------------------------------- | --------- | -------------------------- |
-| `label`              | `ReactNode`                                       | --        | Label content              |
-| `description`        | `ReactNode`                                       | --        | Field description/hint     |
-| `errorMessage`       | `ReactNode \| (v: ValidationResult) => ReactNode` | --        | Error message display      |
-| `name`               | `string`                                          | --        | Input element name         |
-| `form`               | `string`                                          | --        | Associated `<form>` id     |
-| `labelPosition`      | `'top' \| 'side'`                                 | `'top'`   | Label positioning          |
-| `labelAlign`         | `'start' \| 'end'`                                | `'start'` | Label horizontal alignment |
-| `necessityIndicator` | `'icon' \| 'label'`                               | `'icon'`  | Required indicator display |
-| `contextualHelp`     | `ReactNode`                                       | --        | ContextualHelp element     |
+Use the `inputValue` or `defaultInputValue` prop to set the value of the input field. By default, the value will be reverted to the selected item on blur. Set the `allowsCustomValue` prop to enable entering values that are not in the list.
 
-### Events
+```tsx
+import {ComboBox, ComboBoxItem, type Key} from '@react-spectrum/s2/ComboBox';
+import {useState} from 'react';
 
-| Name                | Type                                                         | Description                                |
-| ------------------- | ------------------------------------------------------------ | ------------------------------------------ |
-| `onOpenChange`      | `(isOpen: boolean, menuTrigger?: MenuTriggerAction) => void` | Menu open state change with trigger action |
-| `onInputChange`     | `(value: string) => void`                                    | Input value change handler                 |
-| `onSelectionChange` | `(key: Key \| null) => void`                                 | Selection change handler                   |
-| `onLoadMore`        | `() => any`                                                  | Infinite scroll/load more trigger          |
-| `onFocus`           | `(e: FocusEvent<HTMLInputElement>) => void`                  | Element receives focus                     |
-| `onBlur`            | `(e: FocusEvent<HTMLInputElement>) => void`                  | Element loses focus                        |
-| `onFocusChange`     | `(isFocused: boolean) => void`                               | Focus status change                        |
-| `onKeyDown`         | `(e: KeyboardEvent) => void`                                 | Key press handler                          |
-| `onKeyUp`           | `(e: KeyboardEvent) => void`                                 | Key release handler                        |
+function Example(props) {
+  let [value, setValue] = useState<Key>('Kangaroo');
 
-### Layout Props (summary)
+  return (
+    <div>
+      <ComboBox
+        {...props}
+        label="Favorite Animal"
+        placeholder="Select an animal"
+        /*- begin highlight -*/
+        
+        inputValue={value}
+        onInputChange={setValue}>
+        {/*- end highlight -*/}
+        <ComboBoxItem id="koala">Koala</ComboBoxItem>
+        <ComboBoxItem id="kangaroo">Kangaroo</ComboBoxItem>
+        <ComboBoxItem id="platypus">Platypus</ComboBoxItem>
+        <ComboBoxItem id="eagle">Bald Eagle</ComboBoxItem>
+        <ComboBoxItem id="bison">Bison</ComboBoxItem>
+        <ComboBoxItem id="skunk">Skunk</ComboBoxItem>
+      </ComboBox>
+      <p>Current input value: {value}</p>
+    </div>
+  );
+}
+```
 
-`flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, `gridColumnStart`, `gridColumnEnd` -- all `Responsive<>` typed.
+### Fully controlled
 
-### Spacing Props (summary)
+Both `inputValue` and `selectedKey` can be controlled simultaneously. However, each interaction will only trigger either `onInputChange` or `onSelectionChange`, not both. When controlling both props, you must update both values accordingly.
 
-`margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY` -- all `Responsive<DimensionValue>`.
+```tsx
+import {ComboBox, ComboBoxItem, type Key} from '@react-spectrum/s2/ComboBox';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+import {useState} from 'react';
 
-### Sizing Props (summary)
+function ControlledComboBox() {
+  /*- begin collapse -*/
+  let options = [
+    {id: 1, name: 'Aerospace'},
+    {id: 2, name: 'Mechanical'},
+    {id: 3, name: 'Civil'},
+    {id: 4, name: 'Biomedical'},
+    {id: 5, name: 'Nuclear'},
+    {id: 6, name: 'Industrial'},
+    {id: 7, name: 'Chemical'},
+    {id: 8, name: 'Agricultural'},
+    {id: 9, name: 'Electrical'}
+  ];
+  /*- end collapse -*/
 
-`width`, `minWidth`, `maxWidth`, `height`, `minHeight`, `maxHeight` -- all `Responsive<DimensionValue>`.
+  let [fieldState, setFieldState] = useState<{selectedKey: Key | null, inputValue: string}>({
+    selectedKey: null,
+    inputValue: ''
+  });
 
-### Positioning Props (summary)
+  let onSelectionChange = (id: Key | null) => {
+    // Update inputValue when selectedKey changes.
+    setFieldState({
+      inputValue: id ? (options.find(o => o.id === id)?.name ?? '') : '',
+      selectedKey: id
+    });
+  };
 
-`position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden` -- all `Responsive<>` typed.
+  let onInputChange = (value: string) => {
+    // Reset selectedKey to null if the input is cleared.
+    setFieldState(prevState => ({
+      inputValue: value,
+      selectedKey: value === '' ? null : prevState.selectedKey
+    }));
+  };
 
-### Advanced Props
+  return (
+    <div>
+      <ComboBox
+        label="Pick a engineering major"
+        placeholder="Select a major"
+        /*- begin highlight -*/
+        defaultItems={options}
+        selectedKey={fieldState.selectedKey}
+        inputValue={fieldState.inputValue}
+        onSelectionChange={onSelectionChange}
+        onInputChange={onInputChange}>
+        {/*- end highlight -*/}
+        {item => <ComboBoxItem>{item.name}</ComboBoxItem>}
+      </ComboBox>
+      <pre className={style({font: 'body'})}>
+        Current selected major id: {fieldState.selectedKey}{'\n'}
+        Current input text: {fieldState.inputValue}
+      </pre>
+    </div>
+  );
+}
+```
 
-| Name               | Type            | Description                 |
-| ------------------ | --------------- | --------------------------- |
-| `UNSAFE_className` | `string`        | CSS className (last resort) |
-| `UNSAFE_style`     | `CSSProperties` | Inline styles (last resort) |
+## Forms
 
-## Accessibility
+Use the `name` prop to submit the `id` of the selected item to the server. Set the `isRequired` prop to validate that the user selects a value, or implement custom client or server-side validation. See the [Forms](forms.md) guide to learn more.
 
-- Provide `label` prop or use `aria-label`/`aria-labelledby` for unlabeled instances
-- Required fields display via `isRequired` prop with `necessityIndicator` option
-- Right-to-left languages automatically flip layout
-- Mobile tray includes accessible search filtering
-- Keyboard navigation: arrow keys, Enter for selection, Escape to close
+```tsx
+import {ComboBox, ComboBoxItem} from '@react-spectrum/s2/ComboBox';
+import {Form} from '@react-spectrum/s2/Form';
+import {Button} from '@react-spectrum/s2/Button';
+
+function Example(props) {
+  return (
+    <Form>
+      <ComboBox
+        {...props}
+        label="Animal"
+        placeholder="e.g. Cat"
+        /*- begin highlight -*/
+        name="animal"
+        
+        /*- end highlight -*/
+        description="Please select an animal.">
+        <ComboBoxItem id="aardvark">Aardvark</ComboBoxItem>
+        <ComboBoxItem id="cat">Cat</ComboBoxItem>
+        <ComboBoxItem id="dog">Dog</ComboBoxItem>
+        <ComboBoxItem id="kangaroo">Kangaroo</ComboBoxItem>
+        <ComboBoxItem id="panda">Panda</ComboBoxItem>
+        <ComboBoxItem id="snake">Snake</ComboBoxItem>
+      </ComboBox>
+      <Button type="submit">Submit</Button>
+    </Form>
+  );
+}
+```
+
+## Popover options
+
+Use the `menuTrigger` prop to control when the popover opens:
+
+- `input` (default): popover opens when the user edits the input text.
+- `focus`: popover opens when the user focuses the input.
+- `manual`: popover only opens when the user presses the trigger button or uses the arrow keys.
+
+The `align`, `direction`, `shouldFlip` and `menuWidth` props control the behavior of the popover.
+
+```tsx
+import {ComboBox, ComboBoxItem} from '@react-spectrum/s2/ComboBox';
+
+<ComboBox>
+  <ComboBoxItem id="red panda">Red Panda</ComboBoxItem>
+  <ComboBoxItem id="cat">Cat</ComboBoxItem>
+  <ComboBoxItem id="dog">Dog</ComboBoxItem>
+  <ComboBoxItem id="aardvark">Aardvark</ComboBoxItem>
+  <ComboBoxItem id="kangaroo">Kangaroo</ComboBoxItem>
+  <ComboBoxItem id="snake">Snake</ComboBoxItem>
+</ComboBox>
+```
+
+## API
+
+```tsx
+<ComboBox>
+  <ComboBoxItem>
+    <Icon /> or <Avatar />
+    <Text slot="label" />
+    <Text slot="description" />
+  </ComboBoxItem>
+  <ComboBoxSection>
+    <Header>
+      <Heading />
+      <Text slot="description" />
+    </Header>
+    <ComboBoxItem />
+  </ComboBoxSection>
+</ComboBox>
+```
+
+### ComboBox
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `align` | `"end" | "start" | undefined` | 'start' | Alignment of the menu relative to the input target. |
+| `allowsCustomValue` | `boolean | undefined` | — | Whether the ComboBox allows a non-item matching input value to be set. |
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `autoFocus` | `boolean | undefined` | — | Whether the element should receive focus on render. |
+| `children` | `((item: T) => ReactNode) | ReactNode` | — | The contents of the collection. |
+| `contextualHelp` | `ReactNode` | — | A ContextualHelp element to place next to the label. |
+| `defaultInputValue` | `string | undefined` | — | The default value of the ComboBox input (uncontrolled). |
+| `defaultItems` | `Iterable<T> | undefined` | — | The list of ComboBox items (uncontrolled). |
+| `defaultSelectedKey` | `Key | null | undefined` | — | The initial selected key in the collection (uncontrolled). |
+| `dependencies` | `readonly any[] | undefined` | — | Values that should invalidate the item cache when using dynamic collections. |
+| `description` | `ReactNode` | — | A description for the field. Provides a hint such as specific requirements for what to choose. |
+| `direction` | `"bottom" | "top" | undefined` | 'bottom' | Direction the menu will render relative to the ComboBox. |
+| `disabledKeys` | `Iterable<Key> | undefined` | — | The item keys that are disabled. These items cannot be selected, focused, or otherwise interacted with. |
+| `errorMessage` | `((v: ValidationResult) => ReactNode) | ReactNode` | — | An error message for the field. |
+| `form` | `string | undefined` | — | The `<form>` element to associate the input with. The value of this attribute must be the id of a `<form>` in the same document. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#form). |
+| `formValue` | `"key" | "text" | undefined` | 'key' | Whether the text or key of the selected item is submitted as part of an HTML form. When `allowsCustomValue` is `true`, this option does not apply and the text is always submitted. |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `inputValue` | `string | undefined` | — | The value of the ComboBox input (controlled). |
+| `isDisabled` | `boolean | undefined` | — | Whether the input is disabled. |
+| `isInvalid` | `boolean | undefined` | — | Whether the input value is invalid. |
+| `isReadOnly` | `boolean | undefined` | — | Whether the input can be selected but not changed by the user. |
+| `isRequired` | `boolean | undefined` | — | Whether user input is required on the input before form submission. |
+| `items` | `Iterable<T> | undefined` | — | The list of ComboBox items (controlled). |
+| `label` | `ReactNode` | — | The content to display as the label. |
+| `labelAlign` | `Alignment | undefined` | 'start' | The label's horizontal alignment relative to the element it is labeling. |
+| `labelPosition` | `LabelPosition | undefined` | 'top' | The label's overall position relative to the element it is labeling. |
+| `loadingState` | `LoadingState | undefined` | — | The current loading state of the ComboBox. Determines whether or not the progress circle should be shown. |
+| `menuTrigger` | `MenuTriggerAction | undefined` | 'input' | The interaction required to display the ComboBox menu. |
+| `menuWidth` | `number | undefined` | — | Width of the menu. By default, matches width of the trigger. Note that the minimum width of the dropdown is always equal to the trigger's width. |
+| `name` | `string | undefined` | — | The name of the input element, used when submitting an HTML form. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#htmlattrdefname). |
+| `necessityIndicator` | `NecessityIndicator | undefined` | 'icon' | Whether the required state should be shown as an icon or text. |
+| `onBlur` | `((e: FocusEvent<HTMLInputElement, Element>) => void) | undefined` | — | Handler that is called when the element loses focus. |
+| `onFocus` | `((e: FocusEvent<HTMLInputElement, Element>) => void) | undefined` | — | Handler that is called when the element receives focus. |
+| `onFocusChange` | `((isFocused: boolean) => void) | undefined` | — | Handler that is called when the element's focus status changes. |
+| `onInputChange` | `((value: string) => void) | undefined` | — | Handler that is called when the ComboBox input value changes. |
+| `onKeyDown` | `((e: KeyboardEvent) => void) | undefined` | — | Handler that is called when a key is pressed. |
+| `onKeyUp` | `((e: KeyboardEvent) => void) | undefined` | — | Handler that is called when a key is released. |
+| `onLoadMore` | `(() => any) | undefined` | — | Handler that is called when more items should be loaded, e.g. while scrolling near the bottom. |
+| `onOpenChange` | `((isOpen: boolean, menuTrigger?: MenuTriggerAction) => void) | undefined` | — | Method that is called when the open state of the menu changes. Returns the new open state and the action that caused the opening of the menu. |
+| `onSelectionChange` | `((key: Key | null) => void) | undefined` | — | Handler that is called when the selection changes. |
+| `placeholder` | `string | undefined` | — | Temporary text that occupies the text input when it is empty. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Attributes/placeholder). |
+| `prefix` | `ReactNode` | — | The prefix to display in the ComboBox. A non-interactive element that appears before the input. |
+| `selectedKey` | `Key | null | undefined` | — | The currently selected key in the collection (controlled). |
+| `shouldFlip` | `boolean | undefined` | true | Whether the element should flip its orientation (e.g. top to bottom or left to right) when there is insufficient room for it to render completely. |
+| `shouldFocusWrap` | `boolean | undefined` | — | Whether keyboard navigation is circular. |
+| `size` | `"L" | "M" | "S" | "XL" | undefined` | 'M' | The size of the Combobox. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `validate` | `((value: ComboBoxValidationValue<"single">) => true | undefined) | ValidationError | null | undefined` | — | A function that returns an error message if a given value is invalid. Validation errors are displayed to the user when the form is submitted if `validationBehavior="native"`. For realtime validation, use the `isInvalid` prop instead. |
+| `validationBehavior` | `"aria" | "native" | undefined` | 'native' | Whether to use native HTML form validation to prevent form submission when the value is missing or invalid, or mark the field as required or invalid via ARIA. |
+
+### ComboBoxItem
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-label` | `string | undefined` | — | An accessibility label for this item. |
+| `children` | `ReactNode` | — |  |
+| `download` | `boolean | string | undefined` | — | Causes the browser to download the linked URL. A string may be provided to suggest a file name. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#download). |
+| `href` | `string | undefined` | — | A URL to link to. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#href). |
+| `hrefLang` | `string | undefined` | — | Hints at the human language of the linked URL. See[MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#hreflang). |
+| `id` | `Key | undefined` | — | The unique id of the item. |
+| `isDisabled` | `boolean | undefined` | — | Whether the item is disabled. |
+| `onAction` | `(() => void) | undefined` | — | Handler that is called when a user performs an action on the item. The exact user event depends on the collection's `selectionBehavior` prop and the interaction modality. |
+| `onBlur` | `((e: FocusEvent<HTMLDivElement, Element>) => void) | undefined` | — | Handler that is called when the element loses focus. |
+| `onFocus` | `((e: FocusEvent<HTMLDivElement, Element>) => void) | undefined` | — | Handler that is called when the element receives focus. |
+| `onFocusChange` | `((isFocused: boolean) => void) | undefined` | — | Handler that is called when the element's focus status changes. |
+| `onHoverChange` | `((isHovering: boolean) => void) | undefined` | — | Handler that is called when the hover state changes. |
+| `onHoverEnd` | `((e: HoverEvent) => void) | undefined` | — | Handler that is called when a hover interaction ends. |
+| `onHoverStart` | `((e: HoverEvent) => void) | undefined` | — | Handler that is called when a hover interaction starts. |
+| `onPress` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when the press is released over the target. |
+| `onPressChange` | `((isPressed: boolean) => void) | undefined` | — | Handler that is called when the press state changes. |
+| `onPressEnd` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when a press interaction ends, either over the target or when the pointer leaves the target. |
+| `onPressStart` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when a press interaction starts. |
+| `onPressUp` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when a press is released over the target, regardless of whether it started on the target or not. |
+| `ping` | `string | undefined` | — | A space-separated list of URLs to ping when the link is followed. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#ping). |
+| `referrerPolicy` | `HTMLAttributeReferrerPolicy | undefined` | — | How much of the referrer to send when following the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#referrerpolicy). |
+| `rel` | `string | undefined` | — | The relationship between the linked resource and the current page. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel). |
+| `routerOptions` | `undefined` | — | Options for the configured client side router. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `target` | `HTMLAttributeAnchorTarget | undefined` | — | The target window for the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#target). |
+| `textValue` | `string | undefined` | — | A string representation of the item's contents, used for features like typeahead. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `value` | `object | undefined` | — | The object value that this item represents. When using dynamic collections, this is set automatically. |
+
+### ComboBoxSection
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-label` | `string | undefined` | — | An accessibility label for the section. |
+| `children` | `((item: T) => ReactElement) | ReactNode` | — | Static child items or a function to render children. |
+| `dependencies` | `readonly any[] | undefined` | — | Values that should invalidate the item cache when using dynamic collections. |
+| `id` | `Key | undefined` | — | The unique id of the section. |
+| `items` | `Iterable<T> | undefined` | — | Item objects in the section. |
+| `value` | `T | undefined` | — | The object value that this section represents. When using dynamic collections, this is set automatically. |
