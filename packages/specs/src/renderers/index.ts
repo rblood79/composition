@@ -1,19 +1,10 @@
 /**
  * Renderers - Public API
  *
- * React, PIXI, CSS 렌더러
+ * CSS Generator + Skia shape/token resolver (ADR-912 단계5 — ReactRenderer orphan 제거)
  *
  * @packageDocumentation
  */
-
-// React Renderer
-export {
-  renderToReact,
-  generateCSSVariables,
-  generateSizeVariables,
-} from "./ReactRenderer";
-
-export type { ReactRenderResult } from "./ReactRenderer";
 
 // Variant/Size resolvers (Skia/Canvas 공용, ADR-100 PixiRenderer 제거 후 분리)
 export { getVariantColors, getSizePreset } from "./utils/variantColors";

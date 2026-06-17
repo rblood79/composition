@@ -191,10 +191,6 @@ export type {
 
 // ─── Renderers ───────────────────────────────────────────────────────────────
 export {
-  // React Renderer
-  renderToReact,
-  generateCSSVariables,
-  generateSizeVariables,
   // Variant/Size resolvers (Skia/Canvas 공용)
   getVariantColors,
   getSizePreset,
@@ -227,7 +223,6 @@ export {
   composeCatalogShapes,
 } from "./renderers";
 
-export type { ReactRenderResult } from "./renderers";
 export type {
   ResolvedContainerVariants,
   NestedSelectorChild,

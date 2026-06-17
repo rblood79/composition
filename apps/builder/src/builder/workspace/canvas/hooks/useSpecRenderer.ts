@@ -7,91 +7,18 @@
  * @since 2026-02-12 Spec Migration Phase 0
  */
 
-import { useMemo } from "react";
 import {
   getVariantColors as getSpecVariantColors,
   getSizePreset as getSpecSizePreset,
   resolveColor,
   hexStringToNumber,
 } from "@composition/specs";
-import type { ComponentSpec, TokenRef } from "@composition/specs";
+import type { TokenRef } from "@composition/specs";
 
-// ============================================
-// Types
-// ============================================
-
-export interface SpecVariantColors {
-  bg: number;
-  bgHover: number;
-  bgPressed: number;
-  text: number;
-  border?: number;
-  borderHover?: number;
-  bgAlpha: number;
-}
-
-export interface SpecSizePreset {
-  height: number;
-  paddingX: number;
-  paddingY: number;
-  fontSize: number;
-  borderRadius: number;
-  iconSize?: number;
-  gap?: number;
-}
-
-// ============================================
-// Hooks
-// ============================================
-
-/**
- * Spec 기반 variant 색상 가져오기
- *
- * @param spec - ComponentSpec
- * @param variant - variant 이름
- * @param theme - 'light' | 'dark' (기본: 'light')
- */
-export function useSpecVariantColors(
-  spec: ComponentSpec<Record<string, unknown>>,
-  variant: string,
-  theme: "light" | "dark" = "light",
-): SpecVariantColors {
-  return useMemo(() => {
-    const variantSpec =
-      spec.variants?.[variant] ?? spec.variants?.[spec.defaultVariant ?? ""];
-    if (!variantSpec) {
-      return getSpecVariantColors(
-        {
-          default: {
-            background: "transparent",
-            border: "transparent",
-            text: "transparent",
-          },
-        } as never,
-        theme,
-      );
-    }
-    return getSpecVariantColors(variantSpec, theme);
-  }, [spec, variant, theme]);
-}
-
-/**
- * Spec 기반 사이즈 프리셋 가져오기
- *
- * @param spec - ComponentSpec
- * @param size - size 이름
- * @param theme - 'light' | 'dark' (기본: 'light')
- */
-export function useSpecSizePreset(
-  spec: ComponentSpec<Record<string, unknown>>,
-  variant: string,
-  theme: "light" | "dark" = "light",
-): SpecSizePreset {
-  return useMemo(() => {
-    const sizeSpec = spec.sizes[variant] || spec.sizes[spec.defaultSize];
-    return getSpecSizePreset(sizeSpec, theme);
-  }, [spec, variant, theme]);
-}
+// ADR-912 단계5 — useSpecVariantColors / useSpecSizePreset hook + SpecVariantColors /
+//   SpecSizePreset 인터페이스는 orphan(호출처 0)이라 제거. getSpecVariantColors /
+//   getSpecSizePreset(=getVariantColors / getSizePreset)은 하단 re-export 로 유지
+//   (rule-파생 shape 어댑트 소비, 영구 엔진).
 
 // ============================================
 // Utilities
