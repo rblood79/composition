@@ -201,7 +201,23 @@ ComponentList 를 catalog 파생으로 단순 전환하면 **palette 노출 컴�
 | **Switcher cleanup** | Switcher(@pixi/ui 세그먼트 컨트롤 = RAC ToggleButtonGroup 중복) 전 레지스트리 제거 + 개발단계라 BC migration 미도입(도입 후 제거)                                                                                                                                                                                                                                                                                                                                               | `2e08f840b` / `0c60de41c` | registration 27/27 + live                                                                                                                                                                                                                      |
 | **R1 Select family** | SelectTrigger(box)/SelectValue(text)/SelectIcon(icon_font escape) catalog cutover + spec 3 삭제 + ComboBox*/Search* synthetic 7 alias 를 factory retype 으로 Select 3 type 에 합류 → **BUILDER_ALIAS_MAP 8→1**(body 만 잔존). consumer 이관: utils contentHeight → rule 유도식 / specSizeField rule fallback(generic) / specTextStyle catalogType / DELEGATING Set 등록(select·combobox·NumberField·SearchField self-compose). buildCatalogShapes 에 placeholder 보편 text 추가 | (본 커밋)                 | selectFamily.test 3/3 + 영향 test 89/89 + shared 318 + specs 510 + type-check 73 baseline 0 신규 + **live(Chrome MCP): Select/ComboBox/NumberField/SearchField DOM+Skia 대칭 렌더, raw tag 0, size delegation L=46px Skia 반영, 콘솔 에러 0)** |
 
-**잔여 collapse**: sub-part ALIAS 6(body — Style 패널 spec 직접 의존, 별도 slice) / Factory creators(58) collapse / rendererMap(93) collapse. `componentRegistrationContract.test.ts` 는 아직 유효(완전 졸업 전).
+**P2 종결 — 파생 가능 registry 전부 완료 (2026-06-17 재실측 + 종속 판정, 사용자 결정)**: 6 registry 를 같은 denominator 로 재실측한 결과 **4/6 이 catalog 단일 source 파생**이다.
+
+| #   | registry          | 개수                        | 상태                                                                                                    |
+| --- | ----------------- | --------------------------- | ------------------------------------------------------------------------------------------------------- |
+| #1  | Component Panel   | 61                          | ✅ `getPaletteItems()` catalog `entry.panel` + overlay 파생 (`2a03a723c`)                               |
+| #2  | BUILDER_ALIAS_MAP | **0**                       | ✅ 빈 맵 — body alias 까지 제거 완료 (R1 + 단계5 step4)                                                 |
+| #3  | BASE_TAG_SPEC_MAP | 3 + childSpecs              | ✅ native 3(Group/frame/Slot) 수동 + `expandChildSpecs` 자동 확장 (cutover spec 60+ 삭제)               |
+| #5  | DEFAULT_PROPS_MAP | 92                          | ✅ `getCatalogDefaultProps`(accepts.default) 파생 base + `FACTORY_LOCAL_DEFAULTS` overlay (`f31772317`) |
+| #4  | rendererMap       | 101                         | ⚠️ catalog generic 흡수 진행 + `DELEGATING_*`(~24) 영구 잔존 (아래)                                     |
+| #6  | Factory creators  | 55(=COMPLEX_COMPONENT_TAGS) | ⚠️ 자식 element-tree 생성 함수 (아래)                                                                   |
+
+잔여 #4·#6 는 **독립 collapse 작업이 아니다** — 종속 판정:
+
+- **#4 rendererMap 잔여 = self-compose 위임의 영구 잔존 설계**. `DELEGATING_INTERNAL_RENDERERS`/`DELEGATING_RAC_RENDERERS`(tabs/progressbar/meter/select/combobox/tree/taggroup/listbox/gridlist/menu/disclosure\*/nav/field/Slider/NumberField/SearchField/CheckboxGroup/RadioGroup/color\* 등 ~24)는 `childrenByParent`(자식 element-tree context)가 필요한 self-compose 라 generic 자식 재귀로 환원 불가(소문자 raw tag 회귀). catalog cutover 로 흡수되는 type 은 이미 generic 경로로 dead 화 중이고, 위임 잔여는 제거 대상이 아니라 의도된 설계.
+- **#6 Factory creators = R-5 reusable composite tree schema 에 종속**. `COMPLEX_COMPONENT_TAGS` 55 는 자식 트리를 생성하는 함수인데 catalog `binding.props.accepts` 는 flat props 만 담고 자식 트리 schema 가 없다. leaf(catalog cutover)는 이미 creators 미경유(`useElementCreator` else 분기), Form 류는 R-5 로 `type:"ref"` 전환 완료. 나머지 COMPLEX 를 파생화하려면 child template schema 를 catalog 에 선축해야 하는데, 소비처 없는 schema 선행 = dormant foundation(`feedback-no-dormant-foundation-ahead-of-flip` 차단 영역).
+
+따라서 P2 는 "파생 가능한 registry(#1·#2·#3·#5) 전부 파생" 으로 완료다. `componentRegistrationContract.test.ts` 는 placeable 55 ⟹ rendererMap/TAG_SPEC_MAP·catalog/getDefaultProps 정합(baseline ratchet 전부 0, 누락 0)을 계속 강제 — `entryUniverseContract.test.ts` 교체는 #4·#6 의 종속 축(generic 흡수 완성 / R-5 후속)이 정리될 때 함께 졸업.
 
 > **R1 회귀 적발 (2026-06-12 live)**: Select/ComboBox/NumberField/SearchField 가 FAMILY_4 catalog cutover 라 generic `cutoverPrimitives` 경로 진입 → 자식(SelectTrigger/Value/Icon) generic 재귀 시 spec 삭제로 `<selecttrigger>` 소문자 raw tag 회귀(React unknown-tag). `DELEGATING_INTERNAL_RENDERERS`(select/combobox) + `DELEGATING_RAC_RENDERERS`(NumberField/SearchField) 등록으로 부모 self-compose 위임 + 자식 재귀 skip(Slider/progressbar 동형). selectFamily.test 가 Set 멤버십 회귀 가드. **교훈**: catalog cutover wrapper 는 자식 sub-part 도 cutover 하면 DELEGATING 위임 필수 — 단위 test(spec 삭제 후 build PASS)로는 안 잡히고 live 통합에서만 적발(MeterValue/SliderTrack 선례 동형).
 
