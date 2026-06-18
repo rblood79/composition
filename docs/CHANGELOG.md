@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [CheckboxGroup/RadioGroup orientation Skia 대칭 복구] - 2026-06-19
+
+CheckboxGroup/RadioGroup 의 orientation(자식 Checkbox/Radio 배치 축)이 Skia builder canvas 에서 무시되던 사용자 보고 버그 수정. CSS preview 는 정상이었고 Skia 만 항상 세로 배치 — D3 symmetric(CSS↔Skia) 위반. 회귀 방지 테스트 동반.
+
+### Bug Fixes
+
+- **CheckboxGroup/RadioGroup orientation 이 Skia canvas 에서 무시됨** (horizontal 로 바꿔도 자식이 세로 유지):
+  - `implicitStyles.ts` 의 CheckboxGroup/RadioGroup 블록이 `flexDirection: specFallback.flexDirection ?? "column"` 로 항상 column 하드코딩하고 orientation prop 을 읽지 않았다. 같은 파일 ToggleButtonGroup/Toolbar 는 `orientation === "vertical" ? "column" : "row"` 로 정상 처리.
+  - **Why**: CSS 는 2단 구조(그룹 `column` > Label + `.checkbox-items` wrapper `row/column`)로 orientation 을 처리하지만, ADR-912 로 중간 컨테이너(CheckboxItems/RadioItems) element 가 폐기돼 Skia 는 그룹 직속 flat `[Label, Checkbox, ...]` 만 받는다. 단일 그룹 flexDirection 으로는 (Label 위 + 자식 가로) 2단 구조를 표현 못 함. labelPosition(그룹↔라벨 축)과는 직교한 자식 배치 축.
+  - 수정: horizontal 시 그룹 `flexDirection: row` + `flexWrap: wrap`, Label 자식에 `flexBasis: 100%` 주입 → Label 이 첫 줄 전체를 차지해 자식 Checkbox/Radio 가 둘째 줄에 가로 배치(CSS 2단 구조를 Skia 1단에서 재현). vertical 은 기존 column 유지. labelPosition=side(sideMode)는 별도 분기라 영향 없음. CSS preview horizontal 시각 확인 + Skia layout(`applyImplicitStyles`) 단위 테스트 8건으로 검증.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`
+
 ## [CheckboxGroup 체크 선택 복구 — preview canonical 분리 결함] - 2026-06-18
 
 빌더 Preview 에서 CheckboxGroup 의 체크 선택이 전혀 작동하지 않던 사용자 보고 버그 수정. ADR-913 slice 3(indicator 시각)와 무관한 선재 결함(FormRenderers 미변경 확인) — ADR-116/122 canonical 전환 시기 잔존. 회귀 방지 테스트 동반.

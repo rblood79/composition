@@ -919,7 +919,17 @@ export function applyImplicitStyles(
       containerProps,
     );
     const sideMode = hasResolvedSideLabelVariant(groupVariant.styles);
-    // Label 필터링 + whiteSpace nowrap 주입
+    // orientation = 자식 Checkbox/Radio 의 배치 축(labelPosition 과 직교).
+    //   CSS 는 2단 구조(그룹 column > Label + `.checkbox-items` wrapper row/column)로 처리하지만,
+    //   ADR-912 로 중간 컨테이너(CheckboxItems/RadioItems)가 폐기돼 Skia 는 그룹 직속 flat
+    //   `[Label, Checkbox, Checkbox, ...]` 만 받는다. 1단 구조에서 CSS 2단과 동일한 시각 결과
+    //   (Label 한 줄 전체 + 자식 가로)를 내려면 flexWrap:wrap + Label flexBasis:100% 로 재현한다.
+    //   ToggleButtonGroup/Toolbar 는 Label 자식이 없어 그룹 flexDirection=orientation 으로 충분하지만,
+    //   CheckboxGroup/RadioGroup 은 Label 을 한 줄 차지시켜야 하므로 wrap 패턴 필요.
+    const orientation =
+      (containerProps?.orientation as string | undefined) ?? "vertical";
+    const isHorizontal = orientation === "horizontal";
+    // Label 필터링 + whiteSpace nowrap 주입 (+ horizontal 시 한 줄 전체 차지)
     filteredChildren = children
       .filter((child) => (child.type === "Label" ? hasLabel : true))
       .map((child) => {
@@ -932,6 +942,11 @@ export function applyImplicitStyles(
               style: {
                 ...cs,
                 whiteSpace: cs.whiteSpace ?? "nowrap",
+                // horizontal: Label 이 한 줄(100%) 전체를 차지해 자식 Checkbox 를 다음 줄로
+                //   밀어낸다(wrap) → CSS 의 "Label 위 + 자식 가로" 2단 구조와 시각 대칭.
+                ...(isHorizontal && !sideMode
+                  ? { flexBasis: cs.flexBasis ?? "100%" }
+                  : {}),
               },
             },
           } as CanvasLayoutNode;
@@ -949,7 +964,13 @@ export function applyImplicitStyles(
           }
         : {
             display: specFallback.display ?? "flex",
-            flexDirection: specFallback.flexDirection ?? "column",
+            // horizontal: 그룹을 row + wrap 으로. Label(flexBasis:100%)이 첫 줄을 채우고
+            //   자식 Checkbox/Radio 가 둘째 줄에 가로 배치된다. vertical 은 기존 column.
+            flexDirection:
+              specFallback.flexDirection ?? (isHorizontal ? "row" : "column"),
+            ...(isHorizontal
+              ? { flexWrap: "wrap", alignItems: "flex-start" }
+              : {}),
           }),
       ...rawParentStyle,
     });
@@ -960,8 +981,9 @@ export function applyImplicitStyles(
   //   자식 Checkbox/Radio 가 CheckboxGroup/RadioGroup 직속이 되어, vertical 배치는
   //   그룹 자체 flex column gap 으로 처리됨(live 검증: Skia/DOM 대칭). 기존 직렬화
   //   프로젝트는 hydration migration(migrateCheckboxRadioItemsStructure)이 2단 승격.
-  //   horizontal orientation 의 Skia↔preview.html 대칭은 CheckboxGroup cutover 경로
-  //   (toRacProps wrapper 미생성) 별도 이슈로 후속 처리.
+  //   horizontal orientation 의 Skia↔preview.html 대칭은 위 CheckboxGroup/RadioGroup 블록에서
+  //   flexWrap:wrap + Label flexBasis:100% 패턴으로 해소(2026-06-19) — CSS 2단(그룹 column +
+  //   .checkbox-items row) 구조를 Skia 1단(그룹 row+wrap, Label 한 줄 차지)으로 재현.
 
   // ── Breadcrumbs ────────────────────────────────────────────────────
   // ADR-086 P5: Breadcrumb child 의 style 주입 (width/minWidth/height/minHeight/
