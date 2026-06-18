@@ -28,14 +28,26 @@
 
 ### 2-B. 수동 판단 필수 영역 (체크리스트로 표기만, 사람이 결정)
 
-| 항목                                                                   | 왜 수동                                                                       | 결정 출처                                                                      |
-| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| variant 6축 구조                                                       | starter 에 variant 개념 물리 부재 (Button.css 단일 룰, data-variant 0건)      | S2 spec 4 (accent/primary/secondary/negative) + catalog 보존 2 (premium/genai) |
-| variant→token 배치                                                     | 어느 variant 가 어느 fill/text/border — design.md per-variant 부재            | 현 catalog componentRulesTable 보존값 정본 채택                                |
-| hover/pressed 색 모델                                                  | starter OKLCH lightness step ↔ rule color-mix srgb 85/75% black = 수학적 상이 | css-tokens.md color-mix 모델 유지 (현 D3 SSOT)                                 |
-| size 5단 스케일 보간                                                   | starter 단일 고정값 (padding 0 var(--spacing-3)) → tier source 부재           | 현 catalog sizes 보존 / 디자인 판단                                            |
-| elevation (box-shadow)                                                 | rule schema boxShadow 필드 부재 → 단색 평탄화                                 | ADR-142 의도된 평탄화 유지 (schema 확장은 별도 ADR)                            |
-| 구조 정보 (archetype/element/grid-area/자식 selector/cssEmitMode/icon) | rule 미보유, `generate-css.ts STRUCTURE_META_ENTRIES` 손편집                  | STRUCTURE_META 직접 작성                                                       |
+| 항목                                                                   | 왜 수동                                                                                                                                                                                                                                | 결정 출처                                                                                                                    |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| variant 6축 구조                                                       | starter variant 축이 catalog 와 불일치 (starter Button = primary/secondary/quiet 3축 — `Button.tsx:12` `variant?` + `utilities.css:47-51` `[data-variant]`; Button.css 자체엔 data-variant 0). 축 불일치라 1:1 결정론 변환 불가 → 수동 | S2 spec 4 (accent/primary/secondary/negative) + catalog 보존 2 (premium/genai). starter quiet 등 신규 축은 §2-C 판정 후 흡수 |
+| variant→token 배치                                                     | 어느 variant 가 어느 fill/text/border — design.md per-variant 부재                                                                                                                                                                     | 현 catalog componentRulesTable 보존값 정본 채택                                                                              |
+| hover/pressed 색 모델                                                  | starter OKLCH lightness step ↔ rule color-mix srgb 85/75% black = 수학적 상이                                                                                                                                                          | css-tokens.md color-mix 모델 유지 (현 D3 SSOT)                                                                               |
+| size 5단 스케일 보간                                                   | starter 단일 고정값 (padding 0 var(--spacing-3)) → tier source 부재                                                                                                                                                                    | 현 catalog sizes 보존 / 디자인 판단                                                                                          |
+| elevation (box-shadow)                                                 | rule schema boxShadow 필드 부재 → 단색 평탄화                                                                                                                                                                                          | ADR-142 의도된 평탄화 유지 (schema 확장은 별도 ADR)                                                                          |
+| 구조 정보 (archetype/element/grid-area/자식 selector/cssEmitMode/icon) | rule 미보유, `packages/specs/scripts/generate-css.ts` `STRUCTURE_META_ENTRIES` 손편집                                                                                                                                                  | STRUCTURE_META 직접 작성                                                                                                     |
+
+### 2-C. starter 신규 variant 채택 / 기각 판정 (slice 진행 중 케이스별)
+
+> starter 가 가진 variant 축이 catalog 와 다를 때 (예: starter Button `quiet` ↔ catalog 미보유), 그 축을 catalog 가 흡수할지 기각할지 케이스별 판정. G2 는 "현 catalog variant 소실 0" 만 보장하므로, **신규 흡수 방향은 본 절차로 별도 결정**한다. 판정 결과를 slice 변환 시 체크리스트 row 로 표기.
+
+| 판정     | 조건                                                                                         | 처리                                                                                                                                 |
+| -------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **흡수** | starter variant 가 S2 정본(react-spectrum.adobe.com)에 대응 개념 존재 + 기존 6축과 의미 직교 | catalog variant 로 신규 등록 ([[feedback-catalog-unrepresentable-is-nonstandard-variant]] — quiet 은 S2 Button `variant=quiet` 정본) |
+| **기각** | starter 자체 변형이라 S2 정본 미준수 (utility 클래스 조합 등) 또는 기존 축과 중복            | 미등록, 기각 사유 1줄 체크리스트 기록                                                                                                |
+| **보류** | S2 대응 여부 불명확 → 레퍼런스(RSP/RAC) 재확인 필요                                          | 해당 slice 에서 보류 표기, 후속 판정                                                                                                 |
+
+starter Button `quiet`: S2 Button `variant=quiet` 정본 존재 → **흡수 후보** (Button slice 착수 시 catalog 7번째 variant 등록 여부 확정).
 
 ## 3. family slice 순서 (vertical slice proof 후 확장)
 

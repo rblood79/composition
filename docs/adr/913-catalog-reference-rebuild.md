@@ -124,3 +124,4 @@ ADR-912 (Implemented 2026-06-18) 로 컴포넌트 시각 SSOT 가 `*.spec.ts` �
 - RAC 업데이트 시 자동 재실행 불가 — family 단위 수동 반복 (도구 미제작 trade-off).
 - Collection family 는 manual 비중 최대(::after divider/grid-area/orientation 미표현 + STRUCTURE_META 손편집) → ROI 최저, 후순위.
 - 전 family 재구축 완료까지 점진 진행 (6 slice 순차) — 단기 일괄 완결 아님.
+- slice 간 catalog 가 부분 재구축된 hybrid 상태로 체류 — 이 기간 공유 토큰(R2) 수정 시 미재구축 family 에 영향 가능. G4 byte-diff-0 + Skia snapshot 불변 Gate 로 차단하되, slice 경계마다 검증 필수.
