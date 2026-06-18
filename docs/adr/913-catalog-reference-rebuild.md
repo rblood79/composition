@@ -36,7 +36,7 @@ ADR-912 (Implemented 2026-06-18) 로 컴포넌트 시각 SSOT 가 `*.spec.ts` �
 - 설명: starter CSS + design.md Mapping 을 입력으로 rule(variants/sizes/fill)을 (반)자동 생성하는 스크립트 제작. RAC 업데이트 시 재실행.
 - 근거: ADR-912 가 제거한 `generate-rules.ts`(spec→table) 의 자리를 starter→table 변환기로 대체하려는 발상. 체계적 RAC 대응이 동기.
 - 위험:
-  - 기술: **HIGH** — 적대적 검증 3렌즈 모두 `proof-overclaims`. "starter theme.css 값 → rule TokenRef 결정론 lookup" 변환 방향이 **존재하지 않음**: `{radius.sm}` 실제 정본은 starter 가 아니라 composition primitives(Skia sm 4)/shared-tokens(CSS var), starter 값(sm 6)은 양쪽 모두와 불일치. variant 축은 starter 에 물리 부재(Button.css data-variant 0건). 자동화 가능 영역이 color base + 스칼라로 축소.
+  - 기술: **HIGH** — 적대적 검증 3렌즈 모두 `proof-overclaims`. "starter theme.css 값 → rule TokenRef 결정론 lookup" 변환 방향이 **존재하지 않음**: `{radius.sm}` 실제 정본은 starter 가 아니라 composition primitives(Skia sm 4)/shared-tokens(CSS var), starter 값(sm 6)은 양쪽 모두와 불일치. variant 축은 starter 와 **불일치**(starter Button = primary/secondary/quiet 3축 — `Button.tsx:12` `variant?` + `utilities.css:47-51` `[data-variant]`; Button.css 자체엔 data-variant 0) — 축 불일치라 1:1 결정론 변환 불가. 자동화 가능 영역이 color base + 스칼라로 축소.
   - 성능: LOW — build-time 도구, 런타임 영향 없음.
   - 유지보수: **HIGH** — 자동화율이 낮은 도구는 출력 검수 비용 + 도구 자체 유지 비용이 이중. variant 구조/size scale/state 파생/elevation 전부 수동 보정 필요 → 도구가 "md 1단 color 초안 생성기" 에 그침.
   - 마이그레이션: MEDIUM — 도구 출력을 신뢰했다가 정정 반복 시 rollback.
@@ -51,15 +51,15 @@ ADR-912 (Implemented 2026-06-18) 로 컴포넌트 시각 SSOT 가 `*.spec.ts` �
   - 유지보수: MEDIUM — RAC 업데이트 시 자동 재실행 불가, 수동 반복. 단 체크리스트가 절차를 고정해 누적 drift(현재 문제의 근본 원인)는 차단.
   - 마이그레이션: LOW — family 단위 점진, slice 별 kill gate 로 회귀 표면 최소.
 
-### 대안 C: 전체 113 컴포넌트 일괄 재작성 후 한 번에 교체
+### 대안 C: 전체 118 ComponentRule entry 일괄 재작성 후 한 번에 교체
 
-- 설명: family 분할 없이 전 rule 을 레퍼런스 기준으로 일괄 재작성 후 한 번에 교체.
+- 설명: family 분할 없이 전 rule 을 레퍼런스 기준으로 일괄 재작성 후 한 번에 교체. **대상 단위 = `COMPONENT_RULES_TABLE` ComponentRule entry 118개** (componentCatalog 112개와 별개 — rule-only 6개 Group/Header/Image/MenuItem/TabPanel/TabPanels 포함). 본 ADR 의 시각 정본은 ComponentRule entry 이므로 재구축 대상은 118.
 - 근거: 연계성 갱장 제거가 확실 (모든 토큰이 동시 정렬).
 - 위험:
   - 기술: MEDIUM — 변환 규칙 자체는 대안 B 와 동일.
   - 성능: LOW.
   - 유지보수: MEDIUM.
-  - 마이그레이션: **HIGH** — 검증 표면이 113 컴포넌트 동시 → CSS↔Skia 대칭 회귀 시 원인 격리 불가. proof gate(작은 family 로 kill criteria 확인 후 확장) 부재 → ADR-144 revert(34 commit) 유형 재발 위험.
+  - 마이그레이션: **HIGH** — 검증 표면이 118 entry 동시 → CSS↔Skia 대칭 회귀 시 원인 격리 불가. proof gate(작은 family 로 kill criteria 확인 후 확장) 부재 → ADR-144 revert(34 commit) 유형 재발 위험.
 
 ### Risk Threshold Check
 
@@ -84,7 +84,7 @@ ADR-912 (Implemented 2026-06-18) 로 컴포넌트 시각 SSOT 가 `*.spec.ts` �
 기각 사유:
 
 - **대안 A 기각**: 자동화율이 도구 제작·유지 비용을 정당화하지 못함. 변환 방향(starter→토큰값) 자체가 존재하지 않아 도구가 틀린 값을 산출할 위험(토큰 정본은 composition primitives).
-- **대안 C 기각**: proof gate 부재로 113 컴포넌트 동시 교체 시 CSS↔Skia 회귀 원인 격리 불가 (마이그레이션 HIGH).
+- **대안 C 기각**: proof gate 부재로 118 entry 동시 교체 시 CSS↔Skia 회귀 원인 격리 불가 (마이그레이션 HIGH).
 
 토큰 정본 방향 결정 (사용자 confirm 2026-06-18): radius/typography/spacing 수치 토큰은 **composition primitives/shared-tokens 유지**. starter 는 variant 축·state·orientation **구조** 와 **누락 컴포넌트** 레퍼런스로만. custom variant(premium/genai)는 **보존** (S2 4 + catalog 2 = 6).
 
