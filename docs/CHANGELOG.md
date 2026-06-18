@@ -7,9 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [CheckboxGroup/RadioGroup orientation Skia 대칭 복구 — labelPosition top/side 4조합] - 2026-06-19
+## [CheckboxGroup/RadioGroup orientation Skia 대칭 복구 — synthetic wrapper 합성] - 2026-06-19
 
-CheckboxGroup/RadioGroup 의 orientation(자식 Checkbox/Radio 배치 축)이 Skia builder canvas 에서 무시되던 사용자 보고 버그 수정. CSS preview 는 정상이었고 Skia 만 항상 세로 배치 — D3 symmetric(CSS↔Skia) 위반. labelPosition(top/side) × orientation(vertical/horizontal) 4조합 전부를 ADR-912 로 wrapper 가 폐기된 Skia 1단 flat 구조에서 재현. 회귀 방지 테스트 동반.
+CheckboxGroup/RadioGroup 의 orientation(자식 Checkbox/Radio 배치 축)이 Skia builder canvas 에서 무시되던 사용자 보고 버그 수정. CSS preview 는 정상이었고 Skia 만 항상 세로 배치 — D3 symmetric(CSS↔Skia) 위반. labelPosition(top/side) × orientation(vertical/horizontal) 4조합 전부를 재현한다. 초기에 1단 flat flexbox 시뮬레이션으로 접근했으나(아래 1·2 항목) side+vertical 에서 자식이 CSS 대비 과하게 우측 + Label 아래로 떨어져 정합 실패 — 최종적으로 **layout 시점에 synthetic items wrapper 노드를 합성**해 CSS 2단 구조를 복원하는 근본 해법으로 전환(3 항목). 회귀 방지 테스트 동반.
 
 ### Bug Fixes
 
@@ -25,6 +25,14 @@ CheckboxGroup/RadioGroup 의 orientation(자식 Checkbox/Radio 배치 축)이 Sk
   - 수정: sideMode 에서 그룹을 `row + flexWrap: wrap`, Label 에 `width: 176 + flexShrink: 0`(좌측 1열 고정). orientation=vertical 시 자식에 `flexBasis: 100% + marginLeft: 192`(Label 폭 들여쓰기) 주입 → 자식이 Label 우측에서 세로로 wrap. orientation=horizontal 은 자식 보정 없이 Label 옆 가로. `calc(100% - Npx)` 는 layout 엔진(`parseCSSPropWithContext`)이 ctx 부재 시 undefined 로 떨어뜨려 미적용됨을 라이브 확인 → `100%` + marginLeft 조합으로 대체.
   - 검증: CSS 정본 4조합 시각 + 1단 flat 재현 전략 라이브 격리 측정, dev 서버 live 모듈 `applyImplicitStyles` 4조합 출력 일치, 회귀 테스트 10건(side+vertical/horizontal 분리 추가).
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts` (CheckboxGroup/RadioGroup sideMode 분기)
+
+- **flat 시뮬레이션이 side+vertical 에서 CSS 와 시각 불일치 → synthetic wrapper 합성으로 근본 해결** (위 1·2 항목 flat 접근의 한계 정정):
+  - 위 flat 1단 시뮬레이션(Label `width: 176` 강제 + 자식 `marginLeft: 192`)을 라이브 측정한 결과 side+vertical 에서 자식이 CSS 정본 대비 약 120px 과하게 우측(x=192 vs CSS x≈72)이고 Label 아래로 떨어졌다(y=24 vs CSS y=0). wrapper 없는 1단 flexbox 는 Label 자연폭 옆에 자식을 붙이는 CSS 2단 구조를 구조적으로 재현할 수 없다.
+  - **Why**: CSS 는 RAC 가 자동 생성하는 `.checkbox-items` wrapper(2단)로 labelPosition(그룹 flex-direction)과 orientation(wrapper flex-direction)을 독립 처리한다. ADR-912 로 그 중간 컨테이너 element 가 **데이터 모델에서** 폐기됐지만, 이는 canonical 1단화일 뿐 layout 시점의 시각 구조와는 별개 관심사다. flat 보정은 단일 flexbox 의 한계로 4조합 중 side+vertical 을 정확히 못 냈다.
+  - 수정: `applyImplicitStyles` 가 `filteredChildren` 을 `[Label?, syntheticItemsWrapper, ...items]` 로 재구성한다. wrapper(`${groupId}__items`, render-space 전용 — canonical/IndexedDB 미영속, ADR-135/136 ID 경계)는 orientation 축(`flexDirection: vertical→column / horizontal→row`)을 담고, 그룹은 labelPosition 축(`top→column / side→row`)을 담는다 — CSS 2단 그대로. `fullTreeLayout` 의 synthetic 처리부를 leaf-only → 자식 보유 컨테이너로 확장(wrapper carrier `__synthChildIds` 의 batch index 를 children 으로 연결, `filteredChildIdsMap` 이 자동 2단 트리 구성). 그룹 직속 childIndices 에서 wrapper 자식 item 을 제외해 이중 부모/이중 렌더 차단.
+  - **Why(데이터-render 분리)**: 자식 Checkbox/Radio 의 canonical `parent_id` 는 그대로 그룹이고, wrapper 는 layout pass 마다 합성됐다 사라지는 render-space 노드다. Skia 렌더는 자동 pass-through(wrapper type 이 collection-item stroke 대상 아님 → 투명 박스, hit-test 는 store 기반이라 wrapper 자동 제외, 렌더 트리는 `filteredChildIdsMap` 기반이라 wrapper 중간 부모 좌표 자동 누적).
+  - 검증: Taffy WASM 격리 호출로 4조합 좌표가 CSS 2단과 정합(side+vertical wrapper x=Label 자연폭 옆 / y=0, 자식 wrapper 내부 세로) + `doubleParent=[]`(이중 부모 0) 확인. 실제 builder 에 CheckboxGroup 추가 후 앱 인스턴스 layout map 직독으로 wrapper 합성·좌표·단일 부모 라이브 확증(런타임 에러 0). 단위 테스트 14건(wrapper 구조 단언으로 전면 재작성).
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts` (wrapper 합성) + `fullTreeLayout.ts` (synthetic 컨테이너 처리 + 이중 부모 제외)
 
 ## [CheckboxGroup 체크 선택 복구 — preview canonical 분리 결함] - 2026-06-18
 

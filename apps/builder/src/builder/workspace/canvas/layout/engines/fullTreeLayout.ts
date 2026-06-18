@@ -1333,8 +1333,24 @@ function traversePostOrder(
   // elementsMap에 없는 자식(Radio/Checkbox/Switch/Toggle의 합성 Label)을
   // leaf 노드로 Taffy 트리에 추가하여 레이아웃을 계산받게 한다.
   // 이를 통해 BuilderCanvas의 renderChildElement가 fullTreeLayoutMap에서 레이아웃을 조회 가능.
+  //
+  // **synthetic 컨테이너 (CheckboxGroup/RadioGroup `__items` wrapper, 2026-06-19)**:
+  //   wrapper.props.__synthChildIds 가 있으면 자식 보유 synthetic 컨테이너다. 자식 item
+  //   (Checkbox/Radio)은 filteredChildren 에 유지돼 위 post-order 재귀(3.)에서 이미 batch 에
+  //   등록됐으므로 indexMap 으로 조회해 wrapper children 으로 연결한다. 그러면 filteredChildIdsMap
+  //   (Step 2)이 wrapperId→[itemIds] 를 자동 생성 → Taffy 2단 트리 구성(CSS `.checkbox-items` 동형).
   for (const synthChild of filteredChildren) {
     if (elementsMap.has(synthChild.id) || indexMap.has(synthChild.id)) continue;
+
+    const synthChildIds = (synthChild.props as Record<string, unknown>)
+      ?.__synthChildIds as string[] | undefined;
+    const synthChildIndices: number[] = [];
+    if (synthChildIds) {
+      for (const itemId of synthChildIds) {
+        const itemIdx = indexMap.get(itemId);
+        if (itemIdx !== undefined) synthChildIndices.push(itemIdx);
+      }
+    }
 
     const synthStyle = (synthChild.props?.style ?? {}) as Record<
       string,
@@ -1342,22 +1358,33 @@ function traversePostOrder(
     >;
     const synthComputed = resolveStyle(synthStyle, computedStyle);
     const isSynthFlexChild = FLEX_GRID_DISPLAYS.has(effectiveDisplay);
+    // 컨테이너 wrapper 는 자식 layout-node 를 enrich/buildNodeStyle 에 전달해 Taffy 가
+    //   자식 합산으로 wrapper 크기를 산출하게 한다(leaf 는 빈 배열).
+    const synthChildNodes = synthChildIds
+      ? (synthChildIds
+          .map((id) => elementsMap.get(id))
+          .filter(Boolean) as CanvasLayoutNode[])
+      : [];
     const synthEnriched = enrichWithIntrinsicSize(
       synthChild,
       childAvail.width,
       childAvail.height,
       synthComputed,
-      [],
+      synthChildNodes,
       getChildElements,
       isSynthFlexChild,
     );
     const synthRecord = buildNodeStyle(
       synthEnriched,
       synthComputed,
-      [],
+      synthChildNodes,
       effectiveDisplay,
     );
-    batch.push({ style: synthRecord, children: [], elementId: synthChild.id });
+    batch.push({
+      style: synthRecord,
+      children: synthChildIndices,
+      elementId: synthChild.id,
+    });
     indexMap.set(synthChild.id, batch.length - 1);
     registerSyntheticElement(synthChild);
   }
@@ -1788,9 +1815,21 @@ function traversePostOrder(
   }
 
   // 6. 자식 batch 인덱스 목록 구성 (filteredChildren 기반)
-  // CSS order 정렬 순서를 유지하기 위해 sortedChildIds 사용
+  // CSS order 정렬 순서를 유지하기 위해 sortedChildIds 사용.
+  //
+  // synthetic 컨테이너 (CheckboxGroup/RadioGroup `__items` wrapper) 의 자식 item 은
+  //   wrapper children 으로 이미 연결됐으므로 group 직속에서 제외한다(이중 부모 방지 —
+  //   동일 노드가 group + wrapper 양쪽 Taffy 자식이 되면 이중 layout/render). wrapper 가
+  //   group 의 자식으로 들어가고, item 은 wrapper 의 자식으로만 들어간다.
+  const wrappedItemIds = new Set<string>();
+  for (const child of filteredChildren) {
+    const ids = (child.props as Record<string, unknown> | undefined)
+      ?.__synthChildIds as string[] | undefined;
+    if (ids) ids.forEach((id) => wrappedItemIds.add(id));
+  }
   const childIndices: number[] = [];
   for (const childId of sortedChildIds) {
+    if (wrappedItemIds.has(childId)) continue; // wrapper 자식 → group 직속 제외
     const childIdx = indexMap.get(childId);
     if (childIdx !== undefined) {
       childIndices.push(childIdx);
