@@ -266,12 +266,31 @@ export function buildCatalogShapes(
         (fill?.alpha ?? 1) !== 0) ||
       !!borderColor;
     const isInlineText = size.height === 0 && !hasOpaqueBg;
-    // leading icon (ADR-912 (B+icon)): icon 옆 text 는 항상 left-align(box 기본 center 가 아님).
-    //   사용자 명시 style.textAlign > leadingIcon left > inline/box 기본. DisclosureHeader 처럼
-    //   transparent box(height>0) 라도 leading icon 동반 text 는 좌측 정렬이 spec parity.
+    // 정렬 우선순위: 사용자 명시 style.textAlign > rule 명시 visual.textAlign > leadingIcon left >
+    //   input field placeholder left > inline/box 기본.
+    // - leading icon (ADR-912 (B+icon)): icon 옆 text 는 항상 left-align(box 기본 center 가 아님).
+    //   DisclosureHeader 처럼 transparent box(height>0) 라도 leading icon 동반 text 는 좌측 정렬.
+    // - visual.textAlign (2026-06-18): rule entry 가 명시적으로 정렬을 줄 수 있는 경로(미래 확장 대비).
+    //   resolveSkiaVisualRule:56 이 v.textAlign 을 visual 로 전달 — 본 우선순위 추가가 소비 경로 연결.
+    // - props.placeholder (2026-06-18): input field value/placeholder text(Input/SelectValue/TextField/
+    //   SearchField/TextArea/Select/ComboBox/DatePicker)는 box(height>0 + opaque bg/border 또는
+    //   variant 없는 shell)라 isInlineText=false → 기본 center 로 오정렬됐다. DOM `<input>`/
+    //   `.react-aria-SelectValue`(starter Select.css `text-align: start`)는 좌측 정렬이 parity.
+    //   `props.placeholder != null` = "사용자 입력값을 표시하는 field leaf" 의 데이터 신호 — placeholder
+    //   는 정확히 input field 군 binding 만 accepts(Button/Badge/Tag/CalendarHeader/Pagination 등 center
+    //   가 맞는 box 는 placeholder 미보유 → 오염 0). 컴포넌트 식별 if 아님(ADR-142 §3 — 데이터 분기).
+    //   TextField 는 variants:{} 라 visual=undefined → visual.textAlign 경로로는 못 잡음, placeholder
+    //   신호가 단일 진입점.
     const textAlign =
       (style?.textAlign as "left" | "center" | "right") ||
-      (visual?.leadingIcon ? "left" : isInlineText ? "left" : "center");
+      visual?.textAlign ||
+      (visual?.leadingIcon
+        ? "left"
+        : props.placeholder != null
+          ? "left"
+          : isInlineText
+            ? "left"
+            : "center");
 
     // underline 등 text-decoration 은 caller 가 rule 메타로 주입(Link.spec composition
     // rootSelectors text-decoration 의 거울). spec 직접 읽기 제거(#8).

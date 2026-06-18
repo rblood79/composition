@@ -266,6 +266,17 @@ export const DELEGATING_RAC_RENDERERS: ReadonlySet<string> = new Set([
   //   자동 emit)을 자기완결로 처리 → rendererMap 위임으로 vertical 보존 + horizontal 대칭.
   "CheckboxGroup",
   "RadioGroup",
+  // 2026-06-18: DateField / TimeField — rac source self-compose 누락 회귀 수정.
+  //   RAC `<DateField>`/`<TimeField>` 는 자식으로 `<DateInput>{(segment) => <DateSegment/>}` render
+  //   function 을 받아야 segment 를 그린다. 이는 generic 자식 재귀(`<RAC.DateField>{children}`)로는
+  //   표현 불가(render function 이지 정적 JSX 아님) → DELEGATING 미등록 시 generic rac 경로로 떨어져
+  //   DateInput 안 segment 0개 = "입력부 내에 아무것도 없음". rendererMap.DateField=renderDateField /
+  //   .TimeField=renderTimeField 가 composition `<DateField>`/`<TimeField>` wrapper(self-compose +
+  //   defaultValue 주입)로 자기완결 렌더 → 위임 + 자식 재귀 skip (NumberField/SearchField 동형).
+  //   DatePicker/DateRangePicker 는 source.kind="internal" 라 이미 INTERNAL 경로로 self-compose(무관).
+  //   Skia 는 datefield_trigger skiaPrimitive 로 trigger field 독립 렌더(시각 결과 대칭, 구현 비대칭).
+  "DateField",
+  "TimeField",
 ]);
 
 /**

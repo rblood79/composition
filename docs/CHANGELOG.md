@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Field 렌더 회귀 2건 수정 — DateField 입력부 + Skia placeholder 정렬] - 2026-06-18
+
+Field family 사용자 보고 렌더 버그 2건(둘 다 ADR-912 cutover 시기 누락 회귀, ADR-913 slice 2 와 무관한 선재). 각 증상별 회귀 방지 테스트 동반.
+
+### Bug Fixes
+
+- **DateField/TimeField CSS Preview 입력부 미렌더** (입력 box 안 날짜/시간 segment 0개):
+  - DateField/TimeField 는 binding `source.kind="rac"` 인데 `DELEGATING_RAC_RENDERERS` 에 미등록 → generic rac 경로로 떨어져 RAC `<DateField>`/`<TimeField>` 가 `<DateInput>{(segment) => <DateSegment/>}` render function children 없이 렌더 → 입력부 segment 0개("입력부 내에 아무것도 없음").
+  - **Why**: RAC DateField/TimeField 는 자식 DateInput render function 을 받아야 segment 를 그리는데, 이는 generic 자식 재귀(정적 JSX)로는 표현 불가 — NumberField/SearchField 와 동형의 self-compose 패턴인데 ADR-912 cutover 시 위임 등록 누락.
+  - 수정: `DELEGATING_RAC_RENDERERS` 에 `DateField`/`TimeField` 추가 → `rendererMap.DateField=renderDateField`/`.TimeField=renderTimeField`(composition wrapper self-compose + defaultValue 주입)로 위임. live 검증 — renderDateField 실제 렌더 시 DateInput segment 6개(날짜)/5개(시간) 정상 생성. DatePicker/DateRangePicker 는 source.kind="internal" 라 INTERNAL 경로로 이미 self-compose(무관).
+  - 위치: `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`
+- **Skia input field value/placeholder 텍스트 가운데 정렬** (TextField 등 입력부 텍스트가 left 아닌 center):
+  - Input/SelectValue/TextField 류 field leaf 는 box(height>0 + opaque bg/border, 또는 variants:{} shell)라 `buildCatalogShapes` 의 `isInlineText=false` → 기본 center 로 그려짐. DOM `<input>`/`.react-aria-SelectValue`(starter Select.css `text-align: start`)는 좌측 정렬이라 Skia↔DOM 비대칭.
+  - **Why**: textAlign 우선순위 체인이 "box(height>0) = center" 가정만 가져 input field value text 를 box 로 오판. CalendarHeader 처럼 center 가 맞는 box 와 구분 못 함.
+  - 수정: `props.placeholder != null` 데이터 신호로 input field value text 를 left override(placeholder 는 정확히 input field 군 binding 만 accepts — Button/Badge/Tag/CalendarHeader/Pagination 등 center box 는 미보유 → 오염 0). ADR-142 §3 데이터 분기(컴포넌트 식별 if 아님). rule 명시 `visual.textAlign` 소비 경로도 함께 연결(미래 확장). live 검증 — TextField/Input/SelectValue → left, Button/Badge/Tag → center 보존.
+  - 위치: `packages/specs/src/renderers/buildCatalogShapes.ts`
+
 ## [Field family CSS↔Skia 정합 복구 — ADR-913 slice 2] - 2026-06-18
 
 ADR-913(catalog 레퍼런스 기준 재구축) slice 2(Field family). Field 11 멤버를 starter 레퍼런스와 1:1 병렬 정밀 측정(8 overclaim 제거 + 12 실재 갭 확정)한 뒤, starter 정본 미반영 drift 4종 7건으로 빌더 Preview(DOM)↔Skia 렌더가 발산하던 것을 복구했다. Input orphan CSS·NumberField stepper·DatePicker quiet 은 사용자 결정/schema·primitive 영역(R5)으로 분리·보류.
