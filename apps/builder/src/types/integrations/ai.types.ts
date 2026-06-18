@@ -4,37 +4,7 @@
  * Defines types for AI integration and natural language processing
  */
 
-import type { ChatMessage, BuilderContext, ComponentIntent } from './chat.types';
-
-// ─── 기존 타입 (GroqService 호환용, deprecated 예정) ───
-
-/** @deprecated GroqAgentService로 전환 예정 */
-export interface AIProvider {
-  chat(message: string, context: BuilderContext): Promise<string>;
-  chatStream(message: string, context: BuilderContext): AsyncGenerator<string>;
-  parseIntent(response: string): ComponentIntent | null;
-}
-
-export interface GroqConfig {
-  apiKey: string;
-  model?: string;
-  temperature?: number;
-  maxTokens?: number;
-}
-
-/** @deprecated AgentEvent로 대체 */
-export interface AIResponse {
-  content: string;
-  intent?: ComponentIntent;
-  suggestions?: string[];
-}
-
-/** @deprecated IntentParser fallback 전용 */
-export interface IntentParserResult {
-  success: boolean;
-  intent?: ComponentIntent;
-  error?: string;
-}
+import type { ChatMessage, BuilderContext } from "./chat.types";
 
 // ─── 신규 타입 (Tool Calling + Agent Loop) ───
 
@@ -42,13 +12,18 @@ export interface IntentParserResult {
  * Agent Loop에서 yield하는 이벤트
  */
 export type AgentEvent =
-  | { type: 'text-delta'; content: string }
-  | { type: 'tool-use-start'; toolName: string; toolCallId: string }
-  | { type: 'tool-result'; toolName: string; toolCallId: string; result: unknown }
-  | { type: 'tool-error'; toolName: string; toolCallId: string; error: string }
-  | { type: 'final'; content: string }
-  | { type: 'aborted' }
-  | { type: 'max-turns-reached' };
+  | { type: "text-delta"; content: string }
+  | { type: "tool-use-start"; toolName: string; toolCallId: string }
+  | {
+      type: "tool-result";
+      toolName: string;
+      toolCallId: string;
+      result: unknown;
+    }
+  | { type: "tool-error"; toolName: string; toolCallId: string; error: string }
+  | { type: "final"; content: string }
+  | { type: "aborted" }
+  | { type: "max-turns-reached" };
 
 /**
  * 스트리밍 중 조립되는 tool call 구조

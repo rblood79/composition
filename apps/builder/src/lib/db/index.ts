@@ -53,53 +53,5 @@ export async function getDB(): Promise<DatabaseAdapter> {
   return promise;
 }
 
-/**
- * 데이터베이스 연결 닫기
- */
-export async function closeDB(): Promise<void> {
-  if (dbInstance) {
-    await dbInstance.close();
-    dbInstance = null;
-    initPromise = null;
-    console.log("[DB] Database closed");
-  }
-}
-
-/**
- * 데이터베이스 초기화 여부 확인
- */
-export function isDBInitialized(): boolean {
-  return dbInstance !== null;
-}
-
-/**
- * 캐시 통계 조회 (개발/디버깅용)
- */
-export async function getCacheStats() {
-  const db = await getDB();
-  if (
-    "cache" in db &&
-    db.cache &&
-    typeof (db.cache as { getStats?: () => unknown }).getStats === "function"
-  ) {
-    return (db.cache as { getStats: () => unknown }).getStats();
-  }
-  return null;
-}
-
-/**
- * 캐시 초기화 (개발/디버깅용)
- */
-export async function clearCache() {
-  const db = await getDB();
-  if (
-    "cache" in db &&
-    db.cache &&
-    typeof (db.cache as { clear?: () => void }).clear === "function"
-  ) {
-    (db.cache as { clear: () => void }).clear();
-  }
-}
-
 // Re-export types
 export type * from "./types";

@@ -641,14 +641,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
       return results[0] || null;
     },
 
-    getByTargetDataTable: async (tableName: string): Promise<ApiEndpoint[]> => {
-      return this.getAllByIndex<ApiEndpoint>(
-        "api_endpoints",
-        "targetCollection",
-        tableName,
-      );
-    },
-
     getAll: async (): Promise<ApiEndpoint[]> => {
       return this.getAllFromStore<ApiEndpoint>("api_endpoints");
     },
@@ -843,77 +835,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
     resetStats: () => {
       this.projectCache.resetStats();
       console.log("[IndexedDB] Cache statistics reset");
-    },
-  };
-
-  // === Batch Operations ===
-
-  batch = {
-    export: async () => {
-      const [project, documents] = await Promise.all([
-        this.projects.getAll().then((projects) => projects[0] || null),
-        this.documents.getAll(),
-      ]);
-
-      return {
-        project,
-        document: project
-          ? (documents.find((doc) => doc.project_id === project.id)?.document ??
-            null)
-          : (documents[0]?.document ?? null),
-      };
-    },
-
-    import: async (data: {
-      project?: Project;
-      document?: CompositionDocument;
-    }): Promise<void> => {
-      if (data.project) {
-        await this.projects.insert(data.project);
-      }
-
-      if (data.document) {
-        const projectId = data.project?.id;
-        if (!projectId) {
-          throw new Error(
-            "Cannot import CompositionDocument without project id",
-          );
-        }
-        await this.documents.put(projectId, data.document);
-      }
-
-      console.log("[IndexedDB] Import completed:", {
-        document: Boolean(data.document),
-      });
-    },
-
-    clear: async (): Promise<void> => {
-      const db = this.ensureDB();
-      return new Promise<void>((resolve, reject) => {
-        const stores = [
-          "projects",
-          "documents",
-          // ✅ 버전 7: Data Panel 스토어들 추가
-          "collections",
-          "api_endpoints",
-          "variables",
-        ];
-        const tx = db.transaction(stores, "readwrite");
-
-        let completed = 0;
-
-        stores.forEach((storeName) => {
-          const request = tx.objectStore(storeName).clear();
-          request.onsuccess = () => {
-            completed++;
-            if (completed === stores.length) {
-              console.log("[IndexedDB] All stores cleared");
-              resolve();
-            }
-          };
-          request.onerror = () => reject(request.error);
-        });
-      });
     },
   };
 }

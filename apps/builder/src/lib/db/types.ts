@@ -103,7 +103,6 @@ export interface DatabaseAdapter {
     getById(id: string): Promise<ApiEndpoint | null>;
     getByProject(projectId: string): Promise<ApiEndpoint[]>;
     getByName(name: string): Promise<ApiEndpoint | null>;
-    getByTargetDataTable(tableName: string): Promise<ApiEndpoint[]>;
     getAll(): Promise<ApiEndpoint[]>;
   };
 
@@ -148,24 +147,6 @@ export interface DatabaseAdapter {
     getById(id: string): Promise<SerializedActionRecord | null>;
     getByProject(projectId: string): Promise<SerializedActionRecord[]>;
     getAll(): Promise<SerializedActionRecord[]>;
-  };
-
-  // Batch Operations
-  batch: {
-    // Export all data for sync
-    export(): Promise<{
-      project: Project | null;
-      document: CompositionDocument | null;
-    }>;
-
-    // Import data from sync
-    import(data: {
-      project?: Project;
-      document?: CompositionDocument;
-    }): Promise<void>;
-
-    // Clear all data
-    clear(): Promise<void>;
   };
 }
 
