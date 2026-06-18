@@ -296,7 +296,3 @@ export function CanvasRouter({ renderElements, children }: CanvasRouterProps) {
     </RouterContext.Provider>
   );
 }
-
-// Legacy alias
-export const PreviewRouter = CanvasRouter;
-export type PreviewRouterProps = CanvasRouterProps;

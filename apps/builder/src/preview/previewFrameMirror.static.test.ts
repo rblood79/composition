@@ -6,7 +6,6 @@ const previewFiles = [
   "App.tsx",
   "router/CanvasRouter.tsx",
   "components/CanonicalNodeRenderer.tsx",
-  "utils/layoutResolver.ts",
 ] as const;
 
 describe("preview frame mirror contract", () => {
