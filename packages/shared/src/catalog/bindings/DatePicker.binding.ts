@@ -37,6 +37,21 @@ export const datePickerBinding: PrimitiveBinding = {
         section: "appearance",
         default: "md",
       },
+      // ADR-913 slice 2 (2026-06-18): labelPosition D2 노출 (measure gap[8]). DatePicker.tsx:84/119/186
+      //   이 이미 prop 수용 + data-label-position emit, DatePicker entry 는 containerVariants(label-
+      //   position.side) 보유 → binding 노출만으로 Inspector 설정 + Skia side 배치 완성 (DateField
+      //   binding 동형). isQuiet 는 Skia buildDatePickerShapes quiet 미구현(gap[10]/R5)으로 노출 보류 —
+      //   노출 시 Skia 평면 box ↔ CSS bottom-border 즉시 비대칭. Skia primitive 구현 후 별도 노출.
+      labelPosition: {
+        kind: "enum",
+        label: "Label Position",
+        section: "appearance",
+        default: "top",
+        options: [
+          { value: "top", label: "Top" },
+          { value: "side", label: "Side" },
+        ],
+      },
       showCalendarIcon: {
         kind: "boolean",
         label: "Show Calendar Icon",

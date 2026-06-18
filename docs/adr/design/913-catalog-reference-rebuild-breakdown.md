@@ -79,12 +79,15 @@ starter Button `quiet`: S2 Button `variant=quiet` 정본 존재 → **흡수 후
 
 > binding(D2)에는 있는데 rule containerVariants(side 배치)가 없어 Skia side 레이아웃 미표현. RSC(React Spectrum) 형태 참조 (label 가진 컴포넌트의 orientation).
 
-| 컴포넌트                             | binding                                                             | rule containerVariants          | 보정 slice             |
-| ------------------------------------ | ------------------------------------------------------------------- | ------------------------------- | ---------------------- |
-| Slider                               | orientation ✓                                                       | ✗                               | 1/proof 직후 또는 별도 |
-| TimeField / SearchField / ColorField | labelPosition ✓                                                     | ✗                               | 2 Field                |
-| Toolbar                              | orientation ✓ (`Toolbar.binding.ts:43-52` enum horizontal/vertical) | ✗                               | 1 Button               |
-| DatePicker                           | labelPosition 없음                                                  | containerVariants 있음 (비일관) | 2 Field                |
+| 컴포넌트                             | binding                                                             | rule containerVariants                        | 보정 slice             |
+| ------------------------------------ | ------------------------------------------------------------------- | --------------------------------------------- | ---------------------- |
+| Slider                               | orientation ✓                                                       | ✗                                             | 1/proof 직후 또는 별도 |
+| TimeField / SearchField / ColorField | labelPosition ✓                                                     | ✅ **slice 2 추가 완료(2026-06-18)**          | 2 Field                |
+| ComboBox / DateRangePicker           | labelPosition ✓ (ComboBox) / DateRangePicker(DatePicker 동형)       | ✅ **slice 2 추가 완료(2026-06-18)**          | 2 Field                |
+| Toolbar                              | orientation ✓ (`Toolbar.binding.ts:43-52` enum horizontal/vertical) | ✗                                             | 1 Button               |
+| DatePicker                           | labelPosition ✅ **slice 2 binding 노출(2026-06-18)**               | containerVariants 보유 + DateRangePicker 정합 | 2 Field                |
+
+> **slice 2 완료(2026-06-18)**: SearchField/ColorField(grid형) + ComboBox/TimeField/DateRangePicker(flex-row형) catalog rule entry 에 `containerVariants["label-position"].side` 추가 + DatePicker binding accepts 에 labelPosition 노출. `applyImplicitStyles` live 검증 — side→flex-direction:row 확증. DatePicker isQuiet 노출은 Skia quiet 미구현(R5)으로 보류. Slider orientation / Toolbar orientation 은 미해소(slice 1 잔여 — orientation 은 labelPosition 과 별개 축, 별도 처리).
 
 보정 메커니즘 = [[feedback-containervariants-catalog-fallback-mechanism]] (builder `LOWERCASE_COMPONENT_RULE_CONTAINER` fallback, specs←shared 경계 준수).
 

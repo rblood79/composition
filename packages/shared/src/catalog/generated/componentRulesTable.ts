@@ -1535,6 +1535,24 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 36,
       },
     },
+    // ADR-913 slice 2 (2026-06-18): label-position:side Skia 복구 — TextField 동형(grid
+    //   form-field layout). ADR-912 단계5 step4 누락분(measure gap[11]). generated
+    //   ColorField.css:178-184 side 블록과 byte-identical. Skia sideMode 트리거 styles 만.
+    containerVariants: {
+      "label-position": {
+        side: {
+          styles: {
+            display: "grid",
+            "grid-template-columns":
+              "var(--form-label-width, max-content) minmax(0, 1fr)",
+            "column-gap": "var(--form-field-gap, var(--spacing-md))",
+            "row-gap": "var(--spacing-xs)",
+            "align-items": "start",
+            width: "100%",
+          },
+        },
+      },
+    },
   },
   ColorPicker: {
     defaultVariant: "default",
@@ -1825,6 +1843,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 10,
       },
     },
+    // ADR-913 slice 2 (2026-06-18): label-position:side Skia 복구 — DateField/TimeField 동형
+    //   (flex-direction:row). ADR-912 단계5 step4 누락분(measure gap[4]). generated
+    //   ComboBox.css:326-329 side 블록과 byte-identical. Skia sideMode 트리거 styles 만 —
+    //   quiet nested(.react-aria-Button)는 DOM generated CSS 전용 제외.
+    containerVariants: {
+      "label-position": {
+        side: {
+          styles: {
+            "flex-direction": "row",
+            "align-items": "flex-start",
+          },
+        },
+      },
+    },
   },
   DateField: {
     // ADR-912 단계5 step4 (2026-06-17): DateField.spec.ts 삭제 — gap 은 base/size block byte-identical
@@ -2047,6 +2079,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 52,
         iconSize: 24,
         gap: 8,
+      },
+    },
+    // ADR-913 slice 2 (2026-06-18): label-position:side Skia 복구 — DatePicker 동형
+    //   (flex-direction:row). DatePicker entry 는 containerVariants 보유하나 DateRangePicker 누락
+    //   (measure gap[9]/gap[10] — 두 컴포넌트 rule 비대칭). generated DateRangePicker.css:370-373
+    //   side 블록과 byte-identical. Skia sideMode 트리거 styles 만 — quiet nested(.react-aria-Group)
+    //   는 DOM generated CSS 전용 제외.
+    containerVariants: {
+      "label-position": {
+        side: {
+          styles: {
+            "flex-direction": "row",
+            "align-items": "flex-start",
+          },
+        },
       },
     },
   },
@@ -4762,6 +4809,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 28,
       },
     },
+    // ADR-913 slice 2 (2026-06-18): label-position:side Skia 복구 — TextField 동형(grid
+    //   form-field layout). ADR-912 단계5 step4 가 TextField/TextArea/NumberField/DateField/
+    //   DatePicker 만 복구하고 SearchField 누락 → Skia sideMode 미적용 비대칭(measure gap[3]).
+    //   generated SearchField.css:311-317 side 블록과 byte-identical. Skia sideMode 트리거 styles 만.
+    containerVariants: {
+      "label-position": {
+        side: {
+          styles: {
+            display: "grid",
+            "grid-template-columns":
+              "var(--form-label-width, max-content) minmax(0, 1fr)",
+            "column-gap": "var(--form-field-gap, var(--spacing-md))",
+            "row-gap": "var(--spacing-xs)",
+            "align-items": "start",
+            width: "100%",
+          },
+        },
+      },
+    },
   },
   Section: {
     defaultVariant: "default",
@@ -6606,6 +6672,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: 0,
         height: 54,
         gap: 10,
+      },
+    },
+    // ADR-913 slice 2 (2026-06-18): label-position:side Skia 복구 — DateField/ComboBox 동형
+    //   (flex-direction:row). ADR-912 단계5 step4 누락분(measure gap[7], breakdown §5 lock-in).
+    //   generated TimeField.css:237-240 side 블록과 byte-identical. Skia sideMode 트리거 styles 만 —
+    //   quiet nested(.react-aria-DateInput)는 DOM generated CSS 전용 제외.
+    containerVariants: {
+      "label-position": {
+        side: {
+          styles: {
+            "flex-direction": "row",
+            "align-items": "flex-start",
+          },
+        },
       },
     },
   },

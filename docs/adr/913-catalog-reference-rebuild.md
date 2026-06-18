@@ -155,3 +155,34 @@ ADR-912 (Implemented 2026-06-18) 로 컴포넌트 시각 SSOT 가 `*.spec.ts` �
 **proof gate 결과**: kill criteria 통과(S1 starter 정본 대조 / S4 G3 대칭 복구 / S5 G4 격리 / S7 live 1:1). proof slice 가치 입증 — 작은 family 범위에서 "catalog 내부 표기 정리 = 정렬" 거짓 결론을 starter 대조가 적발(F5 작동≠정렬). slice 2(Field) 확장 자격 확립.
 
 **slice 1 미해소(별도 slice)**: indicator(`.indicator` utility — Switch=slice 3) / inset(`.inset` utility — Field/DateField/TimeField=slice 2)도 동일 패턴(빌더 Preview generic 렌더가 utility 클래스 누락)으로 추정 — family slice 규율(§3)에 따라 해당 slice 에서 `usesButtonBaseUtility` 동형 처리. breakdown §5 "Toolbar orientation Skia 미표현" 서술 검증은 미해소(별도 grep).
+
+### slice 2 — Field family — 2026-06-18
+
+> **정찰 우선 실행**: slice 1 거짓 통과 교훈(추측 금지, starter 대조 evidence 동반) 반영 — Field family 11 멤버를 starter 레퍼런스와 1:1 병렬 정밀 측정(Workflow wmatqm50o, 22 agent measure→적대적 verify→synthesize). **8 overclaim 제거 + 12 실재 갭 확정**. TextField(4)/Select(4) 는 갭 0 — 추측이 적대적 verify 로 걸러져 "변경 0 = 정렬" 을 starter/code evidence 로 확증(slice 1 cosmetic-match 거짓 통과 유형 회피).
+
+**실재 갭 → slice 2 실행 분류(7건 실행 / Input·stepper·quiet 보류)**:
+
+1. **missing-containerVariants (5건)** — SearchField/ColorField(grid형) + ComboBox/TimeField/DateRangePicker(flex-row형) catalog rule entry 에 `containerVariants["label-position"].side` 누락. ADR-912 단계5 step4(2026-06-17)가 TextField/TextArea/NumberField/DateField/DatePicker 만 복구하고 5 멤버 누락 → Skia sideMode fallback 미적용 → labelPosition="side" 가 DOM 에만 적용·Skia 미표현(비대칭). breakdown §5 lock-in(TimeField/SearchField/ColorField labelPosition) 정합.
+2. **css-skia-asymmetry — TextArea flex-direction (HIGH)** — `archetype:"input-base"`(input ELEMENT 아키타입) + `composition.layout` 부재 → generated CSS 가 flex-direction 미emit → DOM row. Skia 는 `implicitStyles` textfield||textarea 분기 column 하드코딩 → 비대칭. 수정: `composition.layout="flex-column"` 추가(generateBaseStyles 가 archetype 무시, TextField 동형) + `alignItems:"center"` 제거(column 폼 필드 좌측정렬 표준) + `width:fit-content`.
+3. **css-skia-asymmetry — DateInput 배경 (2건)** — DateField/TimeField 의 `.react-aria-DateInput` box 를 Skia 는 `{color.layer-2}` 채우나 DOM generated CSS 는 background 미emit(transparent) → 비대칭. 수정: df-input/time-field-input STRUCTURE_META bridges 에 `background:"var(--bg-inset)"` 추가(`--bg-inset`={color.layer-2}, css-tokens.md field 입력 배경 통일 정책).
+4. **missing-binding-accepts — DatePicker labelPosition (D2)** — DatePicker.tsx 가 이미 prop 수용 + data-label-position emit, DatePicker entry 는 containerVariants 보유하나 binding accepts 미노출 → Inspector 설정 불가. 수정: `DatePicker.binding.ts` accepts 에 labelPosition(enum top/side). **isQuiet 노출 보류** — Skia buildDatePickerShapes quiet 미구현(gap[10]/R5)이라 노출 시 Skia 평면 box ↔ CSS bottom-border 즉시 비대칭(surface minimization).
+
+**보류(사용자 confirm 2026-06-18 / R5)**:
+
+- **Input orphan CSS(gap[0] MEDIUM)** — Input.spec.ts 삭제(2026-06-17) 후 Input.css 가 STRUCTURE_META 미등재 frozen orphan(generate:css 재작성 안 함). 현재 rule 값과 일치해 **사용자-가시 비대칭 0**, 구조적 위험(향후 rule 변경 시 CSS 미전파)만 존재. STRUCTURE_META Input virtual wiring 은 byte-identical 강제 + 회귀 위험 동반 → surface minimization 우선, **별도 작업/후속 slice 로 분리**(사용자 결정).
+- **NumberField stepper(gap[2])** — 돌출 박스 표현에 ComponentRule schema boxShadow 필드 필요 = schema 확장(R5, 별도 ADR).
+- **DatePicker quiet Skia(gap[10])** — Skia buildDatePickerShapes quiet 분기 미구현. isQuiet D2 노출과 짝 → 노출 보류 시 latent 유지(R5).
+- **DateField gap size-aware(gap[6] LOW)** — containerStyles 단일값이라 size-aware gap(4/6/8/10) 표현 불가, intrinsicHeight pre-bake 로 외곽 영향 0 → 후속 흡수.
+
+**slice 1 동형 패턴(preview-utility-omit) 불필요 확인**: 적대적 verify 로 TextField/Select 의 utility-omit 가설 반증 — generated Input/SearchField/Select CSS 가 `background:var(--bg-inset)` 직접 emit(utility 위임 아님). composition 은 `.inset` utility 미채택(ADR-022 S2+RAC 직접 emit 설계) → `usesButtonBaseUtility` 동형(`usesInsetUtility`) 신설 불요. slice 1 의 inset 추정(미해소 항목)은 **반증으로 해소**(별도 slice 처리 불필요).
+
+**검증 (live behavior — Chrome MCP, dev 서버 live 모듈 직접 측정)**:
+
+- **Skia containerVariants 직독(`resolveComponentRule`)**: SearchField/ColorField=grid 6키(display,grid-template-columns,column-gap,row-gap,align-items,width) / ComboBox/TimeField/DateRangePicker=flex-row 2키(flex-direction,align-items). TextField/DatePicker(기존 보유) 대조군 일치.
+- **Skia side 배치 실효(`applyImplicitStyles`)**: TextField labelPosition="side" → effectiveParent.style `flex-direction:row` / "top" → `column`. side=가로/top=세로 결정론 분기 확증(Skia/Taffy 직독).
+- **G1 토큰 환원 정합**: DateInput 배경 — DOM `--bg-inset`(#fafafa light) = Skia `{color.layer-2}`(#fafafa light / #262626 dark) 동일 환원.
+- **generated CSS dev 서버 반영**: DateField/TimeField.css `.react-aria-DateInput { background:var(--bg-inset) }` + TextArea.css `flex-direction:column`+`align-items:flex-start`+`align-items:center` 제거.
+- **G4 byte-diff 격리**: generated CSS diff = DateField/TimeField(DateInput bg) + TextArea(flex-column) 3 파일만. **containerVariants 5건은 byte-diff 0**(side 블록 이미 CSS 존재, rule 은 Skia 런타임 fallback 전용). slice 외 family(Selection/Collection/Overlay/Color) byte-diff 0.
+- **G6**: `pnpm generate:css`(88 files) + `validate:sync` slice 전후 동일(1 ok / 2 errors / 93 warnings — 모두 baseline, slice 2 무관). type-check PASS(builder baseline 71, new 0).
+
+**proof gate 결과**: kill criteria 통과(S1 starter 대조 8 overclaim 제거 / S4 G3 대칭 — side 배치 + DateInput bg + TextArea column / S5 G4 격리 3 파일 / S7 live 1:1). slice 3(Selection-control) 확장 자격 확립. surface minimization 적용(Input wiring 사용자 결정으로 분리, isQuiet 보류).

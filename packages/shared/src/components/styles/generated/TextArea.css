@@ -9,13 +9,13 @@
 .react-aria-TextArea {
   /* Base styles — archetype: input-base */
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
     box-sizing: border-box;
-    font-family: var(--font-sans);
+    width: fit-content;
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   display: flex;
-  align-items: center;
 
   /* Default size */
   font-size: var(--text-base);

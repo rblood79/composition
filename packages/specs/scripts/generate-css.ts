@@ -3452,13 +3452,25 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
   },
   {
     name: "TextArea",
+    // ADR-913 slice 2 (2026-06-18): TextArea 컨테이너 flex-direction DOM(row)↔Skia(column) 비대칭
+    //   해소(measure gap[1] HIGH). 결함: archetype:"input-base"(input ELEMENT 아키타입) +
+    //   composition.layout 부재 → generateBaseStyles 가 flex-direction 미emit → DOM row.
+    //   Skia/Taffy 는 implicitStyles textfield||textarea 분기가 column 하드코딩 → 비대칭.
+    //   수정: composition.layout="flex-column" 추가(generateBaseStyles 가 archetype 무시하고
+    //   COMPOSITION_LAYOUT_STYLES['flex-column']=column+flex-start emit, TextField L2944 동형) +
+    //   top-level containerStyles 의 alignItems:"center" 제거(column 에서 center 는 폼 필드
+    //   좌측정렬 표준과 어긋남, TextField 도 미보유) + composition.containerStyles.width:fit-content
+    //   (TextField 동형). archetype 은 TextArea 전용이라 미변경(blast radius 0, 어차피 layout 이 override).
     archetype: "input-base",
     element: "div",
     containerStyles: {
       display: "flex",
-      alignItems: "center",
     },
     composition: {
+      layout: "flex-column",
+      containerStyles: {
+        width: "fit-content",
+      },
       containerVariants: {
         "label-position": {
           side: {
@@ -3979,6 +3991,11 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
           bridges: {
             display: "inline-flex",
             padding: "var(--df-input-padding)",
+            // ADR-913 slice 2 (2026-06-18): DateInput box 배경 DOM↔Skia 비대칭 해소(measure
+            //   gap[5]). Skia skiaPrimitives datefieldSegments 가 input-bg roundRect 를
+            //   fill:{color.layer-2} 로 그리나 DOM bridge 는 background 미emit(transparent) → 비대칭.
+            //   --bg-inset = {color.layer-2} (css-tokens.md). field 입력 배경 통일 정책 정합.
+            background: "var(--bg-inset)",
             border: "1px solid",
             "border-radius": "var(--border-radius)",
             width: "100%",
@@ -4178,6 +4195,10 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
           bridges: {
             display: "inline-flex",
             padding: "var(--time-field-input-padding)",
+            // ADR-913 slice 2 (2026-06-18): TimeField DateInput box 배경 DOM↔Skia 비대칭 해소
+            //   (measure gap[5] — DateField df-input 동형). Skia 가 {color.layer-2} 채우나 DOM
+            //   bridge 미emit → 비대칭. --bg-inset = {color.layer-2}. field 입력 배경 통일 정책.
+            background: "var(--bg-inset)",
             border: "1px solid",
             "border-radius": "var(--border-radius)",
             width: "100%",

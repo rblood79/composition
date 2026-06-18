@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Field family CSS↔Skia 정합 복구 — ADR-913 slice 2] - 2026-06-18
+
+ADR-913(catalog 레퍼런스 기준 재구축) slice 2(Field family). Field 11 멤버를 starter 레퍼런스와 1:1 병렬 정밀 측정(8 overclaim 제거 + 12 실재 갭 확정)한 뒤, starter 정본 미반영 drift 4종 7건으로 빌더 Preview(DOM)↔Skia 렌더가 발산하던 것을 복구했다. Input orphan CSS·NumberField stepper·DatePicker quiet 은 사용자 결정/schema·primitive 영역(R5)으로 분리·보류.
+
+### Bug Fixes
+
+- **Field labelPosition="side" Skia 미표현** (ADR-913 slice 2, measure gap[3,4,7,11]):
+  - SearchField/ColorField(grid 레이아웃) + ComboBox/TimeField/DateRangePicker(flex-row) 의 catalog rule entry 에 `containerVariants["label-position"].side` 누락 → Skia sideMode fallback 미적용 → labelPosition="side" 설정이 DOM Preview 에만 적용되고 Skia(Builder canvas)는 세로 유지(비대칭).
+  - **Why**: ADR-912 단계5 step4(spec 삭제 대응)가 TextField/TextArea/NumberField/DateField/DatePicker 만 복구하고 5 멤버 누락 — spec 의 containerVariants 가 catalog rule 로 미이관된 회귀.
+  - 수정: rule entry 에 side 블록(generated CSS side 와 byte-identical) 추가 → `LOWERCASE_COMPONENT_RULE_CONTAINER` fallback 자동 소비. live 검증 — `applyImplicitStyles` 가 side→`flex-direction:row` 주입 확증.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`
+- **TextArea 컨테이너 가로/세로 비대칭** (ADR-913 slice 2, measure gap[1]):
+  - generated TextArea.css 가 `flex-direction` 미emit → DOM row, Skia 는 implicitStyles 하드코딩 column → Label/Input 배치 방향 발산.
+  - **Why**: `archetype:"input-base"`(input ELEMENT 아키타입) + `composition.layout` 부재 → `generateBaseStyles` 가 flex-direction 미생성. TextField(default+flex-column)와 historical drift.
+  - 수정: STRUCTURE_META 에 `composition.layout="flex-column"` 추가(archetype 무시, TextField 동형) + `alignItems:"center"` 제거(폼 필드 좌측정렬) + `width:fit-content`.
+  - 위치: `packages/specs/scripts/generate-css.ts`
+- **DateField/TimeField DateInput 입력 box 배경 누락** (ADR-913 slice 2, measure gap[5]):
+  - Skia 는 `.react-aria-DateInput` box 를 `{color.layer-2}` 채우나 DOM generated CSS 는 background 미emit(transparent) → 배경 발산.
+  - **Why**: df-input/time-field-input STRUCTURE_META bridges 가 background 키 누락.
+  - 수정: bridges 에 `background:"var(--bg-inset)"` 추가. G1 토큰 환원 정합 — DOM `--bg-inset`(#fafafa) = Skia `{color.layer-2}`(#fafafa) 동일.
+  - 위치: `packages/specs/scripts/generate-css.ts`
+
+### Features
+
+- **DatePicker `labelPosition` prop 노출** (ADR-913 slice 2, measure gap[8]):
+  - DatePicker binding accepts 에 labelPosition(top/side) 추가 → Inspector 에서 설정 가능. DatePicker.tsx 가 이미 prop 수용 + data-label-position emit, entry 는 containerVariants 보유 → binding 노출만으로 Skia side 배치 완성(DateField 동형).
+  - **Why**: 형제 leaf Field(DateField/TimeField)는 labelPosition 노출, DatePicker 만 미노출(D2 비일관). isQuiet 는 Skia quiet 미구현(R5)으로 노출 보류.
+  - 위치: `packages/shared/src/catalog/bindings/DatePicker.binding.ts`
+
 ## [Button family CSS↔Skia 정합 복구 — ADR-913 slice 1] - 2026-06-18
 
 ADR-913(catalog 레퍼런스 기준 재구축) slice 1(Button family proof). starter 정본 미반영 drift 2건으로 빌더 Preview(DOM)↔Skia 렌더가 발산하던 것을 복구했다. (선행 거짓 통과 commit `8ee4f9da5` revert 후 starter 기준 재구축으로 재실행.)

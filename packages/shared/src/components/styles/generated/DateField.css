@@ -129,6 +129,7 @@
 .react-aria-DateField .react-aria-DateInput {
   display: inline-flex;
   padding: var(--df-input-padding);
+  background: var(--bg-inset);
   border: 1px solid;
   border-radius: var(--border-radius);
   width: 100%;
