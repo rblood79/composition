@@ -256,9 +256,7 @@ export type { SlotProps } from "./Slot.spec";
 
 // ProgressCircle — ADR-912 단계5: spec 삭제 (catalog cutover + generate-css virtual archetype:progress)
 
-// Image
-export { ImageSpec, IMAGE_DIMENSIONS } from "./Image.spec";
-export type { ImageProps } from "./Image.spec";
+// Image — ADR-912 후속 cleanup: spec 삭제 (유일 소비처가 dead getEditor 체인이었음)
 
 // ─── Phase 4: ADR-030 Advanced Components ─────────────────────────────────────
 

@@ -3,4 +3,4 @@
 
 export * from "./types";
 export * from "./hooks";
-export * from "./editors";
+// ADR-912 후속 cleanup: ./editors (getEditor/registry) barrel 삭제 — dead 체인이었음.

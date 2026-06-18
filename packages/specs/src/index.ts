@@ -485,9 +485,8 @@ export type { DatePickerShapesInput } from "./renderers/datePickerShapes";
 // ─── Phase 7: ADR-030 Phase 3 Extended Controls ─────────────────────────────
 // ADR-912 단계5: ProgressCircleSpec/PROGRESSCIRCLE_* 삭제 — catalog cutover(value_fill_arc) +
 //   generate-css virtual 일반화(archetype:progress). diameter 는 layout 인라인 미러로 이관.
-
-export { ImageSpec, IMAGE_DIMENSIONS } from "./components/Image.spec";
-export type { ImageProps } from "./components/Image.spec";
+// ADR-912 후속 cleanup: ImageSpec/IMAGE_DIMENSIONS/ImageProps re-export 제거 — 유일 소비처가
+//   dead getEditor 체인(specRegistry)이었고 함께 제거됨. Image 렌더는 catalog rule 경유.
 
 // ─── Phase 8: ADR-030 Phase 4 Advanced Components ────────────────────────────
 // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): IllustratedMessageSpec/Props +

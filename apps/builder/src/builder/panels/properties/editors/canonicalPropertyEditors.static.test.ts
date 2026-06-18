@@ -22,7 +22,7 @@ const EDITORS = [
 
 const SPECIALIZED_EDITORS = [
   "ElementSlotSelector.tsx",
-  "ListBoxPropertyEditor.tsx",
+  // ADR-912 후속 cleanup: ListBoxPropertyEditor.tsx 삭제 — dead getEditor 체인이었음.
   "SliderEditor.tsx",
 ] as const;
 
@@ -86,7 +86,7 @@ describe("canonical-first property editors", () => {
       "ListBoxItemEditor.tsx",
       "TagEditor.tsx",
       "TreeItemEditor.tsx",
-      "tabsItemActions.ts",
+      // ADR-912 Tabs cutover(6d907be54): tabsItemActions.ts 삭제 — stale readFile 엔트리 정정.
     ] as const) {
       const source = await readFile(resolve(__dirname, filename), "utf-8");
       expect(source).not.toContain(forbiddenStoreTypeImport);
