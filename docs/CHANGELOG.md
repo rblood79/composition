@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [canonical-only/cutover 잔재 dead code 정리 — ADR-120~912 후속 cleanup] - 2026-06-18
+
+ADR-120~128(canonical-only-runtime)과 ADR-912(catalog cutover) Implemented 후속. 전환 과정에서 호출처가 끊긴 legacy/mirror 잔재를 5개 배치로 제거했다. 의도된 boundary adapter(gate 보호) 와 test oracle/helper, hydration migration 은 보존 — "이름에 legacy 포함 ≠ dead" 원칙으로 code grep 호출처 0건 확정분만 제거.
+
+### Architecture
+
+- **type-only + AI-services 잔재 제거** (배치 1·2):
+  - `ai.types.ts`: `AIProvider`/`AIResponse`/`IntentParserResult`/`GroqConfig` interface 제거(live AI 는 `GroqAgentService` + `AIAgentProvider`). `services/ai/GroqService.ts` 파일 삭제(외부 import 0).
+  - `lib/db`: `closeDB`/`isDBInitialized`/`getCacheStats`/`clearCache`/`db.batch.*`/`getByTargetDataTable` 제거. `getDB`(35 import) 보존.
+- **preview-utils orphan 클러스터 제거** (배치 3):
+  - `preview/utils/{layoutResolver,responsiveCSS,propsConverter,eventHandlers}.ts` 파일 삭제 — 활성 preview 렌더는 `@composition/shared/renderers` 의 `toRacProps`/EventEngine 경유, 미사용. `computedStyleExtractor.ts` 는 dead 7심볼 제거 후 live `camelToKebab` 만 잔존.
+  - **Why**: ADR-122 canonical-only 전환으로 자체 collectComputedStyle(App.tsx) 사용 → 구 추출 함수군 호출처 소멸.
+- **property-editor cascade 제거** (배치 4):
+  - dead `getEditor` 체인 전체: `inspector/editors/{registry,index}.ts` + `panels/properties/specRegistry.ts` + 4 PropertyEditor(Menu/TagGroup/ListBox/GridList). active 경로는 `PropertiesPanel → useEditContract → binding.accepts` 단일 진입점.
+  - `packages/specs/components/Image.spec.ts` 삭제 — 유일 소비처가 dead `specRegistry`. **Why**: Image 시각 rule 은 `componentRulesTable.ts` 에 cutover 등록 완료(Skia 렌더 자립, spec 미참조 — live 확증), spec 은 dead 잔재. ADR-912 본문의 "Image 영구 잔존 4" 분류를 "3(Group/Slot/frame)" 으로 정정.
+- **canonical-adapters 확정 dead 제거** (배치 5):
+  - `canonicalSceneModelLegacy.ts`: scene-model Element[] projection helper 6종 제거(live `buildLegacyCanvasSceneGraph` 보존). `instanceResolver.ts`: `resolveDescendantOverrides` 제거(oracle 아님). `useColumnLoader`/`useDeltaMessenger`/`migrateGlobal`(dev no-op)/`services/messaging.ts` 파일 삭제. `transitionEngine.ts` `lerp` deprecated alias 1줄.
+  - **보류 (test 자산 — dead 아님)**: `resolveInstanceElement`(storeBridge.test oracle, canonical↔legacy deep-equal 회귀 10케이스) / `applyCollectionItemsMigration` family(ADR-076 hydration migration) / `resolveComponentVisual`·`variantToVisual`(ADR-912 가 "정당한 test 자산" 으로 명문 보존, VariantSpec→ComponentVisualRule 전수 매핑 계약 test 의 SUT).
+- 검증: 각 배치 type-check PASS(builder baseline 71 불변, shared/publish clean) + 관련 static/oracle test PASS(storeBridge 30/30, canonicalPropertyEditors 6/6) + 배치 4 Chrome MCP live(ListBox/Toolbar 속성 패널 정상 + console error 0 + Image Skia 정상 렌더). (commit: `8fafd0351`)
+
 ## [ADR-912 Implemented 승격 — RAC core + Pencil 백지 직행 컴포넌트 아키텍처 완결] - 2026-06-18
 
 ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 컴포넌트 spec 의 물리 삭제와 전환기 seam 부채 정화가 완결되어, 컴포넌트 시각 SSOT 가 `*.spec.ts` (구 dual-SSOT) 에서 `COMPONENT_RULES_TABLE` catalog 단일 정본으로 전환됐다.
@@ -20,7 +40,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
   - 위치: `packages/specs/src/renderers/utils/resolveComponentVisual.ts`, `packages/specs/src/renderers/CSSGenerator.ts`, `apps/builder/src/builder/workspace/canvas/utils/specTextStyle.ts` (commit: `1a84c8f2b`)
 - **dual-SSOT 소멸 — catalog cutover 대상 spec 전수 물리 삭제 완료**:
   - dist 런타임 재실측: `TAG_SPEC_MAP` 잔존 = `Group, Slot, frame` 3 (childSpecs 자동확장 0) → catalog cutover 대상 spec 0건.
-  - 잔존 spec 4 는 전부 의도된 영구 잔존: `frame`/`Slot` = `nativeEntry`(canonical layout / projected-slot infra, cutover 게이트 외) / `Group` = D1 ARIA semantic(RAC 권위) / `Image` = TAG_SPEC_MAP·catalog 미등록(properties-panel export 만, cutover 직교).
+  - 잔존 spec 3 은 전부 의도된 영구 잔존: `frame`/`Slot` = `nativeEntry`(canonical layout / projected-slot infra, cutover 게이트 외) / `Group` = D1 ARIA semantic(RAC 권위). (`Image` 는 당초 "cutover 직교 영구 잔존" 으로 분류됐으나 2026-06-18 후속 cleanup 에서 dead spec 잔재로 재판정·삭제 — 아래 cleanup 엔트리 참조.)
   - 검증: type-check PASS(builder baseline 71, new violation 0) / specs test 448 PASS(snapshot byte diff 0) / production seam 함수 import 0건 / live(Chrome MCP): console error 0 + Skia 캔버스 정상 렌더 + generated CSS 109 rule 정상 주입.
 
 ## [Color container spec 물리 삭제 — ADR-912 단계5 step4] - 2026-06-17
