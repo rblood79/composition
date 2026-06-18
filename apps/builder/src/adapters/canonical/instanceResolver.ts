@@ -25,14 +25,13 @@ import { getLegacyOverrides } from "./legacyElementFields";
 /**
  * @internal Reusable props merger with deep-style merging.
  *
- * 기존 resolveInstanceProps / resolveDescendantOverrides의 공통 패턴 추출.
- * canonical resolver (Phase 2)도 동일 merge semantics 사용 — DRY.
+ * resolveInstanceProps 및 canonical resolver (Phase 2)의 공통 merge 패턴 추출 — DRY.
  *
  * style 필드는 shallow spread가 아닌 심층 병합(base style + override style).
  * 나머지 필드는 override가 base를 완전히 덮어쓴다.
  *
- * **시각 대칭 보장**: legacy resolveInstanceProps와 resolveDescendantOverrides,
- * 그리고 canonical resolveCanonicalRefProps / resolveCanonicalDescendantOverride
+ * **시각 대칭 보장**: legacy resolveInstanceProps,
+ * canonical resolveCanonicalRefProps / resolveCanonicalDescendantOverride
  * 모두 이 함수를 경유하므로 style 심층 병합 semantics가 단일 구현으로 통일된다.
  */
 export function mergePropsWithStyleDeep(
@@ -84,7 +83,7 @@ export function resolveCanonicalRefProps(
  * descendants[path]가 mode A (속성 patch — id/type/children 모두 없음)일 때
  * 기존 child 노드 속성과 머지. mode B/C는 P2 resolver의 별도 분기 담당.
  *
- * legacy resolveDescendantOverrides와 동일 semantics — mergePropsWithStyleDeep 사용.
+ * mergePropsWithStyleDeep 로 style 심층 병합.
  * canonical 형태의 child 노드를 받으므로 CanonicalNode 반환.
  *
  * @throws 호출자가 mode B(type 존재) 또는 mode C(children 존재)를 잘못 전달한 경우 에러.
@@ -228,30 +227,6 @@ export function resolveInstanceElement(
   };
 }
 
-/**
- * Descendant overrides 적용
- *
- * Instance의 descendants 맵에서 childId에 해당하는 오버라이드를 child element에 적용.
- * 오버라이드가 없으면 원본 반환.
- *
- * @deprecated ADR-116 G5-B P5-B — read-through fallback only.
- * legacy `instance.descendants[childId]` (flat Record<childId, props>) 경로 전용.
- * 신규 canonical 경로는 `resolveCanonicalDescendantOverride`
- * (canonical RefNode.descendants[path] DescendantOverride 3-mode) 사용.
- */
-export function resolveDescendantOverrides(
-  childElement: Element,
-  instanceDescendants: Record<string, Record<string, unknown>> | undefined,
-): Element {
-  if (!instanceDescendants) return childElement;
-
-  const overrides = instanceDescendants[childElement.id];
-  if (!overrides) return childElement;
-
-  const mergedProps = mergePropsWithStyleDeep(childElement.props, overrides);
-
-  return {
-    ...childElement,
-    props: mergedProps,
-  };
-}
+// ADR-912 후속 cleanup: resolveDescendantOverrides 제거 — ADR-116 G5-B read-through
+// fallback 전용이었으나 canonical RefNode.descendants 전환으로 caller 0건.
+// 신규 경로는 resolveCanonicalDescendantOverride (위 정의) 사용.

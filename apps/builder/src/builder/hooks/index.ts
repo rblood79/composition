@@ -15,7 +15,7 @@ export { useAsyncQuery } from "./useAsyncQuery";
 export { useCollectionData } from "./useCollectionData";
 export { collectionDataCache, createCacheKey } from "./useCollectionDataCache";
 export { useCollectionItemManager } from "./useCollectionItemManager";
-export { useColumnLoader } from "./useColumnLoader";
+// ADR-912 후속 cleanup: useColumnLoader export 제거 — 외부 호출 0건 dead.
 export { dataQueryKeys, useDataPanelQuery } from "./useDataQueries";
 
 // Element & Page
@@ -48,7 +48,8 @@ export type {
 } from "./useKeyboardShortcutsRegistry";
 
 // Messaging & Communication
-export { useDeltaMessenger } from "./useDeltaMessenger";
+// ADR-912 후속 cleanup: useDeltaMessenger export 제거 — 외부 호출 0건 dead
+//   (live messenger 는 canvasDeltaMessenger, utils/).
 export { useIframeMessenger } from "./useIframeMessenger";
 export { useThemeMessenger } from "./useThemeMessenger";
 

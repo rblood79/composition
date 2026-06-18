@@ -49,8 +49,8 @@ function sampleCurveDerivative(a: number, b: number, t: number): number {
   return (3 * (1 - 3 * b + 3 * a) * t + 2 * (3 * b - 6 * a)) * t + 3 * a;
 }
 
-/** @deprecated Use lerpNumber from interpolators.ts */
-export const lerp = lerpNumber;
+// ADR-912 후속 cleanup: lerp deprecated alias 제거 — 외부 사용 0건.
+//   직접 lerpNumber (interpolators.ts) 사용. 본 파일 L115 에서 live.
 
 /** CSS named easings */
 export const EASINGS = {

@@ -23,11 +23,10 @@ import type { ListBoxCollectionDataSource } from "../../../components/listbox/li
  *   용도로만 사용. ADR-126 Phase 2 이후 canonical-native shape 으로 정렬.
  * - **pageIndex**: `sceneNodes` 에서 직접 derive 하므로 scene model 내부에서
  *   flat legacy projection 을 만들지 않는다.
- * - **legacy getter**: flat compatibility projection 이 필요한 transition caller 는
- *   `canonicalSceneModelLegacy.ts` (boundary 격리) 의
- *   `getSceneModelElementsLegacy(scene)` / `getSceneModelElementsMapLegacy(scene)`
- *   / `getSceneModelChildrenByParentLegacy(scene)` 사용. ADR-126 Phase 5 시점에
- *   본 helper 제거.
+ * - **legacy getter**: ADR-912 후속 cleanup 으로 scene-model flat projection
+ *   getter 6종 제거됨 (canonical-only 전환으로 caller 0건). 초기 bootstrap
+ *   fallback 인 `canonicalSceneModelLegacy.ts` 의 `buildLegacyCanvasSceneGraph`
+ *   만 boundary 격리되어 잔존.
  *
  * **G2 grep gate (workspace scope 의 flat compatibility projection 사용)**:
  * scene model interface export 자체에 legacy flat array 미포함. compatibility

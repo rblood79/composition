@@ -14,7 +14,6 @@ import { initPerformanceDiagnostics } from "./utils/performance/diagnostics";
 
 // Phase 9: Performance monitors are opt-in diagnostics in dev mode.
 initPerformanceDiagnostics();
-import "./builder/utils/migrateGlobal";
 import "./fonts/initBuiltinFonts";
 import "./builder/fonts/initCustomFonts";
 
