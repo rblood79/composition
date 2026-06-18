@@ -26,6 +26,7 @@ import { getElementForTag } from "@composition/specs";
 import {
   isSpecOrCatalogBacked,
   resolveBackedDefaultSize,
+  usesButtonBaseUtility,
 } from "./utils/specCatalogBacked";
 import type {
   RenderContext as SharedRenderContext,
@@ -574,8 +575,13 @@ function CanvasContent() {
       const tagProps = adaptedElement.props as
         | { size?: string; variant?: string; className?: string }
         | undefined;
+      // ADR-913 slice 1 (2026-06-18): cssEmitMode "button-base" 컴포넌트는 background 를
+      //   `.button-base` utility 에 위임 → DOM 에 button-base 클래스 필수 (CanonicalNodeRenderer
+      //   와 동일 정합). 누락 시 --button-color 만 설정되고 background 미적용(회색).
       const specClassName = specBacked
-        ? `react-aria-${adaptedElement.type}`
+        ? usesButtonBaseUtility(adaptedElement.type)
+          ? `react-aria-${adaptedElement.type} button-base`
+          : `react-aria-${adaptedElement.type}`
         : undefined;
       const mergedClassName =
         [specClassName, tagProps?.className].filter(Boolean).join(" ") ||

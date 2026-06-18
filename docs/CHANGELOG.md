@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Button family CSS↔Skia 정합 복구 — ADR-913 slice 1] - 2026-06-18
+
+ADR-913(catalog 레퍼런스 기준 재구축) slice 1(Button family proof). starter 정본 미반영 drift 2건으로 빌더 Preview(DOM)↔Skia 렌더가 발산하던 것을 복구했다. (선행 거짓 통과 commit `8ee4f9da5` revert 후 starter 기준 재구축으로 재실행.)
+
+### Bug Fixes
+
+- **ToggleButtonGroup Skia 자식 세로 배치** (ADR-913 slice 1):
+  - ADR-912 cutover 가 `display:flex` 를 `generate-css.ts` STRUCTURE_META(DOM CSS 전용)에만 넣고 `COMPONENT_RULES_TABLE.ToggleButtonGroup` entry 에는 누락 → spec 삭제 후 Skia layout fallback(`resolveContainerStylesFallback`)이 빈 객체 반환 → display 미주입 → Taffy block 처리 → 자식 ToggleButton 세로 배치
+  - **Why**: DOM(STRUCTURE_META generated CSS)은 가로 정상, Skia(런타임 rule fallback)만 display 미수신 → CSS↔Skia 비대칭(starter `ToggleButtonGroup.css` line 4 `display:flex` 정본 미반영)
+  - 수정: catalog rule entry 에 `containerStyles: { display, alignItems, width }` 추가 (Skia fallback 이 직독, byte-diff 0 — DOM CSS 불변)
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`
+- **Button primary 배경 회색 (빌더 Preview)** (ADR-913 slice 1):
+  - `cssEmitMode:"button-base"` 컴포넌트(Button/ToggleButton/ToggleButtonGroup)는 generated CSS 가 `--button-color` 변수만 emit 하고 `background` 는 `.button-base` utility 에 위임. 빌더 Preview 렌더 경로(CanonicalNodeRenderer RAC-direct/generic + App.tsx)가 `button-base` 클래스를 누락 → `--button-color` 설정되나 background 미적용(회색)
+  - **Why**: publish shared `Button.tsx` 는 `button-base` 부여하나 빌더 Preview generic 렌더만 누락 → publish↔Preview 발산. Skia 는 rule fill 직독(검은색)이라 Preview 만 회색 → CSS↔Skia 비대칭
+  - 수정: `usesButtonBaseUtility()` 헬퍼(SSOT=STRUCTURE_META `cssEmitMode`) + 빌더 Preview 3 렌더 경로에 `button-base` 부여
+  - 위치: `apps/builder/src/preview/{utils/specCatalogBacked.ts,components/CanonicalNodeRenderer.tsx,App.tsx}`
+
 ## [canonical-only/cutover 잔재 dead code 정리 — ADR-120~912 후속 cleanup] - 2026-06-18
 
 ADR-120~128(canonical-only-runtime)과 ADR-912(catalog cutover) Implemented 후속. 전환 과정에서 호출처가 끊긴 legacy/mirror 잔재를 5개 배치로 제거했다. 의도된 boundary adapter(gate 보호) 와 test oracle/helper, hydration migration 은 보존 — "이름에 legacy 포함 ≠ dead" 원칙으로 code grep 호출처 0건 확정분만 제거.

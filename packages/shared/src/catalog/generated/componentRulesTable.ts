@@ -6767,6 +6767,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   ToggleButtonGroup: {
     defaultVariant: "default",
     defaultSize: "md",
+    // ADR-913 slice 1 (2026-06-18): Skia layout fallback (resolveContainerStylesFallback →
+    //   LOWERCASE_COMPONENT_RULE_CONTAINER) 이 본 필드를 읽어 display:flex 주입. ADR-912 cutover 가
+    //   STRUCTURE_META(generate-css 전용) 에만 containerStyles 를 넣고 rule entry 에는 누락시켜,
+    //   spec 삭제 후 Skia 가 display 미주입 → 자식 세로 배치 회귀(starter ToggleButtonGroup.css line 4
+    //   `display:flex` 정본 미반영). flexDirection 은 implicitStyles togglebuttongroup 분기가
+    //   orientation(row/column)으로 처리 → base 는 display/alignItems 만(STRUCTURE_META 와 동일).
+    containerStyles: {
+      display: "flex",
+      alignItems: "center",
+      width: "fit-content",
+    },
     variants: {
       default: {
         fill: {

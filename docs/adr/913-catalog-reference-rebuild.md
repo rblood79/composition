@@ -127,3 +127,31 @@ ADR-912 (Implemented 2026-06-18) 로 컴포넌트 시각 SSOT 가 `*.spec.ts` �
 - Collection family 는 manual 비중 최대(::after divider/grid-area/orientation 미표현 + STRUCTURE_META 손편집) → ROI 최저, 후순위.
 - 전 family 재구축 완료까지 점진 진행 (6 slice 순차) — 단기 일괄 완결 아님.
 - slice 간 catalog 가 부분 재구축된 hybrid 상태로 체류 — 이 기간 공유 토큰(R2) 수정 시 미재구축 family 에 영향 가능. G4 byte-diff-0 + Skia snapshot 불변 Gate 로 차단하되, slice 경계마다 검증 필수.
+
+## 진행 로그
+
+### slice 1 — Button family (proof slice) — 2026-06-18
+
+> **선행 거짓 통과 정정**: 최초 slice 1 시도(commit `8ee4f9da5`)는 starter 레퍼런스와 대조하지 않고 catalog 내부 lineHeight 표기(숫자→TokenRef)만 정리한 뒤 "Button family 는 이미 정렬됨, 변경 0"이라 결론지었다. 이는 본 ADR Context("catalog rule 값이 starter 구조 대비 drift 크다") 전제와 정면 모순이며, kill criteria F5("작동≠정렬")를 스스로 위반한 거짓 통과였다. 사용자 지적(CSS↔Skia 정합 실패 2건)으로 `8ee4f9da5` revert(`9235c68cb`) 후 starter 기준 재구축으로 재실행.
+
+**root cause — starter 정본 미반영 2건 (사용자 보고)**:
+
+1. **ToggleButtonGroup Skia 세로 배치**: starter `ToggleButtonGroup.css` line 4 `display:flex` 정본이 catalog rule entry 에 미반영. ADR-912 cutover 가 `display:flex` 를 `generate-css.ts` STRUCTURE_META(DOM CSS 생성 전용)에만 넣고 `COMPONENT_RULES_TABLE.ToggleButtonGroup` entry 에는 누락 → spec 삭제 후 Skia layout fallback(`resolveContainerStylesFallback` → `LOWERCASE_COMPONENT_RULE_CONTAINER`)이 빈 객체 반환 → display 미주입 → Taffy block 처리 → 자식 ToggleButton 세로. DOM 은 STRUCTURE_META 기반 generated CSS 로 정상(가로) → **CSS↔Skia 비대칭(D3 G3 위반)**.
+2. **Button primary 배경 회색(DOM)**: starter `.button-base` utility(`utilities.css`) 색 모델 — generated CSS 는 `--button-color` 변수만 emit(`cssEmitMode:"button-base"`)하고 `background: var(--button-color)` 는 `.button-base` 클래스가 적용. publish shared `Button.tsx:75` 는 `react-aria-Button button-base` 2 클래스를 붙이나, **빌더 Preview 렌더 경로(CanonicalNodeRenderer RAC-direct + generic fallback + App.tsx fallback)가 `button-base` 를 누락** → `--button-color`(#171717) 설정되나 background 미적용(기본 회색 `rgb(239,239,239)`). Skia 는 rule `fill.default.base`({color.neutral}) 직독 → 검은색 → **CSS↔Skia 비대칭**.
+
+**수정**:
+
+- **#1**: `COMPONENT_RULES_TABLE.ToggleButtonGroup` 에 `containerStyles: { display:"flex", alignItems:"center", width:"fit-content" }` 추가(STRUCTURE_META 와 동일 값, starter 정본 반영). flexDirection 은 `implicitStyles` togglebuttongroup 분기가 orientation(row/column)으로 처리하므로 base 에 미포함. 위치: `componentRulesTable.ts` ToggleButtonGroup entry.
+- **#2**: `usesButtonBaseUtility(type)` 헬퍼(`specCatalogBacked.ts`, SSOT=STRUCTURE_META `cssEmitMode:"button-base"` 3 type Button/ToggleButton/ToggleButtonGroup) 추가 + 빌더 Preview 3 렌더 경로(CanonicalNodeRenderer RAC-direct `toRacProps` 경로 + generic fallback + App.tsx fallback)가 해당 type 에 `react-aria-{Type} button-base` 부여. publish 경로(shared `Button.tsx`)와 정합.
+
+**검증 (live behavior — Chrome MCP)**:
+
+- **G3 CSS↔Skia 대칭 복구**: Preview DOM 측정 — Button[data-variant=primary] `background: rgb(23,23,23)`(검은) + `color: rgb(255,255,255)`(흰), `button-base` 클래스 부여 확인. ToggleButtonGroup 자식 ToggleButton 가로 배치(DOM `flex-direction:row` + Skia 캔버스 스크린샷 "Toggle 1 / Toggle 2" 가로 인접). Skia 캔버스 스크린샷 — Button 검은 배경/흰 텍스트, ToggleButton 가로. 양 렌더 타겟 시각 일치.
+- **회귀 0**: ToggleButtonGroup 컨테이너 자체 `background: rgba(0,0,0,0)`(transparent fill rule 유지, button-base 가 칠할 색 없음). preview 테스트 23 passed / CanonicalNodeRenderer.button.test 3 passed.
+- **G4 byte-diff 격리**: generated CSS byte diff **0**(catalog rule containerStyles 는 Skia 런타임 fallback 전용 — DOM CSS 는 STRUCTURE_META 가 이미 생성). slice 외 family 영향 0.
+- **G6**: `pnpm generate:css` 재실행(88 files) — diff 0(STRUCTURE_META 불변).
+- type-check PASS (builder baseline 71, new 0).
+
+**proof gate 결과**: kill criteria 통과(S1 starter 정본 대조 / S4 G3 대칭 복구 / S5 G4 격리 / S7 live 1:1). proof slice 가치 입증 — 작은 family 범위에서 "catalog 내부 표기 정리 = 정렬" 거짓 결론을 starter 대조가 적발(F5 작동≠정렬). slice 2(Field) 확장 자격 확립.
+
+**slice 1 미해소(별도 slice)**: indicator(`.indicator` utility — Switch=slice 3) / inset(`.inset` utility — Field/DateField/TimeField=slice 2)도 동일 패턴(빌더 Preview generic 렌더가 utility 클래스 누락)으로 추정 — family slice 규율(§3)에 따라 해당 slice 에서 `usesButtonBaseUtility` 동형 처리. breakdown §5 "Toolbar orientation Skia 미표현" 서술 검증은 미해소(별도 grep).

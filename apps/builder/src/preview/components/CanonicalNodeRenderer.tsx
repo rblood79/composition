@@ -54,6 +54,7 @@ import { Tree } from "@composition/shared/components/Tree";
 import {
   isSpecOrCatalogBacked,
   resolveBackedDefaultSize,
+  usesButtonBaseUtility,
 } from "../utils/specCatalogBacked";
 import type { ResolvedNode } from "@composition/shared";
 import type {
@@ -493,11 +494,21 @@ export function CanonicalNodeRenderer({
       const overrideStyle = toReactStyle(node) as
         | React.CSSProperties
         | undefined;
+      // ADR-913 slice 1 (2026-06-18): cssEmitMode "button-base" 컴포넌트(Button/ToggleButton/
+      //   ToggleButtonGroup)는 generated CSS 가 `--button-color` 만 emit 하고 background 는
+      //   `.button-base` utility 에 위임 → DOM 에 button-base 클래스 필수. toRacProps 는 className 을
+      //   emit 하지 않아 RAC 가 default `react-aria-{Type}` 만 생성(button-base 누락 → background
+      //   미적용 회색). RAC className prop 은 default 를 대체하므로 `react-aria-{Type} button-base`
+      //   전체 명시. publish shared Button.tsx 와 정합 (cssEmitMode SSOT).
+      const buttonBaseClassName = usesButtonBaseUtility(type)
+        ? `react-aria-${type} button-base`
+        : undefined;
       return (
         <PrimitiveComponent
           key={node.id}
           {...markerProps}
           {...racRest}
+          {...(buttonBaseClassName ? { className: buttonBaseClassName } : {})}
           style={overrideStyle}
         >
           {childNodes.length > 0
@@ -542,7 +553,15 @@ export function CanonicalNodeRenderer({
   //   spec 삭제(step 4) 후에도 className/data-size 가 catalog 기준으로 유지되어 컴포넌트 CSS
   //   selector(generated 또는 수동 .react-aria-Label) 매칭 보존.
   const specBacked = isSpecOrCatalogBacked(type);
-  const specClassName = specBacked ? `react-aria-${type}` : undefined;
+  // ADR-913 slice 1 (2026-06-18): cssEmitMode "button-base" 컴포넌트(Button/ToggleButton/
+  //   ToggleButtonGroup)는 generated CSS 가 `--button-color` 만 emit 하고 background 는
+  //   `.button-base` utility 에 위임 → DOM 에 `button-base` 클래스 필수. publish shared 컴포넌트는
+  //   부여하나 generic Preview 렌더는 누락 → background 미적용(회색). cssEmitMode SSOT 와 정합.
+  const specClassName = specBacked
+    ? usesButtonBaseUtility(type)
+      ? `react-aria-${type} button-base`
+      : `react-aria-${type}`
+    : undefined;
   const userClassName = adaptedEl.props?.className as string | undefined;
   const mergedClassName =
     [specClassName, userClassName].filter(Boolean).join(" ") || undefined;
