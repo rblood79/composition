@@ -1,8 +1,8 @@
 /**
  * ADR-076 P5: 컬렉션 items SSOT 마이그레이션 (Select/ComboBox/ListBox 3종 공통)
  *
- * 프로젝트 로드 시 호출되어 legacy element tree 를 부모 props.items 배열로 흡수.
- * ADR-073 P5 `applySelectComboBoxMigration` 을 ListBox 포함 3종 공통 오케스트레이터로 일반화.
+ * legacy element tree 를 부모 props.items 배열로 흡수하는 변환 오케스트레이터.
+ * ADR-073 P5 `applySelectComboBoxMigration` 을 ListBox 포함 3종 공통으로 일반화.
  *
  * ListBox 듀얼 모드 (ADR-076 Hard Constraint #1/#3):
  *   - 정적 모드: props.label 또는 Text/Description subtree 자식 → items[] 흡수
@@ -13,6 +13,24 @@
  * Select/ComboBox 는 항상 흡수 (ADR-073 패턴).
  *
  * 삭제는 `removeElements(orphanIds, { skipHistory: true })` 로 별도 수행 — undo 스택 보존.
+ *
+ * ⚠️ **`applyCollectionItemsMigration` family = test-only (production 호출 0)**:
+ *   `applyCollectionItemsMigration` / `listBoxItemChildrenToItemsArray` /
+ *   `tagChildrenToItemsArray` / `applySelectComboBoxMigration`(BC alias) 는
+ *   production 경로에서 호출되지 않는다. ADR-076 시점(2026-04-18)에는
+ *   `usePageManager.initializeProject` 가 element-array hydrate 시 호출했으나,
+ *   ADR-116 canonical 전환(`ae79affc0`, 2026-05-02)이 hydration 을 canonical
+ *   document 기반으로 바꾸면서 이 호출을 제거했다. 이후 신규 ListBox origin
+ *   bootstrap 은 `ensureListBoxTemplateOrigins`(별도 경로) 가 담당한다.
+ *   `usePageManager.canonical.test.ts` 가 `initFnSource).not.toMatch(
+ *   /applyCollectionItemsMigration\(/)` 로 **hydration 재도입 금지**를 negative-pin 한다.
+ *
+ *   그럼에도 본 family 는 **ADR-076 "items SSOT decision 보존"**(ADR-145 patch
+ *   재확인) 의 변환 계약을 검증하는 정당한 test 자산이다 — `migrateCollectionItems.test.ts`
+ *   (ListBoxItem 자식→items[] 흡수 / Text·Description 직렬화 / idempotency / TagGroup
+ *   2단 이전) + `migrateSelectComboBoxItems.test.ts` 가 SUT 로 사용한다.
+ *   production reachable 0 만 보고 dead 로 제거하지 말 것 (ADR-912 단계5
+ *   `resolveComponentVisual` test-only 와 동형).
  */
 
 import type {
@@ -39,12 +57,12 @@ export type SelectComboBoxMigrationResult<T extends ElementLike> =
   CollectionItemsMigrationResult<T>;
 
 /**
- * 프로젝트 로드 시점 오케스트레이터 (ADR-076 P5).
+ * 컬렉션 items 흡수 오케스트레이터 (ADR-076 P5).
  *
  * 입력 elements 로부터 Select/ComboBox/ListBox 부모의 Item 자식을 수집하여
  * `items[]` 배열로 변환, 부모 props 에 주입한다. 흡수된 자식은 `orphanIds` 로 분리 반환.
  *
- * 호출 측(예: usePageManager.initializeProject)은:
+ * legacy element-array hydration 계약(현재 production 미호출 — 파일 헤더 참조):
  *  1. `migratedElements` 로 store hydrate (자식 제거 + 부모 props.items 병합)
  *  2. `orphanIds` 로 IDB `deleteMany` 수행 (영속 정리)
  *
