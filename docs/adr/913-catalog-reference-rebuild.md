@@ -156,6 +156,8 @@ ADR-912 (Implemented 2026-06-18) 로 컴포넌트 시각 SSOT 가 `*.spec.ts` �
 
 **slice 1 미해소(별도 slice)**: indicator(`.indicator` utility — Switch=slice 3) / inset(`.inset` utility — Field/DateField/TimeField=slice 2)도 동일 패턴(빌더 Preview generic 렌더가 utility 클래스 누락)으로 추정 — family slice 규율(§3)에 따라 해당 slice 에서 `usesButtonBaseUtility` 동형 처리. breakdown §5 "Toolbar orientation Skia 미표현" 서술 검증은 미해소(별도 grep).
 
+> **slice 3 정정 (2026-06-18)**: 위 "utility 클래스 누락 추정" 은 slice 3 정찰에서 정밀 진단 — Switch/Checkbox 는 utility 클래스 누락이 아니라 **`.indicator`/`.checkbox` DOM 자식 노드 자체 누락**(RAC 직접 렌더가 wrapper self-compose 안 함)이었음. `usesButtonBaseUtility`(className 부여) 동형이 아니라 `DELEGATING_RAC_RENDERERS` 등록(renderSwitch/renderCheckbox 위임) 으로 해소. Radio 는 `::before` pseudo 라 누락 없음(등록 제외). slice 3 entry 참조.
+
 ### slice 2 — Field family — 2026-06-18
 
 > **정찰 우선 실행**: slice 1 거짓 통과 교훈(추측 금지, starter 대조 evidence 동반) 반영 — Field family 11 멤버를 starter 레퍼런스와 1:1 병렬 정밀 측정(Workflow wmatqm50o, 22 agent measure→적대적 verify→synthesize). **8 overclaim 제거 + 12 실재 갭 확정**. TextField(4)/Select(4) 는 갭 0 — 추측이 적대적 verify 로 걸러져 "변경 0 = 정렬" 을 starter/code evidence 로 확증(slice 1 cosmetic-match 거짓 통과 유형 회피).
@@ -186,3 +188,22 @@ ADR-912 (Implemented 2026-06-18) 로 컴포넌트 시각 SSOT 가 `*.spec.ts` �
 - **G6**: `pnpm generate:css`(88 files) + `validate:sync` slice 전후 동일(1 ok / 2 errors / 93 warnings — 모두 baseline, slice 2 무관). type-check PASS(builder baseline 71, new 0).
 
 **proof gate 결과**: kill criteria 통과(S1 starter 대조 8 overclaim 제거 / S4 G3 대칭 — side 배치 + DateInput bg + TextArea column / S5 G4 격리 3 파일 / S7 live 1:1). slice 3(Selection-control) 확장 자격 확립. surface minimization 적용(Input wiring 사용자 결정으로 분리, isQuiet 보류).
+
+### slice 3 — Selection-control family — 2026-06-18
+
+> **정찰 우선 실행**: slice 1/2 교훈(추측 금지, starter 대조 evidence 동반) 반영 — Checkbox/CheckboxGroup/Radio/RadioGroup/Switch 5 멤버를 starter 레퍼런스 + primitives 토큰 + Skia primitive + DELEGATING 등록과 4 각도 병렬 정밀 대조(Workflow wkut6giu7, 4 recon→synthesize). **8 overclaim 제거 + 1 실재 갭(G3-1) 확정**. color/size/radius/typography 축은 5 멤버 전부 정합(변경 0) — primitives 토큰 정의 + generated CSS = catalog rule 일치 + Skia primitive(checkbox/radio/switch_toggle) 실재로 closure.
+
+**검증-우선 좁은 slice (실질 재구축 아님)**:
+
+- **color/size/radius 정렬 closure (변경 0)**: 5 멤버의 모든 `{color.*}`(base/layer-1/layer-2/neutral/accent/accent-subtle/negative-subtle/border/border-hover/transparent) + `{typography.text-*}` + `{radius.none/full}` TokenRef 가 primitives 에 정의 + css-tokens.md 매핑 일치 + generated CSS gap(Checkbox 6/8/10, CheckboxGroup 8/12/16, Radio 6/8/10/12, RadioGroup 8/12/16/20, Switch 8/10/12/14)이 catalog rule sizes 와 정확 일치. "변경 0 = 정렬" 을 starter/code evidence 로 확증(slice 1 cosmetic false-pass 회피).
+- **8 overclaim 기각 (잘못된 baseline 대조)**: recon 일부가 "indicator/state CSS 누락" 을 high severity 로 올렸으나 — generated CSS=container-only(indicator 는 cutover 설계상 Skia switch_toggle/checkbox/radio skiaPrimitive + 수동 `::before`/`.indicator` CSS 담당, componentRulesTable indicator 미emit 주석 3곳 명시) vs starter CSS=DOM-full 의 비대칭 비교가 원인. skiaPrimitives.ts:658/744/798 draw 함수 실재 확인으로 전량 기각.
+
+**실재 갭 G3-1 — Switch/Checkbox indicator DOM 자식 누락 회귀 (slice 1 §157 'Switch=slice 3' 항목)**:
+
+- **근본 원인**: composition 의 Switch/Checkbox 시각 모델은 indicator 를 그릴 **DOM 자식 노드**가 CSS selector 타겟. Switch.css `.react-aria-Switch .indicator`(track) + 그 안 `::before`(thumb) / Checkbox.css `.react-aria-Checkbox .checkbox`(box) + svg(checkmark). shared Switch.tsx/Checkbox.tsx 가 `<div className="indicator">`/`<div className="checkbox">` 를 자기완결 합성하는데, preview CanonicalNodeRenderer 의 `binding && PrimitiveComponent` 경로(toRacProps→RAC `<Switch>`/`<Checkbox>` 직접)는 그 자식 div 를 안 만든다 → indicator 시각 완전 누락(track/handle/checkmark 미렌더). live DOM 측정으로 확인(자식 `.indicator`/`.checkbox` 0개).
+- **수정**: `DELEGATING_RAC_RENDERERS` 에 Switch/Checkbox 등록 → rendererMap.Switch=renderSwitch / .Checkbox=renderCheckbox(shared wrapper self-compose)로 위임. DateField/TimeField 동형(정적 자식 div 라는 점만 render function 과 다름). **Radio 제외** — `.react-aria-Radio::before` pseudo-element ring 모델이라 DOM 자식 불요, RAC `<Radio>` 직접 렌더로도 indicator 정상(live 확인). RadioGroup 은 그룹 위임에 이미 포함.
+- **Skia 불변**: switch_toggle/checkbox/radio skiaPrimitive 가 track+thumb/box+checkmark/ring+dot 를 직접 그림(DOM 경로와 독립) → 본 수정은 DOM/CSS 경로 단독, Skia byte 불변. CSS↔Skia 대칭 = DOM indicator 복원으로 Skia 가 이미 그리던 것과 일치.
+
+**live behavior 검증 (CLAUDE.md §완료 기준)**: builder 에서 Switch/Checkbox(body 직속) + RadioGroup(자식 Radio 2) 실제 추가 → 새로고침 후 IndexedDB hydrate 상태에서 preview DOM 측정 — Switch `.indicator`(36×20 캡슐 track, br:20px) / Checkbox `.checkbox`(20×20 box, selected → neutral bg + svg checkmark) / Radio `::before`(20px ring) 전부 정상 렌더. 수정 전 indicator 전량 누락(빈 라벨만) → 수정 후 시각 복원 확증(zoom 스크린샷).
+
+**proof gate 결과**: kill criteria 통과(S1 starter 대조 8 overclaim 제거 / S5 G4 격리 1 파일 + 테스트 1 — generated CSS·Skia byte 불변 / S7 live 1:1 — Switch/Checkbox indicator div 복원·Radio ::before 정상). slice 4(Collection) 확장 자격 확립. surface minimization 적용(Radio 위임 제외 — DOM 자식 불요).

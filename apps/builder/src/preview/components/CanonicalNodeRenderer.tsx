@@ -277,6 +277,20 @@ export const DELEGATING_RAC_RENDERERS: ReadonlySet<string> = new Set([
   //   Skia 는 datefield_trigger skiaPrimitive 로 trigger field 독립 렌더(시각 결과 대칭, 구현 비대칭).
   "DateField",
   "TimeField",
+  // ADR-913 slice 3 (2026-06-18): Switch / Checkbox — toggle-indicator 그룹의 indicator DOM
+  //   자식 누락 회귀 수정. composition 의 Switch/Checkbox 시각 모델은 indicator 를 그릴 DOM 자식
+  //   노드가 CSS selector 의 타겟이다 — Switch.css `.react-aria-Switch .indicator`(track) + 그 안
+  //   `::before`(thumb), Checkbox.css `.react-aria-Checkbox .checkbox`(box) + svg(checkmark). shared
+  //   Switch.tsx/Checkbox.tsx 가 `<div className="indicator">`/`<div className="checkbox">` 를
+  //   자기완결 합성하는데, generic rac 경로(toRacProps→RAC `<Switch>`/`<Checkbox>` 직접)는 그 자식
+  //   div 를 안 만든다 → indicator 시각 완전 누락(track/handle/checkmark 미렌더). DateField/TimeField
+  //   동형(render function 이 아니라 정적 자식 div 라는 점만 다름) → rendererMap.Switch=renderSwitch /
+  //   .Checkbox=renderCheckbox 위임으로 자기완결 합성. Skia 는 switch_toggle/checkbox skiaPrimitive 가
+  //   track+thumb / box+checkmark 를 직접 그림(componentRulesTable indicator 미emit 주석, 시각 대칭).
+  //   Radio 는 제외 — `.react-aria-Radio::before` pseudo-element ring 모델이라 DOM 자식 불요,
+  //   RAC `<Radio>` 직접 렌더로도 indicator 정상(live 확인). RadioGroup 은 위 그룹 위임에 이미 포함.
+  "Switch",
+  "Checkbox",
 ]);
 
 /**

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Selection-control 정합 복구 — ADR-913 slice 3] - 2026-06-18
+
+ADR-913 slice 3 (Selection-control family: Checkbox/CheckboxGroup/Radio/RadioGroup/Switch). 4 각도 병렬 정찰(Workflow wkut6giu7) 결과 color/size/radius/typography 축은 5 멤버 전부 starter 레퍼런스 정합(변경 0) — "정렬됐음" 을 evidence 로 closure(slice 1/2 검증-우선 패턴). 실재 갭 1건(Switch/Checkbox indicator DOM 자식 누락)만 좁게 수정. 회귀 방지 테스트 동반.
+
+### Bug Fixes
+
+- **빌더 Preview 에서 Switch/Checkbox indicator 미렌더** (토글 track·thumb / 체크박스 box·checkmark 안 보임):
+  - composition 의 Switch/Checkbox 시각 모델은 indicator 를 그릴 DOM 자식 노드가 CSS selector 타겟 — Switch.css `.react-aria-Switch .indicator`(track) + `::before`(thumb) / Checkbox.css `.react-aria-Checkbox .checkbox`(box) + svg(checkmark). preview CanonicalNodeRenderer 의 `binding && PrimitiveComponent` 경로(RAC `<Switch>`/`<Checkbox>` 직접 렌더)가 그 자식 div 를 합성 안 해 indicator 시각 완전 누락.
+  - **Why**: shared Switch.tsx/Checkbox.tsx 가 `<div className="indicator">`/`<div className="checkbox">` 를 self-compose 하는데, generic rac 경로는 wrapper 를 거치지 않고 RAC primitive 만 렌더 — DateField/TimeField segment 누락과 동형(정적 자식 div vs render function 차이만). ADR-912 cutover 시 위임 등록 누락.
+  - 수정: `DELEGATING_RAC_RENDERERS` 에 `Switch`/`Checkbox` 추가 → `rendererMap.Switch=renderSwitch`/`.Checkbox=renderCheckbox` wrapper self-compose 위임. Radio 는 `::before` pseudo-element ring 모델이라 DOM 자식 불요(RAC 직접 렌더로도 정상) → 등록 제외. live 검증 — Switch `.indicator`(36×20 캡슐 track) / Checkbox `.checkbox`(20×20 box + selected svg checkmark) / Radio `::before`(20px ring) 전부 정상 렌더(수정 전 전량 누락 → 후 복원). Skia 는 switch_toggle/checkbox/radio skiaPrimitive 가 독립적으로 그려 byte 불변(DOM 경로 단독 수정).
+  - 위치: `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`
+
 ## [Field 렌더 회귀 2건 수정 — DateField 입력부 + Skia placeholder 정렬] - 2026-06-18
 
 Field family 사용자 보고 렌더 버그 2건(둘 다 ADR-912 cutover 시기 누락 회귀, ADR-913 slice 2 와 무관한 선재). 각 증상별 회귀 방지 테스트 동반.
