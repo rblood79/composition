@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [CheckboxGroup 체크 선택 복구 — preview canonical 분리 결함] - 2026-06-18
+
+빌더 Preview 에서 CheckboxGroup 의 체크 선택이 전혀 작동하지 않던 사용자 보고 버그 수정. ADR-913 slice 3(indicator 시각)와 무관한 선재 결함(FormRenderers 미변경 확인) — ADR-116/122 canonical 전환 시기 잔존. 회귀 방지 테스트 동반.
+
+### Bug Fixes
+
+- **빌더 Preview 에서 CheckboxGroup 체크 선택 미작동** (체크박스를 클릭해도 토글 안 됨):
+  - preview(CanonicalNodeRenderer)는 runtime store 의 `canonicalDocument` 필드만 감시해 `resolveCanonicalDocument()` 로 ResolvedNode 트리를 렌더한다. CheckboxGroup 은 controlled `value={selectedValues}` 였고, `selectedValues` 는 canonical 트리(`flattenNodeChildrenByParent`)에서 추출한 자식 `props.isSelected` 기반인데, 클릭 시 그룹 onChange 는 `batchUpdateElementProps`(runtime store 의 `elements` 배열)만 갱신했다.
+  - **Why**: runtime `elements` 배열 변화는 `canonicalDocument` 를 바꾸지 않고 preview→canonical 역전파 경로도 없다 → canonical 렌더가 재계산 안 되어 `selectedValues` 가 영원히 stale → controlled value 가 RAC 내부 토글을 막아 체크가 화면에 반영 안 됨. 같은 패키지·경로의 RadioGroup 은 `defaultValue`(uncontrolled)라 RAC 자체 상태로 토글이 즉시 보이며 정상 동작 — 이 차이가 root cause 를 가렸다(라이브로 RadioGroup 정상 / CheckboxGroup 미작동 대조 확인).
+  - 수정: RadioGroup 작동 패턴에 맞춰 CheckboxGroup 을 `value` → `defaultValue`(uncontrolled)로 전환 + 자식 `<Checkbox>` 개별 onChange 제거(그룹 onChange 와 경합 제거). 표시는 RAC 내부 상태, 영속화는 그룹 onChange 가 일괄 담당(분리). 라이브 검증 — 클릭 → checkmark(svg) + `data-selected` 표시, 재클릭 → 해제(양방향 toggle 정상). 수정 전 모든 클릭 무반응.
+  - 위치: `packages/shared/src/renderers/FormRenderers.tsx` (`renderCheckboxGroup`)
+
 ## [Selection-control 정합 복구 — ADR-913 slice 3] - 2026-06-18
 
 ADR-913 slice 3 (Selection-control family: Checkbox/CheckboxGroup/Radio/RadioGroup/Switch). 4 각도 병렬 정찰(Workflow wkut6giu7) 결과 color/size/radius/typography 축은 5 멤버 전부 starter 레퍼런스 정합(변경 0) — "정렬됐음" 을 evidence 로 closure(slice 1/2 검증-우선 패턴). 실재 갭 1건(Switch/Checkbox indicator DOM 자식 누락)만 좁게 수정. 회귀 방지 테스트 동반.

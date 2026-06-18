@@ -553,12 +553,7 @@ export const renderCheckboxGroup = (
   element: PreviewElement,
   context: RenderContext,
 ): React.ReactNode => {
-  const {
-    elements,
-    updateElementProps,
-    batchUpdateElementProps,
-    renderElement,
-  } = context;
+  const { elements, batchUpdateElementProps, renderElement } = context;
 
   // Compositional: Label + CheckboxItems(중간 컨테이너) + Checkbox(레거시) 자식 분리
   const allChildren = context.childrenByParent.get(element.id) ?? [];
@@ -593,7 +588,16 @@ export const renderCheckboxGroup = (
       style={element.props.style}
       className={element.props.className}
       label={groupLabel}
-      value={selectedValues}
+      // CheckboxGroup 선택을 RadioGroup 과 동일한 uncontrolled 패턴으로 정렬한다.
+      //   controlled `value={selectedValues}` 는 selectedValues 가 preview canonical
+      //   ResolvedNode 트리(flattenNodeChildrenByParent)에서 추출한 props.isSelected 기반인데,
+      //   onChange 는 runtime store 의 elements 배열만 갱신(batchUpdateElementProps)한다. canonical
+      //   렌더 경로(CanonicalNodeRenderer)는 canonicalDocument 만 감시 → elements 변화가 resolve
+      //   재계산을 트리거하지 않아 selectedValues 가 영원히 stale → 체크 토글이 화면에 반영 안 됨
+      //   (ADR-116/122 canonical 전환 잔존 결함). renderRadioGroup(아래)은 `defaultValue` uncontrolled
+      //   라 RAC 자체 상태로 토글이 즉시 보이며 정상 동작 — 그 작동 참조에 맞춰 `defaultValue` 로 전환.
+      //   store 갱신은 onChange 에서 그대로 수행(영속화 — 표시는 RAC, 저장은 store 분리).
+      defaultValue={selectedValues}
       orientation={
         (element.props.orientation as "horizontal" | "vertical") || "vertical"
       }
@@ -637,19 +641,17 @@ export const renderCheckboxGroup = (
           ).filter((child) => child.type === "Label");
 
           return (
+            // 자식 Checkbox 에 개별 onChange 를 주지 않는다(renderRadioGroup 의 자식 Radio 와 동일).
+            //   uncontrolled 그룹에서 selection 토글은 RAC CheckboxGroup 이 내부 상태로 관리하고,
+            //   store 영속화는 그룹 onChange(위)가 전체 selection 배열로 일괄 수행한다. 자식 개별
+            //   onChange 를 두면 그룹 onChange 와 경합하여 단편적 store 갱신을 유발한다(RAC controlled
+            //   계약 위반 잔재). `value={checkbox.id}` 는 그룹 멤버십 식별용으로 유지.
             <Checkbox
               key={checkbox.id}
               data-element-id={checkbox.id}
               value={checkbox.id}
               isIndeterminate={Boolean(checkbox.props.isIndeterminate)}
               isDisabled={Boolean(checkbox.props.isDisabled)}
-              onChange={(isSelected: boolean) => {
-                const updatedProps = {
-                  ...checkbox.props,
-                  isSelected,
-                };
-                updateElementProps(checkbox.id, updatedProps);
-              }}
             >
               {/* Label 자식이 있으면 렌더, 없으면 props.children 텍스트 */}
               {checkboxLabelChildren.length > 0
