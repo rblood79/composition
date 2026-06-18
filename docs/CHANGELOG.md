@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Collection family catalog 정합 — ADR-913 slice 4 (Tree/GridList fix 2 + Table·ListBox defer)] - 2026-06-19
+
+ADR-913 slice 4 (Collection family: ListBox/GridList/Menu/Table/Tree/TagGroup/Breadcrumbs). 7 멤버를 starter 레퍼런스 + generated/manual CSS + catalog rule + STRUCTURE_META + Skia primitive + DELEGATING 6 각도 병렬 정밀 정찰(42 agent) → **실재 갭 10건 + overclaim 기각 24건**. surface minimization 으로 fix 2건만 좁게 처리, Table 5건은 별도 ADR / ListBox 3건은 후속 slice 로 분리(사용자 confirm). 회귀 방지 테스트 동반.
+
+### Bug Fixes
+
+- **Tree 컨테이너가 Skia 에서 세로 배치 안 됨** (TreeItem 이 가로/겹침):
+  - `componentRulesTable.ts` Tree entry 에 `containerStyles` 부재 → spec 삭제 후 Skia layout fallback(`resolveContainerStylesFallback("tree")`)이 빈 객체 반환 → display 미주입 → Taffy block 처리. DOM 은 starter Tree.css(flex column) 적용 → CSS↔Skia 비대칭.
+  - **Why**: ListBox/Menu/TagGroup 동형 collection cutover 멤버인데 ADR-912 단계5 step4 배치에서 Tree 만 `containerStyles` 이관 누락. ToggleButtonGroup(slice 0)/ListBox 선례와 동일 패턴(spec 삭제 시 fallback 빈 객체 → 세로).
+  - 수정: Tree entry 에 `containerStyles: { display:flex, flexDirection:column, gap:{spacing.2xs}, padding:{spacing.xs}, width:100%, maxHeight:300px, overflow:auto, outline:none }` 추가(ListBox/Menu 정합 + starter Tree.css:3-15 값). 앱 인스턴스 fallback 직독 = ListBox 대조군 완전 일치 확증.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (Tree entry)
+
+- **GridList selected 카드 테두리가 Skia 에서 accent 미적용** (DOM 은 accent 2px, Skia 는 회색 1px):
+  - `gridListCard`(skiaPrimitives, replace 모드 → buildCatalogShapes 우회)에 `props.isSelected` 분기 부재 → selected 카드도 default border({color.border}) 1px. DOM(builder GridList.css `[data-selected]{border-color:var(--accent);border-width:2px}`)은 accent 2px → 비대칭.
+  - **Why**: 형제 listbox_item 은 isSelected → accent-subtle row-bg 를 honor 하나 gridlist_card 만 replace 모드로 buildCatalogShapes selected 정본 패턴을 우회하면서 isSelected 누락(구현 불일치).
+  - 수정: GridListItem rule colors 에 `selectedBorder: "{color.accent}"` 추가(schema 기존 보유) + gridListCard borderColor/borderWidth 에 `isSelected ? accent/2px : border/1px` 분기(style.borderColor/borderWidth 사용자 편집 우선). 앱 인스턴스 draw 직독 — selected accent 2px / unselected border 1px 확증.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (GridListItem) + `packages/specs/src/renderers/skiaPrimitives.ts` (gridListCard)
+
+### Architecture
+
+- **ADR-913 slice 4 정찰 — Collection family 실재 갭 인벤토리 + defer 분류**:
+  - 7 멤버 6 각도 병렬 정찰(Workflow 42 agent) 결과 실재 갭 10건 중 fix 2건(Tree/GridList)만 surface minimization 으로 좁게 처리. overclaim 24건 적대적 verify 로 기각("generated CSS=container-only vs starter=DOM-full" 잘못된 baseline 대조 차단 — slice 3 패턴 계승).
+  - **defer 8건**: Table 5건(variant taxonomy split-brain CRITICAL / striped / selected 색 / header bg / 세로 셀선)은 @tanstack/react-table custom + projection rowBg + 수동 Table.css 가 얽혀 별도 ADR 로 분리(variant 모델 + TanStack↔catalog 화해). ListBox 3건(layout/orientation binding accepts / ::after divider / section header projection)은 binding·projection(ADR-135/136) 계약 변경 동반 → 후속 slice.
+  - **G4 격리**: generated CSS byte-diff 0(Tree/GridList DELEGATING manual-only, rule containerStyles/selectedBorder 는 Skia 직독 전용). R2 공유 토큰 정의 불변(참조만 추가) → slice 외 family 영향 0.
+
 ## [CheckboxGroup/RadioGroup orientation Skia 대칭 복구 — synthetic wrapper 합성] - 2026-06-19
 
 CheckboxGroup/RadioGroup 의 orientation(자식 Checkbox/Radio 배치 축)이 Skia builder canvas 에서 무시되던 사용자 보고 버그 수정. CSS preview 는 정상이었고 Skia 만 항상 세로 배치 — D3 symmetric(CSS↔Skia) 위반. labelPosition(top/side) × orientation(vertical/horizontal) 4조합 전부를 재현한다. 초기에 1단 flat flexbox 시뮬레이션으로 접근했으나(아래 1·2 항목) side+vertical 에서 자식이 CSS 대비 과하게 우측 + Label 아래로 떨어져 정합 실패 — 최종적으로 **layout 시점에 synthetic items wrapper 노드를 합성**해 CSS 2단 구조를 복원하는 근본 해법으로 전환(3 항목). 회귀 방지 테스트 동반.

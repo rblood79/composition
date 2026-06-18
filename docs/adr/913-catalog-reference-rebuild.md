@@ -207,3 +207,29 @@ ADR-912 (Implemented 2026-06-18) 로 컴포넌트 시각 SSOT 가 `*.spec.ts` �
 **live behavior 검증 (CLAUDE.md §완료 기준)**: builder 에서 Switch/Checkbox(body 직속) + RadioGroup(자식 Radio 2) 실제 추가 → 새로고침 후 IndexedDB hydrate 상태에서 preview DOM 측정 — Switch `.indicator`(36×20 캡슐 track, br:20px) / Checkbox `.checkbox`(20×20 box, selected → neutral bg + svg checkmark) / Radio `::before`(20px ring) 전부 정상 렌더. 수정 전 indicator 전량 누락(빈 라벨만) → 수정 후 시각 복원 확증(zoom 스크린샷).
 
 **proof gate 결과**: kill criteria 통과(S1 starter 대조 8 overclaim 제거 / S5 G4 격리 1 파일 + 테스트 1 — generated CSS·Skia byte 불변 / S7 live 1:1 — Switch/Checkbox indicator div 복원·Radio ::before 정상). slice 4(Collection) 확장 자격 확립. surface minimization 적용(Radio 위임 제외 — DOM 자식 불요).
+
+### slice 4 — Collection family — 2026-06-19
+
+> **정찰 우선 실행**: slice 1~3 교훈(추측 금지, starter 대조 evidence 동반) 반영 — ListBox/GridList/Menu/Table/Tree/TagGroup/Breadcrumbs 7 멤버를 starter 레퍼런스 + generated/manual CSS + catalog rule + STRUCTURE_META + Skia primitive(skiaPrimitives/buildCatalogShapes/projection) + DELEGATING 등록 6 각도로 병렬 정밀 측정(Workflow w1k52z630, 42 agent measure→적대적 verify→synthesize). **실재 갭 10건 확정 + overclaim 기각 24건**(slice 3 의 8 overclaim 차단 패턴 강하게 작동 — measure 의 fix-in-slice4 과대 권고 3건도 synthesize 가 defer 로 정정). color/size/radius 축은 7 멤버 generated CSS = catalog rule sizes 일치로 정렬 closure(변경 0).
+
+**fix-in-slice4 (2건, 사용자 confirm 2026-06-19 — "fix 2건 진행 + 8건 defer")**:
+
+1. **Tree containerStyles 누락 (HIGH, missing-containerVariants)** — `componentRulesTable.ts` Tree entry 에 `containerStyles` 부재. ListBox/Menu/TagGroup 동형 collection cutover 멤버인데 ADR-912 단계5 step4 배치에서 containerStyles 이관 누락 → spec 삭제 후 Skia layout fallback(`resolveContainerStylesFallback("tree")` → `LOWERCASE_COMPONENT_RULE_CONTAINER`)이 빈 객체 반환 → display 미주입 → Taffy block 처리 → TreeItem 세로 배치 안 됨. DOM 은 starter Tree.css(flex column) 적용 → CSS↔Skia 비대칭(D3 G3). **ToggleButtonGroup slice 0 / ListBox 선례 동형**(spec 삭제 시 fallback 빈 객체 → 세로). 수정: Tree entry 에 `containerStyles: { display:flex, flexDirection:column, gap:{spacing.2xs}, padding:{spacing.xs}, width:100%, maxHeight:300px, overflow:auto, outline:none }` 추가(ListBox/Menu 정합, starter Tree.css:3-15 값). 위치: `componentRulesTable.ts` Tree entry.
+
+2. **GridListItem selected accent border Skia 미적용 (LOW, css-skia-asymmetry)** — `gridListCard`(skiaPrimitives, replace 모드 → buildCatalogShapes 우회)에 `props.isSelected` 분기 부재 → selected 카드도 default border({color.border}) 1px. DOM(builder GridList.css `[data-selected]{border-color:var(--accent);border-width:2px}`)은 accent 2px → 비대칭. 형제 listbox_item 은 isSelected → accent-subtle row-bg honor(구현 불일치). 수정: (a) GridListItem rule colors 에 `selectedBorder: "{color.accent}"` 추가(schema 기존 보유 — `ComponentRuleVariantColors.selectedBorder`) (b) gridListCard borderColor = `isSelected ? (visual.selectedBorder ?? {color.accent}) : visual.border`, borderWidth = `isSelected ? 2 : size.borderWidth`(buildCatalogShapes selected 정본 패턴, style.borderColor/borderWidth 사용자 편집 우선). 위치: `componentRulesTable.ts` GridListItem + `skiaPrimitives.ts` gridListCard.
+
+**defer (8건, 사용자 confirm — Table 5건 별도 ADR / ListBox 3건 defer-separate-slice)**:
+
+- **Table 5건 → 별도 ADR 통째 분리**: variant taxonomy split-brain(CRITICAL — Inspector default/striped/bordered vs DOM 수동 CSS primary/...) / striped DOM 미렌더 / selected 행 색 family 상이 / header bg 토큰 비대칭 / 세로 셀 구분선. 모두 같은 Table 렌더 아키텍처(@tanstack/react-table custom + projection rowBg + 수동 Table.css + ADR-912 cutover 미완)에 얽혀 header bg 1줄 정렬조차 striped/selected/variant 일관성 종속. 차단 메모리 `feedback-execute-adr-surface-minimization` 우선 평가 — slice 4 흡수 시 검증 표면 Table 전체 확대(ADR-144 revert 유형). 메모리 `feedback-table-selection-sort-not-delegating-sweep`(selection/sort 미구현)과 동일 영역. 별도 ADR 에서 variant 모델 정리 + TanStack↔catalog 화해.
+- **ListBox layout(stack/grid)+orientation 미노출 (HIGH) → defer-separate-slice**: binding accepts 누락(toRacProps drop) + Skia projection 하드코딩 column. DOM/Skia 모두 vertical 수렴(내부 비대칭 0, starter 4조합 대비 feature 부재). D2 accepts 확장 + D3 projection 변경 양쪽 = surface 큼.
+- **ListBox ::after 항목 divider (LOW) → defer-separate-slice**: DOM/Skia symmetric absence(둘 다 미렌더) = slice 4 G3 대상 아님. divider 도입은 DOM ::after + Skia 신규 listbox_divider append primitive(table_row_divider 동형) coordinated 추가 필요. catalog cutover flat-list 의도(isDesignedAsymmetry).
+- **ListBox Section Header bg DOM↔Skia 비대칭 (MEDIUM) → defer-separate-slice**: DOM 은 Header `--bg-raised` 그림, Skia 는 Header rule `variants:{}` → hasVisibleBg=false. Header rule fill 추가만으로 해소 불가 — ListBox data-bound projection 이 section header 를 projected node 로 안 만듦 → Skia 해소 = projection 모델에 section header node 추가 = ADR-135/136 render-space interaction boundary 계약 변경(surface 큼).
+
+**검증 (live behavior — Chrome MCP, 앱 인스턴스 src 모듈 직독)**:
+
+- **A-1 Tree fallback**: `resolveContainerStylesFallback("tree")` 앱 인스턴스 = `{display:flex, flexDirection:column, gap:2, padding:4, width:100%, maxHeight:300px, overflow:auto, outline:none}` — ListBox 대조군 완전 일치(이전 `{}` → flex column 주입). 단위 테스트 11 PASS.
+- **A-2 gridListCard**: 앱 인스턴스 draw — selected → border `{color.accent}` 2px / unselected → `{color.border}` 1px(회귀 0). DOM `[data-selected]` accent 2px 정합. 회귀 테스트 4건(gridListCardSelected) + buildCatalogShapes.selection 49 = 53 PASS.
+- **G4 byte-diff 격리**: `pnpm generate:css`(88 files) 후 generated CSS byte-diff **0** — Tree/GridList 는 DELEGATING manual-only(generated CSS 부재), containerStyles/selectedBorder 는 Skia 런타임 직독 전용. slice 외 family 영향 0. R2 공유 토큰 정의 불변(참조만 추가).
+- type-check: builder 0(baseline 0), specs 신규 0(baseline 60 = 기존 테스트 ComponentVisualRule import/캐스팅, 내 변경 무관).
+
+**proof gate 결과**: kill criteria 통과(S1 starter 대조 24 overclaim 제거 / S4 G3 대칭 — Tree flex column + GridList selected accent / S5 G4 격리 byte-diff 0 / S7 live 1:1 — 앱 인스턴스 fallback·draw 직독). Collection family slice 완료. surface minimization 강하게 적용(Table 5 별도 ADR / ListBox 3 defer — projection·binding·divider 계약 얽힘으로 narrow 보정 범위 초과). ADR-913 family slice(1~4) 의 Collection 정찰·fix 완결. Overlay/Color family 는 후속.

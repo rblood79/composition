@@ -2741,6 +2741,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  /* ADR-913 slice 4 (2026-06-19): selected 카드 accent border — GridListItem rule colors 에
+     selectedBorder 공급 → gridListCard(skiaPrimitives) 가 isSelected 시 visual.selectedBorder
+     소비. DOM(builder GridList.css [data-selected] accent 2px)과 대칭. schema 기존 보유. */
   GridListItem: {
     defaultVariant: "default",
     defaultSize: "md",
@@ -2759,6 +2762,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
           border: "{color.border}",
+          // ADR-913 slice 4: selected 카드 테두리 (DOM [data-selected] accent 정합).
+          selectedBorder: "{color.accent}",
         },
         // 카드 label 굵기 (spec fontWeight 600). buildCatalogShapes 가 visual.textWeight 소비.
         textWeight: 600,
@@ -7042,6 +7047,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Tree: {
     defaultVariant: "default",
     defaultSize: "md",
+    // ADR-913 slice 4 (2026-06-19): ListBox/Menu/TagGroup 동형 collection cutover 멤버인데
+    //   ADR-912 단계5 step4 배치에서 containerStyles 이관 누락 → spec 삭제 후 Skia layout
+    //   fallback(resolveContainerStylesFallback → LOWERCASE_COMPONENT_RULE_CONTAINER)이 빈
+    //   객체 반환 → display 미주입 → Taffy block 처리 → TreeItem 세로 배치 안 됨. DOM 은
+    //   starter Tree.css(flex column) 적용 → CSS↔Skia 비대칭(D3 G3 위반). ToggleButtonGroup
+    //   slice 0 / ListBox 선례 동형 수정. 값 = starter Tree.css(:3-15) + Menu/ListBox 정합.
+    containerStyles: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "{spacing.2xs}",
+      padding: "{spacing.xs}",
+      width: "100%",
+      maxHeight: "300px",
+      overflow: "auto",
+      outline: "none",
+    },
     variants: {
       default: {
         fill: {

@@ -374,10 +374,16 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     (style?.backgroundColor as string | undefined) ??
     visual?.fill?.default.base ??
     ("{color.layer-1}" as TokenRef);
+  // ADR-913 slice 4 (2026-06-19): selected 카드 테두리 — DOM(builder GridList.css
+  //   `[data-selected]{border-color:var(--accent);border-width:2px}`)과 대칭. listbox_item
+  //   형제가 isSelected → accent-subtle row-bg 를 honor 하는 것과 동형(buildCatalogShapes
+  //   selected→selectedBorder 정본 패턴). style.borderColor 사용자 편집 우선.
+  const isSelected = props.isSelected === true;
   const borderColor =
     (style?.borderColor as string | undefined) ??
-    visual?.border ??
-    ("{color.border}" as TokenRef);
+    (isSelected
+      ? (visual?.selectedBorder ?? ("{color.accent}" as TokenRef))
+      : (visual?.border ?? ("{color.border}" as TokenRef)));
 
   // template placeholder(`{label}`) → sample 미리보기 (빈 화면 방지, Item spec 패턴).
   const labelRaw = props.children ?? props.textValue ?? props.value;
@@ -421,9 +427,14 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   shapes.push({
     type: "border",
     target: "card-bg",
+    // selected → 2px (DOM `[data-selected]{border-width:2px}` 정합). style.borderWidth 우선.
     borderWidth: parsePxValue(
       style?.borderWidth,
-      typeof size.borderWidth === "number" ? size.borderWidth : 1,
+      isSelected
+        ? 2
+        : typeof size.borderWidth === "number"
+          ? size.borderWidth
+          : 1,
     ),
     color: borderColor,
     radius: cardBorderRadius,

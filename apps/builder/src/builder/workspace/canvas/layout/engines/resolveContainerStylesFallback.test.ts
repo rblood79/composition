@@ -126,6 +126,26 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
     });
   });
 
+  // ADR-913 slice 4 (2026-06-19): Tree containerStyles — ListBox/Menu/TagGroup 동형
+  //   cutover 멤버인데 ADR-912 단계5 step4 배치에서 containerStyles 이관 누락
+  //   (ToggleButtonGroup slice 0 / ListBox 선례 동형 — spec 삭제 시 Skia layout fallback
+  //   빈 객체 → TreeItem 세로 배치 안 됨, DOM 은 starter Tree.css flex column 적용 → 비대칭).
+  describe("tree — Tree.containerStyles (ADR-913 slice 4, ListBox/Menu 동형)", () => {
+    it("empty parentStyle → display:flex/column + 8 필드 반환 (starter Tree.css 정합)", () => {
+      const fb = resolveContainerStylesFallback("tree", {});
+      expect(fb).toEqual({
+        display: "flex",
+        flexDirection: "column",
+        gap: 2, // {spacing.2xs}
+        padding: 4, // {spacing.xs} = starter --spacing-1
+        width: "100%",
+        maxHeight: "300px",
+        overflow: "auto",
+        outline: "none",
+      });
+    });
+  });
+
   describe("primitives 정합 (drift 감지 기반)", () => {
     it("resolveToken('{spacing.xs}') === 4 (padding fallback 근거)", () => {
       expect(resolveToken("{spacing.xs}")).toBe(4);
