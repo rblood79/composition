@@ -371,8 +371,8 @@ const NECESSITY_INDICATOR_TAGS = new Set([
   "taggroup",
 ]);
 
-const FORM_SIDE_LABEL_WIDTH = 176;
-const FORM_SIDE_LABEL_GAP = 16;
+export const FORM_SIDE_LABEL_WIDTH = 176;
+export const FORM_SIDE_LABEL_GAP = 16;
 
 // ─── 내부 헬퍼 ──────────────────────────────────────────────────────
 
@@ -929,12 +929,26 @@ export function applyImplicitStyles(
     const orientation =
       (containerProps?.orientation as string | undefined) ?? "vertical";
     const isHorizontal = orientation === "horizontal";
-    // Label 필터링 + whiteSpace nowrap 주입 (+ horizontal 시 한 줄 전체 차지)
+    // labelPosition(side) 과 orientation(자식 축)은 **직교한 두 축**이며, 4조합을 모두
+    //   재현해야 한다. CSS 는 2단 구조(그룹 > Label + `.checkbox-items` wrapper)로
+    //   labelPosition(그룹 flex-direction) ↔ orientation(wrapper flex-direction)을 독립
+    //   처리하지만, ADR-912 로 중간 컨테이너(CheckboxItems/RadioItems)가 폐기돼 Skia 는 그룹
+    //   직속 1단 flat `[Label, Checkbox, Checkbox, ...]` 만 받는다. wrapper 가 없으므로
+    //   단일 flexbox 에서 flexWrap:wrap + Label/자식 flexBasis·marginLeft 보정으로 2단 격자를
+    //   시뮬레이션한다(Field side-label `injectSideLabelLabelAndContentStyles` 동형 패턴 확장).
+    //
+    //   | labelPos | orient     | 그룹           | Label                       | 자식                                |
+    //   | top      | vertical   | column         | —                           | —                                   |
+    //   | top      | horizontal | row+wrap       | flexBasis:100%(한 줄 차지)  | —                                   |
+    //   | side     | vertical   | row+wrap       | width:W flexShrink:0        | flexBasis:calc(100%-(W+gap))+ml     |
+    //   | side     | horizontal | row+wrap       | width:W flexShrink:0        | —(Label 옆 가로)                    |
+    //   (W=FORM_SIDE_LABEL_WIDTH, ml=marginLeft:W+gap → 세로 자식을 Label 우측으로 들여쓰기)
+    const sideOffset = FORM_SIDE_LABEL_WIDTH + FORM_SIDE_LABEL_GAP;
     filteredChildren = children
       .filter((child) => (child.type === "Label" ? hasLabel : true))
       .map((child) => {
+        const cs = (child.props?.style || {}) as Record<string, unknown>;
         if (child.type === "Label") {
-          const cs = (child.props?.style || {}) as Record<string, unknown>;
           return {
             ...child,
             props: {
@@ -942,11 +956,37 @@ export function applyImplicitStyles(
               style: {
                 ...cs,
                 whiteSpace: cs.whiteSpace ?? "nowrap",
-                // horizontal: Label 이 한 줄(100%) 전체를 차지해 자식 Checkbox 를 다음 줄로
-                //   밀어낸다(wrap) → CSS 의 "Label 위 + 자식 가로" 2단 구조와 시각 대칭.
+                // top+horizontal: Label 이 한 줄(100%) 전체를 차지해 자식을 다음 줄로 wrap.
                 ...(isHorizontal && !sideMode
                   ? { flexBasis: cs.flexBasis ?? "100%" }
                   : {}),
+                // side: Label 을 좌측 1열로 고정(폭 W, 축소 방지, 상단 정렬).
+                ...(sideMode
+                  ? {
+                      width: cs.width ?? FORM_SIDE_LABEL_WIDTH,
+                      flexShrink: cs.flexShrink ?? 0,
+                      alignSelf: cs.alignSelf ?? "flex-start",
+                    }
+                  : {}),
+              },
+            },
+          } as CanvasLayoutNode;
+        }
+        // side+vertical: 자식 Checkbox/Radio 가 Label 우측에서 세로로 쌓이도록
+        //   flexBasis:100% 로 각 자식이 한 줄을 차지(wrap → 세로)하고 marginLeft 로 Label 폭만큼
+        //   우측 들여쓰기한다. side+horizontal 은 보정 없이 Label 옆 가로(row+wrap 기본 동작).
+        //   flexBasis 는 `100%` 만 사용 — `calc(100% - Npx)` 는 layout 엔진
+        //   (parseCSSPropWithContext)이 ctx 부재 시 undefined 로 떨어뜨려 미적용된다(live 확인).
+        //   marginLeft 가 우측 영역 시작점을 밀어주므로 `100%` 만으로 세로+우측정렬이 성립.
+        if (sideMode && !isHorizontal) {
+          return {
+            ...child,
+            props: {
+              ...child.props,
+              style: {
+                ...cs,
+                flexBasis: cs.flexBasis ?? "100%",
+                marginLeft: cs.marginLeft ?? sideOffset,
               },
             },
           } as CanvasLayoutNode;
@@ -959,13 +999,18 @@ export function applyImplicitStyles(
       gap: specFallback.gap ?? 4,
       ...(sideMode
         ? {
+            // side: 그룹 row+wrap → Label(좌측 고정폭) 옆에서 자식이 orientation 축으로 배치.
+            //   vertical 은 자식 flexBasis/marginLeft 가 wrap(세로)+우측정렬을 만들고,
+            //   horizontal 은 자식이 Label 옆에 가로로 이어진다(둘 다 row+wrap 으로 흡수).
+            display: groupVariant.styles.display ?? "flex",
             flexDirection: groupVariant.styles["flex-direction"] ?? "row",
+            flexWrap: "wrap",
             alignItems: groupVariant.styles["align-items"] ?? "flex-start",
           }
         : {
             display: specFallback.display ?? "flex",
-            // horizontal: 그룹을 row + wrap 으로. Label(flexBasis:100%)이 첫 줄을 채우고
-            //   자식 Checkbox/Radio 가 둘째 줄에 가로 배치된다. vertical 은 기존 column.
+            // top+horizontal: 그룹 row+wrap → Label(flexBasis:100%)이 첫 줄을 채우고 자식이
+            //   둘째 줄에 가로 배치. top+vertical 은 기존 column.
             flexDirection:
               specFallback.flexDirection ?? (isHorizontal ? "row" : "column"),
             ...(isHorizontal

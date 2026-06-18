@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { Element } from "../../../../../../types/core/store.types";
-import { applyImplicitStyles } from "../implicitStyles";
+import {
+  applyImplicitStyles,
+  FORM_SIDE_LABEL_GAP,
+  FORM_SIDE_LABEL_WIDTH,
+} from "../implicitStyles";
 
 /**
  * 회귀 방지 — CheckboxGroup/RadioGroup orientation 의 Skia 레이아웃 처리 (2026-06-19).
@@ -134,22 +138,65 @@ describe("CheckboxGroup/RadioGroup orientation implicit styles (Skia 대칭 회�
       expect(parentStyle.flexWrap).toBeUndefined();
     });
 
-    it(`${tag} labelPosition=side 는 orientation=horizontal 과 직교 — side(row) 유지, flexBasis 미주입`, () => {
-      // sideMode 는 labelPosition(그룹↔라벨 축)이라 orientation(자식 축)과 별개 분기.
+    it(`${tag} labelPosition=side + orientation=horizontal 은 Label 좌측 고정 + 자식 Label 옆 가로(row+wrap)`, () => {
+      // side = Label↔자식묶음 축(그룹 row), orientation = 자식 내부 축(horizontal).
+      //   side+horizontal: 자식이 Label 옆에 가로로 이어진다 → 자식 flexBasis/marginLeft 미주입.
       const result = applyContainer(
         tag,
         { label: "Options", labelPosition: "side", orientation: "horizontal" },
-        [makeChild("lbl", "Label"), makeChild("c1", itemTag)],
+        [
+          makeChild("lbl", "Label"),
+          makeChild("c1", itemTag),
+          makeChild("c2", itemTag),
+        ],
       );
 
       const parentStyle = getParentStyle(result);
-      // side variant 의 row 정렬 유지(orientation 의 wrap 패턴이 침범하지 않음).
       expect(parentStyle.flexDirection).toBe("row");
+      expect(parentStyle.flexWrap).toBe("wrap");
       expect(parentStyle.alignItems).toBe("flex-start");
 
-      // side mode 에서는 Label flexBasis:100% 를 주입하지 않는다(horizontal wrap 패턴 비적용).
+      // Label: 좌측 1열 고정(폭 + 축소 방지 + 상단 정렬). top wrap 의 flexBasis:100% 와 다름.
       const labelStyle = getChildStyle(result, "Label");
+      expect(labelStyle.width).toBe(FORM_SIDE_LABEL_WIDTH);
+      expect(labelStyle.flexShrink).toBe(0);
+      expect(labelStyle.alignSelf).toBe("flex-start");
       expect(labelStyle.flexBasis).toBeUndefined();
+
+      // 자식: side+horizontal 은 Label 옆 가로 → flexBasis/marginLeft 미주입.
+      const childStyle = getChildStyle(result, itemTag);
+      expect(childStyle.flexBasis).toBeUndefined();
+      expect(childStyle.marginLeft).toBeUndefined();
+    });
+
+    it(`${tag} labelPosition=side + orientation=vertical 은 Label 좌측 고정 + 자식 우측 세로(flexBasis+marginLeft)`, () => {
+      // side+vertical: 자식이 Label 우측에서 세로로 쌓인다. 1단 flat 에서 wrapper 없이
+      //   각 자식이 우측 영역을 다 차지(flexBasis)해 wrap(세로) + marginLeft 로 Label 폭 들여쓰기.
+      const result = applyContainer(
+        tag,
+        { label: "Options", labelPosition: "side", orientation: "vertical" },
+        [
+          makeChild("lbl", "Label"),
+          makeChild("c1", itemTag),
+          makeChild("c2", itemTag),
+        ],
+      );
+
+      const parentStyle = getParentStyle(result);
+      expect(parentStyle.flexDirection).toBe("row");
+      expect(parentStyle.flexWrap).toBe("wrap");
+      expect(parentStyle.alignItems).toBe("flex-start");
+
+      const labelStyle = getChildStyle(result, "Label");
+      expect(labelStyle.width).toBe(FORM_SIDE_LABEL_WIDTH);
+      expect(labelStyle.flexShrink).toBe(0);
+
+      // 자식: 한 줄 차지(flexBasis:100% → wrap → 세로) + Label 폭만큼 우측 들여쓰기.
+      //   calc(100%-Npx) 는 layout 엔진이 ctx 부재 시 undefined 처리 → "100%" + marginLeft 조합.
+      const childStyle = getChildStyle(result, itemTag);
+      const expectedOffset = FORM_SIDE_LABEL_WIDTH + FORM_SIDE_LABEL_GAP;
+      expect(childStyle.flexBasis).toBe("100%");
+      expect(childStyle.marginLeft).toBe(expectedOffset);
     });
   }
 });
