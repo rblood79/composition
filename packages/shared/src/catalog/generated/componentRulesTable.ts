@@ -6715,7 +6715,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       xs: {
         paddingX: 4,
         fontSize: "{typography.text-2xs}",
-        lineHeight: 16,
+        lineHeight: "{typography.text-2xs--line-height}",
         borderRadius: "{radius.sm}",
         borderWidth: 1,
         height: 0,
@@ -6725,7 +6725,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       sm: {
         paddingX: 8,
         fontSize: "{typography.text-xs}",
-        lineHeight: 16,
+        lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.sm}",
         borderWidth: 1,
         height: 0,
@@ -6735,7 +6735,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       md: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
-        lineHeight: 20,
+        lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.md}",
         borderWidth: 1,
         height: 0,
@@ -6745,7 +6745,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       lg: {
         paddingX: 16,
         fontSize: "{typography.text-base}",
-        lineHeight: 24,
+        lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.lg}",
         borderWidth: 1,
         height: 0,
@@ -6755,7 +6755,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       xl: {
         paddingX: 24,
         fontSize: "{typography.text-lg}",
-        lineHeight: 28,
+        lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.lg}",
         borderWidth: 1,
         height: 0,
