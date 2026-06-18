@@ -8,9 +8,9 @@ Proposed — 2026-06-18
 
 ADR-912 (Implemented 2026-06-18) 로 컴포넌트 시각 SSOT 가 `*.spec.ts` 에서 catalog `COMPONENT_RULES_TABLE` 단일 정본으로 전환됐다. 그러나 이 정본의 **값** 자체는 catalog/spec 이 없던 초기에 react-aria-starter 를 여러 번 **수동 가공**해 만든 누적분이다 ([[project-catalog-reference-rebuild-framing]]). RAC/RSC 라이브러리 업데이트 대응 개념 없이 누적된 수동 drift 라, ADR-912 완료 후에도 다음 문제가 남는다:
 
-- CSS preview (Preview/Publish DOM) ↔ Skia 렌더 (Builder canvas) 시각 정합성 불일치가 크다.
-- 레퍼런스(starter)와의 스타일 갭이 크다.
-- 한 컴포넌트만 부분 패치하면 공유 토큰 scale·횡단 표준(field-height/group-seam) 연계성으로 **갭이 오히려 증폭**된다.
+- catalog rule 값이 starter 구조 + design.md/token reference 대비 drift 되어 **레퍼런스 디자인 갭이 크다** (본 ADR 처방의 표적).
+- CSS preview (Preview/Publish DOM) 와 Skia 렌더 (Builder canvas) 는 같은 `COMPONENT_RULES_TABLE` 을 읽는 **대등 consumer** 이므로, rule 값 재정렬 시 양쪽이 함께 이동해야 한다 (정합 불일치는 처방의 표적이 아니라 동반 결과). 잔여 consumer 해석 차이(token 환원·hover/pressed 색 모델)는 R1/R3 위험 + G1/G3 Gate 로 관리한다.
+- 한 컴포넌트만 부분 패치하면 공유 토큰 scale·횡단 표준(field-height/group-seam) 연계성으로 **레퍼런스 갭이 오히려 증폭**된다.
 
 본 ADR 은 catalog 컴포넌트 시각 값을 레퍼런스(starter 구조 + design.md/css-tokens 토큰값) 기준으로 **family 단위 재구축**하는 전략을 결정한다.
 
@@ -116,7 +116,7 @@ ADR-912 (Implemented 2026-06-18) 로 컴포넌트 시각 SSOT 가 `*.spec.ts` �
 
 ### Positive
 
-- catalog 시각 값이 레퍼런스(starter 구조 + composition 토큰 정본) 기준으로 정렬 → CSS preview ↔ Skia 정합성 불일치 해소.
+- catalog 시각 값이 레퍼런스(starter 구조 + composition 토큰 정본) 기준으로 정렬 → 레퍼런스 디자인 갭 해소. CSS preview ↔ Skia 는 대등 consumer 라 rule 정렬이 양쪽에 동반 반영 (정합은 처방 표적이 아닌 부수 결과, 잔여는 G1/G3 Gate 관리).
 - 변환 체크리스트로 변환 절차 고정 → RAC/RSC 업데이트 대응 시 누적 drift(현재 문제 근본 원인) 차단.
 - 누락 컴포넌트 4 (ColorThumb/CommandPalette/InputGroup/Sheet) 신규 등록 + orientation/labelPosition containerVariants 비대칭 보정 (slice 진행 중 흡수).
 - family slice + kill gate 로 회귀 표면 최소, 원인 격리 가능.
