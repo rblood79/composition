@@ -1317,11 +1317,61 @@ function traversePostOrder(
     }
   }
 
+  // side-label row 컨테이너: 비-Label 자식 availableWidth 에서 Label 자연폭 차감
+  //   (grid 트랙 폭 조정과 동형 — flex-direction:row 의 1fr 대응).
+  // **Why (TagGroup side height 버그)**: labelPosition="side" 면 컨테이너가 row 로 바뀌어
+  //   Label(자연폭 고정) + items-wrapper(TagList, flex:1) 가 가로 배치된다. CSS 의
+  //   `.tag-list-wrapper`(RAC `.react-aria-TagList`)는 Label 옆 남은 폭에서 칩을 flex-wrap 한다.
+  //   그러나 이 루프가 wrapper 자식에 컨테이너 전체 폭(availableWidth)을 그대로 넘기면,
+  //   enrichWithIntrinsicSize 가 그 폭 기준으로 칩 wrap 을 계산해 1줄 height(28)를 박는다.
+  //   부모(TagGroup) 자신은 calculateContentHeight 차감 분기로 2줄 height(60)를 산출하지만,
+  //   Taffy 는 자식 wrapper 의 명시 height(28)를 우선하므로 컨테이너가 54 로 고정 → 칩 2줄째가
+  //   박스 밖으로 삐져나간다(side 전환 시 selection 높이 불변). CheckboxGroup/RadioGroup 은
+  //   synthetic wrapper 가 flexShrink:0 자연폭이라 이 폭 불일치를 구조적으로 회피하지만,
+  //   TagGroup 의 TagList(RAC export element)는 flex:1 이라 여기서 폭 차감이 필요하다.
+  // 적용 조건: row flex + Label 자식 존재. 비-Label 자식에 (전체폭 − Label폭 − gap) 전달.
+  let sideLabelChildAvailWidth: number | undefined;
+  let sideLabelChildIds: Set<string> | undefined;
+  if (
+    (effectiveDisplay === "flex" || effectiveDisplay === "inline-flex") &&
+    elementStyle.flexDirection === "row" &&
+    childAvail.width !== undefined &&
+    childAvail.width > 0
+  ) {
+    const labelChild = filteredChildren.find((c) => c.type === "Label");
+    const nonLabelChildren = filteredChildren.filter((c) => c.type !== "Label");
+    if (labelChild && nonLabelChildren.length > 0) {
+      // effectiveGetChildElements(parent-delegated 래퍼)는 아래 1568 정의 — 이 시점엔
+      //   TDZ 라 원본 getChildElements 사용(Label 폭 측정엔 충분, grid 트랙 조정과 동일).
+      const labelChildren = getChildElements?.(labelChild.id);
+      const labelWidth = calculateContentWidth(
+        labelChild,
+        labelChildren,
+        getChildElements,
+        computedStyle,
+      );
+      const gapVal =
+        typeof elementStyle.gap === "number"
+          ? elementStyle.gap
+          : parseFloat(String(elementStyle.gap ?? "0")) || 0;
+      sideLabelChildAvailWidth = Math.max(
+        0,
+        childAvail.width - labelWidth - gapVal,
+      );
+      sideLabelChildIds = new Set(nonLabelChildren.map((c) => c.id));
+    }
+  }
+
   for (const childId of sortedChildIds) {
+    // side-label row: 비-Label 자식은 Label 폭을 차감한 폭으로 enrich (wrap 정합)
+    const childWidth =
+      sideLabelChildAvailWidth !== undefined && sideLabelChildIds?.has(childId)
+        ? sideLabelChildAvailWidth
+        : childAvail.width;
     traversePostOrder(
       childId,
       ctx,
-      childAvail.width,
+      childWidth,
       childAvail.height,
       computedStyle,
       effectiveDisplay,
@@ -1365,6 +1415,10 @@ function traversePostOrder(
           .map((id) => elementsMap.get(id))
           .filter(Boolean) as CanvasLayoutNode[])
       : [];
+    // buildNodeStyle 계약: 3번째 인자 = 자식 display 문자열 배열(grid/vertical-align 분기용),
+    //   5번째 인자 = 자식 layout-node 배열. wrapper 는 flex 라 display 배열 미소비지만
+    //   타입 계약 + 향후 grid 분기 대비로 정확히 전달.
+    const synthChildDisplays = synthChildNodes.map((n) => getElementDisplay(n));
     const synthEnriched = enrichWithIntrinsicSize(
       synthChild,
       childAvail.width,
@@ -1377,8 +1431,9 @@ function traversePostOrder(
     const synthRecord = buildNodeStyle(
       synthEnriched,
       synthComputed,
-      synthChildNodes,
+      synthChildDisplays,
       effectiveDisplay,
+      synthChildNodes,
     );
     batch.push({
       style: synthRecord,
@@ -1583,7 +1638,18 @@ function traversePostOrder(
     isFlexChild,
   );
 
-  if (hasTaffyChildren) {
+  // projection-only 컨테이너(TagList 등): 유일한 Taffy 자식이 projection RowsGroup("Rows")
+  //   인 경우, enrich 가 calculateContentHeight(taglist 분기, items 기반 정확)로 산출한 height 를
+  //   **보존**한다. **Why (TagGroup side height 버그 최종층)**: 칩은 element 가 아니라 projection
+  //   scene node("Rows" RowsGroup, width:100%, flex-wrap)다. RowsGroup 의 칩 wrap 을 Taffy 에
+  //   맡기면, TagList 가 side-label 에서 flex:1 폭을 Taffy 가 푸는 시점과 enrich 폭(Label 차감 229)
+  //   사이 불일치로 1줄(28)로 무너진다(컨테이너 54 고정). items 기반 calculateContentHeight 가
+  //   maxRows/폭 wrap 을 정확히 계산하므로(229→2줄→60) 그 명시 height 를 Taffy 에 강제하는 게
+  //   projection Taffy wrap 보다 정확. (ListBox/GridList top-level 은 enrich 폭=Taffy 폭 일치라
+  //   기존 height 제거로도 정상 — TagList 의 flex:1 side-label 만 발산.)
+  const onlyProjectionRowsChild =
+    filteredChildren.length === 1 && filteredChildren[0]?.type === "Rows";
+  if (hasTaffyChildren && !onlyProjectionRowsChild) {
     // A. 컨테이너: CSS height:auto → enrichment가 주입한 height를 제거
     // 사용자가 명시한 CSS height는 보존, enrichment가 추가한 height만 제거
     // → Taffy가 자식 border-box + padding + border로 height를 자동 계산
@@ -1604,7 +1670,7 @@ function traversePostOrder(
         };
       }
     }
-  } else {
+  } else if (!hasTaffyChildren) {
     // B. 리프: enrichWithIntrinsicSize의 early return guard로 height 미주입된 경우 보완
     // Panel 등 spec shapes 컴포넌트는 CSS height 없고 element children도 없지만
     // 시각적 콘텐츠가 있어 intrinsic height가 필요하다.
@@ -2199,11 +2265,26 @@ export function calculateFullTreeLayout(
           const isContainer =
             childChildren.length > 0 ||
             (filteredChildIds != null && filteredChildIds.length > 0);
-          if (isContainer) {
+          // projection-only 컨테이너(TagList 등): 유일한 자식이 projection RowsGroup("Rows")이면
+          //   height 를 보존한다(1-pass enrich 보존과 동형). **Why**: 칩 wrap height 는
+          //   calculateContentHeight(taglist, items 기반)가 정확히 계산하므로 Taffy RowsGroup
+          //   auto height(side-label flex:1 폭 발산 시 1줄로 무너짐)보다 신뢰. 이 2-pass 가
+          //   1-pass 의 height 보존을 다시 삭제하면 side height 버그가 재현된다(최종층).
+          // projection RowsGroup id 형식: `projection:<family>-rows:<ownerId>`
+          //   (renderProjectionIds.toCollectionRowsGroupProjectionId). elementsMap 에 없는
+          //   scene-graph 노드라 type 조회 대신 id prefix 로 판정.
+          const onlyProjectionRowsChild2 =
+            filteredChildIds?.length === 1 &&
+            filteredChildIds[0].includes("-rows:");
+          if (isContainer && !onlyProjectionRowsChild2) {
             if (node.style.height) {
               delete node.style.height;
               persistentTree.updateNodeStyle(node.elementId, node.style);
             }
+            continue;
+          }
+          if (isContainer && onlyProjectionRowsChild2) {
+            // projection-only: height 보존, re-enrich 도 skip (이미 정확)
             continue;
           }
 

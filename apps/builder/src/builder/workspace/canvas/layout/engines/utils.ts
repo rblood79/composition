@@ -2852,10 +2852,30 @@ export function calculateContentHeight(
       const props = element.props as Record<string, unknown> | undefined;
       // containerStyles.gap = "{spacing.xs}" → 4. style.gap 편집 우선, 없으면 token fallback.
       const gap = readGapValue(style) ?? 4;
-      // labelPosition="side" 시 row 배치 → 세로 합산이 아닌 max 여야 하지만, 동일 flex-column
-      //   기본 케이스 우선 처리. side 케이스는 하위 flex 분기에서 이미 처리됨.
+      // labelPosition="side" 시 row 배치 → 세로 합산이 아닌 max.
       const labelPos = (props?.labelPosition as string | undefined) ?? "top";
       const isSideLayout = labelPos === "side";
+
+      // side(row) 모드: Label 은 좌측 고정폭(whiteSpace:nowrap 자연폭)을 차지하고
+      //   TagList 는 flex:1 로 남은 공간(availableWidth − labelWidth − gap)에서 칩을 wrap 한다
+      //   (implicitStyles taglist 분기의 `flex:1/minWidth:0` 와 정합). availableWidth 전체를
+      //   TagList 에 그대로 넘기면 칩이 1줄로 과소 wrap 되어 height 가 top(세로 합산)과 같게
+      //   나오는 버그(side 전환 시 selection 높이 불변)의 근본. Label 자연폭을 차감해 Taffy
+      //   실제 wrap 폭과 일치시킨다.
+      let sideTagListAvail = availableWidth;
+      if (isSideLayout && availableWidth !== undefined) {
+        const labelEl = childElements.find((c) => c.type === "Label");
+        if (labelEl) {
+          const labelChildren = getChildElements?.(labelEl.id);
+          const labelWidth = calculateContentWidth(
+            labelEl,
+            labelChildren,
+            getChildElements,
+            computedStyle,
+          );
+          sideTagListAvail = Math.max(0, availableWidth - labelWidth - gap);
+        }
+      }
 
       let totalHeight = 0;
       const childHeights: number[] = [];
@@ -2865,9 +2885,14 @@ export function calculateContentHeight(
         // 자식 element 의 enriched style.height 가 있으면 calculateContentHeight 가
         //   explicitHeight 분기로 즉시 반환. 없으면 각 태그 전용 분기 (e.g. taglist)
         //   가 row-wrap 기반 intrinsic height 를 계산.
+        // side 모드의 비-Label 자식(TagList)은 Label 폭을 차감한 가용폭으로 wrap 계산.
+        const childAvail =
+          isSideLayout && child.type !== "Label"
+            ? sideTagListAvail
+            : availableWidth;
         const contentH = calculateContentHeight(
           child,
-          availableWidth,
+          childAvail,
           grandChildren,
           getChildElements,
           computedStyle,

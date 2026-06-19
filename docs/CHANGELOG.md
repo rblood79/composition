@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [TagGroup labelPosition="side" 전체 height 미계산 수정 — projection-only 컨테이너 height 보존] - 2026-06-19
+
+사용자 보고: TagGroup 의 Label Position 을 side 로 바꿔도 전체 height 가 계산되지 않아 selection 높이가 top 과 동일(54px)하게 고정 → 칩 2줄째가 selection 박스 밖으로 삐져나감. 사용자 관점 정정(RAC/RSP 레퍼런스 인용): "maxRows·labelPosition 이 들어간다는 자체가 label 과 position 하려면 display:flex 로 child item 을 wrapper 해야 한다" — TagGroup 은 CheckboxGroup/RadioGroup 과 **동일 논리 구조**(Label + 자연폭 flex-wrap items-wrapper > items). RAC 공식 `.react-aria-TagList { display:flex; flex-wrap }` + `labelPosition`/`maxRows` prop 의 존재가 items wrapper 를 구조적으로 강제함이 근거.
+
+### Bug Fixes
+
+- **TagGroup side 모드 전체 height 미계산** (3-layer root cause — "Taffy 배치 ↔ height 이중 메커니즘"):
+  - **Why**: side(컨테이너 row, Label 좌측 + TagList 우측)에서 TagList(칩 items projection wrapper)가 컨테이너 전체 폭(Label 미차감)으로 칩 wrap 을 계산해 1줄(28px)로 무너짐 → Taffy 가 자식 wrapper 의 명시 height 를 우선하여 컨테이너가 54px 로 고정. CSS `.tag-list-wrapper`(RAC `.react-aria-TagList`)는 Label 옆 남은 폭에서 칩을 flex-wrap 하는데 Skia 만 비대칭이었음. CheckboxGroup/RadioGroup 은 synthetic wrapper 가 flexShrink:0 자연폭이라 이 폭 불일치를 구조적으로 회피하지만, TagGroup 의 TagList(RAC export element)는 flex:1 이라 폭 차감이 필요.
+  - 수정 3곳 (`fullTreeLayout.ts`): (1) traversePostOrder 에서 side-label row 의 비-Label 자식에 `(전체폭 − Label자연폭 − gap)` 전달 (grid 트랙 폭 조정과 동형) (2) 1-pass: projection-only 컨테이너(유일 자식이 projection RowsGroup "Rows")는 `calculateContentHeight`(items 기반 정확)가 산출한 height 보존 (3) 2-pass Step 4.5: 동일 컨테이너의 height 재삭제 방지
+  - 보완 (`utils.ts`): `calculateContentHeight` taggroup 분기 — side 모드 시 Label 자연폭 차감 폭으로 TagList intrinsic height 계산 (부모 height SSOT 경로 정합)
+  - 검증: builder live side=350×84(칩 2줄 감쌈) / top=319×52(칩 1줄) CSS↔Skia 시각 대칭 + 회귀 테스트 3건 + 인접 layout 테스트 38건(checkbox orientation / gridlist / listbox / sideLabel) 무회귀
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/{fullTreeLayout,utils}.ts`
+
 ## [TagGroup Label Position 편집 surface 노출 + 팔레트 라벨 정정] - 2026-06-19
 
 사용자 보고: TagGroup 이 컴포넌트 팔레트에 "type group" 으로 오표기 + Property 패널에 `orientation` 만 있고 다른 field 들의 `Label Position` 표기와 불일치. orientation(태그 칩 가로/세로 배치)과 labelPosition(그룹↔라벨 top/side)은 직교 개념 — CheckboxGroup/RadioGroup 동형으로 둘 다 노출 (사용자 confirm: labelPosition 추가 + orientation 유지).
