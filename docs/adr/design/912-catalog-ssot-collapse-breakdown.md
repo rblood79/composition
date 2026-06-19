@@ -665,6 +665,23 @@ wrapper `resolveContainerStylesFallback`(`implicitStyles.ts:270`)에 **경로 B*
 
 **3-A-3a kill criteria 통과**: field 5 인라인 base-axis fallback 제거되고도 resolver 단독 작동("resolver 추가 + 하드코딩 유지" 아님). LOWERCASE map 의 variants 소비처 끊김 → 3-A-3c 의 절반 prerequisite 충족(containerStyles 경로 A 1곳 잔존).
 
+#### Phase 3-A-3b Land 완료 (2026-06-20) — collection-item base-axis catalog 보강 + 재배선 (옵션 A)
+
+사용자 confirm 후 **옵션 A(catalog 보강)** 채택. base-axis grep gate **2→0** (Δ6 collapse kill 완료).
+
+**collection 비대칭 해소 (정밀 매핑 + 적대 검증 ground-truth)**:
+
+- **GridListItem**: catalog `structure` **자체 부재** 였음 → `structure.containerStyles`(display:flex / flexDirection:column / minWidth:0) 신규 추가. **권위 source = starter `GridList.css:112`** (`.react-aria-GridListItem { display:flex; flex-direction:column; min-width:0 }`) — "억지 생성" 아닌 CSS 정본 환원. gap/padding/borderWidth 는 sizes.md + `resolveGridListItemMetric` 경유라 structure 미포함.
+- **ListBoxItem**: `structure.containerStyles` 4개(display/flexDirection/alignItems/justifyContent) **기존 보유** → 추가 0.
+- **재배선 경로**: collection 분기(`implicitStyles.ts:913/:937`)가 `resolveCatalogCollectionBase`(=`resolveCatalogContainerBase` 직접 호출, casing lowercase→PascalCase) 경유로 base-axis 도달. 인라인 `?? "flex"/"column"` 제거. size-value(gap/padding/borderWidth)는 sizes.md 정합값으로 인라인 유지.
+- **guard 완화 회피 (surface-minimization)**: field류 wrapper 경로 B guard 를 `composition OR structure.containerStyles` 로 완화하면 **43 type**(Avatar/Badge/Button/Checkbox 등 leaf 포함) 신규 진입 → 회귀 표면 과다. collection 2곳 **전용 helper 직접 호출**이 최소 표면.
+
+**GridListItem base-axis = Taffy LIVE 확정**: Skia 는 `gridlist_card:"replace"` escape 가 카드 시각 자체 paint 하지만, **Taffy layout(컨테이너/자식 배치)은 effectiveParent.style 의 display/flexDirection 구동** (자식 `injectCollectionItemFontStyles` 로 유지, escape 아님). 단순 제거 = unstyled flex degrade 회귀 → catalog 보강이 prerequisite.
+
+**검증**: base-axis grep gate 2→0(field 5 + collection 2 모두 catalog 경유) / byte-diff 0(재배선 전후 GridListItem·ListBoxItem effectiveParent.style 동일, git stash 격리 — componentRulesTable + implicitStyles 동시 stash) / type-check 0 신규 위반 / wrapper+snapshot+grep gate 54건 PASS / **live: builder ListBox(ListBoxItem) Skia canvas + DOM Preview 양쪽 flex-column 정상(라벨 굵게 위 + 설명 아래 좌측정렬, 시각 대칭) + 콘솔 NaN/Taffy 에러 0**. wrapper collection={} lock 유지(collection 은 경로 B 미진입, 분기 직접 처리).
+
+**3-A-3b kill criteria 통과**: collection 2 인라인 base-axis 제거되고도 catalog source 단독 작동. GridListItem source 부재를 starter CSS 환원으로 해소(억지 생성 아님). **Δ6 base-axis collapse 완결** — field 5 + collection 2 = 7곳 전부 catalog 단일 source. 잔존 = 3-A-3c(LOWERCASE map containerStyles 경로 A 삭제).
+
 ### Phase 4 — Style Panel consumer collapse
 
 - `specPresetResolver.ts` 를 shared resolver 기반으로 전환.

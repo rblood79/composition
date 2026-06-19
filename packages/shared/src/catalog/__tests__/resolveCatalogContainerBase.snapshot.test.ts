@@ -135,9 +135,16 @@ describe("resolveCatalogContainerBase — field류 base layout (kebab raw, gap=C
   });
 });
 
-describe("resolveCatalogContainerBase — collection-item 비대칭 (3-A-3b 영역, 이번 scope 아님)", () => {
-  it("GridListItem → {} (structure 필드 자체 부재 = source-gap)", () => {
-    expect(resolveCatalogContainerBase("GridListItem")).toEqual({});
+describe("resolveCatalogContainerBase — collection-item base-axis (3-A-3b 재배선 source)", () => {
+  // ADR-912 Phase 3-A-3b (2026-06-20): GridListItem 에 structure.containerStyles 추가
+  //   (권위 source = starter GridList.css:112 display:flex/flex-direction:column/min-width:0).
+  //   collection 분기가 resolveCatalogContainerBase 경유로 base-axis 도달 → 인라인 자족화 제거.
+  it("GridListItem → base-axis 3개 (3-A-3b structure 추가, camelCase)", () => {
+    expect(resolveCatalogContainerBase("GridListItem")).toEqual({
+      display: "flex",
+      flexDirection: "column",
+      minWidth: 0,
+    });
   });
 
   it("ListBoxItem → structure.containerStyles 4개 camelCase (composition 부재)", () => {

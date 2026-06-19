@@ -114,18 +114,20 @@ const DISPERSION_BASELINE: Array<{
     killPhase: "Phase 3",
   },
   {
-    // Phase 3-A-3a 완료 (2026-06-20): field 5 분기(searchfield/combobox/select·numberfield·
-    //   textfield/textarea·datefield/timefield·datepicker)의 인라인 `specFallback.flexDirection
-    //   ?? "column"` 5곳 제거 → 7→2. wrapper resolveContainerStylesFallback 경로 B 가 catalog
-    //   structure.composition base(flex-column)를 도달시켜 인라인 redundant. byte-diff 0 검증
-    //   (재배선 전후 effectiveParent.style 동일). 잔존 2 = collection-item(gridlistitem/listboxitem
-    //   `parentStyle.flexDirection ?? "column"`) → 3-A-3b 에서 0 목표.
+    // Phase 3-A-3a 완료 (2026-06-20): field 5 분기 인라인 5곳 제거 → 7→2 (wrapper 경로 B 가
+    //   catalog structure.composition base 도달).
+    // Phase 3-A-3b 완료 (2026-06-20): collection-item 2 분기(gridlistitem/listboxitem) 인라인
+    //   `parentStyle.flexDirection ?? "column"` 제거 → 2→0. GridListItem 에 catalog structure.
+    //   containerStyles 추가(권위=starter GridList.css:112) + collection 분기가
+    //   resolveCatalogCollectionBase(=resolveCatalogContainerBase 직접 호출, composition guard
+    //   우회) 경유로 base-axis 도달. ListBoxItem 은 catalog structure.containerStyles 기존 보유.
+    //   byte-diff 0(재배선 전후 effectiveParent.style 동일, git stash 격리). Δ6 collapse kill 완료.
     label:
-      'base-axis fallback flexDirection ?? "column" (Δ6 — Phase 3-A-3a: field 5 제거 ✅)',
+      'base-axis fallback flexDirection ?? "column" (Δ6 — Phase 3-A-3a·3b 완결 ✅)',
     file: "implicitStyles",
     pattern: /flexDirection.*\?\? "column"/,
-    baseline: 2,
-    killPhase: "Phase 3-A-3b (collection 2 → 0)",
+    baseline: 0,
+    killPhase: "Phase 3-A-3b ✅",
   },
   {
     // Phase 3-A-1 완료 (2026-06-19): Track 3종 height 를 specSizeField read-through 로 이관 +

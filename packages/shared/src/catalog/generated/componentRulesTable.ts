@@ -60,17 +60,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'div',
+      archetype: "simple",
+      element: "div",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center'
+        display: "inline-flex",
+        alignItems: "center",
       },
       states: {
         disabled: {
-          opacity: 0.38
-        }
-      }
+          opacity: 0.38,
+        },
+      },
     },
   },
   AvatarGroup: {
@@ -119,14 +119,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'div',
+      archetype: "default",
+      element: "div",
       containerStyles: undefined,
       states: {
         disabled: {
-          opacity: 0.38
-        }
-      }
+          opacity: 0.38,
+        },
+      },
     },
   },
   Badge: {
@@ -487,17 +487,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'span',
+      archetype: "simple",
+      element: "span",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center'
+        display: "inline-flex",
+        alignItems: "center",
       },
       states: {
         disabled: {
-          opacity: 0.38
-        }
-      }
+          opacity: 0.38,
+        },
+      },
     },
   },
   // ADR-912 container shell 3 (2026-06-04): 키를 PascalCase "Body" → lowercase "body" 로 정합.
@@ -528,9 +528,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'body',
-      containerStyles: undefined
+      archetype: "default",
+      element: "body",
+      containerStyles: undefined,
     },
   },
   Breadcrumb: {
@@ -569,22 +569,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'li',
+      archetype: "simple",
+      element: "li",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center'
+        display: "inline-flex",
+        alignItems: "center",
       },
       states: {
         hover: {},
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
-      }
+          focusRing: "{focus.ring.default}",
+        },
+      },
     },
   },
   Breadcrumbs: {
@@ -623,25 +623,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'nav',
+      archetype: "simple",
+      element: "nav",
       containerStyles: {
-        display: 'flex',
-        flexDirection: 'row',
-        flexWrap: 'nowrap',
-        alignItems: 'center'
+        display: "flex",
+        flexDirection: "row",
+        flexWrap: "nowrap",
+        alignItems: "center",
       },
       states: {
         hover: {},
         disabled: {
           opacity: 1,
-          pointerEvents: 'auto',
-          cursor: 'default'
+          pointerEvents: "auto",
+          cursor: "default",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
-      }
+          focusRing: "{focus.ring.default}",
+        },
+      },
     },
   },
   Button: {
@@ -795,29 +795,29 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'button',
-      element: 'button',
+      archetype: "button",
+      element: "button",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: 'fit-content'
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "fit-content",
       },
       states: {
         hover: {},
         pressed: {
-          scale: 0.95
+          scale: 0.95,
         },
         disabled: {
           opacity: 0.38,
-          cursor: 'not-allowed',
-          pointerEvents: 'none'
+          cursor: "not-allowed",
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
+          focusRing: "{focus.ring.default}",
+        },
       },
-      cssEmitMode: 'button-base'
+      cssEmitMode: "button-base",
     },
   },
   ButtonGroup: {
@@ -866,14 +866,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'div',
+      archetype: "default",
+      element: "div",
       containerStyles: undefined,
       states: {
         disabled: {
-          opacity: 0.38
-        }
-      }
+          opacity: 0.38,
+        },
+      },
     },
   },
   Calendar: {
@@ -940,24 +940,24 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'calendar',
-      element: 'div',
+      archetype: "calendar",
+      element: "div",
       containerStyles: {
-        display: 'flex',
-        flexDirection: 'column',
-        width: 'fit-content'
+        display: "flex",
+        flexDirection: "column",
+        width: "fit-content",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
-      }
+          focusRing: "{focus.ring.default}",
+        },
+      },
     },
   },
   CalendarGrid: {
@@ -1217,9 +1217,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'div',
-      containerStyles: undefined
+      archetype: "default",
+      element: "div",
+      containerStyles: undefined,
     },
   },
   CardContent: {
@@ -1253,13 +1253,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'div',
+      archetype: "simple",
+      element: "div",
       containerStyles: {
-        display: 'flex',
-        flexDirection: 'column',
-        width: '100%'
-      }
+        display: "flex",
+        flexDirection: "column",
+        width: "100%",
+      },
     },
   },
   CardFooter: {
@@ -1293,15 +1293,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'div',
+      archetype: "simple",
+      element: "div",
       containerStyles: {
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        width: '100%'
-      }
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "flex-end",
+        width: "100%",
+      },
     },
   },
   CardHeader: {
@@ -1335,14 +1335,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'div',
+      archetype: "simple",
+      element: "div",
       containerStyles: {
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        width: '100%'
-      }
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        width: "100%",
+      },
     },
   },
   CardPreview: {
@@ -1376,13 +1376,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'div',
+      archetype: "simple",
+      element: "div",
       containerStyles: {
-        display: 'flex',
-        flexDirection: 'column',
-        width: '100%'
-      }
+        display: "flex",
+        flexDirection: "column",
+        width: "100%",
+      },
     },
   },
   CardView: {
@@ -1420,14 +1420,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'div',
+      archetype: "default",
+      element: "div",
       containerStyles: undefined,
       states: {
         disabled: {
-          opacity: 0.38
-        }
-      }
+          opacity: 0.38,
+        },
+      },
     },
   },
   Checkbox: {
@@ -1503,24 +1503,24 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'toggle-indicator',
-      element: 'label',
+      archetype: "toggle-indicator",
+      element: "label",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center'
+        display: "inline-flex",
+        alignItems: "center",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          cursor: 'not-allowed',
-          pointerEvents: 'none'
+          cursor: "not-allowed",
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
-      }
+          focusRing: "{focus.ring.default}",
+        },
+      },
     },
   },
   CheckboxGroup: {
@@ -1591,94 +1591,94 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'div',
+      archetype: "default",
+      element: "div",
       containerStyles: {
-        display: 'flex'
+        display: "flex",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
+          focusRing: "{focus.ring.default}",
+        },
       },
       composition: {
-        layout: 'flex-column',
-        gap: 'var(--spacing-xs)',
+        layout: "flex-column",
+        gap: "var(--spacing-xs)",
         containerStyles: {
-          color: 'var(--fg)',
-          '--label-font-size': 'var(--text-sm)',
-          '--label-line-height': 'var(--text-sm--line-height)',
-          '--cb-items-gap': '12px',
-          '--cb-hint-size': 'var(--text-xs)'
+          color: "var(--fg)",
+          "--label-font-size": "var(--text-sm)",
+          "--label-line-height": "var(--text-sm--line-height)",
+          "--cb-items-gap": "12px",
+          "--cb-hint-size": "var(--text-xs)",
         },
         containerVariants: {
           size: {
             sm: {
               styles: {
-                '--label-font-size': 'var(--text-xs)',
-                '--label-line-height': 'var(--text-xs--line-height)',
-                '--cb-items-gap': '8px'
-              }
+                "--label-font-size": "var(--text-xs)",
+                "--label-line-height": "var(--text-xs--line-height)",
+                "--cb-items-gap": "8px",
+              },
             },
             lg: {
               styles: {
-                '--label-font-size': 'var(--text-base)',
-                '--label-line-height': 'var(--text-base--line-height)',
-                '--cb-items-gap': '16px'
-              }
-            }
+                "--label-font-size": "var(--text-base)",
+                "--label-line-height": "var(--text-base--line-height)",
+                "--cb-items-gap": "16px",
+              },
+            },
           },
-          'label-position': {
+          "label-position": {
             side: {
               styles: {
-                'flex-direction': 'row',
-                'align-items': 'flex-start'
-              }
-            }
+                "flex-direction": "row",
+                "align-items": "flex-start",
+              },
+            },
           },
           orientation: {
             vertical: {
               nested: [
                 {
-                  selector: '.checkbox-items',
+                  selector: ".checkbox-items",
                   styles: {
-                    display: 'flex',
-                    'flex-direction': 'column',
-                    gap: 'var(--cb-items-gap, var(--spacing-md))'
-                  }
-                }
-              ]
+                    display: "flex",
+                    "flex-direction": "column",
+                    gap: "var(--cb-items-gap, var(--spacing-md))",
+                  },
+                },
+              ],
             },
             horizontal: {
               nested: [
                 {
-                  selector: '.checkbox-items',
+                  selector: ".checkbox-items",
                   styles: {
-                    display: 'flex',
-                    'flex-direction': 'row',
-                    'align-items': 'center',
-                    gap: 'var(--cb-items-gap, var(--spacing-md))'
-                  }
-                }
-              ]
-            }
-          }
+                    display: "flex",
+                    "flex-direction": "row",
+                    "align-items": "center",
+                    gap: "var(--cb-items-gap, var(--spacing-md))",
+                  },
+                },
+              ],
+            },
+          },
         },
         delegation: [
           {
             childSelector: '[slot="description"]',
             bridges: {
-              'font-size': 'var(--cb-hint-size)'
-            }
-          }
-        ]
-      }
+              "font-size": "var(--cb-hint-size)",
+            },
+          },
+        ],
+      },
     },
   },
   Code: {
@@ -1734,12 +1734,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'code',
+      archetype: "simple",
+      element: "code",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center'
-      }
+        display: "inline-flex",
+        alignItems: "center",
+      },
     },
   },
   ColorArea: {
@@ -1856,183 +1856,183 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'div',
+      archetype: "default",
+      element: "div",
       containerStyles: undefined,
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          cursor: 'not-allowed',
-          pointerEvents: 'none'
+          cursor: "not-allowed",
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
+          focusRing: "{focus.ring.default}",
+        },
       },
       composition: {
-        layout: 'flex-column',
-        gap: 'var(--spacing-xs)',
+        layout: "flex-column",
+        gap: "var(--spacing-xs)",
         containerStyles: {
-          width: 'fit-content',
-          color: 'var(--fg)'
+          width: "fit-content",
+          color: "var(--fg)",
         },
         containerVariants: {
-          'label-position': {
+          "label-position": {
             side: {
               styles: {
-                'flex-direction': 'row',
-                'align-items': 'flex-start'
-              }
-            }
+                "flex-direction": "row",
+                "align-items": "flex-start",
+              },
+            },
           },
-          'label-align': {
+          "label-align": {
             center: {
               styles: {
-                '--form-label-align': 'center'
-              }
+                "--form-label-align": "center",
+              },
             },
             end: {
               styles: {
-                '--form-label-align': 'end'
-              }
-            }
+                "--form-label-align": "end",
+              },
+            },
           },
           quiet: {
             true: {
               nested: [
                 {
-                  selector: '.react-aria-Input',
+                  selector: ".react-aria-Input",
                   styles: {
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-radius': '0',
-                    'border-bottom': '1px solid var(--border)'
-                  }
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-radius": "0",
+                    "border-bottom": "1px solid var(--border)",
+                  },
                 },
                 {
-                  selector: '.react-aria-Input:where([data-focused])',
+                  selector: ".react-aria-Input:where([data-focused])",
                   styles: {
-                    outline: 'none',
-                    'border-bottom-color': 'var(--accent)'
-                  }
+                    outline: "none",
+                    "border-bottom-color": "var(--accent)",
+                  },
                 },
                 {
-                  selector: '.react-aria-Input:where([data-invalid])',
+                  selector: ".react-aria-Input:where([data-invalid])",
                   styles: {
-                    'border-bottom-color': 'var(--negative)'
-                  }
-                }
-              ]
-            }
-          }
+                    "border-bottom-color": "var(--negative)",
+                  },
+                },
+              ],
+            },
+          },
         },
         delegation: [
           {
-            childSelector: '.react-aria-Label',
-            prefix: 'cf-label',
+            childSelector: ".react-aria-Label",
+            prefix: "cf-label",
             variables: {
               xs: {
-                '--cf-label-size': 'var(--text-2xs)'
+                "--cf-label-size": "var(--text-2xs)",
               },
               sm: {
-                '--cf-label-size': 'var(--text-xs)'
+                "--cf-label-size": "var(--text-xs)",
               },
               md: {
-                '--cf-label-size': 'var(--text-sm)'
+                "--cf-label-size": "var(--text-sm)",
               },
               lg: {
-                '--cf-label-size': 'var(--text-base)'
+                "--cf-label-size": "var(--text-base)",
               },
               xl: {
-                '--cf-label-size': 'var(--text-lg)'
-              }
+                "--cf-label-size": "var(--text-lg)",
+              },
             },
             bridges: {
-              '--label-font-size': 'var(--cf-label-size)',
-              '--label-font-weight': '600',
-              '--label-margin': 'var(--spacing-xs)'
-            }
+              "--label-font-size": "var(--cf-label-size)",
+              "--label-font-weight": "600",
+              "--label-margin": "var(--spacing-xs)",
+            },
           },
           {
-            childSelector: '.react-aria-Input',
-            prefix: 'cf-input',
+            childSelector: ".react-aria-Input",
+            prefix: "cf-input",
             variables: {
               xs: {
-                '--cf-input-padding': 'var(--spacing-3xs) var(--spacing-xs)',
-                '--cf-input-size': 'var(--text-2xs)',
-                '--cf-input-line-height': 'var(--text-2xs--line-height)',
-                '--cf-input-max-width': '9ch'
+                "--cf-input-padding": "var(--spacing-3xs) var(--spacing-xs)",
+                "--cf-input-size": "var(--text-2xs)",
+                "--cf-input-line-height": "var(--text-2xs--line-height)",
+                "--cf-input-max-width": "9ch",
               },
               sm: {
-                '--cf-input-padding': 'var(--spacing-2xs) var(--spacing-sm)',
-                '--cf-input-size': 'var(--text-xs)',
-                '--cf-input-line-height': 'var(--text-xs--line-height)',
-                '--cf-input-max-width': '10ch'
+                "--cf-input-padding": "var(--spacing-2xs) var(--spacing-sm)",
+                "--cf-input-size": "var(--text-xs)",
+                "--cf-input-line-height": "var(--text-xs--line-height)",
+                "--cf-input-max-width": "10ch",
               },
               md: {
-                '--cf-input-padding': 'var(--spacing-xs) var(--spacing-md)',
-                '--cf-input-size': 'var(--text-sm)',
-                '--cf-input-line-height': 'var(--text-sm--line-height)',
-                '--cf-input-max-width': '12ch'
+                "--cf-input-padding": "var(--spacing-xs) var(--spacing-md)",
+                "--cf-input-size": "var(--text-sm)",
+                "--cf-input-line-height": "var(--text-sm--line-height)",
+                "--cf-input-max-width": "12ch",
               },
               lg: {
-                '--cf-input-padding': 'var(--spacing-sm) var(--spacing-lg)',
-                '--cf-input-size': 'var(--text-base)',
-                '--cf-input-line-height': 'var(--text-base--line-height)',
-                '--cf-input-max-width': '14ch'
+                "--cf-input-padding": "var(--spacing-sm) var(--spacing-lg)",
+                "--cf-input-size": "var(--text-base)",
+                "--cf-input-line-height": "var(--text-base--line-height)",
+                "--cf-input-max-width": "14ch",
               },
               xl: {
-                '--cf-input-padding': 'var(--spacing-md) var(--spacing-xl)',
-                '--cf-input-size': 'var(--text-lg)',
-                '--cf-input-line-height': 'var(--text-lg--line-height)',
-                '--cf-input-max-width': '16ch'
-              }
+                "--cf-input-padding": "var(--spacing-md) var(--spacing-xl)",
+                "--cf-input-size": "var(--text-lg)",
+                "--cf-input-line-height": "var(--text-lg--line-height)",
+                "--cf-input-max-width": "16ch",
+              },
             },
             bridges: {
-              '--input-padding': 'var(--cf-input-padding)',
-              '--input-font-size': 'var(--cf-input-size)',
-              '--input-line-height': 'var(--cf-input-line-height)',
-              'border-radius': 'var(--radius-sm)',
-              'max-width': 'var(--cf-input-max-width)',
-              'box-sizing': 'border-box'
-            }
+              "--input-padding": "var(--cf-input-padding)",
+              "--input-font-size": "var(--cf-input-size)",
+              "--input-line-height": "var(--cf-input-line-height)",
+              "border-radius": "var(--radius-sm)",
+              "max-width": "var(--cf-input-max-width)",
+              "box-sizing": "border-box",
+            },
           },
           {
-            childSelector: '.react-aria-FieldError',
-            prefix: 'cf-hint',
+            childSelector: ".react-aria-FieldError",
+            prefix: "cf-hint",
             variables: {
               xs: {
-                '--cf-hint-size': 'var(--text-2xs)'
+                "--cf-hint-size": "var(--text-2xs)",
               },
               sm: {
-                '--cf-hint-size': 'var(--text-2xs)'
+                "--cf-hint-size": "var(--text-2xs)",
               },
               md: {
-                '--cf-hint-size': 'var(--text-xs)'
+                "--cf-hint-size": "var(--text-xs)",
               },
               lg: {
-                '--cf-hint-size': 'var(--text-sm)'
+                "--cf-hint-size": "var(--text-sm)",
               },
               xl: {
-                '--cf-hint-size': 'var(--text-base)'
-              }
+                "--cf-hint-size": "var(--text-base)",
+              },
             },
             bridges: {
-              '--error-font-size': 'var(--cf-hint-size)'
-            }
+              "--error-font-size": "var(--cf-hint-size)",
+            },
           },
           {
             childSelector: '[slot="description"]',
             bridges: {
-              'font-size': 'var(--cf-hint-size)',
-              color: 'var(--fg-muted)'
-            }
-          }
-        ]
-      }
+              "font-size": "var(--cf-hint-size)",
+              color: "var(--fg-muted)",
+            },
+          },
+        ],
+      },
     },
   },
   ColorPicker: {
@@ -2185,23 +2185,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'div',
+      archetype: "simple",
+      element: "div",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center'
+        display: "inline-flex",
+        alignItems: "center",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
-      }
+          focusRing: "{focus.ring.default}",
+        },
+      },
     },
   },
   ColorSwatchPicker: {
@@ -2358,394 +2358,409 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'div',
+      archetype: "default",
+      element: "div",
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          cursor: 'not-allowed',
-          pointerEvents: 'none'
+          cursor: "not-allowed",
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
+          focusRing: "{focus.ring.default}",
+        },
       },
       composition: {
-        layout: 'flex-column',
-        gap: 'var(--spacing-xs)',
+        layout: "flex-column",
+        gap: "var(--spacing-xs)",
         containerStyles: {
-          color: 'var(--fg)'
+          color: "var(--fg)",
         },
         containerVariants: {
-          'label-position': {
+          "label-position": {
             side: {
               styles: {
-                'flex-direction': 'row',
-                'align-items': 'flex-start'
-              }
-            }
+                "flex-direction": "row",
+                "align-items": "flex-start",
+              },
+            },
           },
           quiet: {
             true: {
               nested: [
                 {
-                  selector: '.react-aria-Button',
+                  selector: ".react-aria-Button",
                   styles: {
-                    background: 'transparent',
-                    'box-shadow': 'none',
-                    outline: 'none',
-                    'border-color': 'transparent'
-                  }
+                    background: "transparent",
+                    "box-shadow": "none",
+                    outline: "none",
+                    "border-color": "transparent",
+                  },
                 },
                 {
-                  selector: '.react-aria-Button[data-hovered]',
+                  selector: ".react-aria-Button[data-hovered]",
                   styles: {
-                    background: 'transparent',
-                    'box-shadow': 'none',
-                    outline: 'none',
-                    'border-color': 'transparent'
-                  }
+                    background: "transparent",
+                    "box-shadow": "none",
+                    outline: "none",
+                    "border-color": "transparent",
+                  },
                 },
                 {
-                  selector: '.react-aria-Button[data-pressed]',
+                  selector: ".react-aria-Button[data-pressed]",
                   styles: {
-                    background: 'transparent',
-                    'box-shadow': 'none',
-                    outline: 'none',
-                    'border-color': 'transparent'
-                  }
+                    background: "transparent",
+                    "box-shadow": "none",
+                    outline: "none",
+                    "border-color": "transparent",
+                  },
                 },
                 {
-                  selector: '.react-aria-Button[data-focus-visible]',
+                  selector: ".react-aria-Button[data-focus-visible]",
                   styles: {
-                    background: 'transparent',
-                    'box-shadow': 'none',
-                    outline: 'none',
-                    'border-color': 'transparent'
-                  }
+                    background: "transparent",
+                    "box-shadow": "none",
+                    outline: "none",
+                    "border-color": "transparent",
+                  },
                 },
                 {
-                  selector: '.combobox-container',
+                  selector: ".combobox-container",
                   styles: {
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-radius': '0',
-                    'border-bottom': '1px solid var(--border)'
-                  }
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-radius": "0",
+                    "border-bottom": "1px solid var(--border)",
+                  },
                 },
                 {
-                  selector: '&:has(.react-aria-Input[data-hovered]:not([data-focused]):not([data-disabled])) .combobox-container',
+                  selector:
+                    "&:has(.react-aria-Input[data-hovered]:not([data-focused]):not([data-disabled])) .combobox-container",
                   styles: {
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'border-bottom-color': 'var(--border-hover)'
-                  }
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "border-bottom-color": "var(--border-hover)",
+                  },
                 },
                 {
-                  selector: '&:has(.react-aria-Button[data-hovered]:not([data-disabled])) .combobox-container',
+                  selector:
+                    "&:has(.react-aria-Button[data-hovered]:not([data-disabled])) .combobox-container",
                   styles: {
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'border-bottom-color': 'var(--border-hover)'
-                  }
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "border-bottom-color": "var(--border-hover)",
+                  },
                 },
                 {
-                  selector: '&:has(.react-aria-Input[data-focused]:not([data-disabled])) .combobox-container',
+                  selector:
+                    "&:has(.react-aria-Input[data-focused]:not([data-disabled])) .combobox-container",
                   styles: {
-                    outline: 'none',
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'border-bottom-color': 'var(--accent)'
-                  }
+                    outline: "none",
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "border-bottom-color": "var(--accent)",
+                  },
                 },
                 {
-                  selector: '&:has(.react-aria-Input[data-focus-within]:not([data-disabled])) .combobox-container',
+                  selector:
+                    "&:has(.react-aria-Input[data-focus-within]:not([data-disabled])) .combobox-container",
                   styles: {
-                    outline: 'none',
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'border-bottom-color': 'var(--accent)'
-                  }
+                    outline: "none",
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "border-bottom-color": "var(--accent)",
+                  },
                 },
                 {
-                  selector: '&:has(.react-aria-Button[data-focus-visible]:not([data-disabled])) .combobox-container',
+                  selector:
+                    "&:has(.react-aria-Button[data-focus-visible]:not([data-disabled])) .combobox-container",
                   styles: {
-                    outline: 'none',
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'border-bottom-color': 'var(--accent)'
-                  }
+                    outline: "none",
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "border-bottom-color": "var(--accent)",
+                  },
                 },
                 {
-                  selector: '&:has(.react-aria-Button[data-pressed]:not([data-disabled])) .combobox-container',
+                  selector:
+                    "&:has(.react-aria-Button[data-pressed]:not([data-disabled])) .combobox-container",
                   styles: {
-                    outline: 'none',
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'border-bottom-color': 'var(--accent)'
-                  }
-                }
-              ]
-            }
-          }
+                    outline: "none",
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "border-bottom-color": "var(--accent)",
+                  },
+                },
+              ],
+            },
+          },
         },
         externalStyles: [
           {
             selector: '.react-aria-Popover[data-trigger="ComboBox"]',
             styles: {
-              width: 'var(--trigger-width)',
-              'max-width': 'none',
-              'max-height': '300px',
-              overflow: 'auto',
-              'box-sizing': 'border-box',
-              border: '1px solid var(--border)',
-              'border-radius': 'var(--border-radius)',
-              background: 'var(--bg-raised)',
-              'box-shadow': 'var(--shadow-lg)',
-              contain: 'layout style'
+              width: "var(--trigger-width)",
+              "max-width": "none",
+              "max-height": "300px",
+              overflow: "auto",
+              "box-sizing": "border-box",
+              border: "1px solid var(--border)",
+              "border-radius": "var(--border-radius)",
+              background: "var(--bg-raised)",
+              "box-shadow": "var(--shadow-lg)",
+              contain: "layout style",
             },
             nested: [
               {
-                selector: '.react-aria-ListBox',
+                selector: ".react-aria-ListBox",
                 styles: {
-                  border: 'none',
-                  background: 'transparent',
-                  'max-height': 'none',
-                  'min-height': '24px'
-                }
-              }
-            ]
-          }
+                  border: "none",
+                  background: "transparent",
+                  "max-height": "none",
+                  "min-height": "24px",
+                },
+              },
+            ],
+          },
         ],
         delegation: [
           {
-            childSelector: '.react-aria-Label',
-            prefix: 'combo-label',
+            childSelector: ".react-aria-Label",
+            prefix: "combo-label",
             variables: {
               xs: {
-                '--combo-label-size': 'var(--text-2xs)'
+                "--combo-label-size": "var(--text-2xs)",
               },
               sm: {
-                '--combo-label-size': 'var(--text-xs)'
+                "--combo-label-size": "var(--text-xs)",
               },
               md: {
-                '--combo-label-size': 'var(--text-sm)'
+                "--combo-label-size": "var(--text-sm)",
               },
               lg: {
-                '--combo-label-size': 'var(--text-base)'
+                "--combo-label-size": "var(--text-base)",
               },
               xl: {
-                '--combo-label-size': 'var(--text-lg)'
-              }
+                "--combo-label-size": "var(--text-lg)",
+              },
             },
             bridges: {
-              '--label-font-size': 'var(--combo-label-size)',
-              '--label-font-weight': '600',
-              '--label-margin': 'var(--spacing-xs)'
-            }
+              "--label-font-size": "var(--combo-label-size)",
+              "--label-font-weight": "600",
+              "--label-margin": "var(--spacing-xs)",
+            },
           },
           {
-            childSelector: '.combobox-container',
-            prefix: 'combo-container',
+            childSelector: ".combobox-container",
+            prefix: "combo-container",
             variables: {
               xs: {
-                '--combo-container-padding': 'var(--spacing-3xs) var(--spacing-xs)',
-                '--combo-container-padding-right': 'var(--spacing-3xs)'
+                "--combo-container-padding":
+                  "var(--spacing-3xs) var(--spacing-xs)",
+                "--combo-container-padding-right": "var(--spacing-3xs)",
               },
               sm: {
-                '--combo-container-padding': 'var(--spacing-2xs) var(--spacing-sm)',
-                '--combo-container-padding-right': 'var(--spacing-2xs)'
+                "--combo-container-padding":
+                  "var(--spacing-2xs) var(--spacing-sm)",
+                "--combo-container-padding-right": "var(--spacing-2xs)",
               },
               md: {
-                '--combo-container-padding': 'var(--spacing-xs) var(--spacing-md)',
-                '--combo-container-padding-right': 'var(--spacing-xs)'
+                "--combo-container-padding":
+                  "var(--spacing-xs) var(--spacing-md)",
+                "--combo-container-padding-right": "var(--spacing-xs)",
               },
               lg: {
-                '--combo-container-padding': 'var(--spacing-sm) var(--spacing-lg)',
-                '--combo-container-padding-right': 'var(--spacing-sm)'
+                "--combo-container-padding":
+                  "var(--spacing-sm) var(--spacing-lg)",
+                "--combo-container-padding-right": "var(--spacing-sm)",
               },
               xl: {
-                '--combo-container-padding': 'var(--spacing-md) var(--spacing-xl)',
-                '--combo-container-padding-right': 'var(--spacing-md)'
-              }
+                "--combo-container-padding":
+                  "var(--spacing-md) var(--spacing-xl)",
+                "--combo-container-padding-right": "var(--spacing-md)",
+              },
             },
             bridges: {
-              display: 'flex',
-              'align-items': 'center',
-              gap: 'var(--btn-gap, var(--spacing-xs))',
-              width: '100%',
-              border: '1px solid var(--border)',
-              'border-radius': 'var(--border-radius)',
-              background: 'var(--bg-inset)',
-              overflow: 'hidden',
-              transition: 'border-color 200ms ease, background-color 200ms ease',
-              padding: 'var(--combo-container-padding)',
-              'padding-right': 'var(--combo-container-padding-right)'
+              display: "flex",
+              "align-items": "center",
+              gap: "var(--btn-gap, var(--spacing-xs))",
+              width: "100%",
+              border: "1px solid var(--border)",
+              "border-radius": "var(--border-radius)",
+              background: "var(--bg-inset)",
+              overflow: "hidden",
+              transition:
+                "border-color 200ms ease, background-color 200ms ease",
+              padding: "var(--combo-container-padding)",
+              "padding-right": "var(--combo-container-padding-right)",
             },
             states: {
-              ':has(.react-aria-Input[data-hovered]:not([data-focused]):not([data-disabled]))': {
-                'border-color': 'var(--border-hover)',
-                background: 'var(--bg-overlay)'
+              ":has(.react-aria-Input[data-hovered]:not([data-focused]):not([data-disabled]))":
+                {
+                  "border-color": "var(--border-hover)",
+                  background: "var(--bg-overlay)",
+                },
+              ":has(.react-aria-Button[data-hovered]:not([data-disabled]))": {
+                "border-color": "var(--border-hover)",
+                background: "var(--bg-overlay)",
               },
-              ':has(.react-aria-Button[data-hovered]:not([data-disabled]))': {
-                'border-color': 'var(--border-hover)',
-                background: 'var(--bg-overlay)'
+              ":has(.react-aria-Input[data-focused])": {
+                outline: "2px solid var(--accent)",
+                "outline-offset": "-1px",
               },
-              ':has(.react-aria-Input[data-focused])': {
-                outline: '2px solid var(--accent)',
-                'outline-offset': '-1px'
+              ":has(.react-aria-Input[data-focus-within])": {
+                outline: "2px solid var(--accent)",
+                "outline-offset": "-1px",
               },
-              ':has(.react-aria-Input[data-focus-within])': {
-                outline: '2px solid var(--accent)',
-                'outline-offset': '-1px'
+              ":has(.react-aria-Button[data-focus-visible])": {
+                outline: "2px solid var(--accent)",
+                "outline-offset": "-1px",
               },
-              ':has(.react-aria-Button[data-focus-visible])': {
-                outline: '2px solid var(--accent)',
-                'outline-offset': '-1px'
+              ":has([data-invalid])": {
+                "border-color": "var(--negative)",
               },
-              ':has([data-invalid])': {
-                'border-color': 'var(--negative)'
+              ":has([data-disabled])": {
+                background: "color-mix(in srgb, var(--fg) 4%, transparent)",
+                "border-color":
+                  "color-mix(in srgb, var(--fg) 12%, transparent)",
+                opacity: "0.38",
               },
-              ':has([data-disabled])': {
-                background: 'color-mix(in srgb, var(--fg) 4%, transparent)',
-                'border-color': 'color-mix(in srgb, var(--fg) 12%, transparent)',
-                opacity: '0.38'
-              }
-            }
+            },
           },
           {
-            childSelector: '.react-aria-Input',
-            prefix: 'combo-input',
+            childSelector: ".react-aria-Input",
+            prefix: "combo-input",
             variables: {
               xs: {
-                '--combo-input-padding': '0',
-                '--combo-input-font-size': 'var(--text-2xs)',
-                '--combo-input-line-height': 'var(--text-2xs--line-height)'
+                "--combo-input-padding": "0",
+                "--combo-input-font-size": "var(--text-2xs)",
+                "--combo-input-line-height": "var(--text-2xs--line-height)",
               },
               sm: {
-                '--combo-input-padding': '0',
-                '--combo-input-font-size': 'var(--text-xs)',
-                '--combo-input-line-height': 'var(--text-xs--line-height)'
+                "--combo-input-padding": "0",
+                "--combo-input-font-size": "var(--text-xs)",
+                "--combo-input-line-height": "var(--text-xs--line-height)",
               },
               md: {
-                '--combo-input-padding': '0',
-                '--combo-input-font-size': 'var(--text-sm)',
-                '--combo-input-line-height': 'var(--text-sm--line-height)'
+                "--combo-input-padding": "0",
+                "--combo-input-font-size": "var(--text-sm)",
+                "--combo-input-line-height": "var(--text-sm--line-height)",
               },
               lg: {
-                '--combo-input-padding': '0',
-                '--combo-input-font-size': 'var(--text-base)',
-                '--combo-input-line-height': 'var(--text-base--line-height)'
+                "--combo-input-padding": "0",
+                "--combo-input-font-size": "var(--text-base)",
+                "--combo-input-line-height": "var(--text-base--line-height)",
               },
               xl: {
-                '--combo-input-padding': '0',
-                '--combo-input-font-size': 'var(--text-lg)',
-                '--combo-input-line-height': 'var(--text-lg--line-height)'
-              }
+                "--combo-input-padding": "0",
+                "--combo-input-font-size": "var(--text-lg)",
+                "--combo-input-line-height": "var(--text-lg--line-height)",
+              },
             },
             bridges: {
-              flex: '1 1 auto',
-              'min-width': '0',
-              border: 'none',
-              'border-radius': '0',
-              background: 'transparent',
-              outline: 'none',
-              'forced-color-adjust': 'none',
-              padding: '0',
-              'font-size': 'var(--combo-input-font-size)',
-              'line-height': 'var(--combo-input-line-height)',
-              '--input-padding': 'var(--combo-input-padding)',
-              '--input-font-size': 'var(--combo-input-font-size)',
-              '--input-line-height': 'var(--combo-input-line-height)'
-            }
+              flex: "1 1 auto",
+              "min-width": "0",
+              border: "none",
+              "border-radius": "0",
+              background: "transparent",
+              outline: "none",
+              "forced-color-adjust": "none",
+              padding: "0",
+              "font-size": "var(--combo-input-font-size)",
+              "line-height": "var(--combo-input-line-height)",
+              "--input-padding": "var(--combo-input-padding)",
+              "--input-font-size": "var(--combo-input-font-size)",
+              "--input-line-height": "var(--combo-input-line-height)",
+            },
           },
           {
-            childSelector: '.react-aria-Button',
-            prefix: 'combo-btn',
+            childSelector: ".react-aria-Button",
+            prefix: "combo-btn",
             variables: {
               xs: {
-                '--combo-btn-size': '10px'
+                "--combo-btn-size": "10px",
               },
               sm: {
-                '--combo-btn-size': '14px'
+                "--combo-btn-size": "14px",
               },
               md: {
-                '--combo-btn-size': '18px'
+                "--combo-btn-size": "18px",
               },
               lg: {
-                '--combo-btn-size': '22px'
+                "--combo-btn-size": "22px",
               },
               xl: {
-                '--combo-btn-size': '28px'
-              }
+                "--combo-btn-size": "28px",
+              },
             },
             bridges: {
-              position: 'static',
-              flex: '0 0 auto',
-              padding: '0',
-              'border-width': '0',
-              width: 'var(--combo-btn-size)',
-              height: 'var(--combo-btn-size)',
-              background: 'var(--bg-overlay)',
-              color: 'var(--fg)',
-              'forced-color-adjust': 'none',
-              'box-shadow': 'var(--shadow-sm)'
+              position: "static",
+              flex: "0 0 auto",
+              padding: "0",
+              "border-width": "0",
+              width: "var(--combo-btn-size)",
+              height: "var(--combo-btn-size)",
+              background: "var(--bg-overlay)",
+              color: "var(--fg)",
+              "forced-color-adjust": "none",
+              "box-shadow": "var(--shadow-sm)",
             },
             states: {
-              '[data-hovered]:not([data-disabled])': {
-                background: 'var(--accent-subtle)'
+              "[data-hovered]:not([data-disabled])": {
+                background: "var(--accent-subtle)",
               },
-              '[data-pressed]:not([data-disabled])': {
-                background: 'color-mix(in srgb, var(--fg) 12%, var(--bg-overlay))'
+              "[data-pressed]:not([data-disabled])": {
+                background:
+                  "color-mix(in srgb, var(--fg) 12%, var(--bg-overlay))",
               },
-              '[data-focus-visible]': {
-                outline: '2px solid var(--accent)',
-                'outline-offset': '2px'
+              "[data-focus-visible]": {
+                outline: "2px solid var(--accent)",
+                "outline-offset": "2px",
               },
-              '[data-disabled]': {
-                background: 'color-mix(in srgb, var(--fg) 12%, transparent)',
-                color: 'color-mix(in srgb, var(--fg) 38%, transparent)',
-                cursor: 'not-allowed'
-              }
-            }
+              "[data-disabled]": {
+                background: "color-mix(in srgb, var(--fg) 12%, transparent)",
+                color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+                cursor: "not-allowed",
+              },
+            },
           },
           {
-            childSelector: '.react-aria-FieldError',
-            prefix: 'combo-hint',
+            childSelector: ".react-aria-FieldError",
+            prefix: "combo-hint",
             variables: {
               xs: {
-                '--combo-hint-size': 'var(--text-2xs)'
+                "--combo-hint-size": "var(--text-2xs)",
               },
               sm: {
-                '--combo-hint-size': 'var(--text-xs)'
+                "--combo-hint-size": "var(--text-xs)",
               },
               md: {
-                '--combo-hint-size': 'var(--text-xs)'
+                "--combo-hint-size": "var(--text-xs)",
               },
               lg: {
-                '--combo-hint-size': 'var(--text-sm)'
+                "--combo-hint-size": "var(--text-sm)",
               },
               xl: {
-                '--combo-hint-size': 'var(--text-base)'
-              }
+                "--combo-hint-size": "var(--text-base)",
+              },
             },
             bridges: {
-              '--error-font-size': 'var(--combo-hint-size)',
-              '--error-margin': 'var(--spacing-xs)'
-            }
+              "--error-font-size": "var(--combo-hint-size)",
+              "--error-margin": "var(--spacing-xs)",
+            },
           },
           {
             childSelector: '[slot="description"]',
             bridges: {
-              'font-size': 'var(--combo-hint-size)',
-              color: 'var(--fg-muted)'
-            }
-          }
-        ]
-      }
+              "font-size": "var(--combo-hint-size)",
+              color: "var(--fg-muted)",
+            },
+          },
+        ],
+      },
     },
   },
   DateField: {
@@ -2799,235 +2814,237 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'div',
+      archetype: "default",
+      element: "div",
       containerStyles: {
-        display: 'flex'
+        display: "flex",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
-          opacity: 0.38
+          opacity: 0.38,
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
+          focusRing: "{focus.ring.default}",
+        },
       },
       composition: {
-        layout: 'flex-column',
-        gap: 'var(--spacing-xs)',
+        layout: "flex-column",
+        gap: "var(--spacing-xs)",
         containerVariants: {
-          'label-position': {
+          "label-position": {
             side: {
               styles: {
-                'flex-direction': 'row',
-                'align-items': 'flex-start'
-              }
-            }
+                "flex-direction": "row",
+                "align-items": "flex-start",
+              },
+            },
           },
           quiet: {
             true: {
               nested: [
                 {
-                  selector: '.react-aria-DateInput',
+                  selector: ".react-aria-DateInput",
                   styles: {
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-radius': '0',
-                    'border-bottom': '1px solid var(--border)'
-                  }
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-radius": "0",
+                    "border-bottom": "1px solid var(--border)",
+                  },
                 },
                 {
-                  selector: '.react-aria-DateInput:where([data-focused])',
+                  selector: ".react-aria-DateInput:where([data-focused])",
                   styles: {
-                    outline: 'none',
-                    'border-bottom-color': 'var(--accent)'
-                  }
+                    outline: "none",
+                    "border-bottom-color": "var(--accent)",
+                  },
                 },
                 {
-                  selector: '.react-aria-DateInput:where([data-invalid])',
+                  selector: ".react-aria-DateInput:where([data-invalid])",
                   styles: {
-                    'border-bottom-color': 'var(--negative)'
-                  }
-                }
-              ]
-            }
-          }
+                    "border-bottom-color": "var(--negative)",
+                  },
+                },
+              ],
+            },
+          },
         },
         delegation: [
           {
-            childSelector: '.react-aria-Label',
-            prefix: 'df-label',
+            childSelector: ".react-aria-Label",
+            prefix: "df-label",
             variables: {
               xs: {
-                '--df-label-size': 'var(--text-2xs)'
+                "--df-label-size": "var(--text-2xs)",
               },
               sm: {
-                '--df-label-size': 'var(--text-xs)'
+                "--df-label-size": "var(--text-xs)",
               },
               md: {
-                '--df-label-size': 'var(--text-sm)'
+                "--df-label-size": "var(--text-sm)",
               },
               lg: {
-                '--df-label-size': 'var(--text-base)'
+                "--df-label-size": "var(--text-base)",
               },
               xl: {
-                '--df-label-size': 'var(--text-lg)'
-              }
+                "--df-label-size": "var(--text-lg)",
+              },
             },
             bridges: {
-              '--label-font-size': 'var(--df-label-size)',
-              '--label-font-weight': '600',
-              '--label-margin': 'var(--spacing-xs)'
-            }
+              "--label-font-size": "var(--df-label-size)",
+              "--label-font-weight": "600",
+              "--label-margin": "var(--spacing-xs)",
+            },
           },
           {
-            childSelector: '.react-aria-DateInput',
-            prefix: 'df-input',
+            childSelector: ".react-aria-DateInput",
+            prefix: "df-input",
             variables: {
               xs: {
-                '--df-input-padding': 'var(--spacing-3xs) var(--spacing-xs)',
-                '--df-input-size': 'var(--text-2xs)',
-                '--df-input-line-height': 'var(--text-2xs--line-height)',
-                '--df-input-min-width': '100px'
+                "--df-input-padding": "var(--spacing-3xs) var(--spacing-xs)",
+                "--df-input-size": "var(--text-2xs)",
+                "--df-input-line-height": "var(--text-2xs--line-height)",
+                "--df-input-min-width": "100px",
               },
               sm: {
-                '--df-input-padding': 'var(--spacing-2xs) var(--spacing-sm)',
-                '--df-input-size': 'var(--text-xs)',
-                '--df-input-line-height': 'var(--text-xs--line-height)',
-                '--df-input-min-width': '120px'
+                "--df-input-padding": "var(--spacing-2xs) var(--spacing-sm)",
+                "--df-input-size": "var(--text-xs)",
+                "--df-input-line-height": "var(--text-xs--line-height)",
+                "--df-input-min-width": "120px",
               },
               md: {
-                '--df-input-padding': 'var(--spacing-xs) var(--spacing-md)',
-                '--df-input-size': 'var(--text-sm)',
-                '--df-input-line-height': 'var(--text-sm--line-height)',
-                '--df-input-min-width': '150px'
+                "--df-input-padding": "var(--spacing-xs) var(--spacing-md)",
+                "--df-input-size": "var(--text-sm)",
+                "--df-input-line-height": "var(--text-sm--line-height)",
+                "--df-input-min-width": "150px",
               },
               lg: {
-                '--df-input-padding': 'var(--spacing-sm) var(--spacing-lg)',
-                '--df-input-size': 'var(--text-base)',
-                '--df-input-line-height': 'var(--text-base--line-height)',
-                '--df-input-min-width': '180px'
+                "--df-input-padding": "var(--spacing-sm) var(--spacing-lg)",
+                "--df-input-size": "var(--text-base)",
+                "--df-input-line-height": "var(--text-base--line-height)",
+                "--df-input-min-width": "180px",
               },
               xl: {
-                '--df-input-padding': 'var(--spacing-md) var(--spacing-xl)',
-                '--df-input-size': 'var(--text-lg)',
-                '--df-input-line-height': 'var(--text-lg--line-height)',
-                '--df-input-min-width': '220px'
-              }
+                "--df-input-padding": "var(--spacing-md) var(--spacing-xl)",
+                "--df-input-size": "var(--text-lg)",
+                "--df-input-line-height": "var(--text-lg--line-height)",
+                "--df-input-min-width": "220px",
+              },
             },
             bridges: {
-              display: 'inline-flex',
-              padding: 'var(--df-input-padding)',
-              background: 'var(--bg-inset)',
-              border: '1px solid',
-              'border-radius': 'var(--border-radius)',
-              width: '100%',
-              'min-width': 'var(--df-input-min-width)',
-              'white-space': 'nowrap',
-              'forced-color-adjust': 'none',
-              'font-size': 'var(--df-input-size)',
-              'line-height': 'var(--df-input-line-height)',
-              transition: 'border-color 200ms ease, background-color 200ms ease'
-            }
+              display: "inline-flex",
+              padding: "var(--df-input-padding)",
+              background: "var(--bg-inset)",
+              border: "1px solid",
+              "border-radius": "var(--border-radius)",
+              width: "100%",
+              "min-width": "var(--df-input-min-width)",
+              "white-space": "nowrap",
+              "forced-color-adjust": "none",
+              "font-size": "var(--df-input-size)",
+              "line-height": "var(--df-input-line-height)",
+              transition:
+                "border-color 200ms ease, background-color 200ms ease",
+            },
           },
           {
-            childSelector: '.react-aria-DateSegment',
-            prefix: 'df-segment',
+            childSelector: ".react-aria-DateSegment",
+            prefix: "df-segment",
             variables: {
               xs: {
-                '--df-segment-size': 'var(--text-2xs)'
+                "--df-segment-size": "var(--text-2xs)",
               },
               sm: {
-                '--df-segment-size': 'var(--text-xs)'
+                "--df-segment-size": "var(--text-xs)",
               },
               md: {
-                '--df-segment-size': 'var(--text-sm)'
+                "--df-segment-size": "var(--text-sm)",
               },
               lg: {
-                '--df-segment-size': 'var(--text-base)'
+                "--df-segment-size": "var(--text-base)",
               },
               xl: {
-                '--df-segment-size': 'var(--text-lg)'
-              }
+                "--df-segment-size": "var(--text-lg)",
+              },
             },
             bridges: {
-              padding: '0 2px',
-              border: 'none',
-              background: 'transparent',
-              height: 'auto',
-              'font-variant-numeric': 'tabular-nums',
-              'text-align': 'end',
-              color: 'var(--fg)',
-              'border-radius': 'var(--radius-xs)',
-              'font-size': 'var(--df-segment-size)',
-              transition: 'all 150ms ease'
+              padding: "0 2px",
+              border: "none",
+              background: "transparent",
+              height: "auto",
+              "font-variant-numeric": "tabular-nums",
+              "text-align": "end",
+              color: "var(--fg)",
+              "border-radius": "var(--radius-xs)",
+              "font-size": "var(--df-segment-size)",
+              transition: "all 150ms ease",
             },
             states: {
               '[data-type="literal"]': {
-                padding: '0'
+                padding: "0",
               },
-              '[data-placeholder]': {
-                color: 'var(--fg-muted)',
-                'font-style': 'italic',
-                opacity: '0.6'
+              "[data-placeholder]": {
+                color: "var(--fg-muted)",
+                "font-style": "italic",
+                opacity: "0.6",
               },
-              ':focus': {
-                color: 'var(--fg)',
-                background: 'var(--accent-subtle)',
-                outline: 'none',
-                'border-radius': 'var(--radius-xs)',
-                'caret-color': 'transparent'
+              ":focus": {
+                color: "var(--fg)",
+                background: "var(--accent-subtle)",
+                outline: "none",
+                "border-radius": "var(--radius-xs)",
+                "caret-color": "transparent",
               },
-              '[data-invalid]': {
-                color: 'var(--negative)'
+              "[data-invalid]": {
+                color: "var(--negative)",
               },
-              '[data-invalid]:focus': {
-                background: 'color-mix(in srgb, var(--negative) 15%, transparent)',
-                color: 'var(--negative)'
+              "[data-invalid]:focus": {
+                background:
+                  "color-mix(in srgb, var(--negative) 15%, transparent)",
+                color: "var(--negative)",
               },
-              '[data-disabled]': {
-                color: 'color-mix(in srgb, var(--fg) 38%, transparent)',
-                cursor: 'not-allowed'
-              }
-            }
+              "[data-disabled]": {
+                color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+                cursor: "not-allowed",
+              },
+            },
           },
           {
-            childSelector: '.react-aria-FieldError',
-            prefix: 'df-hint',
+            childSelector: ".react-aria-FieldError",
+            prefix: "df-hint",
             variables: {
               xs: {
-                '--df-hint-size': 'var(--text-2xs)'
+                "--df-hint-size": "var(--text-2xs)",
               },
               sm: {
-                '--df-hint-size': 'var(--text-xs)'
+                "--df-hint-size": "var(--text-xs)",
               },
               md: {
-                '--df-hint-size': 'var(--text-xs)'
+                "--df-hint-size": "var(--text-xs)",
               },
               lg: {
-                '--df-hint-size': 'var(--text-sm)'
+                "--df-hint-size": "var(--text-sm)",
               },
               xl: {
-                '--df-hint-size': 'var(--text-base)'
-              }
+                "--df-hint-size": "var(--text-base)",
+              },
             },
             bridges: {
-              '--error-font-size': 'var(--df-hint-size)',
-              '--error-margin': 'var(--spacing-xs)'
-            }
+              "--error-font-size": "var(--df-hint-size)",
+              "--error-margin": "var(--spacing-xs)",
+            },
           },
           {
             childSelector: '[slot="description"]',
             bridges: {
-              'font-size': 'var(--df-hint-size)',
-              color: 'var(--fg-muted)'
-            }
-          }
-        ]
-      }
+              "font-size": "var(--df-hint-size)",
+              color: "var(--fg-muted)",
+            },
+          },
+        ],
+      },
     },
   },
   DateInput: {
@@ -3161,368 +3178,376 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'div',
+      archetype: "default",
+      element: "div",
       containerStyles: {
-        display: 'flex'
+        display: "flex",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
+          focusRing: "{focus.ring.default}",
+        },
       },
       composition: {
-        layout: 'flex-column',
-        gap: 'var(--spacing-xs)',
+        layout: "flex-column",
+        gap: "var(--spacing-xs)",
         containerStyles: {
-          color: 'var(--fg)'
+          color: "var(--fg)",
         },
         containerVariants: {
-          'label-position': {
+          "label-position": {
             side: {
               styles: {
-                'flex-direction': 'row',
-                'align-items': 'flex-start'
-              }
-            }
+                "flex-direction": "row",
+                "align-items": "flex-start",
+              },
+            },
           },
           quiet: {
             true: {
               nested: [
                 {
-                  selector: '.react-aria-Group',
+                  selector: ".react-aria-Group",
                   styles: {
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-radius': '0',
-                    'border-bottom': '1px solid var(--border)'
-                  }
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-radius": "0",
+                    "border-bottom": "1px solid var(--border)",
+                  },
                 },
                 {
-                  selector: '.react-aria-Group[data-hovered]:not([data-focus-within]):not([data-focused])',
+                  selector:
+                    ".react-aria-Group[data-hovered]:not([data-focus-within]):not([data-focused])",
                   styles: {
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-bottom-color': 'var(--border-hover)'
-                  }
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-bottom-color": "var(--border-hover)",
+                  },
                 },
                 {
-                  selector: '.react-aria-Group[data-focus-within]',
+                  selector: ".react-aria-Group[data-focus-within]",
                   styles: {
-                    outline: 'none',
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-bottom-color': 'var(--accent)'
-                  }
+                    outline: "none",
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-bottom-color": "var(--accent)",
+                  },
                 },
                 {
-                  selector: '.react-aria-Group[data-invalid]',
+                  selector: ".react-aria-Group[data-invalid]",
                   styles: {
-                    'border-color': 'transparent',
-                    'border-bottom-color': 'var(--negative)'
-                  }
-                }
-              ]
-            }
-          }
+                    "border-color": "transparent",
+                    "border-bottom-color": "var(--negative)",
+                  },
+                },
+              ],
+            },
+          },
         },
         externalStyles: [
           {
             selector: '.react-aria-Popover[data-trigger="DatePicker"]',
             styles: {
-              'max-width': 'unset'
+              "max-width": "unset",
             },
             nested: [
               {
-                selector: '.react-aria-Dialog .react-aria-Calendar',
+                selector: ".react-aria-Dialog .react-aria-Calendar",
                 styles: {
-                  background: 'transparent',
-                  border: 'none',
-                  padding: '0'
-                }
-              }
-            ]
+                  background: "transparent",
+                  border: "none",
+                  padding: "0",
+                },
+              },
+            ],
           },
           {
-            selector: '.react-aria-DatePicker-time-field',
+            selector: ".react-aria-DatePicker-time-field",
             styles: {
-              width: '100%'
-            }
-          }
+              width: "100%",
+            },
+          },
         ],
         delegation: [
           {
-            childSelector: '.react-aria-Label',
-            prefix: 'dp-label',
+            childSelector: ".react-aria-Label",
+            prefix: "dp-label",
             variables: {
               xs: {
-                '--dp-label-size': 'var(--text-2xs)',
-                '--dp-label-line-height': 'var(--text-2xs--line-height)'
+                "--dp-label-size": "var(--text-2xs)",
+                "--dp-label-line-height": "var(--text-2xs--line-height)",
               },
               sm: {
-                '--dp-label-size': 'var(--text-xs)',
-                '--dp-label-line-height': 'var(--text-xs--line-height)'
+                "--dp-label-size": "var(--text-xs)",
+                "--dp-label-line-height": "var(--text-xs--line-height)",
               },
               md: {
-                '--dp-label-size': 'var(--text-sm)',
-                '--dp-label-line-height': 'var(--text-sm--line-height)'
+                "--dp-label-size": "var(--text-sm)",
+                "--dp-label-line-height": "var(--text-sm--line-height)",
               },
               lg: {
-                '--dp-label-size': 'var(--text-base)',
-                '--dp-label-line-height': 'var(--text-base--line-height)'
+                "--dp-label-size": "var(--text-base)",
+                "--dp-label-line-height": "var(--text-base--line-height)",
               },
               xl: {
-                '--dp-label-size': 'var(--text-lg)',
-                '--dp-label-line-height': 'var(--text-lg--line-height)'
-              }
+                "--dp-label-size": "var(--text-lg)",
+                "--dp-label-line-height": "var(--text-lg--line-height)",
+              },
             },
             bridges: {
-              '--label-font-size': 'var(--dp-label-size)',
-              '--label-line-height': 'var(--dp-label-line-height)',
-              '--label-font-weight': '600'
-            }
+              "--label-font-size": "var(--dp-label-size)",
+              "--label-line-height": "var(--dp-label-line-height)",
+              "--label-font-weight": "600",
+            },
           },
           {
-            childSelector: '.react-aria-Group',
-            prefix: 'dp-group',
+            childSelector: ".react-aria-Group",
+            prefix: "dp-group",
             variables: {
               xs: {
-                '--dp-group-padding': 'var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs)',
-                '--dp-group-font-size': 'var(--text-2xs)',
-                '--dp-group-line-height': 'var(--text-2xs--line-height)',
-                '--dp-group-gap': 'var(--spacing-2xs)'
+                "--dp-group-padding":
+                  "var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs)",
+                "--dp-group-font-size": "var(--text-2xs)",
+                "--dp-group-line-height": "var(--text-2xs--line-height)",
+                "--dp-group-gap": "var(--spacing-2xs)",
               },
               sm: {
-                '--dp-group-padding': 'var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm)',
-                '--dp-group-font-size': 'var(--text-xs)',
-                '--dp-group-line-height': 'var(--text-xs--line-height)',
-                '--dp-group-gap': 'var(--spacing-xs)'
+                "--dp-group-padding":
+                  "var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm)",
+                "--dp-group-font-size": "var(--text-xs)",
+                "--dp-group-line-height": "var(--text-xs--line-height)",
+                "--dp-group-gap": "var(--spacing-xs)",
               },
               md: {
-                '--dp-group-padding': 'var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)',
-                '--dp-group-font-size': 'var(--text-sm)',
-                '--dp-group-line-height': 'var(--text-sm--line-height)',
-                '--dp-group-gap': 'var(--spacing-xs)'
+                "--dp-group-padding":
+                  "var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)",
+                "--dp-group-font-size": "var(--text-sm)",
+                "--dp-group-line-height": "var(--text-sm--line-height)",
+                "--dp-group-gap": "var(--spacing-xs)",
               },
               lg: {
-                '--dp-group-padding': 'var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg)',
-                '--dp-group-font-size': 'var(--text-base)',
-                '--dp-group-line-height': 'var(--text-base--line-height)',
-                '--dp-group-gap': 'var(--spacing-xs)'
+                "--dp-group-padding":
+                  "var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg)",
+                "--dp-group-font-size": "var(--text-base)",
+                "--dp-group-line-height": "var(--text-base--line-height)",
+                "--dp-group-gap": "var(--spacing-xs)",
               },
               xl: {
-                '--dp-group-padding': 'var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl)',
-                '--dp-group-font-size': 'var(--text-lg)',
-                '--dp-group-line-height': 'var(--text-lg--line-height)',
-                '--dp-group-gap': 'var(--spacing-sm)'
-              }
+                "--dp-group-padding":
+                  "var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl)",
+                "--dp-group-font-size": "var(--text-lg)",
+                "--dp-group-line-height": "var(--text-lg--line-height)",
+                "--dp-group-gap": "var(--spacing-sm)",
+              },
             },
             bridges: {
-              display: 'flex',
-              'align-items': 'center',
-              width: '100%',
-              gap: 'var(--dp-group-gap)',
-              padding: 'var(--dp-group-padding)',
-              border: '1px solid var(--border)',
-              'border-radius': 'var(--border-radius)',
-              background: 'var(--bg-inset)',
-              color: 'var(--fg)',
-              'white-space': 'nowrap',
-              'forced-color-adjust': 'none',
-              'font-size': 'var(--dp-group-font-size)',
-              'line-height': 'var(--dp-group-line-height)',
-              transition: 'border-color 200ms ease, background-color 200ms ease',
-              cursor: 'text'
+              display: "flex",
+              "align-items": "center",
+              width: "100%",
+              gap: "var(--dp-group-gap)",
+              padding: "var(--dp-group-padding)",
+              border: "1px solid var(--border)",
+              "border-radius": "var(--border-radius)",
+              background: "var(--bg-inset)",
+              color: "var(--fg)",
+              "white-space": "nowrap",
+              "forced-color-adjust": "none",
+              "font-size": "var(--dp-group-font-size)",
+              "line-height": "var(--dp-group-line-height)",
+              transition:
+                "border-color 200ms ease, background-color 200ms ease",
+              cursor: "text",
             },
             states: {
-              '[data-hovered]': {
-                'border-color': 'var(--border-hover)',
-                background: 'var(--bg-overlay)'
+              "[data-hovered]": {
+                "border-color": "var(--border-hover)",
+                background: "var(--bg-overlay)",
               },
-              '[data-focus-within]': {
-                outline: '2px solid var(--accent)',
-                'outline-offset': '-1px',
-                'border-color': 'var(--accent)',
-                background: 'var(--bg-overlay)'
+              "[data-focus-within]": {
+                outline: "2px solid var(--accent)",
+                "outline-offset": "-1px",
+                "border-color": "var(--accent)",
+                background: "var(--bg-overlay)",
               },
-              '[data-invalid]': {
-                'border-color': 'var(--negative)'
+              "[data-invalid]": {
+                "border-color": "var(--negative)",
               },
-              '[data-disabled]': {
-                opacity: '0.38',
-                cursor: 'not-allowed',
-                background: 'var(--bg-muted)'
-              }
-            }
+              "[data-disabled]": {
+                opacity: "0.38",
+                cursor: "not-allowed",
+                background: "var(--bg-muted)",
+              },
+            },
           },
           {
-            childSelector: '.react-aria-DateInput',
-            prefix: 'dp-input',
+            childSelector: ".react-aria-DateInput",
+            prefix: "dp-input",
             bridges: {
-              display: 'inline-flex',
-              flex: '1',
-              'min-width': '0',
-              padding: '0',
-              border: 'none',
-              outline: 'none',
-              background: 'transparent',
-              color: 'var(--fg)',
-              'font-size': 'var(--dp-group-font-size)',
-              'white-space': 'nowrap'
-            }
+              display: "inline-flex",
+              flex: "1",
+              "min-width": "0",
+              padding: "0",
+              border: "none",
+              outline: "none",
+              background: "transparent",
+              color: "var(--fg)",
+              "font-size": "var(--dp-group-font-size)",
+              "white-space": "nowrap",
+            },
           },
           {
-            childSelector: '.react-aria-DateSegment',
-            prefix: 'dp-segment',
+            childSelector: ".react-aria-DateSegment",
+            prefix: "dp-segment",
             variables: {
               xs: {
-                '--dp-segment-size': 'var(--text-2xs)'
+                "--dp-segment-size": "var(--text-2xs)",
               },
               sm: {
-                '--dp-segment-size': 'var(--text-xs)'
+                "--dp-segment-size": "var(--text-xs)",
               },
               md: {
-                '--dp-segment-size': 'var(--text-sm)'
+                "--dp-segment-size": "var(--text-sm)",
               },
               lg: {
-                '--dp-segment-size': 'var(--text-base)'
+                "--dp-segment-size": "var(--text-base)",
               },
               xl: {
-                '--dp-segment-size': 'var(--text-lg)'
-              }
+                "--dp-segment-size": "var(--text-lg)",
+              },
             },
             bridges: {
-              padding: '0 2px',
-              border: 'none',
-              background: 'transparent',
-              height: 'auto',
-              'font-variant-numeric': 'tabular-nums',
-              'text-align': 'end',
-              color: 'var(--fg)',
-              'border-radius': 'var(--radius-xs)',
-              'font-size': 'var(--dp-segment-size)',
-              transition: 'all 150ms ease'
+              padding: "0 2px",
+              border: "none",
+              background: "transparent",
+              height: "auto",
+              "font-variant-numeric": "tabular-nums",
+              "text-align": "end",
+              color: "var(--fg)",
+              "border-radius": "var(--radius-xs)",
+              "font-size": "var(--dp-segment-size)",
+              transition: "all 150ms ease",
             },
             states: {
               '[data-type="literal"]': {
-                padding: '0'
+                padding: "0",
               },
-              '[data-placeholder]': {
-                color: 'var(--fg-muted)',
-                opacity: '0.6'
+              "[data-placeholder]": {
+                color: "var(--fg-muted)",
+                opacity: "0.6",
               },
-              ':focus': {
-                color: 'var(--fg)',
-                background: 'var(--accent-subtle)',
-                outline: 'none',
-                'border-radius': 'var(--radius-xs)',
-                'caret-color': 'transparent'
+              ":focus": {
+                color: "var(--fg)",
+                background: "var(--accent-subtle)",
+                outline: "none",
+                "border-radius": "var(--radius-xs)",
+                "caret-color": "transparent",
               },
-              '[data-invalid]': {
-                color: 'var(--negative)'
+              "[data-invalid]": {
+                color: "var(--negative)",
               },
-              '[data-invalid]:focus': {
-                background: 'color-mix(in srgb, var(--negative) 15%, transparent)',
-                color: 'var(--negative)'
+              "[data-invalid]:focus": {
+                background:
+                  "color-mix(in srgb, var(--negative) 15%, transparent)",
+                color: "var(--negative)",
               },
-              '[data-disabled]': {
-                color: 'color-mix(in srgb, var(--fg) 38%, transparent)',
-                cursor: 'not-allowed'
-              }
-            }
+              "[data-disabled]": {
+                color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+                cursor: "not-allowed",
+              },
+            },
           },
           {
-            childSelector: '.react-aria-Button',
-            prefix: 'dp-btn',
+            childSelector: ".react-aria-Button",
+            prefix: "dp-btn",
             variables: {
               xs: {
-                '--dp-btn-width': 'var(--text-sm)',
-                '--dp-btn-height': 'var(--text-sm)'
+                "--dp-btn-width": "var(--text-sm)",
+                "--dp-btn-height": "var(--text-sm)",
               },
               sm: {
-                '--dp-btn-width': 'var(--text-base)',
-                '--dp-btn-height': 'var(--text-base)'
+                "--dp-btn-width": "var(--text-base)",
+                "--dp-btn-height": "var(--text-base)",
               },
               md: {
-                '--dp-btn-width': 'var(--text-xl)',
-                '--dp-btn-height': 'var(--text-xl)'
+                "--dp-btn-width": "var(--text-xl)",
+                "--dp-btn-height": "var(--text-xl)",
               },
               lg: {
-                '--dp-btn-width': 'var(--text-2xl)',
-                '--dp-btn-height': 'var(--text-2xl)'
+                "--dp-btn-width": "var(--text-2xl)",
+                "--dp-btn-height": "var(--text-2xl)",
               },
               xl: {
-                '--dp-btn-width': 'var(--text-3xl)',
-                '--dp-btn-height': 'var(--text-3xl)'
-              }
+                "--dp-btn-width": "var(--text-3xl)",
+                "--dp-btn-height": "var(--text-3xl)",
+              },
             },
             bridges: {
-              background: 'transparent',
-              color: 'var(--fg-muted)',
-              'forced-color-adjust': 'none',
-              border: 'none',
-              width: 'var(--dp-btn-width)',
-              height: 'var(--dp-btn-height)',
-              padding: '0',
-              cursor: 'default',
-              'flex-shrink': '0',
-              display: 'flex',
-              'align-items': 'center',
-              'justify-content': 'center'
+              background: "transparent",
+              color: "var(--fg-muted)",
+              "forced-color-adjust": "none",
+              border: "none",
+              width: "var(--dp-btn-width)",
+              height: "var(--dp-btn-height)",
+              padding: "0",
+              cursor: "default",
+              "flex-shrink": "0",
+              display: "flex",
+              "align-items": "center",
+              "justify-content": "center",
             },
             states: {
-              '[data-pressed]': {
-                'box-shadow': 'none',
-                background: 'var(--bg-muted)'
+              "[data-pressed]": {
+                "box-shadow": "none",
+                background: "var(--bg-muted)",
               },
-              '[data-focus-visible]': {
-                outline: '2px solid var(--accent)',
-                'outline-offset': '2px'
-              }
-            }
+              "[data-focus-visible]": {
+                outline: "2px solid var(--accent)",
+                "outline-offset": "2px",
+              },
+            },
           },
           {
-            childSelector: '.react-aria-FieldError',
-            prefix: 'dp-hint',
+            childSelector: ".react-aria-FieldError",
+            prefix: "dp-hint",
             variables: {
               xs: {
-                '--dp-hint-size': 'var(--text-2xs)'
+                "--dp-hint-size": "var(--text-2xs)",
               },
               sm: {
-                '--dp-hint-size': 'var(--text-xs)'
+                "--dp-hint-size": "var(--text-xs)",
               },
               md: {
-                '--dp-hint-size': 'var(--text-xs)'
+                "--dp-hint-size": "var(--text-xs)",
               },
               lg: {
-                '--dp-hint-size': 'var(--text-sm)'
+                "--dp-hint-size": "var(--text-sm)",
               },
               xl: {
-                '--dp-hint-size': 'var(--text-sm)'
-              }
+                "--dp-hint-size": "var(--text-sm)",
+              },
             },
             bridges: {
-              '--error-font-size': 'var(--dp-hint-size)'
-            }
+              "--error-font-size": "var(--dp-hint-size)",
+            },
           },
           {
             childSelector: '[slot="description"]',
             bridges: {
-              'font-size': 'var(--dp-hint-size)',
-              color: 'var(--fg-muted)'
-            }
-          }
-        ]
-      }
+              "font-size": "var(--dp-hint-size)",
+              color: "var(--fg-muted)",
+            },
+          },
+        ],
+      },
     },
   },
   DateRangePicker: {
@@ -3582,387 +3607,395 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'div',
+      archetype: "default",
+      element: "div",
       containerStyles: {
-        display: 'flex'
+        display: "flex",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
+          focusRing: "{focus.ring.default}",
+        },
       },
       composition: {
-        layout: 'flex-column',
-        gap: 'var(--spacing-xs)',
+        layout: "flex-column",
+        gap: "var(--spacing-xs)",
         containerStyles: {
-          color: 'var(--fg)'
+          color: "var(--fg)",
         },
         containerVariants: {
-          'label-position': {
+          "label-position": {
             side: {
               styles: {
-                'flex-direction': 'row',
-                'align-items': 'flex-start'
-              }
-            }
+                "flex-direction": "row",
+                "align-items": "flex-start",
+              },
+            },
           },
           quiet: {
             true: {
               nested: [
                 {
-                  selector: '.react-aria-Group',
+                  selector: ".react-aria-Group",
                   styles: {
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-radius': '0',
-                    'border-bottom': '1px solid var(--border)'
-                  }
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-radius": "0",
+                    "border-bottom": "1px solid var(--border)",
+                  },
                 },
                 {
-                  selector: '.react-aria-Group[data-hovered]:not([data-focus-within]):not([data-focused])',
+                  selector:
+                    ".react-aria-Group[data-hovered]:not([data-focus-within]):not([data-focused])",
                   styles: {
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-bottom-color': 'var(--border-hover)'
-                  }
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-bottom-color": "var(--border-hover)",
+                  },
                 },
                 {
-                  selector: '.react-aria-Group[data-focus-within]',
+                  selector: ".react-aria-Group[data-focus-within]",
                   styles: {
-                    outline: 'none',
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-bottom-color': 'var(--accent)'
-                  }
+                    outline: "none",
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-bottom-color": "var(--accent)",
+                  },
                 },
                 {
-                  selector: '.react-aria-Group[data-invalid]',
+                  selector: ".react-aria-Group[data-invalid]",
                   styles: {
-                    'border-color': 'transparent',
-                    'border-bottom-color': 'var(--negative)'
-                  }
-                }
-              ]
-            }
-          }
+                    "border-color": "transparent",
+                    "border-bottom-color": "var(--negative)",
+                  },
+                },
+              ],
+            },
+          },
         },
         externalStyles: [
           {
             selector: '.react-aria-Popover[data-trigger="DateRangePicker"]',
             styles: {
-              'max-width': 'unset'
+              "max-width": "unset",
             },
             nested: [
               {
-                selector: '.react-aria-Dialog .react-aria-RangeCalendar',
+                selector: ".react-aria-Dialog .react-aria-RangeCalendar",
                 styles: {
-                  background: 'transparent',
-                  border: 'none',
-                  padding: '0'
-                }
-              }
-            ]
+                  background: "transparent",
+                  border: "none",
+                  padding: "0",
+                },
+              },
+            ],
           },
           {
-            selector: '.react-aria-DateRangePicker-start-time',
+            selector: ".react-aria-DateRangePicker-start-time",
             styles: {
-              width: '100%'
-            }
+              width: "100%",
+            },
           },
           {
-            selector: '.react-aria-DateRangePicker-end-time',
+            selector: ".react-aria-DateRangePicker-end-time",
             styles: {
-              width: '100%'
-            }
-          }
+              width: "100%",
+            },
+          },
         ],
         delegation: [
           {
-            childSelector: '.react-aria-Label',
-            prefix: 'drp-label',
+            childSelector: ".react-aria-Label",
+            prefix: "drp-label",
             variables: {
               xs: {
-                '--drp-label-size': 'var(--text-2xs)',
-                '--drp-label-line-height': 'var(--text-2xs--line-height)'
+                "--drp-label-size": "var(--text-2xs)",
+                "--drp-label-line-height": "var(--text-2xs--line-height)",
               },
               sm: {
-                '--drp-label-size': 'var(--text-xs)',
-                '--drp-label-line-height': 'var(--text-xs--line-height)'
+                "--drp-label-size": "var(--text-xs)",
+                "--drp-label-line-height": "var(--text-xs--line-height)",
               },
               md: {
-                '--drp-label-size': 'var(--text-sm)',
-                '--drp-label-line-height': 'var(--text-sm--line-height)'
+                "--drp-label-size": "var(--text-sm)",
+                "--drp-label-line-height": "var(--text-sm--line-height)",
               },
               lg: {
-                '--drp-label-size': 'var(--text-base)',
-                '--drp-label-line-height': 'var(--text-base--line-height)'
+                "--drp-label-size": "var(--text-base)",
+                "--drp-label-line-height": "var(--text-base--line-height)",
               },
               xl: {
-                '--drp-label-size': 'var(--text-lg)',
-                '--drp-label-line-height': 'var(--text-lg--line-height)'
-              }
+                "--drp-label-size": "var(--text-lg)",
+                "--drp-label-line-height": "var(--text-lg--line-height)",
+              },
             },
             bridges: {
-              '--label-font-size': 'var(--drp-label-size)',
-              '--label-line-height': 'var(--drp-label-line-height)',
-              '--label-font-weight': '600'
-            }
+              "--label-font-size": "var(--drp-label-size)",
+              "--label-line-height": "var(--drp-label-line-height)",
+              "--label-font-weight": "600",
+            },
           },
           {
-            childSelector: '.react-aria-Group',
-            prefix: 'drp-group',
+            childSelector: ".react-aria-Group",
+            prefix: "drp-group",
             variables: {
               xs: {
-                '--drp-group-padding': 'var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs)',
-                '--drp-group-font-size': 'var(--text-2xs)',
-                '--drp-group-line-height': 'var(--text-2xs--line-height)',
-                '--drp-group-gap': 'var(--spacing-2xs)'
+                "--drp-group-padding":
+                  "var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs)",
+                "--drp-group-font-size": "var(--text-2xs)",
+                "--drp-group-line-height": "var(--text-2xs--line-height)",
+                "--drp-group-gap": "var(--spacing-2xs)",
               },
               sm: {
-                '--drp-group-padding': 'var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm)',
-                '--drp-group-font-size': 'var(--text-xs)',
-                '--drp-group-line-height': 'var(--text-xs--line-height)',
-                '--drp-group-gap': 'var(--spacing-xs)'
+                "--drp-group-padding":
+                  "var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm)",
+                "--drp-group-font-size": "var(--text-xs)",
+                "--drp-group-line-height": "var(--text-xs--line-height)",
+                "--drp-group-gap": "var(--spacing-xs)",
               },
               md: {
-                '--drp-group-padding': 'var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)',
-                '--drp-group-font-size': 'var(--text-sm)',
-                '--drp-group-line-height': 'var(--text-sm--line-height)',
-                '--drp-group-gap': 'var(--spacing-xs)'
+                "--drp-group-padding":
+                  "var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)",
+                "--drp-group-font-size": "var(--text-sm)",
+                "--drp-group-line-height": "var(--text-sm--line-height)",
+                "--drp-group-gap": "var(--spacing-xs)",
               },
               lg: {
-                '--drp-group-padding': 'var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg)',
-                '--drp-group-font-size': 'var(--text-base)',
-                '--drp-group-line-height': 'var(--text-base--line-height)',
-                '--drp-group-gap': 'var(--spacing-xs)'
+                "--drp-group-padding":
+                  "var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg)",
+                "--drp-group-font-size": "var(--text-base)",
+                "--drp-group-line-height": "var(--text-base--line-height)",
+                "--drp-group-gap": "var(--spacing-xs)",
               },
               xl: {
-                '--drp-group-padding': 'var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl)',
-                '--drp-group-font-size': 'var(--text-lg)',
-                '--drp-group-line-height': 'var(--text-lg--line-height)',
-                '--drp-group-gap': 'var(--spacing-sm)'
-              }
+                "--drp-group-padding":
+                  "var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl)",
+                "--drp-group-font-size": "var(--text-lg)",
+                "--drp-group-line-height": "var(--text-lg--line-height)",
+                "--drp-group-gap": "var(--spacing-sm)",
+              },
             },
             bridges: {
-              display: 'flex',
-              'align-items': 'center',
-              width: '100%',
-              gap: 'var(--drp-group-gap)',
-              padding: 'var(--drp-group-padding)',
-              border: '1px solid var(--border)',
-              'border-radius': 'var(--border-radius)',
-              background: 'var(--bg-inset)',
-              color: 'var(--fg)',
-              'white-space': 'nowrap',
-              'forced-color-adjust': 'none',
-              'font-size': 'var(--drp-group-font-size)',
-              'line-height': 'var(--drp-group-line-height)',
-              transition: 'border-color 200ms ease, background-color 200ms ease'
+              display: "flex",
+              "align-items": "center",
+              width: "100%",
+              gap: "var(--drp-group-gap)",
+              padding: "var(--drp-group-padding)",
+              border: "1px solid var(--border)",
+              "border-radius": "var(--border-radius)",
+              background: "var(--bg-inset)",
+              color: "var(--fg)",
+              "white-space": "nowrap",
+              "forced-color-adjust": "none",
+              "font-size": "var(--drp-group-font-size)",
+              "line-height": "var(--drp-group-line-height)",
+              transition:
+                "border-color 200ms ease, background-color 200ms ease",
             },
             states: {
-              '[data-hovered]': {
-                'border-color': 'var(--border-hover)',
-                background: 'var(--bg-overlay)'
+              "[data-hovered]": {
+                "border-color": "var(--border-hover)",
+                background: "var(--bg-overlay)",
               },
-              '[data-focus-within]': {
-                outline: '2px solid var(--accent)',
-                'outline-offset': '-1px',
-                'border-color': 'var(--accent)',
-                background: 'var(--bg-overlay)'
+              "[data-focus-within]": {
+                outline: "2px solid var(--accent)",
+                "outline-offset": "-1px",
+                "border-color": "var(--accent)",
+                background: "var(--bg-overlay)",
               },
-              '[data-invalid]': {
-                'border-color': 'var(--negative)'
+              "[data-invalid]": {
+                "border-color": "var(--negative)",
               },
-              '[data-disabled]': {
-                opacity: '0.38',
-                cursor: 'not-allowed',
-                background: 'var(--bg-muted)'
-              }
-            }
+              "[data-disabled]": {
+                opacity: "0.38",
+                cursor: "not-allowed",
+                background: "var(--bg-muted)",
+              },
+            },
           },
           {
-            childSelector: '.react-aria-DateInput',
+            childSelector: ".react-aria-DateInput",
             bridges: {
-              width: 'unset',
-              'min-width': 'unset',
-              padding: 'unset',
-              border: 'unset',
-              background: 'transparent',
-              outline: 'unset',
-              'font-size': 'var(--drp-group-font-size)'
+              width: "unset",
+              "min-width": "unset",
+              padding: "unset",
+              border: "unset",
+              background: "transparent",
+              outline: "unset",
+              "font-size": "var(--drp-group-font-size)",
             },
             states: {
-              '[data-focus-within]': {
-                outline: '0px solid transparent'
-              }
-            }
+              "[data-focus-within]": {
+                outline: "0px solid transparent",
+              },
+            },
           },
           {
-            childSelector: '.react-aria-DateSegment',
-            prefix: 'drp-segment',
+            childSelector: ".react-aria-DateSegment",
+            prefix: "drp-segment",
             variables: {
               xs: {
-                '--drp-segment-size': 'var(--text-2xs)'
+                "--drp-segment-size": "var(--text-2xs)",
               },
               sm: {
-                '--drp-segment-size': 'var(--text-xs)'
+                "--drp-segment-size": "var(--text-xs)",
               },
               md: {
-                '--drp-segment-size': 'var(--text-sm)'
+                "--drp-segment-size": "var(--text-sm)",
               },
               lg: {
-                '--drp-segment-size': 'var(--text-base)'
+                "--drp-segment-size": "var(--text-base)",
               },
               xl: {
-                '--drp-segment-size': 'var(--text-lg)'
-              }
+                "--drp-segment-size": "var(--text-lg)",
+              },
             },
             bridges: {
-              padding: '0 2px',
-              border: 'none',
-              background: 'transparent',
-              height: 'auto',
-              'font-variant-numeric': 'tabular-nums',
-              'text-align': 'end',
-              color: 'var(--fg)',
-              'border-radius': 'var(--radius-xs)',
-              'font-size': 'var(--drp-segment-size)',
-              transition: 'all 150ms ease'
+              padding: "0 2px",
+              border: "none",
+              background: "transparent",
+              height: "auto",
+              "font-variant-numeric": "tabular-nums",
+              "text-align": "end",
+              color: "var(--fg)",
+              "border-radius": "var(--radius-xs)",
+              "font-size": "var(--drp-segment-size)",
+              transition: "all 150ms ease",
             },
             states: {
               '[data-type="literal"]': {
-                padding: '0'
+                padding: "0",
               },
-              '[data-placeholder]': {
-                color: 'var(--fg-muted)',
-                opacity: '0.6'
+              "[data-placeholder]": {
+                color: "var(--fg-muted)",
+                opacity: "0.6",
               },
-              ':focus': {
-                color: 'var(--fg)',
-                background: 'var(--accent-subtle)',
-                outline: 'none',
-                'border-radius': 'var(--radius-xs)',
-                'caret-color': 'transparent'
+              ":focus": {
+                color: "var(--fg)",
+                background: "var(--accent-subtle)",
+                outline: "none",
+                "border-radius": "var(--radius-xs)",
+                "caret-color": "transparent",
               },
-              '[data-invalid]': {
-                color: 'var(--negative)'
+              "[data-invalid]": {
+                color: "var(--negative)",
               },
-              '[data-invalid]:focus': {
-                background: 'color-mix(in srgb, var(--negative) 15%, transparent)',
-                color: 'var(--negative)'
+              "[data-invalid]:focus": {
+                background:
+                  "color-mix(in srgb, var(--negative) 15%, transparent)",
+                color: "var(--negative)",
               },
-              '[data-disabled]': {
-                color: 'color-mix(in srgb, var(--fg) 38%, transparent)',
-                cursor: 'not-allowed'
-              }
-            }
+              "[data-disabled]": {
+                color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+                cursor: "not-allowed",
+              },
+            },
           },
           {
             childSelector: '[slot="start"] + span',
             bridges: {
-              padding: '0 4px',
-              color: 'var(--fg-muted)'
-            }
+              padding: "0 4px",
+              color: "var(--fg-muted)",
+            },
           },
           {
             childSelector: '[slot="end"]',
             bridges: {
-              flex: '1'
-            }
+              flex: "1",
+            },
           },
           {
-            childSelector: '.react-aria-Button',
-            prefix: 'drp-btn',
+            childSelector: ".react-aria-Button",
+            prefix: "drp-btn",
             variables: {
               xs: {
-                '--drp-btn-width': 'var(--text-sm)',
-                '--drp-btn-height': 'var(--text-sm)'
+                "--drp-btn-width": "var(--text-sm)",
+                "--drp-btn-height": "var(--text-sm)",
               },
               sm: {
-                '--drp-btn-width': 'var(--text-base)',
-                '--drp-btn-height': 'var(--text-base)'
+                "--drp-btn-width": "var(--text-base)",
+                "--drp-btn-height": "var(--text-base)",
               },
               md: {
-                '--drp-btn-width': 'var(--text-xl)',
-                '--drp-btn-height': 'var(--text-xl)'
+                "--drp-btn-width": "var(--text-xl)",
+                "--drp-btn-height": "var(--text-xl)",
               },
               lg: {
-                '--drp-btn-width': 'var(--text-2xl)',
-                '--drp-btn-height': 'var(--text-2xl)'
+                "--drp-btn-width": "var(--text-2xl)",
+                "--drp-btn-height": "var(--text-2xl)",
               },
               xl: {
-                '--drp-btn-width': 'var(--text-3xl)',
-                '--drp-btn-height': 'var(--text-3xl)'
-              }
+                "--drp-btn-width": "var(--text-3xl)",
+                "--drp-btn-height": "var(--text-3xl)",
+              },
             },
             bridges: {
-              background: 'transparent',
-              color: 'var(--fg-muted)',
-              'forced-color-adjust': 'none',
-              border: 'none',
-              width: 'var(--drp-btn-width)',
-              height: 'var(--drp-btn-height)',
-              padding: '0',
-              cursor: 'default',
-              'flex-shrink': '0',
-              display: 'flex',
-              'align-items': 'center',
-              'justify-content': 'center'
+              background: "transparent",
+              color: "var(--fg-muted)",
+              "forced-color-adjust": "none",
+              border: "none",
+              width: "var(--drp-btn-width)",
+              height: "var(--drp-btn-height)",
+              padding: "0",
+              cursor: "default",
+              "flex-shrink": "0",
+              display: "flex",
+              "align-items": "center",
+              "justify-content": "center",
             },
             states: {
-              '[data-pressed]': {
-                'box-shadow': 'none',
-                background: 'var(--bg-muted)'
+              "[data-pressed]": {
+                "box-shadow": "none",
+                background: "var(--bg-muted)",
               },
-              '[data-focus-visible]': {
-                outline: '2px solid var(--accent)',
-                'outline-offset': '2px'
-              }
-            }
+              "[data-focus-visible]": {
+                outline: "2px solid var(--accent)",
+                "outline-offset": "2px",
+              },
+            },
           },
           {
-            childSelector: '.react-aria-FieldError',
-            prefix: 'drp-hint',
+            childSelector: ".react-aria-FieldError",
+            prefix: "drp-hint",
             variables: {
               xs: {
-                '--drp-hint-size': 'var(--text-2xs)'
+                "--drp-hint-size": "var(--text-2xs)",
               },
               sm: {
-                '--drp-hint-size': 'var(--text-xs)'
+                "--drp-hint-size": "var(--text-xs)",
               },
               md: {
-                '--drp-hint-size': 'var(--text-xs)'
+                "--drp-hint-size": "var(--text-xs)",
               },
               lg: {
-                '--drp-hint-size': 'var(--text-sm)'
+                "--drp-hint-size": "var(--text-sm)",
               },
               xl: {
-                '--drp-hint-size': 'var(--text-sm)'
-              }
+                "--drp-hint-size": "var(--text-sm)",
+              },
             },
             bridges: {
-              '--error-font-size': 'var(--drp-hint-size)'
-            }
+              "--error-font-size": "var(--drp-hint-size)",
+            },
           },
           {
             childSelector: '[slot="description"]',
             bridges: {
-              'font-size': 'var(--drp-hint-size)',
-              color: 'var(--fg-muted)'
-            }
-          }
-        ]
-      }
+              "font-size": "var(--drp-hint-size)",
+              color: "var(--fg-muted)",
+            },
+          },
+        ],
+      },
     },
   },
   Description: {
@@ -4011,12 +4044,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'text',
-      element: 'span',
+      archetype: "text",
+      element: "span",
       containerStyles: {
-        display: 'block',
-        width: '100%'
-      }
+        display: "block",
+        width: "100%",
+      },
     },
   },
   Dialog: {
@@ -4082,10 +4115,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'overlay',
-      element: 'div',
+      archetype: "overlay",
+      element: "div",
       containerStyles: undefined,
-      states: {}
+      states: {},
     },
   },
   DialogFooter: {
@@ -4119,9 +4152,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'div',
-      containerStyles: undefined
+      archetype: "simple",
+      element: "div",
+      containerStyles: undefined,
     },
   },
   Disclosure: {
@@ -4346,33 +4379,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'div',
+      archetype: "simple",
+      element: "div",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center'
+        display: "inline-flex",
+        alignItems: "center",
       },
       states: {
         hover: {},
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
+          focusRing: "{focus.ring.default}",
+        },
       },
       composition: {
         rootSelectors: {
-          '&[data-drop-target]': {
+          "&[data-drop-target]": {
             styles: {
-              background: 'var(--bg-inset)',
-              color: 'var(--accent)'
-            }
-          }
+              background: "var(--bg-inset)",
+              color: "var(--accent)",
+            },
+          },
         },
-        delegation: []
-      }
+        delegation: [],
+      },
     },
   },
   Field: {
@@ -4453,12 +4486,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'span',
+      archetype: "simple",
+      element: "span",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center'
-      }
+        display: "inline-flex",
+        alignItems: "center",
+      },
     },
   },
   FileTrigger: {
@@ -4522,47 +4555,47 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'button',
-      element: 'button',
+      archetype: "button",
+      element: "button",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: 'fit-content'
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "fit-content",
       },
       states: {
         hover: {},
         pressed: {
-          boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.1)",
         },
         disabled: {
           opacity: 0.38,
-          cursor: 'not-allowed',
-          pointerEvents: 'none'
+          cursor: "not-allowed",
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
+          focusRing: "{focus.ring.default}",
+        },
       },
       composition: {
         containerStyles: {
-          display: 'inline-block'
+          display: "inline-block",
         },
         staticSelectors: {
           "input[type='file']": {
-            position: 'absolute',
-            width: '1px',
-            height: '1px',
-            padding: '0',
-            margin: '-1px',
-            overflow: 'hidden',
-            clip: 'rect(0, 0, 0, 0)',
-            'white-space': 'nowrap',
-            border: '0'
-          }
+            position: "absolute",
+            width: "1px",
+            height: "1px",
+            padding: "0",
+            margin: "-1px",
+            overflow: "hidden",
+            clip: "rect(0, 0, 0, 0)",
+            "white-space": "nowrap",
+            border: "0",
+          },
         },
-        delegation: []
-      }
+        delegation: [],
+      },
     },
   },
   Form: {
@@ -4629,50 +4662,50 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'form',
+      archetype: "default",
+      element: "form",
       containerStyles: undefined,
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
+          pointerEvents: "none",
         },
-        focusVisible: {}
+        focusVisible: {},
       },
       composition: {
-        layout: 'flex-column',
-        gap: '16px',
+        layout: "flex-column",
+        gap: "16px",
         containerStyles: {
-          'align-items': 'start',
-          '--form-label-width': 'auto',
-          '--form-label-align': 'start',
-          '--form-field-gap': 'var(--spacing-md)'
+          "align-items": "start",
+          "--form-label-width": "auto",
+          "--form-label-align": "start",
+          "--form-field-gap": "var(--spacing-md)",
         },
         containerVariants: {
-          'label-position': {
+          "label-position": {
             side: {
               styles: {
-                '--form-label-width': '11rem'
-              }
-            }
+                "--form-label-width": "11rem",
+              },
+            },
           },
-          'label-align': {
+          "label-align": {
             center: {
               styles: {
-                '--form-label-align': 'center'
-              }
+                "--form-label-align": "center",
+              },
             },
             end: {
               styles: {
-                '--form-label-align': 'end'
-              }
-            }
-          }
+                "--form-label-align": "end",
+              },
+            },
+          },
         },
-        delegation: []
-      }
+        delegation: [],
+      },
     },
   },
   FormField: {
@@ -4706,9 +4739,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'div',
-      containerStyles: undefined
+      archetype: "simple",
+      element: "div",
+      containerStyles: undefined,
     },
   },
   frame: {
@@ -4765,6 +4798,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   GridListItem: {
     defaultVariant: "default",
     defaultSize: "md",
+    // ADR-912 Phase 3-A-3b (2026-06-20): collection-item base-axis 를 catalog SSOT 로 도달.
+    //   카드 컨테이너 flex-column layout(권위 source = starter GridList.css:112
+    //   `.react-aria-GridListItem { display:flex; flex-direction:column; min-width:0 }`).
+    //   gap 은 sizes.md.gap(2) 경유라 containerStyles 에 중복 미선언. implicitStyles
+    //   gridlistitem 분기 인라인(display/flexDirection/minWidth)을 본 source 로 대체.
+    structure: {
+      archetype: "default",
+      element: "div",
+      containerStyles: {
+        display: "flex",
+        flexDirection: "column",
+        minWidth: 0,
+      },
+    },
     // ADR-912 collection sub-part cutover (2026-06-14, TreeItem escape 선례 동형):
     //   GridListItem.spec.render.shapes(카드 box layer-1 + border + label fw600 +
     //   description neutral-subdued)를 rule + buildCatalogShapes(box+label) +
@@ -4883,14 +4930,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'div',
+      archetype: "simple",
+      element: "div",
       containerStyles: {
-        position: 'sticky',
-        background: '{color.raised}',
-        text: '{color.neutral-subdued}'
+        position: "sticky",
+        background: "{color.raised}",
+        text: "{color.neutral-subdued}",
       },
-      states: {}
+      states: {},
     },
   },
   Heading: {
@@ -4958,12 +5005,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'text',
-      element: 'p',
+      archetype: "text",
+      element: "p",
       containerStyles: {
-        display: 'block',
-        width: '100%'
-      }
+        display: "block",
+        width: "100%",
+      },
     },
   },
   Icon: {
@@ -5016,20 +5063,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'span',
+      archetype: "simple",
+      element: "span",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center'
+        display: "inline-flex",
+        alignItems: "center",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
-          opacity: 0.38
+          opacity: 0.38,
         },
-        focusVisible: {}
-      }
+        focusVisible: {},
+      },
     },
   },
   IllustratedMessage: {
@@ -5083,15 +5130,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'alert',
-      element: 'div',
+      archetype: "alert",
+      element: "div",
       containerStyles: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-start',
-        width: '100%'
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        width: "100%",
       },
-      states: {}
+      states: {},
     },
   },
   Image: {
@@ -5257,15 +5304,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'alert',
-      element: 'div',
+      archetype: "alert",
+      element: "div",
       containerStyles: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-start',
-        width: '100%'
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        width: "100%",
       },
-      states: {}
+      states: {},
     },
   },
   Input: {
@@ -5419,12 +5466,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'kbd',
+      archetype: "simple",
+      element: "kbd",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center'
-      }
+        display: "inline-flex",
+        alignItems: "center",
+      },
     },
   },
   Label: {
@@ -5544,29 +5591,29 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     textDecoration: "underline",
     structure: {
-      archetype: 'button',
-      element: 'a',
+      archetype: "button",
+      element: "a",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: 'fit-content'
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "fit-content",
       },
       composition: {
         rootSelectors: {
-          '&': {
+          "&": {
             styles: {
-              'text-decoration': 'underline'
-            }
+              "text-decoration": "underline",
+            },
           },
-          '&[data-hovered]': {
+          "&[data-hovered]": {
             styles: {
-              'text-decoration-thickness': '1.5px'
-            }
-          }
+              "text-decoration-thickness": "1.5px",
+            },
+          },
         },
-        delegation: []
-      }
+        delegation: [],
+      },
     },
   },
   ListBox: {
@@ -5625,34 +5672,34 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'collection',
-      element: 'div',
+      archetype: "collection",
+      element: "div",
       containerStyles: {
-        background: '{color.raised}',
-        text: '{color.neutral}',
-        border: '{color.border}',
+        background: "{color.raised}",
+        text: "{color.neutral}",
+        border: "{color.border}",
         borderWidth: 1,
-        borderRadius: '{radius.lg}',
-        padding: '{spacing.xs}',
-        gap: '{spacing.2xs}',
-        display: 'flex',
-        flexDirection: 'column',
-        width: '100%',
-        maxHeight: '300px',
-        overflow: 'auto',
-        outline: 'none'
+        borderRadius: "{radius.lg}",
+        padding: "{spacing.xs}",
+        gap: "{spacing.2xs}",
+        display: "flex",
+        flexDirection: "column",
+        width: "100%",
+        maxHeight: "300px",
+        overflow: "auto",
+        outline: "none",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
-      }
+          focusRing: "{focus.ring.default}",
+        },
+      },
     },
   },
   ListBoxItem: {
@@ -5703,27 +5750,27 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'div',
+      archetype: "simple",
+      element: "div",
       containerStyles: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-start',
-        justifyContent: 'center'
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        justifyContent: "center",
       },
       states: {
         hover: {
-          background: '{color.layer-1}'
+          background: "{color.layer-1}",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
+          focusRing: "{focus.ring.default}",
         },
         disabled: {
           opacity: 0.38,
-          cursor: 'not-allowed',
-          pointerEvents: 'none'
-        }
-      }
+          cursor: "not-allowed",
+          pointerEvents: "none",
+        },
+      },
     },
   },
   Menu: {
@@ -5867,33 +5914,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'collection',
-      element: 'div',
+      archetype: "collection",
+      element: "div",
       containerStyles: {
-        background: '{color.raised}',
-        text: '{color.neutral}',
-        border: '{color.border}',
+        background: "{color.raised}",
+        text: "{color.neutral}",
+        border: "{color.border}",
         borderWidth: 1,
-        borderRadius: '{radius.md}',
-        padding: '{spacing.xs}',
-        gap: '{spacing.2xs}',
-        display: 'flex',
-        flexDirection: 'column',
-        width: '100%',
-        maxHeight: '300px',
-        overflow: 'auto',
-        outline: 'none'
+        borderRadius: "{radius.md}",
+        padding: "{spacing.xs}",
+        gap: "{spacing.2xs}",
+        display: "flex",
+        flexDirection: "column",
+        width: "100%",
+        maxHeight: "300px",
+        overflow: "auto",
+        outline: "none",
       },
       states: {
         hover: {},
         focusVisible: {
-          focusRing: '{focus.ring.default}'
+          focusRing: "{focus.ring.default}",
         },
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
-        }
-      }
+          pointerEvents: "none",
+        },
+      },
     },
   },
   MenuItem: {
@@ -5938,24 +5985,24 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'div',
+      archetype: "simple",
+      element: "div",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center'
+        display: "inline-flex",
+        alignItems: "center",
       },
       states: {
         hover: {
-          background: '{color.layer-1}'
+          background: "{color.layer-1}",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
+          focusRing: "{focus.ring.default}",
         },
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
-        }
-      }
+          pointerEvents: "none",
+        },
+      },
     },
   },
   Meter: {
@@ -6042,156 +6089,156 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'progress',
-      element: 'div',
+      archetype: "progress",
+      element: "div",
       containerStyles: {
-        display: 'grid',
+        display: "grid",
         gridTemplateAreas: '"label value" "bar bar"',
-        gridTemplateColumns: '1fr auto'
+        gridTemplateColumns: "1fr auto",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
+          pointerEvents: "none",
         },
-        focusVisible: {}
+        focusVisible: {},
       },
       composition: {
-        layout: 'grid',
+        layout: "grid",
         containerStyles: {
-          'box-sizing': 'border-box',
-          'row-gap': 'var(--spacing-xs)',
-          'column-gap': 'var(--spacing-md)',
-          width: '100%',
-          color: 'var(--fg)',
-          'font-size': 'var(--text-sm)',
-          '--label-font-size': 'var(--text-sm)',
-          '--fill-color': 'var(--color-info-600)'
+          "box-sizing": "border-box",
+          "row-gap": "var(--spacing-xs)",
+          "column-gap": "var(--spacing-md)",
+          width: "100%",
+          color: "var(--fg)",
+          "font-size": "var(--text-sm)",
+          "--label-font-size": "var(--text-sm)",
+          "--fill-color": "var(--color-info-600)",
         },
         staticSelectors: {
-          '.react-aria-Label': {
-            'grid-area': 'label',
-            'white-space': 'nowrap'
+          ".react-aria-Label": {
+            "grid-area": "label",
+            "white-space": "nowrap",
           },
-          '.value': {
-            'grid-area': 'value',
-            'font-size': 'var(--text-sm)',
-            color: 'var(--fg-muted)',
-            'white-space': 'nowrap'
+          ".value": {
+            "grid-area": "value",
+            "font-size": "var(--text-sm)",
+            color: "var(--fg-muted)",
+            "white-space": "nowrap",
           },
-          '.bar': {
-            'grid-area': 'bar',
-            'box-shadow': 'var(--inset-shadow-xs)',
-            'forced-color-adjust': 'none',
-            height: 'var(--spacing-sm)',
-            'border-radius': 'var(--radius-sm)',
-            overflow: 'hidden',
-            background: 'var(--accent-subtle)'
+          ".bar": {
+            "grid-area": "bar",
+            "box-shadow": "var(--inset-shadow-xs)",
+            "forced-color-adjust": "none",
+            height: "var(--spacing-sm)",
+            "border-radius": "var(--radius-sm)",
+            overflow: "hidden",
+            background: "var(--accent-subtle)",
           },
-          '.fill': {
-            background: 'var(--fill-color)',
-            height: '100%',
-            transition: 'width 200ms ease-out',
-            'forced-color-adjust': 'auto'
-          }
+          ".fill": {
+            background: "var(--fill-color)",
+            height: "100%",
+            transition: "width 200ms ease-out",
+            "forced-color-adjust": "auto",
+          },
         },
         containerVariants: {
           variant: {
             informative: {
               styles: {
-                '--fill-color': 'var(--color-info-600)'
-              }
+                "--fill-color": "var(--color-info-600)",
+              },
             },
             positive: {
               styles: {
-                '--fill-color': 'var(--color-green-600)'
-              }
+                "--fill-color": "var(--color-green-600)",
+              },
             },
             warning: {
               styles: {
-                '--fill-color': 'var(--color-warning-600)'
-              }
+                "--fill-color": "var(--color-warning-600)",
+              },
             },
             critical: {
               styles: {
-                '--fill-color': 'var(--negative)'
-              }
-            }
+                "--fill-color": "var(--negative)",
+              },
+            },
           },
           size: {
             sm: {
               styles: {
-                '--label-font-size': 'var(--text-xs)'
-              }
+                "--label-font-size": "var(--text-xs)",
+              },
             },
             md: {
               styles: {
-                '--label-font-size': 'var(--text-sm)'
-              }
+                "--label-font-size": "var(--text-sm)",
+              },
             },
             lg: {
               styles: {
-                '--label-font-size': 'var(--text-base)'
-              }
+                "--label-font-size": "var(--text-base)",
+              },
             },
             xl: {
               styles: {
-                '--label-font-size': 'var(--text-lg)'
-              }
-            }
+                "--label-font-size": "var(--text-lg)",
+              },
+            },
           },
           disabled: {
             true: {
               styles: {
-                opacity: '0.38',
-                cursor: 'not-allowed',
-                'pointer-events': 'none'
-              }
-            }
-          }
+                opacity: "0.38",
+                cursor: "not-allowed",
+                "pointer-events": "none",
+              },
+            },
+          },
         },
         sizeSelectors: {
           sm: {
-            '.bar': {
-              height: 'var(--spacing-xs)',
-              'border-radius': 'var(--radius-sm)'
+            ".bar": {
+              height: "var(--spacing-xs)",
+              "border-radius": "var(--radius-sm)",
             },
-            '.value': {
-              'font-size': 'var(--text-xs)'
-            }
+            ".value": {
+              "font-size": "var(--text-xs)",
+            },
           },
           md: {
-            '.bar': {
-              height: 'var(--spacing-sm)',
-              'border-radius': 'var(--radius-sm)'
+            ".bar": {
+              height: "var(--spacing-sm)",
+              "border-radius": "var(--radius-sm)",
             },
-            '.value': {
-              'font-size': 'var(--text-sm)'
-            }
+            ".value": {
+              "font-size": "var(--text-sm)",
+            },
           },
           lg: {
-            '.bar': {
-              height: 'var(--spacing-md)',
-              'border-radius': 'var(--radius-lg)'
+            ".bar": {
+              height: "var(--spacing-md)",
+              "border-radius": "var(--radius-lg)",
             },
-            '.value': {
-              'font-size': 'var(--text-base)'
-            }
+            ".value": {
+              "font-size": "var(--text-base)",
+            },
           },
           xl: {
-            '.bar': {
-              height: 'var(--spacing-lg)',
-              'border-radius': 'var(--radius-lg)'
+            ".bar": {
+              height: "var(--spacing-lg)",
+              "border-radius": "var(--radius-lg)",
             },
-            '.value': {
-              'font-size': 'var(--text-lg)'
-            }
-          }
+            ".value": {
+              "font-size": "var(--text-lg)",
+            },
+          },
         },
-        delegation: []
-      }
+        delegation: [],
+      },
     },
   },
   MeterTrack: {
@@ -6276,20 +6323,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'progress',
-      element: 'div',
+      archetype: "progress",
+      element: "div",
       containerStyles: {
-        display: 'grid'
+        display: "grid",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
+          pointerEvents: "none",
         },
-        focusVisible: {}
-      }
+        focusVisible: {},
+      },
     },
   },
   MeterValue: {
@@ -6372,11 +6419,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'progress',
-      element: 'output',
+      archetype: "progress",
+      element: "output",
       containerStyles: {
-        display: 'grid'
-      }
+        display: "grid",
+      },
     },
   },
   Modal: {
@@ -6410,10 +6457,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'overlay',
-      element: 'div',
+      archetype: "overlay",
+      element: "div",
       containerStyles: undefined,
-      states: {}
+      states: {},
     },
   },
   Nav: {
@@ -6472,17 +6519,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'nav',
+      archetype: "default",
+      element: "nav",
       containerStyles: undefined,
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
-        }
-      }
+          pointerEvents: "none",
+        },
+      },
     },
   },
   NumberField: {
@@ -6550,332 +6597,342 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'div',
+      archetype: "default",
+      element: "div",
       containerStyles: {
-        display: 'flex'
+        display: "flex",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          cursor: 'not-allowed',
-          pointerEvents: 'none'
+          cursor: "not-allowed",
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
+          focusRing: "{focus.ring.default}",
+        },
       },
       composition: {
-        layout: 'flex-column',
-        gap: 'var(--spacing-xs)',
+        layout: "flex-column",
+        gap: "var(--spacing-xs)",
         containerStyles: {
-          color: 'var(--fg)'
+          color: "var(--fg)",
         },
         containerVariants: {
           disabled: {
             true: {
               nested: [
                 {
-                  selector: '.react-aria-Group',
+                  selector: ".react-aria-Group",
                   styles: {
-                    background: 'color-mix(in srgb, var(--fg) 4%, transparent)',
-                    'border-color': 'color-mix(in srgb, var(--fg) 12%, transparent)',
-                    opacity: '0.38'
-                  }
-                }
-              ]
-            }
+                    background: "color-mix(in srgb, var(--fg) 4%, transparent)",
+                    "border-color":
+                      "color-mix(in srgb, var(--fg) 12%, transparent)",
+                    opacity: "0.38",
+                  },
+                },
+              ],
+            },
           },
-          'label-position': {
+          "label-position": {
             side: {
               styles: {
-                'flex-direction': 'row',
-                'align-items': 'flex-start'
-              }
-            }
+                "flex-direction": "row",
+                "align-items": "flex-start",
+              },
+            },
           },
           quiet: {
             true: {
               nested: [
                 {
-                  selector: '.react-aria-Group',
+                  selector: ".react-aria-Group",
                   styles: {
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-radius': '0',
-                    'border-bottom': '1px solid var(--border)'
-                  }
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-radius": "0",
+                    "border-bottom": "1px solid var(--border)",
+                  },
                 },
                 {
-                  selector: '&:has(.react-aria-Input[data-hovered]:not([data-focused]):not([data-disabled])) .react-aria-Group',
+                  selector:
+                    "&:has(.react-aria-Input[data-hovered]:not([data-focused]):not([data-disabled])) .react-aria-Group",
                   styles: {
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-bottom-color': 'var(--border-hover)'
-                  }
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-bottom-color": "var(--border-hover)",
+                  },
                 },
                 {
-                  selector: '&:has(.react-aria-Button[data-hovered]:not([data-disabled])) .react-aria-Group',
+                  selector:
+                    "&:has(.react-aria-Button[data-hovered]:not([data-disabled])) .react-aria-Group",
                   styles: {
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-bottom-color': 'var(--border-hover)'
-                  }
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-bottom-color": "var(--border-hover)",
+                  },
                 },
                 {
-                  selector: '&:has(.react-aria-Input[data-focused]:not([data-disabled])) .react-aria-Group',
+                  selector:
+                    "&:has(.react-aria-Input[data-focused]:not([data-disabled])) .react-aria-Group",
                   styles: {
-                    outline: 'none',
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-bottom-color': 'var(--accent)'
-                  }
+                    outline: "none",
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-bottom-color": "var(--accent)",
+                  },
                 },
                 {
-                  selector: '&:has(.react-aria-Input[data-focus-within]:not([data-disabled])) .react-aria-Group',
+                  selector:
+                    "&:has(.react-aria-Input[data-focus-within]:not([data-disabled])) .react-aria-Group",
                   styles: {
-                    outline: 'none',
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-bottom-color': 'var(--accent)'
-                  }
+                    outline: "none",
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-bottom-color": "var(--accent)",
+                  },
                 },
                 {
-                  selector: '&:has(.react-aria-Button[data-focus-visible]:not([data-disabled])) .react-aria-Group',
+                  selector:
+                    "&:has(.react-aria-Button[data-focus-visible]:not([data-disabled])) .react-aria-Group",
                   styles: {
-                    outline: 'none',
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-bottom-color': 'var(--accent)'
-                  }
+                    outline: "none",
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-bottom-color": "var(--accent)",
+                  },
                 },
                 {
-                  selector: '&[data-invalid] .react-aria-Group',
+                  selector: "&[data-invalid] .react-aria-Group",
                   styles: {
-                    'border-color': 'transparent',
-                    'border-bottom-color': 'var(--negative)'
-                  }
-                }
-              ]
-            }
-          }
+                    "border-color": "transparent",
+                    "border-bottom-color": "var(--negative)",
+                  },
+                },
+              ],
+            },
+          },
         },
         delegation: [
           {
-            childSelector: '.react-aria-Label',
-            prefix: 'nf-label',
+            childSelector: ".react-aria-Label",
+            prefix: "nf-label",
             variables: {
               xs: {
-                '--nf-label-size': 'var(--text-2xs)'
+                "--nf-label-size": "var(--text-2xs)",
               },
               sm: {
-                '--nf-label-size': 'var(--text-xs)'
+                "--nf-label-size": "var(--text-xs)",
               },
               md: {
-                '--nf-label-size': 'var(--text-sm)'
+                "--nf-label-size": "var(--text-sm)",
               },
               lg: {
-                '--nf-label-size': 'var(--text-base)'
+                "--nf-label-size": "var(--text-base)",
               },
               xl: {
-                '--nf-label-size': 'var(--text-lg)'
-              }
+                "--nf-label-size": "var(--text-lg)",
+              },
             },
             bridges: {
-              '--label-font-size': 'var(--nf-label-size)',
-              '--label-font-weight': '600',
-              '--label-margin': 'var(--spacing-xs)'
-            }
+              "--label-font-size": "var(--nf-label-size)",
+              "--label-font-weight": "600",
+              "--label-margin": "var(--spacing-xs)",
+            },
           },
           {
-            childSelector: '.react-aria-Group',
-            prefix: 'nf-group',
+            childSelector: ".react-aria-Group",
+            prefix: "nf-group",
             bridges: {
-              display: 'flex',
-              'align-items': 'center',
-              gap: 'var(--spacing-xs)',
-              width: '100%',
-              border: '1px solid var(--border)',
-              'border-radius': 'var(--border-radius)',
-              background: 'var(--bg-inset)',
-              overflow: 'hidden',
-              transition: 'border-color 200ms ease, background-color 200ms ease',
-              padding: 'var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)'
+              display: "flex",
+              "align-items": "center",
+              gap: "var(--spacing-xs)",
+              width: "100%",
+              border: "1px solid var(--border)",
+              "border-radius": "var(--border-radius)",
+              background: "var(--bg-inset)",
+              overflow: "hidden",
+              transition:
+                "border-color 200ms ease, background-color 200ms ease",
+              padding:
+                "var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)",
             },
             states: {
-              ':has(.react-aria-Input[data-hovered]:not([data-focused]):not([data-disabled]))': {
-                'border-color': 'var(--border-hover)',
-                background: 'var(--bg-overlay)'
+              ":has(.react-aria-Input[data-hovered]:not([data-focused]):not([data-disabled]))":
+                {
+                  "border-color": "var(--border-hover)",
+                  background: "var(--bg-overlay)",
+                },
+              ":has(.react-aria-Button[data-hovered]:not([data-disabled]))": {
+                "border-color": "var(--border-hover)",
+                background: "var(--bg-overlay)",
               },
-              ':has(.react-aria-Button[data-hovered]:not([data-disabled]))': {
-                'border-color': 'var(--border-hover)',
-                background: 'var(--bg-overlay)'
+              ":has(.react-aria-Input[data-focused])": {
+                outline: "2px solid var(--accent)",
+                "outline-offset": "-1px",
               },
-              ':has(.react-aria-Input[data-focused])': {
-                outline: '2px solid var(--accent)',
-                'outline-offset': '-1px'
+              ":has(.react-aria-Input[data-focus-within])": {
+                outline: "2px solid var(--accent)",
+                "outline-offset": "-1px",
               },
-              ':has(.react-aria-Input[data-focus-within])': {
-                outline: '2px solid var(--accent)',
-                'outline-offset': '-1px'
+              ":has(.react-aria-Button[data-focus-visible])": {
+                outline: "2px solid var(--accent)",
+                "outline-offset": "-1px",
               },
-              ':has(.react-aria-Button[data-focus-visible])': {
-                outline: '2px solid var(--accent)',
-                'outline-offset': '-1px'
+              ":has([data-invalid])": {
+                "border-color": "var(--negative)",
               },
-              ':has([data-invalid])': {
-                'border-color': 'var(--negative)'
-              }
-            }
+            },
           },
           {
-            childSelector: '.react-aria-Input',
-            prefix: 'nf-input',
+            childSelector: ".react-aria-Input",
+            prefix: "nf-input",
             variables: {
               xs: {
-                '--nf-input-font-size': 'var(--text-2xs)',
-                '--nf-input-line-height': 'var(--text-2xs--line-height)'
+                "--nf-input-font-size": "var(--text-2xs)",
+                "--nf-input-line-height": "var(--text-2xs--line-height)",
               },
               sm: {
-                '--nf-input-font-size': 'var(--text-xs)',
-                '--nf-input-line-height': 'var(--text-xs--line-height)'
+                "--nf-input-font-size": "var(--text-xs)",
+                "--nf-input-line-height": "var(--text-xs--line-height)",
               },
               md: {
-                '--nf-input-font-size': 'var(--text-sm)',
-                '--nf-input-line-height': 'var(--text-sm--line-height)'
+                "--nf-input-font-size": "var(--text-sm)",
+                "--nf-input-line-height": "var(--text-sm--line-height)",
               },
               lg: {
-                '--nf-input-font-size': 'var(--text-base)',
-                '--nf-input-line-height': 'var(--text-base--line-height)'
+                "--nf-input-font-size": "var(--text-base)",
+                "--nf-input-line-height": "var(--text-base--line-height)",
               },
               xl: {
-                '--nf-input-font-size': 'var(--text-lg)',
-                '--nf-input-line-height': 'var(--text-lg--line-height)'
-              }
+                "--nf-input-font-size": "var(--text-lg)",
+                "--nf-input-line-height": "var(--text-lg--line-height)",
+              },
             },
             bridges: {
-              flex: '1 1 auto',
-              'min-width': '0',
-              border: 'none',
-              'border-radius': '0',
-              background: 'transparent',
-              outline: 'none',
-              'forced-color-adjust': 'none',
-              padding: '0',
-              'font-size': 'var(--nf-input-font-size)',
-              'line-height': 'var(--nf-input-line-height)',
-              '--input-padding': '0',
-              '--input-font-size': 'var(--nf-input-font-size)',
-              '--input-line-height': 'var(--nf-input-line-height)'
-            }
+              flex: "1 1 auto",
+              "min-width": "0",
+              border: "none",
+              "border-radius": "0",
+              background: "transparent",
+              outline: "none",
+              "forced-color-adjust": "none",
+              padding: "0",
+              "font-size": "var(--nf-input-font-size)",
+              "line-height": "var(--nf-input-line-height)",
+              "--input-padding": "0",
+              "--input-font-size": "var(--nf-input-font-size)",
+              "--input-line-height": "var(--nf-input-line-height)",
+            },
           },
           {
-            childSelector: '.react-aria-Button',
-            prefix: 'nf-btn',
+            childSelector: ".react-aria-Button",
+            prefix: "nf-btn",
             variables: {
               xs: {
-                '--nf-btn-size': '10px',
-                '--nf-btn-icon-size': '10px'
+                "--nf-btn-size": "10px",
+                "--nf-btn-icon-size": "10px",
               },
               sm: {
-                '--nf-btn-size': '14px',
-                '--nf-btn-icon-size': '12px'
+                "--nf-btn-size": "14px",
+                "--nf-btn-icon-size": "12px",
               },
               md: {
-                '--nf-btn-size': '18px',
-                '--nf-btn-icon-size': '16px'
+                "--nf-btn-size": "18px",
+                "--nf-btn-icon-size": "16px",
               },
               lg: {
-                '--nf-btn-size': '22px',
-                '--nf-btn-icon-size': '18px'
+                "--nf-btn-size": "22px",
+                "--nf-btn-icon-size": "18px",
               },
               xl: {
-                '--nf-btn-size': '28px',
-                '--nf-btn-icon-size': '22px'
-              }
+                "--nf-btn-size": "28px",
+                "--nf-btn-icon-size": "22px",
+              },
             },
             bridges: {
-              position: 'static',
-              flex: '0 0 auto',
-              padding: '0',
-              border: 'none',
-              'border-radius': 'var(--radius-xs)',
-              width: 'var(--nf-btn-size)',
-              height: 'var(--nf-btn-size)',
-              'min-width': 'unset',
-              'min-height': 'unset',
-              background: 'var(--bg-overlay)',
-              color: 'var(--fg)',
-              'forced-color-adjust': 'none',
-              'box-shadow': 'var(--shadow-sm)'
+              position: "static",
+              flex: "0 0 auto",
+              padding: "0",
+              border: "none",
+              "border-radius": "var(--radius-xs)",
+              width: "var(--nf-btn-size)",
+              height: "var(--nf-btn-size)",
+              "min-width": "unset",
+              "min-height": "unset",
+              background: "var(--bg-overlay)",
+              color: "var(--fg)",
+              "forced-color-adjust": "none",
+              "box-shadow": "var(--shadow-sm)",
             },
             states: {
-              '[data-hovered]:not([data-disabled])': {
-                background: 'var(--accent-subtle)'
+              "[data-hovered]:not([data-disabled])": {
+                background: "var(--accent-subtle)",
               },
-              '[data-pressed]:not([data-disabled])': {
-                background: 'color-mix(in srgb, var(--fg) 12%, var(--bg-overlay))'
+              "[data-pressed]:not([data-disabled])": {
+                background:
+                  "color-mix(in srgb, var(--fg) 12%, var(--bg-overlay))",
               },
-              '[data-focus-visible]': {
-                outline: '2px solid var(--accent)',
-                'outline-offset': '2px'
+              "[data-focus-visible]": {
+                outline: "2px solid var(--accent)",
+                "outline-offset": "2px",
               },
-              '[data-disabled]': {
-                background: 'color-mix(in srgb, var(--fg) 12%, transparent)',
-                color: 'color-mix(in srgb, var(--fg) 38%, transparent)',
-                cursor: 'not-allowed'
-              }
-            }
+              "[data-disabled]": {
+                background: "color-mix(in srgb, var(--fg) 12%, transparent)",
+                color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+                cursor: "not-allowed",
+              },
+            },
           },
           {
-            childSelector: '.react-aria-Button svg',
+            childSelector: ".react-aria-Button svg",
             bridges: {
-              width: 'var(--nf-btn-icon-size)',
-              height: 'var(--nf-btn-icon-size)'
-            }
+              width: "var(--nf-btn-icon-size)",
+              height: "var(--nf-btn-icon-size)",
+            },
           },
           {
-            childSelector: '.react-aria-FieldError',
-            prefix: 'nf-hint',
+            childSelector: ".react-aria-FieldError",
+            prefix: "nf-hint",
             variables: {
               xs: {
-                '--nf-hint-size': 'var(--text-2xs)'
+                "--nf-hint-size": "var(--text-2xs)",
               },
               sm: {
-                '--nf-hint-size': 'var(--text-xs)'
+                "--nf-hint-size": "var(--text-xs)",
               },
               md: {
-                '--nf-hint-size': 'var(--text-xs)'
+                "--nf-hint-size": "var(--text-xs)",
               },
               lg: {
-                '--nf-hint-size': 'var(--text-sm)'
+                "--nf-hint-size": "var(--text-sm)",
               },
               xl: {
-                '--nf-hint-size': 'var(--text-base)'
-              }
+                "--nf-hint-size": "var(--text-base)",
+              },
             },
             bridges: {
-              '--error-font-size': 'var(--nf-hint-size)',
-              '--error-margin': 'var(--spacing-xs)'
-            }
+              "--error-font-size": "var(--nf-hint-size)",
+              "--error-margin": "var(--spacing-xs)",
+            },
           },
           {
             childSelector: '[slot="description"]',
             bridges: {
-              'font-size': 'var(--nf-hint-size)',
-              color: 'var(--fg-muted)'
-            }
-          }
-        ]
-      }
+              "font-size": "var(--nf-hint-size)",
+              color: "var(--fg-muted)",
+            },
+          },
+        ],
+      },
     },
   },
   Pagination: {
@@ -6927,51 +6984,53 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'nav',
+      archetype: "default",
+      element: "nav",
       containerStyles: undefined,
       states: {
         disabled: {
-          opacity: 0.38
-        }
+          opacity: 0.38,
+        },
       },
       composition: {
         containerStyles: {
-          '--btn-radius': 'var(--radius-md)',
-          '--btn-font-size': 'var(--text-base)',
-          '--btn-transition': 'background-color 200ms, opacity 200ms'
+          "--btn-radius": "var(--radius-md)",
+          "--btn-font-size": "var(--text-base)",
+          "--btn-transition": "background-color 200ms, opacity 200ms",
         },
         staticSelectors: {
-          '.pagination-controls': {
-            display: 'flex',
-            'align-items': 'center',
-            gap: '6px'
+          ".pagination-controls": {
+            display: "flex",
+            "align-items": "center",
+            gap: "6px",
           },
-          '.pagination-info': {
-            'font-size': 'var(--text-base)',
-            color: 'var(--fg-muted)',
-            'text-align': 'center'
+          ".pagination-info": {
+            "font-size": "var(--text-base)",
+            color: "var(--fg-muted)",
+            "text-align": "center",
           },
-          '.pagination-ellipsis': {
-            color: 'var(--fg-muted)'
+          ".pagination-ellipsis": {
+            color: "var(--fg-muted)",
           },
           '.react-aria-Button[data-current="true"]': {
-            'background-color': 'var(--accent)',
-            color: 'var(--fg-on-accent)'
+            "background-color": "var(--accent)",
+            color: "var(--fg-on-accent)",
           },
           '.react-aria-Button:not([data-current="true"])': {
-            'background-color': 'var(--bg-overlay)',
-            color: 'var(--fg)'
+            "background-color": "var(--bg-overlay)",
+            color: "var(--fg)",
           },
-          '.react-aria-Button:not([data-current="true"]):hover:not(:disabled)': {
-            'background-color': 'color-mix(in srgb, var(--bg-overlay) 92%, black)'
+          '.react-aria-Button:not([data-current="true"]):hover:not(:disabled)':
+            {
+              "background-color":
+                "color-mix(in srgb, var(--bg-overlay) 92%, black)",
+            },
+          ".react-aria-Button:disabled": {
+            opacity: "0.38",
           },
-          '.react-aria-Button:disabled': {
-            opacity: '0.38'
-          }
         },
-        delegation: []
-      }
+        delegation: [],
+      },
     },
   },
   Paragraph: {
@@ -7039,12 +7098,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'text',
-      element: 'p',
+      archetype: "text",
+      element: "p",
       containerStyles: {
-        display: 'block',
-        width: '100%'
-      }
+        display: "block",
+        width: "100%",
+      },
     },
   },
   Popover: {
@@ -7121,10 +7180,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'overlay',
-      element: 'div',
+      archetype: "overlay",
+      element: "div",
       containerStyles: undefined,
-      states: {}
+      states: {},
     },
   },
   ProgressBar: {
@@ -7199,198 +7258,199 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'progress',
-      element: 'div',
+      archetype: "progress",
+      element: "div",
       containerStyles: {
-        display: 'grid',
+        display: "grid",
         gridTemplateAreas: '"label value" "bar bar"',
-        gridTemplateColumns: '1fr auto'
+        gridTemplateColumns: "1fr auto",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
+          pointerEvents: "none",
         },
-        focusVisible: {}
+        focusVisible: {},
       },
       composition: {
-        layout: 'grid',
+        layout: "grid",
         containerStyles: {
-          'box-sizing': 'border-box',
-          'row-gap': 'var(--spacing-xs)',
-          'column-gap': 'var(--spacing-md)',
-          width: '100%',
-          color: 'var(--fg)',
-          'font-size': 'var(--text-sm)',
-          '--label-font-size': 'var(--text-sm)',
-          '--fill-color': 'var(--accent)',
-          '--track-color': 'var(--accent-subtle)'
+          "box-sizing": "border-box",
+          "row-gap": "var(--spacing-xs)",
+          "column-gap": "var(--spacing-md)",
+          width: "100%",
+          color: "var(--fg)",
+          "font-size": "var(--text-sm)",
+          "--label-font-size": "var(--text-sm)",
+          "--fill-color": "var(--accent)",
+          "--track-color": "var(--accent-subtle)",
         },
         staticSelectors: {
-          '.react-aria-Label': {
-            'grid-area': 'label',
-            'white-space': 'nowrap'
+          ".react-aria-Label": {
+            "grid-area": "label",
+            "white-space": "nowrap",
           },
-          '.value': {
-            'grid-area': 'value',
-            'font-size': 'var(--text-sm)',
-            color: 'var(--fg-muted)',
-            'white-space': 'nowrap'
+          ".value": {
+            "grid-area": "value",
+            "font-size": "var(--text-sm)",
+            color: "var(--fg-muted)",
+            "white-space": "nowrap",
           },
-          '.bar': {
-            'grid-area': 'bar',
-            'box-shadow': 'var(--inset-shadow-xs)',
-            'forced-color-adjust': 'none',
-            height: 'var(--spacing-sm)',
-            'border-radius': 'var(--radius-sm)',
-            overflow: 'hidden',
-            'will-change': 'transform',
-            background: 'var(--track-color)'
+          ".bar": {
+            "grid-area": "bar",
+            "box-shadow": "var(--inset-shadow-xs)",
+            "forced-color-adjust": "none",
+            height: "var(--spacing-sm)",
+            "border-radius": "var(--radius-sm)",
+            overflow: "hidden",
+            "will-change": "transform",
+            background: "var(--track-color)",
           },
-          '.fill': {
-            'border-radius': 'var(--radius-sm)',
-            background: 'var(--fill-color)',
-            height: '100%',
-            transition: 'width 200ms ease-out'
-          }
+          ".fill": {
+            "border-radius": "var(--radius-sm)",
+            background: "var(--fill-color)",
+            height: "100%",
+            transition: "width 200ms ease-out",
+          },
         },
         containerVariants: {
           variant: {
             default: {
               styles: {
-                '--fill-color': 'var(--accent)',
-                '--track-color': 'var(--accent-subtle)'
-              }
+                "--fill-color": "var(--accent)",
+                "--track-color": "var(--accent-subtle)",
+              },
             },
             accent: {
               styles: {
-                '--fill-color': 'var(--accent)',
-                '--track-color': 'var(--accent-subtle)'
-              }
+                "--fill-color": "var(--accent)",
+                "--track-color": "var(--accent-subtle)",
+              },
             },
             neutral: {
               styles: {
-                '--fill-color': 'var(--fg-muted)',
-                '--track-color': 'var(--bg-muted)'
-              }
-            }
+                "--fill-color": "var(--fg-muted)",
+                "--track-color": "var(--bg-muted)",
+              },
+            },
           },
           indeterminate: {
             true: {
               nested: [
                 {
-                  selector: '.fill',
+                  selector: ".fill",
                   styles: {
-                    width: '120px',
-                    'border-radius': 'inherit',
-                    animation: 'ProgressBar-indeterminate 1.5s infinite ease-in-out',
-                    'will-change': 'transform'
-                  }
-                }
-              ]
-            }
+                    width: "120px",
+                    "border-radius": "inherit",
+                    animation:
+                      "ProgressBar-indeterminate 1.5s infinite ease-in-out",
+                    "will-change": "transform",
+                  },
+                },
+              ],
+            },
           },
           disabled: {
             true: {
               styles: {
-                opacity: '0.38',
-                cursor: 'not-allowed',
-                'pointer-events': 'none'
-              }
-            }
+                opacity: "0.38",
+                cursor: "not-allowed",
+                "pointer-events": "none",
+              },
+            },
           },
           size: {
             sm: {
               styles: {
-                '--label-font-size': 'var(--text-xs)'
-              }
+                "--label-font-size": "var(--text-xs)",
+              },
             },
             md: {
               styles: {
-                '--label-font-size': 'var(--text-sm)'
-              }
+                "--label-font-size": "var(--text-sm)",
+              },
             },
             lg: {
               styles: {
-                '--label-font-size': 'var(--text-base)'
-              }
+                "--label-font-size": "var(--text-base)",
+              },
             },
             xl: {
               styles: {
-                '--label-font-size': 'var(--text-lg)'
-              }
-            }
-          }
+                "--label-font-size": "var(--text-lg)",
+              },
+            },
+          },
         },
         sizeSelectors: {
           sm: {
-            '.bar': {
-              height: 'var(--spacing-xs)',
-              'border-radius': 'var(--radius-sm)'
+            ".bar": {
+              height: "var(--spacing-xs)",
+              "border-radius": "var(--radius-sm)",
             },
-            '.fill': {
-              'border-radius': 'var(--radius-sm)'
+            ".fill": {
+              "border-radius": "var(--radius-sm)",
             },
-            '.value': {
-              'font-size': 'var(--text-xs)'
-            }
+            ".value": {
+              "font-size": "var(--text-xs)",
+            },
           },
           md: {
-            '.bar': {
-              height: 'var(--spacing-sm)',
-              'border-radius': 'var(--radius-sm)'
+            ".bar": {
+              height: "var(--spacing-sm)",
+              "border-radius": "var(--radius-sm)",
             },
-            '.fill': {
-              'border-radius': 'var(--radius-sm)'
+            ".fill": {
+              "border-radius": "var(--radius-sm)",
             },
-            '.value': {
-              'font-size': 'var(--text-sm)'
-            }
+            ".value": {
+              "font-size": "var(--text-sm)",
+            },
           },
           lg: {
-            '.bar': {
-              height: 'var(--spacing-md)',
-              'border-radius': 'var(--radius-lg)'
+            ".bar": {
+              height: "var(--spacing-md)",
+              "border-radius": "var(--radius-lg)",
             },
-            '.fill': {
-              'border-radius': 'var(--radius-md)'
+            ".fill": {
+              "border-radius": "var(--radius-md)",
             },
-            '.value': {
-              'font-size': 'var(--text-base)'
-            }
+            ".value": {
+              "font-size": "var(--text-base)",
+            },
           },
           xl: {
-            '.bar': {
-              height: 'var(--spacing-lg)',
-              'border-radius': 'var(--radius-lg)'
+            ".bar": {
+              height: "var(--spacing-lg)",
+              "border-radius": "var(--radius-lg)",
             },
-            '.fill': {
-              'border-radius': 'var(--radius-lg)'
+            ".fill": {
+              "border-radius": "var(--radius-lg)",
             },
-            '.value': {
-              'font-size': 'var(--text-lg)'
-            }
-          }
+            ".value": {
+              "font-size": "var(--text-lg)",
+            },
+          },
         },
         animations: {
           indeterminate: {
             keyframes: {
               from: {
-                transform: 'translateX(-100%)'
+                transform: "translateX(-100%)",
               },
               to: {
-                transform: 'translateX(250px)'
-              }
+                transform: "translateX(250px)",
+              },
             },
             reducedMotion: {
-              'transition-duration': '0s'
-            }
-          }
+              "transition-duration": "0s",
+            },
+          },
         },
-        delegation: []
-      }
+        delegation: [],
+      },
     },
   },
   ProgressBarTrack: {
@@ -7436,20 +7496,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'progress',
-      element: 'div',
+      archetype: "progress",
+      element: "div",
       containerStyles: {
-        display: 'grid'
+        display: "grid",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
+          pointerEvents: "none",
         },
-        focusVisible: {}
-      }
+        focusVisible: {},
+      },
     },
   },
   ProgressBarValue: {
@@ -7496,11 +7556,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'progress',
-      element: 'output',
+      archetype: "progress",
+      element: "output",
       containerStyles: {
-        display: 'grid'
-      }
+        display: "grid",
+      },
     },
   },
   ProgressCircle: {
@@ -7538,11 +7598,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'progress',
-      element: 'div',
+      archetype: "progress",
+      element: "div",
       containerStyles: {
-        display: 'grid'
-      }
+        display: "grid",
+      },
     },
   },
   Radio: {
@@ -7654,24 +7714,24 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'toggle-indicator',
-      element: 'label',
+      archetype: "toggle-indicator",
+      element: "label",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center'
+        display: "inline-flex",
+        alignItems: "center",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          cursor: 'not-allowed',
-          pointerEvents: 'none'
+          cursor: "not-allowed",
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
-      }
+          focusRing: "{focus.ring.default}",
+        },
+      },
     },
   },
   RadioGroup: {
@@ -7746,94 +7806,94 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'div',
+      archetype: "default",
+      element: "div",
       containerStyles: {
-        display: 'flex'
+        display: "flex",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
+          focusRing: "{focus.ring.default}",
+        },
       },
       composition: {
-        layout: 'flex-column',
-        gap: 'var(--spacing-xs)',
+        layout: "flex-column",
+        gap: "var(--spacing-xs)",
         containerStyles: {
-          color: 'var(--fg)',
-          '--label-font-size': 'var(--text-sm)',
-          '--label-line-height': 'var(--text-sm--line-height)',
-          '--radio-items-gap': '12px',
-          '--rg-hint-size': 'var(--text-xs)'
+          color: "var(--fg)",
+          "--label-font-size": "var(--text-sm)",
+          "--label-line-height": "var(--text-sm--line-height)",
+          "--radio-items-gap": "12px",
+          "--rg-hint-size": "var(--text-xs)",
         },
         containerVariants: {
           size: {
             sm: {
               styles: {
-                '--label-font-size': 'var(--text-xs)',
-                '--label-line-height': 'var(--text-xs--line-height)',
-                '--radio-items-gap': '8px'
-              }
+                "--label-font-size": "var(--text-xs)",
+                "--label-line-height": "var(--text-xs--line-height)",
+                "--radio-items-gap": "8px",
+              },
             },
             lg: {
               styles: {
-                '--label-font-size': 'var(--text-base)',
-                '--label-line-height': 'var(--text-base--line-height)',
-                '--radio-items-gap': '16px'
-              }
-            }
+                "--label-font-size": "var(--text-base)",
+                "--label-line-height": "var(--text-base--line-height)",
+                "--radio-items-gap": "16px",
+              },
+            },
           },
-          'label-position': {
+          "label-position": {
             side: {
               styles: {
-                'flex-direction': 'row',
-                'align-items': 'flex-start'
-              }
-            }
+                "flex-direction": "row",
+                "align-items": "flex-start",
+              },
+            },
           },
           orientation: {
             vertical: {
               nested: [
                 {
-                  selector: '.radio-items',
+                  selector: ".radio-items",
                   styles: {
-                    display: 'flex',
-                    'flex-direction': 'column',
-                    gap: 'var(--radio-items-gap, var(--spacing-md))'
-                  }
-                }
-              ]
+                    display: "flex",
+                    "flex-direction": "column",
+                    gap: "var(--radio-items-gap, var(--spacing-md))",
+                  },
+                },
+              ],
             },
             horizontal: {
               nested: [
                 {
-                  selector: '.radio-items',
+                  selector: ".radio-items",
                   styles: {
-                    display: 'flex',
-                    'flex-direction': 'row',
-                    'align-items': 'center',
-                    gap: 'var(--radio-items-gap, var(--spacing-md))'
-                  }
-                }
-              ]
-            }
-          }
+                    display: "flex",
+                    "flex-direction": "row",
+                    "align-items": "center",
+                    gap: "var(--radio-items-gap, var(--spacing-md))",
+                  },
+                },
+              ],
+            },
+          },
         },
         delegation: [
           {
             childSelector: '[slot="description"]',
             bridges: {
-              'font-size': 'var(--rg-hint-size)'
-            }
-          }
-        ]
-      }
+              "font-size": "var(--rg-hint-size)",
+            },
+          },
+        ],
+      },
     },
   },
   RangeCalendar: {
@@ -7901,24 +7961,24 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'calendar',
-      element: 'div',
+      archetype: "calendar",
+      element: "div",
       containerStyles: {
-        display: 'flex',
-        flexDirection: 'column',
-        width: 'fit-content'
+        display: "flex",
+        flexDirection: "column",
+        width: "fit-content",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
-      }
+          focusRing: "{focus.ring.default}",
+        },
+      },
     },
   },
   SearchField: {
@@ -7972,334 +8032,342 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'div',
+      archetype: "default",
+      element: "div",
       containerStyles: undefined,
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          cursor: 'not-allowed',
-          pointerEvents: 'none'
+          cursor: "not-allowed",
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
+          focusRing: "{focus.ring.default}",
+        },
       },
       composition: {
-        layout: 'flex-column',
-        gap: 'var(--spacing-xs)',
+        layout: "flex-column",
+        gap: "var(--spacing-xs)",
         containerStyles: {
-          width: 'fit-content'
+          width: "fit-content",
         },
         containerVariants: {
-          'label-position': {
+          "label-position": {
             side: {
               styles: {
-                'flex-direction': 'row',
-                'align-items': 'flex-start'
-              }
-            }
+                "flex-direction": "row",
+                "align-items": "flex-start",
+              },
+            },
           },
           quiet: {
             true: {
               nested: [
                 {
-                  selector: '.searchfield-container',
+                  selector: ".searchfield-container",
                   styles: {
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-radius': '0',
-                    'border-bottom': '1px solid var(--border)'
-                  }
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-radius": "0",
+                    "border-bottom": "1px solid var(--border)",
+                  },
                 },
                 {
-                  selector: '.searchfield-container:hover:not(:has([data-disabled])):not(:has([data-focused]))',
+                  selector:
+                    ".searchfield-container:hover:not(:has([data-disabled])):not(:has([data-focused]))",
                   styles: {
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'border-bottom-color': 'var(--border-hover)'
-                  }
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "border-bottom-color": "var(--border-hover)",
+                  },
                 },
                 {
-                  selector: '.searchfield-container:has([data-focused])',
+                  selector: ".searchfield-container:has([data-focused])",
                   styles: {
-                    outline: 'none',
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'border-bottom-color': 'var(--accent)'
-                  }
+                    outline: "none",
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "border-bottom-color": "var(--accent)",
+                  },
                 },
                 {
-                  selector: '.searchfield-container:has([data-invalid])',
+                  selector: ".searchfield-container:has([data-invalid])",
                   styles: {
-                    'border-color': 'transparent',
-                    'border-bottom-color': 'var(--negative)'
-                  }
-                }
-              ]
-            }
+                    "border-color": "transparent",
+                    "border-bottom-color": "var(--negative)",
+                  },
+                },
+              ],
+            },
           },
           empty: {
             true: {
               nested: [
                 {
-                  selector: '.react-aria-Button',
+                  selector: ".react-aria-Button",
                   styles: {
-                    display: 'none'
-                  }
-                }
-              ]
-            }
-          }
+                    display: "none",
+                  },
+                },
+              ],
+            },
+          },
         },
         delegation: [
           {
-            childSelector: '.react-aria-Label',
-            prefix: 'sf-label',
+            childSelector: ".react-aria-Label",
+            prefix: "sf-label",
             variables: {
               xs: {
-                '--sf-label-size': 'var(--text-2xs)'
+                "--sf-label-size": "var(--text-2xs)",
               },
               sm: {
-                '--sf-label-size': 'var(--text-xs)'
+                "--sf-label-size": "var(--text-xs)",
               },
               md: {
-                '--sf-label-size': 'var(--text-sm)'
+                "--sf-label-size": "var(--text-sm)",
               },
               lg: {
-                '--sf-label-size': 'var(--text-base)'
+                "--sf-label-size": "var(--text-base)",
               },
               xl: {
-                '--sf-label-size': 'var(--text-lg)'
-              }
+                "--sf-label-size": "var(--text-lg)",
+              },
             },
             bridges: {
-              '--label-font-size': 'var(--sf-label-size)',
-              '--label-font-weight': '600',
-              '--label-margin': '0'
-            }
+              "--label-font-size": "var(--sf-label-size)",
+              "--label-font-weight": "600",
+              "--label-margin": "0",
+            },
           },
           {
-            childSelector: '.react-aria-Input',
-            prefix: 'sf-input',
+            childSelector: ".react-aria-Input",
+            prefix: "sf-input",
             variables: {
               xs: {
-                '--sf-input-size': 'var(--text-2xs)',
-                '--sf-input-line-height': 'var(--text-2xs--line-height)'
+                "--sf-input-size": "var(--text-2xs)",
+                "--sf-input-line-height": "var(--text-2xs--line-height)",
               },
               sm: {
-                '--sf-input-size': 'var(--text-xs)',
-                '--sf-input-line-height': 'var(--text-xs--line-height)'
+                "--sf-input-size": "var(--text-xs)",
+                "--sf-input-line-height": "var(--text-xs--line-height)",
               },
               md: {
-                '--sf-input-size': 'var(--text-sm)',
-                '--sf-input-line-height': 'var(--text-sm--line-height)'
+                "--sf-input-size": "var(--text-sm)",
+                "--sf-input-line-height": "var(--text-sm--line-height)",
               },
               lg: {
-                '--sf-input-size': 'var(--text-base)',
-                '--sf-input-line-height': 'var(--text-base--line-height)'
+                "--sf-input-size": "var(--text-base)",
+                "--sf-input-line-height": "var(--text-base--line-height)",
               },
               xl: {
-                '--sf-input-size': 'var(--text-lg)',
-                '--sf-input-line-height': 'var(--text-lg--line-height)'
-              }
+                "--sf-input-size": "var(--text-lg)",
+                "--sf-input-line-height": "var(--text-lg--line-height)",
+              },
             },
             bridges: {
-              flex: '1',
-              'min-width': '0',
-              padding: '0',
-              border: 'none',
-              outline: 'none',
-              background: 'transparent',
-              color: 'var(--fg)',
-              'font-size': 'var(--sf-input-size)',
-              'line-height': 'var(--sf-input-line-height)'
-            }
+              flex: "1",
+              "min-width": "0",
+              padding: "0",
+              border: "none",
+              outline: "none",
+              background: "transparent",
+              color: "var(--fg)",
+              "font-size": "var(--sf-input-size)",
+              "line-height": "var(--sf-input-line-height)",
+            },
           },
           {
-            childSelector: '.react-aria-FieldError',
-            prefix: 'sf-hint',
+            childSelector: ".react-aria-FieldError",
+            prefix: "sf-hint",
             variables: {
               xs: {
-                '--sf-hint-size': 'var(--text-2xs)'
+                "--sf-hint-size": "var(--text-2xs)",
               },
               sm: {
-                '--sf-hint-size': 'var(--text-xs)'
+                "--sf-hint-size": "var(--text-xs)",
               },
               md: {
-                '--sf-hint-size': 'var(--text-xs)'
+                "--sf-hint-size": "var(--text-xs)",
               },
               lg: {
-                '--sf-hint-size': 'var(--text-sm)'
+                "--sf-hint-size": "var(--text-sm)",
               },
               xl: {
-                '--sf-hint-size': 'var(--text-base)'
-              }
+                "--sf-hint-size": "var(--text-base)",
+              },
             },
             bridges: {
-              'font-size': 'var(--sf-hint-size)',
-              color: 'var(--negative)'
-            }
+              "font-size": "var(--sf-hint-size)",
+              color: "var(--negative)",
+            },
           },
           {
             childSelector: '[slot="description"]',
             bridges: {
-              'font-size': 'var(--sf-hint-size)',
-              color: 'var(--fg-muted)'
-            }
+              "font-size": "var(--sf-hint-size)",
+              color: "var(--fg-muted)",
+            },
           },
           {
-            childSelector: '.search-icon',
-            prefix: 'sf-icon',
+            childSelector: ".search-icon",
+            prefix: "sf-icon",
             variables: {
               xs: {
-                '--sf-icon-size': '10px'
+                "--sf-icon-size": "10px",
               },
               sm: {
-                '--sf-icon-size': '12px'
+                "--sf-icon-size": "12px",
               },
               md: {
-                '--sf-icon-size': '16px'
+                "--sf-icon-size": "16px",
               },
               lg: {
-                '--sf-icon-size': '18px'
+                "--sf-icon-size": "18px",
               },
               xl: {
-                '--sf-icon-size': '22px'
-              }
+                "--sf-icon-size": "22px",
+              },
             },
             bridges: {
-              display: 'flex',
-              'align-items': 'center',
-              'justify-content': 'center',
-              'flex-shrink': '0',
-              color: 'var(--fg-muted)'
-            }
+              display: "flex",
+              "align-items": "center",
+              "justify-content": "center",
+              "flex-shrink": "0",
+              color: "var(--fg-muted)",
+            },
           },
           {
-            childSelector: '.search-icon svg',
+            childSelector: ".search-icon svg",
             bridges: {
-              width: 'var(--sf-icon-size)',
-              height: 'var(--sf-icon-size)'
-            }
+              width: "var(--sf-icon-size)",
+              height: "var(--sf-icon-size)",
+            },
           },
           {
-            childSelector: '.react-aria-Button',
-            prefix: 'sf-btn',
+            childSelector: ".react-aria-Button",
+            prefix: "sf-btn",
             variables: {
               xs: {
-                '--sf-btn-size': '10px'
+                "--sf-btn-size": "10px",
               },
               sm: {
-                '--sf-btn-size': '14px'
+                "--sf-btn-size": "14px",
               },
               md: {
-                '--sf-btn-size': '18px'
+                "--sf-btn-size": "18px",
               },
               lg: {
-                '--sf-btn-size': '22px'
+                "--sf-btn-size": "22px",
               },
               xl: {
-                '--sf-btn-size': '28px'
-              }
+                "--sf-btn-size": "28px",
+              },
             },
             bridges: {
-              position: 'static',
-              flex: '0 0 auto',
-              width: 'var(--sf-btn-size)',
-              height: 'var(--sf-btn-size)',
-              padding: '0',
-              border: 'none',
-              background: 'var(--bg-overlay)',
-              color: 'var(--fg)',
-              'forced-color-adjust': 'none',
-              'box-shadow': 'var(--shadow-sm)',
-              cursor: 'pointer'
+              position: "static",
+              flex: "0 0 auto",
+              width: "var(--sf-btn-size)",
+              height: "var(--sf-btn-size)",
+              padding: "0",
+              border: "none",
+              background: "var(--bg-overlay)",
+              color: "var(--fg)",
+              "forced-color-adjust": "none",
+              "box-shadow": "var(--shadow-sm)",
+              cursor: "pointer",
             },
             states: {
-              '[data-hovered]:not([data-disabled])': {
-                background: 'var(--accent-subtle)'
+              "[data-hovered]:not([data-disabled])": {
+                background: "var(--accent-subtle)",
               },
-              '[data-pressed]:not([data-disabled])': {
-                background: 'color-mix(in srgb, var(--fg) 12%, var(--bg-overlay))'
+              "[data-pressed]:not([data-disabled])": {
+                background:
+                  "color-mix(in srgb, var(--fg) 12%, var(--bg-overlay))",
               },
-              '[data-focus-visible]': {
-                outline: '2px solid var(--accent)',
-                'outline-offset': '2px'
+              "[data-focus-visible]": {
+                outline: "2px solid var(--accent)",
+                "outline-offset": "2px",
               },
-              '[data-disabled]': {
-                background: 'color-mix(in srgb, var(--fg) 12%, transparent)',
-                color: 'color-mix(in srgb, var(--fg) 38%, transparent)',
-                cursor: 'not-allowed'
-              }
-            }
+              "[data-disabled]": {
+                background: "color-mix(in srgb, var(--fg) 12%, transparent)",
+                color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+                cursor: "not-allowed",
+              },
+            },
           },
           {
-            childSelector: '.react-aria-Button svg',
+            childSelector: ".react-aria-Button svg",
             bridges: {
-              width: 'var(--sf-icon-size)',
-              height: 'var(--sf-icon-size)'
-            }
+              width: "var(--sf-icon-size)",
+              height: "var(--sf-icon-size)",
+            },
           },
           {
-            childSelector: '.searchfield-container',
-            prefix: 'sf-container',
+            childSelector: ".searchfield-container",
+            prefix: "sf-container",
             variables: {
               xs: {
-                '--sf-container-padding': 'var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs)'
+                "--sf-container-padding":
+                  "var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs)",
               },
               sm: {
-                '--sf-container-padding': 'var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm)'
+                "--sf-container-padding":
+                  "var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm)",
               },
               md: {
-                '--sf-container-padding': 'var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)'
+                "--sf-container-padding":
+                  "var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)",
               },
               lg: {
-                '--sf-container-padding': 'var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg)'
+                "--sf-container-padding":
+                  "var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg)",
               },
               xl: {
-                '--sf-container-padding': 'var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl)'
-              }
+                "--sf-container-padding":
+                  "var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl)",
+              },
             },
             bridges: {
-              display: 'flex',
-              'flex-direction': 'row',
-              'align-items': 'center',
-              width: '100%',
-              gap: 'var(--spacing-xs)',
-              padding: 'var(--sf-container-padding)',
-              border: '1px solid var(--border)',
-              'border-radius': 'var(--radius-md)',
-              background: 'var(--bg-inset)',
-              transition: 'border-color 200ms ease, background-color 200ms ease',
-              cursor: 'text'
+              display: "flex",
+              "flex-direction": "row",
+              "align-items": "center",
+              width: "100%",
+              gap: "var(--spacing-xs)",
+              padding: "var(--sf-container-padding)",
+              border: "1px solid var(--border)",
+              "border-radius": "var(--radius-md)",
+              background: "var(--bg-inset)",
+              transition:
+                "border-color 200ms ease, background-color 200ms ease",
+              cursor: "text",
             },
             states: {
-              ':hover:not(:has([data-disabled]))': {
-                'border-color': 'var(--border-hover)',
-                background: 'var(--bg-overlay)'
+              ":hover:not(:has([data-disabled]))": {
+                "border-color": "var(--border-hover)",
+                background: "var(--bg-overlay)",
               },
-              ':has([data-focused])': {
-                'border-color': 'var(--accent)',
-                outline: '2px solid var(--accent)',
-                'outline-offset': '-1px',
-                background: 'var(--bg-overlay)'
+              ":has([data-focused])": {
+                "border-color": "var(--accent)",
+                outline: "2px solid var(--accent)",
+                "outline-offset": "-1px",
+                background: "var(--bg-overlay)",
               },
-              ':has([data-invalid])': {
-                'border-color': 'var(--negative)'
+              ":has([data-invalid])": {
+                "border-color": "var(--negative)",
               },
-              ':has([data-disabled])': {
-                opacity: '0.38',
-                cursor: 'not-allowed',
-                background: 'var(--bg-muted)'
-              }
-            }
-          }
-        ]
-      }
+              ":has([data-disabled])": {
+                opacity: "0.38",
+                cursor: "not-allowed",
+                background: "var(--bg-muted)",
+              },
+            },
+          },
+        ],
+      },
     },
   },
   Section: {
@@ -8410,17 +8478,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'section',
+      archetype: "default",
+      element: "section",
       containerStyles: undefined,
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
-        }
-      }
+          pointerEvents: "none",
+        },
+      },
     },
   },
   Select: {
@@ -8474,338 +8542,350 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'div',
+      archetype: "default",
+      element: "div",
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          cursor: 'not-allowed',
-          pointerEvents: 'none'
+          cursor: "not-allowed",
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
+          focusRing: "{focus.ring.default}",
+        },
       },
       composition: {
-        layout: 'flex-column',
-        gap: 'var(--spacing-xs)',
+        layout: "flex-column",
+        gap: "var(--spacing-xs)",
         containerStyles: {
-          color: 'var(--fg)'
+          color: "var(--fg)",
         },
         containerVariants: {
-          'label-position': {
+          "label-position": {
             side: {
               styles: {
-                'flex-direction': 'row',
-                'align-items': 'flex-start'
-              }
-            }
+                "flex-direction": "row",
+                "align-items": "flex-start",
+              },
+            },
           },
           disabled: {
             true: {
               nested: [
                 {
-                  selector: '.react-aria-Button',
+                  selector: ".react-aria-Button",
                   styles: {
-                    background: 'color-mix(in srgb, var(--fg) 4%, transparent)',
-                    'border-color': 'color-mix(in srgb, var(--fg) 12%, transparent)',
-                    color: 'color-mix(in srgb, var(--fg) 38%, transparent)',
-                    cursor: 'not-allowed',
-                    opacity: '0.38'
-                  }
+                    background: "color-mix(in srgb, var(--fg) 4%, transparent)",
+                    "border-color":
+                      "color-mix(in srgb, var(--fg) 12%, transparent)",
+                    color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+                    cursor: "not-allowed",
+                    opacity: "0.38",
+                  },
                 },
                 {
-                  selector: '.react-aria-Button .select-chevron',
+                  selector: ".react-aria-Button .select-chevron",
                   styles: {
-                    background: 'color-mix(in srgb, var(--fg) 12%, transparent)',
-                    color: 'color-mix(in srgb, var(--fg) 38%, transparent)'
-                  }
-                }
-              ]
-            }
+                    background:
+                      "color-mix(in srgb, var(--fg) 12%, transparent)",
+                    color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+                  },
+                },
+              ],
+            },
           },
           quiet: {
             true: {
               nested: [
                 {
-                  selector: '.react-aria-Button',
+                  selector: ".react-aria-Button",
                   styles: {
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-radius': '0',
-                    'border-bottom': '1px solid var(--border)'
-                  }
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-radius": "0",
+                    "border-bottom": "1px solid var(--border)",
+                  },
                 },
                 {
-                  selector: '.react-aria-Button[data-hovered]:not([data-pressed]):not([data-disabled])',
+                  selector:
+                    ".react-aria-Button[data-hovered]:not([data-pressed]):not([data-disabled])",
                   styles: {
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-bottom-color': 'var(--border-hover)'
-                  }
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-bottom-color": "var(--border-hover)",
+                  },
                 },
                 {
-                  selector: '.react-aria-Button[data-focus-visible]:not([data-disabled])',
+                  selector:
+                    ".react-aria-Button[data-focus-visible]:not([data-disabled])",
                   styles: {
-                    outline: 'none',
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-bottom-color': 'var(--accent)'
-                  }
+                    outline: "none",
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-bottom-color": "var(--accent)",
+                  },
                 },
                 {
-                  selector: '.react-aria-Button[data-focused]:not([data-disabled])',
+                  selector:
+                    ".react-aria-Button[data-focused]:not([data-disabled])",
                   styles: {
-                    outline: 'none',
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-bottom-color': 'var(--accent)'
-                  }
+                    outline: "none",
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-bottom-color": "var(--accent)",
+                  },
                 },
                 {
-                  selector: '.react-aria-Button[data-pressed]:not([data-disabled])',
+                  selector:
+                    ".react-aria-Button[data-pressed]:not([data-disabled])",
                   styles: {
-                    outline: 'none',
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-bottom-color': 'var(--accent)'
-                  }
+                    outline: "none",
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-bottom-color": "var(--accent)",
+                  },
                 },
                 {
-                  selector: '&[data-invalid] .react-aria-Button',
+                  selector: "&[data-invalid] .react-aria-Button",
                   styles: {
-                    'border-color': 'transparent',
-                    'border-bottom-color': 'var(--negative)'
-                  }
-                }
-              ]
-            }
-          }
+                    "border-color": "transparent",
+                    "border-bottom-color": "var(--negative)",
+                  },
+                },
+              ],
+            },
+          },
         },
         externalStyles: [
           {
             selector: '.react-aria-Popover[data-trigger="Select"]',
             styles: {
-              'min-width': 'var(--trigger-width)',
-              'max-height': '300px',
-              overflow: 'auto',
-              border: '1px solid var(--border)',
-              'border-radius': 'var(--border-radius)',
-              background: 'var(--bg-raised)',
-              'box-shadow': 'var(--shadow-lg)',
-              contain: 'layout style'
+              "min-width": "var(--trigger-width)",
+              "max-height": "300px",
+              overflow: "auto",
+              border: "1px solid var(--border)",
+              "border-radius": "var(--border-radius)",
+              background: "var(--bg-raised)",
+              "box-shadow": "var(--shadow-lg)",
+              contain: "layout style",
             },
             nested: [
               {
-                selector: '.react-aria-ListBox',
+                selector: ".react-aria-ListBox",
                 styles: {
-                  border: 'none',
-                  background: 'transparent',
-                  'max-height': 'none',
-                  'min-height': '24px'
-                }
-              }
-            ]
-          }
+                  border: "none",
+                  background: "transparent",
+                  "max-height": "none",
+                  "min-height": "24px",
+                },
+              },
+            ],
+          },
         ],
         delegation: [
           {
-            childSelector: '.react-aria-Label',
-            prefix: 'select-label',
+            childSelector: ".react-aria-Label",
+            prefix: "select-label",
             variables: {
               xs: {
-                '--select-label-size': 'var(--text-2xs)'
+                "--select-label-size": "var(--text-2xs)",
               },
               sm: {
-                '--select-label-size': 'var(--text-xs)'
+                "--select-label-size": "var(--text-xs)",
               },
               md: {
-                '--select-label-size': 'var(--text-sm)'
+                "--select-label-size": "var(--text-sm)",
               },
               lg: {
-                '--select-label-size': 'var(--text-base)'
+                "--select-label-size": "var(--text-base)",
               },
               xl: {
-                '--select-label-size': 'var(--text-lg)'
-              }
+                "--select-label-size": "var(--text-lg)",
+              },
             },
             bridges: {
-              '--label-font-size': 'var(--select-label-size)',
-              '--label-font-weight': '600',
-              '--label-margin': 'var(--spacing-xs)'
-            }
+              "--label-font-size": "var(--select-label-size)",
+              "--label-font-weight": "600",
+              "--label-margin": "var(--spacing-xs)",
+            },
           },
           {
-            childSelector: '.react-aria-Button',
-            prefix: 'select-btn',
+            childSelector: ".react-aria-Button",
+            prefix: "select-btn",
             variables: {
               xs: {
-                '--select-btn-padding': 'var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs)',
-                '--select-btn-font-size': 'var(--text-2xs)',
-                '--select-btn-line-height': 'var(--text-2xs--line-height)'
+                "--select-btn-padding":
+                  "var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs)",
+                "--select-btn-font-size": "var(--text-2xs)",
+                "--select-btn-line-height": "var(--text-2xs--line-height)",
               },
               sm: {
-                '--select-btn-padding': 'var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm)',
-                '--select-btn-font-size': 'var(--text-xs)',
-                '--select-btn-line-height': 'var(--text-xs--line-height)'
+                "--select-btn-padding":
+                  "var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm)",
+                "--select-btn-font-size": "var(--text-xs)",
+                "--select-btn-line-height": "var(--text-xs--line-height)",
               },
               md: {
-                '--select-btn-padding': 'var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)',
-                '--select-btn-font-size': 'var(--text-sm)',
-                '--select-btn-line-height': 'var(--text-sm--line-height)'
+                "--select-btn-padding":
+                  "var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)",
+                "--select-btn-font-size": "var(--text-sm)",
+                "--select-btn-line-height": "var(--text-sm--line-height)",
               },
               lg: {
-                '--select-btn-padding': 'var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg)',
-                '--select-btn-font-size': 'var(--text-base)',
-                '--select-btn-line-height': 'var(--text-base--line-height)'
+                "--select-btn-padding":
+                  "var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg)",
+                "--select-btn-font-size": "var(--text-base)",
+                "--select-btn-line-height": "var(--text-base--line-height)",
               },
               xl: {
-                '--select-btn-padding': 'var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl)',
-                '--select-btn-font-size': 'var(--text-lg)',
-                '--select-btn-line-height': 'var(--text-lg--line-height)'
-              }
+                "--select-btn-padding":
+                  "var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl)",
+                "--select-btn-font-size": "var(--text-lg)",
+                "--select-btn-line-height": "var(--text-lg--line-height)",
+              },
             },
             bridges: {
-              width: '100%',
-              padding: 'var(--select-btn-padding)',
-              'text-align': 'left',
-              border: '1px solid var(--border)',
-              'border-radius': 'var(--border-radius)',
-              background: 'var(--bg-inset)',
-              color: 'var(--fg)',
-              'forced-color-adjust': 'none',
-              'font-size': 'var(--select-btn-font-size)',
-              'line-height': 'var(--select-btn-line-height)'
+              width: "100%",
+              padding: "var(--select-btn-padding)",
+              "text-align": "left",
+              border: "1px solid var(--border)",
+              "border-radius": "var(--border-radius)",
+              background: "var(--bg-inset)",
+              color: "var(--fg)",
+              "forced-color-adjust": "none",
+              "font-size": "var(--select-btn-font-size)",
+              "line-height": "var(--select-btn-line-height)",
             },
             states: {
-              '[data-hovered]:not([data-pressed]):not([data-disabled])': {
-                'border-color': 'var(--border-hover)',
-                background: 'var(--bg-overlay)'
+              "[data-hovered]:not([data-pressed]):not([data-disabled])": {
+                "border-color": "var(--border-hover)",
+                background: "var(--bg-overlay)",
               },
-              '[data-pressed]:not([data-disabled])': {
-                background: 'var(--accent-subtle)',
-                outline: '2px solid var(--accent)',
-                'outline-offset': '-1px'
+              "[data-pressed]:not([data-disabled])": {
+                background: "var(--accent-subtle)",
+                outline: "2px solid var(--accent)",
+                "outline-offset": "-1px",
               },
-              '[data-focus-visible]': {
-                outline: '2px solid var(--accent)',
-                'outline-offset': '-1px'
+              "[data-focus-visible]": {
+                outline: "2px solid var(--accent)",
+                "outline-offset": "-1px",
               },
-              '[data-disabled]': {
-                background: 'color-mix(in srgb, var(--fg) 4%, transparent)',
-                'border-color': 'color-mix(in srgb, var(--fg) 12%, transparent)',
-                color: 'color-mix(in srgb, var(--fg) 38%, transparent)',
-                cursor: 'not-allowed',
-                opacity: '0.38'
-              }
-            }
+              "[data-disabled]": {
+                background: "color-mix(in srgb, var(--fg) 4%, transparent)",
+                "border-color":
+                  "color-mix(in srgb, var(--fg) 12%, transparent)",
+                color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+                cursor: "not-allowed",
+                opacity: "0.38",
+              },
+            },
           },
           {
-            childSelector: '.react-aria-SelectValue',
+            childSelector: ".react-aria-SelectValue",
             bridges: {
-              'font-size': 'var(--select-btn-font-size)',
-              color: 'var(--fg)',
-              flex: '1',
-              display: 'flex',
-              'white-space': 'nowrap',
-              'text-overflow': 'ellipsis',
-              overflow: 'hidden'
+              "font-size": "var(--select-btn-font-size)",
+              color: "var(--fg)",
+              flex: "1",
+              display: "flex",
+              "white-space": "nowrap",
+              "text-overflow": "ellipsis",
+              overflow: "hidden",
             },
             states: {
-              '[data-placeholder]': {
-                'font-style': 'normal',
-                color: 'var(--fg-muted)',
-                opacity: '0.6'
-              }
-            }
+              "[data-placeholder]": {
+                "font-style": "normal",
+                color: "var(--fg-muted)",
+                opacity: "0.6",
+              },
+            },
           },
           {
             childSelector: '.react-aria-SelectValue [slot="description"]',
             bridges: {
-              display: 'none'
-            }
+              display: "none",
+            },
           },
           {
-            childSelector: '.select-chevron',
-            prefix: 'select-chevron',
+            childSelector: ".select-chevron",
+            prefix: "select-chevron",
             variables: {
               xs: {
-                '--select-chevron-size': '14px',
-                '--select-chevron-margin': 'var(--spacing-xs)'
+                "--select-chevron-size": "14px",
+                "--select-chevron-margin": "var(--spacing-xs)",
               },
               sm: {
-                '--select-chevron-size': '16px',
-                '--select-chevron-margin': 'var(--spacing-sm)'
+                "--select-chevron-size": "16px",
+                "--select-chevron-margin": "var(--spacing-sm)",
               },
               md: {
-                '--select-chevron-size': '18px',
-                '--select-chevron-margin': 'var(--spacing)'
+                "--select-chevron-size": "18px",
+                "--select-chevron-margin": "var(--spacing)",
               },
               lg: {
-                '--select-chevron-size': '22px',
-                '--select-chevron-margin': 'var(--spacing-md)'
+                "--select-chevron-size": "22px",
+                "--select-chevron-margin": "var(--spacing-md)",
               },
               xl: {
-                '--select-chevron-size': '28px',
-                '--select-chevron-margin': 'var(--spacing-lg)'
-              }
+                "--select-chevron-size": "28px",
+                "--select-chevron-margin": "var(--spacing-lg)",
+              },
             },
             bridges: {
-              display: 'flex',
-              'align-items': 'center',
-              'justify-content': 'center',
-              width: 'var(--select-chevron-size)',
-              height: 'var(--select-chevron-size)',
-              'margin-left': 'var(--select-chevron-margin)',
-              'border-radius': 'var(--radius-xs)',
-              background: 'var(--bg-overlay)',
-              color: 'var(--fg)',
-              transition: 'all 150ms ease',
-              'forced-color-adjust': 'none',
-              'box-shadow': 'var(--shadow-sm)'
-            }
+              display: "flex",
+              "align-items": "center",
+              "justify-content": "center",
+              width: "var(--select-chevron-size)",
+              height: "var(--select-chevron-size)",
+              "margin-left": "var(--select-chevron-margin)",
+              "border-radius": "var(--radius-xs)",
+              background: "var(--bg-overlay)",
+              color: "var(--fg)",
+              transition: "all 150ms ease",
+              "forced-color-adjust": "none",
+              "box-shadow": "var(--shadow-sm)",
+            },
           },
           {
-            childSelector: '.react-aria-FieldError',
-            prefix: 'select-hint',
+            childSelector: ".react-aria-FieldError",
+            prefix: "select-hint",
             variables: {
               xs: {
-                '--select-hint-size': 'var(--text-2xs)'
+                "--select-hint-size": "var(--text-2xs)",
               },
               sm: {
-                '--select-hint-size': 'var(--text-2xs)'
+                "--select-hint-size": "var(--text-2xs)",
               },
               md: {
-                '--select-hint-size': 'var(--text-xs)'
+                "--select-hint-size": "var(--text-xs)",
               },
               lg: {
-                '--select-hint-size': 'var(--text-sm)'
+                "--select-hint-size": "var(--text-sm)",
               },
               xl: {
-                '--select-hint-size': 'var(--text-base)'
-              }
+                "--select-hint-size": "var(--text-base)",
+              },
             },
             bridges: {
-              '--error-font-size': 'var(--select-hint-size)',
-              '--error-margin': 'var(--spacing-xs)'
-            }
+              "--error-font-size": "var(--select-hint-size)",
+              "--error-margin": "var(--spacing-xs)",
+            },
           },
           {
             childSelector: '[slot="description"]',
             bridges: {
-              'font-size': 'var(--select-hint-size)',
-              color: 'var(--fg-muted)'
-            }
-          }
-        ]
-      }
+              "font-size": "var(--select-hint-size)",
+              color: "var(--fg-muted)",
+            },
+          },
+        ],
+      },
     },
   },
   SelectIcon: {
@@ -9128,13 +9208,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'hr',
+      archetype: "simple",
+      element: "hr",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center'
+        display: "inline-flex",
+        alignItems: "center",
       },
-      states: {}
+      states: {},
     },
   },
   Skeleton: {
@@ -9184,13 +9264,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'div',
+      archetype: "simple",
+      element: "div",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center'
+        display: "inline-flex",
+        alignItems: "center",
       },
-      states: {}
+      states: {},
     },
   },
   // ADR-912 단계5 step4 (2026-06-17): Slider.spec.ts 삭제 대비 시각/layout 값 SSOT 보강.
@@ -9245,62 +9325,62 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'slider',
-      element: 'div',
+      archetype: "slider",
+      element: "div",
       containerStyles: {
-        display: 'grid',
+        display: "grid",
         gridTemplateAreas: '"label output" "track track"',
-        gridTemplateColumns: '1fr auto'
+        gridTemplateColumns: "1fr auto",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          cursor: 'not-allowed',
-          pointerEvents: 'none'
+          cursor: "not-allowed",
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
+          focusRing: "{focus.ring.default}",
+        },
       },
       composition: {
         sizeSelectors: {
           sm: {
-            '.react-aria-Label': {
-              'font-size': 'var(--text-xs)'
+            ".react-aria-Label": {
+              "font-size": "var(--text-xs)",
             },
-            '.react-aria-SliderOutput': {
-              'font-size': 'var(--text-xs)'
-            }
+            ".react-aria-SliderOutput": {
+              "font-size": "var(--text-xs)",
+            },
           },
           md: {
-            '.react-aria-Label': {
-              'font-size': 'var(--text-sm)'
+            ".react-aria-Label": {
+              "font-size": "var(--text-sm)",
             },
-            '.react-aria-SliderOutput': {
-              'font-size': 'var(--text-sm)'
-            }
+            ".react-aria-SliderOutput": {
+              "font-size": "var(--text-sm)",
+            },
           },
           lg: {
-            '.react-aria-Label': {
-              'font-size': 'var(--text-base)'
+            ".react-aria-Label": {
+              "font-size": "var(--text-base)",
             },
-            '.react-aria-SliderOutput': {
-              'font-size': 'var(--text-base)'
-            }
+            ".react-aria-SliderOutput": {
+              "font-size": "var(--text-base)",
+            },
           },
           xl: {
-            '.react-aria-Label': {
-              'font-size': 'var(--text-lg)'
+            ".react-aria-Label": {
+              "font-size": "var(--text-lg)",
             },
-            '.react-aria-SliderOutput': {
-              'font-size': 'var(--text-lg)'
-            }
-          }
+            ".react-aria-SliderOutput": {
+              "font-size": "var(--text-lg)",
+            },
+          },
         },
-        delegation: []
-      }
+        delegation: [],
+      },
     },
   },
   SliderOutput: {
@@ -9333,12 +9413,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'output',
+      archetype: "simple",
+      element: "output",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center'
-      }
+        display: "inline-flex",
+        alignItems: "center",
+      },
     },
   },
   // ADR-912 SliderThumb catalog cutover (2026-06-16): circle 핸들 leaf. slider_thumb escape 가
@@ -9434,22 +9514,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'slider',
-      element: 'div',
+      archetype: "slider",
+      element: "div",
       containerStyles: {
-        display: 'grid',
-        position: 'relative'
+        display: "grid",
+        position: "relative",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          cursor: 'not-allowed',
-          pointerEvents: 'none'
+          cursor: "not-allowed",
+          pointerEvents: "none",
         },
-        focusVisible: {}
-      }
+        focusVisible: {},
+      },
     },
   },
   Slot: {
@@ -9733,17 +9813,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'div',
+      archetype: "simple",
+      element: "div",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center'
+        display: "inline-flex",
+        alignItems: "center",
       },
       states: {
         disabled: {
-          opacity: 0.38
-        }
-      }
+          opacity: 0.38,
+        },
+      },
     },
   },
   Switch: {
@@ -9819,24 +9899,24 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'toggle-indicator',
-      element: 'label',
+      archetype: "toggle-indicator",
+      element: "label",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center'
+        display: "inline-flex",
+        alignItems: "center",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          cursor: 'not-allowed',
-          pointerEvents: 'none'
+          cursor: "not-allowed",
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
-      }
+          focusRing: "{focus.ring.default}",
+        },
+      },
     },
   },
   // ADR-912 Switcher cleanup — Switcher rule 제거 (RAC ToggleButtonGroup 으로 대체, 노드 type
@@ -9886,17 +9966,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'button',
+      archetype: "default",
+      element: "button",
       states: {
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
-      }
+          focusRing: "{focus.ring.default}",
+        },
+      },
     },
   },
   TabList: {
@@ -9920,22 +10000,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'div',
+      archetype: "default",
+      element: "div",
       containerStyles: {
-        display: 'flex',
-        flexDirection: 'row'
+        display: "flex",
+        flexDirection: "row",
       },
       states: {
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
-        }
+          pointerEvents: "none",
+        },
       },
       composition: {
-        layout: 'flex-row',
-        delegation: []
-      }
+        layout: "flex-row",
+        delegation: [],
+      },
     },
   },
   TabPanel: {
@@ -9979,21 +10059,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'collection',
-      element: 'div',
+      archetype: "collection",
+      element: "div",
       containerStyles: {
-        display: 'flex',
-        flexDirection: 'column'
+        display: "flex",
+        flexDirection: "column",
       },
       states: {
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
-      }
+          focusRing: "{focus.ring.default}",
+        },
+      },
     },
   },
   TabPanels: {
@@ -10037,18 +10117,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'collection',
-      element: 'div',
+      archetype: "collection",
+      element: "div",
       containerStyles: {
-        display: 'flex',
-        flexDirection: 'column'
+        display: "flex",
+        flexDirection: "column",
       },
       states: {
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
-        }
-      }
+          pointerEvents: "none",
+        },
+      },
     },
   },
   Table: {
@@ -10155,9 +10235,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'div',
-      containerStyles: undefined
+      archetype: "default",
+      element: "div",
+      containerStyles: undefined,
     },
   },
   Tabs: {
@@ -10203,44 +10283,44 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'div',
+      archetype: "default",
+      element: "div",
       containerStyles: {
-        display: 'flex',
-        flexDirection: 'column'
+        display: "flex",
+        flexDirection: "column",
       },
       states: {
         hover: {},
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.inset}'
-        }
+          focusRing: "{focus.ring.inset}",
+        },
       },
       composition: {
-        layout: 'flex-column',
+        layout: "flex-column",
         delegation: [
           {
-            childSelector: '.react-aria-Tab',
+            childSelector: ".react-aria-Tab",
             variables: {
               sm: {
-                '--tab-padding': 'var(--spacing-2xs) var(--spacing-sm)',
-                '--tab-font-size': 'var(--text-xs)'
+                "--tab-padding": "var(--spacing-2xs) var(--spacing-sm)",
+                "--tab-font-size": "var(--text-xs)",
               },
               md: {
-                '--tab-padding': 'var(--spacing-xs) var(--spacing-md)',
-                '--tab-font-size': 'var(--text-sm)'
+                "--tab-padding": "var(--spacing-xs) var(--spacing-md)",
+                "--tab-font-size": "var(--text-sm)",
               },
               lg: {
-                '--tab-padding': 'var(--spacing-sm) var(--spacing-lg)',
-                '--tab-font-size': 'var(--text-base)'
-              }
-            }
-          }
-        ]
-      }
+                "--tab-padding": "var(--spacing-sm) var(--spacing-lg)",
+                "--tab-font-size": "var(--text-base)",
+              },
+            },
+          },
+        ],
+      },
     },
   },
   Tag: {
@@ -10521,13 +10601,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'div',
+      archetype: "simple",
+      element: "div",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center'
+        display: "inline-flex",
+        alignItems: "center",
       },
-      states: {}
+      states: {},
     },
   },
   Text: {
@@ -10596,12 +10676,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'text',
-      element: 'p',
+      archetype: "text",
+      element: "p",
       containerStyles: {
-        display: 'block',
-        width: '100%'
-      }
+        display: "block",
+        width: "100%",
+      },
     },
   },
   TextArea: {
@@ -10654,71 +10734,71 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'input-base',
-      element: 'div',
+      archetype: "input-base",
+      element: "div",
       containerStyles: {
-        display: 'flex'
+        display: "flex",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          cursor: 'not-allowed',
-          pointerEvents: 'none'
+          cursor: "not-allowed",
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
+          focusRing: "{focus.ring.default}",
+        },
       },
       composition: {
-        layout: 'flex-column',
+        layout: "flex-column",
         containerStyles: {
-          width: 'fit-content'
+          width: "fit-content",
         },
         containerVariants: {
-          'label-position': {
+          "label-position": {
             side: {
               styles: {
-                'flex-direction': 'row',
-                'align-items': 'flex-start'
-              }
-            }
-          }
+                "flex-direction": "row",
+                "align-items": "flex-start",
+              },
+            },
+          },
         },
         delegation: [
           {
-            childSelector: '.react-aria-Label',
-            prefix: 'ta-label',
+            childSelector: ".react-aria-Label",
+            prefix: "ta-label",
             variables: {
               xs: {
-                '--ta-label-size': 'var(--text-2xs)',
-                '--ta-label-line-height': 'var(--text-2xs--line-height)'
+                "--ta-label-size": "var(--text-2xs)",
+                "--ta-label-line-height": "var(--text-2xs--line-height)",
               },
               sm: {
-                '--ta-label-size': 'var(--text-xs)',
-                '--ta-label-line-height': 'var(--text-xs--line-height)'
+                "--ta-label-size": "var(--text-xs)",
+                "--ta-label-line-height": "var(--text-xs--line-height)",
               },
               md: {
-                '--ta-label-size': 'var(--text-sm)',
-                '--ta-label-line-height': 'var(--text-sm--line-height)'
+                "--ta-label-size": "var(--text-sm)",
+                "--ta-label-line-height": "var(--text-sm--line-height)",
               },
               lg: {
-                '--ta-label-size': 'var(--text-base)',
-                '--ta-label-line-height': 'var(--text-base--line-height)'
+                "--ta-label-size": "var(--text-base)",
+                "--ta-label-line-height": "var(--text-base--line-height)",
               },
               xl: {
-                '--ta-label-size': 'var(--text-lg)',
-                '--ta-label-line-height': 'var(--text-lg--line-height)'
-              }
+                "--ta-label-size": "var(--text-lg)",
+                "--ta-label-line-height": "var(--text-lg--line-height)",
+              },
             },
             bridges: {
-              '--label-font-size': 'var(--ta-label-size)',
-              '--label-line-height': 'var(--ta-label-line-height)'
-            }
-          }
-        ]
-      }
+              "--label-font-size": "var(--ta-label-size)",
+              "--label-line-height": "var(--ta-label-line-height)",
+            },
+          },
+        ],
+      },
     },
   },
   TextField: {
@@ -10780,195 +10860,196 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'div',
+      archetype: "default",
+      element: "div",
       containerStyles: {
-        display: 'flex'
+        display: "flex",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
           opacity: 0.38,
-          cursor: 'not-allowed',
-          pointerEvents: 'none'
+          cursor: "not-allowed",
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
+          focusRing: "{focus.ring.default}",
+        },
       },
       composition: {
-        layout: 'flex-column',
-        gap: 'var(--spacing-xs)',
+        layout: "flex-column",
+        gap: "var(--spacing-xs)",
         containerStyles: {
-          width: 'fit-content'
+          width: "fit-content",
         },
         containerVariants: {
-          'label-position': {
+          "label-position": {
             side: {
               styles: {
-                'flex-direction': 'row',
-                'align-items': 'flex-start'
-              }
-            }
+                "flex-direction": "row",
+                "align-items": "flex-start",
+              },
+            },
           },
           quiet: {
             true: {
               styles: {
-                '--tf-border': 'transparent',
-                '--tf-bg': 'transparent'
+                "--tf-border": "transparent",
+                "--tf-bg": "transparent",
               },
               nested: [
                 {
-                  selector: '.react-aria-Input',
+                  selector: ".react-aria-Input",
                   styles: {
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-radius': '0',
-                    'border-bottom': '1px solid var(--border)'
-                  }
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-radius": "0",
+                    "border-bottom": "1px solid var(--border)",
+                  },
                 },
                 {
-                  selector: '.react-aria-Input:where([data-focused])',
+                  selector: ".react-aria-Input:where([data-focused])",
                   styles: {
-                    outline: 'none',
-                    'border-bottom-color': 'var(--accent)'
-                  }
+                    outline: "none",
+                    "border-bottom-color": "var(--accent)",
+                  },
                 },
                 {
-                  selector: '.react-aria-Input:where([data-invalid])',
+                  selector: ".react-aria-Input:where([data-invalid])",
                   styles: {
-                    'border-bottom-color': 'var(--negative)'
-                  }
-                }
-              ]
-            }
-          }
+                    "border-bottom-color": "var(--negative)",
+                  },
+                },
+              ],
+            },
+          },
         },
         delegation: [
           {
-            childSelector: '.react-aria-Label',
-            prefix: 'tf-label',
+            childSelector: ".react-aria-Label",
+            prefix: "tf-label",
             variables: {
               xs: {
-                '--tf-label-size': 'var(--text-2xs)',
-                '--tf-label-margin': '0px'
+                "--tf-label-size": "var(--text-2xs)",
+                "--tf-label-margin": "0px",
               },
               sm: {
-                '--tf-label-size': 'var(--text-xs)',
-                '--tf-label-margin': '0px'
+                "--tf-label-size": "var(--text-xs)",
+                "--tf-label-margin": "0px",
               },
               md: {
-                '--tf-label-size': 'var(--text-sm)',
-                '--tf-label-margin': '2px'
+                "--tf-label-size": "var(--text-sm)",
+                "--tf-label-margin": "2px",
               },
               lg: {
-                '--tf-label-size': 'var(--text-base)',
-                '--tf-label-margin': '4px'
+                "--tf-label-size": "var(--text-base)",
+                "--tf-label-margin": "4px",
               },
               xl: {
-                '--tf-label-size': 'var(--text-lg)',
-                '--tf-label-margin': '6px'
-              }
+                "--tf-label-size": "var(--text-lg)",
+                "--tf-label-margin": "6px",
+              },
             },
             bridges: {
-              '--label-font-size': 'var(--tf-label-size)',
-              '--label-font-weight': '600',
-              '--label-margin': 'var(--tf-label-margin)'
-            }
+              "--label-font-size": "var(--tf-label-size)",
+              "--label-font-weight": "600",
+              "--label-margin": "var(--tf-label-margin)",
+            },
           },
           {
-            childSelector: '.react-aria-Input',
-            prefix: 'tf-input',
+            childSelector: ".react-aria-Input",
+            prefix: "tf-input",
             variables: {
               xs: {
-                '--tf-input-padding': 'var(--spacing-3xs) var(--spacing-xs)',
-                '--tf-input-size': 'var(--text-2xs)',
-                '--tf-input-line-height': 'var(--text-2xs--line-height)'
+                "--tf-input-padding": "var(--spacing-3xs) var(--spacing-xs)",
+                "--tf-input-size": "var(--text-2xs)",
+                "--tf-input-line-height": "var(--text-2xs--line-height)",
               },
               sm: {
-                '--tf-input-padding': 'var(--spacing-2xs) var(--spacing-sm)',
-                '--tf-input-size': 'var(--text-xs)',
-                '--tf-input-line-height': 'var(--text-xs--line-height)'
+                "--tf-input-padding": "var(--spacing-2xs) var(--spacing-sm)",
+                "--tf-input-size": "var(--text-xs)",
+                "--tf-input-line-height": "var(--text-xs--line-height)",
               },
               md: {
-                '--tf-input-padding': 'var(--spacing-xs) var(--spacing-md)',
-                '--tf-input-size': 'var(--text-sm)',
-                '--tf-input-line-height': 'var(--text-sm--line-height)'
+                "--tf-input-padding": "var(--spacing-xs) var(--spacing-md)",
+                "--tf-input-size": "var(--text-sm)",
+                "--tf-input-line-height": "var(--text-sm--line-height)",
               },
               lg: {
-                '--tf-input-padding': 'var(--spacing-sm) var(--spacing-lg)',
-                '--tf-input-size': 'var(--text-base)',
-                '--tf-input-line-height': 'var(--text-base--line-height)'
+                "--tf-input-padding": "var(--spacing-sm) var(--spacing-lg)",
+                "--tf-input-size": "var(--text-base)",
+                "--tf-input-line-height": "var(--text-base--line-height)",
               },
               xl: {
-                '--tf-input-padding': 'var(--spacing-md) var(--spacing-xl)',
-                '--tf-input-size': 'var(--text-lg)',
-                '--tf-input-line-height': 'var(--text-lg--line-height)'
-              }
+                "--tf-input-padding": "var(--spacing-md) var(--spacing-xl)",
+                "--tf-input-size": "var(--text-lg)",
+                "--tf-input-line-height": "var(--text-lg--line-height)",
+              },
             },
             bridges: {
-              '--input-padding': 'var(--tf-input-padding)',
-              '--input-font-size': 'var(--tf-input-size)',
-              '--input-line-height': 'var(--tf-input-line-height)'
+              "--input-padding": "var(--tf-input-padding)",
+              "--input-font-size": "var(--tf-input-size)",
+              "--input-line-height": "var(--tf-input-line-height)",
             },
             states: {
-              '[data-hovered]:not([data-focused]):not([data-disabled])': {
-                'border-color': 'var(--border-hover)'
+              "[data-hovered]:not([data-focused]):not([data-disabled])": {
+                "border-color": "var(--border-hover)",
               },
-              '[data-focused]': {
-                outline: '2px solid var(--accent)',
-                'outline-offset': '-1px',
-                'border-color': 'var(--accent)'
+              "[data-focused]": {
+                outline: "2px solid var(--accent)",
+                "outline-offset": "-1px",
+                "border-color": "var(--accent)",
               },
-              '[data-invalid]': {
-                'border-color': 'var(--negative)'
+              "[data-invalid]": {
+                "border-color": "var(--negative)",
               },
-              '[data-invalid][data-focused]': {
-                'outline-color': 'var(--negative)'
+              "[data-invalid][data-focused]": {
+                "outline-color": "var(--negative)",
               },
-              '[data-disabled]': {
-                'border-color': 'color-mix(in srgb, var(--fg) 12%, transparent)',
-                color: 'color-mix(in srgb, var(--fg) 38%, transparent)',
-                cursor: 'not-allowed',
-                opacity: '0.38'
-              }
-            }
+              "[data-disabled]": {
+                "border-color":
+                  "color-mix(in srgb, var(--fg) 12%, transparent)",
+                color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+                cursor: "not-allowed",
+                opacity: "0.38",
+              },
+            },
           },
           {
-            childSelector: '.react-aria-FieldError',
-            prefix: 'tf-hint',
+            childSelector: ".react-aria-FieldError",
+            prefix: "tf-hint",
             variables: {
               xs: {
-                '--tf-hint-size': 'var(--text-2xs)'
+                "--tf-hint-size": "var(--text-2xs)",
               },
               sm: {
-                '--tf-hint-size': 'var(--text-xs)'
+                "--tf-hint-size": "var(--text-xs)",
               },
               md: {
-                '--tf-hint-size': 'var(--text-sm)'
+                "--tf-hint-size": "var(--text-sm)",
               },
               lg: {
-                '--tf-hint-size': 'var(--text-base)'
+                "--tf-hint-size": "var(--text-base)",
               },
               xl: {
-                '--tf-hint-size': 'var(--text-lg)'
-              }
+                "--tf-hint-size": "var(--text-lg)",
+              },
             },
             bridges: {
-              '--error-font-size': 'var(--tf-hint-size)'
-            }
+              "--error-font-size": "var(--tf-hint-size)",
+            },
           },
           {
             childSelector: '[slot="description"]',
             bridges: {
-              'font-size': 'var(--tf-hint-size)',
-              color: 'var(--fg-muted)'
-            }
-          }
-        ]
-      }
+              "font-size": "var(--tf-hint-size)",
+              color: "var(--fg-muted)",
+            },
+          },
+        ],
+      },
     },
   },
   TimeField: {
@@ -11018,234 +11099,243 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'div',
+      archetype: "default",
+      element: "div",
       containerStyles: {
-        display: 'flex'
+        display: "flex",
       },
       states: {
         hover: {},
         pressed: {},
         disabled: {
-          opacity: 0.38
+          opacity: 0.38,
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
+          focusRing: "{focus.ring.default}",
+        },
       },
       composition: {
-        layout: 'flex-column',
-        gap: 'var(--spacing-xs)',
+        layout: "flex-column",
+        gap: "var(--spacing-xs)",
         containerVariants: {
-          'label-position': {
+          "label-position": {
             side: {
               styles: {
-                'flex-direction': 'row',
-                'align-items': 'flex-start'
-              }
-            }
+                "flex-direction": "row",
+                "align-items": "flex-start",
+              },
+            },
           },
           quiet: {
             true: {
               nested: [
                 {
-                  selector: '.react-aria-DateInput',
+                  selector: ".react-aria-DateInput",
                   styles: {
-                    background: 'transparent',
-                    'border-color': 'transparent',
-                    'box-shadow': 'none',
-                    'border-radius': '0',
-                    'border-bottom': '1px solid var(--border)'
-                  }
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-radius": "0",
+                    "border-bottom": "1px solid var(--border)",
+                  },
                 },
                 {
-                  selector: '.react-aria-DateInput:where([data-focused])',
+                  selector: ".react-aria-DateInput:where([data-focused])",
                   styles: {
-                    outline: 'none',
-                    'border-bottom-color': 'var(--accent)'
-                  }
+                    outline: "none",
+                    "border-bottom-color": "var(--accent)",
+                  },
                 },
                 {
-                  selector: '.react-aria-DateInput:where([data-invalid])',
+                  selector: ".react-aria-DateInput:where([data-invalid])",
                   styles: {
-                    'border-bottom-color': 'var(--negative)'
-                  }
-                }
-              ]
-            }
-          }
+                    "border-bottom-color": "var(--negative)",
+                  },
+                },
+              ],
+            },
+          },
         },
         delegation: [
           {
-            childSelector: '.react-aria-Label',
-            prefix: 'time-field-label',
+            childSelector: ".react-aria-Label",
+            prefix: "time-field-label",
             variables: {
               xs: {
-                '--time-field-label-size': 'var(--text-2xs)'
+                "--time-field-label-size": "var(--text-2xs)",
               },
               sm: {
-                '--time-field-label-size': 'var(--text-xs)'
+                "--time-field-label-size": "var(--text-xs)",
               },
               md: {
-                '--time-field-label-size': 'var(--text-sm)'
+                "--time-field-label-size": "var(--text-sm)",
               },
               lg: {
-                '--time-field-label-size': 'var(--text-base)'
+                "--time-field-label-size": "var(--text-base)",
               },
               xl: {
-                '--time-field-label-size': 'var(--text-lg)'
-              }
+                "--time-field-label-size": "var(--text-lg)",
+              },
             },
             bridges: {
-              '--label-font-size': 'var(--time-field-label-size)',
-              '--label-font-weight': '600',
-              '--label-margin': 'var(--spacing-xs)'
-            }
+              "--label-font-size": "var(--time-field-label-size)",
+              "--label-font-weight": "600",
+              "--label-margin": "var(--spacing-xs)",
+            },
           },
           {
-            childSelector: '.react-aria-DateInput',
-            prefix: 'time-field-input',
+            childSelector: ".react-aria-DateInput",
+            prefix: "time-field-input",
             variables: {
               xs: {
-                '--time-field-input-padding': 'var(--spacing-3xs) var(--spacing-xs)',
-                '--time-field-input-size': 'var(--text-2xs)',
-                '--time-field-input-line-height': 'var(--text-2xs--line-height)',
-                '--time-field-input-min-width': '100px'
+                "--time-field-input-padding":
+                  "var(--spacing-3xs) var(--spacing-xs)",
+                "--time-field-input-size": "var(--text-2xs)",
+                "--time-field-input-line-height":
+                  "var(--text-2xs--line-height)",
+                "--time-field-input-min-width": "100px",
               },
               sm: {
-                '--time-field-input-padding': 'var(--spacing-2xs) var(--spacing-sm)',
-                '--time-field-input-size': 'var(--text-xs)',
-                '--time-field-input-line-height': 'var(--text-xs--line-height)',
-                '--time-field-input-min-width': '120px'
+                "--time-field-input-padding":
+                  "var(--spacing-2xs) var(--spacing-sm)",
+                "--time-field-input-size": "var(--text-xs)",
+                "--time-field-input-line-height": "var(--text-xs--line-height)",
+                "--time-field-input-min-width": "120px",
               },
               md: {
-                '--time-field-input-padding': 'var(--spacing-xs) var(--spacing-md)',
-                '--time-field-input-size': 'var(--text-sm)',
-                '--time-field-input-line-height': 'var(--text-sm--line-height)',
-                '--time-field-input-min-width': '150px'
+                "--time-field-input-padding":
+                  "var(--spacing-xs) var(--spacing-md)",
+                "--time-field-input-size": "var(--text-sm)",
+                "--time-field-input-line-height": "var(--text-sm--line-height)",
+                "--time-field-input-min-width": "150px",
               },
               lg: {
-                '--time-field-input-padding': 'var(--spacing-sm) var(--spacing-lg)',
-                '--time-field-input-size': 'var(--text-base)',
-                '--time-field-input-line-height': 'var(--text-base--line-height)',
-                '--time-field-input-min-width': '180px'
+                "--time-field-input-padding":
+                  "var(--spacing-sm) var(--spacing-lg)",
+                "--time-field-input-size": "var(--text-base)",
+                "--time-field-input-line-height":
+                  "var(--text-base--line-height)",
+                "--time-field-input-min-width": "180px",
               },
               xl: {
-                '--time-field-input-padding': 'var(--spacing-md) var(--spacing-xl)',
-                '--time-field-input-size': 'var(--text-lg)',
-                '--time-field-input-line-height': 'var(--text-lg--line-height)',
-                '--time-field-input-min-width': '220px'
-              }
+                "--time-field-input-padding":
+                  "var(--spacing-md) var(--spacing-xl)",
+                "--time-field-input-size": "var(--text-lg)",
+                "--time-field-input-line-height": "var(--text-lg--line-height)",
+                "--time-field-input-min-width": "220px",
+              },
             },
             bridges: {
-              display: 'inline-flex',
-              padding: 'var(--time-field-input-padding)',
-              background: 'var(--bg-inset)',
-              border: '1px solid',
-              'border-radius': 'var(--border-radius)',
-              width: '100%',
-              'min-width': 'var(--time-field-input-min-width)',
-              'white-space': 'nowrap',
-              'forced-color-adjust': 'none',
-              'font-size': 'var(--time-field-input-size)',
-              'line-height': 'var(--time-field-input-line-height)',
-              transition: 'border-color 200ms ease, background-color 200ms ease'
-            }
+              display: "inline-flex",
+              padding: "var(--time-field-input-padding)",
+              background: "var(--bg-inset)",
+              border: "1px solid",
+              "border-radius": "var(--border-radius)",
+              width: "100%",
+              "min-width": "var(--time-field-input-min-width)",
+              "white-space": "nowrap",
+              "forced-color-adjust": "none",
+              "font-size": "var(--time-field-input-size)",
+              "line-height": "var(--time-field-input-line-height)",
+              transition:
+                "border-color 200ms ease, background-color 200ms ease",
+            },
           },
           {
-            childSelector: '.react-aria-DateSegment',
-            prefix: 'time-field-segment',
+            childSelector: ".react-aria-DateSegment",
+            prefix: "time-field-segment",
             variables: {
               xs: {
-                '--time-field-segment-size': 'var(--text-2xs)'
+                "--time-field-segment-size": "var(--text-2xs)",
               },
               sm: {
-                '--time-field-segment-size': 'var(--text-xs)'
+                "--time-field-segment-size": "var(--text-xs)",
               },
               md: {
-                '--time-field-segment-size': 'var(--text-sm)'
+                "--time-field-segment-size": "var(--text-sm)",
               },
               lg: {
-                '--time-field-segment-size': 'var(--text-base)'
+                "--time-field-segment-size": "var(--text-base)",
               },
               xl: {
-                '--time-field-segment-size': 'var(--text-lg)'
-              }
+                "--time-field-segment-size": "var(--text-lg)",
+              },
             },
             bridges: {
-              padding: '0 2px',
-              border: 'none',
-              background: 'transparent',
-              height: 'auto',
-              'font-variant-numeric': 'tabular-nums',
-              'text-align': 'end',
-              color: 'var(--fg)',
-              'border-radius': 'var(--radius-xs)',
-              'font-size': 'var(--time-field-segment-size)',
-              transition: 'all 150ms ease'
+              padding: "0 2px",
+              border: "none",
+              background: "transparent",
+              height: "auto",
+              "font-variant-numeric": "tabular-nums",
+              "text-align": "end",
+              color: "var(--fg)",
+              "border-radius": "var(--radius-xs)",
+              "font-size": "var(--time-field-segment-size)",
+              transition: "all 150ms ease",
             },
             states: {
               '[data-type="literal"]': {
-                padding: '0'
+                padding: "0",
               },
-              '[data-placeholder]': {
-                color: 'var(--fg-muted)',
-                opacity: '0.6'
+              "[data-placeholder]": {
+                color: "var(--fg-muted)",
+                opacity: "0.6",
               },
-              ':focus': {
-                color: 'var(--fg)',
-                background: 'var(--accent-subtle)',
-                outline: 'none',
-                'border-radius': 'var(--radius-xs)',
-                'caret-color': 'transparent'
+              ":focus": {
+                color: "var(--fg)",
+                background: "var(--accent-subtle)",
+                outline: "none",
+                "border-radius": "var(--radius-xs)",
+                "caret-color": "transparent",
               },
-              '[data-invalid]': {
-                color: 'var(--negative)'
+              "[data-invalid]": {
+                color: "var(--negative)",
               },
-              '[data-invalid]:focus': {
-                background: 'color-mix(in srgb, var(--negative) 15%, transparent)',
-                color: 'var(--negative)'
+              "[data-invalid]:focus": {
+                background:
+                  "color-mix(in srgb, var(--negative) 15%, transparent)",
+                color: "var(--negative)",
               },
-              '[data-disabled]': {
-                color: 'color-mix(in srgb, var(--fg) 38%, transparent)',
-                cursor: 'not-allowed'
-              }
-            }
+              "[data-disabled]": {
+                color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+                cursor: "not-allowed",
+              },
+            },
           },
           {
-            childSelector: '.react-aria-FieldError',
-            prefix: 'time-field-hint',
+            childSelector: ".react-aria-FieldError",
+            prefix: "time-field-hint",
             variables: {
               xs: {
-                '--time-field-hint-size': 'var(--text-2xs)'
+                "--time-field-hint-size": "var(--text-2xs)",
               },
               sm: {
-                '--time-field-hint-size': 'var(--text-xs)'
+                "--time-field-hint-size": "var(--text-xs)",
               },
               md: {
-                '--time-field-hint-size': 'var(--text-xs)'
+                "--time-field-hint-size": "var(--text-xs)",
               },
               lg: {
-                '--time-field-hint-size': 'var(--text-sm)'
+                "--time-field-hint-size": "var(--text-sm)",
               },
               xl: {
-                '--time-field-hint-size': 'var(--text-base)'
-              }
+                "--time-field-hint-size": "var(--text-base)",
+              },
             },
             bridges: {
-              '--error-font-size': 'var(--time-field-hint-size)',
-              '--error-margin': 'var(--spacing-xs)'
-            }
+              "--error-font-size": "var(--time-field-hint-size)",
+              "--error-margin": "var(--spacing-xs)",
+            },
           },
           {
             childSelector: '[slot="description"]',
             bridges: {
-              'font-size': 'var(--time-field-hint-size)',
-              color: 'var(--fg-muted)'
-            }
-          }
-        ]
-      }
+              "font-size": "var(--time-field-hint-size)",
+              color: "var(--fg-muted)",
+            },
+          },
+        ],
+      },
     },
   },
   Toast: {
@@ -11326,14 +11416,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'alert',
-      element: 'div',
+      archetype: "alert",
+      element: "div",
       containerStyles: undefined,
       states: {
         disabled: {
-          opacity: 0.38
-        }
-      }
+          opacity: 0.38,
+        },
+      },
     },
   },
   ToggleButton: {
@@ -11413,29 +11503,29 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'button',
-      element: 'button',
+      archetype: "button",
+      element: "button",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: 'fit-content'
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "fit-content",
       },
       states: {
         hover: {},
         pressed: {
-          scale: 0.95
+          scale: 0.95,
         },
         disabled: {
           opacity: 0.38,
-          cursor: 'not-allowed',
-          pointerEvents: 'none'
+          cursor: "not-allowed",
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
+          focusRing: "{focus.ring.default}",
+        },
       },
-      cssEmitMode: 'button-base'
+      cssEmitMode: "button-base",
     },
   },
   ToggleButtonGroup: {
@@ -11495,48 +11585,48 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'div',
+      archetype: "default",
+      element: "div",
       containerStyles: {
-        display: 'flex',
-        alignItems: 'center'
+        display: "flex",
+        alignItems: "center",
       },
       states: {
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
+          focusRing: "{focus.ring.default}",
+        },
       },
       composition: {
-        layout: 'flex-row',
+        layout: "flex-row",
         containerStyles: {
-          width: 'fit-content'
+          width: "fit-content",
         },
         delegation: [
           {
-            childSelector: '.react-aria-ToggleButton',
+            childSelector: ".react-aria-ToggleButton",
             variables: {
               sm: {
-                '--btn-border-radius': 'var(--radius-sm)'
+                "--btn-border-radius": "var(--radius-sm)",
               },
               md: {
-                '--btn-border-radius': 'var(--radius-md)'
+                "--btn-border-radius": "var(--radius-md)",
               },
               lg: {
-                '--btn-border-radius': 'var(--radius-lg)'
-              }
-            }
-          }
-        ]
+                "--btn-border-radius": "var(--radius-lg)",
+              },
+            },
+          },
+        ],
       },
       indicatorMode: {
         fill: {
-          base: '{color.layer-1}'
+          base: "{color.layer-1}",
         },
-        selectedText: '{color.on-accent}',
-        borderRadius: '{radius.sm}',
-        boxShadow: '{shadow.sm}',
-        transitionMs: 200
-      }
+        selectedText: "{color.on-accent}",
+        borderRadius: "{radius.sm}",
+        boxShadow: "{shadow.sm}",
+        transitionMs: 200,
+      },
     },
   },
   Toolbar: {
@@ -11597,68 +11687,68 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'default',
-      element: 'div',
+      archetype: "default",
+      element: "div",
       containerStyles: {
-        display: 'flex',
-        alignItems: 'center',
-        width: 'fit-content'
+        display: "flex",
+        alignItems: "center",
+        width: "fit-content",
       },
       states: {
         disabled: {
           opacity: 0.38,
-          pointerEvents: 'none'
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
+          focusRing: "{focus.ring.default}",
+        },
       },
       composition: {
         containerStyles: {
-          display: 'flex',
-          'flex-wrap': 'wrap',
-          gap: '8px',
-          width: 'fit-content'
+          display: "flex",
+          "flex-wrap": "wrap",
+          gap: "8px",
+          width: "fit-content",
         },
         containerVariants: {
           orientation: {
             horizontal: {
               styles: {
-                'flex-direction': 'row'
-              }
+                "flex-direction": "row",
+              },
             },
             vertical: {
               styles: {
-                'flex-direction': 'column',
-                'align-items': 'start'
-              }
-            }
-          }
+                "flex-direction": "column",
+                "align-items": "start",
+              },
+            },
+          },
         },
         staticSelectors: {
-          '.react-aria-Group': {
-            display: 'contents'
+          ".react-aria-Group": {
+            display: "contents",
           },
-          '.react-aria-ToggleButton': {
-            width: '32px'
+          ".react-aria-ToggleButton": {
+            width: "32px",
           },
-          '.react-aria-Separator': {
-            'align-self': 'stretch',
-            'background-color': 'var(--bg-muted)'
+          ".react-aria-Separator": {
+            "align-self": "stretch",
+            "background-color": "var(--bg-muted)",
           },
           '.react-aria-Separator[aria-orientation="vertical"]': {
-            width: '1px',
-            margin: '0px 10px'
+            width: "1px",
+            margin: "0px 10px",
           },
           '.react-aria-Separator:not([aria-orientation="vertical"])': {
-            border: 'none',
-            height: '1px',
-            width: '100%',
-            margin: '10px 0'
-          }
+            border: "none",
+            height: "1px",
+            width: "100%",
+            margin: "10px 0",
+          },
         },
-        delegation: []
-      }
+        delegation: [],
+      },
     },
   },
   Tooltip: {
@@ -11741,22 +11831,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: 'simple',
-      element: 'div',
+      archetype: "simple",
+      element: "div",
       containerStyles: {
-        display: 'inline-flex',
-        alignItems: 'center'
+        display: "inline-flex",
+        alignItems: "center",
       },
       states: {
         disabled: {
           opacity: 0.38,
-          cursor: 'not-allowed',
-          pointerEvents: 'none'
+          cursor: "not-allowed",
+          pointerEvents: "none",
         },
         focusVisible: {
-          focusRing: '{focus.ring.default}'
-        }
-      }
+          focusRing: "{focus.ring.default}",
+        },
+      },
     },
   },
   Tree: {

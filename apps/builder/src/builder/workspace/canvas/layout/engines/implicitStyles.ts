@@ -209,6 +209,28 @@ function kebabToCamel(key: string): string {
   return key.replace(/-([a-z])/g, (_m, ch: string) => ch.toUpperCase());
 }
 
+/**
+ * ADR-912 Phase 3-A-3b: collection-item(GridListItem/ListBoxItem) base-axis 단일 source 조회.
+ *
+ * field류 wrapper 경로 B 는 `structure.composition` guard 라 collection(composition 부재,
+ * base-axis 는 `structure.containerStyles` 에 land)을 통과시키지 못한다. collection 분기에서
+ * `resolveCatalogContainerBase` 를 직접 호출(casing lowercase→PascalCase)하여 base-axis 만 도달.
+ * collection catalog containerStyles 는 이미 camelCase(display/flexDirection/alignItems/
+ * justifyContent/minWidth) + numeric → kebab→camel/gap 정규화 불필요. size-value(padding/gap/
+ * borderWidth)는 sizes.md 경유라 본 출력에 미포함(분기에서 별도 인라인 유지).
+ *
+ * **Why collection 전용 helper**: wrapper guard 를 `composition OR structure.containerStyles` 로
+ *   완화하면 43 type(Avatar/Badge/Button/Checkbox 등 leaf 포함)이 새로 경로 B 진입 → 회귀 표면
+ *   과다. collection 2곳만 직접 호출이 surface-minimal.
+ */
+function resolveCatalogCollectionBase(
+  lowercaseTag: string,
+): Record<string, string | number> {
+  const pascalKey = LOWERCASE_TO_PASCAL_RULE_KEY.get(lowercaseTag);
+  if (!pascalKey) return {};
+  return resolveCatalogContainerBase(pascalKey);
+}
+
 function ruleSizeRecord(
   type: string,
   sizeName: string,
@@ -910,16 +932,16 @@ export function applyImplicitStyles(
   //   에서 SSOT 참조 (Taffy shorthand 미지원). GridListItem.spec body 삭제 대비 — sizes.md 직접
   //   참조 제거. fontSize=14 medium 카드 분기(cardPaddingX 16/cardPaddingY 12). gap 2 =
   //   componentRulesTable.GridListItem.sizes.md.gap 정합.
+  // ADR-912 Phase 3-A-3b (2026-06-20): base-axis(display/flexDirection/minWidth)를 catalog
+  //   structure.containerStyles 단일 source(resolveCatalogContainerBase)로 도달 — 인라인 자족화
+  //   제거. size-value(gap/padding/borderWidth)는 sizes.md 경유(structure.composition 아님)라 유지.
   if (containerTag === "gridlistitem") {
     const m = resolveGridListItemMetric(14);
+    const catalogBase = resolveCatalogCollectionBase("gridlistitem");
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
-      // ADR-912 cutover: display/flexDirection 직접 주입 (이전엔 GridListItem.spec.containerStyles
-      //   → resolveContainerStylesFallback 경유였으나 spec body 삭제 대비 분기 자족화).
-      display: parentStyle.display ?? "flex",
-      flexDirection: (parentStyle.flexDirection as string) ?? "column",
-      // CSS grid 1fr 트랙 내에서 축소되도록 minWidth: 0 (CSS minmax(0, 1fr) 동기화)
-      minWidth: parentStyle.minWidth ?? 0,
+      ...catalogBase, // display/flexDirection/minWidth (catalog structure.containerStyles)
+      ...parentStyle, // 사용자/factory 편집 우선 (catalog base override)
       gap: parentStyle.gap ?? 2,
       paddingTop: parentStyle.paddingTop ?? m.cardPaddingY,
       paddingBottom: parentStyle.paddingBottom ?? m.cardPaddingY,
@@ -934,16 +956,15 @@ export function applyImplicitStyles(
   // Composition 패턴: CSS .react-aria-ListBoxItem { padding: 4px 12px } 동기화
   // ADR-145 fix: parentStyle.display 가 명시되면 그것을 우선 (template element 의
   //   `display: none` marker 가 implicit `display: "flex"` 에 override 당하지 않도록).
+  // ADR-912 Phase 3-A-3b (2026-06-20): base-axis(display/flexDirection/alignItems/justifyContent)를
+  //   catalog structure.containerStyles 단일 source 로 도달 — 인라인 자족화 제거. padding/gap 은
+  //   sizes.md 정합값(4/12, gap 2)이라 유지.
   if (containerTag === "listboxitem") {
+    const catalogBase = resolveCatalogCollectionBase("listboxitem");
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
-      // ADR-912 cutover: display/flexDirection/alignItems/justifyContent 직접 주입 (이전엔
-      //   ListBoxItem.spec.containerStyles → resolveContainerStylesFallback 경유였으나 spec
-      //   body 삭제 대비 분기 자족화).
-      display: parentStyle.display ?? "flex",
-      flexDirection: (parentStyle.flexDirection as string) ?? "column",
-      alignItems: (parentStyle.alignItems as string) ?? "flex-start",
-      justifyContent: (parentStyle.justifyContent as string) ?? "center",
+      ...catalogBase, // display/flexDirection/alignItems/justifyContent (catalog structure.containerStyles)
+      ...parentStyle, // 사용자/factory 편집 우선 (ADR-145 template display:none marker 보존)
       gap: parentStyle.gap ?? 2,
       paddingTop: parentStyle.paddingTop ?? 4,
       paddingBottom: parentStyle.paddingBottom ?? 4,
