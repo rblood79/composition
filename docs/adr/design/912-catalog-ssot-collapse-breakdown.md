@@ -646,6 +646,25 @@ kebab→camel 변환 + gap 문자열 정규화".**
 - `rowGap`/`columnGap` 이 `CONTAINER_STYLES_FALLBACK_KEYS` 부재 — 재배선 시 kebab `row-gap`/`column-gap` 필터링 위험.
 - `resolveCatalogContainerBase` 출력 snapshot test 부재 → 재배선 후 break 가 회귀인지 format(kebab) 변경인지 판별 불가 → 3-A-3a 진입 전 snapshot test 선작성 권장.
 
+#### Phase 3-A-3a Land 완료 (2026-06-20) — field류 base/variants shared resolver 전환
+
+wrapper `resolveContainerStylesFallback`(`implicitStyles.ts:270`)에 **경로 B** 추가: top-level
+`rule.containerStyles` 부재 + `structure.composition` 보유 type(field류)은 `resolveCatalogContainerBase`
+경유로 base layout 도달. field 5 분기 인라인 `?? "flex"/"column"` 제거(`gap ?? 4` 는 TextArea
+대비 유지). `resolveActiveContainerVariants` rule-adapter 를 `resolveCatalogContainerVariants` 로 교체.
+
+**잔존 불명점 해소 결과**:
+
+- **TextArea gap**: `composition.gap` 부재 확정(snapshot lock). wrapper 출력에 gap 없음 → field 분기 `?? 4` 유지로 회귀 0.
+- **gap 정규화 책임 위치 결정**: **wrapper(builder)** — `resolveCatalogLayoutValue` helper(`isValidTokenRef`/`cssVarToTokenRef` → `resolveToken`). catalog 데이터(`var(--spacing-xs)`) 불변(CSS generator byte-diff 0), resolver 불변(변환 책임 미부여 주석 정합). specPresetResolver `resolveToNumber`(:170) 검증된 선례 동형.
+- **kebab→camel + casing**: `kebabToCamel` helper + `LOWERCASE_TO_PASCAL_RULE_KEY` 역매핑(`resolveCatalogContainerBase("textfield")`=`{}` 확인 → PascalCase 필수). 경로 B 만 적용(경로 A=top-level containerStyles type 은 기존 camelCase 경로 유지 → byte-lock 보존).
+- **`structure.composition` guard**: collection-item(GridListItem/ListBoxItem/TableRow=composition 부재)은 경로 B 미적용 → `{}` 반환 정답(test lock). 3-A-3b 영역 침범 0.
+- **snapshot test 선작성**: `resolveCatalogContainerBase.snapshot.test.ts`(field 9 + collection 2 + variants, 21건) land.
+
+**검증**: base-axis grep gate 7→2(collection 2 잔존, 3-A-3b 에서 0) / byte-diff 0(재배선 전후 field 10 type effectiveParent.style 동일, git stash 격리 비교) / variants 교체 13 type 전 props 동등 / type-check 0 신규 위반 / wrapper+snapshot+grep gate 54건 PASS / **live: builder field(TextField) flex-column 정상 렌더 + 콘솔 NaN/Taffy 에러 0(gap 문자열 정규화 확인), 새로고침 후 canonical hydrate 재계산도 정상**. radius drift test 2건 FAIL 은 pre-existing baseline(2xl 토큰 미갱신, 본 변경 무관 — git stash 격리 확인).
+
+**3-A-3a kill criteria 통과**: field 5 인라인 base-axis fallback 제거되고도 resolver 단독 작동("resolver 추가 + 하드코딩 유지" 아님). LOWERCASE map 의 variants 소비처 끊김 → 3-A-3c 의 절반 prerequisite 충족(containerStyles 경로 A 1곳 잔존).
+
 ### Phase 4 — Style Panel consumer collapse
 
 - `specPresetResolver.ts` 를 shared resolver 기반으로 전환.

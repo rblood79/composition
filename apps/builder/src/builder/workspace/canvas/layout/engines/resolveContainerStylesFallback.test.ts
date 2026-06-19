@@ -155,4 +155,80 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       expect(resolveToken("{spacing.2xs}")).toBe(2);
     });
   });
+
+  // ADR-912 Phase 3-A-3a (2026-06-20): field류 base layout 을 catalog structure.composition
+  //   단일 source 에서 wrapper 가 도달하도록 재배선. 재배선 전: top-level containerStyles 부재로
+  //   early-return → {} (인라인 `?? "flex"/"column"/4` 가 실제 active). 재배선 후: catalog
+  //   structure.composition.layout='flex-column' base + gap('var(--spacing-xs)' → 숫자 4 정규화)
+  //   를 담아 field 분기 인라인 fallback 이 redundant.
+  //
+  // 핵심 trap 3종 (모두 wrapper 정규화로 해소):
+  //   1. type casing: wrapper 는 lowercase("textfield"), resolveCatalogContainerBase 는 PascalCase 필요
+  //   2. kebab→camel: resolveCatalogContainerBase 출력은 kebab(flex-direction), wrapper 는 camelCase
+  //   3. gap CSS-var: catalog gap='var(--spacing-xs)' (isValidTokenRef reject) → cssVarToTokenRef
+  describe("field류 — catalog structure.composition base 재배선 (Phase 3-A-3a)", () => {
+    it("textfield → flex-column base (camelCase) + gap 숫자 4 + width:fit-content", () => {
+      const fb = resolveContainerStylesFallback("textfield", {});
+      expect(fb.display).toBe("flex");
+      expect(fb.flexDirection).toBe("column");
+      expect(fb.alignItems).toBe("flex-start");
+      // gap: 'var(--spacing-xs)' → cssVarToTokenRef → {spacing.xs} → 4 (number)
+      expect(fb.gap).toBe(4);
+      expect(fb.width).toBe("fit-content");
+      // kebab key 가 누출되면 안 됨 (camelCase 정규화 필수)
+      expect(fb).not.toHaveProperty("flex-direction");
+      expect(fb).not.toHaveProperty("align-items");
+    });
+
+    it("textarea → flex-column base, **gap 키 부재** (composition.gap 없음 → 분기 fallback 4)", () => {
+      const fb = resolveContainerStylesFallback("textarea", {});
+      expect(fb.display).toBe("flex");
+      expect(fb.flexDirection).toBe("column");
+      // TextArea 는 composition.gap 부재 → wrapper 출력에 gap 없음(분기에서 ?? 4 로 보강).
+      expect(fb).not.toHaveProperty("gap");
+      expect(fb.width).toBe("fit-content");
+    });
+
+    it.each([
+      ["searchfield"],
+      ["numberfield"],
+      ["datefield"],
+      ["timefield"],
+      ["datepicker"],
+      ["daterangepicker"],
+      ["combobox"],
+      ["select"],
+    ])("%s → flex-column base + gap 숫자 4 (camelCase 정규화)", (tag) => {
+      const fb = resolveContainerStylesFallback(tag, {});
+      expect(fb.display).toBe("flex");
+      expect(fb.flexDirection).toBe("column");
+      expect(fb.gap).toBe(4);
+      expect(fb).not.toHaveProperty("flex-direction");
+    });
+
+    it("parentStyle 우선 — 사용자 flexDirection:row 명시 시 catalog base override", () => {
+      const fb = resolveContainerStylesFallback("textfield", {
+        flexDirection: "row",
+      });
+      // 사용자 편집 우선: flexDirection 은 반환에서 제외 (parentStyle 이 이미 보유).
+      expect(fb).not.toHaveProperty("flexDirection");
+      // 나머지 base 는 유지.
+      expect(fb.display).toBe("flex");
+    });
+
+    it("listbox/menu/tree byte 불변 — 재배선이 top-level containerStyles 경로 미오염", () => {
+      // 재배선은 field류(top-level containerStyles 부재) 만 structure.composition 경유.
+      //   top-level containerStyles 보유 type 은 기존 경로 그대로 → byte-lock.
+      expect(resolveContainerStylesFallback("listbox", {})).toEqual({
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+        padding: 4,
+        width: "100%",
+        maxHeight: "300px",
+        overflow: "auto",
+        outline: "none",
+      });
+    });
+  });
 });

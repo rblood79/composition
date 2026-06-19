@@ -23,6 +23,7 @@ import {
   resolveContainerStylesFallback as _resolveContainerStylesFallback,
   resolveContainerVariants,
   isValidTokenRef,
+  cssVarToTokenRef,
 } from "@composition/specs";
 import type {
   SizeSpec,
@@ -30,7 +31,12 @@ import type {
   TokenRef,
 } from "@composition/specs";
 import { getNecessityIndicatorSuffix } from "@composition/shared/components";
-import { getComponentRulesTable } from "@composition/shared";
+import {
+  getComponentRulesTable,
+  resolveCatalogContainerBase,
+  resolveCatalogContainerVariants,
+  resolveCatalogStructure,
+} from "@composition/shared";
 import type { ComponentRuleSize } from "@composition/shared";
 import { findAncestorByTag } from "../../skia/ancestorLookup";
 import { resolveSkiaRule } from "../../skia/resolveSkiaVisualRule";
@@ -153,6 +159,56 @@ const LOWERCASE_COMPONENT_RULE_CONTAINER: ReadonlyMap<
   return m;
 })();
 
+/**
+ * ADR-912 Phase 3-A-3a: lowercase containerTag → catalog table PascalCase key 역매핑.
+ *
+ * wrapper 는 `containerEl.type.toLowerCase()`("textfield") 를 받지만 `resolveCatalogContainerBase`
+ * 는 `COMPONENT_RULES_TABLE[type]` (PascalCase "TextField") 를 조회한다. casing 미스 시 `{}` 반환
+ * → catalog base 영구 미도달. table 키로 1회 역인덱스 빌드.
+ */
+const LOWERCASE_TO_PASCAL_RULE_KEY: ReadonlyMap<string, string> = (() => {
+  const m = new Map<string, string>();
+  for (const k of Object.keys(getComponentRulesTable())) {
+    m.set(k.toLowerCase(), k);
+  }
+  return m;
+})();
+
+/**
+ * ADR-912 Phase 3-A-3a: catalog base layout 값 정규화 (specPresetResolver.resolveToNumber 선례).
+ *
+ * `resolveCatalogContainerBase` 출력값:
+ *   - 숫자: 그대로
+ *   - TokenRef (`{spacing.xs}`): resolveToken → 숫자
+ *   - CSS-var 문자열 (`var(--spacing-xs)`): cssVarToTokenRef → resolveToken → 숫자
+ *   - 그 외 문자열 (`flex`/`column`/`fit-content` 등): 그대로 (변환 불가 → 보존)
+ *
+ * **Why**: catalog field류 gap = `var(--spacing-xs)` (CSS-var 문자열). `isValidTokenRef` 가
+ *   reject → raw 문자열이 Taffy 로 유입되면 number 타입 깨짐(NaN layout). cssVarToTokenRef 가
+ *   `{spacing.xs}` 로 역변환 후 resolveToken → 4. spacing 외(예: `var(--fg)` color) 는 null →
+ *   raw 보존(layout 무관 색상값).
+ */
+function resolveCatalogLayoutValue(value: string | number): string | number {
+  if (typeof value === "number") return value;
+  if (isValidTokenRef(value)) {
+    const resolved = resolveToken(value as TokenRef);
+    return typeof resolved === "number" ? resolved : value;
+  }
+  if (value.startsWith("var(--")) {
+    const tokenRef = cssVarToTokenRef(value);
+    if (tokenRef) {
+      const resolved = resolveToken(tokenRef);
+      if (typeof resolved === "number") return resolved;
+    }
+  }
+  return value;
+}
+
+/** ADR-912 Phase 3-A-3a: kebab-case CSS key → camelCase (`flex-direction` → `flexDirection`). */
+function kebabToCamel(key: string): string {
+  return key.replace(/-([a-z])/g, (_m, ch: string) => ch.toUpperCase());
+}
+
 function ruleSizeRecord(
   type: string,
   sizeName: string,
@@ -228,17 +284,47 @@ export function resolveContainerStylesFallback(
   //   로 specs 측 resolveContainerStylesFallback 은 rule 접근 불가 → builder 에서 합성).
   const ruleContainer = LOWERCASE_COMPONENT_RULE_CONTAINER.get(type);
   const cs = ruleContainer?.containerStyles;
-  if (!cs) return specOut;
+  if (cs) {
+    // 경로 A — top-level rule.containerStyles 보유 (ListBox/Menu/Tree/TagGroup 등). 기존 경로 유지
+    //   (ADR-080 G1 byte-lock test 가 본 출력을 고정). 값은 이미 camelCase + TokenRef 형태.
+    const out: Record<string, unknown> = { ...specOut };
+    for (const key of CONTAINER_STYLES_FALLBACK_KEYS) {
+      if (parentStyle[key] !== undefined) continue; // 사용자/factory 편집 우선
+      if (out[key] !== undefined) continue; // spec fallback 우선
+      const value = cs[key];
+      if (value === undefined) continue;
+      out[key] =
+        typeof value === "string" && isValidTokenRef(value)
+          ? resolveToken(value as TokenRef)
+          : value;
+    }
+    return out;
+  }
+  // 경로 B (ADR-912 Phase 3-A-3a) — top-level containerStyles 부재 type 의 base layout 을
+  //   catalog `structure.composition` 단일 source 에서 도달. field류(TextField/SearchField/
+  //   NumberField/DateField/TimeField/DatePicker/DateRangePicker/ComboBox/Select 등) 는
+  //   `structure.composition.layout='flex-column'` + `gap='var(--spacing-xs)'` 를 보유하나
+  //   기존 경로(top-level cs)로는 미도달 → field 분기 인라인 `?? "flex"/"column"/4` 가 active
+  //   였다. resolveCatalogContainerBase 가 layout token base + structure/composition.containerStyles
+  //   + gap 흡수를 단일 merge 로 산출 → 인라인 fallback 을 redundant 화.
+  //   변환 책임은 builder(본 wrapper): (1) lowercase→PascalCase 역매핑 (2) kebab→camel
+  //   (3) CSS-var gap → 숫자 정규화. spec 존재 type 은 specOut 이 이미 채워져 본 경로가 no-op.
+  //
+  //   **guard — `structure.composition` 보유 type 한정 (field류)**: ListBoxItem/GridListItem/
+  //   TableRow 같은 collection-item 은 `structure.composition` 부재(layout 은 escape/CSS 담당) →
+  //   본 경로 미적용, `{}` 반환이 정답(resolveContainerStylesFallback.test.ts listboxitem/
+  //   gridlistitem `{}` lock). composition 부재 base 보강은 3-A-3b 별도 영역.
+  const pascalKey = LOWERCASE_TO_PASCAL_RULE_KEY.get(type);
+  if (!pascalKey) return specOut;
+  if (!resolveCatalogStructure(pascalKey)?.composition) return specOut;
+  const catalogBase = resolveCatalogContainerBase(pascalKey);
   const out: Record<string, unknown> = { ...specOut };
-  for (const key of CONTAINER_STYLES_FALLBACK_KEYS) {
+  for (const [rawKey, rawValue] of Object.entries(catalogBase)) {
+    const key = kebabToCamel(rawKey);
+    if (!CONTAINER_STYLES_FALLBACK_KEYS.includes(key as never)) continue;
     if (parentStyle[key] !== undefined) continue; // 사용자/factory 편집 우선
     if (out[key] !== undefined) continue; // spec fallback 우선
-    const value = cs[key];
-    if (value === undefined) continue;
-    out[key] =
-      typeof value === "string" && isValidTokenRef(value)
-        ? resolveToken(value as TokenRef)
-        : value;
+    out[key] = resolveCatalogLayoutValue(rawValue);
   }
   return out;
 }
@@ -579,18 +665,15 @@ function resolveActiveContainerVariants(
   if (spec?.composition?.containerVariants) {
     return resolveContainerVariants(spec, containerProps ?? undefined);
   }
-  // ADR-912 단계5 step4 (2026-06-17): spec 삭제된 cutover 컨테이너(TagGroup/CheckboxGroup/
-  //   RadioGroup) 는 catalog rule.containerVariants 를 fallback 으로 읽는다. rule 을 spec-shape
-  //   ({ composition: { containerVariants } }) 로 어댑트하여 `resolveContainerVariants` 단일
-  //   로직 재사용(label-position:side → flex-direction:row, RSP `labelPosition` 정본 보존).
-  const ruleContainer = LOWERCASE_COMPONENT_RULE_CONTAINER.get(containerTag);
-  if (ruleContainer?.containerVariants) {
-    return resolveContainerVariants(
-      {
-        composition: { containerVariants: ruleContainer.containerVariants },
-      } as Parameters<typeof resolveContainerVariants>[0],
-      containerProps ?? undefined,
-    );
+  // ADR-912 Phase 3-A-3a (2026-06-20): rule.containerVariants 어댑터(LOWERCASE_COMPONENT_RULE_
+  //   CONTAINER spec-shape cast)를 catalog 단일 resolver `resolveCatalogContainerVariants` 로
+  //   교체. 출력 shape({styles, nested} kebab) 동일, 전 call-site(TagGroup/CheckboxGroup/
+  //   RadioGroup/field 5) 전 props 조합 byte 동등 검증 완료. LOWERCASE_COMPONENT_RULE_CONTAINER
+  //   의 containerVariants 소비처를 shared resolver 로 끊어 3-A-3c(map 삭제)의 prerequisite 충족.
+  //   casing: wrapper 는 lowercase, resolveCatalogContainerVariants 는 PascalCase table key 필요.
+  const pascalKey = LOWERCASE_TO_PASCAL_RULE_KEY.get(containerTag);
+  if (pascalKey) {
+    return resolveCatalogContainerVariants(pascalKey, containerProps ?? {});
   }
   return resolveContainerVariants(spec, containerProps ?? undefined);
 }
@@ -1270,10 +1353,9 @@ export function applyImplicitStyles(
       sideMode
         ? getSideLabelParentStyle(specFallback, rawParentStyle)
         : {
+            // ADR-912 Phase 3-A-3a: display/flexDirection 인라인 제거 (specFallback=catalog base).
             ...specFallback,
-            display: specFallback.display ?? "flex",
-            flexDirection: specFallback.flexDirection ?? "column",
-            gap: specFallback.gap ?? 4, // CSS: gap: var(--spacing-xs) = 4px
+            gap: specFallback.gap ?? 4, // TextArea 동형 분기 대비 ?? 4 유지
             ...rawParentStyle,
           },
     );
@@ -1331,10 +1413,9 @@ export function applyImplicitStyles(
       sideMode
         ? getSideLabelParentStyle(specFallback, rawParentStyle)
         : {
+            // ADR-912 Phase 3-A-3a: display/flexDirection 인라인 제거 (specFallback=catalog base).
             ...specFallback,
-            display: specFallback.display ?? "flex",
-            flexDirection: specFallback.flexDirection ?? "column",
-            gap: specFallback.gap ?? 4,
+            gap: specFallback.gap ?? 4, // TextArea 동형 분기 대비 ?? 4 유지
             ...rawParentStyle,
           },
     );
@@ -1477,10 +1558,11 @@ export function applyImplicitStyles(
         getSideLabelParentStyle(specFallback, rawParentStyle),
       );
     } else {
+      // ADR-912 Phase 3-A-3a: display/flexDirection 인라인 fallback 제거 — specFallback 이
+      //   catalog structure.composition base(display:flex/flexDirection:column)를 담는다.
+      //   gap 은 TextArea(composition.gap 부재) 대비 ?? 4 유지.
       effectiveParent = withParentStyle(containerEl, {
         ...specFallback,
-        display: specFallback.display ?? "flex",
-        flexDirection: specFallback.flexDirection ?? "column",
         gap: specFallback.gap ?? 4,
         ...rawParentStyle,
       });
@@ -1542,10 +1624,9 @@ export function applyImplicitStyles(
       sideMode
         ? getSideLabelParentStyle(specFallback, rawParentStyle)
         : {
+            // ADR-912 Phase 3-A-3a: display/flexDirection 인라인 제거 (specFallback=catalog base).
             ...specFallback,
-            display: specFallback.display ?? "flex",
-            flexDirection: specFallback.flexDirection ?? "column",
-            gap: specFallback.gap ?? 4,
+            gap: specFallback.gap ?? 4, // TextArea 동형 분기 대비 ?? 4 유지
             ...rawParentStyle,
           },
     );
@@ -1885,10 +1966,9 @@ export function applyImplicitStyles(
       sideMode
         ? getSideLabelParentStyle(specFallback, rawParentStyle)
         : {
+            // ADR-912 Phase 3-A-3a: display/flexDirection 인라인 제거 (specFallback=catalog base).
             ...specFallback,
-            display: specFallback.display ?? "flex",
-            flexDirection: specFallback.flexDirection ?? "column",
-            gap: specFallback.gap ?? 4,
+            gap: specFallback.gap ?? 4, // TextArea 동형 분기 대비 ?? 4 유지
             ...rawParentStyle,
           },
     );

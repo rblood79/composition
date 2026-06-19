@@ -114,11 +114,18 @@ const DISPERSION_BASELINE: Array<{
     killPhase: "Phase 3",
   },
   {
-    label: 'base-axis fallback flexDirection ?? "column" (Δ6, 7곳 분산)',
+    // Phase 3-A-3a 완료 (2026-06-20): field 5 분기(searchfield/combobox/select·numberfield·
+    //   textfield/textarea·datefield/timefield·datepicker)의 인라인 `specFallback.flexDirection
+    //   ?? "column"` 5곳 제거 → 7→2. wrapper resolveContainerStylesFallback 경로 B 가 catalog
+    //   structure.composition base(flex-column)를 도달시켜 인라인 redundant. byte-diff 0 검증
+    //   (재배선 전후 effectiveParent.style 동일). 잔존 2 = collection-item(gridlistitem/listboxitem
+    //   `parentStyle.flexDirection ?? "column"`) → 3-A-3b 에서 0 목표.
+    label:
+      'base-axis fallback flexDirection ?? "column" (Δ6 — Phase 3-A-3a: field 5 제거 ✅)',
     file: "implicitStyles",
     pattern: /flexDirection.*\?\? "column"/,
-    baseline: 7,
-    killPhase: "Phase 3",
+    baseline: 2,
+    killPhase: "Phase 3-A-3b (collection 2 → 0)",
   },
   {
     // Phase 3-A-1 완료 (2026-06-19): Track 3종 height 를 specSizeField read-through 로 이관 +

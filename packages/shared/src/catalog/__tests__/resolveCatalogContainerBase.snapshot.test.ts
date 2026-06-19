@@ -1,0 +1,180 @@
+/**
+ * ADR-912 Phase 3-A-3a — `resolveCatalogContainerBase` 출력 snapshot lock.
+ *
+ * breakdown(`docs/adr/design/912-catalog-ssot-collapse-breakdown.md`) §Phase 3-A-3 (4) 잔존 불명점:
+ *   "resolveCatalogContainerBase 출력 snapshot test 부재 → 재배선 후 break 가 회귀인지 format(kebab)
+ *    변경인지 판별 불가 → 3-A-3a 진입 전 snapshot test 선작성 권장."
+ *
+ * 본 test 는 catalog structure.composition 단일 source 가 base container layout 을 어떤 raw 출력으로
+ * 내는지(kebab-case CSS-style key, gap 은 CSS-var 문자열)를 못박는다. 이 출력을 implicitStyles wrapper
+ * 가 camelCase + 숫자(gap) 로 정규화하여 소비한다. resolver 출력 자체는 변환 책임 없음(resolver.ts:16-17).
+ *
+ * **kill 기준**: field 9 type 모두 base layout(display:flex / flex-direction:column)을 catalog 에서
+ *   파생함이 여기서 lock 됨 → wrapper 재배선 후 인라인 `?? "flex"/"column"/4` 제거가 회귀 0 임을 증명.
+ */
+
+import { describe, expect, it } from "vitest";
+import {
+  resolveCatalogContainerBase,
+  resolveCatalogContainerVariants,
+} from "../resolvers/resolveCatalogContainer";
+
+describe("resolveCatalogContainerBase — field류 base layout (kebab raw, gap=CSS-var)", () => {
+  // field 9 type: structure.composition.layout='flex-column' → LAYOUT_TOKEN_STYLES base.
+  //   gap 은 composition.gap='var(--spacing-xs)' (CSS-var 문자열) — wrapper 가 숫자 4 로 정규화.
+  //   TextArea 만 composition.gap 부재 → 출력에 gap 키 없음(wrapper fallback 4).
+
+  it("TextField → flex-column base + gap CSS-var + width:fit-content", () => {
+    expect(resolveCatalogContainerBase("TextField")).toEqual({
+      display: "flex",
+      "flex-direction": "column",
+      "align-items": "flex-start",
+      "box-sizing": "border-box",
+      width: "fit-content",
+      gap: "var(--spacing-xs)",
+    });
+  });
+
+  it("TextArea → flex-column base + width:fit-content, **gap 키 부재** (composition.gap 없음)", () => {
+    const base = resolveCatalogContainerBase("TextArea");
+    expect(base).toEqual({
+      display: "flex",
+      "flex-direction": "column",
+      "align-items": "flex-start",
+      "box-sizing": "border-box",
+      width: "fit-content",
+    });
+    // 재배선 후 wrapper 가 gap 부재를 4 로 fallback 해야 함을 lock.
+    expect(base).not.toHaveProperty("gap");
+  });
+
+  it("SearchField → flex-column base + gap CSS-var + width:fit-content", () => {
+    expect(resolveCatalogContainerBase("SearchField")).toEqual({
+      display: "flex",
+      "flex-direction": "column",
+      "align-items": "flex-start",
+      "box-sizing": "border-box",
+      width: "fit-content",
+      gap: "var(--spacing-xs)",
+    });
+  });
+
+  it("NumberField → flex-column base + gap CSS-var + color (width 없음)", () => {
+    expect(resolveCatalogContainerBase("NumberField")).toEqual({
+      display: "flex",
+      "flex-direction": "column",
+      "align-items": "flex-start",
+      "box-sizing": "border-box",
+      color: "var(--fg)",
+      gap: "var(--spacing-xs)",
+    });
+  });
+
+  it("DateField → flex-column base + gap CSS-var (width/color 없음)", () => {
+    expect(resolveCatalogContainerBase("DateField")).toEqual({
+      display: "flex",
+      "flex-direction": "column",
+      "align-items": "flex-start",
+      "box-sizing": "border-box",
+      gap: "var(--spacing-xs)",
+    });
+  });
+
+  it("TimeField → flex-column base + gap CSS-var", () => {
+    expect(resolveCatalogContainerBase("TimeField")).toEqual({
+      display: "flex",
+      "flex-direction": "column",
+      "align-items": "flex-start",
+      "box-sizing": "border-box",
+      gap: "var(--spacing-xs)",
+    });
+  });
+
+  it("DatePicker → flex-column base + gap CSS-var + color", () => {
+    expect(resolveCatalogContainerBase("DatePicker")).toEqual({
+      display: "flex",
+      "flex-direction": "column",
+      "align-items": "flex-start",
+      "box-sizing": "border-box",
+      color: "var(--fg)",
+      gap: "var(--spacing-xs)",
+    });
+  });
+
+  it("DateRangePicker → flex-column base + gap CSS-var + color", () => {
+    expect(resolveCatalogContainerBase("DateRangePicker")).toEqual({
+      display: "flex",
+      "flex-direction": "column",
+      "align-items": "flex-start",
+      "box-sizing": "border-box",
+      color: "var(--fg)",
+      gap: "var(--spacing-xs)",
+    });
+  });
+
+  it("ComboBox → flex-column base + gap CSS-var + color", () => {
+    expect(resolveCatalogContainerBase("ComboBox")).toEqual({
+      display: "flex",
+      "flex-direction": "column",
+      "align-items": "flex-start",
+      "box-sizing": "border-box",
+      color: "var(--fg)",
+      gap: "var(--spacing-xs)",
+    });
+  });
+
+  it("Select → flex-column base + gap CSS-var + color", () => {
+    expect(resolveCatalogContainerBase("Select")).toEqual({
+      display: "flex",
+      "flex-direction": "column",
+      "align-items": "flex-start",
+      "box-sizing": "border-box",
+      color: "var(--fg)",
+      gap: "var(--spacing-xs)",
+    });
+  });
+});
+
+describe("resolveCatalogContainerBase — collection-item 비대칭 (3-A-3b 영역, 이번 scope 아님)", () => {
+  it("GridListItem → {} (structure 필드 자체 부재 = source-gap)", () => {
+    expect(resolveCatalogContainerBase("GridListItem")).toEqual({});
+  });
+
+  it("ListBoxItem → structure.containerStyles 4개 camelCase (composition 부재)", () => {
+    expect(resolveCatalogContainerBase("ListBoxItem")).toEqual({
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-start",
+      justifyContent: "center",
+    });
+  });
+});
+
+describe("resolveCatalogContainerVariants — labelPosition=side (kebab styles)", () => {
+  // side-mode 판정용 flex-direction:row. hasResolvedSideLabelVariant 가 styles["flex-direction"] 으로 판정.
+  it.each([
+    ["TextField"],
+    ["TextArea"],
+    ["SearchField"],
+    ["NumberField"],
+    ["DateField"],
+    ["TimeField"],
+    ["DatePicker"],
+    ["ComboBox"],
+  ])("%s side → flex-direction:row + align-items:flex-start", (type) => {
+    const v = resolveCatalogContainerVariants(type, { labelPosition: "side" });
+    expect(v.styles).toEqual({
+      "flex-direction": "row",
+      "align-items": "flex-start",
+    });
+  });
+
+  it("Select side → 빈 styles (Select 는 label-position containerVariant 부재)", () => {
+    // 매핑 발견: Select 는 composition.containerVariants 에 label-position 없음.
+    //   재배선 후 Select side-mode 동작은 별도 확인 대상.
+    const v = resolveCatalogContainerVariants("Select", {
+      labelPosition: "side",
+    });
+    expect(v.styles).toEqual({});
+  });
+});
