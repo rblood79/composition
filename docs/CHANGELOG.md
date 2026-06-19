@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [TagGroup Skia page 오버플로 수정 — factory width:100% 명시(칩 wrap 대칭)] - 2026-06-19
+
+사용자 보고: 변경 없는 기본 상태에서 size=L 일 때 CSS preview 는 TagGroup 이 page 폭 내에서 칩(TagList child) 자동 줄바꿈하지만, Skia 는 칩이 1줄로 늘어서 page 를 벗어남. 임시로 width:100% 또는 align-self:stretch 를 주면 Skia 도 page 내 + 칩 줄바꿈 정상.
+
+### Bug Fixes
+
+- **TagGroup size=L 시 Skia 칩 page 오버플로** (CSS↔Skia 비대칭 — Taffy block-child-fills-parent 미에뮬레이션):
+  - **Why**: TagGroup factory(`createTagGroupDefinition`)가 `props.style.width` 를 설정하지 않음(다른 컨테이너 factory 다수는 `width:"100%"` 명시). CSS 에서 block-level flex 박스는 block 부모 안에서 `width:auto` = 부모 content 폭 100% 로 늘어나 그 폭에서 칩이 wrap 되지만, Taffy 는 비-flex-wrap 부모의 block-level 자식에 "block child fills parent width" 규칙을 에뮬레이션하지 않음 → width 미설정 TagGroup 이 칩 합산 intrinsic(max-content) 폭으로 늘어나 page 를 벗어나고 RowsGroup `width:100%` 도 참조할 부모 폭 제약이 없어 wrap 불가. 기존 width:100% 자동 주입(`fullTreeLayout.ts:1864`)은 부모가 `display:flex; flexWrap:wrap` 인 경우에만 적용 → TagGroup(부모=body/wrapper, 비-flex-wrap) 케이스 미커버.
+  - 수정 (`GroupComponents.ts`): TagGroup factory parent props 에 `style: { width: "100%" }` 명시 — 다른 컨테이너 factory(Layout/Selection 등) 일관 패턴. 사용자가 발견한 회피책(width:100%/align-self:stretch)을 factory 기본값으로 정착.
+  - 검증: builder live 측정 — width:100% 적용 시 size=lg 칩 CSS chipRows 2줄 + overflowsParent false / Skia 캔버스도 동일하게 칩 2줄 wrap + page(Home) 내 정상 배치(좌측 CSS preview ↔ 우측 Skia 시각 대칭 스크린샷 확인). type-check baseline PASS. factory 변경이라 신규 TagGroup 에 적용(기존 element 는 사용자 편집 surface 로 width 조정 가능).
+  - 위치: `apps/builder/src/builder/factories/definitions/GroupComponents.ts`
+
 ## [TagGroup size prop 변경 미반영 수정 — chip 시각 CSS attribute 이름 정합(data-tag-size)] - 2026-06-19
 
 사용자 보고: TagGroup 의 size prop(S/M/L)을 바꿔도 칩(.react-aria-Tag) 시각이 안 바뀜. field(TextField 등) 패턴과 비교 요청. store 전파(`size → TagList/Label/Tag` propagation rule)는 정상 작동하나, DOM 칩 시각이 size 변경에 무반응. 근본 = TagGroup DOM 의 size/variant attribute 이름이 매칭 CSS 의 후손 선택자가 기대하는 이름과 불일치.
