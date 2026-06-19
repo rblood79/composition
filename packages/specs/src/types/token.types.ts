@@ -186,10 +186,12 @@ export interface TypographyTokens {
  */
 export interface RadiusTokens {
   none: number; // 0
+  xs: number; // 2  (ADR-913 slice 5 — shared-tokens.css --radius-xs:0.125rem, catalog {radius.xs})
   sm: number; // 4
-  md: number; // 8
-  lg: number; // 12
-  xl: number; // 16
+  md: number; // 6  (정정: 과거 주석 8 stale — radius.ts/shared-tokens.css 정본 6px)
+  lg: number; // 8  (정정: 과거 주석 12 stale — 정본 8px)
+  xl: number; // 12 (정정: 과거 주석 16 stale — 정본 12px)
+  "2xl": number; // 16 (ADR-913 slice 5 — shared-tokens.css --radius-2xl:1rem, catalog {radius.2xl})
   full: number; // 9999
 }
 

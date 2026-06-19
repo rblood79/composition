@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Overlay family catalog 정합 — ADR-913 slice 5 (radius xs/2xl 토큰 + Popover arrow fix 2)] - 2026-06-19
+
+ADR-913 slice 5 (Overlay family: Dialog/Popover/Tooltip/Modal). 4 멤버를 starter 레퍼런스 + generated/manual CSS + catalog rule + STRUCTURE_META + Skia primitive(shadow/arrow/backdrop) + portal 렌더 경로 6 각도 병렬 정밀 정찰(13 agent) → **실재 갭 11 측정 → fix 2건 확정 + overclaim 기각 3건**. surface minimization 으로 fix 2건만 좁게 처리, Modal cascade 는 별도 ADR / Popover bg·shadow·provenance 3건은 후속 분리(사용자 confirm). 회귀 방지 테스트 동반.
+
+### Bug Fixes
+
+- **radius `xs`/`2xl` 토큰 누락 — Skia 모서리 0px 회귀** (ADR-913 slice 5):
+  - shared-tokens.css 는 `--radius-xs:0.125rem`(2px) / `--radius-2xl:1rem`(16px) 를 정의하고 catalog `COMPONENT_RULES_TABLE` 가 `{radius.xs}` 10회 + `{radius.2xl}` 3회 참조하나, primitives `radius` 객체 + `RadiusTokens` 타입에 두 키 부재
+  - **Why**: `resolveToken("{radius.xs}")` → undefined → 다운스트림 Skia pipeline 0px. DOM 은 `var(--radius-xs)`=2px → Dialog(lg/xl 16px)/Form/ComboBox/DatePicker/Table/Tree/Breadcrumbs 등 13 컴포넌트가 Skia 만 각진 모서리(D3 Skia↔CSS 대칭 위반). generated CSS 는 처음부터 정상 → byte-diff 0, Skia 런타임 직독만 교정
+  - 수정: `radius.ts` 에 `xs:2`/`"2xl":16`(shared-tokens.css 값 1:1) + `RadiusTokens` 인터페이스 2키 추가. 3xl/4xl 은 catalog 미사용 → 미추가(0 drift). 토큰 정의 불변·신규 키만 = 공유 토큰 re-scale 없음(ADR-081 G1 snapshot diff = xs/2xl 2줄만)
+  - 위치: `packages/specs/src/primitives/radius.ts` + `packages/specs/src/types/token.types.ts`
+- **Popover arrow stroke-width DOM↔Skia 비대칭** (ADR-913 slice 5):
+  - manual `Popover.css:51` `stroke-width:1px` vs starter `react-aria-starter/src/Popover.css:26` + Skia `popover_arrow` `strokeWidth:2`
+  - **Why**: composition manual CSS 단독 1px 발산 → Popover 화살표 선두께가 DOM(1px)↔Skia(2px) 불일치. 레퍼런스 정본(2px) 기준 정렬
+  - 위치: `packages/shared/src/components/styles/Popover.css`
+
+### Architecture
+
+- **ADR-913 slice 5 정찰 — Overlay family 실재 갭 인벤토리 + defer 분류**:
+  - 정찰 13 agent(measure→적대적 verify→synthesize): 변경 0 정렬 21 / 실재 갭 11→fix 2 / overclaim 기각 3(Dialog shadow "24 vs 32" 오비교 / Modal cascade cutover 회귀 오귀속 / Tooltip starter-한정 shadow 갭 오판)
+  - defer 4건: Modal cascade 충돌(별도 ADR — portal 렌더 모델+cascade 정책, ADR-141 이전 pre-existing) / Popover bg-raised vs inset 토큰 정본 / Dialog·Modal shadow element-ownership / generated CSS provenance 헤더 stale
+  - **ADR-913 family slice(1~5) 완결** — Color family(slice 6, ADR-912 cutover 직교)만 후속
+
 ## [Collection family catalog 정합 — ADR-913 slice 4 (Tree/GridList fix 2 + Table·ListBox defer)] - 2026-06-19
 
 ADR-913 slice 4 (Collection family: ListBox/GridList/Menu/Table/Tree/TagGroup/Breadcrumbs). 7 멤버를 starter 레퍼런스 + generated/manual CSS + catalog rule + STRUCTURE_META + Skia primitive + DELEGATING 6 각도 병렬 정밀 정찰(42 agent) → **실재 갭 10건 + overclaim 기각 24건**. surface minimization 으로 fix 2건만 좁게 처리, Table 5건은 별도 ADR / ListBox 3건은 후속 slice 로 분리(사용자 confirm). 회귀 방지 테스트 동반.

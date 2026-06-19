@@ -48,7 +48,9 @@
       display: block;
       fill: var(--bg-raised);
       stroke: var(--border);
-      stroke-width: 1px;
+      /* ADR-913 slice 5 (2026-06-19): starter Popover.css:26 + Skia popover_arrow
+         strokeWidth:2 정본 정렬. 기존 1px 는 composition manual CSS 단독 발산(DOM↔Skia 비대칭). */
+      stroke-width: 2px;
     }
 
     &[data-entering] {

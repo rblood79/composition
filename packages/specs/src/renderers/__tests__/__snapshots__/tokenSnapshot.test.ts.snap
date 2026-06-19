@@ -2,12 +2,14 @@
 
 exports[`ADR-081 G1 — primitives resolved-value snapshot > radius tokens resolved values 1`] = `
 {
+  "2xl": 16,
   "full": 9999,
   "lg": 8,
   "md": 6,
   "none": 0,
   "sm": 4,
   "xl": 12,
+  "xs": 2,
 }
 `;
 
