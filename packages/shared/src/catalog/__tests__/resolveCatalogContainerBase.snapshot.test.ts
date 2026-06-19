@@ -159,6 +159,8 @@ describe("resolveCatalogContainerBase — collection-item base-axis (3-A-3b 재�
 
 describe("resolveCatalogContainerVariants — labelPosition=side (kebab styles)", () => {
   // side-mode 판정용 flex-direction:row. hasResolvedSideLabelVariant 가 styles["flex-direction"] 으로 판정.
+  // ADR-912 Phase 4: Select 는 nested(`structure.composition.containerVariants`) 에 label-position
+  //   variant 를 보유 → nested fallback 으로 top-level field 류와 동일하게 side→row 복원.
   it.each([
     ["TextField"],
     ["TextArea"],
@@ -168,6 +170,7 @@ describe("resolveCatalogContainerVariants — labelPosition=side (kebab styles)"
     ["TimeField"],
     ["DatePicker"],
     ["ComboBox"],
+    ["Select"],
   ])("%s side → flex-direction:row + align-items:flex-start", (type) => {
     const v = resolveCatalogContainerVariants(type, { labelPosition: "side" });
     expect(v.styles).toEqual({
@@ -176,12 +179,22 @@ describe("resolveCatalogContainerVariants — labelPosition=side (kebab styles)"
     });
   });
 
-  it("Select side → 빈 styles (Select 는 label-position containerVariant 부재)", () => {
-    // 매핑 발견: Select 는 composition.containerVariants 에 label-position 없음.
-    //   재배선 후 Select side-mode 동작은 별도 확인 대상.
-    const v = resolveCatalogContainerVariants("Select", {
+  // ADR-912 Phase 4 nested variant fallback 가드 — variant 를 nested(structure.composition.
+  //   containerVariants)에만 보유한 컴포넌트가 top-level 부재로 silent 누락되지 않음을 회귀 차단.
+  it("Form side → --form-label-width (nested composition variant)", () => {
+    const v = resolveCatalogContainerVariants("Form", {
       labelPosition: "side",
     });
-    expect(v.styles).toEqual({});
+    expect(v.styles).toEqual({ "--form-label-width": "11rem" });
+  });
+
+  it("Toolbar vertical → flex-direction:column (nested orientation variant)", () => {
+    const v = resolveCatalogContainerVariants("Toolbar", {
+      orientation: "vertical",
+    });
+    expect(v.styles).toEqual({
+      "flex-direction": "column",
+      "align-items": "start",
+    });
   });
 });

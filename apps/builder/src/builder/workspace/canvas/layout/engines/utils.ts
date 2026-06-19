@@ -90,27 +90,72 @@ import {
   shouldSetAutoHeightForAspectRatio,
 } from "../../../../utils/aspectRatio";
 
-// ─── ProgressCircle diameter (ADR-912 단계5 — spec 삭제 정합) ──────────────
-// ProgressCircle 은 정원형이라 diameter = componentRulesTable.ProgressCircle.sizes.{...}.height.
-//   기존 PROGRESSCIRCLE_DIMENSIONS(spec export) 의 diameter 와 동일 (sm:24/md:32/lg:64) —
-//   ProgressCircle.spec.ts 삭제(generate-css virtual 일반화)에 맞춰 rule 값 인라인 미러로 전환.
-//   strokeWidth(sm/md:3, lg:4)는 Skia escape(value_fill_arc)+DOM adapter 전용이라 layout 측정 무관.
-const PROGRESSCIRCLE_DIAMETER: Record<string, number> = {
-  sm: 24,
-  md: 32,
-  lg: 64,
-};
+// ─── ProgressCircle diameter (ADR-912 Phase 5 — catalog SSOT collapse) ──────
+// ProgressCircle 은 정원형이라 diameter = `componentRulesTable.ProgressCircle.sizes.{...}.height`.
+//   구 `PROGRESSCIRCLE_DIAMETER` 평행 상수(sm:24/md:32/lg:64)는 catalog `.sizes.height` 와 byte
+//   일치하던 dual-SSOT 미러였다(Δ8). catalog read-through 로 단일화. strokeWidth(sm/md:3, lg:4)는
+//   Skia escape(value_fill_arc)+DOM adapter 전용이라 layout 측정 무관 → 흡수 대상 아님.
+function progressCircleDiameter(sizeName: string): number {
+  const sizes = resolveSkiaRule("ProgressCircle")?.sizes as
+    | Record<string, ComponentRuleSize>
+    | undefined;
+  const entry = sizes?.[sizeName] ?? sizes?.md;
+  const h = entry?.height;
+  return typeof h === "number" ? h : 32;
+}
+
+// ADR-912 Phase 5 — DisclosureHeader box height/paddingX/iconSize 도 catalog `.sizes` read-through.
+//   구 인라인 `?? 12`(paddingX) / `: 15`(iconSize) / `return 30`(height)는 catalog
+//   `componentRulesTable.DisclosureHeader.sizes.md` 와 byte 일치하던 dual-SSOT 미러였다(Δ8).
+//   `gap`(=6)은 catalog `.sizes` 에 대응 키 부재(leading_icon module 전용 layout gap)라 layout-private
+//   유지. fontSize text-sm(14)는 style override 우선이라 본 헬퍼 밖.
+function disclosureHeaderDims(): {
+  height: number;
+  paddingX: number;
+  iconSize: number;
+} {
+  const entry = resolveSkiaRule("DisclosureHeader")?.sizes?.md as
+    | ComponentRuleSize
+    | undefined;
+  const num = (v: unknown, fb: number) => (typeof v === "number" ? v : fb);
+  return {
+    height: num(entry?.height, 30),
+    paddingX: num(entry?.paddingX, 12),
+    iconSize: num(entry?.iconSize, 15),
+  };
+}
 
 // Slider track 행 layout 높이 = thumbSize (thumb 수용, trackHeight 보다 큼).
-//   Slider.spec.sizes.{size}.indicator.thumbSize SSOT 미러 (sm:14/md:18/lg:22/xl:26).
-//   calculateContentHeight slider 분기에서 grid track 행 높이로 사용 (implicitStyles 의
-//   SliderTrack height=thumbSize 와 일치). xl 은 spec 에만 존재(layout fallback md).
-const SLIDER_THUMB_SIZE: Record<string, number> = {
-  sm: 14,
-  md: 18,
-  lg: 22,
-  xl: 26,
-};
+//   ADR-912 Phase 5 (catalog SSOT collapse): 구 `SLIDER_THUMB_SIZE` 평행 상수(sm:14/md:18/lg:22/
+//   xl:26) 는 `componentRulesTable.Slider.sizes.{size}.indicator.thumbSize` 의 dual-SSOT 미러였다
+//   (Δ8 위반 — calculateContentHeight 경로가 grep gate FILES map 밖이라 baseline 0 위장). catalog
+//   `.sizes.*.indicator.thumbSize` read-through 로 단일화. size 미존재 시 md fallback (구 상수 동형).
+function sliderTrackRowHeight(sizeName: string): number {
+  const sizes = resolveSkiaRule("Slider")?.sizes as
+    | Record<string, ComponentRuleSize & { indicator?: { thumbSize?: number } }>
+    | undefined;
+  const entry = sizes?.[sizeName] ?? sizes?.md;
+  const thumb = entry?.indicator?.thumbSize;
+  return typeof thumb === "number" ? thumb : 18;
+}
+
+// ADR-912 Phase 5 — Slider/ProgressBar/Meter 의 label↔bar row-gap 도 catalog `.sizes.*.gap`
+//   read-through 로 단일화. 구 인라인 상수(Slider `4` / ProgressBar·Meter `8`)는 dual-SSOT 미러였고,
+//   특히 ProgressBar·Meter `8` 은 catalog `.sizes.gap=4`(generated CSS `row-gap: var(--spacing-xs)`
+//   =4px) 와 불일치하여 Builder selection bounds(8px)≠Preview 렌더(4px) drift 버그였다 (Δ10 동형 —
+//   CSS effective 정본 채택). read-through 로 8→4 정합 복원 + dual-SSOT 제거.
+function specSizeGap(
+  ruleType: string,
+  sizeName: string,
+  fallback: number,
+): number {
+  const sizes = resolveSkiaRule(ruleType)?.sizes as
+    | Record<string, ComponentRuleSize>
+    | undefined;
+  const entry = sizes?.[sizeName] ?? sizes?.md;
+  const gap = entry?.gap;
+  return typeof gap === "number" ? gap : fallback;
+}
 
 // ─── Phantom Indicator 설정 (단일 소스) ─────────────────────────────────
 // Switch/Checkbox/Radio: Preview DOM에는 [indicator + label] 구조이지만
@@ -634,19 +679,50 @@ function resolveTagChipMetric(sizeName: string): {
   return { paddingX, paddingY, fontSize, lineHeight, borderRadius, gap };
 }
 
-// ADR-912 box+text leaf 군 (2026-06-11): StatusLight.spec 삭제 → STATUSLIGHT_DIMENSIONS 인라인 미러.
-//   dotSize 는 catalog rule sizes 에 없는 StatusLight 고유 치수(CalendarHeader rule 인라인 미러 선례).
-//   height/gap/fontSize 는 componentRulesTable.StatusLight.sizes 와 동일(SSOT 미러). Skia escape
-//   (skiaPrimitives status_light)는 rule sizes 직접 읽음 — 본 미러는 layout intrinsic width 전용.
-const STATUSLIGHT_DIMENSIONS: Record<
-  string,
-  { height: number; dotSize: number; gap: number; fontSize: number }
-> = {
-  sm: { height: 20, dotSize: 8, gap: 8, fontSize: 12 },
-  md: { height: 24, dotSize: 10, gap: 8, fontSize: 14 },
-  lg: { height: 28, dotSize: 12, gap: 8, fontSize: 16 },
-  xl: { height: 32, dotSize: 14, gap: 8, fontSize: 18 },
+// ADR-912 Phase 5 (catalog SSOT collapse): 구 `STATUSLIGHT_DIMENSIONS` 의 height/gap/fontSize 는
+//   `componentRulesTable.StatusLight.sizes` 와 byte 일치하던 dual-SSOT 미러였다(Δ8 위반 —
+//   calculateContentHeight 경로가 grep gate scope 밖). catalog `.sizes` read-through 로 단일화.
+//   `dotSize` 만 catalog 대응 source 부재(rule sizes 에 dot 치수 키 없음 — StatusLight 고유 layout
+//   치수, CalendarHeader rule 인라인 미러 선례)라 layout-private const 로 유지. Skia escape
+//   (skiaPrimitives status_light)는 rule sizes 직접 읽음 — layout 은 본 read-through 로 정합.
+const STATUSLIGHT_DOT_SIZE: Record<string, number> = {
+  sm: 8,
+  md: 10,
+  lg: 12,
+  xl: 14,
 };
+
+/** StatusLight intrinsic dims = catalog `.sizes` read-through (height/gap/fontSize) + layout-private dotSize. */
+function statusLightDims(sizeName: string): {
+  height: number;
+  dotSize: number;
+  gap: number;
+  fontSize: number;
+} {
+  const sizes = resolveSkiaRule("StatusLight")?.sizes as
+    | Record<string, ComponentRuleSize>
+    | undefined;
+  const entry = sizes?.[sizeName] ?? sizes?.md;
+  const height = typeof entry?.height === "number" ? entry.height : 24;
+  const gap = typeof entry?.gap === "number" ? entry.gap : 8;
+  const rawFs = entry?.fontSize;
+  let fontSize = 14;
+  if (typeof rawFs === "number") fontSize = rawFs;
+  else if (typeof rawFs === "string") {
+    const resolved = resolveToken(rawFs as Parameters<typeof resolveToken>[0]);
+    if (typeof resolved === "number") fontSize = resolved;
+    else if (typeof resolved === "string") {
+      const n = parseFloat(resolved);
+      if (!Number.isNaN(n)) fontSize = n;
+    }
+  }
+  return {
+    height,
+    gap,
+    fontSize,
+    dotSize: STATUSLIGHT_DOT_SIZE[sizeName] ?? STATUSLIGHT_DOT_SIZE.md,
+  };
+}
 
 // ADR-912: SIZE_CONFIG 입력을 spec.sizes → catalog rule sizes 로 전환(spec-free).
 const BUTTON_SIZE_CONFIG = deriveSizeConfig(ruleSizesToSizeSpecMap("Button"));
@@ -994,7 +1070,7 @@ export function calculateContentWidth(
   if (type === "statuslight") {
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = String(props?.size ?? "md");
-    const dims = STATUSLIGHT_DIMENSIONS[sizeName] ?? STATUSLIGHT_DIMENSIONS.md;
+    const dims = statusLightDims(sizeName);
     const text = String(props?.children ?? "");
     if (!text) return dims.dotSize;
     const specStyle = extractSpecTextStyle("statuslight", props ?? {});
@@ -1016,17 +1092,18 @@ export function calculateContentWidth(
     const props = element.props as Record<string, unknown> | undefined;
     const text = String(props?.children ?? props?.title ?? "Section");
     if (!text) return 0;
+    const dhDims = disclosureHeaderDims();
     const paddingX =
       parseNumericValue(
         style?.paddingLeft ?? style?.paddingRight ?? style?.padding,
-      ) ?? 12;
+      ) ?? dhDims.paddingX;
     const fontSize = parseNumericValue(style?.fontSize) ?? 14;
-    // iconSize: rule 15(>0) 우선, style fontSize override 시 round(fontSize*1.1) — leading_icon
-    //   module 과 동형. 본 분기는 rule 고정 size(md)이므로 15 기본, fontSize override 시만 비례.
+    // iconSize: catalog rule iconSize(>0) 우선, style fontSize override 시 round(fontSize*1.1) —
+    //   leading_icon module 과 동형. 본 분기는 rule 고정 size(md)이므로 catalog 기본, override 시만 비례.
     const iconSize =
       parseNumericValue(style?.fontSize) != null
         ? Math.round(fontSize * 1.1)
-        : 15;
+        : dhDims.iconSize;
     const gap = 6;
     const textWidth = measureTextWidth(
       text,
@@ -1163,8 +1240,7 @@ export function calculateContentWidth(
   if (type === "progresscircle") {
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = String(props?.size ?? "md");
-    const diameter =
-      PROGRESSCIRCLE_DIAMETER[sizeName] ?? PROGRESSCIRCLE_DIAMETER.md;
+    const diameter = progressCircleDiameter(sizeName);
     return diameter;
   }
 
@@ -1678,18 +1754,18 @@ export function calculateContentHeight(
   if (tag1 === "statuslight") {
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = String(props?.size ?? "md");
-    const dims = STATUSLIGHT_DIMENSIONS[sizeName] ?? STATUSLIGHT_DIMENSIONS.md;
+    const dims = statusLightDims(sizeName);
     return dims.height;
   }
 
-  // 1.52. DisclosureHeader: rule 고정 box height (ADR-912 (B+icon)).
-  //   componentRulesTable.DisclosureHeader.sizes.md.height = 30 인라인 미러
-  //   (= spec rowHeight: fontSize 14 + paddingY 8*2). leading icon y=height/2 정렬 기준이라
-  //   layout height 와 Skia rule height(buildSpecNodeData ruleSizeToSizeSpec)가 30 으로 일치해야
-  //   selection box(layout) ↔ Skia 렌더 대칭. 명시적 style.height override 는 §1(L1527)이 우선.
-  //   StatusLight `dims.height` 고정 height 패턴 동형. spec 의존 없음(단계5 정합).
+  // 1.52. DisclosureHeader: rule 고정 box height (ADR-912 Phase 5 — catalog read-through).
+  //   구 인라인 `return 30` 은 `componentRulesTable.DisclosureHeader.sizes.md.height` 와 byte
+  //   일치하던 dual-SSOT 미러였다(= spec rowHeight: fontSize 14 + paddingY 8*2). leading icon
+  //   y=height/2 정렬 기준이라 layout height 와 Skia rule height(buildSpecNodeData ruleSizeToSizeSpec)가
+  //   동일해야 selection box(layout) ↔ Skia 렌더 대칭. 명시적 style.height override 는 §1(L1527)이 우선.
+  //   StatusLight `dims.height` 패턴 동형. catalog `.sizes.md.height` read-through 로 단일화.
   if (tag1 === "disclosureheader") {
-    return 30;
+    return disclosureHeaderDims().height;
   }
 
   // 1.55. Link: padding/border 없는 텍스트 전용 인라인 요소 — fontSize 기반 높이
@@ -2146,8 +2222,7 @@ export function calculateContentHeight(
   if (type === "progresscircle") {
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = String(props?.size ?? "md");
-    const diameter =
-      PROGRESSCIRCLE_DIAMETER[sizeName] ?? PROGRESSCIRCLE_DIAMETER.md;
+    const diameter = progressCircleDiameter(sizeName);
     return diameter;
   }
 
@@ -2173,7 +2248,9 @@ export function calculateContentHeight(
     const hasValue = props?.showValueLabel !== false; // ProgressBar/Meter 모두 기본 true
     if (hasLabel || hasValue) {
       const fontSize = parseNumericValue(style?.fontSize) ?? 14;
-      const gap = isMeter ? 8 : 8; // spec sizes[*].gap
+      // ADR-912 Phase 5: catalog `.sizes.gap` read-through (구 인라인 `8` 은 catalog=4 와 불일치한
+      //   dual-SSOT 미러 = Builder≠Preview drift. 8→4 정합 복원).
+      const gap = specSizeGap(isMeter ? "Meter" : "ProgressBar", sizeName, 4);
       // ADR-051: label 텍스트가 줄바꿈될 수 있으므로 measureWrappedTextHeight 사용
       const labelText = String(props?.label ?? "");
       const fontWeight =
@@ -2209,13 +2286,13 @@ export function calculateContentHeight(
   if (type === "slider") {
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = String(props?.size ?? "md");
-    const trackRow = SLIDER_THUMB_SIZE[sizeName] ?? SLIDER_THUMB_SIZE.md;
+    const trackRow = sliderTrackRowHeight(sizeName);
 
     const hasLabel = !!props?.label;
     const hasValue = props?.showValueLabel !== false; // Slider 기본 true
     if (hasLabel || hasValue) {
       const fontSize = parseNumericValue(style?.fontSize) ?? 14;
-      const gap = 4; // Slider row-gap (SLIDER_ROW_GAP)
+      const gap = specSizeGap("Slider", sizeName, 4); // catalog .sizes.gap read-through
       const labelText = String(props?.label ?? "");
       const fontWeight =
         parseNumericValue(style?.fontWeight) ??

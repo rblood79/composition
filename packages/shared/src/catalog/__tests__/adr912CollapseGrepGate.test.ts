@@ -51,6 +51,12 @@ const FILES = {
     "apps/builder/src/builder/panels/styles/utils/specPresetResolver.ts",
   newResolver:
     "packages/shared/src/catalog/resolvers/resolveCatalogContainer.ts",
+  // Phase 5 (2026-06-20): calculateContentHeight 경로(layout-height consumer). 적대 검증이
+  //   적발 — implicitStyles 에서 닫은 size-value mirror 가 이 파일에 평행 분포(SLIDER_THUMB_SIZE /
+  //   인라인 row-gap)하면 grep gate FILES map 밖이라 baseline 0 위장. Δ8 prose("layout/Skia 파일이
+  //   componentRulesTable.sizes 복제")의 scope 갭을 닫기 위해 추가.
+  utilsLayout:
+    "apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts",
 } as const;
 
 describe("ADR-912 collapse grep gate — 의존 방향 (Δ1/Δ7)", () => {
@@ -186,6 +192,49 @@ const DISPERSION_BASELINE: Array<{
     pattern: /TAG_SPEC_MAP/,
     baseline: 0,
     killPhase: "Phase 4 ✅",
+  },
+  {
+    // Phase 5 완료 (2026-06-20): calculateContentHeight 경로의 size-value mirror 중 저위험 4종 흡수 → 0.
+    //   적대 검증 2회(a3ae5b0e1 / a1a20c439)가 적발 — implicitStyles 에서 닫은 mirror 가 utils.ts(grep
+    //   gate scope 밖)에 평행 잔존. utilsLayout 을 FILES map 에 추가하고 흡수된 const 의 재도입을 차단한다.
+    //   흡수 4종 (read-through 단일화):
+    //     1. Slider thumbSize const → `sliderTrackRowHeight()` (catalog Slider.sizes.*.indicator.thumbSize)
+    //     2. Slider/ProgressBar/Meter 인라인 row-gap → `specSizeGap()` (catalog .sizes.*.gap). 부수 버그
+    //        수정: ProgressBar/Meter 의 `8` 은 catalog=4(CSS row-gap 4px)와 불일치한 Builder≠Preview
+    //        drift → 8→4 정합(Δ10 동형). Slider 는 byte 불변(상수=catalog 일치).
+    //     3. StatusLight height/gap/fontSize const → `statusLightDims()` (catalog StatusLight.sizes).
+    //        dotSize 만 layout-private const 유지(catalog 대응 키 부재).
+    //     4. ProgressCircle diameter const → `progressCircleDiameter()` (catalog ProgressCircle.sizes.height).
+    //        DisclosureHeader height/paddingX/iconSize 인라인 → `disclosureHeaderDims()` (catalog
+    //        DisclosureHeader.sizes.md). gap(=6)은 catalog 대응 키 부재라 layout-private 유지.
+    //   패턴: 흡수된 const 이름(SLIDER_THUMB_SIZE/STATUSLIGHT_DIMENSIONS/PROGRESSCIRCLE_DIAMETER) 또는
+    //   `gap = <number>; // ... sizes` 인라인 row-gap mirror 의 재도입을 차단(이름 한정이 아니라 흡수
+    //   대상 전 const 를 포괄). 주석에서도 const 심볼명 직접 사용 안 함(false positive 회피 — 위 설명은
+    //   백틱 인용이라 `const X` prefix 패턴에 비매칭).
+    //   (Δ8 예외 = catalog 대응 source 부재 layout-private: PHANTOM_INDICATOR_CONFIGS[box/width/rowHeight
+    //    catalog 키 0] / STATUSLIGHT_DOT_SIZE[dot 키 0]. 본 패턴 비대상.)
+    label:
+      "calculateContentHeight size-value mirror 저위험 4종 (Δ8 — Phase 5 흡수 ✅)",
+    file: "utilsLayout",
+    pattern:
+      /const (SLIDER_THUMB_SIZE|STATUSLIGHT_DIMENSIONS|PROGRESSCIRCLE_DIAMETER)\b|gap = \d+;\s*\/\/[^\n]*sizes/,
+    baseline: 0,
+    killPhase: "Phase 5 ✅",
+  },
+  {
+    // Phase 5 (2026-06-20): 고위험 2종 mirror 는 명시 baseline 으로 등재(위장 0 제거, 정직한 잔여 기록).
+    //   CalendarHeader(headerHeights/calDims/gridDims) + DateInput(inputHeights)은 절대좌표 텍스트 렌더라
+    //   다중 줄 보정(canvas-rendering.md "CalendarGrid/CalendarHeader 보정 스킵")과 얽혀 회귀 위험이
+    //   Slider 류보다 높다 → 사용자 결정(2026-06-20)으로 Phase 6(layout-height consumer 완전 collapse)
+    //   분리. 본 entry 는 baseline=4(현 mirror const 4개: headerHeights/calDims/gridDims/inputHeights)로
+    //   고정하여 (a) 신규 mirror 재도입 차단(초과 시 FAIL) + (b) Phase 6 에서 흡수 시 baseline 을 낮춰 0
+    //   수렴을 강제한다. "위장 0" 이 아니라 측정된 실수치 등재라 Δ8 미완을 정직하게 노출.
+    label:
+      "calculateContentHeight CalendarHeader/DateInput mirror (Δ8 — Phase 6 분리, 정직한 baseline)",
+    file: "utilsLayout",
+    pattern: /const (headerHeights|calDims|gridDims|inputHeights)\b/,
+    baseline: 4,
+    killPhase: "Phase 6 (분리)",
   },
 ];
 
