@@ -163,33 +163,46 @@ function specSizeGap(
 // 값의 원천: packages/specs/src/components/{Switch,Checkbox,Radio}.spec.ts
 
 interface PhantomIndicatorConfig {
+  ruleType: string; // PascalCase catalog key (gap read-through 용)
   widths: { sm: number; md: number; lg: number };
   heights: { sm: number; md: number; lg: number };
-  gaps: { sm: number; md: number; lg: number };
   rowHeights: { sm: number; md: number; lg: number };
 }
 
+// ADR-912 Phase 5 (catalog SSOT collapse): `gaps` 축은 catalog `.sizes.*.gap`(Switch {8,10,12}/
+//   Checkbox·Radio {6,8,10})과 byte 일치하던 dual-SSOT 미러였다(Δ8) → `phantomIndicatorGap()`
+//   read-through 로 단일화, `gaps` 필드 삭제. `widths`/`heights`/`rowHeights` 는 catalog `.sizes` 에
+//   indicator box / row height 대응 키 부재(`.sizes.height=0`)라 layout-private 유지(Δ8 예외).
 export const PHANTOM_INDICATOR_CONFIGS: Record<string, PhantomIndicatorConfig> =
   {
     switch: {
+      ruleType: "Switch",
       widths: { sm: 32, md: 36, lg: 44 },
       heights: { sm: 18, md: 20, lg: 24 },
-      gaps: { sm: 8, md: 10, lg: 12 },
       rowHeights: { sm: 18, md: 20, lg: 24 },
     },
     checkbox: {
+      ruleType: "Checkbox",
       widths: { sm: 16, md: 20, lg: 24 },
       heights: { sm: 16, md: 20, lg: 24 },
-      gaps: { sm: 6, md: 8, lg: 10 },
-      rowHeights: { sm: 20, md: 24, lg: 28 }, // spec.sizes.height (전체 행 높이)
+      rowHeights: { sm: 20, md: 24, lg: 28 }, // layout 전용 행 높이(catalog .sizes.height=0)
     },
     radio: {
+      ruleType: "Radio",
       widths: { sm: 16, md: 20, lg: 24 },
       heights: { sm: 16, md: 20, lg: 24 },
-      gaps: { sm: 6, md: 8, lg: 10 },
-      rowHeights: { sm: 20, md: 24, lg: 28 }, // spec.sizes.height (전체 행 높이)
+      rowHeights: { sm: 20, md: 24, lg: 28 }, // layout 전용 행 높이(catalog .sizes.height=0)
     },
   };
+
+/** Phantom indicator gap = catalog `.sizes.*.gap` read-through (Switch/Checkbox/Radio). */
+export function phantomIndicatorGap(
+  config: PhantomIndicatorConfig,
+  size?: string,
+): number {
+  const fb = config.ruleType === "Switch" ? 10 : 8; // md 기본(catalog 부재 시)
+  return specSizeGap(config.ruleType, size ?? "md", fb);
+}
 
 /** Phantom indicator의 width + gap (Row용). 해당 태그가 아니면 null */
 export function getPhantomIndicatorSpace(
@@ -201,7 +214,7 @@ export function getPhantomIndicatorSpace(
   const s = (size ?? "md") as "sm" | "md" | "lg";
   const w = config.widths[s] ?? config.widths.md;
   const h = config.heights[s] ?? config.heights.md;
-  const gap = config.gaps[s] ?? config.gaps.md;
+  const gap = phantomIndicatorGap(config, size);
   return { width: w + gap, height: h, gap };
 }
 
@@ -1421,7 +1434,7 @@ export function calculateContentWidth(
     const s = sizeName as "sm" | "md" | "lg";
     const indicatorSize =
       indicatorConfig.widths[s] ?? indicatorConfig.widths.md;
-    const specIndicatorGap = indicatorConfig.gaps[s] ?? indicatorConfig.gaps.md;
+    const specIndicatorGap = phantomIndicatorGap(indicatorConfig, sizeName);
     // CSS gap이 설정되면 specGap 대신 CSS gap 사용
     const hasCSSGapSec3 =
       style?.gap !== undefined ||
@@ -2802,8 +2815,7 @@ export function calculateContentHeight(
     const s = sizeName as "sm" | "md" | "lg";
     const indicatorH =
       heightIndicatorConfig.heights[s] ?? heightIndicatorConfig.heights.md;
-    const specGap =
-      heightIndicatorConfig.gaps[s] ?? heightIndicatorConfig.gaps.md;
+    const specGap = phantomIndicatorGap(heightIndicatorConfig, sizeName);
     const hasCSSGapH =
       style?.gap !== undefined ||
       style?.rowGap !== undefined ||

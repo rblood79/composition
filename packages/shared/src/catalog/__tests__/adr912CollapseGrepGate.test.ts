@@ -194,10 +194,11 @@ const DISPERSION_BASELINE: Array<{
     killPhase: "Phase 4 ✅",
   },
   {
-    // Phase 5 완료 (2026-06-20): calculateContentHeight 경로의 size-value mirror 중 저위험 4종 흡수 → 0.
-    //   적대 검증 2회(a3ae5b0e1 / a1a20c439)가 적발 — implicitStyles 에서 닫은 mirror 가 utils.ts(grep
-    //   gate scope 밖)에 평행 잔존. utilsLayout 을 FILES map 에 추가하고 흡수된 const 의 재도입을 차단한다.
-    //   흡수 4종 (read-through 단일화):
+    // Phase 5 완료 (2026-06-20): calculateContentHeight 경로의 size-value mirror 중 저위험 5종 흡수 → 0.
+    //   적대 검증 3회(a3ae5b0e1 / a1a20c439 / ac745e582)가 적발 — implicitStyles 에서 닫은 mirror 가
+    //   utils.ts(grep gate scope 밖)에 평행 잔존. utilsLayout 을 FILES map 에 추가하고 흡수된 mirror 의
+    //   재도입을 차단한다.
+    //   흡수 5종 (read-through 단일화):
     //     1. Slider thumbSize const → `sliderTrackRowHeight()` (catalog Slider.sizes.*.indicator.thumbSize)
     //     2. Slider/ProgressBar/Meter 인라인 row-gap → `specSizeGap()` (catalog .sizes.*.gap). 부수 버그
     //        수정: ProgressBar/Meter 의 `8` 은 catalog=4(CSS row-gap 4px)와 불일치한 Builder≠Preview
@@ -207,17 +208,22 @@ const DISPERSION_BASELINE: Array<{
     //     4. ProgressCircle diameter const → `progressCircleDiameter()` (catalog ProgressCircle.sizes.height).
     //        DisclosureHeader height/paddingX/iconSize 인라인 → `disclosureHeaderDims()` (catalog
     //        DisclosureHeader.sizes.md). gap(=6)은 catalog 대응 키 부재라 layout-private 유지.
+    //     5. PHANTOM_INDICATOR_CONFIGS 의 `gaps` 축(Switch {8,10,12}/Checkbox·Radio {6,8,10} = catalog
+    //        .sizes.*.gap byte 일치) → `phantomIndicatorGap()` (utils + implicitStyles 양 consumer).
+    //        `gaps` 필드 삭제. `widths`/`heights`/`rowHeights` 는 catalog `.sizes` 에 indicator box/row
+    //        height 대응 키 부재(.sizes.height=0)라 layout-private 유지.
     //   패턴: 흡수된 const 이름(SLIDER_THUMB_SIZE/STATUSLIGHT_DIMENSIONS/PROGRESSCIRCLE_DIAMETER) 또는
-    //   `gap = <number>; // ... sizes` 인라인 row-gap mirror 의 재도입을 차단(이름 한정이 아니라 흡수
-    //   대상 전 const 를 포괄). 주석에서도 const 심볼명 직접 사용 안 함(false positive 회피 — 위 설명은
-    //   백틱 인용이라 `const X` prefix 패턴에 비매칭).
-    //   (Δ8 예외 = catalog 대응 source 부재 layout-private: PHANTOM_INDICATOR_CONFIGS[box/width/rowHeight
-    //    catalog 키 0] / STATUSLIGHT_DOT_SIZE[dot 키 0]. 본 패턴 비대상.)
+    //   `gap = <number>; // ... sizes` 인라인 row-gap mirror 또는 PHANTOM `gaps:` 필드 재도입을 차단.
+    //   주석에서도 const 심볼명/`gaps:` 직접 사용 안 함(false positive 회피 — 위 설명은 백틱·작은따옴표
+    //   인용이라 비매칭).
+    //   (Δ8 예외 = catalog 대응 source 부재 layout-private: PHANTOM_INDICATOR_CONFIGS 의 widths/heights/
+    //    rowHeights[catalog box/row-height 키 0] / STATUSLIGHT_DOT_SIZE[dot 키 0] / DisclosureHeader
+    //    gap[catalog 키 0]. 본 패턴 비대상.)
     label:
-      "calculateContentHeight size-value mirror 저위험 4종 (Δ8 — Phase 5 흡수 ✅)",
+      "calculateContentHeight size-value mirror 저위험 5종 (Δ8 — Phase 5 흡수 ✅)",
     file: "utilsLayout",
     pattern:
-      /const (SLIDER_THUMB_SIZE|STATUSLIGHT_DIMENSIONS|PROGRESSCIRCLE_DIAMETER)\b|gap = \d+;\s*\/\/[^\n]*sizes/,
+      /const (SLIDER_THUMB_SIZE|STATUSLIGHT_DIMENSIONS|PROGRESSCIRCLE_DIAMETER)\b|gap = \d+;\s*\/\/[^\n]*sizes|^\s*gaps: \{/m,
     baseline: 0,
     killPhase: "Phase 5 ✅",
   },

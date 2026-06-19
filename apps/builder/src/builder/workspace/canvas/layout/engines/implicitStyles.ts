@@ -11,7 +11,11 @@
  */
 
 import type { CanvasLayoutNode } from "../layoutNode";
-import { parsePadding, PHANTOM_INDICATOR_CONFIGS } from "./utils";
+import {
+  parsePadding,
+  PHANTOM_INDICATOR_CONFIGS,
+  phantomIndicatorGap,
+} from "./utils";
 import {
   // ADR-912 단계5 step4 (2026-06-17): InlineAlertSpec import 제거 — InlineAlert padding/gap/자식 font
   //   분기를 resolveSkiaRule("InlineAlert").sizes read-through 로 이관(spec 삭제 선행, rule fallback).
@@ -2034,7 +2038,9 @@ export function applyImplicitStyles(
     const s = sizeName as "sm" | "md" | "lg";
     const phantomConfig = PHANTOM_INDICATOR_CONFIGS[containerTag];
     const indicatorWidth = phantomConfig?.widths[s] ?? 20;
-    const defaultGap = phantomConfig?.gaps[s] ?? 8;
+    const defaultGap = phantomConfig
+      ? phantomIndicatorGap(phantomConfig, sizeName)
+      : 8;
     const parsedGap = parseFloat(String(parentStyle.gap ?? ""));
     const userGap = !isNaN(parsedGap) ? parsedGap : defaultGap;
     const indicatorOffset = indicatorWidth + userGap;
@@ -2074,7 +2080,7 @@ export function applyImplicitStyles(
             | "lg";
           const pc = PHANTOM_INDICATOR_CONFIGS[containerTag];
           const indWidth = pc?.widths[sn] ?? 20;
-          const indGap = pc?.gaps[sn] ?? 8;
+          const indGap = pc ? phantomIndicatorGap(pc, sn) : 8;
           const pg = parseFloat(String(parentStyle.gap ?? ""));
           const gap = !isNaN(pg) ? pg : indGap;
           synLabelMargin = indWidth + gap;
