@@ -498,15 +498,28 @@ LAYOUT_TOKEN_STYLES` alias re-export(기존 소비처 호환). **의존 방향**
   렌더 live 불변. 상수 3개 완전 삭제. (INDICATOR_SIZES.gap 은 box 와 같은 객체라 이 sub-group 에서
   `specSizeField` 경유로 바꾸되 객체 자체는 Δ5 에서 처리 — gap 만 분리 삭제 불가.)
 
-**Phase 3-A-2 — Δ5 INDICATOR_SIZES box 소유권 + Δ10 PROGRESSBAR_COL_GAP (catalog schema 보강)**:
+**Phase 3-A-2 — Δ5 INDICATOR_SIZES dead 제거 ✅ Land 완료 (2026-06-19, dead-path 증명 PASS)**:
 
-- (Δ5) `INDICATOR_SIZES.box` (`:301`, catalog source 부재) — (a) `ComponentRuleSize.box` 키 추가 +
-  Checkbox/Radio/Switch `.sizes.box` 승격 후 INDICATOR_SIZES 전체 삭제 (권장) 또는 (b) Non-goal 명시.
-  PHANTOM_INDICATOR_CONFIGS 가 이미 box 단일 source 인지(INDICATOR_SIZES.box dead) 판정 동반.
-- (Δ10) `PROGRESSBAR_COL_GAP` (`:309`, structure.composition 토큰 문자열) — (A) `{ProgressBar,Meter}.
-sizes.columnGap=12` 추가 + `specSizeField("progressbar", size, "columnGap")` 교체 또는 (B) Non-goal.
-- 둘 다 catalog rule 데이터 변경 → generated CSS byte-diff 검증 필수 (box=CSS 미emit 안전 추정,
-  columnGap=ProgressBar structure column-gap emit 과 별도 경로 확인).
+- ✅ (Δ5) `INDICATOR_SIZES` (box/gap) 상수 + 4개 소비처(`:1953/:1955/:1994/:1995`)의 dead fallback
+  피연산자 삭제. **breakdown 원안 (a)schema 추가+promote / (b)Non-goal 두 옵션 밖 제3 경로 (옵션 c —
+  dead 제거)** 로 종결. PHANTOM_INDICATOR_CONFIGS 가 이미 box 단일 source 인지 판정 결과 = **box·gap
+  모두 dead-path** (사용자 결정 2026-06-19):
+  - 두 소비처는 모두 `containerTag ∈ {checkbox,radio,switch}` 분기 안에서만 실행되고, 그 분기에서
+    `phantomConfig = PHANTOM_INDICATOR_CONFIGS[containerTag]` 는 3개 태그 모두 sm/md/lg widths·gaps
+    보유 → 첫 `??` 피연산자가 항상 값 반환 → INDICATOR_SIZES 미도달.
+  - xl 일 땐 PHANTOM 도 상수도 키 부재라 `?? 20`/`?? 8` 하드코딩 도달 → 본 상수 실효 0.
+  - catalog `ComponentRuleSize` 에 `box` 키 자체가 없음 (indicator 는 수동/React 렌더, CSS 미emit) →
+    옵션 (a) 의 promote 대상이 어디서도 안 읽히는 dead 필드가 될 뿐 → **schema 보강 없이 dead 제거로
+    kill criteria INDICATOR_SIZES=0 달성**. dual-SSOT 가 아니라 dead code 였음이 드러남.
+  - oracle: **격리 dead-path 증명** (실제 PHANTOM_INDICATOR_CONFIGS 데이터로 12 (태그×size) 조합 전부
+    before==after — PROOF_EXIT=0) + generated CSS byte-diff 0 (88 파일, layout-only) + builder
+    type-check baseline 71 불변 + shared catalog 364 PASS (grep gate INDICATOR_SIZES baseline 5→0) +
+    live (새로고침 후 CheckboxGroup indicator 박스 정상 렌더, console error 0).
+- (Δ10) `PROGRESSBAR_COL_GAP` (`:312`, structure.composition 토큰 문자열) — **Δ5 와 분리하여 다음 단계로
+  이연 (사용자 결정 2026-06-19)**. catalog `.sizes` 에 진짜 source 부재 → (A) `{ProgressBar,Meter}.sizes.
+columnGap=12` 추가 + `specSizeField("progressbar", size, "columnGap")` 교체 (단 catalog rule 데이터
+  변경이라 generated CSS byte-diff 검증 필수 — ProgressBar structure column-gap emit 과 별도 경로 확인)
+  또는 (B) Non-goal. Δ5 와 달리 schema 값 추가 + CSS byte-diff 재검증 동반이라 위험 성격이 다름.
 
 **Phase 3-A-3 — LOWERCASE map + base-axis + adapter (구조 SSOT, 가장 광범위)**:
 
@@ -584,11 +597,11 @@ child-tree·propagation 축은 별도 잔여 작업으로 기록한다. 무조�
 - CSS generator 와 Skia/layout 이 서로 다른 layout token table 을 가진다 (`COMPOSITION_LAYOUT_STYLES`
   와 `CATALOG_LAYOUT_STYLES` 가 둘 다 존재 — Δ7).
 - (Δ8) layout/Skia 파일이 `componentRulesTable.sizes` 를 복제하는 local size-value table
-  (track height, indicator gap, slider/progressbar row gap) 을 선언한다. **단 box·column-gap 은
-  catalog `.sizes` source 가 없어 (적대 검증 w6gqcrgh3) 이 조건 달성에 schema 보강 선행 필요**:
-  `INDICATOR_SIZES.box` 는 `ComponentRuleSize.box` 키 추가 + 승격(Δ5-a) 후에만, `PROGRESSBAR_COL_GAP`
-  은 `.sizes.columnGap` 마이그레이션(Δ10-A) 후에만 0 도달. 두 schema 보강을 Non-goal(Δ5-b/Δ10-B)로
-  선택하면 본 kill 은 "box/column-gap 제외" 로 한정 명시 — 무조건 mirror 0 주장 금지.
+  (track height, indicator gap, slider/progressbar row gap) 을 선언한다. **`INDICATOR_SIZES` 는
+  적대 검증(w6gqcrgh3) 후 box·gap 모두 dead-path 로 확정 → schema 보강 없이 dead 제거(Δ5 옵션 c)로
+  0 달성 ✅ (Phase 3-A-2 Land 완료 2026-06-19)**. `PROGRESSBAR_COL_GAP` 만 catalog `.sizes` source
+  부재라 `.sizes.columnGap` 마이그레이션(Δ10-A) 후에 0 도달 — Non-goal(Δ10-B) 선택 시 "column-gap
+  제외" 로 한정 명시.
 - (Δ6) `implicitStyles.ts` 의 7개 base-axis fallback (field류 5 + collection-item 2) 중 **하나라도**
   인라인 `?? "column"` 으로 남는다 (`grep -c 'flexDirection.*?? "column"'` ≠ 0).
 - generated CSS 는 바뀌었는데 Skia/layout 또는 Style Panel focused test 가 없다.
@@ -597,15 +610,15 @@ child-tree·propagation 축은 별도 잔여 작업으로 기록한다. 무조�
 
 완료는 "Style Panel 표시가 좋아짐"이 아니라 아래 전부다.
 
-| Gate        | 통과 조건                                                                                                                                                                                                                                                                                                                      |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Source      | field base layout, TagGroup base layout, side variants, **그리고 track height / indicator gap / slider·progressbar row gap (Δ4, 3종)** 가 `componentRulesTable.sizes` 에서 선언, 해당 mirror 0. **box·column-gap (Δ5/Δ10) 은 catalog source 부재라 schema 보강(Δ5-a/Δ10-A) 선택 시 0, Non-goal(Δ5-b/Δ10-B) 선택 시 잔존 명시** |
-| Generator   | virtual CSS emit membership 이 `rule.structure` 로 결정되고 `STRUCTURE_META` 없음, `COMPOSITION_LAYOUT_STYLES` 없음 (Δ7)                                                                                                                                                                                                       |
-| Skia/layout | container base/variant 는 shared resolver 소비, local rule map 없음, 인라인 base-axis fallback 없음 (Δ6)                                                                                                                                                                                                                       |
-| Style Panel | `TAG_SPEC_MAP` 직독 없음, TextField/TagGroup preset 이 shared resolver 기반                                                                                                                                                                                                                                                    |
-| Tests       | shared resolver + Style Panel + Skia/layout focused tests PASS                                                                                                                                                                                                                                                                 |
-| Build       | generated CSS **byte-diff = 0 (enforce, Δ8)** + type-check PASS                                                                                                                                                                                                                                                                |
-| Browser     | TextField top/side 및 TagGroup side 의 Panel 표시와 Canvas layout 수동 확인 + ProgressBar track / Checkbox indicator 렌더 불변                                                                                                                                                                                                 |
+| Gate        | 통과 조건                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Source      | field base layout, TagGroup base layout, side variants, **그리고 track height / indicator gap / slider·progressbar row gap (Δ4, 3종)** 가 `componentRulesTable.sizes` 에서 선언, 해당 mirror 0. **`INDICATOR_SIZES` (Δ5) 는 dead-path 확정 → dead 제거로 0 ✅. `column-gap` (Δ10) 만 catalog source 부재라 schema 보강(Δ10-A) 선택 시 0, Non-goal(Δ10-B) 선택 시 잔존 명시** |
+| Generator   | virtual CSS emit membership 이 `rule.structure` 로 결정되고 `STRUCTURE_META` 없음, `COMPOSITION_LAYOUT_STYLES` 없음 (Δ7)                                                                                                                                                                                                                                                     |
+| Skia/layout | container base/variant 는 shared resolver 소비, local rule map 없음, 인라인 base-axis fallback 없음 (Δ6)                                                                                                                                                                                                                                                                     |
+| Style Panel | `TAG_SPEC_MAP` 직독 없음, TextField/TagGroup preset 이 shared resolver 기반                                                                                                                                                                                                                                                                                                  |
+| Tests       | shared resolver + Style Panel + Skia/layout focused tests PASS                                                                                                                                                                                                                                                                                                               |
+| Build       | generated CSS **byte-diff = 0 (enforce, Δ8)** + type-check PASS                                                                                                                                                                                                                                                                                                              |
+| Browser     | TextField top/side 및 TagGroup side 의 Panel 표시와 Canvas layout 수동 확인 + ProgressBar track / Checkbox indicator 렌더 불변                                                                                                                                                                                                                                               |
 
 ### 6-1. 종결 조건 — falsifiable test (T1~T6)
 
@@ -615,9 +628,10 @@ child-tree·propagation 축은 별도 잔여 작업으로 기록한다. 무조�
   (CSSGenerator) = 0 / `LOWERCASE_COMPONENT_RULE_CONTAINER`·`VALUE_FILL_TRACK_HEIGHT`·`PROGRESSBAR_ROW_GAP`·
   `SLIDER_ROW_GAP` (implicitStyles, Δ4 3종) = 0 / `TAG_SPEC_MAP` (specPresetResolver) = 0 /
   `flexDirection: ... ?? "column"` (implicitStyles) = 0 / 새 resolver 의 `@composition/specs` import = 0.
-  - **조건부 (schema 보강 선택 시)**: `INDICATOR_SIZES` = 0 은 `ComponentRuleSize.box` 추가 + 승격(Δ5-a)
-    선택 시에만 / `PROGRESSBAR_COL_GAP` = 0 은 `.sizes.columnGap` 마이그레이션(Δ10-A) 선택 시에만. Non-goal
-    (Δ5-b/Δ10-B) 선택 시 두 심볼 잔존이 정당 (catalog source 부재가 근거, 적대 검증 w6gqcrgh3).
+  - **`INDICATOR_SIZES` = 0 ✅ 달성 (Phase 3-A-2)**: 적대 검증(w6gqcrgh3) 후 box·gap 모두 dead-path 로
+    확정 → dead 제거(Δ5 옵션 c)로 schema 보강 없이 0. **조건부 (schema 보강 선택 시)**: `PROGRESSBAR_COL_GAP`
+    = 0 은 `.sizes.columnGap` 마이그레이션(Δ10-A) 선택 시에만. Non-goal(Δ10-B) 선택 시 잔존 정당
+    (catalog source 부재가 근거).
 - **T2 (단일 consumer 경로)**: CSS gen `buildVirtualSpecs` / Skia `implicitStyles` / Panel
   `specPresetResolver` 가 structure·base-layout·size-value·preset 을 `shared/catalog/resolvers/` 에서만 import.
 - **T3 (byte-diff 0)**: 전체 collapse 후 generated CSS `git diff` = empty.
