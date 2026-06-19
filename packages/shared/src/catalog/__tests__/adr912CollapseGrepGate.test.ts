@@ -228,6 +228,39 @@ const DISPERSION_BASELINE: Array<{
     killPhase: "Phase 5 ✅",
   },
   {
+    // Phase 5 후속 (2026-06-20, Δ8): 전수 인벤토리로 확정된 마지막 catalog-대응 mirror 2종 흡수 → 0.
+    //   4차 적대 검증(abb9212cc4d278d24)이 적발 — 앞선 3회가 utils.ts/implicitStyles 의 size-value
+    //   mirror 만 봤고 (a) implicitStyles 의 padding mirror + (b) valueFillMetrics(specs)의 barHeight
+    //   mirror 를 누락. 이후 layout 경로 전 size Record 전수 인벤토리로 미흡수 catalog-대응이 정확히
+    //   이 2종뿐임을 확정(나머지는 이미 read-through/catalog 파생/layout-private/Phase 6 baseline).
+    //   흡수 2종 (read-through 단일화):
+    //     (a) SPEC_PADDING (implicitStyles, ComboBox/Select/SelectTrigger 공통 padding Record. left/
+    //         right/y 5 size 가 catalog SelectTrigger.sizes.{paddingX,paddingY} 와 byte 일치 —
+    //         left=paddingX, right=y=paddingY) → specPaddingFromCatalog() 가 specSizeField("selecttrigger",
+    //         size, "paddingX"/"paddingY") read-through. SelectTrigger spec 삭제됨 → rule fallback 경로.
+    //     (b) PROGRESSBAR_DIMENSIONS/METER_DIMENSIONS.barHeight (valueFillMetrics, specs 패키지. sm:4/
+    //         md:8/lg:12/xl:16 이 catalog {ProgressBarTrack,MeterTrack}.sizes.*.height 와 byte 일치 —
+    //         source 주석 자체가 "rule ↔ 본 상수 같은 값" 자인) → 소비처 utils.ts 가 valueFillTrackHeight()
+    //         로 catalog read-through. specs→shared 역방향 import 금지라 상수 정의는 specs 에 잔존하나
+    //         소비처가 0 이 되어 dead(별도 삭제 승인 대상). implicitStyles 가 같은 track height 를 이미
+    //         specSizeField 로 흡수한 선례 동형.
+    //   가드: implicitStyles 의 `const SPEC_PADDING` 재도입 + utilsLayout 의 valueFillMetrics barHeight
+    //   상수 import 재도입을 각각 차단. 주석에선 const 심볼명을 백틱·괄호 인용해 비매칭(false positive 회피).
+    label: "SPEC_PADDING mirror (Δ8 — Phase 5 후속 흡수 ✅)",
+    file: "implicitStyles",
+    pattern: /const SPEC_PADDING\b/,
+    baseline: 0,
+    killPhase: "Phase 5 후속 ✅",
+  },
+  {
+    label:
+      "valueFillMetrics barHeight import (Δ8 — Phase 5 후속 흡수 ✅, 소비처 0)",
+    file: "utilsLayout",
+    pattern: /\b(PROGRESSBAR_DIMENSIONS|METER_DIMENSIONS)\b/,
+    baseline: 0,
+    killPhase: "Phase 5 후속 ✅",
+  },
+  {
     // Phase 5 (2026-06-20): 고위험 2종 mirror 는 명시 baseline 으로 등재(위장 0 제거, 정직한 잔여 기록).
     //   CalendarHeader(headerHeights/calDims/gridDims) + DateInput(inputHeights)은 절대좌표 텍스트 렌더라
     //   다중 줄 보정(canvas-rendering.md "CalendarGrid/CalendarHeader 보정 스킵")과 얽혀 회귀 위험이

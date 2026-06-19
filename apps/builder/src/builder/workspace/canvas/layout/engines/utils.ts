@@ -26,8 +26,6 @@ import {
   resolveToken,
   breadcrumbSeparatorAfterPaddingXPx,
   normalizeBreadcrumbRspSizeKey,
-  PROGRESSBAR_DIMENSIONS,
-  METER_DIMENSIONS,
   resolveListBoxSpacingMetric,
   resolveListBoxItemMetric,
   resolveListBoxItemRowHeight,
@@ -155,6 +153,24 @@ function specSizeGap(
   const entry = sizes?.[sizeName] ?? sizes?.md;
   const gap = entry?.gap;
   return typeof gap === "number" ? gap : fallback;
+}
+
+// ADR-912 Phase 5 후속 (Δ8, 2026-06-20) — ProgressBar/Meter track 높이도 catalog
+//   `.sizes.height` read-through 로 단일화. 구 valueFillMetrics(packages/specs) 의 size별 track
+//   height 상수(barHeight sm:4/md:8/lg:12/xl:16)는 catalog
+//   `componentRulesTable.{ProgressBarTrack,MeterTrack}.sizes.*.height` 와 byte 일치하던
+//   dual-SSOT 미러였다 — valueFillMetrics source 주석 자체가 "rule(Skia 그리기) ↔ 본 상수(layout
+//   높이)가 같은 값" 으로 자인. specs→shared 역방향 import 금지라 상수 분리됐으나, 소비처는 본
+//   builder utils 하나뿐 → 소비처에서 read-through 하면 specs 상수 자체가 dead. implicitStyles 가
+//   같은 track height 를 이미 `specSizeField(child.type, size, "height")` 로 흡수한 선례 동형.
+//   size 미존재 시 md fallback (구 상수 동형).
+function valueFillTrackHeight(ruleType: string, sizeName: string): number {
+  const sizes = resolveSkiaRule(ruleType)?.sizes as
+    | Record<string, ComponentRuleSize>
+    | undefined;
+  const entry = sizes?.[sizeName] ?? sizes?.md;
+  const h = entry?.height;
+  return typeof h === "number" ? h : 8;
 }
 
 // ─── Phantom Indicator 설정 (단일 소스) ─────────────────────────────────
@@ -2251,10 +2267,12 @@ export function calculateContentHeight(
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = String(props?.size ?? "md");
     const isMeter = type === "meter" || type === "gauge";
-    const dims = isMeter
-      ? (METER_DIMENSIONS[sizeName] ?? METER_DIMENSIONS.md)
-      : (PROGRESSBAR_DIMENSIONS[sizeName] ?? PROGRESSBAR_DIMENSIONS.md);
-    const barHeight = dims.barHeight;
+    // ADR-912 Phase 5 후속 (Δ8): catalog `{ProgressBarTrack,MeterTrack}.sizes.*.height` read-through
+    //   (구 valueFillMetrics 의 barHeight dual-SSOT 미러 흡수).
+    const barHeight = valueFillTrackHeight(
+      isMeter ? "MeterTrack" : "ProgressBarTrack",
+      sizeName,
+    );
 
     // label 또는 showValue가 있으면 텍스트 행 높이 추가
     const hasLabel = !!props?.label;

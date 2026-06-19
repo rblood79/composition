@@ -353,22 +353,26 @@ const CONTAINER_STYLES_FALLBACK_KEYS = [
 
 // ─── 내부 상수 ──────────────────────────────────────────────────────
 
-/**
- * ComboBox/Select/SelectTrigger/ComboBoxWrapper 공통 spec padding
- * (ADR-105-d — formerly @sync F5-4 annotation)
- * Select.css / ComboBox.css size variants 와 동일 값. SelectSpec.sizes / ComboBoxSpec.sizes 에서
- * SSOT 정의됨. Canvas implicit styles 계산용 로컬 복제 — specs 패키지 import 비용 대비 유지 정당.
- * Spec.sizes padding 변경 시 이 테이블도 동시 갱신 필요.
- * CSS padding: top right bottom left — right = top (paddingY), left = paddingLeft
- */
-const SPEC_PADDING: Record<string, { left: number; right: number; y: number }> =
-  {
-    xs: { left: 4, right: 1, y: 1 },
-    sm: { left: 8, right: 2, y: 2 },
-    md: { left: 12, right: 4, y: 4 },
-    lg: { left: 16, right: 8, y: 8 },
-    xl: { left: 24, right: 12, y: 12 },
-  };
+// ComboBox/Select/SelectTrigger/ComboBoxWrapper 공통 spec padding 상수(SPEC_PADDING)는
+//   ADR-912 Phase 5 후속 (Δ8, 2026-06-20) 에서 삭제됨 — 5 size × (left/right/y) 가 모두
+//   catalog SelectTrigger.sizes.{paddingX,paddingY} 와 byte-identical (left=paddingX,
+//   right=y=paddingY). specPaddingFromCatalog() 가 specSizeField("selecttrigger", size,
+//   "paddingX"/"paddingY") read-through 로 대체 (SelectTrigger spec 삭제됨 → rule fallback 경로).
+//   CSS padding 형식 top right bottom left 에서 right=top(paddingY), left=paddingLeft 매핑 유지.
+
+/** catalog SelectTrigger.sizes 에서 padding(left/right/y) read-through. number 좁히기. */
+function specPaddingFromCatalog(sizeName: string): {
+  left: number;
+  right: number;
+  y: number;
+} {
+  const px = specSizeField("selecttrigger", sizeName, "paddingX");
+  const py = specSizeField("selecttrigger", sizeName, "paddingY");
+  const left = typeof px === "number" ? px : 12;
+  const y = typeof py === "number" ? py : 4;
+  // CSS padding: top right bottom left — right = top (paddingY), left = paddingLeft
+  return { left, right: y, y };
+}
 
 /**
  * ADR-086 P2: size-indexed Record 9 종 폐쇄 (SPEC_ICON_SIZE/SPEC_INPUT_FONT_SIZE/
@@ -479,7 +483,7 @@ function withSpecPadding(
   style: Record<string, unknown>,
   sizeName: string,
 ): Record<string, unknown> {
-  const specPad = SPEC_PADDING[sizeName] ?? SPEC_PADDING.md;
+  const specPad = specPaddingFromCatalog(sizeName);
   const userPad = hasUserPadding(style) ? parsePadding(style) : null;
   return {
     ...style,
