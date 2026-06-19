@@ -1047,7 +1047,7 @@ function traversePostOrder(
     }
   }
 
-  // Tag → TagGroup 부모 size 상속 (CSS data-type-size parent delegation 에뮬레이션)
+  // Tag → TagGroup 부모 size 상속 (CSS data-tag-size parent delegation 에뮬레이션)
   // DFS 진입 시 element에 size를 주입하면 이후 calculateContentHeight/parseBoxModel 등에서 자연스럽게 사용
   if (rawElement.type === "Tag") {
     const rawProps = rawElement.props as Record<string, unknown> | undefined;

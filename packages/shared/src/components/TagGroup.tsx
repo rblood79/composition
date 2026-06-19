@@ -279,8 +279,8 @@ export function TagGroup<T extends object>({
           {...props}
           selectionMode="none"
           className={tagGroupClassName}
-          data-type-variant={variant}
-          data-type-size={size}
+          data-tag-variant={variant}
+          data-tag-size={size}
           data-label-position={labelPosition}
         >
           {label && <Label>{label}</Label>}
@@ -299,8 +299,8 @@ export function TagGroup<T extends object>({
           {...props}
           selectionMode="none"
           className={tagGroupClassName}
-          data-type-variant={variant}
-          data-type-size={size}
+          data-tag-variant={variant}
+          data-tag-size={size}
           data-label-position={labelPosition}
         >
           {label && <Label>{label}</Label>}
@@ -333,8 +333,8 @@ export function TagGroup<T extends object>({
           disallowEmptySelection={disallowEmptySelection}
           onRemove={allowsRemoving ? onRemove : undefined}
           className={tagGroupClassName}
-          data-type-variant={variant}
-          data-type-size={size}
+          data-tag-variant={variant}
+          data-tag-size={size}
           data-label-position={labelPosition}
         >
           {label && <Label>{label}</Label>}
@@ -363,8 +363,8 @@ export function TagGroup<T extends object>({
         disallowEmptySelection={disallowEmptySelection}
         onRemove={allowsRemoving ? onRemove : undefined}
         className={tagGroupClassName}
-        data-type-variant={variant}
-        data-type-size={size}
+        data-tag-variant={variant}
+        data-tag-size={size}
         data-label-position={labelPosition}
       >
         {label && <Label>{label}</Label>}
@@ -390,8 +390,8 @@ export function TagGroup<T extends object>({
           {...props}
           selectionMode="none"
           className={tagGroupClassName}
-          data-type-variant={variant}
-          data-type-size={size}
+          data-tag-variant={variant}
+          data-tag-size={size}
           data-label-position={labelPosition}
         >
           {label && <Label>{label}</Label>}
@@ -410,8 +410,8 @@ export function TagGroup<T extends object>({
           {...props}
           selectionMode="none"
           className={tagGroupClassName}
-          data-type-variant={variant}
-          data-type-size={size}
+          data-tag-variant={variant}
+          data-tag-size={size}
           data-label-position={labelPosition}
         >
           {label && <Label>{label}</Label>}
@@ -442,8 +442,8 @@ export function TagGroup<T extends object>({
           disallowEmptySelection={disallowEmptySelection}
           onRemove={allowsRemoving ? onRemove : undefined}
           className={tagGroupClassName}
-          data-type-variant={variant}
-          data-type-size={size}
+          data-tag-variant={variant}
+          data-tag-size={size}
           data-label-position={labelPosition}
         >
           {label && <Label>{label}</Label>}
@@ -529,7 +529,7 @@ export function TagGroup<T extends object>({
           inert
           aria-hidden="true"
           className="react-aria-TagList"
-          data-type-size={size}
+          data-tag-size={size}
           data-label-position={labelPosition}
           style={{
             display: "flex",
@@ -560,8 +560,8 @@ export function TagGroup<T extends object>({
         disallowEmptySelection={disallowEmptySelection}
         onRemove={allowsRemoving ? onRemove : undefined}
         className={tagGroupClassName}
-        data-type-variant={variant}
-        data-type-size={size}
+        data-tag-variant={variant}
+        data-tag-size={size}
         data-label-position={labelPosition}
       >
         {label && <Label>{label}</Label>}

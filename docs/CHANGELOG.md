@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [TagGroup size prop 변경 미반영 수정 — chip 시각 CSS attribute 이름 정합(data-tag-size)] - 2026-06-19
+
+사용자 보고: TagGroup 의 size prop(S/M/L)을 바꿔도 칩(.react-aria-Tag) 시각이 안 바뀜. field(TextField 등) 패턴과 비교 요청. store 전파(`size → TagList/Label/Tag` propagation rule)는 정상 작동하나, DOM 칩 시각이 size 변경에 무반응. 근본 = TagGroup DOM 의 size/variant attribute 이름이 매칭 CSS 의 후손 선택자가 기대하는 이름과 불일치.
+
+### Bug Fixes
+
+- **TagGroup size/variant 편집이 칩 시각에 미반영** (DOM attribute 이름 ↔ CSS 후손 선택자 불일치):
+  - **Why**: `TagGroup.tsx` 가 size/variant 를 `data-type-size`/`data-type-variant` 로 emit 하는데, 칩 시각을 적용하는 CSS(`packages/shared/src/components/styles/TagGroup.css`)는 부모 후손 선택자 `.react-aria-TagGroup[data-tag-size="lg"] .react-aria-Tag { font-size/padding/border-radius... }` 로 `data-tag-size`/`data-tag-variant` 를 기대 → attribute 이름(`type` vs `tag`)이 달라 선택자 매칭 실패 → 칩이 항상 기본(md) 시각으로 고정. **field 와의 차이**: field 는 시각 주체가 자기 자신이라 `data-size` 한 단계로 끝나 영향 없었지만, TagGroup 은 시각 주체가 칩(자식)이라 부모→칩 후손 선택자 attribute 이름 정합이 필수.
+  - **regression 출처**: `36b397279`(2026-06-05, ADR-912 영역 B "TagGroup source 단일화") 가 TSX 의 attribute 를 `data-tag-*` → `data-type-*` 로 변경했으나 CSS 는 `data-tag-*` 후손 선택자를 그대로 유지. propagation rule(store)·편집 surface(binding.accepts.size)는 모두 정상이라 store 까지는 size 가 전파됐으나 시각 단에서 단절.
+  - 수정 (`TagGroup.tsx`): size/variant emit 16개(8 variant + 8 size 라인)를 CSS 정본인 `data-tag-size`/`data-tag-variant` 로 환원. `data-label-position` 은 CSS(`[data-label-position="side"]`)와 이미 정합이라 불변.
+  - 검증: builder live 측정 — size=lg 편집 시 칩 fontSize 14px→16px / padding `4px 12px`→`8px 16px` / 높이 30→42px 로 반응(`getComputedStyle` 대조). DOM emit `data-tag-size="lg"` + CSS `@layer components` 내부 `.react-aria-TagGroup[data-tag-size="lg"] .react-aria-Tag` 선택자 매칭 확인. Skia 칩 projection(`props.size` 직접 소비, DOM attribute 무관)도 lg 시각 대칭 — 좌측 DOM preview + 우측 Skia 캔버스 양쪽 칩 확대 시각 확인. 직전 selection 정합(380×118, lg 2줄 wrapping) 유지. 회귀 테스트 4건 추가(`data-tag-size`/`data-tag-variant` emit + `data-type-*` dead 검증) + layout height 5건 무회귀 + type-check PASS.
+  - 위치: `packages/shared/src/components/TagGroup.tsx` (CSS 정본: `styles/TagGroup.css`)
+
 ## [TagGroup labelPosition="side" selection 영역 20px 과대 수정 — chip border-box + side-label enrich height 보존] - 2026-06-19
 
 사용자 보고: TagGroup 의 Label Position 을 side 로 바꿨을 때, 실제 변경된 height 보다 selection(hover/선택 테두리) 영역이 더 높게 잡힘. 직전 수정(같은 날, projection-only height 보존)이 layout 박스 height 는 고쳤으나 Skia layout 이 84px 로 산출되어 CSS 실측(64px, 칩 2줄)보다 20px 과대 → selection/hover outline 이 같은 layout height 를 mirror 하므로 그대로 20px 높게 그려졌다. selection 렌더 경로 자체는 결백(`renderSelectionBox`/`treeBoundsMap`/`getSkiaNode.height` 모두 layout SSOT 의 raw mirror) — layout height 가 발산한 것이 근본.
