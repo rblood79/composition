@@ -130,15 +130,17 @@ const DISPERSION_BASELINE: Array<{
     killPhase: "Phase 3-A-1 ✅",
   },
   {
-    // INDICATOR_SIZES = {box, gap} 한 객체. gap 은 Checkbox/Radio .sizes.gap byte 일치(Δ4 교체),
-    //   box 는 catalog source 부재(ComponentRuleSize 에 box 키 없음) → 0 도달은 schema 보강(Δ5-a:
-    //   ComponentRuleSize.box 추가 + 승격) 선택 시에만. Non-goal(Δ5-b) 선택 시 잔존 정당. baseline 유지.
-    label:
-      "INDICATOR_SIZES mirror (Δ4 gap 교체 / Δ5 box 소유권 — schema 보강 의존)",
+    // Phase 3-A-2 완료 (2026-06-19): INDICATOR_SIZES = {box, gap} 한 객체였으나 적대 검증(w6gqcrgh3)
+    //   결과 box·gap 모두 dead-path 로 확정 → 옵션 c(dead 제거)로 종결. 두 소비처(:1953/:1994 분기)는
+    //   containerTag ∈ {checkbox,radio,switch} 안에서만 실행되고 PHANTOM_INDICATOR_CONFIGS 가 3개 태그
+    //   모두 sm/md/lg 를 커버 → 첫 `??` 피연산자가 항상 값 반환, xl 은 양쪽 키 부재라 `?? 20`/`?? 8`
+    //   하드코딩 도달 → 본 상수 실효 0. catalog `.sizes` 에 box 키 없음(indicator CSS 미emit) → schema
+    //   보강 없이 dead 상수 + dead fallback 피연산자 삭제로 0 달성. byte-diff 0(layout-only). 재도입 가드.
+    label: "INDICATOR_SIZES mirror (Δ5 — Phase 3-A-2 dead 제거 ✅)",
     file: "implicitStyles",
     pattern: /INDICATOR_SIZES/,
-    baseline: 5,
-    killPhase: "Phase 3-A-2 (Δ5-a 선택 시 0)",
+    baseline: 0,
+    killPhase: "Phase 3-A-2 ✅",
   },
   {
     // Phase 3-A-1 완료 (2026-06-19): row-gap 2종(progressbar/slider) 을 specSizeField("...", size,

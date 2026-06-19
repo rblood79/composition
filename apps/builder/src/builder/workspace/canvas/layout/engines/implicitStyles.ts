@@ -297,12 +297,14 @@ const SPEC_PADDING: Record<string, { left: number; right: number; y: number }> =
  *   Preview CSS 도 `CSSGenerator.generateSizeStyles` 의 column-gap emit 확장으로 대칭 복원.
  */
 
-/** Checkbox/Radio indicator 크기 (spec shapes 렌더링, Taffy 트리 밖) */
-const INDICATOR_SIZES: Record<string, { box: number; gap: number }> = {
-  sm: { box: 16, gap: 6 },
-  md: { box: 20, gap: 8 },
-  lg: { box: 24, gap: 10 },
-};
+// Checkbox/Radio/Switch indicator box/gap 상수는 ADR-912 Phase 3-A-2 (Δ5, 2026-06-19) 에서 삭제됨 —
+//   적대 검증(w6gqcrgh3) 결과 dead-path 로 확정: 두 소비처(:1953/:1994 분기)는 모두
+//   containerTag ∈ {checkbox,radio,switch} 안에서만 실행되고, 그 분기에서 phantomConfig =
+//   PHANTOM_INDICATOR_CONFIGS[containerTag] 는 3개 태그 모두 sm/md/lg widths·gaps 를 보유 →
+//   첫 `??` 피연산자가 항상 값 반환 → 본 상수 미도달. xl 일 땐 PHANTOM 도 본 상수도 키 부재라
+//   `?? 20`/`?? 8` 하드코딩 도달 → 본 상수는 어느 경로에서도 실효 값 0. catalog `.sizes` 에 box
+//   키 자체가 없으므로(indicator 는 수동/React 렌더, CSS 미emit) Δ5 는 schema 보강 없이 dead
+//   제거로 종결.
 
 // ADR-912 Phase 3-A-1 (Δ4, 2026-06-19): ProgressBar/Meter column-gap 은 catalog `.sizes` 에
 //   source 가 없고 structure.composition.containerStyles['column-gap']='var(--spacing-md)' 토큰
@@ -1949,10 +1951,8 @@ export function applyImplicitStyles(
     const sizeName = (containerProps?.size as string) ?? "md";
     const s = sizeName as "sm" | "md" | "lg";
     const phantomConfig = PHANTOM_INDICATOR_CONFIGS[containerTag];
-    const indicatorWidth =
-      phantomConfig?.widths[s] ?? INDICATOR_SIZES[sizeName]?.box ?? 20;
-    const defaultGap =
-      phantomConfig?.gaps[s] ?? INDICATOR_SIZES[sizeName]?.gap ?? 8;
+    const indicatorWidth = phantomConfig?.widths[s] ?? 20;
+    const defaultGap = phantomConfig?.gaps[s] ?? 8;
     const parsedGap = parseFloat(String(parentStyle.gap ?? ""));
     const userGap = !isNaN(parsedGap) ? parsedGap : defaultGap;
     const indicatorOffset = indicatorWidth + userGap;
@@ -1991,8 +1991,8 @@ export function applyImplicitStyles(
             | "md"
             | "lg";
           const pc = PHANTOM_INDICATOR_CONFIGS[containerTag];
-          const indWidth = pc?.widths[sn] ?? INDICATOR_SIZES[sn]?.box ?? 20;
-          const indGap = pc?.gaps[sn] ?? INDICATOR_SIZES[sn]?.gap ?? 8;
+          const indWidth = pc?.widths[sn] ?? 20;
+          const indGap = pc?.gaps[sn] ?? 8;
           const pg = parseFloat(String(parentStyle.gap ?? ""));
           const gap = !isNaN(pg) ? pg : indGap;
           synLabelMargin = indWidth + gap;
