@@ -229,6 +229,10 @@ export type {
 export type { SkiaPrimitiveDrawFn } from "./renderers";
 export type { ComponentVisualRule } from "./renderers";
 
+// ADR-912 Δ7: layout token table 단일 source (shared resolver 가 import)
+export { LAYOUT_TOKEN_STYLES, layoutTokenToCssLines } from "./renderers";
+export type { LayoutToken } from "./renderers";
+
 // ─── Components ──────────────────────────────────────────────────────────────
 
 // ADR-912 R6 (2026-06-15): Card 본체 S2 재설계 catalog cutover → CardSpec/CardProps export 제거.

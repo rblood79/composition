@@ -383,6 +383,46 @@ indicatorMode? }`)와 1:1 동형으로 교정했다. `emitCss: true` 강제 제�
 ### Phase 3 — Skia/layout consumer collapse
 
 > ⚠️ 원안에서 under-scoped 였던 phase — Δ4/Δ5/Δ6 를 포함해야 dual-SSOT 가 실제로 닫힌다.
+>
+> **2 그룹 분리 진행 (사용자 결정 2026-06-19)**: implicitStyles 가 최근 30일 ADR-912 fix 18건의 중심
+> 파일(HIGH 위험)이라 한 번에 묶지 않고 의존 방향 재배치(B=Δ7)를 먼저 깨끗이 닫고, Skia/layout
+> mirror collapse(A=Δ4/Δ5/Δ6+LOWERCASE)는 깨끗한 기반에서 별도 진행한다.
+
+#### Phase 3-B — Δ7 layout token table 단일화 ✅ Land 완료 (2026-06-19, byte-diff-0 PASS)
+
+- ✅ layout token table 을 **specs 단일 source** `packages/specs/src/renderers/layoutTokens.ts`
+  (`LAYOUT_TOKEN_STYLES` 객체 + `layoutTokenToCssLines()` 변환 어댑터) 로 이전.
+- ✅ `CSSGenerator.ts` 의 generator-private `COMPOSITION_LAYOUT_STYLES` (`:656-675`) 정의 삭제 →
+  `layoutTokenToCssLines(token)` 호출로 교체. 어댑터가 과거 배열과 **byte 동일**(4-space indent + `;`)
+  라인 생성 → byte-diff 0 자명 보장.
+- ✅ shared `resolveCatalogContainer.ts` 의 shared-local `CATALOG_LAYOUT_STYLES` 정의 삭제 →
+  `import { LAYOUT_TOKEN_STYLES } from "@composition/specs"` 후 `CATALOG_LAYOUT_STYLES =
+LAYOUT_TOKEN_STYLES` alias re-export(기존 소비처 호환). **의존 방향**: `shared → specs` 정상
+  방향(shared package.json 이 specs 를 workspace 의존 선언, specs→shared 역의존 0 — `specs` deps =
+  colord 만). layout token 은 CSS vocabulary(D3)라 framework-free 하위 레이어 specs 에 사는 게 정합
+  (`feedback-specs-shared-layer-not-absorption` 메모리 정합 — 금지는 specs→shared 방향뿐).
+- ✅ grep gate `COMPOSITION_LAYOUT_STYLES` baseline 2→**0**(killPhase "Phase 3 Δ7 ✅"). 주석에서도
+  심볼명 직접 사용 안 함(false positive 회피). Δ1 가드를 "방향" 기준으로 갱신 — resolver 의 specs
+  import 1건(LAYOUT_TOKEN_STYLES) 한정 + specs→shared 0 검증 2 테스트로 분리.
+- ✅ **byte-diff-0 oracle PASS** (92 파일 ↔ 후 0 변경, generate:css + build:specs 양쪽). builder/shared
+  type-check 0, specs 60 baseline 불변, shared catalog 211 PASS, specs vitest 461 PASS, 런타임 sanity
+  (`layoutTokenToCssLines('flex-column')` = 과거 배열 byte 동일) PASS.
+
+| Δ7 게이트                                              | 결과                            |
+| ------------------------------------------------------ | ------------------------------- |
+| generated CSS byte-diff 0 (92 파일, generate+build)    | ✅ 0 변경 (가장 강한 oracle)    |
+| COMPOSITION_LAYOUT_STYLES 정의 삭제 (kill criteria)    | ✅ 0 (specs single source 수렴) |
+| 의존 방향 shared→specs 정상 / specs→shared 0           | ✅ grep gate 2 test PASS        |
+| shared / builder type-check                            | ✅ 0 / 0                        |
+| specs type-check (baseline 60)                         | ✅ 60→60 불변                   |
+| shared catalog (resolver 14 + grep gate 10)            | ✅ 211 PASS                     |
+| specs vitest (CSS snapshot byte-diff)                  | ✅ 461 PASS                     |
+| 런타임 sanity (specs barrel export + 어댑터 byte 동일) | ✅ PASS                         |
+
+#### Phase 3-A — Skia/layout mirror collapse (다음 세션 보류, 사용자 "별도 지시 때")
+
+> HIGH 위험 (implicitStyles = 최근 30일 ADR-912 18 fix 중심). byte-diff oracle 불가 영역(Skia=layout
+> 출력, CSS 와 다름)이라 Skia 렌더 live behavior 게이트 필수.
 
 - `implicitStyles.ts` local catalog map(`LOWERCASE_COMPONENT_RULE_CONTAINER`) 제거.
 - field류 base/side axis 를 shared resolver 결과로 교체.
@@ -394,12 +434,6 @@ indicatorMode? }`)와 1:1 동형으로 교정했다. `emitCss: true` 강제 제�
   `PROGRESSBAR_COL_GAP` / `SLIDER_ROW_GAP` 삭제 → 소비처를 `resolveCatalogSizeField` 로 교체.
 - (Δ5) `INDICATOR_SIZES.box` 는 Checkbox/Radio `sizes` 로 승격(권장) 또는 Non-goal 명시.
 - (Δ3) shared `resolveCatalogContainerVariants` land 후 `:578-600` 임시 adapter 삭제.
-- (Δ7 — Phase 2 에서 이연, 사용자 결정 2026-06-19) `CSSGenerator.ts` 의 `COMPOSITION_LAYOUT_STYLES`
-  (`:656-675`) 삭제 → 단일 layout token table 로 수렴. **의존 방향 제약**: token table 을 shared 에
-  두면 specs(CSSGenerator)→shared 역의존(순환)이라 불가. layout token table 을 **specs 로 이전**하고
-  shared `resolveCatalogContainer` 가 specs 에서 import(shared→specs 정상 방향) → CSSGenerator(specs
-  내부)와 resolver(shared) 가 같은 source 소비. Phase 1 이 shared 에 둔 `CATALOG_LAYOUT_STYLES` 를
-  specs 로 이동 + shared re-export. grep gate COMPOSITION_LAYOUT_STYLES baseline 2→0.
 - `resolveContainerStylesFallback` wrapper 가 shared resolver 를 사용하도록 변경.
 - field branch 는 child filtering/injection 만 남긴다.
 

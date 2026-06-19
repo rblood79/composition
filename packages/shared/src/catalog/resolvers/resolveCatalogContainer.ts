@@ -5,18 +5,22 @@
  * Skia·layout(`implicitStyles`) / Style Panel(`specPresetResolver`) 세 consumer 가 컴포넌트
  * 구조·base-layout·size-value 를 `componentRulesTable` 한 entry 에서만 파생하게 하는 단일 진입점.
  *
- * **패키지 경계 (Δ1)**: 본 파일은 `@composition/specs` 를 import 하지 않는다 — `ComponentRule`
- * 타입과 generated table 이 모두 shared 내부에 있으므로 specs 의존이 불필요(`grep -c
- * "@composition/specs"` = 0). `specs ← shared` 단방향 의존 유지.
+ * **패키지 경계 (Δ7 — 의존 방향)**: 본 파일은 layout token table 을 `@composition/specs` 의
+ * `LAYOUT_TOKEN_STYLES` 단일 source 에서 import 한다 — `shared → specs` **정상 방향**(shared
+ * package.json 이 specs 를 workspace 의존으로 선언, specs→shared 역의존은 0). layout token 은
+ * CSS vocabulary(D3 시각 어휘)라 framework-free 하위 레이어 specs 에 살고, generator(specs)·
+ * Skia/Panel(이 resolver 경유)이 같은 source 를 읽는다. 과거 shared-local 복사본
+ * `CATALOG_LAYOUT_STYLES` 는 본 import 로 단일화됨(§5 kill criteria — token table 이 둘로
+ * 갈라진 채 유지되지 않게).
  *
  * resolver 는 CSS-style raw data(kebab-case key) 를 반환하고, camelCase 변환은 Builder/Panel 쪽
  * 기존 normalization helper 가 담당한다(breakdown §2-2 — 변환 책임을 resolver 에 넣지 않음).
  */
 
+import { LAYOUT_TOKEN_STYLES } from "@composition/specs";
 import type {
   ComponentRule,
   ComponentRuleComposition,
-  ComponentRuleLayoutToken,
   ComponentRuleSize,
   ComponentRuleStructure,
   CompositionDocument,
@@ -24,36 +28,10 @@ import type {
 import { resolveComponentRule } from "./resolveComponentRule";
 
 /**
- * shared 단일 layout token table (Δ7 — generate-css `COMPOSITION_LAYOUT_STYLES` 의 catalog 대응).
- * CSS-style raw data. CSSGenerator / Skia / Panel 이 같은 source 를 읽도록 generator-private
- * 복사본을 제거하고 본 table 로 단일화한다.
+ * 단일 layout token table (Δ7) — specs `LAYOUT_TOKEN_STYLES` 를 re-export 한다. 기존 소비처
+ * (`CATALOG_LAYOUT_STYLES` import) 호환을 위해 alias 로 유지. 정본은 specs `layoutTokens.ts`.
  */
-export const CATALOG_LAYOUT_STYLES: Record<
-  ComponentRuleLayoutToken,
-  Record<string, string>
-> = {
-  "flex-column": {
-    display: "flex",
-    "flex-direction": "column",
-    "align-items": "flex-start",
-    "box-sizing": "border-box",
-  },
-  "flex-row": {
-    display: "flex",
-    "flex-direction": "row",
-    "align-items": "center",
-    "box-sizing": "border-box",
-  },
-  "inline-flex": {
-    display: "inline-flex",
-    "align-items": "center",
-    "box-sizing": "border-box",
-  },
-  grid: {
-    display: "grid",
-    "box-sizing": "border-box",
-  },
-};
+export const CATALOG_LAYOUT_STYLES = LAYOUT_TOKEN_STYLES;
 
 /** 매칭된 container variant 의 적용 styles + 자식 주입용 nested rule (specs 버전 출력 shape 동일). */
 export interface ResolvedCatalogContainerVariants {

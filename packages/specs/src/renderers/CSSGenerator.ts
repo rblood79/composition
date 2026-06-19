@@ -19,6 +19,8 @@ import type {
 import type { ShadowTokenRef, TokenRef } from "../types/token.types";
 import { tokenToCSSVar, resolveFocusRingToken } from "./utils/tokenResolver";
 import { deriveAutoDelegationVariables } from "../runtime/deriveAutoDelegationVariables";
+// ADR-912 Δ7: layout token table 단일 source — generator-private layout 매핑 상수를 대체.
+import { layoutTokenToCssLines, type LayoutToken } from "./layoutTokens";
 // ADR-908 Phase 3-A + 3-B: Fill token dual-read seam — VariantSpec + IndicatorModeSpec
 import { resolveFillTokens, resolveIndicatorFill } from "../utils/fillTokens";
 // ADR-912 단계5: variant 색상은 _variantSource(정본 table 파생) 단독 — 구 variantToVisual
@@ -652,27 +654,8 @@ export function generateCSS<Props>(
 
 // ─── Base Styles (Archetype 분기) ───────────────────────────────────────────
 
-// Composite layout → CSS display 매핑
-const COMPOSITION_LAYOUT_STYLES: Record<string, string[]> = {
-  "flex-column": [
-    `    display: flex;`,
-    `    flex-direction: column;`,
-    `    align-items: flex-start;`,
-    `    box-sizing: border-box;`,
-  ],
-  "flex-row": [
-    `    display: flex;`,
-    `    flex-direction: row;`,
-    `    align-items: center;`,
-    `    box-sizing: border-box;`,
-  ],
-  "inline-flex": [
-    `    display: inline-flex;`,
-    `    align-items: center;`,
-    `    box-sizing: border-box;`,
-  ],
-  grid: [`    display: grid;`, `    box-sizing: border-box;`],
-};
+// Composite layout → CSS display 매핑은 ADR-912 Δ7 로 `./layoutTokens` 단일 source 로 이전.
+//   `layoutTokenToCssLines(token)` 가 과거 generator-private 배열과 byte 동일한 라인 생성.
 
 function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
   const archetype = spec.archetype;
@@ -682,7 +665,9 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
   let baseStyles: string[];
   if (spec.composition) {
     if (spec.composition.layout) {
-      baseStyles = [...COMPOSITION_LAYOUT_STYLES[spec.composition.layout]];
+      baseStyles = layoutTokenToCssLines(
+        spec.composition.layout as LayoutToken,
+      );
     } else {
       baseStyles = archetype
         ? [...(ARCHETYPE_BASE_STYLES[archetype] ?? DEFAULT_BASE_STYLES)]

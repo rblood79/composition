@@ -5,17 +5,21 @@
  * collapse 가 닫으려는 dispersion source 8종의 현재 occurrence 를 baseline 으로 고정한다.
  *
  * **두 가지 가드**:
- *   1. 즉시-0 (Phase 1 충족분): 새 shared resolver 가 `@composition/specs` 를 **import 문**으로
- *      참조하지 않는다 (Δ1 — 주석 내 문자열은 제외, 실제 `from "@composition/specs"` 만 검사).
+ *   1. 의존 방향 (Δ1/Δ7): 새 shared resolver 가 `@composition/specs` 를 import 하는 것은
+ *      `shared → specs` **정상 방향**이라 허용된다. 단 Δ7 으로 layout token table 을 specs 단일
+ *      source 로 이전하면서 추가된 `LAYOUT_TOKEN_STYLES` import **1건으로만 한정**한다(다른 specs
+ *      심볼을 끌어와 의존 표면을 늘리지 않게). 금지되는 방향은 `specs → shared` 이며, 그 방향은
+ *      이미 0(specs deps = colord 만)이고 본 작업도 만들지 않는다.
  *   2. baseline 단조 감소: 8 dispersion 패턴의 occurrence 가 baseline 을 **초과하면 regression**
  *      (실패). collapse phase(2·3·4) 진행 시 baseline 을 낮춰 0 으로 수렴. 0 도달 = §5 kill 통과.
  *
  * baseline 측정 시점: Phase 1 land (2026-06-19). STRUCTURE_META(generate-css) / mirror·base-axis
  * (implicitStyles) / TAG_SPEC_MAP(specPresetResolver) 가 아직 전부 live 인 상태.
  *
- * 정밀화 메모: breakdown §3 Phase 0 의 `grep -c "@composition/specs" = 0` 는 주석에 그 문자열을
- * 쓰면 false positive 가 된다(설명용 인용 2건). 본 가드는 `from ['"]@composition/specs` import 문만
- * 검사하여 가드 자기-위반을 막는다.
+ * 정밀화 메모: §5 kill 의 dispersion 패턴은 코드 정의뿐 아니라 주석 내 문자열도 매칭한다. kill
+ * 대상 심볼(COMPOSITION_LAYOUT_STYLES 등)을 0 으로 만들 때 주석에서도 해당 심볼명을 직접 쓰지
+ * 않는다(주석 false positive 가 가드 자기-위반). import 가드는 `from ['"]@composition/specs`
+ * import 문만 검사한다.
  */
 
 import { describe, expect, it } from "vitest";
@@ -48,11 +52,27 @@ const FILES = {
     "packages/shared/src/catalog/resolvers/resolveCatalogContainer.ts",
 } as const;
 
-describe("ADR-912 collapse grep gate — 즉시-0 (Phase 1 충족)", () => {
-  it("새 resolver 는 @composition/specs 를 import 문으로 참조하지 않는다 (Δ1)", () => {
+describe("ADR-912 collapse grep gate — 의존 방향 (Δ1/Δ7)", () => {
+  it("새 resolver 의 @composition/specs import 는 Δ7 layout token 1건으로 한정 (정상 방향)", () => {
     const text = read(FILES.newResolver);
-    const importMatches = countMatches(text, /from\s+['"]@composition\/specs/);
-    expect(importMatches).toBe(0);
+    // shared → specs 는 정상 방향. Δ7 으로 LAYOUT_TOKEN_STYLES 단일 source 를 import 하므로 1건.
+    // 다른 specs 심볼을 끌어와 의존 표면을 늘리면 regression.
+    const importLines = text
+      .split("\n")
+      .filter((l) => /from\s+['"]@composition\/specs/.test(l));
+    expect(importLines.length).toBe(1);
+    expect(importLines[0]).toContain("LAYOUT_TOKEN_STYLES");
+  });
+
+  it("금지 방향 specs → shared 는 0 (specs 가 shared 를 import 하지 않음)", () => {
+    // specs renderers/layoutTokens 가 shared 를 import 하면 순환. 단일 source 가 framework-free
+    // 하위 레이어에 사는지 검증.
+    const layoutTokens = read("packages/specs/src/renderers/layoutTokens.ts");
+    const cssGen = read(FILES.cssGenerator);
+    expect(countMatches(layoutTokens, /from\s+['"]@composition\/shared/)).toBe(
+      0,
+    );
+    expect(countMatches(cssGen, /from\s+['"]@composition\/shared/)).toBe(0);
   });
 });
 
@@ -77,13 +97,14 @@ const DISPERSION_BASELINE: Array<{
     killPhase: "Phase 2 ✅",
   },
   {
-    // Δ7 은 사용자 결정으로 Phase 3 분리 (specs→shared 역의존 회피 — layout token 을 specs 로
-    //   이전 + shared import 설계 필요). Phase 2 에서는 COMPOSITION_LAYOUT_STYLES 유지(CSS 불변).
+    // Phase 3 Δ7 완료 (2026-06-19): layout token table 을 specs `layoutTokens.ts` 단일 source 로
+    //   이전(CSSGenerator + shared resolver 공용). generator-private 정의 삭제 → 0. 주석에서도 심볼명
+    //   직접 사용 안 함(false positive 회피). 재도입 가드로 baseline 0 고정. byte-diff 0 검증 완료.
     label: "COMPOSITION_LAYOUT_STYLES (generator-private layout table, Δ7)",
     file: "cssGenerator",
     pattern: /COMPOSITION_LAYOUT_STYLES/,
-    baseline: 2,
-    killPhase: "Phase 3 (Δ7 분리)",
+    baseline: 0,
+    killPhase: "Phase 3 Δ7 ✅",
   },
   {
     label: "LOWERCASE_COMPONENT_RULE_CONTAINER (builder-local catalog map)",
