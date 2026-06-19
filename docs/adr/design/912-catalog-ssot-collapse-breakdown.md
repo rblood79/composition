@@ -288,6 +288,27 @@ composition.containerStyles['column-gap'] = 'var(--spacing-md)'` (`componentRule
   추가가 generated CSS 에 영향 주는지 확인 — 영향 0 이어야 함, 둘은 별도 경로).
 - (B) §4 Non-goals 에 "structure-level CSS 토큰 (size 비종속)" 로 명시 + 상수 잔존. → kill criteria 0 미달.
 
+**Δ10 종결 — 제3 경로 (`.sizes.gap` read-through 통일, Land 완료 2026-06-19, commit `3f4224999`)**: 실행 중
+live 실측이 위 (A)/(B) 전제를 정정했다 (Δ5 옵션 c 와 동형). 핵심 발견 — Δ10 은 "조용한 dual-SSOT collapse
+(byte-diff 0)" 가 아니라 **CSS↔Skia 렌더 파리티 버그**였다:
+
+- catalog 의 `column-gap: var(--spacing-md)`(12px) 는 generated CSS 에서 **같은 selector 안 나중 선언된
+  `gap: 4px` shorthand 에 덮여 effective 4px**(longhand → shorthand cascade override, builder + preview iframe
+  computed 양쪽 4px 실측). 모든 data-size selector 도 `gap:4px` 만 보유 → CSS 실효 column-gap = 4px 로 수렴.
+- 반면 Skia layout 은 `PROGRESSBAR_COL_GAP=12` → Builder Canvas 만 12px → Preview(4px) ≠ Builder(12px) 렌더 차이.
+- 즉 catalog 의 effective 값(4px)과 layout 상수(12px)가 **달랐고** 그 차이가 곧 렌더 버그. "같은 12 두 곳" 전제 오류.
+- (Slider 는 ADR-088 에서 `.sizes.columnGap` 으로 이관돼 `gap` shorthand **뒤**에 emit → column-gap 살아남음.
+  ProgressBar/Meter 만 미이관 상태로 buried.)
+
+→ 옵션 (A) 는 잘못된 방향이었다: `.sizes.columnGap=12` 추가 시 CSS effective 가 4→12 로 바뀌어 \*\*byte-diff 발생
+
+- 사용자-가시 간격 변화**(= 12px 를 새 정본으로 강제). 사용자 confirm — **CSS effective(4px) 가 사용자-가시 정본**.
+  채택 경로: column-gap 도 row-gap 과 동일하게 `.sizes.gap`(=4) read-through (`specSizeField(containerTag, sizeName,
+"gap") ?? 4`) 로 통일, `PROGRESSBAR_COL_GAP` 상수 삭제. catalog 의 dead `column-gap: var(--spacing-md)` 선언은
+  보존(건드리면 byte-diff). 결과: **generated CSS byte-diff 0\*\* + Skia layout column-gap 12→4 (CSS 정합 복원) +
+  하드코딩 상수 0. 검증: byte-diff 0 · type-check baseline 71 불변 · shared 211 PASS · grep gate PROGRESSBAR_COL_GAP
+  3→0 (10 PASS) · live ProgressBar(size=md) `applyImplicitStyles` 호출 결과 columnGap=4 확증.
+
 **§1-1 / §1 ledger 정정**: §1 ledger 의 "숫자 mirror 상수 (`:301-343`) ... ProgressBarTrack/MeterTrack
 height + Checkbox/Radio gap 의 catalog.sizes 평행 복사본" 서술은 box·column-gap 2종을 과대 포함했다.
 실제로는 (i) `.sizes` 평행 복사본 = VALUE_FILL_TRACK_HEIGHT + PROGRESSBAR_ROW_GAP + SLIDER_ROW_GAP +
@@ -599,9 +620,11 @@ child-tree·propagation 축은 별도 잔여 작업으로 기록한다. 무조�
 - (Δ8) layout/Skia 파일이 `componentRulesTable.sizes` 를 복제하는 local size-value table
   (track height, indicator gap, slider/progressbar row gap) 을 선언한다. **`INDICATOR_SIZES` 는
   적대 검증(w6gqcrgh3) 후 box·gap 모두 dead-path 로 확정 → schema 보강 없이 dead 제거(Δ5 옵션 c)로
-  0 달성 ✅ (Phase 3-A-2 Land 완료 2026-06-19)**. `PROGRESSBAR_COL_GAP` 만 catalog `.sizes` source
-  부재라 `.sizes.columnGap` 마이그레이션(Δ10-A) 후에 0 도달 — Non-goal(Δ10-B) 선택 시 "column-gap
-  제외" 로 한정 명시.
+  0 달성 ✅ (Phase 3-A-2 Land 완료 2026-06-19)**. **`PROGRESSBAR_COL_GAP` 도 0 달성 ✅ (Δ10 Land 완료
+  2026-06-19, commit `3f4224999`)** — live 실측이 옵션 A/B 전제를 정정: catalog 의 `column-gap:
+var(--spacing-md)`(12px) 는 generated CSS 에서 `gap:4px` shorthand 에 덮여 effective 4px(dead),
+  layout 만 12 를 써서 Builder≠Preview 렌더 버그였다. CSS effective(4px) 정본 채택 → column-gap 도
+  row-gap 처럼 `.sizes.gap`(=4) read-through 통일, 상수 삭제. byte-diff 0 + Skia layout 4px 정합.
 - (Δ6) `implicitStyles.ts` 의 7개 base-axis fallback (field류 5 + collection-item 2) 중 **하나라도**
   인라인 `?? "column"` 으로 남는다 (`grep -c 'flexDirection.*?? "column"'` ≠ 0).
 - generated CSS 는 바뀌었는데 Skia/layout 또는 Style Panel focused test 가 없다.
@@ -610,15 +633,15 @@ child-tree·propagation 축은 별도 잔여 작업으로 기록한다. 무조�
 
 완료는 "Style Panel 표시가 좋아짐"이 아니라 아래 전부다.
 
-| Gate        | 통과 조건                                                                                                                                                                                                                                                                                                                                                                    |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Source      | field base layout, TagGroup base layout, side variants, **그리고 track height / indicator gap / slider·progressbar row gap (Δ4, 3종)** 가 `componentRulesTable.sizes` 에서 선언, 해당 mirror 0. **`INDICATOR_SIZES` (Δ5) 는 dead-path 확정 → dead 제거로 0 ✅. `column-gap` (Δ10) 만 catalog source 부재라 schema 보강(Δ10-A) 선택 시 0, Non-goal(Δ10-B) 선택 시 잔존 명시** |
-| Generator   | virtual CSS emit membership 이 `rule.structure` 로 결정되고 `STRUCTURE_META` 없음, `COMPOSITION_LAYOUT_STYLES` 없음 (Δ7)                                                                                                                                                                                                                                                     |
-| Skia/layout | container base/variant 는 shared resolver 소비, local rule map 없음, 인라인 base-axis fallback 없음 (Δ6)                                                                                                                                                                                                                                                                     |
-| Style Panel | `TAG_SPEC_MAP` 직독 없음, TextField/TagGroup preset 이 shared resolver 기반                                                                                                                                                                                                                                                                                                  |
-| Tests       | shared resolver + Style Panel + Skia/layout focused tests PASS                                                                                                                                                                                                                                                                                                               |
-| Build       | generated CSS **byte-diff = 0 (enforce, Δ8)** + type-check PASS                                                                                                                                                                                                                                                                                                              |
-| Browser     | TextField top/side 및 TagGroup side 의 Panel 표시와 Canvas layout 수동 확인 + ProgressBar track / Checkbox indicator 렌더 불변                                                                                                                                                                                                                                               |
+| Gate        | 통과 조건                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Source      | field base layout, TagGroup base layout, side variants, **그리고 track height / indicator gap / slider·progressbar row gap (Δ4, 3종)** 가 `componentRulesTable.sizes` 에서 선언, 해당 mirror 0. **`INDICATOR_SIZES` (Δ5) 는 dead-path 확정 → dead 제거로 0 ✅. `column-gap` (Δ10) 은 live 실측이 CSS↔Skia 렌더 버그로 정정 → CSS effective(4px) 정본 채택, `.sizes.gap` read-through 통일 + 상수 삭제로 0 ✅ (byte-diff 0)** |
+| Generator   | virtual CSS emit membership 이 `rule.structure` 로 결정되고 `STRUCTURE_META` 없음, `COMPOSITION_LAYOUT_STYLES` 없음 (Δ7)                                                                                                                                                                                                                                                                                                     |
+| Skia/layout | container base/variant 는 shared resolver 소비, local rule map 없음, 인라인 base-axis fallback 없음 (Δ6)                                                                                                                                                                                                                                                                                                                     |
+| Style Panel | `TAG_SPEC_MAP` 직독 없음, TextField/TagGroup preset 이 shared resolver 기반                                                                                                                                                                                                                                                                                                                                                  |
+| Tests       | shared resolver + Style Panel + Skia/layout focused tests PASS                                                                                                                                                                                                                                                                                                                                                               |
+| Build       | generated CSS **byte-diff = 0 (enforce, Δ8)** + type-check PASS                                                                                                                                                                                                                                                                                                                                                              |
+| Browser     | TextField top/side 및 TagGroup side 의 Panel 표시와 Canvas layout 수동 확인 + ProgressBar track / Checkbox indicator 렌더 불변                                                                                                                                                                                                                                                                                               |
 
 ### 6-1. 종결 조건 — falsifiable test (T1~T6)
 
@@ -626,12 +649,17 @@ child-tree·propagation 축은 별도 잔여 작업으로 기록한다. 무조�
 
 - **T1 (grep 0)**: `STRUCTURE_META_ENTRIES`/`StructureMeta` (specs) = 0 / `COMPOSITION_LAYOUT_STYLES`
   (CSSGenerator) = 0 / `LOWERCASE_COMPONENT_RULE_CONTAINER`·`VALUE_FILL_TRACK_HEIGHT`·`PROGRESSBAR_ROW_GAP`·
-  `SLIDER_ROW_GAP` (implicitStyles, Δ4 3종) = 0 / `TAG_SPEC_MAP` (specPresetResolver) = 0 /
-  `flexDirection: ... ?? "column"` (implicitStyles) = 0 / 새 resolver 의 `@composition/specs` import = 0.
+  `PROGRESSBAR_COL_GAP`·`SLIDER_ROW_GAP` (implicitStyles, Δ4 3종 + Δ10) = 0 / `TAG_SPEC_MAP`
+  (specPresetResolver) = 0 / `flexDirection: ... ?? "column"` (implicitStyles) = 0 / 새 resolver 의
+  `@composition/specs` import = 0.
   - **`INDICATOR_SIZES` = 0 ✅ 달성 (Phase 3-A-2)**: 적대 검증(w6gqcrgh3) 후 box·gap 모두 dead-path 로
-    확정 → dead 제거(Δ5 옵션 c)로 schema 보강 없이 0. **조건부 (schema 보강 선택 시)**: `PROGRESSBAR_COL_GAP`
-    = 0 은 `.sizes.columnGap` 마이그레이션(Δ10-A) 선택 시에만. Non-goal(Δ10-B) 선택 시 잔존 정당
-    (catalog source 부재가 근거).
+    확정 → dead 제거(Δ5 옵션 c)로 schema 보강 없이 0.
+  - **`PROGRESSBAR_COL_GAP` = 0 ✅ 달성 (Δ10, commit `3f4224999`)**: live 실측이 옵션 A/B 전제를 정정 —
+    catalog 의 `column-gap: var(--spacing-md)`(12px) 는 generated CSS 에서 `gap:4px` shorthand 에 덮여
+    effective 4px(dead), layout 만 12 를 써서 Builder(12px)≠Preview(4px) 렌더 버그였다. 옵션 A
+    (`.sizes.columnGap=12`) 는 CSS effective 를 4→12 로 바꿔 byte-diff + 사용자-가시 간격 변화라 기각.
+    CSS effective(4px) 정본 채택 → column-gap 도 row-gap 처럼 `.sizes.gap`(=4) read-through 통일,
+    상수 삭제. byte-diff 0 + Skia layout 4px (CSS 정합 복원). Δ5 옵션 c 와 동형(lock-in 옵션 밖 제3 경로).
 - **T2 (단일 consumer 경로)**: CSS gen `buildVirtualSpecs` / Skia `implicitStyles` / Panel
   `specPresetResolver` 가 structure·base-layout·size-value·preset 을 `shared/catalog/resolvers/` 에서만 import.
 - **T3 (byte-diff 0)**: 전체 collapse 후 generated CSS `git diff` = empty.
