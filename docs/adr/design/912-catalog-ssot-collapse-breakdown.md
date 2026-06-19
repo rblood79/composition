@@ -752,6 +752,46 @@ wrapper `resolveContainerStylesFallback`(`implicitStyles.ts:270`)에 **경로 B*
   별도 잔여로 기록, 무조건적 "1 컴포넌트 = 1 등록" 주장 금지 — Δ9). 본 breakdown 은 현재 untracked +
   ADR 본문 미링크 상태이므로 commit + ADR-912 본문에 design 링크 추가도 이 커밋에 포함.
 
+#### Phase 5 Land 완료 (2026-06-20)
+
+T1~T6 종결 조건 + Δ8 진짜 수렴 모두 통과. 8 dispersion + Δ8 size-value mirror 전부 baseline 0.
+
+- **T1 (grep 0)**: grep gate 14/14 PASS — 8 dispersion (`STRUCTURE_META_ENTRIES`/`COMPOSITION_LAYOUT_STYLES`/
+  `LOWERCASE_COMPONENT_RULE_CONTAINER`/base-axis `?? "column"`/Track height/INDICATOR_SIZES/PROGRESSBAR gap/
+  `TAG_SPEC_MAP`) + Δ8 size-value mirror (utils.ts 저위험 5종 + SPEC_PADDING + valueFillMetrics barHeight)
+  전부 baseline 0. 위장 0 아님 (FILES map 에 utilsLayout 추가로 calculateContentHeight 경로 scope 포함).
+- **T2 (단일 consumer 경로)**: CSS gen `buildVirtualSpecs` / Skia `implicitStyles` / Panel `specPresetResolver`
+  가 structure·base-layout·size-value·preset 을 catalog resolver (`shared/catalog/resolvers/` + `resolveSkiaRule`/
+  `specSizeField` read-through)에서만 파생.
+- **T3 (byte-diff 0)**: 모든 흡수가 catalog source = 흡수 전 상수 byte-identical 정적 확증 (SPEC_PADDING ↔
+  SelectTrigger.sizes.paddingX/paddingY / barHeight ↔ ProgressBarTrack·MeterTrack.sizes.height 전 size).
+  유일한 의도적 값 변경 = ProgressBar/Meter gap 8→4 (Δ10 동형 — catalog `.sizes.gap=4` 가 정본, 구 인라인 `8`
+  은 Builder(8)≠Preview(4) drift 버그였음).
+- **T4 (field-preset green)**: `specPresetResolver.test.ts` + `resolveCatalogContainerBase.snapshot.test.ts`
+  80/80 PASS.
+- **T5 (size-value 단일 source)**: catalog rule entry 의 `.sizes.{field}` 가 read-through 단일 source —
+  rule 값 변경 시 Skia 렌더(calculateContentHeight)와 layout 측정 둘 다 변함 (평행 상수 흡수 없음).
+- **T6 (live behavior)**: Chrome MCP — ProgressBar md→lg track height read-through(8→12px) 정상 렌더 +
+  라벨/value font-size size별 반영 + NaN/0 없음 + 25→33→25 element 정상 layout/삭제. builder 앱 정상 동작.
+
+**Δ8 진짜 수렴 (적대 검증 5회)**: piecewise detect-absorb 루프가 1~4차에서 매번 새 mirror 적발
+(Slider→ProgressCircle/DisclosureHeader→PHANTOM gaps→SPEC_PADDING/barHeight). 4차 후 layout 경로(utils.ts +
+implicitStyles.ts) 전 size-indexed Record 전수 인벤토리로 미흡수 catalog-대응이 정확히 SPEC_PADDING +
+barHeight 2종뿐임을 확정 → 흡수. 5차 독립 검증(Explore agent, refute 가정)이 전수 재수색 후 미흡수
+catalog-대응 mirror 0 (Phase 6 제외) CONFIRMED. 전수 분류:
+
+| 분류                             | 심볼                                                                                                                                                                                                                                                         |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| absorbed (catalog read-through)  | SPEC_PADDING→specPaddingFromCatalog / valueFillMetrics barHeight→valueFillTrackHeight / sliderTrackRowHeight / specSizeGap / phantomIndicatorGap / statusLightDims / progressCircleDiameter / disclosureHeaderDims / resolveTagChipMetric / CARD_SIZE_CONFIG |
+| catalog-derived (인프라/묶음)    | INLINE_UI_SIZE_CONFIGS / BUTTON·BADGE·TAG·TOGGLEBUTTON·TAB_SIZE_CONFIG / ruleSizesToSizeSpecMap / LOWERCASE_COMPONENT_RULE_SIZES                                                                                                                             |
+| layout-private (catalog 키 부재) | STATUSLIGHT_DOT_SIZE (dot 키 0) / PHANTOM_INDICATOR_CONFIGS widths·heights·rowHeights (box/row-height 키 0) / DisclosureHeader gap (gap 키 0) / PANEL_HEIGHTS (Panel rule 없음)                                                                              |
+| catalog-orthogonal               | DEFAULT_SIZE_BY_TAG (size 기본값 이름, 치수 아님)                                                                                                                                                                                                            |
+| phase6-deferred (고위험)         | CalendarHeader headerHeights·calDims / CalendarGrid gridDims / DateInput inputHeights (절대좌표 텍스트 렌더, grep gate baseline=4)                                                                                                                           |
+
+**잔여 (Phase 6, §4-1 직교)**: CalendarHeader/DateInput mirror 흡수 (baseline=4 정직 등재) + propagation·
+factory·child-filtering 축 (시각/구조/size 축 밖). valueFillMetrics 상수는 소비처 0 (dead) 이나 specs
+re-export 잔존 — 별도 삭제 승인 대상.
+
 ## 4. Non-goals
 
 - ADR-913 의 reference value rebuild 를 하지 않는다. 색상, radius, size scale 품질 재조정은

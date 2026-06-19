@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [catalog SSOT collapse 종결 — visual/structure/size 축 단일화 (ADR-912 Phase 5 + Δ8 진짜 수렴)] - 2026-06-20
+
+ADR-912 catalog SSOT collapse 의 마지막 단계(gates and documentation) 완결. layout/Skia 경로가 catalog `.sizes.{field}` 를 inline 복제하던 dual-SSOT mirror 를 전부 catalog read-through 로 흡수 — calculateContentHeight 경로(grep gate FILES map 밖이라 baseline "위장 0" 이던 영역)까지 scope 포함. 적대 검증 5회로 진짜 수렴 CONFIRMED(미흡수 catalog-대응 mirror 0, Phase 6 분리분 제외). T1~T6 종결 조건 동시 PASS.
+
+### Bug Fixes
+
+- **ProgressBar/Meter 의 Label↔track 세로 간격이 Builder Canvas(8px) ↔ Preview(4px) 불일치** (calculateContentHeight 인라인 gap 하드코딩 ↔ catalog `.sizes.gap`):
+  - **Why**: `utils.ts` 의 `calculateContentHeight` ProgressBar/Meter 분기가 label row 와 track 사이 row-gap 을 인라인 `8` 로 하드코딩 → Builder selection bounds/측정 height 가 8px gap 기준. 반면 generated CSS 의 `.sizes.gap` = 4px(`row-gap: var(--spacing-xs)`) → Preview 는 4px. Δ10(column-gap)과 동형 패턴의 row-gap 잔여.
+  - 수정: catalog `.sizes.gap`(=4) read-through(`specSizeGap(isMeter?"Meter":"ProgressBar", sizeName, 4)`)로 통일 — CSS effective(4px) 정본 채택. Slider 는 byte 불변(상수=catalog 일치).
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`
+
+### Architecture
+
+- **ADR-912 catalog SSOT collapse Phase 5 — Δ8 size-value mirror 전수 흡수 + 진짜 수렴**:
+  - calculateContentHeight(`utils.ts`) 경로의 size-value mirror 흡수: Slider thumbSize(`sliderTrackRowHeight`) / row-gap(`specSizeGap`) / StatusLight height·gap·fontSize(`statusLightDims`) / ProgressCircle diameter(`progressCircleDiameter`) / DisclosureHeader dims(`disclosureHeaderDims`) / PHANTOM indicator gap(`phantomIndicatorGap`). 전부 catalog `.sizes` read-through 단일화 + 평행 상수 삭제. byte-diff 0(catalog source = 흡수 전 상수 byte-identical).
+  - **Phase 5 후속(Δ8) — 전수 인벤토리 확정 후 마지막 mirror 2종 흡수**: `SPEC_PADDING`(→`specPaddingFromCatalog` = catalog SelectTrigger.sizes.paddingX/paddingY) + valueFillMetrics `barHeight`(→`valueFillTrackHeight` = catalog ProgressBarTrack·MeterTrack.sizes.height). layout 경로 전 size-indexed Record 전수 인벤토리로 미흡수 catalog-대응이 정확히 이 2종뿐임을 확정.
+  - **grep gate scope 갭 차단**: `adr912CollapseGrepGate` FILES map 에 `utilsLayout`(calculateContentHeight 경로) 추가 — Δ8 prose("layout/Skia 파일이 componentRulesTable.sizes 복제 금지")의 scope 가 기존 FILES map 보다 넓어 utils.ts mirror 가 baseline 0 으로 위장되던 갭을 닫음. 흡수된 mirror + SPEC_PADDING + barHeight import 재도입 가드 baseline 0(위장 0 아님).
+  - **적대 검증 5회로 진짜 수렴 CONFIRMED**: piecewise detect-absorb 가 1~4차에서 매번 새 mirror 적발(Slider→ProgressCircle/DisclosureHeader→PHANTOM gaps→SPEC_PADDING/barHeight) → 4차 후 전수 인벤토리로 미흡수 2종 확정·흡수 → 5차 독립 검증(Explore agent refute 가정)이 미흡수 catalog-대응 mirror 0(Phase 6 제외) 확증.
+  - **재승격 note 축 한정(§4-1, Δ9)**: 본 collapse 는 **시각/구조/size SOURCE 축**만 닫았다 — 무조건적 "1 컴포넌트 = 1 등록" 주장 금지. propagation registry / factory creator / child-filtering branch 멤버십은 별도 잔여 축(scope 밖). CalendarHeader/DateInput mirror 는 절대좌표 텍스트 렌더 고위험으로 Phase 6 분리(grep gate baseline=4 정직 등재).
+  - 검증: catalog source byte-identical 정적 probe · type-check 0(baseline 71 불변) · grep gate 14/14 · specPresetResolver + snapshot 80/80 · live(Chrome MCP) ProgressBar md→lg track height read-through(8→12px) 정상 렌더.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/{utils,implicitStyles}.ts`, `packages/shared/src/catalog/__tests__/adr912CollapseGrepGate.test.ts`, breakdown `docs/adr/design/912-catalog-ssot-collapse-breakdown.md` §Phase 5
+
 ## [Style Panel preset source = catalog 단일 entry — ADR-912 catalog SSOT collapse Phase 4 완결] - 2026-06-20
 
 ADR-912 catalog SSOT collapse 의 마지막 consumer(Style Panel)를 catalog 단일 entry 로 전환 — `specPresetResolver.ts` 의 `TAG_SPEC_MAP`(builder-local spec map) 직독을 제거하고 `componentRulesTable` 에서 파생. 이로써 8 dispersion(STRUCTURE_META / layout token / LOWERCASE map / base-axis / mirror 5종 / TAG_SPEC_MAP) 전부 baseline 0 도달 = collapse kill criteria 완결.
