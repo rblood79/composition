@@ -304,21 +304,17 @@ const INDICATOR_SIZES: Record<string, { box: number; gap: number }> = {
   lg: { box: 24, gap: 10 },
 };
 
-/** ProgressBar/Meter — CSS: row-gap: var(--spacing-xs)=4px, column-gap: var(--spacing-md)=12px */
-const PROGRESSBAR_ROW_GAP = 4;
+// ADR-912 Phase 3-A-1 (Δ4, 2026-06-19): ProgressBar/Meter column-gap 은 catalog `.sizes` 에
+//   source 가 없고 structure.composition.containerStyles['column-gap']='var(--spacing-md)' 토큰
+//   문자열뿐이라 specSizeField 로 못 읽는다 → Δ10(.sizes.columnGap 마이그레이션) 까지 상수 유지.
+//   (row-gap 은 .sizes.gap=4 평행 복사본이라 specSizeField("progressbar"/"meter", size, "gap") 로
+//    이관, row-gap 상수는 삭제 — 적대 검증 w6gqcrgh3.)
 const PROGRESSBAR_COL_GAP = 12;
 
-// ADR-912 단계5 value-fill-track: ProgressBarTrack/MeterTrack spec 삭제 후 트랙 높이 인라인 미러.
-//   componentRulesTable.{ProgressBarTrack,MeterTrack}.sizes.{sm:4,md:8,lg:12,xl:16}.height 와 동형
-//   (= ProgressBar.spec PROGRESSBAR_DIMENSIONS.barHeight / Meter.spec METER_DIMENSIONS.barHeight —
-//   두 track rule 값 동일). spec 삭제로 specSizeField lookup 이 끊기므로 rule 값 로컬 미러로 이전
-//   (DisclosureHeader/CalendarHeader/ProgressCircle 선례). rule(componentRulesTable) 이 SSOT.
-const VALUE_FILL_TRACK_HEIGHT: Record<string, number> = {
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
-};
+// track height / progressbar·slider row-gap mirror 상수는 ADR-912 Phase 3-A-1 (Δ4) 에서 삭제됨 —
+//   각 소비처가 specSizeField(type, size, field) 로 componentRulesTable 의
+//   {ProgressBarTrack,MeterTrack,SliderTrack}.sizes.height / {ProgressBar,Meter,Slider}.sizes.gap 을
+//   직접 read-through (spec 삭제 type 은 rule fallback 경로). catalog source byte 일치 확인 완료.
 
 /** ProgressBar/Meter 태그 집합 */
 const PROGRESSBAR_TAGS = new Set([
@@ -334,13 +330,9 @@ const SLIDER_TAGS = new Set(["slider"]);
 /** DatePicker/DateRangePicker 내 Popover로 표시되는 자식 — Taffy 레이아웃 제외 */
 const POPOVER_CHILDREN_TAGS = new Set(["Calendar", "RangeCalendar"]);
 
-/**
- * Slider row-gap (CSS: var(--spacing-xs) = 4px).
- *
- * ADR-088: column-gap 은 `SliderSpec.sizes[s].columnGap` SSOT 로 이관 완료. Record 제거.
- *   소비처는 `specSizeField("slider", sizeName, "columnGap")` 로 직접 lookup.
- */
-const SLIDER_ROW_GAP = 4;
+// Slider row-gap: ADR-912 Phase 3-A-1 (Δ4) 에서 specSizeField("slider", size, "gap") read-through 로
+//   이관 (Slider.sizes.gap=4 모든 size 일치). column-gap 은 ADR-088 에서 이미 specSizeField("slider",
+//   size, "columnGap") 이관 완료. 두 gap 모두 catalog .sizes 단일 source.
 
 /** Synthetic Label을 생성하는 태그 */
 const SYNTHETIC_LABEL_TAGS = new Set([
@@ -1610,9 +1602,10 @@ export function applyImplicitStyles(
         } as CanvasLayoutNode;
       }
       if (child.type === "ProgressBarTrack" || child.type === "MeterTrack") {
-        // ADR-912: 두 track 모두 spec 삭제 → rule 미러 상수 (값 동일).
+        // ADR-912 Phase 3-A-1 (Δ4): spec 삭제된 track 의 height 를 rule .sizes.height 직접 read-through
+        //   (specSizeField rule fallback). ProgressBarTrack/MeterTrack 모두 sm4/md8/lg12/xl16 동일값.
         const barHeight =
-          VALUE_FILL_TRACK_HEIGHT[sizeName] ?? VALUE_FILL_TRACK_HEIGHT.md;
+          specSizeField(child.type.toLowerCase(), sizeName, "height") ?? 8;
         return {
           ...child,
           props: {
@@ -1652,9 +1645,13 @@ export function applyImplicitStyles(
 
     // 부모 container style: display/gridTemplate* 은 resolveContainerStylesFallback 이
     //   spec.containerStyles 로부터 이미 parentStyle 에 선주입 → 여기서는 gap 만 처리.
+    //   ADR-912 Phase 3-A-1 (Δ4): row-gap 은 .sizes.gap=4 read-through (progressbar/meter 매칭,
+    //   catalog 미등록 tag progress/loadingbar/gauge 는 undefined → ?? 4 = 기존 상수값). column-gap 은
+    //   catalog .sizes 부재(토큰 문자열뿐)라 Δ10 까지 PROGRESSBAR_COL_GAP 유지.
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
-      rowGap: parentStyle.rowGap ?? PROGRESSBAR_ROW_GAP,
+      rowGap:
+        parentStyle.rowGap ?? specSizeField(containerTag, sizeName, "gap") ?? 4,
       columnGap: parentStyle.columnGap ?? PROGRESSBAR_COL_GAP,
     });
   }
@@ -1722,13 +1719,14 @@ export function applyImplicitStyles(
         } as CanvasLayoutNode;
       }
       if (child.type === "SliderTrack") {
-        // 2026-06-10: layout height = trackHeight (ProgressBarTrack 동일, VALUE_FILL_TRACK_HEIGHT).
+        // 2026-06-10: layout height = trackHeight (ProgressBarTrack 동일값 — sm4/md8/lg12/xl16).
         //   thumb(원, thumbSize)은 DOM 에서 position:absolute 라 layout 제외 → Skia 도 동형으로
         //   box 는 트랙 두께만, thumb 은 slider_fill_bar 가 box 세로 중앙 기준 box 밖까지 그린다.
         //   (이전 ADR-086 P2: box=thumbSize 18px → SliderTrack 이 ProgressBarTrack(8px)보다 두꺼움.
         //    사용자 정정 2026-06-10: thumb absolute 제외니 두 track height 가 같아야 함.)
+        //   ADR-912 Phase 3-A-1 (Δ4): SliderTrack.sizes.height read-through.
         const trackHeight =
-          VALUE_FILL_TRACK_HEIGHT[sizeName] ?? VALUE_FILL_TRACK_HEIGHT.md;
+          specSizeField("slidertrack", sizeName, "height") ?? 8;
         return {
           ...child,
           props: {
@@ -1780,10 +1778,13 @@ export function applyImplicitStyles(
 
     // 부모 container style: display/gridTemplate* 은 resolveContainerStylesFallback 이
     //   slider archetype/spec.containerStyles 로부터 이미 parentStyle 에 선주입 → gap 만 처리.
+    //   ADR-912 Phase 3-A-1 (Δ4): row-gap 도 .sizes.gap=4 read-through (column-gap 은 ADR-088 에서
+    //   이미 이관). 두 gap 모두 Slider.sizes 단일 source.
+    const sliderRowGap = specSizeField("slider", sizeName, "gap") ?? 4;
     const sliderColGap = specSizeField("slider", sizeName, "columnGap") ?? 16;
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
-      rowGap: parentStyle.rowGap ?? SLIDER_ROW_GAP,
+      rowGap: parentStyle.rowGap ?? sliderRowGap,
       columnGap: parentStyle.columnGap ?? sliderColGap,
     });
   }
@@ -1813,8 +1814,8 @@ export function applyImplicitStyles(
     const thumbSize =
       specSizeField("slider", sizeName, "indicator")?.thumbSize ?? 18;
     // 트랙 두께(SliderTrack box height = trackHeight) — thumb 세로 중앙 정렬 기준.
-    const trackHeight =
-      VALUE_FILL_TRACK_HEIGHT[sizeName] ?? VALUE_FILL_TRACK_HEIGHT.md;
+    //   ADR-912 Phase 3-A-1 (Δ4): SliderTrack.sizes.height read-through (위 SliderTrack 분기 동형).
+    const trackHeight = specSizeField("slidertrack", sizeName, "height") ?? 8;
     // thumb 중심을 트랙 세로 중앙에 정렬: top = trackHeight/2 - thumbSize/2
     //   (thumb 이 트랙보다 커서 위아래로 box 밖 넘침 — DOM 의 top:50%+translateY(-50%) 와 동형).
     const thumbTop = trackHeight / 2 - thumbSize / 2;

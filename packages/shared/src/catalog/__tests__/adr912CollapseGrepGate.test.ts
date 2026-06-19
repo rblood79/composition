@@ -121,13 +121,13 @@ const DISPERSION_BASELINE: Array<{
     killPhase: "Phase 3",
   },
   {
-    // Δ4 catalog.sizes 평행 복사본 (적대 검증 w6gqcrgh3 — Track 3종 .sizes.height byte 일치, 교체 가능).
-    label: "VALUE_FILL_TRACK_HEIGHT mirror (Δ4, catalog.sizes 교체 가능)",
+    // Phase 3-A-1 완료 (2026-06-19): Track 3종 height 를 specSizeField read-through 로 이관 +
+    //   상수 삭제 → 0 (주석에서도 심볼명 제거, false positive 회피). byte-diff 0 검증 완료. 재도입 가드.
+    label: "VALUE_FILL_TRACK_HEIGHT mirror (Δ4 — Phase 3-A-1 삭제 ✅)",
     file: "implicitStyles",
     pattern: /VALUE_FILL_TRACK_HEIGHT/,
-    // occurrence 카운트(선언 1 + 소비처 7, 일부 라인 2회 등장) = 8. grep -c(라인수=5) 와 다름.
-    baseline: 8,
-    killPhase: "Phase 3-A-1",
+    baseline: 0,
+    killPhase: "Phase 3-A-1 ✅",
   },
   {
     // INDICATOR_SIZES = {box, gap} 한 객체. gap 은 Checkbox/Radio .sizes.gap byte 일치(Δ4 교체),
@@ -141,15 +141,16 @@ const DISPERSION_BASELINE: Array<{
     killPhase: "Phase 3-A-2 (Δ5-a 선택 시 0)",
   },
   {
-    // ROW_GAP/SLIDER_ROW_GAP = .sizes.gap byte 일치(Δ4 교체 가능, Phase 3-A-1). 단 COL_GAP 은
-    //   .sizes 부재 + structure.composition 토큰 문자열 → 0 도달은 .sizes.columnGap 마이그레이션(Δ10-A)
-    //   선택 시에만(Phase 3-A-2). Non-goal(Δ10-B) 선택 시 COL_GAP 잔존 정당. baseline 유지.
+    // Phase 3-A-1 완료 (2026-06-19): row-gap 2종(progressbar/slider) 을 specSizeField("...", size,
+    //   "gap") read-through 로 이관 + 상수 삭제. 잔존 3 = PROGRESSBAR_COL_GAP (정의 1 + 소비처 1 +
+    //   주석 1) — catalog .sizes 부재(structure.composition 토큰 문자열)라 Δ10(.sizes.columnGap
+    //   마이그레이션) 선택 시에만 0. Non-goal(Δ10-B) 선택 시 잔존 정당. baseline 6→3 (단조 감소).
     label:
-      "PROGRESSBAR/SLIDER gap mirror (ROW=Δ4 교체 / COL=Δ10 token→sizes 마이그레이션)",
+      "PROGRESSBAR_COL_GAP mirror (Δ10 — row-gap 2종 Phase 3-A-1 삭제 ✅, COL 잔존)",
     file: "implicitStyles",
     pattern: /PROGRESSBAR_ROW_GAP|PROGRESSBAR_COL_GAP|SLIDER_ROW_GAP/,
-    baseline: 6,
-    killPhase: "Phase 3-A-1 (ROW/SLIDER) + 3-A-2 (COL, Δ10-A 선택 시)",
+    baseline: 3,
+    killPhase: "Phase 3-A-2 (Δ10-A 선택 시 0)",
   },
   {
     label: "TAG_SPEC_MAP 직독 (specPresetResolver)",
