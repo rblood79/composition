@@ -713,6 +713,31 @@ wrapper `resolveContainerStylesFallback`(`implicitStyles.ts:270`)에 **경로 B*
 - 기존 hard fallback(`block` / `row` / `0px`)은 catalog preset 이 없을 때만 사용한다.
 - TextField/TagGroup regression test 를 Phase 0 red tests 로 green 시킨다.
 
+#### Phase 4 Land 완료 (2026-06-20)
+
+`specPresetResolver.ts` 의 `TAG_SPEC_MAP` 직독 2곳(createResolver 내부 spec 조회 + resolveLayoutSpecPreset variant)을 catalog 단일 resolver 로 전환. 마지막 잔존 dispersion 제거 → **8 dispersion 전부 baseline 0 도달** (kill criteria 완결).
+
+**전환 방식 — 데이터 source 만 교체, 추출 로직 byte-불변**:
+
+- `TAG_SPEC_MAP[type]`(spec 객체 직독) → `resolveComponentRule(type)` 에서 `SpecShape` 호환 객체 합성(`catalogSpecShape`):
+  - `sizes` = `rule.sizes` (catalog sizes 가 spec sizes 와 동형 — paddingX/Y/fontSize(TokenRef)/borderRadius(TokenRef)/height/gap 같은 키, 기존 `pickNumeric` + `resolveToNumber` 가 그대로 처리).
+  - `containerStyles` = `normalizeContainerKeysToCamel(resolveCatalogContainerBase(type))`. catalog base 는 데이터 출처에 따라 camel(structure.containerStyles)·kebab(layout token + composition.containerStyles) 혼합이라, 기존 camel-기대 extractor 에 먹이기 위해 모든 키를 camel 로 정규화. custom CSS var(`--xxx`)는 `--` guard 로 원형 보존(extractor 미참조 → scope 외 무시).
+  - `archetype` = `rule.structure?.archetype`. ProgressBar=`"progress"` / Slider=`"slider"` 실측 → `TRACK_HEIGHT_ARCHETYPES` height 축 제외 보존.
+- `composition` tier 제거: `resolveCatalogContainerBase` 가 Δ2 precedence(layout token < structure.cStyles < composition.cStyles < top-level)로 composition.gap/containerStyles 를 base 에 이미 흡수. `sizes` 가 여전히 최우선(merge `...csPreset, ...sizesPreset`)이라 Select gap=6(md sizes) / 4(xxl composition→base 흡수) 우선순위 보존. `transformFromComposition`/`appearanceFromComposition`/`layoutFromComposition` + `CompositionExtractor` 타입 삭제.
+- variant: `resolveContainerVariants(spec, props)` → `resolveCatalogContainerVariants(type, props).styles`. kebab 출력을 기존 `pickLayoutVariantStyles`(`VARIANT_LAYOUT_KEY_MAP` kebab→camel)가 그대로 처리.
+
+**부수 결함 수정 — nested variant fallback (적대 검증 w0sg80dg6 CONFIRMED_BUG #5, 사용자 confirm 후 포함)**:
+
+`resolveCatalogContainerVariants` 가 top-level `rule.containerVariants` 만 읽어, variant 를 `structure.composition.containerVariants`(NESTED)에만 보유한 Select/Form/Toolbar/Meter/ProgressBar 류의 label-position/orientation variant 가 Style Panel + implicitStyles(Skia layout) 양 consumer 에서 silent 누락. 회귀는 아님(spec 삭제 cutover 로 이미 누락)이나 `const variants = rule?.containerVariants ?? rule?.structure?.composition?.containerVariants` fallback 으로 복원. 단일 진입점이라 두 consumer 동시 개선. nested 구조는 top-level 과 byte-동형 실측 확인(`{dataAttr: {value: {styles, nested}}}`).
+
+**검증**:
+
+- byte-diff 0(데이터 source 만 교체): 27 red test(spec 삭제로 `TAG_SPEC_MAP[type]=undefined` → 빈 preset → 실제값 기대 FAIL 이던 것)가 전부 green. 추가 variant 경로 6 test(TextField/TagGroup/Select side, Toolbar orientation) → 57 PASS.
+- grep gate: `TAG_SPEC_MAP`(specPresetResolver) baseline 3→0. 주석에서도 심볼명 제거(false positive 회피).
+- type-check: builder 신규 0(baseline 71) / shared 0.
+- 영향 test: specPresetResolver 57 + resolveContainerStylesFallback 29 + resolveCatalogContainer 14 + grep gate 10 = 110 PASS. pre-existing FAIL(tokenConsumerDrift radius 2 = ADR-913 slice 5 snapshot 미갱신)은 git stash 격리로 무관 확인.
+- **live(Chrome MCP, 앱 인스턴스 직접 호출 + Style Panel UI)**: ListBox(width100%/maxHeight300px/br8/bw1/bg var(--bg-raised)/gap2/pad4/fontSize14), Kbd(height26), Select(md gap6 + side→flexDirection:row nested 복원 + height 축 제외), TextField(side→row), Toolbar(vertical→column nested 복원), ProgressBar(archetype height 제외) 전부 정확. Style Panel 이 Form preset(Border Radius 8 / Gap 16 / Font 16) 실제 표시. 콘솔 에러 0.
+
 ### Phase 5 — gates and documentation
 
 - `pnpm run build:specs` 또는 현재 harness 의 CSS generation gate 실행.

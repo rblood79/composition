@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Style Panel preset source = catalog 단일 entry — ADR-912 catalog SSOT collapse Phase 4 완결] - 2026-06-20
+
+ADR-912 catalog SSOT collapse 의 마지막 consumer(Style Panel)를 catalog 단일 entry 로 전환 — `specPresetResolver.ts` 의 `TAG_SPEC_MAP`(builder-local spec map) 직독을 제거하고 `componentRulesTable` 에서 파생. 이로써 8 dispersion(STRUCTURE_META / layout token / LOWERCASE map / base-axis / mirror 5종 / TAG_SPEC_MAP) 전부 baseline 0 도달 = collapse kill criteria 완결.
+
+### Bug Fixes
+
+- **Style Panel 이 컨테이너 layout/size preset 을 표시 못 하던 회귀 복구** (spec 삭제 cutover 잔여 부채):
+  - **Why**: spec 물리 삭제(cutover)로 `TAG_SPEC_MAP[type]` 이 undefined → `specPresetResolver` 가 빈 preset 반환 → ListBox/Menu/Select/TextField 등 다수 컨테이너의 Style Panel 이 width/borderRadius/gap/padding/fontSize 를 global fallback(0/auto)으로 오표시. 27 unit-test 가 이 상태에서 red.
+  - 수정: preset source 를 catalog `resolveComponentRule(type)` 합성 spec-shape(`rule.sizes` + camel-normalized `resolveCatalogContainerBase` + `rule.structure.archetype`)로 교체. 추출 로직(TokenRef 해석 / 4-way padding / sizes 우선 merge) 은 byte-불변. ListBox(br8/gap2/pad4/width100%), Kbd(height26), Select(md gap6) 등 정확값 복원.
+  - **Select/Form/Toolbar 의 label-position·orientation variant 가 Style Panel + Skia layout 에서 silent 누락되던 결함 복원**:
+    - **Why**: `resolveCatalogContainerVariants` 가 top-level `rule.containerVariants` 만 읽었는데, Select/Form/Toolbar/Meter/ProgressBar 류는 variant 를 `structure.composition.containerVariants`(NESTED)에만 보유 → catalog 경로에서 매칭 0. (TextField/TagGroup/ComboBox 등 top-level 보유 5종은 정상.)
+    - 수정: `rule?.containerVariants ?? rule?.structure?.composition?.containerVariants` fallback 추가. 단일 진입점이라 Style Panel(`specPresetResolver`) + Skia layout(`implicitStyles`) 양 consumer 동시 복원. Select labelPosition=side → flexDirection:row, Toolbar orientation=vertical → flexDirection:column live 확증.
+  - 위치: `apps/builder/src/builder/panels/styles/utils/specPresetResolver.ts`, `packages/shared/src/catalog/resolvers/resolveCatalogContainer.ts`
+
+### Architecture
+
+- **ADR-912 catalog SSOT collapse Phase 4 — Style Panel consumer collapse 완결**:
+  - `specPresetResolver` 의 `composition` tier(`transformFromComposition`/`appearanceFromComposition`/`layoutFromComposition`) 삭제 — `resolveCatalogContainerBase` 의 Δ2 merge precedence 가 composition.gap/containerStyles 를 base 에 흡수하므로 별도 tier 불필요. `sizes` 최우선 merge 유지로 Select gap=6(md sizes)/4(xxl composition→base) 우선순위 보존.
+  - grep gate(`adr912CollapseGrepGate`): `TAG_SPEC_MAP`(specPresetResolver) baseline 3→0. **8 dispersion 전부 baseline 0** — collapse 가 닫으려던 모든 dispersion source 제거 완료.
+  - 검증: specPresetResolver 57 PASS(27 red→green + variant 경로 6) · resolveCatalogContainer 14 · grep gate 10 · resolveContainerStylesFallback 29 · type-check builder 신규 0/shared 0 · live(Chrome MCP, 앱 인스턴스 직접 호출 + Style Panel UI) preset 표시 + 콘솔 0.
+  - 위치: breakdown `docs/adr/design/912-catalog-ssot-collapse-breakdown.md` §Phase 4
+
 ## [ProgressBar/Meter column-gap CSS↔Skia 불일치 수정 — Builder Canvas 12px→4px (ADR-912 Δ10)] - 2026-06-19
 
 ADR-912 catalog SSOT collapse Phase 3-A-2 (Δ10) 실행 중 live 실측으로 전제가 뒤집힘 — `PROGRESSBAR_COL_GAP=12` 하드코딩 상수가 catalog 와 같은 값을 중복 보유한 dual-SSOT 가 아니라, CSS↔Skia 렌더 파리티 버그였음이 드러남.

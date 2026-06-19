@@ -1,11 +1,22 @@
 import {
   cssVarToTokenRef,
-  resolveContainerVariants,
   resolveToken,
   tokenToCSSVar,
   type TokenRef,
 } from "@composition/specs";
-import { TAG_SPEC_MAP } from "../../../workspace/canvas/sprites/tagSpecMap";
+import {
+  resolveCatalogContainerBase,
+  resolveCatalogContainerVariants,
+  resolveComponentRule,
+} from "@composition/shared";
+
+// ADR-912 Phase 4 (2026-06-20): Style Panel preset 의 source 를 builder-local spec map(spec 객체
+//   직독) 에서 catalog 단일 entry 로 전환. cutover 로 대부분의 `*.spec.ts` 가 물리 삭제되어 해당
+//   map lookup 이 undefined → preset 빈 객체 반환 → Panel 이 컨테이너 layout/size 를 global fallback
+//   으로 오표시하던 회귀를 해소한다. 기존 extractor(camelCase containerStyles + sizes[size] TokenRef
+//   해석)는 보존하고, catalog `resolveComponentRule(type)` 에서 spec-shape 호환 객체(sizes +
+//   camel-normalized base + archetype)를 합성해 먹인다(데이터 source 만 교체, 추출 로직 byte-불변).
+//   breakdown §2-5 Phase 4 / §5 kill criteria(builder-local spec map 직독 0).
 
 export interface TransformSpecPreset {
   /** ADR-082 A2: containerStyles / composition 에서 공급된 값은 "100%", "300px", "fit-content" 같은 string 포함 */
@@ -57,16 +68,16 @@ export interface TypographySpecPreset {
   fontFamily?: string;
 }
 
-/** ADR-082: 3-tier fallback chain 을 위한 확장된 spec shape. */
+/**
+ * ADR-082 / ADR-912 Phase 4: preset 추출용 spec-shape. 이전엔 builder-local spec map lookup(spec
+ * 객체)였으나 이제 catalog `resolveComponentRule(type)` 에서 합성(`catalogSpecShape`). `composition`
+ * tier 는 catalog base 합성 단계에서 흡수돼 더 이상 별도 필드로 두지 않는다.
+ */
 type SpecShape =
   | {
       archetype?: string;
       sizes?: Record<string, Record<string, unknown>>;
       containerStyles?: Record<string, unknown>;
-      composition?: {
-        gap?: string;
-        containerStyles?: Record<string, string>;
-      };
     }
   | undefined;
 type PresetExtractor<T> = (
@@ -75,26 +86,73 @@ type PresetExtractor<T> = (
   type?: string,
 ) => T;
 type ContainerExtractor<T> = (cs: Record<string, unknown>) => T;
-type CompositionExtractor<T> = (comp: {
-  gap?: string;
-  containerStyles?: Record<string, string>;
-}) => T;
 
 const allCaches: Array<Map<string, unknown>> = [];
 
 /**
- * ADR-082: 3-tier fallback chain resolver.
+ * ADR-912 Phase 4: kebab-case CSS key 를 camelCase 로 정규화 (catalog base → 기존 camel extractor).
  *
- * 우선순위 (낮은 → 높은, merge 순서): `composition.*` → `containerStyles` → `sizes[size]`.
- * 기존 sizes 경로의 값은 최우선 (회귀 0 보장). Non-composite containerStyles 와 Composite
- * composition.\* 는 sizes 에 값이 없을 때만 발동.
+ * `resolveCatalogContainerBase` 출력은 데이터 출처에 따라 camel(structure.containerStyles /
+ * top-level) · kebab(CATALOG_LAYOUT_STYLES layout token + composition.containerStyles) 혼합이고,
+ * ToggleButtonGroup 같은 경우 같은 의미 키가 camel+kebab 양쪽 존재(`align-items` + `alignItems`).
+ * 기존 containerExtractor(transformFromContainerStyles 등) 는 camelCase 키만 읽으므로, 모든 키를
+ * camel 로 collapse 한다. 값이 같은 중복 키는 무손실 병합되고, custom CSS var(`--label-font-size`)
+ * 는 그대로 통과(extractor 가 인지 안 함 → scope 외로 무시, 기존 동작과 동일).
+ */
+function normalizeContainerKeysToCamel(
+  base: Record<string, string | number>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(base)) {
+    // custom CSS property(`--xxx`) 는 변환하지 않고 그대로 통과 (kebab 변환 시 의미 파손).
+    if (key.startsWith("--")) {
+      out[key] = value;
+      continue;
+    }
+    const camel = key.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+    out[camel] = value;
+  }
+  return out;
+}
+
+/**
+ * ADR-912 Phase 4: catalog `resolveComponentRule(type)` 에서 기존 `SpecShape` 호환 객체를 합성.
+ *
+ * - `sizes`: `rule.sizes` (catalog sizes 는 spec sizes 와 동형 — paddingX/Y/fontSize(TokenRef)/
+ *   borderRadius(TokenRef)/height/gap 등 같은 키). 기존 `pickNumeric` + `resolveToNumber` 가 그대로 처리.
+ * - `containerStyles`: `resolveCatalogContainerBase(type)` 의 camel-normalized 결과. Δ2 merge
+ *   precedence(layout token < structure.cStyles < composition.cStyles < top-level)가 단일 base 로
+ *   합성되므로, 기존의 `composition` tier 별도 merge 는 불필요(base 에 이미 흡수). `sizes` 가 여전히
+ *   최우선(merge 순서 `...csPreset, ...sizesPreset`)이라 Select gap=6(md sizes) / 4(xxl composition)
+ *   우선순위 보존.
+ * - `archetype`: `rule.structure?.archetype` (ProgressBar="progress" / Slider="slider"). resolveSpecPreset
+ *   의 TRACK_HEIGHT_ARCHETYPES height 축 제외 보존용.
+ */
+function catalogSpecShape(type: string): SpecShape {
+  const rule = resolveComponentRule(type);
+  if (!rule) return undefined;
+  const base = resolveCatalogContainerBase(type);
+  return {
+    archetype: rule.structure?.archetype,
+    sizes: rule.sizes as Record<string, Record<string, unknown>> | undefined,
+    containerStyles: Object.keys(base).length
+      ? normalizeContainerKeysToCamel(base)
+      : undefined,
+  };
+}
+
+/**
+ * ADR-082 3-tier fallback chain resolver (ADR-912 Phase 4 — source = catalog).
+ *
+ * 우선순위 (낮은 → 높은, merge 순서): `containerStyles`(catalog base) → `sizes[size]`.
+ * 기존 sizes 경로의 값은 최우선 (회귀 0 보장). base container layout 은 sizes 에 값이 없을 때만 발동.
+ * composition tier 는 catalog base 합성 단계(`resolveCatalogContainerBase`)에서 이미 흡수됐다.
  *
  * 각 extractor 는 해당 tier 가 spec 에 없으면 skip (Panel 에 영향 없음).
  */
 function createResolver<T extends object>(
   sizesExtractor: PresetExtractor<T>,
   containerExtractor?: ContainerExtractor<T>,
-  compositionExtractor?: CompositionExtractor<T>,
 ): (type: string | undefined, size: string | undefined) => T {
   const cache = new Map<string, T>();
   allCaches.push(cache as Map<string, unknown>);
@@ -104,7 +162,7 @@ function createResolver<T extends object>(
     const key = `${type}:${size ?? "md"}`;
     const cached = cache.get(key);
     if (cached) return cached;
-    const spec = TAG_SPEC_MAP[type] as unknown as SpecShape;
+    const spec = catalogSpecShape(type);
 
     const sizeEntry = spec?.sizes?.[size ?? "md"];
     const sizesPreset = sizeEntry
@@ -115,13 +173,9 @@ function createResolver<T extends object>(
     const csPreset =
       containerExtractor && cs ? containerExtractor(cs) : ({} as T);
 
-    const comp = spec?.composition;
-    const compPreset =
-      compositionExtractor && comp ? compositionExtractor(comp) : ({} as T);
-
     // ADR-082 fallback merge 순서 — 낮은 우선순위부터 spread.
-    // composition (최하) < containerStyles < sizes (최상, 기존 동작 보존)
-    const preset = { ...compPreset, ...csPreset, ...sizesPreset } as T;
+    // containerStyles(catalog base, composition 흡수) < sizes (최상, 기존 동작 보존)
+    const preset = { ...csPreset, ...sizesPreset } as T;
     cache.set(key, preset);
     return preset;
   };
@@ -318,30 +372,6 @@ function transformFromContainerStyles(
   return out;
 }
 
-function transformFromComposition(comp: {
-  containerStyles?: Record<string, string>;
-}): TransformSpecPreset {
-  const cs = comp.containerStyles;
-  if (!cs) return {};
-  const out: TransformSpecPreset = {};
-  for (const k of TRANSFORM_STRING_KEYS) {
-    // composition.containerStyles 는 Record<string,string> — kebab/camel 양쪽 허용
-    const kebab = k.replace(/([A-Z])/g, "-$1").toLowerCase();
-    const v = cs[k] ?? cs[kebab];
-    if (typeof v === "string") {
-      const resolved = resolveToNumber(v);
-      if (resolved !== undefined) out[k] = resolved;
-      else out[k] = v;
-    }
-  }
-  const ar = cs.aspectRatio ?? cs["aspect-ratio"];
-  if (typeof ar === "string") {
-    const resolved = resolveToNumber(ar);
-    if (resolved !== undefined) out.aspectRatio = resolved;
-  }
-  return out;
-}
-
 // ─── Appearance extractor ──────────────────────────────────────────────
 
 function appearanceFromContainerStyles(
@@ -356,23 +386,6 @@ function appearanceFromContainerStyles(
   if (bg) out.backgroundColor = bg;
   const bc = resolveToCSSVar(cs.border);
   if (bc) out.borderColor = bc;
-  return out;
-}
-
-function appearanceFromComposition(comp: {
-  containerStyles?: Record<string, string>;
-}): AppearanceSpecPreset {
-  const out: AppearanceSpecPreset = {};
-  const cs = comp.containerStyles;
-  if (!cs) return out;
-  const br = resolveToNumber(cs["border-radius"] ?? cs.borderRadius);
-  if (br !== undefined) out.borderRadius = br;
-  const bw = resolveToNumber(cs["border-width"] ?? cs.borderWidth);
-  if (bw !== undefined) out.borderWidth = bw;
-  const bg = cs.background;
-  if (typeof bg === "string" && bg.startsWith("var(")) out.backgroundColor = bg;
-  const bc = cs["border-color"] ?? cs.borderColor;
-  if (typeof bc === "string" && bc.startsWith("var(")) out.borderColor = bc;
   return out;
 }
 
@@ -402,35 +415,6 @@ function layoutFromContainerStyles(
   return out;
 }
 
-function layoutFromComposition(comp: {
-  gap?: string;
-  containerStyles?: Record<string, string>;
-}): LayoutSpecPreset {
-  const out: LayoutSpecPreset = {};
-  const gap = resolveToNumber(comp.gap);
-  if (gap !== undefined) out.gap = gap;
-  const cs = comp.containerStyles;
-  if (!cs) return out;
-  const padding = resolveToNumber(cs.padding);
-  if (padding !== undefined) {
-    out.paddingTop = padding;
-    out.paddingRight = padding;
-    out.paddingBottom = padding;
-    out.paddingLeft = padding;
-  }
-  // ADR-082 P3: composition.containerStyles 는 Record<string,string> (CSS 값 그대로)
-  //   kebab-case / camelCase 양쪽 허용하여 Panel 소비 일관성 유지
-  const display = cs.display;
-  if (typeof display === "string") out.display = display;
-  const flexDirection = cs["flex-direction"] ?? cs.flexDirection;
-  if (typeof flexDirection === "string") out.flexDirection = flexDirection;
-  const alignItems = cs["align-items"] ?? cs.alignItems;
-  if (typeof alignItems === "string") out.alignItems = alignItems;
-  const justifyContent = cs["justify-content"] ?? cs.justifyContent;
-  if (typeof justifyContent === "string") out.justifyContent = justifyContent;
-  return out;
-}
-
 // ─── Resolver exports ──────────────────────────────────────────────────
 
 export const resolveSpecPreset = createResolver<TransformSpecPreset>(
@@ -447,13 +431,11 @@ export const resolveSpecPreset = createResolver<TransformSpecPreset>(
   },
   // ADR-082 A2: containerStyles 의 "100%" / "300px" / "fit-content" 같은 string 값 통과
   transformFromContainerStyles,
-  transformFromComposition,
 );
 
 export const resolveAppearanceSpecPreset = createResolver<AppearanceSpecPreset>(
   (sizeEntry) => pickNumeric(sizeEntry, APPEARANCE_KEYS),
   appearanceFromContainerStyles,
-  appearanceFromComposition,
 );
 
 // sizes 경로 전용: paddingX/Y (20+ spec 에서 사용) 를 paddingLeft/Right/Top/Bottom 4-way 로 정규화.
@@ -476,7 +458,6 @@ function layoutFromSizes(sizeEntry: Record<string, unknown>): LayoutSpecPreset {
 const resolveStaticLayoutSpecPreset = createResolver<LayoutSpecPreset>(
   layoutFromSizes,
   layoutFromContainerStyles,
-  layoutFromComposition,
 );
 
 function pickLayoutVariantStyles(
@@ -485,7 +466,9 @@ function pickLayoutVariantStyles(
   const out: LayoutSpecPreset = {};
 
   for (const [key, value] of Object.entries(styles)) {
-    const mapped = (VARIANT_LAYOUT_KEY_MAP as Record<string, keyof LayoutSpecPreset>)[key];
+    const mapped = (
+      VARIANT_LAYOUT_KEY_MAP as Record<string, keyof LayoutSpecPreset>
+    )[key];
     if (!mapped || typeof value !== "string") continue;
     out[mapped] = value;
   }
@@ -501,10 +484,10 @@ export function resolveLayoutSpecPreset(
   const base = resolveStaticLayoutSpecPreset(type, size);
   if (!type || !props) return base;
 
-  const spec = TAG_SPEC_MAP[type];
-  if (!spec) return base;
-
-  const { styles } = resolveContainerVariants(spec, props);
+  // ADR-912 Phase 4: variant override 도 catalog 단일 resolver 경유. `resolveCatalogContainerVariants`
+  //   는 kebab-case styles(예: `flex-direction:row`)를 반환하고, `pickLayoutVariantStyles` 가
+  //   `VARIANT_LAYOUT_KEY_MAP` 으로 kebab→camel 변환하므로 기존 출력과 동형(labelPosition=side 등).
+  const { styles } = resolveCatalogContainerVariants(type, props);
   if (Object.keys(styles).length === 0) return base;
 
   return { ...base, ...pickLayoutVariantStyles(styles) };
@@ -523,10 +506,7 @@ export const resolveTypographySpecPreset = createResolver<TypographySpecPreset>(
     if (typeof fontFamily === "string") preset.fontFamily = fontFamily;
     return preset;
   },
-  // Typography: containerStyles 에는 fontSize 필드 없음 (ContainerStylesSchema 미정의).
-  // composition 쪽에도 typography 전용 필드 없음 — 현재 scope 제외.
-  undefined,
-  undefined,
+  // Typography: catalog base container 에는 fontSize 필드 없음 → containerExtractor 미지정 (sizes 전용).
 );
 
 export function clearSpecPresetCache(): void {

@@ -171,6 +171,8 @@ composition(노코드 웹 빌더)의 컴포넌트 시스템은 ADR-142 가 catal
 
 > 구현 상세: [912-rac-pencil-rebuild-cutover-breakdown.md](design/912-rac-pencil-rebuild-cutover-breakdown.md) — 진단 확정 / 갈아엎기 경계(제거·재사용·신규 3분류) / 영역 A(schema+어댑터) / 영역 B(collection 전환 3계약: C1 generic projector + C2 rule fill 정렬 + C3 children·text 중복 방지) / 영역 C(편집계약+state) / HC 1:1 / 구현 순서. 실행 phase 분해 + sub-group 결정은 사용자 confirm 후(adr-writing.md fork checkpoint).
 
+> 후속 설계 (catalog SSOT collapse): [912-catalog-ssot-collapse-breakdown.md](design/912-catalog-ssot-collapse-breakdown.md) — cutover 후 잔존 "spec fallback 제거 + registry collapse" 를 끝내는 follow-up. CSS generator / Skia·layout(implicitStyles) / Style Panel(specPresetResolver) 세 consumer 가 컴포넌트 구조·base-layout·size-value 를 `componentRulesTable` 한 entry 에서만 파생하게 하는 dispersion collapse. Phase 0~5 분해 + 8 dispersion grep gate. **Phase 4(Style Panel consumer) 완료 2026-06-20 — 8 dispersion 전부 baseline 0 도달(kill criteria 완결)**.
+
 > **ADR-910/911 과의 관계**: 셋은 같은 대안 E·1차 원리라 목표 구조가 수렴한다. 차이는 전략·관점이다 — 910=점진 cutover(legacy 격리 유지), 911=목표 자체(전환 비참조), 912=백지 직행(레거시 미보존). 사용자 결정(옵션 B)으로 910/911 을 supersede 하지 않고 유지하며, 착수는 912 다. 910 은 점진 전략의 비교 기록, 911 은 목표 drift 판정 reference 로 남는다.
 
 ## Risks

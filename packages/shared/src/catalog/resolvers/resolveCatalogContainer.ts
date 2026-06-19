@@ -21,6 +21,7 @@ import { LAYOUT_TOKEN_STYLES } from "@composition/specs";
 import type {
   ComponentRule,
   ComponentRuleComposition,
+  ComponentRuleContainerVariantStyles,
   ComponentRuleSize,
   ComponentRuleStructure,
   CompositionDocument,
@@ -118,6 +119,13 @@ export function resolveCatalogContainerBase(
  * `rule.containerVariants[dataAttr][attrValue]` 를 props 의 camelCase key 로 매칭한다.
  *   - `dataAttr`: kebab-case (예: `label-position`) ← props key 는 camelCase (`labelPosition`)
  *   - `attrValue`: boolean → `"true"`/`"false"`, enum → 값 그대로
+ *
+ * **variant 위치 (ADR-912 Phase 4)**: TagGroup/CheckboxGroup/TextField/ComboBox/DatePicker 류는
+ * variant 를 top-level `rule.containerVariants` 에 보유하지만, Select/Form/Toolbar/Meter/ProgressBar
+ * 류는 `structure.composition.containerVariants`(NESTED)에만 보유한다(STRUCTURE_META 흡수 시 위치
+ * 비대칭으로 land). top-level 부재 시 nested 를 fallback 으로 읽어 두 위치의 variant 가 모두 Style
+ * Panel / Skia-layout(implicitStyles) 양 consumer 에 반영되게 한다. nested 의 타입은 composition
+ * index signature(`[key: string]: unknown`)라 top-level 과 동일 런타임 구조로 cast (구조 동형 검증됨).
  */
 export function resolveCatalogContainerVariants(
   type: string,
@@ -125,7 +133,11 @@ export function resolveCatalogContainerVariants(
   doc?: CompositionDocument | null,
 ): ResolvedCatalogContainerVariants {
   const rule = resolveComponentRule(type, doc);
-  const variants = rule?.containerVariants;
+  const variants =
+    rule?.containerVariants ??
+    (rule?.structure?.composition?.containerVariants as
+      | Record<string, Record<string, ComponentRuleContainerVariantStyles>>
+      | undefined);
   if (!variants) return { styles: {}, nested: [] };
 
   const styles: Record<string, string> = {};

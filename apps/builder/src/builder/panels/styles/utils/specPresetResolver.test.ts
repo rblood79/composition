@@ -434,4 +434,60 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       expect(preset.width).toBeUndefined();
     });
   });
+
+  // ADR-912 Phase 4 — Style Panel preset source = catalog (TAG_SPEC_MAP 직독 제거).
+  //   variant override 경로(resolveLayoutSpecPreset 의 props 분기)를 명시 검증. 위 27 test 는
+  //   props 미전달이라 base 경로만 커버 — variant 경로는 본 describe 가 전담.
+  describe("ADR-912 Phase 4 — variant override 경로 (catalog containerVariants)", () => {
+    beforeEach(() => clearSpecPresetCache());
+
+    // breakdown §2-5 TextField 기대값표: top → column(override 없음) / side → row + flex-start.
+    it("TextField labelPosition=top → base column 유지 (variant override 없음)", () => {
+      const top = resolveLayoutSpecPreset("TextField", "md", {
+        labelPosition: "top",
+      });
+      expect(top.display).toBe("flex");
+      expect(top.flexDirection).toBe("column");
+    });
+
+    it("TextField labelPosition=side → flexDirection=row + alignItems=flex-start (top-level containerVariants)", () => {
+      const side = resolveLayoutSpecPreset("TextField", "md", {
+        labelPosition: "side",
+      });
+      expect(side.flexDirection).toBe("row");
+      expect(side.alignItems).toBe("flex-start");
+    });
+
+    it("TagGroup labelPosition=side → flexDirection=row (top-level containerVariants)", () => {
+      const side = resolveLayoutSpecPreset("TagGroup", "md", {
+        labelPosition: "side",
+      });
+      expect(side.flexDirection).toBe("row");
+      expect(side.alignItems).toBe("flex-start");
+    });
+
+    // nested(structure.composition.containerVariants) fallback 복원 검증 — Select/Form/Toolbar 류는
+    //   variant 를 nested 에만 보유. resolveCatalogContainerVariants 의 top-level ?? nested fallback 으로
+    //   Style Panel(+implicitStyles)에 반영. spec 삭제 cutover 로 누락됐던 것을 Phase 4 에서 복원.
+    it("Select labelPosition=side → flexDirection=row (nested containerVariants fallback)", () => {
+      const side = resolveLayoutSpecPreset("Select", "md", {
+        labelPosition: "side",
+      });
+      expect(side.flexDirection).toBe("row");
+      expect(side.alignItems).toBe("flex-start");
+    });
+
+    it("Toolbar orientation=vertical → flexDirection=column (nested containerVariants fallback)", () => {
+      const vertical = resolveLayoutSpecPreset("Toolbar", "md", {
+        orientation: "vertical",
+      });
+      expect(vertical.flexDirection).toBe("column");
+    });
+
+    it("props 미전달 시 variant override 없음 (base 경로만)", () => {
+      const base = resolveLayoutSpecPreset("TextField", "md");
+      // labelPosition props 없음 → base column 유지
+      expect(base.flexDirection).toBe("column");
+    });
+  });
 });

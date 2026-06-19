@@ -13,8 +13,9 @@
  *   2. baseline 단조 감소: 8 dispersion 패턴의 occurrence 가 baseline 을 **초과하면 regression**
  *      (실패). collapse phase(2·3·4) 진행 시 baseline 을 낮춰 0 으로 수렴. 0 도달 = §5 kill 통과.
  *
- * baseline 측정 시점: Phase 1 land (2026-06-19). STRUCTURE_META(generate-css) / mirror·base-axis
- * (implicitStyles) / TAG_SPEC_MAP(specPresetResolver) 가 아직 전부 live 인 상태.
+ * baseline 측정 시점: Phase 1 land (2026-06-19). 이후 collapse phase(2·3·4) 진행으로 8 dispersion
+ * 전부 baseline 0 도달 (2026-06-20 Phase 4 완료 — Style Panel preset source 가 catalog 단일 entry 로
+ * 전환되어 마지막 잔존 dispersion 도 0). 본 gate 는 이제 전 dispersion 의 재도입 방지 가드.
  *
  * 정밀화 메모: §5 kill 의 dispersion 패턴은 코드 정의뿐 아니라 주석 내 문자열도 매칭한다. kill
  * 대상 심볼(COMPOSITION_LAYOUT_STYLES 등)을 0 으로 만들 때 주석에서도 해당 심볼명을 직접 쓰지
@@ -172,11 +173,19 @@ const DISPERSION_BASELINE: Array<{
     killPhase: "Phase 3-A-2 ✅",
   },
   {
-    label: "TAG_SPEC_MAP 직독 (specPresetResolver)",
+    // Phase 4 완료 (2026-06-20): Style Panel preset 의 source 를 builder-local spec map(TAG_SPEC_MAP)
+    //   직독에서 catalog 단일 entry(resolveComponentRule + resolveCatalogContainerBase +
+    //   resolveCatalogContainerVariants)로 전환 → 0. createResolver 가 catalog 합성 spec-shape(sizes +
+    //   camel-normalized base + archetype)를 먹이고, variant 경로도 catalog resolver 경유. 27 red
+    //   test(spec 삭제로 빈 preset → 실제값 기대 FAIL) 전부 green. 주석에서도 심볼명 직접 사용 안 함
+    //   (false positive 회피). 재도입 가드로 baseline 0 고정. 부수: resolveCatalogContainerVariants 에
+    //   nested(structure.composition.containerVariants) fallback 추가로 Select/Form/Toolbar variant
+    //   누락 복원(Style Panel + implicitStyles 양 consumer).
+    label: "builder-local spec map 직독 (Phase 4 — specPresetResolver 삭제 ✅)",
     file: "specPresetResolver",
     pattern: /TAG_SPEC_MAP/,
-    baseline: 3,
-    killPhase: "Phase 4",
+    baseline: 0,
+    killPhase: "Phase 4 ✅",
   },
 ];
 
