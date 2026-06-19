@@ -143,16 +143,18 @@ const DISPERSION_BASELINE: Array<{
     killPhase: "Phase 3-A-2 ✅",
   },
   {
-    // Phase 3-A-1 완료 (2026-06-19): row-gap 2종(progressbar/slider) 을 specSizeField("...", size,
-    //   "gap") read-through 로 이관 + 상수 삭제. 잔존 3 = PROGRESSBAR_COL_GAP (정의 1 + 소비처 1 +
-    //   주석 1) — catalog .sizes 부재(structure.composition 토큰 문자열)라 Δ10(.sizes.columnGap
-    //   마이그레이션) 선택 시에만 0. Non-goal(Δ10-B) 선택 시 잔존 정당. baseline 6→3 (단조 감소).
+    // Phase 3-A-2 완료 (2026-06-19, Δ10): PROGRESSBAR_COL_GAP 삭제 → 0. live 실측 결과 이는 조용한
+    //   dual-SSOT(같은 12px 2곳)가 아니라 CSS↔Skia 렌더 불일치였다 — catalog 의 column-gap=
+    //   var(--spacing-md)(12px) 는 같은 selector 의 gap:4px shorthand 에 덮여 CSS effective=4px(dead),
+    //   layout 만 12 를 써서 Builder(12px)≠Preview(4px). CSS effective(4px) 정본 → column-gap 도 row-gap
+    //   처럼 .sizes.gap(=4) read-through 로 통일(specSizeField 경로, 미등록 tag ?? 4). row-gap 2종은
+    //   Phase 3-A-1(Δ4) 에서 이미 삭제. 주석에서도 심볼명 직접 사용 안 함(false positive 회피). 재도입 가드.
     label:
-      "PROGRESSBAR_COL_GAP mirror (Δ10 — row-gap 2종 Phase 3-A-1 삭제 ✅, COL 잔존)",
+      "PROGRESSBAR_COL_GAP / row-gap mirror (Δ4+Δ10 — Phase 3-A-1·3-A-2 삭제 ✅)",
     file: "implicitStyles",
     pattern: /PROGRESSBAR_ROW_GAP|PROGRESSBAR_COL_GAP|SLIDER_ROW_GAP/,
-    baseline: 3,
-    killPhase: "Phase 3-A-2 (Δ10-A 선택 시 0)",
+    baseline: 0,
+    killPhase: "Phase 3-A-2 ✅",
   },
   {
     label: "TAG_SPEC_MAP 직독 (specPresetResolver)",

@@ -306,12 +306,14 @@ const SPEC_PADDING: Record<string, { left: number; right: number; y: number }> =
 //   키 자체가 없으므로(indicator 는 수동/React 렌더, CSS 미emit) Δ5 는 schema 보강 없이 dead
 //   제거로 종결.
 
-// ADR-912 Phase 3-A-1 (Δ4, 2026-06-19): ProgressBar/Meter column-gap 은 catalog `.sizes` 에
-//   source 가 없고 structure.composition.containerStyles['column-gap']='var(--spacing-md)' 토큰
-//   문자열뿐이라 specSizeField 로 못 읽는다 → Δ10(.sizes.columnGap 마이그레이션) 까지 상수 유지.
-//   (row-gap 은 .sizes.gap=4 평행 복사본이라 specSizeField("progressbar"/"meter", size, "gap") 로
-//    이관, row-gap 상수는 삭제 — 적대 검증 w6gqcrgh3.)
-const PROGRESSBAR_COL_GAP = 12;
+// ADR-912 Phase 3-A-2 (Δ10, 2026-06-19): ProgressBar/Meter column-gap 하드코딩 상수(=12)는 삭제됨.
+//   live 실측(builder + preview iframe) 결과 CSS effective column-gap = 4px 였다 — catalog
+//   structure.composition.containerStyles 의 column-gap='var(--spacing-md)'(12px) 는 같은 selector
+//   안에서 나중 선언된 `gap: 4px` shorthand 에 덮여 dead. 반면 layout 만 12 를 써서 Builder Canvas
+//   (12px) ≠ Preview(4px) 렌더 불일치였다. CSS effective(4px) 가 사용자-가시 정본 → layout 도 row-gap
+//   과 동일하게 `.sizes.gap`(=4) read-through 로 통일(specSizeField 경로). 미등록 tag(progress/
+//   loadingbar/gauge) 는 `?? 4` 최종 fallback (row-gap 동형). Slider 는 ADR-088 에서 .sizes.columnGap
+//   으로 이관돼 gap shorthand 뒤 emit → column-gap 살아있어 별도 값(16/20) 유지, 본 통일과 직교.
 
 // track height / progressbar·slider row-gap mirror 상수는 ADR-912 Phase 3-A-1 (Δ4) 에서 삭제됨 —
 //   각 소비처가 specSizeField(type, size, field) 로 componentRulesTable 의
@@ -1648,13 +1650,19 @@ export function applyImplicitStyles(
     // 부모 container style: display/gridTemplate* 은 resolveContainerStylesFallback 이
     //   spec.containerStyles 로부터 이미 parentStyle 에 선주입 → 여기서는 gap 만 처리.
     //   ADR-912 Phase 3-A-1 (Δ4): row-gap 은 .sizes.gap=4 read-through (progressbar/meter 매칭,
-    //   catalog 미등록 tag progress/loadingbar/gauge 는 undefined → ?? 4 = 기존 상수값). column-gap 은
-    //   catalog .sizes 부재(토큰 문자열뿐)라 Δ10 까지 PROGRESSBAR_COL_GAP 유지.
+    //   catalog 미등록 tag progress/loadingbar/gauge 는 undefined → ?? 4 = 기존 상수값).
+    //   ADR-912 Phase 3-A-2 (Δ10): column-gap 도 동일 .sizes.gap read-through 로 통일 —
+    //   CSS effective column-gap = 4px (catalog 의 var(--spacing-md) 는 gap shorthand 에 덮여 dead) 와
+    //   정합. 기존 하드코딩 12 는 Builder Canvas 만 12px 로 띄워 Preview(4px) 와 불일치였다(Δ10 재판정).
+    const progressGap =
+      parentStyle.columnGap ??
+      specSizeField(containerTag, sizeName, "gap") ??
+      4;
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
       rowGap:
         parentStyle.rowGap ?? specSizeField(containerTag, sizeName, "gap") ?? 4,
-      columnGap: parentStyle.columnGap ?? PROGRESSBAR_COL_GAP,
+      columnGap: progressGap,
     });
   }
 

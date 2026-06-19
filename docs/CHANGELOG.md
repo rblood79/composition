@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ProgressBar/Meter column-gap CSS↔Skia 불일치 수정 — Builder Canvas 12px→4px (ADR-912 Δ10)] - 2026-06-19
+
+ADR-912 catalog SSOT collapse Phase 3-A-2 (Δ10) 실행 중 live 실측으로 전제가 뒤집힘 — `PROGRESSBAR_COL_GAP=12` 하드코딩 상수가 catalog 와 같은 값을 중복 보유한 dual-SSOT 가 아니라, CSS↔Skia 렌더 파리티 버그였음이 드러남.
+
+### Bug Fixes
+
+- **ProgressBar/Meter 의 Label↔Value 가로 간격이 Builder Canvas(12px) ↔ Preview(4px) 불일치** (CSS gap shorthand 가 column-gap longhand 무력화 ↔ Skia 하드코딩):
+  - **Why**: catalog `structure.composition.containerStyles` 의 `column-gap: var(--spacing-md)`(=12px) 는 generated CSS 에서 **같은 selector 안 나중 선언된 `gap: 4px` shorthand 에 덮여 effective 4px**(longhand → shorthand cascade override). 모든 data-size selector 도 `gap: 4px` 만 가져 CSS 실효 column-gap = 4px 로 수렴. 반면 Skia layout(`implicitStyles`)은 `PROGRESSBAR_COL_GAP=12` 하드코딩을 써서 Builder Canvas 에서만 12px → Preview(4px)와 렌더 차이. (Slider 는 ADR-088 에서 `.sizes.columnGap` 으로 이관돼 `gap` shorthand **뒤**에 emit → column-gap 살아남음. ProgressBar/Meter 만 미이관 상태로 남아 buried.)
+  - **live 실측 확증**: builder + preview iframe 양쪽 computed `column-gap = 4px`. 실제 ProgressBar(size=md) element 에 `applyImplicitStyles` 호출 시 변경 전 `columnGap=12` → 변경 후 `columnGap=4`.
+  - 수정 (`implicitStyles.ts`): CSS effective(4px)를 사용자-가시 정본으로 채택 → ProgressBar/Meter column-gap 도 row-gap 과 동일하게 `.sizes.gap`(=4) read-through(`specSizeField(containerTag, sizeName, "gap") ?? 4`)로 통일. 하드코딩 `PROGRESSBAR_COL_GAP` 상수 삭제. catalog 의 dead `column-gap: var(--spacing-md)` 선언은 보존(건드리면 byte-diff 발생) → generated CSS byte-diff 0.
+  - 검증: generated CSS byte-diff 0(build:specs 재생성 후, layout-only) · type-check builder baseline 71 불변 · shared catalog 211 PASS · grep gate(`adr912CollapseGrepGate`) PROGRESSBAR_COL_GAP baseline 3→0 (10 PASS) · live ProgressBar layout column-gap 4 확증.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`
+
+### Architecture
+
+- **ADR-912 catalog SSOT collapse Phase 3-A-2 (Δ10) — implicitStyles mirror 상수 잔여 소진**:
+  - Δ4(Phase 3-A-1, track height + row-gap 2종) · Δ5(Phase 3-A-2, INDICATOR_SIZES dead 제거) 에 이은 implicitStyles 하드코딩 mirror 마지막 항목. `PROGRESSBAR_COL_GAP` 삭제로 grep gate 의 progressbar gap mirror 패턴(`PROGRESSBAR_ROW_GAP|PROGRESSBAR_COL_GAP|SLIDER_ROW_GAP`) occurrence 0 도달.
+  - **breakdown lock-in 옵션(Δ10-A `.sizes.columnGap` 추가 / Δ10-B Non-goal) 대신 제3 경로(`.sizes.gap` read-through 통일)로 종결** — live 실측이 "조용한 dual-SSOT collapse(byte-diff 0)" 전제를 "값 불일치 수정"으로 정정(Δ5 옵션 c 와 동형 패턴). 사용자 confirm: CSS effective(4px) 정본.
+  - 위치: `packages/shared/src/catalog/__tests__/adr912CollapseGrepGate.test.ts`
+
 ## [TagGroup Skia page 오버플로 수정 — factory width:100% 명시(칩 wrap 대칭)] - 2026-06-19
 
 사용자 보고: 변경 없는 기본 상태에서 size=L 일 때 CSS preview 는 TagGroup 이 page 폭 내에서 칩(TagList child) 자동 줄바꿈하지만, Skia 는 칩이 1줄로 늘어서 page 를 벗어남. 임시로 width:100% 또는 align-self:stretch 를 주면 Skia 도 page 내 + 칩 줄바꿈 정상.
