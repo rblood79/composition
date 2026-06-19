@@ -15,6 +15,8 @@ export * from "./outputs/toSkiaStyle";
 export * from "./bindings";
 // ADR-142 G2(b) B — 컴포넌트 시각 규칙 resolver (build-time 생성 테이블 소비, spec 참조 0)
 export * from "./resolvers/resolveComponentRule";
+// ADR-912 catalog SSOT collapse — 컨테이너 base/variant/structure/size-value 단일 진입 (specs import 0)
+export * from "./resolvers/resolveCatalogContainer";
 // ADR-912 1A-(b) — base/override 2층 분리 코어 (HC#3)
 export * from "./resolvers/resolveMergedStyle";
 // ADR-912 1A-(4) — 편집 계약 단일 진입점 (semantic ∪ universal style, origin 태그, HC#1/#2)

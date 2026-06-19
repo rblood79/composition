@@ -1,0 +1,187 @@
+/**
+ * ADR-912 catalog SSOT collapse — 컨테이너 base/variant/structure/size-value 단일 진입 resolver.
+ *
+ * breakdown(`docs/adr/design/912-catalog-ssot-collapse-breakdown.md`) §2-2. CSS generator /
+ * Skia·layout(`implicitStyles`) / Style Panel(`specPresetResolver`) 세 consumer 가 컴포넌트
+ * 구조·base-layout·size-value 를 `componentRulesTable` 한 entry 에서만 파생하게 하는 단일 진입점.
+ *
+ * **패키지 경계 (Δ1)**: 본 파일은 `@composition/specs` 를 import 하지 않는다 — `ComponentRule`
+ * 타입과 generated table 이 모두 shared 내부에 있으므로 specs 의존이 불필요(`grep -c
+ * "@composition/specs"` = 0). `specs ← shared` 단방향 의존 유지.
+ *
+ * resolver 는 CSS-style raw data(kebab-case key) 를 반환하고, camelCase 변환은 Builder/Panel 쪽
+ * 기존 normalization helper 가 담당한다(breakdown §2-2 — 변환 책임을 resolver 에 넣지 않음).
+ */
+
+import type {
+  ComponentRule,
+  ComponentRuleComposition,
+  ComponentRuleLayoutToken,
+  ComponentRuleSize,
+  ComponentRuleStructure,
+  CompositionDocument,
+} from "../../types/composition-document.types";
+import { resolveComponentRule } from "./resolveComponentRule";
+
+/**
+ * shared 단일 layout token table (Δ7 — generate-css `COMPOSITION_LAYOUT_STYLES` 의 catalog 대응).
+ * CSS-style raw data. CSSGenerator / Skia / Panel 이 같은 source 를 읽도록 generator-private
+ * 복사본을 제거하고 본 table 로 단일화한다.
+ */
+export const CATALOG_LAYOUT_STYLES: Record<
+  ComponentRuleLayoutToken,
+  Record<string, string>
+> = {
+  "flex-column": {
+    display: "flex",
+    "flex-direction": "column",
+    "align-items": "flex-start",
+    "box-sizing": "border-box",
+  },
+  "flex-row": {
+    display: "flex",
+    "flex-direction": "row",
+    "align-items": "center",
+    "box-sizing": "border-box",
+  },
+  "inline-flex": {
+    display: "inline-flex",
+    "align-items": "center",
+    "box-sizing": "border-box",
+  },
+  grid: {
+    display: "grid",
+    "box-sizing": "border-box",
+  },
+};
+
+/** 매칭된 container variant 의 적용 styles + 자식 주입용 nested rule (specs 버전 출력 shape 동일). */
+export interface ResolvedCatalogContainerVariants {
+  /** container 자신에 적용할 style (kebab-case key). */
+  styles: Record<string, string>;
+  /** 자식 element 주입용 nested rule (consumer 가 selector 매칭 후 머지). */
+  nested: Array<{ selector: string; styles: Record<string, string> }>;
+}
+
+/** camelCase prop key → kebab-case data-attr key (`labelPosition` → `label-position`). */
+function camelToKebab(key: string): string {
+  return key.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+}
+
+/** boolean / enum prop 값을 containerVariants attr value 키로 정규화. */
+function attrValueKey(value: unknown): string {
+  if (value === true) return "true";
+  if (value === false) return "false";
+  return String(value);
+}
+
+/** 컴포넌트 type → `rule.structure` (없으면 undefined). */
+export function resolveCatalogStructure(
+  type: string,
+  doc?: CompositionDocument | null,
+): ComponentRuleStructure | undefined {
+  return resolveComponentRule(type, doc)?.structure;
+}
+
+/**
+ * 컴포넌트 base container style (Δ2 merge precedence — 단일 거처).
+ *
+ * 우선순위 (last-wins):
+ *   1. `structure.layout → CATALOG_LAYOUT_STYLES[layout]` (base, 최저)
+ *   2. `structure.composition.containerStyles` (layout 파생)
+ *   3. top-level `rule.containerStyles` (컴포넌트별 override, 최고)
+ *
+ * 이 precedence 를 본 함수 안에 inline 으로 못박아 generator / Skia / Panel 이 갈라지지 않게 한다.
+ * `containerVariants` 는 top-level 에만 두고 여기서 합성하지 않는다(props 매칭은 별도 resolver).
+ */
+export function resolveCatalogContainerBase(
+  type: string,
+  doc?: CompositionDocument | null,
+): Record<string, string> {
+  const rule = resolveComponentRule(type, doc);
+  if (!rule) return {};
+
+  const merged: Record<string, string> = {};
+
+  // 1. layout token base
+  const layout = rule.structure?.layout;
+  if (layout && CATALOG_LAYOUT_STYLES[layout]) {
+    Object.assign(merged, CATALOG_LAYOUT_STYLES[layout]);
+  }
+
+  // 2. structure.composition.containerStyles (layout 파생)
+  const composition: ComponentRuleComposition | undefined =
+    rule.structure?.composition;
+  if (composition?.containerStyles) {
+    Object.assign(merged, composition.containerStyles);
+  }
+  // composition.gap 은 root flex gap — gap 키로 흡수(이미 containerStyles 에 gap 있으면 미덮음).
+  if (composition?.gap != null && merged.gap == null) {
+    merged.gap = composition.gap;
+  }
+
+  // 3. top-level rule.containerStyles (override, last-wins)
+  if (rule.containerStyles) {
+    Object.assign(merged, rule.containerStyles);
+  }
+
+  return merged;
+}
+
+/**
+ * props 에 매칭되는 container variant 합성 (Δ3 — plain-data 재작성, specs `resolveContainerVariants`
+ * 의 spec 결합 버전과 별개). 출력 shape 는 `ResolvedCatalogContainerVariants`.
+ *
+ * `rule.containerVariants[dataAttr][attrValue]` 를 props 의 camelCase key 로 매칭한다.
+ *   - `dataAttr`: kebab-case (예: `label-position`) ← props key 는 camelCase (`labelPosition`)
+ *   - `attrValue`: boolean → `"true"`/`"false"`, enum → 값 그대로
+ */
+export function resolveCatalogContainerVariants(
+  type: string,
+  props: Record<string, unknown>,
+  doc?: CompositionDocument | null,
+): ResolvedCatalogContainerVariants {
+  const rule = resolveComponentRule(type, doc);
+  const variants = rule?.containerVariants;
+  if (!variants) return { styles: {}, nested: [] };
+
+  const styles: Record<string, string> = {};
+  const nested: ResolvedCatalogContainerVariants["nested"] = [];
+
+  for (const [dataAttr, valueMap] of Object.entries(variants)) {
+    // props 에서 dataAttr 에 대응하는 camelCase key 를 찾는다.
+    const propEntry = Object.entries(props).find(
+      ([propKey]) => camelToKebab(propKey) === dataAttr,
+    );
+    if (!propEntry) continue;
+    const [, propValue] = propEntry;
+    if (propValue == null) continue;
+
+    const variant = valueMap[attrValueKey(propValue)];
+    if (!variant) continue;
+
+    if (variant.styles) Object.assign(styles, variant.styles);
+    if (variant.nested) {
+      for (const n of variant.nested) {
+        nested.push({ selector: n.selector, styles: n.styles ?? {} });
+      }
+    }
+  }
+
+  return { styles, nested };
+}
+
+/**
+ * size-value 단일 진입 (Δ4 — implicitStyles 하드코딩 mirror 대체).
+ * `componentRulesTable.{type}.sizes.{size}.{field}` 를 직접 읽는다. ProgressBarTrack/MeterTrack
+ * `height`, Checkbox/Radio `gap` 등이 대상. 미등록 type/size/field → undefined.
+ */
+export function resolveCatalogSizeField(
+  type: string,
+  size: string,
+  field: keyof ComponentRuleSize,
+  doc?: CompositionDocument | null,
+): ComponentRuleSize[keyof ComponentRuleSize] | undefined {
+  const rule: ComponentRule | undefined = resolveComponentRule(type, doc);
+  return rule?.sizes?.[size]?.[field];
+}

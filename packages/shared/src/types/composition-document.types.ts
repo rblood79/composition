@@ -378,6 +378,69 @@ export interface ComponentRule {
     string,
     Record<string, ComponentRuleContainerVariantStyles>
   >;
+  /**
+   * generator-only 구조 메타 (ADR-912 catalog SSOT collapse — generate-css `STRUCTURE_META`
+   * 흡수). CSS emit 대상 컴포넌트만 보유. 미보유 = CSS emit 안 함(세 번째 "entry 는 있으나
+   * emit 안 됨" 상태 방지). `structure.layout` 이 field 류 root layout 의 정본.
+   *
+   * 패키지 경계: 모든 필드는 specs `ComponentSpec[...]` 참조 없이 shared 자체 타입으로 선언
+   * (`specs ← shared` 의존 방향 — 새 resolver 의 `@composition/specs` import 0 유지).
+   */
+  structure?: ComponentRuleStructure;
+}
+
+/** CSS emit layout token (generate-css `COMPOSITION_LAYOUT_STYLES` key 의 catalog 대응). */
+export type ComponentRuleLayoutToken =
+  | "flex-column"
+  | "flex-row"
+  | "inline-flex"
+  | "grid";
+
+/**
+ * 구조 메타 base (ADR-912 — generate-css `StructureMeta` 의 shared 대응).
+ * specs `ComponentSpec[...]` 인덱스 접근을 shared 자체 타입으로 재선언 — specs import 0.
+ */
+export interface ComponentRuleStructure {
+  /** CSS emit membership 명시 플래그. 항상 true (미emit 컴포넌트는 structure 자체를 안 둠). */
+  emitCss: true;
+  /** spec archetype 의 catalog 대응 (CSSGenerator base style 파생). */
+  archetype: string;
+  /** root DOM element tag (예: "div"). */
+  element: string;
+  /** root layout token. `CATALOG_LAYOUT_STYLES[layout]` 로 base container style 파생. */
+  layout?: ComponentRuleLayoutToken;
+  /** composition 메타 (gap / containerStyles / selectors 등 — 기존 STRUCTURE_META.composition 이동). */
+  composition?: ComponentRuleComposition;
+  /** 상태별 CSS (hover/pressed/disabled/focusVisible — 기존 STRUCTURE_META.states 이동). */
+  states?: ComponentRuleStates;
+  /** CSS emit 모드. button-base = `--button-color` 변수 + utility color-mix 자동 파생. */
+  cssEmitMode?: "direct" | "button-base";
+  /** selection indicator 구조 메타 (ToggleButtonGroup pill 위치/box-shadow). */
+  indicatorMode?: Record<string, unknown>;
+}
+
+/**
+ * structure.composition (ADR-912). field 류 root 의 gap / 추가 containerStyles 및
+ * delegation / static·root selector 등 generator 가 emit 하는 구조 정보.
+ * runtime base style 은 `resolveCatalogContainerBase` 가 `layout → containerStyles →
+ * top-level rule.containerStyles` 순으로 합성 (Δ2 precedence).
+ */
+export interface ComponentRuleComposition {
+  /** root flex gap (예: "var(--spacing-xs)"). */
+  gap?: string;
+  /** layout 파생 추가 container style (예: `{ width: "fit-content" }`). */
+  containerStyles?: Record<string, string>;
+  /** 그 외 generator 전용 구조 키 (delegation / selectors 등 — emit 시점에만 소비). */
+  [key: string]: unknown;
+}
+
+/** structure.states (ADR-912). 상태별 CSS 속성 맵 (generator emit 전용). */
+export interface ComponentRuleStates {
+  hover?: Record<string, unknown>;
+  pressed?: Record<string, unknown>;
+  disabled?: Record<string, unknown>;
+  focusVisible?: Record<string, unknown>;
+  [state: string]: Record<string, unknown> | undefined;
 }
 
 /**

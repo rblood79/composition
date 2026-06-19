@@ -263,38 +263,69 @@ TextField 기대값:
 
 ## 3. Phase plan
 
-### Phase 0 — red tests and guard inventory
+### Phase 0 — red tests and guard inventory ✅ Land 완료 (2026-06-19)
 
 수정 전에 실패 테스트를 먼저 고정한다.
 
-- `specPresetResolver.test.ts`
+- ~~`specPresetResolver.test.ts`~~ → **Phase 4 로 이동** (게이트 위생 결정, 아래 참조)
   - TextField without spec: top/default -> column preset.
   - TextField without spec: side -> row preset.
   - TagGroup: base containerStyles + side variant 모두 catalog resolver 로 표시.
-- shared resolver test
-  - `resolveCatalogContainerBase("TextField")` -> flex column.
-  - `resolveCatalogContainerVariants("TextField", { labelPosition:"side" })` -> row.
-  - unknown type -> empty.
-- grep guard
-  - Style Panel `specPresetResolver.ts` 에 `TAG_SPEC_MAP` import 금지.
-  - `implicitStyles.ts` 에 `LOWERCASE_COMPONENT_RULE_CONTAINER` 재도입 금지.
-  - `generate-css.ts` 에 `STRUCTURE_META_ENTRIES` 재도입 금지.
-  - (Δ8) `implicitStyles.ts` 에 `VALUE_FILL_TRACK_HEIGHT` / `INDICATOR_SIZES.gap` /
-    `PROGRESSBAR_ROW_GAP` / `PROGRESSBAR_COL_GAP` / `SLIDER_ROW_GAP` 같은 size-value mirror 재도입 금지.
-  - (Δ6) `implicitStyles.ts` 에 `flexDirection: ... ?? "column"` base-axis fallback 재도입 금지 — grep 결과 0 (field류 5 + collection-item 2 전수, 특정 branch 한정 아님).
-  - (Δ7) `CSSGenerator.ts` 에 `COMPOSITION_LAYOUT_STYLES` 재도입 금지 (shared `CATALOG_LAYOUT_STYLES` 만).
+- shared resolver test ✅ — `packages/shared/src/catalog/__tests__/resolveCatalogContainer.test.ts` (14 PASS)
+  - `resolveCatalogContainerBase("TextField")` -> flex column. ✅ (Δ2 precedence 검증)
+  - `resolveCatalogContainerVariants("TextField", { labelPosition:"side" })` -> row. ✅
+  - `resolveCatalogSizeField` -> ProgressBarTrack.height=8 / Checkbox.gap=8 (mirror byte 일치). ✅
+  - unknown type -> empty. ✅
+- grep guard ✅ — `packages/shared/src/catalog/__tests__/adr912CollapseGrepGate.test.ts` (9 PASS, baseline 단조 감소 방식)
+  - 즉시-0: 새 resolver 의 `@composition/specs` **import 문** = 0.
+  - baseline 고정(collapse 진행하며 0 으로 낮춤): STRUCTURE_META_ENTRIES(2) / COMPOSITION_LAYOUT_STYLES(2) /
+    LOWERCASE_COMPONENT_RULE_CONTAINER(3) / base-axis fallback(7) / VALUE_FILL_TRACK_HEIGHT(8 occurrence) /
+    INDICATOR_SIZES(5) / PROGRESSBAR·SLIDER gap(6) / TAG_SPEC_MAP(3). 초과 시 regression 감지.
+  - **정밀화 P0-(a)**: §3 원안 `grep -c "@composition/specs" = 0` 은 **주석에 그 문자열을 쓰면 false
+    positive** (resolver 가 패키지 경계를 설명하느라 2회 인용 → 가드 자기-위반). 가드를 `from ['"]@composition/specs`
+    import 문만 검사하도록 좁힘.
+  - **정밀화 P0-(b)**: occurrence 카운트는 `grep -c`(라인 수)가 아니라 JS `match(/g)`(총 등장 수). 같은 라인
+    2회 등장(`X[s] ?? X.md`)을 모두 세므로 VALUE_FILL_TRACK_HEIGHT baseline 은 grep 5 가 아니라 occurrence 8.
+  - **게이트 위생 결정 (specPresetResolver red 를 Phase 4 로 이동)**: §3 원안은 Phase 0 에서 모든 red 를
+    먼저 고정하려 했으나, `specPresetResolver.test.ts` 의 TextField top/side red 는 Panel 이 아직
+    `TAG_SPEC_MAP` 직독 상태라 Phase 1~3 내내 **builder 테스트를 red 로 오염**시킨다(type-check/test 게이트
+    위반). 따라서 Panel red 는 Phase 4(Panel consumer collapse) 직전에 작성한다. shared resolver red(이미
+    green)와 grep gate(baseline)만 Phase 0 에 둔다.
 
-### Phase 1 — schema and resolver
+### Phase 1 — schema and resolver ✅ Land 완료 (2026-06-19, kill-gate PASS)
 
-- `ComponentRuleStructure` / `ComponentRuleComposition` / `ComponentRuleStates` 타입 추가
-  (`composition-document.types.ts`, shared 내부 — specs import 0).
-- shared resolver 구현 (`resolveCatalogStructure` / `ContainerBase` / `ContainerVariants` /
-  `StylePreset` / **`SizeField` Δ4**). `resolveCatalogContainerBase` 에 Δ2 merge 우선순위 내장.
-- (Δ1) 새 resolver 파일은 `@composition/specs` import 0 — `grep -c "@composition/specs"` = 0 으로 검증.
-- (Δ3) `resolveCatalogContainerVariants` 는 plain-data 시그니처로 **재작성** (기존 spec 결합 버전과 별개).
-- `CATALOG_LAYOUT_STYLES` 를 shared 로 이동.
-- token/case normalization 은 기존 consumer helper 를 재사용하고, resolver 는 raw style
-  data 를 반환한다.
+- ✅ `ComponentRuleStructure` / `ComponentRuleComposition` / `ComponentRuleStates` /
+  `ComponentRuleLayoutToken` 타입 추가 (`composition-document.types.ts:381~`, shared 내부 — specs
+  `ComponentSpec[...]` 인덱스 접근 대신 shared 자체 타입으로 재선언, specs import 0).
+- ✅ shared resolver 구현 (`resolveCatalogContainer.ts`): `resolveCatalogStructure` /
+  `resolveCatalogContainerBase` (Δ2 merge precedence 내장) / `resolveCatalogContainerVariants` (Δ3
+  plain-data) / `resolveCatalogSizeField` (Δ4) + `CATALOG_LAYOUT_STYLES` (Δ7 shared 단일 table).
+  `StylePreset` resolver 는 Phase 4(Panel) 에서 추가 — Panel 전환과 함께 작성하는 게 소비처 정합.
+- ✅ (Δ1) 새 resolver 파일 `@composition/specs` import 문 = 0 (실제 import, 주석 제외).
+- ✅ (Δ3) `resolveCatalogContainerVariants` plain-data 시그니처 재작성 — 출력 shape `{ styles, nested }`
+  는 기존 specs `ResolvedContainerVariants` 와 동일.
+- ✅ `CATALOG_LAYOUT_STYLES` shared 정의 (kebab-case raw, COMPOSITION_LAYOUT_STYLES 와 시각 동형).
+- ✅ resolver 는 raw style data(kebab-case) 반환, camelCase 변환은 consumer 책임 (미구현 — Phase 3/4 소비 시점).
+
+**Phase 1 kill-gate (사용자 §1 지침 — "resolver 가 Δ2 precedence + specs-import-0 으로 깨끗하게 나와야
+Phase 2 진입 자격")**:
+
+| 조건                                                                            | 결과               |
+| ------------------------------------------------------------------------------- | ------------------ |
+| resolver Δ2 merge precedence (layout → composition.containerStyles → top-level) | ✅ 14 test PASS    |
+| 새 resolver `@composition/specs` import 문 = 0                                  | ✅ grep gate PASS  |
+| shared type-check 회귀 0                                                        | ✅ exit 0          |
+| builder type-check 회귀 0 (baseline 71)                                         | ✅ exit 0, error 0 |
+| specs type-check + 461 test (CSS snapshot byte-diff 0)                          | ✅ PASS            |
+| generated CSS byte-diff 0 (structure 추가 = generator 미반영)                   | ✅ 불변 확인       |
+
+→ **kill-gate PASS. Phase 2(STRUCTURE_META 85 entry 전수 이관 + byte-diff-0) 진입 자격 충족.**
+
+**TextField structure 시범 이관 (kill-gate 데이터 source)**: Phase 2 전수 이관 전, resolver 를 falsifiable
+검증하기 위해 `componentRulesTable.TextField` 에만 `structure: { layout: "flex-column", composition: {
+gap, containerStyles: { width: "fit-content" } } }` 를 추가했다. generator 는 아직 STRUCTURE_META 만
+읽으므로 generated CSS 미영향 — Phase 2 에서 나머지 84 entry 이관 + STRUCTURE_META 삭제 +
+buildVirtualSpecs rule-table 순회 전환 시 본 필드가 정본이 된다.
 
 ### Phase 2 — STRUCTURE_META migration
 

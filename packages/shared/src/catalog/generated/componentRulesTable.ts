@@ -6625,6 +6625,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // ADR-912 catalog SSOT collapse Phase 1 (2026-06-19): generate-css `STRUCTURE_META` 의
+    //   TextField 구조 메타 이관 시범분(kill-gate). generator 는 아직 STRUCTURE_META 만 읽으므로
+    //   본 필드는 generated CSS 미영향 — shared resolver(`resolveCatalogContainerBase`) 의 Δ2
+    //   merge precedence 를 falsifiable 검증하는 데이터 source. Phase 2 에서 85 entry 전수 이관 +
+    //   STRUCTURE_META 삭제 + buildVirtualSpecs rule-table 순회 전환 시 본 필드가 정본이 된다.
+    structure: {
+      emitCss: true,
+      archetype: "default",
+      element: "div",
+      layout: "flex-column",
+      composition: {
+        gap: "var(--spacing-xs)",
+        containerStyles: {
+          width: "fit-content",
+        },
+      },
+    },
   },
   TimeField: {
     defaultSize: "md",
