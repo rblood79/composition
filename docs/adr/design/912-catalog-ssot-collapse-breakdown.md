@@ -778,19 +778,30 @@ T1~T6 종결 조건 + Δ8 진짜 수렴 모두 통과. 8 dispersion + Δ8 size-v
 (Slider→ProgressCircle/DisclosureHeader→PHANTOM gaps→SPEC_PADDING/barHeight). 4차 후 layout 경로(utils.ts +
 implicitStyles.ts) 전 size-indexed Record 전수 인벤토리로 미흡수 catalog-대응이 정확히 SPEC_PADDING +
 barHeight 2종뿐임을 확정 → 흡수. 5차 독립 검증(Explore agent, refute 가정)이 전수 재수색 후 미흡수
-catalog-대응 mirror 0 (Phase 6 제외) CONFIRMED. 전수 분류:
+catalog-대응 mirror 0 (당시 Phase 6 제외) CONFIRMED. **이후 Phase 6 (2026-06-20)에서 Calendar/DateInput
+mirror 4종까지 흡수 → 제외 항목조차 0, size-value 축 완전 종결.** 전수 분류:
 
-| 분류                             | 심볼                                                                                                                                                                                                                                                         |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| absorbed (catalog read-through)  | SPEC_PADDING→specPaddingFromCatalog / valueFillMetrics barHeight→valueFillTrackHeight / sliderTrackRowHeight / specSizeGap / phantomIndicatorGap / statusLightDims / progressCircleDiameter / disclosureHeaderDims / resolveTagChipMetric / CARD_SIZE_CONFIG |
-| catalog-derived (인프라/묶음)    | INLINE_UI_SIZE_CONFIGS / BUTTON·BADGE·TAG·TOGGLEBUTTON·TAB_SIZE_CONFIG / ruleSizesToSizeSpecMap / LOWERCASE_COMPONENT_RULE_SIZES                                                                                                                             |
-| layout-private (catalog 키 부재) | STATUSLIGHT_DOT_SIZE (dot 키 0) / PHANTOM_INDICATOR_CONFIGS widths·heights·rowHeights (box/row-height 키 0) / DisclosureHeader gap (gap 키 0) / PANEL_HEIGHTS (Panel rule 없음)                                                                              |
-| catalog-orthogonal               | DEFAULT_SIZE_BY_TAG (size 기본값 이름, 치수 아님)                                                                                                                                                                                                            |
-| phase6-deferred (고위험)         | CalendarHeader headerHeights·calDims / CalendarGrid gridDims / DateInput inputHeights (절대좌표 텍스트 렌더, grep gate baseline=4)                                                                                                                           |
+| 분류                                    | 심볼                                                                                                                                                                                                                                                         |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| absorbed (catalog read-through)         | SPEC_PADDING→specPaddingFromCatalog / valueFillMetrics barHeight→valueFillTrackHeight / sliderTrackRowHeight / specSizeGap / phantomIndicatorGap / statusLightDims / progressCircleDiameter / disclosureHeaderDims / resolveTagChipMetric / CARD_SIZE_CONFIG |
+| catalog-derived (인프라/묶음)           | INLINE_UI_SIZE_CONFIGS / BUTTON·BADGE·TAG·TOGGLEBUTTON·TAB_SIZE_CONFIG / ruleSizesToSizeSpecMap / LOWERCASE_COMPONENT_RULE_SIZES                                                                                                                             |
+| layout-private (catalog 키 부재)        | STATUSLIGHT_DOT_SIZE (dot 키 0) / PHANTOM_INDICATOR_CONFIGS widths·heights·rowHeights (box/row-height 키 0) / DisclosureHeader gap (gap 키 0) / PANEL_HEIGHTS (Panel rule 없음)                                                                              |
+| catalog-orthogonal                      | DEFAULT_SIZE_BY_TAG (size 기본값 이름, 치수 아님)                                                                                                                                                                                                            |
+| absorbed Phase 6 (catalog read-through) | CalendarHeader headerHeights·calDims / CalendarGrid gridDims / DateInput inputHeights → resolveSkiaRule(type).sizes (catalog byte-identical 17값, datefield 선례 동형, baseline 4→0)                                                                         |
 
-**잔여 (Phase 6, §4-1 직교)**: CalendarHeader/DateInput mirror 흡수 (baseline=4 정직 등재) + propagation·
-factory·child-filtering 축 (시각/구조/size 축 밖). valueFillMetrics 상수는 소비처 0 (dead) 이나 specs
-re-export 잔존 — 별도 삭제 승인 대상.
+**Phase 6 흡수 완료 (2026-06-20, `62f15511d`)**: CalendarHeader/CalendarGrid/DateInput 의 size-value
+mirror 4종(calDims/headerHeights/inputHeights/gridDims)을 `resolveSkiaRule(type).sizes` read-through 로
+흡수. 직전 baseline=4 의 **"절대좌표 텍스트 렌더 고위험" framing 은 이중 오류로 정정**: (1) Skia grep
+"절대좌표"=renderCommands boundsMap 컬링/hit-test 로 Calendar 와 직교 (컴포넌트 절대좌표 0건) (2)
+canvas-rendering.md §6 "다중 줄 보정 스킵"=텍스트 _측정_ 보정이지 _값_ 미러 흡수와 별개 layer. 적대
+검증(Workflow wnvirhmvg)으로 mirror=props.size 룩업+산술뿐, catalog 와 byte-identical, 필요 필드
+(iconSize/gap/height) 전부 ComponentRuleSize 스키마 기존 → **LOW 위험** 확정 후 흡수. catalog 17값
+byte-identical 정적 probe + live(Vite dev utils import) CalendarHeader 24·30·36/width246 · CalendarGrid
+h204·w246 · DateInput 20·22·30·42·54 전수 일치. grep gate baseline 4→0 (위장 0 아닌 실제 0). 회귀 가드
+calendarHeaderIntrinsicSize.test.ts +4 test(10 PASS).
+
+**잔여 (§4-1 직교, 시각/구조/size 축 밖)**: propagation·factory·child-filtering 축. — size-value mirror
+축은 Phase 6 흡수로 **완전 종결** (catalog-대응 미흡수 0, valueFillMetrics dead 상수도 Phase 5 후속 삭제 완료).
 
 ## 4. Non-goals
 

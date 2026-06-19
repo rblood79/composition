@@ -7,9 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [catalog SSOT collapse 종결 — visual/structure/size 축 단일화 (ADR-912 Phase 5 + Δ8 진짜 수렴)] - 2026-06-20
+## [catalog SSOT collapse 종결 — visual/structure/size 축 단일화 (ADR-912 Phase 5+6 + Δ8 진짜 수렴)] - 2026-06-20
 
-ADR-912 catalog SSOT collapse 의 마지막 단계(gates and documentation) 완결. layout/Skia 경로가 catalog `.sizes.{field}` 를 inline 복제하던 dual-SSOT mirror 를 전부 catalog read-through 로 흡수 — calculateContentHeight 경로(grep gate FILES map 밖이라 baseline "위장 0" 이던 영역)까지 scope 포함. 적대 검증 5회로 진짜 수렴 CONFIRMED(미흡수 catalog-대응 mirror 0, Phase 6 분리분 제외). T1~T6 종결 조건 동시 PASS.
+ADR-912 catalog SSOT collapse 의 마지막 단계(gates and documentation + Calendar/DateInput mirror 흡수) 완결. layout/Skia 경로가 catalog `.sizes.{field}` 를 inline 복제하던 dual-SSOT mirror 를 전부 catalog read-through 로 흡수 — calculateContentHeight 경로(grep gate FILES map 밖이라 baseline "위장 0" 이던 영역)까지 scope 포함. 적대 검증 5회로 진짜 수렴 CONFIRMED 후 Phase 6 에서 Calendar/DateInput mirror 4종까지 흡수 → **size-value SOURCE 축 미흡수 catalog-대응 mirror 0(완전 종결)**. T1~T6 종결 조건 동시 PASS.
 
 ### Bug Fixes
 
@@ -24,10 +24,18 @@ ADR-912 catalog SSOT collapse 의 마지막 단계(gates and documentation) 완�
   - calculateContentHeight(`utils.ts`) 경로의 size-value mirror 흡수: Slider thumbSize(`sliderTrackRowHeight`) / row-gap(`specSizeGap`) / StatusLight height·gap·fontSize(`statusLightDims`) / ProgressCircle diameter(`progressCircleDiameter`) / DisclosureHeader dims(`disclosureHeaderDims`) / PHANTOM indicator gap(`phantomIndicatorGap`). 전부 catalog `.sizes` read-through 단일화 + 평행 상수 삭제. byte-diff 0(catalog source = 흡수 전 상수 byte-identical).
   - **Phase 5 후속(Δ8) — 전수 인벤토리 확정 후 마지막 mirror 2종 흡수**: `SPEC_PADDING`(→`specPaddingFromCatalog` = catalog SelectTrigger.sizes.paddingX/paddingY) + valueFillMetrics `barHeight`(→`valueFillTrackHeight` = catalog ProgressBarTrack·MeterTrack.sizes.height). layout 경로 전 size-indexed Record 전수 인벤토리로 미흡수 catalog-대응이 정확히 이 2종뿐임을 확정.
   - **grep gate scope 갭 차단**: `adr912CollapseGrepGate` FILES map 에 `utilsLayout`(calculateContentHeight 경로) 추가 — Δ8 prose("layout/Skia 파일이 componentRulesTable.sizes 복제 금지")의 scope 가 기존 FILES map 보다 넓어 utils.ts mirror 가 baseline 0 으로 위장되던 갭을 닫음. 흡수된 mirror + SPEC_PADDING + barHeight import 재도입 가드 baseline 0(위장 0 아님).
-  - **적대 검증 5회로 진짜 수렴 CONFIRMED**: piecewise detect-absorb 가 1~4차에서 매번 새 mirror 적발(Slider→ProgressCircle/DisclosureHeader→PHANTOM gaps→SPEC_PADDING/barHeight) → 4차 후 전수 인벤토리로 미흡수 2종 확정·흡수 → 5차 독립 검증(Explore agent refute 가정)이 미흡수 catalog-대응 mirror 0(Phase 6 제외) 확증.
-  - **재승격 note 축 한정(§4-1, Δ9)**: 본 collapse 는 **시각/구조/size SOURCE 축**만 닫았다 — 무조건적 "1 컴포넌트 = 1 등록" 주장 금지. propagation registry / factory creator / child-filtering branch 멤버십은 별도 잔여 축(scope 밖). CalendarHeader/DateInput mirror 는 절대좌표 텍스트 렌더 고위험으로 Phase 6 분리(grep gate baseline=4 정직 등재).
+  - **적대 검증 5회로 진짜 수렴 CONFIRMED**: piecewise detect-absorb 가 1~4차에서 매번 새 mirror 적발(Slider→ProgressCircle/DisclosureHeader→PHANTOM gaps→SPEC_PADDING/barHeight) → 4차 후 전수 인벤토리로 미흡수 2종 확정·흡수 → 5차 독립 검증(Explore agent refute 가정)이 미흡수 catalog-대응 mirror 0(당시 Phase 6 분리분 제외) 확증.
+  - **재승격 note 축 한정(§4-1, Δ9)**: 본 collapse 는 **시각/구조/size SOURCE 축**만 닫았다 — 무조건적 "1 컴포넌트 = 1 등록" 주장 금지. propagation registry / factory creator / child-filtering branch 멤버십은 별도 잔여 축(scope 밖).
   - 검증: catalog source byte-identical 정적 probe · type-check 0(baseline 71 불변) · grep gate 14/14 · specPresetResolver + snapshot 80/80 · live(Chrome MCP) ProgressBar md→lg track height read-through(8→12px) 정상 렌더.
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/{utils,implicitStyles}.ts`, `packages/shared/src/catalog/__tests__/adr912CollapseGrepGate.test.ts`, breakdown `docs/adr/design/912-catalog-ssot-collapse-breakdown.md` §Phase 5
+
+- **ADR-912 catalog SSOT collapse Phase 6 — Calendar/DateInput size-value mirror 흡수 (size-value 축 완전 종결)**:
+  - `calculateContentHeight`/`calculateContentWidth`(`utils.ts`)의 인라인 size-value mirror 4종(`calDims`/`headerHeights`/`inputHeights`/`gridDims`)을 `resolveSkiaRule(type).sizes` read-through 로 흡수. catalog CalendarGrid/CalendarHeader/DateInput.sizes 의 iconSize/gap/height 와 byte-identical(17값). gridDims 의 동적 row 계산(`new Date()` dayOffset/totalDays)은 layout-only 라 utils 유지, 원시값만 catalog 경유. datefield intrinsicHeight read-through(`utils.ts:2606`) 선례 동형.
+  - **"절대좌표 텍스트 렌더 고위험" framing 정정 (이중 오류)**: (1) Skia grep "절대좌표"=`renderCommands` boundsMap 컬링/hit-test 로 Calendar 와 직교(컴포넌트 절대좌표 0건) (2) `canvas-rendering.md §6` "다중 줄 보정 스킵"=텍스트 _측정_ 보정이지 _값_ 미러 흡수와 별개 layer. 적대 검증(Workflow wnvirhmvg)으로 mirror=props.size 룩업+산술뿐, 필요 필드(iconSize/gap/height) 전부 `ComponentRuleSize` 스키마 기존 → **LOW 위험** 확정 후 흡수.
+  - **grep gate baseline 4→0**: 위장 0 아닌 실제 read-through 완전성. `adr912CollapseGrepGate` 14/14 PASS.
+  - 회귀 가드: `calendarHeaderIntrinsicSize.test.ts` 에 CalendarGrid/DateInput 절대값 +4 test(10 PASS).
+  - 검증: catalog 17값 byte-identical 정적 probe · type-check 0(baseline 71 불변) · grep gate 14/14 · calendar test 10/10 · live(Vite dev `utils.ts` import) CalendarHeader 24·30·36/width246 · CalendarGrid h204·w246 · DateInput 20·22·30·42·54 전수 일치.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` + `__tests__/calendarHeaderIntrinsicSize.test.ts`, `packages/shared/src/catalog/__tests__/adr912CollapseGrepGate.test.ts` (commit `62f15511d`)
 
 ## [Style Panel preset source = catalog 단일 entry — ADR-912 catalog SSOT collapse Phase 4 완결] - 2026-06-20
 
