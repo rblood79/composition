@@ -121,26 +121,35 @@ const DISPERSION_BASELINE: Array<{
     killPhase: "Phase 3",
   },
   {
-    label: "VALUE_FILL_TRACK_HEIGHT mirror (Δ4)",
+    // Δ4 catalog.sizes 평행 복사본 (적대 검증 w6gqcrgh3 — Track 3종 .sizes.height byte 일치, 교체 가능).
+    label: "VALUE_FILL_TRACK_HEIGHT mirror (Δ4, catalog.sizes 교체 가능)",
     file: "implicitStyles",
     pattern: /VALUE_FILL_TRACK_HEIGHT/,
     // occurrence 카운트(선언 1 + 소비처 7, 일부 라인 2회 등장) = 8. grep -c(라인수=5) 와 다름.
     baseline: 8,
-    killPhase: "Phase 3",
+    killPhase: "Phase 3-A-1",
   },
   {
-    label: "INDICATOR_SIZES mirror (Δ4/Δ5)",
+    // INDICATOR_SIZES = {box, gap} 한 객체. gap 은 Checkbox/Radio .sizes.gap byte 일치(Δ4 교체),
+    //   box 는 catalog source 부재(ComponentRuleSize 에 box 키 없음) → 0 도달은 schema 보강(Δ5-a:
+    //   ComponentRuleSize.box 추가 + 승격) 선택 시에만. Non-goal(Δ5-b) 선택 시 잔존 정당. baseline 유지.
+    label:
+      "INDICATOR_SIZES mirror (Δ4 gap 교체 / Δ5 box 소유권 — schema 보강 의존)",
     file: "implicitStyles",
     pattern: /INDICATOR_SIZES/,
     baseline: 5,
-    killPhase: "Phase 3",
+    killPhase: "Phase 3-A-2 (Δ5-a 선택 시 0)",
   },
   {
-    label: "PROGRESSBAR/SLIDER row-col gap mirror (Δ4)",
+    // ROW_GAP/SLIDER_ROW_GAP = .sizes.gap byte 일치(Δ4 교체 가능, Phase 3-A-1). 단 COL_GAP 은
+    //   .sizes 부재 + structure.composition 토큰 문자열 → 0 도달은 .sizes.columnGap 마이그레이션(Δ10-A)
+    //   선택 시에만(Phase 3-A-2). Non-goal(Δ10-B) 선택 시 COL_GAP 잔존 정당. baseline 유지.
+    label:
+      "PROGRESSBAR/SLIDER gap mirror (ROW=Δ4 교체 / COL=Δ10 token→sizes 마이그레이션)",
     file: "implicitStyles",
     pattern: /PROGRESSBAR_ROW_GAP|PROGRESSBAR_COL_GAP|SLIDER_ROW_GAP/,
     baseline: 6,
-    killPhase: "Phase 3",
+    killPhase: "Phase 3-A-1 (ROW/SLIDER) + 3-A-2 (COL, Δ10-A 선택 시)",
   },
   {
     label: "TAG_SPEC_MAP 직독 (specPresetResolver)",

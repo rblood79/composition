@@ -222,18 +222,77 @@ base axis 는 오직 `resolveCatalogContainerBase` 에서만 온다. 이 인라�
 (주의: `gap ?? N` 의 N 은 branch 별로 다름 — gridlistitem `?? 2` / listboxitem `?? 2` / field류 `?? 4`.
 삭제 시 catalog `sizes.gap` 또는 `structure.composition.gap` 으로 치환하되 기존 N 값과 byte-diff 0 확인.)
 
-**Δ4 — 숫자 mirror 상수 제거 (catalog.sizes 단일화)**: `implicitStyles.ts` 의 평행 복사본
-`VALUE_FILL_TRACK_HEIGHT` (`:316`), `INDICATOR_SIZES.gap` (`:301`), `PROGRESSBAR_ROW_GAP` /
-`PROGRESSBAR_COL_GAP` (`:308-309`), `SLIDER_ROW_GAP` (`:343`) 을 삭제하고, 소비처
-(`:1615/1657-1658/1731/1786/1817/1953-1954/1993-1994`) 를 `resolveCatalogSizeField(type, size, field)`
-로 교체한다 — `componentRulesTable.{ProgressBarTrack,MeterTrack}.sizes.height` 와
-`{Checkbox,Radio}.sizes.gap` 을 직접 읽는다. 이 상수들의 주석 자체가 "rule(componentRulesTable)
-이 SSOT" 라고 인정하면서 복사본을 유지하던 것 — 이번 collapse 가 끝내려는 dual-SSOT 의 한 사례.
+**Δ4 — catalog.sizes 평행 복사본 mirror 제거 (3종 한정)**: `implicitStyles.ts` 의 mirror 상수 중
+**catalog `.sizes` 에 size-indexed 숫자 필드로 단일 source 가 존재하는 3종** 만 삭제하고 소비처를
+read-through 로 교체한다. (적대 검증 결과 — w6gqcrgh3, 2026-06-19 — mirror 6종이 전부 `.sizes`
+평행 복사본이라는 §1 ledger 의 일괄 분류는 부정확. box·column-gap 2종은 `.sizes` 에 source 가
+없어 Δ4 로 못 닫음 → Δ5/Δ10 분리. 이 정정은 Phase 0 inventory freeze 부실 보강이며 새 ADR fork
+사유 아님 — adr-writing.md M3.):
 
-**Δ5 — `INDICATOR_SIZES.box` 소유권 결정**: `box = {16,20,24}` 는 `componentRulesTable.Checkbox.sizes`
-에 없다 (`gap` 만 있음). (a) `boxSize` 를 Checkbox/Radio `sizes` rule entry 로 승격해 단일 선언으로
-만든다 — **권장**, 또는 (b) §4 Non-goals 에 "Skia-render 전용 상수" 로 명시한다. 둘 중 하나로
-결정하지 않으면 소유처 없는 hidden source 로 남는다.
+- `VALUE_FILL_TRACK_HEIGHT` (`:316`, `{sm:4,md:8,lg:12,xl:16}`) → `{ProgressBarTrack,MeterTrack,
+SliderTrack}.sizes.height` 와 byte 일치 (세 track 모두 동일값, 실측 `componentRulesTable.ts:7420/
+6260/9414`). 소비처 `:1615/1731/1817`.
+- `PROGRESSBAR_ROW_GAP` (`:308`, `4`) → `{ProgressBar,Meter}.sizes.gap=4` 와 일치. 소비처 `:1657` (rowGap).
+- `SLIDER_ROW_GAP` (`:343`, `4`) → `Slider.sizes.gap=4` (모든 size) 와 일치. 소비처 `:1786` (rowGap).
+
+교체는 builder-local `specSizeField(type, size, field)` 경유 — `specSizeField` 는 `LOWERCASE_TAG_SPEC_MAP`
+(spec) 우선, 부재 시 `LOWERCASE_COMPONENT_RULE_SIZES`(`getComponentRulesTable()` 전수 lowercase 인덱싱)
+rule fallback 으로 이미 catalog 를 읽는 통합 진입점 (`:156-185`). 이 3 track/component 의 spec 은 cutover
+로 삭제되어 rule fallback 경로로만 동작 → 새 shared `resolveCatalogSizeField`(doc 인자 필요) 도입보다
+surface 작음. 이 상수들의 주석 자체가 "rule(componentRulesTable) 이 SSOT" 라고 인정하던 dual-SSOT 사례.
+
+**Δ5 — `INDICATOR_SIZES` 처리 (box 소유권 + 객체 분리)**: `INDICATOR_SIZES` (`:301`) 는 `{box, gap}` 을
+**한 객체**로 묶는다. 실측 결과:
+
+- `gap = {sm:6,md:8,lg:10}` 은 `{Checkbox,Radio}.sizes.gap` 과 byte 일치 (catalog source 존재).
+- `box = {sm:16,md:20,lg:24}` 은 catalog 에 **source 자체가 없다** — `ComponentRuleSize` 인터페이스에
+  `box` 키가 없고 (`composition-document.types.ts:215~`), Checkbox/Radio 주석이 "indicator(boxSize/
+  boxRadius)는 generated CSS 미emit(수동/React) → rule 불요" 라고 **의도적으로 제외**했다. 즉 box 는
+  catalog 가 소유한 적 없는 hidden source — "평행 복사본" 아님.
+- 두 소비처 (`:1952`, `:1993`) 는 `phantomConfig?.widths[s] ?? INDICATOR_SIZES.box ?? 20` /
+  `phantomConfig?.gaps[s] ?? INDICATOR_SIZES.gap ?? 8`. checkbox/radio/switch 는 `PHANTOM_INDICATOR_CONFIGS`
+  (`utils.ts:127~`) 에 box/gap 모두 보유 → 실질 우선값은 phantomConfig. INDICATOR_SIZES 는 **tertiary
+  fallback** (phantomConfig 부재 또는 size 가 sm/md/lg 외일 때만 도달, 적대 검증 deadPath="live" but
+  PARTIALLY — 정상 경로에선 거의 미도달).
+
+box 는 catalog `.sizes` source 가 없으므로 `specSizeField` 로 못 읽는다. 결정 옵션:
+
+- (a) `ComponentRuleSize` 에 `box?: number` 키 추가 + Checkbox/Radio/Switch `.sizes.box` 승격 → INDICATOR_SIZES
+  전체 삭제 가능. 단 catalog rule 데이터 변경이라 generated CSS byte-diff 검증 필요 (box 는 CSS 미emit 이라
+  안전 추정, 확인 필수). **권장 — single source 달성**.
+- (b) §4 Non-goals 에 "Skia/layout-render 전용 indicator box 상수" 로 명시 + INDICATOR_SIZES.gap 만
+  specSizeField 경유로 바꾸되 box 때문에 상수 객체는 잔존. → kill criteria 0 미달, 잔존 명시.
+
+(a)/(b) 중 하나로 결정하지 않으면 box 가 소유처 없는 hidden source 로 남는다. PHANTOM_INDICATOR_CONFIGS
+가 이미 box(widths) 단일 source 역할을 하는지(INDICATOR_SIZES.box dead 여부)도 (a) 판정 시 함께 평가.
+
+**Δ10 — `PROGRESSBAR_COL_GAP` 토큰→sizes 마이그레이션 (Δ4 와 별개 성격)**: `PROGRESSBAR_COL_GAP`
+(`:309`, `12`) 은 §1 ledger 가 Δ4 mirror 로 묶었으나, 실측 결과 catalog `.sizes` 에 source 가 **없다**
+(적대 검증 w6gqcrgh3 — 양쪽 confirmed). 유일한 catalog source 는 `{ProgressBar,Meter}.structure.
+composition.containerStyles['column-gap'] = 'var(--spacing-md)'` (`componentRulesTable.ts:7223/6066`)
+— **kebab-case CSS 토큰 문자열**이라:
+
+- `specSizeField`/`resolveCatalogSizeField` 로 못 읽는다 (`.sizes` 의 숫자 필드만 수용).
+- builder `resolveContainerStylesFallback` 의 `CONTAINER_STYLES_FALLBACK_KEYS` (`:251~`) 는 camelCase
+  키 집합 (`rowGap`/`columnGap` 미포함) → catalog containerStyles 의 `column-gap` 을 `parentStyle.columnGap`
+  으로 채우지 못함. 그래서 소비처 `:1658` (`columnGap: parentStyle.columnGap ?? PROGRESSBAR_COL_GAP`) 은
+  사용자 인라인 편집이 없으면 항상 상수 fallback 도달.
+- `resolveToken` 은 `{spacing.md}` 토큰 참조 형식만 파싱 — `var(--spacing-md)` CSS 변수 형식 파싱 불가.
+
+→ Δ4 의 "상수 삭제 후 `.sizes` read-through" 패턴으로 못 닫는다. 별도 마이그레이션 필요:
+
+- (A) `{ProgressBar,Meter}.sizes.{sm,md,lg,xl}.columnGap = 12` 추가 (ComponentRuleSize 에 `columnGap` 키
+  이미 존재 — Slider 가 동형 사용) + 소비처를 `specSizeField("progressbar", size, "columnGap")` 로 교체 →
+  `PROGRESSBAR_COL_GAP` 삭제 가능. **단 catalog rule 데이터 변경이라 generated CSS byte-diff 검증 필수**
+  (ProgressBar 의 column-gap 은 `structure.composition.containerStyles` 에서 CSS emit 되므로, `.sizes.columnGap`
+  추가가 generated CSS 에 영향 주는지 확인 — 영향 0 이어야 함, 둘은 별도 경로).
+- (B) §4 Non-goals 에 "structure-level CSS 토큰 (size 비종속)" 로 명시 + 상수 잔존. → kill criteria 0 미달.
+
+**§1-1 / §1 ledger 정정**: §1 ledger 의 "숫자 mirror 상수 (`:301-343`) ... ProgressBarTrack/MeterTrack
+height + Checkbox/Radio gap 의 catalog.sizes 평행 복사본" 서술은 box·column-gap 2종을 과대 포함했다.
+실제로는 (i) `.sizes` 평행 복사본 = VALUE_FILL_TRACK_HEIGHT + PROGRESSBAR_ROW_GAP + SLIDER_ROW_GAP +
+INDICATOR_SIZES.gap, (ii) catalog source 부재 = INDICATOR_SIZES.box, (iii) structure-level 토큰 =
+PROGRESSBAR_COL_GAP 으로 3분류된다.
 
 ### 2-5. Style Panel 은 catalog style preset 을 읽는다
 
@@ -419,10 +478,37 @@ LAYOUT_TOKEN_STYLES` alias re-export(기존 소비처 호환). **의존 방향**
 | specs vitest (CSS snapshot byte-diff)                  | ✅ 461 PASS                     |
 | 런타임 sanity (specs barrel export + 어댑터 byte 동일) | ✅ PASS                         |
 
-#### Phase 3-A — Skia/layout mirror collapse (다음 세션 보류, 사용자 "별도 지시 때")
+#### Phase 3-A — Skia/layout mirror collapse
 
 > HIGH 위험 (implicitStyles = 최근 30일 ADR-912 18 fix 중심). byte-diff oracle 불가 영역(Skia=layout
 > 출력, CSS 와 다름)이라 Skia 렌더 live behavior 게이트 필수.
+>
+> **적대 검증 후 sub-group 분리 (사용자 결정 2026-06-19, w6gqcrgh3)**: §1 ledger 가 mirror 6종을 일괄
+> "catalog.sizes 평행 복사본" 으로 분류했으나 실측 결과 box·column-gap 2종은 catalog source 부재 →
+> Δ4 를 3종으로 좁히고 Δ5(box)/Δ10(column-gap) 분리. 아래 sub-group 은 위험·oracle 성격이 달라 한
+> 묶음에서 떼어 진행한다.
+
+**Phase 3-A-1 — Δ4 catalog.sizes mirror 3종 (가장 낮은 위험, oracle=T5)**:
+
+- `VALUE_FILL_TRACK_HEIGHT` (`:316`) → `specSizeField(track, size, "height")` (ProgressBarTrack/MeterTrack/
+  SliderTrack 모두 `.sizes.height` byte 일치). 소비처 `:1615/1731/1817`.
+- `PROGRESSBAR_ROW_GAP` (`:308`) → `specSizeField("progressbar", size, "gap")` (`.sizes.gap=4`). 소비처 `:1657`.
+- `SLIDER_ROW_GAP` (`:343`) → `specSizeField("slider", size, "gap")` (`.sizes.gap=4`). 소비처 `:1786`.
+- oracle: 상수값 ↔ catalog `.sizes` byte 일치 + T5 (rule 값 지우면 Skia 렌더 변함) + ProgressBar/Slider
+  렌더 live 불변. 상수 3개 완전 삭제. (INDICATOR_SIZES.gap 은 box 와 같은 객체라 이 sub-group 에서
+  `specSizeField` 경유로 바꾸되 객체 자체는 Δ5 에서 처리 — gap 만 분리 삭제 불가.)
+
+**Phase 3-A-2 — Δ5 INDICATOR_SIZES box 소유권 + Δ10 PROGRESSBAR_COL_GAP (catalog schema 보강)**:
+
+- (Δ5) `INDICATOR_SIZES.box` (`:301`, catalog source 부재) — (a) `ComponentRuleSize.box` 키 추가 +
+  Checkbox/Radio/Switch `.sizes.box` 승격 후 INDICATOR_SIZES 전체 삭제 (권장) 또는 (b) Non-goal 명시.
+  PHANTOM_INDICATOR_CONFIGS 가 이미 box 단일 source 인지(INDICATOR_SIZES.box dead) 판정 동반.
+- (Δ10) `PROGRESSBAR_COL_GAP` (`:309`, structure.composition 토큰 문자열) — (A) `{ProgressBar,Meter}.
+sizes.columnGap=12` 추가 + `specSizeField("progressbar", size, "columnGap")` 교체 또는 (B) Non-goal.
+- 둘 다 catalog rule 데이터 변경 → generated CSS byte-diff 검증 필수 (box=CSS 미emit 안전 추정,
+  columnGap=ProgressBar structure column-gap emit 과 별도 경로 확인).
+
+**Phase 3-A-3 — LOWERCASE map + base-axis + adapter (구조 SSOT, 가장 광범위)**:
 
 - `implicitStyles.ts` local catalog map(`LOWERCASE_COMPONENT_RULE_CONTAINER`) 제거.
 - field류 base/side axis 를 shared resolver 결과로 교체.
@@ -430,9 +516,6 @@ LAYOUT_TOKEN_STYLES` alias re-export(기존 소비처 호환). **의존 방향**
   (`:1279`/`:1340`/`:1487`/`:1551`/`:1879`) + collection-item 2 (`:841`/`:865`). base axis 는
   `resolveCatalogContainerBase` 에서만 온다. (codex 초안의 `:1486-1489` 는 부정확 — 실제 `:1487`,
   그리고 단일 위치가 아니라 7곳 분산.)
-- (Δ4) 숫자 mirror 상수 `VALUE_FILL_TRACK_HEIGHT` / `INDICATOR_SIZES.gap` / `PROGRESSBAR_ROW_GAP` /
-  `PROGRESSBAR_COL_GAP` / `SLIDER_ROW_GAP` 삭제 → 소비처를 `resolveCatalogSizeField` 로 교체.
-- (Δ5) `INDICATOR_SIZES.box` 는 Checkbox/Radio `sizes` 로 승격(권장) 또는 Non-goal 명시.
 - (Δ3) shared `resolveCatalogContainerVariants` land 후 `:578-600` 임시 adapter 삭제.
 - `resolveContainerStylesFallback` wrapper 가 shared resolver 를 사용하도록 변경.
 - field branch 는 child filtering/injection 만 남긴다.
@@ -501,7 +584,11 @@ child-tree·propagation 축은 별도 잔여 작업으로 기록한다. 무조�
 - CSS generator 와 Skia/layout 이 서로 다른 layout token table 을 가진다 (`COMPOSITION_LAYOUT_STYLES`
   와 `CATALOG_LAYOUT_STYLES` 가 둘 다 존재 — Δ7).
 - (Δ8) layout/Skia 파일이 `componentRulesTable.sizes` 를 복제하는 local size-value table
-  (track height, indicator box/gap, row/column gap) 을 선언한다.
+  (track height, indicator gap, slider/progressbar row gap) 을 선언한다. **단 box·column-gap 은
+  catalog `.sizes` source 가 없어 (적대 검증 w6gqcrgh3) 이 조건 달성에 schema 보강 선행 필요**:
+  `INDICATOR_SIZES.box` 는 `ComponentRuleSize.box` 키 추가 + 승격(Δ5-a) 후에만, `PROGRESSBAR_COL_GAP`
+  은 `.sizes.columnGap` 마이그레이션(Δ10-A) 후에만 0 도달. 두 schema 보강을 Non-goal(Δ5-b/Δ10-B)로
+  선택하면 본 kill 은 "box/column-gap 제외" 로 한정 명시 — 무조건 mirror 0 주장 금지.
 - (Δ6) `implicitStyles.ts` 의 7개 base-axis fallback (field류 5 + collection-item 2) 중 **하나라도**
   인라인 `?? "column"` 으로 남는다 (`grep -c 'flexDirection.*?? "column"'` ≠ 0).
 - generated CSS 는 바뀌었는데 Skia/layout 또는 Style Panel focused test 가 없다.
@@ -510,25 +597,27 @@ child-tree·propagation 축은 별도 잔여 작업으로 기록한다. 무조�
 
 완료는 "Style Panel 표시가 좋아짐"이 아니라 아래 전부다.
 
-| Gate        | 통과 조건                                                                                                                                                                                              |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Source      | field base layout, TagGroup base layout, side variants, **그리고 track height / indicator gap·box / field·slider row-col gap (Δ8)** 가 모두 `componentRulesTable` entry 에서 선언, local 숫자 mirror 0 |
-| Generator   | virtual CSS emit membership 이 `rule.structure` 로 결정되고 `STRUCTURE_META` 없음, `COMPOSITION_LAYOUT_STYLES` 없음 (Δ7)                                                                               |
-| Skia/layout | container base/variant 는 shared resolver 소비, local rule map 없음, 인라인 base-axis fallback 없음 (Δ6)                                                                                               |
-| Style Panel | `TAG_SPEC_MAP` 직독 없음, TextField/TagGroup preset 이 shared resolver 기반                                                                                                                            |
-| Tests       | shared resolver + Style Panel + Skia/layout focused tests PASS                                                                                                                                         |
-| Build       | generated CSS **byte-diff = 0 (enforce, Δ8)** + type-check PASS                                                                                                                                        |
-| Browser     | TextField top/side 및 TagGroup side 의 Panel 표시와 Canvas layout 수동 확인 + ProgressBar track / Checkbox indicator 렌더 불변                                                                         |
+| Gate        | 통과 조건                                                                                                                                                                                                                                                                                                                      |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Source      | field base layout, TagGroup base layout, side variants, **그리고 track height / indicator gap / slider·progressbar row gap (Δ4, 3종)** 가 `componentRulesTable.sizes` 에서 선언, 해당 mirror 0. **box·column-gap (Δ5/Δ10) 은 catalog source 부재라 schema 보강(Δ5-a/Δ10-A) 선택 시 0, Non-goal(Δ5-b/Δ10-B) 선택 시 잔존 명시** |
+| Generator   | virtual CSS emit membership 이 `rule.structure` 로 결정되고 `STRUCTURE_META` 없음, `COMPOSITION_LAYOUT_STYLES` 없음 (Δ7)                                                                                                                                                                                                       |
+| Skia/layout | container base/variant 는 shared resolver 소비, local rule map 없음, 인라인 base-axis fallback 없음 (Δ6)                                                                                                                                                                                                                       |
+| Style Panel | `TAG_SPEC_MAP` 직독 없음, TextField/TagGroup preset 이 shared resolver 기반                                                                                                                                                                                                                                                    |
+| Tests       | shared resolver + Style Panel + Skia/layout focused tests PASS                                                                                                                                                                                                                                                                 |
+| Build       | generated CSS **byte-diff = 0 (enforce, Δ8)** + type-check PASS                                                                                                                                                                                                                                                                |
+| Browser     | TextField top/side 및 TagGroup side 의 Panel 표시와 Canvas layout 수동 확인 + ProgressBar track / Checkbox indicator 렌더 불변                                                                                                                                                                                                 |
 
 ### 6-1. 종결 조건 — falsifiable test (T1~T6)
 
 ②목표 visual/structure/size 축이 닫히고 ADR-912 재승격 가능한 조건 (각각 독립 검증):
 
 - **T1 (grep 0)**: `STRUCTURE_META_ENTRIES`/`StructureMeta` (specs) = 0 / `COMPOSITION_LAYOUT_STYLES`
-  (CSSGenerator) = 0 / `LOWERCASE_COMPONENT_RULE_CONTAINER`·`VALUE_FILL_TRACK_HEIGHT`·`INDICATOR_SIZES`·
-  `PROGRESSBAR_ROW_GAP`·`PROGRESSBAR_COL_GAP`·`SLIDER_ROW_GAP` (implicitStyles) = 0 / `TAG_SPEC_MAP`
-  (specPresetResolver) = 0 / `flexDirection: ... ?? "column"` (implicitStyles) = 0 / 새 resolver 의
-  `@composition/specs` import = 0.
+  (CSSGenerator) = 0 / `LOWERCASE_COMPONENT_RULE_CONTAINER`·`VALUE_FILL_TRACK_HEIGHT`·`PROGRESSBAR_ROW_GAP`·
+  `SLIDER_ROW_GAP` (implicitStyles, Δ4 3종) = 0 / `TAG_SPEC_MAP` (specPresetResolver) = 0 /
+  `flexDirection: ... ?? "column"` (implicitStyles) = 0 / 새 resolver 의 `@composition/specs` import = 0.
+  - **조건부 (schema 보강 선택 시)**: `INDICATOR_SIZES` = 0 은 `ComponentRuleSize.box` 추가 + 승격(Δ5-a)
+    선택 시에만 / `PROGRESSBAR_COL_GAP` = 0 은 `.sizes.columnGap` 마이그레이션(Δ10-A) 선택 시에만. Non-goal
+    (Δ5-b/Δ10-B) 선택 시 두 심볼 잔존이 정당 (catalog source 부재가 근거, 적대 검증 w6gqcrgh3).
 - **T2 (단일 consumer 경로)**: CSS gen `buildVirtualSpecs` / Skia `implicitStyles` / Panel
   `specPresetResolver` 가 structure·base-layout·size-value·preset 을 `shared/catalog/resolvers/` 에서만 import.
 - **T3 (byte-diff 0)**: 전체 collapse 후 generated CSS `git diff` = empty.
