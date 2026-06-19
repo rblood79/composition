@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [TagGroup labelPosition="side" selection 영역 20px 과대 수정 — chip border-box + side-label enrich height 보존] - 2026-06-19
+
+사용자 보고: TagGroup 의 Label Position 을 side 로 바꿨을 때, 실제 변경된 height 보다 selection(hover/선택 테두리) 영역이 더 높게 잡힘. 직전 수정(같은 날, projection-only height 보존)이 layout 박스 height 는 고쳤으나 Skia layout 이 84px 로 산출되어 CSS 실측(64px, 칩 2줄)보다 20px 과대 → selection/hover outline 이 같은 layout height 를 mirror 하므로 그대로 20px 높게 그려졌다. selection 렌더 경로 자체는 결백(`renderSelectionBox`/`treeBoundsMap`/`getSkiaNode.height` 모두 layout SSOT 의 raw mirror) — layout height 가 발산한 것이 근본.
+
+### Bug Fixes
+
+- **TagGroup side selection 영역 20px 과대** (2-원인 — chip border-box 누락 + side-label Taffy 자식 합산 발산):
+  - **Why (1차)**: `calculateContentHeight` 의 taglist 분기가 `tagHeight = lineHeight + paddingY*2`(border 누락 = 28)로 칩 높이를 계산 → 2줄 = 28\*2+gap4 = 60. 그러나 같은 칩을 실제 Tag catalog shape 로 그리는 projection RowsGroup 은 CSS `border:1px solid` 포함 30 → 2줄 = 64. 이 4px 불일치(60 vs 64)가 발산의 시작점.
+  - **Why (2차)**: side(row) TagGroup 은 enrich(`Math.max(Label, TagList)`)가 정확한 height(64)를 산출하지만, 자식이 Label+TagList 2개라 projection-only 보존 분기를 못 타고 enrich height 가 제거됨 → Taffy 자식 합산에 맡겨지자 projection-only 자식(TagList=64)의 height 를 그 자식 RowsGroup 과 중복 누적하여 64 가 아닌 88/84 로 발산. CSS 는 항상 64(`.react-aria-TagGroup` `alignItems:flex-start` row = max).
+  - 수정 (`utils.ts`): `calculateContentHeight` taglist 분기 `tagHeight` 에 `borderWidth*2`(상수 1px\*2) 반영 → 28→30, 2줄 = 64. projection RowsGroup(catalog shape)과 정합.
+  - 수정 (`fullTreeLayout.ts`): side-label row + Label + 나머지 자식 전부 projection-only(RowsGroup 보유) 컨테이너이면 enrich height(=`Math.max` 정확값)를 보존 (기존 `onlyProjectionRowsChild` 단일-자식 보존과 동형 확장) → Taffy 자식 합산 발산 차단.
+  - 검증: builder live 측정 — side TagGroup layout/specHeight/selection 모두 64 (CSS preview 64 = 칩 2줄, `getBoundingClientRect` 대조) / top 모두 54 (CSS 54 = 칩 1줄) CSS↔Skia 대칭. selection outline dimension label "350 × 64" 시각 확인(2줄 칩 정확히 감쌈, 삐져나감 0). 회귀 테스트 절대값 2건 추가(border 누락 시 60→FAIL 가드) + 기존 3건 + layout engines 93건 무회귀 + type-check baseline PASS.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/{utils,fullTreeLayout}.ts`
+
 ## [TagGroup labelPosition="side" 전체 height 미계산 수정 — projection-only 컨테이너 height 보존] - 2026-06-19
 
 사용자 보고: TagGroup 의 Label Position 을 side 로 바꿔도 전체 height 가 계산되지 않아 selection 높이가 top 과 동일(54px)하게 고정 → 칩 2줄째가 selection 박스 밖으로 삐져나감. 사용자 관점 정정(RAC/RSP 레퍼런스 인용): "maxRows·labelPosition 이 들어간다는 자체가 label 과 position 하려면 display:flex 로 child item 을 wrapper 해야 한다" — TagGroup 은 CheckboxGroup/RadioGroup 과 **동일 논리 구조**(Label + 자연폭 flex-wrap items-wrapper > items). RAC 공식 `.react-aria-TagList { display:flex; flex-wrap }` + `labelPosition`/`maxRows` prop 의 존재가 items wrapper 를 구조적으로 강제함이 근거.

@@ -137,4 +137,36 @@ describe("calculateContentHeight — TagGroup side label height", () => {
     // side TagGroup height 는 좁은 TagList(2줄) 이상.
     expect(sideH).toBeGreaterThanOrEqual(tagListNarrow);
   });
+
+  // ── 칩 border-box 높이 회귀 가드 (2026-06-19, selection 과대 버그) ───────────
+  // **버그**: tagHeight = lineHeight + paddingY*2 (border 누락) → md 칩이 28 로 계산되어
+  //   2줄 = 28*2 + gap4 = 60. 그러나 실제 Tag catalog shape(projection RowsGroup)는 CSS
+  //   border 1px*2 포함 30 → 2줄 = 64. 이 4px 불일치가 Taffy 자식 합산 단계에서 TagGroup
+  //   side height 를 84 로 발산시켜 selection/hover outline 이 실제 박스보다 20px 높게 잡혔다.
+  // **수정**: tagHeight 에 borderWidth*2 반영 (28 → 30) → 2줄 = 64 (CSS 실측 정합).
+  it("side: TagList 2줄 height = chip border-box(30) 기반 (border 누락 시 60, 정합 시 64)", () => {
+    // 229 폭에서 4칩(md)이 2줄 wrap. 칩 border-box = lineHeight(20) + paddingY*2(8) +
+    //   border*2(2) = 30. 2줄 = 30*2 + rowGap(4) = 64. border 누락 회귀 시 60 으로 떨어진다.
+    const tagListTwoRow = calculateContentHeight(
+      TAGLIST_CHILD,
+      229,
+      [],
+      getChildElements,
+    );
+    // border 포함(30) 기반 2줄 = 64. border 누락(28) 회귀 시 60 → 이 테스트가 FAIL.
+    expect(tagListTwoRow).toBe(64);
+  });
+
+  it("side: TagGroup 전체 height = max(Label, TagList 2줄) = 64 (selection 박스 정합)", () => {
+    // side(row) 컨테이너 height SSOT = Math.max(Label 20, TagList 64) = 64.
+    //   selection/hover outline 이 이 값을 그대로 mirror 하므로, 이 값이 CSS(64)와
+    //   일치해야 selection 이 실제 박스를 정확히 감싼다(20px 과대 버그 회귀 가드).
+    const sideH = calculateContentHeight(
+      makeTagGroup("side"),
+      350,
+      getChildElements(TAG_GROUP_ID),
+      getChildElements,
+    );
+    expect(sideH).toBe(64);
+  });
 });

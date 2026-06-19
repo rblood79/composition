@@ -1913,8 +1913,18 @@ export function calculateContentHeight(
     //   과 동일 치수여야 Skia/layout 정합 유지.
     const chipSize = resolveTagChipMetric(sizeName);
     const fontSize = parseNumericValue(style?.fontSize) ?? chipSize.fontSize;
-    // chip 정식 치수 공식: height = lineHeight + paddingY*2 (fontSize 아님).
-    const tagHeight = chipSize.lineHeight + chipSize.paddingY * 2;
+    // chip border-box 높이 = lineHeight + paddingY*2 + borderWidth*2.
+    //   **Why (TagGroup side selection 과대 버그, 2026-06-19)**: Tag catalog rule 의
+    //   `border` color 는 CSS 에서 `border: 1px solid` 로 그려지므로 칩 실제 box 높이는
+    //   `lineHeight(20) + paddingY*2(8) + border*2(2) = 30`(md, boxSizing:border-box CSS 실측).
+    //   border 2px 를 누락하면 tagHeight=28 → 2줄 = 28*2+gap4 = 60 이 되어, 같은 칩을 실제
+    //   Tag catalog shape 로 그리는 projection RowsGroup(30*2+4 = 64)과 4px 어긋난다. 이 4px
+    //   불일치가 Taffy 자식 합산 단계에서 TagGroup side height 를 64 가 아닌 84 로 발산시켜
+    //   selection/hover outline 이 실제 박스보다 20px 높게 잡히는 근본 원인이었다(CSS=64).
+    //   chip border 는 Tag rule sizes 에 별도 width 필드가 없고 CSS 기본 1px 이므로 상수 반영.
+    const CHIP_BORDER_WIDTH = 1;
+    const tagHeight =
+      chipSize.lineHeight + chipSize.paddingY * 2 + CHIP_BORDER_WIDTH * 2;
     const gap = chipSize.gap;
     const rowGap = gap;
 

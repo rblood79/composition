@@ -1649,7 +1649,40 @@ function traversePostOrder(
   //   기존 height 제거로도 정상 — TagList 의 flex:1 side-label 만 발산.)
   const onlyProjectionRowsChild =
     filteredChildren.length === 1 && filteredChildren[0]?.type === "Rows";
-  if (hasTaffyChildren && !onlyProjectionRowsChild) {
+
+  // side-label row 컨테이너(TagGroup labelPosition="side" 등): Label + projection-only
+  //   자식(TagList → RowsGroup) 의 가로 배치. enrich 의 calculateContentHeight(taggroup 분기,
+  //   Math.max(Label, TagList)) 가 이미 정확한 height(64)를 산출하지만, 이를 제거하고 Taffy
+  //   자식 합산에 맡기면 Taffy 가 row 에서 projection-only 자식(TagList)의 height 를 그 자식
+  //   RowsGroup 과 중복 누적하여 발산(64 → 88)한다. **Why (TagGroup side selection 과대 버그
+  //   최종층, 2026-06-19)**: TagList 자체 layout 은 64 로 정확하나, 부모(TagGroup)가 그 TagList 를
+  //   row 배치할 때 Taffy 가 +24px 부풀려 selection/hover outline 이 실제 박스보다 높게 잡힌다.
+  //   onlyProjectionRowsChild(자식 1개 Rows) 보존과 동형으로, side-label row + Label + 나머지
+  //   전부 projection-only 컨테이너면 enrich height 를 보존한다.
+  const labelChildForPreserve = filteredChildren.find(
+    (c) => c.type === "Label",
+  );
+  const nonLabelChildrenForPreserve = filteredChildren.filter(
+    (c) => c.type !== "Label",
+  );
+  const sideLabelProjectionContainer =
+    (effectiveDisplay === "flex" || effectiveDisplay === "inline-flex") &&
+    elementStyle.flexDirection === "row" &&
+    !!labelChildForPreserve &&
+    nonLabelChildrenForPreserve.length > 0 &&
+    nonLabelChildrenForPreserve.every((c) => {
+      const grand = effectiveGetChildElements(c.id);
+      return (
+        grand.length === 1 &&
+        ((grand[0] as { type?: string })?.type === "Rows" ||
+          String((grand[0] as { id?: string })?.id ?? "").includes("-rows:"))
+      );
+    });
+
+  const preserveEnrichHeight =
+    onlyProjectionRowsChild || sideLabelProjectionContainer;
+
+  if (hasTaffyChildren && !preserveEnrichHeight) {
     // A. 컨테이너: CSS height:auto → enrichment가 주입한 height를 제거
     // 사용자가 명시한 CSS height는 보존, enrichment가 추가한 height만 제거
     // → Taffy가 자식 border-box + padding + border로 height를 자동 계산
