@@ -46,6 +46,7 @@ import {
 } from "./tagRename";
 import { migrateLegacyListBoxTemplatesToOrigins } from "./legacyListBoxTemplateMigration";
 import { migrateCheckboxRadioItemsStructure } from "./checkboxRadioItemsMigration";
+import { migrateFieldInlineLayout } from "./fieldInlineLayoutMigration";
 import { ensureReusableCompositeOrigins } from "../../builder/components/reusableCompositeOrigins";
 import { buildIdPathContext, segId } from "./idPath";
 import { buildLegacyElementMetadata } from "./legacyMetadata";
@@ -325,13 +326,17 @@ export function legacyToCanonical(
     : undefined;
 
   return ensureReusableCompositeOrigins(
-    migrateCheckboxRadioItemsStructure(
-      migrateLegacyListBoxTemplatesToOrigins({
-        version: "composition-1.0",
-        ...(themesSnapshot !== undefined ? { themes: themesSnapshot } : {}),
-        ...(tokensSnapshot !== undefined ? { tokens: tokensSnapshot } : {}),
-        children: [...layoutFrames, ...reusableMasters, ...pageNodes],
-      }),
+    // ADR-913 후속 (2026-06-19): field family inline display/flexDirection strip —
+    //   labelPosition="side" CSS↔Skia 대칭 복구. checkboxRadio migration 동형 chain.
+    migrateFieldInlineLayout(
+      migrateCheckboxRadioItemsStructure(
+        migrateLegacyListBoxTemplatesToOrigins({
+          version: "composition-1.0",
+          ...(themesSnapshot !== undefined ? { themes: themesSnapshot } : {}),
+          ...(tokensSnapshot !== undefined ? { tokens: tokensSnapshot } : {}),
+          children: [...layoutFrames, ...reusableMasters, ...pageNodes],
+        }),
+      ),
     ),
   );
 }

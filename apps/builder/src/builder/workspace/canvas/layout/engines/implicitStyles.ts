@@ -554,6 +554,16 @@ function getSideLabelParentStyle(
   specFallback: Record<string, unknown>,
   rawParentStyle: Record<string, unknown>,
 ): Record<string, unknown> {
+  // ADR-913 후속 fix (2026-06-19): side 모드에서 rawParentStyle 의 display/flexDirection 을 strip.
+  //   기존 NumberField/SearchField store element 는 factory 가 inline 으로 박은
+  //   display:flex/flexDirection:column 을 보유한다(factory 신규 분은 제거됐으나 기존 문서는 잔존).
+  //   `...rawParentStyle` 가 마지막 spread 라 side 의 flexDirection:row 를 column 으로 덮어
+  //   Label 이 위로 쌓이던 근본. side 는 사용자가 명시 선택한 축이므로 display/flexDirection 충돌
+  //   inline 값은 무시(row 강제) — 그 외 inline(width/gap/padding 등)은 보존. CSS 측은 generated
+  //   CSS selector specificity 가 inline 에 지지만, store longhand 제거(아래 sideMode 분기에서
+  //   직접 set 안 함) 대신 layout 시점 strip 으로 Skia 만 교정(CSS 는 catalog flex-row + Inspector
+  //   가 side 전환 시 inline display/flexDir 제거하는 별도 경로가 정본).
+  const { display: _d, flexDirection: _fd, ...restRaw } = rawParentStyle;
   return {
     ...specFallback,
     display: "flex",
@@ -561,7 +571,7 @@ function getSideLabelParentStyle(
     flexWrap: "wrap",
     alignItems: "flex-start",
     gap: specFallback.gap ?? 4,
-    ...rawParentStyle,
+    ...restRaw,
   };
 }
 

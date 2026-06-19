@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Field labelPosition="side" CSS↔Skia 미동작 수정 — TextField DELEGATING + grid→flex-row 통일] - 2026-06-19
+
+사용자 보고: SearchField/NumberField/TextField 의 Label Position="side" 가 CSS↔Skia 양쪽에서 미동작 (DateField/TimeField 는 정상). systematic-debugging root-cause → **2개 독립 결함 + 숨은 SSOT 위반** 확인. starter/RSP 가 side CSS 미규정 → composition 내부 CSS↔Skia 대칭이 정본 (사용자 confirm: flex-row 통일).
+
+### Bug Fixes
+
+- **TextField labelPosition="side" 영구 미동작 — `data-label-position` DOM 미emit** (결함 A):
+  - TextField 는 catalog cutover(FAMILY_2) + RAC export 존재 + `DELEGATING_RAC_RENDERERS` 미등록 → CanonicalNodeRenderer generic 경로(RAC `<TextField>` 직접 렌더)로 떨어짐. `labelPosition`(binding kind:"enum")은 `DATA_ATTR_KINDS`(variant/size/fillStyle 한정) 밖이라 `toRacProps` 가 React prop 으로만 통과 → RAC unstyled 가 `data-*` 미생성 → generated CSS `[data-label-position="side"]` selector 영원히 미매칭 → Label 항상 top
+  - **Why**: NumberField/SearchField(DELEGATING 등록) + DateField/TimeField(RAC export 부재로 rendererMap fallthrough)는 모두 wrapper(`render{Field}` → composition `<TextField>` 류)가 `data-label-position` 명시 emit 하여 정상. TextField 만 generic 으로 떨어진 sweep 누락(NumberField/SearchField DELEGATING sweep 때 빠짐)
+  - 수정: `DELEGATING_RAC_RENDERERS` 에 `"TextField"` 등록. `renderTextField` wrapper(self-compose)가 NumberField/SearchField 와 동형 위임 → emit 복구 + 자식 재귀 skip 안전
+  - 위치: `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`
+- **NumberField/SearchField side 차단 — factory inline `flexDirection:column`** (결함 B):
+  - ADR-912 R1 후속 fix(2026-06-12)가 NumberField/SearchField factory 에 박은 inline `display:flex`/`flexDirection:column` 이 side 전환을 양쪽 경로에서 차단: (a) CSS — inline specificity(1-0-0)가 generated CSS `[data-label-position="side"]`(0-2-0)를 이김 (b) Skia — `getSideLabelParentStyle` 의 `...rawParentStyle` 마지막 spread 가 side 의 `flexDirection:row` 를 column 으로 덮음
+  - **Why**: DateField/TimeField(inline 에 display/flexDir 없음)가 정상이던 패턴과 비대칭. factory 가 top 기본 column 을 inline 으로 강제할 필요 없음(catalog rule + Skia specFallback 이 담당)
+  - 수정: factory inline `display`/`flexDirection` 제거(width/gap 보존) + `getSideLabelParentStyle` 가 side 모드에서 rawParentStyle 의 display/flexDirection strip(기존 element 안전망) + hydration migration(`migrateFieldInlineLayout`)으로 기존 직렬화 프로젝트의 field inline 잔재 strip(CheckboxGroup orientation migration 동형, 2경로 legacyToCanonical + persist-back, 멱등)
+  - 위치: `FormComponents.ts` + `implicitStyles.ts` + `adapters/canonical/fieldInlineLayoutMigration.ts`
+
+### Architecture
+
+- **field family side 레이아웃 SSOT 일원화 — grid → flex-row** (ADR-913 후속):
+  - side CSS 의 진짜 SSOT 는 catalog(Skia 전용)가 아니라 `generate-css.ts` STRUCTURE_META 였고, 거기에 grid + nested grid-column 자식 배치가 하드코딩 → CSS(grid) ↔ Skia(getSideLabelParentStyle flex-row 시뮬) 비대칭의 근원
+  - TextField/TextArea/NumberField/SearchField/ColorField 5 컴포넌트의 side styles 를 DateField/TimeField 와 동일한 `{ flex-direction:row, align-items:flex-start }` 로 통일(catalog `COMPONENT_RULES_TABLE` + generate-css.ts STRUCTURE_META 동시). generated CSS = Skia 대칭 복원, 7 field 전부(5+Date/Time) byte-identical side
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` + `packages/specs/scripts/generate-css.ts` + generated `{TextField,TextArea,NumberField,SearchField,ColorField}.css`
+  - 회귀 가드: `fieldLabelPositionSide.test.ts`(catalog flex-row 8) + `sideLabelImplicitStyles.test.ts`(inline column strip 1) + `CanonicalNodeRenderer.selectFamily.test.tsx`(TextField DELEGATING 1) + `fieldInlineLayoutMigration.test.ts`(migration 5)
+
 ## [Overlay family catalog 정합 — ADR-913 slice 5 (radius xs/2xl 토큰 + Popover arrow fix 2)] - 2026-06-19
 
 ADR-913 slice 5 (Overlay family: Dialog/Popover/Tooltip/Modal). 4 멤버를 starter 레퍼런스 + generated/manual CSS + catalog rule + STRUCTURE_META + Skia primitive(shadow/arrow/backdrop) + portal 렌더 경로 6 각도 병렬 정밀 정찰(13 agent) → **실재 갭 11 측정 → fix 2건 확정 + overclaim 기각 3건**. surface minimization 으로 fix 2건만 좁게 처리, Modal cascade 는 별도 ADR / Popover bg·shadow·provenance 3건은 후속 분리(사용자 confirm). 회귀 방지 테스트 동반.

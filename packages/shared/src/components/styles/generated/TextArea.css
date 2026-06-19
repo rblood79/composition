@@ -97,23 +97,8 @@
 }
 
 .react-aria-TextArea[data-label-position="side"] {
-  display: grid;
-  grid-template-columns: var(--form-label-width, max-content) minmax(0, 1fr);
-  column-gap: var(--form-field-gap, var(--spacing-md));
-  row-gap: var(--spacing-xs);
-  align-items: start;
-  width: 100%;
-}
-
-.react-aria-TextArea[data-label-position="side"] > .react-aria-Label {
-  grid-column: 1;
-  justify-self: stretch;
-  text-align: var(--form-label-align, start);
-}
-
-.react-aria-TextArea[data-label-position="side"] > :not(.react-aria-Label) {
-  grid-column: 2;
-  min-width: 0;
+  flex-direction: row;
+  align-items: flex-start;
 }
 
 

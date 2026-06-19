@@ -47,6 +47,22 @@ describe("CanonicalNodeRenderer — ADR-912 R1 Select family DELEGATING 위임",
     }
   });
 
+  // ADR-913 후속 fix (2026-06-19): TextField labelPosition="side" 미동작 가드.
+  //   TextField 는 RAC export 존재 + DELEGATING 미등록이라 generic 경로(RAC `<TextField>` 직접)로
+  //   떨어져 `data-label-position` 을 DOM 에 emit 하지 않았다(labelPosition kind:"enum" 은
+  //   DATA_ATTR_KINDS 밖 → toRacProps 가 React prop 으로만 통과 → RAC unstyled 가 data-* 미생성 →
+  //   generated CSS `[data-label-position="side"]` selector 영원히 미매칭 → Label 항상 top).
+  //   renderTextField wrapper(composition TextField.tsx:92)가 data-label-position 을 명시 emit
+  //   하므로 DELEGATING 등록으로 위임하면 NumberField/SearchField 와 동형 복구. 미등록 시 회귀.
+  it("rac source(TextField)는 DELEGATING_RAC_RENDERERS 에 등록 (labelPosition side emit)", () => {
+    const binding = getPrimitiveBinding("TextField");
+    expect(binding?.source.kind, "TextField binding source.kind").toBe("rac");
+    expect(
+      DELEGATING_RAC_RENDERERS.has("TextField"),
+      "TextField 가 DELEGATING_RAC_RENDERERS 에 누락 → generic 경로 → data-label-position 미emit → side 미동작 회귀",
+    ).toBe(true);
+  });
+
   it("Select family sub-part 3종은 catalog binding 보유 (Skia generic box/text/icon source)", () => {
     // 자식은 DOM 에서 부모 self-compose 로 흡수되지만, Skia 는 자기 노드를 generic 으로 그린다.
     // binding 누락 시 resolveEditContract(Inspector) 가 크래시(MeterValue 회귀 선례).

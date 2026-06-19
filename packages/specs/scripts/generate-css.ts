@@ -2950,29 +2950,15 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
       containerVariants: {
         "label-position": {
           side: {
+            // ADR-913 후속 fix (2026-06-19): grid → flex-row 통일. field family(TextField/TextArea/
+            //   NumberField/SearchField/ColorField) side 를 DateField/TimeField 와 동일 flex-row 로.
+            //   기존 grid(+ nested grid-column 자식 배치)는 CSS 전용이었고 Skia getSideLabelParentStyle
+            //   은 flex-row 라 CSS↔Skia 비대칭이었다. flex-row 통일로 generated CSS = Skia 대칭 (Label
+            //   fit-content 자연 옆 정렬, nested 자식 배치 불요). catalog componentRulesTable 동시 전환.
             styles: {
-              display: "grid",
-              "grid-template-columns":
-                "var(--form-label-width, max-content) minmax(0, 1fr)",
-              "column-gap": "var(--form-field-gap, var(--spacing-md))",
-              "row-gap": "var(--spacing-xs)",
-              "align-items": "start",
-              width: "100%",
+              "flex-direction": "row",
+              "align-items": "flex-start",
             },
-            nested: [
-              {
-                selector: "> .react-aria-Label",
-                styles: {
-                  "grid-column": "1",
-                  "justify-self": "stretch",
-                  "text-align": "var(--form-label-align, start)",
-                },
-              },
-              {
-                selector: "> :not(.react-aria-Label)",
-                styles: { "grid-column": "2", "min-width": "0" },
-              },
-            ],
           },
         },
         quiet: {
@@ -3149,29 +3135,15 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
       containerVariants: {
         "label-position": {
           side: {
+            // ADR-913 후속 fix (2026-06-19): grid → flex-row 통일. field family(TextField/TextArea/
+            //   NumberField/SearchField/ColorField) side 를 DateField/TimeField 와 동일 flex-row 로.
+            //   기존 grid(+ nested grid-column 자식 배치)는 CSS 전용이었고 Skia getSideLabelParentStyle
+            //   은 flex-row 라 CSS↔Skia 비대칭이었다. flex-row 통일로 generated CSS = Skia 대칭 (Label
+            //   fit-content 자연 옆 정렬, nested 자식 배치 불요). catalog componentRulesTable 동시 전환.
             styles: {
-              display: "grid",
-              "grid-template-columns":
-                "var(--form-label-width, max-content) minmax(0, 1fr)",
-              "column-gap": "var(--form-field-gap, var(--spacing-md))",
-              "row-gap": "var(--spacing-xs)",
-              "align-items": "start",
-              width: "100%",
+              "flex-direction": "row",
+              "align-items": "flex-start",
             },
-            nested: [
-              {
-                selector: "> .react-aria-Label",
-                styles: {
-                  "grid-column": "1",
-                  "justify-self": "stretch",
-                  "text-align": "var(--form-label-align, start)",
-                },
-              },
-              {
-                selector: "> :not(.react-aria-Label)",
-                styles: { "grid-column": "2", "min-width": "0" },
-              },
-            ],
           },
         },
         quiet: {
@@ -3474,32 +3446,12 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
       containerVariants: {
         "label-position": {
           side: {
+            // ADR-913 후속 fix (2026-06-19): grid → flex-row 통일 (field family side SSOT 일원화 —
+            //   TextField/NumberField/SearchField/ColorField/DateField/TimeField 동형). CSS↔Skia 대칭.
             styles: {
-              display: "grid",
-              "grid-template-columns":
-                "var(--form-label-width, max-content) minmax(0, 1fr)",
-              "column-gap": "var(--form-field-gap, var(--spacing-md))",
-              "row-gap": "var(--spacing-xs)",
-              "align-items": "start",
-              width: "100%",
+              "flex-direction": "row",
+              "align-items": "flex-start",
             },
-            nested: [
-              {
-                selector: "> .react-aria-Label",
-                styles: {
-                  "grid-column": "1",
-                  "justify-self": "stretch",
-                  "text-align": "var(--form-label-align, start)",
-                },
-              },
-              {
-                selector: "> :not(.react-aria-Label)",
-                styles: {
-                  "grid-column": "2",
-                  "min-width": "0",
-                },
-              },
-            ],
           },
         },
       },
@@ -3580,29 +3532,15 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
         },
         "label-position": {
           side: {
+            // ADR-913 후속 fix (2026-06-19): grid → flex-row 통일. field family(TextField/TextArea/
+            //   NumberField/SearchField/ColorField) side 를 DateField/TimeField 와 동일 flex-row 로.
+            //   기존 grid(+ nested grid-column 자식 배치)는 CSS 전용이었고 Skia getSideLabelParentStyle
+            //   은 flex-row 라 CSS↔Skia 비대칭이었다. flex-row 통일로 generated CSS = Skia 대칭 (Label
+            //   fit-content 자연 옆 정렬, nested 자식 배치 불요). catalog componentRulesTable 동시 전환.
             styles: {
-              display: "grid",
-              "grid-template-columns":
-                "var(--form-label-width, max-content) minmax(0, 1fr)",
-              "column-gap": "var(--form-field-gap, var(--spacing-md))",
-              "row-gap": "var(--spacing-xs)",
-              "align-items": "start",
-              width: "100%",
+              "flex-direction": "row",
+              "align-items": "flex-start",
             },
-            nested: [
-              {
-                selector: "> .react-aria-Label",
-                styles: {
-                  "grid-column": "1",
-                  "justify-self": "stretch",
-                  "text-align": "var(--form-label-align, start)",
-                },
-              },
-              {
-                selector: "> :not(.react-aria-Label)",
-                styles: { "grid-column": "2", "min-width": "0" },
-              },
-            ],
           },
         },
         quiet: {
@@ -4305,29 +4243,15 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
       containerVariants: {
         "label-position": {
           side: {
+            // ADR-913 후속 fix (2026-06-19): grid → flex-row 통일. field family(TextField/TextArea/
+            //   NumberField/SearchField/ColorField) side 를 DateField/TimeField 와 동일 flex-row 로.
+            //   기존 grid(+ nested grid-column 자식 배치)는 CSS 전용이었고 Skia getSideLabelParentStyle
+            //   은 flex-row 라 CSS↔Skia 비대칭이었다. flex-row 통일로 generated CSS = Skia 대칭 (Label
+            //   fit-content 자연 옆 정렬, nested 자식 배치 불요). catalog componentRulesTable 동시 전환.
             styles: {
-              display: "grid",
-              "grid-template-columns":
-                "var(--form-label-width, max-content) minmax(0, 1fr)",
-              "column-gap": "var(--form-field-gap, var(--spacing-md))",
-              "row-gap": "var(--spacing-xs)",
-              "align-items": "start",
-              width: "100%",
+              "flex-direction": "row",
+              "align-items": "flex-start",
             },
-            nested: [
-              {
-                selector: "> .react-aria-Label",
-                styles: {
-                  "grid-column": "1",
-                  "justify-self": "stretch",
-                  "text-align": "var(--form-label-align, start)",
-                },
-              },
-              {
-                selector: "> :not(.react-aria-Label)",
-                styles: { "grid-column": "2", "min-width": "0" },
-              },
-            ],
           },
         },
         "label-align": {

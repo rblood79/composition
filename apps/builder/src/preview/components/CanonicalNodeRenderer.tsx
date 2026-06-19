@@ -254,6 +254,19 @@ export const DELEGATING_RAC_RENDERERS: ReadonlySet<string> = new Set([
   //   skip (Slider 동형, SelectTrigger sub-part 는 DOM 미도달이 설계 의도).
   "NumberField",
   "SearchField",
+  // ADR-913 후속 (2026-06-19): TextField — labelPosition="side" 가 CSS↔Skia 미동작하던 근본.
+  //   등록 동기가 위 Select family(raw tag)와 다르다. TextField 자식(Label/Input/FieldError)은
+  //   spec 이 살아있어 generic 재귀로도 raw tag 안 떨어진다. 문제는 generic 경로(RAC `<TextField>`
+  //   직접 렌더, marker on self)가 `data-label-position` 을 DOM 에 emit 하지 않는다는 것:
+  //   labelPosition(kind:"enum")은 DATA_ATTR_KINDS(variant/size/fillStyle 한정) 밖이라 toRacProps 가
+  //   React prop 으로만 통과 → RAC unstyled 는 이를 data-* 로 안 내보냄 → generated CSS
+  //   `.react-aria-TextField[data-label-position="side"]` selector 영원히 미매칭 → Label 항상 top.
+  //   다른 4 field(NumberField/SearchField=DELEGATING / DateField/TimeField=RAC export 부재로
+  //   rendererMap fallthrough)는 wrapper(renderTextField 류)가 명시 `data-label-position` emit 하여
+  //   정상. TextField 만 RAC export 존재 + DELEGATING 미등록이라 generic 으로 떨어진 sweep 누락.
+  //   renderTextField(FormRenderers)가 composition `<TextField>` wrapper(TextField.tsx:92 data-label-position)
+  //   로 self-compose 하므로 NumberField/SearchField 와 동형 — 위임 등록 + 자식 재귀 skip 안전.
+  "TextField",
   // ADR-912 CheckboxItems/RadioItems 폐기 후속 (2026-06-15): CheckboxGroup / RadioGroup —
   //   등록 동기가 위 Slider 군과 다르다. 자식 Checkbox/Radio 는 spec 이 살아있어 generic
   //   재귀로도 raw tag 안 떨어진다(vertical 은 generic 경로로도 그룹 자체 flex column 으로

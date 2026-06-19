@@ -1535,20 +1535,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 36,
       },
     },
-    // ADR-913 slice 2 (2026-06-18): label-position:side Skia 복구 — TextField 동형(grid
-    //   form-field layout). ADR-912 단계5 step4 누락분(measure gap[11]). generated
-    //   ColorField.css:178-184 side 블록과 byte-identical. Skia sideMode 트리거 styles 만.
+    // ADR-913 후속 fix (2026-06-19): label-position:side 를 grid → flex-row 로 통일 (DateField/
+    //   TimeField/TextField/NumberField/SearchField/TextArea 동형). field family side SSOT 일원화
+    //   (generate-css.ts STRUCTURE_META 도 동시 flex-row 전환). Skia sideMode 트리거 styles 만.
     containerVariants: {
       "label-position": {
         side: {
           styles: {
-            display: "grid",
-            "grid-template-columns":
-              "var(--form-label-width, max-content) minmax(0, 1fr)",
-            "column-gap": "var(--form-field-gap, var(--spacing-md))",
-            "row-gap": "var(--spacing-xs)",
-            "align-items": "start",
-            width: "100%",
+            "flex-direction": "row",
+            "align-items": "flex-start",
           },
         },
       },
@@ -4130,21 +4125,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 28,
       },
     },
-    // ADR-912 단계5 step4 (2026-06-17): NumberField.spec.composition.containerVariants 의
-    //   label-position:side Skia 복구 — spec 삭제(91c2be0dd) 로 side variant 회귀. Skia layout 은
-    //   styles.display==="grid" 로 sideMode 판정 후 getSideLabelParentStyle(flex/row/wrap 하드코딩)
-    //   적용 — styles 만 필요. nested(> .react-aria-Label DOM selector)는 generated CSS 전용 제외.
+    // ADR-913 후속 fix (2026-06-19): label-position:side 를 grid → flex-row 로 통일 (DateField/
+    //   TimeField 동형). 기존 grid 정의는 CSS 만 grid 였고 Skia getSideLabelParentStyle 은 flex-row
+    //   시뮬레이션이라 CSS↔Skia 비대칭이었다(+ factory inline flexDirection:column 이 CSS specificity
+    //   로 grid selector 를 이겨 실제로는 양쪽 다 column 으로 무력화). flex-row 로 통일하면 generated
+    //   CSS = Skia(getSideLabelParentStyle) 대칭 + Label fit-content 옆 정렬. Skia 는 styles 만 사용
+    //   (nested DOM selector 는 generated CSS 전용 제외).
     containerVariants: {
       "label-position": {
         side: {
           styles: {
-            display: "grid",
-            "grid-template-columns":
-              "var(--form-label-width, max-content) minmax(0, 1fr)",
-            "column-gap": "var(--form-field-gap, var(--spacing-md))",
-            "row-gap": "var(--spacing-xs)",
-            "align-items": "start",
-            width: "100%",
+            "flex-direction": "row",
+            "align-items": "flex-start",
           },
         },
       },
@@ -4814,21 +4806,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 28,
       },
     },
-    // ADR-913 slice 2 (2026-06-18): label-position:side Skia 복구 — TextField 동형(grid
-    //   form-field layout). ADR-912 단계5 step4 가 TextField/TextArea/NumberField/DateField/
-    //   DatePicker 만 복구하고 SearchField 누락 → Skia sideMode 미적용 비대칭(measure gap[3]).
-    //   generated SearchField.css:311-317 side 블록과 byte-identical. Skia sideMode 트리거 styles 만.
+    // ADR-913 후속 fix (2026-06-19): label-position:side 를 grid → flex-row 로 통일 (DateField/
+    //   TimeField/NumberField 동형). 기존 grid 는 CSS 전용이고 Skia getSideLabelParentStyle 은 flex-row
+    //   라 비대칭 + factory inline flexDirection:column 이 grid selector 를 specificity 로 이겨 무력화.
+    //   flex-row 통일로 generated CSS = Skia 대칭 복원. Skia sideMode 트리거 styles 만.
     containerVariants: {
       "label-position": {
         side: {
           styles: {
-            display: "grid",
-            "grid-template-columns":
-              "var(--form-label-width, max-content) minmax(0, 1fr)",
-            "column-gap": "var(--form-field-gap, var(--spacing-md))",
-            "row-gap": "var(--spacing-xs)",
-            "align-items": "start",
-            width: "100%",
+            "flex-direction": "row",
+            "align-items": "flex-start",
           },
         },
       },
@@ -6566,20 +6553,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 10,
       },
     },
-    // ADR-912 단계5 step4 (2026-06-17): TextArea.spec.composition.containerVariants 의
-    //   label-position:side Skia 복구 — NumberField/TextField 동형(grid form-field layout). spec
-    //   삭제(91c2be0dd) 회귀. Skia sideMode 트리거 styles 만(nested DOM selector 제외).
+    // ADR-913 후속 fix (2026-06-19): label-position:side 를 grid → flex-row 로 통일 (DateField/
+    //   TimeField/TextField/NumberField/SearchField/ColorField 동형). field family side SSOT
+    //   일원화 (generate-css.ts STRUCTURE_META 도 동시 flex-row). Skia sideMode 트리거 styles 만.
     containerVariants: {
       "label-position": {
         side: {
           styles: {
-            display: "grid",
-            "grid-template-columns":
-              "var(--form-label-width, max-content) minmax(0, 1fr)",
-            "column-gap": "var(--form-field-gap, var(--spacing-md))",
-            "row-gap": "var(--spacing-xs)",
-            "align-items": "start",
-            width: "100%",
+            "flex-direction": "row",
+            "align-items": "flex-start",
           },
         },
       },
@@ -6628,20 +6610,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 10,
       },
     },
-    // ADR-912 단계5 step4 (2026-06-17): TextField.spec.composition.containerVariants 의
-    //   label-position:side Skia 복구 — NumberField/TextArea 동형(grid form-field layout). spec
-    //   삭제(91c2be0dd) 회귀. Skia sideMode 트리거 styles 만(nested DOM selector 제외).
+    // ADR-913 후속 fix (2026-06-19): label-position:side 를 grid → flex-row 로 통일 (DateField/
+    //   TimeField/NumberField/SearchField 동형). TextField 는 별도 결함(DELEGATING 미등록 → generic
+    //   경로 → data-label-position DOM 미emit → side selector 영원히 미매칭)도 함께 수정됨
+    //   (CanonicalNodeRenderer DELEGATING_RAC_RENDERERS 등록). flex-row 통일로 emit 복원 후 generated
+    //   CSS = Skia(getSideLabelParentStyle) 대칭. Skia sideMode 트리거 styles 만(nested DOM 제외).
     containerVariants: {
       "label-position": {
         side: {
           styles: {
-            display: "grid",
-            "grid-template-columns":
-              "var(--form-label-width, max-content) minmax(0, 1fr)",
-            "column-gap": "var(--form-field-gap, var(--spacing-md))",
-            "row-gap": "var(--spacing-xs)",
-            "align-items": "start",
-            width: "100%",
+            "flex-direction": "row",
+            "align-items": "flex-start",
           },
         },
       },

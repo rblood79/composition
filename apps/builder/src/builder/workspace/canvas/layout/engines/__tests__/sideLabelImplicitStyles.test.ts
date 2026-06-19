@@ -144,6 +144,42 @@ describe("side-label implicit styles", () => {
     expect(typeof fieldErrorStyle.marginLeft).toBe("number");
   });
 
+  it("NumberField side variant는 inline flexDirection:column 이 있어도 parent row 를 강제한다", () => {
+    // ADR-913 후속 fix (2026-06-19): 기존 store element 는 factory 가 박은 inline
+    //   display:flex/flexDirection:column 을 보유한다(신규 분은 factory 에서 제거됐으나 기존
+    //   문서 잔존). getSideLabelParentStyle 의 `...rawParentStyle` 마지막 spread 가 side 의
+    //   flexDirection:row 를 column 으로 덮어 Label 이 위로 쌓이던 근본. side 모드에서 inline
+    //   display/flexDirection 을 strip 하여 row 강제(그 외 inline 은 보존)하는지 가드.
+    const result = applyContainer(
+      "NumberField",
+      {
+        label: "Count",
+        labelPosition: "side",
+        // 기존 element 가 보유하던 inline 충돌 값
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          width: "100%",
+          gap: 4,
+        },
+      },
+      [
+        makeChild("lbl", "Label"),
+        makeChild("wrap", "SelectTrigger"),
+        makeChild("err", "FieldError"),
+      ],
+    );
+
+    const parentStyle = getParentStyle(result);
+    // inline column 무시하고 row 강제
+    expect(parentStyle.flexDirection).toBe("row");
+    expect(parentStyle.display).toBe("flex");
+    expect(parentStyle.alignItems).toBe("flex-start");
+    // 충돌 안 하는 inline 은 보존 (width/gap)
+    expect(parentStyle.width).toBe("100%");
+    expect(parentStyle.gap).toBe(4);
+  });
+
   it("DateField side variant는 DateInput 보정과 parent row 레이아웃을 유지한다", () => {
     const result = applyContainer(
       "DateField",
