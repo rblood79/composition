@@ -85,17 +85,17 @@ export type {
 // Slider — ADR-912 단계5 step4 (2026-06-17): Slider.spec.ts 물리 삭제(catalog cutover). export 제거.
 //   시각 SSOT = componentRulesTable.Slider + STRUCTURE_META virtual(slider archetype).
 
-// Meter — ADR-912 단계5 step4 경량 이관 (2026-06-17): spec 물리 삭제(catalog cutover).
-//   METER_DIMENSIONS 는 valueFillMetrics 로 이관. METER_FILL_COLORS(dead) + Spec/Props 제거.
-export { METER_DIMENSIONS } from "../renderers/utils/valueFillMetrics";
+// Meter — ADR-912 단계5 step4 (2026-06-17): spec 물리 삭제(catalog cutover).
+//   barHeight 상수(valueFillMetrics)는 ADR-912 Phase 5 후속 (2026-06-20) 에서 소비처가 catalog
+//   MeterTrack.sizes.height read-through 로 흡수 → valueFillMetrics 모듈 전체 삭제(dead). METER_FILL_COLORS(dead) + Spec/Props 제거.
 
 // MeterTrack — ADR-912 단계5 value-fill-track: spec 삭제 (catalog cutover + virtual CSS)
 
 // MeterValue — ADR-912 value-label (2026-06-11): spec 삭제 (catalog cutover + virtual CSS)
 
-// ProgressBar — ADR-912 단계5 step4 경량 이관 (2026-06-17): spec 물리 삭제(catalog cutover).
-//   PROGRESSBAR_DIMENSIONS 는 valueFillMetrics 로 이관. PROGRESSBAR_FILL_COLORS(dead) + Spec/Props 제거.
-export { PROGRESSBAR_DIMENSIONS } from "../renderers/utils/valueFillMetrics";
+// ProgressBar — ADR-912 단계5 step4 (2026-06-17): spec 물리 삭제(catalog cutover).
+//   barHeight 상수(valueFillMetrics)는 ADR-912 Phase 5 후속 (2026-06-20) 에서 소비처가 catalog
+//   ProgressBarTrack.sizes.height read-through 로 흡수 → valueFillMetrics 모듈 전체 삭제(dead). PROGRESSBAR_FILL_COLORS(dead) + Spec/Props 제거.
 
 // ProgressBarTrack — ADR-912 단계5 value-fill-track: spec 삭제 (catalog cutover + virtual CSS)
 // ProgressBarValue — ADR-912 value-label (2026-06-11): spec 삭제 (catalog cutover + virtual CSS)

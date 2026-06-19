@@ -302,10 +302,10 @@ export {
 // Slider — ADR-912 단계5 step4 (2026-06-17): Slider.spec.ts 물리 삭제(catalog cutover). export 제거.
 //   시각 SSOT = componentRulesTable.Slider + STRUCTURE_META virtual(slider archetype). SLIDER_FILL_COLORS
 //   외부 소비처 0건(SliderTrack/SliderThumb rule variant fill {color.accent} 로 대체). SliderProps 외부 import 0.
-// ADR-912 단계5 step4 경량 이관 (2026-06-17): Meter.spec 물리 삭제(catalog cutover).
-//   METER_DIMENSIONS 는 valueFillMetrics 로 이관. METER_FILL_COLORS(rule.variants.fillBar 로 이관됨,
-//   dead) + MeterSpec/MeterProps 제거.
-export { METER_DIMENSIONS } from "./renderers/utils/valueFillMetrics";
+// ADR-912 단계5 step4 (2026-06-17): Meter.spec 물리 삭제(catalog cutover).
+//   barHeight 상수(valueFillMetrics)는 ADR-912 Phase 5 후속 (2026-06-20) 에서 소비처(utils.ts)가
+//   catalog MeterTrack.sizes.height read-through 로 흡수 → valueFillMetrics 모듈 전체 삭제(dead).
+//   METER_FILL_COLORS(rule.variants.fillBar 로 이관됨, dead) + MeterSpec/MeterProps 제거.
 
 // ADR-912 단계5 value-fill-track: MeterTrackSpec 삭제 — catalog 발효(value_fill_bar escape)
 //   + generate-css virtual(archetype:progress) + layout 로컬 미러(VALUE_FILL_TRACK_HEIGHT) 로 대체.
@@ -313,10 +313,10 @@ export { METER_DIMENSIONS } from "./renderers/utils/valueFillMetrics";
 // ADR-912 value-label (2026-06-11): MeterValueSpec 삭제 — catalog 발효(buildCatalogShapes text)
 //   + generate-css virtual(archetype:progress) + specTextStyle catalogType 측정으로 대체.
 
-// ADR-912 단계5 step4 경량 이관 (2026-06-17): ProgressBar.spec 물리 삭제(catalog cutover).
-//   PROGRESSBAR_DIMENSIONS 는 valueFillMetrics 로 이관. PROGRESSBAR_FILL_COLORS(rule.variants.fillBar
-//   로 이관됨, dead) + ProgressBarSpec/ProgressBarProps 제거.
-export { PROGRESSBAR_DIMENSIONS } from "./renderers/utils/valueFillMetrics";
+// ADR-912 단계5 step4 (2026-06-17): ProgressBar.spec 물리 삭제(catalog cutover).
+//   barHeight 상수(valueFillMetrics)는 ADR-912 Phase 5 후속 (2026-06-20) 에서 소비처(utils.ts)가
+//   catalog ProgressBarTrack.sizes.height read-through 로 흡수 → valueFillMetrics 모듈 전체 삭제(dead).
+//   PROGRESSBAR_FILL_COLORS(rule.variants.fillBar 로 이관됨, dead) + ProgressBarSpec/ProgressBarProps 제거.
 
 // ADR-912 단계5 value-fill-track: ProgressBarTrackSpec 삭제 — catalog 발효(value_fill_bar escape)
 //   + generate-css virtual(archetype:progress) + layout 로컬 미러(PROGRESSBARTRACK_HEIGHT) 로 대체.
