@@ -19,9 +19,10 @@ import {
 } from "../resolvers/resolveCatalogContainer";
 
 describe("resolveCatalogStructure", () => {
-  it("TextField → structure.layout = flex-column (STRUCTURE_META 이관분)", () => {
+  it("TextField → structure.composition.layout = flex-column (STRUCTURE_META 동형 이관분)", () => {
     const structure = resolveCatalogStructure("TextField");
-    expect(structure?.layout).toBe("flex-column");
+    // STRUCTURE_META 동형 (Phase 2): layout 은 composition 안에 있음 (top-level 아님).
+    expect(structure?.composition?.layout).toBe("flex-column");
   });
 
   it("unknown type → undefined", () => {

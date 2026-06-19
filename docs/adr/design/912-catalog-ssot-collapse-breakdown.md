@@ -327,16 +327,58 @@ gap, containerStyles: { width: "fit-content" } } }` 를 추가했다. generator 
 읽으므로 generated CSS 미영향 — Phase 2 에서 나머지 84 entry 이관 + STRUCTURE_META 삭제 +
 buildVirtualSpecs rule-table 순회 전환 시 본 필드가 정본이 된다.
 
-### Phase 2 — STRUCTURE_META migration
+### Phase 2 — STRUCTURE_META migration ✅ Land 완료 (2026-06-19, byte-diff-0 kill-gate PASS)
 
-- `STRUCTURE_META_ENTRIES` 의 모든 entry(**85** — `generate-css.ts:229`, `name:` 필드 카운트
-  실측) 를 해당 `componentRulesTable` entry 의 `structure` 로 이동한다.
-- `buildVirtualSpecs()` 를 rule table 순회 기반으로 변경한다.
-- (Δ7) `CSSGenerator.ts` 의 `COMPOSITION_LAYOUT_STYLES` (`:656-675`) 삭제 → `generateBaseStyles`
-  가 shared `CATALOG_LAYOUT_STYLES` 소비.
-- **generated CSS byte diff 0 (kill-gate)**. diff 가 발생하면 structure 이동 오류로 보고 **중단** —
-  consumer phase(3·4) 로 전파 전에 멈춘다 (이 byte-diff-0 이 본 계획의 가장 강한 correctness oracle).
-- migration 완료 후 `STRUCTURE_META`, `StructureMeta`, `STRUCTURE_META_ENTRIES` 삭제.
+- ✅ `STRUCTURE_META_ENTRIES` 의 모든 entry(**85** 실측) 를 해당 `componentRulesTable` entry 의
+  `structure` 로 이동. `Body`(STRUCTURE_META) → `body`(table lowercase key) 1건만 매핑, 나머지
+  84 은 PascalCase key 동일.
+- ✅ `buildVirtualSpecs()` 를 `Object.entries(getComponentRulesTable())` 순회 기반으로 변경.
+  `const meta = rule.structure` 로 두어 기존 합성 로직(meta.archetype/element/states/composition/...)
+  을 한 글자도 안 바꿈 → byte-diff 0 을 자명하게 보장. lowercase key 는 `body→Body` capitalize 복원
+  (structure 보유 lowercase = body 하나뿐 실측).
+- ✅ **generated CSS byte diff 0 (kill-gate)**. Phase 2 전 baseline 92 파일 스냅샷 ↔ Phase 2 후
+  재생성 결과 **0 파일 변경**. generate:css exit 0, 88 파일 정상 생성.
+- ✅ migration 완료 후 `STRUCTURE_META`(Map), `StructureMeta`(타입), `STRUCTURE_META_ENTRIES`(배열,
+  ~4719 줄) 삭제. grep gate baseline STRUCTURE_META_ENTRIES 2→**0 강제**(재도입 가드).
+
+**Phase 2 kill-gate 검증 결과**:
+
+| 게이트                                            | 결과                         |
+| ------------------------------------------------- | ---------------------------- |
+| generated CSS byte-diff 0 (baseline 92 파일 ↔ 후) | ✅ 0 변경 (가장 강한 oracle) |
+| generate:css 런타임                               | ✅ exit 0, 88 파일           |
+| STRUCTURE_META_ENTRIES / StructureMeta 삭제 (T1)  | ✅ 코드 심볼 0               |
+| shared type-check                                 | ✅ 0                         |
+| builder type-check (structure 타입 전파)          | ✅ 0 신규                    |
+| specs type-check (사전 60 baseline)               | ✅ 60→60 불변 (+0 신규)      |
+| shared catalog test (resolver 14 + grep gate 9)   | ✅ 210 PASS                  |
+| specs vitest (CSS snapshot 포함)                  | ✅ 461 PASS                  |
+
+**P2 진입 중 발견·결정 (breakdown 미명시 → 본문 정정)**:
+
+1. **structure 형태 = STRUCTURE_META 동형 (Phase 1 타입 교정)**: Phase 1 시범 TextField structure 는
+   `layout` 을 top-level 에 두고 composition/states 를 누락한 **불완전 형태**였다. byte-diff-0 을 자명하게
+   하려면 buildVirtualSpecs 입력이 byte 동형이어야 하므로, `ComponentRuleStructure` 를 STRUCTURE_META
+   `StructureMeta`(`{ archetype, element, containerStyles, states?, composition?, cssEmitMode?,
+indicatorMode? }`)와 1:1 동형으로 교정했다. `emitCss: true` 강제 제거(STRUCTURE_META 에 없음 — Map/
+   structure 멤버십 자체가 emit 플래그), `layout` 을 top-level→`composition.layout` 으로 통일.
+   `resolveCatalogContainerBase` / resolver test 도 `structure.composition?.layout` 읽기로 교정.
+2. **containerStyles value 타입 = string | number (운반 타입)**: STRUCTURE_META.containerStyles 는
+   specs `ContainerStylesSchema`(`borderWidth: number` / display enum / TokenRef)를 따른다. Phase 1 이
+   `Record<string, string>` 로 좁힌 게 byte-diff 데이터(collection archetype 의 `borderWidth: 1`)와 충돌.
+   specs import 0 을 유지하며 원본 데이터를 운반하려 `Record<string, string | number>` 로 넓힘 — 소비처
+   (CSSGenerator)가 `ContainerStylesSchema` 로 캐스팅.
+3. **Δ7 (COMPOSITION_LAYOUT_STYLES 삭제) → Phase 3 분리 (사용자 결정 2026-06-19)**: breakdown 원안은
+   Δ7 을 Phase 2 에 포함했으나, "CSSGenerator(specs)가 shared `CATALOG_LAYOUT_STYLES` 소비" 는
+   **specs→shared 역의존**(순환 유발 — `feedback-specs-shared-layer-not-absorption` 차단 메모리 직접
+   적용)이다. layout token 단일화는 의존 방향 설계(token table 을 specs 로 이전 + shared import)가
+   필요하므로 Skia/layout consumer collapse(Phase 3)와 함께 한다. Phase 2 는 COMPOSITION_LAYOUT_STYLES
+   를 유지 → generated CSS 불변(byte-diff-0 oracle 순수 보존). grep gate COMPOSITION_LAYOUT_STYLES
+   baseline=2 유지(killPhase 표기만 Phase 3 으로).
+4. **Slot.css 사전 drift (P2 무관)**: main(`8834a9df8` ADR-140)에서 `Slot.css` 가 빈 파일로 커밋된
+   사전 drift 발견 — Slot.spec.ts 는 정상이라 generate:css 시 정본 70줄 복원. STRUCTURE_META(85개)와
+   무관(Slot 은 spec 파일 생성). P2 byte-diff oracle 은 "현 baseline(Slot 복원 포함) ↔ P2 후" 동일로
+   측정 → Slot.css 영향 0. 정본 복원이라 P2 커밋에 포함.
 
 ### Phase 3 — Skia/layout consumer collapse
 
@@ -352,6 +394,12 @@ buildVirtualSpecs rule-table 순회 전환 시 본 필드가 정본이 된다.
   `PROGRESSBAR_COL_GAP` / `SLIDER_ROW_GAP` 삭제 → 소비처를 `resolveCatalogSizeField` 로 교체.
 - (Δ5) `INDICATOR_SIZES.box` 는 Checkbox/Radio `sizes` 로 승격(권장) 또는 Non-goal 명시.
 - (Δ3) shared `resolveCatalogContainerVariants` land 후 `:578-600` 임시 adapter 삭제.
+- (Δ7 — Phase 2 에서 이연, 사용자 결정 2026-06-19) `CSSGenerator.ts` 의 `COMPOSITION_LAYOUT_STYLES`
+  (`:656-675`) 삭제 → 단일 layout token table 로 수렴. **의존 방향 제약**: token table 을 shared 에
+  두면 specs(CSSGenerator)→shared 역의존(순환)이라 불가. layout token table 을 **specs 로 이전**하고
+  shared `resolveCatalogContainer` 가 specs 에서 import(shared→specs 정상 방향) → CSSGenerator(specs
+  내부)와 resolver(shared) 가 같은 source 소비. Phase 1 이 shared 에 둔 `CATALOG_LAYOUT_STYLES` 를
+  specs 로 이동 + shared re-export. grep gate COMPOSITION_LAYOUT_STYLES baseline 2→0.
 - `resolveContainerStylesFallback` wrapper 가 shared resolver 를 사용하도록 변경.
 - field branch 는 child filtering/injection 만 남긴다.
 

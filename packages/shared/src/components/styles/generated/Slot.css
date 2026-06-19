@@ -1,0 +1,70 @@
+/* ============================================================
+ * AUTO-GENERATED from SlotSpec — DO NOT EDIT MANUALLY
+ * Source: packages/specs/src/components/Slot.spec.ts
+ * Archetype: default
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Slot {
+  /* Base styles — archetype: default */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    font-family: var(--font-sans);
+
+  /* Default size */
+  height: 60px;
+  padding: 12px 12px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+  gap: 8px;
+}
+
+.react-aria-Slot[data-size="sm"] {
+  height: 40px;
+  padding: 8px 8px;
+  font-size: var(--text-xs);
+  border-radius: var(--radius-md);
+  gap: 4px;
+}
+
+.react-aria-Slot[data-size="md"] {
+  height: 60px;
+  padding: 12px 12px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+  gap: 8px;
+}
+
+.react-aria-Slot[data-size="lg"] {
+  height: 80px;
+  padding: 16px 16px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-lg);
+  gap: 12px;
+}
+
+.react-aria-Slot[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Slot[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-Slot {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */

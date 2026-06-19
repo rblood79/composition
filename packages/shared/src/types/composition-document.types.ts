@@ -399,17 +399,29 @@ export type ComponentRuleLayoutToken =
 /**
  * 구조 메타 base (ADR-912 — generate-css `StructureMeta` 의 shared 대응).
  * specs `ComponentSpec[...]` 인덱스 접근을 shared 자체 타입으로 재선언 — specs import 0.
+ *
+ * **STRUCTURE_META entry 와 byte 동형 (Phase 2)**: CSS emit 멤버십은 `structure` 보유 여부가
+ * 결정한다(별도 `emitCss` 플래그 불요 — generate-css `STRUCTURE_META` 의 Map 멤버십과 동일 의미).
+ * `layout` 은 top-level 이 아니라 `composition.layout` 안에 둔다 — `buildVirtualSpecs` 가
+ * `virtualSpec.composition = structure.composition` 을 그대로 전달하므로, generated CSS byte-diff 0
+ * 을 자명하게 보장한다. `resolveCatalogContainerBase` 는 `structure.composition?.layout` 을 읽는다.
  */
 export interface ComponentRuleStructure {
-  /** CSS emit membership 명시 플래그. 항상 true (미emit 컴포넌트는 structure 자체를 안 둠). */
-  emitCss: true;
   /** spec archetype 의 catalog 대응 (CSSGenerator base style 파생). */
   archetype: string;
-  /** root DOM element tag (예: "div"). */
+  /** root DOM element tag (예: "div", "p", "section"). */
   element: string;
-  /** root layout token. `CATALOG_LAYOUT_STYLES[layout]` 로 base container style 파생. */
-  layout?: ComponentRuleLayoutToken;
-  /** composition 메타 (gap / containerStyles / selectors 등 — 기존 STRUCTURE_META.composition 이동). */
+  /**
+   * root container base style (STRUCTURE_META top-level containerStyles 이동). generator-only
+   * 운반 타입 — specs `ContainerStylesSchema`(borderWidth:number / display enum / TokenRef 등)를
+   * specs import 0 으로 담기 위해 느슨한 `string | number` value 로 둔다. 소비처(CSSGenerator)가
+   * `ContainerStylesSchema` 로 캐스팅. camelCase/kebab-case 혼용 가능.
+   */
+  containerStyles?: Record<string, string | number> | undefined;
+  /**
+   * composition 메타 (layout / gap / containerStyles / containerVariants / selectors / delegation 등
+   * — 기존 STRUCTURE_META.composition 전체 이동). `composition.layout` 이 field 류 root layout 의 정본.
+   */
   composition?: ComponentRuleComposition;
   /** 상태별 CSS (hover/pressed/disabled/focusVisible — 기존 STRUCTURE_META.states 이동). */
   states?: ComponentRuleStates;
@@ -426,11 +438,13 @@ export interface ComponentRuleStructure {
  * top-level rule.containerStyles` 순으로 합성 (Δ2 precedence).
  */
 export interface ComponentRuleComposition {
+  /** root layout token. `CATALOG_LAYOUT_STYLES[layout]` 로 base container style 파생 (Δ2 최저 우선순위). */
+  layout?: ComponentRuleLayoutToken;
   /** root flex gap (예: "var(--spacing-xs)"). */
   gap?: string;
-  /** layout 파생 추가 container style (예: `{ width: "fit-content" }`). */
-  containerStyles?: Record<string, string>;
-  /** 그 외 generator 전용 구조 키 (delegation / selectors 등 — emit 시점에만 소비). */
+  /** layout 파생 추가 container style (예: `{ width: "fit-content" }`). generator-only 운반 타입 (string | number). */
+  containerStyles?: Record<string, string | number>;
+  /** 그 외 generator 전용 구조 키 (containerVariants / delegation / rootSelectors / staticSelectors / externalStyles 등 — emit 시점에만 소비). */
   [key: string]: unknown;
 }
 

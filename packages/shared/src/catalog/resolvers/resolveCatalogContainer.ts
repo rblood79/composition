@@ -97,21 +97,26 @@ export function resolveCatalogStructure(
 export function resolveCatalogContainerBase(
   type: string,
   doc?: CompositionDocument | null,
-): Record<string, string> {
+): Record<string, string | number> {
   const rule = resolveComponentRule(type, doc);
   if (!rule) return {};
 
-  const merged: Record<string, string> = {};
+  const merged: Record<string, string | number> = {};
+  const composition: ComponentRuleComposition | undefined =
+    rule.structure?.composition;
 
-  // 1. layout token base
-  const layout = rule.structure?.layout;
+  // 1. layout token base (STRUCTURE_META 동형 — layout 은 composition 안에 있음, Phase 2)
+  const layout = composition?.layout;
   if (layout && CATALOG_LAYOUT_STYLES[layout]) {
     Object.assign(merged, CATALOG_LAYOUT_STYLES[layout]);
   }
 
-  // 2. structure.composition.containerStyles (layout 파생)
-  const composition: ComponentRuleComposition | undefined =
-    rule.structure?.composition;
+  // 2-a. structure.containerStyles (top-level — STRUCTURE_META entry 의 top-level containerStyles)
+  if (rule.structure?.containerStyles) {
+    Object.assign(merged, rule.structure.containerStyles);
+  }
+
+  // 2-b. structure.composition.containerStyles (layout 파생)
   if (composition?.containerStyles) {
     Object.assign(merged, composition.containerStyles);
   }

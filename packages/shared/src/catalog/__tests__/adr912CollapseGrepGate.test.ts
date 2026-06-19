@@ -68,18 +68,22 @@ const DISPERSION_BASELINE: Array<{
   killPhase: string;
 }> = [
   {
-    label: "STRUCTURE_META_ENTRIES (generator-local structure SSOT)",
+    // Phase 2 완료 (2026-06-19): STRUCTURE_META_ENTRIES 삭제 → 0. 재도입 가드로 baseline 0 고정.
+    label:
+      "STRUCTURE_META_ENTRIES (generator-local structure SSOT) — Phase 2 삭제",
     file: "generateCss",
     pattern: /STRUCTURE_META_ENTRIES/,
-    baseline: 2,
-    killPhase: "Phase 2",
+    baseline: 0,
+    killPhase: "Phase 2 ✅",
   },
   {
+    // Δ7 은 사용자 결정으로 Phase 3 분리 (specs→shared 역의존 회피 — layout token 을 specs 로
+    //   이전 + shared import 설계 필요). Phase 2 에서는 COMPOSITION_LAYOUT_STYLES 유지(CSS 불변).
     label: "COMPOSITION_LAYOUT_STYLES (generator-private layout table, Δ7)",
     file: "cssGenerator",
     pattern: /COMPOSITION_LAYOUT_STYLES/,
     baseline: 2,
-    killPhase: "Phase 2",
+    killPhase: "Phase 3 (Δ7 분리)",
   },
   {
     label: "LOWERCASE_COMPONENT_RULE_CONTAINER (builder-local catalog map)",
