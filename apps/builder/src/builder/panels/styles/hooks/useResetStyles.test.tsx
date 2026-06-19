@@ -199,6 +199,13 @@ describe("useResetStyles — default props false dirty audit", () => {
       ],
     },
     { type: "Skeleton", properties: ["width", "height", "borderRadius"] },
+    // TagGroup: factory + getDefaultProps 둘 다 style.width:"100%" 기본 주입(Skia 칩 wrap 대칭).
+    //   두 default 소스가 일치해야 Transform width 가 default 와 동일한데도 "override" 로 오판되어
+    //   리셋 버튼이 활성화되는 회귀를 막는다(2026-06-19 사용자 보고).
+    {
+      type: "TagGroup",
+      properties: ["width", "height", "minWidth", "maxWidth"],
+    },
   ] as const;
 
   beforeEach(() => {

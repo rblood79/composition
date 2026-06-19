@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 수정 (`GroupComponents.ts`): TagGroup factory parent props 에 `style: { width: "100%" }` 명시 — 다른 컨테이너 factory(Layout/Selection 등) 일관 패턴. 사용자가 발견한 회피책(width:100%/align-self:stretch)을 factory 기본값으로 정착.
   - 검증: builder live 측정 — width:100% 적용 시 size=lg 칩 CSS chipRows 2줄 + overflowsParent false / Skia 캔버스도 동일하게 칩 2줄 wrap + page(Home) 내 정상 배치(좌측 CSS preview ↔ 우측 Skia 시각 대칭 스크린샷 확인). type-check baseline PASS. factory 변경이라 신규 TagGroup 에 적용(기존 element 는 사용자 편집 surface 로 width 조정 가능).
   - 위치: `apps/builder/src/builder/factories/definitions/GroupComponents.ts`
+- **TagGroup width:100% 가 Style Panel Transform 리셋 버튼을 잘못 활성화** (factory default ↔ dirty baseline 소스 불일치):
+  - **Why**: composition 의 컴포넌트 default 는 두 소스가 분리 — factory(`createTagGroupDefinition`, 실제 생성)와 `getDefaultProps`(`createDefaultTagGroupProps`, Style Panel dirty/reset baseline). 위 fix 가 factory 에만 `width:"100%"` 를 넣고 `createDefaultTagGroupProps` 에는 안 넣어, dirty 판정(`useHasDirtyStyles`)이 baseline width(undefined → `""`) vs current width(`"100%"`) 불일치로 default 와 동일한 값을 "사용자 override" 로 오판 → Transform 섹션 리셋 버튼 활성화.
+  - 수정 (`unified.types.ts`): `createDefaultTagGroupProps` 에도 `style: { width: "100%" }` 추가 — 두 default 소스 일치. baseline width = current width = `"100%"` → dirty=false. reset 시에도 spec preset width 부재(TagGroup sizes 에 width 없음)라 legacyStyle(`getDefaultProps`) 의 `"100%"` 로 복원(default 보존).
+  - 검증: `useResetStyles.test.tsx` audit case 에 TagGroup(width/height/minWidth/maxWidth) 추가 → `getDefaultProps("TagGroup")` baseline 에서 dirty=false (18 test PASS). builder live — width:100% TagGroup 의 Transform 섹션에 리셋 버튼 미렌더(dirty=false) 확인. type-check baseline PASS.
+  - 위치: `apps/builder/src/types/builder/unified.types.ts`
 
 ## [TagGroup size prop 변경 미반영 수정 — chip 시각 CSS attribute 이름 정합(data-tag-size)] - 2026-06-19
 

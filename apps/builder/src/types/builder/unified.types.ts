@@ -1625,6 +1625,10 @@ export function createDefaultTagGroupProps(): TagGroupElementProps {
     allowsRemoving: false,
     allowsCustomValue: false,
     labelPosition: "top",
+    // factory(createTagGroupDefinition) 가 width:100% 를 기본으로 주입(Skia 칩 wrap 대칭).
+    //   dirty/reset baseline(getDefaultProps)도 동일 값을 가져야 Style Panel Transform 리셋 버튼이
+    //   default 와 동일한 width:100% 를 "사용자 override" 로 오판하지 않는다(두 default 소스 일치).
+    style: { width: "100%" },
   };
 }
 
