@@ -25,28 +25,47 @@ collapse 가 아니다. 최종 목표는 다음 하나다.
 
 ## 1. 현재 분산 ledger
 
-| Source                                                                     | 현재 역할                                                                                                                                                                                                                                                              | 문제                                                                                                                                                                                                                                   |
-| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/shared/src/catalog/generated/componentRulesTable.ts`             | variants, sizes, 일부 `containerStyles`, `containerVariants`                                                                                                                                                                                                           | field root layout(`flex-column`)과 CSS emit 구조 메타가 없음                                                                                                                                                                           |
-| `packages/specs/scripts/generate-css.ts` `STRUCTURE_META_ENTRIES`          | virtual CSS emit membership, `archetype`, `element`, `composition.layout`, states, `cssEmitMode`, `indicatorMode`                                                                                                                                                      | shared catalog 밖의 두 번째 구조 SSOT                                                                                                                                                                                                  |
-| `packages/specs/src/renderers/CSSGenerator.ts` `COMPOSITION_LAYOUT_STYLES` | `flex-column` 등 layout token 을 CSS base style 로 변환                                                                                                                                                                                                                | generator 전용 변환이라 Panel/Skia 가 같은 source 를 직접 못 읽음                                                                                                                                                                      |
-| `apps/builder/.../implicitStyles.ts` `LOWERCASE_COMPONENT_RULE_CONTAINER`  | Skia/layout 의 catalog fallback                                                                                                                                                                                                                                        | builder-local map 이라 Style Panel 과 중복될 수밖에 없음                                                                                                                                                                               |
-| `apps/builder/.../implicitStyles.ts` field branches                        | TextField/TextArea/DateField/TimeField 등 기본 column + side row 보정                                                                                                                                                                                                  | catalog rule 이 아닌 컴포넌트별 hard branch                                                                                                                                                                                            |
-| `apps/builder/.../implicitStyles.ts` 인라인 base-axis fallback (7곳)       | field류 5 (`:1279` searchfield / `:1340` numberfield / `:1487` textfield·textarea / `:1551` datefield·timefield / `:1879` datepicker) + collection-item 2 (`:841` gridlistitem / `:865` listboxitem) 의 `display:flex / flexDirection ?? "column" / gap ?? N` 하드코딩 | §1-1 이 근본 원인이라 지목한 base-axis drift 가 **한 branch 가 아니라 field·collection-item branch 전반에 동형 복제**되어 살아 있음 (`:841`/`:865` 주석이 스스로 "spec body 삭제 대비 분기 자족화" 인정 — Δ4 mirror 와 동형 dual-SSOT) |
-| `apps/builder/.../implicitStyles.ts` 숫자 mirror 상수 (`:301-343`)         | `VALUE_FILL_TRACK_HEIGHT` / `INDICATOR_SIZES` / `PROGRESSBAR_ROW_GAP` / `PROGRESSBAR_COL_GAP` / `SLIDER_ROW_GAP`                                                                                                                                                       | ProgressBarTrack/MeterTrack height + Checkbox/Radio gap 의 catalog.sizes 평행 복사본 (주석이 스스로 "rule 이 SSOT" 인정)                                                                                                               |
-| `apps/builder/.../specPresetResolver.ts`                                   | Style Panel preset resolver                                                                                                                                                                                                                                            | `TAG_SPEC_MAP` 직독. spec 삭제 type 은 빈 preset 이 되어 hard fallback 표시                                                                                                                                                            |
-| `packages/specs/.../CSSGenerator.ts` `COMPOSITION_LAYOUT_STYLES`           | layout token(`flex-column` 등) → CSS base style 변환                                                                                                                                                                                                                   | generator-private 라 Skia/Panel 이 같은 layout token table 을 못 읽음                                                                                                                                                                  |
+| Source                                                                     | 현재 역할                                                                                                                                                                                                                                                                                                                        | 문제                                                                                                                                                                                                                                   |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/shared/src/catalog/generated/componentRulesTable.ts`             | variants, sizes, 일부 `containerStyles`, `containerVariants`, **field류 `structure.composition.layout='flex-column'` (Phase 2/3 이관 완료)**                                                                                                                                                                                     | ~~field root layout 없음~~ **정정(§1-1)**: field류 8 type 은 이미 `structure.composition` 보유. GridListItem 만 source 진짜 부재. 문제는 "부재" 가 아니라 active wrapper 가 `structure.composition` 을 미독(3-A-3a)                    |
+| `packages/specs/scripts/generate-css.ts` `STRUCTURE_META_ENTRIES`          | virtual CSS emit membership, `archetype`, `element`, `composition.layout`, states, `cssEmitMode`, `indicatorMode`                                                                                                                                                                                                                | shared catalog 밖의 두 번째 구조 SSOT                                                                                                                                                                                                  |
+| `packages/specs/src/renderers/CSSGenerator.ts` `COMPOSITION_LAYOUT_STYLES` | `flex-column` 등 layout token 을 CSS base style 로 변환                                                                                                                                                                                                                                                                          | generator 전용 변환이라 Panel/Skia 가 같은 source 를 직접 못 읽음                                                                                                                                                                      |
+| `apps/builder/.../implicitStyles.ts` `LOWERCASE_COMPONENT_RULE_CONTAINER`  | Skia/layout 의 catalog fallback                                                                                                                                                                                                                                                                                                  | builder-local map 이라 Style Panel 과 중복될 수밖에 없음                                                                                                                                                                               |
+| `apps/builder/.../implicitStyles.ts` field branches                        | TextField/TextArea/DateField/TimeField 등 기본 column + side row 보정                                                                                                                                                                                                                                                            | catalog rule 이 아닌 컴포넌트별 hard branch                                                                                                                                                                                            |
+| `apps/builder/.../implicitStyles.ts` 인라인 base-axis fallback (7곳)       | field류 5 (`:1276` searchfield·combobox·select 공통 / `:1336` numberfield / `:1483` textfield·textarea / `:1547` datefield·timefield / `:1890` datepicker) + collection-item 2 (`:837` gridlistitem / `:861` listboxitem) 의 `display:flex / flexDirection ?? "column" / gap ?? N` 하드코딩 (line 은 2026-06-19 Δ10 후 재실측값) | §1-1 이 근본 원인이라 지목한 base-axis drift 가 **한 branch 가 아니라 field·collection-item branch 전반에 동형 복제**되어 살아 있음 (`:837`/`:861` 주석이 스스로 "spec body 삭제 대비 분기 자족화" 인정 — Δ4 mirror 와 동형 dual-SSOT) |
+| `apps/builder/.../implicitStyles.ts` 숫자 mirror 상수 (`:301-343`)         | `VALUE_FILL_TRACK_HEIGHT` / `INDICATOR_SIZES` / `PROGRESSBAR_ROW_GAP` / `PROGRESSBAR_COL_GAP` / `SLIDER_ROW_GAP`                                                                                                                                                                                                                 | ProgressBarTrack/MeterTrack height + Checkbox/Radio gap 의 catalog.sizes 평행 복사본 (주석이 스스로 "rule 이 SSOT" 인정)                                                                                                               |
+| `apps/builder/.../specPresetResolver.ts`                                   | Style Panel preset resolver                                                                                                                                                                                                                                                                                                      | `TAG_SPEC_MAP` 직독. spec 삭제 type 은 빈 preset 이 되어 hard fallback 표시                                                                                                                                                            |
+| `packages/specs/.../CSSGenerator.ts` `COMPOSITION_LAYOUT_STYLES`           | layout token(`flex-column` 등) → CSS base style 변환                                                                                                                                                                                                                                                                             | generator-private 라 Skia/Panel 이 같은 layout token table 을 못 읽음                                                                                                                                                                  |
 
 ### 1-1. field류 base layout 의 실제 출처
 
-field류 `display:flex` / `flex-direction:column` 은 `componentRulesTable` 에 없다.
-현재 source 는 `generate-css.ts` 의 `STRUCTURE_META_ENTRIES` 안
-`composition.layout = "flex-column"` 이고, CSS emit 은 `CSSGenerator.ts`
-`COMPOSITION_LAYOUT_STYLES["flex-column"]` 이 만든다.
+> **정정 (2026-06-19, Phase 3-A-3 정밀 매핑) — adr-writing.md M3 in-place 흡수, 새 ADR fork 사유 아님.**
+> 본 절의 원 서술 _"field류 base layout 은 `componentRulesTable` 에 없다 / source 는 `STRUCTURE_META`"_ 는
+> **stale 됐다.** Phase 2/3 structure 이관으로 field류 8 type 전부 catalog 에 base layout 이 land 됐다
+> (ground-truth grep, 2026-06-19): ComboBox(`componentRulesTable.ts` structure)·DateField·DatePicker·
+> NumberField·SearchField·Select·TextField·TimeField 가 `structure.composition.layout = "flex-column"` +
+> `gap = "var(--spacing-xs)"` 를 보유. 즉 catalog 가 이제 base axis 의 정본 source 다.
+>
+> **단, drift 결론(아래)은 유효** — 원인 서술만 정정한다. catalog 에 값이 land 됐어도 현 active wrapper
+> `resolveContainerStylesFallback`(`implicitStyles.ts:216-244`)는 `LOWERCASE_COMPONENT_RULE_CONTAINER`
+> (top-level `rule.containerStyles` 만) 를 읽고 **`structure.composition` 을 읽지 않으며**,
+> `structure.composition` 을 읽는 정본 resolver `resolveCatalogContainerBase` 는 implicitStyles/builder
+> 전역에서 **호출 0건**(grep 실측). 게다가 wrapper 는 `if (!cs) return specOut`(`:231`) early-return 이
+> 있어 top-level `containerStyles` 없는 type 은 catalog 보강 자체를 skip 한다. 따라서 catalog 값이 존재해도
+> **Skia 까지 미도달** → field branch 의 인라인 하드코딩(`?? "flex" / ?? "column" / ?? 4`)이 실제 active 값.
+>
+> → 3-A-3a 의 작업 정의는 _"catalog 에 값 추가"_ 가 아니라 **"wrapper 를 `resolveCatalogContainerBase` 로
+> 재배선 (early-return 수정 + kebab→camel 변환 + `gap='var(--spacing-xs)'` → 숫자 4 정규화)"** 이다.
 
-Skia 는 이 값을 shared catalog 에서 읽지 않고, field 전용 branch 에서
-`display:flex` / `flexDirection:column` 을 다시 주입한다. 이 구조가 이번 이슈의
-핵심 drift 원인이다.
+field류 `display:flex` / `flex-direction:column` 의 정본 source 는 catalog
+`componentRulesTable` 의 `structure.composition.layout = "flex-column"` (Phase 2/3 이관 완료) 이며,
+CSS emit 은 `CSSGenerator.ts` `COMPOSITION_LAYOUT_STYLES["flex-column"]` (Δ7 후 specs
+`LAYOUT_TOKEN_STYLES`) 이 만든다.
+
+Skia 는 이 catalog 값을 shared resolver 로 읽지 않고(`resolveCatalogContainerBase` 호출 0건),
+field 전용 branch 에서 `display:flex` / `flexDirection:column` 을 인라인 하드코딩으로 다시 주입한다.
+이 미도달 구조(catalog 에 값은 있으나 active wrapper 가 `structure.composition` 을 미독)가 이번
+이슈의 핵심 drift 원인이다.
 
 ## 2. Target architecture
 
@@ -207,15 +226,22 @@ base axis(`column`)와 side axis(`row`) 결정은 branch 안 하드코딩이 아
 `resolveCatalogContainerBase` / `resolveCatalogContainerVariants` 결과로만 결정한다.
 
 **Δ6 — 인라인 base-axis fallback 삭제 (근본 원인, 7곳 전수)**: codex 초안이 지목한
-`:1486-1489` 단일 위치는 **부정확** — 실측 결과 textfield/textarea branch 의 fallback 은
-`:1487` 이고, 동형 base-axis 하드코딩이 **7곳에 복제**되어 있다. 한 곳만 삭제하면 나머지가
-dual-SSOT 로 잔존해 §5 kill criteria 가 닫히지 않는다. 전수 삭제 대상:
+`:1486-1489` 단일 위치는 **부정확** — 동형 base-axis 하드코딩이 **7곳에 복제**되어 있다. 한 곳만
+삭제하면 나머지가 dual-SSOT 로 잔존해 §5 kill criteria 가 닫히지 않는다. 전수 삭제 대상 (line 은
+2026-06-19 Δ10 후 재실측 + 정밀 매핑 §Phase 3-A-3 분류표 참조):
 
-- **field류 5**: `:1279` searchfield / `:1340` numberfield / `:1487` textfield·textarea /
-  `:1551` datefield·timefield / `:1879` datepicker — 각 branch 의
+- **field류 5**: `:1276` searchfield·combobox·select 공통 / `:1336` numberfield / `:1483` textfield·textarea /
+  `:1547` datefield·timefield / `:1890` datepicker — 각 branch 의
   `display: specFallback.display ?? "flex", flexDirection: specFallback.flexDirection ?? "column", gap: specFallback.gap ?? 4`
-- **collection-item 2**: `:841` gridlistitem / `:865` listboxitem — `flexDirection: (parentStyle.flexDirection as string) ?? "column"`
+- **collection-item 2**: `:837` gridlistitem / `:861` listboxitem — `flexDirection: (parentStyle.flexDirection as string) ?? "column"`
   (주석이 스스로 "ADR-912 cutover … spec body 삭제 대비 분기 자족화" 인정 = Δ4 mirror 와 동형 dual-SSOT)
+
+> **정밀 매핑 정정 (2026-06-19)**: field류 5 와 collection-item 2 는 **catalog source 보유 여부가 다르다**
+> (§1-1 정정 + §Phase 3-A-3 분류표). field 5 는 `structure.composition` 보유(재배선만 필요), collection 2 는
+> GridListItem `structure` 부재 / ListBoxItem `composition` 부재 → **별도 처리 필요(3-A-3b)**. 또한
+> `resolveCatalogContainerBase` 가 implicitStyles 호출 0건이고 wrapper 가 `structure.composition` 미독 +
+> early-return(`:231`) trap 이 있어, 단순 인라인 삭제만으로는 base axis 가 catalog 에서 흐르지 않는다 —
+> **wrapper 재배선(3-A-3a)이 인라인 삭제의 prerequisite**.
 
 base axis 는 오직 `resolveCatalogContainerBase` 에서만 온다. 이 인라인 fallback 군이 §1-1 이
 지목한 drift 의 root cause 자체이므로, 한 곳이라도 남겨두면 collapse 후에도 동일 분산이 재현된다.
@@ -547,12 +573,78 @@ columnGap=12` 추가 + `specSizeField("progressbar", size, "columnGap")` 교체 
 - `implicitStyles.ts` local catalog map(`LOWERCASE_COMPONENT_RULE_CONTAINER`) 제거.
 - field류 base/side axis 를 shared resolver 결과로 교체.
 - (Δ6) 인라인 base-axis fallback `flexDirection ?? "column"` **7곳 전수** 삭제 — field류 5
-  (`:1279`/`:1340`/`:1487`/`:1551`/`:1879`) + collection-item 2 (`:841`/`:865`). base axis 는
-  `resolveCatalogContainerBase` 에서만 온다. (codex 초안의 `:1486-1489` 는 부정확 — 실제 `:1487`,
-  그리고 단일 위치가 아니라 7곳 분산.)
-- (Δ3) shared `resolveCatalogContainerVariants` land 후 `:578-600` 임시 adapter 삭제.
+  (`:1276`/`:1336`/`:1483`/`:1547`/`:1890`, 2026-06-19 Δ10 후 재실측) + collection-item 2
+  (`:837`/`:861`). base axis 는 `resolveCatalogContainerBase` 에서만 온다. (codex 초안의
+  `:1486-1489` 는 부정확 — 단일 위치가 아니라 7곳 분산.)
+- (Δ3) shared `resolveCatalogContainerVariants` land 후 임시 adapter(`resolveActiveContainerVariants`
+  내 rule 분기 `:586-593`) 삭제.
 - `resolveContainerStylesFallback` wrapper 가 shared resolver 를 사용하도록 변경.
 - field branch 는 child filtering/injection 만 남긴다.
+
+#### Phase 3-A-3 정밀 매핑 산출물 (2026-06-19, 코드 변경 0 — 4축 Workflow 검증)
+
+> 매핑 출처: 4개 축(field-catalog-backed / collection-source-gap / dependency-order / wrapper-rewire-impact)
+> 병렬 매핑 + 적대 verify(2축 refute → ground-truth 정정) + grep 재실측. 핵심 정정은 §1-1 정정 블록 참조.
+
+**(1) base-axis 7곳 분류표** (active line = 2026-06-19 Δ10 후 실측):
+
+| #   | line  | containerTag                | 분류                            | catalog source                                                                                                                            | 현 fallback (active = 하드코딩)                                                                                                     |
+| --- | ----- | --------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | :1276 | searchfield/combobox/select | field catalog-backed            | ✅ `structure.composition.layout='flex-column'`, `gap='var(--spacing-xs)'`                                                                | `display ?? "flex"`, `flexDirection ?? "column"`, `gap ?? 4`                                                                        |
+| 2   | :1336 | numberfield                 | field catalog-backed            | ✅ 동일                                                                                                                                   | 동일                                                                                                                                |
+| 3   | :1483 | textfield/textarea          | field catalog-backed            | ✅ TextField 확정. **TextArea `composition.gap` 누락 가능** (sizes.md gap 만) — 재배선 시 4 fallback 필요                                 | 동일                                                                                                                                |
+| 4   | :1547 | datefield/timefield         | field catalog-backed            | ✅ (TimeField `structure.containerStyles` 도 보유 → merge precedence 검증)                                                                | 동일                                                                                                                                |
+| 5   | :1890 | datepicker/daterangepicker  | field catalog-backed            | ✅ 동일                                                                                                                                   | 동일                                                                                                                                |
+| 6   | :837  | gridlistitem                | **collection source-gap**       | ❌ `structure` 필드 자체 부재 (`componentRulesTable.ts:4765`) → `resolveCatalogContainerBase`=`{}`                                        | `display ?? "flex"`, `flexDirection ?? "column"`, `minWidth ?? 0`, `gap ?? 2`, padding 4-way(m.card\*), `borderWidth ?? 1` (9 prop) |
+| 7   | :861  | listboxitem                 | **collection source-gap(부분)** | △ `structure.containerStyles` 4개(display/flexDirection/alignItems/justifyContent), **`composition` 부재** → gap/padding 은 sizes.md 에만 | `display`, `flexDirection`, `alignItems`, `justifyContent`, `gap ?? 2`, padding(4/12)                                               |
+
+**핵심 ground-truth**: `resolveCatalogContainerBase`(structure.composition 정본 reader)는 implicitStyles/builder
+전역 **호출 0건**. active wrapper `resolveContainerStylesFallback`(`:216-244`)는 `LOWERCASE_COMPONENT_RULE_CONTAINER`
+(top-level `rule.containerStyles` 만) 를 읽고, `if (!cs) return specOut`(`:231`) early-return 으로 top-level
+containerStyles 없는 type 은 catalog 보강 자체를 skip. → catalog 에 값이 land 됐어도 Skia 미도달 → field branch
+인라인 하드코딩이 실제 active 값. **3-A-3a 의 본질 = "값 추가" 가 아니라 "wrapper 재배선 + early-return 수정 +
+kebab→camel 변환 + gap 문자열 정규화".**
+
+**(2) 의존 순서 DAG + 삭제 순서 제약**:
+
+```
+  getComponentRulesTable() [catalog 정본]
+        │ (top-level containerStyles/containerVariants 만 추출)
+        ▼
+  LOWERCASE_COMPONENT_RULE_CONTAINER (implicitStyles.ts:124-154)
+        ├─소비─► resolveContainerStylesFallback (:216-244, export, ADR-080 G1 — test 가 signature lock)
+        │         └─► CONTAINER_STYLES_FALLBACK_KEYS 15개 cascade (rowGap/columnGap 부재)
+        └─소비─► resolveActiveContainerVariants (:574-596, 9 call site)
+                  └─► spec-shape adapter → specs.resolveContainerVariants
+
+  ★ 재배선 목표: resolveCatalogContainerBase / resolveCatalogContainerVariants
+    (resolveCatalogContainer.ts — structure.composition 까지 읽는 정본, 현재 호출 0건)
+```
+
+- map 의 2개 활성 소비처(`resolveContainerStylesFallback`, `resolveActiveContainerVariants`) 가 모두
+  shared resolver 로 교체돼야 map 이 dead → 3-A-3c 가 a+b proof **이후** 인 근거.
+- 선삭제 시 `.get()` NPE / 미재배선 시 catalog 값 영구 미도달(stale 고착). proof gate 메모리
+  (seam 실제 제거 + kill criteria) 정합 — "작동하지만 fallback 유지" = 실패.
+
+**(3) 3-A-3a/b/c split / gate 표**:
+
+| 항목                  | **3-A-3a** field류 base/side axis shared resolver 전환                                                                                                                                                                                                                                          | **3-A-3b** collection-item source-gap 처리 (별도 surface)                                                                                                                                                                                            | **3-A-3c** LOWERCASE map / adapter 삭제                                                                                                  |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **scope**             | wrapper catalog 보강부를 `resolveCatalogContainerBase` adapter 로 재배선 (early-return 수정 포함) + `resolveActiveContainerVariants` rule 분기를 `resolveCatalogContainerVariants` 로 교체. field 5 인라인 `?? "flex"/"column"/4` 제거. side-mode(`getSideLabelParentStyle`) 동일 resolver 경유 | GridListItem/ListBoxItem 2곳. **base layout source 부재 여부 먼저 결정**: (옵션 A) catalog GridListItem `structure` 보강 + ListBoxItem `composition.gap` 추가 후 재배선 / (옵션 B) collection 2곳을 별도 Phase 로 분리. **결정 자체가 surface 대상** | `LOWERCASE_COMPONENT_RULE_CONTAINER`(:124-154) + `resolveActiveContainerVariants` rule-adapter 분기(:586-593) 제거. dead code 화 후 삭제 |
+| **진입 prerequisite** | (1) kebab→camel 변환 helper (2) `gap='var(--spacing-xs)'` → 숫자 4 정규화 경로 확정 (`isValidTokenRef` 가 `var(--…)` reject → raw 문자열 Taffy 유입 시 number 타입 깨짐) (3) early-return(:231) 수정 — top-level containerStyles 없는 type 도 structure.composition 도달                        | 3-A-3a proof 통과 + GridListItem source 결정(옵션 A/B) **사용자 confirm**                                                                                                                                                                            | **3-A-3a + 3-A-3b 양쪽 proof 통과** (map 2개 소비처 모두 끊김). `grep LOWERCASE_COMPONENT_RULE_CONTAINER` 활성 reference 0               |
+| **byte-diff gate**    | field 5 effectiveParent 산출값 재배선 전후 camelCase 동일(display:flex/flexDirection:column/gap:4 number). `tokenConsumerDrift.test.ts` + `resolveContainerStylesFallback.test.ts` snapshot PASS. gap 문자열→4 정규화 검증 필수                                                                 | GridListItem/ListBoxItem effectiveParent 9/7 prop 재배선 전후 byte 동일 (옵션 A 시 catalog 보강값 = 하드코딩값 확인)                                                                                                                                 | 삭제 후 모든 container effectiveParent byte 불변 (dead code 제거이므로 산출값 영향 0)                                                    |
+| **Skia gate**         | Chrome MCP live: field 5 + side-mode 1개(TextField labelPosition=side) Skia↔CSS 시각 대칭                                                                                                                                                                                                       | GridList/ListBox 렌더 — 카드 열 정렬/item flex 배치 파괴 0 (옵션 A 시 GridListItem layout 무참 회귀 확인)                                                                                                                                            | 전 container 회귀 sweep — 시각 변화 0                                                                                                    |
+| **type-check gate**   | 0 violation                                                                                                                                                                                                                                                                                     | 0 violation (catalog 보강 시 `ComponentRule.structure` 타입 정합)                                                                                                                                                                                    | 0 violation (dead symbol 제거 후 reference 0)                                                                                            |
+| **proof (kill)**      | field 5 인라인 base-axis fallback **제거되고도** resolver 단독 작동. "resolver 추가 + 하드코딩 유지" = 실패. `grep -c 'flexDirection.*?? "column"'` field 영역 = 0                                                                                                                              | collection 2곳 catalog source 단일 산출 OR (옵션 B) 명시적 제외 + 별도 Phase 등록. 부재 source 를 보강 없이 재배선 = 실패                                                                                                                            | `grep LOWERCASE_COMPONENT_RULE_CONTAINER` 활성 reference 0 (comment 제외). seam 실제 제거                                                |
+| **위험**              | **CRITICAL** gap 문자열 trap(`var(--spacing-xs)`→Taffy string→layout 깨짐). **HIGH** kebab/camel mismatch. **MED** TextArea composition.gap 누락 / side-mode merge 경합 / early-return 수정이 비-field 컨테이너에 미치는 영향                                                                   | **HIGH** GridListItem source 완전 부재 → 재배선 시 `{}` → unstyled flex degrade. **MED** ListBoxItem gap/padding sizes 분산                                                                                                                          | **CRITICAL** a/b 미완 선삭제 시 NPE / catalog fallback 상실 (순서 위반)                                                                  |
+
+**(4) 잔존 불명점** (구현 단계 결정 대상):
+
+- TextArea `structure.composition.gap` 존재 여부 (누락 시 재배선 후 undefined → 4 fallback).
+- `gap='var(--spacing-xs)'` 정규화 책임 위치: catalog 를 `{spacing.xs}` TokenRef 로 변경 vs wrapper 에 CSS-var parser 추가 vs resolver 가 정규화 — **셋 다 byte-diff 검증 동반**.
+- GridListItem source 부재 해소 방식 (옵션 A 보강 vs 옵션 B 분리) — **3-A-3b 진입 시 사용자 confirm**.
+- `rowGap`/`columnGap` 이 `CONTAINER_STYLES_FALLBACK_KEYS` 부재 — 재배선 시 kebab `row-gap`/`column-gap` 필터링 위험.
+- `resolveCatalogContainerBase` 출력 snapshot test 부재 → 재배선 후 break 가 회귀인지 format(kebab) 변경인지 판별 불가 → 3-A-3a 진입 전 snapshot test 선작성 권장.
 
 ### Phase 4 — Style Panel consumer collapse
 
