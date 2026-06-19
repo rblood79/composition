@@ -261,19 +261,19 @@ const DISPERSION_BASELINE: Array<{
     killPhase: "Phase 5 후속 ✅",
   },
   {
-    // Phase 5 (2026-06-20): 고위험 2종 mirror 는 명시 baseline 으로 등재(위장 0 제거, 정직한 잔여 기록).
-    //   CalendarHeader(headerHeights/calDims/gridDims) + DateInput(inputHeights)은 절대좌표 텍스트 렌더라
-    //   다중 줄 보정(canvas-rendering.md "CalendarGrid/CalendarHeader 보정 스킵")과 얽혀 회귀 위험이
-    //   Slider 류보다 높다 → 사용자 결정(2026-06-20)으로 Phase 6(layout-height consumer 완전 collapse)
-    //   분리. 본 entry 는 baseline=4(현 mirror const 4개: headerHeights/calDims/gridDims/inputHeights)로
-    //   고정하여 (a) 신규 mirror 재도입 차단(초과 시 FAIL) + (b) Phase 6 에서 흡수 시 baseline 을 낮춰 0
-    //   수렴을 강제한다. "위장 0" 이 아니라 측정된 실수치 등재라 Δ8 미완을 정직하게 노출.
+    // Phase 6 (2026-06-20): CalendarGrid/CalendarHeader/DateInput 의 size-value mirror 4종
+    //   (calDims/headerHeights/inputHeights/gridDims) 을 resolveSkiaRule(type).sizes read-through 로 흡수 완료.
+    //   적대 검증(Workflow wnvirhmvg)으로 mirror=props.size 룩업+산술뿐, catalog 와 byte-identical, 필요 필드
+    //   (iconSize/gap/height) 전부 ComponentRuleSize 스키마 기존 → LOW 위험 확정. 직전 baseline=4 주석의
+    //   "절대좌표 텍스트 렌더" framing 은 이중 오류였다(Skia grep "절대좌표"=renderCommands boundsMap 컬링,
+    //   Calendar 직교 / canvas-rendering.md §6 "다중 줄 보정 스킵"=텍스트 *측정* 보정 ≠ *값* 미러). datefield
+    //   intrinsicHeight read-through(utils.ts:2606) 선례 동형. baseline 4→0 으로 낮춰 신규 mirror 재도입 차단.
     label:
-      "calculateContentHeight CalendarHeader/DateInput mirror (Δ8 — Phase 6 분리, 정직한 baseline)",
+      "calculateContentHeight CalendarHeader/DateInput mirror (Δ8 — Phase 6 흡수 ✅)",
     file: "utilsLayout",
     pattern: /const (headerHeights|calDims|gridDims|inputHeights)\b/,
-    baseline: 4,
-    killPhase: "Phase 6 (분리)",
+    baseline: 0,
+    killPhase: "Phase 6 ✅",
   },
 ];
 

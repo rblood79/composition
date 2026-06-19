@@ -66,3 +66,60 @@ describe("CalendarHeader intrinsic size (ADR-912 B+icon width 회귀)", () => {
     expect(calculateContentHeight(makeHeader({ size: "lg" }))).toBe(36);
   });
 });
+
+/**
+ * ADR-912 Phase 6 (2026-06-20) — CalendarGrid / DateInput size-value mirror 흡수 회귀 게이트.
+ *
+ * 흡수: 인라인 미러(gridDims iconSize/gap · inputHeights height) → resolveSkiaRule(type).sizes read-through.
+ *   catalog 와 byte-identical (CalendarGrid sm 20/4·md 26/6·lg 32/8 / DateInput xs20·sm22·md30·lg42·xl54).
+ *   동적 row 계산(new Date() dayOffset/totalDays)은 결정적 입력 주입으로 절대값 고정.
+ */
+const makeGrid = (props: Record<string, unknown> = {}): CanvasLayoutNode =>
+  ({
+    id: "cg-1",
+    type: "CalendarGrid",
+    // dayOffset/totalDays 고정 → new Date() 비결정성 제거 (2024-02: offset 4, 29일 → totalRows 5)
+    props: { size: "md", dayOffset: 4, totalDays: 29, ...props },
+  }) as CanvasLayoutNode;
+
+const makeDateInput = (props: Record<string, unknown> = {}): CanvasLayoutNode =>
+  ({
+    id: "di-1",
+    type: "DateInput",
+    props: { size: "md", ...props },
+  }) as CanvasLayoutNode;
+
+describe("CalendarGrid intrinsic size (ADR-912 Phase 6 read-through)", () => {
+  test("width — calendar grid 폭 (cellSize*7 + gap*6, md=246)", () => {
+    const cellSize = 26 + 4;
+    expect(calculateContentWidth(makeGrid())).toBe(cellSize * 7 + 6 * 6);
+  });
+
+  test("height — totalRows 기반 (md, offset4/29일 → 5행)", () => {
+    // cellSize 30, gap 6, totalRows = ceil((29+4)/7) = 5 → 30 + 5*(30+6) - 6 = 30 + 180 - 6 = 204
+    const cellSize = 26 + 4;
+    const gp = 6;
+    const totalRows = Math.ceil((29 + 4) / 7);
+    expect(calculateContentHeight(makeGrid())).toBe(
+      cellSize + totalRows * (cellSize + gp) - gp,
+    );
+  });
+
+  test("height — size 별 cellSize/gap 반영 (sm < md < lg, 동일 행수)", () => {
+    const sm = calculateContentHeight(makeGrid({ size: "sm" }));
+    const md = calculateContentHeight(makeGrid({ size: "md" }));
+    const lg = calculateContentHeight(makeGrid({ size: "lg" }));
+    expect(sm).toBeLessThan(md);
+    expect(md).toBeLessThan(lg);
+  });
+});
+
+describe("DateInput intrinsic height (ADR-912 Phase 6 read-through)", () => {
+  test("height — size 별 (xs20 / sm22 / md30 / lg42 / xl54)", () => {
+    expect(calculateContentHeight(makeDateInput({ size: "xs" }))).toBe(20);
+    expect(calculateContentHeight(makeDateInput({ size: "sm" }))).toBe(22);
+    expect(calculateContentHeight(makeDateInput({ size: "md" }))).toBe(30);
+    expect(calculateContentHeight(makeDateInput({ size: "lg" }))).toBe(42);
+    expect(calculateContentHeight(makeDateInput({ size: "xl" }))).toBe(54);
+  });
+});

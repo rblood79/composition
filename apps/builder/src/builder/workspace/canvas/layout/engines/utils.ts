@@ -1163,17 +1163,20 @@ export function calculateContentWidth(
   }
 
   // 1.2a. CalendarGrid / CalendarHeader: intrinsic width = cellSize * 7 + gap * 6
+  // ADR-912 Phase 6 (2026-06-20): 인라인 iconSize/gap 미러 → resolveSkiaRule read-through.
+  //   catalog CalendarGrid/CalendarHeader.sizes.{iconSize,gap} 동형(sm 20/4·md 26/6·lg 32/8 byte-identical).
+  //   cellSize(iconSize+4) 계산식은 layout-only 라 utils 유지, 원시값만 catalog 경유. datefield 선례(:2606) 동형.
   if (type === "calendargrid" || type === "calendarheader") {
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = (props?.size as string) ?? "md";
-    const calDims: Record<string, { iconSize: number; gap: number }> = {
-      sm: { iconSize: 20, gap: 4 },
-      md: { iconSize: 26, gap: 6 },
-      lg: { iconSize: 32, gap: 8 },
-    };
-    const d = calDims[sizeName] ?? calDims.md;
-    const cellSize = d.iconSize + 4;
-    return cellSize * 7 + d.gap * 6;
+    const rule = resolveSkiaRule(
+      type === "calendarheader" ? "CalendarHeader" : "CalendarGrid",
+    );
+    const entry = rule?.sizes[sizeName] ?? rule?.sizes.md;
+    const iconSize = typeof entry?.iconSize === "number" ? entry.iconSize : 26;
+    const gap = typeof entry?.gap === "number" ? entry.gap : 6;
+    const cellSize = iconSize + 4;
+    return cellSize * 7 + gap * 6;
   }
 
   // 1.17. Breadcrumb (child) — ADR-086 P5: implicitStyles 의 style 주입 제거 후
@@ -2524,46 +2527,42 @@ export function calculateContentHeight(
   }
 
   // CalendarHeader: intrinsic height = 버튼 높이 (sm:24, md:30, lg:36)
-  // ADR-912 (B+icon): spec(CalendarHeaderSpec.sizes.height) 직접 참조 제거 → rule 인라인 미러
-  //   (componentRulesTable.CalendarHeader.sizes.height 동형). 단계5 runtime spec 끊기 정합
-  //   (catalog 발효 후 spec 삭제 안전). width 분기(calDims)와 동일 인라인 미러 패턴.
+  // ADR-912 Phase 6 (2026-06-20): 인라인 height 미러 → resolveSkiaRule("CalendarHeader").sizes.height
+  //   read-through. catalog 동형(sm 24·md 30·lg 36 byte-identical). datefield 선례(:2606) 동형, md fallback 30.
   if (type === "calendarheader") {
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = (props?.size as string) ?? "md";
-    const headerHeights: Record<string, number> = { sm: 24, md: 30, lg: 36 };
-    return headerHeights[sizeName] ?? 30;
+    const rule = resolveSkiaRule("CalendarHeader");
+    return (rule?.sizes[sizeName]?.height ??
+      rule?.sizes.md?.height ??
+      30) as number;
   }
 
   // DateInput: intrinsic height
-  // ADR-912 단계5 step4 (2026-06-17): spec(DateInputSpec.sizes.height) 직접 참조 제거 → rule 인라인
-  //   미러 (componentRulesTable.DateInput.sizes.height 동형, xs20/sm22/md30/lg42/xl54 byte-identical
-  //   검증). CalendarHeader/CalendarGrid 분기(:2405/:2419)와 동일 인라인 미러 패턴. catalog 발효 후
-  //   spec 삭제 안전.
+  // ADR-912 Phase 6 (2026-06-20): 인라인 height 미러 → resolveSkiaRule("DateInput").sizes.height
+  //   read-through. catalog 동형(xs20/sm22/md30/lg42/xl54 byte-identical). DateInput spec 은 이미 삭제됨
+  //   (64ac87bdb) — 인라인 미러가 cutover 잔여였고 본 read-through 로 마무리. datefield 선례(:2606) 동형.
   if (type === "dateinput") {
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = (props?.size as string) ?? "md";
-    const inputHeights: Record<string, number> = {
-      xs: 20,
-      sm: 22,
-      md: 30,
-      lg: 42,
-      xl: 54,
-    };
-    return inputHeights[sizeName] ?? 30;
+    const rule = resolveSkiaRule("DateInput");
+    return (rule?.sizes[sizeName]?.height ??
+      rule?.sizes.md?.height ??
+      30) as number;
   }
 
   // CalendarGrid: intrinsic height = weekdayRow + dateRows
+  // ADR-912 Phase 6 (2026-06-20): 인라인 iconSize/gap 미러 → resolveSkiaRule("CalendarGrid").sizes
+  //   read-through. catalog 동형(sm 20/4·md 26/6·lg 32/8 byte-identical). cellSize 및 totalRows 동적
+  //   계산(new Date() dayOffset/totalDays)은 layout-only 라 utils 유지, 원시 iconSize/gap 만 catalog 경유.
   if (type === "calendargrid") {
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = (props?.size as string) ?? "md";
-    const gridDims: Record<string, { iconSize: number; gap: number }> = {
-      sm: { iconSize: 20, gap: 4 },
-      md: { iconSize: 26, gap: 6 },
-      lg: { iconSize: 32, gap: 8 },
-    };
-    const d = gridDims[sizeName] ?? gridDims.md;
-    const cellSize = d.iconSize + 4;
-    const gp = d.gap;
+    const rule = resolveSkiaRule("CalendarGrid");
+    const entry = rule?.sizes[sizeName] ?? rule?.sizes.md;
+    const iconSize = typeof entry?.iconSize === "number" ? entry.iconSize : 26;
+    const gp = typeof entry?.gap === "number" ? entry.gap : 6;
+    const cellSize = iconSize + 4;
     const now = new Date();
     const dayOffset =
       (props?.dayOffset as number) ??
