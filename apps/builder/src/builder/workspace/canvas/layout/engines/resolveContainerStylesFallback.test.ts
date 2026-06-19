@@ -231,4 +231,80 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       });
     });
   });
+
+  // ADR-912 Phase 3-A-3c (2026-06-20): LOWERCASE_COMPONENT_RULE_CONTAINER map 삭제.
+  //   경로 A(top-level rule.containerStyles 보유 type)의 map 조회를 LOWERCASE_TO_PASCAL_RULE_KEY
+  //   역매핑 + resolveComponentRule(pascalKey).containerStyles 직접 조회로 대체 → map dead → 삭제.
+  //   경로 A 로직/출력은 byte 불변(top-level containerStyles 만 읽는 동일 동작).
+  //
+  //   **byte-lock 강화 (verify agent witfvnqp4 경고 해소)**: ToggleButtonGroup/Slider/InlineAlert/
+  //   TagGroup 은 기존 byte-lock test 부재 → map 삭제 회귀를 못 잡음. 7개 경로 A type 전부 toEqual lock.
+  //   특히 ToggleButtonGroup 은 통합 시 structure.composition.layout='flex-row' 의 flexDirection:row
+  //   leak 위험이 있으나, map 조회만 역매핑으로 대체(resolveCatalogContainerBase 흡수 아님)하므로
+  //   top-level containerStyles({display/alignItems/width}, flexDirection 의도적 생략)가 그대로 유지됨.
+  describe("경로 A 7 type byte-lock — map 삭제 후 산출값 불변 (Phase 3-A-3c)", () => {
+    it("inlinealert → top-level containerStyles 4필드 (camelCase, TokenRef 없음)", () => {
+      expect(resolveContainerStylesFallback("inlinealert", {})).toEqual({
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        width: "100%",
+      });
+    });
+
+    it("menu → 8필드 (Phase 6 merge, listbox 동형)", () => {
+      expect(resolveContainerStylesFallback("menu", {})).toEqual({
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+        padding: 4,
+        width: "100%",
+        maxHeight: "300px",
+        overflow: "auto",
+        outline: "none",
+      });
+    });
+
+    it("tree → 8필드 (ADR-913 slice 4, listbox 동형)", () => {
+      expect(resolveContainerStylesFallback("tree", {})).toEqual({
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+        padding: 4,
+        width: "100%",
+        maxHeight: "300px",
+        overflow: "auto",
+        outline: "none",
+      });
+    });
+
+    it("slider → display:grid + gridTemplateAreas/Columns (grid 경로)", () => {
+      expect(resolveContainerStylesFallback("slider", {})).toEqual({
+        display: "grid",
+        gridTemplateAreas: '"label output" "track track"',
+        gridTemplateColumns: "1fr auto",
+      });
+    });
+
+    it("taggroup → flex-column + gap 4 ({spacing.xs} 정규화)", () => {
+      expect(resolveContainerStylesFallback("taggroup", {})).toEqual({
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+      });
+    });
+
+    it("togglebuttongroup → display:flex/alignItems/width (flexDirection 의도적 생략 — orientation 분기 담당)", () => {
+      // CRITICAL byte-lock: top-level containerStyles 가 flexDirection 을 생략하므로 wrapper 출력에도
+      //   flexDirection 이 없어야 함. structure.composition.layout='flex-row' leak 시 이 test FAIL.
+      //   flexDirection 은 applyImplicitStyles togglebuttongroup 분기(:982)가 orientation 으로 결정.
+      const fb = resolveContainerStylesFallback("togglebuttongroup", {});
+      expect(fb).toEqual({
+        display: "flex",
+        alignItems: "center",
+        width: "fit-content",
+      });
+      expect(fb).not.toHaveProperty("flexDirection");
+    });
+  });
 });

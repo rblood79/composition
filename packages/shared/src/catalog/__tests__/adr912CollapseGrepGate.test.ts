@@ -107,11 +107,17 @@ const DISPERSION_BASELINE: Array<{
     killPhase: "Phase 3 Δ7 ✅",
   },
   {
-    label: "LOWERCASE_COMPONENT_RULE_CONTAINER (builder-local catalog map)",
+    // Phase 3-A-3c 완료 (2026-06-20): builder-local catalog container 조회 map 삭제 → 0.
+    //   2개 소비처(resolveContainerStylesFallback containerStyles 보강 / resolveActiveContainerVariants
+    //   variant 어댑터)가 각각 resolveComponentRule 직접 조회 / resolveCatalogContainerVariants(catalog
+    //   단일 resolver)로 대체되어 dead → 정의 + 잔존 주석 심볼명 전수 제거. byte-diff 0(map 은 lowercase→
+    //   top-level containerStyles 조회 캐시일 뿐, resolveComponentRule 직접 조회로 산출값 불변). 주석에서도
+    //   심볼명 직접 사용 안 함(false positive 회피). 재도입 가드로 baseline 0 고정.
+    label: "builder-local catalog container 조회 map (Phase 3-A-3c 삭제 ✅)",
     file: "implicitStyles",
     pattern: /LOWERCASE_COMPONENT_RULE_CONTAINER/,
-    baseline: 3,
-    killPhase: "Phase 3",
+    baseline: 0,
+    killPhase: "Phase 3-A-3c ✅",
   },
   {
     // Phase 3-A-3a 완료 (2026-06-20): field 5 분기 인라인 5곳 제거 → 7→2 (wrapper 경로 B 가

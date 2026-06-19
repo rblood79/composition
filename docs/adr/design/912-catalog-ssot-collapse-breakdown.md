@@ -682,6 +682,30 @@ wrapper `resolveContainerStylesFallback`(`implicitStyles.ts:270`)에 **경로 B*
 
 **3-A-3b kill criteria 통과**: collection 2 인라인 base-axis 제거되고도 catalog source 단독 작동. GridListItem source 부재를 starter CSS 환원으로 해소(억지 생성 아님). **Δ6 base-axis collapse 완결** — field 5 + collection 2 = 7곳 전부 catalog 단일 source. 잔존 = 3-A-3c(LOWERCASE map containerStyles 경로 A 삭제).
 
+#### Phase 3-A-3c Land 완료 (2026-06-20) — builder-local catalog container 조회 map 삭제
+
+`implicitStyles.ts` 의 builder-local catalog container 조회 map(`LOWERCASE_COMPONENT_RULE_CONTAINER`, 정의 31줄) 을 삭제했다. 이 map 은 `getComponentRulesTable()` 에서 top-level `containerStyles`/`containerVariants` 만 추출해 lowercase 키로 캐싱한 **조회 캐시**였다.
+
+**소비처 2곳 모두 dead 화 후 삭제**:
+
+- **variant 어댑터**(`resolveActiveContainerVariants`): 3-A-3a 에서 이미 `resolveCatalogContainerVariants`(catalog 단일 resolver) + `LOWERCASE_TO_PASCAL_RULE_KEY` 역매핑으로 교체됨 → map 의 `.containerVariants` read 0건 (이번 phase 진입 전 이미 dead).
+- **containerStyles 보강**(`resolveContainerStylesFallback` 경로 A): map 조회(`.get(type).containerStyles`)를 `LOWERCASE_TO_PASCAL_RULE_KEY` 역매핑 + `resolveComponentRule(pascalKey).containerStyles` 직접 조회로 대체. **경로 A 로직 보존 + map 조회만 교체** (산출값 불변).
+
+**핵심 결정 — 경로 B 흡수 기각 (surface-minimization)**: 경로 A 를 `resolveCatalogContainerBase`(경로 B resolver) 로 흡수하면 `structure.composition.layout` base 가 leaf 44 type(Avatar/Badge/Button/Checkbox/Radio/Switch/Heading/Paragraph 등)에 신규 진입 → 회귀 표면 과다(`feedback-execute-adr-surface-minimization`). 실측으로 확증(통합 전후 전체 118 type byte-diff: guard 제거 시 44 DIFFER). 따라서 흡수 대신 **map 조회만 역매핑 직접 조회로 교체**하여 경로 A 출력을 byte 불변 보존.
+
+**ToggleButtonGroup flexDirection leak 0 (적대 검증 witfvnqp4 핵심 경고 해소)**: ToggleButtonGroup top-level containerStyles 는 `flexDirection` 을 의도적으로 생략(`{display:flex, alignItems:center, width:fit-content}`)하고, `applyImplicitStyles` 분기(:982)가 orientation prop 으로 flexDirection 을 런타임 결정(horizontal→row / vertical→column). 만약 경로 B 흡수로 `structure.composition.layout="flex-row"` 가 `flexDirection:row` 를 주입하면 `parentStyle.flexDirection` 이 항상 "row" 로 고정되어 **vertical orientation 회귀**. map 조회만 교체하는 본 설계는 이 leak 이 0(top-level containerStyles 그대로 유지).
+
+**검증**:
+
+- **byte-diff 0**: 통합 전 `implicitStyles.ts` (git stash 격리) + 통합 후 byte-lock test 29건 = 전부 PASS → 경로 A 7 type(InlineAlert/ListBox/Menu/Slider/TagGroup/ToggleButtonGroup/Tree) wrapper 출력이 `resolveComponentRule` 직접 조회로 byte 불변임을 증명.
+- **byte-lock 강화**: ToggleButtonGroup/Slider/InlineAlert/TagGroup 은 기존 byte-lock test 부재(적대 검증이 leak 미감지 경고) → 7 type 전부 `toEqual` lock 추가(특히 ToggleButtonGroup `not.toHaveProperty("flexDirection")`).
+- **grep gate**: `LOWERCASE_COMPONENT_RULE_CONTAINER` baseline 3→0 (정의+소비+잔존 주석 심볼명 전수 제거). 주석에서도 심볼명 직접 사용 안 함(false positive 회피).
+- **type-check 0 신규 위반**(`ContainerVariantStyles` type import 동반 제거).
+- **live (builder 앱 인스턴스 직접 호출)**: 7 type wrapper 출력 = byte-lock 기대값 정확 일치 / ToggleButtonGroup flexDirection leak 0 / `applyImplicitStyles` ToggleButtonGroup orientation 동작 정상(horizontal→row, vertical→column) / ListBox DOM computed style(flex-column/gap 2px/padding 4px/maxHeight 300px) 정합 / 콘솔 NaN·Taffy·에러 0.
+- pre-existing FAIL(통합 무관, git stash 격리 확인): `specPresetResolver.test.ts` 27건(spec 삭제 cutover 잔여 부채, Phase 4 영역) / `tokenConsumerDrift` radius 2건(ADR-913 slice 5 snapshot 미갱신) / skia test alias 미해석(`@/adapters/canonical`).
+
+**3-A-3c kill criteria 통과**: `grep LOWERCASE_COMPONENT_RULE_CONTAINER` 활성 reference 0(주석 포함). seam(builder-local 조회 map) 실제 제거 — "map 유지하며 우회" 아님. **Phase 3-A LOWERCASE map collapse 완결** — variant/containerStyles 양 소비처가 catalog 단일 resolver / `resolveComponentRule` 직접 조회로 수렴. 잔존 dispersion = Phase 4 `TAG_SPEC_MAP` 직독(specPresetResolver).
+
 ### Phase 4 — Style Panel consumer collapse
 
 - `specPresetResolver.ts` 를 shared resolver 기반으로 전환.

@@ -25,17 +25,14 @@ import {
   isValidTokenRef,
   cssVarToTokenRef,
 } from "@composition/specs";
-import type {
-  SizeSpec,
-  ContainerVariantStyles,
-  TokenRef,
-} from "@composition/specs";
+import type { SizeSpec, TokenRef } from "@composition/specs";
 import { getNecessityIndicatorSuffix } from "@composition/shared/components";
 import {
   getComponentRulesTable,
   resolveCatalogContainerBase,
   resolveCatalogContainerVariants,
   resolveCatalogStructure,
+  resolveComponentRule,
 } from "@composition/shared";
 import type { ComponentRuleSize } from "@composition/shared";
 import { findAncestorByTag } from "../../skia/ancestorLookup";
@@ -122,42 +119,11 @@ const LOWERCASE_COMPONENT_RULE_SIZES: ReadonlyMap<
   return m;
 })();
 
-// ADR-912 단계5 step4 (2026-06-17): containerVariants/containerStyles 의 catalog fallback.
-//   spec 삭제된 cutover 컨테이너(TagGroup/CheckboxGroup/RadioGroup 등)의 label-position:side
-//   variant(RSP `labelPosition` 정본) + base layout(display/flexDirection/gap)을 spec 부재 시
-//   rule table 에서 읽는다. `resolveContainerVariants`(specs)는 `specs ← shared` boundary 로
-//   rule 직접 접근 불가 → builder 측에서 lowercase map 1회 구축(RULE_SIZES 동형).
-const LOWERCASE_COMPONENT_RULE_CONTAINER: ReadonlyMap<
-  string,
-  {
-    containerStyles?: Record<string, string>;
-    containerVariants?: Record<string, Record<string, ContainerVariantStyles>>;
-  }
-> = (() => {
-  const m = new Map<
-    string,
-    {
-      containerStyles?: Record<string, string>;
-      containerVariants?: Record<
-        string,
-        Record<string, ContainerVariantStyles>
-      >;
-    }
-  >();
-  for (const [k, v] of Object.entries(getComponentRulesTable())) {
-    if (v.containerStyles || v.containerVariants) {
-      m.set(k.toLowerCase(), {
-        containerStyles: v.containerStyles,
-        // ComponentRuleContainerVariantStyles ↔ ContainerVariantStyles 동형 구조
-        //   (styles?/nested?) — spec-shape 어댑터(resolveContainerVariants 재사용)용 cast.
-        containerVariants: v.containerVariants as
-          | Record<string, Record<string, ContainerVariantStyles>>
-          | undefined,
-      });
-    }
-  }
-  return m;
-})();
+// ADR-912 Phase 3-A-3c (2026-06-20): builder-local catalog container 조회 map 삭제.
+//   2개 소비처(resolveContainerStylesFallback containerStyles 보강 / resolveActiveContainerVariants
+//   variant 어댑터)가 각각 resolveComponentRule 직접 조회 / resolveCatalogContainerVariants(catalog
+//   단일 resolver, 3-A-3a 전환)로 대체되어 dead → 정의 제거. casing 역매핑은 아래
+//   LOWERCASE_TO_PASCAL_RULE_KEY 가 단일 담당.
 
 /**
  * ADR-912 Phase 3-A-3a: lowercase containerTag → catalog table PascalCase key 역매핑.
@@ -304,8 +270,15 @@ export function resolveContainerStylesFallback(
   //   rule.containerStyles 를 fallback 으로 읽는다(display/flexDirection/gap base layout). spec
   //   존재 시 specOut 이 이미 채워지므로 본 보강은 spec 부재 시에만 효과(spec ← shared boundary
   //   로 specs 측 resolveContainerStylesFallback 은 rule 접근 불가 → builder 에서 합성).
-  const ruleContainer = LOWERCASE_COMPONENT_RULE_CONTAINER.get(type);
-  const cs = ruleContainer?.containerStyles;
+  // ADR-912 Phase 3-A-3c (2026-06-20): builder-local catalog container 조회 map 제거.
+  //   top-level rule.containerStyles 조회를 LOWERCASE_TO_PASCAL_RULE_KEY 역매핑 + resolveComponentRule
+  //   직접 조회로 대체(map 은 lowercase→top-level containerStyles 조회 캐시일 뿐이라 byte 불변 대체
+  //   가능). 경로 B(resolveCatalogContainerBase) 흡수는 structure.composition base 가 leaf 44 type 에
+  //   신규 진입(surface-minimization 위반)이라 채택 불가 — 경로 A 로직 보존 + map 조회만 교체.
+  const pascalKeyA = LOWERCASE_TO_PASCAL_RULE_KEY.get(type);
+  const cs = pascalKeyA
+    ? resolveComponentRule(pascalKeyA)?.containerStyles
+    : undefined;
   if (cs) {
     // 경로 A — top-level rule.containerStyles 보유 (ListBox/Menu/Tree/TagGroup 등). 기존 경로 유지
     //   (ADR-080 G1 byte-lock test 가 본 출력을 고정). 값은 이미 camelCase + TokenRef 형태.
@@ -687,11 +660,11 @@ function resolveActiveContainerVariants(
   if (spec?.composition?.containerVariants) {
     return resolveContainerVariants(spec, containerProps ?? undefined);
   }
-  // ADR-912 Phase 3-A-3a (2026-06-20): rule.containerVariants 어댑터(LOWERCASE_COMPONENT_RULE_
-  //   CONTAINER spec-shape cast)를 catalog 단일 resolver `resolveCatalogContainerVariants` 로
-  //   교체. 출력 shape({styles, nested} kebab) 동일, 전 call-site(TagGroup/CheckboxGroup/
-  //   RadioGroup/field 5) 전 props 조합 byte 동등 검증 완료. LOWERCASE_COMPONENT_RULE_CONTAINER
-  //   의 containerVariants 소비처를 shared resolver 로 끊어 3-A-3c(map 삭제)의 prerequisite 충족.
+  // ADR-912 Phase 3-A-3a (2026-06-20): rule.containerVariants 어댑터(builder-local catalog map
+  //   spec-shape cast)를 catalog 단일 resolver `resolveCatalogContainerVariants` 로 교체. 출력
+  //   shape({styles, nested} kebab) 동일, 전 call-site(TagGroup/CheckboxGroup/RadioGroup/field 5)
+  //   전 props 조합 byte 동등 검증 완료. variant 소비처를 shared resolver 로 끊은 것이 3-A-3c(map
+  //   삭제) prerequisite — 3-A-3c 에서 map 정의 자체 제거됨.
   //   casing: wrapper 는 lowercase, resolveCatalogContainerVariants 는 PascalCase table key 필요.
   const pascalKey = LOWERCASE_TO_PASCAL_RULE_KEY.get(containerTag);
   if (pascalKey) {
