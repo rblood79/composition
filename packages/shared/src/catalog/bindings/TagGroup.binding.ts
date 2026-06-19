@@ -44,6 +44,22 @@ export const tagGroupBinding: PrimitiveBinding = {
           { value: "vertical", label: "Vertical" },
         ],
       },
+      // labelPosition(그룹↔라벨 top/side)은 orientation(태그 칩 가로/세로 배치)과 직교한다
+      //   — CheckboxGroup/RadioGroup 과 동일 구조. 렌더 인프라는 이미 갖춰짐:
+      //   TagGroup.tsx wrapper 가 data-label-position emit / 수동 TagGroup.css
+      //   [data-label-position="side"]{flex-direction:row} / catalog rule
+      //   containerVariants["label-position"].side(Skia). binding accepts 만 누락돼
+      //   Property 패널 편집 surface 가 없던 것을 노출(다른 field 와 표기 정합).
+      labelPosition: {
+        kind: "enum",
+        label: "Label Position",
+        section: "appearance",
+        default: "top",
+        options: [
+          { value: "top", label: "Top" },
+          { value: "side", label: "Side" },
+        ],
+      },
       selectionMode: {
         kind: "enum",
         label: "Selection Mode",

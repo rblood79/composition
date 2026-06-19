@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [TagGroup Label Position 편집 surface 노출 + 팔레트 라벨 정정] - 2026-06-19
+
+사용자 보고: TagGroup 이 컴포넌트 팔레트에 "type group" 으로 오표기 + Property 패널에 `orientation` 만 있고 다른 field 들의 `Label Position` 표기와 불일치. orientation(태그 칩 가로/세로 배치)과 labelPosition(그룹↔라벨 top/side)은 직교 개념 — CheckboxGroup/RadioGroup 동형으로 둘 다 노출 (사용자 confirm: labelPosition 추가 + orientation 유지).
+
+### Features
+
+- **TagGroup `Label Position` 편집 필드 노출** (Property 패널):
+  - `labelPosition`(top/side) accepts 항목을 `TagGroup.binding.ts` 에 추가 — CheckboxGroup/RadioGroup 과 동일 구조(orientation + labelPosition 별개, appearance section)
+  - **Why**: 렌더 인프라는 이미 완비돼 있었음 — `TagGroup.tsx` wrapper 의 `data-label-position` emit / 수동 `TagGroup.css` `[data-label-position="side"]{flex-direction:row}` / catalog rule `containerVariants["label-position"].side`(Skia). binding accepts 만 누락돼 편집 surface 가 없던 것을 노출(orientation 은 칩 배치 기능이라 유지)
+  - 위치: `packages/shared/src/catalog/bindings/TagGroup.binding.ts`
+
+### Bug Fixes
+
+- **컴포넌트 팔레트 TagGroup 라벨 오표기 정정** — `"type group"` → `"tag group"`:
+  - 다른 collections 멤버(tab list / list box 등)와 일관된 표기로 정정. paletteOracle 동기화
+  - 위치: `packages/shared/src/catalog/componentCatalog.ts`
+
 ## [Field labelPosition="side" CSS↔Skia 미동작 수정 — TextField DELEGATING + grid→flex-row 통일] - 2026-06-19
 
 사용자 보고: SearchField/NumberField/TextField 의 Label Position="side" 가 CSS↔Skia 양쪽에서 미동작 (DateField/TimeField 는 정상). systematic-debugging root-cause → **2개 독립 결함 + 숨은 SSOT 위반** 확인. starter/RSP 가 side CSS 미규정 → composition 내부 CSS↔Skia 대칭이 정본 (사용자 confirm: flex-row 통일).

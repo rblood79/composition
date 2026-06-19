@@ -154,4 +154,28 @@ describe("family ④ collections — toRacProps 변환 (dataBinding 통과)", ()
     expect(result["data-variant"]).toBe("default");
     expect(result.orientation).toBe("vertical");
   });
+
+  it("TagGroup: labelPosition accepts 노출 + orientation 과 직교 통과", () => {
+    // labelPosition(그룹↔라벨 top/side)과 orientation(태그 칩 가로/세로 배치)은
+    //   직교 — CheckboxGroup/RadioGroup 동형. 둘 다 enum kind 라 RAC props 로 통과
+    //   (DATA_ATTR_KINDS=variant/size/fillStyle 만 data-* 라우팅). TagGroup.tsx wrapper
+    //   가 labelPosition 을 받아 data-label-position emit → 수동 CSS / catalog rule 매칭.
+    const binding = getPrimitiveBinding("TagGroup")!;
+    // (1) binding accepts 에 labelPosition 노출 (Property 패널 편집 surface)
+    expect(binding.props.accepts.labelPosition).toBeDefined();
+    expect(binding.props.accepts.labelPosition?.label).toBe("Label Position");
+    // (2) orientation 은 유지 (제거 아님 — 직교 기능)
+    expect(binding.props.accepts.orientation).toBeDefined();
+    // (3) toRacProps 가 labelPosition + orientation 둘 다 통과
+    const result = toRacProps(
+      {
+        id: "tg1",
+        type: "TagGroup",
+        props: { labelPosition: "side", orientation: "vertical" },
+      },
+      binding,
+    );
+    expect(result.labelPosition).toBe("side");
+    expect(result.orientation).toBe("vertical");
+  });
 });

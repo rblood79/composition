@@ -299,7 +299,7 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
   {
     type: "TagGroup",
     category: "collections",
-    label: "type group",
+    label: "tag group",
     icon: "Tag",
   },
   {

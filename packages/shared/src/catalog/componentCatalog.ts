@@ -707,7 +707,7 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
   }),
   primitiveEntry("TagGroup", "collections", FAMILY_4_CUTOVER, {
     category: "collections",
-    label: "type group",
+    label: "tag group",
     icon: "Tag",
   }),
   // TagList — catalog cutover (ADR-912 collection sub-part, 2026-06-15, TabList 동형): TagGroup
