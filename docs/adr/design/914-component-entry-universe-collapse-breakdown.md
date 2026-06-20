@@ -331,6 +331,44 @@ Gate:
 
 ### Phase 4 - Creation Facet Proof
 
+> **Phase 4-A (creation facet 3-mode) + 4-B (Avatar creator 제거) ✅ Implemented 2026-06-21**
+>
+> recon (Workflow w86cnogm1, 5 recon + 3 적대 검증) + 사용자 결정 2건 후 진행. 4-C
+> (COMPLEX membership 방향 역전)는 별도 sub-phase 로 분리 (R7 한 phase 한 facet 한 family).
+>
+> **4-A — creation facet 3-mode 확장**: `CreationFacetMode` binary `none|complex` →
+> `none|reusableOrigin|complex` (`entryUniverse.ts:54`). `resolveCreationMode()` 가
+> reusableOrigin(`REUSABLE_COMPOSITE_ORIGINS` 파생, 추가 손등록 0) > complex
+> (`COMPLEX_COMPONENT_TAGS`) > none(leaf) 우선순위로 판정. 사용자 결정 (2026-06-21):
+> delegate(Table custom creator) 식별용 새 손등록 set 은 collapse 목적(surface 감소)에
+> 역행하므로 미도입 — declaredChildren/delegate 는 complex 에 포괄.
+>
+> **4-B — Avatar creator 제거 (proof family 1개, surface-minimization)**: `createAvatar`
+> 메서드 + `creators` 맵 Avatar 키 + 미사용 import 제거 (`ComponentFactory.ts`).
+> Avatar 는 `COMPLEX_COMPONENT_TAGS` 미포함 leaf → `useElementCreator:192` COMPLEX gate
+> 뒤 `createComplexComponent` 도달 0 (dead creator). palette-add 는 항상 else 분기
+> (`useElementCreator:203-260`) 로 `getDefaultProps("Avatar")` 단일 element 생성.
+>
+> **G4 (palette add tree diff 0) 보증**: else 분기 `getDefaultProps("Avatar")` ==
+> 구 `createAvatarDefinition` parent.props **byte-identical** + 자식 0 → creator 삭제
+> 전후 tree 불변. `entryUniverseContract.test.ts` G4 oracle 로 코드 고정. definition
+> 함수 자체는 `DisplayComponents.ts` 에 보존 (factoryOwnership.test).
+>
+> **placeable SSOT 분리 확증**: palette UI `placeable` = `PALETTE_ORDER` + 하드코딩
+> (`paletteItems.ts:247`) — `getRegisteredTypes()` 와 독립. Avatar creator 제거 →
+> ComponentFactory placeable(`getRegisteredTypes`)에서만 빠짐, palette 노출 영향 0.
+>
+> **nested-button (inventory §10) scope 제외 (사용자 결정)**: 적대 검증(verify-0)이
+> "creation element 2개 생성" 주장을 REFUTE — standalone Button 자식 생성 0,
+> 동일 id/timestamp 2겹 emit 은 `CanonicalNodeRenderer.tsx:424` render seam(Phase 3).
+> Phase 4(creation) scope 아님.
+>
+> 검증: type-check 0 신규 위반 (baseline 71 불변, ComponentFactory 라인 시프트만 갱신) +
+> entryUniverseContract 15 passed (신규 5 + G4 oracle) + 회귀 0 (selectFamilyFactoryLayout
+> 2 fail 은 ADR-912 R1 pre-existing, HEAD baseline 동일 재현 attribution 확정) + dev server
+> HTTP 200 transform 0 + **live: builder 에서 Avatar palette-add 정상 렌더 사용자 confirm**.
+> INVENTORY.creators 55 → 54.
+
 목표: `ComponentFactory.creators`를 creation facet으로 축소한다.
 
 분류:
@@ -344,13 +382,13 @@ Gate:
 
 - creation facet resolver를 추가한다.
 - proof family 하나에서 creator를 제거하거나 adapter id 소유권을 entry로 옮긴다.
-- `COMPLEX_COMPONENT_TAGS` membership을 creation facet에서 파생한다.
+- `COMPLEX_COMPONENT_TAGS` membership을 creation facet에서 파생한다. ← **4-C (별도 sub-phase, 미착수)**
 
 Gate:
 
-- palette add canonical tree diff 0.
-- refresh after add에서 origin/component page idempotent.
-- undo/redo/delete가 기존과 동일.
+- palette add canonical tree diff 0. ← ✅ G4 oracle 보증 + live confirm
+- refresh after add에서 origin/component page idempotent. ← ✅ 단일 element, live confirm
+- undo/redo/delete가 기존과 동일. ← ✅ 단일 element (창작 경로 불변, else 분기)
 
 ### Phase 5 - Propagation Facet Proof
 

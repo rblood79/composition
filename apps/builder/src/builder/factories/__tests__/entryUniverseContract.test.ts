@@ -30,6 +30,9 @@ import {
   resolveComponentEntryRuntime,
   type ComponentEntryRuntime,
 } from "@/builder/factories/entryUniverse";
+import { createAvatarDefinition } from "@/builder/factories/definitions/DisplayComponents";
+import { getDefaultProps } from "@/types/builder/unified.types";
+import type { ComponentCreationContext } from "@/builder/factories/types";
 
 // ── inventory freeze 정본 카운트 (914-entry-universe-inventory.md §1, 2026-06-20) ──
 // 이 값은 Phase 0 inventory 의 source 다. facet mirror 가 이 카운트에서 벗어나면
@@ -40,7 +43,9 @@ const INVENTORY = {
   delegatingInternal: 18,
   delegatingRac: 10,
   defaultPropsMap: 92,
-  creators: 55,
+  // ADR-914 Phase 4-B (2026-06-21): Avatar creator 제거 → 55 → 54 (Avatar 는 creation.mode
+  //   ="none" leaf, palette-add 는 else 분기 getDefaultProps). placeable 집합 1 축소.
+  creators: 54,
   complexComponentTags: 48,
   propagationRegistered: 31,
   syntheticChildPropMerge: 9,
@@ -75,6 +80,70 @@ describe("ADR-914 entry universe contract", () => {
   it("creation facet — COMPLEX_COMPONENT_TAGS mirror == 48", () => {
     const complex = entries.filter((e) => e.creation.mode === "complex");
     expect(complex.length).toBe(INVENTORY.complexComponentTags);
+  });
+
+  // ── ADR-914 Phase 4 (Creation Facet Proof) — 4-A 3-mode + 4-B Avatar creator 제거 ──
+  // 사용자 결정 2026-06-21: 3-mode(none/reusableOrigin/complex). delegate 식별용 새
+  // 손등록 set 은 collapse 목적(surface 감소)에 역행하므로 미도입 — declaredChildren/
+  // delegate 는 complex 에 포함(기존 COMPLEX 의미 보존). reusableOrigin 은 기존
+  // REUSABLE_COMPOSITE_ORIGINS 파생(추가 손등록 0).
+  it("Phase 4 creation facet — 3-mode (none/reusableOrigin/complex) 만 노출", () => {
+    const modes = new Set(entries.map((e) => e.creation.mode));
+    for (const m of modes) {
+      expect(["none", "reusableOrigin", "complex"]).toContain(m);
+    }
+  });
+
+  it("Phase 4 creation facet — reusableOrigin 은 REUSABLE_COMPOSITE_ORIGINS 파생", () => {
+    // Toolbar/Form 은 creators 에 없으므로(R-5 ref instance 경로) placeable 아님 →
+    // resolver 를 직접 호출해 reusableOrigin mode 를 검증.
+    expect(resolveComponentEntryRuntime("Toolbar").creation.mode).toBe(
+      "reusableOrigin",
+    );
+    expect(resolveComponentEntryRuntime("Form").creation.mode).toBe(
+      "reusableOrigin",
+    );
+  });
+
+  it("Phase 4 creation facet — leaf(none) 은 creator 부재 + COMPLEX 미포함", () => {
+    // Avatar 는 4-B 에서 creator 제거 → COMPLEX 미포함 leaf → mode==="none".
+    expect(resolveComponentEntryRuntime("Avatar").creation.mode).toBe("none");
+    // Button(항상 leaf, COMPLEX 미포함) 도 none.
+    expect(resolveComponentEntryRuntime("Button").creation.mode).toBe("none");
+  });
+
+  it("Phase 4-B — Avatar creator 제거 (placeable 아님)", () => {
+    // creator 제거 → getRegisteredTypes 에서 빠짐. palette-add 는 else 분기로
+    // getDefaultProps("Avatar") 사용(props byte-identical) → tree diff 0.
+    expect(ComponentFactory.getRegisteredTypes()).not.toContain("Avatar");
+    // AvatarGroup(컨테이너, 자식 3) 은 creator 유지.
+    expect(ComponentFactory.getRegisteredTypes()).toContain("AvatarGroup");
+  });
+
+  // ── Gate G4 oracle: creator 제거 후 palette-add tree diff 0 (live behavior 코드 고정) ──
+  // Chrome MCP 미연결 환경에서 G4(palette add canonical tree diff 0)를 코드로 보증한다.
+  // creator 가 살아있을 때(구 createComplexComponent 미경유, else 분기였음)와 삭제 후
+  // (else 분기)가 동일 element 를 만드는 근거: useElementCreator else 분기는
+  // getDefaultProps(type) 로 단일 element 생성. 이 값이 구 createAvatarDefinition 의
+  // parent.props 와 byte-identical + 자식 0 이면 삭제 전후 tree 가 불변임이 확정된다.
+  it("Gate G4 — Avatar palette-add(else 분기) == 구 creator definition (tree diff 0)", () => {
+    // 구 creator 가 만들던 element (definition 함수 보존 — factoryOwnership.test 참조).
+    const ctx = {
+      parentElement: null,
+      pageId: "page-test",
+      elements: [],
+      layoutId: null,
+      doc: undefined,
+    } as unknown as ComponentCreationContext;
+    const def = createAvatarDefinition(ctx);
+
+    // 현 palette-add(else 분기)가 쓰는 props.
+    const elseProps = getDefaultProps("Avatar");
+
+    // (1) props byte-identical — variant/size/style 전부 동일.
+    expect(elseProps).toEqual(def.parent.props);
+    // (2) creator definition 도 자식 0 (leaf) — else 분기는 항상 자식 0.
+    expect(def.children).toEqual([]);
   });
 
   it("propagation facet — registered mirror == 31", () => {

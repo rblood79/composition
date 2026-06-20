@@ -13,7 +13,7 @@ src/adapters/canonical/slotAndLayoutAdapter.ts(322,57): error TS2871: This expre
 src/adapters/canonical/slotAndLayoutAdapter.ts(79,31): error TS2339: Property 'slot_name' does not exist on type 'Element'.
 src/adapters/canonical/slotAndLayoutAdapter.ts(79,44): error TS2871: This expression is always nullish.
 src/builder/components/dialog/AddPageDialog.tsx(151,13): error TS2322: Type '{ id: string; name: string; project_id: string; slug: string | undefined; } | null' is not assignable to type 'UrlLayout | null | undefined'.
-src/builder/factories/ComponentFactory.ts(621,11): error TS2741: Property 'doc' is missing in type '{ parentElement: Element | null; pageId: string; elements: Element[]; }' but required in type 'ComponentCreationContext'.
+src/builder/factories/ComponentFactory.ts(618,11): error TS2741: Property 'doc' is missing in type '{ parentElement: Element | null; pageId: string; elements: Element[]; }' but required in type 'ComponentCreationContext'.
 src/builder/inspector/utils/elementMapper.ts(22,5): error TS2322: Type 'import("/Users/admin/work/composition/packages/shared/src/types/element.types").DataBinding | undefined' is not assignable to type 'import("/Users/admin/work/composition/apps/builder/src/builder/inspector/types").DataBinding | undefined'.
 src/builder/panels/ai/hooks/useAgentLoop.ts(200,5): error TS18047: 'agent' is possibly 'null'.
 src/builder/panels/components/ComponentsPanel.tsx(109,11): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.

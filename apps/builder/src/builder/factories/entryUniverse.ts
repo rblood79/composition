@@ -22,6 +22,7 @@ import { rendererMap } from "@composition/shared/renderers";
 
 import { ComponentFactory } from "@/builder/factories/ComponentFactory";
 import { COMPLEX_COMPONENT_TAGS } from "@/builder/factories/constants";
+import { isReusableCompositeType } from "@/builder/components/reusableCompositeOrigins";
 import { getRegisteredPropagationTags } from "@/builder/utils/propagationRegistry";
 import { POPOVER_CHILDREN_TAGS } from "@/builder/workspace/canvas/layout/engines/implicitStyles";
 import { SYNTHETIC_CHILD_PROP_MERGE_TAGS } from "@/builder/workspace/canvas/skia/buildSpecNodeData";
@@ -50,8 +51,20 @@ export type RenderFacetMode =
   | "internal"
   | "generic";
 
-/** creation facet — palette add 시 factory 가 child tree 를 어떻게 만드는지 (Phase 4 에서 세분). */
-export type CreationFacetMode = "none" | "complex";
+/**
+ * creation facet — palette add 시 factory 가 child tree 를 어떻게 만드는지.
+ *
+ * ADR-914 Phase 4 (2026-06-21): binary `none|complex` → 3-mode 확장.
+ * - `none`: factory child tree 가 필요 없는 leaf. creator 함수 불필요 (palette-add 는
+ *   useElementCreator else 분기로 `getDefaultProps(type)` 단일 element 생성). Avatar 가
+ *   Phase 4-B 에서 creator 제거 후 이 mode 의 proof.
+ * - `reusableOrigin`: Components page reusable origin (`REUSABLE_COMPOSITE_ORIGINS`) 으로
+ *   대체된 composite (Toolbar/Form). palette-add 는 type:"ref" instance 생성.
+ * - `complex`: `COMPLEX_COMPONENT_TAGS` 멤버 — factory creator 가 child tree 를 만든다
+ *   (declaredChildren + delegate 포함). 사용자 결정: delegate(Table custom) 식별용 새
+ *   손등록 set 은 collapse 목적(surface 감소)에 역행하므로 미도입, complex 에 포괄.
+ */
+export type CreationFacetMode = "none" | "reusableOrigin" | "complex";
 
 /**
  * defaults facet 의 권한 source.
@@ -158,6 +171,20 @@ function resolveDefaultsFacet(type: string): {
 }
 
 /**
+ * creation facet mode 를 existing source 우선순위로 판정 (ADR-914 Phase 4).
+ *
+ * 우선순위: reusableOrigin > complex > none.
+ * - reusableOrigin 이 complex 보다 우선 — Toolbar/Form 은 COMPLEX 에 없지만(creators 미등록,
+ *   ref instance 경로) 의미상 composite. 단 현 두 set 은 disjoint 라 순서 무관.
+ * - none = creator 부재 leaf (palette-add 는 useElementCreator else 분기).
+ */
+function resolveCreationMode(type: string): CreationFacetMode {
+  if (isReusableCompositeType(type)) return "reusableOrigin";
+  if (COMPLEX_COMPONENT_TAGS.has(type)) return "complex";
+  return "none";
+}
+
+/**
  * component type 의 entry runtime facet 을 existing registry 에서 mirror.
  *
  * Phase 1 은 read-only — 어떤 registry 도 mutate 하지 않는다. 이후 deletion phase 가
@@ -176,7 +203,7 @@ export function resolveComponentEntryRuntime(
     },
     defaults: resolveDefaultsFacet(type),
     creation: {
-      mode: COMPLEX_COMPONENT_TAGS.has(type) ? "complex" : "none",
+      mode: resolveCreationMode(type),
     },
     propagation: {
       registered: propagationTagsLower.has(lower(type)),

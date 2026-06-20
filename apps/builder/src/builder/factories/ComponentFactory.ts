@@ -71,7 +71,8 @@ import {
   createColorSwatchPickerDefinition,
 } from "./definitions/DateColorComponents";
 import {
-  createAvatarDefinition,
+  // ADR-914 Phase 4-B: createAvatarDefinition import 제거 — Avatar creator(creation.mode="none")
+  //   진입점이 사라져 미사용. 정의 함수 자체는 DisplayComponents.ts 에 보존(factoryOwnership.test).
   createAvatarGroupDefinition,
   createStatusLightDefinition,
   createInlineAlertDefinition,
@@ -146,7 +147,9 @@ export class ComponentFactory {
     ColorField: ComponentFactory.createColorField,
     ColorSwatchPicker: ComponentFactory.createColorSwatchPicker,
     // ⭐ Display Components (Phase 1)
-    Avatar: ComponentFactory.createAvatar,
+    // ADR-914 Phase 4-B (2026-06-21): Avatar 는 creation.mode="none" leaf — creator
+    //   진입점 제거. palette-add 는 useElementCreator else 분기로 getDefaultProps("Avatar")
+    //   단일 element 생성(createAvatarDefinition parent.props 와 byte-identical) → tree diff 0.
     AvatarGroup: ComponentFactory.createAvatarGroup,
     StatusLight: ComponentFactory.createStatusLight,
     InlineAlert: ComponentFactory.createInlineAlert,
@@ -514,12 +517,6 @@ export class ComponentFactory {
   }
 
   // ==================== Display Components (Phase 1) ====================
-
-  private static async createAvatar(
-    context: ComponentCreationContext,
-  ): Promise<ComponentCreationResult> {
-    return this.createComponent(createAvatarDefinition, context);
-  }
 
   private static async createAvatarGroup(
     context: ComponentCreationContext,
