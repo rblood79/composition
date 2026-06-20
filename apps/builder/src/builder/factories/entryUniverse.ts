@@ -177,6 +177,15 @@ function resolveDefaultsFacet(type: string): {
  * - reusableOrigin 이 complex 보다 우선 — Toolbar/Form 은 COMPLEX 에 없지만(creators 미등록,
  *   ref instance 경로) 의미상 composite. 단 현 두 set 은 disjoint 라 순서 무관.
  * - none = creator 부재 leaf (palette-add 는 useElementCreator else 분기).
+ *
+ * **Phase 4-C (membership SSOT, 2026-06-21)**: `complex` mode 의 membership SSOT 는
+ * `COMPLEX_COMPONENT_TAGS` (constants.ts), `reusableOrigin` 은 `REUSABLE_COMPOSITE_ORIGINS`
+ * (`isReusableCompositeType`) 다. 본 resolver 는 두 set 을 *읽어* facet mode 로 노출하고,
+ * `useElementCreator:192` 의 palette-add gate 가 **동일 두 set 을 같은 우선순위로 소비**한다
+ * (entryUniverse:183 ↔ useElementCreator:192 가 같은 SSOT 를 congruent 소비 — 별도
+ * declaration 파일 없이 단일 source 공유). `entryUniverseContract` 가 `creation.mode==="complex"
+ * ⟺ COMPLEX_COMPONENT_TAGS.has` / `==="reusableOrigin" ⟺ isReusableCompositeType` 양방향
+ * parity 로 facet 이 이 membership 을 소유함을 증명한다.
  */
 function resolveCreationMode(type: string): CreationFacetMode {
   if (isReusableCompositeType(type)) return "reusableOrigin";

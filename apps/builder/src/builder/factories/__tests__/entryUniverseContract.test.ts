@@ -33,6 +33,8 @@ import {
 import { createAvatarDefinition } from "@/builder/factories/definitions/DisplayComponents";
 import { getDefaultProps } from "@/types/builder/unified.types";
 import type { ComponentCreationContext } from "@/builder/factories/types";
+import { COMPLEX_COMPONENT_TAGS } from "@/builder/factories/constants";
+import { isReusableCompositeType } from "@/builder/components/reusableCompositeOrigins";
 
 // ── inventory freeze 정본 카운트 (914-entry-universe-inventory.md §1, 2026-06-20) ──
 // 이 값은 Phase 0 inventory 의 source 다. facet mirror 가 이 카운트에서 벗어나면
@@ -80,6 +82,74 @@ describe("ADR-914 entry universe contract", () => {
   it("creation facet — COMPLEX_COMPONENT_TAGS mirror == 48", () => {
     const complex = entries.filter((e) => e.creation.mode === "complex");
     expect(complex.length).toBe(INVENTORY.complexComponentTags);
+  });
+
+  // ── ADR-914 Phase 4-C (creation facet membership SSOT 명문화, 2026-06-21) ──
+  // count parity(위 == 48)는 set 크기만 본다. Phase 4-C 는 facet 이 membership 을
+  // **소유**함을 증명한다: creation.mode==="complex" ⟺ COMPLEX_COMPONENT_TAGS.has(type)
+  // (양방향 1:1) + reusableOrigin ⟺ isReusableCompositeType + 세 mode disjoint.
+  // 사용자 결정(2026-06-21): 별도 declaration 파일 신설 없이 constants.ts 의
+  // COMPLEX_COMPONENT_TAGS 자체를 SSOT 로 명문화 — 두 소비처(entryUniverse:183 /
+  // useElementCreator:192)가 이미 단일 set 공유, surface 증가 0.
+  it("Phase 4-C — complex mode ⟺ COMPLEX_COMPONENT_TAGS (양방향 parity)", () => {
+    // 정방향: facet 이 complex 라고 한 type 은 전부 set 멤버.
+    for (const e of entries) {
+      if (e.creation.mode === "complex") {
+        expect(
+          COMPLEX_COMPONENT_TAGS.has(e.type),
+          `${e.type}: facet=complex 인데 COMPLEX set 미포함 (membership SSOT 불일치)`,
+        ).toBe(true);
+      }
+    }
+    // 역방향: COMPLEX set 멤버 중 placeable 인 type 은 reusableOrigin 이 아닌 한
+    //   facet 이 complex 여야 한다 (reusableOrigin > complex 우선순위 고려).
+    for (const type of COMPLEX_COMPONENT_TAGS) {
+      if (!placeable.includes(type)) continue; // placeable 아닌 set 멤버는 entry 없음
+      const mode = resolveComponentEntryRuntime(type).creation.mode;
+      const expected = isReusableCompositeType(type)
+        ? "reusableOrigin"
+        : "complex";
+      expect(
+        mode,
+        `${type}: COMPLEX 멤버인데 facet mode=${mode} (기대 ${expected})`,
+      ).toBe(expected);
+    }
+  });
+
+  it("Phase 4-C — reusableOrigin mode ⟺ isReusableCompositeType", () => {
+    // resolver 를 직접 호출 (Toolbar/Form 은 placeable 아님). 두 set 이 disjoint 라
+    //   reusableOrigin 판정이 COMPLEX 보다 우선해도 complex 를 가리지 않음.
+    for (const type of ["Toolbar", "Form"]) {
+      expect(isReusableCompositeType(type)).toBe(true);
+      expect(resolveComponentEntryRuntime(type).creation.mode).toBe(
+        "reusableOrigin",
+      );
+    }
+    // placeable entry 중 facet 이 reusableOrigin 이라고 한 것은 전부 isReusableCompositeType.
+    for (const e of entries) {
+      if (e.creation.mode === "reusableOrigin") {
+        expect(
+          isReusableCompositeType(e.type),
+          `${e.type}: facet=reusableOrigin 인데 isReusableCompositeType=false`,
+        ).toBe(true);
+      }
+    }
+  });
+
+  it("Phase 4-C — 세 mode disjoint (none ∩ complex ∩ reusableOrigin = ∅)", () => {
+    // none type 은 COMPLEX 미포함 + reusableOrigin 아님 (양쪽 set 모두 비멤버).
+    for (const e of entries) {
+      if (e.creation.mode === "none") {
+        expect(
+          COMPLEX_COMPONENT_TAGS.has(e.type),
+          `${e.type}: facet=none 인데 COMPLEX set 포함`,
+        ).toBe(false);
+        expect(
+          isReusableCompositeType(e.type),
+          `${e.type}: facet=none 인데 isReusableCompositeType=true`,
+        ).toBe(false);
+      }
+    }
   });
 
   // ── ADR-914 Phase 4 (Creation Facet Proof) — 4-A 3-mode + 4-B Avatar creator 제거 ──

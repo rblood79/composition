@@ -368,6 +368,36 @@ Gate:
 > 2 fail 은 ADR-912 R1 pre-existing, HEAD baseline 동일 재현 attribution 확정) + dev server
 > HTTP 200 transform 0 + **live: builder 에서 Avatar palette-add 정상 렌더 사용자 confirm**.
 > INVENTORY.creators 55 → 54.
+>
+> **Phase 4-C (COMPLEX_COMPONENT_TAGS membership SSOT 명문화) ✅ Implemented 2026-06-21**
+>
+> 사용자 결정 (2026-06-21, AskUserQuestion): **방향 B — 별도 declaration 파일 신설 없이
+> `constants.ts` 의 `COMPLEX_COMPONENT_TAGS` 자체를 creation facet `complex` mode 의 SSOT
+> 로 명문화**. 전제 점검 결과 Phase 3-A (renderFacetDeclaration) 와 prerequisite 가 다름:
+> Phase 3-A 는 set 정의가 2곳(CanonicalNodeRenderer) 분산 + circular import 위험을 declaration
+> 신설로 해소한 실질 가치가 있었으나, 4-C 의 두 소비처(`entryUniverse.ts:183` /
+> `useElementCreator.ts:192`)는 **이미 동일 `constants.ts` 단일 SSOT 를 공유**하고 circular
+> import 도 분기도 없다. declaration 신설은 surface 만 늘릴 뿐 collapse 목적(손등록 surface
+> 감소)에 역행 → 차단 메모리 feedback-execute-adr-surface-minimization 정합. 따라서 set 자체를
+> SSOT 로 명문화하고 contract 가 facet ⟺ membership 정합을 검증.
+>
+> **변경 (런타임 동작 0, JSDoc + contract test 만)**:
+>
+> - `constants.ts` — `COMPLEX_COMPONENT_TAGS` JSDoc 을 creation facet `complex` mode SSOT 로
+>   계약화 (양방향 1:1 + 소비처 2곳 congruent 명시). 비주석 변경 라인 0.
+> - `entryUniverse.ts` — `resolveCreationMode()` JSDoc 에 membership SSOT 소유 관계 명시
+>   (complex⟸COMPLEX_COMPONENT_TAGS / reusableOrigin⟸isReusableCompositeType). 비주석 라인 0.
+> - `entryUniverseContract.test.ts` — Phase 4-C 신규 3 test: (a) complex mode ⟺
+>   COMPLEX_COMPONENT_TAGS 양방향 parity (정·역방향, reusableOrigin 우선순위 고려) (b)
+>   reusableOrigin mode ⟺ isReusableCompositeType (c) 세 mode disjoint (none ∩ complex ∩
+>   reusableOrigin = ∅). count-only(==48) 검증을 ownership 증명으로 격상.
+>
+> **검증**: type-check 0 신규 위반 (baseline 71 불변 — JSDoc-only 라 코드 라인 시프트 0) +
+> entryUniverseContract 18 passed (15 + 신규 3) + factories `__tests__` 5 suite 72 passed
+> 회귀 0 + 두 source 파일 비주석 변경 라인 0 확인 (런타임 동작 불변 → Phase 4-B live confirm
+> 유효, 추가 live exercise 불요). §3.3-4 "creation facet 이 ComponentFactory delegation 여부를
+> 설명" + breakdown §4 작업 3번 "COMPLEX_COMPONENT_TAGS membership 을 creation facet 에서 파생"
+> 충족 (declaration 역전 대신 SSOT 명문화 + contract 소유 증명으로 달성).
 
 목표: `ComponentFactory.creators`를 creation facet으로 축소한다.
 
@@ -382,7 +412,7 @@ Gate:
 
 - creation facet resolver를 추가한다.
 - proof family 하나에서 creator를 제거하거나 adapter id 소유권을 entry로 옮긴다.
-- `COMPLEX_COMPONENT_TAGS` membership을 creation facet에서 파생한다. ← **4-C (별도 sub-phase, 미착수)**
+- `COMPLEX_COMPONENT_TAGS` membership을 creation facet에서 파생한다. ← ✅ **4-C Implemented 2026-06-21** (declaration 역전 대신 set 자체를 SSOT 로 명문화 + contract 양방향 parity 소유 증명)
 
 Gate:
 
