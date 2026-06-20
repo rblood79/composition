@@ -203,19 +203,20 @@ ComponentList 를 catalog 파생으로 단순 전환하면 **palette 노출 컴�
 
 **P2 종결 — 파생 가능 registry 전부 완료 (2026-06-17 재실측 + 종속 판정, 사용자 결정)**: 6 registry 를 같은 denominator 로 재실측한 결과 **4/6 이 catalog 단일 source 파생**이다.
 
-| #   | registry          | 개수                        | 상태                                                                                                    |
-| --- | ----------------- | --------------------------- | ------------------------------------------------------------------------------------------------------- |
-| #1  | Component Panel   | 61                          | ✅ `getPaletteItems()` catalog `entry.panel` + overlay 파생 (`2a03a723c`)                               |
-| #2  | BUILDER_ALIAS_MAP | **0**                       | ✅ 빈 맵 — body alias 까지 제거 완료 (R1 + 단계5 step4)                                                 |
-| #3  | BASE_TAG_SPEC_MAP | 3 + childSpecs              | ✅ native 3(Group/frame/Slot) 수동 + `expandChildSpecs` 자동 확장 (cutover spec 60+ 삭제)               |
-| #5  | DEFAULT_PROPS_MAP | 92                          | ✅ `getCatalogDefaultProps`(accepts.default) 파생 base + `FACTORY_LOCAL_DEFAULTS` overlay (`f31772317`) |
-| #4  | rendererMap       | 101                         | ⚠️ catalog generic 흡수 진행 + `DELEGATING_*`(~24) 영구 잔존 (아래)                                     |
-| #6  | Factory creators  | 55(=COMPLEX_COMPONENT_TAGS) | ⚠️ 자식 element-tree 생성 함수 (아래)                                                                   |
+| #   | registry          | 개수                        | 상태                                                                                                                                                                                                                          |
+| --- | ----------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| #1  | Component Panel   | 61                          | ✅ `getPaletteItems()` catalog `entry.panel` + overlay 파생 (`2a03a723c`)                                                                                                                                                     |
+| #2  | BUILDER_ALIAS_MAP | **0**                       | ✅ 빈 맵 — body alias 까지 제거 완료 (R1 + 단계5 step4)                                                                                                                                                                       |
+| #3  | BASE_TAG_SPEC_MAP | 3 + childSpecs              | ✅ native 3(Group/frame/Slot) 수동 + `expandChildSpecs` 자동 확장 (cutover spec 60+ 삭제)                                                                                                                                     |
+| #5  | DEFAULT_PROPS_MAP | 92                          | ⚠️ **부분 파생 6/92** — `deriveDefaultPropsFromCatalog(type)` 호출은 Button/Link/ToggleButton/Badge/Text/Icon 6 함수뿐 (`f31772317`), 나머지 86 `createDefault*Props` 는 literal 손-코딩 (2026-06-20 `unified.types.ts` 실측) |
+| #4  | rendererMap       | 101                         | ⚠️ catalog generic 흡수 진행 + `DELEGATING_*`(~24) 영구 잔존 (아래)                                                                                                                                                           |
+| #6  | Factory creators  | 55(=COMPLEX_COMPONENT_TAGS) | ⚠️ 자식 element-tree 생성 함수 (아래)                                                                                                                                                                                         |
 
 잔여 #4·#6 는 **독립 collapse 작업이 아니다** — 종속 판정:
 
 - **#4 rendererMap 잔여 = self-compose 위임의 영구 잔존 설계**. `DELEGATING_INTERNAL_RENDERERS`/`DELEGATING_RAC_RENDERERS`(tabs/progressbar/meter/select/combobox/tree/taggroup/listbox/gridlist/menu/disclosure\*/nav/field/Slider/NumberField/SearchField/CheckboxGroup/RadioGroup/color\* 등 ~24)는 `childrenByParent`(자식 element-tree context)가 필요한 self-compose 라 generic 자식 재귀로 환원 불가(소문자 raw tag 회귀). catalog cutover 로 흡수되는 type 은 이미 generic 경로로 dead 화 중이고, 위임 잔여는 제거 대상이 아니라 의도된 설계.
 - **#6 Factory creators = R-5 reusable composite tree schema 에 종속**. `COMPLEX_COMPONENT_TAGS` 55 는 자식 트리를 생성하는 함수인데 catalog `binding.props.accepts` 는 flat props 만 담고 자식 트리 schema 가 없다. leaf(catalog cutover)는 이미 creators 미경유(`useElementCreator` else 분기), Form 류는 R-5 로 `type:"ref"` 전환 완료. 나머지 COMPLEX 를 파생화하려면 child template schema 를 catalog 에 선축해야 하는데, 소비처 없는 schema 선행 = dormant foundation(`feedback-no-dormant-foundation-ahead-of-flip` 차단 영역).
+- **#5 DEFAULT_PROPS_MAP 부분 파생 (6/92, 2026-06-20 실측 정정)**: `deriveDefaultPropsFromCatalog(type)` 호출은 leaf 6종(Button/Link/ToggleButton/Badge/Text/Icon)뿐이고, 나머지 86 `createDefault*Props` 는 catalog binding `accepts.default` 가 아니라 함수 내부 literal object 를 손-코딩한다. 핵심 collapse 인 #1·#2·#3(등록 누락/drift 평행 위치)은 0 달성이라 "1 컴포넌트 = 1 등록" 의 본질(평행 등록 소멸)은 충족되나, default props **값** 의 catalog 파생은 conflict 없는 leaf 6종에 한정. conflict 보유 type(CheckboxGroup orientation 등)의 default 값 파생은 cross-check 선행이라 범위 밖(별도 후속). 본 ADR 의 ✅ "registry 파생 완료" 는 등록 entry collapse(#1·#2·#3)를 의미하며 default props 값 전수 파생은 미달.
 
 따라서 P2 는 "파생 가능한 registry(#1·#2·#3·#5) 전부 파생" 으로 완료다. `componentRegistrationContract.test.ts` 는 placeable 55 ⟹ rendererMap/TAG_SPEC_MAP·catalog/getDefaultProps 정합(baseline ratchet 전부 0, 누락 0)을 계속 강제 — `entryUniverseContract.test.ts` 교체는 #4·#6 의 종속 축(generic 흡수 완성 / R-5 후속)이 정리될 때 함께 졸업.
 
