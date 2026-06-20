@@ -290,11 +290,14 @@ const DISPERSION_BASELINE: Array<{
     //   `rule.structure`(=CSS emit 채널)와 `resolveCatalogContainerBase`(=Skia 채널)가 같은 필드라
     //   분리 불가. 따라서 본 3곳은 dual-SSOT(spec↔catalog 이중 정의) 가 아니라 single-source 가
     //   layout 코드에 위치한 의도된 잔존이다(시각 정합 깨짐 0 — DOM/Skia 둘 다 row).
-    //   가드: baseline 3 초과(=재도입) 시 regression. catalog-emit-분리 채널 도입 phase 가 미래에
-    //   land 하면 0 으로 낮춘다. (811 TagGroup 의 `?? "row"` 는 catalog variant.styles fallback 이라
-    //   base-axis 하드코딩 아님 — 본 패턴은 `cs.flexDirection`/`parentStyle.flexDirection` 만 매칭.)
+    //   **영구 잔존 (0 종결 대상 아님)**: field-trigger 는 항상 row 축이라 drift 위험 0 + 계열이
+    //   더 안 늘어남(Select/ComboBox/SearchField/NumberField 고정). catalog 로 옮기려면 새 schema
+    //   채널(structure 와 분리된 Skia-전용 layout)을 도입해야 하는데, 그건 막는 버그 0 · drift 0 인데
+    //   surface 만 늘리는 과잉(소비처 없는 dormant 인프라). baseline 3 = "재도입 방지 추적"이지
+    //   "0 으로 가야 할 미완"이 아니다. (811 TagGroup 의 `?? "row"` 는 catalog variant.styles
+    //   fallback 이라 base-axis 하드코딩 아님 — 본 패턴은 `cs.flexDirection`/`parentStyle.flexDirection` 만 매칭.)
     label:
-      "field-trigger base-axis inline (Δ11 — byte-diff 0 보존 의도 잔존, baseline 3)",
+      "field-trigger base-axis inline (Δ11 — byte-diff 0 보존 영구 잔존, baseline 3)",
     file: "implicitStyles",
     pattern: /(cs|parentStyle)\.flexDirection \?\? "row"/,
     baseline: 3,
