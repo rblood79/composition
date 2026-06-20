@@ -34,6 +34,7 @@ import { getCatalogCutoverTypes } from "@composition/shared";
 import { TAG_SPEC_MAP } from "@composition/specs";
 import { TAG_SPEC_MAP as BUILDER_TAG_SPEC_MAP } from "@/builder/workspace/canvas/sprites/tagSpecMap";
 import { ComponentFactory } from "@/builder/factories/ComponentFactory";
+import { ENTRY_DERIVED_DEFAULT_TYPES } from "@/types/builder/defaultPropsDerivation";
 import { DEFAULT_PROPS_MAP } from "@/types/builder/unified.types";
 
 // ── repo root + universe (spec 파일 glob) ──
@@ -77,7 +78,14 @@ const tagSpecOrCatalogKeys = new Set([
   ...getCatalogCutoverTypes(),
 ]);
 const placeable = ComponentFactory.getRegisteredTypes();
-const defaultPropsKeys = new Set(Object.keys(DEFAULT_PROPS_MAP));
+// ADR-914 Phase 2: defaults facet 권한이 DEFAULT_PROPS_MAP literal row → entry-derived 로
+// 이전됨. row 가 삭제된 type 도 getDefaultProps 가 파생으로 답하므로, "등록됨" proxy 는
+// literal row keys ∪ entry-derived types. (proxy 가 superset 이라 현 verdict 불변 — Phase 2
+// step 4 reversible checkpoint.)
+const defaultPropsKeys = new Set([
+  ...Object.keys(DEFAULT_PROPS_MAP),
+  ...ENTRY_DERIVED_DEFAULT_TYPES,
+]);
 
 type RegistryName = "rendererMap" | "TAG_SPEC_MAP" | "getDefaultProps";
 

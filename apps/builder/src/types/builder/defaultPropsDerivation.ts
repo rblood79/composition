@@ -112,3 +112,21 @@ export const CATALOG_DERIVED_DEFAULT_TYPES: ReadonlySet<string> = new Set([
   // iconName 만 추가 — 부분 파생. CATALOG_DERIVED 집합에는 포함(파생 base 사용).
   "Icon",
 ]);
+
+/**
+ * ADR-914 Phase 2 — `DEFAULT_PROPS_MAP` literal row 삭제 + `getDefaultProps` entry-derived
+ * 단일 source 전환이 **완료된** type 집합.
+ *
+ * `CATALOG_DERIVED_DEFAULT_TYPES` 와의 차이:
+ * - `CATALOG_DERIVED_DEFAULT_TYPES` = ADR-912 가 factory 본문을 파생으로 바꾼 6종 (row 는 잔존).
+ * - `ENTRY_DERIVED_DEFAULT_TYPES` = ADR-914 가 row 를 삭제하고 `getDefaultProps` 가 파생만 답하는
+ *   type. **Icon 제외** — Icon 의 live palette-add 경로는 random `iconName` 합성을 요구하는데
+ *   `deriveDefaultPropsFromCatalog("Icon")` 는 iconName 미포함 → row 삭제 시 빈 아이콘 회귀.
+ *   따라서 Icon row 는 `createDefaultIconProps` (random 합성) 로 유지한다.
+ *
+ * Phase 2a: Button 단일 (7-step ownership-transfer 메커니즘 검증). 후속 slice 에서
+ * Badge/Link/ToggleButton/Text 확장 (각 deep-equal + strict key-set + G8 smoke 통과 후).
+ */
+export const ENTRY_DERIVED_DEFAULT_TYPES: ReadonlySet<string> = new Set([
+  "Button",
+]);

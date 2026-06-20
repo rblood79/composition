@@ -251,3 +251,17 @@ freeze만 담당하고, 분류 축(label)만 제시한다:
 ADR-912 gap은 새 fork 사유가 아니라 본 Phase 0 inventory로 흡수 (adr-writing.md M3 — 추정 vs
 실측 gap = Phase 0 inventory freeze 절차로 해소, 전제 재검토 trigger 아님). 향후 phase는 본
 inventory의 정본 카운트를 current source로 우선한다.
+
+## 10. Phase 2a G8 live smoke 부수 발견 — nested `<button>` (creation 영역, Phase 4)
+
+Phase 2a (Button defaults proof) G8 live smoke 중 발견: palette "button" 추가 시 Preview DOM 에
+`<button>` 안에 `<button>` 중첩 (canonical element id 2개: 컨테이너 + 내부) → React hydration
+error (`<button> cannot be a descendant of <button>`).
+
+**defaults 변경과 무관 (격리 검증 완료)**: Phase 2a 변경을 git stash 한 baseline 코드에서도
+동일 error 가 byte-identical 재현됨 (동일 element id / 동일 timestamp). 즉 nested button 은
+defaults facet 이 아니라 **creation 구조 문제** — palette "button" 추가가 Button 을 Button child 로
+넣는 factory/canonical 구조. **ADR-914 Phase 4 (Creation Facet Proof) 영역**에서 다룬다.
+
+Phase 2a 의 defaults 관점 검증은 통과: 추가된 Button 이 `data-variant="primary" data-size="md"
+data-fill-style="fill"` 로 정상 렌더 = `getDefaultProps("Button")` derived 경로가 oracle 과 일치.

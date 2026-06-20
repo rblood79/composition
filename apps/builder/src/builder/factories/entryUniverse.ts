@@ -30,7 +30,14 @@ import {
   DELEGATING_RAC_RENDERERS,
   INTERNAL_RENDERERS,
 } from "@/preview/components/CanonicalNodeRenderer";
-import { DEFAULT_PROPS_MAP } from "@/types/builder/unified.types";
+import {
+  ENTRY_DERIVED_DEFAULT_TYPES,
+  deriveDefaultPropsFromCatalog,
+} from "@/types/builder/defaultPropsDerivation";
+import {
+  DEFAULT_PROPS_MAP,
+  type ComponentElementProps,
+} from "@/types/builder/unified.types";
 
 /**
  * render facet — Preview/Skia 가 component 를 어떻게 DOM 으로 렌더하는지.
@@ -49,6 +56,14 @@ export type RenderFacetMode =
 /** creation facet — palette add 시 factory 가 child tree 를 어떻게 만드는지 (Phase 4 에서 세분). */
 export type CreationFacetMode = "none" | "complex";
 
+/**
+ * defaults facet 의 권한 source.
+ * - `entry-derived`: catalog binding default 파생 (`deriveDefaultPropsFromCatalog`). ADR-914 가
+ *   row 삭제 후 이 경로가 단일 source.
+ * - `map`: 아직 `DEFAULT_PROPS_MAP` literal row 가 권한 (전환 미완 type).
+ */
+export type DefaultsFacetSource = "entry-derived" | "map";
+
 /** entry 가 mirror 한 runtime facet (Phase 1 read-only). */
 export interface ComponentEntryRuntime {
   type: string;
@@ -60,8 +75,17 @@ export interface ComponentEntryRuntime {
     hasRendererEntry: boolean;
   };
   defaults: {
-    /** DEFAULT_PROPS_MAP 에 default props 함수 row 가 있는가. */
+    /**
+     * 이 entry 가 default props 를 resolve 할 수 있는가.
+     * = `DEFAULT_PROPS_MAP` literal row 존재 OR `CATALOG_DERIVED_DEFAULT_TYPES` 멤버.
+     * ADR-914 Phase 2: row 삭제 후에도 derived 경로로 resolve 가능하면 true 유지
+     * (ownership transfer — registry → entry).
+     */
     hasDefaultPropsRow: boolean;
+    /** 어느 권한이 resolve() 를 답하는가. */
+    source: DefaultsFacetSource;
+    /** 실제 default props. derived family → 파생, 그 외 → DEFAULT_PROPS_MAP[type](). */
+    resolve: () => ComponentElementProps;
   };
   creation: {
     mode: CreationFacetMode;
@@ -103,7 +127,35 @@ const propagationTagsLower = getRegisteredPropagationTags(); // 이미 lowercase
 const syntheticMergeSet = SYNTHETIC_CHILD_PROP_MERGE_TAGS;
 const popoverHostedSet = POPOVER_CHILDREN_TAGS;
 const rendererKeys = new Set(Object.keys(rendererMap));
-const defaultPropsKeys = new Set(Object.keys(DEFAULT_PROPS_MAP));
+
+/**
+ * defaults facet resolve — derived family 는 catalog 파생, 그 외는 DEFAULT_PROPS_MAP.
+ *
+ * `getDefaultProps` (unified.types.ts) 와 **동일 분기 술어** (`CATALOG_DERIVED_DEFAULT_TYPES`)
+ * 를 공유하므로, 한쪽이 다른 쪽을 import 하지 않아도 출력이 congruent 하다 (circular import
+ * 회피, plan Option A). row 삭제 후 derived family 는 이 경로가 단일 source.
+ */
+function resolveDefaultsFacet(type: string): {
+  hasDefaultPropsRow: boolean;
+  source: DefaultsFacetSource;
+  resolve: () => ComponentElementProps;
+} {
+  // entry-derived 전환 완료 type (Icon 제외) 은 파생이 단일 source — getDefaultProps 와 동일 술어.
+  const isEntryDerived = ENTRY_DERIVED_DEFAULT_TYPES.has(type);
+  const hasLiteralRow = Object.prototype.hasOwnProperty.call(
+    DEFAULT_PROPS_MAP,
+    type,
+  );
+  return {
+    // row 삭제 후에도 entry-derived 면 resolve 가능 → true 유지 (ownership transfer).
+    hasDefaultPropsRow: hasLiteralRow || isEntryDerived,
+    source: isEntryDerived ? "entry-derived" : "map",
+    resolve: () =>
+      isEntryDerived
+        ? deriveDefaultPropsFromCatalog(type)
+        : (DEFAULT_PROPS_MAP[type]?.() ?? {}),
+  };
+}
 
 /**
  * component type 의 entry runtime facet 을 existing registry 에서 mirror.
@@ -122,9 +174,7 @@ export function resolveComponentEntryRuntime(
       mode: resolveRenderMode(type),
       hasRendererEntry: rendererKeys.has(type),
     },
-    defaults: {
-      hasDefaultPropsRow: defaultPropsKeys.has(type),
-    },
+    defaults: resolveDefaultsFacet(type),
     creation: {
       mode: COMPLEX_COMPONENT_TAGS.has(type) ? "complex" : "none",
     },

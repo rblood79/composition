@@ -6,7 +6,10 @@ import type { StoredMenuItem, StoredTagItem } from "@composition/specs";
 import type { DataBinding as SharedDataBinding } from "@composition/shared";
 // ADR-912 6 registry collapse #3 — createDefault*Props 파생 SSOT.
 // defaultPropsDerivation 의 ComponentElementProps import 는 type-only → 런타임 순환 없음.
-import { deriveDefaultPropsFromCatalog } from "./defaultPropsDerivation";
+import {
+  ENTRY_DERIVED_DEFAULT_TYPES,
+  deriveDefaultPropsFromCatalog,
+} from "./defaultPropsDerivation";
 
 // === 기본 타입 정의 ===
 
@@ -1227,9 +1230,12 @@ export interface Store extends ElementsState, ThemeState, SelectionState {
 }
 
 // === 기본 props 생성 함수들 ===
+/**
+ * @deprecated ADR-914 Phase 2a — DEFAULT_PROPS_MAP 의 Button row 가 삭제되어 현재 미사용
+ * (getDefaultProps 가 ENTRY_DERIVED_DEFAULT_TYPES 분기로 deriveDefaultPropsFromCatalog("Button")
+ * 직접 호출). historical 보존 — 후속 phase 에서 미참조 factory fn 일괄 정리.
+ */
 export function createDefaultButtonProps(): ButtonElementProps {
-  // ADR-912 #3: catalog binding accepts.default(variant/size/fillStyle/type) 파생 +
-  // builder-local overlay(children/name/state). 손-코딩 → 단일 source 파생.
   return deriveDefaultPropsFromCatalog("Button") as ButtonElementProps;
 }
 
@@ -2221,7 +2227,9 @@ export function createDefaultFrameProps(): BaseElementProps {
 }
 
 export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
-  Button: createDefaultButtonProps,
+  // ADR-914 Phase 2a: Button row 삭제 — getDefaultProps 가 ENTRY_DERIVED_DEFAULT_TYPES
+  //   분기로 deriveDefaultPropsFromCatalog("Button") 단일 source 사용 (entry-derived
+  //   ownership transfer). createDefaultButtonProps 함수는 historical 보존 (후속 phase 정리).
   TextField: createDefaultTextFieldProps,
   Checkbox: createDefaultCheckboxProps,
   Radio: createDefaultRadioProps,
@@ -2318,6 +2326,13 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
 };
 
 export function getDefaultProps(type: string): ComponentElementProps {
+  // ADR-914 Phase 2 (Option A): entry-derived 전환 완료 type 은 catalog 파생을 단일 source 로
+  // 사용. DEFAULT_PROPS_MAP row 가 삭제돼도 동일 출력을 보장한다 (entryUniverse.resolveDefaultsFacet
+  // 와 동일 분기 술어 ENTRY_DERIVED_DEFAULT_TYPES 공유 → circular import 없이 congruent).
+  // Icon 제외 (random iconName 합성이 map row 에만 있음). 그 외 type 은 기존 literal row fallback.
+  if (ENTRY_DERIVED_DEFAULT_TYPES.has(type)) {
+    return deriveDefaultPropsFromCatalog(type);
+  }
   const createProps = DEFAULT_PROPS_MAP[type];
   return createProps ? createProps() : {};
 }
