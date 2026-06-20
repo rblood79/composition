@@ -25,11 +25,8 @@ import { COMPLEX_COMPONENT_TAGS } from "@/builder/factories/constants";
 import { getRegisteredPropagationTags } from "@/builder/utils/propagationRegistry";
 import { POPOVER_CHILDREN_TAGS } from "@/builder/workspace/canvas/layout/engines/implicitStyles";
 import { SYNTHETIC_CHILD_PROP_MERGE_TAGS } from "@/builder/workspace/canvas/skia/buildSpecNodeData";
-import {
-  DELEGATING_INTERNAL_RENDERERS,
-  DELEGATING_RAC_RENDERERS,
-  INTERNAL_RENDERERS,
-} from "@/preview/components/CanonicalNodeRenderer";
+import { INTERNAL_RENDERERS } from "@/preview/components/CanonicalNodeRenderer";
+import { deriveDelegatingLowerLookup } from "@/preview/components/renderFacetDeclaration";
 import {
   ENTRY_DERIVED_DEFAULT_TYPES,
   deriveDefaultPropsFromCatalog,
@@ -105,10 +102,13 @@ export interface ComponentEntryRuntime {
 // ── lowercase 정규화 lookup (render set 은 type 표기가 혼재) ──
 const lower = (s: string): string => s.toLowerCase();
 
-const delegatingRacLower = new Set([...DELEGATING_RAC_RENDERERS].map(lower));
-const delegatingInternalLower = new Set(
-  [...DELEGATING_INTERNAL_RENDERERS].map(lower),
-);
+// ADR-914 Phase 3-A: delegating render facet 의 SSOT 는 renderFacetDeclaration 이다 (방향
+//   역전). 기존엔 CanonicalNodeRenderer 의 DELEGATING_* set 을 import 해 lowercase 정규화했지만,
+//   이제 declaration 에서 직접 파생한다 (set 과 entry facet 이 동일 declaration source 공유 —
+//   값 congruent, circular import 없음). internal renderer(React.ElementType 매핑)는 declaration
+//   scope 밖이라 CanonicalNodeRenderer export 를 그대로 읽는다.
+const { internal: delegatingInternalLower, rac: delegatingRacLower } =
+  deriveDelegatingLowerLookup();
 const internalRendererLower = new Set(
   Object.keys(INTERNAL_RENDERERS).map(lower),
 );

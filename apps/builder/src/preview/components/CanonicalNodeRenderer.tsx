@@ -56,6 +56,10 @@ import {
   resolveBackedDefaultSize,
   usesButtonBaseUtility,
 } from "../utils/specCatalogBacked";
+import {
+  deriveDelegatingInternalRenderers,
+  deriveDelegatingRacRenderers,
+} from "./renderFacetDeclaration";
 import type { ResolvedNode } from "@composition/shared";
 import type {
   RenderContext as SharedRenderContext,
@@ -149,164 +153,30 @@ export const INTERNAL_RENDERERS: Readonly<
  * 이 집합의 renderer 는 자식 element-tree context(childrenByParent)가 필요한 self-compose
  * 컴포넌트라, INTERNAL_RENDERERS 의 React.ElementType + generic 자식 재귀로는 표현 불가하다.
  * cutover DOM 경로가 rendererMap[type](LayoutRenderers)로 위임하고 generic 자식 재귀는 skip한다.
- * - tabs: renderTabs (TabPanels→TabPanel itemId 페어링)
- * - progressbar: renderProgressBar (자식 Label children 추출 → 자기완결 RAC ProgressBar)
- * - meter: renderMeter (ProgressBar 동형 — 자식 Label children 추출 → 자기완결 RAC Meter)
+ *
+ * ADR-914 Phase 3-A (2026-06-20): SSOT 를 `renderFacetDeclaration.ts` 로 역전했다. 기존
+ * hardcoded 28종(internal 18 + rac 10) membership + 위임 사유는 declaration 으로 1:1 이전됐고,
+ * 본 set 은 `deriveDelegatingInternalRenderers()` 로 파생된다 (값 byte-identical, insertion
+ * order 보존 — `renderFacetDeclarationContract.test.ts` parity A 가 무손실 검증). 소비처
+ * 분기 위치(L467-471)는 불변. 삭제 0 (rendererMap dead row 삭제는 dead 확증 후 별도 slice).
  */
-export const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
-  "tabs",
-  "progressbar",
-  "meter",
-  // ADR-912 영역 B (A): breadcrumbs — renderBreadcrumbs 가 items 를 useResolvedCollectionItems
-  //   로 RAC Breadcrumb/Link 합성. generic 자식 재귀(`<Breadcrumbs>{children}`)로는 빈 nav 만
-  //   렌더되므로 rendererMap 위임(자식 재귀 skip). Skia 는 appendBreadcrumbRowProjection.
-  "breadcrumbs",
-  // ADR-912 §2-5 collapse proof (2026-06-10): disclosure — renderDisclosure 가 childrenByParent
-  //   에서 자식 DisclosureHeader/Heading 의 children 을 title 로 추출 + 나머지를 contentChildren 으로
-  //   분리해 RAC `<Disclosure title defaultExpanded>` self-compose(expand/collapse 동작). generic
-  //   자식 재귀로는 title 추출/콘텐츠 분리가 깨지므로 rendererMap 위임(자식 재귀 skip). Skia 는
-  //   SHELL_ONLY generic 빈 shell(자식 DisclosureHeader/Content 가 각자 렌더).
-  "disclosure",
-  // ADR-912 Disclosure 군 cutover 후속 (2026-06-10): disclosuregroup — renderDisclosureGroup 이
-  //   `context.childrenByParent.get(id)` 로 자식 Disclosure 들을 받아 `<DisclosureGroup>` 안에 재귀
-  //   렌더한다. INTERNAL_RENDERERS 에 "disclosuregroup" 키가 없고 generic 일반 rendererMap 위임은
-  //   childrenByParent 보강(flattenNodeChildrenByParent) 없이 위임하므로, canonical 렌더 경로에서
-  //   renderContext.childrenByParent 가 비어 있어 DisclosureGroup 이 자식 0개 빈 컨테이너로 렌더됐다
-  //   (CSS preview 미표시). disclosure 와 동일하게 DELEGATING 등록 → flattenNodeChildrenByParent
-  //   보강 위임으로 자식 Disclosure 정상 렌더. Skia 는 SHELL_ONLY generic shell(자식 각자 렌더).
-  "disclosuregroup",
-  // ADR-912 Disclosure 군 cutover 후속 sweep (2026-06-10): nav — renderNav 가
-  //   `context.childrenByParent.get(id)` 로 자식을 받아 `<nav>` 안에 재귀 렌더한다(fallback 없음).
-  //   disclosuregroup 동형 — INTERNAL_RENDERERS 미등록 + generic 위임은 childrenByParent 보강 없어
-  //   canonical 경로에서 자식 0개 빈 nav 로 렌더된다. DELEGATING 등록으로 flatten 보강 위임.
-  "nav",
-  // ADR-912 Disclosure 군 cutover 후속 sweep (2026-06-10): disclosurecontent — renderDisclosureContent
-  //   가 `childrenByParent.get(id)` 로 자식 element 를 렌더한다. props.children 텍스트 fallback 이 있어
-  //   순수 텍스트 콘텐츠는 generic 위임으로도 표시되지만, **자식 element(중첩 컴포넌트)가 있으면**
-  //   childrenByParent 가 비어 누락된다. 안전망 차원 DELEGATING 등록 — 텍스트만일 땐 flatten map 이
-  //   비어 fallback(String(props.children)) 으로 자연 동작, 자식 element 시엔 flatten 보강으로 렌더.
-  //   (부모 Disclosure(DELEGATING)의 contentChildren 재귀가 1차 경로지만, 독립 진입 시에도 안전.)
-  "disclosurecontent",
-  // ADR-912 6 registry collapse T1 (catalog cutover 첫 slice, 2026-06-11): field — renderDataField 가
-  //   self-compose(부모 element value lookup + `childrenByParent.get(id)` 자식 렌더 + DataField label/
-  //   value 합성). INTERNAL_RENDERERS 의 단순 ElementType + generic 자식 재귀로는 부모 데이터 추출/자식
-  //   렌더가 깨지므로 rendererMap.Field=renderDataField 위임(자식 재귀 skip). Skia 는 shapes []→빈 노드.
-  "field",
-  // ADR-912 R1 Select family rebuild (2026-06-12): select / combobox — renderSelect/renderComboBox
-  //   가 childrenByParent 로 SelectTrigger→SelectValue 를 찾아 자기완결 RAC `<Select>`/`<ComboBox>`
-  //   self-compose. 자식(SelectTrigger/SelectValue/SelectIcon)은 spec 삭제 + catalog cutover 라
-  //   generic 자식 재귀 시 `<selecttrigger>` 등 소문자 raw tag 로 떨어져 React unknown-tag 경고 +
-  //   RAC controller 깨짐 → rendererMap 위임 + 자식 재귀 skip (Slider/progressbar 동형). Skia 는
-  //   자식 box/text/icon_font generic 으로 자기 노드 렌더(시각 결과 대칭, 구현 비대칭 의도).
-  "select",
-  "combobox",
-  // ADR-912 R1 후속 (TreeItem catalog cutover, 2026-06-12): tree — renderTree
-  //   (CollectionRenderers.tsx)가 자식 TreeItem 을 renderTreeItemsRecursively 로 RAC
-  //   `<Tree>`/`<TreeItem>` self-compose 재귀 렌더(--tree-item-level 자동 들여쓰기). 자식
-  //   TreeItem 이 catalog cutover 라 generic 자식 재귀 시 `<treeitem>` 소문자 raw tag 로
-  //   떨어져 React unknown-tag 경고 + RAC Tree 의미 깨짐 → rendererMap 위임 + 자식 재귀 skip
-  //   (select/combobox/disclosure 동형). Skia 는 자식 TreeItem 이 box+text+chevron generic
-  //   으로 자기 노드 렌더(시각 결과 대칭, 구현 비대칭 의도 — depth indent 는 _treeLevel).
-  "tree",
-  // ADR-912 TagList cutover 후속 (2026-06-16): taggroup — renderTagGroup (CollectionRenderers.tsx)
-  //   가 element.props.items SSOT 로 RAC `<TagGroup>` self-compose 하면서 onSelectionChange /
-  //   onRemove inline 핸들러(updateElementProps + postMessage UPDATE_ELEMENT_PROPS)를 wrapper 에
-  //   연결한다. generic toRacProps 경로는 binding.accepts(시각/데이터 prop 한정)만 통과시켜
-  //   이벤트 핸들러를 drop → wrapper 가 onRemove=undefined → RAC useTag 의 `allowsRemoving: !!onRemove`
-  //   가 false → Tag remove 버튼(<Button slot="remove">) 미렌더(Skia 는 trailingIcon rule 로 X 를
-  //   직접 그려 DOM↔Skia 비대칭). rendererMap 위임으로 검증된 onRemove/onSelectionChange 복원
-  //   (select/combobox 동형 — 둘 다 이미 위임 등록). Skia 는 appendTagRowProjection 그대로(무관).
-  "taggroup",
-  // ADR-912 collection selection 갭 sweep (2026-06-16): listbox / gridlist / menu — taggroup 동형.
-  //   각 wrapper(ListBox/GridList/MenuButton)는 useResolvedCollectionItems 로 items SSOT self-compose
-  //   하며 onSelectionChange prop 을 받아 RAC `<ListBox>`/`<GridList>`/`<Menu>` 에 전달한다. 그런데
-  //   generic toRacProps 경로는 binding.accepts(시각/데이터 prop 한정)만 통과시켜 onSelectionChange 를
-  //   drop → wrapper 가 undefined 로 받아 selection 동작이 store 에 미반영. rendererMap 위임
-  //   (renderListBox/renderGridList/renderMenu)이 onSelectionChange inline(updateElementProps +
-  //   createEventHandlerMap customHandler)를 합성해 복원(SelectionRenderers/CollectionRenderers).
-  //   3 wrapper 모두 self-compose 라 generic 자식 재귀 skip 안전(select/combobox/taggroup 동형).
-  //   Skia 는 items projection 으로 독립 렌더(selection 무관). Table 은 binding/renderer/wrapper 어디에도
-  //   selection 핸들러가 없어 본 sweep 제외(별도 결정 — useReactTable 내부 state 격리).
-  "listbox",
-  "gridlist",
-  "menu",
-  // ADR-912 Color container cutover (2026-06-17): rendererMap 이 factory child tree 를 받아
-  //   기존 div shell(ColorPicker) / RAC ColorSwatchPickerItem 합성(ColorSwatchPicker)을 유지.
-  "colorpicker",
-  "colorswatchpicker",
-]);
+export const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> =
+  deriveDelegatingInternalRenderers();
 
 /**
  * ADR-912 — rac source compound 중 rendererMap self-compose 렌더러로 위임할 type 집합.
  *
- * DELEGATING_INTERNAL_RENDERERS 는 binding.source.kind==="internal" 전용인데, Slider 는
- * source.kind==="rac" 라 그 경로를 못 탄다. Slider(rac compound)를 RAC[component] 로 직접
- * 렌더하면 canonical 자식(SliderTrack/SliderOutput/SliderThumb)을 generic 재귀 → INTERNAL_RENDERERS
- * 미매핑 sub-part 가 `<slidertrack>`/`<slideroutput>`/`<sliderthumb>` 소문자 태그로 떨어져
- * React 경고 + RAC 의미 깨짐. renderSlider 는 Slider.tsx 로 Label/Output/Track/Thumb 자기완결
- * 렌더하므로 progressbar 와 동일하게 rendererMap 위임 + 자식 재귀 skip 한다.
- * (SliderTrack.binding 주석대로 sub-part 자식은 DOM 미도달이 설계 의도.)
+ * DELEGATING_INTERNAL_RENDERERS 는 binding.source.kind==="internal" 전용인데, Slider 등은
+ * source.kind==="rac" 라 그 경로를 못 탄다. RAC[component] 로 직접 렌더하면 canonical 자식
+ * sub-part(SliderTrack/Output/Thumb 등)를 generic 재귀 → 소문자 raw tag 누수 + RAC 의미 깨짐.
+ * render{Type} wrapper 가 자기완결 렌더하므로 rendererMap 위임 + 자식 재귀 skip 한다.
+ *
+ * ADR-914 Phase 3-A (2026-06-20): SSOT 를 `renderFacetDeclaration.ts` 로 역전 (위 internal
+ * set 동형). membership + 위임 사유는 declaration 으로 1:1 이전, 본 set 은
+ * `deriveDelegatingRacRenderers()` 파생 (값 byte-identical, parity A 검증).
  */
-export const DELEGATING_RAC_RENDERERS: ReadonlySet<string> = new Set([
-  "Slider",
-  // ADR-912 R1 Select family rebuild (2026-06-12): NumberField / SearchField — rac source
-  //   self-compose (renderNumberField/renderSearchField 가 RAC `<NumberField>`/`<SearchField>`
-  //   controller 를 자기완결 렌더). 자식 SelectTrigger/SelectValue/SelectIcon 은 spec 삭제 +
-  //   catalog cutover → generic 재귀 시 소문자 raw tag 로 떨어짐 → rendererMap 위임 + 자식 재귀
-  //   skip (Slider 동형, SelectTrigger sub-part 는 DOM 미도달이 설계 의도).
-  "NumberField",
-  "SearchField",
-  // ADR-913 후속 (2026-06-19): TextField — labelPosition="side" 가 CSS↔Skia 미동작하던 근본.
-  //   등록 동기가 위 Select family(raw tag)와 다르다. TextField 자식(Label/Input/FieldError)은
-  //   spec 이 살아있어 generic 재귀로도 raw tag 안 떨어진다. 문제는 generic 경로(RAC `<TextField>`
-  //   직접 렌더, marker on self)가 `data-label-position` 을 DOM 에 emit 하지 않는다는 것:
-  //   labelPosition(kind:"enum")은 DATA_ATTR_KINDS(variant/size/fillStyle 한정) 밖이라 toRacProps 가
-  //   React prop 으로만 통과 → RAC unstyled 는 이를 data-* 로 안 내보냄 → generated CSS
-  //   `.react-aria-TextField[data-label-position="side"]` selector 영원히 미매칭 → Label 항상 top.
-  //   다른 4 field(NumberField/SearchField=DELEGATING / DateField/TimeField=RAC export 부재로
-  //   rendererMap fallthrough)는 wrapper(renderTextField 류)가 명시 `data-label-position` emit 하여
-  //   정상. TextField 만 RAC export 존재 + DELEGATING 미등록이라 generic 으로 떨어진 sweep 누락.
-  //   renderTextField(FormRenderers)가 composition `<TextField>` wrapper(TextField.tsx:92 data-label-position)
-  //   로 self-compose 하므로 NumberField/SearchField 와 동형 — 위임 등록 + 자식 재귀 skip 안전.
-  "TextField",
-  // ADR-912 CheckboxItems/RadioItems 폐기 후속 (2026-06-15): CheckboxGroup / RadioGroup —
-  //   등록 동기가 위 Slider 군과 다르다. 자식 Checkbox/Radio 는 spec 이 살아있어 generic
-  //   재귀로도 raw tag 안 떨어진다(vertical 은 generic 경로로도 그룹 자체 flex column 으로
-  //   정상). 문제는 horizontal — generated CSS 가 `[data-orientation="horizontal"]
-  //   .checkbox-items`/`.radio-items` wrapper 를 타겟하는데 generic 경로는 wrapper 를 합성
-  //   안 하고(L452 자식 직속 재귀), toRacProps 가 orientation(kind:"enum")을 data-* 로 emit
-  //   안 한다(DATA_ATTR_KINDS=variant/size/fillStyle 한정). renderCheckboxGroup/
-  //   renderRadioGroup 은 `<div className="checkbox-items">`/`.radio-items` wrapper +
-  //   orientation prop 전달(→ CheckboxGroup.tsx 명시 data-orientation / RadioGroup 은 RAC
-  //   자동 emit)을 자기완결로 처리 → rendererMap 위임으로 vertical 보존 + horizontal 대칭.
-  "CheckboxGroup",
-  "RadioGroup",
-  // 2026-06-18: DateField / TimeField — rac source self-compose 누락 회귀 수정.
-  //   RAC `<DateField>`/`<TimeField>` 는 자식으로 `<DateInput>{(segment) => <DateSegment/>}` render
-  //   function 을 받아야 segment 를 그린다. 이는 generic 자식 재귀(`<RAC.DateField>{children}`)로는
-  //   표현 불가(render function 이지 정적 JSX 아님) → DELEGATING 미등록 시 generic rac 경로로 떨어져
-  //   DateInput 안 segment 0개 = "입력부 내에 아무것도 없음". rendererMap.DateField=renderDateField /
-  //   .TimeField=renderTimeField 가 composition `<DateField>`/`<TimeField>` wrapper(self-compose +
-  //   defaultValue 주입)로 자기완결 렌더 → 위임 + 자식 재귀 skip (NumberField/SearchField 동형).
-  //   DatePicker/DateRangePicker 는 source.kind="internal" 라 이미 INTERNAL 경로로 self-compose(무관).
-  //   Skia 는 datefield_trigger skiaPrimitive 로 trigger field 독립 렌더(시각 결과 대칭, 구현 비대칭).
-  "DateField",
-  "TimeField",
-  // ADR-913 slice 3 (2026-06-18): Switch / Checkbox — toggle-indicator 그룹의 indicator DOM
-  //   자식 누락 회귀 수정. composition 의 Switch/Checkbox 시각 모델은 indicator 를 그릴 DOM 자식
-  //   노드가 CSS selector 의 타겟이다 — Switch.css `.react-aria-Switch .indicator`(track) + 그 안
-  //   `::before`(thumb), Checkbox.css `.react-aria-Checkbox .checkbox`(box) + svg(checkmark). shared
-  //   Switch.tsx/Checkbox.tsx 가 `<div className="indicator">`/`<div className="checkbox">` 를
-  //   자기완결 합성하는데, generic rac 경로(toRacProps→RAC `<Switch>`/`<Checkbox>` 직접)는 그 자식
-  //   div 를 안 만든다 → indicator 시각 완전 누락(track/handle/checkmark 미렌더). DateField/TimeField
-  //   동형(render function 이 아니라 정적 자식 div 라는 점만 다름) → rendererMap.Switch=renderSwitch /
-  //   .Checkbox=renderCheckbox 위임으로 자기완결 합성. Skia 는 switch_toggle/checkbox skiaPrimitive 가
-  //   track+thumb / box+checkmark 를 직접 그림(componentRulesTable indicator 미emit 주석, 시각 대칭).
-  //   Radio 는 제외 — `.react-aria-Radio::before` pseudo-element ring 모델이라 DOM 자식 불요,
-  //   RAC `<Radio>` 직접 렌더로도 indicator 정상(live 확인). RadioGroup 은 위 그룹 위임에 이미 포함.
-  "Switch",
-  "Checkbox",
-]);
+export const DELEGATING_RAC_RENDERERS: ReadonlySet<string> =
+  deriveDelegatingRacRenderers();
 
 /**
  * ResolvedNode 의 복원 type 추출 (CanonicalNodeRenderer 본문 type 복원과 동일 규칙).
