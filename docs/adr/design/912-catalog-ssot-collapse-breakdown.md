@@ -3,6 +3,7 @@
 > 본문: [ADR-912](../912-rac-pencil-rebuild-cutover.md).
 > 본 문서는 ADR-912 의 "spec fallback 제거 + registry collapse" 목표를 실제로 끝내기 위한
 > 후속 설계서다. 새 ADR 이 아니다. ADR-913 의 값 재구축과도 분리한다.
+> 단, `rendererMap` / factory / `DEFAULT_PROPS_MAP` / propagation / child-filtering 까지의 runtime entry universe collapse 는 본 문서 밖 후속 [ADR-914](../914-component-entry-universe-collapse.md)로 분리 추적한다.
 >
 > 상태: 설계 문서. 코드 변경은 별도 phase 로 진행한다.
 
@@ -843,6 +844,8 @@ baseline 3 으로 추적(재도입 방지). **0 종결 대상 아님** — field
 
 → 종결 시 ADR-912 본문 재승격 note 는 반드시 "visual/structure/size 축 한정" 으로 명시하고,
 child-tree·propagation 축 + structure 축의 Δ11 1건을 별도 잔여로 기록한다. 무조건적 "1 컴포넌트 = 1 등록" 주장 금지.
+`rendererMap`·factory·`DEFAULT_PROPS_MAP`·propagation·child-filtering 을 하나의 entry universe 로 접는 후속 축은
+[ADR-914](../914-component-entry-universe-collapse.md)에서 별도 추적한다.
 
 ## 5. Kill criteria
 
