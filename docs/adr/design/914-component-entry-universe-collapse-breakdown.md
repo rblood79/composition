@@ -422,19 +422,52 @@ Gate:
 
 ### Phase 5 - Propagation Facet Proof
 
+> **Phase 5 (proof family = Switch) ✅ Implemented 2026-06-21**
+>
+> 사용자 결정 (2026-06-21, AskUserQuestion): proof family **1개 + adapter 신설** (R7
+> 한 phase 한 facet 한 family). 28 family 전체 전환은 회귀 위험 HIGH(28 family live 동작
+> 영향) + R7 위반이라 보류, 나머지 27 family 의 `createPropagationOnlySpec` 제거는 후속
+> slice.
+>
+> **구조 통찰**: 모든 consumer(`buildSpecNodeData` / `fullTreeLayout` / `propagationEngine` /
+> `PropertiesPanel`)는 `getPropagationRules` / `getParentTagsForChild` /
+> `getRegisteredPropagationTags` **3 API 만** 소비하고 `ComponentSpec` object 자체를 읽지
+> 않는다 (`registerPropagationSpec` 도 내부에서 `spec.propagation.rules` 만 추출). 따라서
+> shadow `ComponentSpec` wrapper(element/variants/sizes/states/render 전부 dummy)는 dead weight.
+>
+> **변경**:
+>
+> - `propagationRegistry.ts` — `registerPropagationRules(type, rules)` adapter 신설
+>   (shadow spec 없이 rule 배열 직접 등록). `ensureBuilt` 가 `specEntries`(shadow) +
+>   `ruleEntries`(rule-only) 양쪽을 동일 `indexEntry` 헬퍼로 순회 → forwardIndex/reverseIndex
+>   byte-identical. proof family **Switch**: `switchPropagationSpec` shadow object →
+>   `switchPropagationRules: PropagationRule[]` + `registerPropagationRules("Switch", ...)`.
+>   `_resetPropagationRegistry` 가 ruleEntries 도 초기화.
+> - `propagationRegistry.phase5.test.ts` (신규) — order/parity fixture 6 test:
+>   rule-only 등록 == shadow spec 등록 deep-equal / order 보존(size→children) / 필드
+>   무손실(override/childProp) / reverse index `switch`∈parents(Label) / registered set
+>   포함 / shadow+rule-only 혼재 공존.
+>
+> **검증**: type-check 0 신규 위반 (baseline 71 불변) + Phase 5 fixture 6 passed (rule-only
+> ⟺ shadow spec byte-identical) + entryUniverseContract 18 passed (propagation facet
+> `registered` 에 Switch 정상) + **회귀 0** (clean baseline 58 fail/1713 pass ↔ 적용 후
+> 58 fail/1719 pass — fail 동일, pass +6 = 신규 fixture, /tmp checkout-HEAD attribution
+> 확정. 58 fail 전부 pre-existing ADR-913 snapshot 등 propagation 직교) + **live: builder
+> 에서 Switch size/children 편집 → 자식 Label 전파 정상 사용자 confirm**.
+
 목표: `createPropagationOnlySpec` shadow object를 제거한다.
 
 작업:
 
-- `PropagationRuleDeclaration`을 entry facet에 둔다.
-- current `registerPropagationSpec(type, spec)` adapter가 entry rules를 읽게 한다.
-- proof family 하나에서 spec-shaped constant를 제거한다.
+- `PropagationRuleDeclaration`을 entry facet에 둔다. ← ✅ rule 배열을 SSOT 로 (Switch proof)
+- current `registerPropagationSpec(type, spec)` adapter가 entry rules를 읽게 한다. ← ✅ `registerPropagationRules` adapter 신설 (ensureBuilt 양쪽 순회)
+- proof family 하나에서 spec-shaped constant를 제거한다. ← ✅ Switch `switchPropagationSpec` 제거 (27 family 후속 slice)
 
 Gate:
 
-- parent prop edit -> child props/style update diff 0.
-- skip-if-set, styleValue, parentProp optional behavior parity.
-- order-sensitive propagation fixture green.
+- parent prop edit -> child props/style update diff 0. ← ✅ fixture byte-identical + live confirm
+- skip-if-set, styleValue, parentProp optional behavior parity. ← ✅ fixture 필드 무손실 (Switch 는 override only, skipIfSet/styleValue 는 CardHeader 등 27 family 후속)
+- order-sensitive propagation fixture green. ← ✅ order 보존(size→children) fixture green
 
 ### Phase 6 - ChildRuntime Facet Proof
 

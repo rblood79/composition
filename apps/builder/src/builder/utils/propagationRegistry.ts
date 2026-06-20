@@ -350,7 +350,10 @@ const tabsPropagationSpec = createPropagationOnlySpec("Tabs", [
 // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): Switch/Checkbox/Radio.spec 삭제 —
 //   propagation.rules(size → Label / children → Label.children) 인라인 보존. 시각은 catalog rule +
 //   generate-css virtual 이 담당, builder runtime 의 자식 Label 전파만 여기서 유지.
-const switchPropagationSpec = createPropagationOnlySpec("Switch", [
+// ADR-914 Phase 5 (2026-06-21): Switch = proof family. shadow ComponentSpec wrapper
+//   (createPropagationOnlySpec) 제거 → rule 배열만 보유, registerPropagationRules 로 직접 등록.
+//   Checkbox/Radio 등 나머지 27 family 의 wrapper 제거는 후속 slice (R7: 한 phase 한 family).
+const switchPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "Label", override: true },
   {
     parentProp: "children",
@@ -358,7 +361,7 @@ const switchPropagationSpec = createPropagationOnlySpec("Switch", [
     childProp: "children",
     override: true,
   },
-]);
+];
 
 const checkboxPropagationSpec = createPropagationOnlySpec("Checkbox", [
   { parentProp: "size", childPath: "Label", override: true },
@@ -540,6 +543,14 @@ let reverseIndex: Map<string, Set<string>> | null = null;
 /** 등록된 모든 spec (registerPropagationSpec으로 추가) */
 const specEntries: Array<[string, ComponentSpec<Record<string, unknown>>]> = [];
 
+/**
+ * ADR-914 Phase 5: rule-only 등록 (shadow ComponentSpec wrapper 없이).
+ *
+ * `registerPropagationRules` 로 등록된 [type, rules] tuple. `ensureBuilt` 가
+ * `specEntries` 와 함께 순회하여 동일 forwardIndex/reverseIndex 를 빌드한다.
+ */
+const ruleEntries: Array<[string, PropagationRule[]]> = [];
+
 // ─── Registration ───────────────────────────────────────────────────────────
 
 /**
@@ -560,7 +571,54 @@ export function registerPropagationSpec<P = Record<string, unknown>>(
   }
 }
 
+/**
+ * ADR-914 Phase 5: propagation rules 를 shadow ComponentSpec wrapper 없이 직접 등록.
+ *
+ * `registerPropagationSpec(type, createPropagationOnlySpec(name, rules))` 와 **동일
+ * 결과** (forwardIndex/reverseIndex byte-identical) 를 만들되, dummy spec field
+ * (element/variants/sizes/states/render) 없이 rule 배열만 등록한다. 모든 consumer 는
+ * `getPropagationRules` / `getParentTagsForChild` / `getRegisteredPropagationTags` 3
+ * API 만 사용하고 ComponentSpec object 자체를 읽지 않으므로 (registerPropagationSpec 도
+ * 내부에서 `spec.propagation.rules` 만 추출), shadow wrapper 는 dead weight 다.
+ *
+ * Phase 5 proof family (Switch) 가 본 adapter 로 전환됐고, 나머지 27 family 의
+ * `createPropagationOnlySpec` 제거는 후속 slice (R7: 한 phase 한 facet 한 family).
+ */
+export function registerPropagationRules(
+  type: string,
+  rules: PropagationRule[],
+): void {
+  ruleEntries.push([type, rules]);
+  if (forwardIndex) {
+    forwardIndex = null;
+    reverseIndex = null;
+  }
+}
+
 // ─── Index Build ────────────────────────────────────────────────────────────
+
+/**
+ * forwardIndex/reverseIndex 에 단일 [type, rules] entry 를 반영한다.
+ * specEntries(shadow spec) 와 ruleEntries(rule-only, Phase 5) 가 동일 로직을 공유한다.
+ */
+function indexEntry(type: string, rules: PropagationRule[]): void {
+  const key = type.toLowerCase();
+  forwardIndex!.set(key, rules);
+
+  for (const rule of rules) {
+    // 역방향 인덱스: childPath가 단일 문자열인 규칙만 포함
+    // 중첩 경로(배열)는 Inspector의 buildPropagationUpdates에서만 해석
+    if (typeof rule.childPath === "string") {
+      const childKey = rule.childPath.toLowerCase();
+      let parents = reverseIndex!.get(childKey);
+      if (!parents) {
+        parents = new Set();
+        reverseIndex!.set(childKey, parents);
+      }
+      parents.add(key);
+    }
+  }
+}
 
 function ensureBuilt(): void {
   if (forwardIndex) return;
@@ -570,22 +628,11 @@ function ensureBuilt(): void {
 
   for (const [type, spec] of specEntries) {
     if (!spec.propagation) continue;
-    const key = type.toLowerCase();
-    forwardIndex.set(key, spec.propagation.rules);
-
-    for (const rule of spec.propagation.rules) {
-      // 역방향 인덱스: childPath가 단일 문자열인 규칙만 포함
-      // 중첩 경로(배열)는 Inspector의 buildPropagationUpdates에서만 해석
-      if (typeof rule.childPath === "string") {
-        const childKey = rule.childPath.toLowerCase();
-        let parents = reverseIndex.get(childKey);
-        if (!parents) {
-          parents = new Set();
-          reverseIndex.set(childKey, parents);
-        }
-        parents.add(key);
-      }
-    }
+    indexEntry(type, spec.propagation.rules);
+  }
+  // ADR-914 Phase 5: rule-only 등록 (shadow spec 없이). 동일 인덱스 로직.
+  for (const [type, rules] of ruleEntries) {
+    indexEntry(type, rules);
   }
 }
 
@@ -625,6 +672,7 @@ export function _resetPropagationRegistry(): void {
   forwardIndex = null;
   reverseIndex = null;
   specEntries.length = 0;
+  ruleEntries.length = 0; // ADR-914 Phase 5: rule-only 등록도 초기화
 }
 
 // ADR-912 단계5 step4 (2026-06-17): TagGroup.spec.propagation.rules 11건 인라인 이관 —
@@ -723,7 +771,8 @@ registerPropagationSpec("RadioGroup", radioGroupPropagationSpec);
 registerPropagationSpec("TagGroup", tagGroupPropagationSpec);
 registerPropagationSpec("Checkbox", checkboxPropagationSpec);
 registerPropagationSpec("Radio", radioPropagationSpec);
-registerPropagationSpec("Switch", switchPropagationSpec);
+// ADR-914 Phase 5 (2026-06-21): Switch = proof family — shadow spec 없이 rule 배열 직접 등록.
+registerPropagationRules("Switch", switchPropagationRules);
 registerPropagationSpec("TextField", textFieldPropagationSpec);
 registerPropagationSpec("TextArea", textAreaPropagationSpec);
 registerPropagationSpec("NumberField", numberFieldPropagationSpec);
