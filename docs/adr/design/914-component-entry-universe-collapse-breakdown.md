@@ -201,7 +201,19 @@ Gate:
 - negative fixture: entry 없는 신규 placeable component는 fail.
 - baseline append 금지 유지.
 
-### Phase 2 - Defaults Facet Proof
+### Phase 2 - Defaults Facet Proof 🟡 Phase 2a Implemented 2026-06-20 (Button), 나머지 4종 후속
+
+> **Phase 2a (Button 단일, commit `3d64cea67`)**: 첫 deletion phase. `DEFAULT_PROPS_MAP` 의
+> Button row 삭제 + `getDefaultProps` entry-derived (`ENTRY_DERIVED_DEFAULT_TYPES={Button}`) 단일
+> source 이전. Plan 7-step (diff fixture → facet 확장 → Option A 분기 → 이중 contract proxy 권한
+> 이전(reversible) → row 삭제 → G8 smoke). **Icon 제외** (random iconName 합성이 map row 에만
+> 존재 → row 삭제 시 회귀). G2 통과: getDefaultPropsEntryParity 4/4 (deep-equal + strict key-set) +
+> 두 contract 병행 20/20 + ADR-912 oracle 3/3. 회귀 0 (stash baseline 비교, vitest 58fail 전부
+> pre-existing). G8 live: Button derived props(primary/md/fill) 정상 렌더. nested `<button>` 부수
+> 발견은 creation 영역 (inventory §10, Phase 4).
+>
+> **Phase 2b 후속 (미착수)**: Badge/Link/ToggleButton/Text 를 `ENTRY_DERIVED_DEFAULT_TYPES` 에
+> 추가 + 각 row 삭제 (각 deep-equal + strict key-set + G8 smoke 통과 후). Icon 은 carve-out 유지.
 
 목표: `DEFAULT_PROPS_MAP` literal row를 entry-derived resolver로 대체한다.
 
