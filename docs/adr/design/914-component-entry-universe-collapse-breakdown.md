@@ -176,7 +176,15 @@ Gate:
 - exception allowlist(11/4/2)와 baseline을 분리 집계한다 — swap 대상(Phase 7)이
   baseline 뿐 아니라 exception 차단 의미까지 포함함을 inventory에 명시.
 
-### Phase 1 - Entry Universe Spine + Contract (No Deletion)
+### Phase 1 - Entry Universe Spine + Contract (No Deletion) ✅ Implemented 2026-06-20
+
+> commit `abb9acac1`. 신규 `entryUniverse.ts` (resolveComponentEntryRuntime /
+> getEntryUniverseTypes — existing registry mirror read-only) + `entryUniverseContract.test.ts`
+> (10/10 PASS). 표면 export 전환 3건 (propagationRegistry.getRegisteredPropagationTags /
+> POPOVER_CHILDREN_TAGS / INTERNAL_RENDERERS — 값·동작 불변).
+> G1 통과: contract current registry 1:1 green + negative fixture (`__Adr914FakeEntry__`
+> 감지) + ADR-139 contract 병행 green (10/10, baseline append 금지 유지). type-check exit 0.
+> additive read-only spine (런타임 경로 미연결, deletion 0) → revert 없이 비활성화 가능.
 
 목표: 새 authority spine을 먼저 세운다.
 
