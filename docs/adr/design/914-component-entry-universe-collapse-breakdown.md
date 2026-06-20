@@ -201,7 +201,7 @@ Gate:
 - negative fixture: entry 없는 신규 placeable component는 fail.
 - baseline append 금지 유지.
 
-### Phase 2 - Defaults Facet Proof 🟡 Phase 2a Implemented 2026-06-20 (Button), 나머지 4종 후속
+### Phase 2 - Defaults Facet Proof ✅ Implemented 2026-06-20 (Phase 2a Button + Phase 2b Badge/Link/ToggleButton/Text)
 
 > **Phase 2a (Button 단일, commit `3d64cea67`)**: 첫 deletion phase. `DEFAULT_PROPS_MAP` 의
 > Button row 삭제 + `getDefaultProps` entry-derived (`ENTRY_DERIVED_DEFAULT_TYPES={Button}`) 단일
@@ -212,8 +212,16 @@ Gate:
 > pre-existing). G8 live: Button derived props(primary/md/fill) 정상 렌더. nested `<button>` 부수
 > 발견은 creation 영역 (inventory §10, Phase 4).
 >
-> **Phase 2b 후속 (미착수)**: Badge/Link/ToggleButton/Text 를 `ENTRY_DERIVED_DEFAULT_TYPES` 에
-> 추가 + 각 row 삭제 (각 deep-equal + strict key-set + G8 smoke 통과 후). Icon 은 carve-out 유지.
+> **Phase 2b (Badge/Link/ToggleButton/Text, commit `774cf1f79`)**: Phase 2a 메커니즘 4종 확장.
+> `ENTRY_DERIVED_DEFAULT_TYPES={Button,Badge,Link,ToggleButton,Text}` + `DEFAULT_PROPS_MAP` 4 row
+> 삭제. 4종 모두 현 row 가 이미 `deriveDefaultPropsFromCatalog` 위임이라 row 삭제 = 호출 경로 단축,
+> 값 byte-identical (conflict 0, random 합성 0). **Icon 은 carve-out 유지** (random iconName).
+> G2 통과: getDefaultPropsEntryParity PROOF_FAMILY 5종 (deep-equal + strict key-set + facet==accessor
+>
+> - source 분기) + 영향 4 suite 27 tests PASS (entryUniverseContract / componentRegistrationContract
+>   ADR-139 invariant B / ADR-912 oracle). 회귀 0 (stash baseline 58fail/1698pass == 적용 후 동일).
+>   G8 live (HMR builder, projectId `6fca094a`): `getDefaultProps` live import 4종 oracle byte-identical
+>   PASS + palette-add factory→store Text props `{size:md, children:Text}` = oracle 일치 PASS (원복 완료).
 
 목표: `DEFAULT_PROPS_MAP` literal row를 entry-derived resolver로 대체한다.
 
