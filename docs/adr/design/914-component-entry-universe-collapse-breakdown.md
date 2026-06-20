@@ -141,7 +141,15 @@ type ComponentEntryRuntime = {
 
 ## 4. Phases
 
-### Phase 0 - Inventory Freeze
+### Phase 0 - Inventory Freeze ✅ Implemented 2026-06-20
+
+> 산출물: [914-entry-universe-inventory.md](914-entry-universe-inventory.md) (commit `e41be0b49`).
+> G0 통과: 9 표면 전수 재실측 (rendererMap 94 / INTERNAL 26 / DELEGATING_INTERNAL 18 /
+> DELEGATING_RAC 10 / DEFAULT_PROPS_MAP 92[derived 6] / creators 55 / COMPLEX 48 /
+> propagation 31 / SYNTHETIC 9 / POPOVER 2 / baseline 0·0·0 / exception 11·4·2).
+> ADR-912 카운트 자기모순(creators 60/55/45 + COMPLEX 등치 오류) 확인 → source 불신.
+> Explore agent 3 fan-out → main verifier 교차검증으로 agent 오류 2건 정정
+> (rendererMap 78→94 / INTERNAL 27→26). docs-only, type-check exit 0.
 
 목표: 삭제 전 count와 owner를 고정한다.
 
