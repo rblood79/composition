@@ -183,6 +183,26 @@ export const SHELL_ONLY_CONTAINER_TAGS = new Set([
  * → `_hasChildren=true` 주입 **금지** (주입 시 shell만 남고 내용이 사라짐).
  * → 자식 변경 시 부모 rebuild 필요 → `StoreRenderBridge.incrementalSync`
  *    expansion 대상.
+ *
+ * **ADR-914 Phase 6 (childRuntime facet membership SSOT, 2026-06-21)**: 본 set 은
+ * entry universe childRuntime facet 의 `syntheticPropMerge` 권한 source 다.
+ * `entry.childRuntime.syntheticPropMerge` 가 true 인 것과 본 set membership 은
+ * **양방향 1:1** 이며, `entryUniverseContract.test.ts` 가
+ * `syntheticPropMerge ⟺ SYNTHETIC_CHILD_PROP_MERGE_TAGS.has(type)` parity 로 facet 이
+ * 이 membership 을 소유함을 증명한다.
+ *
+ * 사용자 결정 (2026-06-21): Phase 4-C(COMPLEX) 와 동일하게 별도 declaration 파일로
+ * 역전하지 않는다 — 소비처가 이미 본 set 단일 SSOT 를 공유하고(아래), facet 은 import
+ * 로 mirror 한다. declaration 신설은 surface 만 늘릴 뿐 실질 가치가 없다(collapse 목적
+ * = 손등록 surface 감소). 따라서 본 set 자체를 childRuntime facet 의 SSOT 로 명문화하고
+ * contract 가 facet ⟺ membership 정합을 검증한다.
+ *
+ * 소비처 (전부 단순 `set.has(type)` boolean 분기 — adapter 로직 0):
+ * - buildSpecNodeData.ts:915 — `shellOnlyProps` (SYNTHETIC 면 children/text/label 억제).
+ * - buildSpecNodeData.ts:1243 — `_hasChildren` 주입 가드 (SYNTHETIC 면 skip).
+ * - StoreRenderBridge.ts:315/320 — `incrementalSync` rebuild expansion (부모/자식).
+ * - StoreRenderBridge.ts:549 — stale 자식 ref 교체.
+ * - entryUniverse.ts:140 — childRuntime.syntheticPropMerge facet mirror.
  */
 export const SYNTHETIC_CHILD_PROP_MERGE_TAGS = new Set([
   "Breadcrumbs",

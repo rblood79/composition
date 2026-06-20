@@ -137,6 +137,15 @@ function resolveRenderMode(type: string): RenderFacetMode {
 }
 
 const propagationTagsLower = getRegisteredPropagationTags(); // 이미 lowercase
+
+// ADR-914 Phase 6 (childRuntime facet membership SSOT, 2026-06-21): childRuntime facet 의
+//   두 membership 권한 source. `syntheticPropMerge` ⟸ SYNTHETIC_CHILD_PROP_MERGE_TAGS
+//   (buildSpecNodeData.ts), `popoverHosted` ⟸ POPOVER_CHILDREN_TAGS (implicitStyles.ts).
+//   본 resolver 는 두 set 을 *읽어* facet 으로 노출하고, 실 소비처(buildSpecNodeData 2 +
+//   StoreRenderBridge 3 / implicitStyles 1)가 **동일 set 을 직접 소비**한다. entryUniverseContract
+//   가 `syntheticPropMerge ⟺ SYNTHETIC.has` / `popoverHosted ⟺ POPOVER.has` 양방향 parity 로
+//   facet 이 이 membership 을 소유함을 증명한다 (Phase 4-C COMPLEX 와 동형 — 별도 declaration
+//   파일 없이 단일 source 공유, surface 증가 0).
 const syntheticMergeSet = SYNTHETIC_CHILD_PROP_MERGE_TAGS;
 const popoverHostedSet = POPOVER_CHILDREN_TAGS;
 const rendererKeys = new Set(Object.keys(rendererMap));

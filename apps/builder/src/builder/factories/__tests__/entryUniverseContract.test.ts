@@ -35,6 +35,8 @@ import { getDefaultProps } from "@/types/builder/unified.types";
 import type { ComponentCreationContext } from "@/builder/factories/types";
 import { COMPLEX_COMPONENT_TAGS } from "@/builder/factories/constants";
 import { isReusableCompositeType } from "@/builder/components/reusableCompositeOrigins";
+import { SYNTHETIC_CHILD_PROP_MERGE_TAGS } from "@/builder/workspace/canvas/skia/buildSpecNodeData";
+import { POPOVER_CHILDREN_TAGS } from "@/builder/workspace/canvas/layout/engines/implicitStyles";
 
 // ── inventory freeze 정본 카운트 (914-entry-universe-inventory.md §1, 2026-06-20) ──
 // 이 값은 Phase 0 inventory 의 source 다. facet mirror 가 이 카운트에서 벗어나면
@@ -268,36 +270,62 @@ describe("ADR-914 entry universe contract", () => {
     }
   });
 
-  it("childRuntime facet — syntheticPropMerge mirror == 9", () => {
-    const SYNTHETIC = [
-      "Breadcrumbs",
-      "ComboBox",
-      "GridList",
-      "Select",
-      "Table",
-      "Tabs",
-      "TagGroup",
-      "Toolbar",
-      "Tree",
-    ];
-    expect(SYNTHETIC.length).toBe(INVENTORY.syntheticChildPropMerge);
-    for (const t of SYNTHETIC) {
-      if (!placeable.includes(t)) continue;
+  // ── ADR-914 Phase 6 (childRuntime facet membership SSOT 명문화, 2026-06-21) ──
+  // count parity(== 9 / == 2)는 set 크기만 본다. Phase 6 은 facet 이 membership 을
+  // **소유**함을 증명한다: childRuntime.syntheticPropMerge ⟺ SYNTHETIC_CHILD_PROP_MERGE_TAGS.has
+  // (양방향 1:1), childRuntime.popoverHosted ⟺ POPOVER_CHILDREN_TAGS.has (양방향 1:1).
+  // 사용자 결정(2026-06-21): proof family = SYNTHETIC 단일 메커니즘. necessity/field-filter 는
+  // adapter-required(HIGH/live-prop 의존)라 후속 slice/adapter 설계로 분리(R7 한 phase 한 facet).
+  // 방식 = Phase 4-C 식 SSOT 명문화 — set 정의 위치(buildSpecNodeData.ts:187 /
+  // implicitStyles.ts:429)는 유지, facet 이 그 membership 을 소유함을 contract 양방향 parity
+  // 로 증명. 5 소비처(StoreRenderBridge 3 + buildSpecNodeData 2)의 직접 SYNTHETIC.has() 호출은
+  // 정본 유지(이미 단일 set import — surface 증가 0). POPOVER 는 dormant 우려가 있으나
+  // SSOT 명문화는 동일 set 을 contract 가 읽는 것이라 dormant 아님(소비처 = contract + 실사용).
+  it("Phase 6 — syntheticPropMerge ⟺ SYNTHETIC_CHILD_PROP_MERGE_TAGS (양방향 parity)", () => {
+    // count parity (set 크기 == inventory 정본).
+    expect(SYNTHETIC_CHILD_PROP_MERGE_TAGS.size).toBe(
+      INVENTORY.syntheticChildPropMerge,
+    );
+    // 정방향: facet 이 syntheticPropMerge=true 라고 한 type 은 전부 set 멤버.
+    for (const e of entries) {
+      if (e.childRuntime.syntheticPropMerge) {
+        expect(
+          SYNTHETIC_CHILD_PROP_MERGE_TAGS.has(e.type),
+          `${e.type}: facet=syntheticPropMerge 인데 SYNTHETIC set 미포함 (membership SSOT 불일치)`,
+        ).toBe(true);
+      }
+    }
+    // 역방향: SYNTHETIC set 멤버 중 placeable 인 type 은 facet 이 syntheticPropMerge=true.
+    for (const type of SYNTHETIC_CHILD_PROP_MERGE_TAGS) {
+      if (!placeable.includes(type)) continue; // 비-placeable set 멤버는 entry 없음(예: Toolbar ref instance)
       expect(
-        resolveComponentEntryRuntime(t).childRuntime.syntheticPropMerge,
-        `${t} syntheticPropMerge mismatch`,
+        resolveComponentEntryRuntime(type).childRuntime.syntheticPropMerge,
+        `${type}: SYNTHETIC 멤버인데 facet=false (membership SSOT 불일치)`,
       ).toBe(true);
     }
   });
 
-  it("childRuntime facet — popoverHosted mirror == 2 (Calendar/RangeCalendar)", () => {
-    expect(
-      resolveComponentEntryRuntime("Calendar").childRuntime.popoverHosted,
-    ).toBe(true);
-    expect(
-      resolveComponentEntryRuntime("RangeCalendar").childRuntime.popoverHosted,
-    ).toBe(true);
-    // 임의 비-popover type 은 false.
+  it("Phase 6 — popoverHosted ⟺ POPOVER_CHILDREN_TAGS (양방향 parity)", () => {
+    // count parity.
+    expect(POPOVER_CHILDREN_TAGS.size).toBe(INVENTORY.popoverChildren);
+    // 정방향: facet 이 popoverHosted=true 라고 한 type 은 전부 set 멤버.
+    for (const e of entries) {
+      if (e.childRuntime.popoverHosted) {
+        expect(
+          POPOVER_CHILDREN_TAGS.has(e.type),
+          `${e.type}: facet=popoverHosted 인데 POPOVER set 미포함`,
+        ).toBe(true);
+      }
+    }
+    // 역방향: POPOVER set 멤버는 placeable 여부와 무관히 resolver 가 popoverHosted=true 로 mirror
+    //   (Calendar/RangeCalendar 는 popover-hosted leaf — resolver 직접 호출로 검증).
+    for (const type of POPOVER_CHILDREN_TAGS) {
+      expect(
+        resolveComponentEntryRuntime(type).childRuntime.popoverHosted,
+        `${type}: POPOVER 멤버인데 facet=false`,
+      ).toBe(true);
+    }
+    // 임의 비-popover type 은 false (disjoint sanity).
     expect(
       resolveComponentEntryRuntime("Button").childRuntime.popoverHosted,
     ).toBe(false);

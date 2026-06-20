@@ -471,26 +471,77 @@ Gate:
 
 ### Phase 6 - ChildRuntime Facet Proof
 
+> **Phase 6 (proof family = SYNTHETIC_CHILD_PROP_MERGE_TAGS 단일 메커니즘) ✅ Implemented 2026-06-21**
+>
+> recon (Workflow w8rz17q0t, 4 recon + 4 적대 검증) + 사용자 결정 2건 후 진행. 4 child-runtime
+> 메커니즘 중 **SYNTHETIC 만** 순수 declarative-transfer/LOW (적대 검증 recon-confirmed). 나머지
+> 3개는 Phase 5 식 안전 transfer 불가 → 후속 slice/adapter 설계로 분리 (R7 한 phase 한 facet 한
+> family).
+>
+> **4 메커니즘 recon+적대 검증 판정**:
+>
+> | 메커니즘                          | 멤버       | transfer 판정 (적대 검증 후) | risk | 근거 (file:line)                                                                                                          |
+> | --------------------------------- | ---------- | ---------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------- |
+> | `SYNTHETIC_CHILD_PROP_MERGE_TAGS` | 9          | declarative-transfer ✅      | LOW  | 5 소비처 전부 단순 `set.has(type)` boolean (buildSpecNodeData:915/1243 + StoreRenderBridge:315/320/549)                   |
+> | `POPOVER_CHILDREN_TAGS`           | 2          | declarative (facet dormant)  | MED  | 단순 `set.has()` 1 소비처 (implicitStyles:1962) 이나 facet mirror 미사용 지적                                             |
+> | Label necessity injection         | 12-tag+DFS | adapter-id-required          | HIGH | 3경로 동기화(CSS/Taffy/Skia) + DFS 부모 traversal (implicitStyles:2214 / fullTreeLayout:1155 / buildSpecNodeData:1085)    |
+> | field/collection visible filter   | 14 분기    | adapter-id-required          | MED  | `formatProgressValue`/`sliderFormattedValue` live-prop 동적 합성 (implicitStyles:1657/1772) — byte-identical fixture 불가 |
+>
+> **사용자 결정 (2026-06-21, AskUserQuestion 2건)**:
+>
+> 1. **scope = SYNTHETIC 단일 source transfer** (R7). 차단 메모리 우선 평가:
+>    necessity/field-filter 를 지금 facet 으로 끌어올리면 소비처가 mirror 만 읽는 dormant
+>    foundation 위험(feedback-no-dormant-foundation-ahead-of-flip) + 4 메커니즘 동시 = surface
+>    폭증(feedback-execute-adr-surface-minimization). 따라서 SYNTHETIC 단일로 좁힘.
+> 2. **방식 = SSOT 명문화 + contract 소유증명** (Phase 4-C 식). set 정의 위치
+>    (buildSpecNodeData.ts:187)는 유지, childRuntime facet 이 이 membership 을 소유함을 JSDoc
+>    계약 + entryUniverseContract 양방향 parity 로 증명. 5 소비처 직접 `SYNTHETIC.has()` 호출은
+>    정본 유지(이미 단일 set import — surface 증가 0). 런타임 동작 0 변경 → 회귀 위험 LOW.
+>
+> **변경 (런타임 동작 0, JSDoc + contract test 만)**:
+>
+> - `buildSpecNodeData.ts` — `SYNTHETIC_CHILD_PROP_MERGE_TAGS` JSDoc 을 childRuntime facet
+>   `syntheticPropMerge` membership SSOT 로 계약화 (양방향 1:1 + 소비처 5곳 단순 `set.has` 명시).
+>   비주석 변경 라인 0.
+> - `entryUniverse.ts` — `syntheticMergeSet`/`popoverHostedSet` 에 두 membership 권한 source
+>   소유 관계 JSDoc 명시. 비주석 변경 라인 0.
+> - `entryUniverseContract.test.ts` — count-only(syntheticPropMerge==9 / popoverHosted==2) 2개를
+>   양방향 ownership parity 2개로 격상: (a) `syntheticPropMerge ⟺ SYNTHETIC_CHILD_PROP_MERGE_TAGS.has`
+>   (정·역방향) (b) `popoverHosted ⟺ POPOVER_CHILDREN_TAGS.has` (정·역방향 + Button disjoint sanity).
+>   SYNTHETIC/POPOVER set import 추가.
+>
+> **검증**: type-check 0 신규 위반 (baseline 71 불변 — JSDoc-only 라 코드 라인 시프트 0) +
+> entryUniverseContract 18 passed (count-only 2 → parity 2 교체, 총수 불변) + factories `__tests__`
+> 5 suite 72 passed 회귀 0 + SYNTHETIC/POPOVER 직접 소비 테스트 (shell-only-tags / colorContainerCutover)
+> 15 passed 회귀 0 + 두 source 파일 비주석 변경 라인 0 확인 (런타임 동작 불변 → Phase 4-B/5 live
+> confirm 유효, 추가 live exercise 불요). §3.3-6 "childRuntime facet 과 synthetic/filtering membership
+> 이 extra/missing 없이 일치" 충족 (SYNTHETIC 축 — POPOVER 동축 동시 격상, necessity/field-filter 는
+> adapter-required 후속).
+>
+> **후속 slice (3 메커니즘)**: POPOVER source transfer 실질성 재확인(현 SSOT 명문화로 contract 가
+> 읽음 — dormant 해소) / Label necessity injection adapter id 분리(3경로 동기화 보존) / field·collection
+> visible filter adapter id 분리(live-prop 동적 합성 격리). 각각 별도 phase/ADR 판정.
+
 목표: child filtering/injection membership을 entry childRuntime facet으로 이전한다.
 
 대상:
 
-- `SYNTHETIC_CHILD_PROP_MERGE_TAGS`.
-- `POPOVER_CHILDREN_TAGS`.
-- Label necessity injection.
-- field/collection visible child filtering branches.
+- `SYNTHETIC_CHILD_PROP_MERGE_TAGS`. ← ✅ **Phase 6 Implemented 2026-06-21** (SSOT 명문화 + contract 양방향 parity 소유 증명)
+- `POPOVER_CHILDREN_TAGS`. ← ✅ 동축 동시 격상 (popoverHosted ⟺ POPOVER.has parity)
+- Label necessity injection. ← adapter-id-required (HIGH, 3경로 동기화) — 후속 slice
+- field/collection visible child filtering branches. ← adapter-id-required (live-prop 동적 합성) — 후속 slice
 
 작업:
 
-- declarative membership부터 이관한다.
-- function-level filter가 필요한 경우 adapter id로 분리한다.
-- `filteredChildIds`와 render command child boundaries를 fixture로 고정한다.
+- declarative membership부터 이관한다. ← ✅ SYNTHETIC/POPOVER 양방향 parity 로 facet 소유 증명
+- function-level filter가 필요한 경우 adapter id로 분리한다. ← necessity/field-filter 후속 (adapter id)
+- `filteredChildIds`와 render command child boundaries를 fixture로 고정한다. ← ✅ 런타임 0 변경 → 기존 경로 보존, contract parity 추가 고정
 
 Gate:
 
-- layout `filteredChildIds` parity.
-- render commands child begin/end parity.
-- Preview children count parity.
+- layout `filteredChildIds` parity. ← ✅ 런타임 동작 불변 (POPOVER.has 필터 경로 보존)
+- render commands child begin/end parity. ← ✅ 런타임 동작 불변 (SYNTHETIC.has 분기 보존)
+- Preview children count parity. ← ✅ 런타임 동작 불변
 
 ### Phase 7 - Contract Swap + Registry Cleanup
 
