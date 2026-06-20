@@ -420,8 +420,13 @@ const PROGRESSBAR_TAGS = new Set([
 
 /** Slider 태그 집합 */
 const SLIDER_TAGS = new Set(["slider"]);
-/** DatePicker/DateRangePicker 내 Popover로 표시되는 자식 — Taffy 레이아웃 제외 */
-const POPOVER_CHILDREN_TAGS = new Set(["Calendar", "RangeCalendar"]);
+/**
+ * DatePicker/DateRangePicker 내 Popover로 표시되는 자식 — Taffy 레이아웃 제외.
+ *
+ * ADR-914 Phase 1: `entryUniverseContract` 가 childRuntime facet 의 popover-hosted
+ * membership 을 mirror 검증하도록 export (값/동작 불변, 가시성만 확장).
+ */
+export const POPOVER_CHILDREN_TAGS = new Set(["Calendar", "RangeCalendar"]);
 
 // Slider row-gap: ADR-912 Phase 3-A-1 (Δ4) 에서 specSizeField("slider", size, "gap") read-through 로
 //   이관 (Slider.sizes.gap=4 모든 size 일치). column-gap 은 ADR-088 에서 이미 specSizeField("slider",

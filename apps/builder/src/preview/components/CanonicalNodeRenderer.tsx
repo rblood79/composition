@@ -100,7 +100,9 @@ interface CanonicalNodeRendererProps {
  *   dataBinding 등 wrapper props 를 통과시키면 wrapper 가 items 를 렌더(자식 재귀 불필요). Skia 는
  *   skiaLegacy(render.shapes 유지) — items 순회 Skia generic 미지원(전 family 후 일괄).
  */
-const INTERNAL_RENDERERS: Readonly<
+// ADR-914 Phase 1: entryUniverseContract 가 render facet 의 internal membership 을
+//   mirror 검증하도록 export (값/동작 불변, 가시성만 확장).
+export const INTERNAL_RENDERERS: Readonly<
   Record<string, React.ElementType | undefined>
 > = {
   icon: Icon,

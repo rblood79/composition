@@ -607,6 +607,19 @@ export function getParentTagsForChild(
   return reverseIndex!.get(childTag.toLowerCase());
 }
 
+/**
+ * ADR-914 Phase 1: 등록된 모든 propagation parent tag 를 enumerate.
+ *
+ * `entryUniverseContract` 가 entry propagation facet 과 registered rule set 의
+ * extra/missing 정합을 검증하는 read-only 진입점. forwardIndex key 는 lowercase
+ * parentTag (`registerPropagationSpec` 등록 시 정규화) 이므로 lowercase set 을
+ * 반환한다. no-op (rules:[]) 등록도 forwardIndex 에 entry 가 있으므로 포함된다.
+ */
+export function getRegisteredPropagationTags(): ReadonlySet<string> {
+  ensureBuilt();
+  return new Set(forwardIndex!.keys());
+}
+
 /** 테스트용: 인덱스 초기화 */
 export function _resetPropagationRegistry(): void {
   forwardIndex = null;
