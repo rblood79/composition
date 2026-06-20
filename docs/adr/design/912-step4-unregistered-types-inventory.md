@@ -1,6 +1,8 @@
 # ADR-912 단계 5 step 4 선행 — catalog 미등록 type inventory + 경로 대체 분류
 
-> **위상**: ADR-912 단계 5 step 4 (구 정본 `*.spec.ts` 123 파일 물리 삭제 = element type 폐기 phase) **진입 차단 게이트 해소를 위한 별도 후속 작업 문서**. step 4 는 본 inventory 의 [fallback 의존] 그룹 경로 대체가 완료돼야 진입 가능(no-go 해소). step 1~3(dead gate / runtime spec 의존 끊기 / source generator 제거)은 land 완료(`d346a80ad`/`1721cf940`).
+> **🟢 종결 (2026-06-18, ADR-912 Implemented 승격, 커밋 `0569332f8`)**: step 4 cutover 대상 spec 전수 소진 + dual-SSOT 소멸 land 완료. **dist 정본 (2026-06-20 디스크 실측 재확인) = 디스크 잔존 spec 파일 3 (Frame/Group/Slot, 전부 영구 native/D1) / TAG_SPEC_MAP native 3 / cutover 대상 0**. (Image.spec 은 catalog rule cutover 후 dead 잔재로 삭제됨 — 이전 "잔존 4 Image 포함" stale.) **이하 본문은 분류 진행 기록(historical)** — 본문 중간의 "no-go / 진입 차단 / 작업 대기 N / 미등록 N / spec map N / Status Proposed 유지" framing 은 **전부 승격 전 시점 서술**이며 현재 정본 아님. 605KB 누적 문서라 중간 블록 grep 시 historical 을 live 로 오독 주의(`feedback-adr-details-block-stale-not-live-status` 동형). 종결 정본 = 본 마커 + ADR 본문 §Status(`Implemented 2026-06-18`).
+>
+> **위상 (historical — 승격 전 시점)**: ADR-912 단계 5 step 4 (구 정본 `*.spec.ts` 물리 삭제 = element type 폐기 phase) 진입 차단 게이트 해소를 위한 별도 후속 작업 문서. step 4 는 본 inventory 의 [fallback 의존] 그룹 경로 대체가 완료돼야 진입 가능(no-go 해소 — **2026-06-18 종결됨**). step 1~3(dead gate / runtime spec 의존 끊기 / source generator 제거)은 land 완료(`d346a80ad`/`1721cf940`).
 >
 > **사용자 결정 (2026-06-04)**: "미등록 type inventory 는 별도 후속" + 순서 "(1) step 5 문서/status 정합 → (2) 미등록 type 선행 분리 → (3) step 4 spec 삭제". (당시 "71 type" 은 2026-06-04 기준 미등록 count 표현.)
 >
@@ -1492,7 +1494,7 @@ true-dead 0 확정으로, 잔여 미등록 type 의 폐기는 전부 **선행 �
 
 ## 관련
 
-- ADR 본문: [912-rac-pencil-rebuild-cutover.md](../912-rac-pencil-rebuild-cutover.md) §Status (step 4 no-go)
+- ADR 본문: [912-rac-pencil-rebuild-cutover.md](../912-rac-pencil-rebuild-cutover.md) §Status (Implemented — 2026-06-18)
 - breakdown: [912-rac-pencil-rebuild-cutover-breakdown.md](912-rac-pencil-rebuild-cutover-breakdown.md) 단계 5 분해표 step 4
 - `_hasChildren` 컨벤션: [.claude/rules/canvas-rendering.md](../../../.claude/rules/canvas-rendering.md) §2.5
 - ADR-130 frame canonical vocabulary (Group D1 경계): [130-\*.md](../completed/)

@@ -756,10 +756,10 @@ wrapper `resolveContainerStylesFallback`(`implicitStyles.ts:270`)에 **경로 B*
 
 T1~T6 종결 조건 + Δ8 진짜 수렴 모두 통과. 8 dispersion + Δ8 size-value mirror 전부 baseline 0.
 
-- **T1 (grep 0)**: grep gate 14/14 PASS — 8 dispersion (`STRUCTURE_META_ENTRIES`/`COMPOSITION_LAYOUT_STYLES`/
+- **T1 (grep 0)**: grep gate 15/15 PASS (2 의존방향 + 13 dispersion baseline, 2026-06-20 직접 실행 = `Tests 15 passed`) — 8 dispersion (`STRUCTURE_META_ENTRIES`/`COMPOSITION_LAYOUT_STYLES`/
   `LOWERCASE_COMPONENT_RULE_CONTAINER`/base-axis `?? "column"`/Track height/INDICATOR_SIZES/PROGRESSBAR gap/
-  `TAG_SPEC_MAP`) + Δ8 size-value mirror (utils.ts 저위험 5종 + SPEC_PADDING + valueFillMetrics barHeight)
-  전부 baseline 0. 위장 0 아님 (FILES map 에 utilsLayout 추가로 calculateContentHeight 경로 scope 포함).
+  `TAG_SPEC_MAP`) + Δ8 size-value mirror (utils.ts 저위험 5종 + SPEC_PADDING + valueFillMetrics barHeight + Calendar/DateInput Phase 6 4종)
+  전부 baseline 0. **+ Δ11 (field-trigger base-axis `?? "row"` 3곳) = baseline 3 (영구 잔존, 0 종결 대상 아님 — §4-1 Δ11 참조)**. 위장 0 아님 (FILES map 에 utilsLayout 추가로 calculateContentHeight 경로 scope 포함).
 - **T2 (단일 consumer 경로)**: CSS gen `buildVirtualSpecs` / Skia `implicitStyles` / Panel `specPresetResolver`
   가 structure·base-layout·size-value·preset 을 catalog resolver (`shared/catalog/resolvers/` + `resolveSkiaRule`/
   `specSizeField` read-through)에서만 파생.
@@ -831,8 +831,23 @@ preset 세 consumer 가 색상·구조·size 를 `ComponentRule` 한 entry 에�
   dispatch + `SYNTHETIC_LABEL_TAGS` / `NECESSITY_INDICATOR_TAGS` / `POPOVER_CHILDREN_TAGS` tag Set) —
   child filtering/injection 멤버십은 catalog structure 로 파생 안 함, 의도적으로 branch 잔존(§2-4).
 
+**Δ11 — structure 축 내부 영구 잔존 1건 (위 3축과 성격 다름, 검증 Workflow `wtuk64q6m` 적발 2026-06-20)**:
+field-trigger 계열(Select/ComboBox/SearchField/NumberField)의 자식 SelectTrigger + selecttrigger-자체-
+container 분기가 base-axis(`flexDirection ?? "row"`)를 `implicitStyles.ts:1336/1396/1439` 에 inline 보유(3곳).
+field류 `?? "column"`(Δ6)은 Phase 3-A-3a/b 에서 catalog structure 로 닫았으나 field-trigger 의 `?? "row"` 는
+Δ6 패턴(`?? "column"` 한정)에 안 잡혀 잔존했다. **이건 "닫지 않은 다른 축"이 아니라 structure 축인데 catalog
+수렴이 byte-diff 0 과 충돌하는 영구 예외**: catalog 로 모으는 유일 채널(`SelectTrigger` rule `structure.composition.layout`)이
+generate-css CSS emit 게이트(`buildVirtualSpecs: if(!rule.structure) continue`)와 **같은 필드**라, 추가 시
+`.react-aria-SelectTrigger` CSS 신규 emit → byte-diff 0 위반. 한편 DOM trigger 는 그 className 미사용
+(`.react-aria-Select .react-aria-Button` 으로 base-axis 보유) → 신규 CSS 는 dead. **byte-diff 0 보존을 위해
+inline 영구 유지(사용자 confirm 2026-06-20)** — dual-SSOT(spec↔catalog 이중) 아니라 single-source 가 layout
+코드에 위치(DOM/Skia 둘 다 row, 시각 정합 깨짐 0). grep gate `adr912CollapseGrepGate.test.ts` Δ11 entry 가
+baseline 3 으로 추적(재도입 방지). **0 종결 대상 아님** — field-trigger 는 항상 row 축이라 drift 위험 0 + 계열
+고정(미증가). structure-분리 Skia-전용 layout schema 채널을 새로 도입하는 건 막는 버그 0 인 dormant 인프라
+회피(과잉). 즉 시각·size SOURCE 축은 완전 종결, structure SOURCE 축은 Δ11 3곳(영구 inline 잔존) 외 종결.
+
 → 종결 시 ADR-912 본문 재승격 note 는 반드시 "visual/structure/size 축 한정" 으로 명시하고,
-child-tree·propagation 축은 별도 잔여 작업으로 기록한다. 무조건적 "1 컴포넌트 = 1 등록" 주장 금지.
+child-tree·propagation 축 + structure 축의 Δ11 1건을 별도 잔여로 기록한다. 무조건적 "1 컴포넌트 = 1 등록" 주장 금지.
 
 ## 5. Kill criteria
 
@@ -854,7 +869,10 @@ var(--spacing-md)`(12px) 는 generated CSS 에서 `gap:4px` shorthand 에 덮여
   layout 만 12 를 써서 Builder≠Preview 렌더 버그였다. CSS effective(4px) 정본 채택 → column-gap 도
   row-gap 처럼 `.sizes.gap`(=4) read-through 통일, 상수 삭제. byte-diff 0 + Skia layout 4px 정합.
 - (Δ6) `implicitStyles.ts` 의 7개 base-axis fallback (field류 5 + collection-item 2) 중 **하나라도**
-  인라인 `?? "column"` 으로 남는다 (`grep -c 'flexDirection.*?? "column"'` ≠ 0).
+  인라인 `?? "column"` 으로 남는다 (`grep -c 'flexDirection.*?? "column"'` ≠ 0). **단 field-trigger 의
+  `?? "row"` 3곳(Δ11)은 본 kill criteria 대상 아님** — byte-diff 0 보존을 위한 영구 잔존(catalog 로 모으는
+  유일 채널 `rule.structure` 가 generate-css CSS emit 채널과 겸용이라 추가 시 dead CSS 신규 생성). grep gate
+  Δ11 baseline 3 으로 재도입만 가드 (0 종결 대상 아님 — §4-1 Δ11).
 - generated CSS 는 바뀌었는데 Skia/layout 또는 Style Panel focused test 가 없다.
 
 ## 6. Done definition
@@ -865,7 +883,7 @@ var(--spacing-md)`(12px) 는 generated CSS 에서 `gap:4px` shorthand 에 덮여
 | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Source      | field base layout, TagGroup base layout, side variants, **그리고 track height / indicator gap / slider·progressbar row gap (Δ4, 3종)** 가 `componentRulesTable.sizes` 에서 선언, 해당 mirror 0. **`INDICATOR_SIZES` (Δ5) 는 dead-path 확정 → dead 제거로 0 ✅. `column-gap` (Δ10) 은 live 실측이 CSS↔Skia 렌더 버그로 정정 → CSS effective(4px) 정본 채택, `.sizes.gap` read-through 통일 + 상수 삭제로 0 ✅ (byte-diff 0)** |
 | Generator   | virtual CSS emit membership 이 `rule.structure` 로 결정되고 `STRUCTURE_META` 없음, `COMPOSITION_LAYOUT_STYLES` 없음 (Δ7)                                                                                                                                                                                                                                                                                                     |
-| Skia/layout | container base/variant 는 shared resolver 소비, local rule map 없음, 인라인 base-axis fallback 없음 (Δ6)                                                                                                                                                                                                                                                                                                                     |
+| Skia/layout | container base/variant 는 shared resolver 소비, local rule map 없음, 인라인 base-axis `?? "column"` fallback 없음 (Δ6). **field-trigger `?? "row"` 3곳(Δ11)은 byte-diff 0 보존 영구 잔존 — grep gate baseline 3 가드**                                                                                                                                                                                                       |
 | Style Panel | `TAG_SPEC_MAP` 직독 없음, TextField/TagGroup preset 이 shared resolver 기반                                                                                                                                                                                                                                                                                                                                                  |
 | Tests       | shared resolver + Style Panel + Skia/layout focused tests PASS                                                                                                                                                                                                                                                                                                                                                               |
 | Build       | generated CSS **byte-diff = 0 (enforce, Δ8)** + type-check PASS                                                                                                                                                                                                                                                                                                                                                              |
