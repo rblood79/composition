@@ -267,9 +267,45 @@ Kill criteria:
 > byte-identical / entry facet mode 정상 / Home 페이지 delegating-internal Nav 정상 렌더 +
 > rawLeak 0 + React unknown-tag warning 0).
 >
-> **후속 (별도 slice, 미착수)**: Phase 3-B — `rendererMap` 94 row 중 catalog generic cutover 로
-> dead 된 row 를 row 별 도달성 검증 후 삭제 (exception `rendererMap` 4: InlineAlert/List/TextArea/
-> frame 보존). dead 확증 없이 삭제 금지.
+> **Phase 3-B (rendererMap dead row 삭제) — 보류 결론 2026-06-21 (recon 완료, 삭제 0)**:
+> dead row 식별 recon 결과 **진짜 dead ≈ 0** — 삭제 보류. legacy 경로 제거가 선행돼야 성립하며
+> 그것은 ADR-914 scope 밖이다.
+>
+> **recon 방법**: Explore agent 2 병렬(App.tsx legacy 경로 도달성 + delegating 자식 렌더 경로)
+> → main verifier file:line 교차검증. 진단 probe(임시 vitest)로 set 연산 추출 후 probe 삭제.
+>
+> **3경로 도달성 (dead 판정 기준)**:
+>
+> | 경로             | 동작 (file:line)                                                                                                                                                                                                                                                          | dead 영향                                 |
+> | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+> | canonical 최상위 | `App.tsx:873-915` (default). cutover→generic, delegating→`rendererMap[type]` 위임                                                                                                                                                                                         | cutover 54 top-level 이 generic 으로 빠짐 |
+> | legacy fallback  | `App.tsx:925-993`. `?canonical=0` opt-out **또는** canonical 빈결과(`:896`)/예외(`:916`) 시 — cutover 무시, `rendererMap` 을 **모든 type 1차 진입점**으로 사용 (3 함수: renderElementInternal `:552` / renderLayoutElement `:784` / renderPageElementWithChildren `:827`) | **여기서 거의 모든 row 가 LIVE**          |
+> | delegating 자식  | `recursiveRenderElement` (`CanonicalNodeRenderer.tsx:354-379`). sub-part 는 부모 self-compose, cutover 미대상 sub-part 는 generic raw tag                                                                                                                                 | sub-part self-compose 가 정본             |
+>
+> **결론 근거**: legacy fallback 은 `App.tsx:871` 주석("document 미수신/resolve 실패 시 legacy
+> fallback") + `:63` 주석("`?canonical=0` 명시적 opt-out 가능")이 명시하는 **의도된 안전망/escape
+> hatch** 이지 dead 가 아니다. legacy 가 살아있는 한 cutover 54 top-level row 전부가 `?canonical=0`
+> 또는 canonical 실패 시 `rendererMap[type]` 으로 도달 가능 = dead 아님. §6("generic 으로 보인다는
+> grep 만으로 삭제 금지")이 정확히 이 상황을 경고 — set 연산상 "cutover→canonical generic" 이
+> 사실이어도 legacy 도달성을 무시한 삭제는 `?canonical=0` 즉시 파손.
+>
+> **sub-part 분류**: (a) rendererMap **미등록** 12종(SelectTrigger/SelectValue/SelectIcon/SliderTrack/
+> SliderOutput/SliderThumb/ProgressBarTrack/ProgressBarValue/MeterTrack/MeterValue/TableRow/TableCell)
+> = 삭제 대상 자체 없음(row 부재). (b) **등록** 9종(ListBoxItem/GridListItem/TreeItem/Tag/TabList/
+> TabPanels/Breadcrumb/Column/Cell) = 부모 delegating renderer self-compose 가 정본이라 직접 함수
+> 호출처 0 이지만, legacy `renderElement → rendererMap[type]` 간접 경로에서 sub-part element 가
+> tree 에 존재하면 도달 → "self-compose 라 dead" 단정은 legacy 안전망 무시 (recon agent over-claim
+> 을 main 검증으로 정정).
+>
+> **선행조건 (Phase 3-B 성립 조건)**: legacy fallback 경로(App.tsx 3 함수) 제거 또는 sub-part 가
+> canonical 에서 별도 노드로 비존재 증명. legacy fallback 제거 = render 경로 아키텍처 + `?canonical=0`
+> 안전망 제거 결정 = **ADR-914 scope 밖** (§1 Out of scope, render 경로 재구축은 ADR-910 영역에 근접).
+> 별도 ADR/결정 사항이며 본 phase 에서 자동 진행하지 않는다.
+>
+> **Phase 3 종합**: Phase 3-A 로 render facet **SSOT 역전**(declaration single source)은 완결됐다.
+> §3.3-2 "entry render facet 과 actual adapter map 이 extra/missing 없이 일치" 는 Phase 3-A 의
+> `renderFacetDeclarationContract` + `entryUniverseContract` 로 충족. dead row 삭제(Phase 3-B)는
+> legacy 안전망 제거 선행 작업 뒤로 분리.
 
 목표: `rendererMap` membership을 entry render facet으로 소유권 이전한다.
 
