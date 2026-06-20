@@ -124,9 +124,15 @@ export const CATALOG_DERIVED_DEFAULT_TYPES: ReadonlySet<string> = new Set([
  *   `deriveDefaultPropsFromCatalog("Icon")` 는 iconName 미포함 → row 삭제 시 빈 아이콘 회귀.
  *   따라서 Icon row 는 `createDefaultIconProps` (random 합성) 로 유지한다.
  *
- * Phase 2a: Button 단일 (7-step ownership-transfer 메커니즘 검증). 후속 slice 에서
- * Badge/Link/ToggleButton/Text 확장 (각 deep-equal + strict key-set + G8 smoke 통과 후).
+ * Phase 2a: Button 단일 (7-step ownership-transfer 메커니즘 검증).
+ * Phase 2b: Badge/Link/ToggleButton/Text 확장 (각 deep-equal + strict key-set + G8 smoke 통과).
+ *   4종 모두 현 row 가 이미 deriveDefaultPropsFromCatalog 위임이라 row 삭제 = 호출 경로 단축,
+ *   값 byte-identical (conflict 0, random 합성 0). Icon 만 제외 (위 사유).
  */
 export const ENTRY_DERIVED_DEFAULT_TYPES: ReadonlySet<string> = new Set([
   "Button",
+  "Badge",
+  "Link",
+  "ToggleButton",
+  "Text",
 ]);

@@ -1239,10 +1239,16 @@ export function createDefaultButtonProps(): ButtonElementProps {
   return deriveDefaultPropsFromCatalog("Button") as ButtonElementProps;
 }
 
+/**
+ * @deprecated ADR-914 Phase 2b — DEFAULT_PROPS_MAP 의 Link row 가 삭제되어 현재 미사용
+ * (getDefaultProps 가 ENTRY_DERIVED_DEFAULT_TYPES 분기로 deriveDefaultPropsFromCatalog("Link")
+ * 직접 호출). historical 보존 — 후속 phase 에서 미참조 factory fn 일괄 정리.
+ *
+ * ADR-083 Phase 8 (R5): display/alignItems 는 Link containerStyles SSOT 로 이관.
+ * ADR-912 단계5 step5: LinkSpec 삭제 — 시각 SSOT 는 componentRulesTable.Link (catalog rule).
+ * ADR-912 #3: catalog 파생(variant/size/staticColor) + overlay(children/href/state).
+ */
 export function createDefaultLinkProps(): LinkElementProps {
-  // ADR-083 Phase 8 (R5): display/alignItems 는 Link containerStyles SSOT 로 이관.
-  // ADR-912 단계5 step5: LinkSpec 삭제 — 시각 SSOT 는 componentRulesTable.Link (catalog rule).
-  // ADR-912 #3: catalog 파생(variant/size/staticColor) + overlay(children/href/state).
   return deriveDefaultPropsFromCatalog("Link") as LinkElementProps;
 }
 
@@ -1292,10 +1298,16 @@ export function createDefaultRadioProps(): RadioElementProps {
   };
 }
 
+/**
+ * @deprecated ADR-914 Phase 2b — DEFAULT_PROPS_MAP 의 ToggleButton row 가 삭제되어 현재 미사용
+ * (getDefaultProps 가 ENTRY_DERIVED_DEFAULT_TYPES 분기로 deriveDefaultPropsFromCatalog("ToggleButton")
+ * 직접 호출). historical 보존 — 후속 phase 에서 미참조 factory fn 일괄 정리.
+ *
+ * ADR-912 #3: catalog 파생(size) + overlay(children/state). variant/fillStyle 없는 size-only leaf.
+ * 스타일은 spec/generated CSS가 담당 — inline borderWidth 미주입(applyInlineBorderOverlay 가
+ * borderColor 없이 회색 fallback border 를 렌더링하지 않도록).
+ */
 export function createDefaultToggleButtonProps(): ToggleButtonElementProps {
-  // ADR-912 #3: catalog 파생(size) + overlay(children/state). variant/fillStyle 없는 size-only leaf.
-  // 스타일은 spec/generated CSS가 담당 — inline borderWidth 미주입(applyInlineBorderOverlay 가
-  // borderColor 없이 회색 fallback border 를 렌더링하지 않도록).
   return deriveDefaultPropsFromCatalog(
     "ToggleButton",
   ) as ToggleButtonElementProps;
@@ -1598,8 +1610,14 @@ export function createDefaultCardProps(): CardElementProps {
   };
 }
 
+/**
+ * @deprecated ADR-914 Phase 2b — DEFAULT_PROPS_MAP 의 Badge row 가 삭제되어 현재 미사용
+ * (getDefaultProps 가 ENTRY_DERIVED_DEFAULT_TYPES 분기로 deriveDefaultPropsFromCatalog("Badge")
+ * 직접 호출). historical 보존 — 후속 phase 에서 미참조 factory fn 일괄 정리.
+ *
+ * ADR-912 #3: catalog 파생(variant/size/fillStyle) + overlay(children/isDot/isPulsing).
+ */
 export function createDefaultBadgeProps(): BadgeElementProps {
-  // ADR-912 #3: catalog 파생(variant/size/fillStyle) + overlay(children/isDot/isPulsing).
   return deriveDefaultPropsFromCatalog("Badge") as BadgeElementProps;
 }
 
@@ -1713,8 +1731,14 @@ export function createDefaultGridListItemProps(): GridListItemElementProps {
   };
 }
 
+/**
+ * @deprecated ADR-914 Phase 2b — DEFAULT_PROPS_MAP 의 Text row 가 삭제되어 현재 미사용
+ * (getDefaultProps 가 ENTRY_DERIVED_DEFAULT_TYPES 분기로 deriveDefaultPropsFromCatalog("Text")
+ * 직접 호출). historical 보존 — 후속 phase 에서 미참조 factory fn 일괄 정리.
+ *
+ * ADR-912 #3: catalog 파생(size) + overlay(children placeholder).
+ */
 export function createDefaultTextProps(): TextElementProps {
-  // ADR-912 #3: catalog 파생(size) + overlay(children placeholder).
   return deriveDefaultPropsFromCatalog("Text") as TextElementProps;
 }
 
@@ -2227,13 +2251,14 @@ export function createDefaultFrameProps(): BaseElementProps {
 }
 
 export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
-  // ADR-914 Phase 2a: Button row 삭제 — getDefaultProps 가 ENTRY_DERIVED_DEFAULT_TYPES
-  //   분기로 deriveDefaultPropsFromCatalog("Button") 단일 source 사용 (entry-derived
-  //   ownership transfer). createDefaultButtonProps 함수는 historical 보존 (후속 phase 정리).
+  // ADR-914 Phase 2a/2b: Button/Badge/Link/ToggleButton/Text row 삭제 —
+  //   getDefaultProps 가 ENTRY_DERIVED_DEFAULT_TYPES 분기로 deriveDefaultPropsFromCatalog(type)
+  //   단일 source 사용 (entry-derived ownership transfer). createDefault{Button,Badge,Link,
+  //   ToggleButton,Text}Props 함수는 historical 보존 (후속 phase 정리). Icon 은 random iconName
+  //   합성이 row 에만 있어 제외 — 계속 createDefaultIconProps 유지.
   TextField: createDefaultTextFieldProps,
   Checkbox: createDefaultCheckboxProps,
   Radio: createDefaultRadioProps,
-  ToggleButton: createDefaultToggleButtonProps,
   ToggleButtonGroup: createDefaultToggleButtonGroupProps,
   CheckboxGroup: createDefaultCheckboxGroupProps,
   RadioGroup: createDefaultRadioGroupProps,
@@ -2262,8 +2287,6 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
   Row: createDefaultRowProps,
   Cell: createDefaultCellProps,
   Card: createDefaultCardProps,
-  Badge: createDefaultBadgeProps,
-  Link: createDefaultLinkProps,
   Label: createDefaultLabelProps,
   TagGroup: createDefaultTagGroupProps,
   TagList: createDefaultTagListProps,
@@ -2273,7 +2296,6 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
   Field: createDefaultFieldProps,
   GridList: createDefaultGridListProps,
   GridListItem: createDefaultGridListItemProps,
-  Text: createDefaultTextProps,
   Div: createDefaultDivProps,
   Section: createDefaultSectionProps,
   Nav: createDefaultNavProps,
@@ -2326,9 +2348,10 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
 };
 
 export function getDefaultProps(type: string): ComponentElementProps {
-  // ADR-914 Phase 2 (Option A): entry-derived 전환 완료 type 은 catalog 파생을 단일 source 로
-  // 사용. DEFAULT_PROPS_MAP row 가 삭제돼도 동일 출력을 보장한다 (entryUniverse.resolveDefaultsFacet
-  // 와 동일 분기 술어 ENTRY_DERIVED_DEFAULT_TYPES 공유 → circular import 없이 congruent).
+  // ADR-914 Phase 2 (Option A): entry-derived 전환 완료 type (Phase 2a Button, Phase 2b
+  // Badge/Link/ToggleButton/Text) 은 catalog 파생을 단일 source 로 사용. DEFAULT_PROPS_MAP
+  // row 가 삭제돼도 동일 출력을 보장한다 (entryUniverse.resolveDefaultsFacet 와 동일 분기 술어
+  // ENTRY_DERIVED_DEFAULT_TYPES 공유 → circular import 없이 congruent).
   // Icon 제외 (random iconName 합성이 map row 에만 있음). 그 외 type 은 기존 literal row fallback.
   if (ENTRY_DERIVED_DEFAULT_TYPES.has(type)) {
     return deriveDefaultPropsFromCatalog(type);
