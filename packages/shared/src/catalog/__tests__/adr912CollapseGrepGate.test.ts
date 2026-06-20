@@ -275,6 +275,31 @@ const DISPERSION_BASELINE: Array<{
     baseline: 0,
     killPhase: "Phase 6 ✅",
   },
+  {
+    // Δ11 (2026-06-20, 검증 Workflow wtuk64q6m 적발): field-trigger 계열(Select/ComboBox/
+    //   SearchField/NumberField)의 자식 SelectTrigger 와 selecttrigger-자체-container 분기가
+    //   base-axis(`flexDirection ?? "row"`)를 inline 하드코딩. field류 `?? "column"`(Δ6)은 Phase
+    //   3-A-3a/b 에서 catalog structure 로 닫혔으나, field-trigger 의 `?? "row"` 는 Δ6 패턴
+    //   (`?? "column"` 한정)에 안 잡혀 false-negative 로 잔존했다 (3곳: select/combobox/searchfield
+    //   wrapper child 2 + selecttrigger container 1).
+    //   **의도된 잔존 (baseline 3, kill 0 아님) — byte-diff 0 보존 결정 (사용자 confirm 2026-06-20)**:
+    //   catalog 로 모으는 유일 채널(SelectTrigger rule 에 `structure.composition.layout`)을 추가하면
+    //   generate-css 가 `rule.structure` 보유를 보고 `.react-aria-SelectTrigger` CSS 를 신규 emit
+    //   → byte-diff 0 위반. 한편 DOM trigger 는 `.react-aria-SelectTrigger` className 을 안 쓰고
+    //   `.react-aria-Select .react-aria-Button` 으로 base-axis 를 이미 보유 → 신규 CSS 는 dead.
+    //   `rule.structure`(=CSS emit 채널)와 `resolveCatalogContainerBase`(=Skia 채널)가 같은 필드라
+    //   분리 불가. 따라서 본 3곳은 dual-SSOT(spec↔catalog 이중 정의) 가 아니라 single-source 가
+    //   layout 코드에 위치한 의도된 잔존이다(시각 정합 깨짐 0 — DOM/Skia 둘 다 row).
+    //   가드: baseline 3 초과(=재도입) 시 regression. catalog-emit-분리 채널 도입 phase 가 미래에
+    //   land 하면 0 으로 낮춘다. (811 TagGroup 의 `?? "row"` 는 catalog variant.styles fallback 이라
+    //   base-axis 하드코딩 아님 — 본 패턴은 `cs.flexDirection`/`parentStyle.flexDirection` 만 매칭.)
+    label:
+      "field-trigger base-axis inline (Δ11 — byte-diff 0 보존 의도 잔존, baseline 3)",
+    file: "implicitStyles",
+    pattern: /(cs|parentStyle)\.flexDirection \?\? "row"/,
+    baseline: 3,
+    killPhase: "Δ11 의도 잔존(byte-diff 0 보존)",
+  },
 ];
 
 describe("ADR-912 collapse grep gate — dispersion baseline 단조 감소", () => {
