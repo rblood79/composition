@@ -244,6 +244,33 @@ Kill criteria:
 
 ### Phase 3 - Render Facet Proof
 
+> **Phase 3-A (파생 역전, 삭제 0) ✅ Implemented 2026-06-20 (commit `1998a611d`)**:
+> delegating render facet 의 SSOT 를 `renderFacetDeclaration.ts` 로 역전했다. 기존엔
+> `entryUniverse.ts` 가 `CanonicalNodeRenderer.tsx` 의 `DELEGATING_INTERNAL_RENDERERS`(18) /
+> `DELEGATING_RAC_RENDERERS`(10) set 을 _읽어서_ mirror 했는데(Phase 1 read-only spine), 이제
+> 두 소비처(CanonicalNodeRenderer hot-path 분기 + entryUniverse render facet mode 판정)가
+> **동일 declaration 을 source 로 공유**한다. set 28종 membership + 위임 사유는 declaration 으로
+> 1:1 이전됐고, 두 set 은 `deriveDelegatingInternalRenderers()` / `deriveDelegatingRacRenderers()`
+> 파생으로 교체됐다 (값 byte-identical, insertion order 보존). circular import 없음 (declaration
+> 은 순수 데이터, defaultPropsDerivation Option A 패턴 동형).
+>
+> **삭제 0**: `rendererMap` dead/generic row 삭제는 본 phase 에서 하지 않는다 (§6: "generic
+> 으로 보인다는 grep 만으로 삭제 금지"). dead 확증은 row 별 도달성 검증이 끝난 **별도 slice
+> (Phase 3-B)**. INTERNAL_RENDERERS(26 React.ElementType 매핑)는 declaration scope 밖이라
+> CanonicalNodeRenderer export 유지.
+>
+> **검증**: `renderFacetDeclarationContract.test.ts` parity A (파생 set == 현 28종 멤버+순서) /
+> B (inventory 18+10) / C (위임 사유 무손실) + entryUniverseContract 17/17 PASS + type-check
+> exit 0 회귀 0 + full builder suite stash-baseline attribution (58fail/1698pass baseline →
+> 58fail/1705pass, 새 contract 7 PASS, 새 fail 0; `CanonicalNodeRenderer.field.test.tsx` 2 fail 은
+> baseline 격리 재현으로 pre-existing 확정) + G8 live (HMR'd 모듈에서 파생 set == export set
+> byte-identical / entry facet mode 정상 / Home 페이지 delegating-internal Nav 정상 렌더 +
+> rawLeak 0 + React unknown-tag warning 0).
+>
+> **후속 (별도 slice, 미착수)**: Phase 3-B — `rendererMap` 94 row 중 catalog generic cutover 로
+> dead 된 row 를 row 별 도달성 검증 후 삭제 (exception `rendererMap` 4: InlineAlert/List/TextArea/
+> frame 보존). dead 확증 없이 삭제 금지.
+
 목표: `rendererMap` membership을 entry render facet으로 소유권 이전한다.
 
 분류:
