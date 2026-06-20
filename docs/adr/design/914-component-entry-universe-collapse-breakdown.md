@@ -43,20 +43,42 @@ runtime 권한을 같은 component entry universe로 모은다.
 
 Phase 0은 아래 표면을 count와 owner classification으로 freeze한다.
 
-| 표면                   | 기준 파일                                                                         | 현재 확인 포인트                                                                  |
-| ---------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| shared render map      | `packages/shared/src/renderers/index.ts`                                          | `rendererMap` export                                                              |
-| Preview delegation     | `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`                   | `INTERNAL_RENDERERS`, `DELEGATING_INTERNAL_RENDERERS`, `DELEGATING_RAC_RENDERERS` |
-| factory creators       | `apps/builder/src/builder/factories/ComponentFactory.ts`                          | `private static creators`                                                         |
-| complex tags           | `apps/builder/src/builder/factories/constants.ts`                                 | `COMPLEX_COMPONENT_TAGS`                                                          |
-| defaults               | `apps/builder/src/types/builder/unified.types.ts`                                 | `DEFAULT_PROPS_MAP`, `getDefaultProps`                                            |
-| propagation            | `apps/builder/src/builder/utils/propagationRegistry.ts`                           | `createPropagationOnlySpec`, `registerPropagationSpec`                            |
-| synthetic child merge  | `apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts`             | `SYNTHETIC_CHILD_PROP_MERGE_TAGS`                                                 |
-| layout child filtering | `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`      | `POPOVER_CHILDREN_TAGS`, `filteredChildren` branches                              |
-| registration contract  | `apps/builder/src/builder/factories/__tests__/componentRegistrationBaseline.json` | ADR-139 baseline ratchet                                                          |
+| 표면                   | 기준 파일                                                                          | 현재 확인 포인트                                                                  |
+| ---------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| shared render map      | `packages/shared/src/renderers/index.ts`                                           | `rendererMap` export                                                              |
+| Preview delegation     | `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`                    | `INTERNAL_RENDERERS`, `DELEGATING_INTERNAL_RENDERERS`, `DELEGATING_RAC_RENDERERS` |
+| factory creators       | `apps/builder/src/builder/factories/ComponentFactory.ts`                           | `private static creators`                                                         |
+| complex tags           | `apps/builder/src/builder/factories/constants.ts`                                  | `COMPLEX_COMPONENT_TAGS`                                                          |
+| defaults               | `apps/builder/src/types/builder/unified.types.ts`                                  | `DEFAULT_PROPS_MAP`, `getDefaultProps`                                            |
+| propagation            | `apps/builder/src/builder/utils/propagationRegistry.ts`                            | `createPropagationOnlySpec`, `registerPropagationSpec`                            |
+| synthetic child merge  | `apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts`              | `SYNTHETIC_CHILD_PROP_MERGE_TAGS`                                                 |
+| layout child filtering | `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`       | `POPOVER_CHILDREN_TAGS`, `filteredChildren` branches                              |
+| registration contract  | `apps/builder/src/builder/factories/__tests__/componentRegistrationBaseline.json`  | ADR-139 baseline ratchet                                                          |
+| registration exception | `apps/builder/src/builder/factories/__tests__/componentRegistrationException.json` | ADR-139 intended 부재 allowlist (`allowed()` = baseline OR exception)             |
 
 Phase 0 산출물은 `docs/adr/design/914-entry-universe-inventory.md`로 둔다. 구현 phase는
 inventory row를 수정하면서 진행한다.
+
+### 2.1 ADR-912 inventory 카운트는 source가 아니다 (G0 재실측 강제)
+
+ADR-912 본문은 같은 문서 안에서 factory 카운트가 자기모순이다 — `912.md:76`=60,
+`912.md:59`=55(creators=`COMPLEX_COMPONENT_TAGS` 등치), `912.md:209`=45. 2026-06-20
+실측은 `ComponentFactory.creators` 55키(54 함수, `Navigation`→`createNav` alias) /
+`COMPLEX_COMPONENT_TAGS` 48이며, set-math상 `COMPLEX_COMPONENT_TAGS ⊊ creators`
+(진부분집합, 차 7)라 `912.md:59`의 두 set 등치 자체가 틀렸다. 따라서 **G0 inventory는
+ADR-912의 어떤 카운트도 신뢰하지 않고 위 표면 전부를 grep으로 전수 재실측한다.**
+ADR-912 수치는 history 참고용일 뿐 source가 아니다. (adr-writing.md M3 — 추정 vs 실측
+gap은 새 fork 사유가 아니라 Phase 0 inventory로 흡수.)
+
+### 2.2 Registration exception은 baseline과 다르게 취급한다 (intended 부재 보존)
+
+`componentRegistrationException.json`(2026-06-20 실측: `TAG_SPEC_MAP` 11 /
+`rendererMap` 4 / `getDefaultProps` 2)은 baseline(해소 대상 known debt)과 달리
+**영구 정당한 의도된 부재**다. `componentRegistrationContract.test.ts:94-95`의
+`allowed()`는 `comp in exceptions[reg] || comp in baseline[reg]`로 양쪽에 의존하므로,
+Phase 7 contract swap은 baseline(빈 객체)뿐 아니라 exception allowlist의 차단 의미를
+누락 없이 가져가야 한다 (§3.3-8 / Phase 7 참조). exception 항목은 entry universe에서
+"등록 없음이 정상(intended)"인 row로 모델링하고, 해소(삭제)하지 않는다.
 
 ## 3. Target Architecture
 
@@ -111,6 +133,11 @@ type ComponentEntryRuntime = {
 5. propagation facet과 registered propagation rule set이 extra/missing 없이 일치한다.
 6. childRuntime facet과 synthetic/filtering membership이 extra/missing 없이 일치한다.
 7. 신규 component가 ADR-139 baseline 파일에 append되는 것을 계속 금지한다.
+8. ADR-139 exception allowlist(`componentRegistrationException.json`: `TAG_SPEC_MAP`
+   11 / `rendererMap` 4 / `getDefaultProps` 2)가 표현하던 "intended 부재" 차단 의미를
+   entry universe row로 보존한다. baseline(해소 대상)과 달리 exception은 영구 정당한
+   부재이므로, swap 후에도 `allowed()` = baseline OR exception이 막던 false-positive
+   누락 차단 능력이 그대로 유지되는지 matrix로 증명한다.
 
 ## 4. Phases
 
@@ -128,11 +155,18 @@ type ComponentEntryRuntime = {
   `delegate-required`로 분류.
 - propagation rules를 parent type별로 count하고 empty/no-op rule을 분리.
 - child runtime sets/branches를 type membership 단위로 분류.
+- ADR-139 baseline/exception 항목을 분리 분류. exception(`TAG_SPEC_MAP`/`rendererMap`/
+  `getDefaultProps`)은 `intended-absent`로, baseline은 `debt`로 표기 (§2.2).
 
 Gate:
 
 - G0 inventory 문서가 신규 count를 포함한다.
-- count가 ADR-912 본문 숫자와 다르면 ADR-914 inventory가 current source로 우선한다.
+- **ADR-912 카운트는 source가 아니다 (§2.1)** — 같은 문서 내 factory 수치 자기모순
+  (60/55/45)이 확인됐으므로, 모든 표면을 grep으로 전수 재실측하고 ADR-912 숫자는
+  history 참고로만 인용한다. count가 ADR-912와 다르면 ADR-914 inventory가 current
+  source로 우선한다.
+- exception allowlist(11/4/2)와 baseline을 분리 집계한다 — swap 대상(Phase 7)이
+  baseline 뿐 아니라 exception 차단 의미까지 포함함을 inventory에 명시.
 
 ### Phase 1 - Entry Universe Spine + Contract (No Deletion)
 
@@ -265,12 +299,21 @@ Gate:
 작업:
 
 - ADR-139 contract가 검증하던 missing/extra를 entry contract가 포함하는지 matrix로 증명한다.
+- **exception allowlist 흡수**: `componentRegistrationException.json`의 intended 부재
+  (`TAG_SPEC_MAP` 11 / `rendererMap` 4 / `getDefaultProps` 2)를 entry universe row의
+  "등록 없음이 정상" 선언으로 옮기고, `allowed()` = baseline OR exception이 막던
+  false-positive 누락 차단을 entry contract가 동일하게 수행하는지 항목별 matrix로 증명한다
+  (§3.3-8). exception은 해소(삭제) 대상이 아니라 영구 보존이므로, swap 후 이 11/4/2
+  항목이 "누락 아님(intended)"으로 계속 통과해야 한다.
 - 기존 registry baseline file append path를 제거하거나 entry contract로 redirect한다.
 - README/ADR status를 갱신한다.
 
 Gate:
 
 - `componentRegistrationContract`와 `entryUniverseContract` 병행 green 기간 1 phase 이상.
+- **exception 흡수 matrix green**: 11/4/2 intended-absent 항목이 entry contract에서도
+  "누락 아님"으로 통과하고, baseline(빈 객체) + exception 양쪽 차단 의미가 누락 없이
+  이관됐음을 증명. exception 항목 중 단 하나라도 false-positive로 missing 판정되면 swap 보류.
 - registry별 leftover가 entry-owned adapter인지 독립 source인지 final audit.
 
 ## 5. Verification Matrix
