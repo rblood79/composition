@@ -595,9 +595,45 @@ Gate:
 > hasLabel 2케이스 가시성 동작 pre/post diff 0). datepicker 는 제외형 filter (`!POPOVER.has`) 라
 > 포함형 맵 대상 아님 — Phase 6 popoverHosted facet 이 그 membership 소유 (facet null 확인).
 >
-> **잔여 후속 slice**: (b) PROGRESSBAR/SLIDER live-prop adapter (HIGH — formatProgressValue/
-> sliderFormattedValue, byte-identical fixture 불가) / tabpanels selectedKey selection / Label
-> necessity injection (HIGH, 3경로 동기화). 각각 별도 slice.
+> **잔여 후속 slice**: Label necessity injection (HIGH, 3경로 동기화). (b) PROGRESSBAR/SLIDER/
+> tabpanels live-prop adapter 는 아래 §"(b) DROP 판정" 으로 collapse 무관 결론.
+
+> **Phase 6 후속 slice (b) — PROGRESSBAR/SLIDER live-prop adapter ❌ DROP 2026-06-21**
+>
+> recon + 적대 검증 (Workflow wh8wawwj5, 3 recon + 10 적대 검증) 결과 **proceed 추천 0건**
+> (defer-low-value 8 / block-dormant 2). 사용자 결정(2026-06-21): ADR-914 collapse phase 에서
+> 명시적 drop.
+>
+> **(a) 와 구조적 역(inverse) — 동형 작업 아님**:
+>
+> | 축              | (a) FIELD (implicitStyles inclusion-whitelist)                   | (b) PROGRESSBAR/SLIDER (exclusion-default)                              |
+> | --------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------- |
+> | filter topology | `(c.type==="Label"?hasLabel:false) \|\| visibleTags.has(c.type)` | `if(Label)return hasLabel; if(Value)return showValueLabel; return true` |
+> | set 멤버십 의미 | `set.has()` = **가시성 verdict 자체**                            | 추출할 set **0건** (grep 확증 — child-visibility Set/\_TAGS/.has 0)     |
+> | default 분기    | 미포함 = HIDE                                                    | 미포함 = **무조건 visible** (Track/Thumb `return true`)                 |
+> | 추출 SSOT 맵    | FIELD_VISIBLE_CHILD_TAGS (8 컨테이너 실재)                       | 대응물 부재                                                             |
+>
+> 참조 child type 전부 (1) live-prop gate (Label→hasLabel, Value→showValueLabel, Output→showValue)
+> **또는** (2) unconditional pass (Track/Thumb) → set 멤버십이 가시성을 결정하는 child type 0개 =
+> facet 으로 옮길 declarative membership 실체 없음. live-prop 텍스트 합성(formatProgressValue
+> implicitStyles:1696 + Skia mirror buildSpecNodeData:673 / sliderFormattedValue inline:1813)은
+> entry universe collapse(등록 surface 제거)와 **직교**한 render-text 합성 — facet 이전 대상 아님.
+>
+> **차단 메모리 평가 (차단 카테고리 선행 — MEMORY.md tie-breaking)**:
+>
+> - feedback-no-dormant-foundation-ahead-of-flip — **걸림**: exclusion-default + live gating 잔존이라
+>   filter 가 같은 set 직접 소비 불가 → facet 은 contract mirror 만 = dormant foundation. (a) 가
+>   이 메모리 통과한 유일 이유(filter 코드 이동 동반 runtime 소비)가 (b) 에서 재현 불가.
+> - feedback-execute-adr-surface-minimization — **걸림**: 줄어드는 등록 surface 0 (PROGRESSBAR_TAGS/
+>   SLIDER_TAGS 는 layout dispatch set 이지 손등록 registry 아님) 인데 facet 필드 + parity test
+>   추가 = net surface 증가. (a) 는 흩어진 inline 비교 consolidate 이득이라도 있었으나 (b) 는 그조차 0.
+>
+> 차단 메모리 2개 모두 걸리므로 정당화 카테고리 인용 자체가 위반 (ADR-127 우회 사례 동형).
+>
+> **실제 가치 1건 (collapse 무관, 별도 scope)**: sliderFormattedValue 의 Skia mirror 부재 비대칭
+> (formatProgressValue 는 layout↔Skia 2 경로 cross-consume 단일 export, sliderFormattedValue 는
+> layout 단일 inline) 해소 + helper 통일은 render-text 정합 가치이나 entry universe collapse 와
+> 직교 → ADR-914 slice 로 묶는 것은 framing 부정합. 필요 시 별도 작업/ADR 판정 (현재 미진행).
 
 목표: child filtering/injection membership을 entry childRuntime facet으로 이전한다.
 
@@ -606,7 +642,7 @@ Gate:
 - `SYNTHETIC_CHILD_PROP_MERGE_TAGS`. ← ✅ **Phase 6 Implemented 2026-06-21** (SSOT 명문화 + contract 양방향 parity 소유 증명)
 - `POPOVER_CHILDREN_TAGS`. ← ✅ 동축 동시 격상 (popoverHosted ⟺ POPOVER.has parity)
 - Label necessity injection. ← adapter-id-required (HIGH, 3경로 동기화) — 후속 slice
-- field/collection visible child filtering branches. ← ✅ **(a) field/datepicker membership facet Implemented 2026-06-21** (FIELD_VISIBLE_CHILD_TAGS SSOT 추출 + filter·facet 동일 맵 소비 비-dormant + 양방향 parity, oracle byte-identical). (b) PROGRESSBAR/SLIDER/tabpanels live-prop adapter 는 후속 slice (HIGH)
+- field/collection visible child filtering branches. ← ✅ **(a) field/datepicker membership facet Implemented 2026-06-21** (FIELD_VISIBLE_CHILD_TAGS SSOT 추출 + filter·facet 동일 맵 소비 비-dormant + 양방향 parity, oracle byte-identical). **(b) PROGRESSBAR/SLIDER/tabpanels live-prop adapter — ❌ DROP 2026-06-21** (collapse 무관, 아래 §"(b) DROP 판정" 참조)
 
 작업:
 
