@@ -36,7 +36,10 @@ import { ComponentFactory } from "@/builder/factories/ComponentFactory";
 import { COMPLEX_COMPONENT_TAGS } from "@/builder/factories/constants";
 import { isReusableCompositeType } from "@/builder/components/reusableCompositeOrigins";
 import { getRegisteredPropagationTags } from "@/builder/utils/propagationRegistry";
-import { POPOVER_CHILDREN_TAGS } from "@/builder/workspace/canvas/layout/engines/implicitStyles";
+import {
+  POPOVER_CHILDREN_TAGS,
+  FIELD_VISIBLE_CHILD_TAGS,
+} from "@/builder/workspace/canvas/layout/engines/implicitStyles";
 import { SYNTHETIC_CHILD_PROP_MERGE_TAGS } from "@/builder/workspace/canvas/skia/buildSpecNodeData";
 import { INTERNAL_RENDERERS } from "@/preview/components/CanonicalNodeRenderer";
 import { deriveDelegatingLowerLookup } from "@/preview/components/renderFacetDeclaration";
@@ -132,6 +135,12 @@ export interface ComponentEntryRuntime {
     syntheticPropMerge: boolean;
     /** Taffy 레이아웃 제외 (popover-hosted). */
     popoverHosted: boolean;
+    /**
+     * Field 컨테이너의 **비-Label 가시 child.type 화이트리스트** (포함형 filter membership).
+     * null = field visible-filter 대상 아님. Label 은 hasLabel live gate 라 맵 밖 (facet 미보유).
+     * ADR-914 Phase 6 후속: FIELD_VISIBLE_CHILD_TAGS SSOT mirror.
+     */
+    fieldVisibleChildTags: readonly string[] | null;
   };
 }
 
@@ -171,15 +180,33 @@ const tagSpecKeysLower = new Set(Object.keys(TAG_SPEC_MAP).map(lower));
 const catalogCutoverLower = new Set([...getCatalogCutoverTypes()].map(lower));
 
 // ADR-914 Phase 6 (childRuntime facet membership SSOT, 2026-06-21): childRuntime facet 의
-//   두 membership 권한 source. `syntheticPropMerge` ⟸ SYNTHETIC_CHILD_PROP_MERGE_TAGS
+//   membership 권한 source. `syntheticPropMerge` ⟸ SYNTHETIC_CHILD_PROP_MERGE_TAGS
 //   (buildSpecNodeData.ts), `popoverHosted` ⟸ POPOVER_CHILDREN_TAGS (implicitStyles.ts).
 //   본 resolver 는 두 set 을 *읽어* facet 으로 노출하고, 실 소비처(buildSpecNodeData 2 +
 //   StoreRenderBridge 3 / implicitStyles 1)가 **동일 set 을 직접 소비**한다. entryUniverseContract
 //   가 `syntheticPropMerge ⟺ SYNTHETIC.has` / `popoverHosted ⟺ POPOVER.has` 양방향 parity 로
 //   facet 이 이 membership 을 소유함을 증명한다 (Phase 4-C COMPLEX 와 동형 — 별도 declaration
 //   파일 없이 단일 source 공유, surface 증가 0).
+//
+// ADR-914 Phase 6 후속 slice (field visible filter, 2026-06-21): `fieldVisibleChildTags` ⟸
+//   FIELD_VISIBLE_CHILD_TAGS (implicitStyles.ts). field 4 filter 분기가 inline `c.type` 비교를
+//   버리고 동일 맵을 직접 소비하도록 코드 이동(값/동작 byte-identical) → POPOVER 선례 동형
+//   비-dormant. facet 은 컨테이너 type → 가시 child.type 정렬 배열 노출, contract 가 양방향
+//   per-container parity 로 소유 증명. Label gate / sideMode 합성은 맵 밖 adapter 잔존.
 const syntheticMergeSet = SYNTHETIC_CHILD_PROP_MERGE_TAGS;
 const popoverHostedSet = POPOVER_CHILDREN_TAGS;
+
+// ADR-914 Phase 6 후속 slice (field/collection visible filter, 2026-06-21): field 4 분기의
+//   비-Label 가시성 membership SSOT (FIELD_VISIBLE_CHILD_TAGS, implicitStyles.ts). entry facet 이
+//   읽어 노출하고, 실 소비처(implicitStyles 4 filter 분기)가 **동일 맵을 직접 소비**한다 → POPOVER
+//   선례와 동형 (dormant 아님). key 는 lowercase containerTag (combobox/select/.../timefield).
+//   facet 은 컨테이너 type → 가시 child.type 정렬 배열을 노출, contract 가 양방향 parity 로 증명.
+const fieldVisibleChildLower: Map<string, readonly string[]> = new Map(
+  Object.entries(FIELD_VISIBLE_CHILD_TAGS).map(([tag, set]) => [
+    lower(tag),
+    [...set].sort(),
+  ]),
+);
 const rendererKeys = new Set(Object.keys(rendererMap));
 
 /**
@@ -263,6 +290,7 @@ export function resolveComponentEntryRuntime(
     childRuntime: {
       syntheticPropMerge: syntheticMergeSet.has(type),
       popoverHosted: popoverHostedSet.has(type),
+      fieldVisibleChildTags: fieldVisibleChildLower.get(lower(type)) ?? null,
     },
   };
 }

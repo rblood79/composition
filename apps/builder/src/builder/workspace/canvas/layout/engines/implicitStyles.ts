@@ -428,6 +428,40 @@ const SLIDER_TAGS = new Set(["slider"]);
  */
 export const POPOVER_CHILDREN_TAGS = new Set(["Calendar", "RangeCalendar"]);
 
+/**
+ * Field 컨테이너별 **비-Label 가시 child.type 화이트리스트** (포함형 filter SSOT).
+ *
+ * ADR-914 Phase 6 후속 slice (field/collection visible filter, 2026-06-21): field 4 분기
+ * (combobox/select/searchfield · numberfield · textfield/textarea · datefield/timefield) 의
+ * 가시성 filter 가 inline `c.type === "Input"` / 분기별 local `WRAPPER_TAGS` 로 흩어져 있던 것을
+ * 단일 declarative 맵으로 추출한다. 각 filter 분기가 **이 맵을 직접 소비** (`set.has(c.type)`),
+ * `entryUniverse` childRuntime facet 이 동일 맵의 membership 을 mirror → contract 양방향 parity.
+ *
+ * **dormant 회피 (feedback-no-dormant-foundation-ahead-of-flip)**: Phase 6 `popoverHosted` 가
+ * POPOVER_CHILDREN_TAGS 를 filter(1962)·facet 둘 다 소비해 비-dormant 였던 것과 동형 — facet 만
+ * mirror 하고 filter 는 inline 유지하면 dormant 위반이므로, filter 가 같은 맵을 직접 소비하도록
+ * 코드 이동(값/동작 보존)한다.
+ *
+ * **adapter 잔존 (impure, 소비처)**: Label 가시성은 `hasLabel = !!props.label` live gate 라 맵 밖 —
+ * 맵은 "Label 은 조건부" 가 아니라 "비-Label membership" 만 보유. sideMode style 합성 /
+ * SelectTrigger padding 주입 / DateInput live 필드 주입 등도 이 맵의 책임 아님 (분기 잔존).
+ *
+ * datepicker/daterangepicker(1960)는 **제외형** filter (`!POPOVER_CHILDREN_TAGS.has`) 라 포함형
+ * 맵 대상 아님 — 이미 Phase 6 popoverHosted facet 이 그 membership 을 소유.
+ */
+export const FIELD_VISIBLE_CHILD_TAGS: Readonly<
+  Record<string, ReadonlySet<string>>
+> = {
+  combobox: new Set(["SelectTrigger"]),
+  select: new Set(["SelectTrigger"]),
+  searchfield: new Set(["SelectTrigger"]),
+  numberfield: new Set(["SelectTrigger", "FieldError"]),
+  textfield: new Set(["Input", "FieldError"]),
+  textarea: new Set(["Input", "FieldError"]),
+  datefield: new Set(["DateInput", "FieldError"]),
+  timefield: new Set(["DateInput", "FieldError"]),
+};
+
 // Slider row-gap: ADR-912 Phase 3-A-1 (Δ4) 에서 specSizeField("slider", size, "gap") read-through 로
 //   이관 (Slider.sizes.gap=4 모든 size 일치). column-gap 은 ADR-088 에서 이미 specSizeField("slider",
 //   size, "columnGap") 이관 완료. 두 gap 모두 catalog .sizes 단일 source.
@@ -1319,10 +1353,13 @@ export function applyImplicitStyles(
     const hasLabel = !!containerProps?.label;
     // ADR-912 R1 (2026-06-12): ComboBoxWrapper/SearchFieldWrapper synthetic 은 factory retype
     //   으로 SelectTrigger 에 합류 — wrapper 태그 단일화.
-    const WRAPPER_TAGS = new Set(["SelectTrigger"]);
+    // ADR-914 Phase 6 후속: 가시성 membership 은 FIELD_VISIBLE_CHILD_TAGS SSOT 직접 소비
+    //   (Label 은 hasLabel live gate 로 맵 밖). padding 주입은 wrapperChildTag 로 별도 잔존.
+    const visibleTags = FIELD_VISIBLE_CHILD_TAGS[containerTag];
     filteredChildren = children.filter(
       (c) =>
-        (c.type === "Label" ? hasLabel : false) || WRAPPER_TAGS.has(c.type),
+        (c.type === "Label" ? hasLabel : false) ||
+        (visibleTags?.has(c.type) ?? false),
     );
 
     // Wrapper에 padding + gap 주입
@@ -1378,12 +1415,12 @@ export function applyImplicitStyles(
     );
     const sideMode = hasResolvedSideLabelVariant(fieldVariant.styles);
     const hasLabel = !!containerProps?.label;
-    const WRAPPER_TAGS = new Set(["SelectTrigger"]);
+    // ADR-914 Phase 6 후속: 가시성 membership FIELD_VISIBLE_CHILD_TAGS SSOT 직접 소비.
+    const visibleTags = FIELD_VISIBLE_CHILD_TAGS[containerTag];
     filteredChildren = children.filter(
       (c) =>
         (c.type === "Label" ? hasLabel : false) ||
-        WRAPPER_TAGS.has(c.type) ||
-        c.type === "FieldError",
+        (visibleTags?.has(c.type) ?? false),
     );
 
     // Wrapper에 padding + gap 주입 (ComboBox 분기와 동일)
@@ -1536,11 +1573,12 @@ export function applyImplicitStyles(
   //   동일 spec 데이터 소비). TextArea 는 P5 에서 같은 helper 경로를 공유한다.
   if (containerTag === "textfield" || containerTag === "textarea") {
     const hasLabel = !!containerProps?.label;
+    // ADR-914 Phase 6 후속: 가시성 membership FIELD_VISIBLE_CHILD_TAGS SSOT 직접 소비.
+    const visibleTags = FIELD_VISIBLE_CHILD_TAGS[containerTag];
     filteredChildren = children.filter(
       (c) =>
         (c.type === "Label" ? hasLabel : false) ||
-        c.type === "Input" ||
-        c.type === "FieldError",
+        (visibleTags?.has(c.type) ?? false),
     );
 
     // ADR-912 단계5 step4 (2026-06-17): resolveActiveContainerVariants 경유 — spec 삭제
@@ -1588,11 +1626,12 @@ export function applyImplicitStyles(
     const sizeName = (containerProps?.size as string) ?? "md";
     const inputHeight = specSizeField(containerTag, sizeName, "height") ?? 30;
 
+    // ADR-914 Phase 6 후속: 가시성 membership FIELD_VISIBLE_CHILD_TAGS SSOT 직접 소비.
+    const visibleTags = FIELD_VISIBLE_CHILD_TAGS[containerTag];
     filteredChildren = children.filter(
       (c) =>
         (c.type === "Label" ? hasLabel : false) ||
-        c.type === "DateInput" ||
-        c.type === "FieldError",
+        (visibleTags?.has(c.type) ?? false),
     );
 
     // DateInput에 부모 props 주입 (Spec shapes에서 세그먼트 텍스트 생성용)

@@ -550,6 +550,55 @@ Gate:
 > 읽음 — dormant 해소) / Label necessity injection adapter id 분리(3경로 동기화 보존) / field·collection
 > visible filter adapter id 분리(live-prop 동적 합성 격리). 각각 별도 phase/ADR 판정.
 
+> **Phase 6 후속 slice (a) — field/datepicker visible filter membership facet ✅ Implemented 2026-06-21**
+>
+> recon (Workflow w5i3sqdgi, 3 recon + 12 적대 검증) + 사용자 결정 2건 후 진행. 적대 검증이 design
+> 추정 vs 실측 **3 gap** 적발 (M3 — 절차 결함, fork trigger 아님):
+>
+> | design 추정 (§516)    | 실측 (적대 검증 confirmed)                                                                                                   |
+> | --------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+> | "14 분기"             | filteredChildren 재할당 site 11 / `children.filter` 가시성 분기 8 / tag 17 — 어느 기준에도 14 없음                           |
+> | risk MED 단일         | MED~HIGH 편차 (PROGRESSBAR/SLIDER/datefield=HIGH, field membership=LOW~MED)                                                  |
+> | fixture 불가 "2 함수" | 5 요인 (+ Skia mirror buildSpecNodeData:673 + tabpanels selectedKey + synthetic-label labelText + field sideMode style 합성) |
+>
+> **사용자 결정 (2026-06-21, AskUserQuestion 2건)**:
+>
+> 1. **scope = field/datepicker membership facet 단일** (R7). 차단 메모리 우선 평가:
+>    feedback-no-derived-adr-mid-execution(M3) = 추정 vs 실측 gap 은 Phase 0 inventory freeze
+>    부실(절차 결함)이지 fork trigger 아님 → 본 slice 안에서 §516 stale 추정 정정.
+>    feedback-execute-adr-surface-minimization = field(LOW~MED) + PROGRESSBAR/SLIDER(HIGH) 동시
+>    진행은 surface 폭증 → field/datepicker 단일로 좁힘. PROGRESSBAR/SLIDER/tabpanels live-prop
+>    adapter 는 별도 후속 slice (byte-identical fixture 불가).
+> 2. **방식 = oracle byte-identical 로 live 갈음** (Chrome 확장 미연결). filter 코드 이동이
+>    oracle(8컨테이너×hasLabel 2케이스 전수, pre/post diff 0)로 가시성 동작 불변 증명 +
+>    facet 은 contract test 전용 소비처(런타임 builder 경로 미연결) → CLAUDE.md "runtime-0-change
+>    exempt, prior live confirm remains valid" (ADR-912 field cutover live 확인 유효).
+>
+> **변경 (가시성 동작 byte-identical, dormant 회피 코드 이동)**:
+>
+> - `implicitStyles.ts` — `FIELD_VISIBLE_CHILD_TAGS` 단일 declarative 맵 신설 (컨테이너 type →
+>   비-Label 가시 child.type set). 4 filter 분기 (combobox/select/searchfield:1323 /
+>   numberfield:1382 / textfield·textarea:1539 / datefield·timefield:1591) 의 inline `c.type`
+>   비교 / 분기별 local `WRAPPER_TAGS` 를 **이 맵 직접 소비** 로 교체. **dormant 회피
+>   (feedback-no-dormant-foundation-ahead-of-flip)**: filter 와 facet 이 동일 맵을 소비 →
+>   POPOVER 선례 동형 비-dormant. Label gate(hasLabel live)·sideMode 합성·SelectTrigger padding
+>   주입은 맵 밖 adapter 잔존.
+> - `entryUniverse.ts` — childRuntime facet 에 `fieldVisibleChildTags: readonly string[] | null`
+>   추가, FIELD_VISIBLE_CHILD_TAGS 를 lowercase 정규화 mirror (정렬 배열 노출).
+> - `entryUniverseContract.test.ts` — Phase 6 후속 parity test 1개 추가: per-container 양방향
+>   (`facet 비-null ⟺ 맵 포함 + 배열 내용 일치` 정방향 / `맵 멤버 placeable ⟹ facet 정확 노출`
+>   역방향 + Button/DatePicker null disjoint sanity). INVENTORY.fieldVisibleContainers=8.
+>
+> **검증**: type-check 0 + entryUniverseContract **25 passed**(24→25, 신규 1) + factories
+> `__tests__` **79 passed**(회귀 0) + implicitStyles 직접 test (textField/sideLabel/checkboxRadio/
+> resolveContainerStylesFallback) **57 passed**(회귀 0) + **oracle byte-identical** (8컨테이너×
+> hasLabel 2케이스 가시성 동작 pre/post diff 0). datepicker 는 제외형 filter (`!POPOVER.has`) 라
+> 포함형 맵 대상 아님 — Phase 6 popoverHosted facet 이 그 membership 소유 (facet null 확인).
+>
+> **잔여 후속 slice**: (b) PROGRESSBAR/SLIDER live-prop adapter (HIGH — formatProgressValue/
+> sliderFormattedValue, byte-identical fixture 불가) / tabpanels selectedKey selection / Label
+> necessity injection (HIGH, 3경로 동기화). 각각 별도 slice.
+
 목표: child filtering/injection membership을 entry childRuntime facet으로 이전한다.
 
 대상:
@@ -557,7 +606,7 @@ Gate:
 - `SYNTHETIC_CHILD_PROP_MERGE_TAGS`. ← ✅ **Phase 6 Implemented 2026-06-21** (SSOT 명문화 + contract 양방향 parity 소유 증명)
 - `POPOVER_CHILDREN_TAGS`. ← ✅ 동축 동시 격상 (popoverHosted ⟺ POPOVER.has parity)
 - Label necessity injection. ← adapter-id-required (HIGH, 3경로 동기화) — 후속 slice
-- field/collection visible child filtering branches. ← adapter-id-required (live-prop 동적 합성) — 후속 slice
+- field/collection visible child filtering branches. ← ✅ **(a) field/datepicker membership facet Implemented 2026-06-21** (FIELD_VISIBLE_CHILD_TAGS SSOT 추출 + filter·facet 동일 맵 소비 비-dormant + 양방향 parity, oracle byte-identical). (b) PROGRESSBAR/SLIDER/tabpanels live-prop adapter 는 후속 slice (HIGH)
 
 작업:
 

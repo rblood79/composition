@@ -40,7 +40,10 @@ import type { ComponentCreationContext } from "@/builder/factories/types";
 import { COMPLEX_COMPONENT_TAGS } from "@/builder/factories/constants";
 import { isReusableCompositeType } from "@/builder/components/reusableCompositeOrigins";
 import { SYNTHETIC_CHILD_PROP_MERGE_TAGS } from "@/builder/workspace/canvas/skia/buildSpecNodeData";
-import { POPOVER_CHILDREN_TAGS } from "@/builder/workspace/canvas/layout/engines/implicitStyles";
+import {
+  POPOVER_CHILDREN_TAGS,
+  FIELD_VISIBLE_CHILD_TAGS,
+} from "@/builder/workspace/canvas/layout/engines/implicitStyles";
 
 // ── inventory freeze 정본 카운트 (914-entry-universe-inventory.md §1, 2026-06-20) ──
 // 이 값은 Phase 0 inventory 의 source 다. facet mirror 가 이 카운트에서 벗어나면
@@ -58,6 +61,10 @@ const INVENTORY = {
   propagationRegistered: 31,
   syntheticChildPropMerge: 9,
   popoverChildren: 2,
+  // ADR-914 Phase 6 후속 (field visible filter, 2026-06-21): FIELD_VISIBLE_CHILD_TAGS
+  //   포함형 filter 컨테이너 8 tag (combobox/select/searchfield/numberfield/textfield/
+  //   textarea/datefield/timefield). datepicker 는 제외형이라 popoverHosted facet 소관.
+  fieldVisibleContainers: 8,
 } as const;
 
 const TEST_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -357,6 +364,62 @@ describe("ADR-914 entry universe contract", () => {
     expect(
       resolveComponentEntryRuntime("Button").childRuntime.popoverHosted,
     ).toBe(false);
+  });
+
+  // ── ADR-914 Phase 6 후속 slice (field visible filter membership SSOT, 2026-06-21) ──
+  // field 4 filter 분기(combobox/select/searchfield · numberfield · textfield/textarea ·
+  // datefield/timefield)의 inline `c.type` 비교 / 분기별 local WRAPPER_TAGS 를
+  // FIELD_VISIBLE_CHILD_TAGS 단일 declarative 맵으로 추출했다 (oracle byte-identical —
+  // 가시성 동작 불변). filter 와 facet 이 **동일 맵을 직접 소비** → POPOVER 선례 동형 비-dormant.
+  // 사용자 결정(2026-06-21): scope = field/datepicker membership facet 단일 (R7). PROGRESSBAR/
+  // SLIDER/tabpanels live-prop adapter 는 별도 후속 slice (적대 검증 risk HIGH, byte-identical 불가).
+  // facet 은 컨테이너 type → 가시 child.type 정렬 배열을 노출, Label gate(hasLabel live)·sideMode·
+  // 텍스트 합성은 맵 밖 adapter 잔존 (소비처 implicitStyles). datepicker 는 제외형 filter 라
+  // 포함형 맵 대상 아님 — 이미 Phase 6 popoverHosted facet 이 그 membership 소유.
+  it("Phase 6 후속 — fieldVisibleChildTags ⟺ FIELD_VISIBLE_CHILD_TAGS (per-container 양방향 parity)", () => {
+    // count parity (맵 컨테이너 수 == inventory 정본).
+    expect(Object.keys(FIELD_VISIBLE_CHILD_TAGS).length).toBe(
+      INVENTORY.fieldVisibleContainers,
+    );
+
+    // 정방향: facet 이 fieldVisibleChildTags 비-null 인 type 은 전부 맵에 (대소문자 무시) 존재하고,
+    //   배열 내용이 맵 set 과 정확히 일치.
+    for (const e of entries) {
+      const facetTags = e.childRuntime.fieldVisibleChildTags;
+      if (facetTags === null) continue;
+      const mapSet = FIELD_VISIBLE_CHILD_TAGS[e.type.toLowerCase()];
+      expect(
+        mapSet,
+        `${e.type}: facet=fieldVisibleChildTags 비-null 인데 FIELD_VISIBLE_CHILD_TAGS 미포함`,
+      ).toBeDefined();
+      // facet 배열 == 맵 set (정렬 비교 — facet 은 정렬 배열 노출).
+      expect([...facetTags].sort()).toEqual([...(mapSet ?? [])].sort());
+    }
+
+    // 역방향: 맵 멤버 컨테이너 중 placeable 인 type 은 facet 이 정확히 그 set 을 노출.
+    for (const [tag, set] of Object.entries(FIELD_VISIBLE_CHILD_TAGS)) {
+      // 맵 key 는 lowercase containerTag → placeable 정본 표기로 매칭 (대소문자 무시).
+      const placeableType = placeable.find((p) => p.toLowerCase() === tag);
+      if (!placeableType) continue; // placeable 아니면 entry 없음
+      const facetTags =
+        resolveComponentEntryRuntime(placeableType).childRuntime
+          .fieldVisibleChildTags;
+      expect(
+        facetTags,
+        `${tag}: FIELD_VISIBLE_CHILD_TAGS 멤버인데 facet=null (membership SSOT 불일치)`,
+      ).not.toBeNull();
+      expect([...(facetTags ?? [])].sort()).toEqual([...set].sort());
+    }
+
+    // 임의 비-field type 은 null (disjoint sanity).
+    expect(
+      resolveComponentEntryRuntime("Button").childRuntime.fieldVisibleChildTags,
+    ).toBeNull();
+    // datepicker 는 제외형 filter (popoverHosted facet 소관) → fieldVisibleChildTags null.
+    expect(
+      resolveComponentEntryRuntime("DatePicker").childRuntime
+        .fieldVisibleChildTags,
+    ).toBeNull();
   });
 
   // ── 3. registry 간 facet 정합 ──
