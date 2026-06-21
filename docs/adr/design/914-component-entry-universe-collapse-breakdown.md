@@ -543,7 +543,55 @@ Gate:
 - render commands child begin/end parity. ← ✅ 런타임 동작 불변 (SYNTHETIC.has 분기 보존)
 - Preview children count parity. ← ✅ 런타임 동작 불변
 
-### Phase 7 - Contract Swap + Registry Cleanup
+### Phase 7 - Contract Swap + Registry Cleanup ✅ Implemented 2026-06-21
+
+> **진행 로그 (2026-06-21)**: entryUniverseContract 를 primary gate 로 승격 — ADR-139
+> invariant B forward leg 2개 + exception 흡수 matrix 흡수. ultracode recon(3) + 적대
+> 검증(3) 으로 design 추정("matrix 추가만") vs 실측("선행 substrate 신설 필요") gap 적발
+> (swap_risk 3/3 HIGH). 사용자 결정(2026-06-21): facet 신설 후 full swap.
+>
+> **적대 검증 교정 (recon 오류 정정)**:
+>
+> - recon "9 TAG_SPEC_MAP gap" → 실측 load-bearing 은 **3개뿐**: `DataTable / Image /
+Navigation` (placeable & !TAG_SPEC_MAP & !catalog). 나머지 7개(ColorPicker /
+>   ColorSwatchPicker / Disclosure / DisclosureGroup / Nav / ProgressCircle / StatusLight)
+>   는 catalog cutover 경유로 invariant B 통과 → exception non-load-bearing.
+> - rendererMap load-bearing 3개: `InlineAlert / TextArea / frame` (placeable & !rendererMap).
+> - `MenuItem`(TAG_SPEC_MAP) / `List`(rendererMap) 는 **placeable=false** → entry universe
+>   진입점 밖. ADR-139 invariant A (spec 파일 universe) 잔재라 entry matrix 대상 외 — ADR-139
+>   contract 가 계속 담당.
+> - getDefaultProps exception 2개(`Navigation / DataTable`)는 placeable, Phase 1~6 의
+>   defaults facet 이 이미 흡수(`entryUniverseContract.test.ts:356-357`).
+>
+> **gap 처리 (M3 — 추정 vs 실측은 절차 결함, fork 아님)**: design Phase 0 inventory 가
+> "substrate 신설 필요"를 명시하지 못한 절차 결함 → 본 phase 안에서 흡수 (새 ADR fork 금지,
+> adr-writing.md M3). surface-minimization 대비 Gate 정합 우선 — TAG_SPEC_MAP intended-absent
+> 표현은 substrate 신설 없이 원천 불가하므로 facet 2개 신설이 필수 (적대 검증 명시).
+>
+> **변경**:
+>
+> - `entryUniverse.ts` — `ComponentEntryRuntime.render` 에 `hasTagSpecEntry` /
+>   `hasCatalogCutover` substrate 2개 신설(`@composition/specs` TAG_SPEC_MAP +
+>   `@composition/shared` getCatalogCutoverTypes, 대소문자 무시). resolver 가 즉시 노출,
+>   contract 가 즉시 소비 → dormant 아님.
+> - `entryUniverseContract.test.ts` — Phase 7 신규 6 test: substrate parity / invariant B
+>   forward leg #1(placeable⟹rendererMap, exception 제외) / forward leg #2(placeable⟹
+>   TAG_SPEC_MAP OR catalog, exception 제외) / exception 흡수 matrix(placeable exception
+>   전수 intended-absent 통과 + false-positive 0) / load-bearing negative(3+3 exception
+>   의존 증명) / negative fixture(가짜 미등록 감지).
+> - ADR-139 `componentRegistrationContract` 는 **병행 유지** — invariant A(spec 파일 universe
+>   ⟹ TAG_SPEC_MAP) + baseline ratchet(append 금지, §3.3-7) 담당. baseline 은 전부 빈 객체
+>   (ratchet 0)라 실질 차단은 exception + forward leg → entry contract 가 흡수, baseline ratchet
+>   은 spec universe 와 함께 ADR-139 잔류.
+>
+> **검증**: type-check exit 0(error 0) + entryUniverseContract **24 passed**(18 → 24, 신규 6) +
+> ADR-139 contract **10 passed**(병행 green) + factories `__tests__` **78 passed**(72 → 78, 회귀 0).
+> live: entryUniverse 소비처 = entryUniverseContract.test.ts 뿐(grep 확정, 런타임 builder 경로
+> 미연결) → 런타임 동작 0 변경(Phase 4-C/6 동형, registration wiring 불변). product 등록
+> 경로 1 byte 미변경, contract 가 그 등록을 읽어 검증하는 범위만 확대 → 기존 live confirm 유효,
+> 추가 exercise 불요. Gate: 병행 green 1 phase 이상(Phase 1~7 = 7 phase) ✅ / exception 흡수
+> matrix green(17 항목 전수, false-positive 0) ✅ / registry leftover audit(MenuItem/List =
+> placeable 아님, ADR-139 잔류) ✅.
 
 목표: `entryUniverseContract`를 primary gate로 승격한다.
 

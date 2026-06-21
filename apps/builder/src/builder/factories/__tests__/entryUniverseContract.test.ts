@@ -24,6 +24,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
 
+import { rendererMap } from "@composition/shared/renderers";
+import { getCatalogCutoverTypes } from "@composition/shared";
+import { TAG_SPEC_MAP } from "@composition/specs";
+
 import { ComponentFactory } from "@/builder/factories/ComponentFactory";
 import {
   getEntryUniverseTypes,
@@ -65,6 +69,30 @@ const placeable = ComponentFactory.getRegisteredTypes();
 const entries: ComponentEntryRuntime[] = placeable.map((t) =>
   resolveComponentEntryRuntime(t),
 );
+
+// ── ADR-914 Phase 7 (contract swap — invariant B 흡수 + exception matrix) ──
+// ADR-139 componentRegistrationContract 의 invariant B forward leg
+// (`placeable ⟹ rendererMap` / `placeable ⟹ TAG_SPEC_MAP OR catalog`) 와 exception
+// allowlist (`allowed()` = baseline OR exception 의 false-positive 누락 차단) 를 entry
+// contract 가 흡수함을 증명한다. baseline 은 전부 빈 객체(ratchet 0)라 실질 차단은
+// exception + forward leg → 본 swap 은 exception 만 읽으면 충분 (baseline ratchet 은
+// ADR-139 가 invariant A spec universe 와 함께 계속 담당, §3.3-7).
+type RegistryName = "rendererMap" | "TAG_SPEC_MAP" | "getDefaultProps";
+const exceptionsJson = readJson("componentRegistrationException.json");
+/** 대소문자 무시 lookup (`Frame` spec ↔ `frame` canonical 키 정합, ADR-139 hasCI 동형). */
+const hasCI = (set: Set<string>, name: string): boolean => {
+  if (set.has(name)) return true;
+  const l = name.toLowerCase();
+  for (const k of set) if (k.toLowerCase() === l) return true;
+  return false;
+};
+/** exception (intended-absent) 으로 해당 registry 누락이 허용되는가. baseline 은 빈 객체라 제외. */
+const allowedAbsent = (reg: RegistryName, comp: string): boolean =>
+  comp in (exceptionsJson[reg] ?? {});
+const rendererKeySet = new Set(Object.keys(rendererMap));
+const tagSpecKeySet = new Set(Object.keys(TAG_SPEC_MAP));
+const catalogCutoverSet = new Set(getCatalogCutoverTypes());
+const tagSpecOrCatalogSet = new Set([...tagSpecKeySet, ...catalogCutoverSet]);
 
 describe("ADR-914 entry universe contract", () => {
   // ── 1. placeable ⟹ entry universe row 1:1 ──
@@ -374,9 +402,145 @@ describe("ADR-914 entry universe contract", () => {
     expect(resolveComponentEntryRuntime(fake).placeable).toBe(false);
   });
 
+  // ── ADR-914 Phase 7 (Contract Swap — invariant B 흡수 + exception matrix) ──
+  // entry contract 를 primary gate 로 승격. ADR-139 invariant B 의 forward leg 2개
+  // (`placeable ⟹ rendererMap` / `placeable ⟹ TAG_SPEC_MAP OR catalog`) 와 exception
+  // 흡수 (false-positive 누락 차단) 를 entry contract 가 동일하게 수행함을 증명한다
+  // (§3.3-2/3.3-7/3.3-8). 신설 substrate: render.hasTagSpecEntry / hasCatalogCutover.
+  // surface 증가하나 TAG_SPEC_MAP intended-absent 표현은 substrate 신설 없이 원천
+  // 불가하므로 Gate 정합이 surface-minimization 보다 우선 (적대 검증 3/3 HIGH, 2026-06-21).
+
+  // §3.3-2 substrate parity — render facet 의 TAG_SPEC_MAP / catalog 멤버십이 실제 registry 정합.
+  it("Phase 7 — render facet substrate (hasTagSpecEntry / hasCatalogCutover) == registry", () => {
+    for (const e of entries) {
+      expect(
+        e.render.hasTagSpecEntry,
+        `${e.type}: hasTagSpecEntry mismatch`,
+      ).toBe(hasCI(tagSpecKeySet, e.type));
+      expect(
+        e.render.hasCatalogCutover,
+        `${e.type}: hasCatalogCutover mismatch`,
+      ).toBe(hasCI(catalogCutoverSet, e.type));
+    }
+  });
+
+  // §3.3-2 invariant B forward leg #1 — placeable ⟹ rendererMap (exception intended-absent 제외).
+  it("Phase 7 — invariant B: placeable ⟹ rendererMap (exception 제외)", () => {
+    const missing = entries
+      .filter((e) => !e.render.hasRendererEntry)
+      .filter((e) => !allowedAbsent("rendererMap", e.type))
+      .map((e) => e.type)
+      .sort();
+    expect(
+      missing,
+      `placeable 인데 rendererMap 미등록 (exception 외): ${missing.join(", ")}`,
+    ).toEqual([]);
+  });
+
+  // §3.3-7 invariant B forward leg #2 — placeable ⟹ TAG_SPEC_MAP OR catalog (exception 제외).
+  it("Phase 7 — invariant B: placeable ⟹ TAG_SPEC_MAP OR catalog (exception 제외)", () => {
+    const missing = entries
+      .filter((e) => !e.render.hasTagSpecEntry && !e.render.hasCatalogCutover)
+      .filter((e) => !allowedAbsent("TAG_SPEC_MAP", e.type))
+      .map((e) => e.type)
+      .sort();
+    expect(
+      missing,
+      `placeable 인데 TAG_SPEC_MAP/catalog 미등록 (exception 외): ${missing.join(", ")}`,
+    ).toEqual([]);
+  });
+
+  // §3.3-8 exception 흡수 matrix — exception 의 placeable 항목이 "intended-absent" 로
+  // 전수 통과 (false-positive missing 0). ADR-139 allowed()=baseline OR exception 의
+  // 차단 의미가 entry contract 에 누락 없이 이관됐음을 항목별 증명.
+  it("Phase 7 — exception 흡수 matrix: placeable exception 전수 intended-absent 통과", () => {
+    // placeable 한 exception 항목만 entry contract 진입점. (MenuItem/List 는 placeable=false
+    // → entry universe 진입점 밖, ADR-139 invariant A spec universe 잔재 — 본 matrix 대상 외.)
+    const placeableSet = new Set(placeable);
+    const matrix: Record<RegistryName, string[]> = {
+      rendererMap: [],
+      TAG_SPEC_MAP: [],
+      getDefaultProps: [],
+    };
+    for (const reg of Object.keys(matrix) as RegistryName[]) {
+      for (const comp of Object.keys(exceptionsJson[reg] ?? {})) {
+        if (placeableSet.has(comp)) matrix[reg].push(comp);
+      }
+    }
+    // (a) 흡수 대상이 실재 (regression: exception 이 통째로 비면 matrix 무의미).
+    expect(
+      matrix.TAG_SPEC_MAP.length + matrix.rendererMap.length,
+      "placeable exception 이 0 — exception.json 또는 placeable 집합 변동 의심",
+    ).toBeGreaterThan(0);
+
+    // (b) 각 placeable exception 항목이 entry contract 에서 missing 으로 판정되지 않음.
+    const falsePositives: string[] = [];
+    for (const comp of matrix.rendererMap) {
+      const e = resolveComponentEntryRuntime(comp);
+      // rendererMap 부재여도 exception 으로 허용 → unexpectedMissing 에서 제외돼야 함.
+      if (!e.render.hasRendererEntry && !allowedAbsent("rendererMap", comp)) {
+        falsePositives.push(`rendererMap/${comp}`);
+      }
+    }
+    for (const comp of matrix.TAG_SPEC_MAP) {
+      const e = resolveComponentEntryRuntime(comp);
+      const absent = !e.render.hasTagSpecEntry && !e.render.hasCatalogCutover;
+      if (absent && !allowedAbsent("TAG_SPEC_MAP", comp)) {
+        falsePositives.push(`TAG_SPEC_MAP/${comp}`);
+      }
+    }
+    for (const comp of matrix.getDefaultProps) {
+      const e = resolveComponentEntryRuntime(comp);
+      if (
+        !e.defaults.hasDefaultPropsRow &&
+        !allowedAbsent("getDefaultProps", comp)
+      ) {
+        falsePositives.push(`getDefaultProps/${comp}`);
+      }
+    }
+    expect(
+      falsePositives,
+      `exception 인데 false-positive missing (swap 보류 사유): ${falsePositives.join(", ")}`,
+    ).toEqual([]);
+  });
+
+  // §3.3-8 negative — exception 보호가 실제 차단을 하고 있음 (allowlist 무력화 시 missing 노출).
+  it("Phase 7 — negative: exception 제거 시 load-bearing 항목이 missing 으로 노출", () => {
+    // DataTable/Image/Navigation 은 placeable & !tagSpec & !catalog (load-bearing TAG_SPEC_MAP).
+    // exception 없이 판정하면 invariant B forward leg #2 에서 missing 으로 잡혀야 한다.
+    for (const comp of ["DataTable", "Image", "Navigation"]) {
+      const e = resolveComponentEntryRuntime(comp);
+      expect(
+        e.placeable && !e.render.hasTagSpecEntry && !e.render.hasCatalogCutover,
+        `${comp}: load-bearing TAG_SPEC_MAP exception 전제 깨짐`,
+      ).toBe(true);
+      // exception 으로만 허용된다 (allowlist 가 없으면 차단).
+      expect(allowedAbsent("TAG_SPEC_MAP", comp)).toBe(true);
+    }
+    // InlineAlert/TextArea/frame 은 placeable & !renderer (load-bearing rendererMap).
+    for (const comp of ["InlineAlert", "TextArea", "frame"]) {
+      const e = resolveComponentEntryRuntime(comp);
+      expect(
+        e.placeable && !e.render.hasRendererEntry,
+        `${comp}: load-bearing rendererMap exception 전제 깨짐`,
+      ).toBe(true);
+      expect(allowedAbsent("rendererMap", comp)).toBe(true);
+    }
+  });
+
+  // §3.3-2 negative fixture — 가짜 신규 누락이 forward leg 에서 missing 으로 감지.
+  it("Phase 7 — negative fixture: 가짜 미등록 placeable 은 forward leg 가 감지", () => {
+    const fake = "__Adr914P7FakeUnregistered__";
+    // exception 에 없는 가짜 type 은 rendererMap 부재 시 missing.
+    expect(allowedAbsent("rendererMap", fake)).toBe(false);
+    expect(rendererKeySet.has(fake)).toBe(false);
+    expect(hasCI(tagSpecOrCatalogSet, fake)).toBe(false);
+  });
+
   // ── 5. ADR-139 병행 sanity ──
   it("ADR-139 contract 와 병행 — placeable 진입점이 동일", () => {
-    // Phase 7 swap 전까지 두 contract 가 같은 placeable set 을 본다는 사실 확인.
+    // Phase 7: entry contract 가 primary 로 승격됐으나 ADR-139 는 invariant A(spec universe)
+    // + baseline ratchet 담당으로 병행 유지. 두 contract 가 같은 placeable set 을 본다.
     expect(getEntryUniverseTypes()).toEqual(
       ComponentFactory.getRegisteredTypes(),
     );

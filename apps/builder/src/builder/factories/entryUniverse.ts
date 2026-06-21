@@ -11,14 +11,26 @@
  * 읽는 facet 만 노출한다. deletion phase (2~6) 에서 각 facet 이 registry 의
  * source 권한을 점진 이전받는다.
  *
+ * **Phase 7 (contract swap, 2026-06-21)**: entryUniverseContract 를 primary gate 로
+ * 승격한다. 이를 위해 render facet 에 `hasTagSpecEntry` / `hasCatalogCutover` 두
+ * substrate 를 추가했다 — ADR-139 invariant B (`placeable ⟹ rendererMap` /
+ * `placeable ⟹ TAG_SPEC_MAP OR catalog`) 를 entry contract 가 흡수하려면 render facet 이
+ * rendererMap boolean 외에 TAG_SPEC_MAP / catalog 멤버십도 노출해야 하기 때문 (Phase 1~6
+ * 은 rendererMap boolean 만 노출 → 10 placeable TAG_SPEC_MAP intended-absent 를 표현할
+ * substrate 가 0 이던 gap). contract 가 즉시 소비(invariant B forward leg + exception 흡수
+ * matrix)하므로 dormant 아님. ADR-139 `componentRegistrationContract` 는 invariant A
+ * (spec 파일 universe ⟹ TAG_SPEC_MAP) + baseline ratchet 을 계속 담당 (병행 유지).
+ *
  * Hard Constraint #2: `packages/shared` 는 builder 함수를 import 하지 않는다.
- * 본 resolver 는 builder-local 이므로 shared (`rendererMap`) 를 import 해도 방향이
- * 정상이다 (builder → shared).
+ * 본 resolver 는 builder-local 이므로 shared (`rendererMap` / `getCatalogCutoverTypes`) 와
+ * specs (`TAG_SPEC_MAP`) 를 import 해도 방향이 정상이다 (builder → shared/specs).
  *
  * 인용 inventory: docs/adr/design/914-entry-universe-inventory.md (2026-06-20 freeze).
  */
 
 import { rendererMap } from "@composition/shared/renderers";
+import { getCatalogCutoverTypes } from "@composition/shared";
+import { TAG_SPEC_MAP } from "@composition/specs";
 
 import { ComponentFactory } from "@/builder/factories/ComponentFactory";
 import { COMPLEX_COMPONENT_TAGS } from "@/builder/factories/constants";
@@ -83,6 +95,17 @@ export interface ComponentEntryRuntime {
     mode: RenderFacetMode;
     /** rendererMap 에 자체 renderer entry 가 있는가. */
     hasRendererEntry: boolean;
+    /**
+     * ADR-914 Phase 7: TAG_SPEC_MAP (`@composition/specs`) 에 자체 Skia spec entry 가 있는가
+     * (대소문자 무시 — `frame` canonical ↔ `Frame` spec). false = Skia spec 부재.
+     */
+    hasTagSpecEntry: boolean;
+    /**
+     * ADR-914 Phase 7: catalog cutover (`getCatalogCutoverTypes`) 경유로 렌더되는가.
+     * true 면 TAG_SPEC_MAP 부재여도 buildCatalogShapes generic 으로 Skia 렌더 — invariant B
+     * (`placeable ⟹ TAG_SPEC_MAP OR catalog`) 의 catalog leg. 대소문자 무시.
+     */
+    hasCatalogCutover: boolean;
   };
   defaults: {
     /**
@@ -137,6 +160,15 @@ function resolveRenderMode(type: string): RenderFacetMode {
 }
 
 const propagationTagsLower = getRegisteredPropagationTags(); // 이미 lowercase
+
+// ADR-914 Phase 7 (contract swap — invariant B substrate, 2026-06-21): entry universe 가
+//   ADR-139 invariant B (`placeable ⟹ rendererMap` / `placeable ⟹ TAG_SPEC_MAP OR catalog`)
+//   를 흡수하려면, render facet 이 rendererMap 뿐 아니라 TAG_SPEC_MAP / catalog cutover
+//   멤버십도 노출해야 한다 (Phase 1~6 은 rendererMap boolean 만 노출 → TAG_SPEC_MAP
+//   intended-absent 표현 substrate 가 0 이던 gap). 두 lookup 은 ADR-139 contract 와 동일
+//   source (`@composition/specs` TAG_SPEC_MAP + `@composition/shared` getCatalogCutoverTypes).
+const tagSpecKeysLower = new Set(Object.keys(TAG_SPEC_MAP).map(lower));
+const catalogCutoverLower = new Set([...getCatalogCutoverTypes()].map(lower));
 
 // ADR-914 Phase 6 (childRuntime facet membership SSOT, 2026-06-21): childRuntime facet 의
 //   두 membership 권한 source. `syntheticPropMerge` ⟸ SYNTHETIC_CHILD_PROP_MERGE_TAGS
@@ -218,6 +250,8 @@ export function resolveComponentEntryRuntime(
     render: {
       mode: resolveRenderMode(type),
       hasRendererEntry: rendererKeys.has(type),
+      hasTagSpecEntry: tagSpecKeysLower.has(lower(type)),
+      hasCatalogCutover: catalogCutoverLower.has(lower(type)),
     },
     defaults: resolveDefaultsFacet(type),
     creation: {
