@@ -5,7 +5,7 @@
  * lazy 초기화 — 첫 호출 시 1회만 빌드.
  * 모든 키는 소문자로 정규화.
  */
-import type { ComponentSpec, PropagationRule, Shape } from "@composition/specs";
+import type { ComponentSpec, PropagationRule } from "@composition/specs";
 // ADR-912 단계5 step4: 아래 컴포넌트들은 모두 catalog cutover spec 삭제로 @composition/specs 의
 //   named Spec import 가 전부 제거됨 (전부 createPropagationOnlySpec 인라인 이관). value import 0건이라
 //   import 구문 자체 제거 — 이력은 아래 주석으로 보존.
@@ -45,66 +45,31 @@ import type { ComponentSpec, PropagationRule, Shape } from "@composition/specs";
 //   propagation.rules 7건(items/selectedKey/defaultSelectedKey/showIndicator/variant/size/orientation
 //   → TabList)은 createPropagationOnlySpec 인라인 이관(아래). Breadcrumbs(a736fedb5) 동일 패턴.
 
-// ─── Collection Item propagation-only specs ─────────────────────────────────
-// 독립 Spec 파일이 없는 컴포넌트의 label/description → 자식 전파 전용
+// ─── Collection Item propagation rules ──────────────────────────────────────
+// 독립 Spec 파일이 없는 컴포넌트의 label/description → 자식 전파 전용.
+// ADR-914 Phase 5 후속 (2026-06-21): shadow ComponentSpec wrapper 제거 — rule 배열 직접
+//   등록 (`registerPropagationRules`). GridListItem/ListBoxItem 둘 다 동일 rule (name 무관)
+//   이라 함수 대신 단일 상수로 공유.
+const collectionItemPropagationRules: PropagationRule[] = [
+  {
+    parentProp: "label",
+    childPath: "Text",
+    childProp: "children",
+    override: true,
+  },
+  {
+    parentProp: "description",
+    childPath: "Description",
+    childProp: "children",
+    override: true,
+  },
+];
 
-const noopShapes = (): Shape[] => [];
-
-function createCollectionItemPropagationSpec(
-  name: string,
-): ComponentSpec<Record<string, unknown>> {
-  return {
-    name,
-    element: "div",
-    propagation: {
-      rules: [
-        {
-          parentProp: "label",
-          childPath: "Text",
-          childProp: "children",
-          override: true,
-        },
-        {
-          parentProp: "description",
-          childPath: "Description",
-          childProp: "children",
-          override: true,
-        },
-      ],
-    },
-    defaultVariant: "default",
-    defaultSize: "md",
-    variants: {},
-    sizes: {},
-    states: {},
-    render: { shapes: noopShapes },
-  };
-}
-
-/**
- * ADR-912 childSpec→catalog cutover (2026-06-15): CardHeader/CardContent spec 삭제 대비.
- *   CardHeader.spec / CardContent.spec 의 propagation 규칙(자식 style 주입, ADR-095)을 spec 파일에서
- *   분리하여 propagation-only spec 으로 인라인 보존 — `createCollectionItemPropagationSpec` 동형
- *   (독립 spec 파일 없는 컴포넌트의 propagation 전용). CardHeader → Heading flex:1,
- *   CardContent → Description width:100%. Card.spec.childSpecs 제거 후 catalog cutover 로 시각은
- *   rule + factory props.style 이 담당하고, 이 propagation 만 builder runtime 에서 유지.
- */
-function createPropagationOnlySpec(
-  name: string,
-  rules: PropagationRule[],
-): ComponentSpec<Record<string, unknown>> {
-  return {
-    name,
-    element: "div",
-    propagation: { rules },
-    defaultVariant: "default",
-    defaultSize: "md",
-    variants: {},
-    sizes: {},
-    states: {},
-    render: { shapes: noopShapes },
-  };
-}
+// ADR-914 Phase 5 후속 (2026-06-21): `createPropagationOnlySpec` shadow ComponentSpec
+//   wrapper 정의 제거 — 모든 propagation 등록이 `registerPropagationRules(type, rules)`
+//   (rule 배열 직접) 로 전환됨. 구 wrapper 의 propagation 규칙(자식 style 주입 ADR-095 등)은
+//   각 `xxxPropagationRules: PropagationRule[]` 상수로 보존 (rule 배열은 byte-identical,
+//   §3.3-5 / Phase 5 fixture 가 rule-only ⟺ shadow spec 동치 검증).
 
 // ADR-912 R6 (2026-06-15): Card 본체 catalog cutover → Card.spec 삭제. 구 Card.spec.propagation
 //   .rules 5건(ADR-092 HC#7 title/description + HC#4 size×3)을 propagation-only 인라인 spec 으로
@@ -112,7 +77,7 @@ function createPropagationOnlySpec(
 //   부재). title → CardHeader.Heading.children / description → CardContent.Description.children
 //   (중첩 childPath) / size → CardHeader·CardContent·CardFooter. CardHeader/CardContent
 //   propagation-only spec(자식 style 주입)과 동형 — 본체는 content/size 전파 담당.
-const cardPropagationSpec = createPropagationOnlySpec("Card", [
+const cardPropagationRules: PropagationRule[] = [
   {
     parentProp: "title",
     childPath: ["CardHeader", "Heading"],
@@ -128,9 +93,9 @@ const cardPropagationSpec = createPropagationOnlySpec("Card", [
   { parentProp: "size", childPath: "CardHeader", override: true },
   { parentProp: "size", childPath: "CardContent", override: true },
   { parentProp: "size", childPath: "CardFooter", override: true },
-]);
+];
 
-const cardHeaderPropagationSpec = createPropagationOnlySpec("CardHeader", [
+const cardHeaderPropagationRules: PropagationRule[] = [
   {
     childPath: "Heading",
     childProp: "flex",
@@ -138,9 +103,9 @@ const cardHeaderPropagationSpec = createPropagationOnlySpec("CardHeader", [
     styleValue: 1,
     skipIfSet: ["flex", "flexGrow", "width"],
   },
-]);
+];
 
-const cardContentPropagationSpec = createPropagationOnlySpec("CardContent", [
+const cardContentPropagationRules: PropagationRule[] = [
   {
     childPath: "Description",
     childProp: "width",
@@ -148,21 +113,21 @@ const cardContentPropagationSpec = createPropagationOnlySpec("CardContent", [
     styleValue: "100%",
     skipIfSet: ["width", "flex"],
   },
-]);
+];
 
 // ADR-912 단계5 step4 경량 이관 (2026-06-17): GridList.spec 삭제 — propagation.rules 인라인 보존.
 //   variant → GridListItem 전파(카드 accent 색). childPath string 이라 spec 객체 의존 0.
-const gridListPropagationSpec = createPropagationOnlySpec("GridList", [
+const gridListPropagationRules: PropagationRule[] = [
   { parentProp: "variant", childPath: "GridListItem", override: true },
-]);
+];
 // ADR-912 단계5 step4 (2026-06-17): ListBox.spec 물리 삭제 → 빈 propagation-only spec. 구
 //   ListBox.spec 은 propagation.rules 부재(ADR-076: 정적 shapes 가 부모 variant 직접 참조)라
 //   registerPropagationSpec("ListBox", ListBoxSpec) 가 이미 no-op 이었음 → rules [] 로 동일 보존.
-const listBoxPropagationSpec = createPropagationOnlySpec("ListBox", []);
+const listBoxPropagationRules: PropagationRule[] = [];
 
 // ADR-912 단계5 step4 경량 이관 (2026-06-17): ProgressBar.spec 삭제 — propagation.rules 인라인 보존.
 //   label → Label.children + size → ProgressBarTrack/ProgressBarValue/Label. childPath string 이라 spec 의존 0.
-const progressBarPropagationSpec = createPropagationOnlySpec("ProgressBar", [
+const progressBarPropagationRules: PropagationRule[] = [
   {
     parentProp: "label",
     childPath: "Label",
@@ -172,11 +137,11 @@ const progressBarPropagationSpec = createPropagationOnlySpec("ProgressBar", [
   { parentProp: "size", childPath: "ProgressBarTrack", override: true },
   { parentProp: "size", childPath: "ProgressBarValue", override: true },
   { parentProp: "size", childPath: "Label", override: true },
-]);
+];
 
 // ADR-912 단계5 step4 경량 이관 (2026-06-17): Meter.spec 삭제 — propagation.rules 인라인 보존.
 //   label → Label.children + size → MeterTrack/MeterValue/Label. childPath string 이라 spec 의존 0.
-const meterPropagationSpec = createPropagationOnlySpec("Meter", [
+const meterPropagationRules: PropagationRule[] = [
   {
     parentProp: "label",
     childPath: "Label",
@@ -186,13 +151,13 @@ const meterPropagationSpec = createPropagationOnlySpec("Meter", [
   { parentProp: "size", childPath: "MeterTrack", override: true },
   { parentProp: "size", childPath: "MeterValue", override: true },
   { parentProp: "size", childPath: "Label", override: true },
-]);
+];
 
 // ADR-912 단계5 step4 (2026-06-17): Slider.spec 물리 삭제 — propagation.rules 8건 인라인 보존.
 //   Slider.spec.ts:176-197 verbatim. rule #3 childPath 는 손자(Slider → SliderTrack → SliderThumb)라
 //   배열 ["SliderTrack","SliderThumb"] 필수(string 은 직계 자식만 매칭 → DEAD). prop 명은 정확히
 //   value/minValue/maxValue (min/max 아님).
-const sliderPropagationSpec = createPropagationOnlySpec("Slider", [
+const sliderPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "SliderTrack", override: true },
   { parentProp: "size", childPath: "SliderOutput", override: true },
   {
@@ -210,10 +175,10 @@ const sliderPropagationSpec = createPropagationOnlySpec("Slider", [
   { parentProp: "value", childPath: "SliderTrack", override: true },
   { parentProp: "minValue", childPath: "SliderTrack", override: true },
   { parentProp: "maxValue", childPath: "SliderTrack", override: true },
-]);
+];
 
 // ADR-912 단계5 step4 small-B (2026-06-16): TextField.spec 삭제 — propagation.rules 인라인 보존.
-const textFieldPropagationSpec = createPropagationOnlySpec("TextField", [
+const textFieldPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "Label", override: true },
   { parentProp: "size", childPath: "Input", override: true },
   {
@@ -228,10 +193,10 @@ const textFieldPropagationSpec = createPropagationOnlySpec("TextField", [
     childProp: "placeholder",
     override: true,
   },
-]);
+];
 
 // ADR-912 단계5 step4 small-B (2026-06-16): SearchField.spec 삭제 — propagation.rules 인라인 보존.
-const searchFieldPropagationSpec = createPropagationOnlySpec("SearchField", [
+const searchFieldPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "SelectTrigger", override: true },
   { parentProp: "size", childPath: "SelectValue", override: true },
   { parentProp: "size", childPath: "SelectIcon", override: true },
@@ -248,15 +213,15 @@ const searchFieldPropagationSpec = createPropagationOnlySpec("SearchField", [
     childProp: "placeholder",
     override: true,
   },
-]);
+];
 
 // ADR-912 단계5 step4 small-B (2026-06-16): TextArea.spec 삭제 — propagation.rules 인라인 보존.
-const textAreaPropagationSpec = createPropagationOnlySpec("TextArea", [
+const textAreaPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "Label", override: true },
-]);
+];
 
 // ADR-912 단계5 step4 small-B (2026-06-16): NumberField.spec 삭제 — propagation.rules 인라인 보존.
-const numberFieldPropagationSpec = createPropagationOnlySpec("NumberField", [
+const numberFieldPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "Label", override: true },
   { parentProp: "size", childPath: "SelectTrigger", override: true },
   {
@@ -271,10 +236,10 @@ const numberFieldPropagationSpec = createPropagationOnlySpec("NumberField", [
     childProp: "placeholder",
     override: true,
   },
-]);
+];
 
 // ADR-912 단계5 step4 (2026-06-17): DateField.spec 삭제 — propagation.rules 인라인 보존 (TimeField 동형).
-const dateFieldPropagationSpec = createPropagationOnlySpec("DateField", [
+const dateFieldPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "Label", override: true },
   { parentProp: "size", childPath: "DateInput", override: true },
   {
@@ -283,10 +248,10 @@ const dateFieldPropagationSpec = createPropagationOnlySpec("DateField", [
     childProp: "children",
     override: true,
   },
-]);
+];
 
 // ADR-912 단계5 step4 small-B (2026-06-16): TimeField.spec 삭제 — propagation.rules 인라인 보존.
-const timeFieldPropagationSpec = createPropagationOnlySpec("TimeField", [
+const timeFieldPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "Label", override: true },
   { parentProp: "size", childPath: "DateInput", override: true },
   {
@@ -295,40 +260,34 @@ const timeFieldPropagationSpec = createPropagationOnlySpec("TimeField", [
     childProp: "children",
     override: true,
   },
-]);
+];
 
 // ADR-912 단계5 step4 small-B (2026-06-16): ColorField.spec 삭제 — propagation.rules 인라인 보존.
-const colorFieldPropagationSpec = createPropagationOnlySpec("ColorField", [
+const colorFieldPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "Label", override: true },
-]);
+];
 
 // ADR-912 단계5 step4 small-B (2026-06-16): CheckboxGroup.spec 삭제 — propagation.rules 인라인 보존.
-const checkboxGroupPropagationSpec = createPropagationOnlySpec(
-  "CheckboxGroup",
-  [
-    { parentProp: "size", childPath: ["Checkbox"], override: true },
-    { parentProp: "size", childPath: ["Checkbox", "Label"], override: true },
-    { parentProp: "size", childPath: "Label", override: true },
-  ],
-);
+const checkboxGroupPropagationRules: PropagationRule[] = [
+  { parentProp: "size", childPath: ["Checkbox"], override: true },
+  { parentProp: "size", childPath: ["Checkbox", "Label"], override: true },
+  { parentProp: "size", childPath: "Label", override: true },
+];
 
 // ADR-912 단계5 step4 small-B (2026-06-16): RadioGroup.spec 삭제 — propagation.rules 인라인 보존.
-const radioGroupPropagationSpec = createPropagationOnlySpec("RadioGroup", [
+const radioGroupPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: ["Radio"], override: true },
   { parentProp: "size", childPath: ["Radio", "Label"], override: true },
   { parentProp: "size", childPath: "Label", override: true },
-]);
+];
 
 // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroup.spec 삭제 —
 //   propagation.rules(ADR-048/059 B5: isEmphasized/size → ToggleButton, RadioGroup/CheckboxGroup 동형
 //   override:true) 인라인 보존.
-const toggleButtonGroupPropagationSpec = createPropagationOnlySpec(
-  "ToggleButtonGroup",
-  [
-    { parentProp: "isEmphasized", childPath: "ToggleButton", override: true },
-    { parentProp: "size", childPath: "ToggleButton", override: true },
-  ],
-);
+const toggleButtonGroupPropagationRules: PropagationRule[] = [
+  { parentProp: "isEmphasized", childPath: "ToggleButton", override: true },
+  { parentProp: "size", childPath: "ToggleButton", override: true },
+];
 
 // ADR-912 단계5 step4 (2026-06-17): Tabs.spec 물리 삭제 → propagation.rules 7건 인라인 보존.
 //   chip projection(appendTabRowProjection)이 owner=TabList scene node 에 붙고,
@@ -337,7 +296,7 @@ const toggleButtonGroupPropagationSpec = createPropagationOnlySpec(
 //   selectedKey 는 단일 선택(Tab) — TagList 의 selectedKeys(복수)와 prop 명칭 다름.
 //   catalog 는 propagation 표현 수단 없음(ComponentRule/PrimitiveBinding 에 parentProp 부재) →
 //   시각/CSS 는 STRUCTURE_META virtual 이 담당하고 이 propagation 만 builder runtime 에서 유지.
-const tabsPropagationSpec = createPropagationOnlySpec("Tabs", [
+const tabsPropagationRules: PropagationRule[] = [
   { parentProp: "items", childPath: "TabList", override: true },
   { parentProp: "selectedKey", childPath: "TabList", override: true },
   { parentProp: "defaultSelectedKey", childPath: "TabList", override: true },
@@ -345,7 +304,7 @@ const tabsPropagationSpec = createPropagationOnlySpec("Tabs", [
   { parentProp: "variant", childPath: "TabList", override: true },
   { parentProp: "size", childPath: "TabList", override: true },
   { parentProp: "orientation", childPath: "TabList", override: true },
-]);
+];
 
 // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): Switch/Checkbox/Radio.spec 삭제 —
 //   propagation.rules(size → Label / children → Label.children) 인라인 보존. 시각은 catalog rule +
@@ -363,7 +322,7 @@ const switchPropagationRules: PropagationRule[] = [
   },
 ];
 
-const checkboxPropagationSpec = createPropagationOnlySpec("Checkbox", [
+const checkboxPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "Label", override: true },
   {
     parentProp: "children",
@@ -371,9 +330,9 @@ const checkboxPropagationSpec = createPropagationOnlySpec("Checkbox", [
     childProp: "children",
     override: true,
   },
-]);
+];
 
-const radioPropagationSpec = createPropagationOnlySpec("Radio", [
+const radioPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "Label", override: true },
   {
     parentProp: "children",
@@ -381,13 +340,13 @@ const radioPropagationSpec = createPropagationOnlySpec("Radio", [
     childProp: "children",
     override: true,
   },
-]);
+];
 
 // ADR-912 단계5 step4 date-color (2026-06-16): Calendar.spec 삭제 → propagation.rules 9건
 //   (variant/size/locale/calendarSystem → CalendarHeader+CalendarGrid + defaultToday → CalendarGrid)을
 //   propagation-only 인라인 spec 으로 보존. catalog 는 propagation 표현 수단 없음(ComponentRule/
 //   PrimitiveBinding 에 parentProp 부재). 시각/CSS 는 STRUCTURE_META virtual override 가 담당.
-const calendarPropagationSpec = createPropagationOnlySpec("Calendar", [
+const calendarPropagationRules: PropagationRule[] = [
   { parentProp: "variant", childPath: "CalendarHeader" },
   { parentProp: "variant", childPath: "CalendarGrid" },
   { parentProp: "size", childPath: "CalendarHeader", override: true },
@@ -397,28 +356,25 @@ const calendarPropagationSpec = createPropagationOnlySpec("Calendar", [
   { parentProp: "calendarSystem", childPath: "CalendarHeader" },
   { parentProp: "calendarSystem", childPath: "CalendarGrid" },
   { parentProp: "defaultToday", childPath: "CalendarGrid" },
-]);
+];
 
 // ADR-912 단계5 step4 date-color (2026-06-16): RangeCalendar.spec(=...CalendarSpec spread) 삭제 →
 //   propagation.rules 8건(Calendar 와 동일하나 defaultToday 제외). 시각/CSS 는 STRUCTURE_META virtual.
-const rangeCalendarPropagationSpec = createPropagationOnlySpec(
-  "RangeCalendar",
-  [
-    { parentProp: "variant", childPath: "CalendarHeader" },
-    { parentProp: "variant", childPath: "CalendarGrid" },
-    { parentProp: "size", childPath: "CalendarHeader", override: true },
-    { parentProp: "size", childPath: "CalendarGrid", override: true },
-    { parentProp: "locale", childPath: "CalendarHeader" },
-    { parentProp: "locale", childPath: "CalendarGrid" },
-    { parentProp: "calendarSystem", childPath: "CalendarHeader" },
-    { parentProp: "calendarSystem", childPath: "CalendarGrid" },
-  ],
-);
+const rangeCalendarPropagationRules: PropagationRule[] = [
+  { parentProp: "variant", childPath: "CalendarHeader" },
+  { parentProp: "variant", childPath: "CalendarGrid" },
+  { parentProp: "size", childPath: "CalendarHeader", override: true },
+  { parentProp: "size", childPath: "CalendarGrid", override: true },
+  { parentProp: "locale", childPath: "CalendarHeader" },
+  { parentProp: "locale", childPath: "CalendarGrid" },
+  { parentProp: "calendarSystem", childPath: "CalendarHeader" },
+  { parentProp: "calendarSystem", childPath: "CalendarGrid" },
+];
 
 // ADR-912 단계5 step4 date-color (2026-06-17): DatePicker.spec 삭제 → propagation.rules 15건
 //   (label/granularity/size/maxVisibleMonths/locale/calendarSystem/defaultToday → Calendar 서브트리)
 //   propagation-only 인라인 spec 으로 보존. 시각/CSS 는 STRUCTURE_META virtual. spec verbatim.
-const datePickerPropagationSpec = createPropagationOnlySpec("DatePicker", [
+const datePickerPropagationRules: PropagationRule[] = [
   {
     parentProp: "label",
     childPath: "Label",
@@ -457,80 +413,77 @@ const datePickerPropagationSpec = createPropagationOnlySpec("DatePicker", [
   { parentProp: "calendarSystem", childPath: ["Calendar", "CalendarHeader"] },
   { parentProp: "calendarSystem", childPath: ["Calendar", "CalendarGrid"] },
   { parentProp: "defaultToday", childPath: ["Calendar", "CalendarGrid"] },
-]);
+];
 
 // ADR-912 단계5 step4 date-color (2026-06-17): DateRangePicker.spec 삭제 → propagation.rules 25건
 //   (Calendar + RangeCalendar 이중 분기). propagation-only 인라인 spec. spec verbatim.
-const dateRangePickerPropagationSpec = createPropagationOnlySpec(
-  "DateRangePicker",
-  [
-    {
-      parentProp: "label",
-      childPath: "Label",
-      childProp: "children",
-      override: true,
-    },
-    {
-      parentProp: "granularity",
-      childPath: "DateInput",
-      childProp: "_granularity",
-      override: true,
-    },
-    { parentProp: "size", childPath: "DateInput", override: true },
-    { parentProp: "size", childPath: "Calendar", override: true },
-    { parentProp: "size", childPath: "RangeCalendar", override: true },
-    { parentProp: "size", childPath: "Label", override: true },
-    {
-      parentProp: "size",
-      childPath: ["Calendar", "CalendarHeader"],
-      override: true,
-    },
-    {
-      parentProp: "size",
-      childPath: ["Calendar", "CalendarGrid"],
-      override: true,
-    },
-    {
-      parentProp: "size",
-      childPath: ["RangeCalendar", "CalendarHeader"],
-      override: true,
-    },
-    {
-      parentProp: "size",
-      childPath: ["RangeCalendar", "CalendarGrid"],
-      override: true,
-    },
-    {
-      parentProp: "maxVisibleMonths",
-      childPath: "RangeCalendar",
-      childProp: "maxVisibleMonths",
-      override: true,
-    },
-    { parentProp: "locale", childPath: "Calendar" },
-    { parentProp: "locale", childPath: ["Calendar", "CalendarHeader"] },
-    { parentProp: "locale", childPath: ["Calendar", "CalendarGrid"] },
-    { parentProp: "locale", childPath: "RangeCalendar" },
-    { parentProp: "locale", childPath: ["RangeCalendar", "CalendarHeader"] },
-    { parentProp: "locale", childPath: ["RangeCalendar", "CalendarGrid"] },
-    { parentProp: "calendarSystem", childPath: "Calendar" },
-    { parentProp: "calendarSystem", childPath: ["Calendar", "CalendarHeader"] },
-    { parentProp: "calendarSystem", childPath: ["Calendar", "CalendarGrid"] },
-    { parentProp: "calendarSystem", childPath: "RangeCalendar" },
-    {
-      parentProp: "calendarSystem",
-      childPath: ["RangeCalendar", "CalendarHeader"],
-    },
-    {
-      parentProp: "calendarSystem",
-      childPath: ["RangeCalendar", "CalendarGrid"],
-    },
-    { parentProp: "defaultToday", childPath: ["Calendar", "CalendarGrid"] },
-    {
-      parentProp: "defaultToday",
-      childPath: ["RangeCalendar", "CalendarGrid"],
-    },
-  ],
-);
+const dateRangePickerPropagationRules: PropagationRule[] = [
+  {
+    parentProp: "label",
+    childPath: "Label",
+    childProp: "children",
+    override: true,
+  },
+  {
+    parentProp: "granularity",
+    childPath: "DateInput",
+    childProp: "_granularity",
+    override: true,
+  },
+  { parentProp: "size", childPath: "DateInput", override: true },
+  { parentProp: "size", childPath: "Calendar", override: true },
+  { parentProp: "size", childPath: "RangeCalendar", override: true },
+  { parentProp: "size", childPath: "Label", override: true },
+  {
+    parentProp: "size",
+    childPath: ["Calendar", "CalendarHeader"],
+    override: true,
+  },
+  {
+    parentProp: "size",
+    childPath: ["Calendar", "CalendarGrid"],
+    override: true,
+  },
+  {
+    parentProp: "size",
+    childPath: ["RangeCalendar", "CalendarHeader"],
+    override: true,
+  },
+  {
+    parentProp: "size",
+    childPath: ["RangeCalendar", "CalendarGrid"],
+    override: true,
+  },
+  {
+    parentProp: "maxVisibleMonths",
+    childPath: "RangeCalendar",
+    childProp: "maxVisibleMonths",
+    override: true,
+  },
+  { parentProp: "locale", childPath: "Calendar" },
+  { parentProp: "locale", childPath: ["Calendar", "CalendarHeader"] },
+  { parentProp: "locale", childPath: ["Calendar", "CalendarGrid"] },
+  { parentProp: "locale", childPath: "RangeCalendar" },
+  { parentProp: "locale", childPath: ["RangeCalendar", "CalendarHeader"] },
+  { parentProp: "locale", childPath: ["RangeCalendar", "CalendarGrid"] },
+  { parentProp: "calendarSystem", childPath: "Calendar" },
+  { parentProp: "calendarSystem", childPath: ["Calendar", "CalendarHeader"] },
+  { parentProp: "calendarSystem", childPath: ["Calendar", "CalendarGrid"] },
+  { parentProp: "calendarSystem", childPath: "RangeCalendar" },
+  {
+    parentProp: "calendarSystem",
+    childPath: ["RangeCalendar", "CalendarHeader"],
+  },
+  {
+    parentProp: "calendarSystem",
+    childPath: ["RangeCalendar", "CalendarGrid"],
+  },
+  { parentProp: "defaultToday", childPath: ["Calendar", "CalendarGrid"] },
+  {
+    parentProp: "defaultToday",
+    childPath: ["RangeCalendar", "CalendarGrid"],
+  },
+];
 
 // ─── Lazy Index ─────────────────────────────────────────────────────────────
 
@@ -680,7 +633,7 @@ export function _resetPropagationRegistry(): void {
 //   이라 분리 무손실. size/allowsRemoving → Tag/TagList, label → Label.children, size → Label,
 //   items/variant/maxRows/selectedKeys/selectionMode → TagList(chip projection 좌표계 전파).
 //   override:true 필수 — allowsRemoving 토글 시 부모 최신값 덮어쓰기(자식 stale true 방지).
-const tagGroupPropagationSpec = createPropagationOnlySpec("TagGroup", [
+const tagGroupPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "Tag", override: true },
   { parentProp: "size", childPath: "TagList", override: true },
   { parentProp: "allowsRemoving", childPath: "Tag", override: true },
@@ -697,12 +650,12 @@ const tagGroupPropagationSpec = createPropagationOnlySpec("TagGroup", [
   { parentProp: "maxRows", childPath: "TagList", override: true },
   { parentProp: "selectedKeys", childPath: "TagList", override: true },
   { parentProp: "selectionMode", childPath: "TagList", override: true },
-]);
+];
 
 // ADR-912 단계5 step4 (2026-06-17): Select.spec 삭제 — propagation.rules 6건 인라인 보존.
 //   시각/CSS 는 STRUCTURE_META virtual 이 담당, builder runtime 의 size/label/placeholder → 자식 전파만
 //   여기서 유지. placeholder → SelectValue.children (Select 고유, ComboBox 와 다름).
-const selectPropagationSpec = createPropagationOnlySpec("Select", [
+const selectPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "SelectTrigger", override: true },
   {
     parentProp: "size",
@@ -727,13 +680,13 @@ const selectPropagationSpec = createPropagationOnlySpec("Select", [
     childProp: "children",
     override: true,
   },
-]);
+];
 
 // ADR-912 단계5 step4 (2026-06-17): ComboBox.spec 삭제 — propagation.rules 6건 인라인 보존.
 //   Select 동형이나 placeholder → SelectValue.placeholder (HTML input attribute, Select 의 children 과
 //   다름) → 별도 spec 필수. R1(2026-06-12)에서 ComboBox 자식이 Select family 공용 type(SelectTrigger/
 //   Value/Icon)으로 retype 됐으므로 childPath 는 Select 와 동일 type 명 사용.
-const comboBoxPropagationSpec = createPropagationOnlySpec("ComboBox", [
+const comboBoxPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "SelectTrigger", override: true },
   {
     parentProp: "size",
@@ -758,54 +711,51 @@ const comboBoxPropagationSpec = createPropagationOnlySpec("ComboBox", [
     childProp: "placeholder",
     override: true,
   },
-]);
+];
 
 // ─── Auto-register specs with propagation rules ────────────────────────────
-registerPropagationSpec("DatePicker", datePickerPropagationSpec);
-registerPropagationSpec("DateRangePicker", dateRangePickerPropagationSpec);
-registerPropagationSpec("Select", selectPropagationSpec);
-registerPropagationSpec("ComboBox", comboBoxPropagationSpec);
-registerPropagationSpec("SearchField", searchFieldPropagationSpec);
-registerPropagationSpec("CheckboxGroup", checkboxGroupPropagationSpec);
-registerPropagationSpec("RadioGroup", radioGroupPropagationSpec);
-registerPropagationSpec("TagGroup", tagGroupPropagationSpec);
-registerPropagationSpec("Checkbox", checkboxPropagationSpec);
-registerPropagationSpec("Radio", radioPropagationSpec);
+registerPropagationRules("DatePicker", datePickerPropagationRules);
+registerPropagationRules("DateRangePicker", dateRangePickerPropagationRules);
+registerPropagationRules("Select", selectPropagationRules);
+registerPropagationRules("ComboBox", comboBoxPropagationRules);
+registerPropagationRules("SearchField", searchFieldPropagationRules);
+registerPropagationRules("CheckboxGroup", checkboxGroupPropagationRules);
+registerPropagationRules("RadioGroup", radioGroupPropagationRules);
+registerPropagationRules("TagGroup", tagGroupPropagationRules);
+registerPropagationRules("Checkbox", checkboxPropagationRules);
+registerPropagationRules("Radio", radioPropagationRules);
 // ADR-914 Phase 5 (2026-06-21): Switch = proof family — shadow spec 없이 rule 배열 직접 등록.
 registerPropagationRules("Switch", switchPropagationRules);
-registerPropagationSpec("TextField", textFieldPropagationSpec);
-registerPropagationSpec("TextArea", textAreaPropagationSpec);
-registerPropagationSpec("NumberField", numberFieldPropagationSpec);
-registerPropagationSpec("DateField", dateFieldPropagationSpec);
-registerPropagationSpec("TimeField", timeFieldPropagationSpec);
-registerPropagationSpec("ColorField", colorFieldPropagationSpec);
-registerPropagationSpec("Slider", sliderPropagationSpec);
+registerPropagationRules("TextField", textFieldPropagationRules);
+registerPropagationRules("TextArea", textAreaPropagationRules);
+registerPropagationRules("NumberField", numberFieldPropagationRules);
+registerPropagationRules("DateField", dateFieldPropagationRules);
+registerPropagationRules("TimeField", timeFieldPropagationRules);
+registerPropagationRules("ColorField", colorFieldPropagationRules);
+registerPropagationRules("Slider", sliderPropagationRules);
 // ADR-912 단계5 step4 경량 이관 (2026-06-17): ProgressBar/Meter spec 삭제 → propagation-only 인라인 spec.
-registerPropagationSpec("ProgressBar", progressBarPropagationSpec);
-registerPropagationSpec("Meter", meterPropagationSpec);
-registerPropagationSpec("Calendar", calendarPropagationSpec);
-registerPropagationSpec("RangeCalendar", rangeCalendarPropagationSpec);
+registerPropagationRules("ProgressBar", progressBarPropagationRules);
+registerPropagationRules("Meter", meterPropagationRules);
+registerPropagationRules("Calendar", calendarPropagationRules);
+registerPropagationRules("RangeCalendar", rangeCalendarPropagationRules);
 // ADR-912 R6 (2026-06-15): Card 본체 spec 삭제 → propagation-only 인라인 spec(cardPropagationSpec).
-registerPropagationSpec("Card", cardPropagationSpec);
+registerPropagationRules("Card", cardPropagationRules);
 // ADR-095: CardHeader → Heading flex:1 / CardContent → Description width:100% 주입 rule.
 //   ADR-912 (2026-06-15): CardHeader/CardContent spec 삭제 → propagation-only 인라인 spec 으로 보존.
-registerPropagationSpec("CardHeader", cardHeaderPropagationSpec);
-registerPropagationSpec("CardContent", cardContentPropagationSpec);
-registerPropagationSpec("GridList", gridListPropagationSpec);
+registerPropagationRules("CardHeader", cardHeaderPropagationRules);
+registerPropagationRules("CardContent", cardContentPropagationRules);
+registerPropagationRules("GridList", gridListPropagationRules);
 // ADR-912 단계5 step4 (2026-06-17): ListBox.spec 삭제 → 빈 propagation-only spec(rules 부재 = 구
 //   no-op 동작 동일). 정적 모드 shapes 가 부모 variant 직접 참조라 자식 전파 불필요(ListBox.spec:352).
-registerPropagationSpec("ListBox", listBoxPropagationSpec);
-registerPropagationSpec("ToggleButtonGroup", toggleButtonGroupPropagationSpec);
+registerPropagationRules("ListBox", listBoxPropagationRules);
+registerPropagationRules(
+  "ToggleButtonGroup",
+  toggleButtonGroupPropagationRules,
+);
 // ADR-912 영역 B (A): Tabs → TabList items/selectedKey/variant/size/showIndicator 전파.
 //   chip projection(appendTabRowProjection)이 TabList.props.items 를 읽는 invariant 충족.
 //   ADR-912 단계5 step4 (2026-06-17): Tabs.spec 삭제 → propagation-only 인라인 spec(tabsPropagationSpec).
-registerPropagationSpec("Tabs", tabsPropagationSpec);
+registerPropagationRules("Tabs", tabsPropagationRules);
 // Collection Item → 자식 Text/Description 전파
-registerPropagationSpec(
-  "GridListItem",
-  createCollectionItemPropagationSpec("GridListItem"),
-);
-registerPropagationSpec(
-  "ListBoxItem",
-  createCollectionItemPropagationSpec("ListBoxItem"),
-);
+registerPropagationRules("GridListItem", collectionItemPropagationRules);
+registerPropagationRules("ListBoxItem", collectionItemPropagationRules);

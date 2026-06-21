@@ -455,13 +455,41 @@ Gate:
 > 확정. 58 fail 전부 pre-existing ADR-913 snapshot 등 propagation 직교) + **live: builder
 > 에서 Switch size/children 편집 → 자식 Label 전파 정상 사용자 confirm**.
 
+> **Phase 5 후속 slice (나머지 30 family shadow spec 제거) ✅ Implemented 2026-06-21**
+>
+> Phase 5 의 `registerPropagationRules` adapter (byte-identical 검증 완료) 를 나머지 전
+> family 에 적용. proof family Switch 외 30 family 의 `createPropagationOnlySpec(name, rules)`
+> shadow ComponentSpec wrapper → `xxxPropagationRules: PropagationRule[]` 상수 +
+> `registerPropagationRules(type, rules)` 직접 등록. 사용자 결정 (2026-06-21,
+> AskUserQuestion): 후속 slice = "Phase 5 — 27 propagation family" (실측 30, Switch 제외).
+>
+> **변경** (`propagationRegistry.ts` 단일 파일, 순 -50줄):
+>
+> - 28 변수형 spec (`cardPropagationSpec` … `comboBoxPropagationSpec`) +
+>   collection item 2개 (`createCollectionItemPropagationSpec("GridListItem"/"ListBoxItem")`
+>   → 단일 상수 `collectionItemPropagationRules` 공유, name 무관 동일 rule) → 전부 rule 배열.
+> - 30 `registerPropagationSpec(type, xxxSpec)` 호출 → `registerPropagationRules(type, xxxRules)`.
+> - `createPropagationOnlySpec` shadow wrapper 정의 + `noopShapes` + `Shape` import 제거
+>   (호출처 0). `registerPropagationSpec` adapter + `specEntries` 는 **병행 보존** (dead
+>   adapter 제거는 R7 surface 확대 + export BC → 별도 판단, 본 slice 는 shadow 제거 본질에 집중).
+>
+> **검증**: type-check exit 0 + Phase 5 fixture 6 passed + entryUniverseContract 24 passed +
+> factories `__tests__` 78 passed (회귀 0) + **oracle byte-identical 갈음**: 변환 전후 전체
+> registry forward(`getPropagationRules`) + reverse(`getParentTagsForChild`) 31 tags 전수
+> JSON diff = 0 (변환 전 baseline ↔ 변환 후 post snapshot). 변경=등록 형태만, rule 데이터
+> byte-identical → consumer 5개(buildSpecNodeData/fullTreeLayout/PropertiesPanel/
+> propagationEngine/entryUniverse)가 3 API 만 소비(Phase 5 구조 통찰) → propagation engine
+> 입력 동일 → 사용자-가시 전파 동작 불변. live: Chrome 확장 미연결로 MCP 불가 → 사용자 결정
+> (oracle byte-identical 로 갈음, Phase 5 의 live Switch confirm 을 30 family 확장). G5 (parent
+> prop edit → child diff 0) 충족 (oracle = registry 출력 동일성 = engine 입력 동일성).
+
 목표: `createPropagationOnlySpec` shadow object를 제거한다.
 
 작업:
 
 - `PropagationRuleDeclaration`을 entry facet에 둔다. ← ✅ rule 배열을 SSOT 로 (Switch proof)
 - current `registerPropagationSpec(type, spec)` adapter가 entry rules를 읽게 한다. ← ✅ `registerPropagationRules` adapter 신설 (ensureBuilt 양쪽 순회)
-- proof family 하나에서 spec-shaped constant를 제거한다. ← ✅ Switch `switchPropagationSpec` 제거 (27 family 후속 slice)
+- proof family 하나에서 spec-shaped constant를 제거한다. ← ✅ Switch `switchPropagationSpec` 제거 + **후속 slice 로 나머지 30 family 전부 `createPropagationOnlySpec` shadow wrapper 제거 (Implemented 2026-06-21, oracle byte-identical)**
 
 Gate:
 
