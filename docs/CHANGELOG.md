@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [DatePicker/DateRangePicker Skia DateInput width 0 — layout 분기 width 주입 누락 수정] - 2026-06-23
+
+### Bug Fixes
+
+- **DatePicker / DateRangePicker 의 Skia DateInput 입력 박스가 width 0 으로 렌더**:
+  - Skia(Builder canvas)에서 DatePicker/DateRangePicker 의 입력 trigger field(DateInput) 가 폭 0 으로 그려져 보이지 않았다. CSS preview 는 RAC grid/flex 자연폭으로 정상(약 213px) → Builder↔Preview 시각 발산.
+  - **Why**: `implicitStyles.ts` 의 layout 분기에서 `datefield`/`timefield` 분기(:1638)는 DateInput 자식에 `width:100%`/`height`/`_granularity`/`_hourCycle`/`_locale` 를 주입하는데, `datepicker`/`daterangepicker` 분기(:1992)에는 이 DateInput width 주입이 **누락**돼 있었다. factory(`DateColorComponents.ts`)는 DateInput 을 `{ _parentTag }` 만으로 생성하므로 layout 분기가 유일한 width 주입처 → 누락 시 Taffy 가 DateInput 을 width 0(leaf intrinsic)으로 계산 → `buildSpecNodeData.ts:989 const w = layout?.width ?? 0` = 0 → Skia node box width 0.
+  - Skia `datefieldSegments` escape(`skiaPrimitives.ts:1680`)가 그리는 input box(border+segment text+calendar icon)는 CSS 의 `.react-aria-Group`(bordered field box) 에 대응하므로 `width:100%`(부모 폭) 주입이 시각 대칭상 정확.
+  - **수정**: `datepicker`/`daterangepicker` 분기에 `datefield` 분기와 동형의 DateInput width/height + 세그먼트 props 주입 추가. 사용자 명시 width 는 `cs.width ?? "100%"` 로 보존. side-label content set 에 `DateInput` 추가(기존 `Group`/`frame` 보정 유지).
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`. 회귀 가드: `__tests__/datePickerInputWidth.test.ts`(RED→GREEN 4건) + 기존 side-label 9건 회귀 0.
+
 ## [catalog 레퍼런스 기준 재구축 종결 — ADR-913 slice 1~5 완료 + slice 6 제외] - 2026-06-22
 
 ADR-912(catalog cutover) 이후 남은 catalog `COMPONENT_RULES_TABLE` 의 **값** drift 를 react-aria-starter 구조 + composition 토큰 정본 기준으로 family 단위 재정렬한 ADR-913 을 종결했다. Proposed(2026-06-18) → Implemented(2026-06-22). slice 1~5(Button/Field/Selection-control/Collection/Overlay)는 각 proof gate(starter 대조 + CSS↔Skia 대칭 + byte-diff 격리 + live behavior) 통과로 land 완료, slice 6(Color)은 재정렬 trigger 없는 제외 대상으로 종결.

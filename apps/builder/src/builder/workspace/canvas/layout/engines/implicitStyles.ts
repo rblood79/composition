@@ -1996,15 +1996,47 @@ export function applyImplicitStyles(
     );
     const sideMode = hasResolvedSideLabelVariant(fieldVariant.styles);
     const hasLabel = !!containerProps?.label;
+    const sizeName = (containerProps?.size as string) ?? "md";
+    const inputHeight = specSizeField(containerTag, sizeName, "height") ?? 30;
     filteredChildren = children.filter((c) => {
       if (c.type === "Label") return hasLabel;
       return !POPOVER_CHILDREN_TAGS.has(c.type);
     });
 
+    // DateInput(trigger field)에 width/height + 세그먼트 텍스트 생성용 부모 props 주입.
+    //   DateField/TimeField 분기(:1638)와 동형 — factory(DateColorComponents.ts)는 DateInput 을
+    //   `{ _parentTag }` 만으로 생성하므로 layout 분기가 유일한 width 주입처. 누락 시 Taffy 가
+    //   DateInput 을 width 0 으로 계산 → Skia node box width 0 (CSS 는 RAC grid/flex 자연폭 정상).
+    filteredChildren = filteredChildren.map((child) => {
+      if (child.type === "DateInput") {
+        const cs = (child.props?.style || {}) as Record<string, unknown>;
+        return {
+          ...child,
+          props: {
+            ...child.props,
+            size: sizeName,
+            _parentTag:
+              containerTag === "datepicker" ? "DatePicker" : "DateRangePicker",
+            _granularity: containerProps?.granularity,
+            _hourCycle: containerProps?.hourCycle,
+            _locale: containerProps?.locale,
+            style: {
+              ...cs,
+              width: cs.width ?? "100%",
+              height: inputHeight,
+            },
+          },
+        } as CanvasLayoutNode;
+      }
+      return child;
+    });
+
     if (sideMode) {
       filteredChildren = injectSideLabelLabelAndContentStyles(
         filteredChildren,
-        new Set(["Group", "frame"]), // ADR-130: canonical frame 정합
+        // Group(RAC DatePicker 내부 trigger 래퍼) + frame(ADR-130) + DateInput(factory 직접 자식)
+        //   — 구조 차이 양쪽 모두 side-label content 보정 (flex:1/minWidth:0) 대상.
+        new Set(["Group", "frame", "DateInput"]),
       );
     }
     effectiveParent = withParentStyle(
