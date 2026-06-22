@@ -652,7 +652,13 @@ export const renderToggleButtonGroup = (
       isEmphasized={Boolean(element.props.isEmphasized)}
       isQuiet={Boolean(element.props.isQuiet)}
       size={(element.props.size as "sm" | "md" | "lg") || "md"}
-      selectedKeys={selectedKeys}
+      // uncontrolled (defaultSelectedKeys) — RadioGroup defaultValue 동형.
+      //   preview 는 canonicalDocument(node)를 렌더하는데 onSelectionChange→batchUpdateElementProps
+      //   는 legacy runtimeStore.elements 만 갱신하여 canonical node 에 미반영 → controlled
+      //   (selectedKeys) 면 RAC 표시가 store 와 동기 안 돼 클릭이 화면에 안 보인다(ADR-116/122
+      //   canonical 전환 잔존 결함). uncontrolled 면 RAC 자체 state 가 표시를 담당하고 store 는
+      //   영속화만 — RadioGroup/CheckboxGroup/Switch/Checkbox 동형(2026-06-22).
+      defaultSelectedKeys={selectedKeys}
       onSelectionChange={(keys) => {
         const nextKeys = new Set(Array.from(keys).map((k) => String(k)));
         const batch: Array<{ id: string; props: Record<string, unknown> }> = [];
@@ -690,19 +696,23 @@ export const renderToggleButton = (
     ? elementsById.get(element.parent_id)?.type === "ToggleButtonGroup"
     : false;
 
-  // id는 element.id — group의 selectedKeys Set과 키 일치 필수.
+  // selection 은 uncontrolled — RadioGroup(자식 Radio)/Checkbox 동형(2026-06-22).
+  //   preview 가 canonicalDocument(node)를 렌더하는데 onPress→updateElementProps 는 legacy
+  //   runtimeStore.elements 만 갱신하여 canonical node 에 미반영 → controlled(isSelected)면 RAC
+  //   표시가 store 와 동기 안 돼 클릭이 화면에 안 보인다(ADR-116/122 canonical 전환 잔존 결함).
+  //   - group 안: group 의 defaultSelectedKeys + RAC groupState(props.id 매칭)가 selection 전담.
+  //     자식엔 isSelected/defaultSelected/onPress 미부여(RadioGroup 자식 Radio 와 동일 — group
+  //     onSelectionChange 가 일괄 영속화). id 는 group selection key 매칭에 필수라 유지.
+  //   - 단독: defaultSelected(uncontrolled, Checkbox 동형) + onPress 에서 store 영속화.
   return (
     <ToggleButton
       key={element.id}
       id={element.id}
       data-element-id={element.id}
       data-custom-id={element.customId}
-      isSelected={Boolean(element.props.isSelected)}
-      defaultSelected={
-        typeof element.props.defaultSelected === "boolean"
-          ? element.props.defaultSelected
-          : undefined
-      }
+      {...(isInGroup
+        ? {}
+        : { defaultSelected: Boolean(element.props.isSelected) })}
       isDisabled={Boolean(element.props.isDisabled)}
       isEmphasized={Boolean(element.props.isEmphasized)}
       size={(element.props.size as "sm" | "md" | "lg") || "md"}

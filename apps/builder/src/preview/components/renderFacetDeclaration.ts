@@ -167,7 +167,7 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
       "rendererMap 이 factory child tree 를 받아 RAC ColorSwatchPickerItem 합성 유지.",
   },
 
-  // ── delegating-rac (10) — binding.source.kind==="rac" self-compose ──
+  // ── delegating-rac (12) — binding.source.kind==="rac" self-compose ──
   {
     key: "Slider",
     kind: "delegating-rac",
@@ -203,6 +203,18 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
     kind: "delegating-rac",
     reason:
       "renderRadioGroup — CheckboxGroup 동형. .radio-items wrapper + orientation 자기완결 처리.",
+  },
+  {
+    key: "ToggleButtonGroup",
+    kind: "delegating-rac",
+    reason:
+      "renderToggleButtonGroup 이 controlled selectedKeys/onSelectionChange 를 자기완결 wiring(자식 isSelected → batchUpdateElementProps). generic rac 경로(RAC ToggleButtonGroup 직접)는 selectedKeys/onSelectionChange 를 미emit → uncontrolled + store 미반영 → 클릭해도 토글 미동작. CheckboxGroup/RadioGroup 동형(2026-06-22).",
+  },
+  {
+    key: "ToggleButton",
+    kind: "delegating-rac",
+    reason:
+      "renderToggleButton 이 group 안에서 id={element.id} 를 RAC ToggleButton 에 전달(RAC group selection key 매칭 필수) + 단독일 때 onPress 토글(updateElementProps) 자기완결. generic rac 경로는 id 미전달 → groupState.selectedKeys.has(props.id) 매칭 실패 + 단독 토글 wiring 부재. ToggleButtonGroup 과 한 쌍(2026-06-22).",
   },
   {
     key: "DateField",

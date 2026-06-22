@@ -2,14 +2,16 @@
  * ADR-914 Phase 3-A — Render Facet Declaration parity contract
  *
  * render facet 의 SSOT 를 `renderFacetDeclaration.ts` (declarative source) 로 역전한
- * 뒤에도, 파생 set 이 기존 `CanonicalNodeRenderer.tsx` 의 hardcoded 28종(DELEGATING_INTERNAL
- * 18 + DELEGATING_RAC 10)을 **byte-identical** 재현하는지 검증한다.
+ * 뒤에도, 파생 set 이 `CanonicalNodeRenderer.tsx` 의 DELEGATING_INTERNAL/DELEGATING_RAC export
+ * 와 **byte-identical** 한지 검증한다 (현 30종 = DELEGATING_INTERNAL 18 + DELEGATING_RAC 12).
  *
- * Phase 3-A 는 deletion 0 — set membership 값을 불변 유지하며 SSOT 만 declaration 으로
- * 이전한다. 따라서:
+ * Phase 3-A 원형은 deletion 0 — set membership 값을 불변 유지하며 SSOT 만 declaration 으로
+ * 이전했다(rac 10 freeze). 2026-06-22 ToggleButtonGroup/ToggleButton 2종이 delegating-rac 에
+ * 추가됨(cutover 누락 toggle 미동작 버그 정정, rac 10→12). parity 는 declaration↔export 동등성을
+ * 검증하므로 멤버 추가 후에도 유효 — INVENTORY 카운트만 동반 갱신. 검증 항목:
  *   - parity A: 파생 set == CanonicalNodeRenderer export set (멤버 + insertion order).
- *   - parity B: declaration 28종이 inventory freeze 카운트(internal 18 / rac 10)와 일치.
- *   - parity C: 28종 모두 위임 사유(reason) 가 비어있지 않음 (무손실 audit — 사유 1:1 이전).
+ *   - parity B: declaration 30종이 inventory 카운트(internal 18 / rac 12)와 일치.
+ *   - parity C: 30종 모두 위임 사유(reason) 가 비어있지 않음 (무손실 audit — 사유 1:1 이전).
  *   - parity D: key 중복 없음 (internal/rac 각 namespace 내).
  *
  * kill criteria: parity A 불일치 시 declaration 파생 전환 중단 (set 값이 바뀌면 hot-path
@@ -32,7 +34,11 @@ import {
 } from "@/preview/components/renderFacetDeclaration";
 
 // inventory freeze 정본 카운트 (914-entry-universe-inventory.md §2.3/§2.4, 2026-06-20)
-const INVENTORY = { delegatingInternal: 18, delegatingRac: 10 } as const;
+// rac 10 → 12 (2026-06-22): ToggleButtonGroup/ToggleButton 추가. ADR-912 cutover 시점부터
+//   delegating-rac 에 누락돼 있던 것을 ADR-914 §2.4 가 그대로 freeze 했으나(SSOT 역전 무손실,
+//   당위 분류 아님), generic rac 경로가 selectedKeys/onSelectionChange/id 를 미emit 하여
+//   CSS preview 에서 toggle 미동작하던 버그를 정정 — CheckboxGroup/RadioGroup 동형 위임 등록.
+const INVENTORY = { delegatingInternal: 18, delegatingRac: 12 } as const;
 
 describe("ADR-914 Phase 3-A — render facet declaration parity", () => {
   it("parity A — 파생 internal set == CanonicalNodeRenderer DELEGATING_INTERNAL (멤버 + 순서)", () => {
@@ -67,7 +73,7 @@ describe("ADR-914 Phase 3-A — render facet declaration parity", () => {
     }
   });
 
-  it("parity B — declaration 카운트 == inventory freeze (internal 18 / rac 10)", () => {
+  it("parity B — declaration 카운트 == inventory (internal 18 / rac 12)", () => {
     const internal = RENDER_FACET_DELEGATIONS.filter(
       (d) => d.kind === "delegating-internal",
     );
@@ -81,7 +87,7 @@ describe("ADR-914 Phase 3-A — render facet declaration parity", () => {
     );
   });
 
-  it("parity C — 28종 모두 위임 사유(reason) 비어있지 않음 (무손실 audit)", () => {
+  it("parity C — 30종 모두 위임 사유(reason) 비어있지 않음 (무손실 audit)", () => {
     const empty = RENDER_FACET_DELEGATIONS.filter(
       (d) => !d.reason || d.reason.trim().length === 0,
     ).map((d) => `${d.kind}:${d.key}`);

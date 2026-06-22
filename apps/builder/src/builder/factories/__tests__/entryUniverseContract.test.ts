@@ -52,7 +52,10 @@ const INVENTORY = {
   rendererMap: 94,
   internalRenderers: 26,
   delegatingInternal: 18,
-  delegatingRac: 10,
+  // delegatingRac 10 → 12 (2026-06-22): ToggleButtonGroup/ToggleButton 추가. ADR-912 cutover
+  //   시점부터 delegating-rac 누락 → generic rac 경로가 selectedKeys/onSelectionChange/id 미emit
+  //   → CSS preview toggle 미동작 버그 정정. CheckboxGroup/RadioGroup 동형 위임 등록.
+  delegatingRac: 12,
   defaultPropsMap: 92,
   // ADR-914 Phase 4-B (2026-06-21): Avatar creator 제거 → 55 → 54 (Avatar 는 creation.mode
   //   ="none" leaf, palette-add 는 else 분기 getDefaultProps). placeable 집합 1 축소.

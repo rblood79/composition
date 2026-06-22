@@ -92,13 +92,21 @@ tooltip, dropzone, calendar, rangecalendar, datepicker, daterangepicker
 disclosurecontent, field, select, combobox, tree, taggroup, listbox, gridlist, menu, colorpicker,
 colorswatchpicker
 
-### 2.4 DELEGATING_RAC_RENDERERS (10)
+### 2.4 DELEGATING_RAC_RENDERERS (12)
 
-`CanonicalNodeRenderer.tsx:248-307`. `binding.source.kind==="rac"`이면서 self-compose라 위임 +
-자식 재귀 skip하는 type.
+`renderFacetDeclaration.ts` (declaration SSOT, ADR-914 Phase 3-A). `binding.source.kind==="rac"`
+이면서 self-compose라 위임 + 자식 재귀 skip하는 type.
 
-전수 멤버 (10): Slider, NumberField, SearchField, TextField, CheckboxGroup, RadioGroup, DateField,
-TimeField, Switch, Checkbox
+전수 멤버 (12): Slider, NumberField, SearchField, TextField, CheckboxGroup, RadioGroup, DateField,
+TimeField, Switch, Checkbox, **ToggleButtonGroup, ToggleButton**
+
+> **2026-06-22 정정 (10 → 12)**: ADR-912 cutover 시점부터 ToggleButtonGroup/ToggleButton 이
+> delegating-rac 에 누락돼 있었고, 본 inventory 의 초기 freeze(10)는 그 시점 hardcoded set 을
+> 당위 검증 없이 그대로 기록한 것이었다. generic rac 경로(RAC ToggleButtonGroup/ToggleButton 직접)
+> 가 `selectedKeys`/`onSelectionChange`(group) + `id`(자식 selection key) 를 미emit 하여 CSS
+> preview 에서 toggle 클릭이 전혀 반영되지 않던 버그(2026-06-22 보고)를 정정 — CheckboxGroup/
+> RadioGroup 과 동형 위임 등록. renderToggleButtonGroup/renderToggleButton(rendererMap 기존 존재)
+> 이 이미 selection wiring 을 완비했으나 delegating 미등록으로 호출되지 않던 것.
 
 ## 3. defaults 표면 상세
 
