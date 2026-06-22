@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ADR-912(catalog cutover) 이후 남은 catalog `COMPONENT_RULES_TABLE` 의 **값** drift 를 react-aria-starter 구조 + composition 토큰 정본 기준으로 family 단위 재정렬한 ADR-913 을 종결했다. Proposed(2026-06-18) → Implemented(2026-06-22). slice 1~5(Button/Field/Selection-control/Collection/Overlay)는 각 proof gate(starter 대조 + CSS↔Skia 대칭 + byte-diff 격리 + live behavior) 통과로 land 완료, slice 6(Color)은 재정렬 trigger 없는 제외 대상으로 종결.
 
+### Bug Fixes
+
+- **Table 선택행 색상 — reference filled-accent 정렬 + CSS↔Skia 대칭 복원** (ADR-913 slice 4 잔존 "Table 5건" 중 1건 후속):
+  - 레퍼런스(`packages/react-aria-starter/src/Table.css [data-selected]`) + 표준화 토큰 정본(`packages/design.md:314` `--highlight-background → --accent`) 으로 재검증한 결과 Table 선택행이 **3자 발산**: reference/design.md = filled accent + 흰 전경 / CSS = M3 `--color-primary-100/900`(css-tokens.md 금지 토큰, light blue) / Skia projection = `{color.accent-subtle}`(`--highlight-overlay` 계보 오차용, reference 선택행 미사용) + 전경 미주입.
+  - **Why**: ListBox/GridList 등 자매 collection 은 이미 `--accent`/`--accent-subtle` 시맨틱을 쓰는데 Table 선택행만 M3 primary 잔존 → 테마 `--tint` 전환에도 선택행이 blue 하드고정 + Builder(Skia accent-subtle)↔Preview(CSS primary blue) 시각 발산.
+  - **수정**: CSS `--tbl-selected-bg → var(--accent)`, `--tbl-selected-color → var(--fg-on-accent)` (base 138/139 + filled variant 579/580 을 변수 경유로 통일). Skia `appendTableRowProjection` rowBg `{color.accent-subtle} → {color.accent}` + cell projection 에 selected 시 `style.color: {color.on-accent}` 주입(filled accent 위 흰 전경 contrast).
+  - 위치: `packages/shared/src/components/styles/Table.css`, `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`. catalog rule 무수정(선택행은 projection 위임).
+  - **범위 외**: checkbox 3종(`--tbl-cb-*`) + PageButton.active 의 M3 primary 잔존 + ActionList/EventPalette/ComponentList 관행 → 별도 raw-primary sweep 후보.
+
 ### Architecture
 
 - **ADR-913 slice 1~5 — catalog rule 값 family 단위 재정렬** (Implemented):
