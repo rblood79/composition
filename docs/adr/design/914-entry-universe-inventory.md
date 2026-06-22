@@ -1,6 +1,6 @@
 # ADR-914 Phase 0 — Entry Universe Inventory Freeze
 
-> 본문: [914-component-entry-universe-collapse.md](../914-component-entry-universe-collapse.md)
+> 본문: [914-component-entry-universe-collapse.md](../completed/914-component-entry-universe-collapse.md)
 > breakdown: [914-component-entry-universe-collapse-breakdown.md](914-component-entry-universe-collapse-breakdown.md) §2, §4 Phase 0
 > 실측 기준일: **2026-06-20** (grep + 정의 블록 직접 Read 전수 재실측)
 

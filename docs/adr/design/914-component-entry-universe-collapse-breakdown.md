@@ -1,6 +1,6 @@
 # ADR-914 구현 상세 - Component Entry Universe Collapse
 
-> 본문: [914-component-entry-universe-collapse.md](../914-component-entry-universe-collapse.md).
+> 본문: [914-component-entry-universe-collapse.md](../completed/914-component-entry-universe-collapse.md).
 > 본 문서는 phase, inventory, gate, deletion 기준만 보유한다.
 >
 > **✅ Implemented 2026-06-22 (deletion 축 종결)**: Phase 0~7 land + deletion 축 적대 검증(4 agents,

@@ -159,7 +159,7 @@ SOURCE 축으로 한정된다. ADR-912 본문은 이 경계를 명시한다. `co
 8. child filtering/injection은 entry `childRuntime` facet으로 declarative membership을
    옮긴다. 계열 고정 inline 예외는 entry allowlist와 grep gate로 추적한다.
 
-> 구현 상세: [914-component-entry-universe-collapse-breakdown.md](design/914-component-entry-universe-collapse-breakdown.md)
+> 구현 상세: [914-component-entry-universe-collapse-breakdown.md](../design/914-component-entry-universe-collapse-breakdown.md)
 
 ## Risks
 
@@ -210,7 +210,7 @@ SOURCE 축으로 한정된다. ADR-912 본문은 이 경계를 명시한다. `co
 ### Phase 0~8 결과 (2026-06-20 ~ 2026-06-22)
 
 entry universe spine + contract + 5 facet(render / defaults / creation / propagation / childRuntime)
-proof 를 phase 별로 land 했다. 상세는 [breakdown](design/914-component-entry-universe-collapse-breakdown.md) 참조.
+proof 를 phase 별로 land 했다. 상세는 [breakdown](../design/914-component-entry-universe-collapse-breakdown.md) 참조.
 
 | Phase                          | 결과                                                                                                             |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------- |

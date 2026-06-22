@@ -1494,7 +1494,7 @@ true-dead 0 확정으로, 잔여 미등록 type 의 폐기는 전부 **선행 �
 
 ## 관련
 
-- ADR 본문: [912-rac-pencil-rebuild-cutover.md](../912-rac-pencil-rebuild-cutover.md) §Status (Implemented — 2026-06-18)
+- ADR 본문: [912-rac-pencil-rebuild-cutover.md](../completed/912-rac-pencil-rebuild-cutover.md) §Status (Implemented — 2026-06-18)
 - breakdown: [912-rac-pencil-rebuild-cutover-breakdown.md](912-rac-pencil-rebuild-cutover-breakdown.md) 단계 5 분해표 step 4
 - `_hasChildren` 컨벤션: [.claude/rules/canvas-rendering.md](../../../.claude/rules/canvas-rendering.md) §2.5
 - ADR-130 frame canonical vocabulary (Group D1 경계): [130-\*.md](../completed/)

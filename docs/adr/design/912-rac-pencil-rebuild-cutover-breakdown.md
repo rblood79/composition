@@ -1,6 +1,6 @@
 # ADR-912 Breakdown: RAC core + Pencil format 백지 직행 컴포넌트 아키텍처 (rebuild)
 
-> 본 문서는 [ADR-912](../912-rac-pencil-rebuild-cutover.md) 의 구현 상세 — 1차 원리 기준선 / 현재 구현 재분류 / 영역별 설계 / HC 1:1 / 구현 순서.
+> 본 문서는 [ADR-912](../completed/912-rac-pencil-rebuild-cutover.md) 의 구현 상세 — 1차 원리 기준선 / 현재 구현 재분류 / 영역별 설계 / HC 1:1 / 구현 순서.
 > ADR 본문(Risk-First)에는 결정·대안·위험만 두고, 설계 본문은 이 breakdown 에 분리한다(adr-writing.md 스캐폴딩 규칙).
 >
 > **상태**: 설계 문서 (코드 변경 아님).

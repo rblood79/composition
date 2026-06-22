@@ -4,7 +4,7 @@
 
 Proposed — 2026-06-02
 
-> **문서 위상: 비실행 목표 참조(Target Reference)**. 본 ADR 은 `execute-adr` 착수 문서가 아니다. **실행 owner(Phase land / 레거시 제거 / 등록 collapse)는 [ADR-912](912-rac-pencil-rebuild-cutover.md)(백지 직행, 유일 착수) 다** — 사용자 옵션 B 결정(2026-06-02)으로 점진 cutover([ADR-910](910-rac-pencil-component-architecture.md))은 착수하지 않고 점진 전략 비교 기록으로 남는다(codex review 2026-06-02 라우팅 동기화). 본 ADR 의 Gate 는 구현 phase gate 가 아니라 목표 구조가 성립하는지 검증하는 **proof gate** 이며, 실패 시 직접 land 를 보류하는 것이 아니라 목표 구조 또는 ADR-912 실행 설계를 재검토한다.
+> **문서 위상: 비실행 목표 참조(Target Reference)**. 본 ADR 은 `execute-adr` 착수 문서가 아니다. **실행 owner(Phase land / 레거시 제거 / 등록 collapse)는 [ADR-912](completed/912-rac-pencil-rebuild-cutover.md)(백지 직행, 유일 착수) 다** — 사용자 옵션 B 결정(2026-06-02)으로 점진 cutover([ADR-910](910-rac-pencil-component-architecture.md))은 착수하지 않고 점진 전략 비교 기록으로 남는다(codex review 2026-06-02 라우팅 동기화). 본 ADR 의 Gate 는 구현 phase gate 가 아니라 목표 구조가 성립하는지 검증하는 **proof gate** 이며, 실패 시 직접 land 를 보류하는 것이 아니라 목표 구조 또는 ADR-912 실행 설계를 재검토한다.
 
 > 본 ADR 은 **백지 목표 아키텍처 설계서** 다. 현재 composition 코드(누적된 `*.spec.ts`, 레지스트리, 전환기 adapter)를 출발점으로 삼지 않고, 두 외부 검증 자산(RAC core + Pencil canonical document format)을 1차 원리로 하여 **"아래 조건을 만족하는 컴포넌트 시스템은 정적으로 어떤 구조인가"** 만 유도한다. 현재 코드에서 이 목표로 가는 전환 경로(마이그레이션 / cutover / family 순서 / 레거시 제거 / 성능 회귀 방어)는 본 ADR 범위가 **아니다** — 그 전환 설계는 [ADR-910](910-rac-pencil-component-architecture.md)(cutover 실행 설계서)가 담당한다. 두 문서는 같은 1차 원리에서 출발하므로 목표 구조가 수렴하며, 본 ADR 은 "목표가 무엇인가"를, ADR-910 은 "현재에서 거기로 어떻게 가는가"를 분담한다.
 
