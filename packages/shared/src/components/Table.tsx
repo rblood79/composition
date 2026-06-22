@@ -175,7 +175,13 @@ export default React.memo(function Table<T extends { id: string | number }>(
     apiParams,
     apiConfig,
 
-    columns,
+    // columns 는 ColumnDefinition[] 타입상 required 이나, 빌더 factory
+    // (createDefaultTableProps) 가 "TableHeader > Column Elements" 설계로 columns
+    // 기본값을 의도적으로 제거 → 신규 Table element 는 columns prop 없이 생성된다.
+    // 방어 기본값 `[]` 누락 시 columns.length(line 398 등) 에서 undefined crash
+    // (Cannot read properties of undefined (reading 'length')) → Preview Table 미렌더.
+    // columnGroups = [] 등 sibling 패턴과 동일.
+    columns = [],
     columnGroups = [],
     paginationMode = "pagination",
     itemsPerPage = 500,
