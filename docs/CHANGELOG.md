@@ -13,6 +13,11 @@ ADR-912(catalog cutover) 이후 남은 catalog `COMPONENT_RULES_TABLE` 의 **값
 
 ### Bug Fixes
 
+- **Preview Table 미렌더 crash — `columns` prop undefined 방어 기본값**:
+  - 신규 Table element 추가 시 Preview DOM 이 `Table.tsx:398 Uncaught TypeError: Cannot read properties of undefined (reading 'length')` 로 crash → `CanonicalNodeRenderer → Table` 트리 전체 미렌더(Preview 백지).
+  - **Why**: 빌더 factory `createDefaultTableProps`(`unified.types.ts:1518`)가 "TableHeader > Column Elements" 설계로 `columns` 기본값을 의도적으로 제거 → 신규 Table 은 `columns` prop 없이 생성되는데, `Table.tsx:178` 이 `columns` 를 default 없이 destructure(타입상 required) → `columns.length`(line 398 useEffect deps 등)에서 undefined crash.
+  - **수정**: `columns = []` 방어 기본값(`columnGroups = []` 등 sibling 패턴 동일). `items`/`effectiveStaticData`/`detectedColumns` 는 이미 Array guard 보유 — `columns` 만 미방어였음.
+  - 위치: `packages/shared/src/components/Table.tsx`. 발견: ADR-913 Table 선택행 색상 검증 중 live exercise 로 노출.
 - **Table 선택행 색상 — reference filled-accent 정렬 + CSS↔Skia 대칭 복원** (ADR-913 slice 4 잔존 "Table 5건" 중 1건 후속):
   - 레퍼런스(`packages/react-aria-starter/src/Table.css [data-selected]`) + 표준화 토큰 정본(`packages/design.md:314` `--highlight-background → --accent`) 으로 재검증한 결과 Table 선택행이 **3자 발산**: reference/design.md = filled accent + 흰 전경 / CSS = M3 `--color-primary-100/900`(css-tokens.md 금지 토큰, light blue) / Skia projection = `{color.accent-subtle}`(`--highlight-overlay` 계보 오차용, reference 선택행 미사용) + 전경 미주입.
   - **Why**: ListBox/GridList 등 자매 collection 은 이미 `--accent`/`--accent-subtle` 시맨틱을 쓰는데 Table 선택행만 M3 primary 잔존 → 테마 `--tint` 전환에도 선택행이 blue 하드고정 + Builder(Skia accent-subtle)↔Preview(CSS primary blue) 시각 발산.
