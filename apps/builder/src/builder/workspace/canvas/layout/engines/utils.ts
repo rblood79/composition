@@ -2467,8 +2467,10 @@ export function calculateContentHeight(
     const size = (props?.size as string) ?? "md";
     const cardConfig = CARD_SIZE_CONFIG[size] ?? CARD_SIZE_CONFIG.md;
 
-    // padding은 style.padding 우선, 없으면 size config 사용
-    const stylePadding = parseNumericValue(style?.padding);
+    // padding은 style 우선, 없으면 size config 사용
+    // ADR-909 store longhand 정책 — padding shorthand 는 paddingTop/Right/Bottom/Left 로
+    // 분배 저장되므로 longhand 우선으로 읽지 않으면 Style Panel padding 편집이 미반영.
+    const stylePadding = parseNumericValue(style?.paddingTop ?? style?.padding);
     const cardPad = stylePadding ?? cardConfig.padding;
 
     // Card 너비: availableWidth가 있으면 사용, 없으면 200px 폴백
@@ -2629,10 +2631,11 @@ export function calculateContentHeight(
     const isCompositional = type === "select" || type === "combobox";
 
     // gap: display:flex일 때만 적용 (CSS gap은 block에서 미적용)
+    // ADR-909 store longhand 정책 — gap shorthand 는 rowGap/columnGap 로 분배 저장되므로
+    // longhand 우선으로 읽지 않으면 Style Panel gap 편집이 Skia 높이에 미반영.
     const displayVal = style?.display;
     const isFlex = displayVal === "flex" || displayVal === "inline-flex";
-    const gapRaw = style?.gap;
-    const gap = isFlex ? parsePxValue(gapRaw, 8) : 0;
+    const gap = isFlex ? (readGapValue(style) ?? 8) : 0;
 
     // Select/ComboBox: 실제 visible 자식 요소 순회 (Card와 동일 패턴)
     // label prop이 없으면 Label 자식 제외 (web preview 동작과 일치)

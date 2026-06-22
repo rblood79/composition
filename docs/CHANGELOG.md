@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Select/ComboBox/Card 의 gap·padding 편집이 Skia 높이에 미반영 — ADR-909 store longhand 위반 정정] - 2026-06-22
+
+전체 SSOT 단일화 정밀 점검(6축 감사)에서 발견된 ADR-909 store longhand 정책 위반 2건을 정정했다. Inspector 의 `distributeShorthand` 가 `gap → rowGap/columnGap`, `padding → paddingTop/Right/Bottom/Left` 로 분배 저장하는데, `calculateContentHeight()` 의 Select/ComboBox 와 Card 분기가 shorthand 단독으로 읽어 Style Panel 편집이 Skia 컨테이너 높이에 반영되지 않던 사용자-가시 버그.
+
+### Bug Fixes
+
+- **Select/ComboBox/dropdown gap 편집 미반영** (ADR-909):
+  - `calculateContentHeight()` Select/ComboBox 분기가 `style?.gap` shorthand 단독으로 읽음 → store 가 gap 을 `rowGap`/`columnGap` longhand 로 분배 저장하므로 `style?.gap` 이 undefined → 기본 8 적용 → 사용자 gap 편집이 Skia 높이에서 무시.
+  - **Why**: ADR-909 store longhand 정책 — consumer 는 longhand 우선 + shorthand fallback 으로 읽어야 함. 같은 파일 내 다른 3 분기(`:2380`/`:2444`/`:2582`)는 이미 `readGapValue(style)` longhand-first helper 사용 중이었으나 Select/ComboBox 분기만 누락.
+  - 수정: `readGapValue(style) ?? 8` 로 교체 (longhand-first helper 재사용).
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts:2638`
+  - live 검증: Select gap 4→40 편집 시 컨테이너 높이 54→90 변화 확인 (Chrome MCP).
+- **Card padding 편집 미반영** (ADR-909):
+  - `calculateContentHeight()` Card fallback 분기가 `style?.padding` shorthand 단독으로 읽음 → longhand `paddingTop` 미반영.
+  - 수정: `style?.paddingTop ?? style?.padding` longhand-first 순서.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts:2473`
+
+### Infrastructure
+
+- **ADR-909 longhand 소비 회귀 가드 추가**:
+  - `calculateContentHeight()` 의 Select/ComboBox gap 과 Card padding 분기가 longhand 를 실제 소비하는지 검증하는 회귀 테스트. shorthand 와 longhand 가 동일 높이를 산출하는지로 longhand 소비를 확증 (fix revert 시 3건 FAIL 확인).
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/__tests__/storeLonghandHeight.test.ts` (4 PASS)
+
 ## [Component Entry Universe Collapse 종결 — runtime registry 5-facet 통합 (ADR-914 Phase 0~7 + deletion 축 적대 검증)] - 2026-06-22
 
 ADR-912(visual/structure/size 축) 이후 남은 component **runtime 권한 surface**(rendererMap / factory creators / DEFAULT_PROPS_MAP / propagationRegistry / child runtime filtering)를 `render`/`defaults`/`creation`/`propagation`/`childRuntime` 5 facet 으로 통합하고, 독립 손등록 registry 의 deletion 가능분을 phase 별로 소진했다. Accepted 2026-06-20 → Implemented 2026-06-22. deletion 축 적대 검증(4 agents, refute-default byte-identical oracle)으로 **confirmed 추가 삭제 후보 0건** 확인 — deletion 가능분이 전부 land 되었거나 정당하게 보류된 종착 상태.
