@@ -11711,6 +11711,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         },
+        // ── group-conditional pressed micro-interaction (reference react-aria-starter
+        //    ToggleButtonGroup.css:6-19 동형, 2026-06-22) ──
+        //   reference: 그룹 안 ToggleButton 은 pressed 시 버튼 box 는 축소 안 하고(scale:1, 단독
+        //   ToggleButton 의 scale:0.95 override) 내부 콘텐츠(`> span`)만 0.9 로 축소 + 200ms
+        //   transition. 버튼 box 축소를 막아야 -1px segmented 겹침이 흐트러지지 않는다(단일 bar 유지).
+        //   reference 의 pressed-scale 블록은 base(orientation-independent) 영역(css:6-29)에 위치 →
+        //   orientation gate 없는 staticSelectors 가 vehicle(Toolbar 선례 11822). containerVariants
+        //   는 항상 [data-orientation] gate 를 붙여(CSSGenerator) horizontal+vertical 중복 강제 →
+        //   부적합(feedback-catalog-variant-toplevel-vs-nested-asymmetry).
+        //   transform vs scale 함정: 단독 ToggleButton 은 generated CSS 가 `transform: scale(0.95)`
+        //   (states.pressed.scale → CSSGenerator transform 속성 변환)라 reference 의 `scale:1` 로는
+        //   무력화 불가(서로 다른 합성 CSS 속성). 버튼 box 고정은 `transform: none` 으로 emit.
+        //   staticSelectors 는 nested 미지원(Record<string,Record<string,string>>) → 3 top-level key.
+        //   marker div(display:contents): staticSelectors 는 `${root} ${selector}` descendant 형식
+        //   이라 marker 를 자동 통과(direct-child `>` 함정 없음). `> span` 은 ToggleButton 기준 직접
+        //   자식이고 span 을 ToggleButton.tsx 가 직접 렌더하므로 매칭됨(span 래핑 추가, 2026-06-22).
+        //   Skia 는 transient pressed flag 가 파이프라인에 없어(resting-state 전용 렌더) scope 밖 —
+        //   CSS-only(feedback-no-dormant-foundation-ahead-of-flip).
+        staticSelectors: {
+          ".react-aria-ToggleButton[data-pressed]": {
+            transform: "none",
+          },
+          ".react-aria-ToggleButton > span": {
+            transition: "scale 200ms",
+          },
+          ".react-aria-ToggleButton[data-pressed] > span": {
+            scale: "0.9",
+          },
+        },
       },
       indicatorMode: {
         fill: {

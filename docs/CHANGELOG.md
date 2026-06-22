@@ -44,6 +44,13 @@ ADR-912(catalog cutover) 이후 남은 catalog `COMPONENT_RULES_TABLE` 의 **값
   - **marker div 적응**: 빌더 preview(CanonicalNodeRenderer)가 delegating 자식을 `display:contents` marker div 로 감싸 reference 의 `>` direct-child 결합이 깨짐 → CSS selector 를 `> *:first-child > .react-aria-ToggleButton`(marker 경유)로 조정. Skia 는 marker 없어 `_groupPosition` 직접 판정(영향 없음).
   - **검증**: CSS preview live(getComputedStyle first=[6,0,0,6]/last=[0,6,6,0]/-1px margin + 시각 segmented bar 확인). Skia oracle 회귀 테스트 10 PASS(`buildCatalogShapes.segmentedRadius.test.ts` — WebGL 스크린샷 도구 제약 대응, treeIndent.test 동형). type-check PASS.
   - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`(ToggleButtonGroup containerVariants), `packages/specs/src/renderers/buildCatalogShapes.ts`(resolveSegmentedRadius), generated `ToggleButtonGroup.css`.
+- **ToggleButtonGroup group-conditional pressed scale — reference 정합(버튼 box 고정 + 내부 콘텐츠만 축소)**:
+  - 그룹 안 ToggleButton 이 pressed 시 단독 버튼처럼 버튼 전체가 축소되어 `-1px` segmented 겹침이 흐트러짐. reference(react-aria-starter ToggleButtonGroup.css:6-19)는 그룹 안에서는 버튼 box 는 고정(`scale:1`, 단독 `scale:0.95` override)하고 내부 콘텐츠(`> span`)만 `0.9` 로 축소 + 200ms transition.
+  - **Why**: (1) composition ToggleButton(`shared/ToggleButton.tsx`)이 children 을 `<span>` 으로 감싸지 않아(reference 는 `<span>{children}</span>`) reference 의 `> span` selector 가 매칭할 대상 부재. (2) 단독 ToggleButton 의 pressed-scale 은 generated CSS 가 `transform: scale(0.95)`(states.pressed.scale → CSSGenerator transform 속성 변환)라 reference 의 `scale:1`(CSS scale 속성)로는 무력화 불가 — 서로 다른 합성 CSS 속성.
+  - **수정**: (1) `ToggleButton.tsx` 가 children 을 `<span>` 으로 래핑(reference 동형, SelectionIndicator 는 span 밖). (2) catalog `structure.composition.staticSelectors`(orientation 무관, Toolbar 선례)에 3 규칙 추가 — `[data-pressed] { transform: none }`(버튼 box 고정), `> span { transition: scale 200ms }`, `[data-pressed] > span { scale: 0.9 }`(내부 축소). staticSelectors descendant 형식이라 marker div 자동 통과(direct-child `>` 함정 없음). containerVariants 가 아닌 staticSelectors 사용 — reference 규칙이 orientation-independent base 영역.
+  - **Skia 제외**: pressed 는 transient interaction state 로 Skia 파이프라인에 pressed flag 가 0건(resting-state 전용 렌더) → CSS-only. Skia 코드 추가 시 dormant-foundation 위반.
+  - **검증**: CSS preview live — span 래핑 생성 확인(3 버튼 모두 `<span>` child), pressed 강제 부여 시 버튼 `transform: none`(box 고정) + span `scale: 0.9`(transition 끄고 즉시 측정), resting 시 span `scale: none`. Vite serve CSS 디스크 일치(3 규칙). type-check PASS(builder baseline 71 불변) + specs 471 + shared 392 PASS.
+  - 위치: `packages/shared/src/components/ToggleButton.tsx`(span 래핑), `packages/shared/src/catalog/generated/componentRulesTable.ts`(ToggleButtonGroup staticSelectors), generated `ToggleButtonGroup.css`.
 
 ### Architecture
 

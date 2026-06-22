@@ -162,4 +162,17 @@
 }
 
 
+  .react-aria-ToggleButtonGroup .react-aria-ToggleButton[data-pressed] {
+    transform: none;
+  }
+
+  .react-aria-ToggleButtonGroup .react-aria-ToggleButton > span {
+    transition: scale 200ms;
+  }
+
+  .react-aria-ToggleButtonGroup .react-aria-ToggleButton[data-pressed] > span {
+    scale: 0.9;
+  }
+
+
 } /* @layer components */

@@ -67,7 +67,15 @@ export function ToggleButton({
           data-selected
         />
       )}
-      {children as ReactNode}
+      {/* children 을 <span> 으로 래핑 — reference react-aria-starter ToggleButton.tsx:14-22 동형.
+          group 안 pressed micro-interaction(버튼 box 는 scale 고정, 내부 콘텐츠만 0.9 축소)을
+          위해 generated ToggleButtonGroup.css 의 `.react-aria-ToggleButton[data-pressed] > span`
+          selector 가 매칭할 대상이 필요하다. SelectionIndicator(showIndicator)는 span 밖(절대 위치
+          자식) — span 은 시각 콘텐츠만 감쌈.
+          reference 는 children 을 composeRenderProps 로 감싸지만, composition 은 SelectionIndicator
+          를 형제로 동시 렌더해야 해서(children render-prop 함수면 형제와 공존 불가) ReactNode 로
+          좁혀 직접 래핑한다. 빌더 경로의 children 은 string/element 만 들어와 render-prop 미사용. */}
+      <span>{children as ReactNode}</span>
     </RACToggleButton>
   );
 }
