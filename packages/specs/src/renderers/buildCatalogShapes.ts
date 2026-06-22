@@ -51,6 +51,46 @@ export function resolveTreeIndent(
 }
 
 /**
+ * segmented control four-corner radius — ToggleButtonGroup 안 ToggleButton 의 위치별
+ * 코너 radius 산출 (reference react-aria-starter ToggleButtonGroup.css:32-67 동형).
+ *
+ * `props._groupPosition`({ orientation, isFirst, isLast, isOnly }) 데이터 키 유무로만 분기
+ * (ADR-142 §3 — 컴포넌트 식별 `if(type==="ToggleButton")` 금지, `resolveTreeIndent` 의 `_treeLevel`
+ * 동형). `_groupPosition` 은 buildSpecNodeData.resolveToggleGroupContext 가 주입.
+ *
+ * 위치별 코너(reference 공식, [tl, tr, br, bl]):
+ * - isOnly(또는 미주입): null 반환 → caller 가 균등 radius 유지(단독 버튼 = 4코너 동일).
+ * - horizontal: first=[r,0,0,r] / last=[0,r,r,0] / middle=[0,0,0,0].
+ * - vertical:   first=[r,r,0,0] / last=[0,0,r,r] / middle=[0,0,0,0].
+ *
+ * CSS 경로(generated ToggleButtonGroup.css [data-orientation] > .react-aria-ToggleButton)와
+ * 시각 대칭. r = caller 의 균등 borderRadius(size별, --btn-border-radius 와 동일 값).
+ */
+export function resolveSegmentedRadius(
+  props: Record<string, unknown>,
+  radius: number,
+): [number, number, number, number] | null {
+  const pos = props._groupPosition as
+    | {
+        orientation?: string;
+        isFirst?: boolean;
+        isLast?: boolean;
+        isOnly?: boolean;
+      }
+    | undefined;
+  if (!pos || pos.isOnly) return null;
+
+  const vertical = pos.orientation === "vertical";
+  if (pos.isFirst) {
+    return vertical ? [radius, radius, 0, 0] : [radius, 0, 0, radius];
+  }
+  if (pos.isLast) {
+    return vertical ? [0, 0, radius, radius] : [0, radius, radius, 0];
+  }
+  return [0, 0, 0, 0]; // middle — 전부 직각
+}
+
+/**
  * generic box+text 시각 생성기 (ADR-142 G2(b) B — spec-free).
  *
  * **데이터 소스 (B swap)**: 더 이상 `spec` 을 읽지 않는다. variant 색상(`visual`) + size(`size`)
@@ -72,7 +112,20 @@ export function buildCatalogShapes(
 
   const fill = visual?.fill;
 
-  const borderRadius = parsePxValue(style?.borderRadius, size.borderRadius);
+  const scalarRadius = parsePxValue(style?.borderRadius, size.borderRadius);
+  // segmented control(ToggleButtonGroup 안 ToggleButton): _groupPosition 데이터 키가 있으면
+  //   위치별 four-corner radius 로 치환(reference 동형, CSS [data-orientation] segmented 와 대칭).
+  //   없으면(단독/타 컴포넌트) 균등 scalar 유지. ADR-142 §3 — 데이터 키 분기(컴포넌트 식별 아님).
+  //   scalarRadius 가 number 일 때만 segmented(코너 산술 필요) — TokenRef 면 균등 passthrough.
+  const segmentedRadius =
+    typeof scalarRadius === "number"
+      ? resolveSegmentedRadius(props, scalarRadius)
+      : null;
+  // shape.radius 타입은 number | [4] (TokenRef 미허용) — TokenRef 는 specShapeConverter.resolveRadius
+  //   가 런타임 해소하므로 number 로 cast(기존 `as unknown as number` 패턴 동형). 배열은 보존.
+  const borderRadius = (segmentedRadius ?? scalarRadius) as unknown as
+    | number
+    | [number, number, number, number];
   // border-width: 사용자 style 우선, 없으면 size.borderWidth(보편 D3 속성), 최종 fallback 1.
   const borderWidth = parseBorderWidth(
     style?.borderWidth,
@@ -189,7 +242,7 @@ export function buildCatalogShapes(
       y: 0,
       width: "auto",
       height: "auto" as unknown as number,
-      radius: borderRadius as unknown as number,
+      radius: borderRadius,
       fill: bgColor,
       fillAlpha: fill?.alpha ?? 1,
     });
@@ -202,7 +255,7 @@ export function buildCatalogShapes(
         target: "bg",
         borderWidth,
         color: borderColor,
-        radius: borderRadius as unknown as number,
+        radius: borderRadius,
         ...(borderStyle ? { style: borderStyle } : {}),
       });
     }

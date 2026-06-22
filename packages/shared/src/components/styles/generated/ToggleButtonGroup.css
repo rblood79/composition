@@ -61,6 +61,10 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
+.react-aria-ToggleButtonGroup[data-size="xs"] .react-aria-ToggleButton {
+  --btn-border-radius: var(--radius-sm);
+}
+
 .react-aria-ToggleButtonGroup[data-size="sm"] .react-aria-ToggleButton {
   --btn-border-radius: var(--radius-sm);
 }
@@ -71,6 +75,47 @@
 
 .react-aria-ToggleButtonGroup[data-size="lg"] .react-aria-ToggleButton {
   --btn-border-radius: var(--radius-lg);
+}
+
+.react-aria-ToggleButtonGroup[data-size="xl"] .react-aria-ToggleButton {
+  --btn-border-radius: var(--radius-lg);
+}
+
+.react-aria-ToggleButtonGroup[data-orientation="horizontal"] {
+  flex-direction: row;
+}
+
+.react-aria-ToggleButtonGroup[data-orientation="horizontal"] > * > .react-aria-ToggleButton {
+  border-radius: 0;
+  margin-inline-start: -1px;
+}
+
+.react-aria-ToggleButtonGroup[data-orientation="horizontal"] > *:first-child > .react-aria-ToggleButton {
+  border-radius: var(--btn-border-radius) 0 0 var(--btn-border-radius);
+  margin-inline-start: 0;
+}
+
+.react-aria-ToggleButtonGroup[data-orientation="horizontal"] > *:last-child > .react-aria-ToggleButton {
+  border-radius: 0 var(--btn-border-radius) var(--btn-border-radius) 0;
+}
+
+.react-aria-ToggleButtonGroup[data-orientation="vertical"] {
+  flex-direction: column;
+  width: fit-content;
+}
+
+.react-aria-ToggleButtonGroup[data-orientation="vertical"] > * > .react-aria-ToggleButton {
+  border-radius: 0;
+  margin-block-start: -1px;
+}
+
+.react-aria-ToggleButtonGroup[data-orientation="vertical"] > *:first-child > .react-aria-ToggleButton {
+  border-radius: var(--btn-border-radius) var(--btn-border-radius) 0 0;
+  margin-block-start: 0;
+}
+
+.react-aria-ToggleButtonGroup[data-orientation="vertical"] > *:last-child > .react-aria-ToggleButton {
+  border-radius: 0 0 var(--btn-border-radius) var(--btn-border-radius);
 }
 
 

@@ -11604,7 +11604,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         delegation: [
           {
             childSelector: ".react-aria-ToggleButton",
+            // --btn-border-radius: SelectionIndicator pill + segmented 코너 radius 공용.
+            //   값은 ToggleButton.css 의 size별 border-radius 와 일치(xs/sm→sm, md→md,
+            //   lg/xl→lg) — segmented containerVariants 의 first/last-child 코너가 이 변수를
+            //   참조하여 size 분기 없이 size별 radius 정합(2026-06-22 segmented 추가).
             variables: {
+              xs: {
+                "--btn-border-radius": "var(--radius-sm)",
+              },
               sm: {
                 "--btn-border-radius": "var(--radius-sm)",
               },
@@ -11614,9 +11621,96 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               lg: {
                 "--btn-border-radius": "var(--radius-lg)",
               },
+              xl: {
+                "--btn-border-radius": "var(--radius-lg)",
+              },
             },
           },
         ],
+        // ── segmented control border-radius (reference react-aria-starter
+        //    ToggleButtonGroup.css:32-67 동형, 2026-06-22) ──
+        //   그룹 안 ToggleButton 은 양끝만 바깥쪽 코너가 둥글고(--btn-border-radius, size별),
+        //   중간은 0, 인접 버튼은 -1px margin 으로 border 겹침(double border 제거 = 단일 분할선).
+        //   orientation × first/last/middle 조합. CSS: CSSGenerator containerVariants nested emit
+        //   (root 인접 [data-orientation] + `> .react-aria-ToggleButton:first-child`).
+        //   Skia: buildCatalogShapes 가 props._groupPosition 으로 four-corner radius 산출(대칭).
+        //   nested(top-level 아님) 필수 — top-level containerVariants 는 Skia resolver 전용,
+        //   CSS emit 은 structure.composition.containerVariants 만 소비
+        //   (feedback-catalog-variant-toplevel-vs-nested-asymmetry).
+        containerVariants: {
+          orientation: {
+            horizontal: {
+              styles: {
+                "flex-direction": "row",
+              },
+              // selector 가 `> * >` 로 marker div(display:contents) 를 경유하는 이유:
+              //   빌더 preview(CanonicalNodeRenderer)는 delegating 컴포넌트의 각 자식을
+              //   `<div style="display:contents">`(data-element-id marker, 보편 패턴) 로 감싼다.
+              //   따라서 ToggleButton 은 group 의 직접 자식이 아니라 marker div 의 자식이라
+              //   reference 의 `> .react-aria-ToggleButton` direct-child 결합이 깨진다.
+              //   `:first-child`/`:last-child` 는 marker div(`> *:first-child`) 위치로 판정
+              //   (각 marker 안 ToggleButton 은 유일 자식). display:contents 라 margin/radius 는
+              //   marker div 가 아닌 ToggleButton 자신에 적용해야 시각 반영(box 미생성).
+              //   reference 시각 규칙(양끝만 둥근 segmented bar)은 동일, selector 형태만 marker
+              //   구조 적응(2026-06-22, Skia 는 marker 없어 _groupPosition 으로 직접 판정).
+              nested: [
+                {
+                  selector: "> * > .react-aria-ToggleButton",
+                  styles: {
+                    "border-radius": "0",
+                    "margin-inline-start": "-1px",
+                  },
+                },
+                {
+                  selector: "> *:first-child > .react-aria-ToggleButton",
+                  styles: {
+                    "border-radius":
+                      "var(--btn-border-radius) 0 0 var(--btn-border-radius)",
+                    "margin-inline-start": "0",
+                  },
+                },
+                {
+                  selector: "> *:last-child > .react-aria-ToggleButton",
+                  styles: {
+                    "border-radius":
+                      "0 var(--btn-border-radius) var(--btn-border-radius) 0",
+                  },
+                },
+              ],
+            },
+            vertical: {
+              styles: {
+                "flex-direction": "column",
+                width: "fit-content",
+              },
+              // horizontal 동형 — marker div(display:contents) 경유 selector. 상세 위 주석.
+              nested: [
+                {
+                  selector: "> * > .react-aria-ToggleButton",
+                  styles: {
+                    "border-radius": "0",
+                    "margin-block-start": "-1px",
+                  },
+                },
+                {
+                  selector: "> *:first-child > .react-aria-ToggleButton",
+                  styles: {
+                    "border-radius":
+                      "var(--btn-border-radius) var(--btn-border-radius) 0 0",
+                    "margin-block-start": "0",
+                  },
+                },
+                {
+                  selector: "> *:last-child > .react-aria-ToggleButton",
+                  styles: {
+                    "border-radius":
+                      "0 0 var(--btn-border-radius) var(--btn-border-radius)",
+                  },
+                },
+              ],
+            },
+          },
+        },
       },
       indicatorMode: {
         fill: {
