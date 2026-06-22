@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted - 2026-06-20
+Implemented - 2026-06-22 (Accepted 2026-06-20 → Implemented 승격, deletion 축 적대 검증으로 가능분 소진 확인 + live builder exercise + 사용자 confirm)
 
 ## Context
 
@@ -204,3 +204,46 @@ SOURCE 축으로 한정된다. ADR-912 본문은 이 경계를 명시한다. `co
 - self-compose renderer와 composite factory는 일부 adapter delegate로 남을 수 있다. 단 그 delegate는
   entry가 소유하고 contract가 추적해야 한다.
 - D1/D2/D3를 가로지르므로 각 phase는 browser/live 검증 없이는 닫을 수 없다.
+
+## 진행 로그
+
+### Phase 0~8 결과 (2026-06-20 ~ 2026-06-22)
+
+entry universe spine + contract + 5 facet(render / defaults / creation / propagation / childRuntime)
+proof 를 phase 별로 land 했다. 상세는 [breakdown](design/914-component-entry-universe-collapse-breakdown.md) 참조.
+
+| Phase                          | 결과                                                                                                             |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| Phase 0 Inventory Freeze       | ✅ Implemented 2026-06-20 — 5 surface 전수 재실측 (ADR-912 자기모순 카운트 불사용)                               |
+| Phase 1 Entry Spine + Contract | ✅ Implemented 2026-06-20 — `entryUniverseContract` read-only spine, 삭제 0                                      |
+| Phase 2 Defaults Facet         | ✅ Implemented 2026-06-20 — `DEFAULT_PROPS_MAP` 5 row 삭제 (Button/Badge/Link/ToggleButton/Text), Icon carve-out |
+| Phase 3 Render Facet           | ✅ Phase 3-A SSOT 역전 (renderFacetDeclaration). Phase 3-B dead row 삭제 = **보류** (진짜 dead ≈ 0)              |
+| Phase 4 Creation Facet         | ✅ Implemented 2026-06-21 — 3-mode + Avatar creator 제거 + COMPLEX_COMPONENT_TAGS SSOT 명문화                    |
+| Phase 5 Propagation Facet      | ✅ Implemented 2026-06-21 — `createPropagationOnlySpec` shadow wrapper 31 family 전멸, rule-only 전환            |
+| Phase 6 ChildRuntime Facet     | ✅ SYNTHETIC/POPOVER + (a) field visible filter Implemented. (b)(c) DROP (아래 Residual)                         |
+| Phase 7 Contract Swap          | ✅ Implemented 2026-06-21 — `entryUniverseContract` 24 PASS, `componentRegistrationContract` 졸업 조건 정의      |
+
+### Deletion 축 적대 검증 결론 (2026-06-22)
+
+Decision 4~8 의 deletion 가능분이 더 남았는지 적대 검증(4 agents, refute-default byte-identical oracle)으로
+실측한 결과 **confirmed 추가 삭제 후보 0건**. deletion 가능분은 이미 전부 land(Phase 2/4/5/6-a) 되었거나
+정당하게 보류(아래 Residual)된 상태로, 추가로 끌어올 deletion slice 가 없다는 것이 deletion 축의 종착 상태다.
+
+### Residual — 의도된 잔존 (closure blocker 아님)
+
+| 영역                                                      | 분류               | 보류 사유                                                                                                                                                                                                                                                                                                                             |
+| --------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Decision 4 — `rendererMap` dead row                       | **scope-out**      | 진짜 dead ≈ 0. legacy fallback(`App.tsx:925-993`, `?canonical=0` escape hatch)이 의도된 안전망이라 cutover 54 row 전부 `rendererMap[type]` 도달 가능 = dead 아님. 삭제 선행조건(legacy 경로 제거 = render 아키텍처 재구축)은 §1 Out of scope (ADR-910 영역 근접)                                                                      |
+| Decision 6 — `DEFAULT_PROPS_MAP` 86 row                   | **conflict-gated** | catalog default ↔ factory default 충돌 실측 확정 (CheckboxGroup/RadioGroup orientation vertical↔horizontal, Meter value 75↔50). G2 deep-equal fixture 0/86 (oracle 6종만). 프로젝트 §6 Deletion Rule("default props row 는 deep-equal fixture 없이 삭제 금지")이 차단. 전수 conflict 감사 + per-type overlay + fixture 작성 선행 필요 |
+| Decision 7 — `registerPropagationSpec` dead adapter       | **parity-BC**      | production call 0건이나 `propagationRegistry.phase5.test.ts` parity oracle 이 능동 사용 + export BC + 등록 surface 실제 축소 0. 삭제하려면 parity test 재작성(또 다른 surface 추가) 선행 → surface-minimization 기준 작업 가치 0                                                                                                      |
+| Decision 8 — (b) PROGRESSBAR/SLIDER / (c) Label necessity | **DROP**           | exclusion-default + prop-driven/live gating 이라 추출할 declarative membership 실체 0 → facet = dormant artifact. (b) 2026-06-21 / (c) 2026-06-22 DROP                                                                                                                                                                                |
+
+부수 발견 (collapse 직교, 별도 fix scope): (c) recon 중 Form `necessityIndicator` 3(+1)경로 게이트 비대칭
+정합성 버그 — implicitStyles 만 12-tag set gate, Skia/Taffy 는 prop-only. Form(set 밖, 유일 binding surface)
+직속 bare Label 에서 측정↔렌더 발산. collapse 와 직교하므로 별도 fix scope 로 기록만 (즉석 fix/fork 금지, M3).
+
+### 검증
+
+- type-check baseline PASS (회귀 0)
+- ADR-914 contract/proof 6 suite 55 tests PASS (entryUniverseContract 25 / componentRegistrationContract / propagationRegistry.phase5 / defaultPropsDerivation / getDefaultPropsEntryParity / renderFacetDeclarationContract)
+- live builder exercise (2026-06-22): Button palette add → `deriveDefaultPropsFromCatalog("Button")` 파생 props(Primary/M/Fill/"Button"/Type=Button) 정상 적용 + 캔버스 렌더 + Inspector 표시 + Layers 노드 추가 정상. console error 0, unknown-tag warning 0. 검증 후 undo (store 무오염)

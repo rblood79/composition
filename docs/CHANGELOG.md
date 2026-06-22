@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Component Entry Universe Collapse 종결 — runtime registry 5-facet 통합 (ADR-914 Phase 0~7 + deletion 축 적대 검증)] - 2026-06-22
+
+ADR-912(visual/structure/size 축) 이후 남은 component **runtime 권한 surface**(rendererMap / factory creators / DEFAULT_PROPS_MAP / propagationRegistry / child runtime filtering)를 `render`/`defaults`/`creation`/`propagation`/`childRuntime` 5 facet 으로 통합하고, 독립 손등록 registry 의 deletion 가능분을 phase 별로 소진했다. Accepted 2026-06-20 → Implemented 2026-06-22. deletion 축 적대 검증(4 agents, refute-default byte-identical oracle)으로 **confirmed 추가 삭제 후보 0건** 확인 — deletion 가능분이 전부 land 되었거나 정당하게 보류된 종착 상태.
+
+### Architecture
+
+- **ADR-914 Phase 0~7 — Component Entry Universe Collapse**:
+  - **Phase 2 Defaults facet**: `DEFAULT_PROPS_MAP` literal row 5종 삭제(Button/Badge/Link/ToggleButton/Text) → `getDefaultProps` 가 `deriveDefaultPropsFromCatalog` 파생만 답함. Icon 은 random `iconName` 합성 탓 carve-out 유지.
+  - **Phase 4 Creation facet**: creation 3-mode(none/reusableOrigin/complex) + Avatar creator 제거 + `COMPLEX_COMPONENT_TAGS` membership SSOT 명문화.
+  - **Phase 5 Propagation facet**: `createPropagationOnlySpec` shadow ComponentSpec wrapper 31 family 전멸 → rule 배열 기반 `registerPropagationRules` 단일 adapter. oracle byte-identical.
+  - **Phase 6 ChildRuntime facet**: `SYNTHETIC_CHILD_PROP_MERGE_TAGS` / `POPOVER_CHILDREN_TAGS` + (a) field/datepicker visible filter membership(`FIELD_VISIBLE_CHILD_TAGS`) facet 화. (b) PROGRESSBAR/SLIDER live-prop + (c) Label necessity injection 은 exclusion-default/prop-driven gating 이라 추출할 declarative membership 0 → dormant artifact 로 DROP.
+  - **Phase 7 Contract swap**: `entryUniverseContract` 가 `componentRegistrationContract` 졸업 조건 정의(missing/extra drift 흡수).
+  - 위치: `apps/builder/src/builder/factories/entryUniverse.ts`, `apps/builder/src/types/builder/defaultPropsDerivation.ts`, `apps/builder/src/builder/utils/propagationRegistry.ts`
+
+### Documentation
+
+- **ADR-914 Residual — 의도된 잔존 명시**:
+  - **Why**: deletion 축 적대 검증 결과 남은 3 surface 가 전부 정당한 보류로 결론남 — closure blocker 아님.
+  - **Decision 4 rendererMap dead row = scope-out**: legacy fallback(`App.tsx:925-993`, `?canonical=0` escape hatch)이 의도된 안전망이라 cutover 54 row 전부 도달 가능 = dead 아님(진짜 dead ≈ 0). 삭제 선행조건(render 경로 재구축)은 §1 Out of scope.
+  - **Decision 6 DEFAULT_PROPS_MAP 86 row = conflict-gated**: catalog default ↔ factory default 충돌 실측(CheckboxGroup/RadioGroup orientation, Meter value) + G2 deep-equal fixture 0/86 → 프로젝트 §6 Deletion Rule 이 차단.
+  - **Decision 7 registerPropagationSpec dead adapter = parity-BC**: production call 0건이나 parity oracle 능동 사용 + 등록 surface 축소 0.
+  - 부수 발견(collapse 직교, 별도 fix scope): Form `necessityIndicator` 3(+1)경로 게이트 비대칭 정합성 버그.
+
 ## [catalog SSOT collapse 종결 — visual/structure/size 축 단일화 (ADR-912 Phase 5+6 + Δ8 진짜 수렴)] - 2026-06-20
 
 ADR-912 catalog SSOT collapse 의 마지막 단계(gates and documentation + Calendar/DateInput mirror 흡수) 완결. layout/Skia 경로가 catalog `.sizes.{field}` 를 inline 복제하던 dual-SSOT mirror 를 전부 catalog read-through 로 흡수 — calculateContentHeight 경로(grep gate FILES map 밖이라 baseline "위장 0" 이던 영역)까지 scope 포함. 적대 검증 5회로 진짜 수렴 CONFIRMED 후 Phase 6 에서 Calendar/DateInput mirror 4종까지 흡수 → **size-value SOURCE 축 미흡수 catalog-대응 mirror 0(완전 종결)**. T1~T6 종결 조건 동시 PASS.
