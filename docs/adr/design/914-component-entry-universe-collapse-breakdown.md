@@ -595,8 +595,11 @@ Gate:
 > hasLabel 2케이스 가시성 동작 pre/post diff 0). datepicker 는 제외형 filter (`!POPOVER.has`) 라
 > 포함형 맵 대상 아님 — Phase 6 popoverHosted facet 이 그 membership 소유 (facet null 확인).
 >
-> **잔여 후속 slice**: Label necessity injection (HIGH, 3경로 동기화). (b) PROGRESSBAR/SLIDER/
-> tabpanels live-prop adapter 는 아래 §"(b) DROP 판정" 으로 collapse 무관 결론.
+> **잔여 후속 slice**: childRuntime facet 후속 3 메커니즘 (necessity / field-filter / live-prop)
+> 모두 결론. (a) field/datepicker membership facet ✅ Implemented / (b) PROGRESSBAR/SLIDER/tabpanels
+> live-prop adapter ❌ DROP (collapse 무관, 아래 §"(b) DROP 판정") / (c) Label necessity injection
+> ❌ DROP (dormant + (b) 동형, 아래 §"(c) DROP 2026-06-22"). childRuntime facet 축은 SYNTHETIC/
+> POPOVER/fieldVisible 3 facet 으로 종결, 후속 facet 화 대상 0.
 
 > **Phase 6 후속 slice (b) — PROGRESSBAR/SLIDER live-prop adapter ❌ DROP 2026-06-21**
 >
@@ -633,7 +636,58 @@ Gate:
 > **실제 가치 1건 (collapse 무관, 별도 scope)**: sliderFormattedValue 의 Skia mirror 부재 비대칭
 > (formatProgressValue 는 layout↔Skia 2 경로 cross-consume 단일 export, sliderFormattedValue 는
 > layout 단일 inline) 해소 + helper 통일은 render-text 정합 가치이나 entry universe collapse 와
-> 직교 → ADR-914 slice 로 묶는 것은 framing 부정합. 필요 시 별도 작업/ADR 판정 (현재 미진행).
+> 직교 → ADR-914 slice 로 묶는 것은 관점 부정합. 필요 시 별도 작업/ADR 판정 (현재 미진행).
+
+> **Phase 6 후속 slice (c) — Label necessity injection ❌ DROP 2026-06-22**
+>
+> recon + 적대 검증 (Workflow ww752v8o1, 3 recon + 3 적대 refute + 1 synthesize, 7 agent 동일
+> file:line 수렴) 결과 **종합 판정 BLOCK (dormant + 별도 scope)**. 사용자 결정(2026-06-22):
+> ADR-914 collapse phase 에서 명시적 drop. §515 의 "adapter-id-required HIGH, 3경로 동기화" 추정을
+> 실측 기반(dormant + (b) 동형)으로 정정.
+>
+> **(a) 와 비동형, (b) PROGRESSBAR/SLIDER 와 동형 — set 은 verdict 아니라 보조 gate**:
+>
+> | 축             | (a) FIELD (inclusion-whitelist)                                  | NECESSITY (exclusion-default, (b) 동형)                                   |
+> | -------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------- |
+> | set.has() 의미 | 가시성 **verdict 자체** (미포함=HIDE)                            | prop-driven 주입에 대한 **보조 gate** (1차 조건은 `parentNecessity` prop) |
+> | 경로 일관성    | 4 분기 모두 동일 export set 직접 소비                            | 3경로 중 **2/3 은 set 무시** (prop 만으로 주입)                           |
+> | set 형태       | inline → `FIELD_VISIBLE_CHILD_TAGS` export 추출 (code-move 가치) | 이미 **local const single set** (implicitStyles:483, 미-export), 추출분 0 |
+>
+> 3경로 실측 (file:line):
+>
+> - `implicitStyles.ts:2253` — `parentNecessity && NECESSITY_INDICATOR_TAGS.has(containerTag)` (12-tag set gate + 부모 prop 둘 다)
+> - `buildSpecNodeData.ts:588-602` (`resolveLabelNecessity`) → `:1105` — **set 참조 0**, 부모 `necessityIndicator` prop 만
+> - `fullTreeLayout.ts:1150-1169` — **set 참조 0**, `parentProps.necessityIndicator` prop 만
+>
+> set 멤버십이 시스템 전역 주입 verdict 를 단독 결정하지 못함(2/3 경로가 prop-driven default 주입) =
+> (b) exclusion-default 의 "default 동작 + 한 경로 보조 gate" 구조 정확 부합. facet 으로 옮길
+> declarative membership 실체 없음.
+>
+> **차단 메모리 평가 (차단 카테고리 선행 — MEMORY.md tie-breaking)**:
+>
+> - feedback-no-dormant-foundation-ahead-of-flip — **걸림**: NECESSITY_INDICATOR_TAGS 는 local const
+>   single set + self-consumer 1곳(`:2253`). facet 도입 후에도 consumer 는 `.has()` 직접 호출 유지,
+>   facet 은 mirror-only contract artifact. (a) 가 통과한 유일 이유(inline 추출 + filter runtime
+>   직접 소비)가 necessity 에서 재현 불가(이미 named set, Skia/Taffy 는 set 무시). POPOVER 선례의
+>   비-dormant 최소 조건(export const + filter 직접 소비)조차 미충족.
+> - feedback-execute-adr-surface-minimization — **걸림**: facet 화 = export 승격 +1 / facet 필드 +1 /
+>   parity test +1 = surface 순증, 줄어드는 등록 surface 0. necessity suffix 주입은
+>   `getNecessityIndicatorSuffix` (FieldNecessityIndicator.ts:9-18) 의 prop→텍스트 render-text 합성 =
+>   (b) formatProgressValue 동류, 5개 등록 surface(rendererMap/factory/default/propagation/child-filtering)
+>   어느 것도 아님 → collapse 기여 0.
+>
+> 차단 메모리 2개 모두 걸리므로 정당화 카테고리 인용 자체가 위반 (ADR-127 우회 사례 동형).
+>
+> **부수 발견 — 3(+1)경로 정합성 버그 (collapse 직교, 별도 fix scope)**: `necessityIndicator` prop
+> 을 binding.accepts 로 가진 컴포넌트는 **Form 단 1개** (`Form.binding.ts:65`, 라이브 편집 surface).
+> Form 은 12-tag set 밖(`unified.types.ts:944`). Form 직속 bare Label + Form `necessityIndicator`
+> 설정 시 implicitStyles(`:2253`)는 `form ∉ set` 미주입 / Skia(`:1105`)·Taffy(`:1155`)는 부모 prop
+> 보고 주입 → **측정↔렌더 발산**. propagation 규칙 0건(Form→field necessityIndicator 전파 없음),
+> 기본 템플릿 `Form>FormField>Label` 은 4경로 모두 미주입(대칭, 무해). 트리거 표면이 "Form 직속 bare
+> Label + necessityIndicator" 1구성으로 좁음. **사용자 결정(2026-06-22): 별도 fix scope 로 분리
+> 기록만** — collapse 와 무관하므로 본 실행 중 즉석 fix/fork 금지(M3 feedback-no-derived-adr-mid-execution).
+> 수정 방향(Skia/Taffy 에 set gate 추가 통일 vs implicitStyles set 제거 후 form 포함)은 의도 결정
+> 사항이라 별도 trigger 시 처리.
 
 목표: child filtering/injection membership을 entry childRuntime facet으로 이전한다.
 
@@ -641,13 +695,13 @@ Gate:
 
 - `SYNTHETIC_CHILD_PROP_MERGE_TAGS`. ← ✅ **Phase 6 Implemented 2026-06-21** (SSOT 명문화 + contract 양방향 parity 소유 증명)
 - `POPOVER_CHILDREN_TAGS`. ← ✅ 동축 동시 격상 (popoverHosted ⟺ POPOVER.has parity)
-- Label necessity injection. ← adapter-id-required (HIGH, 3경로 동기화) — 후속 slice
+- Label necessity injection. ← ❌ **(c) DROP 2026-06-22** (dormant + (b) exclusion-default 동형 — NECESSITY_INDICATOR_TAGS 는 local const single set + self-consumer 1곳, 3경로 중 2/3 은 set 무시 prop-driven 주입, render-text 합성이라 collapse 기여 0. 아래 §"(c) DROP 2026-06-22" 참조. 부수: Form 비대칭 버그 별도 fix scope 기록)
 - field/collection visible child filtering branches. ← ✅ **(a) field/datepicker membership facet Implemented 2026-06-21** (FIELD_VISIBLE_CHILD_TAGS SSOT 추출 + filter·facet 동일 맵 소비 비-dormant + 양방향 parity, oracle byte-identical). **(b) PROGRESSBAR/SLIDER/tabpanels live-prop adapter — ❌ DROP 2026-06-21** (collapse 무관, 아래 §"(b) DROP 판정" 참조)
 
 작업:
 
 - declarative membership부터 이관한다. ← ✅ SYNTHETIC/POPOVER 양방향 parity 로 facet 소유 증명
-- function-level filter가 필요한 경우 adapter id로 분리한다. ← necessity/field-filter 후속 (adapter id)
+- function-level filter가 필요한 경우 adapter id로 분리한다. ← (a) field-filter 는 inclusion-whitelist 라 declarative facet 으로 충분(adapter 불요, Implemented). necessity/(b) live-prop 은 exclusion-default + prop-driven/live gating 이라 추출할 declarative membership 0 → adapter id 분리도 dormant artifact → 둘 다 DROP (collapse 무관)
 - `filteredChildIds`와 render command child boundaries를 fixture로 고정한다. ← ✅ 런타임 0 변경 → 기존 경로 보존, contract parity 추가 고정
 
 Gate:
