@@ -19,8 +19,12 @@
 
     /* 기본 variant 변수 */
     --tbl-accent: var(--accent);
-    --tbl-selected-bg: var(--color-primary-100);
-    --tbl-selected-color: var(--color-primary-900);
+    /* ADR-909 후속 (2026-06-22): 선택행 = reference(react-aria-starter Table.css
+       [data-selected]) + design.md:314 정본 = filled accent + 흰 전경.
+       M3 --color-primary-* (css-tokens.md 금지) → --accent / --fg-on-accent.
+       Skia(canvasSceneNode rowBg {color.accent}) 와 D3 symmetric. */
+    --tbl-selected-bg: var(--accent);
+    --tbl-selected-color: var(--fg-on-accent);
 
     /* 기본 Checkbox 변수 */
     --tbl-cb-selected: var(--accent);
@@ -135,8 +139,8 @@
     }
 
     &[data-selected] {
-      background: var(--color-primary-100);
-      color: var(--color-primary-900);
+      background: var(--tbl-selected-bg);
+      color: var(--tbl-selected-color);
 
       &[data-focus-visible],
       .react-aria-Cell[data-focus-visible] {
@@ -576,8 +580,8 @@
       }
 
       &[data-selected] {
-        background: var(--color-primary-100);
-        color: var(--color-primary-900);
+        background: var(--tbl-selected-bg);
+        color: var(--tbl-selected-color);
       }
     }
   }

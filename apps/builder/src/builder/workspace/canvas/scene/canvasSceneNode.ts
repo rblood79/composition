@@ -945,10 +945,15 @@ function appendTableRowProjection(
     // ADR-912 Pattern B (TableRow catalog cutover, 2026-06-13): 행 배경 분기(selected/striped/
     //   header/기본)를 projection 이 계산해 style.backgroundColor 보편 D3 데이터로 주입한다.
     //   buildCatalogShapes 는 행 종류를 모른 채 style.backgroundColor 우선 경로로 box 를 그린다
-    //   (컴포넌트 식별 분기 0, ADR-142 §3). 값은 TableRow.spec.render.shapes 의 bg 분기 이전:
-    //   selected={color.accent-subtle} / striped·header={color.layer-2} / 기본={color.base}.
+    //   (컴포넌트 식별 분기 0, ADR-142 §3).
+    //   selected 배경 = {color.accent} (ADR-909 후속 2026-06-22): reference
+    //   (react-aria-starter Table.css [data-selected] = --highlight-background filled accent)
+    //   + design.md:314 정본. 이전 {color.accent-subtle} 는 --highlight-overlay 계보 오차용
+    //   (reference 선택행 미사용) → filled accent 로 정정. 셀 전경은 {color.on-accent}(아래 cell
+    //   projection) 로 contrast 확보 — CSS Table.css --tbl-selected-bg/color 와 D3 symmetric.
+    //   striped·header={color.layer-2} / 기본={color.base}.
     const rowBg = row.isSelected
-      ? "{color.accent-subtle}"
+      ? "{color.accent}"
       : isHeader || striped
         ? "{color.layer-2}"
         : "{color.base}";
@@ -1011,12 +1016,17 @@ function appendTableRowProjection(
             //   (컴포넌트 식별 분기 0, ADR-142 §3). 정렬은 left 기본(spec _align ?? "left" 동형) —
             //   명시 정렬 필요 시 style.textAlign 주입(현재 모든 컬럼 left). 컬럼 폭 내 ellipsis 는
             //   style.width(노드 clip)로 처리(spec maxWidth = columnWidth - paddingX*2 동형 근사).
+            //   selected 행 셀 전경 = {color.on-accent} (ADR-909 후속 2026-06-22): filled accent
+            //   배경(rowBg {color.accent}) 위 흰 전경 contrast. CSS Table.css [data-selected]
+            //   color: var(--tbl-selected-color=--fg-on-accent) 와 D3 symmetric. 미선택 셀은
+            //   color 미주입 → catalog TableCell colors.text({color.neutral}) 유지.
             style: {
               width: col.width,
               flexGrow: 0,
               flexShrink: 0,
               fontWeight: isHeader ? 600 : 400,
               textAlign: "left",
+              ...(row.isSelected ? { color: "{color.on-accent}" } : {}),
             },
           },
           parentId: rowId,
