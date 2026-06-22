@@ -228,13 +228,19 @@ function persistElementsAfterInstanceMutation(elements: Element[]): void {
 /**
  * Canonical document 에 instance mutation 결과를 sync.
  *
- * **호출 순서 invariant (CRITICAL)**: mutation 함수는 `set` → 본 함수 →
- * `_rebuildIndexes` 순서 엄수. `_rebuildIndexes` 가 canonical 우선 derive
- * (elements.ts:430 `getCanonicalOrStoreElements`) 이므로 본 함수 호출 전에
- * `_rebuildIndexes` 가 실행되면 stale canonical 로 elementsMap mirror 빌드 →
- * `reusable` / `componentRole` / mirror field 누락. 회귀: commits a859f8b97
- * + ee91020c4. 상세는 `.claude/rules/state-management.md` 의 "Canonical sync
- * 호출 순서" 섹션 참조.
+ * **호출 순서 (현 잔존 패턴, ADR-122 §Residual)**: 본 함수의 caller 3곳
+ * (`applyElementSnapshotBatch` / `createInstance` / `resetInstanceOverrideField`)
+ * 는 `set` → 본 함수 → `_rebuildIndexes` 순서다. `_rebuildIndexes` 는 canonical
+ * 우선 derive (elements.ts:430 `getCanonicalOrStoreElements`) 이므로 본 함수가
+ * `_rebuildIndexes` 보다 먼저 호출되는 것은 stale derive race 회피에 필수다 —
+ * 회귀: commits a859f8b97 + ee91020c4 가 그 race 만 우회 해소.
+ *
+ * 다만 이 순서는 ADR-122 HC #2 (`runtime mutation 은 canonical document 를 먼저
+ * 갱신`) 의 **canonical 1차 (sync) → set → _rebuildIndexes** 를 충족하지 못하는
+ * `set` 1차 잔존이다 (canonical-first invariant 아님). 호출 순서 reverse 정정은
+ * history undo/redo + instance master/snapshot 영역 광범위로 회귀 위험 HIGH →
+ * 후속 작업 분리. 상세는 `.claude/rules/state-management.md` 의 "Canonical sync
+ * 호출 순서" 섹션 + § 잔존 영역 표 참조.
  */
 function syncInstanceElementsToCanonical(elements: Element[]): void {
   if (!areCanonicalMutationStoreActionsRegistered()) return;
@@ -618,7 +624,8 @@ function applyElementSnapshotBatch(
       layoutVersion: prevState.layoutVersion + 1,
     };
   });
-  // canonical-first sync invariant — syncInstanceElementsToCanonical JSDoc 참조
+  // ADR-122 §Residual: set 1차 → sync → _rebuildIndexes (canonical-first 아님,
+  // race 회피용 sync 선행) — syncInstanceElementsToCanonical JSDoc 참조
   syncInstanceElementsToCanonical(nextElements);
   get()._rebuildIndexes();
   const sourceElements = getInstanceActionSourceElements(get());
@@ -676,7 +683,8 @@ export function createInstance(
     elements: [...getInstanceActionSourceElements(prevState), instanceElement],
     layoutVersion: prevState.layoutVersion + 1,
   }));
-  // canonical-first sync invariant — syncInstanceElementsToCanonical JSDoc 참조
+  // ADR-122 §Residual: set 1차 → sync → _rebuildIndexes (canonical-first 아님,
+  // race 회피용 sync 선행) — syncInstanceElementsToCanonical JSDoc 참조
   syncInstanceElementsToCanonical([instanceElement]);
   get()._rebuildIndexes();
   persistElementsAfterInstanceMutation([instanceElement]);
@@ -939,7 +947,8 @@ export function resetInstanceOverrideField(
       layoutVersion: prevState.layoutVersion + 1,
     };
   });
-  // canonical-first sync invariant — syncInstanceElementsToCanonical JSDoc 참조
+  // ADR-122 §Residual: set 1차 → sync → _rebuildIndexes (canonical-first 아님,
+  // race 회피용 sync 선행) — syncInstanceElementsToCanonical JSDoc 참조
   syncInstanceElementsToCanonical([nextElement]);
   get()._rebuildIndexes();
   const persistedSourceElements = getInstanceActionSourceElements(get());
