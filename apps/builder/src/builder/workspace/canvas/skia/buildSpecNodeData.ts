@@ -130,6 +130,13 @@ const CONTAINER_DIMENSION_TAGS = new Set([
   // ADR-912 (B+icon): CalendarHeader inline_icon_text replace 의 우측 chevron(x=width-cellSize/2)
   //   + center text(maxWidth=width-cellSize*2)가 컨테이너 폭 의존 → `_containerWidth` 주입 필요.
   "CalendarHeader",
+  // DateInput 버그(2026-06-23): datefieldSegments escape 가 box(input-bg) + segment text +
+  //   (picker)calendar icon 을 그릴 때 containerWidth 로 좌표(우측 icon x=width-padRight-...,
+  //   text maxWidth=width-...)를 잡는다. `_containerWidth` 미주입 시 escape 폴백 200 을 쓰는데
+  //   실제 Taffy box width(w=layout.width, calculateContentWidth 산출 콘텐츠 자연폭)와 달라
+  //   escape 좌표가 box 밖으로 어긋난다. `_containerWidth` 주입으로 escape 가 실제 box 폭을 받아
+  //   "한 노드에 box+text+icon 을 다 그리는" Skia 좌표계가 box 와 일치(ListBox/GridList 동형).
+  "DateInput",
 ]);
 
 /**

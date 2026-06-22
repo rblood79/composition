@@ -198,7 +198,8 @@ describe("side-label implicit styles", () => {
     expect(parentStyle.alignItems).toBe("flex-start");
 
     const inputStyle = getChildStyle(result, "DateInput");
-    expect(inputStyle.width).toBe("100%");
+    // 2026-06-23: layout 분기 width 미주입 — side 모드는 injectSideLabel 의 flex:1 이 폭 담당.
+    expect(inputStyle.width).toBeUndefined();
     expect(inputStyle.height).toBe(30);
     expect(inputStyle.flex).toBe(1);
     expect(inputStyle.minWidth).toBe(0);

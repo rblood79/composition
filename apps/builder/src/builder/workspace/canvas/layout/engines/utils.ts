@@ -33,6 +33,10 @@ import {
   resolveGridListSpacingMetric,
   isGridListSectionEntry,
   parsePxValue,
+  // DateInput intrinsic content width (2026-06-23): segment placeholder displayText 를
+  //   escape(datefieldSegments)와 단일 소스로 공유 + fontSize TokenRef→px 변환.
+  buildDateInputDisplayText,
+  resolveSpecFontSize,
 } from "@composition/specs";
 import type { SizeSpec } from "@composition/specs";
 import {
@@ -1147,6 +1151,68 @@ export function calculateContentWidth(
   //   calendarheader = cellSize*7 + gap*6)가 처리한다. CalendarHeader 는 항상 Calendar 자식이라
   //   grid 폭과 동일해야 헤더가 grid 위에 정렬됨(좌우 chevron + center text 는 그 폭 안에서 배치).
   //   inline_icon_text skiaPrimitive 의 우측 chevron(x=width-cellSize/2)도 동일 폭 가정.
+
+  // 1.14. DateInput: input box 콘텐츠 자연폭 = paddingX(left) + segmentTextWidth +
+  //   (picker 면 gap + iconSize + padRight, 아니면 우측 paddingX).
+  //   datefieldSegments escape(skiaPrimitives.ts) 의 box 그리기 공식과 1:1 대칭 —
+  //   escape 가 box 안에 left padding → segment text → (picker)gap+icon+padRight 순으로
+  //   그리므로 그 합이 곧 콘텐츠가 box 에 들어갈 최소 폭. CSS DatePicker container(body
+  //   align-items:flex-start 에서 콘텐츠 fit, 113px)와 시각 정합.
+  //   metric(DF_PADDING_X/padRight/iconSize)은 escape Record 와 byte-identical 미러
+  //   (DisclosureHeader/CalendarHeader 의 "rule 값 인라인 미러" 선례 동형). 텍스트는
+  //   buildDateInputDisplayText 단일 소스 + fontSize 는 catalog rule(escape 동일 소스).
+  if (type === "dateinput") {
+    const props = element.props as Record<string, unknown> | undefined;
+    const sizeName = (props?.size as string) ?? "md";
+    const parentTag = (props?._parentTag as string) ?? "DateField";
+    const isPicker =
+      parentTag === "DatePicker" || parentTag === "DateRangePicker";
+
+    const DF_PADDING_X: Record<string, number> = {
+      xs: 4,
+      sm: 8,
+      md: 12,
+      lg: 16,
+      xl: 24,
+    };
+    const DF_PADDING_Y: Record<string, number> = {
+      xs: 1,
+      sm: 2,
+      md: 4,
+      lg: 8,
+      xl: 12,
+    };
+    const DF_ICON: Record<string, number> = {
+      xs: 10,
+      sm: 14,
+      md: 16,
+      lg: 20,
+      xl: 22,
+    };
+    const paddingX = DF_PADDING_X[sizeName] ?? DF_PADDING_X.md;
+    const padRight = isPicker
+      ? (DF_PADDING_Y[sizeName] ?? DF_PADDING_Y.md)
+      : paddingX;
+    const iconSz = isPicker ? (DF_ICON[sizeName] ?? DF_ICON.md) : 0;
+    const gap = isPicker ? 4 : 0;
+
+    const rule = resolveSkiaRule("DateInput");
+    const fontSize = resolveSpecFontSize(
+      (style?.fontSize as string | number | undefined) ??
+        rule?.sizes[sizeName]?.fontSize ??
+        rule?.sizes.md?.fontSize,
+      14,
+    );
+    const ffamily = (style?.fontFamily as string) ?? specFontFamily.sans;
+    const displayText = buildDateInputDisplayText({
+      parentTag,
+      granularity: props?._granularity as string | undefined,
+      hourCycle: props?._hourCycle as number | undefined,
+      locale: props?._locale as string | undefined,
+    });
+    const textWidth = measureTextWidth(displayText, fontSize, ffamily, 400);
+    return Math.ceil(paddingX + textWidth + gap + iconSz + padRight);
+  }
 
   // 1.15. Link: padding/border 없는 텍스트 전용 인라인 요소
   if (type === "link") {
@@ -3616,6 +3682,12 @@ export const INLINE_BLOCK_TAGS = new Set([
   //   (cellSize + text + cellSize)을 산출해야 Skia 시각(inline_icon_text replace)과 폭 대칭
   //   유지. 미등록 시 needsWidth=false → width 0 (DisclosureHeader 동일 회귀 경로).
   "calendarheader",
+  // DateInput 버그(2026-06-23): datefieldSegments escape 가 box+segment text+icon 을 한
+  //   노드에 그리는데, layout 분기가 `width:"100%"`(부모 auto 에서 작게 계산)를 줘서
+  //   box < 콘텐츠 → 텍스트가 box 밖으로 넘침. calculateContentWidth 의 dateinput 분기로
+  //   콘텐츠 자연폭(paddingX + segmentText + gap + icon + padRight)을 산출해야 box 가
+  //   콘텐츠를 담는다(DisclosureHeader/CalendarHeader 동형). 미등록 시 needsWidth=false.
+  "dateinput",
 ]);
 
 /**

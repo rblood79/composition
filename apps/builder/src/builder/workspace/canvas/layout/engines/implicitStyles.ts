@@ -1635,6 +1635,9 @@ export function applyImplicitStyles(
     );
 
     // DateInput에 부모 props 주입 (Spec shapes에서 세그먼트 텍스트 생성용)
+    //   width 미주입 (2026-06-23, datepicker 분기 동형): INLINE_BLOCK_TAGS(dateinput) +
+    //   calculateContentWidth 콘텐츠 자연폭이 box 폭을 산출 → 텍스트 overflow 차단.
+    //   명시 width(cs.width) 보존, side 모드는 injectSideLabel 이 flex:1/minWidth:0 주입.
     filteredChildren = filteredChildren.map((child) => {
       if (child.type === "DateInput") {
         const cs = (child.props?.style || {}) as Record<string, unknown>;
@@ -1650,7 +1653,7 @@ export function applyImplicitStyles(
             _locale: containerProps?.locale,
             style: {
               ...cs,
-              width: cs.width ?? "100%",
+              ...(cs.width !== undefined ? { width: cs.width } : {}),
               height: inputHeight,
             },
           },
@@ -2003,10 +2006,13 @@ export function applyImplicitStyles(
       return !POPOVER_CHILDREN_TAGS.has(c.type);
     });
 
-    // DateInput(trigger field)에 width/height + 세그먼트 텍스트 생성용 부모 props 주입.
-    //   DateField/TimeField 분기(:1638)와 동형 — factory(DateColorComponents.ts)는 DateInput 을
-    //   `{ _parentTag }` 만으로 생성하므로 layout 분기가 유일한 width 주입처. 누락 시 Taffy 가
-    //   DateInput 을 width 0 으로 계산 → Skia node box width 0 (CSS 는 RAC grid/flex 자연폭 정상).
+    // DateInput(trigger field)에 height + 세그먼트 텍스트 생성용 부모 props 주입.
+    //   width 는 주입하지 않는다(2026-06-23): 이전엔 `width:"100%"` 를 줬으나 부모 container
+    //   가 width:auto(body align-items:flex-start)라 Taffy 가 `100%` 를 콘텐츠보다 작게 계산
+    //   → box < 콘텐츠 → 텍스트 overflow. width 미주입 시 INLINE_BLOCK_TAGS(dateinput) +
+    //   needsWidth → calculateContentWidth(dateinput 분기)가 콘텐츠 자연폭(segment text +
+    //   icon + padding)을 산출 → box 가 콘텐츠를 담는다(DisclosureHeader/CalendarHeader 동형).
+    //   사용자 명시 width(cs.width)는 보존. side 모드는 injectSideLabel 이 flex:1/minWidth:0 주입.
     filteredChildren = filteredChildren.map((child) => {
       if (child.type === "DateInput") {
         const cs = (child.props?.style || {}) as Record<string, unknown>;
@@ -2022,7 +2028,7 @@ export function applyImplicitStyles(
             _locale: containerProps?.locale,
             style: {
               ...cs,
-              width: cs.width ?? "100%",
+              ...(cs.width !== undefined ? { width: cs.width } : {}),
               height: inputHeight,
             },
           },

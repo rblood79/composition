@@ -50,10 +50,51 @@ export function buildDatePlaceholder(locale: string): string {
     locale.startsWith("fr") ||
     locale.startsWith("es") ||
     locale.startsWith("it") ||
-    locale.startsWith("pt");
+    locale.startsWith("pt") ||
+    locale.startsWith("ru");
   if (isAsian) return "YYYY / MM / DD";
   if (isEuropean) return "DD / MM / YYYY";
   return "MM / DD / YYYY";
+}
+
+/**
+ * DateInput 의 segment placeholder displayText 빌더 — `_parentTag`/`_granularity`/
+ *   `_hourCycle`/`_locale` 4 prop 만 읽는 spec-free 순수 함수.
+ *
+ * datefieldSegments escape(skiaPrimitives) 의 그리기 텍스트와 layout 의 콘텐츠 폭 측정
+ *   (calculateContentWidth dateinput 분기)이 **동일 텍스트** 를 쓰도록 단일 소스로 추출.
+ *   두 곳이 placeholder 를 따로 만들면 box 폭(layout)과 그려지는 텍스트(escape)가 어긋난다.
+ */
+export function buildDateInputDisplayText(props: {
+  parentTag?: string;
+  granularity?: string;
+  hourCycle?: number;
+  locale?: string;
+}): string {
+  const parentTag = props.parentTag || "DateField";
+  const granularity =
+    props.granularity || (parentTag === "TimeField" ? "minute" : "day");
+  const hourCycle = props.hourCycle;
+  const locale = props.locale || "en-US";
+
+  const dateText = buildDatePlaceholder(locale);
+  const hasTime =
+    granularity === "hour" ||
+    granularity === "minute" ||
+    granularity === "second";
+  const timeSeg = (() => {
+    let t = "HH : MM";
+    if (granularity === "second") t += " : SS";
+    if (hourCycle === 12) t += "  AM";
+    return t;
+  })();
+  return parentTag === "TimeField"
+    ? timeSeg
+    : parentTag === "DateRangePicker"
+      ? `${dateText} – ${dateText}`
+      : hasTime
+        ? `${dateText}  ${timeSeg}`
+        : dateText;
 }
 
 /** DatePicker / DateRangePicker 공유 shapes 빌더 입력 */

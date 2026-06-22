@@ -18,6 +18,7 @@
 import { parseBorderWidth, parsePxValue } from "../primitives";
 import { fontFamily } from "../primitives/typography";
 import {
+  buildDateInputDisplayText,
   buildDatePickerShapes,
   buildDatePlaceholder,
   DATE_PICKER_SIZES,
@@ -1641,31 +1642,15 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
     ("{color.neutral}" as TokenRef);
   const ff = (style?.fontFamily as string | undefined) || fontFamily.sans;
 
-  // 세그먼트 placeholder text (locale 분기 — DateInput.spec buildDateText/buildTimeText 이식).
-  const isAsian = /^(ko|ja|zh)/.test(locale);
-  const isEuropean = /^(de|fr|es|it|pt|ru)/.test(locale);
-  let dateText: string;
-  if (isAsian) dateText = "YYYY / MM / DD";
-  else if (isEuropean) dateText = "DD / MM / YYYY";
-  else dateText = "MM / DD / YYYY";
-  const hasTime =
-    granularity === "hour" ||
-    granularity === "minute" ||
-    granularity === "second";
-  const timeSeg = (() => {
-    let t = "HH : MM";
-    if (granularity === "second") t += " : SS";
-    if (hourCycle === 12) t += "  AM";
-    return t;
-  })();
-  const displayText =
-    parentTag === "TimeField"
-      ? timeSeg
-      : parentTag === "DateRangePicker"
-        ? `${dateText} – ${dateText}`
-        : hasTime
-          ? `${dateText}  ${timeSeg}`
-          : dateText;
+  // 세그먼트 placeholder text — buildDateInputDisplayText 단일 소스 (datePickerShapes).
+  //   layout 의 콘텐츠 폭 측정(calculateContentWidth dateinput 분기)이 동일 함수를 써서
+  //   box 폭(layout)과 그려지는 텍스트(여기)가 어긋나지 않게 통일.
+  const displayText = buildDateInputDisplayText({
+    parentTag,
+    granularity,
+    hourCycle,
+    locale,
+  });
 
   const isPickerInput =
     parentTag === "DatePicker" || parentTag === "DateRangePicker";

@@ -401,6 +401,7 @@ export type { SlotProps } from "./components/Slot.spec";
 //   DatePickerSpec/DateRangePickerSpec/Props 제거. SSOT = componentRulesTable + STRUCTURE_META,
 //   Property Panel = binding.accepts, Skia = datefield_trigger primitive, propagation = 인라인.
 export {
+  buildDateInputDisplayText,
   buildDatePickerShapes,
   buildDatePlaceholder,
   DATE_PICKER_INPUT_HEIGHT,
