@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [DatePicker/DateRangePicker Skia DateInput width 0 — layout 분기 width 주입 누락 수정] - 2026-06-23
+## [DatePicker/DateRangePicker Skia DateInput — width 0 + segment 텍스트 줄바꿈 정합] - 2026-06-23
 
 ### Bug Fixes
 
@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Skia `datefieldSegments` escape(`skiaPrimitives.ts:1680`)가 그리는 input box(border+segment text+calendar icon)는 CSS 의 `.react-aria-Group`(bordered field box) 에 대응하므로 `width:100%`(부모 폭) 주입이 시각 대칭상 정확.
   - **수정**: `datepicker`/`daterangepicker` 분기에 `datefield` 분기와 동형의 DateInput width/height + 세그먼트 props 주입 추가. 사용자 명시 width 는 `cs.width ?? "100%"` 로 보존. side-label content set 에 `DateInput` 추가(기존 `Group`/`frame` 보정 유지).
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`. 회귀 가드: `__tests__/datePickerInputWidth.test.ts`(RED→GREEN 4건) + 기존 side-label 9건 회귀 0.
+- **Skia DateInput segment 텍스트가 box 안에서 줄바꿈 (CSS 는 nowrap 한 줄)**:
+  - width 0 수정으로 box 가 부모 폭(100%)을 받자, 좁은(모바일 390px) 페이지에서 `MM / DD / YYYY – MM / DD / YYYY` 세그먼트 텍스트가 box 안에서 세로로 줄바꿈됐다. CSS 의 field box(`.react-aria-Group { white-space: nowrap }`)는 한 줄을 유지(넘치면 overflow) → 또 다른 Builder↔Preview 발산.
+  - **Why (근본)**: Skia 는 box+text+icon 을 한 노드에 그리므로 box width(100%)가 좁으면 text shape 가 `maxWidth` 에서 줄바꿈된다. text shape 에 `whiteSpace: "nowrap"`(shape.types.ts:164 정의 필드)을 선언해도 **`specShapeConverter.ts` 의 text case 가 `shape.whiteSpace → node.text.whiteSpace` 매핑을 누락**해 무시됐다(node.text.whiteSpace 는 `buildSpecNodeData` 의 `element.props.style.whiteSpace` 경로로만 설정됨). → `datefield_segments` 뿐 아니라 Calendar/Breadcrumb 등 shape 레벨 nowrap 선언이 전부 dead.
+  - **수정**: (1) `specShapeConverter.ts` text node 생성에 `shape.whiteSpace → node.text.whiteSpace` 매핑 추가(근본 — shape.types 에 정의된 필드가 소비 안 되던 버그). (2) `skiaPrimitives.ts` `datefieldSegments` text shape 에 `whiteSpace: "nowrap"` 선언. `nodeRendererText` 가 nowrap 시 `layoutMaxWidth=100000`(줄바꿈 금지) → CSS `white-space:nowrap` 과 시각 정합. `buildSpecNodeData` 의 `style.whiteSpace`(사용자 override) 우선순위 보존.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/specShapeConverter.ts`, `packages/specs/src/renderers/skiaPrimitives.ts`. 회귀 가드: `skiaPrimitives.dateInput.test.ts`(text whiteSpace nowrap 4 parentTag, RED→GREEN). live: Builder canvas Home 페이지에서 DateInput segment 가 세로 3줄 → 가로 1줄 전환 확인(Chrome MCP).
 
 ## [catalog 레퍼런스 기준 재구축 종결 — ADR-913 slice 1~5 완료 + slice 6 제외] - 2026-06-22
 

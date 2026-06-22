@@ -183,6 +183,27 @@ describe("skiaPrimitive 'datefield_segments' — DateInput value-fill (ADR-912 d
     );
   });
 
+  it("segment text 는 whiteSpace:nowrap — CSS Group(white-space:nowrap) 정합, 줄바꿈 금지", () => {
+    // Skia 는 box+text+icon 을 한 노드에 그려, box width:100%(부모폭)일 때 좁은 폭에서
+    //   text 가 maxWidth 로 줄바꿈됨. CSS Group 은 white-space:nowrap 이라 한 줄 유지 →
+    //   Skia text 도 nowrap 이어야 시각 정합(nodeRendererText: nowrap → layoutMaxWidth 무한).
+    for (const parentTag of [
+      "DateField",
+      "TimeField",
+      "DatePicker",
+      "DateRangePicker",
+    ]) {
+      const shapes = draw({
+        props: { _parentTag: parentTag, _granularity: "day", _locale: "en-US" },
+        size: sizeMd,
+        visual,
+        style: undefined,
+      })!;
+      const t = texts(shapes)[0] as { whiteSpace?: string };
+      expect(t.whiteSpace).toBe("nowrap");
+    }
+  });
+
   it("style override — backgroundColor/borderColor/color 사용자 설정 우선", () => {
     const shapes = draw({
       props: {

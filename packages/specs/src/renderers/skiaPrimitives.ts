@@ -1706,6 +1706,11 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
       fill: textColor,
       align: "left" as const,
       baseline: "middle" as const,
+      // CSS Group(white-space:nowrap) 정합 — Skia 는 box+text+icon 을 한 노드에 그려,
+      //   box width:100%(부모폭)면 좁은 폭에서 text 가 maxWidth 에서 줄바꿈된다. CSS 의
+      //   field box(.react-aria-Group)는 nowrap 이라 한 줄 유지(넘치면 overflow) →
+      //   Skia text 도 nowrap(nodeRendererText: nowrap → layoutMaxWidth 무한, 줄바꿈 금지).
+      whiteSpace: "nowrap" as const,
       maxWidth: isPickerInput
         ? containerWidth - paddingX - iconSz - gap - padRight
         : undefined,

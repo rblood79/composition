@@ -842,6 +842,13 @@ export function specShapesToSkia(
             paddingTop: Math.max(0, paddingTop),
             paddingBottom,
             maxWidth,
+            // shape.whiteSpace(spec/escape 가 선언, shape.types.ts:164) → node.text.whiteSpace
+            //   변환. 이전엔 매핑 누락으로 무시됐다(node.text.whiteSpace 는 buildSpecNodeData
+            //   의 element.props.style.whiteSpace 경로로만 설정됨) → datefield_segments 등
+            //   nowrap 선언이 dead 였음. nodeRendererText 가 nowrap 시 layoutMaxWidth 무한
+            //   처리(줄바꿈 금지) → CSS Group white-space:nowrap 과 시각 정합.
+            //   buildSpecNodeData:1416 의 style.whiteSpace(사용자 override)가 이후 우선 적용.
+            ...(shape.whiteSpace ? { whiteSpace: shape.whiteSpace } : {}),
             autoCenter: false,
           },
         };
