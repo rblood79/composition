@@ -31,6 +31,36 @@ $(echo "$BUILD_OUTPUT" | tail -30)"
   rm -f "$SPEC_FLAG"
 fi
 
+# CSS regen gate (ADR-913 R6 closure): catalog rule table 편집 시 generated CSS 재생성.
+# spec-rebuild-flag.sh 가 packages/shared/src/catalog/** 편집 감지 시 .css-regen-pending touch.
+# Why: rule table(packages/shared/) 편집은 Skia(런타임 직독) 만 즉시 갱신, generated CSS(Preview/
+#   Publish git-tracked 산출물) 는 stale → Builder↔Preview 시각 발산. generate:css 재실행 +
+#   validate:sync 로 봉합. CSS diff 발생 시 커밋 누락 방지 알림.
+CSS_FLAG="${CLAUDE_PROJECT_DIR:-.}/.claude/.css-regen-pending"
+if [ -f "$CSS_FLAG" ]; then
+  GENERATED_DIR="packages/shared/src/components/styles/generated"
+  if ! CSS_OUTPUT=$(pnpm generate:css 2>&1); then
+    echo "generate:css 실패. catalog rule table 변경 후 CSS 재생성 에러를 수정하세요:
+
+$(echo "$CSS_OUTPUT" | tail -30)"
+    exit 2
+  fi
+  # validate:sync — Skia 런타임 직독 ↔ generated CSS 동기 검증 (실패해도 차단 안 함, 알림만)
+  VALIDATE_OUTPUT=$(pnpm validate:sync 2>&1 || true)
+  rm -f "$CSS_FLAG"
+  # 재생성으로 CSS 산출물에 diff 가 생겼으면 커밋 누락 방지 알림 (asyncRewake)
+  CSS_DIFF=$(git diff --name-only HEAD -- "$GENERATED_DIR" 2>/dev/null || true)
+  if [ -n "$CSS_DIFF" ]; then
+    echo "catalog rule table 편집으로 generated CSS 가 재생성됐습니다. 아래 파일을 커밋에 포함하세요 (ADR-913 R6 — Skia↔CSS 동기):
+
+$CSS_DIFF
+
+validate:sync 결과(참고):
+$(echo "$VALIDATE_OUTPUT" | tail -10)"
+    exit 2
+  fi
+fi
+
 # .ts/.tsx 변경 감지
 CHANGED_TS=$(git diff --name-only HEAD 2>/dev/null | grep -E '\.(ts|tsx)$' || true)
 if [ -z "$CHANGED_TS" ]; then

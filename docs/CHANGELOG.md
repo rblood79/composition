@@ -23,6 +23,14 @@ ADR-912(catalog cutover) 이후 남은 catalog `COMPONENT_RULES_TABLE` 의 **값
   - **잔존(의도된 분리)**: Table 5건(별도 ADR) / ListBox layout·orientation·divider·Section bg 4건(defer) / Modal cascade·Popover bg·shadow·provenance(별도 ADR/defer) / 누락 컴포넌트 4(ColorThumb/CommandPalette/InputGroup/Sheet 신규 등록) / Input orphan CSS·NumberField stepper·DatePicker quiet(R5 schema 확장).
   - 본문 `docs/adr/completed/913-catalog-reference-rebuild.md`, design breakdown `docs/adr/design/913-catalog-reference-rebuild-breakdown.md`.
 
+### Infrastructure
+
+- **ADR-913 R6 자동화 봉합 — catalog rule table 편집 시 generated CSS 자동 재생성 hook**:
+  - **Why**: rule table(`packages/shared/src/catalog/`)을 ADR-913 slice workflow 밖에서 편집하면 Skia(Builder, `resolveComponentRule` 런타임 직독)는 즉시 갱신되나 generated CSS(Preview/Publish git-tracked 산출물)는 stale → **Builder↔Preview 시각 발산**. `generate:css` 가 어느 hook/CI/pre-commit 에도 배선 안 돼 작업자 규율에만 의존하던 사각지대(ADR-913 R6 HIGH 위험).
+  - **수정**: `spec-rebuild-flag.sh`(PostToolUse)에 `packages/shared/src/catalog/**` 매칭 추가 → `.css-regen-pending` flag touch (generated CSS 산출물 경로는 무한 루프 방지로 제외). `type-check-gate.sh`(Stop hook)가 flag 소비 시 `generate:css` + `validate:sync` 재실행 + CSS diff 발생 시 커밋 누락 방지 알림(asyncRewake exit 2).
+  - **검증**: trigger matrix 5/5 (catalog/resolver 편집 → flag / 산출물·specs 편집 → 제외·spec flag) + negative-path (rule table `{color.on-accent}`→`{color.white}` 변경 시 hook 가 Badge.css 재생성 + diff 알림 확인 후 원복).
+  - 위치: `.claude/hooks/spec-rebuild-flag.sh` + `.claude/hooks/type-check-gate.sh`
+
 ## [Select/ComboBox/Card 의 gap·padding 편집이 Skia 높이에 미반영 — ADR-909 store longhand 위반 정정] - 2026-06-22
 
 전체 SSOT 단일화 정밀 점검(6축 감사)에서 발견된 ADR-909 store longhand 정책 위반 2건을 정정했다. Inspector 의 `distributeShorthand` 가 `gap → rowGap/columnGap`, `padding → paddingTop/Right/Bottom/Left` 로 분배 저장하는데, `calculateContentHeight()` 의 Select/ComboBox 와 Card 분기가 shorthand 단독으로 읽어 Style Panel 편집이 Skia 컨테이너 높이에 반영되지 않던 사용자-가시 버그.
