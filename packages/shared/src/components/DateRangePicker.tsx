@@ -7,7 +7,6 @@ import {
   DateRangePickerProps as AriaDateRangePickerProps,
   DateSegment,
   DateValue,
-  Dialog,
   FieldError,
   Group,
   Heading,
@@ -219,88 +218,89 @@ export function DateRangePicker<T extends DateValue>({
       {description && <Text slot="description">{description}</Text>}
       <FieldError>{errorMessage}</FieldError>
       <Popover>
-        <Dialog data-size={size}>
-          <div className="date-picker-popup">
-            <RangeCalendar
-              data-size={size}
-              data-highlight-today={highlightToday}
-              data-show-week-numbers={showWeekNumbers}
-              visibleDuration={
-                maxVisibleMonths && maxVisibleMonths > 1
-                  ? { months: maxVisibleMonths }
-                  : undefined
-              }
-              pageBehavior={pageBehavior}
-            >
-              <header>
-                <Button slot="previous">
-                  <ChevronLeft size={16} />
-                </Button>
-                <Heading />
-                <Button slot="next">
-                  <ChevronRight size={16} />
-                </Button>
-              </header>
-              <div style={{ display: "flex", gap: 8 }}>
-                {Array.from(
-                  {
-                    length:
-                      maxVisibleMonths && maxVisibleMonths > 1
-                        ? maxVisibleMonths
-                        : 1,
-                  },
-                  (_, i) => (
-                    <CalendarGrid
-                      key={i}
-                      offset={i === 0 ? undefined : { months: i }}
-                    >
-                      {(date) => <CalendarCell date={date} />}
-                    </CalendarGrid>
-                  ),
-                )}
-              </div>
-            </RangeCalendar>
+        {/* reference(react-aria-starter DateRangePicker.tsx)는 <Popover><RangeCalendar/></Popover>
+            로 Dialog 없이 calendar 를 직접 둔다 — 모달용 Dialog padding 이 calendar dropdown 에
+            새는 회귀 차단. data-size 는 date-picker-popup div 로 이동(스타일링 데이터 속성). */}
+        <div className="date-picker-popup" data-size={size}>
+          <RangeCalendar
+            data-size={size}
+            data-highlight-today={highlightToday}
+            data-show-week-numbers={showWeekNumbers}
+            visibleDuration={
+              maxVisibleMonths && maxVisibleMonths > 1
+                ? { months: maxVisibleMonths }
+                : undefined
+            }
+            pageBehavior={pageBehavior}
+          >
+            <header>
+              <Button slot="previous">
+                <ChevronLeft size={16} />
+              </Button>
+              <Heading />
+              <Button slot="next">
+                <ChevronRight size={16} />
+              </Button>
+            </header>
+            <div style={{ display: "flex", gap: 8 }}>
+              {Array.from(
+                {
+                  length:
+                    maxVisibleMonths && maxVisibleMonths > 1
+                      ? maxVisibleMonths
+                      : 1,
+                },
+                (_, i) => (
+                  <CalendarGrid
+                    key={i}
+                    offset={i === 0 ? undefined : { months: i }}
+                  >
+                    {(date) => <CalendarCell date={date} />}
+                  </CalendarGrid>
+                ),
+              )}
+            </div>
+          </RangeCalendar>
 
-            {(includeTime || isTimeGranularity) && (
-              <div className="date-picker-time-section">
-                <div className="date-picker-time-fields-container">
-                  <div className="date-picker-time-field-wrapper">
-                    <Label className="date-picker-time-field-label">
-                      {startTimeLabel}
-                    </Label>
-                    <TimeField
-                      granularity={
-                        effectiveGranularity as "hour" | "minute" | "second"
-                      }
-                      hourCycle={timeFormat === "12h" ? 12 : 24}
-                      className="react-aria-DateRangePicker-start-time"
-                    >
-                      <DateInput>
-                        {(segment) => <DateSegment segment={segment} />}
-                      </DateInput>
-                    </TimeField>
-                  </div>
-                  <div className="date-picker-time-field-wrapper">
-                    <Label className="date-picker-time-field-label">
-                      {endTimeLabel}
-                    </Label>
-                    <TimeField
-                      granularity={
-                        effectiveGranularity as "hour" | "minute" | "second"
-                      }
-                      hourCycle={timeFormat === "12h" ? 12 : 24}
-                      className="react-aria-DateRangePicker-end-time"
-                    >
-                      <DateInput>
-                        {(segment) => <DateSegment segment={segment} />}
-                      </DateInput>
-                    </TimeField>
-                  </div>
+          {(includeTime || isTimeGranularity) && (
+            <div className="date-picker-time-section">
+              <div className="date-picker-time-fields-container">
+                <div className="date-picker-time-field-wrapper">
+                  <Label className="date-picker-time-field-label">
+                    {startTimeLabel}
+                  </Label>
+                  <TimeField
+                    granularity={
+                      effectiveGranularity as "hour" | "minute" | "second"
+                    }
+                    hourCycle={timeFormat === "12h" ? 12 : 24}
+                    className="react-aria-DateRangePicker-start-time"
+                  >
+                    <DateInput>
+                      {(segment) => <DateSegment segment={segment} />}
+                    </DateInput>
+                  </TimeField>
+                </div>
+                <div className="date-picker-time-field-wrapper">
+                  <Label className="date-picker-time-field-label">
+                    {endTimeLabel}
+                  </Label>
+                  <TimeField
+                    granularity={
+                      effectiveGranularity as "hour" | "minute" | "second"
+                    }
+                    hourCycle={timeFormat === "12h" ? 12 : 24}
+                    className="react-aria-DateRangePicker-end-time"
+                  >
+                    <DateInput>
+                      {(segment) => <DateSegment segment={segment} />}
+                    </DateInput>
+                  </TimeField>
                 </div>
               </div>
-            )}
-          </div>
-        </Dialog>
+            </div>
+          )}
+        </div>
       </Popover>
     </AriaDateRangePicker>
   );

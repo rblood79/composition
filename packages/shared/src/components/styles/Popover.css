@@ -125,12 +125,8 @@
     }
   }
 
-  /* generated/Popover.css의 position: fixed가 Popover에 적용되면,
-     Popover 내부 Dialog가 flow에서 빠져 Popover가 2x2px로 축소된다.
-     Dialog를 position: static으로 상쇄. specificity 0-2-0 > 0-1-0 (ADR-047) */
-  .react-aria-Popover .react-aria-Dialog {
-    position: static;
-  }
+  /* (2026-06-22) Popover 내부 Dialog 래핑 제거(reference 정합) — Dialog 가 더 이상 없으므로
+     position:static 상쇄 규칙 삭제. 모달용 Dialog padding 이 popover dropdown 에 새던 회귀 해소. */
 
   /* ========== Reduced Motion Support ========== */
   @media (prefers-reduced-motion: reduce) {

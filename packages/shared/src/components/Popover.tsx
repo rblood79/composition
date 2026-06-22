@@ -1,5 +1,4 @@
 import {
-  Dialog,
   OverlayArrow,
   Popover as AriaPopover,
   PopoverProps as AriaPopoverProps,
@@ -91,15 +90,19 @@ export function Popover({
           </svg>
         </OverlayArrow>
       )}
-      <Dialog>
-        <FocusScope
-          contain={containFocus}
-          autoFocus={autoFocus}
-          restoreFocus={restoreFocus}
-        >
-          {children}
-        </FocusScope>
-      </Dialog>
+      {/* reference(react-aria-starter Popover.tsx)는 popover 안에 Dialog 를 두지 않고
+          children 을 직접 둔다 — RAC Popover 가 non-modal overlay 위치/포커스/Escape 닫기를
+          자체 처리하고, focus 제약/복원은 FocusScope 가 Dialog 독립으로 담당한다.
+          기존 <Dialog> 래핑은 모달용 Dialog 스타일(padding 등)이 popover dropdown 에 새는
+          회귀 원인이었다(ComboBox/Select/Calendar dropdown 에 40px padding 누출).
+          Dialog role="dialog" 의존 사용처 0건 확인 — FocusScope 만 직접 자식으로 유지. */}
+      <FocusScope
+        contain={containFocus}
+        autoFocus={autoFocus}
+        restoreFocus={restoreFocus}
+      >
+        {children}
+      </FocusScope>
     </AriaPopover>
   );
 }
