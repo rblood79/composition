@@ -252,8 +252,8 @@
 }
 
 .react-aria-DateRangePicker .react-aria-DateSegment:where([data-invalid]:focus) {
-  background: color-mix(in srgb, var(--negative) 15%, transparent);
-  color: var(--negative);
+  background: var(--negative);
+  color: var(--color-white);
 }
 
 .react-aria-DateRangePicker .react-aria-DateSegment:where([data-disabled]) {

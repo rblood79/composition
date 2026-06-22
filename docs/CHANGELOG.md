@@ -51,6 +51,13 @@ ADR-912(catalog cutover) 이후 남은 catalog `COMPONENT_RULES_TABLE` 의 **값
   - **Skia 제외**: pressed 는 transient interaction state 로 Skia 파이프라인에 pressed flag 가 0건(resting-state 전용 렌더) → CSS-only. Skia 코드 추가 시 dormant-foundation 위반.
   - **검증**: CSS preview live — span 래핑 생성 확인(3 버튼 모두 `<span>` child), pressed 강제 부여 시 버튼 `transform: none`(box 고정) + span `scale: 0.9`(transition 끄고 즉시 측정), resting 시 span `scale: none`. Vite serve CSS 디스크 일치(3 규칙). type-check PASS(builder baseline 71 불변) + specs 471 + shared 392 PASS.
   - 위치: `packages/shared/src/components/ToggleButton.tsx`(span 래핑), `packages/shared/src/catalog/generated/componentRulesTable.ts`(ToggleButtonGroup staticSelectors), generated `ToggleButtonGroup.css`.
+- **Dialog / ColorSwatch / DateSegment — reference 시각 정합 3건 (전 컴포넌트 ↔ react-aria-starter CSS 감사 Tier 1)**:
+  - 전 컴포넌트 reference 차이 감사(~50개, family 병렬 비교 + 적대 검증 CONFIRMED 120건)에서 catalog 단일 편집으로 가장 저비용·고가치인 HIGH 3건을 묶어 정정.
+  - **Dialog padding**: reference `Dialog.css:8 padding: var(--spacing-10)`(40px 단일)인데 composition md(default) 가 8px → content inset 이 5배 부족. composition size variant 체계는 보존하되 md 를 reference 40px 에 정합, xs~xl 비례 재설정(16/24/40/48/56).
+  - **ColorSwatch radius**: reference `ColorSwatch.css:6 border-radius: 9999px`(정사각 box → 완전한 원형)인데 composition 은 `{radius.sm}`/`{radius.md}`(둥근 사각) → 형태 범주 발산. 전 size `{radius.full}`(=9999) 로 정합. Skia `nodeRendererClip` 의 `Math.min(borderRadius, min(w,h)/2)` clamp 로 box half-size 자동 축소 → CSS `border-radius:9999px` 와 동일 시각(양방향 자동, segmented radius 동형).
+  - **DateSegment invalid+focus**: reference `DateField.css:62-64` 는 `[data-invalid]:focus` 에서 solid `--highlight-background-invalid` + `--highlight-foreground`(흰) = 전경/배경 전체 반전인데 composition 은 `color-mix(--negative 15%)` 반투명 tint + 적색 전경(반전 없음) → 대비 약화. solid `var(--negative)` bg + `var(--color-white)`(on-negative) 전경으로 정합. **Why**: filled bg → 전경 동반 패턴은 Table 선택행 fix 와 동축. DateSegment 단일 시각 contract — DateField/DatePicker/DateRangePicker/TimeField 4곳 동일 정합(자매 비대칭 차단).
+  - **검증**: live builder preview iframe computed style — ColorSwatch `border-radius: 9999px`(--radius-full resolve), Dialog[data-size=md] `padding: 40px` 확인. DateSegment `[data-invalid]:focus` 의 solid bg 는 `:focus` pseudo + 백그라운드 검증 탭 제약으로 computed 측정 불가 → generated CSS 디스크/serve(`var(--negative)`+`var(--color-white)`) + ColorSwatch/Dialog 와 동일 CSSGenerator states 경로 적용 확증으로 종결. type-check PASS(builder baseline 71 불변) + specs 471 + shared 392 PASS.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`(Dialog.sizes / ColorSwatch.sizes / DateField·DatePicker·DateRangePicker·TimeField DateSegment states), generated `Dialog.css`·`ColorSwatch.css`·`DateField.css`·`DatePicker.css`·`DateRangePicker.css`·`TimeField.css`.
 
 ### Architecture
 

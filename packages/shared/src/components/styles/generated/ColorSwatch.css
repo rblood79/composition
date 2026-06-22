@@ -25,7 +25,7 @@
   height: 28px;
   padding: 0px 0px;
   font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
 }
 
 .react-aria-ColorSwatch[data-variant="default"] {
@@ -60,21 +60,21 @@
   height: 20px;
   padding: 0px 0px;
   font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
 }
 
 .react-aria-ColorSwatch[data-size="md"] {
   height: 28px;
   padding: 0px 0px;
   font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
 }
 
 .react-aria-ColorSwatch[data-size="lg"] {
   height: 36px;
   padding: 0px 0px;
   font-size: var(--text-base);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
 }
 
 .react-aria-ColorSwatch[data-hovered] {

@@ -2168,19 +2168,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // 2026-06-22 reference 정합(ADR-914 Tier1): reference ColorSwatch.css:6 `border-radius: 9999px`
+      //   (정사각 box → 완전한 원형/pill). 기존 {radius.sm}/{radius.md} 는 둥근 사각 → 형태 범주 발산.
+      //   {radius.full}(=9999) 는 Skia 측 nodeRendererClip 의 `Math.min(borderRadius, min(w,h)/2)` clamp 로
+      //   box half-size 까지 자동 축소 → CSS border-radius:9999px 와 동일 시각(양방향 자동, segmented radius 동형).
       sm: {
         fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.sm}",
+        borderRadius: "{radius.full}",
         height: 20,
       },
       md: {
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
+        borderRadius: "{radius.full}",
         height: 28,
       },
       lg: {
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.md}",
+        borderRadius: "{radius.full}",
         height: 36,
       },
     },
@@ -3000,10 +3004,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "[data-invalid]": {
                 color: "var(--negative)",
               },
+              // 2026-06-22 reference 정합(ADR-914 Tier1): reference DateField.css:62-64 의
+              //   [data-invalid]:focus 는 solid `--highlight-background-invalid` + `--highlight-foreground`(흰)
+              //   = 전경/배경 전체 반전. 기존 15% 반투명 tint + 적색 전경(반전 없음)은 가독성/대비 약화.
+              //   filled bg → 전경 동반(on-negative=--color-white) 패턴은 Table 선택행 fix 와 동축.
+              //   DateSegment 단일 시각 contract — DateField/DatePicker/DateRangePicker/TimeField 4곳 동일 정합.
               "[data-invalid]:focus": {
-                background:
-                  "color-mix(in srgb, var(--negative) 15%, transparent)",
-                color: "var(--negative)",
+                background: "var(--negative)",
+                color: "var(--color-white)",
               },
               "[data-disabled]": {
                 color: "color-mix(in srgb, var(--fg) 38%, transparent)",
@@ -3454,10 +3462,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "[data-invalid]": {
                 color: "var(--negative)",
               },
+              // 2026-06-22 reference 정합(ADR-914 Tier1): reference DateField.css:62-64 의
+              //   [data-invalid]:focus 는 solid `--highlight-background-invalid` + `--highlight-foreground`(흰)
+              //   = 전경/배경 전체 반전. 기존 15% 반투명 tint + 적색 전경(반전 없음)은 가독성/대비 약화.
+              //   filled bg → 전경 동반(on-negative=--color-white) 패턴은 Table 선택행 fix 와 동축.
+              //   DateSegment 단일 시각 contract — DateField/DatePicker/DateRangePicker/TimeField 4곳 동일 정합.
               "[data-invalid]:focus": {
-                background:
-                  "color-mix(in srgb, var(--negative) 15%, transparent)",
-                color: "var(--negative)",
+                background: "var(--negative)",
+                color: "var(--color-white)",
               },
               "[data-disabled]": {
                 color: "color-mix(in srgb, var(--fg) 38%, transparent)",
@@ -3889,10 +3901,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "[data-invalid]": {
                 color: "var(--negative)",
               },
+              // 2026-06-22 reference 정합(ADR-914 Tier1): reference DateField.css:62-64 의
+              //   [data-invalid]:focus 는 solid `--highlight-background-invalid` + `--highlight-foreground`(흰)
+              //   = 전경/배경 전체 반전. 기존 15% 반투명 tint + 적색 전경(반전 없음)은 가독성/대비 약화.
+              //   filled bg → 전경 동반(on-negative=--color-white) 패턴은 Table 선택행 fix 와 동축.
+              //   DateSegment 단일 시각 contract — DateField/DatePicker/DateRangePicker/TimeField 4곳 동일 정합.
               "[data-invalid]:focus": {
-                background:
-                  "color-mix(in srgb, var(--negative) 15%, transparent)",
-                color: "var(--negative)",
+                background: "var(--negative)",
+                color: "var(--color-white)",
               },
               "[data-disabled]": {
                 color: "color-mix(in srgb, var(--fg) 38%, transparent)",
@@ -4073,41 +4089,44 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-912 단계5 step4 (2026-06-16): paddingY/gap 보강 — generated CSS 의 `padding: {Y}px {X}px`
       //   + `gap: {gap}px` 가 rule 에서 emit 되도록(DialogSpec.sizes 미러, paddingX==paddingY).
       //   spec 삭제 후 STRUCTURE_META virtual override 가 동일 padding/gap 재생성 → diff 0.
+      // 2026-06-22 reference 정합(ADR-914 Tier1): reference Dialog.css:8 `padding: var(--spacing-10)`
+      //   = 40px(단일). composition size variant 체계는 보존하되 md(default)를 reference 40px 에 정합,
+      //   xs~xl 을 비례 재설정(16/24/40/48/56). 기존 2~16px 은 dialog content inset 이 5배 부족했음.
       xs: {
-        paddingX: 2,
-        paddingY: 2,
+        paddingX: 16,
+        paddingY: 16,
         gap: 4,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 0,
       },
       sm: {
-        paddingX: 4,
-        paddingY: 4,
+        paddingX: 24,
+        paddingY: 24,
         gap: 8,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 0,
       },
       md: {
-        paddingX: 8,
-        paddingY: 8,
+        paddingX: 40,
+        paddingY: 40,
         gap: 12,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.xl}",
         height: 0,
       },
       lg: {
-        paddingX: 12,
-        paddingY: 12,
+        paddingX: 48,
+        paddingY: 48,
         gap: 16,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.2xl}",
         height: 0,
       },
       xl: {
-        paddingX: 16,
-        paddingY: 16,
+        paddingX: 56,
+        paddingY: 56,
         gap: 20,
         fontSize: "{typography.text-xl}",
         borderRadius: "{radius.2xl}",
@@ -11291,10 +11310,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "[data-invalid]": {
                 color: "var(--negative)",
               },
+              // 2026-06-22 reference 정합(ADR-914 Tier1): reference DateField.css:62-64 의
+              //   [data-invalid]:focus 는 solid `--highlight-background-invalid` + `--highlight-foreground`(흰)
+              //   = 전경/배경 전체 반전. 기존 15% 반투명 tint + 적색 전경(반전 없음)은 가독성/대비 약화.
+              //   filled bg → 전경 동반(on-negative=--color-white) 패턴은 Table 선택행 fix 와 동축.
+              //   DateSegment 단일 시각 contract — DateField/DatePicker/DateRangePicker/TimeField 4곳 동일 정합.
               "[data-invalid]:focus": {
-                background:
-                  "color-mix(in srgb, var(--negative) 15%, transparent)",
-                color: "var(--negative)",
+                background: "var(--negative)",
+                color: "var(--color-white)",
               },
               "[data-disabled]": {
                 color: "color-mix(in srgb, var(--fg) 38%, transparent)",
