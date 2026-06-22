@@ -24,6 +24,12 @@ ADR-912(catalog cutover) 이후 남은 catalog `COMPONENT_RULES_TABLE` 의 **값
   - **수정**: CSS `--tbl-selected-bg → var(--accent)`, `--tbl-selected-color → var(--fg-on-accent)` (base 138/139 + filled variant 579/580 을 변수 경유로 통일). Skia `appendTableRowProjection` rowBg `{color.accent-subtle} → {color.accent}` + cell projection 에 selected 시 `style.color: {color.on-accent}` 주입(filled accent 위 흰 전경 contrast).
   - 위치: `packages/shared/src/components/styles/Table.css`, `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`. catalog rule 무수정(선택행은 projection 위임).
   - **범위 외**: checkbox 3종(`--tbl-cb-*`) + PageButton.active 의 M3 primary 잔존 + ActionList/EventPalette/ComponentList 관행 → 별도 raw-primary sweep 후보.
+- **빈 Table 의 Skia 샘플 3행 ↔ CSS 빈 테이블 비대칭 — reference 정합으로 샘플 fallback 제거**:
+  - 데이터 바인딩 없는 신규 Table 이 Skia canvas 에서는 샘플 3행(John Doe/Jane Smith/Bob Lee + Name/Email/Role 컬럼)을 그리는데 CSS preview 는 빈 테이블 → 같은 빈 Table 이 Builder↔Preview 에서 다르게 보임.
+  - **Why**: `getTableProjectionRows`/`readTableColumns`(`resolveCollectionItems.ts`)가 `dataBinding`/`props.rows`/`props.columns` 모두 비면 `TABLE_DEFAULT_ROWS`/`TABLE_DEFAULT_COLUMNS` 샘플을 fallback 주입했고, 이 fallback 의 실제 consumer 는 Skia projection(`canvasSceneNode.ts`)뿐 — CSS 경로(Table.tsx)는 같은 함수·상수를 소비하지 않아 비대칭. reference(`packages/react-aria-starter/src/Table.tsx`)는 columns/items 가 비면 빈 테이블을 그대로 그릴 뿐 샘플을 주입하지 않으므로(renderEmptyState 도 Table 엔 미사용) Skia 의 샘플 fallback 이 reference 위반이었다.
+  - **수정**: `TABLE_DEFAULT_ROWS`/`TABLE_DEFAULT_COLUMNS` 삭제 + fallback 을 빈 배열로 변경 → data 0행이면 `resolveDataBoundTableProjection`(`canvasSceneNode.ts:868`)의 기존 "data 행 0개 → null → standalone render.shapes 유지" gating 이 부활하여 Skia 도 빈 테이블을 그린다(양 경로 빈 테이블로 정합). 실데이터(dataBinding/collections) 있으면 `dataBindingRows` 우선이라 영향 0.
+  - **검증 (CSS↔Skia 2-track)**: live builder 에서 빈 Table 의 CSS preview iframe DOM `.react-aria-Table` 헤더셀 0/데이터행 0/텍스트 빈 + Skia canvas 점선 box 내 텍스트 0(샘플 제거) 확인. 적대 검증(refute-default 워크플로)이 CSS 샘플 주입 3방법을 전부 데이터 corruption/무효/설계위반으로 기각 → reference 정합 방향(Skia 제거)으로 확정.
+  - 위치: `packages/shared/src/collections/resolveCollectionItems.ts`, `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`(주석 정정).
 
 ### Architecture
 

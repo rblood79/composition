@@ -844,8 +844,9 @@ function isTableSceneSource(
  * data-bound Table 의 projection rows + columns 계산 (gating).
  *
  * getTableProjectionRows(collections/dataBinding/props.rows) → header 1행 + data N행(cells 차원).
- * data 행이 0개여도 header + sample fallback 으로 항상 행이 있으므로(spec 동형), rows 가 비면
- * (이론상 없음) null → standalone render.shapes 유지.
+ * 빈 데이터 Table (dataBinding/props.rows 모두 없음) 은 data 0행 → null 반환 → standalone
+ * render.shapes 유지 = 빈 테이블. reference 정합 (2026-06-22, 샘플 fallback 제거). 실데이터
+ * (dataBinding/collections) 있으면 data N행으로 projection active.
  */
 function resolveDataBoundTableProjection(
   tableSceneNode: CanvasSceneNode,
@@ -865,6 +866,7 @@ function resolveDataBoundTableProjection(
     props: tableSceneNode.props,
   });
   // data 행(header 제외)이 하나도 없으면 projection 의미 없음 → standalone 유지.
+  // (빈 데이터 Table 의 정상 경로 — 샘플 fallback 제거 후 실제 작동, 2026-06-22)
   if (rows.filter((r) => r.kind === "data").length === 0) return null;
 
   return { columns, rows, sourceNode };

@@ -317,19 +317,16 @@ export type TableProjectionRow = {
   rowKey: string;
 };
 
-const TABLE_DEFAULT_COLUMNS: TableColumnDef[] = [
-  { id: "name", label: "Name", width: 120 },
-  { id: "email", label: "Email", width: 160 },
-  { id: "role", label: "Role", width: 80 },
-];
+// NOTE (2026-06-22): TABLE_DEFAULT_COLUMNS / TABLE_DEFAULT_ROWS (Name/Email/Role +
+// John/Jane/Bob 3행) 샘플 fallback 은 제거됨. reference 컴포넌트
+// (packages/react-aria-starter/src/Table.tsx)는 columns/items 가 비면 빈 테이블을
+// 그대로 그릴 뿐 샘플을 주입하지 않는다 (renderEmptyState 도 Table 엔 미사용).
+// CSS preview Table (Table.tsx) 도 빈 데이터 시 빈 테이블을 그리므로, Skia 만 샘플
+// 3행을 그리는 것은 reference 위반 + CSS↔Skia 시각 비대칭이었다. fallback 을 빈 배열로
+// 두면 resolveDataBoundTableProjection (canvasSceneNode.ts:868) 의 "data 행 0개 →
+// null → standalone render.shapes 유지" gating 이 부활하여 양 경로가 빈 테이블로 정합된다.
 
-const TABLE_DEFAULT_ROWS: Record<string, unknown>[] = [
-  { id: "r1", name: "John Doe", email: "john@example.com", role: "Admin" },
-  { id: "r2", name: "Jane Smith", email: "jane@example.com", role: "Editor" },
-  { id: "r3", name: "Bob Lee", email: "bob@example.com", role: "Viewer" },
-];
-
-/** props.columns(TableColumn[]) → TableColumnDef[]. 없으면 spec fallback 동형 샘플. */
+/** props.columns(TableColumn[]) → TableColumnDef[]. 없으면 빈 배열 (reference 정합 — 샘플 미주입). */
 export function readTableColumns(
   props: Record<string, unknown> | undefined,
 ): TableColumnDef[] {
@@ -352,7 +349,7 @@ export function readTableColumns(
       return { id, label, width };
     });
   }
-  return TABLE_DEFAULT_COLUMNS;
+  return [];
 }
 
 /**
@@ -391,12 +388,15 @@ export function getTableProjectionRows(
     ? readDataBindingRows(input.dataBinding, input.collections)
     : [];
   const propRows = Array.isArray(props?.rows) ? props.rows : [];
+  // reference 정합 (2026-06-22): 빈 데이터 시 샘플 fallback 미주입 → 빈 배열.
+  // data 0행이면 resolveDataBoundTableProjection 이 null 반환(standalone 유지)하여
+  // Skia 도 CSS 와 동일하게 빈 테이블을 그린다.
   const sourceRows =
     dataBindingRows.length > 0
       ? dataBindingRows
       : propRows.length > 0
         ? propRows
-        : TABLE_DEFAULT_ROWS;
+        : [];
 
   const headerRow: TableProjectionRow = {
     kind: "header",
