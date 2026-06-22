@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [catalog 레퍼런스 기준 재구축 종결 — ADR-913 slice 1~5 완료 + slice 6 제외] - 2026-06-22
+
+ADR-912(catalog cutover) 이후 남은 catalog `COMPONENT_RULES_TABLE` 의 **값** drift 를 react-aria-starter 구조 + composition 토큰 정본 기준으로 family 단위 재정렬한 ADR-913 을 종결했다. Proposed(2026-06-18) → Implemented(2026-06-22). slice 1~5(Button/Field/Selection-control/Collection/Overlay)는 각 proof gate(starter 대조 + CSS↔Skia 대칭 + byte-diff 격리 + live behavior) 통과로 land 완료, slice 6(Color)은 재정렬 trigger 없는 제외 대상으로 종결.
+
+### Architecture
+
+- **ADR-913 slice 1~5 — catalog rule 값 family 단위 재정렬** (Implemented):
+  - **slice 1 Button**: starter 정본 미반영 2건 정정 — ToggleButtonGroup `containerStyles.display:flex` 추가(Skia 가로 배치 복구) + `usesButtonBaseUtility` 헬퍼로 빌더 Preview 3 렌더 경로에 `button-base` 클래스 부여(Button primary 검은 배경 복구). CSS↔Skia 대칭 회복.
+  - **slice 2 Field**: 8 overclaim 제거 + 12 실재 갭 확정 → 7 실행(missing-containerVariants 5 + TextArea flex-column + DateInput 배경). Input/stepper/quiet 보류(R5).
+  - **slice 3 Selection-control**: Switch/Checkbox indicator DOM 자식 누락 회귀 정정 — `DELEGATING_RAC_RENDERERS` 에 Switch/Checkbox 등록(wrapper self-compose 위임). Radio 는 `::before` pseudo 라 제외.
+  - **slice 4 Collection**: Tree `containerStyles` 누락 정정(세로 배치 복구) + GridListItem selected accent border Skia 적용. Table 5건/ListBox 4건은 projection·binding 계약 얽힘으로 별도 ADR/defer.
+  - **slice 5 Overlay**: radius primitive `xs`/`2xl` 키 누락 정정(13 컴포넌트 영향 공유 토큰 결함) + Popover OverlayArrow stroke-width 2px 정렬. Modal cascade/Popover bg·shadow 는 portal 아키텍처 얽힘으로 defer.
+  - **slice 6 Color — 제외 종결**: Color family 대부분 catalog 등록 완료(ColorArea/ColorField/ColorPicker/ColorSlider/ColorSwatch/ColorSwatchPicker/ColorWheel) + ColorPicker/ColorSwatchPicker 는 ADR-912 cutover 직교 TAG_SPEC_MAP 제외분이라 재정렬 trigger 없음. ColorThumb 신규 등록은 값 재정렬 scope 밖 컴포넌트 보강(누락 4 중 1)이라 별도 작업으로 분리(surface-minimization).
+  - **잔존(의도된 분리)**: Table 5건(별도 ADR) / ListBox layout·orientation·divider·Section bg 4건(defer) / Modal cascade·Popover bg·shadow·provenance(별도 ADR/defer) / 누락 컴포넌트 4(ColorThumb/CommandPalette/InputGroup/Sheet 신규 등록) / Input orphan CSS·NumberField stepper·DatePicker quiet(R5 schema 확장).
+  - 본문 `docs/adr/completed/913-catalog-reference-rebuild.md`, design breakdown `docs/adr/design/913-catalog-reference-rebuild-breakdown.md`.
+
 ## [Select/ComboBox/Card 의 gap·padding 편집이 Skia 높이에 미반영 — ADR-909 store longhand 위반 정정] - 2026-06-22
 
 전체 SSOT 단일화 정밀 점검(6축 감사)에서 발견된 ADR-909 store longhand 정책 위반 2건을 정정했다. Inspector 의 `distributeShorthand` 가 `gap → rowGap/columnGap`, `padding → paddingTop/Right/Bottom/Left` 로 분배 저장하는데, `calculateContentHeight()` 의 Select/ComboBox 와 Card 분기가 shorthand 단독으로 읽어 Style Panel 편집이 Skia 컨테이너 높이에 반영되지 않던 사용자-가시 버그.

@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-06-18
+Implemented — 2026-06-22 (Proposed 2026-06-18 → slice 1~5 land 완료 + slice 6 제외 종결)
 
 ## Context
 
@@ -88,7 +88,7 @@ ADR-912 (Implemented 2026-06-18) 로 컴포넌트 시각 SSOT 가 `*.spec.ts` �
 
 토큰 정본 방향 결정 (사용자 confirm 2026-06-18): radius/typography/spacing 수치 토큰은 **composition primitives/shared-tokens 유지**. starter 는 variant 축·state·orientation **구조** 와 **누락 컴포넌트** 레퍼런스로만. custom variant(premium/genai)는 **보존** (S2 4 + catalog 2 = 6).
 
-> 구현 상세: [913-catalog-reference-rebuild-breakdown.md](design/913-catalog-reference-rebuild-breakdown.md)
+> 구현 상세: [913-catalog-reference-rebuild-breakdown.md](../design/913-catalog-reference-rebuild-breakdown.md)
 
 ## Risks
 
@@ -259,3 +259,25 @@ ADR-912 (Implemented 2026-06-18) 로 컴포넌트 시각 SSOT 가 `*.spec.ts` �
 - type-check: builder 0(baseline 0), specs 신규 0(baseline 60 = 기존 테스트 ComponentVisualRule import/캐스팅, 내 변경 무관). specs 전체 461 PASS. validate:sync 1 ok/2 errors/93 warnings(slice 2~4 와 동일 baseline, radius 무관).
 
 **proof gate 결과**: kill criteria 통과(S1 starter 대조 24 overclaim→3 차단 / S2 G1 토큰 환원 정합 resolveToken=CSS var / S4 G3 대칭 — Skia radius 0→16/2px 복원, DOM 불변 / S5 G4 격리 byte-diff 0 / S7 live 1:1 — 앱 인스턴스 dist resolveToken 직독). Overlay family slice 완료. surface minimization 강하게 적용(Modal cascade 별도 ADR / Popover bg·shadow·provenance 3 defer — portal/overlay 아키텍처·토큰 정본·generator 헤더 얽힘으로 narrow 보정 범위 초과). slice 5 = 검증-우선 좁은 slice(실질 재구축 아님 — radius 공유 토큰 1 수정 + arrow 1줄이 유일 코드 변경). ADR-913 family slice(1~5) 완결, Color family(slice 6 — ADR-912 cutover 직교, 일부 TAG_SPEC_MAP 제외분 slice 대상 제외 검토)만 후속.
+
+### slice 6 — Color family — 제외 종결 (2026-06-22)
+
+> **결정: slice 6 제외 + ADR-913 종결** (사용자 confirm 2026-06-22 — "Status 정정 + slice 6 제외로 종결").
+
+slice 6(Color family)은 **slice 대상에서 제외**한다. design breakdown §3 line 61 + slice 5 진행 로그가 "ADR-912 cutover 직교, 일부 TAG_SPEC_MAP 제외분 → slice 대상 제외 검토"로 표기했던 항목이며, 정밀 점검(2026-06-22)으로 제외가 정당함을 확인했다:
+
+- **Color family 대부분 catalog 등록 완료**: `componentRulesTable.ts` 에 `ColorArea / ColorField / ColorPicker / ColorSlider / ColorSwatch / ColorSwatchPicker / ColorWheel` 등록 확인. starter 대조 실재 갭은 본 점검 범위에서 추가 확인 안 됨 — slice 1~5 와 달리 별도 재구축 trigger 없음.
+- **ColorPicker / ColorSwatchPicker = TAG_SPEC_MAP 제외분** (ADR-912 cutover 직교 — 진짜 제외, color scope 외). slice 변환 대상 아님.
+- **ColorThumb = 미등록 (breakdown §4 line 69 누락 컴포넌트 신규 등록 대상)**: 유일한 실재 미착수 작업이나 **별도 작업으로 분리**. 차단 메모리 `feedback-execute-adr-surface-minimization` 선행 평가 — ColorThumb 단독 신규 등록은 ADR-913 의 "family 단위 값 재정렬" 표적이 아니라 누락 컴포넌트 보강(다른 누락 3: CommandPalette/InputGroup/Sheet 과 동일 성격, breakdown §4 가 이미 "후속"/"미흡수"로 분리). gap 을 억지로 slice 6 으로 묶어 종결을 미루지 않는다 (`feedback-no-derived-adr-mid-execution` M3).
+
+**종결 판정**: ADR-913 의 표적(catalog rule **값**을 레퍼런스 기준으로 family 단위 재정렬)은 slice 1~5(Button/Field/Selection-control/Collection/Overlay)로 완결됐다. slice 6 은 재정렬 trigger 없는 제외 대상이고, ColorThumb 등 누락 컴포넌트 신규 등록은 본 ADR scope(값 재정렬)와 다른 작업(컴포넌트 보강)이라 별도. Proposed → Implemented 승격.
+
+**잔존 (의도된 분리 — closure blocker 아님)**:
+
+| 항목                                                         | 분류                      | 후속                                   |
+| ------------------------------------------------------------ | ------------------------- | -------------------------------------- |
+| Table 5건 (variant taxonomy split-brain 등)                  | 별도 ADR                  | slice 4 defer — TanStack↔catalog 화해  |
+| ListBox layout/orientation/divider/Section bg 4건            | defer-separate-slice      | binding·projection 계약 얽힘           |
+| Modal cascade / Popover bg·shadow·provenance                 | 별도 ADR / defer          | portal/overlay 아키텍처·토큰 정본 결정 |
+| 누락 컴포넌트 4 (ColorThumb/CommandPalette/InputGroup/Sheet) | 별도 작업 (컴포넌트 보강) | 값 재정렬 scope 밖 — 신규 등록은 후속  |
+| Input orphan CSS / NumberField stepper / DatePicker quiet 등 | R5 (schema 확장 등)       | 별도 ADR 또는 후속 slice               |

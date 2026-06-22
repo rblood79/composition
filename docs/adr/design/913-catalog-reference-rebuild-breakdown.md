@@ -1,6 +1,6 @@
 # ADR-913 구현 상세 — catalog 레퍼런스 기준 재구축
 
-> 본문: [913-catalog-reference-rebuild.md](../913-catalog-reference-rebuild.md). 본 문서는 구현 상세(변환 체크리스트 / family slice 순서 / Gate 상세 / 누락 컴포넌트 / orientation 갭)만 보유. 본문 전제·결정은 본문 참조.
+> 본문: [913-catalog-reference-rebuild.md](../completed/913-catalog-reference-rebuild.md). 본 문서는 구현 상세(변환 체크리스트 / family slice 순서 / Gate 상세 / 누락 컴포넌트 / orientation 갭)만 보유. 본문 전제·결정은 본문 참조.
 
 ## 1. Fork / 전제 점검 lock-in (adr-writing.md §"ADR Fork 전제 점검" 4질문)
 
