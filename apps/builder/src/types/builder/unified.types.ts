@@ -1656,6 +1656,28 @@ export function createDefaultTagGroupProps(): TagGroupElementProps {
   };
 }
 
+/**
+ * SelectTrigger 의 dirty/reset baseline (getDefaultProps) — 6 factory(Select/ComboBox/
+ *   NumberField/SearchField/DatePicker/DateRangePicker)가 모두 동일한 row-flex layout 을
+ *   `props.style` 에 주입한다(ADR-907 Layer B: 컨테이너 layout 은 factory props.style, Skia/Taffy
+ *   는 rule table 미참조). catalog SelectTrigger rule 에는 layout 필드(display/flexDirection/
+ *   alignItems/gap/width)가 없어 specStyle baseline=undefined → 이 함수가 없으면 legacyStyle 도
+ *   `{}` 가 되어 Style Panel Transform/Layout 리셋 버튼이 default layout 을 "사용자 override" 로
+ *   오판해 활성화된다(사용자 적발 2026-06-23). 두 default 소스(factory ↔ getDefaultProps) 동일 값
+ *   유지로 dirty=false + reset 시 default layout 복원. TagGroup(width:100%) 동형 패턴.
+ */
+export function createDefaultSelectTriggerProps(): BaseElementProps {
+  return {
+    style: {
+      width: "100%",
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+    },
+  };
+}
+
 export function createDefaultTagListProps(): BaseElementProps {
   return {};
 }
@@ -2289,6 +2311,7 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
   Card: createDefaultCardProps,
   Label: createDefaultLabelProps,
   TagGroup: createDefaultTagGroupProps,
+  SelectTrigger: createDefaultSelectTriggerProps,
   TagList: createDefaultTagListProps,
   Tag: createDefaultTagProps,
   ListBox: createDefaultListBoxProps,

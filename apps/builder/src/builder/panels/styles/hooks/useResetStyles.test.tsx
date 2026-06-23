@@ -206,6 +206,16 @@ describe("useResetStyles — default props false dirty audit", () => {
       type: "TagGroup",
       properties: ["width", "height", "minWidth", "maxWidth"],
     },
+    // SelectTrigger: 6 factory(Select/ComboBox/NumberField/SearchField/DatePicker/DateRangePicker)가
+    //   모두 동일한 row-flex layout(width:100%/display:flex/flexDirection:row/alignItems:center/gap:4)
+    //   을 props.style 에 주입한다(ADR-907 Layer B). catalog rule 에는 layout 필드가 없어 specStyle
+    //   baseline=undefined → getDefaultProps 도 동일 layout 을 반환해야 Transform(width)/Layout
+    //   (display/flexDirection/alignItems/gap) 리셋 버튼이 default 를 "override" 로 오판하지 않는다
+    //   (2026-06-23 사용자 보고). createDefaultSelectTriggerProps ↔ factory 동일 값.
+    {
+      type: "SelectTrigger",
+      properties: ["width", "display", "flexDirection", "alignItems", "gap"],
+    },
   ] as const;
 
   beforeEach(() => {
