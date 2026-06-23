@@ -22,10 +22,13 @@ export function createFrameLayoutDefinition(
       type: "frame",
       props: {
         label: "Frame",
+        // store longhand 정책(style-ssot.md): gap shorthand 대신 rowGap/columnGap longhand 로 저장
+        //   — createDefault baseline(rowGap/columnGap:0)과 정합 + React rerender 경고 회피 (2026-06-23).
         style: {
           display: "flex",
           flexDirection: "column",
-          gap: 0,
+          rowGap: 0,
+          columnGap: 0,
           position: "relative",
         },
       } as ComponentElementProps,

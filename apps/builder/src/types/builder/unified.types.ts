@@ -1261,6 +1261,8 @@ export function createDefaultTextFieldProps(): TextFieldElementProps {
     isDisabled: false,
     isReadOnly: false,
     isInvalid: false,
+    // dirty/reset baseline — factory(FormComponents) props.style 미러 (width:100%, catalog 미채움).
+    style: { width: "100%" },
   };
 }
 
@@ -1353,6 +1355,10 @@ export function createDefaultSelectProps(): SelectElementProps {
     isDisabled: false,
     isInvalid: false,
     selectionMode: "single",
+    // dirty/reset baseline — factory(SelectionComponents) props.style 미러. catalog 가 width
+    //   를 안 채워(sizes.md.width 없음) legacyStyle 만이 baseline → 누락 시 false dirty.
+    //   gap=6 은 catalog(sizes.md.gap=6) 정본. SelectTrigger 선례(createDefaultSelectTriggerProps).
+    style: { width: "100%", display: "flex", flexDirection: "column", gap: 6 },
   };
 }
 
@@ -1363,6 +1369,7 @@ export function createDefaultComboBoxProps(): ComboBoxElementProps {
     isDisabled: false,
     isInvalid: false,
     allowsCustomValue: false,
+    style: { width: "100%", display: "flex", flexDirection: "column", gap: 6 },
   };
 }
 
@@ -1377,10 +1384,11 @@ export function createDefaultSliderProps(): SliderElementProps {
     orientation: "horizontal",
     showValue: true,
     // ADR-083 Phase 5 (R5): display:"grid" 는 SliderSpec.containerStyles SSOT 로 이관.
-    //   width/maxWidth 는 factory 특화 초기값 유지.
-    //   height 는 spec preset SSOT 와 정합시킨다.
+    //   height 는 spec preset SSOT 와 정합. width:"100%" 는 factory(FormComponents) props.style
+    //   미러 — factory 가 width:"100%" 주입하므로 baseline 도 동일해야 false dirty 없음 (기존 200px
+    //   불일치 정정, 2026-06-23). maxWidth 는 reset 복원값으로 유지(factory 미주입 → dirty 무관).
     style: {
-      width: 200,
+      width: "100%",
       height: 8,
       maxWidth: 300,
     },
@@ -1603,6 +1611,7 @@ export function createDefaultCardProps(): CardElementProps {
     style: {
       display: "flex",
       flexDirection: "column",
+      width: "100%", // factory 미러 (catalog 미채움 → false dirty 정정, 2026-06-23)
       padding: "16px", // var(--spacing-lg) = 16px
       borderWidth: "1px",
       gap: "12px",
@@ -1800,11 +1809,20 @@ export function createDefaultNavProps(): NavElementProps {
   return {
     // CSS base: display:flex; flex-direction:row; align-items:center; width:100%
     // nav 태그는 링크 목록을 수평으로 배열하는 탐색 영역
+    //   rowGap/columnGap/padding 은 factory(NavigationComponents) props.style 미러 — store longhand
+    //   정책상 factory 가 longhand 로 주입(rowGap/columnGap=12, padding 4-way) → baseline 도 동일해야
+    //   false dirty 없음 (2026-06-23 전수 정정, catalog sizes.md gap=12/paddingX=16/paddingY=12 정합).
     style: {
       display: "flex",
       flexDirection: "row",
       alignItems: "center",
       width: "100%",
+      rowGap: 12,
+      columnGap: 12,
+      paddingTop: 12,
+      paddingRight: 16,
+      paddingBottom: 12,
+      paddingLeft: 16,
     },
   };
 }
@@ -1839,9 +1857,11 @@ export function createDefaultSeparatorProps(): SeparatorElementProps {
 
 export function createDefaultDisclosureProps(): DisclosureElementProps {
   return {
-    // CSS base: width:100%
+    // CSS base: width:100%. display:block 은 factory(NavigationComponents) props.style 미러
+    //   (단일 컨테이너 — block 정본, 2026-06-23 false dirty 정정).
     style: {
       width: "100%",
+      display: "block",
     },
   };
 }
@@ -1899,22 +1919,40 @@ export function createDefaultMenuProps(): MenuElementProps {
 
 export function createDefaultNumberFieldProps(): NumberFieldElementProps {
   return {
-    // spec preset SSOT 가 display 를 담당한다.
+    // dirty/reset baseline — factory(FormComponents) props.style 미러 (width:100%, gap:6 catalog 정본).
+    //   display 는 factory 미주입(labelPosition=side 차단, ADR-913) → spec preset SSOT 담당.
     style: {
-      display: "flex",
+      width: "100%",
+      gap: 6,
     },
   };
 }
 
 export function createDefaultSearchFieldProps(): SearchFieldElementProps {
-  return {};
+  return {
+    // dirty/reset baseline — factory(FormComponents) props.style 미러 (width:100%, gap:8 catalog 정본).
+    style: { width: "100%", gap: 8 },
+  };
 }
+
+// ProgressBar/Meter grid layout — factory(DisplayComponents) props.style 미러 (store longhand 정책:
+//   rowGap/columnGap). 누락 시 rowGap/columnGap/display/width false dirty (2026-06-23 전수 정정).
+const PROGRESS_GRID_STYLE = {
+  width: "100%",
+  display: "grid",
+  gridTemplateColumns: "1fr auto",
+  gridTemplateRows: "auto auto",
+  gridTemplateAreas: '"label value" "bar bar"',
+  rowGap: 4,
+  columnGap: 12,
+} as const;
 
 export function createDefaultProgressBarProps(): ProgressBarElementProps {
   return {
     label: "Progress Bar",
     showValue: true,
     value: 50,
+    style: { ...PROGRESS_GRID_STYLE },
   };
 }
 
@@ -1923,15 +1961,18 @@ export function createDefaultMeterProps(): MeterElementProps {
     label: "Meter",
     showValue: true,
     value: 50,
+    style: { ...PROGRESS_GRID_STYLE },
   };
 }
 
 export function createDefaultDateFieldProps(): BaseElementProps {
   return {
     // CSS base: display:flex; flex-direction:column; Group border:1px
+    //   width:100% 는 factory(DateColorComponents) props.style 미러 (catalog 미채움 → false dirty 정정).
     style: {
       display: "flex",
       flexDirection: "column",
+      width: "100%",
     },
   };
 }
@@ -1939,9 +1980,11 @@ export function createDefaultDateFieldProps(): BaseElementProps {
 export function createDefaultTimeFieldProps(): BaseElementProps {
   return {
     // CSS base: display:flex; flex-direction:column; Group border:1px
+    //   width:100% 는 factory(DateColorComponents) props.style 미러 (catalog 미채움 → false dirty 정정).
     style: {
       display: "flex",
       flexDirection: "column",
+      width: "100%",
     },
   };
 }
@@ -1958,10 +2001,12 @@ export function createDefaultColorFieldProps(): ColorFieldElementProps {
 
 export function createDefaultColorPickerProps(): ColorPickerElementProps {
   return {
+    // dirty/reset baseline — factory(DateColorComponents) props.style 미러 (gap:8). catalog/CSS 가
+    //   gap 미emit → factory(Skia) 가 시각 정본 → baseline 도 8 이어야 false dirty 없음 (기존 10 정정).
     style: {
       display: "flex",
       flexDirection: "column",
-      gap: 10,
+      gap: 8,
     },
   };
 }
@@ -2268,7 +2313,15 @@ export function createDefaultToastProps(): BaseElementProps {
 
 export function createDefaultFrameProps(): BaseElementProps {
   return {
-    style: { display: "flex", flexDirection: "column" },
+    // factory(GroupComponents) props.style 미러 — gap:0(rowGap/columnGap longhand) + position:relative
+    //   누락 시 false dirty (2026-06-23 전수 정정).
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      rowGap: 0,
+      columnGap: 0,
+      position: "relative",
+    },
   };
 }
 

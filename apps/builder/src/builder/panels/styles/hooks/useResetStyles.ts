@@ -342,6 +342,19 @@ function resolveTargetValue(
   specStyle: Record<string, string | undefined>,
   legacyStyle: Record<string, unknown>,
 ): string {
+  // gap 은 resolveCurrentStyleValue 가 rowGap ?? columnGap ?? gap 으로 읽으므로(store longhand
+  //   정책) baseline 도 동일 fallback 해야 비대칭이 없다. legacyStyle 이 rowGap/columnGap longhand
+  //   만 보유(예: frame {rowGap:0,columnGap:0})하면 legacyStyle["gap"]=undefined → 항상 dirty 였음
+  //   (2026-06-23 정정). specStyle.gap 은 이미 layoutPreset rowGap ?? columnGap ?? gap 로 채워짐.
+  if (prop === "gap") {
+    return (
+      specStyle.gap ??
+      normalizeStyleValue("rowGap", legacyStyle.rowGap) ??
+      normalizeStyleValue("columnGap", legacyStyle.columnGap) ??
+      normalizeStyleValue("gap", legacyStyle.gap) ??
+      ""
+    );
+  }
   return specStyle[prop] ?? normalizeStyleValue(prop, legacyStyle[prop]) ?? "";
 }
 

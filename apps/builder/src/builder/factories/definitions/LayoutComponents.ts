@@ -95,7 +95,8 @@ export function createCardDefinition(
           width: "100%",
           padding: "16px",
           borderWidth: "1px",
-          gap: "8px",
+          // gap=12px catalog(sizes.md.gap=12) 정본 (2026-06-23 전수 정정 — factory 8px ≠ CSS 12px).
+          gap: "12px",
         },
       } as ComponentElementProps,
       parent_id: parentId,

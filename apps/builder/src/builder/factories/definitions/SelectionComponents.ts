@@ -48,11 +48,14 @@ export function createSelectDefinition(
         //   layout 엔진은 rule table 을 import 하지 않으므로(ADR-907 Layer B), 누락 시
         //   buildNodeStyle/getElementDisplay 가 display:"block" 으로 떨어져 Skia 찌부러짐.
         //   DOM 은 generated CSS(.react-aria-Select)가 동일 값 제공 → 시각 대칭.
+        //   gap=6 / width:100% 은 catalog(sizes.md.gap=6) 정본에 맞춤 — factory inline 이
+        //   catalog 와 달라 CSS Preview(6) ≠ Skia(4) 시각 비대칭 + Style Panel false dirty 였음
+        //   (2026-06-23 전수 정정, 사용자 결정 = catalog 정본).
         style: {
           width: "100%",
           display: "flex",
           flexDirection: "column",
-          gap: 4,
+          gap: 6,
         },
       } as ComponentElementProps,
       parent_id: parentId,
@@ -146,11 +149,12 @@ export function createComboBoxDefinition(
         isRequired: false,
         items,
         // ADR-912 R1 후속 fix (2026-06-12): column flex layout factory 명시 (Select 동형).
+        //   gap=6 catalog(sizes.md.gap=6) 정본 (2026-06-23 전수 정정).
         style: {
           width: "100%",
           display: "flex",
           flexDirection: "column",
-          gap: 4,
+          gap: 6,
         },
       } as ComponentElementProps,
       parent_id: parentId,
