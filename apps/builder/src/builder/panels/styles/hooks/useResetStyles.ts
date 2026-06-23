@@ -23,7 +23,10 @@ import {
 import { numToPx, uniform4Way } from "../utils/styleValueHelpers";
 import { LAYOUT_PRESETS } from "../../properties/editors/LayoutPresetSelector/presetDefinitions";
 import { normalizeFramePresetContainerStyle } from "../../properties/editors/LayoutPresetSelector/presetStyle";
-import { useCanonicalPropertyElement } from "../../properties/hooks/useCanonicalPropertyRead";
+import {
+  useCanonicalPropertyElement,
+  useCanonicalPropertyElementsMap,
+} from "../../properties/hooks/useCanonicalPropertyRead";
 import type { CompositionDocument } from "@composition/shared";
 
 const PX_LIKE_STYLE_PROPS = new Set([
@@ -107,8 +110,9 @@ function resolveSpecStyleDefaults(
   return {
     width: normalizeStyleValue("width", transformPreset.width),
     height: normalizeStyleValue("height", transformPreset.height),
-    top: normalizeStyleValue("top", transformPreset.top),
-    left: normalizeStyleValue("left", transformPreset.left),
+    // top/left 는 position 값이라 TransformSpecPreset(시각 spec)에 없음 → 항상 undefined dead 였음.
+    //   specStyle.top/left=undefined → reset 은 legacyStyle fallback(동작 동일). dead 필드 제거로
+    //   `transformPreset.top` TS2339 해소(useResetStyles 부모-컨텍스트 baseline 추가 시 위치 시프트로 표면화).
     minWidth: normalizeStyleValue("minWidth", transformPreset.minWidth),
     maxWidth: normalizeStyleValue("maxWidth", transformPreset.maxWidth),
     minHeight: normalizeStyleValue("minHeight", transformPreset.minHeight),
@@ -217,18 +221,89 @@ function resolveSpecStyleDefaults(
   };
 }
 
-function resolveResetBaseline(element: {
-  type: string;
-  props?: Readonly<Record<string, unknown>>;
-}): {
+/**
+ * Select-family sub-part(SelectValue / SelectIcon / DateInput)의 dirty/reset baseline.
+ *
+ * SelectTrigger 와 달리 이 3개 sub-part 는 **부모 컨텍스트마다 factory inline layout 이 다르다**
+ * — CSS 레퍼런스 자체가 `.react-aria-Select .react-aria-SelectValue` 처럼 부모-한정 selector 로
+ * layout(flex/display 등)을 정의하고(D3 정본), DateInput 은 RAC(D1) DOM 구조 차이(picker=`<Group>`
+ * 래퍼 안 콘텐츠 / 단독=자기 box)에서 비롯된 정당한 분기다([[feedback-picker-dateinput-content-height-vs-datefield-box]]).
+ * 따라서 `getDefaultProps(type)` 의 type 단일 baseline 으로는 한 그룹만 정합되고 다른 그룹이 깨진다.
+ *
+ * 판정 키는 부모(SelectTrigger / DateField …) + 조부모(picker 등) type 으로, layout 주입 분기
+ * (`implicitStyles.ts` selecttrigger / datefield)·패널 표시 분기(`useTransformValues.ts`
+ * `useIsPickerDateInput`)와 같은 컨텍스트 술어를 공유한다. 값은 factory definition 의 inline style
+ * 미러 — 어긋나면 `useResetStyles.test.tsx` sub-part audit 이 FAIL(동기화 가드).
+ *
+ * NOTE: style 이 없는 컨텍스트(picker SelectIcon `{}`, NumberField ± SelectIcon `{}`)는 current
+ * style 이 비어 dirty 판정에서 애초에 skip 되므로 항목 불필요.
+ */
+function resolveSubpartContextDefaultStyle(
+  type: string,
+  parentType: string | undefined,
+  grandParentType: string | undefined,
+): Record<string, unknown> {
+  if (type === "DateInput") {
+    // picker(부모 SelectTrigger → 조부모 DatePicker/DateRangePicker): SelectTrigger box 안 flex 콘텐츠.
+    if (
+      parentType === "SelectTrigger" &&
+      (grandParentType === "DatePicker" ||
+        grandParentType === "DateRangePicker")
+    ) {
+      return { flex: 1, minWidth: 0 };
+    }
+    // 단독(부모 DateField/TimeField): 자기 입력 box.
+    if (parentType === "DateField" || parentType === "TimeField") {
+      return { width: "100%" };
+    }
+    return {};
+  }
+  if (type === "SelectValue") {
+    // NumberField: block 콘텐츠. 그 외 Select/ComboBox/SearchField: flex 콘텐츠.
+    if (grandParentType === "NumberField") {
+      return { display: "block", textAlign: "left" };
+    }
+    return { flex: 1, textAlign: "left" };
+  }
+  if (type === "SelectIcon") {
+    // Select/ComboBox/SearchField/NumberField(검색·x 아이콘): 고정 18 글리프 box.
+    //   picker·NumberField(증감 ±)는 factory 가 style 미주입(`{}`) → 위 NOTE 로 baseline 불필요.
+    if (
+      grandParentType === "Select" ||
+      grandParentType === "ComboBox" ||
+      grandParentType === "SearchField"
+    ) {
+      return { width: 18, height: 18, flexShrink: 0 };
+    }
+    return {};
+  }
+  return {};
+}
+
+function resolveResetBaseline(
+  element: {
+    type: string;
+    props?: Readonly<Record<string, unknown>>;
+  },
+  context?: {
+    parentType?: string;
+    grandParentType?: string;
+  },
+): {
   legacyStyle: Record<string, unknown>;
   specStyle: Record<string, string | undefined>;
 } {
   const defaultProps = getDefaultProps(element.type);
   const presetStyle = resolveAppliedPresetBaselineStyle(element);
+  const subpartStyle = resolveSubpartContextDefaultStyle(
+    element.type,
+    context?.parentType,
+    context?.grandParentType,
+  );
   return {
     legacyStyle: {
       ...((defaultProps?.style || {}) as Record<string, unknown>),
+      ...subpartStyle,
       ...presetStyle,
     },
     specStyle: resolveSpecStyleDefaults(element.type, element.props),
@@ -291,12 +366,22 @@ function resolveCurrentStyleValue(
 export function useHasDirtyStyles(properties: string[]): boolean {
   const selectedId = useStore((state) => state.selectedElementId);
   const element = useCanonicalPropertyElement(selectedId ?? "");
+  const elementsMap = useCanonicalPropertyElementsMap();
   return useMemo(() => {
     if (!element) return false;
 
     const currentStyle =
       (element.props?.style as Record<string, unknown>) || {};
-    const { legacyStyle, specStyle } = resolveResetBaseline(element);
+    const parent = element.parent_id
+      ? elementsMap.get(element.parent_id)
+      : undefined;
+    const grandParent = parent?.parent_id
+      ? elementsMap.get(parent.parent_id)
+      : undefined;
+    const { legacyStyle, specStyle } = resolveResetBaseline(element, {
+      parentType: parent?.type,
+      grandParentType: grandParent?.type,
+    });
 
     for (const prop of properties) {
       const currentValue = resolveCurrentStyleValue(prop, currentStyle);
@@ -305,7 +390,7 @@ export function useHasDirtyStyles(properties: string[]): boolean {
       if (currentValue !== resetValue) return true;
     }
     return false;
-  }, [element, properties]);
+  }, [element, elementsMap, properties]);
 }
 
 /**
@@ -327,9 +412,24 @@ export function useResetStyles() {
       : legacyElements.find((candidate) => candidate.id === selectedId);
     if (!element) return;
 
+    // 부모-컨텍스트 sub-part baseline(SelectValue/SelectIcon/DateInput) 정합을 위해 부모 체인 조회.
+    //   reset 시 default layout 을 컨텍스트별로 복원해야(picker DateInput→flex:1/minWidth:0 등)
+    //   dirty 판정(useHasDirtyStyles)과 동일 baseline 으로 일관 동작한다.
+    const elementsMap = state.elementsMap;
+    const selfNode = elementsMap.get(selectedId);
+    const parentNode = selfNode?.parent_id
+      ? elementsMap.get(selfNode.parent_id)
+      : undefined;
+    const grandParentNode = parentNode?.parent_id
+      ? elementsMap.get(parentNode.parent_id)
+      : undefined;
+
     const currentStyle =
       (element.props?.style as Record<string, unknown>) || {};
-    const { legacyStyle, specStyle } = resolveResetBaseline(element);
+    const { legacyStyle, specStyle } = resolveResetBaseline(element, {
+      parentType: parentNode?.type,
+      grandParentType: grandParentNode?.type,
+    });
 
     // 실제로 변경이 필요한 속성만 포함 (dirty check)
     const resetObj: Record<string, string> = {};

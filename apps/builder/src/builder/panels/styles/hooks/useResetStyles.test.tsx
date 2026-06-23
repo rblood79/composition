@@ -266,6 +266,133 @@ describe("useResetStyles — default props false dirty audit", () => {
   );
 });
 
+/**
+ * Select-family sub-part(SelectValue / SelectIcon / DateInput) 의 dirty baseline 은 **부모 컨텍스트**에
+ * 의존한다(SelectTrigger 와 달리 factory inline layout 이 부모마다 다름 — CSS 부모-한정 selector / RAC
+ * D1 DOM 차이가 정본). `resolveSubpartContextDefaultStyle`(useResetStyles.ts)이 부모(SelectTrigger /
+ * DateField …) + 조부모(picker 등) type 으로 factory inline 미러를 baseline 에 합쳐 dirty=false 를
+ * 보장한다. 값이 factory definition 과 어긋나면 이 audit 이 FAIL(동기화 가드). 2026-06-23.
+ */
+describe("useResetStyles — Select-family sub-part 부모-컨텍스트 dirty audit", () => {
+  const originalState = useStore.getState();
+
+  beforeEach(() => {
+    useStore.setState({
+      selectedElementId: null,
+      selectedElementProps: null as unknown as ComponentElementProps,
+      currentPageId: null,
+      elements: [],
+      elementsMap: new Map(),
+      childrenMap: new Map(),
+      dirtyElementIds: new Set(),
+      layoutVersion: 0,
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    useStore.setState(originalState, true);
+  });
+
+  // 각 case: sub-part(child) + 부모(parent) + 조부모(grand) 3-노드 트리 + child factory inline style.
+  //   style 은 해당 factory definition 의 실제 inline 값 미러(어긋나면 FAIL → factory↔baseline 동기화).
+  const cases = [
+    {
+      name: "picker DateInput (DatePicker > SelectTrigger > DateInput)",
+      child: { type: "DateInput", style: { flex: 1, minWidth: 0 } },
+      parent: "SelectTrigger",
+      grand: "DatePicker",
+      properties: ["flex", "minWidth", "width"],
+    },
+    {
+      name: "DateRangePicker DateInput",
+      child: { type: "DateInput", style: { flex: 1, minWidth: 0 } },
+      parent: "SelectTrigger",
+      grand: "DateRangePicker",
+      properties: ["flex", "minWidth", "width"],
+    },
+    {
+      name: "DateField 단독 DateInput",
+      child: { type: "DateInput", style: { width: "100%" } },
+      parent: "DateField",
+      grand: "body",
+      properties: ["width"],
+    },
+    {
+      name: "Select SelectValue (Select > SelectTrigger > SelectValue)",
+      child: {
+        type: "SelectValue",
+        style: { flex: 1, textAlign: "left" },
+      },
+      parent: "SelectTrigger",
+      grand: "Select",
+      properties: ["flex", "textAlign", "display"],
+    },
+    {
+      name: "NumberField SelectValue (display:block 컨텍스트)",
+      child: {
+        type: "SelectValue",
+        style: { display: "block", textAlign: "left" },
+      },
+      parent: "SelectTrigger",
+      grand: "NumberField",
+      properties: ["display", "textAlign", "flex"],
+    },
+    {
+      name: "Select SelectIcon (w/h 18 + flexShrink:0)",
+      child: {
+        type: "SelectIcon",
+        style: { width: 18, height: 18, flexShrink: 0 },
+      },
+      parent: "SelectTrigger",
+      grand: "Select",
+      properties: ["width", "height", "flexShrink"],
+    },
+  ] as const;
+
+  it.each(cases)(
+    "$name 는 부모-컨텍스트 baseline 에서 dirty=false",
+    ({ child, parent, grand, properties }) => {
+      const grandEl = makeTaggedElement("grand-1", grand, { size: "md" });
+      const parentEl: Element = {
+        id: "parent-1",
+        type: parent,
+        parent_id: grandEl.id,
+        props: {},
+      } as Element;
+      const childEl: Element = {
+        id: "child-1",
+        type: child.type,
+        parent_id: parentEl.id,
+        props: { style: child.style },
+      } as Element;
+
+      useStore.setState({
+        selectedElementId: childEl.id,
+        selectedElementProps: childEl.props,
+        currentPageId: null,
+        elements: [grandEl, parentEl, childEl],
+        elementsMap: new Map([
+          [grandEl.id, grandEl],
+          [parentEl.id, parentEl],
+          [childEl.id, childEl],
+        ]),
+        childrenMap: new Map(),
+        dirtyElementIds: new Set(),
+        layoutVersion: 0,
+      });
+
+      const { result: dirty } = renderHook(() =>
+        useHasDirtyStyles([...properties]),
+      );
+      expect(
+        dirty.current,
+        `${child.type}(부모 ${parent}/조부모 ${grand}) factory inline 이 baseline 과 어긋나 dirty 로 오판`,
+      ).toBe(false);
+    },
+  );
+});
+
 describe("useResetStyles — layout preset baseline", () => {
   const originalState = useStore.getState();
 
