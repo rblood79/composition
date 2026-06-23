@@ -204,6 +204,85 @@ describe("skiaPrimitive 'datefield_segments' — DateInput value-fill (ADR-912 d
     }
   });
 
+  it("picker calendar icon x좌표는 containerWidth(box폭)에 의존하지 않는다 — text 뒤 좌측 기준", () => {
+    // 2026-06-23 그룹B 통일(store 추가 없이 escape 내부 결합 풀기): 발산의 근본은
+    //   icon x = containerWidth - padRight - ... (box폭 의존, 우측 기준). box폭이 실제
+    //   Taffy box w 와 어긋나면 icon 이 box 밖으로 격침. Select(SelectIcon flex 배치)는
+    //   icon 위치가 box폭 무관 → 발산 불가. 동형으로, icon 을 text 뒤 좌측 기준(box폭 무관)
+    //   으로 배치하면 escape 내부 box폭↔icon좌표 결합이 사라진다.
+    const narrow = draw({
+      props: {
+        _parentTag: "DatePicker",
+        _granularity: "day",
+        _locale: "en-US",
+        _containerWidth: 100,
+        style: { width: 100 },
+      },
+      size: sizeMd,
+      visual,
+      style: { width: 100 },
+    })!;
+    const wide = draw({
+      props: {
+        _parentTag: "DatePicker",
+        _granularity: "day",
+        _locale: "en-US",
+        _containerWidth: 500,
+        style: { width: 500 },
+      },
+      size: sizeMd,
+      visual,
+      style: { width: 500 },
+    })!;
+    const narrowIconX = (icons(narrow)[0] as { x?: number }).x;
+    const wideIconX = (icons(wide)[0] as { x?: number }).x;
+    // box폭 무관 — 두 값이 동일해야 한다 (text 뒤 좌측 기준 배치).
+    expect(narrowIconX).toBe(wideIconX);
+  });
+
+  it("picker calendar icon 은 segment text 끝보다 오른쪽에 위치 (text 뒤 자연 배치)", () => {
+    const shapes = draw({
+      props: {
+        _parentTag: "DatePicker",
+        _granularity: "day",
+        _locale: "en-US",
+        _containerWidth: 300,
+        style: { width: 300 },
+      },
+      size: sizeMd,
+      visual,
+      style: { width: 300 },
+    })!;
+    const t = texts(shapes)[0] as { x?: number };
+    const ic = icons(shapes)[0] as { x?: number };
+    // icon 의 x 는 text 시작점(paddingX)보다 충분히 오른쪽 (text 폭 + gap 이후).
+    expect(ic.x!).toBeGreaterThan(t.x! + 40);
+  });
+
+  it("picker text maxWidth 는 containerWidth(box폭)에 묶이지 않는다 — nowrap 한 줄 유지", () => {
+    // nowrap 이므로 maxWidth 가 box폭 기반이면 안 됨(좁은 box 에서 줄바꿈/clip 유발).
+    //   maxWidth 미설정(undefined) 또는 text 폭 기반이어야 box폭 발산과 무관.
+    const narrow = draw({
+      props: {
+        _parentTag: "DatePicker",
+        _granularity: "day",
+        _locale: "en-US",
+        _containerWidth: 80,
+        style: { width: 80 },
+      },
+      size: sizeMd,
+      visual,
+      style: { width: 80 },
+    })!;
+    const t = narrow.find((s) => s.type === "text") as {
+      maxWidth?: number;
+    };
+    // maxWidth 가 설정돼 있다면 box폭(80)보다 작으면 안 됨 (box폭 의존 금지).
+    if (t.maxWidth !== undefined) {
+      expect(t.maxWidth).toBeGreaterThan(80);
+    }
+  });
+
   it("style override — backgroundColor/borderColor/color 사용자 설정 우선", () => {
     const shapes = draw({
       props: {
