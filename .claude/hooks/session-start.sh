@@ -44,6 +44,26 @@ DRIFT_EOF
   fi
 fi
 
+# MEMORY.md 비대화 감시 (harness 가 인덱스 로드 시 ~24KB 초과분을 truncate → 뒷부분 항목 소실)
+#   임계 30KB 초과 시 세션 시작에 1회 경고. 비차단 — 압축 권고만.
+memory_block=""
+MEMORY_PATH="$HOME/.claude/projects/-Users-admin-work-composition/memory/MEMORY.md"
+if [ -f "$MEMORY_PATH" ]; then
+  mem_bytes=$(wc -c < "$MEMORY_PATH" 2>/dev/null | tr -d ' ' || echo 0)
+  if [ "$mem_bytes" -gt 30000 ]; then
+    mem_kb=$(( mem_bytes / 1024 ))
+    memory_block=$(cat <<MEMORY_EOF
+
+## ⚠️ MEMORY.md 비대화 감지
+
+- 현재 크기: ${mem_kb}KB (임계 30KB 초과) — harness 인덱스 로드 한도(~24KB) 넘으면 뒷부분 항목 truncate
+- 권고: 항목당 \`[제목](파일) — 한 줄 hook\` 형태 유지 (상세는 topic .md 본문에). 한 줄 200자 이내
+- 절차: 비대 줄은 hook 만 남기고 압축(정보는 topic 파일에 보존), stale/완료 entry 는 archive 포인터로 통합
+MEMORY_EOF
+)
+  fi
+fi
+
 # Wave A* auto-progression check (foreground — sample 충족 시 Wave B 진입 알림)
 progression_block=""
 if [ -x "$CLAUDE_PROJECT_DIR/.claude/hooks/auto-progression-check.sh" ]; then
@@ -109,7 +129,7 @@ cat <<EOF
 - Stop: ADR Implemented 승격 시 README/CHANGELOG 동시 갱신 강제 (block + escape hatch)
 - PreToolUse: 사용자 명시 발의 없는 ADR 신규 생성 차단 (transcript grep 기반)
 
-규칙: 한 줄 수정/단순 질문은 skill 스킵 가능. CRITICAL/HIGH 이슈는 즉시 수정.${drift_block}${progression_block}
+규칙: 한 줄 수정/단순 질문은 skill 스킵 가능. CRITICAL/HIGH 이슈는 즉시 수정.${drift_block}${memory_block}${progression_block}
 </composition-workflow-roster>
 EOF
 
