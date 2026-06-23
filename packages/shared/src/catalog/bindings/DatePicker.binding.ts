@@ -57,6 +57,14 @@ export const datePickerBinding: PrimitiveBinding = {
         label: "Show Calendar Icon",
         section: "appearance",
       },
+      // calendar 아이콘 이름 D2 (Select iconName 동형). SSOT=부모 DatePicker.props.iconName →
+      //   toRacProps 로 Preview DatePicker.tsx 전달 + Skia SelectIcon 조부모 위임 → 양쪽 대칭.
+      iconName: {
+        kind: "icon",
+        label: "Calendar Icon",
+        section: "appearance",
+        default: "calendar",
+      },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
     },

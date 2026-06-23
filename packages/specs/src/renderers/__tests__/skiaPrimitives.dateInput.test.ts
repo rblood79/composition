@@ -132,7 +132,12 @@ describe("skiaPrimitive 'datefield_segments' — DateInput value-fill (ADR-912 d
     );
   });
 
-  it("DatePicker — picker icon(calendar) 1개 추가 (box+border+text+icon = 4 shape)", () => {
+  // 그룹 A↔B 통일 (factory canonical 자식, 2026-06-23): picker(DatePicker/DateRangePicker) 의
+  //   DateInput 은 이제 SelectTrigger 래퍼 안의 flex 자식 — box/border 는 SelectTrigger, calendar
+  //   icon 은 별도 SelectIcon 이 그린다. 따라서 picker DateInput escape 는 **segment text 만** 그린다
+  //   (box/border/icon 그리면 SelectTrigger box + SelectIcon 과 이중 렌더). 발산 근본(box폭↔icon
+  //   좌표 결합)이 구조적으로 소멸 — icon 이 더 이상 이 escape 의 책임이 아님.
+  it("DatePicker — picker DateInput 은 segment text 만 (box/border/icon 없음 — SelectTrigger/SelectIcon 담당)", () => {
     const shapes = draw({
       props: {
         _parentTag: "DatePicker",
@@ -143,12 +148,15 @@ describe("skiaPrimitive 'datefield_segments' — DateInput value-fill (ADR-912 d
       visual,
       style: undefined,
     })!;
-    const ic = icons(shapes);
-    expect(ic).toHaveLength(1);
-    expect((ic[0] as { iconName?: string }).iconName).toBe("calendar");
+    expect(texts(shapes)).toHaveLength(1);
+    expect((texts(shapes)[0] as { text?: string }).text).toBe("MM / DD / YYYY");
+    // box/border/icon 은 그리지 않는다 (SelectTrigger box + SelectIcon calendar 가 담당)
+    expect(rects(shapes)).toHaveLength(0);
+    expect(borders(shapes)).toHaveLength(0);
+    expect(icons(shapes)).toHaveLength(0);
   });
 
-  it("DateRangePicker — 범위 segment 'MM / DD / YYYY – MM / DD / YYYY' + picker icon", () => {
+  it("DateRangePicker — 범위 segment 'MM / DD / YYYY – MM / DD / YYYY' text 만 (box/icon 없음)", () => {
     const shapes = draw({
       props: {
         _parentTag: "DateRangePicker",
@@ -162,7 +170,8 @@ describe("skiaPrimitive 'datefield_segments' — DateInput value-fill (ADR-912 d
     expect((texts(shapes)[0] as { text?: string }).text).toBe(
       "MM / DD / YYYY – MM / DD / YYYY",
     );
-    expect(icons(shapes)).toHaveLength(1);
+    expect(rects(shapes)).toHaveLength(0);
+    expect(icons(shapes)).toHaveLength(0);
   });
 
   it("box 색 = rule visual.fill base(layer-2), border = visual.border, text = visual.text(neutral)", () => {
@@ -204,12 +213,10 @@ describe("skiaPrimitive 'datefield_segments' — DateInput value-fill (ADR-912 d
     }
   });
 
-  it("picker calendar icon x좌표는 containerWidth(box폭)에 의존하지 않는다 — text 뒤 좌측 기준", () => {
-    // 2026-06-23 그룹B 통일(store 추가 없이 escape 내부 결합 풀기): 발산의 근본은
-    //   icon x = containerWidth - padRight - ... (box폭 의존, 우측 기준). box폭이 실제
-    //   Taffy box w 와 어긋나면 icon 이 box 밖으로 격침. Select(SelectIcon flex 배치)는
-    //   icon 위치가 box폭 무관 → 발산 불가. 동형으로, icon 을 text 뒤 좌측 기준(box폭 무관)
-    //   으로 배치하면 escape 내부 box폭↔icon좌표 결합이 사라진다.
+  it("picker DateInput text 는 box폭(containerWidth)에 무관하게 동일 — text-only, x=0 좌측 기준", () => {
+    // 그룹 A↔B 통일(factory canonical 자식): 발산 근본이던 box폭↔icon좌표 결합이 구조적으로
+    //   소멸. picker DateInput 은 box/icon 을 그리지 않고 segment text 만 그리며(box=SelectTrigger,
+    //   icon=SelectIcon), text 는 x=0 좌측 기준이라 box폭과 완전 무관. 좁/넓은 box 모두 동일 shape.
     const narrow = draw({
       props: {
         _parentTag: "DatePicker",
@@ -234,29 +241,29 @@ describe("skiaPrimitive 'datefield_segments' — DateInput value-fill (ADR-912 d
       visual,
       style: { width: 500 },
     })!;
-    const narrowIconX = (icons(narrow)[0] as { x?: number }).x;
-    const wideIconX = (icons(wide)[0] as { x?: number }).x;
-    // box폭 무관 — 두 값이 동일해야 한다 (text 뒤 좌측 기준 배치).
-    expect(narrowIconX).toBe(wideIconX);
+    const narrowText = texts(narrow)[0] as { x?: number };
+    const wideText = texts(wide)[0] as { x?: number };
+    // box폭 무관 — text x 는 0 좌측 기준, 두 값 동일. icon 은 이 escape 가 그리지 않음.
+    expect(narrowText.x).toBe(0);
+    expect(wideText.x).toBe(0);
+    expect(narrowText.x).toBe(wideText.x);
+    expect(icons(narrow)).toHaveLength(0);
+    expect(icons(wide)).toHaveLength(0);
   });
 
-  it("picker calendar icon 은 segment text 끝보다 오른쪽에 위치 (text 뒤 자연 배치)", () => {
+  it("DateField(non-picker) 는 여전히 box+border+text — 자신이 box 라 기존 유지", () => {
+    // picker 만 SelectTrigger 래퍼 안 text-only. DateField/TimeField 는 자신이 입력 box 이므로
+    //   box+border+text 전체 렌더 유지(하위호환).
     const shapes = draw({
-      props: {
-        _parentTag: "DatePicker",
-        _granularity: "day",
-        _locale: "en-US",
-        _containerWidth: 300,
-        style: { width: 300 },
-      },
+      props: { _parentTag: "DateField", _granularity: "day", _locale: "en-US" },
       size: sizeMd,
       visual,
-      style: { width: 300 },
+      style: undefined,
     })!;
-    const t = texts(shapes)[0] as { x?: number };
-    const ic = icons(shapes)[0] as { x?: number };
-    // icon 의 x 는 text 시작점(paddingX)보다 충분히 오른쪽 (text 폭 + gap 이후).
-    expect(ic.x!).toBeGreaterThan(t.x! + 40);
+    expect(rects(shapes)).toHaveLength(1);
+    expect(borders(shapes)).toHaveLength(1);
+    expect(texts(shapes)).toHaveLength(1);
+    expect(icons(shapes)).toHaveLength(0);
   });
 
   it("picker text maxWidth 는 containerWidth(box폭)에 묶이지 않는다 — nowrap 한 줄 유지", () => {

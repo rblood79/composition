@@ -37,6 +37,13 @@ export const dateRangePickerBinding: PrimitiveBinding = {
         label: "Show Calendar Icon",
         section: "appearance",
       },
+      // calendar 아이콘 이름 D2 (DatePicker 동형). SSOT=부모 props.iconName.
+      iconName: {
+        kind: "icon",
+        label: "Calendar Icon",
+        section: "appearance",
+        default: "calendar",
+      },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
     },

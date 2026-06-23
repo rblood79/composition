@@ -20,12 +20,19 @@ function buildCalendarInitData() {
 /**
  * DatePicker 복합 컴포넌트 정의 (Compositional Architecture)
  *
- * ComboBox 패턴: DatePicker는 투명 컨테이너, 자식이 개별 렌더링
- *   DatePicker (parent, flex column, gap:8px, width:284px)
- *     ├─ DateField       (trigger, width:100%)
- *     └─ Calendar        (flex column, padding:12px, width:100%)
- *         ├─ CalendarHeader  (nav: ← 월/년 →)
- *         └─ CalendarGrid    (요일 + 날짜 셀)
+ * field-trigger canonical 자식 통일 (NumberField/SearchField 동형 — 그룹 A↔B 통일):
+ *   DatePicker (parent, flex column)
+ *     ├─ Label
+ *     ├─ SelectTrigger   (trigger, flex row, bg+border — box)
+ *     │    ├─ DateInput   (segment text, _parentTag="DatePicker")
+ *     │    └─ SelectIcon  (calendar glyph)
+ *     └─ Calendar        (CalendarHeader + CalendarGrid)
+ *
+ * 기존엔 DateInput 이 picker 직속이고 calendar icon 을 datefield_segments 가 box 안에 그려
+ *   icon 좌표가 box폭에 결합됐다(발산). Select/ComboBox/NumberField/SearchField 처럼
+ *   SelectTrigger 래퍼 + DateInput + SelectIcon 별도 자식으로 두면 트리/Skia/CSS 가 자동
+ *   일관되고 icon 이 flex 자식이라 box폭 무관. RAC DatePicker DOM(D1) 도
+ *   `<Group><DateInput/><Button>📅</Button></Group>` 구조라 canonical 반영이 D1 정합.
  */
 export function createDatePickerDefinition(
   context: ComponentCreationContext,
@@ -52,6 +59,10 @@ export function createDatePickerDefinition(
         shouldForceLeadingZeros: true,
         isDisabled: false,
         isReadOnly: false,
+        // calendar 아이콘 SSOT (D2) — Select 동형. Skia SelectIcon 은 조부모(DatePicker) iconName
+        //   위임(resolveIconDelegation), Preview self-compose 는 element.props.iconName 소비.
+        //   사용자가 Inspector 에서 이 값을 바꾸면 Skia/Preview 양쪽 대칭 반영.
+        iconName: "calendar",
       } as ComponentElementProps,
       parent_id: parentId,
     },
@@ -67,10 +78,34 @@ export function createDatePickerDefinition(
         } as ComponentElementProps,
       },
       {
-        type: "DateInput",
+        // field-trigger box 래퍼 (NumberField/SearchField 동형) — DateInput + calendar icon 을
+        //   flex row 로 묶는다. SelectTrigger 는 Skia/CSS/layout 에서 box+border flex-row 로
+        //   이미 처리되는 그룹 B 공통 type → 새 메커니즘 0.
+        type: "SelectTrigger",
         props: {
-          _parentTag: "DatePicker",
+          style: {
+            width: "100%",
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 4,
+          },
         } as ComponentElementProps,
+        children: [
+          {
+            type: "DateInput",
+            props: {
+              _parentTag: "DatePicker",
+              style: { flex: 1, minWidth: 0 },
+            } as ComponentElementProps,
+          },
+          {
+            // iconName 미지정 — 조부모 DatePicker.props.iconName 위임(resolveIconDelegation).
+            //   iconName SSOT 는 부모 DatePicker(D2) 단일 source → Skia/Preview 대칭.
+            type: "SelectIcon",
+            props: {} as ComponentElementProps,
+          },
+        ],
       },
       {
         type: "Calendar",
@@ -104,12 +139,14 @@ export function createDatePickerDefinition(
 /**
  * DateRangePicker 복합 컴포넌트 정의 (DatePicker 와 동일한 DOM 구조 패턴)
  *
- *   DateRangePicker (parent, flex column, gap:8px, width:284px)
- *     ├─ Label         (type="Label")
- *     ├─ DateInput     (type="DateInput", _parentTag="DateRangePicker")
- *     └─ Calendar      (type="Calendar")
- *         ├─ CalendarHeader
- *         └─ CalendarGrid
+ *   DateRangePicker (parent, flex column)
+ *     ├─ Label
+ *     ├─ SelectTrigger   (trigger, flex row, bg+border — box)
+ *     │    ├─ DateInput   (segment text, _parentTag="DateRangePicker")
+ *     │    └─ SelectIcon  (calendar glyph)
+ *     └─ Calendar      (CalendarHeader + CalendarGrid)
+ *
+ * field-trigger canonical 자식 통일 (DatePicker 동형). 상세는 createDatePickerDefinition 주석.
  */
 export function createDateRangePickerDefinition(
   context: ComponentCreationContext,
@@ -136,6 +173,8 @@ export function createDateRangePickerDefinition(
         shouldForceLeadingZeros: true,
         isDisabled: false,
         isReadOnly: false,
+        // calendar 아이콘 SSOT (D2) — DatePicker 동형. 상세는 createDatePickerDefinition.
+        iconName: "calendar",
       } as ComponentElementProps,
       parent_id: parentId,
     },
@@ -151,10 +190,30 @@ export function createDateRangePickerDefinition(
         } as ComponentElementProps,
       },
       {
-        type: "DateInput",
+        type: "SelectTrigger",
         props: {
-          _parentTag: "DateRangePicker",
+          style: {
+            width: "100%",
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 4,
+          },
         } as ComponentElementProps,
+        children: [
+          {
+            type: "DateInput",
+            props: {
+              _parentTag: "DateRangePicker",
+              style: { flex: 1, minWidth: 0 },
+            } as ComponentElementProps,
+          },
+          {
+            // iconName 미지정 — 조부모 DateRangePicker.props.iconName 위임. SSOT 는 부모(D2).
+            type: "SelectIcon",
+            props: {} as ComponentElementProps,
+          },
+        ],
       },
       {
         type: "Calendar",

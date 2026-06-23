@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [DatePicker/DateRangePicker Skia DateInput — width 0 + 줄바꿈 + box<콘텐츠 + icon 좌표 box폭 결합 해제] - 2026-06-23
+## [DatePicker/DateRangePicker Skia DateInput — width 0 + 줄바꿈 + box<콘텐츠 + icon 결합 해제 → field-trigger canonical 자식 통일 + icon D2 대칭] - 2026-06-23
 
 ### Bug Fixes
 
@@ -32,6 +32,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why (근본)**: 그룹 A 의 발산 근본은 escape 내부에서 box 폭↔icon 좌표가 결합된 것. box 폭(`containerWidth`)이 실제 Taffy box `w` 와 어긋나면 우측 기준 icon·maxWidth 가 box 밖으로 격침. 앞선 콘텐츠 자연폭 수정으로 box 폭은 정합화됐으나 결합 자체는 잔존(미래 폭 변동 시 재발 소지).
   - **수정 (사용자 결정: store element 추가 없이 escape 내부 결합만 풀기)**: DatePicker 의 calendar 토글은 D1(CSS preview)에서조차 store element 가 아니라 RAC 가 render-time 에 self-compose(`DatePicker.tsx:218`, canonical document 에 없음) → 그룹 B 처럼 store 자식으로 분리하면 D1 엔 없는 노드를 D3 용으로 canonical 에 만들어 D1↔D3 비대칭/SSOT(D1) 가중. 대신 escape 안에서 icon 을 **text 뒤 좌측 기준**(`x = paddingX + measureSpecTextWidth(text) + gap + iconSz/2`, breadcrumb_separator escape 동형)으로 배치 → box 폭 무관. text shape 의 `maxWidth`(box 폭 기반) 제거(nowrap 이므로 무한 유지). box 폭은 `calculateContentWidth` dateinput 분기가 paddingX+text+gap+icon+padRight 로 산출하므로 icon 이 항상 box 안에 자연 위치.
   - 위치: `packages/specs/src/renderers/skiaPrimitives.ts`(`datefieldSegments` escape — icon 좌측 기준 배치 + maxWidth 제거 + unused `DF_PADDING_Y`/`padRight` 정리). store/factory/catalog/binding/canonical/D1 무변경(surface 최소). 회귀 가드: `skiaPrimitives.dateInput.test.ts`(RED→GREEN 3건 — icon x 가 containerWidth 100↔500 에 불변 / icon 이 text 끝보다 우측 / maxWidth 가 box 폭에 묶이지 않음). live: Builder canvas 에서 Date Picker(138×30 box)·Date Range box 모두 `MM/DD/YYYY (–...) 📅` 텍스트+아이콘이 box 안 한 줄 정상 위치(Chrome MCP).
+
+### Architecture
+
+- **DatePicker / DateRangePicker field-trigger canonical 자식 통일 — NumberField/SearchField 동형** (그룹 A↔B 근본 전환):
+  - 위 escape 내부 결합 풀기는 Skia 좌표만의 우회였다. 사용자 관점 — "같은 패턴 두 그룹"(그룹 A=picker / 그룹 B=Select·ComboBox·NumberField·SearchField) 을 **canonical 구조 자체로 통일**하는 것이 근본. 그룹 B 는 factory 가 `SelectTrigger > [SelectValue, SelectIcon]` canonical 자식을 실제 생성(`FormComponents.ts:285`)하는데, 그룹 A 만 DateInput 을 picker 직속에 두고 calendar icon 을 escape 가 합쳐 그려 비일관이었다.
+  - **수정**: DatePicker/DateRangePicker factory(`DateColorComponents.ts`)를 `[Label, SelectTrigger > [DateInput, SelectIcon], Calendar]` 로 — NumberField 동형. RAC DatePicker DOM(D1)도 `<Group><DateInput/><Button>📅</Button></Group>` 이라 canonical 반영이 D1 정합. picker 자식 DateInput 의 `datefield_segments` escape 는 segment text 만 그리도록(box=SelectTrigger, icon=SelectIcon — 이중 렌더 제거). 트리/Skia/CSS 가 canonical 단일 source 로 자동 일관 + box폭↔icon 결합이 구조적으로 소멸(ADR 불요 — 기존 field-trigger 패턴의 일관화).
+  - 위치: `apps/builder/src/builder/factories/definitions/DateColorComponents.ts`, `packages/specs/src/renderers/skiaPrimitives.ts`(`datefieldSegments` picker text-only 분기). 회귀 가드: `selectFamilyFactoryLayout.test.ts`(picker SelectTrigger>DateInput+SelectIcon 2건) + `skiaPrimitives.dateInput.test.ts`(picker text-only / DateField box 유지 갱신). live: Layers 트리에 `DatePicker > Label, SelectTrigger > [DateInput, SelectIcon], Calendar` 표시 + Skia/CSS box 일관 확인(Chrome MCP).
+- **DatePicker / DateRangePicker calendar 아이콘 변경이 Builder↔Preview 양쪽 반영 — iconName D2 대칭** (D3 symmetric consumer 복원):
+  - Builder(Skia)에서 calendar 아이콘을 바꾸면 Skia 는 반영하나 Preview(DOM)는 `DatePicker.tsx` 가 `<CalendarIcon size={16}/>` 를 하드코딩해 비반영 → D3 대칭 위반(사용자 지적).
+  - **Why / 근본 (Select 선례)**: field-trigger 의 iconName SSOT 는 **부모 노드 props(D2)** 이지 SelectIcon 자식이 아니다. Skia `resolveIconDelegation`(`buildSpecNodeData.ts:722`)이 SelectIcon → 조부모 iconName 을 위임(type 무관 → DatePicker 자동 커버, Skia 변경 0), Preview self-compose 가 `element.props.iconName` 을 소비(Select.tsx 동형). 부모 props 단일 source 면 양쪽 대칭.
+  - **수정**: factory 가 부모 DatePicker/DateRangePicker.props.iconName="calendar"(SSOT) + SelectIcon 자식 iconName 제거(조부모 위임). Preview `DatePicker.tsx`/`DateRangePicker.tsx` 의 하드코딩 `<CalendarIcon>` → 동적 `<Icon iconName={iconName}>`(getIconData) + iconName prop. `DateRenderers` 가 `element.props.iconName` 전달, binding accepts 에 `iconName:{kind:"icon"}` 추가(toRacProps 통과 + Inspector "Calendar Icon" surface).
+  - 위치: `DateColorComponents.ts`, `DatePicker.tsx`/`DateRangePicker.tsx`, `DateRenderers.tsx`, `DatePicker.binding.ts`/`DateRangePicker.binding.ts`. 회귀 가드: `selectFamilyFactoryLayout.test.ts`(부모 props.iconName SSOT + SelectIcon 위임). live: Inspector Appearance "Calendar Icon" 변경 시 Skia·Preview 양쪽 반영 확인(사용자 confirm).
 
 ## [catalog 레퍼런스 기준 재구축 종결 — ADR-913 slice 1~5 완료 + slice 6 제외] - 2026-06-22
 

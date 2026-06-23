@@ -20,14 +20,11 @@ import {
   composeRenderProps,
 } from "react-aria-components";
 
-import {
-  Calendar as CalendarIcon,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getLocalTimeZone, today, now } from "@internationalized/date";
 import { safeParseDateString } from "../utils/core/dateUtils";
 import type { ComponentSize } from "../types";
+import { Icon } from "./Icon";
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
@@ -47,6 +44,12 @@ export interface DatePickerProps<T extends DateValue> extends Omit<
   // 추가 커스텀 프로퍼티들
   showCalendarIcon?: boolean;
   calendarIconPosition?: "left" | "right";
+  /**
+   * trigger calendar 아이콘 이름 (Lucide). canonical SelectIcon 자식의 iconName 을
+   * Preview self-compose 가 소비하여 Builder(Skia SelectIcon) 와 시각 대칭 유지(D3).
+   * 미지정 시 "calendar".
+   */
+  iconName?: string;
   placeholder?: string;
   dateFormat?: string;
   showWeekNumbers?: boolean;
@@ -102,6 +105,7 @@ export function DatePicker<T extends DateValue>({
   errorMessage,
   showCalendarIcon = true,
   calendarIconPosition = "right",
+  iconName = "calendar",
   placeholder,
   showWeekNumbers = false,
   highlightToday = true,
@@ -203,7 +207,11 @@ export function DatePicker<T extends DateValue>({
       )}
       <Group>
         {showCalendarIcon && calendarIconPosition === "left" && (
-          <Button slot="prefix">📅</Button>
+          <Button slot="prefix">
+            {/* canonical SelectIcon.iconName 소비 → Builder(Skia) 와 시각 대칭(D3). 위치(Button
+                slot)는 RAC DOM(D1) 유지, 어떤 아이콘인지(D2) 만 동적. */}
+            <Icon iconName={iconName} style={{ fontSize: 16 }} />
+          </Button>
         )}
         <DateInput>
           {(segment) => (
@@ -217,7 +225,7 @@ export function DatePicker<T extends DateValue>({
         </DateInput>
         {showCalendarIcon && calendarIconPosition === "right" && (
           <Button>
-            <CalendarIcon size={16} />
+            <Icon iconName={iconName} style={{ fontSize: 16 }} />
           </Button>
         )}
         {allowClear && props.value && (

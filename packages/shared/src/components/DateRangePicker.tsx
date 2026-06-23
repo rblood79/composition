@@ -20,11 +20,7 @@ import {
   composeRenderProps,
 } from "react-aria-components";
 
-import {
-  Calendar as CalendarIcon,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getLocalTimeZone, today, now } from "@internationalized/date";
 import { safeParseDateString } from "../utils/core/dateUtils";
 import type { ComponentSize } from "../types";
@@ -32,6 +28,7 @@ import {
   type NecessityIndicator,
   renderNecessityIndicator,
 } from "./FieldNecessityIndicator";
+import { Icon } from "./Icon";
 
 import "./styles/generated/DateRangePicker.css";
 
@@ -46,6 +43,8 @@ export interface DateRangePickerProps<T extends DateValue> extends Omit<
   errorMessage?: string | ((validation: ValidationResult) => string);
   showCalendarIcon?: boolean;
   calendarIconPosition?: "left" | "right";
+  /** trigger calendar 아이콘 이름 (Lucide). DatePicker 동형 — canonical iconName(D2) 소비. */
+  iconName?: string;
   placeholder?: string;
   showWeekNumbers?: boolean;
   highlightToday?: boolean;
@@ -85,6 +84,7 @@ export function DateRangePicker<T extends DateValue>({
   errorMessage,
   showCalendarIcon = true,
   calendarIconPosition = "right",
+  iconName = "calendar",
   placeholder,
   showWeekNumbers = false,
   highlightToday = true,
@@ -178,7 +178,9 @@ export function DateRangePicker<T extends DateValue>({
       )}
       <Group>
         {showCalendarIcon && calendarIconPosition === "left" && (
-          <Button slot="prefix">📅</Button>
+          <Button slot="prefix">
+            <Icon iconName={iconName} style={{ fontSize: 16 }} />
+          </Button>
         )}
         <DateInput slot="start">
           {(segment) => (
@@ -203,7 +205,7 @@ export function DateRangePicker<T extends DateValue>({
         </DateInput>
         {showCalendarIcon && calendarIconPosition === "right" && (
           <Button>
-            <CalendarIcon size={16} />
+            <Icon iconName={iconName} style={{ fontSize: 16 }} />
           </Button>
         )}
         {allowClear && props.value && (

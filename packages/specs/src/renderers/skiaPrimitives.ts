@@ -1647,12 +1647,31 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
 
   const isPickerInput =
     parentTag === "DatePicker" || parentTag === "DateRangePicker";
-  const iconSz = isPickerInput
-    ? ({ xs: 10, sm: 14, md: 16, lg: 20, xl: 22 }[sizeName] ?? 16)
-    : 0;
-  const gap = isPickerInput ? 4 : 0;
 
-  const shapes: Shape[] = [
+  // 그룹 A↔B 통일 (factory canonical 자식): picker(DatePicker/DateRangePicker) 의 DateInput 은
+  //   이제 SelectTrigger 래퍼 안의 flex 자식으로, box/border 는 SelectTrigger 가, calendar icon 은
+  //   별도 SelectIcon 이 그린다. 따라서 picker DateInput 은 **segment text 만** 렌더한다(box/border/
+  //   icon 그리면 SelectTrigger box + SelectIcon 과 이중 렌더). x=0 + baseline:middle → 노드
+  //   containerHeight 중앙. DateField/TimeField(picker 아님)는 자신이 box 라 box+border+text 유지.
+  if (isPickerInput) {
+    return [
+      {
+        type: "text" as const,
+        x: 0,
+        y: 0,
+        text: displayText,
+        fontSize,
+        fontFamily: ff,
+        fontWeight: 400,
+        fill: textColor,
+        align: "left" as const,
+        baseline: "middle" as const,
+        whiteSpace: "nowrap" as const,
+      },
+    ];
+  }
+
+  return [
     {
       id: "input-bg",
       type: "roundRect" as const,
@@ -1681,34 +1700,9 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
       fill: textColor,
       align: "left" as const,
       baseline: "middle" as const,
-      // CSS Group(white-space:nowrap) 정합 — nowrap 으로 한 줄 유지. maxWidth 는
-      //   설정하지 않는다(undefined): box폭(containerWidth)에 묶으면 좁은 box 에서 줄어들어
-      //   box폭 발산에 다시 의존하게 된다. nowrap → nodeRendererText 가 layoutMaxWidth 무한.
       whiteSpace: "nowrap" as const,
     },
   ];
-
-  if (isPickerInput) {
-    // calendar icon 을 text 뒤 좌측 기준으로 배치 (breadcrumb_separator escape 동형).
-    //   기존 우측 기준(x = containerWidth - padRight - ...)은 box폭(containerWidth)에 의존해,
-    //   box폭이 실제 Taffy box w 와 어긋나면 icon 이 box 밖으로 격침(발산 근본). Select 의
-    //   SelectIcon 은 flex 자식이라 icon 위치가 box폭 무관 → 발산 불가. 동형으로 icon x 를
-    //   text 끝 + gap(box폭 무관)으로 두면 escape 내부 box폭↔icon좌표 결합이 사라진다.
-    //   box 폭은 calculateContentWidth(dateinput 분기)가 paddingX+text+gap+icon 포함 산출 →
-    //   icon 이 항상 box 안에 자연 위치.
-    const textW = measureSpecTextWidth(displayText, fontSize, ff, 400);
-    shapes.push({
-      type: "icon_font" as const,
-      iconName: "calendar",
-      x: paddingX + textW + gap + iconSz / 2,
-      y: inputHeight / 2,
-      fontSize: iconSz,
-      fill: "{color.neutral-subdued}" as TokenRef,
-      strokeWidth: 2,
-    });
-  }
-
-  return shapes;
 };
 
 /**

@@ -197,6 +197,9 @@ export const renderDatePicker = (
       calendarIconPosition={resolveCalendarIconPosition(
         element.props.calendarIconPosition,
       )}
+      iconName={
+        element.props.iconName ? String(element.props.iconName) : undefined
+      }
       showWeekNumbers={Boolean(element.props.showWeekNumbers)}
       highlightToday={element.props.highlightToday !== false}
       allowClear={element.props.allowClear !== false}
@@ -293,6 +296,9 @@ export const renderDateRangePicker = (
       calendarIconPosition={resolveCalendarIconPosition(
         element.props.calendarIconPosition,
       )}
+      iconName={
+        element.props.iconName ? String(element.props.iconName) : undefined
+      }
       showWeekNumbers={Boolean(element.props.showWeekNumbers)}
       highlightToday={element.props.highlightToday !== false}
       allowClear={element.props.allowClear !== false}

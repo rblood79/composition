@@ -8,6 +8,10 @@ import {
   createNumberFieldDefinition,
   createSearchFieldDefinition,
 } from "../FormComponents";
+import {
+  createDatePickerDefinition,
+  createDateRangePickerDefinition,
+} from "../DateColorComponents";
 import type { ComponentCreationContext } from "../../types";
 import type { ComponentDefinition } from "../../types";
 
@@ -91,6 +95,89 @@ describe("ADR-912 R1 Select family — factory layout props.style 회귀 가드"
         "SelectTrigger flexDirection 누락 → Value/Icon 가로배치 무너짐",
       ).toBe("row");
       expect(ts?.alignItems).toBe("center");
+    },
+  );
+});
+
+/**
+ * 그룹 A↔B 통일 (field-trigger canonical 자식 통일, 2026-06-23):
+ * DatePicker/DateRangePicker 의 DateInput + calendar icon 을 NumberField/SearchField 처럼
+ * SelectTrigger 래퍼 안의 DateInput + SelectIcon 자식으로 둔다. 트리/Skia/CSS 가 canonical
+ * 단일 source 로 일관되고, calendar icon 이 flex 자식이라 box폭에 결합되지 않는다(발산 차단).
+ *
+ * **회귀 가드**: picker factory 가 SelectTrigger 래퍼 + DateInput + SelectIcon(calendar) 을
+ * 생성하는지 검증. 누락 시 DateInput 이 picker 직속으로 복귀 → 트리/Skia 비일관 + box폭 결합 재발.
+ */
+const PICKER_CASES: Array<{
+  name: string;
+  make: (ctx: ComponentCreationContext) => ComponentDefinition;
+  parentTag: string;
+}> = [
+  {
+    name: "DatePicker",
+    make: createDatePickerDefinition,
+    parentTag: "DatePicker",
+  },
+  {
+    name: "DateRangePicker",
+    make: createDateRangePickerDefinition,
+    parentTag: "DateRangePicker",
+  },
+];
+
+function findChild(def: ComponentDefinition, type: string) {
+  return def.children?.find((c) => c?.type === type);
+}
+
+describe("그룹 A↔B 통일 — DatePicker/DateRangePicker field-trigger canonical 자식", () => {
+  it.each(PICKER_CASES)(
+    "$name 은 SelectTrigger 래퍼 > [DateInput, SelectIcon] canonical 자식을 생성",
+    ({ make, parentTag }) => {
+      const def = make(makeContext());
+      const trigger = findChild(def, "SelectTrigger");
+      expect(
+        trigger,
+        "SelectTrigger 래퍼 부재 → DateInput picker 직속 복귀",
+      ).toBeTruthy();
+
+      // SelectTrigger row flex (Value/Icon 가로 배치)
+      const ts = (trigger?.props as { style?: StyleRec }).style ?? {};
+      expect(ts.display).toBe("flex");
+      expect(ts.flexDirection).toBe("row");
+      expect(ts.alignItems).toBe("center");
+
+      // SelectTrigger 자식 = DateInput(segment) + SelectIcon(calendar)
+      const grandTypes = (trigger?.children ?? []).map((c) => c?.type);
+      expect(grandTypes).toContain("DateInput");
+      expect(grandTypes).toContain("SelectIcon");
+
+      // DateInput 은 picker _parentTag 전파 (datefield_segments segment text 생성용)
+      const dateInput = trigger?.children?.find((c) => c?.type === "DateInput");
+      expect(
+        (dateInput?.props as { _parentTag?: string })._parentTag,
+        "_parentTag 누락 → segment placeholder 텍스트 미생성",
+      ).toBe(parentTag);
+
+      // iconName SSOT 는 부모 picker.props.iconName (D2, Select 동형). SelectIcon 자식은
+      //   iconName 미지정 — Skia resolveIconDelegation 이 조부모(picker) iconName 위임,
+      //   Preview self-compose 는 element.props.iconName 소비 → Skia/Preview 대칭.
+      expect(
+        (def.parent.props as { iconName?: string }).iconName,
+        "부모 picker.props.iconName SSOT 누락 → Preview self-compose 가 소비할 값 없음",
+      ).toBe("calendar");
+      const selectIcon = trigger?.children?.find(
+        (c) => c?.type === "SelectIcon",
+      );
+      expect(
+        (selectIcon?.props as { iconName?: string }).iconName,
+        "SelectIcon 자식은 iconName 미지정(조부모 위임) — 직접 지정 시 SSOT 이원화",
+      ).toBeUndefined();
+
+      // DateInput 이 picker 직속 자식으로 남아있으면 안 됨 (SelectTrigger 안으로 이동)
+      expect(
+        findChild(def, "DateInput"),
+        "DateInput 이 picker 직속에 잔존 → 이중/비일관",
+      ).toBeUndefined();
     },
   );
 });
