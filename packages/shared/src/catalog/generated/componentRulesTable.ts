@@ -1219,7 +1219,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "default",
       element: "div",
-      containerStyles: undefined,
+      // 2026-06-24 잔존 catalog 이관 — RSP Card 정본(preview/content/footer 세로 스택)에 맞춰
+      //   containerStyles 신설. archetype "default" base CSS 는 display:inline-flex 였는데 factory/
+      //   Taffy 는 flex/column → generated CSS(Preview)↔Skia 비대칭(D3 위반)이었음. containerStyles
+      //   명시로 generate-css 가 flex/column/width:100% 재생성 → CSS=Skia=factory 3자 정합.
+      containerStyles: {
+        display: "flex",
+        flexDirection: "column",
+        width: "100%",
+      },
     },
   },
   CardContent: {

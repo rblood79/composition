@@ -25,12 +25,15 @@ export function createDialogDefinition(
       props: {
         size: "md",
         isDismissable: false,
+        // 2026-06-24 잔존 catalog 이관 — padding/gap 을 catalog md(=RSP var(--spacing-10)=40 정합,
+        //   ADR-914 Tier1) 정본값으로 맞춤. factory 24/16 ≠ catalog 40/12 였던 false dirty + 시각
+        //   비대칭 해소. width:400 은 RSP size M modal 폭(catalog 미보유) → createDefault 미러로 baseline.
         style: {
           display: "flex",
           flexDirection: "column",
           width: "400px",
-          padding: "24px",
-          gap: "16px",
+          padding: "40px",
+          gap: "12px",
         },
       } as ComponentElementProps,
       parent_id: parentId,
@@ -95,13 +98,16 @@ export function createPopoverDefinition(
       type: "Popover",
       props: {
         variant: "default",
-        size: "sm",
+        // 2026-06-24 잔존 catalog 이관 — size sm→md 로 정합. RAC Popover 레퍼런스 내용 컨테이너
+        //   padding:16/gap:12 = catalog md. factory 가 size:sm 인데 padding 은 md(16) 값을 써서
+        //   catalog sm(12/8) baseline 과 어긋난 false dirty 였음. size:md 면 padding16/gap12 양쪽 정합.
+        size: "md",
         style: {
           display: "flex",
           flexDirection: "column",
           width: "240px",
           padding: "16px",
-          gap: "8px",
+          gap: "12px",
         },
       } as ComponentElementProps,
       parent_id: parentId,
@@ -155,11 +161,20 @@ export function createTooltipDefinition(
       type: "Tooltip",
       props: {
         variant: "default",
+        // 2026-06-24 잔존 catalog 이관 — display 를 catalog/CSS 정본(inline-flex, align-items:center)
+        //   으로 정합. factory flex/column 은 generated Tooltip.css(.react-aria-Tooltip inline-flex)와
+        //   Skia 비대칭(D3 위반) + false dirty 였음. Tooltip 내용은 단일 텍스트라 column/gap 불요 →
+        //   gap:4 제거(catalog 미보유). padding 은 store longhand 정책(style-ssot.md)으로 4-way 분리 —
+        //   shorthand "6px 10px" 면 specStyle 이 비대칭이라 padding shorthand baseline 미생성(uniform4Way
+        //   undefined) → false dirty. longhand 면 specStyle.paddingTop/Left(catalog paddingY6/paddingX10)
+        //   가 baseline 제공 → dirty 0.
         style: {
-          display: "flex",
-          flexDirection: "column",
-          padding: "6px 10px",
-          gap: "4px",
+          display: "inline-flex",
+          alignItems: "center",
+          paddingTop: 6,
+          paddingBottom: 6,
+          paddingLeft: 10,
+          paddingRight: 10,
         },
       } as ComponentElementProps,
       parent_id: parentId,

@@ -292,12 +292,12 @@ function resolveSubpartContextDefaultStyle(
     return {};
   }
   if (type === "ColorSwatch") {
-    // ColorField(24 미리보기) vs ColorSwatchPicker(28 칩). createDefault(display/borderWidth)에 합쳐짐.
-    if (parentType === "ColorField") {
-      return { width: "24px", height: "24px", borderRadius: "4px" };
-    }
-    if (parentType === "ColorSwatchPicker") {
-      return { width: 28, height: 28 };
+    // ColorField/ColorSwatchPicker 둘 다 28 칩. createDefault(display/borderWidth)에 합쳐짐.
+    //   2026-06-24: ColorField 미리보기를 24/4px→28/9999px(catalog md = RAC 정본)으로 정합.
+    //   height:28/borderRadius:full 은 catalog specStyle 이 채우나 width:28 은 catalog 미보유 →
+    //   여기가 유일 baseline. ColorSwatchPicker(28)와 동일 값으로 수렴.
+    if (parentType === "ColorField" || parentType === "ColorSwatchPicker") {
+      return { width: 28, height: 28, borderRadius: "9999px" };
     }
     return {};
   }

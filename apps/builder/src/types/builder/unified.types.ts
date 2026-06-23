@@ -1681,7 +1681,9 @@ export function createDefaultCardFooterProps(): BaseElementProps {
   };
 }
 export function createDefaultColorAreaProps(): BaseElementProps {
-  return { style: { width: "200px", height: "200px" } };
+  // 2026-06-24: factory(DateColorComponents) props.style 미러 — width:100%(RAC 정본, catalog
+  //   containerStyles 미보유라 여기가 유일 baseline)/height:180(catalog md). 구 200×200 은 false dirty.
+  return { style: { width: "100%", height: "180px" } };
 }
 export function createDefaultColorSliderProps(): BaseElementProps {
   return { style: { display: "block", width: "100%" } };
@@ -1966,9 +1968,15 @@ export function createDefaultDescriptionProps(): BaseElementProps {
 export function createDefaultDialogProps(): DialogElementProps {
   return {
     // CSS base: display:flex; flex-direction:column; max-height:inherit
+    // 2026-06-24: factory(OverlayComponents) props.style 미러 — width:400(RSP size M modal 폭,
+    //   catalog 미보유)/padding:40/gap:12(catalog md=RSP var(--spacing-10) 정합) 를 dirty baseline 으로
+    //   제공. 미러 없으면 factory width:400 이 reset="" 대비 false dirty.
     style: {
       display: "flex",
       flexDirection: "column",
+      width: "400px",
+      padding: "40px",
+      gap: "12px",
     },
   };
 }
@@ -2132,7 +2140,14 @@ export function createDefaultTooltipProps(): TooltipElementProps {
 export function createDefaultPopoverProps(): PopoverElementProps {
   return {
     // CSS base: border:1px solid var(--outline-variant)
+    // 2026-06-24: factory(OverlayComponents) props.style 미러 — display/flexDirection/width 를 dirty
+    //   baseline 으로 제공. catalog Popover.structure.containerStyles=undefined 라 specStyle 에
+    //   display/flexDirection 미포함 + width:240 catalog 미보유 → 미러 없으면 전부 false dirty.
+    //   padding/gap 은 catalog md specStyle(16/12)이 채우므로 미러 불요(여기 미포함).
     style: {
+      display: "flex",
+      flexDirection: "column",
+      width: "240px",
       borderWidth: "1px",
     },
   };
@@ -2286,15 +2301,15 @@ export function createDefaultIllustratedMessageProps(): BaseElementProps {
     size: "md",
     heading: "No results",
     description: "Try another search term.",
+    // 2026-06-24: factory(DisplayComponents) props.style 미러 — alignItems:flex-start/width:100%
+    //   (catalog/generated CSS 정본). 구 center+320×280 고정은 false dirty + CSS↔Skia 비대칭.
     style: {
       display: "flex",
       flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
+      alignItems: "flex-start",
       gap: 12,
       padding: 24,
-      width: 320,
-      height: 280,
+      width: "100%",
     },
   };
 }

@@ -481,10 +481,14 @@ export function createColorFieldDefinition(
         type: "ColorSwatch",
         props: {
           color: "#000000",
+          // 2026-06-24 잔존 catalog 이관 — height 24→28(catalog md sizes.height), borderRadius
+          //   4px→9999px(catalog md {radius.full}, RAC ColorSwatch.css border-radius:9999px 정본).
+          //   정사각이라 width 도 28. 구 24/4px 은 catalog/RAC 와 어긋난 false dirty + 형태 비대칭.
+          //   부모 컨텍스트 의존(ColorField) → resolveSubpartContextDefaultStyle ColorField 분기 동시 갱신.
           style: {
-            width: "24px",
-            height: "24px",
-            borderRadius: "4px",
+            width: "28px",
+            height: "28px",
+            borderRadius: "9999px",
           },
         } as ComponentElementProps,
       },
@@ -526,9 +530,12 @@ export function createColorPickerDefinition(
       {
         type: "ColorArea",
         props: {
+          // 2026-06-24 잔존 catalog 이관 — width 200px→100%(RAC ColorArea.css width:100% 정본),
+          //   height 200px→180(catalog md sizes.height=180). factory 고정 200×200 이 catalog/RAC 와
+          //   어긋난 false dirty + 시각 비대칭이었음. createDefaultColorAreaProps 미러 동시 갱신.
           style: {
-            width: "200px",
-            height: "200px",
+            width: "100%",
+            height: "180px",
           },
         } as ComponentElementProps,
       },
