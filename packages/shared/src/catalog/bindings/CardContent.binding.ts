@@ -25,7 +25,8 @@ import type { PrimitiveBinding } from "../types";
 export const cardContentBinding: PrimitiveBinding = {
   source: {
     kind: "internal",
-    renderer: "div",
+    // 2026-06-24: "div"→"cardcontent" 고유 id. renderCardContent self-compose → DELEGATING 보강 필수.
+    renderer: "cardcontent",
   },
   props: {
     accepts: {

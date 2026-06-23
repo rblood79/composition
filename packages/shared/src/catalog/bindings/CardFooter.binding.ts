@@ -27,7 +27,8 @@ import type { PrimitiveBinding } from "../types";
 export const cardFooterBinding: PrimitiveBinding = {
   source: {
     kind: "internal",
-    renderer: "div",
+    // 2026-06-24: "div"→"cardfooter" 고유 id. renderCardFooter self-compose → DELEGATING 보강 필수.
+    renderer: "cardfooter",
   },
   props: {
     accepts: {

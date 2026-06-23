@@ -42,7 +42,11 @@ import type { PrimitiveBinding } from "../types";
 export const cardBinding: PrimitiveBinding = {
   source: {
     kind: "internal",
-    renderer: "div",
+    // 2026-06-24: "div" generic → "card" 고유 renderer id. Card 는 self-compose(renderCard 가
+    //   childrenByParent 로 CardPreview/Header/Content/Footer 슬롯 합성, hasStructuralChildren 분기)
+    //   라 DELEGATING_INTERNAL 경로(flattenNodeChildrenByParent 보강)가 필수다. "div" 는 다른 단순
+    //   컨테이너와 공유돼 DELEGATING 에 넣을 수 없어 고유 id 필요. disclosuregroup/nav 선례 동형.
+    renderer: "card",
   },
   props: {
     accepts: {

@@ -23,8 +23,8 @@
  * 별도 slice (breakdown §6: "generic 으로 보인다는 grep 만으로 삭제 금지").
  *
  * 각 항목의 위임 사유(reason)는 `CanonicalNodeRenderer.tsx` 의 기존 멤버 주석에서 1:1 이전한
- * 것이며, contract(`renderFacetDeclarationContract.test.ts`)가 (a) 파생 set == 현 28종
- * byte-identical (b) 28종 위임 사유 1:1 보존을 matrix 로 검증한다.
+ * 것이며, contract(`renderFacetDeclarationContract.test.ts`)가 (a) 파생 set == 현 33종
+ * byte-identical (b) 33종 위임 사유 1:1 보존을 matrix 로 검증한다.
  *
  * 인용 inventory: docs/adr/design/914-entry-universe-inventory.md §2.3/§2.4 (2026-06-20 freeze).
  */
@@ -51,13 +51,15 @@ export interface RenderFacetDelegation {
 }
 
 /**
- * delegating render 위임 declaration (28종 = internal 18 + rac 10).
+ * delegating render 위임 declaration (33종 = internal 23 + rac 10).
+ *   2026-06-24: Card 패밀리 5(card/cardpreview/cardheader/cardcontent/cardfooter) 추가 — Preview
+ *   canonical 경로에서 self-compose 자식 슬롯 보강 누락(Skia↔Preview 비대칭) 해소.
  *
  * 순서는 기존 `CanonicalNodeRenderer.tsx` set 정의 순서를 그대로 보존한다 (Set 은
  * insertion order 를 유지하므로, 파생 set 이 byte-identical 하려면 순서 동일 필요).
  */
 export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
-  // ── delegating-internal (18) — binding.source.kind==="internal" self-compose ──
+  // ── delegating-internal (23) — binding.source.kind==="internal" self-compose ──
   {
     key: "tabs",
     kind: "delegating-internal",
@@ -165,6 +167,41 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
     kind: "delegating-internal",
     reason:
       "rendererMap 이 factory child tree 를 받아 RAC ColorSwatchPickerItem 합성 유지.",
+  },
+  // ── Card 패밀리 (2026-06-24) — renderCard/renderCard{Preview,Header,Content,Footer} 가
+  //   childrenByParent 로 슬롯 자식을 self-compose. DELEGATING 미등록이라 canonical Preview 경로에서
+  //   childrenByParent 보강(flattenNodeChildrenByParent)을 못 받아 renderCard 의 hasStructuralChildren
+  //   =false → props(title/description) 경로로만 렌더, CardPreview/Image/CardFooter 누락 → Skia(자식
+  //   직접 렌더)와 비대칭이었음. disclosuregroup/nav 동형. binding renderer 도 "div"→고유 id 로 변경됨.
+  {
+    key: "card",
+    kind: "delegating-internal",
+    reason:
+      "renderCard 가 childrenByParent 로 CardPreview/CardHeader/CardContent/CardFooter 슬롯을 받아 hasStructuralChildren 분기로 self-compose. 미등록 시 childrenByParent 빈 배열 → props(title/description) 경로로만 렌더, 자식 슬롯(이미지 포함) 누락 → Skia 비대칭.",
+  },
+  {
+    key: "cardpreview",
+    kind: "delegating-internal",
+    reason:
+      "renderCardPreview 가 childrenByParent 로 자식(Image)을 렌더하는 self-compose. 미등록 시 Image 누락.",
+  },
+  {
+    key: "cardheader",
+    kind: "delegating-internal",
+    reason:
+      "renderCardHeader 가 childrenByParent 로 자식(Heading)을 렌더. 미등록 시 자식 element 누락.",
+  },
+  {
+    key: "cardcontent",
+    kind: "delegating-internal",
+    reason:
+      "renderCardContent 가 childrenByParent 로 자식(Description)을 렌더. 미등록 시 자식 element 누락.",
+  },
+  {
+    key: "cardfooter",
+    kind: "delegating-internal",
+    reason:
+      "renderCardFooter 가 childrenByParent 로 자식(action button 등)을 렌더. 미등록 시 자식 누락.",
   },
 
   // ── delegating-rac (12) — binding.source.kind==="rac" self-compose ──

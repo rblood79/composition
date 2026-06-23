@@ -38,7 +38,11 @@ import {
 //   delegating-rac 에 누락돼 있던 것을 ADR-914 §2.4 가 그대로 freeze 했으나(SSOT 역전 무손실,
 //   당위 분류 아님), generic rac 경로가 selectedKeys/onSelectionChange/id 를 미emit 하여
 //   CSS preview 에서 toggle 미동작하던 버그를 정정 — CheckboxGroup/RadioGroup 동형 위임 등록.
-const INVENTORY = { delegatingInternal: 18, delegatingRac: 12 } as const;
+// internal 18 → 23 (2026-06-24): Card 패밀리 5(card/cardpreview/cardheader/cardcontent/cardfooter)
+//   추가. ADR-912 Card cutover 시점부터 DELEGATING_INTERNAL 에 누락돼 있던 것을, Preview canonical
+//   경로에서 self-compose 자식 슬롯(CardPreview/Image/Header/Content/Footer)이 누락되어 Skia↔Preview
+//   비대칭이던 버그 정정으로 등록. disclosuregroup/nav 동형(childrenByParent 보강 필요).
+const INVENTORY = { delegatingInternal: 23, delegatingRac: 12 } as const;
 
 describe("ADR-914 Phase 3-A — render facet declaration parity", () => {
   it("parity A — 파생 internal set == CanonicalNodeRenderer DELEGATING_INTERNAL (멤버 + 순서)", () => {

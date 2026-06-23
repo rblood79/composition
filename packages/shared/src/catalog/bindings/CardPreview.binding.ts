@@ -26,7 +26,9 @@ import type { PrimitiveBinding } from "../types";
 export const cardPreviewBinding: PrimitiveBinding = {
   source: {
     kind: "internal",
-    renderer: "div",
+    // 2026-06-24: "div"→"cardpreview" 고유 id. renderCardPreview 가 childrenByParent 로 자식
+    //   (Image)을 렌더하는 self-compose → DELEGATING_INTERNAL 보강 필수(Card 본체 동형).
+    renderer: "cardpreview",
   },
   props: {
     accepts: {
