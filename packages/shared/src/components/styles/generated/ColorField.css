@@ -9,10 +9,10 @@
 .react-aria-ColorField {
   /* Base styles — archetype: default */
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
     box-sizing: border-box;
-    width: fit-content;
+    width: 100%;
     color: var(--fg);
 
   /* Default size */

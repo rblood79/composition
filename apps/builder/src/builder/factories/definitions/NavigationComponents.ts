@@ -34,9 +34,13 @@ export function createMenuDefinition(
         size: "md",
         selectionMode: "none",
         items,
+        // catalog containerStyles 정본 — display:flex/flexDirection:column/width:100% (항목 세로 목록).
+        //   factory(block/fit-content)가 CSS(.react-aria-Menu flex/column)와 시각 비대칭 + Style Panel
+        //   false dirty 였음 (2026-06-23 layout 방향 충돌 정정, 사용자 결정 = CSS/catalog 정본).
         style: {
-          width: "fit-content",
-          display: "block",
+          display: "flex",
+          flexDirection: "column",
+          width: "100%",
         },
       } as ComponentElementProps,
       parent_id: parentId,
@@ -270,8 +274,11 @@ export function createDisclosureGroupDefinition(
     parent: {
       type: "DisclosureGroup",
       props: {
+        // CSS 정본 — .react-aria-DisclosureGroup flex/column (Disclosure 세로 스택). factory(block)가
+        //   CSS 와 시각 비대칭 + false dirty 였음 (2026-06-23 layout 방향 정정). createDefault 와 정합.
         style: {
-          display: "block",
+          display: "flex",
+          flexDirection: "column",
         },
       } as ComponentElementProps,
       parent_id: parentId,

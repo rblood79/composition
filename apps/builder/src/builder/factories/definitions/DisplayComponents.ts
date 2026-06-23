@@ -125,8 +125,10 @@ export function createStatusLightDefinition(
         variant: "positive",
         children: "Available",
         size: "md",
+        // CSS 정본 — .react-aria-StatusLight inline-flex (dot+text 가로, inline 흐름). factory(flex)가
+        //   CSS·createDefault(inline-flex)와 불일치 → false dirty 였음 (2026-06-23 layout 방향 정정).
         style: {
-          display: "flex",
+          display: "inline-flex",
           flexDirection: "row",
           alignItems: "center",
           gap: 8,
