@@ -277,6 +277,38 @@ function resolveSubpartContextDefaultStyle(
     }
     return {};
   }
+  // ── 2026-06-23 전수 정정 — 부모 컨텍스트별 factory inline 이 다른 sub-part 추가 ──
+  if (type === "Input") {
+    // TextField/TextArea(필드 입력) vs ColorField(hex 입력 80px).
+    if (parentType === "ColorField") {
+      return { display: "block", width: "80px" };
+    }
+    if (parentType === "TextArea") {
+      return { width: "100%", height: 80 };
+    }
+    if (parentType === "TextField") {
+      return { width: "100%" };
+    }
+    return {};
+  }
+  if (type === "ColorSwatch") {
+    // ColorField(24 미리보기) vs ColorSwatchPicker(28 칩). createDefault(display/borderWidth)에 합쳐짐.
+    if (parentType === "ColorField") {
+      return { width: "24px", height: "24px", borderRadius: "4px" };
+    }
+    if (parentType === "ColorSwatchPicker") {
+      return { width: 28, height: 28 };
+    }
+    return {};
+  }
+  if (type === "Card" && parentType === "CardView") {
+    // CardView 안 고정 카드(200×160). 단독 Card 는 createDefaultCardProps(width:100%) baseline.
+    return { width: 200, height: 160, padding: 16 };
+  }
+  if (type === "Avatar" && parentType === "AvatarGroup") {
+    // AvatarGroup 안 겹침 배치(marginLeft:-8). createDefault(width/height:32)에 합쳐짐.
+    return { marginLeft: -8 };
+  }
   return {};
 }
 

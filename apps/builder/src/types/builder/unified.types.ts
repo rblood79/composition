@@ -1619,6 +1619,79 @@ export function createDefaultCardProps(): CardElementProps {
   };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 자식 sub-part dirty/reset baseline — factory props.style 미러 (2026-06-23 전수 정정).
+//   ADR-912 cutover 후 이 sub-part type 들은 DEFAULT_PROPS_MAP 미등록 → getDefaultProps={} →
+//   factory inline layout 이 전부 false dirty 였음. SelectValue/SelectIcon(resolveSubpartContext
+//   DefaultStyle) 선례와 동일 본질이나, 부모 컨텍스트 단일(항상 같은 부모 안에서만 생성)이라
+//   type 단일 baseline(createDefault + DEFAULT_PROPS_MAP)으로 충분.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function createDefaultSliderOutputProps(): BaseElementProps {
+  return { style: { width: "fit-content" } };
+}
+export function createDefaultSliderTrackProps(): BaseElementProps {
+  return { style: { width: "100%" } };
+}
+export function createDefaultCardPreviewProps(): BaseElementProps {
+  return {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      width: "100%",
+      height: "fit-content",
+      overflow: "hidden",
+      borderRadius: "8px 8px 0 0",
+    },
+  };
+}
+export function createDefaultCardHeaderProps(): BaseElementProps {
+  return {
+    style: {
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: "4px",
+      width: "100%",
+    },
+  };
+}
+export function createDefaultCardContentProps(): BaseElementProps {
+  return {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "8px",
+      width: "100%",
+    },
+  };
+}
+export function createDefaultCardFooterProps(): BaseElementProps {
+  return {
+    style: {
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "flex-end",
+      gap: "4px",
+      width: "100%",
+      paddingTop: "8px",
+      borderTopWidth: "1px",
+    },
+  };
+}
+export function createDefaultColorAreaProps(): BaseElementProps {
+  return { style: { width: "200px", height: "200px" } };
+}
+export function createDefaultColorSliderProps(): BaseElementProps {
+  return { style: { display: "block", width: "100%" } };
+}
+export function createDefaultDialogFooterProps(): BaseElementProps {
+  return {
+    style: { display: "flex", justifyContent: "flex-end", gap: "8px" },
+  };
+}
+
 /**
  * @deprecated ADR-914 Phase 2b — DEFAULT_PROPS_MAP 의 Badge row 가 삭제되어 현재 미사용
  * (getDefaultProps 가 ENTRY_DERIVED_DEFAULT_TYPES 분기로 deriveDefaultPropsFromCatalog("Badge")
@@ -2407,6 +2480,16 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
   Icon: createDefaultIconProps,
   Skeleton: createDefaultSkeletonProps,
   // ADR-139 baseline debt 해소 — factory definition parent props 정합
+  // 자식 sub-part baseline (2026-06-23 전수 정정 — factory props.style 미러, 단일 부모 컨텍스트)
+  SliderOutput: createDefaultSliderOutputProps,
+  SliderTrack: createDefaultSliderTrackProps,
+  CardPreview: createDefaultCardPreviewProps,
+  CardHeader: createDefaultCardHeaderProps,
+  CardContent: createDefaultCardContentProps,
+  CardFooter: createDefaultCardFooterProps,
+  ColorArea: createDefaultColorAreaProps,
+  ColorSlider: createDefaultColorSliderProps,
+  DialogFooter: createDefaultDialogFooterProps,
   Avatar: createDefaultAvatarProps,
   AvatarGroup: createDefaultAvatarGroupProps,
   ButtonGroup: createDefaultButtonGroupProps,
