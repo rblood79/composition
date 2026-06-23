@@ -33,7 +33,7 @@ agent 오류를 정정했다:
 | --------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------- | ---------------------- |
 | `rendererMap`                     | `packages/shared/src/renderers/index.ts:19-144`                                  | **94**                                                          | render (Phase 3)       |
 | `INTERNAL_RENDERERS`              | `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx:103-142`          | **26**                                                          | render (Phase 3)       |
-| `DELEGATING_INTERNAL_RENDERERS`   | `CanonicalNodeRenderer.tsx:154-235`                                              | **18**                                                          | render (Phase 3)       |
+| `DELEGATING_INTERNAL_RENDERERS`   | `renderFacetDeclaration.ts` (declaration SSOT)                                   | **23**                                                          | render (Phase 3)       |
 | `DELEGATING_RAC_RENDERERS`        | `CanonicalNodeRenderer.tsx:248-307`                                              | **10**                                                          | render (Phase 3)       |
 | `DEFAULT_PROPS_MAP`               | `apps/builder/src/types/builder/unified.types.ts`                                | **92** (derived 6 / literal 86)                                 | defaults (Phase 2)     |
 | `ComponentFactory.creators`       | `apps/builder/src/builder/factories/ComponentFactory.ts:98-165`                  | **55** (54 fn, Navigation→createNav alias)                      | creation (Phase 4)     |
@@ -83,14 +83,25 @@ self-compose / RAC wrapper / child recursion skip 정책 source.
 menu, select, combobox, tabs, taggroup, gridlist, breadcrumbs, tree, table, dialog, modal, popover,
 tooltip, dropzone, calendar, rangecalendar, datepicker, daterangepicker
 
-### 2.3 DELEGATING_INTERNAL_RENDERERS (18)
+### 2.3 DELEGATING_INTERNAL_RENDERERS (23)
 
-`CanonicalNodeRenderer.tsx:154-235`. `binding.source.kind==="internal"`이면서 self-compose
+`renderFacetDeclaration.ts` (declaration SSOT, ADR-914 Phase 3-A) → `deriveDelegatingInternalRenderers()`
+가 `CanonicalNodeRenderer.tsx` export 로 파생. `binding.source.kind==="internal"`이면서 self-compose
 (childrenByParent 필요)라 `rendererMap[type]`로 위임 + 자식 재귀 skip하는 type.
 
-전수 멤버 (18): tabs, progressbar, meter, breadcrumbs, disclosure, disclosuregroup, nav,
+전수 멤버 (23): tabs, progressbar, meter, breadcrumbs, disclosure, disclosuregroup, nav,
 disclosurecontent, field, select, combobox, tree, taggroup, listbox, gridlist, menu, colorpicker,
-colorswatchpicker
+colorswatchpicker, **card, cardpreview, cardheader, cardcontent, cardfooter**
+
+> **2026-06-24 정정 (18 → 23)**: ADR-912 Card cutover(spec 삭제) 시점부터 Card 패밀리 5
+> (card/cardpreview/cardheader/cardcontent/cardfooter)가 delegating-internal 에 누락돼 있었고,
+> 본 inventory 의 초기 freeze(18)는 그 시점 hardcoded set 을 당위 검증 없이 그대로 기록한 것이었다.
+> binding `source.renderer="div"`(generic, 다른 단순 컨테이너와 공유)라 DELEGATING Set 매칭(renderer
+> 문자열 기준)이 불가했던 것을, 고유 id(card/cardpreview/...)로 변경 후 등록. Preview canonical 경로에서
+> `renderCard*` 의 self-compose 자식 슬롯(CardPreview/Image/Header/Content/Footer)이 누락되어
+> Skia↔Preview 비대칭이던 버그(2026-06-24)를 정정 — disclosuregroup/nav 동형(childrenByParent 보강
+> 필요). ToggleButtonGroup/ToggleButton 의 delegating-rac 정정(§2.4, 10→12)과 동일 성격의 cutover
+> 누락 freeze 정정. 회귀 가드: `renderFacetDeclarationContract.test.ts` INVENTORY internal 18→23.
 
 ### 2.4 DELEGATING_RAC_RENDERERS (12)
 
