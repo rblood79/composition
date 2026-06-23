@@ -276,12 +276,36 @@ const TRACK_HEIGHT_ARCHETYPES: ReadonlySet<string> = new Set([
 //   Label 추가 (사용자 요청 2026-06-12): Label 의 height 는 텍스트 line-height(content-driven,
 //   fit-content)로 결정 — `sizes[size].height` 고정값을 패널에 표시하면 부모 컨테이너 layout
 //   변화 시 Label 영역이 고정 높이로 잡혀 재겹침. height 축 제외 → "auto"(content) 표시.
+//   전수 보강 (사용자 "다른 컴퍼넌트들도 같은 문제 전수 체크" 2026-06-23): catalog `sizes[size].height`
+//   가 박혀 있으나 CSS generator 가 컨테이너 height 를 skip(=auto) 하는 컴포넌트를 전수 추출
+//   (CSSGenerator.compositionOwnsContainerBox || isTrackOwningGridContainer 기준). 그 결과 아래 9개가
+//   동일 비대칭(catalog height vs CSS auto + layout auto)인데 패널만 미처리였다:
+//     - DateField/TimeField: catalog height(md=30)는 입력 행(DateInput) 높이이지 컨테이너(Label 행 +
+//       gap + 입력 행) 전체가 아님. layout 은 `specSizeField(containerTag,…,"height")`(implicitStyles
+//       1653)로 이 값을 **입력 행 높이**로만 소비(컨테이너는 auto). → catalog 보존, 패널만 제외.
+//     - Tabs/TabList: catalog height(md=29)는 tab bar 행 높이(implicitStyles 1220/1330 tabBarHeight).
+//       컨테이너(Tabs = TabList 행 + TabPanels)는 auto. → catalog 보존, 패널만 제외.
+//     - TextField/TextArea/ColorField/Pagination/FileTrigger: catalog height 가 layout/Skia/CSS 어디서도
+//       소비 안 되는 dead 값(grep 0). 컨테이너는 자식 합산 auto. → 패널 제외로 오표시 제거.
+//   DatePicker/DateRangePicker 는 catalog 에서 height 키 자체를 제거(2026-06-23 선행 작업)했으므로
+//   specStyle.height=undefined → 패널 미표시 → 본 set 에 넣을 필요 없음(중복 방지). 입력 box height 는
+//   SelectTrigger.sizes.height SSOT 에서 읽음(implicitStyles 2034).
 const TRACK_HEIGHT_TYPES: ReadonlySet<string> = new Set([
   "Select",
   "ComboBox",
   "NumberField",
   "SearchField",
   "Label",
+  // 전수 보강 (2026-06-23) — catalog height vs CSS/layout auto 비대칭, 패널 height 축 제외
+  "DateField",
+  "TimeField",
+  "Tabs",
+  "TabList",
+  "TextField",
+  "TextArea",
+  "ColorField",
+  "Pagination",
+  "FileTrigger",
 ]);
 const HEIGHT_AXIS_KEYS: ReadonlySet<string> = new Set([
   "height",

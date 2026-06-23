@@ -62,17 +62,36 @@ describe("resolveSpecPreset", () => {
   //   SelectTrigger(입력 trigger 행) 높이이지 컨테이너(Label + gap + Trigger = 54) 전체
   //   높이가 아니다. Style Panel Transform Height 에서 30 오표시 → height 축 preset 제외
   //   (auto 표시). progress/slider archetype 과 동일 처리 (TRACK_HEIGHT_TYPES type 기반).
-  it.each(["Select", "ComboBox", "NumberField", "SearchField", "Label"])(
-    "%s 는 height 축을 preset 에서 제외 (컨테이너 height=auto, trigger 행 30 오표시 방지)",
+  //   전수 보강 (2026-06-23): catalog height 가 박혀 있으나 CSS generator 가 컨테이너 height 를
+  //   skip(=auto) 하는 컴포넌트 9개 추가 (DateField/TimeField/Tabs/TabList/TextField/TextArea/
+  //   ColorField/Pagination/FileTrigger). DateField/TimeField/Tabs/TabList 는 layout 이 catalog
+  //   height 를 입력/tab bar 행 높이로 live 소비(catalog 보존), 나머지 5개는 dead 값 → 패널만 제외.
+  it.each([
+    "Select",
+    "ComboBox",
+    "NumberField",
+    "SearchField",
+    "Label",
+    "DateField",
+    "TimeField",
+    "Tabs",
+    "TabList",
+    "TextField",
+    "TextArea",
+    "ColorField",
+    "Pagination",
+    "FileTrigger",
+  ])(
+    "%s 는 height 축을 preset 에서 제외 (컨테이너 height=auto, 입력/track 행 고정값 오표시 방지)",
     (type) => {
       const preset = resolveSpecPreset(type, "md");
       expect(
         preset.height,
-        `${type}.height 가 preset 에 노출되면 패널이 trigger 행 30 을 컨테이너 높이로 오표시`,
+        `${type}.height 가 preset 에 노출되면 패널이 입력/track 행 높이를 컨테이너 높이로 오표시`,
       ).toBeUndefined();
       expect(preset.minHeight).toBeUndefined();
       expect(preset.maxHeight).toBeUndefined();
-      // width 축은 정상 노출 (회귀 0)
+      // width 축은 정상 노출 (회귀 0) — 예: TextField.width="fit-content" 보존
       expect("height" in preset).toBe(false);
     },
   );
