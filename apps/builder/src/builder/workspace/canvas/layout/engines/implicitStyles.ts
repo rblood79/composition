@@ -1495,6 +1495,32 @@ export function applyImplicitStyles(
 
     filteredChildren = filteredChildren.map((child) => {
       const cs = (child.props?.style || {}) as Record<string, unknown>;
+      if (child.type === "DateInput") {
+        const fieldEl = elementById.get(containerEl.parent_id ?? "");
+        const fieldType = fieldEl?.type;
+        if (fieldType === "DatePicker" || fieldType === "DateRangePicker") {
+          const fieldProps = fieldEl?.props as
+            | Record<string, unknown>
+            | undefined;
+          return {
+            ...child,
+            props: {
+              ...child.props,
+              size: sizeName,
+              _parentTag: fieldType,
+              _granularity: fieldProps?.granularity,
+              _hourCycle: fieldProps?.hourCycle,
+              _locale: fieldProps?.locale,
+              style: {
+                ...cs,
+                flex: cs.flex ?? 1,
+                minWidth: cs.minWidth ?? 0,
+                height: cs.height ?? "100%",
+              },
+            },
+          } as CanvasLayoutNode;
+        }
+      }
       if (child.type === "SelectValue") {
         // ADR-912 R1: 조부모(Select/ComboBox/NumberField/SearchField) placeholder 전파 —
         //   구 ComboBoxInput/SearchInput 분기 동작 흡수 (조부모 우선, 기존 정밀도 보존).

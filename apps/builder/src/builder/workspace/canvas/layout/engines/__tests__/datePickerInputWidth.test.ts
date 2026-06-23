@@ -3,7 +3,8 @@ import type { Element } from "../../../../../../types/core/store.types";
 import { applyImplicitStyles } from "../implicitStyles";
 
 /**
- * DatePicker / DateRangePicker 의 DateInput 자식 prop/height 주입 + width 정책 회귀 가드.
+ * DatePicker / DateRangePicker 의 SelectTrigger 내부 DateInput prop/height 주입 +
+ * width 정책 회귀 가드.
  *
  * 1차 버그(width 0): layout 분기가 DateInput 에 height/_granularity/_hourCycle/_locale 를
  *   주입 안 해 Taffy width 0. → 부모 props + height 주입으로 해소.
@@ -14,8 +15,8 @@ import { applyImplicitStyles } from "../implicitStyles";
  *   **주입하지 않고**(명시 width 만 보존), INLINE_BLOCK_TAGS(dateinput) + calculateContentWidth
  *   dateinput 분기가 콘텐츠 자연폭을 산출하도록 위임(dateInputContentWidth.test.ts 가 폭 검증).
  *
- * factory(DateColorComponents.ts)는 DateInput 을 `{ _parentTag }` 만으로 생성하므로
- *   layout 분기가 유일한 부모 props 주입처.
+ * factory(DateColorComponents.ts)는 DateInput 을 `SelectTrigger > DateInput` 자식으로
+ * 생성하므로 SelectTrigger layout 분기가 유일한 부모 props 주입처다.
  */
 function makeChild(
   id: string,
@@ -62,6 +63,47 @@ function applyContainer(
   );
 }
 
+function applySelectTriggerInPicker(
+  pickerType: "DatePicker" | "DateRangePicker",
+  pickerProps: Record<string, unknown>,
+  triggerChildren: Element[],
+): ReturnType<typeof applyImplicitStyles> {
+  const pickerId = `${pickerType}-1`;
+  const triggerId = `${pickerType}-trigger`;
+  const normalizedChildren = triggerChildren.map((child) => ({
+    ...child,
+    parent_id: triggerId,
+  })) as Element[];
+  const picker = {
+    id: pickerId,
+    type: pickerType,
+    props: pickerProps,
+    childrenIds: [triggerId],
+  } as Element;
+  const trigger = {
+    id: triggerId,
+    type: "SelectTrigger",
+    parent_id: pickerId,
+    props: { style: { width: "100%" } },
+    childrenIds: normalizedChildren.map((child) => child.id),
+  } as Element;
+  const byId = new Map<string, Element>([
+    [picker.id, picker],
+    [trigger.id, trigger],
+    ...normalizedChildren.map((child) => [child.id, child] as const),
+  ]);
+
+  return applyImplicitStyles(
+    trigger,
+    normalizedChildren,
+    (id) =>
+      (
+        byId.get(id) as { childrenIds?: string[] } | undefined
+      )?.childrenIds?.map((childId: string) => byId.get(childId)!) ?? [],
+    byId,
+  );
+}
+
 function findDateInput(
   result: ReturnType<typeof applyImplicitStyles>,
 ): Element | undefined {
@@ -71,47 +113,35 @@ function findDateInput(
 }
 
 describe("DatePicker/DateRangePicker DateInput width policy", () => {
-  it("DateRangePicker → DateInput 자식에 height 주입 + width 는 미주입(자연폭 위임)", () => {
-    const result = applyContainer(
+  it("DateRangePicker SelectTrigger → DateInput 은 content-box 를 height:100% 로 채우고 width 는 미주입", () => {
+    const result = applySelectTriggerInPicker(
       "DateRangePicker",
       { label: "Date Range", size: "md", labelPosition: "top" },
-      [
-        makeChild("label", "Label", {
-          children: "Date Range",
-          style: { width: "fit-content" },
-        }),
-        makeChild("di", "DateInput", { _parentTag: "DateRangePicker" }),
-        makeChild("cal", "Calendar", {}),
-      ],
+      [makeChild("di", "DateInput", { _parentTag: "DateRangePicker" })],
     );
     const di = findDateInput(result);
     expect(di).toBeDefined();
+    const props = di!.props as Record<string, unknown>;
     const style = (di!.props as { style?: Record<string, unknown> }).style;
     // 2차 버그(box<콘텐츠) fix — width 는 주입하지 않는다 (calculateContentWidth 위임).
     expect(style?.width).toBeUndefined();
-    // height = catalog rule sizes.md.height (30)
-    expect(style?.height).toBe(30);
+    // SelectTrigger border-box 30px 안의 content-box(20px)를 채운다.
+    expect(style?.height).toBe("100%");
+    expect(props._parentTag).toBe("DateRangePicker");
   });
 
-  it("DatePicker → DateInput 자식에 height + granularity 주입, width 미주입", () => {
-    const result = applyContainer(
+  it("DatePicker SelectTrigger → DateInput 은 height:100% + granularity 를 주입하고 width 는 미주입", () => {
+    const result = applySelectTriggerInPicker(
       "DatePicker",
       { label: "Date", size: "md", labelPosition: "top", granularity: "day" },
-      [
-        makeChild("label", "Label", {
-          children: "Date",
-          style: { width: "fit-content" },
-        }),
-        makeChild("di", "DateInput", { _parentTag: "DatePicker" }),
-        makeChild("cal", "Calendar", {}),
-      ],
+      [makeChild("di", "DateInput", { _parentTag: "DatePicker" })],
     );
     const di = findDateInput(result);
     expect(di).toBeDefined();
     const props = di!.props as Record<string, unknown>;
     const style = props.style as Record<string, unknown>;
     expect(style?.width).toBeUndefined();
-    expect(style?.height).toBe(30);
+    expect(style?.height).toBe("100%");
     // DateField 분기와 동형 — 세그먼트 placeholder 생성용 부모 props
     expect(props._parentTag).toBe("DatePicker");
     expect(props._granularity).toBe("day");
