@@ -2026,7 +2026,12 @@ export function applyImplicitStyles(
     const sideMode = hasResolvedSideLabelVariant(fieldVariant.styles);
     const hasLabel = !!containerProps?.label;
     const sizeName = (containerProps?.size as string) ?? "md";
-    const inputHeight = specSizeField(containerTag, sizeName, "height") ?? 30;
+    // 입력 box(SelectTrigger > DateInput) height 는 SelectTrigger.sizes(=입력 trigger 행 높이)에서
+    //   읽는다. DatePicker/DateRangePicker.sizes.height 는 컨테이너 entry 인데 입력 box height 인 척
+    //   하던 잘못된 결합이라 catalog 에서 제거됨(2026-06-23) — 컨테이너 height 는 자식 합산 auto(54).
+    //   SelectTrigger.sizes.height(md=30) 가 입력 box height 의 SSOT(Select/ComboBox 동형 trigger 행).
+    const inputHeight =
+      specSizeField("selecttrigger", sizeName, "height") ?? 30;
     filteredChildren = children.filter((c) => {
       if (c.type === "Label") return hasLabel;
       return !POPOVER_CHILDREN_TAGS.has(c.type);
