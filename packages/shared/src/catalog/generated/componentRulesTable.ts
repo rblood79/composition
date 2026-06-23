@@ -1223,10 +1223,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   containerStyles 신설. archetype "default" base CSS 는 display:inline-flex 였는데 factory/
       //   Taffy 는 flex/column → generated CSS(Preview)↔Skia 비대칭(D3 위반)이었음. containerStyles
       //   명시로 generate-css 가 flex/column/width:100% 재생성 → CSS=Skia=factory 3자 정합.
+      // overflow:hidden — S2 Card 정본(root overflow:clip + radius.lg 가 자식을 단일 radius 로 clip).
+      //   CardPreview 상단 모서리를 root clip 이 처리 → CardPreview 자체 borderRadius 불필요(2026-06-24).
+      //   sizes.md.borderRadius={radius.lg}=12px 과 결합해 CSS Preview 가 둥근 상단 이미지 clip.
       containerStyles: {
         display: "flex",
         flexDirection: "column",
         width: "100%",
+        overflow: "hidden",
       },
     },
   },

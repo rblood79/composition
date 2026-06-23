@@ -1615,6 +1615,9 @@ export function createDefaultCardProps(): CardElementProps {
       padding: "16px", // var(--spacing-lg) = 16px
       borderWidth: "1px",
       gap: "12px",
+      // S2 Card 정본: root overflow:clip + radius.lg 가 자식을 단일 radius 로 clip (2026-06-24).
+      //   factory(LayoutComponents.ts) 미러 — CardPreview 상단 모서리를 root clip 이 처리.
+      overflow: "hidden",
     },
   };
 }
@@ -1641,7 +1644,8 @@ export function createDefaultCardPreviewProps(): BaseElementProps {
       width: "100%",
       height: "fit-content",
       overflow: "hidden",
-      borderRadius: "8px 8px 0 0",
+      // 2026-06-24 S2 정합: borderRadius 제거 — root Card overflow:clip+radius.lg 가 상단 모서리 처리
+      //   (catalog sizes.*.borderRadius={radius.none} 일치 → reset dirty=0). factory 미러.
     },
   };
 }

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Cutover 잔존 컨테이너 layout catalog 이관 — 8종 factory↔dirty 정합 + Card 패밀리 Preview 비대칭 + CardPreview borderRadius S2 정합] - 2026-06-24
+
+ADR-912 cutover(spec 삭제 → catalog 정본) 후 컨테이너 layout 을 catalog 로 이관하지 않고 factory inline 으로만 남아 dirty baseline 과 어긋났던 잔존 컴포넌트들을 전수 정합. 레퍼런스 기준(RAC 있음 → RAC, 없음 → React Spectrum S2)으로 factory 를 catalog 정본값에 맞춤.
+
+### Bug Fixes
+
+- **Cutover 잔존 8종 factory inline ↔ dirty baseline 정합** (Style Panel reset 버튼 false dirty 해소):
+  - Dialog padding 24→40 / gap 16→12 (RSP `var(--spacing-10)`), Popover size sm→md / gap 8→12 (RAC 정본), Tooltip display flex→inline-flex + padding longhand 화(비대칭 `6px 10px` → paddingTop/Bottom:6 + Left/Right:10 — uniform4Way 미생성 false dirty 회피), ColorArea width 200→100%(RAC) / height 200→180, ColorSwatch height 24→28 / borderRadius 4px→9999px(RAC), IllustratedMessage alignItems center→flex-start + 고정크기 제거, Card catalog `structure.containerStyles` 신설(flex/column/width:100% → CSS 재생성).
+  - **Why**: catalog 가 layout 을 안 채우면 `useResetStyles.resolveSpecStyleDefaults` 의 specStyle 이 비고 → `currentValue(factory inline) !== resetValue` → reset 버튼이 항상 활성(false dirty). factory 를 catalog 정본값과 일치시켜 dirty=0.
+  - 위치: `apps/builder/src/builder/factories/definitions/{OverlayComponents,DateColorComponents,DisplayComponents,LayoutComponents}.ts`, `apps/builder/src/types/builder/unified.types.ts`, `packages/shared/src/catalog/generated/componentRulesTable.ts` (commit: 68f5d65cb)
+- **Card 패밀리 Preview 자식 슬롯 비대칭** (Skia↔Preview 정합 — 이미지/title/description 누락):
+  - Card/CardPreview/CardHeader/CardContent/CardFooter 5종이 Preview canonical 경로의 `RENDER_FACET_DELEGATIONS`(SSOT) 에 미등록 → `renderCard*` 의 `childrenByParent` 가 비어 `hasStructuralChildren=false` → props(title/description)만 렌더, CardPreview/Image/CardFooter 슬롯 누락 → Skia(자식 직접 렌더)와 비대칭.
+  - **Why**: binding `source.renderer="div"`(generic, 다른 단순 컨테이너와 공유) 라 DELEGATING Set 매칭(renderer 문자열 기준) 불가 → 고유 id(card/cardpreview/cardheader/cardcontent/cardfooter)로 먼저 변경 후 delegating-internal 등록(disclosuregroup/nav 동형). ADR-912 Card cutover 시점부터 잠재(stash 검증으로 catalog 변경 무관 확정).
+  - 위치: `packages/shared/src/catalog/bindings/Card*.binding.ts`, `apps/builder/src/preview/components/renderFacetDeclaration.ts`, contract INVENTORY internal 18→23 (commit: e1641574c)
+- **CardPreview borderRadius S2 정합** (false dirty 해소 + 모서리 정본화):
+  - CardPreview factory `borderRadius: "8px 8px 0 0"`(4-corner 비대칭) 제거 → catalog `sizes.*.borderRadius={radius.none}` 와 일치(dirty=0). Card root 에 `overflow:hidden` 추가(catalog `Card.structure.containerStyles` + factory + legacy baseline 3경로 미러).
+  - **Why**: S2 Card 비-quiet 메커니즘은 CardPreview 에 radius 를 주지 않고 root `overflow:clip + radius.lg` 가 상단 모서리를 처리한다. 구 8px 는 ① Card root radius(`{radius.lg}`)와 불일치 ② Skia clipRect(radius 무시)라 CSS 에서만 둥글어 이미 CSS↔Skia 비대칭이었다. 제거하면 catalog none 일치 + S2 정본 메커니즘 + 양 consumer 직각 일치.
+  - 위치: `apps/builder/src/builder/factories/definitions/LayoutComponents.ts`, `apps/builder/src/types/builder/unified.types.ts`, `packages/shared/src/catalog/generated/componentRulesTable.ts`, `packages/shared/src/components/styles/generated/Card.css`
+
 ## [DatePicker/DateRangePicker Skia DateInput — width 0 + 줄바꿈 + box<콘텐츠 + icon 결합 해제 → field-trigger canonical 자식 통일 + icon D2 대칭] - 2026-06-23
 
 ### Bug Fixes

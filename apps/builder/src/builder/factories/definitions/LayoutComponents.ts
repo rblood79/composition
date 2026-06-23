@@ -97,6 +97,11 @@ export function createCardDefinition(
           borderWidth: "1px",
           // gap=12px catalog(sizes.md.gap=12) 정본 (2026-06-23 전수 정정 — factory 8px ≠ CSS 12px).
           gap: "12px",
+          // S2 Card 정본: root 가 overflow:clip + radius.lg(catalog sizes.md.borderRadius={radius.lg}=12px)
+          //   로 자식을 단일 radius 로 clip 한다. CardPreview 상단 모서리는 이 root clip 이 처리 →
+          //   CardPreview 자체 borderRadius 불필요(2026-06-24 S2 정합). CSS Preview 는 둥근 상단 이미지,
+          //   Skia 는 clipRect 만 지원(radius-clip 미지원)이라 직각 — 양 consumer 공통 제약.
+          overflow: "hidden",
         },
       } as ComponentElementProps,
       parent_id: parentId,
@@ -105,9 +110,11 @@ export function createCardDefinition(
       {
         type: "CardPreview",
         // ADR-912 childSpec→catalog cutover (2026-06-15): CardPreview layout 은 factory props.style 가
-        //   이미 보유(display:flex/width/height/overflow/borderRadius) — spec 삭제 후에도 Skia/Taffy
-        //   직접 read. flexDirection:column 명시(다른 Card 자식 컨테이너 일관). CardPreview.spec 은
-        //   containerStyles 미정의였음.
+        //   직접 read(spec 삭제 후 Skia/Taffy). flexDirection:column 명시(다른 Card 자식 컨테이너 일관).
+        // 2026-06-24 S2 정합: borderRadius("8px 8px 0 0") 제거. S2 Card 비-quiet 메커니즘은 CardPreview 에
+        //   radius 를 주지 않고 root overflow:clip + radius.lg 가 상단 모서리를 처리한다. 구 8px 는
+        //   ① Card root radius(12px=radius.lg)와 불일치 ② Skia clipRect(radius 무시)라 CSS 에서만 둥글어
+        //   이미 비대칭이었다. 제거하면 catalog sizes.*.borderRadius={radius.none} 과 일치 → reset dirty=0.
         props: {
           style: {
             display: "flex",
@@ -115,7 +122,6 @@ export function createCardDefinition(
             width: "100%",
             height: "fit-content",
             overflow: "hidden",
-            borderRadius: "8px 8px 0 0",
           },
         } as ComponentElementProps,
         children: [
