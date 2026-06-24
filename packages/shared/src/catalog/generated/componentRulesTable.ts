@@ -10265,6 +10265,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
+        // textAlign left: react-aria-starter Table.css `.react-aria-Cell,.react-aria-Column
+        //   { text-align: left }`(line 162) 정본. buildCatalogShapes 는 transparent-fill +
+        //   size.height>0 인 Column/Cell 을 box 로 판정해 기본 center 로 그렸다(Skia=center,
+        //   CSS Preview=left 발산). rule.textAlign 이 visual.textAlign(resolveSkiaVisualRule:56)로
+        //   전달돼 box 기본 center 를 override → Skia 도 left. catalog SSOT 단일 결과.
+        textAlign: "left",
       },
     },
     sizes: {
@@ -10293,6 +10299,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
+        // textAlign left: starter Table.css 정본(Column 과 동일 규칙). box 기본 center override.
+        textAlign: "left",
       },
     },
     sizes: {

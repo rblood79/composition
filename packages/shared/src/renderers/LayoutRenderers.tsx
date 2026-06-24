@@ -2055,11 +2055,15 @@ const TABLEVIEW_CHILD_STYLE: Record<
   },
   Column: {
     role: "columnheader",
-    style: { flex: "1", padding: 8, fontWeight: 600 },
+    // textAlign left: catalog COMPONENT_RULES_TABLE.Column.variants.default.textAlign 미러
+    //   (starter Table.css `.react-aria-Column{text-align:left}` 정본). Skia(rule.textAlign)와
+    //   동일 값 명시 — generic div 인라인 완결 패턴(브라우저 기본 left 의존 대신 SSOT 미러).
+    style: { flex: "1", padding: 8, fontWeight: 600, textAlign: "left" },
   },
   Cell: {
     role: "gridcell",
-    style: { flex: "1", padding: 8 },
+    // textAlign left: catalog COMPONENT_RULES_TABLE.Cell.variants.default.textAlign 미러.
+    style: { flex: "1", padding: 8, textAlign: "left" },
   },
 };
 
