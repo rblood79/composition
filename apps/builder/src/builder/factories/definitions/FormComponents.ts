@@ -191,9 +191,14 @@ export function createToastDefinition(
         props: {
           children: "Toast Title",
           level: 3,
+          // 2026-06-24: inline fontSize → size prop 전환 (catalog 토큰 정합). size="sm" → catalog
+          //   Heading.sizes.sm fontSize 14(text-sm). fontWeight 600 inline 은 유지 — CSS 는
+          //   variant.textWeight 를 emit 안 하는 Skia-only 채널이라(CSSGenerator size.fontWeight 만
+          //   emit), inline 제거 시 DOM <h3> 브라우저 기본 700 ↔ Skia(catalog textWeight 600) 발산.
+          //   inline 600 유지로 CSS·Skia 양쪽 600 + dirty baseline(catalog textWeight 600 흡수) 정합.
+          size: "sm",
           style: {
             display: "block",
-            fontSize: "14px",
             fontWeight: "600",
           },
         } as ComponentElementProps,
@@ -202,9 +207,11 @@ export function createToastDefinition(
         type: "Description",
         props: {
           children: "Toast message content.",
+          // size="lg" → catalog Description.sizes.lg fontSize 14(text-sm) + lineHeight 20.
+          //   fontWeight 400 은 DOM 기본(normal)·catalog textWeight 400 일치 → inline 불요.
+          size: "lg",
           style: {
             display: "block",
-            fontSize: "14px",
           },
         } as ComponentElementProps,
       },

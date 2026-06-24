@@ -410,6 +410,123 @@ describe("useResetStyles — Select-family sub-part 부모-컨텍스트 dirty au
 });
 
 /**
+ * Heading/Description false dirty 회귀 가드 (2026-06-24 전수조사 정정 — size prop 전환).
+ *
+ * Heading/Description 은 부모(InlineAlert/Toast/Card/Dialog/Popover)의 자식으로 생성되며 부모마다
+ * 의도된 크기가 다르다(Dialog 제목 18 > Card 16 > Toast 14 — catalog size 토큰과 매칭). 과거 factory
+ * 가 inline `fontSize:"14/16/18px"` 를 하드코딩해 dirty resolver 가 props.size 를 못 읽고 md(16) 고정
+ * baseline 으로 판정 → Toast/Dialog 에서 fontSize false dirty + textWeight 700↔600 비대칭. 정정:
+ * (1) factory inline fontSize/lineHeight → `size` prop("sm"/"md"/"lg") 전환 — dirty resolver 가
+ * props.size 로 specStyle 을 size 별 계산 → baseline 정합. (2) catalog Heading textWeight 700→600
+ * (Toast/Card/Dialog 시각 정본, InlineAlert 는 InlineAlert.sizes.headingFontWeight 별도 경로).
+ * (3) Heading fontWeight:600 inline 은 유지 — CSS 가 variant.textWeight(Skia-only 채널)를 emit 안 해
+ * DOM <h*> 기본 700 ↔ Skia 600 발산 방지. Description fontWeight 는 DOM 기본 400 = catalog 일치라 inline
+ * 불요. 값이 어긋나면(size 누락/inline fontSize 부활/textWeight≠600) 이 audit 이 FAIL.
+ */
+describe("useResetStyles — Heading/Description size prop false dirty 회귀 가드", () => {
+  const originalState = useStore.getState();
+
+  beforeEach(() => {
+    useStore.setState({
+      selectedElementId: null,
+      selectedElementProps: null as unknown as ComponentElementProps,
+      currentPageId: null,
+      elements: [],
+      elementsMap: new Map(),
+      childrenMap: new Map(),
+      dirtyElementIds: new Set(),
+      layoutVersion: 0,
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    useStore.setState(originalState, true);
+  });
+
+  // 각 case: 정정된 factory 의 (size prop + inline style) 미러 — 부모 컨텍스트별.
+  const cases = [
+    {
+      name: "Toast Heading (size=sm + fontWeight 600)",
+      type: "Heading",
+      size: "sm",
+      style: { display: "block", fontWeight: "600" },
+      parent: "Toast",
+    },
+    {
+      name: "Card Heading (size=md + fontWeight 600)",
+      type: "Heading",
+      size: "md",
+      style: { display: "block", fontWeight: "600", margin: "0", flex: 1 },
+      parent: "Card",
+    },
+    {
+      name: "Dialog Heading (size=lg + fontWeight 600)",
+      type: "Heading",
+      size: "lg",
+      style: { display: "block", fontWeight: "600" },
+      parent: "Dialog",
+    },
+    {
+      name: "Toast Description (size=lg, fontWeight inline 없음)",
+      type: "Description",
+      size: "lg",
+      style: { display: "block" },
+      parent: "Toast",
+    },
+    {
+      name: "Card Description (size=lg + width)",
+      type: "Description",
+      size: "lg",
+      style: { display: "block", width: "100%", color: "#49454f" },
+      parent: "Card",
+    },
+    {
+      name: "Popover Description (size=md)",
+      type: "Description",
+      size: "md",
+      style: { display: "block" },
+      parent: "Popover",
+    },
+  ] as const;
+
+  it.each(cases)(
+    "$name 는 size prop baseline 에서 dirty=false",
+    ({ type, size, style, parent }) => {
+      const parentEl = makeTaggedElement("parent-1", parent, { size: "md" });
+      const childEl: Element = {
+        id: "child-1",
+        type,
+        parent_id: parentEl.id,
+        props: { size, style },
+      } as Element;
+
+      useStore.setState({
+        selectedElementId: childEl.id,
+        selectedElementProps: childEl.props,
+        currentPageId: null,
+        elements: [parentEl, childEl],
+        elementsMap: new Map([
+          [parentEl.id, parentEl],
+          [childEl.id, childEl],
+        ]),
+        childrenMap: new Map(),
+        dirtyElementIds: new Set(),
+        layoutVersion: 0,
+      });
+
+      const { result: dirty } = renderHook(() =>
+        useHasDirtyStyles(["fontSize", "fontWeight", "lineHeight"]),
+      );
+      expect(
+        dirty.current,
+        `${type}(size=${size}, 부모 ${parent}) factory inline+size 가 baseline 과 어긋나 dirty 로 오판`,
+      ).toBe(false);
+    },
+  );
+});
+
+/**
  * Label fontWeight false dirty 회귀 가드 (2026-06-24 전수조사 정정).
  *
  * 다수 factory(Form/Group/Selection/DateColor)가 필드 Label 자식에 `fontWeight:600` inline 주입.

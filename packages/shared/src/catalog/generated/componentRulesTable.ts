@@ -4988,9 +4988,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
-        // ADR-912 위험군 해소(2026-06-04): Heading spec render.shapes fontWeight 700 ↔
-        //   buildCatalogShapes fallback 500 drift 차단. variant.textWeight=700 명시.
-        textWeight: 700,
+        // 2026-06-24: textWeight 700 → 600 (Heading 시각 정본 정합). standalone/Toast/Card/Dialog
+        //   Heading factory inline 이 fontWeight 600 으로 일관(4곳) — Skia(style.fontWeight 600 우선)
+        //   ·CSS(inline 600) 둘 다 600 렌더라 catalog 700 은 dead 였고, dirty baseline 만 700 으로
+        //   잡혀 false dirty. 600 흡수로 baseline=시각 정본. InlineAlert Heading 은 InlineAlert.sizes
+        //   .headingFontWeight=700 별도 경로(StoreRenderBridge/fullTreeLayout)라 무영향.
+        //   (이전: buildCatalogShapes fallback 500 drift 차단용 700 명시 — 정본 재판정으로 600)
+        textWeight: 600,
       },
     },
     sizes: {

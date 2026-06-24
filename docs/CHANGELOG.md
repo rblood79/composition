@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Heading/Description typography false dirty — size prop 전환 + Heading textWeight 정본 정합] - 2026-06-24
+
+Class B/C 정정의 후속 — 보류했던 텍스트 자식 Heading/Description typography 정정(Group D Table 제외 전수조사 마지막 축). Heading/Description 은 부모(Toast/Card/Dialog/Popover/InlineAlert)의 자식으로 생성되며 의도된 크기가 다른데(Dialog 18 > Card 16 > Toast 14 — catalog Heading.sizes 토큰과 매칭), factory 가 inline `fontSize` px 를 하드코딩해 dirty resolver 가 `props.size` 를 못 읽고 md(16) 고정 baseline 으로 판정 → Toast/Dialog 에서 fontSize false dirty. 사용자 결정에 따라 **inline fontSize → size prop 전환**(근본)으로 정정.
+
+### Bug Fixes
+
+- **Heading/Description fontSize false dirty — size prop 전환** (Toast/Card/Dialog/Popover):
+  - factory inline `fontSize:"14/16/18px"` (+ lineHeight 배율) → `size` prop(`"sm"`/`"md"`/`"lg"`) 전환. dirty resolver 가 `props.size` 로 specStyle 을 size 별 계산 → baseline 정합. Skia(`extractSpecTextStyle`)·CSS(`data-size` 셀렉터) 모두 catalog size 토큰 소비 → 시각 불변(14/16/18)
+  - **Why**: 부모별 Heading 크기는 catalog size 토큰(sm=14/md=16/lg=18)과 정확히 매칭되는 정당한 디자인 차이인데, inline px 하드코딩이 size prop 경로를 우회해 resolver 가 단일 md baseline 으로 오판
+  - Popover Description `13px`(토큰 스케일 외 임의값)은 `size="md"`(12, 가장 가까운 토큰)로 수렴
+  - 위치: `apps/builder/src/builder/factories/definitions/{FormComponents,LayoutComponents,OverlayComponents}.ts`
+- **Heading textWeight 700 → 600** (시각 정본 정합):
+  - catalog Heading `variant.textWeight` 700 → 600. Toast/Card/Dialog/Popover Heading factory inline 이 `fontWeight:600` 으로 일관(4곳) — Skia(style.fontWeight 우선)·CSS(inline) 둘 다 600 렌더라 catalog 700 은 dead 였고 dirty baseline 만 700 으로 잡혀 false dirty
+  - **Why**: measure 경로(`extractSpecTextStyle`)가 실제 렌더 fontWeight(600)와 일치해야 텍스트 폭 계산 정확. InlineAlert Heading 은 `InlineAlert.sizes.headingFontWeight=700` 별도 경로(StoreRenderBridge/fullTreeLayout)라 무영향(700 유지)
+  - Heading `fontWeight:600` inline 은 유지 — CSSGenerator 가 `variant.textWeight`(Skia-only 채널)를 CSS 로 emit 안 해, inline 제거 시 DOM `<h*>` 브라우저 기본 700 ↔ Skia 600 발산. inline 600 유지로 CSS·Skia 양쪽 600. Description 은 DOM 기본 400 = catalog 일치라 inline 불요
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`
+
 ## [Class B/C false dirty 전수조사 — top-level CSS↔Skia 시각 발산 6종 정정 (field width / Image·Toast radius / ColorField 방향)] - 2026-06-24
 
 Label 류 정정(직전 엔트리)의 후속 — Group D(Table) 제외 **top-level 컴포넌트** 전수 측정(55종, 런타임 dirty resolver 직접 재현). 이전 추정 "Class B/C 36건" 중 sub-part(ProgressBar/Meter Track·Fill, Input, Card 등)는 1차 cutover sweep + `resolveSubpartContextDefaultStyle` baseline 으로 이미 해소(0건 확인). 잔존은 **top-level 6종**이며, Label 류(시각 동일·baseline 만 어긋남)와 달리 전부 **CSS Preview ↔ Skia 실제 시각 발산**(factory inline 이 store→Skia 를 catalog/CSS 와 다른 값으로 구동)이었다. 정정 후 55종 ALL CLEAN.

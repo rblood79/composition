@@ -162,11 +162,14 @@ export function createCardDefinition(
               children: "Card Title",
               level: 3,
               className: "card-title",
+              // 2026-06-24: inline fontSize/lineHeight → size prop 전환 (catalog 토큰 정합). size="md"
+              //   → catalog Heading.sizes.md fontSize 16(text-base) + lineHeight 24. fontWeight 600
+              //   inline 유지 — CSS 가 textWeight(Skia-only 채널)를 emit 안 해 DOM <h3> 기본 700 ↔
+              //   Skia 600 발산 방지. 비-typography(margin/flex — Card 헤더 레이아웃) 유지.
+              size: "md",
               style: {
                 display: "block",
-                fontSize: "16px",
                 fontWeight: "600",
-                lineHeight: "1.4",
                 margin: "0",
                 flex: 1,
               },
@@ -193,12 +196,14 @@ export function createCardDefinition(
             type: "Description",
             props: {
               children: "Card description text goes here.",
+              // 2026-06-24: inline fontSize/fontWeight/lineHeight → size prop 전환 (catalog 토큰 정합).
+              //   size="lg" → catalog Description.sizes.lg fontSize 14(text-sm) + lineHeight 20
+              //   + textWeight 400. 비-typography(width — Description containerStyles SSOT) 유지.
+              //   color #49454f 는 별도 사안(catalog text 토큰 미정합, typography scope 외)으로 유지.
+              size: "lg",
               style: {
                 display: "block",
                 width: "100%",
-                fontSize: "14px",
-                fontWeight: "400",
-                lineHeight: "1.5",
                 color: "#49454f",
               },
             } as ComponentElementProps,

@@ -213,11 +213,13 @@ describe("extractSpecTextStyle — generic 발효 type 측정 parity (ADR-912 �
  * spec.render.shapes → buildCatalogShapes(rule 기반)로 전환됐다. **height=0 순수 TEXT_LEAF**
  * 라 lineHeight 가 layout height 본질이므로, buildCatalogShapes lineHeight/textWeight push 가
  * 없으면 catalog 측정이 fontSize*1.5 / fontWeight 500 fallback 으로 떨어져 spec 과 drift 한다
- * (text-xs lineHeight 16 vs 18, Text fontWeight 400 vs 500, Heading 700 vs 500 등).
+ * (text-xs lineHeight 16 vs 18, Text fontWeight 400 vs 500, Heading 600 vs 500 등).
  *
  * oracle = spec.render.shapes 가 emit 하는 TextShape 의 lineHeight(px)/fontWeight/fontSize.
  * **모든 size(xs~3xl)에서 일치해야 drift 0** — buildCatalogShapes lineHeight 보강 +
- * rule textWeight(Text 400 / Heading 700 / Paragraph 400) 의 결정적 증명.
+ * rule textWeight(Text 400 / Heading 600 / Paragraph 400) 의 결정적 증명.
+ * (2026-06-24: Heading textWeight 700→600 — 부모 컨텍스트 Heading factory inline 600 정합,
+ *  measure 가 실제 렌더 fontWeight 와 일치해야 텍스트 폭 계산 정확)
  */
 describe("extractSpecTextStyle — TEXT_LEAF catalog 측정 drift 0 (ADR-912 위험군 해소)", () => {
   /**
@@ -298,7 +300,7 @@ describe("extractSpecTextStyle — TEXT_LEAF catalog 측정 drift 0 (ADR-912 위
         expect(measured!.lineHeight, `${tag} ${size} lineHeight drift`).toBe(
           oracle!.lineHeight,
         );
-        // fontWeight: rule textWeight 값 (500 fallback 아님 — Text/Para 400, Heading 700)
+        // fontWeight: rule textWeight 값 (500 fallback 아님 — Text/Para 400, Heading 600)
         expect(measured!.fontWeight, `${tag} ${size} fontWeight drift`).toBe(
           oracle!.fontWeight,
         );
@@ -314,11 +316,12 @@ describe("extractSpecTextStyle — TEXT_LEAF catalog 측정 drift 0 (ADR-912 위
     }
   }
 
-  test("Heading 은 fontWeight 700(rule textWeight), Text/Paragraph 는 400", () => {
+  test("Heading 은 fontWeight 600(rule textWeight), Text/Paragraph 는 400", () => {
+    // 2026-06-24: Heading textWeight 700→600 (부모 컨텍스트 Heading factory inline 600 정합).
     expect(
       extractSpecTextStyle("heading", { size: "md", children: "x" })!
         .fontWeight,
-    ).toBe(700);
+    ).toBe(600);
     expect(
       extractSpecTextStyle("text", { size: "md", children: "x" })!.fontWeight,
     ).toBe(400);

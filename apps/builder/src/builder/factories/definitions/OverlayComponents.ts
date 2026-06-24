@@ -44,9 +44,12 @@ export function createDialogDefinition(
         props: {
           children: "Dialog Title",
           level: 2,
+          // 2026-06-24: inline fontSize → size prop 전환 (catalog 토큰 정합). size="lg" → catalog
+          //   Heading.sizes.lg fontSize 18(text-lg) + lineHeight 28. fontWeight 600 inline 유지 —
+          //   CSS textWeight Skia-only 채널이라 inline 제거 시 DOM <h2> 기본 700 ↔ Skia 600 발산 방지.
+          size: "lg",
           style: {
             display: "block",
-            fontSize: "18px",
             fontWeight: "600",
           },
         } as ComponentElementProps,
@@ -55,10 +58,11 @@ export function createDialogDefinition(
         type: "Description",
         props: {
           children: "Dialog content goes here.",
+          // size="lg" → catalog Description.sizes.lg fontSize 14(text-sm) + lineHeight 20.
+          //   fontWeight 400 = DOM 기본·catalog textWeight 400 일치 → inline 불요.
+          size: "lg",
           style: {
             display: "block",
-            fontSize: "14px",
-            lineHeight: "1.5",
           },
         } as ComponentElementProps,
       },
@@ -118,9 +122,12 @@ export function createPopoverDefinition(
         props: {
           children: "Popover Title",
           level: 3,
+          // 2026-06-24: inline fontSize → size prop 전환 (catalog 토큰 정합). size="sm" → catalog
+          //   Heading.sizes.sm fontSize 14(text-sm). fontWeight 600 inline 유지(CSS textWeight
+          //   Skia-only → DOM <h3> 기본 700 ↔ Skia 600 발산 방지).
+          size: "sm",
           style: {
             display: "block",
-            fontSize: "14px",
             fontWeight: "600",
           },
         } as ComponentElementProps,
@@ -129,10 +136,12 @@ export function createPopoverDefinition(
         type: "Description",
         props: {
           children: "Popover content goes here.",
+          // 2026-06-24: inline fontSize 13px(토큰 스케일 외 임의값) → size="md" 전환.
+          //   catalog Description.sizes.md fontSize 12(text-xs) + lineHeight 16. 가장 가까운 토큰
+          //   정본으로 수렴(13→12, Popover 보조 텍스트). fontWeight 400 = DOM 기본 → inline 불요.
+          size: "md",
           style: {
             display: "block",
-            fontSize: "13px",
-            lineHeight: "1.5",
           },
         } as ComponentElementProps,
       },
