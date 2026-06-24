@@ -95,6 +95,14 @@ import { tableBinding } from "./Table.binding";
 import { tableCellBinding } from "./TableCell.binding";
 import { tableRowBinding } from "./TableRow.binding";
 import { tableViewBinding } from "./TableView.binding";
+// ADR-912 catalog cutover (TableView 자식 트리 Skia 대칭, 2026-06-25):
+//   TableView factory 가 생성하는 canonical 자식 5종. catalog 등록으로 isCatalogCutover → Skia
+//   buildCatalogShapes box+text. DOM 은 renderTableView self-compose(독립 노드 0). PALETTE 비노출.
+import { columnBinding } from "./Column.binding";
+import { cellBinding } from "./Cell.binding";
+import { rowBinding } from "./Row.binding";
+import { tableHeaderBinding } from "./TableHeader.binding";
+import { tableBodyBinding } from "./TableBody.binding";
 import { tabsBinding } from "./Tabs.binding";
 import { tabBinding } from "./Tab.binding";
 import { tabListBinding } from "./TabList.binding";
@@ -199,6 +207,11 @@ export * from "./Table.binding";
 export * from "./TableCell.binding";
 export * from "./TableRow.binding";
 export * from "./TableView.binding";
+export * from "./Column.binding";
+export * from "./Cell.binding";
+export * from "./Row.binding";
+export * from "./TableHeader.binding";
+export * from "./TableBody.binding";
 export * from "./Tabs.binding";
 export * from "./Tab.binding";
 export * from "./TabList.binding";
@@ -410,6 +423,16 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // ADR-912 R7 G1-b (2026-06-15): 강화 Table 컨테이너 (S2 variant default/quiet — 구 isQuiet
   //   boolean 흡수). internal/div shell + variant 별 border, layout 은 factory props.style.
   TableView: tableViewBinding,
+  // ADR-912 catalog cutover (TableView 자식 트리 Skia 대칭, 2026-06-25): TableView factory 가
+  //   생성하는 canonical 자식 5종(Column/Cell=text leaf, TableHeader/TableBody/Row=container shell).
+  //   catalog 등록으로 isCatalogCutover → Skia buildCatalogShapes box+text(이전엔 buildSpecNodeData:994
+  //   !spec && !isCatalogCutover → null 로 버려져 Skia 미렌더). DOM=renderTableView self-compose
+  //   (독립 노드 0). PALETTE_ORDER 미포함(TableCell/TableRow 동형 — 단독 배치 불가).
+  TableHeader: tableHeaderBinding,
+  TableBody: tableBodyBinding,
+  Column: columnBinding,
+  Row: rowBinding,
+  Cell: cellBinding,
   // family ⑥ overlays (internal source — composition wrapper, portal/overlay, skiaLegacy)
   Dialog: dialogBinding,
   // ADR-912 childSpec→catalog cutover (2026-06-15): Dialog 액션 영역 슬롯 컨테이너 sub-part

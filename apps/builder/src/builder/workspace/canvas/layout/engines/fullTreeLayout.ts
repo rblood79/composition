@@ -797,9 +797,19 @@ function buildNodeStyle(
 
   // CSS: block 요소가 flex/grid 부모의 자식이면 flex item 속성 적용
   // 자식의 display는 내부 formatting context만 결정, flex item 참여는 부모 display로 결정
+  //
+  // ADR-912 (TableView 자식 Skia 대칭, 2026-06-25): flex item 속성 source 는 원본
+  //   element.props.style 이 아니라 mergedStyle(catalog/spec fallback merge 결과)이어야 한다.
+  //   Column/Cell 은 display 미보유 → 본 block 경로로 진입하는데, 이들의 `flex:"1"` 은
+  //   catalog rule(COMPONENT_RULES_TABLE.Column/Cell.containerStyles)에만 있고 원본
+  //   props.style 에는 없다. 원본만 보던 기존 코드는 catalog flex 를 누락 → flex item grow
+  //   미적용 → Skia 에서 Column/Cell 이 intrinsic(fit-content/0) 폭으로 붕괴, 텍스트 겹침 +
+  //   Preview(renderTableView 인라인 flex:1)와 비대칭. flex/grid 분기는 이미 enriched/mergedStyle
+  //   을 쓰므로(line 714/723) block 분기만 비대칭이었다. mergedStyle 로 정합.
+  //   회귀 범위 0: top-level containerStyles.flex 보유 type 은 Column/Cell 뿐(grep 확증),
+  //   다른 fallback 키(display/flexDirection 등)는 applyFlexItemProperties 가 무시.
   if (FLEX_GRID_DISPLAYS.has(parentDisplay)) {
-    const style = (element.props?.style ?? {}) as Record<string, unknown>;
-    applyFlexItemProperties(record, style);
+    applyFlexItemProperties(record, mergedStyle);
   }
 
   return record;
@@ -1261,6 +1271,35 @@ function traversePostOrder(
 
   // GAP 1: CSS Blockification — 부모가 flex/grid면 현재 요소의 display를 blockify
   const shouldBlockify = FLEX_GRID_DISPLAYS.has(parentDisplay);
+  // ADR-912 (TableView 자식 Skia 대칭, 2026-06-25): effectiveDisplay 는 원본 element 가 아니라
+  //   catalog/spec fallback(resolveContainerStylesFallback) 의 display 를 반영해야 한다. Row/
+  //   TableHeader/TableBody 는 display 를 catalog rule.containerStyles 에만 선언하고 factory
+  //   props.style 에는 안 둔다(layout SSOT=catalog). 원본만 보던 기존 코드는 이들을 "block" 으로
+  //   처리 → 자식(Column/Cell)에게 parentDisplay="block" 을 전달 → flex item 처리 미발동 →
+  //   Column/Cell 이 block child 로 세로 stacking(Skia 텍스트 겹침) + Preview(renderTableView
+  //   flex row)와 비대칭. buildNodeStyle(line 703)은 이미 fallback 을 자체 적용하므로 traverse 의
+  //   parentDisplay 전파만 비대칭이었다. fallback display 를 elementStyle 에 merge 해 정합.
+  //   회귀 범위: fallback 에 display 를 가진 cutover 컨테이너(TagGroup/ListBox/Menu/Tree 등 +
+  //   Table 자식 5종)만 영향 — 이들은 본래 flex/grid 컨테이너로 인식돼야 정상(기존 spec 보유
+  //   시점과 동일 동작). spec 보유 type 은 specFallback 이 동일 display 를 줘 무변화.
+  const displayFallback = resolveContainerStylesFallback(
+    (element.type ?? "").toLowerCase(),
+    elementStyle,
+  ).display;
+  const effectiveElement =
+    typeof displayFallback === "string" && elementStyle.display === undefined
+      ? {
+          ...element,
+          props: {
+            ...element.props,
+            style: { ...elementStyle, display: displayFallback },
+          },
+        }
+      : element;
+  // 이후 하류 로직(자식 width 주입 / buildNodeStyle / enrich)이 일관되게 fallback display 를
+  //   인지하도록 element 를 effectiveElement 로 통일. buildNodeStyle 은 자체 fallback 을 재적용하나
+  //   effectiveDisplay 분기(grid/flex 자식 처리)와 element 가 어긋나지 않게 source 단일화.
+  element = effectiveElement;
   let effectiveDisplay = getElementDisplay(element);
 
   if (shouldBlockify) {

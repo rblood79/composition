@@ -409,6 +409,41 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "table view",
     icon: "Table",
   }),
+  // ADR-912 catalog cutover (TableView 자식 트리 Skia 대칭, 2026-06-25): TableView factory 가
+  //   생성하는 canonical 자식 5종. catalog 미등록 시 buildSpecNodeData:994(!spec &&
+  //   !isCatalogCutover → return null)에서 Skia scene node 가 통째로 버려져 헤더/행/텍스트가 Skia 에
+  //   안 그려졌다(Preview 는 renderTableView 가 직접 div 렌더 → CSS↔Skia 비대칭). 등록으로
+  //   isCatalogCutover → buildCatalogShapesOrPrimitive(box+text), resolveSkiaRule(COMPONENT_RULES_TABLE)
+  //   시각값(Column/Cell padding 8px / Column fontWeight 600) + buildCatalogShapes text 분기
+  //   (props.children → text shape)로 Skia 렌더. DOM 은 renderTableView self-compose(독립 노드 0)라
+  //   변화 0. **PALETTE_ORDER 미포함**(TableView factory 전용 자식, 단독 배치 불가 — TableCell/TableRow
+  //   동형). factory creator 없음(TableView definition 이 자식 생성) → placeable 집합 외 → 불변식 B
+  //   (rendererMap/getDefaultProps) 대상 아님.
+  primitiveEntry("TableHeader", "primitives", FAMILY_1_CUTOVER, {
+    category: "layout",
+    label: "table header",
+    icon: "Table",
+  }),
+  primitiveEntry("TableBody", "primitives", FAMILY_1_CUTOVER, {
+    category: "layout",
+    label: "table body",
+    icon: "Table",
+  }),
+  primitiveEntry("Column", "primitives", FAMILY_1_CUTOVER, {
+    category: "layout",
+    label: "column",
+    icon: "Columns3",
+  }),
+  primitiveEntry("Row", "primitives", FAMILY_1_CUTOVER, {
+    category: "layout",
+    label: "row",
+    icon: "Rows3",
+  }),
+  primitiveEntry("Cell", "primitives", FAMILY_1_CUTOVER, {
+    category: "layout",
+    label: "cell",
+    icon: "Table",
+  }),
 ];
 
 /**

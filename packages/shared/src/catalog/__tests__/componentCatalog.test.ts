@@ -138,6 +138,15 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         //   (Cancel/Save) 자동생성 → _hasChildren=true → standalone box 분기 dead, 투명 box shell 만
         //   live (Pagination/AvatarGroup 동형). variant default 전부 transparent.
         "ButtonGroup",
+        // ADR-912 catalog cutover (TableView 자식 트리 Skia 대칭, 2026-06-25): TableView factory 가
+        //   생성하는 canonical 자식 5종. catalog 미등록 시 buildSpecNodeData:994 에서 Skia scene node
+        //   가 null 로 버려져 헤더/행/텍스트가 Skia 미렌더(Preview 는 renderTableView 직접 div). 등록으로
+        //   isCatalogCutover → buildCatalogShapes box+text. PALETTE_ORDER 미포함(단독 배치 불가).
+        "TableHeader",
+        "TableBody",
+        "Column",
+        "Row",
+        "Cell",
       ].sort(),
     );
     expect(fam1.every((e) => e.kind === "primitive")).toBe(true);

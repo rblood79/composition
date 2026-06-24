@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [TableView 자식 Skia 미렌더 + 텍스트 겹침 정정 — catalog cutover + flex item 배치 대칭 (Group D)] - 2026-06-25
+
+TableView 의 정적 자식(TableHeader/TableBody/Column/Row/Cell)이 Builder Canvas(Skia)에서 (1) 텍스트가 통째로 안 그려지고 (2) 그려지더라도 Column/Cell 폭이 auto 로 붕괴해 헤더/셀 텍스트가 겹치던 두 버그를 정정했다. Preview(DOM/CSS)는 정상 정렬이라 D3 시각 비대칭이었다. 자식 5종 catalog cutover 등록(텍스트 렌더 진입) + `fullTreeLayout` 의 layout-fallback 인지 2 지점 정합(flex 균등분할 배치)으로 Skia ↔ Preview 시각 대칭을 복원했다.
+
+### Bug Fixes
+
+- **TableView 자식 텍스트가 Skia 에 미렌더 (Name/Type/Status, Item 1/File/Active)**:
+  - Column/Cell/Row/TableHeader/TableBody 가 catalog cutover 미등록 → `buildSpecNodeData.ts:994`(`!spec && !isCatalogCutover(type)` → `return null`)에서 Skia scene node 가 통째로 버려져 헤더/행/텍스트가 그려지지 않았다(Preview 는 `renderTableView` 가 직접 div 로 그림 → 비대칭)
+  - 자식 5종을 `componentCatalog` `primitiveEntry(cutover: "catalog")` + binding 으로 등록 → `isCatalogCutover` true → `buildCatalogShapes` 의 box+text 분기(`props.children` → text shape)로 헤더/셀 텍스트 렌더(Column/Cell `accepts.children`)
+  - PALETTE_ORDER 미포함(TableView factory 전용 자식, 단독 배치 불가 — TableCell/TableRow 동형). factory creator 없음 → 불변식 B(placeable) 대상 아님
+  - **Why**: Preview(`renderTableView` self-compose)와 Skia(노드별 독립 traverse)가 별개 경로라 Preview 정상이어도 Skia 진입 게이트(`:994`)를 통과 못 하면 자식이 누락
+  - 위치: `packages/shared/src/catalog/bindings/{Column,Cell,Row,TableHeader,TableBody}.binding.ts`, `componentCatalog.ts`, `bindings/index.ts`
+- **Skia 에서 Column/Cell 폭이 auto 로 붕괴 → 텍스트 겹침 + Preview 와 불일치**:
+  - Column/Cell 은 `flex:"1"` 을 catalog rule(`containerStyles`)에만 보유하고 `display` 는 미보유 → `fullTreeLayout` 의 자식 배치가 부모(Row/TableHeader/TableBody)의 fallback `display:flex` 를 인지 못 해 자식을 block 으로 세로 stacking(Skia 텍스트 겹침)
+  - 근본 원인 2 지점: (1) `traverse` 의 `effectiveDisplay = getElementDisplay(element)` 가 원본 element 만 봐서 fallback `display:flex` 미반영 → 자식에게 `parentDisplay="block"` 전파 → flex item 처리 미발동 (2) block 자식 경로 `applyFlexItemProperties(record, element.props.style)` 가 원본만 봐서 catalog fallback 의 `flex:1` 누락
+  - `effectiveDisplay` 를 `resolveContainerStylesFallback` 의 display merge 후 계산 + block 경로 source 를 `mergedStyle`(fallback merge 결과)로 정합 → flex/grid 분기(이미 enriched/mergedStyle 사용)와 대칭
+  - **Why**: layout SSOT=catalog 이전(직전 Group D)로 자식 layout 이 props.style → catalog rule 로 옮겨졌으나, `fullTreeLayout` 의 일부 분기가 원본 props.style 만 보던 비대칭이 남아 있었다. 회귀 범위 0: top-level `containerStyles.flex` 보유 type 은 Column/Cell 뿐(grep 확증)
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`
+
+### Infrastructure
+
+- `componentCatalog.test.ts` family ① oracle 42 → 47(TableHeader/TableBody/Column/Row/Cell 추가). live 검증: Home 페이지 TableView 추가 → Skia 에 Name/Type/Status 헤더 + Item 1/File/Active 행이 3등분 균등 배치(텍스트 겹침 해소) → Preview CSS(x=1/130/258, w=129 each)와 시각 정합 확인. `fullTreeLayout` 테스트 10 PASS, type-check 0 신규 위반
+
 ## [TableView 자식 트리 Preview 미렌더 정정 — generic div 직접 렌더 (Group D)] - 2026-06-25
 
 TableView 의 정적 자식 트리(TableHeader/TableBody/Column/Row/Cell)가 Preview(DOM/CSS)에 통째로 렌더되지 않던 버그를 정정했다. Skia(Builder Canvas)는 catalog containerStyles 로 자식 generic box 를 그리는데 Preview 는 빈 shell 만 보여 D3 비대칭이었다. `renderTableView` 가 자식 트리를 직접 그리는 renderTabs 선례 패턴으로 전환했다.
