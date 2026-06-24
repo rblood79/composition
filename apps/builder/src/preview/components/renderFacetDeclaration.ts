@@ -23,8 +23,8 @@
  * 별도 slice (breakdown §6: "generic 으로 보인다는 grep 만으로 삭제 금지").
  *
  * 각 항목의 위임 사유(reason)는 `CanonicalNodeRenderer.tsx` 의 기존 멤버 주석에서 1:1 이전한
- * 것이며, contract(`renderFacetDeclarationContract.test.ts`)가 (a) 파생 set == 현 33종
- * byte-identical (b) 33종 위임 사유 1:1 보존을 matrix 로 검증한다.
+ * 것이며, contract(`renderFacetDeclarationContract.test.ts`)가 (a) 파생 set == 현 위임 종수
+ * byte-identical (b) 위임 사유 1:1 보존을 matrix 로 검증한다.
  *
  * 인용 inventory: docs/adr/design/914-entry-universe-inventory.md §2.3/§2.4 (2026-06-20 freeze).
  */
@@ -51,15 +51,16 @@ export interface RenderFacetDelegation {
 }
 
 /**
- * delegating render 위임 declaration (33종 = internal 23 + rac 10).
+ * delegating render 위임 declaration (internal 24 + rac 12).
  *   2026-06-24: Card 패밀리 5(card/cardpreview/cardheader/cardcontent/cardfooter) 추가 — Preview
  *   canonical 경로에서 self-compose 자식 슬롯 보강 누락(Skia↔Preview 비대칭) 해소.
+ *   2026-06-25: tableview 추가 — TableView 자식(Header/Body/Column/Row/Cell) 미렌더 해소(동일 비대칭).
  *
  * 순서는 기존 `CanonicalNodeRenderer.tsx` set 정의 순서를 그대로 보존한다 (Set 은
  * insertion order 를 유지하므로, 파생 set 이 byte-identical 하려면 순서 동일 필요).
  */
 export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
-  // ── delegating-internal (23) — binding.source.kind==="internal" self-compose ──
+  // ── delegating-internal (24) — binding.source.kind==="internal" self-compose ──
   {
     key: "tabs",
     kind: "delegating-internal",
@@ -101,6 +102,12 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
     kind: "delegating-internal",
     reason:
       "renderNav 가 childrenByParent 로 자식을 받아 <nav> 안에 재귀 렌더(fallback 없음). disclosuregroup 동형 — generic 위임은 childrenByParent 보강 없어 빈 nav.",
+  },
+  {
+    key: "tableview",
+    kind: "delegating-internal",
+    reason:
+      "renderTableView 가 childrenByParent 로 자식(TableHeader/TableBody/Column/Row/Cell)을 받아 role=grid div 안에 재귀 렌더. disclosuregroup/nav 동형 — generic 위임(binding.source.renderer 구 'div')은 childrenByParent 보강 없어 shell 만 렌더(Skia 는 자식 generic box → 비대칭). 자식 Column/Cell 은 TableView 조상일 때만 renderColumn/renderCell 이 div 렌더(Table 데이터 경로는 null 유지).",
   },
   {
     key: "disclosurecontent",

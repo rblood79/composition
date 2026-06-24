@@ -36,7 +36,14 @@ import type { PrimitiveBinding } from "../types";
 export const tableViewBinding: PrimitiveBinding = {
   source: {
     kind: "internal",
-    renderer: "div",
+    // 2026-06-25: "div" → "tableview". TableView 는 자식(TableHeader/Column/TableBody/Row/Cell)을
+    //   `context.childrenByParent` 로 받아 재귀 렌더하는 self-compose 컨테이너다(disclosuregroup/nav
+    //   동형). renderer:"div" 는 CanonicalNodeRenderer 의 DELEGATING_INTERNAL_RENDERERS 매칭
+    //   (binding.source.renderer 기준)을 못 타 generic div 경로로 빠지고, flattenNodeChildrenByParent
+    //   보강을 못 받아 자식이 통째로 미렌더됐다(Preview shell 만, Skia 는 자식 generic box 렌더 → 비대칭).
+    //   고유 renderer id 부여 + renderFacetDeclaration delegating-internal 등록으로 renderTableView
+    //   위임 경로 활성화.
+    renderer: "tableview",
   },
   props: {
     accepts: {

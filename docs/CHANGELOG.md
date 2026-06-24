@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [TableView 자식 트리 Preview 미렌더 정정 — generic div 직접 렌더 (Group D)] - 2026-06-25
+
+TableView 의 정적 자식 트리(TableHeader/TableBody/Column/Row/Cell)가 Preview(DOM/CSS)에 통째로 렌더되지 않던 버그를 정정했다. Skia(Builder Canvas)는 catalog containerStyles 로 자식 generic box 를 그리는데 Preview 는 빈 shell 만 보여 D3 비대칭이었다. `renderTableView` 가 자식 트리를 직접 그리는 renderTabs 선례 패턴으로 전환했다.
+
+### Bug Fixes
+
+- **TableView 자식(Header/Body/Column/Row/Cell)이 Preview 에 미렌더 → D3 시각 비대칭**:
+  - `renderTableView` 가 자식을 `renderElement`(CanonicalNodeRenderer) 에 위임했으나, 자식 5종이 `CATALOG_CUTOVER_TYPES` 미등록이라 generic 빈 div 로만 그려졌다(자식 렌더러 미위임)
+  - `renderTabs` 선례(TabList/Tab/TabPanel 을 부모 렌더러가 직접 그림)와 동형으로, `renderTableViewSubtree` 가 자식 트리를 catalog 시각값(Column/Cell `padding: 8px`(`{spacing.sm}`) + Column `fontWeight: 600` + flex 방향) generic div 로 직접 재귀 렌더 → Skia 와 시각 대칭
+  - `TableView.binding` `source.renderer: "div" → "tableview"` + `renderFacetDeclaration` delegating-internal 등록(internal 23→24)으로 `renderTableView` 위임 경로 활성화
+  - **Why**: 자식 5종 catalog/binding 등록(ADR-912 구조 변경) 없이도 부모 렌더러 직접 렌더로 해소 — Tabs 패밀리가 이미 검증한 패턴
+  - 위치: `packages/shared/src/renderers/LayoutRenderers.tsx`, `packages/shared/src/catalog/bindings/TableView.binding.ts`, `apps/builder/src/preview/components/renderFacetDeclaration.ts`
+- **자식 div 의 `react-aria-*` className 누수로 Row 가 absolute → 컨테이너 높이 붕괴**:
+  - `react-aria-Row`/`react-aria-TableBody` 클래스 부여 시 composition `Table.css`(data-driven Table 의 TanStack 가상화 전용)의 `.react-aria-TableBody & .react-aria-Row { position: absolute }` 규칙이 누수되어 Row 가 정상 흐름에서 빠지고 부모(TableBody/grid) 높이가 0 으로 붕괴(자식이 overflow:hidden 클리핑되어 비가시)
+  - 시각값 100% 인라인 완결(generic div) + className 제거, 식별은 `data-tableview-part` 중립 속성 + Row `position: relative` 명시 누수 방어
+  - **Why**: data-driven Table 의 가상화 절대좌표 규칙이 클래스 공유로 정적 TableView 자식에 의도치 않게 적용
+
+### Infrastructure
+
+- `renderFacetDeclarationContract.test.ts` INVENTORY `delegatingInternal: 23 → 24`(tableview 추가). live 검증: TableView 추가 → Preview 에 Name/Type/Status 헤더 + Item 1/File/Active 행 렌더 + Column padding 8px/fontWeight 600 computed 확인
+
 ## [TableView 자식 layout SSOT 를 factory inline → catalog 이전 (Group D)] - 2026-06-24
 
 `createTableViewDefinition` 이 자식(TableHeader/TableBody/Row/Column/Cell)에 직접 주입하던 inline layout(`display`/`flexDirection`/`flex`/`padding`/`fontWeight`)을 제거하고, `COMPONENT_RULES_TABLE` 의 컴포넌트별 `containerStyles` 단일 정본으로 이전했다. 신규 TableView 생성 트리의 자식 `props.style` 이 빈 객체가 되어 Style Panel false dirty 가 근본 제거된다(이전엔 inline 값이 dirty baseline 에 없어 손대지 않은 신규 요소가 modified 로 표시됐다).

@@ -42,7 +42,11 @@ import {
 //   추가. ADR-912 Card cutover 시점부터 DELEGATING_INTERNAL 에 누락돼 있던 것을, Preview canonical
 //   경로에서 self-compose 자식 슬롯(CardPreview/Image/Header/Content/Footer)이 누락되어 Skia↔Preview
 //   비대칭이던 버그 정정으로 등록. disclosuregroup/nav 동형(childrenByParent 보강 필요).
-const INVENTORY = { delegatingInternal: 23, delegatingRac: 12 } as const;
+// internal 23 → 24 (2026-06-25): tableview 추가. TableView binding.source.renderer 가 "div" 라
+//   DELEGATING_INTERNAL 매칭(source.renderer 기준)을 못 타 자식(Header/Body/Column/Row/Cell)이
+//   Preview 에 통째로 미렌더(Skia 는 자식 generic box 렌더 → 비대칭). renderer "div"→"tableview" +
+//   delegating 등록으로 renderTableView 위임 + flattenNodeChildrenByParent 보강 활성화.
+const INVENTORY = { delegatingInternal: 24, delegatingRac: 12 } as const;
 
 describe("ADR-914 Phase 3-A — render facet declaration parity", () => {
   it("parity A — 파생 internal set == CanonicalNodeRenderer DELEGATING_INTERNAL (멤버 + 순서)", () => {

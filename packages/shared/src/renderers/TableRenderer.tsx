@@ -468,7 +468,13 @@ export const renderTable = (
 };
 
 /**
- * Table 관련 요소들은 Table 내부에서 처리되므로 null 반환
+ * Table/TableView 자식 요소 렌더러 — null 반환.
+ *
+ * 두 경로 모두 부모 렌더러가 자식 트리를 직접 그린다(이중 렌더 방지):
+ * - Table(데이터 기반): `renderTable` 이 데이터로부터 행/셀을 통합 렌더.
+ * - TableView(정적 Element 트리): `renderTableView`(LayoutRenderers.tsx)가 renderTabs 패턴으로
+ *   자식 트리(TableHeader/TableBody/Column/Row/Cell)를 catalog 시각 generic div 로 직접 렌더.
+ * 따라서 standalone 자식 renderer 는 양 경로 모두에서 null.
  */
 export const renderTableHeader = (): React.ReactNode => null;
 export const renderTableBody = (): React.ReactNode => null;

@@ -2018,14 +2018,104 @@ export const renderCardView = (
 };
 
 /**
+ * TableView 자식 트리(TableHeader/TableBody/Column/Row/Cell)의 type별 시각 계약.
+ *
+ * **D3 대칭 SSOT (catalog `generated/componentRulesTable.ts`)**: 각 type 의 catalog
+ * `containerStyles` / `sizes.md` 시각값을 Preview generic div 인라인에 그대로 반영하여
+ * Skia(buildCatalogShapes 가 같은 catalog rule 소비) ↔ Preview DOM 시각 대칭을 맞춘다.
+ *   - TableHeader: flex row | TableBody: flex column | Row: flex row
+ *   - Column: flex:1 + padding 8px(`{spacing.sm}`) + fontWeight 600
+ *   - Cell:   flex:1 + padding 8px(`{spacing.sm}`)
+ * RAC Table.css 정본(`.react-aria-Cell,.react-aria-Column{padding:var(--spacing-2)}`=8px,
+ * `.column-header{font-weight:600}`)과 동일.
+ *
+ * **className 비부여 (CRITICAL)**: `react-aria-Row` / `react-aria-TableBody` 클래스를 주면
+ * composition `Table.css`(data-driven Table 의 TanStack 가상화 전용)의
+ * `.react-aria-TableBody & .react-aria-Row { position: absolute }` 규칙이 누수되어 Row 가
+ * absolute 로 빠지고 부모(TableBody/grid) 높이가 0 으로 붕괴한다. 시각값을 100% 인라인으로
+ * 완결하고(generic div), 식별은 `data-tableview-part` 중립 속성만 사용. Row 는 누수 방어로
+ * position:relative 명시.
+ */
+const TABLEVIEW_CHILD_STYLE: Record<
+  string,
+  { role: string; style: React.CSSProperties }
+> = {
+  TableHeader: {
+    role: "rowgroup",
+    // flexShrink:0 — grid(flex column) main-axis 에서 자식이 축소되지 않도록(overflow:hidden 클리핑 방지).
+    style: { display: "flex", flexDirection: "row", flexShrink: 0 },
+  },
+  TableBody: {
+    role: "rowgroup",
+    style: { display: "flex", flexDirection: "column", flexShrink: 0 },
+  },
+  Row: {
+    role: "row",
+    style: { display: "flex", flexDirection: "row", position: "relative" },
+  },
+  Column: {
+    role: "columnheader",
+    style: { flex: "1", padding: 8, fontWeight: 600 },
+  },
+  Cell: {
+    role: "gridcell",
+    style: { flex: "1", padding: 8 },
+  },
+};
+
+/**
+ * TableView 자식 서브트리를 generic div 로 직접 렌더 (renderTabs 패턴 — 부모가 자식 트리를
+ * 직접 그림, 자식은 CanonicalNodeRenderer 위임 경유 안 함).
+ *
+ * **Why**: TableHeader/TableBody/Column/Row/Cell 은 CATALOG_CUTOVER_TYPES 미등록이라
+ * CanonicalNodeRenderer 가 generic 빈 div 로만 그린다(자식 렌더러 미위임). renderTabs 가
+ * TabList/Tab/TabPanel 을 부모 렌더러에서 직접 그리는 선례와 동형으로, renderTableView 가
+ * 자식 트리 전체를 직접 재귀 렌더한다. 알려진 5 type 은 catalog 시각 div, 그 외(leaf 일반
+ * element)는 renderElement 위임.
+ */
+function renderTableViewSubtree(
+  element: PreviewElement,
+  context: RenderContext,
+): React.ReactNode {
+  const spec = TABLEVIEW_CHILD_STYLE[element.type];
+  if (!spec) {
+    // 알려진 TableView 자식 type 이 아니면 일반 렌더 경로(leaf element 등)에 위임.
+    return context.renderElement(element, element.id);
+  }
+
+  const childElements = context.childrenByParent.get(element.id) ?? [];
+  const textContent =
+    typeof element.props.children === "string"
+      ? element.props.children
+      : undefined;
+
+  return (
+    <div
+      key={element.id}
+      data-element-id={element.id}
+      data-custom-id={element.customId}
+      data-tableview-part={element.type}
+      role={spec.role}
+      className={element.props.className}
+      style={{
+        ...spec.style,
+        ...element.props.style,
+      }}
+    >
+      {childElements.length > 0
+        ? childElements.map((child) => renderTableViewSubtree(child, context))
+        : textContent}
+    </div>
+  );
+}
+
+/**
  * TableView 렌더링
  */
 export const renderTableView = (
   element: PreviewElement,
   context: RenderContext,
 ): React.ReactNode => {
-  const { renderElement } = context;
-
   const children = context.childrenByParent.get(element.id) ?? [];
 
   // ADR-912 R7 G1-b: S2 variant 모델(default/quiet) — 구 isQuiet boolean 흡수.
@@ -2052,7 +2142,10 @@ export const renderTableView = (
       }}
       className={element.props.className}
     >
-      {children.map((child) => renderElement(child, child.id))}
+      {/* renderTabs 패턴: 자식 트리(TableHeader/TableBody/Column/Row/Cell)를 부모가 직접
+          generic div 로 그린다. 자식 type 은 CATALOG_CUTOVER_TYPES 미등록 → CanonicalNodeRenderer
+          위임 경유 시 빈 div 가 되므로 직접 렌더. */}
+      {children.map((child) => renderTableViewSubtree(child, context))}
     </div>
   );
 };
