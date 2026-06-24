@@ -12,7 +12,7 @@ import {
   PropertySelect,
 } from "../../../components";
 import type { SelectedElement } from "../../../inspector/types";
-import { getModifiedProperties } from "../hooks/useStyleSource";
+import { useDirtyStyleProps } from "../hooks/useResetStyles";
 import { useStyleActions } from "../hooks/useStyleActions";
 import { Type, Square, RulerDimensionLine } from "lucide-react";
 import {
@@ -34,7 +34,10 @@ interface ModifiedStylesSectionProps {
 export function ModifiedStylesSection({
   selectedElement,
 }: ModifiedStylesSectionProps) {
-  const modifiedProperties = getModifiedProperties(selectedElement);
+  // baseline(factory default / spec preset / subpart)과 실제로 다른 prop 만 modified 로 표시.
+  //   getModifiedProperties(키 존재만 판정)는 factory 가 주입한 layout default 까지 modified 로 잡아
+  //   reset 버튼과 비대칭이었음(2026-06-24). useDirtyStyleProps 가 reset 판정과 동일 baseline 공유.
+  const modifiedProperties = useDirtyStyleProps();
   const { updateStyle } = useStyleActions();
 
   if (modifiedProperties.length === 0) {

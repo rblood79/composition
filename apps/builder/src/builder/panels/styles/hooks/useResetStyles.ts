@@ -340,6 +340,22 @@ function resolveSubpartContextDefaultStyle(
     //   값 정정(catalog 토큰 정합)은 별도 사안이나 dirty 만 해소하도록 factory inline 미러 등록.
     return { color: "#49454f" };
   }
+  // ── 2026-06-24 reusable composite origin(ADR-912 R-5) 자식 baseline — origin 템플릿 style 미러 ──
+  if (type === "Separator" && parentType === "Toolbar") {
+    // Toolbar origin 안 세로 구분선(1×20). 단독 Separator 는 createDefaultSeparatorProps(height:1) baseline.
+    //   width/height 가 부모 컨텍스트별 정본이라 subpart 로 분리(type-only baseline 에 박으면 단독 깨짐).
+    return { width: "1px", height: "20px" };
+  }
+  if (type === "FormField" && parentType === "Form") {
+    // Form origin 안 FormField(세로 스택, 전체 폭). FormField 는 getDefaultProps 미등록(baseline {}) +
+    //   catalog 가 display/flexDirection/gap 을 채우지 않아 Transform/Layout false dirty → origin 미러 등록.
+    return {
+      display: "flex",
+      flexDirection: "column",
+      gap: "4px",
+      width: "100%",
+    };
+  }
   return {};
 }
 
@@ -450,6 +466,125 @@ function resolveCurrentStyleValue(
 }
 
 /**
+ * Style Panel 4섹션(Transform / Layout / Appearance / Typography)이 `useHasDirtyStyles` 로 검사하는
+ * prop 의 합집합 — reset 버튼 표시 범위의 SSOT.
+ *
+ * Why: "modify N" 뱃지·Modified Styles 패널(`useDirtyStyleProps`)은 이 범위로만 modified 를 세야
+ * reset 버튼과 정합한다. 이 union 밖 키(grid placement: gridColumnStart/End/gridRowStart/End/gridArea,
+ * flex shorthand, objectFit 등)는 어느 섹션도 reset 으로 편집하지 않으므로 — modify 가 전 키를 세면
+ * grid 자식(ProgressBarValue 등)이 "modify 5" 인데 reset 버튼은 0인 비대칭이 생긴다(2026-06-24).
+ * 각 섹션의 {TRANSFORM,LAYOUT,APPEARANCE,TYPOGRAPHY}_PROPS 와 동일 — 섹션 PROPS 변경 시 동반 갱신.
+ */
+export const PANEL_STYLE_PROPS: readonly string[] = [
+  // Transform
+  "width",
+  "height",
+  "top",
+  "left",
+  "flexGrow",
+  "flexShrink",
+  "flexBasis",
+  "alignSelf",
+  "justifySelf",
+  "minWidth",
+  "maxWidth",
+  "minHeight",
+  "maxHeight",
+  "aspectRatio",
+  // Typography
+  "fontFamily",
+  "fontSize",
+  "fontWeight",
+  "fontStyle",
+  "lineHeight",
+  "letterSpacing",
+  "color",
+  "textAlign",
+  "textDecoration",
+  "textTransform",
+  "verticalAlign",
+  "whiteSpace",
+  "wordBreak",
+  "overflowWrap",
+  "textOverflow",
+  // Layout
+  "display",
+  "flexDirection",
+  "flexWrap",
+  "alignItems",
+  "justifyContent",
+  "gap",
+  "rowGap",
+  "columnGap",
+  "padding",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "margin",
+  "marginTop",
+  "marginRight",
+  "marginBottom",
+  "marginLeft",
+  // Appearance
+  "backgroundColor",
+  "borderColor",
+  "borderWidth",
+  "borderRadius",
+  "borderStyle",
+  "boxShadow",
+  "overflow",
+];
+
+/**
+ * element(+부모 컨텍스트)의 style 중 baseline(factory default / spec preset / subpart)과 **다른**
+ * prop 만 반환하는 순수 함수.
+ *
+ * Why: "Modified Styles" 패널·"modify N" 뱃지(`useStyleSource.getModifiedProperties` /
+ * `StylesPanel.modifiedCount`)가 과거엔 `Object.keys(style)` 즉 **inline style 키 존재만**으로
+ * modified 를 판정했다. composition 은 factory 가 layout 을 `props.style` 에 직접 주입하므로
+ * (예: Form `{display:flex, flexDirection:column, gap:16px, width:100%}`) 신규 요소가 손대지 않아도
+ * 4~5개가 "modified" 로 표시됐다 — reset 버튼(`useHasDirtyStyles`)은 baseline 비교로 dirty=false 라
+ * 숨겨지는데 Modified 패널엔 뜨는 **비대칭**(사용자 보고 2026-06-24). 본 함수는 reset 판정과 **동일한
+ * baseline 비교**(`resolveCurrentStyleValue` vs `resolveTargetValue`)를 공유해 두 뷰를 정합시킨다.
+ *
+ * @param properties 검사 대상 prop 목록. 미지정 시 currentStyle 의 모든 키.
+ */
+export function computeDirtyStyleProps(
+  element: {
+    type: string;
+    props?: Readonly<Record<string, unknown>>;
+  },
+  context?: {
+    parentType?: string;
+    grandParentType?: string;
+  },
+  properties?: string[],
+): string[] {
+  const currentStyle = (element.props?.style as Record<string, unknown>) || {};
+  const { legacyStyle, specStyle, subpartStyle } = resolveResetBaseline(
+    element,
+    context,
+  );
+
+  // properties 미지정 시 현재 style 의 모든 키(+gap longhand 정규화) 검사.
+  const keys = properties ?? Object.keys(currentStyle);
+  const dirty: string[] = [];
+  for (const prop of keys) {
+    const currentValue = resolveCurrentStyleValue(prop, currentStyle);
+    if (currentValue === undefined) continue;
+    const resetValue = resolveTargetValue(
+      prop,
+      specStyle,
+      legacyStyle,
+      subpartStyle,
+    );
+    if (currentValue !== resetValue) dirty.push(prop);
+  }
+  return dirty;
+}
+
+/**
  * 선택된 요소의 특정 속성들이 기본값과 다른지 확인하는 훅
  * 리셋 버튼 조건부 표시용
  */
@@ -460,35 +595,58 @@ export function useHasDirtyStyles(properties: string[]): boolean {
   return useMemo(() => {
     if (!element) return false;
 
-    const currentStyle =
-      (element.props?.style as Record<string, unknown>) || {};
     const parent = element.parent_id
       ? elementsMap.get(element.parent_id)
       : undefined;
     const grandParent = parent?.parent_id
       ? elementsMap.get(parent.parent_id)
       : undefined;
-    const { legacyStyle, specStyle, subpartStyle } = resolveResetBaseline(
+
+    return (
+      computeDirtyStyleProps(
+        element,
+        {
+          parentType: parent?.type,
+          grandParentType: grandParent?.type,
+        },
+        properties,
+      ).length > 0
+    );
+  }, [element, elementsMap, properties]);
+}
+
+/**
+ * 선택된 요소의 "실제로 변경된(baseline 과 다른)" style prop 목록을 반환하는 훅.
+ *
+ * Modified Styles 패널 / "modify N" 뱃지가 reset 버튼(`useHasDirtyStyles`)과 동일 baseline 비교를
+ * 공유하도록 한다. element 와 부모 체인을 store 에서 읽어 `computeDirtyStyleProps` 에 위임.
+ */
+export function useDirtyStyleProps(): string[] {
+  const selectedId = useStore((state) => state.selectedElementId);
+  const element = useCanonicalPropertyElement(selectedId ?? "");
+  const elementsMap = useCanonicalPropertyElementsMap();
+  return useMemo(() => {
+    if (!element) return [];
+
+    const parent = element.parent_id
+      ? elementsMap.get(element.parent_id)
+      : undefined;
+    const grandParent = parent?.parent_id
+      ? elementsMap.get(parent.parent_id)
+      : undefined;
+
+    // PANEL_STYLE_PROPS 로 제한 — Style Panel 4섹션이 reset 으로 편집하는 범위와 동일.
+    //   grid placement 등 패널 미편집 키를 modify 가 세면 reset 버튼과 비대칭(ProgressBarValue
+    //   "modify 5" ↔ reset 0, 2026-06-24).
+    return computeDirtyStyleProps(
       element,
       {
         parentType: parent?.type,
         grandParentType: grandParent?.type,
       },
+      [...PANEL_STYLE_PROPS],
     );
-
-    for (const prop of properties) {
-      const currentValue = resolveCurrentStyleValue(prop, currentStyle);
-      if (currentValue === undefined) continue;
-      const resetValue = resolveTargetValue(
-        prop,
-        specStyle,
-        legacyStyle,
-        subpartStyle,
-      );
-      if (currentValue !== resetValue) return true;
-    }
-    return false;
-  }, [element, elementsMap, properties]);
+  }, [element, elementsMap]);
 }
 
 /**

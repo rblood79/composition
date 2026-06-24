@@ -103,9 +103,11 @@ function formOriginChildren(): CanonicalNode[] {
       props: {
         children: "Form Title",
         level: 3,
+        // fontSize 미주입 — catalog Heading specStyle(16px)이 SSOT. 종전 inline 18px 은 catalog 와
+        //   어긋나 false dirty(Typography reset/modify 오활성, 2026-06-24). display:block / fontWeight:600
+        //   은 catalog specStyle 과 일치하므로 유지.
         style: {
           display: "block",
-          fontSize: "18px",
           fontWeight: "600",
         },
       },
@@ -120,9 +122,10 @@ function formOriginChildren(): CanonicalNode[] {
       name: "Description",
       props: {
         children: "",
+        // fontSize 미주입 — catalog Description specStyle(12px)이 SSOT. 종전 inline 14px 은 catalog 와
+        //   어긋나 false dirty(2026-06-24). display:block 은 catalog 와 일치하므로 유지.
         style: {
           display: "block",
-          fontSize: "14px",
         },
       },
       metadata: {

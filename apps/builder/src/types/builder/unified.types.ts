@@ -1991,11 +1991,14 @@ export function createDefaultDialogProps(): DialogElementProps {
 
 export function createDefaultFormProps(): FormElementProps {
   return {
-    // CSS base: display:flex; flex-direction:column; gap:var(--spacing-md)
+    // dirty/reset baseline — Form reusable composite origin(formTemplateOrigins.createFormOrigin)의
+    //   루트 style 미러. origin 이 width:"100%" 를 주입하므로 baseline 도 포함해야 false dirty 없음
+    //   (ADR-912 R-5 origin 전환 후 baseline width 누락 → Transform reset/modify 오활성, 2026-06-24).
     style: {
       display: "flex",
       flexDirection: "column",
       gap: 16,
+      width: "100%",
     },
   };
 }

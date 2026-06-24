@@ -18,6 +18,7 @@ import {
 } from "./sections";
 import { useSectionCollapse } from "./hooks/useSectionCollapse";
 import { useStyleActions } from "./hooks/useStyleActions";
+import { useDirtyStyleProps } from "./hooks/useResetStyles";
 import { useKeyboardShortcutsRegistry } from "@/builder/hooks";
 import "./StylesPanel.css";
 
@@ -50,13 +51,17 @@ function StylesPanelContent() {
   const selectedElement = useDebouncedSelectedElementData();
   const selectedStyle =
     (selectedElement?.style as Record<string, unknown> | undefined) ?? null;
-  const modifiedCount = useMemo(() => {
-    if (!selectedStyle) return 0;
-    return Object.keys(selectedStyle).filter(
+  // "modify N" 뱃지는 baseline(factory default / spec preset / subpart)과 실제로 다른 prop 수만 센다.
+  //   reset 버튼(useHasDirtyStyles)과 동일 baseline 공유 — factory 가 주입한 layout default 는 제외.
+  const modifiedCount = useDirtyStyleProps().length;
+  // copy 활성화는 baseline 무관 — 복사 대상은 "현재 inline style 전체"라 키 존재 여부가 기준.
+  const hasInlineStyle = useMemo(() => {
+    if (!selectedStyle) return false;
+    return Object.keys(selectedStyle).some(
       (k) => selectedStyle[k] !== undefined,
-    ).length;
+    );
   }, [selectedStyle]);
-  const isCopyDisabled = !selectedStyle || modifiedCount === 0;
+  const isCopyDisabled = !hasInlineStyle;
 
   const [filter, setFilter] = useState<"all" | "modified">("all");
   const {

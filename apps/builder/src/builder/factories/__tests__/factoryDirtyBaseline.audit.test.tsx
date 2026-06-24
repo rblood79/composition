@@ -17,7 +17,10 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useStore } from "../../stores";
-import { useHasDirtyStyles } from "../../panels/styles/hooks/useResetStyles";
+import {
+  useHasDirtyStyles,
+  PANEL_STYLE_PROPS,
+} from "../../panels/styles/hooks/useResetStyles";
 import { createElementsFromDefinition } from "../utils/elementCreation";
 import type { ComponentElementProps } from "../../../types/builder/unified.types";
 import type { Element } from "../../../types/core/store.types";
@@ -137,63 +140,9 @@ const CREATORS: Record<string, Creator> = {
   Pagination: createPaginationDefinition,
 };
 
-// Style Panel 4섹션(Transform/Typography/Layout/Appearance)이 useHasDirtyStyles 로 검사하는 prop 합집합.
-const PANEL_PROPS = [
-  "width",
-  "height",
-  "top",
-  "left",
-  "flexGrow",
-  "flexShrink",
-  "flexBasis",
-  "alignSelf",
-  "justifySelf",
-  "minWidth",
-  "maxWidth",
-  "minHeight",
-  "maxHeight",
-  "aspectRatio",
-  "fontFamily",
-  "fontSize",
-  "fontWeight",
-  "fontStyle",
-  "lineHeight",
-  "letterSpacing",
-  "color",
-  "textAlign",
-  "textDecoration",
-  "textTransform",
-  "verticalAlign",
-  "whiteSpace",
-  "wordBreak",
-  "overflowWrap",
-  "textOverflow",
-  "display",
-  "flexDirection",
-  "flexWrap",
-  "alignItems",
-  "justifyContent",
-  "gap",
-  "rowGap",
-  "columnGap",
-  "padding",
-  "paddingTop",
-  "paddingRight",
-  "paddingBottom",
-  "paddingLeft",
-  "margin",
-  "marginTop",
-  "marginRight",
-  "marginBottom",
-  "marginLeft",
-  "backgroundColor",
-  "borderColor",
-  "borderWidth",
-  "borderRadius",
-  "borderStyle",
-  "boxShadow",
-  "overflow",
-] as const;
+// Style Panel 4섹션(Transform/Typography/Layout/Appearance)이 reset/modify 로 검사하는 prop 합집합.
+//   SSOT 단일 출처(useResetStyles.PANEL_STYLE_PROPS) 재사용 — grid placement 등 패널 미편집 키 제외.
+const PANEL_PROPS = PANEL_STYLE_PROPS;
 
 // type:"ref"(RefNode instance template anchor — ListBox/GridList origin 참조)는 Style Panel 에서
 //   transform 을 편집하는 일반 컴포넌트가 아니라 instance 노드라 dirty 검사 대상 외(제외).

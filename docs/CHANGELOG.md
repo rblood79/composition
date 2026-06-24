@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Modified Styles false positive 정합 — modify 뱃지·패널이 reset 버튼과 동일 baseline 공유] - 2026-06-24
+
+"컴포넌트를 page 에 등록 → 수정하지 않았는데 우측 패널 Modified Styles(modify N) 에 항목이 나타나고, 그 항목의 reset 은 비활성" 이라는 사용자 보고. 원인은 두 뷰가 같은 `element.props.style` 을 보면서 **판정 기준이 달랐던 것** — reset 버튼은 baseline 비교(factory default 제외)인데, Modified Styles 는 `Object.keys(style)` 즉 inline 키 존재만 판정했다. composition 은 factory/origin 이 layout 을 `props.style` 에 직접 주입하므로(예: Form `{display,flexDirection,gap,width}`) 신규 요소가 손대지 않아도 modified 로 표시됐다.
+
+### Bug Fixes
+
+- **Modified Styles / "modify N" 뱃지가 factory default 를 modified 로 오표시**:
+  - `getModifiedProperties`(inline 키 존재만) / `StylesPanel.modifiedCount`(`Object.keys`) 를 `useDirtyStyleProps`(baseline 비교)로 교체 → reset 버튼(`useHasDirtyStyles`)과 동일 baseline 공유. Form modify 4→0, factory default 는 더 이상 modified 아님
+  - **Why**: 두 뷰가 같은 store(`element.props.style`)를 보지만 reset 은 baseline 비교, Modified 는 키 존재 판정이라 "modify 엔 뜨는데 reset 은 비활성" 비대칭
+  - 위치: `apps/builder/src/builder/panels/styles/sections/ModifiedStylesSection.tsx`, `StylesPanel.tsx`, `hooks/useStyleSource.ts`(getModifiedProperties deprecated)
+- **modify 뱃지가 패널 미편집 키(grid placement)까지 카운트**:
+  - `useDirtyStyleProps` 를 `PANEL_STYLE_PROPS`(4섹션 reset 범위)로 제한 → ProgressBarValue 등 grid 자식의 "modify 5"(gridColumnStart/End/gridRowStart/End/gridArea) → 0. reset 버튼은 grid 키를 검사하지 않으므로 modify 도 같은 범위여야 정합
+  - 위치: `apps/builder/src/builder/panels/styles/hooks/useResetStyles.ts`
+- **reusable composite origin(Form/Toolbar) 자식 baseline 누락 (ADR-912 R-5)**:
+  - Form root(`width:100%`) / FormField(<Form `display·flexDirection·gap·width`) / Separator(<Toolbar `width·height`) baseline 등록 + Form origin Heading/Description inline `fontSize`(18/14px) 제거 → catalog specStyle(16/12) SSOT 정합
+  - **Why**: ADR-912 로 Form/Toolbar 가 factory definition → reusable composite origin 문서 생성으로 전환되면서, origin 템플릿 style 이 baseline(getDefaultProps)·catalog 와 어긋나 신규 인스턴스가 false dirty
+  - 위치: `apps/builder/src/builder/components/form/formTemplateOrigins.ts`, `types/builder/unified.types.ts`(createDefaultFormProps width), `hooks/useResetStyles.ts`(subpart)
+
+### Architecture
+
+- **PANEL_STYLE_PROPS — modify/reset 검사 범위 SSOT**: Style Panel 4섹션 reset PROPS union 을 단일 상수로 export. `useDirtyStyleProps`(modify) 와 factory/origin 가드가 공유 → grid placement·flex shorthand 등 패널 미편집 키를 modify 가 세는 비대칭 방지
+- **dirty 판정 순수 함수 분리**: `computeDirtyStyleProps(element, context, properties?)` 를 hook 밖 순수 함수로 추출. `useHasDirtyStyles`(reset) / `useDirtyStyleProps`(modify) 양쪽이 동일 baseline resolver 공유
+
+### Infrastructure
+
+- **reusable composite origin dirty 회귀 가드**: `reusableCompositeOriginDirtyBaseline.audit.test.tsx` — `ensureXxxTemplateOrigins` 로 Form/Toolbar origin 트리 추출 → 전 노드 `computeDirtyStyleProps` 통과 → false dirty 0건 강제 (origin 멤버 추가 시 ENSURERS 1줄)
+- **PANEL_STYLE_PROPS union 정합 가드**: `panelStylePropsUnion.static.test.ts` — 4섹션 PROPS union 과 PANEL_STYLE_PROPS 정확 일치를 정적 검증(섹션 PROPS 변경 시 SSOT 동반 갱신 강제). factory 가드도 PANEL_STYLE_PROPS SSOT 재사용으로 통일
+
 ## [Factory 생성 트리 false dirty 결정론적 전수조사 — 2-source 정합 + subpart override resolver] - 2026-06-24
 
 Heading/Description 정정 후 "Group D(Table) 외 SSOT 완료" 를 확언하려 결정론적 전수조사를 수행하니, 이전 측정(fixture/baseline-only)이 **잘못된 source** 를 보고 있었음이 드러났다. 컴포넌트마다 생성 source 가 2개다 — `createXxxDefinition`(factories/definitions, 실제 palette 생성) vs `createDefaultXxxProps`(getDefaultProps, dirty baseline). 이전 "Image/Toast borderRadius 정정" 은 baseline 만 고치고 **실제 생성 definition 에 잔존**하여 여전히 false dirty 였다. 실제 factory 46개를 호출해 생성 트리 전 노드를 dirty resolver 에 통과시켜 false dirty 0건을 확증.
