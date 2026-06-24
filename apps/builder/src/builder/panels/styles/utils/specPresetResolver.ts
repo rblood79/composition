@@ -78,6 +78,13 @@ type SpecShape =
       archetype?: string;
       sizes?: Record<string, Record<string, unknown>>;
       containerStyles?: Record<string, unknown>;
+      // ADR-912 후속(2026-06-24): catalog variants[defaultVariant].textWeight 흡수용. Typography
+      //   extractor 가 sizeEntry.fontWeight 부재 시 fallback 으로 읽어 specStyle.fontWeight 로 노출.
+      //   Why: Label/Heading 등 텍스트 leaf 는 catalog 가 fontWeight 를 sizes 가 아닌 variant.textWeight
+      //   로만 명시(Skia 렌더 정본) → dirty baseline 이 createDefault(500) 로 fallback 하여 factory
+      //   inline(600) 과 영구 비대칭(false dirty). variants 흡수로 baseline=시각 정본 정합.
+      defaultVariant?: string;
+      variants?: Record<string, { textWeight?: number } | undefined>;
     }
   | undefined;
 type PresetExtractor<T> = (
@@ -138,6 +145,12 @@ function catalogSpecShape(type: string): SpecShape {
     containerStyles: Object.keys(base).length
       ? normalizeContainerKeysToCamel(base)
       : undefined,
+    // ADR-912 후속(2026-06-24): textWeight 흡수. defaultVariant 기준으로 읽어야 함 — Menu 처럼
+    //   defaultVariant 가 "default" 가 아닌 컴포넌트 존재(단 textWeight 미보유라 무영향).
+    defaultVariant: rule.defaultVariant,
+    variants: rule.variants as
+      | Record<string, { textWeight?: number } | undefined>
+      | undefined,
   };
 }
 
@@ -518,7 +531,7 @@ export function resolveLayoutSpecPreset(
 }
 
 export const resolveTypographySpecPreset = createResolver<TypographySpecPreset>(
-  (sizeEntry) => {
+  (sizeEntry, spec) => {
     const preset: TypographySpecPreset = pickNumeric(
       sizeEntry,
       TYPOGRAPHY_NUMERIC_KEYS,
@@ -526,6 +539,17 @@ export const resolveTypographySpecPreset = createResolver<TypographySpecPreset>(
     const fontWeight = sizeEntry.fontWeight;
     if (typeof fontWeight === "number") preset.fontWeight = String(fontWeight);
     else if (typeof fontWeight === "string") preset.fontWeight = fontWeight;
+    else {
+      // ADR-912 후속(2026-06-24): sizes 에 fontWeight 가 없으면 catalog variant.textWeight 흡수.
+      //   Label(600)/Heading(700)/Description(400) 등 텍스트 leaf 의 시각 정본 fontWeight 는 catalog
+      //   가 variants[defaultVariant].textWeight 로만 보유(Skia 렌더 정본, sizes.fontWeight 부재).
+      //   이를 dirty baseline 으로 흡수해 factory inline 600 ↔ createDefault 500 비대칭(false dirty)
+      //   을 해소. sizes.fontWeight 보유 컴포넌트(ListBoxItem 등)는 위 분기에서 처리되어 무영향.
+      const textWeight =
+        spec?.variants?.[spec.defaultVariant ?? "default"]?.textWeight;
+      if (typeof textWeight === "number")
+        preset.fontWeight = String(textWeight);
+    }
     const fontFamily = sizeEntry.fontFamily;
     if (typeof fontFamily === "string") preset.fontFamily = fontFamily;
     return preset;

@@ -286,7 +286,8 @@ export function createProgressBarDefinition(
         props: {
           children: "Progress",
           style: {
-            backgroundColor: "transparent",
+            // 2026-06-24 전수조사 정정: backgroundColor:"transparent" 제거(catalog Label fill 투명
+            //   정본과 중복, dirty baseline 부재로 false dirty). Skia/CSS 투명 배경 동일.
             width: "fit-content",
             // Skia Taffy grid 경로는 gridArea 이름 해석 미지원 → 숫자 line 명시.
             // CSS 는 spec.composition.staticSelectors 의 grid-area 이름 적용 (대칭 유지).
@@ -376,7 +377,8 @@ export function createMeterDefinition(
         props: {
           children: "Storage",
           style: {
-            backgroundColor: "transparent",
+            // 2026-06-24 전수조사 정정: backgroundColor:"transparent" 제거(catalog Label fill 투명
+            //   정본과 중복, dirty baseline 부재로 false dirty). Skia/CSS 투명 배경 동일.
             width: "fit-content",
             gridColumnStart: "1",
             gridColumnEnd: "2",

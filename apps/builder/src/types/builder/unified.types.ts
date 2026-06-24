@@ -1714,7 +1714,11 @@ export function createDefaultLabelProps(): BaseElementProps {
     children: "Tag Group",
     style: {
       fontSize: 14,
-      fontWeight: 500,
+      // ADR-912 후속(2026-06-24): 500→600. catalog Label variants.default.textWeight=600 이
+      //   Skia/CSS 실렌더 정본(base.css --label-font-weight 기본 600 + buildCatalogShapes 600).
+      //   기존 500 은 latent 오류 — dirty baseline 이 factory inline 600 과 비대칭(false dirty)이던
+      //   근본. resolveTypographySpecPreset 의 textWeight 흡수와 함께 standalone/자식 Label 모두 정합.
+      fontWeight: 600,
       width: "fit-content",
     },
   };

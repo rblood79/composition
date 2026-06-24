@@ -393,6 +393,112 @@ describe("useResetStyles — Select-family sub-part 부모-컨텍스트 dirty au
   );
 });
 
+/**
+ * Label fontWeight false dirty 회귀 가드 (2026-06-24 전수조사 정정).
+ *
+ * 다수 factory(Form/Group/Selection/DateColor)가 필드 Label 자식에 `fontWeight:600` inline 주입.
+ * catalog Label 은 fontWeight 를 `sizes` 가 아닌 `variants.default.textWeight=600`(Skia 렌더 정본)으로만
+ * 보유했고, resolveTypographySpecPreset 가 sizeEntry.fontWeight 만 읽어 specStyle.fontWeight=undefined →
+ * dirty baseline 이 createDefaultLabelProps(과거 500)로 fallback → factory 600 과 영구 비대칭(Typography
+ * reset 버튼 false 활성). 정정: (1) resolver 가 variants.textWeight 흡수 (2) createDefaultLabelProps
+ * 500→600. 값이 어긋나면 이 audit 이 FAIL(catalog textWeight ↔ createDefault ↔ factory 600 삼중 동기화 가드).
+ */
+describe("useResetStyles — Label fontWeight false dirty 회귀 가드", () => {
+  const originalState = useStore.getState();
+
+  beforeEach(() => {
+    useStore.setState({
+      selectedElementId: null,
+      selectedElementProps: null as unknown as ComponentElementProps,
+      currentPageId: null,
+      elements: [],
+      elementsMap: new Map(),
+      childrenMap: new Map(),
+      dirtyElementIds: new Set(),
+      layoutVersion: 0,
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    useStore.setState(originalState, true);
+  });
+
+  // factory 가 Label 자식에 fontWeight:600 inline 주입하는 부모 컨텍스트들.
+  const labelParents = [
+    "CheckboxGroup",
+    "RadioGroup",
+    "TagGroup",
+    "Select",
+    "ComboBox",
+    "TextField",
+    "NumberField",
+    "SearchField",
+    "DateField",
+    "ColorField",
+  ] as const;
+
+  it.each(labelParents)(
+    "%s > Label (factory inline fontWeight:600) 은 dirty=false",
+    (parent) => {
+      const parentEl = makeTaggedElement("p-1", parent, { size: "md" });
+      const labelEl: Element = {
+        id: "lbl-1",
+        type: "Label",
+        parent_id: parentEl.id,
+        props: { style: { fontWeight: 600 } },
+      } as Element;
+
+      useStore.setState({
+        selectedElementId: labelEl.id,
+        selectedElementProps: labelEl.props,
+        currentPageId: null,
+        elements: [parentEl, labelEl],
+        elementsMap: new Map([
+          [parentEl.id, parentEl],
+          [labelEl.id, labelEl],
+        ]),
+        childrenMap: new Map(),
+        dirtyElementIds: new Set(),
+        layoutVersion: 0,
+      });
+
+      const { result: dirty } = renderHook(() =>
+        useHasDirtyStyles(["fontWeight"]),
+      );
+      expect(
+        dirty.current,
+        `${parent} > Label fontWeight:600 이 baseline(catalog textWeight 600)과 어긋나 dirty 오판`,
+      ).toBe(false);
+    },
+  );
+
+  it("standalone Label (createDefaultLabelProps fontWeight:600) 도 dirty=false", () => {
+    const labelEl: Element = {
+      id: "lbl-1",
+      type: "Label",
+      parent_id: null,
+      props: { style: { fontWeight: 600 } },
+    } as Element;
+
+    useStore.setState({
+      selectedElementId: labelEl.id,
+      selectedElementProps: labelEl.props,
+      currentPageId: null,
+      elements: [labelEl],
+      elementsMap: new Map([[labelEl.id, labelEl]]),
+      childrenMap: new Map(),
+      dirtyElementIds: new Set(),
+      layoutVersion: 0,
+    });
+
+    const { result: dirty } = renderHook(() =>
+      useHasDirtyStyles(["fontWeight"]),
+    );
+    expect(dirty.current).toBe(false);
+  });
+});
+
 describe("useResetStyles — layout preset baseline", () => {
   const originalState = useStore.getState();
 

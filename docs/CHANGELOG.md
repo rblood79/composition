@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [텍스트 자식 typography false dirty 전수조사 — Label fontWeight resolver textWeight 흡수 + Label류 정정] - 2026-06-24
+
+cutover 잔존 정합의 후속 전수조사(Group D Table 제외). 직전 sweep 이 **부모 컨테이너만** 정합화하고 텍스트 자식 노드(Label/Heading/Description)의 typography 는 누락했음을 9 factory definition 병렬 audit + adversarial verify(거짓양성 1건 제거)로 확정 — 57 false dirty. 사용자 결정에 따라 회귀 0 으로 깔끔한 **Label 류부터** 정정(Heading/Description 은 시각 정본 판정 필요 → 별도).
+
+### Bug Fixes
+
+- **Label fontWeight false dirty 16곳 해소** (Typography reset 버튼이 미편집 상태에서 활성되던 회귀):
+  - catalog Label 은 fontWeight 를 `sizes` 가 아닌 `variants.default.textWeight=600`(Skia 렌더 정본)으로만 보유했고, `resolveTypographySpecPreset` 가 `sizeEntry.fontWeight` 만 읽어 specStyle.fontWeight=undefined → dirty baseline 이 `createDefaultLabelProps`(과거 500) 로 fallback → 다수 factory 가 Label 자식에 주입한 `fontWeight:600` 과 영구 비대칭.
+  - **Why**: catalog 가 textWeight 로 Skia/CSS 렌더만 600 으로 맞추고 Style Panel dirty baseline 경로(sizes.fontWeight)는 미반영 → 시각 정본(600)과 baseline(500)이 갈라짐.
+  - 수정: (1) `catalogSpecShape` 가 `variants`/`defaultVariant` 합성 + `resolveTypographySpecPreset` 가 `sizeEntry.fontWeight` 부재 시 `variants[defaultVariant].textWeight` 흡수(다른 3 resolver 영향 0 — 순수 additive, 캐시 독립). (2) `createDefaultLabelProps` fontWeight 500→600(catalog 정본 정합, latent 오류 정정).
+  - 검증: dev 서버 resolver live 확인(Label=600/Heading=700/Description=400 흡수) + `useResetStyles.test.tsx` 에 Label fontWeight 회귀 가드 11 케이스(10 부모 컨텍스트 + standalone) 추가 → 36 PASS.
+  - 위치: `apps/builder/src/builder/panels/styles/utils/specPresetResolver.ts`, `apps/builder/src/types/builder/unified.types.ts`
+- **Label backgroundColor:transparent inline 제거 3곳** (Slider/ProgressBar/Meter Label):
+  - factory 가 Label 자식에 `backgroundColor:"transparent"` 주입 → catalog Label `fill.default.base={color.transparent}` 와 중복이면서 dirty baseline(backgroundColor 미보유 → resetValue="") 과 불일치하여 Appearance reset 버튼 false 활성.
+  - **Why**: 투명 배경은 catalog fill 정본 → inline 은 중복. 제거 시 Skia/CSS 투명 배경 동일(시각 회귀 0).
+  - 위치: `apps/builder/src/builder/factories/definitions/{FormComponents,DisplayComponents}.ts`
+
 ## [Cutover 잔존 컨테이너 layout catalog 이관 — 8종 factory↔dirty 정합 + Card 패밀리 Preview 비대칭 + CardPreview borderRadius S2 정합] - 2026-06-24
 
 ADR-912 cutover(spec 삭제 → catalog 정본) 후 컨테이너 layout 을 catalog 로 이관하지 않고 factory inline 으로만 남아 dirty baseline 과 어긋났던 잔존 컴포넌트들을 전수 정합. 레퍼런스 기준(RAC 있음 → RAC, 없음 → React Spectrum S2)으로 factory 를 catalog 정본값에 맞춤.

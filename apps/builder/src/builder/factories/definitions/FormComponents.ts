@@ -498,9 +498,10 @@ export function createSliderDefinition(
         type: "Label",
         props: {
           children: isRange ? "Range Slider" : "Slider",
-          style: {
-            backgroundColor: "transparent",
-          },
+          // 2026-06-24 전수조사 정정: backgroundColor:"transparent" inline 제거. catalog Label
+          //   fill.default.base={color.transparent} 가 투명 배경 정본 → inline 은 중복이면서 dirty
+          //   baseline(backgroundColor 미보유 → resetValue="") 과 불일치하여 Appearance reset 버튼
+          //   false 활성(false dirty). 제거 시 Skia/CSS 투명 배경 동일.
         } as ComponentElementProps,
       },
       {
