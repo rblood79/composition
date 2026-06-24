@@ -472,10 +472,13 @@ export function createImageDefinition(
         src: "",
         alt: "Image",
         objectFit: "cover",
+        // 2026-06-24: borderRadius 8 (factory inline) 제거 — catalog 토큰(radius.none=0) 정본 정합.
+        //   createDefaultImageProps(getDefaultProps baseline)는 선행 정정에서 제거됐으나, 실제 palette
+        //   생성 경로인 본 definition(ComponentFactory.createImage 가 호출)에 잔존하여 여전히 Skia(8) ≠
+        //   CSS Preview(0) 시각 비대칭 + Style Panel false dirty 였다. 두 source 모두 제거해야 정합.
         style: {
           width: "100%",
           height: 200,
-          borderRadius: 8,
         },
       } as ComponentElementProps,
       parent_id: parentId,

@@ -174,12 +174,15 @@ export function createToastDefinition(
     parent: {
       type: "Toast",
       props: {
+        // 2026-06-24: borderRadius "8px" (factory inline) 제거 — catalog 토큰(radius.md=6) 정본 정합.
+        //   createDefaultToastProps(baseline)는 선행 정정에서 제거됐으나 실제 palette 생성 경로인 본
+        //   definition(ComponentFactory.createToast 가 호출)에 잔존하여 Skia(8) ≠ CSS Preview(6) 발산 +
+        //   Style Panel false dirty 였다. padding "12px 16px"(비대칭)·gap "4px" 는 catalog 정합(유지).
         style: {
           display: "flex",
           flexDirection: "column",
           gap: "4px",
           padding: "12px 16px",
-          borderRadius: "8px",
           width: "fit-content",
         },
       } as ComponentElementProps,

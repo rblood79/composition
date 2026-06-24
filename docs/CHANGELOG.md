@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Factory 생성 트리 false dirty 결정론적 전수조사 — 2-source 정합 + subpart override resolver] - 2026-06-24
+
+Heading/Description 정정 후 "Group D(Table) 외 SSOT 완료" 를 확언하려 결정론적 전수조사를 수행하니, 이전 측정(fixture/baseline-only)이 **잘못된 source** 를 보고 있었음이 드러났다. 컴포넌트마다 생성 source 가 2개다 — `createXxxDefinition`(factories/definitions, 실제 palette 생성) vs `createDefaultXxxProps`(getDefaultProps, dirty baseline). 이전 "Image/Toast borderRadius 정정" 은 baseline 만 고치고 **실제 생성 definition 에 잔존**하여 여전히 false dirty 였다. 실제 factory 46개를 호출해 생성 트리 전 노드를 dirty resolver 에 통과시켜 false dirty 0건을 확증.
+
+### Bug Fixes
+
+- **Image/Toast borderRadius definition 잔존 제거** (실제 palette 생성 source):
+  - `createImageDefinition`(`borderRadius:8`) / `createToastDefinition`(`borderRadius:"8px"`) 의 factory inline 제거 → catalog 토큰(Image radius.none=0 / Toast radius.md=6) 정합
+  - **Why**: 선행 정정이 `createDefaultXxxProps`(dirty baseline)만 수정하고, ComponentFactory 가 실제 호출하는 `createXxxDefinition`(생성값)에 borderRadius 가 잔존 → Skia(8) ≠ CSS Preview(0/6) 시각 발산 + Style Panel false dirty 지속
+  - 위치: `apps/builder/src/builder/factories/definitions/{DisplayComponents,FormComponents}.ts`
+- **Tooltip Description size prop 전환 누락 보완**:
+  - `createTooltipDefinition` Description 자식 inline `fontSize:"12px"`/`lineHeight:"1.4"` → `size:"md"` 전환. 다른 Description(Toast/Card/Dialog/Popover)은 선행 정정에서 size 전환됐으나 Tooltip 만 빠져 lineHeight 배율(1.4) ↔ catalog px(16) 비대칭
+  - 위치: `apps/builder/src/builder/factories/definitions/OverlayComponents.ts`
+- **미등록 sub-part dirty baseline 추가** (FieldError / ProgressBar·Meter grid 자식 / ColorField / Card Heading·Description):
+  - `resolveSubpartContextDefaultStyle` 에 부모-컨텍스트 baseline 추가 — FieldError `display:none`(에러 숨김, 5 field 부모), ProgressBar/Meter Track(`width:100%`)·Value(`width:fit-content`+`justifySelf:end`), ColorField(<ColorPicker `display:block`), Heading(<CardHeader `margin:0`), Description(<CardContent `color:#49454f`)
+  - **Why**: 이 sub-part 들은 factory inline 이 부모 컨텍스트별 정본인데 baseline 미등록 → specStyle/type-only baseline 과 불일치로 신규 요소가 dirty 오판
+  - 위치: `apps/builder/src/builder/panels/styles/hooks/useResetStyles.ts`
+
+### Architecture
+
+- **dirty resolver subpart override — specStyle 보다 부모 컨텍스트 우선**:
+  - `resolveTargetValue` 가 `subpartStyle[prop] ?? specStyle[prop] ?? legacyStyle[prop]` 순서로 baseline 해석. subpart(부모 컨텍스트 명시 정본)가 type-only specStyle 을 덮음
+  - **Why**: Card(<CardView width:200) / Input(<TextArea height:80)은 subpart baseline 에 등록됐으나 `specStyle[prop] ?? legacyStyle` 순서 탓에 specStyle(Card width:"100%"/Input height:30, 부모 무관)이 우선해 무효화 → false dirty. subpart 가 더 구체적 정보라 우선이 타당
+  - `resolveResetBaseline` 이 `subpartStyle` 별도 반환, reset 동작도 subpart 명시 키를 store 에 명시 기록(specStyle 처럼 ""삭제 시 부모 컨텍스트 정본 깨짐)
+  - 위치: `apps/builder/src/builder/panels/styles/hooks/useResetStyles.ts`
+
+### Infrastructure
+
+- **factory 생성 트리 ↔ dirty baseline 정합 회귀 가드** (46 creator 전수):
+  - `factoryDirtyBaseline.audit.test.tsx` — 실제 `createXxxDefinition` 호출 → 생성 트리(parent+children) 전 노드를 `useHasDirtyStyles` 에 통과 → Panel 4섹션 검사 prop 에서 false dirty 0건 강제. 2-source 불일치(definition vs getDefaultProps) 재발을 정적 차단
+  - Group D(Table 패밀리)는 별도 작업 축으로 CREATORS 미포함. `ref`(instance template anchor)는 편집 대상 외로 제외
+  - 위치: `apps/builder/src/builder/factories/__tests__/factoryDirtyBaseline.audit.test.tsx`
+
 ## [Heading/Description typography false dirty — size prop 전환 + Heading textWeight 정본 정합] - 2026-06-24
 
 Class B/C 정정의 후속 — 보류했던 텍스트 자식 Heading/Description typography 정정(Group D Table 제외 전수조사 마지막 축). Heading/Description 은 부모(Toast/Card/Dialog/Popover/InlineAlert)의 자식으로 생성되며 의도된 크기가 다른데(Dialog 18 > Card 16 > Toast 14 — catalog Heading.sizes 토큰과 매칭), factory 가 inline `fontSize` px 를 하드코딩해 dirty resolver 가 `props.size` 를 못 읽고 md(16) 고정 baseline 으로 판정 → Toast/Dialog 에서 fontSize false dirty. 사용자 결정에 따라 **inline fontSize → size prop 전환**(근본)으로 정정.

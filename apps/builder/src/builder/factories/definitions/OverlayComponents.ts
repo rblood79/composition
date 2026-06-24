@@ -192,11 +192,14 @@ export function createTooltipDefinition(
       {
         type: "Description",
         props: {
+          // 2026-06-24: inline fontSize:"12px"/lineHeight:"1.4" → size:"md" prop 전환 (catalog 토큰 정합).
+          //   다른 Description(Toast/Card/Dialog/Popover)은 선행 정정에서 size 전환됐으나 Tooltip Description
+          //   만 누락 → dirty resolver 가 props.size 못 읽고 lineHeight "1.4"(배율)↔catalog 16(px) 비대칭
+          //   (false dirty). size="md" → catalog Description.sizes.md fontSize 12(text-xs) + lineHeight 16.
           children: "Tooltip text",
+          size: "md",
           style: {
             display: "block",
-            fontSize: "12px",
-            lineHeight: "1.4",
           },
         } as ComponentElementProps,
       },

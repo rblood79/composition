@@ -309,6 +309,37 @@ function resolveSubpartContextDefaultStyle(
     // AvatarGroup 안 겹침 배치(marginLeft:-8). createDefault(width/height:32)에 합쳐짐.
     return { marginLeft: -8 };
   }
+  // ── 2026-06-24 결정론적 전수조사 추가 정정 — 실제 factory definition 생성 트리 기준 ──
+  if (type === "FieldError") {
+    // 모든 field(TextField/TextArea/NumberField/DateField/TimeField) 자식 FieldError 는 에러 없을 때
+    //   숨김(display:none) inline. catalog FieldError 는 display:"inline-flex"(에러 표시 시 레이아웃)라
+    //   specStyle 이 그것을 채워 false dirty. display:none 은 "초기 숨김" 동작이라 부모 무관 동일 → baseline 등록.
+    return { display: "none" };
+  }
+  if (type === "ProgressBarValue" || type === "MeterValue") {
+    // ProgressBar/Meter grid 의 value 셀(우측 정렬, content 폭). specStyle.width=undefined(grid 자식
+    //   width 미보유) → subpart 미등록 시 false dirty. grid placement 키는 Panel 미검사라 width/justifySelf 만.
+    return { width: "fit-content", justifySelf: "end" };
+  }
+  if (type === "ProgressBarTrack" || type === "MeterTrack") {
+    // track 셀(전체 폭). specStyle.width=undefined → baseline 등록 필요.
+    return { width: "100%" };
+  }
+  if (type === "ColorField" && parentType === "ColorPicker") {
+    // ColorPicker 안 ColorField 는 hex 입력 단순화로 display:block (단독 ColorField 는 flex).
+    //   catalog ColorField display=flex 가 specStyle 로 채워져 block 이 false dirty → 컨텍스트 baseline.
+    return { display: "block" };
+  }
+  if (type === "Heading" && parentType === "CardHeader") {
+    // Card 헤더 레이아웃 — margin:0(제목 여백 제거). specStyle 미보유 키라 baseline 등록.
+    //   flex:1 은 Panel 미검사(flex shorthand) 라 제외. fontWeight 600 은 Heading 가드 별도 흡수.
+    return { margin: "0" };
+  }
+  if (type === "Description" && parentType === "CardContent") {
+    // Card 본문 설명 — color #49454f(catalog text 토큰 미정합으로 inline 유지, typography scope 외 보류).
+    //   값 정정(catalog 토큰 정합)은 별도 사안이나 dirty 만 해소하도록 factory inline 미러 등록.
+    return { color: "#49454f" };
+  }
   return {};
 }
 
@@ -324,6 +355,7 @@ function resolveResetBaseline(
 ): {
   legacyStyle: Record<string, unknown>;
   specStyle: Record<string, string | undefined>;
+  subpartStyle: Record<string, unknown>;
 } {
   const defaultProps = getDefaultProps(element.type);
   const presetStyle = resolveAppliedPresetBaselineStyle(element);
@@ -339,6 +371,12 @@ function resolveResetBaseline(
       ...presetStyle,
     },
     specStyle: resolveSpecStyleDefaults(element.type, element.props),
+    // subpartStyle 을 별도 반환 — resolveTargetValue 가 specStyle 보다 우선 적용한다.
+    //   Why: subpart 는 "부모 컨텍스트별 정본"(예: CardView 안 Card width:200, TextArea 안
+    //   Input height:80)이라 type-only specStyle(부모 무관, Card width:"100%"/Input height:30)보다
+    //   구체적이다. legacyStyle 병합만으로는 specStyle[prop] ?? legacyStyle 순서 탓에 specStyle 이
+    //   채운 transform 축(width/height)을 subpart 가 못 덮어 false dirty (2026-06-24 전수조사).
+    subpartStyle,
   };
 }
 
@@ -373,7 +411,14 @@ function resolveTargetValue(
   prop: string,
   specStyle: Record<string, string | undefined>,
   legacyStyle: Record<string, unknown>,
+  subpartStyle: Record<string, unknown>,
 ): string {
+  // subpart override (specStyle 보다 우선) — 부모 컨텍스트별 명시 정본이 type-only specStyle 을 덮음.
+  //   예: CardView 안 Card width:200 (specStyle Card width:"100%" 덮음), TextArea 안 Input height:80
+  //   (specStyle Input height:30 덮음). subpart 에 키가 명시된 경우만 우선, 그 외엔 기존 동작 보존.
+  const subpartVal = normalizeStyleValue(prop, subpartStyle[prop]);
+  if (subpartVal !== undefined) return subpartVal;
+
   // gap 은 resolveCurrentStyleValue 가 rowGap ?? columnGap ?? gap 으로 읽으므로(store longhand
   //   정책) baseline 도 동일 fallback 해야 비대칭이 없다. legacyStyle 이 rowGap/columnGap longhand
   //   만 보유(예: frame {rowGap:0,columnGap:0})하면 legacyStyle["gap"]=undefined → 항상 dirty 였음
@@ -423,15 +468,23 @@ export function useHasDirtyStyles(properties: string[]): boolean {
     const grandParent = parent?.parent_id
       ? elementsMap.get(parent.parent_id)
       : undefined;
-    const { legacyStyle, specStyle } = resolveResetBaseline(element, {
-      parentType: parent?.type,
-      grandParentType: grandParent?.type,
-    });
+    const { legacyStyle, specStyle, subpartStyle } = resolveResetBaseline(
+      element,
+      {
+        parentType: parent?.type,
+        grandParentType: grandParent?.type,
+      },
+    );
 
     for (const prop of properties) {
       const currentValue = resolveCurrentStyleValue(prop, currentStyle);
       if (currentValue === undefined) continue;
-      const resetValue = resolveTargetValue(prop, specStyle, legacyStyle);
+      const resetValue = resolveTargetValue(
+        prop,
+        specStyle,
+        legacyStyle,
+        subpartStyle,
+      );
       if (currentValue !== resetValue) return true;
     }
     return false;
@@ -471,21 +524,35 @@ export function useResetStyles() {
 
     const currentStyle =
       (element.props?.style as Record<string, unknown>) || {};
-    const { legacyStyle, specStyle } = resolveResetBaseline(element, {
-      parentType: parentNode?.type,
-      grandParentType: grandParentNode?.type,
-    });
+    const { legacyStyle, specStyle, subpartStyle } = resolveResetBaseline(
+      element,
+      {
+        parentType: parentNode?.type,
+        grandParentType: grandParentNode?.type,
+      },
+    );
 
     // 실제로 변경이 필요한 속성만 포함 (dirty check)
     const resetObj: Record<string, string> = {};
     properties.forEach((prop) => {
       const currentValue = resolveCurrentStyleValue(prop, currentStyle);
       if (currentValue === undefined) return;
-      const targetValue = resolveTargetValue(prop, specStyle, legacyStyle);
+      const targetValue = resolveTargetValue(
+        prop,
+        specStyle,
+        legacyStyle,
+        subpartStyle,
+      );
+      // reset 값 우선순위: subpart 명시 키는 그 값을 store 에 명시 기록 (specStyle 처럼 ""로 지우면
+      //   specStyle 값으로 되돌아가 부모 컨텍스트 정본이 깨짐). 그 외엔 기존 동작(specStyle 있으면
+      //   "" 삭제 → specStyle fallback, 없으면 legacyStyle 값).
+      const subpartReset = normalizeStyleValue(prop, subpartStyle[prop]);
       const resetValue =
-        specStyle[prop] !== undefined
-          ? ""
-          : (normalizeStyleValue(prop, legacyStyle[prop]) ?? "");
+        subpartReset !== undefined
+          ? subpartReset
+          : specStyle[prop] !== undefined
+            ? ""
+            : (normalizeStyleValue(prop, legacyStyle[prop]) ?? "");
       if (currentValue !== targetValue) {
         resetObj[prop] = resetValue;
       }
