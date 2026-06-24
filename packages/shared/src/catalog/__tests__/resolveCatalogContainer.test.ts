@@ -38,9 +38,10 @@ describe("resolveCatalogContainerBase (Δ2 merge precedence)", () => {
     expect(base["align-items"]).toBe("flex-start");
   });
 
-  it("TextField → structure.composition.containerStyles 가 layout 위에 merge (width fit-content)", () => {
+  it("TextField → structure.composition.containerStyles 가 layout 위에 merge (width 100%)", () => {
+    // 2026-06-24: field 패밀리 width 정본 정정 — 기존 stale "fit-content" → "100%".
     const base = resolveCatalogContainerBase("TextField");
-    expect(base.width).toBe("fit-content");
+    expect(base.width).toBe("100%");
   });
 
   it("top-level rule.containerStyles 가 last-wins (composition override)", () => {

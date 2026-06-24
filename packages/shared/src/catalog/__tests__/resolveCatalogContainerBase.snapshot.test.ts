@@ -24,37 +24,40 @@ describe("resolveCatalogContainerBase — field류 base layout (kebab raw, gap=C
   //   gap 은 composition.gap='var(--spacing-xs)' (CSS-var 문자열) — wrapper 가 숫자 4 로 정규화.
   //   TextArea 만 composition.gap 부재 → 출력에 gap 키 없음(wrapper fallback 4).
 
-  it("TextField → flex-column base + gap CSS-var + width:fit-content", () => {
+  // 2026-06-24: field 패밀리 width 정본 정정 — 기존 stale "fit-content" → "100%"
+  //   (TextField/TextArea/SearchField). factory inline(width:100%) ↔ CSS Preview(fit-content)
+  //   시각 비대칭 + Style Panel false dirty 해소. NumberField/DateField 는 catalog 미채움 정합.
+  it("TextField → flex-column base + gap CSS-var + width:100%", () => {
     expect(resolveCatalogContainerBase("TextField")).toEqual({
       display: "flex",
       "flex-direction": "column",
       "align-items": "flex-start",
       "box-sizing": "border-box",
-      width: "fit-content",
+      width: "100%",
       gap: "var(--spacing-xs)",
     });
   });
 
-  it("TextArea → flex-column base + width:fit-content, **gap 키 부재** (composition.gap 없음)", () => {
+  it("TextArea → flex-column base + width:100%, **gap 키 부재** (composition.gap 없음)", () => {
     const base = resolveCatalogContainerBase("TextArea");
     expect(base).toEqual({
       display: "flex",
       "flex-direction": "column",
       "align-items": "flex-start",
       "box-sizing": "border-box",
-      width: "fit-content",
+      width: "100%",
     });
     // 재배선 후 wrapper 가 gap 부재를 4 로 fallback 해야 함을 lock.
     expect(base).not.toHaveProperty("gap");
   });
 
-  it("SearchField → flex-column base + gap CSS-var + width:fit-content", () => {
+  it("SearchField → flex-column base + gap CSS-var + width:100%", () => {
     expect(resolveCatalogContainerBase("SearchField")).toEqual({
       display: "flex",
       "flex-direction": "column",
       "align-items": "flex-start",
       "box-sizing": "border-box",
-      width: "fit-content",
+      width: "100%",
       gap: "var(--spacing-xs)",
     });
   });

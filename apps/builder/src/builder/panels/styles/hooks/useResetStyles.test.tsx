@@ -216,6 +216,22 @@ describe("useResetStyles — default props false dirty audit", () => {
       type: "SelectTrigger",
       properties: ["width", "display", "flexDirection", "alignItems", "gap"],
     },
+    // ── 2026-06-24 Class B/C false dirty 전수조사 정정 (top-level CSS↔Skia 시각 발산 해소) ──
+    // Image/Toast: factory inline borderRadius(8px, radius 토큰 스케일 외 임의값) 제거 → Skia 가
+    //   catalog specProps(Image radius.none=0 / Toast radius.md=6) 를 받아 CSS Preview 와 정합
+    //   (사용자 결정 = catalog 토큰 정본). factory 에 borderRadius 가 다시 들어오면 이 audit FAIL.
+    { type: "Image", properties: ["width", "height", "borderRadius"] },
+    { type: "Toast", properties: ["borderRadius", "width", "padding"] },
+    // TextField/SearchField/TextArea: catalog composition.containerStyles.width 가 stale "fit-content"
+    //   였다 → factory inline width:100% ↔ CSS Preview(fit-content) 시각 비대칭. catalog width 를
+    //   100% 로 정정(field 패밀리 정본 — NumberField/DateField 는 catalog 미채움으로 이미 정합).
+    { type: "TextField", properties: ["width"] },
+    { type: "SearchField", properties: ["width"] },
+    { type: "TextArea", properties: ["width"] },
+    // ColorField: catalog 가 2026-06-23 "사용자 결정 = factory 정본" 으로 flex-row 확정됐으나 factory
+    //   inline 이 flexDirection:column 으로 남아 Skia(column) ≠ CSS Preview(row) 발산. factory 를
+    //   row 로 정합(catalog 가 정본). factory 가 column 으로 회귀하면 이 audit FAIL.
+    { type: "ColorField", properties: ["flexDirection", "display"] },
   ] as const;
 
   beforeEach(() => {

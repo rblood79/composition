@@ -2081,9 +2081,13 @@ export function createDefaultTimeFieldProps(): BaseElementProps {
 export function createDefaultColorFieldProps(): ColorFieldElementProps {
   return {
     // CSS base: Group border:1px solid var(--outline-variant)
+    //   2026-06-24: flexDirection column → row (catalog 정본 정합). ColorField 는 Label·hex 입력(80px)·
+    //   ColorSwatch(28) 를 가로 배치하는 composition 특화 디자인 — catalog composition.layout 이
+    //   2026-06-23 "사용자 결정 = factory 정본" 으로 flex-row 확정됐으나 factory inline 이 column 으로
+    //   남아 Skia(column) ≠ CSS Preview(row) 시각 비대칭 + Style Panel false dirty 였다. row 정합.
     style: {
       display: "flex",
-      flexDirection: "column",
+      flexDirection: "row",
     },
   };
 }
@@ -2221,10 +2225,13 @@ export function createDefaultImageProps(): BaseElementProps {
     src: "",
     alt: "Image",
     objectFit: "cover",
+    // 2026-06-24: borderRadius 8 (factory inline) 제거 — catalog 토큰(radius.none=0) 정본 정합
+    //   (사용자 결정). factory 8 은 radius 토큰 스케일에 없는 임의 하드코딩이라 Skia(8) ≠ CSS
+    //   Preview(0) 시각 비대칭 + Style Panel false dirty 였다. 제거 시 Skia 가 catalog specProps
+    //   (radius.none) 를 받아 CSS 와 정합. height 200 은 catalog md.height 미러(유지).
     style: {
       width: "100%",
       height: 200,
-      borderRadius: 8,
     },
   };
 }
@@ -2396,12 +2403,15 @@ export function createDefaultTextAreaProps(): BaseElementProps {
 
 export function createDefaultToastProps(): BaseElementProps {
   return {
+    // 2026-06-24: borderRadius "8px" (factory inline) 제거 — catalog 토큰(radius.md=6) 정본 정합
+    //   (사용자 결정). factory 8 은 radius 토큰 스케일에 없는 임의값이라 Skia(8) ≠ CSS Preview(6)
+    //   시각 비대칭 + Style Panel false dirty 였다. 제거 시 Skia 가 catalog specProps(radius.md)
+    //   를 받아 CSS 와 정합. padding "12px 16px"(비대칭)·gap "4px" 는 catalog 정합(유지).
     style: {
       display: "flex",
       flexDirection: "column",
       gap: "4px",
       padding: "12px 16px",
-      borderRadius: "8px",
       width: "fit-content",
     },
   };

@@ -7,7 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [텍스트 자식 typography false dirty 전수조사 — Label fontWeight resolver textWeight 흡수 + Label류 정정] - 2026-06-24
+## [Class B/C false dirty 전수조사 — top-level CSS↔Skia 시각 발산 6종 정정 (field width / Image·Toast radius / ColorField 방향)] - 2026-06-24
+
+Label 류 정정(직전 엔트리)의 후속 — Group D(Table) 제외 **top-level 컴포넌트** 전수 측정(55종, 런타임 dirty resolver 직접 재현). 이전 추정 "Class B/C 36건" 중 sub-part(ProgressBar/Meter Track·Fill, Input, Card 등)는 1차 cutover sweep + `resolveSubpartContextDefaultStyle` baseline 으로 이미 해소(0건 확인). 잔존은 **top-level 6종**이며, Label 류(시각 동일·baseline 만 어긋남)와 달리 전부 **CSS Preview ↔ Skia 실제 시각 발산**(factory inline 이 store→Skia 를 catalog/CSS 와 다른 값으로 구동)이었다. 정정 후 55종 ALL CLEAN.
+
+### Bug Fixes
+
+- **field 패밀리 width false dirty + 시각 발산 3종** (TextField / SearchField / TextArea):
+  - catalog `structure.composition.containerStyles.width` 가 stale `"fit-content"` → CSS Preview(fit-content) ↔ factory inline(width:100%, FormComponents) ↔ Skia(100%) 비대칭 + Style Panel reset 버튼 상시 활성
+  - **Why**: field 패밀리 width 정본은 100%(부모 폭 채움) — NumberField/DateField/TimeField 는 catalog 가 width 를 안 채워(factory 100% 가 baseline) 정합인데 TextField/SearchField/TextArea 만 fit-content outlier. ColorField 가 이미 width:100% 정본(2026-06-23)
+  - 수정: catalog 3종 `composition.containerStyles.width` → `"100%"`. CSS 재생성 시 `.react-aria-{TextField,SearchField,TextArea}` width:100% 로 Skia 대칭
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`
+- **ColorField flexDirection false dirty + 시각 발산** (factory stale):
+  - catalog 가 2026-06-23 "사용자 결정 = factory 정본" 으로 `composition.layout: flex-row` 확정됐으나 `createDefaultColorFieldProps` factory inline 이 `flexDirection: "column"` 으로 남음 → Skia(column) ≠ CSS Preview(row)
+  - **Why**: ColorField 는 Label·hex 입력(80px)·ColorSwatch(28) 를 가로 배치하는 composition 특화 디자인. catalog 정정 시 factory 동반 정정 누락
+  - 수정: factory `flexDirection` `"column"` → `"row"` (catalog 정본 정합). 위치: `apps/builder/src/types/builder/unified.types.ts`
+- **Image / Toast borderRadius false dirty + 시각 발산** (factory 임의 하드코딩):
+  - factory inline borderRadius `8px`(radius 토큰 스케일 외 임의값) ↔ catalog 토큰(Image `radius.none`=0 / Toast `radius.md`=6) → Skia(8) ≠ CSS Preview(0/6)
+  - **Why**: factory 8 은 토큰 스케일에 없는 raw value, catalog 가 토큰 기반 정본(사용자 결정 = catalog 토큰값). ColorField/TextField 와 반대 방향(여기선 catalog 가 정본)
+  - 수정: factory inline `borderRadius` 제거 → Skia 가 catalog specProps(0/6) 를 받아 CSS 정합. live 검증 — Image Border Radius=0 / Toast=6 패널·Skia 표시 확인
+  - 위치: `apps/builder/src/types/builder/unified.types.ts`
 
 cutover 잔존 정합의 후속 전수조사(Group D Table 제외). 직전 sweep 이 **부모 컨테이너만** 정합화하고 텍스트 자식 노드(Label/Heading/Description)의 typography 는 누락했음을 9 factory definition 병렬 audit + adversarial verify(거짓양성 1건 제거)로 확정 — 57 false dirty. 사용자 결정에 따라 회귀 0 으로 깔끔한 **Label 류부터** 정정(Heading/Description 은 시각 정본 판정 필요 → 별도).
 

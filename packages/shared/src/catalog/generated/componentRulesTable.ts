@@ -8084,7 +8084,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         layout: "flex-column",
         gap: "var(--spacing-xs)",
         containerStyles: {
-          width: "fit-content",
+          // 2026-06-24: width fit-content → 100% (field 패밀리 정본, TextField 와 동형 정정).
+          //   factory inline(width:100%, FormComponents) ↔ CSS Preview(fit-content) 시각 비대칭 +
+          //   Style Panel false dirty 해소. CSS 재생성 시 .react-aria-SearchField width:100%.
+          width: "100%",
         },
         containerVariants: {
           "label-position": {
@@ -10787,7 +10790,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       composition: {
         layout: "flex-column",
         containerStyles: {
-          width: "fit-content",
+          // 2026-06-24: width fit-content → 100% (field 패밀리 정본, TextField/SearchField 동형 정정).
+          //   factory inline(width:100%, FormComponents createDefaultTextAreaProps) ↔ CSS Preview
+          //   (fit-content) 시각 비대칭 + Style Panel false dirty 해소. CSS 재생성 시 width:100%.
+          width: "100%",
         },
         containerVariants: {
           "label-position": {
@@ -10914,7 +10920,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         layout: "flex-column",
         gap: "var(--spacing-xs)",
         containerStyles: {
-          width: "fit-content",
+          // 2026-06-24: width fit-content → 100% (field 패밀리 정본). TextField/SearchField 만
+          //   stale fit-content 가 남아 factory inline(width:100%, FormComponents) ↔ CSS Preview
+          //   (fit-content) 시각 비대칭 + Style Panel false dirty 였다. NumberField/DateField/TimeField
+          //   는 catalog 가 width 를 안 채워(factory 100% 가 baseline) 정합 — 같은 패밀리 outlier 정정.
+          //   ColorField 가 이미 width:100% 정본(2026-06-23). CSS 재생성 시 .react-aria-TextField
+          //   width:100% 로 Skia(factory) 대칭.
+          width: "100%",
         },
         containerVariants: {
           "label-position": {

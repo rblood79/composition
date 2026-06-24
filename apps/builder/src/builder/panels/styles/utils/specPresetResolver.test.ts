@@ -391,9 +391,10 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       // TextFieldSpec.containerStyles.display="flex" — Layout 에 반영
       const layout = resolveLayoutSpecPreset("TextField", "xxl");
       expect(layout.display).toBe("flex");
-      // composition.containerStyles = { width:"fit-content" } → Transform 경로 kebab 허용
+      // composition.containerStyles = { width:"100%" } → Transform 경로 kebab 허용
+      //   (2026-06-24: field 패밀리 width 정본 정정 — 기존 stale "fit-content" → "100%").
       const transform = resolveSpecPreset("TextField", "xxl");
-      expect(transform.width).toBe("fit-content");
+      expect(transform.width).toBe("100%");
       // composition.containerStyles 의 '--label-font-size' 등 커스텀 CSS var 은
       //   resolver scope 외 → Typography preset 에 미반영 (현재 scope 외 명시)
       const typo = resolveTypographySpecPreset("TextField", "xxl");
