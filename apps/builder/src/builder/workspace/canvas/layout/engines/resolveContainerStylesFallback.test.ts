@@ -167,14 +167,14 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
   //   2. kebab→camel: resolveCatalogContainerBase 출력은 kebab(flex-direction), wrapper 는 camelCase
   //   3. gap CSS-var: catalog gap='var(--spacing-xs)' (isValidTokenRef reject) → cssVarToTokenRef
   describe("field류 — catalog structure.composition base 재배선 (Phase 3-A-3a)", () => {
-    it("textfield → flex-column base (camelCase) + gap 숫자 4 + width:fit-content", () => {
+    it("textfield → flex-column base (camelCase) + gap 숫자 4 + width:100%", () => {
       const fb = resolveContainerStylesFallback("textfield", {});
       expect(fb.display).toBe("flex");
       expect(fb.flexDirection).toBe("column");
       expect(fb.alignItems).toBe("flex-start");
       // gap: 'var(--spacing-xs)' → cssVarToTokenRef → {spacing.xs} → 4 (number)
       expect(fb.gap).toBe(4);
-      expect(fb.width).toBe("fit-content");
+      expect(fb.width).toBe("100%");
       // kebab key 가 누출되면 안 됨 (camelCase 정규화 필수)
       expect(fb).not.toHaveProperty("flex-direction");
       expect(fb).not.toHaveProperty("align-items");
@@ -186,7 +186,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       expect(fb.flexDirection).toBe("column");
       // TextArea 는 composition.gap 부재 → wrapper 출력에 gap 없음(분기에서 ?? 4 로 보강).
       expect(fb).not.toHaveProperty("gap");
-      expect(fb.width).toBe("fit-content");
+      expect(fb.width).toBe("100%");
     });
 
     it.each([
@@ -305,6 +305,34 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         width: "fit-content",
       });
       expect(fb).not.toHaveProperty("flexDirection");
+    });
+
+    it("tableview 자식 layout 은 catalog rule fallback 으로 공급", () => {
+      expect(resolveContainerStylesFallback("tableview", {})).toMatchObject({
+        display: "flex",
+        flexDirection: "column",
+        width: "100%",
+      });
+      expect(resolveContainerStylesFallback("tableheader", {})).toMatchObject({
+        display: "flex",
+        flexDirection: "row",
+      });
+      expect(resolveContainerStylesFallback("tablebody", {})).toMatchObject({
+        display: "flex",
+        flexDirection: "column",
+      });
+      expect(resolveContainerStylesFallback("row", {})).toMatchObject({
+        display: "flex",
+        flexDirection: "row",
+      });
+      expect(resolveContainerStylesFallback("column", {})).toMatchObject({
+        flex: "1",
+        padding: 8,
+      });
+      expect(resolveContainerStylesFallback("cell", {})).toMatchObject({
+        flex: "1",
+        padding: 8,
+      });
     });
   });
 });

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [TableView 자식 layout SSOT 를 factory inline → catalog 이전 (Group D)] - 2026-06-24
+
+`createTableViewDefinition` 이 자식(TableHeader/TableBody/Row/Column/Cell)에 직접 주입하던 inline layout(`display`/`flexDirection`/`flex`/`padding`/`fontWeight`)을 제거하고, `COMPONENT_RULES_TABLE` 의 컴포넌트별 `containerStyles` 단일 정본으로 이전했다. 신규 TableView 생성 트리의 자식 `props.style` 이 빈 객체가 되어 Style Panel false dirty 가 근본 제거된다(이전엔 inline 값이 dirty baseline 에 없어 손대지 않은 신규 요소가 modified 로 표시됐다).
+
+### Architecture
+
+- **TableView 자식 layout → catalog SSOT 이전** (Group D):
+  - `createTableViewDefinition` 의 자식 inline `style` 전수 제거 + `createDefaultTableViewProps` 의 root `style` 제거
+  - `COMPONENT_RULES_TABLE` 에 TableHeader/TableBody/Row/Column/Cell `containerStyles` 신설 — Cell/Column `padding: {spacing.sm}`(=8px, react-aria-starter Table 정본 `var(--spacing-2)`=8px 정합), Column `fontWeight: 600`
+  - `CONTAINER_STYLES_FALLBACK_KEYS` 에 `flex` 추가 — catalog containerStyles 의 `flex` 가 Skia/Taffy 에 도달
+  - **Why**: factory inline 과 dirty baseline 2-source 불일치가 false dirty 원인. catalog 단일 정본화로 양쪽 동시 해소 + Skia Cell padding 이 starter 정본(8px)과 정합
+  - 위치: `apps/builder/src/builder/factories/definitions/DisplayComponents.ts`, `apps/builder/src/types/builder/unified.types.ts`, `packages/shared/src/catalog/generated/componentRulesTable.ts`, `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`
+
+### Infrastructure
+
+- **회귀 가드**: `tableViewCatalogLayout.test.ts` — TableView 생성 트리가 layout literal 을 factory `props.style` 에 보유하지 않음을 정적 검증(catalog 이전 회귀 차단)
+- generated CSS 재생성: `generated/TableView.css` 에 root `containerStyles`(width/display/flexDirection) 반영
+
 ## [Modified Styles false positive 정합 — modify 뱃지·패널이 reset 버튼과 동일 baseline 공유] - 2026-06-24
 
 "컴포넌트를 page 에 등록 → 수정하지 않았는데 우측 패널 Modified Styles(modify N) 에 항목이 나타나고, 그 항목의 reset 은 비활성" 이라는 사용자 보고. 원인은 두 뷰가 같은 `element.props.style` 을 보면서 **판정 기준이 달랐던 것** — reset 버튼은 baseline 비교(factory default 제외)인데, Modified Styles 는 `Object.keys(style)` 즉 inline 키 존재만 판정했다. composition 은 factory/origin 이 layout 을 `props.style` 에 직접 주입하므로(예: Form `{display,flexDirection,gap,width}`) 신규 요소가 손대지 않아도 modified 로 표시됐다.

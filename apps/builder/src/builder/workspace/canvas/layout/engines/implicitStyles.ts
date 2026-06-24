@@ -335,6 +335,7 @@ export function resolveContainerStylesFallback(
  */
 const CONTAINER_STYLES_FALLBACK_KEYS = [
   "display",
+  "flex",
   "flexDirection",
   "flexWrap",
   "alignItems",

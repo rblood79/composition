@@ -17,8 +17,8 @@ import { LOWERCASE_TAG_SPEC_MAP } from "./tagToElement";
 
 /**
  * ContainerStylesSchema layout primitive 필드 (ADR-083/084/085/089 누적):
- *   - display/flexDirection/flexWrap/alignItems/justifyContent/width/maxHeight/
- *     overflow/outline/gap/padding (11)
+ *   - display/flex/flexDirection/flexWrap/alignItems/justifyContent/width/maxHeight/
+ *     overflow/outline/gap/padding (12)
  *   - gridTemplateAreas/gridTemplateColumns/gridTemplateRows (3) — Meter/ProgressBar
  *   - position (1) — SliderTrack absolute 배치 기준
  *
@@ -26,6 +26,7 @@ import { LOWERCASE_TAG_SPEC_MAP } from "./tagToElement";
  */
 const CONTAINER_STYLES_FALLBACK_KEYS = [
   "display",
+  "flex",
   "flexDirection",
   "flexWrap",
   "alignItems",

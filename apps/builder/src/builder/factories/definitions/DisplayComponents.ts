@@ -683,81 +683,58 @@ export function createTableViewDefinition(
         density: "regular",
         isStriped: false,
         allowsSorting: true,
-        style: {
-          display: "flex",
-          flexDirection: "column",
-          width: "100%",
-        },
       } as ComponentElementProps,
       parent_id: parentId,
     },
     children: [
       {
         type: "TableHeader",
-        props: {
-          style: {
-            display: "flex",
-            flexDirection: "row",
-          },
-        } as ComponentElementProps,
+        props: {} as ComponentElementProps,
         children: [
           {
             type: "Column",
             props: {
               children: "Name",
-              style: { flex: 1, padding: 8, fontWeight: 600 },
             } as ComponentElementProps,
           },
           {
             type: "Column",
             props: {
               children: "Type",
-              style: { flex: 1, padding: 8, fontWeight: 600 },
             } as ComponentElementProps,
           },
           {
             type: "Column",
             props: {
               children: "Status",
-              style: { flex: 1, padding: 8, fontWeight: 600 },
             } as ComponentElementProps,
           },
         ],
       },
       {
         type: "TableBody",
-        props: {
-          style: {
-            display: "flex",
-            flexDirection: "column",
-          },
-        } as ComponentElementProps,
+        props: {} as ComponentElementProps,
         children: [
           {
             type: "Row",
-            props: {
-              style: { display: "flex", flexDirection: "row" },
-            } as ComponentElementProps,
+            props: {} as ComponentElementProps,
             children: [
               {
                 type: "Cell",
                 props: {
                   children: "Item 1",
-                  style: { flex: 1, padding: 8 },
                 } as ComponentElementProps,
               },
               {
                 type: "Cell",
                 props: {
                   children: "File",
-                  style: { flex: 1, padding: 8 },
                 } as ComponentElementProps,
               },
               {
                 type: "Cell",
                 props: {
                   children: "Active",
-                  style: { flex: 1, padding: 8 },
                 } as ComponentElementProps,
               },
             ],

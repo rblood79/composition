@@ -428,6 +428,43 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       expect(layout.display).toBe("inline-flex");
       expect(layout.alignItems).toBe("center");
     });
+
+    it("TableView + 자식 layout 은 catalog rule 에서 공급", () => {
+      expect(resolveSpecPreset("TableView", undefined)).toMatchObject({
+        width: "100%",
+      });
+      expect(resolveLayoutSpecPreset("TableView", undefined)).toMatchObject({
+        display: "flex",
+        flexDirection: "column",
+      });
+      expect(resolveLayoutSpecPreset("TableHeader", undefined)).toMatchObject({
+        display: "flex",
+        flexDirection: "row",
+      });
+      expect(resolveLayoutSpecPreset("TableBody", undefined)).toMatchObject({
+        display: "flex",
+        flexDirection: "column",
+      });
+      expect(resolveLayoutSpecPreset("Row", undefined)).toMatchObject({
+        display: "flex",
+        flexDirection: "row",
+      });
+      expect(resolveLayoutSpecPreset("Column", undefined)).toMatchObject({
+        paddingTop: 8,
+        paddingRight: 8,
+        paddingBottom: 8,
+        paddingLeft: 8,
+      });
+      expect(resolveTypographySpecPreset("Column", undefined)).toMatchObject({
+        fontWeight: "600",
+      });
+      expect(resolveLayoutSpecPreset("Cell", undefined)).toMatchObject({
+        paddingTop: 8,
+        paddingRight: 8,
+        paddingBottom: 8,
+        paddingLeft: 8,
+      });
+    });
   });
 
   describe("ADR-082 A2 — Transform extractor (containerStyles / composition string 값)", () => {

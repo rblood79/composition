@@ -2387,7 +2387,6 @@ export function createDefaultTableViewProps(): BaseElementProps {
     isStriped: false,
     isQuiet: false,
     allowsSorting: true,
-    style: { display: "flex", flexDirection: "column", width: "100%" },
   };
 }
 

@@ -10171,6 +10171,138 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  TableHeader: {
+    defaultVariant: "default",
+    defaultSize: "md",
+    variants: {
+      default: {
+        fill: {
+          default: {
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
+          },
+          alpha: 0,
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+    },
+    sizes: {
+      md: {},
+    },
+    containerStyles: {
+      display: "flex",
+      flexDirection: "row",
+    },
+  },
+  TableBody: {
+    defaultVariant: "default",
+    defaultSize: "md",
+    variants: {
+      default: {
+        fill: {
+          default: {
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
+          },
+          alpha: 0,
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+    },
+    sizes: {
+      md: {},
+    },
+    containerStyles: {
+      display: "flex",
+      flexDirection: "column",
+    },
+  },
+  Row: {
+    defaultVariant: "default",
+    defaultSize: "md",
+    variants: {
+      default: {
+        fill: {
+          default: {
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
+          },
+          alpha: 0,
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+    },
+    sizes: {
+      md: {},
+    },
+    containerStyles: {
+      display: "flex",
+      flexDirection: "row",
+    },
+  },
+  Column: {
+    defaultVariant: "default",
+    defaultSize: "md",
+    variants: {
+      default: {
+        fill: {
+          default: {
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
+          },
+          alpha: 0,
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+    },
+    sizes: {
+      md: {
+        fontWeight: 600,
+      },
+    },
+    containerStyles: {
+      flex: "1",
+      padding: "{spacing.sm}",
+    },
+  },
+  Cell: {
+    defaultVariant: "default",
+    defaultSize: "md",
+    variants: {
+      default: {
+        fill: {
+          default: {
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
+          },
+          alpha: 0,
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+    },
+    sizes: {
+      md: {},
+    },
+    containerStyles: {
+      flex: "1",
+      padding: "{spacing.sm}",
+    },
+  },
   Table: {
     defaultVariant: "default",
     defaultSize: "md",
@@ -10274,10 +10406,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: "auto",
       },
     },
+    containerStyles: {
+      display: "flex",
+      flexDirection: "column",
+      width: "100%",
+    },
     structure: {
       archetype: "default",
       element: "div",
-      containerStyles: undefined,
+      containerStyles: {
+        display: "flex",
+        flexDirection: "column",
+        width: "100%",
+      },
     },
   },
   Tabs: {

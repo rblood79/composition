@@ -17,10 +17,11 @@ import type { PrimitiveBinding } from "../types";
  *   variant prop 으로 default/quiet 시각을 그려 DOM 과 대칭(구 isQuiet boolean 은 Skia 미해석 →
  *   비대칭이었음).
  *
- * **시각 = generic shell(자식 Table 트리가 내용 렌더) + factory props.style layout**: TableView 는
+ * **시각 = generic shell(자식 Table 트리가 내용 렌더) + catalog layout baseline**: TableView 는
  *   컨테이너이므로 buildCatalogShapes 가 `_hasChildren` shell(variant 별 bg+border)을 그리고 자식
- *   Table/Header/Row/Cell Element 가 표 내용을 담당한다. container layout(`display:flex` /
- *   `flexDirection:column` / `width`)은 factory `props.style` SSOT(ADR-907 Layer B, Skia/Taffy read).
+ *   Table/Header/Row/Cell Element 가 표 내용을 담당한다. factory/default props 에 중복하던
+ *   container layout(`display:flex` / `flexDirection:column` / `width`)은
+ *   `COMPONENT_RULES_TABLE.TableView.containerStyles` 가 공급한다.
  *
  * **D2 BC (사용자 명시 승인 2026-06-15)**: `isQuiet` boolean → `variant: "quiet"` 정규화. factory
  *   기본값 isQuiet:false → variant:default 이므로 신규 TableView 영향 0. isQuiet:true 토글한 기존
