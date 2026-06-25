@@ -74,6 +74,60 @@ export const searchFieldBinding: PrimitiveBinding = {
         label: "Error Message",
         section: "state",
       },
+      // ADR-915 P1.5-b: 텍스트 HTML 입력 힌트 attr (RAC SearchField 공식 prop, `<input>` 전달).
+      //   controlled-value(value/defaultValue)와 직교 — 순수 입력 힌트라 회귀 위험 0.
+      autoComplete: {
+        kind: "string",
+        label: "Auto Complete",
+        section: "content",
+      },
+      autoCorrect: {
+        kind: "enum",
+        label: "Auto Correct",
+        section: "content",
+        options: [
+          { value: "on", label: "On" },
+          { value: "off", label: "Off" },
+        ],
+      },
+      inputMode: {
+        kind: "enum",
+        label: "Input Mode",
+        section: "content",
+        options: [
+          { value: "text", label: "Text" },
+          { value: "numeric", label: "Numeric" },
+          { value: "decimal", label: "Decimal" },
+          { value: "tel", label: "Tel" },
+          { value: "url", label: "URL" },
+          { value: "email", label: "Email" },
+          { value: "search", label: "Search" },
+          { value: "none", label: "None" },
+        ],
+      },
+      enterKeyHint: {
+        kind: "enum",
+        label: "Enter Key Hint",
+        section: "content",
+        options: [
+          { value: "enter", label: "Enter" },
+          { value: "done", label: "Done" },
+          { value: "go", label: "Go" },
+          { value: "next", label: "Next" },
+          { value: "previous", label: "Previous" },
+          { value: "search", label: "Search" },
+          { value: "send", label: "Send" },
+        ],
+      },
+      spellCheck: {
+        kind: "enum",
+        label: "Spell Check",
+        section: "content",
+        options: [
+          { value: "true", label: "On" },
+          { value: "false", label: "Off" },
+        ],
+      },
       isRequired: { kind: "boolean", label: "Required", section: "state" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },

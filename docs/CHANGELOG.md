@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [텍스트 입력 힌트 attr 복원 — ADR-915 P1.5-b] - 2026-06-26
+
+ADR-915 P1.5(RSP custom — accepts + 렌더러 wiring 양쪽 필요) 중 controlled-value 위험이 0인 텍스트 HTML 입력 힌트 그룹부터 착수했다. P1(accepts 만 추가, 렌더러 기존 소비)과 달리 렌더러 forward 도 직접 추가한다.
+
+### Features
+
+- **TextField/SearchField 입력 힌트 attr 복원 (P1.5-b)**:
+  - `autoComplete`(string) / `autoCorrect`(on/off) / `inputMode`(8종) / `enterKeyHint`(7종) / `spellCheck`(on/off) 를 TextField·SearchField binding accepts + `renderTextField`·`renderSearchField` forward 양쪽에 추가
+  - 모두 RAC TextField/SearchField 공식 prop 으로 `<input>` 에 전달되는 순수 HTML 입력 힌트 — controlled-value(value/defaultValue)와 직교라 회귀 위험 0 (기존 `defaultValue` uncontrolled 패턴 유지). RAC 문서로 5종 전부 지원 확인
+  - TextArea 는 P1.5-b 대상에서 제외: rendererMap 에 TextArea 키 없음(generic fallback 렌더) → accepts 추가해도 forward 할 렌더러 부재로 dead. 전용 렌더러 추가는 별도 작업
+  - live 검증: 빌더 TextField 패널 Content 섹션에 Auto Complete/Auto Correct/Input Mode/Enter Key Hint/Spell Check 5개 렌더 + Auto Complete 편집 → `store.props.autoComplete` 반영 확인. resolveEditContract 가 inputMode enum 8옵션 파생 확인
+  - 위치: `packages/shared/src/catalog/bindings/{TextField,SearchField}.binding.ts`, `packages/shared/src/renderers/FormRenderers.tsx`
+
 ## [Catalog prop parity 복원 — ADR-915 P0 정정 + P1 폼 기능] - 2026-06-25
 
 ADR-912 spec→catalog cutover 과정에서 catalog `binding.props.accepts` 로 옮겨지며 축소된 편집 prop 을 RAC / React Spectrum 공식 기준으로 복원했다. P0(prop kind 정정) + P1(폼 값/HTML 속성/날짜 제약 복원) 범위. 빌더 패널(PropertiesPanel → useEditContract → resolveEditContract → GenericFieldRenderer)에 누락됐던 편집 UI 가 다시 노출된다. P2/P3(컬렉션 core / Color 채널 / Heading.level / Popover placement)는 별도 ADR 후속.

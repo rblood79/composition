@@ -181,6 +181,44 @@ export const renderTextField = (
         "top"
       }
       name={element.props.name ? String(element.props.name) : undefined}
+      autoComplete={
+        element.props.autoComplete
+          ? String(element.props.autoComplete)
+          : undefined
+      }
+      autoCorrect={
+        element.props.autoCorrect
+          ? String(element.props.autoCorrect)
+          : undefined
+      }
+      inputMode={
+        element.props.inputMode
+          ? (element.props.inputMode as
+              | "text"
+              | "numeric"
+              | "decimal"
+              | "tel"
+              | "url"
+              | "email"
+              | "search"
+              | "none")
+          : undefined
+      }
+      enterKeyHint={
+        element.props.enterKeyHint
+          ? (element.props.enterKeyHint as
+              | "enter"
+              | "done"
+              | "go"
+              | "next"
+              | "previous"
+              | "search"
+              | "send")
+          : undefined
+      }
+      spellCheck={
+        element.props.spellCheck ? String(element.props.spellCheck) : undefined
+      }
       onChange={(value) => {
         const updatedProps = {
           ...element.props,
@@ -318,6 +356,44 @@ export const renderSearchField = (
         "top"
       }
       name={element.props.name ? String(element.props.name) : undefined}
+      autoComplete={
+        element.props.autoComplete
+          ? String(element.props.autoComplete)
+          : undefined
+      }
+      autoCorrect={
+        element.props.autoCorrect
+          ? String(element.props.autoCorrect)
+          : undefined
+      }
+      inputMode={
+        element.props.inputMode
+          ? (element.props.inputMode as
+              | "text"
+              | "numeric"
+              | "decimal"
+              | "tel"
+              | "url"
+              | "email"
+              | "search"
+              | "none")
+          : undefined
+      }
+      enterKeyHint={
+        element.props.enterKeyHint
+          ? (element.props.enterKeyHint as
+              | "enter"
+              | "done"
+              | "go"
+              | "next"
+              | "previous"
+              | "search"
+              | "send")
+          : undefined
+      }
+      spellCheck={
+        element.props.spellCheck ? String(element.props.spellCheck) : undefined
+      }
       size={(element.props.size as "xs" | "sm" | "md" | "lg" | "xl") || "md"}
       onChange={(value) => {
         const updatedProps = {
