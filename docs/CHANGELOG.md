@@ -31,10 +31,15 @@ TableView 의 정적 자식(TableHeader/TableBody/Column/Row/Cell)이 Builder Ca
   - Preview `TABLEVIEW_CHILD_STYLE` Column/Cell 에 `textAlign: "left"` 명시(catalog rule 미러 — generic div 인라인 완결 패턴, 브라우저 기본 의존 대신 SSOT 미러)
   - **Why**: textAlign 은 보편 D3 속성인데 Column/Cell rule 이 미명시 → Skia 가 box 휴리스틱(center)로 떨어져 CSS(left)와 발산. rule 명시로 단일 결과
   - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`, `packages/shared/src/renderers/LayoutRenderers.tsx`
+- **Skia 에서 Column/Cell padding 8px 미적용 → 텍스트가 셀 좌측 가장자리에 붙음(Preview 8px 와 발산)**:
+  - Column/Cell 의 padding 은 catalog `containerStyles.padding`(`{spacing.sm}`=8px)에만 있는데, 이는 Taffy box / Preview CSS 용이고 **leaf 의 Skia 텍스트 x offset 에는 도달 안 한다**. `buildCatalogShapes` 의 `textX = paddingX(= style?.padding ?? size.paddingX ?? 0)` 는 `size`(=`rule.sizes`)만 보는데 `resolveMergedStyle` base 가 `rule.sizes` 만 포함(`containerStyles` 미포함) → Skia `paddingX=0` → 텍스트가 셀 좌측 가장자리에 붙음(Skia=0, CSS=8px)
+  - `COMPONENT_RULES_TABLE.Column/Cell.sizes.md` 에 `paddingX: 8, paddingY: 8` 추가 → `buildCatalogShapes` 가 `size.paddingX` 로 textX=8 산출(Button `sizes.paddingX:4` 동형 — box leaf 텍스트 padding 정본 채널=`sizes`). 값 8 = `{spacing.sm}`(containerStyles.padding)과 동일 → 시각 일치
+  - **Why**: box leaf 의 텍스트 padding 은 `containerStyles`(Taffy/CSS box) 가 아니라 `sizes.paddingX/Y`(Skia 텍스트 offset)가 정본 채널 — Column/Cell rule 이 `sizes` paddingX 를 미명시해 Skia 가 0 으로 떨어졌다
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`
 
 ### Infrastructure
 
-- `componentCatalog.test.ts` family ① oracle 42 → 47(TableHeader/TableBody/Column/Row/Cell 추가). live 검증: Home 페이지 TableView 추가 → Skia 에 Name/Type/Status 헤더 + Item 1/File/Active 행이 3등분 균등 배치(텍스트 겹침 해소) + 셀 텍스트 좌측 정렬(Skia ↔ Preview `textAlign: left` 일치) → Preview CSS(x=1/130/258, w=129 each)와 시각 정합 확인. `fullTreeLayout` 테스트 10 + `buildCatalogShapes` 126 PASS, type-check 0 신규 위반
+- `componentCatalog.test.ts` family ① oracle 42 → 47(TableHeader/TableBody/Column/Row/Cell 추가). live 검증: Home 페이지 TableView 추가 → Skia 에 Name/Type/Status 헤더 + Item 1/File/Active 행이 3등분 균등 배치(텍스트 겹침 해소) + 셀 텍스트 좌측 정렬(`textAlign: left`) + 셀 좌측 8px padding(Skia 텍스트 x=8) → Preview CSS(x=1/130/258, w=129 each, padding 8px)와 시각 정합 확인. `fullTreeLayout` 10 + `buildCatalogShapes` 126 PASS, type-check 0 신규 위반
 
 ## [TableView 자식 트리 Preview 미렌더 정정 — generic div 직접 렌더 (Group D)] - 2026-06-25
 

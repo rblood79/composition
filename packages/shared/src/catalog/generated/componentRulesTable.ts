@@ -10276,6 +10276,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     sizes: {
       md: {
         fontWeight: 600,
+        // paddingX/Y 8: buildCatalogShapes 의 textX = paddingX(= size.paddingX ?? 0)로 텍스트를
+        //   셀 안쪽으로 민다. containerStyles.padding(8px)은 Taffy box / Preview CSS 용이고 leaf
+        //   Column/Cell 의 Skia 텍스트 x offset 에는 도달 안 함(resolveMergedStyle base=sizes 만,
+        //   containerStyles 미포함) → Skia paddingX=0 으로 텍스트가 좌측 가장자리 붙음(Skia=0,
+        //   CSS=8px 발산). Button(sizes.paddingX:4) 동형 — box leaf 텍스트 padding 정본 채널=sizes.
+        //   값 8 = {spacing.sm}(containerStyles.padding)과 동일 → 시각 일치.
+        paddingX: 8,
+        paddingY: 8,
       },
     },
     containerStyles: {
@@ -10304,7 +10312,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      md: {},
+      md: {
+        // paddingX/Y 8: Column 과 동형 — containerStyles.padding 은 Skia 텍스트 x 에 미도달이라
+        //   sizes.paddingX 가 텍스트 padding 정본 채널(buildCatalogShapes textX). 값 8={spacing.sm}.
+        paddingX: 8,
+        paddingY: 8,
+      },
     },
     containerStyles: {
       flex: "1",
