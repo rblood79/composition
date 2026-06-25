@@ -87,6 +87,15 @@ target-install/
 # TypeScript compiled output (tsc -b) alongside source files
 apps/builder/src/**/*.js
 !apps/builder/src/**/*.config.js
+# packages/shared: composite tsc 가 src 옆에 emit 한 산출물 (Vite 가 .ts 대신 .js 우선 로드 → HMR 오염).
+# 원본 .ts/.tsx 만 추적, .js/.d.ts/.map 산출물은 무시 (ADR-915 발견 2026-06-25, 커밋 367fe7b3b 오염 정리)
+packages/shared/src/**/*.js
+packages/shared/src/**/*.js.map
+packages/shared/src/**/*.d.ts
+packages/shared/src/**/*.d.ts.map
+!packages/shared/src/**/*.config.js
+# 손수 작성 ambient 선언(컴파일 산출물 아님) — CSS/에셋 side-effect import 타입 제공
+!packages/shared/src/css-modules.d.ts
 
 # Git worktrees (superpowers skill + agent isolation)
 .worktrees/

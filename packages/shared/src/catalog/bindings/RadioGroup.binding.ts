@@ -65,6 +65,9 @@ export const radioGroupBinding: PrimitiveBinding = {
           { value: "side", label: "Side" },
         ],
       },
+      // form binding props
+      value: { kind: "string", label: "Value", section: "content" },
+      name: { kind: "string", label: "Name", section: "content" },
       isRequired: { kind: "boolean", label: "Required", section: "state" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },

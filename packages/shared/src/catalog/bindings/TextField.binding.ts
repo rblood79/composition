@@ -81,6 +81,14 @@ export const textFieldBinding: PrimitiveBinding = {
           { value: "number", label: "Number" },
         ],
       },
+      // form binding props
+      value: { kind: "string", label: "Value", section: "content" },
+      name: { kind: "string", label: "Name", section: "content" },
+      errorMessage: {
+        kind: "string",
+        label: "Error Message",
+        section: "state",
+      },
       isRequired: { kind: "boolean", label: "Required", section: "state" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },

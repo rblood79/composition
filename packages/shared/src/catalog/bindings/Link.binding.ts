@@ -90,6 +90,12 @@ export const linkBinding: PrimitiveBinding = {
       },
       rel: { kind: "string", label: "Rel", section: "state" },
       isExternal: { kind: "boolean", label: "External Link", section: "state" },
+      // live consumer: LayoutRenderers.tsx renderLink line 1030
+      showExternalIcon: {
+        kind: "boolean",
+        label: "Show External Icon",
+        section: "state",
+      },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",

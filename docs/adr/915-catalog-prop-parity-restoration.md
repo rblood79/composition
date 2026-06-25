@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed — 2026-06-25
+Accepted — 2026-06-25
+
+> Proposed → Accepted (2026-06-25): 대안 B HIGH 0 + 사용자 explicit confirm (P0 정정 → P1 폼 기능 순서 착수). Gate G1~G4 는 각 phase 진입 시 관리.
 
 ## Context
 

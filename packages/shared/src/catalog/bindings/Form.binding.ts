@@ -81,6 +81,48 @@ export const formBinding: PrimitiveBinding = {
           { value: "aria", label: "ARIA" },
         ],
       },
+      // form HTML attributes — live consumer: FormRenderers.tsx renderForm
+      action: { kind: "string", label: "Action", section: "state" },
+      method: {
+        kind: "enum",
+        label: "Method",
+        section: "state",
+        default: "get",
+        options: [
+          { value: "get", label: "GET" },
+          { value: "post", label: "POST" },
+        ],
+      },
+      encType: {
+        kind: "enum",
+        label: "Enc Type",
+        section: "state",
+        options: [
+          {
+            value: "application/x-www-form-urlencoded",
+            label: "URL Encoded",
+          },
+          { value: "multipart/form-data", label: "Multipart" },
+          { value: "text/plain", label: "Plain Text" },
+        ],
+      },
+      target: {
+        kind: "enum",
+        label: "Target",
+        section: "state",
+        options: [
+          { value: "_self", label: "Self" },
+          { value: "_blank", label: "Blank" },
+          { value: "_parent", label: "Parent" },
+          { value: "_top", label: "Top" },
+        ],
+      },
+      autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
+      restoreFocus: {
+        kind: "boolean",
+        label: "Restore Focus",
+        section: "state",
+      },
     },
     toRacProps: "default",
   },

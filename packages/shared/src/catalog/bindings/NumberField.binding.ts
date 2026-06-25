@@ -60,6 +60,14 @@ export const numberFieldBinding: PrimitiveBinding = {
       minValue: { kind: "number", label: "Min Value", section: "content" },
       maxValue: { kind: "number", label: "Max Value", section: "content" },
       step: { kind: "number", label: "Step", section: "content", min: 0 },
+      // form binding props
+      value: { kind: "string", label: "Value", section: "content" },
+      name: { kind: "string", label: "Name", section: "content" },
+      errorMessage: {
+        kind: "string",
+        label: "Error Message",
+        section: "state",
+      },
       isRequired: { kind: "boolean", label: "Required", section: "state" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },

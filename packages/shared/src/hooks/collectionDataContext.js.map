@@ -1,1 +1,0 @@
-{"version":3,"file":"collectionDataContext.js","sourceRoot":"","sources":["collectionDataContext.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,aAAa,EAAE,UAAU,EAAE,MAAM,OAAO,CAAC;AAGlD,MAAM,CAAC,MAAM,qBAAqB,GAAG,aAAa,CAAyB,EAAE,CAAC,CAAC;AAE/E;;GAEG;AACH,MAAM,UAAU,yBAAyB;IACvC,OAAO,UAAU,CAAC,qBAAqB,CAAC,CAAC;AAC3C,CAAC"}

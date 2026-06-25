@@ -81,6 +81,12 @@ export const cardBinding: PrimitiveBinding = {
           { value: "horizontal", label: "Horizontal" },
         ],
       },
+      // live consumer: LayoutRenderers.tsx renderCard line 254/291 (data-accent attr)
+      accentColor: {
+        kind: "string",
+        label: "Accent Color",
+        section: "appearance",
+      },
       // interactions / state
       href: { kind: "string", label: "Link", section: "state" },
       target: {

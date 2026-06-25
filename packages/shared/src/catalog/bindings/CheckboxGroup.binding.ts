@@ -65,6 +65,8 @@ export const checkboxGroupBinding: PrimitiveBinding = {
           { value: "side", label: "Side" },
         ],
       },
+      // form binding props
+      name: { kind: "string", label: "Name", section: "content" },
       isRequired: { kind: "boolean", label: "Required", section: "state" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },

@@ -30,6 +30,17 @@ export const dialogBinding: PrimitiveBinding = {
         label: "Dismissable",
         section: "state",
       },
+      // live consumer: LayoutRenderers.tsx renderDialog line 630
+      role: {
+        kind: "enum",
+        label: "Role",
+        section: "state",
+        default: "dialog",
+        options: [
+          { value: "dialog", label: "Dialog" },
+          { value: "alertdialog", label: "Alert Dialog" },
+        ],
+      },
     },
     toRacProps: "default",
   },

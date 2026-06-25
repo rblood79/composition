@@ -37,6 +37,24 @@ export const tabsBinding: PrimitiveBinding = {
           { value: "vertical", label: "Vertical" },
         ],
       },
+      // live consumer: LayoutRenderers.tsx renderTabs line 143/167 (Tabs + TabList)
+      density: {
+        kind: "enum",
+        label: "Density",
+        section: "appearance",
+        default: "regular",
+        options: [
+          { value: "compact", label: "Compact" },
+          { value: "regular", label: "Regular" },
+        ],
+      },
+      // live consumer: LayoutRenderers.tsx renderTabs line 171 (TabList showIndicator)
+      showIndicator: {
+        kind: "boolean",
+        label: "Show Indicator",
+        section: "appearance",
+        default: true,
+      },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",

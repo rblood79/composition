@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Catalog prop parity 복원 — ADR-915 P0 정정 + P1 폼 기능] - 2026-06-25
+
+ADR-912 spec→catalog cutover 과정에서 catalog `binding.props.accepts` 로 옮겨지며 축소된 편집 prop 을 RAC / React Spectrum 공식 기준으로 복원했다. P0(prop kind 정정) + P1(폼 값/HTML 속성/날짜 제약 복원) 범위. 빌더 패널(PropertiesPanel → useEditContract → resolveEditContract → GenericFieldRenderer)에 누락됐던 편집 UI 가 다시 노출된다. P2/P3(컬렉션 core / Color 채널 / Heading.level / Popover placement)는 별도 ADR 후속.
+
+### Bug Fixes
+
+- **Input `variant` 시각 라우팅 이탈 (P0 0-6)**:
+  - Input.binding 의 `variant` 가 `kind:"enum"` 으로 잘못 정의되어 `toRacProps` 의 `DATA_ATTR_KINDS`(variant/size/fillStyle → `data-*` emit)에 들지 못하고 React prop(`variant` HTML attr)으로 통과 → `<input>` 에서 무시 → theme `[data-variant]` 미매칭으로 시각 라우팅 이탈. 나머지 46개 binding 은 모두 `kind:"variant"` 였고 Input 만 outlier
+  - `kind:"variant"` 로 정정 + 인라인 `options` 제거(variant kind 는 옵션을 theme rule `COMPONENT_RULES_TABLE.Input.variants = default/accent/negative` 에서 `resolveEditContract` 가 파생). live 검증: `resolveEditContract` 가 `variant:variant` + 옵션 3종(default/accent/negative) 파생 확인
+  - **Why**: enum 은 옵션을 binding 인라인으로만 가지나 variant 는 theme SSOT 에서 파생 — kind 불일치가 data-attr 라우팅과 옵션 source 양쪽을 끊음
+  - 위치: `packages/shared/src/catalog/bindings/Input.binding.ts`
+
+### Features
+
+- **폼 입력 값/이름 prop 복원 (P1-a)**:
+  - TextField / NumberField / SearchField 에 `value` / `name` / `errorMessage`, CheckboxGroup 에 `name`, RadioGroup 에 `value` / `name` 추가. 모두 FormRenderers 가 `element.props.x` 를 직접 소비하는 live consumer — 복원 즉시 동작
+  - 위치: `packages/shared/src/catalog/bindings/{TextField,NumberField,SearchField,CheckboxGroup,RadioGroup}.binding.ts`
+- **날짜/시간 제약 prop 복원 (P1-d)**:
+  - DateField / DatePicker / DateRangePicker 에 `granularity` / `errorMessage` / `minValue` / `maxValue`(`safeParseDateString` 변환 경로 확인), TimeField 에 `granularity` / `errorMessage`(minValue/maxValue 는 변환 경로 부재로 제외) 추가
+  - 위치: `packages/shared/src/catalog/bindings/{DateField,DatePicker,DateRangePicker,TimeField}.binding.ts`
+- **Form HTML 속성 + 잡다 prop 복원 (P1-g)**:
+  - Form 에 `action` / `method` / `encType` / `target` / `autoFocus` / `restoreFocus`(FormRenderers.renderForm live consumer), Dialog 에 `role`, FileTrigger 에 `acceptedFileTypes` / `defaultCamera`, Card 에 `accentColor`, Link 에 `showExternalIcon`, Tabs 에 `density` / `showIndicator` 추가
+  - live 검증: 빌더 Form 패널 State 섹션에 Action/Method/Enc Type/Target/Auto Focus/Restore Focus 렌더 확인 + Action 편집 → `store.props.action` 반영 확인
+  - 위치: `packages/shared/src/catalog/bindings/{Form,Dialog,FileTrigger,Card,Link,Tabs}.binding.ts`
+
+### Infrastructure
+
+- **packages/shared/src 컴파일 산출물 653개 정리 + 재발 방지 gitignore**:
+  - composite tsc 가 src 옆에 emit 한 `.js`/`.js.map`/`.d.ts`/`.d.ts.map` 산출물(커밋 367fe7b3b 오염)이 Vite 의 `.ts` 대신 `.js` 우선 로드를 유발해 binding 편집이 빌더에 미반영(HMR 오염). 전수 제거 후 `.gitignore` 에 `packages/shared/src/**/*.{js,d.ts,map}` 패턴 추가(builder 선례 동형)
+  - 개별 `*.css.d.ts` shim 도 함께 제거되며 CSS side-effect import 타입이 끊겨, `css-modules.d.ts` ambient 선언 1개(`declare module "*.css"` 등)로 대체 — shared 는 `vite/client` 직접 의존 없음
+  - **Why**: 산출물 잔존이 ADR-915 prop 의 live 검증을 막은 절대 블로커. 원본 `.ts` 만 추적하도록 빌드 위생 복원
+  - 위치: `.gitignore`, `packages/shared/src/css-modules.d.ts`
+
 ## [Disclosure 군 3경로 정합 복원 + 헤더 width/dirty 정정 — catalog rule SSOT 재파생] - 2026-06-25
 
 ADR-912 catalog cutover 에서 Disclosure/DisclosureGroup spec 삭제 후 generated CSS 가 catalog rule SSOT 에서 파생되지 않는 stale 고아 파일로 방치되어, 레퍼런스(starter) ↔ Preview(DOM/CSS) ↔ Skia 3경로가 발산하던 회귀를 복원했다. 헤더 width:100% 미적용 + Style 패널 false dirty 도 함께 정정.

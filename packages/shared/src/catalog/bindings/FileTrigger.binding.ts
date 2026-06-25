@@ -44,6 +44,12 @@ export const fileTriggerBinding: PrimitiveBinding = {
         section: "appearance",
         default: "md",
       },
+      // live consumer: FormRenderers.tsx renderFileTrigger line 872
+      acceptedFileTypes: {
+        kind: "string",
+        label: "Accepted File Types",
+        section: "state",
+      },
       allowsMultiple: {
         kind: "boolean",
         label: "Allow Multiple",
@@ -53,6 +59,16 @@ export const fileTriggerBinding: PrimitiveBinding = {
         kind: "boolean",
         label: "Accept Directory",
         section: "state",
+      },
+      // live consumer: FormRenderers.tsx renderFileTrigger line 877
+      defaultCamera: {
+        kind: "enum",
+        label: "Default Camera",
+        section: "state",
+        options: [
+          { value: "user", label: "User (Front)" },
+          { value: "environment", label: "Environment (Rear)" },
+        ],
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },

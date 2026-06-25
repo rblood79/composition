@@ -67,16 +67,16 @@ export const inputBinding: PrimitiveBinding = {
         section: "appearance",
         default: "md",
       },
+      // ADR-915 P0 0-6: kind:"enum"→"variant" 정정. enum 은 React prop 통과(`variant` HTML attr
+      //   → input 에서 무시 → theme `[data-variant]` 미매칭, 시각 라우팅 이탈)였다. 나머지 46개
+      //   binding 은 모두 kind:"variant"(toRacProps DATA_ATTR_KINDS → `data-variant` emit). Input 만
+      //   outlier. options 제거 — variant kind 는 옵션을 theme rule(COMPONENT_RULES_TABLE.Input.variants
+      //   = default/accent/negative)에서 resolveEditContract 가 파생(deriveVisualOptions). 값 집합 동일.
       variant: {
-        kind: "enum",
+        kind: "variant",
         label: "Variant",
         section: "appearance",
         default: "default",
-        options: [
-          { value: "default", label: "Default" },
-          { value: "accent", label: "Accent" },
-          { value: "negative", label: "Negative" },
-        ],
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
