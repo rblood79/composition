@@ -10276,12 +10276,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     sizes: {
       md: {
         fontWeight: 600,
+        // fontSize/lineHeight: CSS Preview(renderTableViewSubtree generic div)는 fontSize 미명시 →
+        //   부모 body 상속 16px + line-height normal 24px. Skia 셀 height(calculateContentHeight)와
+        //   텍스트 크기를 CSS 와 일치시키려면 catalog 가 동일 값을 명시해야 한다(미명시 시 Skia
+        //   기본 14 + estimateTextHeight≈16 → 행 height 32 vs CSS 40 발산). 양쪽 모두 catalog 파생
+        //   으로 SSOT 통일(CSS=상속 → catalog 명시 미러).
+        fontSize: 16,
+        lineHeight: 24,
         // paddingX/Y 8: buildCatalogShapes 의 textX = paddingX(= size.paddingX ?? 0)로 텍스트를
         //   셀 안쪽으로 민다. containerStyles.padding(8px)은 Taffy box / Preview CSS 용이고 leaf
         //   Column/Cell 의 Skia 텍스트 x offset 에는 도달 안 함(resolveMergedStyle base=sizes 만,
         //   containerStyles 미포함) → Skia paddingX=0 으로 텍스트가 좌측 가장자리 붙음(Skia=0,
         //   CSS=8px 발산). Button(sizes.paddingX:4) 동형 — box leaf 텍스트 padding 정본 채널=sizes.
         //   값 8 = {spacing.sm}(containerStyles.padding)과 동일 → 시각 일치.
+        //   세로 정합: calculateContentHeight(utils.ts §1.56)가 estimateTextHeight(16,24)=24 +
+        //   paddingY*2(16) = 40 = CSS border-box height. baseline middle 이 텍스트를 셀 세로 중앙 배치.
         paddingX: 8,
         paddingY: 8,
       },
@@ -10313,6 +10322,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       md: {
+        // fontSize/lineHeight 16/24: Column 과 동형 — CSS Preview 상속값(16px/24px)과 Skia 텍스트·
+        //   셀 height 정합(calculateContentHeight estimateTextHeight(16,24)=24 + paddingY*2=40).
+        fontSize: 16,
+        lineHeight: 24,
         // paddingX/Y 8: Column 과 동형 — containerStyles.padding 은 Skia 텍스트 x 에 미도달이라
         //   sizes.paddingX 가 텍스트 padding 정본 채널(buildCatalogShapes textX). 값 8={spacing.sm}.
         paddingX: 8,

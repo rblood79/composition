@@ -36,10 +36,15 @@ TableView 의 정적 자식(TableHeader/TableBody/Column/Row/Cell)이 Builder Ca
   - `COMPONENT_RULES_TABLE.Column/Cell.sizes.md` 에 `paddingX: 8, paddingY: 8` 추가 → `buildCatalogShapes` 가 `size.paddingX` 로 textX=8 산출(Button `sizes.paddingX:4` 동형 — box leaf 텍스트 padding 정본 채널=`sizes`). 값 8 = `{spacing.sm}`(containerStyles.padding)과 동일 → 시각 일치
   - **Why**: box leaf 의 텍스트 padding 은 `containerStyles`(Taffy/CSS box) 가 아니라 `sizes.paddingX/Y`(Skia 텍스트 offset)가 정본 채널 — Column/Cell rule 이 `sizes` paddingX 를 미명시해 Skia 가 0 으로 떨어졌다
   - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`
+- **Skia 셀(행) 높이가 세로 padding 16px 미반영 → 행이 CSS(40px)보다 촘촘(텍스트 크기·행높이 발산)**:
+  - 가로 paddingX 정합 후에도 Skia 셀 height 가 CSS(border-box 40px = 텍스트 24 + 상하 padding 16)보다 16px 작아 행이 촘촘했다. 근본: Column/Cell 은 텍스트 leaf 인데 Skia 텍스트는 `buildCatalogShapes` 가 그려 Taffy 가 텍스트 높이를 자식으로 모르고, catalog `containerStyles.padding` 은 leaf intrinsic height 에 미도달 → Skia 셀 height = 텍스트 높이만. 추가로 CSS Preview 의 fontSize 16/lineHeight 24(generic div body 상속)와 Skia 기본 14 가 달랐다
+  - `calculateContentHeight`(utils.ts §1.56)에 Column/Cell 분기 추가 — height = `estimateTextHeight(fontSize, lineHeight) + paddingTop + paddingBottom`(catalog rule read-through, style override 우선). `COMPONENT_RULES_TABLE.Column/Cell.sizes.md` 에 `fontSize: 16, lineHeight: 24` 명시 → 양쪽 모두 catalog 파생(CSS 상속 → catalog 명시 미러). 결과 height = 24 + 16 = 40 = CSS border-box. baseline middle 이 텍스트를 셀 세로 중앙 배치
+  - **Why**: box leaf 의 세로 padding 은 가로(paddingX=텍스트 offset)와 달리 **셀 box height(layout 엔진)에 반영**되어야 하는데, `calculateContentHeight` 의 Column/Cell 분기가 없어 텍스트 높이만 반환했다. ListBox/Menu 의 `paddingTop + inner + paddingBottom` 패턴 동형
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`, `packages/shared/src/catalog/generated/componentRulesTable.ts`
 
 ### Infrastructure
 
-- `componentCatalog.test.ts` family ① oracle 42 → 47(TableHeader/TableBody/Column/Row/Cell 추가). live 검증: Home 페이지 TableView 추가 → Skia 에 Name/Type/Status 헤더 + Item 1/File/Active 행이 3등분 균등 배치(텍스트 겹침 해소) + 셀 텍스트 좌측 정렬(`textAlign: left`) + 셀 좌측 8px padding(Skia 텍스트 x=8) → Preview CSS(x=1/130/258, w=129 each, padding 8px)와 시각 정합 확인. `fullTreeLayout` 10 + `buildCatalogShapes` 126 PASS, type-check 0 신규 위반
+- `componentCatalog.test.ts` family ① oracle 42 → 47(TableHeader/TableBody/Column/Row/Cell 추가). live 검증: Home 페이지 Skia TableView 가 350×80(2행×40)으로 CSS Cell(height 40, fontSize 16, lineHeight 24, padding 8px 4-way)과 완전 정합 — 헤더/행 3등분 균등 + 텍스트 겹침 해소 + 좌측 정렬 + 가로/세로 8px padding + 셀 117×40. `calculateContentHeight(Column/Cell)=40` 단위 확증, `fullTreeLayout` 10 + 텍스트 height 17 + `buildCatalogShapes` 126 PASS, type-check 0 신규 위반
 
 ## [TableView 자식 트리 Preview 미렌더 정정 — generic div 직접 렌더 (Group D)] - 2026-06-25
 

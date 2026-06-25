@@ -1875,6 +1875,37 @@ export function calculateContentHeight(
     return estimateTextHeight(fontSize, undefined);
   }
 
+  // 1.56. Column/Cell (TableView 자식 텍스트 leaf): border-box height = 텍스트 높이 + 세로 padding.
+  //   **Why**: Column/Cell 은 텍스트를 가진 leaf 인데 Skia 텍스트는 buildCatalogShapes 가 그려
+  //   Taffy 가 텍스트 높이를 자식으로 모른다. catalog containerStyles.padding(8px)은 Taffy box /
+  //   Preview CSS 용이라 layout 의 leaf intrinsic height 에는 도달 안 한다 → Skia 셀 height = 텍스트
+  //   높이만(상하 padding 누락) → CSS(border-box height=40, padding 8px 상하)보다 16px 작아 행 촘촘.
+  //   catalog rule(Column/Cell.sizes.md.paddingY=8 + fontSize/lineHeight)을 read-through 해 height =
+  //   estimateTextHeight + paddingTop + paddingBottom 으로 계산(ListBox/Menu 의 paddingTop+inner+
+  //   paddingBottom 패턴 동형). style override(paddingTop/padding/fontSize) 우선.
+  if (tag1 === "column" || tag1 === "cell") {
+    const props = element.props as Record<string, unknown> | undefined;
+    const sizeName = String(props?.size ?? "md");
+    const ruleSize = resolveSkiaRule(tag1 === "column" ? "Column" : "Cell")
+      ?.sizes[sizeName] as
+      | { fontSize?: number; lineHeight?: number; paddingY?: number }
+      | undefined;
+    const fontSize =
+      parseNumericValue(style?.fontSize) ?? ruleSize?.fontSize ?? 14;
+    const lineHeight =
+      parseNumericValue(style?.lineHeight) ?? ruleSize?.lineHeight;
+    const textHeight = estimateTextHeight(fontSize, lineHeight);
+    const padTop =
+      parseNumericValue(style?.paddingTop ?? style?.padding) ??
+      ruleSize?.paddingY ??
+      0;
+    const padBottom =
+      parseNumericValue(style?.paddingBottom ?? style?.padding) ??
+      ruleSize?.paddingY ??
+      0;
+    return textHeight + padTop + padBottom;
+  }
+
   // 1.55b. ListBox: items SSOT 기반 intrinsic border-box height.
   // ADR-907 Layer D: `render.shapes` 와 동일한 `resolveListBoxSpacingMetric` 심볼을
   // 호출해 padding/gap/borderWidth/item/header metric 을 공유 — style.rowGap/columnGap/gap
