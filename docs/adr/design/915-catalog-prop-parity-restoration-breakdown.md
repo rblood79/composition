@@ -69,12 +69,26 @@
 
 P1-g 와 달리 **렌더러도 미forward** 라 accepts 추가 + 렌더러 wiring 양쪽 필요(작업량 큼). P1 완료 후 착수.
 
-| 그룹                    | 대상                             | 추가 prop                                                            | 비고                                                                          |
-| ----------------------- | -------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| P1.5-a contextualHelp   | 12 컴포넌트(폼/색상/컬렉션 전반) | `contextualHelp`                                                     | **전멸**(spec 12 → binding 0). RSP 표준. accepts(string/binding) + RAC wiring |
-| P1.5-b 텍스트 HTML attr | TextField/TextArea/SearchField   | `autoComplete` `autoCorrect` `inputMode` `enterKeyHint` `spellCheck` | spec 존재, 렌더러 미forward                                                   |
-| P1.5-c field icon       | TextField/SearchField            | `icon`                                                               | composition custom field icon, 렌더러 미forward                               |
-| P1.5-d Slider 시각      | Slider                           | `fillOffset` `isFilled` `showValueLabel`(live) `trackGradient`(dead) | 일부 live, trackGradient 는 spec-only 데코(노이즈 가능)                       |
+| 그룹                    | 대상                             | 추가 prop                                                            | 비고                                                                                                 |
+| ----------------------- | -------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| P1.5-a contextualHelp   | 12 컴포넌트(폼/색상/컬렉션 전반) | `contextualHelp`                                                     | **전멸**(spec 12 → binding 0). RSP 표준. accepts(string/binding) + RAC wiring                        |
+| P1.5-b 텍스트 HTML attr | TextField/SearchField            | `autoComplete` `autoCorrect` `inputMode` `enterKeyHint` `spellCheck` | ✅ Implemented (2f19e3b0e). TextArea 제외(rendererMap 키 부재). RAC 공식 prop, controlled-value 직교 |
+| P1.5-c field icon       | TextField/SearchField            | `icon`                                                               | ⛔ 보류 — **dead restoration**(아래 §1.5-c 결론 참조). 별도 ADR                                      |
+| P1.5-d Slider 시각      | Slider                           | `fillOffset` `isFilled` `showValueLabel`(live) `trackGradient`(dead) | 일부 live, trackGradient 는 spec-only 데코(노이즈 가능)                                              |
+
+#### §1.5-c 결론 — field `icon` 은 dead restoration (2026-06-26 보류 결정)
+
+P1.5-c 의 field `icon?: string`("icon-name" 입력) prop 은 **삭제 전 spec 시절에도 화면에 렌더되지 않던 dead prop** 으로 확인됨. 따라서 "결손 복원"(동작하던 편집 기능 회복)이 아니라 **신규 기능 설계**이며, ADR-915 parity 복원 scope 밖. 진행하려면 별도 ADR(create-adr) 필요.
+
+근거(코드 사실, 2026-06-26 grep):
+
+- **삭제 spec `render.shapes` 미소비**: `TextField.spec.ts`(삭제 커밋 `91c2be0dd`~1) 의 render 블록(line 520-672)에 `props.icon` 참조 0건. `icon` 은 타입 선언(line 66) + editor field placeholder(line 159-164)에만 존재 → 삭제 전부터 Skia(Builder) 미렌더.
+- **RAC 에 icon slot 부재**: RAC `TextField`/`SearchField` 는 외부 주입 `icon` prop 미노출(`node_modules/react-aria-components` 타입 grep 0건) → Preview(DOM) forward 대상 자체 없음.
+- **live icon 경로는 다른 이름**: composition 실제 icon 렌더는 전부 `iconName`(Button/Date/Selection 렌더러 + `getIconData()`) → field `icon` 과 미연결.
+- **검색 아이콘은 RAC 자체 합성**: builder SearchField 의 돋보기 아이콘은 `.builder-search-icon`(`SearchField.css:23`)을 RAC 가 자체 합성한 것 → 이 `icon` prop 과 무관.
+- **`SpecField.tsx:40 field.icon`** 은 별개: Inspector 패널 필드 옆 lucide **장식 아이콘**(editor field 메타 `icon: Image`)이지 컴포넌트가 렌더하는 field icon 이 아님.
+
+→ field leading icon 을 실제 표시하려면 RAC slot 합성(DOM) + Skia field icon shape(신규) 양쪽 구현 필요 → 별도 ADR scope.
 
 ## §3. Skia/CSS 3경로 소비 점검 (canonical-rendering 규칙)
 
