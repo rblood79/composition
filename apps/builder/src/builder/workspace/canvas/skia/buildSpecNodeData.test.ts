@@ -279,6 +279,104 @@ describe("buildSpecNodeData", () => {
     expect(collectText(node)).not.toContain("Search");
   });
 
+  // 회귀 방지 (2026-06-25): SYNTHETIC 컨테이너(Select/ComboBox)는 자식 SelectValue/ComboBoxInput
+  // 이 placeholder 입력 영역을 그리므로, 컨테이너 자신은 shell(box) 만 그려야 한다. shellOnlyProps
+  // 가 children/text/label 만 차단하고 placeholder 를 누락하면 buildCatalogShapes `:217 text` 가
+  // placeholder 로 fallback 하여 컨테이너 노드에도 placeholder text 가 **이중** 렌더된다.
+  it.each(["Select", "ComboBox"])(
+    "does not render placeholder text on the %s synthetic container itself (shell-only)",
+    (type) => {
+      const container = makeElement("container", {
+        type,
+        props: { placeholder: "Choose an option..." },
+      });
+
+      const node = buildSpecNodeData({
+        element: container,
+        layout: makeLayout({ x: 0, y: 0, width: 200, height: 30 }),
+        theme: "light",
+        elementsMap: new Map([[container.id, container]]),
+      });
+
+      expect(node).not.toBeNull();
+      expect(collectText(node)).not.toContain("Choose an option...");
+    },
+  );
+
+  // 회귀 방지 (2026-06-25): Select/ComboBox 의 SelectIcon 은 factory 에서 iconName 미지정이라
+  // 자기/조부모 iconName 이 모두 없으면 resolveIconDelegation 이 chevron-down 을 기본값으로 줘야
+  // 한다. null 반환 시 skiaPrimitives.iconFont 의 generic `?? "circle"` fallback 으로 떨어져 Skia 가
+  // 동그라미(○)를 그리고, DOM Select(Select.tsx:335 chevron-down 기본값)와 발산한다.
+  function findIconPath(
+    node: SkiaNodeData | undefined | null,
+  ): { paths?: string[]; circles?: unknown[] } | null {
+    if (!node) return null;
+    const ip = (
+      node as { iconPath?: { paths?: string[]; circles?: unknown[] } }
+    ).iconPath;
+    if (ip) return ip;
+    for (const child of node.children ?? []) {
+      const r = findIconPath(child);
+      if (r) return r;
+    }
+    return null;
+  }
+
+  it.each(["Select", "ComboBox"])(
+    "%s SelectIcon without iconName defaults to chevron-down (DOM parity, not circle)",
+    (containerType) => {
+      const container = makeElement("c", { type: containerType });
+      const trigger = makeElement("t", {
+        type: "SelectTrigger",
+        parent_id: "c",
+      });
+      const icon = makeElement("i", {
+        type: "SelectIcon",
+        parent_id: "t",
+        props: { style: { width: 18, height: 18 } },
+      });
+      const node = buildSpecNodeData({
+        element: icon,
+        layout: makeLayout({ x: 0, y: 0, width: 18, height: 18 }),
+        theme: "light",
+        elementsMap: new Map([
+          [container.id, container],
+          [trigger.id, trigger],
+          [icon.id, icon],
+        ]),
+      });
+
+      const ip = findIconPath(node);
+      // chevron-down Lucide glyph path
+      expect(ip?.paths).toContain("m6 9 6 6 6-6");
+      // generic "circle" fallback 회귀 방지
+      expect(ip?.circles ?? []).toHaveLength(0);
+    },
+  );
+
+  it("explicit SelectIcon iconName wins over chevron-down default", () => {
+    const container = makeElement("c", { type: "Select" });
+    const trigger = makeElement("t", { type: "SelectTrigger", parent_id: "c" });
+    const icon = makeElement("i", {
+      type: "SelectIcon",
+      parent_id: "t",
+      props: { iconName: "star", style: { width: 18, height: 18 } },
+    });
+    const node = buildSpecNodeData({
+      element: icon,
+      layout: makeLayout({ x: 0, y: 0, width: 18, height: 18 }),
+      theme: "light",
+      elementsMap: new Map([
+        [container.id, container],
+        [trigger.id, trigger],
+        [icon.id, icon],
+      ]),
+    });
+
+    const ip = findIconPath(node);
+    expect(ip?.paths).not.toContain("m6 9 6 6 6-6");
+  });
+
   it("does not throw when parent links contain a cycle", () => {
     const tagGroup = makeElement("tag-group", {
       type: "TagGroup",

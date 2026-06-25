@@ -16,48 +16,40 @@
     user-select: none;
     transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
+    display: block;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: block;
 
   /* Default size */
-  height: auto;
-  padding: 4px 12px;
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
   line-height: var(--text-sm--line-height);
   border-width: 1px;
-  gap: 8px;
   --icon-size: 16px;
 }
 
 .react-aria-Disclosure[data-size="sm"] {
-  height: auto;
-  padding: 2px 8px;
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
   line-height: var(--text-xs--line-height);
   border-width: 1px;
-  gap: 6px;
   --icon-size: 14px;
 }
 
 .react-aria-Disclosure[data-size="md"] {
-  height: auto;
-  padding: 4px 12px;
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
   line-height: var(--text-sm--line-height);
   border-width: 1px;
-  gap: 8px;
   --icon-size: 16px;
 }
 
 .react-aria-Disclosure[data-size="lg"] {
-  height: auto;
-  padding: 8px 16px;
   font-size: var(--text-base);
   border-radius: var(--radius-lg);
   line-height: var(--text-base--line-height);
   border-width: 1px;
-  gap: 10px;
   --icon-size: 20px;
 }
 
@@ -85,6 +77,42 @@
 }
 
 
+  .react-aria-Disclosure .react-aria-Heading {
+    margin: 0;
+  }
+
+  .react-aria-Disclosure .react-aria-Button[slot='trigger'] {
+    background: none;
+    border: none;
+    box-shadow: none;
+    width: 100%;
+    color: var(--fg);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    text-align: start;
+    justify-content: flex-start;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    transition: all 200ms;
+    outline: none;
+  }
+
+  .react-aria-Disclosure .react-aria-Button[slot='trigger'][data-hovered] {
+    background: var(--bg-muted);
+    color: var(--fg-emphasis);
+  }
+
+  .react-aria-Disclosure .react-aria-Button[slot='trigger'][data-pressed] {
+    background: var(--bg-muted);
+    scale: 0.97;
+  }
+
+  .react-aria-Disclosure .react-aria-Button[slot='trigger'][data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+  }
+
   .react-aria-Disclosure .disclosure-chevron {
     width: var(--icon-size);
     height: var(--icon-size);
@@ -96,6 +124,11 @@
     stroke-linejoin: round;
     rotate: 0deg;
     transition: rotate 200ms;
+  }
+
+  .react-aria-Disclosure .react-aria-DisclosurePanel > div {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    color: var(--fg);
   }
 
 

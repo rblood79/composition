@@ -718,6 +718,15 @@ function resolveSliderProps(
  * ADR-102: SelectIcon — RAC 공식 미존재 composition 고유 D3 시각 element.
  *   grandparent(Select/ComboBox/NumberField/SearchField) iconName 위임.
  * (ADR-912 R1 2026-06-12: ComboBoxTrigger 는 factory retype 으로 SelectIcon 에 합류 — 조건 제거.)
+ *
+ * 기본값 fallback (2026-06-25): Select/ComboBox 의 SelectIcon 은 factory 에서 iconName 미지정
+ *   (FormComponents 의 SearchField=search/x, NumberField=minus/plus 는 명시) → 자기/조부모
+ *   iconName 모두 비면 본 함수가 null 을 반환했고, 그러면 skiaPrimitives.iconFont 의 generic
+ *   fallback(`?? "circle"`)으로 떨어져 **Skia 가 동그라미(○)를 그렸다**. 반면 DOM Select 컴포넌트
+ *   (packages/shared/src/components/Select.tsx:335)는 iconName 미지정 시 `chevron-down` 을 그린다
+ *   → CSS↔Skia 시각 발산(사용자 보고 2026-06-25: Select/ComboBox 아이콘이 Skia 에 chevron 으로
+ *   안 나옴). SelectIcon 의 보편 기본값을 DOM 과 동일하게 `chevron-down` 으로 맞춘다. 자기 또는
+ *   조부모 iconName 이 있으면 그 값이 우선(사용자 설정 보존) → 본 기본값은 미설정 시에만 적용.
  */
 function resolveIconDelegation(
   element: CanvasSceneNode,
@@ -740,7 +749,11 @@ function resolveIconDelegation(
       if (gpIcon) return gpIcon;
     }
   }
-  return null;
+
+  // 보편 기본값: DOM Select 의 chevron-down 과 정합 (iconFont 의 "circle" generic fallback 회피).
+  // NumberField/SearchField 의 SelectIcon 은 factory 에서 자기 iconName 을 명시하므로 위 분기에서
+  // 이미 반환됨 → 본 기본값은 Select/ComboBox 의 미설정 SelectIcon 에만 적용.
+  return "chevron-down";
 }
 
 /** TagGroup allowsRemoving → Tag child */
@@ -932,15 +945,29 @@ function buildCatalogShapesOrPrimitive(
   //   `_hasChildren` 주입이 차단(line 1110-1116)되므로 buildCatalogShapes 의 text 분기
   //   (`:171 if(text)`)가 컨테이너 노드의 value/label 을 그린다. 동시에 자식 trigger element
   //   (SelectValue/ComboBoxInput)도 같은 value text 를 그려 **중복**된다. 컨테이너는 shell
-  //   (bg+border)만 그리도록 text 입력(children/text/label)을 차단한 propsView 로 호출한다.
+  //   (bg+border)만 그리도록 text 입력(children/text/label/placeholder)을 차단한 propsView 로 호출한다.
   //   - 판정 = `SYNTHETIC_CHILD_PROP_MERGE_TAGS` 멤버십(데이터 분기 — 컴포넌트별 if 아님).
   //     이 set 은 "자식 props 통합 또는 자식 element 가 내용 담당" = 컨테이너 text 금지 type.
   //   - buildCatalogShapes 자체는 변경 0 — text 가 undefined 면 `:171 if(text)` false → 자연히
   //     shell-only(`:169 _hasChildren` early return 과 직교, 둘 중 하나만 성립해도 shell-only).
+  //   - placeholder 차단(2026-06-25): buildCatalogShapes `:217 text` 가
+  //     `label || text || children || placeholder` 순으로 fallback 하므로(placeholder 는
+  //     2026-06-12 R1 에서 value-empty field leaf 표시용으로 추가됨), Select/ComboBox 처럼
+  //     컨테이너 자신과 자식 SelectValue 가 같은 placeholder 를 보유하면 children/text/label 만
+  //     차단해도 컨테이너가 placeholder 로 text 를 그려 **중복**된다(사용자 보고 2026-06-25:
+  //     placeholder 가 SelectValue 입력 영역 + 컴포넌트 자체에 이중 렌더). placeholder 도 함께
+  //     undefined 처리해야 컨테이너가 순수 shell 로 떨어진다. 자식 SelectValue/ComboBoxInput 은
+  //     SYNTHETIC 비멤버라 본 차단 미적용 → placeholder 정상 단일 렌더 유지.
   //   - Menu 는 발효(2026-06-04)됐으나 SYNTHETIC 아님(items SSOT, factory children:[]) → 본 차단
   //     미적용. trigger 버튼이라 text "Menu" 를 그려야 정상(Button 동형) → shellOnlyProps 제외 정합.
   const shellOnlyProps = SYNTHETIC_CHILD_PROP_MERGE_TAGS.has(type)
-    ? { ...specProps, children: undefined, text: undefined, label: undefined }
+    ? {
+        ...specProps,
+        children: undefined,
+        text: undefined,
+        label: undefined,
+        placeholder: undefined,
+      }
     : specProps;
 
   // base box+text + prepend/append 패턴(backdrop/shadow/arrow) 합성 (ADR-142 Inc3 overlays).

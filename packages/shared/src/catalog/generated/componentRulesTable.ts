@@ -4219,6 +4219,105 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 20,
       },
     },
+    // ADR-912 후속 (2026-06-25): Disclosure generated CSS 는 spec 삭제(4a703828c) 후 virtual emit
+    //   대상에서 빠져(structure 부재) stale 고아 파일로 방치 → DOM(stale leaf CSS) ↔ Skia(rule shell)
+    //   ↔ 레퍼런스(starter) 3경로 발산. structure 추가로 generate-css buildVirtualSpecs 의 virtual
+    //   spec 재생성 대상에 편입 → catalog rule SSOT 단일 소스로 3경로 동시 구동.
+    //   레퍼런스 정합(packages/react-aria-starter/src/Disclosure.css):
+    //   루트=블록 컨테이너(padding 0), 헤더 버튼=flex+font-weight 600+hover bg, chevron rotate,
+    //   패널 콘텐츠 div padding. composition.containerStyles 보유 → compositionOwnsContainerBox=true
+    //   로 sizes.padding/height 의 컨테이너 leaf emit skip(이전 inline-flex+center+padding 발산 해소).
+    structure: {
+      archetype: "default",
+      element: "div",
+      containerStyles: {
+        display: "block",
+      },
+      states: {
+        hover: {},
+        disabled: {
+          opacity: 0.38,
+          pointerEvents: "none",
+        },
+        focusVisible: {
+          focusRing: "{focus.ring.default}",
+        },
+      },
+      composition: {
+        containerStyles: {
+          display: "block",
+        },
+        staticSelectors: {
+          ".react-aria-Heading": {
+            margin: "0",
+          },
+          // 헤더 trigger 버튼 — starter `.disclosure-button` 정합 (flex + font-weight 600 + hover bg).
+          //   composition <Disclosure> 는 <Heading><Button slot="trigger"> 구조라 RAC 기본 .react-aria-Button.
+          ".react-aria-Button[slot='trigger']": {
+            background: "none",
+            border: "none",
+            "box-shadow": "none",
+            width: "100%",
+            color: "var(--fg)",
+            "font-weight": "600",
+            display: "flex",
+            "align-items": "center",
+            "text-align": "start",
+            // RAC .react-aria-Button 기본 CSS 가 justify-content:center 를 주므로(Button.css:13/25)
+            //   명시 flex-start 로 override — starter .disclosure-button(text-align:start, 기본
+            //   justify normal=flex-start) 정합. 누락 시 헤더 chevron+title 이 중앙 정렬로 발산.
+            "justify-content": "flex-start",
+            gap: "var(--spacing-xs)",
+            padding: "var(--spacing-sm) var(--spacing-md)",
+            "border-radius": "var(--radius-md)",
+            transition: "all 200ms",
+            outline: "none",
+          },
+          ".react-aria-Button[slot='trigger'][data-hovered]": {
+            background: "var(--bg-muted)",
+            color: "var(--fg-emphasis)",
+          },
+          ".react-aria-Button[slot='trigger'][data-pressed]": {
+            background: "var(--bg-muted)",
+            scale: "0.97",
+          },
+          ".react-aria-Button[slot='trigger'][data-focus-visible]": {
+            outline: "var(--focus-ring-width) solid var(--focus-ring)",
+          },
+          // chevron rotate (ADR-141 — 삭제된 spec composition.staticSelectors 복원).
+          ".disclosure-chevron": {
+            width: "var(--icon-size)",
+            height: "var(--icon-size)",
+            "flex-shrink": "0",
+            fill: "none",
+            stroke: "currentColor",
+            "stroke-width": "2",
+            "stroke-linecap": "round",
+            "stroke-linejoin": "round",
+            rotate: "0deg",
+            transition: "rotate 200ms",
+          },
+          // 패널 콘텐츠 div — starter `.react-aria-DisclosurePanel div { padding }` 정합.
+          //   starter 8px 16px = composition --spacing-sm --spacing-lg.
+          ".react-aria-DisclosurePanel > div": {
+            padding: "var(--spacing-sm) var(--spacing-lg)",
+            color: "var(--fg)",
+          },
+        },
+        rootSelectors: {
+          "&[data-expanded]": {
+            nested: {
+              ".disclosure-chevron": {
+                rotate: "90deg",
+              },
+            },
+          },
+        },
+        // generateCompositionCSS 가 comp.delegation 을 무조건 iterate (CSSGenerator:1218) —
+        //   composition 보유 시 delegation 필수(빈 배열 허용). 삭제된 spec 도 delegation:[] 였음.
+        delegation: [],
+      },
+    },
   },
   DisclosureContent: {
     defaultVariant: "default",
@@ -4311,6 +4410,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
         height: 0,
+      },
+    },
+    // ADR-912 후속 (2026-06-25): DisclosureGroup generated CSS 도 spec 삭제 후 virtual emit 제외 →
+    //   stale 고아. structure 추가로 catalog rule SSOT 파생 복원 (삭제된 DisclosureGroup.spec.ts
+    //   composition.layout="flex-column" + containerStyles 그대로 이전 — flex column 컨테이너,
+    //   border-radius/overflow:hidden. variant border 는 Skia render.shapes 전용이라 DOM CSS 미emit
+    //   유지 = spec 시절 동작 보존, byte-diff 0 목표).
+    structure: {
+      archetype: "default",
+      element: "div",
+      states: {
+        disabled: {
+          opacity: 0.38,
+          pointerEvents: "none",
+        },
+        focusVisible: {
+          focusRing: "{focus.ring.default}",
+        },
+      },
+      composition: {
+        layout: "flex-column",
+        containerStyles: {
+          "font-size": "var(--text-base)",
+          "border-radius": "var(--radius-md)",
+          overflow: "hidden",
+        },
+        delegation: [],
       },
     },
   },

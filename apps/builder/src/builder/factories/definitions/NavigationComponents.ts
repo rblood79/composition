@@ -235,6 +235,16 @@ export function createDisclosureDefinition(
         props: {
           children: "Section Title",
           headingLevel: 3,
+          // 레퍼런스(starter .disclosure-button: width 100% + flex start) 정합 (2026-06-25).
+          //   width 미지정 시 Skia DisclosureHeader leaf 가 콘텐츠 폭(auto)으로 렌더 → DOM(button
+          //   width:100%) / 레퍼런스(100%)와 발산. width:100% 명시로 Skia 가 부모 폭을 소비.
+          style: {
+            width: "100%",
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "flex-start",
+            alignItems: "center",
+          },
         } as ComponentElementProps,
       },
       {
@@ -297,6 +307,13 @@ export function createDisclosureGroupDefinition(
             props: {
               children: "Section 1",
               headingLevel: 3,
+              style: {
+                width: "100%",
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "flex-start",
+                alignItems: "center",
+              },
             } as ComponentElementProps,
           },
           {
@@ -320,6 +337,13 @@ export function createDisclosureGroupDefinition(
             props: {
               children: "Section 2",
               headingLevel: 3,
+              style: {
+                width: "100%",
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "flex-start",
+                alignItems: "center",
+              },
             } as ComponentElementProps,
           },
           {
