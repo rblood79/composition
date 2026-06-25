@@ -1,7 +1,18 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { buttonBinding, type InspectorFieldTheme } from "@composition/shared";
+import {
+  buttonBinding,
+  tableBinding,
+  type InspectorFieldTheme,
+} from "@composition/shared";
+
+// PropertyDataBinding 은 stores/data 의 collection/api/variable hook 에 의존 — 단위 렌더용 mock.
+vi.mock("../../../stores/data", () => ({
+  useCollections: () => ({}),
+  useApiEndpoints: () => ({}),
+  useVariables: () => ({}),
+}));
 
 import { CatalogInspectorFields } from "./CatalogInspectorFields";
 
@@ -44,5 +55,26 @@ describe("CatalogInspectorFields — ADR-142 #8 live 배선", () => {
     expect(text).toContain("Type");
     expect(text).toContain("Pending"); // isPending
     expect(text).toContain("Disabled"); // isDisabled
+  });
+
+  // ADR-912 회귀 복원: catalog cutover 후 kind:"binding"(dataBinding) 이 default:null 로
+  //   빠져 collection 의 RSP Dynamic collections Data 소스 UI 가 소실됐던 회귀 가드.
+  it('kind:"binding" dataBinding field 를 PropertyDataBinding(Data 소스 UI)로 렌더한다', () => {
+    const { container } = render(
+      <CatalogInspectorFields
+        componentType="Table"
+        contracts={tableBinding.props.accepts}
+        theme={theme}
+        currentProps={{}}
+        onUpdate={vi.fn()}
+      />,
+    );
+
+    const text = container.textContent ?? "";
+    // Content 섹션 + dataBinding field(label "Data") 가 렌더되어야 한다.
+    expect(text).toContain("Content");
+    expect(text).toContain("Data");
+    // PropertyDataBinding 의 소스 선택 placeholder/옵션이 DOM 에 존재 (no-op null 아님).
+    expect(text).toContain("소스 선택");
   });
 });

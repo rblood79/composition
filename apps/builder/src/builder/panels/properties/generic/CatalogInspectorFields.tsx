@@ -18,6 +18,7 @@ import {
 } from "@composition/shared";
 
 import {
+  PropertyDataBinding,
   PropertyIconPicker,
   PropertyInput,
   PropertyNumberInput,
@@ -26,6 +27,7 @@ import {
   PropertySizeToggle,
   PropertySwitch,
 } from "../../../components";
+import type { DataBindingValue } from "../../../components/property/PropertyDataBinding";
 import { evaluateVisibility } from "./evaluateVisibility";
 
 interface CatalogInspectorFieldsProps {
@@ -145,7 +147,24 @@ const CatalogField = memo(function CatalogField({
         />
       );
 
-    // "binding" — collection data binding 은 Phase 6 collections family 에서 처리
+    // "binding" — collection data binding.
+    //   field.key === "dataBinding": 외부 데이터 소스(dataTable/api/variable/route) 연결
+    //     UI(PropertyDataBinding)를 렌더한다. ADR-912 catalog cutover 가 per-type editor →
+    //     generic Inspector 로 전환하면서 누락된 RSP Dynamic collections 진입점 복원.
+    //   그 외 binding(items 등): 의도적 Inspector no-op(toRacProps 통과 전용, 정적 items 는
+    //     collections root/useResolvedCollectionItems 소유) → null 유지.
+    case "binding":
+      if (field.key === "dataBinding") {
+        return (
+          <PropertyDataBinding
+            label={field.label}
+            value={(value as DataBindingValue | null | undefined) ?? null}
+            onChange={(v) => update(v)}
+          />
+        );
+      }
+      return null;
+
     default:
       return null;
   }

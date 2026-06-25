@@ -21,6 +21,7 @@ import { memo } from "react";
 import type { ResolvedField } from "@composition/shared";
 
 import {
+  PropertyDataBinding,
   PropertyIconPicker,
   PropertyInput,
   PropertyNumberInput,
@@ -29,6 +30,7 @@ import {
   PropertySizeToggle,
   PropertySwitch,
 } from "../../../components";
+import type { DataBindingValue } from "../../../components/property/PropertyDataBinding";
 
 /** field.origin 별 write 경로. */
 export interface GenericFieldRouting {
@@ -150,7 +152,23 @@ const GenericField = memo(function GenericField({
         />
       );
 
-    // "binding" — collection data binding 은 collections family(단계 4)에서 처리.
+    // "binding" — collection data binding.
+    //   field.key === "dataBinding": 외부 데이터 소스(dataTable/api/variable/route) 연결
+    //     UI(PropertyDataBinding)를 렌더 — ADR-912 catalog cutover 로 누락된 RSP Dynamic
+    //     collections 진입점 복원. CatalogInspectorFields 와 동일 처리.
+    //   그 외 binding(items 등): 의도적 Inspector no-op(toRacProps 통과 전용) → null.
+    case "binding":
+      if (field.key === "dataBinding") {
+        return (
+          <PropertyDataBinding
+            label={field.label}
+            value={(value as DataBindingValue | null | undefined) ?? null}
+            onChange={(v) => update(v)}
+          />
+        );
+      }
+      return null;
+
     default:
       return null;
   }
