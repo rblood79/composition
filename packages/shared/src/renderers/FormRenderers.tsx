@@ -18,7 +18,7 @@ import {
 } from "../components/list";
 import { MyColorSwatches } from "../components/TailSwatch";
 import { parseColor, type Color } from "react-aria-components";
-import type { PreviewElement, RenderContext } from "../types";
+import type { ElementProps, PreviewElement, RenderContext } from "../types";
 import { getSelectedChildIds } from "./selection";
 
 /**
@@ -72,6 +72,27 @@ export function resolveInheritedFormFieldProps(
       | "icon"
       | "label"
       | undefined,
+  };
+}
+
+/**
+ * 텍스트 HTML 입력 힌트 attr 묶음 (ADR-915 P1.5-b).
+ * RAC TextField/SearchField 공식 prop — `<input>` 전달, controlled-value 와 직교.
+ * inputMode/enterKeyHint 의 union 타입은 컴포넌트 prop 에서 파생 (인라인 union 재선언 회피).
+ */
+type TextFieldRacProps = React.ComponentProps<typeof TextField>;
+
+function resolveInputHintProps(props: ElementProps) {
+  return {
+    autoComplete: props.autoComplete ? String(props.autoComplete) : undefined,
+    autoCorrect: props.autoCorrect ? String(props.autoCorrect) : undefined,
+    inputMode: props.inputMode
+      ? (props.inputMode as TextFieldRacProps["inputMode"])
+      : undefined,
+    enterKeyHint: props.enterKeyHint
+      ? (props.enterKeyHint as TextFieldRacProps["enterKeyHint"])
+      : undefined,
+    spellCheck: props.spellCheck ? String(props.spellCheck) : undefined,
   };
 }
 
@@ -181,44 +202,7 @@ export const renderTextField = (
         "top"
       }
       name={element.props.name ? String(element.props.name) : undefined}
-      autoComplete={
-        element.props.autoComplete
-          ? String(element.props.autoComplete)
-          : undefined
-      }
-      autoCorrect={
-        element.props.autoCorrect
-          ? String(element.props.autoCorrect)
-          : undefined
-      }
-      inputMode={
-        element.props.inputMode
-          ? (element.props.inputMode as
-              | "text"
-              | "numeric"
-              | "decimal"
-              | "tel"
-              | "url"
-              | "email"
-              | "search"
-              | "none")
-          : undefined
-      }
-      enterKeyHint={
-        element.props.enterKeyHint
-          ? (element.props.enterKeyHint as
-              | "enter"
-              | "done"
-              | "go"
-              | "next"
-              | "previous"
-              | "search"
-              | "send")
-          : undefined
-      }
-      spellCheck={
-        element.props.spellCheck ? String(element.props.spellCheck) : undefined
-      }
+      {...resolveInputHintProps(element.props)}
       onChange={(value) => {
         const updatedProps = {
           ...element.props,
@@ -356,44 +340,7 @@ export const renderSearchField = (
         "top"
       }
       name={element.props.name ? String(element.props.name) : undefined}
-      autoComplete={
-        element.props.autoComplete
-          ? String(element.props.autoComplete)
-          : undefined
-      }
-      autoCorrect={
-        element.props.autoCorrect
-          ? String(element.props.autoCorrect)
-          : undefined
-      }
-      inputMode={
-        element.props.inputMode
-          ? (element.props.inputMode as
-              | "text"
-              | "numeric"
-              | "decimal"
-              | "tel"
-              | "url"
-              | "email"
-              | "search"
-              | "none")
-          : undefined
-      }
-      enterKeyHint={
-        element.props.enterKeyHint
-          ? (element.props.enterKeyHint as
-              | "enter"
-              | "done"
-              | "go"
-              | "next"
-              | "previous"
-              | "search"
-              | "send")
-          : undefined
-      }
-      spellCheck={
-        element.props.spellCheck ? String(element.props.spellCheck) : undefined
-      }
+      {...resolveInputHintProps(element.props)}
       size={(element.props.size as "xs" | "sm" | "md" | "lg" | "xl") || "md"}
       onChange={(value) => {
         const updatedProps = {
