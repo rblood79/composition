@@ -4477,6 +4477,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 15,
       },
     },
+    // 2026-06-25: factory(NavigationComponents) DisclosureHeader child 가 레퍼런스 정합으로
+    //   width:100% + flex(row, justify flex-start, align center) inline 을 주입한다. 이 값들이
+    //   catalog rule baseline(resolveCatalogContainerBase → resolveLayoutSpecPreset/resolveSpecPreset)
+    //   에 없으면 Style 패널 Transform/Layout reset 버튼이 활성화되고 Modify 내역에 false dirty 로
+    //   등록된다(Card 2026-06-24 선례 동형). structure.containerStyles 로 동일 값을 baseline 공급해
+    //   factory inline == baseline → dirty 0. element="h3"(헤더 시맨틱), archetype="simple"(삭제된
+    //   DisclosureHeader.spec 보존). DOM 은 self-compose 흡수라 generated CSS 미사용(Skia=leadingIcon
+    //   leaf) — structure 는 dirty baseline + virtual CSS 재생성 용도.
+    structure: {
+      archetype: "simple",
+      element: "h3",
+      containerStyles: {
+        width: "100%",
+        display: "flex",
+        flexDirection: "row",
+        justifyContent: "flex-start",
+        alignItems: "center",
+      },
+    },
   },
   DropZone: {
     defaultVariant: "default",

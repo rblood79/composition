@@ -13,8 +13,11 @@
     box-sizing: border-box;
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  display: inline-flex;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
   align-items: center;
+  justify-content: flex-start;
 
   /* Default variant */
   background: transparent;
@@ -22,10 +25,11 @@
   border: none;
 
   /* Default size */
-  height: auto;
-  padding: 0px 0px;
+  height: 30px;
+  padding: 0px 12px;
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
+  --icon-size: 15px;
 }
 
 .react-aria-DisclosureHeader[data-variant="default"] {
@@ -42,10 +46,14 @@
 }
 
 .react-aria-DisclosureHeader[data-size="md"] {
-  height: auto;
-  padding: 0px 0px;
+  height: 30px;
+  padding: 0px 12px;
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
+  --icon-size: 15px;
+}
+
+.react-aria-DisclosureHeader[data-hovered] {
 }
 
 .react-aria-DisclosureHeader[data-focus-visible] {
@@ -54,7 +62,6 @@
 }
 
 .react-aria-DisclosureHeader[data-pressed] {
-  transform: scale(0.97);
 }
 
 .react-aria-DisclosureHeader[data-disabled] {

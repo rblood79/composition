@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Disclosure 군 3경로 정합 복원 + 헤더 width/dirty 정정 — catalog rule SSOT 재파생] - 2026-06-25
+
+ADR-912 catalog cutover 에서 Disclosure/DisclosureGroup spec 삭제 후 generated CSS 가 catalog rule SSOT 에서 파생되지 않는 stale 고아 파일로 방치되어, 레퍼런스(starter) ↔ Preview(DOM/CSS) ↔ Skia 3경로가 발산하던 회귀를 복원했다. 헤더 width:100% 미적용 + Style 패널 false dirty 도 함께 정정.
+
+### Bug Fixes
+
+- **Disclosure 3경로(레퍼런스/Preview CSS/Skia) 시각 발산**:
+  - Disclosure/DisclosureGroup rule 이 `structure` 메타 부재로 `generate-css` 의 virtual emit 대상에서 빠져, `pnpm build:specs` 로도 재생성되지 않고 삭제된 spec 의 leaf archetype CSS(헤더 굵기 누락 400 / 루트 컨테이너 leaf padding inline-flex / 패널 padding 누락)가 stale 방치
+  - Disclosure/DisclosureGroup rule 에 `structure`(archetype + containerStyles + composition.staticSelectors) 추가 → virtual emit 편입 → catalog rule 한 곳이 Skia(rule 직접 소비) + Preview(generated CSS) + 레퍼런스 3경로 동시 구동. 레퍼런스 정합: 루트 block 컨테이너(padding 0) / 헤더 trigger 버튼 flex + font-weight 600 + hover bg / chevron data-expanded 90° rotate / 패널 div padding
+  - **Why**: cutover 가 시각 렌더에 집중하며 generated CSS 의 SSOT 파생 경로(`buildVirtualSpecs` 는 `rule.structure` 보유 rule 만 합성)를 Disclosure 군에 연결 안 함 → CSS 만 옛 산출물로 잔존. `compositionOwnsContainerBox` 가 true 가 되어 컨테이너 leaf padding emit skip
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`, `packages/shared/src/components/styles/generated/{Disclosure,DisclosureHeader}.css`
+- **DisclosureHeader Skia width auto (레퍼런스/DOM=100%)**:
+  - factory(NavigationComponents) DisclosureHeader child 에 style 미지정 → 새로 생성된 헤더 leaf 가 Skia 에서 콘텐츠 폭(auto)으로 렌더, DOM(button width:100%)/레퍼런스(starter `.disclosure-button` 100%)와 발산. 헤더 chevron+title 도 RAC Button 기본 `justify-content:center` 상속으로 중앙 정렬 발산
+  - factory child 3곳(단독 Disclosure + DisclosureGroup 내 2개)에 `width:100% + flex(row, justify flex-start, align center)` 주입 + Disclosure rule 헤더 버튼 staticSelector 에 `justify-content:flex-start`(RAC Button center override)
+  - **Why**: Skia DisclosureHeader 는 Plain leaf 라 element style width 를 layout 이 소비해야 부모 폭을 채움 — factory 기본값에 width:100% 부재가 근본
+- **DisclosureHeader Style 패널 Transform/Layout false dirty (reset 버튼 활성 + Modify 등록)**:
+  - factory inline(width/display/justifyContent 등)이 catalog rule baseline(`resolveCatalogContainerBase` → spec preset)에 없어 사용자 수정으로 오판
+  - DisclosureHeader rule 에 `structure.containerStyles`(5키) 추가로 factory inline == baseline → false dirty 0 (Card 2026-06-24 선례 동형)
+  - **Why**: dirty 판정은 element style vs catalog rule baseline 비교 — baseline 누락 시 factory 기본값 전부가 dirty
+
+### Infrastructure
+
+- **stale 컴파일 산출물 제거 — catalog rule 변경 런타임 무력화 해소**:
+  - `componentRulesTable.{js,js.map,d.ts,d.ts.map}`(커밋 367fe7b3b, tsconfig noEmit 적용 전 우발적 잔존)이 vitest/tsx/Node 모듈 resolution 에서 최신 `.ts` 를 가려 catalog rule 변경 전체를 stale 화. 아무도 이 `.js` 를 import 안 함 → 삭제(`.ts` 단일 source)
+  - **Why**: 확장자 없는 import(`"../generated/componentRulesTable"`)가 `.ts` 보다 `.js` 를 우선 resolve → 모든 catalog rule 편집이 테스트/빌드 경로에서 무반영
+- **validate-sync 가 skipCSSGeneration spec 을 missing 으로 오판**:
+  - `validate-sync.ts` 가 `skipCSSGeneration:true` spec(frame=layout container / Group=D1 ARIA)도 CSS 를 기대 → `generate-css`(CSSGenerator:263 `return null`)가 의도적 미생성한 CSS 를 missing(error)로 판정 → Stop hook 차단. main loop 에 skipCSSGeneration 제외 가드 추가(generate-css 정책 정렬, 2 errors → 0)
+  - **Why**: validate-sync 와 generate-css 의 skipCSSGeneration 정책 불일치 — generate-css 는 skip, validate 는 요구
+
 ## [Collection Data/Items 동적 UI 복원 — generic Inspector kind:"binding"/"items-manager" 누락 회귀] - 2026-06-25
 
 ADR-912 catalog cutover 이후 collection 컴포넌트의 Property 패널 `Content` 섹션에서 (1) 데이터 소스 연결 UI(Data) 와 (2) 정적 items 추가/제거 UI(Items) 가 모두 사라졌던 회귀를 복원했다 — React Spectrum Dynamic collections 대응(동적 데이터 바인딩 + 정적 배열 편집).

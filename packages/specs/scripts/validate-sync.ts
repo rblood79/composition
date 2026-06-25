@@ -123,6 +123,14 @@ async function main(): Promise<void> {
   );
 
   for (const { name, spec } of specs) {
+    // skipCSSGeneration spec(frame=layout container / Group=D1 ARIA 등)은 generate-css 가
+    //   독립 CSS 파일을 의도적으로 생성하지 않는다(CSSGenerator.ts:263 `return null`). validate-sync
+    //   도 동일 정책으로 정렬 — 미생성이 정상이므로 missing 검사에서 제외(2026-06-25). 제외 안 하면
+    //   frame/Group 이 "generated CSS missing" 으로 false error → Stop hook 차단(정책 불일치 버그).
+    if ((spec as { skipCSSGeneration?: boolean }).skipCSSGeneration === true) {
+      continue;
+    }
+
     const expectedCSS = generateCSS(spec, false, variantSourceFor(name));
     const cssPath = path.join(GENERATED_DIR, `${name}.css`);
 
