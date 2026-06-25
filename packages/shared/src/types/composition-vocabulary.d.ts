@@ -1,0 +1,35 @@
+/**
+ * @fileoverview Canonical Component Vocabulary — ADR-903 P0
+ *
+ * **scope 분리 (R5)**: 본 파일의 `ComponentTag`는 오직 `Element.type` /
+ * `CanonicalNode.type`의 값 공간이다. `DataBinding.type` ("collection" | "value"
+ * | "field") 및 `FieldDefinition.type` (FieldType 7-literal)과는 **객체 경로가
+ * 다른 별개 필드**이며 값 공간 교집합 0건 — compile-time disjoint 보장.
+ */
+import type { CanonicalNode } from "./composition-document.types";
+/**
+ * Canonical Component Tag — composition 컴포넌트 vocabulary.
+ *
+ * 값 공간 정책 (ADR-903 §type vocabulary policy):
+ * - **허용**: composition Component 114개 + pencil 공용 구조 타입 3개 (`ref` | `frame` | `group`) = 117 literal
+ * - **제외**: pencil primitive 10종 (`rectangle` / `ellipse` / `line` / `polygon` / `path` /
+ *   `text` / `note` / `prompt` / `context` / `icon_font`) — import/export adapter 경유만 등장
+ *
+ * 실측: 본 `ComponentTag` union 멤버 114 component + 구조 타입 3개 = 117 (Autocomplete 폐기 2026-06-09 / DateSegment+TimeSegment 폐기 2026-06-09 / Accordion 폐기 2026-06-10 — DisclosureGroup 중복 / MaskedFrame 폐기 2026-06-16 — dead orphan, factory 0건, ADR-912 step 4). 주의: `*.spec.ts` 파일 수와는 별개 — properties-only / child sub-part spec 은 union 비멤버. TimeSegment 는 vocab union 비멤버였던 undeclared alias (tagToElement 동시 청산).
+ */
+export type ComponentTag = "Avatar" | "AvatarGroup" | "Badge" | "Body" | "Breadcrumb" | "Breadcrumbs" | "Button" | "ButtonGroup" | "Calendar" | "CalendarGrid" | "CalendarHeader" | "Card" | "CardContent" | "CardFooter" | "CardHeader" | "CardView" | "Checkbox" | "CheckboxGroup" | "CheckboxItems" | "Code" | "ColorArea" | "ColorField" | "ColorPicker" | "ColorSlider" | "ColorSwatch" | "ColorSwatchPicker" | "ColorWheel" | "ComboBox" | "DateField" | "DateInput" | "DatePicker" | "DateRangePicker" | "Description" | "Dialog" | "Disclosure" | "DisclosureGroup" | "DisclosureHeader" | "DropZone" | "Field" | "FieldError" | "FileTrigger" | "Form" | "GridList" | "GridListItem" | "Group" | "Header" | "Heading" | "Icon" | "IllustratedMessage" | "Image" | "InlineAlert" | "Input" | "Kbd" | "Label" | "Link" | "ListBox" | "ListBoxItem" | "Menu" | "MenuItem" | "Meter" | "MeterTrack" | "MeterValue" | "Modal" | "Nav" | "NumberField" | "Pagination" | "Paragraph" | "Popover" | "ProgressBar" | "ProgressBarTrack" | "ProgressBarValue" | "ProgressCircle" | "Radio" | "RadioGroup" | "RadioItems" | "RangeCalendar" | "SearchField" | "Section" | "Select" | "SelectIcon" | "SelectTrigger" | "SelectValue" | "Separator" | "Skeleton" | "Slider" | "SliderOutput" | "SliderThumb" | "SliderTrack" | "Slot" | "StatusLight" | "Switch" | "Tab" | "Table" | "TableView" | "TabList" | "TabPanel" | "TabPanels" | "Tabs" | "Tag" | "TagGroup" | "TagList" | "TailSwatch" | "Text" | "TextArea" | "TextField" | "TimeField" | "Toast" | "ToggleButton" | "ToggleButtonGroup" | "Toolbar" | "Tooltip" | "Tree" | "ref" | "frame" | "group";
+/**
+ * `isCanonicalNode` — runtime type guard.
+ *
+ * 체크 항목:
+ * - `typeof obj === "object" && obj !== null`
+ * - `typeof obj.id === "string" && !obj.id.includes("/")`
+ * - `typeof obj.type === "string"`
+ * - optional 필드(`children` / `reusable` / `ref` / `descendants` / `slot`)는
+ *   존재 시에만 타입 검증
+ *
+ * canonical tree walker에서 `if (!isCanonicalNode(child)) continue` 방어 강제.
+ * `FieldDefinition` / `DataBinding`이 tree walker에 섞여 들어오더라도 오판 차단.
+ */
+export declare function isCanonicalNode(obj: unknown): obj is CanonicalNode;
+//# sourceMappingURL=composition-vocabulary.d.ts.map
