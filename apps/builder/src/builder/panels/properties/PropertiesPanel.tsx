@@ -286,6 +286,7 @@ const CatalogEditContractEditor = memo(
         fields={semanticFields}
         onSemanticUpdate={handleSemanticUpdate}
         onStyleUpdate={handleStyleUpdate}
+        elementId={selectedElement.id}
       />
     );
   },

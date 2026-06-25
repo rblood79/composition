@@ -15,13 +15,28 @@ export const gridListBinding: PrimitiveBinding = {
   props: {
     accepts: {
       dataBinding: { kind: "binding", label: "Data", section: "content" },
-      // ADR-912 영역 B Task 5: 정적 items[](StoredGridListItem[]) pass-through.
-      //   collection cutover DOM 경로(toRacProps)는 accepts 선언 prop 만 통과시키므로,
-      //   items 미선언 시 props.items 가 drop → wrapper 가 items=undefined 로 받아
-      //   useResolvedCollectionItems 가 정적 source 를 못 봄(정적 카드 소실). dataBinding 과
-      //   동일 collection data source 라 kind:"binding"(Inspector no-op, toRacProps 통과 전용)로
-      //   선언 — D2 의미 props 미오염. ListBox/TagGroup/Menu binding items 패턴과 동형.
-      items: { kind: "binding", label: "Items", section: "content" },
+      // ADR-912 영역 B Task 5: 정적 items[](StoredGridListItem[]).
+      //   toRacProps 가 props.items pass-through 를 보장(미선언 시 정적 카드 소실).
+      //   kind:"items-manager" 는 비-DATA_ATTR_KIND → out[key]=value 통과 유지 +
+      //   Inspector 정적 items 추가/제거 UI(ItemsManager) 렌더(RSP Dynamic collections).
+      items: {
+        kind: "items-manager",
+        label: "Items",
+        section: "content",
+        itemsManager: {
+          itemsKey: "items",
+          itemTypeName: "GridListItem",
+          defaultItem: { id: "", label: "Item", isDisabled: false },
+          itemSchema: [
+            { key: "label", type: "string", label: "Label" },
+            { key: "textValue", type: "string", label: "Text Value" },
+            { key: "description", type: "string", label: "Description" },
+            { key: "isDisabled", type: "boolean", label: "Disabled" },
+          ],
+          labelKey: "label",
+          allowSections: true,
+        },
+      },
       variant: {
         kind: "variant",
         label: "Variant",

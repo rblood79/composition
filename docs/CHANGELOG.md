@@ -7,21 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [Collection Data 바인딩 UI 복원 — generic Inspector kind:"binding" 누락 회귀] - 2026-06-25
+## [Collection Data/Items 동적 UI 복원 — generic Inspector kind:"binding"/"items-manager" 누락 회귀] - 2026-06-25
 
-ADR-912 catalog cutover 이후 collection 컴포넌트(ListBox/GridList/ComboBox/Menu/Select/TagGroup/Breadcrumbs/Table/Tree) 의 Property 패널 `Content` 섹션에서 데이터 소스 연결 UI(React Spectrum Dynamic collections 대응)가 일괄 사라졌던 회귀를 복원했다.
+ADR-912 catalog cutover 이후 collection 컴포넌트의 Property 패널 `Content` 섹션에서 (1) 데이터 소스 연결 UI(Data) 와 (2) 정적 items 추가/제거 UI(Items) 가 모두 사라졌던 회귀를 복원했다 — React Spectrum Dynamic collections 대응(동적 데이터 바인딩 + 정적 배열 편집).
 
 ### Bug Fixes
 
 - **collection Property 패널의 Data(dataBinding) 소스 연결 UI 일괄 소실**:
-  - ADR-912 가 collection 9종을 per-type editor(`getEditor`) → generic catalog Inspector 단일 경로로 전환하면서, generic field renderer 2곳(`GenericFieldRenderer` / `CatalogInspectorFields`)이 `kind:"binding"` field 를 `default: return null` 로 렌더 누락 — 주석은 "Phase 6 / 단계 4 collections family 에서 처리" 로 미뤄둔 미완 상태였다. catalog binding 정의(`{Table,ListBox,...}.binding.ts` 의 `dataBinding: { kind:"binding", label:"Data", section:"content" }`)와 복원용 컴포넌트(`PropertyDataBinding`)는 살아있었으나 연결만 끊겨 있었다
-  - 두 renderer 의 `case "binding"` 추가 — `field.key === "dataBinding"` 일 때 `PropertyDataBinding`(DataTable/API/Variable/Route Param 소스 선택) 렌더. 그 외 binding(`items` 등)은 의도적 Inspector no-op(toRacProps 통과 전용, 정적 items 는 collections root/`useResolvedCollectionItems` 소유)이라 `null` 유지
-  - **Why**: catalog cutover 가 시각 렌더(Skia/CSS)에 집중하면서 Inspector 의 `kind:"binding"` 분기를 "후속" 으로 남겼고, collection 9종 전부가 동일 generic 경로라 단일 누락이 전 컴포넌트 dynamic data UI 소실로 확산됐다. `dataBinding` 은 RSP Dynamic collections 의 외부 데이터 소스 진입점 — `useCollectionData(dataBinding → items)` 가 소비
+  - ADR-912 가 collection 을 per-type editor(`getEditor`) → generic Inspector 단일 경로(`PropertiesPanel` → `useEditContract` → `GenericFieldRenderer`)로 전환하면서, generic renderer 가 `kind:"binding"` field 를 `default: return null` 로 렌더 누락 — 주석은 "Phase 6 / 단계 4 collections family 에서 처리" 로 미뤄둔 미완 상태였다. catalog binding 정의(`dataBinding: { kind:"binding", label:"Data" }`)와 `PropertyDataBinding` 컴포넌트는 살아있었으나 연결만 끊겨 있었다
+  - `GenericFieldRenderer` + `CatalogInspectorFields` 의 `case "binding"` 추가 — `field.key === "dataBinding"` 일 때 `PropertyDataBinding`(DataTable/API/Variable/Route Param) 렌더
+  - **Why**: catalog cutover 가 시각 렌더(Skia/CSS)에 집중하면서 Inspector 의 `kind:"binding"` 분기를 "후속" 으로 남겼고, collection 전부가 동일 generic 경로라 단일 누락이 전 컴포넌트 dynamic data UI 소실로 확산. `dataBinding` 은 RSP Dynamic collections 의 외부 데이터 소스 진입점(`useCollectionData(dataBinding → items)`)
   - 위치: `apps/builder/src/builder/panels/properties/generic/{GenericFieldRenderer,CatalogInspectorFields}.tsx`
+- **collection Property 패널의 Items 정적 배열 추가/제거 UI 일괄 소실 (6종)**:
+  - 정적 items 편집(ItemsManager)은 ADR-912 이전 spec `"Item Management"` 섹션 + `ItemsManagerField`(itemsKey/itemSchema/defaultItem/labelKey) 로 구동됐는데, cutover 후 catalog binding 의 `items` field 가 `kind:"binding"`(toRacProps 통과 전용 no-op)으로만 선언돼 Inspector 에 UI 미표시 + ItemsManager schema 부재
+  - catalog 타입 확장: `InspectorFieldKind` 에 `"items-manager"` 추가 + `PropContract`/`InspectorField`/`ResolvedField` 에 `itemsManager` schema 필드(itemsKey/itemTypeName/defaultItem/itemSchema/labelKey/allowSections/allowSeparators) 추가(catalog self-contained 원칙 유지 — specs `ItemsManagerField` 미import, 구조만 미러). 6종 binding(ListBox/GridList/Select/ComboBox/Menu/TagGroup)의 `items` 를 `kind:"items-manager"` + schema 로 정의(ADR-912 이전 spec 값 복원). generic renderer 2곳에 `case "items-manager"` → schema 를 specs `ItemsManagerField` 로 투영해 `ItemsManager`(`addItem`/`removeItem` store action) 렌더
+  - `kind:"items-manager"` 는 `toRacProps` 의 비-`DATA_ATTR_KIND` → `out[key]=value` 통과 유지(binding 과 동일) → props.items pass-through 무손실. Breadcrumbs/Tree/Table 은 이전에도 items-manager 미보유(dataBinding/columnMapping 기반)라 대상 외
+  - **Why**: cutover 가 `items` 를 데이터 pass-through 용으로만 격하해 Inspector 편집 UI 가 사라졌다. RSP Dynamic collections 의 정적 편집 진입점 복원
+  - 위치: `packages/shared/src/catalog/{types.ts,outputs/inspectorFields.ts,resolvers/resolveEditContract.ts,bindings/{ListBox,GridList,Select,ComboBox,Menu,TagGroup}.binding.ts}`, `apps/builder/src/builder/panels/properties/{PropertiesPanel.tsx,generic/{GenericFieldRenderer,CatalogInspectorFields,GenericPropertyEditor}.tsx}`
 
 ### Infrastructure
 
-- `CatalogInspectorFields.test.tsx` 에 `kind:"binding"` dataBinding 렌더 회귀 가드 1건 추가(`tableBinding` → "Data" + "소스 선택" 렌더 확증). live 검증: Table·ListBox 선택 시 Content → Data 드롭다운 복원 + 클릭 시 DataTable/API/Variable/Route Param 4 소스 표시. type-check 0 신규 위반(baseline 69)
+- 회귀 가드: `CatalogInspectorFields.test.tsx` `kind:"binding"` dataBinding 렌더 1건 + `resolveEditContract.test.ts` ListBox `kind:"items-manager"` schema 통과 1건. live 검증: ListBox 선택 시 Content → Data 드롭다운(4 소스) + "Add ListBoxItem"/"Add Section" → 클릭 시 `props.items` 에 `{label:"New Item",...}` 추가(Total 갱신). Select 는 "Add Option"(itemTypeName="Option", allowSections 없음 — schema 별 분기 정확). type-check 0 신규 위반(baseline 69)
 
 ## [TableView 자식 Skia 미렌더 + 텍스트 겹침 정정 — catalog cutover + flex item 배치 대칭 (Group D)] - 2026-06-25
 

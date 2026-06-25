@@ -73,6 +73,8 @@ export interface ResolvedField {
   step?: number;
   /** enum/fillStyle 고정 옵션 (variant/size 는 theme 가 별도 제공 — 본 계약은 미해소). */
   options?: PropContract["options"];
+  /** `kind:"items-manager"` 전용 — 정적 items 배열 편집 schema (PropContract 통과). */
+  itemsManager?: PropContract["itemsManager"];
 }
 
 /** 노드 1개의 편집 계약 — 두 source 합집합. */
@@ -231,6 +233,7 @@ export function resolveEditContract(
         max: contract.max,
         step: contract.step,
         options: deriveOptions(contract, rule),
+        itemsManager: contract.itemsManager,
       });
     }
   }

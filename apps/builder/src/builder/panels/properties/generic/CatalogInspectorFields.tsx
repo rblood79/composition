@@ -16,6 +16,7 @@ import {
   type InspectorFieldTheme,
   type PropContract,
 } from "@composition/shared";
+import type { ItemsManagerField } from "@composition/specs";
 
 import {
   PropertyDataBinding,
@@ -29,6 +30,29 @@ import {
 } from "../../../components";
 import type { DataBindingValue } from "../../../components/property/PropertyDataBinding";
 import { evaluateVisibility } from "./evaluateVisibility";
+import { ItemsManager } from "./ItemsManager";
+
+/**
+ * catalog `InspectorField.itemsManager`(self-contained schema) → specs `ItemsManagerField`
+ * 투영. `ItemsManager` 가 specs 타입을 요구하므로 builder 레이어에서 변환한다(catalog types
+ * 는 specs 비의존 원칙 유지 — [[feedback-specs-shared-layer-not-absorption]]).
+ */
+function toItemsManagerField(field: InspectorField): ItemsManagerField | null {
+  const im = field.itemsManager;
+  if (!im) return null;
+  return {
+    key: field.key,
+    type: "items-manager",
+    label: field.label,
+    itemsKey: im.itemsKey,
+    itemTypeName: im.itemTypeName,
+    defaultItem: im.defaultItem,
+    itemSchema: im.itemSchema,
+    labelKey: im.labelKey,
+    allowSections: im.allowSections,
+    allowSeparators: im.allowSeparators,
+  };
+}
 
 interface CatalogInspectorFieldsProps {
   componentType: string;
@@ -37,6 +61,8 @@ interface CatalogInspectorFieldsProps {
   currentProps: Record<string, unknown>;
   onUpdate: (updated: Record<string, unknown>) => void;
   parentTag?: string;
+  /** `kind:"items-manager"` 필드(ItemsManager)가 store action(addItem/removeItem)에 필요. */
+  elementId?: string;
   /** 첫 "content" 그룹(또는 없으면 선두 Content 섹션)에 주입할 ID 컨트롤 등. */
   customIdControl?: React.ReactNode;
 }
@@ -49,10 +75,12 @@ const CatalogField = memo(function CatalogField({
   field,
   currentProps,
   onUpdate,
+  elementId,
 }: {
   field: InspectorField;
   currentProps: Record<string, unknown>;
   onUpdate: (updated: Record<string, unknown>) => void;
+  elementId?: string;
 }) {
   const value = currentProps[field.key];
   const update = (v: unknown) => onUpdate({ [field.key]: v });
@@ -165,6 +193,15 @@ const CatalogField = memo(function CatalogField({
       }
       return null;
 
+    // "items-manager" — collection 정적 items 배열 추가/제거 UI(ItemsManager).
+    //   ADR-912 catalog cutover 로 누락된 RSP Dynamic collections 정적 편집 진입점 복원.
+    //   ItemsManager 는 store action(addItem/removeItem) 에 elementId 가 필요.
+    case "items-manager": {
+      const imField = toItemsManagerField(field);
+      if (!imField || !elementId) return null;
+      return <ItemsManager elementId={elementId} field={imField} />;
+    }
+
     default:
       return null;
   }
@@ -177,6 +214,7 @@ export const CatalogInspectorFields = memo(function CatalogInspectorFields({
   currentProps,
   onUpdate,
   parentTag,
+  elementId,
   customIdControl,
 }: CatalogInspectorFieldsProps) {
   const groups = buildInspectorFields(componentType, contracts, theme);
@@ -208,6 +246,7 @@ export const CatalogInspectorFields = memo(function CatalogInspectorFields({
                 field={field}
                 currentProps={currentProps}
                 onUpdate={onUpdate}
+                elementId={elementId}
               />
             ))}
           </PropertySection>

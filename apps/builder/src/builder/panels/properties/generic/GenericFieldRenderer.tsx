@@ -19,6 +19,7 @@
 import { memo } from "react";
 
 import type { ResolvedField } from "@composition/shared";
+import type { ItemsManagerField } from "@composition/specs";
 
 import {
   PropertyDataBinding,
@@ -31,6 +32,29 @@ import {
   PropertySwitch,
 } from "../../../components";
 import type { DataBindingValue } from "../../../components/property/PropertyDataBinding";
+import { ItemsManager } from "./ItemsManager";
+
+/**
+ * ResolvedField.itemsManager(catalog self-contained schema) → specs `ItemsManagerField` 투영.
+ * `ItemsManager` 가 specs 타입을 요구하므로 builder 레이어에서 변환한다(CatalogInspectorFields
+ * 동일 패턴 — catalog types 는 specs 비의존 [[feedback-specs-shared-layer-not-absorption]]).
+ */
+function toItemsManagerField(field: ResolvedField): ItemsManagerField | null {
+  const im = field.itemsManager;
+  if (!im) return null;
+  return {
+    key: field.key,
+    type: "items-manager",
+    label: field.label,
+    itemsKey: im.itemsKey,
+    itemTypeName: im.itemTypeName,
+    defaultItem: im.defaultItem,
+    itemSchema: im.itemSchema,
+    labelKey: im.labelKey,
+    allowSections: im.allowSections,
+    allowSeparators: im.allowSeparators,
+  };
+}
 
 /** field.origin 별 write 경로. */
 export interface GenericFieldRouting {
@@ -38,6 +62,8 @@ export interface GenericFieldRouting {
   onSemanticUpdate: (key: string, value: unknown) => void;
   /** origin:"style" → node.props.style[key] = value (override-only). */
   onStyleUpdate: (key: string, value: unknown) => void;
+  /** `kind:"items-manager"`(ItemsManager) 가 store action(addItem/removeItem)에 필요. */
+  elementId?: string;
 }
 
 interface GenericFieldRendererProps extends GenericFieldRouting {
@@ -54,6 +80,7 @@ const GenericField = memo(function GenericField({
   field,
   onSemanticUpdate,
   onStyleUpdate,
+  elementId,
 }: { field: ResolvedField } & GenericFieldRouting) {
   const value = field.currentValue;
   // origin 단일 진실로 write 분기 (semantic → props / style → props.style).
@@ -169,6 +196,15 @@ const GenericField = memo(function GenericField({
       }
       return null;
 
+    // "items-manager" — collection 정적 items 배열 추가/제거 UI(ItemsManager).
+    //   ADR-912 catalog cutover 로 누락된 RSP Dynamic collections 정적 편집 진입점 복원.
+    //   ItemsManager 는 store action(addItem/removeItem)에 elementId 필요.
+    case "items-manager": {
+      const imField = toItemsManagerField(field);
+      if (!imField || !elementId) return null;
+      return <ItemsManager elementId={elementId} field={imField} />;
+    }
+
     default:
       return null;
   }
@@ -183,6 +219,7 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
   fields,
   onSemanticUpdate,
   onStyleUpdate,
+  elementId,
 }: GenericFieldRendererProps) {
   if (fields.length === 0) return null;
 
@@ -205,6 +242,7 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
               field={field}
               onSemanticUpdate={onSemanticUpdate}
               onStyleUpdate={onStyleUpdate}
+              elementId={elementId}
             />
           ))}
         </PropertySection>

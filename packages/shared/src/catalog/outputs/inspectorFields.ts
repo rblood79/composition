@@ -16,6 +16,7 @@
 
 import type {
   InspectorFieldKind,
+  ItemsManagerSchema,
   PropContract,
   VisibilityCondition,
 } from "../types";
@@ -34,6 +35,8 @@ export interface InspectorField {
   min?: number;
   max?: number;
   step?: number;
+  /** `kind:"items-manager"` 전용 — 정적 items 배열 편집 schema (PropContract 에서 그대로 전달). */
+  itemsManager?: ItemsManagerSchema;
   visibleWhen?: VisibilityCondition;
 }
 
@@ -72,6 +75,7 @@ export function buildInspectorFields(
       min: contract.min,
       max: contract.max,
       step: contract.step,
+      itemsManager: contract.itemsManager,
       visibleWhen: contract.visibleWhen,
     };
 

@@ -118,6 +118,7 @@ export const GenericPropertyEditor = memo(function GenericPropertyEditor({
           currentProps={currentProps}
           onUpdate={onUpdate}
           parentTag={parentTag}
+          elementId={elementId}
           customIdControl={renderCustomId()}
         />
         {renderAfterSections != null &&

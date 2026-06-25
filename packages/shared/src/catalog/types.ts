@@ -140,7 +140,40 @@ export type InspectorFieldKind =
   | "variant"
   | "size"
   | "fillStyle"
-  | "binding";
+  | "binding"
+  | "items-manager";
+
+/**
+ * `kind:"items-manager"` 의 개별 항목 인라인 편집 스키마.
+ *
+ * specs `ItemsManagerFieldItemSchema` 와 동일 구조 — catalog types 는 self-contained
+ * 원칙(본 파일 상단 주석)상 specs 를 import 하지 않으므로 구조만 미러한다. builder
+ * 의 generic renderer 가 이 schema 를 specs `ItemsManagerField` 로 투영해 `ItemsManager`
+ * 에 전달한다(collection 정적 items 추가/제거 UI — RSP Dynamic collections).
+ */
+export interface ItemsManagerItemSchema {
+  key: string;
+  type: "string" | "boolean" | "icon" | "event-id";
+  label: string;
+}
+
+/** `kind:"items-manager"` PropContract 가 담는 정적 items 배열 편집 schema. */
+export interface ItemsManagerSchema {
+  /** props 내 items 배열 키 (e.g. "items"). */
+  itemsKey: string;
+  /** 항목 타입 이름 — UI 라벨/디버깅용 (e.g. "MenuItem"). */
+  itemTypeName: string;
+  /** 새 항목 추가 시 기본 값. */
+  defaultItem: Record<string, unknown>;
+  /** 항목 인라인 편집 스키마. */
+  itemSchema: ItemsManagerItemSchema[];
+  /** 목록에서 라벨로 표시할 키 (e.g. "label"). */
+  labelKey?: string;
+  /** Section 그룹 추가 허용 (ListBox/Menu). */
+  allowSections?: boolean;
+  /** Separator 추가 허용 (Menu 전용). */
+  allowSeparators?: boolean;
+}
 
 /** 필드 가시성 조건 — 다른 prop 값에 따라 조건부 노출. */
 export interface VisibilityCondition {
@@ -169,6 +202,8 @@ export interface PropContract {
   min?: number;
   max?: number;
   step?: number;
+  /** `kind:"items-manager"` 전용 — 정적 items 배열 편집 schema. */
+  itemsManager?: ItemsManagerSchema;
   visibleWhen?: VisibilityCondition;
 }
 

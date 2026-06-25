@@ -25,13 +25,37 @@ export const listBoxBinding: PrimitiveBinding = {
     accepts: {
       // collection items 데이터 — canonical 아닌 collections root(useCollectionData) 소유.
       dataBinding: { kind: "binding", label: "Data", section: "content" },
-      // ADR-912 영역 B Task 4: 정적 items[](StoredListBoxItem[]) pass-through.
-      //   collection cutover DOM 경로(toRacProps)는 accepts 선언 prop 만 통과시키므로,
-      //   items 미선언 시 props.items 가 drop → wrapper 가 items=undefined 로 받아
-      //   useResolvedCollectionItems 가 정적 source 를 못 봄(정적 chip 소실). dataBinding 과
-      //   동일 collection data source 라 kind:"binding"(Inspector no-op, toRacProps 통과 전용)로
-      //   선언 — D2 의미 props 미오염. TagGroup/Menu binding items 패턴과 동형.
-      items: { kind: "binding", label: "Items", section: "content" },
+      // ADR-912 영역 B Task 4: 정적 items[](StoredListBoxItem[]).
+      //   collection cutover DOM 경로(toRacProps)는 accepts 선언 prop 만 통과시키므로
+      //   items 선언이 props.items pass-through 를 보장한다(미선언 시 wrapper 가
+      //   items=undefined → useResolvedCollectionItems 정적 source 소실). kind:"items-manager"
+      //   는 toRacProps 비-DATA_ATTR_KIND → out[key]=value 통과 유지(binding 과 동일) +
+      //   Inspector 에 정적 items 추가/제거 UI(ItemsManager) 렌더(RSP Dynamic collections).
+      items: {
+        kind: "items-manager",
+        label: "Items",
+        section: "content",
+        itemsManager: {
+          itemsKey: "items",
+          itemTypeName: "ListBoxItem",
+          defaultItem: {
+            id: "",
+            label: "New Item",
+            value: "",
+            isDisabled: false,
+          },
+          itemSchema: [
+            { key: "label", type: "string", label: "Label" },
+            { key: "value", type: "string", label: "Value" },
+            { key: "textValue", type: "string", label: "Text Value" },
+            { key: "description", type: "string", label: "Description" },
+            { key: "isDisabled", type: "boolean", label: "Disabled" },
+            { key: "href", type: "string", label: "URL" },
+          ],
+          labelKey: "label",
+          allowSections: true,
+        },
+      },
       variant: {
         kind: "variant",
         label: "Variant",

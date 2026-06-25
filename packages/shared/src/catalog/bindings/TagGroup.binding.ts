@@ -15,13 +15,31 @@ export const tagGroupBinding: PrimitiveBinding = {
   props: {
     accepts: {
       dataBinding: { kind: "binding", label: "Data", section: "content" },
-      // ADR-912 영역 B (A 후속, 2026-06-05): 정적 items[] SSOT(ADR-097 P2) pass-through.
-      //   collection cutover DOM 경로(toRacProps)는 accepts 선언 prop 만 통과시키므로,
-      //   items 미선언 시 props.items(4개)가 drop → TagGroup wrapper 가 items=undefined 로
-      //   받아 빈 TagList placeholder(2개) 렌더. dataBinding 과 동일한 collection data source 라
-      //   kind:"binding"(Inspector no-op, toRacProps 통과 전용) 로 선언 — D2 의미 props 오염 없음.
+      // ADR-912 영역 B (A 후속, 2026-06-05): 정적 items[] SSOT(ADR-097 P2).
+      //   toRacProps 가 props.items pass-through 를 보장(미선언 시 빈 TagList placeholder).
+      //   kind:"items-manager" 는 비-DATA_ATTR_KIND → out[key]=value 통과 유지 +
+      //   Inspector 정적 tag 추가/제거 UI(ItemsManager) 렌더(RSP Dynamic collections).
       //   Skia 경로는 appendTagRowProjection 이 canonical props.items 를 직접 읽어 무관.
-      items: { kind: "binding", label: "Items", section: "content" },
+      items: {
+        kind: "items-manager",
+        label: "Tags",
+        section: "content",
+        itemsManager: {
+          itemsKey: "items",
+          itemTypeName: "Tag",
+          defaultItem: { id: "", label: "New Tag", isDisabled: false },
+          itemSchema: [
+            { key: "label", type: "string", label: "Label" },
+            { key: "isDisabled", type: "boolean", label: "Disabled" },
+            {
+              key: "allowsRemoving",
+              type: "boolean",
+              label: "Allows Removing",
+            },
+          ],
+          labelKey: "label",
+        },
+      },
       label: { kind: "string", label: "Label", section: "content" },
       description: {
         kind: "string",

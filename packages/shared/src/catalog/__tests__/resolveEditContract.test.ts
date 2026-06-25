@@ -226,4 +226,27 @@ describe("resolveEditContract — semantic ∪ universal style (ADR-912 1A-(4))"
     expect(bg?.isOverridden).toBe(true);
     expect(bg?.currentValue).toBe("#abc");
   });
+
+  // ADR-912 회귀 복원: collection 의 items field(kind:"items-manager") schema 가
+  //   ResolvedField.itemsManager 로 통과되어야 GenericFieldRenderer 가 ItemsManager UI 를
+  //   렌더(정적 items 추가/제거 — RSP Dynamic collections). 통과 누락 시 schema=undefined → null.
+  it("ListBox items field 가 kind:'items-manager' + itemsManager schema 통과", () => {
+    const listBoxNode: CanonicalNode = {
+      id: "lb1",
+      type: "ListBox" as CanonicalNode["type"],
+      props: {},
+    };
+    const items = resolveEditContract(listBoxNode).fields.find(
+      (f) => f.key === "items" && f.origin === "semantic",
+    );
+    expect(items?.kind).toBe("items-manager");
+    expect(items?.itemsManager).toBeDefined();
+    expect(items?.itemsManager?.itemsKey).toBe("items");
+    expect(items?.itemsManager?.itemTypeName).toBe("ListBoxItem");
+    expect(items?.itemsManager?.itemSchema.some((s) => s.key === "label")).toBe(
+      true,
+    );
+    // ListBox 는 allowSections:true (Add Section UI).
+    expect(items?.itemsManager?.allowSections).toBe(true);
+  });
 });

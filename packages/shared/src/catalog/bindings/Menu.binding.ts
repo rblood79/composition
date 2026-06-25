@@ -15,12 +15,32 @@ export const menuBinding: PrimitiveBinding = {
   props: {
     accepts: {
       dataBinding: { kind: "binding", label: "Data", section: "content" },
-      // ADR-912 영역 B Task 3: 정적 items[] SSOT(RuntimeMenuItem[]) pass-through.
-      //   collection cutover DOM 경로(toRacProps)는 accepts 선언 prop 만 통과시키므로,
-      //   items 미선언 시 props.items 가 drop → MenuButton 이 items=undefined 로 받아
-      //   static children placeholder 렌더. dataBinding 과 동일 collection data source 라
-      //   kind:"binding"(Inspector no-op, toRacProps 통과 전용)로 선언 — D2 의미 props 미오염.
-      items: { kind: "binding", label: "Items", section: "content" },
+      // ADR-912 영역 B Task 3: 정적 items[] SSOT(RuntimeMenuItem[]).
+      //   toRacProps 가 props.items pass-through 를 보장(미선언 시 static children placeholder).
+      //   kind:"items-manager" 는 비-DATA_ATTR_KIND → out[key]=value 통과 유지 +
+      //   Inspector 정적 menu item 추가/제거 UI(ItemsManager) 렌더(RSP Dynamic collections).
+      items: {
+        kind: "items-manager",
+        label: "Menu Items",
+        section: "content",
+        itemsManager: {
+          itemsKey: "items",
+          itemTypeName: "MenuItem",
+          defaultItem: { id: "", label: "New Item" },
+          itemSchema: [
+            { key: "label", type: "string", label: "Label" },
+            { key: "value", type: "string", label: "Value" },
+            { key: "href", type: "string", label: "URL" },
+            { key: "isDisabled", type: "boolean", label: "Disabled" },
+            { key: "icon", type: "icon", label: "Icon" },
+            { key: "shortcut", type: "string", label: "Shortcut" },
+            { key: "description", type: "string", label: "Description" },
+            { key: "onActionId", type: "event-id", label: "On Action" },
+          ],
+          labelKey: "label",
+          allowSections: true,
+        },
+      },
       label: { kind: "string", label: "Trigger Label", section: "content" },
       variant: {
         kind: "variant",
