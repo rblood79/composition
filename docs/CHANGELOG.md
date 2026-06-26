@@ -7,12 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [Button 조합 자식 color 상속 + display RSP 고정] - 2026-06-26
+## [Button 조합 자식 color 상속 + display RSP 고정 + Text DOM tag 정합] - 2026-06-26
 
-`<Button><Icon/><Text/></Button>` 조합 시 자식 Icon/Text 가 Button color 를 상속하지 못해 검은(primary) 배경 위 검정 Icon/Text 로 묻히던 문제를 RSP 정합으로 해소했다. D3 시각만 변경 — D1(DOM 구조)/D2(props) 무변경. CSS(Preview) ↔ Skia(Builder) 대등 대칭.
+`<Button><Icon/><Text/></Button>` 조합 시 자식 Icon/Text 가 Button color 를 상속하지 못해 검은(primary) 배경 위 검정 Icon/Text 로 묻히던 문제를 RSP 정합으로 해소했다. 주로 D3 시각(color 상속/display) 변경, 추가로 Text DOM tag(D1) 를 RAC/RSP 기본(span)으로 정정. CSS(Preview) ↔ Skia(Builder) 대등 대칭.
 
 ### Bug Fixes
 
+- **Button 안 Text DOM tag 가 `<p>`** (RAC/RSP 정합 + invalid HTML):
+  - Builder Preview 가 Text 를 `<p>` 로 렌더 → `<p>` in `<button>` 은 invalid HTML(button = phrasing content only)
+  - **Why**: Preview tag resolver 의 `Text: "p"` 매핑이 RAC 와 어긋남. RAC `Text` 기본 `elementType = "span"`(react-aria-components Text.tsx), RSP S2 Text 도 RAC TextAria wrap 으로 span 상속, Publish 앱도 이미 `createHtmlElement("span")` → Builder Preview 만 `p` 로 drift 였음
+  - 수정: Builder Preview 2 경로(CanonicalNodeRenderer.resolveGenericHtmlTag / App.tsx resolveHtmlTag) Text → "span". 3 경로(RAC/RSP/Publish) span 수렴. Description 은 단락 시맨틱이라 "p" 유지
+  - 위치: `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`, `apps/builder/src/preview/App.tsx`, `packages/shared/src/renderers/index.ts`
 - **Button 자식 Icon/Text color 미상속** (RSP 정합):
   - `<Button><Icon/><Text/></Button>` 조합 시 자식이 Button color(variant 별 text 토큰)를 미상속 → 검은 배경 위 검정 Icon/Text 묻힘
   - **Why**: leaf 기본 color(`{color.neutral}` = --fg) + Skia 부모→자식 color 전파 부재. RSP 는 `<Button>` color 1회 설정 → 자식 텍스트/SVG(currentColor) 자동 상속하나 composition 은 구조만 RSP 이고 상속 메커니즘 부재였음
