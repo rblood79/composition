@@ -43,7 +43,8 @@
 - **게이트**: 선택 요소가 leaf 버튼(`Button` 또는 `ToggleButton`)일 때만 렌더. `usesButtonBaseUtility` 는 ToggleButtonGroup 도 포함하나 그건 자식이 ToggleButton(leaf 버튼)이라 Icon 자식 직접 대상이 아님 → 명시 set `{ "Button", "ToggleButton" }` 으로 게이트 (usesButtonBaseUtility 직접 사용 안 함).
 - **UI**: "Add Icon" 버튼 1개 (`ActionIconButton` 또는 기존 패널 버튼 컴포넌트 재사용).
 - **액션**: 클릭 → `useElementCreator.handleAddElement("Icon", currentPageId, selectedElementId, elements, addElement, layoutId, doc)`. 선택된 Button 이 부모가 됨 (resolveCreationParentId).
-- **중복 허용**: Icon 자식 이미 존재해도 추가 허용 (단순). 위치/순서 제어 없음 — 생성된 Icon 의 iconName 등은 그 Icon element 의 기존 프로퍼티 패널로 편집.
+- **중복 허용**: Icon 자식 이미 존재해도 추가 허용 (단순). 위치/순서 제어 없음.
+- **icon 선택 UI 는 기존 패턴 재사용 (사용자 확인 2026-06-26)**: "Add Icon" 으로 생성된 Icon 자식의 **어떤 아이콘인지** 선택은 `Icon.binding` 의 `accepts.iconName: { kind: "icon", section: "content" }` — 즉 SelectIcon 등 여러 곳이 이미 쓰는 content section iconName 프로퍼티 패턴 그대로. 본 작업은 새 icon-picker 를 만들지 않는다 (생성 진입점 "Add Icon" 버튼만 추가). 사용자가 추가된 Icon 자식을 선택하면 기존 GenericFieldRenderer 가 `kind:"icon"` 필드를 content section 에 렌더 → icon 선택.
 
 ### 위치
 
@@ -76,6 +77,17 @@
 - 게이트 1차 범위 = Button/ToggleButton (leaf 버튼). ToggleButtonGroup 은 자식이 ToggleButton 이라 제외.
 - 생성된 Icon 의 iconName/색 등 편집은 그 Icon element 의 기존 프로퍼티 패널 책임 (본 작업은 "추가" 진입점만).
 
-## ADR-142 와의 관계
+## ADR-142 와의 관계 + RSP 공식 근거
 
 ADR-142 RAC leaf 원칙 **준수**. Button = RAC primitive 유지, 아이콘은 자식 element(RSP composite) 로 표현 — ADR-142 §3 "아이콘 붙은 Button = reusable 조합" 모델 그대로. binding/prop schema 무변경이라 ADR 신규/수정 불요 (순수 빌더 편집 affordance).
+
+**RSP 공식 확증** (react-spectrum.adobe.com/Button, 사용자 제시 2026-06-26): RSP Button 구조 템플릿이 명시적으로
+
+```tsx
+<Button>
+  <Icon />
+  <Text />
+</Button>
+```
+
+— RSP 에서도 아이콘은 Button **prop 이 아니라 별도 자식 element**(`<Icon/>` + `<Text/>`)다. 본 설계의 "Icon=자식 element, iconName prop 복원 0" 방향이 RAC/RSP 공식 모두와 정합. (D2 참조 = RSP, D1 권위 = RAC — 둘 다 자식 element 모델.)
