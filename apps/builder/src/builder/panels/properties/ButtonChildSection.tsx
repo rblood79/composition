@@ -34,13 +34,57 @@ export function findFirstIconChild<
 }
 
 /**
+ * Button 자식 목록에서 첫 비삭제 Text element 를 찾는다. Icon 제거 시 Text 자식 → string
+ *   children 복구 판정에 사용. RSP 공식: icon Button 은 label 을 `<Text>` 자식 element 로
+ *   감싼다(`<Button><Icon/><Text>label</Text></Button>`). 자식 없으면 undefined.
+ */
+export function findFirstTextChild<
+  T extends { id: string; type: string; deleted?: boolean },
+>(children: ReadonlyArray<T>): T | undefined {
+  return children.find((child) => child.type === "Text" && !child.deleted);
+}
+
+/**
+ * Button 자식으로 추가할 leaf element 를 생성한다(Icon/Text 공통). handleAddElement 대신
+ *   직접 생성하는 이유: handleAddElement 는 생성 직후 setSelectedElement 로 Button 선택을
+ *   풀어 셀렉트가 사라진다. id 를 미리 만들어 selection 변경 없이 생성.
+ */
+function buildButtonChild(
+  type: "Icon" | "Text",
+  parentId: string,
+  pageId: string,
+  pageElements: Element[],
+  propsOverride: Record<string, unknown>,
+): Element {
+  return withFrameElementMirrorId(
+    {
+      id: crypto.randomUUID(),
+      type,
+      customId: generateCustomId(type, pageElements),
+      props: { ...getDefaultProps(type), ...propsOverride },
+      page_id: pageId,
+      parent_id: parentId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as Element,
+    null,
+  );
+}
+
+/**
  * Button/ToggleButton 선택 시 Content 영역에 "Icon" 셀렉트(기본 None)를 노출한다.
  *   셀렉트 표시값 = Button 자식 중 첫 Icon element 의 iconName(없으면 None).
- *   - None → 아이콘: 자식 Icon element 생성(미리 만든 id + addElement 직접 호출,
- *     selection 변경 없음) + 선택 iconName 으로 override.
- *   - 아이콘 → 다른 아이콘: 기존 자식 Icon 의 iconName 만 updateElementProps.
- *   - 아이콘 → None(clear): 자식 Icon element removeElement.
- *   ADR-142 정합: Button.binding 무수정, iconName prop 복원 0. DOM=<Button><Icon/>text</Button>.
+ *
+ * RSP 공식 모델 (Button "With Icon and Label"): plain Button 은 string children
+ *   (`<Button>Save</Button>`), icon Button 은 label 을 `<Text>` 자식 element 로 감싼다
+ *   (`<Button><Icon/><Text>Save</Text></Button>`). 따라서 Icon 추가/제거 시 string
+ *   children ↔ Text 자식 element 를 양방향 전환한다:
+ *   - None → 아이콘: Icon 자식 생성 + Button string children 을 Text 자식 element 로 전환
+ *     (Button.children 비우고 Text element 생성). 자식 순서 = Icon 먼저, Text 나중(RSP 순서).
+ *   - 아이콘 → 다른 아이콘: 기존 자식 Icon 의 iconName 만 수정.
+ *   - 아이콘 → None(clear): Icon 자식 삭제 + Text 자식 element 의 텍스트를 Button string
+ *     children 으로 복구(Text element 삭제). plain Button=string 모델 회복.
+ *   ADR-142 정합: Button.binding 무수정, iconName prop 복원 0.
  */
 export const ButtonChildSection = memo(function ButtonChildSection({
   elementId,
@@ -55,23 +99,29 @@ export const ButtonChildSection = memo(function ButtonChildSection({
   const currentPageId = useStore((state) => state.currentPageId);
 
   const existingIcon = findFirstIconChild(children);
+  const existingText = findFirstTextChild(children);
   const currentIconName =
     (existingIcon?.props as { iconName?: string } | undefined)?.iconName ??
     undefined;
 
+  const buttonChildrenText =
+    typeof (element?.props as { children?: unknown } | undefined)?.children ===
+    "string"
+      ? ((element!.props as { children?: string }).children as string)
+      : undefined;
+
   const handleSelectIcon = useCallback(
-    (iconName: string) => {
+    async (iconName: string) => {
       if (!iconName) return;
 
       // 아이콘 → 다른 아이콘: 기존 자식 Icon 의 iconName 만 수정.
       if (existingIcon) {
-        void updateElementProps(existingIcon.id, { iconName });
+        await updateElementProps(existingIcon.id, { iconName });
         return;
       }
 
-      // None → 아이콘: 자식 Icon element 생성. handleAddElement 대신 직접 addElement —
-      //   handleAddElement 는 생성 직후 setSelectedElement 로 Button 선택을 풀어
-      //   셀렉트가 사라진다. id 를 미리 만들어 selection 변경 없이 생성.
+      // None → 아이콘: Icon 자식 생성 + (label 이 string children 으로 있으면) Text 자식
+      //   element 로 전환. RSP 공식 `<Button><Icon/><Text>label</Text></Button>`.
       const doc = getActiveCanonicalDocument();
       if (!doc || !currentPageId) return;
 
@@ -80,30 +130,69 @@ export const ButtonChildSection = memo(function ButtonChildSection({
         pageElements.push(el);
       });
 
-      const iconElement: Element = withFrameElementMirrorId(
-        {
-          id: crypto.randomUUID(),
-          type: "Icon",
-          customId: generateCustomId("Icon", pageElements),
-          // getDefaultProps("Icon") 의 random iconName 을 사용자 선택값으로 override.
-          props: { ...getDefaultProps("Icon"), iconName },
-          page_id: currentPageId,
-          parent_id: elementId,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        } as Element,
-        null,
+      // 자식 순서 = Icon 먼저, Text 나중(canonical children 추가 순서 = 렌더 순서, RSP 순서).
+      // 다중 mutation 은 순차 await — 같은 tick 연속 호출 시 canonical sync stale snapshot
+      //   race 로 일부 갱신이 누락된다(state-management.md canonical sync 순서 race).
+      const iconElement = buildButtonChild(
+        "Icon",
+        elementId,
+        currentPageId,
+        pageElements,
+        { iconName }, // getDefaultProps("Icon") 의 random iconName override
       );
-
       addElement(iconElement);
+
+      // string children(label) → Text 자식 element 전환. 이미 Text 자식이 있으면 중복
+      //   생성하지 않는다(외부 경로로 만들어진 경우 보존).
+      if (buttonChildrenText !== undefined && !existingText) {
+        const textElement = buildButtonChild(
+          "Text",
+          elementId,
+          currentPageId,
+          [...pageElements, iconElement], // Icon 까지 포함해 customId 충돌 회피
+          { children: buttonChildrenText },
+        );
+        addElement(textElement);
+        // Button 의 string children 을 비운다(Text element 가 label 을 보유).
+        await updateElementProps(elementId, { children: "" });
+      }
     },
-    [existingIcon, updateElementProps, currentPageId, elementId, addElement],
+    [
+      existingIcon,
+      existingText,
+      buttonChildrenText,
+      updateElementProps,
+      currentPageId,
+      elementId,
+      addElement,
+    ],
   );
 
-  const handleClearIcon = useCallback(() => {
+  const handleClearIcon = useCallback(async () => {
     if (!existingIcon) return;
-    void removeElement(existingIcon.id);
-  }, [existingIcon, removeElement]);
+
+    // Icon 제거 → plain Button(string children) 모델 회복. Text 자식 element 가 있으면
+    //   그 텍스트를 Button string children 으로 되돌리고 Text element 삭제.
+    // 다중 mutation 은 순차 await — 같은 tick 연속 호출 시 updateElementProps(Button) 가
+    //   removeElement 의 stale canonical snapshot 위에 적용되어 children 복구가 누락된다
+    //   (state-management.md canonical sync 순서 race). label 복구를 먼저 확정한 뒤 삭제.
+    if (existingText) {
+      const restoredLabel =
+        typeof (existingText.props as { children?: unknown } | undefined)
+          ?.children === "string"
+          ? ((existingText.props as { children?: string }).children as string)
+          : "";
+      await updateElementProps(elementId, { children: restoredLabel });
+      await removeElement(existingText.id);
+    }
+    await removeElement(existingIcon.id);
+  }, [
+    existingIcon,
+    existingText,
+    removeElement,
+    updateElementProps,
+    elementId,
+  ]);
 
   if (!element || !BUTTON_CHILD_HOST_TAGS.has(element.type)) return null;
 
