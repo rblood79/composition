@@ -7,17 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [Button/ToggleButton display 기본값 — catalog top-level containerStyles] - 2026-06-27
+## [Button/ToggleButton 자식 layout — catalog display/padding/gap 가 Skia 에 도달] - 2026-06-27
 
 ### Bug Fixes
 
 - **Button 자식(Icon+Text) Skia 세로 쌓임 + Layout reset 버튼 오활성** (CSS↔Skia display 발산):
-  - `COMPONENT_RULES_TABLE.Button` / `ToggleButton` 에 **top-level `containerStyles: {display:"inline-flex", flexDirection:"row", alignItems:"center"}`** 추가. Skia 가 catalog layout 을 받아 아이콘+텍스트를 가로 배치(CSS Preview 와 동일). icon 추가와 무관하게 항상 기본 flex
-  - **Why**: catalog 는 `Button.structure.containerStyles.display:"inline-flex"` 를 갖고 있었으나, Skia layout fallback(`resolveContainerStylesFallback` 경로 A)은 **top-level `rule.containerStyles` 만** 조회하고 경로 B 는 `structure.composition` 보유 type 만 본다 → Button 은 둘 다 해당 안 돼 fallback 이 `{}` 반환 → `getElementDisplay` 가 `INLINE_BLOCK_TAGS("button")` → Taffy `block` → 자식 세로 쌓임. 반면 dirty baseline(`resolveCatalogContainerBase`)은 `structure.containerStyles` 를 읽어 `inline-flex` 를 알았다 — Skia↔baseline 비대칭. top-level containerStyles 는 **두 경로(Skia fallback 경로 A + dirty baseline last-wins)가 모두 읽는 단일 source** 라 비대칭 해소
+  - `COMPONENT_RULES_TABLE.Button` / `ToggleButton` 에 **top-level `containerStyles: {display:"flex", flexDirection:"row", alignItems:"center"}`** 추가. Skia 가 catalog layout 을 받아 아이콘+텍스트를 가로 배치(CSS Preview 와 동일). icon 추가와 무관하게 항상 기본 flex
+  - **Why**: catalog 는 `Button.structure.containerStyles.display` 를 갖고 있었으나, Skia layout fallback(`resolveContainerStylesFallback` 경로 A)은 **top-level `rule.containerStyles` 만** 조회하고 경로 B 는 `structure.composition` 보유 type 만 본다 → Button 은 둘 다 해당 안 돼 fallback 이 `{}` 반환 → `getElementDisplay` 가 `INLINE_BLOCK_TAGS("button")` → Taffy `block` → 자식 세로 쌓임. 반면 dirty baseline(`resolveCatalogContainerBase`)은 `structure.containerStyles` 를 읽어 알았다 — Skia↔baseline 비대칭. top-level containerStyles 는 **두 경로(Skia fallback 경로 A + dirty baseline last-wins)가 모두 읽는 단일 source** 라 비대칭 해소
+  - **display 는 `flex`** (inline-flex 아님): 스타일 패널 Layout Direction selector 항목이 block / flex-row / flex-column 만 인식하고 inline-flex 항목은 없어, inline-flex 면 Direction 이 block 으로 잘못 표시·활성된다(사용자 지적). `flex` 로 Direction 이 flex-row 로 정상 표시
   - **reset 버튼 정합**: layout 기본값을 catalog(= dirty baseline)에 두므로 신규 Button 의 `props.style` 은 빈 채로 유지된다 → Layout section 의 사용자 변경이 아님 → **reset 버튼 비활성**. (직전 시도였던 factory `props.style` 주입은 그 값이 "사용자 inline style" 로 취급돼 reset 버튼이 오활성됐다 — 그 접근은 원복)
-  - 영향 범위: Button / ToggleButton 한정(top-level containerStyles 추가). gap 은 size 별 차이라 `sizes[size].gap`(4~12px) 유지
   - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`(Button / ToggleButton top-level `containerStyles`)
-  - 검증: vitest resolveCatalogContainerBase.snapshot + resolveContainerStylesFallback 53/53, defaultPropsDerivation 3/3, type-check PASS(baseline 69). **live(빌더)**: 신규 Button + Icon 자식 → Skia 캔버스 가로 배치(★Button) 확인, icon Button 의 `props.style` 빈 채 유지 → Layout section reset 버튼 미표시 확인, 테스트 element 정리 완료
+
+- **icon Button 자식 padding/gap 미적용** (자식이 경계에 붙음 + Icon↔Text 간격 0):
+  - `applyImplicitStyles` 에 `button` / `togglebutton` 분기 추가 — catalog `sizes[size].paddingX/paddingY/gap` 을 자식 보유 Button 의 Taffy 노드 style 로 주입(paddingX/Y → padding{Left,Right,Top,Bottom} longhand, gap → rowGap/columnGap). 사용자 inline 값 우선(Toolbar 분기 패턴 동형)
+  - **Why**: catalog `sizes[size]` 의 padding/gap 은 standalone leaf 렌더(`buildCatalogShapes` / `calculateContentWidth·Height`)에서만 소비되고, 자식(Icon/Text element)을 가진 Button 은 `hasTaffyChildren=true` → leaf 경로 미진입 → sizes 값이 Taffy 노드로 흘러가지 않아 padding=0/gap=0. `resolveContainerStylesFallback` 도 `containerStyles` 만 보강하는데 padding/gap 은 size 별이라 거기 없다. `parsePadding` 은 longhand 만 읽으므로 paddingX/Y → longhand 변환 필수
+  - 영향 범위: 자식 보유 Button / ToggleButton 한정. gap/padding 은 size 별(md = padding 12/4, gap 8; xs~xl 4~24 / 1~12 / 4~12)
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`(button/togglebutton 분기), `__tests__/buttonChildPaddingGapImplicitStyles.test.ts`(회귀 5 case)
+  - 검증: buttonChildPaddingGapImplicitStyles 5/5, layout engine suite 139 passed(무관한 radius 토큰 스냅샷 2건은 사전 존재 drift — 본 변경 무관), type-check PASS(baseline 69). **live(빌더)**: icon Button(md) selection 크기 98×24 → **106×32**(paddingY 4×2 + gap/paddingX 반영), Skia 캔버스에서 아이콘↔텍스트 간격 + 박스 내부 여백 확인
 
 ## [Button Content Icon 셀렉트 — 자식 element 백킹] - 2026-06-26
 

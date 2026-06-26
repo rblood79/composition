@@ -995,6 +995,31 @@ export function applyImplicitStyles(
     filteredChildren = injectCollectionItemFontStyles(filteredChildren);
   }
 
+  // ── Button / ToggleButton (자식 보유 leaf) ────────────────────────────
+  //   icon Button = `<Button><Icon/><Text/></Button>` 처럼 자식(Icon/Text element)을 가지면
+  //   Button 이 컨테이너로 layout 된다. catalog `sizes[size]` 의 paddingX/paddingY/gap 은
+  //   standalone leaf 렌더(buildCatalogShapes / calculateContentWidth·Height)에서만 소비되고
+  //   자식 보유 Taffy 노드로는 흘러가지 않는다 → 자식이 여백 0 + Icon↔Text 간격 0 으로 경계에
+  //   붙는다(2026-06-27 발견). top-level containerStyles 에는 size 별 값을 못 담으므로(size 무관
+  //   단일값만) 여기서 size 기반 padding/gap 을 effectiveParent 에 주입한다(Toolbar 패턴 동형).
+  //   parsePadding 은 longhand 만 읽으므로 paddingX/Y → padding{Left,Right,Top,Bottom} 변환.
+  //   gap 은 rowGap/columnGap. 사용자 inline 값(parentStyle.*) 우선.
+  if (containerTag === "button" || containerTag === "togglebutton") {
+    const sizeName = (containerProps?.size as string) ?? "md";
+    const px = specSizeField(containerTag, sizeName, "paddingX");
+    const py = specSizeField(containerTag, sizeName, "paddingY");
+    const gapVal = specSizeField(containerTag, sizeName, "gap");
+    effectiveParent = withParentStyle(containerEl, {
+      ...parentStyle,
+      paddingLeft: parentStyle.paddingLeft ?? parentStyle.padding ?? px,
+      paddingRight: parentStyle.paddingRight ?? parentStyle.padding ?? px,
+      paddingTop: parentStyle.paddingTop ?? parentStyle.padding ?? py,
+      paddingBottom: parentStyle.paddingBottom ?? parentStyle.padding ?? py,
+      rowGap: parentStyle.rowGap ?? parentStyle.gap ?? gapVal,
+      columnGap: parentStyle.columnGap ?? parentStyle.gap ?? gapVal,
+    });
+  }
+
   // ── ToggleButtonGroup ─────────────────────────────────────────────
   // ADR-087 SP1: display/alignItems 는 ToggleButtonGroup.spec containerStyles 로 리프팅됨.
   //   flexDirection 은 orientation prop runtime 결정 → 잔존.

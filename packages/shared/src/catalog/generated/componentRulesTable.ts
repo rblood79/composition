@@ -649,12 +649,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "md",
     // top-level containerStyles — Skia layout fallback(resolveContainerStylesFallback 경로 A,
     //   rule.containerStyles 직접 조회) + dirty baseline(resolveCatalogContainerBase line 3 last-wins)
-    //   양쪽이 읽는 단일 layout 정본. structure.containerStyles 는 경로 A 가 못 읽어(top-level 만 조회)
-    //   Skia 가 INLINE_BLOCK_TAGS("button") → block 으로 자식(Icon/Text)을 세로로 쌓았다(CSS↔Skia
-    //   발산, 2026-06-27). RAC .react-aria-Button = inline-flex/center 와 시각 대칭. gap 은 size 별
-    //   (sizes[size].gap 4~12px) 이라 여기 두지 않음(dirty baseline 은 sizes.gap 을 읽음).
+    //   + 스타일 패널 Layout Direction(useLayoutValues specPreset.display) 양쪽이 읽는 단일 layout
+    //   정본. structure.containerStyles 는 경로 A 가 못 읽어(top-level 만 조회) Skia 가
+    //   INLINE_BLOCK_TAGS("button") → block 으로 자식(Icon/Text)을 세로로 쌓았다(CSS↔Skia 발산,
+    //   2026-06-27). display 는 `flex` — Direction selector 항목이 block/flex-row/flex-column 만
+    //   인식하고 inline-flex 항목은 없어서, inline-flex 면 Direction 이 block 으로 표시·활성된다
+    //   (사용자 지적 2026-06-27). gap 은 size 별(sizes[size].gap 4~12px)이라 여기 두지 않음.
     containerStyles: {
-      display: "inline-flex",
+      display: "flex",
       flexDirection: "row",
       alignItems: "center",
     },
@@ -11814,9 +11816,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultVariant: "default",
     defaultSize: "md",
     // top-level containerStyles — Button 동일 발산 차단(Skia INLINE_BLOCK_TAGS("togglebutton")
-    //   → block). RAC .react-aria-ToggleButton = inline-flex/center 와 시각 대칭. gap=sizes[size].
+    //   → block). display 는 `flex`(Direction selector 가 inline-flex 미인식 → block 표시 회피).
+    //   gap=sizes[size].
     containerStyles: {
-      display: "inline-flex",
+      display: "flex",
       flexDirection: "row",
       alignItems: "center",
     },
