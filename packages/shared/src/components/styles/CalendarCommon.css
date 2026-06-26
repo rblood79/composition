@@ -16,9 +16,7 @@
     max-width: 100%;
     color: var(--fg);
 
-    /* Button variable overrides */
-    --btn-display: flex;
-    --btn-justify: center;
+    /* Button variable overrides (display/justify 는 .react-aria-Button 한정 selector 로 이관) */
     --btn-radius: var(--radius-sm);
     --btn-padding: 0;
   }
@@ -42,6 +40,9 @@
 
   .react-aria-Calendar .react-aria-Button,
   .react-aria-RangeCalendar .react-aria-Button {
+    /* Button.css 고정(inline-flex) override — Calendar 네비 버튼 한정 */
+    display: flex;
+    justify-content: center;
     width: var(--text-3xl);
     height: var(--text-3xl);
     background: transparent;

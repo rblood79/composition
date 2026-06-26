@@ -11,8 +11,8 @@
     text-decoration: none;
 
     /* Structure — variable-backed */
-    display: var(--btn-display, inline-flex);
-    justify-content: var(--btn-justify, center);
+    display: inline-flex;
+    justify-content: center;
     gap: var(--btn-gap, var(--spacing-sm));
     border: var(--btn-border, 1px solid);
     border-radius: var(--btn-radius, var(--radius-md));
