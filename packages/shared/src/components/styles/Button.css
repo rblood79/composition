@@ -33,10 +33,12 @@
     }
 
     /* RSP 정합: 직계 자식(Icon/Text)이 Button color 상속.
-       leaf 의 color: var(--fg) 명시를 자식결합자 우위로 override.
-       Icon SVG 는 stroke="currentColor" → inherit 따라감.
-       standalone leaf 는 영향 없음(.react-aria-Button 컨텍스트 한정). */
-    & > * {
+       leaf 의 color: var(--fg) 명시(.react-aria-Text/.react-aria-Icon, 0-1-0)를
+       이기려면 specificity 우위 필요 → .button-base 동반 selector(0-2-0).
+       같은 @layer 내 동급 specificity 면 소스 순서로 leaf 가 이기므로 specificity 로 확정.
+       Icon DIV → 내부 svg(stroke="currentColor")가 DIV color 상속.
+       standalone leaf 는 영향 없음(.react-aria-Button.button-base 컨텍스트 한정). */
+    &.button-base > * {
       color: inherit;
     }
 

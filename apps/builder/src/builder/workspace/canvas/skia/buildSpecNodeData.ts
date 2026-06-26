@@ -636,6 +636,53 @@ function resolveLabelAlignment(
   return null;
 }
 
+/**
+ * `.button-base` utility 컴포넌트 집합 (Skia 자식 color 상속 게이트).
+ *
+ * SSOT: `apps/builder/src/preview/utils/specCatalogBacked.ts` 의 `BUTTON_BASE_TYPES`
+ *   (= generate-css STRUCTURE_META `cssEmitMode: "button-base"`) 와 1:1. preview→builder
+ *   layer 역전 회피 위해 본 모듈에 미러. 신규 button-base 컴포넌트 추가 시 동시 갱신.
+ */
+const BUTTON_BASE_PARENT_TAGS = new Set([
+  "Button",
+  "ToggleButton",
+  "ToggleButtonGroup",
+]);
+
+/** Button color 를 상속할 직계 자식 leaf 태그 (Text/Icon/Label). */
+const BUTTON_CHILD_INHERIT_TAGS = new Set(["Text", "Icon", "Label"]);
+
+/**
+ * Button 조합 자식 color 상속 (RSP 정합, 2026-06-26) — CSS `.button-base > * { color: inherit }`
+ *   (Button.css) 와 시각 대칭.
+ *
+ * `<Button><Icon/><Text/></Button>` 조합 시 자식 Icon/Text 는 leaf 기본 color
+ *   (`{color.neutral}` = --fg)를 버리고 Button 의 variant text 색(primary→{color.base}
+ *   = 흰색 등)을 상속해야 한다(검은 배경 위 흰색). RSP 는 `<Button>` color 1회 설정 →
+ *   자식 텍스트/SVG(currentColor) 자동 상속.
+ *
+ * 반환: 부모가 button-base 이고 자식이 inherit 대상 leaf 일 때 부모 variant 의 text TokenRef
+ *   (`{color.base}` 등). 그 외 null. TokenRef 그대로 반환 — `buildCatalogShapes` 의
+ *   `textColor = style?.color ?? ... ?? visual.text` 가 소비(style.color 최우선) 후
+ *   specShapesToSkia 가 theme 별 resolve. context-aware: standalone(부모≠button-base)은 null.
+ */
+function resolveButtonChildColor(
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
+): string | null {
+  if (!BUTTON_CHILD_INHERIT_TAGS.has(element.type) || !element.parent_id) {
+    return null;
+  }
+
+  const parent = elementsMap.get(element.parent_id);
+  if (!parent || !BUTTON_BASE_PARENT_TAGS.has(parent.type)) return null;
+
+  const parentVariant = getProps(parent).variant as string | undefined;
+  const visual = resolveSkiaVisualRule(parent.type, parentVariant);
+  const text = visual?.text;
+  return typeof text === "string" ? text : null;
+}
+
 /** ProgressBar/Meter → Track/Value value propagation */
 function resolveProgressProps(
   element: CanvasSceneNode,
@@ -1163,6 +1210,21 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
       style: {
         ...existingStyle,
         textAlign: existingStyle.textAlign ?? labelAlign,
+      },
+    };
+  }
+
+  // Button 조합 자식 color 상속 (RSP 정합) — CSS `.button-base > * { color: inherit }` 와 대칭.
+  //   부모가 button-base 이고 자식이 Icon/Text/Label 이면 Button variant text 색 상속.
+  //   사용자 명시 style.color 가 있으면 보존(?? fallback) — context-aware.
+  const buttonChildColor = resolveButtonChildColor(element, elementsMap);
+  if (buttonChildColor) {
+    const existingStyle = (specProps.style || {}) as Record<string, unknown>;
+    specProps = {
+      ...specProps,
+      style: {
+        ...existingStyle,
+        color: existingStyle.color ?? buttonChildColor,
       },
     };
   }
