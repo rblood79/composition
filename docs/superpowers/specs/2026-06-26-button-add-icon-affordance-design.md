@@ -34,7 +34,27 @@
 - **D3 (시각)**: 변경 없음. Icon 색은 직전 세션 자식 color 상속으로 이미 처리.
 - **빌더 UX 레이어**: 본 작업 전부. 데이터 schema 외부의 순수 편집 affordance.
 
-## 결정 — properties-panel 조건부 섹션 (FrameSlotSection 패턴)
+## 결정 v2 (2026-06-26 갱신) — Content section "Icon" 셀렉트 (자식 element 백킹)
+
+> **v1 supersede 사유 (사용자 재설계 2026-06-26)**: v1 의 "Children section + Add Icon 버튼" 은 (1) 별도 섹션이 Content 와 분리돼 있어 발견성이 낮고 (2) 생성만 가능(읽기/수정/삭제 불가)했다. v2 는 Button 자체 Content section 의 **Text 항목 아래 "Icon" 셀렉트** 로 통합 — 기본값 none, 아이콘 선택 시 자식 Icon element 생성, 다른 아이콘 선택 시 기존 자식 iconName 수정, none 복귀 시 자식 삭제. v1 의 `ButtonChildSection.tsx` 는 이 컴포넌트로 forward-fix 교체(revert 아님, 미push 6 commit 위에 새 commit).
+
+### ADR-142 정합 재확인 (사용자 confirm 2026-06-26)
+
+차단 메모리 `feedback-rac-leaf-vs-rsp-composite-icon-bundle` 자기-인용: "binding 에 iconName 복원 = ADR-142 역행 금지". **v2 는 차단 미적용** — 사용자 확정대로 Content section 의 "Icon" 셀렉트는 **표면 UX 일 뿐 실제로는 Button 의 자식 Icon element 를 CRUD** 한다. `Button.binding` 무수정, `iconName` prop 복원 0. DOM 은 여전히 `<Button><Icon/>Save</Button>` (RAC/RSP 공식 composite 모델). "none 기본값" 은 "자식 Icon 없음", 아이콘 선택은 "자식 Icon element 생성/지정".
+
+### 컴포넌트: `ButtonChildSection.tsx` (Icon-셀렉트형으로 재작성)
+
+- **게이트**: 변경 없음. `BUTTON_CHILD_HOST_TAGS = { "Button", "ToggleButton" }`. 비-host 선택 시 null.
+- **위젯**: 기존 `PropertyIconPicker` (`components/property/PropertyIconPicker.tsx`) 재사용 — `value`(현재 아이콘) / `onChange`(선택) / `onClear`(none 복귀) + 빈 값 시 "None" 표시 내장. 새 picker 신설 불요.
+- **표시값 (읽기)**: `useCanonicalPropertyChildren(buttonId)` 로 자식 조회 → 첫 `type==="Icon"` 자식의 `props.iconName` 을 `value` 로. 자식 Icon 없으면 `value=undefined` → "None".
+- **4-way 동기화**:
+  - `none → 아이콘` (자식 Icon 없는 상태에서 onChange): `handleAddElement("Icon", currentPageId, buttonId, filtered, addElement, null, doc)` 로 자식 생성 후, 생성된 Icon id 로 `updateElementProps(iconId, { iconName })`. (handleAddElement 가 새 id 를 반환하는지 확인 필요 — 미반환 시 생성 직후 자식 재조회로 id 획득.)
+  - `아이콘 → 다른 아이콘` (자식 Icon 존재, onChange): `updateElementProps(existingIconId, { iconName })`. 생성 안 함.
+  - `아이콘 → none` (onClear): `removeElement(existingIconId)`. cascade 로 Icon 자식(없음) 정리.
+- **중복 가드**: 자식 Icon 이 이미 있으면 생성하지 않고 수정만 — v1 의 무한 중복 생성 문제 해소.
+- **위치**: Button Content section 내부 Text 항목 아래. PropertiesPanel 마운트 위치는 v1 유지(`ButtonChildSection elementId={...}`), 섹션 title 만 "Content" 동조 또는 GenericFieldRenderer Content 섹션 직후 인접 배치.
+
+### v1 결정 (superseded) — properties-panel 조건부 섹션 (FrameSlotSection 패턴)
 
 `FrameSlotSection.tsx` 가 선례: 선택 요소 type 으로 게이트된 섹션이 `addElement` 로 자식 추가. 동형으로 `ButtonChildSection.tsx` 신설.
 
