@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Button 조합 자식 color 상속 + display RSP 고정] - 2026-06-26
+
+`<Button><Icon/><Text/></Button>` 조합 시 자식 Icon/Text 가 Button color 를 상속하지 못해 검은(primary) 배경 위 검정 Icon/Text 로 묻히던 문제를 RSP 정합으로 해소했다. D3 시각만 변경 — D1(DOM 구조)/D2(props) 무변경. CSS(Preview) ↔ Skia(Builder) 대등 대칭.
+
+### Bug Fixes
+
+- **Button 자식 Icon/Text color 미상속** (RSP 정합):
+  - `<Button><Icon/><Text/></Button>` 조합 시 자식이 Button color(variant 별 text 토큰)를 미상속 → 검은 배경 위 검정 Icon/Text 묻힘
+  - **Why**: leaf 기본 color(`{color.neutral}` = --fg) + Skia 부모→자식 color 전파 부재. RSP 는 `<Button>` color 1회 설정 → 자식 텍스트/SVG(currentColor) 자동 상속하나 composition 은 구조만 RSP 이고 상속 메커니즘 부재였음
+  - 수정 (CSS): `.react-aria-Button.button-base > * { color: inherit }` — leaf 의 `color: var(--fg)` 명시(0-1-0)를 specificity(0-2-0)로 override. SVG 는 `stroke="currentColor"` 로 따라감
+  - 수정 (Skia): `buildSpecNodeData` 가 부모=button-base(Button/ToggleButton/ToggleButtonGroup)이고 자식이 Icon/Text/Label 이면 부모 variant 의 text TokenRef 를 자식 `specProps.style.color` 에 render-time 주입(store 영속 X). `buildCatalogShapes` 의 `textColor = style.color ?? … ?? visual.text` 우선순위로 소비
+  - context-aware: standalone(부모≠button-base) 자식은 기존 --fg 유지. 사용자 명시 style.color 보존(`?? ` fallback)
+  - 위치: `packages/shared/src/components/styles/Button.css`, `apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts`
+
+### Architecture
+
+- **Button display/justify RSP immutable 고정**:
+  - `--btn-display`/`--btn-justify` 변수 → Button.css 고정(`inline-flex`/`center`). Calendar 의 `--btn-display:flex` override 는 `.react-aria-Calendar .react-aria-Button` 한정 selector 로 이관(`--btn-radius`/`padding` 은 변수 유지 — display 무관)
+  - **Why**: RSP 구조 immutability — Button display 는 variant 와 무관하게 가로 중앙 정렬 고정
+  - 위치: `packages/shared/src/components/styles/Button.css`, `packages/shared/src/components/styles/CalendarCommon.css`
+
 ## [텍스트 입력 힌트 attr 복원 — ADR-915 P1.5-b] - 2026-06-26
 
 ADR-915 P1.5(RSP custom — accepts + 렌더러 wiring 양쪽 필요) 중 controlled-value 위험이 0인 텍스트 HTML 입력 힌트 그룹부터 착수했다. P1(accepts 만 추가, 렌더러 기존 소비)과 달리 렌더러 forward 도 직접 추가한다.
