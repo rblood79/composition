@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Button/ToggleButton display 기본값 — CSS↔Skia 가로 배치 정합] - 2026-06-27
+
+### Bug Fixes
+
+- **Button 자식(Icon+Text) Skia 세로 쌓임** (CSS↔Skia display 발산):
+  - 신규 Button/ToggleButton factory 기본 style 에 `display:flex, flexDirection:row, alignItems:center, gap:8, width:fit-content` 주입. Icon 셀렉트로 아이콘을 넣었을 때 캔버스(Skia)에서도 CSS Preview 와 동일하게 아이콘+텍스트가 가로 배치됨
+  - **Why**: RAC `.react-aria-Button` 은 `display: inline-flex; align-items: center; gap` 이 CSS 에 하드코딩돼 Preview 는 자식을 가로 배치한다. 그러나 Skia 경로는 `props.style.display` 가 없으면 `getElementDisplay` 가 `INLINE_BLOCK_TAGS("button")` 라우팅으로 Taffy `block` 을 반환 → 자식이 세로로 쌓였다. factory style 에 flex/row 를 명시하면 `getElementDisplay` 가 이를 최우선 반환해 INLINE_BLOCK 라우팅을 덮어 두 경로가 가로 배치로 정합한다(ADR-907 Layer B: layout 은 factory props.style SSOT). `width:fit-content` 로 RAC inline-flex 의 내용폭을 재현(미지정 시 flex=block-level → 부모폭 채우는 2차 발산)
+  - 설계 경계: style 은 catalog accepts(D2/D3 props surface)가 아니라 **builder-local overlay**(`FACTORY_LOCAL_DEFAULTS`)에서만 합성. `defaultPropsDerivation.test.ts` 의 style 불변식을 "최종 파생 결과 금지"에서 "catalog base(`getCatalogDefaultProps`)에만 금지, overlay 는 허용"으로 완화(catalog SSOT 오염 차단은 유지)
+  - 영향 범위: 신규 생성 Button/ToggleButton 만 적용(기존 element 는 무변경 — 의도된 범위). ToggleButton 도 동일 발산(`INLINE_BLOCK_TAGS("togglebutton")`)이라 함께 처리
+  - 위치: `apps/builder/src/types/builder/defaultPropsDerivation.ts`(`FACTORY_LOCAL_DEFAULTS.Button/ToggleButton.style`), `__tests__/defaultPropsOracle.ts`(oracle style), `__tests__/defaultPropsDerivation.test.ts`(불변식 완화 + 객체 deep 비교)
+  - 검증: vitest defaultPropsDerivation 3/3 + getDefaultPropsEntryParity + ButtonChildSection 14/14, type-check PASS(baseline 69). **live(빌더)**: palette 생성 신규 Button 의 `props.style` = 주입값 일치 확인, Icon+Text 자식 추가 후 Skia 캔버스에서 아이콘+텍스트 가로 배치(106×24 한 줄) 확인 — 테스트 element 정리 완료
+
 ## [Button Content Icon 셀렉트 — 자식 element 백킹] - 2026-06-26
 
 ### Bug Fixes

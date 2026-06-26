@@ -8,6 +8,7 @@
 // kill criteria: 파생 결과 ≠ oracle 이면 factory 파생 전환 시 초기 props 회귀 → collapse 보류.
 
 import { describe, expect, it } from "vitest";
+import { getCatalogDefaultProps } from "@composition/shared";
 import { DEFAULT_PROPS_ORACLE } from "./defaultPropsOracle";
 import {
   CATALOG_DERIVED_DEFAULT_TYPES,
@@ -24,6 +25,30 @@ describe("ADR-912 collapse #3 — deriveDefaultPropsFromCatalog() == factory def
     }
   });
 
+  // primitive 는 참조 동등, 객체(style 등)는 구조 동등으로 비교(키 순서 무관 직렬화).
+  const canon = (v: unknown): string =>
+    JSON.stringify(v, (_k, val) =>
+      val && typeof val === "object" && !Array.isArray(val)
+        ? Object.fromEntries(
+            Object.entries(val as Record<string, unknown>).sort(([a], [b]) =>
+              a < b ? -1 : a > b ? 1 : 0,
+            ),
+          )
+        : val,
+    );
+  const propEqual = (a: unknown, b: unknown): boolean => {
+    if (a === b) return true;
+    if (
+      typeof a === "object" &&
+      a !== null &&
+      typeof b === "object" &&
+      b !== null
+    ) {
+      return canon(a) === canon(b);
+    }
+    return false;
+  };
+
   it("각 type 의 파생 props 가 oracle 과 1:1 일치한다 (비결정적 키 제외)", () => {
     const mismatches: string[] = [];
     for (const o of DEFAULT_PROPS_ORACLE) {
@@ -36,7 +61,7 @@ describe("ADR-912 collapse #3 — deriveDefaultPropsFromCatalog() == factory def
       // oracle 의 모든 키가 derived 에 같은 값으로 존재
       for (const key of Object.keys(o.props)) {
         if (nonDet.has(key)) continue;
-        if (derived[key] !== o.props[key]) {
+        if (!propEqual(derived[key], o.props[key])) {
           mismatches.push(
             `${o.type}.${key}: oracle=${JSON.stringify(o.props[key])} derived=${JSON.stringify(derived[key])}`,
           );
@@ -58,16 +83,19 @@ describe("ADR-912 collapse #3 — deriveDefaultPropsFromCatalog() == factory def
     ).toEqual([]);
   });
 
-  it("파생 base 에 style 키가 누출되지 않는다 (catalog 무관 영구 잔여)", () => {
-    // style 은 factory 가 합성하는 builder-local — 파생 메커니즘이 만들면 안 됨(회귀 신호)
+  it("catalog base 에 style 키가 누출되지 않는다 (style 은 builder-local overlay 한정)", () => {
+    // style 은 catalog accepts(D2/D3 props surface)가 아니라 builder-local overlay 에서만
+    //   합성한다(2026-06-27 경계 완화). catalog base(getCatalogDefaultProps)에 style 이
+    //   생기면 catalog 오염(회귀 신호). 단 deriveDefaultPropsFromCatalog 최종 결과에는
+    //   overlay 의 style(예: Button flex/row)이 정당하게 포함될 수 있다.
     for (const o of DEFAULT_PROPS_ORACLE) {
-      const derived = deriveDefaultPropsFromCatalog(o.type) as Record<
+      const catalogBase = getCatalogDefaultProps(o.type) as Record<
         string,
         unknown
       >;
       expect(
-        "style" in derived,
-        `${o.type} 파생에 style 키 누출 — catalog base 오염`,
+        "style" in catalogBase,
+        `${o.type} catalog base 에 style 키 누출 — D2/D3 accepts 오염`,
       ).toBe(false);
     }
   });

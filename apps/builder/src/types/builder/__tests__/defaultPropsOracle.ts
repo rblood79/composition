@@ -33,6 +33,15 @@ export const DEFAULT_PROPS_ORACLE: readonly DefaultPropsOracleItem[] = [
       name: "",
       isDisabled: false,
       isPending: false,
+      // layout overlay — CSS↔Skia display 정합(2026-06-27). RAC inline-flex/center/gap
+      //   ↔ Skia INLINE_BLOCK 발산 차단. builder-local overlay 한정(catalog base 아님).
+      style: {
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        width: "fit-content",
+      },
     },
   },
   {
@@ -68,6 +77,14 @@ export const DEFAULT_PROPS_ORACLE: readonly DefaultPropsOracleItem[] = [
       isQuiet: false,
       isSelected: false,
       isDisabled: false,
+      // layout overlay — Button 동일 발산 차단(2026-06-27). builder-local overlay 한정.
+      style: {
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        width: "fit-content",
+      },
     },
   },
   {
