@@ -1,16 +1,20 @@
 import { memo, useCallback } from "react";
-import { Plus } from "lucide-react";
-import { PropertySection, ActionIconButton } from "../../components";
+import { PropertySection } from "../../components";
+import { PropertyIconPicker } from "../../components/property/PropertyIconPicker";
 import { useStore } from "../../stores";
-import { useElementCreator } from "@/builder/hooks";
 import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
 import { visitCanonicalDocumentElements } from "../../stores/canonical/canonicalElementsView";
-import { useCanonicalPropertyElement } from "./hooks/useCanonicalPropertyRead";
-import { iconProps } from "../../../utils/ui/uiConstants";
+import {
+  useCanonicalPropertyElement,
+  useCanonicalPropertyChildren,
+} from "./hooks/useCanonicalPropertyRead";
+import { getDefaultProps } from "../../../types/builder/unified.types";
+import { generateCustomId } from "../../utils/idGeneration";
+import { withFrameElementMirrorId } from "../../../adapters/canonical/frameMirror";
 import type { Element } from "../../../types/builder/unified.types";
 
 /**
- * Add Icon 대상 host 태그 (leaf 버튼만). ToggleButtonGroup 은 자식이 ToggleButton
+ * Icon 셀렉트 host 태그 (leaf 버튼만). ToggleButtonGroup 은 자식이 ToggleButton
  *   (leaf 버튼)이라 Icon 자식 직접 대상 아님 → 제외. ADR-142: Button=RAC leaf,
  *   아이콘은 자식 element(RSP composite) — binding iconName 복원 0.
  */
@@ -30,9 +34,13 @@ export function findFirstIconChild<
 }
 
 /**
- * Button/ToggleButton 선택 시 "Add Icon" 진입점. 클릭 → Icon 자식 element 생성
- *   (resolveCreationParentId 가 선택 Button 을 부모로 parenting). 생성된 Icon 의
- *   iconName/색/크기 편집은 기존 Icon.binding content section 패턴(SelectIcon 동형).
+ * Button/ToggleButton 선택 시 Content 영역에 "Icon" 셀렉트(기본 None)를 노출한다.
+ *   셀렉트 표시값 = Button 자식 중 첫 Icon element 의 iconName(없으면 None).
+ *   - None → 아이콘: 자식 Icon element 생성(미리 만든 id + addElement 직접 호출,
+ *     selection 변경 없음) + 선택 iconName 으로 override.
+ *   - 아이콘 → 다른 아이콘: 기존 자식 Icon 의 iconName 만 updateElementProps.
+ *   - 아이콘 → None(clear): 자식 Icon element removeElement.
+ *   ADR-142 정합: Button.binding 무수정, iconName prop 복원 0. DOM=<Button><Icon/>text</Button>.
  */
 export const ButtonChildSection = memo(function ButtonChildSection({
   elementId,
@@ -40,49 +48,73 @@ export const ButtonChildSection = memo(function ButtonChildSection({
   elementId: string;
 }) {
   const element = useCanonicalPropertyElement(elementId);
+  const children = useCanonicalPropertyChildren(elementId);
   const addElement = useStore((state) => state.addElement);
+  const updateElementProps = useStore((state) => state.updateElementProps);
+  const removeElement = useStore((state) => state.removeElement);
   const currentPageId = useStore((state) => state.currentPageId);
-  const selectedElementId = useStore((state) => state.selectedElementId);
-  const { handleAddElement } = useElementCreator();
 
-  const handleAddIcon = useCallback(async () => {
-    const doc = getActiveCanonicalDocument();
-    if (!doc || !currentPageId) return;
+  const existingIcon = findFirstIconChild(children);
+  const currentIconName =
+    (existingIcon?.props as { iconName?: string } | undefined)?.iconName ??
+    undefined;
 
-    const pageElements: Element[] = [];
-    visitCanonicalDocumentElements(doc, (el) => {
-      pageElements.push(el);
-    });
-    const filtered = pageElements.filter(
-      (el) => !el.deleted && el.page_id === currentPageId,
-    );
+  const handleSelectIcon = useCallback(
+    (iconName: string) => {
+      if (!iconName) return;
 
-    await handleAddElement(
-      "Icon",
-      currentPageId,
-      selectedElementId,
-      filtered,
-      addElement,
-      null,
-      doc,
-    );
-  }, [currentPageId, selectedElementId, addElement, handleAddElement]);
+      // 아이콘 → 다른 아이콘: 기존 자식 Icon 의 iconName 만 수정.
+      if (existingIcon) {
+        void updateElementProps(existingIcon.id, { iconName });
+        return;
+      }
+
+      // None → 아이콘: 자식 Icon element 생성. handleAddElement 대신 직접 addElement —
+      //   handleAddElement 는 생성 직후 setSelectedElement 로 Button 선택을 풀어
+      //   셀렉트가 사라진다. id 를 미리 만들어 selection 변경 없이 생성.
+      const doc = getActiveCanonicalDocument();
+      if (!doc || !currentPageId) return;
+
+      const pageElements: Element[] = [];
+      visitCanonicalDocumentElements(doc, (el) => {
+        pageElements.push(el);
+      });
+
+      const iconElement: Element = withFrameElementMirrorId(
+        {
+          id: crypto.randomUUID(),
+          type: "Icon",
+          customId: generateCustomId("Icon", pageElements),
+          // getDefaultProps("Icon") 의 random iconName 을 사용자 선택값으로 override.
+          props: { ...getDefaultProps("Icon"), iconName },
+          page_id: currentPageId,
+          parent_id: elementId,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as Element,
+        null,
+      );
+
+      addElement(iconElement);
+    },
+    [existingIcon, updateElementProps, currentPageId, elementId, addElement],
+  );
+
+  const handleClearIcon = useCallback(() => {
+    if (!existingIcon) return;
+    void removeElement(existingIcon.id);
+  }, [existingIcon, removeElement]);
 
   if (!element || !BUTTON_CHILD_HOST_TAGS.has(element.type)) return null;
 
   return (
-    <PropertySection title="Children" id="button-child">
-      <ActionIconButton
-        onPress={handleAddIcon}
-        aria-label="Add Icon"
-        tooltip="아이콘 자식 추가"
-      >
-        <Plus
-          color={iconProps.color}
-          size={iconProps.size}
-          strokeWidth={iconProps.strokeWidth}
-        />
-      </ActionIconButton>
+    <PropertySection title="Content" id="button-icon">
+      <PropertyIconPicker
+        label="Icon"
+        value={currentIconName}
+        onChange={handleSelectIcon}
+        onClear={handleClearIcon}
+      />
     </PropertySection>
   );
 });
