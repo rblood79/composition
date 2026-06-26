@@ -34,10 +34,7 @@ import type { ComponentElementProps } from "./unified.types";
  * - children placeholder 텍스트 — accepts.children 은 kind:"string"(편집 surface)이라 default 없음.
  * - name:"" — form field id 초기값(builder runtime). href:"#" — nav-local.
  * - boolean state 초기값(isDisabled:false 등) — RAC controlled default 와 동치이나 명시 보존.
- * - style placeholder — layout/width 등 builder-local overlay 합성, catalog 무관 영구 잔여.
- *   예: Button/ToggleButton 의 flex/row/center/gap/fit-content (RAC inline-flex 정합 +
- *   Skia INLINE_BLOCK 발산 차단). catalog base(getCatalogDefaultProps)에는 style 이 없고
- *   overlay 에서만 합성 — defaultPropsDerivation.test.ts 가 이 경계를 단언한다.
+ * - style placeholder — layout/width 등 factory 합성, catalog 무관 영구 잔여.
  *
  * paletteItems.ts 의 PALETTE_ONLY overlay 와 동일 역할(catalog SSOT + builder-local).
  */
@@ -49,23 +46,6 @@ const FACTORY_LOCAL_DEFAULTS: Readonly<
     name: "",
     isDisabled: false,
     isPending: false,
-    // RAC `.react-aria-Button` 은 `display: inline-flex; align-items: center;
-    //   gap: --btn-gap(md=8px)` 로 자식(Icon/Text)을 가로 배치한다. Skia 경로는
-    //   props.style.display 가 없으면 INLINE_BLOCK_TAGS("button") 라우팅으로 Taffy
-    //   `block` 이 되어 자식이 세로로 쌓인다(CSS↔Skia display 발산, 2026-06-27).
-    //   factory style 에 flex/row 를 명시하면 getElementDisplay 가 이를 최우선 반환해
-    //   INLINE_BLOCK 라우팅을 덮어 두 경로가 가로 배치로 정합(ADR-907 Layer B: layout
-    //   은 factory props.style SSOT). width:fit-content 로 RAC inline-flex 의 내용폭을
-    //   재현(미지정 시 flex=block-level 이라 부모폭 채움 → 2차 발산). gap 8 = md 기준.
-    //   style 은 builder-local overlay 영역(catalog base 아님) — defaultPropsDerivation
-    //   .test.ts 의 style 불변식은 catalog base 한정으로 완화됨.
-    style: {
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-      width: "fit-content",
-    },
   },
   Badge: {
     children: "Badge",
@@ -85,15 +65,6 @@ const FACTORY_LOCAL_DEFAULTS: Readonly<
     isQuiet: false,
     isSelected: false,
     isDisabled: false,
-    // Button 동일 발산: `.react-aria-ToggleButton` = inline-flex/center/gap(md=8px),
-    //   Skia 는 INLINE_BLOCK_TAGS("togglebutton") → block. factory flex/row 로 정합.
-    style: {
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-      width: "fit-content",
-    },
   },
   Text: {
     children: "Text",

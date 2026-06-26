@@ -647,6 +647,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Button: {
     defaultVariant: "primary",
     defaultSize: "md",
+    // top-level containerStyles — Skia layout fallback(resolveContainerStylesFallback 경로 A,
+    //   rule.containerStyles 직접 조회) + dirty baseline(resolveCatalogContainerBase line 3 last-wins)
+    //   양쪽이 읽는 단일 layout 정본. structure.containerStyles 는 경로 A 가 못 읽어(top-level 만 조회)
+    //   Skia 가 INLINE_BLOCK_TAGS("button") → block 으로 자식(Icon/Text)을 세로로 쌓았다(CSS↔Skia
+    //   발산, 2026-06-27). RAC .react-aria-Button = inline-flex/center 와 시각 대칭. gap 은 size 별
+    //   (sizes[size].gap 4~12px) 이라 여기 두지 않음(dirty baseline 은 sizes.gap 을 읽음).
+    containerStyles: {
+      display: "inline-flex",
+      flexDirection: "row",
+      alignItems: "center",
+    },
     variants: {
       accent: {
         fill: {
@@ -11802,6 +11813,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   ToggleButton: {
     defaultVariant: "default",
     defaultSize: "md",
+    // top-level containerStyles — Button 동일 발산 차단(Skia INLINE_BLOCK_TAGS("togglebutton")
+    //   → block). RAC .react-aria-ToggleButton = inline-flex/center 와 시각 대칭. gap=sizes[size].
+    containerStyles: {
+      display: "inline-flex",
+      flexDirection: "row",
+      alignItems: "center",
+    },
     variants: {
       default: {
         fill: {

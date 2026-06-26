@@ -7,17 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [Button/ToggleButton display 기본값 — CSS↔Skia 가로 배치 정합] - 2026-06-27
+## [Button/ToggleButton display 기본값 — catalog top-level containerStyles] - 2026-06-27
 
 ### Bug Fixes
 
-- **Button 자식(Icon+Text) Skia 세로 쌓임** (CSS↔Skia display 발산):
-  - 신규 Button/ToggleButton factory 기본 style 에 `display:flex, flexDirection:row, alignItems:center, gap:8, width:fit-content` 주입. Icon 셀렉트로 아이콘을 넣었을 때 캔버스(Skia)에서도 CSS Preview 와 동일하게 아이콘+텍스트가 가로 배치됨
-  - **Why**: RAC `.react-aria-Button` 은 `display: inline-flex; align-items: center; gap` 이 CSS 에 하드코딩돼 Preview 는 자식을 가로 배치한다. 그러나 Skia 경로는 `props.style.display` 가 없으면 `getElementDisplay` 가 `INLINE_BLOCK_TAGS("button")` 라우팅으로 Taffy `block` 을 반환 → 자식이 세로로 쌓였다. factory style 에 flex/row 를 명시하면 `getElementDisplay` 가 이를 최우선 반환해 INLINE_BLOCK 라우팅을 덮어 두 경로가 가로 배치로 정합한다(ADR-907 Layer B: layout 은 factory props.style SSOT). `width:fit-content` 로 RAC inline-flex 의 내용폭을 재현(미지정 시 flex=block-level → 부모폭 채우는 2차 발산)
-  - 설계 경계: style 은 catalog accepts(D2/D3 props surface)가 아니라 **builder-local overlay**(`FACTORY_LOCAL_DEFAULTS`)에서만 합성. `defaultPropsDerivation.test.ts` 의 style 불변식을 "최종 파생 결과 금지"에서 "catalog base(`getCatalogDefaultProps`)에만 금지, overlay 는 허용"으로 완화(catalog SSOT 오염 차단은 유지)
-  - 영향 범위: 신규 생성 Button/ToggleButton 만 적용(기존 element 는 무변경 — 의도된 범위). ToggleButton 도 동일 발산(`INLINE_BLOCK_TAGS("togglebutton")`)이라 함께 처리
-  - 위치: `apps/builder/src/types/builder/defaultPropsDerivation.ts`(`FACTORY_LOCAL_DEFAULTS.Button/ToggleButton.style`), `__tests__/defaultPropsOracle.ts`(oracle style), `__tests__/defaultPropsDerivation.test.ts`(불변식 완화 + 객체 deep 비교)
-  - 검증: vitest defaultPropsDerivation 3/3 + getDefaultPropsEntryParity + ButtonChildSection 14/14, type-check PASS(baseline 69). **live(빌더)**: palette 생성 신규 Button 의 `props.style` = 주입값 일치 확인, Icon+Text 자식 추가 후 Skia 캔버스에서 아이콘+텍스트 가로 배치(106×24 한 줄) 확인 — 테스트 element 정리 완료
+- **Button 자식(Icon+Text) Skia 세로 쌓임 + Layout reset 버튼 오활성** (CSS↔Skia display 발산):
+  - `COMPONENT_RULES_TABLE.Button` / `ToggleButton` 에 **top-level `containerStyles: {display:"inline-flex", flexDirection:"row", alignItems:"center"}`** 추가. Skia 가 catalog layout 을 받아 아이콘+텍스트를 가로 배치(CSS Preview 와 동일). icon 추가와 무관하게 항상 기본 flex
+  - **Why**: catalog 는 `Button.structure.containerStyles.display:"inline-flex"` 를 갖고 있었으나, Skia layout fallback(`resolveContainerStylesFallback` 경로 A)은 **top-level `rule.containerStyles` 만** 조회하고 경로 B 는 `structure.composition` 보유 type 만 본다 → Button 은 둘 다 해당 안 돼 fallback 이 `{}` 반환 → `getElementDisplay` 가 `INLINE_BLOCK_TAGS("button")` → Taffy `block` → 자식 세로 쌓임. 반면 dirty baseline(`resolveCatalogContainerBase`)은 `structure.containerStyles` 를 읽어 `inline-flex` 를 알았다 — Skia↔baseline 비대칭. top-level containerStyles 는 **두 경로(Skia fallback 경로 A + dirty baseline last-wins)가 모두 읽는 단일 source** 라 비대칭 해소
+  - **reset 버튼 정합**: layout 기본값을 catalog(= dirty baseline)에 두므로 신규 Button 의 `props.style` 은 빈 채로 유지된다 → Layout section 의 사용자 변경이 아님 → **reset 버튼 비활성**. (직전 시도였던 factory `props.style` 주입은 그 값이 "사용자 inline style" 로 취급돼 reset 버튼이 오활성됐다 — 그 접근은 원복)
+  - 영향 범위: Button / ToggleButton 한정(top-level containerStyles 추가). gap 은 size 별 차이라 `sizes[size].gap`(4~12px) 유지
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`(Button / ToggleButton top-level `containerStyles`)
+  - 검증: vitest resolveCatalogContainerBase.snapshot + resolveContainerStylesFallback 53/53, defaultPropsDerivation 3/3, type-check PASS(baseline 69). **live(빌더)**: 신규 Button + Icon 자식 → Skia 캔버스 가로 배치(★Button) 확인, icon Button 의 `props.style` 빈 채 유지 → Layout section reset 버튼 미표시 확인, 테스트 element 정리 완료
 
 ## [Button Content Icon 셀렉트 — 자식 element 백킹] - 2026-06-26
 
