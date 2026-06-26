@@ -289,6 +289,17 @@ const toggleButtonGroupPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "ToggleButton", override: true },
 ];
 
+// icon Button label = RSP 공식 `<Button><Icon/><Text>label</Text></Button>` 의 `<Text>` 자식
+//   element(ButtonChildSection 이 생성). Button.size 변경 시 자식 Text.size 도 같이 변경되어야
+//   부모-자식 글자 크기가 일관(사용자 요청 2026-06-27). Button/Text size 범위는 둘 다 xs~xl 포함
+//   (Text 는 2xl/3xl 추가 보유, Button 범위 안에 항상 들어감) → 무손실 전파. ToggleButtonGroup →
+//   ToggleButton(size override:true) 동형. childProp 생략 → buildPropagationUpdates 가 parentProp
+//   (size)을 자식 prop 명으로 사용(propagationEngine.ts:146). 생성 시점 초기 size 는 전파 rule 이
+//   *변경* 시점에만 작동하므로 ButtonChildSection.buildButtonChild 에서 부모 size 를 직접 주입.
+const buttonPropagationRules: PropagationRule[] = [
+  { parentProp: "size", childPath: "Text", override: true },
+];
+
 // ADR-912 단계5 step4 (2026-06-17): Tabs.spec 물리 삭제 → propagation.rules 7건 인라인 보존.
 //   chip projection(appendTabRowProjection)이 owner=TabList scene node 에 붙고,
 //   resolveDataBoundTabProjection 이 TabList.props.items 를 읽어 tab-row 노드 전개하므로
@@ -752,6 +763,9 @@ registerPropagationRules(
   "ToggleButtonGroup",
   toggleButtonGroupPropagationRules,
 );
+// Button/ToggleButton → 자식 Text(icon Button label) size 전파. 둘 다 동일 rule(size → Text).
+registerPropagationRules("Button", buttonPropagationRules);
+registerPropagationRules("ToggleButton", buttonPropagationRules);
 // ADR-912 영역 B (A): Tabs → TabList items/selectedKey/variant/size/showIndicator 전파.
 //   chip projection(appendTabRowProjection)이 TabList.props.items 를 읽는 invariant 충족.
 //   ADR-912 단계5 step4 (2026-06-17): Tabs.spec 삭제 → propagation-only 인라인 spec(tabsPropagationSpec).

@@ -114,6 +114,11 @@ export const ButtonChildSection = memo(function ButtonChildSection({
       ? ((element!.props as { children?: string }).children as string)
       : undefined;
 
+  // 부모 Button 의 현재 size — `<Text>` 자식 생성 시 상속 주입. Button size 변경 시 자식 Text
+  //   size 동기화는 propagationRegistry buttonPropagationRules(size → Text)가 담당하지만, 전파는
+  //   *변경* 시점에만 작동 → 생성 직후 초기값은 여기서 직접 주입(부모-자식 글자 크기 일관).
+  const buttonSize = (element?.props as { size?: unknown } | undefined)?.size;
+
   const textChildValue =
     typeof (existingText?.props as { children?: unknown } | undefined)
       ?.children === "string"
@@ -158,7 +163,10 @@ export const ButtonChildSection = memo(function ButtonChildSection({
           elementId,
           currentPageId,
           [...pageElements, iconElement], // Icon 까지 포함해 customId 충돌 회피
-          { children: buttonChildrenText },
+          // 부모 Button size 상속(있을 때만) — 부모-자식 글자 크기 일관(사용자 요청 2026-06-27).
+          typeof buttonSize === "string"
+            ? { children: buttonChildrenText, size: buttonSize }
+            : { children: buttonChildrenText },
         );
         addElement(textElement);
         // Button 의 string children 을 비운다(`<Text>` 자식이 label 을 보유).
@@ -169,6 +177,7 @@ export const ButtonChildSection = memo(function ButtonChildSection({
       existingIcon,
       existingText,
       buttonChildrenText,
+      buttonSize,
       updateElementProps,
       currentPageId,
       elementId,

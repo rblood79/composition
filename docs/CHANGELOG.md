@@ -25,6 +25,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`(button/togglebutton 분기), `__tests__/buttonChildPaddingGapImplicitStyles.test.ts`(회귀 5 case)
   - 검증: buttonChildPaddingGapImplicitStyles 5/5, layout engine suite 139 passed(무관한 radius 토큰 스냅샷 2건은 사전 존재 drift — 본 변경 무관), type-check PASS(baseline 69). **live(빌더)**: icon Button(md) selection 크기 98×24 → **106×32**(paddingY 4×2 + gap/paddingX 반영), Skia 캔버스에서 아이콘↔텍스트 간격 + 박스 내부 여백 확인
 
+### Features
+
+- **icon Button 자식 `<Text>` 의 size 가 부모 Button size 상속·동기화** (XS~XL):
+  - **생성 시점 상속**: icon 추가로 `<Text>` 자식 element 생성 시 부모 Button 의 현재 `size` 를 주입한다(`ButtonChildSection.buildButtonChild`). 부모가 xs 면 자식 Text 도 xs 로 생성 → 부모-자식 글자 크기 일관
+  - **변경 시점 동기화**: Button / ToggleButton 의 `size` 를 바꾸면 자식 `<Text>` 의 `size` 도 같이 변경된다 — `propagationRegistry` 에 `buttonPropagationRules`(`{parentProp:"size", childPath:"Text", override:true}`) 등록(Inspector edit 경로 `PropertiesPanel` → `buildPropagationUpdates`). ToggleButtonGroup → ToggleButton(size) 전파 패턴 동형
+  - **Why**: icon Button label = RSP 공식 `<Button><Icon/><Text>label</Text></Button>` 의 `<Text>` 자식 element. 부모 Button size 만 바뀌고 자식 Text size 가 그대로면 글자 크기가 부모와 어긋난다(사용자 요청 2026-06-27). Button/Text size 범위는 둘 다 xs~xl 포함(Text 는 2xl/3xl 추가 보유 — Button 범위 안에 항상 들어감 → 무손실 전파). `childProp` 생략 → `buildPropagationUpdates` 가 parentProp(size)을 자식 prop 명으로 사용(`propagationEngine.ts`)
+  - 영향 범위: Icon 자식은 전파 대상 아님(Text 만) — Icon 크기는 catalog `sizes[size].iconSize` 별도 경로. size 외 prop 변경은 Text 전파 미트리거
+  - 위치: `apps/builder/src/builder/utils/propagationRegistry.ts`(buttonPropagationRules + Button/ToggleButton 등록), `apps/builder/src/builder/panels/properties/ButtonChildSection.tsx`(생성 시점 size 주입), `apps/builder/src/builder/utils/buttonTextSizePropagation.test.ts`(회귀 8 case)
+  - 검증: buttonTextSizePropagation 8/8, type-check PASS(baseline 69). **live(빌더)**: ① plain Button(xs)에 icon 추가 → 새 Text size=xs(부모 상속) ② icon Button(lg) size 를 lg→md→xl 변경 → 자식 Text size 가 매번 동기(propagation_works:true, XS~XL 전 범위) ③ Icon 자식은 size 미변경 확인
+
 ## [Button Content Icon 셀렉트 — 자식 element 백킹] - 2026-06-26
 
 ### Bug Fixes
