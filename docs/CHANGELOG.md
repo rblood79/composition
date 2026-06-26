@@ -11,16 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Bug Fixes
 
-- **Icon 추가 시 Button text 가 사라짐** (RSP composite 모델 미적용):
-  - Content "Icon" 셀렉트로 Icon 자식을 추가하면 Button 의 text(string children)가 화면에서 사라졌다. 데이터의 `children` 은 멀쩡했으나, CSS Preview 렌더러(`CanonicalNodeRenderer`)가 자식 element 가 있으면 string children 을 버리는 either/or 구조(`childNodes.length>0 ? 자식 : racChildren`)였기 때문
-  - **Why**: RSP 공식 "With Icon and Label"(react-spectrum.adobe.com/Button)은 icon Button 의 label 을 `<Text>` 자식 element 로 감싼다 — `<Button><Icon/><Text>label</Text></Button>`. composition Button 은 plain 일 때 string children, icon 있을 때는 element 여야 하는데 그 전환이 없었다
-  - 수정: Content Icon 셀렉트의 4-way 로직에 **string children ↔ Text 자식 element 양방향 전환** 추가. Icon 추가 시 string children 을 `<Text>` 자식 element 로 전환(Icon 먼저 Text 나중 = RSP 순서), Icon 제거 시 Text 자식의 텍스트를 string children 으로 복구하고 Text element 삭제. 렌더러 either/or 는 미터치(둘 다 element 라 충돌 없음)
-  - 위치: `apps/builder/src/builder/panels/properties/ButtonChildSection.tsx`
-- **Icon 제거 시 Button text 복구 누락** (canonical sync 순서 race):
-  - Icon → None(clear) 시 Text 자식의 텍스트가 Button string children 으로 복구되지 않고 빈 문자열로 남았다
-  - **Why**: `removeElement` / `updateElementProps` 다중 mutation 을 같은 tick 에 `await` 없이 연속 호출 → `updateElementProps(Button, {children})` 가 `removeElement` 의 stale canonical snapshot 위에 적용되어 갱신 누락(state-management.md canonical sync 순서 race). 순차 await 로 수동 재현 시 정상 복구 확인
-  - 수정: 두 핸들러(`handleSelectIcon`/`handleClearIcon`)를 async + 순차 `await` 로 전환
-  - 위치: `apps/builder/src/builder/panels/properties/ButtonChildSection.tsx`
+- **Icon 추가 시 Button text(캔버스 + 프로퍼티)가 사라짐** (렌더러 either/or):
+  - Content "Icon" 셀렉트로 Icon 자식을 추가하면 (1) 캔버스에서 Button text 가 사라지고 (2) 프로퍼티 패널의 "Text" 필드가 빈 칸이 됐다
+  - **Why (근본)**: CSS Preview 렌더러(`CanonicalNodeRenderer`)의 cutover primitive 분기가 자식 element 가 있으면 string children(label)을 버리는 either/or(`childNodes.length>0 ? 자식 : racChildren`). Button 에 Icon 자식이 생기자 label(Button.children)이 렌더에서 누락. 데이터 `children` 은 멀쩡했으나 화면·패널에서 사라짐. RSP 공식 "With Icon and Label"(react-spectrum.adobe.com/Button) = `<Button><Icon/>label</Button>` — icon 과 label 이 공존해야 함
+  - 수정: 렌더러 분기에 `ICON_HOST_BUTTON_TYPES`(Button/ToggleButton) 한정 **공존**(`[...childNodes, racChildren]`) 추가 — Icon 자식 + string children 둘 다 렌더. Button.children 은 비우지 않으므로 프로퍼티 "Text" 필드 값도 유지. 그 외 text-only leaf(Badge/Text/Heading/Checkbox/Link…)는 배타 유지(공존 시 label slot 붕괴/이중 렌더 회귀 방지)
+  - ButtonChildSection 은 **Icon 자식만** 생성/수정/삭제(Button.children 무수정) — 초기 시도였던 string↔Text element 이관 우회는 철회(불필요 + 프로퍼티 Text 필드 공백 유발)
+  - 위치: `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`(렌더러 공존), `apps/builder/src/builder/panels/properties/ButtonChildSection.tsx`(Icon 자식만)
+  - live 검증: children="Action 1" 유지 + Icon:star 자식만 / DOM `[react-aria-Icon, text:"Button"]` 공존(string children + Icon 둘 다 렌더) / 프로퍼티 "Text" 필드 값 유지
 
 ### Features
 
