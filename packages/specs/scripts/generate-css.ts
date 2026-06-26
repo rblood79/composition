@@ -173,11 +173,24 @@ function ruleSizeToSizeSpec(
  * variantSourceFor 가 이미 색상을 override 하므로, 순회 키 + fill 구조만 맞추면 됨.
  */
 function ruleVariantToVariantSpec(v: ComponentRuleVariant): VariantSpec {
+  const c = v.colors ?? {};
   return {
     fill: v.fill as unknown as VariantSpec["fill"],
-    text: (v.colors?.text ?? "{color.neutral}") as VariantSpec["text"],
-    ...(v.colors?.border !== undefined
-      ? { border: v.colors.border as VariantSpec["border"] }
+    text: (c.text ?? "{color.neutral}") as VariantSpec["text"],
+    ...(c.border !== undefined
+      ? { border: c.border as VariantSpec["border"] }
+      : {}),
+    // fillStyle outline/subtle 색 (2026-06-27) — CSSGenerator Phase 2b 가 visual.outlineText/
+    //   outlineBorder/subtleText 로 [data-fill-style="outline"|"subtle"] 규칙을 emit. 누락 시
+    //   outline 변형이 generated CSS 에서 빠져 Button.css 수동 override 에 의존했다(D3 SSOT 위반).
+    ...(c.outlineText !== undefined
+      ? { outlineText: c.outlineText as VariantSpec["outlineText"] }
+      : {}),
+    ...(c.outlineBorder !== undefined
+      ? { outlineBorder: c.outlineBorder as VariantSpec["outlineBorder"] }
+      : {}),
+    ...(c.subtleText !== undefined
+      ? { subtleText: c.subtleText as VariantSpec["subtleText"] }
       : {}),
   } as VariantSpec;
 }

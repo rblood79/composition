@@ -48,11 +48,23 @@
 
 }
 
+.react-aria-Button[data-variant="accent"][data-fill-style="outline"] {
+  --button-color: transparent;
+  --button-text: var(--accent);
+  --button-border: var(--border-hover);
+}
+
 .react-aria-Button[data-variant="primary"] {
   --button-color: var(--fg);
   --button-text: var(--bg);
   --button-border: var(--fg);
 
+}
+
+.react-aria-Button[data-variant="primary"][data-fill-style="outline"] {
+  --button-color: transparent;
+  --button-text: var(--fg);
+  --button-border: var(--border-hover);
 }
 
 .react-aria-Button[data-variant="secondary"] {
@@ -62,11 +74,23 @@
 
 }
 
+.react-aria-Button[data-variant="secondary"][data-fill-style="outline"] {
+  --button-color: transparent;
+  --button-text: var(--fg);
+  --button-border: var(--border-hover);
+}
+
 .react-aria-Button[data-variant="negative"] {
   --button-color: var(--negative);
   --button-text: var(--color-white);
   --button-border: var(--negative);
 
+}
+
+.react-aria-Button[data-variant="negative"][data-fill-style="outline"] {
+  --button-color: transparent;
+  --button-text: var(--negative);
+  --button-border: var(--border-hover);
 }
 
 .react-aria-Button[data-variant="premium"] {
@@ -76,11 +100,23 @@
 
 }
 
+.react-aria-Button[data-variant="premium"][data-fill-style="outline"] {
+  --button-color: transparent;
+  --button-text: var(--color-purple-600);
+  --button-border: var(--border-hover);
+}
+
 .react-aria-Button[data-variant="genai"] {
   --button-color: var(--color-purple-600);
   --button-text: var(--color-white);
   --button-border: var(--color-purple-600);
 
+}
+
+.react-aria-Button[data-variant="genai"][data-fill-style="outline"] {
+  --button-color: transparent;
+  --button-text: var(--color-purple-600);
+  --button-border: var(--border-hover);
 }
 
 .react-aria-Button[data-icon-only] {

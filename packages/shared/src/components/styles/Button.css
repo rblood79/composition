@@ -93,30 +93,13 @@
     }
 
     /* ===== S2 Fill Style ===== */
-
-    &[data-fill-style="outline"] {
-      --button-color: transparent;
-      --button-border: var(--border-hover);
-    }
-
-    &[data-variant="accent"][data-fill-style="outline"] {
-      --button-text: var(--accent);
-    }
-
-    &[data-variant="primary"][data-fill-style="outline"] {
-      --button-text: var(--fg);
-    }
-
-    &[data-variant="negative"][data-fill-style="outline"] {
-      --button-text: var(--negative);
-    }
-
-    &[data-variant="premium"][data-fill-style="outline"] {
-      --button-text: var(--color-purple-600, #7c3aed);
-    }
-
+    /* outline 변형의 --button-color(transparent) / --button-text / --button-border 는
+       catalog(componentRulesTable Button.variants[*].colors.outlineText/outlineBorder +
+       fill.outline.base)에서 generated/Button.css 로 emit 된다(D3 SSOT, 2026-06-27). Skia
+       resolveButtonChildColor 도 같은 outlineText 를 상속 → CSS↔Skia 대칭. 여기는 catalog 로
+       표현 불가한 genai gradient 배경 무력화만 남긴다(--button-color: transparent 는 .button-base
+       의 background 만 끄고, genai 가 직접 건 background: linear-gradient(0-2-0)는 못 이김). */
     &[data-variant="genai"][data-fill-style="outline"] {
-      --button-text: var(--color-purple-600, #7c3aed);
       background: transparent;
     }
 

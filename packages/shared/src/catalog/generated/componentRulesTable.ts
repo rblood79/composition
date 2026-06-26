@@ -668,11 +668,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.accent-hover}",
             pressed: "{color.accent-pressed}",
           },
+          // outline fillStyle — 투명 배경(Button.css 수동 override 의 단일 소스화, 2026-06-27).
+          outline: { base: "{color.transparent}" },
         },
         colors: {
           text: "{color.on-accent}",
           border: "{color.accent}",
           borderHover: "{color.accent-hover}",
+          outlineText: "{color.accent}",
+          outlineBorder: "{color.border-hover}",
         },
       },
       primary: {
@@ -682,11 +686,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.neutral-hover}",
             pressed: "{color.neutral-pressed}",
           },
+          outline: { base: "{color.transparent}" },
         },
         colors: {
           text: "{color.base}",
           border: "{color.neutral}",
           borderHover: "{color.neutral-hover}",
+          outlineText: "{color.neutral}",
+          outlineBorder: "{color.border-hover}",
         },
       },
       secondary: {
@@ -696,10 +703,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.neutral-subtle}",
             pressed: "{color.neutral-subtle}",
           },
+          outline: { base: "{color.transparent}" },
         },
         colors: {
           text: "{color.neutral}",
           border: "{color.border}",
+          outlineText: "{color.neutral}",
+          outlineBorder: "{color.border-hover}",
         },
       },
       negative: {
@@ -709,11 +719,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.negative-hover}",
             pressed: "{color.negative-pressed}",
           },
+          outline: { base: "{color.transparent}" },
         },
         colors: {
           text: "{color.on-negative}",
           border: "{color.negative}",
           borderHover: "{color.negative-hover}",
+          outlineText: "{color.negative}",
+          outlineBorder: "{color.border-hover}",
         },
       },
       premium: {
@@ -723,11 +736,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.purple-hover}",
             pressed: "{color.purple-pressed}",
           },
+          outline: { base: "{color.transparent}" },
         },
         colors: {
           text: "{color.white}",
           border: "{color.purple}",
           borderHover: "{color.purple-hover}",
+          outlineText: "{color.purple}",
+          outlineBorder: "{color.border-hover}",
         },
       },
       genai: {
@@ -737,11 +753,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.purple-hover}",
             pressed: "{color.purple-pressed}",
           },
+          outline: { base: "{color.transparent}" },
         },
         colors: {
           text: "{color.white}",
           border: "{color.purple}",
           borderHover: "{color.purple-hover}",
+          outlineText: "{color.purple}",
+          outlineBorder: "{color.border-hover}",
         },
       },
     },

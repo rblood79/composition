@@ -665,8 +665,14 @@ const BUTTON_CHILD_INHERIT_TAGS = new Set(["Text", "Icon", "Label"]);
  *   (`{color.base}` 등). 그 외 null. TokenRef 그대로 반환 — `buildCatalogShapes` 의
  *   `textColor = style?.color ?? ... ?? visual.text` 가 소비(style.color 최우선) 후
  *   specShapesToSkia 가 theme 별 resolve. context-aware: standalone(부모≠button-base)은 null.
+ *
+ * fillStyle 분기 (2026-06-27) — `buildCatalogShapes.textColor` 와 동일 우선순위로
+ *   outline→outlineText / subtle→subtleText / selected→selectedText 를 따라간다.
+ *   누락 시 outline Button(투명 배경)의 자식이 `visual.text`(예: accent→흰색)를 상속해
+ *   투명/밝은 배경 위 흰색으로 사라졌다(Skia↔CSS 발산, CSS 는 `--button-text` outline override
+ *   로 정상). catalog `outlineText` 미정의 variant 는 `visual.text` fallback.
  */
-function resolveButtonChildColor(
+export function resolveButtonChildColor(
   element: CanvasSceneNode,
   elementsMap: Map<string, CanvasSceneNode>,
 ): string | null {
@@ -677,9 +683,25 @@ function resolveButtonChildColor(
   const parent = elementsMap.get(element.parent_id);
   if (!parent || !BUTTON_BASE_PARENT_TAGS.has(parent.type)) return null;
 
-  const parentVariant = getProps(parent).variant as string | undefined;
+  const parentProps = getProps(parent);
+  const parentVariant = parentProps.variant as string | undefined;
   const visual = resolveSkiaVisualRule(parent.type, parentVariant);
-  const text = visual?.text;
+  if (!visual) return null;
+
+  const fillStyle = parentProps.fillStyle as string | undefined;
+  const isSelected = parentProps.isSelected === true;
+  const isEmphasized = parentProps.isEmphasized === true;
+
+  // buildCatalogShapes.textColor 와 동일 분기: selected → outline → subtle → text.
+  const text = isSelected
+    ? isEmphasized
+      ? (visual.emphasizedSelectedText ?? visual.selectedText ?? visual.text)
+      : (visual.selectedText ?? visual.text)
+    : fillStyle === "outline"
+      ? (visual.outlineText ?? visual.text)
+      : fillStyle === "subtle"
+        ? (visual.subtleText ?? visual.text)
+        : visual.text;
   return typeof text === "string" ? text : null;
 }
 
