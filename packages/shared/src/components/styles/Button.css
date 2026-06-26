@@ -32,6 +32,14 @@
       box-shadow: var(--inset-shadow-sm);
     }
 
+    /* RSP 정합: 직계 자식(Icon/Text)이 Button color 상속.
+       leaf 의 color: var(--fg) 명시를 자식결합자 우위로 override.
+       Icon SVG 는 stroke="currentColor" → inherit 따라감.
+       standalone leaf 는 영향 없음(.react-aria-Button 컨텍스트 한정). */
+    & > * {
+      color: inherit;
+    }
+
     /* ===== S2 Color Variants ===== */
 
     &[data-variant="accent"] {
