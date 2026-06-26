@@ -12,6 +12,7 @@ import {
 import { getDefaultProps } from "../../../types/builder/unified.types";
 import { generateCustomId } from "../../utils/idGeneration";
 import { withFrameElementMirrorId } from "../../../adapters/canonical/frameMirror";
+import { buttonIconPx } from "../../utils/propagationRegistry";
 import type { Element } from "../../../types/builder/unified.types";
 
 /**
@@ -146,12 +147,16 @@ export const ButtonChildSection = memo(function ButtonChildSection({
       });
 
       // 자식 순서 = Icon 먼저, Text 나중(canonical children 추가 순서 = 렌더 순서, RSP 순서).
+      //   Icon 의 아이콘 px 는 부모 Button size 의 iconSize(catalog read-through)를 style.fontSize
+      //   로 주입 — Icon size prop(catalog Icon size 별 px)이 아니라 버튼 디자인 px 강제(사용자
+      //   지정 xs14/sm16/md18/lg24/xl28). buttonIconPx 가 전파 transform 과 단일 소스.
       const iconElement = buildButtonChild(
         "Icon",
         elementId,
         currentPageId,
         pageElements,
-        { iconName }, // getDefaultProps("Icon") 의 random iconName override
+        // getDefaultProps("Icon") 의 random iconName override + 부모 size 기반 아이콘 px.
+        { iconName, style: { fontSize: buttonIconPx(buttonSize) } },
       );
       addElement(iconElement);
 

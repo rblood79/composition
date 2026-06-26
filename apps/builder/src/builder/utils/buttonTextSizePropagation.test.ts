@@ -19,6 +19,7 @@ import { describe, it, expect } from "vitest";
 import {
   getPropagationRules,
   getParentTagsForChild,
+  buttonIconPx,
 } from "./propagationRegistry";
 import { buildPropagationUpdates } from "./propagationEngine";
 
@@ -26,6 +27,15 @@ type ElementLike = {
   id: string;
   type: string;
   props: Record<string, unknown>;
+};
+
+// 사용자 지정 버튼 내 아이콘 px (2026-06-27) — catalog Button.sizes[size].iconSize 단일 소스.
+const EXPECTED_ICON_PX: Record<string, number> = {
+  xs: 14,
+  sm: 16,
+  md: 18,
+  lg: 24,
+  xl: 28,
 };
 
 describe("Button/ToggleButton size → Text 전파 rule 등록", () => {
@@ -119,20 +129,7 @@ describe("buildPropagationUpdates — Button size 변경 시 자식 Text size �
     }
   });
 
-  it("Icon 자식은 size 전파 대상 아님 (Text 만)", () => {
-    const { parent, childrenMap, elementsMap } = setup("Button");
-    const rules = getPropagationRules("Button")!;
-    const updates = buildPropagationUpdates(
-      parent,
-      { size: "lg" },
-      rules,
-      childrenMap,
-      elementsMap,
-    );
-    expect(updates.find((u) => u.elementId === "ic")).toBeUndefined();
-  });
-
-  it("size 외 prop 변경은 Text 전파 트리거 안 함", () => {
+  it("size 외 prop 변경은 Text/Icon 전파 트리거 안 함", () => {
     const { parent, childrenMap, elementsMap } = setup("Button");
     const rules = getPropagationRules("Button")!;
     const updates = buildPropagationUpdates(
@@ -143,5 +140,88 @@ describe("buildPropagationUpdates — Button size 변경 시 자식 Text size �
       elementsMap,
     );
     expect(updates).toHaveLength(0);
+  });
+});
+
+describe("buttonIconPx — catalog Button.sizes iconSize read-through", () => {
+  it.each(Object.entries(EXPECTED_ICON_PX))("size=%s → %d px", (size, px) => {
+    expect(buttonIconPx(size)).toBe(px);
+  });
+
+  it("미지정/비문자열 → md(18) fallback", () => {
+    expect(buttonIconPx(undefined)).toBe(18);
+    expect(buttonIconPx(42)).toBe(18);
+    expect(buttonIconPx("nope")).toBe(18);
+  });
+});
+
+describe("buildPropagationUpdates — Button size 변경 시 자식 Icon px(style.fontSize) 동기화", () => {
+  function setup(parentType: "Button" | "ToggleButton") {
+    const parent: ElementLike = {
+      id: "btn",
+      type: parentType,
+      props: { size: "md" },
+    };
+    const textChild: ElementLike = {
+      id: "txt",
+      type: "Text",
+      props: { children: "Label", size: "md" },
+    };
+    const iconChild: ElementLike = {
+      id: "ic",
+      type: "Icon",
+      props: { iconName: "star", style: { fontSize: 18 } },
+    };
+    const childrenMap = new Map<string, ElementLike[]>([
+      ["btn", [iconChild, textChild]],
+    ]);
+    const elementsMap = new Map<string, ElementLike>([
+      ["btn", parent],
+      ["txt", textChild],
+      ["ic", iconChild],
+    ]);
+    return { parent, childrenMap, elementsMap };
+  }
+
+  it.each(["Button", "ToggleButton"] as const)(
+    "%s size 변경 → Icon style.fontSize 가 buttonIconPx 매핑",
+    (parentType) => {
+      const { parent, childrenMap, elementsMap } = setup(parentType);
+      const rules = getPropagationRules(parentType)!;
+      for (const size of ["xs", "sm", "md", "lg", "xl"]) {
+        const updates = buildPropagationUpdates(
+          parent,
+          { size },
+          rules,
+          childrenMap,
+          elementsMap,
+        );
+        const iconUpdate = updates.find((u) => u.elementId === "ic");
+        expect(iconUpdate).toBeDefined();
+        const style = iconUpdate!.props.style as
+          | Record<string, unknown>
+          | undefined;
+        expect(style?.fontSize).toBe(EXPECTED_ICON_PX[size]);
+      }
+    },
+  );
+
+  it("Icon 전파는 style.fontSize(asStyle) — top-level size prop 미설정", () => {
+    const { parent, childrenMap, elementsMap } = setup("Button");
+    const rules = getPropagationRules("Button")!;
+    const updates = buildPropagationUpdates(
+      parent,
+      { size: "lg" },
+      rules,
+      childrenMap,
+      elementsMap,
+    );
+    const iconUpdate = updates.find((u) => u.elementId === "ic")!;
+    // asStyle → style.fontSize 에만 기록, top-level fontSize/size 는 미설정.
+    expect((iconUpdate.props.style as Record<string, unknown>).fontSize).toBe(
+      24,
+    );
+    expect(iconUpdate.props.fontSize).toBeUndefined();
+    expect(iconUpdate.props.size).toBeUndefined();
   });
 });

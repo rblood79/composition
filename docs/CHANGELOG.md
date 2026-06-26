@@ -27,13 +27,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Features
 
-- **icon Button 자식 `<Text>` 의 size 가 부모 Button size 상속·동기화** (XS~XL):
-  - **생성 시점 상속**: icon 추가로 `<Text>` 자식 element 생성 시 부모 Button 의 현재 `size` 를 주입한다(`ButtonChildSection.buildButtonChild`). 부모가 xs 면 자식 Text 도 xs 로 생성 → 부모-자식 글자 크기 일관
-  - **변경 시점 동기화**: Button / ToggleButton 의 `size` 를 바꾸면 자식 `<Text>` 의 `size` 도 같이 변경된다 — `propagationRegistry` 에 `buttonPropagationRules`(`{parentProp:"size", childPath:"Text", override:true}`) 등록(Inspector edit 경로 `PropertiesPanel` → `buildPropagationUpdates`). ToggleButtonGroup → ToggleButton(size) 전파 패턴 동형
-  - **Why**: icon Button label = RSP 공식 `<Button><Icon/><Text>label</Text></Button>` 의 `<Text>` 자식 element. 부모 Button size 만 바뀌고 자식 Text size 가 그대로면 글자 크기가 부모와 어긋난다(사용자 요청 2026-06-27). Button/Text size 범위는 둘 다 xs~xl 포함(Text 는 2xl/3xl 추가 보유 — Button 범위 안에 항상 들어감 → 무손실 전파). `childProp` 생략 → `buildPropagationUpdates` 가 parentProp(size)을 자식 prop 명으로 사용(`propagationEngine.ts`)
-  - 영향 범위: Icon 자식은 전파 대상 아님(Text 만) — Icon 크기는 catalog `sizes[size].iconSize` 별도 경로. size 외 prop 변경은 Text 전파 미트리거
-  - 위치: `apps/builder/src/builder/utils/propagationRegistry.ts`(buttonPropagationRules + Button/ToggleButton 등록), `apps/builder/src/builder/panels/properties/ButtonChildSection.tsx`(생성 시점 size 주입), `apps/builder/src/builder/utils/buttonTextSizePropagation.test.ts`(회귀 8 case)
-  - 검증: buttonTextSizePropagation 8/8, type-check PASS(baseline 69). **live(빌더)**: ① plain Button(xs)에 icon 추가 → 새 Text size=xs(부모 상속) ② icon Button(lg) size 를 lg→md→xl 변경 → 자식 Text size 가 매번 동기(propagation_works:true, XS~XL 전 범위) ③ Icon 자식은 size 미변경 확인
+- **icon Button 자식(`<Text>` + `<Icon>`)의 크기가 부모 Button size 상속·동기화** (XS~XL):
+  - **Text size**: icon 추가로 `<Text>` 자식 생성 시 부모 Button 의 `size` 주입(생성 시점) + Button/ToggleButton `size` 변경 시 자식 `<Text>` `size` 동기(`propagationRegistry` `buttonPropagationRules` `{parentProp:"size", childPath:"Text", override:true}`). Button/Text size 둘 다 xs~xl 포함(Text 는 2xl/3xl 추가 — Button 범위 안 → 무손실)
+  - **Icon px**: 버튼 내 아이콘 px 를 사용자 지정값(**xs14 / sm16 / md18 / lg24 / xl28**)으로 맞춘다 — catalog `Button.sizes[size].iconSize`(+ ToggleButton 동일값 신규) 를 단일 소스로 두고, Icon 자식의 `style.fontSize` 에 주입(생성 시점) + `size` 변경 시 동기(`{parentProp:"size", childPath:"Icon", childProp:"fontSize", asStyle:true, transform:(size)=>buttonIconPx(size), override:true}`). `buttonIconPx()` 가 생성·전파 양쪽의 read-through 단일 소스
+  - **Why size prop 이 아니라 style.fontSize 인가**: Icon 의 렌더 px 는 `style.fontSize` override 를 최우선 소비(`utils.ts:1092`)하고, 없으면 **Icon catalog `sizes[size].iconSize`(16/18/24/36/48 — Button 기대보다 큼)** 를 쓴다. Icon size prop 을 그대로 전파하면 Button md 에서 18px 가 아니라 24px 가 나오므로, 버튼 디자인 px 를 강제하려면 fontSize override 경로가 필요. Icon catalog size 체계는 독립 Icon 용으로 보존(버튼 밖 Icon 무영향)
+  - **Why 전체**: icon Button = RSP 공식 `<Button><Icon/><Text>label</Text></Button>`. 부모 Button size 만 바뀌고 자식 Text/Icon 크기가 그대로면 부모와 어긋난다(사용자 요청 2026-06-27)
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`(Button iconSize 12/14/16/20/24 → 14/16/18/24/28, ToggleButton iconSize 신규), `apps/builder/src/builder/utils/propagationRegistry.ts`(`buttonIconPx` + buttonPropagationRules Text/Icon 2 rule + Button/ToggleButton 등록), `apps/builder/src/builder/panels/properties/ButtonChildSection.tsx`(생성 시점 Text size + Icon fontSize 주입), `apps/builder/src/builder/utils/buttonTextSizePropagation.test.ts`(회귀 16 case)
+  - 검증: buttonTextSizePropagation 16/16, type-check PASS(baseline 69). **live(빌더)**: ① plain Button(xs)에 icon 추가 → 새 Text size=xs + 새 Icon style.fontSize=14(부모 px 상속) ② icon Button size md→lg→xl → Text size 동기 + Icon style.fontSize 24→28(매핑 정확, XS~XL 전 범위) ③ asStyle 로 Icon style.fontSize 에만 기록(top-level size/fontSize 미오염)
 
 ## [Button Content Icon 셀렉트 — 자식 element 백킹] - 2026-06-26
 

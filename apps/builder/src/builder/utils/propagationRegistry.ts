@@ -6,6 +6,7 @@
  * 모든 키는 소문자로 정규화.
  */
 import type { ComponentSpec, PropagationRule } from "@composition/specs";
+import { resolveComponentRule } from "@composition/shared";
 // ADR-912 단계5 step4: 아래 컴포넌트들은 모두 catalog cutover spec 삭제로 @composition/specs 의
 //   named Spec import 가 전부 제거됨 (전부 createPropagationOnlySpec 인라인 이관). value import 0건이라
 //   import 구문 자체 제거 — 이력은 아래 주석으로 보존.
@@ -289,15 +290,38 @@ const toggleButtonGroupPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "ToggleButton", override: true },
 ];
 
-// icon Button label = RSP 공식 `<Button><Icon/><Text>label</Text></Button>` 의 `<Text>` 자식
-//   element(ButtonChildSection 이 생성). Button.size 변경 시 자식 Text.size 도 같이 변경되어야
-//   부모-자식 글자 크기가 일관(사용자 요청 2026-06-27). Button/Text size 범위는 둘 다 xs~xl 포함
-//   (Text 는 2xl/3xl 추가 보유, Button 범위 안에 항상 들어감) → 무손실 전파. ToggleButtonGroup →
-//   ToggleButton(size override:true) 동형. childProp 생략 → buildPropagationUpdates 가 parentProp
-//   (size)을 자식 prop 명으로 사용(propagationEngine.ts:146). 생성 시점 초기 size 는 전파 rule 이
-//   *변경* 시점에만 작동하므로 ButtonChildSection.buildButtonChild 에서 부모 size 를 직접 주입.
+// 버튼 내 아이콘 px = catalog Button.sizes[size].iconSize(사용자 지정 2026-06-27:
+//   xs14/sm16/md18/lg24/xl28). Button/ToggleButton 의 iconSize 값은 동일하므로 Button 기준
+//   read-through. Icon element 의 렌더 px 는 style.fontSize override 를 최우선 소비
+//   (utils.ts:1092 `overrideFs != null` → return) 하므로, Icon catalog 의 size 별 iconSize
+//   (16/18/24/36/48 — Button 보다 큼)와 무관하게 버튼 디자인에 맞는 px 를 강제할 수 있다.
+//   buttonIconPx 가 ButtonChildSection 생성 시점 주입 + 본 transform 양쪽의 단일 소스.
+export function buttonIconPx(size: unknown): number {
+  const sizeName = typeof size === "string" ? size : "md";
+  const px = resolveComponentRule("Button")?.sizes?.[sizeName]?.iconSize;
+  return typeof px === "number" ? px : 18; // md fallback
+}
+
+// icon Button = RSP 공식 `<Button><Icon/><Text>label</Text></Button>`. Button.size 변경 시:
+//   - 자식 Text.size 도 같이 변경(글자 크기 일관). Button/Text size 둘 다 xs~xl 포함
+//     (Text 는 2xl/3xl 추가 보유, Button 범위 안 → 무손실). childProp 생략 → parentProp(size)을
+//     자식 prop 명으로 사용(propagationEngine.ts:146).
+//   - 자식 Icon 의 아이콘 px 도 같이 변경 — childProp "fontSize" + asStyle 로 style.fontSize 에
+//     buttonIconPx(size) 주입(Icon size prop 이 아니라 px override 경로 사용: Button 기대 px 와
+//     Icon catalog size 별 px 가 달라 size prop 전파로는 14/16/18/24/28 못 냄). override:true 라
+//     Button size 바꿀 때마다 갱신.
+//   ToggleButtonGroup → ToggleButton(size override:true) 동형. 생성 시점 초기값은 전파 rule 이
+//   *변경* 시점에만 작동하므로 ButtonChildSection.buildButtonChild 에서 부모 size/iconPx 직접 주입.
 const buttonPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "Text", override: true },
+  {
+    parentProp: "size",
+    childPath: "Icon",
+    childProp: "fontSize",
+    asStyle: true,
+    override: true,
+    transform: (size) => buttonIconPx(size),
+  },
 ];
 
 // ADR-912 단계5 step4 (2026-06-17): Tabs.spec 물리 삭제 → propagation.rules 7건 인라인 보존.

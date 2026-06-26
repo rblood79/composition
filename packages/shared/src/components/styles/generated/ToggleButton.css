@@ -37,6 +37,7 @@
   line-height: 20px;
   border-width: 1px;
   gap: 8px;
+  --icon-size: 18px;
 }
 
 .react-aria-ToggleButton[data-variant="default"] {
@@ -71,6 +72,7 @@
   line-height: 16px;
   border-width: 1px;
   gap: 4px;
+  --icon-size: 14px;
 }
 
 .react-aria-ToggleButton[data-size="sm"] {
@@ -81,6 +83,7 @@
   line-height: 16px;
   border-width: 1px;
   gap: 6px;
+  --icon-size: 16px;
 }
 
 .react-aria-ToggleButton[data-size="md"] {
@@ -91,6 +94,7 @@
   line-height: 20px;
   border-width: 1px;
   gap: 8px;
+  --icon-size: 18px;
 }
 
 .react-aria-ToggleButton[data-size="lg"] {
@@ -101,6 +105,7 @@
   line-height: 24px;
   border-width: 1px;
   gap: 10px;
+  --icon-size: 24px;
 }
 
 .react-aria-ToggleButton[data-size="xl"] {
@@ -111,6 +116,7 @@
   line-height: 28px;
   border-width: 1px;
   gap: 12px;
+  --icon-size: 28px;
 }
 
 .react-aria-ToggleButton[data-hovered] {

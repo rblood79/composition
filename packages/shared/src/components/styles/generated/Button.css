@@ -37,7 +37,7 @@
   line-height: var(--text-sm--line-height);
   border-width: 1px;
   gap: 8px;
-  --icon-size: 16px;
+  --icon-size: 18px;
   --icon-gap: 8px;
 }
 
@@ -96,7 +96,7 @@
   line-height: var(--text-2xs--line-height);
   border-width: 1px;
   gap: 4px;
-  --icon-size: 12px;
+  --icon-size: 14px;
   --icon-gap: 4px;
 }
 
@@ -108,7 +108,7 @@
   line-height: var(--text-xs--line-height);
   border-width: 1px;
   gap: 6px;
-  --icon-size: 14px;
+  --icon-size: 16px;
   --icon-gap: 6px;
 }
 
@@ -120,7 +120,7 @@
   line-height: var(--text-sm--line-height);
   border-width: 1px;
   gap: 8px;
-  --icon-size: 16px;
+  --icon-size: 18px;
   --icon-gap: 8px;
 }
 
@@ -132,7 +132,7 @@
   line-height: var(--text-base--line-height);
   border-width: 1px;
   gap: 10px;
-  --icon-size: 20px;
+  --icon-size: 24px;
   --icon-gap: 10px;
 }
 
@@ -144,7 +144,7 @@
   line-height: var(--text-lg--line-height);
   border-width: 1px;
   gap: 12px;
-  --icon-size: 24px;
+  --icon-size: 28px;
   --icon-gap: 12px;
 }
 
