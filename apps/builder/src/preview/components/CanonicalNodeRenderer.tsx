@@ -73,18 +73,6 @@ import {
   withFrameElementMirrorId,
 } from "../../adapters/canonical/frameMirror";
 
-/**
- * cutover primitive 렌더에서 string children(label) + 자식 element(Icon) **공존**을 허용할
- *   type. RSP 공식 `<Button><Icon/>label</Button>` 모델. ToggleButtonGroup 은 자식이
- *   ToggleButton(collection 컨테이너)이라 제외 — Button/ToggleButton 만 leaf+icon 조합.
- *   그 외 text-only leaf(Badge/Text/Heading/Checkbox/Link…)는 배타 유지(자식+children 동시
- *   렌더 시 label slot 붕괴/이중 렌더).
- */
-const ICON_HOST_BUTTON_TYPES: ReadonlySet<string> = new Set([
-  "Button",
-  "ToggleButton",
-]);
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
@@ -425,27 +413,10 @@ export function CanonicalNodeRenderer({
       const buttonBaseClassName = usesButtonBaseUtility(type)
         ? `react-aria-${type} button-base`
         : undefined;
-      // Button/ToggleButton 은 string children(label) + 자식 element(Icon) 공존을 허용한다
-      //   (RSP 공식 `<Button><Icon/>label</Button>`). 그 외 cutover primitive 는 기존
-      //   배타 유지 — Badge/Text/Heading/Checkbox/Link 등 text-only leaf 는 자식 element 와
-      //   string children 을 동시에 렌더하면 깨진다(label slot 의미 붕괴 / 이중 렌더). 따라서
-      //   공존은 ICON_HOST_BUTTON_TYPES 한정. (Content Icon 셀렉트가 Button 에 Icon 자식을
-      //   추가할 수 있게 되면서 line 424 배타가 label 을 버리던 버그를 닫는다.)
-      const racChildContent = racChildren as React.ReactNode;
-      const renderedChildNodes = childNodes.map((child) => (
-        <CanonicalNodeRenderer
-          key={child.id}
-          node={child}
-          renderContext={renderContext}
-          parentPath={currentPath}
-          cutoverPrimitives={cutoverPrimitives}
-        />
-      ));
-      const childContent = ICON_HOST_BUTTON_TYPES.has(type)
-        ? [...renderedChildNodes, racChildContent]
-        : childNodes.length > 0
-          ? renderedChildNodes
-          : racChildContent;
+      // 자식 element 가 있으면 그것을 렌더, 없으면 string children(racChildren). icon Button 의
+      //   label 은 RSP 공식대로 `<Text>` 자식 element 로 표현되므로(ButtonChildSection 이
+      //   Button.children → Text 자식 element 이관) 이 배타로 충분 — string children 은 비고
+      //   `<Text>` 자식이 label 을 보유. text-only leaf(Badge/Text/Checkbox/Link…)도 동일 배타.
       return (
         <PrimitiveComponent
           key={node.id}
@@ -454,7 +425,17 @@ export function CanonicalNodeRenderer({
           {...(buttonBaseClassName ? { className: buttonBaseClassName } : {})}
           style={overrideStyle}
         >
-          {childContent}
+          {childNodes.length > 0
+            ? childNodes.map((child) => (
+                <CanonicalNodeRenderer
+                  key={child.id}
+                  node={child}
+                  renderContext={renderContext}
+                  parentPath={currentPath}
+                  cutoverPrimitives={cutoverPrimitives}
+                />
+              ))
+            : (racChildren as React.ReactNode)}
         </PrimitiveComponent>
       );
     }

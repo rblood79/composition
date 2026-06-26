@@ -169,10 +169,22 @@ const CatalogEditContractEditor = memo(
     // 편집 계약 단일 진입점 — semantic ∪ style 필드를 origin 태그와 함께 산출.
     const contract = useEditContract(selectedElement.id);
     // Properties view = semantic origin (node.props / D2). style origin 은 Style view(후속).
-    const semanticFields = useMemo(
-      () => contract.fields.filter((f) => f.origin === "semantic"),
-      [contract],
-    );
+    const semanticFields = useMemo(() => {
+      const fields = contract.fields.filter((f) => f.origin === "semantic");
+      // icon Button/ToggleButton: label 이 RSP 공식대로 `<Text>` 자식 element 로 이관되어
+      //   Button.children 이 비므로, GenericFieldRenderer 의 "Text"(children) 필드를 제외한다.
+      //   대신 ButtonChildSection 의 Text 입력이 그 `<Text>` 자식을 편집(중복 필드 방지).
+      if (
+        selectedElement.type === "Button" ||
+        selectedElement.type === "ToggleButton"
+      ) {
+        const kids = childrenByParent.get(selectedElement.id) ?? [];
+        if (kids.some((c) => c.type === "Icon" && !c.deleted)) {
+          return fields.filter((f) => f.key !== "children");
+        }
+      }
+      return fields;
+    }, [contract, selectedElement.type, selectedElement.id, childrenByParent]);
 
     // semantic write — ADR-048 propagation + canonical ref 해소 보존 (legacy handleUpdate 동일).
     const handleSemanticUpdate = useCallback(

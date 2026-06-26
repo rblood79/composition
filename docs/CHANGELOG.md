@@ -11,13 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Bug Fixes
 
-- **Icon 추가 시 Button text(캔버스 + 프로퍼티)가 사라짐** (렌더러 either/or):
-  - Content "Icon" 셀렉트로 Icon 자식을 추가하면 (1) 캔버스에서 Button text 가 사라지고 (2) 프로퍼티 패널의 "Text" 필드가 빈 칸이 됐다
-  - **Why (근본)**: CSS Preview 렌더러(`CanonicalNodeRenderer`)의 cutover primitive 분기가 자식 element 가 있으면 string children(label)을 버리는 either/or(`childNodes.length>0 ? 자식 : racChildren`). Button 에 Icon 자식이 생기자 label(Button.children)이 렌더에서 누락. 데이터 `children` 은 멀쩡했으나 화면·패널에서 사라짐. RSP 공식 "With Icon and Label"(react-spectrum.adobe.com/Button) = `<Button><Icon/>label</Button>` — icon 과 label 이 공존해야 함
-  - 수정: 렌더러 분기에 `ICON_HOST_BUTTON_TYPES`(Button/ToggleButton) 한정 **공존**(`[...childNodes, racChildren]`) 추가 — Icon 자식 + string children 둘 다 렌더. Button.children 은 비우지 않으므로 프로퍼티 "Text" 필드 값도 유지. 그 외 text-only leaf(Badge/Text/Heading/Checkbox/Link…)는 배타 유지(공존 시 label slot 붕괴/이중 렌더 회귀 방지)
-  - ButtonChildSection 은 **Icon 자식만** 생성/수정/삭제(Button.children 무수정) — 초기 시도였던 string↔Text element 이관 우회는 철회(불필요 + 프로퍼티 Text 필드 공백 유발)
-  - 위치: `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`(렌더러 공존), `apps/builder/src/builder/panels/properties/ButtonChildSection.tsx`(Icon 자식만)
-  - live 검증: children="Action 1" 유지 + Icon:star 자식만 / DOM `[react-aria-Icon, text:"Button"]` 공존(string children + Icon 둘 다 렌더) / 프로퍼티 "Text" 필드 값 유지
+- **Icon 추가 시 Button text 처리** (RSP `<Text>` 자식 element 모델):
+  - icon Button 의 label 을 RSP 공식대로 `<Text>` 자식 element 로 표현한다 — `<Button><Icon/><Text>label</Text></Button>`. Icon 추가 시 Button 의 string children(label)을 `<Text>` 자식 element 로 이관(Button.children 비움), Icon 제거 시 `<Text>` 자식의 텍스트를 string children 으로 복구(Text element 삭제). 자식 순서 = Icon 먼저, Text 나중(RSP 순서)
+  - **Why**: RSP 공식 "With Icon and Label"(react-spectrum.adobe.com/Button) = `<Button><Icon/><Text>Icon + Label</Text></Button>` — icon 있을 때 label 은 raw text 가 아니라 `<Text>` element 로 감싼다(label slot 식별 + spacing/접근성). 같은 날 거친 두 시도(① raw string children 유지 → 캔버스 text 누락 / ② 렌더러 either/or 공존 → `<Text>` 없는 본질 위반)를 모두 철회하고 RSP `<Text>` 모델로 확정
+  - 프로퍼티 패널: icon Button 일 때 (1) GenericFieldRenderer 의 "Text"(Button.children) 필드를 semanticFields 에서 제외(`PropertiesPanel`) + (2) ButtonChildSection 에 Text 입력 노출 → `<Text>` 자식 element 의 children 편집. 중복 필드 없이 프로퍼티에서 label 편집 유지
+  - 영향 범위: 렌더러 either/or 는 원복(공존 분기 제거) — `<Text>` 자식이 label 을 보유하므로 배타로 충분. text-only leaf(Badge/Text/Checkbox/Link…) 배타 유지(회귀 0)
+  - 위치: `apps/builder/src/builder/panels/properties/ButtonChildSection.tsx`(Text 이관 + Text 입력), `PropertiesPanel.tsx`(children 필드 제외), `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`(either/or 원복)
+  - 검증: vitest 10/10, type-check PASS. 데이터 레이어(핸들러 로직 재현) — Button.children="" + 자식 [Icon:star, Text:label] RSP 모델 확인. ⚠️ live UI exercise(셀렉트 클릭→핸들러)는 본 세션 Chrome 자동화 불안정으로 미완 — 빌더에서 직접 확인 권장
 
 ### Features
 
