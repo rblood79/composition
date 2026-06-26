@@ -31,6 +31,7 @@ import { ElementSlotSelector } from "./editors/ElementSlotSelector";
 import { ComponentSemanticsSection } from "./ComponentSemanticsSection";
 import { ComponentSlotFillSection } from "./ComponentSlotFillSection";
 import { FrameSlotSection } from "./FrameSlotSection";
+import { ButtonChildSection } from "./ButtonChildSection";
 import { ActionIconButton } from "../../components/ui";
 import { Copy, ClipboardPaste, Settings2 } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
@@ -1626,6 +1627,8 @@ function PropertiesPanelContent() {
         <ComponentSemanticsSection elementId={selectedElement.id} />
 
         <FrameSlotSection elementId={selectedElement.id} />
+
+        <ButtonChildSection elementId={selectedElement.id} />
 
         <ComponentSlotFillSection elementId={selectedElement.id} />
 
