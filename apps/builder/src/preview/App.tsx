@@ -615,6 +615,12 @@ function CanvasContent() {
         props?: Record<string, unknown>,
       ): string => {
         switch (type) {
+          // RAC Text 기본 elementType = "span" (react-aria-components Text.tsx 기본값,
+          //   RSP S2 Text 도 동일 상속). Text.spec 삭제(catalog cutover) 후 default 경로의
+          //   getElementForTag("Text") 가 raw "text" tag 를 반환하므로 명시 case 로 span 확정.
+          //   `<p>` in `<button>` invalid HTML 해소 (2026-06-26).
+          case "Text":
+            return "span";
           case "Description":
             return "p";
           // Overlay 복합 컴포넌트

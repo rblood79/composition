@@ -61,7 +61,9 @@ export const rendererMap: Record<
   CardFooter: LayoutRenderers.renderCardFooter,
   Button: LayoutRenderers.renderButton,
   // ADR-058 Phase 1: Text는 Spec 경로로 전환됨. rendererMap 바인딩 제거 →
-  // Preview resolveHtmlTag fallback이 getElementForTag("Text") → "p"로 해결.
+  // Preview resolveHtmlTag fallback이 Text → "span"으로 해결 (RAC Text 기본
+  // elementType, 2026-06-26). 직전 "p"는 RAC와 어긋났고 `<p>` in `<button>`은
+  // invalid HTML이었음 (resolveGenericHtmlTag / App.tsx resolveHtmlTag 명시 case).
   Tooltip: LayoutRenderers.renderTooltip,
   ProgressBar: LayoutRenderers.renderProgressBar,
   Meter: LayoutRenderers.renderMeter,

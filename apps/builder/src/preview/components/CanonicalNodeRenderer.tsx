@@ -527,7 +527,12 @@ function resolveGenericHtmlTag(type: string): string {
     Slot: "div",
     Section: "section",
     Heading: "h2",
-    Text: "p",
+    // RAC Text 기본 elementType = "span" (react-aria-components/src/Text.tsx:
+    //   `let {elementType = 'span', ...domProps} = props;`). RSP S2 Text 도 RAC TextAria
+    //   wrap + elementType 미지정 → 동일 span 상속. 직전 "p" 는 D1(RAC) 권위와 어긋났고
+    //   `<p>` in `<button>` 은 invalid HTML(button=phrasing content only) 이었음 (2026-06-26).
+    //   Description 은 별도 — slot="description" 단락 시맨틱이라 "p" 유지.
+    Text: "span",
     Description: "p",
     Icon: "span",
     Group: "div",
