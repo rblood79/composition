@@ -62,7 +62,7 @@ describe("Button/ToggleButton 자식 padding·gap implicitStyles 주입", () => 
   const icon = makeChild("ic", "Icon", { iconName: "star" });
   const text = makeChild("tx", "Text", { children: "Button" });
 
-  it("Button size=md → padding 12/4 longhand + gap 8 (rowGap/columnGap)", () => {
+  it("Button size=md → padding 12/4 longhand + gap 8 (rowGap/columnGap) + borderWidth 1", () => {
     const { effectiveParent } = applyButtonLike("Button", { size: "md" }, [
       icon,
       text,
@@ -74,6 +74,32 @@ describe("Button/ToggleButton 자식 padding·gap implicitStyles 주입", () => 
     expect(ps.paddingBottom).toBe(4);
     expect(ps.rowGap).toBe(8);
     expect(ps.columnGap).toBe(8);
+    // borderWidth 주입 — Taffy 가 height 에 border 2px 포함(leaf Button 30px 정합).
+    //   누락 시 자식 보유 Button 이 leaf 보다 2px 작아짐(Skia↔CSS 발산).
+    expect(ps.borderWidth).toBe(1);
+  });
+
+  it("borderWidth 주입 — Taffy border-box height 정합 (Button/ToggleButton)", () => {
+    for (const t of ["Button", "ToggleButton"] as const) {
+      for (const size of ["xs", "sm", "md", "lg", "xl"]) {
+        const { effectiveParent } = applyButtonLike(t, { size }, [icon, text]);
+        const ps = (effectiveParent.props?.style ?? {}) as Record<
+          string,
+          unknown
+        >;
+        expect(ps.borderWidth).toBe(1);
+      }
+    }
+  });
+
+  it("user inline borderWidth → 주입값 덮지 않음", () => {
+    const { effectiveParent } = applyButtonLike(
+      "Button",
+      { size: "md", style: { borderWidth: 3 } },
+      [icon, text],
+    );
+    const ps = (effectiveParent.props?.style ?? {}) as Record<string, unknown>;
+    expect(ps.borderWidth).toBe(3);
   });
 
   it("Button size=sm → 8/2/6, size=lg → 16/8/10 (catalog sizes read-through)", () => {

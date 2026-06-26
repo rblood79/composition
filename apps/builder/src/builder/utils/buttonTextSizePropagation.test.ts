@@ -20,6 +20,7 @@ import {
   getPropagationRules,
   getParentTagsForChild,
   buttonIconPx,
+  buttonTextMetrics,
 } from "./propagationRegistry";
 import { buildPropagationUpdates } from "./propagationEngine";
 
@@ -38,25 +39,30 @@ const EXPECTED_ICON_PX: Record<string, number> = {
   xl: 28,
 };
 
-describe("Button/ToggleButton size → Text 전파 rule 등록", () => {
-  it("Button 에 size → Text override rule 등록됨", () => {
-    const rules = getPropagationRules("Button");
-    expect(rules).toBeDefined();
-    expect(rules).toContainEqual({
-      parentProp: "size",
-      childPath: "Text",
-      override: true,
-    });
+describe("Button/ToggleButton → Text 텍스트 척도(fontSize/lineHeight) inline 전파", () => {
+  it("Button 에 size → Text fontSize/lineHeight (asStyle) rule 등록됨", () => {
+    const rules = getPropagationRules("Button")!;
+    const textStyleRules = rules.filter(
+      (r) => r.childPath === "Text" && r.asStyle,
+    );
+    // fontSize + lineHeight 2 rule.
+    expect(textStyleRules.map((r) => r.childProp).sort()).toEqual([
+      "fontSize",
+      "lineHeight",
+    ]);
+    // size prop 직접 전파 rule 은 없어야 함(Text 컴포넌트 독립 척도 16/24 적용 방지).
+    expect(rules.some((r) => r.childPath === "Text" && !r.asStyle)).toBe(false);
   });
 
-  it("ToggleButton 에 size → Text override rule 등록됨 (Button 동형)", () => {
-    const rules = getPropagationRules("ToggleButton");
-    expect(rules).toBeDefined();
-    expect(rules).toContainEqual({
-      parentProp: "size",
-      childPath: "Text",
-      override: true,
-    });
+  it("ToggleButton 동형 (Button 과 같은 Text 척도 전파)", () => {
+    const rules = getPropagationRules("ToggleButton")!;
+    const textStyleRules = rules.filter(
+      (r) => r.childPath === "Text" && r.asStyle,
+    );
+    expect(textStyleRules.map((r) => r.childProp).sort()).toEqual([
+      "fontSize",
+      "lineHeight",
+    ]);
   });
 
   it("reverse index — Text 의 parent 에 button/togglebutton 포함", () => {
@@ -67,7 +73,32 @@ describe("Button/ToggleButton size → Text 전파 rule 등록", () => {
   });
 });
 
-describe("buildPropagationUpdates — Button size 변경 시 자식 Text size 동기화", () => {
+describe("buttonTextMetrics — catalog Button.sizes fontSize/lineHeight read-through", () => {
+  it("md → text-sm 척도 (fontSize 14 / lineHeight '20px')", () => {
+    const tm = buttonTextMetrics("md");
+    expect(tm.fontSize).toBe(14);
+    expect(tm.lineHeight).toBe("20px");
+  });
+
+  it("lineHeight 는 항상 'Npx' 문자열 (parseLineHeight 배율 오해석 방지)", () => {
+    for (const size of ["xs", "sm", "md", "lg", "xl"]) {
+      const tm = buttonTextMetrics(size);
+      expect(typeof tm.lineHeight).toBe("string");
+      expect(tm.lineHeight).toMatch(/^\d+(\.\d+)?px$/);
+      expect(typeof tm.fontSize).toBe("number");
+    }
+  });
+
+  it("미지정/비문자열 → md(14 / '20px') fallback", () => {
+    expect(buttonTextMetrics(undefined)).toEqual({
+      fontSize: 14,
+      lineHeight: "20px",
+    });
+    expect(buttonTextMetrics(42)).toEqual({ fontSize: 14, lineHeight: "20px" });
+  });
+});
+
+describe("buildPropagationUpdates — Button size 변경 시 Text 척도 inline 동기화", () => {
   function setup(parentType: "Button" | "ToggleButton") {
     const parent: ElementLike = {
       id: "btn",
@@ -77,12 +108,12 @@ describe("buildPropagationUpdates — Button size 변경 시 자식 Text size �
     const textChild: ElementLike = {
       id: "txt",
       type: "Text",
-      props: { children: "Label", size: "md" },
+      props: { children: "Label", style: { fontSize: 14, lineHeight: "20px" } },
     };
     const iconChild: ElementLike = {
       id: "ic",
       type: "Icon",
-      props: { iconName: "star" },
+      props: { iconName: "star", style: { fontSize: 18, height: 18 } },
     };
     const childrenMap = new Map<string, ElementLike[]>([
       ["btn", [iconChild, textChild]],
@@ -96,37 +127,45 @@ describe("buildPropagationUpdates — Button size 변경 시 자식 Text size �
   }
 
   it.each(["Button", "ToggleButton"] as const)(
-    "%s size md→lg 변경 → 자식 Text size 도 lg",
+    "%s size 변경 → Text style.fontSize/lineHeight 가 Button 척도(Text 컴포넌트 16/24 아님)",
     (parentType) => {
       const { parent, childrenMap, elementsMap } = setup(parentType);
       const rules = getPropagationRules(parentType)!;
-      const updates = buildPropagationUpdates(
-        parent,
-        { size: "lg" },
-        rules,
-        childrenMap,
-        elementsMap,
-      );
-      const textUpdate = updates.find((u) => u.elementId === "txt");
-      expect(textUpdate).toBeDefined();
-      expect(textUpdate!.props.size).toBe("lg");
+      for (const size of ["xs", "sm", "md", "lg", "xl"]) {
+        const updates = buildPropagationUpdates(
+          parent,
+          { size },
+          rules,
+          childrenMap,
+          elementsMap,
+        );
+        const textUpdate = updates.find((u) => u.elementId === "txt");
+        expect(textUpdate).toBeDefined();
+        const style = textUpdate!.props.style as Record<string, unknown>;
+        const tm = buttonTextMetrics(size);
+        expect(style.fontSize).toBe(tm.fontSize);
+        expect(style.lineHeight).toBe(tm.lineHeight);
+        // Text 에 size prop 직접 전파 안 함(독립 척도 적용 방지).
+        expect(textUpdate!.props.size).toBeUndefined();
+      }
     },
   );
 
-  it("size 범위 xs~xl 전파 무손실 (Button 범위 전부)", () => {
+  it("md: Text 가 Button 척도 14/20px — Text 컴포넌트 척도 16/24 가 아님(height leaf 정합)", () => {
     const { parent, childrenMap, elementsMap } = setup("Button");
     const rules = getPropagationRules("Button")!;
-    for (const size of ["xs", "sm", "md", "lg", "xl"]) {
-      const updates = buildPropagationUpdates(
-        parent,
-        { size },
-        rules,
-        childrenMap,
-        elementsMap,
-      );
-      const textUpdate = updates.find((u) => u.elementId === "txt");
-      expect(textUpdate?.props.size).toBe(size);
-    }
+    const updates = buildPropagationUpdates(
+      parent,
+      { size: "md" },
+      rules,
+      childrenMap,
+      elementsMap,
+    );
+    const textUpdate = updates.find((u) => u.elementId === "txt")!;
+    const style = textUpdate.props.style as Record<string, unknown>;
+    expect(style.fontSize).toBe(14);
+    expect(style.lineHeight).toBe("20px");
+    expect(style.fontSize).not.toBe(16); // Text 컴포넌트 md 척도 배제
   });
 
   it("size 외 prop 변경은 Text/Icon 전파 트리거 안 함", () => {

@@ -1009,6 +1009,13 @@ export function applyImplicitStyles(
     const px = specSizeField(containerTag, sizeName, "paddingX");
     const py = specSizeField(containerTag, sizeName, "paddingY");
     const gapVal = specSizeField(containerTag, sizeName, "gap");
+    // borderWidth 주입 필수 — 자식 보유 Button 은 hasTaffyChildren=true 라 enrichWithIntrinsicSize
+    //   의 height(content+padding+border) 가 제거되고 Taffy 자동 계산에 위임된다. Taffy 는
+    //   parseBorder(style) 로 border 를 box 에 더하므로 borderWidth 미주입 시 height 에서 border
+    //   2px 누락 → leaf Button(30px, enrichWithIntrinsicSize 가 border 더함)보다 2px 작아짐
+    //   (md container 28 vs leaf 30, CSS 는 box-sizing:border-box 로 30 → Skia↔CSS 발산).
+    //   selecttrigger 분기(borderWidth ?? 1) 동형. catalog 값 read-through(모든 size borderWidth=1).
+    const bw = specSizeField(containerTag, sizeName, "borderWidth");
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
       paddingLeft: parentStyle.paddingLeft ?? parentStyle.padding ?? px,
@@ -1017,6 +1024,7 @@ export function applyImplicitStyles(
       paddingBottom: parentStyle.paddingBottom ?? parentStyle.padding ?? py,
       rowGap: parentStyle.rowGap ?? parentStyle.gap ?? gapVal,
       columnGap: parentStyle.columnGap ?? parentStyle.gap ?? gapVal,
+      borderWidth: parentStyle.borderWidth ?? bw ?? 1,
     });
   }
 

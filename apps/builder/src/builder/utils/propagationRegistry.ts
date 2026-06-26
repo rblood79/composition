@@ -6,6 +6,7 @@
  * 모든 키는 소문자로 정규화.
  */
 import type { ComponentSpec, PropagationRule } from "@composition/specs";
+import { resolveToken } from "@composition/specs";
 import { resolveComponentRule } from "@composition/shared";
 // ADR-912 단계5 step4: 아래 컴포넌트들은 모두 catalog cutover spec 삭제로 @composition/specs 의
 //   named Spec import 가 전부 제거됨 (전부 createPropagationOnlySpec 인라인 이관). value import 0건이라
@@ -302,25 +303,66 @@ export function buttonIconPx(size: unknown): number {
   return typeof px === "number" ? px : 18; // md fallback
 }
 
+// 버튼 내 label(<Text> 자식) 의 텍스트 척도 = catalog Button.sizes[size] 의 fontSize/lineHeight
+//   (md=text-sm 14px/20px). Button 의 size 는 컨트롤 크기 척도라, Text 컴포넌트의 독립 타이포
+//   척도(Text md=text-base 16/24)와 다르다 — label 은 "버튼 텍스트"지 독립 Text 가 아니므로
+//   Button 척도를 따라야 height 가 leaf(자식 없는 Button)와 동일(사용자 결정 2026-06-27).
+//   Text size prop 상속(전엔 size=md → Text.css text-base 16/24 적용 → Button 30 vs icon 34 발산)
+//   대신 fontSize/lineHeight inline 주입으로 Button 척도 강제. lineHeight 는 "Npx" 문자열 필수
+//   (parseLineHeight 가 숫자를 배율로 해석 — utils.ts:4071). resolveToken 으로 토큰→px.
+export function buttonTextMetrics(size: unknown): {
+  fontSize: number;
+  lineHeight: string;
+} {
+  const sizeName = typeof size === "string" ? size : "md";
+  const s = resolveComponentRule("Button")?.sizes?.[sizeName];
+  // catalog fontSize/lineHeight 는 string|number(TokenRef "{...}" 또는 숫자). resolveToken 은
+  //   TokenRef 템플릿 타입만 받으므로 utils.ts 동형 캐스팅(런타임은 숫자/문자 모두 처리).
+  type TokenArg = Parameters<typeof resolveToken>[0];
+  const fs =
+    s?.fontSize != null ? resolveToken(s.fontSize as TokenArg) : undefined;
+  const lhNum =
+    s?.lineHeight != null
+      ? Number(resolveToken(s.lineHeight as TokenArg))
+      : NaN;
+  return {
+    fontSize: typeof fs === "number" ? fs : 14, // md fallback (text-sm)
+    lineHeight: `${Number.isFinite(lhNum) ? lhNum : 20}px`, // md fallback 20px
+  };
+}
+
 // icon Button = RSP 공식 `<Button><Icon/><Text>label</Text></Button>`. Button.size 변경 시:
-//   - 자식 Text.size 도 같이 변경(글자 크기 일관). Button/Text size 둘 다 xs~xl 포함
-//     (Text 는 2xl/3xl 추가 보유, Button 범위 안 → 무손실). childProp 생략 → parentProp(size)을
-//     자식 prop 명으로 사용(propagationEngine.ts:146).
-//   - 자식 Icon 은 3 채널 동시 전파:
-//     1) size prop → data-size(DOM). CSS Preview 의 `.react-aria-Icon[data-size]` selector 가
-//        실제 부모 size 와 맞아 의미 정합(전엔 생성 기본 md 고정 → data-size="md" 잔존, 사용자
-//        지적 2026-06-27). 단 data-size 단계의 Icon catalog px(16/18/24/36/48)는 버튼 매핑
-//        (14/16/18/24/28)과 달라 px 정확성은 아래 2)/3) inline override 가 담당.
-//     2) style.fontSize = buttonIconPx(size). SVG 가 1em(fontSize) 로 그려져 아이콘 픽셀 강제
-//        (Skia 는 utils.ts:1092 fontSize override 최우선 소비 → 동일 px). Icon.css [data-size]
-//        의 font-size 보다 inline 우선.
-//     3) style.height = buttonIconPx(size). Icon.css `[data-size="md"]{height:24px}` 가 inline
-//        fontSize 만으론 안 덮여 컨테이너 박스가 24px 로 남던 문제 차단 — inline height 로 박스도
-//        정확 px. width 는 inline-flex shrink-to-fit(SVG 1em) 이라 별도 불요.
+//   - 자식 Text(label): Button 의 텍스트 척도(fontSize/lineHeight, md=text-sm 14/20)를 inline
+//     style 로 주입. **size prop 전파가 아님** — Button size 는 컨트롤 크기 척도라 Text 컴포넌트
+//     의 독립 타이포 척도(Text md=text-base 16/24)와 다르다. label 은 "버튼 텍스트"지 독립 Text
+//     가 아니므로 Button 척도를 따라야 icon Button height 가 leaf Button(자식 없음)과 동일
+//     (사용자 결정 2026-06-27: icon 유무 무관 md=30px). 전엔 size=md 전파 → Text.css text-base
+//     (16/24) 적용 → leaf 30 vs icon 34 발산 + Skia/CSS 2px drift. lineHeight 는 "Npx" 문자열
+//     (parseLineHeight 가 숫자를 배율 해석 — utils.ts:4071). CSS 도 inline px 가 Text.css [data-size]
+//     보다 우선. Skia estimateTextHeight 도 inline lineHeight 우선(utils.ts:3441).
+//   - 자식 Icon 은 3 채널: 1) size prop → data-size(DOM) 의미 정합. 2) style.fontSize=buttonIconPx
+//     (SVG 1em). 3) style.height=buttonIconPx (Icon.css [data-size] height 고정 차단). data-size
+//     단계 Icon catalog px(16/18/24/36/48)는 버튼 매핑(14/16/18/24/28)과 달라 inline override 필수.
 //   ToggleButtonGroup → ToggleButton(size override:true) 동형. 생성 시점 초기값은 전파 rule 이
-//   *변경* 시점에만 작동하므로 ButtonChildSection.buildButtonChild 에서 부모 size/iconPx 직접 주입.
+//   *변경* 시점에만 작동하므로 ButtonChildSection.buildButtonChild 에서 부모 척도 직접 주입.
 const buttonPropagationRules: PropagationRule[] = [
-  { parentProp: "size", childPath: "Text", override: true },
+  // Text(label): Button 텍스트 척도(fontSize/lineHeight) inline 주입 — height 가 leaf 와 동일.
+  {
+    parentProp: "size",
+    childPath: "Text",
+    childProp: "fontSize",
+    asStyle: true,
+    override: true,
+    transform: (size) => buttonTextMetrics(size).fontSize,
+  },
+  {
+    parentProp: "size",
+    childPath: "Text",
+    childProp: "lineHeight",
+    asStyle: true,
+    override: true,
+    transform: (size) => buttonTextMetrics(size).lineHeight,
+  },
   // Icon data-size 정합 (DOM 속성 = 부모 size).
   { parentProp: "size", childPath: "Icon", override: true },
   // Icon 픽셀 강제 (data-size 단계 px 와 버튼 매핑이 달라 inline override 필수).
