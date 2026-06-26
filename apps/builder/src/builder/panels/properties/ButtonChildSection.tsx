@@ -20,6 +20,16 @@ export const BUTTON_CHILD_HOST_TAGS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Button 자식 목록에서 첫 비삭제 Icon element 를 찾는다. 셀렉트 표시값(현재 iconName)
+ *   + none/생성/수정 분기 판정의 단일 소스. 자식 없으면 undefined → 셀렉트 "None".
+ */
+export function findFirstIconChild<
+  T extends { id: string; type: string; deleted?: boolean },
+>(children: ReadonlyArray<T>): T | undefined {
+  return children.find((child) => child.type === "Icon" && !child.deleted);
+}
+
+/**
  * Button/ToggleButton 선택 시 "Add Icon" 진입점. 클릭 → Icon 자식 element 생성
  *   (resolveCreationParentId 가 선택 Button 을 부모로 parenting). 생성된 Icon 의
  *   iconName/색/크기 편집은 기존 Icon.binding content section 패턴(SelectIcon 동형).
