@@ -184,7 +184,7 @@ describe("buildPropagationUpdates — Button size 변경 시 자식 Icon px(styl
   }
 
   it.each(["Button", "ToggleButton"] as const)(
-    "%s size 변경 → Icon style.fontSize 가 buttonIconPx 매핑",
+    "%s size 변경 → Icon style.fontSize/height 가 buttonIconPx 매핑 + size prop 동기",
     (parentType) => {
       const { parent, childrenMap, elementsMap } = setup(parentType);
       const rules = getPropagationRules(parentType)!;
@@ -201,12 +201,16 @@ describe("buildPropagationUpdates — Button size 변경 시 자식 Icon px(styl
         const style = iconUpdate!.props.style as
           | Record<string, unknown>
           | undefined;
+        // 픽셀 강제: fontSize(SVG 1em) + height(컨테이너 박스) 둘 다 매핑 px.
         expect(style?.fontSize).toBe(EXPECTED_ICON_PX[size]);
+        expect(style?.height).toBe(EXPECTED_ICON_PX[size]);
+        // 의미 정합: top-level size prop = 부모 size → DOM data-size.
+        expect(iconUpdate!.props.size).toBe(size);
       }
     },
   );
 
-  it("Icon 전파는 style.fontSize(asStyle) — top-level size prop 미설정", () => {
+  it("Icon size prop 전파 → data-size(DOM) 가 부모 size 와 정합", () => {
     const { parent, childrenMap, elementsMap } = setup("Button");
     const rules = getPropagationRules("Button")!;
     const updates = buildPropagationUpdates(
@@ -217,11 +221,13 @@ describe("buildPropagationUpdates — Button size 변경 시 자식 Icon px(styl
       elementsMap,
     );
     const iconUpdate = updates.find((u) => u.elementId === "ic")!;
-    // asStyle → style.fontSize 에만 기록, top-level fontSize/size 는 미설정.
-    expect((iconUpdate.props.style as Record<string, unknown>).fontSize).toBe(
-      24,
-    );
+    // size prop = lg (data-size="lg" 로 렌더), style.fontSize/height = 24(매핑 px).
+    expect(iconUpdate.props.size).toBe("lg");
+    const style = iconUpdate.props.style as Record<string, unknown>;
+    expect(style.fontSize).toBe(24);
+    expect(style.height).toBe(24);
+    // top-level fontSize/height 는 미설정(asStyle 은 style 에만).
     expect(iconUpdate.props.fontSize).toBeUndefined();
-    expect(iconUpdate.props.size).toBeUndefined();
+    expect(iconUpdate.props.height).toBeUndefined();
   });
 });

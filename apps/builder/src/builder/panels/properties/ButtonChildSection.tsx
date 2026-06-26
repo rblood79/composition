@@ -147,16 +147,26 @@ export const ButtonChildSection = memo(function ButtonChildSection({
       });
 
       // 자식 순서 = Icon 먼저, Text 나중(canonical children 추가 순서 = 렌더 순서, RSP 순서).
-      //   Icon 의 아이콘 px 는 부모 Button size 의 iconSize(catalog read-through)를 style.fontSize
-      //   로 주입 — Icon size prop(catalog Icon size 별 px)이 아니라 버튼 디자인 px 강제(사용자
-      //   지정 xs14/sm16/md18/lg24/xl28). buttonIconPx 가 전파 transform 과 단일 소스.
+      //   Icon 은 buttonPropagationRules(size → Icon) 와 동일 3채널 주입:
+      //   - size: 부모 Button size → data-size(DOM) 의미 정합(기본 md 고정 방지).
+      //   - style.fontSize/height: buttonIconPx(부모 size) — 버튼 디자인 px(사용자 지정
+      //     xs14/sm16/md18/lg24/xl28) 강제. Icon catalog size 별 px(16/18/24/36/48)와 다르므로
+      //     data-size 만으론 정확 px 불가 → inline override. height 는 Icon.css [data-size] 의
+      //     height(24px 등) 고정 차단용. buttonIconPx 가 전파 transform 과 단일 소스.
+      const iconPx = buttonIconPx(buttonSize);
       const iconElement = buildButtonChild(
         "Icon",
         elementId,
         currentPageId,
         pageElements,
-        // getDefaultProps("Icon") 의 random iconName override + 부모 size 기반 아이콘 px.
-        { iconName, style: { fontSize: buttonIconPx(buttonSize) } },
+        // getDefaultProps("Icon") 의 random iconName override + 부모 size/px.
+        typeof buttonSize === "string"
+          ? {
+              iconName,
+              size: buttonSize,
+              style: { fontSize: iconPx, height: iconPx },
+            }
+          : { iconName, style: { fontSize: iconPx, height: iconPx } },
       );
       addElement(iconElement);
 

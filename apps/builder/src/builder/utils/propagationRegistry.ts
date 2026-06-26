@@ -306,18 +306,36 @@ export function buttonIconPx(size: unknown): number {
 //   - 자식 Text.size 도 같이 변경(글자 크기 일관). Button/Text size 둘 다 xs~xl 포함
 //     (Text 는 2xl/3xl 추가 보유, Button 범위 안 → 무손실). childProp 생략 → parentProp(size)을
 //     자식 prop 명으로 사용(propagationEngine.ts:146).
-//   - 자식 Icon 의 아이콘 px 도 같이 변경 — childProp "fontSize" + asStyle 로 style.fontSize 에
-//     buttonIconPx(size) 주입(Icon size prop 이 아니라 px override 경로 사용: Button 기대 px 와
-//     Icon catalog size 별 px 가 달라 size prop 전파로는 14/16/18/24/28 못 냄). override:true 라
-//     Button size 바꿀 때마다 갱신.
+//   - 자식 Icon 은 3 채널 동시 전파:
+//     1) size prop → data-size(DOM). CSS Preview 의 `.react-aria-Icon[data-size]` selector 가
+//        실제 부모 size 와 맞아 의미 정합(전엔 생성 기본 md 고정 → data-size="md" 잔존, 사용자
+//        지적 2026-06-27). 단 data-size 단계의 Icon catalog px(16/18/24/36/48)는 버튼 매핑
+//        (14/16/18/24/28)과 달라 px 정확성은 아래 2)/3) inline override 가 담당.
+//     2) style.fontSize = buttonIconPx(size). SVG 가 1em(fontSize) 로 그려져 아이콘 픽셀 강제
+//        (Skia 는 utils.ts:1092 fontSize override 최우선 소비 → 동일 px). Icon.css [data-size]
+//        의 font-size 보다 inline 우선.
+//     3) style.height = buttonIconPx(size). Icon.css `[data-size="md"]{height:24px}` 가 inline
+//        fontSize 만으론 안 덮여 컨테이너 박스가 24px 로 남던 문제 차단 — inline height 로 박스도
+//        정확 px. width 는 inline-flex shrink-to-fit(SVG 1em) 이라 별도 불요.
 //   ToggleButtonGroup → ToggleButton(size override:true) 동형. 생성 시점 초기값은 전파 rule 이
 //   *변경* 시점에만 작동하므로 ButtonChildSection.buildButtonChild 에서 부모 size/iconPx 직접 주입.
 const buttonPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "Text", override: true },
+  // Icon data-size 정합 (DOM 속성 = 부모 size).
+  { parentProp: "size", childPath: "Icon", override: true },
+  // Icon 픽셀 강제 (data-size 단계 px 와 버튼 매핑이 달라 inline override 필수).
   {
     parentProp: "size",
     childPath: "Icon",
     childProp: "fontSize",
+    asStyle: true,
+    override: true,
+    transform: (size) => buttonIconPx(size),
+  },
+  {
+    parentProp: "size",
+    childPath: "Icon",
+    childProp: "height",
     asStyle: true,
     override: true,
     transform: (size) => buttonIconPx(size),
