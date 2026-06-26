@@ -7,16 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [Button 프로퍼티 Add Icon affordance] - 2026-06-26
+## [Button Content Icon 셀렉트 — 자식 element 백킹] - 2026-06-26
 
 ### Features
 
-- **Button/ToggleButton 프로퍼티 "Add Icon" 버튼**:
-  - Button(또는 ToggleButton) 선택 시 프로퍼티 패널에 "Children" 섹션 + "Add Icon" 버튼 노출 → 클릭하면 Icon 자식 element 를 그 Button 안에 생성
-  - **Why**: 아이콘 붙은 Button 은 ADR-142/RSP 공식(`<Button><Icon/><Text/></Button>`)상 자식 element 조합인데, 그간 palette 까지 가야 추가 가능했음. 선택된 Button 컨텍스트에서 바로 추가하는 편의 진입점 제공
-  - Button.binding / schema 무변경 (iconName prop 복원 0 — ADR-142 RAC leaf 원칙 유지). 생성된 Icon 의 iconName/색/크기는 기존 Icon content section 패턴(SelectIcon 동형)으로 편집
-  - live 검증: 빌더에서 text-only Button 선택 → "Children/Add Icon" 노출 → 클릭 시 Icon 자식 생성(parent_id=선택 Button, 기본 iconName="search") + CSS Preview 흰색 아이콘 렌더(color 상속) + 레이어 트리 Icon 자식 표시 + 생성 Icon 선택 시 content section iconName 필드 노출 + 비-button(Text) 선택 시 섹션 미표시(게이트) 4항목 확인
-  - 위치: `apps/builder/src/builder/panels/properties/ButtonChildSection.tsx`, `PropertiesPanel.tsx`
+- **Button/ToggleButton 프로퍼티 Content section 에 "Icon" 셀렉트 추가** (기본값 None):
+  - Button(또는 ToggleButton) 선택 시 Content 영역에 `PropertyIconPicker` 기반 Icon 셀렉트 노출. 4-way 동기화로 자식 Icon element 를 직접 CRUD
+    - None → 아이콘: 자식 Icon element 생성(selection 유지) + 선택 iconName 적용
+    - 아이콘 → 다른 아이콘: 기존 자식 Icon 의 iconName 만 수정 (중복 생성 없음)
+    - 아이콘 → None(clear): 자식 Icon element 삭제 (cascade)
+  - **Why**: 같은 날 먼저 추가했던 "Children 섹션 + Add Icon 버튼"(v1)은 Content 와 분리돼 발견성이 낮고 생성만 가능(읽기/수정/삭제 불가)했다. Content 통합 셀렉트로 4-way 동기화 제공 — v1 컴포넌트를 forward-fix 교체
+  - **ADR-142 정합**: `Button.binding` / `ToggleButton.binding` 무수정, `iconName` prop 복원 0. 아이콘은 Button 의 자식 Icon element 로만 표현 (DOM `<Button><Icon/>text</Button>`, RAC/RSP 공식 composite 모델). 셀렉트는 표면 UX 일 뿐 실제로는 자식 element 를 CRUD
+  - 생성은 `useElementCreator.handleAddElement` 대신 미리 만든 id + `addElement` 직접 호출 — handleAddElement 의 생성-직후 setSelectedElement 가 Button 선택을 풀어 셀렉트가 사라지는 것을 회피
+  - live 검증(Chrome MCP 6항목 PASS): None 기본값 / None→star 생성(셀렉트 갱신 + Button 선택 유지 + 캔버스 흰색 아이콘 color 상속 + 레이어 자식 1개) / star→heart 수정(자식 1개 유지=중복 생성 없음) / heart→None 삭제(자식 cascade 제거) / 비-host(Form) 선택 시 셀렉트 미표시(게이트) / 테스트 요소 정리
+  - 위치: `apps/builder/src/builder/panels/properties/ButtonChildSection.tsx` (재작성), `PropertiesPanel.tsx` (마운트 v1 유지)
 
 ## [Button 조합 자식 color 상속 + display RSP 고정 + Text DOM tag 정합] - 2026-06-26
 
