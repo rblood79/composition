@@ -7,7 +7,6 @@ import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElem
 import { visitCanonicalDocumentElements } from "../../stores/canonical/canonicalElementsView";
 import { useCanonicalPropertyElement } from "./hooks/useCanonicalPropertyRead";
 import { iconProps } from "../../../utils/ui/uiConstants";
-import type { PanelNode } from "../panelNode";
 import type { Element } from "../../../types/builder/unified.types";
 
 /**
@@ -30,9 +29,7 @@ export const ButtonChildSection = memo(function ButtonChildSection({
 }: {
   elementId: string;
 }) {
-  const element = useCanonicalPropertyElement(elementId) as
-    | PanelNode
-    | undefined;
+  const element = useCanonicalPropertyElement(elementId);
   const addElement = useStore((state) => state.addElement);
   const currentPageId = useStore((state) => state.currentPageId);
   const selectedElementId = useStore((state) => state.selectedElementId);
