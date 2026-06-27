@@ -46,7 +46,11 @@ import {
 //   DELEGATING_INTERNAL 매칭(source.renderer 기준)을 못 타 자식(Header/Body/Column/Row/Cell)이
 //   Preview 에 통째로 미렌더(Skia 는 자식 generic box 렌더 → 비대칭). renderer "div"→"tableview" +
 //   delegating 등록으로 renderTableView 위임 + flattenNodeChildrenByParent 보강 활성화.
-const INVENTORY = { delegatingInternal: 24, delegatingRac: 12 } as const;
+// internal 24 → 25 (2026-06-27): buttongroup 추가. ButtonGroup binding.source.renderer 가 "div" 라
+//   DELEGATING_INTERNAL 매칭을 못 타 자식 Button×2(factory 자동 생성)가 Preview 에 통째로 미렌더
+//   (Skia 는 자식 직접 렌더 → 비대칭, "Preview 렌더링 안 됨"). renderer "div"→"buttongroup" +
+//   delegating 등록으로 renderButtonGroup 위임 + flattenNodeChildrenByParent 보강 활성화. tableview 동형.
+const INVENTORY = { delegatingInternal: 25, delegatingRac: 12 } as const;
 
 describe("ADR-914 Phase 3-A — render facet declaration parity", () => {
   it("parity A — 파생 internal set == CanonicalNodeRenderer DELEGATING_INTERNAL (멤버 + 순서)", () => {

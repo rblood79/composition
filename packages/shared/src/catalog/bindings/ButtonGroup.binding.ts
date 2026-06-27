@@ -20,10 +20,17 @@ import type { PrimitiveBinding } from "../types";
  *   `flexDirection:row` / `gap:8`)은 factory `props.style` SSOT(ADR-907 Layer B, Skia/Taffy 직접 read).
  *   catalog rule.sizes 의 gap 은 미소비 — container gap 은 factory `ButtonGroup.props.style.gap` SSOT.
  *
- * **DOM parity = 변화 0**: INTERNAL_RENDERERS 미등록 → CanonicalNodeRenderer generic fallback.
- *   isSpecOrCatalogBacked(spec || isCatalogCutover) 가 catalog 등록 후 true → `react-aria-ButtonGroup`
- *   className + `data-size` 보존 → generated CSS(ButtonGroup.css, virtual diff = size별 gap 제거(factory
- *   props.style SSOT) + 빈 hover/pressed transparent 블록 noise 제거, 시각 손실 0) 매칭 불변.
+ * **DOM 렌더 = renderButtonGroup self-compose 위임 (2026-06-27)**: factory 가 자식 Button×2 를
+ *   자동 생성하므로 ButtonGroup 은 box-only shell(AvatarGroup) 이 아니라 자식을 렌더하는 self-compose
+ *   컨테이너다. `renderButtonGroup`(LayoutRenderers)이 `context.childrenByParent` 로 자식 Button 을
+ *   `<div role="group">` 안에 렌더한다. 따라서 `renderer:"div"` generic fallback 으로 두면
+ *   `DELEGATING_INTERNAL_RENDERERS` 매칭(renderer 기준)을 못 타 generic fall-through 로 빠지고,
+ *   flattenNodeChildrenByParent 보강을 못 받아 childrenByParent 가 비어 자식 Button 이 통째 미렌더된다
+ *   (Preview 빈 div, Skia 는 자식 직접 렌더 → 비대칭). TableView(2026-06-25)/Card(2026-06-24) 선례와
+ *   동형 — 고유 renderer id(`"buttongroup"`) + renderFacetDeclaration delegating-internal 등록으로
+ *   renderButtonGroup 위임 경로 활성화.
+ *   isSpecOrCatalogBacked + `react-aria-ButtonGroup` className + `data-size` 보존 → generated CSS
+ *   (ButtonGroup.css) 매칭 불변.
  *
  * D1: composition `<div>` (internal source, generic DOM). role="group" / aria-orientation 은
  *     D2 prop(factory/renderer 가 부여).
@@ -34,9 +41,14 @@ import type { PrimitiveBinding } from "../types";
 export const buttonGroupBinding: PrimitiveBinding = {
   source: {
     kind: "internal",
-    // INTERNAL_RENDERERS 미등록 키 → DOM/Skia generic fallback (R7 G1 AvatarGroup 동형, 값 무시).
-    // D1 group semantic(role="group"/aria-orientation)은 generated CSS + renderer 가 부여.
-    renderer: "div",
+    // 2026-06-27: "div" → "buttongroup". ButtonGroup 은 자식 Button×2(factory 자동 생성)를
+    //   `context.childrenByParent` 로 받아 `<div role="group">` 안에 렌더하는 self-compose 컨테이너다
+    //   (TableView/Card/Nav 동형). renderer:"div" 는 DELEGATING_INTERNAL_RENDERERS 매칭
+    //   (binding.source.renderer 기준)을 못 타 generic fall-through 로 빠지고, flattenNodeChildrenByParent
+    //   보강을 못 받아 자식 Button 이 통째 미렌더됐다(Preview 빈 div, Skia 는 자식 직접 렌더 → 비대칭).
+    //   고유 renderer id + renderFacetDeclaration delegating-internal 등록으로 renderButtonGroup 위임 활성화.
+    //   D1 group semantic(role="group"/aria-orientation)은 renderButtonGroup + generated CSS 가 부여.
+    renderer: "buttongroup",
   },
   props: {
     accepts: {

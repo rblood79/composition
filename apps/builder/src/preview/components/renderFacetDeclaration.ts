@@ -51,16 +51,17 @@ export interface RenderFacetDelegation {
 }
 
 /**
- * delegating render 위임 declaration (internal 24 + rac 12).
+ * delegating render 위임 declaration (internal 25 + rac 12).
  *   2026-06-24: Card 패밀리 5(card/cardpreview/cardheader/cardcontent/cardfooter) 추가 — Preview
  *   canonical 경로에서 self-compose 자식 슬롯 보강 누락(Skia↔Preview 비대칭) 해소.
  *   2026-06-25: tableview 추가 — TableView 자식(Header/Body/Column/Row/Cell) 미렌더 해소(동일 비대칭).
+ *   2026-06-27: buttongroup 추가 — ButtonGroup 자식 Button×2 미렌더 해소(동일 비대칭, tableview 동형).
  *
  * 순서는 기존 `CanonicalNodeRenderer.tsx` set 정의 순서를 그대로 보존한다 (Set 은
  * insertion order 를 유지하므로, 파생 set 이 byte-identical 하려면 순서 동일 필요).
  */
 export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
-  // ── delegating-internal (24) — binding.source.kind==="internal" self-compose ──
+  // ── delegating-internal (25) — binding.source.kind==="internal" self-compose ──
   {
     key: "tabs",
     kind: "delegating-internal",
@@ -209,6 +210,17 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
     kind: "delegating-internal",
     reason:
       "renderCardFooter 가 childrenByParent 로 자식(action button 등)을 렌더. 미등록 시 자식 누락.",
+  },
+  // ── ButtonGroup (2026-06-27) — renderButtonGroup 이 childrenByParent 로 자식 Button×2(factory
+  //   자동 생성: Cancel outline / Save accent)를 <div role="group"> 안에 self-compose. binding renderer
+  //   가 "div"→"buttongroup" 로 변경됨. disclosuregroup/nav/tableview 동형. 미등록 시 generic
+  //   fall-through(rendererMap.ButtonGroup)로 빠지나 childrenByParent 보강을 못 받아 자식 Button 미렌더
+  //   (Preview 빈 div, Skia 는 자식 직접 렌더 → 비대칭).
+  {
+    key: "buttongroup",
+    kind: "delegating-internal",
+    reason:
+      "renderButtonGroup 이 childrenByParent 로 자식 Button×2 를 <div role=group> 안에 렌더하는 self-compose 컨테이너. 미등록 시 generic fall-through 로 childrenByParent 보강 누락 → 자식 Button 통째 미렌더(Skia 비대칭). tableview/card/nav 동형.",
   },
 
   // ── delegating-rac (12) — binding.source.kind==="rac" self-compose ──
