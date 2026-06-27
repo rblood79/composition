@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **수정**: togglebuttongroup 분기가 자식 ToggleButton 의 실제 border-box 폭을 `calculateContentWidth` 재귀 + `parseBoxModel` 로 산출(일반 flex 컨테이너 분기와 동일 방식) → icon 자식 width 자동 포함. horizontal=합산+gap, vertical=max 유지. legacy `items` prop(child element 없을 때만) 텍스트 측정 fallback 보존
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`(calculateContentWidth togglebuttongroup 분기), 회귀: `__tests__/toggleButtonGroupIconWidth.test.ts`(2 case — icon group > text-only / vertical max)
   - 검증: 2 test PASS, layout engines 93 test PASS, type-check PASS(baseline 69). **live(빌더 zoom 실측)**: icon 2개 horizontal group 의 Skia selection 박스가 group 전체를 감쌈(81→212px, CSS 209px 와 대칭, 3px 차는 segmented overlap -1px 미차감 = 의도). icon 버튼이 박스 밖으로 삐져나가지 않음
+- **group size 변경 시 icon ToggleButton 의 자식 Icon/Text 가 group size 를 상속 못 함** (Button 은 정상):
+  - ToggleButtonGroup size 를 M→다른 size 로 바꾸면 ToggleButton 자체 size 는 group 을 따라가는데, 이미 icon 이 있는 ToggleButton 의 자식 Icon/Text 는 옛 size 가 잔존해 시각적으로 버튼이 group size 로 안 보임. Button 컴포넌트는 icon 추가해도 size 변경이 자식까지 상속됨
+  - **근본 원인**: PropertiesPanel 의 propagation 은 선택된 element(group)의 rule 1회만 적용(cascade 없음 — 전파로 바뀐 자식 prop 이 다시 그 자식의 rule 을 트리거하지 않음). ToggleButtonGroup rule 은 `size → ToggleButton`(1단계)뿐이라 손자 Icon/Text 에 안 닿음. Button 은 직접 선택 → `size → Icon/Text`(1단계)로 충분하지만, ToggleButton 은 group→ToggleButton→Icon/Text 의 **2단계 깊이**라 손자가 누락
+  - **수정**: ToggleButtonGroup rule 에 buttonPropagationRules 동형의 **2단계 childPath**(`["ToggleButton","Icon"]` / `["ToggleButton","Text"]`) rule 추가. resolveChildPath 가 배열을 단계별 순회해 손자를 해석. transform 은 buttonIconPx(Icon px) / buttonTextMetrics(Text fontSize·lineHeight) 동일 단일 소스 재사용 (Icon: size+fontSize+height, Text: fontSize+lineHeight inline)
+  - 위치: `apps/builder/src/builder/utils/propagationRegistry.ts`(toggleButtonGroupPropagationRules 2단계 rule 5건 추가), 회귀: `__tests__/toggleButtonGroupGrandchildSizePropagation.test.ts`(3 case — 1단계 ToggleButton / 2단계 Icon px / 2단계 Text 척도)
+  - 검증: 3 test PASS, propagation 9 test PASS, type-check PASS(baseline 69). **live(빌더 UI)**: group size L→XL 변경 시 손자 Icon(size:lg→xl, fontSize/height 24→28) + Text(fontSize 16→18, lineHeight→28px) 정상 갱신, Skia 캔버스에서 ToggleButtonGroup 이 Button 컴포넌트와 동일한 xl 크기로 렌더(icon 28px)
 
 ## [Button/ToggleButton 자식 layout — catalog display/padding/gap 가 Skia 에 도달] - 2026-06-27
 

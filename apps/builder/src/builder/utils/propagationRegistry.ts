@@ -289,6 +289,48 @@ const radioGroupPropagationRules: PropagationRule[] = [
 const toggleButtonGroupPropagationRules: PropagationRule[] = [
   { parentProp: "isEmphasized", childPath: "ToggleButton", override: true },
   { parentProp: "size", childPath: "ToggleButton", override: true },
+  // 2단계 깊이 전파 (group → ToggleButton → 자식 Icon/Text). buttonPropagationRules 동형이되
+  //   childPath 가 `["ToggleButton", X]` 배열(resolveChildPath 가 단계별 순회로 손자 해석).
+  //   **Why (2026-06-28)**: PropertiesPanel propagation 은 선택 element(group)의 rule 1회만
+  //   적용(cascade 없음) → `size → ToggleButton`(1단계)만으론 icon ToggleButton(RSP composite =
+  //   자식 Icon/Text element)의 손자가 group size 를 못 받아 시각적으로 group size 미반영.
+  //   Button(직접 선택)은 1단계 전파로 정상이나 ToggleButton 은 group 하 2단계라 손자 누락.
+  //   buttonTextMetrics/buttonIconPx 는 buttonPropagationRules 와 동일 transform 단일 소스.
+  // Text(label): 버튼 텍스트 척도(fontSize/lineHeight) inline 주입.
+  {
+    parentProp: "size",
+    childPath: ["ToggleButton", "Text"],
+    childProp: "fontSize",
+    asStyle: true,
+    override: true,
+    transform: (size) => buttonTextMetrics(size).fontSize,
+  },
+  {
+    parentProp: "size",
+    childPath: ["ToggleButton", "Text"],
+    childProp: "lineHeight",
+    asStyle: true,
+    override: true,
+    transform: (size) => buttonTextMetrics(size).lineHeight,
+  },
+  // Icon: data-size(DOM) 정합 + px(fontSize/height) 강제.
+  { parentProp: "size", childPath: ["ToggleButton", "Icon"], override: true },
+  {
+    parentProp: "size",
+    childPath: ["ToggleButton", "Icon"],
+    childProp: "fontSize",
+    asStyle: true,
+    override: true,
+    transform: (size) => buttonIconPx(size),
+  },
+  {
+    parentProp: "size",
+    childPath: ["ToggleButton", "Icon"],
+    childProp: "height",
+    asStyle: true,
+    override: true,
+    transform: (size) => buttonIconPx(size),
+  },
 ];
 
 // 버튼 내 아이콘 px = catalog Button.sizes[size].iconSize(사용자 지정 2026-06-27:
