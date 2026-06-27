@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Bug Fixes
 
+- **selected ToggleButton 의 CSS Preview 글자색이 black (Skia 정상)** — 자식 Icon/Text color 상속 누락:
+  - selected 로 토글하면 어두운 selected 배경 위에서 CSS Preview 의 텍스트·아이콘이 black 으로 묻히던 문제(Skia 는 정상, 라이트/다크 무관)
+  - **근본 원인**: `.button-base` 직계 자식(Icon/Text/Label)이 부모 color 를 상속하는 규칙(`> :is(...) { color: inherit }`)이 **Button.css 에만 있고 ToggleButton 에는 누락**. ToggleButton 자식 Icon/Text 는 generated Icon.css/Text.css 의 `.react-aria-Icon[data-variant]`(0-2-0) 로 `color: var(--fg)`(어두운 전경색)가 고정 → selected 시 부모 ToggleButton 이 `--button-text: var(--bg)`(밝은 색)가 돼도 자식은 어두운 채 잔존. Skia 는 `resolveButtonChildColor`(ToggleButton 포함)로 정상 상속 → CSS↔Skia 비대칭
+  - **수정**: 자식 inherit 규칙을 `utilities.css` 의 `.button-base` 공통 규칙으로 이관(Button + ToggleButton 단일 소스). `:is(.react-aria-Button, .react-aria-ToggleButton).button-base > :is(.react-aria-Icon, .react-aria-Text, .react-aria-Label) { color: inherit }` — specificity 0-3-0 으로 generated 0-2-0 을 확정적으로 이김. Button.css 의 중복 규칙 제거
+  - 위치: `packages/shared/src/components/styles/utilities.css`(`.button-base` 공통 inherit), `Button.css`(중복 제거), 회귀: `__tests__/buttonBaseChildInherit.test.ts`(규칙 존재 + 3 leaf 명시 2 case)
+  - 검증: 2 test PASS, type-check PASS(baseline 69), generated CSS diff 0(수동 CSS 만 변경). **live(빌더 Preview DOM 실측)**: selected ToggleButton 자식 Icon/Text color 가 수정 전 `rgb(23,23,23)`(black) → 수정 후 `rgb(255,255,255)`(부모 흰색 상속, `icon_inherits`/`text_inherits`=true). CSS Preview 와 Skia 모두 어두운 배경 위 흰색 텍스트·아이콘
 - **standalone ToggleButton DOM 에 불필요한 `<span>` wrapper** (group 밖에서 소비처 없는 dead wrapper):
   - `.react-aria-ToggleButton` 아래에 항상 `<span>` 이 끼어 있던 문제. group 안 ToggleButton 은 pressed 시 내부 콘텐츠만 0.9 축소하는 micro-interaction selector(`.react-aria-ToggleButtonGroup .react-aria-ToggleButton[data-pressed] > span { scale: 0.9 }`)가 span 을 소비하지만, 이 selector 는 **group 하위로 한정**된다
   - **근본 원인**: `ToggleButton.tsx` 가 group 멤버십과 무관하게 항상 `<span>{children}</span>` 을 렌더. composition generated standalone `ToggleButton.css` 에는 `> span` 규칙이 0건(reference react-aria-starter 의 standalone flex/svg span 규칙은 catalog 에서 미emit) → standalone span 은 소비 CSS 없는 dead wrapper. 시각 결과는 동일하나 DOM 에 불필요 노드 잔존

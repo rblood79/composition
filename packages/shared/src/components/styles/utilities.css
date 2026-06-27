@@ -88,6 +88,21 @@
     }
   }
 
+  /* RSP 정합: button-base(Button / ToggleButton)의 직계 자식 Icon/Text/Label 이
+     부모 color(= --button-text, selected 시 var(--bg))를 상속한다.
+     leaf 는 generated Icon.css/Text.css 의 `.react-aria-Icon[data-variant]`(0-2-0) 로
+     `color: var(--fg)`(어두운 전경색)가 고정된다. 이를 확정적으로 이기려면 specificity 가
+     0-2-0 보다 커야 한다 → `:is(.react-aria-Button, .react-aria-ToggleButton)`(0-1-0) +
+     `.button-base`(0-1-0) + `:is(.react-aria-Icon, …)`(0-1-0) = 0-3-0.
+     누락 시 selected ToggleButton 의 자식 텍스트·아이콘이 어두운 채 남아(black) selected
+     배경 위에서 묻힌다(2026-06-27 발견 — Button 은 2026-06-26 에 해결, ToggleButton 누락).
+     Skia 는 resolveButtonChildColor(ToggleButton 포함)로 동일 상속 → CSS↔Skia 대칭.
+     standalone leaf 는 button-base 컨텍스트 한정이라 무영향. */
+  :is(.react-aria-Button, .react-aria-ToggleButton).button-base
+    > :is(.react-aria-Icon, .react-aria-Text, .react-aria-Label) {
+    color: inherit;
+  }
+
   /* =========================================
      .indicator — Selection Indicator Color
      Set --indicator-color on the element.

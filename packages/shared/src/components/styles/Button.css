@@ -32,17 +32,10 @@
       box-shadow: var(--inset-shadow-sm);
     }
 
-    /* RSP 정합: 직계 자식(Icon/Text/Label)이 Button color 상속.
-       leaf 는 `.react-aria-Icon[data-variant="default"]`(0-2-0) 같은 generated
-       규칙으로 `color: var(--fg)` 를 명시한다. `&.button-base > *`(0-2-0)는 Text
-       (`.react-aria-Text` 0-1-0)는 이기지만 Icon(0-2-0 동급+후순위)에는 져서 검정
-       아이콘이 검은 배경에 묻혔다(2026-06-26 발견). leaf 클래스를 `:is()`로 명시해
-       specificity 를 0-3-0 으로 올려 generated `[data-variant]`/`[data-size]`(0-2-0)를
-       확정적으로 이긴다. Icon DIV → 내부 svg(stroke="currentColor")가 DIV color 상속.
-       standalone leaf 는 영향 없음(.react-aria-Button.button-base 컨텍스트 한정). */
-    &.button-base > :is(.react-aria-Icon, .react-aria-Text, .react-aria-Label) {
-      color: inherit;
-    }
+    /* RSP 정합: 직계 자식(Icon/Text/Label)이 button-base color 상속 →
+       utilities.css `.button-base` 공통 규칙으로 이관(Button + ToggleButton 단일 소스,
+       2026-06-27). 0-3-0 specificity 로 generated `.react-aria-Icon[data-variant]`(0-2-0)
+       를 이긴다. 여기 중복 정의 금지. */
 
     /* ===== S2 Color Variants ===== */
 
