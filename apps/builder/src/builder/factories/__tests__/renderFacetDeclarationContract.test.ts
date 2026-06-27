@@ -54,7 +54,10 @@ import {
 //   감사로 동일 누락 3건 적발 — factory 가 자식(Avatar×3 / Card×3 / Button×5)을 생성하고 render{Type}
 //   가 childrenByParent 로 그 자식을 렌더하는 self-compose 인데 binding renderer="div" + 미등록 →
 //   generic fall-through 로 자식 통째 미렌더(Skia 비대칭). renderer "div"→고유 id + delegating 등록.
-const INVENTORY = { delegatingInternal: 28, delegatingRac: 12 } as const;
+// internal 28 → 29 (2026-06-27): toast 추가. 21후보 정밀 감사로 ButtonGroup 동형 잔여 1건 적발 —
+//   renderToast 가 자식 Heading/Description(factory 생성)을 childrenByParent self-compose, renderer="div"
+//   + 미등록 → fall-through. palette 미노출 imperative 알림이나 imperative/AI/import 생성 대비 선제 등록.
+const INVENTORY = { delegatingInternal: 29, delegatingRac: 12 } as const;
 
 describe("ADR-914 Phase 3-A — render facet declaration parity", () => {
   it("parity A — 파생 internal set == CanonicalNodeRenderer DELEGATING_INTERNAL (멤버 + 순서)", () => {

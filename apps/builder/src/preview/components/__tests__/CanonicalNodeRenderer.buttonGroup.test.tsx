@@ -70,7 +70,17 @@ describe("CanonicalNodeRenderer — ButtonGroup self-compose DELEGATING 위임",
  * (ButtonGroup 도 generic map 이었음). TableView/Card/ButtonGroup 선례와 동형.
  */
 describe("CanonicalNodeRenderer — self-compose 컨테이너 DELEGATING 위임 (ButtonGroup 동형)", () => {
-  const SELF_COMPOSE_CONTAINERS = ["AvatarGroup", "CardView", "Pagination"];
+  // Toast: palette 미노출(imperative 알림)이라 사용자가 캔버스에 직접 배치하진 않지만,
+  //   factory(createToastDefinition)가 자식 Heading/Description 을 생성하고 renderToast 가
+  //   childrenByParent 로 그 자식을 <div role="alert"> 안에 렌더하는 self-compose 컨테이너다
+  //   (renderer="div" + INTERNAL_RENDERERS/DELEGATING 미등록 → ButtonGroup 정확 동형). imperative/
+  //   AI/import 로 element 가 생성되면 즉시 자식 미렌더 발현 + 향후 palette 노출 대비 선제 등록.
+  const SELF_COMPOSE_CONTAINERS = [
+    "AvatarGroup",
+    "CardView",
+    "Pagination",
+    "Toast",
+  ];
 
   for (const type of SELF_COMPOSE_CONTAINERS) {
     it(`${type} binding 은 internal source + 고유 renderer id ('div' 금지)`, () => {
