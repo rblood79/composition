@@ -1342,8 +1342,8 @@ export function calculateContentWidth(
     return diameter;
   }
 
-  // 🚀 ToggleButtonGroup: 자식 버튼 텍스트 크기 합산
-  // PixiToggleButtonGroup.tsx의 buttonSizes/contentWidth와 동일한 공식
+  // 🚀 ToggleButtonGroup: 자식 ToggleButton 의 실제 border-box 폭을 산출하여 합산/max.
+  //   horizontal=합산+gap, vertical=max(가장 넓은 버튼). orientation 이 SSOT.
   if (type === "togglebuttongroup") {
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = (props?.size as string) ?? "md";
@@ -1355,33 +1355,58 @@ export function calculateContentWidth(
     const isHorizontal = orientation === "horizontal";
     const gap = readGapValue(style) ?? 0; // CSS gap (0 = default -1px overlap)
 
-    // Spec에서 ToggleButton의 실제 text style 추출 (fontWeight/fontFamily 정합성)
-    // children prop을 전달해야 Spec이 text shape를 생성하여 fontWeight 등을 반환함
-    const tbSpecStyle = extractSpecTextStyle("togglebutton", {
-      size: sizeName,
-      children: "x",
-    });
-    const tbFontSize = tbSpecStyle?.fontSize ?? sizeConfig.fontSize;
-    const tbFontWeight = tbSpecStyle?.fontWeight ?? 400;
-    const tbFontFamily = tbSpecStyle?.fontFamily ?? specFontFamily.sans;
-
-    // items 배열에서 레이블 추출
-    const items = Array.isArray(props?.items) ? (props.items as unknown[]) : [];
-
-    // items prop이 없으면 child elements에서 레이블 추출
-    if (items.length === 0 && childElements && childElements.length > 0) {
-      for (const child of childElements) {
-        const childProps = child.props as Record<string, unknown> | undefined;
-        const label = String(
-          childProps?.children ?? childProps?.text ?? childProps?.label ?? "",
+    // ── 경로 A — child element 보유 (factory 생성 ToggleButton): 자식의 실제 border-box
+    //   폭을 calculateContentWidth 재귀로 산출한다. 일반 flex 컨테이너 분기(아래)와 동일 방식.
+    //   **Why (2026-06-28)**: 이전엔 자식 label 텍스트만 측정해(`border+paddingX+textWidth
+    //   +paddingX+border`) icon ToggleButton(RSP composite = 자식 Icon+Text element)의 icon
+    //   width + icon↔text gap 이 빠졌다 → group width 가 텍스트 기준으로만 계산돼 CSS(fit-content,
+    //   icon 포함)와 비대칭 → Skia group selection 박스가 icon 버튼을 못 감싸고 좁게 그려짐.
+    //   자식 재귀는 icon 자식 width 를 자동 포함한다(자식 ToggleButton leaf 가 icon-only 든
+    //   icon+text 든 자기 content width 를 정확히 반환).
+    if (childElements && childElements.length > 0) {
+      const buttonWidths = childElements.map((child) => {
+        const childStyle = child.props?.style as
+          | Record<string, unknown>
+          | undefined;
+        const explicitW = parseNumericValue(childStyle?.width);
+        if (explicitW !== undefined) return explicitW;
+        const grandChildren = getChildElements?.(child.id);
+        const contentW = calculateContentWidth(
+          child,
+          grandChildren,
+          getChildElements,
         );
-        if (label) {
-          items.push(label);
-        }
+        // border-box: enrichWithIntrinsicSize 와 동일하게 padding + border 추가
+        const childBox = parseBoxModel(child, 0, -1);
+        const bw =
+          contentW +
+          childBox.padding.left +
+          childBox.padding.right +
+          childBox.border.left +
+          childBox.border.right;
+        return Math.max(40, Math.ceil(bw));
+      });
+      if (isHorizontal) {
+        // horizontal: 버튼 폭 합 + gap*(n-1). CSS 의 margin-inline-start:-1px 오버랩은
+        //   Taffy 자식에 없으므로 차감 없이 border-box 합계와 일치(Taffy 축소 방지).
+        return (
+          buttonWidths.reduce((sum, w) => sum + w, 0) +
+          gap * (childElements.length - 1)
+        );
       }
+      return Math.max(...buttonWidths); // vertical: 가장 넓은 버튼
     }
 
+    // ── 경로 B — items prop(legacy 배열) fallback: child element 가 없을 때만 label 텍스트 측정.
+    const items = Array.isArray(props?.items) ? (props.items as unknown[]) : [];
     if (items.length > 0) {
+      const tbSpecStyle = extractSpecTextStyle("togglebutton", {
+        size: sizeName,
+        children: "x",
+      });
+      const tbFontSize = tbSpecStyle?.fontSize ?? sizeConfig.fontSize;
+      const tbFontWeight = tbSpecStyle?.fontWeight ?? 400;
+      const tbFontFamily = tbSpecStyle?.fontFamily ?? specFontFamily.sans;
       const buttonWidths = items.map((item) => {
         const label =
           typeof item === "string"
@@ -1395,28 +1420,21 @@ export function calculateContentWidth(
           tbFontFamily,
           tbFontWeight,
         );
-        // Math.ceil: enrichWithIntrinsicSize와 동일하게 반올림하여
-        // 그룹 폭과 자식 개별 폭 합계의 정합성 유지 (Taffy f32 정밀도)
-        const bw = Math.max(
+        return Math.max(
           40,
           Math.ceil(
             borderWidth + paddingX + textWidth + paddingX + borderWidth,
           ),
         );
-        return bw;
       });
       if (isHorizontal) {
-        // horizontal: 버튼 너비 합 + gap * (n-1)
-        // CSS는 margin-inline-start:-1px 오버랩이 있지만 Taffy 자식에는 해당 마진이 없으므로
-        // 오버랩 차감 없이 자식 border-box 합계와 일치시켜 Taffy 축소 방지
         return (
           buttonWidths.reduce((sum, w) => sum + w, 0) + gap * (items.length - 1)
         );
       }
-      // vertical: 가장 넓은 버튼
       return Math.max(...buttonWidths);
     }
-    // items도 children도 없으면 기본값
+    // items 도 children 도 없으면 기본값
     return DEFAULT_WIDTH;
   }
 

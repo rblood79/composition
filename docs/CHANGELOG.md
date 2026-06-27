@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ToggleButtonGroup orientation SSOT + icon group width — Skia↔CSS 정합] - 2026-06-28
+
+### Bug Fixes
+
+- **ToggleButtonGroup orientation(vertical/horizontal)이 동작하지 않음** (CSS·Skia 양쪽):
+  - Orientation 을 Vertical 로 바꿔도 CSS Preview·Skia Canvas 둘 다 가로 배치 유지. selection 박스도 한 줄만 잡음(81×30)
+  - **근본 원인**: element.props.style 에 stale inline `flexDirection:"row"`(과거 factory 가 박던 잔재, 현재 factory 는 미주입)가 남아 orientation 처리를 양 경로에서 무력화. CSS 는 inline 이 @layer `[data-orientation="vertical"]`(flex-direction:column)을 이기고(inline specificity 최상위), Skia `applyImplicitStyles` 의 togglebuttongroup 분기는 `parentStyle.flexDirection ?? orientation` 이라 inline row 가 orientation=vertical 을 이김. 또 Skia self-node 계산 `buildNodeStyle` 은 orientation 을 아예 안 보고 `mergedStyle.flexDirection`(=inline row)만 사용
+  - **수정**: flexDirection 의 SSOT 를 `orientation` prop 으로 일원화(사용자 결정). 3경로 모두 orientation 기준 — (B) `buildNodeStyle` 에 togglebuttongroup orientation→flexDirection 강제 추가(inline 무시), (C) `applyImplicitStyles` 분기를 `orientation 우선 → fallback inline` 으로 변경, (A) CSS `[data-orientation]` 은 기존 유지. factory 는 inline 미주입(신규 element 정상), stale inline 은 orientation 우선 로직이 흡수(데이터 마이그레이션 불필요)
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`(buildNodeStyle), `implicitStyles.ts`(togglebuttongroup 분기), 회귀: `__tests__/toggleButtonGroupOrientationImplicitStyles.test.ts`(4 case — vertical/horizontal/stale-inline-무시/orientation-미지정-fallback)
+  - 검증: 4 test PASS, type-check PASS(baseline 69). **live(빌더)**: orientation=vertical 전환 시 CSS(flexDirection:column, 버튼 y=120→149 세로) + Skia(selection 81×60 = 두 줄) 모두 세로 배치, horizontal 복귀도 정상. CSS↔Skia 시각 대칭
+- **icon 추가 시 ToggleButtonGroup 의 selection size(width)가 비정상** (CSS 정상, Skia 만 좁음):
+  - 자식 ToggleButton 에 icon 을 추가하면 CSS group 은 정상 확장(text-only 158 → icon 209px)되는데, Skia group selection 박스는 icon 을 못 반영해 좁게(81px, icon 버튼이 박스 밖으로 삐져나감) 그려짐
+  - **근본 원인**: `calculateContentWidth` 의 togglebuttongroup 분기가 자식 버튼 폭을 **label 텍스트만** 측정(`border+paddingX+textWidth+paddingX+border`). icon ToggleButton 은 RSP composite(`<ToggleButton><Icon/><Text/></ToggleButton>`, 자식 Icon/Text element)라 icon width + icon↔text gap 이 빠짐 → group width 가 텍스트 기준으로만 계산. 게다가 icon 추가 시 ToggleButton 의 string children 이 빈 문자열이 되고 텍스트가 `<Text>` 자식 element 로 이관되는데, 분기가 그 자식 Text 를 못 읽어 최소폭(40)으로 떨어짐. CSS 는 `width:fit-content` 로 자식 실제 폭(icon 포함)을 정상 산출 → Skia↔CSS 비대칭
+  - **수정**: togglebuttongroup 분기가 자식 ToggleButton 의 실제 border-box 폭을 `calculateContentWidth` 재귀 + `parseBoxModel` 로 산출(일반 flex 컨테이너 분기와 동일 방식) → icon 자식 width 자동 포함. horizontal=합산+gap, vertical=max 유지. legacy `items` prop(child element 없을 때만) 텍스트 측정 fallback 보존
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`(calculateContentWidth togglebuttongroup 분기), 회귀: `__tests__/toggleButtonGroupIconWidth.test.ts`(2 case — icon group > text-only / vertical max)
+  - 검증: 2 test PASS, layout engines 93 test PASS, type-check PASS(baseline 69). **live(빌더 zoom 실측)**: icon 2개 horizontal group 의 Skia selection 박스가 group 전체를 감쌈(81→212px, CSS 209px 와 대칭, 3px 차는 segmented overlap -1px 미차감 = 의도). icon 버튼이 박스 밖으로 삐져나가지 않음
+
 ## [Button/ToggleButton 자식 layout — catalog display/padding/gap 가 Skia 에 도달] - 2026-06-27
 
 ### Bug Fixes

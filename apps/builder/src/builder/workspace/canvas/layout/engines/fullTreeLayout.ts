@@ -702,10 +702,29 @@ function buildNodeStyle(
   const type = (element.type ?? "").toLowerCase();
   const specFallback = resolveContainerStylesFallback(type, rawStyle);
   const hasFallback = Object.keys(specFallback).length > 0;
-  const mergedStyle = hasFallback ? { ...specFallback, ...rawStyle } : rawStyle;
-  const enriched: CanvasLayoutNode = hasFallback
-    ? { ...element, props: { ...element.props, style: mergedStyle } }
-    : element;
+  let mergedStyle = hasFallback ? { ...specFallback, ...rawStyle } : rawStyle;
+
+  // ToggleButtonGroup: flexDirection 의 SSOT 는 `orientation` prop 이다(2026-06-28).
+  //   orientation 이 horizontal/vertical 이면 그에 맞는 flexDirection(row/column)을 강제하고
+  //   stale inline `style.flexDirection`(과거 factory 잔재)을 무시한다. 미주입 시 self-node
+  //   계산이 mergedStyle.flexDirection(=inline row)만 보고 row 로 고정 → orientation=vertical
+  //   전환이 self-node 단에서 무력화(applyImplicitStyles 의 부모→자식 column 처리와 split-brain).
+  //   CSS([data-orientation]) / applyImplicitStyles 와 동일하게 orientation 단일 기준으로 정렬.
+  if (type === "togglebuttongroup") {
+    const orientation = (element.props as { orientation?: string } | undefined)
+      ?.orientation;
+    if (orientation === "vertical" || orientation === "horizontal") {
+      mergedStyle = {
+        ...mergedStyle,
+        flexDirection: orientation === "vertical" ? "column" : "row",
+      };
+    }
+  }
+
+  const enriched: CanvasLayoutNode =
+    hasFallback || type === "togglebuttongroup"
+      ? { ...element, props: { ...element.props, style: mergedStyle } }
+      : element;
 
   const display = getElementDisplay(enriched);
   const normalized = display.trim().toLowerCase();

@@ -1030,14 +1030,21 @@ export function applyImplicitStyles(
 
   // ── ToggleButtonGroup ─────────────────────────────────────────────
   // ADR-087 SP1: display/alignItems 는 ToggleButtonGroup.spec containerStyles 로 리프팅됨.
-  //   flexDirection 은 orientation prop runtime 결정 → 잔존.
+  //   flexDirection 의 SSOT 는 `orientation` prop 이다(2026-06-28) — orientation 이
+  //   horizontal/vertical 이면 그에 맞는 flexDirection 을 강제하고 stale inline
+  //   `parentStyle.flexDirection`(과거 factory 잔재)을 무시한다. 과거엔 `parentStyle.flexDirection
+  //   ?? orientation` 이라 inline row 가 orientation=vertical 을 이겨(가로 고정) buildNodeStyle
+  //   self-node 와 함께 vertical 전환을 무력화했다. CSS([data-orientation]) 와 동일 기준 정렬.
   if (containerTag === "togglebuttongroup") {
     const orientation = containerProps?.orientation as string | undefined;
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
       flexDirection:
-        parentStyle.flexDirection ??
-        (orientation === "vertical" ? "column" : "row"),
+        orientation === "vertical"
+          ? "column"
+          : orientation === "horizontal"
+            ? "row"
+            : (parentStyle.flexDirection ?? "row"),
     });
   }
 
