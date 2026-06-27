@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Bug Fixes
 
+- **ToggleButtonGroup 안 ToggleButton 의 segmented border-radius 가 Skia 에 미적용** (CSS Preview 정상):
+  - group 안 ToggleButton 은 양끝만 바깥 코너가 둥글어야 하는데(reference segmented), CSS Preview 는 정상이나 **Skia 는 모든 코너가 균등 radius** 로 그려지던 문제
+  - **근본 원인**: `buildCatalogShapes` 의 segmented 게이트가 `typeof scalarRadius === "number"` 일 때만 `resolveSegmentedRadius` 를 호출. 그런데 ToggleButton catalog `sizes[*].borderRadius` 는 TokenRef(`"{radius.md}"`)이고 `ruleSizeToSizeSpec` 가 값 변환 없이 cast 만 하므로, `scalarRadius` 가 TokenRef string 으로 남아 게이트 통과 실패 → segmented 분배 skip → 균등 radius. CSS 는 `containerVariants.orientation` nested selector(`[data-orientation] > .react-aria-ToggleButton:first-child`)로 emit 되어 정상 → Skia↔CSS 비대칭. (기존 단위 테스트가 `borderRadius: 6` number fixture 만 써서 이 회귀를 못 잡음)
+  - **수정**: `resolveSegmentedRadius(props, radius)` 가 `number | string`(TokenRef) 모두 받아 위치별 배열로 분배(TokenRef 요소 보존). `buildCatalogShapes` 의 `typeof === "number"` 게이트 제거 → number/TokenRef 모두 segmented 적용. TokenRef 배열 요소는 builder `specShapeConverter.resolveRadius`(배열 각 요소 `resolveNum` 해소)가 런타임 number 변환
+  - 위치: `packages/specs/src/renderers/buildCatalogShapes.ts`(`resolveSegmentedRadius` 시그니처 + 게이트 제거), 회귀: `__tests__/buildCatalogShapes.segmentedRadius.test.ts`(TokenRef radius 5 case 추가)
+  - 검증: 16 test PASS(buildCatalogShapes 132 전체 PASS), type-check PASS(baseline 69), generated CSS diff 0(catalog 불변). **live(빌더 Skia 캔버스 zoom)**: Home 페이지 ToggleButtonGroup 의 Skia render 가 양끝 바깥 코너만 둥글게(좌 first 좌측 코너 / 우 last 우측 코너) + 가운데 직각 — CSS Preview segmented 와 시각 대칭
 - **selected ToggleButton 의 CSS Preview 글자색이 black (Skia 정상)** — 자식 Icon/Text color 상속 누락:
   - selected 로 토글하면 어두운 selected 배경 위에서 CSS Preview 의 텍스트·아이콘이 black 으로 묻히던 문제(Skia 는 정상, 라이트/다크 무관)
   - **근본 원인**: `.button-base` 직계 자식(Icon/Text/Label)이 부모 color 를 상속하는 규칙(`> :is(...) { color: inherit }`)이 **Button.css 에만 있고 ToggleButton 에는 누락**. ToggleButton 자식 Icon/Text 는 generated Icon.css/Text.css 의 `.react-aria-Icon[data-variant]`(0-2-0) 로 `color: var(--fg)`(어두운 전경색)가 고정 → selected 시 부모 ToggleButton 이 `--button-text: var(--bg)`(밝은 색)가 돼도 자식은 어두운 채 잔존. Skia 는 `resolveButtonChildColor`(ToggleButton 포함)로 정상 상속 → CSS↔Skia 비대칭

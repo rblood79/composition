@@ -125,4 +125,64 @@ describe("buildCatalogShapes — segmented four-corner 전달", () => {
     const shapes = buildCatalogShapes(VISUAL, {}, SIZE_MD);
     expect(bgRadius(shapes)).toBe(6);
   });
+
+  // ── TokenRef borderRadius (실제 catalog 형태) ──
+  //   ToggleButton catalog sizes[*].borderRadius 는 "{radius.md}" 같은 TokenRef 다
+  //   (ruleSizeToSizeSpec 가 값 변환 없이 cast). number fixture 만 검증하던 위 테스트는
+  //   typeof === "number" 게이트 회귀를 못 잡았다(2026-06-27). TokenRef 도 segmented 배열로
+  //   분배되어야 하며, TokenRef 요소는 specShapeConverter.resolveRadius 가 런타임 해소한다.
+  const SIZE_MD_TOKEN: SizeSpec = {
+    height: 30,
+    paddingX: 12,
+    paddingY: 6,
+    fontSize: 14,
+    borderRadius: "{radius.md}",
+    borderWidth: 1,
+  } as unknown as SizeSpec;
+
+  it("TokenRef radius + group 안 first → roundRect radius = [{radius.md},0,0,{radius.md}]", () => {
+    const shapes = buildCatalogShapes(
+      VISUAL,
+      pos("horizontal", true, false),
+      SIZE_MD_TOKEN,
+    );
+    expect(bgRadius(shapes)).toEqual(["{radius.md}", 0, 0, "{radius.md}"]);
+  });
+
+  it("TokenRef radius + group 안 last → roundRect radius = [0,{radius.md},{radius.md},0]", () => {
+    const shapes = buildCatalogShapes(
+      VISUAL,
+      pos("horizontal", false, true),
+      SIZE_MD_TOKEN,
+    );
+    expect(bgRadius(shapes)).toEqual([0, "{radius.md}", "{radius.md}", 0]);
+  });
+
+  it("TokenRef radius + middle → roundRect radius = [0,0,0,0]", () => {
+    const shapes = buildCatalogShapes(
+      VISUAL,
+      pos("horizontal", false, false),
+      SIZE_MD_TOKEN,
+    );
+    expect(bgRadius(shapes)).toEqual([0, 0, 0, 0]);
+  });
+
+  it("TokenRef radius + 단독 → 균등 TokenRef passthrough", () => {
+    const shapes = buildCatalogShapes(VISUAL, {}, SIZE_MD_TOKEN);
+    expect(bgRadius(shapes)).toBe("{radius.md}");
+  });
+});
+
+describe("resolveSegmentedRadius — TokenRef radius 분배", () => {
+  it("TokenRef first = [tok,0,0,tok] (number 게이트 없이 분배)", () => {
+    expect(
+      resolveSegmentedRadius(pos("horizontal", true, false), "{radius.md}"),
+    ).toEqual(["{radius.md}", 0, 0, "{radius.md}"]);
+  });
+
+  it("TokenRef vertical last = [0,0,tok,tok]", () => {
+    expect(
+      resolveSegmentedRadius(pos("vertical", false, true), "{radius.lg}"),
+    ).toEqual([0, 0, "{radius.lg}", "{radius.lg}"]);
+  });
 });

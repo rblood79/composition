@@ -65,11 +65,17 @@ export function resolveTreeIndent(
  *
  * CSS 경로(generated ToggleButtonGroup.css [data-orientation] > .react-aria-ToggleButton)와
  * 시각 대칭. r = caller 의 균등 borderRadius(size별, --btn-border-radius 와 동일 값).
+ *
+ * `radius` 는 number 또는 TokenRef string(`"{radius.md}"`) 모두 허용한다. ToggleButton catalog
+ * sizes[*].borderRadius 는 TokenRef 이므로(ruleSizeToSizeSpec 값 변환 없이 cast) number 로
+ * 강제하면 segmented 분배가 skip 된다(2026-06-27 버그). TokenRef 는 위치별 배열에 그대로 배치하고,
+ * builder specShapeConverter.resolveRadius 가 배열 각 요소(TokenRef 포함)를 런타임 number 해소한다.
+ * radius 자리에 0(직각)은 항상 number — TokenRef 가 아닌 코너는 0 으로 둔다.
  */
 export function resolveSegmentedRadius(
   props: Record<string, unknown>,
-  radius: number,
-): [number, number, number, number] | null {
+  radius: number | string,
+): [number | string, number | string, number | string, number | string] | null {
   const pos = props._groupPosition as
     | {
         orientation?: string;
@@ -112,17 +118,20 @@ export function buildCatalogShapes(
 
   const fill = visual?.fill;
 
-  const scalarRadius = parsePxValue(style?.borderRadius, size.borderRadius);
+  const scalarRadius = parsePxValue<string>(
+    style?.borderRadius,
+    size.borderRadius as string,
+  );
   // segmented control(ToggleButtonGroup 안 ToggleButton): _groupPosition 데이터 키가 있으면
   //   위치별 four-corner radius 로 치환(reference 동형, CSS [data-orientation] segmented 와 대칭).
   //   없으면(단독/타 컴포넌트) 균등 scalar 유지. ADR-142 §3 — 데이터 키 분기(컴포넌트 식별 아님).
-  //   scalarRadius 가 number 일 때만 segmented(코너 산술 필요) — TokenRef 면 균등 passthrough.
-  const segmentedRadius =
-    typeof scalarRadius === "number"
-      ? resolveSegmentedRadius(props, scalarRadius)
-      : null;
+  //   scalarRadius 는 number 또는 TokenRef("{radius.md}") — 둘 다 segmented 분배 대상.
+  //   ToggleButton catalog borderRadius 는 TokenRef 라, number 게이트가 있으면 분배가 skip 되어
+  //   Skia segmented 가 균등 radius 로 발산했다(2026-06-27 fix). TokenRef 요소는 배열에 보존되고
+  //   specShapeConverter.resolveRadius 가 런타임 해소한다.
+  const segmentedRadius = resolveSegmentedRadius(props, scalarRadius);
   // shape.radius 타입은 number | [4] (TokenRef 미허용) — TokenRef 는 specShapeConverter.resolveRadius
-  //   가 런타임 해소하므로 number 로 cast(기존 `as unknown as number` 패턴 동형). 배열은 보존.
+  //   가 런타임 해소하므로 cast(기존 `as unknown` 패턴 동형). 배열(TokenRef 요소 포함)은 보존.
   const borderRadius = (segmentedRadius ?? scalarRadius) as unknown as
     | number
     | [number, number, number, number];
