@@ -167,6 +167,10 @@
   }
 
   .react-aria-ToggleButtonGroup .react-aria-ToggleButton > span {
+    display: inherit;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     transition: scale 200ms;
   }
 

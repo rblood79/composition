@@ -12154,6 +12154,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             transform: "none",
           },
           ".react-aria-ToggleButton > span": {
+            // display:inherit → span 이 부모 ToggleButton 의 display(group=flex / standalone=
+            //   inline-flex)를 상속한다. 미지정 시 span 은 기본 display:block 이라 아이콘+텍스트
+            //   ToggleButton 의 자식(Icon div + Text span)이 세로로 쌓여(block flow) Skia(span 모름
+            //   → ToggleButton flex 가 Icon/Text 를 가로 배치)와 비대칭이었다. inherit 로 span 이
+            //   flex 가 되면 Icon/Text 가 가로 정렬돼 Skia 와 정합(2026-06-27). 텍스트-only 토글은
+            //   위치 불변(이미 단일 자식 중앙). align/gap 은 flex 비상속이라 부모 정렬값을 명시.
+            display: "inherit",
+            "align-items": "center",
+            "justify-content": "center",
+            gap: "8px",
             transition: "scale 200ms",
           },
           ".react-aria-ToggleButton[data-pressed] > span": {

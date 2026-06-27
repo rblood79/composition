@@ -76,6 +76,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`(button/togglebutton 분기), `__tests__/buttonChildPaddingGapImplicitStyles.test.ts`(회귀 5 case)
   - 검증: buttonChildPaddingGapImplicitStyles 5/5, layout engine suite 139 passed(무관한 radius 토큰 스냅샷 2건은 사전 존재 drift — 본 변경 무관), type-check PASS(baseline 69). **live(빌더)**: icon Button(md) selection 크기 98×24 → **106×32**(paddingY 4×2 + gap/paddingX 반영), Skia 캔버스에서 아이콘↔텍스트 간격 + 박스 내부 여백 확인
 
+- **group 안 icon ToggleButton 의 자식(Icon+Text)이 CSS Preview 에서 세로로 쌓임** (Skia 가로 정상):
+  - group 안 ToggleButton 에 아이콘+텍스트가 함께 있으면 CSS Preview 에서 아이콘 아래에 텍스트가 **세로로 쌓여** 그려지던 문제(Skia 는 가로 배치 정상) → CSS↔Skia 비대칭
+  - **근본 원인**: group 안 ToggleButton 은 `ToggleButton.tsx` 가 자식을 `<span>{children}</span>` 으로 감싼다(pressed micro-interaction `> span { scale:0.9 }` 소비, 직전 standalone span 정리에서 group span 은 보존). 그러나 그 span 에 display 가 미지정이라 기본 `display:block` → flex item 인 span 안의 Icon(div) + Text(span)가 block flow 로 세로 쌓임. Skia 는 span 을 모르고 ToggleButton(flex)이 Icon/Text 를 직접 가로 배치 → 비대칭. (텍스트-only 토글은 자식 1개라 block/flex 무관하게 중앙 → 비대칭 미발현, 아이콘 토글에서만 노출)
+  - **Why**: span 은 group pressed 축소 효과를 소비하는 살아있는 wrapper 라 제거 불가 — 대신 부모 display 를 상속시켜 자식 배치만 Skia 와 맞춘다(사용자 제안 `display:inherit`)
+  - **수정**: `COMPONENT_RULES_TABLE.ToggleButtonGroup.structure.composition.staticSelectors` 의 `.react-aria-ToggleButton > span` 에 `display:inherit`(부모 flex/inline-flex 상속) + 가로 flex 정렬(`align-items:center` / `justify-content:center` / `gap:8px` — flex 정렬은 비상속이라 명시) 추가. pressed `scale:0.9` 와 standalone span 미렌더는 보존
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`(span staticSelector display + 정렬), `packages/shared/src/components/styles/generated/ToggleButtonGroup.css`(generate-css 결과 4줄), 회귀: `packages/shared/src/catalog/__tests__/toggleButtonSpanDisplay.test.ts`(display:inherit / flex 정렬 / pressed 보존 3 case)
+  - 검증: toggleButtonSpanDisplay 3 + shared catalog 402 PASS, type-check PASS(baseline 69), generated CSS diff = ToggleButtonGroup.css 4줄 추가만. **live(빌더 Preview DOM 실측)**: 아이콘 ToggleButton 의 Icon↔Text 가 수정 전 세로(Text y:23) → 수정 후 가로(Text x:26, `HORIZONTAL`), span `display:block`→`flex`. 텍스트-only "Toggle 1" 위치 불변(회귀 0)
+
 ### Features
 
 - **icon Button 자식(`<Text>` + `<Icon>`)의 크기가 부모 Button size 상속·동기화** (XS~XL):
