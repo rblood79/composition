@@ -15,6 +15,7 @@ import { useCollectionData } from "../hooks";
 import {
   ToggleButtonGroupEmphasizedContext,
   ToggleButtonGroupIndicatorContext,
+  ToggleButtonGroupMembershipContext,
 } from "./ToggleButtonGroupContext";
 import "./styles/generated/ToggleButtonGroup.css";
 
@@ -94,11 +95,13 @@ export function ToggleButtonGroup({
       className={toggleButtonGroupClassName}
       isDisabled={isDisabled || props.isDisabled}
     >
-      <ToggleButtonGroupEmphasizedContext.Provider value={isEmphasized}>
-        <ToggleButtonGroupIndicatorContext.Provider value={indicator}>
-          {content}
-        </ToggleButtonGroupIndicatorContext.Provider>
-      </ToggleButtonGroupEmphasizedContext.Provider>
+      <ToggleButtonGroupMembershipContext.Provider value={true}>
+        <ToggleButtonGroupEmphasizedContext.Provider value={isEmphasized}>
+          <ToggleButtonGroupIndicatorContext.Provider value={indicator}>
+            {content}
+          </ToggleButtonGroupIndicatorContext.Provider>
+        </ToggleButtonGroupEmphasizedContext.Provider>
+      </ToggleButtonGroupMembershipContext.Provider>
     </RACToggleButtonGroup>
   );
 

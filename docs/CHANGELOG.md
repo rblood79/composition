@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Bug Fixes
 
+- **standalone ToggleButton DOM 에 불필요한 `<span>` wrapper** (group 밖에서 소비처 없는 dead wrapper):
+  - `.react-aria-ToggleButton` 아래에 항상 `<span>` 이 끼어 있던 문제. group 안 ToggleButton 은 pressed 시 내부 콘텐츠만 0.9 축소하는 micro-interaction selector(`.react-aria-ToggleButtonGroup .react-aria-ToggleButton[data-pressed] > span { scale: 0.9 }`)가 span 을 소비하지만, 이 selector 는 **group 하위로 한정**된다
+  - **근본 원인**: `ToggleButton.tsx` 가 group 멤버십과 무관하게 항상 `<span>{children}</span>` 을 렌더. composition generated standalone `ToggleButton.css` 에는 `> span` 규칙이 0건(reference react-aria-starter 의 standalone flex/svg span 규칙은 catalog 에서 미emit) → standalone span 은 소비 CSS 없는 dead wrapper. 시각 결과는 동일하나 DOM 에 불필요 노드 잔존
+  - **수정**: `ToggleButtonGroupMembershipContext`(기본 false) 추가 → ToggleButtonGroup `shell()` 이 `value={true}` 로 주입. ToggleButton 은 `useToggleButtonGroupMembership()` 가 true(group 안)일 때만 `<span>` 래핑, standalone(group 밖)은 children 직접 렌더. group micro-interaction 보존 + standalone DOM 정리
+  - 위치: `packages/shared/src/components/ToggleButtonGroupContext.ts`(Membership context + hook), `ToggleButtonGroup.tsx`(Provider value=true), `ToggleButton.tsx`(조건부 span), `catalog/generated/componentRulesTable.ts`(span staticSelectors 주석 갱신 — 본문 불변), 회귀: `__tests__/ToggleButton.span.test.tsx`(standalone span 없음 / group span 있음 2 case)
+  - 검증: 2 test PASS, type-check PASS(baseline 69), generated CSS diff 0(staticSelectors 출력 불변 — ADR-913 R6 트리거 없음). **live(빌더 Preview DOM 실측)**: standalone ToggleButton `firstElementChild=null`(텍스트 직접 자식) + `:scope > span` 없음, CSS Preview 텍스트 정상 표시
 - **fillStyle=outline Button 의 Skia 아이콘·텍스트 미표시** (CSS Preview 정상, Skia 만 모두 사라짐):
   - outline 으로 바꾸면 CSS Preview 는 보라(premium)/accent 등 outline 색 텍스트·아이콘이 정상인데 **Skia 는 둘 다 안 보이던** 문제. icon Button(자식 Icon/Text 보유)에서 발생
   - **근본 원인 ①(Skia resolver fillStyle 무시)**: Skia `resolveButtonChildColor`(자식 color 상속)가 `fillStyle` 을 보지 않고 항상 default `visual.text`(예: accent→`{color.on-accent}`=흰색)를 반환 → outline 의 투명 배경 위 흰색 = 비가시. `buildCatalogShapes.textColor` 와 동일하게 **selected→outline→subtle→text 분기** 추가(outline 시 `visual.outlineText ?? visual.text`)

@@ -12144,7 +12144,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   staticSelectors 는 nested 미지원(Record<string,Record<string,string>>) → 3 top-level key.
         //   marker div(display:contents): staticSelectors 는 `${root} ${selector}` descendant 형식
         //   이라 marker 를 자동 통과(direct-child `>` 함정 없음). `> span` 은 ToggleButton 기준 직접
-        //   자식이고 span 을 ToggleButton.tsx 가 직접 렌더하므로 매칭됨(span 래핑 추가, 2026-06-22).
+        //   자식이고 ToggleButton.tsx 가 group 멤버십(isGroupMember)일 때만 span 을 렌더하므로
+        //   group-scoped selector 와 1:1 매칭. standalone(group 밖)은 span 미렌더+소비 CSS 없음이라
+        //   양쪽 정합(span 조건부 렌더, 2026-06-27).
         //   Skia 는 transient pressed flag 가 파이프라인에 없어(resting-state 전용 렌더) scope 밖 —
         //   CSS-only(feedback-no-dormant-foundation-ahead-of-flip).
         staticSelectors: {
