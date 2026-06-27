@@ -103,6 +103,21 @@
     color: inherit;
   }
 
+  /* group member ToggleButton 은 children 을 <span> 으로 감싼다(ToggleButton.tsx — group
+     pressed micro-interaction `> span { scale:0.9 }` 소비). 그 결과 DOM 이
+     `ToggleButton.button-base > span > (Icon, Text)` 가 되어 Icon/Text 가 더 이상 직계 자식이
+     아니다 → 위 직계 규칙(`> :is(...)`) 이 span 을 건너뛰지 못해 inherit 가 끊긴다. span 자체는
+     흰색을 자연 상속받지만, Icon/Text leaf 는 generated `.react-aria-Icon[data-variant]`(0-2-0)
+     의 `color: var(--fg)` 가 자연 상속을 막아 selected 배경 위에서 black 잔존했다(2026-06-27,
+     group span 도입 commit 195d20d0a 의 부수효과). Skia 는 parent_id 기반(span 은 DOM-only,
+     store 트리에 없음)이라 정상 → CSS↔Skia 비대칭. span 경유 경로를 명시해 inherit 복원
+     (specificity 0-3-1, generated 0-2-0 을 확정적으로 이김). */
+  :is(.react-aria-Button, .react-aria-ToggleButton).button-base
+    > span
+    > :is(.react-aria-Icon, .react-aria-Text, .react-aria-Label) {
+    color: inherit;
+  }
+
   /* =========================================
      .indicator — Selection Indicator Color
      Set --indicator-color on the element.
