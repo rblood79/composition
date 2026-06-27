@@ -118,4 +118,20 @@ describe("ToggleButtonGroup size → 손자 Icon/Text 2단계 전파 (2026-06-28
       "Text lineHeight 가 'Npx' 문자열이어야 함",
     ).toMatch(/^\d+px$/);
   });
+
+  it("group size 변경이 손자 Text 의 size prop 도 부모 size 로 갱신한다 (데이터 일관, 2026-06-28)", () => {
+    const { group, childrenMap, elementsMap } = makeTree();
+    const updates = buildPropagationUpdates(
+      group,
+      { size: "lg" },
+      getPropagationRules("ToggleButtonGroup")!,
+      childrenMap,
+      elementsMap,
+    );
+    const textUpdate = updates.find((u) => u.elementId === "tx1");
+    expect(
+      textUpdate?.props?.size,
+      "Text size prop 이 부모 size(lg)로 갱신돼야 함 — Icon 자식과 형제 size 일관",
+    ).toBe("lg");
+  });
 });

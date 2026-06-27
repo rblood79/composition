@@ -54,7 +54,7 @@ export function findFirstTextChild<
  *   생성하는 이유: handleAddElement 는 생성 직후 setSelectedElement 로 Button 선택을 풀어
  *   셀렉트가 사라진다. id 를 미리 만들어 selection 변경 없이 생성.
  */
-function buildButtonChild(
+export function buildButtonChild(
   type: "Icon" | "Text",
   parentId: string,
   pageId: string,
@@ -176,21 +176,30 @@ export const ButtonChildSection = memo(function ButtonChildSection({
       // string children(label) → Text 자식 element 이관. 이미 Text 자식이 있으면 중복
       //   생성하지 않는다(외부 경로로 만들어진 경우 보존).
       if (buttonChildrenText !== undefined && !existingText) {
-        // label <Text> 는 Button 의 텍스트 척도(fontSize/lineHeight)를 inline 으로 받는다 —
-        //   size prop 상속(=Text 컴포넌트 독립 척도 text-base 16/24)이 아니라 Button 척도
-        //   (md=text-sm 14/20). label 은 버튼 텍스트라 height 가 leaf Button 과 동일해야 함
-        //   (사용자 결정 2026-06-27: icon 유무 무관 md=30px). buttonTextMetrics 가 전파 transform
-        //   과 단일 소스. lineHeight 는 "Npx" 문자열(parseLineHeight 배율 오해석 방지).
+        // label <Text> 의 시각 척도(fontSize/lineHeight)는 Button 텍스트 척도(md=text-sm 14/20)를
+        //   inline 으로 받는다 — Text 컴포넌트 독립 타이포 척도(text-base 16/24)가 아니라 Button
+        //   척도. label 은 버튼 텍스트라 height 가 leaf Button 과 동일해야 함(사용자 결정 2026-06-27:
+        //   icon 유무 무관 md=30px). buttonTextMetrics 가 전파 transform 과 단일 소스. lineHeight 는
+        //   "Npx" 문자열(parseLineHeight 배율 오해석 방지).
+        //   size prop 은 부모 size 로 주입한다(2026-06-28 사용자 결정) — Icon 자식(size:buttonSize)과
+        //   데이터 일관(형제 size 불일치 제거). 시각은 inline fontSize/lineHeight 가 specificity 로
+        //   Text.css [data-size] 보다 우선이라 버튼 척도 유지(size prop 추가가 시각 안 바꿈).
         const tm = buttonTextMetrics(buttonSize);
         const textElement = buildButtonChild(
           "Text",
           elementId,
           currentPageId,
           [...pageElements, iconElement], // Icon 까지 포함해 customId 충돌 회피
-          {
-            children: buttonChildrenText,
-            style: { fontSize: tm.fontSize, lineHeight: tm.lineHeight },
-          },
+          typeof buttonSize === "string"
+            ? {
+                children: buttonChildrenText,
+                size: buttonSize,
+                style: { fontSize: tm.fontSize, lineHeight: tm.lineHeight },
+              }
+            : {
+                children: buttonChildrenText,
+                style: { fontSize: tm.fontSize, lineHeight: tm.lineHeight },
+              },
         );
         addElement(textElement);
         // Button 의 string children 을 비운다(`<Text>` 자식이 label 을 보유).

@@ -296,7 +296,8 @@ const toggleButtonGroupPropagationRules: PropagationRule[] = [
   //   자식 Icon/Text element)의 손자가 group size 를 못 받아 시각적으로 group size 미반영.
   //   Button(직접 선택)은 1단계 전파로 정상이나 ToggleButton 은 group 하 2단계라 손자 누락.
   //   buttonTextMetrics/buttonIconPx 는 buttonPropagationRules 와 동일 transform 단일 소스.
-  // Text(label): 버튼 텍스트 척도(fontSize/lineHeight) inline 주입.
+  // Text(label): size prop(데이터 일관, 2026-06-28) + 버튼 텍스트 척도(fontSize/lineHeight) inline.
+  { parentProp: "size", childPath: ["ToggleButton", "Text"], override: true },
   {
     parentProp: "size",
     childPath: ["ToggleButton", "Text"],
@@ -388,6 +389,11 @@ export function buttonTextMetrics(size: unknown): {
 //   ToggleButtonGroup → ToggleButton(size override:true) 동형. 생성 시점 초기값은 전파 rule 이
 //   *변경* 시점에만 작동하므로 ButtonChildSection.buildButtonChild 에서 부모 척도 직접 주입.
 const buttonPropagationRules: PropagationRule[] = [
+  // Text(label): size prop 도 부모 size 로 전파(2026-06-28) — Icon 자식과 데이터 일관(형제 size
+  //   불일치 제거). 시각은 아래 fontSize/lineHeight inline 이 specificity 로 Text.css [data-size]
+  //   보다 우선이라 버튼 척도 유지(size prop 전파가 시각 안 바꿈). 생성 시점 주입은
+  //   ButtonChildSection.buildButtonChild, 변경 시점은 본 rule.
+  { parentProp: "size", childPath: "Text", override: true },
   // Text(label): Button 텍스트 척도(fontSize/lineHeight) inline 주입 — height 가 leaf 와 동일.
   {
     parentProp: "size",

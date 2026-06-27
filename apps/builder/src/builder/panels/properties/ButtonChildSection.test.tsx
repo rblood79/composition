@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   BUTTON_CHILD_HOST_TAGS,
+  buildButtonChild,
   findFirstIconChild,
   findFirstTextChild,
 } from "./ButtonChildSection";
@@ -79,5 +80,39 @@ describe("findFirstTextChild", () => {
       { id: "t2", type: "Text" },
     ]);
     expect(result?.id).toBe("t2");
+  });
+});
+
+/**
+ * buildButtonChild 생성 시점 size 주입 회귀 (2026-06-28).
+ *
+ * **버그**: 부모 XL ToggleButton 에 icon 추가 시 Icon 자식은 size:xl 을 받는데 Text 자식은
+ *   size prop 이 누락돼 getDefaultProps("Text").size(md)로 고정 → 형제 size 불일치(Icon xl /
+ *   Text md). 사용자: "부모 XL 자식 icon 추가 시 자식 text size 가 XL 이 아닌 M".
+ * **수정**: Text 생성 propsOverride 에 size 주입(Icon 동형). 시각은 inline fontSize/lineHeight 가
+ *   Text.css [data-size] 보다 우선이라 버튼 척도 유지.
+ */
+describe("buildButtonChild 생성 시점 size 주입", () => {
+  it("Text 자식 propsOverride 의 size 가 생성 element.props.size 로 반영된다", () => {
+    const el = buildButtonChild("Text", "parent-1", "page-1", [], {
+      children: "Toggle 2",
+      size: "xl",
+      style: { fontSize: 18, lineHeight: "28px" },
+    });
+    expect(el.type).toBe("Text");
+    expect((el.props as { size?: unknown }).size).toBe("xl");
+    // 시각 inline 도 보존
+    const style = (el.props as { style?: Record<string, unknown> }).style;
+    expect(style?.fontSize).toBe(18);
+    expect(style?.lineHeight).toBe("28px");
+  });
+
+  it("Icon 자식도 propsOverride size 반영 (Text 와 동형)", () => {
+    const el = buildButtonChild("Icon", "parent-1", "page-1", [], {
+      iconName: "a-arrow-down",
+      size: "lg",
+      style: { fontSize: 24, height: 24 },
+    });
+    expect((el.props as { size?: unknown }).size).toBe("lg");
   });
 });
