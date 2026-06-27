@@ -57,3 +57,51 @@ describe("CanonicalNodeRenderer — ButtonGroup self-compose DELEGATING 위임",
     ).toBeTypeOf("function");
   });
 });
+
+/**
+ * ButtonGroup 동형 self-compose 컨테이너 전수 가드 (2026-06-27 grep 감사).
+ *
+ * ButtonGroup fix(ac0646f98) 후 같은 패턴 누락을 전수 grep 한 결과 AvatarGroup / CardView /
+ * Pagination 3종이 동일 버그였다 — factory 가 자식(Avatar×3 / Card×3 / Button×5)을 자동 생성하고
+ * `render{Type}` 가 `context.childrenByParent.get(element.id)` 로 그 자식을 `children.map(renderElement)`
+ * 렌더하는 self-compose 컨테이너인데, binding `source.renderer="div"` + delegating 미등록이라
+ * generic fall-through 로 빠져 childrenByParent 보강을 못 받음 → 자식 통째 미렌더(Skia 는 자식 직접
+ * 렌더 → 비대칭). "type별로 골라 합성"이 아니라 generic map 이어도 childrenByParent 가 비면 자식 0개
+ * (ButtonGroup 도 generic map 이었음). TableView/Card/ButtonGroup 선례와 동형.
+ */
+describe("CanonicalNodeRenderer — self-compose 컨테이너 DELEGATING 위임 (ButtonGroup 동형)", () => {
+  const SELF_COMPOSE_CONTAINERS = ["AvatarGroup", "CardView", "Pagination"];
+
+  for (const type of SELF_COMPOSE_CONTAINERS) {
+    it(`${type} binding 은 internal source + 고유 renderer id ('div' 금지)`, () => {
+      const binding = getPrimitiveBinding(type);
+      expect(binding?.source.kind, `${type} binding source.kind`).toBe(
+        "internal",
+      );
+      if (binding?.source.kind === "internal") {
+        expect(
+          binding.source.renderer,
+          `${type} renderer 가 'div' → delegating 위임 불가 → factory 자식 미렌더 회귀(ButtonGroup 동형)`,
+        ).not.toBe("div");
+      }
+    });
+
+    it(`${type} renderer 가 DELEGATING_INTERNAL_RENDERERS 에 등록`, () => {
+      const binding = getPrimitiveBinding(type);
+      expect(binding?.source.kind).toBe("internal");
+      if (binding?.source.kind === "internal") {
+        expect(
+          DELEGATING_INTERNAL_RENDERERS.has(binding.source.renderer),
+          `${type} (renderer="${binding.source.renderer}") 가 DELEGATING_INTERNAL_RENDERERS 에 누락 → generic fall-through → childrenByParent 빈 배열 → 자식 미렌더`,
+        ).toBe(true);
+      }
+    });
+
+    it(`rendererMap.${type}(self-compose renderer) 존재`, () => {
+      expect(
+        (rendererMap as Record<string, unknown>)[type],
+        `rendererMap.${type} 누락 → delegating 위임 대상 없음`,
+      ).toBeTypeOf("function");
+    });
+  }
+});

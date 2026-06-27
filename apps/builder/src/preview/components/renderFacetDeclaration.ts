@@ -51,17 +51,20 @@ export interface RenderFacetDelegation {
 }
 
 /**
- * delegating render 위임 declaration (internal 25 + rac 12).
+ * delegating render 위임 declaration (internal 28 + rac 12).
  *   2026-06-24: Card 패밀리 5(card/cardpreview/cardheader/cardcontent/cardfooter) 추가 — Preview
  *   canonical 경로에서 self-compose 자식 슬롯 보강 누락(Skia↔Preview 비대칭) 해소.
  *   2026-06-25: tableview 추가 — TableView 자식(Header/Body/Column/Row/Cell) 미렌더 해소(동일 비대칭).
  *   2026-06-27: buttongroup 추가 — ButtonGroup 자식 Button×2 미렌더 해소(동일 비대칭, tableview 동형).
+ *   2026-06-27: avatargroup/cardview/pagination 추가 — grep 전수 감사로 ButtonGroup 동형 누락 3건 적발.
+ *     factory 가 자식(Avatar×3 / Card×3 / Button×5)을 생성하고 render{Type} 가 childrenByParent 로
+ *     렌더하는 self-compose 인데 binding renderer="div" + 미등록 → 자식 통째 미렌더(동일 비대칭).
  *
  * 순서는 기존 `CanonicalNodeRenderer.tsx` set 정의 순서를 그대로 보존한다 (Set 은
  * insertion order 를 유지하므로, 파생 set 이 byte-identical 하려면 순서 동일 필요).
  */
 export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
-  // ── delegating-internal (25) — binding.source.kind==="internal" self-compose ──
+  // ── delegating-internal (28) — binding.source.kind==="internal" self-compose ──
   {
     key: "tabs",
     kind: "delegating-internal",
@@ -221,6 +224,28 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
     kind: "delegating-internal",
     reason:
       "renderButtonGroup 이 childrenByParent 로 자식 Button×2 를 <div role=group> 안에 렌더하는 self-compose 컨테이너. 미등록 시 generic fall-through 로 childrenByParent 보강 누락 → 자식 Button 통째 미렌더(Skia 비대칭). tableview/card/nav 동형.",
+  },
+  // ── ButtonGroup 동형 컨테이너 (2026-06-27 grep 감사) — factory 가 자식을 생성하고 render{Type} 가
+  //   childrenByParent 로 그 자식을 children.map(renderElement) 렌더하는 self-compose. "type별로 골라
+  //   합성"이 아니라 generic map 이어도 childrenByParent 가 비면 자식 0개(ButtonGroup 동형). binding
+  //   renderer 가 "div"→고유 id 로 변경됨. 미등록 시 자식(Avatar×3 / Card×3 / Button×5) 통째 미렌더.
+  {
+    key: "avatargroup",
+    kind: "delegating-internal",
+    reason:
+      "renderAvatarGroup 이 childrenByParent 로 자식 Avatar×3(factory 자동 생성)을 flex div 안에 렌더하는 self-compose 컨테이너. 미등록 시 generic fall-through 로 childrenByParent 보강 누락 → 자식 Avatar 미렌더(Skia 비대칭). buttongroup 동형.",
+  },
+  {
+    key: "cardview",
+    kind: "delegating-internal",
+    reason:
+      "renderCardView 가 childrenByParent 로 자식 Card×3(factory 자동 생성)을 flex grid 안에 렌더하는 self-compose 컨테이너. 미등록 시 generic fall-through 로 childrenByParent 보강 누락 → 자식 Card 미렌더(Skia 비대칭). buttongroup 동형.",
+  },
+  {
+    key: "pagination",
+    kind: "delegating-internal",
+    reason:
+      "renderPagination 이 childrenByParent 로 자식 Button×5(factory 자동 생성 ←/1/2/3/→)를 <nav> 안에 렌더하는 self-compose 컨테이너. 미등록 시 generic fall-through 로 childrenByParent 보강 누락 → 자식 Button 미렌더(Skia 비대칭). buttongroup 동형.",
   },
 
   // ── delegating-rac (12) — binding.source.kind==="rac" self-compose ──

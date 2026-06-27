@@ -17,9 +17,15 @@ import type { PrimitiveBinding } from "../types";
  *   가 시각을 담당한다. container layout(`display:flex` / `flexDirection:row` / `alignItems:center`)은
  *   factory `props.style` SSOT(ADR-907 Layer B, Skia/Taffy 직접 read).
  *
- * **DOM parity = 변화 0**: INTERNAL_RENDERERS 미등록 → CanonicalNodeRenderer generic fallback.
- *   isSpecOrCatalogBacked(spec || isCatalogCutover) 가 catalog 등록 후 true → `react-aria-AvatarGroup`
- *   className + `data-size` 보존 → generated CSS(AvatarGroup.css, virtual diff 0) 매칭 불변.
+ * **DOM 렌더 = renderAvatarGroup self-compose 위임 (2026-06-27)**: factory 가 자식 Avatar×3 을
+ *   생성하므로 AvatarGroup 은 자식을 렌더하는 self-compose 컨테이너다. renderAvatarGroup 이
+ *   `context.childrenByParent` 로 자식 Avatar 를 flex div 안에 `children.map(renderElement)` 렌더한다.
+ *   따라서 `renderer:"div"` generic fallback 으로 두면 DELEGATING_INTERNAL_RENDERERS 매칭(renderer 기준)을
+ *   못 타 generic fall-through 로 빠지고, flattenNodeChildrenByParent 보강을 못 받아 childrenByParent 가
+ *   비어 자식 Avatar 가 통째 미렌더된다(Preview 빈 div, Skia 는 자식 직접 렌더 → 비대칭). ButtonGroup/
+ *   TableView/Card 선례와 동형 — 고유 renderer id(`"avatargroup"`) + renderFacetDeclaration
+ *   delegating-internal 등록으로 renderAvatarGroup 위임 활성화.
+ *   isSpecOrCatalogBacked + `react-aria-AvatarGroup` className + `data-size` 보존 → generated CSS 매칭 불변.
  *
  * D1: composition `<div>` (internal source, generic DOM).
  * D2: label(content) + size(appearance) + isDisabled(state) 편집 surface.
@@ -29,7 +35,12 @@ import type { PrimitiveBinding } from "../types";
 export const avatarGroupBinding: PrimitiveBinding = {
   source: {
     kind: "internal",
-    renderer: "div",
+    // 2026-06-27: "div" → "avatargroup". factory 가 자식 Avatar×3(A/B/C)을 생성하고 renderAvatarGroup 이
+    //   context.childrenByParent 로 그 자식을 flex div 안에 렌더하는 self-compose 컨테이너다(ButtonGroup/
+    //   TableView 동형). renderer:"div" 는 DELEGATING_INTERNAL_RENDERERS 매칭(renderer 기준)을 못 타 generic
+    //   fall-through 로 빠지고 flattenNodeChildrenByParent 보강을 못 받아 자식 Avatar 미렌더(Skia 비대칭).
+    //   고유 renderer id + renderFacetDeclaration delegating-internal 등록으로 renderAvatarGroup 위임 활성화.
+    renderer: "avatargroup",
   },
   props: {
     accepts: {

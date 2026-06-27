@@ -24,9 +24,14 @@ import type { PrimitiveBinding } from "../types";
  *   SSOT(ADR-907 Layer B, Skia/Taffy 직접 read). catalog rule.sizes 는 gap 미보유 — container gap 은
  *   factory `Pagination.props.style.gap` SSOT.
  *
- * **DOM parity = 변화 0**: INTERNAL_RENDERERS 미등록 → CanonicalNodeRenderer generic fallback.
- *   isSpecOrCatalogBacked 가 catalog 등록 후 true → `react-aria-Pagination` className + `data-size`
- *   보존 → generated CSS(Pagination.css, staticSelectors 포함) 매칭 불변.
+ * **DOM 렌더 = renderPagination self-compose 위임 (2026-06-27)**: factory 가 자식 Button×5(←/1/2/3/→)를
+ *   생성하므로 Pagination 은 자식을 렌더하는 self-compose 컨테이너다. renderPagination 이
+ *   `context.childrenByParent` 로 자식 Button 을 `<nav>` 안에 `children.map(renderElement)` 렌더한다.
+ *   따라서 `renderer:"div"` generic fallback 으로 두면 DELEGATING_INTERNAL_RENDERERS 매칭(renderer 기준)을
+ *   못 타 generic fall-through 로 빠지고, flattenNodeChildrenByParent 보강을 못 받아 자식 Button 이 통째
+ *   미렌더된다(Preview 빈 nav, Skia 는 자식 직접 렌더 → 비대칭). ButtonGroup/TableView/AvatarGroup/CardView
+ *   동형 — 고유 renderer id(`"pagination"`) + renderFacetDeclaration delegating-internal 등록으로 위임 활성화.
+ *   isSpecOrCatalogBacked + `react-aria-Pagination` className + `data-size` 보존 → generated CSS 매칭 불변.
  *
  * D1: composition `<nav>` (internal source, generic DOM). role="navigation" / aria-label="Pagination"
  *     은 D2 prop(factory/renderer 가 부여).
@@ -37,9 +42,13 @@ import type { PrimitiveBinding } from "../types";
 export const paginationBinding: PrimitiveBinding = {
   source: {
     kind: "internal",
-    // INTERNAL_RENDERERS 미등록 키 → DOM/Skia generic fallback (R7 G1 CardView 동형, 값 무시).
-    // D1 nav semantic(role="navigation"/aria-label)은 generated CSS + renderer 가 부여.
-    renderer: "div",
+    // 2026-06-27: "div" → "pagination". factory 가 자식 Button×5(←/1/2/3/→)를 생성하고 renderPagination 이
+    //   context.childrenByParent 로 그 자식을 <nav> 안에 렌더하는 self-compose 컨테이너다(ButtonGroup/
+    //   TableView/AvatarGroup/CardView 동형). renderer:"div" 는 DELEGATING_INTERNAL_RENDERERS 매칭(renderer
+    //   기준)을 못 타 generic fall-through 로 빠지고 flattenNodeChildrenByParent 보강을 못 받아 자식 Button
+    //   미렌더(Skia 비대칭). 고유 renderer id + renderFacetDeclaration delegating-internal 등록으로 위임 활성화.
+    //   D1 nav semantic(role="navigation"/aria-label)은 renderPagination + generated CSS 가 부여.
+    renderer: "pagination",
   },
   props: {
     accepts: {

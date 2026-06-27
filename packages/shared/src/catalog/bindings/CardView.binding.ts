@@ -18,9 +18,14 @@ import type { PrimitiveBinding } from "../types";
  *   정본(container gap 은 factory `CardView.props.style.gap` SSOT). renderCardView 가 gap 을 inline
  *   style 로 적용 → generated CSS gap 은 `@layer` 라 inline 에 덮여 dead 였음 → 시각 손실 0.
  *
- * **DOM parity = 변화 0**: INTERNAL_RENDERERS 미등록 → CanonicalNodeRenderer generic fallback.
- *   isSpecOrCatalogBacked 가 catalog 등록 후 true → `react-aria-CardView` className + `data-size`
- *   보존 → generated CSS(CardView.css) 매칭 불변.
+ * **DOM 렌더 = renderCardView self-compose 위임 (2026-06-27)**: factory 가 자식 Card×3 을 생성하므로
+ *   CardView 는 자식을 렌더하는 self-compose 컨테이너다. renderCardView 가 `context.childrenByParent`
+ *   로 자식 Card 를 flex grid 안에 `children.map(renderElement)` 렌더한다. 따라서 `renderer:"div"`
+ *   generic fallback 으로 두면 DELEGATING_INTERNAL_RENDERERS 매칭(renderer 기준)을 못 타 generic
+ *   fall-through 로 빠지고, flattenNodeChildrenByParent 보강을 못 받아 자식 Card 가 통째 미렌더된다
+ *   (Preview 빈 div, Skia 는 자식 직접 렌더 → 비대칭). ButtonGroup/TableView/AvatarGroup 동형 — 고유
+ *   renderer id(`"cardview"`) + renderFacetDeclaration delegating-internal 등록으로 renderCardView 위임 활성화.
+ *   isSpecOrCatalogBacked + `react-aria-CardView` className + `data-size` 보존 → generated CSS 매칭 불변.
  *
  * D1: composition `<div>` (internal source, generic DOM). role="grid" 는 D2 prop(staticAttrs 미사용 —
  *     factory/renderer 가 부여).
@@ -31,7 +36,12 @@ import type { PrimitiveBinding } from "../types";
 export const cardViewBinding: PrimitiveBinding = {
   source: {
     kind: "internal",
-    renderer: "div",
+    // 2026-06-27: "div" → "cardview". factory 가 자식 Card×3 을 생성하고 renderCardView 가
+    //   context.childrenByParent 로 그 자식을 flex grid 안에 렌더하는 self-compose 컨테이너다(ButtonGroup/
+    //   TableView/AvatarGroup 동형). renderer:"div" 는 DELEGATING_INTERNAL_RENDERERS 매칭(renderer 기준)을
+    //   못 타 generic fall-through 로 빠지고 flattenNodeChildrenByParent 보강을 못 받아 자식 Card 미렌더
+    //   (Skia 비대칭). 고유 renderer id + renderFacetDeclaration delegating-internal 등록으로 위임 활성화.
+    renderer: "cardview",
   },
   props: {
     accepts: {
