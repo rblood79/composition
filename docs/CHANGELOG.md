@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [컨테이너 이동(move) 후 store↔canonical split-brain — moveElementToContainer mirror 갱신 누락] - 2026-06-29
+
+### Bug Fixes
+
+- **컨테이너 간 이동 후 store mirror 가 stale → 연속 move 시 두 번째가 no-op (split-brain)**:
+  - element 를 다른 컨테이너로 이동하면 canonical document 는 갱신되나 store mirror(elements 배열/childrenMap/elementsMap)가 갱신 안 됨. 같은 턴에 store 를 읽는 consumer 가 옛 위치를 보고, 연속 move 시 두 번째 이동이 stale store 기준으로 동작해 무시됨. 새로고침(IndexedDB→canonical→store re-hydrate) 전까지 지속
+  - **근본 원인**: `moveElementToContainer`(elements.ts)가 canonical mutation 성공 시 `if (result.changed) return` 으로 store mirror 갱신과 layoutVersion 증가를 누락. addElement 등 다른 mutation 은 canonical 갱신 후에도 store set + `_rebuildIndexes` 로 mirror 를 갱신하는데 move 만 canonical-only 로 끝냄. 또한 `_rebuildIndexes` 만으로는 부족 — `buildIndexes` 는 elementsMap/childrenMap 인덱스만 반환하고 `elements` 배열은 안 바꾸므로, 연속 move 의 두 번째 호출이 `buildIndexes(prevState.elements)`(stale elements)로 oldParentId 를 옛 부모로 읽어 `oldParentId === newParentId` early-return no-op 이 됨
+  - **Why**: ADR-122 canonical-only-runtime 후 move 의 canonical 경로가 store mirror 동기화를 빠뜨림. 기존 테스트는 `resetCanonicalMutationStoreActions()` 로 canonical 미등록(fallback 경로)만 검증해 실제 빌더 경로(canonical 등록)를 못 잡음
+  - **수정**: canonical 성공 분기에서 return 대신 `getCanonicalOrStoreElements(get())`(canonical 우선 derive)로 `elements` 배열 + `buildIndexes` 인덱스 + layoutVersion 을 함께 set (addElement 와 동일 패턴)
+  - 위치: `apps/builder/src/builder/stores/elements.ts`(moveElementToContainer canonical 분기), 회귀: `__tests__/elementMove.test.ts`(canonical 등록 상태 describe — move 후 mirror 정합 / 연속 move A→B→A split-brain 없음)
+  - 검증: elementMove 신규 2 test PASS(canonical 등록 경로 — 기존 테스트는 canonical 미등록만 검증), type-check 0 new violation(apps/builder). **live(실제 빌더)**: Checkbox 를 body→CheckboxGroup→다시 body 연속 이동 시 각 단계 store↔canonical 즉시 정합 확인(수정 전엔 두 번째 move no-op)
+
 ## [컴포넌트 prop 수정 시 page 내 형제 순서가 바뀌던 버그 — stale metadata.sourceParentId 치유] - 2026-06-29
 
 ### Bug Fixes

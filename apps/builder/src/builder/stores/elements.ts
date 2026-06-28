@@ -1390,7 +1390,27 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
           newParentId,
           insertionIndex,
         );
-        if (result.changed) return;
+        if (result.changed) {
+          // canonical(SSOT)이 갱신됐으면 store mirror(elements 배열 + 인덱스)도
+          //   canonical 기준으로 재구축한다. getCanonicalOrStoreElements 가
+          //   canonical 우선 derive 하므로 이동 결과가 정확히 반영된다.
+          //   (addElement 등 다른 mutation 과 동일 패턴 — canonical 성공 후에도
+          //   store set 누락 금지.)
+          //   **Why (2026-06-29)**: 이전엔 여기서 즉시 return 해 store 가 stale 로
+          //   남아 split-brain 이 발생했다. _rebuildIndexes() 만으로는 부족 —
+          //   buildIndexes 는 elementsMap/childrenMap 인덱스만 반환하고 `elements`
+          //   배열은 안 바꾼다. 그래서 인덱스만 갱신하면 연속 move 의 두 번째 호출이
+          //   `buildIndexes(prevState.elements)`(stale elements)로 oldParentId 를
+          //   옛 부모로 읽어 `oldParentId === newParentId` early-return 으로 no-op
+          //   이 된다. elements 배열도 canonical derive 로 함께 갱신해야 한다.
+          const nextElements = getCanonicalOrStoreElements(get());
+          set((state) => ({
+            elements: nextElements,
+            ...buildIndexes(nextElements),
+            layoutVersion: state.layoutVersion + 1,
+          }));
+          return;
+        }
       }
 
       const targetPageId = newParent.page_id ?? element.page_id ?? null;
