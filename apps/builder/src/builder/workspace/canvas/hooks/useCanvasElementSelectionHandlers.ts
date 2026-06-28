@@ -6,6 +6,7 @@ import {
   resolveClickTarget,
   resolveContextEntryTarget,
   resolveEditingContextForTreeSelection,
+  resolveLabelEditTarget,
   resolveModifierClickTarget,
 } from "../../../utils/hierarchicalSelection";
 import type { ComponentElementProps } from "../../../../types/core/store.types";
@@ -333,8 +334,17 @@ export function useCanvasElementSelectionHandlers({
       }
 
       if (TEXT_EDITABLE_TAGS.has(resolvedElement.type)) {
-        const layoutPosition = getElementBoundsSimple(resolvedTarget);
-        startEdit(resolvedTarget, layoutPosition ?? undefined);
+        // icon 추가된 Button/ToggleButton(RSP composite, children prop="")은 host 자체가
+        // 아니라 자식 Text element 를 label 편집 대상으로 해석한다. host 를 그대로 편집하면
+        // 빈 children 을 편집하는 잘못된 label 에디트 상태가 된다. icon 없는 leaf button
+        // (children prop 에 텍스트)은 resolvedTarget 그대로 → 기존 동작 보존.
+        const editTarget = resolveLabelEditTarget(
+          resolvedTarget,
+          resolvedElement,
+          interactiveChildrenMap,
+        );
+        const layoutPosition = getElementBoundsSimple(editTarget);
+        startEdit(editTarget, layoutPosition ?? undefined);
         return;
       }
 

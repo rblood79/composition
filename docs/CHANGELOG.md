@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [icon Button/ToggleButton 더블클릭 label 편집 대상 — 자식 Text 해석] - 2026-06-29
+
+### Bug Fixes
+
+- **icon 추가된 Button/ToggleButton 더블클릭 시 잘못된 빈 label 에디트 상태**:
+  - icon 이 추가된 Button/ToggleButton 을 더블클릭하면 host 자체의 빈 children 을 편집하려 해 빈 label 에디트 상태가 됨. icon 없는 button(children prop 에 텍스트)은 정상
+  - **근본 원인**: `handleElementDoubleClick`(useCanvasElementSelectionHandlers.ts)의 `TEXT_EDITABLE_TAGS` 체크에 Button/ToggleButton 이 포함돼, 자식 보유 여부와 무관하게 host 를 그대로 `startEdit` 대상으로 삼음. icon 추가된 button 은 RSP composite(자식 Icon+Text element 보유, children prop="" — 텍스트가 자식 Text 로 이관)라 `startEdit` 이 `extractText(host.props)` = ""(빈 children)를 편집 → 빈 에디트. icon 없는 leaf button 은 children prop 에 텍스트가 있어 정상 (icon 추가 시에만 깨짐)
+  - **수정** (사용자 결정 — icon 없는 button 과 동일한 label 편집 경험): `resolveLabelEditTarget` 헬퍼 추가 — button/togglebutton 이 자식 Text element 를 가지면 그 자식 Text id 를 편집 대상으로 해석(host 대신). 자식 Text 없는 leaf/icon-only button 은 resolvedTarget 그대로(기존 동작 보존). 삭제된 Text 자식은 건너뜀. `handleElementDoubleClick` 의 TEXT_EDITABLE 분기가 startEdit 전에 이 헬퍼로 대상 재해석 + 위치(getElementBoundsSimple)도 재해석된 자식 Text 기준
+  - 위치: `apps/builder/src/builder/utils/hierarchicalSelection.ts`(resolveLabelEditTarget — 순수 함수, 다른 resolve 헬퍼와 동거), `apps/builder/src/builder/workspace/canvas/hooks/useCanvasElementSelectionHandlers.ts`(handleElementDoubleClick TEXT_EDITABLE 분기), 회귀: `__tests__/resolveLabelEditTarget.test.ts`(6 case)
+  - 검증: 6 test PASS, hierarchicalSelection 7 test PASS, type-check 0 error(apps/builder). **live(빌더 Skia canvas 더블클릭)**: icon ToggleButton(674b64a0) 더블클릭 → 인라인 에디터가 자식 Text("Button")로 진입(host 빈 children 아님). 실제 빌더 데이터로 헬퍼 확인 — icon Button(4f76fa4d) → 자식 Text(5ee79121 "Button") 리다이렉트, leaf button(Action 1/2/3) → self(기존 동작 유지)
+
 ## [ToggleButtonGroup orientation SSOT + icon group selection size — Skia↔CSS 정합] - 2026-06-28
 
 ### Bug Fixes
