@@ -579,6 +579,21 @@ function buildCanonicalMutationMetadata(
   return {
     ...legacyMetadata,
     ...incomingMetadata,
+    // legacy "위치" 권위 필드(sourceParentId/sourceSlotName)는 항상 현재 element 기준 신규
+    //   legacyMetadata 가 권위다 (legacyProps 와 동일 보호). incomingMetadata(= element.metadata)
+    //   가 과거 부모/슬롯 잔재를 들고 있을 수 있는데(예: 컨테이너 X → body 로 move 후 element
+    //   .metadata.sourceParentId 가 X 로 stale), 이를 덮어쓰게 두면 stale sourceParentId 가
+    //   canonical node 에 재기록되어 다음 prop 수정 시 upsertElementIntoDocument 의
+    //   legacyPositionMatches 위치 불일치 → 빠른 경로(제자리 replace) skip → remove+append
+    //   (형제 순서 맨 뒤로 변경) 가 발생한다 (2026-06-29 RadioGroup 회귀).
+    //
+    //   **위치 필드만** 고정한다. type/customId/sourceComponentRole/sourceMasterId/
+    //   sourceElementType 및 import/export roundtrip metadata(templateRole/locked/
+    //   compositionType/importedFrom 등 ref·template anchor 식별)는 incomingMetadata 로
+    //   보존해야 한다 — 이를 덮어쓰면 ref/template 노드 식별이 깨진다(ADR-145 ListBox
+    //   template anchor). move 로 바뀌는 것은 부모/슬롯 위치뿐이므로 이 두 필드로 충분.
+    sourceParentId: legacyMetadata.sourceParentId,
+    sourceSlotName: legacyMetadata.sourceSlotName,
     legacyProps: legacyMetadata.legacyProps,
   };
 }

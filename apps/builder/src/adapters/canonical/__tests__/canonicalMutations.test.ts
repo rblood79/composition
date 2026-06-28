@@ -345,6 +345,245 @@ describe("canonical mutation wrappers", () => {
     expect(setElements).not.toHaveBeenCalled();
   });
 
+  // 회귀 — element 에 stale `metadata.sourceParentId`(과거 부모 잔재)가 붙어 있어도
+  //   prop 수정 시 형제 순서가 보존되어야 한다 (2026-06-29).
+  //
+  // **버그**: RadioGroup 을 컨테이너 X 에서 body 로 이동(move)하면 element.parent_id 는
+  //   body 로 갱신되지만 element.metadata.sourceParentId 는 과거 X 로 남는다(stale).
+  //   이후 임의의 prop 수정 → legacyElementToCanonicalNode → buildCanonicalMutationMetadata
+  //   에서 `...incomingMetadata`(stale element.metadata) 가 신규 legacyMetadata.sourceParentId
+  //   를 덮어써 canonical node 의 sourceParentId 가 stale 로 재기록된다. 다음 prop 수정 시
+  //   upsertElementIntoDocument 의 legacyPositionMatches 가 sourceParentId(X) ≠ parent_id(body)
+  //   로 위치 불일치 판정 → 빠른 경로(제자리 replace) skip → remove + append → body children
+  //   맨 뒤로 재삽입(형제 순서 변경). 사용자 증상: "RadioGroup prop 수정 시 페이지 내 다른
+  //   요소와 순서 바뀜".
+  //
+  // **수정**: buildCanonicalMutationMetadata 가 legacy position 권위 필드
+  //   (sourceParentId/sourceSlotName/sourceComponentRole/sourceMasterId/sourceElementType)
+  //   를 항상 현재 element 기준 신규 legacyMetadata 로 강제(legacyProps 와 동일 보호).
+  it("mergeElementsCanonicalPrimary keeps sibling order when an element carries a stale metadata.sourceParentId", () => {
+    const page = makePage("page-1");
+    const body = makeElement("body", "body", {
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const childA = makeElement("child-a", "Button", {
+      parent_id: body.id,
+      page_id: "page-1",
+      order_num: 0,
+    });
+    // RadioGroup 은 과거 다른 컨테이너("stale-parent")의 자식이었다가 body 로 이동됨.
+    //   element.parent_id 는 body 이지만 element.metadata.sourceParentId 는 옛 부모로 stale.
+    const radioGroup = makeElement("radiogroup-1", "RadioGroup", {
+      parent_id: body.id,
+      page_id: "page-1",
+      order_num: 1,
+      metadata: {
+        type: "legacy-element-props",
+        sourceParentId: "stale-parent",
+        sourceElementType: "RadioGroup",
+        legacyProps: { parent_id: body.id, type: "RadioGroup" },
+      },
+    } as Partial<LegacyTestElement>);
+    const childB = makeElement("child-b", "Heading", {
+      parent_id: body.id,
+      page_id: "page-1",
+      order_num: 2,
+    });
+
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeDocument([
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            makeCanonicalElementNode(body, [
+              makeCanonicalElementNode(childA),
+              makeCanonicalElementNode(radioGroup),
+              makeCanonicalElementNode(childB),
+            ]),
+          ],
+        },
+      ]),
+    );
+    registerCanonicalMutationStoreActions({
+      getCurrentLegacySnapshot: () => ({
+        elements: [body, childA, radioGroup, childB],
+        pages: [page],
+        layouts: [],
+      }),
+      getCurrentProjectId: () => "project-1",
+    });
+
+    // RadioGroup 의 prop 한 개 수정 (size 변경) — 위치(parent_id/page_id)는 그대로.
+    mergeElementsCanonicalPrimary([
+      { ...radioGroup, props: { ...radioGroup.props, size: "lg" } },
+    ]);
+
+    const nextDoc = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1");
+    const pageNode = nextDoc?.children.find((node) => node.id === "page-1");
+    const bodyNode = pageNode?.children?.find((node) => node.id === body.id);
+    // 형제 순서가 보존되어야 한다 (RadioGroup 이 맨 뒤로 밀리지 않음).
+    expect(bodyNode?.children?.map((node) => node.id)).toEqual([
+      "child-a",
+      "radiogroup-1",
+      "child-b",
+    ]);
+    // canonical node 의 sourceParentId 가 현재 부모(body)로 치유되어야 한다 (stale 재기록 금지).
+    const rgNode = bodyNode?.children?.find(
+      (node) => node.id === "radiogroup-1",
+    );
+    expect(
+      (rgNode?.metadata as { sourceParentId?: unknown } | undefined)
+        ?.sourceParentId,
+    ).toBe(body.id);
+  });
+
+  // 위 버그는 RadioGroup 특정이 아니라 move 된 적 있는 **모든 element 타입** 공통이다
+  //   (stale 을 만드는 canonical→element 역변환 + buildCanonicalMutationMetadata 는 타입
+  //   무관). 일반 leaf 타입(Box)도 동일하게 보호됨을 못박는다.
+  it("mergeElementsCanonicalPrimary keeps sibling order for a non-RadioGroup element with stale metadata.sourceParentId", () => {
+    const page = makePage("page-1");
+    const body = makeElement("body", "body", {
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const childA = makeElement("child-a", "Text", {
+      parent_id: body.id,
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const box = makeElement("box-1", "Box", {
+      parent_id: body.id,
+      page_id: "page-1",
+      order_num: 1,
+      metadata: {
+        type: "legacy-element-props",
+        sourceParentId: "stale-parent",
+        sourceElementType: "Box",
+        legacyProps: { parent_id: body.id, type: "Box" },
+      },
+    } as Partial<LegacyTestElement>);
+    const childB = makeElement("child-b", "Image", {
+      parent_id: body.id,
+      page_id: "page-1",
+      order_num: 2,
+    });
+
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeDocument([
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            makeCanonicalElementNode(body, [
+              makeCanonicalElementNode(childA),
+              makeCanonicalElementNode(box),
+              makeCanonicalElementNode(childB),
+            ]),
+          ],
+        },
+      ]),
+    );
+    registerCanonicalMutationStoreActions({
+      getCurrentLegacySnapshot: () => ({
+        elements: [body, childA, box, childB],
+        pages: [page],
+        layouts: [],
+      }),
+      getCurrentProjectId: () => "project-1",
+    });
+
+    mergeElementsCanonicalPrimary([
+      { ...box, props: { ...box.props, foo: "bar" } },
+    ]);
+
+    const nextDoc = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1");
+    const pageNode = nextDoc?.children.find((node) => node.id === "page-1");
+    const bodyNode = pageNode?.children?.find((node) => node.id === body.id);
+    expect(bodyNode?.children?.map((node) => node.id)).toEqual([
+      "child-a",
+      "box-1",
+      "child-b",
+    ]);
+    const boxNode = bodyNode?.children?.find((node) => node.id === "box-1");
+    expect(
+      (boxNode?.metadata as { sourceParentId?: unknown } | undefined)
+        ?.sourceParentId,
+    ).toBe(body.id);
+  });
+
+  // 위치 권위(sourceParentId/sourceSlotName)만 신규 강제하고, import/export roundtrip
+  //   metadata(ref/template anchor 식별 등)는 incomingMetadata 로 보존해야 한다
+  //   (ADR-145 ListBox template anchor 회귀 방지). element.metadata 의 비-위치 필드가
+  //   merge 후에도 살아남는지 검증.
+  it("mergeElementsCanonicalPrimary preserves non-position incoming metadata while healing position fields", () => {
+    const page = makePage("page-1");
+    const body = makeElement("body", "body", {
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const node = makeElement("node-1", "Box", {
+      parent_id: body.id,
+      page_id: "page-1",
+      order_num: 0,
+      metadata: {
+        type: "legacy-element-props",
+        sourceParentId: "stale-parent",
+        // import/export roundtrip 식별 metadata — 보존되어야 함
+        templateRole: "some-anchor",
+        compositionType: "MyComponent",
+        legacyProps: { parent_id: body.id, type: "Box" },
+      },
+    } as Partial<LegacyTestElement>);
+
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeDocument([
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [makeCanonicalElementNode(body, [])],
+        },
+      ]),
+    );
+    registerCanonicalMutationStoreActions({
+      getCurrentLegacySnapshot: () => ({
+        elements: [body, node],
+        pages: [page],
+        layouts: [],
+      }),
+      getCurrentProjectId: () => "project-1",
+    });
+
+    mergeElementsCanonicalPrimary([node]);
+
+    const nextDoc = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1");
+    const pageNode = nextDoc?.children.find((node) => node.id === "page-1");
+    const bodyNode = pageNode?.children?.find((n) => n.id === body.id);
+    const nodeOut = bodyNode?.children?.find((n) => n.id === "node-1");
+    const md = nodeOut?.metadata as Record<string, unknown> | undefined;
+    // 위치 필드는 치유
+    expect(md?.sourceParentId).toBe(body.id);
+    // 비-위치 roundtrip metadata 는 보존
+    expect(md?.templateRole).toBe("some-anchor");
+    expect(md?.compositionType).toBe("MyComponent");
+  });
+
   it("moveElementCanonicalPrimary reorders siblings by canonical children splice", () => {
     const setElements = vi.fn();
     const page = makePage("page-1");

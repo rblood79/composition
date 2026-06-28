@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [컴포넌트 prop 수정 시 page 내 형제 순서가 바뀌던 버그 — stale metadata.sourceParentId 치유] - 2026-06-29
+
+### Bug Fixes
+
+- **컨테이너 간 이동(move)된 적 있는 element 의 prop 수정 시 page 내 형제 순서가 맨 뒤로 바뀜** (RadioGroup 재현):
+  - RadioGroup 을 다른 컨테이너에서 body 로 이동한 뒤 size/label/variant 등 **임의의 prop** 을 수정하면 page 내 다른 요소와 순서가 바뀜(맨 뒤로 재삽입). 새로고침/재이동 전까지 지속
+  - **근본 원인**: element 가 컨테이너 X → body 로 move 되면 `element.parent_id` 는 body 로 갱신되나 `element.metadata.sourceParentId` 는 X 로 stale 잔존. 이후 prop 수정 → `legacyElementToCanonicalNode` → `buildCanonicalMutationMetadata` 의 `...incomingMetadata`(= stale element.metadata) 가 신규 `legacyMetadata.sourceParentId`(body)를 덮어써 canonical node 의 sourceParentId 가 stale 로 재기록됨. 다음 prop 수정 시 `upsertElementIntoDocument` 의 `legacyPositionMatches` 가 `sourceParentId`(X) ≠ `parent_id`(body) 로 위치 불일치 판정 → 빠른 경로(제자리 replace) skip → remove + append(`upsertChild` 가 배열 끝에 추가) → body children 맨 뒤로 이동
+  - **Why**: `buildCanonicalMutationMetadata` 가 `legacyProps` 는 신규 값으로 명시 보호했지만 top-level position 권위 필드(`sourceParentId`/`sourceSlotName`)는 incomingMetadata 가 덮어쓰도록 방치 — 같은 metadata 내에서 `legacyProps.parent_id`(최신 body) ↔ `sourceParentId`(stale X) 불일치 발생
+  - **수정**: `buildCanonicalMutationMetadata` 가 `sourceParentId`/`sourceSlotName` 를 항상 현재 element 기준 신규 `legacyMetadata` 로 강제(`legacyProps` 와 동일 보호). move 로 바뀌는 것은 부모/슬롯 위치뿐이므로 이 두 필드만 고정 — type/customId/sourceComponentRole/sourceMasterId/sourceElementType 및 import/export roundtrip metadata(templateRole/locked/compositionType/importedFrom 등 ref·template anchor 식별)는 incomingMetadata 로 보존(ADR-145 ListBox template anchor 회귀 방지). 결과적으로 prop 수정 시 stale sourceParentId 가 현재 부모로 **자동 치유**됨
+  - 위치: `apps/builder/src/adapters/canonical/canonicalMutations.ts`(buildCanonicalMutationMetadata), 회귀: `__tests__/canonicalMutations.test.ts`(stale metadata.sourceParentId 시나리오 — 형제 순서 보존 + sourceParentId 치유 검증)
+  - 검증: canonicalMutations 25 test PASS(신규 1 포함), ref/instance/frame/slot roundtrip 32 test PASS, type-check 0 new violation(apps/builder). **live(실제 빌더)**: stale `sourceParentId`(CheckboxGroup) 보유 RadioGroup 의 size 수정 → canonical node + element.metadata 의 sourceParentId 가 body 로 치유, body children 순서(`[Button, ToggleButton, ToggleButtonGroup, Checkbox, CheckboxGroup, NumberField, RadioGroup]`) 보존, size 원복까지 확인
+
 ## [icon Button/ToggleButton 더블클릭 label 편집 대상 — 자식 Text 해석] - 2026-06-29
 
 ### Bug Fixes

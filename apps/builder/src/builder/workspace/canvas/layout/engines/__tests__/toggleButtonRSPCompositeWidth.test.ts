@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 import { calculateContentWidth } from "../utils";
-import type { CanvasLayoutNode } from "../utils";
+import type { CanvasLayoutNode } from "../../layoutNode";
 
 /**
  * 회귀 방지 — icon ToggleButton(RSP composite) 의 intrinsic content width 가 자식
