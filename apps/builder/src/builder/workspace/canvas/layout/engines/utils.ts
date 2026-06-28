@@ -1438,6 +1438,66 @@ export function calculateContentWidth(
     return DEFAULT_WIDTH;
   }
 
+  // 1.9. Button/ToggleButton RSP composite (자식 Icon+Text element 보유):
+  //   자식 Icon width + iconGap + Text width 를 합산한다. display:flex 여부와 무관.
+  //   **Why (2026-06-28)**: icon 추가된 Button/ToggleButton 은 RSP composite —
+  //   `iconName` prop 이 아니라 자식 Icon+Text element 로 렌더되고(children prop = ""),
+  //   store props.style 에 `display:flex` 가 없다(catalog/CSS 가 flex 부여, store 미보유).
+  //   그래서 아래 line 1453 flex 자식 합산 분기는 `style?.display === "flex"` 조건을
+  //   못 넘고, button 분기(type 불일치)/text 분기(children "")도 안 타 → 최종 fallback
+  //   DEFAULT_WIDTH(80) 로 떨어진다. ToggleButtonGroup intrinsic width 경로 A(line 1366)가
+  //   `calculateContentWidth(child)` 를 직접 호출하므로 이 80 fallback 이 그대로 group width
+  //   에 박혀 selection box(=Skia 노드 bounds)가 시각보다 좁게 그려졌다(XL: group 260 vs
+  //   DOM 308). standalone Button/ToggleButton 은 fullTreeLayout 이 자식을 Taffy 트리에
+  //   등록해 합산하므로 정상이지만, group intrinsic 경로는 본 함수 결과를 직접 쓴다.
+  //   자식 element 직접 합산은 RSP composite 의 icon width 를 generic 하게 포함한다(자식
+  //   Icon leaf 가 자기 width 를 정확히 반환).
+  if (
+    (type === "button" ||
+      type === "submitbutton" ||
+      type === "fancybutton" ||
+      type === "togglebutton") &&
+    childElements &&
+    childElements.length > 0
+  ) {
+    const defaultSize = DEFAULT_SIZE_BY_TAG[type] ?? "md";
+    const sizeName = (element.props as Record<string, unknown>)?.size as
+      | string
+      | undefined;
+    const configMap =
+      type === "togglebutton" ? TOGGLEBUTTON_SIZE_CONFIG : BUTTON_SIZE_CONFIG;
+    const sizeConfig =
+      configMap[sizeName ?? defaultSize] ??
+      configMap[defaultSize] ??
+      Object.values(configMap)[0];
+    const iconGap =
+      readGapValue(style) ?? (sizeConfig as { iconGap?: number }).iconGap ?? 8;
+    let contentW = 0;
+    let gapCount = 0;
+    for (const child of childElements) {
+      const childStyle = child.props?.style as
+        | Record<string, unknown>
+        | undefined;
+      const explicitW = parseNumericValue(childStyle?.width);
+      const grandChildren = getChildElements?.(child.id);
+      const childContent =
+        explicitW !== undefined
+          ? explicitW
+          : calculateContentWidth(child, grandChildren, getChildElements);
+      // 자식 border-box (Icon/Text 는 padding/border 0 이지만 generic 하게 가산)
+      const childBox = parseBoxModel(child, 0, -1);
+      const childBoxW =
+        childContent +
+        childBox.padding.left +
+        childBox.padding.right +
+        childBox.border.left +
+        childBox.border.right;
+      contentW += childBoxW;
+      gapCount++;
+    }
+    return contentW + iconGap * Math.max(0, gapCount - 1);
+  }
+
   // Phantom indicator space (모듈 스코프 PHANTOM_INDICATOR_CONFIGS 사용)
   const _phantomProps = element.props as Record<string, unknown> | undefined;
   const _phantomSize = (_phantomProps?.size as string) ?? "md";

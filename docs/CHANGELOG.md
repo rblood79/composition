@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [ToggleButtonGroup orientation SSOT + icon group width — Skia↔CSS 정합] - 2026-06-28
+## [ToggleButtonGroup orientation SSOT + icon group selection size — Skia↔CSS 정합] - 2026-06-28
 
 ### Bug Fixes
 
@@ -34,7 +34,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **근본 원인**: `ButtonChildSection.buildButtonChild` 의 Text 생성 propsOverride 가 `style.fontSize/lineHeight` 만 주입하고 `size` prop 을 누락(Icon 생성은 `size: buttonSize` 명시 주입). 2026-06-27 에 "Text 는 size prop 상속 대신 fontSize/lineHeight inline 만"으로 의도했으나(Text.css 독립 타이포 척도 회피), Icon 과의 형제 size 불일치 + 사용자 혼란을 낳음. (시각 fontSize/lineHeight 는 buttonTextMetrics 로 부모 척도 맞음 — size prop 만 어긋남)
   - **수정** (사용자 결정 2026-06-28): Text 에도 `size: 부모size` 주입(Icon 동형). inline fontSize/lineHeight 가 specificity 로 Text.css `[data-size]` 보다 우선이라 시각은 버튼 척도 유지(size prop 추가가 시각 안 바꿈) + 형제 size 일관. 생성 시점(buildButtonChild) + 변경 시점(propagation rule `size → Text` size prop 전파, button/ToggleButtonGroup 양쪽) 모두 적용
   - 위치: `apps/builder/src/builder/panels/properties/ButtonChildSection.tsx`(buildButtonChild Text size 주입 + export), `propagationRegistry.ts`(buttonPropagationRules + toggleButtonGroupPropagationRules 에 `size → Text` size prop rule 추가), 회귀: `ButtonChildSection.test.tsx`(buildButtonChild Text/Icon size 2 case), `toggleButtonGroupGrandchildSizePropagation.test.ts`(손자 Text size prop 1 case)
-  - 검증: ButtonChildSection 16 + grandchild propagation 4 + phase5 6 = 22 test PASS, type-check PASS(baseline 69). **live(빌더 UI, 페이지 리로드로 propagation rule 반영)**: 부모 XL ToggleButton 에 icon 추가 → Text size:md→xl(Icon 과 일관), fontSize 18 유지. group size XL→S 변경 → 양쪽 손자 Icon(sm 16/16)+Text(sm, fontSize 12) size prop 갱신, Skia selection 196×22 sm 크기 정상
+  - 검증: ButtonChildSection 16 + grandchild propagation 4 + phase5 6 = 22 test PASS, type-check PASS(baseline 69). **live(빌더 UI, 페이지 리로드로 propagation rule 반영)**: 부모 XL ToggleButton 에 icon 추가 → Text size:md→xl(Icon 과 일관), fontSize 18 유지. group size XL→S 변경 → 양쪽 손자 Icon(sm 16/16)+Text(sm, fontSize 12) size prop 갱신
+- **size 변경 시 ToggleButtonGroup 의 Skia selection size(width/height)가 시각 영역과 불일치** (CSS Preview 가 정답):
+  - icon ToggleButton 을 가진 ToggleButtonGroup 선택 시 Skia selection 박스가 실제 시각(CSS Preview)과 어긋남. XL 측정: selection(Skia) 260×54 vs CSS Preview(정답) 308×54 → width 48px 부족. (이전 작업이 196×22 를 "정상"으로 기록했으나 실은 동일 버그였음)
+  - **근본 원인**: ToggleButtonGroup 의 intrinsic width 계산 경로 A(`calculateContentWidth` togglebuttongroup 분기)가 자식 ToggleButton 폭을 `calculateContentWidth(child)` 로 구하는데, icon ToggleButton 은 RSP composite(자식 Icon+Text element, store props.style 에 `display:flex` 없음 — catalog/CSS 가 flex 부여하나 store 미보유)라: line 1453 flex 자식 합산 분기는 `style?.display==="flex"` 조건 불충족 / type "togglebutton" 이라 button 분기 미진입 / children:"" 라 text 분기 미진입 → 최종 fallback `DEFAULT_WIDTH`(80) 반환 → 자식 Icon width+gap 누락. group width = (80 + paddingX·2 + border·2)·2 로 좁게 박힘. standalone Button/ToggleButton 은 fullTreeLayout 이 자식을 Taffy 트리에 등록해 합산하므로 정상이지만, group intrinsic 경로는 본 함수 결과를 직접 쓴다 (selection box = treeBoundsMap = Skia 노드 bounds = layout 계산값)
+  - **수정**: `calculateContentWidth` 에 button/togglebutton RSP-composite 전용 분기 추가(flex 분기보다 먼저, display:flex 무관) — 자식 Icon+Text element 가 있으면 각 자식 border-box(`calculateContentWidth` 재귀 + `parseBoxModel`) + iconGap(catalog config) 합산. ToggleButtonGroup 경로 A 가 이 정확한 content 를 받아 group width 정상화(XL: TB content 80→112, group 260→324 = DOM 308 을 감쌈)
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`(calculateContentWidth §1.9 button/togglebutton RSP-composite 분기), 회귀: `__tests__/toggleButtonRSPCompositeWidth.test.ts`(3 case — 자식 합산/Icon·Text 전제/group 폭)
+  - 검증: 3 test PASS, layout engines 100 test PASS, type-check PASS(apps/builder 0 error). **live**: 단위 측정으로 TB content 80(fallback)→112(자식 합산), group 260→324(DOM 308 감쌈) 확인. 빌더 우측 canvas viewport panning 으로 group 화면 포착 실패하여 시각 스크린샷 미확보 — DOM 실측(308×54) ↔ layout 계산(324) 비교로 검증(selection 이 시각보다 16px 큰 것은 텍스트 측정 sub-pixel 오차 + segmented overlap 미차감, 시각을 감싸는 방향이라 허용)
 
 ## [Button/ToggleButton 자식 layout — catalog display/padding/gap 가 Skia 에 도달] - 2026-06-27
 
