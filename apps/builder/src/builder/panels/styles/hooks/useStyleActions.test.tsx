@@ -35,10 +35,11 @@ describe("useStyleActions", () => {
     });
   });
 
-  // ToggleButtonGroup direction → orientation 양방향 동기화 (2026-06-30)
-  // flexDirection SSOT 가 props.orientation 으로 일원화됐으므로(d9ef79bcb)
-  // direction 토글 편집을 style 이 아닌 orientation prop 으로 번역해 기록한다.
-  describe("handleFlexDirection — ToggleButtonGroup orientation 동기화", () => {
+  // orientation-SSOT 컨테이너 direction → orientation 양방향 동기화 (2026-06-30)
+  // flexDirection SSOT 가 props.orientation 으로 일원화된 컨테이너
+  // (ToggleButtonGroup / Toolbar)는 direction 토글 편집을 style 이 아닌
+  // orientation prop 으로 번역해 기록한다. ButtonGroup 은 SSOT 가 정반대라 제외.
+  describe("handleFlexDirection — orientation-SSOT 컨테이너 동기화", () => {
     function setupSelection(type: string) {
       const updateSelectedStyles = vi.fn();
       const updateSelectedProperty = vi.fn();
@@ -108,7 +109,41 @@ describe("useStyleActions", () => {
       expect(updateSelectedStyles).not.toHaveBeenCalled();
     });
 
-    it("비-ToggleButtonGroup 은 기존 flexDirection 경로 유지", () => {
+    it("Toolbar column → orientation:vertical 로 번역, style 미기록", () => {
+      const { updateSelectedStyles, updateSelectedProperty } =
+        setupSelection("Toolbar");
+      const { result } = renderHook(() => useStyleActions());
+
+      act(() => {
+        result.current.handleFlexDirection("column");
+      });
+
+      expect(updateSelectedProperty).toHaveBeenCalledWith(
+        "orientation",
+        "vertical",
+      );
+      expect(updateSelectedStyles).not.toHaveBeenCalled();
+    });
+
+    it("ButtonGroup 은 SSOT 가 정반대(style.flexDirection) → 기존 경로 유지", () => {
+      // ButtonGroup 의 flexDirection SSOT 는 props.style.flexDirection(Skia/Taffy
+      // 직접 read). orientation 으로 번역하면 Skia 미반영 → 새 drift. 제외 확인.
+      const { updateSelectedStyles, updateSelectedProperty } =
+        setupSelection("ButtonGroup");
+      const { result } = renderHook(() => useStyleActions());
+
+      act(() => {
+        result.current.handleFlexDirection("column");
+      });
+
+      expect(updateSelectedStyles).toHaveBeenCalledWith({
+        display: "flex",
+        flexDirection: "column",
+      });
+      expect(updateSelectedProperty).not.toHaveBeenCalled();
+    });
+
+    it("비-orientation 컨테이너(frame) 는 기존 flexDirection 경로 유지", () => {
       const { updateSelectedStyles, updateSelectedProperty } =
         setupSelection("frame");
       const { result } = renderHook(() => useStyleActions());

@@ -41,6 +41,7 @@ import {
 } from "../hooks/useLayoutAuxiliary";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { useStore } from "../../../stores";
+import { isOrientationDrivenTag } from "../utils/orientationDrivenTags";
 
 // 4방향 값 추출은 이제 useLayoutValues 훅에서 처리됨
 
@@ -192,16 +193,14 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
 
   // ADR-067 Phase 2: Zustand 직접 구독 + Spec 직접 lookup
   const selectedId = useStore((s) => s.selectedElementId);
-  // ToggleButtonGroup 은 flexDirection SSOT 가 props.orientation(row/column 만,
-  // block 없음)이므로 Direction 토글의 block 버튼을 disable 한다 — direction ⇄
-  // orientation 양방향 동기화에서 매핑 불가능한 block 선택을 원천 차단(2026-06-30).
-  // element.type 은 PascalCase 저장 → derive 경로와 동일하게 toLowerCase 비교.
-  const isOrientationDriven = useStore(
-    (s) =>
-      (selectedId
-        ? (s.elementsMap.get(selectedId)?.type ?? "")
-        : ""
-      ).toLowerCase() === "togglebuttongroup",
+  // orientation-SSOT 컨테이너(ToggleButtonGroup / Toolbar)는 flexDirection SSOT 가
+  // props.orientation(row/column 만, block 없음)이라 Direction 토글의 block 버튼을
+  // disable — 매핑 불가능한 block 선택을 원천 차단(2026-06-30). 대상 집합 정본:
+  // orientationDrivenTags (element.type PascalCase → 헬퍼가 toLowerCase 정규화).
+  const isOrientationDriven = useStore((s) =>
+    isOrientationDrivenTag(
+      selectedId ? s.elementsMap.get(selectedId)?.type : undefined,
+    ),
   );
   const styleValues = useLayoutValues(selectedId);
   const flexDirectionKeys = useFlexDirectionKeys(selectedId);
