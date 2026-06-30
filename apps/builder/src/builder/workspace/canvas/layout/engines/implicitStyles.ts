@@ -2112,9 +2112,16 @@ export function applyImplicitStyles(
     if (sideMode) {
       filteredChildren = injectSideLabelLabelAndContentStyles(
         filteredChildren,
-        // Group(RAC DatePicker 내부 trigger 래퍼) + frame(ADR-130) + DateInput(factory 직접 자식)
-        //   — 구조 차이 양쪽 모두 side-label content 보정 (flex:1/minWidth:0) 대상.
-        new Set(["Group", "frame", "DateInput"]),
+        // side-label content 보정(flex:1/minWidth:0) 대상 자식 type.
+        //   SelectTrigger: factory(DateColorComponents) 가 만드는 현행 직속 trigger 자식
+        //     (2026-06-23 "field-trigger canonical 자식 통일" 로 Group→SelectTrigger 전환).
+        //     누락 시 SelectTrigger 가 factory width:"100%" 를 유지 → side 부모(row+wrap)에서
+        //     Label(75) + trigger(=부모폭) 합이 부모폭 초과 → flexWrap:"wrap" 으로 trigger 가
+        //     다음 줄로 밀려 Skia 가 column 처럼 렌더(CSS 는 generated side selector 가 trigger
+        //     에 flex:1 부여라 정상) — labelPosition=side CSS↔Skia 비대칭 근본 (2026-06-30 fix).
+        //   Group(RAC DatePicker 내부 trigger 래퍼) + frame(ADR-130): 구조 차이 호환 보존.
+        //   DateInput(factory 직접 자식): 레거시/대체 구조 보존.
+        new Set(["SelectTrigger", "Group", "frame", "DateInput"]),
       );
     }
     effectiveParent = withParentStyle(

@@ -239,6 +239,51 @@ describe("side-label implicit styles", () => {
     ).toBe(undefined);
   });
 
+  it("DatePicker side variant는 현행 factory 구조(SelectTrigger 자식)에도 flex 보정을 준다", () => {
+    // 2026-06-30 fix: factory(DateColorComponents)는 "field-trigger canonical 자식 통일"
+    //   (2026-06-23) 이후 직속 trigger 를 Group 이 아닌 SelectTrigger 로 만든다. side-label
+    //   content 보정 대상 Set 에 SelectTrigger 가 빠져 있어 SelectTrigger 가 factory width:"100%"
+    //   를 유지 → side 부모(row+wrap)에서 Label+trigger 합이 부모폭 초과 → flexWrap:"wrap" 으로
+    //   trigger 가 다음 줄로 밀려 Skia 가 column 처럼 렌더(CSS 는 generated side selector 가 정상).
+    //   기존 테스트는 legacy Group 자식만 검증해 현행 구조의 회귀를 놓쳤다 → SelectTrigger 가드 추가.
+    const result = applyContainer(
+      "DatePicker",
+      { label: "Appointment", labelPosition: "side" },
+      [
+        makeChild("lbl", "Label"),
+        makeChild("trigger", "SelectTrigger", { width: "100%" }),
+        makeChild("calendar", "Calendar"),
+      ],
+    );
+
+    const parentStyle = getParentStyle(result);
+    expect(parentStyle.flexDirection).toBe("row");
+
+    const triggerStyle = getChildStyle(result, "SelectTrigger");
+    expect(triggerStyle.flex).toBe(1);
+    expect(triggerStyle.minWidth).toBe(0);
+  });
+
+  it("DateRangePicker side variant는 현행 factory 구조(SelectTrigger 자식)에도 flex 보정을 준다", () => {
+    // DatePicker 동형 (DateColorComponents createDateRangePickerDefinition 도 SelectTrigger 직속 자식).
+    const result = applyContainer(
+      "DateRangePicker",
+      { label: "Date Range", labelPosition: "side" },
+      [
+        makeChild("lbl", "Label"),
+        makeChild("trigger", "SelectTrigger", { width: "100%" }),
+        makeChild("calendar", "Calendar"),
+      ],
+    );
+
+    const parentStyle = getParentStyle(result);
+    expect(parentStyle.flexDirection).toBe("row");
+
+    const triggerStyle = getChildStyle(result, "SelectTrigger");
+    expect(triggerStyle.flex).toBe(1);
+    expect(triggerStyle.minWidth).toBe(0);
+  });
+
   it("TextArea side variant는 TextField와 같은 Label/Input/FieldError 보정을 사용한다", () => {
     const result = applyContainer(
       "TextArea",
