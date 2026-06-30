@@ -18,16 +18,34 @@ describe("orientationDrivenTags", () => {
       ]);
     });
 
-    it("LABEL_POSITION_DRIVEN_TAGS = RadioGroup / CheckboxGroup", () => {
+    it("LABEL_POSITION_DRIVEN_TAGS = RadioGroup / CheckboxGroup / field 8종 / TagGroup", () => {
       expect([...LABEL_POSITION_DRIVEN_TAGS].sort()).toEqual([
         "checkboxgroup",
+        "colorfield",
+        "datefield",
+        "datepicker",
+        "numberfield",
         "radiogroup",
+        "searchfield",
+        "taggroup",
+        "textarea",
+        "textfield",
+        "timefield",
       ]);
     });
 
     it("ButtonGroup 은 어느 집합에도 없다 (SSOT 정반대 — 새 drift 방지)", () => {
       expect(ORIENTATION_DRIVEN_TAGS.has("buttongroup")).toBe(false);
       expect(LABEL_POSITION_DRIVEN_TAGS.has("buttongroup")).toBe(false);
+    });
+
+    it("ComboBox / DateRangePicker 는 미포함 (catalog variant 는 있으나 binding accepts 부재 → 편집 UI 비대칭)", () => {
+      expect(LABEL_POSITION_DRIVEN_TAGS.has("combobox")).toBe(false);
+      expect(LABEL_POSITION_DRIVEN_TAGS.has("daterangepicker")).toBe(false);
+    });
+
+    it("Select 는 미포함 (catalog label-position variant 자체 없음)", () => {
+      expect(LABEL_POSITION_DRIVEN_TAGS.has("select")).toBe(false);
     });
   });
 
@@ -39,32 +57,74 @@ describe("orientationDrivenTags", () => {
       expect(resolveDirectionDrivenProp("Toolbar")).toBe("orientation");
     });
 
-    it("labelPosition-driven → 'labelPosition'", () => {
+    it("labelPosition-driven (group) → 'labelPosition'", () => {
       expect(resolveDirectionDrivenProp("RadioGroup")).toBe("labelPosition");
       expect(resolveDirectionDrivenProp("CheckboxGroup")).toBe("labelPosition");
     });
 
+    it("labelPosition-driven (field 8종) → 'labelPosition'", () => {
+      for (const t of [
+        "TextField",
+        "TextArea",
+        "NumberField",
+        "SearchField",
+        "ColorField",
+        "DateField",
+        "TimeField",
+        "DatePicker",
+      ]) {
+        expect(resolveDirectionDrivenProp(t)).toBe("labelPosition");
+      }
+    });
+
+    it("labelPosition-driven (TagGroup) → 'labelPosition'", () => {
+      expect(resolveDirectionDrivenProp("TagGroup")).toBe("labelPosition");
+    });
+
     it("소문자 표기도 인식한다", () => {
       expect(resolveDirectionDrivenProp("radiogroup")).toBe("labelPosition");
+      expect(resolveDirectionDrivenProp("textfield")).toBe("labelPosition");
     });
 
     it("비대상 / undefined → undefined (일반 style 경로)", () => {
       expect(resolveDirectionDrivenProp("ButtonGroup")).toBeUndefined();
+      expect(resolveDirectionDrivenProp("ComboBox")).toBeUndefined();
+      expect(resolveDirectionDrivenProp("Select")).toBeUndefined();
+      expect(resolveDirectionDrivenProp("DateRangePicker")).toBeUndefined();
       expect(resolveDirectionDrivenProp("frame")).toBeUndefined();
       expect(resolveDirectionDrivenProp(undefined)).toBeUndefined();
     });
   });
 
   describe("isDirectionDrivenTag — block disable 대상", () => {
-    it("두 집합 모두 true", () => {
+    it("두 집합 모두 true (orientation + labelPosition)", () => {
       expect(isDirectionDrivenTag("ToggleButtonGroup")).toBe(true);
       expect(isDirectionDrivenTag("Toolbar")).toBe(true);
       expect(isDirectionDrivenTag("RadioGroup")).toBe(true);
       expect(isDirectionDrivenTag("CheckboxGroup")).toBe(true);
     });
 
+    it("field 8종 + TagGroup 도 true (block disable 대상)", () => {
+      for (const t of [
+        "TextField",
+        "TextArea",
+        "NumberField",
+        "SearchField",
+        "ColorField",
+        "DateField",
+        "TimeField",
+        "DatePicker",
+        "TagGroup",
+      ]) {
+        expect(isDirectionDrivenTag(t)).toBe(true);
+      }
+    });
+
     it("비대상은 false", () => {
       expect(isDirectionDrivenTag("ButtonGroup")).toBe(false);
+      expect(isDirectionDrivenTag("ComboBox")).toBe(false);
+      expect(isDirectionDrivenTag("Select")).toBe(false);
+      expect(isDirectionDrivenTag("DateRangePicker")).toBe(false);
       expect(isDirectionDrivenTag("frame")).toBe(false);
       expect(isDirectionDrivenTag(undefined)).toBe(false);
     });
@@ -143,11 +203,33 @@ describe("orientationDrivenTags", () => {
       ).toBe("column");
     });
 
-    it("비대상(ButtonGroup/frame)은 undefined (일반 inline 경로 fallback)", () => {
+    it("TextField labelPosition:side → row (inline column 무시)", () => {
+      expect(
+        resolveDrivenFlexDirection("TextField", {
+          labelPosition: "side",
+          style: { flexDirection: "column" },
+        }),
+      ).toBe("row");
+    });
+
+    it("TextField labelPosition 미설정(default top) → column", () => {
+      expect(resolveDrivenFlexDirection("TextField", {})).toBe("column");
+    });
+
+    it("TagGroup labelPosition:side → row", () => {
+      expect(
+        resolveDrivenFlexDirection("TagGroup", { labelPosition: "side" }),
+      ).toBe("row");
+    });
+
+    it("비대상(ButtonGroup/ComboBox/frame)은 undefined (일반 inline 경로 fallback)", () => {
       expect(
         resolveDrivenFlexDirection("ButtonGroup", {
           style: { flexDirection: "row" },
         }),
+      ).toBeUndefined();
+      expect(
+        resolveDrivenFlexDirection("ComboBox", { labelPosition: "side" }),
       ).toBeUndefined();
       expect(resolveDrivenFlexDirection("frame", {})).toBeUndefined();
     });

@@ -39,8 +39,11 @@ describe("useStyleActions", () => {
   // 그룹 root flexDirection SSOT 가 별도 prop 인 컨테이너는 direction 토글 편집을
   // style 이 아닌 그 prop 으로 번역해 기록한다:
   //  - orientation (ToggleButtonGroup/Toolbar): column→vertical / row→horizontal
-  //  - labelPosition (RadioGroup/CheckboxGroup): column→top / row→side
-  // ButtonGroup 은 SSOT 가 정반대(style.flexDirection)라 제외.
+  //  - labelPosition (RadioGroup/CheckboxGroup/field 8종/TagGroup): column→top / row→side
+  // field/TagGroup 도 렌더 SSOT 가 RadioGroup 과 동일한 catalog containerVariants
+  // (label-position.side flex-row) 라 동형. ButtonGroup 은 SSOT 가 정반대
+  // (style.flexDirection)라 제외, ComboBox/Select/DateRangePicker 는 binding accepts
+  // 부재(편집 UI 비대칭) 또는 catalog variant 부재라 제외.
   describe("handleFlexDirection — 그룹 축 prop derive 컨테이너 동기화", () => {
     function setupSelection(type: string) {
       const updateSelectedStyles = vi.fn();
@@ -171,6 +174,69 @@ describe("useStyleActions", () => {
         "labelPosition",
         "top",
       );
+    });
+
+    it("TextField row → labelPosition:side 로 번역 (field 동형), style 미기록", () => {
+      const { updateSelectedStyles, updateSelectedProperty } =
+        setupSelection("TextField");
+      const { result } = renderHook(() => useStyleActions());
+
+      act(() => {
+        result.current.handleFlexDirection("row");
+      });
+
+      expect(updateSelectedProperty).toHaveBeenCalledWith(
+        "labelPosition",
+        "side",
+      );
+      expect(updateSelectedStyles).not.toHaveBeenCalled();
+    });
+
+    it("NumberField column → labelPosition:top (field 동형)", () => {
+      const { updateSelectedProperty } = setupSelection("NumberField");
+      const { result } = renderHook(() => useStyleActions());
+
+      act(() => {
+        result.current.handleFlexDirection("column");
+      });
+
+      expect(updateSelectedProperty).toHaveBeenCalledWith(
+        "labelPosition",
+        "top",
+      );
+    });
+
+    it("TagGroup row → labelPosition:side (chip 계열 동형)", () => {
+      const { updateSelectedProperty } = setupSelection("TagGroup");
+      const { result } = renderHook(() => useStyleActions());
+
+      act(() => {
+        result.current.handleFlexDirection("row");
+      });
+
+      expect(updateSelectedProperty).toHaveBeenCalledWith(
+        "labelPosition",
+        "side",
+      );
+    });
+
+    it("ComboBox 는 binding accepts 부재 → 기존 flexDirection 경로 유지", () => {
+      // catalog 에 label-position variant 는 있으나 binding accepts 미선언이라
+      // Properties dropdown 편집 UI 가 없다. Direction 토글만 prop 을 쓰면
+      // 편집 진입점 비대칭 → 제외. 일반 style 경로 유지 확인.
+      const { updateSelectedStyles, updateSelectedProperty } =
+        setupSelection("ComboBox");
+      const { result } = renderHook(() => useStyleActions());
+
+      act(() => {
+        result.current.handleFlexDirection("column");
+      });
+
+      expect(updateSelectedStyles).toHaveBeenCalledWith({
+        display: "flex",
+        flexDirection: "column",
+      });
+      expect(updateSelectedProperty).not.toHaveBeenCalled();
     });
 
     it("ButtonGroup 은 SSOT 가 정반대(style.flexDirection) → 기존 경로 유지", () => {

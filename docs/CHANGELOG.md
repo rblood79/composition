@@ -7,18 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [그룹 축 prop derive 컨테이너 Direction 양방향 동기화 — ToggleButtonGroup/Toolbar(orientation) + RadioGroup/CheckboxGroup(labelPosition)] - 2026-06-30
+## [그룹 축 prop derive 컨테이너 Direction 양방향 동기화 — ToggleButtonGroup/Toolbar(orientation) + RadioGroup/CheckboxGroup/field 8종/TagGroup(labelPosition)] - 2026-06-30
 
 ### Bug Fixes
 
-- **그룹 축 prop 변경은 Style 패널 Direction 에 반영되나, 반대로 Direction 편집은 그 prop 에 미반영** (ToggleButtonGroup/Toolbar/RadioGroup/CheckboxGroup):
+- **그룹 축 prop 변경은 Style 패널 Direction 에 반영되나, 반대로 Direction 편집은 그 prop 에 미반영** (ToggleButtonGroup/Toolbar/RadioGroup/CheckboxGroup/field 8종/TagGroup):
   - **Why**: 그룹 root flexDirection SSOT 가 `style.flexDirection` 이 아니라 별도 layout prop (orientation 또는 labelPosition). 렌더 derive 경로가 `prop→flexDirection` 만 단방향 도출하고 inline style.flexDirection 을 무시. Style 패널 Direction 토글(`handleFlexDirection`)은 `style.flexDirection` 만 기록 → prop 미갱신 + derive 가 inline 무시 → 화면 반영조차 안 됨.
   - 수정: `handleFlexDirection` 이 그룹 축 prop derive 컨테이너면 입력을 해당 prop 으로 번역해 단일 SSOT 에 직접 기록(이중 저장 아님). 매핑 — orientation: column→vertical/row→horizontal, labelPosition: column→top/row→side.
   - **패널 표시도 SSOT 우선** (`useResolvedLayoutFields`): Direction 토글 _표시값_ 도 inline style.flexDirection 보다 그룹 축 prop derive 를 우선(`resolveDrivenFlexDirection`). **Why**: stale inline `flexDirection`(과거 factory 잔재)이 남은 element 에서 토글이 SSOT 와 어긋나 표시 → 같은 토글 재클릭 시 no-op 으로 양방향이 깨지던 것을 해소(RadioGroup labelPosition:top + inline:row live 재현·수정 확인).
   - block: 이 모델들에 없는 상태 → Direction 토글의 block 버튼을 `isDisabled` 로 비활성. 방어적으로 도달해도 row 쪽 흡수.
   - **type 정규화**: `element.type` 은 PascalCase 저장 → derive 경로와 동일하게 `.toLowerCase()` 비교 (소문자 직비교 시 분기 미발동, live 검증에서 발견).
-  - **대상 집합 정본 + 전수조사** (`orientationDrivenTags.ts`): orientation accepts enum 10개 + labelPosition 그룹 분석. 동형(그룹 자체 축 prop derive) = **ToggleButtonGroup/Toolbar(orientation 축), RadioGroup/CheckboxGroup(labelPosition 축)**. 제외 — ButtonGroup(SSOT 가 정반대 `style.flexDirection`, orientation 은 Skia 미반영 CSS 전용 채널 → 포함 시 새 drift), Separator/Slider(트랙·ARIA 방향, layout 무관), Tabs(scene rowsGroup 전용), Card/TagGroup. RadioGroup/CheckboxGroup 은 orientation(items-wrapper 축)과 labelPosition(그룹 root 축)이 직교 — 그룹 root Direction 은 labelPosition 이 SSOT.
+  - **대상 집합 정본 + 전수조사** (`orientationDrivenTags.ts`): orientation accepts enum 10개 + labelPosition accepts 그룹 분석. 동형(그룹 자체 축 prop derive) = **ToggleButtonGroup/Toolbar(orientation 축), RadioGroup/CheckboxGroup/field 8종/TagGroup(labelPosition 축)**. labelPosition 축의 렌더 derive SSOT 는 **5종 모두 동일하게 catalog `containerVariants["label-position"].side.styles`(flex-row)** — RadioGroup/CheckboxGroup 도 prop 직접이 아니라 이 catalog 데이터 경유(`implicitStyles` resolveActiveContainerVariants → hasResolvedSideLabelVariant → sideMode). Direction 토글이 `labelPosition` prop 을 쓰면 catalog variant 매칭이 바뀌고 렌더가 따라온다(단일 catalog SSOT, 이중 채널 아님). `fieldLabelPositionSide.test.ts`(side variant flex-row 불변식)와 무충돌.
+  - **field 8종 추가**: TextField/TextArea/NumberField/SearchField/ColorField/DateField/TimeField/DatePicker — 단일 컨트롤이라 orientation 축이 없고 side→row 는 Label↔Input 옆배치. TagGroup 은 orientation(chip 배치 축)과 직교. 제외 — ButtonGroup(SSOT 가 정반대 `style.flexDirection`, orientation 은 Skia 미반영 CSS 전용 채널 → 포함 시 새 drift), **ComboBox/DateRangePicker**(catalog label-position variant 는 있으나 binding accepts 미선언 → Properties dropdown 편집 UI 부재, Direction 토글만 prop 쓰면 진입점 비대칭), **Select**(catalog variant 자체 없음), Separator/Slider(트랙·ARIA 방향, layout 무관), Tabs(scene rowsGroup 전용), Card.
   - 위치: `orientationDrivenTags.ts`(대상 집합 + 변환 헬퍼 SSOT: resolveDirectionDrivenProp / flexDirectionToDrivenValue / drivenValueToFlexDirection / resolveDrivenFlexDirection), `useStyleActions.ts`(handleFlexDirection), `useLayoutAuxiliary.ts`(패널 표시 SSOT 우선), `sections/LayoutSection.tsx`(block disable)
+  - live 검증: NumberField Direction row 클릭 → labelPosition `top→side`(style.flexDirection 미오염) → Skia 옆배치 렌더(350×58→350×31) + Properties dropdown `Side` 전환, 역전 시 Direction 토글 column 복귀 + block 버튼 dim 확인. 검증 후 데이터 원복.
 
 ## [RadioGroup value 가 자유입력이라 선택이 깨지던 불일치 — 자식 Radio 기반 select 전환] - 2026-06-30
 
