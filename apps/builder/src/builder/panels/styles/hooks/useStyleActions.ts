@@ -93,8 +93,29 @@ export function useStyleActions() {
    * - 'block': display: block (flex 속성 제거)
    * - 'row': display: flex + flex-direction: row
    * - 'column': display: flex + flex-direction: column
+   *
+   * ToggleButtonGroup 특례: flexDirection 의 SSOT 가 `props.orientation`
+   * 으로 일원화돼(commit d9ef79bcb) 렌더 derive 경로가 inline
+   * style.flexDirection 을 무시한다. 따라서 direction 토글 편집을
+   * style 에 쓰면 화면 반영조차 안 됨 → 진입점에서 orientation prop 으로
+   * 번역해 단일 SSOT(props.orientation)에 직접 기록한다(이중 저장 아님).
+   * 매핑은 derive 경로(vertical→column / horizontal→row)의 역방향.
+   * block 은 ToggleButtonGroup 모델에 없어 패널에서 disable 되므로
+   * (LayoutSection) 여기로 도달하지 않는다 — row/column 만 처리.
    */
   const handleFlexDirection = useCallback((value: string) => {
+    const { selectedElementId, elementsMap } = useStore.getState();
+    const selected = selectedElementId
+      ? elementsMap.get(selectedElementId)
+      : undefined;
+    // element.type 은 PascalCase("ToggleButtonGroup") 로 저장된다. 렌더 derive
+    // 경로(fullTreeLayout.buildNodeStyle)는 `.toLowerCase()` 후 비교하므로
+    // 동일 정규화를 적용해 표기 불일치로 분기를 놓치지 않게 한다.
+    if ((selected?.type ?? "").toLowerCase() === "togglebuttongroup") {
+      const orientation = value === "column" ? "vertical" : "horizontal";
+      useStore.getState().updateSelectedProperty("orientation", orientation);
+      return;
+    }
     if (value === "block") {
       // display: block으로 전환, flex 관련 속성 제거
       useStore.getState().updateSelectedStyles({

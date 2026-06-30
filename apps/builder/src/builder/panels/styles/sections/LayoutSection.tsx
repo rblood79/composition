@@ -192,6 +192,17 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
 
   // ADR-067 Phase 2: Zustand 직접 구독 + Spec 직접 lookup
   const selectedId = useStore((s) => s.selectedElementId);
+  // ToggleButtonGroup 은 flexDirection SSOT 가 props.orientation(row/column 만,
+  // block 없음)이므로 Direction 토글의 block 버튼을 disable 한다 — direction ⇄
+  // orientation 양방향 동기화에서 매핑 불가능한 block 선택을 원천 차단(2026-06-30).
+  // element.type 은 PascalCase 저장 → derive 경로와 동일하게 toLowerCase 비교.
+  const isOrientationDriven = useStore(
+    (s) =>
+      (selectedId
+        ? (s.elementsMap.get(selectedId)?.type ?? "")
+        : ""
+      ).toLowerCase() === "togglebuttongroup",
+  );
   const styleValues = useLayoutValues(selectedId);
   const flexDirectionKeys = useFlexDirectionKeys(selectedId);
   const flexAlignmentKeys = useFlexAlignmentKeys(selectedId);
@@ -258,7 +269,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
               handleFlexDirection(value);
             }}
           >
-            <ToggleButton id="block">
+            <ToggleButton id="block" isDisabled={isOrientationDriven}>
               <Square
                 color={iconProps.color}
                 size={iconProps.size}
