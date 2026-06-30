@@ -1,9 +1,10 @@
 /**
- * @fileoverview field family inline display/flexDirection strip hydration migration
- *   (ADR-913 후속 — labelPosition="side" CSS↔Skia 대칭 복구, 2026-06-19).
+ * @fileoverview field family + ComboBox/Select inline display/flexDirection strip hydration
+ *   migration (ADR-913 후속 — labelPosition="side" CSS↔Skia 대칭 복구, 2026-06-19;
+ *   ComboBox/Select 확장 2026-06-30).
  *
- * 배경: ADR-912 R1 후속 fix(2026-06-12)가 NumberField/SearchField factory 에
- *   inline `display:flex` + `flexDirection:column` 을 박았다(Select 동형 의도). 그러나 이
+ * 배경: ADR-912 R1 후속 fix(2026-06-12)가 NumberField/SearchField/Select/ComboBox factory 에
+ *   inline `display:flex` + `flexDirection:column` 을 박았다. 그러나 이
  *   inline 충돌 값이 labelPosition="side" 전환을 양쪽 경로에서 차단했다:
  *   - CSS: inline(specificity 1-0-0)이 generated CSS `[data-label-position="side"]`(0-2-0)를
  *     이겨 flex-row(또는 grid) selector 무력화 → Label 위로 쌓임.
@@ -25,8 +26,14 @@
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 
 /**
- * inline display/flexDirection 잔재를 strip 할 field family type 집합.
- * labelPosition 으로 layout 이 결정되는 컴포넌트만 — factory inline 충돌이 side 를 차단했던 군.
+ * inline display/flexDirection 잔재를 strip 할 type 집합.
+ * labelPosition 으로 그룹 root layout 이 결정되는 컴포넌트 — factory inline(display:flex +
+ * flexDirection:column)이 side 전환을 CSS specificity 로 차단했던 군.
+ *
+ * field family(TextField~ColorField)는 ADR-913(2026-06-19)에서 추가. ComboBox/Select 는
+ * 2026-06-30 추가 — 같은 factory inline 잔재 보유(SelectionComponents.ts 가 과거 주입,
+ * 이후 inline 제거). DatePicker/DateRangePicker/DateField/TimeField 는 factory 가 컨테이너
+ * inline style 자체를 안 줘서(NumberField 동형) 잔재 없음 → 대상 외.
  */
 const FIELD_FAMILY_TAGS: ReadonlySet<string> = new Set([
   "TextField",
@@ -34,6 +41,8 @@ const FIELD_FAMILY_TAGS: ReadonlySet<string> = new Set([
   "NumberField",
   "SearchField",
   "ColorField",
+  "ComboBox",
+  "Select",
 ]);
 
 /**
