@@ -405,4 +405,81 @@ describe("buildSpecNodeData", () => {
       }),
     ).not.toThrow();
   });
+
+  // ── RadioGroup value → 자식 Radio Skia isSelected 주입 (2026-06-30) ──
+  // Why: RadioGroup selection SSOT 는 그룹 value(RAC 모델). 패널에서 value 만 바꾸면 자식
+  //   Radio.isSelected 는 그대로(undefined) → Skia radio primitive(props.isSelected 직접 읽음)
+  //   미반영 → CSS preview(RAC value 매칭) 와 drift. buildSpecNodeData 가 부모 RadioGroup value
+  //   ↔ 자식 value 매칭으로 isSelected 를 주입(Tabs selectedKey→Tab._isSelected 동형)해야 한다.
+  //   검증: radio indicator 는 children box 노드로 변환됨 — selected = ring(borderRadius:10)
+  //   + dot(8x8 borderRadius:4) 2개 child, 미선택 = ring 1개 child. child 개수로 판정.
+  describe("RadioGroup value → 자식 Radio isSelected 주입", () => {
+    function countCircles(node: SkiaNodeData | undefined | null): number {
+      if (!node) return 0;
+      return node.children?.length ?? 0;
+    }
+
+    function buildRadio(
+      groupValue: string | undefined,
+      radioValue: string,
+      ownIsSelected?: boolean,
+    ): SkiaNodeData | null {
+      const group = makeElement("rg", {
+        type: "RadioGroup",
+        props: groupValue !== undefined ? { value: groupValue } : {},
+      });
+      const radio = makeElement("r1", {
+        type: "Radio",
+        parent_id: "rg",
+        props: {
+          value: radioValue,
+          ...(ownIsSelected !== undefined ? { isSelected: ownIsSelected } : {}),
+        },
+      });
+      const elementsMap = new Map([
+        [group.id, group],
+        [radio.id, radio],
+      ]);
+      return buildSpecNodeData({
+        element: radio,
+        layout: makeLayout({ x: 0, y: 0, width: 20, height: 20 }),
+        theme: "light",
+        elementsMap,
+      });
+    }
+
+    it("group value 가 자식 value 와 매칭되면 selected (dot circle 추가)", () => {
+      const selected = buildRadio("a", "a");
+      const unselected = buildRadio("a", "b");
+      // selected radio: ring + dot = circle 2개 / 미선택: ring 만 = 1개.
+      expect(countCircles(selected)).toBeGreaterThan(countCircles(unselected));
+    });
+
+    it("group value 미설정이면 자식 자신의 isSelected 보존 (부모-주도 미적용)", () => {
+      // value 미설정 → 자식 isSelected=true 면 selected, false 면 미선택.
+      const ownSelected = buildRadio(undefined, "a", true);
+      const ownUnselected = buildRadio(undefined, "a", false);
+      expect(countCircles(ownSelected)).toBeGreaterThan(
+        countCircles(ownUnselected),
+      );
+    });
+
+    it("group value 가 빈 문자열이면 자식 isSelected 보존 (value 미설정과 동일)", () => {
+      const ownSelected = buildRadio("", "a", true);
+      const ownUnselected = buildRadio("", "a", false);
+      expect(countCircles(ownSelected)).toBeGreaterThan(
+        countCircles(ownUnselected),
+      );
+    });
+
+    it("group value 매칭이 자식 자신의 isSelected=false 를 이긴다 (그룹 SSOT)", () => {
+      // 자식 isSelected=false 여도 group value 매칭이면 selected (RAC value 우선).
+      const groupWins = buildRadio("a", "a", false);
+      const groupUnmatch = buildRadio("a", "b", true);
+      // 매칭 radio 는 selected(dot), 미매칭 radio 는 자기 isSelected=true 무시하고 미선택.
+      expect(countCircles(groupWins)).toBeGreaterThan(
+        countCircles(groupUnmatch),
+      );
+    });
+  });
 });

@@ -20,6 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 회귀 테스트: `resolveEditContract.test.ts` 에 RadioGroup value 자식 파생 5 케이스(enum kind / 옵션 파생 / value 없는 Radio 제외 / 빈 그룹 / currentValue 우선순위)
   - 라이브 검증: 빌더에서 RadioGroup 선택 → Value 가 드롭다운으로 표시 + 자식 Radio 2개("Option 1"/"Option 2") 파생 확인 → Option 2 선택 시 store/preview DOM `value=option2` 반영 → 원본값 option1 로 복원(데이터 무결)
 
+- **RadioGroup `value` 선택이 CSS preview 는 반영되나 Skia 캔버스는 미반영 (반대 방향 drift)**:
+  - 패널 Value(select)로 선택값을 바꾸면 CSS preview 는 selected 가 반영되나 Skia 캔버스는 변화 없음 (selection drift 의 반대 방향 — CSS O / Skia X)
+  - **Why**: RadioGroup selection SSOT 는 그룹 `value`(RAC 모델 — 자식 Radio.isSelected 는 RAC 가 안 봄). CSS preview 의 `renderRadioGroup` 은 RAC 에 `defaultValue`(부모 value)를 넘겨 RAC 가 value↔자식 `<Radio value>` 매칭으로 selected 를 그림. 반면 Skia radio primitive 는 `props.isSelected === true` 만 읽는데, 패널에서 RadioGroup.value 만 바꾸면 자식 Radio.isSelected 는 그대로(undefined) → Skia 미선택. 라이브 확인: store.value=option2 / preview checked=option2 인데 Skia dot 은 option1 그대로
+  - 수정: `buildSpecNodeData` 에 Radio 분기 추가 — 조상 RadioGroup 의 `value` ↔ 자기 `value` 매칭으로 `specProps.isSelected` 주입 (Tabs `selectedKey → Tab._isSelected` 주입과 동형, `findAncestorByTag`). group value 미설정/빈 문자열이면 자식 자신의 isSelected 보존(부모-주도 선택과 자식 직접 isSelected 양립). store 의 자식 Radio.isSelected 는 mutate 하지 않고 렌더 시점에만 주입 → store 오염 0
+  - **D3 대칭**: CSS(RAC value 매칭)와 Skia(specProps injection)가 같은 부모 value 로 동일 시각 결과 산출. radio primitive 는 `elementsMap` 접근이 없어 부모 직접 읽기 불가 → buildSpecNodeData injection 이 유일 경로
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts`(Radio 분기)
+  - 회귀 테스트: `buildSpecNodeData.test.ts` 에 4 케이스(value 매칭 시 dot 추가 / value 미설정·빈문자열 시 자식 isSelected 보존 / group value 매칭이 자식 isSelected=false 를 이김)
+  - 라이브 검증: 빌더에서 RadioGroup value 를 Option 2 로 변경 → Skia 캔버스 selected dot 이 Option 1→2 이동 확인(zoom) → store/preview/Skia 3자 option2 일치 → 원본값 option1 로 복원(데이터 무결)
+
 ### Infrastructure
 
 - **adr912CollapseGrepGate `field-trigger base-axis inline` 패턴 정밀화 (사전 결함 — 본 작업과 무관)**:

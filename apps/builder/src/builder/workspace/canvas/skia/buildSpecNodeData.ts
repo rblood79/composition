@@ -1343,6 +1343,33 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     }
   }
 
+  // Radio: 조상 RadioGroup 의 value ↔ 자기 value 매칭으로 isSelected 주입 (2026-06-30).
+  //
+  // **Why**: RadioGroup 의 selection SSOT 는 그룹 `value`(RAC 모델 — 자식 Radio 의
+  //   isSelected 는 RAC 가 안 봄). CSS preview(renderRadioGroup)는 RAC 에 `defaultValue`
+  //   를 넘겨 RAC 가 value↔자식 `<Radio value>` 매칭으로 selected 를 그린다. 반면 Skia radio
+  //   primitive 는 `props.isSelected === true` 만 읽는데, 패널에서 RadioGroup.value 만 바꾸면
+  //   자식 Radio.isSelected 는 그대로(undefined) → Skia 미선택 → CSS↔Skia drift.
+  //   Tabs selectedKey → Tab._isSelected 주입(위 블록)과 동형으로, 부모 value 를 자식 Skia
+  //   isSelected 로 투영해 D3 시각 대칭을 복원한다. group value 미설정 시 자식 자기 isSelected
+  //   보존(기존 동작) — 부모-주도 선택과 자식 직접 isSelected 양립.
+  if (element.type === "Radio") {
+    const groupAncestor = element.parent_id
+      ? findAncestorByTag(element, "RadioGroup", elementsMap, 3)
+      : undefined;
+    if (groupAncestor) {
+      const groupValue = getProps(groupAncestor).value as string | undefined;
+      const radioValue = props.value as string | undefined;
+      specProps = {
+        ...specProps,
+        isSelected:
+          groupValue != null && groupValue !== ""
+            ? groupValue === radioValue
+            : specProps.isSelected === true,
+      };
+    }
+  }
+
   // TreeItem depth(_treeLevel) + chevron 조건(_hasTreeChildren) injection — ADR-912 R1
   //   후속 (TreeItem catalog cutover).
   //   - _treeLevel: Skia 는 RAC `--tree-item-level` 을 못 쓰므로 parent 체인 depth 직접 주입.
