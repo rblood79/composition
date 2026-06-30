@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [RadioGroup value 가 자유입력이라 선택이 깨지던 불일치 — 자식 Radio 기반 select 전환] - 2026-06-30
+
+### Bug Fixes
+
+- **RadioGroup `value` 가 string 자유입력 → 존재하지 않는 key 입력 시 선택 깨짐**:
+  - properties 패널의 control 방식 전수조사(115 binding, control kind boolean/enum/variant 교차 분석) 결과, "어느 항목이 선택/활성인가" 기능이 단일항목(`isSelected` boolean toggle)과 그룹 사이에서 갈렸고, 그룹 중 RadioGroup 만 `value` 를 string 자유입력으로 노출하고 있었음
+  - **Why**: RAC `RadioGroup.value` 는 타입상 string 이되 유효 선택은 자식 `<Radio value>` 집합으로 제약(reference RadioGroup.md). 자유입력은 오타로 어느 Radio 와도 매칭 안 되면 선택이 통째로 깨짐. 나머지 그룹(Select/ListBox/GridList/Menu/Table/Tree/TagGroup/ToggleButtonGroup)은 `selectionMode`(enum)만 있고 선택 항목 지정 control 자체가 없어 RadioGroup 만 외톨이 패턴
+  - 수정: RadioGroup `value` 를 `kind:"string"` → `kind:"enum"`(select)로 전환. 옵션은 자식 Radio 의 `props.value`(라벨 = `props.children`, fallback = value)에서 동적 파생. value 없는 Radio 는 선택 식별 불가 → 옵션 제외. 자식 0개면 빈 배열(graceful)
+  - 동적 옵션 메커니즘: catalog enum 의 `options` 는 정적 배열이라 자식 트리 의존 옵션 표현 불가 → `resolveEditContract.deriveOptions` 에 RadioGroup 전용 자식 파생 분기 추가(`node.children` 에서 Radio 수집). variant/size 가 theme rule 에서 동적 파생하는 선례와 동형
+  - 위치: `packages/shared/src/catalog/bindings/RadioGroup.binding.ts`(value kind), `packages/shared/src/catalog/resolvers/resolveEditContract.ts`(deriveOptions + deriveRadioGroupValueOptions)
+  - 회귀 테스트: `resolveEditContract.test.ts` 에 RadioGroup value 자식 파생 5 케이스(enum kind / 옵션 파생 / value 없는 Radio 제외 / 빈 그룹 / currentValue 우선순위)
+  - 라이브 검증: 빌더에서 RadioGroup 선택 → Value 가 드롭다운으로 표시 + 자식 Radio 2개("Option 1"/"Option 2") 파생 확인 → Option 2 선택 시 store/preview DOM `value=option2` 반영 → 원본값 option1 로 복원(데이터 무결)
+
+### Infrastructure
+
+- **adr912CollapseGrepGate `field-trigger base-axis inline` 패턴 정밀화 (사전 결함 — 본 작업과 무관)**:
+  - gate regex `(cs|parentStyle)\.flexDirection \?\? "row"` 가 직전 커밋(d9ef79bcb, togglebuttongroup orientation)이 `implicitStyles.ts:1047` 에 추가한 orientation 삼항 fallback(`: (parentStyle.flexDirection ?? "row")`)까지 우연 매칭해 baseline 3→4 false positive 발생
+  - **Why**: ToggleButtonGroup 의 `?? "row"` 는 orientation prop SSOT 일원화의 정당한 fallback(orientation 명시 시 그게 이김)이라 의도 대상인 field-trigger(Select/ComboBox/SearchField) base-axis 하드코딩이 아님
+  - 수정: 패턴에 `flexDirection:\s*` 선행 요구 → 객체 키 직접 할당(field-trigger 3곳)만 잡고 삼항 fallback(키 없음) 제외. baseline 3 유지
+  - 위치: `packages/shared/src/catalog/__tests__/adr912CollapseGrepGate.test.ts`
+
 ## [selection 계열 컴포넌트 패널 토글이 CSS preview 에 미반영 — 전수조사 + uncontrolled re-mount] - 2026-06-30
 
 ### Bug Fixes

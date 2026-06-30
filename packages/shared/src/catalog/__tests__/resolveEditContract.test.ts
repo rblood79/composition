@@ -249,4 +249,95 @@ describe("resolveEditContract — semantic ∪ universal style (ADR-912 1A-(4))"
     // ListBox 는 allowSections:true (Add Section UI).
     expect(items?.itemsManager?.allowSections).toBe(true);
   });
+
+  // ── RadioGroup value 를 자식 Radio value 기반 select 로 (2026-06-30) ──
+  // Why(전수조사): "어느 항목이 선택/활성인가" 기능이 단일항목(isSelected boolean)과
+  //   그룹 사이에서 갈렸다. RadioGroup 만 value 를 string 자유입력으로 노출 → 사용자가
+  //   존재하지 않는 key 를 칠 수 있어 선택이 깨짐. RAC 의 value 는 string 타입이되
+  //   유효 선택은 자식 <Radio value> 집합으로 제약(reference RadioGroup.md) → 자식 value
+  //   목록 기반 select 가 정합. catalog enum 정적 options 로는 표현 불가 → deriveOptions
+  //   에 RadioGroup 전용 자식 파생 분기 추가(variant/size theme 파생 선례 동형).
+  describe("RadioGroup value 자식 Radio 기반 select (2026-06-30)", () => {
+    const radioGroup = (
+      children: CanonicalNode[],
+      props: Record<string, unknown> = {},
+    ): CanonicalNode => ({
+      id: "rg1",
+      type: "RadioGroup" as CanonicalNode["type"],
+      props,
+      children,
+    });
+
+    const radio = (
+      id: string,
+      value: string | undefined,
+      label?: string,
+    ): CanonicalNode => ({
+      id,
+      type: "Radio" as CanonicalNode["type"],
+      props: {
+        ...(value !== undefined ? { value } : {}),
+        ...(label !== undefined ? { children: label } : {}),
+      },
+    });
+
+    it("value field 가 kind:'enum' 로 노출 (string 자유입력 아님)", () => {
+      const node = radioGroup([
+        radio("r1", "a", "Apple"),
+        radio("r2", "b", "Banana"),
+      ]);
+      const value = resolveEditContract(node).fields.find(
+        (f) => f.key === "value" && f.origin === "semantic",
+      );
+      expect(value?.kind).toBe("enum");
+    });
+
+    it("options 가 자식 Radio value 에서 파생 (label = Radio children, fallback = value)", () => {
+      const node = radioGroup([
+        radio("r1", "a", "Apple"),
+        radio("r2", "b"), // label 없음 → value 자체가 라벨
+      ]);
+      const value = resolveEditContract(node).fields.find(
+        (f) => f.key === "value" && f.origin === "semantic",
+      );
+      expect(value?.options).toEqual([
+        { value: "a", label: "Apple" },
+        { value: "b", label: "b" },
+      ]);
+    });
+
+    it("value 없는 Radio 는 옵션에서 제외 (선택 불가능 — RAC value 매칭)", () => {
+      const node = radioGroup([
+        radio("r1", "a", "Apple"),
+        radio("r2", undefined, "라벨만"), // value 없음 → 선택 식별 불가
+        radio("r3", "c", "Cherry"),
+      ]);
+      const value = resolveEditContract(node).fields.find(
+        (f) => f.key === "value",
+      );
+      const values = (value?.options ?? []).map((o) => o.value);
+      expect(values).toEqual(["a", "c"]);
+    });
+
+    it("자식 Radio 없으면 options 빈 배열 (graceful — 빈 그룹)", () => {
+      const node = radioGroup([]);
+      const value = resolveEditContract(node).fields.find(
+        (f) => f.key === "value",
+      );
+      expect(value?.kind).toBe("enum");
+      expect(value?.options).toEqual([]);
+    });
+
+    it("currentValue 우선순위 보존 (override value ?? default)", () => {
+      const node = radioGroup(
+        [radio("r1", "a", "Apple"), radio("r2", "b", "Banana")],
+        { value: "b" },
+      );
+      const value = resolveEditContract(node).fields.find(
+        (f) => f.key === "value",
+      );
+      expect(value?.isOverridden).toBe(true);
+      expect(value?.currentValue).toBe("b");
+    });
+  });
 });

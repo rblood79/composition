@@ -165,7 +165,43 @@ function variantLabel(value: string): string {
 }
 
 /**
- * size / variant 옵션을 theme rule 에서 파생 (ADR-912 단계 2 회귀 수정).
+ * RadioGroup `value` 옵션을 자식 Radio 에서 파생 (2026-06-30 전수조사).
+ *
+ * **Why**: "어느 항목이 선택/활성인가" 기능이 단일항목(isSelected boolean)과 그룹 사이에서
+ *   갈렸다. RadioGroup 만 value 를 string 자유입력으로 노출 → 사용자가 존재하지 않는 key 를
+ *   칠 수 있어 선택이 깨짐. RAC value 는 string 타입이되 유효 선택은 자식 `<Radio value>`
+ *   집합으로 제약(reference RadioGroup.md) → 자식 value 목록 기반 select 가 정합.
+ * - 옵션 value = 자식 Radio 의 `props.value`. value 없는 Radio 는 선택 식별 불가 → 제외.
+ * - 라벨 = Radio 의 `props.children`(라벨 텍스트), 없으면 value 자체.
+ * - 자식 Radio 0개 → 빈 배열(graceful, 빈 그룹). enum 정적 options 로는 표현 불가하므로
+ *   본 분기가 node.children 동적 파생을 담당(variant/size theme 파생과 동형의 동적 source).
+ */
+function deriveRadioGroupValueOptions(
+  node: CanonicalNode | ResolvedNode,
+): PropContract["options"] {
+  const children = (node as CanonicalNode).children ?? [];
+  const options: NonNullable<PropContract["options"]> = [];
+  for (const child of children) {
+    if (child.type !== "Radio") continue;
+    const childProps =
+      child.props &&
+      typeof child.props === "object" &&
+      !Array.isArray(child.props)
+        ? (child.props as Record<string, unknown>)
+        : {};
+    const value = childProps.value;
+    if (typeof value !== "string" || value.length === 0) continue;
+    const labelRaw = childProps.children;
+    const label =
+      typeof labelRaw === "string" && labelRaw.length > 0 ? labelRaw : value;
+    options.push({ value, label });
+  }
+  return options;
+}
+
+/**
+ * size / variant 옵션을 theme rule 에서 파생 (ADR-912 단계 2 회귀 수정) + RadioGroup value
+ * 자식 파생(2026-06-30).
  *
  * **Why**: `kind:"size"`/`"variant"` PropContract 는 `options` 를 두지 않는다(선택 값 집합은
  *   theme rule 의 `data-*` 값 집합 = source of truth). 구 경로(`inspectorFields.ts` →
@@ -174,14 +210,25 @@ function variantLabel(value: string): string {
  *   `[]` 가 truthy 라 fallback 미실행 → 발효 컴포넌트 전체 빈 드롭다운.
  * - `kind:"size"`   → `Object.keys(rule.sizes)` (xs~xl), 라벨 = `SIZE_DISPLAY_LABELS`.
  * - `kind:"variant"`→ `Object.keys(rule.variants)`, 라벨 = `variantLabel`.
+ * - RadioGroup `value`(enum) → 자식 Radio value 동적 파생([[deriveRadioGroupValueOptions]]).
  * - enum 등 `contract.options` 직접 보유 → 그대로 통과 (theme 미경유).
  * - rule 미등록 / sizes·variants 부재 → undefined (override-only, 기존 동작 보존).
  */
 function deriveOptions(
   contract: PropContract,
   rule: ComponentRule | undefined,
+  node: CanonicalNode | ResolvedNode,
+  key: string,
 ): PropContract["options"] {
   if (contract.options) return contract.options;
+  // RadioGroup value 는 정적 options 없이 자식 Radio value 집합에서 동적 파생.
+  if (
+    contract.kind === "enum" &&
+    key === "value" &&
+    node.type === "RadioGroup"
+  ) {
+    return deriveRadioGroupValueOptions(node);
+  }
   if (contract.kind === "size" && rule?.sizes) {
     return Object.keys(rule.sizes).map((value) => ({
       value,
@@ -232,7 +279,7 @@ export function resolveEditContract(
         min: contract.min,
         max: contract.max,
         step: contract.step,
-        options: deriveOptions(contract, rule),
+        options: deriveOptions(contract, rule, node, key),
         itemsManager: contract.itemsManager,
       });
     }
@@ -259,7 +306,7 @@ export function resolveEditContract(
       min: contract.min,
       max: contract.max,
       step: contract.step,
-      options: deriveOptions(contract, rule),
+      options: deriveOptions(contract, rule, node, key),
     });
   }
 

@@ -296,10 +296,17 @@ const DISPERSION_BASELINE: Array<{
     //   surface 만 늘리는 과잉(소비처 없는 dormant 인프라). baseline 3 = "재도입 방지 추적"이지
     //   "0 으로 가야 할 미완"이 아니다. (811 TagGroup 의 `?? "row"` 는 catalog variant.styles
     //   fallback 이라 base-axis 하드코딩 아님 — 본 패턴은 `cs.flexDirection`/`parentStyle.flexDirection` 만 매칭.)
+    //   **regex 정밀화 (2026-06-30)**: 구 패턴 `(cs|parentStyle)\.flexDirection \?\? "row"` 은
+    //   `flexDirection:` 키 직접 할당(field-trigger 3곳)뿐 아니라 ToggleButtonGroup orientation
+    //   삼항의 fallback 항(`: (parentStyle.flexDirection ?? "row")`, implicitStyles:1047, 커밋
+    //   d9ef79bcb)까지 우연 매칭해 baseline 3→4 false positive 를 냈다. ToggleButtonGroup 의
+    //   `?? "row"` 는 orientation prop SSOT 일원화의 정당한 fallback(orientation 명시 시 그게 이김)
+    //   이라 base-axis 하드코딩이 아니다. 패턴에 `flexDirection:\s*` 선행을 요구해 객체 키 직접
+    //   할당(field-trigger 3곳)만 잡고 삼항 fallback(키 없음)은 제외한다.
     label:
       "field-trigger base-axis inline (Δ11 — byte-diff 0 보존 영구 잔존, baseline 3)",
     file: "implicitStyles",
-    pattern: /(cs|parentStyle)\.flexDirection \?\? "row"/,
+    pattern: /flexDirection:\s*(cs|parentStyle)\.flexDirection \?\? "row"/,
     baseline: 3,
     killPhase: "Δ11 의도 잔존(byte-diff 0 보존)",
   },

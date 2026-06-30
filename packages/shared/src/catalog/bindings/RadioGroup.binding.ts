@@ -66,7 +66,11 @@ export const radioGroupBinding: PrimitiveBinding = {
         ],
       },
       // form binding props
-      value: { kind: "string", label: "Value", section: "content" },
+      // value = "어느 Radio 가 선택됐는가" — RAC value(string)는 자식 <Radio value> 집합으로
+      //   제약(reference). 자유입력 시 오타로 선택 깨짐 → 자식 Radio value 기반 select.
+      //   options 는 정적 배열로 표현 불가(자식 트리 의존) → resolveEditContract.deriveOptions
+      //   의 RadioGroup 전용 분기가 node.children 에서 동적 파생. 2026-06-30 전수조사.
+      value: { kind: "enum", label: "Value", section: "content" },
       name: { kind: "string", label: "Name", section: "content" },
       isRequired: { kind: "boolean", label: "Required", section: "state" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
