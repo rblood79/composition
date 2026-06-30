@@ -7,17 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [orientation-SSOT 컨테이너 direction → orientation 단방향 동기화 해소 — ToggleButtonGroup + Toolbar] - 2026-06-30
+## [그룹 축 prop derive 컨테이너 Direction 양방향 동기화 — ToggleButtonGroup/Toolbar(orientation) + RadioGroup/CheckboxGroup(labelPosition)] - 2026-06-30
 
 ### Bug Fixes
 
-- **orientation 변경은 Style 패널 Direction 에 반영되나, 반대로 Direction 편집은 orientation 에 미반영** (ToggleButtonGroup / Toolbar):
-  - **Why**: flexDirection SSOT 가 `props.orientation` 으로 일원화돼(commit d9ef79bcb) 렌더 derive 경로(`fullTreeLayout.buildNodeStyle:713` / `implicitStyles:1038`·`1055` / CSS `[data-orientation]`)가 `orientation→flexDirection` 만 단방향 도출. Style 패널 Direction 토글(`handleFlexDirection`)은 `props.style.flexDirection` 만 기록 → orientation 미갱신 + derive 가 inline flexDirection 을 무시하므로 화면 반영조차 안 됨.
-  - 수정: `handleFlexDirection` 이 선택 요소가 orientation-SSOT 컨테이너이면 입력을 `props.orientation`(row→horizontal / column→vertical)으로 번역해 단일 SSOT 에 직접 기록(이중 저장 아님). style 미터치 유지.
-  - block: orientation 모델에 없는 상태 → Direction 토글의 block 버튼을 `isDisabled` 로 비활성(orientation 으로 매핑 불가능한 선택 원천 차단). 방어적으로 도달해도 horizontal 흡수.
-  - **type 정규화**: `element.type` 은 PascalCase 저장 → derive 경로와 동일하게 `.toLowerCase()` 비교 (소문자 직비교 시 분기 영영 미발동, live 검증에서 발견).
-  - **대상 집합 정본 + 전수조사** (`orientationDrivenTags.ts`): orientation accepts enum 10개 중 "orientation 이 그룹 자체 row/column 축" 인 동형 컨테이너만 = **ToggleButtonGroup, Toolbar**. 제외 — ButtonGroup(SSOT 가 정반대 `style.flexDirection`, orientation 은 Skia 미반영 CSS 전용 채널 → 포함 시 새 drift), CheckboxGroup/RadioGroup(orientation 이 items-wrapper 축이고 그룹 축은 labelPosition 인 2축 직교), Separator/Slider(트랙·ARIA 방향, layout 무관), Tabs(scene rowsGroup 전용 경로), Card/TagGroup.
-  - 위치: `apps/builder/src/builder/panels/styles/utils/orientationDrivenTags.ts`(대상 집합 + 헬퍼 SSOT), `useStyleActions.ts`(handleFlexDirection), `sections/LayoutSection.tsx`(block disable)
+- **그룹 축 prop 변경은 Style 패널 Direction 에 반영되나, 반대로 Direction 편집은 그 prop 에 미반영** (ToggleButtonGroup/Toolbar/RadioGroup/CheckboxGroup):
+  - **Why**: 그룹 root flexDirection SSOT 가 `style.flexDirection` 이 아니라 별도 layout prop (orientation 또는 labelPosition). 렌더 derive 경로가 `prop→flexDirection` 만 단방향 도출하고 inline style.flexDirection 을 무시. Style 패널 Direction 토글(`handleFlexDirection`)은 `style.flexDirection` 만 기록 → prop 미갱신 + derive 가 inline 무시 → 화면 반영조차 안 됨.
+  - 수정: `handleFlexDirection` 이 그룹 축 prop derive 컨테이너면 입력을 해당 prop 으로 번역해 단일 SSOT 에 직접 기록(이중 저장 아님). 매핑 — orientation: column→vertical/row→horizontal, labelPosition: column→top/row→side.
+  - **패널 표시도 SSOT 우선** (`useResolvedLayoutFields`): Direction 토글 _표시값_ 도 inline style.flexDirection 보다 그룹 축 prop derive 를 우선(`resolveDrivenFlexDirection`). **Why**: stale inline `flexDirection`(과거 factory 잔재)이 남은 element 에서 토글이 SSOT 와 어긋나 표시 → 같은 토글 재클릭 시 no-op 으로 양방향이 깨지던 것을 해소(RadioGroup labelPosition:top + inline:row live 재현·수정 확인).
+  - block: 이 모델들에 없는 상태 → Direction 토글의 block 버튼을 `isDisabled` 로 비활성. 방어적으로 도달해도 row 쪽 흡수.
+  - **type 정규화**: `element.type` 은 PascalCase 저장 → derive 경로와 동일하게 `.toLowerCase()` 비교 (소문자 직비교 시 분기 미발동, live 검증에서 발견).
+  - **대상 집합 정본 + 전수조사** (`orientationDrivenTags.ts`): orientation accepts enum 10개 + labelPosition 그룹 분석. 동형(그룹 자체 축 prop derive) = **ToggleButtonGroup/Toolbar(orientation 축), RadioGroup/CheckboxGroup(labelPosition 축)**. 제외 — ButtonGroup(SSOT 가 정반대 `style.flexDirection`, orientation 은 Skia 미반영 CSS 전용 채널 → 포함 시 새 drift), Separator/Slider(트랙·ARIA 방향, layout 무관), Tabs(scene rowsGroup 전용), Card/TagGroup. RadioGroup/CheckboxGroup 은 orientation(items-wrapper 축)과 labelPosition(그룹 root 축)이 직교 — 그룹 root Direction 은 labelPosition 이 SSOT.
+  - 위치: `orientationDrivenTags.ts`(대상 집합 + 변환 헬퍼 SSOT: resolveDirectionDrivenProp / flexDirectionToDrivenValue / drivenValueToFlexDirection / resolveDrivenFlexDirection), `useStyleActions.ts`(handleFlexDirection), `useLayoutAuxiliary.ts`(패널 표시 SSOT 우선), `sections/LayoutSection.tsx`(block disable)
 
 ## [RadioGroup value 가 자유입력이라 선택이 깨지던 불일치 — 자식 Radio 기반 select 전환] - 2026-06-30
 

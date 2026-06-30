@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { resolveLayoutSpecPreset } from "../utils/specPresetResolver";
 import { firstDefined } from "../utils/styleValueHelpers";
 import { useElementStyleContext } from "./useElementStyleContext";
+import { resolveDrivenFlexDirection } from "../utils/orientationDrivenTags";
 
 interface ResolvedLayoutFields {
   display: string;
@@ -27,13 +28,21 @@ function useResolvedLayoutFields(id: string | null): ResolvedLayoutFields {
   return useMemo(() => {
     const s = style ?? {};
 
+    // 그룹 축 prop derive 컨테이너(ToggleButtonGroup/Toolbar=orientation,
+    // RadioGroup/CheckboxGroup=labelPosition)는 그룹 root flexDirection SSOT 가
+    // 별도 prop 이라, 패널 Direction 표시도 그 prop 을 inline style.flexDirection
+    // 보다 우선해야 SSOT 와 일치(stale inline 잔재로 토글이 어긋나는 것 방지).
+    const drivenFlexDirection = resolveDrivenFlexDirection(type, props);
+
     return {
       display: firstDefined(s.display, asString(specPreset.display), "block"),
-      flexDirection: firstDefined(
-        s.flexDirection,
-        asString(specPreset.flexDirection),
-        "row",
-      ),
+      flexDirection:
+        drivenFlexDirection ??
+        firstDefined(
+          s.flexDirection,
+          asString(specPreset.flexDirection),
+          "row",
+        ),
       alignItems: firstDefined(
         s.alignItems,
         asString(specPreset.alignItems),
@@ -44,9 +53,13 @@ function useResolvedLayoutFields(id: string | null): ResolvedLayoutFields {
         asString(specPreset.justifyContent),
         "",
       ),
-      flexWrap: firstDefined(s.flexWrap, asString(specPreset.flexWrap), "nowrap"),
+      flexWrap: firstDefined(
+        s.flexWrap,
+        asString(specPreset.flexWrap),
+        "nowrap",
+      ),
     };
-  }, [style, specPreset]);
+  }, [style, specPreset, type, props]);
 }
 
 /**

@@ -1,57 +1,155 @@
 import { describe, expect, it } from "vitest";
 import {
   ORIENTATION_DRIVEN_TAGS,
-  isOrientationDrivenTag,
-  flexDirectionToOrientation,
+  LABEL_POSITION_DRIVEN_TAGS,
+  resolveDirectionDrivenProp,
+  isDirectionDrivenTag,
+  flexDirectionToDrivenValue,
+  drivenValueToFlexDirection,
+  resolveDrivenFlexDirection,
 } from "./orientationDrivenTags";
 
 describe("orientationDrivenTags", () => {
-  describe("ORIENTATION_DRIVEN_TAGS 집합", () => {
-    it("ToggleButtonGroup / Toolbar 만 포함 (소문자 정규화 저장)", () => {
+  describe("대상 집합", () => {
+    it("ORIENTATION_DRIVEN_TAGS = ToggleButtonGroup / Toolbar (소문자 정규화)", () => {
       expect([...ORIENTATION_DRIVEN_TAGS].sort()).toEqual([
         "togglebuttongroup",
         "toolbar",
       ]);
     });
 
-    it("ButtonGroup 은 포함하지 않는다 (SSOT 정반대 — 새 drift 방지)", () => {
-      expect(ORIENTATION_DRIVEN_TAGS.has("buttongroup")).toBe(false);
+    it("LABEL_POSITION_DRIVEN_TAGS = RadioGroup / CheckboxGroup", () => {
+      expect([...LABEL_POSITION_DRIVEN_TAGS].sort()).toEqual([
+        "checkboxgroup",
+        "radiogroup",
+      ]);
     });
 
-    it("CheckboxGroup / RadioGroup 은 포함하지 않는다 (2축 직교 비동형)", () => {
-      expect(ORIENTATION_DRIVEN_TAGS.has("checkboxgroup")).toBe(false);
-      expect(ORIENTATION_DRIVEN_TAGS.has("radiogroup")).toBe(false);
+    it("ButtonGroup 은 어느 집합에도 없다 (SSOT 정반대 — 새 drift 방지)", () => {
+      expect(ORIENTATION_DRIVEN_TAGS.has("buttongroup")).toBe(false);
+      expect(LABEL_POSITION_DRIVEN_TAGS.has("buttongroup")).toBe(false);
     });
   });
 
-  describe("isOrientationDrivenTag — PascalCase 입력 정규화", () => {
-    it("PascalCase 실데이터 표기를 인식한다", () => {
-      expect(isOrientationDrivenTag("ToggleButtonGroup")).toBe(true);
-      expect(isOrientationDrivenTag("Toolbar")).toBe(true);
+  describe("resolveDirectionDrivenProp — PascalCase 입력 정규화", () => {
+    it("orientation-driven → 'orientation'", () => {
+      expect(resolveDirectionDrivenProp("ToggleButtonGroup")).toBe(
+        "orientation",
+      );
+      expect(resolveDirectionDrivenProp("Toolbar")).toBe("orientation");
+    });
+
+    it("labelPosition-driven → 'labelPosition'", () => {
+      expect(resolveDirectionDrivenProp("RadioGroup")).toBe("labelPosition");
+      expect(resolveDirectionDrivenProp("CheckboxGroup")).toBe("labelPosition");
     });
 
     it("소문자 표기도 인식한다", () => {
-      expect(isOrientationDrivenTag("togglebuttongroup")).toBe(true);
+      expect(resolveDirectionDrivenProp("radiogroup")).toBe("labelPosition");
     });
 
-    it("비대상 / undefined 는 false", () => {
-      expect(isOrientationDrivenTag("ButtonGroup")).toBe(false);
-      expect(isOrientationDrivenTag("frame")).toBe(false);
-      expect(isOrientationDrivenTag(undefined)).toBe(false);
+    it("비대상 / undefined → undefined (일반 style 경로)", () => {
+      expect(resolveDirectionDrivenProp("ButtonGroup")).toBeUndefined();
+      expect(resolveDirectionDrivenProp("frame")).toBeUndefined();
+      expect(resolveDirectionDrivenProp(undefined)).toBeUndefined();
     });
   });
 
-  describe("flexDirectionToOrientation — 매핑 (derive 역방향)", () => {
-    it("column → vertical", () => {
-      expect(flexDirectionToOrientation("column")).toBe("vertical");
+  describe("isDirectionDrivenTag — block disable 대상", () => {
+    it("두 집합 모두 true", () => {
+      expect(isDirectionDrivenTag("ToggleButtonGroup")).toBe(true);
+      expect(isDirectionDrivenTag("Toolbar")).toBe(true);
+      expect(isDirectionDrivenTag("RadioGroup")).toBe(true);
+      expect(isDirectionDrivenTag("CheckboxGroup")).toBe(true);
     });
 
-    it("row → horizontal", () => {
-      expect(flexDirectionToOrientation("row")).toBe("horizontal");
+    it("비대상은 false", () => {
+      expect(isDirectionDrivenTag("ButtonGroup")).toBe(false);
+      expect(isDirectionDrivenTag("frame")).toBe(false);
+      expect(isDirectionDrivenTag(undefined)).toBe(false);
+    });
+  });
+
+  describe("flexDirectionToDrivenValue — prop 별 매핑", () => {
+    it("orientation: column→vertical / row→horizontal", () => {
+      expect(flexDirectionToDrivenValue("orientation", "column")).toBe(
+        "vertical",
+      );
+      expect(flexDirectionToDrivenValue("orientation", "row")).toBe(
+        "horizontal",
+      );
     });
 
-    it("block → horizontal 흡수 (모델에 없는 값)", () => {
-      expect(flexDirectionToOrientation("block")).toBe("horizontal");
+    it("labelPosition: column→top / row→side", () => {
+      expect(flexDirectionToDrivenValue("labelPosition", "column")).toBe("top");
+      expect(flexDirectionToDrivenValue("labelPosition", "row")).toBe("side");
+    });
+
+    it("block → row 쪽 흡수 (orientation=horizontal, labelPosition=side)", () => {
+      expect(flexDirectionToDrivenValue("orientation", "block")).toBe(
+        "horizontal",
+      );
+      expect(flexDirectionToDrivenValue("labelPosition", "block")).toBe("side");
+    });
+  });
+
+  describe("drivenValueToFlexDirection — 역방향 (패널 표시 SSOT read)", () => {
+    it("orientation: vertical→column / horizontal→row", () => {
+      expect(drivenValueToFlexDirection("orientation", "vertical")).toBe(
+        "column",
+      );
+      expect(drivenValueToFlexDirection("orientation", "horizontal")).toBe(
+        "row",
+      );
+    });
+
+    it("labelPosition: top→column / side→row", () => {
+      expect(drivenValueToFlexDirection("labelPosition", "top")).toBe("column");
+      expect(drivenValueToFlexDirection("labelPosition", "side")).toBe("row");
+    });
+
+    it("labelPosition 미설정(default top)→column", () => {
+      expect(drivenValueToFlexDirection("labelPosition", undefined)).toBe(
+        "column",
+      );
+    });
+
+    it("orientation 미설정→row (default horizontal)", () => {
+      expect(drivenValueToFlexDirection("orientation", undefined)).toBe("row");
+    });
+  });
+
+  describe("resolveDrivenFlexDirection — 패널 표시: stale inline 무시하고 SSOT 우선", () => {
+    it("RadioGroup labelPosition:top → column (inline row 가 있어도 무시)", () => {
+      expect(
+        resolveDrivenFlexDirection("RadioGroup", {
+          labelPosition: "top",
+          style: { flexDirection: "row" },
+        }),
+      ).toBe("column");
+    });
+
+    it("RadioGroup labelPosition:side → row", () => {
+      expect(
+        resolveDrivenFlexDirection("RadioGroup", { labelPosition: "side" }),
+      ).toBe("row");
+    });
+
+    it("ToggleButtonGroup orientation:vertical → column", () => {
+      expect(
+        resolveDrivenFlexDirection("ToggleButtonGroup", {
+          orientation: "vertical",
+        }),
+      ).toBe("column");
+    });
+
+    it("비대상(ButtonGroup/frame)은 undefined (일반 inline 경로 fallback)", () => {
+      expect(
+        resolveDrivenFlexDirection("ButtonGroup", {
+          style: { flexDirection: "row" },
+        }),
+      ).toBeUndefined();
+      expect(resolveDrivenFlexDirection("frame", {})).toBeUndefined();
     });
   });
 });

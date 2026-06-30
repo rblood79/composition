@@ -41,7 +41,7 @@ import {
 } from "../hooks/useLayoutAuxiliary";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { useStore } from "../../../stores";
-import { isOrientationDrivenTag } from "../utils/orientationDrivenTags";
+import { isDirectionDrivenTag } from "../utils/orientationDrivenTags";
 
 // 4방향 값 추출은 이제 useLayoutValues 훅에서 처리됨
 
@@ -193,12 +193,13 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
 
   // ADR-067 Phase 2: Zustand 직접 구독 + Spec 직접 lookup
   const selectedId = useStore((s) => s.selectedElementId);
-  // orientation-SSOT 컨테이너(ToggleButtonGroup / Toolbar)는 flexDirection SSOT 가
-  // props.orientation(row/column 만, block 없음)이라 Direction 토글의 block 버튼을
-  // disable — 매핑 불가능한 block 선택을 원천 차단(2026-06-30). 대상 집합 정본:
+  // 그룹 축 prop derive 컨테이너(ToggleButtonGroup/Toolbar=orientation,
+  // RadioGroup/CheckboxGroup=labelPosition)는 그룹 root flexDirection SSOT 가
+  // 별도 prop(row/column 만, block 없음)이라 Direction 토글의 block 버튼을 disable
+  // — 매핑 불가능한 block 선택을 원천 차단(2026-06-30). 대상 정본:
   // orientationDrivenTags (element.type PascalCase → 헬퍼가 toLowerCase 정규화).
-  const isOrientationDriven = useStore((s) =>
-    isOrientationDrivenTag(
+  const isDirectionDriven = useStore((s) =>
+    isDirectionDrivenTag(
       selectedId ? s.elementsMap.get(selectedId)?.type : undefined,
     ),
   );
@@ -268,7 +269,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
               handleFlexDirection(value);
             }}
           >
-            <ToggleButton id="block" isDisabled={isOrientationDriven}>
+            <ToggleButton id="block" isDisabled={isDirectionDriven}>
               <Square
                 color={iconProps.color}
                 size={iconProps.size}

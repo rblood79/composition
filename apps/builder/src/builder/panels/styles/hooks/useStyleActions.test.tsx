@@ -35,11 +35,13 @@ describe("useStyleActions", () => {
     });
   });
 
-  // orientation-SSOT 컨테이너 direction → orientation 양방향 동기화 (2026-06-30)
-  // flexDirection SSOT 가 props.orientation 으로 일원화된 컨테이너
-  // (ToggleButtonGroup / Toolbar)는 direction 토글 편집을 style 이 아닌
-  // orientation prop 으로 번역해 기록한다. ButtonGroup 은 SSOT 가 정반대라 제외.
-  describe("handleFlexDirection — orientation-SSOT 컨테이너 동기화", () => {
+  // 그룹 축 prop derive 컨테이너 direction 양방향 동기화 (2026-06-30)
+  // 그룹 root flexDirection SSOT 가 별도 prop 인 컨테이너는 direction 토글 편집을
+  // style 이 아닌 그 prop 으로 번역해 기록한다:
+  //  - orientation (ToggleButtonGroup/Toolbar): column→vertical / row→horizontal
+  //  - labelPosition (RadioGroup/CheckboxGroup): column→top / row→side
+  // ButtonGroup 은 SSOT 가 정반대(style.flexDirection)라 제외.
+  describe("handleFlexDirection — 그룹 축 prop derive 컨테이너 동기화", () => {
     function setupSelection(type: string) {
       const updateSelectedStyles = vi.fn();
       const updateSelectedProperty = vi.fn();
@@ -123,6 +125,52 @@ describe("useStyleActions", () => {
         "vertical",
       );
       expect(updateSelectedStyles).not.toHaveBeenCalled();
+    });
+
+    it("RadioGroup column → labelPosition:top 로 번역 (그룹 root 축), style 미기록", () => {
+      const { updateSelectedStyles, updateSelectedProperty } =
+        setupSelection("RadioGroup");
+      const { result } = renderHook(() => useStyleActions());
+
+      act(() => {
+        result.current.handleFlexDirection("column");
+      });
+
+      expect(updateSelectedProperty).toHaveBeenCalledWith(
+        "labelPosition",
+        "top",
+      );
+      expect(updateSelectedStyles).not.toHaveBeenCalled();
+    });
+
+    it("RadioGroup row → labelPosition:side 로 번역, style 미기록", () => {
+      const { updateSelectedStyles, updateSelectedProperty } =
+        setupSelection("RadioGroup");
+      const { result } = renderHook(() => useStyleActions());
+
+      act(() => {
+        result.current.handleFlexDirection("row");
+      });
+
+      expect(updateSelectedProperty).toHaveBeenCalledWith(
+        "labelPosition",
+        "side",
+      );
+      expect(updateSelectedStyles).not.toHaveBeenCalled();
+    });
+
+    it("CheckboxGroup column → labelPosition:top (RadioGroup 동형)", () => {
+      const { updateSelectedProperty } = setupSelection("CheckboxGroup");
+      const { result } = renderHook(() => useStyleActions());
+
+      act(() => {
+        result.current.handleFlexDirection("column");
+      });
+
+      expect(updateSelectedProperty).toHaveBeenCalledWith(
+        "labelPosition",
+        "top",
+      );
     });
 
     it("ButtonGroup 은 SSOT 가 정반대(style.flexDirection) → 기존 경로 유지", () => {

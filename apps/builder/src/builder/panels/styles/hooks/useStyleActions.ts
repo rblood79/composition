@@ -17,8 +17,8 @@ import {
   sanitizeFillDerivedStylePatch,
 } from "../utils/fillDerivedStyleProps";
 import {
-  isOrientationDrivenTag,
-  flexDirectionToOrientation,
+  resolveDirectionDrivenProp,
+  flexDirectionToDrivenValue,
 } from "../utils/orientationDrivenTags";
 
 export function useStyleActions() {
@@ -98,25 +98,27 @@ export function useStyleActions() {
    * - 'row': display: flex + flex-direction: row
    * - 'column': display: flex + flex-direction: column
    *
-   * orientation-SSOT 컨테이너 특례(ToggleButtonGroup / Toolbar):
-   * flexDirection 의 SSOT 가 `props.orientation` 이라 렌더 derive 경로가 inline
-   * style.flexDirection 을 무시한다(commit d9ef79bcb). direction 토글 편집을
-   * style 에 쓰면 화면 반영조차 안 됨 → orientation prop 으로 번역해 단일 SSOT 에
-   * 직접 기록(이중 저장 아님). 매핑은 derive 의 역방향(column→vertical /
-   * row→horizontal). block 은 모델에 없어 패널에서 disable 되므로 여기로 도달
-   * 하지 않지만, 방어적으로 horizontal 흡수. 대상 집합 정본: orientationDrivenTags.
+   * 그룹 축 prop derive 컨테이너 특례: 그룹 root flexDirection 의 SSOT 가
+   * style.flexDirection 이 아니라 별도 layout prop (orientation: ToggleButtonGroup
+   * /Toolbar, labelPosition: RadioGroup/CheckboxGroup) 이라 렌더 derive 경로가
+   * inline style.flexDirection 을 무시한다. direction 토글 편집을 style 에 쓰면
+   * 화면 반영조차 안 됨 → 해당 prop 으로 번역해 단일 SSOT 에 직접 기록(이중 저장
+   * 아님). 매핑: orientation column→vertical/row→horizontal, labelPosition
+   * column→top/row→side. block 은 모델에 없어 패널에서 disable 되므로 여기로
+   * 도달하지 않지만, 방어적으로 row 쪽 흡수. 대상 정본: orientationDrivenTags.
    */
   const handleFlexDirection = useCallback((value: string) => {
     const { selectedElementId, elementsMap } = useStore.getState();
     const selected = selectedElementId
       ? elementsMap.get(selectedElementId)
       : undefined;
-    if (isOrientationDrivenTag(selected?.type)) {
+    const drivenProp = resolveDirectionDrivenProp(selected?.type);
+    if (drivenProp) {
       useStore
         .getState()
         .updateSelectedProperty(
-          "orientation",
-          flexDirectionToOrientation(value),
+          drivenProp,
+          flexDirectionToDrivenValue(drivenProp, value),
         );
       return;
     }

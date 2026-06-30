@@ -1,38 +1,106 @@
 /**
- * orientation-SSOT 컨테이너 단일 소스
+ * "그룹 자체 축을 prop 으로 derive 하는 컨테이너" 단일 소스
  *
- * 일부 컨테이너는 flexDirection 의 SSOT 가 `props.style.flexDirection` 이 아니라
- * `props.orientation` prop 이다(commit d9ef79bcb, ToggleButtonGroup 도입). 렌더
- * derive 경로(fullTreeLayout / implicitStyles / CSS [data-orientation])가
- * `orientation → flexDirection`(vertical→column / horizontal→row)을 단방향 도출하고
- * inline style.flexDirection 을 무시한다.
+ * 일부 컨테이너는 그룹 root 의 flexDirection SSOT 가 `props.style.flexDirection`
+ * 이 아니라 별도 layout prop 이다. 렌더 derive 경로(fullTreeLayout / implicitStyles
+ * / CSS generated)가 그 prop → flexDirection 을 단방향 도출하고 inline
+ * style.flexDirection 을 무시한다. 따라서 Style 패널 Direction 토글은:
+ *  1) 편집 입력을 style 이 아닌 해당 prop 으로 번역해야 양방향 동기화 + 화면 반영이
+ *     된다(이중 저장 아님 — 단일 SSOT 유지).
+ *  2) `block` 은 이 모델들에 없는 상태이므로 토글에서 disable.
  *
- * 이 컨테이너들에서 Style 패널 Direction 토글은:
- *  1) 편집 입력을 style 이 아닌 `props.orientation` 으로 번역해야 양방향 동기화 +
- *     화면 반영이 된다(이중 저장 아님 — 단일 SSOT 유지).
- *  2) `block` 은 모델에 없는 상태이므로 토글에서 disable.
+ * 그룹 축을 결정하는 prop 이 두 종류다 (2026-06-30 전수조사):
+ *  - **orientation 축** (ToggleButtonGroup, Toolbar):
+ *    `props.orientation` (commit d9ef79bcb). vertical→column / horizontal→row.
+ *  - **labelPosition 축** (RadioGroup, CheckboxGroup):
+ *    `props.labelPosition`. top→column(label 위) / side→row(label 옆).
+ *    이 그룹들의 `orientation` 은 items-wrapper 축(자식 배치)이라 그룹 root 축과
+ *    직교 — 그룹 root Direction 은 labelPosition 이 SSOT (implicitStyles:1210).
  *
  * ⚠️ ButtonGroup 은 SSOT 가 정반대(style.flexDirection 이 Skia/Taffy 직접 read,
- *    orientation 은 CSS/preview 전용 채널)라 여기 포함하지 않는다 — 포함 시 새 drift.
- *    CheckboxGroup/RadioGroup 은 orientation 이 items-wrapper 축이고 그룹 축은
- *    labelPosition 인 2축 직교 구조라 비동형. (2026-06-30 전수조사 결론)
+ *    orientation 은 CSS/preview 전용 채널)라 어느 쪽에도 포함 안 함 — 포함 시 새
+ *    drift. (전수조사 결론, [[feedback-orientation-ssot-not-uniform-buttongroup-inverse]])
  *
  * element.type 은 PascalCase 저장 → derive 경로(`.toLowerCase()` 비교)와 동일하게
  * 정규화한 소문자 집합으로 둔다.
  */
+
+/** Direction 토글이 `props.orientation` 으로 번역되는 컨테이너. */
 export const ORIENTATION_DRIVEN_TAGS: ReadonlySet<string> = new Set([
   "togglebuttongroup",
   "toolbar",
 ]);
 
-/** 선택 요소가 orientation-SSOT 컨테이너인지 (PascalCase type 입력 허용). */
-export function isOrientationDrivenTag(type: string | undefined): boolean {
-  return ORIENTATION_DRIVEN_TAGS.has((type ?? "").toLowerCase());
+/** Direction 토글이 `props.labelPosition` 으로 번역되는 컨테이너. */
+export const LABEL_POSITION_DRIVEN_TAGS: ReadonlySet<string> = new Set([
+  "radiogroup",
+  "checkboxgroup",
+]);
+
+/** Direction 토글이 그룹 축 prop 으로 derive 되는 prop key (없으면 일반 style 경로). */
+export type DirectionDrivenProp = "orientation" | "labelPosition";
+
+/**
+ * 선택 요소의 그룹 축 prop key 를 반환 (PascalCase type 입력 허용).
+ * orientation/labelPosition 어느 것도 아니면 undefined → 일반 style.flexDirection 경로.
+ */
+export function resolveDirectionDrivenProp(
+  type: string | undefined,
+): DirectionDrivenProp | undefined {
+  const normalized = (type ?? "").toLowerCase();
+  if (ORIENTATION_DRIVEN_TAGS.has(normalized)) return "orientation";
+  if (LABEL_POSITION_DRIVEN_TAGS.has(normalized)) return "labelPosition";
+  return undefined;
 }
 
-/** Direction 토글 값 → orientation prop 값 (block 은 모델에 없어 horizontal 흡수). */
-export function flexDirectionToOrientation(
+/** 선택 요소가 그룹 축 prop derive 컨테이너인지 (block disable 대상). */
+export function isDirectionDrivenTag(type: string | undefined): boolean {
+  return resolveDirectionDrivenProp(type) !== undefined;
+}
+
+/**
+ * Direction 토글 값 → 그룹 축 prop 값.
+ *  - orientation: column→vertical / row→horizontal
+ *  - labelPosition: column→top / row→side
+ * block 은 모델에 없어 row 쪽(horizontal / side)으로 흡수.
+ */
+export function flexDirectionToDrivenValue(
+  prop: DirectionDrivenProp,
   value: string,
-): "horizontal" | "vertical" {
-  return value === "column" ? "vertical" : "horizontal";
+): string {
+  const isColumn = value === "column";
+  if (prop === "orientation") return isColumn ? "vertical" : "horizontal";
+  // labelPosition
+  return isColumn ? "top" : "side";
+}
+
+/**
+ * 그룹 축 prop 값 → flexDirection (패널 Direction 표시 / SSOT 우선 read).
+ * derive 의 역방향. 그룹 축 prop derive 컨테이너의 패널 표시는 stale inline
+ * style.flexDirection 보다 이 값을 우선해야 SSOT 와 일치한다(양방향 표시 정합).
+ *  - orientation: vertical→column / 그 외→row
+ *  - labelPosition: top→column / side→row (top default)
+ */
+export function drivenValueToFlexDirection(
+  prop: DirectionDrivenProp,
+  rawValue: unknown,
+): "row" | "column" {
+  const value = typeof rawValue === "string" ? rawValue : undefined;
+  if (prop === "orientation") return value === "vertical" ? "column" : "row";
+  // labelPosition: side→row, top(또는 미설정 default)→column
+  return value === "side" ? "row" : "column";
+}
+
+/**
+ * 선택 요소가 그룹 축 prop derive 컨테이너이면 그 prop 값으로 derive 한
+ * flexDirection 을, 아니면 undefined 반환(일반 inline/specPreset 경로 fallback).
+ * 패널 표시(useResolvedLayoutFields)에서 inline 보다 우선 적용.
+ */
+export function resolveDrivenFlexDirection(
+  type: string | undefined,
+  props: Readonly<Record<string, unknown>> | undefined,
+): "row" | "column" | undefined {
+  const prop = resolveDirectionDrivenProp(type);
+  if (!prop) return undefined;
+  return drivenValueToFlexDirection(prop, props?.[prop]);
 }
