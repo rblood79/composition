@@ -525,7 +525,15 @@ export const renderCheckbox = (
 
   return (
     <Checkbox
-      key={element.id}
+      // key 에 selected/indeterminate 를 묶어, 패널에서 isSelected 를 토글하면
+      //   key 가 바뀌어 RAC Checkbox 가 re-mount → 새 defaultSelected 를 다시 읽는다.
+      //   defaultSelected 는 uncontrolled 라 mount 시점 값만 쓰므로, key 변경 없이는
+      //   패널 토글이 DOM 에 반영 안 됨(Skia 는 props 직접 읽어 즉시 반영 → 두 경로 drift).
+      //   preview 직접 클릭은 onChange→store 갱신 후 같은 값으로 key 가 재계산되므로
+      //   불필요한 re-mount 없이 RAC 내부 상태로 정상 표시.
+      key={`${element.id}:${Boolean(element.props.isSelected)}:${Boolean(
+        element.props.isIndeterminate,
+      )}`}
       id={element.customId}
       data-element-id={element.id}
       defaultSelected={Boolean(element.props.isSelected)}
@@ -605,7 +613,12 @@ export const renderCheckboxGroup = (
 
   return (
     <CheckboxGroup
-      key={element.id}
+      // key 에 selectedValues 시그니처를 묶어, 패널에서 자식 isSelected 를 토글하면
+      //   key 가 바뀌어 RAC CheckboxGroup 이 re-mount → 새 defaultValue 를 다시 읽는다.
+      //   defaultValue 는 uncontrolled(아래 주석 참조) 라 mount 시점 값만 쓰므로, key 변경
+      //   없이는 패널 토글이 DOM 에 반영 안 됨. preview 직접 클릭은 onChange→store 갱신 후
+      //   같은 selection 으로 key 가 재계산되어 불필요한 re-mount 없이 정상 표시.
+      key={`${element.id}:${selectedValues.join(",")}`}
       id={element.customId}
       data-element-id={element.id}
       style={element.props.style}
@@ -789,15 +802,36 @@ export const renderRadioGroup = (
     (element.props.label as string) ||
     undefined;
 
+  // 선택값 정본: 자식 Radio 의 isSelected 우선, 없으면 그룹 value fallback.
+  //   RAC Radio 에는 isSelected prop 이 없고 선택은 그룹 value(자기 value 일치) 로만
+  //   표현된다(RAC 표준). 그런데 composition catalog 는 Radio 에 "Selected" 토글을
+  //   패널에 노출하고(Radio.binding states/renderProps), Skia 는 개별 Radio 의
+  //   props.isSelected 를 직접 읽어 그린다. preview 도 같은 정본(자식 isSelected)을
+  //   따르되 RAC 계약 안에서 honor 하려면 "isSelected=true 인 Radio 의 value" 를
+  //   그룹 defaultValue 로 번역한다(CheckboxGroup getSelectedChildIds 와 동형 — 단일
+  //   선택이라 첫 매치만). 패널에서 자식 isSelected 토글 시 이 값이 바뀌어야 preview 반영.
+  const selectedRadioChild = radioChildren.find((radio) =>
+    Boolean(radio.props.isSelected),
+  );
+  const selectedRadioValue =
+    selectedRadioChild?.props?.value !== undefined
+      ? String(selectedRadioChild.props.value)
+      : String(element.props.value || "");
+
   return (
     <RadioGroup
-      key={element.id}
+      // key 에 선택값을 묶어, 패널에서 자식 Radio 의 isSelected(또는 그룹 value)를 토글하면
+      //   key 가 바뀌어 RAC RadioGroup 이 re-mount → 새 defaultValue 를 다시 읽는다.
+      //   defaultValue 는 uncontrolled 라 mount 시점 값만 쓰므로, key 변경 없이는 패널 토글이
+      //   DOM 에 반영 안 됨(Skia 는 props 직접 읽어 즉시 반영 → 두 경로 drift). preview 직접
+      //   클릭은 onChange→store 갱신 후 같은 값으로 key 가 재계산되어 불필요한 re-mount 없이 정상.
+      key={`${element.id}:${selectedRadioValue}`}
       id={element.customId}
       data-element-id={element.id}
       style={element.props.style}
       className={element.props.className}
       label={groupLabel}
-      defaultValue={String(element.props.value || "")}
+      defaultValue={selectedRadioValue}
       orientation={
         (element.props.orientation as "horizontal" | "vertical") || "vertical"
       }

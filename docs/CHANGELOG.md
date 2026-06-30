@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [selection 계열 컴포넌트 패널 토글이 CSS preview 에 미반영 — 전수조사 + uncontrolled re-mount] - 2026-06-30
+
+### Bug Fixes
+
+- **selection 토글 시 Skia 는 반영되나 CSS preview 는 미반영 (5개 컴포넌트 동종 drift)**:
+  - Checkbox/RadioGroup 동종 버그를 selection/value 계열 전수조사. preview renderer 에서 uncontrolled(`default*`) 로 렌더하는 9개 컴포넌트 중, Skia 가 selection 을 즉시 그리는 5개(**ToggleButton / ToggleButtonGroup / Tabs / ListBox / GridList**)에서 동일 drift 확정
+  - **Why**: 해당 5개는 root 컴포넌트 `key={element.id}` 단독 + `defaultSelected`/`defaultSelectedKeys`/`defaultSelectedKey`(uncontrolled) → mount 시점 selection 만 읽어 패널 토글 미반영. Skia 는 `buildCatalogShapes`(ToggleButton isSelected) / `canvasSceneNode`(Tabs selectedKey indicator, ListBox·GridList selectedKeys → row/card `_isSelected`)가 매 scene rebuild 직접 읽어 즉시 반영 → Skia↔CSS preview drift
+  - 수정: 각 root 컴포넌트 `key` 에 selection 시그니처를 묶어 패널 토글 시 re-mount → 새 default 를 다시 읽게 함 (Checkbox/RadioGroup 동형). ToggleButton 은 group 안에선 group 이 selection 전담하므로 key 에 미포함(`isInGroup ? element.id : ...`)
+  - **조사 결과 분류**: 🔴 drift 확정 5개(위) / ⚪ Skia selection 표시 미구현이라 무의미 3개(Select/ComboBox/Menu — catalog render.shapes 가 selection indicator 미정의) / △ Tree(expand 만 Skia 반영, selection 미구현)
+  - 위치: `packages/shared/src/renderers/CollectionRenderers.tsx`(renderToggleButton / renderToggleButtonGroup), `LayoutRenderers.tsx`(renderTabs), `SelectionRenderers.tsx`(renderListBox 2경로 / renderGridList) 의 key
+  - 회귀 테스트: `packages/shared/src/renderers/__tests__/selectionRemountKey.test.tsx` 신규 (5개 컴포넌트 selection 변경 시 key 변경 + ToggleButton group 안 미포함 정적 검증 6개)
+  - 라이브 검증: ToggleButton 임시 배치 → isSelected 패널 토글 시 preview DOM `data-selected="true"`/`aria-pressed="true"` 반영 확인 → 제거 후 IndexedDB 무흔적 확인(데이터 무결)
+
+## [Checkbox/CheckboxGroup/RadioGroup selected 패널 토글이 CSS preview 에 미반영 — uncontrolled re-mount] - 2026-06-29
+
+### Bug Fixes
+
+- **selected 토글 시 Skia 는 반영되나 CSS preview 는 미반영 (두 렌더 경로 drift)**:
+  - properties 패널에서 Checkbox 의 `isSelected`, CheckboxGroup 자식 selection, RadioGroup 의 `value` 를 토글하면 Skia 캔버스는 즉시 반영되나 CSS preview(iframe DOM) 는 변화 없음
+  - **Why**: Skia 는 `props.isSelected` 를 매 scene rebuild 마다 직접 읽어 selected variant 를 resolve(controlled-like)하는데, preview 렌더러(FormRenderers.tsx)는 RAC 컴포넌트를 `defaultSelected`/`defaultValue` **uncontrolled** 로 렌더 → mount 시점 값만 읽어 패널 토글이 DOM 에 반영 안 됨. 라이브 확인: store.isSelected=true 인데 preview input.checked=false 그대로
+  - 수정: uncontrolled 패턴 유지(preview 직접 클릭 UX 보존)하되, RAC 컴포넌트의 `key` 에 selected 시그니처를 묶어 패널 토글 시 re-mount → 새 default 를 다시 읽게 함. preview 직접 클릭은 onChange→store 갱신 후 같은 값으로 key 가 재계산되어 불필요한 re-mount 없음
+  - 위치: `packages/shared/src/renderers/FormRenderers.tsx` (renderCheckbox / renderCheckboxGroup / renderRadioGroup 의 key)
+  - 회귀 테스트: `packages/shared/src/renderers/__tests__/checkboxGroupSelection.test.tsx` (key 가 selected 상태 변경 시 달라지는지 + uncontrolled 계약 유지 정적 검증 4개 추가)
+- **RadioGroup 내 개별 Radio 의 isSelected 토글이 CSS preview 에 미반영**:
+  - 개별 Radio element 를 선택하고 패널에서 "Selected" 를 토글하면 Skia 는 반영되나 CSS preview 는 변화 없음. 위 `value` 토글과 별개 경로 — RadioGroup 의 `defaultValue`/`key` 가 그룹 `element.props.value` 만 읽어 자식 Radio 의 `isSelected` 를 무시했기 때문 (라이브 확인: store r2.isSelected=true, rgValue="" 인데 preview 어떤 radio 도 선택 안 됨)
+  - **Why**: RAC Radio 에는 isSelected prop 이 없고 선택은 그룹 value 로만 표현(RAC 표준)되나, composition catalog 는 Radio.binding 에 "Selected" 토글을 노출(states/renderProps `isSelected`)하고 Skia radio primitive 가 `props.isSelected` 를 직접 읽어 정본으로 그린다. preview 만 그룹 value 를 봐서 자식 isSelected 를 honor 안 함 → Skia↔CSS drift
+  - 수정: RadioGroup 의 `defaultValue`/`key` 를 "isSelected=true 인 자식 Radio 의 value" 에서 도출(없으면 그룹 value fallback). RAC 계약(`value`/`defaultValue`) 안에서 자식 isSelected 를 honor — CheckboxGroup `getSelectedChildIds` 와 동형(단일 선택이라 첫 매치만). reference(RadioGroup.md API) 확인 후 RAC 계약 위반 없이 정합
+  - 위치: `packages/shared/src/renderers/FormRenderers.tsx` (renderRadioGroup 의 selectedRadioValue 도출 + defaultValue/key)
+  - 회귀 테스트: 위 동일 파일에 RadioGroup 자식 isSelected honor 정적 검증 3개 추가 (그룹 value 비어도 자식 isSelected→defaultValue 반영 / 자식 토글 시 key 변경 / 자식 전부 false 면 그룹 value fallback)
+
 ## [컨테이너 이동(move) 후 store↔canonical split-brain — moveElementToContainer mirror 갱신 누락] - 2026-06-29
 
 ### Bug Fixes

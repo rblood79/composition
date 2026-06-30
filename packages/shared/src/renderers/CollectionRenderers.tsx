@@ -638,10 +638,17 @@ export const renderToggleButtonGroup = (
   const selectedKeys = new Set<string>(
     getSelectedChildIds(toggleButtonChildren),
   );
+  // key 시그니처용 안정 정렬 문자열 (Set 순서 비결정성 회피).
+  const selectedKeysSignature = Array.from(selectedKeys).sort().join(",");
 
   return (
     <ToggleButtonGroup
-      key={element.id}
+      // defaultSelectedKeys(uncontrolled) 는 mount 시점 selection 만 읽는다. 패널에서 자식
+      //   ToggleButton 의 isSelected 토글 시 selectedKeysSignature 가 바뀌어 key 가 달라지고
+      //   group 이 re-mount → 새 defaultSelectedKeys 를 다시 읽게 한다 (CheckboxGroup 동형).
+      //   Skia 는 자식 buildCatalogShapes 가 props.isSelected 를 직접 읽어 즉시 반영하므로,
+      //   key 없으면 Skia↔CSS preview drift.
+      key={`${element.id}:${selectedKeysSignature}`}
       data-custom-id={element.customId}
       data-element-id={element.id}
       style={element.props.style}
@@ -706,7 +713,16 @@ export const renderToggleButton = (
   //   - 단독: defaultSelected(uncontrolled, Checkbox 동형) + onPress 에서 store 영속화.
   return (
     <ToggleButton
-      key={element.id}
+      // 단독 ToggleButton 은 defaultSelected(uncontrolled) 라 mount 시점 isSelected 만 읽는다.
+      //   패널에서 isSelected 토글 시 key 가 바뀌어 re-mount → 새 defaultSelected 를 다시 읽게 한다
+      //   (Checkbox/RadioGroup 동형). Skia 는 buildCatalogShapes 가 props.isSelected 를 매 rebuild
+      //   직접 읽어 즉시 반영하므로, key 없으면 Skia↔CSS preview drift. group 안에선 group 의
+      //   defaultSelectedKeys 가 selection 전담(자식 isSelected 무관) → key 에 selection 미포함.
+      key={
+        isInGroup
+          ? element.id
+          : `${element.id}:${Boolean(element.props.isSelected)}`
+      }
       id={element.id}
       data-element-id={element.id}
       data-custom-id={element.customId}

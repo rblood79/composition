@@ -191,6 +191,26 @@ export const renderListBox = (
     return [];
   };
 
+  // key 시그니처용 — selection source props 직렬화. defaultSelectedKeys(uncontrolled) 는
+  //   mount 시점 selection 만 읽으므로, 패널에서 selectedKeys/selectedKey/selectedIndex 토글
+  //   시 이 시그니처가 바뀌어 key 가 달라지고 ListBox 가 re-mount → 새 defaultSelectedKeys 를
+  //   다시 읽게 한다 (Checkbox/RadioGroup 동형). Skia 는 canvasSceneNode 가 selectedKeys 로
+  //   row _isSelected 를 매 rebuild 즉시 그리므로, key 없으면 Skia↔CSS preview drift.
+  const selectionSignature = (() => {
+    const p = element.props as {
+      selectedKeys?: unknown;
+      selectedKey?: unknown;
+      selectedIndices?: unknown;
+      selectedIndex?: unknown;
+    };
+    return JSON.stringify([
+      Array.isArray(p.selectedKeys) ? [...p.selectedKeys].map(String) : null,
+      typeof p.selectedKey === "string" ? p.selectedKey : null,
+      Array.isArray(p.selectedIndices) ? [...p.selectedIndices] : null,
+      typeof p.selectedIndex === "number" ? p.selectedIndex : null,
+    ]);
+  })();
+
   // 공통 ListBox props (3-path 공유)
   const onSelectionChange = (selectedKeys: Iterable<string | number>) => {
     const keys = Array.from(selectedKeys).map(String);
@@ -301,7 +321,7 @@ export const renderListBox = (
 
     return (
       <ListBox
-        key={element.id}
+        key={`${element.id}:${selectionSignature}`}
         id={element.customId}
         aria-label={String(element.props.label || "List")}
         data-element-id={element.id}
@@ -396,7 +416,7 @@ export const renderListBox = (
 
   return (
     <ListBox
-      key={element.id}
+      key={`${element.id}:${selectionSignature}`}
       id={element.customId}
       aria-label={String(element.props.label || "List")}
       data-element-id={element.id}
@@ -583,6 +603,17 @@ export const renderGridList = (
     context.childrenByParent.get(element.id) ?? []
   ).filter((child) => child.type === "GridListItem");
 
+  // key 시그니처용 — selectedKeys 직렬화. defaultSelectedKeys(uncontrolled) 는 mount 시점
+  //   selection 만 읽으므로, 패널에서 selectedKeys 토글 시 이 시그니처가 바뀌어 key 가 달라지고
+  //   GridList 가 re-mount → 새 defaultSelectedKeys 를 다시 읽게 한다 (Checkbox/RadioGroup 동형).
+  //   Skia 는 canvasSceneNode 가 selectedKeys 로 card _isSelected 를 매 rebuild 즉시 그리므로,
+  //   key 없으면 Skia↔CSS preview drift.
+  const gridSelectionSignature = JSON.stringify(
+    Array.isArray(element.props.selectedKeys)
+      ? [...(element.props.selectedKeys as unknown[])].map(String)
+      : null,
+  );
+
   // ColumnMapping이 있고 visible columns가 있으면 Field Elements 자동 생성
   const columnMapping = (element.props as { columnMapping?: ColumnMapping })
     .columnMapping;
@@ -713,7 +744,7 @@ export const renderGridList = (
 
   return (
     <GridList
-      key={element.id}
+      key={`${element.id}:${gridSelectionSignature}`}
       id={element.customId}
       aria-label={String(element.props.label || "Grid List")}
       data-element-id={element.id}

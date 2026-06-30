@@ -133,7 +133,11 @@ export const renderTabs = (
 
   return (
     <Tabs
-      key={element.id}
+      // defaultSelectedKey(uncontrolled) 는 mount 시점 값만 읽는다. 패널에서 defaultSelectedKey
+      //   토글 시 key 가 바뀌어 Tabs 가 re-mount → 새 defaultSelectedKey 를 다시 읽게 한다
+      //   (Checkbox/RadioGroup 동형). Skia 는 canvasSceneNode 가 selectedKey ?? defaultSelectedKey
+      //   로 tab_indicator 를 매 rebuild 즉시 그리므로, key 없으면 Skia↔CSS preview drift.
+      key={`${element.id}:${String(element.props.defaultSelectedKey || "")}`}
       id={element.customId}
       data-element-id={element.id}
       style={element.props.style}
