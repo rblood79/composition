@@ -29,15 +29,20 @@
  *    DateField, TimeField, DatePicker (단일 컨트롤 — orientation 축 없음,
  *    side→row 는 Label↔Input 옆배치)
  *  - TagGroup (orientation=chip 배치 축으로 직교, binding 주석 명시)
+ *  - ComboBox, Select, DateRangePicker (field 동형 — combobox/select/searchfield
+ *    공통 분기 + datepicker/daterangepicker 공통 분기. catalog side variant 는
+ *    `structure.composition.containerVariants` 에 이미 존재(top-level 아님 — derive
+ *    `resolveCatalogContainerVariants` 가 structure 경유 read). binding labelPosition
+ *    accepts 를 후속 추가하여 Properties dropdown 편집 진입점 확보).
  *
  * ⚠️ 제외:
  *  - ButtonGroup: SSOT 가 정반대(style.flexDirection 이 Skia/Taffy 직접 read,
  *    orientation 은 CSS/preview 전용 채널)라 포함 시 새 drift.
  *    [[feedback-orientation-ssot-not-uniform-buttongroup-inverse]]
- *  - ComboBox, DateRangePicker: catalog label-position variant 는 있으나 binding
- *    accepts 미선언 → Properties dropdown 편집 UI 부재. Direction 토글만 prop 을
- *    쓰면 편집 진입점 비대칭. binding accepts 추가는 별도 작업.
- *  - Select: catalog variant 자체 없음.
+ *  - Form: labelPosition accepts 는 있으나 그룹 root flexDirection derive 아님
+ *    (catalog containerVariants[label-position] 없음 + implicitStyles form 분기 없음).
+ *    자식 field 상속 hint(data-* 라우팅) — 포함 시 Form 레이아웃 미변경 + 자식 label
+ *    만 일괄 변경되는 비직관 동작.
  *
  * element.type 은 PascalCase 저장 → derive 경로(`.toLowerCase()` 비교)와 동일하게
  * 정규화한 소문자 집합으로 둔다.
@@ -64,6 +69,10 @@ export const LABEL_POSITION_DRIVEN_TAGS: ReadonlySet<string> = new Set([
   "datepicker",
   // chip 계열 (orientation=chip 배치 축으로 직교)
   "taggroup",
+  // combobox/select/searchfield + datepicker/daterangepicker 공통 분기 (field 동형)
+  "combobox",
+  "select",
+  "daterangepicker",
 ]);
 
 /** Direction 토글이 그룹 축 prop 으로 derive 되는 prop key (없으면 일반 style 경로). */

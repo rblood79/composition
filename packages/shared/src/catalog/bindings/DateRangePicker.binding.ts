@@ -32,6 +32,16 @@ export const dateRangePickerBinding: PrimitiveBinding = {
         section: "appearance",
         default: "md",
       },
+      labelPosition: {
+        kind: "enum",
+        label: "Label Position",
+        section: "appearance",
+        default: "top",
+        options: [
+          { value: "top", label: "Top" },
+          { value: "side", label: "Side" },
+        ],
+      },
       showCalendarIcon: {
         kind: "boolean",
         label: "Show Calendar Icon",

@@ -56,6 +56,16 @@ export const selectBinding: PrimitiveBinding = {
         section: "appearance",
         default: "md",
       },
+      labelPosition: {
+        kind: "enum",
+        label: "Label Position",
+        section: "appearance",
+        default: "top",
+        options: [
+          { value: "top", label: "Top" },
+          { value: "side", label: "Side" },
+        ],
+      },
       selectionMode: {
         kind: "enum",
         label: "Selection Mode",

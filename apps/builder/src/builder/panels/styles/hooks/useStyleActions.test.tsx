@@ -39,11 +39,11 @@ describe("useStyleActions", () => {
   // 그룹 root flexDirection SSOT 가 별도 prop 인 컨테이너는 direction 토글 편집을
   // style 이 아닌 그 prop 으로 번역해 기록한다:
   //  - orientation (ToggleButtonGroup/Toolbar): column→vertical / row→horizontal
-  //  - labelPosition (RadioGroup/CheckboxGroup/field 8종/TagGroup): column→top / row→side
-  // field/TagGroup 도 렌더 SSOT 가 RadioGroup 과 동일한 catalog containerVariants
-  // (label-position.side flex-row) 라 동형. ButtonGroup 은 SSOT 가 정반대
-  // (style.flexDirection)라 제외, ComboBox/Select/DateRangePicker 는 binding accepts
-  // 부재(편집 UI 비대칭) 또는 catalog variant 부재라 제외.
+  //  - labelPosition (RadioGroup/CheckboxGroup/field 8종/TagGroup/ComboBox/Select/
+  //    DateRangePicker): column→top / row→side
+  // 전부 렌더 SSOT 가 동일한 catalog containerVariants(label-position.side flex-row)라
+  // 동형. ButtonGroup 은 SSOT 가 정반대(style.flexDirection)라 제외, Form 은 labelPosition
+  // 이 자식 상속 hint(그룹 root derive 아님)라 제외.
   describe("handleFlexDirection — 그룹 축 prop derive 컨테이너 동기화", () => {
     function setupSelection(type: string) {
       const updateSelectedStyles = vi.fn();
@@ -220,12 +220,53 @@ describe("useStyleActions", () => {
       );
     });
 
-    it("ComboBox 는 binding accepts 부재 → 기존 flexDirection 경로 유지", () => {
-      // catalog 에 label-position variant 는 있으나 binding accepts 미선언이라
-      // Properties dropdown 편집 UI 가 없다. Direction 토글만 prop 을 쓰면
-      // 편집 진입점 비대칭 → 제외. 일반 style 경로 유지 확인.
+    it("ComboBox row → labelPosition:side (binding accepts 추가됨, field 동형)", () => {
+      const { updateSelectedProperty } = setupSelection("ComboBox");
+      const { result } = renderHook(() => useStyleActions());
+
+      act(() => {
+        result.current.handleFlexDirection("row");
+      });
+
+      expect(updateSelectedProperty).toHaveBeenCalledWith(
+        "labelPosition",
+        "side",
+      );
+    });
+
+    it("Select column → labelPosition:top (catalog side variant 는 structure 경유로 이미 존재)", () => {
       const { updateSelectedStyles, updateSelectedProperty } =
-        setupSelection("ComboBox");
+        setupSelection("Select");
+      const { result } = renderHook(() => useStyleActions());
+
+      act(() => {
+        result.current.handleFlexDirection("column");
+      });
+
+      expect(updateSelectedProperty).toHaveBeenCalledWith(
+        "labelPosition",
+        "top",
+      );
+      expect(updateSelectedStyles).not.toHaveBeenCalled();
+    });
+
+    it("DateRangePicker row → labelPosition:side (datepicker 공통 분기 동형)", () => {
+      const { updateSelectedProperty } = setupSelection("DateRangePicker");
+      const { result } = renderHook(() => useStyleActions());
+
+      act(() => {
+        result.current.handleFlexDirection("row");
+      });
+
+      expect(updateSelectedProperty).toHaveBeenCalledWith(
+        "labelPosition",
+        "side",
+      );
+    });
+
+    it("Form 은 그룹 root derive 아님(자식 상속 hint) → 기존 flexDirection 경로 유지", () => {
+      const { updateSelectedStyles, updateSelectedProperty } =
+        setupSelection("Form");
       const { result } = renderHook(() => useStyleActions());
 
       act(() => {
