@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [TagGroup maxRows 접힘 — Taffy 실측 rowY 기반 재설계 (폭 가변 견고)] - 2026-07-02
+
+### Bug Fixes
+
+- **TagGroup `maxRows` 세로 gap 발산 재발 — 추정 wrap 공식이 폭 가변에서 Taffy 실배치와 어긋남** (2026-07-01 gap fix 의 근본 대체):
+  - **Why**: 직전 두 접근(`c05b620fc` fold-skip 1-pass 폭 310 / `4bdd470e9` 2-pass 추정 재보정 폭 350)은 chip 접힘 개수·height 를 **추정 wrap 공식**(`resolveTagWrapLayout`, measureText + 특정 폭 값 의존)으로 계산했다. TagGroup 폭은 **가변**인데, 이 추정은 (1) JS measureText ≠ Taffy WASM 텍스트 측정, (2) 부모 top-down 추정폭 ≠ 실제 flex/100% resolve 후 폭, (3) f32 정밀도로 실제 Taffy flexWrap 배치와 어긋난다. 라이브 계측(15 items maxRows=3): render skip 은 Skia 그리기만 막고 Taffy 는 chip 16개(15+Show all)를 **5줄**로 배치(rowY=[0,34,68,102,136], RowsGroup height 166) → 표시는 3줄이나 height 5줄분 → 잉여 여백이 `align-content` 분산 → 세로 gap 발산 + Show all 이 selection box 밖. maxRows 경계(폭에 따라 접힘 판정이 갈리는 값)에서만 발현.
+  - 수정 (chip 개수 제어 SSOT = layout 의 Taffy 실측 rowY, 폭 값 미사용):
+    - **rowY 기반 접힘** (`computeTagFoldKeep`, 신규): `fullTreeLayout` Step 4.5b 가 Taffy 가 배치한 각 chip 의 **실제 y좌표(rowY)**로 행 번호를 매핑해 `행 번호 ≥ maxRows` 인 비-Show all chip 을 RowsGroup Taffy 트리(`updateChildren`)에서 제외. 폭 값을 전혀 안 써 리사이즈에 견고. CSS 정본(`TagGroup.tsx` `computeVisibleTagCount`: `getBoundingClientRect().y` 로 rowCount, `rowCount > maxRows` break)과 **동일 원리** — DOM y ↔ Taffy layout y 대응.
+    - **TagList height = RowsGroup Taffy 실측** (Step 4.5c, 신규): chip 제외 recompute 후 RowsGroup auto height(표시 행 + Show all 실측)를 TagList 에 강제 → 추정 contentHeight 대신 실측이라 오차 0, Show all 항상 box 안.
+    - **`alignContent: flex-start`** (`appendTagRowProjection` RowsGroup): flex-wrap 다중 행을 컨테이너 상단 정렬 → 미설정 시 Taffy 기본 분산으로 남던 여백 제거. CSS `.react-aria-TagList` 상단 정렬과 동형.
+    - **render skip = layoutMap 기반** (`StoreRenderBridge`): 추정 wrap 공식 재실행 제거. layout 이 Taffy 트리에서 뺀 chip 은 `ctx.layoutMap` 좌표 부재 → 미emit (남긴 chip 은 좌표 있음 → 그림). layout 접힘과 render 자동 정합(단일 SSOT).
+  - **회귀 가드**: `tagGroupSideHeight.test.ts` 에 `computeTagFoldKeep` 5 케이스(접힘 발생 시 행번호≥maxRows 제외+Show all 유지 / 미발생 시 Show all 제외 / **폭 무관**: 같은 15 item 이 넓은 폭 3행·좁은 폭 8행이어도 rowY 기준 정확 접힘 / maxRows=1 / 빈·maxRows=0) 추가 (19 tests PASS). RED 확인: 접힘 경계 `< maxRows` → `<=` 변조 시 3 케이스 FAIL.
+  - live 검증: 15 items maxRows=1(box 118)/2(166)/3(214) 모두 chip N줄 촘촘 + Show all 다음 행 box 안, 세로 gap 정상(4px). 패널로 폭 좁아진 상태(chip 3개/행)에서도 rowY 재계산으로 자동 정합. type-check PASS(baseline 69).
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`(`computeTagFoldKeep` + Step 4.5b rowY 접힘 + Step 4.5c 실측 height), `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`(alignContent), `apps/builder/src/builder/workspace/canvas/skia/StoreRenderBridge.ts`(render layoutMap 기반)
+
 ## [TagGroup 8종 수정 — Add Tag Skia 미반영 / chip gap Skia↔CSS 비대칭 / non-standard orientation prop 제거 / labelPosition=side selection 높이 발산 / maxRows Property 편집 UI 누락 / maxRows Skia 화면 접힘 / maxRows "Show all" 위치 발산 / maxRows 세로 gap 발산] - 2026-07-01
 
 ### Bug Fixes

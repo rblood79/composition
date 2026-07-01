@@ -1207,6 +1207,11 @@ function appendTagRowProjection(
         columnGap: gap,
         width: "100%",
         alignItems: "flex-start",
+        // alignContent:flex-start — flex-wrap 다중 행을 컨테이너 상단에 붙인다. 미설정 시 Taffy
+        //   기본(stretch/분산)이 컨테이너 height > 행 총합일 때 chip 행 사이를 벌려 세로 gap 발산
+        //   (maxRows gap 버그 근본, 2026-07-02). height 를 RowsGroup 실측으로 맞춰도 이 분산이
+        //   남으므로 flex-start 로 명시 고정. CSS(TagGroup.css .react-aria-TagList)도 동일 상단 정렬.
+        alignContent: "flex-start",
       },
     },
     parentId: tagListSceneNode.id,

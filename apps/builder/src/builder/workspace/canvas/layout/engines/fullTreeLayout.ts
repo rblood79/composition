@@ -29,7 +29,6 @@ import {
   parseBoxModel,
   parseCSSPropWithContext,
   measureTextWidth,
-  resolveTagWrapLayout,
 } from "./utils";
 import { resolveStyle, getRootComputedStyle } from "./cssResolver";
 import type { ComputedStyle } from "./cssResolver";
@@ -892,81 +891,38 @@ function estimateChildAvailableSize(
 }
 
 /**
- * TagGroup maxRows chip 접힘 — layout(Taffy 트리) 단계에서 접을 chip id 집합을 계산한다.
+ * TagGroup maxRows chip 접힘 — Taffy 실측 chip y좌표(rowY) 기반으로 유지할 chip id 를 산출한다.
  *
- * projection RowsGroup(id 에 `-rows:` 포함, projection.kind="tag-rows")의 chip 자식 중
- * maxRows 초과분을 Taffy 자식 목록(childIndices)에서 제외하기 위한 skip set 을 반환한다.
- * 반환 null = 접힘 불필요(대상 아님 또는 maxRows 미설정 또는 접힘 미발생).
+ * **폭 가변 견고**: 폭 값을 전혀 쓰지 않고 Taffy 가 배치한 각 chip 의 실제 rowY 로 행 번호를 매핑,
+ * `행 번호 ≥ maxRows` 인 비-Show all chip 을 제외한다. CSS 정본 알고리즘(`TagGroup.tsx`
+ * `computeVisibleTagCount`: getBoundingClientRect y 로 rowCount, `rowCount > maxRows` break)과
+ * 동일 원리 — DOM getBoundingClientRect y ↔ Taffy layout y 대응.
  *
- * **owner-first**: maxRows/items/size 는 SSOT = owner TagGroup.props (TagList mirror 는
- * propagation 미갱신으로 stale 가능 — selection 높이 버그와 동일 원인). RowsGroup.parent =
- * TagList, TagList.parent = TagGroup. dataBinding 없을 때만 owner 우선(정적 items 한정).
- *
- * **폭 정합**: containerWidth = availableWidth (RowsGroup width:100% → 부모 TagList content-box
- * 폭). calculateContentHeight taglist 분기가 쓰는 것과 **동일 availableWidth + 동일 resolver**
- * (resolveTagWrapLayout, ADR-907 Layer D) 라 height 계산과 chip 접힘이 정합한다.
- *
- * **chip index**: sortedChildIds 에서 Show all chip(_isShowAll)을 제외한 순서 = item index.
- * projection chip 은 emit 순서(item 순 + 끝에 Show all)를 보존하므로 순번이 곧 rowIndex.
+ * @param chips - RowsGroup 자식 chip (id + Taffy 실측 y + Show all 여부), emit 순서 보존
+ * @param maxRows - 표시 최대 행 수 (owner TagGroup.props.maxRows)
+ * @returns keep - Taffy 트리에 유지할 chip id 배열. 접힘 발생 시 Show all 유지, 미발생 시 Show all 제외.
  */
-export function computeTagRowsGroupFoldSkip(
-  elementId: string,
-  element: CanvasLayoutNode,
-  sortedChildIds: string[],
-  elementsMap: Map<string, CanvasLayoutNode>,
-  availableWidth: number,
-): Set<string> | null {
-  // projection tag RowsGroup 판정: id prefix (`-rows:`) + kind. elementsMap 노드의 projection
-  //   메타는 CanvasLayoutNode 타입에 없으나 runtime scene node 에 존재 → 안전 캐스팅.
-  if (!elementId.includes("-rows:")) return null;
-  const proj = (element as { projection?: { kind?: string } }).projection;
-  if (proj?.kind !== "tag-rows") return null;
-
-  // RowsGroup.parent = TagList, TagList.parent = TagGroup(owner).
-  const tagListId = element.parent_id;
-  const tagList = tagListId ? elementsMap.get(tagListId) : undefined;
-  const tlProps = tagList?.props as Record<string, unknown> | undefined;
-  const ownerTg = tagList?.parent_id
-    ? elementsMap.get(tagList.parent_id)
-    : undefined;
-  const ownerProps =
-    ownerTg?.type === "TagGroup"
-      ? (ownerTg.props as Record<string, unknown> | undefined)
-      : undefined;
-  const hasDataBinding =
-    tlProps?.dataBinding != null || ownerProps?.dataBinding != null;
-  const srcProps = !hasDataBinding && ownerProps ? ownerProps : tlProps;
-
-  const maxRows =
-    typeof srcProps?.maxRows === "number" ? (srcProps.maxRows as number) : 0;
-  if (maxRows <= 0) return null;
-  const items = srcProps?.items as Array<{ label?: string }> | undefined;
-  if (!items || items.length === 0) return null;
-  const containerWidth = availableWidth > 0 ? availableWidth : 350;
-
-  const { visibleItemCount, shouldShowAll } = resolveTagWrapLayout({
-    items,
-    containerWidth,
-    sizeName: typeof srcProps?.size === "string" ? srcProps.size : "md",
-    allowsRemoving: Boolean(srcProps?.allowsRemoving),
-    maxRows,
-  });
-  if (!shouldShowAll) return null;
-
-  // item chip(비-Show all) 을 emit 순서대로 세어 visibleItemCount 이상 index 를 skip.
-  //   Show all chip(_isShowAll)은 접힘 시 항상 유지(마지막 visible chip 다음 배치).
-  const skip = new Set<string>();
-  let itemIndex = 0;
-  for (const childId of sortedChildIds) {
-    const chip = elementsMap.get(childId);
-    const isShowAll = Boolean(
-      (chip?.props as Record<string, unknown> | undefined)?._isShowAll,
-    );
-    if (isShowAll) continue; // Show all chip 은 fold 대상 아님
-    if (itemIndex >= visibleItemCount) skip.add(childId);
-    itemIndex++;
+export function computeTagFoldKeep(
+  chips: ReadonlyArray<{ id: string; y: number; isShowAll: boolean }>,
+  maxRows: number,
+): string[] {
+  if (chips.length === 0 || maxRows <= 0)
+    return chips.filter((c) => !c.isShowAll).map((c) => c.id);
+  // 고유 rowY → 행 번호 매핑 (오름차순). Taffy 실배치 기준이라 폭 무관.
+  const uniqueYs = [...new Set(chips.map((c) => c.y))].sort((a, b) => a - b);
+  const rowIndexOf = (y: number): number => uniqueYs.indexOf(y);
+  // 표시 행 수(비-Show all chip 기준, Show all 은 별도 행일 수 있어 제외하고 계산).
+  const itemRowCount = new Set(
+    chips.filter((c) => !c.isShowAll).map((c) => c.y),
+  ).size;
+  if (itemRowCount <= maxRows) {
+    // 접힘 불필요 → 모든 item chip 유지 + Show all 제외 (미접힘이니 불필요).
+    return chips.filter((c) => !c.isShowAll).map((c) => c.id);
   }
-  return skip.size > 0 ? skip : null;
+  // 접힘 발생 → 행 번호 ≥ maxRows 인 비-Show all chip 제외 + Show all 유지.
+  return chips
+    .filter((c) => c.isShowAll || rowIndexOf(c.y) < maxRows)
+    .map((c) => c.id);
 }
 
 // ─── DFS post-order 순회 ─────────────────────────────────────────────
@@ -2063,27 +2019,17 @@ function traversePostOrder(
       ?.__synthChildIds as string[] | undefined;
     if (ids) ids.forEach((id) => wrappedItemIds.add(id));
   }
-  // TagGroup maxRows chip 접힘 — layout 단계(Taffy 트리 제외)에서 초과 chip 을 접는다.
-  //   **Why 여기서 (2026-07-01, Show all 위치 버그 최종층)**: chip 은 projection scene node
-  //   (`type:"Tag"`)로 childrenByParent 에 실려 Taffy 가 9 chip 전부를 flexWrap 배치한다. render
-  //   단계 skip(StoreRenderBridge)은 Skia 그리기만 막아 chip 좌표는 Taffy 가 이미 부여 → 유령
-  //   chip 이 남아 Show all(scene 마지막 chip)을 마지막 실제 행(접힌 height 밖)으로 밀어낸다.
-  //   RowsGroup 을 batch 에 넣을 때 부모 폭(availableWidth = TagList content-box 폭, RowsGroup
-  //   width:100%)으로 wrap sim(resolveTagWrapLayout, calculateContentHeight 와 동일 resolver =
-  //   ADR-907 Layer D)을 실행해 visibleItemCount 이상 chip 을 childIndices 에서 제외한다. 그러면
-  //   Taffy 트리 = visible chip + Show all → RowsGroup height 가 접힌 height 와 정합하고 Show all
-  //   이 마지막 visible chip 다음(TagGroup 영역 안)에 배치된다. Show all chip(_isShowAll)은 유지.
-  const rowsGroupTagFoldSkip = computeTagRowsGroupFoldSkip(
-    elementId,
-    element,
-    sortedChildIds,
-    elementsMap,
-    availableWidth,
-  );
+  // TagGroup maxRows chip 접힘은 layout 에서 chip 을 제외하지 않는다 — Taffy 는 chip 전부를
+  //   flexWrap 배치하고, 초과 chip 은 **render 단계**(StoreRenderBridge, 실제 RowsGroup layout.width
+  //   보유)에서 미emit + Show all 표시한다. **Why (2026-07-01, maxRows=3 gap 발산 근본)**: layout
+  //   1-pass 시점의 availableWidth 는 부모 top-down 추정폭(예 310)이라 실제 RowsGroup 배치폭(예 350,
+  //   flex/100% resolve 후)과 다르다. layout 에서 그 추정폭으로 chip 을 미리 제외하면, height(2-pass
+  //   실폭 재보정)/render(실폭 layoutMap.width)와 접힘 판정이 갈려 chip 실배치 행 수 < 강제 height →
+  //   align-content 분산으로 세로 gap 발산. chip 개수 제어를 render 로 일원화하면 height/render 가
+  //   동일 실폭을 써 정합(fold-skip 이 유일하게 실폭 미보유였음).
   const childIndices: number[] = [];
   for (const childId of sortedChildIds) {
     if (wrappedItemIds.has(childId)) continue; // wrapper 자식 → group 직속 제외
-    if (rowsGroupTagFoldSkip?.has(childId)) continue; // maxRows 초과 chip → Taffy 제외
     const childIdx = indexMap.get(childId);
     if (childIdx !== undefined) {
       childIndices.push(childIdx);
@@ -2430,18 +2376,19 @@ export function calculateFullTreeLayout(
         }
       }
 
-      // ── Step 4.5b: TagList projection height 실폭 재보정 (maxRows gap 발산 fix) ──
-      //   **Why (2026-07-01, maxRows=3 gap 발산)**: TagList height 는 1-pass 에서
-      //   `calculateContentHeight`(taglist 분기, resolveTagWrapLayout) 로 계산 후
-      //   `preserveEnrichHeight` 로 강제되나, 그때 쓰는 폭은 **부모 top-down 추정폭**(예 350)이라
-      //   실제 RowsGroup Taffy 배치폭(예 310, padding 차감 후)과 다르다. 경계 케이스(12 items 가
-      //   350 에선 3줄 fit=접힘 없음 / 310 에선 접힘+Show all)에서 접힘 판정 자체가 갈려, TagList
-      //   강제 height(3줄=98) < 실제 chip 배치(chip 10+Show all=4줄분) → RowsGroup 여백이
-      //   align-content 로 분산돼 세로 gap 발산. 여기서 RowsGroup 의 **1-pass 실제 폭**으로 TagList
-      //   height 를 재계산해(fold-skip / render 와 동일 폭 = 정합) 강제 갱신한다. fold-skip 은
-      //   traversePostOrder 시점의 availableWidth 를 쓰나 render(StoreRenderBridge)는 실제
-      //   layoutMap.width 를 쓰므로, height 도 실폭 기준이라야 셋 다 정합.
-      const tagListHeightUpdates: Array<{ elementId: string; height: number }> =
+      // ── Step 4.5b: TagGroup maxRows chip 접힘 = Taffy 실측 행 번호 기반 (폭 가변 견고) ──
+      //   **Why (2026-07-02, maxRows gap 발산 최종 근본)**: TagGroup 폭은 가변이다. chip 접힘
+      //   개수/height 를 추정 wrap 공식(`resolveTagWrapLayout`, measureText + 특정 폭 의존)으로
+      //   계산하면 실제 Taffy WASM flexWrap 배치와 어긋난다(JS measureText ≠ Taffy 측정, f32,
+      //   폭 추정 오차). 어긋나면 (1) render skip 은 Skia 그리기만 막고 Taffy 는 chip 전부를 배치해
+      //   RowsGroup height 가 실제 표시 행보다 큼(예 15+Show all=16 chip → 5줄 166, 표시는 3줄) →
+      //   잉여 여백이 align-content 분산 → 세로 gap 발산 + Show all 이 box 밖. 근본 해결 = **폭 값을
+      //   전혀 안 쓰고 Taffy 가 배치한 각 chip 의 실제 y좌표(rowY)로 행 번호를 산출**해 `행 번호 ≥
+      //   maxRows` chip 을 Taffy 트리(RowsGroup children)에서 제외한다. rowY 는 Taffy 실배치 결과라
+      //   폭 무관 정확 — 리사이즈 시 Taffy 가 재배치하면 자동 정합. Show all(_isShowAll)은 유지 →
+      //   Taffy 가 남은 chip 다음에 재배치. 제외 후 recompute 하면 RowsGroup height 가 표시 행 수로
+      //   수렴 → TagList(preserveEnrichHeight) 와 정합 → 분산 gap 소멸.
+      const foldChipRemovals: Array<{ rowsGroupId: string; keep: string[] }> =
         [];
       for (let i = 0; i < batch.length; i++) {
         const node = batch[i];
@@ -2458,14 +2405,8 @@ export function calculateFullTreeLayout(
           elementsMap.get(node.elementId);
         if ((tagListEl?.type ?? "").toLowerCase() !== "taglist") continue;
 
-        // RowsGroup 의 1-pass 실제 폭 조회.
-        const rowsHandle = persistentTree.getHandle(childIds[0]);
-        if (rowsHandle === undefined) continue;
-        const rowsLayout = firstPassLayouts.get(rowsHandle);
-        if (!rowsLayout || rowsLayout.width <= 0) continue;
-
-        // 실폭으로 height 재계산 (calculateContentHeight taglist 분기 = resolveTagWrapLayout).
-        //   owner-first: items/maxRows/size 는 owner TagGroup.props (TagList mirror stale 회피).
+        const rowsGroupId = childIds[0];
+        // owner-first: maxRows 는 owner TagGroup.props SSOT (TagList mirror stale 회피).
         const tlProps = tagListEl!.props as Record<string, unknown> | undefined;
         const ownerTg = tagListEl!.parent_id
           ? elementsMap.get(tagListEl!.parent_id)
@@ -2474,51 +2415,41 @@ export function calculateFullTreeLayout(
           ownerTg?.type === "TagGroup"
             ? (ownerTg.props as Record<string, unknown> | undefined)
             : undefined;
-        const hasDataBinding =
-          tlProps?.dataBinding != null || ownerProps?.dataBinding != null;
-        const srcProps = !hasDataBinding && ownerProps ? ownerProps : tlProps;
-        // owner items/maxRows/size 를 TagList element 에 주입해 실폭으로 height 산출.
-        const tagListForCalc = {
-          ...tagListEl!,
-          props: {
-            ...tagListEl!.props,
-            items: srcProps?.items,
-            maxRows: srcProps?.maxRows,
-            size: srcProps?.size ?? tlProps?.size,
-          },
-        } as CanvasLayoutNode;
-        const actualHeight = calculateContentHeight(
-          tagListForCalc,
-          rowsLayout.width,
-          [],
-          getChildElements,
-        );
-        if (actualHeight <= 0) continue;
+        const maxRows =
+          typeof ownerProps?.maxRows === "number"
+            ? (ownerProps.maxRows as number)
+            : typeof tlProps?.maxRows === "number"
+              ? (tlProps.maxRows as number)
+              : 0;
+        if (maxRows <= 0) continue;
 
-        // 현재 강제된 height 와 비교 → 다르면 갱신 예약.
-        const curLayout = (() => {
-          const h = persistentTree.getHandle(node.elementId);
-          return h !== undefined ? firstPassLayouts.get(h) : undefined;
-        })();
-        if (
-          !curLayout ||
-          Math.abs(curLayout.height - actualHeight) > WIDTH_TOLERANCE
-        ) {
-          tagListHeightUpdates.push({
-            elementId: node.elementId,
-            height: actualHeight,
-          });
+        // RowsGroup 의 chip 자식 + 각 chip 의 1-pass rowY 수집.
+        const chipIds = filteredChildIdsMap.get(rowsGroupId);
+        if (!chipIds || chipIds.length === 0) continue;
+        const chipRows: Array<{ id: string; y: number; isShowAll: boolean }> =
+          [];
+        for (const chipId of chipIds) {
+          const ch = persistentTree.getHandle(chipId);
+          const cl = ch !== undefined ? firstPassLayouts.get(ch) : undefined;
+          if (!cl) continue;
+          const chipEl = elementsMap.get(chipId);
+          const isShowAll = Boolean(
+            (chipEl?.props as Record<string, unknown> | undefined)?._isShowAll,
+          );
+          chipRows.push({ id: chipId, y: Math.round(cl.y), isShowAll });
         }
+        if (chipRows.length === 0) continue;
+
+        // rowY 기반 접힘 (폭 무관, CSS 정본 알고리즘과 동일). 유지할 chip id 산출.
+        const keep = computeTagFoldKeep(chipRows, maxRows);
+        if (keep.length === chipIds.length) continue; // 제외 대상 없음
+        foldChipRemovals.push({ rowsGroupId, keep });
       }
-      // TagList height 재보정 적용 (Taffy 재계산 트리거).
-      for (const { elementId: tlId, height } of tagListHeightUpdates) {
-        const h = persistentTree.getHandle(tlId);
-        if (h === undefined) continue;
-        const idx = batch.findIndex((n) => n.elementId === tlId);
-        if (idx < 0) continue;
-        batch[idx].style.height = `${height}px`;
-        persistentTree.updateNodeStyle(tlId, batch[idx].style);
-        persistentTree.markDirty(tlId);
+      // chip 제외 적용 → RowsGroup children 갱신 → Taffy 재배치.
+      for (const { rowsGroupId, keep } of foldChipRemovals) {
+        filteredChildIdsMap.set(rowsGroupId, keep);
+        persistentTree.updateChildren(rowsGroupId, keep);
+        persistentTree.markDirty(rowsGroupId);
         needsSecondPass = true;
       }
 
@@ -2625,6 +2556,60 @@ export function calculateFullTreeLayout(
         }
 
         persistentTree.computeLayout(availableWidth, availableHeight);
+      }
+
+      // ── Step 4.5c: chip 접힘 후 RowsGroup 새 실측 → TagList height 강제 ──────
+      //   Step 4.5b 에서 초과 chip 을 Taffy 트리에서 제외하고 recompute 했으므로, 이제 RowsGroup
+      //   auto height 는 표시 행(maxRows + Show all)만의 정확한 높이다. 그러나 TagList 는
+      //   `preserveEnrichHeight`(1-pass 추정 contentHeight)로 강제된 상태 → 새 RowsGroup 실측과
+      //   어긋난다. 여기서 RowsGroup 의 **접힘 후 실측 height** 를 TagList 에 강제해 정합시킨다.
+      //   **Why 여기서**: chip 제외 recompute 이후라야 RowsGroup 실측이 표시 행 기준. rowY 접힘이
+      //   폭 무관이라 이 실측도 폭 무관 정확 (리사이즈 견고).
+      if (foldChipRemovals.length > 0) {
+        const postFoldLayouts = persistentTree.getLayoutsBatch();
+        let tagListHeightChanged = false;
+        for (const { rowsGroupId } of foldChipRemovals) {
+          const rowsHandle = persistentTree.getHandle(rowsGroupId);
+          const rowsLayout =
+            rowsHandle !== undefined
+              ? postFoldLayouts.get(rowsHandle)
+              : undefined;
+          if (!rowsLayout || rowsLayout.height <= 0) continue;
+          const newHeight = Math.round(rowsLayout.height);
+          // RowsGroup 의 부모 TagList id (rowsGroupId 형식: `...-rows:<tagListId>`).
+          const tagListNode = batch.find((n) => {
+            const cids = filteredChildIdsMap.get(n.elementId);
+            return cids?.length === 1 && cids[0] === rowsGroupId;
+          });
+          if (!tagListNode) continue;
+          const tlHandle = persistentTree.getHandle(tagListNode.elementId);
+          const tlLayout =
+            tlHandle !== undefined ? postFoldLayouts.get(tlHandle) : undefined;
+          if (
+            tlLayout &&
+            Math.abs(tlLayout.height - newHeight) <= WIDTH_TOLERANCE
+          )
+            continue; // 이미 정합
+          const idx = batch.findIndex(
+            (n) => n.elementId === tagListNode.elementId,
+          );
+          if (idx < 0) continue;
+          batch[idx].style.height = `${newHeight}px`;
+          persistentTree.updateNodeStyle(
+            tagListNode.elementId,
+            batch[idx].style,
+          );
+          persistentTree.markDirty(tagListNode.elementId);
+          // 부모(TagGroup) 도 dirty → auto height 재계산 (parent_id 는 elementsMap 조회).
+          const tagListParentId = elementsMap.get(
+            tagListNode.elementId,
+          )?.parent_id;
+          if (tagListParentId) persistentTree.markDirty(tagListParentId);
+          tagListHeightChanged = true;
+        }
+        if (tagListHeightChanged) {
+          persistentTree.computeLayout(availableWidth, availableHeight);
+        }
       }
     }
 

@@ -43,7 +43,6 @@ import { parsePxValue } from "@composition/specs";
 import { resolveSkiaRule } from "./resolveSkiaVisualRule";
 import { resolveInstanceWithSharedCache } from "@/resolvers/canonical/storeBridge";
 import { resolveCanonicalRefElement } from "../../../utils/canonicalRefResolution";
-import { resolveTagWrapLayout } from "../layout/engines/utils";
 
 function isImageElement(element: CanvasSceneNode): boolean {
   return IMAGE_TAGS.has(element.type);
@@ -496,32 +495,23 @@ export class StoreRenderBridge {
       }
     }
 
-    // TagGroup maxRows chip 접힘 (RSP 표준 — 지정 행 초과 chip 접기 + "Show all").
-    //   chip 은 projection scene node(kind:"tag-row", rowIndex=item index). layout height 는 이미
-    //   maxRows 접힘 반영(calculateContentHeight → resolveTagWrapLayout)하나, projection RowsGroup 은
-    //   전체 chip 을 flexWrap 배치해 초과 chip 이 화면에 남는다. 여기서 chip 이 부모 RowsGroup 의
-    //   layout.width(폭 소유)로 wrap sim(resolveTagWrapLayout, 컨테이너 높이와 동일 resolver)을 재실행해
-    //   자기 itemIndex 가 visibleItemCount 이상이면 null 반환(미emit). Show all chip(_isShowAll)은 예외.
-    //   **Why 여기서**: projection(scene graph)은 layout 선행이라 폭 미보유 → chip 을 미리 못 줄임.
-    //   render 단계(layoutMap 조회 가능)가 유일하게 폭을 아는 지점. layout→render 단방향(2-pass 없음).
+    // TagGroup maxRows chip 접힘 — layout(fullTreeLayout Step 4.5b)이 이미 Taffy 실측 rowY 기준으로
+    //   초과 chip(+ 미접힘 시 Show all)을 RowsGroup Taffy 트리에서 제외했다. 제외된 chip 은
+    //   `ctx.layoutMap` 에 좌표가 없으므로(=미배치), 여기서 layoutMap 부재를 미emit 신호로 사용한다.
+    //   **Why layoutMap 기반**: chip 개수 제어 SSOT = layout 의 rowY 접힘(폭 가변 견고). render 가
+    //   추정 wrap 공식(resolveTagWrapLayout)을 재실행하면 layout 판정과 갈릴 수 있어 단일화 위반 —
+    //   layout 이 뺀 chip 은 좌표 없음 → 안 그림, 남긴 chip 은 좌표 있음 → 그림 (자동 정합).
     {
       const proj = (
         effectiveElement as {
           projection?: { kind?: string; rowIndex?: number };
         }
       ).projection;
-      const isShowAllChip = Boolean(
-        (effectiveElement.props as Record<string, unknown> | undefined)
-          ?._isShowAll,
-      );
-      if (proj?.kind === "tag-row" && typeof proj.rowIndex === "number") {
-        const rowsGroupId = effectiveElement.parent_id;
+      if (proj?.kind === "tag-row") {
+        // maxRows 접힘 대상(TagGroup) 인지 — owner TagGroup.maxRows 확인.
         const tagListId = (proj as { listBoxId?: string }).listBoxId;
         const tagList = tagListId ? elementsMap.get(tagListId) : undefined;
         const tlProps = tagList?.props as Record<string, unknown> | undefined;
-        // owner-first: maxRows/items/size 는 SSOT = owner TagGroup.props (TagList mirror 는
-        //   propagation 미갱신으로 stale 가능 — selection 높이 버그와 동일 원인, 2026-07-01).
-        //   TagList.parent = TagGroup. dataBinding 없을 때만 owner 우선(정적 items 한정).
         const ownerTg = tagList?.parent_id
           ? elementsMap.get(tagList.parent_id)
           : undefined;
@@ -529,33 +519,14 @@ export class StoreRenderBridge {
           ownerTg?.type === "TagGroup"
             ? (ownerTg.props as Record<string, unknown> | undefined)
             : undefined;
-        const hasDataBinding =
-          tlProps?.dataBinding != null || ownerProps?.dataBinding != null;
-        const srcProps = !hasDataBinding && ownerProps ? ownerProps : tlProps;
         const maxRows =
-          typeof srcProps?.maxRows === "number" ? srcProps.maxRows : 0;
-        const items = srcProps?.items as Array<{ label?: string }> | undefined;
-        const rowsGroupLayout = rowsGroupId
-          ? ctx.layoutMap.get(rowsGroupId)
-          : undefined;
-        const containerWidth = rowsGroupLayout?.width ?? 0;
-        if (maxRows > 0 && items && items.length > 0 && containerWidth > 0) {
-          const { visibleItemCount, shouldShowAll } = resolveTagWrapLayout({
-            items,
-            containerWidth,
-            sizeName: typeof srcProps?.size === "string" ? srcProps.size : "md",
-            allowsRemoving: Boolean(srcProps?.allowsRemoving),
-            maxRows,
-          });
-          if (isShowAllChip) {
-            // Show all chip 은 접힘 발생(shouldShowAll) 시에만 표시 — 미접힘이면 미emit.
-            if (!shouldShowAll) return null;
-          } else if (shouldShowAll && proj.rowIndex >= visibleItemCount) {
-            // maxRows 초과 chip 미emit (visibleItemCount 이상 index).
-            return null;
-          }
-        } else if (isShowAllChip) {
-          // maxRows 미설정 또는 데이터 부재 → Show all chip 불필요 → 미emit.
+          typeof ownerProps?.maxRows === "number"
+            ? ownerProps.maxRows
+            : typeof tlProps?.maxRows === "number"
+              ? tlProps.maxRows
+              : 0;
+        // maxRows 설정된 chip 이 layout 에서 제외됨(좌표 없음) → 미emit. (미설정이면 항상 배치)
+        if (maxRows > 0 && !ctx.layoutMap.get(id)) {
           return null;
         }
       }

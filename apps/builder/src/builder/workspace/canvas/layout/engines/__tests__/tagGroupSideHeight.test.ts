@@ -22,8 +22,7 @@
 
 import { describe, expect, it } from "vitest";
 import { calculateContentHeight, resolveTagWrapLayout } from "../utils";
-import { computeTagRowsGroupFoldSkip } from "../fullTreeLayout";
-import type { CanvasLayoutNode } from "../../layoutNode";
+import { computeTagFoldKeep } from "../fullTreeLayout";
 import type { Element } from "../../../../../../types/core/store.types";
 
 type TagItem = { id: string; label: string };
@@ -371,198 +370,6 @@ describe("resolveTagWrapLayout — maxRows chip 접힘 SSOT", () => {
   });
 });
 
-// ── computeTagRowsGroupFoldSkip — layout Taffy 트리 chip 제외 (2026-07-01) ──
-//
-// Show all 위치 버그 최종층: projection chip 이 Taffy 에 9개 전부 실려 RowsGroup 실배치를
-// 밀어내(Show all 이 TagGroup 영역 밖) → layout 단계에서 초과 chip 을 Taffy 자식 목록에서
-// 제외해야 한다. 본 헬퍼가 그 skip set 을 계산한다(render skip 게이트와 동일 resolver).
-describe("computeTagRowsGroupFoldSkip — layout chip 제외 (owner-first)", () => {
-  const OWNER_TG = "owner-tg";
-  const TL = "tl";
-  const ROWS = "tag::tl::-rows:tl"; // -rows: 포함(projection RowsGroup id 형식)
-
-  // 9 item 라벨(폭 확보용 긴 라벨 포함).
-  const NINE: Array<{ label: string }> = [
-    { label: "Chocolate" },
-    { label: "VanillaCo" },
-    { label: "New Tag" },
-    { label: "New Tag" },
-    { label: "New Tag" },
-    { label: "New Tag" },
-    { label: "New Tag" },
-    { label: "New Tag" },
-    { label: "New Tag" },
-  ];
-
-  /** owner TagGroup items(NINE) SSOT, TagList mirror 는 stale(4개)로 세팅. */
-  function buildElementsMap(opts: {
-    maxRows: number;
-    tagListItems?: Array<{ label: string }>;
-  }): {
-    elementsMap: Map<string, CanvasLayoutNode>;
-    rowsNode: CanvasLayoutNode;
-    chipIds: string[];
-    showAllId: string;
-  } {
-    const chipIds = NINE.map((_, i) => `chip-${i}`);
-    const showAllId = "chip-showall";
-    const rowsNode: CanvasLayoutNode = {
-      id: ROWS,
-      type: "Rows",
-      parent_id: TL,
-      props: {},
-    };
-    // projection.kind 는 CanvasLayoutNode 타입에 없으나 runtime scene node 에 존재.
-    (rowsNode as { projection?: { kind: string } }).projection = {
-      kind: "tag-rows",
-    };
-    const em = new Map<string, CanvasLayoutNode>();
-    em.set(OWNER_TG, {
-      id: OWNER_TG,
-      type: "TagGroup",
-      parent_id: null,
-      props: { items: NINE, maxRows: opts.maxRows, size: "md" },
-    });
-    em.set(TL, {
-      id: TL,
-      type: "TagList",
-      parent_id: OWNER_TG,
-      // TagList mirror 는 stale(4개) — owner-first 검증용.
-      props: { items: opts.tagListItems ?? NINE.slice(0, 4), size: "md" },
-    });
-    em.set(ROWS, rowsNode);
-    chipIds.forEach((id, i) => {
-      em.set(id, {
-        id,
-        type: "Tag",
-        parent_id: ROWS,
-        props: { children: NINE[i].label },
-      });
-    });
-    em.set(showAllId, {
-      id: showAllId,
-      type: "Tag",
-      parent_id: ROWS,
-      props: { children: `Show all (${NINE.length})`, _isShowAll: true },
-    });
-    return { elementsMap: em, rowsNode, chipIds, showAllId };
-  }
-
-  it("maxRows=1: 초과 chip skip, Show all + visible chip 은 유지", () => {
-    const { elementsMap, rowsNode, chipIds, showAllId } = buildElementsMap({
-      maxRows: 1,
-    });
-    const sorted = [...chipIds, showAllId];
-    const skip = computeTagRowsGroupFoldSkip(
-      ROWS,
-      rowsNode,
-      sorted,
-      elementsMap,
-      350, // RowsGroup 폭
-    );
-    expect(skip).not.toBeNull();
-    // 1줄에 들어가는 만큼만 visible → 나머지 chip skip.
-    const { visibleItemCount } = resolveTagWrapLayout({
-      items: NINE,
-      containerWidth: 350,
-      sizeName: "md",
-      allowsRemoving: false,
-      maxRows: 1,
-    });
-    expect(visibleItemCount).toBeGreaterThan(0);
-    expect(visibleItemCount).toBeLessThan(NINE.length);
-    // skip 대상 = visibleItemCount 이상 index chip.
-    for (let i = 0; i < NINE.length; i++) {
-      if (i < visibleItemCount) {
-        expect(skip!.has(chipIds[i])).toBe(false);
-      } else {
-        expect(skip!.has(chipIds[i])).toBe(true);
-      }
-    }
-    // Show all chip 은 절대 skip 안 됨(마지막 visible 다음 배치).
-    expect(skip!.has(showAllId)).toBe(false);
-  });
-
-  it("owner-first: TagList mirror 가 stale(4개)여도 owner items(9) 로 접힘 계산", () => {
-    // TagList.items=4(stale)로도 owner TagGroup items=9 를 사용 → 초과 chip skip 발생.
-    const { elementsMap, rowsNode, chipIds, showAllId } = buildElementsMap({
-      maxRows: 1,
-      tagListItems: NINE.slice(0, 4),
-    });
-    const sorted = [...chipIds, showAllId];
-    const skip = computeTagRowsGroupFoldSkip(
-      ROWS,
-      rowsNode,
-      sorted,
-      elementsMap,
-      350,
-    );
-    // owner 9 items 기준으로 skip 이 발생해야 함(stale 4 였다면 접힘 없음 → null).
-    expect(skip).not.toBeNull();
-    expect(skip!.size).toBeGreaterThan(0);
-  });
-
-  it("maxRows=0: 접힘 없음 → null", () => {
-    const { elementsMap, rowsNode, chipIds, showAllId } = buildElementsMap({
-      maxRows: 0,
-    });
-    const sorted = [...chipIds, showAllId];
-    const skip = computeTagRowsGroupFoldSkip(
-      ROWS,
-      rowsNode,
-      sorted,
-      elementsMap,
-      350,
-    );
-    expect(skip).toBeNull();
-  });
-
-  it("비-RowsGroup(id 에 -rows: 없음) → null (대상 아님)", () => {
-    const { elementsMap, chipIds, showAllId } = buildElementsMap({
-      maxRows: 1,
-    });
-    const notRows: CanvasLayoutNode = {
-      id: "some-container",
-      type: "Rows",
-      parent_id: TL,
-      props: {},
-    };
-    const skip = computeTagRowsGroupFoldSkip(
-      "some-container",
-      notRows,
-      [...chipIds, showAllId],
-      elementsMap,
-      350,
-    );
-    expect(skip).toBeNull();
-  });
-
-  it("좁은 폭 → 더 많은 chip skip (단조성)", () => {
-    const { elementsMap, rowsNode, chipIds, showAllId } = buildElementsMap({
-      maxRows: 1,
-    });
-    const sorted = [...chipIds, showAllId];
-    const wide = computeTagRowsGroupFoldSkip(
-      ROWS,
-      rowsNode,
-      sorted,
-      elementsMap,
-      500,
-    );
-    const narrow = computeTagRowsGroupFoldSkip(
-      ROWS,
-      rowsNode,
-      sorted,
-      elementsMap,
-      200,
-    );
-    // 좁을수록 1줄에 들어가는 chip 이 적음 → skip 이 더 많음(또는 같음).
-    const wideSkip = wide?.size ?? 0;
-    const narrowSkip = narrow?.size ?? 0;
-    expect(narrowSkip).toBeGreaterThanOrEqual(wideSkip);
-  });
-});
-
 // ── 폭 의존 접힘 경계 — height 계산 폭 == 실제 배치 폭이라야 정합 (2026-07-01) ──
 //
 // maxRows=3 gap 발산 근본: TagList height 계산(calculateContentHeight)이 부모 top-down
@@ -646,5 +453,86 @@ describe("resolveTagWrapLayout — 폭 의존 접힘 경계 (height 정합 계�
       maxRows: 3,
     }).contentHeight;
     expect(viaCalc).toBe(viaResolver);
+  });
+});
+
+// ── computeTagFoldKeep — Taffy 실측 rowY 기반 chip 접힘 (폭 가변 견고, 2026-07-02) ──
+//
+// maxRows gap 발산 최종 근본: 추정 wrap 공식(measureText, 특정 폭 의존) 대신 Taffy 가 배치한
+// 각 chip 의 실제 y좌표(rowY)로 행 번호를 매핑해 `행 번호 ≥ maxRows` chip 을 제외. 폭 값을 전혀
+// 안 써 리사이즈에 견고. CSS 정본(TagGroup.tsx computeVisibleTagCount: getBoundingClientRect y
+// 로 rowCount, rowCount > maxRows break)과 동일 원리.
+describe("computeTagFoldKeep — rowY 기반 chip 접힘 (폭 무관)", () => {
+  // 헬퍼: 각 행에 n개씩 chip, 마지막에 Show all. y = 행번호 * 34 (tagHeight30 + gap4).
+  const makeChips = (
+    rowsOfCounts: number[],
+    showAllRow: number | null,
+  ): Array<{ id: string; y: number; isShowAll: boolean }> => {
+    const chips: Array<{ id: string; y: number; isShowAll: boolean }> = [];
+    let idx = 0;
+    rowsOfCounts.forEach((count, row) => {
+      for (let i = 0; i < count; i++) {
+        chips.push({ id: `chip-${idx++}`, y: row * 34, isShowAll: false });
+      }
+    });
+    if (showAllRow !== null) {
+      chips.push({ id: "chip-showall", y: showAllRow * 34, isShowAll: true });
+    }
+    return chips;
+  };
+
+  it("접힘 발생(itemRow > maxRows): 행번호 ≥ maxRows chip 제외 + Show all 유지", () => {
+    // 5 item 행 (4/4/4/2/1) + Show all 별도 행, maxRows=3.
+    const chips = makeChips([4, 4, 4, 2, 1], 5);
+    const keep = computeTagFoldKeep(chips, 3);
+    // 행 0,1,2 chip(4+4+4=12) 유지, 행 3,4 제외. Show all 유지.
+    expect(keep).toContain("chip-showall");
+    // 행 0~2 의 12 chip + Show all = 13 keep.
+    expect(keep.length).toBe(13);
+    // 행 3 이상 chip 제외 확인 (chip-12 = 행 3 첫 chip).
+    expect(keep).not.toContain("chip-12");
+  });
+
+  it("접힘 미발생(itemRow ≤ maxRows): 모든 item 유지 + Show all 제외", () => {
+    // 2 item 행, maxRows=3 → 접힘 없음.
+    const chips = makeChips([3, 3], 2);
+    const keep = computeTagFoldKeep(chips, 3);
+    expect(keep).not.toContain("chip-showall"); // 미접힘 → Show all 불필요
+    expect(keep.length).toBe(6); // item chip 전부
+  });
+
+  it("폭 무관: 같은 item 이 폭에 따라 다른 행 배치여도 rowY 기준으로 정확 접힘", () => {
+    // 넓은 폭(행당 5개, 3행) vs 좁은 폭(행당 2개, 8행), 둘 다 maxRows=2.
+    const wide = makeChips([5, 5, 5], 3); // 15 item, 3행
+    const narrow = makeChips([2, 2, 2, 2, 2, 2, 2, 1], 8); // 15 item, 8행
+    const keepWide = computeTagFoldKeep(wide, 2);
+    const keepNarrow = computeTagFoldKeep(narrow, 2);
+    // 넓은 폭: 행 0,1 = 10 chip + Show all = 11.
+    expect(keepWide.length).toBe(11);
+    // 좁은 폭: 행 0,1 = 4 chip + Show all = 5.
+    expect(keepNarrow.length).toBe(5);
+    // 둘 다 Show all 유지 (접힘 발생).
+    expect(keepWide).toContain("chip-showall");
+    expect(keepNarrow).toContain("chip-showall");
+  });
+
+  it("maxRows=1: 1행만 유지 + Show all", () => {
+    const chips = makeChips([3, 3, 3], 3);
+    const keep = computeTagFoldKeep(chips, 1);
+    // 행 0 = 3 chip + Show all = 4.
+    expect(keep.length).toBe(4);
+    expect(keep).toContain("chip-showall");
+    expect(keep).toContain("chip-0");
+    expect(keep).not.toContain("chip-3"); // 행 1 첫 chip 제외
+  });
+
+  it("빈 chip / maxRows=0: item chip 만 반환 (접힘 없음)", () => {
+    expect(computeTagFoldKeep([], 3)).toEqual([]);
+    const chips = makeChips([3], null);
+    expect(computeTagFoldKeep(chips, 0)).toEqual([
+      "chip-0",
+      "chip-1",
+      "chip-2",
+    ]);
   });
 });
