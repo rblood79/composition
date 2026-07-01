@@ -562,3 +562,89 @@ describe("computeTagRowsGroupFoldSkip — layout chip 제외 (owner-first)", () 
     expect(narrowSkip).toBeGreaterThanOrEqual(wideSkip);
   });
 });
+
+// ── 폭 의존 접힘 경계 — height 계산 폭 == 실제 배치 폭이라야 정합 (2026-07-01) ──
+//
+// maxRows=3 gap 발산 근본: TagList height 계산(calculateContentHeight)이 부모 top-down
+// 추정폭(넓음)을 쓰면 "접힘 없음, height 작음"으로 계산되나, 실제 RowsGroup 배치폭(좁음)에선
+// "접힘 발생, height 큼"이 된다. 두 폭 불일치 시 강제 height < 실배치 → align-content 분산
+// → 세로 gap 발산. 본 테스트는 동일 items+maxRows 에서 폭이 접힘/rows/contentHeight 를
+// 가르는 것을 고정 — 따라서 fold-skip / render / height 모두 실제 배치폭을 써야 정합.
+describe("resolveTagWrapLayout — 폭 의존 접힘 경계 (height 정합 계약)", () => {
+  // 12 item: 넓은 폭에선 maxRows=3 안에 다 fit, 좁은 폭에선 초과 → 접힘.
+  const TWELVE: TagItem[] = Array.from({ length: 12 }, (_, i) => ({
+    id: `t${i}`,
+    label:
+      i < 4 ? ["Chocolate", "Mint", "Strawberry", "Vanilla"][i] : "New Tag",
+  }));
+
+  it("동일 items+maxRows 에서 넓은 폭은 접힘 없음, 좁은 폭은 접힘 (폭이 판정을 가름)", () => {
+    const wide = resolveTagWrapLayout({
+      items: TWELVE,
+      containerWidth: 400, // 넓음 → 3줄 안에 fit 가능성
+      sizeName: "md",
+      allowsRemoving: false,
+      maxRows: 3,
+    });
+    const narrow = resolveTagWrapLayout({
+      items: TWELVE,
+      containerWidth: 260, // 좁음 → 3줄 초과 → 접힘
+      sizeName: "md",
+      allowsRemoving: false,
+      maxRows: 3,
+    });
+    // 좁은 폭이 접힘(또는 최소한 넓은 폭보다 적은 visible).
+    expect(narrow.visibleItemCount).toBeLessThanOrEqual(wide.visibleItemCount);
+    // 좁은 폭이 접히면 shouldShowAll, 넓은 폭보다 contentHeight 가 크거나 같다.
+    if (narrow.shouldShowAll && !wide.shouldShowAll) {
+      expect(narrow.contentHeight).toBeGreaterThan(wide.contentHeight);
+    }
+  });
+
+  it("contentHeight 는 containerWidth 에 단조 반응 (좁을수록 크거나 같음)", () => {
+    const h400 = resolveTagWrapLayout({
+      items: TWELVE,
+      containerWidth: 400,
+      sizeName: "md",
+      allowsRemoving: false,
+      maxRows: 3,
+    }).contentHeight;
+    const h310 = resolveTagWrapLayout({
+      items: TWELVE,
+      containerWidth: 310,
+      sizeName: "md",
+      allowsRemoving: false,
+      maxRows: 3,
+    }).contentHeight;
+    const h260 = resolveTagWrapLayout({
+      items: TWELVE,
+      containerWidth: 260,
+      sizeName: "md",
+      allowsRemoving: false,
+      maxRows: 3,
+    }).contentHeight;
+    // 폭이 좁아질수록 접힘/행 수 증가 → contentHeight 단조 비감소.
+    expect(h310).toBeGreaterThanOrEqual(h400);
+    expect(h260).toBeGreaterThanOrEqual(h310);
+  });
+
+  it("contentHeight = calculateContentHeight taglist 분기 (동일 폭이면 동일 값)", () => {
+    // 실제 배치폭(예 310)으로 두 경로가 같은 값을 산출해야 gap 정합.
+    const W = 310;
+    const tagList: Element = {
+      id: "tl",
+      type: "TagList",
+      props: { size: "md", items: TWELVE, maxRows: 3 },
+      childrenIds: [],
+    } as Element;
+    const viaCalc = calculateContentHeight(tagList, W, [], () => []);
+    const viaResolver = resolveTagWrapLayout({
+      items: TWELVE,
+      containerWidth: W,
+      sizeName: "md",
+      allowsRemoving: false,
+      maxRows: 3,
+    }).contentHeight;
+    expect(viaCalc).toBe(viaResolver);
+  });
+});

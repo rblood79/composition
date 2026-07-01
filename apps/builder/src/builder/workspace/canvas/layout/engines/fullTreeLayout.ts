@@ -2430,6 +2430,98 @@ export function calculateFullTreeLayout(
         }
       }
 
+      // ── Step 4.5b: TagList projection height 실폭 재보정 (maxRows gap 발산 fix) ──
+      //   **Why (2026-07-01, maxRows=3 gap 발산)**: TagList height 는 1-pass 에서
+      //   `calculateContentHeight`(taglist 분기, resolveTagWrapLayout) 로 계산 후
+      //   `preserveEnrichHeight` 로 강제되나, 그때 쓰는 폭은 **부모 top-down 추정폭**(예 350)이라
+      //   실제 RowsGroup Taffy 배치폭(예 310, padding 차감 후)과 다르다. 경계 케이스(12 items 가
+      //   350 에선 3줄 fit=접힘 없음 / 310 에선 접힘+Show all)에서 접힘 판정 자체가 갈려, TagList
+      //   강제 height(3줄=98) < 실제 chip 배치(chip 10+Show all=4줄분) → RowsGroup 여백이
+      //   align-content 로 분산돼 세로 gap 발산. 여기서 RowsGroup 의 **1-pass 실제 폭**으로 TagList
+      //   height 를 재계산해(fold-skip / render 와 동일 폭 = 정합) 강제 갱신한다. fold-skip 은
+      //   traversePostOrder 시점의 availableWidth 를 쓰나 render(StoreRenderBridge)는 실제
+      //   layoutMap.width 를 쓰므로, height 도 실폭 기준이라야 셋 다 정합.
+      const tagListHeightUpdates: Array<{ elementId: string; height: number }> =
+        [];
+      for (let i = 0; i < batch.length; i++) {
+        const node = batch[i];
+        const childIds = filteredChildIdsMap.get(node.elementId);
+        // TagList 판정: 유일 자식이 projection RowsGroup(`-rows:`).
+        if (
+          !childIds ||
+          childIds.length !== 1 ||
+          !childIds[0].includes("-rows:")
+        )
+          continue;
+        const tagListEl =
+          processedElementsMap.get(node.elementId) ??
+          elementsMap.get(node.elementId);
+        if ((tagListEl?.type ?? "").toLowerCase() !== "taglist") continue;
+
+        // RowsGroup 의 1-pass 실제 폭 조회.
+        const rowsHandle = persistentTree.getHandle(childIds[0]);
+        if (rowsHandle === undefined) continue;
+        const rowsLayout = firstPassLayouts.get(rowsHandle);
+        if (!rowsLayout || rowsLayout.width <= 0) continue;
+
+        // 실폭으로 height 재계산 (calculateContentHeight taglist 분기 = resolveTagWrapLayout).
+        //   owner-first: items/maxRows/size 는 owner TagGroup.props (TagList mirror stale 회피).
+        const tlProps = tagListEl!.props as Record<string, unknown> | undefined;
+        const ownerTg = tagListEl!.parent_id
+          ? elementsMap.get(tagListEl!.parent_id)
+          : undefined;
+        const ownerProps =
+          ownerTg?.type === "TagGroup"
+            ? (ownerTg.props as Record<string, unknown> | undefined)
+            : undefined;
+        const hasDataBinding =
+          tlProps?.dataBinding != null || ownerProps?.dataBinding != null;
+        const srcProps = !hasDataBinding && ownerProps ? ownerProps : tlProps;
+        // owner items/maxRows/size 를 TagList element 에 주입해 실폭으로 height 산출.
+        const tagListForCalc = {
+          ...tagListEl!,
+          props: {
+            ...tagListEl!.props,
+            items: srcProps?.items,
+            maxRows: srcProps?.maxRows,
+            size: srcProps?.size ?? tlProps?.size,
+          },
+        } as CanvasLayoutNode;
+        const actualHeight = calculateContentHeight(
+          tagListForCalc,
+          rowsLayout.width,
+          [],
+          getChildElements,
+        );
+        if (actualHeight <= 0) continue;
+
+        // 현재 강제된 height 와 비교 → 다르면 갱신 예약.
+        const curLayout = (() => {
+          const h = persistentTree.getHandle(node.elementId);
+          return h !== undefined ? firstPassLayouts.get(h) : undefined;
+        })();
+        if (
+          !curLayout ||
+          Math.abs(curLayout.height - actualHeight) > WIDTH_TOLERANCE
+        ) {
+          tagListHeightUpdates.push({
+            elementId: node.elementId,
+            height: actualHeight,
+          });
+        }
+      }
+      // TagList height 재보정 적용 (Taffy 재계산 트리거).
+      for (const { elementId: tlId, height } of tagListHeightUpdates) {
+        const h = persistentTree.getHandle(tlId);
+        if (h === undefined) continue;
+        const idx = batch.findIndex((n) => n.elementId === tlId);
+        if (idx < 0) continue;
+        batch[idx].style.height = `${height}px`;
+        persistentTree.updateNodeStyle(tlId, batch[idx].style);
+        persistentTree.markDirty(tlId);
+        needsSecondPass = true;
+      }
+
       if (needsSecondPass) {
         const parentsToMarkDirty = new Set<string>();
 

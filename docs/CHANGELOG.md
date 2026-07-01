@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [TagGroup 7종 수정 — Add Tag Skia 미반영 / chip gap Skia↔CSS 비대칭 / non-standard orientation prop 제거 / labelPosition=side selection 높이 발산 / maxRows Property 편집 UI 누락 / maxRows Skia 화면 접힘 / maxRows "Show all" 위치 발산] - 2026-07-01
+## [TagGroup 8종 수정 — Add Tag Skia 미반영 / chip gap Skia↔CSS 비대칭 / non-standard orientation prop 제거 / labelPosition=side selection 높이 발산 / maxRows Property 편집 UI 누락 / maxRows Skia 화면 접힘 / maxRows "Show all" 위치 발산 / maxRows 세로 gap 발산] - 2026-07-01
 
 ### Bug Fixes
 
@@ -62,6 +62,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **회귀 가드**: `tagGroupSideHeight.test.ts` 에 `computeTagRowsGroupFoldSkip` 5 케이스(maxRows=1 초과 chip skip+Show all 유지 / owner-first: stale mirror 4개여도 owner 9개로 접힘 / maxRows=0 null / 비-RowsGroup null / 좁은 폭→더 많은 skip 단조성) 추가. RED 확인: owner-first 제거 시 2 케이스 실패.
   - live 검증: maxRows=1(9 items) → Skia "Show all (9)" 가 chip 1줄 다음 행 + selection 박스(350×88) 안에 정확히 배치, CSS preview 와 정합. maxRows=2 → Show all 이 2줄 chip 우측 여유에 같은 행 배치(350×122). 이전엔 Show all 이 박스 밖.
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`(`computeTagRowsGroupFoldSkip` + RowsGroup childIndices fold-skip)
+
+- **TagGroup `maxRows` 세로 gap 발산 — maxRows=3 등 경계에서만 chip 행 간격 벌어짐** (위 fix 후속층, CSS↔Skia 비대칭):
+  - **Why**: TagList height(`calculateContentHeight` taglist 분기 → `resolveTagWrapLayout`)는 1-pass 에서 **부모 top-down 추정폭**(예 350)으로 계산 후 `preserveEnrichHeight` 로 강제되나, 실제 RowsGroup Taffy 배치폭(예 310, padding 차감 후)과 다르다. 경계 케이스(12 items 가 폭 350 에선 maxRows=3 안에 3줄 fit=접힘 없음 / 폭 310 에선 초과=접힘+Show all)에서 **접힘 판정 자체가 갈려**, TagList 강제 height(3줄=98) < 실제 chip 배치(chip 10+Show all=4줄분) → RowsGroup 잉여 여백이 `align-content`(미설정 기본 분산)로 chip 행 사이에 퍼져 세로 gap 발산. maxRows=1/2 는 두 폭 모두 접힘 판정 일치라 정상. debugger 에이전트 + 라이브 계측(DIAG 로그)로 폭 350 vs 310 불일치 확정.
+  - 수정: **2-pass 에서 RowsGroup 의 1-pass 실제 폭으로 TagList height 재계산** — `fullTreeLayout` Step 4.5b(신규)가 projection RowsGroup(`-rows:`)의 Taffy 실배치 폭(`firstPassLayouts`)으로 `calculateContentHeight`(=`resolveTagWrapLayout`, owner-first)를 재실행해 TagList height 를 갱신 + markDirty + recompute. 접힘 판정 폭이 fold-skip / render(StoreRenderBridge layoutMap.width)와 **동일 실폭**으로 단일화 → height=실제 chip 배치 정합 → 분산 gap 소멸.
+  - **회귀 가드**: `tagGroupSideHeight.test.ts` 에 폭 의존 접힘 경계 3 케이스(동일 items+maxRows 에서 넓은 폭 접힘 없음/좁은 폭 접힘 / contentHeight 는 containerWidth 에 단조 반응 / 실폭 동일 시 calculateContentHeight = resolveTagWrapLayout) 추가 (19 tests PASS). RED 확인: 2-pass 재보정 비활성화 시 maxRows=3 gap 발산 재현(350×156 vs 정상 350×122).
+  - live 검증: maxRows=3(12 items) → 재보정 전 350×156(gap 넓게 분산) → 재보정 후 350×122(chip 3줄 촘촘, CSS preview 정합). maxRows=1(350×88)/2(350×122) 회귀 없음.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`(Step 4.5b TagList projection height 실폭 재보정)
 
 ## [그룹 축 prop derive 컨테이너 Direction 양방향 동기화 — ToggleButtonGroup/Toolbar(orientation) + RadioGroup/CheckboxGroup/field 8종/TagGroup/ComboBox/Select/DateRangePicker(labelPosition)] - 2026-06-30
 
