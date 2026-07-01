@@ -22,7 +22,10 @@
 
 import { describe, expect, it } from "vitest";
 import { calculateContentHeight, resolveTagWrapLayout } from "../utils";
-import { computeTagFoldKeep } from "../fullTreeLayout";
+import {
+  computeTagFoldKeep,
+  shouldClearSideLabelTagGroupHeight,
+} from "../fullTreeLayout";
 import type { Element } from "../../../../../../types/core/store.types";
 
 type TagItem = { id: string; label: string };
@@ -562,5 +565,84 @@ describe("computeTagFoldKeep — rowY 기반 chip 접힘 (폭 무관)", () => {
     expect(keep).not.toContain("chip-showall");
     // 핵심 회귀 가드: keep(11) ≠ 전체 chip(12) → fold 경로 진입(Show all 제거)이 반드시 일어난다.
     expect(keep.length).toBeLessThan(chips.length);
+  });
+});
+
+// ── shouldClearSideLabelTagGroupHeight — side-label preserve height 제거 판정 (2026-07-02) ──
+//
+// **버그 (라이브 실측)**: labelPosition="side" 인 TagGroup 은 fullTreeLayout 의
+//   `sideLabelProjectionContainer` 판정으로 `preserveEnrichHeight=true` → enrich 의
+//   calculateContentHeight(추정 wrap, stale mirror items 기반) 가 산출한 명시 height(예 98=3행
+//   추정)가 Taffy 에 강제된다. Step 4.5b/c 가 자식 TagList/RowsGroup 을 자식-bottom 실측(64=2행)
+//   으로 교정하고 부모를 dirty 로 마킹해도, TagGroup 의 명시 height 는 fixed 라 재계산 시에도 98
+//   유지 → selection/hover outline 이 실제 자식(64) 아래로 34px(1행) 여분 공백.
+//   (side / md / maxRows=5 / 6칩 2행: CSS 64 vs Skia selection 98)
+// **수정**: 자식 실측 교정 시점에 부모(side-label TagGroup)의 명시 height 를 제거해 Taffy 가 row
+//   auto height(max(Label, 교정된 TagList)=64)로 재계산하게 한다. top-label(column)은 preserve
+//   미적용(자식 2개 → auto 합산 자연 수렴)이라 대상 아님, 사용자 명시 height 는 보존.
+//
+// fullTreeLayout Taffy 통합(preserve/computeLayout)은 integration 영역이라 live(builder Preview)
+//   로 확증(side md/lg × maxRows=1/5, top 회귀). 본 단위 테스트는 제거 대상 3-조건 판정만 고정.
+describe("shouldClearSideLabelTagGroupHeight — side-label preserve height 제거 판정", () => {
+  it("side-label TagGroup + 명시 height 없음 → 제거 대상(true)", () => {
+    // 핵심 케이스: preserve 된 stale height 를 제거해야 자식 실측(64)으로 수렴.
+    expect(
+      shouldClearSideLabelTagGroupHeight({
+        type: "TagGroup",
+        labelPosition: "side",
+        styleHeight: undefined,
+      }),
+    ).toBe(true);
+    // "auto" 도 명시 height 없음으로 취급.
+    expect(
+      shouldClearSideLabelTagGroupHeight({
+        type: "TagGroup",
+        labelPosition: "side",
+        styleHeight: "auto",
+      }),
+    ).toBe(true);
+  });
+
+  it("top-label TagGroup → 대상 아님(false, 회귀 가드)", () => {
+    // top(column)은 preserve 미적용 — 자식 2개 auto 합산으로 자연 수렴하므로 건드리면 안 됨.
+    expect(
+      shouldClearSideLabelTagGroupHeight({
+        type: "TagGroup",
+        labelPosition: "top",
+        styleHeight: undefined,
+      }),
+    ).toBe(false);
+    // labelPosition 미지정(기본 top) → false.
+    expect(
+      shouldClearSideLabelTagGroupHeight({
+        type: "TagGroup",
+        labelPosition: undefined,
+        styleHeight: undefined,
+      }),
+    ).toBe(false);
+  });
+
+  it("사용자 명시 CSS height 존재 시 → 대상 아님(false, 사용자 의도 보존)", () => {
+    // 사용자가 명시적으로 height 를 준 경우 preserve 가 아니라 사용자 의도 → 제거 금지.
+    expect(
+      shouldClearSideLabelTagGroupHeight({
+        type: "TagGroup",
+        labelPosition: "side",
+        styleHeight: "200px",
+      }),
+    ).toBe(false);
+  });
+
+  it("비-TagGroup(다른 컨테이너) → 대상 아님(false)", () => {
+    // side-label 유사 구조(CheckboxGroup 등)여도 이 fix 는 TagGroup 전용.
+    expect(
+      shouldClearSideLabelTagGroupHeight({
+        type: "CheckboxGroup",
+        labelPosition: "side",
+        styleHeight: undefined,
+      }),
+    ).toBe(false);
+    // undefined props → false (방어).
+    expect(shouldClearSideLabelTagGroupHeight(undefined)).toBe(false);
   });
 });

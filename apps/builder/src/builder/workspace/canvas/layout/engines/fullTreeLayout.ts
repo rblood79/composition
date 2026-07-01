@@ -925,6 +925,37 @@ export function computeTagFoldKeep(
     .map((c) => c.id);
 }
 
+/**
+ * side-label TagGroup 의 명시(preserve) height 를 제거해야 하는지 판정 (2026-07-02).
+ *
+ * labelPosition="side" 인 TagGroup 은 `sideLabelProjectionContainer` 판정으로
+ *   `preserveEnrichHeight=true` → enrich 의 calculateContentHeight(추정 wrap, stale mirror
+ *   items 기반) 가 산출한 명시 height 가 Taffy 에 강제된다. Step 4.5b/c 가 자식(TagList/RowsGroup)
+ *   을 자식-bottom 실측으로 교정해도 부모 명시 height 는 fixed 라 갱신 안 됨 → selection 여분 공백.
+ *   자식 교정 시점에 부모 명시 height 를 제거해 Taffy row auto height(max 자식)로 재계산시킨다.
+ *
+ * 제거 대상 조건 (3가지 모두):
+ *   1. type === "TagGroup"
+ *   2. labelPosition === "side" (row 배치 → preserve 대상)
+ *   3. 사용자 명시 CSS height 없음 (있으면 사용자 의도 보존)
+ *
+ * top-label(column)은 preserve 미적용(자식 2개 → auto 합산 자연 수렴)이라 대상 아님.
+ */
+export function shouldClearSideLabelTagGroupHeight(
+  parentProps:
+    | { type?: string; labelPosition?: unknown; styleHeight?: unknown }
+    | undefined,
+): boolean {
+  if (!parentProps) return false;
+  const hasUserHeight =
+    parentProps.styleHeight !== undefined && parentProps.styleHeight !== "auto";
+  return (
+    parentProps.type === "TagGroup" &&
+    parentProps.labelPosition === "side" &&
+    !hasUserHeight
+  );
+}
+
 // ─── DFS post-order 순회 ─────────────────────────────────────────────
 
 /** DFS 전체에서 공유되는 불변 context + mutable 누적기 */
@@ -2603,6 +2634,51 @@ export function calculateFullTreeLayout(
           }
           if (maxBottom <= 0) continue;
           const newHeight = Math.round(maxBottom);
+
+          // side-label projection 부모(TagGroup labelPosition="side")의 명시 height 제거.
+          //   **Why (side-label 여분 공백 근본, 2026-07-02)**: labelPosition="side" 인 TagGroup 은
+          //   `sideLabelProjectionContainer` 판정으로 `preserveEnrichHeight=true` → enrich 의
+          //   calculateContentHeight(추정 wrap, stale mirror items 기반) 가 산출한 명시 height 가
+          //   Taffy 에 강제된다(라이브 실측: 명시 98 = 3행 추정, 실제 TagList 자식은 2행 64). Step 4.5b/c
+          //   가 TagList/RowsGroup 을 자식-bottom 실측(64)으로 교정하고 부모를 dirty 로 마킹해도,
+          //   TagGroup 의 명시 height(98)는 auto 가 아니라 fixed 라 재계산 시에도 98 유지 →
+          //   selection/hover outline 이 실제 자식(64) 아래로 34px(1행) 여분 공백. top-label 은 column
+          //   이라 preserve 미적용(자식 2개)이라 auto 합산으로 자연 수렴하나, side-label(row)만 발산.
+          //   → 부모 명시 height 를 제거해 Taffy 가 row auto height(max(Label, 교정된 TagList)=64)로
+          //   재계산하게 한다. **정합(tlAligned&&rowsAligned) 여부와 독립** — TagList 가 이미 64 로
+          //   정합이어도 부모 TagGroup 은 여전히 stale 98 을 명시 강제하므로, 아래 continue 앞에서
+          //   처리한다. 사용자 명시 CSS height 는 보존.
+          const tagListParentId = elementsMap.get(tagListId)?.parent_id;
+          if (tagListParentId) {
+            const parentEl = elementsMap.get(tagListParentId);
+            const parentProps = parentEl?.props as
+              | Record<string, unknown>
+              | undefined;
+            const parentStyle = parentProps?.style as
+              | Record<string, unknown>
+              | undefined;
+            if (
+              shouldClearSideLabelTagGroupHeight({
+                type: parentEl?.type,
+                labelPosition: parentProps?.labelPosition,
+                styleHeight: parentStyle?.height,
+              })
+            ) {
+              const parentIdx = batch.findIndex(
+                (n) => n.elementId === tagListParentId,
+              );
+              if (parentIdx >= 0 && batch[parentIdx].style.height) {
+                delete batch[parentIdx].style.height;
+                persistentTree.updateNodeStyle(
+                  tagListParentId,
+                  batch[parentIdx].style,
+                );
+                persistentTree.markDirty(tagListParentId);
+                tagListHeightChanged = true;
+              }
+            }
+          }
+
           const tlHandle = persistentTree.getHandle(tagListId);
           const tlLayout =
             tlHandle !== undefined ? postFoldLayouts.get(tlHandle) : undefined;
@@ -2618,7 +2694,7 @@ export function calculateFullTreeLayout(
           const rowsAligned =
             rowsLayout &&
             Math.abs(rowsLayout.height - newHeight) <= WIDTH_TOLERANCE;
-          if (tlAligned && rowsAligned) continue; // 이미 정합
+          if (tlAligned && rowsAligned) continue; // 이미 정합 (부모 처리는 위에서 완료)
           if (!rowsAligned) {
             const rowsBatchNode = batch.find(
               (n) => n.elementId === rowsGroupId,
@@ -2635,7 +2711,6 @@ export function calculateFullTreeLayout(
           persistentTree.updateNodeStyle(tagListId, batch[idx].style);
           persistentTree.markDirty(tagListId);
           // 부모(TagGroup) 도 dirty → auto height 재계산 (parent_id 는 elementsMap 조회).
-          const tagListParentId = elementsMap.get(tagListId)?.parent_id;
           if (tagListParentId) persistentTree.markDirty(tagListParentId);
           tagListHeightChanged = true;
         }
