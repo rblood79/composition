@@ -932,4 +932,128 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
     expect(dataRows).toHaveLength(100);
     expect(headerRows).toHaveLength(1);
   });
+
+  // ─── TagGroup owner-first fallback (Add Tag Skia 미반영 회귀) ────────────────
+  //
+  // 버그: Inspector ItemsManager "Add Tag"(store.addItem)는 TagGroup.props.items 만
+  //   갱신하고 TagGroup→TagList propagation 을 트리거하지 않는다. DOM 은
+  //   TagGroup.props.items 를 직접 소비해 즉시 반영되지만, Skia projection 은 stale
+  //   TagList.props.items(factory 초기값)를 읽어 새 chip 이 누락됐다.
+  //   수정: resolveDataBoundTagProjection 이 dataBinding 없을 때 owner TagGroup.items 를
+  //   우선(override:true propagation 정본을 Skia 시점 방어적 복원). 아래 2 테스트로 고정.
+
+  it("TagGroup chip projection 이 owner TagGroup.props.items 를 우선한다 (stale TagList.items 무시)", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "taggroup-1",
+                  type: "TagGroup",
+                  // owner(TagGroup) = 최신 5개 (Add Tag 로 "New Tag" 추가된 상태)
+                  props: {
+                    items: [
+                      { id: "chocolate", label: "Chocolate" },
+                      { id: "mint", label: "Mint" },
+                      { id: "strawberry", label: "Strawberry" },
+                      { id: "vanilla", label: "Vanilla" },
+                      { id: "new-tag", label: "New Tag" },
+                    ],
+                  },
+                  children: [
+                    { id: "label-1", type: "Label", props: {}, children: [] },
+                    {
+                      id: "taglist-1",
+                      type: "TagList",
+                      // 자식 TagList = stale 4개 (propagation 미실행 factory 초기값)
+                      props: {
+                        items: [
+                          { id: "chocolate", label: "Chocolate" },
+                          { id: "mint", label: "Mint" },
+                          { id: "strawberry", label: "Strawberry" },
+                          { id: "vanilla", label: "Vanilla" },
+                        ],
+                      },
+                      children: [],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc);
+    const chips = [...graph.nodesMap.values()].filter(
+      (node) => node.projection?.kind === "tag-row",
+    );
+    // stale TagList.items(4) 가 아니라 owner TagGroup.items(5) 로 chip 이 그려진다.
+    expect(chips).toHaveLength(5);
+    const labels = chips.map(
+      (c) => (c.props as { children?: unknown }).children,
+    );
+    expect(labels).toContain("New Tag");
+
+    // 새 chip 이 rowsGroup 아래에 정상 부착되는지도 확인.
+    const newTagChip = graph.nodesMap.get(
+      toCollectionRowProjectionId("tag", "taglist-1", "new-tag"),
+    );
+    expect(newTagChip).toMatchObject({
+      type: "Tag",
+      parentId: toCollectionRowsGroupProjectionId("tag", "taglist-1"),
+      props: { children: "New Tag" },
+      projection: { kind: "tag-row", listBoxId: "taglist-1" },
+    });
+  });
+
+  it("owner TagGroup 이 없으면 TagList.props.items 로 회귀한다 (fallback 안전)", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                // 독립 TagList (부모 TagGroup 없음) — owner lookup 실패 → TagList.items 사용
+                {
+                  id: "taglist-orphan",
+                  type: "TagList",
+                  props: {
+                    items: [
+                      { id: "a", label: "A" },
+                      { id: "b", label: "B" },
+                    ],
+                  },
+                  children: [],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc);
+    const chips = [...graph.nodesMap.values()].filter(
+      (node) => node.projection?.kind === "tag-row",
+    );
+    expect(chips).toHaveLength(2);
+  });
 });

@@ -1086,23 +1086,70 @@ function isTagListSceneSource(
 }
 
 /**
+ * owner TagGroup lookup — TagList sourceNode 를 자식으로 갖는 TagGroup 노드의 props 를 역추적.
+ * findOwnerTabsProps 대칭 (Tab 선례).
+ */
+function findOwnerTagGroupProps(
+  tagListSourceId: string,
+  getDocumentNodesById: () => Map<string, CanonicalNode>,
+): Record<string, unknown> | null {
+  for (const node of getDocumentNodesById().values()) {
+    if (node.type !== "TagGroup") continue;
+    const children = node.children;
+    if (
+      Array.isArray(children) &&
+      children.some((c) => c.id === tagListSourceId)
+    ) {
+      return (node.props ?? null) as Record<string, unknown> | null;
+    }
+  }
+  return null;
+}
+
+/**
  * data-bound TagList 의 projection rows 계산 (gating). items 는 TagGroup.props.items 가
  * propagation 경유로 TagList.props.items 에 전파되어 있다(TagGroup.spec propagation). dataBinding
  * (api/collection) 도 동일 getFlatProjectionRows 3경로로 흡수. rows 0개면 null → 발효 전
  * standalone render.shapes 유지(회귀 0). chip 1개 = 1 row.
+ *
+ * **owner-first fallback**: propagation rule `{ parentProp:"items", childPath:"TagList",
+ * override:true }` 는 부모 TagGroup.items 를 정본으로 두고 자식 TagList.items 를 덮어쓴다.
+ * 하지만 Inspector ItemsManager 의 "Add Tag"(store.addItem)는 TagGroup.props.items 만 갱신하고
+ * propagation 을 트리거하지 않아 TagList.props.items 가 stale(factory 초기값) 로 남는다. DOM 은
+ * TagGroup.props.items 를 직접 소비해 즉시 반영되지만, Skia 는 stale TagList.items 를 읽어 새 chip
+ * 이 누락됐다. dataBinding 이 없을 때 owner TagGroup.items 를 우선 사용해 override 정본을 Skia 시점에
+ * 방어적으로 복원(Tab 의 owner fallback 대칭, 단 Tab 은 `!hasItems` 조건이고 Tag 는 override:true
+ * 정본이라 owner 를 항상 우선). owner 미발견 시 기존 TagList.props 로 회귀.
  */
 function resolveDataBoundTagProjection(
   tagListSceneNode: CanvasSceneNode,
   sourceNode: CanonicalNode,
   options: BuildCanvasSceneGraphOptions,
+  getDocumentNodesById: () => Map<string, CanonicalNode>,
 ): { rows: ListBoxProjectionRow[]; sourceNode: CanonicalNode } | null {
   if (!isTagListSceneSource(tagListSceneNode, sourceNode)) return null;
 
   const dataBinding = getElementDataBinding(sourceNode);
+
+  // owner-first: dataBinding 없을 때만 owner TagGroup.items 로 stale TagList.items 를 대체.
+  //   dataBinding(collection/api) 이 있으면 그 경로가 items 보다 우선하므로 owner 조회 skip.
+  let resolvedProps = tagListSceneNode.props;
+  if (!dataBinding) {
+    const ownerProps = findOwnerTagGroupProps(
+      sourceNode.id,
+      getDocumentNodesById,
+    );
+    if (ownerProps && Array.isArray(ownerProps.items)) {
+      // TagList.props 우선 + owner TagGroup.items 로 override(정본). variant/size/allowsRemoving 등
+      //   나머지 chip 속성은 기존 TagList.props 를 존중(propagation 정상 동작 시 이미 채워짐).
+      resolvedProps = { ...tagListSceneNode.props, items: ownerProps.items };
+    }
+  }
+
   const rows = getListBoxProjectionRows({
     collections: options.collections,
     dataBinding,
-    props: tagListSceneNode.props,
+    props: resolvedProps,
   });
   if (rows.length === 0) return null;
 
@@ -1645,7 +1692,12 @@ export function buildCanvasSceneGraph(
     // ADR-912 영역 B (A): TagGroup chip projection (owner=TagList scene node, wrap-flow row).
     //   TagList factory children:[] (items propagation) → suppression 불필요, append 만.
     const tagProjection = sceneNode
-      ? resolveDataBoundTagProjection(sceneNode, node, options)
+      ? resolveDataBoundTagProjection(
+          sceneNode,
+          node,
+          options,
+          getDocumentNodesById,
+        )
       : null;
 
     // ADR-912 영역 B (A): TabList tab projection (owner=TabList scene node, 한 줄 flex row).

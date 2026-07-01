@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [TagGroup Add Tag 가 CSS preview 에만 반영되고 Skia 에 미반영 — chip projection owner-first fallback] - 2026-07-01
+
+### Bug Fixes
+
+- **TagGroup Property 패널 "Add Tag" 시 CSS preview 에는 새 tag 가 나타나나 Skia 캔버스에는 고정된 초기 tag 만 표시** (CSS↔Skia 비대칭):
+  - **Why**: Inspector `ItemsManager` 의 "Add Tag"(`store.addItem(tagGroupId, "items", …)`)는 **`TagGroup.props.items` 만** 갱신하고 TagGroup→TagList propagation(`{ parentProp:"items", childPath:"TagList", override:true }`)을 트리거하지 않는다(propagation 은 `PropertiesPanel` 의 `onUpdate` 경로에서만 실행, `addItem` 은 store 를 직접 호출해 우회). DOM 렌더러(`TagGroup.tsx`)는 `TagGroup.props.items` 를 `useResolvedCollectionItems` 로 직접 소비 → 즉시 반영. 반면 Skia projection `resolveDataBoundTagProjection` 은 **자식 `TagList.props.items`**(propagation 복사본, factory 생성 시점의 초기 4개 Chocolate/Mint/Strawberry/Vanilla)를 읽고, Tabs 의 `resolveDataBoundTabProjection` 과 달리 **owner 조회 fallback 이 없어** stale 값을 그대로 그렸다.
+  - 수정: `resolveDataBoundTagProjection` 에 owner-first fallback 추가 — dataBinding 이 없을 때 owner `TagGroup.props.items` 를 우선(`{ ...tagListProps, items: ownerProps.items }`). propagation `override:true` 정본(부모 items 가 자식을 덮어씀)을 Skia 시점에 방어적으로 복원. Tabs 의 owner fallback 대칭이되 Tab 은 `!hasItems` 조건인 반면 Tag 는 override:true 정본이라 owner 를 항상 우선(stale 4개 존재 상태에서도 최신 items 채택). owner 미발견(독립 TagList) 시 기존 `TagList.props` 로 회귀.
+  - **회귀 가드**: `canvasSceneNode.test.ts` 에 2 케이스 추가 — owner 5개 vs stale TagList 4개 → chip 5개 + "New Tag" 포함(fix 되돌리면 정확히 FAIL 확인), owner 없는 독립 TagList → TagList.items 로 회귀.
+  - live 검증: builder 에서 TagGroup 생성 → "Add Tag" 클릭 → Skia 캔버스에 chip 5개(+ 재클릭 6개, 2행 wrap)로 즉시 반영 + 콘솔 에러 0 확인.
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`(`findOwnerTagGroupProps` + `resolveDataBoundTagProjection` owner-first)
+
 ## [그룹 축 prop derive 컨테이너 Direction 양방향 동기화 — ToggleButtonGroup/Toolbar(orientation) + RadioGroup/CheckboxGroup/field 8종/TagGroup/ComboBox/Select/DateRangePicker(labelPosition)] - 2026-06-30
 
 ### Bug Fixes
