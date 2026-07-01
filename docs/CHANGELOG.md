@@ -29,6 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **회귀 가드**: `tagGroupSideHeight.test.ts` 에 케이스 추가 — 11 tag 3행 + Show all 4번째 행(y=102) → 미접힘이라 keep=11(Show all 제외) 이면서 keep(11) < 전체 chip(12) 이라 fold 경로 진입 보증(20 tests PASS). RED 확인: 미접힘 Show all 제외 로직 변조 시 2 케이스 FAIL.
   - live 검증: 11 tag maxRows=3(미접힘) selection 156→**122** = CSS 정본(iframe DOM 실측 122)과 정확 일치, 여분 공백 소멸. maxRows=2(접힘) 도 CSS 122 ↔ Skia 122 + 양쪽 "Show all (11)" 대칭. type-check PASS(baseline 69).
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`(Step 4.5c 자식-bottom 실측 + 접힘 무관 전수 적용)
+- **TagGroup `maxRows` 접힘이 size=lg 에서 수렴 실패 (11 tags 4행 전부 표시, maxRows 무시) + CSS↔Skia 비대칭**:
+  - **Why**: `maxRows` 접힘 측정용 숨겨진 미러 DOM(`hiddenRef`, `TagGroup.tsx`)은 `className="react-aria-TagList"` + `data-tag-size={size}` 를 가진 채 `<AriaTagGroup>` **밖의 형제**로 렌더된다. 그런데 chip size CSS 규칙(`TagGroup.css`)이 `.react-aria-TagGroup[data-tag-size] .react-aria-Tag` 로 **`.react-aria-TagGroup` 하위**만 매칭 → 미러 chip 은 조상에 `.react-aria-TagGroup` 이 없어 size CSS 가 안 걸려 **항상 기본(md 근사) 크기로 측정**된다. 라이브 계측(lg): 미러 chip w=82/h=30(md) 4개/행 3행 vs 실제 chip w=98/h=42(lg) 3개/행 4행 → `computeVisibleTagCount` 가 미러(md 3행) 기준으로 행 수를 오산 → visibleTagCount 부정확 → lg 에서 접힘 수렴 실패(중간에 8+Show all 진동 후 최종 11 tags 전부 4행 표시, Show all 없이 maxRows 무시, height 213). Skia 는 Taffy 실측(9 tags 3행 + Show all 4번째 행, selection 214)로 정상 접힘 → **CSS(11 전부)↔Skia(9+Show all) 시각 비대칭**(D3 위반). md 는 미러=실제 우연 일치라 안 드러났다.
+  - 수정: chip size 규칙(xs~xl)에 미러 셀렉터 `.react-aria-TagList[data-tag-size="..."] .react-aria-Tag` 를 콤마 병기 → 미러 chip 도 실제와 동일 size 로 측정. (실제 표시 TagList 는 `data-tag-size` 미보유 → 이 셀렉터는 미러에만 매칭, 실제 렌더 무영향.)
+  - **회귀 가드**: `tagGroupMirrorChipSize.test.ts` 신규 — TagGroup.css 를 문자열로 읽어 5 size 각각 (a) 미러 셀렉터 병기 (b) 실제 셀렉터 유지 (c) 두 셀렉터가 같은 콤마 블록 공유(값 drift 방지) 검증(11 tests PASS). RED: lg 미러 셀렉터 제거 시 2 케이스 FAIL.
+  - live 검증: lg maxRows=2 → CSS 6 tags+Show all 165 ↔ Skia 166 대칭. lg maxRows=3 → CSS 9 tags 3행+Show all 4번째 행 213 ↔ Skia 214 대칭(4회 측정 진동 없음). md maxRows=3(11 tags 3행, 접힘 없음, 122) 회귀 없음. type-check PASS(baseline 69).
+  - 위치: `packages/shared/src/components/styles/TagGroup.css`(chip size 5규칙 미러 셀렉터 병기)
 
 ## [TagGroup 8종 수정 — Add Tag Skia 미반영 / chip gap Skia↔CSS 비대칭 / non-standard orientation prop 제거 / labelPosition=side selection 높이 발산 / maxRows Property 편집 UI 누락 / maxRows Skia 화면 접힘 / maxRows "Show all" 위치 발산 / maxRows 세로 gap 발산] - 2026-07-01
 

@@ -191,7 +191,14 @@
     --label-font-size: var(--text-lg);
   }
 
-  .react-aria-TagGroup[data-tag-size="xs"] .react-aria-Tag {
+  /* chip size 규칙: 실제 표시 TagList(TagGroup 하위) + maxRows 측정용 미러 DOM 양쪽에 적용.
+     미러 DOM(hiddenRef, className="react-aria-TagList" + data-tag-size)은 <AriaTagGroup> 밖의
+     형제라 `.react-aria-TagGroup[data-tag-size] .react-aria-Tag` 셀렉터가 안 걸린다 →
+     미러 chip 이 기본(md 근사) 크기로 측정 → 실제(lg 등) 배치와 행 수 불일치 → computeVisibleTagCount
+     오산 → 접힘 수렴 실패(lg maxRows 무시 버그). `.react-aria-TagList[data-tag-size]` 를 병기해
+     미러 chip 도 실제와 동일 size 로 측정. (실제 표시 TagList 는 data-tag-size 없음 → 미러만 매칭.) */
+  .react-aria-TagGroup[data-tag-size="xs"] .react-aria-Tag,
+  .react-aria-TagList[data-tag-size="xs"] .react-aria-Tag {
     padding: var(--spacing-3xs) var(--spacing-xs);
     font-size: var(--text-2xs);
     line-height: var(--text-2xs--line-height);
@@ -202,7 +209,8 @@
     }
   }
 
-  .react-aria-TagGroup[data-tag-size="sm"] .react-aria-Tag {
+  .react-aria-TagGroup[data-tag-size="sm"] .react-aria-Tag,
+  .react-aria-TagList[data-tag-size="sm"] .react-aria-Tag {
     padding: var(--spacing-2xs) var(--spacing-sm);
     font-size: var(--text-xs);
     line-height: var(--text-xs--line-height);
@@ -213,7 +221,8 @@
     }
   }
 
-  .react-aria-TagGroup[data-tag-size="md"] .react-aria-Tag {
+  .react-aria-TagGroup[data-tag-size="md"] .react-aria-Tag,
+  .react-aria-TagList[data-tag-size="md"] .react-aria-Tag {
     padding: var(--spacing-xs) var(--spacing-md);
     font-size: var(--text-sm);
     line-height: var(--text-sm--line-height);
@@ -224,7 +233,8 @@
     }
   }
 
-  .react-aria-TagGroup[data-tag-size="lg"] .react-aria-Tag {
+  .react-aria-TagGroup[data-tag-size="lg"] .react-aria-Tag,
+  .react-aria-TagList[data-tag-size="lg"] .react-aria-Tag {
     padding: var(--spacing-sm) var(--spacing-lg);
     font-size: var(--text-base);
     line-height: var(--text-base--line-height);
@@ -235,7 +245,8 @@
     }
   }
 
-  .react-aria-TagGroup[data-tag-size="xl"] .react-aria-Tag {
+  .react-aria-TagGroup[data-tag-size="xl"] .react-aria-Tag,
+  .react-aria-TagList[data-tag-size="xl"] .react-aria-Tag {
     padding: var(--spacing-md) var(--spacing-xl);
     font-size: var(--text-lg);
     line-height: var(--text-lg--line-height);
