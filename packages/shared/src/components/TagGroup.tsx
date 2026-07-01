@@ -106,6 +106,14 @@ export function TagGroup<T extends object>({
   // 핵심: 미러 DOM은 항상 전체 태그 렌더 (상태 무관) → 무한 루프 방지
   const [isCollapsed, setIsCollapsed] = useState(true);
   const hiddenRef = useRef<HTMLDivElement>(null);
+  // 실제 chip 배치 컨테이너(.tag-list-wrapper) — 미러 측정 폭 동기화용.
+  //   **Why (side-label maxRows 접힘 과다 버그, 2026-07-02)**: 미러 DOM 은 `<AriaTagGroup>` 밖의
+  //   형제(position:relative 최상위 div 자식, width:100%)라 side-label 의 좁아진 폭(Label 차감)을
+  //   못 받는다. side 에서 실제 wrapper 는 flex-direction:row 로 Label 옆 남은 폭(전체−Label−gap)에서
+  //   chip 을 wrap 하나, 미러는 전체 폭으로 측정 → 행당 chip 과다 → visibleTagCount 과다 →
+  //   실제 배치에서 maxRows 초과(라이브: 미러 348 → 10칩 2줄에 8개, 실제 wrapper 276 → 그 8개가 3줄).
+  //   측정 직전에 실제 wrapper clientWidth 를 미러 width 에 주입해 폭을 일치시킨다.
+  const tagListWrapperRef = useRef<HTMLDivElement>(null);
   const [visibleTagCount, setVisibleTagCount] = useState<number>(Infinity);
 
   const hasMaxRows = maxRows != null && maxRows > 0;
@@ -113,6 +121,12 @@ export function TagGroup<T extends object>({
 
   const computeVisibleTagCount = useCallback(() => {
     if (!hiddenRef.current || !maxRows) return;
+    // 미러 폭을 실제 chip 배치 컨테이너 폭과 동기화 (side-label Label 차감 폭 반영).
+    //   실제 wrapper 가 아직 없으면(측정 초기) width:100% fallback 유지.
+    const actualWidth = tagListWrapperRef.current?.clientWidth;
+    if (actualWidth != null && actualWidth > 0) {
+      hiddenRef.current.style.width = `${actualWidth}px`;
+    }
     const items = hiddenRef.current.children;
     if (items.length === 0) return;
 
@@ -143,14 +157,20 @@ export function TagGroup<T extends object>({
   }, [hasMaxRows, isCollapsed, computeVisibleTagCount]);
 
   // ResizeObserver: 컨테이너 크기 변경 시 재측정
+  //   최상위 relative div(미러 부모) + 실제 chip 배치 컨테이너(.tag-list-wrapper) 양쪽 관찰.
+  //   **Why wrapper 도 관찰**: side-label 에서 실제 wrap 폭 = 전체 − Label − gap 이라 Label 텍스트
+  //   변경 시 relative div(고정) 는 안 바뀌어도 wrapper 폭은 바뀐다. 미러 측정 폭 동기화(위
+  //   computeVisibleTagCount)가 wrapper clientWidth 를 읽으므로, wrapper resize 도 재측정 trigger.
   useEffect(() => {
     if (!hasMaxRows || !hiddenRef.current) return;
-    const el = hiddenRef.current.parentElement;
-    if (!el) return;
+    const parentEl = hiddenRef.current.parentElement;
+    const wrapperEl = tagListWrapperRef.current;
+    if (!parentEl && !wrapperEl) return;
     const observer = new ResizeObserver(() => {
       if (isCollapsed) computeVisibleTagCount();
     });
-    observer.observe(el);
+    if (parentEl) observer.observe(parentEl);
+    if (wrapperEl) observer.observe(wrapperEl);
     return () => observer.disconnect();
   }, [hasMaxRows, isCollapsed, computeVisibleTagCount]);
 
@@ -567,7 +587,7 @@ export function TagGroup<T extends object>({
         data-label-position={labelPosition}
       >
         {label && <Label>{label}</Label>}
-        <div className="tag-list-wrapper">
+        <div ref={tagListWrapperRef} className="tag-list-wrapper">
           {hasResolvedRows ? (
             <TagList
               items={displayTagItems}
