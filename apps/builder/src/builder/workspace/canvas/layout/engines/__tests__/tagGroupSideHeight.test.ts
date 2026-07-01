@@ -535,4 +535,32 @@ describe("computeTagFoldKeep — rowY 기반 chip 접힘 (폭 무관)", () => {
       "chip-2",
     ]);
   });
+
+  it("미접힘이라도 Show all 이 별도 행에 있으면 keep < 전체 chip (fold 경로 진입 → 컨테이너 stale height 교정 필요)", () => {
+    // 실제 버그(2026-07-02): 11 tag / maxRows=3 → item 은 3행(4+4+3)에 딱 맞아 접힘 미발생이지만,
+    //   appendTagRowProjection 이 maxRows>0 이면 Show all chip 을 항상 append → Show all 이 4번째 행
+    //   (y=102)에 배치된다. computeTagFoldKeep 은 Show all 을 제외(미접힘)하므로 keep=11 < chipIds=12.
+    //   fullTreeLayout 의 `keep.length === chipIds.length` 가드가 이 차이로 fold 경로에 진입해 Show all
+    //   chip 을 Taffy 트리에서 제거한다. (제거 후 컨테이너 실측 stale 교정은 Step 4.5c 자식-bottom 로직.)
+    const chips = [
+      { id: "chip-0", y: 0, isShowAll: false },
+      { id: "chip-1", y: 0, isShowAll: false },
+      { id: "chip-2", y: 0, isShowAll: false },
+      { id: "chip-3", y: 0, isShowAll: false },
+      { id: "chip-4", y: 34, isShowAll: false },
+      { id: "chip-5", y: 34, isShowAll: false },
+      { id: "chip-6", y: 34, isShowAll: false },
+      { id: "chip-7", y: 34, isShowAll: false },
+      { id: "chip-8", y: 68, isShowAll: false },
+      { id: "chip-9", y: 68, isShowAll: false },
+      { id: "chip-10", y: 68, isShowAll: false },
+      { id: "chip-showall", y: 102, isShowAll: true }, // 4번째 행
+    ];
+    const keep = computeTagFoldKeep(chips, 3);
+    // itemRowCount = {0,34,68} = 3 ≤ maxRows 3 → 미접힘 → 11 item 전부 유지 + Show all 제외.
+    expect(keep.length).toBe(11);
+    expect(keep).not.toContain("chip-showall");
+    // 핵심 회귀 가드: keep(11) ≠ 전체 chip(12) → fold 경로 진입(Show all 제거)이 반드시 일어난다.
+    expect(keep.length).toBeLessThan(chips.length);
+  });
 });

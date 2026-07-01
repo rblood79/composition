@@ -21,6 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **회귀 가드**: `tagGroupSideHeight.test.ts` 에 `computeTagFoldKeep` 5 케이스(접힘 발생 시 행번호≥maxRows 제외+Show all 유지 / 미발생 시 Show all 제외 / **폭 무관**: 같은 15 item 이 넓은 폭 3행·좁은 폭 8행이어도 rowY 기준 정확 접힘 / maxRows=1 / 빈·maxRows=0) 추가 (19 tests PASS). RED 확인: 접힘 경계 `< maxRows` → `<=` 변조 시 3 케이스 FAIL.
   - live 검증: 15 items maxRows=1(box 118)/2(166)/3(214) 모두 chip N줄 촘촘 + Show all 다음 행 box 안, 세로 gap 정상(4px). 패널로 폭 좁아진 상태(chip 3개/행)에서도 rowY 재계산으로 자동 정합. type-check PASS(baseline 69).
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`(`computeTagFoldKeep` + Step 4.5b rowY 접힘 + Step 4.5c 실측 height), `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`(alignContent), `apps/builder/src/builder/workspace/canvas/skia/StoreRenderBridge.ts`(render layoutMap 기반)
+- **TagGroup `maxRows` 미접힘 케이스에서 selection height 에 tag 한 줄 여분 공백** (위 rowY 재설계의 미완결 후속):
+  - **Why**: 위 재설계 Step 4.5c 는 **접힘이 발생한 경우에만**(`foldChipRemovals.length > 0`) TagList height 를 실측으로 강제했다. 그러나 `appendTagRowProjection` 은 `maxRows>0` 이면 Show all chip 을 **항상 append** 하므로, 11 tag / maxRows=3 처럼 item 이 3행(4+4+3)에 딱 맞아 **접힘 미발생**인 경우에도 Show all chip 이 4번째 행(라이브 rowY=102)에 배치돼 RowsGroup 이 4행이 된다. `computeTagFoldKeep` 은 미접힘 시 Show all 을 keep 에서 제외하고 그 keep(11) ≠ chipIds(12) 라 fold 경로에 진입(Show all Taffy 제거)하지만, **Taffy `setChildren` 으로 chip 을 제거해도 RowsGroup 컨테이너의 auto height 는 축소되지 않는다**(증분 갱신 한계 — 라이브 계측: 자식 3행 배치 uniqueYs=[0,34,68]인데 컨테이너 height 는 Show all 포함 stale 132). preserveEnrichHeight 가 그 stale 값을 TagList 에 강제 → selection 156(4행) = 3행 콘텐츠 아래 한 줄 여분.
+  - 수정:
+    - **Step 4.5c 를 접힘 여부 무관 전체 projection TagList 에 적용** — `projectionTagLists`(전수 수집)를 순회.
+    - **컨테이너 실측 대신 자식 chip 실측 bottom 사용** — RowsGroup 컨테이너 auto height 가 stale 하므로, 유지된 chip 들의 `max(chip.y + chip.height)` 로 content height 를 직접 산출(폭 무관, Show all 제거 반영). 이 값을 RowsGroup + TagList 양쪽에 명시 height 로 강제 → TagGroup 세로 합산까지 정합.
+  - **회귀 가드**: `tagGroupSideHeight.test.ts` 에 케이스 추가 — 11 tag 3행 + Show all 4번째 행(y=102) → 미접힘이라 keep=11(Show all 제외) 이면서 keep(11) < 전체 chip(12) 이라 fold 경로 진입 보증(20 tests PASS). RED 확인: 미접힘 Show all 제외 로직 변조 시 2 케이스 FAIL.
+  - live 검증: 11 tag maxRows=3(미접힘) selection 156→**122** = CSS 정본(iframe DOM 실측 122)과 정확 일치, 여분 공백 소멸. maxRows=2(접힘) 도 CSS 122 ↔ Skia 122 + 양쪽 "Show all (11)" 대칭. type-check PASS(baseline 69).
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`(Step 4.5c 자식-bottom 실측 + 접힘 무관 전수 적용)
 
 ## [TagGroup 8종 수정 — Add Tag Skia 미반영 / chip gap Skia↔CSS 비대칭 / non-standard orientation prop 제거 / labelPosition=side selection 높이 발산 / maxRows Property 편집 UI 누락 / maxRows Skia 화면 접힘 / maxRows "Show all" 위치 발산 / maxRows 세로 gap 발산] - 2026-07-01
 

@@ -2390,6 +2390,15 @@ export function calculateFullTreeLayout(
       //   수렴 → TagList(preserveEnrichHeight) 와 정합 → 분산 gap 소멸.
       const foldChipRemovals: Array<{ rowsGroupId: string; keep: string[] }> =
         [];
+      // projection-only TagList 전수(접힘 여부 무관): Step 4.5c 가 각 RowsGroup Taffy 실측
+      //   height 를 부모 TagList 에 강제할 대상. 접힘 미발생(itemRowCount ≤ maxRows) 이어도
+      //   preserveEnrichHeight(추정 wrap contentHeight)와 Taffy 실배치 행 수가 어긋날 수 있어
+      //   (measureText ≠ Taffy, 폭 추정 오차 → 예 11 tag/maxRows3: 추정 4행 156 vs 실측 3행 122)
+      //   전 케이스 실측 강제가 필요하다.
+      const projectionTagLists: Array<{
+        tagListId: string;
+        rowsGroupId: string;
+      }> = [];
       for (let i = 0; i < batch.length; i++) {
         const node = batch[i];
         const childIds = filteredChildIdsMap.get(node.elementId);
@@ -2404,6 +2413,10 @@ export function calculateFullTreeLayout(
           processedElementsMap.get(node.elementId) ??
           elementsMap.get(node.elementId);
         if ((tagListEl?.type ?? "").toLowerCase() !== "taglist") continue;
+        projectionTagLists.push({
+          tagListId: node.elementId,
+          rowsGroupId: childIds[0],
+        });
 
         const rowsGroupId = childIds[0];
         // owner-first: maxRows 는 owner TagGroup.props SSOT (TagList mirror stale 회피).
@@ -2558,52 +2571,71 @@ export function calculateFullTreeLayout(
         persistentTree.computeLayout(availableWidth, availableHeight);
       }
 
-      // ── Step 4.5c: chip 접힘 후 RowsGroup 새 실측 → TagList height 강제 ──────
-      //   Step 4.5b 에서 초과 chip 을 Taffy 트리에서 제외하고 recompute 했으므로, 이제 RowsGroup
-      //   auto height 는 표시 행(maxRows + Show all)만의 정확한 높이다. 그러나 TagList 는
-      //   `preserveEnrichHeight`(1-pass 추정 contentHeight)로 강제된 상태 → 새 RowsGroup 실측과
-      //   어긋난다. 여기서 RowsGroup 의 **접힘 후 실측 height** 를 TagList 에 강제해 정합시킨다.
-      //   **Why 여기서**: chip 제외 recompute 이후라야 RowsGroup 실측이 표시 행 기준. rowY 접힘이
-      //   폭 무관이라 이 실측도 폭 무관 정확 (리사이즈 견고).
-      if (foldChipRemovals.length > 0) {
+      // ── Step 4.5c: RowsGroup Taffy 실측 height → TagList height 강제 (접힘 여부 무관) ──────
+      //   projection-only TagList 는 `preserveEnrichHeight`(1-pass 추정 wrap contentHeight)로
+      //   height 가 강제된 상태다. 그러나 추정 wrap(`resolveTagWrapLayout`, measureText 기반)은
+      //   실제 Taffy WASM flexWrap 배치와 어긋난다(measureText ≠ Taffy 측정, 폭 추정 오차, f32) →
+      //   Taffy 는 3행(122)으로 배치하는데 추정은 4행(156)을 반환해 selection height 에 여분 공백.
+      //   **근본**: chip 개수 제어(Step 4.5b)뿐 아니라 **TagList height 도 Taffy 실측이 SSOT** 여야
+      //   한다. 따라서 접힘 발생 여부와 무관하게 모든 projection TagList 의 RowsGroup 실측 height 를
+      //   부모 TagList 에 강제한다. 접힘 케이스는 4.5b recompute 후 좌표(표시 행 기준), 미접힘 케이스는
+      //   1-pass 좌표(전체 행) — 둘 다 Taffy 실배치라 폭 무관 정확.
+      //   **Why (2026-07-02, 미접힘 여분 공백 근본)**: 이전 재설계는 접힘 경로만 실측으로 갔고
+      //   미접힘 height 는 추정 잔존 → 11 tag/maxRows3(접힘 없음) 에서 추정 4행 = selection 156.
+      if (projectionTagLists.length > 0) {
         const postFoldLayouts = persistentTree.getLayoutsBatch();
         let tagListHeightChanged = false;
-        for (const { rowsGroupId } of foldChipRemovals) {
+        for (const { tagListId, rowsGroupId } of projectionTagLists) {
+          // **Why 자식 실측(RowsGroup 컨테이너 실측 아님)**: Taffy `setChildren` 으로 chip 을 제거해도
+          //   RowsGroup 컨테이너의 auto height 는 축소되지 않는다(증분 갱신 한계 — 자식 3행 배치인데
+          //   컨테이너 height 는 Show all 포함 4행값 132 로 stale). 따라서 컨테이너 실측이 아니라
+          //   **유지된 chip 들의 실제 배치 bottom(max(chip.y + chip.height))** 으로 content height 를
+          //   직접 산출한다. 폭 무관(Taffy 실좌표 기준) + Show all 제거 반영.
+          const chipIds = filteredChildIdsMap.get(rowsGroupId);
+          if (!chipIds || chipIds.length === 0) continue;
+          let maxBottom = 0;
+          for (const chipId of chipIds) {
+            const ch = persistentTree.getHandle(chipId);
+            const cl = ch !== undefined ? postFoldLayouts.get(ch) : undefined;
+            if (!cl) continue;
+            const bottom = cl.y + cl.height;
+            if (bottom > maxBottom) maxBottom = bottom;
+          }
+          if (maxBottom <= 0) continue;
+          const newHeight = Math.round(maxBottom);
+          const tlHandle = persistentTree.getHandle(tagListId);
+          const tlLayout =
+            tlHandle !== undefined ? postFoldLayouts.get(tlHandle) : undefined;
+          const tlAligned =
+            tlLayout &&
+            Math.abs(tlLayout.height - newHeight) <= WIDTH_TOLERANCE;
+          // RowsGroup 컨테이너 stale height 도 명시 강제(자식 bottom) → TagGroup 세로 합산 정합.
           const rowsHandle = persistentTree.getHandle(rowsGroupId);
           const rowsLayout =
             rowsHandle !== undefined
               ? postFoldLayouts.get(rowsHandle)
               : undefined;
-          if (!rowsLayout || rowsLayout.height <= 0) continue;
-          const newHeight = Math.round(rowsLayout.height);
-          // RowsGroup 의 부모 TagList id (rowsGroupId 형식: `...-rows:<tagListId>`).
-          const tagListNode = batch.find((n) => {
-            const cids = filteredChildIdsMap.get(n.elementId);
-            return cids?.length === 1 && cids[0] === rowsGroupId;
-          });
-          if (!tagListNode) continue;
-          const tlHandle = persistentTree.getHandle(tagListNode.elementId);
-          const tlLayout =
-            tlHandle !== undefined ? postFoldLayouts.get(tlHandle) : undefined;
-          if (
-            tlLayout &&
-            Math.abs(tlLayout.height - newHeight) <= WIDTH_TOLERANCE
-          )
-            continue; // 이미 정합
-          const idx = batch.findIndex(
-            (n) => n.elementId === tagListNode.elementId,
-          );
+          const rowsAligned =
+            rowsLayout &&
+            Math.abs(rowsLayout.height - newHeight) <= WIDTH_TOLERANCE;
+          if (tlAligned && rowsAligned) continue; // 이미 정합
+          if (!rowsAligned) {
+            const rowsBatchNode = batch.find(
+              (n) => n.elementId === rowsGroupId,
+            );
+            if (rowsBatchNode) {
+              rowsBatchNode.style.height = `${newHeight}px`;
+              persistentTree.updateNodeStyle(rowsGroupId, rowsBatchNode.style);
+              persistentTree.markDirty(rowsGroupId);
+            }
+          }
+          const idx = batch.findIndex((n) => n.elementId === tagListId);
           if (idx < 0) continue;
           batch[idx].style.height = `${newHeight}px`;
-          persistentTree.updateNodeStyle(
-            tagListNode.elementId,
-            batch[idx].style,
-          );
-          persistentTree.markDirty(tagListNode.elementId);
+          persistentTree.updateNodeStyle(tagListId, batch[idx].style);
+          persistentTree.markDirty(tagListId);
           // 부모(TagGroup) 도 dirty → auto height 재계산 (parent_id 는 elementsMap 조회).
-          const tagListParentId = elementsMap.get(
-            tagListNode.elementId,
-          )?.parent_id;
+          const tagListParentId = elementsMap.get(tagListId)?.parent_id;
           if (tagListParentId) persistentTree.markDirty(tagListParentId);
           tagListHeightChanged = true;
         }
