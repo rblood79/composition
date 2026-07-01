@@ -28,7 +28,8 @@
  *  - field 8종: TextField, TextArea, NumberField, SearchField, ColorField,
  *    DateField, TimeField, DatePicker (단일 컨트롤 — orientation 축 없음,
  *    side→row 는 Label↔Input 옆배치)
- *  - TagGroup (orientation=chip 배치 축으로 직교, binding 주석 명시)
+ *  - TagGroup (Direction 토글 = labelPosition. chip 배치는 항상 row+wrap —
+ *    orientation prop 은 RAC/RSP 미규정 non-standard 라 2026-07-01 제거)
  *  - ComboBox, Select, DateRangePicker (field 동형 — combobox/select/searchfield
  *    공통 분기 + datepicker/daterangepicker 공통 분기. catalog side variant 는
  *    `structure.composition.containerVariants` 에 이미 존재(top-level 아님 — derive
@@ -67,7 +68,7 @@ export const LABEL_POSITION_DRIVEN_TAGS: ReadonlySet<string> = new Set([
   "datefield",
   "timefield",
   "datepicker",
-  // chip 계열 (orientation=chip 배치 축으로 직교)
+  // chip 계열 (Direction 토글 = labelPosition. orientation prop 은 제거됨 — 2026-07-01, D2)
   "taggroup",
   // combobox/select/searchfield + datepicker/daterangepicker 공통 분기 (field 동형)
   "combobox",

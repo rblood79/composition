@@ -868,9 +868,13 @@ export function applyImplicitStyles(
   //   items 기반 wrap 시뮬레이션으로 계산.
   //
   // 본 분기에 잔존: containerStyles 에서 커버하지 못하는 runtime fork 만 유지.
-  //   - TagGroup.orientation (현재 TagGroup 에 없음, HC#2) 방어적 분기
   //   - TagGroup.labelPosition="side" 시 flex:1/minWidth:0 주입
   //   - gap fallback (4 = TagListSpec.sizes.md.gap 일치)
+  //
+  // orientation 분기 제거 (2026-07-01): TagGroup.orientation 은 RAC/RSP 어디에도 없는
+  //   non-standard prop 이었다(DOM RAC 무시 → Skia 만 vertical 반영해 CSS↔Skia 비대칭). D2
+  //   위반으로 binding accepts / TagGroup.tsx 타입 / 본 vertical override 를 전수 제거. chip 배치
+  //   축은 항상 row+wrap 이며, 그룹↔라벨 배치는 RSP 표준 labelPosition(top/side)이 담당.
   //
   // ADR-912 catalog cutover (2026-06-15): chip wrap layout(display:flex / flexDirection:row /
   //   flexWrap:wrap)을 본 분기에서 직접 주입하여 자족화한다. 기존에는
@@ -882,7 +886,6 @@ export function applyImplicitStyles(
       ? elementById.get(containerEl.parent_id)
       : undefined;
     const parentProps = parentEl?.props as Record<string, unknown> | undefined;
-    const orientation = parentProps?.orientation as string | undefined;
     const parentTag = (parentEl?.type ?? "").toLowerCase();
     const parentVariant =
       parentTag === "taggroup"
@@ -896,10 +899,6 @@ export function applyImplicitStyles(
       flexDirection: "row" as const,
       flexWrap: "wrap" as const,
       ...parentStyle,
-      // orientation="vertical" 시 default(row+wrap) 를 column 으로 override.
-      ...(orientation === "vertical"
-        ? { flexDirection: "column" as const, flexWrap: undefined }
-        : {}),
       gap: parentStyle.gap ?? 4,
       // labelPosition: "side" 시 flex:1로 남은 공간 차지 (Label 옆 배치)
       ...(parentSideMode ? { flex: 1, minWidth: 0 } : {}),

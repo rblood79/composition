@@ -386,9 +386,6 @@ export const renderTagGroup = (
           ? (element.props.selectedKeys as unknown as string[])
           : []
       }
-      orientation={
-        (element.props.orientation as "horizontal" | "vertical") || "horizontal"
-      }
       isDisabled={Boolean(element.props.isDisabled)}
       disallowEmptySelection={Boolean(element.props.disallowEmptySelection)}
       size={(element.props.size as "sm" | "md" | "lg") || "md"}

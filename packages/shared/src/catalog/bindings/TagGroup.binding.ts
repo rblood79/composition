@@ -52,22 +52,13 @@ export const tagGroupBinding: PrimitiveBinding = {
         section: "appearance",
         default: "md",
       },
-      orientation: {
-        kind: "enum",
-        label: "Orientation",
-        section: "appearance",
-        default: "horizontal",
-        options: [
-          { value: "horizontal", label: "Horizontal" },
-          { value: "vertical", label: "Vertical" },
-        ],
-      },
-      // labelPosition(그룹↔라벨 top/side)은 orientation(태그 칩 가로/세로 배치)과 직교한다
-      //   — CheckboxGroup/RadioGroup 과 동일 구조. 렌더 인프라는 이미 갖춰짐:
+      // orientation accepts 제거 (2026-07-01): RAC/RSP TagGroup 어디에도 없는 non-standard prop.
+      //   DOM(RAC)은 무시하고 Skia 만 vertical 반영해 CSS↔Skia 비대칭 + Property 패널에 dead
+      //   편집 UI 노출 → D2 위반. 그룹↔라벨 배치는 RSP 표준 labelPosition(top/side)이 담당.
+      // labelPosition(그룹↔라벨 top/side): 렌더 인프라 이미 갖춰짐 —
       //   TagGroup.tsx wrapper 가 data-label-position emit / 수동 TagGroup.css
       //   [data-label-position="side"]{flex-direction:row} / catalog rule
-      //   containerVariants["label-position"].side(Skia). binding accepts 만 누락돼
-      //   Property 패널 편집 surface 가 없던 것을 노출(다른 field 와 표기 정합).
+      //   containerVariants["label-position"].side(Skia). (다른 field 와 표기 정합.)
       labelPosition: {
         kind: "enum",
         label: "Label Position",

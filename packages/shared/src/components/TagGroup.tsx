@@ -36,8 +36,8 @@ export interface TagGroupProps<T>
   onSelectionChange?: (keys: Selection) => void;
   // 비활성화 관련 프로퍼티 추가
   isDisabled?: boolean;
-  // 기타 유용한 프로퍼티들
-  orientation?: "horizontal" | "vertical";
+  // orientation 제거 (2026-07-01): RAC/RSP TagGroup 에 없는 non-standard prop (D2 위반).
+  //   chip 배치는 항상 row+wrap, 그룹↔라벨 배치는 RSP 표준 labelPosition 이 담당.
   disallowEmptySelection?: boolean;
   // 데이터 바인딩
   dataBinding?: DataBinding | DataBindingValue;

@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [TagGroup Add Tag 가 CSS preview 에만 반영되고 Skia 에 미반영 — chip projection owner-first fallback] - 2026-07-01
+## [TagGroup 3종 수정 — Add Tag Skia 미반영 / chip gap Skia↔CSS 비대칭 / non-standard orientation prop 제거] - 2026-07-01
 
 ### Bug Fixes
 
@@ -26,6 +26,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **회귀 가드**: `canvasSceneNode.test.ts` 에 2 케이스 추가 — rowsGroup gap md=4 / lg=6(하드코딩 4 로 되돌리면 lg 케이스 정확히 FAIL 확인).
   - live 검증: lg TagGroup 의 CSS(DOM 실측 columnGap 6px, 인접 chip [6,6,6]) ↔ Skia(zoom 비교 동일 간격) 정합 확인 + md 회귀 없음(양쪽 4px) + 콘솔 에러 0.
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`(`resolveTagListGap` export), `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`(projection gap), `packages/shared/src/components/styles/TagGroup.css` + `TagGroup.tsx`(size 별 CSS gap)
+- **TagGroup `orientation` prop 제거 — RAC/RSP 미규정 non-standard prop (D2 위반)**:
+  - **Why**: `orientation`("horizontal"\|"vertical")은 RAC TagGroup Props 표에도 RSP TagGroup Props 표에도 **존재하지 않는** prop 이다(양쪽 전수 확인). composition 은 `TagGroup.binding.ts` accepts + `TagGroup.tsx` 타입에 이를 추가해 Property 패널에 Orientation 편집 UI 를 노출했으나, DOM 렌더러(RAC `<TagGroup>`)는 orientation 을 모르므로 **무시**(live 실측: orientation=vertical 이어도 `.tag-list-wrapper` `flex-direction: row`, `data-orientation` 속성 없음). 반면 Skia(`implicitStyles.ts` taglist 분기)만 `orientation==="vertical"` 을 소비해 chip 을 column 배치 → **DOM(무시)↔Skia(반영) 비대칭 + dead 편집 UI**. ssot-hierarchy §6 "Spec 에 RSP 미규정 prop 도입 (D2 위반)" 에 해당. 그룹↔라벨 배치는 RSP 표준 `labelPosition`(top/side)이 담당(직교 축).
+  - 수정: orientation 전수 제거 — `TagGroup.binding.ts` accepts / `TagGroup.tsx` 타입 선언 / `implicitStyles.ts` taglist 분기 vertical override / `CollectionRenderers.tsx` `renderTagGroup` 의 orientation 전달. chip 배치는 항상 row+wrap. (Tabs/ToggleButtonGroup/Toolbar 의 orientation 은 RAC 표준이라 보존.)
+  - **기존 데이터 무해**: store 에 `orientation: "vertical"` 이 남은 element 도 소비 경로 전부 제거로 무시됨(DOM 원래 무시 + Skia override 제거 + 패널 UI 없음) → hydration migration 불필요.
+  - **회귀 가드**: `collectionBindings.test.ts` 의 TagGroup 케이스를 "orientation accepts 제거 + toRacProps drop" 검증으로 갱신(이전엔 orientation 유지 기대).
+  - live 검증: TagGroup 선택 시 Property 패널 Appearance 에서 Orientation dropdown 사라짐(Label Position 만 유지) + 기존 orientation=vertical element 가 DOM 가로 렌더 유지 + 콘솔 에러 0.
+  - 위치: `packages/shared/src/catalog/bindings/TagGroup.binding.ts`, `packages/shared/src/components/TagGroup.tsx`, `packages/shared/src/renderers/CollectionRenderers.tsx`, `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`, `apps/builder/src/builder/panels/styles/utils/orientationDrivenTags.ts`(주석 정리)
 
 ## [그룹 축 prop derive 컨테이너 Direction 양방향 동기화 — ToggleButtonGroup/Toolbar(orientation) + RadioGroup/CheckboxGroup/field 8종/TagGroup/ComboBox/Select/DateRangePicker(labelPosition)] - 2026-06-30
 
