@@ -52,6 +52,17 @@ export const tagGroupBinding: PrimitiveBinding = {
         section: "appearance",
         default: "md",
       },
+      // RSP TagGroup maxRows — 지정 행 수를 넘는 tag 는 접고 "Show all" 로 펼침.
+      //   DOM(TagGroup.tsx)은 숨겨진 미러 DOM 측정 + collapse 슬라이스로 구현(동작 중).
+      //   본 accepts 추가로 Property 패널 Max Rows 편집 UI 노출 (factory default maxRows:2,
+      //   GroupComponents.ts). 0 또는 미설정 시 전체 표시. Skia projection 의 chip 접힘 +
+      //   "Show all" chip 시각 정합은 후속 작업(계산된 height 는 이미 접힘 반영).
+      maxRows: {
+        kind: "number",
+        label: "Max Rows",
+        section: "appearance",
+        min: 0,
+      },
       // orientation accepts 제거 (2026-07-01): RAC/RSP TagGroup 어디에도 없는 non-standard prop.
       //   DOM(RAC)은 무시하고 Skia 만 vertical 반영해 CSS↔Skia 비대칭 + Property 패널에 dead
       //   편집 UI 노출 → D2 위반. 그룹↔라벨 배치는 RSP 표준 labelPosition(top/side)이 담당.

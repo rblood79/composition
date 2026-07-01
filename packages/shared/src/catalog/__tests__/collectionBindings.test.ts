@@ -178,4 +178,20 @@ describe("family ④ collections — toRacProps 변환 (dataBinding 통과)", ()
     expect(result.labelPosition).toBe("side");
     expect(result.orientation).toBeUndefined();
   });
+
+  it("TagGroup: maxRows accepts 노출 (RSP number, Property 패널 편집 surface)", () => {
+    // maxRows(RSP TagGroup 표준 — 지정 행 수 초과 tag 접기 + "Show all")는 factory default
+    //   maxRows:2 로 store 에 저장되나 accepts 부재로 Property 패널 편집 UI 가 없었다(2026-07-01
+    //   전 누락). number accepts 추가로 편집 진입점 노출. DOM(TagGroup.tsx)은 이미 maxRows 소비.
+    const binding = getPrimitiveBinding("TagGroup")!;
+    expect(binding.props.accepts.maxRows).toBeDefined();
+    expect(binding.props.accepts.maxRows?.kind).toBe("number");
+    expect(binding.props.accepts.maxRows?.label).toBe("Max Rows");
+    // toRacProps 는 maxRows 를 wrapper 로 통과 (TagGroup.tsx 가 소비).
+    const result = toRacProps(
+      { id: "tg2", type: "TagGroup", props: { maxRows: 3 } },
+      binding,
+    );
+    expect(result.maxRows).toBe(3);
+  });
 });

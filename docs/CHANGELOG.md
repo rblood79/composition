@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [TagGroup 4종 수정 — Add Tag Skia 미반영 / chip gap Skia↔CSS 비대칭 / non-standard orientation prop 제거 / labelPosition=side selection 높이 발산] - 2026-07-01
+## [TagGroup 5종 수정 — Add Tag Skia 미반영 / chip gap Skia↔CSS 비대칭 / non-standard orientation prop 제거 / labelPosition=side selection 높이 발산 / maxRows Property 편집 UI 누락] - 2026-07-01
 
 ### Bug Fixes
 
@@ -39,6 +39,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **회귀 가드**: `tagGroupSideHeight.test.ts` 에 케이스 추가 — owner 7개 + stale mirror 4개 → owner 로 계산한 height 와 동일(mirror 미적용으로 되돌리면 `expected 64 to be 98` 로 정확히 FAIL 확인). 기존 5 케이스(side 차감 / chip border-box 30 / max(Label,TagList)) 무영향.
   - live 검증: builder 에서 side TagGroup(7개 chip) selection dimension 64→98 교정 + selection box 가 3줄 전체 감쌈 + top(88)/side(98) top↔side 왕복 안정 + CSS DOM 실측(98)과 정합 확인.
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`(`calculateContentHeight` taggroup 분기 owner-items mirror)
+- **TagGroup `maxRows` (RSP 표준 — 지정 행 초과 tag 접기 + "Show all") Property 패널 편집 UI 누락**:
+  - **Why**: `maxRows` 는 factory default `maxRows:2`(`GroupComponents.ts`)로 store 에 저장되고 DOM 렌더러(`TagGroup.tsx`)는 숨겨진 미러 DOM 측정 + collapse 슬라이스로 완전 소비(CSS preview 정상 접힘 + "Show all" 버튼). 그러나 `TagGroup.binding.ts` accepts 에 `maxRows` 가 없어 Property 패널에 편집 진입점이 전혀 없었다(Inspector 는 `catalog binding.props.accepts` 를 순회해 필드를 자동 생성 — accepts 부재 = dead). 사용자가 값을 바꿀 수 없었다.
+  - 수정: `TagGroup.binding.ts` accepts 에 `maxRows: { kind:"number", label:"Max Rows", section:"appearance", min:0 }` 추가 → Property 패널 Appearance 섹션에 Max Rows 스테퍼 필드 노출. `toRacProps` 가 wrapper 로 통과(TagGroup.tsx 소비).
+  - **회귀 가드**: `collectionBindings.test.ts` TagGroup 케이스에 maxRows accepts(kind:number/label) + toRacProps 통과 검증 추가.
+  - live 검증: TagGroup 선택 시 Property 패널 Appearance 에 "Max Rows: 2" 스테퍼 등장 확인.
+  - **후속(미완)**: Skia projection 의 chip 접힘 + "Show all" chip 시각 정합은 별도 작업. layout height(`calculateContentHeight` taglist 분기)는 이미 maxRows 접힘을 반영(2줄+Show all 행)하나, projection RowsGroup 이 전체 chip 을 flexWrap 배치해 화면엔 전체 chip 이 보인다. 정합에는 layout→render 로 visible chip 수(폭 의존)를 넘기는 채널 신설이 필요(3개 조사 에이전트로 근본 확정: projection 은 layout 선행이라 폭 미보유, buildSpecNodeData 는 부모 RowsGroup 폭 채널 부재).
+  - 위치: `packages/shared/src/catalog/bindings/TagGroup.binding.ts`
 
 ## [그룹 축 prop derive 컨테이너 Direction 양방향 동기화 — ToggleButtonGroup/Toolbar(orientation) + RadioGroup/CheckboxGroup/field 8종/TagGroup/ComboBox/Select/DateRangePicker(labelPosition)] - 2026-06-30
 
