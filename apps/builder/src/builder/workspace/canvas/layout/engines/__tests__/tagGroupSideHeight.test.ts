@@ -22,6 +22,8 @@
 
 import { describe, expect, it } from "vitest";
 import { calculateContentHeight, resolveTagWrapLayout } from "../utils";
+import { computeTagRowsGroupFoldSkip } from "../fullTreeLayout";
+import type { CanvasLayoutNode } from "../../layoutNode";
 import type { Element } from "../../../../../../types/core/store.types";
 
 type TagItem = { id: string; label: string };
@@ -366,5 +368,197 @@ describe("resolveTagWrapLayout — maxRows chip 접힘 SSOT", () => {
       maxRows: 2,
     }).contentHeight;
     expect(viaCalc).toBe(viaResolver);
+  });
+});
+
+// ── computeTagRowsGroupFoldSkip — layout Taffy 트리 chip 제외 (2026-07-01) ──
+//
+// Show all 위치 버그 최종층: projection chip 이 Taffy 에 9개 전부 실려 RowsGroup 실배치를
+// 밀어내(Show all 이 TagGroup 영역 밖) → layout 단계에서 초과 chip 을 Taffy 자식 목록에서
+// 제외해야 한다. 본 헬퍼가 그 skip set 을 계산한다(render skip 게이트와 동일 resolver).
+describe("computeTagRowsGroupFoldSkip — layout chip 제외 (owner-first)", () => {
+  const OWNER_TG = "owner-tg";
+  const TL = "tl";
+  const ROWS = "tag::tl::-rows:tl"; // -rows: 포함(projection RowsGroup id 형식)
+
+  // 9 item 라벨(폭 확보용 긴 라벨 포함).
+  const NINE: Array<{ label: string }> = [
+    { label: "Chocolate" },
+    { label: "VanillaCo" },
+    { label: "New Tag" },
+    { label: "New Tag" },
+    { label: "New Tag" },
+    { label: "New Tag" },
+    { label: "New Tag" },
+    { label: "New Tag" },
+    { label: "New Tag" },
+  ];
+
+  /** owner TagGroup items(NINE) SSOT, TagList mirror 는 stale(4개)로 세팅. */
+  function buildElementsMap(opts: {
+    maxRows: number;
+    tagListItems?: Array<{ label: string }>;
+  }): {
+    elementsMap: Map<string, CanvasLayoutNode>;
+    rowsNode: CanvasLayoutNode;
+    chipIds: string[];
+    showAllId: string;
+  } {
+    const chipIds = NINE.map((_, i) => `chip-${i}`);
+    const showAllId = "chip-showall";
+    const rowsNode: CanvasLayoutNode = {
+      id: ROWS,
+      type: "Rows",
+      parent_id: TL,
+      props: {},
+    };
+    // projection.kind 는 CanvasLayoutNode 타입에 없으나 runtime scene node 에 존재.
+    (rowsNode as { projection?: { kind: string } }).projection = {
+      kind: "tag-rows",
+    };
+    const em = new Map<string, CanvasLayoutNode>();
+    em.set(OWNER_TG, {
+      id: OWNER_TG,
+      type: "TagGroup",
+      parent_id: null,
+      props: { items: NINE, maxRows: opts.maxRows, size: "md" },
+    });
+    em.set(TL, {
+      id: TL,
+      type: "TagList",
+      parent_id: OWNER_TG,
+      // TagList mirror 는 stale(4개) — owner-first 검증용.
+      props: { items: opts.tagListItems ?? NINE.slice(0, 4), size: "md" },
+    });
+    em.set(ROWS, rowsNode);
+    chipIds.forEach((id, i) => {
+      em.set(id, {
+        id,
+        type: "Tag",
+        parent_id: ROWS,
+        props: { children: NINE[i].label },
+      });
+    });
+    em.set(showAllId, {
+      id: showAllId,
+      type: "Tag",
+      parent_id: ROWS,
+      props: { children: `Show all (${NINE.length})`, _isShowAll: true },
+    });
+    return { elementsMap: em, rowsNode, chipIds, showAllId };
+  }
+
+  it("maxRows=1: 초과 chip skip, Show all + visible chip 은 유지", () => {
+    const { elementsMap, rowsNode, chipIds, showAllId } = buildElementsMap({
+      maxRows: 1,
+    });
+    const sorted = [...chipIds, showAllId];
+    const skip = computeTagRowsGroupFoldSkip(
+      ROWS,
+      rowsNode,
+      sorted,
+      elementsMap,
+      350, // RowsGroup 폭
+    );
+    expect(skip).not.toBeNull();
+    // 1줄에 들어가는 만큼만 visible → 나머지 chip skip.
+    const { visibleItemCount } = resolveTagWrapLayout({
+      items: NINE,
+      containerWidth: 350,
+      sizeName: "md",
+      allowsRemoving: false,
+      maxRows: 1,
+    });
+    expect(visibleItemCount).toBeGreaterThan(0);
+    expect(visibleItemCount).toBeLessThan(NINE.length);
+    // skip 대상 = visibleItemCount 이상 index chip.
+    for (let i = 0; i < NINE.length; i++) {
+      if (i < visibleItemCount) {
+        expect(skip!.has(chipIds[i])).toBe(false);
+      } else {
+        expect(skip!.has(chipIds[i])).toBe(true);
+      }
+    }
+    // Show all chip 은 절대 skip 안 됨(마지막 visible 다음 배치).
+    expect(skip!.has(showAllId)).toBe(false);
+  });
+
+  it("owner-first: TagList mirror 가 stale(4개)여도 owner items(9) 로 접힘 계산", () => {
+    // TagList.items=4(stale)로도 owner TagGroup items=9 를 사용 → 초과 chip skip 발생.
+    const { elementsMap, rowsNode, chipIds, showAllId } = buildElementsMap({
+      maxRows: 1,
+      tagListItems: NINE.slice(0, 4),
+    });
+    const sorted = [...chipIds, showAllId];
+    const skip = computeTagRowsGroupFoldSkip(
+      ROWS,
+      rowsNode,
+      sorted,
+      elementsMap,
+      350,
+    );
+    // owner 9 items 기준으로 skip 이 발생해야 함(stale 4 였다면 접힘 없음 → null).
+    expect(skip).not.toBeNull();
+    expect(skip!.size).toBeGreaterThan(0);
+  });
+
+  it("maxRows=0: 접힘 없음 → null", () => {
+    const { elementsMap, rowsNode, chipIds, showAllId } = buildElementsMap({
+      maxRows: 0,
+    });
+    const sorted = [...chipIds, showAllId];
+    const skip = computeTagRowsGroupFoldSkip(
+      ROWS,
+      rowsNode,
+      sorted,
+      elementsMap,
+      350,
+    );
+    expect(skip).toBeNull();
+  });
+
+  it("비-RowsGroup(id 에 -rows: 없음) → null (대상 아님)", () => {
+    const { elementsMap, chipIds, showAllId } = buildElementsMap({
+      maxRows: 1,
+    });
+    const notRows: CanvasLayoutNode = {
+      id: "some-container",
+      type: "Rows",
+      parent_id: TL,
+      props: {},
+    };
+    const skip = computeTagRowsGroupFoldSkip(
+      "some-container",
+      notRows,
+      [...chipIds, showAllId],
+      elementsMap,
+      350,
+    );
+    expect(skip).toBeNull();
+  });
+
+  it("좁은 폭 → 더 많은 chip skip (단조성)", () => {
+    const { elementsMap, rowsNode, chipIds, showAllId } = buildElementsMap({
+      maxRows: 1,
+    });
+    const sorted = [...chipIds, showAllId];
+    const wide = computeTagRowsGroupFoldSkip(
+      ROWS,
+      rowsNode,
+      sorted,
+      elementsMap,
+      500,
+    );
+    const narrow = computeTagRowsGroupFoldSkip(
+      ROWS,
+      rowsNode,
+      sorted,
+      elementsMap,
+      200,
+    );
+    // 좁을수록 1줄에 들어가는 chip 이 적음 → skip 이 더 많음(또는 같음).
+    const wideSkip = wide?.size ?? 0;
+    const narrowSkip = narrow?.size ?? 0;
+    expect(narrowSkip).toBeGreaterThanOrEqual(wideSkip);
   });
 });

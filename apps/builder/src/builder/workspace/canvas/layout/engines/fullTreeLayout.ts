@@ -29,6 +29,7 @@ import {
   parseBoxModel,
   parseCSSPropWithContext,
   measureTextWidth,
+  resolveTagWrapLayout,
 } from "./utils";
 import { resolveStyle, getRootComputedStyle } from "./cssResolver";
 import type { ComputedStyle } from "./cssResolver";
@@ -888,6 +889,84 @@ function estimateChildAvailableSize(
   );
 
   return { width: contentWidth, height: contentHeight };
+}
+
+/**
+ * TagGroup maxRows chip 접힘 — layout(Taffy 트리) 단계에서 접을 chip id 집합을 계산한다.
+ *
+ * projection RowsGroup(id 에 `-rows:` 포함, projection.kind="tag-rows")의 chip 자식 중
+ * maxRows 초과분을 Taffy 자식 목록(childIndices)에서 제외하기 위한 skip set 을 반환한다.
+ * 반환 null = 접힘 불필요(대상 아님 또는 maxRows 미설정 또는 접힘 미발생).
+ *
+ * **owner-first**: maxRows/items/size 는 SSOT = owner TagGroup.props (TagList mirror 는
+ * propagation 미갱신으로 stale 가능 — selection 높이 버그와 동일 원인). RowsGroup.parent =
+ * TagList, TagList.parent = TagGroup. dataBinding 없을 때만 owner 우선(정적 items 한정).
+ *
+ * **폭 정합**: containerWidth = availableWidth (RowsGroup width:100% → 부모 TagList content-box
+ * 폭). calculateContentHeight taglist 분기가 쓰는 것과 **동일 availableWidth + 동일 resolver**
+ * (resolveTagWrapLayout, ADR-907 Layer D) 라 height 계산과 chip 접힘이 정합한다.
+ *
+ * **chip index**: sortedChildIds 에서 Show all chip(_isShowAll)을 제외한 순서 = item index.
+ * projection chip 은 emit 순서(item 순 + 끝에 Show all)를 보존하므로 순번이 곧 rowIndex.
+ */
+export function computeTagRowsGroupFoldSkip(
+  elementId: string,
+  element: CanvasLayoutNode,
+  sortedChildIds: string[],
+  elementsMap: Map<string, CanvasLayoutNode>,
+  availableWidth: number,
+): Set<string> | null {
+  // projection tag RowsGroup 판정: id prefix (`-rows:`) + kind. elementsMap 노드의 projection
+  //   메타는 CanvasLayoutNode 타입에 없으나 runtime scene node 에 존재 → 안전 캐스팅.
+  if (!elementId.includes("-rows:")) return null;
+  const proj = (element as { projection?: { kind?: string } }).projection;
+  if (proj?.kind !== "tag-rows") return null;
+
+  // RowsGroup.parent = TagList, TagList.parent = TagGroup(owner).
+  const tagListId = element.parent_id;
+  const tagList = tagListId ? elementsMap.get(tagListId) : undefined;
+  const tlProps = tagList?.props as Record<string, unknown> | undefined;
+  const ownerTg = tagList?.parent_id
+    ? elementsMap.get(tagList.parent_id)
+    : undefined;
+  const ownerProps =
+    ownerTg?.type === "TagGroup"
+      ? (ownerTg.props as Record<string, unknown> | undefined)
+      : undefined;
+  const hasDataBinding =
+    tlProps?.dataBinding != null || ownerProps?.dataBinding != null;
+  const srcProps = !hasDataBinding && ownerProps ? ownerProps : tlProps;
+
+  const maxRows =
+    typeof srcProps?.maxRows === "number" ? (srcProps.maxRows as number) : 0;
+  if (maxRows <= 0) return null;
+  const items = srcProps?.items as Array<{ label?: string }> | undefined;
+  if (!items || items.length === 0) return null;
+  const containerWidth = availableWidth > 0 ? availableWidth : 350;
+
+  const { visibleItemCount, shouldShowAll } = resolveTagWrapLayout({
+    items,
+    containerWidth,
+    sizeName: typeof srcProps?.size === "string" ? srcProps.size : "md",
+    allowsRemoving: Boolean(srcProps?.allowsRemoving),
+    maxRows,
+  });
+  if (!shouldShowAll) return null;
+
+  // item chip(비-Show all) 을 emit 순서대로 세어 visibleItemCount 이상 index 를 skip.
+  //   Show all chip(_isShowAll)은 접힘 시 항상 유지(마지막 visible chip 다음 배치).
+  const skip = new Set<string>();
+  let itemIndex = 0;
+  for (const childId of sortedChildIds) {
+    const chip = elementsMap.get(childId);
+    const isShowAll = Boolean(
+      (chip?.props as Record<string, unknown> | undefined)?._isShowAll,
+    );
+    if (isShowAll) continue; // Show all chip 은 fold 대상 아님
+    if (itemIndex >= visibleItemCount) skip.add(childId);
+    itemIndex++;
+  }
+  return skip.size > 0 ? skip : null;
 }
 
 // ─── DFS post-order 순회 ─────────────────────────────────────────────
@@ -1984,9 +2063,27 @@ function traversePostOrder(
       ?.__synthChildIds as string[] | undefined;
     if (ids) ids.forEach((id) => wrappedItemIds.add(id));
   }
+  // TagGroup maxRows chip 접힘 — layout 단계(Taffy 트리 제외)에서 초과 chip 을 접는다.
+  //   **Why 여기서 (2026-07-01, Show all 위치 버그 최종층)**: chip 은 projection scene node
+  //   (`type:"Tag"`)로 childrenByParent 에 실려 Taffy 가 9 chip 전부를 flexWrap 배치한다. render
+  //   단계 skip(StoreRenderBridge)은 Skia 그리기만 막아 chip 좌표는 Taffy 가 이미 부여 → 유령
+  //   chip 이 남아 Show all(scene 마지막 chip)을 마지막 실제 행(접힌 height 밖)으로 밀어낸다.
+  //   RowsGroup 을 batch 에 넣을 때 부모 폭(availableWidth = TagList content-box 폭, RowsGroup
+  //   width:100%)으로 wrap sim(resolveTagWrapLayout, calculateContentHeight 와 동일 resolver =
+  //   ADR-907 Layer D)을 실행해 visibleItemCount 이상 chip 을 childIndices 에서 제외한다. 그러면
+  //   Taffy 트리 = visible chip + Show all → RowsGroup height 가 접힌 height 와 정합하고 Show all
+  //   이 마지막 visible chip 다음(TagGroup 영역 안)에 배치된다. Show all chip(_isShowAll)은 유지.
+  const rowsGroupTagFoldSkip = computeTagRowsGroupFoldSkip(
+    elementId,
+    element,
+    sortedChildIds,
+    elementsMap,
+    availableWidth,
+  );
   const childIndices: number[] = [];
   for (const childId of sortedChildIds) {
     if (wrappedItemIds.has(childId)) continue; // wrapper 자식 → group 직속 제외
+    if (rowsGroupTagFoldSkip?.has(childId)) continue; // maxRows 초과 chip → Taffy 제외
     const childIdx = indexMap.get(childId);
     if (childIdx !== undefined) {
       childIndices.push(childIdx);

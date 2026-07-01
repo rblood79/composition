@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [TagGroup 6종 수정 — Add Tag Skia 미반영 / chip gap Skia↔CSS 비대칭 / non-standard orientation prop 제거 / labelPosition=side selection 높이 발산 / maxRows Property 편집 UI 누락 / maxRows Skia 화면 접힘] - 2026-07-01
+## [TagGroup 7종 수정 — Add Tag Skia 미반영 / chip gap Skia↔CSS 비대칭 / non-standard orientation prop 제거 / labelPosition=side selection 높이 발산 / maxRows Property 편집 UI 누락 / maxRows Skia 화면 접힘 / maxRows "Show all" 위치 발산] - 2026-07-01
 
 ### Bug Fixes
 
@@ -54,6 +54,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **회귀 가드**: `tagGroupSideHeight.test.ts` 에 `resolveTagWrapLayout` 5 케이스(maxRows=0 전체 / 접힘 시 visibleItemCount<전체+shouldShowAll / maxRows 증가→visibleItemCount 단조 / 좁은 폭→감소 / contentHeight = calculateContentHeight SSOT 공유) 추가.
   - live 검증: maxRows=2 TagGroup(13 items) → Skia chip 2줄 + "Show all (13)" chip(투명 배경 + 파란 accent 텍스트) 표시 + CSS preview 와 정합. maxRows 증가 시 chip 더 표시, top↔side 무관 작동.
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`(`resolveTagWrapLayout`), `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`(Show all chip emit), `apps/builder/src/builder/workspace/canvas/skia/StoreRenderBridge.ts`(chip skip 게이트), `packages/specs/src/renderers/buildCatalogShapes.ts`(`_isShowAll` 시각)
+
+- **TagGroup `maxRows` "Show all" 위치 발산 — chip 다음이 아닌 위치 + TagGroup 영역 밖 배치** (위 fix 최종층, CSS↔Skia 비대칭):
+  - **Why**: 위 fix 의 render skip(`StoreRenderBridge`)은 Skia **그리기**만 막았을 뿐 chip 좌표는 Taffy 가 이미 부여했다. projection chip(`type:"Tag"`)은 `childrenByParent` 에 실려 fullTreeLayout 이 **9 chip 전부를 RowsGroup flexWrap 으로 실배치**한다 → 초과 "유령 chip" 이 좌표를 점유해 Show all(scene 마지막 chip)을 마지막 실제 행(접힌 컨테이너 height 밖)으로 밀어냈다. maxRows=1 처럼 강하게 접을수록(실배치 5행분 vs 강제 height 2행분) Show all 이 TagGroup selection 박스 아래로 튀어나갔다. 2개 조사 에이전트로 확정: chip x/y 는 Taffy flexWrap 이 계산, render 는 표시 여부만 게이트 → render skip 으로는 좌표를 못 없앰.
+  - 수정: **layout 단계에서 초과 chip 을 Taffy 트리에서 제외** — `fullTreeLayout` DFS 의 RowsGroup childIndices 구성 시 `computeTagRowsGroupFoldSkip()`(신규)이 부모 폭(`availableWidth`, RowsGroup width:100%)으로 wrap sim(`resolveTagWrapLayout`, `calculateContentHeight` 와 동일 resolver = ADR-907 Layer D)을 실행해 `visibleItemCount` 이상 chip id 를 childIndices 에서 뺀다. Taffy 트리 = visible chip + Show all → RowsGroup height 가 접힌 height 와 정합하고 Show all 이 마지막 visible chip 다음(TagGroup 영역 안)에 배치. render skip 게이트는 이중 안전망으로 유지.
+  - **owner-first**: fold 계산의 maxRows/items/size 는 owner TagGroup.props(RowsGroup.parent=TagList, TagList.parent=TagGroup) — TagList mirror 는 propagation 미갱신 stale 가능(selection 높이 버그와 동일 원인). dataBinding 없을 때만 owner 우선.
+  - **회귀 가드**: `tagGroupSideHeight.test.ts` 에 `computeTagRowsGroupFoldSkip` 5 케이스(maxRows=1 초과 chip skip+Show all 유지 / owner-first: stale mirror 4개여도 owner 9개로 접힘 / maxRows=0 null / 비-RowsGroup null / 좁은 폭→더 많은 skip 단조성) 추가. RED 확인: owner-first 제거 시 2 케이스 실패.
+  - live 검증: maxRows=1(9 items) → Skia "Show all (9)" 가 chip 1줄 다음 행 + selection 박스(350×88) 안에 정확히 배치, CSS preview 와 정합. maxRows=2 → Show all 이 2줄 chip 우측 여유에 같은 행 배치(350×122). 이전엔 Show all 이 박스 밖.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`(`computeTagRowsGroupFoldSkip` + RowsGroup childIndices fold-skip)
 
 ## [그룹 축 prop derive 컨테이너 Direction 양방향 동기화 — ToggleButtonGroup/Toolbar(orientation) + RadioGroup/CheckboxGroup/field 8종/TagGroup/ComboBox/Select/DateRangePicker(labelPosition)] - 2026-06-30
 
