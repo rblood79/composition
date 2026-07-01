@@ -661,6 +661,36 @@ function ruleSizesToSizeSpecMap(type: string): Record<string, SizeSpec> {
 }
 
 /**
+ * TagList chip 간(inter-chip) gap resolver — **TagList catalog rule**(컨테이너 소관) SSOT.
+ *
+ * ADR-907 Layer D: chip 배치(scene projection `appendTagRowProjection`)와 chip intrinsic height
+ * 계산(`calculateContentHeight` / `resolveTagChipMetric`)이 **동일 resolver 심볼**을 호출해 gap
+ * 정본을 공유하도록 export. 이전에는 projection 이 `props.gap ?? 4` 하드코딩으로 catalog rule 을
+ * 무시(sm/md=4 는 우연히 일치, lg=6 은 4 로 렌더 → CSS/layout 과 비대칭)했다.
+ *
+ * 값: `TagList.sizes[size].gap` (sm/md=4, lg=6). 미등록 size 는 md fallback.
+ */
+export function resolveTagListGap(sizeName: string): number {
+  const tagListRule = resolveSkiaRule("TagList");
+  const tagListSizes = (tagListRule?.sizes ?? {}) as Record<
+    string,
+    ComponentRuleSize
+  >;
+  const containerSize =
+    tagListSizes[sizeName] ?? tagListSizes.md ?? ({} as ComponentRuleSize);
+  const raw = containerSize.gap;
+  if (typeof raw === "number") return raw;
+  if (typeof raw === "string") {
+    const resolved = raw.startsWith("{")
+      ? resolveToken(raw as Parameters<typeof resolveToken>[0])
+      : Number(raw);
+    const n = Number(resolved);
+    return Number.isFinite(n) ? n : 4;
+  }
+  return 4;
+}
+
+/**
  * TagList chip 치수 resolver (ADR-912 cutover 2026-06-15 — TAG_CHIP_SIZES 이관).
  *
  * chip 자체 치수(fontSize/lineHeight/paddingX/borderRadius)는 **Tag catalog rule**(이미 cutover)에서,
@@ -700,14 +730,7 @@ function resolveTagChipMetric(sizeName: string): {
   // paddingY 는 Tag rule 에 명시 없음 → height/lineHeight 로 도출 (chip 시각 = lineHeight + paddingY*2).
   const paddingY = Math.max(0, (height - lineHeight) / 2);
 
-  const tagListRule = resolveSkiaRule("TagList");
-  const tagListSizes = (tagListRule?.sizes ?? {}) as Record<
-    string,
-    ComponentRuleSize
-  >;
-  const containerSize =
-    tagListSizes[sizeName] ?? tagListSizes.md ?? ({} as ComponentRuleSize);
-  const gap = num(containerSize.gap, 4);
+  const gap = resolveTagListGap(sizeName);
 
   return { paddingX, paddingY, fontSize, lineHeight, borderRadius, gap };
 }

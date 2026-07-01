@@ -20,6 +20,9 @@ import {
   type ListBoxCollectionDataSource,
   type ListBoxProjectionRow,
 } from "../../../components/listbox/listBoxRowProjectionModel";
+// ADR-907 Layer D: chip gap 정본 = TagList catalog rule. projection 배치와 layout
+//   height 계산이 동일 resolver(resolveTagListGap)를 공유해 size 별 gap(lg=6) 을 정합.
+import { resolveTagListGap } from "../layout/engines/utils";
 import {
   getTableProjectionRows,
   type TableColumnDef,
@@ -1180,7 +1183,13 @@ function appendTagRowProjection(
   const allowsRemoving = Boolean(props.allowsRemoving);
   const variant = props.variant;
   const size = props.size;
-  const gap = typeof props.gap === "number" ? (props.gap as number) : 4;
+  // ADR-907 Layer D: chip 간 gap 정본 = TagList catalog rule(sm/md=4, lg=6). 이전 `props.gap ?? 4`
+  //   하드코딩은 catalog 를 무시해 lg 에서 layout height 계산(resolveTagChipMetric=6)과 배치(4)가
+  //   비대칭이었다. 사용자 명시 props.gap 은 존중, 없으면 size 별 catalog gap read-through.
+  const gap =
+    typeof props.gap === "number"
+      ? (props.gap as number)
+      : resolveTagListGap(typeof size === "string" ? size : "md");
 
   const rowsGroupId = toCollectionRowsGroupProjectionId(
     "tag",

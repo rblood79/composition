@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **회귀 가드**: `canvasSceneNode.test.ts` 에 2 케이스 추가 — owner 5개 vs stale TagList 4개 → chip 5개 + "New Tag" 포함(fix 되돌리면 정확히 FAIL 확인), owner 없는 독립 TagList → TagList.items 로 회귀.
   - live 검증: builder 에서 TagGroup 생성 → "Add Tag" 클릭 → Skia 캔버스에 chip 5개(+ 재클릭 6개, 2행 wrap)로 즉시 반영 + 콘솔 에러 0 확인.
   - 위치: `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`(`findOwnerTagGroupProps` + `resolveDataBoundTagProjection` owner-first)
+- **TagList chip 간 gap 이 size=lg 에서 Skia↔CSS 비대칭** (chip 간격 정본 미반영, ADR-907 Layer D 위반):
+  - **Why**: chip 배치를 담당하는 Skia projection `appendTagRowProjection` 이 rowsGroup gap 을 `props.gap ?? 4` 하드코딩으로 설정해 **catalog `TagList.sizes.gap`(sm/md=4, lg=6) 을 무시**. sm/md 는 우연히 4 로 일치했으나 lg 에서 배치 gap(4)과 layout height 계산(`resolveTagChipMetric` = catalog 6)이 **Skia 내부 비대칭**. CSS 도 `.tag-list-wrapper { gap: var(--spacing-xs) }`(4px, size 무관)라 catalog lg=6 을 반영 못 해 3경로가 모두 어긋났다.
+  - 수정: catalog `TagList.sizes.gap` 을 정본으로 3경로 정합.
+    - `resolveTagListGap(size)` 를 `utils.ts` 에서 export (`TagList.sizes[size].gap` read-through) — `resolveTagChipMetric` 도 이를 재사용해 gap 단일 소스화.
+    - Skia projection `appendTagRowProjection` 이 `props.gap ?? 4` 대신 `resolveTagListGap(size)` 호출 (배치 ↔ height 계산 동일 resolver 공유, ADR-907 Layer D). 사용자 명시 `props.gap` 은 존중.
+    - CSS: `.react-aria-TagGroup[data-tag-size="lg"] .tag-list-wrapper { gap: 6px }` 추가 (`--spacing-xs` 4 / `--spacing-sm` 8 사이라 대응 토큰 없어 직접 지정). hidden 미러 DOM(maxRows 측정)도 lg=6px 정합.
+  - **회귀 가드**: `canvasSceneNode.test.ts` 에 2 케이스 추가 — rowsGroup gap md=4 / lg=6(하드코딩 4 로 되돌리면 lg 케이스 정확히 FAIL 확인).
+  - live 검증: lg TagGroup 의 CSS(DOM 실측 columnGap 6px, 인접 chip [6,6,6]) ↔ Skia(zoom 비교 동일 간격) 정합 확인 + md 회귀 없음(양쪽 4px) + 콘솔 에러 0.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`(`resolveTagListGap` export), `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`(projection gap), `packages/shared/src/components/styles/TagGroup.css` + `TagGroup.tsx`(size 별 CSS gap)
 
 ## [그룹 축 prop derive 컨테이너 Direction 양방향 동기화 — ToggleButtonGroup/Toolbar(orientation) + RadioGroup/CheckboxGroup/field 8종/TagGroup/ComboBox/Select/DateRangePicker(labelPosition)] - 2026-06-30
 

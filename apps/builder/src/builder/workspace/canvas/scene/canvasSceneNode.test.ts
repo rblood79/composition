@@ -1056,4 +1056,81 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
     );
     expect(chips).toHaveLength(2);
   });
+
+  // ─── TagList chip gap = catalog SSOT (Skia↔CSS gap 비대칭 회귀) ───────────────
+  //
+  // 버그: appendTagRowProjection 이 rowsGroup gap 을 `props.gap ?? 4` 하드코딩으로 설정해
+  //   catalog TagList.sizes.gap(sm/md=4, lg=6)을 무시. md 는 우연히 4 로 일치했으나 lg 에서
+  //   배치 gap(4)과 layout height 계산(resolveTagChipMetric=6)이 비대칭 → CSS(catalog 반영 후 6)
+  //   와도 어긋남. 수정: resolveTagListGap(size) read-through 로 size 별 catalog gap 정합.
+
+  function buildTagGroupDoc(tagGroupSize: string): CompositionDocument {
+    return {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "taggroup-1",
+                  type: "TagGroup",
+                  props: {
+                    size: tagGroupSize,
+                    items: [
+                      { id: "a", label: "A" },
+                      { id: "b", label: "B" },
+                    ],
+                  },
+                  children: [
+                    { id: "label-1", type: "Label", props: {}, children: [] },
+                    {
+                      id: "taglist-1",
+                      type: "TagList",
+                      props: {
+                        size: tagGroupSize,
+                        items: [
+                          { id: "a", label: "A" },
+                          { id: "b", label: "B" },
+                        ],
+                      },
+                      children: [],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+  }
+
+  function rowsGroupGap(size: string): { rowGap: unknown; columnGap: unknown } {
+    const graph = buildCanvasSceneGraph(buildTagGroupDoc(size));
+    const rowsGroup = graph.nodesMap.get(
+      toCollectionRowsGroupProjectionId("tag", "taglist-1"),
+    );
+    const style = (rowsGroup?.props as { style?: Record<string, unknown> })
+      ?.style;
+    return { rowGap: style?.rowGap, columnGap: style?.columnGap };
+  }
+
+  it("TagList chip rowsGroup gap 이 catalog TagList.sizes.gap 을 size 별로 반영한다 (md=4)", () => {
+    const { rowGap, columnGap } = rowsGroupGap("md");
+    expect(rowGap).toBe(4);
+    expect(columnGap).toBe(4);
+  });
+
+  it("TagList chip rowsGroup gap 이 lg 에서 catalog gap=6 을 반영한다 (하드코딩 4 회귀 차단)", () => {
+    const { rowGap, columnGap } = rowsGroupGap("lg");
+    expect(rowGap).toBe(6);
+    expect(columnGap).toBe(6);
+  });
 });

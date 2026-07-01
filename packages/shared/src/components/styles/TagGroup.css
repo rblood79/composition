@@ -16,8 +16,16 @@
   .tag-list-wrapper {
     display: flex;
     flex-wrap: wrap;
+    /* chip 간 gap 정본 = TagList catalog rule(sm/md=4px). ADR-907 Layer D — Skia projection
+       (appendTagRowProjection → resolveTagListGap)과 동일 값. size 별 override 는 아래 selector. */
     gap: var(--spacing-xs);
     align-items: center;
+  }
+
+  /* lg: catalog TagList.sizes.lg.gap = 6 (--spacing-xs 4 / --spacing-sm 8 사이, 대응 토큰 없어 직접 지정).
+     Skia projection resolveTagListGap("lg") = 6 과 정합. */
+  .react-aria-TagGroup[data-tag-size="lg"] .tag-list-wrapper {
+    gap: 6px;
   }
 
   .react-aria-TagList {

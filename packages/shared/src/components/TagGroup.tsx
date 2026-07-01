@@ -534,7 +534,9 @@ export function TagGroup<T extends object>({
           style={{
             display: "flex",
             flexWrap: "wrap",
-            gap: "var(--spacing-xs)",
+            // chip 간 gap 정본 = TagList catalog rule (lg=6, 그 외 4). 실제 wrapper(.tag-list-wrapper)
+            //   의 size 별 gap 과 동일해야 maxRows wrap 측정이 정확. Skia resolveTagListGap 과 정합.
+            gap: size === "lg" ? "6px" : "var(--spacing-xs)",
             position: "absolute",
             visibility: "hidden",
             overflow: "hidden",
