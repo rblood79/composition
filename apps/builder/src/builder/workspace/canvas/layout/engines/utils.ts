@@ -735,6 +735,122 @@ function resolveTagChipMetric(sizeName: string): {
   return { paddingX, paddingY, fontSize, lineHeight, borderRadius, gap };
 }
 
+/**
+ * TagList chip wrap 시뮬레이션 SSOT (ADR-907 Layer D — 동일 resolver 공유).
+ *
+ * items 를 containerWidth 에서 flex-wrap 배치했을 때:
+ *  - `visibleItemCount`: maxRows 안에 들어가는 chip 개수 (maxRows=0 이면 전체). maxRows 초과
+ *    첫 item 의 index = 이 값. render 가 `itemIndex >= visibleItemCount` chip 을 접는다.
+ *  - `shouldShowAll`: maxRows 초과로 접힌 chip 이 있는가 ("Show all" chip 표시 여부).
+ *  - `rowCount`: 실제 배치된 행 수 (Show all 행 제외 — 접힘 시 maxRows).
+ *  - `contentHeight`: 컨테이너 content-box 높이 (접힘 시 maxRows 행 + Show all 행 포함).
+ *
+ * 두 consumer 가 이 단일 resolver 를 공유해야 정합:
+ *  1) `calculateContentHeight` taglist 분기 (컨테이너 높이 = contentHeight)
+ *  2) Skia chip render skip (buildSpecNodeData) — visibleItemCount 로 초과 chip 미emit
+ *
+ * 폭(containerWidth) 의존이라 projection(scene graph, layout 선행)에서는 호출 불가 —
+ *   layout 단계(calculateContentHeight) 및 render 단계(chip 이 부모 RowsGroup layout.width
+ *   조회)에서만 호출. wrap 공식은 삭제된 TagList.spec.ts shapes() Phase 1 과 문자 그대로 동일.
+ */
+export function resolveTagWrapLayout(input: {
+  items: ReadonlyArray<{ label?: string }>;
+  containerWidth: number;
+  sizeName: string;
+  allowsRemoving: boolean;
+  maxRows: number;
+  /** style.fontSize override (없으면 chip catalog fontSize). */
+  fontSizeOverride?: number;
+}): {
+  visibleItemCount: number;
+  shouldShowAll: boolean;
+  rowCount: number;
+  contentHeight: number;
+} {
+  const { items, containerWidth, sizeName, allowsRemoving, maxRows } = input;
+  const chipSize = resolveTagChipMetric(sizeName);
+  const fontSize = input.fontSizeOverride ?? chipSize.fontSize;
+  // chip border-box 높이 = lineHeight + paddingY*2 + borderWidth*2 (CSS border:1px solid).
+  const CHIP_BORDER_WIDTH = 1;
+  const tagHeight =
+    chipSize.lineHeight + chipSize.paddingY * 2 + CHIP_BORDER_WIDTH * 2;
+  const gap = chipSize.gap;
+  const rowGap = gap;
+
+  // allowsRemoving 시 paddingRight=paddingY (text-X 과밀 방지) + X 아이콘 예약 폭.
+  const chipPaddingRight = allowsRemoving
+    ? chipSize.paddingY
+    : chipSize.paddingX;
+  const iconGap = 4;
+  const removeExtraWidth = allowsRemoving ? iconGap + fontSize : 0;
+
+  const cw = containerWidth > 0 ? containerWidth : 350;
+
+  let currentRowWidth = 0;
+  let rowIndex = 0;
+  let shouldShowAll = false;
+  let hasAnyPlaced = false;
+  let lastPlacedRowIndex = 0;
+  let lastPlacedRowEnd = 0;
+  let visibleItemCount = 0;
+
+  for (let i = 0; i < items.length; i++) {
+    const label = items[i].label || `Tag ${i + 1}`;
+    const textWidth = measureTextWidth(label, fontSize, "Pretendard", 400);
+    const chipWidth =
+      textWidth + chipSize.paddingX + chipPaddingRight + removeExtraWidth;
+    const gapBefore = i > 0 && currentRowWidth > 0 ? gap : 0;
+
+    if (i > 0 && currentRowWidth + gapBefore + chipWidth > cw) {
+      rowIndex++;
+      currentRowWidth = 0;
+    }
+
+    if (maxRows > 0 && rowIndex >= maxRows) {
+      shouldShowAll = true;
+      break;
+    }
+
+    const x = currentRowWidth === 0 ? 0 : currentRowWidth + gap;
+    currentRowWidth = x + chipWidth;
+    hasAnyPlaced = true;
+    lastPlacedRowIndex = rowIndex;
+    lastPlacedRowEnd = currentRowWidth;
+    visibleItemCount = i + 1;
+  }
+
+  if (!hasAnyPlaced) {
+    return {
+      visibleItemCount: 0,
+      shouldShowAll: false,
+      rowCount: 0,
+      contentHeight: 0,
+    };
+  }
+
+  // Show all chip 배치: 마지막 행 우측 여유에 들어가면 같은 행(+0), 초과 시 다음 행(+1).
+  let extraRow = 0;
+  if (shouldShowAll) {
+    const showAllTextWidth = measureTextWidth(
+      "Show all",
+      fontSize,
+      "Pretendard",
+      400,
+    );
+    const showAllWidth = showAllTextWidth + chipSize.paddingX * 2;
+    const fitsOnSameRow = lastPlacedRowEnd + gap + showAllWidth <= cw;
+    extraRow = fitsOnSameRow ? 0 : 1;
+  }
+
+  const rows = lastPlacedRowIndex + 1 + extraRow;
+  return {
+    visibleItemCount,
+    shouldShowAll,
+    rowCount: lastPlacedRowIndex + 1,
+    contentHeight: rows * tagHeight + Math.max(0, rows - 1) * rowGap,
+  };
+}
+
 // ADR-912 Phase 5 (catalog SSOT collapse): 구 `STATUSLIGHT_DIMENSIONS` 의 height/gap/fontSize 는
 //   `componentRulesTable.StatusLight.sizes` 와 byte 일치하던 dual-SSOT 미러였다(Δ8 위반 —
 //   calculateContentHeight 경로가 grep gate scope 밖). catalog `.sizes` read-through 로 단일화.
@@ -2213,101 +2329,21 @@ export function calculateContentHeight(
     const items = props?.items as Array<{ label?: string }> | undefined;
     if (!items || items.length === 0) return 0;
 
+    // ADR-907 Layer D: wrap 시뮬레이션 SSOT = resolveTagWrapLayout (Skia chip render skip 과
+    //   동일 resolver 공유). 컨테이너 높이는 그 contentHeight. maxRows 접힘 시 2줄 + Show all
+    //   행 포함 높이 반환(chip border-box 30 = lineHeight20 + paddingY*2 + border*2 정합).
     const sizeName = (props?.size as string) ?? "md";
-    // ADR-912 cutover (2026-06-15): chip 치수 = Tag catalog rule, gap = TagList catalog rule
-    //   (TAG_CHIP_SIZES 이관, 값 보존). 부모 TagGroup.items projection chip(appendTagRowProjection)
-    //   과 동일 치수여야 Skia/layout 정합 유지.
     const chipSize = resolveTagChipMetric(sizeName);
-    const fontSize = parseNumericValue(style?.fontSize) ?? chipSize.fontSize;
-    // chip border-box 높이 = lineHeight + paddingY*2 + borderWidth*2.
-    //   **Why (TagGroup side selection 과대 버그, 2026-06-19)**: Tag catalog rule 의
-    //   `border` color 는 CSS 에서 `border: 1px solid` 로 그려지므로 칩 실제 box 높이는
-    //   `lineHeight(20) + paddingY*2(8) + border*2(2) = 30`(md, boxSizing:border-box CSS 실측).
-    //   border 2px 를 누락하면 tagHeight=28 → 2줄 = 28*2+gap4 = 60 이 되어, 같은 칩을 실제
-    //   Tag catalog shape 로 그리는 projection RowsGroup(30*2+4 = 64)과 4px 어긋난다. 이 4px
-    //   불일치가 Taffy 자식 합산 단계에서 TagGroup side height 를 64 가 아닌 84 로 발산시켜
-    //   selection/hover outline 이 실제 박스보다 20px 높게 잡히는 근본 원인이었다(CSS=64).
-    //   chip border 는 Tag rule sizes 에 별도 width 필드가 없고 CSS 기본 1px 이므로 상수 반영.
-    const CHIP_BORDER_WIDTH = 1;
-    const tagHeight =
-      chipSize.lineHeight + chipSize.paddingY * 2 + CHIP_BORDER_WIDTH * 2;
-    const gap = chipSize.gap;
-    const rowGap = gap;
-
-    const allowsRemoving = Boolean(props?.allowsRemoving);
-    // Tag.spec.ts / TagList.spec.ts 관례: allowsRemoving 시 paddingRight=paddingY
-    //   (text-X 레이아웃 과밀 방지). chipWidth 공식도 이에 맞춰 paddingLeft+paddingRight
-    //   형태로 분리.
-    const chipPaddingRight = allowsRemoving
-      ? chipSize.paddingY
-      : chipSize.paddingX;
-    // X 아이콘 예약 폭: gap(4) + iconSize(fontSize)
-    const iconGap = 4;
-    const removeExtraWidth = allowsRemoving ? iconGap + fontSize : 0;
-
-    const maxRowsRaw = props?.maxRows;
-    const maxRows = typeof maxRowsRaw === "number" ? maxRowsRaw : 0;
-
-    const containerWidth =
-      availableWidth && availableWidth > 0 ? availableWidth : 350;
-
-    // wrap 시뮬레이션 중 실제 chip 이 "배치된" 마지막 행/우측 끝을 추적.
-    //   rowIndex 는 다음 chip 이 들어갈 후보 행이므로, maxRows break 시점에는
-    //   이미 +1 된 would-be 행을 가리킨다(chip 미배치). 따라서 `rowIndex + 1` 로
-    //   높이를 계산하면 항상 한 행이 과다 예약되는 기존 버그가 발생한다.
-    let currentRowWidth = 0;
-    let rowIndex = 0;
-    let shouldShowAll = false;
-    let hasAnyPlaced = false;
-    let lastPlacedRowIndex = 0;
-    let lastPlacedRowEnd = 0;
-
-    for (let i = 0; i < items.length; i++) {
-      const label = items[i].label || `Tag ${i + 1}`;
-      const textWidth = measureTextWidth(label, fontSize, "Pretendard", 400);
-      const chipWidth =
-        textWidth + chipSize.paddingX + chipPaddingRight + removeExtraWidth;
-      const gapBefore = i > 0 && currentRowWidth > 0 ? gap : 0;
-
-      if (i > 0 && currentRowWidth + gapBefore + chipWidth > containerWidth) {
-        rowIndex++;
-        currentRowWidth = 0;
-      }
-
-      if (maxRows > 0 && rowIndex >= maxRows) {
-        shouldShowAll = true;
-        break;
-      }
-
-      const x = currentRowWidth === 0 ? 0 : currentRowWidth + gap;
-      currentRowWidth = x + chipWidth;
-      hasAnyPlaced = true;
-      lastPlacedRowIndex = rowIndex;
-      lastPlacedRowEnd = currentRowWidth;
-    }
-
-    if (!hasAnyPlaced) return 0;
-
-    // Show all chip 배치 규칙 — TagList.spec.ts shapes() Phase 3 과 반드시 동일:
-    //   lastPlacedRowEnd + gap + showAllWidth <= containerWidth  → 같은 행(+0)
-    //   초과  → 다음 행 wrap (+1)
-    // 두 경로가 어긋나면 Show all 이 컨테이너 경계 밖으로 돌출하거나 하단 여백 과다.
-    let extraRow = 0;
-    if (shouldShowAll) {
-      const showAllTextWidth = measureTextWidth(
-        "Show all",
-        fontSize,
-        "Pretendard",
-        400,
-      );
-      const showAllWidth = showAllTextWidth + chipSize.paddingX * 2;
-      const fitsOnSameRow =
-        lastPlacedRowEnd + gap + showAllWidth <= containerWidth;
-      extraRow = fitsOnSameRow ? 0 : 1;
-    }
-
-    const rows = lastPlacedRowIndex + 1 + extraRow;
-    return rows * tagHeight + Math.max(0, rows - 1) * rowGap;
+    const { contentHeight } = resolveTagWrapLayout({
+      items,
+      containerWidth:
+        availableWidth && availableWidth > 0 ? availableWidth : 350,
+      sizeName,
+      allowsRemoving: Boolean(props?.allowsRemoving),
+      maxRows: typeof props?.maxRows === "number" ? props.maxRows : 0,
+      fontSizeOverride: parseNumericValue(style?.fontSize) ?? chipSize.fontSize,
+    });
+    return contentHeight;
   }
 
   // 1.6. ToggleButtonGroup: 자식 ToggleButton의 border-box 높이 기반 계산

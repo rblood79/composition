@@ -21,7 +21,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { calculateContentHeight } from "../utils";
+import { calculateContentHeight, resolveTagWrapLayout } from "../utils";
 import type { Element } from "../../../../../../types/core/store.types";
 
 type TagItem = { id: string; label: string };
@@ -275,5 +275,96 @@ describe("calculateContentHeight — TagGroup side label height", () => {
     );
     // (b) owner(7) 단독 ≥ stale(4) 단독 (칩 많으면 행 수 증가).
     expect(tagList7).toBeGreaterThan(tagList4);
+  });
+});
+
+// ── resolveTagWrapLayout SSOT (maxRows 접힘, 2026-07-01) ──────────────────
+// wrap 시뮬레이션 단일 resolver — calculateContentHeight(height) + Skia chip render skip
+//   (visibleItemCount) 공유. jsdom 텍스트 측정은 근사라 절대 개수 대신 불변식으로 고정.
+describe("resolveTagWrapLayout — maxRows chip 접힘 SSOT", () => {
+  const MANY: TagItem[] = Array.from({ length: 13 }, (_, i) => ({
+    id: `t${i}`,
+    label: i < 2 ? ["Chocolate", "VanillaCo"][i] : "New Tag",
+  }));
+
+  it("maxRows=0 이면 전체 표시 (접힘 없음)", () => {
+    const r = resolveTagWrapLayout({
+      items: MANY,
+      containerWidth: 350,
+      sizeName: "md",
+      allowsRemoving: false,
+      maxRows: 0,
+    });
+    expect(r.visibleItemCount).toBe(13);
+    expect(r.shouldShowAll).toBe(false);
+  });
+
+  it("maxRows 설정 + 폭 초과 시 접힘 (visibleItemCount < 전체, shouldShowAll)", () => {
+    const r = resolveTagWrapLayout({
+      items: MANY,
+      containerWidth: 350,
+      sizeName: "md",
+      allowsRemoving: false,
+      maxRows: 2,
+    });
+    // 350 폭에서 13개는 2줄 초과 → 접힘.
+    expect(r.visibleItemCount).toBeLessThan(13);
+    expect(r.shouldShowAll).toBe(true);
+    expect(r.rowCount).toBe(2); // maxRows 만큼 배치
+  });
+
+  it("maxRows 증가 → visibleItemCount 단조 증가 (더 많은 chip 표시)", () => {
+    const at2 = resolveTagWrapLayout({
+      items: MANY,
+      containerWidth: 350,
+      sizeName: "md",
+      allowsRemoving: false,
+      maxRows: 2,
+    }).visibleItemCount;
+    const at3 = resolveTagWrapLayout({
+      items: MANY,
+      containerWidth: 350,
+      sizeName: "md",
+      allowsRemoving: false,
+      maxRows: 3,
+    }).visibleItemCount;
+    expect(at3).toBeGreaterThanOrEqual(at2);
+  });
+
+  it("좁은 폭 → 같은 maxRows 에서 visibleItemCount 감소 (행당 chip 적음)", () => {
+    const wide = resolveTagWrapLayout({
+      items: MANY,
+      containerWidth: 400,
+      sizeName: "md",
+      allowsRemoving: false,
+      maxRows: 2,
+    }).visibleItemCount;
+    const narrow = resolveTagWrapLayout({
+      items: MANY,
+      containerWidth: 200,
+      sizeName: "md",
+      allowsRemoving: false,
+      maxRows: 2,
+    }).visibleItemCount;
+    expect(narrow).toBeLessThanOrEqual(wide);
+  });
+
+  it("contentHeight = calculateContentHeight taglist 분기와 동일 (SSOT 공유)", () => {
+    // TagList element 로 calculateContentHeight 호출 → 동일 resolver 경유.
+    const tagList: Element = {
+      id: "tl",
+      type: "TagList",
+      props: { size: "md", items: MANY, maxRows: 2 },
+      childrenIds: [],
+    } as Element;
+    const viaCalc = calculateContentHeight(tagList, 350, [], () => []);
+    const viaResolver = resolveTagWrapLayout({
+      items: MANY,
+      containerWidth: 350,
+      sizeName: "md",
+      allowsRemoving: false,
+      maxRows: 2,
+    }).contentHeight;
+    expect(viaCalc).toBe(viaResolver);
   });
 });

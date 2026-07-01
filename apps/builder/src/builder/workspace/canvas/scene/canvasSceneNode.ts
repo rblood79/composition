@@ -1273,6 +1273,49 @@ function appendTagRowProjection(
       graph,
     );
   }
+
+  // maxRows "Show all" chip — RSP 표준(지정 행 초과 tag 접기 + 펼치기 트리거).
+  //   maxRows 설정 시 항상 emit 하되, 실제 표시(접힘 발생) 여부는 render 게이트가 폭 기반
+  //   wrap sim(shouldShowAll)으로 판정해 조건부 skip 한다(projection 은 폭 미보유). rowIndex 는
+  //   전체 item 뒤(rows.length) — render 게이트의 `rowIndex >= visibleItemCount` skip 대상이
+  //   아니도록 `_isShowAll` 마커로 제외. 시각(투명 배경 + accent 텍스트)은 buildCatalogShapes
+  //   Tag 분기가 `_isShowAll` 로 분기.
+  if (typeof props.maxRows === "number" && props.maxRows > 0) {
+    const showAllId = toCollectionRowProjectionId(
+      "tag",
+      tagListSceneNode.id,
+      "__show_all__",
+    );
+    addSceneNode(
+      {
+        id: showAllId,
+        type: "Tag",
+        props: {
+          // CSS(TagGroup.tsx)는 "Show all (N)" — 전체 tag 수 표기. rows = 전체 items 기반.
+          children: `Show all (${rows.length})`,
+          style: { width: "fit-content" },
+          _isShowAll: true,
+          ...(size ? { size } : {}),
+        },
+        parentId: rowsGroupId,
+        pageId: scope.pageId,
+        layoutId: scope.layoutId,
+        parent_id: rowsGroupId,
+        page_id: scope.pageId,
+        layout_id: scope.layoutId,
+        projection: {
+          kind: "tag-row",
+          listBoxId: tagListSceneNode.id,
+          itemKey: "__show_all__",
+          rowIndex: rows.length,
+          templateAnchorId: null,
+          templateOriginId: null,
+        },
+        sourceNode,
+      },
+      graph,
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------

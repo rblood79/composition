@@ -156,6 +156,9 @@ export function buildCatalogShapes(
   // selected/emphasizedSelected + variant.selectedText/selectedBorder 데이터에서 읽는다.
   const isSelected = props.isSelected === true;
   const isEmphasized = props.isEmphasized === true;
+  // TagGroup maxRows "Show all" chip — 투명 배경 + accent 텍스트(테두리 없음). RSP/삭제된
+  //   TagList.spec 시각 사양(fill:transparent, text:{color.accent}). 데이터 분기(ADR-142 §3).
+  const isShowAllChip = props._isShowAll === true;
 
   const stateBg = isSelected
     ? isEmphasized
@@ -168,10 +171,12 @@ export function buildCatalogShapes(
         : fillStates?.base;
 
   // 상태별 배경색 (사용자 스타일 우선). outline 은 base 미정의 시 transparent.
-  const bgColor =
-    (style?.backgroundColor as string | undefined) ??
-    stateBg ??
-    (isOutline ? ("{color.transparent}" as unknown as string) : undefined);
+  //   Show all chip 은 투명 배경(테두리도 없음 — 아래 borderColor override).
+  const bgColor = isShowAllChip
+    ? ("{color.transparent}" as unknown as string)
+    : ((style?.backgroundColor as string | undefined) ??
+      stateBg ??
+      (isOutline ? ("{color.transparent}" as unknown as string) : undefined));
 
   // staticColor: theme 무관 고정 텍스트색 (Link/Button/ToggleButton 공유 D2 prop).
   //   black→#000000 / white→#ffffff. auto·undefined 는 미적용(variant 색 경로 유지).
@@ -187,34 +192,36 @@ export function buildCatalogShapes(
 
   // 텍스트색: selected→selectedText/emphasizedSelectedText, outline→outlineText,
   // subtle→subtleText, 그 외 hover textHover / text. (visual = resolveComponentVisual 어댑터)
-  const textColor =
-    (style?.color as string | undefined) ??
-    staticTextColor ??
-    (isSelected
-      ? isEmphasized
-        ? (visual?.emphasizedSelectedText ?? visual?.selectedText)
-        : visual?.selectedText
-      : isOutline
-        ? (visual?.outlineText ?? visual?.text)
-        : isSubtle
-          ? (visual?.subtleText ?? visual?.text)
-          : state === "hover" && visual?.textHover
-            ? visual.textHover
-            : visual?.text);
+  const textColor = isShowAllChip
+    ? ("{color.accent}" as unknown as string)
+    : ((style?.color as string | undefined) ??
+      staticTextColor ??
+      (isSelected
+        ? isEmphasized
+          ? (visual?.emphasizedSelectedText ?? visual?.selectedText)
+          : visual?.selectedText
+        : isOutline
+          ? (visual?.outlineText ?? visual?.text)
+          : isSubtle
+            ? (visual?.subtleText ?? visual?.text)
+            : state === "hover" && visual?.textHover
+              ? visual.textHover
+              : visual?.text));
 
   // 테두리색: selected→selectedBorder/emphasizedSelectedBorder, outline→outlineBorder,
   // 그 외 hover borderHover / border.
-  const borderColor =
-    (style?.borderColor as string | undefined) ??
-    (isSelected
-      ? isEmphasized
-        ? (visual?.emphasizedSelectedBorder ?? visual?.selectedBorder)
-        : visual?.selectedBorder
-      : isOutline
-        ? (visual?.outlineBorder ?? visual?.border)
-        : state === "hover" && visual?.borderHover
-          ? visual.borderHover
-          : visual?.border);
+  const borderColor = isShowAllChip
+    ? undefined
+    : ((style?.borderColor as string | undefined) ??
+      (isSelected
+        ? isEmphasized
+          ? (visual?.emphasizedSelectedBorder ?? visual?.selectedBorder)
+          : visual?.selectedBorder
+        : isOutline
+          ? (visual?.outlineBorder ?? visual?.border)
+          : state === "hover" && visual?.borderHover
+            ? visual.borderHover
+            : visual?.border));
 
   const text =
     (props.label as string | undefined) ||

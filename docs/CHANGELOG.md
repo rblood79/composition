@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [TagGroup 5종 수정 — Add Tag Skia 미반영 / chip gap Skia↔CSS 비대칭 / non-standard orientation prop 제거 / labelPosition=side selection 높이 발산 / maxRows Property 편집 UI 누락] - 2026-07-01
+## [TagGroup 6종 수정 — Add Tag Skia 미반영 / chip gap Skia↔CSS 비대칭 / non-standard orientation prop 제거 / labelPosition=side selection 높이 발산 / maxRows Property 편집 UI 누락 / maxRows Skia 화면 접힘] - 2026-07-01
 
 ### Bug Fixes
 
@@ -44,8 +44,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 수정: `TagGroup.binding.ts` accepts 에 `maxRows: { kind:"number", label:"Max Rows", section:"appearance", min:0 }` 추가 → Property 패널 Appearance 섹션에 Max Rows 스테퍼 필드 노출. `toRacProps` 가 wrapper 로 통과(TagGroup.tsx 소비).
   - **회귀 가드**: `collectionBindings.test.ts` TagGroup 케이스에 maxRows accepts(kind:number/label) + toRacProps 통과 검증 추가.
   - live 검증: TagGroup 선택 시 Property 패널 Appearance 에 "Max Rows: 2" 스테퍼 등장 확인.
-  - **후속(미완)**: Skia projection 의 chip 접힘 + "Show all" chip 시각 정합은 별도 작업. layout height(`calculateContentHeight` taglist 분기)는 이미 maxRows 접힘을 반영(2줄+Show all 행)하나, projection RowsGroup 이 전체 chip 을 flexWrap 배치해 화면엔 전체 chip 이 보인다. 정합에는 layout→render 로 visible chip 수(폭 의존)를 넘기는 채널 신설이 필요(3개 조사 에이전트로 근본 확정: projection 은 layout 선행이라 폭 미보유, buildSpecNodeData 는 부모 RowsGroup 폭 채널 부재).
   - 위치: `packages/shared/src/catalog/bindings/TagGroup.binding.ts`
+- **TagGroup `maxRows` Skia 화면 접힘 미반영 — chip 전체 렌더 + "Show all" chip 부재** (CSS↔Skia 비대칭, 후속 완료):
+  - **Why**: layout height(`calculateContentHeight` taglist 분기)는 이미 maxRows 접힌 높이(2줄 + Show all 행)를 계산해 `preserveEnrichHeight` 로 컨테이너 높이를 확정하나, chip 을 그리는 Skia projection(`appendTagRowProjection` → `type:"Tag"` scene node)은 **전체 chip 을 flexWrap 배치**해 초과 chip 이 화면에 남고 "Show all" chip 도 없었다. 3개 조사 에이전트로 근본 확정: projection 은 scene graph(layout 선행)라 컨테이너 폭 미보유 → chip 개수를 못 줄임. clip(overflow:hidden)도 무효(접힌 height 98=3행분이라 chip 3줄이 그 안에 들어감 — 높이만 자르고 개수 안 줄임).
+  - 수정 (layout→render 단방향, 2-pass 순환 없음):
+    - **wrap sim SSOT 추출**: `resolveTagWrapLayout({items, containerWidth, sizeName, allowsRemoving, maxRows})` → `{visibleItemCount, shouldShowAll, rowCount, contentHeight}`. `calculateContentHeight` taglist 분기(높이)와 Skia chip render skip(개수)이 **동일 resolver 공유**(ADR-907 Layer D). 삭제된 TagList.spec.ts shapes() Phase 1 wrap 공식과 문자 그대로 동일.
+    - **chip render skip**: `StoreRenderBridge.buildNodeForElement` 가 chip(projection kind:"tag-row") render 시 부모 RowsGroup 의 `ctx.layoutMap.get(rowsGroupId).width`(폭 소유)로 wrap sim 재실행 → `rowIndex >= visibleItemCount` chip 은 `null` 반환(미emit). **owner-first**: maxRows/items/size 는 owner TagGroup.props(TagList mirror stale 회피 — selection 높이 버그와 동일 원인).
+    - **"Show all (N)" chip**: `appendTagRowProjection` 이 maxRows 설정 시 `_isShowAll` 마커 chip 을 항상 emit, render 게이트가 `shouldShowAll`(폭 기반) 일 때만 표시. 시각(`buildCatalogShapes` `_isShowAll` 분기)은 투명 배경 + accent 텍스트(테두리 없음) — 삭제된 TagList.spec 시각 사양 재현. label 은 CSS 동형 "Show all (전체수)".
+  - **회귀 가드**: `tagGroupSideHeight.test.ts` 에 `resolveTagWrapLayout` 5 케이스(maxRows=0 전체 / 접힘 시 visibleItemCount<전체+shouldShowAll / maxRows 증가→visibleItemCount 단조 / 좁은 폭→감소 / contentHeight = calculateContentHeight SSOT 공유) 추가.
+  - live 검증: maxRows=2 TagGroup(13 items) → Skia chip 2줄 + "Show all (13)" chip(투명 배경 + 파란 accent 텍스트) 표시 + CSS preview 와 정합. maxRows 증가 시 chip 더 표시, top↔side 무관 작동.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`(`resolveTagWrapLayout`), `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`(Show all chip emit), `apps/builder/src/builder/workspace/canvas/skia/StoreRenderBridge.ts`(chip skip 게이트), `packages/specs/src/renderers/buildCatalogShapes.ts`(`_isShowAll` 시각)
 
 ## [그룹 축 prop derive 컨테이너 Direction 양방향 동기화 — ToggleButtonGroup/Toolbar(orientation) + RadioGroup/CheckboxGroup/field 8종/TagGroup/ComboBox/Select/DateRangePicker(labelPosition)] - 2026-06-30
 
