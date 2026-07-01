@@ -169,4 +169,111 @@ describe("calculateContentHeight — TagGroup side label height", () => {
     );
     expect(sideH).toBe(64);
   });
+
+  // ── items SSOT: owner(TagGroup) vs stale mirror(TagList) 회귀 가드 (2026-07-01) ──
+  // **버그**: items SSOT = TagGroup.props.items. TagList.props.items 는 mirror 로,
+  //   propagation 이 PropertiesPanel onUpdate 경로로만 갱신돼 addItem 후 stale 할 수 있다
+  //   (owner 7 개, mirror 4 개). CSS(propagation)/Skia chip projection(owner-first fallback)은
+  //   owner 를 보는데, 이 taggroup height 분기가 TagList child 의 stale mirror items 로 wrap 을
+  //   계산하면 행 수가 적게 나와(예: 4개→2줄) 실제 렌더(7개→3줄)보다 낮은 컨테이너 height →
+  //   selection outline 이 마지막 칩 행 밖으로 삐져나간다(라이브 실측: side 64 vs CSS 98).
+  // **수정**: taggroup 분기가 TagList child 에 owner(TagGroup) items 를 mirror 하여 계산.
+  // 텍스트 측정 환경 의존을 피하려 절대 px 대신 3개 불변식으로 고정:
+  //   (a) stale mirror(4) 여도 owner(7) 단독 계산과 동일 height (owner-first 적용 증명)
+  //   (b) owner(7) height ≥ stale(4) height (칩 많으면 행 수 ≥, 단조)
+  //   (c) 두 값이 실제로 다르다(회귀 시 stale 로 떨어지면 (a) FAIL).
+  const OWNER_ITEMS: TagItem[] = [
+    { id: "t1", label: "Chocolate" },
+    { id: "t2", label: "VanillaCo" },
+    { id: "t3", label: "New Tag" },
+    { id: "t4", label: "New Tag" },
+    { id: "t5", label: "New Tag" },
+    { id: "t6", label: "New Tag" },
+    { id: "t7", label: "New Tag" },
+  ];
+  const LONG_LABEL: Element = {
+    id: LABEL_ID,
+    type: "Label",
+    props: { children: "Tag Group22", style: { whiteSpace: "nowrap" } },
+    childrenIds: [],
+  } as Element;
+  const W = 390;
+
+  function makeOwnerTagGroup(): Element {
+    return {
+      id: TAG_GROUP_ID,
+      type: "TagGroup",
+      props: {
+        label: "Tag Group22",
+        labelPosition: "side",
+        size: "md",
+        items: OWNER_ITEMS,
+      },
+      childrenIds: [LABEL_ID, TAGLIST_ID],
+    } as Element;
+  }
+  const getChildrenWithMirror =
+    (mirrorCount: number) =>
+    (id: string): Element[] =>
+      id === TAG_GROUP_ID
+        ? [
+            LONG_LABEL,
+            {
+              id: TAGLIST_ID,
+              type: "TagList",
+              props: { size: "md", items: OWNER_ITEMS.slice(0, mirrorCount) },
+              childrenIds: [],
+            } as Element,
+          ]
+        : [];
+
+  it("side: TagList mirror 가 stale(4)여도 owner(TagGroup) items(7) 로 height 산출", () => {
+    const getStale4 = getChildrenWithMirror(4);
+    const getFresh7 = getChildrenWithMirror(7);
+
+    // owner mirror 미적용 회귀 시 stale 4 개 wrap → 낮은 height. 적용 시 owner 7 개 wrap.
+    const heightStaleMirror = calculateContentHeight(
+      makeOwnerTagGroup(),
+      W,
+      getStale4(TAG_GROUP_ID),
+      getStale4,
+    );
+    const heightFreshMirror = calculateContentHeight(
+      makeOwnerTagGroup(),
+      W,
+      getFresh7(TAG_GROUP_ID),
+      getFresh7,
+    );
+
+    // (a) stale mirror(4) 여도 fresh mirror(7)와 동일 — owner-first 적용 증명.
+    expect(heightStaleMirror).toBe(heightFreshMirror);
+
+    // (c) 두 items 수가 실제로 다른 행 수를 낳는지 확인(테스트가 tautology 아님):
+    //   TagList 단독 계산은 owner-first 미적용이라 mirror items 그대로 → 4 vs 7 이 달라야 함.
+    const sideAvail = W; // 근사 — 정확한 sideTagListAvail 아니어도 4≠7 행 수 차이 확인용
+    const tagList4 = calculateContentHeight(
+      {
+        id: TAGLIST_ID,
+        type: "TagList",
+        props: { size: "md", items: OWNER_ITEMS.slice(0, 4) },
+        childrenIds: [],
+      } as Element,
+      sideAvail - 92,
+      [],
+      () => [],
+    );
+    const tagList7 = calculateContentHeight(
+      {
+        id: TAGLIST_ID,
+        type: "TagList",
+        props: { size: "md", items: OWNER_ITEMS },
+        childrenIds: [],
+      } as Element,
+      sideAvail - 92,
+      [],
+      () => [],
+    );
+    // (b) owner(7) 단독 ≥ stale(4) 단독 (칩 많으면 행 수 증가).
+    expect(tagList7).toBeGreaterThan(tagList4);
+  });
 });

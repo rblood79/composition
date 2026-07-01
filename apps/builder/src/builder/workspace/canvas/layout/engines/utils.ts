@@ -3194,10 +3194,39 @@ export function calculateContentHeight(
         }
       }
 
+      // items SSOT = TagGroup.props.items. TagList.props.items 는 mirror 로,
+      //   propagation 이 PropertiesPanel onUpdate 경로로만 갱신되어 addItem/삭제 후
+      //   stale 할 수 있다(예: owner 7 개, mirror 4 개). CSS(propagation 7)/Skia chip
+      //   projection(owner-first fallback 7)은 owner 를 보는데, 이 layout height 분기가
+      //   TagList child 의 stale mirror items(4)로 wrap 을 계산하면 행 수가 적게 나와
+      //   컨테이너 height 가 실제 렌더보다 낮아진다(side 2줄=64 vs 실제 3줄=98) →
+      //   selection/hover outline 이 칩보다 낮게 잡혀 마지막 행이 밖으로 삐져나온다.
+      //   canvasSceneNode.resolveDataBoundTagProjection 의 owner-first fallback 과 대칭:
+      //   정적 items(dataBinding 없음)면 TagList child 에 owner items 를 mirror 하여 계산.
+      const ownerItems = Array.isArray(props?.items)
+        ? (props?.items as unknown[])
+        : undefined;
+      const ownerHasDataBinding = props?.dataBinding != null;
+
       let totalHeight = 0;
       const childHeights: number[] = [];
       for (let i = 0; i < childElements.length; i++) {
-        const child = childElements[i];
+        let child = childElements[i];
+        // TagList child 의 items 가 owner(TagGroup) SSOT 와 다르면 owner items 를 주입
+        //   (정적 items 한정 — dataBinding 은 useCollectionData 가 별도 소스로 채운다).
+        if (
+          child.type === "TagList" &&
+          ownerItems !== undefined &&
+          !ownerHasDataBinding
+        ) {
+          const childProps = child.props as Record<string, unknown> | undefined;
+          if (childProps?.dataBinding == null) {
+            child = {
+              ...child,
+              props: { ...child.props, items: ownerItems },
+            };
+          }
+        }
         const grandChildren = getChildElements?.(child.id);
         // 자식 element 의 enriched style.height 가 있으면 calculateContentHeight 가
         //   explicitHeight 분기로 즉시 반환. 없으면 각 태그 전용 분기 (e.g. taglist)

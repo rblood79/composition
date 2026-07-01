@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [TagGroup 3종 수정 — Add Tag Skia 미반영 / chip gap Skia↔CSS 비대칭 / non-standard orientation prop 제거] - 2026-07-01
+## [TagGroup 4종 수정 — Add Tag Skia 미반영 / chip gap Skia↔CSS 비대칭 / non-standard orientation prop 제거 / labelPosition=side selection 높이 발산] - 2026-07-01
 
 ### Bug Fixes
 
@@ -33,6 +33,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **회귀 가드**: `collectionBindings.test.ts` 의 TagGroup 케이스를 "orientation accepts 제거 + toRacProps drop" 검증으로 갱신(이전엔 orientation 유지 기대).
   - live 검증: TagGroup 선택 시 Property 패널 Appearance 에서 Orientation dropdown 사라짐(Label Position 만 유지) + 기존 orientation=vertical element 가 DOM 가로 렌더 유지 + 콘솔 에러 0.
   - 위치: `packages/shared/src/catalog/bindings/TagGroup.binding.ts`, `packages/shared/src/components/TagGroup.tsx`, `packages/shared/src/renderers/CollectionRenderers.tsx`, `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`, `apps/builder/src/builder/panels/styles/utils/orientationDrivenTags.ts`(주석 정리)
+- **TagGroup `labelPosition="side"` 시 selection/hover outline 높이가 실제 렌더보다 낮게 잡혀 마지막 chip 행이 박스 밖으로 삐져나감** (Skia selection ↔ CSS 렌더 높이 비대칭):
+  - **Why**: items SSOT = `TagGroup.props.items`, `TagList.props.items` 는 mirror. mirror 는 TagGroup→TagList propagation(`{ parentProp:"items", childPath:"TagList", override:true }`)으로 채워지는데 이 propagation 은 `PropertiesPanel` `onUpdate` 경로에서만 돌고 `store.addItem` 은 우회 → mirror 가 stale(예: owner 7개, mirror 4개). selection outline 높이는 layout 이 TagGroup 에 배정한 최종 height 를 그대로 mirror 하는데(`selectionRenderer` 는 순수 passthrough), 그 height 를 산출하는 `calculateContentHeight` 의 `taggroup` 분기가 자식 TagList 의 **stale mirror items(4)** 로 chip wrap 행 수를 계산 → side 폭(≈290)에서 2줄=64. 반면 CSS(propagation 7)/Skia chip projection(직전 fix 의 owner-first fallback 7)은 owner 7개로 3줄=98 을 그려 **layout height(64) ↔ 실제 chip 렌더(98) 34px 발산**. top(column) 은 발산이 작아 눈에 안 띄었고 side 에서만 도드라졌다(라이브 dimension 실측: side "390 × 64" vs CSS DOM 98).
+  - 수정: `taggroup` height 분기가 TagList child 계산 시 owner `TagGroup.props.items` 를 우선 mirror(`{ ...child.props, items: ownerItems }`) — 정적 items(dataBinding 없음) 한정, `canvasSceneNode.resolveDataBoundTagProjection` 의 owner-first fallback 과 대칭. owner 미보유(독립 TagList) 또는 dataBinding 존재 시 기존 child.props 로 회귀.
+  - **회귀 가드**: `tagGroupSideHeight.test.ts` 에 케이스 추가 — owner 7개 + stale mirror 4개 → owner 로 계산한 height 와 동일(mirror 미적용으로 되돌리면 `expected 64 to be 98` 로 정확히 FAIL 확인). 기존 5 케이스(side 차감 / chip border-box 30 / max(Label,TagList)) 무영향.
+  - live 검증: builder 에서 side TagGroup(7개 chip) selection dimension 64→98 교정 + selection box 가 3줄 전체 감쌈 + top(88)/side(98) top↔side 왕복 안정 + CSS DOM 실측(98)과 정합 확인.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`(`calculateContentHeight` taggroup 분기 owner-items mirror)
 
 ## [그룹 축 prop derive 컨테이너 Direction 양방향 동기화 — ToggleButtonGroup/Toolbar(orientation) + RadioGroup/CheckboxGroup/field 8종/TagGroup/ComboBox/Select/DateRangePicker(labelPosition)] - 2026-06-30
 
