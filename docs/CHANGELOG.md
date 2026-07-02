@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [DisclosureHeader chevron 크기 CSS↔Skia 대칭 — 고정 18 통일] - 2026-07-02
+
+### Bug Fixes
+
+- **DisclosureHeader chevron 이 Skia 에서 size 별로 CSS 와 어긋남** (TagGroup remove X 축1 동형, CSS cascade 실측 정정):
+  - **Why**: Disclosure 는 부모가 `<Heading><Button slot="trigger"><svg class="disclosure-chevron">` 를 self-compose 하고(Disclosure.tsx:72-82, DisclosureHeader 독립 DOM 노드 없음), Skia `leading_icon` primitive 는 chevron glyph 를 catalog rule `size.iconSize` 로 그린다. ADR-912 cutover 시 rule 은 `md`(iconSize 15)만 정의 → sm/lg 는 primitive fallback `round(fontSize×1.1)`(sm 13 / lg 18) + md 15 → CSS↔Skia 비대칭(D3 위반).
+  - **정본 재확정 (CSS cascade 실측)**: 초기 분석은 `.disclosure-chevron { width/height: var(--icon-size) }` + Disclosure.css `[data-size]` --icon-size(sm14/md16/lg20)로 "DOM size 반응"이라 판단했으나, live `getComputedStyle` 로 확인하니 DOM chevron 은 **전 size 18px 고정**. trigger `<Button slot="trigger">` 는 data-size 를 안 받아 `.react-aria-Button` 기본 `--icon-size: 18px`(Button.css:40)이 적용되고, Disclosure 의 size 반응 --icon-size 는 조상 Heading 까지만 내려오다 Button 이 자기 기본 18 로 재선언해 덮음(dead). 즉 TagGroup remove X / CalendarHeader chevron 과 동일한 **DOM 고정-크기 컨벤션**(값만 18).
+  - 수정: catalog rule DisclosureHeader `sizes` 에 sm/md/lg 3 size 명시 + iconSize 전 size **18 통일**(구 md 15) → `leading_icon` glyph = iconSize = 18 로 DOM 18 과 대칭. fontSize/height/paddingX 는 Skia leaf 메트릭(text baseline·좌표 base)이라 size 별 유지. 컴포넌트 식별 if 없이 rule 데이터만(ADR-142 §3).
+  - **회귀 가드**: `disclosureHeaderIconSize.test.ts`(shared, rule 값 계약: 3 size iconSize=18 + paddingX 12 + height 28/30/32) + `skiaPrimitives.disclosureHeaderIconSize.test.ts`(specs, leading_icon glyph=iconSize 18 fallback 아님) 신규 + 기존 `buildCatalogShapes.leadingIcon.test.ts` 15→18 갱신. RED: 수정 전 sm/lg 미정의 + md 15≠18 FAIL. shared 444 / specs 506 tests PASS.
+  - live 검증: Preview DOM chevron `getBoundingClientRect` sm/md/lg 모두 18×18px 확인(Button 기본 --icon-size), Skia md chevron 이 CSS 18px chevron 과 시각 동등(수정 전이면 15px). type-check PASS(baseline 69).
+  - **교훈**: 아이콘 크기 정본은 CSS 규칙 파일만 보고 판단 금지 — cascade override(Button 기본 --icon-size 가 Disclosure size 반응 덮음)를 live `getComputedStyle` 로 실측해야 정확. 초기 14/16/20 오분석 → 18 실측 정정.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`(DisclosureHeader sizes sm/md/lg iconSize 18)
+
 ## [CalendarHeader chevron 크기 CSS↔Skia 대칭 — 고정 16 통일] - 2026-07-02
 
 ### Bug Fixes

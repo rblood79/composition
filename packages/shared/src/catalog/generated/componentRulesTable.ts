@@ -4497,16 +4497,38 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // ADR-912 (B+icon) cutover 시 md 만 정의 → sm/lg 는 leading_icon primitive 의
+      //   round(fontSize*1.1) fallback(sm13/lg18)이 DOM chevron 과 어긋났다.
+      // 2026-07-02 CSS cascade 실측 (live getComputedStyle): DOM chevron 은 **전 size 18px 고정**.
+      //   Disclosure trigger `<Button slot="trigger">` 는 data-size 를 안 받아 `.react-aria-Button`
+      //   기본 `--icon-size: 18px`(Button.css:40)이 적용된다. `.react-aria-Disclosure[data-size]`
+      //   --icon-size(14/16/20)는 조상 Heading 까지만 내려오고 Button 이 자기 기본 18 로 재선언해 덮음
+      //   → dead. `.disclosure-chevron { width/height: var(--icon-size) }` 가 상속받는 값 = Button 18.
+      //   따라서 TagGroup remove X / CalendarHeader chevron 과 동일한 **DOM 고정-크기 컨벤션**(값만 18).
+      //   iconSize 전 size 18 통일 → leading_icon glyph = iconSize = 18 로 DOM 18 과 대칭.
+      //   fontSize/height/paddingX 는 Skia leaf 메트릭(text baseline·좌표 base) — size 별 유지.
+      sm: {
+        fontSize: "{typography.text-xs}",
+        borderRadius: "{radius.none}",
+        height: 28,
+        paddingX: 12,
+        iconSize: 18,
+      },
       md: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
-        // height 30 = spec rowHeight(fontSize 14 + paddingY 8*2). box(height>0)로 판정 →
-        //   text baseline:middle + leading icon y=height/2 정렬(spec parity). 이전 height:0(inline)
-        //   은 leading icon 동반 시 baseline drift → 30 보강.
+        // height 30 = fontSize 14 + paddingY 8*2. box(height>0)로 판정 → text baseline:middle +
+        //   leading icon y=height/2 정렬. iconSize 18 = DOM Button 기본 --icon-size.
         height: 30,
-        // paddingX 12 = spec chevron/text x base. iconSize 15 = spec chevronSize(round(14*1.1)).
         paddingX: 12,
-        iconSize: 15,
+        iconSize: 18,
+      },
+      lg: {
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.none}",
+        height: 32,
+        paddingX: 12,
+        iconSize: 18,
       },
     },
     // 2026-06-25: factory(NavigationComponents) DisclosureHeader child 가 레퍼런스 정합으로

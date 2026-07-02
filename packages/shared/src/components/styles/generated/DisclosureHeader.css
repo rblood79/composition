@@ -29,7 +29,7 @@
   padding: 0px 12px;
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
-  --icon-size: 15px;
+  --icon-size: 18px;
 }
 
 .react-aria-DisclosureHeader[data-variant="default"] {
@@ -45,12 +45,28 @@
   }
 }
 
+.react-aria-DisclosureHeader[data-size="sm"] {
+  height: 28px;
+  padding: 0px 12px;
+  font-size: var(--text-xs);
+  border-radius: var(--radius-none);
+  --icon-size: 18px;
+}
+
 .react-aria-DisclosureHeader[data-size="md"] {
   height: 30px;
   padding: 0px 12px;
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
-  --icon-size: 15px;
+  --icon-size: 18px;
+}
+
+.react-aria-DisclosureHeader[data-size="lg"] {
+  height: 32px;
+  padding: 0px 12px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-none);
+  --icon-size: 18px;
 }
 
 .react-aria-DisclosureHeader[data-hovered] {

@@ -52,12 +52,14 @@ const visualNoLeadingIcon: ComponentVisualRule = {
 };
 
 // DisclosureHeader rule sizes.md 미러 (componentRulesTable.DisclosureHeader.sizes.md).
+//   iconSize 18 = DOM chevron 실측 정본 (2026-07-02): trigger Button 기본 --icon-size 18px
+//   (Button.css:40)이 Disclosure size 반응 값을 덮음 → 전 size 18 고정. 구 15 → 18.
 const sizeMd: SizeSpec = {
   fontSize: 14,
   borderRadius: 0,
   height: 30,
   paddingX: 12,
-  iconSize: 15,
+  iconSize: 18,
 } as unknown as SizeSpec;
 
 describe("skiaPrimitive 'leading_icon' — DisclosureHeader chevron (append 모드)", () => {
@@ -77,11 +79,11 @@ describe("skiaPrimitive 'leading_icon' — DisclosureHeader chevron (append 모�
     expect(shapes).toHaveLength(1);
     expect(shapes[0].type).toBe("icon_font");
     expect(shapes[0].iconName).toBe("chevron-right");
-    // 좌측 배치: x = paddingX(12) + iconSize(15)/2 = 19.5. icon_font(중앙 고정)와 달리 leading.
-    expect(shapes[0].x).toBe(12 + 15 / 2);
+    // 좌측 배치: x = paddingX(12) + iconSize(18)/2 = 21. icon_font(중앙 고정)와 달리 leading.
+    expect(shapes[0].x).toBe(12 + 18 / 2);
     // y = height(30)/2 = 15 (box 수직 중앙, base text baseline:middle 정렬).
     expect(shapes[0].y).toBe(15);
-    expect(shapes[0].fontSize).toBe(15);
+    expect(shapes[0].fontSize).toBe(18);
     expect(shapes[0].fill).toBe("{color.neutral-subdued}");
   });
 
@@ -116,8 +118,8 @@ describe("buildCatalogShapes — leading icon text x-shift + left align", () => 
     );
     const text = shapes.find((s) => s.type === "text") as Shape;
     expect(text).toBeDefined();
-    // x = paddingX(12) + iconSize(15) + gap(6) = 33. spec text.x(paddingX + chevronSize + 6) 동형.
-    expect(text.x).toBe(12 + 15 + 6);
+    // x = paddingX(12) + iconSize(18) + gap(6) = 36. buildCatalogShapes text shift(iconSize+gap) 동형.
+    expect(text.x).toBe(12 + 18 + 6);
     // leading icon 동반 text 는 항상 left align (box 기본 center 아님 — spec parity).
     expect(text.align).toBe("left");
   });
@@ -157,10 +159,10 @@ describe("buildCatalogShapes — leading icon text x-shift + left align", () => 
   });
 });
 
-describe("DisclosureHeader spec parity — generic(box+text + leading_icon) ↔ spec render.shapes", () => {
-  it("chevron x/fontSize 와 text x 가 spec 위치와 동형", () => {
-    // spec(DisclosureHeader.spec.ts): chevronSize=round(14*1.1)=15, paddingX=12, gap=6, rowHeight=30.
-    //   chevron x = 12 + 15/2 = 19.5 / text x = 12 + 15 + 6 = 33.
+describe("DisclosureHeader parity — generic(box+text + leading_icon) chevron/text 좌표", () => {
+  it("chevron x/fontSize 와 text x 가 iconSize(18) 기준 정합", () => {
+    // rule md: iconSize=18(DOM Button 기본 --icon-size), paddingX=12, gap=6, height=30.
+    //   chevron x = 12 + 18/2 = 21 / text x = 12 + 18 + 6 = 36.
     const icon = getSkiaPrimitive("leading_icon")!({
       props: {},
       size: sizeMd,
@@ -174,8 +176,8 @@ describe("DisclosureHeader spec parity — generic(box+text + leading_icon) ↔ 
       "default",
     );
     const text = base.find((s) => s.type === "text") as Shape;
-    expect(icon[0].x).toBe(19.5);
-    expect(icon[0].fontSize).toBe(15);
-    expect(text.x).toBe(33);
+    expect(icon[0].x).toBe(21);
+    expect(icon[0].fontSize).toBe(18);
+    expect(text.x).toBe(36);
   });
 });
