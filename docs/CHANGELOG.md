@@ -40,6 +40,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - live 검증: direction column 편집 → CSS Preview + Skia canvas 양쪽 세로 배치("‹" 위 / "2026년 7월" 중앙 / "›" 아래) 대칭 확인. type-check baseline 69.
   - 위치: `packages/specs/src/renderers/skiaPrimitives.ts`(inlineIconText column 분기)
 
+- **CalendarHeader text/chevron 세로 중앙 정렬 — `_containerHeight` 우선 (align-items:center 대칭)**:
+  - **Why**: `inlineIconText` 가 `cy = size.height`(rule 고정 md 30)/2 로 세로 위치를 잡고 **실제 노드 높이(`_containerHeight`)를 안 썼다** → 노드 높이가 rule 30 과 다를 때(예: Calendar size lg → header 36) text/chevron 이 세로 중앙에서 위로 3px 치우침(catalog `align-items:center` 인데 Skia 미반영). width 는 `_containerWidth` 우선인데 height 만 rule 고정이라 비대칭.
+  - 수정: `height` 를 `_containerHeight`(주입, 실제 노드 높이) 우선 → `size.height`(rule) → 30 폴백 순으로 변경(width 와 대칭). `cy = 실제 높이/2` → DOM `<header>` `align-items:center` 와 정합. column 분기 colHeight 도 동일 변수 재사용.
+  - **회귀 가드**: `skiaPrimitives.inlineIconText.test.ts` 에 `_containerHeight` 우선(주입 36 → 모든 shape y=18) + 미주입 폴백(size.height 30 → y=15) 계약 추가. specs 518 tests PASS.
+  - live 검증: Calendar size lg(header 36) → Skia text/chevron y=18(세로중앙), CSS Preview 와 대칭(수정 전이면 y=15 위 치우침). type-check baseline 69.
+  - 위치: `packages/specs/src/renderers/skiaPrimitives.ts`(inlineIconText height=\_containerHeight 우선)
+
 ## [DisclosureHeader chevron 크기 CSS↔Skia 대칭 — 고정 18 통일] - 2026-07-02
 
 ### Bug Fixes

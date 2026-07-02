@@ -2118,8 +2118,18 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
       ? CALENDAR_CHEVRON_DOM_PX
       : fontSize + 2;
   const specGap = typeof size.gap === "number" && size.gap > 0 ? size.gap : 6;
+  // height: _containerHeight(CONTAINER_DIMENSION 주입, 실제 노드 높이) 우선 → size.height(rule) →
+  //   30 폴백. width 가 _containerWidth 우선인 것과 대칭. cy(세로 중앙)를 실제 노드 높이 기준으로
+  //   잡아야 DOM `align-items:center`(header 세로 중앙) 와 정합 — size.height(rule 고정 30)만 쓰면
+  //   노드 높이가 30 과 다를 때(예: size lg / 명시 height) text·chevron 이 세로 중앙에서 벗어남.
+  const containerHeightInj =
+    (props._containerHeight as number | undefined) ?? 0;
   const height =
-    typeof size.height === "number" && size.height > 0 ? size.height : 30;
+    containerHeightInj > 0
+      ? containerHeightInj
+      : typeof size.height === "number" && size.height > 0
+        ? size.height
+        : 30;
   const cy = height / 2;
 
   // width: _containerWidth(CONTAINER_DIMENSION 주입) > style.width > 폴백(cellSize*7 + gap*6).
@@ -2180,9 +2190,8 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
   //   DOM `<header>` 가 flex-direction:column 이면 자식(prev/heading/next)이 세로 배치되므로
   //   Skia 도 대칭(위 chevron / 중앙 text / 아래 chevron, x 는 컨테이너 중앙). row 는 기존 좌표 유지.
   if (isColumn) {
-    const containerHeight = (props._containerHeight as number | undefined) ?? 0;
     const colHeight =
-      containerHeight > 0 ? containerHeight : cellSize * 3 + itemGap * 2;
+      containerHeightInj > 0 ? containerHeightInj : cellSize * 3 + itemGap * 2;
     const cx = width / 2;
     // 세로 3슬롯: 위 chevron cellSize/2, 중앙 text colHeight/2, 아래 chevron colHeight-cellSize/2.
     return [

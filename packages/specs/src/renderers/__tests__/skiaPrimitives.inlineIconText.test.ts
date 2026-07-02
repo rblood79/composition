@@ -369,3 +369,41 @@ describe("skiaPrimitive 'inline_icon_text' — flexDirection column 세로 배�
     expect(left.x!).toBeLessThan(right.x!);
   });
 });
+
+describe("skiaPrimitive 'inline_icon_text' — 세로 중앙 정렬 (_containerHeight 우선, align-items:center 대칭)", () => {
+  // 사용자 지적(2026-07-02): catalog align-items:center 인데 Skia text 가 세로 중앙에 안 옴.
+  //   근본: primitive 가 cy = size.height(rule 고정 30)/2 로 계산, 실제 노드 높이(_containerHeight)를
+  //   안 써서 노드가 30 아닐 때 세로 중앙 벗어남. width 가 _containerWidth 우선인 것과 대칭으로
+  //   height 도 _containerHeight 우선 → cy = 실제 높이/2 (DOM header align-items:center 정합).
+  const yOf = (shapes: Shape[]) =>
+    shapes.map((s) => (s as { y?: number }).y ?? 0);
+
+  it("_containerHeight 주입 시 text/chevron y = 실제 높이/2 (size.height 고정 아님)", () => {
+    const cw = 220;
+    const ch = 60; // rule md height(30) 와 다른 실제 노드 높이
+    const shapes = draw({
+      props: {
+        children: "2024년 1월",
+        _containerWidth: cw,
+        _containerHeight: ch,
+      },
+      size: sizeMd,
+      visual,
+      style: undefined,
+    })!;
+    // 모든 shape(chevron/text/chevron) y 가 세로 중앙 = ch/2 = 30 (rule 30/2=15 아님).
+    yOf(shapes).forEach((y) => expect(y).toBe(ch / 2));
+  });
+
+  it("_containerHeight 미주입 시 size.height 폴백 (기존 동작 보존)", () => {
+    const cw = 220;
+    const shapes = draw({
+      props: { children: "2024년 1월", _containerWidth: cw },
+      size: sizeMd, // height 30
+      visual,
+      style: undefined,
+    })!;
+    // _containerHeight 없으면 cy = size.height(30)/2 = 15.
+    yOf(shapes).forEach((y) => expect(y).toBe(15));
+  });
+});
