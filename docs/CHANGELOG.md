@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [CalendarHeader chevron 크기 CSS↔Skia 대칭 — 고정 16 통일] - 2026-07-02
+
+### Bug Fixes
+
+- **CalendarHeader prev/next chevron 이 Skia 에서 size 별로 CSS 와 어긋남** (TagGroup remove X 축1 동형 판정):
+  - **Why**: Calendar/RangeCalendar 의 헤더 chevron 은 DOM(`Calendar.tsx`/`RangeCalendar.tsx` self-compose `<header>`)에서 `<ChevronLeft size={16}>` / `<ChevronRight size={16}>` — **size prop 무관 고정 16px** Lucide glyph(프로젝트 DOM 아이콘 공통 고정-크기 컨벤션). 반면 Skia `inline_icon_text` primitive(`skiaPrimitives.ts`, CalendarHeader replace)는 chevron glyph 를 `fontSize + 2`(rule `size.fontSize` 토큰 파생)로 그려 **size 별 가변**(sm 14 / md 16 / lg 18) → md 만 우연 일치, sm 은 Skia 2px 작고 lg 는 Skia 2px 큼 → CSS↔Skia 시각 비대칭(D3 위반).
+  - 수정: `inlineIconText` 의 chevron glyph fontSize 를 **전 size 고정 16**(`CALENDAR_CHEVRON_DOM_PX`)으로 못 박아 DOM `size={16}` 과 대칭. layout `iconSize`(sm20/md26/lg32)는 `cellSize`(=iconSize+4)·좌표 계산 전용이라 **glyph 크기와 분리 유지** → 위치 회귀 없음. rule sizes 미주입 폴백은 기존 `fontSize+2` 유지. center text 는 `size.fontSize` 유지(size 비례, chevron 고정과 무관). TagGroup remove X 축1(DOM 고정-크기 통일)과 동형 판정 — 컴포넌트 식별 if 없이 primitive 데이터 흐름만 (ADR-142 §3).
+  - **회귀 가드**: `skiaPrimitives.inlineIconText.test.ts` 신규 — 좌·우 chevron glyph fontSize=16(sm/md/lg 전부) + center text fontSize=rule 토큰(14 md) 유지 + cellSize/좌표는 iconSize 유지(위치 불변) 6 케이스(502 tests PASS). RED: 수정 전 sm(14)/lg(18) FAIL, md(16) 우연 통과.
+  - live 검증: Preview DOM chevron `getBoundingClientRect` md/lg 모두 16×16px 확인, Skia lg chevron 이 CSS 16px chevron 과 시각 동등(수정 전이면 18px). type-check PASS(baseline 69).
+  - 위치: `packages/specs/src/renderers/skiaPrimitives.ts`(`CALENDAR_CHEVRON_DOM_PX` + `inlineIconText` chevron glyph 고정)
+
 ## [TagGroup maxRows 접힘 — Taffy 실측 rowY 기반 재설계 (폭 가변 견고)] - 2026-07-02
 
 ### Bug Fixes

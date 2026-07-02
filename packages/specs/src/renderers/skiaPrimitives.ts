@@ -2082,6 +2082,13 @@ const leadingIcon: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
  *   (spec render.shapes 동형).
  * - color = visual.text(좌우 icon 동일), textAlign = visual.textAlign ?? "center".
  */
+/**
+ * CalendarHeader chevron 은 DOM(Calendar/RangeCalendar `<ChevronLeft size={16}>`)에서 size 무관
+ * 고정 16px 이다. Skia glyph 도 동일 16 으로 못 박아 CSS↔Skia 대칭 유지(rule size.fontSize 파생
+ * 가변 금지). TagGroup remove X 축1 과 동형(DOM 고정-크기 아이콘 컨벤션).
+ */
+const CALENDAR_CHEVRON_DOM_PX = 16;
+
 const inlineIconText: SkiaPrimitiveDrawFn = ({
   props,
   size,
@@ -2102,6 +2109,14 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
       ? size.iconSize
       : Math.round(fontSize * 1.1) + 12; // CalendarHeader dims.iconSize(md 26) 근사
   const cellSize = iconSize + 4;
+  // chevron glyph 크기 = DOM `<ChevronLeft size={16}>`(Calendar/RangeCalendar) 고정 16 과 대칭.
+  //   layout iconSize(sm20/md26/lg32)는 cellSize/좌표 전용 — glyph 크기와 분리(과거 fontSize+2 는
+  //   size 별 가변 sm14/md16/lg18 → md 만 우연 일치, sm/lg CSS 16 과 어긋남). TagGroup remove X 축1
+  //   동형 판정(DOM 고정-크기 아이콘 컨벤션). rule.sizes 미주입 폴백은 기존 fontSize+2 유지.
+  const chevronGlyphSize =
+    typeof size.iconSize === "number" && size.iconSize > 0
+      ? CALENDAR_CHEVRON_DOM_PX
+      : fontSize + 2;
   const gap = typeof size.gap === "number" && size.gap > 0 ? size.gap : 6;
   const height =
     typeof size.height === "number" && size.height > 0 ? size.height : 30;
@@ -2138,7 +2153,7 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
       iconName: li.name,
       x: cellSize / 2,
       y: cy,
-      fontSize: fontSize + 2,
+      fontSize: chevronGlyphSize,
       fill: iconColor,
       strokeWidth: (props.strokeWidth as number | undefined) ?? 2,
     },
@@ -2161,7 +2176,7 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
       iconName: ti.name,
       x: width - cellSize / 2,
       y: cy,
-      fontSize: fontSize + 2,
+      fontSize: chevronGlyphSize,
       fill: iconColor,
       strokeWidth: (props.strokeWidth as number | undefined) ?? 2,
     },
