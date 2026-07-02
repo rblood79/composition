@@ -100,3 +100,59 @@ describe("buildCatalogShapes — Tag remove X trailing icon 크기(size.iconSize
     expect(findIcon(shapes)).toBeUndefined();
   });
 });
+
+describe("buildCatalogShapes — Tag remove X trailing icon 우측 위치(paddingY 여백)", () => {
+  // 정본(CSS `.react-aria-Tag[data-allows-removing] padding-right: xs`(=paddingY 4) + layout SSOT
+  //   resolveTagWrapLayout chipPaddingRight=paddingY): X 우측 여백 = paddingY, X 중심 =
+  //   containerWidth - paddingY - iconSize/2. 구 `size.paddingX`(12) 사용은 X 를 안쪽으로 당겨
+  //   label 침범(붙어 보임). 회귀 시 paddingX 로 되돌아가면 iconCx 가 8px 작아져 FAIL.
+  it("_containerWidth 있으면 X 중심 = containerWidth - paddingY - iconSize/2 (우측 여백 paddingY)", () => {
+    const cw = 94; // md "New Tag" allowsRemoving chip 실측 폭 근사
+    const shapes = buildCatalogShapes(
+      tagVisual,
+      { children: "New Tag", allowsRemoving: true, _containerWidth: cw },
+      sizeMd,
+      "default",
+    );
+    const icon = findIcon(shapes)!;
+    // paddingY=4, iconSize=14 → cx = 94 - 4 - 7 = 83. (구 paddingX=12 였다면 75 로 8px 안쪽.)
+    expect(icon.x).toBe(cw - sizeMd.paddingY - 14 / 2);
+    // X 우측 끝(cx + iconSize/2) 과 chip 우측(cw) 사이 여백 = paddingY (상하 여백과 대칭).
+    const rightMargin = cw - (icon.x + 14 / 2);
+    expect(rightMargin).toBe(sizeMd.paddingY);
+  });
+
+  it("우측 여백 소스 = paddingY (paddingX 아님) — 두 값 다를 때 paddingY 채택", () => {
+    // paddingX 20 / paddingY 4 로 크게 벌려, paddingX 를 쓰면 cx 가 16px 안쪽으로 어긋남을 고정.
+    const skewed = {
+      ...sizeMd,
+      paddingX: 20,
+      paddingY: 4,
+    } as unknown as SizeSpec;
+    const cw = 100;
+    const shapes = buildCatalogShapes(
+      tagVisual,
+      { children: "New Tag", allowsRemoving: true, _containerWidth: cw },
+      skewed,
+      "default",
+    );
+    // paddingY(4) 채택 → cx = 100 - 4 - 7 = 89. paddingX(20) 였다면 73.
+    expect(findIcon(shapes)!.x).toBe(cw - 4 - 14 / 2);
+  });
+
+  it("사용자 명시 style.paddingRight 는 존중 (우측 여백 override)", () => {
+    const cw = 100;
+    const shapes = buildCatalogShapes(
+      tagVisual,
+      {
+        children: "New Tag",
+        allowsRemoving: true,
+        _containerWidth: cw,
+        style: { paddingRight: "10px" },
+      },
+      sizeMd,
+      "default",
+    );
+    expect(findIcon(shapes)!.x).toBe(cw - 10 - 14 / 2);
+  });
+});

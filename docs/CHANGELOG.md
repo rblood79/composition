@@ -53,6 +53,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **회귀 가드**: `tagRemoveIconSize.test.ts` 신규 — Tag rule 전 size iconSize=14 데이터 계약(1 test, RED: 구값 4 size FAIL). `buildCatalogShapes.trailingIcon.test.ts` 신규 — trailingIcon glyph fontSize=size.iconSize read-through + showProp 게이트 계약(3 tests, `fontSize×0.75` fallback 회귀 방지).
   - live 검증: md TagGroup remove X 가 Skia 11→14px 로 커져 CSS(14) 와 대칭(zoom 육안 확인). catalog 28파일/241 + specs 24파일/304 테스트 회귀 없음. type-check PASS(baseline 69).
   - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`(Tag.sizes.\*.iconSize 14 통일)
+- **TagGroup `allowsRemoving` remove X 가 Skia 에서 label 에 붙어 보임 (우측 위치 계산 오류)** (위 iconSize 확대의 후속 — CSS↔Skia 위치 비대칭):
+  - **Why**: Skia `buildCatalogShapes` trailingIcon 우측 절대 배치 `iconCx = containerWidth - paddingRight - iconSize/2` 에서 `paddingRight` 를 `size.paddingX`(md 12)로 잡았다. 그러나 정본은 우측 여백 = **`paddingY`**(md 4) — CSS `.react-aria-Tag[data-allows-removing] { padding-right: var(--spacing-xs) }`(=4, 상하 padding 과 대칭) + layout SSOT `resolveTagWrapLayout`(`chipPaddingRight = allowsRemoving ? paddingY : paddingX`)이 동일하게 paddingY 를 쓴다. Skia 가 12 를 쓰면 X 중심이 우측 절대배치에서 안쪽으로 (12−4=)8px 당겨져 **label 을 침범**(iconSize 를 11→14 로 키운 뒤 겹침이 더 두드러짐) + 우측엔 12px 과다 여백. 라이브 계측(md, chip 94px): 정본 X 중심 cx=80(우측 여백 7=paddingY4+btn2+border1) vs Skia 는 label 에 붙음.
+  - 수정: trailingIcon 블록의 `paddingRight` fallback 을 `size.paddingX` → **`size.paddingY`** 로 교정(`style?.paddingRight ?? style?.padding` 사용자 override 는 존중). 이로써 X 중심 = `containerWidth - paddingY - iconSize/2` → text↔X gap = iconGap(4), X 우측 여백 = paddingY(4)로 layout 모델(`text | iconGap | glyph | paddingY`)과 정합. 컴포넌트 식별 if 아님 — trailingIcon 데이터로 진입한 블록의 우측 여백 규칙(ADR-142 §3).
+  - **회귀 가드**: `buildCatalogShapes.trailingIcon.test.ts` 에 위치 계약 3 케이스 추가 — X 중심=containerWidth−paddingY−iconSize/2 + 우측여백=paddingY / paddingX≠paddingY 일 때 paddingY 채택 / style.paddingRight override 존중(6 tests PASS). RED: paddingY→paddingX 되돌림 시 2 케이스 FAIL.
+  - live 검증: md remove X 가 label 에 붙던 것이 gap 4px + 우측 여백 4px 로 CSS(`New Tag ×`)와 대칭(zoom 육안). lg size 도 gap 정합(회귀 없음). type-check PASS(baseline 69).
+  - 위치: `packages/specs/src/renderers/buildCatalogShapes.ts`(trailingIcon paddingRight fallback paddingY)
 
 ## [TagGroup 8종 수정 — Add Tag Skia 미반영 / chip gap Skia↔CSS 비대칭 / non-standard orientation prop 제거 / labelPosition=side selection 높이 발산 / maxRows Property 편집 UI 누락 / maxRows Skia 화면 접힘 / maxRows "Show all" 위치 발산 / maxRows 세로 gap 발산] - 2026-07-01
 
