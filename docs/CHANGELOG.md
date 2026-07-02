@@ -47,6 +47,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **회귀 가드**: `tagGroupMirrorChipSize.test.ts` 에 side-label 폭 동기화 4 케이스 추가 — `tagListWrapperRef` 선언 / 미러 width 에 `clientWidth` 주입 / 실제 wrapper 에 ref 부착 / ResizeObserver wrapper 관찰(TagGroup.tsx 소스 구조 계약, 15 tests PASS). RED: 폭 주입 라인 제거 시 1 케이스 FAIL. (jsdom 은 clientWidth/getBoundingClientRect.y 미계산 → 실제 wrap 수렴은 live 확증.)
   - live 검증: side md maxRows=2 / 10칩 → 미러 폭 348→**276**(=실제 wrapper 폭), visibleTagCount 8→**6**, CSS 3줄→**2줄 + Show all 3번째 줄**(98) ↔ Skia selection 350×98(2줄+Show all) 대칭. type-check PASS(baseline 69).
   - 위치: `packages/shared/src/components/TagGroup.tsx`(`tagListWrapperRef` + `computeVisibleTagCount` 미러 폭 동기화 + ResizeObserver wrapper 관찰)
+- **TagGroup `allowsRemoving` remove X 아이콘이 Skia 에서 CSS 보다 작음** (CSS↔Skia 크기 비대칭):
+  - **Why**: chip 우측 remove X 를 CSS(DOM)는 `TagGroup.tsx` 가 `<Button slot="remove"><X size={14} /></Button>` 로 **모든 size 14px 고정** Lucide glyph(프로젝트 다른 아이콘 Calendar/Table 16px 등과 동일한 고정-크기 컨벤션)로 그리는데, Skia `buildCatalogShapes` trailingIcon 은 catalog Tag rule `sizes.iconSize`(`round(fontSize×0.75)` = xs8/sm9/md11/lg12/xl14)를 glyph fontSize 로 사용했다 → md 11px vs CSS 14px 로 Skia X 가 3px 작음(사용자 관찰). 라이브 계측(md): CSS remove SVG 14×14px vs Skia iconSize 11.
+  - 수정: catalog `COMPONENT_RULES_TABLE.Tag.sizes.*.iconSize` 를 **전 size 14 로 통일**(CSS 14 고정을 정본으로 대칭). Tag 는 leading icon 이 없어 iconSize=remove X(trailingIcon) 전용 → 14 통일 부작용 없음. layout chip width(`resolveTagChipMetric`)는 iconSize 가 아니라 fontSize 로 remove 예약 폭을 잡아 layout 무영향. Tag 는 generated CSS 없음(DOM 은 부모 TagGroup self-compose) → iconSize 변경이 CSS remove X(하드코딩 14)에 영향 없음.
+  - **회귀 가드**: `tagRemoveIconSize.test.ts` 신규 — Tag rule 전 size iconSize=14 데이터 계약(1 test, RED: 구값 4 size FAIL). `buildCatalogShapes.trailingIcon.test.ts` 신규 — trailingIcon glyph fontSize=size.iconSize read-through + showProp 게이트 계약(3 tests, `fontSize×0.75` fallback 회귀 방지).
+  - live 검증: md TagGroup remove X 가 Skia 11→14px 로 커져 CSS(14) 와 대칭(zoom 육안 확인). catalog 28파일/241 + specs 24파일/304 테스트 회귀 없음. type-check PASS(baseline 69).
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`(Tag.sizes.\*.iconSize 14 통일)
 
 ## [TagGroup 8종 수정 — Add Tag Skia 미반영 / chip gap Skia↔CSS 비대칭 / non-standard orientation prop 제거 / labelPosition=side selection 높이 발산 / maxRows Property 편집 UI 누락 / maxRows Skia 화면 접힘 / maxRows "Show all" 위치 발산 / maxRows 세로 gap 발산] - 2026-07-01
 

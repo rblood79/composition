@@ -10768,7 +10768,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-912 영역 B (A) Tag cutover (2026-06-12): paddingX 보강 — buildCatalogShapes 가
       //   text x = paddingX 로 좌측 정렬. Tag.spec sizes.paddingX(xs4/sm8/md12/lg16/xl24) 이전.
       //   미보강 시 `?? 0` fallback 으로 text 가 box 좌측 끝(padding 없음)에 붙음(chip 시각 깨짐).
-      // iconSize: remove X(trailing_icon) glyph 크기 = round(fontSize × 0.75) (Tag.spec X 공식 동형).
+      // iconSize: remove X(trailing_icon) glyph 크기 = **전 size 14 고정** (2026-07-02). CSS(DOM)는
+      //   TagGroup.tsx `<Button slot="remove"><X size={14} /></Button>` 로 모든 size 14px 고정 —
+      //   Skia trailingIcon 도 동일 14 로 맞춰 CSS↔Skia 시각 대칭(D3). 구 `round(fontSize×0.75)`
+      //   (xs8/sm9/md11/lg12/xl14)는 md 11 vs CSS 14 로 Skia X 가 작았다(사용자 관찰). Tag 는 leading
+      //   icon 이 없어 iconSize=remove X 전용 → 14 통일 부작용 없음. layout chip width(resolveTagChipMetric)
+      //   는 fontSize 로 remove 예약 폭을 잡아 iconSize 무관. Tag 는 generated CSS 없음(부모 self-compose).
       // ADR-912 단계5 step4 (2026-06-17): paddingY 보강 — layout TAG_SIZE_CONFIG 가 spec.sizes 대신
       //   ruleSizesToSizeSpecMap("Tag") 파생으로 이관(deriveSizeConfig 가 paddingY 소비 — allowsRemoving
       //   우측 패딩 축소 계산). Tag.spec paddingY(xs1/sm2/md4/lg8/xl12 = (height-lineHeight)/2 동일값) 이전.
@@ -10779,7 +10784,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 18,
         paddingX: 4,
         paddingY: 1,
-        iconSize: 8,
+        iconSize: 14,
       },
       sm: {
         fontSize: "{typography.text-xs}",
@@ -10788,7 +10793,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 20,
         paddingX: 8,
         paddingY: 2,
-        iconSize: 9,
+        iconSize: 14,
       },
       md: {
         fontSize: "{typography.text-sm}",
@@ -10797,7 +10802,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 28,
         paddingX: 12,
         paddingY: 4,
-        iconSize: 11,
+        iconSize: 14,
       },
       lg: {
         fontSize: "{typography.text-base}",
@@ -10806,7 +10811,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 40,
         paddingX: 16,
         paddingY: 8,
-        iconSize: 12,
+        iconSize: 14,
       },
       xl: {
         fontSize: "{typography.text-lg}",
