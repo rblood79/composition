@@ -10741,6 +10741,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           gap: 2,
           color: "{color.neutral}",
           showProp: "allowsRemoving",
+          // remove X 우측 여백 = paddingY + insetRight. CSS 실측(md chip): icon 우측 → chip 경계 7px =
+          //   paddingY(4) + .tag-remove-btn padding(2) + chip border(1). insetRight=3 으로 대칭.
+          insetRight: 3,
         },
       },
       selected: {
@@ -10761,6 +10764,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           gap: 2,
           color: "{color.on-accent}",
           showProp: "allowsRemoving",
+          insetRight: 3,
         },
       },
     },

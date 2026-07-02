@@ -90,7 +90,19 @@ export interface ComponentVisualRule {
    * DOM 은 부모 컴포넌트가 self-compose(Calendar/RangeCalendar `<header>`) → Skia generic 재현 전용.
    */
   trailingIcon:
-    | { name: string; gap?: number; color?: TokenRef; showProp?: string }
+    | {
+        name: string;
+        gap?: number;
+        color?: TokenRef;
+        showProp?: string;
+        /**
+         * 우측 절대배치 시 chip 우측 경계 ~ icon 사이 추가 inset(px). 최종 우측 여백 =
+         * `paddingY + insetRight`. Tag remove X 는 CSS `.tag-remove-btn`(padding 2 + chip border 1)
+         * 만큼 icon 이 안쪽에 위치 → insetRight=3 으로 CSS 우측 여백(paddingY 4 + 3 = 7)과 대칭.
+         * 미지정 시 0(우측 여백 = paddingY 단독).
+         */
+        insetRight?: number;
+      }
     | undefined;
   /**
    * 텍스트 정렬 (CSS text-align 동형, ADR-912 (B+icon)). `inline_icon_text` 가 center text

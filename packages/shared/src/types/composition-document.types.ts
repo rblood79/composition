@@ -192,6 +192,12 @@ export interface ComponentRuleVariant {
     gap?: number;
     color?: string;
     showProp?: string;
+    /**
+     * 우측 절대배치 시 chip 우측 경계 ~ icon 사이 추가 inset(px). 최종 우측 여백 =
+     * `paddingY + insetRight`. Tag remove X 는 CSS `.tag-remove-btn`(padding 2 + chip border 1)만큼
+     * icon 이 안쪽 → insetRight=3 으로 CSS 우측 여백(paddingY 4 + 3 = 7)과 대칭. 미지정 시 0.
+     */
+    insetRight?: number;
   };
   /**
    * 텍스트 정렬 (CSS text-align 동형 — CalendarHeader center 등 보편 D3 속성, ADR-912 (B+icon)).

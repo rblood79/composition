@@ -411,19 +411,21 @@ export function buildCatalogShapes(
           : typeof size.height === "number" && size.height > 0
             ? size.height
             : fontSize + 8;
-      // trailing icon 우측 여백 = **paddingY** (paddingX 아님). trailing icon 이 chip 우측을
-      //   차지하는 컴포넌트(Tag remove X)는 우측 여백이 상하 여백(paddingY)과 대칭이다 —
-      //   CSS 정본 `.react-aria-Tag[data-allows-removing] { padding-right: xs }`(= paddingY) 와
-      //   layout SSOT `resolveTagWrapLayout`(chipPaddingRight = paddingY)이 동일. 구
-      //   `size.paddingX`(md 12) 사용은 X 중심을 우측 절대배치에서 안쪽으로 당겨(12 vs 4) text 를
-      //   침범 → label 과 remove X 가 붙어 보였다(2026-07-02). 사용자 명시 style.paddingRight 는 존중.
-      //   컴포넌트 식별 if 아님 — trailingIcon 데이터 유무로 진입한 블록의 우측 여백 규칙(ADR-142 §3).
-      const paddingRight = parsePxValue(
-        style?.paddingRight ?? style?.padding,
-        size.paddingY ?? size.paddingX ?? 0,
-      );
-      // icon 중앙 x: container width 있으면 우측 절대(우측 여백 = paddingY), 없으면 text 우측
-      //   (측정 기반) fallback. 두 경로 모두 layout 모델(text | iconGap | glyph | paddingY)과 정합.
+      // trailing icon 우측 여백 = **paddingY + insetRight**. trailing icon 이 chip 우측을 차지하는
+      //   컴포넌트(Tag remove X)는 CSS 실측(md chip 94px)상 icon 우측 → chip 경계 = 7px =
+      //   paddingY(4) + remove버튼 padding(2) + chip border(1). paddingY 는 상하 여백과 대칭이고,
+      //   나머지 3px(remove버튼 padding + border)은 rule 데이터 `trailingIcon.insetRight` 로 표현
+      //   (Tag=3). 구 `size.paddingX`(md 12)는 X 를 안쪽으로 당겨 label 침범, paddingY(4) 단독은
+      //   CSS 7px 보다 작아 X 가 우측 경계에 붙음(사용자 관찰 2026-07-02). 사용자 명시 style.paddingRight
+      //   는 존중. 컴포넌트 식별 if 아님 — trailingIcon 데이터로 진입한 블록의 우측 여백 규칙(ADR-142 §3).
+      const insetRight = typeof ti.insetRight === "number" ? ti.insetRight : 0;
+      const paddingRight =
+        parsePxValue(
+          style?.paddingRight ?? style?.padding,
+          size.paddingY ?? size.paddingX ?? 0,
+        ) + (style?.paddingRight != null ? 0 : insetRight);
+      // icon 중앙 x: container width 있으면 우측 절대(우측 여백 = paddingY + insetRight), 없으면
+      //   text 우측(측정 기반) fallback. 두 경로 모두 layout 모델(text | iconGap | glyph | 우측여백)과 정합.
       const iconCx =
         containerWidth > 0
           ? containerWidth - paddingRight - iconSize / 2

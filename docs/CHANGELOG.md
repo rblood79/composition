@@ -59,6 +59,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **회귀 가드**: `buildCatalogShapes.trailingIcon.test.ts` 에 위치 계약 3 케이스 추가 — X 중심=containerWidth−paddingY−iconSize/2 + 우측여백=paddingY / paddingX≠paddingY 일 때 paddingY 채택 / style.paddingRight override 존중(6 tests PASS). RED: paddingY→paddingX 되돌림 시 2 케이스 FAIL.
   - live 검증: md remove X 가 label 에 붙던 것이 gap 4px + 우측 여백 4px 로 CSS(`New Tag ×`)와 대칭(zoom 육안). lg size 도 gap 정합(회귀 없음). type-check PASS(baseline 69).
   - 위치: `packages/specs/src/renderers/buildCatalogShapes.ts`(trailingIcon paddingRight fallback paddingY)
+- **TagGroup `allowsRemoving` remove X 우측 여백이 이번엔 paddingY 보다도 작음 (위 paddingY 단독 교정의 후속 정정)** (CSS↔Skia 위치 정밀 대칭):
+  - **Why**: 위 교정(우측 여백 = paddingY 4)은 여전히 CSS 실측(7px)보다 작았다. CSS 실측(md chip 94px) remove X 우측 여백 = **7px = paddingY(4) + `.tag-remove-btn` padding(2) + chip border(1)**. Skia 는 paddingY(4)만 잡아 X 가 chip 우측 경계에 붙음(사용자 관찰: "padding-top 보다 padding-right 여백이 더 작다"). remove 버튼의 padding/border inset(3px)이 우측 여백에서 누락됐다. 라이브 실측: CSS svg cx=80(=cw−14), Skia paddingY 단독 시 cx=83(우측 여백 4).
+  - 수정: trailingIcon 데이터에 **`insetRight`** 필드 신설 — 우측 여백 = `paddingY + insetRight`. Tag rule trailingIcon 에 `insetRight: 3`(= remove버튼 padding 2 + chip border 1) 지정. X 중심 = `containerWidth − (paddingY + insetRight) − iconSize/2` = 94 − 7 − 7 = **80**(CSS svg cx 80 실측 정확 일치). insetRight 미지정 컴포넌트는 우측 여백 = paddingY 단독(기본 0). 사용자 명시 `style.paddingRight` override 시 insetRight 미가산. 컴포넌트 식별 if 아님 — trailingIcon rule 데이터(ADR-142 §3).
+  - **회귀 가드**: `buildCatalogShapes.trailingIcon.test.ts` 위치 계약 갱신 — X 중심=cw−(paddingY+insetRight)−iconSize/2=80 (CSS 실측 cx 일치) / paddingX≠paddingY 시 paddingY+insetRight 채택 / insetRight 미지정 시 paddingY 단독 / style.paddingRight override(7 tests PASS). RED: paddingY→paddingX 되돌림 시 FAIL.
+  - live 검증: md remove X 우측 여백 4→7px 로 CSS(svg cx 80, 우측 여백 7)와 정확 대칭(zoom 육안 + CSS 실측 cx 80 대조). specs 308 + catalog 241 회귀 없음. type-check PASS(baseline 69).
+  - 위치: `packages/specs/src/renderers/buildCatalogShapes.ts`(insetRight 소비) + `utils/resolveComponentVisual.ts`·`composition-document.types.ts`(trailingIcon.insetRight 타입) + `catalog/generated/componentRulesTable.ts`(Tag trailingIcon insetRight:3)
 
 ## [TagGroup 8종 수정 — Add Tag Skia 미반영 / chip gap Skia↔CSS 비대칭 / non-standard orientation prop 제거 / labelPosition=side selection 높이 발산 / maxRows Property 편집 UI 누락 / maxRows Skia 화면 접힘 / maxRows "Show all" 위치 발산 / maxRows 세로 gap 발산] - 2026-07-01
 
