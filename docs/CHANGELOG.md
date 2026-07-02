@@ -33,6 +33,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - live 검증: CalendarHeader 선택 → Style 패널 Layout 에 Direction=row / Justify=space-between 표시(확대 스크린샷 확인). DOM `<header>` computed `display:flex; flex-direction:row; justify-content:space-between; align-items:center`. Justify center 편집 → DOM `justify-content:center` override, 원복 → base space-between 복귀. shared 444 / specs 514 PASS, type-check baseline 69.
   - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`(CalendarHeader.structure), `packages/shared/src/components/styles/CalendarCommon.css`(header flex 4값)
 
+- **CalendarHeader `flex-direction: column` Skia 반영 (row→column CSS↔Skia 대칭)**:
+  - **Why**: B2 는 `justifyContent/gap/paddingX` 만 소비하고 `flexDirection` 은 안 읽었다 → direction row→column 변경 시 CSS Preview 는 자식(prev/heading/next)이 세로로 쌓이는데 Skia `inline_icon_text` 는 row 절대좌표 고정이라 반영 안 됨(D3 시각 발산). live 측정: CSS Preview column 시 자식 relY 0/30/51(세로), Skia 가로 유지.
+  - 수정: `inlineIconText` 가 `style.flexDirection` 소비 → column/column-reverse 면 세로 3슬롯 배치(위 chevron `cellSize/2` / 중앙 text `colHeight/2` / 아래 chevron `colHeight-cellSize/2`, x 는 컨테이너 중앙 `width/2`). colHeight 는 `_containerHeight`(CONTAINER_DIMENSION_TAGS 주입) 폴백 `cellSize*3+gap*2`. row 는 기존 좌표 유지(회귀 0).
+  - **회귀 가드**: `skiaPrimitives.inlineIconText.test.ts` 에 column 계약(chevron x=중앙 동일 + y 세로 쌓임 + text y=colHeight/2) + row 유지(y 동일, x 가로) 추가. specs 516 tests PASS.
+  - live 검증: direction column 편집 → CSS Preview + Skia canvas 양쪽 세로 배치("‹" 위 / "2026년 7월" 중앙 / "›" 아래) 대칭 확인. type-check baseline 69.
+  - 위치: `packages/specs/src/renderers/skiaPrimitives.ts`(inlineIconText column 분기)
+
 ## [DisclosureHeader chevron 크기 CSS↔Skia 대칭 — 고정 18 통일] - 2026-07-02
 
 ### Bug Fixes

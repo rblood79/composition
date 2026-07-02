@@ -316,3 +316,56 @@ describe("skiaPrimitive 'inline_icon_text' — element.props.style layout 소비
     expect(t.x! + t.maxWidth! / 2).toBe(cw / 2);
   });
 });
+
+describe("skiaPrimitive 'inline_icon_text' — flexDirection column 세로 배치 (CSS↔Skia 대칭)", () => {
+  // 사용자 확인(2026-07-02): direction row→column 변경 시 CSS Preview 는 자식(prev/heading/next)이
+  //   세로로 쌓이는데 Skia 는 반영 안 됐다(primitive 가 row 절대좌표 고정, flexDirection 미소비).
+  //   column 이면 위 chevron / 중앙 text / 아래 chevron 세로 배치(x 는 컨테이너 중앙 width/2).
+  const iconOf = (shapes: Shape[], name: string) =>
+    shapes.find(
+      (s) =>
+        s.type === "icon_font" &&
+        (s as { iconName?: string }).iconName === name,
+    )! as { x?: number; y?: number };
+  const txt = (shapes: Shape[]) =>
+    shapes.find((s) => s.type === "text")! as { x?: number; y?: number };
+
+  it("flexDirection column 이면 chevron 이 세로로 쌓임 (좌우 x 동일=중앙, y 다름)", () => {
+    const cw = 220;
+    const ch = 90;
+    const shapes = draw({
+      props: {
+        children: "2024년 1월",
+        _containerWidth: cw,
+        _containerHeight: ch,
+      },
+      size: sizeMd,
+      visual,
+      style: { flexDirection: "column" },
+    })!;
+    const top = iconOf(shapes, "chevron-left");
+    const bottom = iconOf(shapes, "chevron-right");
+    // x 는 둘 다 컨테이너 중앙 (row 처럼 좌우로 안 벌어짐).
+    expect(top.x).toBe(cw / 2);
+    expect(bottom.x).toBe(cw / 2);
+    // y 는 위 chevron < 아래 chevron (세로 쌓임).
+    expect(top.y!).toBeLessThan(bottom.y!);
+    // text 는 중앙 (y = colHeight/2 = 45).
+    expect(txt(shapes).y).toBe(ch / 2);
+  });
+
+  it("row(기본) 는 여전히 가로 배치 (y 동일, x 다름) — column 분기가 row 회귀 안 시킴", () => {
+    const cw = 220;
+    const shapes = draw({
+      props: { children: "2024년 1월", _containerWidth: cw },
+      size: sizeMd,
+      visual,
+      style: { flexDirection: "row" },
+    })!;
+    const left = iconOf(shapes, "chevron-left");
+    const right = iconOf(shapes, "chevron-right");
+    // row: y 동일(cy), x 좌우로 벌어짐.
+    expect(left.y).toBe(right.y);
+    expect(left.x!).toBeLessThan(right.x!);
+  });
+});

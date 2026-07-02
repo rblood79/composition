@@ -2163,6 +2163,9 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
   );
   const justify =
     (style?.justifyContent as string | undefined) ?? "space-between";
+  const flexDirection = (style?.flexDirection as string | undefined) ?? "row";
+  const isColumn =
+    flexDirection === "column" || flexDirection === "column-reverse";
 
   const textColor =
     (style?.color as string | undefined) ?? visual?.text ?? undefined;
@@ -2173,7 +2176,51 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
       ? props.children
       : "2024년 1월";
 
-  // 좌·우 chevron 중심 x + text 슬롯 [textLeft, textRight] 계산.
+  // ── flexDirection: column — chevron/text/chevron 을 세로로 쌓음 (Style 패널 동기화 후속) ──
+  //   DOM `<header>` 가 flex-direction:column 이면 자식(prev/heading/next)이 세로 배치되므로
+  //   Skia 도 대칭(위 chevron / 중앙 text / 아래 chevron, x 는 컨테이너 중앙). row 는 기존 좌표 유지.
+  if (isColumn) {
+    const containerHeight = (props._containerHeight as number | undefined) ?? 0;
+    const colHeight =
+      containerHeight > 0 ? containerHeight : cellSize * 3 + itemGap * 2;
+    const cx = width / 2;
+    // 세로 3슬롯: 위 chevron cellSize/2, 중앙 text colHeight/2, 아래 chevron colHeight-cellSize/2.
+    return [
+      {
+        type: "icon_font",
+        iconName: li.name,
+        x: cx,
+        y: padLeft > 0 ? padLeft + cellSize / 2 : cellSize / 2,
+        fontSize: chevronGlyphSize,
+        fill: iconColor,
+        strokeWidth: (props.strokeWidth as number | undefined) ?? 2,
+      },
+      {
+        type: "text",
+        x: 0,
+        y: colHeight / 2,
+        text,
+        fontSize,
+        fontFamily: fontFamily.sans,
+        fontWeight: 700,
+        fill: textColor,
+        align: "center",
+        baseline: "middle",
+        maxWidth: width,
+      },
+      {
+        type: "icon_font",
+        iconName: ti.name,
+        x: cx,
+        y: colHeight - cellSize / 2,
+        fontSize: chevronGlyphSize,
+        fill: iconColor,
+        strokeWidth: (props.strokeWidth as number | undefined) ?? 2,
+      },
+    ];
+  }
+
+  // 좌·우 chevron 중심 x + text 슬롯 [textLeft, textRight] 계산 (row).
   //   space-between(기본): chevron 을 padding 안쪽 양끝에, text 는 그 사이 대칭 슬롯 center.
   //   center: 3요소(chevron+gap+text+gap+chevron)를 컨테이너 중앙에 모음 — text 실측 폭 필요.
   let leftIconX: number;
