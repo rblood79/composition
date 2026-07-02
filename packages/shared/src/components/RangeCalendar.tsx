@@ -39,6 +39,12 @@ export interface RangeCalendarProps<T extends DateValue> extends Omit<
   maxValue?: string | DateValue;
   /** @default false */
   isLoading?: boolean;
+  /**
+   * CalendarHeader 자식 element.props.style 의 layout(display/flexDirection/gap/padding/
+   * justifyContent)을 `<header>` 에 적용 — Style 패널 Layout 편집 ↔ Skia inline_icon_text 대칭
+   * (2026-07-02 B2). Calendar.tsx 동형. header 구조/ARIA(D1) 불변, 시각 style(D3)만 얹는다.
+   */
+  headerStyle?: React.CSSProperties;
 }
 
 export function RangeCalendar<T extends DateValue>({
@@ -51,6 +57,7 @@ export function RangeCalendar<T extends DateValue>({
   minValue,
   maxValue,
   isLoading,
+  headerStyle,
   ...props
 }: RangeCalendarProps<T>) {
   if (isLoading) {
@@ -89,7 +96,7 @@ export function RangeCalendar<T extends DateValue>({
       maxValue={parsedMaxValue as T | undefined}
       visibleDuration={{ months: maxVisibleMonths }}
     >
-      <header>
+      <header style={headerStyle}>
         <Button slot="previous">
           <ChevronLeft size={16} />
         </Button>

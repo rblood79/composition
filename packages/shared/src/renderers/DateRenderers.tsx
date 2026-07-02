@@ -45,6 +45,44 @@ function resolveCalendarIconPosition(cip: unknown): "left" | "right" {
   return cip === "left" || cip === "right" ? cip : "right";
 }
 
+/**
+ * Calendar 자식 CalendarHeader element.props.style 의 layout 부분을 `<header>` 용 CSSProperties 로
+ * 추출한다 (2026-07-02 B2, Style 패널 Layout 편집 ↔ Skia inline_icon_text 대칭).
+ *
+ * layout 관련 속성만 화이트리스트로 통과 — header 구조/ARIA(D1) 및 color/width 등 비-layout 은 제외.
+ * DOM `<header>` 는 flex(prev/heading/next) 이므로 flexDirection/justifyContent/gap/padding 이 의미를
+ * 갖는다. style-ssot 규칙에 따라 gap 은 longhand(row/columnGap) 이 있으면 그대로, shorthand gap 은
+ * 컴포넌트가 알아서 소비. 값이 하나도 없으면 undefined 반환(기존 header 기본 배치 유지).
+ */
+export function resolveCalendarHeaderStyle(
+  element: PreviewElement,
+  context: RenderContext,
+): React.CSSProperties | undefined {
+  const children = context.childrenByParent.get(element.id) ?? [];
+  const headerEl = children.find((c) => c.type === "CalendarHeader");
+  const s = headerEl?.props?.style as Record<string, unknown> | undefined;
+  if (!s) return undefined;
+  const LAYOUT_KEYS = [
+    "display",
+    "flexDirection",
+    "justifyContent",
+    "alignItems",
+    "gap",
+    "rowGap",
+    "columnGap",
+    "padding",
+    "paddingTop",
+    "paddingRight",
+    "paddingBottom",
+    "paddingLeft",
+  ] as const;
+  const out: Record<string, unknown> = {};
+  for (const k of LAYOUT_KEYS) {
+    if (s[k] != null) out[k] = s[k];
+  }
+  return Object.keys(out).length > 0 ? (out as React.CSSProperties) : undefined;
+}
+
 function resolvePlaceholder(
   props: Record<string, unknown>,
 ): string | undefined {
@@ -86,12 +124,18 @@ export const renderCalendar = (
   // locale/calendarSystem 변경 시 리마운트 (defaultValue calendar 타입 재적용)
   const remountKey = `${element.id}-${locale || ""}-${calendarSystem || ""}`;
 
+  // CalendarHeader 자식 element.props.style 의 layout 부분을 `<header>` 로 전달 (2026-07-02 B2).
+  //   Skia inline_icon_text 가 동일 style 을 소비하므로 CSS↔Skia 대칭. header 구조/ARIA(D1) 불변,
+  //   시각 layout(D3)만 반영. Style 패널 Layout(Gap/Padding/Justify) 편집이 DOM header 에 동기화.
+  const headerStyle = resolveCalendarHeaderStyle(element, context);
+
   return (
     <Calendar
       key={remountKey}
       id={element.customId}
       data-element-id={element.id}
       style={element.props.style}
+      headerStyle={headerStyle}
       className={element.props.className}
       variant={(variant as "default" | "accent") || "default"}
       size={(size as "sm" | "md" | "lg") || "md"}
