@@ -350,8 +350,9 @@ describe("skiaPrimitive 'inline_icon_text' — flexDirection column 세로 배�
     expect(bottom.x).toBe(cw / 2);
     // y 는 위 chevron < 아래 chevron (세로 쌓임).
     expect(top.y!).toBeLessThan(bottom.y!);
-    // text 는 중앙 (y = colHeight/2 = 45).
-    expect(txt(shapes).y).toBe(ch / 2);
+    // text 는 y=0 + baseline:middle → specShapeConverter 가 colHeight 세로 중앙(위/아래 chevron 사이)
+    //   에 배치(row 동일 사유 — lineHeight 근사 회피). shape.y 값 자체는 0.
+    expect(txt(shapes).y).toBe(0);
   });
 
   it("row(기본) 는 여전히 가로 배치 (y 동일, x 다름) — column 분기가 row 회귀 안 시킴", () => {
@@ -375,10 +376,22 @@ describe("skiaPrimitive 'inline_icon_text' — 세로 중앙 정렬 (_containerH
   //   근본: primitive 가 cy = size.height(rule 고정 30)/2 로 계산, 실제 노드 높이(_containerHeight)를
   //   안 써서 노드가 30 아닐 때 세로 중앙 벗어남. width 가 _containerWidth 우선인 것과 대칭으로
   //   height 도 _containerHeight 우선 → cy = 실제 높이/2 (DOM header align-items:center 정합).
-  const yOf = (shapes: Shape[]) =>
-    shapes.map((s) => (s as { y?: number }).y ?? 0);
+  const chev = (shapes: Shape[], name: string) =>
+    shapes.find(
+      (s) =>
+        s.type === "icon_font" &&
+        (s as { iconName?: string }).iconName === name,
+    )! as { y?: number; baseline?: string };
+  const textS = (shapes: Shape[]) =>
+    shapes.find((s) => s.type === "text")! as { y?: number; baseline?: string };
 
-  it("_containerHeight 주입 시 text/chevron y = 실제 높이/2 (size.height 고정 아님)", () => {
+  // chevron(icon_font)은 baseline:middle 이면 specShapeConverter 가 shape.y 무시하고
+  //   containerHeight/2 로 배치 → y=cy 여도 실제 렌더는 컨테이너 세로 중앙.
+  // text 는 baseline:middle + y>0 이면 `y - lineHeightPx/2`(lineHeight 근사) 경로라 chevron 과
+  //   어긋남(위쪽 치우침) → y=0 을 줘 `(containerHeight - textBlockHeight)/2`(진짜 컨테이너 중앙)
+  //   경로를 타게 한다. 따라서 계약: text y=0, chevron y=cy, 둘 다 baseline:"middle".
+
+  it("_containerHeight 주입 시 chevron y = 실제 높이/2 (size.height 고정 아님)", () => {
     const cw = 220;
     const ch = 60; // rule md height(30) 와 다른 실제 노드 높이
     const shapes = draw({
@@ -391,11 +404,30 @@ describe("skiaPrimitive 'inline_icon_text' — 세로 중앙 정렬 (_containerH
       visual,
       style: undefined,
     })!;
-    // 모든 shape(chevron/text/chevron) y 가 세로 중앙 = ch/2 = 30 (rule 30/2=15 아님).
-    yOf(shapes).forEach((y) => expect(y).toBe(ch / 2));
+    // chevron cy = _containerHeight/2 = 30 (rule 30/2=15 아님).
+    expect(chev(shapes, "chevron-left").y).toBe(ch / 2);
+    expect(chev(shapes, "chevron-right").y).toBe(ch / 2);
   });
 
-  it("_containerHeight 미주입 시 size.height 폴백 (기존 동작 보존)", () => {
+  it("text 는 y=0 + baseline:middle (specShapeConverter 컨테이너 세로 중앙 위임 — lineHeight 근사 회피)", () => {
+    const cw = 220;
+    const shapes = draw({
+      props: {
+        children: "2024년 1월",
+        _containerWidth: cw,
+        _containerHeight: 60,
+      },
+      size: sizeMd,
+      visual,
+      style: undefined,
+    })!;
+    const t = textS(shapes);
+    // text y=0 → shape.y===0 경로 → (containerHeight - textBlockHeight)/2 진짜 중앙(chevron 과 동일 결과).
+    expect(t.y).toBe(0);
+    expect(t.baseline).toBe("middle");
+  });
+
+  it("_containerHeight 미주입 시 chevron cy = size.height 폴백 (기존 동작 보존)", () => {
     const cw = 220;
     const shapes = draw({
       props: { children: "2024년 1월", _containerWidth: cw },
@@ -403,7 +435,8 @@ describe("skiaPrimitive 'inline_icon_text' — 세로 중앙 정렬 (_containerH
       visual,
       style: undefined,
     })!;
-    // _containerHeight 없으면 cy = size.height(30)/2 = 15.
-    yOf(shapes).forEach((y) => expect(y).toBe(15));
+    // _containerHeight 없으면 cy = size.height(30)/2 = 15. text 는 여전히 y=0.
+    expect(chev(shapes, "chevron-left").y).toBe(15);
+    expect(textS(shapes).y).toBe(0);
   });
 });

@@ -2207,7 +2207,9 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
       {
         type: "text",
         x: 0,
-        y: colHeight / 2,
+        // y=0 + baseline:middle → 컨테이너(colHeight) 세로 중앙 = 위/아래 chevron 사이 중앙.
+        //   y>0 은 lineHeight 근사 경로라 회피(row 동일 사유).
+        y: 0,
         text,
         fontSize,
         fontFamily: fontFamily.sans,
@@ -2265,7 +2267,11 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
     {
       type: "text",
       x: textLeft,
-      y: cy,
+      // y=0 + baseline:"middle" → specShapeConverter 가 `(containerHeight - textBlockHeight)/2`
+      //   (컨테이너 실제 높이 기준 진짜 세로 중앙)로 배치 = chevron(icon_font baseline:middle →
+      //   containerHeight/2)과 동일 경로. y>0(cy) 을 주면 text 는 `y - lineHeightPx/2` 경로를 타
+      //   lineHeight 근사에 의존해 chevron 과 어긋남(위쪽 치우침) → y=0 으로 컨테이너 중앙 위임.
+      y: 0,
       text,
       fontSize,
       fontFamily: fontFamily.sans,

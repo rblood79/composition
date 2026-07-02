@@ -47,6 +47,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - live 검증: Calendar size lg(header 36) → Skia text/chevron y=18(세로중앙), CSS Preview 와 대칭(수정 전이면 y=15 위 치우침). type-check baseline 69.
   - 위치: `packages/specs/src/renderers/skiaPrimitives.ts`(inlineIconText height=\_containerHeight 우선)
 
+- **CalendarHeader text 세로 중앙 — `y:0` baseline 위임 (chevron 과 정렬 경로 통일)**:
+  - **Why**: `_containerHeight` 우선으로 cy 를 실제 높이 중앙으로 잡아도 text 가 여전히 위쪽 치우침. 근본은 specShapeConverter 의 **text baseline 경로 분기**: text `baseline:"middle"` + `shape.y>0` 이면 `paddingTop = y - lineHeightPx/2`(**lineHeight 근사 경로** — 미지정 lineHeight 는 `getLabelLineHeight` 계산값이라 실제 glyph 세로 위치와 어긋남), 반면 chevron(icon_font) `baseline:"middle"` 은 `shape.y` 무시하고 항상 `containerHeight/2`(진짜 중앙). 두 경로가 달라 text 만 위로 치우침(사용자 지적: "text lineHeight/자체 정렬 문제" 정확).
+  - 수정: text shape `y: cy` → **`y: 0`** (baseline:"middle" 유지). specShapeConverter 의 `shape.y===0` 경로 → `paddingTop = (containerHeight - textBlockHeight)/2` (컨테이너 실제 높이 기준 진짜 세로 중앙 = chevron 과 동일 결과, lineHeight 근사 회피). row/column 분기 text 모두 `y:0` 통일.
+  - **회귀 가드**: `skiaPrimitives.inlineIconText.test.ts` 세로중앙 계약 갱신 — chevron y=`_containerHeight`/2 / text y=0 + baseline:"middle"(specShapeConverter 컨테이너 중앙 위임). specs 519 tests PASS.
+  - live 검증: Skia header text "2026년 7월" 이 chevron 과 세로 중앙 정렬(확대 스크린샷) — 위쪽 치우침 해소, CSS Preview 대칭. type-check baseline 69.
+  - 위치: `packages/specs/src/renderers/skiaPrimitives.ts`(inlineIconText row/column text y=0)
+
 ## [DisclosureHeader chevron 크기 CSS↔Skia 대칭 — 고정 18 통일] - 2026-07-02
 
 ### Bug Fixes
