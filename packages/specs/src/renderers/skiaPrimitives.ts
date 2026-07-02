@@ -2117,7 +2117,7 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
     typeof size.iconSize === "number" && size.iconSize > 0
       ? CALENDAR_CHEVRON_DOM_PX
       : fontSize + 2;
-  const specGap = typeof size.gap === "number" && size.gap > 0 ? size.gap : 6;
+  const gap = typeof size.gap === "number" && size.gap > 0 ? size.gap : 6;
   const height =
     typeof size.height === "number" && size.height > 0 ? size.height : 30;
   const cy = height / 2;
@@ -2136,33 +2136,7 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
       ? containerWidth
       : styleWidth > 0
         ? styleWidth
-        : cellSize * 7 + specGap * 6;
-
-  // ── B2 (2026-07-02): element.props.style layout 소비 (Style 패널 동기화) ──
-  //   CalendarHeader 는 chevron/text/chevron 3-shape 고정 leaf(자식 Element 아님)라, CheckboxGroup 처럼
-  //   컨테이너 flex 로 자식을 배치할 수 없다. 대신 primitive 가 element.props.style 의 padding/gap/
-  //   justifyContent 를 직접 읽어 flex-like 배치를 계산 → Style 패널 Layout 편집이 Skia 에 반영.
-  //   DOM 은 Calendar.tsx `<header>` inline style 로 동일 반영(대칭). 기본값(style 미지정)은 기존
-  //   space-between + text 중앙(회귀 0): paddingX 0, chevron↔text gap 0(chevron 슬롯 cellSize 흡수).
-  //   style-ssot 규칙: gap 은 columnGap/rowGap longhand 우선 → shorthand gap fallback.
-  const padLeft = parsePxValue(
-    (style?.paddingLeft ?? style?.padding) as string | number | undefined,
-    size.paddingX ?? 0,
-  );
-  const padRight = parsePxValue(
-    (style?.paddingRight ?? style?.padding) as string | number | undefined,
-    size.paddingX ?? 0,
-  );
-  // chevron 슬롯(cellSize)↔text 여백. 기본 0(기존 배치 유지) — style 로만 벌린다.
-  const itemGap = parsePxValue(
-    (style?.columnGap ?? style?.rowGap ?? style?.gap) as
-      | string
-      | number
-      | undefined,
-    0,
-  );
-  const justify =
-    (style?.justifyContent as string | undefined) ?? "space-between";
+        : cellSize * 7 + gap * 6;
 
   const textColor =
     (style?.color as string | undefined) ?? visual?.text ?? undefined;
@@ -2173,34 +2147,11 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
       ? props.children
       : "2024년 1월";
 
-  // 좌·우 chevron 중심 x + text 슬롯 [textLeft, textRight] 계산.
-  //   space-between(기본): chevron 을 padding 안쪽 양끝에, text 는 그 사이 대칭 슬롯 center.
-  //   center: 3요소(chevron+gap+text+gap+chevron)를 컨테이너 중앙에 모음 — text 실측 폭 필요.
-  let leftIconX: number;
-  let rightIconX: number;
-  let textLeft: number;
-  let textRight: number;
-  if (justify === "center") {
-    const textW = measureSpecTextWidth(text, fontSize, fontFamily.sans);
-    const totalW = cellSize + itemGap + textW + itemGap + cellSize;
-    const startX = (width - totalW) / 2;
-    leftIconX = startX + cellSize / 2;
-    textLeft = startX + cellSize + itemGap;
-    textRight = textLeft + textW;
-    rightIconX = textRight + itemGap + cellSize / 2;
-  } else {
-    // space-between (기본) — chevron padding 안쪽 양끝, text 대칭 슬롯.
-    leftIconX = padLeft + cellSize / 2;
-    rightIconX = width - padRight - cellSize / 2;
-    textLeft = padLeft + cellSize + itemGap;
-    textRight = width - padRight - cellSize - itemGap;
-  }
-
   return [
     {
       type: "icon_font",
       iconName: li.name,
-      x: leftIconX,
+      x: cellSize / 2,
       y: cy,
       fontSize: chevronGlyphSize,
       fill: iconColor,
@@ -2208,7 +2159,7 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
     },
     {
       type: "text",
-      x: textLeft,
+      x: cellSize,
       y: cy,
       text,
       fontSize,
@@ -2217,17 +2168,13 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
       fill: textColor,
       align: textAlign,
       baseline: "middle",
-      // flex 중앙 정렬: text 는 [textLeft, textRight] 슬롯에서 center → 중심 = 슬롯 중앙.
-      //   space-between 기본 슬롯 [padLeft+cellSize, width-padRight-cellSize] → 중심 width/2.
-      //   ⚠️ whiteSpace:"nowrap" 금지 — nodeRendererText 가 nowrap 시 layoutMaxWidth=100000 으로
-      //   maxWidth 를 덮어 center 정렬 무력화 → text 가 textLeft 에서 왼쪽 정렬(왼쪽 치우침).
-      //   calendar_grid nav text(동형)도 nowrap 미지정. "2026년 7월"은 maxWidth 내라 wrap 안 됨.
-      maxWidth: Math.max(0, textRight - textLeft),
+      maxWidth: width - cellSize * 2,
+      whiteSpace: "nowrap",
     },
     {
       type: "icon_font",
       iconName: ti.name,
-      x: rightIconX,
+      x: width - cellSize / 2,
       y: cy,
       fontSize: chevronGlyphSize,
       fill: iconColor,

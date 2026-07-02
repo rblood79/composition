@@ -57,12 +57,7 @@ import {
 // internal 28 → 29 (2026-06-27): toast 추가. 21후보 정밀 감사로 ButtonGroup 동형 잔여 1건 적발 —
 //   renderToast 가 자식 Heading/Description(factory 생성)을 childrenByParent self-compose, renderer="div"
 //   + 미등록 → fall-through. palette 미노출 imperative 알림이나 imperative/AI/import 생성 대비 선제 등록.
-// internal 29 → 31 (2026-07-02): calendar/rangecalendar 추가 (B2 Style 패널 동기화). 미등록 시
-//   INTERNAL_RENDERERS[calendar]=Calendar 직접 컴포넌트 경로라 renderCalendar 미사용 → CalendarHeader
-//   자식 style 의 headerStyle 전달이 안 돼 Style 패널 Layout 편집이 DOM `<header>` 에 미반영(Skia
-//   inline_icon_text 만 반영 → CSS↔Skia 비대칭). delegating 전환으로 renderCalendar 위임 + 자식
-//   CalendarHeader/CalendarGrid 는 Calendar self-compose 라 재귀 skip.
-const INVENTORY = { delegatingInternal: 31, delegatingRac: 12 } as const;
+const INVENTORY = { delegatingInternal: 29, delegatingRac: 12 } as const;
 
 describe("ADR-914 Phase 3-A — render facet declaration parity", () => {
   it("parity A — 파생 internal set == CanonicalNodeRenderer DELEGATING_INTERNAL (멤버 + 순서)", () => {

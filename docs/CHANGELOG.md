@@ -7,26 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [CalendarHeader 헤더 정렬 + Style 패널 layout 동기화 — nav 중앙 정렬 & flex 편집 반영] - 2026-07-02
-
-### Bug Fixes
-
-- **CalendarHeader 월/년 text 가 Skia 에서 왼쪽으로 치우침 (center 정렬 무력화)**:
-  - **Why**: `inline_icon_text` primitive 의 center text shape 가 `align:"center"` + `whiteSpace:"nowrap"` 을 동시 지정 → `nodeRendererText.ts:107-110` 이 nowrap 시 `layoutMaxWidth=100000` 으로 `maxWidth` 를 덮어 center 정렬이 무력화 → text 가 `x=cellSize` 에서 왼쪽 정렬(왼쪽 치우침). DOM `<header>` 는 flex heading center 라 중앙 → CSS↔Skia 비대칭. 동형 nav 를 그리는 `calendar_grid` primitive 는 nowrap 미지정이라 정상(증거).
-  - 수정: text shape 에서 `whiteSpace:"nowrap"` 제거 → text 가 `[cellSize, width-cellSize]` 대칭 슬롯에서 center → 중심 = width/2 (DOM 대칭). "2026년 7월" 은 maxWidth 내라 wrap 안 됨.
-  - live 검증: DOM header heading offset 중앙(119), Skia text 중심 width/2 정합.
-
-### Features
-
-- **CalendarHeader Style 패널 Layout(Gap/Padding/Justify) 편집 → Skia+DOM 동기화** (사용자 요청 B2):
-  - **배경**: CheckboxGroup 은 자식(Label/Checkbox)이 개별 Element 라 컨테이너 `props.style` layout 편집이 Taffy flex 로 반영되나, CalendarHeader 는 chevron/text/chevron 이 `inline_icon_text` primitive shape(자식 Element 아님, 3개 고정)라 Style 패널 Layout 편집이 반영 안 됐다. 자식 Element 컨테이너화(B1)는 Calendar `<header>` self-compose 해체 + hydration migration 2개 HIGH 리스크 대공사라, primitive 가 element.props.style 을 직접 소비하는 B2 채택.
-  - **Skia**: `inline_icon_text` 가 `style.paddingLeft/paddingRight/columnGap/rowGap/gap/justifyContent` 를 읽어 chevron/text/chevron 을 flex-like 배치(space-between 기본 / center). 기본값(style 미지정)은 기존 좌표 유지(회귀 0). style-ssot 규칙: gap 은 columnGap/rowGap longhand 우선 → shorthand gap fallback.
-  - **DOM**: `renderCalendar`/`renderRangeCalendar` 가 자식 CalendarHeader element.props.style 의 layout 부분(`resolveCalendarHeaderStyle` 화이트리스트)을 `Calendar`/`RangeCalendar` 의 `headerStyle` prop 으로 전달 → `<header style>` 에 반영. header 구조/ARIA(D1) 불변, 시각 layout(D3)만 적용.
-  - **delegating 전환**: `renderFacetDeclaration` 에 `calendar`/`rangecalendar` 를 `delegating-internal` 로 추가 → Preview 가 `INTERNAL_RENDERERS[calendar]=Calendar` 직접 컴포넌트 대신 `renderCalendar`(headerStyle 지원) 경유. generic 자식 재귀 skip(CalendarHeader/CalendarGrid 는 Calendar self-compose). contract INVENTORY internal 29→31 갱신.
-  - **회귀 가드**: `skiaPrimitives.inlineIconText.test.ts` 에 style 소비 계약(padding/gap/justifyContent 반영 + 미지정 시 기존 좌표 유지 + longhand 우선) 추가. `renderFacetDeclarationContract.test.ts` INVENTORY 31 갱신. specs 514 / shared 444 / contract 7 tests PASS.
-  - live 검증: CalendarHeader style `{justifyContent:"flex-start", columnGap:"8px"}` 편집 → DOM header inline `justify-content: flex-start; column-gap: 8px;` 적용 + heading offset 119→42 이동 확인. Skia 는 primitive 가 동일 style 소비(대칭). type-check PASS(baseline 69).
-  - 위치: `packages/specs/src/renderers/skiaPrimitives.ts`(inlineIconText style 소비), `packages/shared/src/renderers/DateRenderers.tsx`(resolveCalendarHeaderStyle + renderCalendar headerStyle), `packages/shared/src/renderers/LayoutRenderers.tsx`(renderRangeCalendar headerStyle), `packages/shared/src/components/{Calendar,RangeCalendar}.tsx`(headerStyle prop), `apps/builder/src/preview/components/renderFacetDeclaration.ts`(calendar/rangecalendar delegating)
-
 ## [DisclosureHeader chevron 크기 CSS↔Skia 대칭 — 고정 18 통일] - 2026-07-02
 
 ### Bug Fixes
