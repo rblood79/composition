@@ -126,6 +126,13 @@ export interface TextShape {
   align?: "left" | "center" | "right";
   baseline?: "top" | "middle" | "bottom";
 
+  /**
+   * 텍스트 glyph 세로 정렬 (CSS `vertical-align` 대응, nodeRendererText computeDrawY 소비).
+   * baseline(좌표 계산용)과 별개 — "middle" 이면 `(node.height - textHeight)/2` 진짜 세로 중앙.
+   * 미지정 시 top 정렬(위쪽). Style 패널 Typography Vertical Align 과 동일 축.
+   */
+  verticalAlign?: "top" | "middle" | "bottom" | "baseline";
+
   /** 줄 높이 (배수, 예: 1.5) */
   lineHeight?: number;
 

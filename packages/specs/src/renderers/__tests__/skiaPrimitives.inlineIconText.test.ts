@@ -439,4 +439,38 @@ describe("skiaPrimitive 'inline_icon_text' — 세로 중앙 정렬 (_containerH
     expect(chev(shapes, "chevron-left").y).toBe(15);
     expect(textS(shapes).y).toBe(0);
   });
+
+  it("text verticalAlign 기본 'middle' (specShapeConverter → computeDrawY 진짜 세로 중앙, top 치우침 회피)", () => {
+    const shapes = draw({
+      props: { children: "2024년 1월", _containerWidth: 220 },
+      size: sizeMd,
+      visual,
+      style: undefined,
+    })!;
+    // baseline:middle(좌표)만으론 lineHeight 근사라 위쪽 치우침 → verticalAlign:middle 로 진짜 중앙.
+    expect((textS(shapes) as { verticalAlign?: string }).verticalAlign).toBe(
+      "middle",
+    );
+  });
+
+  it("style.verticalAlign override 반영 (Style 패널 Typography Vertical Align 동기화)", () => {
+    const top = draw({
+      props: { children: "2024년 1월", _containerWidth: 220 },
+      size: sizeMd,
+      visual,
+      style: { verticalAlign: "top" },
+    })!;
+    const bottom = draw({
+      props: { children: "2024년 1월", _containerWidth: 220 },
+      size: sizeMd,
+      visual,
+      style: { verticalAlign: "bottom" },
+    })!;
+    expect((textS(top) as { verticalAlign?: string }).verticalAlign).toBe(
+      "top",
+    );
+    expect((textS(bottom) as { verticalAlign?: string }).verticalAlign).toBe(
+      "bottom",
+    );
+  });
 });

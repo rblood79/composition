@@ -119,6 +119,15 @@ export function createDatePickerDefinition(
             type: "CalendarHeader",
             props: {
               children: monthText,
+              // CalendarHeader flex layout + 세로 정렬 기본값 (createCalendarDefinition 동형,
+              //   catalog structure.containerStyles 와 동일 → dirty 0 + Skia 세로중앙 + 패널 동기화).
+              style: {
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                verticalAlign: "middle",
+              },
             } as ComponentElementProps,
           },
           {
@@ -227,6 +236,15 @@ export function createDateRangePickerDefinition(
             type: "CalendarHeader",
             props: {
               children: monthText,
+              // CalendarHeader flex layout + 세로 정렬 기본값 (createCalendarDefinition 동형,
+              //   catalog structure.containerStyles 와 동일 → dirty 0 + Skia 세로중앙 + 패널 동기화).
+              style: {
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                verticalAlign: "middle",
+              },
             } as ComponentElementProps,
           },
           {
@@ -285,6 +303,19 @@ export function createCalendarDefinition(
         type: "CalendarHeader",
         props: {
           children: monthText,
+          // 2026-07-02: CalendarHeader flex layout + 세로 정렬 기본값을 element.props.style 로 주입.
+          //   catalog rule CalendarHeader.structure.containerStyles 와 **동일 값** → factory inline ==
+          //   baseline 이라 Style 패널 dirty 0(DisclosureHeader 선례). verticalAlign:"middle" 은 Skia
+          //   inline_icon_text center text 세로 중앙 + Style 패널 Typography Vertical Align:center 표시
+          //   (Typography 훅은 element.props.style.verticalAlign 만 읽으므로 catalog 만으론 패널 미표시 →
+          //   factory inline 필수). display/justify/align 은 primitive flex-like 배치 + DOM `<header>` 정합.
+          style: {
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            verticalAlign: "middle",
+          },
         } as ComponentElementProps,
       },
       {

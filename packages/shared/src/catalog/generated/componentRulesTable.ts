@@ -1127,6 +1127,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   동일 layout 을 소비하도록 flex 기본값을 structure.containerStyles baseline 으로 공급 →
     //   Style 패널 Transform/Layout 에 표시되고 편집이 양쪽 동기화(DisclosureHeader 동형). justify-content
     //   space-between = prev chevron 좌 / heading 중앙(flex:1) / next chevron 우. element="header"(시맨틱).
+    //   verticalAlign:"middle" = Style 패널 Typography Vertical Align:center 기본값(dirty baseline +
+    //   synthetic). Skia inline_icon_text center text 의 실제 세로 중앙 렌더는 primitive text shape 의
+    //   verticalAlign:"middle" + specShapeConverter 전달로 처리(structure.containerStyles 는 Skia
+    //   primitive 에 직접 안 흐름 — 패널 표시/baseline 전용).
     structure: {
       archetype: "simple",
       element: "header",
@@ -1135,6 +1139,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
+        verticalAlign: "middle",
       },
     },
   },

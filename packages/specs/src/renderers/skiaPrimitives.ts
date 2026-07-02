@@ -2176,6 +2176,13 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
   const flexDirection = (style?.flexDirection as string | undefined) ?? "row";
   const isColumn =
     flexDirection === "column" || flexDirection === "column-reverse";
+  // center text 세로 정렬: element.props.style.verticalAlign(Style 패널 Typography Vertical Align)
+  //   우선, 미지정 시 기본 "middle"(DOM `<header>` align-items:center 대칭). specShapeConverter 가
+  //   node.text.verticalAlign 로 전달 → nodeRendererText computeDrawY 가 `(node.height-textHeight)/2`
+  //   진짜 세로 중앙. 미지정(top) 이면 위쪽 치우침이라 기본 middle 로 정합.
+  const textVerticalAlign =
+    (style?.verticalAlign as "top" | "middle" | "bottom" | undefined) ??
+    "middle";
 
   const textColor =
     (style?.color as string | undefined) ?? visual?.text ?? undefined;
@@ -2217,6 +2224,7 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
         fill: textColor,
         align: "center",
         baseline: "middle",
+        verticalAlign: textVerticalAlign,
         maxWidth: width,
       },
       {
@@ -2279,6 +2287,9 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
       fill: textColor,
       align: textAlign,
       baseline: "middle",
+      // 세로 중앙: verticalAlign(기본 middle, style override) → specShapeConverter → computeDrawY
+      //   `(node.height-textHeight)/2`. baseline:"middle"(좌표)만으론 lineHeight 근사라 위쪽 치우침.
+      verticalAlign: textVerticalAlign,
       // flex 중앙 정렬: text 는 [textLeft, textRight] 슬롯에서 center → 중심 = 슬롯 중앙.
       //   space-between 기본 슬롯 [padLeft+cellSize, width-padRight-cellSize] → 중심 width/2.
       //   ⚠️ whiteSpace:"nowrap" 금지 — nodeRendererText 가 nowrap 시 layoutMaxWidth=100000 으로

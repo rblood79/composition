@@ -54,6 +54,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - live 검증: Skia header text "2026년 7월" 이 chevron 과 세로 중앙 정렬(확대 스크린샷) — 위쪽 치우침 해소, CSS Preview 대칭. type-check baseline 69.
   - 위치: `packages/specs/src/renderers/skiaPrimitives.ts`(inlineIconText row/column text y=0)
 
+- **CalendarHeader text 세로 중앙 근본 — `verticalAlign` 전달 경로 신설 + Style 패널 동기화** (앞 `y:0` 이 불완전했던 진짜 근본):
+  - **Why**: `y:0` + baseline:"middle" 로도 text 가 여전히 위쪽 치우침. 사용자가 근본을 짚음: "text lineHeight/자체 정렬 문제" → Style 패널 Typography **Vertical Align:center** 를 수동 설정하니 Skia 세로 중앙이 됨. 진짜 근본 = **specShapeConverter 의 text case 가 `verticalAlign` 필드를 SkiaNodeData(`node.text`)로 전달하지 않음** → nodeRendererText `computeDrawY` 가 verticalAlign=undefined → top 정렬(위쪽). baseline(좌표 계산)과 verticalAlign(glyph 세로 정렬)은 별개 축인데 후자 경로가 아예 없었다. icon_font(chevron)는 baseline:middle → containerHeight/2 라 세로 중앙, text 만 verticalAlign 누락으로 top.
+  - 수정: (1) `TextShape` 타입에 `verticalAlign?: "top"|"middle"|"bottom"|"baseline"` 필드 신설(`shape.types.ts`). (2) `specShapeConverter` text case 가 `shape.verticalAlign` → `node.text.verticalAlign` 전달(누락 경로 신설). (3) `inlineIconText` center text 가 `verticalAlign = style.verticalAlign ?? "middle"`(기본 중앙 + Style 패널 override) 지정, row/column 공통. → computeDrawY 가 `(node.height - textHeight)/2` 진짜 세로 중앙.
+  - **catalog + Style 패널 동기화** (사용자 요구): catalog rule `CalendarHeader.structure.containerStyles.verticalAlign:"middle"`(dirty baseline/synthetic) + **factory 3곳**(createCalendarDefinition / DatePicker·DateRangePicker 내부 Calendar)이 `props.style.verticalAlign:"middle"` 주입 → Style 패널 Typography Vertical Align 이 "middle" 표시(useTypographyValues 는 element.props.style 만 읽으므로 factory inline 필수) + 편집 시 primitive override. catalog structure == factory inline → dirty 0.
+  - **회귀 가드**: `skiaPrimitives.inlineIconText.test.ts` 에 text verticalAlign 기본 "middle" + style.verticalAlign override(top/bottom) 계약 추가. specs 521 / shared 444 tests PASS.
+  - live 검증: element.props.style.verticalAlign:"middle" → Style 패널 Vertical Align "middle" 표시(JS 확인) + 사용자가 수동 설정 시 Skia 세로 중앙 직접 확인함(수정은 그 수동 동작을 primitive 기본값 + factory 로 자동화). type-check baseline 69. (이번 세션 Skia 스크린샷은 CDP 캡처 타임아웃으로 미수행 — 경로/테스트/사용자 실측 선례로 확증.)
+  - 위치: `packages/specs/src/types/shape.types.ts`(TextShape.verticalAlign), `apps/builder/src/builder/workspace/canvas/skia/specShapeConverter.ts`(text verticalAlign 전달), `packages/specs/src/renderers/skiaPrimitives.ts`(inlineIconText verticalAlign), `apps/builder/src/builder/factories/definitions/DateColorComponents.ts`(factory 3곳 style), `packages/shared/src/catalog/generated/componentRulesTable.ts`(structure verticalAlign)
+
 ## [DisclosureHeader chevron 크기 CSS↔Skia 대칭 — 고정 18 통일] - 2026-07-02
 
 ### Bug Fixes

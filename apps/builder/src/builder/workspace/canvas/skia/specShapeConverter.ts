@@ -849,6 +849,19 @@ export function specShapesToSkia(
             //   처리(줄바꿈 금지) → CSS Group white-space:nowrap 과 시각 정합.
             //   buildSpecNodeData:1416 의 style.whiteSpace(사용자 override)가 이후 우선 적용.
             ...(shape.whiteSpace ? { whiteSpace: shape.whiteSpace } : {}),
+            // shape.verticalAlign(primitive/escape 가 선언) → node.text.verticalAlign 전달.
+            //   nodeRendererText computeDrawY 가 "middle" 이면 `(node.height - textHeight)/2` 진짜
+            //   세로 중앙(baseline 좌표 계산과 별개). 미전달 시 undefined → top 정렬(위쪽 치우침).
+            //   CalendarHeader inline_icon_text center text 가 이 경로로 세로 중앙(사용자 지적).
+            ...(shape.verticalAlign
+              ? {
+                  verticalAlign: shape.verticalAlign as
+                    | "top"
+                    | "middle"
+                    | "bottom"
+                    | "baseline",
+                }
+              : {}),
             autoCenter: false,
           },
         };
