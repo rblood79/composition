@@ -1122,6 +1122,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
       },
     },
+    // 2026-07-02: CalendarHeader 는 DOM `<header>`(CalendarCommon.css: display:flex, align-items:center,
+    //   Heading flex:1 center)가 이미 flex 컨테이너다. Skia inline_icon_text + DOM `<header>` 양쪽이
+    //   동일 layout 을 소비하도록 flex 기본값을 structure.containerStyles baseline 으로 공급 →
+    //   Style 패널 Transform/Layout 에 표시되고 편집이 양쪽 동기화(DisclosureHeader 동형). justify-content
+    //   space-between = prev chevron 좌 / heading 중앙(flex:1) / next chevron 우. element="header"(시맨틱).
+    structure: {
+      archetype: "simple",
+      element: "header",
+      containerStyles: {
+        display: "flex",
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+      },
+    },
   },
   // ADR-912 R6 (2026-06-15): Card 본체 S2 재설계 catalog cutover. 구 Card.spec 의 비표준
   //   `isQuiet` boolean 분기(transparent vs layer-2)를 S2 정본 variant 모델(primary/secondary/

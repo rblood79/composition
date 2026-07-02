@@ -22,9 +22,14 @@
   }
 
   /* ========== Header Layout ========== */
+  /* 2026-07-02: catalog rule CalendarHeader.structure.containerStyles 와 동일한 flex 기본값
+     (display:flex, flex-direction:row, justify-content:space-between, align-items:center) —
+     Style 패널 편집이 headerStyle(renderCalendar)로 override 하면 이 base 위에 얹힘. */
   .react-aria-Calendar header,
   .react-aria-RangeCalendar header {
     display: flex;
+    flex-direction: row;
+    justify-content: space-between;
     align-items: center;
   }
 

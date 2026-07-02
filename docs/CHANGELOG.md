@@ -27,6 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - live 검증: CalendarHeader style `{justifyContent:"flex-start", columnGap:"8px"}` 편집 → DOM header inline `justify-content: flex-start; column-gap: 8px;` 적용 + heading offset 119→42 이동 확인. Skia 는 primitive 가 동일 style 소비(대칭). type-check PASS(baseline 69).
   - 위치: `packages/specs/src/renderers/skiaPrimitives.ts`(inlineIconText style 소비), `packages/shared/src/renderers/DateRenderers.tsx`(resolveCalendarHeaderStyle + renderCalendar headerStyle), `packages/shared/src/renderers/LayoutRenderers.tsx`(renderRangeCalendar headerStyle), `packages/shared/src/components/{Calendar,RangeCalendar}.tsx`(headerStyle prop), `apps/builder/src/preview/components/renderFacetDeclaration.ts`(calendar/rangecalendar delegating)
 
+- **CalendarHeader flex layout 기본값 catalog baseline + DOM `<header>` space-between** (B2 마무리 — Style 패널 표시):
+  - **Why**: B2 로 편집 소비 경로는 열렸으나 CalendarHeader element 에 flex layout **기본값**이 없어 Style 패널 Layout(Direction/Justify)에 아무것도 안 뜨고 DOM `<header>` 도 `justify-content` 미지정이었다(Heading `flex:1` 로 중앙 효과만). 사용자 지적: "display:flex, flex-direction:row, justify-content:space-between, align-items:center 그대로 적용하면 Style 패널 동기화되고 끝". DOM `<header>` 는 이미 flex 컨테이너(prev button / Heading / next button 자식)라 CheckboxGroup 과 동일 구조 — layout 기본값만 baseline 공급하면 됨.
+  - 수정: catalog rule `CalendarHeader.structure.containerStyles` 에 `{display:flex, flexDirection:row, justifyContent:space-between, alignItems:center}` baseline 추가(DisclosureHeader structure 동형, element="header"). Style 패널이 이 baseline 을 Layout section 에 Direction(row)/Justify(space-between)로 표시 + 편집 시 element.props.style override → Skia+DOM 동기화. `CalendarCommon.css` `.react-aria-Calendar header` 에 동일 flex 4값 명시(구 display:flex+align-items 만 → justify-content:space-between + flex-direction:row 보강). generated `CalendarHeader.css` 신규 emit.
+  - live 검증: CalendarHeader 선택 → Style 패널 Layout 에 Direction=row / Justify=space-between 표시(확대 스크린샷 확인). DOM `<header>` computed `display:flex; flex-direction:row; justify-content:space-between; align-items:center`. Justify center 편집 → DOM `justify-content:center` override, 원복 → base space-between 복귀. shared 444 / specs 514 PASS, type-check baseline 69.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`(CalendarHeader.structure), `packages/shared/src/components/styles/CalendarCommon.css`(header flex 4값)
+
 ## [DisclosureHeader chevron 크기 CSS↔Skia 대칭 — 고정 18 통일] - 2026-07-02
 
 ### Bug Fixes
