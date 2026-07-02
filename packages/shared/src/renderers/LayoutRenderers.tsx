@@ -31,6 +31,7 @@ import { parseColor } from "react-aria-components";
 import { Slot } from "../components/Slot";
 import { getIconData } from "@composition/specs";
 import { getElementDataBinding } from "../utils/compositionExtensionFields";
+import { resolveCalendarHeaderStyle } from "./DateRenderers";
 import type {
   PreviewElement,
   RenderContext,
@@ -1893,12 +1894,16 @@ export const renderRangeCalendar = (
   // locale/calendarSystem/size 변경 시 리마운트
   const remountKey = `${element.id}-${locale || ""}-${calendarSystem || ""}-${size || ""}`;
 
+  // CalendarHeader 자식 style 의 layout 부분을 `<header>` 로 전달 (2026-07-02 B2, Calendar 동형).
+  const headerStyle = resolveCalendarHeaderStyle(element, context);
+
   return (
     <RangeCalendar
       key={remountKey}
       id={element.customId}
       data-element-id={element.id}
       style={element.props.style}
+      headerStyle={headerStyle}
       className={element.props.className}
       variant={(variant as "default" | "accent") || "default"}
       size={(size as "sm" | "md" | "lg") || "md"}

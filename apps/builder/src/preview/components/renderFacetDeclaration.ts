@@ -255,6 +255,24 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
     reason:
       "renderToast 가 childrenByParent 로 자식 Heading/Description(factory 자동 생성)을 <div role=alert> 안에 렌더하는 self-compose 컨테이너. 미등록 시 generic fall-through 로 childrenByParent 보강 누락 → 자식 미렌더(Skia 비대칭). buttongroup/pagination 동형. (palette 미노출 imperative 알림이나 imperative/AI/import element 생성 대비 선제 등록.)",
   },
+  // ── Calendar (2026-07-02, B2 Style 패널 동기화) — renderCalendar 가 자식 CalendarHeader
+  //   element.props.style 의 layout 부분(gap/padding/justifyContent)을 `<header>` 로 전달하고
+  //   Calendar 컴포넌트가 grid/nav 를 self-compose. 미등록 시 INTERNAL_RENDERERS[calendar]=Calendar
+  //   직접 컴포넌트 경로라 renderCalendar 가 안 쓰여 headerStyle 미전달(Style 패널 Layout 편집이 DOM
+  //   header 에 미반영, Skia inline_icon_text 만 반영 → CSS↔Skia 비대칭). DELEGATING 전환으로 renderCalendar
+  //   경유 + generic 자식 재귀 skip(CalendarHeader/CalendarGrid 는 Calendar 가 self-compose).
+  {
+    key: "calendar",
+    kind: "delegating-internal",
+    reason:
+      "renderCalendar 가 자식 CalendarHeader element.props.style 의 layout(gap/padding/justifyContent)을 `<header>` 로 전달 + Calendar 가 grid/nav self-compose. 미등록 시 INTERNAL_RENDERERS 직접 컴포넌트 경로라 renderCalendar 미사용 → headerStyle 미전달(Style 패널 Layout 편집 DOM 미반영, Skia 만 반영 → 비대칭). 자식 CalendarHeader/CalendarGrid 는 self-compose 라 재귀 skip.",
+  },
+  {
+    key: "rangecalendar",
+    kind: "delegating-internal",
+    reason:
+      "renderRangeCalendar — calendar 동형. 자식 CalendarHeader/CalendarGrid self-compose, headerStyle 전달 위해 DELEGATING 경유.",
+  },
 
   // ── delegating-rac (12) — binding.source.kind==="rac" self-compose ──
   {

@@ -154,3 +154,165 @@ describe("skiaPrimitive 'inline_icon_text' — CalendarHeader chevron 크기(고
     expect((right as { x?: number }).x).toBe(cw - 15);
   });
 });
+
+describe("skiaPrimitive 'inline_icon_text' — center text 컨테이너 폭 중앙 정합 (flex space-between)", () => {
+  // 근본: DOM Calendar `<header>` 는 flex(prev / heading flex:1 center / next) 라 월/년 text 가
+  //   header 폭 정중앙. Skia 는 좌 chevron(x=cellSize/2) + text(center) + 우 chevron(x=width-cellSize/2)
+  //   space-between 배치라, text 가 `[cellSize, width-cellSize]` 대칭 슬롯에서 center 되면 중심 = width/2.
+  //   과거 text 에 `whiteSpace:"nowrap"` 이 붙어 nodeRendererText 가 layoutMaxWidth=100000 으로 덮어
+  //   center 정렬이 무력화 → text 가 x=cellSize 에서 왼쪽 정렬(왼쪽 치우침). calendar_grid nav text 는
+  //   nowrap 미지정이라 정상. 본 계약: nowrap 미지정 + x/maxWidth 대칭(중심 width/2) 유지.
+  const textOf = (shapes: Shape[]) => shapes.find((s) => s.type === "text")!;
+
+  it("center text 는 whiteSpace nowrap 을 쓰지 않음 (nowrap 시 center 무력화 → 왼쪽 치우침)", () => {
+    const shapes = draw({
+      props: { children: "2024년 1월", _containerWidth: 220 },
+      size: sizeMd,
+      visual,
+      style: undefined,
+    })!;
+    const t = textOf(shapes) as { whiteSpace?: string };
+    expect(t.whiteSpace).not.toBe("nowrap");
+  });
+
+  it("text x + maxWidth 가 컨테이너 폭 중앙 대칭 (paddingLeft cellSize / maxWidth width-cellSize*2 → 중심 width/2)", () => {
+    const cw = 220;
+    const shapes = draw({
+      props: { children: "2024년 1월", _containerWidth: cw },
+      size: sizeMd,
+      visual,
+      style: undefined,
+    })!;
+    const t = textOf(shapes) as {
+      x?: number;
+      maxWidth?: number;
+      align?: string;
+    };
+    // cellSize = 30. x(=paddingLeft) = 30, maxWidth = 220 - 60 = 160.
+    //   center 정렬 시 텍스트 중심 = x + maxWidth/2 = 30 + 80 = 110 = cw/2 (정중앙).
+    expect(t.align).toBe("center");
+    expect(t.x).toBe(30);
+    expect(t.maxWidth).toBe(cw - 30 * 2);
+    expect(t.x! + t.maxWidth! / 2).toBe(cw / 2);
+  });
+
+  it("좁은/넓은 폭 모두 text 중심 = width/2 (폭 가변 정합)", () => {
+    for (const cw of [160, 300]) {
+      const shapes = draw({
+        props: { children: "2024년 1월", _containerWidth: cw },
+        size: sizeMd,
+        visual,
+        style: undefined,
+      })!;
+      const t = textOf(shapes) as { x?: number; maxWidth?: number };
+      expect(t.x! + t.maxWidth! / 2).toBe(cw / 2);
+    }
+  });
+});
+
+describe("skiaPrimitive 'inline_icon_text' — element.props.style layout 소비 (Style 패널 동기화)", () => {
+  // 사용자 요청(2026-07-02, B2): CheckboxGroup 처럼 Style 패널 Layout(Gap/Padding/Justify) 편집이
+  //   Skia CalendarHeader 배치에 반영되어야 한다. CalendarHeader 는 chevron/text/chevron 3-shape 고정
+  //   (자식 Element 아님)이라 primitive 가 element.props.style 을 직접 읽어 flex-like 배치를 계산한다.
+  //   style-ssot 규칙: gap 은 rowGap/columnGap longhand 우선 → shorthand gap fallback.
+  const leftChevron = (shapes: Shape[]) =>
+    shapes.find(
+      (s) =>
+        s.type === "icon_font" &&
+        (s as { iconName?: string }).iconName === "chevron-left",
+    )! as { x?: number };
+  const rightChevron = (shapes: Shape[]) =>
+    shapes.find(
+      (s) =>
+        s.type === "icon_font" &&
+        (s as { iconName?: string }).iconName === "chevron-right",
+    )! as { x?: number };
+  const textShape = (shapes: Shape[]) =>
+    shapes.find((s) => s.type === "text")! as {
+      x?: number;
+      maxWidth?: number;
+    };
+
+  it("style 미지정 시 기존 좌표 유지 (회귀 방지 — space-between 기본)", () => {
+    const cw = 220;
+    const shapes = draw({
+      props: { children: "2024년 1월", _containerWidth: cw },
+      size: sizeMd,
+      visual,
+      style: undefined,
+    })!;
+    // cellSize = 30. 기존: 좌 15, 우 cw-15=205, text 중심 cw/2.
+    expect(leftChevron(shapes).x).toBe(15);
+    expect(rightChevron(shapes).x).toBe(cw - 15);
+    const t = textShape(shapes);
+    expect(t.x! + t.maxWidth! / 2).toBe(cw / 2);
+  });
+
+  it("style.paddingLeft/paddingRight 반영 — 좌 chevron 이 paddingLeft 만큼 안쪽으로", () => {
+    const cw = 220;
+    const shapes = draw({
+      props: { children: "2024년 1월", _containerWidth: cw },
+      size: sizeMd,
+      visual,
+      style: { paddingLeft: "10px", paddingRight: "10px" },
+    })!;
+    // paddingX 10 → 좌 chevron x = paddingLeft(10) + cellSize/2(15) = 25. 우 = cw - 10 - 15 = 195.
+    expect(leftChevron(shapes).x).toBe(10 + 15);
+    expect(rightChevron(shapes).x).toBe(cw - 10 - 15);
+  });
+
+  it("style.gap 반영 — chevron↔text 여백이 text maxWidth 를 좁힘 (gap 큰 값 → text 슬롯 축소)", () => {
+    const cw = 220;
+    const noGap = draw({
+      props: { children: "2024년 1월", _containerWidth: cw },
+      size: sizeMd,
+      visual,
+      style: undefined,
+    })!;
+    const bigGap = draw({
+      props: { children: "2024년 1월", _containerWidth: cw },
+      size: sizeMd,
+      visual,
+      style: { gap: "20px" },
+    })!;
+    // gap 이 커지면 text 슬롯(maxWidth)이 좁아진다. 중심은 여전히 cw/2 대칭.
+    expect(textShape(bigGap).maxWidth!).toBeLessThan(
+      textShape(noGap).maxWidth!,
+    );
+    expect(textShape(bigGap).x! + textShape(bigGap).maxWidth! / 2).toBe(cw / 2);
+  });
+
+  it("style.rowGap/columnGap longhand 우선 (style-ssot: shorthand gap fallback)", () => {
+    const cw = 220;
+    const longhand = draw({
+      props: { children: "2024년 1월", _containerWidth: cw },
+      size: sizeMd,
+      visual,
+      style: { columnGap: "20px" },
+    })!;
+    const shorthand = draw({
+      props: { children: "2024년 1월", _containerWidth: cw },
+      size: sizeMd,
+      visual,
+      style: { gap: "20px" },
+    })!;
+    // longhand columnGap 과 shorthand gap 동일 값이면 결과 동일 (longhand 우선 소비 확인).
+    expect(textShape(longhand).maxWidth).toBe(textShape(shorthand).maxWidth);
+  });
+
+  it("style.justifyContent='center' — 3요소를 중앙에 모음 (space-between 아님, text 중심은 여전히 cw/2)", () => {
+    const cw = 300;
+    const shapes = draw({
+      props: { children: "2024년 1월", _containerWidth: cw },
+      size: sizeMd,
+      visual,
+      style: { justifyContent: "center" },
+    })!;
+    // center: 좌 chevron 이 space-between(x=15)보다 안쪽(오른쪽)으로, 우 chevron 이 안쪽(왼쪽)으로.
+    //   text 중심은 대칭이라 cw/2 유지.
+    expect(leftChevron(shapes).x!).toBeGreaterThan(15);
+    expect(rightChevron(shapes).x!).toBeLessThan(cw - 15);
+    const t = textShape(shapes);
+    expect(t.x! + t.maxWidth! / 2).toBe(cw / 2);
+  });
+});
