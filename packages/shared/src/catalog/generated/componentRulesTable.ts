@@ -10294,6 +10294,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // 2026-07-02 전수조사 fix: top-level containerStyles 추가 — TabPanel 은 spec 삭제(ADR-912
+    //   cutover) + structure.composition 부재(archetype "collection") 라, layout 이
+    //   structure.containerStyles 에만 있으면 resolveContainerStylesFallback("tabpanel") 이
+    //   경로 A(top-level rule.containerStyles)·경로 B(structure.composition) 둘 다 미도달 → {}
+    //   반환 → getElementDisplay 가 block 라우팅 → 패널 안 사용자 자식이 Skia 에서 block(flex
+    //   gap/align/flexGrow 유실), DOM 은 generated CSS flex-column → Skia↔CSS 비대칭.
+    //   ListBox/Menu/Tree 선례처럼 top-level containerStyles 로 승격해 경로 A 가 Skia 에 공급.
+    //   structure.containerStyles(아래)는 dirty baseline(resolveCatalogContainerBase)용 유지 —
+    //   display/flexDirection 동일값이라 baseline drift 0. padding 은 implicitStyles tabs/tabpanels
+    //   분기가 size 별 주입하므로 top-level 미포함(surface-minimization).
+    containerStyles: {
+      display: "flex",
+      flexDirection: "column",
+    },
     sizes: {
       sm: {
         fontSize: "{typography.text-sm}",

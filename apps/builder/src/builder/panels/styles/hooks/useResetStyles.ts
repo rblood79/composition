@@ -244,17 +244,20 @@ function resolveSubpartContextDefaultStyle(
   grandParentType: string | undefined,
 ): Record<string, unknown> {
   if (type === "DateInput") {
+    // verticalAlign:"middle" — factory(DateColorComponents) inline 미러(2026-07-02 전수조사).
+    //   Skia datefield_segments segment text 세로 중앙 + Style 패널 Typography Vertical Align
+    //   동기화. factory 4곳(picker/DateField/TimeField DateInput) 모두 주입하므로 baseline 도 동일.
     // picker(부모 SelectTrigger → 조부모 DatePicker/DateRangePicker): SelectTrigger box 안 flex 콘텐츠.
     if (
       parentType === "SelectTrigger" &&
       (grandParentType === "DatePicker" ||
         grandParentType === "DateRangePicker")
     ) {
-      return { flex: 1, minWidth: 0 };
+      return { flex: 1, minWidth: 0, verticalAlign: "middle" };
     }
     // 단독(부모 DateField/TimeField): 자기 입력 box.
     if (parentType === "DateField" || parentType === "TimeField") {
-      return { width: "100%" };
+      return { width: "100%", verticalAlign: "middle" };
     }
     return {};
   }

@@ -107,6 +107,30 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
     });
   });
 
+  // 2026-07-02 전수조사 fix: TabPanel 은 spec 삭제(ADR-912 cutover) + structure.composition
+  //   부재(archetype "collection") 인데, 사용자 자식을 담는 실제 layout 컨테이너다(listboxitem
+  //   과 달리 escape 가 자체 paint 하지 않음). layout(display:flex/column)이
+  //   structure.containerStyles 에만 있으면 경로 A(top-level rule.containerStyles)·경로
+  //   B(structure.composition) 둘 다 미도달 → {} 반환 → getElementDisplay block 라우팅 → 자식
+  //   flex 속성 유실(DOM=flex-column 비대칭). top-level rule.containerStyles 승격으로 경로 A 도달.
+  describe("tabpanel — top-level containerStyles 승격 (자식 flex-column layout Skia 도달)", () => {
+    it("empty parentStyle → top-level rule.containerStyles 의 display/flexDirection 반환", () => {
+      const fb = resolveContainerStylesFallback("tabpanel", {});
+      expect(fb).toEqual({
+        display: "flex",
+        flexDirection: "column",
+      });
+    });
+
+    it("parentStyle.display 명시 → display 제외 (사용자/factory 편집 우선)", () => {
+      const fb = resolveContainerStylesFallback("tabpanel", {
+        display: "grid",
+      });
+      expect(fb).not.toHaveProperty("display");
+      expect(fb).toEqual({ flexDirection: "column" });
+    });
+  });
+
   describe("menu — Menu.spec.containerStyles (Phase 0 일반화 + Phase 6 merge — 8 필드)", () => {
     it("empty parentStyle → display/flexDirection/padding/gap/width/maxHeight/overflow/outline 반환", () => {
       const fb = resolveContainerStylesFallback("menu", {});

@@ -1635,6 +1635,16 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
     ("{color.neutral}" as TokenRef);
   const ff = (style?.fontFamily as string | undefined) || fontFamily.sans;
 
+  // segment text 세로 정렬: element.props.style.verticalAlign(Style 패널 Typography Vertical
+  //   Align) 우선, 미지정 시 기본 "middle". specShapeConverter 가 node.text.verticalAlign 로
+  //   전달 → nodeRendererText computeDrawY 가 `(node.height-textHeight)/2` 진짜 세로 중앙.
+  //   CalendarHeader inline_icon_text 동형(2026-07-02 전수조사) — y:0+baseline:"middle" 은
+  //   computeDrawY hasExplicitBottomPadding fallback 으로도 중앙 근사되지만, verticalAlign 을
+  //   명시 전달해야 Style 패널 Vertical Align 편집이 Skia 에 반영(패널↔Skia 동기화).
+  const textVerticalAlign =
+    (style?.verticalAlign as "top" | "middle" | "bottom" | undefined) ??
+    "middle";
+
   // 세그먼트 placeholder text — buildDateInputDisplayText 단일 소스 (datePickerShapes).
   //   layout 의 콘텐츠 폭 측정(calculateContentWidth dateinput 분기)이 동일 함수를 써서
   //   box 폭(layout)과 그려지는 텍스트(여기)가 어긋나지 않게 통일.
@@ -1666,6 +1676,7 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
         fill: textColor,
         align: "left" as const,
         baseline: "middle" as const,
+        verticalAlign: textVerticalAlign,
         whiteSpace: "nowrap" as const,
       },
     ];
@@ -1700,6 +1711,7 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
       fill: textColor,
       align: "left" as const,
       baseline: "middle" as const,
+      verticalAlign: textVerticalAlign,
       whiteSpace: "nowrap" as const,
     },
   ];

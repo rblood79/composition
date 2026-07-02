@@ -96,7 +96,10 @@ export function createDatePickerDefinition(
             type: "DateInput",
             props: {
               _parentTag: "DatePicker",
-              style: { flex: 1, minWidth: 0 },
+              // verticalAlign:"middle" — Skia datefield_segments segment text 세로 중앙 +
+              //   Style 패널 Typography Vertical Align 동기화(catalog structure 만으론 패널 미표시 →
+              //   element.props.style 주입 필수, CalendarHeader 선례). 2026-07-02 전수조사.
+              style: { flex: 1, minWidth: 0, verticalAlign: "middle" },
             } as ComponentElementProps,
           },
           {
@@ -214,7 +217,10 @@ export function createDateRangePickerDefinition(
             type: "DateInput",
             props: {
               _parentTag: "DateRangePicker",
-              style: { flex: 1, minWidth: 0 },
+              // verticalAlign:"middle" — Skia datefield_segments segment text 세로 중앙 +
+              //   Style 패널 Typography Vertical Align 동기화(catalog structure 만으론 패널 미표시 →
+              //   element.props.style 주입 필수, CalendarHeader 선례). 2026-07-02 전수조사.
+              style: { flex: 1, minWidth: 0, verticalAlign: "middle" },
             } as ComponentElementProps,
           },
           {
@@ -378,7 +384,9 @@ export function createDateFieldDefinition(
       {
         type: "DateInput",
         props: {
-          style: { width: "100%" },
+          // verticalAlign:"middle" — Skia datefield_segments segment text 세로 중앙 + Style 패널
+          //   Typography Vertical Align 동기화(catalog structure 만으론 미표시, CalendarHeader 선례).
+          style: { width: "100%", verticalAlign: "middle" },
         } as ComponentElementProps,
       },
       {
@@ -440,7 +448,9 @@ export function createTimeFieldDefinition(
       {
         type: "DateInput",
         props: {
-          style: { width: "100%" },
+          // verticalAlign:"middle" — Skia datefield_segments segment text 세로 중앙 + Style 패널
+          //   Typography Vertical Align 동기화(catalog structure 만으론 미표시, CalendarHeader 선례).
+          style: { width: "100%", verticalAlign: "middle" },
         } as ComponentElementProps,
       },
       {
@@ -476,12 +486,20 @@ export function createColorFieldDefinition(
       props: {
         labelPosition: "top",
         isDisabled: false,
+        // 2026-07-02 전수조사 fix: inline display/flexDirection/alignItems 제거 — Select/ComboBox
+        //   (2026-06-30) 선례 동형. ColorField 는 FIELD_FAMILY_TAGS(fieldInlineLayoutMigration)
+        //   대상이라 hydration 이 기존 element 의 inline display/flexDirection 을 strip 하는데,
+        //   factory 가 신규 element 에 그대로 재도입하는 자기모순이었다(migration test 가 strip 을
+        //   assert). row 축은 catalog composition.layout:"flex-row"(CATALOG_LAYOUT_STYLES flex-row =
+        //   display:flex + flex-direction:row + align-items:center)가 담당 — CSS 재생성 +
+        //   Skia getSideLabelParentStyle(side)/specFallback 이 row 를 공급하므로 factory inline 불요.
+        //   inline 제거로 (a) reset 버튼 오활성 해소 (b) side variant CSS specificity 정상화.
+        //   width:100% / gap 은 catalog composition(containerStyles.width:100% + gap:var(--spacing-xs))
+        //   정본 — spacing-xs=0.25rem=4px 이므로 숫자 4 로 정합(기존 factory gap:"8px" 는 catalog 와
+        //   불일치라 dirty 유발이었음). Select gap:6 선례 동형(숫자 px).
         style: {
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "center",
-          gap: "8px",
           width: "100%",
+          gap: 4,
         },
       } as ComponentElementProps,
       parent_id: parentId,
