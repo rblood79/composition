@@ -173,8 +173,15 @@
 
 ### 2-A. `style.rs` 확장 — Style Resolution 이관
 
-- 대상: `cssResolver.ts`(745) + `cssValueParser.ts`(1,006) + `taffyDisplayAdapter.ts`(515) + `implicitStyles.ts`(2,440)
-- `composition-layout/src/style.rs` (599줄) 기반 확장
+> **2026-07-04 G5 confirm 후 착수 (사용자 "본 ADR 내 2-A/2-B 선착수" + "세 실측 결정 승인, 첫 단위 착수")**: 착수 전 실사로 breakdown 서술 대비 실측 3건 확정. (1) **style.rs 위치 정정** — 원안 "`composition-layout/src/style.rs`(599줄) 기반 확장" 은 **stale**. composition-layout 은 Taffy 0.10 종속 crate(폐기 예정, Phase 0-A 결정문 명시)이고 Phase 1 self-impl 은 전부 `composition-engine`(taffy 무의존)으로 이동됨 → 2-A 도 `composition-engine/src/style.rs` **신규**가 정합([[feedback-no-dormant-foundation-ahead-of-flip]] — 폐기될 crate 위에 짓지 않음). Phase 1 crate 결정의 자연 승계라 fork checkpoint 4질문 대상 아님(전제·의존 방향 재판정 아님). (2) **이관 경계** — `cssValueParser.ts` 의 DOM 의존(`getComputedStyle(document.documentElement)`, var()/토큰 해석)은 한 곳으로 격리됨 → WASM 이관 불가, **JS 잔류**. 순수 산술만 Rust 이관 — var()/토큰은 JS 가 선해석해 순수 값으로 만든 뒤 산술 파싱을 Rust 에 전달(Phase 1 flat f32 센티넬 철학 동일). (3) **첫 착수 단위** — 4,700줄 통이관 불가(M4) → 가장 작은 검증 가능 단위 = CSS 값 산술 파서 커널만.
+
+- **✅ CSS 값 산술 파서 커널 land 2026-07-04** (첫 단위):
+  - `packages/composition-engine/src/style.rs` 신규 — `cssValueParser.ts` 의 순수 산술 계층 이식. `resolve_css_size_value`(진입점) + `resolve_unit_value`(px/rem/em/vw/vh/vmin/vmax/in/cm/mm/pc/pt/ch/ex/% + 단위없는 숫자) + `resolve_calc`(재귀 하강 파서 + `tokenize_calc`) + `resolve_clamp`/`resolve_css_min`/`resolve_css_max` + `resolve_env`(safe-area-inset 4종→0) + `split_css_function_args`(괄호 깊이 추적).
+  - **계약**: JS `number | undefined` → Rust `Option<f32>`. `CSSValueContext` → `CssValueContext`(parent_size/container_size/viewport/root_font_size 스칼라, variableScope 제외=DOM 의존 JS 잔류). intrinsic 키워드 → 센티넬 f32(`FIT_CONTENT=-2`/`MIN_CONTENT=-3`/`MAX_CONTENT=-4`, Phase 1 `AUTO=-1` 계열 규약 동일). `parse_leading_f32` 로 JS `parseFloat("12abc")===12` 재현.
+  - **rem-before-em 검사 순서** / **% 는 container 미제공 시 None** / **calc 0-division None** / **미종결 괄호 None** 등 원본 edge case 그대로 승계.
+  - **미이식 (JS 잔류/후속 단위)**: `resolveVar`/`resolveVariableFromDOMDefault`/`createVariableScopeWithDOMFallback`(DOM 조회, JS 잔류), `parseFontShorthand`/`parseBorderShorthand`(shorthand 분해, 2-A 후속 단위), `cssResolver.ts`/`taffyDisplayAdapter.ts`/`implicitStyles.ts` 전체(2-A 후속).
+  - **검증**: `cargo test` **106 PASS** (lib 90 = 기존 64 + style 26 / golden 15 / doc-test 1), clippy --tests 0. 원본 JS 산술 계약 대조(1in/cm/pt/rem/vmin/calc/clamp) 값 일치 확인. seam 미배선 순수 함수 → live builder 영향 0, dual-run/cross-check N/A(트리 배선은 2-B 이후).
+- **남은 2-A 단위 (다음)**: font/border shorthand 분해(`parseFontShorthand`/`parseBorderShorthand`) → `cssResolver.ts`(캐스케이드) → `taffyDisplayAdapter.ts`(display 매핑) → `implicitStyles.ts`(tag→style 데이터 주도 매핑 테이블, 2,440줄 최대 단위). 각 단위 착수 시 동일하게 최소 검증 단위 확인.
 - implicit styles 는 데이터 주도 매핑 테이블 (tag → style) 로 재구성
 - **catalog SSOT 접점**: catalog 파생 스타일 값 보존 — 시각 정본은 `packages/shared/src/catalog/componentCatalog.ts` + `COMPONENT_RULES_TABLE` (`packages/shared/src/catalog/generated/componentRulesTable.ts`), Skia 소비 경로는 `buildSpecNodeData.ts` → `buildCatalogShapes`. 이관 후 /cross-check 전 컴포넌트. (참고: per-component spec 은 ADR-912 cutover 로 삭제 — Frame/Group/Slot 3개만 영구 잔존)
 
