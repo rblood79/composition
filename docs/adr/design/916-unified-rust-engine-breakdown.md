@@ -208,6 +208,17 @@
 - 2-pass height 보정 (최악 3× computeLayout) → 단일 패스 내 통합
 - layout-engine.md 의 기존 계약 (grid full rebuild 조건, longhand 정책, min-width:auto 에뮬레이션 등) 전수 승계
 
+> **2026-07-04 2-B 착수 전 실사 — 서술 대비 실측 gap (사용자 scope confirm 대기)**: 위 "6-step DFS 일체화" 서술은 **최종 목표**지만 실측상 한 번에 이관 불가. 경계 확정:
+>
+> | DFS 단계                                                                                                                                                                                                                                         | 실측 도메인 의존                                                                   | 이관 판정                                                                                       |
+> | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+> | 상단 3-step: `resolveStyle`(`cssResolver.ts` — `getRootComputedStyle()` store 의존) + `applyImplicitStyles`(tag/spec 의존) + `enrichWithIntrinsicSize`(`extractSpecTextStyle` @composition/specs + `resolvePropagatedProps` propagationRegistry) | tag/spec/store 도메인                                                              | **JS 잔류** (2-A 에서 순수 계층 style/cascade/display 만 격리한 이유 — 도메인 의존은 격리 불가) |
+> | 하단: `PersistentTaffyTree` 가 `LayoutEngineAPI` 를 호출하는 표면 — `buildTreeBatch(JSON.stringify(payload))` → `computeLayout(root,w,h)` → `getLayoutsBatch(handles)` (+ 증분 `updateStyleRaw`/`setChildren`/`markDirty`/`removeNode`)          | 순수 트리 계산 (payload 의 `node.style` 은 상단이 이미 순수화한 TaffyStyle 레코드) | **Rust `tree.rs` 이관 대상** (flex/block/grid.rs 를 트리로 오케스트레이션)                      |
+>
+> - **실측 scope(옵션 A)**: `tree.rs` = `LayoutEngineAPI` batch 계약 구현 — nodesJson 직렬화 트리를 받아 노드별 display 로 flex/block/grid.rs 디스패치하며 계산, 결과 batch 반환. 상단 style resolve/implicit/enrich 는 JS 잔류. 이 자리는 `layoutBridge.ts:26` `LayoutEngineAPI` + `layoutBridge.ts:63` `createLayoutEngine()` seam 에 이미 정의됨 (Phase 0-A). 배선 시점부터 live 영향 발생 → dual-run(Taffy self-diff 0) 검증 필수.
+> - **gap 처리 원칙 (adr-writing.md M3)**: 서술 vs 실측 gap 은 **Phase 0 inventory 절차 정밀화(breakdown 서술 정정)로 흡수** — 새 ADR fork 사유 아님. 상단 3-step 이관은 spec 참조 계약(catalog 도메인)이 선행돼야 하므로 별도 후속 단위이며, tree.rs 하단 batch 계약 이관과 독립.
+> - **미결(사용자 confirm 대기)**: 실측 scope(옵션 A) 착수 vs DFS 상단 이관 계약 선설계(옵션 B) vs Phase 2 전체 후속 ADR 분리(옵션 C). 자동 진행 금지 (execute-adr HIGH surface + no-derived-adr-mid-execution).
+
 ### 2-C. `scene.rs` — Scene graph dirty detection
 
 - `StoreRenderBridge.detectChangedIds` O(N) → generation counter + dirty bitfield O(1)
