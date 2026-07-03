@@ -66,14 +66,16 @@
 - **flag 전환/dual-run/G1 → Phase 1 이연**: seam 은 구축됐으나 flag 는 켜지 않았으므로 Taffy 0.9→0.10 layout 결과 차이 검증(G1)은 이 시점 불필요. Phase 1 에서 composition-engine 을 seam 에 배선할 때 dual-run(G2)이 첫 실전 검증.
 - 산출물: `layoutBridge.ts`(batch 계약 인터페이스 + seam factory) + `persistentTaffyTree.ts`(주입 seam) + `persistentTaffyTree.seam.test.ts`
 
-### 0-B. LayoutScheduler 소비 배선 + `LAYOUT_WORKER=true`
+### 0-B. LayoutScheduler 소비 배선 + `LAYOUT_WORKER=true` (⏸️ 생략 — Phase 1/2 통합 배선으로 이연, 2026-07-03)
 
-- **flag 단독 전환 무효**: `init.ts:41-48` 은 worker **초기화만** 수행. `getLayoutScheduler`(`wasm-worker/index.ts:32`)는 export 만 존재하고 caller 0건 — block/grid 계산을 scheduler 로 보내는 소비 경로 미배선. "SWR 캐시" 는 인프라 코드로만 존재 (`LayoutScheduler.ts`), 소비자 없음
-- **실제 작업**: block/grid 가속 경로에서 LayoutScheduler 호출 배선 + 결과 소비 (SWR 적용) + flag 전환
-- **커버리지 한정**: worker 는 `BLOCK_LAYOUT` / `GRID_LAYOUT` 가속기 요청만 처리 (`layoutWorker.ts:33-38`, Float32Array 전처리 입력) — **Taffy full-tree solve 는 main thread 잔류**. 전체 layout worker 이관은 Phase 2-B (tree.rs batch API) 이후 범위
-- 산출물: 소비 배선 + flag 전환 + 1000노드 main thread blocking 측정 before/after (block/grid 경로 한정 효과로 해석)
+> **2026-07-03 실행 결정 (사용자 confirm)**: **0-B 생략, Phase 0 을 0-A(seam)만으로 종료.** 근거는 0-A 의 "폐기될 것 지금 배선 금지" 와 동일 원칙([[feedback-no-dormant-foundation-ahead-of-flip]]).
 
-0-A / 0-B 는 상호 독립 — 개별 검증 가능. 단 양쪽 모두 배선 코드 작업이 선행되므로 "코드 변경 최소" 가 아니라 **소규모 통합 작업** 으로 분류한다.
+- **실측 (완전 dead)**: `getLayoutScheduler`(`wasm-worker/index.ts:32`) caller 0건 + block/grid 가속기(`layoutAccelerator`) import 0건. LayoutScheduler 소비 경로가 어디에도 이어지지 않음
+- **dormant 판정**: 0-B 가 배선하려는 대상은 block/grid worker offload 인데, 그 위의 실제 consumer(block/grid 가속기)가 이미 dead 다. 소비 배선을 지금 만들어도 가속기 자체를 부활시키지 않으면 실효 0 → **flip 앞선 dormant 기반**. 게다가 이 가속기는 Phase 1-B/1-C(`grid.rs`/`block.rs` 이관·확장)와 Phase 2-B(전체 layout worker 이관, breakdown 명시 "Phase 2-B 이후 범위")에서 재편되므로, 지금 배선하면 이관 시 중복 재작업
+- **이연 위치**: worker offload 배선은 Phase 2-B(`tree.rs` full-tree batch API)에서 composition-engine 의 실제 worker 경로와 함께 통합 배선한다. `LAYOUT_WORKER` flag 전환도 그 시점.
+- 잔존 인프라 코드(`LayoutScheduler.ts` / `wasm-worker/`)는 dead 이지만 Phase 2-B 이관 시 참조 자산으로 보존 (삭제하지 않음)
+
+**Phase 0 종료 상태 (2026-07-03)**: 0-A seam ✅ Implemented (flag 보류) / 0-B ⏸️ Phase 2-B 이연. Phase 0 은 "인프라 배선" 이 아니라 **엔진 교체 지점(seam) 확보** 로 축소 종료 — flag 전환·worker offload 는 실제 자체 엔진(Phase 1) 이후로 이연하여 폐기될 중간 산출물 검증 비용을 제거.
 
 ---
 
@@ -197,7 +199,9 @@ packages/composition-engine/        # 신규 통합 crate (composition-layout �
 ## 순서 의존성 요약
 
 ```
-Phase 0-A ─┐
-           ├─ (병렬 가능) ─→ Phase 1 (1-A/B/C → 1-D 게이트 → 1-E) ─→ G5 confirm ─→ Phase 2 (2-A → 2-B → {2-C, 2-D, 2-E})
-Phase 0-B ─┘
+Phase 0-A (seam ✅) ─→ Phase 1 (1-A/B/C → 1-D 게이트 G2 → 1-E) ─→ G5 confirm ─→ Phase 2 (2-A → 2-B → {2-C, 2-D, 2-E})
+                                                                                              │
+Phase 0-B (⏸️ 이연) ─────────────────────────────────────────────── 통합 배선 ─────────────┘ (2-B tree.rs worker 경로와 함께)
 ```
+
+- **Phase 0 종료** (2026-07-03): 0-A seam 만 land, 0-B 는 2-B 로 이연. Phase 1 이 다음 진입점 (HIGH 위험 — 별도 사용자 승인).

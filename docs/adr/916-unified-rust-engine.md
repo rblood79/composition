@@ -6,7 +6,7 @@ Accepted — 2026-07-03
 
 - Proposed — 2026-07-03
 - Accepted — 2026-07-03 (Risk Threshold Check 대안 D 선정 + Gate G1~G5 완비 + 자체리뷰/codex 2 라운드 정정 반영 후 사용자 명시 confirm)
-- Phase 0 (배선 + flag 활성화) — In Progress 2026-07-03
+- Phase 0 — 종료 2026-07-03 (**0-A seam 만 land**, flag 보류). 0-A = 레이아웃 엔진 주입 seam (`createLayoutEngine` factory 경유, 동작 무변). 0-B(LayoutScheduler worker offload)는 Phase 2-B 로 이연 — block/grid 가속기 dead + Phase 1/2 재편 대상이라 flip 앞선 dormant 배선 회피. 다음 진입점 = Phase 1 (Taffy 제거, HIGH 위험 — 별도 사용자 승인 필요)
 
 ## Context
 
