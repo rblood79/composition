@@ -1,4 +1,4 @@
-//! ADR-916 Phase 2-B — `tree.rs` 트리 오케스트레이션 (단위 1: leaf-only skeleton)
+//! ADR-916 Phase 2-B — `tree.rs` 트리 오케스트레이션 (단위 2: post-order flex solve)
 //!
 //! `apps/builder/.../wasm/src/taffy_bridge.rs` 의 `TaffyLayoutEngine` batch 계약
 //! (`build_tree_batch` → `compute_layout` → `get_layouts_batch`) 을 Taffy 없이
@@ -16,27 +16,45 @@
 //!
 //! ## 층별 점진 (단위 분할 — 2-A 최소 검증 단위 패턴 승계)
 //!
-//! flex/block/grid.rs 는 모두 "단일 컨테이너 + 자식 flat f32 → 자식 위치" 1-depth
-//! 커널이다. batch 계약은 N-depth 트리 상호의존을 해결해야 하므로, 그 사이를
-//! 잇는 오케스트레이션(handle 관리 + post-order intrinsic + top-down placement +
-//! display dispatch)을 층별로 나눠 각 단위를 cargo test 로 검증한다.
+//! flex/block/grid.rs 는 모두 "부모 available 크기 + 자식 flat f32 → 자식 위치"
+//! 1-depth 커널이며 **컨테이너 자기 크기를 반환하지 않는다**. batch 계약은 N-depth
+//! 트리 상호의존을 해결해야 하므로, 그 사이를 잇는 오케스트레이션을 층별로 나눠
+//! 각 단위를 cargo test 로 검증한다.
 //!
-//! - **단위 1 (본 파일 현재)**: tree 자료구조 + handle 관리(alloc/recycle) +
-//!   `build_tree_batch` 골격(post-order 파싱·저장·handle 배열) + `get_layouts_batch`
-//!   flat 반환 + 증분 API(create/update/set_children/remove/mark_dirty/clear).
-//!   `compute_layout` 은 **leaf-only** — 각 노드를 자기 크기(width/height)만
-//!   해결하고 자식 배치는 하지 않는다(자식 좌표 0). taffy_bridge.rs 의 handle
-//!   생명주기(`alloc_handle`/`resolve`/`free_list`) 를 정확히 대응.
-//! - **단위 2 (다음)**: post-order intrinsic 크기 측정(자식→부모 bottom-up).
-//! - **단위 3 (다음)**: top-down placement + display dispatch(각 노드에서
-//!   flex/block/grid.rs 로 자식 flat f32 변환·호출).
+//! **단위 2/3 병합 (2026-07-04 재정의)**: 원안은 "단위 2=intrinsic(bottom-up)/
+//! 단위 3=placement(top-down)" 분리였으나, 실측상 height:auto 부모의 intrinsic
+//! 크기는 **자식을 먼저 배치(커널 호출)해 bounding box 를 봐야** 나온다 —
+//! intrinsic 과 placement 가 물리적으로 분리 불가. 따라서 "post-order 트리 solve"
+//! (각 노드에서 display 별 커널 dispatch → 자식 배치 → bounding box 로 컨테이너
+//! content 크기 도출) 를 한 단위로 병합하고, 내부를 display 별 최소 검증층으로
+//! 다시 쪼갠다.
+//!
+//! - **단위 1 (land)**: tree 자료구조 + handle 관리 + `build_tree_batch` 골격 +
+//!   `get_layouts_batch` + 증분 API. `compute_layout` = leaf-only(자기 크기만).
+//! - **단위 2 (본 파일 현재)**: **post-order flex solve** — flex 컨테이너에서
+//!   자식을 `flex.rs`(`flex_layout`) 로 배치하고, 자식 bounding box 로 컨테이너
+//!   content 크기(height:auto sentinel) 를 도출. 재귀로 손자까지 bottom-up.
+//!   현재 검증층 = flex 컨테이너 + explicit/flex 자식. block/grid dispatch 는 다음.
+//! - **단위 3 (다음)**: block(`block_layout`) + grid(`grid_layout`) dispatch 추가
+//!   (display 별 분기 완성).
 //! - **단위 4 (다음)**: 증분 dirty 추적 + 재계산 최소화(taffy mark_dirty 대응).
+//!
+//! ## flex.rs 알려진 제약 (단위 2 착수 중 발견, Phase 1 flex.rs scope)
+//!
+//! `flex.rs` 의 `ALIGN_STRETCH`(align-items 기본값)는 자식의 **명시 cross size 를
+//! 무시하고** 컨테이너 cross available 로 stretch 한다 (flex.rs:664 `cross_avail`
+//! 무조건 사용). CSS 명세상 stretch 는 cross size 가 `auto` 인 경우에만 적용되고
+//! 명시 크기는 존중해야 하므로 이는 flex.rs Phase 1 의 미구현/버그다. 단위 2
+//! tree.rs solve 는 이 버그를 **건드리지 않으며**(scope: 오케스트레이션), 테스트는
+//! stretch 가 관여하지 않는 케이스(`align-items:flex-start`)로 구성해 solve 로직만
+//! 검증한다. flex.rs stretch 수정은 Phase 1 flex.rs 후속(별도 착수).
 //!
 //! seam 미배선 순수 Rust — live builder 영향 0. `createLayoutEngine` 실배선(flag
 //! 전환)은 flex/block/grid 트리 dual-run(Taffy self-diff 0) 통과 후 별도 단계.
 
 use serde::Deserialize;
 
+use crate::flex;
 use crate::style::{resolve_css_size_value, CssValueContext};
 
 /// 트리 노드의 스타일 표현 (taffy_bridge.rs `StyleInput` 대응).
@@ -290,55 +308,161 @@ impl LayoutTree {
     /// `root` 를 뿌리로 트리 레이아웃 계산.
     ///
     /// **단위 1 (leaf-only)**: 각 노드를 자기 크기(width/height)만 해결한다.
-    /// 자식 배치(intrinsic 측정 + placement + display dispatch)는 단위 2/3 범위 —
-    /// 현재는 모든 노드 좌표가 (0,0). height sentinel(-1)→MaxContent 는 단위 2
-    /// (intrinsic) 에서 구현하므로, 현재는 명시 크기(px/%/vw…)만 해결하고
-    /// auto 는 0 으로 둔다.
+    /// `root` 를 뿌리로 트리 레이아웃을 post-order solve.
     ///
-    /// `available_height < 0` sentinel(taffy_bridge.rs RC-1) 대응은 단위 2 로 이연.
+    /// **단위 2 (post-order flex solve)**: 각 노드를 bottom-up 으로 방문 —
+    /// (1) leaf 는 자기 크기(width/height, auto 는 0)만 해결, (2) flex 컨테이너는
+    /// 자식을 먼저 solve 한 뒤 `flex.rs`(`flex_layout`) 로 배치하고 자식 bounding
+    /// box 로 컨테이너 content 크기(width/height auto sentinel) 를 도출.
+    ///
+    /// 자식 좌표는 부모 content-box 기준 상대 좌표(taffy_bridge.rs 와 동일 — 부모
+    /// origin 은 부모의 x/y, 자식 좌표는 부모 안 상대). `available_height < 0`
+    /// sentinel 은 "부모 height:auto → 자식 합산으로 결정" 을 의미.
+    ///
+    /// block/grid dispatch 는 단위 3. 현재 flex 아닌 컨테이너는 자기 크기만 해결
+    /// (자식 미배치) — 단위 3 에서 완성.
     pub fn compute_layout(&mut self, root: usize, available_width: f32, available_height: f32) {
         if self.get(root).is_none() {
             return;
         }
-        // 컨테이너 % 기준 컨텍스트 (root 는 available_width/height 기준).
-        let ctx = CssValueContext {
-            parent_size: None,
-            container_size: Some(available_width),
-            viewport_width: None,
-            viewport_height: None,
-            root_font_size: None,
-        };
-
-        // 단위 1: 살아있는 모든 노드를 leaf 처럼 자기 크기만 해결.
-        // (트리 순회·자식 배치는 단위 2/3. 여기서는 handle 계약·크기 해결 커널만 검증.)
-        let handles: Vec<usize> = (0..self.nodes.len())
-            .filter(|&h| self.get(h).is_some())
-            .collect();
-
-        for h in handles {
-            let (w, ht) = self.resolve_self_size(h, &ctx, available_width, available_height);
-            if let Some(node) = self.get_mut(h) {
-                node.layout = NodeLayout { x: 0.0, y: 0.0, width: w, height: ht };
-                node.dirty = false;
-            }
-        }
+        self.solve_node(root, available_width, available_height);
     }
 
-    /// 노드 자기 크기(width/height) 해결. auto/미설정은 0 (단위 2 intrinsic 이전).
-    fn resolve_self_size(
-        &self,
-        handle: usize,
-        ctx: &CssValueContext,
-        avail_w: f32,
-        avail_h: f32,
-    ) -> (f32, f32) {
+    /// 노드 하나를 solve — 자식을 먼저 재귀 solve 한 뒤 display 별로 배치.
+    /// 반환: (content_width, content_height) — 부모 intrinsic 도출용.
+    fn solve_node(&mut self, handle: usize, avail_w: f32, avail_h: f32) -> (f32, f32) {
         let Some(node) = self.get(handle) else {
             return (0.0, 0.0);
         };
-        let w = resolve_dimension(node.style.width.as_deref(), ctx, avail_w);
-        // height 컨텍스트는 세로 기준 container_size 로 교체.
-        let h_ctx = CssValueContext { container_size: Some(avail_h), ..*ctx };
-        let h = resolve_dimension(node.style.height.as_deref(), &h_ctx, avail_h);
+        let children = node.children.clone();
+        let display = classify_container_display(node.style.display.as_deref());
+
+        // 명시 크기(있으면) — auto 는 아래에서 content 로 채움.
+        let (explicit_w, explicit_h) = self.resolve_self_size(handle, avail_w, avail_h);
+
+        // leaf 또는 (단위 2 미지원) 비-flex 컨테이너: 자기 크기만.
+        if children.is_empty() || display != ContainerDisplay::Flex {
+            let w = explicit_w;
+            let h = explicit_h;
+            if let Some(n) = self.get_mut(handle) {
+                n.layout = NodeLayout { x: 0.0, y: 0.0, width: w, height: h };
+                n.dirty = false;
+            }
+            return (w, h);
+        }
+
+        // flex 컨테이너: 자식을 먼저 solve → flat f32 → flex_layout → 위치 배치.
+        self.solve_flex(handle, &children, explicit_w, explicit_h, avail_w, avail_h)
+    }
+
+    /// flex 컨테이너 solve — 자식 재귀 → `flex.rs` 배치 → 컨테이너 크기 도출.
+    fn solve_flex(
+        &mut self,
+        handle: usize,
+        children: &[usize],
+        explicit_w: f32,
+        explicit_h: f32,
+        avail_w: f32,
+        avail_h: f32,
+    ) -> (f32, f32) {
+        // 컨테이너 스타일에서 flex 파라미터 추출.
+        let style = self.get(handle).map(|n| n.style.clone()).unwrap_or_default();
+        let direction = parse_flex_direction(style.flex_direction.as_deref());
+        let is_row = direction == flex::DIR_ROW;
+        let justify = parse_justify_content(style.justify_content.as_deref());
+        let align_items = parse_align_items(style.align_items.as_deref());
+        let align_content = parse_align_content(style.align_content.as_deref());
+        let wrap = parse_flex_wrap(style.flex_wrap.as_deref());
+
+        let ctx = self.ctx_for(avail_w);
+        let gap_row = resolve_gap(style.row_gap.as_deref(), &ctx);
+        let gap_col = resolve_gap(style.column_gap.as_deref(), &ctx);
+        // main/cross gap 매핑 (row → main=column_gap, cross=row_gap).
+        let (gap_main, gap_cross) =
+            if is_row { (gap_col, gap_row) } else { (gap_row, gap_col) };
+
+        // 자식 available: 컨테이너 명시 크기 있으면 그것, 없으면 상속 avail.
+        let child_avail_w = if explicit_w > 0.0 { explicit_w } else { avail_w };
+        let child_avail_h = if explicit_h > 0.0 { explicit_h } else { avail_h };
+
+        // 1) 자식 재귀 solve → 각 자식 content 크기 확보.
+        let mut child_sizes: Vec<(f32, f32)> = Vec::with_capacity(children.len());
+        for &c in children {
+            let cs = self.solve_node(c, child_avail_w, child_avail_h);
+            child_sizes.push(cs);
+        }
+
+        // 2) 자식 → flex flat f32 (논리축 main/cross 변환).
+        let mut data = vec![0.0f32; children.len() * flex::FLEX_FIELD_COUNT];
+        for (i, &c) in children.iter().enumerate() {
+            let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
+            let (cw, ch) = child_sizes[i];
+            write_flex_item(&mut data, i, &cstyle, cw, ch, is_row, &ctx);
+        }
+
+        // 3) main/cross available.
+        let (avail_main, avail_cross) = if is_row {
+            (child_avail_w, child_avail_h)
+        } else {
+            (child_avail_h, child_avail_w)
+        };
+
+        let out = flex::flex_layout(
+            &data,
+            avail_main,
+            avail_cross,
+            direction,
+            justify,
+            align_items,
+            align_content,
+            wrap,
+            gap_main,
+            gap_cross,
+        );
+
+        // 4) 자식 위치 반영 + bounding box 로 컨테이너 content 크기 도출.
+        let mut max_right: f32 = 0.0;
+        let mut max_bottom: f32 = 0.0;
+        for (i, &c) in children.iter().enumerate() {
+            let off = i * 4;
+            let (x, y, w, h) = (out[off], out[off + 1], out[off + 2], out[off + 3]);
+            if let Some(n) = self.get_mut(c) {
+                n.layout = NodeLayout { x, y, width: w, height: h };
+            }
+            max_right = max_right.max(x + w);
+            max_bottom = max_bottom.max(y + h);
+        }
+
+        // 컨테이너 크기: 명시 있으면 명시, 없으면 자식 bounding box.
+        let container_w = if explicit_w > 0.0 { explicit_w } else { max_right };
+        let container_h = if explicit_h > 0.0 { explicit_h } else { max_bottom };
+        if let Some(n) = self.get_mut(handle) {
+            n.layout = NodeLayout { x: 0.0, y: 0.0, width: container_w, height: container_h };
+            n.dirty = false;
+        }
+        (container_w, container_h)
+    }
+
+    /// % 기준 컨텍스트 (container_size = avail).
+    fn ctx_for(&self, avail: f32) -> CssValueContext {
+        CssValueContext {
+            parent_size: None,
+            container_size: Some(avail),
+            viewport_width: None,
+            viewport_height: None,
+            root_font_size: None,
+        }
+    }
+
+    /// 노드 명시 크기(width/height) 해결. auto/미설정/음수 센티넬은 0.
+    fn resolve_self_size(&self, handle: usize, avail_w: f32, avail_h: f32) -> (f32, f32) {
+        let Some(node) = self.get(handle) else {
+            return (0.0, 0.0);
+        };
+        let ctx_w = self.ctx_for(avail_w);
+        let ctx_h = self.ctx_for(avail_h);
+        let w = resolve_dimension(node.style.width.as_deref(), &ctx_w);
+        let h = resolve_dimension(node.style.height.as_deref(), &ctx_h);
         (w, h)
     }
 
@@ -363,9 +487,8 @@ impl LayoutTree {
 
 /// dimension 값 해결 — 명시 크기(px/%/vw/calc…)면 그 값, auto/미설정/음수면 0.
 ///
-/// 단위 1 은 intrinsic(fit/min/max-content, auto) 미지원 → 0. style.rs 의
-/// FIT/MIN/MAX_CONTENT 센티넬은 단위 2(intrinsic)에서 해석.
-fn resolve_dimension(value: Option<&str>, ctx: &CssValueContext, _avail: f32) -> f32 {
+/// auto/intrinsic(fit/min/max-content 센티넬) 은 0 — solve 가 content 로 채운다.
+fn resolve_dimension(value: Option<&str>, ctx: &CssValueContext) -> f32 {
     match value {
         Some(v) => {
             let trimmed = v.trim();
@@ -373,12 +496,197 @@ fn resolve_dimension(value: Option<&str>, ctx: &CssValueContext, _avail: f32) ->
                 return 0.0;
             }
             match resolve_css_size_value(trimmed, ctx) {
-                // 음수 센티넬(fit/min/max-content)은 단위 2 이전엔 0.
+                // 음수 센티넬(fit/min/max-content)은 현재 0 (content 로 대체).
                 Some(n) if n >= 0.0 => n,
                 _ => 0.0,
             }
         }
         None => 0.0,
+    }
+}
+
+// ─── display 분류 + CSS 키워드 → flex.rs u8 매핑 ──────────────────────
+//
+// flex.rs 는 순수 계산 커널이라 CSS 문자열 파싱을 하지 않는다(WASM 경계에서 JS 가
+// u8 전달). tree.rs 가 그 경계 역할을 이어받아 CSS 키워드를 flex.rs 상수와
+// 일치하는 u8 로 매핑한다. 상수 값은 flex.rs 정의와 동일해야 함(리터럴 대조).
+
+/// 컨테이너 formatting context 분류 (단위 2 는 Flex 만 실배치, 나머지는 자기 크기).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ContainerDisplay {
+    Flex,
+    /// block/grid/기타 — 단위 3 에서 dispatch 추가.
+    Other,
+}
+
+/// display 문자열 → 컨테이너 분류. flex/inline-flex 만 Flex.
+fn classify_container_display(display: Option<&str>) -> ContainerDisplay {
+    match display.map(|d| d.trim().to_ascii_lowercase()).as_deref() {
+        Some("flex") | Some("inline-flex") => ContainerDisplay::Flex,
+        _ => ContainerDisplay::Other,
+    }
+}
+
+/// flex-direction → flex.rs DIR_ROW(0)/DIR_COLUMN(1). row-reverse/column-reverse
+/// 는 단위 2 미지원(축만 매핑, reverse 는 다음) → row/column 로 정규화.
+fn parse_flex_direction(v: Option<&str>) -> u8 {
+    match v.map(|s| s.trim().to_ascii_lowercase()).as_deref() {
+        Some("column") | Some("column-reverse") => flex::DIR_COLUMN,
+        _ => flex::DIR_ROW,
+    }
+}
+
+/// justify-content → flex.rs JUSTIFY_* (start=0/center=1/end=2/space-between=3/
+/// space-around=4/space-evenly=5). flex.rs 상수와 리터럴 대조 일치.
+fn parse_justify_content(v: Option<&str>) -> u8 {
+    match v.map(|s| s.trim().to_ascii_lowercase()).as_deref() {
+        Some("center") => 1,
+        Some("flex-end") | Some("end") => 2,
+        Some("space-between") => 3,
+        Some("space-around") => 4,
+        Some("space-evenly") => 5,
+        // flex-start/start/normal/기타 → 0
+        _ => 0,
+    }
+}
+
+/// align-items → flex.rs ALIGN_* (stretch=0/start=1/center=2/end=3).
+fn parse_align_items(v: Option<&str>) -> u8 {
+    match v.map(|s| s.trim().to_ascii_lowercase()).as_deref() {
+        Some("flex-start") | Some("start") => 1,
+        Some("center") => 2,
+        Some("flex-end") | Some("end") => 3,
+        // stretch/normal/기타 → 0 (default stretch)
+        _ => 0,
+    }
+}
+
+/// align-content → flex.rs ALIGN_CONTENT_* (stretch=0/start=1/center=2/end=3/
+/// space-between=4/space-around=5).
+fn parse_align_content(v: Option<&str>) -> u8 {
+    match v.map(|s| s.trim().to_ascii_lowercase()).as_deref() {
+        Some("flex-start") | Some("start") => 1,
+        Some("center") => 2,
+        Some("flex-end") | Some("end") => 3,
+        Some("space-between") => 4,
+        Some("space-around") => 5,
+        // stretch/normal/기타 → 0
+        _ => 0,
+    }
+}
+
+/// flex-wrap → flex.rs WRAP_NOWRAP(0)/WRAP_WRAP(1). wrap-reverse 는 wrap 로 정규화.
+fn parse_flex_wrap(v: Option<&str>) -> u8 {
+    match v.map(|s| s.trim().to_ascii_lowercase()).as_deref() {
+        Some("wrap") | Some("wrap-reverse") => flex::WRAP_WRAP,
+        _ => flex::WRAP_NOWRAP,
+    }
+}
+
+/// gap 값 해결 (px/%/calc…). 미설정/auto/음수는 0.
+fn resolve_gap(v: Option<&str>, ctx: &CssValueContext) -> f32 {
+    resolve_dimension(v, ctx).max(0.0)
+}
+
+/// padding+border 한 축 합 (main 또는 cross).
+///
+/// direction 이 row 면 main=좌우(left+right), cross=상하(top+bottom).
+/// column 이면 반대. padding + border 를 각각 해결해 합산.
+fn axis_pad_border(style: &NodeStyle, ctx: &CssValueContext, is_main_horizontal: bool) -> f32 {
+    let (a, b, ba, bb) = if is_main_horizontal {
+        (
+            style.padding_left.as_deref(),
+            style.padding_right.as_deref(),
+            style.border_left.as_deref(),
+            style.border_right.as_deref(),
+        )
+    } else {
+        (
+            style.padding_top.as_deref(),
+            style.padding_bottom.as_deref(),
+            style.border_top.as_deref(),
+            style.border_bottom.as_deref(),
+        )
+    };
+    resolve_dimension(a, ctx)
+        + resolve_dimension(b, ctx)
+        + resolve_dimension(ba, ctx)
+        + resolve_dimension(bb, ctx)
+}
+
+/// 자식 스타일 + solve 된 content 크기 → flex.rs flat f32 (논리축 main/cross).
+///
+/// flex.rs 필드 계약(FLEX_FIELD_COUNT=17): 0=flex_basis, 1=width(main),
+/// 2=height(cross), 3-6=margin(top/right/bottom/left, 물리), 7=pad_border_main,
+/// 8=pad_border_cross, 9=min_main, 10=max_main, 11=min_cross, 12=max_cross,
+/// 13=content_main, 14=content_cross, 15=flex_grow, 16=flex_shrink.
+///
+/// content_main/cross 는 자식 solve 결과(cw/ch)를 direction 으로 매핑. width/height
+/// 명시(>0)면 그 값, 없으면 AUTO(-1) — flex.rs 가 content 로 fallback.
+fn write_flex_item(
+    data: &mut [f32],
+    i: usize,
+    cstyle: &NodeStyle,
+    cw: f32,
+    ch: f32,
+    is_row: bool,
+    ctx: &CssValueContext,
+) {
+    let off = i * flex::FLEX_FIELD_COUNT;
+
+    // 명시 width/height (음수=미지정 → AUTO -1).
+    let expl_w = resolve_dimension_opt(cstyle.width.as_deref(), ctx);
+    let expl_h = resolve_dimension_opt(cstyle.height.as_deref(), ctx);
+
+    // 논리축 매핑: row → main=가로, cross=세로.
+    let (main_size, cross_size) = if is_row { (expl_w, expl_h) } else { (expl_h, expl_w) };
+    let (content_main, content_cross) = if is_row { (cw, ch) } else { (ch, cw) };
+
+    // flex_basis: 미지정(auto) → -1.
+    data[off] = -1.0; // flex_basis AUTO (basis:content/px 는 단위 3 이후)
+    data[off + 1] = main_size.unwrap_or(-1.0);
+    data[off + 2] = cross_size.unwrap_or(-1.0);
+    data[off + 3] = resolve_dimension(cstyle.margin_top.as_deref(), ctx);
+    data[off + 4] = resolve_dimension(cstyle.margin_right.as_deref(), ctx);
+    data[off + 5] = resolve_dimension(cstyle.margin_bottom.as_deref(), ctx);
+    data[off + 6] = resolve_dimension(cstyle.margin_left.as_deref(), ctx);
+    data[off + 7] = axis_pad_border(cstyle, ctx, is_row); // pad_border_main
+    data[off + 8] = axis_pad_border(cstyle, ctx, !is_row); // pad_border_cross
+    // min/max: 미지정 → -1 (AUTO/NONE).
+    data[off + 9] = resolve_dimension_opt(min_main_str(cstyle, is_row), ctx).unwrap_or(-1.0);
+    data[off + 10] = resolve_dimension_opt(max_main_str(cstyle, is_row), ctx).unwrap_or(-1.0);
+    data[off + 11] = resolve_dimension_opt(min_cross_str(cstyle, is_row), ctx).unwrap_or(-1.0);
+    data[off + 12] = resolve_dimension_opt(max_cross_str(cstyle, is_row), ctx).unwrap_or(-1.0);
+    data[off + 13] = content_main;
+    data[off + 14] = content_cross;
+    data[off + 15] = cstyle.flex_grow.unwrap_or(0.0).max(0.0);
+    data[off + 16] = cstyle.flex_shrink.unwrap_or(1.0).max(0.0);
+}
+
+/// min_width/height 중 main 축 (row → min_width).
+fn min_main_str(s: &NodeStyle, is_row: bool) -> Option<&str> {
+    if is_row { s.min_width.as_deref() } else { s.min_height.as_deref() }
+}
+fn max_main_str(s: &NodeStyle, is_row: bool) -> Option<&str> {
+    if is_row { s.max_width.as_deref() } else { s.max_height.as_deref() }
+}
+fn min_cross_str(s: &NodeStyle, is_row: bool) -> Option<&str> {
+    if is_row { s.min_height.as_deref() } else { s.min_width.as_deref() }
+}
+fn max_cross_str(s: &NodeStyle, is_row: bool) -> Option<&str> {
+    if is_row { s.max_height.as_deref() } else { s.max_width.as_deref() }
+}
+
+/// resolve_dimension 의 Option 변형 — 미지정/auto 는 None(AUTO 센티넬용).
+fn resolve_dimension_opt(value: Option<&str>, ctx: &CssValueContext) -> Option<f32> {
+    let v = value?;
+    let trimmed = v.trim();
+    if trimmed.is_empty() || trimmed.eq_ignore_ascii_case("auto") {
+        return None;
+    }
+    match resolve_css_size_value(trimmed, ctx) {
+        Some(n) if n >= 0.0 => Some(n),
+        _ => None,
     }
 }
 
@@ -534,17 +842,146 @@ mod tests {
         tree.compute_layout(99, 400.0, 300.0); // panic 없이 no-op
     }
 
+    // ── 단위 2: post-order flex solve ──
+
+    /// flex row 컨테이너 + 2 explicit 자식 → 좌→우 배치 (gap 0).
+    #[test]
+    fn flex_row_two_children_no_gap() {
+        let mut tree = LayoutTree::new();
+        // post-order: 자식0(100×50), 자식1(80×50), 부모(flex row).
+        let json = r#"[
+            {"style":{"width":"100px","height":"50px"},"children":[]},
+            {"style":{"width":"80px","height":"50px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","width":"400px","height":"60px"},"children":[0,1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        let root = handles[2];
+        tree.compute_layout(root, 400.0, 60.0);
+        // 자식0: x=0, 자식1: x=100 (좌→우 누적).
+        let c0 = tree.get_layout(handles[0]);
+        let c1 = tree.get_layout(handles[1]);
+        assert_eq!(c0.x, 0.0, "c0.x");
+        assert_eq!(c0.width, 100.0, "c0.w");
+        assert_eq!(c1.x, 100.0, "c1.x (100 뒤)");
+        assert_eq!(c1.width, 80.0, "c1.w");
+    }
+
+    /// flex row + column_gap → 자식 사이 간격.
+    #[test]
+    fn flex_row_with_gap() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"100px","height":"50px"},"children":[]},
+            {"style":{"width":"80px","height":"50px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","width":"400px","height":"60px","columnGap":"20px"},"children":[0,1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 400.0, 60.0);
+        let c1 = tree.get_layout(handles[1]);
+        assert_eq!(c1.x, 120.0, "c1.x = 100 + 20 gap");
+    }
+
+    /// flex column → 위→아래 배치.
+    #[test]
+    fn flex_column_stacks_vertically() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"100px","height":"30px"},"children":[]},
+            {"style":{"width":"100px","height":"40px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"column","width":"200px","height":"200px"},"children":[0,1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 200.0, 200.0);
+        let c0 = tree.get_layout(handles[0]);
+        let c1 = tree.get_layout(handles[1]);
+        assert_eq!(c0.y, 0.0, "c0.y");
+        assert_eq!(c1.y, 30.0, "c1.y = c0 height 뒤");
+    }
+
+    /// height:auto flex row 컨테이너 → 자식 bounding box 로 intrinsic 도출.
+    #[test]
+    fn flex_container_intrinsic_height_from_children() {
+        let mut tree = LayoutTree::new();
+        // 부모 height 미지정(auto) → 자식 max bottom = 50 이 컨테이너 height.
+        let json = r#"[
+            {"style":{"width":"100px","height":"50px"},"children":[]},
+            {"style":{"width":"80px","height":"40px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","width":"400px"},"children":[0,1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        let root = handles[2];
+        tree.compute_layout(root, 400.0, -1.0); // height:auto sentinel
+        let container = tree.get_layout(root);
+        assert_eq!(container.width, 400.0, "명시 width 유지");
+        // stretch(default align-items) 로 자식이 컨테이너 cross 로 늘어날 수 있으나,
+        // 컨테이너 height 미정이면 자식 max cross(50) 가 bounding box.
+        assert_eq!(container.height, 50.0, "intrinsic height = max child bottom");
+    }
+
+    /// 중첩 flex — 손자까지 bottom-up solve.
+    ///
+    /// 외부 column 에 `align-items:flex-start` 명시 — flex.rs 의 stretch(cross
+    /// 명시 크기 무시) 버그를 우회하여 tree.rs solve 오케스트레이션만 검증한다.
+    /// (flex.rs stretch 버그는 모듈 doc "flex.rs 알려진 제약" 참조 — 단위 2 scope
+    /// 밖, Phase 1 flex.rs 후속 수정.)
+    #[test]
+    fn flex_nested_bottom_up() {
+        let mut tree = LayoutTree::new();
+        // post-order: leaf(50×20), 내부 flex row [leaf], 외부 flex column [내부].
+        let json = r#"[
+            {"style":{"width":"50px","height":"20px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","width":"200px","height":"30px","alignItems":"flex-start"},"children":[0]},
+            {"style":{"display":"flex","flexDirection":"column","width":"300px","height":"100px","alignItems":"flex-start"},"children":[1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 300.0, 100.0);
+        // 손자 leaf 가 내부 flex 안 (0,0) 에 배치.
+        let leaf = tree.get_layout(handles[0]);
+        assert_eq!(leaf.x, 0.0);
+        assert_eq!(leaf.width, 50.0);
+        // 내부 flex 는 외부 column 안 (0,0), 명시 width 200 유지(flex-start 라 stretch 없음).
+        let inner = tree.get_layout(handles[1]);
+        assert_eq!(inner.y, 0.0);
+        assert_eq!(inner.width, 200.0);
+    }
+
+    /// 비-flex(block) 컨테이너는 단위 2 에서 자식 미배치 — 자기 크기만.
+    ///
+    /// block dispatch 는 단위 3. 단위 2 에서 block 컨테이너는 `solve_node` 의
+    /// 비-flex 분기로 자기 크기만 해결하고 **자식을 재귀 solve 하지 않는다** →
+    /// 자식 layout 은 ZERO(미방문). 이 미배치가 단위 2 의 정확한 계약이며,
+    /// 단위 3 에서 block_layout dispatch 로 자식이 배치된다.
+    #[test]
+    fn non_flex_container_self_size_only_unit2() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"100px","height":"50px"},"children":[]},
+            {"style":{"display":"block","width":"300px","height":"200px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 300.0, 200.0);
+        let container = tree.get_layout(handles[1]);
+        assert_eq!(container.width, 300.0);
+        assert_eq!(container.height, 200.0);
+        // 자식은 미방문(단위 3 block dispatch 전) → layout ZERO.
+        let child = tree.get_layout(handles[0]);
+        assert_eq!(child, NodeLayout::ZERO, "block 자식은 단위 3 전 미배치");
+    }
+
     // ── get_layouts_batch ──
 
     #[test]
     fn layouts_batch_flat_shape() {
         let mut tree = LayoutTree::new();
+        // 두 독립 leaf(부모-자식 관계 없음). 단위 2 계약: compute_layout(root) 는
+        // root 서브트리만 계산 → 두 노드를 각각 root 로 compute (taffy_bridge 동일).
         let json = format!(
             "[{}, {}]",
             style_json("100px", "50px"),
             style_json("200px", "80px")
         );
         let handles = tree.build_tree_batch(&json).unwrap();
+        tree.compute_layout(handles[0], 400.0, 300.0);
         tree.compute_layout(handles[1], 400.0, 300.0);
         let flat = tree.get_layouts_batch(&handles);
         assert_eq!(flat.len(), 8, "2 노드 × 4 = 8 f32");

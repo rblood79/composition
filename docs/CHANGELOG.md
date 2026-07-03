@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `style.rs` — CSS 값 산술 파서 커널 + font/border shorthand 분해 (`cssValueParser.ts` 순수 산술 계층).
   - `cascade.rs` — CSS Cascade Resolver 순수 헬퍼 (`cssResolver.ts` 자기완결 계층): 상속 규칙/초기값/cascade 키워드/currentColor/font-variant/논리→물리 속성.
   - `display.rs` — CSS Display 변환 순수 문자열 계층 (`taffyDisplayAdapter.ts` 자기완결 계층): Display Level 3 이원 구조 파싱/blockification/inline-level 판정/자식 분류.
-  - `tree.rs` (2-B 단위 1) — 트리 오케스트레이션 skeleton (`taffy_bridge.rs` batch 계약 대응): handle 관리(alloc/recycle) + `build_tree_batch`(post-order 파싱) + `get_layouts_batch`(flat) + 증분 API. `compute_layout` 은 leaf-only(자기 크기만) — 자식 배치(intrinsic/placement/dispatch)는 다음 단위. DFS 상단(resolveStyle/implicit/enrich = tag·spec·store 도메인)은 JS 잔류.
+  - `tree.rs` (2-B) — 트리 오케스트레이션 (`taffy_bridge.rs` batch 계약 대응). 단위 1: handle 관리(alloc/recycle) + `build_tree_batch`(post-order 파싱) + `get_layouts_batch`(flat) + 증분 API. 단위 2: post-order flex solve — flex 컨테이너에서 자식 재귀 solve → `flex.rs` 배치 → 자식 bounding box 로 컨테이너 content 크기(height:auto) 도출, NodeStyle → flex flat f32(논리축 매핑) 변환. block/grid dispatch(단위 3)·증분 dirty(단위 4)는 다음. DFS 상단(resolveStyle/implicit/enrich = tag·spec·store 도메인)은 JS 잔류.
   - store·DOM 의존(getRootComputedStyle/var()/토큰), spec SSOT 의존(FONT_STRETCH_KEYWORD_MAP), tag 도메인 의존(INLINE_BLOCK_TAGS/VERTICAL_ALIGN_MIDDLE_TAGS) 은 JS 잔류. seam(`createLayoutEngine`) 미배선 순수 함수라 사용자-가시 변화 없음. 검증은 composition-engine cargo test/clippy 기준으로 고정.
 
 ## [CalendarHeader 헤더 정렬 + Style 패널 layout 동기화 — nav 중앙 정렬 & flex 편집 반영] - 2026-07-02
