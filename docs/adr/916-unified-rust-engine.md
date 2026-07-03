@@ -6,7 +6,7 @@ Proposed — 2026-07-03
 
 ## Context
 
-**3-Domain 판정**: 본 ADR 은 D3(시각 스타일) consumer 인 Builder(Skia) 렌더 경로의 **내부 구현 계층** 재구축이다. D1(DOM/접근성) / D2(Props/API) 무관. Spec SSOT 접점은 style resolution 이관(Phase 2-A) 시 Spec 파생 스타일 값 보존 하나 — /cross-check 로 검증한다. Spec/Generator 확장 없음 (Generator emit 지원 질문 해당 없음).
+**3-Domain 판정**: 본 ADR 은 D3(시각 스타일) consumer 인 Builder(Skia) 렌더 경로의 **내부 구현 계층** 재구축이다. D1(DOM/접근성) / D2(Props/API) 무관. D3 시각 정본 접점은 style resolution 이관(Phase 2-A) 시 **catalog SSOT** (`componentCatalog.ts` + `COMPONENT_RULES_TABLE`, ADR-912/913/914 cutover 완결 — 잔존 spec 은 Frame/Group/Slot 3개 영구 예외) 파생 스타일 값 보존 하나 — /cross-check 로 검증한다. catalog/Generator 확장 없음 (Generator emit 지원 질문 해당 없음).
 
 composition Builder 렌더링 파이프라인은 JS 64,316줄(92%) + Rust 5,633줄(8%) 로 구성된다. Rust 는 외부 라이브러리 Taffy 를 래핑한 layout solve 에 국한되고, 나머지 전 단계(scene graph 동기화 / 스타일 해석 / DFS 오케스트레이션 / 렌더 커맨드 생성 / 텍스트 측정)가 JS main thread 에서 실행된다. 실측 병목 코드 경로:
 

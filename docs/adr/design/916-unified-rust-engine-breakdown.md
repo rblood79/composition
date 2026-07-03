@@ -19,16 +19,16 @@
 
 ### 0-2. JS 측 이관 대상 (핵심 ~15,700줄)
 
-| 영역                    | 파일                                                                             |   줄수 | 병목                                                   |
-| ----------------------- | -------------------------------------------------------------------------------- | -----: | ------------------------------------------------------ |
-| 레이아웃 오케스트레이션 | `layout/engines/fullTreeLayout.ts`                                               |  2,861 | DFS 전체 순회 + WASM 경계 노드당 ~5회                  |
-| CSS 파싱/측정 유틸      | `layout/engines/utils.ts`                                                        |  4,866 | 텍스트 측정 + 박스모델 계산                            |
-| Implicit styles         | `layout/engines/implicitStyles.ts`                                               |  2,440 | 노드당 ~50 컴포넌트 타입 분기                          |
-| dirty 검출              | `layout/engines/persistentTaffyTree.ts`                                          |    423 | 노드당 JSON.stringify 문자열 비교                      |
-| 렌더 커맨드             | `skia/renderCommands.ts`                                                         |  1,091 | 매 content 프레임 O(N) DFS + z-sort + boundsMap 재생성 |
-| Spec 노드 빌드          | `skia/buildSpecNodeData.ts`                                                      |  1,786 | 노드당 조상 체인 탐색 O(N×D)                           |
-| store 동기화            | `skia/StoreRenderBridge.ts`                                                      |    743 | detectChangedIds O(N) Map 순회                         |
-| 스타일 해석             | `layout/engines/cssResolver.ts` + `cssValueParser.ts` + `taffyDisplayAdapter.ts` | ~2,266 | 노드당 ~50 속성 파싱/캐스케이드                        |
+| 영역                                        | 파일                                                                             |   줄수 | 병목                                                   |
+| ------------------------------------------- | -------------------------------------------------------------------------------- | -----: | ------------------------------------------------------ |
+| 레이아웃 오케스트레이션                     | `layout/engines/fullTreeLayout.ts`                                               |  2,861 | DFS 전체 순회 + WASM 경계 노드당 ~5회                  |
+| CSS 파싱/측정 유틸                          | `layout/engines/utils.ts`                                                        |  4,866 | 텍스트 측정 + 박스모델 계산                            |
+| Implicit styles                             | `layout/engines/implicitStyles.ts`                                               |  2,440 | 노드당 ~50 컴포넌트 타입 분기                          |
+| dirty 검출                                  | `layout/engines/persistentTaffyTree.ts`                                          |    423 | 노드당 JSON.stringify 문자열 비교                      |
+| 렌더 커맨드                                 | `skia/renderCommands.ts`                                                         |  1,091 | 매 content 프레임 O(N) DFS + z-sort + boundsMap 재생성 |
+| Skia 노드 데이터 빌드 (catalog shapes 소비) | `skia/buildSpecNodeData.ts`                                                      |  1,786 | 노드당 조상 체인 탐색 O(N×D)                           |
+| store 동기화                                | `skia/StoreRenderBridge.ts`                                                      |    743 | detectChangedIds O(N) Map 순회                         |
+| 스타일 해석                                 | `layout/engines/cssResolver.ts` + `cssValueParser.ts` + `taffyDisplayAdapter.ts` | ~2,266 | 노드당 ~50 속성 파싱/캐스케이드                        |
 
 ### 0-3. 피처 플래그 (`wasm-bindings/featureFlags.ts`)
 
@@ -110,7 +110,7 @@
 - 대상: `cssResolver.ts`(745) + `cssValueParser.ts`(1,006) + `taffyDisplayAdapter.ts`(515) + `implicitStyles.ts`(2,440)
 - `composition-layout/src/style.rs` (599줄) 기반 확장
 - implicit styles 는 데이터 주도 매핑 테이블 (tag → style) 로 재구성
-- **Spec SSOT 접점**: Spec 파생 스타일 값 보존 — 이관 후 /cross-check 전 컴포넌트
+- **catalog SSOT 접점**: catalog 파생 스타일 값 보존 — 시각 정본은 `packages/shared/src/catalog/componentCatalog.ts` + `COMPONENT_RULES_TABLE` (`packages/shared/src/catalog/generated/componentRulesTable.ts`), Skia 소비 경로는 `buildSpecNodeData.ts` → `buildCatalogShapes`. 이관 후 /cross-check 전 컴포넌트. (참고: per-component spec 은 ADR-912 cutover 로 삭제 — Frame/Group/Slot 3개만 영구 잔존)
 
 ### 2-B. `tree.rs` — fullTreeLayout DFS 이관
 
