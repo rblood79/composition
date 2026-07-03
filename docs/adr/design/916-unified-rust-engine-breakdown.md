@@ -53,13 +53,18 @@
 
 > **2026-07-03 codex 실사 (round 2)**: 두 flag 모두 단독 전환으로는 무효. 0-A 는 layoutBridge 미배선 + persistentTaffyTree factory 미경유, 0-B 는 scheduler 소비 caller 0건. Phase 0 은 "Quick Win flag flip" 이 아니라 **배선(wiring) 작업 + flag 활성화**다.
 
-### 0-A. composition-layout 배선 + `USE_RUST_LAYOUT_ENGINE=true`
+### 0-A. seam 구축 — 엔진 주입 지점 + batch 계약 인터페이스 (✅ Implemented 2026-07-03, flag 전환 보류)
 
-- **flag 단독 전환 무효**: `layoutBridge.ts:36-44` — flag true 시 wiring 주석 처리 상태(`// Phase 1 완료 후 활성화`)로 경고 후 TaffyLayout fallback. 활성 경로 `persistentTaffyTree.ts:27,84` 는 factory(`createLayoutEngine`) 미경유 — `new TaffyLayout()` 직접 생성
-- **실제 작업 3건**: (1) persistentTaffyTree 에 엔진 주입 지점 신설 (직접 생성 제거, layoutBridge factory 경유) (2) **batch API 정합** — persistentTaffyTree 계약(`buildTreeBatch`/`buildTreeBatchBinary`/`updateStyleRaw`/`setChildren`/`getLayoutsBatch`)과 composition-layout per-node API(`create_node`/`update_style`/`set_children`/`compute_layout`/`get_layout`, `lib.rs:91-365`)가 비호환 → composition-layout 에 batch entry 구현 또는 adapter 작성 (3) flag 전환
-- 효과 (배선 완료 후): Taffy 0.9→0.10 단일화 + FNV-1a 해시 change detection 으로 JSON.stringify dirty 검출 대체
-- **주의**: Taffy 0.9→0.10 layout 결과 차이 가능 → G1 회귀 fixture 필수 (dual-run 검증)
-- 산출물: 주입 지점 + batch adapter + flag 전환 + dual-run 비교 스크립트 + fixture PASS 로그
+> **2026-07-03 실행 결정 (사용자 confirm)**: **seam 만 구축, flag 전환 보류.** composition-layout(0.10) 도 외부 Taffy 종속이라 flag 전환 시 검증한 0.10 layout 은 Phase 1(Taffy 제거)에서 전부 폐기된다. 폐기될 0.10 dual-run 검증 비용을 피하고, Phase 1 의 composition-engine(자체 엔진)이 그대로 꽂히는 **교체 지점(seam)** 만 만든다.
+
+- **실측 정정 (adapter crate 불필요)**: breakdown 초안의 "per-node API 비호환 → batch entry 구현/adapter 작성" 은 과대평가였다. `layoutEngine.ts` 의 `compositionLayout` wrapper 가 이미 TaffyLayout batch API 를 거의 전부 mirror 구현(`buildTreeBatch:293`/`getLayoutsBatch:265` flat f32→Map 변환 포함/`setChildren`/`updateStyleRaw`/`createNodeRaw`/`markDirty`/`removeNode`/`clear`/`nodeCount`). 실제 갭은 `buildTreeBatchBinary`/`hasBinaryProtocol` 2개 메서드뿐 (binary 미지원 시 `hasBinaryProtocol()=false` → JSON 경로 자동 fallback).
+- **실행한 작업 (동작 무변, 순수 구조)**:
+  1. `LayoutEngineAPI` 인터페이스(`layoutBridge.ts`)를 per-node API → **persistentTaffyTree 실사용 batch 계약 13 메서드**로 확장 (실사용과 불일치하면 엔진 주입 시 타입 갭 발생)
+  2. `PersistentTaffyTree` 필드 `TaffyLayout` → `LayoutEngineAPI`, 생성자 `new TaffyLayout()` 직접 생성 제거 → `createLayoutEngine()` factory 경유 (+ 테스트용 optional 주입 파라미터)
+  3. `createLayoutEngine()` 의 flag true wiring 은 **의도적으로 주석 유지** — flag 미전환. `USE_RUST_LAYOUT_ENGINE=false` default 이므로 여전히 TaffyLayout 반환, 동작 완전 무변
+- **검증**: `persistentTaffyTree.seam.test.ts` 3/3 PASS (주입 엔진 사용 / factory default / 13-계약 정적 커버) + type-check 회귀 0 + live builder(DDF 프로젝트) 렌더 무변 + 새로고침 재현 + 콘솔 에러 0
+- **flag 전환/dual-run/G1 → Phase 1 이연**: seam 은 구축됐으나 flag 는 켜지 않았으므로 Taffy 0.9→0.10 layout 결과 차이 검증(G1)은 이 시점 불필요. Phase 1 에서 composition-engine 을 seam 에 배선할 때 dual-run(G2)이 첫 실전 검증.
+- 산출물: `layoutBridge.ts`(batch 계약 인터페이스 + seam factory) + `persistentTaffyTree.ts`(주입 seam) + `persistentTaffyTree.seam.test.ts`
 
 ### 0-B. LayoutScheduler 소비 배선 + `LAYOUT_WORKER=true`
 
