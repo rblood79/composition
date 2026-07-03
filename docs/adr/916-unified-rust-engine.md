@@ -2,7 +2,11 @@
 
 ## Status
 
-Proposed — 2026-07-03
+Accepted — 2026-07-03
+
+- Proposed — 2026-07-03
+- Accepted — 2026-07-03 (Risk Threshold Check 대안 D 선정 + Gate G1~G5 완비 + 자체리뷰/codex 2 라운드 정정 반영 후 사용자 명시 confirm)
+- Phase 0 (배선 + flag 활성화) — In Progress 2026-07-03
 
 ## Context
 
