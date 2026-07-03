@@ -30,6 +30,12 @@
 //!   미이식: getRootComputedStyle(store 의존 JS 잔류), resolveFontStretchWidth(spec
 //!   SSOT FONT_STRETCH_KEYWORD_MAP 의존 — 참조 계약 확정 후), resolveStyle 본체(조립 단위).
 //!
+//! - `display` — CSS Display 변환 순수 문자열 계층 (taffyDisplayAdapter.ts 자기완결 계층).
+//!   Phase 2-A. CSS Display Level 3 이원 구조(outer/inner) 파싱 + blockification +
+//!   inline-level 판정 + 자식 display 분류. 미이식: getElementDisplay(INLINE_BLOCK_TAGS
+//!   tag 도메인 의존), toTaffyDisplay childElements 경로 + VERTICAL_ALIGN_MIDDLE_TAGS
+//!   (node/tag 의존 → tree.rs 2-B 노드 계약과 함께 이관).
+//!
 //! ## 미편입 (다음 세션)
 //!
 //! - WASM batch 엔트리 (`LayoutEngineAPI` 계약 구현) — flex/grid/block 이 dual-run
@@ -38,6 +44,7 @@
 
 pub mod block;
 pub mod cascade;
+pub mod display;
 pub mod flex;
 pub mod grid;
 pub mod style;
