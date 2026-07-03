@@ -49,23 +49,26 @@
 
 ---
 
-## Phase 0: Quick Win — 기존 인프라 활성화
+## Phase 0: 기존 인프라 배선 + 활성화 (flag 단독 전환 아님)
 
-### 0-A. `USE_RUST_LAYOUT_ENGINE=true` (composition-layout 활성화)
+> **2026-07-03 codex 실사 (round 2)**: 두 flag 모두 단독 전환으로는 무효. 0-A 는 layoutBridge 미배선 + persistentTaffyTree factory 미경유, 0-B 는 scheduler 소비 caller 0건. Phase 0 은 "Quick Win flag flip" 이 아니라 **배선(wiring) 작업 + flag 활성화**다.
 
-- Taffy 0.9 (`taffy_bridge.rs`) → Taffy 0.10 (`composition-layout` LayoutEngine) 전환
-- FNV-1a 해시 기반 change detection 이 JSON.stringify dirty 검출 대체 (`persistentTaffyTree.ts:423` 경로 폐기)
-- **주의**: Taffy 0.9→0.10 layout 결과 차이 가능 → G1 회귀 fixture 필수 (flag 전환이라도 dual-run 검증)
-- 산출물: flag 전환 + dual-run 비교 스크립트 + fixture PASS 로그
+### 0-A. composition-layout 배선 + `USE_RUST_LAYOUT_ENGINE=true`
 
-### 0-B. `LAYOUT_WORKER=true`
+- **flag 단독 전환 무효**: `layoutBridge.ts:36-44` — flag true 시 wiring 주석 처리 상태(`// Phase 1 완료 후 활성화`)로 경고 후 TaffyLayout fallback. 활성 경로 `persistentTaffyTree.ts:27,84` 는 factory(`createLayoutEngine`) 미경유 — `new TaffyLayout()` 직접 생성
+- **실제 작업 3건**: (1) persistentTaffyTree 에 엔진 주입 지점 신설 (직접 생성 제거, layoutBridge factory 경유) (2) **batch API 정합** — persistentTaffyTree 계약(`buildTreeBatch`/`buildTreeBatchBinary`/`updateStyleRaw`/`setChildren`/`getLayoutsBatch`)과 composition-layout per-node API(`create_node`/`update_style`/`set_children`/`compute_layout`/`get_layout`, `lib.rs:91-365`)가 비호환 → composition-layout 에 batch entry 구현 또는 adapter 작성 (3) flag 전환
+- 효과 (배선 완료 후): Taffy 0.9→0.10 단일화 + FNV-1a 해시 change detection 으로 JSON.stringify dirty 검출 대체
+- **주의**: Taffy 0.9→0.10 layout 결과 차이 가능 → G1 회귀 fixture 필수 (dual-run 검증)
+- 산출물: 주입 지점 + batch adapter + flag 전환 + dual-run 비교 스크립트 + fixture PASS 로그
 
-- `wasm-worker/` 인프라 (LayoutScheduler / bridge / protocol / layoutWorker, 672줄) 활성화
+### 0-B. LayoutScheduler 소비 배선 + `LAYOUT_WORKER=true`
+
+- **flag 단독 전환 무효**: `init.ts:41-48` 은 worker **초기화만** 수행. `getLayoutScheduler`(`wasm-worker/index.ts:32`)는 export 만 존재하고 caller 0건 — block/grid 계산을 scheduler 로 보내는 소비 경로 미배선. "SWR 캐시" 는 인프라 코드로만 존재 (`LayoutScheduler.ts`), 소비자 없음
+- **실제 작업**: block/grid 가속 경로에서 LayoutScheduler 호출 배선 + 결과 소비 (SWR 적용) + flag 전환
 - **커버리지 한정**: worker 는 `BLOCK_LAYOUT` / `GRID_LAYOUT` 가속기 요청만 처리 (`layoutWorker.ts:33-38`, Float32Array 전처리 입력) — **Taffy full-tree solve 는 main thread 잔류**. 전체 layout worker 이관은 Phase 2-B (tree.rs batch API) 이후 범위
-- 초기 레이아웃 main thread, 변경분 Worker (SWR 캐시 구현 존재)
-- 산출물: flag 전환 + 1000노드 main thread blocking 측정 before/after (block/grid 경로 한정 효과로 해석)
+- 산출물: 소비 배선 + flag 전환 + 1000노드 main thread blocking 측정 before/after (block/grid 경로 한정 효과로 해석)
 
-0-A / 0-B 는 상호 독립 — 개별 검증 가능.
+0-A / 0-B 는 상호 독립 — 개별 검증 가능. 단 양쪽 모두 배선 코드 작업이 선행되므로 "코드 변경 최소" 가 아니라 **소규모 통합 작업** 으로 분류한다.
 
 ---
 
@@ -137,7 +140,8 @@
 
 ### 2-E. `text.rs` — 텍스트 측정 캐시
 
-- **제약 (canvas-rendering.md §3)**: WASM Paragraph 객체 캐싱 금지 — 결과값 `{width, height}` 만 LRU. Layout=Canvas 2D=CSS 정합 원칙 유지
+- **scope = 측정(measurement) 경로만** — `canvaskitTextMeasurer.ts` 의 결과값 캐시(`:122-127`, Paragraph 객체 아닌 `{width, height}` 만) 를 Rust LRU 로 이관. **render 경로의 Paragraph 객체 캐시(`nodeRendererText.ts:36` `paragraphCache` — `clearParagraphCache()` 로 delete 수명 관리) 는 본 Phase 비대상, 현행 유지**
+- **제약 (canvas-rendering.md §3 — 측정 경로 규칙)**: WASM Paragraph 객체 캐싱 금지 — 결과값 `{width, height}` 만 LRU. Layout=Canvas 2D=CSS 정합 원칙 유지
 - Rust 측 LRU + batch 측정 요청 (캐시 미스 시 단어당 다중 왕복 → batch 1회)
 - 조상 체인 기반 font 상속 해석 (`buildSpecNodeData.ts` O(N×D) 탐색 → 트리 빌드 시 1회 top-down 패스)
 

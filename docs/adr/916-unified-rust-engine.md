@@ -25,7 +25,7 @@ composition Builder 렌더링 파이프라인은 JS 64,316줄(92%) + Rust 5,633�
 
 1. Canvas 60fps @ 1000+ 노드 (CLAUDE.md 성능 기준) — 이관 각 단계에서 프레임타임 회귀 금지
 2. 초기 번들 < 500KB — WASM lazy-load 경로 유지, 엔진 WASM 증가 gzip +300KB 이내
-3. **BC 수식화**: 기존 프로젝트 문서 100% 가 layout 영향권 — dual-run diff ≤ 1px (f32 tolerance) 강제, 시각 diff 0 요구
+3. **BC 수식화**: 기존 프로젝트 문서 100% 가 layout 영향권 — 기준 2단: (a) dual-run **수치** diff ≤ 1px (f32 sub-pixel tolerance, 엔진 간 부동소수점 drift 허용) (b) **시각** diff 0 = 1x zoom device pixel 스크린샷 diff 0 — 수치 drift 가 동일 device pixel 로 라운딩되는 범위만 허용. (a) 통과 + (b) 위반 (예: 0.5px drift 가 픽셀 경계를 넘어 라운딩 차이 유발) 시 (b) 가 우선 — FAIL
 4. D3 대칭: Builder(Skia) ↔ Preview(DOM+CSS) 시각 결과 동일 — /cross-check 전수 PASS
 5. WASM 경계 횡단 프레임 경로 5회 → 2회 (통합 엔진 batch 호출 + CanvasKit draw)
 
@@ -49,8 +49,8 @@ composition Builder 렌더링 파이프라인은 JS 64,316줄(92%) + Rust 5,633�
 
 ### 대안 B: Taffy 유지 통합 (Quick Win 만)
 
-- 설명: `USE_RUST_LAYOUT_ENGINE=true` + `LAYOUT_WORKER=true` 활성화로 종료. Taffy 0.10 단일화, 파이프라인은 JS 유지
-- 근거: 인프라가 이미 구현되어 있음 (composition-layout 1,660줄 + wasm-worker 672줄) — 코드 변경 최소로 JSON dirty 검출 제거 + block/grid 가속 경로 worker offload (worker 는 BLOCK_LAYOUT/GRID_LAYOUT 가속기만 처리 — Taffy full-tree solve 는 main thread 잔류, `layoutWorker.ts:33-38`)
+- 설명: composition-layout 배선 + `USE_RUST_LAYOUT_ENGINE=true`, LayoutScheduler 소비 배선 + `LAYOUT_WORKER=true` 로 종료. Taffy 0.10 단일화, 파이프라인은 JS 유지
+- 근거: 인프라 코드가 이미 존재 (composition-layout 1,660줄 + wasm-worker 672줄). **단 flag 단독 전환은 무효** — layoutBridge 는 flag true 시 경고 후 TaffyLayout fallback (`layoutBridge.ts:36-44`), persistentTaffyTree 는 factory 미경유 직접 생성 (`persistentTaffyTree.ts:27,84`), scheduler 소비 caller 0건 (`wasm-worker/index.ts:32`) → 엔진 주입 + batch API 정합 + 소비 배선의 소규모 통합 작업 필요. worker 는 BLOCK_LAYOUT/GRID_LAYOUT 가속기만 처리 — Taffy full-tree solve 는 main thread 잔류 (`layoutWorker.ts:33-38`)
 - 위험:
   - 기술: L — flag 전환 + 기구현 코드
   - 성능: M — scene/commands/style/text 병목 잔존, 경계 횡단 5회 유지
@@ -69,7 +69,7 @@ composition Builder 렌더링 파이프라인은 JS 64,316줄(92%) + Rust 5,633�
 
 ### 대안 D: 단계적 단일 엔진 통합 (Phase 0→1→2, 게이트 기반)
 
-- 설명: Phase 0 (기존 인프라 flag 활성화 = 대안 B 내용 흡수) → Phase 1 (Taffy 제거 — flex.rs 자체 구현 + dual-run 게이트) → Phase 2 (파이프라인 5개 모듈 순차 이관, 모듈별 게이트). 각 단계 독립 검증 + fallback flag 유지
+- 설명: Phase 0 (기존 인프라 **배선 + flag 활성화** = 대안 B 내용 흡수 — flag 단독 전환 아님) → Phase 1 (Taffy 제거 — flex.rs 자체 구현 + dual-run 게이트) → Phase 2 (파이프라인 5개 모듈 순차 이관, 모듈별 게이트). 각 단계 독립 검증 + fallback flag 유지
 - 근거: Taffy 자체가 Chrome 실측 기반 gentest fixture 로 spec 준수를 검증 — 동일 방법론 포팅 가능. Yoga(Meta) 의 flexbox subset 구현이 spec 불일치 장기 부채가 된 전례 → full spec + Chrome 실측 fixture 방식 채택. Flutter Web CanvasKit renderer (엔진 WASM + CanvasKit draw 분리) 와 동일 구조
 - 위험:
   - 기술: **H** — flex.rs 자체 구현. 단 dual-run + WPT-파생 fixture 로 구간별 검증
@@ -95,7 +95,7 @@ composition Builder 렌더링 파이프라인은 JS 64,316줄(92%) + Rust 5,633�
 선택 근거:
 
 1. **위험 수용 근거**: 유일한 HIGH (flex.rs 자체 구현) 는 Taffy 와의 dual-run 비교 + Chrome 실측 fixture 로 이관 전 구간에서 검증된다. Taffy fallback flag 가 G2 통과까지 유지되므로 실패 시 손실은 신규 코드 폐기로 한정
-2. Phase 0 은 이미 구현된 인프라의 flag 전환만으로 JSON dirty 검출 제거 + main thread 해방을 즉시 획득 — 후속 Phase 의 성능 기준선 측정 확보
+2. Phase 0 은 이미 존재하는 인프라 코드의 **배선(엔진 주입 + batch API 정합 + scheduler 소비 배선) + flag 활성화** 로 JSON dirty 검출 제거 + block/grid 가속 경로 worker offload 를 획득 (flag 단독 전환 무효 — 실사 근거는 breakdown Phase 0 참조) — 후속 Phase 의 성능 기준선 측정 확보
 3. 최종 상태 (JS ~15,000줄 UI 바인딩 + 단일 WASM batch API + CanvasKit draw) 는 Figma / Flutter Web 에서 검증된 아키텍처
 
 기각 사유:
@@ -108,25 +108,25 @@ composition Builder 렌더링 파이프라인은 JS 64,316줄(92%) + Rust 5,633�
 
 ## Risks
 
-| ID  | 위험                                                                | 심각도 | 대응                                                                                         |
-| --- | ------------------------------------------------------------------- | :----: | -------------------------------------------------------------------------------------------- |
-| R1  | flex.rs 자체 구현의 CSS spec 결함 (Taffy WPT-파생 테스트 자산 상실) |  HIGH  | G2 dual-run diff + Chrome gentest 방식 fixture 포팅. 통과 전 Taffy fallback 유지             |
-| R2  | 이관 기간 JS/Rust 이중 경로 drift (동일 로직 양측 수정 누락)        |  MED   | 모듈별 cutover 완료 시 JS 경로 즉시 삭제 (dormant 병행 금지)                                 |
-| R3  | Rust 유지보수 버스팩터                                              |  MED   | 모듈 경계 = CSS spec 章 단위 유지, gentest fixture 가 회귀 안전망                            |
-| R4  | 대규모 생성 코드 (Fable 5 활용) 검증 부담                           |  MED   | 모듈당 fixture-first: fixture 작성 → 생성 → dual-run — 생성 코드는 fixture 통과로만 수용     |
-| R5  | WASM 번들 증가                                                      |  MED   | G4 사이즈 게이트 (gzip +300KB 이내), wasm-opt + 모듈 분리 로딩 대비                          |
-| R6  | text.rs 이관이 Layout=Canvas2D=CSS 정합 원칙 파괴                   |  MED   | canvas-rendering.md §3 규칙 승계 — Paragraph 객체 캐싱 금지, 결과값만 LRU. /cross-check 필수 |
-| R7  | Taffy 0.9→0.10 전환 (Phase 0-A) 자체의 layout 결과 변동             |  MED   | G1 회귀 fixture 전수 — flag 전환이라도 dual-run 검증                                         |
+| ID  | 위험                                                                | 심각도 | 대응                                                                                                                                                                                                                                     |
+| --- | ------------------------------------------------------------------- | :----: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | flex.rs 자체 구현의 CSS spec 결함 (Taffy WPT-파생 테스트 자산 상실) |  HIGH  | G2 dual-run diff + Chrome gentest 방식 fixture 포팅. 통과 전 Taffy fallback 유지                                                                                                                                                         |
+| R2  | 이관 기간 JS/Rust 이중 경로 drift (동일 로직 양측 수정 누락)        |  MED   | 모듈별 cutover 완료 시 JS 경로 즉시 삭제 (dormant 병행 금지)                                                                                                                                                                             |
+| R3  | Rust 유지보수 버스팩터                                              |  MED   | 모듈 경계 = CSS spec 章 단위 유지, gentest fixture 가 회귀 안전망                                                                                                                                                                        |
+| R4  | 대규모 생성 코드 (Fable 5 활용) 검증 부담                           |  MED   | 모듈당 fixture-first: fixture 작성 → 생성 → dual-run — 생성 코드는 fixture 통과로만 수용                                                                                                                                                 |
+| R5  | WASM 번들 증가                                                      |  MED   | G4 사이즈 게이트 (gzip +300KB 이내), wasm-opt + 모듈 분리 로딩 대비                                                                                                                                                                      |
+| R6  | text.rs 이관이 Layout=Canvas2D=CSS 정합 원칙 파괴                   |  MED   | canvas-rendering.md §3 규칙 승계 — **측정 경로 한정**: Paragraph 객체 캐싱 금지, 결과값만 LRU (`canvaskitTextMeasurer.ts:122`). render 경로의 관리형 Paragraph 캐시(`nodeRendererText.ts:36`) 는 2-E 비대상·현행 유지. /cross-check 필수 |
+| R7  | Taffy 0.9→0.10 전환 (Phase 0-A) 자체의 layout 결과 변동             |  MED   | G1 회귀 fixture 전수 — flag 전환이라도 dual-run 검증                                                                                                                                                                                     |
 
 ## Gates
 
-| Gate | 시점                    | 통과 조건                                                               | 실패 시 대안                                       |
-| ---- | ----------------------- | ----------------------------------------------------------------------- | -------------------------------------------------- |
-| G1   | Phase 0 flag 전환 직후  | 회귀 fixture 전수 PASS + 1000노드 60fps 유지                            | flag revert (즉시 롤백)                            |
-| G2   | Phase 1 flex.rs 완성 시 | dual-run diff ≤ 1px (전 fixture) + Chrome 실측 fixture PASS             | Taffy fallback 유지, flex.rs 반복 수정 (제거 보류) |
-| G3   | Phase 2 각 모듈 cutover | /cross-check PASS + 1000노드 프레임타임 개선 실측 + type-check          | 해당 모듈 JS 경로 유지 (모듈 단위 보류)            |
-| G4   | 각 Phase 빌드           | WASM gzip +300KB 이내                                                   | wasm-opt 재조정 / 모듈 분리 로딩                   |
-| G5   | Phase 2 착수 전         | 사용자 scope confirm (5 모듈 분할 — M4 의무) + Phase 1 실측 기반 재판정 | Phase 2 를 후속 ADR 로 분리                        |
+| Gate | 시점                          | 통과 조건                                                                                                | 실패 시 대안                                       |
+| ---- | ----------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| G1   | Phase 0 배선 + flag 전환 직후 | 회귀 fixture 전수 PASS (HC3 2단 기준: 수치 ≤ 1px + 1x zoom 스크린샷 diff 0) + 1000노드 60fps 유지        | flag revert (즉시 롤백)                            |
+| G2   | Phase 1 flex.rs 완성 시       | dual-run 수치 diff ≤ 1px + 1x zoom 스크린샷 diff 0 (전 fixture, HC3 2단 기준) + Chrome 실측 fixture PASS | Taffy fallback 유지, flex.rs 반복 수정 (제거 보류) |
+| G3   | Phase 2 각 모듈 cutover       | /cross-check PASS + 1000노드 프레임타임 개선 실측 + type-check                                           | 해당 모듈 JS 경로 유지 (모듈 단위 보류)            |
+| G4   | 각 Phase 빌드                 | WASM gzip +300KB 이내                                                                                    | wasm-opt 재조정 / 모듈 분리 로딩                   |
+| G5   | Phase 2 착수 전               | 사용자 scope confirm (5 모듈 분할 — M4 의무) + Phase 1 실측 기반 재판정                                  | Phase 2 를 후속 ADR 로 분리                        |
 
 ## Consequences
 
