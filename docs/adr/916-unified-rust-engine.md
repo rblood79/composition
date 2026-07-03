@@ -11,7 +11,7 @@ Proposed — 2026-07-03
 composition Builder 렌더링 파이프라인은 JS 64,316줄(92%) + Rust 5,633줄(8%) 로 구성된다. Rust 는 외부 라이브러리 Taffy 를 래핑한 layout solve 에 국한되고, 나머지 전 단계(scene graph 동기화 / 스타일 해석 / DFS 오케스트레이션 / 렌더 커맨드 생성 / 텍스트 측정)가 JS main thread 에서 실행된다. 실측 병목 코드 경로:
 
 - `apps/builder/src/builder/workspace/canvas/layout/engines/persistentTaffyTree.ts` (423줄) — dirty 검출을 노드당 JSON.stringify 문자열 비교로 수행
-- `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts` (2,861줄) — 노드당 WASM 경계 ~5회 횡단 (createNode/updateStyle/setChildren/computeLayout/getLayout), 2-pass 보정 최악 3× solve
+- `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts` (2,861줄) — batch 직렬화 병목: 초기 빌드 `buildTreeBatch(JSON.stringify(payload))` 전체 트리 직렬화 + 증분 갱신 시 변경 노드당 `updateStyleRaw` JSON.stringify, 2-pass 보정 최악 3× solve (computeLayout 호출부 3곳: `:2343/:2602/:2718`). (참고: per-node createNode/updateStyle/setChildren/computeLayout/getLayout 5-call API 는 비활성 composition-layout 쪽 인터페이스)
 - `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts` (1,091줄) — 매 content 프레임 O(N) DFS + z-sort + boundsMap 재생성
 - `apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts` (1,786줄) — 노드당 조상 체인 탐색 O(N×D)
 - `apps/builder/src/builder/workspace/canvas/skia/StoreRenderBridge.ts` (743줄) — detectChangedIds O(N) Map 순회
@@ -50,7 +50,7 @@ composition Builder 렌더링 파이프라인은 JS 64,316줄(92%) + Rust 5,633�
 ### 대안 B: Taffy 유지 통합 (Quick Win 만)
 
 - 설명: `USE_RUST_LAYOUT_ENGINE=true` + `LAYOUT_WORKER=true` 활성화로 종료. Taffy 0.10 단일화, 파이프라인은 JS 유지
-- 근거: 인프라가 이미 구현되어 있음 (composition-layout 1,660줄 + wasm-worker 672줄) — 코드 변경 최소로 JSON dirty 검출 제거 + main thread 해방
+- 근거: 인프라가 이미 구현되어 있음 (composition-layout 1,660줄 + wasm-worker 672줄) — 코드 변경 최소로 JSON dirty 검출 제거 + block/grid 가속 경로 worker offload (worker 는 BLOCK_LAYOUT/GRID_LAYOUT 가속기만 처리 — Taffy full-tree solve 는 main thread 잔류, `layoutWorker.ts:33-38`)
 - 위험:
   - 기술: L — flag 전환 + 기구현 코드
   - 성능: M — scene/commands/style/text 병목 잔존, 경계 횡단 5회 유지

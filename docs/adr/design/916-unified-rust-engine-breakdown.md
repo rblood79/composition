@@ -61,8 +61,9 @@
 ### 0-B. `LAYOUT_WORKER=true`
 
 - `wasm-worker/` 인프라 (LayoutScheduler / bridge / protocol / layoutWorker, 672줄) 활성화
+- **커버리지 한정**: worker 는 `BLOCK_LAYOUT` / `GRID_LAYOUT` 가속기 요청만 처리 (`layoutWorker.ts:33-38`, Float32Array 전처리 입력) — **Taffy full-tree solve 는 main thread 잔류**. 전체 layout worker 이관은 Phase 2-B (tree.rs batch API) 이후 범위
 - 초기 레이아웃 main thread, 변경분 Worker (SWR 캐시 구현 존재)
-- 산출물: flag 전환 + 1000노드 main thread blocking 측정 before/after
+- 산출물: flag 전환 + 1000노드 main thread blocking 측정 before/after (block/grid 경로 한정 효과로 해석)
 
 0-A / 0-B 는 상호 독립 — 개별 검증 가능.
 
@@ -123,6 +124,7 @@
 
 - `StoreRenderBridge.detectChangedIds` O(N) → generation counter + dirty bitfield O(1)
 - element registry Rust 관리
+- **ADR-136 sceneVersion 계약 승계 (canvas-rendering.md §9)**: sceneVersion = layoutVersion + pagePositionsVersion + projection content signature (`scene/buildSceneSnapshot.ts:91` `buildSceneStructureSnapshot` / `:206` sceneVersion hash). signature 계산은 snapshot 빌드 시점만 (pointer hot path 금지), projection-relevant field 추가 시 signature input 동시 갱신 의무 — Rust 이관 후에도 동일 보수 의무 유지
 
 ### 2-D. `commands.rs` — Render command stream + SpatialIndex 단일 패스
 
