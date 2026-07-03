@@ -103,9 +103,17 @@
 
 ### 1-D. Dual-run 게이트 (G2)
 
-- 동일 입력 → Taffy 결과 vs 자체 엔진 결과 diff 리포트 하네스
+> **2026-07-03 실행 결정 (사용자 confirm — "1-D 하네스 먼저")**: Phase 1 진입 단위를 breakdown 순서(1-A flex.rs 먼저)에서 **1-D 하네스 먼저**로 재배열. 근거 = flex.rs 의 유일한 검증 경로(dual-run diff)가 하네스이므로, 검증 기반이 산출물보다 선행해야 한다([[feedback-no-dormant-foundation-ahead-of-flip]] — 검증 기반은 flip 앞선 dormant 가 아니라 flip 의 안전망). 하네스 부재 상태로 flex.rs 를 쓰면 R1(CSS 명세 결함) 을 잡을 수단이 0.
+
+- **✅ 비교 엔진 land 2026-07-03**: `dualRunHarness.ts` — 두 `LayoutEngineAPI` 인스턴스(reference=Taffy / candidate=자체 엔진)에 동일 batch 를 먹여 `getLayoutsBatch()` 결과를 elementId 기준 diff. Phase 0-A seam 의 `LayoutEngineAPI` 계약을 그대로 소비(엔진 종류 무관 대칭 비교). 순수 함수(WASM 의존 없음) — type-check 회귀 0.
+  - **HC3 2단 판정 구현**: (a) 수치 diff ≤ 1px (`NUMERIC_TOLERANCE_PX`, f32 tolerance) + (b) 1x zoom device pixel round diff 0. `(a) 통과 + (b) 위반` 시 **(b) 우선 FAIL** (pixel 경계 넘는 sub-pixel drift). `pass = numericViolations==0 && pixelViolations==0`.
+  - **diff 매칭**: handle 은 엔진별 독립 발급이므로 handle 직접 비교 금지 → `handleToId`/`refHandleToId` 로 elementId 복원 후 매칭. 구조 불일치 노드는 nodeCount 제외.
+  - **위반 리포트**: `NumericViolation`/`PixelViolation` (elementId + field + delta/px) + `formatViolations()` 사람 읽기용 포맷.
+  - **검증**: `dualRunHarness.test.ts` 5/5 PASS — self-diff(diff 0, 하네스 정확성) / sub-pixel≤1px 같은 pixel PASS / 수치>1px FAIL / pixel 경계 넘는 drift (b)우선 FAIL / handle 정렬 무관 elementId 매칭.
+- **⏸️ fixture golden 생성 이연 (candidate 부재)**: Taffy gentest 방식(Chrome 실측 → golden fixture 자동 생성)은 **candidate 엔진(flex.rs)이 생긴 뒤** 착수. 지금 golden 을 만들면 비교 상대 없는 dormant 자산. 하네스가 실 WASM Taffy self-diff(diff 0) 로 실전 신뢰성을 보이는 것도 live builder 검증 시점(flex.rs dual-run 첫 실전) 과 통합.
 - 기준: 픽셀 diff ≤ 1px (f32 tolerance), 회귀 fixture 전수
 - 통과 전 Taffy fallback 경로 유지 (flag)
+- 산출물: `dualRunHarness.ts`(비교 엔진 + HC3 2단 diff) + `dualRunHarness.test.ts`(계약 5)
 
 ### 1-E. Taffy dependency 제거
 

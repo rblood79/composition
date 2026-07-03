@@ -7,6 +7,7 @@ Accepted — 2026-07-03
 - Proposed — 2026-07-03
 - Accepted — 2026-07-03 (Risk Threshold Check 대안 D 선정 + Gate G1~G5 완비 + 자체리뷰/codex 2 라운드 정정 반영 후 사용자 명시 confirm)
 - Phase 0 — 종료 2026-07-03 (**0-A seam 만 land**, flag 보류). 0-A = 레이아웃 엔진 주입 seam (`createLayoutEngine` factory 경유, 동작 무변). 0-B(LayoutScheduler worker offload)는 Phase 2-B 로 이연 — block/grid 가속기 dead + Phase 1/2 재편 대상이라 flip 앞선 dormant 배선 회피. 다음 진입점 = Phase 1 (Taffy 제거, HIGH 위험 — 별도 사용자 승인 필요)
+- Phase 1 진입 (사용자 승인 2026-07-03, "1-D 하네스 먼저") — **1-D dual-run diff 하네스 비교 엔진 land** (`dualRunHarness.ts`, HC3 2단 판정, 계약 test 5/5). breakdown 순서를 1-A(flex.rs) 먼저에서 **1-D(검증 기반) 먼저**로 재배열 — 하네스가 flex.rs 의 유일한 검증 경로(R1 대응)이므로 산출물보다 선행. fixture golden 생성은 candidate 엔진(flex.rs) 착수 시점 이연. 다음 진입점 = 1-A `flex.rs` 신규 (HIGH 위험, ~2,000줄 CSS Flexbox 명세 — 별도 세션·사용자 승인)
 
 ## Context
 
