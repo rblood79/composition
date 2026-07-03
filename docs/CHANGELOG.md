@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-916 grid gap offset fix + Phase 2 G5 준비] - 2026-07-04
+
+### Bug Fixes
+
+- **Grid gap offset 승계 버그 수정**:
+  - **Why**: gap 이 있는 CSS Grid 에서 2번째 이후 column/row 의 시작 offset 계산이 바로 앞 트랙 뒤 gap 을 누락했다. `GridLayout.utils.ts` 와 `composition-engine/src/grid.rs` 가 같은 `colStart-2`/`rowStart-2` 조건을 공유해 현재 JS live 경로와 Rust 후보 엔진이 같은 버그로 대칭이었고, Phase 2 배선 시 잘못된 기준선이 될 수 있었다.
+  - 수정: JS live helper와 Rust `grid.rs` 를 동시에 `colStart-1`/`rowStart-1` 조건으로 정정해 앞선 트랙 각각 뒤의 leading gap 을 offset 에 포함.
+  - 회귀 가드: Rust golden ignore 해제, row+column leading gap fixture 추가, JS `GridLayout.utils.test.ts` 추가.
+  - 검증: `cargo test --manifest-path packages/composition-engine/Cargo.toml`, `cargo clippy --manifest-path packages/composition-engine/Cargo.toml --tests`, `pnpm exec vitest run apps/builder/src/builder/workspace/canvas/layout/GridLayout.utils.test.ts`, `pnpm run codex:typecheck` PASS.
+
 ## [CalendarHeader 헤더 정렬 + Style 패널 layout 동기화 — nav 중앙 정렬 & flex 편집 반영] - 2026-07-02
 
 ### Bug Fixes

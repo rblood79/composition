@@ -204,12 +204,6 @@ fn golden_grid_fr_distribution() {
 }
 
 #[test]
-#[ignore = "ADR-916 알려진 한계: grid cell x/y offset 이 colStart 바로 앞 트랙 뒤 \
-            gap 을 항상 누락 (원본 GridLayout.utils.ts:621 `if (i < colStart-2)` 승계 \
-            버그). 명세 정답 x=120 이나 엔진은 x=100 산출. 원본 JS 가 live 소비 중이라 \
-            grid.rs 단독 수정 시 CSS↔Skia 분기 → 원본과 함께 고쳐야 하는 SSOT 정합 결정 \
-            (사용자 surface 후 별도 처리). dual-run(Taffy 대조)이 이 case 를 FAIL 로 \
-            드러내는 fixture. 수정 완료 시 #[ignore] 제거."]
 fn golden_grid_fixed_plus_fr_with_gap() {
     // cols "100px 1fr", available 300, col_gap 20.
     // fixed 100 + gap 20 소비 → 남은 fr 공간 = 300 - 100 - 20 = 180 → 1fr=180.
@@ -219,6 +213,25 @@ fn golden_grid_fixed_plus_fr_with_gap() {
         "grid_fixed_plus_fr_gap",
         &out,
         &[[0.0, 0.0, 100.0, 50.0], [120.0, 0.0, 180.0, 50.0]],
+    );
+}
+
+#[test]
+fn golden_grid_auto_placement_offsets_include_leading_gaps() {
+    // cols "100px 1fr", rows "50px 1fr", available 300×200.
+    // column gap 20, row gap 10.
+    // tracks: cols [100,180], rows [50,140].
+    // 2번째 column x = 100 + 20 = 120, 2번째 row y = 50 + 10 = 60.
+    let out = grid_layout("100px 1fr", "50px 1fr", "", "", 4, 300.0, 200.0, 20.0, 10.0);
+    assert_bounds(
+        "grid_auto_placement_offsets_include_leading_gaps",
+        &out,
+        &[
+            [0.0, 0.0, 100.0, 50.0],
+            [120.0, 0.0, 180.0, 50.0],
+            [0.0, 60.0, 100.0, 140.0],
+            [120.0, 60.0, 180.0, 140.0],
+        ],
     );
 }
 

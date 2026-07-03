@@ -548,7 +548,7 @@ fn cell_bounds_for_child(
     for i in 0..(col_start - 1).max(0) {
         let idx = i as usize;
         x += tracks_x.get(idx).copied().unwrap_or(0.0);
-        if i < col_start - 2 {
+        if i < col_start - 1 {
             x += col_gap;
         }
     }
@@ -557,7 +557,7 @@ fn cell_bounds_for_child(
     for i in 0..(row_start - 1).max(0) {
         let idx = i as usize;
         y += tracks_y.get(idx).copied().unwrap_or(0.0);
-        if i < row_start - 2 {
+        if i < row_start - 1 {
             y += row_gap;
         }
     }

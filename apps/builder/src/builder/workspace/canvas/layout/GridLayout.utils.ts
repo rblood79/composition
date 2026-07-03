@@ -618,13 +618,13 @@ export function calculateGridCellBounds(
   let x = 0;
   for (let i = 0; i < colStart - 1; i++) {
     x += columnTracks[i]?.size || 0;
-    if (i < colStart - 2) x += columnGap;
+    if (i < colStart - 1) x += columnGap;
   }
 
   let y = 0;
   for (let i = 0; i < rowStart - 1; i++) {
     y += rowTracks[i]?.size || 0;
-    if (i < rowStart - 2) y += rowGap;
+    if (i < rowStart - 1) y += rowGap;
   }
 
   let width = 0;

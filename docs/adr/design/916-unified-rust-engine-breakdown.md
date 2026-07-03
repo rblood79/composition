@@ -144,11 +144,16 @@
   - **검증**: `dualRunHarness.test.ts` 5/5 PASS — self-diff(diff 0, 하네스 정확성) / sub-pixel≤1px 같은 pixel PASS / 수치>1px FAIL / pixel 경계 넘는 drift (b)우선 FAIL / handle 정렬 무관 elementId 매칭.
 - **✅ 단일 컨테이너 golden land 2026-07-04** (사용자 승인 "1-D fixture golden 생성 착수 승인, 배선까지 한 번에"): `tests/golden.rs` — 세 완결 엔트리(`flex_layout`/`grid_layout`/`block_layout`)의 **전체 파이프라인**을 CSS 명세 유래 기대값으로 회귀 고정 (14 케이스).
   - **golden 방식 재정의 (Phase 경계 유지)**: breakdown 원안의 "Chrome 실측 → golden 자동 생성" 은 dualRunHarness 가 소비하는 **트리 batch 계약(`buildTreeBatch(json) → handles → getLayoutsBatch`)** 을 전제한다. 그런데 세 완결 엔트리는 "단일 컨테이너 + 자식" 평면 f32 계약이지 트리가 아니다 → 트리 오케스트레이션(DFS 빌드 + display 디스패치 + 스타일 해석)은 **Phase 2-A style.rs + 2-B tree.rs** 범위(G5 confirm 필수). 따라서 Phase 1 scope 유지를 위해 **단일 컨테이너 단위 golden**(명세 정확 계산값, 정수 좌표 위주 — Taffy/Chrome 동일 산출)으로 검증 기반 확보. 트리 dual-run golden 은 candidate 트리 배선(2-B) 시점에 dualRunHarness 로 통합.
-  - **golden 이 실제 버그 1건 발견 (제 역할)**: `grid.rs` cell x/y offset 이 colStart 바로 앞 트랙 뒤 gap 을 **항상 누락** — `if i < colStart-2` (원본 `GridLayout.utils.ts:621` 승계) 가 명세상 `colStart-1` 이어야 함 (앞선 트랙 각각 뒤 gap 1개). gap>0 grid 의 2번째 이후 컬럼/행이 gap 만큼 좌/상 당겨짐. **원본 JS 승계 버그 = live builder 에도 존재** (현재는 원본 JS·grid.rs 동일 버그라 CSS↔Skia 대칭 유지). 원본 JS 가 live 소비 중 → grid.rs 단독 수정 시 분기 → **원본과 함께 고쳐야 하는 SSOT 정합 결정** (사용자 surface 후 별도 처리). golden 은 명세 정답 유지 + `#[ignore]` 표지, dual-run(Taffy 대조)/수정 시 unignore.
+  - **golden 이 실제 버그 1건 발견 및 후속 처리 완료 (제 역할)**: `grid.rs` cell x/y offset 이 colStart 바로 앞 트랙 뒤 gap 을 누락하던 원본 `GridLayout.utils.ts` 승계 버그를 발견. gap>0 grid 의 2번째 이후 컬럼/행이 gap 만큼 좌/상 당겨지는 live builder 버그였으므로, grid.rs 단독 수정이 아니라 원본 JS live helper와 Rust 후보 엔진을 함께 고치는 SSOT 정합 처리를 2026-07-04 후속으로 완료했다.
   - flex `align-content` 기본값=stretch 확인 (CSS 명세), block margin collapse 양·음·혼합 부호 case 포함. `golden_field_contract_guard` 로 FLEX_FIELD_COUNT=17 / FIELD_COUNT=19 정적 가드.
   - block.rs test `1 * OUT_FIELDS` identity_op clippy 3건 정리.
-  - **검증**: cargo test **77 PASS + 1 ignored** (lib 64 + golden 13/14), `cargo clippy --tests` 0.
-  - **⏸️ WASM 트리 batch 엔트리 + `createLayoutEngine` 배선 미착수**: dualRunHarness 트리 계약이 tree.rs(2-B) 선행 요구 = Phase 2 진입(HIGH·G5 confirm) + grid gap 버그 처리 방침이 사용자 판단 대상 → 자동 진입 대신 사용자 surface.
+  - **검증**: 후속 grid gap 처리 후 cargo test **79/79 PASS** (lib 64 + golden 15, ignored 0), `cargo clippy --tests` 0.
+  - **⏸️ WASM 트리 batch 엔트리 + `createLayoutEngine` 배선 미착수**: dualRunHarness 트리 계약이 tree.rs(2-B) 선행 요구 = Phase 2 진입(HIGH·G5 confirm). 자동 진입 대신 사용자 scope confirm surface.
+- **✅ grid gap 승계 버그 처리 완료 2026-07-04**:
+  - **동시 수정**: live JS `GridLayout.utils.ts` 와 후보 Rust `composition-engine/src/grid.rs` 의 leading gap offset 조건을 모두 `colStart-1`/`rowStart-1` 로 정정. grid.rs 단독 수정으로 CSS↔Skia 분기되는 상태를 피하고, Phase 2 tree batch baseline 이 잘못된 JS 버그를 계승하지 않게 막는다.
+  - **fixture**: 기존 `golden_grid_fixed_plus_fr_with_gap` 의 `#[ignore]` 제거 + row/column leading gap 동시 fixture 추가. JS live helper 에 `GridLayout.utils.test.ts` 추가.
+  - **검증**: `cargo test --manifest-path packages/composition-engine/Cargo.toml` **79/79 PASS** (lib 64 + golden 15, ignored 0), `cargo clippy --manifest-path packages/composition-engine/Cargo.toml --tests` 0, `pnpm exec vitest run apps/builder/src/builder/workspace/canvas/layout/GridLayout.utils.test.ts` PASS, `pnpm run codex:typecheck` PASS.
+  - **G5 상태**: grid gap 차단 해소. Phase 2 code 진입은 여전히 아래 G5 scope confirm 선행.
 - **⏸️ 트리 dual-run golden 이연 (2-B)**: 트리 batch 계약이 생기는 시점에 실 WASM Taffy self-diff(diff 0) + candidate 트리 dual-run 을 live builder 검증과 통합.
 - 기준: 픽셀 diff ≤ 1px (f32 tolerance), 회귀 fixture 전수
 - 통과 전 Taffy fallback 경로 유지 (flag)
@@ -164,6 +169,7 @@
 ## Phase 2: 파이프라인 통합 (모듈별 순차, 각 모듈 G3 게이트)
 
 > **착수 전 G5**: 사용자 scope confirm 필수 (5 모듈 분할 — adr-writing.md M4 의무). Phase 1 완료 시점 실측으로 본 ADR 내 진행 vs 후속 ADR 분리 재판정.
+> **2026-07-04 G5 confirm 착수**: Phase 1 실측상 self-impl 알고리즘 계층과 단일 컨테이너 golden 은 land, grid gap 차단은 JS+Rust 동시 수정으로 해소. 남은 Phase 2 진입 판단은 (1) 본 ADR 내 `2-A style.rs → 2-B tree.rs` 선착수 후 2-C/2-D/2-E 재판정, 또는 (2) Phase 2 전체를 후속 ADR 로 분리 중 선택. 안전 기본값은 **본 ADR 내 2-A/2-B 선착수 + 2-B 이후 후속 모듈 재판정**이다.
 
 ### 2-A. `style.rs` 확장 — Style Resolution 이관
 
@@ -254,4 +260,4 @@ Phase 0-B (⏸️ 이연) ──────────────────
 ```
 
 - **Phase 0 종료** (2026-07-03): 0-A seam 만 land, 0-B 는 2-B 로 이연.
-- **Phase 1 부분 마감** (2026-07-04): self-impl 알고리즘(1-A/B/C) + 1-D 하네스·golden land. **배선(WASM 트리 batch) + 1-E Taffy 제거는 미착수** — 배선이 트리 오케스트레이션(2-B) 선행 요구 → Phase 2 로 이연. 다음 진입점 = **Phase 2 (G5 scope confirm 필수, HIGH — 별도 사용자 승인)**. 병행 미결: grid gap 승계 버그(§1-D) 처리 방침.
+- **Phase 1 부분 마감** (2026-07-04): self-impl 알고리즘(1-A/B/C) + 1-D 하네스·golden land. **배선(WASM 트리 batch) + 1-E Taffy 제거는 미착수** — 배선이 트리 오케스트레이션(2-B) 선행 요구 → Phase 2 로 이연. grid gap 승계 버그는 JS+Rust 동시 수정 완료. 다음 진입점 = **Phase 2 (G5 scope confirm 필수, HIGH — 별도 사용자 승인)**.
