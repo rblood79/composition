@@ -19,10 +19,10 @@
 //!   (repeat/minmax/named-areas/span 배치) 통합 승계. 미구현: subgrid, intrinsic
 //!   track(min/max-content), dense 역채움, baseline 정렬.
 //!
-//! - `style` — CSS 값 산술 파서 커널 (cssValueParser.ts 순수 산술 계층). Phase 2-A
-//!   첫 착수 단위. 단위 해석(px/rem/em/vw/vh/…/%) + calc()/clamp()/min()/max()/env().
-//!   var()/디자인 토큰 해석은 DOM 의존이라 JS 잔류 — 본 모듈은 var() 선치환된 순수
-//!   값 문자열을 입력받는다. 미이식: font/border shorthand 분해 (2-A 후속 단위).
+//! - `style` — CSS 값 산술 파서 커널 (cssValueParser.ts 순수 산술 계층). Phase 2-A.
+//!   단위 해석(px/rem/em/vw/vh/…/%) + calc()/clamp()/min()/max()/env() +
+//!   font/border shorthand 분해. var()/디자인 토큰 해석은 DOM 의존이라 JS 잔류 —
+//!   본 모듈은 var() 선치환된 순수 값 문자열을 입력받는다.
 //!
 //! ## 미편입 (다음 세션)
 //!

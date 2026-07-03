@@ -1,9 +1,10 @@
-//! ADR-916 Phase 2-A — Style Resolution (CSS 값 산술 파서 커널)
+//! ADR-916 Phase 2-A — Style Resolution (CSS 값 산술 + shorthand 분해 커널)
 //!
 //! `apps/builder/.../layout/engines/cssValueParser.ts` 의 **순수 산술** 계층을
 //! 이식. var()/디자인 토큰 해석은 DOM 의존(`getComputedStyle(documentElement)`)
 //! 이라 JS 에 잔류하고, 본 모듈은 **이미 var() 가 치환된 순수 값 문자열** 을 입력
-//! 으로 받아 단위 해석 / calc() / clamp() / min() / max() / env() 산술만 수행한다.
+//! 으로 받아 단위 해석 / calc() / clamp() / min() / max() / env() 산술과
+//! font/border shorthand 분해를 수행한다.
 //! (ADR-916 Phase 2-A 첫 착수 단위 — DOM 변수 해석 JS 잔류 계약.)
 //!
 //! ## 계약
@@ -19,7 +20,7 @@
 //! - `resolveVar` / `createVariableScopeWithDOMFallback` /
 //!   `resolveVariableFromDOMDefault` — `getComputedStyle(document.documentElement)`
 //!   DOM 조회. WASM 경계 밖. JS 가 선해석해 순수 값으로 만든 뒤 본 모듈 호출.
-//! - `parseFontShorthand` / `parseBorderShorthand` — shorthand 분해. 2-A 후속 단위.
+//! - `resolveVar` / 디자인 토큰 해석 — DOM 의존이라 JS 잔류.
 
 /// CSS intrinsic sizing 센티넬 — `fit-content`
 pub const FIT_CONTENT: f32 = -2.0;
@@ -56,6 +57,24 @@ pub struct CssValueContext {
     pub root_font_size: Option<f32>,
 }
 
+/// CSS `font` shorthand 파싱 결과 (cssValueParser.ts `ParsedFont` 대응).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParsedFont {
+    pub font_style: Option<String>,
+    pub font_weight: Option<String>,
+    pub font_size: Option<String>,
+    pub line_height: Option<String>,
+    pub font_family: Option<String>,
+}
+
+/// CSS `border` shorthand 파싱 결과 (cssValueParser.ts `ParsedBorder` 대응).
+#[derive(Debug, Clone, PartialEq)]
+pub struct ParsedBorder {
+    pub width: f32,
+    pub style: String,
+    pub color: String,
+}
+
 impl CssValueContext {
     #[inline]
     fn root_fs(&self) -> f32 {
@@ -73,6 +92,187 @@ impl CssValueContext {
     fn vh(&self) -> f32 {
         self.viewport_height.unwrap_or(DEFAULT_VIEWPORT_HEIGHT)
     }
+}
+
+/// CSS `font` shorthand 를 개별 font 속성으로 분해 (cssValueParser.ts `parseFontShorthand`).
+///
+/// 원본 JS 와 동일하게 style/weight/size/line-height/family 만 추출한다. `font-variant`
+/// (`small-caps`) 는 현재 호출부가 소비하지 않으므로 인식만 하고 결과에는 담지 않는다.
+pub fn parse_font_shorthand(value: &str) -> Option<ParsedFont> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    let first_comma_idx = trimmed.find(',');
+    let (pre_family_str, remaining_family_str) = match first_comma_idx {
+        Some(idx) => (&trimmed[..idx], &trimmed[idx..]),
+        None => (trimmed, ""),
+    };
+
+    let pre_tokens: Vec<&str> = pre_family_str.split_whitespace().collect();
+    let mut result = ParsedFont {
+        font_style: None,
+        font_weight: None,
+        font_size: None,
+        line_height: None,
+        font_family: None,
+    };
+
+    let mut size_token_idx: Option<usize> = None;
+    for (i, token) in pre_tokens.iter().enumerate() {
+        if let Some(slash_idx) = token.find('/') {
+            let size_part = &token[..slash_idx];
+            let line_height_part = &token[slash_idx + 1..];
+            if is_font_size_token(size_part) {
+                result.font_size = Some(size_part.to_string());
+                if !line_height_part.is_empty() {
+                    result.line_height = Some(line_height_part.to_string());
+                }
+                size_token_idx = Some(i);
+                break;
+            }
+        } else if is_font_size_token(token)
+            && !is_font_style_keyword(token)
+            && !is_font_weight_keyword(token)
+            && !is_font_variant_keyword(token)
+        {
+            result.font_size = Some((*token).to_string());
+            size_token_idx = Some(i);
+            break;
+        }
+    }
+
+    let pre_pre_end = size_token_idx.unwrap_or(pre_tokens.len());
+    for token in &pre_tokens[..pre_pre_end] {
+        let lower = token.to_ascii_lowercase();
+        if is_font_style_keyword(&lower) && lower != "normal" && result.font_style.is_none() {
+            result.font_style = Some(lower);
+        } else if result.font_weight.is_none()
+            && ((is_font_weight_keyword(&lower) && lower != "normal")
+                || is_font_weight_number(&lower))
+        {
+            result.font_weight = Some(lower);
+        }
+    }
+
+    if let Some(idx) = size_token_idx {
+        if idx + 1 < pre_tokens.len() {
+            let family_first_word = pre_tokens[idx + 1..].join(" ");
+            result.font_family = Some(if remaining_family_str.is_empty() {
+                family_first_word
+            } else {
+                format!("{family_first_word}{remaining_family_str}")
+            });
+        } else if !remaining_family_str.is_empty() {
+            result.font_family = Some(remaining_family_str[1..].trim().to_string());
+        }
+    }
+
+    Some(result)
+}
+
+/// CSS `border` shorthand 를 width/style/color 로 분해 (cssValueParser.ts `parseBorderShorthand`).
+///
+/// 원본 JS 와 동일하게 순서 무관 토큰을 훑고, width 는 `parseFloat` 근사값만 사용한다.
+/// CSS color 함수 전체 파싱은 하지 않고 첫 비-width/style 토큰을 color 로 둔다.
+pub fn parse_border_shorthand(value: &str) -> Option<ParsedBorder> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    let mut width: Option<f32> = None;
+    let mut style: Option<String> = None;
+    let mut color: Option<String> = None;
+
+    for part in trimmed.split_whitespace() {
+        let lower = part.to_ascii_lowercase();
+        if is_border_style_keyword(&lower) {
+            style = Some(lower);
+            continue;
+        }
+
+        if width.is_none() {
+            if let Some(num) = parse_leading_f32(part) {
+                width = Some(num);
+                continue;
+            }
+        }
+
+        if color.is_none() {
+            color = Some(part.to_string());
+        }
+    }
+
+    Some(ParsedBorder {
+        width: width.unwrap_or(0.0),
+        style: style.unwrap_or_else(|| "none".to_string()),
+        color: color.unwrap_or_else(|| "#000000".to_string()),
+    })
+}
+
+fn is_font_style_keyword(token: &str) -> bool {
+    matches!(token, "italic" | "oblique" | "normal")
+}
+
+fn is_font_weight_keyword(token: &str) -> bool {
+    matches!(token, "bold" | "bolder" | "lighter" | "normal")
+}
+
+fn is_font_variant_keyword(token: &str) -> bool {
+    matches!(token, "small-caps" | "normal")
+}
+
+fn is_font_weight_number(token: &str) -> bool {
+    !token.is_empty()
+        && token.as_bytes().iter().all(u8::is_ascii_digit)
+        && !token.ends_with("px")
+        && !token.ends_with("em")
+}
+
+fn is_font_size_token(token: &str) -> bool {
+    if is_font_weight_number(token) {
+        return false;
+    }
+    token
+        .as_bytes()
+        .first()
+        .is_some_and(|b| b.is_ascii_digit() || *b == b'.')
+        || token.ends_with("px")
+        || token.ends_with("em")
+        || token.ends_with("rem")
+        || token.ends_with('%')
+        || token.ends_with("vw")
+        || token.ends_with("vh")
+        || matches!(
+            token,
+            "xx-small"
+                | "x-small"
+                | "small"
+                | "medium"
+                | "large"
+                | "x-large"
+                | "xx-large"
+                | "smaller"
+                | "larger"
+        )
+}
+
+fn is_border_style_keyword(token: &str) -> bool {
+    matches!(
+        token,
+        "none"
+            | "hidden"
+            | "dotted"
+            | "dashed"
+            | "solid"
+            | "double"
+            | "groove"
+            | "ridge"
+            | "inset"
+            | "outset"
+    )
 }
 
 /// CSS 크기 값을 px 숫자로 해석하는 통합 함수 (cssValueParser.ts:295 `resolveCSSSizeValue`).
@@ -762,5 +962,81 @@ mod tests {
         assert_eq!(parse_leading_f32("3.5xyz"), Some(3.5));
         assert_eq!(parse_leading_f32("abc"), None);
         assert_eq!(parse_leading_f32("1e2"), Some(100.0));
+    }
+
+    // ---- font shorthand ----
+
+    #[test]
+    fn font_shorthand_extracts_style_weight_size_line_height_and_family() {
+        assert_eq!(
+            parse_font_shorthand("italic 700 16px/24px Inter, sans-serif"),
+            Some(ParsedFont {
+                font_style: Some("italic".to_string()),
+                font_weight: Some("700".to_string()),
+                font_size: Some("16px".to_string()),
+                line_height: Some("24px".to_string()),
+                font_family: Some("Inter, sans-serif".to_string()),
+            })
+        );
+    }
+
+    #[test]
+    fn font_shorthand_ignores_normal_and_preserves_quoted_family() {
+        assert_eq!(
+            parse_font_shorthand("normal bold 1.5rem \"Inter Tight\""),
+            Some(ParsedFont {
+                font_style: None,
+                font_weight: Some("bold".to_string()),
+                font_size: Some("1.5rem".to_string()),
+                line_height: None,
+                font_family: Some("\"Inter Tight\"".to_string()),
+            })
+        );
+    }
+
+    #[test]
+    fn font_shorthand_empty_is_none() {
+        assert_eq!(parse_font_shorthand(""), None);
+        assert_eq!(parse_font_shorthand("   "), None);
+    }
+
+    // ---- border shorthand ----
+
+    #[test]
+    fn border_shorthand_extracts_width_style_and_color_order_independent() {
+        assert_eq!(
+            parse_border_shorthand("solid 2px red"),
+            Some(ParsedBorder {
+                width: 2.0,
+                style: "solid".to_string(),
+                color: "red".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn border_shorthand_uses_js_defaults_and_parse_float_width() {
+        assert_eq!(
+            parse_border_shorthand("#ccc"),
+            Some(ParsedBorder {
+                width: 0.0,
+                style: "none".to_string(),
+                color: "#ccc".to_string(),
+            })
+        );
+        assert_eq!(
+            parse_border_shorthand("1.5rem dashed #f00"),
+            Some(ParsedBorder {
+                width: 1.5,
+                style: "dashed".to_string(),
+                color: "#f00".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn border_shorthand_empty_is_none() {
+        assert_eq!(parse_border_shorthand(""), None);
+        assert_eq!(parse_border_shorthand("  "), None);
     }
 }

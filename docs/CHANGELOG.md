@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 회귀 가드: Rust golden ignore 해제, row+column leading gap fixture 추가, JS `GridLayout.utils.test.ts` 추가.
   - 검증: `cargo test --manifest-path packages/composition-engine/Cargo.toml`, `cargo clippy --manifest-path packages/composition-engine/Cargo.toml --tests`, `pnpm exec vitest run apps/builder/src/builder/workspace/canvas/layout/GridLayout.utils.test.ts`, `pnpm run codex:typecheck` PASS.
 
+### Infrastructure
+
+- **ADR-916 Phase 2-A style.rs 진행** (내부 — live Builder 영향 없음):
+  - CSS 값 산술 파서 커널에 이어 font/border shorthand 분해를 `composition-engine/src/style.rs` 로 이식.
+  - seam 미배선 순수 함수라 사용자-가시 변화 없음. 검증은 composition-engine cargo test/clippy 기준으로 고정.
+
 ## [CalendarHeader 헤더 정렬 + Style 패널 layout 동기화 — nav 중앙 정렬 & flex 편집 반영] - 2026-07-02
 
 ### Bug Fixes
