@@ -5,7 +5,10 @@
 //!
 //! ## 모듈
 //!
-//! - `flex` — CSS Flexbox (CSS-FLEXBOX-1). Phase 1-A. 현재 단일 라인 기본만 구현.
+//! - `flex` — CSS Flexbox (CSS-FLEXBOX-1). Phase 1-A. 단일 라인 기본 + §9.7
+//!   flex-grow/shrink 분배 + §9.3 flex-wrap multi-line + align-content 구현.
+//!   미구현: flex-basis:content intrinsic 자동측정, aspect-ratio, align-self,
+//!   auto margin 흡수, nested BFC.
 //!
 //! ## 미편입 (다음 세션)
 //!

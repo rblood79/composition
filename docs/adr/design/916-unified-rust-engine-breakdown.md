@@ -93,7 +93,14 @@
   - **구현 범위**: `flex_layout_single_line` — main-axis(row/column) 단일 라인, fixed/auto size, `justify-content` 6종(start/center/end/space-between/around/evenly), `align-items` 4종(stretch/start/center/end), gap, 논리 main·cross → 물리 x/y/w/h 역매핑.
   - **미구현 (다음 세션)**: `flex-grow`/`flex-shrink` 여유·부족 분배(§9.7), `flex-wrap` multi-line(§9.3), `align-content`, `flex-basis: content` intrinsic, `aspect-ratio`, nested BFC. 이 입력은 현재 고정 크기 근사 → dual-run FAIL 로 드러나며 그것이 다음 세션 구현 대상 fixture.
   - **승계 자산 실측**: block_layout.rs/grid_layout.rs 는 각 알고리즘 전용 커널 — flex 직접 재사용 자산 거의 없음(`clamp_size` min/max clamp 정도). breakdown "~2,000줄 신규" = 순수 신규 확증.
-- **검증**: `cargo test` **8/8 PASS** (row justify start/center/space-between / column main→y 매핑 / align center·stretch·max clamp / empty). native 단위 테스트 — wasm 컴파일 불필요. 경고 0.
+- **✅ 잔여 (grow/shrink + wrap + align-content) land 2026-07-04**:
+  - **§9.7 Resolving Flexible Lengths**: `resolve_flexible_lengths()` 반복 동결 알고리즘. (1) hypothetical outer main 합 < available → grow / 아니면 shrink. (2) inflexible(factor=0 또는 basis 방향 역행) 즉시 동결. (3~4) 미동결 아이템 있는 동안: remaining free space 재계산 → grow 는 grow-ratio, shrink 는 scaled factor(basis×shrink) ratio 로 target 분배 → min/max clamp violation **부호 합산**(>0 min위반 동결 / <0 max위반 동결 / 0 전체동결). grow-sum<1 magnitude 축소 처리 포함.
+  - **§9.3 Collect flex items into flex lines**: `collect_lines()` — nowrap 이면 단일 라인, wrap 이면 outer main-size 누적이 available 초과 직전 새 라인(라인당 최소 1개 보장). 각 라인 독립 §9.7 resolve.
+  - **align-content**: `align_content_offsets()` — stretch(라인 cross 균등 확장, default 아님)/start(default)/center/end/space-between/space-around + `gap_cross` 라인 간격.
+  - **진입점 재구성**: `flex_layout(...wrap, align_content, gap_cross)` 신규 = 전체 케이스. `flex_layout_single_line` 은 nowrap+gap_cross=0 위임 wrapper 로 유지(기존 8 테스트 회귀 방지 + 하위 호환).
+  - **필드 계약 확장**: `FLEX_FIELD_COUNT` 16→17 — packed `flex_grow_shrink`(off15) 를 `flex_grow`(off15)/`flex_shrink`(off16) 별도 필드로 분리(§9.7 알고리즘 명료성).
+  - **미구현 (다음)**: `flex-basis: content` intrinsic 자동측정, `aspect-ratio`, `align-self`(아이템별 override), auto margin 흡수, nested BFC.
+- **검증**: `cargo test` **21/21 PASS** (기존 8 회귀 + grow 4[균등/비율/max-clamp 재분배/grow=0] + shrink 3[overflow/shrink=0/min-clamp 흡수] + wrap 4[2라인 분할/nowrap overflow/라인당 최소1/라인별 grow] + align-content 2[center/gap_cross]), clippy 0, 경고 0. native 단위 테스트 — wasm 컴파일 불필요.
 - **⏸️ WASM batch 엔트리 + seam 배선 이연**: `LayoutEngineAPI` 계약 구현(`buildTreeBatch` 등)은 flex/grid/block 이 dual-run 통과할 만큼 완성된 뒤 `createLayoutEngine` 에 배선. 지금 배선하면 알고리즘 미완성 dormant 번들([[feedback-no-dormant-foundation-ahead-of-flip]]).
 - 테스트: Taffy 의 gentest 방식 (Chrome 실측 → fixture 자동 생성) 포팅 — WPT-파생 fixture 자산 확보 (candidate 완성도 상승 시 dual-run golden 생성)
 - 위치: `packages/composition-engine/src/flex.rs` (신규 crate — 아래 §Crate 구조)
