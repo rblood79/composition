@@ -19,9 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Infrastructure
 
-- **ADR-916 Phase 2-A style.rs 진행** (내부 — live Builder 영향 없음):
-  - CSS 값 산술 파서 커널에 이어 font/border shorthand 분해를 `composition-engine/src/style.rs` 로 이식.
-  - seam 미배선 순수 함수라 사용자-가시 변화 없음. 검증은 composition-engine cargo test/clippy 기준으로 고정.
+- **ADR-916 Phase 2-A style resolution 이관 진행** (내부 — live Builder 영향 없음):
+  - `style.rs` — CSS 값 산술 파서 커널 + font/border shorthand 분해 (`cssValueParser.ts` 순수 산술 계층).
+  - `cascade.rs` — CSS Cascade Resolver 순수 헬퍼 (`cssResolver.ts` 자기완결 계층): 상속 규칙/초기값/cascade 키워드/currentColor/font-variant/논리→물리 속성.
+  - store·DOM 의존(getRootComputedStyle/var()/토큰) 과 spec SSOT 의존(FONT_STRETCH_KEYWORD_MAP) 은 JS 잔류. seam 미배선 순수 함수라 사용자-가시 변화 없음. 검증은 composition-engine cargo test/clippy 기준으로 고정.
 
 ## [CalendarHeader 헤더 정렬 + Style 패널 layout 동기화 — nav 중앙 정렬 & flex 편집 반영] - 2026-07-02
 

@@ -24,6 +24,12 @@
 //!   font/border shorthand 분해. var()/디자인 토큰 해석은 DOM 의존이라 JS 잔류 —
 //!   본 모듈은 var() 선치환된 순수 값 문자열을 입력받는다.
 //!
+//! - `cascade` — CSS Cascade Resolver 순수 헬퍼 (cssResolver.ts 자기완결 계층). Phase 2-A.
+//!   상속 규칙 테이블 + 초기값 맵 + cascade 키워드(inherit/initial/unset/revert) +
+//!   currentColor 토큰 치환 + font-variant→OpenType feature + 논리→물리 속성 변환.
+//!   미이식: getRootComputedStyle(store 의존 JS 잔류), resolveFontStretchWidth(spec
+//!   SSOT FONT_STRETCH_KEYWORD_MAP 의존 — 참조 계약 확정 후), resolveStyle 본체(조립 단위).
+//!
 //! ## 미편입 (다음 세션)
 //!
 //! - WASM batch 엔트리 (`LayoutEngineAPI` 계약 구현) — flex/grid/block 이 dual-run
@@ -31,6 +37,7 @@
 //!   알고리즘 미완성 상태의 dormant 번들 (no-dormant-foundation-ahead-of-flip).
 
 pub mod block;
+pub mod cascade;
 pub mod flex;
 pub mod grid;
 pub mod style;
