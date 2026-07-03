@@ -558,7 +558,7 @@ mod tests {
         data.extend(make_block(AUTO, 100.0, 20.0, 0.0));
 
         let result = block_layout(&data, 400.0, 800.0, true, false, 0.0);
-        let meta_off = 1 * OUT_FIELDS;
+        let meta_off = OUT_FIELDS; // child 1개 뒤 metadata 시작
         // firstChildMarginTop should be 20 (collapsed to parent)
         assert_eq!(result[meta_off], 20.0);
     }
@@ -691,7 +691,7 @@ mod tests {
         data.extend(make_block(AUTO, 100.0, 0.0, 35.0));
 
         let result = block_layout(&data, 400.0, 800.0, false, true, 0.0);
-        let meta_off = 1 * OUT_FIELDS;
+        let meta_off = OUT_FIELDS; // child 1개 뒤 metadata 시작
         // lastChildMarginBottom = 35 (부모로 collapse)
         assert_eq!(result[meta_off + 1], 35.0, "last child margin-bottom propagates to parent");
     }
@@ -705,7 +705,7 @@ mod tests {
         data.extend(child);
 
         let result = block_layout(&data, 400.0, 800.0, false, true, 0.0);
-        let meta_off = 1 * OUT_FIELDS;
+        let meta_off = OUT_FIELDS; // child 1개 뒤 metadata 시작
         // BFC 자식 → lastChildMarginBottom = 0 (부모로 전파 차단)
         assert_eq!(result[meta_off + 1], 0.0, "BFC child bottom margin does not collapse to parent");
     }

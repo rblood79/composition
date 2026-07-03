@@ -141,10 +141,17 @@
   - **diff 매칭**: handle 은 엔진별 독립 발급이므로 handle 직접 비교 금지 → `handleToId`/`refHandleToId` 로 elementId 복원 후 매칭. 구조 불일치 노드는 nodeCount 제외.
   - **위반 리포트**: `NumericViolation`/`PixelViolation` (elementId + field + delta/px) + `formatViolations()` 사람 읽기용 포맷.
   - **검증**: `dualRunHarness.test.ts` 5/5 PASS — self-diff(diff 0, 하네스 정확성) / sub-pixel≤1px 같은 pixel PASS / 수치>1px FAIL / pixel 경계 넘는 drift (b)우선 FAIL / handle 정렬 무관 elementId 매칭.
-- **⏸️ fixture golden 생성 이연 (candidate 부재)**: Taffy gentest 방식(Chrome 실측 → golden fixture 자동 생성)은 **candidate 엔진(flex.rs)이 생긴 뒤** 착수. 지금 golden 을 만들면 비교 상대 없는 dormant 자산. 하네스가 실 WASM Taffy self-diff(diff 0) 로 실전 신뢰성을 보이는 것도 live builder 검증 시점(flex.rs dual-run 첫 실전) 과 통합.
+- **✅ 단일 컨테이너 golden land 2026-07-04** (사용자 승인 "1-D fixture golden 생성 착수 승인, 배선까지 한 번에"): `tests/golden.rs` — 세 완결 엔트리(`flex_layout`/`grid_layout`/`block_layout`)의 **전체 파이프라인**을 CSS 명세 유래 기대값으로 회귀 고정 (14 케이스).
+  - **golden 방식 재정의 (Phase 경계 유지)**: breakdown 원안의 "Chrome 실측 → golden 자동 생성" 은 dualRunHarness 가 소비하는 **트리 batch 계약(`buildTreeBatch(json) → handles → getLayoutsBatch`)** 을 전제한다. 그런데 세 완결 엔트리는 "단일 컨테이너 + 자식" 평면 f32 계약이지 트리가 아니다 → 트리 오케스트레이션(DFS 빌드 + display 디스패치 + 스타일 해석)은 **Phase 2-A style.rs + 2-B tree.rs** 범위(G5 confirm 필수). 따라서 Phase 1 scope 유지를 위해 **단일 컨테이너 단위 golden**(명세 정확 계산값, 정수 좌표 위주 — Taffy/Chrome 동일 산출)으로 검증 기반 확보. 트리 dual-run golden 은 candidate 트리 배선(2-B) 시점에 dualRunHarness 로 통합.
+  - **golden 이 실제 버그 1건 발견 (제 역할)**: `grid.rs` cell x/y offset 이 colStart 바로 앞 트랙 뒤 gap 을 **항상 누락** — `if i < colStart-2` (원본 `GridLayout.utils.ts:621` 승계) 가 명세상 `colStart-1` 이어야 함 (앞선 트랙 각각 뒤 gap 1개). gap>0 grid 의 2번째 이후 컬럼/행이 gap 만큼 좌/상 당겨짐. **원본 JS 승계 버그 = live builder 에도 존재** (현재는 원본 JS·grid.rs 동일 버그라 CSS↔Skia 대칭 유지). 원본 JS 가 live 소비 중 → grid.rs 단독 수정 시 분기 → **원본과 함께 고쳐야 하는 SSOT 정합 결정** (사용자 surface 후 별도 처리). golden 은 명세 정답 유지 + `#[ignore]` 표지, dual-run(Taffy 대조)/수정 시 unignore.
+  - flex `align-content` 기본값=stretch 확인 (CSS 명세), block margin collapse 양·음·혼합 부호 case 포함. `golden_field_contract_guard` 로 FLEX_FIELD_COUNT=17 / FIELD_COUNT=19 정적 가드.
+  - block.rs test `1 * OUT_FIELDS` identity_op clippy 3건 정리.
+  - **검증**: cargo test **77 PASS + 1 ignored** (lib 64 + golden 13/14), `cargo clippy --tests` 0.
+  - **⏸️ WASM 트리 batch 엔트리 + `createLayoutEngine` 배선 미착수**: dualRunHarness 트리 계약이 tree.rs(2-B) 선행 요구 = Phase 2 진입(HIGH·G5 confirm) + grid gap 버그 처리 방침이 사용자 판단 대상 → 자동 진입 대신 사용자 surface.
+- **⏸️ 트리 dual-run golden 이연 (2-B)**: 트리 batch 계약이 생기는 시점에 실 WASM Taffy self-diff(diff 0) + candidate 트리 dual-run 을 live builder 검증과 통합.
 - 기준: 픽셀 diff ≤ 1px (f32 tolerance), 회귀 fixture 전수
 - 통과 전 Taffy fallback 경로 유지 (flag)
-- 산출물: `dualRunHarness.ts`(비교 엔진 + HC3 2단 diff) + `dualRunHarness.test.ts`(계약 5)
+- 산출물: `dualRunHarness.ts`(비교 엔진 + HC3 2단 diff) + `dualRunHarness.test.ts`(계약 5) + `tests/golden.rs`(단일 컨테이너 golden 14)
 
 ### 1-E. Taffy dependency 제거
 
