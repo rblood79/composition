@@ -119,6 +119,7 @@
   - **미구현 (다음 — dual-run FAIL 이 fixture)**: subgrid, intrinsic track(min-content/max-content → 0 폴백), dense packing 빈칸 역채움, baseline 정렬, `fit-content()` 함수. 현행 catalog grid 컨테이너 사용 범위로 한정.
 - **검증**: `cargo test` **64/64 PASS** (flex 21 + block 19 + grid 24 = 승계 11 + repeat/minmax 5 + areas/span/place 5 + 완결 엔트리 3), clippy 0, 경고 0. seam 미배선 → live builder 영향 0 (WASM 배선은 flex/grid/block dual-run 통과 후 첫 배선 시점 이연).
 - **Phase 1 self-impl 3종(flex/block/grid) 완료** — 남은 Phase 1: 1-D fixture golden 생성 + WASM batch 엔트리(`LayoutEngineAPI`) + `createLayoutEngine` seam 배선 + 1-E Taffy 제거.
+- **Phase 1 부분 마감 (2026-07-04, 사용자 "(C) 여기서 멈추고 Phase 1 마감")**: self-impl 알고리즘 계층(1-A/1-B/1-C) + 1-D 하네스·golden 까지 land. **WASM 트리 batch 배선 + 1-E Taffy 제거는 미착수** — 배선이 트리 오케스트레이션(2-B tree.rs) 선행을 요구해 사실상 Phase 2 진입이므로, Phase 1 을 여기서 마감하고 배선은 Phase 2 로 넘긴다. ADR Status = Accepted 유지 (Phase 1 전체 미완). 자체 엔진은 seam 미배선 crate 로 존재(live 영향 0, Taffy 경로 가동).
 
 ### 1-C. block 보강 (`block.rs`)
 
@@ -245,9 +246,12 @@ packages/composition-engine/        # 신규 통합 crate (composition-layout �
 ## 순서 의존성 요약
 
 ```
-Phase 0-A (seam ✅) ─→ Phase 1 (1-A/B/C → 1-D 게이트 G2 → 1-E) ─→ G5 confirm ─→ Phase 2 (2-A → 2-B → {2-C, 2-D, 2-E})
-                                                                                              │
-Phase 0-B (⏸️ 이연) ─────────────────────────────────────────────── 통합 배선 ─────────────┘ (2-B tree.rs worker 경로와 함께)
+Phase 0-A (seam ✅) ─→ Phase 1 self-impl (1-A/B/C ✅ + 1-D 하네스·golden ✅) ┐
+                                                                              │ 배선·1-E 이연 (트리 계약 필요)
+Phase 0-B (⏸️ 이연) ─────────────────────────────────────────────────────────┼─→ G5 confirm ─→ Phase 2 (2-A → 2-B → {2-C,2-D,2-E})
+                                                                              │                            │
+              WASM 트리 batch 배선 + 1-E Taffy 제거 + 0-B worker offload ─────┴──── 2-B tree.rs 완료 시점 ──┘
 ```
 
-- **Phase 0 종료** (2026-07-03): 0-A seam 만 land, 0-B 는 2-B 로 이연. Phase 1 이 다음 진입점 (HIGH 위험 — 별도 사용자 승인).
+- **Phase 0 종료** (2026-07-03): 0-A seam 만 land, 0-B 는 2-B 로 이연.
+- **Phase 1 부분 마감** (2026-07-04): self-impl 알고리즘(1-A/B/C) + 1-D 하네스·golden land. **배선(WASM 트리 batch) + 1-E Taffy 제거는 미착수** — 배선이 트리 오케스트레이션(2-B) 선행 요구 → Phase 2 로 이연. 다음 진입점 = **Phase 2 (G5 scope confirm 필수, HIGH — 별도 사용자 승인)**. 병행 미결: grid gap 승계 버그(§1-D) 처리 방침.
