@@ -1,0 +1,31 @@
+# ADR-916 Phase 1 — 자체 단일 Rust 레이아웃 엔진 (Taffy 의존 없음)
+#
+# composition-layout(0.10, Taffy 종속)을 대체할 신규 crate. Flexbox/Grid/Block
+# 레이아웃을 CSS 명세 기반으로 자체 구현하여 외부 라이브러리 래핑을 제거한다.
+# taffy dependency 부재가 본 crate 의 존재 이유 — 추가 금지.
+[package]
+name = "composition-engine"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[profile.release]
+panic = "abort"
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false

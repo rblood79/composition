@@ -85,9 +85,19 @@
 
 ### 1-A. `flex.rs` 신규 (~2,000줄 추정)
 
-- CSS Flexbox spec (CSS-FLEXBOX-1) 자체 구현
-- 테스트: Taffy 의 gentest 방식 (Chrome 실측 → fixture 자동 생성) 포팅 — WPT-파생 fixture 자산 확보
+> **2026-07-03 실행 (사용자 confirm — "1-A 착수" + 첫 단위 = crate scaffold + 단일축 기본)**: adr-writing.md M4(sub-group N≥3 → confirm 의무) 발동. flex.rs 는 flex-basis/main-size/grow-shrink/wrap/align 최소 4 sub-group 대공사이고 부분 구현은 dual-run 대부분 FAIL 이라, 대안 C big-bang 위험 회피를 위해 **가장 작은 검증 가능 단위(단일 라인 기본)부터** 착수.
+
+- **✅ crate scaffold + 단일축 기본 land 2026-07-03**:
+  - `packages/composition-engine/` 신규 crate — **taffy 의존 없음** (본 crate 존재 이유). `composition-layout`(0.10, Taffy 종속) 대체. wasm-bindgen + serde만.
+  - `flex.rs` — 입력 계약은 `block_layout.rs` 패턴 승계 (**flat f32 배열 + AUTO/CONTENT 센티넬**, 사전 해석 숫자). 노드당 `FLEX_FIELD_COUNT=16` 필드 (flex_basis/width/height/margin4/pad_border main·cross/min·max main·cross/content main·cross/grow_shrink 예약).
+  - **구현 범위**: `flex_layout_single_line` — main-axis(row/column) 단일 라인, fixed/auto size, `justify-content` 6종(start/center/end/space-between/around/evenly), `align-items` 4종(stretch/start/center/end), gap, 논리 main·cross → 물리 x/y/w/h 역매핑.
+  - **미구현 (다음 세션)**: `flex-grow`/`flex-shrink` 여유·부족 분배(§9.7), `flex-wrap` multi-line(§9.3), `align-content`, `flex-basis: content` intrinsic, `aspect-ratio`, nested BFC. 이 입력은 현재 고정 크기 근사 → dual-run FAIL 로 드러나며 그것이 다음 세션 구현 대상 fixture.
+  - **승계 자산 실측**: block_layout.rs/grid_layout.rs 는 각 알고리즘 전용 커널 — flex 직접 재사용 자산 거의 없음(`clamp_size` min/max clamp 정도). breakdown "~2,000줄 신규" = 순수 신규 확증.
+- **검증**: `cargo test` **8/8 PASS** (row justify start/center/space-between / column main→y 매핑 / align center·stretch·max clamp / empty). native 단위 테스트 — wasm 컴파일 불필요. 경고 0.
+- **⏸️ WASM batch 엔트리 + seam 배선 이연**: `LayoutEngineAPI` 계약 구현(`buildTreeBatch` 등)은 flex/grid/block 이 dual-run 통과할 만큼 완성된 뒤 `createLayoutEngine` 에 배선. 지금 배선하면 알고리즘 미완성 dormant 번들([[feedback-no-dormant-foundation-ahead-of-flip]]).
+- 테스트: Taffy 의 gentest 방식 (Chrome 실측 → fixture 자동 생성) 포팅 — WPT-파생 fixture 자산 확보 (candidate 완성도 상승 시 dual-run golden 생성)
 - 위치: `packages/composition-engine/src/flex.rs` (신규 crate — 아래 §Crate 구조)
+- 산출물: `packages/composition-engine/{Cargo.toml, .gitignore, src/lib.rs, src/flex.rs}`
 
 ### 1-B. grid 확장 (`grid.rs`)
 
