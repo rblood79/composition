@@ -9,13 +9,17 @@
 //!   flex-grow/shrink 분배 + §9.3 flex-wrap multi-line + align-content 구현.
 //!   미구현: flex-basis:content intrinsic 자동측정, aspect-ratio, align-self,
 //!   auto margin 흡수, nested BFC.
+//! - `block` — CSS Block (CSS 2.1 §8, BFC / §8.3.1 margin collapse). Phase 1-C.
+//!   기존 block_layout.rs(625줄, test 17) 승계 이식 + 잔여 케이스 보강
+//!   (through-collapse chain / 부모-자식 bottom collapse metadata / BFC bottom 차단).
+//!   미구현: float/clear, writing-mode, BFC 내부 다단.
 //!
 //! ## 미편입 (다음 세션)
 //!
 //! - `grid` — CSS Grid (grid_layout.rs 승계 확장). Phase 1-B.
-//! - `block` — margin collapse / BFC (block_layout.rs 승계). Phase 1-C.
 //! - WASM batch 엔트리 (`LayoutEngineAPI` 계약 구현) — flex/grid/block 이 dual-run
 //!   통과할 만큼 완성된 뒤 seam(`createLayoutEngine`) 에 배선. 지금 배선하면
 //!   알고리즘 미완성 상태의 dormant 번들 (no-dormant-foundation-ahead-of-flip).
 
+pub mod block;
 pub mod flex;

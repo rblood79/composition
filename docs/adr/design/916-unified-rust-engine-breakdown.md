@@ -115,7 +115,14 @@
 
 ### 1-C. block 보강 (`block.rs`)
 
-- margin collapse 잔여 케이스 / BFC / inline-block coverage 확대
+> **2026-07-04 실행 (사용자 승인 "1-C block.rs 먼저")**: block 은 flex 와 달리 검증된 625줄 커널(test 17) 이 이미 존재 → **승계 이식**(재작성 아님). 재작성은 Soft Constraint(WPT-파생 검증 자산 상실) 정면 위배이고 design 이 이미 "block_layout.rs 승계" 로 freeze → 이식이 design 정합 실행 (사용자 관점 의문 대상 아님). 실측 결과 커널이 CSS 2.1 §8.3.1 핵심(vertical stacking / margin collapse 양·음·혼합 / BFC / inline-block line box / fit-content) 을 이미 충실 구현 → "잔여 케이스" 는 명세상 명확한 것만 보강, 추측 보강은 dormant(dual-run FAIL 이 fixture) — flex.rs 원칙 동일.
+
+- **✅ land 2026-07-04**:
+  - **이식**: `apps/builder/.../wasm/src/block_layout.rs`(625줄) → `packages/composition-engine/src/block.rs`. 입력 계약 `FIELD_COUNT=19` 그대로 (flex `FLEX_FIELD_COUNT=17` 과 별도 — block 은 vertical-align/baseline/BFC flag 고유 필드 보유). 계약 통일은 **Phase 2-B tree.rs 통합 시점**에 결정 (지금 통일 시 dormant). 승계 test 16 (fit-content 6 포함) 유지. 원본 파일 **무변** (승계 후 개선은 새 crate 만 — 원본은 여전히 참조 자산으로 보존).
+  - **잔여 케이스 보강 (명세상 명확)**: (1) **empty block through-collapse chain** — 원본 커널이 `prev_margin_bottom = collapsed_self` 로 덮어써 앞선 sibling 의 margin 이 chain 에서 유실 → CSS 2.1 §8.3.1("인접 margin 은 모두 하나로 collapse") 위반. `collapse(prev_margin_bottom, collapsed_self)` 누적으로 수정 (3연속 empty block 관통 test 로 확증). (2) 부모-자식 **bottom margin collapse** metadata 전파 test. (3) **BFC 자식** 은 부모와 bottom collapse 차단 (metadata 0) test.
+  - **clippy 수정**: `child_w` fit-content/explicit-px 동일 분기(`content + pad_border_h`) → `width_val != AUTO` 단일 분기 병합 (동작 무변, identical-blocks 경고 해소).
+  - **미구현 (다음)**: float/clear, writing-mode, BFC 내부 다단(column). block 은 현행 catalog 컨테이너 사용 범위(vertical stacking + inline-block line box)로 한정.
+- **검증**: `cargo test` **40/40 PASS** (flex 21 + block 19 = 승계 16 + 잔여 3), clippy 0, 경고 0. seam 미배선 → live builder 영향 0 (WASM 배선은 flex/grid/block 완성 후 dual-run 첫 배선 시점 이연).
 - 기존 `block_layout.rs` (625줄) 승계
 
 ### 1-D. Dual-run 게이트 (G2)
