@@ -217,7 +217,19 @@
 >
 > - **실측 scope(옵션 A)**: `tree.rs` = `LayoutEngineAPI` batch 계약 구현 — nodesJson 직렬화 트리를 받아 노드별 display 로 flex/block/grid.rs 디스패치하며 계산, 결과 batch 반환. 상단 style resolve/implicit/enrich 는 JS 잔류. 이 자리는 `layoutBridge.ts:26` `LayoutEngineAPI` + `layoutBridge.ts:63` `createLayoutEngine()` seam 에 이미 정의됨 (Phase 0-A). 배선 시점부터 live 영향 발생 → dual-run(Taffy self-diff 0) 검증 필수.
 > - **gap 처리 원칙 (adr-writing.md M3)**: 서술 vs 실측 gap 은 **Phase 0 inventory 절차 정밀화(breakdown 서술 정정)로 흡수** — 새 ADR fork 사유 아님. 상단 3-step 이관은 spec 참조 계약(catalog 도메인)이 선행돼야 하므로 별도 후속 단위이며, tree.rs 하단 batch 계약 이관과 독립.
-> - **미결(사용자 confirm 대기)**: 실측 scope(옵션 A) 착수 vs DFS 상단 이관 계약 선설계(옵션 B) vs Phase 2 전체 후속 ADR 분리(옵션 C). 자동 진행 금지 (execute-adr HIGH surface + no-derived-adr-mid-execution).
+> - **scope 확정 (2026-07-04, 사용자 "실측 하단만 착수")**: 옵션 A 채택. `tree.rs` = `LayoutEngineAPI` batch 계약 구현, DFS 상단은 JS 잔류. gap 은 위 서술 정정으로 흡수(새 ADR 아님).
+
+**2-B 아키텍처 gap + 층별 점진 단위 분할 (2026-07-04 착수 실사)**: flex/block/grid.rs 는 모두 "단일 컨테이너 + 자식 flat f32 → 자식 위치" **1-depth 커널**(Phase 1 flat f32 센티넬 계약)인데, batch 계약(`build_tree_batch`→`compute_layout`→`get_layouts_batch`)은 **N-depth 트리 상호의존**(부모 크기 ↔ 자식 intrinsic)을 해결해야 한다. 즉 tree.rs 는 flat 커널들을 재귀 트리로 오케스트레이션하는 계층 전체를 새로 작성 — 큰 단위라 2-A 최소 검증 단위 패턴으로 층별 분할:
+
+| 단위       | scope                                                                                                                                                                                                                                                                       | 상태               |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| **단위 1** | tree 자료구조 + handle 관리(alloc/recycle, taffy_bridge `alloc_handle`/`resolve` 대응) + `build_tree_batch` 골격(post-order 파싱·저장·handle 배열, forward-ref 거부) + `get_layouts_batch` flat 반환 + 증분 API. `compute_layout` = **leaf-only**(자기 크기만, 자식 좌표 0) | ✅ Land 2026-07-04 |
+| **단위 2** | post-order intrinsic 크기 측정 (자식→부모 bottom-up, height sentinel(-1)→MaxContent)                                                                                                                                                                                        | 다음               |
+| **단위 3** | top-down placement + display dispatch (각 노드 style → flat f32 변환 → flex/block/grid.rs 호출, 자식 좌표 배치)                                                                                                                                                             | 다음               |
+| **단위 4** | 증분 dirty 추적 + 재계산 최소화 (taffy mark_dirty 대응, `updateStyleRaw`/`setChildren` 증분 경로)                                                                                                                                                                           | 다음               |
+
+- **단위 1 검증**: `LayoutTree`(`nodes: Vec<Option<TreeNode>>` + `free_list`) + `NodeStyle`(StyleInput 전체 스키마 camelCase 정합) + `build_tree_batch`(child index `>= i` forward-reference 거부 = taffy_bridge `handles.get(idx)` None 정책과 동일 의미) + `compute_layout` leaf-only(`resolve_self_size` → style.rs `resolve_css_size_value`, auto/intrinsic 센티넬은 0 — 단위 2 이전) + `get_layouts_batch` flat. cargo test **152 PASS**(lib 136 = 121+tree 15 / golden 15 / doc-test 1), clippy --tests 0, taffy_bridge.rs batch 계약 대조(child index 치환 / flat shape / handle 재활용) 일치. seam 미배선 순수 Rust → live 영향 0.
+- **단위 1 미포함(다음 단위 명시)**: 자식 배치 전면(intrinsic 측정·placement·display dispatch), height sentinel(-1)→MaxContent(단위 2), grid template/areas 소비(단위 3, grid.rs 위임), 증분 dirty 재계산 최소화(단위 4). 단위 1 은 handle 계약·크기 해결 커널·batch 직렬화만 검증.
 
 ### 2-C. `scene.rs` — Scene graph dirty detection
 

@@ -36,6 +36,14 @@
 //!   tag 도메인 의존), toTaffyDisplay childElements 경로 + VERTICAL_ALIGN_MIDDLE_TAGS
 //!   (node/tag 의존 → tree.rs 2-B 노드 계약과 함께 이관).
 //!
+//! - `tree` — 트리 오케스트레이션 (taffy_bridge.rs batch 계약 대응). Phase 2-B.
+//!   `build_tree_batch` → `compute_layout` → `get_layouts_batch` 를 Taffy 없이
+//!   자체 flex/block/grid 커널로 구현하는 계층. DFS 상단(style resolve/implicit/
+//!   enrich = tag/spec/store 도메인)은 JS 잔류, 본 모듈은 순수화된 TaffyStyle 트리만
+//!   레이아웃 계산. 층별 점진 — **단위 1(현재)**: handle 관리 + build_tree_batch
+//!   골격 + leaf-only compute_layout. 단위 2(intrinsic)/3(placement+dispatch)/
+//!   4(dirty 추적)는 다음 착수. seam(createLayoutEngine) 미배선 → live 영향 0.
+//!
 //! ## 미편입 (다음 세션)
 //!
 //! - WASM batch 엔트리 (`LayoutEngineAPI` 계약 구현) — flex/grid/block 이 dual-run
@@ -48,3 +56,4 @@ pub mod display;
 pub mod flex;
 pub mod grid;
 pub mod style;
+pub mod tree;
