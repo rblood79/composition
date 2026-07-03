@@ -108,10 +108,17 @@
 
 ### 1-B. grid 확장 (`grid.rs`)
 
-- `repeat(auto-fill/auto-fit, minmax(...))` 복합 표현 Rust 파싱 (현재 JS `parseGridTemplate` — `TaffyGridEngine.ts` export — 의존)
-- named grid areas 해석 (`parseGridAreaShorthand` 상당 로직)
-- track sizing algorithm (CSS-GRID-1 §11)
-- 기존 `grid_layout.rs` (279줄) 승계 확장
+> **2026-07-04 실행 (사용자 승인 "1-B grid.rs (§11 track sizing) 착수… 승인")**: grid 는 block 과 동일하게 검증된 자산이 존재 → **승계 통합 이관**(재작성 아님). 다만 자산이 **두 곳에 분산**되어 있었다: (a) `grid_layout.rs`(279줄, test 11) 는 px/fr/%/auto 산술 + row-major cell positions 만 (auto=1fr 근사, repeat/minmax/areas 미지원), (b) `GridLayout.utils.ts` 는 더 완전한 실동작 구현(repeat auto-fill/auto-fit·minmax·named areas·span 배치). 후자가 실동작 SSOT → 두 자산을 `grid.rs` 로 통합하고 grid_layout.rs 산술 test 11 을 회귀로 승계. design freeze("grid_layout.rs 승계 확장") 정합, 사용자 관점 의문 대상 아님.
+
+- **✅ land 2026-07-04**:
+  - **통합 이관**: `grid_layout.rs` 산술 커널 + `GridLayout.utils.ts` 알고리즘(`tokenizeTemplate` / `parseSingleTrackValue` / `parseMinmax` / `expandRepeat` / `resolveGridTracks` / `parseGridTemplateAreas` / `parseGridLine` / `calculateGridCellBounds`) → `packages/composition-engine/src/grid.rs`. 두 원본 파일 **무변**.
+  - **track sizing (§7)**: fixed(px/%) 합산 → 남은 공간을 fr/auto/minmax(fr) 풀 분배. `repeat(auto-fill/auto-fit, minmax(...))` 는 patternMinSize + gap 기반 반복 횟수 산출. `minmax(min, max)` 는 max 가 fr 이면 음수 sentinel 로 fr 풀 참여, px 이면 clamp. (GridLayout.utils.ts 계약 그대로 — intrinsic min/max-content 는 0 폴백)
+  - **placement (§8)**: named `grid-template-areas`(인접 셀 병합) + `gridColumn/gridRow` span 키워드(`span N`, `1 / 3`, `1 / span 3`, `span 2 / 5`) + 숫자 `gridArea` shorthand + row-major auto-placement. `cell_bounds_for_child` 로 colStart..colEnd 트랙 + 내부 gap 누적.
+  - **완결 공개 엔트리**: `grid_layout(template_cols, template_rows, template_areas, placement_spec, child_count, available_w, available_h, col_gap, row_gap)` — flex_layout/block_layout 과 대칭. 문자열 template → 최종 자식 bounds flat 배열(`[x,y,w,h,...]`). placement_spec 은 자식당 `area_name|grid_column|grid_row` 개행 구분(upstream JS style 직렬화 계약). 이 엔트리 도입으로 배치 함수들이 test-only dead code 가 아닌 실사용 API 로 노출.
+  - **이관 중 정정 2건**: (1) `resolve_grid_tracks` fr 분배를 작성 중 과잉 min/max 체인으로 오작성 → 원본 계약(`frSize * frVal`)대로 정정. (2) `parse_single_track_value` fr 파싱에 `parseFloat||1` 폴백(0fr→1fr) 재현. clippy 경고 1건(while-let → for 루프) 수정.
+  - **미구현 (다음 — dual-run FAIL 이 fixture)**: subgrid, intrinsic track(min-content/max-content → 0 폴백), dense packing 빈칸 역채움, baseline 정렬, `fit-content()` 함수. 현행 catalog grid 컨테이너 사용 범위로 한정.
+- **검증**: `cargo test` **64/64 PASS** (flex 21 + block 19 + grid 24 = 승계 11 + repeat/minmax 5 + areas/span/place 5 + 완결 엔트리 3), clippy 0, 경고 0. seam 미배선 → live builder 영향 0 (WASM 배선은 flex/grid/block dual-run 통과 후 첫 배선 시점 이연).
+- **Phase 1 self-impl 3종(flex/block/grid) 완료** — 남은 Phase 1: 1-D fixture golden 생성 + WASM batch 엔트리(`LayoutEngineAPI`) + `createLayoutEngine` seam 배선 + 1-E Taffy 제거.
 
 ### 1-C. block 보강 (`block.rs`)
 
