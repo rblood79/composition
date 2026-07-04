@@ -278,7 +278,10 @@
 
 ### 2-C. `scene.rs` — Scene graph dirty detection
 
-- `StoreRenderBridge.detectChangedIds` O(N) → generation counter + dirty bitfield O(1)
+> **⚠️ 2026-07-05 벤치 재평가 — 원안 전제 반증 (착수 전 필독)**: 아래 첫 항목("`detectChangedIds` O(N)→O(1)")은 **실측상 병목이 아님**. `sceneDirtyDetection.bench.ts` 측정: `detectChangedIds` 는 3000 노드 **0.052ms**(60fps 예산 0.3%) — O(1) 이관 효과 사실상 0. **실제 병목 = `buildSceneStructureSnapshot` 의 `createResolvedProjectionSignature`**(전체 elements `stableSerialize`+`hashString`) — 3000 노드 **19.25ms(예산 초과)** / 1000 노드 5.23ms / 500 노드 2.01ms. useMemo(`BuilderCanvas.tsx:352`) deps 에 panOffset/zoom → pan/zoom 중 매 프레임 재계산. **2-C scope 를 signature 경로로 재정의해야 유효** — detectChangedIds 이관은 잘못된 대상 최적화. 착수 보류(사용자 승인 대기), scope 재정의 후 진입.
+
+- ~~`StoreRenderBridge.detectChangedIds` O(N) → generation counter + dirty bitfield O(1)~~ — **벤치 반증(위)**: detectChangedIds 는 프레임 예산 0.3%, 이관 무의미
+- **재정의 후보 scope**: `createResolvedProjectionSignature`(전체 노드 직렬화 서명) 를 Rust 로 이관하거나, projection-relevant field 만 증분 hash(전체 stableSerialize 회피). 실제 프레임타임 병목이 여기임
 - element registry Rust 관리
 - **ADR-136 sceneVersion 계약 승계 (canvas-rendering.md §9)**: sceneVersion = layoutVersion + pagePositionsVersion + projection content signature (`scene/buildSceneSnapshot.ts:91` `buildSceneStructureSnapshot` / `:206` sceneVersion hash). signature 계산은 snapshot 빌드 시점만 (pointer hot path 금지), projection-relevant field 추가 시 signature input 동시 갱신 의무 — Rust 이관 후에도 동일 보수 의무 유지
 
