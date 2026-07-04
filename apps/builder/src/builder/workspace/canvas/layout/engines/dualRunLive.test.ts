@@ -259,3 +259,221 @@ describe("dual-run 실전 catalog 진단 (ADR-916 Phase 2-B seam C-1)", () => {
     expect(result.pass).toBe(true);
   });
 });
+
+/**
+ * ADR-916 Phase 2-B seam 배선 (C-2b) — 실전 중첩/혼합 dual-run 전면 diff 0 proof
+ *
+ * C-1(단일 레벨 block/flex column/grid) diff 0 은 flag 전환의 **필요조건**이나
+ * 충분조건이 아니다([[feedback-no-dormant-foundation-ahead-of-flip]]). 실전
+ * catalog 컨테이너는 컨테이너를 **중첩**한다 — Card(flex column) 안에 헤더 행
+ * (flex row), 섹션(flex) 안에 데이터 그리드(grid), 그리드 셀 안에 flex 등.
+ * 단일 레벨 3패턴은 이 중첩 상호작용(부모 available 전파, cross-axis stretch 가
+ * 자식 컨테이너의 intrinsic 계산에 미치는 영향)을 노출하지 못한다.
+ *
+ * 본 describe 는 flag flip 전 **최종 선결** proof 다. 여기서 전면 diff 0 이면
+ * 자체 엔진이 실전 트리 형상에서 Taffy 와 시각 동일 — (C-2a) 런타임 배선 +
+ * flag 전환의 청신호. 하나라도 diff 면 그 형상이 flag 전환 전 선결로 확정된다.
+ *
+ * ## fixture 근거 (catalog 실측 2026-07-04)
+ *
+ * componentRulesTable containerStyles 실분포: flex 62 + inline-flex 26(88),
+ * grid 10, block 6. flexDirection column 23 > row 10. 따라서 실전 대표 =
+ * flex(column 우세) 중첩 + grid 혼합. 아래 5 fixture 는 그 조합의 중첩·혼합·
+ * dimension 혼재를 커버한다.
+ *
+ * - N1 flex-in-flex: column root(auto) 안 row 컨테이너(고정) — Card 헤더/바디
+ * - N2 flex-in-grid: grid(auto row) 셀 안 flex column — 그리드 카드 내부 스택
+ * - N3 grid-in-flex: flex column(auto) 안 grid(고정 2열) — 섹션 안 데이터 그리드
+ * - N4 gap 혼합: row gap + column gap 명시 컨테이너 — 간격 산술 정합
+ * - N5 dimension 혼재: 고정 자식 + auto 자식 flex row — grow/shrink 없는 자연폭
+ */
+
+/** N1 flex-in-flex: column root(height auto) → [row 컨테이너(2 leaf), leaf]. */
+const NESTED_FLEX_IN_FLEX: PersistentBatchNode[] = [
+  { elementId: "n1-a", style: { width: "30px", height: "20px" }, children: [] },
+  { elementId: "n1-b", style: { width: "40px", height: "20px" }, children: [] },
+  {
+    elementId: "n1-row",
+    style: {
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "flex-start",
+      width: "200px",
+      height: "20px",
+    },
+    children: [0, 1],
+  },
+  { elementId: "n1-c", style: { width: "50px", height: "30px" }, children: [] },
+  {
+    elementId: "n1-root",
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      width: "200px",
+      height: "auto",
+    },
+    children: [2, 3],
+  },
+];
+
+/** N2 flex-in-grid: grid(2열, auto row) → 각 셀에 flex column(2 leaf). */
+const NESTED_FLEX_IN_GRID: PersistentBatchNode[] = [
+  {
+    elementId: "n2-a1",
+    style: { width: "40px", height: "15px" },
+    children: [],
+  },
+  {
+    elementId: "n2-a2",
+    style: { width: "40px", height: "25px" },
+    children: [],
+  },
+  {
+    elementId: "n2-cell-a",
+    style: { display: "flex", flexDirection: "column", height: "auto" },
+    children: [0, 1],
+  },
+  {
+    elementId: "n2-b1",
+    style: { width: "40px", height: "30px" },
+    children: [],
+  },
+  {
+    elementId: "n2-cell-b",
+    style: { display: "flex", flexDirection: "column", height: "auto" },
+    children: [3],
+  },
+  {
+    elementId: "n2-root",
+    style: {
+      display: "grid",
+      gridTemplateColumns: ["1fr", "1fr"],
+      width: "200px",
+      height: "auto",
+    },
+    children: [2, 4],
+  },
+];
+
+/** N3 grid-in-flex: flex column(auto) → [grid(2열, 고정 40px row), leaf]. */
+const NESTED_GRID_IN_FLEX: PersistentBatchNode[] = [
+  { elementId: "n3-g1", style: { height: "40px" }, children: [] },
+  { elementId: "n3-g2", style: { height: "40px" }, children: [] },
+  {
+    elementId: "n3-grid",
+    style: {
+      display: "grid",
+      gridTemplateColumns: ["1fr", "1fr"],
+      gridTemplateRows: ["40px"],
+      width: "200px",
+      height: "40px",
+    },
+    children: [0, 1],
+  },
+  {
+    elementId: "n3-foot",
+    style: { width: "60px", height: "20px" },
+    children: [],
+  },
+  {
+    elementId: "n3-root",
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      width: "200px",
+      height: "auto",
+    },
+    children: [2, 3],
+  },
+];
+
+/** N4 gap 혼합: flex column + rowGap 8 → 자식 사이 간격 정합. */
+const GAP_FLEX_COLUMN: PersistentBatchNode[] = [
+  {
+    elementId: "n4-a",
+    style: { width: "100px", height: "30px" },
+    children: [],
+  },
+  {
+    elementId: "n4-b",
+    style: { width: "100px", height: "40px" },
+    children: [],
+  },
+  {
+    elementId: "n4-c",
+    style: { width: "100px", height: "20px" },
+    children: [],
+  },
+  {
+    elementId: "n4-root",
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      rowGap: "8px",
+      width: "200px",
+      height: "auto",
+    },
+    children: [0, 1, 2],
+  },
+];
+
+/** N5 dimension 혼재: flex row + 고정 자식 + auto(내용폭) 자식. */
+const MIXED_DIMENSION_FLEX_ROW: PersistentBatchNode[] = [
+  {
+    elementId: "n5-fixed",
+    style: { width: "50px", height: "20px" },
+    children: [],
+  },
+  {
+    elementId: "n5-auto",
+    style: { width: "70px", height: "20px" },
+    children: [],
+  },
+  {
+    elementId: "n5-root",
+    style: {
+      display: "flex",
+      flexDirection: "row",
+      columnGap: "10px",
+      alignItems: "flex-start",
+      width: "200px",
+      height: "20px",
+    },
+    children: [0, 1],
+  },
+];
+
+const NESTED_SPACE = { availableWidth: 200, availableHeight: -1 };
+
+describe("dual-run 실전 중첩/혼합 proof (ADR-916 Phase 2-B seam C-2b)", () => {
+  const cases: Array<{
+    label: string;
+    batch: PersistentBatchNode[];
+    root: string;
+  }> = [
+    { label: "N1 flex-in-flex", batch: NESTED_FLEX_IN_FLEX, root: "n1-root" },
+    { label: "N2 flex-in-grid", batch: NESTED_FLEX_IN_GRID, root: "n2-root" },
+    { label: "N3 grid-in-flex", batch: NESTED_GRID_IN_FLEX, root: "n3-root" },
+    { label: "N4 gap flex column", batch: GAP_FLEX_COLUMN, root: "n4-root" },
+    {
+      label: "N5 dimension 혼재 flex row",
+      batch: MIXED_DIMENSION_FLEX_ROW,
+      root: "n5-root",
+    },
+  ];
+
+  for (const { label, batch, root } of cases) {
+    it(`${label} → 자체 vs Taffy diff 0`, () => {
+      const self = adaptSelfEngine(new LayoutEngine());
+      const taffy = adaptTaffyEngine(new TaffyLayoutEngine());
+      // reference = Taffy(현행), candidate = 자체 엔진
+      const result = runDualLayout(batch, root, NESTED_SPACE, taffy, self);
+      if (!result.pass) {
+        // eslint-disable-next-line no-console
+        console.log(`${label}:`, formatViolations(result));
+      }
+      expect(result.nodeCount).toBe(batch.length);
+      expect(result.pass).toBe(true);
+    });
+  }
+});

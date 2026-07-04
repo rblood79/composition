@@ -79,10 +79,19 @@
 //!   height 로 row-major row 크기 도출(grid.rs fallback 100 대체) → C-1 grid
 //!   height:auto dual-run diff 0 전환. **dualRunLive.test.ts 7/7 — C-1 3 대표
 //!   패턴(block/flex column/grid) 전면 diff 0** = 두 flag 전환 선결 완료.
-//! - **다음 = (C-2) flag 전환 재평가**: 자체 pkg apps/builder dependency 등록 +
-//!   런타임 로드 배선(현재 미등록) + `createLayoutEngine` flag true 주입 + **넓은
-//!   실전 fixture(catalog 컨테이너 트리) dual-run 확장 후 diff 0 재확인**(C-1 3
-//!   패턴은 대표 샘플, 실전 중첩/혼합/edge 미검증). live 엔진 교체라 HIGH.
+//! - **(C-2b) 실전 중첩/혼합 dual-run 전면 diff 0 proof 완료 (2026-07-04)**:
+//!   C-1(단일 레벨 3패턴)은 flag 전환의 필요조건이나 충분조건 아님 — 실전 catalog
+//!   컨테이너는 컨테이너를 **중첩**한다(catalog 실측: flex 88 > grid 10 > block 6,
+//!   column 23 > row 10). dualRunLive.test.ts (C-2b) describe 가 중첩·혼합 5
+//!   fixture 측정: N1 flex-in-flex / N2 flex-in-grid / N3 grid-in-flex / N4 gap /
+//!   N5 dimension 혼재 → **전면 diff 0**. **dualRunLive.test.ts 12/12(C-1 3 +
+//!   C-2b 5 + B2 4)** = 실전 대표 8형상 자체 vs Taffy 시각 동일.
+//! - **다음 = (C-2a) 런타임 배선 + flag 전환**: 자체 pkg apps/builder 런타임 로드
+//!   배선(taffy `rustWasm.ts`/`layoutEngine.ts` 패턴, 현재 미배선) + `createLayoutEngine`
+//!   flag true 경로 자체 엔진 주입 + `USE_RUST_LAYOUT_ENGINE` flip + Chrome MCP live
+//!   exercise. **배선/flip 은 (C-2b) proof 확보 후 별도 승인 단위** — proof 를 먼저,
+//!   배선은 proof 통과 후([[feedback-no-dormant-foundation-ahead-of-flip]]). live 엔진
+//!   교체라 HIGH.
 
 pub mod block;
 pub mod cascade;
