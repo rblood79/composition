@@ -133,3 +133,129 @@ describe("dual-run 실제 WASM 엔진 (ADR-916 Phase 2-B seam B2)", () => {
     expect(result.pass).toBe(true);
   });
 });
+
+/**
+ * ADR-916 Phase 2-B seam 배선 (C-1) — 실전 catalog 대표 패턴 dual-run 진단
+ *
+ * (C) createLayoutEngine flag 전환은 **실전 배치에서 자체 vs Taffy diff 0** 이
+ * 전제다([[feedback-no-dormant-foundation-ahead-of-flip]]). catalog containerStyles
+ * 는 flexDirection:"column" / grid / block 을 실제로 쓰므로, 이 세 패턴 + height:auto
+ * (컨테이너 intrinsic) 조합이 실전 대표다.
+ *
+ * ## 측정 결과 (2026-07-04) — flag 전환 **차단**
+ *
+ * | 패턴                    | 자체 vs Taffy diff        | 상태 |
+ * | ----------------------- | ------------------------- | ---- |
+ * | block height:auto       | diff 0                    | ✅   |
+ * | flex column height:auto | h=0 붕괴 (자식 축소+y겹침) | ❌   |
+ * | grid height:auto        | 셀 h +50 (intrinsic 미측정) | ❌   |
+ *
+ * flex column: 자체 엔진이 avail_h=-1(height:auto sentinel)을 flex main available
+ * 로 받아 자식을 shrink → h=0. flex.rs §9.7 이 main available 음수를 미처리
+ * (Phase 1 flex.rs 후속). grid: 자체 grid.rs 가 셀 높이를 intrinsic 대신
+ * available 로 채움 → intrinsic track 미측정(Phase 1-B grid.rs 후속).
+ *
+ * **따라서 (C-2) flag 전환은 flex.rs main-negative + grid.rs intrinsic track
+ * 선결 후에만 가능.** 본 테스트는 그 선결 경계를 못박는다 — flex.rs/grid.rs
+ * 수정 후 아래 `toBe(true)` 로 뒤집히면 flag 전환 준비 완료 신호.
+ */
+const BLOCK_AUTO_BATCH: PersistentBatchNode[] = [
+  { elementId: "b1", style: { height: "30px" }, children: [] },
+  { elementId: "b2", style: { height: "40px" }, children: [] },
+  {
+    elementId: "root",
+    style: { display: "block", width: "200px", height: "auto" },
+    children: [0, 1],
+  },
+];
+
+const FLEX_COLUMN_AUTO_BATCH: PersistentBatchNode[] = [
+  { elementId: "c1", style: { width: "100px", height: "30px" }, children: [] },
+  { elementId: "c2", style: { width: "100px", height: "40px" }, children: [] },
+  {
+    elementId: "root",
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      width: "200px",
+      height: "auto",
+    },
+    children: [0, 1],
+  },
+];
+
+const GRID_AUTO_BATCH: PersistentBatchNode[] = [
+  { elementId: "g1", style: { height: "50px" }, children: [] },
+  { elementId: "g2", style: { height: "50px" }, children: [] },
+  {
+    elementId: "root",
+    style: {
+      display: "grid",
+      gridTemplateColumns: ["1fr", "1fr"],
+      width: "200px",
+      height: "auto",
+    },
+    children: [0, 1],
+  },
+];
+
+/** height:auto → 컨테이너 available height sentinel(-1). */
+const AUTO_SPACE = { availableWidth: 200, availableHeight: -1 };
+
+describe("dual-run 실전 catalog 진단 (ADR-916 Phase 2-B seam C-1)", () => {
+  it("block height:auto → 자체 vs Taffy diff 0 (flag 전환 준비됨)", () => {
+    const self = adaptSelfEngine(new LayoutEngine());
+    const taffy = adaptTaffyEngine(new TaffyLayoutEngine());
+    const result = runDualLayout(
+      BLOCK_AUTO_BATCH,
+      "root",
+      AUTO_SPACE,
+      taffy,
+      self,
+    );
+    if (!result.pass) {
+      // eslint-disable-next-line no-console
+      console.log("block:", formatViolations(result));
+    }
+    expect(result.pass).toBe(true);
+  });
+
+  it("flex column height:auto → 현재 diff 발생 (flag 전환 선결: flex.rs main-negative)", () => {
+    const self = adaptSelfEngine(new LayoutEngine());
+    const taffy = adaptTaffyEngine(new TaffyLayoutEngine());
+    const result = runDualLayout(
+      FLEX_COLUMN_AUTO_BATCH,
+      "root",
+      AUTO_SPACE,
+      taffy,
+      self,
+    );
+    // 현재 자체 엔진은 avail_h=-1 을 shrink 로 처리 → 자식 h=0 붕괴.
+    // flex.rs §9.7 main available 음수 처리 후 이 기대를 pass=true 로 뒤집는다.
+    expect(result.pass).toBe(false);
+    // 붕괴가 height 필드에서 나타남을 확증 (진단 정밀도)
+    const heightViolated = result.numericViolations.some(
+      (v) => v.field === "height",
+    );
+    expect(heightViolated).toBe(true);
+  });
+
+  it("grid height:auto → 현재 diff 발생 (flag 전환 선결: grid.rs intrinsic track)", () => {
+    const self = adaptSelfEngine(new LayoutEngine());
+    const taffy = adaptTaffyEngine(new TaffyLayoutEngine());
+    const result = runDualLayout(
+      GRID_AUTO_BATCH,
+      "root",
+      AUTO_SPACE,
+      taffy,
+      self,
+    );
+    // 자체 grid.rs 는 셀 높이를 intrinsic 대신 available 로 채움 → 셀 h 갈림.
+    // grid.rs intrinsic track 측정 후 이 기대를 pass=true 로 뒤집는다.
+    expect(result.pass).toBe(false);
+    const heightViolated = result.numericViolations.some(
+      (v) => v.field === "height",
+    );
+    expect(heightViolated).toBe(true);
+  });
+});
