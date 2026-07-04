@@ -34,7 +34,12 @@ export function getRenderMode(): RenderMode {
 /** ADR-100: Unified Skia Engine — 점진 전환 flag */
 export const UNIFIED_ENGINE_FLAGS = {
   // Phase 1: Layout Engine 교체
-  USE_RUST_LAYOUT_ENGINE: false,
+  // ADR-916 Phase 2-B seam C-2a (2026-07-04): 자체 taffy-free 엔진
+  // (composition-engine) 으로 전환. dualRunLive 12/12(실전 대표 8형상 diff 0)
+  // proof 확보 후 flip. rollback = 이 값을 false + UNIFIED_ENGINE global override
+  // 확인(현재 UNIFIED_ENGINE:true 라 isUnifiedFlag 가 이미 true 반환 → 실제 rollback
+  // 은 createLayoutEngine 진입 차단 또는 UNIFIED_ENGINE 조정 필요).
+  USE_RUST_LAYOUT_ENGINE: true,
 
   // Phase 2: PixiJS 점진 제거
   USE_DOM_HOVER: false,

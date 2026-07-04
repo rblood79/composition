@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 회귀 가드: Rust golden ignore 해제, row+column leading gap fixture 추가, JS `GridLayout.utils.test.ts` 추가.
   - 검증: `cargo test --manifest-path packages/composition-engine/Cargo.toml`, `cargo clippy --manifest-path packages/composition-engine/Cargo.toml --tests`, `pnpm exec vitest run apps/builder/src/builder/workspace/canvas/layout/GridLayout.utils.test.ts`, `pnpm run codex:typecheck` PASS.
 
+### Architecture
+
+- **ADR-916 자체 Rust 레이아웃 엔진 live 전환 — Taffy → composition-engine (seam C-2a)**:
+  - **Why**: 외부 Taffy WASM 래핑을 taffy-free 자체 엔진(`packages/composition-engine`)으로 교체 (ADR-916). 본 변경으로 live builder 레이아웃 계산이 `createLayoutEngine()` seam 을 통해 자체 엔진(`CompositionEngineLayout`)으로 전환됐다. 시각 결과는 Taffy 와 동일(diff 0) — 사용자-가시 동작 변화 없음, 엔진만 교체.
+  - seam 배선 3 sub-scope 완료: (B) dual-run self-diff 측정 + (C-1) 실전 catalog 진단 → 선결 2건(flex.rs main-negative / grid.rs implicit auto row) 해소 → (C-2b) 실전 중첩/혼합 5 fixture 전면 diff 0 proof → **(C-2a) 런타임 배선 + flag 전환**.
+  - 배선: `compositionEngineWasm.ts`(전역 로드) + `compositionEngine.ts`(동기 wrapper) — taffy `rustWasm.ts`/`TaffyLayout` 패턴 미러링. 자체 pkg `LayoutEngine` 이 camelCase 16-메서드 = `LayoutEngineAPI` 이름 일치라 raw 타입 변환만. `USE_RUST_LAYOUT_ENGINE: false→true`, wasm-pack out-dir 을 apps/builder 내부(`wasm-bindings/composition-engine-pkg/`)로 지정(`package.json wasm:build:engine`).
+  - 안전망: 자체 WASM 미준비 시 `createLayoutEngine` 이 TaffyLayout 으로 폴백 — 회귀 시 flag 조정으로 rollback.
+  - live 검증(Chrome MCP): builder 진입 → `createLayoutEngine()` 이 `CompositionEngineLayout` 반환 + flex row 실계산(leaf-b x=30) + Canvas/Skia 렌더 무붕괴. dualRunLive 12/12 + type-check(baseline 69) 무회귀.
+  - 위치: `apps/builder/src/builder/workspace/canvas/wasm-bindings/{compositionEngine,compositionEngineWasm,layoutBridge,init,featureFlags}.ts`.
+
 ### Infrastructure
 
 - **ADR-916 Phase 2-A/2-B 이관 진행** (내부 — live Builder 영향 없음):

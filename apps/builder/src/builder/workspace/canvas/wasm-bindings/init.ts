@@ -28,6 +28,19 @@ export async function initAllWasm(): Promise<void> {
       );
     }
 
+    // ADR-916 Phase 2-B seam C-2a: composition-engine(자체 taffy-free 엔진) WASM.
+    // flag(USE_RUST_LAYOUT_ENGINE) 활성 시에만 로드 — createLayoutEngine()(동기)이
+    // 전역 캐시를 읽으려면 startup 에서 먼저 await 돼 있어야 한다. flag false 면
+    // 로드 자체를 skip(번들/init 비용 0, live 영향 0).
+    {
+      const { isUnifiedFlag } = await import("./featureFlags");
+      if (isUnifiedFlag("USE_RUST_LAYOUT_ENGINE")) {
+        const { initCompositionEngineWasm } =
+          await import("./compositionEngineWasm");
+        tasks.push(initCompositionEngineWasm());
+      }
+    }
+
     // Phase 5: CanvasKit/Skia WASM (메인 렌더러)
     if (WASM_FLAGS.CANVASKIT_RENDERER) {
       const { initCanvasKit } = await import("../skia/initCanvasKit");

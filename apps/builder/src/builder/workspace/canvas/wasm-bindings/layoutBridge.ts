@@ -6,6 +6,7 @@
  * USE_RUST_LAYOUT_ENGINE=true  → new compositionLayout (Phase 1 complete)
  */
 
+import { CompositionEngineLayout } from "./compositionEngine";
 import { isUnifiedFlag } from "./featureFlags";
 import { TaffyLayout } from "./taffyLayout";
 import type { LayoutResult } from "./taffyLayout";
@@ -53,22 +54,31 @@ export interface LayoutEngineAPI {
  * When USE_RUST_LAYOUT_ENGINE is false (default), returns TaffyLayout.
  * When true, returns the new compositionLayout wrapper.
  *
- * **ADR-916 Phase 0-A (2026-07-03)**: seam 만 구축, flag 전환은 보류.
- * 이 factory 가 PersistentTaffyTree 의 엔진 주입 지점이다 (직접 `new TaffyLayout()`
- * 제거). flag true 경로의 compositionLayout(Taffy 0.10) 실배선은 의도적으로
- * 미활성 — 0.10 도 외부 Taffy 종속이라 Phase 1(Taffy 제거)에서 폐기되므로,
- * 폐기될 0.10 검증 비용을 피한다. Phase 1 의 composition-engine(자체 엔진)이
- * 아래 wiring 자리에 직접 꽂힌다.
+ * **ADR-916 Phase 2-B seam C-2a (2026-07-04)**: flag true 경로에 자체 엔진
+ * (`CompositionEngineLayout`) 실배선. flag(`USE_RUST_LAYOUT_ENGINE`)가 true 이고
+ * 자체 WASM 이 로드 준비되면 자체 엔진을 반환한다. WASM 미준비(startup init 전 /
+ * 로드 실패)면 TaffyLayout 으로 안전 폴백 — 회귀 시 flag false 로 즉시 rollback.
+ *
+ * flag 전환 전제: dualRunLive.test.ts 12/12(실전 대표 8형상 자체 vs Taffy diff 0)
+ * proof 확보 후에만 flip([[feedback-no-dormant-foundation-ahead-of-flip]]).
+ * 이 factory 가 PersistentTaffyTree 의 엔진 주입 지점이다(직접 `new TaffyLayout()`
+ * 제거). Phase 0-A 의 compositionLayout(Taffy 0.10) 경로는 폐기 — 0.10 도 외부
+ * Taffy 종속이라, Phase 1 자체 엔진(taffy-free)이 이 자리를 차지한다.
  */
 export function createLayoutEngine(): LayoutEngineAPI {
   if (isUnifiedFlag("USE_RUST_LAYOUT_ENGINE")) {
-    // ADR-916 Phase 1 에서 활성화 (composition-engine 배선 지점):
-    //   const { compositionLayout } = await import('./layoutEngine');
-    //   return new compositionLayout();
-    // flag 를 켜도 아직 여기로 오면 fallback — 실배선은 Phase 1 이관.
-    console.warn(
-      "[ADR-916] USE_RUST_LAYOUT_ENGINE flag is true but composition-engine not yet wired (Phase 0-A seam only). Falling back to TaffyLayout.",
-    );
+    const engine = new CompositionEngineLayout();
+    if (engine.isAvailable()) {
+      return engine as unknown as LayoutEngineAPI;
+    }
+    // 자체 WASM 미준비(startup init 전 호출 / 로드 실패) → Taffy 안전 폴백.
+    // startup(init.ts)이 initCompositionEngineWasm() 을 먼저 await 하므로 정상
+    // 경로에서는 준비돼 있어야 한다. 미준비면 회귀 없이 기존 엔진 유지.
+    if (import.meta.env.DEV) {
+      console.warn(
+        "[ADR-916] composition-engine WASM 미준비 — TaffyLayout 폴백(startup init 순서 확인).",
+      );
+    }
   }
 
   return new TaffyLayout() as unknown as LayoutEngineAPI;

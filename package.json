@@ -34,6 +34,7 @@
     "build:layout": "cd packages/composition-layout && wasm-pack build --target web --release",
     "wasm:build": "wasm-pack build apps/builder/src/builder/workspace/canvas/wasm --target bundler --out-dir ../wasm-bindings/pkg",
     "wasm:dev": "wasm-pack build apps/builder/src/builder/workspace/canvas/wasm --target bundler --dev --out-dir ../wasm-bindings/pkg",
+    "wasm:build:engine": "wasm-pack build packages/composition-engine --target bundler --out-dir ../../apps/builder/src/builder/workspace/canvas/wasm-bindings/composition-engine-pkg",
     "wasm:test": "wasm-pack test --node apps/builder/src/builder/workspace/canvas/wasm",
     "prepare:wasm": "node scripts/prepare-wasm.mjs",
     "prepare:specs": "node packages/specs/scripts/extract-lucide-icons.mjs && pnpm run build:specs",
