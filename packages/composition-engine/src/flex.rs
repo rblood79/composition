@@ -13,6 +13,14 @@
 //!   여유·부족 분배(§9.7 Resolving Flexible Lengths 반복 동결 알고리즘),
 //!   `flex-wrap`(multi-line §9.3 Collect flex items into flex lines),
 //!   `align-content`(라인 간 정렬).
+//! - **main size undefined + stretch 정정 (2026-07-04, seam C-1 후속)**:
+//!   `available_main` 음수(sentinel = flexDirection:column + height:auto 등 main
+//!   축 크기 미결정) 시 grow/shrink 를 하지 않고 hypothetical(flex-basis) 유지
+//!   (intrinsic sizing) — 이전엔 음수를 shrink 로 오처리해 자식 main 축 0 붕괴.
+//!   `collect_lines` 도 sentinel 이면 한 라인(max-content) 유지. `ALIGN_STRETCH`
+//!   는 cross size 가 auto 일 때만 컨테이너 cross 로 확장 — 명시적 cross size
+//!   (column 자식 width:100px 등)는 유지(이전엔 무조건 stretch). 두 정정으로
+//!   flex column height:auto 가 dual-run(Taffy self-diff) diff 0 통과.
 //! - **미구현 (다음 세션)**: `flex-basis: content` intrinsic 자동 측정,
 //!   `aspect-ratio`, nested BFC, `align-self`(아이템별 override), auto margin 흡수.
 //!   이 입력은 근사 처리 → dual-run FAIL 로 드러나며 그것이 다음 구현 대상 fixture.
@@ -162,6 +170,9 @@ struct FlexItem {
     main_content: f32,
     /// border-box cross content 크기 (stretch 전)
     cross_content: f32,
+    /// cross size 가 auto 인가 — ALIGN_STRETCH 는 auto 일 때만 컨테이너 cross 로 확장.
+    /// 명시적 cross size(예: column 자식 width:100px)는 stretch 대상 아님 (CSS 명세).
+    cross_is_auto: bool,
     pad_border_cross: f32,
     margin_main_start: f32,
     margin_main_end: f32,
@@ -225,7 +236,8 @@ fn parse_item(data: &[f32], i: usize, direction: u8) -> FlexItem {
     let main_content = basis.max(0.0);
 
     // cross content: height(논리 cross) 명시 시 사용, 없으면 content. stretch 는 배치 단계.
-    let cross_content = if height != AUTO {
+    let cross_is_auto = height == AUTO;
+    let cross_content = if !cross_is_auto {
         clamp_size(height, min_cross, max_cross)
     } else {
         clamp_size(content_cross, min_cross, max_cross)
@@ -244,6 +256,7 @@ fn parse_item(data: &[f32], i: usize, direction: u8) -> FlexItem {
         pad_border_main,
         main_content,
         cross_content,
+        cross_is_auto,
         pad_border_cross,
         margin_main_start: mm_start,
         margin_main_end: mm_end,
@@ -266,6 +279,20 @@ fn parse_item(data: &[f32], i: usize, direction: u8) -> FlexItem {
 /// `available_main` 은 컨테이너 content-box main 크기, `total_gap` 은 라인 내 gap 총합.
 fn resolve_flexible_lengths(line: &mut [FlexItem], available_main: f32, total_gap: f32) {
     if line.is_empty() {
+        return;
+    }
+
+    // ── Step 0: main size undefined(sentinel = 음수 available) → intrinsic sizing ──
+    // flexDirection:column + height:auto 등 main 축 크기 미결정 시 CSS 는 grow/shrink 를
+    // 하지 않고 각 아이템의 hypothetical(flex-basis) 를 유지한다(max-content 기준).
+    // available_main 음수를 grow/shrink 분배식에 넣으면 remaining 이 큰 음수가 되어
+    // 아이템 main 축이 0 으로 붕괴하므로, 분배 전에 basis 로 확정하고 조기 반환한다.
+    if available_main < 0.0 {
+        for it in line.iter_mut() {
+            it.frozen = true;
+            it.target_main = clamp_size(it.flex_basis, it.min_main.max(0.0), it.max_main);
+            it.main_content = it.target_main;
+        }
         return;
     }
 
@@ -408,7 +435,10 @@ fn collect_lines(
     wrap: u8,
     gap_main: f32,
 ) -> Vec<Vec<usize>> {
-    if wrap == WRAP_NOWRAP || items.is_empty() {
+    // WRAP_NOWRAP, 빈 입력, 또는 main size 미결정(sentinel = 음수 available) 은
+    // 모두 한 라인. sentinel 은 wrap 판정 기준(available_main)이 없어 max-content 로
+    // 한 라인 유지 — 음수를 초과 판정에 넣으면 각 아이템이 별도 라인으로 잘못 분할된다.
+    if wrap == WRAP_NOWRAP || items.is_empty() || available_main < 0.0 {
         return vec![(0..items.len()).collect()];
     }
 
@@ -662,17 +692,16 @@ fn place_line_cross_axis(
         let cross_free = (cross_avail - item_cross_border).max(0.0);
 
         let (cross_pos_local, cross_final) = match align_items {
-            ALIGN_STRETCH => {
-                let stretched = clamp_size(
-                    cross_avail,
-                    it.min_cross,
-                    it.max_cross,
-                );
+            // stretch 는 cross size 가 auto 일 때만 컨테이너 cross 로 확장한다 (CSS 명세).
+            // 명시적 cross size(예: column 자식 width:100px)는 그 값을 유지 —
+            // start 정렬처럼 배치하되 크기는 border-box content 유지.
+            ALIGN_STRETCH if it.cross_is_auto => {
+                let stretched = clamp_size(cross_avail, it.min_cross, it.max_cross);
                 (it.margin_cross_start, stretched)
             }
             ALIGN_CENTER => (it.margin_cross_start + cross_free / 2.0, item_cross_border),
             ALIGN_END => (it.margin_cross_start + cross_free, item_cross_border),
-            // ALIGN_START (default)
+            // ALIGN_START (default) + ALIGN_STRETCH with explicit cross size
             _ => (it.margin_cross_start, item_cross_border),
         };
         let cross_pos = line_cross_start + cross_pos_local;
@@ -979,5 +1008,100 @@ mod tests {
         let data = flatten(&[item(100.0, 30.0), item(100.0, 30.0), item(100.0, 30.0)]);
         let out = flex_layout(&data, 250.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_START, WRAP_WRAP, 0.0, 10.0);
         assert!((out[9] - 40.0).abs() < 0.01, "line2 y with gap={}", out[9]);
+    }
+
+    // ── main available 음수(sentinel = height:auto 등 undefined main) — intrinsic sizing ──
+
+    #[test]
+    fn sentinel_main_no_grow_shrink_keeps_basis() {
+        // available_main = -1 (main size undefined, 예: flexDirection:column + height:auto).
+        // CSS: main size 미결정 → grow/shrink 안 함, 각 아이템 hypothetical(basis) 유지.
+        // 회귀 전(버그): -1 을 shrink 로 오판 → remaining 음수 → 아이템 main 축 0 붕괴.
+        let data = flatten(&[item(30.0, 100.0), item(40.0, 100.0)]);
+        let out = flex_layout(
+            &data, -1.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
+            ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0,
+        );
+        // 아이템 main(width) 은 basis 유지 (30, 40) — 0 붕괴 없음
+        assert!((out[2] - 30.0).abs() < 0.01, "item0 width={} (expect 30)", out[2]);
+        assert!((out[6] - 40.0).abs() < 0.01, "item1 width={} (expect 40)", out[6]);
+        // main 축 순차 배치 (x: 0, 30)
+        assert!((out[0] - 0.0).abs() < 0.01, "item0 x={}", out[0]);
+        assert!((out[4] - 30.0).abs() < 0.01, "item1 x={} (expect 30)", out[4]);
+    }
+
+    #[test]
+    fn sentinel_main_column_stacks_children() {
+        // flexDirection:column + height:auto 실전 케이스. main=height 축, available_main=-1.
+        // 자식 논리 main(height) = 30, 40 유지 + y 순차 배치 (0, 30).
+        // item(width, height): DIR_COLUMN 이면 논리 main=height 축값이 f[1](width 슬롯)에 온다
+        // → tree.rs 가 column 일 때 height 를 논리 main 으로 매핑. 여기선 직접 논리축으로 구성.
+        let data = flatten(&[item(30.0, 100.0), item(40.0, 100.0)]);
+        let out = flex_layout(
+            &data, -1.0, 200.0, DIR_COLUMN, JUSTIFY_START, ALIGN_START,
+            ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0,
+        );
+        // DIR_COLUMN: 논리 main(f[1]=30,40) → 물리 height(out h), y 순차 배치
+        assert!((out[3] - 30.0).abs() < 0.01, "item0 height={} (expect 30)", out[3]);
+        assert!((out[7] - 40.0).abs() < 0.01, "item1 height={} (expect 40)", out[7]);
+        assert!((out[1] - 0.0).abs() < 0.01, "item0 y={}", out[1]);
+        assert!((out[5] - 30.0).abs() < 0.01, "item1 y={} (expect 30)", out[5]);
+    }
+
+    #[test]
+    fn stretch_respects_explicit_cross_size() {
+        // ALIGN_STRETCH 지만 자식 cross(height) 가 명시(30px)면 stretch 하지 않고 30 유지.
+        // CSS: align-items:stretch 는 cross size 가 auto 일 때만 적용.
+        // 버그: 명시 cross 를 무시하고 컨테이너 cross(100)로 stretch.
+        let data = flatten(&[item(50.0, 30.0)]); // cross(height)=30 명시
+        let out = flex_layout_single_line(
+            &data, 300.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_STRETCH, 0.0,
+        );
+        // cross(height) = 명시 30 유지 (stretch 로 100 되면 안 됨)
+        assert!((out[3] - 30.0).abs() < 0.01, "cross height={} (expect 30, not stretched)", out[3]);
+    }
+
+    #[test]
+    fn stretch_still_fills_when_cross_auto() {
+        // 회귀 방지: cross(height)=AUTO 면 여전히 stretch 로 컨테이너 cross 채움.
+        let mut f = item(50.0, AUTO);
+        f[2] = AUTO; // cross auto
+        let data = flatten(&[f]);
+        let out = flex_layout_single_line(
+            &data, 300.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_STRETCH, 0.0,
+        );
+        assert!((out[3] - 100.0).abs() < 0.01, "cross height={} (expect stretch 100)", out[3]);
+    }
+
+    #[test]
+    fn sentinel_main_wrap_stays_single_line() {
+        // WRAP_WRAP + available_main=-1(sentinel): main size 미결정 → wrap 기준 없음 →
+        // 한 라인(max-content) 유지. 버그: collect_lines 가 outer > -1 을 항상 초과로
+        // 판정해 각 아이템 별도 라인 → cross 축으로 잘못 쌓임.
+        let data = flatten(&[item(30.0, 20.0), item(40.0, 20.0)]);
+        let out = flex_layout(
+            &data, -1.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
+            ALIGN_CONTENT_START, WRAP_WRAP, 0.0, 0.0,
+        );
+        // 한 라인이면 두 아이템 같은 y(0), x 순차(0, 30)
+        assert!((out[1] - 0.0).abs() < 0.01, "item0 y={} (single line)", out[1]);
+        assert!((out[5] - 0.0).abs() < 0.01, "item1 y={} (single line, expect 0)", out[5]);
+        assert!((out[4] - 30.0).abs() < 0.01, "item1 x={} (expect 30)", out[4]);
+    }
+
+    #[test]
+    fn sentinel_main_still_grows_when_available_positive() {
+        // 회귀 방지: available_main 양수면 기존 grow/shrink 정상 동작 유지.
+        let data = flatten(&[
+            with_flex(item(100.0, 30.0), 1.0, 1.0),
+            with_flex(item(100.0, 30.0), 1.0, 1.0),
+        ]);
+        let out = flex_layout(
+            &data, 300.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
+            ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0,
+        );
+        // free 100 → 각 +50 = 150
+        assert!((out[2] - 150.0).abs() < 0.01, "item0 grown={}", out[2]);
+        assert!((out[6] - 150.0).abs() < 0.01, "item1 grown={}", out[6]);
     }
 }

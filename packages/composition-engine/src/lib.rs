@@ -70,11 +70,15 @@
 //!   avail_h=-1 sentinel 을 flex main available 로 받아 자식 shrink) / **grid
 //!   height:auto → 셀 h +50**(intrinsic track 미측정, available 로 채움). 실전
 //!   다수 패턴이 diff → (C-2) flag 전환 불가(no-dormant-foundation).
-//! - **선결 과제 (flag 전환 전)**: (1) flex.rs §9.7 main available 음수 처리
-//!   (height:auto column intrinsic 도출) / (2) grid.rs intrinsic track 측정
-//!   (min/max-content). 둘 다 Phase 1/1-B 후속. 완료 후 (C-1) 진단 diff 0 전환 →
-//!   (C-2) flag 전환(자체 pkg 런타임 로드 배선 + `createLayoutEngine` flag true)
-//!   재평가. block 경로는 이미 정합.
+//! - **선결 과제 #1 flex.rs main-negative + ALIGN_STRETCH 완료 (2026-07-04)**:
+//!   available_main 음수(sentinel) intrinsic 처리 + collect_lines 한 라인 +
+//!   ALIGN_STRETCH 명시 cross 유지(`cross_is_auto`) → C-1 flex column height:auto
+//!   dual-run diff 0 전환(dualRunLive.test.ts 7/7). flex.rs 모듈 doc 참조.
+//! - **선결 과제 #2 (flag 전환 전 잔존)**: grid.rs intrinsic track 측정
+//!   (min/max-content) — 현재 셀 높이를 available 로 채움 → C-1 grid diff 잔존.
+//!   Phase 1-B grid.rs 후속. 완료 후 C-1 grid diff 0 전환 → (C-2) flag 전환
+//!   (자체 pkg 런타임 로드 배선 + `createLayoutEngine` flag true) 재평가.
+//!   block 경로는 이미 정합.
 
 pub mod block;
 pub mod cascade;

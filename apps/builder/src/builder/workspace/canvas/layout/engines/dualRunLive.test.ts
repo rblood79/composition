@@ -220,7 +220,7 @@ describe("dual-run 실전 catalog 진단 (ADR-916 Phase 2-B seam C-1)", () => {
     expect(result.pass).toBe(true);
   });
 
-  it("flex column height:auto → 현재 diff 발생 (flag 전환 선결: flex.rs main-negative)", () => {
+  it("flex column height:auto → 자체 vs Taffy diff 0 (선결 해소: flex.rs main-negative)", () => {
     const self = adaptSelfEngine(new LayoutEngine());
     const taffy = adaptTaffyEngine(new TaffyLayoutEngine());
     const result = runDualLayout(
@@ -230,14 +230,13 @@ describe("dual-run 실전 catalog 진단 (ADR-916 Phase 2-B seam C-1)", () => {
       taffy,
       self,
     );
-    // 현재 자체 엔진은 avail_h=-1 을 shrink 로 처리 → 자식 h=0 붕괴.
-    // flex.rs §9.7 main available 음수 처리 후 이 기대를 pass=true 로 뒤집는다.
-    expect(result.pass).toBe(false);
-    // 붕괴가 height 필드에서 나타남을 확증 (진단 정밀도)
-    const heightViolated = result.numericViolations.some(
-      (v) => v.field === "height",
-    );
-    expect(heightViolated).toBe(true);
+    // flex.rs §9.7/§9.3 main available 음수(sentinel) intrinsic 처리 land 후 통과.
+    // (이전: 자체가 avail_h=-1 을 shrink 로 오처리 → 자식 h=0 붕괴 diff 발생.)
+    if (!result.pass) {
+      // eslint-disable-next-line no-console
+      console.log("flex column:", formatViolations(result));
+    }
+    expect(result.pass).toBe(true);
   });
 
   it("grid height:auto → 현재 diff 발생 (flag 전환 선결: grid.rs intrinsic track)", () => {
