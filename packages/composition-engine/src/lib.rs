@@ -41,9 +41,9 @@
 //!   자체 flex/block/grid 커널로 구현하는 계층. DFS 상단(style resolve/implicit/
 //!   enrich = tag/spec/store 도메인)은 JS 잔류, 본 모듈은 순수화된 TaffyStyle 트리만
 //!   레이아웃 계산. 층별 점진 — 단위 1(handle+build 골격+leaf compute) / 단위 2
-//!   (post-order flex solve) / **단위 3-a(현재, block dispatch)** land.
-//!   단위 3-b(grid dispatch)/4(증분 dirty)는 다음 착수. seam(createLayoutEngine)
-//!   미배선 → live 영향 0.
+//!   (post-order flex solve) / 단위 3-a(block dispatch) / **단위 3-b(현재, grid
+//!   dispatch)** land. flex/block/grid 3 display dispatch 완성. 단위 4(증분 dirty)는
+//!   다음 착수. seam(createLayoutEngine) 미배선 → live 영향 0.
 //!
 //! ## 미편입 (다음 세션)
 //!

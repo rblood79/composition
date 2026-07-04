@@ -1,4 +1,4 @@
-//! ADR-916 Phase 2-B — `tree.rs` 트리 오케스트레이션 (단위 3-a: block dispatch)
+//! ADR-916 Phase 2-B — `tree.rs` 트리 오케스트레이션 (단위 3-b: grid dispatch)
 //!
 //! `apps/builder/.../wasm/src/taffy_bridge.rs` 의 `TaffyLayoutEngine` batch 계약
 //! (`build_tree_batch` → `compute_layout` → `get_layouts_batch`) 을 Taffy 없이
@@ -36,16 +36,24 @@
 //!   크기(height:auto sentinel) 를 도출. 재귀로 손자까지 bottom-up.
 //! - **단위 3 (진행 중)**: block + grid dispatch 추가 (display 별 분기 완성).
 //!   세 커널의 계약이 비대칭이라(2026-07-04 실사) display 별 최소 검증층으로 재분할:
-//!   - **단위 3-a (본 파일 현재)**: **block dispatch** — `block_layout`.
+//!   - **단위 3-a (land)**: **block dispatch** — `block_layout`.
 //!     flex 와 계약이 가장 가까움(자식 flat f32, 자식 재귀 solve 로 content_w/h 확보).
 //!     block.rs 는 19필드/자식(물리축, vertical stacking) + OUT 은 `4*n + 2` (trailing
 //!     firstChildMarginTop/lastChildMarginBottom metadata). auto width 는 컨테이너로
 //!     stretch, fit-content 는 content_w 사용. margin collapse/inline-block/BFC 는
 //!     block.rs 내부 처리 — tree.rs 는 오케스트레이션(자식 solve → flat → 위치 반영).
-//!   - **단위 3-b (다음)**: **grid dispatch** — `grid_layout`. grid 는 계약이 근본적
-//!     으로 다름(자식 flat 없음, template 문자열 + placement_spec 문자열로 트랙 산술).
-//!     NodeStyle 의 `grid_template_columns: Vec<String>` → space-join, 자식 gridArea/
-//!     gridColumn/gridRow → `parse_placements` 파이프 형식 직렬화 어댑터 필요.
+//!   - **단위 3-b (본 파일 현재)**: **grid dispatch** — `grid_layout`. grid 는 계약이
+//!     근본적으로 다름 — 자식 flat 을 안 받고 `template_cols/rows/areas` +
+//!     `placement_spec` **문자열**만 받아 트랙 산술로 셀 배치(자식 크기는 트랙이 결정).
+//!     tree.rs 어댑터가 NodeStyle → grid.rs 문자열 계약 변환:
+//!     (1) `grid_template_columns: Vec<String>`(track array `["1fr","auto"]`) →
+//!     space-join `"1fr auto"` (grid.rs `tokenize_template` 재분해),
+//!     (2) 자식 `grid_column_start`+`grid_column_end`(taffy_bridge 처럼 분리된 단일
+//!     line/span 값) → grid.rs `parse_grid_line` 결합 형식 `"{start} / {end}"` 재조립,
+//!     (3) 자식들을 `area_name|grid_column|grid_row` 파이프 형식(개행 구분)으로 직렬화.
+//!     NodeStyle 에 gridArea 이름/`grid_template_areas` 필드 없음(taffy_bridge 동일 —
+//!     Skia 경로는 숫자 line 사용, factory 가 이름+line 병기) → area_name 항상 빈 문자열,
+//!     template_areas 미사용. 자식 크기는 grid.rs 가 트랙에서 산출(intrinsic track 미측정).
 //! - **단위 4 (다음)**: 증분 dirty 추적 + 재계산 최소화(taffy mark_dirty 대응).
 //!
 //! ## flex.rs 알려진 제약 (단위 2 착수 중 발견, Phase 1 flex.rs scope)
@@ -65,6 +73,7 @@ use serde::Deserialize;
 
 use crate::block;
 use crate::flex;
+use crate::grid;
 use crate::style::{resolve_css_size_value, CssValueContext};
 
 /// 트리 노드의 스타일 표현 (taffy_bridge.rs `StyleInput` 대응).
@@ -350,8 +359,8 @@ impl LayoutTree {
         // 명시 크기(있으면) — auto 는 아래에서 content 로 채움.
         let (explicit_w, explicit_h) = self.resolve_self_size(handle, avail_w, avail_h);
 
-        // leaf 또는 (단위 3-b 미지원) grid 컨테이너: 자기 크기만.
-        if children.is_empty() || display == ContainerDisplay::Other {
+        // leaf: 자기 크기만.
+        if children.is_empty() {
             let w = explicit_w;
             let h = explicit_h;
             if let Some(n) = self.get_mut(handle) {
@@ -369,8 +378,9 @@ impl LayoutTree {
             ContainerDisplay::Block => {
                 self.solve_block(handle, &children, explicit_w, explicit_h, avail_w, avail_h)
             }
-            // Other(grid) 는 위에서 early return — 도달 불가.
-            ContainerDisplay::Other => (explicit_w, explicit_h),
+            ContainerDisplay::Grid => {
+                self.solve_grid(handle, &children, explicit_w, explicit_h, avail_w, avail_h)
+            }
         }
     }
 
@@ -531,6 +541,121 @@ impl LayoutTree {
         (container_w, container_h)
     }
 
+    /// grid 컨테이너 solve — `grid.rs`(`grid_layout`) 로 트랙 산술 셀 배치.
+    ///
+    /// grid 는 flex/block 과 계약이 근본적으로 다르다. 자식 flat f32 를 안 받고
+    /// `template_cols/rows/areas` + `placement_spec` **문자열**만 받아 트랙을
+    /// 산술로 계산해 셀 bounds 를 낸다(자식 크기 = 트랙 크기, intrinsic track 미측정).
+    ///
+    /// tree.rs 어댑터 역할:
+    /// (1) `grid_template_columns: Vec<String>` (track array) → space-join 문자열,
+    /// (2) 자식 `grid_column_start`+`end` → grid.rs `parse_grid_line` 결합 형식
+    ///     `"{start} / {end}"` 재조립 (NodeStyle 은 taffy_bridge 처럼 start/end 분리),
+    /// (3) 자식들을 `area_name|grid_column|grid_row` 파이프 형식(개행 구분) 직렬화.
+    ///
+    /// 셀 bounds 를 받은 뒤 각 자식을 셀 크기로 재귀 solve(자식이 grid 셀 안 flex/
+    /// block 컨테이너일 수 있음) → 셀 좌표를 자식 위치로 반영. 자식 재귀 solve 결과
+    /// (content 크기)는 셀 크기가 이미 트랙에서 확정됐으므로 위치 반영에는 미사용
+    /// (grid 는 자식 intrinsic 이 트랙을 늘리지 않음 — intrinsic track 은 grid.rs 미구현).
+    fn solve_grid(
+        &mut self,
+        handle: usize,
+        children: &[usize],
+        explicit_w: f32,
+        explicit_h: f32,
+        avail_w: f32,
+        avail_h: f32,
+    ) -> (f32, f32) {
+        let style = self.get(handle).map(|n| n.style.clone()).unwrap_or_default();
+        let ctx_w = self.ctx_for(avail_w);
+
+        // 컨테이너 available (명시 있으면 그것, 없으면 상속).
+        let container_w = if explicit_w > 0.0 { explicit_w } else { avail_w };
+        let container_h = if explicit_h > 0.0 { explicit_h } else { avail_h };
+
+        // gap.
+        let col_gap = resolve_gap(style.column_gap.as_deref(), &ctx_w);
+        let row_gap = resolve_gap(style.row_gap.as_deref(), &ctx_w);
+
+        // (1) track array → space-join 문자열.
+        let template_cols = join_tracks(style.grid_template_columns.as_deref());
+        let template_rows = join_tracks(style.grid_template_rows.as_deref());
+
+        // (2)+(3) 자식 placement 직렬화 (area_name|grid_column|grid_row 개행 구분).
+        let placement_spec = self.build_grid_placement_spec(children);
+
+        // grid_layout — 셀 bounds flat [x,y,w,h,...].
+        let bounds = grid::grid_layout(
+            &template_cols,
+            &template_rows,
+            "", // template_areas 미사용 (NodeStyle 에 없음 — Skia 경로는 숫자 line)
+            &placement_spec,
+            children.len() as u32,
+            container_w,
+            container_h,
+            col_gap,
+            row_gap,
+        );
+
+        // 셀 좌표 반영 + 각 자식을 셀 크기로 재귀 solve.
+        let mut max_right: f32 = 0.0;
+        let mut max_bottom: f32 = 0.0;
+        for (i, &c) in children.iter().enumerate() {
+            let off = i * 4;
+            let (x, y, w, h) = (bounds[off], bounds[off + 1], bounds[off + 2], bounds[off + 3]);
+            // 자식을 셀 크기로 재귀 solve (셀 안 flex/block 컨테이너 배치용).
+            // 자식 자기 크기는 셀 크기로 override — grid item 은 셀을 채운다(stretch 기본).
+            self.solve_node(c, w, h);
+            if let Some(n) = self.get_mut(c) {
+                n.layout = NodeLayout { x, y, width: w, height: h };
+            }
+            max_right = max_right.max(x + w);
+            max_bottom = max_bottom.max(y + h);
+        }
+
+        // 컨테이너 크기: 명시 있으면 명시, 없으면 셀 bounding box.
+        let final_w = if explicit_w > 0.0 { explicit_w } else { max_right };
+        let final_h = if explicit_h > 0.0 { explicit_h } else { max_bottom };
+        if let Some(n) = self.get_mut(handle) {
+            n.layout = NodeLayout { x: 0.0, y: 0.0, width: final_w, height: final_h };
+            n.dirty = false;
+        }
+        (final_w, final_h)
+    }
+
+    /// 자식들의 grid placement 를 grid.rs `parse_placements` 파이프 형식으로 직렬화.
+    ///
+    /// 자식당 한 줄 `area_name|grid_column|grid_row` (개행 구분). NodeStyle 은
+    /// gridArea 이름 필드가 없으므로 area_name 은 항상 빈 문자열. grid_column/row 는
+    /// `grid_column_start`+`grid_column_end` 를 grid.rs `parse_grid_line` 결합 형식
+    /// (`"{start} / {end}"`)으로 재조립 — start 만 있으면 start 만, 둘 다 없으면 빈
+    /// 문자열(auto-placement). placement 가 하나도 없으면 빈 문자열 반환(전부 auto).
+    fn build_grid_placement_spec(&self, children: &[usize]) -> String {
+        let mut lines: Vec<String> = Vec::with_capacity(children.len());
+        let mut any_placement = false;
+        for &c in children {
+            let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
+            let grid_column = combine_grid_line(
+                cstyle.grid_column_start.as_deref(),
+                cstyle.grid_column_end.as_deref(),
+            );
+            let grid_row = combine_grid_line(
+                cstyle.grid_row_start.as_deref(),
+                cstyle.grid_row_end.as_deref(),
+            );
+            if !grid_column.is_empty() || !grid_row.is_empty() {
+                any_placement = true;
+            }
+            // area_name 항상 빈 문자열 (NodeStyle 에 gridArea 이름 없음).
+            lines.push(format!("|{grid_column}|{grid_row}"));
+        }
+        if any_placement {
+            lines.join("\n")
+        } else {
+            String::new() // 전부 auto → placement_spec 비움 (grid.rs auto-placement)
+        }
+    }
+
     /// % 기준 컨텍스트 (container_size = avail).
     fn ctx_for(&self, avail: f32) -> CssValueContext {
         CssValueContext {
@@ -601,22 +726,21 @@ fn resolve_dimension(value: Option<&str>, ctx: &CssValueContext) -> f32 {
 
 /// 컨테이너 formatting context 분류.
 ///
-/// 단위 2 는 Flex 만, 단위 3-a 는 Block 추가 실배치. Grid 는 단위 3-b 에서 실배치
-/// (현재 Other 로 분류돼 자기 크기만). `_hasChildren` 컨테이너의 CSS 기본 display
-/// 는 block 이므로(display 미설정 → block), non-flex/non-grid 는 Block 으로 취급한다.
+/// 단위 2 는 Flex, 단위 3-a 는 Block, 단위 3-b 는 Grid 실배치. `_hasChildren`
+/// 컨테이너의 CSS 기본 display 는 block 이므로(display 미설정 → block),
+/// non-flex/non-grid 는 Block 으로 취급한다.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ContainerDisplay {
     Flex,
     Block,
-    /// grid/기타 — 단위 3-b 에서 grid dispatch 추가.
-    Other,
+    Grid,
 }
 
 /// display 문자열 → 컨테이너 분류.
 ///
 /// - flex/inline-flex → Flex (단위 2)
-/// - block/inline-block/flow-root/list-item/미설정 → Block (단위 3-a)
-/// - grid/inline-grid/기타 → Other (단위 3-b 에서 grid 실배치)
+/// - grid/inline-grid → Grid (단위 3-b)
+/// - block/inline-block/flow-root/list-item/미설정/기타 → Block (단위 3-a)
 ///
 /// display 미설정(None)이 Block 인 이유: CSS 초기 display 는 inline 이지만
 /// composition 의 `_hasChildren` 컨테이너는 상단(taffyDisplayAdapter)에서 blockify
@@ -624,7 +748,7 @@ enum ContainerDisplay {
 fn classify_container_display(display: Option<&str>) -> ContainerDisplay {
     match display.map(|d| d.trim().to_ascii_lowercase()).as_deref() {
         Some("flex") | Some("inline-flex") => ContainerDisplay::Flex,
-        Some("grid") | Some("inline-grid") => ContainerDisplay::Other,
+        Some("grid") | Some("inline-grid") => ContainerDisplay::Grid,
         // block / inline-block / flow-root / list-item / 미설정 → Block
         _ => ContainerDisplay::Block,
     }
@@ -689,6 +813,50 @@ fn parse_flex_wrap(v: Option<&str>) -> u8 {
 /// gap 값 해결 (px/%/calc…). 미설정/auto/음수는 0.
 fn resolve_gap(v: Option<&str>, ctx: &CssValueContext) -> f32 {
     resolve_dimension(v, ctx).max(0.0)
+}
+
+/// track array(`["1fr", "auto"]`) → space-join 문자열(`"1fr auto"`).
+///
+/// grid.rs `tokenize_template` 이 다시 최상위 토큰으로 분해하므로 join 만 한다.
+/// 각 원소가 `repeat(...)`/`minmax(...)` 같은 복합 표현이어도 공백 없는 단일 토큰
+/// 이라 join 후 재토큰화가 무손실(괄호 depth 기반 tokenize). 미설정/빈 배열은 "".
+fn join_tracks(tracks: Option<&[String]>) -> String {
+    match tracks {
+        Some(list) if !list.is_empty() => list.join(" "),
+        _ => String::new(),
+    }
+}
+
+/// grid line start/end 를 grid.rs `parse_grid_line` 결합 형식으로 재조립.
+///
+/// NodeStyle 은 taffy_bridge 처럼 start/end 를 분리된 단일 값으로 보유
+/// (`"1"` / `"span 2"` / `"auto"`). grid.rs `parse_grid_line` 은 결합 형식
+/// (`"1 / 3"`, `"1 / span 3"`, `"span 2"`) 을 파싱하므로 재조립:
+/// - start+end 둘 다 유효 → `"{start} / {end}"`
+/// - start 만 → `"{start}"` (parse_grid_line 이 (start, start+1))
+/// - end 만 → `"{end}"` 를 end 로 쓸 방법 없음 → auto (빈 문자열)
+/// - 둘 다 없음/auto → 빈 문자열 (auto-placement)
+///
+/// "auto" 는 명시 line 아님 → 없는 것으로 취급(빈 부분).
+fn combine_grid_line(start: Option<&str>, end: Option<&str>) -> String {
+    let s = normalize_grid_line_part(start);
+    let e = normalize_grid_line_part(end);
+    match (s, e) {
+        (Some(s), Some(e)) => format!("{s} / {e}"),
+        (Some(s), None) => s,
+        // end 만 있으면 start 없이 grid.rs 로 표현 불가 → auto.
+        (None, _) => String::new(),
+    }
+}
+
+/// grid line 단일 값 정규화 — "auto"/미설정/빈 문자열은 None(명시 아님).
+/// `"1"` / `"span 2"` / `"-1"` 같은 실 line 값만 Some 으로 통과.
+fn normalize_grid_line_part(v: Option<&str>) -> Option<String> {
+    let v = v?.trim();
+    if v.is_empty() || v.eq_ignore_ascii_case("auto") {
+        return None;
+    }
+    Some(v.to_string())
 }
 
 /// padding+border 한 축 합 (main 또는 cross).
@@ -1207,26 +1375,129 @@ mod tests {
         assert_eq!(c0.height, 25.0);
     }
 
-    /// grid 컨테이너는 단위 3-a 에서 자식 미배치 — 자기 크기만 (단위 3-b 전).
-    ///
-    /// grid dispatch 는 단위 3-b. 단위 3-a 에서 grid 컨테이너는 `solve_node` 의
-    /// Other 분기로 자기 크기만 해결하고 **자식을 재귀 solve 하지 않는다** →
-    /// 자식 layout 은 ZERO(미방문). 단위 3-b 에서 grid_layout dispatch 로 배치된다.
+    // ── 단위 3-b: grid dispatch ──
+
+    /// grid 2열 auto-placement — 4 자식 row-major.
     #[test]
-    fn grid_container_self_size_only_unit3a() {
+    fn grid_two_col_auto_placement() {
         let mut tree = LayoutTree::new();
+        // cols "1fr 1fr" at 200 → [100,100], rows "50px 50px".
         let json = r#"[
-            {"style":{"width":"100px","height":"50px"},"children":[]},
-            {"style":{"display":"grid","width":"300px","height":"200px"},"children":[0]}
+            {"style":{},"children":[]},
+            {"style":{},"children":[]},
+            {"style":{},"children":[]},
+            {"style":{},"children":[]},
+            {"style":{"display":"grid","width":"200px","height":"100px","gridTemplateColumns":["1fr","1fr"],"gridTemplateRows":["50px","50px"]},"children":[0,1,2,3]}
         ]"#;
         let handles = tree.build_tree_batch(json).unwrap();
-        tree.compute_layout(handles[1], 300.0, 200.0);
-        let container = tree.get_layout(handles[1]);
-        assert_eq!(container.width, 300.0);
-        assert_eq!(container.height, 200.0);
-        // 자식은 미방문(단위 3-b grid dispatch 전) → layout ZERO.
-        let child = tree.get_layout(handles[0]);
-        assert_eq!(child, NodeLayout::ZERO, "grid 자식은 단위 3-b 전 미배치");
+        tree.compute_layout(handles[4], 200.0, 100.0);
+        // child0 (0,0): x=0 y=0 w=100 h=50.
+        let c0 = tree.get_layout(handles[0]);
+        assert_eq!((c0.x, c0.y, c0.width, c0.height), (0.0, 0.0, 100.0, 50.0), "c0");
+        // child1 (1,0): x=100 y=0.
+        let c1 = tree.get_layout(handles[1]);
+        assert_eq!((c1.x, c1.y), (100.0, 0.0), "c1 두번째 열");
+        // child2 (0,1): x=0 y=50.
+        let c2 = tree.get_layout(handles[2]);
+        assert_eq!((c2.x, c2.y), (0.0, 50.0), "c2 두번째 행");
+        // child3 (1,1): x=100 y=50.
+        let c3 = tree.get_layout(handles[3]);
+        assert_eq!((c3.x, c3.y), (100.0, 50.0), "c3");
+    }
+
+    /// grid gap — col_gap/row_gap 이 셀 좌표에 반영.
+    #[test]
+    fn grid_with_gap() {
+        let mut tree = LayoutTree::new();
+        // cols "100px 100px" gap 10, rows "50px 50px" gap 20.
+        let json = r#"[
+            {"style":{},"children":[]},
+            {"style":{},"children":[]},
+            {"style":{},"children":[]},
+            {"style":{},"children":[]},
+            {"style":{"display":"grid","width":"210px","height":"120px","gridTemplateColumns":["100px","100px"],"gridTemplateRows":["50px","50px"],"columnGap":"10px","rowGap":"20px"},"children":[0,1,2,3]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[4], 210.0, 120.0);
+        // child1 (1,0): x = 100 + 10 gap = 110.
+        let c1 = tree.get_layout(handles[1]);
+        assert_eq!(c1.x, 110.0, "c1.x = 100 + col_gap 10");
+        // child2 (0,1): y = 50 + 20 gap = 70.
+        let c2 = tree.get_layout(handles[2]);
+        assert_eq!(c2.y, 70.0, "c2.y = 50 + row_gap 20");
+    }
+
+    /// grid line placement — 자식 gridColumn span (start/end 분리 → 결합 재조립).
+    #[test]
+    fn grid_child_column_span() {
+        let mut tree = LayoutTree::new();
+        // 자식0 gridColumnStart "1" + gridColumnEnd "3" (2칸 span). cols [100,100].
+        let json = r#"[
+            {"style":{"gridColumnStart":"1","gridColumnEnd":"3"},"children":[]},
+            {"style":{"display":"grid","width":"200px","height":"50px","gridTemplateColumns":["100px","100px"],"gridTemplateRows":["50px"]},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 200.0, 50.0);
+        // colStart 1 colEnd 3 → width = track0 + track1 = 200.
+        let c0 = tree.get_layout(handles[0]);
+        assert_eq!(c0.width, 200.0, "1 / 3 span → 2트랙 폭");
+    }
+
+    /// grid fr track 분배 — "1fr 2fr" at 300 → [100, 200].
+    #[test]
+    fn grid_fr_track_distribution() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{},"children":[]},
+            {"style":{},"children":[]},
+            {"style":{"display":"grid","width":"300px","height":"50px","gridTemplateColumns":["1fr","2fr"],"gridTemplateRows":["50px"]},"children":[0,1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 300.0, 50.0);
+        let c0 = tree.get_layout(handles[0]);
+        let c1 = tree.get_layout(handles[1]);
+        assert_eq!(c0.width, 100.0, "1fr = 300/3");
+        assert_eq!(c1.width, 200.0, "2fr = 300/3*2");
+    }
+
+    /// grid 자식이 flex 컨테이너 — 셀 안에서 자식 배치 (재귀 solve).
+    #[test]
+    fn grid_child_is_flex_container() {
+        let mut tree = LayoutTree::new();
+        // post-order: 손자 leaf(40×20), grid 자식=flex row [손자], grid 컨테이너.
+        let json = r#"[
+            {"style":{"width":"40px","height":"20px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","alignItems":"flex-start"},"children":[0]},
+            {"style":{"display":"grid","width":"100px","height":"50px","gridTemplateColumns":["100px"],"gridTemplateRows":["50px"]},"children":[1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 100.0, 50.0);
+        // grid 자식(flex)은 셀 (0,0) 100×50.
+        let flex_child = tree.get_layout(handles[1]);
+        assert_eq!((flex_child.x, flex_child.y), (0.0, 0.0), "flex 셀 위치");
+        assert_eq!((flex_child.width, flex_child.height), (100.0, 50.0), "flex 셀 크기");
+        // 손자 leaf 는 flex 안 (0,0) 에 배치(재귀 solve 확증).
+        let leaf = tree.get_layout(handles[0]);
+        assert_eq!(leaf.x, 0.0, "손자 leaf x");
+        assert_eq!(leaf.width, 40.0, "손자 leaf 명시 폭 유지");
+    }
+
+    /// height:auto grid 컨테이너 → 셀 bounding box 로 intrinsic 도출.
+    #[test]
+    fn grid_container_intrinsic_height_from_cells() {
+        let mut tree = LayoutTree::new();
+        // rows "40px 60px", 2 자식 auto (한 열) → bounding box height = 40+60 = 100.
+        let json = r#"[
+            {"style":{},"children":[]},
+            {"style":{},"children":[]},
+            {"style":{"display":"grid","width":"100px","gridTemplateColumns":["100px"],"gridTemplateRows":["40px","60px"]},"children":[0,1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        let root = handles[2];
+        tree.compute_layout(root, 100.0, -1.0); // height:auto sentinel
+        let container = tree.get_layout(root);
+        assert_eq!(container.width, 100.0, "명시 width 유지");
+        assert_eq!(container.height, 100.0, "intrinsic height = 셀 bounding box (40+60)");
     }
 
     // ── get_layouts_batch ──
