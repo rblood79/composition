@@ -367,12 +367,45 @@
 
 </details>
 
-### 2-E. `text.rs` — 텍스트 측정 캐시
+### 2-E. 텍스트 측정 — 이관 대상 제외 (CSS 정합 제약)
 
-- **scope = 측정(measurement) 경로만** — `canvaskitTextMeasurer.ts` 의 결과값 캐시(`:122-127`, Paragraph 객체 아닌 `{width, height}` 만) 를 Rust LRU 로 이관. **render 경로의 Paragraph 객체 캐시(`nodeRendererText.ts:36` `paragraphCache` — `clearParagraphCache()` 로 delete 수명 관리) 는 본 Phase 비대상, 현행 유지**
-- **제약 (canvas-rendering.md §3 — 측정 경로 규칙)**: WASM Paragraph 객체 캐싱 금지 — 결과값 `{width, height}` 만 LRU. Layout=Canvas 2D=CSS 정합 원칙 유지
-- Rust 측 LRU + batch 측정 요청 (캐시 미스 시 단어당 다중 왕복 → batch 1회)
-- 조상 체인 기반 font 상속 해석 (`buildSpecNodeData.ts` O(N×D) 탐색 → 트리 빌드 시 1회 top-down 패스)
+> **2026-07-05 재평가로 이관 대상에서 제외.** 원안(`text.rs` — 측정 캐시 Rust LRU + Rust batch 측정)은 **CSS 시각 대칭(D3) 제약으로 근본 차단**됨이 실사로 확정. 2-C/2-D 의 "잘못 짚은 대상"(성능 병목이 다른 곳 → 정당화 축 전환으로 이관 유효)과 **질적으로 다름** — 여기서는 **아키텍처 제약이 이관 자체를 막는다**. 폐기 원안은 하단 `<details>` 보존.
+
+**측정 경로 실측 (live)**: 측정은 CanvasKit Paragraph 가 아니라 **Canvas 2D `measureText`**(`canvas2dSegmentCache.ts:33` `USE_CANVAS2D_MEASURE=true`, ADR-051)로 흐른다. CanvasKit 은 `needsFallback()` true(letterSpacing/wordSpacing/whiteSpace≠normal/break-all, ~10% 케이스)에서만. 폭 측정·줄 수·줄바꿈 위치 전부를 Canvas 2D 가 결정하고 CanvasKit 은 이미 결정된 `\n` 을 hard break 로 받아 shaping/렌더만 수행(`nodeRendererText.ts:449-460`).
+
+**근본 차단 근거 (D3 시각 대칭 파괴)**:
+
+- **Canvas 2D = 브라우저 폰트 엔진(Blink/ICU) = CSS Preview 와 동일 엔진** — 이것이 CSS↔Skia 줄바꿈 정합(~98%)의 구조적 근거(ADR-051 `completed/051:28,50,109,118`, canvas-rendering.md §3 "Layout=Canvas 2D=CSS 정합 원칙").
+- 측정 계산을 Rust 로 옮기면 **제3의 폰트 엔진**(HarfBuzz/rustybuzz/자체 무엇이든)이 되어 브라우저와 sub-pixel·줄바꿈이 발산 → D3 대칭 파괴. ADR-051 이 정확히 이 이유로 CanvasKit 측정을 기각(`completed/051:118`).
+- **결정적 제약**: Rust/WASM 은 `document.fonts`(로드된 웹폰트)·브라우저 fallback chain·시스템 폰트에 **접근 불가**. `canvas2dSegmentCache.ts:314-324` 는 `document.fonts.check()` 로 폰트 로드를 확인 후 측정 — Rust 는 이 폭을 **원리적으로 재현 불가**.
+
+**원안 두 목표의 동시 성립 불가**:
+
+- "Rust batch 측정"(계산 이관) → 위 제약으로 정합 파괴, 근본 차단.
+- "Rust LRU 캐시 저장소만 이관" → 계산은 JS 유지라 정합은 보존되나, 캐시 조회/저장마다 JS↔WASM 경계 왕복 증가 → ADR-916 "경계 최소화" 목표(§0-4)와 **역행**. 실익 없음.
+- 즉 "정합 유지 + Rust 측정 이관"이 동시에 불가능 → 측정은 브라우저 엔진 전담 유지.
+
+**벤치 근거 (신규 `textMeasure.bench.ts` — 비용도 병목 아님을 확증)**:
+
+| 단계                                     |   mean   | 예산비(16.7ms) |
+| ---------------------------------------- | :------: | :------------: |
+| ① Canvas 2D 3-Tier 파이프라인(짧은 라벨) | 0.0013ms |     0.008%     |
+| ② tokenize 단독(Intl.Segmenter, 긴 본문) | 0.0059ms |     0.035%     |
+| ③ segment 캐시 hit(긴 본문 재측정)       | 0.0084ms |     0.05%      |
+
+파이프라인 JS 오버헤드 전부 sub-0.01ms — 이관 정당화가 성능도 아님. (단 2-D 와 달리 정합 제약이 우선하므로 정당화 축 전환 여지 자체가 없음.)
+
+**조상 체인 font 상속은 2-B 흡수 (2-E 별도 대상 아님)**: breakdown 원안이 2-E 로 묶었던 `buildSpecNodeData` O(N×D) 조상 체인 탐색(벤치 ④: 3000노드 0.416ms)은 **text 측정과 무관한 순수 트리 순회**다. `resolveStyle`/`applyImplicitStyles` 상단 style 해석의 일부이므로 **2-B tree.rs 트리 빌드 시 top-down 1패스**로 흡수 — 2-E 별도 이관 항목 아님.
+
+**결정**: 텍스트 측정은 ADR-916 Rust 이관 대상에서 **제외**. Canvas 2D(브라우저 엔진) 전담 유지가 D3 시각 대칭의 필수 요건. `text.rs` 는 crate 목표 다이어그램에서 제거. (측정 원칙 자체를 뒤집으려면 ADR-051/900 을 supersede 하는 별도 상위 D3 재정의 ADR 이 선행돼야 하며, 이는 본 breakdown 범위 밖.)
+
+<details><summary>폐기된 원안 (2026-07-05 재평가 전)</summary>
+
+- ~~`text.rs` — 측정 결과 캐시(`canvaskitTextMeasurer.ts:122-127` `{width,height}` LRU)를 Rust LRU 로 이관~~ — 측정 경로가 CanvasKit 이 아니라 Canvas 2D(브라우저 엔진, ADR-051) live. 캐시만 옮기면 경계 왕복 증가로 목표 역행.
+- ~~Rust 측 LRU + batch 측정 요청 (캐시 미스 시 단어당 다중 왕복 → batch 1회)~~ — batch 측정은 계산 이관 = 브라우저 폰트 엔진 이탈 = D3 대칭 파괴. 근본 차단.
+- ~~조상 체인 기반 font 상속 해석 (buildSpecNodeData O(N×D) → top-down 1패스)~~ — text 측정과 무관한 style 해석 → 2-B tree.rs 흡수.
+
+</details>
 
 ### Phase 2 순서 의존성
 
@@ -397,9 +430,9 @@ packages/composition-engine/        # 신규 통합 crate (composition-layout �
     ├── flex.rs         # 1-A
     ├── grid.rs         # 1-B (grid_layout.rs 승계)
     ├── block.rs        # 1-C (block_layout.rs 승계)
-    ├── text.rs         # 2-E
     ├── spatial.rs      # 승계 + 2-D(P3: layout→SpatialIndex 직결 흡수 — commands.rs 신설 안 함, command stream 은 JS 유지)
     └── protocol.rs     # binary_protocol.rs 승계
+    # text.rs 없음 — 2-E 재평가로 이관 제외 (측정=브라우저 Canvas 2D 엔진 전담, CSS 정합 제약)
 ```
 
 최종 상태: JS ~15,000줄 (UI 바인딩 + CanvasKit draw 호출) + 단일 WASM batch API.
@@ -408,14 +441,14 @@ packages/composition-engine/        # 신규 통합 crate (composition-layout �
 
 ## 검증 매트릭스
 
-| 검증                                   | 도구                                          | 적용 Phase       |
-| -------------------------------------- | --------------------------------------------- | ---------------- |
-| 회귀 fixture (기존 문서 layout 무변화) | dual-run diff 하네스 (신규)                   | 0, 1, 2 전부     |
-| CSS↔Skia 시각 대칭                     | /cross-check + parallel-verify                | 2-A, 2-E         |
-| 성능 벤치 (1000+ 노드 프레임타임)      | 벤치 하네스 (신규)                            | 각 Phase 전후    |
-| WASM 번들 사이즈 (gzip)                | build 리포트                                  | 각 Phase         |
-| type-check                             | pnpm type-check                               | 전부             |
-| live behavior                          | Chrome MCP 1회 exercise (CLAUDE.md 완료 기준) | 각 Phase cutover |
+| 검증                                   | 도구                                          | 적용 Phase          |
+| -------------------------------------- | --------------------------------------------- | ------------------- |
+| 회귀 fixture (기존 문서 layout 무변화) | dual-run diff 하네스 (신규)                   | 0, 1, 2 전부        |
+| CSS↔Skia 시각 대칭                     | /cross-check + parallel-verify                | 2-A (2-E 이관 제외) |
+| 성능 벤치 (1000+ 노드 프레임타임)      | 벤치 하네스 (신규)                            | 각 Phase 전후       |
+| WASM 번들 사이즈 (gzip)                | build 리포트                                  | 각 Phase            |
+| type-check                             | pnpm type-check                               | 전부                |
+| live behavior                          | Chrome MCP 1회 exercise (CLAUDE.md 완료 기준) | 각 Phase cutover    |
 
 ---
 
@@ -424,7 +457,7 @@ packages/composition-engine/        # 신규 통합 crate (composition-layout �
 ```
 Phase 0-A (seam ✅) ─→ Phase 1 self-impl (1-A/B/C ✅ + 1-D 하네스·golden ✅) ┐
                                                                               │ 배선·1-E 이연 (트리 계약 필요)
-Phase 0-B (⏸️ 이연) ─────────────────────────────────────────────────────────┼─→ G5 confirm ─→ Phase 2 (2-A → 2-B → {2-C,2-D,2-E})
+Phase 0-B (⏸️ 이연) ─────────────────────────────────────────────────────────┼─→ G5 confirm ─→ Phase 2 (2-A → 2-B → {2-C·종료, 2-D·P3, 2-E·이관제외})
                                                                               │                            │
               WASM 트리 batch 배선 + 1-E Taffy 제거 + 0-B worker offload ─────┴──── 2-B tree.rs 완료 시점 ──┘
 ```
