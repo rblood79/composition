@@ -2,6 +2,7 @@ export {
   buildSceneSnapshot,
   buildSceneStructureSnapshot,
   buildSceneSelectionState,
+  createResolvedProjectionSignature,
 } from "./buildSceneSnapshot";
 export {
   buildCanonicalSceneModel,

@@ -276,14 +276,50 @@
 - **(C-2a) 런타임 배선 + flag 전환 완료 — 자체 엔진 live builder 전환** (사용자 승인 2026-07-04, "(C-2a) 승인"): **배선 2 파일**(taffy 미러링): `compositionEngineWasm.ts`(전역 로드) + `compositionEngine.ts`(동기 wrapper `CompositionEngineLayout` — 자체 pkg camelCase 16-메서드 = 이름 일치라 raw 타입 변환만). `layoutBridge.ts` flag true 경로 자체 엔진 주입(미준비 Taffy 폴백) + `init.ts` startup 로드 + `USE_RUST_LAYOUT_ENGINE` flip. **경로 정정**: 자체 pkg monorepo `packages/`(dev root 밖) → 절대 URL fetch 실패 → wasm-pack out-dir 을 apps/builder 내부(`wasm-bindings/composition-engine-pkg/`)로 지정 + 상대 import(taffy 선례). `package.json wasm:build:engine`. **전제 정정**: `UNIFIED_ENGINE:true` global override 로 `isUnifiedFlag` 개별 flag 무관 true → 배선=즉시 flip(분리 불가). 옵션 1(배선=flip 인정) 진행, `isUnifiedFlag` 재설계는 scope 확장 회피. **Chrome MCP live exercise**: builder 진입 → init 로그 + `createLayoutEngine()` `CompositionEngineLayout` 반환 + flex 실계산(leaf-b x=30) + nodeCount 3 + Skia 렌더 무붕괴. infra-exists-vs-wired 검증이 초기 폴백(TaffyLayout 반환) 잡아 경로 정정. type-check PASS(69) + 20/20 무회귀. **다음 = 1-E Taffy 제거 재평가**(자체 엔진 안정화 후 Taffy crate/pkg/wrapper 제거 → 2-C/2-D/2-E). HIGH — 별도 승인.
 - **(1-E) Taffy dead code 제거 완료** (사용자 승인 2026-07-05, "1-E Taffy 제거 승인"; scope AskUserQuestion 2건 = "폴백 유지 + Taffy 사용 참조만 제거" + "dead 코드 삭제만"). **dead 판정 근거**: C-2a live 전환 후 Taffy 엔진 클래스는 인스턴스화 0건 / `.calculate()` 호출 0건 — `selectEngine()` router 부재, live 경로는 `createLayoutEngine()` seam → `CompositionEngineLayout` 단일. **삭제(파일 전체 2)**: `BaseTaffyEngine.ts`(abstract, `new TaffyLayout()` dead) + `layoutAccelerator.ts`(importer 0). **클래스만 제거(파일 유지 3, live helper 보존)**: `TaffyFlexEngine`/`Grid`/`Block` 클래스 + `isTaffy*Available` 삭제, 순수 helper `elementToTaffyStyle`/`parseGridTemplate`/`elementToTaffyBlockStyle` 는 `fullTreeLayout.ts:41-43` 소비 유지(Taffy 인스턴스 비의존 pure fn — DFS 가 style 변환에만 사용). **폴백 유지**: `layoutBridge.ts:84` Taffy fallback = WASM 미가용 안전망(사용자 지시, crate/pkg 물리 삭제 아님). ⚠️ `TaffyGridEngine.parseGridTemplateAreas`(dead)와 `GridLayout.utils.ts:456 parseGridTemplateAreas`(**live, 동명 다른 함수**) 혼동 주의 — 후자 보존됨. **검증**: 삭제 심볼 잔존 참조 0건, 파일명 참조 9/6/2 = import 경로 + 주석. type-check PASS(69) 무회귀. commit f2ac4860c(-1252줄). **다음 = 2-C scene.rs / 2-D commands.rs / 2-E text.rs 재평가**(fullTreeLayout DFS → 자체 엔진 편입 후속). HIGH — 별도 승인.
 
-### 2-C. `scene.rs` — Scene graph dirty detection
+### 2-C. Projection signature recomputation 제거/증분화
 
-> **⚠️ 2026-07-05 벤치 재평가 — 원안 전제 반증 (착수 전 필독)**: 아래 첫 항목("`detectChangedIds` O(N)→O(1)")은 **실측상 병목이 아님**. `sceneDirtyDetection.bench.ts` 측정: `detectChangedIds` 는 3000 노드 **0.052ms**(60fps 예산 0.3%) — O(1) 이관 효과 사실상 0. **실제 병목 = `buildSceneStructureSnapshot` 의 `createResolvedProjectionSignature`**(전체 elements `stableSerialize`+`hashString`) — 3000 노드 **19.25ms(예산 초과)** / 1000 노드 5.23ms / 500 노드 2.01ms. useMemo(`BuilderCanvas.tsx:352`) deps 에 panOffset/zoom → pan/zoom 중 매 프레임 재계산. **2-C scope 를 signature 경로로 재정의해야 유효** — detectChangedIds 이관은 잘못된 대상 최적화. 착수 보류(사용자 승인 대기), scope 재정의 후 진입.
+> **2026-07-05 벤치 재정의 (원 제목 "Scene graph dirty detection O(N)→O(1)" 폐기)**: 벤치가 원안 전제(detectChangedIds O(N) 병목)를 반증 → scope 를 실측 병목(projection signature 재계산)으로 재정의. 원안 제목/목표는 아래 "폐기된 원안" 참조.
 
-- ~~`StoreRenderBridge.detectChangedIds` O(N) → generation counter + dirty bitfield O(1)~~ — **벤치 반증(위)**: detectChangedIds 는 프레임 예산 0.3%, 이관 무의미
-- **재정의 후보 scope**: `createResolvedProjectionSignature`(전체 노드 직렬화 서명) 를 Rust 로 이관하거나, projection-relevant field 만 증분 hash(전체 stableSerialize 회피). 실제 프레임타임 병목이 여기임
-- element registry Rust 관리
-- **ADR-136 sceneVersion 계약 승계 (canvas-rendering.md §9)**: sceneVersion = layoutVersion + pagePositionsVersion + projection content signature (`scene/buildSceneSnapshot.ts:91` `buildSceneStructureSnapshot` / `:206` sceneVersion hash). signature 계산은 snapshot 빌드 시점만 (pointer hot path 금지), projection-relevant field 추가 시 signature input 동시 갱신 의무 — Rust 이관 후에도 동일 보수 의무 유지
+**목표**: `buildSceneStructureSnapshot` 의 projection content signature 재계산 비용 제거/증분화. **dirty detection 최적화 아님**.
+
+**벤치 근거 (`sceneDirtyDetection.bench.ts`, 검증 매트릭스 '성능 벤치' gate)**:
+
+| 노드 | `buildSceneStructureSnapshot` 전체 | `createResolvedProjectionSignature` 단독 | signature 비중 | `detectChangedIds` |
+| ---- | ---------------------------------- | ---------------------------------------- | -------------- | ------------------ |
+| 500  | 2.06ms                             | 2.23ms                                   | ~100%          | 0.0070ms           |
+| 1000 | 5.98ms                             | 5.99ms                                   | ~100%          | 0.0157ms           |
+| 3000 | 18.76ms                            | 18.15ms                                  | ~97%           | 0.052ms            |
+
+→ 병목은 **signature 계산 하나** (전체 snapshot 비용의 ~100%). depthMap/pageDataMap/pageFrames 는 무시 가능. `detectChangedIds` 는 예산 0.3% (원안 이관 무의미).
+
+**핵심 성질 — signature 는 pan/zoom/containerSize 와 독립**: 입력 = `input.elements`(sceneNodes) + `pageSnapshots` 의 node 참조(`bodyElement`/`pageElements`) 뿐. `isVisible` 등 viewport 필드 미참조. 그런데 현재 전체 `buildSceneStructureSnapshot` 이 단일 useMemo(`BuilderCanvas.tsx:352`, deps 에 panOffset/zoom)에 묶여 pan/zoom 중에도 매 프레임 전체 재직렬화.
+
+**수정안 후보 (표면 오름차순 — 최소부터)**:
+
+- **안 A (최소, JS)**: signature 계산을 pan/zoom deps 에서 분리 — signature 를 별도 useMemo(`elements`/`layoutVersion`/`pagePositions` deps 만)로 뽑아 pan/zoom-only 변경 시 재계산 skip. Rust 이관 0, 표면 최소. pan/zoom 은 layout 이 안정된 상태에서 가장 빈번한 인터랙션이므로 실측 병목의 큰 몫을 즉시 제거.
+- **안 B (JS 증분)**: 전체 `stableSerialize` 회피 — 노드별 signature 를 캐싱(node 참조 안정 시 재사용) + 변경 노드만 rehash. detectChangedIds 가 이미 O(N) 참조 비교를 하므로 그 결과를 signature 증분에 재사용 가능.
+- **안 C (Rust 이관, scene.rs)**: signature 계산을 `scene.rs` WASM 으로 이관. 표면 최대 — cutover 즉시 삭제 원칙(§Phase 2 순서 의존성) + [[feedback-no-dormant-foundation-ahead-of-flip]] 상 안 A/B 로 병목이 해소되면 Rust 이관은 과잉. **안 A/B 실측 후에도 예산 초과 잔존 시에만 정당화**.
+
+**판정 방향**: 안 A 우선(최소 표면). 안 A 적용 후 재벤치 → 잔여 병목이 예산 내면 2-C 종료, 초과 시 안 B → 그래도 초과 시 안 C(Rust). **element registry Rust 관리 / scene.rs 신설은 안 A/B 로 해소 시 불필요** — 원안의 "Rust 이관 전제" 는 벤치 미확보 상태의 추정이었음.
+
+**✅ 안 A land 완료 (2026-07-05)**: `buildSceneStructureSnapshot` 에 `precomputedProjectionSignature?` 주입 파라미터 추가(미주입 시 내부 계산 = 하위 호환). `BuilderCanvas.tsx` 가 signature 를 pan/zoom 독립 useMemo(deps: `sceneNodes`/`sceneNodesMap`/`layoutVersion`/`pages`/`scenePageIndex`/`isFrameEditMode` — panOffset/zoom/containerSize 제외)로 계산해 주입. **재벤치 결과 — 병목 예산 내 해소**:
+
+| 노드 | pan/zoom 프레임 (안 A 전 = 전체) | pan/zoom 프레임 (안 A 후 = signature 주입) | 개선 |
+| ---- | -------------------------------- | ------------------------------------------ | ---- |
+| 500  | 2.11ms                           | 0.072ms                                    | 29×  |
+| 1000 | 6.35ms                           | 0.151ms                                    | 42×  |
+| 3000 | 21.44ms(예산 초과)               | 0.492ms(예산 3%)                           | 44×  |
+
+→ pan/zoom 프레임 3000 노드 21.44ms→0.49ms. **60fps 예산 내 완전 해소 → 안 B/안 C(Rust scene.rs) 불필요, 2-C 종료.** 정합성: 주입 signature == 내부 계산 → 동일 sceneVersion (buildSceneSnapshot.test.ts 안 A describe 3 test). live: builder 진입 CSS/Skia 정상 렌더 + selection/hit-test 정상 + signature 관련 콘솔 에러 0. type-check PASS(baseline 69).
+
+- **ADR-136 sceneVersion 계약 승계 (canvas-rendering.md §9)**: sceneVersion = layoutVersion + pagePositionsVersion + projection content signature (`scene/buildSceneSnapshot.ts` `buildSceneStructureSnapshot` / sceneVersion hash). signature 계산은 snapshot 빌드 시점만 (pointer hot path 금지), projection-relevant field 추가 시 signature input 동시 갱신 의무 — 안 A/B(useMemo 분리·증분) 후에도, 안 C(Rust 이관) 후에도 동일 보수 의무 유지
+
+<details><summary>폐기된 원안 (2026-07-05 벤치 반증 전)</summary>
+
+- ~~`StoreRenderBridge.detectChangedIds` O(N) → generation counter + dirty bitfield O(1)~~ — 벤치 반증: 예산 0.3%, 이관 무의미
+- ~~element registry Rust 관리~~ — 안 A/B 로 병목 해소 시 불필요
+
+</details>
 
 ### 2-D. `commands.rs` — Render command stream + SpatialIndex 단일 패스
 
@@ -314,7 +350,7 @@ packages/composition-engine/        # 신규 통합 crate (composition-layout �
 ├── Cargo.toml                      # taffy 의존 없음
 └── src/
     ├── lib.rs          # WASM 엔트리 — 단일 batch API
-    ├── scene.rs        # 2-C
+    ├── scene.rs        # 2-C (조건부 — 안 C, JS 안 A/B 로 병목 미해소 시에만 신설)
     ├── style.rs        # 2-A (기존 style.rs 승계 확장)
     ├── tree.rs         # 2-B
     ├── flex.rs         # 1-A

@@ -9,6 +9,7 @@ import { buildVisiblePageSet } from "./buildVisiblePageSet";
 import type {
   BuildSceneSnapshotInput,
   BuildSceneStructureInput,
+  ScenePageData,
   ScenePageSnapshot,
   SceneSelectionState,
   SceneSnapshot,
@@ -61,9 +62,22 @@ function createNodeProjectionSignature(node: CanvasSceneNode | null) {
   };
 }
 
-function createResolvedProjectionSignature(input: {
+/**
+ * projection content signature — sceneVersion 의 핵심 입력.
+ *
+ * **ADR-916 2-C 재평가 (2026-07-05)**: 벤치상 `buildSceneStructureSnapshot`
+ * 프레임타임 비용의 대부분이 본 함수(전체 elements `stableSerialize` +
+ * `hashString`) 에서 발생. 입력은 `elements`(sceneNodes) + `pageSnapshots` 의
+ * node 참조뿐 — **pan/zoom/containerSize 와 독립**. 향후 최소 수정안은 본
+ * 계산을 pan/zoom deps 에서 분리(별도 useMemo)하거나 증분 hash 로 대체한다.
+ * 재평가 벤치(`sceneDirtyDetection.bench.ts`)가 본 export 를 소비.
+ */
+export function createResolvedProjectionSignature(input: {
   elements: CanvasSceneNode[];
-  pageSnapshots: Map<string, ScenePageSnapshot>;
+  // ScenePageData(bodyElement/pageElements) 만 참조 — ScenePageSnapshot 도
+  // extends ScenePageData 이므로 기존 pageSnapshots 호출과 호환. 안 A(별도
+  // useMemo)는 전체 snapshot 없이 pageDataMap(ScenePageData) 으로 호출.
+  pageSnapshots: Map<string, ScenePageData>;
 }): number {
   return hashString(
     stableSerialize({
@@ -183,10 +197,14 @@ export function buildSceneStructureSnapshot(
       })
       .join(":"),
   );
-  const projectionContentSignature = createResolvedProjectionSignature({
-    elements: input.elements,
-    pageSnapshots,
-  });
+  // ADR-916 2-C 안 A: 호출측(BuilderCanvas)이 pan/zoom 독립 useMemo 로 미리
+  // 계산해 주입하면 전체 재직렬화 skip. 미주입(기존 호출·테스트)이면 내부 계산.
+  const projectionContentSignature =
+    input.precomputedProjectionSignature ??
+    createResolvedProjectionSignature({
+      elements: input.elements,
+      pageSnapshots,
+    });
 
   return {
     depthMap,

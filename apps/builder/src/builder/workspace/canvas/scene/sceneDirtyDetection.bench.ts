@@ -18,8 +18,14 @@
 import { bench, describe } from "vitest";
 
 import type { CanvasSceneNode } from "./canvasSceneNode";
-import { buildSceneStructureSnapshot } from "./buildSceneSnapshot";
-import type { BuildSceneStructureInput } from "./sceneSnapshotTypes";
+import {
+  buildSceneStructureSnapshot,
+  createResolvedProjectionSignature,
+} from "./buildSceneSnapshot";
+import type {
+  BuildSceneStructureInput,
+  ScenePageSnapshot,
+} from "./sceneSnapshotTypes";
 import { createEmptyPageIndex } from "../../../stores/utils/elementIndexer";
 import type { Page } from "../../../../types/core/store.types";
 
@@ -143,6 +149,35 @@ for (const nodeCount of [500, 1000, 3000]) {
     const changedNode = { ...nextMap.get(firstId)! };
     nextMap.set(firstId, changedNode);
 
+    // signature 단독 입력: body → bodyElement, 나머지 → pageElements (최소
+    // pageSnapshots fixture — createResolvedProjectionSignature 는 bodyElement/
+    // pageElements 만 참조).
+    const sigElements = input.elements;
+    const body = sigElements.find((el) => el.type === "Body") ?? null;
+    const nonBody = sigElements.filter((el) => el.type !== "Body");
+    const sigPageSnapshots = new Map<string, ScenePageSnapshot>([
+      [
+        PAGE_ID,
+        {
+          bodyElement: body,
+          pageElements: nonBody,
+          contentVersion: 0,
+          frame: {
+            elementCount: nonBody.length,
+            height: 900,
+            id: PAGE_ID,
+            title: "Page 1",
+            width: 1440,
+            x: 0,
+            y: 0,
+          },
+          isVisible: true,
+          pageId: PAGE_ID,
+          positionVersion: 0,
+        },
+      ],
+    ]);
+
     bench("detectChangedIds (Map 참조 비교 O(N))", () => {
       detectChangedIds(elementsMap, nextMap);
     });
@@ -150,5 +185,32 @@ for (const nodeCount of [500, 1000, 3000]) {
     bench("buildSceneStructureSnapshot (전체 — signature 포함)", () => {
       buildSceneStructureSnapshot(input);
     });
+
+    // ADR-916 2-C 재정의: signature 단독 비용 = 병목 실체. pan/zoom 만 바뀔 때
+    // 이 계산을 skip 하면(별도 useMemo 분리) 절약되는 몫.
+    bench("createResolvedProjectionSignature (병목 단독)", () => {
+      createResolvedProjectionSignature({
+        elements: sigElements,
+        pageSnapshots: sigPageSnapshots,
+      });
+    });
+
+    // ADR-916 2-C 안 A 적용: pan/zoom-only 프레임 = signature 미리 계산(별도
+    // useMemo, 재계산 skip) + snapshot 은 주입 signature 소비. 이 비용이 안 A
+    // 후 pan/zoom 프레임의 실제 scene 비용.
+    const precomputedSig = createResolvedProjectionSignature({
+      elements: sigElements,
+      pageSnapshots: sigPageSnapshots,
+    });
+    const inputWithSig: BuildSceneStructureInput = {
+      ...input,
+      precomputedProjectionSignature: precomputedSig,
+    };
+    bench(
+      "buildSceneStructureSnapshot (안 A — signature 주입, pan/zoom 프레임)",
+      () => {
+        buildSceneStructureSnapshot(inputWithSig);
+      },
+    );
   });
 }

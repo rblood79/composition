@@ -67,7 +67,12 @@ import { usePageDrag } from "./hooks/usePageDrag";
 import { useKeyboardShortcutsRegistry } from "../../hooks/useKeyboardShortcutsRegistry";
 import type { PageTitleBounds } from "./skia/skiaOverlayHelpers";
 
-import { buildCanonicalSceneModel, buildSceneStructureSnapshot } from "./scene";
+import {
+  buildCanonicalSceneModel,
+  buildPageDataMap,
+  buildSceneStructureSnapshot,
+  createResolvedProjectionSignature,
+} from "./scene";
 import { buildLegacyCanvasSceneGraph } from "../../stores/canonical/canonicalSceneModelLegacy";
 import {
   computeWorkflowEdges,
@@ -346,6 +351,31 @@ export function BuilderCanvas({
     pages,
   ]);
 
+  // ADR-916 2-C 안 A: projection content signature 를 pan/zoom 독립 useMemo 로
+  // 분리. 벤치상 이 계산(전체 elements stableSerialize)이 buildScene 비용의
+  // ~100% 이나 pan/zoom/containerSize 와 무관 → 그 deps 를 제외해 pan/zoom-only
+  // 변경 시 재계산 skip. 입력 = elements(sceneNodes) + pageDataMap(bodyElement/
+  // pageElements). isFrameEditMode 는 scenePages 를 비우므로 그 조건도 반영.
+  const projectionContentSignature = useMemo(() => {
+    const scenePages = isFrameEditMode ? [] : pages;
+    const pageDataMap = buildPageDataMap(
+      scenePages,
+      scenePageIndex,
+      sceneNodesMap,
+    );
+    return createResolvedProjectionSignature({
+      elements: sceneNodes,
+      pageSnapshots: pageDataMap,
+    });
+  }, [
+    isFrameEditMode,
+    layoutVersion,
+    pages,
+    scenePageIndex,
+    sceneNodes,
+    sceneNodesMap,
+  ]);
+
   // ADR-074 Phase 2: structure(selection-invariant) / selection 분리.
   // selection-only 변화 시 structure useMemo identity 유지 → 하위 useMemo
   // (skiaRendererInput / layoutPublisherInputs) 의 deps 변동 차단.
@@ -364,6 +394,7 @@ export function BuilderCanvas({
       pageWidth,
       pages: scenePages,
       panOffset,
+      precomputedProjectionSignature: projectionContentSignature,
       source: canonicalSceneModel ? "canonical" : "legacy-bootstrap",
       zoom,
     });
@@ -380,6 +411,7 @@ export function BuilderCanvas({
     pageWidth,
     pages,
     panOffset,
+    projectionContentSignature,
     sceneNodes,
     sceneNodesMap,
     zoom,

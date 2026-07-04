@@ -92,6 +92,13 @@ export interface BuildSceneStructureInput {
   pageWidth: number;
   pages: Page[];
   panOffset: { x: number; y: number };
+  /**
+   * ADR-916 2-C 안 A: projection content signature 를 호출측이 pan/zoom 독립
+   * useMemo 로 미리 계산해 주입. 주입 시 `buildSceneStructureSnapshot` 내부의
+   * 전체 `createResolvedProjectionSignature`(전체 elements stableSerialize) 를
+   * skip — pan/zoom-only 변경 시 재직렬화 회피. 미주입이면 내부 계산(하위 호환).
+   */
+  precomputedProjectionSignature?: number;
   source: SceneInputSource;
   zoom: number;
 }
