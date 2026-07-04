@@ -13,10 +13,20 @@
 //! GridLayout.utils.ts 의 알고리즘을 정본으로 이관하여 그 갭을 메우고, grid_layout.rs 의
 //! 산술 test 11 을 회귀로 승계한다 (재작성 아닌 이식 — WPT-파생 검증 자산 상실 회피).
 //!
+//! ## implicit auto row intrinsic (2026-07-04, seam C-1 후속)
+//!
+//! `gridTemplateRows` 미명시(implicit auto row) 시 grid.rs 단독은 셀 높이를 하드코딩
+//! fallback(100)으로 채운다(자식 flat 을 안 받아 intrinsic 을 모름). CSS implicit auto
+//! row 는 그 행 자식들의 max content height 여야 하므로, **tree.rs `solve_grid`** 가
+//! 자식을 먼저 solve 해 intrinsic height 를 얻고 row 별 max 를 px 트랙 문자열로 주입한 뒤
+//! grid.rs 를 호출한다(자식 intrinsic → row 크기 도출은 트리 레벨 책임, grid.rs 는 확정된
+//! 트랙만 배치). 이로써 grid height:auto 가 dual-run(Taffy self-diff) diff 0 통과.
+//!
 //! ## 미구현 (다음 세션 — dual-run FAIL 이 fixture)
 //!
-//! subgrid, `min-content`/`max-content` intrinsic track (→ 0 폴백), dense packing 의 빈칸
-//! 역채움, baseline 정렬, `fit-content()` 함수. 현행 catalog grid 컨테이너 사용 범위로 한정.
+//! subgrid, 명시 track 의 `min-content`/`max-content` intrinsic(→ 0 폴백, 명시 row 안의
+//! auto 는 여전히 미측정), dense packing 의 빈칸 역채움, baseline 정렬, `fit-content()`
+//! 함수. 현행 catalog grid 컨테이너 사용 범위로 한정.
 
 use wasm_bindgen::prelude::*;
 

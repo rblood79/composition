@@ -239,7 +239,7 @@ describe("dual-run 실전 catalog 진단 (ADR-916 Phase 2-B seam C-1)", () => {
     expect(result.pass).toBe(true);
   });
 
-  it("grid height:auto → 현재 diff 발생 (flag 전환 선결: grid.rs intrinsic track)", () => {
+  it("grid height:auto → 자체 vs Taffy diff 0 (선결 해소: grid.rs implicit auto row)", () => {
     const self = adaptSelfEngine(new LayoutEngine());
     const taffy = adaptTaffyEngine(new TaffyLayoutEngine());
     const result = runDualLayout(
@@ -249,12 +249,13 @@ describe("dual-run 실전 catalog 진단 (ADR-916 Phase 2-B seam C-1)", () => {
       taffy,
       self,
     );
-    // 자체 grid.rs 는 셀 높이를 intrinsic 대신 available 로 채움 → 셀 h 갈림.
-    // grid.rs intrinsic track 측정 후 이 기대를 pass=true 로 뒤집는다.
-    expect(result.pass).toBe(false);
-    const heightViolated = result.numericViolations.some(
-      (v) => v.field === "height",
-    );
-    expect(heightViolated).toBe(true);
+    // tree.rs solve_grid 이 rows 미명시(implicit auto row) 시 자식 intrinsic
+    // content height 로 셀 높이를 도출하도록 land 후 통과.
+    // (이전: 자체 grid.rs 가 셀 높이를 하드코딩 fallback 100 으로 채움 → +50 diff.)
+    if (!result.pass) {
+      // eslint-disable-next-line no-console
+      console.log("grid:", formatViolations(result));
+    }
+    expect(result.pass).toBe(true);
   });
 });

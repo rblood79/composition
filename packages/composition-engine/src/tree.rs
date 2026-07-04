@@ -696,9 +696,13 @@ impl LayoutTree {
     /// (3) 자식들을 `area_name|grid_column|grid_row` 파이프 형식(개행 구분) 직렬화.
     ///
     /// 셀 bounds 를 받은 뒤 각 자식을 셀 크기로 재귀 solve(자식이 grid 셀 안 flex/
-    /// block 컨테이너일 수 있음) → 셀 좌표를 자식 위치로 반영. 자식 재귀 solve 결과
-    /// (content 크기)는 셀 크기가 이미 트랙에서 확정됐으므로 위치 반영에는 미사용
-    /// (grid 는 자식 intrinsic 이 트랙을 늘리지 않음 — intrinsic track 은 grid.rs 미구현).
+    /// block 컨테이너일 수 있음) → 셀 좌표를 자식 위치로 반영.
+    ///
+    /// **implicit auto row (2026-07-04, seam C-1)**: `gridTemplateRows` 미명시 +
+    /// 전부 auto-placement 이면, grid.rs 하드코딩 fallback(100) 대신 자식을 먼저
+    /// solve 해 intrinsic content height 를 얻고 row-major(row = i / col_count) 별
+    /// max 를 px 트랙으로 주입한 뒤 grid.rs 호출 → CSS implicit auto row 동작.
+    /// (명시 row 안의 auto track intrinsic, 명시 placement 케이스는 여전히 미측정.)
     fn solve_grid(
         &mut self,
         handle: usize,
@@ -721,10 +725,36 @@ impl LayoutTree {
 
         // (1) track array → space-join 문자열.
         let template_cols = join_tracks(style.grid_template_columns.as_deref());
-        let template_rows = join_tracks(style.grid_template_rows.as_deref());
+        let mut template_rows = join_tracks(style.grid_template_rows.as_deref());
 
         // (2)+(3) 자식 placement 직렬화 (area_name|grid_column|grid_row 개행 구분).
         let placement_spec = self.build_grid_placement_spec(children);
+
+        // implicit auto row (gridTemplateRows 미명시) + 전부 auto-placement 인 경우:
+        // grid.rs 는 rows 미명시 시 셀 높이를 하드코딩 fallback(100)으로 채운다.
+        // CSS implicit auto row 는 그 행 자식들의 max intrinsic content height 여야 하므로,
+        // 자식을 먼저 solve 해 intrinsic height 를 얻고 row 별 max 를 px 트랙으로 주입한다.
+        // (명시 placement 가 있으면 row-major 가정이 깨지므로 grid.rs fallback 경로 유지.)
+        if template_rows.is_empty() && placement_spec.is_empty() && !children.is_empty() {
+            let col_count = grid::parse_tracks(&template_cols, container_w, col_gap).len().max(1);
+            // 자식 intrinsic height (셀 크기 미확정 → available 기준 solve).
+            // row-major auto-placement: 자식 i 는 row = i / col_count.
+            let mut row_heights: Vec<f32> = Vec::new();
+            for (i, &c) in children.iter().enumerate() {
+                let (_, ch) = self.solve_node(c, avail_w, avail_h);
+                let row = i / col_count;
+                if row >= row_heights.len() {
+                    row_heights.resize(row + 1, 0.0);
+                }
+                row_heights[row] = row_heights[row].max(ch);
+            }
+            // row 별 max intrinsic 을 px 트랙 문자열로 주입.
+            template_rows = row_heights
+                .iter()
+                .map(|h| format!("{h}px"))
+                .collect::<Vec<_>>()
+                .join(" ");
+        }
 
         // grid_layout — 셀 bounds flat [x,y,w,h,...].
         let bounds = grid::grid_layout(
@@ -1640,6 +1670,58 @@ mod tests {
         let container = tree.get_layout(root);
         assert_eq!(container.width, 100.0, "명시 width 유지");
         assert_eq!(container.height, 100.0, "intrinsic height = 셀 bounding box (40+60)");
+    }
+
+    /// implicit auto row (gridTemplateRows 미명시) + 자식 명시 height →
+    /// 셀 높이 = 자식 intrinsic content height (하드코딩 100 아님).
+    /// C-1 진단이 flag 전환 선결로 확정한 grid intrinsic track 케이스.
+    #[test]
+    fn grid_implicit_auto_row_from_child_height() {
+        let mut tree = LayoutTree::new();
+        // cols "1fr 1fr" at 200 → [100,100]. rows 미명시(implicit auto).
+        // 자식 2개 각 height:50px → 한 행(row-major 2열) → 셀 높이 = 자식 50.
+        let json = r#"[
+            {"style":{"height":"50px"},"children":[]},
+            {"style":{"height":"50px"},"children":[]},
+            {"style":{"display":"grid","width":"200px","height":"auto","gridTemplateColumns":["1fr","1fr"]},"children":[0,1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        let root = handles[2];
+        tree.compute_layout(root, 200.0, -1.0); // height:auto sentinel
+        // 셀 높이 = 자식 명시 50 (하드코딩 100 아님).
+        let c0 = tree.get_layout(handles[0]);
+        let c1 = tree.get_layout(handles[1]);
+        assert_eq!(c0.height, 50.0, "c0 셀 높이 = 자식 intrinsic 50 (not 100)");
+        assert_eq!(c1.height, 50.0, "c1 셀 높이 = 자식 intrinsic 50 (not 100)");
+        // 컨테이너 intrinsic height = row 높이 50 (1행).
+        let container = tree.get_layout(root);
+        assert_eq!(container.height, 50.0, "컨테이너 intrinsic = row 50");
+    }
+
+    /// implicit auto row 여러 행 — 자식 3개 2열 → 2행, 각 행 높이 = 그 행 자식 max intrinsic.
+    #[test]
+    fn grid_implicit_auto_row_multi_row_max_height() {
+        let mut tree = LayoutTree::new();
+        // cols "1fr 1fr", 자식 3개 (row0: c0,c1 / row1: c2). rows 미명시.
+        // c0 h=30, c1 h=50 → row0 = max(30,50)=50. c2 h=40 → row1 = 40.
+        let json = r#"[
+            {"style":{"height":"30px"},"children":[]},
+            {"style":{"height":"50px"},"children":[]},
+            {"style":{"height":"40px"},"children":[]},
+            {"style":{"display":"grid","width":"200px","height":"auto","gridTemplateColumns":["1fr","1fr"]},"children":[0,1,2]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        let root = handles[3];
+        tree.compute_layout(root, 200.0, -1.0);
+        // row0 높이 = max(30,50) = 50 → c0,c1 셀 높이 50.
+        assert_eq!(tree.get_layout(handles[0]).height, 50.0, "row0 max height");
+        assert_eq!(tree.get_layout(handles[1]).height, 50.0, "row0 max height");
+        // c2 는 row1 (y=50), 높이 40.
+        let c2 = tree.get_layout(handles[2]);
+        assert_eq!(c2.y, 50.0, "c2 row1 y = row0 height 50");
+        assert_eq!(c2.height, 40.0, "row1 height = 40");
+        // 컨테이너 intrinsic = 50 + 40 = 90.
+        assert_eq!(tree.get_layout(root).height, 90.0, "컨테이너 = row0+row1 = 90");
     }
 
     // ── get_layouts_batch ──

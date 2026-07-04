@@ -74,11 +74,15 @@
 //!   available_main 음수(sentinel) intrinsic 처리 + collect_lines 한 라인 +
 //!   ALIGN_STRETCH 명시 cross 유지(`cross_is_auto`) → C-1 flex column height:auto
 //!   dual-run diff 0 전환(dualRunLive.test.ts 7/7). flex.rs 모듈 doc 참조.
-//! - **선결 과제 #2 (flag 전환 전 잔존)**: grid.rs intrinsic track 측정
-//!   (min/max-content) — 현재 셀 높이를 available 로 채움 → C-1 grid diff 잔존.
-//!   Phase 1-B grid.rs 후속. 완료 후 C-1 grid diff 0 전환 → (C-2) flag 전환
-//!   (자체 pkg 런타임 로드 배선 + `createLayoutEngine` flag true) 재평가.
-//!   block 경로는 이미 정합.
+//! - **선결 과제 #2 grid.rs implicit auto row 완료 (2026-07-04)**: tree.rs
+//!   `solve_grid` 이 rows 미명시 + auto-placement 시 자식 intrinsic content
+//!   height 로 row-major row 크기 도출(grid.rs fallback 100 대체) → C-1 grid
+//!   height:auto dual-run diff 0 전환. **dualRunLive.test.ts 7/7 — C-1 3 대표
+//!   패턴(block/flex column/grid) 전면 diff 0** = 두 flag 전환 선결 완료.
+//! - **다음 = (C-2) flag 전환 재평가**: 자체 pkg apps/builder dependency 등록 +
+//!   런타임 로드 배선(현재 미등록) + `createLayoutEngine` flag true 주입 + **넓은
+//!   실전 fixture(catalog 컨테이너 트리) dual-run 확장 후 diff 0 재확인**(C-1 3
+//!   패턴은 대표 샘플, 실전 중첩/혼합/edge 미검증). live 엔진 교체라 HIGH.
 
 pub mod block;
 pub mod cascade;
