@@ -11,23 +11,14 @@
  */
 
 import type { CanvasLayoutNode } from "../layoutNode";
-import type { ComputedLayout, LayoutContext } from "./LayoutEngine";
-import type {
-  TaffyStyle,
-  TaffyNodeHandle,
-} from "../../wasm-bindings/taffyLayout";
-import { TaffyLayout } from "../../wasm-bindings/taffyLayout";
-import { BaseTaffyEngine } from "./BaseTaffyEngine";
+import type { TaffyStyle } from "../../wasm-bindings/taffyLayout";
 import {
   parseMargin,
-  enrichWithIntrinsicSize,
   applyCommonTaffyStyle,
   parseCSSPropWithContext,
 } from "./utils";
-import { resolveStyle } from "./cssResolver";
-import type { ComputedStyle } from "./cssResolver";
 import type { CSSValueContext } from "./cssValueParser";
-import { toTaffyDisplay, getElementDisplay } from "./taffyDisplayAdapter";
+import { toTaffyDisplay } from "./taffyDisplayAdapter";
 import type { TaffyDisplayConfig } from "./taffyDisplayAdapter";
 
 // ─── margin:auto 판별 ────────────────────────────────────────────────
@@ -207,158 +198,4 @@ export function elementToTaffyBlockStyle(
   }
 
   return result;
-}
-
-// ─── TaffyBlockEngine ─────────────────────────────────────────────────
-
-/**
- * Taffy Block WASM 엔진 가용 여부
- *
- * selectEngine()에서 조기 라우팅 판단에 사용.
- */
-export function isTaffyBlockAvailable(): boolean {
-  const instance = TaffyBlockEngine.instance;
-  if (!instance) return true; // 아직 생성 전이면 사용 가능으로 간주
-  return instance.isAvailable();
-}
-
-/**
- * Taffy 기반 Block 레이아웃 엔진
- *
- * CSS display:block / inline-block / inline / flow-root 에 대해
- * Taffy WASM으로 직접 레이아웃을 계산합니다.
- *
- * taffyDisplayAdapter의 변환 규칙:
- * - inline-block 자식이 있는 부모 → flex row wrap (inline flow 시뮬레이션)
- * - inline-block 자신 → block 리프 (flexGrow:0, flexShrink:0)
- * - block / flow-root → block
- * - inline → block (Taffy는 inline 개념 없음)
- *
- * BaseTaffyEngine의 인스턴스 관리, calculate() 스켈레톤, 결과 수집을 상속합니다.
- */
-export class TaffyBlockEngine extends BaseTaffyEngine {
-  static instance: TaffyBlockEngine | null = null;
-
-  readonly displayTypes = ["block", "inline-block", "inline", "flow-root"];
-  protected readonly engineName = "TaffyBlockEngine";
-
-  constructor() {
-    super();
-    TaffyBlockEngine.instance = this;
-  }
-
-  protected computeWithTaffy(
-    taffy: TaffyLayout,
-    parent: CanvasLayoutNode,
-    children: CanvasLayoutNode[],
-    availableWidth: number,
-    availableHeight: number,
-    parentComputed: ComputedStyle,
-    cssCtx: CSSValueContext = {},
-    context?: LayoutContext,
-  ): ComputedLayout[] {
-    const getChildElements = context?.getChildElements;
-
-    // ── 1. 자식별 computed style 캐시 ──────────────────────────────────
-    const childComputedStyles = children.map((child) => {
-      const childRawStyle = child.props?.style as
-        | Record<string, unknown>
-        | undefined;
-      return resolveStyle(childRawStyle, parentComputed);
-    });
-
-    // ── 2. 자식 enrichment (intrinsic size 주입) ────────────────────────
-    const enrichedChildren = children.map((child, i) => {
-      const childChildren = getChildElements?.(child.id);
-      return enrichWithIntrinsicSize(
-        child,
-        availableWidth,
-        availableHeight,
-        childComputedStyles[i],
-        childChildren,
-        getChildElements,
-        true,
-      );
-    });
-
-    // ── 3. 자식 display 목록 수집 (부모 toTaffyDisplay 판단용) ──────────
-    // inline-block 자식이 하나라도 있으면 부모를 flex row wrap으로 변환
-    const childDisplayValues = enrichedChildren.map((child) =>
-      getElementDisplay(child),
-    );
-
-    // ── 4. 자식 노드 생성 ───────────────────────────────────────────────
-    const childHandles: TaffyNodeHandle[] = [];
-    const childMap = new Map<TaffyNodeHandle, CanvasLayoutNode>();
-
-    for (let i = 0; i < enrichedChildren.length; i++) {
-      const enrichedChild = enrichedChildren[i];
-      const originalChild = children[i];
-      const childDisplay = getElementDisplay(enrichedChild);
-
-      // 자식 자신의 display를 변환 (inline-block 리프 → block + flexGrow:0)
-      const childTaffyConfig = toTaffyDisplay(childDisplay, []);
-      const taffyStyle = elementToTaffyBlockStyle(
-        enrichedChild,
-        childTaffyConfig,
-        cssCtx,
-      );
-
-      const handle = taffy.createNode(taffyStyle);
-      childHandles.push(handle);
-      childMap.set(handle, originalChild);
-    }
-
-    // ── 5. 부모 display 변환 (자식 display 목록 기반) ───────────────────
-    const parentRawStyle = (parent.props?.style || {}) as Record<
-      string,
-      unknown
-    >;
-    const parentDisplay = getElementDisplay(parent);
-    // enrichedChildren 전달: vertical-align 기반 alignItems 동적 결정 (ADR-006 P2-3)
-    const parentTaffyConfig = toTaffyDisplay(
-      parentDisplay,
-      childDisplayValues,
-      enrichedChildren,
-    );
-
-    // ── 6. 부모 노드 생성 ───────────────────────────────────────────────
-    const parentStyle: TaffyStyle = {};
-    parentStyle.display = parentTaffyConfig.taffyDisplay;
-
-    // inline-block 자식을 가진 부모가 flex row wrap으로 변환된 경우
-    // taffyConfig의 flexDirection/flexWrap/alignItems를 주입
-    if (parentTaffyConfig.flexDirection) {
-      parentStyle.flexDirection = parentTaffyConfig.flexDirection;
-    }
-    if (parentTaffyConfig.flexWrap) {
-      parentStyle.flexWrap = parentTaffyConfig.flexWrap;
-    }
-    if (parentTaffyConfig.alignItems) {
-      parentStyle.alignItems =
-        parentTaffyConfig.alignItems as TaffyStyle["alignItems"];
-    }
-
-    // 부모 Size + Padding + Border + Gap (applyCommonTaffyStyle)
-    // 공통 헬퍼로 전달 후 setupParentDimensions()로 padding/border 리셋
-    applyCommonTaffyStyle(
-      parentStyle as Record<string, unknown>,
-      parentRawStyle,
-      cssCtx,
-    );
-
-    // setupParentDimensions():
-    // - width = availableWidth, height = availableHeight (sentinel -1이면 생략)
-    // - paddingTop/Right/Bottom/Left = 0 (이미 availableWidth에서 제외됨)
-    // - borderTop/Right/Bottom/Left = 0
-    this.setupParentDimensions(parentStyle, availableWidth, availableHeight);
-
-    const rootHandle = taffy.createNodeWithChildren(parentStyle, childHandles);
-
-    // ── 7. 레이아웃 계산 ────────────────────────────────────────────────
-    taffy.computeLayout(rootHandle, availableWidth, availableHeight);
-
-    // ── 8. 결과 수집 ────────────────────────────────────────────────────
-    return this.collectResults(taffy, childHandles, childMap);
-  }
 }
