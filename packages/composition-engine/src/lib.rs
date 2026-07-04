@@ -48,12 +48,23 @@
 //!   변경/clear 시 skip 무효화. tree.rs 오케스트레이션 4 단위 완료 → LayoutEngineAPI
 //!   batch 계약 완비. seam(createLayoutEngine) 미배선 → live 영향 0.
 //!
-//! ## 미편입 (다음 세션)
+//! - `wasm` — WASM 바인딩 wrapper (seam 배선 A). Phase 2-B. `tree::LayoutTree`
+//!   (순수 Rust)를 JS `LayoutEngineAPI`(layoutBridge.ts) 16 메서드 계약으로 노출하는
+//!   얇은 `#[wasm_bindgen]` wrapper — `taffy_bridge.rs::TaffyLayoutEngine` 과 동일
+//!   시그니처라 `createLayoutEngine` seam 에 교체 가능하게 꽂힌다. `#[cfg(target_arch
+//!   = "wasm32")]` 게이트 → native cargo test 무영향(JsValue non-wasm32 panic 회피).
+//!   binary protocol 미구현(`has_binary_protocol()`=false → JS JSON 경로 fallback).
+//!   **seam 미배선 유지** — wrapper 존재 ≠ flag 전환. dual-run(candidate=wrapper vs
+//!   reference=Taffy) self-diff 0 통과가 flag 전환 전제(no-dormant-foundation).
 //!
-//! - seam 배선 (`createLayoutEngine` flag 전환) — tree.rs 4 단위 완료로 batch 계약
-//!   (build/compute/get + 증분 update/setChildren/markDirty/removeNode) 완비. 다음은
-//!   dual-run(Taffy self-diff 0) 검증 통과 후 seam 실배선. 지금 배선하면 dual-run
-//!   미검증 상태의 dormant 번들 (no-dormant-foundation-ahead-of-flip).
+//! ## 미편입 (다음 단계)
+//!
+//! - wasm-pack 산출물 생성(`pkg/` — JS import 가능한 .wasm + 바인딩 .js/.d.ts) →
+//!   dual-run(`dualRunHarness.runDualLayout`, candidate=본 wrapper vs reference=Taffy)
+//!   self-diff 측정. 자체 엔진의 flex column height:auto 등 미해결 영역이 실제 프로젝트
+//!   배치에서 diff 를 낼 수 있어, dual-run 결과가 flag 전환 가능 여부를 결정한다.
+//! - seam 배선 (`createLayoutEngine` flag 전환) — dual-run self-diff 0 통과 후에만.
+//!   지금 배선하면 dual-run 미검증 상태의 dormant 번들(no-dormant-foundation-ahead-of-flip).
 
 pub mod block;
 pub mod cascade;
@@ -62,3 +73,8 @@ pub mod flex;
 pub mod grid;
 pub mod style;
 pub mod tree;
+
+// WASM 바인딩 wrapper — wasm32 타겟에서만 컴파일(native cargo test 무영향).
+// `tree::LayoutTree` 를 JS `LayoutEngineAPI`(layoutBridge.ts) 계약으로 노출.
+#[cfg(target_arch = "wasm32")]
+pub mod wasm;
