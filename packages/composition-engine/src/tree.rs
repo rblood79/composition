@@ -1,4 +1,4 @@
-//! ADR-916 Phase 2-B — `tree.rs` 트리 오케스트레이션 (단위 3-b: grid dispatch)
+//! ADR-916 Phase 2-B — `tree.rs` 트리 오케스트레이션 (단위 4: 증분 dirty 추적)
 //!
 //! `apps/builder/.../wasm/src/taffy_bridge.rs` 의 `TaffyLayoutEngine` batch 계약
 //! (`build_tree_batch` → `compute_layout` → `get_layouts_batch`) 을 Taffy 없이
@@ -34,7 +34,7 @@
 //! - **단위 2 (land)**: **post-order flex solve** — flex 컨테이너에서 자식을
 //!   `flex.rs`(`flex_layout`) 로 배치하고, 자식 bounding box 로 컨테이너 content
 //!   크기(height:auto sentinel) 를 도출. 재귀로 손자까지 bottom-up.
-//! - **단위 3 (진행 중)**: block + grid dispatch 추가 (display 별 분기 완성).
+//! - **단위 3 (land)**: block + grid dispatch 추가 (display 별 분기 완성).
 //!   세 커널의 계약이 비대칭이라(2026-07-04 실사) display 별 최소 검증층으로 재분할:
 //!   - **단위 3-a (land)**: **block dispatch** — `block_layout`.
 //!     flex 와 계약이 가장 가까움(자식 flat f32, 자식 재귀 solve 로 content_w/h 확보).
@@ -54,7 +54,17 @@
 //!     NodeStyle 에 gridArea 이름/`grid_template_areas` 필드 없음(taffy_bridge 동일 —
 //!     Skia 경로는 숫자 line 사용, factory 가 이름+line 병기) → area_name 항상 빈 문자열,
 //!     template_areas 미사용. 자식 크기는 grid.rs 가 트랙에서 산출(intrinsic track 미측정).
-//! - **단위 4 (다음)**: 증분 dirty 추적 + 재계산 최소화(taffy mark_dirty 대응).
+//! - **단위 3-b (land)**: grid dispatch (위 어댑터).
+//! - **단위 4 (본 파일 현재)**: **증분 dirty 추적** — taffy 의 "dirty 조상 자동
+//!   전파" 계약(taffy_bridge.rs:890-893) 이식. 증분 API(`update_style`/
+//!   `set_children`/`mark_dirty`)가 변경 노드 + 조상 체인을 dirty 로 마킹하고,
+//!   `solve_node` 는 서브트리가 전부 clean 이면 저장된 layout 을 재사용하고 재귀를
+//!   생략한다(dirty 서브트리만 재계산). 정확성 안전판: (1) 부모가 재solve 되면
+//!   자식 available 이 바뀔 수 있어 dirty 노드 하위는 무조건 전체 재solve, (2)
+//!   root-level available-space 가 직전과 다르면(`last_compute` 비교) 서브트리
+//!   전체를 강제 dirty 로 skip 무효화(%/auto 크기 stale 방지). taffy 의 layout
+//!   cache(available-space 키) 대비 캐시 없는 보수적 skip — 관찰 계약(최종 layout
+//!   값의 정확성)을 절대 위반하지 않는 선에서만 재계산을 절감한다.
 //!
 //! ## flex.rs 알려진 제약 (단위 2 착수 중 발견, Phase 1 flex.rs scope)
 //!
@@ -187,8 +197,16 @@ struct TreeNode {
     style: NodeStyle,
     children: Vec<usize>,
     layout: NodeLayout,
-    /// 다음 compute_layout 에서 재계산 필요 여부 (단위 4 에서 실사용).
+    /// 이 노드 자신의 style/children 변경 여부. 다음 compute_layout 에서
+    /// (조상 dirty 전파와 결합해) 재계산 대상 판정에 사용.
     dirty: bool,
+    /// 부모 handle (조상 dirty 전파용). root 는 None.
+    ///
+    /// **Why**: taffy 계약(taffy_bridge.rs:890-893)은 "dirty 를 조상까지 자동
+    /// 전파" 한다. 자식 크기 변경 시 부모의 intrinsic size(auto width/height)와
+    /// 자식 available 이 바뀌므로, 자식만 재계산하면 부모 배치가 stale 해진다.
+    /// parent 포인터로 dirty 를 root 까지 상향 전파해 정확성을 보장한다.
+    parent: Option<usize>,
 }
 
 /// 자체 레이아웃 트리 엔진 (taffy_bridge.rs `TaffyLayoutEngine` 대응).
@@ -201,6 +219,14 @@ pub struct LayoutTree {
     nodes: Vec<Option<TreeNode>>,
     /// 재활용 가능한 (해제된) handle 인덱스.
     free_list: Vec<usize>,
+    /// 직전 `compute_layout` 의 (root, available_width, available_height).
+    ///
+    /// **Why**: 증분 skip(clean 서브트리 재계산 생략)은 available-space 가
+    /// 직전과 동일할 때만 정확하다. %/auto 크기는 available 에 의존하므로
+    /// available 이 바뀌면 clean 노드도 stale — 이 경우 skip 을 무효화(전체
+    /// 재계산)한다. taffy 는 layout cache 의 available-space 키로 처리하지만
+    /// 자체 트리는 캐시가 없어 root-level available 비교로 갈음한다.
+    last_compute: Option<(usize, f32, f32)>,
 }
 
 impl LayoutTree {
@@ -237,37 +263,82 @@ impl LayoutTree {
 
     /// leaf 노드 생성 → handle 반환.
     pub fn create_node(&mut self, style: NodeStyle) -> usize {
-        self.alloc_handle(TreeNode { style, children: Vec::new(), layout: NodeLayout::ZERO, dirty: true })
+        self.alloc_handle(TreeNode {
+            style,
+            children: Vec::new(),
+            layout: NodeLayout::ZERO,
+            dirty: true,
+            parent: None,
+        })
     }
 
-    /// 기존 노드 스타일 교체 (dirty 표시).
+    /// 기존 노드 스타일 교체 (해당 노드 + 조상 dirty 전파).
+    ///
+    /// **Why 조상 전파**: taffy 계약(taffy_bridge.rs:895)에서 `set_style` 은 내부적으로
+    /// `mark_dirty` 를 호출하고, dirty 는 조상까지 전파된다. style 변경이 노드 크기를
+    /// 바꾸면 부모 intrinsic/배치가 stale 되므로 root 까지 마킹해야 정확.
     pub fn update_style(&mut self, handle: usize, style: NodeStyle) {
         if let Some(node) = self.get_mut(handle) {
             node.style = style;
-            node.dirty = true;
         }
+        self.propagate_dirty(handle);
     }
 
-    /// 노드 자식 교체 (dirty 표시).
+    /// 노드 자식 교체 (parent 배선 + 해당 노드 + 조상 dirty 전파).
+    ///
+    /// 새 자식들의 parent 를 이 노드로 설정한다(조상 전파 경로 확보). 자식 집합
+    /// 변경은 컨테이너 재배치를 유발하므로 taffy 처럼 조상까지 dirty 전파.
     pub fn set_children(&mut self, handle: usize, children: Vec<usize>) {
+        for &c in &children {
+            if let Some(child) = self.get_mut(c) {
+                child.parent = Some(handle);
+            }
+        }
         if let Some(node) = self.get_mut(handle) {
             node.children = children;
-            node.dirty = true;
         }
+        self.propagate_dirty(handle);
     }
 
-    /// 노드를 dirty 로 표시 (다음 compute_layout 에서 재계산).
+    /// 노드를 dirty 로 표시 (해당 노드 + 조상 전파 — 다음 compute_layout 재계산).
     pub fn mark_dirty(&mut self, handle: usize) {
-        if let Some(node) = self.get_mut(handle) {
+        self.propagate_dirty(handle);
+    }
+
+    /// `handle` 부터 root 까지 조상 체인을 dirty 로 마킹.
+    ///
+    /// taffy 의 "dirty 를 조상까지 자동 전파" 계약(taffy_bridge.rs:890-893) 이식.
+    /// 순환(비정상 트리)에서도 무한 루프를 막기 위해 방문 노드 수를 노드 총수로 상한.
+    fn propagate_dirty(&mut self, handle: usize) {
+        let mut cur = Some(handle);
+        let mut guard = self.nodes.len() + 1;
+        while let Some(h) = cur {
+            if guard == 0 {
+                break; // 순환 방지 안전판 (정상 트리에선 도달 불가)
+            }
+            guard -= 1;
+            let Some(node) = self.get_mut(h) else { break };
+            if node.dirty {
+                // 이미 dirty → 조상도 이미 전파됐다고 가정하고 조기 종료.
+                // (증분 API 는 항상 propagate 를 leaf→root 로 완주하므로 dirty 노드의
+                //  조상은 반드시 dirty. 중복 전파 비용 절감.)
+                break;
+            }
             node.dirty = true;
+            cur = node.parent;
         }
     }
 
     /// 노드 제거 + handle 을 free_list 로 반환(재활용 대상).
+    ///
+    /// 트리 구조 변경이므로 `last_compute` 를 무효화한다 — 이어지는 compute_layout
+    /// 이 동일 (root, avail) 로 stale skip 하는 것을 방지. (제거된 handle 이 재활용돼
+    /// 다른 노드가 되면 handle 기반 skip 판정이 오염되므로.)
     pub fn remove_node(&mut self, handle: usize) {
         if handle < self.nodes.len() && self.nodes[handle].is_some() {
             self.nodes[handle] = None;
             self.free_list.push(handle);
+            self.last_compute = None;
         }
     }
 
@@ -275,6 +346,8 @@ impl LayoutTree {
     pub fn clear(&mut self) {
         self.nodes.clear();
         self.free_list.clear();
+        // handle 이 0 부터 재발급되므로 stale skip 방지 위해 무효화.
+        self.last_compute = None;
     }
 
     /// 현재 살아있는 노드 수.
@@ -312,10 +385,17 @@ impl LayoutTree {
 
             let handle = self.alloc_handle(TreeNode {
                 style: input.style,
-                children: child_handles,
+                children: child_handles.clone(),
                 layout: NodeLayout::ZERO,
                 dirty: true,
+                parent: None,
             });
+            // 자식들의 parent 를 이 노드로 배선 (조상 dirty 전파 경로 확보).
+            for &ch in &child_handles {
+                if let Some(child) = self.get_mut(ch) {
+                    child.parent = Some(handle);
+                }
+            }
             handles.push(handle);
         }
 
@@ -338,13 +418,65 @@ impl LayoutTree {
     /// origin 은 부모의 x/y, 자식 좌표는 부모 안 상대). `available_height < 0`
     /// sentinel 은 "부모 height:auto → 자식 합산으로 결정" 을 의미.
     ///
-    /// block/grid dispatch 는 단위 3. 현재 flex 아닌 컨테이너는 자기 크기만 해결
-    /// (자식 미배치) — 단위 3 에서 완성.
+    /// block/grid dispatch 는 단위 3.
+    ///
+    /// **단위 4 (증분 dirty 추적)**: 증분 API(`update_style`/`set_children`/
+    /// `mark_dirty`)가 변경 노드 + 조상 체인을 dirty 로 마킹한다(taffy 조상 전파
+    /// 계약 이식). `solve_node` 는 서브트리에 dirty 가 하나도 없으면 저장된 layout
+    /// 을 재사용하고 재귀를 생략 — dirty 서브트리만 재계산한다. 단, root-level
+    /// available-space 가 직전 호출과 다르면 %/auto 크기가 stale 될 수 있어
+    /// skip 을 전면 무효화(전체 재계산)한다.
     pub fn compute_layout(&mut self, root: usize, available_width: f32, available_height: f32) {
         if self.get(root).is_none() {
             return;
         }
+        // available-space 가 직전과 다르면 증분 skip 무효화 (전 서브트리 강제 dirty).
+        //
+        // **Why 전 서브트리**: root 만 dirty 로 하면 root 재solve 시 clean 자식이
+        // skip 되어 저장된(stale) layout 을 재사용한다. 하지만 available 이 바뀌면
+        // 자식의 %/auto/상속 크기가 달라질 수 있으므로 clean 자식도 재계산해야 정확.
+        // → root 서브트리 전체를 dirty 로 마킹해 skip 게이트를 전면 무효화한다.
+        let avail_changed = self.last_compute != Some((root, available_width, available_height));
+        if avail_changed {
+            self.mark_subtree_dirty(root);
+            self.last_compute = Some((root, available_width, available_height));
+        }
         self.solve_node(root, available_width, available_height);
+    }
+
+    /// 서브트리(`handle` 포함)에 dirty 노드가 하나라도 있으면 true.
+    ///
+    /// clean 서브트리(전부 false)는 `solve_node` 가 저장된 layout 을 재사용하고
+    /// 재귀를 생략할 수 있다. dirty 노드가 하나라도 있으면 정확성을 위해 해당
+    /// 노드부터 전체 재solve(자식 available 이 부모 재배치로 바뀔 수 있으므로).
+    fn subtree_has_dirty(&self, handle: usize) -> bool {
+        let Some(node) = self.get(handle) else {
+            return false;
+        };
+        if node.dirty {
+            return true;
+        }
+        node.children.iter().any(|&c| self.subtree_has_dirty(c))
+    }
+
+    /// 서브트리(`handle` 포함) 전체를 dirty 로 마킹.
+    ///
+    /// available-space 변경 시 skip 게이트를 전면 무효화하는 데 사용. 조상 전파와
+    /// 달리 하향(자손 방향) 마킹이다.
+    fn mark_subtree_dirty(&mut self, handle: usize) {
+        let children = match self.get(handle) {
+            Some(node) => {
+                // 이미 서브트리 전체가 dirty 라면 재하향 불필요 (동일 avail 반복 호출 절감).
+                node.children.clone()
+            }
+            None => return,
+        };
+        if let Some(node) = self.get_mut(handle) {
+            node.dirty = true;
+        }
+        for c in children {
+            self.mark_subtree_dirty(c);
+        }
     }
 
     /// 노드 하나를 solve — 자식을 먼저 재귀 solve 한 뒤 display 별로 배치.
@@ -353,6 +485,16 @@ impl LayoutTree {
         let Some(node) = self.get(handle) else {
             return (0.0, 0.0);
         };
+
+        // 증분 skip: 서브트리가 전부 clean 이면 저장된 layout 을 재사용.
+        // (저장된 layout.width/height 는 직전 solve 의 content 크기와 동일 —
+        //  solve_flex/block/grid 가 컨테이너 layout 에 content 크기를 저장하고
+        //  같은 값을 반환하므로 부모 intrinsic 도출에도 정확.)
+        if !self.subtree_has_dirty(handle) {
+            let l = node.layout;
+            return (l.width, l.height);
+        }
+
         let children = node.children.clone();
         let display = classify_container_display(node.style.display.as_deref());
 
@@ -1527,5 +1669,208 @@ mod tests {
         let tree = LayoutTree::new();
         let flat = tree.get_layouts_batch(&[42]);
         assert_eq!(flat, vec![0.0, 0.0, 0.0, 0.0]);
+    }
+
+    // ── 단위 4: 증분 dirty 추적 ──
+    //
+    // dirty 조상 전파 / clean skip / available 무효화 로직은 display 종류·intrinsic
+    // 도출과 직교한다. 테스트는 **명시 width/height 를 가진 flex row 컨테이너**로
+    // 구성해 (flex.rs column+height:auto sentinel 미해결 영역을 우회 — flex_container_
+    // intrinsic_height_from_children 이 row 인 이유와 동일) dirty 로직만 격리 검증한다.
+
+    /// px 크기 leaf NodeStyle.
+    fn px_leaf(width: f32, height: f32) -> NodeStyle {
+        serde_json::from_str(&format!(r#"{{"width":"{width}px","height":"{height}px"}}"#))
+            .unwrap()
+    }
+
+    /// 명시 크기 flex row 컨테이너 NodeStyle (flex-start — stretch 우회).
+    fn flex_row_fixed(width: f32, height: f32) -> NodeStyle {
+        serde_json::from_str(&format!(
+            r#"{{"display":"flex","flexDirection":"row","width":"{width}px","height":"{height}px","alignItems":"flex-start"}}"#
+        ))
+        .unwrap()
+    }
+
+    /// update_style 은 변경 노드 + 조상 체인을 dirty 로 전파한다 (taffy 계약).
+    #[test]
+    fn update_style_propagates_dirty_to_ancestors() {
+        let mut tree = LayoutTree::new();
+        let child = tree.create_node(px_leaf(100.0, 50.0));
+        let root = tree.create_node(flex_row_fixed(400.0, 100.0));
+        tree.set_children(root, vec![child]);
+        tree.compute_layout(root, 400.0, 100.0);
+
+        // 초기: child 100×50, root 명시 400×100.
+        assert_eq!(tree.get_layout(child).width, 100.0);
+        assert_eq!(tree.get_layout(root).width, 400.0);
+
+        // compute 후 전 노드 clean.
+        assert!(!tree.subtree_has_dirty(root), "compute 후 서브트리 clean 이어야");
+
+        // 자식 width 변경 → child + root dirty 전파.
+        tree.update_style(child, px_leaf(200.0, 50.0));
+        assert!(
+            tree.subtree_has_dirty(root),
+            "자식 update 후 root 서브트리가 dirty 여야 (조상 전파)"
+        );
+
+        // 재계산 — 자식 변경이 반영되어야 (taffy test_mark_dirty_incremental 계약).
+        tree.compute_layout(root, 400.0, 100.0);
+        assert_eq!(
+            tree.get_layout(child).width,
+            200.0,
+            "update_style + recompute 후 width 반영"
+        );
+    }
+
+    /// explicit mark_dirty 후 재계산해도 값이 유지된다 (taffy 계약: cache invalidation).
+    #[test]
+    fn explicit_mark_dirty_preserves_value() {
+        let mut tree = LayoutTree::new();
+        let child = tree.create_node(px_leaf(100.0, 50.0));
+        let root = tree.create_node(flex_row_fixed(400.0, 100.0));
+        tree.set_children(root, vec![child]);
+        tree.compute_layout(root, 400.0, 100.0);
+        assert_eq!(tree.get_layout(child).width, 100.0);
+
+        // style 변경 없이 cache invalidation 만 — 값 불변이어야.
+        tree.mark_dirty(child);
+        assert!(tree.subtree_has_dirty(root), "mark_dirty 후 조상 전파");
+        tree.compute_layout(root, 400.0, 100.0);
+        assert_eq!(
+            tree.get_layout(child).width,
+            100.0,
+            "explicit mark_dirty 는 값을 바꾸지 않음"
+        );
+    }
+
+    /// set_children(자식 추가) 후 컨테이너 재배치 (taffy test_mark_dirty_add_remove_child 계약).
+    #[test]
+    fn set_children_add_reflows_container() {
+        let mut tree = LayoutTree::new();
+        let c1 = tree.create_node(px_leaf(100.0, 50.0));
+        let root = tree.create_node(flex_row_fixed(400.0, 100.0));
+        tree.set_children(root, vec![c1]);
+        tree.compute_layout(root, 400.0, 100.0);
+        assert_eq!(tree.get_layout(c1).x, 0.0);
+
+        // 둘째 자식 추가 → root dirty → 재배치 (row: c2 는 c1 오른쪽 x=100).
+        let c2 = tree.create_node(px_leaf(80.0, 30.0));
+        tree.set_children(root, vec![c1, c2]);
+        tree.compute_layout(root, 400.0, 100.0);
+
+        assert_eq!(tree.get_layout(c2).x, 100.0, "c2 는 c1(w=100) 오른쪽 x=100");
+        assert_eq!(tree.get_layout(c2).width, 80.0);
+    }
+
+    /// set_children(자식 제거) 후 남은 자식 재배치.
+    #[test]
+    fn set_children_remove_reflows_container() {
+        let mut tree = LayoutTree::new();
+        let c1 = tree.create_node(px_leaf(100.0, 50.0));
+        let c2 = tree.create_node(px_leaf(80.0, 30.0));
+        let root = tree.create_node(flex_row_fixed(400.0, 100.0));
+        tree.set_children(root, vec![c1, c2]);
+        tree.compute_layout(root, 400.0, 100.0);
+        assert_eq!(tree.get_layout(c2).x, 100.0);
+
+        // c1 제거 → c2 가 맨 앞(x=0)으로.
+        tree.set_children(root, vec![c2]);
+        tree.remove_node(c1);
+        tree.compute_layout(root, 400.0, 100.0);
+        assert_eq!(tree.get_layout(c2).x, 0.0, "c1 제거 후 c2 는 x=0");
+    }
+
+    /// clean sibling 서브트리는 skip 되지만 부모 재배치 입력으로 정확한 크기를 반환한다.
+    ///
+    /// A 를 update 하면 A + root 만 dirty. root 재solve 시 B 는 clean → skip(저장된
+    /// layout 재사용) 되지만, B 의 저장 크기가 flex 배치에 정확히 반영되어야 한다.
+    #[test]
+    fn clean_sibling_skipped_but_size_reused() {
+        let mut tree = LayoutTree::new();
+        let a = tree.create_node(px_leaf(100.0, 40.0));
+        let b = tree.create_node(px_leaf(80.0, 60.0));
+        let root = tree.create_node(flex_row_fixed(400.0, 100.0));
+        tree.set_children(root, vec![a, b]);
+        tree.compute_layout(root, 400.0, 100.0);
+        // 초기 row: a(x=0,w=100), b(x=100,w=80).
+        assert_eq!(tree.get_layout(b).x, 100.0);
+
+        // A width 변경(100→150) → A + root dirty, B clean.
+        tree.update_style(a, px_leaf(150.0, 40.0));
+        assert!(!tree.subtree_has_dirty(b), "B 는 clean 이어야 (A 만 변경)");
+        tree.compute_layout(root, 400.0, 100.0);
+
+        // A 새 폭 반영 + B 는 A 오른쪽으로 재배치(x=150) + B 크기(skip) 보존.
+        assert_eq!(tree.get_layout(a).width, 150.0);
+        assert_eq!(tree.get_layout(b).x, 150.0, "B 는 A(w=150) 오른쪽 x=150 재배치");
+        assert_eq!(tree.get_layout(b).width, 80.0, "B 크기(skip)는 보존");
+    }
+
+    /// available-space 변경 시 clean 노드도 재계산된다 (% 크기 stale 방지).
+    #[test]
+    fn available_change_invalidates_skip() {
+        let mut tree = LayoutTree::new();
+        // 자식 width=50% → 컨테이너 폭에 의존. 컨테이너는 명시 폭 없이 avail 상속.
+        let child = tree.create_node(serde_json::from_str(r#"{"width":"50%","height":"40px"}"#).unwrap());
+        let root = tree.create_node(
+            serde_json::from_str(r#"{"display":"flex","flexDirection":"row","height":"40px","alignItems":"flex-start"}"#).unwrap(),
+        );
+        tree.set_children(root, vec![child]);
+
+        tree.compute_layout(root, 400.0, 40.0);
+        assert_eq!(tree.get_layout(child).width, 200.0, "50% of 400");
+
+        // 변경 없이 available 만 확대 → child 50% 재계산 (skip 무효화).
+        tree.compute_layout(root, 800.0, 40.0);
+        assert_eq!(
+            tree.get_layout(child).width,
+            400.0,
+            "available 800 → 50% = 400 (clean 노드도 재계산)"
+        );
+    }
+
+    /// 동일 available 재호출 + 변경 없음 → 결과 불변 (skip 이 값을 깨지 않음).
+    #[test]
+    fn repeated_compute_no_change_stable() {
+        let mut tree = LayoutTree::new();
+        let child = tree.create_node(px_leaf(100.0, 50.0));
+        let root = tree.create_node(flex_row_fixed(400.0, 100.0));
+        tree.set_children(root, vec![child]);
+        tree.compute_layout(root, 400.0, 100.0);
+        let first = tree.get_layout(child);
+
+        // 변경 없이 같은 available 재호출 — 전 서브트리 clean → skip → 값 동일.
+        tree.compute_layout(root, 400.0, 100.0);
+        let second = tree.get_layout(child);
+        assert_eq!(first.width, second.width);
+        assert_eq!(first.height, second.height);
+        assert_eq!(first.x, second.x);
+        assert_eq!(first.y, second.y);
+    }
+
+    /// clear 후 handle 재발급 시 stale skip 이 없다 (last_compute 무효화).
+    #[test]
+    fn clear_invalidates_skip_cache() {
+        let mut tree = LayoutTree::new();
+        let child = tree.create_node(px_leaf(100.0, 50.0));
+        let root = tree.create_node(flex_row_fixed(400.0, 100.0));
+        tree.set_children(root, vec![child]);
+        tree.compute_layout(root, 400.0, 100.0);
+
+        // clear 후 동일 handle(0,1) 로 다른 크기 트리 재빌드.
+        tree.clear();
+        let child2 = tree.create_node(px_leaf(250.0, 50.0));
+        let root2 = tree.create_node(flex_row_fixed(400.0, 100.0));
+        assert_eq!((child2, root2), (0, 1), "handle 0 부터 재발급");
+        tree.set_children(root2, vec![child2]);
+        // 동일 (root=1, avail=400,100) 지만 clear 로 무효화됐으므로 정확 재계산.
+        tree.compute_layout(root2, 400.0, 100.0);
+        assert_eq!(
+            tree.get_layout(child2).width,
+            250.0,
+            "clear 후 stale skip 없이 새 크기 반영"
+        );
     }
 }

@@ -41,15 +41,19 @@
 //!   자체 flex/block/grid 커널로 구현하는 계층. DFS 상단(style resolve/implicit/
 //!   enrich = tag/spec/store 도메인)은 JS 잔류, 본 모듈은 순수화된 TaffyStyle 트리만
 //!   레이아웃 계산. 층별 점진 — 단위 1(handle+build 골격+leaf compute) / 단위 2
-//!   (post-order flex solve) / 단위 3-a(block dispatch) / **단위 3-b(현재, grid
-//!   dispatch)** land. flex/block/grid 3 display dispatch 완성. 단위 4(증분 dirty)는
-//!   다음 착수. seam(createLayoutEngine) 미배선 → live 영향 0.
+//!   (post-order flex solve) / 단위 3-a(block dispatch) / 단위 3-b(grid dispatch) /
+//!   **단위 4(현재, 증분 dirty 추적)** land. flex/block/grid 3 display dispatch +
+//!   증분 재계산 완성. 증분 API 가 변경 노드 + 조상 dirty 전파(taffy mark_dirty
+//!   계약 이식) → `solve_node` 는 clean 서브트리 skip(저장 layout 재사용), available
+//!   변경/clear 시 skip 무효화. tree.rs 오케스트레이션 4 단위 완료 → LayoutEngineAPI
+//!   batch 계약 완비. seam(createLayoutEngine) 미배선 → live 영향 0.
 //!
 //! ## 미편입 (다음 세션)
 //!
-//! - WASM batch 엔트리 (`LayoutEngineAPI` 계약 구현) — flex/grid/block 이 dual-run
-//!   통과할 만큼 완성된 뒤 seam(`createLayoutEngine`) 에 배선. 지금 배선하면
-//!   알고리즘 미완성 상태의 dormant 번들 (no-dormant-foundation-ahead-of-flip).
+//! - seam 배선 (`createLayoutEngine` flag 전환) — tree.rs 4 단위 완료로 batch 계약
+//!   (build/compute/get + 증분 update/setChildren/markDirty/removeNode) 완비. 다음은
+//!   dual-run(Taffy self-diff 0) 검증 통과 후 seam 실배선. 지금 배선하면 dual-run
+//!   미검증 상태의 dormant 번들 (no-dormant-foundation-ahead-of-flip).
 
 pub mod block;
 pub mod cascade;
