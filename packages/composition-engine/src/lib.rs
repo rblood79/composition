@@ -59,12 +59,16 @@
 //!
 //! ## 미편입 (다음 단계)
 //!
-//! - wasm-pack 산출물 생성(`pkg/` — JS import 가능한 .wasm + 바인딩 .js/.d.ts) →
-//!   dual-run(`dualRunHarness.runDualLayout`, candidate=본 wrapper vs reference=Taffy)
-//!   self-diff 측정. 자체 엔진의 flex column height:auto 등 미해결 영역이 실제 프로젝트
-//!   배치에서 diff 를 낼 수 있어, dual-run 결과가 flag 전환 가능 여부를 결정한다.
-//! - seam 배선 (`createLayoutEngine` flag 전환) — dual-run self-diff 0 통과 후에만.
-//!   지금 배선하면 dual-run 미검증 상태의 dormant 번들(no-dormant-foundation-ahead-of-flip).
+//! - seam 배선 (B1/B2) 완료: (B1) wasm-pack 산출물(`pkg/` — .wasm + 바인딩 .js/.d.ts)
+//!   생성 + export 검증, (B2) JS↔WASM 통합 인프라(vitest 에 vite-plugin-wasm) +
+//!   실제 두 WASM 엔진(자체 vs Taffy) dual-run self-diff. flex row fixed 케이스는
+//!   자체 vs Taffy HC3 통과(dualRunLive.test.ts 4/4). 검증 경로는 JS 측
+//!   (`apps/builder/.../layout/engines/dualRunEngines.ts` 어댑터 + `dualRunLive.test.ts`).
+//! - seam 배선 (C: `createLayoutEngine` flag 전환) — live 엔진 교체. (B2) self-diff 는
+//!   flex row fixed 통과했으나, 자체 미해결 영역(flex column height:auto -1 sentinel /
+//!   grid intrinsic track)이 실 catalog 배치에서 diff 를 낼 수 있음 → (C) 착수 시
+//!   넓은 실전 fixture 로 dual-run 확장 후 diff 0 이 flag 전환 전 선결
+//!   (no-dormant-foundation-ahead-of-flip). 지금 배선하면 실전 dual-run 미검증 dormant.
 
 pub mod block;
 pub mod cascade;
