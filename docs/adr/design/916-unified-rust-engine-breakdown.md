@@ -341,6 +341,8 @@
 
 각 모듈 cutover 완료 시 대응 JS 경로 **즉시 삭제** — dormant 병행 금지 (feedback-no-dormant-foundation-ahead-of-flip).
 
+**벤치의 역할 (2-D/2-E, 관점 고정)**: `commands.rs`/`text.rs` 는 ADR-916 통합 엔진의 **이관 후보로 이미 전제**(scene/commands/text 는 layout 과 같은 Rust 경계 = JS↔WASM 경계 최소화 목표의 구조적 대상). 각 착수 전 벤치는 **이관 여부 go/no-go 게이트가 아니라** 이관의 before/after 비용·이득을 정량화하는 **정당화** 도구. "JS 에서도 예산 내" 로 측정돼도 이관 취소가 아니라 다른 정당화 축(단일 엔진 일관성 / SSOT 단일화 / JS main-thread 부하 제거)으로 진행 판단. **2-C 는 예외** — signature 가 순수 함수라 useMemo 분리(안 A)만으로 예산 내 해소돼 Rust 이관이 불필요했던 특수 케이스이며, 이 결과를 2-D/2-E 전제로 자동 승계하지 않는다.
+
 ---
 
 ## Crate 구조 (목표)
