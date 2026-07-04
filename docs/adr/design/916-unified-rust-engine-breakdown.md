@@ -321,12 +321,51 @@
 
 </details>
 
-### 2-D. `commands.rs` — Render command stream + SpatialIndex 단일 패스
+### 2-D. layout → SpatialIndex 직결 (부분 이관 — 경계 횡단 제거)
 
-- `renderCommands.ts` O(N) DFS + z-sort + boundsMap → Rust flat command 배열
-- SpatialIndex 갱신을 command 생성과 단일 패스 통합 (`syncSpatialIndex` 복사 제거)
-- viewport culling Rust 내부 수행
-- canvas-rendering.md §8 scrollOffset 차감 계약 승계
+> **2026-07-05 벤치 재평가로 scope 축소.** 원안(`commands.rs` — command stream 전체 Rust 이관)은 벤치상 정당화가 약하고 이관 표면이 과대함이 드러나, **SpatialIndex 경계 횡단 제거**로 범위를 좁힌다. command stream(JS) 자체는 유지. 폐기 원안은 하단 `<details>` 보존.
+
+**벤치 근거 (신규 `renderCommandStream.bench.ts`, 비용 분리 계측 — mean ms)**:
+
+| 단계                                          |  500  | 1000  | 3000  | 3000 예산비 |
+| --------------------------------------------- | :---: | :---: | :---: | :---------: |
+| ① buildRenderCommandStream 전체 (zIndex 없음) | 0.262 | 0.511 | 1.574 |    9.4%     |
+| ② + z-sort 경로 활성                          | 0.278 | 0.561 | 1.719 |      —      |
+| z-sort 기여분 (②−①)                           | 0.016 | 0.050 | 0.145 |    0.9%     |
+| ③ syncSpatialIndex JS 재직렬화                | 0.016 | 0.032 | 0.099 |    0.6%     |
+| ④ commandChildrenMap 재구성                   | 0.006 | 0.013 | 0.041 |    0.2%     |
+
+**결정적 발견 — 원안 대상 반증 (2-C detectChangedIds 와 동형)**:
+
+- **command stream 전체가 예산 내** (3000 노드 1.57ms = 60fps 16.7ms 의 9.4%) — 현재 병목 아님.
+- 원안이 지목한 최적화 대상은 모두 효과 미미: **z-sort 0.145ms(예산 0.9%) / syncSpatialIndex JS 재직렬화 0.099ms(예산 0.6%)**. 2-C 의 `detectChangedIds`(예산 0.3%)처럼 **잘못 짚은 대상**.
+- 실제 비용의 축은 **DFS `visitElement` 순회 자체**(①에서 z-sort/childrenMap 제외 시 ~1.39ms) — getSkiaNode 조회 + layout 조회 + sticky 계산 + boundsMap.set + command push 의 노드당 합.
+
+**정당화 축 (병목 아님 전제 — 벤치는 게이트 아닌 정당화 도구)**: 비용이 아니라 **경계 횡단 구조**. 현재 `syncSpatialIndex`(renderCommands.ts:350)는 매 command stream build 마다 JS `boundsMap` → `items` 배열 → `Float32Array` 직렬화 → WASM `batchUpdate` 로 **경계를 1회 횡단**. 원안 표현("복사 제거")이 노린 실체는 이 구조적 이득이지 JS 재직렬화 0.099ms 가 아니다 — 표현이 비용을 잘못 짚었을 뿐 방향은 유효.
+
+**P3 계약 (layout → SpatialIndex 직결)**:
+
+- 이미 Rust 인 layout solve(2-B) 결과에서 **Rust 가 절대좌표 bounds 를 자체 계산해 SpatialIndex 를 내부 갱신**. JS `boundsMap` → `Float32Array` → WASM `batchUpdate` 횡단 **소멸**.
+- **command stream(JS) 은 무관** — 사용자 선택 "경계 횡단만 먼저(부분 이관)". `renderCommands.ts` 의 DFS/z-sort/command emit 은 현행 유지.
+- `boundsMap` 자체는 JS 에 유지 — TextEditOverlay `getSceneBounds`(renderCommands.ts:130) / AI effects `buildAIBoundsFromStream`(:1067) 소비자가 있어 command build 산출물로 계속 필요. **SpatialIndex 갱신 경로만** layout 직결로 분리.
+- **mutation 진입점 단일 확인**: SpatialIndex mutation 은 `renderCommands.ts:369 spatialIndex.batchUpdate` **1곳뿐**(elementRegistry 구 동기화는 이미 위임 완료, 주석 :81/:93/:186). 쿼리 소비자(useViewportCulling / HoverManager / useDragBridge / useCentralCanvasPointerHandlers / BuilderCanvas)는 read-only → mutation 경로 교체가 쿼리 계약 미변경.
+- **절대좌표 계약 승계**: SpatialIndex 는 씬 좌표(페이지 오프셋 포함) 기준. Rust 직결 시 layout(부모-상대) → 절대좌표 누적 + pagePositions 오프셋 + scrollOffset 차감(canvas-rendering.md §8) 을 Rust 내부에서 수행해야 JS boundsMap 과 동일 좌표 산출.
+
+**diff oracle (구현 착수 시 검증 계약)**:
+
+- 동일 layout 입력 → (A) 현행 JS boundsMap 기반 `batchUpdate` 후 SpatialIndex 쿼리 결과 vs (B) Rust layout 직결 SpatialIndex 쿼리 결과 → **`query_viewport` / `query_point` / `query_rect` 3종 쿼리 모두 동일 id 집합** (diff 0).
+- fixture: 중첩 flex/grid + scrollOffset 있는 컨테이너 + 다중 페이지 오프셋 + sticky/fixed(씬 좌표 보정 경로) 포함 — hit-test/culling 이 실제 소비하는 좌표 경로 전수.
+- **cutover 즉시 삭제(no-dormant)**: Rust 직결 land 시 `syncSpatialIndex` + `batchUpdate` JS 경로 **즉시 제거** — dormant 병행 금지. diff 0 확인 후 flip.
+
+**⏸️ 구현 보류 (2026-07-05, 사용자 "먼저 계약/oracle만 설계")**: 본 재정의 + P3 계약 + diff oracle 설계까지만 문서에 추가. Rust 구현(layout→spatial 직결 + JS 경로 삭제)은 **별도 사용자 승인 단위**.
+
+<details><summary>폐기된 원안 (2026-07-05 벤치 반증 전)</summary>
+
+- ~~`commands.rs` — command stream 전체 Rust 이관: `renderCommands.ts` O(N) DFS + z-sort + boundsMap → Rust flat command 배열~~ — 벤치 반증: command stream 전체가 예산 9.4%(병목 아님), SkiaNodeData(Float32Array 색상/effects/clipPath) 경계 전달로 이관 표면이 2-B(순수 flat f32)보다 과대. command stream 은 JS 유지.
+- ~~SpatialIndex 갱신을 command 생성과 단일 패스 통합 (`syncSpatialIndex` 복사 제거)~~ — 방향은 유효하나 "command 생성과 통합"이 아니라 **layout 직결(P3)** 로 재정의. command build 무관.
+- ~~viewport culling Rust 내부 수행~~ — SpatialIndex 가 Rust 내부 갱신되면 `query_viewport` 는 이미 Rust(spatialIndex.ts:76). 추가 이관 불요.
+
+</details>
 
 ### 2-E. `text.rs` — 텍스트 측정 캐시
 
@@ -358,9 +397,8 @@ packages/composition-engine/        # 신규 통합 crate (composition-layout �
     ├── flex.rs         # 1-A
     ├── grid.rs         # 1-B (grid_layout.rs 승계)
     ├── block.rs        # 1-C (block_layout.rs 승계)
-    ├── commands.rs     # 2-D
     ├── text.rs         # 2-E
-    ├── spatial.rs      # 승계 (spatial_index.rs / spatial.rs 통합)
+    ├── spatial.rs      # 승계 + 2-D(P3: layout→SpatialIndex 직결 흡수 — commands.rs 신설 안 함, command stream 은 JS 유지)
     └── protocol.rs     # binary_protocol.rs 승계
 ```
 
