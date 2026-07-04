@@ -101,8 +101,18 @@
 //!   **핵심 발견**: `UNIFIED_ENGINE:true` global override 로 `isUnifiedFlag` 가 개별
 //!   flag 무관 true → 배선 커밋 = 즉시 live 전환(배선/flip 분리 불가 구조). rollback =
 //!   flag false + createLayoutEngine 진입 차단. type-check PASS(baseline 69) 무회귀.
-//! - **다음 = 1-E Taffy 제거 재평가**: 자체 엔진 live 전환 안정화 후 Taffy WASM crate/
-//!   pkg/wrapper 제거 → 2-C scene.rs / 2-D commands.rs / 2-E text.rs 재평가. HIGH.
+//! - **(1-E) Taffy dead code 제거 land (2026-07-05)**: 자체 엔진 live 전환 후
+//!   Taffy 엔진 클래스 4종이 인스턴스화 0건 / `.calculate()` 호출 0건 = dead.
+//!   삭제: `BaseTaffyEngine.ts`(abstract, `new TaffyLayout()` dead) +
+//!   `layoutAccelerator.ts`(importer 0). 클래스만 제거(파일 유지, live helper 보존):
+//!   `TaffyFlexEngine`/`TaffyGridEngine`/`TaffyBlockEngine` 클래스 + `isTaffy*Available`
+//!   삭제하되 순수 style helper `elementToTaffyStyle`/`parseGridTemplate`/
+//!   `elementToTaffyBlockStyle` 는 `fullTreeLayout.ts:41-43` 소비 유지. **사용자 결정**:
+//!   폴백 유지(`layoutBridge.ts:84` WASM 미가용 안전망) + dead 코드만 삭제(crate/pkg
+//!   물리 삭제 아님). 잔존 참조 9/6/2 = 파일명 import 경로 + 주석뿐. type-check PASS
+//!   (baseline 69) 무회귀. commit f2ac4860c(-1252줄).
+//! - **다음 = 2-C scene.rs / 2-D commands.rs / 2-E text.rs 재평가**: fullTreeLayout DFS
+//!   → 자체 엔진 편입 후속 단계. HIGH — 별도 승인.
 
 pub mod block;
 pub mod cascade;
