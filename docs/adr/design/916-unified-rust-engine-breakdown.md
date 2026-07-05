@@ -191,9 +191,9 @@
 
 1. ~~독립 oracle 확보~~ **✅ 충족 2026-07-06** — Chrome 실측(브라우저 ground truth) golden 상수로 tree.rs 트리 배치 회귀를 Taffy-비의존으로 감시. `tests/tree_golden.rs`(C-2b fixture N1~N5, 6 test)(아래 land 블록).
 2. ~~SpatialIndex crate 분리~~ **✅ 충족 2026-07-05** — SpatialIndex 를 Taffy crate(`composition_wasm`)에서 자체 엔진 crate(`composition-engine`, taffy-free)로 이동. Taffy crate 만 삭제 가능한 상태 도달(아래 land 블록).
-3. ADR-916 Status = Implemented 승격 — Phase 1/2 자체 엔진 정식 완료 선언
+3. ~~ADR-916 Status = Implemented 승격~~ **✅ 충족 2026-07-06** — layout 엔진 Taffy 대체 live 완료(ADR 본 목표) = 사용자 결정 "layout 완료 = 승격". Status Accepted → Implemented(아래 land 블록).
 
-현재 3개 중 충족 2(① 독립 oracle + ② SpatialIndex crate 분리). 나머지 1(Implemented 승격) 미도래 → endgame(Taffy crate/pkg 물리 삭제)은 여전히 보류. R4 는 endgame 까지 HIGH 잔존 유지(dual-run CI 상시 관리). **dualRunLive 의 Taffy leg 는 안전망으로 유지** — tree_golden 은 Taffy-비의존 독립 감시를 추가한 것이지 Taffy oracle 을 대체(제거)한 것이 아니다.
+현재 3개 중 충족 **3(① 독립 oracle + ② SpatialIndex crate 분리 + ③ Implemented 승격)**. **endgame kill criteria 전수 충족(3/3) → Taffy crate/pkg 물리 삭제 착수 가능**(별도 사용자 승인). R4(폴백 로직 이중화 HIGH)는 물리 삭제 완료 시점까지 잔존(dual-run CI 상시 관리) — 삭제가 R4 의 소멸 조건. **dualRunLive 의 Taffy leg 는 물리 삭제 전까지 안전망 유지** — tree_golden 은 Taffy-비의존 독립 감시를 추가한 것이라 삭제 후에도 tree.rs 회귀 감시 지속.
 
 **✅ SpatialIndex crate 분리 land 2026-07-05 (kill criteria ② 충족)**: 사용자 "SpatialIndex crate 분리 착수 가능한지 실측" → 실측(코드 결합 0) → "지금 착수 — 독립 정리" + "composition-engine 로 이동" 결정.
 

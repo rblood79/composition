@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [자체 단일 Rust 레이아웃 엔진 통합 — ADR-916 Implemented] - 2026-07-06
+
+### Architecture
+
+- **layout 엔진 Taffy → 자체 Rust 엔진(composition-engine) 전환 완료** (ADR-916, Accepted → Implemented):
+  - **Why**: 외부 라이브러리(Taffy) 래핑 제거 + WASM 경계 횡단 최소화. Skia(CanvasKit) 렌더 유지, layout 계산만 자체 `composition-engine` crate(taffy 무의존)로 이관.
+  - Phase 1 self-impl 3종: `flex.rs`(CSS Flexbox §9.7 grow/shrink 분배 + §9.3 wrap + align-content), `block.rs`(§8.3.1 margin collapse + through-collapse chain), `grid.rs`(§7 track sizing + §8 placement + repeat/minmax/named areas).
+  - Phase 2-B `tree.rs`: 트리 오케스트레이션(DFS 빌드 + display 디스패치 + 증분 dirty 조상 전파) + `LayoutEngineAPI` batch 계약(`build_tree_batch` → `compute_layout` → `get_layouts_batch`). 자식 좌표는 부모 content-box 상대(taffy_bridge 계약 동일).
+  - live 전환: `USE_RUST_LAYOUT_ENGINE` + `UNIFIED_ENGINE` flag true → `createLayoutEngine` seam 이 자체 엔진 주입. builder 진입 시 `[ADR-916] composition-engine WASM initialized`, Canvas(Skia 자체 엔진 layout) ↔ CSS Preview 시각 정합.
+  - 검증: cargo test 233 PASS(lib 211 + golden 15 + tree_golden 6 + doc 1), dualRunLive(자체 vs Taffy) 12/12 diff 0, tree_golden(Chrome 실측 독립 oracle) 6/6, type-check baseline 69 신규 0.
+  - **명시 잔존(승격 후 관리, 미완 아님)**: (a) Taffy 폴백 로직 이중화(R4 HIGH) — endgame(Taffy 물리 삭제)까지 dual-run CI 상시 관리, (b) 2-CAT propagation WASM 배선 = 성능 최적화 후속 단위(layout 정확성 무관), (c) Phase 2 렌더 계층(2-C scene / 2-D commands / 2-E text) = "이관 대상 제외" 구조적 종결.
+  - 위치: `packages/composition-engine/src/{flex,block,grid,tree,style,cascade,display,spatial_index}.rs`, `apps/builder/src/builder/workspace/canvas/wasm-bindings/{layoutBridge,compositionEngine,featureFlags}.ts`.
+
 ## [ADR-916 P2-CAT R10 — text-xl line-height CSS↔Skia 대칭 복원] - 2026-07-05
 
 ### Bug Fixes

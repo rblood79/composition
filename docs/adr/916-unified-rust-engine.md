@@ -2,10 +2,11 @@
 
 ## Status
 
-Accepted — 2026-07-03
+Implemented — 2026-07-06
 
 - Proposed — 2026-07-03
 - Accepted — 2026-07-03 (Risk Threshold Check 대안 D 선정 + Gate G1~G5 완비 + 자체리뷰/codex 2 라운드 정정 반영 후 사용자 명시 confirm)
+- Implemented — 2026-07-06 (**layout 엔진 Taffy 대체 live 완료** = ADR 본 목표 달성. 사용자 결정 "layout 완료 = 승격, 잔존은 endgame/후속". 실측 판정: 자체 Rust 엔진이 live builder 에서 layout batch 계산 중 — flag `USE_RUST_LAYOUT_ENGINE`+`UNIFIED_ENGINE` true, C-2a 런타임 배선 flip, dualRunLive 12/12 diff 0, tree_golden Chrome 실측 6/6, Gate G1/G2/G5 통과. **live behavior exercise**: builder 진입 → `[ADR-916] composition-engine WASM initialized` + 콘솔 에러 0 → Canvas(Skia 자체 엔진 layout) ↔ CSS Preview 시각 정합(Text/Badge/Progress 50%/InlineAlert/Button 양쪽 동일 배치). 검증: cargo test 233 PASS(lib 211+golden 15+tree_golden 6+doc 1) / type-check baseline 69 신규 0. **명시 잔존(승격 후 관리, 미완 아님)**: (a) R4 폴백 로직 이중화 HIGH — endgame(Taffy 물리 삭제)까지 dual-run CI 상시 관리, (b) 2-CAT propagation(P2-PROP) WASM 주입 배선 = 성능 최적화 후속 단위(layout 정확성 무관), (c) Phase 2 렌더 계층 2-C/2-D/2-E = "이관 대상 제외" 종결(구조적 차단, 미완 아님). endgame kill criteria ③ 충족 → **3/3 도달**(Taffy 물리 삭제 착수 가능, 별도 승인).)
 - Phase 0 — 종료 2026-07-03 (**0-A seam 만 land**, flag 보류). 0-A = 레이아웃 엔진 주입 seam (`createLayoutEngine` factory 경유, 동작 무변). 0-B(LayoutScheduler worker offload)는 Phase 2-B 로 이연 — block/grid 가속기 dead + Phase 1/2 재편 대상이라 flip 앞선 dormant 배선 회피. 다음 진입점 = Phase 1 (Taffy 제거, HIGH 위험 — 별도 사용자 승인 필요)
 - Phase 1 진입 (사용자 승인 2026-07-03, "1-D 하네스 먼저") — **1-D dual-run diff 하네스 비교 엔진 land** (`dualRunHarness.ts`, HC3 2단 판정, 계약 test 5/5). breakdown 순서를 1-A(flex.rs) 먼저에서 **1-D(검증 기반) 먼저**로 재배열 — 하네스가 flex.rs 의 유일한 검증 경로(R1 대응)이므로 산출물보다 선행. fixture golden 생성은 candidate 엔진(flex.rs) 착수 시점 이연. 다음 진입점 = 1-A `flex.rs` 신규 (HIGH 위험, ~2,000줄 CSS Flexbox 명세 — 별도 세션·사용자 승인)
 - 1-A 착수 (사용자 승인 2026-07-03, "1-A 착수" + 첫 단위 = crate scaffold + 단일축 기본) — **`composition-engine` crate(taffy 의존 없음) + `flex.rs` 단일 라인 flex land** (`flex_layout_single_line`: justify 6종 / align 4종 / row·column / gap, `FLEX_FIELD_COUNT=16` 계약 = block_layout.rs flat f32 패턴 승계). M4(sub-group N≥3 confirm) 발동 → 대안 C big-bang 회피 위해 최소 검증 가능 단위부터. cargo test 8/8 PASS. **미구현**: grow/shrink 분배(§9.7)·wrap(§9.3)·align-content·flex-basis content — 다음 세션 (dual-run FAIL 이 fixture). WASM seam 배선은 flex/grid/block 완성 후 이연. 다음 진입점 = 1-A 잔여(grow/shrink/wrap) 또는 1-B grid (HIGH — 별도 세션·승인)
