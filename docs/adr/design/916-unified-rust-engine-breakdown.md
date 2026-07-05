@@ -223,18 +223,18 @@
 
 **Phase 순서 — dormant 회피 (H6, C-2b 선례)**:
 
-| 단계         | 내용                                                                                                                                             | 완료선                                                                                |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| P2-CAT ①     | `resolveStaticComponentRule` + strict resolve 파이프라인(`parsePxValue` 경유, `Number()` 금지, isFinite assert) + `buildCatalogStaticSnapshot()` | ✅ Land 2026-07-05 (`1a48ec78a`) — 순수 계층, 배선 0                                  |
-| P2-CAT ②     | L0 parity(typography ledger) + L1 구조 정합 + L1.5 golden 앵커                                                                                   | ✅ 전체 Land 2026-07-05 (L0 `4bcb611fa` 9 test + L1/L1.5 P2-CAT ③ 커밋 동반 10 test)  |
-| P2-CAT ③     | Rust `catalog.rs` + `injectCatalogSnapshot` seam + L2 cargo fixture                                                                              | ✅ **완료선 Land 2026-07-05** — catalog.rs 11 test + wasm seam(wasm32 컴파일). 배선 0 |
-| P2-PROP 동시 | init 주입 배선 + `isAvailable()` 2조건 + fail-loud 발동 + tree.rs propagation 이관 + **L3 dual-run**                                             | **소비 phase 착수와 동시** (배선 선행 = dormant)                                      |
+| 단계         | 내용                                                                                                                                             | 완료선                                                                                                            |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| P2-CAT ①     | `resolveStaticComponentRule` + strict resolve 파이프라인(`parsePxValue` 경유, `Number()` 금지, isFinite assert) + `buildCatalogStaticSnapshot()` | ✅ Land 2026-07-05 (`1a48ec78a`) — 순수 계층, 배선 0                                                              |
+| P2-CAT ②     | L0 parity(typography ledger) + L1 구조 정합 + L1.5 golden 앵커                                                                                   | ✅ 전체 Land 2026-07-05 (L0 `4bcb611fa` 9 test + L1/L1.5 P2-CAT ③ 커밋 동반 10 test)                              |
+| P2-CAT ③     | Rust `catalog.rs` + `injectCatalogSnapshot` seam + L2 cargo fixture                                                                              | ✅ **완료선 Land 2026-07-05** — catalog.rs 11 test + wasm seam(wasm32 컴파일). 배선 0                             |
+| P2-PROP 동시 | init 주입 배선 + `isAvailable()` 2조건 + fail-loud 발동 + **enrich 단 catalog 소비의 Rust 이관** + **L3 dual-run**                               | ⏸️ **보류** — Rust catalog live 소비자는 **2-B DFS 상단(enrich) 이관 시** 생김(하단 M3 정정). 그 이관과 묶어 착수 |
 
-L3(행동 dual-run diff 0) 소유는 완료 phase(2-B)가 아니라 **P2-PROP(조상 체인 이관 phase)** 로 재지정 — 완료 phase 위임 = 소유자 공백(H6).
+L3(행동 dual-run diff 0) 소유는 완료 phase(2-B)가 아니라 **P2-PROP(2-B DFS 상단 enrich 이관과 동시)** 로 재지정 — 완료 phase 위임 = 소유자 공백(H6). **정정(2026-07-05)**: "조상 체인 이관 phase" 서술은 propagation=tree.rs 전제라 stale — propagation 은 DFS 상단(enrich) JS 잔류이고, catalog live 소비자는 그 enrich 를 Rust 로 옮길 때 생긴다(§2-CAT 하단 M3 정정 블록).
 
-**Phase 순서 재정의 (2-A→2-B "순서 필수" 정밀화)**: 조상 체인 propagation 이 소비하는 것 = catalog sizes 층 + 토큰 정적 층뿐(`buttonTextMetrics`/`buttonIconPx`), `resolveStyle` 본체·`implicitStyles`(2,440줄) 아님. 따라서 **"완료된 2-A 순수 계층 + P2-CAT → 2-B 조상 체인 개방"**. 2-A 잔여(resolveStyle 조립/implicitStyles/display tag)는 조상 체인의 선결 아님(병행/후행 가능). `resolveFontStretchWidth` "spec SSOT 참조 계약 확정 후" 대기도 P2-CAT 로 해제.
+**Phase 순서 재정의 (2-A→2-B "순서 필수" 정밀화) — 정정(M3, 2026-07-05)**: ~~조상 체인 propagation 이 소비하는 것 = catalog sizes 층~~ 서술은 실측과 어긋남. **정확히는**: catalog sizes 층(`resolveComponentRule(type).sizes[size]`)을 소비하는 것은 **DFS 상단 enrich 의 propagationRegistry transform**(`buttonTextMetrics`/`buttonIconPx`) + buildSpecNodeData sizeSpec 조립 등 **다수 동기 hot path** 이지, propagation 오케스트레이션(getPropagationAncestors/applyParentPropagationProps = 부모 props→자식 복사) 자체가 아니다. 이 소비처는 전부 **DFS 상단 = JS 잔류(2-B 옵션 A)**. 따라서 catalog Rust lookup 의 live 소비는 **2-B DFS 상단 enrich 를 Rust 로 이관하는 시점**에 발생(그전엔 seam). `resolveFontStretchWidth` "spec SSOT 참조 계약 확정 후" 대기도 P2-CAT 로 해제된 것은 유효(참조 계약 = catalog lookup 계층 존재).
 
-**잔존 위험 (정직)**: R4(폴백 로직 이중화 HIGH — Taffy 제거까지 dual-run CI 상시로 관리, 소멸은 endgame) · R10(typography `text-xl--line-height` live 발산 MED — primitive 30 vs CSS 28, L0 이 표면화한 실채무, `KNOWN_TYPOGRAPHY_DIVERGENCES` ledger 등록됨. 별도 수정 단위 = 정본 판정 + Skia/DOM 양 consumer 동시 D3 symmetric). 나머지 CRITICAL 3+HIGH 4 는 위 5조항+scope 고정으로 봉합.
+**잔존 위험 (정직)**: R4(폴백 로직 이중화 HIGH — Taffy 제거까지 dual-run CI 상시로 관리, 소멸은 endgame) · R10(typography `text-xl--line-height` live 발산 MED — primitive 30 vs CSS 28, L0 이 표면화한 실채무, `KNOWN_TYPOGRAPHY_DIVERGENCES` ledger 등록됨. 별도 수정 단위 = 정본 판정 + Skia/DOM 양 consumer 동시 D3 symmetric) · **R11(Rust catalog live 소비자 부재 MED — infra-vs-wired gap, 2026-07-05 P2-PROP 실사 표면화)**: P2-CAT ①②③ 산출(Rust catalog.rs + wasm seam)은 L2 cargo fixture 만 소비자, live Rust 소비 경로는 2-B DFS 상단 enrich 이관 시 발생. 그전까지 seam 유지(dead 아님 — fixture 소비 + wasm.rs 관습). **관리**: P2-PROP 배선을 2-B enrich 이관과 묶어 착수(단독 배선 = dormant 또는 hot path WASM 왕복 성능 회귀). 나머지 CRITICAL 3+HIGH 4 는 위 5조항+scope 고정으로 봉합.
 
 > 설계 v2 전문(§1~8 + Risk/Gate 10항 1:1 + v1↔v2 봉합 색인)은 세션 기록. 구현 상세(파일별 변경/커밋 분해/테스트 배치)는 착수 시 본 절 확장.
 
@@ -243,7 +243,18 @@ L3(행동 dual-run diff 0) 소유는 완료 phase(2-B)가 아니라 **P2-PROP(�
 - **JS**: `apps/builder/.../catalogStaticSnapshot.ts`(resolveStaticMetric/buildCatalogStaticSnapshot/lookupCatalogMetric/**serializeCatalogSnapshot**) + `packages/shared/.../resolveComponentRule.ts`(resolveStaticComponentRule) + `packages/specs/.../typographyCssParity.ts`(L0). test = builder 23 + shared 4 + specs 9.
 - **Rust**: `packages/composition-engine/src/catalog.rs`(CatalogMetric/CatalogTypeEntry serde camelCase + thread_local static + inject/lookup/is_injected/clear) + `wasm.rs` seam 3 export(injectCatalogSnapshot/isCatalogInjected/lookupCatalogMetric, wasm32 게이트). test = catalog 11(L2 fixture, JS L1.5 golden 동형 대조).
 - **검증**: cargo lib 180(+11) + golden 15 + doc 1 / clippy 0(native+wasm32) / JS type-check baseline 69 신규 0. **배선 0**(`injectCatalogSnapshot` JS 호출 grep 0건) = seam 정의만, live 영향 0(no-dormant).
-- **미착수 (P2-PROP 소유, 별도 승인)**: JS init 실배선(`initCompositionEngineWasm` → injectCatalogSnapshot 호출) + `isAvailable()` 2조건 결합 + fail-loud 발동 + tree.rs propagation 이관 + L3 dual-run.
+
+**⚠️ P2-PROP 착수 전 실측 — 전제 정정(M3) + 착수 보류 (2026-07-05, 사용자 "P2-PROP 진행해" → 실측 gap surface → AskUserQuestion 2회 → "서술 정정(M3) — propagationRegistry 배선" → "P2-PROP 보류 — 서술만 M3 정정 후 중단")**:
+
+P2-PROP 착수 실사에서 §2-CAT 절 제목·규정의 전제("**조상 체인 propagation 이관 선결**")가 실측과 어긋남을 확인. 정정:
+
+1. **propagation 은 tree.rs(순수 레이아웃)에 없다** — `getPropagationAncestors`/`applyParentPropagationProps` 4심볼은 **Skia 렌더 경로**(`skia/buildSpecNodeData.ts:286-406`)에 있고, tree.rs 는 순수 트리 계산(propagation/catalog grep 0건, `propagate_dirty` 는 레이아웃 dirty 플래그일 뿐). **2-B 실사(2026-07-04 사용자 confirm)로 "DFS 상단 3-step(resolveStyle/implicit/enrich)=JS 잔류, tree.rs=batch 계약만"** 이 이미 확정 — propagation 은 `enrichWithIntrinsicSize` 안 `resolvePropagatedProps`(propagationRegistry)라 **JS 잔류 영역**. §2-CAT 의 "tree.rs propagation 이관" 은 그 확정 이전 전제를 자동 승계한 stale 서술([[feedback-adr-dependency-direction-stale-baseline]]).
+
+2. **catalog 실소비처는 propagation 이 아니라 별개 다수 동기 hot path** — `resolveComponentRule(type).sizes[size]` 직접 소비: propagationRegistry `buttonTextMetrics`/`buttonIconPx`(:345,:361 transform) + buildSpecNodeData sizeSpec 조립(:1123) + `resolveSkiaVisualRule`(:68) + layout `implicitStyles`(:284) + style panel `specPresetResolver`(:139) + preview `specCatalogBacked`(:45). propagation 자체는 부모 props→자식 props 복사이지 catalog 미소비([[feedback-infra-exists-vs-wired-consumption-path]] — catalog lookup 인프라 존재 ≠ propagation 이 그 소비 경로).
+
+3. **Rust catalog lookup 의 live Rust 소비자 부재** — tree.rs 가 propagation 을 안 가져가면(2-B 확정) Rust catalog 를 동기 호출할 Rust 코드가 없다 = L2 cargo fixture 만 소비자. JS 소비처를 WASM lookup 으로 바꾸면 **모든 동기 hot path(렌더/layout/panel/preview)에 경계 왕복 = 60fps 성능 회귀** + allowlist 3 key 만 반환이라 padding/borderRadius 등 나머지 필드 소비처는 이관 불가. 안 바꾸면 dormant([[feedback-no-dormant-foundation-ahead-of-flip]]).
+
+**결정**: P2-PROP 코드 착수 **보류**. Rust catalog 의 live 소비자는 **2-B DFS 상단(enrich) 이관 시** 생기므로(그때 Rust 측이 catalog 를 읽음), P2-PROP 배선은 그 이관과 묶어 착수. P2-CAT ①②③ 산출(JS 스냅샷 + Rust catalog.rs + wasm seam)은 그 시점까지 **seam 으로 유지**(L2 fixture 소비자라 dead 아님, wasm.rs 관습 정합). **미착수(2-B DFS 상단 이관과 동시, 별도 승인)**: JS init 실배선(`initCompositionEngineWasm`→injectCatalogSnapshot) + isAvailable 2조건 + fail-loud + enrich 단 catalog 소비의 Rust 이관 + L3 dual-run.
 
 ### 2-B. `tree.rs` — fullTreeLayout DFS 이관
 
