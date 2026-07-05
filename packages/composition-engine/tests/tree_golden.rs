@@ -14,7 +14,31 @@ use composition_engine::tree::LayoutTree;
 /// HC3 (a) 수치 tolerance (px) — golden.rs TOL 과 동일.
 const TOL: f32 = 1.0;
 
-/// batch JSON → 트리 빌드 → compute → root-상대 정규화 flat 반환.
+/// batch JSON 의 `children` 인덱스 배열을 파싱해 `parent[i]` 맵을 만든다.
+/// post-order(자식이 부모보다 앞) 배열이므로 부모 인덱스는 항상 자식보다 크다.
+/// root(부모 없음)는 `usize::MAX` 로 표시.
+fn parse_parents(batch_json: &str) -> Vec<usize> {
+    let v: serde_json::Value = serde_json::from_str(batch_json).expect("batch json");
+    let arr = v.as_array().expect("batch array");
+    let mut parent = vec![usize::MAX; arr.len()];
+    for (i, node) in arr.iter().enumerate() {
+        if let Some(children) = node.get("children").and_then(|c| c.as_array()) {
+            for c in children {
+                let ci = c.as_u64().expect("child index") as usize;
+                parent[ci] = i;
+            }
+        }
+    }
+    parent
+}
+
+/// batch JSON → 트리 빌드 → compute → **절대 좌표** flat 반환.
+///
+/// tree.rs 계약(compute_layout §417)은 자식 좌표를 **부모 content-box 상대**로
+/// 산출한다(taffy_bridge.rs 동일). Chrome `getBoundingClientRect` 는 viewport
+/// 절대 좌표이므로, 대조하려면 조상 체인 offset 을 누적해 절대 좌표로 변환한 뒤
+/// root origin 을 빼야 한다. (root-상대 절대 좌표 = 조상 누적 - root offset.)
+///
 /// handles 순서 = batch 배열 순서(post-order). root 는 handles 마지막.
 fn layout_relative(batch_json: &str) -> Vec<f32> {
     let mut tree = LayoutTree::new();
@@ -22,17 +46,35 @@ fn layout_relative(batch_json: &str) -> Vec<f32> {
     let root = *handles.last().expect("root handle");
     tree.compute_layout(root, 200.0, -1.0);
     let flat = tree.get_layouts_batch(&handles);
-    // root origin 추출(정규화용) — Chrome=viewport 기준이므로 상수도 root-상대.
-    let root_layout = tree.get_layout(root);
-    let (rx, ry) = (root_layout.x, root_layout.y);
-    let mut rel = flat;
-    let mut i = 0;
-    while i < rel.len() {
-        rel[i] -= rx; // x
-        rel[i + 1] -= ry; // y
-        i += 4;
+    let parent = parse_parents(batch_json);
+    let n = handles.len();
+
+    // 각 노드의 절대 좌표 = 자신 relative + 모든 조상 relative 합.
+    // post-order 라 인덱스 감소 방향으로 조상 offset 을 누적할 수 있다.
+    let mut abs_x = vec![0.0f32; n];
+    let mut abs_y = vec![0.0f32; n];
+    for i in 0..n {
+        let (mut ax, mut ay) = (flat[i * 4], flat[i * 4 + 1]);
+        let mut p = parent[i];
+        while p != usize::MAX {
+            ax += flat[p * 4];
+            ay += flat[p * 4 + 1];
+            p = parent[p];
+        }
+        abs_x[i] = ax;
+        abs_y[i] = ay;
     }
-    rel
+
+    // root-상대 정규화 — Chrome 상수도 root origin 을 뺀 root-상대.
+    let (rx, ry) = (abs_x[n - 1], abs_y[n - 1]);
+    let mut out = Vec::with_capacity(n * 4);
+    for i in 0..n {
+        out.push(abs_x[i] - rx); // x (절대 - root)
+        out.push(abs_y[i] - ry); // y
+        out.push(flat[i * 4 + 2]); // w (크기는 offset 무관)
+        out.push(flat[i * 4 + 3]); // h
+    }
+    out
 }
 
 /// root-상대 flat 을 4-tuple 단위로 EXPECTED 상수와 대조. |diff| ≤ TOL.
@@ -62,13 +104,13 @@ fn assert_tree_bounds(label: &str, actual: &[f32], expected: &[[f32; 4]]) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// N1 flex-in-flex. 순서: [0] n1-a, [1] n1-b, [2] n1-row, [3] n1-c, [4] n1-root.
-/// (Chrome 실측 미확정 — placeholder, Task 2 에서 실측값으로 교체)
+/// Chrome 실측(2026-07-06, root-상대). column root auto = 20+30.
 const N1_EXPECTED: &[[f32; 4]] = &[
-    [0., 0., 0., 0.], // [0] n1-a
-    [0., 0., 0., 0.], // [1] n1-b
-    [0., 0., 0., 0.], // [2] n1-row
-    [0., 0., 0., 0.], // [3] n1-c
-    [0., 0., 0., 0.], // [4] n1-root
+    [0., 0., 30., 20.],  // [0] n1-a
+    [30., 0., 40., 20.], // [1] n1-b   (a 30px 뒤)
+    [0., 0., 200., 20.], // [2] n1-row
+    [0., 20., 50., 30.], // [3] n1-c   (row h20 아래)
+    [0., 0., 200., 50.], // [4] n1-root (auto = 20+30)
 ];
 const N1_BATCH: &str = r#"[
   {"style":{"width":"30px","height":"20px"},"children":[]},
@@ -89,14 +131,15 @@ fn tree_golden_n1_flex_in_flex() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// N2 flex-in-grid. 순서: [0] n2-a1, [1] n2-a2, [2] n2-cell-a, [3] n2-b1,
-/// [4] n2-cell-b, [5] n2-root. (placeholder — Task 2 교체)
+/// [4] n2-cell-b, [5] n2-root. Chrome 실측(2026-07-06, root-상대).
+/// grid 2열 1fr=100px, auto row = max(cell-a 40, cell-b 30) = 40 (cell-b stretch).
 const N2_EXPECTED: &[[f32; 4]] = &[
-    [0., 0., 0., 0.], // [0] n2-a1
-    [0., 0., 0., 0.], // [1] n2-a2
-    [0., 0., 0., 0.], // [2] n2-cell-a
-    [0., 0., 0., 0.], // [3] n2-b1
-    [0., 0., 0., 0.], // [4] n2-cell-b
-    [0., 0., 0., 0.], // [5] n2-root
+    [0., 0., 40., 15.],    // [0] n2-a1
+    [0., 15., 40., 25.],   // [1] n2-a2   (a1 15px 아래)
+    [0., 0., 100., 40.],   // [2] n2-cell-a (1열, h=15+25)
+    [100., 0., 40., 30.],  // [3] n2-b1   (2열 x=100)
+    [100., 0., 100., 40.], // [4] n2-cell-b (2열, row 높이 40 stretch)
+    [0., 0., 200., 40.],   // [5] n2-root (auto row = 40)
 ];
 const N2_BATCH: &str = r#"[
   {"style":{"width":"40px","height":"15px"},"children":[]},
@@ -113,18 +156,20 @@ fn tree_golden_n2_flex_in_grid() {
     assert_tree_bounds("N2 flex-in-grid", &rel, N2_EXPECTED);
 }
 
+
 // ─────────────────────────────────────────────────────────────────────────────
 // N3 grid-in-flex — flex column(auto) → [grid(2열, 고정 40px row), leaf]
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// N3 grid-in-flex. 순서: [0] n3-g1, [1] n3-g2, [2] n3-grid, [3] n3-foot,
-/// [4] n3-root. (placeholder — Task 2 교체)
+/// [4] n3-root. Chrome 실측(2026-07-06, root-상대).
+/// grid 2열 1fr=100px, 고정 40px row. flex column auto = 40+20.
 const N3_EXPECTED: &[[f32; 4]] = &[
-    [0., 0., 0., 0.], // [0] n3-g1
-    [0., 0., 0., 0.], // [1] n3-g2
-    [0., 0., 0., 0.], // [2] n3-grid
-    [0., 0., 0., 0.], // [3] n3-foot
-    [0., 0., 0., 0.], // [4] n3-root
+    [0., 0., 100., 40.],   // [0] n3-g1   (1열)
+    [100., 0., 100., 40.], // [1] n3-g2   (2열)
+    [0., 0., 200., 40.],   // [2] n3-grid (고정 40px row)
+    [0., 40., 60., 20.],   // [3] n3-foot (grid h40 아래)
+    [0., 0., 200., 60.],   // [4] n3-root (auto = 40+20)
 ];
 const N3_BATCH: &str = r#"[
   {"style":{"height":"40px"},"children":[]},
@@ -145,12 +190,12 @@ fn tree_golden_n3_grid_in_flex() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// N4 gap flex column. 순서: [0] n4-a, [1] n4-b, [2] n4-c, [3] n4-root.
-/// (placeholder — Task 2 교체)
+/// Chrome 실측(2026-07-06, root-상대). rowGap 8 누적. auto = 30+8+40+8+20.
 const N4_EXPECTED: &[[f32; 4]] = &[
-    [0., 0., 0., 0.], // [0] n4-a
-    [0., 0., 0., 0.], // [1] n4-b
-    [0., 0., 0., 0.], // [2] n4-c
-    [0., 0., 0., 0.], // [3] n4-root
+    [0., 0., 100., 30.],  // [0] n4-a
+    [0., 38., 100., 40.], // [1] n4-b   (30 + gap 8)
+    [0., 86., 100., 20.], // [2] n4-c   (38 + 40 + gap 8)
+    [0., 0., 200., 106.], // [3] n4-root (30+8+40+8+20)
 ];
 const N4_BATCH: &str = r#"[
   {"style":{"width":"100px","height":"30px"},"children":[]},
@@ -170,11 +215,11 @@ fn tree_golden_n4_gap_flex_column() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// N5 dimension 혼재 flex row. 순서: [0] n5-fixed, [1] n5-auto, [2] n5-root.
-/// (placeholder — Task 2 교체)
+/// Chrome 실측(2026-07-06, root-상대). columnGap 10. auto 자식은 자연폭 유지.
 const N5_EXPECTED: &[[f32; 4]] = &[
-    [0., 0., 0., 0.], // [0] n5-fixed
-    [0., 0., 0., 0.], // [1] n5-auto
-    [0., 0., 0., 0.], // [2] n5-root
+    [0., 0., 50., 20.],  // [0] n5-fixed
+    [60., 0., 70., 20.], // [1] n5-auto (50 + gap 10)
+    [0., 0., 200., 20.], // [2] n5-root
 ];
 const N5_BATCH: &str = r#"[
   {"style":{"width":"50px","height":"20px"},"children":[]},
