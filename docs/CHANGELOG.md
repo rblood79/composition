@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-916 P2-CAT R10 — text-xl line-height CSS↔Skia 대칭 복원] - 2026-07-05
+
+### Bug Fixes
+
+- **text-xl line-height 30 → 28 (Skia↔CSS 시각 발산 정합)** (ADR-916 P2-CAT ② R10):
+  - **Why**: primitive `typography.ts` 의 `text-xl--line-height` 가 30 이었는데(주석 `20 × 1.5 = 30` — 다른 9개 토큰의 CSS `calc()` 배율 패턴 미준수), CSS 정본 `shared-tokens.css --text-xl--line-height: calc(1.75 / 1.25)` 는 20 × 1.4 = **28**. Skia 렌더(`getLabelLineHeight`/`resolveToken` 경유 → primitive 직접 소비)는 30px, CSS Preview(`var(--text-xl--line-height)`)는 28px 로 xl 크기 텍스트(Heading/Paragraph xl)의 줄 높이가 D3 시각 대칭 위반.
+  - 정본 판정: CSS `calc(1.75/1.25)=28` 이 정본(text-2xs~text-5xl 10개 토큰 중 text-xl 만 유일 발산, 나머지 9개는 전부 CSS calc 정합). primitive 30 이 버그.
+  - 수정: `typography.ts` `text-xl--line-height` 30 → 28 (primitive SSOT 정정 — Skia·CSS 양변이 같은 소스에서 28 로 수렴). `token.types.ts` 주석 정정. L0 ledger `KNOWN_TYPOGRAPHY_DIVERGENCES` 에서 `text-xl:lineHeight` 제거(정합화 → 등록 유지 시 stale).
+  - 회귀 가드: `typography.test.ts` 신규 — 대표값 golden(10 토큰) + `getLabelLineHeight(20)===28` Skia 소비 계약 앵커(30 회귀 시 RED 확인). `typographyCssParity.test.ts` L0 전수 정합(ledger 밖)이 text-xl 을 자동 감시. `tokenSnapshot` 갱신.
+  - baseline 대조: builder 테스트 67 failed 는 R10 변경 전(HEAD, text-xl=30)과 후가 동일 — 전부 pre-existing(propagation rule 구조 등, line-height 무관), R10 회귀 0.
+  - 위치: `packages/specs/src/primitives/typography.ts`, `renderers/utils/typographyCssParity.ts`, `types/token.types.ts`.
+
 ## [ADR-916 grid gap offset fix + Phase 2-A/2-B 이관 착수] - 2026-07-04
 
 ### Bug Fixes

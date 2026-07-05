@@ -46,25 +46,17 @@ export function cssLineHeightToPx(value: string, fontSizePx: number): number {
  * L0 oracle 이 검출한 실발산을 **명시 등록**한다. positive 전수 대조는 이 ledger 에
  * 등록된 발산만 예외 처리하고, 그 외 신규 발산은 RED 로 잡는다(발산이 조용히
  * 늘어나는 것을 차단). 실수정(어느 값이 정본인지 판정 + Skia/DOM 동시 정렬)은
- * 별도 D3 symmetric 단위(R10) — 본 ledger 는 "발산 존재 + 양값"만 기록한다.
+ * 별도 D3 symmetric 단위(R10).
  *
- * key = `${token}:${channel}`. value = { primitive, css, note }.
+ * 현재 등록 발산: **없음**. `text-xl:lineHeight`(primitive 30 vs CSS 28)는 R10
+ * 실수정에서 primitive typography.ts 를 CSS 정본(calc(1.75/1.25)×20 = 28)에 정렬해
+ * 정합화됨 → ledger 에서 제거(정합 상태를 ledger 에 남기면 stale). 신규 실발산
+ * 검출 시 `${token}:${channel}` → { primitive, css, note } 로 재등록.
  */
 export const KNOWN_TYPOGRAPHY_DIVERGENCES: ReadonlyMap<
   string,
   { primitive: number; css: number; note: string }
-> = new Map([
-  [
-    "text-xl:lineHeight",
-    {
-      primitive: 30,
-      css: 28,
-      note:
-        "primitive typography.ts 주석 '20 × 1.5 = 30' vs CSS calc(1.75 / 1.25) × 20px = 28. " +
-        "실수정(정본 판정 + Skia/DOM 동시 정렬)은 별도 D3 symmetric 단위.",
-    },
-  ],
-]);
+> = new Map<string, { primitive: number; css: number; note: string }>();
 
 /** 파싱 결과 — token name(예: "text-sm") → px. */
 export interface CssTypographyTokens {

@@ -34,8 +34,8 @@ export const typography: TypographyTokens = {
   "text-base--line-height": 24,
   // CSS: --text-lg--line-height: calc(1.75 / 1.125) ≈ 1.5556 → 18 * 1.5556 = 28
   "text-lg--line-height": 28,
-  // CSS: --text-xl--line-height: 20 * 1.5 = 30
-  "text-xl--line-height": 30,
+  // CSS: --text-xl--line-height: calc(1.75 / 1.25) = 1.4 → 20 * 1.4 = 28
+  "text-xl--line-height": 28,
   // CSS: --text-2xl--line-height: calc(2 / 1.5) ≈ 1.333 → 24 * 1.333 = 32
   "text-2xl--line-height": 32,
   // CSS: --text-3xl--line-height: calc(2.25 / 1.875) = 1.2 → 30 * 1.2 = 36

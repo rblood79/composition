@@ -45,7 +45,7 @@ exports[`ADR-081 G1 — primitives resolved-value snapshot > typography tokens r
   "text-sm": 14,
   "text-sm--line-height": 20,
   "text-xl": 20,
-  "text-xl--line-height": 30,
+  "text-xl--line-height": 28,
   "text-xs": 12,
   "text-xs--line-height": 16,
 }
