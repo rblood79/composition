@@ -8,7 +8,9 @@
  *  - 조항 2: defaultSize fallback 1급. resolve(type,size) = sizes[size] ?? sizes[defaultSize].
  *    Negative = "미존재 type → None" 만 (미존재 size 는 fallback).
  *
- * 순수 함수 — live 영향 0 (P2-CAT ① 은 배선 없음, dormant 회피).
+ * 순수 함수 — live 영향 0 (배선 없음). Rust 산출(catalog.rs + wasm seam)은
+ * 2-C/2-D/2-E 재평가에서 catalog live 소비 경로 부재 확정 → dormant 로 제거됨
+ * (2026-07-05). 본 JS 순수 조회 계층은 재생성 가능 자산으로 유지.
  */
 import { describe, it, expect } from "vitest";
 
@@ -16,7 +18,6 @@ import {
   resolveStaticMetric,
   buildCatalogStaticSnapshot,
   lookupCatalogMetric,
-  serializeCatalogSnapshot,
 } from "../catalogStaticSnapshot";
 
 // ── 조항 C3: strict resolve 파이프라인 ────────────────────────────────────────
@@ -128,38 +129,14 @@ describe("ADR-916 P2-CAT ① — buildCatalogStaticSnapshot (조항 1/2)", () =>
   });
 });
 
-// ── P2-CAT ② L1: 구조 정합 (WASM 경계 계약 검증) ──────────────────────────────
+// ── 스냅샷 구조 정합 (조항 1 allowlist + C3 유한 숫자, Map 직접 검증) ──────────
 
-describe("ADR-916 P2-CAT ② L1 — serializeCatalogSnapshot 구조 정합", () => {
+describe("ADR-916 P2-CAT ① — 스냅샷 구조 정합 (조항 1/C3)", () => {
   const snapshot = buildCatalogStaticSnapshot("light");
-  const json = serializeCatalogSnapshot(snapshot);
-  const parsed = JSON.parse(json) as Record<
-    string,
-    { defaultSize?: string; sizes: Record<string, Record<string, number>> }
-  >;
 
-  it("Map → JSON 직렬화가 유효한 JSON 이다 (WASM 경계 = string 계약)", () => {
-    // wasm.rs 관습(nodes_json: &str)과 동형 — 스냅샷은 JSON string 으로 경계 횡단.
-    expect(typeof json).toBe("string");
-    expect(parsed).toBeInstanceOf(Object);
-  });
-
-  it("직렬화가 스냅샷 Map 과 roundtrip 동형이다 (type 수 + size 수 보존)", () => {
-    expect(Object.keys(parsed).length).toBe(snapshot.size);
-    for (const [type, entry] of snapshot) {
-      expect(parsed[type]).toBeDefined();
-      expect(Object.keys(parsed[type].sizes).length).toBe(entry.sizes.size);
-    }
-  });
-
-  it("defaultSize 를 값으로 직렬화한다 (조항 2 — 사전 전개 금지, 미정의는 키 생략)", () => {
-    // Button.defaultSize="md" → JSON 에 보존. Rust 는 Option<String> 으로 수신.
-    expect(parsed.Button.defaultSize).toBe("md");
-  });
-
-  it("allowlist key 만 직렬화된다 (조항 1 — height/borderRadius/indicator 없음)", () => {
-    for (const [, entry] of Object.entries(parsed)) {
-      for (const [, metric] of Object.entries(entry.sizes)) {
+  it("allowlist key 만 스냅샷에 담긴다 (조항 1 — height/borderRadius/indicator 없음)", () => {
+    for (const [, entry] of snapshot) {
+      for (const [, metric] of entry.sizes) {
         for (const key of Object.keys(metric)) {
           expect(["fontSize", "lineHeight", "iconSize"]).toContain(key);
         }
@@ -167,14 +144,18 @@ describe("ADR-916 P2-CAT ② L1 — serializeCatalogSnapshot 구조 정합", () 
     }
   });
 
-  it("직렬화된 모든 metric 값이 유한 숫자다 (C3 전수 — 경계 횡단 값 안전)", () => {
-    for (const [, entry] of Object.entries(parsed)) {
-      for (const [, metric] of Object.entries(entry.sizes)) {
+  it("모든 metric 값이 유한 숫자다 (C3 전수 — 침묵 NaN 없음)", () => {
+    for (const [, entry] of snapshot) {
+      for (const [, metric] of entry.sizes) {
         for (const v of Object.values(metric)) {
           expect(Number.isFinite(v)).toBe(true);
         }
       }
     }
+  });
+
+  it("defaultSize 를 값으로 보존한다 (조항 2 — 사전 전개 금지)", () => {
+    expect(snapshot.get("Button")?.defaultSize).toBe("md");
   });
 });
 

@@ -14,14 +14,6 @@
 //!   (through-collapse chain / 부모-자식 bottom collapse metadata / BFC bottom 차단).
 //!   미구현: float/clear, writing-mode, BFC 내부 다단.
 //!
-//! - `catalog` — catalog 정적 참조 조회 계층 (ADR-916 P2-CAT ③). 조상 체인
-//!   propagation 의 tree.rs(2-B) 이관 선결. JS `buildCatalogStaticSnapshot()` 이
-//!   만든 (type×size)→숫자 metrics 스냅샷을 `inject_catalog_snapshot` 으로 thread_local
-//!   static 에 1회 주입, `lookup_catalog_metric(type, size)` 로 조회(조항 2 defaultSize
-//!   fallback). 조항 1 사영 = fontSize/lineHeight/iconSize allowlist 3 key 뿐(JS 직렬화가
-//!   allowlist 밖 제거). L2 cargo fixture 소비자 → dead 아님. WASM 주입 배선(JS init)은
-//!   P2-PROP 소유(seam 관습, no-dormant).
-//!
 //! - `grid` — CSS Grid (CSS-GRID-1 §7 track sizing / §8 placement). Phase 1-B.
 //!   기존 grid_layout.rs(279줄, test 11) 산술 커널 + GridLayout.utils.ts 알고리즘
 //!   (repeat/minmax/named-areas/span 배치) 통합 승계. 미구현: subgrid, intrinsic
@@ -123,7 +115,6 @@
 //!   → 자체 엔진 편입 후속 단계. HIGH — 별도 승인.
 
 pub mod block;
-pub mod catalog;
 pub mod cascade;
 pub mod display;
 pub mod flex;
