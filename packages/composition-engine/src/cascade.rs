@@ -603,6 +603,68 @@ pub fn resolve_style(
     computed
 }
 
+/// currentColor 치환 대상 색상 속성 (cssResolver.ts:124 `COLOR_PROPERTIES`).
+fn is_color_property(prop: &str) -> bool {
+    matches!(
+        prop,
+        "borderColor" | "backgroundColor" | "textDecorationColor" | "outlineColor" | "boxShadow"
+    )
+}
+
+/// 요소 전체 스타일(비상속 포함)의 cascade 키워드 + currentColor 전처리
+/// (cssResolver.ts:704 `preprocessStyle`).
+///
+/// `resolve_style` 이 상속 속성만 처리하는 것과 달리, borderColor/backgroundColor 등
+/// 비상속 색상 속성의 `currentColor`/`initial`/`unset`/`revert` 를 구체 값으로 변환한다.
+///
+/// - `initial`/`revert` → 초기값(있으면) + 다음 prop.
+/// - `unset` → 상속 속성이면 그대로 두고 넘어감(resolve_style 이 처리), 비상속이면 초기값.
+/// - COLOR_PROPERTIES → `resolve_current_color`(computed_color 로 치환).
+///
+/// 원본을 수정하지 않고 새 map 반환.
+pub fn preprocess_style(
+    style: &BTreeMap<String, CssValue>,
+    computed_color: &str,
+) -> BTreeMap<String, CssValue> {
+    let mut result = style.clone();
+
+    for (prop, raw) in style {
+        // undefined/null/"" skip — Map 부재는 자연 처리, "" 만 명시.
+        let s = match raw {
+            CssValue::Str(s) if !s.is_empty() => s.as_str(),
+            _ => continue, // 숫자/빈 문자열 → 키워드·currentColor 미검사.
+        };
+
+        // cascade 키워드 (부모 없는 flat: 비상속은 initial fallback).
+        let lower = s.to_ascii_lowercase();
+        if lower == "initial" || lower == "revert" {
+            if let Some(initial) = css_initial_value(prop) {
+                result.insert(prop.clone(), initial);
+                continue;
+            }
+        } else if lower == "unset" {
+            if is_inheritable_property(prop) {
+                // 상속 속성의 unset 은 resolve_style 이 처리 → 여기선 넘어감.
+                continue;
+            }
+            if let Some(initial) = css_initial_value(prop) {
+                result.insert(prop.clone(), initial);
+                continue;
+            }
+        }
+
+        // currentColor 키워드 치환.
+        if is_color_property(prop) {
+            result.insert(
+                prop.clone(),
+                CssValue::Str(resolve_current_color(s, computed_color)),
+            );
+        }
+    }
+
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -843,6 +905,93 @@ mod tests {
         // fontSize 24px → 숫자 24 로 해석.
         assert_eq!(out.get("fontSize"), Some(&CssValue::Num(24.0)));
         assert_eq!(out.get("fontFamily"), Some(&CssValue::Str("Arial".into())));
+    }
+
+    // ---- preprocess_style (cssResolver.ts:704) ----
+    // 비상속 속성의 cascade 키워드(initial/revert/unset) + currentColor 전처리.
+
+    #[test]
+    fn preprocess_style_currentcolor_replaced_with_computed_color() {
+        // borderColor: currentColor → computedColor 로 치환.
+        let style = m(&[("borderColor", "currentColor".into())]);
+        let out = preprocess_style(&style, "#ff0000");
+        assert_eq!(out.get("borderColor"), Some(&CssValue::Str("#ff0000".into())));
+    }
+
+    #[test]
+    fn preprocess_style_currentcolor_in_boxshadow_compound() {
+        // boxShadow 는 COLOR_PROPERTIES → 복합 값 내 currentColor 토큰 치환.
+        let style = m(&[("boxShadow", "0 1px 2px currentColor".into())]);
+        let out = preprocess_style(&style, "#123456");
+        assert_eq!(
+            out.get("boxShadow"),
+            Some(&CssValue::Str("0 1px 2px #123456".into()))
+        );
+    }
+
+    #[test]
+    fn preprocess_style_non_color_property_untouched() {
+        // display 는 COLOR_PROPERTIES 아님 + cascade 키워드 아님 → 그대로.
+        let style = m(&[("display", "flex".into())]);
+        let out = preprocess_style(&style, "#000000");
+        assert_eq!(out.get("display"), Some(&CssValue::Str("flex".into())));
+    }
+
+    #[test]
+    fn preprocess_style_initial_keyword_uses_initial_value() {
+        // 비상속 backgroundColor: initial → CSS_INITIAL_VALUES = transparent.
+        let style = m(&[("backgroundColor", "initial".into())]);
+        let out = preprocess_style(&style, "#000000");
+        assert_eq!(
+            out.get("backgroundColor"),
+            Some(&CssValue::Str("transparent".into()))
+        );
+    }
+
+    #[test]
+    fn preprocess_style_revert_keyword_uses_initial_value() {
+        // revert = initial 동일 처리 (노코드 빌더).
+        let style = m(&[("borderColor", "revert".into())]);
+        let out = preprocess_style(&style, "#000000");
+        // borderColor initial = #000000.
+        assert_eq!(out.get("borderColor"), Some(&CssValue::Str("#000000".into())));
+    }
+
+    #[test]
+    fn preprocess_style_unset_non_inheritable_uses_initial() {
+        // backgroundColor 는 비상속 → unset = initial = transparent.
+        let style = m(&[("backgroundColor", "unset".into())]);
+        let out = preprocess_style(&style, "#000000");
+        assert_eq!(
+            out.get("backgroundColor"),
+            Some(&CssValue::Str("transparent".into()))
+        );
+    }
+
+    #[test]
+    fn preprocess_style_unset_inheritable_is_skipped() {
+        // color 는 상속 속성 → unset 은 resolveStyle 이 처리 → 여기선 원본 유지(continue).
+        let style = m(&[("color", "unset".into())]);
+        let out = preprocess_style(&style, "#000000");
+        assert_eq!(out.get("color"), Some(&CssValue::Str("unset".into())));
+    }
+
+    #[test]
+    fn preprocess_style_empty_and_numeric_values_untouched() {
+        // "" skip, 숫자 skip (문자열 아니면 키워드/currentColor 검사 안 함).
+        let style = m(&[("borderWidth", 2.0.into()), ("borderColor", "".into())]);
+        let out = preprocess_style(&style, "#000000");
+        assert_eq!(out.get("borderWidth"), Some(&CssValue::Num(2.0)));
+        assert_eq!(out.get("borderColor"), Some(&CssValue::Str("".into())));
+    }
+
+    #[test]
+    fn preprocess_style_initial_missing_from_map_falls_through_to_color() {
+        // outlineColor: initial 은 CSS_INITIAL_VALUES 에 "invert" 로 존재 →
+        // initial 분기가 치환하고 continue (currentColor 미검사).
+        let style = m(&[("outlineColor", "initial".into())]);
+        let out = preprocess_style(&style, "#aabbcc");
+        assert_eq!(out.get("outlineColor"), Some(&CssValue::Str("invert".into())));
     }
 
     // ---- font-variant features ----
