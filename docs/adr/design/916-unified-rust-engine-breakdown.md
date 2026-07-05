@@ -201,6 +201,43 @@
 - implicit styles 는 데이터 주도 매핑 테이블 (tag → style) 로 재구성
 - **catalog SSOT 접점**: catalog 파생 스타일 값 보존 — 시각 정본은 `packages/shared/src/catalog/componentCatalog.ts` + `COMPONENT_RULES_TABLE` (`packages/shared/src/catalog/generated/componentRulesTable.ts`), Skia 소비 경로는 `buildSpecNodeData.ts` → `buildCatalogShapes`. 이관 후 /cross-check 전 컴포넌트. (참고: per-component spec 은 ADR-912 cutover 로 삭제 — Frame/Group/Slot 3개만 영구 잔존)
 
+### 2-CAT. Catalog 정적 참조 계약 — 조상 체인 propagation 이관 선결 (설계 확정 2026-07-05)
+
+> **성격**: 2-A 잔여(`resolveStyle` 본체 / `implicitStyles`)와 2-B 조상 체인 흡수가 **공통으로 대기하던 선결 계약**. 2-A §"남은 단위" 의 "`resolveFontStretchWidth`(spec SSOT 참조 계약 확정 후)" 및 2-E→2-B 흡수 결정의 그 '참조 계약'이 본 절이다. 새 ADR 아님 — breakdown 내부 계약. **설계만 확정, 구현 미착수** (HIGH — 별도 사용자 승인).
+
+**착수 경위 (2026-07-05, 사용자 "다음 진입점 정리" → "catalog 참조 계약 먼저 설계" → "설계 v2 재작성")**: 조상 체인 propagation(`buildSpecNodeData.ts` `getPropagationAncestors`:313 + `applyParentPropagationProps`:361) 이관의 의미 있는 단위는 catalog(`resolveComponentRule`)+token(`resolveToken`) 정적 참조를 Rust 측에 선결로 요구. 실사 → 설계 v1 → 적대적 반대심문 3건(S3 주입 / color 이연 / oracle·gate) 이 **CRITICAL 3 + HIGH 6** 결함 확정 → v2 재작성으로 봉합. framing: 이관 후보 전제 + 벤치=정당화([[feedback-rust-migration-candidate-bench-justifies-not-gates]]), dormant 회피([[feedback-no-dormant-foundation-ahead-of-flip]]).
+
+**핵심 방향 (S3 런타임 1회 주입)**: JS `buildCatalogStaticSnapshot()`(builder 계층 — shared 테이블 + specs resolveToken 동시 import 가능 유일 계층)이 앱 로드 시 (type×size)→**숫자 metrics 스냅샷** 생성, `initCompositionEngineWasm()` promise 내부 WASM 1회 원자 주입. **TokenRef 문자열이 WASM 경계를 넘지 않음** → 값 사본 repo 미보관 → **값 이중화 0**. Rust `catalog.rs`(신규) 는 조회 전용. (S1 값 사본 커밋 / S2 build-time 생성 = 정본 2벌 HIGH 로 기각. ADR-912 생성기 삭제·손 편집 정본 결정과 정합.)
+
+**정직성 정정**: v1 의 "무이중화" 는 과잉 주장. Taffy 폴백 엔진이 존재하는 한 propagation **로직**은 JS/Rust 양쪽에 한시 병존(폴백 경로용) → **값 이중화 0 + 로직 이중화는 Taffy 완전 제거(endgame) 시점까지 HIGH 잔존(R4)**.
+
+**계약 강화 5개 조항** (v2, 반대심문 봉합):
+
+1. **사영 = key 단위 allowlist** (`fontSize`/`lineHeight`/`iconSize` 3 key + `defaultSize`). 서브트리 사영 금지 → `height:"auto"`(componentRulesTable.ts:1473+) / nested `indicator{}`(:9556+) / sizes 내 `borderRadius:"{radius.*}"`(:38+) 를 **범위에서 제거**(C1·H5 구조적 봉합). height/indicator 는 사영 밖 — indicator 유일 소비자 `resolveSliderProps` 가 이관 scope 밖(§제외 목록)이라 발산 벡터 없음.
+2. **defaultSize fallback 1급 조항**: `resolve(type,size) = sizes[size] ?? sizes[defaultSize]` Rust 이식(live 소비자 3경로 `buildSpecNodeData.ts:1124` / `implicitStyles.ts:204-226` / `StoreRenderBridge.ts:553` 동형). JS 사전 전개 기각(L2 검증 불가). Negative = "미존재 **type**→None" 만 (C2 — v1 "미존재 size→None" 은 정반대라 폐기).
+3. **oracle 순환 파괴 — 독립 권위 leg (L0)**: v1 3-레벨은 양변 동일 `resolveToken` → shared-fault 맹목(재현 이력 2건: ADR-913 `{radius.xs}` silent undefined / **현재 live 발산** JS `spacing.md=16` vs CSS `--spacing-md:0.75rem=12px` App.css:260). L0 = primitive↔CSS parity(CSS 파일 텍스트 직접 파싱, resolveToken 미경유). **도입 즉시 spacing RED 예상 = oracle 작동 증거** → 발산 ledger 명시 등록(침묵 skip 금지). + L1.5 손검증 golden 앵커 + strict resolve throw(C3).
+4. **doc override 타입 분리**: `resolveStaticComponentRule(type)`(doc 파라미터 없음) 신설, 스냅샷 빌더·propagation 소비자 강제 → override 유입 = **compile error**. grep gate 보조 강등(adr912 grep escape 선례 회피). doc.componentRules 는 scope-out, non-empty 감지 시 재빌드+재주입 Gate 를 Phase 2 선결 등록(H3 — live 호출 6건 기존재).
+5. **주입 대상·ready·fail-loud**: 스냅샷 = Rust `thread_local` static(per-instance 아님 — startup 인스턴스 0개). init promise 내부 원자 주입. `isAvailable()` 2조건(`engineModule!==null && catalogInjected`). 미주입 lookup = dev panic/prod console.error + JS 폴백(침묵 default 금지). HMR 재주입 보장(H2).
+
+**이관 scope 고정 (H4)**: registry 4심볼(`propagationPathMatches`:286 / `getPropagationAncestors`:313 / `resolvePropagationValue`:340 / `applyParentPropagationProps`:361) **만**. parent-read 주입군 7종(`resolveButtonChildColor`:675 color TokenRef 주입 / `resolveProgressProps`:709 / `resolveSliderProps`:766 / `resolveIconDelegation`:800 / `resolveTagListItemsFromParent`:860 / `resolveParentDelegatedSize`:409 / Tab ancestor)은 **명시적 제외**(JS 잔존) → "이관 scope color 축 = 0건" 성립. 값 전달 = 타입 불문 opaque passthrough(variant 전파 9건 필터 금지) / catalog 읽기 = Button.sizes 치수 3 key 뿐.
+
+**Phase 순서 — dormant 회피 (H6, C-2b 선례)**:
+
+| 단계         | 내용                                                                                                                                             | 완료선                                             |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| P2-CAT ①     | `resolveStaticComponentRule` + strict resolve 파이프라인(`parsePxValue` 경유, `Number()` 금지, isFinite assert) + `buildCatalogStaticSnapshot()` |                                                    |
+| P2-CAT ②     | L0 parity(+spacing 발산 ledger) + L1 구조 정합 + L1.5 golden 앵커                                                                                |                                                    |
+| P2-CAT ③     | Rust `catalog.rs` + `inject_catalog_snapshot` + L2 cargo fixture                                                                                 | **← P2-CAT 완료선** (cargo 소비자 있음, dead 아님) |
+| P2-PROP 동시 | init 주입 배선 + `isAvailable()` 2조건 + fail-loud 발동 + tree.rs propagation 이관 + **L3 dual-run**                                             | **소비 phase 착수와 동시** (배선 선행 = dormant)   |
+
+L3(행동 dual-run diff 0) 소유는 완료 phase(2-B)가 아니라 **P2-PROP(조상 체인 이관 phase)** 로 재지정 — 완료 phase 위임 = 소유자 공백(H6).
+
+**Phase 순서 재정의 (2-A→2-B "순서 필수" 정밀화)**: 조상 체인 propagation 이 소비하는 것 = catalog sizes 층 + 토큰 정적 층뿐(`buttonTextMetrics`/`buttonIconPx`), `resolveStyle` 본체·`implicitStyles`(2,440줄) 아님. 따라서 **"완료된 2-A 순수 계층 + P2-CAT → 2-B 조상 체인 개방"**. 2-A 잔여(resolveStyle 조립/implicitStyles/display tag)는 조상 체인의 선결 아님(병행/후행 가능). `resolveFontStretchWidth` "spec SSOT 참조 계약 확정 후" 대기도 P2-CAT 로 해제.
+
+**잔존 위험 (정직)**: R4(폴백 로직 이중화 HIGH — Taffy 제거까지 dual-run CI 상시로 관리, 소멸은 endgame) · R10(spacing 토큰 live 발산 MED — L0 이 표면화한 실채무, 별도 수정 단위 = Skia/DOM 양 consumer 동시 D3 symmetric). 나머지 CRITICAL 3+HIGH 4 는 위 5조항+scope 고정으로 봉합.
+
+> 설계 v2 전문(§1~8 + Risk/Gate 10항 1:1 + v1↔v2 봉합 색인)은 세션 기록. 구현 상세(파일별 변경/커밋 분해/테스트 배치)는 착수 시 본 절 확장.
+
 ### 2-B. `tree.rs` — fullTreeLayout DFS 이관
 
 - 6-step DFS 파이프라인 (resolveStyle → applyImplicitStyles → enrichWithIntrinsicSize → solve → 2-pass 보정) Rust 일체화
@@ -409,7 +446,9 @@
 
 ### Phase 2 순서 의존성
 
-2-A → 2-B 순서 필수 (tree 가 style 소비). 2-C / 2-D / 2-E 는 2-B 이후 상호 독립.
+2-A(순수 계층 완료) + **2-CAT(catalog 정적 참조 계약)** → 2-B 조상 체인 개방. 2-C / 2-D / 2-E 는 2-B 이후 상호 독립.
+
+> **"2-A → 2-B 순서 필수" 정밀화 (2026-07-05)**: 원 문구는 과대했다. 2-B 조상 체인 propagation 이 소비하는 것은 catalog sizes 층 + 토큰 정적 층(`buttonTextMetrics`/`buttonIconPx`)뿐이지 `resolveStyle` 본체·`implicitStyles`(2,440줄)가 아니다 → 실제 선결은 2-A 잔여 전체가 아니라 **2-CAT 계약**이다(§2-CAT 참조). 2-A 잔여(resolveStyle 조립/implicitStyles/display tag)는 조상 체인과 병행/후행 가능. 조상 체인 흡수(2-E→2-B 편입분)의 실제 이관 phase = **P2-PROP**(2-CAT 완료 후 개방, WASM 주입 배선을 이 phase 착수와 동시 = dormant 회피).
 
 각 모듈 cutover 완료 시 대응 JS 경로 **즉시 삭제** — dormant 병행 금지 (feedback-no-dormant-foundation-ahead-of-flip).
 
@@ -426,6 +465,7 @@ packages/composition-engine/        # 신규 통합 crate (composition-layout �
     ├── lib.rs          # WASM 엔트리 — 단일 batch API
     ├── scene.rs        # 2-C (조건부 — 안 C, JS 안 A/B 로 병목 미해소 시에만 신설)
     ├── style.rs        # 2-A (기존 style.rs 승계 확장)
+    ├── catalog.rs      # 2-CAT (조회 전용 — thread_local 스냅샷, JS 선해석 숫자 metrics 주입, 조상 체인 propagation 이관 선결)
     ├── tree.rs         # 2-B
     ├── flex.rs         # 1-A
     ├── grid.rs         # 1-B (grid_layout.rs 승계)
