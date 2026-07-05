@@ -164,6 +164,38 @@
 - Cargo.toml 양쪽에서 taffy 삭제 (`composition-wasm` 0.9 / `composition-layout` 0.10)
 - `taffy_bridge.rs` (1,307줄) 폐기
 
+**실제 land 범위 (2026-07-05, `f2ac4860c`)**: 위 원안(crate 물리 삭제)이 **아니라** — 사용자 명시 지시(AskUserQuestion 2건 "폴백 유지 + Taffy 사용 참조만 제거" + "dead 코드 삭제만")로 **dead 엔진 클래스 4종 + accelerator 삭제(-1252줄)**만 진행. `layoutBridge.ts:84` Taffy 폴백 + crate/pkg 물리 자산은 **의도적 보존**. 즉 "1-E 완료" = dead code 제거이지 Taffy 완전 제거(endgame)가 아니다. crate 물리 삭제는 아래 endgame 판정으로 이연.
+
+### 1-F. Taffy 완전 제거 (endgame) — 재평가 결과: 제거 보류 (시점 미도래, 2026-07-05)
+
+> **성격**: R4(폴백 로직 이중화 HIGH, §252)의 소멸 조건 = endgame. 사용자 "ADR-916 endgame Taffy 완전 제거 재평가" 지시로 실측 재평가. **코드 변경 0** — 재평가 결과가 "제거 보류"이므로 kill criteria 명문화만.
+
+**실측 (추정 아님)**:
+
+| 축                  | 결과                                                                                                                                                     |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Taffy 참조 규모     | 40+ 파일 / 768 라인(테스트 제외)                                                                                                                         |
+| 폴백 배선           | `layoutBridge.ts:84` `return new TaffyLayout()` 무조건 도달 + `:71` 자체 엔진 `isAvailable()` false 시 폴백                                              |
+| 폴백 발동 조건      | `isAvailable()`(compositionEngine.ts:94)=`engine!==null`. WASM 미준비(startup init 전/로드 실패) 시 **런타임 실발동** — dead 아님                        |
+| **crate 물리 결합** | `composition_wasm` crate(`wasm/src/lib.rs:3-10`)가 **SpatialIndex + TaffyLayoutEngine 동일 crate** — Taffy crate/pkg 물리 삭제 시 SpatialIndex 동반 삭제 |
+| init 배선           | `init.ts:19-28` `rustWasm`(Taffy WASM)을 `SPATIAL_INDEX \|\| LAYOUT_ENGINE` flag 로 여전히 로드(둘 다 true)                                              |
+| **dual-run oracle** | `dualRunEngines.ts` 가 Taffy pkg 를 fixture 로드 — dualRunLive 12/12 diff 0 proof 의 **비교 기준(oracle)=Taffy**. 제거 시 회귀 안전망 소멸               |
+
+**판정 = 제거 보류 (endgame 시점 미도래)**. 3 구조적 장애물:
+
+1. **Taffy = 유일 검증 oracle** — 자체 엔진 정확성 증거(dualRunLive 12/12)는 "자체 vs Taffy 시각 동일". Taffy 제거 = dual-run CI 회귀 안전망 소멸. golden fixture 만으로는 미래 자체 엔진 회귀를 잡을 독립 기준 부재. [[feedback-proof-gate-seam-removal-kill-criteria]] — oracle 제거는 kill criteria 부재 상태 전환.
+2. **crate 물리 결합** — Taffy crate/pkg 물리 삭제 = SpatialIndex 별도 crate 분리 선행 필요(`composition_wasm` 동일 crate). endgame 자체보다 큰 별도 리팩토링. [[feedback-execute-adr-surface-minimization]] 표면 과대.
+3. **폴백 = live 안전망(dead 아님)** — 1-E 에서 사용자 명시 "폴백 유지" 선택. `layoutBridge.ts:84` 는 자체 WASM 미준비 시 실발동 런타임 경로. 자체 엔진 미Implemented(Status=Accepted) 상태 안전망 제거는 시기상조.
+
+**endgame kill criteria (모두 충족 시 재개 — 현재 충족 0/4)**:
+
+1. 자체 엔진 안정화 기간 경과 — live builder 회귀 0건 충분 축적(폴백 불필요 확신)
+2. 독립 oracle 확보 — dual-run(Taffy 비교) 대체 = golden fixture 확장 또는 CSS getComputedStyle parity 같은 Taffy-비의존 회귀 기준
+3. SpatialIndex crate 분리 — `composition_wasm` 에서 SpatialIndex 독립 crate 화(Taffy crate 만 삭제 가능)
+4. ADR-916 Status = Implemented 승격 — Phase 1/2 자체 엔진 정식 완료 선언
+
+현재 4개 중 충족 0(자체 엔진 C-2a live 전환됐으나 안정화 기간·독립 oracle·crate 분리·Implemented 승격 모두 미도래). R4 는 endgame 까지 HIGH 잔존 유지(dual-run CI 상시 관리).
+
 ---
 
 ## Phase 2: 파이프라인 통합 (모듈별 순차, 각 모듈 G3 게이트)
