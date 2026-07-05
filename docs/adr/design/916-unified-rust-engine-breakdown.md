@@ -215,7 +215,7 @@
 
 1. **사영 = key 단위 allowlist** (`fontSize`/`lineHeight`/`iconSize` 3 key + `defaultSize`). 서브트리 사영 금지 → `height:"auto"`(componentRulesTable.ts:1473+) / nested `indicator{}`(:9556+) / sizes 내 `borderRadius:"{radius.*}"`(:38+) 를 **범위에서 제거**(C1·H5 구조적 봉합). height/indicator 는 사영 밖 — indicator 유일 소비자 `resolveSliderProps` 가 이관 scope 밖(§제외 목록)이라 발산 벡터 없음.
 2. **defaultSize fallback 1급 조항**: `resolve(type,size) = sizes[size] ?? sizes[defaultSize]` Rust 이식(live 소비자 3경로 `buildSpecNodeData.ts:1124` / `implicitStyles.ts:204-226` / `StoreRenderBridge.ts:553` 동형). JS 사전 전개 기각(L2 검증 불가). Negative = "미존재 **type**→None" 만 (C2 — v1 "미존재 size→None" 은 정반대라 폐기).
-3. **oracle 순환 파괴 — 독립 권위 leg (L0)**: v1 3-레벨은 양변 동일 `resolveToken` → shared-fault 맹목(재현 이력 2건: ADR-913 `{radius.xs}` silent undefined / **현재 live 발산** JS `spacing.md=16` vs CSS `--spacing-md:0.75rem=12px` App.css:260). L0 = primitive↔CSS parity(CSS 파일 텍스트 직접 파싱, resolveToken 미경유). **도입 즉시 spacing RED 예상 = oracle 작동 증거** → 발산 ledger 명시 등록(침묵 skip 금지). + L1.5 손검증 golden 앵커 + strict resolve throw(C3).
+3. **oracle 순환 파괴 — 독립 권위 leg (L0)**: v1 3-레벨은 양변 동일 `resolveToken` → shared-fault 맹목(재현 이력: ADR-913 `{radius.xs}` silent undefined). L0 = primitive↔CSS parity(CSS `shared-tokens.css` 텍스트 직접 파싱, resolveToken 미경유). ✅ **Land 2026-07-05 (`4bcb611fa`)** — `typographyCssParity.ts` 9 test PASS. **실측 정정(M3, 추정 vs 실측 gap = 절차 정밀화)**: 사영 allowlist 는 `fontSize`/`lineHeight`/`iconSize` 만(조항 1)이라 spacing 은 애초에 사영 밖 + primitive `spacing.md=16` 과 CSS `--spacing-md:12px` 는 spacing.ts 주석이 명시한 **의도된 별개 계열**(발산 벡터 아님) → v2 초안의 "도입 즉시 spacing RED 예상" 은 오예측(폐기). L0 이 실제 검출한 발산 1건 = **`text-xl--line-height`**(primitive 30 vs CSS `calc(1.75/1.25)×20px=28`) → `KNOWN_TYPOGRAPHY_DIVERGENCES` ledger 명시 등록(침묵 skip 금지), 그 외 typography 전수 정합. oracle 작동 증명 3방식: positive 전수 정합 통과 + ledger 재확인(stale 방지, 여전히 발산 상태 assert) + negative fixture(변조 CSS 를 RED 로 검출). 실수정(어느 값이 정본인지 판정 + Skia/DOM 동시 정렬)은 별도 D3 symmetric 단위(R10). + L1.5 손검증 golden 앵커 + strict resolve throw(C3).
 4. **doc override 타입 분리**: `resolveStaticComponentRule(type)`(doc 파라미터 없음) 신설, 스냅샷 빌더·propagation 소비자 강제 → override 유입 = **compile error**. grep gate 보조 강등(adr912 grep escape 선례 회피). doc.componentRules 는 scope-out, non-empty 감지 시 재빌드+재주입 Gate 를 Phase 2 선결 등록(H3 — live 호출 6건 기존재).
 5. **주입 대상·ready·fail-loud**: 스냅샷 = Rust `thread_local` static(per-instance 아님 — startup 인스턴스 0개). init promise 내부 원자 주입. `isAvailable()` 2조건(`engineModule!==null && catalogInjected`). 미주입 lookup = dev panic/prod console.error + JS 폴백(침묵 default 금지). HMR 재주입 보장(H2).
 
@@ -223,18 +223,18 @@
 
 **Phase 순서 — dormant 회피 (H6, C-2b 선례)**:
 
-| 단계         | 내용                                                                                                                                             | 완료선                                               |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
-| P2-CAT ①     | `resolveStaticComponentRule` + strict resolve 파이프라인(`parsePxValue` 경유, `Number()` 금지, isFinite assert) + `buildCatalogStaticSnapshot()` | ✅ Land 2026-07-05 (`1a48ec78a`) — 순수 계층, 배선 0 |
-| P2-CAT ②     | L0 parity(+spacing 발산 ledger) + L1 구조 정합 + L1.5 golden 앵커                                                                                |                                                      |
-| P2-CAT ③     | Rust `catalog.rs` + `inject_catalog_snapshot` + L2 cargo fixture                                                                                 | **← P2-CAT 완료선** (cargo 소비자 있음, dead 아님)   |
-| P2-PROP 동시 | init 주입 배선 + `isAvailable()` 2조건 + fail-loud 발동 + tree.rs propagation 이관 + **L3 dual-run**                                             | **소비 phase 착수와 동시** (배선 선행 = dormant)     |
+| 단계         | 내용                                                                                                                                             | 완료선                                                                               |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| P2-CAT ①     | `resolveStaticComponentRule` + strict resolve 파이프라인(`parsePxValue` 경유, `Number()` 금지, isFinite assert) + `buildCatalogStaticSnapshot()` | ✅ Land 2026-07-05 (`1a48ec78a`) — 순수 계층, 배선 0                                 |
+| P2-CAT ②     | L0 parity(typography ledger) + L1 구조 정합 + L1.5 golden 앵커                                                                                   | ✅ L0 Land 2026-07-05 (`4bcb611fa`) — 9 test, 순수 검증. L1/L1.5 는 P2-CAT ③ 착수 시 |
+| P2-CAT ③     | Rust `catalog.rs` + `inject_catalog_snapshot` + L2 cargo fixture                                                                                 | **← P2-CAT 완료선** (cargo 소비자 있음, dead 아님)                                   |
+| P2-PROP 동시 | init 주입 배선 + `isAvailable()` 2조건 + fail-loud 발동 + tree.rs propagation 이관 + **L3 dual-run**                                             | **소비 phase 착수와 동시** (배선 선행 = dormant)                                     |
 
 L3(행동 dual-run diff 0) 소유는 완료 phase(2-B)가 아니라 **P2-PROP(조상 체인 이관 phase)** 로 재지정 — 완료 phase 위임 = 소유자 공백(H6).
 
 **Phase 순서 재정의 (2-A→2-B "순서 필수" 정밀화)**: 조상 체인 propagation 이 소비하는 것 = catalog sizes 층 + 토큰 정적 층뿐(`buttonTextMetrics`/`buttonIconPx`), `resolveStyle` 본체·`implicitStyles`(2,440줄) 아님. 따라서 **"완료된 2-A 순수 계층 + P2-CAT → 2-B 조상 체인 개방"**. 2-A 잔여(resolveStyle 조립/implicitStyles/display tag)는 조상 체인의 선결 아님(병행/후행 가능). `resolveFontStretchWidth` "spec SSOT 참조 계약 확정 후" 대기도 P2-CAT 로 해제.
 
-**잔존 위험 (정직)**: R4(폴백 로직 이중화 HIGH — Taffy 제거까지 dual-run CI 상시로 관리, 소멸은 endgame) · R10(spacing 토큰 live 발산 MED — L0 이 표면화한 실채무, 별도 수정 단위 = Skia/DOM 양 consumer 동시 D3 symmetric). 나머지 CRITICAL 3+HIGH 4 는 위 5조항+scope 고정으로 봉합.
+**잔존 위험 (정직)**: R4(폴백 로직 이중화 HIGH — Taffy 제거까지 dual-run CI 상시로 관리, 소멸은 endgame) · R10(typography `text-xl--line-height` live 발산 MED — primitive 30 vs CSS 28, L0 이 표면화한 실채무, `KNOWN_TYPOGRAPHY_DIVERGENCES` ledger 등록됨. 별도 수정 단위 = 정본 판정 + Skia/DOM 양 consumer 동시 D3 symmetric). 나머지 CRITICAL 3+HIGH 4 는 위 5조항+scope 고정으로 봉합.
 
 > 설계 v2 전문(§1~8 + Risk/Gate 10항 1:1 + v1↔v2 봉합 색인)은 세션 기록. 구현 상세(파일별 변경/커밋 분해/테스트 배치)는 착수 시 본 절 확장.
 
