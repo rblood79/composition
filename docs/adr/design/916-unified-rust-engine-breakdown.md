@@ -234,7 +234,7 @@ L3(행동 dual-run diff 0) 소유는 완료 phase(2-B)가 아니라 **P2-PROP(2-
 
 **Phase 순서 재정의 (2-A→2-B "순서 필수" 정밀화) — 정정(M3, 2026-07-05)**: ~~조상 체인 propagation 이 소비하는 것 = catalog sizes 층~~ 서술은 실측과 어긋남. **정확히는**: catalog sizes 층(`resolveComponentRule(type).sizes[size]`)을 소비하는 것은 **DFS 상단 enrich 의 propagationRegistry transform**(`buttonTextMetrics`/`buttonIconPx`) + buildSpecNodeData sizeSpec 조립 등 **다수 동기 hot path** 이지, propagation 오케스트레이션(getPropagationAncestors/applyParentPropagationProps = 부모 props→자식 복사) 자체가 아니다. 이 소비처는 전부 **DFS 상단 = JS 잔류(2-B 옵션 A)**. 따라서 catalog Rust lookup 의 live 소비는 **2-B DFS 상단 enrich 를 Rust 로 이관하는 시점**에 발생(그전엔 seam). `resolveFontStretchWidth` "spec SSOT 참조 계약 확정 후" 대기도 P2-CAT 로 해제된 것은 유효(참조 계약 = catalog lookup 계층 존재).
 
-**잔존 위험 (정직)**: R4(폴백 로직 이중화 HIGH — Taffy 제거까지 dual-run CI 상시로 관리, 소멸은 endgame) · ~~R10(typography `text-xl--line-height` live 발산 MED)~~ **해소 2026-07-05** — primitive 30→28 정정으로 Skia/CSS 양 consumer 28 수렴(D3 symmetric 복원), ledger 비움, `typography.test.ts` 회귀 앵커 land · **R11(Rust catalog live 소비자 부재 MED — infra-vs-wired gap, 2026-07-05 P2-PROP 실사 표면화)**: P2-CAT ①②③ 산출(Rust catalog.rs + wasm seam)은 L2 cargo fixture 만 소비자, live Rust 소비 경로는 2-B DFS 상단 enrich 이관 시 발생. 그전까지 seam 유지(dead 아님 — fixture 소비 + wasm.rs 관습). **관리**: P2-PROP 배선을 2-B enrich 이관과 묶어 착수(단독 배선 = dormant 또는 hot path WASM 왕복 성능 회귀). 나머지 CRITICAL 3+HIGH 4 는 위 5조항+scope 고정으로 봉합.
+**잔존 위험 (정직)**: R4(폴백 로직 이중화 HIGH — Taffy 제거까지 dual-run CI 상시로 관리, 소멸은 endgame) · ~~R10(typography `text-xl--line-height` live 발산 MED)~~ **해소 2026-07-05** — primitive 30→28 정정으로 Skia/CSS 양 consumer 28 수렴(D3 symmetric 복원), ledger 비움, `typography.test.ts` 회귀 앵커 land · **R11(Rust catalog live 소비자 부재 MED — infra-vs-wired gap, 2026-07-05 P2-PROP 실사 표면화)**: P2-CAT ①②③ 산출(Rust catalog.rs + wasm seam)은 L2 cargo fixture 만 소비자, live Rust 소비 경로는 2-B DFS 상단 enrich 이관 시 발생. 그전까지 seam 유지(dead 아님 — fixture 소비 + wasm.rs 관습). **관리(2026-07-05 재협상 갱신)**: ~~P2-PROP 배선을 2-B enrich 이관과 묶어 착수~~ 폐기 — enrich(CanvasKit 측정)는 Rust 이관 대상 아니고 propagation 순수 계층 이관은 미정당화(hot path WASM 왕복이 순수 JS 보다 느릴 개연, 이관 후보로 전제된 계층 아님). **catalog live 소비는 2-C/2-D(scene.rs/commands.rs — 이관 후보로 전제된 렌더 계층) Rust 화 시 catalog metric 소비 여부를 그 phase 착수 시 재판정**. propagation 은 JS 잔류가 정본. 나머지 CRITICAL 3+HIGH 4 는 위 5조항+scope 고정으로 봉합.
 
 > 설계 v2 전문(§1~8 + Risk/Gate 10항 1:1 + v1↔v2 봉합 색인)은 세션 기록. 구현 상세(파일별 변경/커밋 분해/테스트 배치)는 착수 시 본 절 확장.
 
@@ -255,6 +255,18 @@ P2-PROP 착수 실사에서 §2-CAT 절 제목·규정의 전제("**조상 체�
 3. **Rust catalog lookup 의 live Rust 소비자 부재** — tree.rs 가 propagation 을 안 가져가면(2-B 확정) Rust catalog 를 동기 호출할 Rust 코드가 없다 = L2 cargo fixture 만 소비자. JS 소비처를 WASM lookup 으로 바꾸면 **모든 동기 hot path(렌더/layout/panel/preview)에 경계 왕복 = 60fps 성능 회귀** + allowlist 3 key 만 반환이라 padding/borderRadius 등 나머지 필드 소비처는 이관 불가. 안 바꾸면 dormant([[feedback-no-dormant-foundation-ahead-of-flip]]).
 
 **결정**: P2-PROP 코드 착수 **보류**. Rust catalog 의 live 소비자는 **2-B DFS 상단(enrich) 이관 시** 생기므로(그때 Rust 측이 catalog 를 읽음), P2-PROP 배선은 그 이관과 묶어 착수. P2-CAT ①②③ 산출(JS 스냅샷 + Rust catalog.rs + wasm seam)은 그 시점까지 **seam 으로 유지**(L2 fixture 소비자라 dead 아님, wasm.rs 관습 정합). **미착수(2-B DFS 상단 이관과 동시, 별도 승인)**: JS init 실배선(`initCompositionEngineWasm`→injectCatalogSnapshot) + isAvailable 2조건 + fail-loud + enrich 단 catalog 소비의 Rust 이관 + L3 dual-run.
+
+**🔁 2-B "enrich 이관" 재협상 — 실측 3 (2026-07-05, 사용자 "2-B enrich 이관 재협상" 선택 → 깊은 사고 진입, 코드 이관 0)**:
+
+P2-PROP 실사가 "catalog live 소비 = 2-B DFS 상단 enrich 이관 시 발생" 이라 했으나, "enrich" 라는 이름이 **CanvasKit 측정 의존 여부가 정반대인 두 경로**를 혼용하고 있었다. 실코드 확인:
+
+1. **"enrich" 는 두 개의 별개 경로다** — (a) `enrichWithIntrinsicSize`(`layout/engines/utils.ts:3953`) = intrinsic width/height 측정. `min-content`/`max-content`/`fit-content` 를 **CanvasKit Paragraph API 로 텍스트 측정**(`calculateMinContentWidth`/`calculateMaxContentWidth`) → 폰트/글리프 측정 의존이라 **Rust 레이아웃 엔진 이관 불가**(엔진에 폰트 측정 기능 없음, 2-B "JS 잔류" 확정의 근본 이유). (b) `applyParentPropagationProps`(`skia/buildSpecNodeData.ts:361`) = 조상 props 읽기 → rule matching → transform → 자식 props 반환. **CanvasKit/DOM/getComputedStyle 호출 0 = 순수 함수**. catalog 소비(`buttonTextMetrics`/`buttonIconPx` transform)는 이 순수 경로 안 rule transform.
+
+2. **따라서 catalog Rust live 소비를 위해 enrich 전체(CanvasKit 측정)를 이관할 필요가 없다** — propagation 순수 계층(`applyParentPropagationProps`/`resolvePropagationValue` + catalog 조회 transform)만 옮기면 catalog 가 live 소비자를 얻는다. P2-PROP 실사의 "enrich 이관과 묶어야" 는 **과대 스코프**(CanvasKit 측정 blocker 를 propagation 이관의 전제로 잘못 승계).
+
+3. **그러나 propagation 은 "이관 후보로 전제된 계층" 이 아니다** — [[feedback-rust-migration-candidate-bench-justifies-not-gates]]: 2-D/2-E 는 breakdown 이 이관 후보로 전제(단일 엔진/main-thread 제거 정당화 축 보유). propagation 은 그런 전제가 **없다**. 실체 = 순수 JS(조상 Map 순회 + rule 조회 + transform)로 이미 매우 빠른 계층. Rust 이관 시 노드마다 props 직렬화 JS→WASM→JS 왕복(buildSpecNodeData 는 매 Skia 렌더 hot path) = **왕복 비용이 순수 JS 실행보다 느릴 개연** → 이관이 성능·SSOT·main-thread 어느 축으로도 정당화 안 됨. [[project-adr916-catalog-not-propagation-prereq]] 의 "catalog live 소비자는 2-B enrich 이관 시" 도 이 재협상으로 정밀화: **enrich(CanvasKit 측정)는 이관 대상 아님, propagation 순수 계층은 이관 가능하나 미정당화**.
+
+**재협상 결론**: P2-PROP 은 **"2-B enrich 이관과 묶는" 구성 자체를 폐기**. Rust catalog lookup 의 live 소비자를 만드는 정당화된 경로가 현재 없다(propagation 이관 미정당화 + enrich CanvasKit blocker). → **catalog Rust seam(P2-CAT ③)은 R11 대로 seam 유지**하되, live 소비는 **2-C/2-D(scene.rs/commands.rs — 이관 후보로 전제된 렌더 계층)가 Rust 화하면서 catalog metric 을 읽는 시점**에 자연 발생하는지를 그 phase 착수 시 재판정. propagation 은 JS 잔류가 정본(성능상 적합 계층). R11 관리 문구 갱신: "P2-PROP 배선을 enrich 이관과 묶음" → "catalog live 소비는 2-C/2-D 렌더 Rust 화 시 재판정, propagation 은 JS 잔류". **코드 이관 0** — 문서(본 재협상 블록 + R11 관리 문구)만, live 영향 0.
 
 ### 2-B. `tree.rs` — fullTreeLayout DFS 이관
 
