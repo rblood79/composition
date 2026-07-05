@@ -8,20 +8,30 @@
  */
 
 import { idMapper } from "./idMapper";
-import { getRustWasm } from "./rustWasm";
-import type { SpatialIndex as SpatialIndexWasm } from "./pkg/composition_wasm";
+import {
+  getCompositionEngineWasm,
+  type RawSpatialIndex,
+} from "./compositionEngineWasm";
 
 const SPATIAL_CELL_SIZE = 256;
 
-let spatialIndex: SpatialIndexWasm | null = null;
+let spatialIndex: RawSpatialIndex | null = null;
 
-/** SpatialIndex 인스턴스 초기화. initRustWasm() 호출 후에 사용. */
+/**
+ * SpatialIndex 인스턴스 초기화. initCompositionEngineWasm() 호출 후에 사용.
+ *
+ * ADR-916 SpatialIndex crate 분리(2026-07-05): SpatialIndex 는 Taffy(composition_wasm)
+ * crate 에서 taffy-free 자체 엔진(composition-engine) crate 로 이동됐다. 따라서 로드
+ * 소스가 `getRustWasm()`(Taffy pkg) → `getCompositionEngineWasm()`(자체 엔진 pkg)로
+ * 변경됨. `USE_RUST_LAYOUT_ENGINE`(UNIFIED_ENGINE override 로 항상 true)이 활성이라
+ * composition-engine pkg 는 항상 startup 로드된다.
+ */
 export function initSpatialIndex(): void {
   if (spatialIndex) return;
 
-  const wasm = getRustWasm();
+  const wasm = getCompositionEngineWasm();
   if (!wasm) {
-    console.warn("[SpatialIndex] Rust WASM 미초기화, 생성 스킵");
+    console.warn("[SpatialIndex] composition-engine WASM 미초기화, 생성 스킵");
     return;
   }
 
@@ -123,7 +133,7 @@ export function clearAll(): void {
 }
 
 /** SpatialIndex 인스턴스 접근 (디버그/테스트용) */
-export function getSpatialIndex(): SpatialIndexWasm | null {
+export function getSpatialIndex(): RawSpatialIndex | null {
   return spatialIndex;
 }
 

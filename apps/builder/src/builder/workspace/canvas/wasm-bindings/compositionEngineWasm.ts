@@ -45,8 +45,36 @@ export interface RawCompositionLayoutEngine {
   free(): void;
 }
 
+// SpatialIndex 클래스 타입 — hit-test/viewport culling 공간 인덱스.
+// ADR-916 SpatialIndex crate 분리(2026-07-05): 기존 composition_wasm(Taffy) crate 에서
+// composition-engine(taffy-free) crate 로 이동 — endgame Taffy 완전 제거의 crate
+// 물리 결합 해소(kill criteria ③). SpatialIndex 는 taffy 의존 0 + 코드 결합 0 이라
+// 자체 엔진 crate 로 clean 이동. LayoutEngine 과 같은 pkg 에서 로드된다.
+export interface RawSpatialIndex {
+  upsert(id: number, x: number, y: number, w: number, h: number): void;
+  batch_upsert(data: Float32Array): void;
+  query_viewport(
+    left: number,
+    top: number,
+    right: number,
+    bottom: number,
+  ): Uint32Array;
+  query_rect(
+    left: number,
+    top: number,
+    right: number,
+    bottom: number,
+  ): Uint32Array;
+  query_point(px: number, py: number): Uint32Array;
+  remove(id: number): void;
+  clear(): void;
+  count(): number;
+  free(): void;
+}
+
 interface CompositionEngineModule {
   LayoutEngine: { new (): RawCompositionLayoutEngine };
+  SpatialIndex: { new (cellSize: number): RawSpatialIndex };
 }
 
 let engineModule: CompositionEngineModule | null = null;

@@ -26,6 +26,7 @@ fn cell_key(cx: i32, cy: i32) -> i64 {
 
 /// Axis-aligned bounding box intersection test.
 #[inline]
+#[allow(clippy::too_many_arguments)]
 fn aabb_intersects(
     ax: f32, ay: f32, aw: f32, ah: f32,
     bx: f32, by: f32, bw: f32, bh: f32,

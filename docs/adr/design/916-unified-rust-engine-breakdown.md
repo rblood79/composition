@@ -187,14 +187,22 @@
 2. **crate 물리 결합** — Taffy crate/pkg 물리 삭제 = SpatialIndex 별도 crate 분리 선행 필요(`composition_wasm` 동일 crate). endgame 자체보다 큰 별도 리팩토링. [[feedback-execute-adr-surface-minimization]] 표면 과대.
 3. **폴백 = live 안전망(dead 아님)** — 1-E 에서 사용자 명시 "폴백 유지" 선택. `layoutBridge.ts:84` 는 자체 WASM 미준비 시 실발동 런타임 경로. 자체 엔진 미Implemented(Status=Accepted) 상태 안전망 제거는 시기상조.
 
-**endgame kill criteria (모두 충족 시 재개 — 현재 충족 0/4)**:
+**endgame kill criteria (모두 충족 시 재개 — 현재 충족 1/4)**:
 
 1. 자체 엔진 안정화 기간 경과 — live builder 회귀 0건 충분 축적(폴백 불필요 확신)
 2. 독립 oracle 확보 — dual-run(Taffy 비교) 대체 = golden fixture 확장 또는 CSS getComputedStyle parity 같은 Taffy-비의존 회귀 기준
-3. SpatialIndex crate 분리 — `composition_wasm` 에서 SpatialIndex 독립 crate 화(Taffy crate 만 삭제 가능)
+3. ~~SpatialIndex crate 분리~~ **✅ 충족 2026-07-05** — SpatialIndex 를 Taffy crate(`composition_wasm`)에서 자체 엔진 crate(`composition-engine`, taffy-free)로 이동. Taffy crate 만 삭제 가능한 상태 도달(아래 land 블록).
 4. ADR-916 Status = Implemented 승격 — Phase 1/2 자체 엔진 정식 완료 선언
 
-현재 4개 중 충족 0(자체 엔진 C-2a live 전환됐으나 안정화 기간·독립 oracle·crate 분리·Implemented 승격 모두 미도래). R4 는 endgame 까지 HIGH 잔존 유지(dual-run CI 상시 관리).
+현재 4개 중 충족 1(③ SpatialIndex crate 분리 완료). 나머지 3(안정화 기간·독립 oracle·Implemented 승격) 미도래 → endgame(Taffy crate/pkg 물리 삭제)은 여전히 보류. R4 는 endgame 까지 HIGH 잔존 유지(dual-run CI 상시 관리).
+
+**✅ SpatialIndex crate 분리 land 2026-07-05 (kill criteria ③ 충족)**: 사용자 "SpatialIndex crate 분리 착수 가능한지 실측" → 실측(코드 결합 0) → "지금 착수 — 독립 정리" + "composition-engine 로 이동" 결정.
+
+- **실측 판정 (착수 가능 근거)**: `spatial_index.rs`(393줄, 테스트 16) 는 **완전 self-contained** — crate 내부 모듈 참조 0(taffy/block/grid/binary), taffy crate 심볼 0, 역방향 참조 0, 의존성 std `HashMap/HashSet`+wasm-bindgen 뿐. endgame 재평가의 "crate 물리 결합" 은 코드 결합이 아니라 **물리 배치만** — 분리는 얽힘 해소가 아닌 파일 이동+빌드 설정 수준(저위험·소표면).
+- **이동 (사용자 결정 = composition-engine crate, 신규 crate/pkg 미생성)**: `git mv spatial_index.rs` → `packages/composition-engine/src/`. `composition-engine/lib.rs` 에 `pub mod spatial_index` + `pub use SpatialIndex`. 원본 `composition_wasm/lib.rs` 에서 `spatial_index` mod + `pub use` 제거. SpatialIndex 는 `#[wasm_bindgen]` struct 직접(게이트 밖) → wasm-pack 이 자동 export(`composition_engine.d.ts:99 export class SpatialIndex`), native cargo test 도 통과(SpatialIndex 는 JsValue 미사용, `Box<[u32]>`/`&[f32]` 만).
+- **JS 배선**: `compositionEngineWasm.ts` 에 `RawSpatialIndex` 인터페이스 + `CompositionEngineModule.SpatialIndex` 추가. `spatialIndex.ts` 의 로드 소스 `getRustWasm()`(Taffy pkg) → `getCompositionEngineWasm()`(자체 엔진 pkg). `init.ts` 의 `initSpatialIndex()` 호출을 `initRustWasm().then()`(Taffy) → `initCompositionEngineWasm().then()`(자체 엔진) 으로 이동(`USE_RUST_LAYOUT_ENGINE` = UNIFIED_ENGINE override 로 항상 true → composition-engine pkg 항상 startup 로드). Taffy pkg init 은 폴백 경로용 유지.
+- **검증**: cargo test **native lib 211 PASS**(spatial_index 16 편입) + clippy 0(native+wasm32, `aabb_intersects` 8-arg → `#[allow(too_many_arguments)]` composition-engine 관례). type-check PASS(baseline 69). dualRunLive 12/12 무회귀. 두 pkg 재빌드 후 Taffy pkg SpatialIndex 0건 / composition-engine pkg 1건(완전 분리 확증). **Chrome MCP live exercise**(test/type-check 단독 종결 금지 이행): builder 진입 → `[ADR-916] composition-engine WASM initialized` 로그 + `[SpatialIndex] 미초기화` 경고 0 → Canvas Button hover 시 **파란 outline 렌더**(HoverManager query_point hit-test) + click 시 **selection handles + "69×30" bounds 배지**(query_point → 선택 → bounds) 정상. 콘솔 에러 0. SpatialIndex 가 composition-engine pkg 에서 로드되어 hit-test 전체 경로 실작동 확증.
+- **live 영향**: SpatialIndex 로드 소스만 이동, API·동작 동일 → 사용자-가시 변화 0(hit-test 동작 무변). endgame ④(Implemented)·①②(안정화/oracle) 미충족이라 Taffy crate/pkg 물리 삭제는 여전히 불가 — 본 분리는 그 선결 하나만 확보.
 
 ---
 

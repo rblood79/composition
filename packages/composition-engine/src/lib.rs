@@ -30,6 +30,12 @@
 //!   미이식: getRootComputedStyle(store 의존 JS 잔류), resolveFontStretchWidth(spec
 //!   SSOT FONT_STRETCH_KEYWORD_MAP 의존 — 참조 계약 확정 후), resolveStyle 본체(조립 단위).
 //!
+//! - `spatial_index` — 그리드 셀 기반 공간 인덱스 (hit-test / viewport culling / lasso
+//!   selection). ADR-916 SpatialIndex crate 분리(2026-07-05): 기존 `composition_wasm`
+//!   (Taffy) crate 에서 이동 — endgame Taffy 완전 제거의 crate 물리 결합 해소(kill
+//!   criteria ③). taffy 의존 0 + 레이아웃 모듈 결합 0 이라 clean 편입. `#[wasm_bindgen]`
+//!   struct 직접(게이트 밖) → wasm-pack 자동 export + native cargo test 통과(JsValue 미사용).
+//!
 //! - `display` — CSS Display 변환 순수 문자열 계층 (taffyDisplayAdapter.ts 자기완결 계층).
 //!   Phase 2-A. CSS Display Level 3 이원 구조(outer/inner) 파싱 + blockification +
 //!   inline-level 판정 + 자식 display 분류. 미이식: getElementDisplay(INLINE_BLOCK_TAGS
@@ -119,8 +125,11 @@ pub mod cascade;
 pub mod display;
 pub mod flex;
 pub mod grid;
+pub mod spatial_index;
 pub mod style;
 pub mod tree;
+
+pub use spatial_index::SpatialIndex;
 
 // WASM 바인딩 wrapper — wasm32 타겟에서만 컴파일(native cargo test 무영향).
 // `tree::LayoutTree` 를 JS `LayoutEngineAPI`(layoutBridge.ts) 계약으로 노출.
