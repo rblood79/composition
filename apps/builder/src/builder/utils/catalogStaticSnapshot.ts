@@ -129,3 +129,33 @@ export function lookupCatalogMetric(
   // defaultSize 미정의 컴포넌트는 fallback leg 없음(조항 2).
   return entry.defaultSize ? entry.sizes.get(entry.defaultSize) : undefined;
 }
+
+/**
+ * P2-CAT ② L1 — 스냅샷 `Map` → JSON string (WASM 경계 계약).
+ *
+ * wasm.rs 관습(`nodes_json: &str`)과 동형 — 스냅샷은 JSON string 으로 경계를 넘고,
+ * Rust `catalog.rs::inject_catalog_snapshot` 이 역직렬화해 `thread_local` static 에
+ * 저장한다. `Map` 은 `JSON.stringify` 불가라 plain object 로 변환한다.
+ *
+ * - `defaultSize` 미정의(optional) 시 **키 생략** → Rust 는 `Option<String>` = None 수신.
+ * - fallback 사전 전개 금지(조항 2) — defaultSize 는 값으로만 담고, resolve 시점
+ *   fallback 은 Rust `lookup_catalog_metric` 이 JS `lookupCatalogMetric` 과 동형 처리.
+ */
+export function serializeCatalogSnapshot(
+  snapshot: CatalogStaticSnapshot,
+): string {
+  const obj: Record<
+    string,
+    { defaultSize?: string; sizes: Record<string, CatalogMetric> }
+  > = {};
+  for (const [type, entry] of snapshot) {
+    const sizes: Record<string, CatalogMetric> = {};
+    for (const [sizeName, metric] of entry.sizes) {
+      sizes[sizeName] = metric;
+    }
+    obj[type] = entry.defaultSize
+      ? { defaultSize: entry.defaultSize, sizes }
+      : { sizes };
+  }
+  return JSON.stringify(obj);
+}

@@ -16,6 +16,7 @@ import {
   resolveStaticMetric,
   buildCatalogStaticSnapshot,
   lookupCatalogMetric,
+  serializeCatalogSnapshot,
 } from "../catalogStaticSnapshot";
 
 // ── 조항 C3: strict resolve 파이프라인 ────────────────────────────────────────
@@ -125,4 +126,83 @@ describe("ADR-916 P2-CAT ① — buildCatalogStaticSnapshot (조항 1/2)", () =>
       }
     }
   });
+});
+
+// ── P2-CAT ② L1: 구조 정합 (WASM 경계 계약 검증) ──────────────────────────────
+
+describe("ADR-916 P2-CAT ② L1 — serializeCatalogSnapshot 구조 정합", () => {
+  const snapshot = buildCatalogStaticSnapshot("light");
+  const json = serializeCatalogSnapshot(snapshot);
+  const parsed = JSON.parse(json) as Record<
+    string,
+    { defaultSize?: string; sizes: Record<string, Record<string, number>> }
+  >;
+
+  it("Map → JSON 직렬화가 유효한 JSON 이다 (WASM 경계 = string 계약)", () => {
+    // wasm.rs 관습(nodes_json: &str)과 동형 — 스냅샷은 JSON string 으로 경계 횡단.
+    expect(typeof json).toBe("string");
+    expect(parsed).toBeInstanceOf(Object);
+  });
+
+  it("직렬화가 스냅샷 Map 과 roundtrip 동형이다 (type 수 + size 수 보존)", () => {
+    expect(Object.keys(parsed).length).toBe(snapshot.size);
+    for (const [type, entry] of snapshot) {
+      expect(parsed[type]).toBeDefined();
+      expect(Object.keys(parsed[type].sizes).length).toBe(entry.sizes.size);
+    }
+  });
+
+  it("defaultSize 를 값으로 직렬화한다 (조항 2 — 사전 전개 금지, 미정의는 키 생략)", () => {
+    // Button.defaultSize="md" → JSON 에 보존. Rust 는 Option<String> 으로 수신.
+    expect(parsed.Button.defaultSize).toBe("md");
+  });
+
+  it("allowlist key 만 직렬화된다 (조항 1 — height/borderRadius/indicator 없음)", () => {
+    for (const [, entry] of Object.entries(parsed)) {
+      for (const [, metric] of Object.entries(entry.sizes)) {
+        for (const key of Object.keys(metric)) {
+          expect(["fontSize", "lineHeight", "iconSize"]).toContain(key);
+        }
+      }
+    }
+  });
+
+  it("직렬화된 모든 metric 값이 유한 숫자다 (C3 전수 — 경계 횡단 값 안전)", () => {
+    for (const [, entry] of Object.entries(parsed)) {
+      for (const [, metric] of Object.entries(entry.sizes)) {
+        for (const v of Object.values(metric)) {
+          expect(Number.isFinite(v)).toBe(true);
+        }
+      }
+    }
+  });
+});
+
+// ── P2-CAT ② L1.5: golden 앵커 (손검증 대표값 회귀 고정) ──────────────────────
+
+describe("ADR-916 P2-CAT ② L1.5 — Button golden 앵커 (손검증 회귀 고정)", () => {
+  const snapshot = buildCatalogStaticSnapshot("light");
+
+  // Button 전 size 손검증값 (componentRulesTable.ts:767-828 + typography.ts strict resolve):
+  //   fontSize: xs={text-2xs}=10 / sm={text-xs}=12 / md={text-sm}=14 /
+  //             lg={text-base}=16 / xl={text-lg}=18
+  //   lineHeight: xs=16 / sm=16 / md=20 / lg=24 / xl=28
+  //   iconSize(raw number): xs=14 / sm=16 / md=18 / lg=24 / xl=28
+  const GOLDEN: Record<
+    string,
+    { fontSize: number; lineHeight: number; iconSize: number }
+  > = {
+    xs: { fontSize: 10, lineHeight: 16, iconSize: 14 },
+    sm: { fontSize: 12, lineHeight: 16, iconSize: 16 },
+    md: { fontSize: 14, lineHeight: 20, iconSize: 18 },
+    lg: { fontSize: 16, lineHeight: 24, iconSize: 24 },
+    xl: { fontSize: 18, lineHeight: 28, iconSize: 28 },
+  };
+
+  for (const [size, want] of Object.entries(GOLDEN)) {
+    it(`Button ${size} = fontSize ${want.fontSize} / lineHeight ${want.lineHeight} / iconSize ${want.iconSize}`, () => {
+      const metric = lookupCatalogMetric(snapshot, "Button", size);
+      expect(metric).toEqual(want);
+    });
+  }
 });

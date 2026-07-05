@@ -223,12 +223,12 @@
 
 **Phase 순서 — dormant 회피 (H6, C-2b 선례)**:
 
-| 단계         | 내용                                                                                                                                             | 완료선                                                                               |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| P2-CAT ①     | `resolveStaticComponentRule` + strict resolve 파이프라인(`parsePxValue` 경유, `Number()` 금지, isFinite assert) + `buildCatalogStaticSnapshot()` | ✅ Land 2026-07-05 (`1a48ec78a`) — 순수 계층, 배선 0                                 |
-| P2-CAT ②     | L0 parity(typography ledger) + L1 구조 정합 + L1.5 golden 앵커                                                                                   | ✅ L0 Land 2026-07-05 (`4bcb611fa`) — 9 test, 순수 검증. L1/L1.5 는 P2-CAT ③ 착수 시 |
-| P2-CAT ③     | Rust `catalog.rs` + `inject_catalog_snapshot` + L2 cargo fixture                                                                                 | **← P2-CAT 완료선** (cargo 소비자 있음, dead 아님)                                   |
-| P2-PROP 동시 | init 주입 배선 + `isAvailable()` 2조건 + fail-loud 발동 + tree.rs propagation 이관 + **L3 dual-run**                                             | **소비 phase 착수와 동시** (배선 선행 = dormant)                                     |
+| 단계         | 내용                                                                                                                                             | 완료선                                                                                |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| P2-CAT ①     | `resolveStaticComponentRule` + strict resolve 파이프라인(`parsePxValue` 경유, `Number()` 금지, isFinite assert) + `buildCatalogStaticSnapshot()` | ✅ Land 2026-07-05 (`1a48ec78a`) — 순수 계층, 배선 0                                  |
+| P2-CAT ②     | L0 parity(typography ledger) + L1 구조 정합 + L1.5 golden 앵커                                                                                   | ✅ 전체 Land 2026-07-05 (L0 `4bcb611fa` 9 test + L1/L1.5 P2-CAT ③ 커밋 동반 10 test)  |
+| P2-CAT ③     | Rust `catalog.rs` + `injectCatalogSnapshot` seam + L2 cargo fixture                                                                              | ✅ **완료선 Land 2026-07-05** — catalog.rs 11 test + wasm seam(wasm32 컴파일). 배선 0 |
+| P2-PROP 동시 | init 주입 배선 + `isAvailable()` 2조건 + fail-loud 발동 + tree.rs propagation 이관 + **L3 dual-run**                                             | **소비 phase 착수와 동시** (배선 선행 = dormant)                                      |
 
 L3(행동 dual-run diff 0) 소유는 완료 phase(2-B)가 아니라 **P2-PROP(조상 체인 이관 phase)** 로 재지정 — 완료 phase 위임 = 소유자 공백(H6).
 
@@ -237,6 +237,13 @@ L3(행동 dual-run diff 0) 소유는 완료 phase(2-B)가 아니라 **P2-PROP(�
 **잔존 위험 (정직)**: R4(폴백 로직 이중화 HIGH — Taffy 제거까지 dual-run CI 상시로 관리, 소멸은 endgame) · R10(typography `text-xl--line-height` live 발산 MED — primitive 30 vs CSS 28, L0 이 표면화한 실채무, `KNOWN_TYPOGRAPHY_DIVERGENCES` ledger 등록됨. 별도 수정 단위 = 정본 판정 + Skia/DOM 양 consumer 동시 D3 symmetric). 나머지 CRITICAL 3+HIGH 4 는 위 5조항+scope 고정으로 봉합.
 
 > 설계 v2 전문(§1~8 + Risk/Gate 10항 1:1 + v1↔v2 봉합 색인)은 세션 기록. 구현 상세(파일별 변경/커밋 분해/테스트 배치)는 착수 시 본 절 확장.
+
+**✅ P2-CAT 완료선 도달 (2026-07-05)**: ①(순수 계층 `1a48ec78a`) → ②(L0 `4bcb611fa` + L1/L1.5) → ③(Rust catalog.rs + wasm seam) 3 단위 land. 산출:
+
+- **JS**: `apps/builder/.../catalogStaticSnapshot.ts`(resolveStaticMetric/buildCatalogStaticSnapshot/lookupCatalogMetric/**serializeCatalogSnapshot**) + `packages/shared/.../resolveComponentRule.ts`(resolveStaticComponentRule) + `packages/specs/.../typographyCssParity.ts`(L0). test = builder 23 + shared 4 + specs 9.
+- **Rust**: `packages/composition-engine/src/catalog.rs`(CatalogMetric/CatalogTypeEntry serde camelCase + thread_local static + inject/lookup/is_injected/clear) + `wasm.rs` seam 3 export(injectCatalogSnapshot/isCatalogInjected/lookupCatalogMetric, wasm32 게이트). test = catalog 11(L2 fixture, JS L1.5 golden 동형 대조).
+- **검증**: cargo lib 180(+11) + golden 15 + doc 1 / clippy 0(native+wasm32) / JS type-check baseline 69 신규 0. **배선 0**(`injectCatalogSnapshot` JS 호출 grep 0건) = seam 정의만, live 영향 0(no-dormant).
+- **미착수 (P2-PROP 소유, 별도 승인)**: JS init 실배선(`initCompositionEngineWasm` → injectCatalogSnapshot 호출) + `isAvailable()` 2조건 결합 + fail-loud 발동 + tree.rs propagation 이관 + L3 dual-run.
 
 ### 2-B. `tree.rs` — fullTreeLayout DFS 이관
 
