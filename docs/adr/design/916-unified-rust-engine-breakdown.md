@@ -412,9 +412,23 @@ P2-PROP 실사가 "catalog live 소비 = 2-B DFS 상단 enrich 이관 시 발생
 
 </details>
 
-### 2-D. layout → SpatialIndex 직결 (부분 이관 — 경계 횡단 제거)
+### 2-D. layout → SpatialIndex — 이관 대상 제외 (절대좌표=command DFS 종속, 구조적 분리 불가)
 
-> **2026-07-05 벤치 재평가로 scope 축소.** 원안(`commands.rs` — command stream 전체 Rust 이관)은 벤치상 정당화가 약하고 이관 표면이 과대함이 드러나, **SpatialIndex 경계 횡단 제거**로 범위를 좁힌다. command stream(JS) 자체는 유지. 폐기 원안은 하단 `<details>` 보존.
+> **2026-07-05 벤치 재평가로 scope 축소 → 2026-07-05 P3 구현 착수 실사에서 이관 대상 제외 확정.** 원안(`commands.rs` — command stream 전체 이관)은 벤치상 정당화 약함 → P3(SpatialIndex 경계 횡단만 제거)로 축소했으나, P3 구현 착수 실사에서 **§440 전제("command JS 유지 + SpatialIndex만 Rust 직결")가 구조적으로 성립 불가**임이 드러나 **이관 대상 제외**로 최종 재정의(2-E 와 동형 — 벤치 병목 아님 + 구조적 차단). 폐기 원안(commands.rs)과 폐기 P3 계약은 하단 `<details>` 보존.
+
+**🔎 P3 이관 제외 — 구조적 재판정 (2026-07-05, 사용자 "2-D commands.rs 먼저" → 재평가 → "먼저 계약/oracle만 설계" → P3 구현 착수 시 "scope 재판정 — 절대좌표가 command DFS 종속인가" → "2-D P3 이관 제외 — 근거 기록 후 종료")**:
+
+P3 계약 §443("Rust 가 절대좌표 bounds 를 자체 계산")을 구현하려 착수 실사한 결과, SpatialIndex 가 소비하는 절대좌표 `boundsMap` 누적이 **command 생성 DFS 와 물리적으로 같은 순회**임이 확정 — §440("command JS 유지 + SpatialIndex 만 Rust 직결")이 실측상 성립 불가.
+
+**실측 (renderCommands.ts `visitElement`)**:
+
+1. **절대좌표는 순수 layout 누적이 아니다** — `boundsMap.set(id, {absX, absY, w, h})`(:426)의 `absX = parentAbsX + relX`는 layout 좌표 누적이지만, 그 순회가 **command 생성 로직과 불가분**: `getSkiaNode`(visible/transform/clipPath/contentMinHeight :417) + `sortChildElementsByZIndex`(:539, command emit 순서와 공유) + `dragRootId`/`deferredDragRoot`(:395,:314, command 전용 drag top-layer) + 자식 재귀 시 `absX - scrollX`(:549, 노드별 `skiaData.scrollOffset` 차감). 절대좌표 하나를 얻으려면 이 전부(skiaData 조회/z-sort/drag/scroll)를 순회해야 한다.
+
+2. **§440 실현 = 이중 순회** — "command JS 유지 + SpatialIndex 만 Rust 직결" 을 실현하려면 Rust 가 pagePositions(:295) + 노드별 scrollOffset + contentMinHeight + z-sort + childrenMap 을 WASM 경계로 받아 **command DFS 와 동일한 절대좌표 누적을 별도 재현**해야 한다 = JS command DFS 1회 + Rust bounds DFS 1회.
+
+3. **비용>이득 (벤치 확정)** — `syncSpatialIndex` JS 재직렬화는 **0.099ms(3000 노드, 예산 0.6%)**(§426). 이중 순회로 늘어나는 비용(WASM 경계로 노드별 scrollOffset/contentMinHeight/z-sort 전달 + Rust 재순회)이 이 0.099ms 이득을 초과할 개연. 절대좌표 누적을 command DFS 에서 떼어내는 것 자체가 command 생성 로직(z-sort/drag/scroll/skiaData) 태반을 Rust 로 옮기는 것이라 §440("command 무관") 과 모순.
+
+**결론 — 이관 대상 제외**: 2-D 는 [[feedback-rust-migration-candidate-bench-justifies-not-gates]] 의 "이관 후보로 전제된 계층" 이었으나, **벤치(병목 아님) + 구조적 분리 불가(절대좌표=command DFS 종속)** 가 함께면 정당화 축(성능/main-thread/경계 최소화)이 모두 소멸 — 2-C(잘못 짚은 대상, 순수 함수라 useMemo 로 해소) / 2-E(아키텍처 차단)와 유사하되, 2-D 는 **"경계 횡단만 분리" 가 구조적으로 불가능한** 종류. command stream 자체의 Rust 화(원안 commands.rs)는 벤치상 병목 아님 + SkiaNodeData 경계 전달로 표면 과대(§455) → 별도 상위 판단(현 breakdown 범위 밖). **SpatialIndex 갱신은 `syncSpatialIndex`(JS) 유지가 정본** — 매 command build 산출 boundsMap 을 그대로 batchUpdate(0.099ms, 예산 무해). **코드 이관 0** — 문서(제목 재정의 + 본 블록 + P3 계약 `<details>` 이관)만, live 영향 0.
 
 **벤치 근거 (신규 `renderCommandStream.bench.ts`, 비용 분리 계측 — mean ms)**:
 
@@ -432,23 +446,24 @@ P2-PROP 실사가 "catalog live 소비 = 2-B DFS 상단 enrich 이관 시 발생
 - 원안이 지목한 최적화 대상은 모두 효과 미미: **z-sort 0.145ms(예산 0.9%) / syncSpatialIndex JS 재직렬화 0.099ms(예산 0.6%)**. 2-C 의 `detectChangedIds`(예산 0.3%)처럼 **잘못 짚은 대상**.
 - 실제 비용의 축은 **DFS `visitElement` 순회 자체**(①에서 z-sort/childrenMap 제외 시 ~1.39ms) — getSkiaNode 조회 + layout 조회 + sticky 계산 + boundsMap.set + command push 의 노드당 합.
 
-**정당화 축 (병목 아님 전제 — 벤치는 게이트 아닌 정당화 도구)**: 비용이 아니라 **경계 횡단 구조**. 현재 `syncSpatialIndex`(renderCommands.ts:350)는 매 command stream build 마다 JS `boundsMap` → `items` 배열 → `Float32Array` 직렬화 → WASM `batchUpdate` 로 **경계를 1회 횡단**. 원안 표현("복사 제거")이 노린 실체는 이 구조적 이득이지 JS 재직렬화 0.099ms 가 아니다 — 표현이 비용을 잘못 짚었을 뿐 방향은 유효.
+<details><summary>폐기된 P3 계약 (2026-07-05 구조적 재판정 전 — 절대좌표=command DFS 종속 확정으로 이관 제외)</summary>
 
-**P3 계약 (layout → SpatialIndex 직결)**:
+**정당화 축 (병목 아님 전제 — 벤치는 게이트 아닌 정당화 도구)**: 비용이 아니라 **경계 횡단 구조**. 현재 `syncSpatialIndex`(renderCommands.ts:350)는 매 command stream build 마다 JS `boundsMap` → `items` 배열 → `Float32Array` 직렬화 → WASM `batchUpdate` 로 **경계를 1회 횡단**. ~~원안 표현("복사 제거")이 노린 실체는 이 구조적 이득~~ — **재판정: 이 "구조적 이득"은 성립 불가**(절대좌표 누적이 command DFS 종속 → Rust 직결 = 이중 순회, 상단 재판정 블록 참조).
 
-- 이미 Rust 인 layout solve(2-B) 결과에서 **Rust 가 절대좌표 bounds 를 자체 계산해 SpatialIndex 를 내부 갱신**. JS `boundsMap` → `Float32Array` → WASM `batchUpdate` 횡단 **소멸**.
-- **command stream(JS) 은 무관** — 사용자 선택 "경계 횡단만 먼저(부분 이관)". `renderCommands.ts` 의 DFS/z-sort/command emit 은 현행 유지.
-- `boundsMap` 자체는 JS 에 유지 — TextEditOverlay `getSceneBounds`(renderCommands.ts:130) / AI effects `buildAIBoundsFromStream`(:1067) 소비자가 있어 command build 산출물로 계속 필요. **SpatialIndex 갱신 경로만** layout 직결로 분리.
-- **mutation 진입점 단일 확인**: SpatialIndex mutation 은 `renderCommands.ts:369 spatialIndex.batchUpdate` **1곳뿐**(elementRegistry 구 동기화는 이미 위임 완료, 주석 :81/:93/:186). 쿼리 소비자(useViewportCulling / HoverManager / useDragBridge / useCentralCanvasPointerHandlers / BuilderCanvas)는 read-only → mutation 경로 교체가 쿼리 계약 미변경.
-- **절대좌표 계약 승계**: SpatialIndex 는 씬 좌표(페이지 오프셋 포함) 기준. Rust 직결 시 layout(부모-상대) → 절대좌표 누적 + pagePositions 오프셋 + scrollOffset 차감(canvas-rendering.md §8) 을 Rust 내부에서 수행해야 JS boundsMap 과 동일 좌표 산출.
+**~~P3 계약~~ (폐기 — 절대좌표=command DFS 종속으로 §440 성립 불가)**:
 
-**diff oracle (구현 착수 시 검증 계약)**:
+- ~~이미 Rust 인 layout solve(2-B) 결과에서 **Rust 가 절대좌표 bounds 를 자체 계산해 SpatialIndex 를 내부 갱신**. JS `boundsMap` → `Float32Array` → WASM `batchUpdate` 횡단 **소멸**.~~ — **실측 반증**: 절대좌표 누적은 layout solve 밖 command DFS(`visitElement`)에서 pagePos+scroll+z-sort+skiaData 통합, layout solve 결과만으로 재현 불가.
+- ~~**command stream(JS) 은 무관**~~ — **실측 반증**: 절대좌표를 command DFS 에서 떼면 z-sort/drag/scroll/skiaData 조회 태반을 Rust 로 옮기는 것 = command 무관 아님.
+- `boundsMap` 자체는 JS 에 유지 — TextEditOverlay `getSceneBounds`(renderCommands.ts:130) / AI effects `buildAIBoundsFromStream`(:1067) 소비자가 있어 command build 산출물로 계속 필요. (이 관찰은 유효 — boundsMap JS 유지가 정본.)
+- **mutation 진입점 단일 확인**: SpatialIndex mutation 은 `renderCommands.ts:369 spatialIndex.batchUpdate` **1곳뿐**(elementRegistry 구 동기화는 이미 위임 완료, 주석 :81/:93/:186). 쿼리 소비자(useViewportCulling / HoverManager / useDragBridge / useCentralCanvasPointerHandlers / BuilderCanvas)는 read-only. (이 관찰은 유효 — 단일 진입점이라 JS syncSpatialIndex 유지가 안전.)
+- ~~**절대좌표 계약 승계**: Rust 직결 시 layout(부모-상대) → 절대좌표 누적 + pagePositions 오프셋 + scrollOffset 차감을 Rust 내부에서 수행~~ — **이것이 성립 불가의 핵심**: pagePos/scroll/z-sort/contentMinHeight 를 WASM 경계로 넘겨 Rust 가 재순회 = 이중 순회, 0.099ms 이득 초과.
 
-- 동일 layout 입력 → (A) 현행 JS boundsMap 기반 `batchUpdate` 후 SpatialIndex 쿼리 결과 vs (B) Rust layout 직결 SpatialIndex 쿼리 결과 → **`query_viewport` / `query_point` / `query_rect` 3종 쿼리 모두 동일 id 집합** (diff 0).
-- fixture: 중첩 flex/grid + scrollOffset 있는 컨테이너 + 다중 페이지 오프셋 + sticky/fixed(씬 좌표 보정 경로) 포함 — hit-test/culling 이 실제 소비하는 좌표 경로 전수.
-- **cutover 즉시 삭제(no-dormant)**: Rust 직결 land 시 `syncSpatialIndex` + `batchUpdate` JS 경로 **즉시 제거** — dormant 병행 금지. diff 0 확인 후 flip.
+**~~diff oracle~~ (폐기 — 구현 착수 안 함)**:
 
-**⏸️ 구현 보류 (2026-07-05, 사용자 "먼저 계약/oracle만 설계")**: 본 재정의 + P3 계약 + diff oracle 설계까지만 문서에 추가. Rust 구현(layout→spatial 직결 + JS 경로 삭제)은 **별도 사용자 승인 단위**.
+- ~~동일 layout 입력 → (A) JS boundsMap batchUpdate vs (B) Rust layout 직결 → query_viewport/point/rect 3종 동일 id 집합 (diff 0).~~
+- ~~fixture: 중첩 flex/grid + scrollOffset + 다중 페이지 + sticky/fixed.~~
+
+</details>
 
 <details><summary>폐기된 원안 (2026-07-05 벤치 반증 전)</summary>
 
