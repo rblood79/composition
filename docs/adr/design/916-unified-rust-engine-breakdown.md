@@ -223,12 +223,12 @@
 
 **Phase 순서 — dormant 회피 (H6, C-2b 선례)**:
 
-| 단계         | 내용                                                                                                                                             | 완료선                                             |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
-| P2-CAT ①     | `resolveStaticComponentRule` + strict resolve 파이프라인(`parsePxValue` 경유, `Number()` 금지, isFinite assert) + `buildCatalogStaticSnapshot()` |                                                    |
-| P2-CAT ②     | L0 parity(+spacing 발산 ledger) + L1 구조 정합 + L1.5 golden 앵커                                                                                |                                                    |
-| P2-CAT ③     | Rust `catalog.rs` + `inject_catalog_snapshot` + L2 cargo fixture                                                                                 | **← P2-CAT 완료선** (cargo 소비자 있음, dead 아님) |
-| P2-PROP 동시 | init 주입 배선 + `isAvailable()` 2조건 + fail-loud 발동 + tree.rs propagation 이관 + **L3 dual-run**                                             | **소비 phase 착수와 동시** (배선 선행 = dormant)   |
+| 단계         | 내용                                                                                                                                             | 완료선                                               |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| P2-CAT ①     | `resolveStaticComponentRule` + strict resolve 파이프라인(`parsePxValue` 경유, `Number()` 금지, isFinite assert) + `buildCatalogStaticSnapshot()` | ✅ Land 2026-07-05 (`1a48ec78a`) — 순수 계층, 배선 0 |
+| P2-CAT ②     | L0 parity(+spacing 발산 ledger) + L1 구조 정합 + L1.5 golden 앵커                                                                                |                                                      |
+| P2-CAT ③     | Rust `catalog.rs` + `inject_catalog_snapshot` + L2 cargo fixture                                                                                 | **← P2-CAT 완료선** (cargo 소비자 있음, dead 아님)   |
+| P2-PROP 동시 | init 주입 배선 + `isAvailable()` 2조건 + fail-loud 발동 + tree.rs propagation 이관 + **L3 dual-run**                                             | **소비 phase 착수와 동시** (배선 선행 = dormant)     |
 
 L3(행동 dual-run diff 0) 소유는 완료 phase(2-B)가 아니라 **P2-PROP(조상 체인 이관 phase)** 로 재지정 — 완료 phase 위임 = 소유자 공백(H6).
 
