@@ -187,31 +187,30 @@
 2. **crate 물리 결합** — Taffy crate/pkg 물리 삭제 = SpatialIndex 별도 crate 분리 선행 필요(`composition_wasm` 동일 crate). endgame 자체보다 큰 별도 리팩토링. [[feedback-execute-adr-surface-minimization]] 표면 과대.
 3. **폴백 = live 안전망(dead 아님)** — 1-E 에서 사용자 명시 "폴백 유지" 선택. `layoutBridge.ts:84` 는 자체 WASM 미준비 시 실발동 런타임 경로. 자체 엔진 미Implemented(Status=Accepted) 상태 안전망 제거는 시기상조.
 
-**endgame kill criteria (모두 충족 시 재개 — 현재 충족 1/4)**:
+**endgame kill criteria (모두 충족 시 재개 — 안정화 기간 조건은 사용자 결정 2026-07-06으로 제거, 현재 충족 2/3)**:
 
-1. 자체 엔진 안정화 기간 경과 — live builder 회귀 0건 충분 축적(폴백 불필요 확신)
-2. ~~독립 oracle 확보~~ **✅ 충족 2026-07-06** — Chrome 실측(브라우저 ground truth) golden 상수로 tree.rs 트리 배치 회귀를 Taffy-비의존으로 감시. `tests/tree_golden.rs`(C-2b fixture N1~N5, 6 test)(아래 land 블록).
-3. ~~SpatialIndex crate 분리~~ **✅ 충족 2026-07-05** — SpatialIndex 를 Taffy crate(`composition_wasm`)에서 자체 엔진 crate(`composition-engine`, taffy-free)로 이동. Taffy crate 만 삭제 가능한 상태 도달(아래 land 블록).
-4. ADR-916 Status = Implemented 승격 — Phase 1/2 자체 엔진 정식 완료 선언
+1. ~~독립 oracle 확보~~ **✅ 충족 2026-07-06** — Chrome 실측(브라우저 ground truth) golden 상수로 tree.rs 트리 배치 회귀를 Taffy-비의존으로 감시. `tests/tree_golden.rs`(C-2b fixture N1~N5, 6 test)(아래 land 블록).
+2. ~~SpatialIndex crate 분리~~ **✅ 충족 2026-07-05** — SpatialIndex 를 Taffy crate(`composition_wasm`)에서 자체 엔진 crate(`composition-engine`, taffy-free)로 이동. Taffy crate 만 삭제 가능한 상태 도달(아래 land 블록).
+3. ADR-916 Status = Implemented 승격 — Phase 1/2 자체 엔진 정식 완료 선언
 
-현재 4개 중 충족 2(② 독립 oracle + ③ SpatialIndex crate 분리). 나머지 2(안정화 기간·Implemented 승격) 미도래 → endgame(Taffy crate/pkg 물리 삭제)은 여전히 보류. R4 는 endgame 까지 HIGH 잔존 유지(dual-run CI 상시 관리). **dualRunLive 의 Taffy leg 는 안전망으로 유지** — tree_golden 은 Taffy-비의존 독립 감시를 추가한 것이지 Taffy oracle 을 대체(제거)한 것이 아니다.
+현재 3개 중 충족 2(① 독립 oracle + ② SpatialIndex crate 분리). 나머지 1(Implemented 승격) 미도래 → endgame(Taffy crate/pkg 물리 삭제)은 여전히 보류. R4 는 endgame 까지 HIGH 잔존 유지(dual-run CI 상시 관리). **dualRunLive 의 Taffy leg 는 안전망으로 유지** — tree_golden 은 Taffy-비의존 독립 감시를 추가한 것이지 Taffy oracle 을 대체(제거)한 것이 아니다.
 
-**✅ SpatialIndex crate 분리 land 2026-07-05 (kill criteria ③ 충족)**: 사용자 "SpatialIndex crate 분리 착수 가능한지 실측" → 실측(코드 결합 0) → "지금 착수 — 독립 정리" + "composition-engine 로 이동" 결정.
+**✅ SpatialIndex crate 분리 land 2026-07-05 (kill criteria ② 충족)**: 사용자 "SpatialIndex crate 분리 착수 가능한지 실측" → 실측(코드 결합 0) → "지금 착수 — 독립 정리" + "composition-engine 로 이동" 결정.
 
 - **실측 판정 (착수 가능 근거)**: `spatial_index.rs`(393줄, 테스트 16) 는 **완전 self-contained** — crate 내부 모듈 참조 0(taffy/block/grid/binary), taffy crate 심볼 0, 역방향 참조 0, 의존성 std `HashMap/HashSet`+wasm-bindgen 뿐. endgame 재평가의 "crate 물리 결합" 은 코드 결합이 아니라 **물리 배치만** — 분리는 얽힘 해소가 아닌 파일 이동+빌드 설정 수준(저위험·소표면).
 - **이동 (사용자 결정 = composition-engine crate, 신규 crate/pkg 미생성)**: `git mv spatial_index.rs` → `packages/composition-engine/src/`. `composition-engine/lib.rs` 에 `pub mod spatial_index` + `pub use SpatialIndex`. 원본 `composition_wasm/lib.rs` 에서 `spatial_index` mod + `pub use` 제거. SpatialIndex 는 `#[wasm_bindgen]` struct 직접(게이트 밖) → wasm-pack 이 자동 export(`composition_engine.d.ts:99 export class SpatialIndex`), native cargo test 도 통과(SpatialIndex 는 JsValue 미사용, `Box<[u32]>`/`&[f32]` 만).
 - **JS 배선**: `compositionEngineWasm.ts` 에 `RawSpatialIndex` 인터페이스 + `CompositionEngineModule.SpatialIndex` 추가. `spatialIndex.ts` 의 로드 소스 `getRustWasm()`(Taffy pkg) → `getCompositionEngineWasm()`(자체 엔진 pkg). `init.ts` 의 `initSpatialIndex()` 호출을 `initRustWasm().then()`(Taffy) → `initCompositionEngineWasm().then()`(자체 엔진) 으로 이동(`USE_RUST_LAYOUT_ENGINE` = UNIFIED_ENGINE override 로 항상 true → composition-engine pkg 항상 startup 로드). Taffy pkg init 은 폴백 경로용 유지.
 - **검증**: cargo test **native lib 211 PASS**(spatial_index 16 편입) + clippy 0(native+wasm32, `aabb_intersects` 8-arg → `#[allow(too_many_arguments)]` composition-engine 관례). type-check PASS(baseline 69). dualRunLive 12/12 무회귀. 두 pkg 재빌드 후 Taffy pkg SpatialIndex 0건 / composition-engine pkg 1건(완전 분리 확증). **Chrome MCP live exercise**(test/type-check 단독 종결 금지 이행): builder 진입 → `[ADR-916] composition-engine WASM initialized` 로그 + `[SpatialIndex] 미초기화` 경고 0 → Canvas Button hover 시 **파란 outline 렌더**(HoverManager query_point hit-test) + click 시 **selection handles + "69×30" bounds 배지**(query_point → 선택 → bounds) 정상. 콘솔 에러 0. SpatialIndex 가 composition-engine pkg 에서 로드되어 hit-test 전체 경로 실작동 확증.
-- **live 영향**: SpatialIndex 로드 소스만 이동, API·동작 동일 → 사용자-가시 변화 0(hit-test 동작 무변). endgame ④(Implemented)·①②(안정화/oracle) 미충족이라 Taffy crate/pkg 물리 삭제는 여전히 불가 — 본 분리는 그 선결 하나만 확보.
+- **live 영향**: SpatialIndex 로드 소스만 이동, API·동작 동일 → 사용자-가시 변화 0(hit-test 동작 무변). endgame ①(독립 oracle, 당시 미충족)·③(Implemented) 미충족이라 Taffy crate/pkg 물리 삭제는 여전히 불가 — 본 분리는 그 선결 하나만 확보.
 
-**✅ tree_golden 독립 oracle land 2026-07-06 (kill criteria ② 충족)**: 사용자 "dualRunLive/independent oracle 안정화 먼저" 지시 → 관점 정리(독립 oracle 후보 3) → **Chrome 실측 gentest(원안 §105)** 선택 → **native cargo golden 상수 고정** 선택.
+**✅ tree_golden 독립 oracle land 2026-07-06 (kill criteria ① 충족)**: 사용자 "dualRunLive/independent oracle 안정화 먼저" 지시 → 관점 정리(독립 oracle 후보 3) → **Chrome 실측 gentest(원안 §105)** 선택 → **native cargo golden 상수 고정** 선택.
 
 - **관점 (순환 oracle 문제)**: 현 실전-트리 검증 dualRunLive 의 비교 기준(oracle)이 제거 대상 Taffy 자체 → 순환. Taffy 를 빼면 실전 트리 회귀를 잡을 독립 기준 부재. Chrome 렌더를 제3 독립 권위(ground truth)로 삼아 해소. typography 도메인의 `typographyCssParity.ts`(L0, resolveToken 우회 CSS 직접 파싱)가 이미 "독립 권위 leg" 패턴을 land — 그 패턴의 layout 도메인 확장.
 - **추출 (설계 A)**: dualRunLive C-2b fixture N1~N5(flex-in-flex/flex-in-grid/grid-in-flex/gap flex column/dimension 혼재)를 DOM 재구성(리셋 CSS: margin/padding/border 0 + box-sizing:border-box → content-box=border-box 일치, NodeLayout=content-box 정합) → `getBoundingClientRect` root-상대 추출 → 사람 검토(gap 누적/grid 1fr=100px/auto row stretch CSS 명세 대조) → float 상수화.
 - **대조 (설계 B)**: `packages/composition-engine/tests/tree_golden.rs` 신규 — `LayoutTree::build_tree_batch`(dualRunLive 와 동일 JSON 계약) → `compute_layout(root, 200, -1)` → `get_layouts_batch` → **조상 offset 누적**으로 절대 좌표 변환 → root-상대 정규화 → `assert_tree_bounds`(TOL=1.0px). golden.rs(단일 컨테이너 평면 계약)와 분리(트리 계약).
 - **root cause 정정 (systematic-debugging)**: 초기 헬퍼가 root offset 만 빼고 중간 조상 offset 미누적 → N2(grid 2열 셀 자식)에서 100px 발산. tree.rs compute_layout(§417)은 자식 좌표를 **부모 content-box 상대**로 산출하는 정상 계약(taffy_bridge.rs 동일) → Chrome 절대 좌표 대조는 조상 체인 누적 필요 = tree.rs 가 아니라 **테스트 하네스 좌표계** 원인. `parse_parents`+조상 누적 추가로 6/6 GREEN. (성급한 tree.rs 수정은 relative 계약 파괴 → live 렌더 파손 위험이었음 — systematic-debugging 이 차단.)
 - **검증**: cargo test lib 211 + golden 15 + **tree_golden 6**(N1~N5 + field_contract_guard) + doc 1 PASS, ignored 0. clippy 0(native --tests + wasm32). **변조→RED 실증**: N1 n1-b x 30→35(5px 발산 주입) → `node[1].x=30 (want 35, Δ=-5.0px)` FAILED = oracle 이 실제 회귀 검출 증명 → 즉시 되돌림(커밋 0, `git diff --stat` 무변경 확인). serde_json dev-dependency 추가(batch children 파싱).
-- **live 영향 0**: 신규 test 파일만 추가, tree.rs/live 경로 무변경. **범위 = criteria ② 하나만** — ①(안정화 기간)·④(Implemented 승격) 미충족이라 Taffy 물리 삭제는 여전히 보류. dualRunLive Taffy leg 유지(안전망). tree_golden 은 Taffy-비의존 독립 감시 추가이지 Taffy oracle 대체 아님.
+- **live 영향 0**: 신규 test 파일만 추가, tree.rs/live 경로 무변경. **범위 = criteria ① 하나만** — ③(Implemented 승격) 미충족이라 Taffy 물리 삭제는 여전히 보류. dualRunLive Taffy leg 유지(안전망). tree_golden 은 Taffy-비의존 독립 감시 추가이지 Taffy oracle 대체 아님.
 
 ---
 
