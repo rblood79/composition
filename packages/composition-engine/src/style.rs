@@ -411,7 +411,7 @@ fn resolve_unit_value(trimmed: &str, ctx: &CssValueContext) -> Option<f32> {
 ///
 /// JS `parseFloat("12abc")===12` 를 재현. Rust `str::parse::<f32>()` 는 이 경우
 /// `Err` 이므로 선행 숫자 구간을 직접 잘라낸다. 파싱 실패(선행 숫자 없음) → `None`.
-fn parse_leading_f32(s: &str) -> Option<f32> {
+pub(crate) fn parse_leading_f32(s: &str) -> Option<f32> {
     let bytes = s.as_bytes();
     let mut i = 0;
     // 부호

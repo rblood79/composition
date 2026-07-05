@@ -441,6 +441,168 @@ pub fn resolve_logical_properties(
     result
 }
 
+// ============================================
+// !important 전처리 + font shorthand 전개 + resolveStyle 조립
+// (cssResolver.ts:535 preprocessImportant / :594 expandFontShorthand / :579 resolveStyle)
+// ============================================
+
+/// `preprocess_important` 결과 (cssResolver.ts `ImportantSplit`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct ImportantSplit {
+    pub normal: BTreeMap<String, CssValue>,
+    pub important: BTreeMap<String, CssValue>,
+}
+
+/// 스타일에서 `!important` 선언을 분리 (cssResolver.ts:535 `preprocessImportant`).
+///
+/// 문자열 값이 `!important` 로 끝나면 접미사를 제거하고 trailing 공백을 잘라 important 로,
+/// 그 외(숫자 포함)는 normal 로 분류한다. `typeof value === "string"` 가드 재현 — `Num` 은
+/// 항상 normal.
+pub fn preprocess_important(style: &BTreeMap<String, CssValue>) -> ImportantSplit {
+    let mut normal = BTreeMap::new();
+    let mut important = BTreeMap::new();
+    for (prop, value) in style {
+        match value {
+            CssValue::Str(s) if s.ends_with("!important") => {
+                let trimmed = s[..s.len() - "!important".len()].trim_end();
+                important.insert(prop.clone(), CssValue::Str(trimmed.to_string()));
+            }
+            _ => {
+                normal.insert(prop.clone(), value.clone());
+            }
+        }
+    }
+    ImportantSplit { normal, important }
+}
+
+/// resolveStyle 내부 `expandFontShorthand` (cssResolver.ts:594).
+///
+/// `font` shorthand 가 있으면 개별 longhand 로 분해하되, 대상 longhand 가 **이미 있으면
+/// 덮어쓰지 않는다**(원본 `expanded[key] === undefined` 가드). `font` 미존재 또는 파싱 실패
+/// 시 입력을 그대로 반환.
+pub fn expand_font_shorthand(
+    src: &BTreeMap<String, CssValue>,
+) -> BTreeMap<String, CssValue> {
+    let Some(font_val) = src.get("font") else {
+        return src.clone();
+    };
+    let Some(font_str) = font_val.as_str() else {
+        return src.clone();
+    };
+    let Some(parsed) = crate::style::parse_font_shorthand(font_str) else {
+        return src.clone();
+    };
+    let mut expanded = src.clone();
+    expanded.remove("font");
+    let mut fill = |key: &str, val: Option<String>| {
+        if let Some(v) = val {
+            expanded
+                .entry(key.to_string())
+                .or_insert_with(|| CssValue::Str(v));
+        }
+    };
+    fill("fontStyle", parsed.font_style);
+    fill("fontWeight", parsed.font_weight);
+    fill("fontSize", parsed.font_size);
+    fill("lineHeight", parsed.line_height);
+    fill("fontFamily", parsed.font_family);
+    expanded
+}
+
+/// resolveStyle 순회 대상 = INHERITABLE_PROPERTIES (cssResolver.ts:34) 정의 순서.
+/// (cascade override 는 prop 독립이라 순서 무관하나 원본 순서를 그대로 재현.)
+const INHERITABLE_KEYS: [&str; 17] = [
+    "color",
+    "fontSize",
+    "fontFamily",
+    "fontWeight",
+    "fontStyle",
+    "fontVariant",
+    "fontStretch",
+    "lineHeight",
+    "letterSpacing",
+    "wordSpacing",
+    "textAlign",
+    "textTransform",
+    "textIndent",
+    "visibility",
+    "wordBreak",
+    "overflowWrap",
+    "whiteSpace",
+];
+
+/// 요소 스타일을 부모 computed 기반으로 해석 (cssResolver.ts:579 `resolveStyle`).
+///
+/// 처리 순서: `!important` 분리 → 논리→물리 변환(normal/important 각각) → font shorthand
+/// 전개 → 부모 computed 복사 → INHERITABLE 순회(normal cascade) → important override →
+/// fontSize em/rem/px 단위 해석.
+///
+/// **JS 잔류 경계**: `parent_computed` 는 호출자(JS)가 `getRootComputedStyle()` 등으로
+/// 만들어 넘긴다(store 의존). em 은 부모 fontSize, rem 은 루트 16 고정(원본 그대로).
+pub fn resolve_style(
+    style: Option<&BTreeMap<String, CssValue>>,
+    parent_computed: &BTreeMap<String, CssValue>,
+) -> BTreeMap<String, CssValue> {
+    // style 미선언 → 부모 값 전체 상속.
+    let Some(style) = style else {
+        return parent_computed.clone();
+    };
+
+    let split = preprocess_important(style);
+    let after_logical_normal = resolve_logical_properties(&split.normal);
+    let after_logical_important = resolve_logical_properties(&split.important);
+    let effective_normal = expand_font_shorthand(&after_logical_normal);
+    let effective_important = expand_font_shorthand(&after_logical_important);
+
+    // 부모 computed 기반으로 시작 (상속 속성 기본값).
+    let mut computed = parent_computed.clone();
+
+    // 1단계 normal → 2단계 important 순으로 INHERITABLE 적용.
+    for source in [&effective_normal, &effective_important] {
+        for prop in INHERITABLE_KEYS {
+            let Some(raw) = source.get(prop) else { continue };
+            // undefined/null/"" skip 은 Map 부재로 자연 처리, "" 만 명시 skip.
+            if matches!(raw, CssValue::Str(s) if s.is_empty()) {
+                continue;
+            }
+            match resolve_cascade_keyword(prop, raw) {
+                CascadeResult::Inherit => continue, // 부모 값 유지.
+                CascadeResult::Value(v) => {
+                    computed.insert(prop.to_string(), v);
+                }
+            }
+        }
+    }
+
+    // fontSize 상대 단위 해석 (em: 부모 fontSize / rem: 루트 16 / px: 그대로).
+    if let Some(CssValue::Str(fs)) = computed.get("fontSize").cloned() {
+        let parent_fs = match parent_computed.get("fontSize") {
+            Some(CssValue::Num(n)) => *n,
+            _ => 16.0,
+        };
+        // JS parseFloat 선두 숫자 추출 — style.rs 의 계약 재사용(지수부 포함 단일 정본).
+        let pf = crate::style::parse_leading_f32;
+        let resolved = if fs.ends_with("em") && !fs.ends_with("rem") {
+            pf(&fs).map(|n| n * parent_fs)
+        } else if fs.ends_with("rem") {
+            pf(&fs).map(|n| n * 16.0)
+        } else if fs.ends_with("px") {
+            pf(&fs)
+        } else {
+            // 원본 JS: parseFloat(fs) || parentComputed.fontSize — 0/NaN 모두 falsy → 부모.
+            match pf(&fs) {
+                Some(n) if n != 0.0 => Some(n),
+                _ => Some(parent_fs),
+            }
+        };
+        if let Some(n) = resolved {
+            computed.insert("fontSize".to_string(), CssValue::Num(n));
+        }
+    }
+
+    computed
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -469,6 +631,218 @@ mod tests {
         assert_eq!(css_initial_value("display"), Some(CssValue::Str("inline".into())));
         assert_eq!(css_initial_value("zIndex"), Some(CssValue::Str("auto".into())));
         assert_eq!(css_initial_value("nonexistent"), None);
+    }
+
+    // ---- preprocess_important (cssResolver.ts:535) ----
+
+    #[test]
+    fn important_split_separates_bang_important() {
+        // 원본 예제: { color: 'red !important', fontSize: '14px' }
+        //   → { normal: { fontSize: '14px' }, important: { color: 'red' } }
+        let style = m(&[("color", "red !important".into()), ("fontSize", "14px".into())]);
+        let split = preprocess_important(&style);
+        assert_eq!(split.important.get("color"), Some(&CssValue::Str("red".into())));
+        assert!(!split.important.contains_key("fontSize"));
+        assert_eq!(split.normal.get("fontSize"), Some(&CssValue::Str("14px".into())));
+        assert!(!split.normal.contains_key("color"));
+    }
+
+    #[test]
+    fn important_split_trims_trailing_space_before_bang() {
+        // "red !important" → slice("!important") → "red " → trimEnd → "red"
+        let style = m(&[("color", "blue   !important".into())]);
+        let split = preprocess_important(&style);
+        assert_eq!(split.important.get("color"), Some(&CssValue::Str("blue".into())));
+    }
+
+    #[test]
+    fn important_split_numeric_value_stays_normal() {
+        // Num 은 endsWith 검사 대상 아님 (typeof value === "string" 가드) → normal.
+        let style = m(&[("opacity", 0.5.into())]);
+        let split = preprocess_important(&style);
+        assert_eq!(split.normal.get("opacity"), Some(&CssValue::Num(0.5)));
+        assert!(split.important.is_empty());
+    }
+
+    // ---- expand_font_shorthand (cssResolver.ts:594) ----
+
+    #[test]
+    fn font_shorthand_expands_into_longhand() {
+        // resolveStyle 내부 expandFontShorthand: font 존재 시 분해, longhand 이미 있으면 미덮어씀.
+        let style = m(&[("font", "italic 700 16px/24px Arial".into())]);
+        let out = expand_font_shorthand(&style);
+        assert!(!out.contains_key("font"));
+        assert_eq!(out.get("fontStyle"), Some(&CssValue::Str("italic".into())));
+        assert_eq!(out.get("fontWeight"), Some(&CssValue::Str("700".into())));
+        assert_eq!(out.get("fontSize"), Some(&CssValue::Str("16px".into())));
+        assert_eq!(out.get("lineHeight"), Some(&CssValue::Str("24px".into())));
+        assert_eq!(out.get("fontFamily"), Some(&CssValue::Str("Arial".into())));
+    }
+
+    #[test]
+    fn font_shorthand_does_not_override_existing_longhand() {
+        // 원본: expanded[key] === undefined 일 때만 채움.
+        let style = m(&[
+            ("font", "italic 700 16px Arial".into()),
+            ("fontWeight", "400".into()),
+        ]);
+        let out = expand_font_shorthand(&style);
+        assert_eq!(out.get("fontWeight"), Some(&CssValue::Str("400".into())));
+    }
+
+    #[test]
+    fn font_shorthand_absent_returns_input_unchanged() {
+        let style = m(&[("color", "red".into())]);
+        let out = expand_font_shorthand(&style);
+        assert_eq!(out.get("color"), Some(&CssValue::Str("red".into())));
+        assert!(!out.contains_key("fontSize"));
+    }
+
+    // ---- resolve_style 조립 (cssResolver.ts:579) ----
+
+    fn parent() -> BTreeMap<String, CssValue> {
+        // ROOT_COMPUTED_STYLE 축약 — resolveStyle 이 만지는 상속 속성만.
+        m(&[
+            ("color", "#111111".into()),
+            ("fontSize", 16.0.into()),
+            ("fontWeight", "400".into()),
+            ("fontFamily", "sans-serif".into()),
+            ("lineHeight", "normal".into()),
+            ("textAlign", "start".into()),
+        ])
+    }
+
+    #[test]
+    fn resolve_style_none_inherits_parent() {
+        // style 미선언 → 부모 값 전체 상속.
+        let out = resolve_style(None, &parent());
+        assert_eq!(out.get("color"), Some(&CssValue::Str("#111111".into())));
+        assert_eq!(out.get("fontSize"), Some(&CssValue::Num(16.0)));
+    }
+
+    #[test]
+    fn resolve_style_explicit_value_overrides_parent() {
+        let style = m(&[("color", "#ff0000".into())]);
+        let out = resolve_style(Some(&style), &parent());
+        assert_eq!(out.get("color"), Some(&CssValue::Str("#ff0000".into())));
+        // 미선언 상속 속성은 부모 유지.
+        assert_eq!(out.get("fontWeight"), Some(&CssValue::Str("400".into())));
+    }
+
+    #[test]
+    fn resolve_style_inherit_keyword_keeps_parent() {
+        let style = m(&[("color", "inherit".into())]);
+        let out = resolve_style(Some(&style), &parent());
+        assert_eq!(out.get("color"), Some(&CssValue::Str("#111111".into())));
+    }
+
+    #[test]
+    fn resolve_style_initial_keyword_uses_initial_value() {
+        let style = m(&[("color", "initial".into())]);
+        let out = resolve_style(Some(&style), &parent());
+        // color initial = #000000.
+        assert_eq!(out.get("color"), Some(&CssValue::Str("#000000".into())));
+    }
+
+    #[test]
+    fn resolve_style_unset_inheritable_acts_as_inherit() {
+        // color 는 상속 속성 → unset = inherit → 부모 유지.
+        let style = m(&[("color", "unset".into())]);
+        let out = resolve_style(Some(&style), &parent());
+        assert_eq!(out.get("color"), Some(&CssValue::Str("#111111".into())));
+    }
+
+    #[test]
+    fn resolve_style_important_overrides_normal() {
+        // 처리 순서: inline !important > inline normal.
+        let style = m(&[
+            ("color", "#00ff00".into()),
+            ("color2_ignore", "x".into()),
+        ]);
+        // 같은 prop 두 번은 Map 이라 불가 → important 는 값 접미사로 표현.
+        let style2 = m(&[("color", "#0000ff !important".into())]);
+        // normal + important 를 같은 style 로: color 는 important 우선.
+        let merged = {
+            let mut mm = style.clone();
+            mm.remove("color2_ignore");
+            for (k, v) in style2 {
+                mm.insert(k, v);
+            }
+            mm
+        };
+        let out = resolve_style(Some(&merged), &parent());
+        assert_eq!(out.get("color"), Some(&CssValue::Str("#0000ff".into())));
+    }
+
+    #[test]
+    fn resolve_style_fontsize_em_relative_to_parent() {
+        // 2em × parent 16 = 32.
+        let style = m(&[("fontSize", "2em".into())]);
+        let out = resolve_style(Some(&style), &parent());
+        assert_eq!(out.get("fontSize"), Some(&CssValue::Num(32.0)));
+    }
+
+    #[test]
+    fn resolve_style_fontsize_rem_relative_to_root_16() {
+        // 1.5rem × 16 = 24 (rem 은 루트 16 고정).
+        let style = m(&[("fontSize", "1.5rem".into())]);
+        let out = resolve_style(Some(&style), &parent());
+        assert_eq!(out.get("fontSize"), Some(&CssValue::Num(24.0)));
+    }
+
+    #[test]
+    fn resolve_style_fontsize_px_parsed() {
+        let style = m(&[("fontSize", "20px".into())]);
+        let out = resolve_style(Some(&style), &parent());
+        assert_eq!(out.get("fontSize"), Some(&CssValue::Num(20.0)));
+    }
+
+    #[test]
+    fn resolve_style_fontsize_unitless_fallback_to_parent() {
+        // "abc" → parseFloat NaN → parentComputed.fontSize (16).
+        let style = m(&[("fontSize", "abc".into())]);
+        let out = resolve_style(Some(&style), &parent());
+        assert_eq!(out.get("fontSize"), Some(&CssValue::Num(16.0)));
+    }
+
+    #[test]
+    fn resolve_style_fontsize_unitless_zero_is_falsy_fallback() {
+        // 원본 JS: parseFloat("0") || parentComputed.fontSize → 0 은 falsy → 부모(16).
+        // else 분기(px/em/rem 아닌 unitless)에서 `|| parentComputed.fontSize` falsy 처리.
+        let style = m(&[("fontSize", "0".into())]);
+        let out = resolve_style(Some(&style), &parent());
+        assert_eq!(out.get("fontSize"), Some(&CssValue::Num(16.0)));
+    }
+
+    #[test]
+    fn resolve_style_fontsize_px_zero_stays_zero() {
+        // px 분기는 falsy fallback 없음 — parseFloat("0px")=0 그대로.
+        let style = m(&[("fontSize", "0px".into())]);
+        let out = resolve_style(Some(&style), &parent());
+        assert_eq!(out.get("fontSize"), Some(&CssValue::Num(0.0)));
+    }
+
+    #[test]
+    fn resolve_style_logical_property_converted_before_cascade() {
+        // marginInlineStart 는 상속 속성이 아니므로 resolveStyle 순회엔 안 잡히지만,
+        // resolveLogicalProperties 는 항상 먼저 적용됨 → 결과에 marginLeft 로 존재.
+        // (단 resolveStyle 은 상속 속성만 computed 에 반영하므로 marginLeft 는
+        //  computed(부모 복사)에 없고, 논리 변환 자체 검증은 별도.)
+        let style = m(&[("textAlign", "inherit".into())]);
+        let out = resolve_style(Some(&style), &parent());
+        // textAlign inherit → 부모 start 유지 (logical 무관, cascade 경로 확인).
+        assert_eq!(out.get("textAlign"), Some(&CssValue::Str("start".into())));
+    }
+
+    #[test]
+    fn resolve_style_font_shorthand_feeds_cascade() {
+        // font shorthand 분해 → fontWeight/fontSize 가 cascade 순회에 반영.
+        let style = m(&[("font", "italic 700 24px Arial".into())]);
+        let out = resolve_style(Some(&style), &parent());
+        assert_eq!(out.get("fontWeight"), Some(&CssValue::Str("700".into())));
+        // fontSize 24px → 숫자 24 로 해석.
+        assert_eq!(out.get("fontSize"), Some(&CssValue::Num(24.0)));
+        assert_eq!(out.get("fontFamily"), Some(&CssValue::Str("Arial".into())));
     }
 
     // ---- font-variant features ----
