@@ -84,6 +84,9 @@ apps/builder/public/wasm/
 apps/builder/src/builder/workspace/canvas/wasm/target/
 target-install/
 
+# composition-engine wasm-pack 산출물 (로컬 빌드, git 미추적 — pnpm wasm:build:engine 로 생성)
+apps/builder/src/builder/workspace/canvas/wasm-bindings/composition-engine-pkg/
+
 # TypeScript compiled output (tsc -b) alongside source files
 apps/builder/src/**/*.js
 !apps/builder/src/**/*.config.js
