@@ -32,55 +32,97 @@ ToggleButtonGroup: `containerStyles = { display:flex, alignItems:center, width:f
 
 ## 결정
 
-**수정 위치**: `flex_layout` 진입점(align-content 계산 직전). 사용자 결정 = "flex_layout 진입점 가드".
-**무효화 범위**: `line_count <= 1` 이면 align-content 값 전체(center/end/stretch/space-\*)를 START 로 강제. 사용자 결정 = "align-content 전체 무효 (CSS 명세)". CSS §8.4 는 단일 라인에서 align-content 를 통째로 무시하므로 stretch 뿐 아니라 center/end 도 무효(자식 정렬은 align-items 담당).
+### 착수 중 발견 — align-content ↔ align-items stretch 얽힘 (전제 정정)
 
-### 수정 코드
+원안(`line_count<=1` 시 align-content 전체 무효 → stretch_extra=0)은 이 엔진의 숨은 결합을 놓쳤다. 이 엔진은 **"단일 라인 컨테이너의 라인 cross = available_cross"**(자식 stretch 대상)를 별도 로직 없이 **align-content stretch 의 stretch_extra 로 대신 구현**했다. 즉 `align-items: stretch` + 자식 cross-auto + 컨테이너 height 100 → 자식 100 채움은, 라인이 available_cross 로 부풀려진 뒤(`stretch_extra`) `place_line_cross_axis`의 `ALIGN_STRETCH if cross_is_auto` 가 그 라인 cross 를 채우는 2단 의존이다.
 
-`align_content_offsets` 호출 직전, `line_count` 확정 후:
+원안대로 stretch_extra=0 이면 라인 cross=0 → 자식 0 → 기존 회귀 방지 테스트 `stretch_still_fills_when_cross_auto`(100 기대)가 **100→0 으로 깨진다**. 이는 CSS 위반(align-items stretch 는 단일 라인에서도 컨테이너 cross 를 채움).
+
+**사용자 결정(2026-07-06): "place_line_cross 리팩터"** — align-content 와 align-items stretch 를 완전히 독립시킨다. stretch_extra(라인 부풀리기)는 다중 라인 전용으로 되돌리고, 단일 라인 자식 stretch 는 `place_line_cross_axis` 가 `available_cross` 를 직접 참조해 처리.
+
+### 수정 코드 — 2곳 분리
+
+**(1) `align_content_offsets` — stretch_extra 를 다중 라인 전용으로**
+
+`ALIGN_CONTENT_STRETCH` 분기가 `line_count <= 1` 이면 stretch_extra 0:
 
 ```rust
-// CSS §8.4: 단일 라인 flex 컨테이너는 align-content 를 적용하지 않는다.
-// (다중 라인에서만 라인 간 stretch/정렬 유효). 미적용 시 부모가 준 큰 available_cross 로
-// 라인이 stretch 되어 컨테이너 cross size 폭발(ToggleButtonGroup height 397 회귀).
-// stretch 뿐 아니라 center/end/space-* 전체 무효 — 자식 정렬은 align-items 담당.
-let effective_align_content = if line_count <= 1 {
-    ALIGN_CONTENT_START
-} else {
-    align_content
-};
-
-let (cross_start_offset, cross_between_extra, stretch_extra) =
-    align_content_offsets(effective_align_content, cross_free, line_count);
+ALIGN_CONTENT_STRETCH => {
+    if line_count <= 1 {
+        // 단일 라인: align-content stretch 무효(CSS §8.4). 라인 부풀리기 없음 —
+        // 자식 stretch 는 place_line_cross_axis 가 available_cross 로 별도 처리.
+        (0.0, 0.0, 0.0)
+    } else {
+        let per_line = cross_free / line_count as f32;
+        (0.0, 0.0, per_line)
+    }
+}
 ```
 
-`ALIGN_CONTENT_START` 는 `align_content_offsets`에서 `_ => (0.0, 0.0, 0.0)` 로 매핑되어 offset 0 / between 0 / stretch_extra 0 — 라인 크기·위치 불변. `line_count == 0` 조기 반환은 `align_content_offsets` 내부에 이미 존재(중복 무해).
+center/end/space-\* 도 단일 라인 무효(CSS §8.4). `flex_layout` 본체에서 `line_count<=1` 시 `cross_start_offset`/`cross_between_extra` 를 0 으로 강제(진입점 가드 병행):
+
+```rust
+let (mut cross_start_offset, mut cross_between_extra, stretch_extra) =
+    align_content_offsets(align_content, cross_free, line_count);
+if line_count <= 1 {
+    // 단일 라인은 align-content 정렬(center/end/space-*) 전체 무효.
+    cross_start_offset = 0.0;
+    cross_between_extra = 0.0;
+}
+```
+
+**(2) `place_line_cross_axis` — 단일 라인 자식 stretch 대상 = available_cross**
+
+시그니처에 `available_cross: f32` + `single_line: bool` 인자 추가. `ALIGN_STRETCH if cross_is_auto` 분기가 대상 라인 cross 를 단일/다중으로 분기:
+
+```rust
+ALIGN_STRETCH if it.cross_is_auto => {
+    // 단일 라인: 컨테이너 cross(available_cross) 로 stretch (CSS: 단일 라인 flex
+    //   컨테이너의 라인 cross = 컨테이너 content cross).
+    // 다중 라인: 소속 라인 cross(line_cross_size)로 stretch.
+    let stretch_target = if single_line { available_cross } else { line_cross_size };
+    let target_avail = (stretch_target - it.margin_cross_start - it.margin_cross_end).max(0.0);
+    let stretched = clamp_size(target_avail, it.min_cross, it.max_cross);
+    (it.margin_cross_start, stretched)
+}
+```
+
+호출부(`flex_layout` 라인 루프)에서 `available_cross` 와 `line_count == 1` 전달. 다른 분기(CENTER/END/START)는 기존대로 `line_cross_size`/`cross_free` 기반 — 자식 위치만 결정하므로 무영향.
 
 ## 격리 — 건드리지 않는 것
 
-| 경로                                                                                       | 이유                                                                                                                                                            |
-| ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **align-items** (`place_line_cross_axis`, `ALIGN_CENTER`/`ALIGN_STRETCH if cross_is_auto`) | 자식을 **라인 내부** cross 로 정렬/stretch. line_count 무관, 본 수정과 직교. `alignItems:center` 는 여전히 자식을 라인(=자식 max=30) 내 중앙 배치 → 자식 제자리 |
-| **다중 라인 align-content** (line_count > 1)                                               | `effective_align_content = align_content` 유지 — wrap 발생 시 라인 간 stretch/center/end/space-\* 정상                                                          |
-| **main-axis** (justify_content)                                                            | 변경 없음                                                                                                                                                       |
-| **box-sizing** (직전 작업, tree.rs spec_to_content)                                        | 무관                                                                                                                                                            |
+| 경로                                                       | 이유                                                                                                                                     |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **align-items CENTER/END/START** (`place_line_cross_axis`) | 자식을 라인 cross 내에서 정렬(크기 불변). 단일 라인이면 라인 cross=자식 max 라 제자리. ToggleButtonGroup(center) → 자식 y=0, 컨테이너=30 |
+| **align-items STRETCH (다중 라인)**                        | `single_line=false` → `line_cross_size` 기준 stretch (기존 동작 유지)                                                                    |
+| **다중 라인 align-content** (line_count > 1)               | stretch_extra/offset 모두 기존 경로 — wrap 시 라인 간 stretch/center/end/space-\* 정상                                                   |
+| **main-axis** (justify_content)                            | 변경 없음                                                                                                                                |
+| **box-sizing** (직전 작업, tree.rs spec_to_content)        | 무관                                                                                                                                     |
 
 ## 테스트 (TDD, cargo)
 
-`packages/composition-engine/src/flex.rs` `#[cfg(test)]` 모듈:
+`packages/composition-engine/src/flex.rs` `#[cfg(test)]` 모듈. **핵심 = 두 stretch 를 분리 검증**: (a) 단일 라인 align-content stretch 는 라인을 안 부풀림, (b) 단일 라인 align-items stretch 는 여전히 컨테이너 cross 채움.
 
-1. `single_line_align_content_stretch_does_not_expand` — row, 자식 1개 cross(height) 30, available_cross 764, align_content=stretch(default) → 컨테이너/라인 cross = 30 (397 아님). 자식 y=0.
-2. `single_line_align_content_center_does_not_offset` — 위 조건 + align_content=center → 자식 y=0 (단일 라인이므로 center 무효). available_cross 큼에도 중앙 이동 없음.
-3. `single_line_align_items_center_centers_child_in_line` — align_items=center + 자식 height 30 → 라인 cross=30 이므로 자식 y=0(라인 내 중앙=제자리). align-items 는 살아있음 확인.
-4. `multi_line_align_content_stretch_still_expands` — wrap 발생 2라인, available_cross 큼 → 라인들이 stretch 로 팽창(회귀 방지: 다중 라인 유지).
+신규:
 
-tree.rs 통합 테스트(`tree.rs` 또는 별도):
+1. `single_line_align_content_stretch_does_not_expand_line` — row, 자식 1개 cross(height) **명시 30**, available_cross 764, align_items=**START**(stretch 아님), align_content=stretch(default) → 자식 height 30 유지, y=0. 라인이 764 로 안 부풀려짐(397 근원 차단). **원안이 통과시키고 새 설계도 통과 — 핵심 회귀 케이스.**
+2. `single_line_align_content_center_does_not_offset` — 위 조건 + align_content=center → 자식 y=0 (단일 라인이므로 center offset 무효). available_cross 큼에도 중앙 이동 없음.
+3. `single_line_align_items_center_child_stays_at_top` — align_items=**center** + 자식 height 명시 30, available_cross 764 → 자식 height 30, **y=0**(라인 cross=자식 30 이므로 라인 내 중앙=제자리). ToggleButtonGroup 실제 케이스.
+4. `multi_line_align_content_stretch_still_expands` — wrap 발생 2라인, available_cross 큼 → 라인들이 stretch_extra 로 팽창(회귀 방지: 다중 라인 유지).
 
-5. `flex_column_parent_single_line_child_no_height_explosion` — body(column, height 764) > group(row, alignItems center, height 미지정) > 버튼(30) → group height = 30.
+기존 회귀 방지 테스트(**변경 후 여전히 통과해야 함 — 새 설계의 성공 조건**):
+
+- `stretch_still_fills_when_cross_auto` (line 1064): align_items=STRETCH + 자식 cross auto + available_cross 100 → 자식 100. **place_line_cross_axis 리팩터가 single_line 경로에서 available_cross(100)로 stretch 하므로 유지.** 원안(stretch_extra=0)은 이걸 0 으로 깨뜨렸을 것 — 이 테스트가 리팩터 방향의 근거.
+- `align_stretch_fills_cross` (line 820): 동형, 유지.
+- `stretch_respects_explicit_cross_size` (line 1051): align_items=STRETCH + 자식 cross **명시 30** → 30 유지(stretch 안 함, cross_is_auto=false). single_line 분기와 무관하게 유지.
+
+tree.rs 통합 테스트:
+
+5. `flex_column_parent_single_line_child_no_height_explosion` — body(column, height 764) > group(row, alignItems center, height 미지정) > 버튼(30) → group height = 30 (397 아님).
 
 ## 검증 체인
 
-1. `cargo test -p composition-engine` — 신규 5 + 기존 240 PASS
+1. `cargo test -p composition-engine` — 신규 5 + 기존 240 PASS (기존 stretch 회귀 테스트 3종 포함 유지 확인)
 2. `pnpm wasm:build:engine` — wasm 재빌드
 3. `pnpm type-check` — 소스 정합
 4. **live**: 브라우저 로드 wasm 실측(dual-run diff 0 은 이 케이스를 커버 못 함 — 아래) + Preview 대조. ToggleButtonGroup group height 397 → 30 확인.
@@ -94,11 +136,12 @@ tree.rs 통합 테스트(`tree.rs` 또는 별도):
 
 ## 위험
 
-| ID  | 위험                                                | 심각도 | 대응                                                                                                                                                                             |
-| --- | --------------------------------------------------- | :----: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1  | flex.rs 코어 수정이 다중 라인/align-items 회귀 유발 |  MED   | 변경을 `line_count<=1` 가드 1곳에 격리. 다중 라인/align-items 경로는 조건 미충족으로 무영향. 테스트 3,4 가 회귀 방지                                                             |
-| R2  | 기존 dual-run golden 이 이 변경으로 diff 발생       |  LOW   | golden N1~N6 전부 단일 컨테이너·단일 라인이지만 available_cross 를 라인보다 크게 주지 않는 형상 → stretch_extra 는 base 에서도 0 이거나 무의미. 재빌드 후 golden 재실행으로 확증 |
-| R3  | 단일 라인 판정 경계(0/1 라인)                       |  LOW   | `line_count <= 1` 이 0 과 1 모두 포함. 0 라인(자식 없음)은 count==0 조기 반환으로 도달 안 함                                                                                     |
+| ID  | 위험                                                           | 심각도 | 대응                                                                                                                                                                                                            |
+| --- | -------------------------------------------------------------- | :----: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | `place_line_cross_axis` 시그니처 변경이 다중 라인 stretch 회귀 |  MED   | `single_line` false 경로는 기존 `line_cross_size` 그대로 → 다중 라인 무영향. 기존 회귀 테스트 3종(stretch_still_fills / align_stretch_fills / stretch_respects_explicit) 이 방어. 신규 4 가 다중 라인 유지 확인 |
+| R2  | align-items STRETCH 자식 stretch 가 single 경로에서 잘못 계산  |  MED   | 단일 라인 stretch 대상 = `available_cross`(tree.rs 가 자식 content-box available 전달). 기존 `stretch_still_fills_when_cross_auto`(100) 가 정확값 고정. clamp(min/max_cross) 순서 기존 유지                     |
+| R3  | 기존 dual-run golden 이 이 변경으로 diff 발생                  |  LOW   | golden N1~N6 전부 단일 컨테이너지만 available_cross 를 라인보다 크게 주는 형상 없음 → base 에서도 stretch_extra 무의미. 재빌드 후 golden 재실행으로 확증                                                        |
+| R4  | 단일 라인 판정 경계(0/1 라인)                                  |  LOW   | `line_count <= 1` 이 0 과 1 모두 포함. 0 라인(자식 없음)은 count==0 조기 반환으로 도달 안 함                                                                                                                    |
 
 잔존 HIGH 위험 없음.
 
