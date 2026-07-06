@@ -494,6 +494,7 @@ pub fn flex_layout(
     wrap: u8,
     gap_main: f32,
     gap_cross: f32,
+    cross_is_definite: bool,
 ) -> Box<[f32]> {
     let count = data.len() / FLEX_FIELD_COUNT;
     if count == 0 {
@@ -555,6 +556,13 @@ pub fn flex_layout(
         let mut this_line_cross = line_cross_sizes[li];
         if stretch_extra > 0.0 {
             this_line_cross += stretch_extra;
+        }
+        // 단일 라인 + definite: 라인 cross = 컨테이너 cross(available_cross).
+        // align-items(center/end/stretch/clamp)가 이 공간 안에서 정렬/채움 (CSS: 단일 라인
+        //   flex 컨테이너의 라인 cross = 컨테이너 cross). indefinite(height auto)면 자식 max
+        //   유지 → 컨테이너가 content 로 축소(ToggleButtonGroup height 30, 397 아님).
+        if line_count == 1 && cross_is_definite {
+            this_line_cross = this_line_cross.max(available_cross);
         }
 
         place_line_main_axis(
@@ -747,6 +755,7 @@ pub fn flex_layout_single_line(
         WRAP_NOWRAP,
         gap_main,
         0.0,
+        true, // cross_is_definite — 헬퍼는 available_cross 를 컨테이너 크기로 가정(기존 시맨틱)
     )
 }
 
@@ -862,7 +871,7 @@ mod tests {
             with_flex(item(50.0, 20.0), 1.0, 1.0),
             with_flex(item(50.0, 20.0), 1.0, 1.0),
         ]);
-        let out = flex_layout(&data, 200.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0);
+        let out = flex_layout(&data, 200.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0, false);
         // width 각 100
         assert!((out[2] - 100.0).abs() < 0.01, "item0 width={}", out[2]);
         assert!((out[6] - 100.0).abs() < 0.01, "item1 width={}", out[6]);
@@ -878,7 +887,7 @@ mod tests {
             with_flex(item(50.0, 20.0), 1.0, 1.0),
             with_flex(item(50.0, 20.0), 3.0, 1.0),
         ]);
-        let out = flex_layout(&data, 250.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0);
+        let out = flex_layout(&data, 250.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0, false);
         assert!((out[2] - 87.5).abs() < 0.01, "item0 width={}", out[2]);
         assert!((out[6] - 162.5).abs() < 0.01, "item1 width={}", out[6]);
     }
@@ -890,7 +899,7 @@ mod tests {
         let mut f0 = with_flex(item(50.0, 20.0), 1.0, 1.0);
         f0[10] = 120.0; // max_main
         let data = flatten(&[f0, with_flex(item(50.0, 20.0), 1.0, 1.0)]);
-        let out = flex_layout(&data, 300.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0);
+        let out = flex_layout(&data, 300.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0, false);
         assert!((out[2] - 120.0).abs() < 0.01, "item0 clamped width={}", out[2]);
         assert!((out[6] - 180.0).abs() < 0.01, "item1 redistributed width={}", out[6]);
     }
@@ -899,7 +908,7 @@ mod tests {
     fn grow_zero_stays_at_basis() {
         // grow 0 → basis 유지, 여유 공간 분배 없음
         let data = flatten(&[item(50.0, 20.0), item(50.0, 20.0)]);
-        let out = flex_layout(&data, 300.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0);
+        let out = flex_layout(&data, 300.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0, false);
         assert!((out[2] - 50.0).abs() < 0.01);
         assert!((out[6] - 50.0).abs() < 0.01);
     }
@@ -914,7 +923,7 @@ mod tests {
             with_flex(item(100.0, 20.0), 0.0, 1.0),
             with_flex(item(100.0, 20.0), 0.0, 1.0),
         ]);
-        let out = flex_layout(&data, 150.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0);
+        let out = flex_layout(&data, 150.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0, false);
         assert!((out[2] - 75.0).abs() < 0.01, "item0 shrunk width={}", out[2]);
         assert!((out[6] - 75.0).abs() < 0.01, "item1 shrunk width={}", out[6]);
     }
@@ -926,7 +935,7 @@ mod tests {
             with_flex(item(100.0, 20.0), 0.0, 0.0),
             with_flex(item(100.0, 20.0), 0.0, 0.0),
         ]);
-        let out = flex_layout(&data, 150.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0);
+        let out = flex_layout(&data, 150.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0, false);
         assert!((out[2] - 100.0).abs() < 0.01);
         assert!((out[6] - 100.0).abs() < 0.01);
     }
@@ -938,7 +947,7 @@ mod tests {
         let mut f0 = with_flex(item(100.0, 20.0), 0.0, 1.0);
         f0[9] = 80.0; // min_main
         let data = flatten(&[f0, with_flex(item(100.0, 20.0), 0.0, 1.0)]);
-        let out = flex_layout(&data, 100.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0);
+        let out = flex_layout(&data, 100.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0, false);
         assert!((out[2] - 80.0).abs() < 0.01, "item0 min-clamped width={}", out[2]);
         assert!((out[6] - 20.0).abs() < 0.01, "item1 absorbed width={}", out[6]);
     }
@@ -949,7 +958,7 @@ mod tests {
     fn wrap_breaks_into_two_lines() {
         // 3개 basis 100, available 250, wrap. line1=[0,1](200), line2=[2]
         let data = flatten(&[item(100.0, 30.0), item(100.0, 30.0), item(100.0, 30.0)]);
-        let out = flex_layout(&data, 250.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_START, WRAP_WRAP, 0.0, 0.0);
+        let out = flex_layout(&data, 250.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_START, WRAP_WRAP, 0.0, 0.0, false);
         // line1: x 0, 100 / y 0
         assert!((out[0] - 0.0).abs() < 0.01);
         assert!((out[4] - 100.0).abs() < 0.01);
@@ -968,7 +977,7 @@ mod tests {
             with_flex(item(100.0, 30.0), 0.0, 0.0),
             with_flex(item(100.0, 30.0), 0.0, 0.0),
         ]);
-        let out = flex_layout(&data, 250.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0);
+        let out = flex_layout(&data, 250.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0, false);
         assert!((out[1] - 0.0).abs() < 0.01);
         assert!((out[5] - 0.0).abs() < 0.01);
         assert!((out[9] - 0.0).abs() < 0.01, "item2 stays on same line y={}", out[9]);
@@ -979,7 +988,7 @@ mod tests {
     fn wrap_each_line_has_min_one_item() {
         // 아이템 하나가 available 초과해도 자기 라인 확보
         let data = flatten(&[item(300.0, 30.0), item(300.0, 30.0)]);
-        let out = flex_layout(&data, 250.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_START, WRAP_WRAP, 0.0, 0.0);
+        let out = flex_layout(&data, 250.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_START, WRAP_WRAP, 0.0, 0.0, false);
         // 각자 라인: item0 y 0, item1 y 30
         assert!((out[1] - 0.0).abs() < 0.01);
         assert!((out[5] - 30.0).abs() < 0.01, "item1 own line y={}", out[5]);
@@ -993,7 +1002,7 @@ mod tests {
             with_flex(item(100.0, 30.0), 1.0, 1.0),
             with_flex(item(100.0, 30.0), 1.0, 1.0),
         ]);
-        let out = flex_layout(&data, 250.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_START, WRAP_WRAP, 0.0, 0.0);
+        let out = flex_layout(&data, 250.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_START, WRAP_WRAP, 0.0, 0.0, false);
         assert!((out[2] - 125.0).abs() < 0.01, "item0 grown width={}", out[2]);
         assert!((out[6] - 125.0).abs() < 0.01, "item1 grown width={}", out[6]);
     }
@@ -1005,7 +1014,7 @@ mod tests {
         // 3개 basis 100, available_main 250 → line1=[0,1](200≤250), line2=[2].
         // 2 라인 각 cross 30, available_cross 200 → total 60, free 140, center → start 70
         let data = flatten(&[item(100.0, 30.0), item(100.0, 30.0), item(100.0, 30.0)]);
-        let out = flex_layout(&data, 250.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_CENTER, WRAP_WRAP, 0.0, 0.0);
+        let out = flex_layout(&data, 250.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_CENTER, WRAP_WRAP, 0.0, 0.0, false);
         // line1 items(0,1) y = 70, line2 item(2) y = 70+30 = 100
         assert!((out[1] - 70.0).abs() < 0.01, "line1 item0 y={}", out[1]);
         assert!((out[5] - 70.0).abs() < 0.01, "line1 item1 y={}", out[5]);
@@ -1017,7 +1026,7 @@ mod tests {
         // 3개 basis 100, available_main 250 → line1=[0,1], line2=[2].
         // gap_cross 10 → line2 y = line1_cross(30) + gap(10) = 40
         let data = flatten(&[item(100.0, 30.0), item(100.0, 30.0), item(100.0, 30.0)]);
-        let out = flex_layout(&data, 250.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_START, WRAP_WRAP, 0.0, 10.0);
+        let out = flex_layout(&data, 250.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_START, WRAP_WRAP, 0.0, 10.0, false);
         assert!((out[9] - 40.0).abs() < 0.01, "line2 y with gap={}", out[9]);
     }
 
@@ -1031,7 +1040,7 @@ mod tests {
         let data = flatten(&[item(30.0, 100.0), item(40.0, 100.0)]);
         let out = flex_layout(
             &data, -1.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
-            ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0,
+            ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0, false,
         );
         // 아이템 main(width) 은 basis 유지 (30, 40) — 0 붕괴 없음
         assert!((out[2] - 30.0).abs() < 0.01, "item0 width={} (expect 30)", out[2]);
@@ -1050,7 +1059,7 @@ mod tests {
         let data = flatten(&[item(30.0, 100.0), item(40.0, 100.0)]);
         let out = flex_layout(
             &data, -1.0, 200.0, DIR_COLUMN, JUSTIFY_START, ALIGN_START,
-            ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0,
+            ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0, false,
         );
         // DIR_COLUMN: 논리 main(f[1]=30,40) → 물리 height(out h), y 순차 배치
         assert!((out[3] - 30.0).abs() < 0.01, "item0 height={} (expect 30)", out[3]);
@@ -1092,7 +1101,7 @@ mod tests {
         let data = flatten(&[item(30.0, 20.0), item(40.0, 20.0)]);
         let out = flex_layout(
             &data, -1.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
-            ALIGN_CONTENT_START, WRAP_WRAP, 0.0, 0.0,
+            ALIGN_CONTENT_START, WRAP_WRAP, 0.0, 0.0, false,
         );
         // 한 라인이면 두 아이템 같은 y(0), x 순차(0, 30)
         assert!((out[1] - 0.0).abs() < 0.01, "item0 y={} (single line)", out[1]);
@@ -1109,7 +1118,7 @@ mod tests {
         ]);
         let out = flex_layout(
             &data, 300.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
-            ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0,
+            ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0, false,
         );
         // free 100 → 각 +50 = 150
         assert!((out[2] - 150.0).abs() < 0.01, "item0 grown={}", out[2]);
@@ -1126,7 +1135,7 @@ mod tests {
         let data = flatten(&[item(50.0, 30.0)]);
         let out = flex_layout(
             &data, 300.0, 764.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
-            ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0,
+            ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0, false,
         );
         assert!((out[3] - 30.0).abs() < 0.01, "height={} (expect 30, not stretched)", out[3]);
         assert!((out[1] - 0.0).abs() < 0.01, "y={} (expect 0)", out[1]);
@@ -1138,7 +1147,7 @@ mod tests {
         let data = flatten(&[item(50.0, 30.0)]);
         let out = flex_layout(
             &data, 300.0, 764.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
-            ALIGN_CONTENT_CENTER, WRAP_NOWRAP, 0.0, 0.0,
+            ALIGN_CONTENT_CENTER, WRAP_NOWRAP, 0.0, 0.0, false,
         );
         assert!((out[1] - 0.0).abs() < 0.01, "y={} (expect 0, center 무효)", out[1]);
         assert!((out[3] - 30.0).abs() < 0.01, "height={} (expect 30)", out[3]);
@@ -1151,7 +1160,7 @@ mod tests {
         let data = flatten(&[item(50.0, 30.0)]);
         let out = flex_layout(
             &data, 300.0, 764.0, DIR_ROW, JUSTIFY_START, ALIGN_CENTER,
-            ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0,
+            ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0, false,
         );
         assert!((out[3] - 30.0).abs() < 0.01, "height={} (expect 30)", out[3]);
         assert!((out[1] - 0.0).abs() < 0.01, "y={} (expect 0, 라인 cross=30 이므로 제자리)", out[1]);

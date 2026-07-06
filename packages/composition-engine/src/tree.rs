@@ -614,6 +614,7 @@ impl LayoutTree {
             wrap,
             gap_main,
             gap_cross,
+            if is_row { explicit_h > 0.0 } else { explicit_w > 0.0 },
         );
 
         // 4) 자식 위치 반영 + bounding box 로 컨테이너 content 크기 도출.
