@@ -545,16 +545,37 @@ impl LayoutTree {
         let align_content = parse_align_content(style.align_content.as_deref());
         let wrap = parse_flex_wrap(style.flex_wrap.as_deref());
 
-        let ctx = self.ctx_for(avail_w);
+        let parent_ctx = self.ctx_for(avail_w);
+        // 컨테이너 자신의 pad_border (% 는 부모 available 기준 — CSS containing block).
+        let own_pb_h = axis_pad_border(&style, &parent_ctx, true);
+        let own_pb_v = axis_pad_border(&style, &parent_ctx, false);
+        let off_x = pad_border_start(&style, &parent_ctx, true);
+        let off_y = pad_border_start(&style, &parent_ctx, false);
+
+        // 자식 available = 컨테이너 content box. explicit(border-box) 이면 감산,
+        // auto stretch 이면 상속 available(border-box) 에서 감산.
+        // 음수 available 은 indefinite 센티넬 — 감산 없이 보존.
+        let child_avail_w = if explicit_w > 0.0 {
+            spec_to_content(explicit_w, own_pb_h)
+        } else if avail_w >= 0.0 {
+            (avail_w - own_pb_h).max(0.0)
+        } else {
+            avail_w
+        };
+        let child_avail_h = if explicit_h > 0.0 {
+            spec_to_content(explicit_h, own_pb_v)
+        } else if avail_h >= 0.0 {
+            (avail_h - own_pb_v).max(0.0)
+        } else {
+            avail_h
+        };
+        // 자식 write / gap 해석 ctx 는 content 폭 기준 (자식 % 의 containing block).
+        let ctx = self.ctx_for(child_avail_w);
         let gap_row = resolve_gap(style.row_gap.as_deref(), &ctx);
         let gap_col = resolve_gap(style.column_gap.as_deref(), &ctx);
         // main/cross gap 매핑 (row → main=column_gap, cross=row_gap).
         let (gap_main, gap_cross) =
             if is_row { (gap_col, gap_row) } else { (gap_row, gap_col) };
-
-        // 자식 available: 컨테이너 명시 크기 있으면 그것, 없으면 상속 avail.
-        let child_avail_w = if explicit_w > 0.0 { explicit_w } else { avail_w };
-        let child_avail_h = if explicit_h > 0.0 { explicit_h } else { avail_h };
 
         // 1) 자식 재귀 solve → 각 자식 content 크기 확보.
         let mut child_sizes: Vec<(f32, f32)> = Vec::with_capacity(children.len());
@@ -592,16 +613,18 @@ impl LayoutTree {
         );
 
         // 4) 자식 위치 반영 + bounding box 로 컨테이너 content 크기 도출.
+        //    bounding box 는 offset 전 좌표 기준(컨테이너 content 크기), 저장은 offset 후
+        //    (자식 화면 좌표는 padding 안쪽) — 섞으면 컨테이너 크기에 padding 이중 반영.
         let mut max_right: f32 = 0.0;
         let mut max_bottom: f32 = 0.0;
         for (i, &c) in children.iter().enumerate() {
             let off = i * 4;
             let (x, y, w, h) = (out[off], out[off + 1], out[off + 2], out[off + 3]);
-            if let Some(n) = self.get_mut(c) {
-                n.layout = NodeLayout { x, y, width: w, height: h };
-            }
             max_right = max_right.max(x + w);
             max_bottom = max_bottom.max(y + h);
+            if let Some(n) = self.get_mut(c) {
+                n.layout = NodeLayout { x: x + off_x, y: y + off_y, width: w, height: h };
+            }
         }
 
         // 컨테이너 크기: 명시 있으면 명시, 없으면 자식 bounding box.
@@ -635,11 +658,33 @@ impl LayoutTree {
         avail_w: f32,
         avail_h: f32,
     ) -> (f32, f32) {
-        let ctx = self.ctx_for(avail_w);
+        let parent_ctx = self.ctx_for(avail_w);
+        let style = self.get(handle).map(|n| n.style.clone()).unwrap_or_default();
+        // 컨테이너 자신의 pad_border (% 는 부모 available 기준 — CSS containing block).
+        let own_pb_h = axis_pad_border(&style, &parent_ctx, true);
+        let own_pb_v = axis_pad_border(&style, &parent_ctx, false);
+        let off_x = pad_border_start(&style, &parent_ctx, true);
+        let off_y = pad_border_start(&style, &parent_ctx, false);
 
-        // 자식 available: 컨테이너 명시 폭 있으면 그것, 없으면 상속 avail.
-        let child_avail_w = if explicit_w > 0.0 { explicit_w } else { avail_w };
-        let child_avail_h = if explicit_h > 0.0 { explicit_h } else { avail_h };
+        // 자식 available = 컨테이너 content box. explicit(border-box) 이면 감산,
+        // auto stretch 이면 상속 available(border-box) 에서 감산.
+        // 음수 available 은 indefinite 센티넬 — 감산 없이 보존.
+        let child_avail_w = if explicit_w > 0.0 {
+            spec_to_content(explicit_w, own_pb_h)
+        } else if avail_w >= 0.0 {
+            (avail_w - own_pb_h).max(0.0)
+        } else {
+            avail_w
+        };
+        let child_avail_h = if explicit_h > 0.0 {
+            spec_to_content(explicit_h, own_pb_v)
+        } else if avail_h >= 0.0 {
+            (avail_h - own_pb_v).max(0.0)
+        } else {
+            avail_h
+        };
+        // 자식 write / gap 해석 ctx 는 content 폭 기준 (자식 % 의 containing block).
+        let ctx = self.ctx_for(child_avail_w);
 
         // 1) 자식 재귀 solve → content 크기 확보.
         let mut child_sizes: Vec<(f32, f32)> = Vec::with_capacity(children.len());
@@ -661,16 +706,18 @@ impl LayoutTree {
 
         // 4) 자식 위치 반영 + bounding box 로 컨테이너 content 크기 도출.
         //    (out 마지막 2값은 firstChildMarginTop/lastChildMarginBottom metadata — 단위 3-a 미소비.)
+        //    bounding box 는 offset 전 좌표 기준(컨테이너 content 크기), 저장은 offset 후
+        //    (자식 화면 좌표는 padding 안쪽) — 섞으면 컨테이너 크기에 padding 이중 반영.
         let mut max_right: f32 = 0.0;
         let mut max_bottom: f32 = 0.0;
         for (i, &c) in children.iter().enumerate() {
             let off = i * 4;
             let (x, y, w, h) = (out[off], out[off + 1], out[off + 2], out[off + 3]);
-            if let Some(n) = self.get_mut(c) {
-                n.layout = NodeLayout { x, y, width: w, height: h };
-            }
             max_right = max_right.max(x + w);
             max_bottom = max_bottom.max(y + h);
+            if let Some(n) = self.get_mut(c) {
+                n.layout = NodeLayout { x: x + off_x, y: y + off_y, width: w, height: h };
+            }
         }
 
         // 컨테이너 크기: 명시 있으면 명시, 없으면 자식 bounding box.
@@ -713,11 +760,28 @@ impl LayoutTree {
         avail_h: f32,
     ) -> (f32, f32) {
         let style = self.get(handle).map(|n| n.style.clone()).unwrap_or_default();
-        let ctx_w = self.ctx_for(avail_w);
+        let parent_ctx = self.ctx_for(avail_w);
+        let own_pb_h = axis_pad_border(&style, &parent_ctx, true);
+        let own_pb_v = axis_pad_border(&style, &parent_ctx, false);
+        let off_x = pad_border_start(&style, &parent_ctx, true);
+        let off_y = pad_border_start(&style, &parent_ctx, false);
 
-        // 컨테이너 available (명시 있으면 그것, 없으면 상속).
-        let container_w = if explicit_w > 0.0 { explicit_w } else { avail_w };
-        let container_h = if explicit_h > 0.0 { explicit_h } else { avail_h };
+        // 트랙 available = content box (explicit=border-box 감산 / 상속도 감산).
+        let container_w = if explicit_w > 0.0 {
+            spec_to_content(explicit_w, own_pb_h)
+        } else if avail_w >= 0.0 {
+            (avail_w - own_pb_h).max(0.0)
+        } else {
+            avail_w
+        };
+        let container_h = if explicit_h > 0.0 {
+            spec_to_content(explicit_h, own_pb_v)
+        } else if avail_h >= 0.0 {
+            (avail_h - own_pb_v).max(0.0)
+        } else {
+            avail_h
+        };
+        let ctx_w = self.ctx_for(container_w);
 
         // gap.
         let col_gap = resolve_gap(style.column_gap.as_deref(), &ctx_w);
@@ -741,7 +805,7 @@ impl LayoutTree {
             // row-major auto-placement: 자식 i 는 row = i / col_count.
             let mut row_heights: Vec<f32> = Vec::new();
             for (i, &c) in children.iter().enumerate() {
-                let (_, ch) = self.solve_node(c, avail_w, avail_h);
+                let (_, ch) = self.solve_node(c, container_w, container_h);
                 let row = i / col_count;
                 if row >= row_heights.len() {
                     row_heights.resize(row + 1, 0.0);
@@ -770,6 +834,8 @@ impl LayoutTree {
         );
 
         // 셀 좌표 반영 + 각 자식을 셀 크기로 재귀 solve.
+        // bounding box 는 offset 전 좌표 기준(컨테이너 content 크기), 저장은 offset 후
+        // (자식 화면 좌표는 padding 안쪽) — 섞으면 컨테이너 크기에 padding 이중 반영.
         let mut max_right: f32 = 0.0;
         let mut max_bottom: f32 = 0.0;
         for (i, &c) in children.iter().enumerate() {
@@ -778,11 +844,11 @@ impl LayoutTree {
             // 자식을 셀 크기로 재귀 solve (셀 안 flex/block 컨테이너 배치용).
             // 자식 자기 크기는 셀 크기로 override — grid item 은 셀을 채운다(stretch 기본).
             self.solve_node(c, w, h);
-            if let Some(n) = self.get_mut(c) {
-                n.layout = NodeLayout { x, y, width: w, height: h };
-            }
             max_right = max_right.max(x + w);
             max_bottom = max_bottom.max(y + h);
+            if let Some(n) = self.get_mut(c) {
+                n.layout = NodeLayout { x: x + off_x, y: y + off_y, width: w, height: h };
+            }
         }
 
         // 컨테이너 크기: 명시 있으면 명시, 없으면 셀 bounding box.
@@ -1055,6 +1121,18 @@ fn axis_pad_border(style: &NodeStyle, ctx: &CssValueContext, is_main_horizontal:
         + resolve_dimension(b, ctx)
         + resolve_dimension(ba, ctx)
         + resolve_dimension(bb, ctx)
+}
+
+/// 좌표 offset 용 — padding+border 의 시작 성분 (horizontal → left, 아니면 top).
+/// 자식 좌표는 부모 border-box 원점 기준이므로 content 원점으로 밀어야 한다
+/// (Taffy layout location 과 동일 계약).
+fn pad_border_start(style: &NodeStyle, ctx: &CssValueContext, horizontal: bool) -> f32 {
+    let (p, b) = if horizontal {
+        (style.padding_left.as_deref(), style.border_left.as_deref())
+    } else {
+        (style.padding_top.as_deref(), style.border_top.as_deref())
+    };
+    resolve_dimension(p, ctx) + resolve_dimension(b, ctx)
 }
 
 /// specified size(border-box, 전역 `* { box-sizing: border-box }` 계약) →
@@ -1790,6 +1868,61 @@ mod tests {
         assert_eq!(c2.height, 40.0, "row1 height = 40");
         // 컨테이너 intrinsic = 50 + 40 = 90.
         assert_eq!(tree.get_layout(root).height, 90.0, "컨테이너 = row0+row1 = 90");
+    }
+
+    // ── 컨테이너 own padding — 자식 available 감산 + 좌표 offset + percent ctx ──
+
+    /// 부모 padding → 자식 available 은 content 폭, 자식 좌표는 padding 안쪽 원점.
+    #[test]
+    fn block_parent_padding_shrinks_child_avail_and_offsets_origin() {
+        let mut tree = LayoutTree::new();
+        // 부모 border-box 300 + padding 20 사방 → content 260.
+        // auto 자식 stretch = 260, 좌표 (20, 20).
+        let json = r#"[
+            {"style":{"height":"30px"},"children":[]},
+            {"style":{"display":"block","width":"300px","height":"200px","paddingTop":"20px","paddingRight":"20px","paddingBottom":"20px","paddingLeft":"20px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 400.0, 400.0);
+        let c0 = tree.get_layout(handles[0]);
+        assert_eq!(c0.width, 260.0, "auto 자식 stretch = 부모 content 폭");
+        assert_eq!(c0.x, 20.0, "부모 padding-left 안쪽 원점");
+        assert_eq!(c0.y, 20.0, "부모 padding-top 안쪽 원점");
+    }
+
+    /// flex 부모 padding → 동일 (available 감산 + 원점 offset).
+    #[test]
+    fn flex_parent_padding_shrinks_avail_and_offsets_origin() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"50px","height":"30px"},"children":[]},
+            {"style":{"display":"flex","width":"300px","height":"100px","paddingTop":"10px","paddingLeft":"10px","paddingRight":"10px","paddingBottom":"10px","justifyContent":"flex-end"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 400.0, 400.0);
+        let c0 = tree.get_layout(handles[0]);
+        // main avail = 300-20=280, flex-end → x = 10(offset) + 280-50 = 240.
+        assert_eq!(c0.x, 240.0, "flex-end 위치가 content 폭 기준 + padding offset");
+        assert_eq!(c0.y, 10.0, "padding-top offset");
+    }
+
+    /// grid 부모 padding → 1fr 트랙이 content 폭 기준, 셀 좌표 offset.
+    #[test]
+    fn grid_parent_padding_shrinks_tracks_and_offsets_cells() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{},"children":[]},
+            {"style":{},"children":[]},
+            {"style":{"display":"grid","width":"220px","height":"100px","gridTemplateColumns":["1fr","1fr"],"gridTemplateRows":["50px"],"paddingTop":"10px","paddingLeft":"10px","paddingRight":"10px","paddingBottom":"10px"},"children":[0,1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 400.0, 400.0);
+        let c0 = tree.get_layout(handles[0]);
+        let c1 = tree.get_layout(handles[1]);
+        assert_eq!(c0.width, 100.0, "1fr = (220-20)/2");
+        assert_eq!(c0.x, 10.0, "셀 x = padding-left offset");
+        assert_eq!(c1.x, 110.0, "셀2 x = 10 + 100");
+        assert_eq!(c0.y, 10.0, "셀 y = padding-top offset");
     }
 
     // ── get_layouts_batch ──
