@@ -6,8 +6,13 @@
 //!
 //! fixture 원본: dualRunLive.test.ts C-2b N1~N5 (실전 대표 중첩/혼합 8형상 중
 //! 트리 5종). 좌표는 root-상대 정규화(Chrome=viewport 기준, Rust=tree 기준).
-//! box model: NodeLayout=content-box, fixture 는 border/padding 미사용 →
+//! box model: NodeLayout=content-box, N1~N5 fixture 는 border/padding 미사용 →
 //! 추출 HTML 리셋(margin/padding/border 0 + box-sizing:border-box)으로 일치.
+//!
+//! N6 는 Chrome 실측이 아니라 **box-sizing:border-box 계약을 CSS 산술로 손계산**
+//! 고정한 padding≠0 케이스(ADR-916 box-sizing 계약 정합 Task 4) — tree.rs 의
+//! 컨테이너 padding 자식 available 감산/좌표 offset(§2.6 offset 계약)이 padding
+//! 이 있는 flex row 에서도 CSS 와 일치하는지 회귀 감시한다.
 
 use composition_engine::tree::LayoutTree;
 
@@ -234,6 +239,37 @@ fn tree_golden_n5_mixed_dimension() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// N6 padded flex row — box-sizing:border-box 계약 (padding≠0) golden
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// N6 padded flex row (box-sizing 계약 고정 — Chrome 실측 아님, CSS 산술 손계산).
+/// 순서: [0] n6-a, [1] n6-b, [2] n6-root.
+///
+/// 컨테이너 border-box 300×100, padding 10 사방 → content 280×80, 원점 offset
+/// (10,10). 자식 A(width:100px border-box, 자체 padding 8 좌우) 는 border-box
+/// 계약상 outer width 가 100 그대로(자체 padding 은 A 의 content 만 줄임 — 부모
+/// offset/자식 배치엔 영향 없음). 자식 B(width:50px) 는 gap 0 이므로 A 뒤에
+/// 바로 이어붙는다: x = off_x(10) + A.width(100) = 110.
+/// 컨테이너 height 는 explicit 100 이 우선(content 20 이지만 override).
+/// (CSS 산술: A=(10,10,100,20), B=(110,10,50,20), root=(0,0,300,100).)
+const N6_EXPECTED: &[[f32; 4]] = &[
+    [10., 10., 100., 20.], // [0] n6-a   (border-box, 자체 padding 8 은 outer 무영향)
+    [110., 10., 50., 20.], // [1] n6-b   (10 + a.width 100, gap 0)
+    [0., 0., 300., 100.],  // [2] n6-root (explicit height 100 유지)
+];
+const N6_BATCH: &str = r#"[
+  {"style":{"width":"100px","height":"20px","paddingLeft":"8px","paddingRight":"8px"},"children":[]},
+  {"style":{"width":"50px","height":"20px"},"children":[]},
+  {"style":{"display":"flex","flexDirection":"row","alignItems":"flex-start","width":"300px","height":"100px","paddingTop":"10px","paddingRight":"10px","paddingBottom":"10px","paddingLeft":"10px"},"children":[0,1]}
+]"#;
+
+#[test]
+fn tree_golden_n6_padded_flex_row_border_box() {
+    let rel = layout_relative(N6_BATCH);
+    assert_tree_bounds("N6 padded flex row (border-box)", &rel, N6_EXPECTED);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // field contract guard — EXPECTED 길이 = fixture 노드 수 (순서 drift 조기 검출)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -244,4 +280,5 @@ fn tree_golden_field_contract_guard() {
     assert_eq!(N3_EXPECTED.len(), 5, "N3 노드 5");
     assert_eq!(N4_EXPECTED.len(), 4, "N4 노드 4");
     assert_eq!(N5_EXPECTED.len(), 3, "N5 노드 3");
+    assert_eq!(N6_EXPECTED.len(), 3, "N6 노드 3");
 }

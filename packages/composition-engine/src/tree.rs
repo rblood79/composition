@@ -487,9 +487,13 @@ impl LayoutTree {
         };
 
         // 증분 skip: 서브트리가 전부 clean 이면 저장된 layout 을 재사용.
-        // (저장된 layout.width/height 는 직전 solve 의 content 크기와 동일 —
-        //  solve_flex/block/grid 가 컨테이너 layout 에 content 크기를 저장하고
-        //  같은 값을 반환하므로 부모 intrinsic 도출에도 정확.)
+        // (저장된 layout.width/height 는 explicit 노드면 border-box, auto 노드면
+        //  content 크기 — solve_flex/block/grid 는 explicit 이면 그 값을, auto 면
+        //  자식 bounding box(content) 를 컨테이너 layout 에 저장하고 동일 값을
+        //  반환한다. 부모 write_*_item 의 content 슬롯(content_main/cross, content_w/h)
+        //  은 자식이 auto(명시 없음) 일 때만 fallback 소비하므로, explicit 자식의
+        //  border-box 반환은 그 슬롯에 아예 안 읽혀 무해 — write_flex_item/
+        //  write_block_item 이 명시값을 우선하고 content 는 AUTO 분기에서만 쓴다.)
         if !self.subtree_has_dirty(handle) {
             let l = node.layout;
             return (l.width, l.height);
@@ -906,6 +910,12 @@ impl LayoutTree {
     }
 
     /// 노드 명시 크기(width/height) 해결. auto/미설정/음수 센티넬은 0.
+    ///
+    /// 반환값은 border-box (specified 그대로) — leaf 최종 layout 크기. px/percent
+    /// 무관하게 동일 경로(`resolve_dimension`→`resolve_css_size_value`)를 거쳐
+    /// "해석된 px" 가 곧 border-box 값이다 — 이 함수 자체는 pad_border 를 감산하지
+    /// 않는다(자신의 padding 은 자신의 outer 크기에 영향 없음, CSS 계약과 동일).
+    /// 컨테이너가 *자식에게 넘기는 available* 감산은 `spec_to_content` 가 별도 담당.
     fn resolve_self_size(&self, handle: usize, avail_w: f32, avail_h: f32) -> (f32, f32) {
         let Some(node) = self.get(handle) else {
             return (0.0, 0.0);
@@ -1152,6 +1162,9 @@ fn spec_to_content(v: f32, pad_border: f32) -> f32 {
 ///
 /// content_main/cross 는 자식 solve 결과(cw/ch)를 direction 으로 매핑. width/height
 /// 명시(>0)면 그 값, 없으면 AUTO(-1) — flex.rs 가 content 로 fallback.
+///
+/// specified size(width/height, min/max 동일) = border-box — intake 에서
+/// `spec_to_content` 로 pad_border 감산 후 flex.rs 에 content 값으로 전달한다.
 fn write_flex_item(
     data: &mut [f32],
     i: usize,
@@ -1212,6 +1225,9 @@ fn write_flex_item(
 /// vertical_align/baseline/line_height 는 단위 3-a 미소비(inline-block line box 는
 /// 상단이 blockify 하거나 leaf 로 전달 — 컨테이너 자식은 block/inline-block 중
 /// block 우선) → baseline(0) / valign(0=baseline) / line_height AUTO 기본값.
+///
+/// specified size(width/height, min/max 동일) = border-box — intake 에서
+/// `spec_to_content` 로 pad_border 감산 후 block.rs 에 content 값으로 전달한다.
 fn write_block_item(
     data: &mut [f32],
     i: usize,
@@ -1641,6 +1657,30 @@ mod tests {
         tree.compute_layout(handles[1], 300.0, 200.0);
         let c0 = tree.get_layout(handles[0]);
         assert_eq!(c0.width, 100.0, "specified width = border-box (padding 포함)");
+    }
+
+    /// block 자식 명시 percent width 도 border-box — px 와 동일 계약 공유 확증.
+    ///
+    /// percent 는 `resolve_dimension`(→ `resolve_css_size_value`) 에서 부모 avail
+    /// 기준 px 로 먼저 해석된 뒤(leaf 는 `solve_node` explicit 분기에서 그 값을 그대로
+    /// 최종 width 로 반영), 이 최종값이 곧 border-box 크기다 — px 리터럴과 percent
+    /// 는 "해석된 px" 단계 이후 완전히 같은 경로를 타므로 별도 감산 로직이 없다.
+    /// (percent 는 own leaf 크기 해석 대상이라 이 테스트에서 padding 은 leaf 자신의
+    /// content 를 줄일 뿐 최종 border-box 폭엔 영향 없음 — Task 1 감산은 컨테이너가
+    /// *자식에게 넘기는 available* 감산이고, 여기서 검증하는 것은 자식 자신의
+    /// specified-size 해석이 px/percent 무관하게 동일 border-box 계약을 따르는지다.)
+    #[test]
+    fn block_child_percent_width_is_border_box() {
+        let mut tree = LayoutTree::new();
+        // 부모 content 400(padding 0) + 자식 width 50% + padding 10 좌우.
+        let json = r#"[
+            {"style":{"width":"50%","height":"30px","paddingLeft":"10px","paddingRight":"10px"},"children":[]},
+            {"style":{"display":"block","width":"400px","height":"200px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 400.0, 200.0);
+        let c0 = tree.get_layout(handles[0]);
+        assert_eq!(c0.width, 200.0, "50% of content 400 = border-box 200 (px 와 동일 계약)");
     }
 
     /// Button md 재현: height 30(= lineHeight 20 + paddingY 4×2 + border 1×2) 명시 →
