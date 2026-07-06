@@ -60,10 +60,9 @@ export class PersistentTaffyTree {
   /**
    * 레이아웃 엔진 (ADR-916 Phase 0-A seam).
    *
-   * `createLayoutEngine()` factory 경유로 주입된다 — 직접 `new TaffyLayout()`
-   * 생성을 제거했다. flag(USE_RUST_LAYOUT_ENGINE) 미전환 시 default 는 여전히
-   * TaffyLayout 이므로 동작 무변. Phase 1 의 composition-engine 은 factory 만
-   * 교체하면 이 클래스 수정 없이 꽂힌다.
+   * `createLayoutEngine()` factory 경유로 주입된다. ADR-916 Taffy 완전 제거
+   * (2026-07-06) 후 factory 는 자체 엔진(composition-engine)을 단독 반환하며,
+   * 이 클래스는 factory 만 교체하면 수정 없이 꽂힌다.
    */
   private taffy: LayoutEngineAPI;
   private rootHandle: TaffyNodeHandle | null = null;
@@ -89,8 +88,7 @@ export class PersistentTaffyTree {
 
   /**
    * @param engine - (테스트용) 주입할 레이아웃 엔진. 생략 시
-   *   `createLayoutEngine()` factory 로 flag 기반 엔진을 획득한다
-   *   (default: TaffyLayout).
+   *   `createLayoutEngine()` factory 로 자체 엔진(composition-engine)을 획득한다.
    */
   constructor(engine?: LayoutEngineAPI) {
     this.taffy = engine ?? createLayoutEngine();
