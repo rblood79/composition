@@ -11,8 +11,7 @@
  * 하지만, 자체 pkg `LayoutEngine` 은 **이미 camelCase 16-메서드 = LayoutEngineAPI
  * 이름 일치**(wasm.rs `#[wasm_bindgen(js_name = ...)]` 로 계약 정합). 따라서 본
  * wrapper 는 이름 매핑 없이 raw 반환(Uint32Array/Float32Array)만 number[]/Map 으로
- * 변환한다. 이는 dualRunEngines.ts `adaptSelfEngine`(테스트 fixture 어댑터)과 동일
- * 로직 — 런타임 wrapper 로 승격.
+ * 변환한다.
  *
  * ## 동기 생성 (전역 캐시)
  *
@@ -20,8 +19,6 @@
  * `new LayoutEngine()` 을 즉시 생성한다. WASM 미준비면 engine=null → isAvailable()
  * 이 lazy re-init. taffy `TaffyLayout.tryInit()` 패턴과 동일.
  *
- * @see apps/builder/.../wasm-bindings/taffyLayout.ts (taffy 대응 wrapper)
- * @see apps/builder/.../layout/engines/dualRunEngines.ts (adaptSelfEngine — 동일 변환)
  */
 
 import {
@@ -29,15 +26,24 @@ import {
   isCompositionEngineReady,
   type RawCompositionLayoutEngine,
 } from "./compositionEngineWasm";
-import type { LayoutResult } from "./taffyLayout";
+
+/**
+ * Computed layout result for a single node.
+ * (구 taffyLayout.ts:166 — ADR-916 Taffy 완전 제거로 본 파일이 타입 소스)
+ */
+export interface LayoutResult {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
 /** Opaque handle to a layout node. Mirrors TaffyNodeHandle. */
 export type LayoutNodeHandle = number;
 
 /**
  * flat `[x0,y0,w0,h0, x1,...]` Float32Array 를 handle 순서대로 슬라이스해
- * `Map<handle, LayoutResult>` 로 재구성한다(taffyLayout.ts::getLayoutsBatch 와 동일
- * 규약 — handle 당 4값).
+ * `Map<handle, LayoutResult>` 로 재구성한다(handle 당 4값).
  */
 function flatToLayoutMap(
   handles: number[],

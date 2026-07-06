@@ -6,10 +6,12 @@
  * USE_RUST_LAYOUT_ENGINE=true  → new compositionLayout (Phase 1 complete)
  */
 
-import { CompositionEngineLayout } from "./compositionEngine";
+import {
+  CompositionEngineLayout,
+  type LayoutResult,
+} from "./compositionEngine";
 import { isUnifiedFlag } from "./featureFlags";
 import { TaffyLayout } from "./taffyLayout";
-import type { LayoutResult } from "./taffyLayout";
 
 /**
  * Common layout engine interface (ADR-916 Phase 0-A seam).

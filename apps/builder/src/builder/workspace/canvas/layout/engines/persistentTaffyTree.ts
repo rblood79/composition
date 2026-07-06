@@ -21,15 +21,13 @@
  * 6. reset() — 페이지 전환 시 전체 초기화
  *
  * @see fullTreeLayout.ts — BatchNode 타입, taffyStyleToRecord() 결과 형식
- * @see taffyLayout.ts — TaffyLayout.updateStyleRaw(), TaffyLayout.createNodeRaw()
+ * @see compositionEngine.ts — CompositionEngineLayout.updateStyleRaw() / createNodeRaw()
  */
 
 import { createLayoutEngine } from "../../wasm-bindings/layoutBridge";
 import type { LayoutEngineAPI } from "../../wasm-bindings/layoutBridge";
-import type {
-  TaffyNodeHandle,
-  LayoutResult,
-} from "../../wasm-bindings/taffyLayout";
+import type { LayoutResult } from "../../wasm-bindings/compositionEngine";
+import type { TaffyNodeHandle } from "../../wasm-bindings/layoutTypes";
 import { encodeBatchBinary } from "../../wasm-bindings/binaryProtocol";
 import type { BinaryBatchInput } from "../../wasm-bindings/binaryProtocol";
 

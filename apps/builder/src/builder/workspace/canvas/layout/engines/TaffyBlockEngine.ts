@@ -11,7 +11,7 @@
  */
 
 import type { CanvasLayoutNode } from "../layoutNode";
-import type { TaffyStyle } from "../../wasm-bindings/taffyLayout";
+import type { TaffyStyle } from "../../wasm-bindings/layoutTypes";
 import {
   parseMargin,
   applyCommonTaffyStyle,

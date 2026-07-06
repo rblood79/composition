@@ -12,7 +12,7 @@
 import type { CanvasLayoutNode } from "../layoutNode";
 import { getFrameElementMirrorId } from "../../../../../adapters/canonical/frameMirror";
 import type { ComputedLayout } from "./LayoutEngine";
-import type { TaffyStyle } from "../../wasm-bindings/taffyLayout";
+import type { TaffyStyle } from "../../wasm-bindings/layoutTypes";
 import { isRustWasmReady } from "../../wasm-bindings/rustWasm";
 import { PersistentTaffyTree } from "./persistentTaffyTree";
 import type { PersistentBatchNode } from "./persistentTaffyTree";
