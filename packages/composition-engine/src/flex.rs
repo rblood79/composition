@@ -541,8 +541,13 @@ pub fn flex_layout(
         };
     let cross_free = (available_cross - total_line_cross).max(0.0);
 
-    let (cross_start_offset, cross_between_extra, stretch_extra) =
+    let (mut cross_start_offset, mut cross_between_extra, stretch_extra) =
         align_content_offsets(align_content, cross_free, line_count);
+    if line_count <= 1 {
+        // 단일 라인은 align-content 정렬(center/end/space-*) offset 전체 무효(CSS §8.4).
+        cross_start_offset = 0.0;
+        cross_between_extra = 0.0;
+    }
 
     // ── 각 라인 배치 ──
     let mut cross_cursor = cross_start_offset;
@@ -585,9 +590,15 @@ fn align_content_offsets(
     }
     match align_content {
         ALIGN_CONTENT_STRETCH => {
-            // 여유를 라인마다 균등 분배 (라인 cross 크기 증가)
-            let per_line = cross_free / line_count as f32;
-            (0.0, 0.0, per_line)
+            if line_count <= 1 {
+                // 단일 라인: align-content stretch 무효(CSS §8.4). 라인 부풀리기 없음.
+                // 자식 stretch(align-items:stretch)는 place_line_cross_axis 가 available_cross 로 별도 처리.
+                (0.0, 0.0, 0.0)
+            } else {
+                // 여유를 라인마다 균등 분배 (라인 cross 크기 증가)
+                let per_line = cross_free / line_count as f32;
+                (0.0, 0.0, per_line)
+            }
         }
         ALIGN_CONTENT_CENTER => (cross_free / 2.0, 0.0, 0.0),
         ALIGN_CONTENT_END => (cross_free, 0.0, 0.0),
