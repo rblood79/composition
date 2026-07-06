@@ -27,6 +27,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 검증: 브라우저 재빌드 wasm 실측 — ProgressBar height **32**(availH=-1/716 양쪽 동일 = 폭발 없음, 이전 716/4), value **width 30 @우측**(CSS 29 정합, 이전 168 @중앙), Track/Label CSS 정합, parse error 소멸. cargo lib 231 + golden 15 + tree_golden 7 = 0 failed(회귀 테스트 6종 추가: auto row 측정/px+auto row 혼합/row 건너뜀 + auto column 측정/px+auto col 혼합/col-major fallback + ProgressBar 실구조 row·col 동시 auto 통합), type-check PASS. reviewer approve(CRITICAL/HIGH 0, col-major fallback 자체 정정 + row×col 통합 테스트 갭 반영)
   - 후속(비차단): auto row/column 측정의 `gridRowStart`/`gridColumnStart` "span N" / 음수 line 미지원(현재 factory 순수 숫자 line 만 사용) — 향후 `grid.rs::parse_grid_line` 재사용 리팩터 대상
 
+- **Slider grid track/label 겹침 + value 아래쪽 배치** (전수조사 후속 — grid 버그 #4, Slider 전용):
+  - **Why**: Slider 는 catalog `containerStyles` 에 `gridTemplateColumns: "1fr auto"` 만 있고 **`gridTemplateRows` 미방출**(암묵 2행). 자식은 `gridRowStart` 로 label/output=row1, track=row2 명시. 버그 #2 가 고친 auto row 측정은 `gridTemplateRows` **명시** 케이스만 커버 → Slider 처럼 rows 미명시 + placement 명시인 조합은 두 측정 경로 모두 미발동(경로 A 는 `placement_spec.is_empty()` 요구, 경로 B 는 `template_rows` 에 "auto" 토큰 요구) → `template_rows` 빈 문자열 그대로 `grid.rs` 전달 → row track 0개 → `cell_bounds_for_child` 가 track 부재로 height=100 fallback + row2 를 gap 위치에 배치 → 전 자식 겹침 + 컨테이너 height 폭발(104)
+  - 수정: `solve_grid` 경로 A(implicit auto row)의 `placement_spec.is_empty()` 조건 제거. `gridTemplateRows` 미명시 + 자식 존재 시(placement 무관) 자식 `gridRowStart` 로 row 결정, 각 행 max intrinsic 을 px 트랙으로 주입(placement 없는 자식은 row-major `i / col_count` fallback)
+  - 위치: `packages/composition-engine/src/tree.rs` (`solve_grid` `implicit_rows` 경로)
+  - 검증: RED (Slider 실측 348/rowGap4/1fr auto/placement) → height 104 재현. GREEN → 32(row0 20 + gap 4 + row1 8), track y=24. cargo lib 232 + golden 15 + tree_golden 7 = 0 failed(회귀 테스트 1종 추가: `grid_implicit_auto_row_with_placement_slider_realstruct`). live: Preview track y=24, label 겹침 해소
+
+- **Slider thumb 위치가 Skia 와 불일치 (range 편집 후 stale)**:
+  - **Why**: `renderSlider` 는 uncontrolled(`defaultValue`) 로 렌더하고 value 변경 시 `key` 에 value 를 담아 리마운트로 새 defaultValue 를 반영. 그런데 key 에 `minValue`/`maxValue` 가 빠져서 range(min/max) 편집은 value 불변 → key 불변 → **리마운트 실패** → RAC 가 이전 range 에 stale → 내부 value 가 새 max 로 clamp 되어 thumb 이 Skia(store value 기준 percent)와 발산 (store value=50/max=63 인데 RAC input value=63 clamp → thumb left 100% vs Skia 79.4%)
+  - 수정: remount key 에 min/max 포함(`${id}-${value}-${min}-${max}`). min/max prop 도 동일 상수 참조로 SSOT 정합
+  - 위치: `packages/shared/src/renderers/SelectionRenderers.tsx` (`renderSlider`)
+  - 검증: RED (maxValue/minValue 변경 시 key 불변) 2건 재현. GREEN → `selectionRemountKey.test.tsx` 9 테스트 PASS(Slider value/min/max 3종 추가). live: 수정 후 CSS input value=50 = store, thumb left=79.37% = Skia 79.4% 정합. type-check PASS
+
 ## [flex 단일 라인 align-content/definite — ToggleButtonGroup height 397→30] - 2026-07-06
 
 ### Bug Fixes
