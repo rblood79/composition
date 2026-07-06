@@ -419,6 +419,57 @@ function coerceGridTrack(val: unknown): unknown {
   return parseGridTemplate(val as string);
 }
 
+/** dimension 값(number|string)을 WASM 이 기대하는 px string 으로 정규화.
+ *  `taffyStyleToRecord` 내부 `dim()` 과 동일 계약이나, **grid branch** 는
+ *  `applyCommonTaffyStyle`(숫자 그대로 반환) 결과를 partial 로 직접 반환하여
+ *  `taffyStyleToRecord.dim()` 정규화를 우회한다. 이 buildFull 경로는
+ *  `normalizeStyle.dimToString()` 후처리도 거치지 않으므로(그 후처리는
+ *  persistentTaffyTree createNode/updateStyle 경로 전용), grid branch 가
+ *  직접 본 헬퍼로 gap/padding/border/dimension 을 px string 화해야 한다.
+ *
+ *  **Why (2026-07-06 전수조사)**: ProgressBar/Meter/Slider 는 factory 가
+ *  `rowGap: 4`(숫자) + `display: grid` 로 저장 → grid branch 가 숫자 rowGap 을
+ *  그대로 batch 에 넣어 `build_tree_batch: invalid type integer 4, expected
+ *  string` parse error → calculateFullTreeLayout null → persistentTree 리셋
+ *  무한 재시도 → 레이아웃 전면 실패. grid branch 만의 정규화 공백. */
+const GRID_DIM_FIELDS = [
+  "rowGap",
+  "columnGap",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "borderTop",
+  "borderRight",
+  "borderBottom",
+  "borderLeft",
+  "width",
+  "height",
+  "minWidth",
+  "minHeight",
+  "maxWidth",
+  "maxHeight",
+  "marginTop",
+  "marginRight",
+  "marginBottom",
+  "marginLeft",
+  "insetTop",
+  "insetRight",
+  "insetBottom",
+  "insetLeft",
+  // flexBasis — grid item 이 flex/grid 부모의 자식이면 applyFlexItemProperties 가
+  // parseCSSPropWithContext 결과(number 가능)를 partial.flexBasis 에 주입. IMPLICIT_DIM_PROPS /
+  // taffyStyleToRecord.dim() 양쪽 모두 flexBasis 를 dim 대상으로 포함 → grid branch 도 정합.
+  "flexBasis",
+] as const;
+
+function normalizeGridDimFields(partial: Record<string, unknown>): void {
+  for (const key of GRID_DIM_FIELDS) {
+    const v = partial[key];
+    if (typeof v === "number") partial[key] = `${v}px`;
+  }
+}
+
 /** Grid container 의 layout-영향 속성 — 증분 갱신에서 변경 시 full rebuild 필요.
  *  Taffy `updateStyleRaw`(=set_style) 가 track/placement 캐시 invalidation 실패.
  *
@@ -800,6 +851,12 @@ function buildNodeStyle(
     if (FLEX_GRID_DISPLAYS.has(parentDisplay)) {
       applyFlexItemProperties(partial, style);
     }
+
+    // dimension 필드(gap/padding/border/size/margin/inset) 숫자 → px string 정규화.
+    // grid branch 는 partial 직접 반환이라 taffyStyleToRecord.dim() /
+    // normalizeStyle.dimToString() 을 우회 → 숫자가 그대로 build_tree_batch 로 가면
+    // WASM parse error("expected string"). flex 경로(taffyStyleToRecord)와 대칭 확보.
+    normalizeGridDimFields(partial);
 
     return partial;
   }
