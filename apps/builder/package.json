@@ -17,7 +17,6 @@
     "test:watch": "vitest",
     "check:pixi-plan": "node scripts/check-pixi-component-plan.mjs",
     "fix:pixi-plan": "node scripts/check-pixi-component-plan.mjs --write",
-    "wasm:build": "wasm-pack build src/builder/workspace/canvas/wasm --target bundler --out-dir ../../../../../wasm-bindings/pkg",
     "clean": "rm -rf dist node_modules/.vite"
   },
   "dependencies": {
