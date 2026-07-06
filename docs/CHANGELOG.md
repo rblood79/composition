@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [flex 단일 라인 align-content/definite — ToggleButtonGroup height 397→30] - 2026-07-06
+
+### Bug Fixes
+
+- **단일 라인 flex 컨테이너가 Skia 에서 height 폭발 (ToggleButtonGroup: CSS 30 vs Skia 397)** (ADR-916 후속):
+  - **Why**: 자체 Rust 엔진(composition-engine) `flex.rs` 가 단일 라인 컨테이너에도 `align-content: stretch`(CSS 기본값)를 적용해 라인 cross 를 available_cross 로 부풀림. CSS §8.4 는 align-content 를 다중 라인에서만 적용. 부모(body flex column, height 764)가 준 큰 available_cross 로 `alignItems: center` 컨테이너 라인이 764 근처까지 팽창 → 자식이 중앙으로 밀려 컨테이너 bounding box(max_bottom) 폭발
+  - **2차 전제 (착수 중 발견)**: 이 엔진은 "단일 라인 컨테이너의 라인 cross = 컨테이너 cross"(자식 stretch 대상)를 별도 로직 없이 align-content stretch 로 대신 구현 → align-items center/end/stretch/clamp 전부 부풀려진 라인 cross 에 의존. 단순히 stretch 를 끄면 `align-items: stretch` 자식이 0 으로 붕괴. 근본은 `available_cross` 가 definite(컨테이너 cross 확정=height 명시)와 indefinite(height auto)를 구분 못 함
+  - 수정: `flex_layout` 에 `cross_is_definite: bool` 인자 도입. definite 면 단일 라인 라인 cross = available_cross(align-items 가 그 공간 채움/정렬), indefinite 면 자식 max(제자리 → 컨테이너 content 축소). `align_content` stretch_extra 는 다중 라인 전용으로 환원. `place_line_cross_axis` 무변경. `tree.rs solve_flex` 가 `is_row ? explicit_h>0 : explicit_w>0` 로 definite 판정 전달
+  - 검증: 브라우저 로드 재빌드 wasm 실측 — ToggleButtonGroup(indefinite) group height **30**(Preview DOM CSS height 30 일치, 이전 397), definite(height 명시 100) group 100 + 자식 중앙 y35. cargo 247 PASS, 신규 6 테스트(definite/indefinite/다중 라인/tree 통합) + 기존 회귀 5종 유지
+  - 위치: `packages/composition-engine/src/flex.rs` (`flex_layout` cross_is_definite + 단일 라인 라인 cross 승격, `align_content_offsets`), `src/tree.rs` (solve_flex 호출부)
+  - 후속(비차단): 부모 stretch 상속 definite(자기 cross 미명시라도 부모가 자식 cross 확정) 미구현 — 자기 cross 명시만 definite 판정. ToggleButtonGroup/현 catalog 미해당
+
 ## [자체 엔진 box-sizing 계약 정합 — specified size border-box] - 2026-07-06
 
 ### Bug Fixes
