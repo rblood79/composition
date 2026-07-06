@@ -13,8 +13,5 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src"],
-  "exclude": [
-    "src/builder/workspace/canvas/wasm/target",
-    "wasm-bindings/pkg"
-  ]
+  "exclude": []
 }
