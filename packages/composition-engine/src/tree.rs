@@ -810,16 +810,27 @@ impl LayoutTree {
         // ProgressBar/Meter 실구조(1fr auto / auto auto + placement)가 (B) 케이스.
         let row_tokens: Vec<&str> = template_rows.split_whitespace().collect();
         let has_auto_row = row_tokens.iter().any(|t| *t == "auto");
-        let implicit_all_auto =
-            template_rows.is_empty() && placement_spec.is_empty() && !children.is_empty();
+        // (A) implicit auto row: `gridTemplateRows` 미명시. placement 유무 **무관**:
+        //   - placement 없음 → row-major (자식 i → row = i / col_count).
+        //   - placement 있음 (Slider: gridRowStart 로 label=row1, track=row2 명시) →
+        //     자식 gridRowStart 로 row 결정. 행 수는 명시된 max row 까지 확장.
+        //   각 행 = 그 행 자식들 max intrinsic content height 를 px 트랙으로 주입.
+        //   (기존엔 `placement_spec.is_empty()` 도 요구해 Slider 처럼 rows 미명시 +
+        //    placement 명시인 케이스가 미측정 → template_rows 빈 문자열 그대로 grid.rs
+        //    전달 → row_tracks 0개 → cell_bounds height=100 fallback + row 겹침. 2026-07-06)
+        let implicit_rows = template_rows.is_empty() && !children.is_empty();
 
-        if implicit_all_auto {
+        if implicit_rows {
             let col_count = grid::parse_tracks(&template_cols, container_w, col_gap).len().max(1);
-            // row-major auto-placement: 자식 i 는 row = i / col_count.
             let mut row_heights: Vec<f32> = Vec::new();
             for (i, &c) in children.iter().enumerate() {
                 let (_, ch) = self.solve_node(c, container_w, container_h);
-                let row = i / col_count;
+                let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
+                // gridRowStart 1-based line → row index = start - 1. 미명시면 row-major.
+                let row = normalize_grid_line_part(cstyle.grid_row_start.as_deref())
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .map(|line| (line - 1).max(0) as usize)
+                    .unwrap_or(i / col_count);
                 if row >= row_heights.len() {
                     row_heights.resize(row + 1, 0.0);
                 }
@@ -2092,6 +2103,48 @@ mod tests {
         assert_eq!(tree.get_layout(handles[1]).width, 40.0, "auto col = 자식 intrinsic 40");
         // col1 x = 100(col0) + 0(gap 없음) = 100.
         assert_eq!(tree.get_layout(handles[1]).x, 100.0, "col1 x = col0 width 100");
+    }
+
+    /// **implicit auto row (gridTemplateRows 미명시) + placement 명시** — Slider 실구조.
+    ///
+    /// Slider (2026-07-06 전수조사): `gridTemplateColumns:"1fr auto"`, **gridTemplateRows
+    /// 없음** (catalog/implicitStyles 모두 rows 미방출), 자식이 gridRowStart 로 row 명시
+    /// (label/output=row1, track=row2). 기존 auto row 측정 두 경로 모두 미커버:
+    ///   - 경로 A(implicit_all_auto): `placement_spec.is_empty()` 요구 → placement 있어 실패
+    ///   - 경로 B(has_auto_row): `template_rows` 에 "auto" 토큰 요구 → 빈 문자열이라 실패
+    /// → `template_rows` 빈 문자열 그대로 grid.rs 전달 → row_tracks 0개 →
+    /// cell_bounds_for_child 가 row2 를 track 부재로 y=row_gap 위치에 배치 + height=100
+    /// fallback → 전 자식 겹침(track/label 겹침) + height 폭발. CSS 는 row1(20)+gap(4)+
+    /// row2(8) = 32, track y=24.
+    #[test]
+    fn grid_implicit_auto_row_with_placement_slider_realstruct() {
+        let mut tree = LayoutTree::new();
+        // cols "1fr auto" (rows 미명시), rowGap 4. 부모 height:auto (availH=-1).
+        // row0: label(h20, col1)/output(h20, col2). row1: track(h8, col1-3).
+        // CSS 기대: 컨테이너 = 20 + gap4 + 8 = 32. track y = 20 + gap4 = 24.
+        let json = r#"[
+            {"style":{"height":"20px","gridColumnStart":"1","gridColumnEnd":"2","gridRowStart":"1","gridRowEnd":"2"},"children":[]},
+            {"style":{"height":"20px","gridColumnStart":"2","gridColumnEnd":"3","gridRowStart":"1","gridRowEnd":"2"},"children":[]},
+            {"style":{"width":"100%","height":"8px","gridColumnStart":"1","gridColumnEnd":"3","gridRowStart":"2","gridRowEnd":"3"},"children":[]},
+            {"style":{"display":"grid","width":"348px","rowGap":"4px","gridTemplateColumns":["1fr","auto"]},"children":[0,1,2]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        let root = handles[3];
+        tree.compute_layout(root, 348.0, -1.0); // height:auto sentinel
+        // 컨테이너 height = row0(20) + rowGap(4) + row1(8) = 32 (height 폭발/겹침 아님).
+        let container = tree.get_layout(root);
+        assert_eq!(
+            container.height, 32.0,
+            "implicit auto row + placement = row0(20)+gap(4)+row1(8) = 32"
+        );
+        // 각 셀 높이 = 그 row 자식 intrinsic (100 fallback 아님).
+        assert_eq!(tree.get_layout(handles[0]).height, 20.0, "row0 label = 20 (not 100)");
+        assert_eq!(tree.get_layout(handles[2]).height, 8.0, "row1 track = 8 (not 100)");
+        // label row1 y=0, track row2 y = row0(20) + gap(4) = 24 (겹침 아님).
+        assert_eq!(tree.get_layout(handles[0]).y, 0.0, "label row0 y=0");
+        assert_eq!(tree.get_layout(handles[2]).y, 24.0, "track row1 y = row0 20 + gap 4 = 24");
+        // track 은 col1-3 span → 전체 폭 348.
+        assert_eq!(tree.get_layout(handles[2]).width, 348.0, "track span 전체 348");
     }
 
     /// ProgressBar 실구조 통합: `gridTemplateColumns:"1fr auto"` + `gridTemplateRows:"auto auto"`
