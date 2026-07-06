@@ -1104,4 +1104,45 @@ mod tests {
         assert!((out[2] - 150.0).abs() < 0.01, "item0 grown={}", out[2]);
         assert!((out[6] - 150.0).abs() < 0.01, "item1 grown={}", out[6]);
     }
+
+    // ── 단일 라인 align-content 무효화 (CSS §8.4) ──
+
+    #[test]
+    fn single_line_align_content_stretch_does_not_expand_line() {
+        // row, 자식 1개 height 명시 30, available_cross 764(부모가 준 큰 값),
+        // align_items=START(stretch 아님), align_content=stretch(default).
+        // CSS §8.4: 단일 라인은 align-content stretch 무효 → 라인/자식 cross 30 유지(764 아님).
+        let data = flatten(&[item(50.0, 30.0)]);
+        let out = flex_layout(
+            &data, 300.0, 764.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
+            ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0,
+        );
+        assert!((out[3] - 30.0).abs() < 0.01, "height={} (expect 30, not stretched)", out[3]);
+        assert!((out[1] - 0.0).abs() < 0.01, "y={} (expect 0)", out[1]);
+    }
+
+    #[test]
+    fn single_line_align_content_center_does_not_offset() {
+        // 단일 라인 + align_content=center → center offset 무효(자식 y=0).
+        let data = flatten(&[item(50.0, 30.0)]);
+        let out = flex_layout(
+            &data, 300.0, 764.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
+            ALIGN_CONTENT_CENTER, WRAP_NOWRAP, 0.0, 0.0,
+        );
+        assert!((out[1] - 0.0).abs() < 0.01, "y={} (expect 0, center 무효)", out[1]);
+        assert!((out[3] - 30.0).abs() < 0.01, "height={} (expect 30)", out[3]);
+    }
+
+    #[test]
+    fn single_line_align_items_center_child_stays_at_top() {
+        // align_items=center + 자식 height 30 + available_cross 764.
+        // 라인 cross = 자식 max = 30 이므로 라인 내 중앙 = 제자리(y=0). ToggleButtonGroup 실제 케이스.
+        let data = flatten(&[item(50.0, 30.0)]);
+        let out = flex_layout(
+            &data, 300.0, 764.0, DIR_ROW, JUSTIFY_START, ALIGN_CENTER,
+            ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0,
+        );
+        assert!((out[3] - 30.0).abs() < 0.01, "height={} (expect 30)", out[3]);
+        assert!((out[1] - 0.0).abs() < 0.01, "y={} (expect 0, 라인 cross=30 이므로 제자리)", out[1]);
+    }
 }
