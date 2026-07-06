@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useStore } from "../../../stores";
-import { initRustWasm, isRustWasmReady } from "../wasm-bindings/rustWasm";
+import {
+  initCompositionEngineWasm,
+  isCompositionEngineReady,
+} from "../wasm-bindings/compositionEngineWasm";
 import { isUnifiedFlag } from "../wasm-bindings/featureFlags";
 
 /** PixiJS Application에서 필요한 최소 인터페이스 */
@@ -21,7 +24,7 @@ export function useCanvasRuntimeBootstrap(): CanvasRuntimeBootstrapResult {
   const [appReady, setAppReady] = useState(false);
   const [pixiApp, setPixiApp] = useState<PixiApplicationLike | null>(null);
   const [wasmLayoutReady, setWasmLayoutReady] = useState(() =>
-    isRustWasmReady(),
+    isCompositionEngineReady(),
   );
   const [wasmLayoutFailed, setWasmLayoutFailed] = useState(false);
 
@@ -40,8 +43,8 @@ export function useCanvasRuntimeBootstrap(): CanvasRuntimeBootstrapResult {
     if (!isUnifiedFlag("UNIFIED_ENGINE")) return;
     if (wasmLayoutReady) return;
 
-    void initRustWasm().then(() => {
-      if (isRustWasmReady()) {
+    void initCompositionEngineWasm().then(() => {
+      if (isCompositionEngineReady()) {
         setWasmLayoutReady(true);
         // WASM 준비 후 layoutVersion 증가 → useLayoutPublisher 재실행 트리거
         useStore.getState().invalidateLayout();
@@ -61,7 +64,7 @@ export function useCanvasRuntimeBootstrap(): CanvasRuntimeBootstrapResult {
     let timeoutId: ReturnType<typeof setTimeout>;
 
     const poll = () => {
-      if (isRustWasmReady()) {
+      if (isCompositionEngineReady()) {
         setWasmLayoutReady(true);
         return;
       }
@@ -73,7 +76,7 @@ export function useCanvasRuntimeBootstrap(): CanvasRuntimeBootstrapResult {
         if (import.meta.env.DEV) {
           console.warn("[BuilderCanvas] WASM 5초 미로드 — 재초기화 시도");
         }
-        void initRustWasm();
+        void initCompositionEngineWasm();
       }
 
       if (totalWait >= maxTotalWait) {

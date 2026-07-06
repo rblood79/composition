@@ -1,24 +1,23 @@
 /**
- * Layout Engine Bridge (ADR-100)
+ * Layout Engine Bridge (ADR-100 / ADR-916)
  *
- * Factory that returns the appropriate layout engine based on feature flags.
- * USE_RUST_LAYOUT_ENGINE=false → existing TaffyLayout
- * USE_RUST_LAYOUT_ENGINE=true  → new compositionLayout (Phase 1 complete)
+ * PersistentTaffyTree 의 엔진 주입 지점(factory).
+ *
+ * **ADR-916 Taffy 완전 제거 (2026-07-06)**: TaffyLayout 폴백 경로 삭제 — 자체
+ * 엔진(composition-engine, taffy-free)을 단독 반환한다. WASM 미준비(startup
+ * init 전 호출 / 로드 실패) 시에도 폴백 없이 엔진 인스턴스를 반환하며,
+ * `isAvailable()` lazy re-init + useCanvasRuntimeBootstrap 의 15초 폴링/재시도가
+ * 준비를 담당한다 (설계 Q1=B — 폴백 코드 신규 작성 없음).
  */
 
-import {
-  CompositionEngineLayout,
-  type LayoutResult,
-} from "./compositionEngine";
-import { isUnifiedFlag } from "./featureFlags";
-import { TaffyLayout } from "./taffyLayout";
+import { CompositionEngineLayout } from "./compositionEngine";
+import type { LayoutResult } from "./compositionEngine";
 
 /**
  * Common layout engine interface (ADR-916 Phase 0-A seam).
  *
  * PersistentTaffyTree 가 실제로 호출하는 batch 계약을 반영한다.
- * TaffyLayout(0.9) 와 compositionLayout(0.10) 이 모두 이 메서드를 구현하며,
- * Phase 1 의 composition-engine(Taffy 없는 자체 엔진)도 동일 계약으로 이 seam 에 꽂힌다.
+ * Taffy 완전 제거 후 자체 엔진(CompositionEngineLayout)이 이 계약의 유일 구현.
  *
  * **Why batch 계약** (2026-07-03 실사): 기존 인터페이스는 per-node API
  * (createNode/computeLayout/getLayout) 만 선언했으나, PersistentTaffyTree 는
@@ -51,37 +50,12 @@ export interface LayoutEngineAPI {
 }
 
 /**
- * Create a layout engine instance based on the current feature flag.
+ * Layout engine factory — 자체 엔진 단독 반환.
  *
- * When USE_RUST_LAYOUT_ENGINE is false (default), returns TaffyLayout.
- * When true, returns the new compositionLayout wrapper.
- *
- * **ADR-916 Phase 2-B seam C-2a (2026-07-04)**: flag true 경로에 자체 엔진
- * (`CompositionEngineLayout`) 실배선. flag(`USE_RUST_LAYOUT_ENGINE`)가 true 이고
- * 자체 WASM 이 로드 준비되면 자체 엔진을 반환한다. WASM 미준비(startup init 전 /
- * 로드 실패)면 TaffyLayout 으로 안전 폴백 — 회귀 시 flag false 로 즉시 rollback.
- *
- * flag 전환 전제: dualRunLive.test.ts 12/12(실전 대표 8형상 자체 vs Taffy diff 0)
- * proof 확보 후에만 flip([[feedback-no-dormant-foundation-ahead-of-flip]]).
- * 이 factory 가 PersistentTaffyTree 의 엔진 주입 지점이다(직접 `new TaffyLayout()`
- * 제거). Phase 0-A 의 compositionLayout(Taffy 0.10) 경로는 폐기 — 0.10 도 외부
- * Taffy 종속이라, Phase 1 자체 엔진(taffy-free)이 이 자리를 차지한다.
+ * WASM 미준비 시에도 엔진 인스턴스를 반환한다: 미준비 상태의 메서드 호출은
+ * throw 되고, `isAvailable()` 이 lazy re-init 을 시도하며, 부트스트랩의
+ * 15초 폴링/재시도가 준비를 대기한다. Taffy 폴백 없음 (ADR-916 R4 소멸).
  */
 export function createLayoutEngine(): LayoutEngineAPI {
-  if (isUnifiedFlag("USE_RUST_LAYOUT_ENGINE")) {
-    const engine = new CompositionEngineLayout();
-    if (engine.isAvailable()) {
-      return engine as unknown as LayoutEngineAPI;
-    }
-    // 자체 WASM 미준비(startup init 전 호출 / 로드 실패) → Taffy 안전 폴백.
-    // startup(init.ts)이 initCompositionEngineWasm() 을 먼저 await 하므로 정상
-    // 경로에서는 준비돼 있어야 한다. 미준비면 회귀 없이 기존 엔진 유지.
-    if (import.meta.env.DEV) {
-      console.warn(
-        "[ADR-916] composition-engine WASM 미준비 — TaffyLayout 폴백(startup init 순서 확인).",
-      );
-    }
-  }
-
-  return new TaffyLayout() as unknown as LayoutEngineAPI;
+  return new CompositionEngineLayout() as unknown as LayoutEngineAPI;
 }

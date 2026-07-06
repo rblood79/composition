@@ -13,7 +13,7 @@ import type { CanvasLayoutNode } from "../layoutNode";
 import { getFrameElementMirrorId } from "../../../../../adapters/canonical/frameMirror";
 import type { ComputedLayout } from "./LayoutEngine";
 import type { TaffyStyle } from "../../wasm-bindings/layoutTypes";
-import { isRustWasmReady } from "../../wasm-bindings/rustWasm";
+import { isCompositionEngineReady } from "../../wasm-bindings/compositionEngineWasm";
 import { PersistentTaffyTree } from "./persistentTaffyTree";
 import type { PersistentBatchNode } from "./persistentTaffyTree";
 import {
@@ -2184,8 +2184,8 @@ export function calculateFullTreeLayout(
   availableHeight: number,
   getChildElements: (id: string) => CanvasLayoutNode[],
 ): Map<string, ComputedLayout> | null {
-  // WASM 가용성 확인
-  if (!isRustWasmReady()) return null;
+  // WASM 가용성 확인 (자체 엔진 — ADR-916 Taffy 완전 제거)
+  if (!isCompositionEngineReady()) return null;
 
   // 루트 요소 존재 확인
   const rootEl = elementsMap.get(rootElementId);
