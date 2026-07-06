@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [자체 엔진 box-sizing 계약 정합 — specified size border-box] - 2026-07-06
+
+### Bug Fixes
+
+- **Button 등 padding 보유 요소가 Skia 에서 CSS 보다 크게 렌더** (ADR-916 후속):
+  - 자체 Rust 엔진(composition-engine)이 specified width/height 를 content-box 로 해석 + padding/border 재가산 → enrich 가 주입하는 border-box 값과 이중 가산. md Button 기준 높이 30→40, 폭 +26px (paddingX 12×2 + border 1×2)
+  - **Why**: 앱 세계 전체(Preview `* { box-sizing: border-box }`, store, 구 Taffy 0.9 계약)는 border-box 인데 신규 엔진 커널만 CSS 기본값(content-box)으로 작성됨(`c046daedc`). dual-run fixture 가 전부 padding=0 이라 계약 차이가 미검출
+  - 수정: `tree.rs` specified intake 층에서 border-box→content 변환 (커널 block/flex/grid.rs 무변경). 같은 뿌리 형제 결함 — 컨테이너 own padding 의 자식 available 감산·좌표 offset·percent containing-block ctx — 도 함께 정합
+  - 검증: 브라우저 로드 wasm 실측 — Button xs~xl 높이 20/22/30/42/54 (CSS 정합), 컨테이너 padding20 → 자식 stretch 260 + 좌표(20,20), 50% + paddingX10 → border-box 200, padding=0 회귀 불변
+  - 위치: `packages/composition-engine/src/tree.rs` (`spec_to_content` / `pad_border_start` intake helper, solve_flex/block/grid own padding)
+
 ## [Button xl border-radius CSS↔Skia 대칭 복원] - 2026-07-06
 
 ### Bug Fixes
