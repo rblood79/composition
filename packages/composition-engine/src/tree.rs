@@ -1415,6 +1415,27 @@ mod tests {
         assert!(err.contains("out of range"), "err={err}");
     }
 
+    #[test]
+    fn flex_column_parent_single_line_child_no_height_explosion() {
+        // body(flex column, height 764) > group(flex row, alignItems center, height 미지정)
+        //   > 버튼(width 60, height 30).
+        // 버그: group 이 align-content stretch 로 764 근처까지 팽창(ToggleButtonGroup 397).
+        // 기대: group height = 자식 30.
+        let mut tree = LayoutTree::new();
+        // post-order: [버튼(0), group(1, children[0]), body(2, children[1])]
+        let json = r#"[
+            {"style":{"width":"60px","height":"30px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","alignItems":"center"},"children":[0]},
+            {"style":{"display":"flex","flexDirection":"column","height":"764px"},"children":[1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        let body = handles[2];
+        let group = handles[1];
+        tree.compute_layout(body, 1200.0, 764.0);
+        let gh = tree.get(group).unwrap().layout.height;
+        assert!((gh - 30.0).abs() < 0.5, "group height={} (expect 30, not ~764/397)", gh);
+    }
+
     // ── compute_layout (단위 1: leaf-only 자기 크기) ──
 
     #[test]
