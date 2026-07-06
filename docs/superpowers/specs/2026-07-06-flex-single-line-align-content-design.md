@@ -127,7 +127,7 @@ for (li, line) in resolved_lines.iter().enumerate() {
 let out = flex::flex_layout(
     &data, avail_main, avail_cross, direction, justify, align_items,
     align_content, wrap, gap_main, gap_cross,
-    explicit_h > 0.0 && is_row || explicit_w > 0.0 && !is_row,  // cross_is_definite
+    if is_row { explicit_h > 0.0 } else { explicit_w > 0.0 },  // cross_is_definite
 );
 ```
 
