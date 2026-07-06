@@ -87,7 +87,7 @@ fn golden_flex_row_fixed_gap() {
     for _ in 0..3 {
         data.extend_from_slice(&flex_item(100.0, 50.0, 0.0, 0.0));
     }
-    let out = flex_layout(&data, 1000.0, 200.0, DIR_ROW, 0, 1, 0, WRAP_NOWRAP, 10.0, 0.0);
+    let out = flex_layout(&data, 1000.0, 200.0, DIR_ROW, 0, 1, 0, WRAP_NOWRAP, 10.0, 0.0, true);
     // start 정렬 → 누적 offset. align=start(1) → cross y=0.
     assert_bounds(
         "flex_row_fixed_gap",
@@ -107,7 +107,7 @@ fn golden_flex_row_grow_equal() {
     let mut data = Vec::new();
     data.extend_from_slice(&flex_item(0.0, 50.0, 1.0, 1.0));
     data.extend_from_slice(&flex_item(0.0, 50.0, 1.0, 1.0));
-    let out = flex_layout(&data, 300.0, 100.0, DIR_ROW, 0, 1, 0, WRAP_NOWRAP, 0.0, 0.0);
+    let out = flex_layout(&data, 300.0, 100.0, DIR_ROW, 0, 1, 0, WRAP_NOWRAP, 0.0, 0.0, true);
     assert_bounds(
         "flex_row_grow_equal",
         &out,
@@ -122,7 +122,7 @@ fn golden_flex_row_justify_center() {
     let mut data = Vec::new();
     data.extend_from_slice(&flex_item(100.0, 50.0, 0.0, 0.0));
     data.extend_from_slice(&flex_item(100.0, 50.0, 0.0, 0.0));
-    let out = flex_layout(&data, 400.0, 100.0, DIR_ROW, 1, 1, 0, WRAP_NOWRAP, 0.0, 0.0);
+    let out = flex_layout(&data, 400.0, 100.0, DIR_ROW, 1, 1, 0, WRAP_NOWRAP, 0.0, 0.0, true);
     assert_bounds(
         "flex_row_justify_center",
         &out,
@@ -138,7 +138,7 @@ fn golden_flex_column_shrink() {
     let mut data = Vec::new();
     data.extend_from_slice(&flex_item(100.0, 80.0, 0.0, 1.0));
     data.extend_from_slice(&flex_item(100.0, 80.0, 0.0, 1.0));
-    let out = flex_layout(&data, 120.0, 200.0, DIR_COLUMN, 0, 1, 0, WRAP_NOWRAP, 0.0, 0.0);
+    let out = flex_layout(&data, 120.0, 200.0, DIR_COLUMN, 0, 1, 0, WRAP_NOWRAP, 0.0, 0.0, true);
     // column: main=y/height, cross=x/width. cross content=80 → w=80.
     assert_bounds(
         "flex_column_shrink",
@@ -158,7 +158,7 @@ fn golden_flex_wrap_two_lines() {
     for _ in 0..3 {
         data.extend_from_slice(&flex_item(100.0, 50.0, 0.0, 0.0));
     }
-    let out = flex_layout(&data, 250.0, 100.0, DIR_ROW, 0, 1, 0, WRAP_WRAP, 0.0, 0.0);
+    let out = flex_layout(&data, 250.0, 100.0, DIR_ROW, 0, 1, 0, WRAP_WRAP, 0.0, 0.0, true);
     assert_bounds(
         "flex_wrap_two_lines",
         &out,

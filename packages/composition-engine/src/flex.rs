@@ -1165,4 +1165,33 @@ mod tests {
         assert!((out[3] - 30.0).abs() < 0.01, "height={} (expect 30)", out[3]);
         assert!((out[1] - 0.0).abs() < 0.01, "y={} (expect 0, 라인 cross=30 이므로 제자리)", out[1]);
     }
+
+    // ── cross_is_definite 매개변수 추가 회귀 방지 ──
+
+    #[test]
+    fn multi_line_align_content_stretch_still_expands() {
+        // WRAP + available_main 작아 2라인 강제. available_cross 200, 라인당 자식 height 20.
+        // 다중 라인 align-content stretch → 라인들이 cross_free 를 나눠 팽창(단일 라인 무효와 대비).
+        let data = flatten(&[item(80.0, 20.0), item(80.0, 20.0)]);
+        let out = flex_layout(
+            &data, 100.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
+            ALIGN_CONTENT_STRETCH, WRAP_WRAP, 0.0, 0.0, true,
+        );
+        // 2라인: item0 y=0, item1 은 첫 라인이 stretch_extra 로 팽창해 20 보다 큰 y 로 밀림.
+        assert!((out[1] - 0.0).abs() < 0.01, "item0 y={} (라인0 시작)", out[1]);
+        assert!(out[5] > 20.0 + 0.01, "item1 y={} (라인1 — 라인0 stretch 로 20 초과)", out[5]);
+    }
+
+    #[test]
+    fn single_line_definite_align_items_center_uses_available_cross() {
+        // definite(cross_is_definite=true) + align_items=center + available_cross 100 + 자식 20
+        //   → 자식 y=40 ((100-20)/2). definite 면 라인 cross=available_cross 로 중앙정렬.
+        // indefinite 였다면 라인 cross=자식 20 → y=0 (single_line_indefinite_* 테스트가 대비).
+        let data = flatten(&[item(50.0, 20.0)]);
+        let out = flex_layout(
+            &data, 300.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_CENTER,
+            ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0, true,
+        );
+        assert!((out[1] - 40.0).abs() < 0.01, "y={} (expect 40, definite 중앙정렬)", out[1]);
+    }
 }
