@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [grid 컨테이너 CSS↔Skia 정합 — ProgressBar/Meter/Slider 레이아웃 실패 해소] - 2026-07-06
+
+### Bug Fixes
+
+- **grid 컨테이너(ProgressBar/Meter/Slider) 배치 시 Skia 레이아웃 전면 실패 + 무한 재시도** (전수조사 발견, 실제 CRITICAL 2겹):
+  - **버그 #1 — grid branch dimension 숫자 정규화 누락**:
+    - **Why**: `buildNodeStyle` 의 grid branch 는 `applyCommonTaffyStyle`(숫자 그대로 반환) 결과를 partial 로 직접 반환하여 flex 경로의 `taffyStyleToRecord.dim()` 정규화를 우회. 이 buildFull 경로는 `normalizeStyle.dimToString()` 후처리도 안 거침(persistentTaffyTree 경로 전용). factory 가 `rowGap: 4`(숫자) + `display: grid` 로 저장 → 숫자 rowGap 이 그대로 `build_tree_batch` 로 가 `invalid type integer 4, expected string` parse error → `calculateFullTreeLayout` null → persistentTree 리셋 무한 재시도 → 레이아웃 전면 실패
+    - 수정: grid branch return 직전 `normalizeGridDimFields()` 로 gap/padding/border/size/margin/inset/flexBasis 숫자 → px string 정규화 (flex 경로와 대칭, `IMPLICIT_DIM_PROPS` 목록 정합). `layout-engine.md` "grid 직렬화 3경로 모두 정규화" 원칙의 grid branch 공백 보완
+    - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts` (`GRID_DIM_FIELDS`, `normalizeGridDimFields`)
+  - **버그 #2 — grid 명시 auto row intrinsic 미측정** (#1 수정 후 표면화):
+    - **Why**: 기존 `solve_grid` intrinsic 측정은 implicit auto row(`gridTemplateRows` 미명시 + placement 미명시) 경로만 발동. ProgressBar/Meter 는 `gridTemplateRows: "auto auto"` 명시 + 자식 gridRowStart/End placement 구조 → 미측정 → `grid.rs` 가 auto 를 1fr 로 근사해 available_h 를 나눠 가져 컨테이너가 availH 전체로 폭발(716) 또는 0 붕괴(availH<0)
+    - 수정: 명시 track 안에 auto 토큰이 있으면 자식을 solve 해 intrinsic height 획득, 자식 gridRowStart(1-based line)로 row 결정 후 auto 토큰 row 만 max intrinsic 으로 치환(px/fr/% row 보존). flex.rs `cross_is_definite` 수정과 동형 축
+    - 위치: `packages/composition-engine/src/tree.rs` (`solve_grid` auto row 측정 확장)
+  - 검증: 브라우저 재빌드 wasm 실측 — ProgressBar/Meter height **32**(availH=-1/716 양쪽 동일 = 폭발 없음, 이전 716/4), Track/Label CSS 정합, parse error 소멸. cargo lib 227 + golden 15 + tree_golden 7 = 0 failed(회귀 테스트 3종 추가), type-check PASS. reviewer approve(CRITICAL/HIGH 0)
+  - 후속(비차단): `gridRowStart` "span N" / 음수 line 미지원(현재 factory 순수 숫자 line 만 사용) — 향후 `grid.rs::parse_grid_line` 재사용 리팩터 대상
+
 ## [flex 단일 라인 align-content/definite — ToggleButtonGroup height 397→30] - 2026-07-06
 
 ### Bug Fixes
