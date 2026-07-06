@@ -810,6 +810,8 @@ impl LayoutTree {
         // ProgressBar/Meter 실구조(1fr auto / auto auto + placement)가 (B) 케이스.
         let row_tokens: Vec<&str> = template_rows.split_whitespace().collect();
         let has_auto_row = row_tokens.iter().any(|t| *t == "auto");
+        // col-major fallback 용 row 수 — template_rows 재할당(auto row 치환) 전에 캡처.
+        let row_count_for_col_fallback = row_tokens.len().max(1);
         let implicit_all_auto =
             template_rows.is_empty() && placement_spec.is_empty() && !children.is_empty();
 
@@ -861,6 +863,45 @@ impl LayoutTree {
                 .collect::<Vec<_>>()
                 .join(" ");
         }
+
+        // auto **column** intrinsic 측정 (row 와 대칭). `gridTemplateColumns:"1fr auto"`
+        // 에서 auto col 은 CSS 상 그 col 자식들의 max content width. grid.rs 는 auto 를 1fr
+        // 로 근사(available 분배)하므로, 측정 없이는 auto col 이 1fr 과 available 을 나눠 가져
+        // content 보다 크게(ProgressBar value: CSS 29 vs 근사 168) → col 폭 발산 + 배치 밀림.
+        // 자식 gridColumnStart(1-based line)로 col 결정, auto 토큰 col 만 max intrinsic width
+        // 로 치환(1fr/px/% col 보존). placement 없는 자식은 col-major fallback.
+        let has_auto_col = template_cols.split_whitespace().any(|t| t == "auto");
+        let template_cols = if has_auto_col && !children.is_empty() {
+            let col_tokens: Vec<String> =
+                template_cols.split_whitespace().map(String::from).collect();
+            let mut col_intrinsic: Vec<f32> = vec![0.0; col_tokens.len()];
+            for (i, &c) in children.iter().enumerate() {
+                let (cw, _) = self.solve_node(c, container_w, container_h);
+                let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
+                // gridColumnStart 1-based line → col index = start - 1. 미명시면 col-major.
+                let col = normalize_grid_line_part(cstyle.grid_column_start.as_deref())
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .map(|line| (line - 1).max(0) as usize)
+                    .unwrap_or(i % row_count_for_col_fallback);
+                if col < col_intrinsic.len() {
+                    col_intrinsic[col] = col_intrinsic[col].max(cw);
+                }
+            }
+            col_tokens
+                .iter()
+                .enumerate()
+                .map(|(cidx, tok)| {
+                    if tok == "auto" {
+                        format!("{}px", col_intrinsic.get(cidx).copied().unwrap_or(0.0))
+                    } else {
+                        tok.clone()
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join(" ")
+        } else {
+            template_cols
+        };
 
         // grid_layout — 셀 bounds flat [x,y,w,h,...].
         let bounds = grid::grid_layout(
@@ -2004,6 +2045,53 @@ mod tests {
         assert_eq!(tree.get_layout(handles[2]).height, 8.0, "row1 track = 8");
         // track y = row0 height 20.
         assert_eq!(tree.get_layout(handles[2]).y, 20.0, "row1 y = row0 20");
+    }
+
+    /// 명시 auto **column** (`gridTemplateColumns:["1fr","auto"]`) → auto col =
+    /// 그 col 자식들의 max intrinsic content width (1fr 근사 아님).
+    ///
+    /// ProgressBar 실구조 (2026-07-06 cross-check): `gridTemplateColumns:"1fr auto"`
+    /// 에서 CSS 는 auto col = value content(~29), 1fr = 나머지(~307). grid.rs 는 auto 를
+    /// 1fr 로 근사해 available 을 반반 분배(180/168) → value 폭 발산 + 중앙으로 밀림.
+    /// auto row 와 대칭인 column intrinsic 측정.
+    #[test]
+    fn grid_explicit_auto_column_measured_from_child_intrinsic() {
+        let mut tree = LayoutTree::new();
+        // cols "1fr auto" at 320. col0(1fr) label / col1(auto) value(w=30 명시).
+        // → auto col1 = 30, 1fr col0 = 320 - 30 - gap0 = 290.
+        let json = r#"[
+            {"style":{"height":"20px","gridColumnStart":"1","gridColumnEnd":"2","gridRowStart":"1","gridRowEnd":"2"},"children":[]},
+            {"style":{"width":"30px","height":"20px","gridColumnStart":"2","gridColumnEnd":"3","gridRowStart":"1","gridRowEnd":"2"},"children":[]},
+            {"style":{"display":"grid","width":"320px","gridTemplateColumns":["1fr","auto"],"gridTemplateRows":["auto"]},"children":[0,1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 320.0, -1.0);
+        // auto col1(value) = 자식 intrinsic 30 (1fr 근사 168 아님).
+        let val = tree.get_layout(handles[1]);
+        assert_eq!(val.width, 30.0, "auto col = 자식 intrinsic 30 (not 1fr 근사)");
+        // value 는 우측 정렬: x = 320 - 30 = 290.
+        assert_eq!(val.x, 290.0, "auto col 우측 (1fr 이 나머지 흡수)");
+        // 1fr col0(label) = 320 - 30 = 290.
+        assert_eq!(tree.get_layout(handles[0]).width, 290.0, "1fr = 나머지 290");
+    }
+
+    /// px col + auto col 혼합: px col 고정, auto col 만 intrinsic 측정.
+    #[test]
+    fn grid_mixed_px_and_auto_columns_preserve_px() {
+        let mut tree = LayoutTree::new();
+        // cols "100px auto" at 320. col0(100px 고정) / col1(auto=자식 40).
+        let json = r#"[
+            {"style":{"width":"60px","height":"20px","gridColumnStart":"1","gridColumnEnd":"2","gridRowStart":"1","gridRowEnd":"2"},"children":[]},
+            {"style":{"width":"40px","height":"20px","gridColumnStart":"2","gridColumnEnd":"3","gridRowStart":"1","gridRowEnd":"2"},"children":[]},
+            {"style":{"display":"grid","width":"320px","gridTemplateColumns":["100px","auto"],"gridTemplateRows":["auto"]},"children":[0,1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 320.0, -1.0);
+        // col0 = 100px 고정(자식 60 무관), col1 auto = 자식 40.
+        assert_eq!(tree.get_layout(handles[0]).width, 100.0, "px col 100 고정(자식 60 무관)");
+        assert_eq!(tree.get_layout(handles[1]).width, 40.0, "auto col = 자식 intrinsic 40");
+        // col1 x = 100(col0) + 0(gap 없음) = 100.
+        assert_eq!(tree.get_layout(handles[1]).x, 100.0, "col1 x = col0 width 100");
     }
 
     /// 명시 auto row 혼합: px row 는 고정 유지, auto row 만 intrinsic 측정.
