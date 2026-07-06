@@ -824,13 +824,13 @@ impl LayoutTree {
             let col_count = grid::parse_tracks(&template_cols, container_w, col_gap).len().max(1);
             let mut row_heights: Vec<f32> = Vec::new();
             for (i, &c) in children.iter().enumerate() {
+                // gridRowStart 1-based line → row index (미명시면 row-major i/col_count).
+                // solve_node(&mut) 전에 필드만 읽어 NodeStyle 전체 clone 회피.
+                let row = grid_line_to_track_index(
+                    self.get(c).and_then(|n| n.style.grid_row_start.as_deref()),
+                    i / col_count,
+                );
                 let (_, ch) = self.solve_node(c, container_w, container_h);
-                let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
-                // gridRowStart 1-based line → row index = start - 1. 미명시면 row-major.
-                let row = normalize_grid_line_part(cstyle.grid_row_start.as_deref())
-                    .and_then(|s| s.parse::<i32>().ok())
-                    .map(|line| (line - 1).max(0) as usize)
-                    .unwrap_or(i / col_count);
                 if row >= row_heights.len() {
                     row_heights.resize(row + 1, 0.0);
                 }
@@ -847,13 +847,12 @@ impl LayoutTree {
             let col_count = grid::parse_tracks(&template_cols, container_w, col_gap).len().max(1);
             let mut row_intrinsic: Vec<f32> = vec![0.0; row_tokens.len()];
             for (i, &c) in children.iter().enumerate() {
+                // gridRowStart 1-based line → row index (미명시면 row-major i/col_count).
+                let row = grid_line_to_track_index(
+                    self.get(c).and_then(|n| n.style.grid_row_start.as_deref()),
+                    i / col_count,
+                );
                 let (_, ch) = self.solve_node(c, container_w, container_h);
-                let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
-                // gridRowStart 1-based line → row index = start - 1. 미명시면 row-major.
-                let row = normalize_grid_line_part(cstyle.grid_row_start.as_deref())
-                    .and_then(|s| s.parse::<i32>().ok())
-                    .map(|line| (line - 1).max(0) as usize)
-                    .unwrap_or(i / col_count);
                 if row < row_intrinsic.len() {
                     row_intrinsic[row] = row_intrinsic[row].max(ch);
                 }
@@ -887,13 +886,12 @@ impl LayoutTree {
             let col_count = col_tokens.len().max(1);
             let mut col_intrinsic: Vec<f32> = vec![0.0; col_tokens.len()];
             for (i, &c) in children.iter().enumerate() {
+                // gridColumnStart 1-based line → col index (미명시면 col-major i%col_count).
+                let col = grid_line_to_track_index(
+                    self.get(c).and_then(|n| n.style.grid_column_start.as_deref()),
+                    i % col_count,
+                );
                 let (cw, _) = self.solve_node(c, container_w, container_h);
-                let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
-                // gridColumnStart 1-based line → col index = start - 1. 미명시면 col-major(i % col_count).
-                let col = normalize_grid_line_part(cstyle.grid_column_start.as_deref())
-                    .and_then(|s| s.parse::<i32>().ok())
-                    .map(|line| (line - 1).max(0) as usize)
-                    .unwrap_or(i % col_count);
                 if col < col_intrinsic.len() {
                     col_intrinsic[col] = col_intrinsic[col].max(cw);
                 }
@@ -1195,6 +1193,24 @@ fn normalize_grid_line_part(v: Option<&str>) -> Option<String> {
         return None;
     }
     Some(v.to_string())
+}
+
+/// grid `*Start` line 문자열 → 0-based track index. auto row/column 측정에서
+/// 자식이 어느 트랙에 속하는지 결정하는 단일 정의(row·column 대칭).
+///
+/// - `grid_row_start:"2"` (1-based CSS line) → index 1. `(line - 1).max(0)` 로
+///   음수 line 은 0 으로 clamp(`usize` 캐스트 전 방어 — 미클램프 시 resize OOM).
+/// - 미명시("auto"/빈 문자열) → `major_fallback` (row-major `i / col_count`
+///   또는 col-major `i % col_count`).
+///
+/// **주의(측정 한정)**: `*End`/span 은 미고려 — 측정 pass 는 자식을 시작 트랙에만
+/// 귀속시킨다. span 을 가진 자식(`gridRowEnd:"3"`)의 실 배치는 grid.rs
+/// `place_children` 가 담당. 측정↔배치 이 부분 정합은 grid.rs 쪽 계약.
+fn grid_line_to_track_index(start: Option<&str>, major_fallback: usize) -> usize {
+    normalize_grid_line_part(start)
+        .and_then(|s| s.parse::<i32>().ok())
+        .map(|line| (line - 1).max(0) as usize)
+        .unwrap_or(major_fallback)
 }
 
 /// padding+border 한 축 합 (main 또는 cross).
