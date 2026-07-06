@@ -4045,7 +4045,7 @@ export function enrichWithIntrinsicSize(
   // 웹 CSS의 * { box-sizing: border-box } 동작과 일치
   // content 크기 + padding + border = border-box 크기
   // Dropflow: border-box 네이티브 지원 (adapter에서 boxSizing: 'border-box' 고정)
-  // Taffy 0.9: style.size를 border-box로 처리 → 변환 불필요
+  // composition-engine: specified size 를 border-box 로 해석 (tree.rs specified intake 에서 content 변환) → 변환 불필요. (구 Taffy 0.9 도 동일 계약이었음)
 
   const injectedStyle: Record<string, unknown> = { ...style };
 
@@ -4680,9 +4680,9 @@ export function applyCommonTaffyStyle(
   if (border.bottom !== 0) result.borderBottom = border.bottom;
   if (border.left !== 0) result.borderLeft = border.left;
 
-  // Taffy 0.9는 style.size를 border-box로 처리합니다.
+  // composition-engine 은 style.size 를 border-box 로 해석합니다 (tree.rs specified intake).
   // composition의 * { box-sizing: border-box } 값을 그대로 전달하면
-  // Taffy가 내부적으로 content = size - padding - border를 계산합니다.
+  // composition-engine이 내부적으로 content = size - padding - border를 계산합니다.
   // layout.size도 border-box를 반환하므로 추가 변환 불필요.
 
   // Gap — parseCSSPropWithContext 결과 직접 전달 (number 또는 % 문자열)
