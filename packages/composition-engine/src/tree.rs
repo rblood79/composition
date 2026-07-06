@@ -810,8 +810,6 @@ impl LayoutTree {
         // ProgressBar/Meter 실구조(1fr auto / auto auto + placement)가 (B) 케이스.
         let row_tokens: Vec<&str> = template_rows.split_whitespace().collect();
         let has_auto_row = row_tokens.iter().any(|t| *t == "auto");
-        // col-major fallback 용 row 수 — template_rows 재할당(auto row 치환) 전에 캡처.
-        let row_count_for_col_fallback = row_tokens.len().max(1);
         let implicit_all_auto =
             template_rows.is_empty() && placement_spec.is_empty() && !children.is_empty();
 
@@ -874,15 +872,17 @@ impl LayoutTree {
         let template_cols = if has_auto_col && !children.is_empty() {
             let col_tokens: Vec<String> =
                 template_cols.split_whitespace().map(String::from).collect();
+            // row-major auto-placement: gridColumnStart 미명시 자식 i 의 col = i % col_count.
+            let col_count = col_tokens.len().max(1);
             let mut col_intrinsic: Vec<f32> = vec![0.0; col_tokens.len()];
             for (i, &c) in children.iter().enumerate() {
                 let (cw, _) = self.solve_node(c, container_w, container_h);
                 let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
-                // gridColumnStart 1-based line → col index = start - 1. 미명시면 col-major.
+                // gridColumnStart 1-based line → col index = start - 1. 미명시면 col-major(i % col_count).
                 let col = normalize_grid_line_part(cstyle.grid_column_start.as_deref())
                     .and_then(|s| s.parse::<i32>().ok())
                     .map(|line| (line - 1).max(0) as usize)
-                    .unwrap_or(i % row_count_for_col_fallback);
+                    .unwrap_or(i % col_count);
                 if col < col_intrinsic.len() {
                     col_intrinsic[col] = col_intrinsic[col].max(cw);
                 }
@@ -2092,6 +2092,26 @@ mod tests {
         assert_eq!(tree.get_layout(handles[1]).width, 40.0, "auto col = 자식 intrinsic 40");
         // col1 x = 100(col0) + 0(gap 없음) = 100.
         assert_eq!(tree.get_layout(handles[1]).x, 100.0, "col1 x = col0 width 100");
+    }
+
+    /// auto column + gridColumnStart 미명시 → row-major col fallback(i % col_count).
+    /// c0→col0, c1→col1 (i % row_count 로 뭉치는 버그 회귀 방지).
+    #[test]
+    fn grid_auto_column_col_major_fallback() {
+        let mut tree = LayoutTree::new();
+        // cols "auto auto", 자식 2개 placement 미명시. row-major: c0→col0(w40), c1→col1(w60).
+        let json = r#"[
+            {"style":{"width":"40px","height":"20px"},"children":[]},
+            {"style":{"width":"60px","height":"20px"},"children":[]},
+            {"style":{"display":"grid","width":"300px","gridTemplateColumns":["auto","auto"],"gridTemplateRows":["auto"]},"children":[0,1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 300.0, -1.0);
+        // col0 = c0 intrinsic 40, col1 = c1 intrinsic 60 (둘 다 col0 로 뭉치지 않음).
+        assert_eq!(tree.get_layout(handles[0]).width, 40.0, "c0 → col0 = 40");
+        assert_eq!(tree.get_layout(handles[1]).width, 60.0, "c1 → col1 = 60");
+        assert_eq!(tree.get_layout(handles[0]).x, 0.0, "c0 col0 x=0");
+        assert_eq!(tree.get_layout(handles[1]).x, 40.0, "c1 col1 x = col0 width 40");
     }
 
     /// 명시 auto row 혼합: px row 는 고정 유지, auto row 만 intrinsic 측정.
