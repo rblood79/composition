@@ -799,14 +799,22 @@ impl LayoutTree {
         // (2)+(3) 자식 placement 직렬화 (area_name|grid_column|grid_row 개행 구분).
         let placement_spec = self.build_grid_placement_spec(children);
 
-        // implicit auto row (gridTemplateRows 미명시) + 전부 auto-placement 인 경우:
-        // grid.rs 는 rows 미명시 시 셀 높이를 하드코딩 fallback(100)으로 채운다.
-        // CSS implicit auto row 는 그 행 자식들의 max intrinsic content height 여야 하므로,
-        // 자식을 먼저 solve 해 intrinsic height 를 얻고 row 별 max 를 px 트랙으로 주입한다.
-        // (명시 placement 가 있으면 row-major 가정이 깨지므로 grid.rs fallback 경로 유지.)
-        if template_rows.is_empty() && placement_spec.is_empty() && !children.is_empty() {
+        // auto row intrinsic 측정. 두 케이스를 통합 처리한다:
+        //  (A) implicit auto row (gridTemplateRows 미명시) + 전부 auto-placement:
+        //      row-major 로 자식 → row 매핑, 각 row = 그 자식들 max intrinsic content height.
+        //  (B) **명시** auto row (`gridTemplateRows:["auto",...]`) — placement 유무 무관:
+        //      자식의 gridRowStart(1-based line)로 row 결정, auto 토큰 row 만 max intrinsic
+        //      으로 치환(px/fr/% row 는 보존).
+        // grid.rs 는 auto 를 1fr 로 근사(available 분배)하므로, 측정 없이는 height:auto
+        // 컨테이너에서 auto row 가 availH 를 나눠 가져 폭발(availH>0) 또는 0 붕괴(availH<0).
+        // ProgressBar/Meter 실구조(1fr auto / auto auto + placement)가 (B) 케이스.
+        let row_tokens: Vec<&str> = template_rows.split_whitespace().collect();
+        let has_auto_row = row_tokens.iter().any(|t| *t == "auto");
+        let implicit_all_auto =
+            template_rows.is_empty() && placement_spec.is_empty() && !children.is_empty();
+
+        if implicit_all_auto {
             let col_count = grid::parse_tracks(&template_cols, container_w, col_gap).len().max(1);
-            // 자식 intrinsic height (셀 크기 미확정 → available 기준 solve).
             // row-major auto-placement: 자식 i 는 row = i / col_count.
             let mut row_heights: Vec<f32> = Vec::new();
             for (i, &c) in children.iter().enumerate() {
@@ -817,10 +825,39 @@ impl LayoutTree {
                 }
                 row_heights[row] = row_heights[row].max(ch);
             }
-            // row 별 max intrinsic 을 px 트랙 문자열로 주입.
             template_rows = row_heights
                 .iter()
                 .map(|h| format!("{h}px"))
+                .collect::<Vec<_>>()
+                .join(" ");
+        } else if has_auto_row && !children.is_empty() {
+            // (B) 명시 track 안의 auto row: 자식 gridRowStart 로 row 결정 후 auto row 만 측정.
+            // gridRowStart 미명시 자식은 row-major fallback(col_count 기준).
+            let col_count = grid::parse_tracks(&template_cols, container_w, col_gap).len().max(1);
+            let mut row_intrinsic: Vec<f32> = vec![0.0; row_tokens.len()];
+            for (i, &c) in children.iter().enumerate() {
+                let (_, ch) = self.solve_node(c, container_w, container_h);
+                let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
+                // gridRowStart 1-based line → row index = start - 1. 미명시면 row-major.
+                let row = normalize_grid_line_part(cstyle.grid_row_start.as_deref())
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .map(|line| (line - 1).max(0) as usize)
+                    .unwrap_or(i / col_count);
+                if row < row_intrinsic.len() {
+                    row_intrinsic[row] = row_intrinsic[row].max(ch);
+                }
+            }
+            // auto 토큰만 측정값으로 치환, px/fr/% 는 원본 유지.
+            template_rows = row_tokens
+                .iter()
+                .enumerate()
+                .map(|(r, tok)| {
+                    if *tok == "auto" {
+                        format!("{}px", row_intrinsic.get(r).copied().unwrap_or(0.0))
+                    } else {
+                        (*tok).to_string()
+                    }
+                })
                 .collect::<Vec<_>>()
                 .join(" ");
         }
@@ -1930,6 +1967,80 @@ mod tests {
         assert_eq!(c2.height, 40.0, "row1 height = 40");
         // 컨테이너 intrinsic = 50 + 40 = 90.
         assert_eq!(tree.get_layout(root).height, 90.0, "컨테이너 = row0+row1 = 90");
+    }
+
+    /// **명시** auto row (`gridTemplateRows:["auto","auto"]`) + placement 명시 +
+    /// 부모 height:auto → 각 auto row = 그 row 자식들의 max intrinsic content height.
+    ///
+    /// ProgressBar/Meter 실구조 (2026-07-06 전수조사): `gridTemplateColumns:"1fr auto"`,
+    /// `gridTemplateRows:"auto auto"`, 자식이 gridRowStart/End 로 row 명시. 기존
+    /// implicit auto row 경로는 `template_rows.is_empty() && placement_spec.is_empty()`
+    /// 두 조건 모두 요구 → 명시 rows + 명시 placement 인 본 케이스는 미측정 →
+    /// grid.rs 가 auto 를 1fr 로 근사해 available_h 를 나눠 가져 컨테이너가 availH
+    /// 전체로 폭발(716). CSS 는 auto row = content → 컨테이너 ~row 합.
+    #[test]
+    fn grid_explicit_auto_rows_measured_from_child_intrinsic() {
+        let mut tree = LayoutTree::new();
+        // cols "1fr auto", rows "auto auto". 부모 height:auto (availH=-1).
+        // row0: label(h=20, col1)/value(h=20, col2). row1: track(h=8, col1-3).
+        // → row0=20, row1=8 → 컨테이너 = 20 + 8 = 28 (availH 폭발 아님).
+        let json = r#"[
+            {"style":{"height":"20px","gridColumnStart":"1","gridColumnEnd":"2","gridRowStart":"1","gridRowEnd":"2"},"children":[]},
+            {"style":{"height":"20px","gridColumnStart":"2","gridColumnEnd":"3","gridRowStart":"1","gridRowEnd":"2"},"children":[]},
+            {"style":{"height":"8px","gridColumnStart":"1","gridColumnEnd":"3","gridRowStart":"2","gridRowEnd":"3"},"children":[]},
+            {"style":{"display":"grid","width":"320px","gridTemplateColumns":["1fr","auto"],"gridTemplateRows":["auto","auto"]},"children":[0,1,2]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        let root = handles[3];
+        tree.compute_layout(root, 320.0, -1.0); // height:auto sentinel → availH 폭발 없어야
+        // 컨테이너 height = row0(20) + row1(8) = 28 (availH 716/320 아님).
+        let container = tree.get_layout(root);
+        assert_eq!(
+            container.height, 28.0,
+            "명시 auto row = 자식 intrinsic 합 28 (availH 폭발 아님)"
+        );
+        // 각 셀 높이 = 그 row 자식 intrinsic.
+        assert_eq!(tree.get_layout(handles[0]).height, 20.0, "row0 label = 20");
+        assert_eq!(tree.get_layout(handles[2]).height, 8.0, "row1 track = 8");
+        // track y = row0 height 20.
+        assert_eq!(tree.get_layout(handles[2]).y, 20.0, "row1 y = row0 20");
+    }
+
+    /// 명시 auto row 혼합: px row 는 고정 유지, auto row 만 intrinsic 측정.
+    #[test]
+    fn grid_mixed_px_and_auto_rows_preserve_px() {
+        let mut tree = LayoutTree::new();
+        // rows "40px auto". row0 자식 h=20(px row 40 고정), row1 자식 h=25(auto 측정).
+        let json = r#"[
+            {"style":{"height":"20px","gridColumnStart":"1","gridColumnEnd":"2","gridRowStart":"1","gridRowEnd":"2"},"children":[]},
+            {"style":{"height":"25px","gridColumnStart":"1","gridColumnEnd":"2","gridRowStart":"2","gridRowEnd":"3"},"children":[]},
+            {"style":{"display":"grid","width":"200px","gridTemplateColumns":["1fr"],"gridTemplateRows":["40px","auto"]},"children":[0,1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 200.0, -1.0);
+        assert_eq!(tree.get_layout(handles[0]).height, 40.0, "px row 40 고정(자식 20 무관)");
+        assert_eq!(tree.get_layout(handles[1]).height, 25.0, "auto row = 자식 intrinsic 25");
+        assert_eq!(tree.get_layout(handles[1]).y, 40.0, "row1 y = px row 40");
+        assert_eq!(tree.get_layout(handles[2]).height, 65.0, "컨테이너 = 40 + 25 = 65");
+    }
+
+    /// 명시 auto row — placement 로 중간 row 건너뜀 → 빈 auto row = 0.
+    #[test]
+    fn grid_explicit_auto_row_skipped_is_zero() {
+        let mut tree = LayoutTree::new();
+        // rows "auto auto auto". 자식은 row1(gridRowStart:1)·row3(gridRowStart:3)만 → row2 빈 auto.
+        let json = r#"[
+            {"style":{"height":"20px","gridColumnStart":"1","gridColumnEnd":"2","gridRowStart":"1","gridRowEnd":"2"},"children":[]},
+            {"style":{"height":"30px","gridColumnStart":"1","gridColumnEnd":"2","gridRowStart":"3","gridRowEnd":"4"},"children":[]},
+            {"style":{"display":"grid","width":"200px","gridTemplateColumns":["1fr"],"gridTemplateRows":["auto","auto","auto"]},"children":[0,1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 200.0, -1.0);
+        assert_eq!(tree.get_layout(handles[0]).height, 20.0, "row0 = 20");
+        assert_eq!(tree.get_layout(handles[1]).height, 30.0, "row2 = 30");
+        // row1 빈 auto = 0 → row2 자식 y = row0(20) + row1(0) = 20.
+        assert_eq!(tree.get_layout(handles[1]).y, 20.0, "빈 auto row1=0 → row2 y=20");
+        assert_eq!(tree.get_layout(handles[2]).height, 50.0, "컨테이너 = 20+0+30 = 50");
     }
 
     // ── 컨테이너 own padding — 자식 available 감산 + 좌표 offset + percent ctx ──
