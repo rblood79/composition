@@ -2094,6 +2094,38 @@ mod tests {
         assert_eq!(tree.get_layout(handles[1]).x, 100.0, "col1 x = col0 width 100");
     }
 
+    /// ProgressBar 실구조 통합: `gridTemplateColumns:"1fr auto"` + `gridTemplateRows:"auto auto"`
+    /// 동시 auto (row·column 양쪽 측정 경로 동시 실행) + placement 명시.
+    /// row·column 결과 explicit assertion 으로 두 측정 경로 상호작용 확증.
+    #[test]
+    fn grid_progressbar_realstruct_row_and_col_auto() {
+        let mut tree = LayoutTree::new();
+        // cols "1fr auto" / rows "auto auto" at 320.
+        // row0: label(col1, h20) / value(col2, w30 h20). row1: track(col1-3, h8, w100%).
+        // → col1(auto)=value 30, col0(1fr)=320-30=290. row0=20, row1=8.
+        let json = r#"[
+            {"style":{"width":"60px","height":"20px","gridColumnStart":"1","gridColumnEnd":"2","gridRowStart":"1","gridRowEnd":"2"},"children":[]},
+            {"style":{"width":"30px","height":"20px","gridColumnStart":"2","gridColumnEnd":"3","gridRowStart":"1","gridRowEnd":"2"},"children":[]},
+            {"style":{"width":"100%","height":"8px","gridColumnStart":"1","gridColumnEnd":"3","gridRowStart":"2","gridRowEnd":"3"},"children":[]},
+            {"style":{"display":"grid","width":"320px","gridTemplateColumns":["1fr","auto"],"gridTemplateRows":["auto","auto"]},"children":[0,1,2]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        let root = handles[3];
+        tree.compute_layout(root, 320.0, -1.0);
+        // 컨테이너 = row0(20) + row1(8) = 28 (availH 폭발 아님).
+        assert_eq!(tree.get_layout(root).height, 28.0, "컨테이너 = row0+row1 = 28");
+        // column: auto col1(value) = 30, 1fr col0(label) = 290.
+        assert_eq!(tree.get_layout(handles[1]).width, 30.0, "value auto col = intrinsic 30");
+        assert_eq!(tree.get_layout(handles[1]).x, 290.0, "value 우측 (1fr 흡수 후)");
+        assert_eq!(tree.get_layout(handles[0]).width, 290.0, "label 1fr = 290");
+        // row: row0=20 (label/value), row1=8 (track), track y=20.
+        assert_eq!(tree.get_layout(handles[0]).height, 20.0, "row0 label = 20");
+        assert_eq!(tree.get_layout(handles[2]).height, 8.0, "row1 track = 8");
+        assert_eq!(tree.get_layout(handles[2]).y, 20.0, "track row1 y = row0 20");
+        // track 은 col1-3 span → 전체 폭 320.
+        assert_eq!(tree.get_layout(handles[2]).width, 320.0, "track span 전체 320");
+    }
+
     /// auto column + gridColumnStart 미명시 → row-major col fallback(i % col_count).
     /// c0→col0, c1→col1 (i % row_count 로 뭉치는 버그 회귀 방지).
     #[test]
