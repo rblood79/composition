@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Button xl border-radius CSS↔Skia 대칭 복원] - 2026-07-06
+
+### Bug Fixes
+
+- **Button `xl` size 모서리 반경 발산 (Preview 8px vs Skia/catalog 12px)**:
+  - **Why**: `Button.tsx` wrapper 의 legacy `SIZE_BORDER_RADIUS` 상수(Component Spec Phase 1 잔재)가 `xl: 8`(`--radius-lg`)을 **inline style** 로 주입 → catalog SSOT(`sizes.xl.borderRadius = {radius.xl}` = 12px)와 불일치. inline style(specificity 0-1-0-0)이 generated CSS `[data-size="xl"] { border-radius: var(--radius-xl) }`(12px)를 무조건 override → Preview DOM 8px 렌더, Skia Canvas 12px 렌더 → D3 시각 대칭 파괴. (lg 는 양쪽 8px 라 우연히 일치, xl 만 발산.)
+  - 수정: wrapper 의 inline `borderRadius` 주입 + `SIZE_BORDER_RADIUS` 상수 제거 → border-radius 를 catalog-generated CSS(`[data-size]`) 단일 경로로 위임. 사용자 명시 `style.borderRadius` 는 그대로 전달(RAC style prop).
+  - 검증: Chrome MCP live — xl Button Preview computed `border-radius: 12px`(inline 소멸) + Style Panel Border Radius 12 표시 + Skia canvas 렌더 대칭. type-check baseline 69 신규 0.
+  - 위치: `packages/shared/src/components/Button.tsx`
+
 ## [Taffy 완전 제거 — ADR-916 endgame] - 2026-07-06
 
 ### Architecture
