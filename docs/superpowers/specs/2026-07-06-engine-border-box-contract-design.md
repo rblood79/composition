@@ -63,6 +63,8 @@ specified → content 변환은 **tree.rs 의 item write / resolve 시점 1곳**
 
 `solve_node` 반환값 계약을 "border-box 총크기" 로 주석 명문화한다 (부모 content 슬롯 재사용 시 이중 변환 금지의 기준선).
 
+**계획 단계 추가 발견 (같은 뿌리 형제 결함 — 구현 범위 포함)**: (a) 자식 좌표가 부모 padding/border offset 없이 content 원점 기준 (Taffy 는 border-box 원점 + offset 포함 계약), (b) 컨테이너 explicit 크기가 자식 available 로 무감산 전달, (c) 자식 percent 해석 ctx 가 부모 available 기준 (CSS 는 부모 content box). 셋 다 padding=0 fixture 로 dual-run 미검출 — tree.rs solve_flex/block/grid 에서 함께 정합.
+
 ### 4.3 무변경 확인 대상 (설계상 안전 근거)
 
 - **JS 전 층 무변경**: enrich 주입(border-box), applyCommonTaffyStyle, 2-pass, 부모 합산, overflow cap — Taffy 계약 복원이므로 그대로 정합.
