@@ -1057,6 +1057,14 @@ fn axis_pad_border(style: &NodeStyle, ctx: &CssValueContext, is_main_horizontal:
         + resolve_dimension(bb, ctx)
 }
 
+/// specified size(border-box, 전역 `* { box-sizing: border-box }` 계약) →
+/// 커널 content 입력. pad_border 감산, 0 하한 (pad_border 초과 시 content 0 =
+/// border-box 가 pad_border 로 floor — CSS 동일).
+#[inline]
+fn spec_to_content(v: f32, pad_border: f32) -> f32 {
+    (v - pad_border).max(0.0)
+}
+
 /// 자식 스타일 + solve 된 content 크기 → flex.rs flat f32 (논리축 main/cross).
 ///
 /// flex.rs 필드 계약(FLEX_FIELD_COUNT=17): 0=flex_basis, 1=width(main),
@@ -1141,20 +1149,29 @@ fn write_block_item(
     let expl_w = resolve_dimension_opt(cstyle.width.as_deref(), ctx);
     let expl_h = resolve_dimension_opt(cstyle.height.as_deref(), ctx);
 
+    let pad_border_v = axis_pad_border(cstyle, ctx, false);
+    let pad_border_h = axis_pad_border(cstyle, ctx, true);
+
+    // specified size 는 border-box — 커널은 content 수학이므로 intake 에서 감산.
+    // min/max 도 CSS box-sizing 적용 대상 (상수 shift 라 content 단계 clamp 와 등가).
     data[off] = display_code;
-    data[off + 1] = expl_w.unwrap_or(-1.0); // width AUTO=-1
-    data[off + 2] = expl_h.unwrap_or(-1.0); // height AUTO=-1
+    data[off + 1] = expl_w.map(|v| spec_to_content(v, pad_border_h)).unwrap_or(-1.0); // width AUTO=-1
+    data[off + 2] = expl_h.map(|v| spec_to_content(v, pad_border_v)).unwrap_or(-1.0); // height AUTO=-1
     data[off + 3] = resolve_dimension(cstyle.margin_top.as_deref(), ctx);
     data[off + 4] = resolve_dimension(cstyle.margin_right.as_deref(), ctx);
     data[off + 5] = resolve_dimension(cstyle.margin_bottom.as_deref(), ctx);
     data[off + 6] = resolve_dimension(cstyle.margin_left.as_deref(), ctx);
     data[off + 7] = 0.0; // bfc_flag — 단위 3-a 미판정(BFC 감지는 상단/후속 단위)
-    data[off + 8] = axis_pad_border(cstyle, ctx, false); // pad_border_v (상하)
-    data[off + 9] = axis_pad_border(cstyle, ctx, true); // pad_border_h (좌우)
-    data[off + 10] = resolve_dimension_opt(cstyle.min_width.as_deref(), ctx).unwrap_or(-1.0);
-    data[off + 11] = resolve_dimension_opt(cstyle.max_width.as_deref(), ctx).unwrap_or(-1.0);
-    data[off + 12] = resolve_dimension_opt(cstyle.min_height.as_deref(), ctx).unwrap_or(-1.0);
-    data[off + 13] = resolve_dimension_opt(cstyle.max_height.as_deref(), ctx).unwrap_or(-1.0);
+    data[off + 8] = pad_border_v; // pad_border_v (상하)
+    data[off + 9] = pad_border_h; // pad_border_h (좌우)
+    data[off + 10] = resolve_dimension_opt(cstyle.min_width.as_deref(), ctx)
+        .map(|v| spec_to_content(v, pad_border_h)).unwrap_or(-1.0);
+    data[off + 11] = resolve_dimension_opt(cstyle.max_width.as_deref(), ctx)
+        .map(|v| spec_to_content(v, pad_border_h)).unwrap_or(-1.0);
+    data[off + 12] = resolve_dimension_opt(cstyle.min_height.as_deref(), ctx)
+        .map(|v| spec_to_content(v, pad_border_v)).unwrap_or(-1.0);
+    data[off + 13] = resolve_dimension_opt(cstyle.max_height.as_deref(), ctx)
+        .map(|v| spec_to_content(v, pad_border_v)).unwrap_or(-1.0);
     data[off + 14] = cw; // content_w
     data[off + 15] = ch; // content_h
     data[off + 16] = 0.0; // vertical_align (0=baseline)
@@ -1497,11 +1514,12 @@ mod tests {
         assert_eq!(c0.width, 300.0, "auto width → 컨테이너 폭 stretch");
     }
 
-    /// block 자식 명시 px width → padding/border 더해진 border-box.
+    /// block 자식 명시 px width = border-box (전역 * { box-sizing: border-box } 계약).
+    /// padding 은 명시 폭 안에 포함된다 — 가산 아님.
     #[test]
-    fn block_child_explicit_width_adds_padding() {
+    fn block_child_explicit_width_is_border_box() {
         let mut tree = LayoutTree::new();
-        // 자식 width 100px + padding 10 좌우(총 20) → border-box 120.
+        // 자식 width 100px + padding 10 좌우(총 20) → border-box 그대로 100.
         let json = r#"[
             {"style":{"width":"100px","height":"30px","paddingLeft":"10px","paddingRight":"10px"},"children":[]},
             {"style":{"display":"block","width":"300px","height":"200px"},"children":[0]}
@@ -1509,7 +1527,22 @@ mod tests {
         let handles = tree.build_tree_batch(json).unwrap();
         tree.compute_layout(handles[1], 300.0, 200.0);
         let c0 = tree.get_layout(handles[0]);
-        assert_eq!(c0.width, 120.0, "explicit width + padding = border-box");
+        assert_eq!(c0.width, 100.0, "specified width = border-box (padding 포함)");
+    }
+
+    /// Button md 재현: height 30(= lineHeight 20 + paddingY 4×2 + border 1×2) 명시 →
+    /// border-box 그대로 30 (현행 결함: 40 으로 이중 가산).
+    #[test]
+    fn block_child_explicit_height_is_border_box_button_md() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"100px","height":"30px","paddingTop":"4px","paddingBottom":"4px","borderTop":"1px","borderBottom":"1px"},"children":[]},
+            {"style":{"display":"block","width":"300px","height":"200px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 300.0, 200.0);
+        let c0 = tree.get_layout(handles[0]);
+        assert_eq!(c0.height, 30.0, "Button md border-box height");
     }
 
     /// height:auto block 컨테이너 → 자식 stacking 합으로 intrinsic 도출.
