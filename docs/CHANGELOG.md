@@ -20,8 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Why**: 기존 `solve_grid` intrinsic 측정은 implicit auto row(`gridTemplateRows` 미명시 + placement 미명시) 경로만 발동. ProgressBar/Meter 는 `gridTemplateRows: "auto auto"` 명시 + 자식 gridRowStart/End placement 구조 → 미측정 → `grid.rs` 가 auto 를 1fr 로 근사해 available_h 를 나눠 가져 컨테이너가 availH 전체로 폭발(716) 또는 0 붕괴(availH<0)
     - 수정: 명시 track 안에 auto 토큰이 있으면 자식을 solve 해 intrinsic height 획득, 자식 gridRowStart(1-based line)로 row 결정 후 auto 토큰 row 만 max intrinsic 으로 치환(px/fr/% row 보존). flex.rs `cross_is_definite` 수정과 동형 축
     - 위치: `packages/composition-engine/src/tree.rs` (`solve_grid` auto row 측정 확장)
-  - 검증: 브라우저 재빌드 wasm 실측 — ProgressBar/Meter height **32**(availH=-1/716 양쪽 동일 = 폭발 없음, 이전 716/4), Track/Label CSS 정합, parse error 소멸. cargo lib 227 + golden 15 + tree_golden 7 = 0 failed(회귀 테스트 3종 추가), type-check PASS. reviewer approve(CRITICAL/HIGH 0)
-  - 후속(비차단): `gridRowStart` "span N" / 음수 line 미지원(현재 factory 순수 숫자 line 만 사용) — 향후 `grid.rs::parse_grid_line` 재사용 리팩터 대상
+  - **버그 #3 — grid 명시 auto column intrinsic 미측정** (#2 수정 후 cross-check 로 표면화):
+    - **Why**: `solve_grid` 는 auto row 만 측정하고 auto **column** 은 `grid.rs` 의 1fr 근사(available 분배)에 맡김. ProgressBar `gridTemplateColumns: "1fr auto"` 에서 CSS 는 auto col = value content(~29), 1fr = 나머지(~307) 인데, Skia 는 auto col 이 1fr 과 available 을 반반 나눠 가져 value 폭 발산(168) + 중앙으로 밀림(CSS 는 우측 정렬)
+    - 수정: `template_cols` 에 auto 토큰이 있으면 자식 intrinsic width 측정, gridColumnStart(1-based line)로 col 결정 후 auto 토큰 col 만 max intrinsic width 로 치환(1fr/px/% col 보존). auto row 와 대칭 로직
+    - 위치: `packages/composition-engine/src/tree.rs` (`solve_grid` auto column 측정 추가)
+  - 검증: 브라우저 재빌드 wasm 실측 — ProgressBar height **32**(availH=-1/716 양쪽 동일 = 폭발 없음, 이전 716/4), value **width 30 @우측**(CSS 29 정합, 이전 168 @중앙), Track/Label CSS 정합, parse error 소멸. cargo lib 229 + golden 15 + tree_golden 7 = 0 failed(회귀 테스트 5종 추가), type-check PASS. reviewer approve(CRITICAL/HIGH 0)
+  - 후속(비차단): auto row/column 측정의 `gridRowStart`/`gridColumnStart` "span N" / 음수 line 미지원(현재 factory 순수 숫자 line 만 사용) — 향후 `grid.rs::parse_grid_line` 재사용 리팩터 대상
 
 ## [flex 단일 라인 align-content/definite — ToggleButtonGroup height 397→30] - 2026-07-06
 
