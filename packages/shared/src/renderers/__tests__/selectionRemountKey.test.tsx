@@ -6,7 +6,11 @@ import {
   renderToggleButtonGroup,
 } from "../CollectionRenderers";
 import { renderTabs } from "../LayoutRenderers";
-import { renderGridList, renderListBox } from "../SelectionRenderers";
+import {
+  renderGridList,
+  renderListBox,
+  renderSlider,
+} from "../SelectionRenderers";
 
 /**
  * 회귀 방지 — selection 계열 컴포넌트의 패널 prop 토글 re-mount (2026-06-30).
@@ -146,6 +150,62 @@ describe("selection 컴포넌트 패널 토글 re-mount (회귀 방지 2026-06-3
       { ...gl, props: { selectionMode: "single", selectedKeys: ["card-3"] } },
       makeContext(
         { ...gl, props: { selectionMode: "single", selectedKeys: ["card-3"] } },
+        [],
+      ),
+    );
+    expect(keyOf(a)).not.toBe(keyOf(b));
+  });
+
+  // Slider 는 uncontrolled(defaultValue) 렌더 → value/min/max 편집 시 key 변경으로
+  //   리마운트해야 새 defaultValue/range 가 RAC 내부 state 에 반영된다. key 가 value 만
+  //   담으면 minValue/maxValue 편집이 리마운트를 못 걸어 RAC 가 이전 range 에 stale →
+  //   thumb 위치가 Skia(store 값 기준 percent)와 발산 (2026-07-06 전수조사: value=50/
+  //   max=63 이면 Skia 79% vs RAC clamp 100%).
+  it("Slider: value 변경 시 key 가 달라진다", () => {
+    const sl: PreviewElement = {
+      id: "sl-1",
+      type: "Slider",
+      props: { value: 50, minValue: 0, maxValue: 100 },
+    };
+    const a = renderSlider(sl, makeContext(sl, []));
+    const b = renderSlider(
+      { ...sl, props: { value: 30, minValue: 0, maxValue: 100 } },
+      makeContext(
+        { ...sl, props: { value: 30, minValue: 0, maxValue: 100 } },
+        [],
+      ),
+    );
+    expect(keyOf(a)).not.toBe(keyOf(b));
+  });
+
+  it("Slider: maxValue 변경 시 key 가 달라진다 (range 편집 리마운트)", () => {
+    const sl: PreviewElement = {
+      id: "sl-2",
+      type: "Slider",
+      props: { value: 50, minValue: 0, maxValue: 100 },
+    };
+    const a = renderSlider(sl, makeContext(sl, []));
+    const b = renderSlider(
+      { ...sl, props: { value: 50, minValue: 0, maxValue: 63 } },
+      makeContext(
+        { ...sl, props: { value: 50, minValue: 0, maxValue: 63 } },
+        [],
+      ),
+    );
+    expect(keyOf(a)).not.toBe(keyOf(b));
+  });
+
+  it("Slider: minValue 변경 시 key 가 달라진다 (range 편집 리마운트)", () => {
+    const sl: PreviewElement = {
+      id: "sl-3",
+      type: "Slider",
+      props: { value: 50, minValue: 0, maxValue: 100 },
+    };
+    const a = renderSlider(sl, makeContext(sl, []));
+    const b = renderSlider(
+      { ...sl, props: { value: 50, minValue: 20, maxValue: 100 } },
+      makeContext(
+        { ...sl, props: { value: 50, minValue: 20, maxValue: 100 } },
         [],
       ),
     );

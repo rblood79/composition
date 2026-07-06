@@ -1499,17 +1499,23 @@ export const renderSlider = (
   //   value 가 고정되어 드래그가 50 으로 복원됐다. defaultValue 로 주면 RAC 가 내부 state 로
   //   드래그를 관리. 빌더 inspector 가 value 를 편집하면 key 의 value 변경으로 리마운트되어
   //   새 defaultValue 가 반영된다 (편집 초기값 동기화 유지).
+  //   2026-07-06 전수조사: key 에 minValue/maxValue 도 포함. range(min/max) 편집은
+  //   value 불변이라 key 가 안 바뀌어 리마운트 실패 → RAC 가 이전 range 에 stale →
+  //   내부 value 가 새 max 로 clamp 되어 thumb 이 Skia(store value 기준 percent)와 발산
+  //   (value=50/max 100→63 시 RAC 63 clamp → thumb 100% vs Skia 79%).
+  const sliderMin = Number(element.props.minValue) || 0;
+  const sliderMax = Number(element.props.maxValue) || 100;
   return (
     <Slider
-      key={`${element.id}-${normalizedValue.join(",")}`}
+      key={`${element.id}-${normalizedValue.join(",")}-${sliderMin}-${sliderMax}`}
       id={element.customId}
       data-element-id={element.id}
       style={element.props.style}
       className={element.props.className}
       label={String(element.props.label || "")}
       defaultValue={normalizedValue}
-      minValue={Number(element.props.minValue) || 0}
-      maxValue={Number(element.props.maxValue) || 100}
+      minValue={sliderMin}
+      maxValue={sliderMax}
       step={Number(element.props.step) || 1}
       orientation={
         (element.props.orientation as "horizontal" | "vertical") || "horizontal"
