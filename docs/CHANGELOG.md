@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Taffy 완전 제거 — ADR-916 endgame] - 2026-07-06
+
+### Architecture
+
+- **Taffy 외부 의존 완전 제거 — 자체 엔진(composition-engine) 단독 운영** (ADR-916 endgame, kill criteria 3/3 후속):
+  - **Why**: ADR-916 Implemented(2026-07-06, layout 엔진 전환 완료) + endgame kill criteria 3/3 충족 후 잔존 Taffy 물리 자산 정리 — 단일 엔진 SSOT 확립 + 번들 감소(이중 WASM 로드 해소) + R4 폴백 이중화 HIGH 위험 해소.
+  - Rust crate 2종 물리 삭제: `packages/composition-layout`(taffy 0.10, Phase 0-A 폐기 경로) + `apps/builder/src/builder/workspace/canvas/wasm`(composition-wasm, taffy 0.9, 3,578라인, `taffy_bridge`/`binary_protocol`/`block_layout`/`grid_layout`) + WASM 산출물 `wasm-bindings/pkg`(452K).
+  - Taffy 소비 JS 삭제(13파일): `taffyLayout.ts`/`rustWasm.ts`/`layoutEngine.ts` + `wasm-worker/` 전체(5) + dual-run 하네스(`dualRunEngines`/`dualRunHarness`(+test)/`dualRunLive.test`/`persistentTaffyTree.seam.test`).
+  - `createLayoutEngine()` 자체 엔진 단독 반환 — Taffy 폴백 경로(`new TaffyLayout()`) 소멸. 로드 실패 보상은 기존 15초 폴링/재시도 부트스트랩 유지(신규 폴백 코드 없음). 부팅 게이트 `isRustWasmReady`→`isCompositionEngineReady` 전환(bootstrap + fullTreeLayout).
+  - 타입 소스 이전: `LayoutResult`→`compositionEngine.ts`, `TaffyStyle` 계열/`TaffyNodeHandle`→신규 `layoutTypes.ts`. 보존 변환기 `TaffyFlexEngine`/`TaffyBlockEngine`/`TaffyGridEngine` 은 이름만 Taffy — 순수 JS element→style 변환, 자체 엔진이 소비.
+  - build 스크립트 정리: `build:layout`/`wasm:build`/`wasm:dev`/`wasm:test` 제거, `wasm:build:engine`(자체 엔진) 존치.
+  - 검증: type-check baseline 69 신규 0 / composition-engine cargo test 233 PASS(Taffy crate 삭제 후 자체 엔진 테스트 무손실) / Chrome MCP live exercise — `[ADR-916] composition-engine WASM initialized` 부팅 + 콘솔 에러 0 + 컨테이너·grid 배치 + Canvas↔CSS 시각 정합(폴백 없이 자체 엔진 단독).
+  - 위치: `apps/builder/src/builder/workspace/canvas/{wasm-bindings,layout/engines,hooks}/`, 삭제 `packages/composition-layout/`.
+
 ## [자체 단일 Rust 레이아웃 엔진 통합 — ADR-916 Implemented] - 2026-07-06
 
 ### Architecture

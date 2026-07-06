@@ -561,7 +561,7 @@ function patchBatchStyleFromImplicit(
 /**
  * TaffyStyle 객체를 JSON 직렬화 가능한 Record로 변환.
  *
- * TaffyLayout 클래스 내부의 normalizeStyle()과 동일한 변환 규칙을 적용한다.
+ * 자체 엔진 pkg 에 전달할 style JSON 정규화 규칙을 적용한다.
  * - 숫자 dimension 값은 `${v}px` 문자열로 변환
  * - undefined 필드는 결과에서 제외
  * - 배열 필드(grid track)는 그대로 전달

@@ -187,13 +187,21 @@
 2. **crate 물리 결합** — Taffy crate/pkg 물리 삭제 = SpatialIndex 별도 crate 분리 선행 필요(`composition_wasm` 동일 crate). endgame 자체보다 큰 별도 리팩토링. [[feedback-execute-adr-surface-minimization]] 표면 과대.
 3. **폴백 = live 안전망(dead 아님)** — 1-E 에서 사용자 명시 "폴백 유지" 선택. `layoutBridge.ts:84` 는 자체 WASM 미준비 시 실발동 런타임 경로. 자체 엔진 미Implemented(Status=Accepted) 상태 안전망 제거는 시기상조.
 
-**endgame kill criteria (모두 충족 시 재개 — 안정화 기간 조건은 사용자 결정 2026-07-06으로 제거, 현재 충족 2/3)**:
+**endgame kill criteria (모두 충족 시 재개 — 안정화 기간 조건은 사용자 결정 2026-07-06으로 제거, 전수 충족 3/3 → 물리 삭제 완료)**:
 
 1. ~~독립 oracle 확보~~ **✅ 충족 2026-07-06** — Chrome 실측(브라우저 ground truth) golden 상수로 tree.rs 트리 배치 회귀를 Taffy-비의존으로 감시. `tests/tree_golden.rs`(C-2b fixture N1~N5, 6 test)(아래 land 블록).
 2. ~~SpatialIndex crate 분리~~ **✅ 충족 2026-07-05** — SpatialIndex 를 Taffy crate(`composition_wasm`)에서 자체 엔진 crate(`composition-engine`, taffy-free)로 이동. Taffy crate 만 삭제 가능한 상태 도달(아래 land 블록).
 3. ~~ADR-916 Status = Implemented 승격~~ **✅ 충족 2026-07-06** — layout 엔진 Taffy 대체 live 완료(ADR 본 목표) = 사용자 결정 "layout 완료 = 승격". Status Accepted → Implemented(아래 land 블록).
 
-현재 3개 중 충족 **3(① 독립 oracle + ② SpatialIndex crate 분리 + ③ Implemented 승격)**. **endgame kill criteria 전수 충족(3/3) → Taffy crate/pkg 물리 삭제 착수 가능**(별도 사용자 승인). R4(폴백 로직 이중화 HIGH)는 물리 삭제 완료 시점까지 잔존(dual-run CI 상시 관리) — 삭제가 R4 의 소멸 조건. **dualRunLive 의 Taffy leg 는 물리 삭제 전까지 안전망 유지** — tree_golden 은 Taffy-비의존 독립 감시를 추가한 것이라 삭제 후에도 tree.rs 회귀 감시 지속.
+현재 3개 중 충족 **3(① 독립 oracle + ② SpatialIndex crate 분리 + ③ Implemented 승격)**. **endgame kill criteria 전수 충족(3/3) → Taffy crate/pkg 물리 삭제 완료 (2026-07-06, 사용자 승인 "2단계까지 진행해" + "이번에 물리 삭제까지")**. R4(폴백 로직 이중화 HIGH)는 물리 삭제로 **소멸** — Taffy 폴백 경로(`layoutBridge.ts` `new TaffyLayout()`) + crate/pkg 삭제로 로직 이중화 자체 제거. **dualRunLive 의 Taffy leg 는 물리 삭제와 함께 소멸** — tree_golden(Taffy-비의존 Chrome 실측 독립 oracle)이 tree.rs 회귀 감시를 단독 지속.
+
+**✅ Taffy 완전 제거 land 2026-07-06 (endgame 완결)**: 사용자 "endgame Taffy 물리 삭제 착수 가능한지 실측" → 실측(2단계 분리 판정) → "2단계까지 진행해" + "이번에 물리 삭제까지" 승인 → brainstorming → writing-plans(Fable 5) → subagent-driven 7 태스크 실행.
+
+- **삭제 (git rm)**: Rust crate 2종 — `packages/composition-layout`(taffy 0.10, Phase 0-A 폐기) + `apps/builder/.../canvas/wasm`(composition-wasm, taffy 0.9, 3,578라인) + WASM 산출물 `wasm-bindings/pkg`(452K). JS 13파일 — `taffyLayout.ts`/`rustWasm.ts`/`layoutEngine.ts` + `wasm-worker/`(5) + dual-run 하네스 5(`dualRunEngines`/`dualRunHarness`(+test)/`dualRunLive.test`/`persistentTaffyTree.seam.test`).
+- **재배선 (HIGH)**: `createLayoutEngine()` 자체 엔진 단독 반환(폴백 제거, Q1=B). 부팅 게이트 `isRustWasmReady`→`isCompositionEngineReady`(useCanvasRuntimeBootstrap 15초 폴링 구조 유지 + fullTreeLayout:2188 live 게이트). init.ts Taffy pkg 로드 + dead LAYOUT_WORKER 블록 제거. 타입 이전 `LayoutResult`→compositionEngine.ts / `TaffyStyle`·`TaffyNodeHandle`→신규 layoutTypes.ts.
+- **보존**: `TaffyFlexEngine`/`TaffyBlockEngine`/`TaffyGridEngine`(이름만 Taffy — 순수 JS element→style 변환, fullTreeLayout live 소비) + `persistentTaffyTree.ts`(createLayoutEngine 경유 자체 엔진 주입).
+- **검증**: type-check baseline 69 신규 0 / composition-engine cargo test 233 PASS(Taffy crate 삭제 후 자체 엔진 무손실) / **Chrome MCP live exercise** — builder 부팅 + 콘솔 Taffy/WASM 에러 0(inlinealert 는 선재 무관) + Skia canvas webgl non-empty + 요소 흐름 배치(8 distinct y, (0,0) 뭉침 없음) + Canvas↔CSS 시각 정합(Text/Badge/Progress 50%/InlineAlert/Button 양쪽 동일) + `window.TaffyLayout`/`getRustWasm` 전역 부재(완전 제거 확증). **폴백 없이 자체 Rust 엔진 단독 layout batch 계산 확증**.
+- **commit**: 15635b194(타입 이전) / 5a58a2fc4(재배선) / d5e445e9a(init·flags) / 62b5a4a87+f2efd2596(JS 삭제) / e82931bc8(crate·pkg 물리 삭제) / 022f43c5a(build 스크립트).
 
 **✅ SpatialIndex crate 분리 land 2026-07-05 (kill criteria ② 충족)**: 사용자 "SpatialIndex crate 분리 착수 가능한지 실측" → 실측(코드 결합 0) → "지금 착수 — 독립 정리" + "composition-engine 로 이동" 결정.
 

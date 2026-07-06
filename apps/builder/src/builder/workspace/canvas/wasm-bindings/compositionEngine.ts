@@ -2,22 +2,20 @@
  * composition-engine 동기 wrapper (ADR-916 Phase 2-B seam C-2a)
  *
  * 자체 레이아웃 엔진(`packages/composition-engine` 의 wasm-bindgen `LayoutEngine`)을
- * `LayoutEngineAPI`(layoutBridge.ts) 계약으로 노출한다. taffy `TaffyLayout` 과 동일
- * 역할 — `createLayoutEngine()` seam 에 flag 로 교체 가능하게 꽂힌다.
+ * `LayoutEngineAPI`(layoutBridge.ts) 계약으로 노출한다. ADR-916 Taffy 완전 제거
+ * (2026-07-06) 후 이 wrapper 가 `createLayoutEngine()` seam 의 유일 구현이다.
  *
- * ## 왜 얇은가 (taffy wrapper 대비)
+ * ## 왜 얇은가
  *
- * taffy `TaffyLayout` 은 WASM 이 snake_case(`build_tree_batch`)라 이름 매핑을
- * 하지만, 자체 pkg `LayoutEngine` 은 **이미 camelCase 16-메서드 = LayoutEngineAPI
- * 이름 일치**(wasm.rs `#[wasm_bindgen(js_name = ...)]` 로 계약 정합). 따라서 본
- * wrapper 는 이름 매핑 없이 raw 반환(Uint32Array/Float32Array)만 number[]/Map 으로
- * 변환한다.
+ * 자체 pkg `LayoutEngine` 은 **이미 camelCase 16-메서드 = LayoutEngineAPI 이름 일치**
+ * (wasm.rs `#[wasm_bindgen(js_name = ...)]` 로 계약 정합)라, 본 wrapper 는 이름 매핑
+ * 없이 raw 반환(Uint32Array/Float32Array)만 number[]/Map 으로 변환한다.
  *
  * ## 동기 생성 (전역 캐시)
  *
  * 생성자는 `getCompositionEngineWasm()`(비동기 startup 로 미리 채워진 전역 캐시)에서
  * `new LayoutEngine()` 을 즉시 생성한다. WASM 미준비면 engine=null → isAvailable()
- * 이 lazy re-init. taffy `TaffyLayout.tryInit()` 패턴과 동일.
+ * 이 lazy re-init.
  *
  */
 
@@ -38,7 +36,7 @@ export interface LayoutResult {
   height: number;
 }
 
-/** Opaque handle to a layout node. Mirrors TaffyNodeHandle. */
+/** Opaque handle to a layout node. */
 export type LayoutNodeHandle = number;
 
 /**
@@ -64,7 +62,7 @@ function flatToLayoutMap(
 
 /**
  * composition-engine 의 고수준 TypeScript wrapper.
- * API 는 `LayoutEngineAPI`(= TaffyLayout batch 계약)를 미러링하므로 flag 로 교체 가능.
+ * API 는 `LayoutEngineAPI`(batch 계약)를 구현한다.
  */
 export class CompositionEngineLayout {
   private engine: RawCompositionLayoutEngine | null = null;
