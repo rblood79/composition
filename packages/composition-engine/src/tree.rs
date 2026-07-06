@@ -1093,21 +1093,27 @@ fn write_flex_item(
     let (main_size, cross_size) = if is_row { (expl_w, expl_h) } else { (expl_h, expl_w) };
     let (content_main, content_cross) = if is_row { (cw, ch) } else { (ch, cw) };
 
-    // flex_basis: 미지정(auto) → -1.
+    let pad_border_main = axis_pad_border(cstyle, ctx, is_row);
+    let pad_border_cross = axis_pad_border(cstyle, ctx, !is_row);
+
+    // specified size 는 border-box — 논리축별 pad_border 감산 (min/max 동일).
     data[off] = -1.0; // flex_basis AUTO (basis:content/px 는 단위 3 이후)
-    data[off + 1] = main_size.unwrap_or(-1.0);
-    data[off + 2] = cross_size.unwrap_or(-1.0);
+    data[off + 1] = main_size.map(|v| spec_to_content(v, pad_border_main)).unwrap_or(-1.0);
+    data[off + 2] = cross_size.map(|v| spec_to_content(v, pad_border_cross)).unwrap_or(-1.0);
     data[off + 3] = resolve_dimension(cstyle.margin_top.as_deref(), ctx);
     data[off + 4] = resolve_dimension(cstyle.margin_right.as_deref(), ctx);
     data[off + 5] = resolve_dimension(cstyle.margin_bottom.as_deref(), ctx);
     data[off + 6] = resolve_dimension(cstyle.margin_left.as_deref(), ctx);
-    data[off + 7] = axis_pad_border(cstyle, ctx, is_row); // pad_border_main
-    data[off + 8] = axis_pad_border(cstyle, ctx, !is_row); // pad_border_cross
-    // min/max: 미지정 → -1 (AUTO/NONE).
-    data[off + 9] = resolve_dimension_opt(min_main_str(cstyle, is_row), ctx).unwrap_or(-1.0);
-    data[off + 10] = resolve_dimension_opt(max_main_str(cstyle, is_row), ctx).unwrap_or(-1.0);
-    data[off + 11] = resolve_dimension_opt(min_cross_str(cstyle, is_row), ctx).unwrap_or(-1.0);
-    data[off + 12] = resolve_dimension_opt(max_cross_str(cstyle, is_row), ctx).unwrap_or(-1.0);
+    data[off + 7] = pad_border_main;
+    data[off + 8] = pad_border_cross;
+    data[off + 9] = resolve_dimension_opt(min_main_str(cstyle, is_row), ctx)
+        .map(|v| spec_to_content(v, pad_border_main)).unwrap_or(-1.0);
+    data[off + 10] = resolve_dimension_opt(max_main_str(cstyle, is_row), ctx)
+        .map(|v| spec_to_content(v, pad_border_main)).unwrap_or(-1.0);
+    data[off + 11] = resolve_dimension_opt(min_cross_str(cstyle, is_row), ctx)
+        .map(|v| spec_to_content(v, pad_border_cross)).unwrap_or(-1.0);
+    data[off + 12] = resolve_dimension_opt(max_cross_str(cstyle, is_row), ctx)
+        .map(|v| spec_to_content(v, pad_border_cross)).unwrap_or(-1.0);
     data[off + 13] = content_main;
     data[off + 14] = content_cross;
     data[off + 15] = cstyle.flex_grow.unwrap_or(0.0).max(0.0);
@@ -1459,6 +1465,35 @@ mod tests {
         let inner = tree.get_layout(handles[1]);
         assert_eq!(inner.y, 0.0);
         assert_eq!(inner.width, 200.0);
+    }
+
+    /// flex row 자식 명시 width = border-box — padding/border 가산 아님.
+    #[test]
+    fn flex_child_explicit_width_is_border_box() {
+        let mut tree = LayoutTree::new();
+        // 자식 width 100px + padding 좌우 10 + border 좌우 1 → border-box 그대로 100.
+        let json = r#"[
+            {"style":{"width":"100px","height":"30px","paddingLeft":"10px","paddingRight":"10px","borderLeft":"1px","borderRight":"1px"},"children":[]},
+            {"style":{"display":"flex","width":"300px","height":"200px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 300.0, 200.0);
+        let c0 = tree.get_layout(handles[0]);
+        assert_eq!(c0.width, 100.0, "flex main 축 specified = border-box");
+    }
+
+    /// flex column 자식 명시 width(cross 축) = border-box.
+    #[test]
+    fn flex_column_child_cross_width_is_border_box() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"100px","height":"30px","paddingLeft":"10px","paddingRight":"10px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"column","width":"300px","height":"200px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 300.0, 200.0);
+        let c0 = tree.get_layout(handles[0]);
+        assert_eq!(c0.width, 100.0, "flex cross 축 specified = border-box");
     }
 
     // ── 단위 3-a: block dispatch ──
