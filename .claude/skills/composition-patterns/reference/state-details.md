@@ -25,14 +25,22 @@ await db.updateElement({ id, props: merged });
 - 갱신 누락 시: 삭제된 요소가 레이어 트리(Layer Panel)에 유령 항목으로 남음
 
 ```typescript
-// executeRemoval 완료 직후
+// executeRemoval (elementRemoval.ts) — pageIndex 재구축 후 snapshot 재구성
+const newPageIndex = rebuildPageIndex(updatedElements, newElementsMap);
+const newPageElementsSnapshot: Record<string, Element[]> = {};
+for (const [pageId, elementIds] of newPageIndex.elementsByPage.entries()) {
+  newPageElementsSnapshot[pageId] = updatedElements.filter((element) =>
+    elementIds.has(element.id),
+  );
+}
 set((state) => ({
-  pageElementsSnapshot: buildPageElementsSnapshot(
-    state.elementsMap,
-    state.childrenMap,
-  ),
+  // ...elementsMap/childrenMap/pageIndex 갱신과 함께
+  pageElementsSnapshot: newPageElementsSnapshot,
+  layoutVersion: state.layoutVersion + 1, // 구조 변경 → 무조건 증가
 }));
 ```
+
+일반 재구축 경로는 `elements.ts` 의 `_rebuildIndexes` — canonical 우선 derive 후 `pageIndex.elementsByPage` 를 순회하며 `elementsMap` 조회로 `pageElementsSnapshot` 을 재구성한다 (구 `buildPageElementsSnapshot()` 헬퍼는 소멸 — 인라인 재구성).
 
 ## PropertyUnitInput 요소 전환 보호
 
@@ -52,34 +60,11 @@ const handleInputBlur = (value: string) => {
 };
 ```
 
-## buildSelectedElement에 properties 전달
+## 스타일 패널 상태 흐름 (Zustand 단독)
 
-`useZustandJotaiBridge.ts`의 `StylePanelSelectedElement`에 `properties` 필드를 반드시 포함해야 한다.
+구 Jotai bridge (`useZustandJotaiBridge`/`SyntheticComputedStyle` atom 체인) 는 전면 제거됨 — 스타일 패널은 Zustand store 단독으로 동작한다.
 
-```typescript
-// effectiveProps에서 size/variant를 추출하여 properties로 전달
-const properties = {
-  size: effectiveProps.size,
-  variant: effectiveProps.variant,
-};
-buildSelectedElement({ element, properties });
-```
-
-미전달 시: `computeSyntheticStyle`이 size를 모름 → 항상 `"md"` fallback → 잘못된 fontSize 표시.
-
-## SyntheticComputedStyle 확장 규칙
-
-Spec preset에 새 속성을 추가할 때:
-
-1. `SyntheticComputedStyle` 인터페이스에 해당 속성 추가
-2. `typographyValuesAtom` + 개별 atom에 synthetic fallback 체인 추가
-
-```typescript
-// 우선순위 체인 예시
-const fontSizeAtom = atom((get) => {
-  const inline = get(inlineStyleAtom).fontSize; // 1순위: inline
-  const computed = get(computedStyleAtom).fontSize; // 2순위: computed(상속)
-  const synthetic = get(syntheticStyleAtom).fontSize; // 3순위: synthetic(preset)
-  return inline ?? computed ?? synthetic ?? DEFAULT_FONT_SIZE; // 4순위: 글로벌 기본값
-});
-```
+- 값 표시 우선순위: inline style 우선, 없으면 spec/catalog preset fallback — 예: `useLayoutValues` (`apps/builder/src/builder/panels/styles/hooks/useLayoutValues.ts`) 의 `firstDefined(inline, specPx, fallback)` 3-arg 패턴
+- store 는 longhand 만 저장 (`gap`→`rowGap`/`columnGap`, `padding`→4-way 등) — consumer 는 longhand 우선 + shorthand fallback 으로 읽기
+- `PropertyUnitInput` commit 판정은 `lastSavedValueRef` 단독 기준 + focus 중에는 value prop 변경에 의한 리셋 skip
+- 정본: `.claude/rules/style-ssot.md` (ADR-909)

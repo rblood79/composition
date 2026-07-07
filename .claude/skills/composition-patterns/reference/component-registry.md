@@ -1,231 +1,173 @@
-# Component Registry & Tag Sets
+# Component Registry & Tag Sets — 구현 상세
 
-## 목차
+> **정본 분리**: `_hasChildren` 3분류 원칙·판정 알고리즘·금지 패턴 정본은
+> [.claude/rules/canvas-rendering.md](../../../rules/canvas-rendering.md) §2.5. 본 문서는
+> **어떤 Set/registry 가 어디 있고 무엇을 제어하는지**의 위치 지도와 신규 등록 점검 순서만 담는다.
+>
+> **공식 결정 계보**: ADR-072 (`_hasChildren` 3분류) → ADR-142 (componentCatalog 단일 등록 SSOT) →
+> ADR-914 (Entry Universe facet spine) → ADR-912 (spec 삭제·catalog 전환 완결). 본 문서 기준일: 2026-07-07.
 
-- 컴포넌트 등급 현황 (A/B+/B/D) — L3
-- Complex Component 목록 및 `COMPLEX_COMPONENT_TAGS` — L17
-- `_hasChildren` 컨테이너 3분류 — `SHELL_ONLY_CONTAINER_TAGS` / `SYNTHETIC_CHILD_PROP_MERGE_TAGS` (ADR-072) — L113
-- `NON_CONTAINER_TAGS` — L124
-- rearrangeShapesForColumn 가드 (SPEC_RENDERS_ALL_TAGS_SET) — L161
+## Drift 방지 원칙 (CRITICAL)
+
+**본 문서는 Set 멤버를 나열하지 않는다** — 파일:라인 포인터만 기재한다.
+**Why**: 2026-07 audit 에서 구 문서의 멤버 스냅샷이 실제 코드와 불일치했다
+(SHELL_ONLY 15 vs 실제 17 / SYNTHETIC 10~11 vs 실제 9). 멤버십이 필요하면 항상 해당 파일을 Read 한다.
+멤버 수 표기는 "2026-07-07 기준" 참고값이며 정본이 아니다.
 
 ---
 
-### 컴포넌트 등급 현황 (Wave 4 완료, 2026-02-19 / Breadcrumbs 승격 2026-02-23)
+## 1. 등록 SSOT — componentCatalog (ADR-142)
 
-모든 Pixi 컴포넌트가 A 또는 B+ 등급으로 전환 완료됐습니다.
+컴포넌트 등록의 단일 SSOT 는 `packages/shared/src/catalog/componentCatalog.ts` 다.
+구 6개 레지스트리(Component Panel / Factory / rendererMap / getDefaultProps /
+BASE_TAG_SPEC_MAP / builder TAG_SPEC_MAP)를 대체한다.
 
-| 등급 | 의미                                     | 예시                                              |
-| ---- | ---------------------------------------- | ------------------------------------------------- |
-| A    | Taffy/Dropflow 레이아웃 위임 + 자식 분리 | Button, Badge, ProgressBar, TagGroup, Breadcrumbs |
-| B+   | Context 우선 + fallback, 일부 자체 계산  | Checkbox, Radio, Switch, Input                    |
-| B    | 엔진 위임하나 자체 텍스트 배치           | Card, Meter                                       |
-| D    | 캔버스 상호작용 불필요 (프리뷰 전용)     | Calendar, DatePicker, ColorPicker                 |
+| 심볼                                                                                     | 위치                                      | 내용                                                                                                                                        |
+| ---------------------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `componentCatalog`                                                                       | `componentCatalog.ts:1108`                | 전체 entry 배열. `kind: "primitive"`(leaf, `binding` 정의) 또는 `kind: "reusable"`(`reusableId` → canonical reusable 문서)                  |
+| `ComponentFamily`                                                                        | `catalog/types.ts:20`                     | 8 family: primitives / fields / selection / collections / tree-table / overlays / date-color / composition-native                           |
+| `CutoverState`                                                                           | `catalog/types.ts:35`                     | `legacy → cutting-over → catalog`. **family 단위 atomic** — 같은 family 안 혼재 금지 (불변식 D)                                             |
+| `isCatalogCutover(type)`                                                                 | `catalog/cutover.ts:24`                   | `cutover === "catalog"` entry 에서 모듈 로드 시 1회 파생되는 단일 게이트. DOM(Preview)/Inspector/Skia 가 동시에 catalog generic 경로로 전환 |
+| `getCatalogEntry` / `getPanelMeta` / `getCatalogCutoverTypes` / `getCatalogDefaultProps` | `componentCatalog.ts:1124/1135/1151/1170` | 조회 진입점                                                                                                                                 |
+| `PrimitiveBinding`                                                                       | `catalog/types.ts:69`                     | leaf 의 DOM source(`rac`/`internal`) + props schema + skiaPrimitive 참조. 개별 정의: `catalog/bindings/{Type}.binding.ts`                   |
 
-> C등급 (자체 렌더링 + 수동 배치)은 Wave 4에서 전부 제거됐습니다.
-> `SELF_PADDING_TAGS`, `renderWithPixiLayout()` 등 구 패턴도 삭제 완료.
+### D3 시각 규칙 — COMPONENT_RULES_TABLE
 
-### Complex Component 목록 및 `COMPLEX_COMPONENT_TAGS` 공유 상수
+| 심볼                               | 위치                                                           | 내용                                                                                                                                                                            |
+| ---------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `COMPONENT_RULES_TABLE`            | `packages/shared/src/catalog/generated/componentRulesTable.ts` | **직접 편집 정본** (ADR-912 1A-(a) 로 freeze — 더 이상 build-time 생성물 아님, 생성기 물리 삭제됨). 124 spec 투영 결과가 출발점. variants/sizes/fill 변경은 이 파일을 직접 편집 |
+| `resolveComponentRule(type, doc?)` | `catalog/resolvers/resolveComponentRule.ts:23`                 | doc override(`doc.componentRules`) 우선 + 테이블 fallback — generic 렌더러의 D3 단일 진입점                                                                                     |
+| `resolveStaticComponentRule(type)` | 동일 파일                                                      | doc 파라미터 없는 theme rule base 전용 (ADR-916 P2-CAT 정적 스냅샷용 — override 유입이 compile error)                                                                           |
+| `resolveSkiaRule(type)`            | `canvas/skia/resolveSkiaVisualRule.ts:78`                      | builder Skia 측 read-through wrapper                                                                                                                                            |
+| `buildCatalogShapes`               | `packages/specs/src/renderers/buildCatalogShapes.ts:110`       | component-agnostic generic box+text 생성기. **컴포넌트 식별 분기 금지** — 비-trivial primitive(원/선/아이콘)는 `binding.skiaPrimitive`(`renderers/skiaPrimitives.ts`) 가 담당   |
 
-자식 DOM 구조를 factory로 생성하는 복합 컴포넌트입니다.
+Skia 진입 게이트: `StoreRenderBridge.ts:135` `isSpecPath()` = `getSpecForTag(type) || isCatalogCutover(type)`.
+**Why**: spec 파일이 삭제된 catalog 전환 type(Text/Heading 등)은 TAG_SPEC_MAP 에 없지만
+generic 경로(buildCatalogShapes)로 그릴 수 있어야 한다 — 등록 여부만 보면 Skia 노드 미생성.
 
-**`COMPLEX_COMPONENT_TAGS`** (`apps/builder/src/builder/factories/constants.ts`): 두 곳에서 공유하는 Set 상수입니다.
+---
 
-- **`useElementCreator.ts`**: `COMPLEX_COMPONENT_TAGS.has(tag)`로 Factory 경로 분기 — 복합 컴포넌트면 `ComponentFactory.createComplexComponent()` 호출
-- **`ElementSprite.tsx`**: `COMPLEX_COMPONENT_TAGS.has(tag)`로 `_hasChildren=true` 강제 주입 — 자식 삭제 후에도 standalone spec shapes로 되돌아가지 않도록 보장
+## 2. Entry Universe — facet spine (ADR-914)
 
-```typescript
-// apps/builder/src/builder/factories/constants.ts
-export const COMPLEX_COMPONENT_TAGS = new Set([
-  // Form Input
-  "TextField",
-  "TextArea",
-  "NumberField",
-  "SearchField",
-  "DateField",
-  "TimeField",
-  "ColorField",
-  // Selection
-  "Select",
-  "ComboBox",
-  "ListBox",
-  "GridList",
-  "List",
-  // Control
-  "Checkbox",
-  "Radio",
-  "Switch",
-  "Slider",
-  "ToggleButtonGroup",
-  "Switcher",
-  // Group
-  "CheckboxGroup",
-  "RadioGroup",
-  // Layout
-  "Card",
-  // Navigation
-  "Menu",
-  "Disclosure",
-  "DisclosureGroup",
-  "Pagination",
-  // Overlay
-  "Dialog",
-  "Popover",
-  "Tooltip",
-  // Feedback
-  "Form",
-  "Toast",
-  "Toolbar",
-  // Date & Color
-  "DatePicker",
-  "DateRangePicker",
-  "Calendar",
-  "ColorPicker",
-  "ColorSwatchPicker",
-  // Phase 4 (ADR-030)
-  "SegmentedControl",
-  "CardView",
-  "TableView",
-  "SelectBoxGroup",
-  // SYNTHETIC_CHILD_PROP_MERGE_TAGS 소속 (자식 props를 spec shapes에 통합)
-  // buildSpecNodeData.ts에서 _hasChildren 주입 차단 — 안전 (ADR-072 참조)
-  // useElementCreator의 Factory 경로 분기 목적으로만 등록
-  "Tabs",
-  "Tree",
-  "TagGroup",
-  "Table",
-]);
-```
+`apps/builder/src/builder/factories/entryUniverse.ts` 의 `resolveComponentEntryRuntime(type)`(:270) 이
+한 component type 의 runtime 권한 5 facet 을 노출한다. 각 facet 의 membership SSOT 는
+**기존 Set 을 그대로 읽는다** (별도 declaration 파일 신설 금지 — 손등록 surface 감소가 collapse 목적).
+`factories/__tests__/entryUniverseContract.test.ts` 가 양방향 parity 를 primary gate 로 검증한다.
 
-**버그 수정 맥락 (2026-02-24)**: 이전에는 `useElementCreator.ts`에 로컬 `complexComponents` 배열이 있었고, `ElementSprite.tsx`는 `childElements.length > 0`만 체크했습니다. TextField 등에서 자식을 모두 삭제하면 `_hasChildren=false`가 되어 standalone label+input spec shapes가 재활성화되는 버그가 있었습니다. `COMPLEX_COMPONENT_TAGS` 공유 상수 도입으로 두 파일이 동일한 목록을 참조하고, `ElementSprite.tsx`는 complex component에 항상 `_hasChildren=true`를 주입하여 버그를 수정했습니다.
+| facet                                          | 값                                                                | membership SSOT (파일:라인)                                                                                                                                                                                                     |
+| ---------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `render.mode`                                  | `delegating-rac` / `delegating-internal` / `internal` / `generic` | `RENDER_FACET_DELEGATIONS` — `preview/components/renderFacetDeclaration.ts:68` (순수 데이터, CanonicalNodeRenderer 와 entryUniverse 가 공유 파생). internal 은 `INTERNAL_RENDERERS`(CanonicalNodeRenderer.tsx)                  |
+| `render.hasTagSpecEntry` / `hasCatalogCutover` | boolean                                                           | `TAG_SPEC_MAP`(@composition/specs) / `getCatalogCutoverTypes()` — ADR-139 invariant B (`placeable ⟹ TAG_SPEC_MAP OR catalog`) substrate                                                                                         |
+| `defaults.source`                              | `entry-derived` / `map`                                           | `ENTRY_DERIVED_DEFAULT_TYPES` + `deriveDefaultPropsFromCatalog`(`types/builder/defaultPropsDerivation.ts`) vs `DEFAULT_PROPS_MAP`(`types/builder/unified.types.ts`)                                                             |
+| `creation.mode`                                | `reusableOrigin` > `complex` > `none`                             | `REUSABLE_COMPOSITE_ORIGINS`(`components/reusableCompositeOrigins.ts`, `isReusableCompositeType`) / `COMPLEX_COMPONENT_TAGS`(`factories/constants.ts:28`). palette-add 소비: `useElementCreator.ts:192` 가 동일 우선순위로 분기 |
+| `propagation.registered`                       | boolean                                                           | `getRegisteredPropagationTags()`(`utils/propagationRegistry.ts`)                                                                                                                                                                |
+| `childRuntime.syntheticPropMerge`              | boolean                                                           | `SYNTHETIC_CHILD_PROP_MERGE_TAGS`(`buildSpecNodeData.ts:214`)                                                                                                                                                                   |
+| `childRuntime.popoverHosted`                   | boolean                                                           | `POPOVER_CHILDREN_TAGS`(`implicitStyles.ts:430`)                                                                                                                                                                                |
+| `childRuntime.fieldVisibleChildTags`           | string[] \| null                                                  | `FIELD_VISIBLE_CHILD_TAGS`(`implicitStyles.ts:453`)                                                                                                                                                                             |
 
-| 컴포넌트   | DOM 구조                                                           | factory 정의 파일                              |
-| ---------- | ------------------------------------------------------------------ | ---------------------------------------------- |
-| `Select`   | Select > Label, SelectTrigger > SelectValue, SelectIcon            | `FormComponents.ts`                            |
-| `ComboBox` | ComboBox > Label, ComboBoxWrapper > ComboBoxInput, ComboBoxTrigger | `FormComponents.ts`                            |
-| `Slider`   | Slider > Label, SliderOutput, SliderTrack > SliderThumb            | `FormComponents.ts → createSliderDefinition()` |
+placeable universe 열거: `getEntryUniverseTypes()`(:304) = `ComponentFactory.getRegisteredTypes()`
+(`factories/ComponentFactory.ts:177`). factory 정의 본체: `factories/definitions/` 10 파일
+(FormComponents / SelectionComponents / LayoutComponents 등).
 
-**Slider factory 참조**: `FormComponents.ts`의 `createSliderDefinition()`
+---
 
-- `ElementSprite.tsx`의 `_hasLabelChild` 체크에 `'Slider'` 포함
-- `Slider.css`는 class selector 대신 `[data-size="sm"]`, `[data-variant="primary"]` data-attribute selector 사용
-- SLIDER_DIMENSIONS 기준: `{ sm: { trackHeight: 4, thumbSize: 14 }, md: { trackHeight: 6, thumbSize: 18 }, lg: { trackHeight: 8, thumbSize: 22 } }`
+## 3. 분류 Set 지도
 
-### `_hasChildren` 컨테이너 3분류 (ADR-072)
+멤버가 필요하면 **파일을 Read** — 아래는 위치와 제어 대상만.
 
-`buildSpecNodeData.ts`는 컨테이너 spec에 대해 3-branch 로직으로 `_hasChildren`을 주입합니다. 컨테이너를 세 분류로 나눠 Set 멤버십으로 관리합니다.
+### Skia 렌더 분기 (`canvas/skia/buildSpecNodeData.ts`)
 
-**1. `SHELL_ONLY_CONTAINER_TAGS`** (자식 수 무관 `_hasChildren=true` 항상 주입)
+| Set                                                                                                                                                                                         | 위치                                | export | 제어 대상                                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | :----: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SHELL_ONLY_CONTAINER_TAGS`                                                                                                                                                                 | :153 (17개, 2026-07-07)             |   ✅   | 자식 수 무관 `_hasChildren=true` 항상 주입 — standalone 복귀 차단. lowercase `"body"` 포함 주의 (Set.has 정확 매칭)                                                     |
+| `SYNTHETIC_CHILD_PROP_MERGE_TAGS`                                                                                                                                                           | :214 (9개, 2026-07-07)              |   ✅   | `_hasChildren` 주입 **차단** (자식 props 를 부모 shapes 에 통합). childRuntime facet 의 SSOT. 소비처 5곳이 헤더 주석에 명시 (buildSpecNodeData 2 + StoreRenderBridge 3) |
+| `CONTAINER_DIMENSION_TAGS`                                                                                                                                                                  | :96                                 |   ❌   | `_containerWidth`/`_containerHeight` 주입 (:1416) — spec/catalog shapes 가 엔진 결과 폭을 알아야 우측/중앙 배치 가능                                                    |
+| `NOWRAP_PARENTS` / `FORM_INHERITANCE_TAGS` / `PARENT_LABEL_PROP_SOURCE_TAGS` / `DATE_INPUT_PARENT_TAGS` / `BUTTON_BASE_PARENT_TAGS` / `BUTTON_CHILD_INHERIT_TAGS` / `COLUMN_REARRANGE_TAGS` | :230/:243/:250/:258/:646/:653/:1143 |   ❌   | 태그별 보조 분기 (텍스트 nowrap / 부모 상속 / label prop source / column 재배치 등) — 로컬 상수, 파일 내 주석 참조                                                      |
 
-factory가 자식 Element를 자동 생성하며, standalone 분기가 "bg+border + 빈 container placeholder"이거나 "실렌더를 자식 Element가 대체 커버"하는 태그. 자식을 모두 삭제해도 standalone으로 복귀 금지.
+`_hasChildren` 3-branch 실제 코드: `buildSpecNodeData.ts:1391-1413` —
+SHELL_ONLY → 항상 주입 / TreeItem 은 명시 예외 (자식 있어도 자기 행 렌더, `_hasTreeChildren` 별도) /
+SYNTHETIC → 차단 / 그 외 → `childElements.length > 0` 일 때만. 판정 알고리즘은 정본 §2.5.
 
-현재 멤버 (15개): Calendar, RangeCalendar, Card, Dialog, Section, DisclosureGroup, ButtonGroup, CheckboxGroup, RadioGroup, ToggleButtonGroup, Disclosure, Form, Popover, Tooltip, ColorPicker
+### 창발 소비처 — StoreRenderBridge (`canvas/skia/StoreRenderBridge.ts`)
 
-**2. `SYNTHETIC_CHILD_PROP_MERGE_TAGS`** (`_hasChildren` 주입 **차단**)
+- `incrementalSync` rebuild 확장 (:308-332): 변경 요소의 부모가 SYNTHETIC 이면 부모도 rebuild,
+  변경 요소 자신이 SYNTHETIC 이면 자식+손자까지 확장. **Why**: 자식 props 가 부모 shapes 에 통합되므로
+  한쪽만 갱신하면 시각 stale.
+- stale 자식 ref 교체 (:549 부근) — SYNTHETIC 부모의 자식 참조 최신화.
 
-자식 props를 부모 spec shapes에 통합 렌더링하는 태그. `_hasChildren=true` 주입 시 shell만 남고 내용이 사라지므로 차단. `incrementalSync` 자식→부모 rebuild expansion + stale-ref 교체 대상.
+### 레이아웃 측정 분기 (`canvas/layout/engines/`)
 
-현재 멤버 (11개): Breadcrumbs, ComboBox, GridList, ListBox, Select, Table, Tabs, TagGroup, Toolbar, Tree
+| Set                                                   | 위치                         | export | 제어 대상                                                                                                                                                                                                                                  |
+| ----------------------------------------------------- | ---------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `INLINE_BLOCK_TAGS`                                   | `utils.ts:3846`              |   ✅   | `enrichWithIntrinsicSize` 가 `calculateContentWidth` 텍스트 기반 intrinsic 폭을 주입하는 합성 leaf. **미등록 증상**: `needsWidth=false` → width 0 ("0×24" selection) 또는 fit-content 부모에서 stretch 발산 (CalendarGrid 2026-07-07 사례) |
+| `TEXT_LEAF_TAGS`                                      | `utils.ts:3900`              |   ✅   | 줄바꿈 시 height 가 width 의존 — 2-pass 재계산 대상                                                                                                                                                                                        |
+| `SPEC_SHAPES_INPUT_TAGS`                              | `utils.ts:3923`              |   ❌   | contentHeight=0 이어도 height 주입이 필요한 self-render 태그 (progressbar/listbox/taglist 등)                                                                                                                                              |
+| `IMAGE_INTRINSIC_TAGS` / `INTRINSIC_SIZE_KEYWORDS`    | `utils.ts:3920/:3912`        |   ❌   | replaced element 자연 치수 / intrinsic 키워드 개입 판정                                                                                                                                                                                    |
+| `POPOVER_CHILDREN_TAGS`                               | `implicitStyles.ts:430`      |   ✅   | Taffy 레이아웃 제외 (popover-hosted — Calendar/RangeCalendar)                                                                                                                                                                              |
+| `FIELD_VISIBLE_CHILD_TAGS`                            | `implicitStyles.ts:453`      |   ✅   | Field 컨테이너의 비-Label 가시 자식 화이트리스트                                                                                                                                                                                           |
+| `VERTICAL_ALIGN_MIDDLE_TAGS`                          | `taffyDisplayAdapter.ts:152` |   ✅   | vertical-align middle 시뮬레이션 대상                                                                                                                                                                                                      |
+| `LABEL_DELEGATION_PARENT_TAGS` / `LABEL_WRAPPER_TAGS` | `fullTreeLayout.ts:96/:122`  |   ❌   | Label size DFS 주입 대상 부모 / 구조적 래퍼 (정본 rules/layout-engine.md §Label size delegation)                                                                                                                                           |
 
-**3. Plain** (두 Set 모두 미포함 — 자식 있을 때만 `_hasChildren=true`)
+### Spec/렌더 매핑
 
-일반 컨테이너. TabPanel/TabPanels(shapes=[]) 및 대부분의 leaf-계열 컨테이너.
+| 심볼                            | 위치                            | 내용                                                                                                                                                            |
+| ------------------------------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TAG_SPEC_MAP` (builder merged) | `canvas/sprites/tagSpecMap.ts`  | packages/specs 정본(102 entries, childSpecs 자동 확장 포함) + `BUILDER_ALIAS_MAP`(8 alias, `sprites/builderAliasMap.ts`). 충돌 시 정본 우선 (alias spread 먼저) |
+| `getSpecForTag(type)`           | 동일 파일                       | null 반환 가능 — catalog 전환 type 은 §1 `isSpecPath` 의 OR 게이트로 커버                                                                                       |
+| `IMAGE_TAGS`                    | `tagSpecMap.ts:42`              | ImageSprite/buildImageNodeData 경로 (layout 무관)                                                                                                               |
+| `rendererMap`                   | `@composition/shared/renderers` | DOM(Preview) 렌더러 매핑 — ADR-907 Layer C 계약 (`rendererStyleContract.test.ts`)                                                                               |
 
-**신규 컨테이너 판정 알고리즘**:
+---
 
-1. spec shapes가 자식 props 참조 → `SYNTHETIC_CHILD_PROP_MERGE_TAGS`
-2. factory 자식 자동 생성 + standalone이 빈 placeholder/대체 커버 → `SHELL_ONLY_CONTAINER_TAGS`
-3. shapes 자체가 빈 배열 → Plain (두 Set 모두 미포함)
-4. 그 외 일반 컨테이너 → Plain
+## 4. 신규 컴포넌트 등록 점검 순서
 
-**금지 패턴**: Shell-only 태그를 `SYNTHETIC_CHILD_PROP_MERGE_TAGS`에 혼입 → Calendar-유형 UI 중복 버그 (2026-04-17). 자세한 규칙은 `.claude/rules/canvas-rendering.md` §2.5 + ADR-072 참조.
+정본 판정(3분류 알고리즘·금지 패턴)은 canvas-rendering.md §2.5/§2.6, 아래는 작업 순서와 파일 위치.
 
-### 자식 내부 렌더링 제외 대상: `NON_CONTAINER_TAGS`
+1. **catalog entry 등록** — `catalog/bindings/{Type}.binding.ts` 작성 + `componentCatalog.ts` entry 추가
+   (kind / family / cutover / panel meta). family 의 현행 `cutover` 상태와 일치시킬 것 (불변식 D —
+   같은 family 안 legacy/catalog 혼재 금지).
+2. **시각 규칙** — `generated/componentRulesTable.ts` 에 variants/sizes/fill 직접 편집
+   (ADR-908 `FillTokenSpec` 구조 준수, 정본 canvas-rendering.md §2.5.5).
+3. **factory** — 자식 트리가 필요하면 `factories/definitions/` 에 creator 작성 +
+   `COMPLEX_COMPONENT_TAGS`(constants.ts:28) 추가. reusable composite 면 대신
+   `REUSABLE_COMPOSITE_ORIGINS` (creation facet 우선순위: reusableOrigin > complex > none).
+   layout 기본값(display/flex/gap)은 **factory props.style longhand** 로 (정본 style-ssot.md).
+4. **default props** — 신규는 catalog binding 파생(`ENTRY_DERIVED_DEFAULT_TYPES`) 경로 우선.
+   `DEFAULT_PROPS_MAP` literal row 는 전환 미완 type 전용.
+5. **`_hasChildren` 3분류 판정** — 정본 알고리즘으로 SHELL_ONLY / SYNTHETIC / Plain 판정 후
+   `buildSpecNodeData.ts` 해당 Set 등록 (Plain 은 무등록).
+6. **레이아웃 Set 판정** — 자식 없는 합성 leaf 인가? → `INLINE_BLOCK_TAGS`.
+   shapes 가 컨테이너 폭 좌표를 쓰는가? → `CONTAINER_DIMENSION_TAGS`.
+   contentHeight 0 self-render 인가? → `SPEC_SHAPES_INPUT_TAGS`.
+   collection 컨테이너면 ADR-907 Layer B/C/D 체크리스트 (정본 §2.6).
+7. **검증** — `entryUniverseContract.test.ts` (facet parity) + `rendererStyleContract.test.ts`
+   (collection root style) + `pnpm type-check` + `/cross-check` (CSS↔Skia 시각 대칭) +
+   **live builder exercise** (test PASS 단독 종결 금지 — CLAUDE.md 완료 기준).
 
-`BuilderCanvas.tsx`에서 자식 Element를 내부에 렌더링하지 않는 태그 목록입니다.
-**기본 원칙**: 모든 컴포넌트가 컨테이너로 처리됩니다. 아래 카테고리만 제외됩니다.
+**흔한 누락 증상 → 원인 매핑**:
 
-| 카테고리           | 설명                                | 예시                                                                                                        |
-| ------------------ | ----------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| TEXT_TAGS          | TextSprite로 렌더링, 자식 배치 불가 | `Text`, `Heading`, `Description`, `Label`, `Paragraph`, `Link`, `Strong`, `Em`, `Code`, `Pre`, `Blockquote` |
-| Void 요소          | 자식이 없는 단일 요소               | `Input`, `Textarea`, `Hr`, `Br`, `Img` 등                                                                   |
-| Color Sub 컴포넌트 | 상위 컨테이너가 렌더링 담당         | `ColorSwatch`, `ColorThumb`, `ColorSlider` 등                                                               |
+| 증상                                            | 누락 지점                                                                         |
+| ----------------------------------------------- | --------------------------------------------------------------------------------- |
+| palette 에서 추가해도 자식 트리 미생성          | `COMPLEX_COMPONENT_TAGS` 미등록 (useElementCreator else 분기로 단일 element 생성) |
+| 자식 전부 삭제 시 standalone 렌더 복귀          | SHELL_ONLY 미등록                                                                 |
+| 자식 UI 가 이중 렌더 (Calendar 2026-04-17 유형) | SHELL_ONLY 대상을 SYNTHETIC 에 혼입                                               |
+| 자식 props 편집이 부모 시각에 미반영            | SYNTHETIC 미등록 (incrementalSync 확장 누락)                                      |
+| Skia 노드 자체가 안 생김 (텍스트 미표시)        | TAG_SPEC_MAP 도 catalog cutover 도 아님 — `isSpecPath` false                      |
+| width 0 / fit-content 부모에서 폭 발산          | `INLINE_BLOCK_TAGS` 미등록                                                        |
+| shapes 우측/중앙 좌표가 box 밖으로 어긋남       | `CONTAINER_DIMENSION_TAGS` 미등록                                                 |
 
-**이전 컨테이너 태그 목록 (구 opt-in 방식)**:
-구 아키텍처에서는 `CONTAINER_TAGS`(화이트리스트)에 등록된 컴포넌트만 자식을 내부에 렌더링했습니다.
-현재는 opt-out 방식으로 전환되어, `NON_CONTAINER_TAGS`에 없으면 자동으로 컨테이너로 처리됩니다.
+---
 
-특별 처리가 필요한 컨테이너:
+## 5. 역사적 맥락
 
-- **Tabs**: Tab bar(spec shapes) + 활성 Panel(container) 렌더링
-  - Tab 요소는 spec shapes가 렌더링 (`isSkippedChild` 처리)
-  - Panel 요소는 컨테이너 시스템으로 내부 렌더링
-  - `effectiveElementWithTabs`: `_tabLabels` prop 주입으로 동적 탭 레이블 지원
-  - Panel은 element tree에 자식이 없으므로 Tabs 높이 계산은 childElements 블록 **밖**에서 처리
-- **Card**: Heading + Description 자식 Element를 내부에서 렌더링
-  - `createContainerChildRenderer`에서 `Card.props.heading/title/description`을 자식에 주입
-  - 자식 Heading/Description은 TEXT_TAGS 경로 → TextSprite 렌더링
-  - Card spec shapes는 배경/테두리/그림자만 담당 (텍스트 미포함)
-- **TagGroup**: Label + TagList를 column 방향으로 배치하는 컨테이너
-  - spec shapes 렌더링 없이 자식 Element를 직접 배치
-  - Label은 자식 Element(TEXT_TAGS 경로 → TextSprite)가 렌더링 — spec shapes에서 중복 렌더링 금지
-  - TagGroup.spec.ts의 shapes()는 배경/테두리 등 시각 컨테이너 요소만 반환 (label 텍스트 미포함)
-  - isYogaSizedContainer로 분류: Yoga가 Label + TagList 높이 합산으로 컨테이너 크기 자동 결정
-- **Breadcrumbs**: `filteredContainerChildren = []` — 자식 Breadcrumb 텍스트를 `_crumbs` 배열로 주입하여 spec shapes에서 렌더링
-  - 자식 Breadcrumb 요소를 element tree에서 직접 배치하지 않음
-  - `ElementSprite.tsx`에서 `tag === 'breadcrumbs'` 분기: 자식 중 `tag === 'Breadcrumb'`인 요소의 `props.children` 수집 → `_crumbs` prop 주입
-  - `Breadcrumbs.spec.ts`의 shapes()가 `_crumbs` 배열 기반으로 구분자 포함 텍스트 shape 렌더링
-  - SPEC_SHAPES_INPUT_TAGS에 `'breadcrumbs'` 포함 → `enrichWithIntrinsicSize`의 contentHeight ≤ 0 early return 우회
-
-### rearrangeShapesForColumn 가드: SPEC_RENDERS_ALL_TAGS_SET (2026-02-25)
-
-`ElementSprite.tsx`에서 spec shapes를 column 방향으로 재배치하는 `rearrangeShapesForColumn()` 호출 시,
-일부 컴포넌트는 이 재배치를 건너뛰어야 합니다.
-
-**왜 필요한가**: `rearrangeShapesForColumn()`은 shapes의 y 좌표를 위에서부터 순서대로 쌓이도록 재배치합니다.
-그런데 `NumberField`, `SearchField` 등은 spec shapes 내부에서 이미 `labelOffset`을 통해 세로 레이아웃을
-직접 계산합니다. 이 컴포넌트들에 `rearrangeShapesForColumn()`을 적용하면 좌표가 이중으로 변환되어 렌더링이 깨집니다.
-
-```typescript
-// ElementSprite.tsx — spec shapes 호출 후 column 재배치 로직
-
-// SPEC_RENDERS_ALL_TAGS_SET: spec shapes가 자체 세로 레이아웃을 포함하는 컴포넌트
-// 이 컴포넌트들은 rearrangeShapesForColumn 재배치를 스킵
-const SPEC_RENDERS_ALL_TAGS_SET = new Set([
-  "TextField",
-  "NumberField",
-  "SearchField",
-  "DateField",
-  "TimeField",
-  "ColorField",
-  "TextArea",
-  "Slider",
-]);
-
-// ✅ SPEC_RENDERS_ALL_TAGS_SET 가드 적용
-if (isColumn && !SPEC_RENDERS_ALL_TAGS_SET.has(tag)) {
-  rearrangeShapesForColumn(shapes, finalWidth, sizeSpec.gap ?? 8);
-}
-
-// ❌ 가드 없이 모든 컴포넌트에 rearrangeShapesForColumn 적용
-if (isColumn) {
-  rearrangeShapesForColumn(shapes, finalWidth, sizeSpec.gap ?? 8);
-}
-// → NumberField: spec이 이미 y=labelOffset으로 배치한 shapes를
-//   rearrangeShapesForColumn이 다시 y=0 기준으로 재배치
-//   → label과 입력 필드가 겹치거나 잘못된 위치에 렌더링
-```
-
-**등록 기준**: 다음 조건 중 하나라도 해당하면 `SPEC_RENDERS_ALL_TAGS_SET`에 추가:
-
-- spec shapes 내부에서 `labelOffset`을 계산하여 y 좌표를 직접 배치하는 컴포넌트
-- spec shapes 내부에서 복수의 서브 컴포넌트(label + input + button 등)를 세로로 직접 배치하는 컴포넌트
-
-**연관 Set 비교**:
-
-| Set 이름                    | 위치                       | 목적                                                            |
-| --------------------------- | -------------------------- | --------------------------------------------------------------- |
-| `SPEC_RENDERS_ALL_TAGS_SET` | `ElementSprite.tsx` (로컬) | `rearrangeShapesForColumn` 재배치 스킵                          |
-| `SPEC_RENDERS_ALL_TAGS`     | `BuilderCanvas.tsx` (로컬) | 자식 이중 렌더링 억제 (자식 sprite 렌더링 건너뜀)               |
-| `SPEC_SHAPES_INPUT_TAGS`    | `engines/utils.ts`         | `enrichWithIntrinsicSize`의 contentHeight ≤ 0 early return 우회 |
-
-> 세 Set은 비슷한 컴포넌트 목록을 가지지만 목적이 다릅니다. 새 컴포넌트 추가 시 세 곳 모두 확인해야 합니다.
+- **Wave 4 등급제 (2026-02)**: A/B+/B/D 컴포넌트 등급, `SPEC_RENDERS_ALL_TAGS(_SET)` /
+  `UI_SELECT_CHILD_TAGS` / `NON_CONTAINER_TAGS` 기반 opt-out 컨테이너 — **전부 소멸**
+  (2026-07-07 grep 0건). PixiJS 제거(ADR-100)와 함께 ElementSprite 중심 분기가 Skia
+  `buildSpecNodeData`/`StoreRenderBridge` 로 이전.
+- **ADR-072 (2026-04)**: `_hasChildren` 주입을 3-branch (SHELL_ONLY / SYNTHETIC / Plain) 로 정식화.
+- **ADR-914 (2026-06)**: 손등록 registry 들을 Entry Universe facet 으로 수렴 —
+  각 Set 자체를 facet 의 membership SSOT 로 명문화하고 contract test 가 parity 를 검증.
+  delegating 렌더 SSOT 는 `renderFacetDeclaration.ts` 로 방향 역전.
+- **ADR-142 + ADR-912 (2026-05~06)**: componentCatalog 단일 등록 SSOT + family 단위 atomic cutover.
+  124 spec 파일 삭제, `COMPONENT_RULES_TABLE` freeze 승격 (생성기 삭제). 잔존 spec 은 3개
+  (영구 frame · Slot/Group D1 ARIA — memory `project-spec-deletion-inventory`).

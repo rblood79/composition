@@ -1,114 +1,79 @@
 ---
 title: Layout Resolution Pattern
 impact: HIGH
-impactDescription: 잘못된 레이아웃 합성 = 페이지 렌더링 오류
-tags: [domain, layout, page]
+impactDescription: 잘못된 레이아웃 합성 = 페이지 렌더링 오류, ID 공간 오염
+tags: [domain, layout, page, projection]
 ---
 
-Page와 Layout의 합성 규칙을 정의합니다.
+Page 와 재사용 레이아웃(Frame) 의 합성 규칙을 정의합니다.
 
-## Layout 시스템 구조
+> **정본**: `.claude/rules/canvas-rendering.md` §9 Render-Space Interaction Boundary (ADR-135/136). 본 문서는 구현 위치 지도.
 
-```typescript
-// Layout: 재사용 가능한 템플릿 (Header, Footer, Sidebar 등)
-interface Layout {
-  id: string;
-  name: string;
-  // Layout 내 Slot 정의
-}
+## 체계 개요 (구 시스템과의 차이)
 
-// Page: 실제 콘텐츠
-interface Page {
-  id: string;
-  title: string;
-  layout_id?: string | null;  // 선택적 Layout 적용
-}
+구 `resolveLayoutForPage` / `preview/utils/layoutResolver.ts` 기반 Layout-vs-Page 이원화 체계는 **소멸**했습니다. 현행 합성은 두 층으로 나뉩니다:
 
-// Slot: Layout 내 Page 콘텐츠 삽입 위치
-interface Element {
-  slot_name?: string | null;  // Page 요소가 삽입될 슬롯
-}
-```
+1. **데이터 층 (ADR-111 frameset)** — Layout 은 별도 테이블/필드(`layout_id`, `slot_name`)가 아니라 canonical `FrameNode` (`reusable: true`) 로 표현. Page 는 layout shell 을 `type: "ref"` 노드로 참조하고, slot 별 내용은 `descendants[path].children` 으로 보존 (`types/builder/layout.types.ts` 헤더의 흡수 매핑 참조)
+2. **렌더 층 (ADR-135 page-frame projection)** — canonical document 로부터 render model 을 파생(projection)하며, projected ID 공간과 canonical ID 공간을 분리
+
+## 구현 위치 지도
+
+| 역할                               | 파일 / 심볼                                                                                                                                  |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| canonical schema (`FrameNode`)     | `packages/shared/src/types/composition-document.types.ts`                                                                                    |
+| projection 파생 (Skia 그리기 전용) | `packages/shared/src/utils/export.utils.ts` — `deriveProjectRenderModelFromDocument()`                                                       |
+| projected ID 규약                  | `apps/builder/src/builder/projection/renderProjectionIds.ts` — `PAGE_FRAME_PROJECTION_INFIX` (`"::page-frame::"`)                            |
+| mirror hydrate (canonical-only)    | `apps/builder/src/builder/stores/canonical/canonicalElementsView.ts` — `canonicalDocumentToElements()`                                       |
+| drag/drop → canonical move 대상    | `apps/builder/src/builder/workspace/canvas/interaction/resolveCanonicalMutationTarget.ts` — `resolveCanonicalMoveTarget()`                   |
+| canonical move mutation            | `apps/builder/src/adapters/canonical/canonicalMutations.ts` — `moveElementToCanonicalTarget()`                                               |
+| drag bridge (소비자)               | `apps/builder/src/builder/workspace/canvas/hooks/useDragBridge.ts`                                                                           |
+| page-frame binding (선택 계약)     | `apps/builder/src/adapters/canonical/pageFrameBinding.ts` — `applyPageFrameBindingFromSelection` / `applyPageFrameBindingExplicit` (ADR-137) |
+| frame 삭제/cascade                 | `apps/builder/src/adapters/canonical/frameLayoutCascade.ts`                                                                                  |
+| legacy Layout/Slot 변환 adapter    | `apps/builder/src/adapters/canonical/slotAndLayoutAdapter.ts` (`type="Slot"` element → slot 메타, `layout_id` → ref)                         |
+| Body 해석 (page/layout 컨텍스트)   | `apps/builder/src/utils/element/elementUtils.ts` — `ElementUtils.findBodyByContext(elements, pageId, layoutId, doc)`                         |
+
+## 핵심 규칙 (정본 §9 요약)
+
+- **ID 공간 분리**: hit-test/그리기 authoritative source 는 `renderNodesMap` / `interactionNodesMap`. `sceneNodesMap` 은 diagnostic 전용 — render fallback 금지
+- **projected ID 비영속**: `"::page-frame::"` projected ID 는 canonical document / IndexedDB / history payload 에 저장 금지
+- **canonical move target 단일 진입점**: projected Slot 으로의 drag/drop 은 `resolveCanonicalMoveTarget` → `moveElementToCanonicalTarget`. projected render ID 를 mutation 의 `containerId`/target 으로 직접 전달 금지
+- **bootstrap canonical-only**: store mirror hydrate 는 canonical traversal 만 (`canonicalDocumentToElements()` 등). `deriveProjectRenderModelFromDocument()` elements 는 Skia 그리기 전용 — mirror hydrate source 로 사용 금지
+- **Slot roundtrip 무손실**: Frame apply/remove/apply 반복 후 `descendants[path].children` 순서 보존
 
 ## Incorrect
 
 ```typescript
-// ❌ Layout과 Page 요소 혼합 렌더링
-const allElements = [...layoutElements, ...pageElements];
-render(allElements);  // 슬롯 매핑 없이 단순 병합
+// ❌ 구 심볼 참조 — resolveLayoutForPage / layoutResolver.ts 는 소멸
+import { resolveLayoutForPage } from "@/preview/utils/layoutResolver";
 
-// ❌ page_id와 layout_id 동시 사용
-const element: Element = {
-  page_id: 'page-1',
-  layout_id: 'layout-1',  // 상호 배타적 위반
-};
+// ❌ projected ID 를 canonical mutation target 으로 전달
+moveElementToCanonicalTarget(elementId, {
+  containerId: "page1::page-frame::header", // projected ID — 금지
+});
 
-// ❌ 슬롯 없는 Layout에 Page 요소 삽입 시도
-const pageElement: Element = {
-  slot_name: 'content',  // Layout에 해당 슬롯 없음
-  page_id: 'page-1',
-};
+// ❌ projection 결과를 mirror hydrate source 로 사용
+const elements = deriveProjectRenderModelFromDocument(doc, projectId).elements;
+hydrateStoreMirror(elements); // Skia 그리기 전용 — 금지
 ```
 
 ## Correct
 
 ```typescript
-import { resolveLayoutForPage } from '@/preview/utils/layoutResolver';
+// ✅ drag/drop → canonical 대상 해석 → canonical mutation (실코드: useDragBridge.ts)
+const canonicalTarget = resolveCanonicalMoveTarget({ ... });
+const moved = canonicalTarget
+  ? moveElementToCanonicalTarget(elementId, canonicalTarget)
+  : false;
 
-// ✅ Layout + Page 합성
-const renderPage = (page: Page, layout: Layout | null, allElements: Element[]) => {
-  const resolution = resolveLayoutForPage(page, layout, allElements);
+// ✅ mirror hydrate 는 canonical traversal
+const elements = canonicalDocumentToElements(doc);
 
-  if (resolution.mode === 'layout') {
-    // Layout 모드: Layout 요소 렌더링 + 슬롯에 Page 요소 삽입
-    return (
-      <LayoutRenderer
-        layoutElements={resolution.layoutElements}
-        slotMapping={resolution.slotMapping}
-      />
-    );
-  } else {
-    // Page 모드: Page 요소만 렌더링
-    return <PageRenderer elements={resolution.pageElements} />;
-  }
-};
-
-// ✅ 슬롯 매핑
-interface SlotMapping {
-  [slotName: string]: Element[];  // 슬롯별 Page 요소들
-}
-
-// ✅ 요소 컨텍스트 구분
-function getElementContext(element: Element): 'page' | 'layout' {
-  if (element.page_id) return 'page';
-  if (element.layout_id) return 'layout';
-  throw new Error('Element must have page_id or layout_id');
-}
-
-// ✅ Body 요소 찾기 (컨텍스트 기반)
-import { findBodyByContext } from '@/builder/stores/utils/elementHelpers';
-
-const bodyElement = findBodyByContext(
-  elements,
-  pageId,    // Page 컨텍스트
-  layoutId   // Layout 컨텍스트 (둘 중 하나만 유효)
-);
+// ✅ Body 해석 — layout 모드는 canonical doc 으로 frame node id 매칭
+const bodyId = ElementUtils.findBodyByContext(elements, pageId, layoutId, doc);
 ```
 
-## Layout Resolution 흐름
+## 참조 ADR
 
-```
-1. Page에 layout_id가 있는가?
-   ├─ Yes → Layout 모드
-   │   ├─ Layout 요소 로드
-   │   ├─ Page 요소를 slot_name별로 그룹화
-   │   └─ Layout의 Slot 위치에 Page 요소 삽입
-   └─ No → Page 모드
-       └─ Page 요소만 렌더링
-```
-
-## 참조 파일
-
-- `apps/builder/src/preview/utils/layoutResolver.ts` - Layout 합성 로직
-- `apps/builder/src/types/builder/layout.types.ts` - Layout/Slot 타입
-- `apps/builder/src/builder/stores/utils/elementHelpers.ts` - findBodyByContext
+- `docs/adr/completed/111-layout-frameset-pencil-redesign.md` - frameset 데이터 층
+- `docs/adr/completed/135-page-frame-projection-interaction-boundary.md` - projection/interaction 경계
+- `docs/adr/completed/903-ref-descendants-slot-composition-format-migration-plan.md` - Layout/Slot → canonical 흡수

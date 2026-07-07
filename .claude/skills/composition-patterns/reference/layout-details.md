@@ -1,6 +1,6 @@
 # Layout Engine — 구현 상세
 
-> 규칙 요약은 [layout-engine.md](.claude/rules/layout-engine.md) 참조
+> 규칙 요약은 [layout-engine.md](../../../rules/layout-engine.md) 참조
 
 ## Label size delegation 상세
 
@@ -29,7 +29,7 @@
 
 ### LABEL_SIZE_STYLE
 
-LabelSpec 단일 소스 xs~xl 매핑 (fontSize + lineHeight "px" 단위). lineHeight는 반드시 `"20px"` 문자열로 전달 (숫자는 `parseLineHeight`가 배율로 해석).
+`fullTreeLayout.ts` 정의 xs~xl 매핑 (fontSize + lineHeight "px" 단위) — `packages/specs/src/primitives/typography.ts` 의 `FONT_SIZE_TO_LINE_HEIGHT`/`getLabelLineHeight` 와 동일 소스이며, Label 시각 정본은 catalog `COMPONENT_RULES_TABLE.Label`. lineHeight는 반드시 `"20px"` 문자열로 전달 (숫자는 `parseLineHeight`가 배율로 해석).
 
 ### batch height override
 
@@ -48,7 +48,7 @@ LabelSpec 단일 소스 xs~xl 매핑 (fontSize + lineHeight "px" 단위). lineHe
 1. `parseLineHeight(lineHeight, fontSize)` 값이 있으면 우선 적용
 2. lineHeight가 null이면 `Math.ceil(fontSize * 1.5)` fallback (기존 동작 유지)
 
-목적: LabelSpec lineHeight가 CSS `--text-sm--line-height`(20px)와 일치하도록 보장.
+목적: LABEL_SIZE_STYLE lineHeight가 CSS `--text-sm--line-height`(20px)와 일치하도록 보장.
 
 ---
 
@@ -67,19 +67,23 @@ merge 규칙: Step 3.6에서 부모 implicit styles를 자식에 적용할 때, 
 
 ## PersistentTaffyTree display/grid 전환 감지 상세
 
+증분 갱신 주체는 자체 Rust 레이아웃 엔진 (`packages/composition-engine`, ADR-916 — Taffy 완전 제거. `persistentTaffyTree.ts`/`TaffyFlexEngine` 등 JS 어댑터 심볼명은 보존). full rebuild 규칙 정본: `.claude/rules/layout-engine.md`.
+
 ### display 전환
 
-`fullTreeLayout.ts` Step 3에서 `prevDisplay !== curDisplay` 비교로 display 전환 감지 → full rebuild 트리거. `implicitStyles`가 주입하는 display 변경(GridList `layout` prop 등)은 증분 갱신으로 처리 불가.
+`fullTreeLayout.ts` 에서 `prevDisplay !== curDisplay` 비교로 display 전환 감지 → full rebuild 트리거. `implicitStyles`가 주입하는 display 변경(GridList `layout` prop 등)은 증분 갱신으로 처리 불가.
 
-### gridTemplateColumns 변경
+### full rebuild 강제 조건 (요약 — 정본: layout-engine.md)
 
-Taffy 증분 갱신이 grid track 변경을 올바르게 처리하지 못하므로 full rebuild 트리거.
+- **신규 grid container** (`!prevJson` + display가 grid/inline-grid): `addNode` 증분 추가는 gridTemplate 이 auto-placement 로 degrade → full rebuild 강제
+- **신규 컨테이너 (자식 서브트리 보유)** (`!prevJson && filteredChildIdsMap.get(id)?.length > 0`): 증분 추가 시 자식 layout undefined + (0,0) 겹침 → grid 아니어도 full rebuild 강제
+- **기존 grid container 의 layout-영향 20-key 변경**: `GRID_REBUILD_TRIGGER_KEYS` (`fullTreeLayout.ts`) — gridTemplate 계열 + padding 계열 + gap 계열 + width/height/min·max 계열. `updateStyleRaw` 는 grid track/placement 캐시 invalidation 실패 → full rebuild. 비-grid 는 증분 유지
 
 ### affectedNodeIds 필터
 
 있으면 해당 노드만 검사(성능 최적화), 없으면 전체 배치 노드 검사. 필터 적용 시 `undefined` 조건 누락 금지 — 캐시 미스 시 `undefined`로 전달될 수 있음.
 
-위반 시: display 전환(flex↔grid↔block) 또는 columns 변경이 새로고침 전까지 캔버스에 반영 안 됨.
+위반 시: display 전환(flex↔grid↔block), gridTemplate/padding/gap/dimension 변경이 새로고침 전까지 캔버스에 반영 안 됨.
 
 ---
 
@@ -123,12 +127,12 @@ Checkbox/Radio DFS 진입 시 부모 탐색 경로: Checkbox → CheckboxItems �
 
 ## Collection Item font 주입 상세 (ListBoxItem/GridListItem)
 
-TextSprite는 store 원본 `element.props.style`을 직접 읽으므로, implicitStyles(Taffy 전용) 주입만으로는 렌더링에 반영되지 않음. 3경로 동기화 필수:
+구 TextSprite/ElementSprite selector 경로는 폐기됨 (심볼 소멸). 현행 3경로:
 
 - **CSS**: 부모에 font-size/weight 설정 → 자식 상속 + description override
-- **implicitStyles**: `injectCollectionItemFontStyles()` 헬퍼 — Taffy 높이 계산용
-- **ElementSprite**: `collectionItemFontStyle` selector — TextSprite 렌더링용
+- **implicitStyles (Taffy 높이 계산)**: `injectCollectionItemFontStyles()` (`implicitStyles.ts`) — GridListItem/ListBoxItem 컨테이너 분기에서 자식 Text(fontSize 14 / fontWeight 600 / width 100%), Description(fontSize 12 / width 100%) 주입
+- **Skia**: catalog 기반 — item 시각은 `COMPONENT_RULES_TABLE` 의 GridListItem/ListBoxItem rule 로 렌더 (ADR-912 catalog cutover), 별도 selector 주입 없음
 
-GridListItem에 `minWidth: 0` 주입 — CSS `minmax(0, 1fr)` 동기화.
+item 컨테이너 base-axis(display/flexDirection/minWidth 등)는 catalog `structure.containerStyles` 단일 source — `resolveCatalogCollectionBase()` (`implicitStyles.ts`) 경유. GridListItem `minWidth: 0` 도 이 경로 (CSS `minmax(0, 1fr)` 동기화).
 
-새 collection 컴포넌트 추가 시 ElementSprite selector 조건에 부모 태그 추가 필수.
+새 collection 컴포넌트 추가 시 `implicitStyles.ts` 의 해당 containerTag 분기에 `injectCollectionItemFontStyles()` 적용 추가 필수.

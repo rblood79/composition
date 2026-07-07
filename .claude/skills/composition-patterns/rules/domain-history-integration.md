@@ -7,24 +7,31 @@ tags: [domain, history, undo-redo]
 
 상태 변경 전 반드시 히스토리를 기록합니다.
 
-## 히스토리 아키텍처
+## 히스토리 아키텍처 (ADR-124 canonical-only history schema)
 
 ```typescript
-// Hot Cache (메모리) - 최근 50개, 즉시 Undo/Redo
-// Cold Storage (IndexedDB) - 전체 히스토리, 세션 복구
+// apps/builder/src/builder/stores/history.ts (요약)
+// Hot Cache (메모리) + Cold Storage (IndexedDB, 세션 복구)
 
-interface HistoryEntry {
+export interface HistoryEntry {
   id: string;
-  type: 'add' | 'update' | 'remove' | 'move' | 'batch';
+  type: "add" | "update" | "remove" | "move" | "batch" | "group" | "ungroup";
   elementId: string;
+  elementIds?: string[]; // 다중 요소 작업용
   data: {
-    element?: Element;      // add/remove용
-    prevElement?: Element;  // update용 (이전 상태)
-    diff?: SerializableElementDiff;  // diff 기반 (메모리 80% 절약)
+    /** ADR-124 primary — canonical event sequence (undo/redo apply 우선 경로) */
+    canonicalEvents?: CanonicalHistoryNodeEvent[];
+    /** diff 기반 저장 — size 추정용 유지, undo/redo 는 canonicalEvents 우선 */
+    diff?: SerializableElementDiff;
+    // element / prevElement / prevProps / elements / batchUpdates 등
+    // legacy snapshot 필드는 @deprecated (ADR-124 Phase 4) — fallback 경로만 사용
   };
   timestamp: number;
 }
 ```
+
+- 기록 API: `historyManager.addEntry()` / `addDiffEntry()` / `addBatchDiffEntry()` — Command 클래스 패턴 아님
+- 신규 mutation 은 `data.canonicalEvents` (예: `buildCanonicalInsertEvents` / `buildCanonicalRemoveEvents`, `stores/history/canonicalHistoryEvents.ts`) 를 payload 로 기록
 
 ## Incorrect
 
@@ -32,66 +39,62 @@ interface HistoryEntry {
 // ❌ 히스토리 없이 상태 변경
 const updateElement = (elementId: string, props: Props) => {
   set({
-    elements: state.elements.map(el =>
-      el.id === elementId ? { ...el, props: { ...el.props, ...props } } : el
-    )
+    elements: state.elements.map((el) =>
+      el.id === elementId ? { ...el, props: { ...el.props, ...props } } : el,
+    ),
   });
   // 히스토리 기록 누락!
 };
 
 // ❌ 상태 변경 후 히스토리 기록 (순서 오류)
 set({ elements: newElements });
-historyManager.addEntry({ ... });  // 이미 변경된 후 기록
+historyManager.addEntry({ ... }); // 이미 변경된 후 기록
 ```
 
 ## Correct
 
 ```typescript
-import { historyManager } from '@/builder/stores/history';
+import { historyManager } from "@/builder/stores/history";
 
-// ✅ 히스토리 기록 → 상태 변경 순서
+// ✅ 히스토리 기록 → 상태 변경 순서 (diff 기반)
 const updateElementProps = (elementId: string, props: Props) => {
   const element = getElementById(get().elementsMap, elementId);
   if (!element) return;
 
-  // 1. 변경 전 히스토리 기록 (diff 기반)
+  // 1. 변경 전 히스토리 기록
   historyManager.addDiffEntry(
-    'update',
-    structuredClone(element),  // 이전 상태
-    { ...element, props: { ...element.props, ...props } }  // 새 상태
+    "update",
+    structuredClone(element), // 이전 상태
+    { ...element, props: { ...element.props, ...props } }, // 새 상태
   );
 
   // 2. 상태 변경
   set({
-    elements: state.elements.map(el =>
-      el.id === elementId ? { ...el, props: { ...el.props, ...props } } : el
-    )
+    elements: state.elements.map((el) =>
+      el.id === elementId ? { ...el, props: { ...el.props, ...props } } : el,
+    ),
   });
 
   // 3. 인덱스 재구성
   get()._rebuildIndexes();
 };
 
-// ✅ 요소 추가 시
+// ✅ 요소 추가 시 — canonical event payload (실코드: stores/utils/elementCreation.ts)
 const addElement = (element: Element) => {
+  mergeCreatedElementsIntoCanonicalDocument([element]); // canonical 1차 갱신
+
   historyManager.addEntry({
-    type: 'add',
+    type: "add",
     elementId: element.id,
-    data: { element: structuredClone(element) },
+    data: { canonicalEvents: buildCanonicalInsertEvents([element]) },
   });
 
-  set({ elements: [...state.elements, element] });
+  set((prev) => ({ elements: [...prev.elements, element] }));
   get()._rebuildIndexes();
 };
 
 // ✅ 배치 작업 시
-const batchUpdate = (updates: ElementUpdate[]) => {
-  const prevElements = updates.map(u => structuredClone(getElementById(elementsMap, u.id)));
-
-  historyManager.addBatchDiffEntry(prevElements, newElements);
-
-  set({ elements: applyUpdates(elements, updates) });
-};
+historyManager.addBatchDiffEntry(prevElements, nextElements);
 ```
 
 ## Child Composition Pattern batch 히스토리
@@ -103,18 +106,18 @@ Property Editor에서 부모 Element와 자식 Element를 동시에 업데이트
 `inspectorActions.ts`의 `updateSelectedPropertiesWithChildren`은 `batchUpdateElementProps`를 통해 부모+자식을 단일 `set()` 호출로 처리합니다.
 
 ```typescript
-// inspectorActions.ts
+// inspectorActions.ts (요약)
 updateSelectedPropertiesWithChildren: (properties, childUpdates) => {
   // 1. 진행 중인 hydration 취소 (race condition 방지)
   get()._cancelHydrateSelectedProps();
 
   // 2. 부모 + 자식 업데이트를 단일 batch로 구성
-  const batch = [
-    { elementId: element.id, props: properties },
-    ...childUpdates,  // BatchPropsUpdate[]
+  const batch: BatchPropsUpdate[] = [
+    { elementId: element.id, props: sanitizeInspectorProps(properties) },
+    ...childUpdates, // BatchPropsUpdate[]
   ];
 
-  // 3. 단일 set() + batch 히스토리 엔트리 + IndexedDB 기록
+  // 3. 단일 set() + batch 히스토리 엔트리 + IndexedDB 저장
   get().batchUpdateElementProps(batch);
 },
 ```
@@ -135,89 +138,86 @@ get().batchUpdateElementProps(batch);
 // → 수백 ms 후 hydration 완료 → batch 업데이트 결과 손실
 ```
 
-### batch 히스토리 Undo/Redo
-
-`batchUpdateElementProps`가 기록하는 `type: 'batch'` 히스토리 엔트리는 `historyActions.ts`에서 완전히 처리됩니다.
-
-```typescript
-// historyActions.ts — batch 엔트리 Undo
-case 'batch':
-  // batch에 포함된 모든 Element를 이전 상태로 한 번에 복원
-  // 부모 Element와 자식 Element가 동시에 원복 → 일관성 유지
-  restoreBatchElements(entry.data.prevElements);
-  break;
-```
-
-**결과**: Undo 1회로 부모 prop 변경 + 자식 prop 변경이 동시에 원복됩니다.
-
 ### Incorrect
 
 ```typescript
-// ❌ 구 패턴 — 부모와 자식을 별도 호출로 업데이트
+// ❌ 부모와 자식을 별도 호출로 업데이트
 // 히스토리 엔트리 2개 생성 → Undo 2회 필요
-onUpdate({ label: value });              // 히스토리 엔트리 1
-syncChildProp('Label', 'children', value); // 히스토리 엔트리 2
+onUpdate({ label: value }); // 히스토리 엔트리 1
+updateChildProp("Label", "children", value); // 히스토리 엔트리 2
 ```
 
 ### Correct
 
 ```typescript
-// ✅ useSyncChildProp 훅 + updateSelectedPropertiesWithChildren
+// ✅ childUpdates 를 직접 구성해 updateSelectedPropertiesWithChildren 호출
+// (구 useSyncChildProp / useSyncGrandchildProp 훅은 소멸 — 직접 사용)
 // 단일 batch 히스토리 엔트리 → Undo 1회로 전체 원복
-const { buildChildUpdates } = useSyncChildProp(elementId);
-
-const handleLabelChange = useCallback((value: string) => {
-  const updatedProps = { ...currentProps, label: value };
-  const childUpdates = buildChildUpdates([
-    { childTag: 'Label', propKey: 'children', value },
-  ]);
-  useStore.getState().updateSelectedPropertiesWithChildren(updatedProps, childUpdates);
-}, [currentProps, buildChildUpdates]);
+const handleLabelChange = useCallback(
+  (value: string) => {
+    const updatedProps = { ...currentProps, label: value };
+    const childUpdates: BatchPropsUpdate[] = [
+      { elementId: labelChildId, props: { children: value } },
+    ];
+    useStore
+      .getState()
+      .updateSelectedPropertiesWithChildren(updatedProps, childUpdates);
+  },
+  [currentProps, labelChildId],
+);
 ```
 
-## Undo/Redo 구현
+## Undo/Redo 구현 (ADR-124 — canonical events 우선)
+
+`historyActions.ts` 의 Undo/Redo 는 2-단 구조입니다:
 
 ```typescript
-// historyActions.ts
-export const createUndoAction = (set, get) => async () => {
-  const entry = historyManager.undo();
-  if (!entry) return;
+// historyActions.ts (요약)
+// 1. canonical event 경로 (primary): entry.data.canonicalEvents 가 있으면
+//    canonical document 에 직접 적용하고 elements 를 derive
+const canonicalEventElements = applyCanonicalHistoryEventsToActiveDocument(
+  entry.data.canonicalEvents,
+  "undo", // 또는 "redo"
+);
+const appliedCanonicalEvents = canonicalEventElements !== null;
 
+if (canonicalEventElements) {
+  updatedElements = canonicalEventElements;
+  // 선택 상태 재해석 (resolveSelectionAfterCanonicalEvents)
+} else {
+  // 2. legacy snapshot fallback: entry.type 별 switch
   switch (entry.type) {
-    case 'add':
-      // 추가된 요소 제거
-      removeElementFromState(entry.elementId);
-      break;
-    case 'update':
-      // 이전 상태로 복원
-      restoreElementState(entry.data.prevElement);
-      break;
-    case 'remove':
-      // 제거된 요소 복원
-      addElementToState(entry.data.element);
-      break;
-    case 'batch':
-      // batch에 포함된 모든 Element를 이전 상태로 복원
-      restoreBatchElements(entry.data.prevElements);
-      break;
+    case "add":
+      /* 추가된 요소 제거 (역작업) */ break;
+    case "update":
+      /* diff 또는 prevElement 로 복원 */ break;
+    case "remove":
+      /* 제거된 요소 복원 */ break;
+    case "batch":
+      /* batch 포함 요소 일괄 복원 */ break;
   }
-};
+}
+
+// legacy fallback 경로만 canonical 후행 동기화 필요
+if (!appliedCanonicalEvents) {
+  syncHistoryElementsToCanonical(updatedElements);
+  // ⚠️ set 1차 → canonical 2차 잔존 패턴 — ADR-122 §Residual.
+  //    정본: .claude/rules/state-management.md §잔존 영역 (신규 코드에서 모방 금지)
+}
 ```
 
 ## 배치 삭제 히스토리 패턴
 
-`removeElements(ids[])` 배치 삭제 시 **단일 `remove` 히스토리 entry**로 기록합니다.
-첫 번째 루트 요소를 `elementId` + `element`로, 나머지 모든 요소(다른 루트 + 자식)를 `childElements`로 저장합니다.
-기존 `"remove"` 타입의 Undo/Redo 핸들러와 완전히 호환됩니다.
+`removeElements(ids[])` 배치 삭제 시 **단일 히스토리 entry**로 기록합니다.
+payload 는 canonical remove event sequence — canonical mutation **전에** 구성해 삭제 전 node 위치를 보존합니다 (실코드: `elementRemoval.ts` `executeRemoval`).
 
 ```typescript
-// ✅ 배치 삭제 히스토리 — 단일 entry
+// ✅ 배치 삭제 히스토리 — 단일 entry (canonicalEvents)
 historyManager.addEntry({
   type: "remove",
   elementId: rootElements[0].id,
   data: {
-    element: rootElements[0],
-    childElements: allElements.filter(el => el.id !== rootElements[0].id),
+    canonicalEvents: buildCanonicalRemoveEvents(/* 삭제 대상 전체 */),
   },
 });
 // → Undo 1회로 모든 요소 동시 복원
@@ -226,34 +226,11 @@ historyManager.addEntry({
 // → Undo N회 필요 (하나씩 복원)
 ```
 
-## Undo/Redo 후 order_num 재정렬
-
-Undo/Redo 완료 후 `reorderElements()`를 호출하여 order_num 충돌을 해결합니다.
-**CRITICAL**: `setTimeout` 안에서 `get()`으로 최신 상태를 참조해야 합니다 (stale closure 방지).
-
-```typescript
-// ✅ setTimeout 안에서 get()으로 최신 상태 참조
-if (currentPageId) {
-  setTimeout(() => {
-    const { elements: latestElements, batchUpdateElementOrders } = get();
-    reorderElements(latestElements, currentPageId, batchUpdateElementOrders);
-  }, 100);
-}
-
-// ❌ setTimeout 밖에서 캡처한 elements 사용 (stale closure)
-const { elements } = get();
-setTimeout(() => {
-  reorderElements(elements, pageId, ...); // 100ms 후 stale!
-}, 100);
-```
-
 ## 참조 파일
 
-- `apps/builder/src/builder/stores/history.ts` - HistoryManager
-- `apps/builder/src/builder/stores/history/historyActions.ts` - Undo/Redo 액션 (batchUpdateElementOrders 사용)
+- `apps/builder/src/builder/stores/history.ts` - HistoryManager (`addEntry` / `addDiffEntry` / `addBatchDiffEntry`)
+- `apps/builder/src/builder/stores/history/historyActions.ts` - Undo/Redo 액션 (canonical events 우선 + legacy fallback)
+- `apps/builder/src/builder/stores/history/canonicalHistoryEvents.ts` - `buildCanonicalInsertEvents` / `buildCanonicalRemoveEvents` / `applyCanonicalHistoryEventsToActiveDocument`
 - `apps/builder/src/builder/stores/utils/elementUpdate.ts` - 히스토리 통합 예시
 - `apps/builder/src/builder/stores/utils/elementRemoval.ts` - 삭제 히스토리 (단일/배치)
-- `apps/builder/src/builder/stores/utils/elementReorder.ts` - order_num 재정렬 (computeReorderUpdates + reorderElements)
 - `apps/builder/src/builder/stores/inspectorActions.ts` - `updateSelectedPropertiesWithChildren`
-- `apps/builder/src/builder/hooks/useSyncChildProp.ts` - 직계 자식 prop 동기화 훅
-- `apps/builder/src/builder/hooks/useSyncGrandchildProp.ts` - 손자 prop 동기화 훅

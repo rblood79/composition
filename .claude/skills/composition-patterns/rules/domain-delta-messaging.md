@@ -26,15 +26,15 @@ const updateElement = (elementId: string, props: Props) => {
   set({ elements: updatedElements });
 
   messenger.send({
-    type: 'UPDATE_ELEMENTS',
-    elements: get().elements,  // 전체 전송
+    type: "UPDATE_ELEMENTS",
+    elements: get().elements, // 전체 전송
   });
 };
 
 // ❌ 불필요한 전체 동기화
 const onElementChange = () => {
   messenger.send({
-    type: 'SYNC_ALL',
+    type: "SYNC_ALL",
     elements: getAllElements(),
   });
 };
@@ -43,7 +43,7 @@ const onElementChange = () => {
 ## Correct
 
 ```typescript
-import { CanvasDeltaMessenger } from '@/builder/utils/canvasDeltaMessenger';
+import { CanvasDeltaMessenger } from "@/builder/utils/canvasDeltaMessenger";
 
 const deltaMessenger = new CanvasDeltaMessenger(iframe);
 
@@ -56,7 +56,10 @@ const addElement = (element: Element, children?: Element[]) => {
 };
 
 // ✅ 요소 수정 시 - 변경된 props만 전송
-const updateElementProps = (elementId: string, propsChanges: Partial<Props>) => {
+const updateElementProps = (
+  elementId: string,
+  propsChanges: Partial<Props>,
+) => {
   set({ elements: applyPropsChanges(elements, elementId, propsChanges) });
 
   deltaMessenger.sendElementUpdated(elementId, propsChanges);
@@ -64,69 +67,78 @@ const updateElementProps = (elementId: string, propsChanges: Partial<Props>) => 
 };
 
 // ✅ 요소 삭제 시 - 삭제된 ID만 전송
-const removeElement = (elementId: string, childIds?: string[]) => {
-  set({ elements: elements.filter(el => !idsToRemove.includes(el.id)) });
+const removeElement = (elementId: string, childElementIds?: string[]) => {
+  set({ elements: elements.filter((el) => !idsToRemove.includes(el.id)) });
 
-  deltaMessenger.sendElementRemoved(elementId, childIds);
-  // 메시지: { type: 'DELTA_ELEMENT_REMOVED', elementId, childIds }
+  deltaMessenger.sendElementRemoved(elementId, childElementIds);
+  // 메시지: { type: 'DELTA_ELEMENT_REMOVED', elementId, childElementIds }
 };
 
-// ✅ 요소 이동 시
-const moveElement = (elementId: string, newParentId: string, newOrder: number) => {
-  deltaMessenger.sendElementMoved(elementId, newParentId, newOrder);
-  // 메시지: { type: 'DELTA_ELEMENT_MOVED', elementId, parentId, orderNum }
-};
+// 참고: 요소 이동(부모/순서 변경)은 delta 채널이 아니라 canonical mutation
+// (moveElementToCanonicalTarget) → UPDATE_CANONICAL_DOCUMENT 전체 동기화 경유
 ```
 
 ## Delta 메시지 타입
 
 ```typescript
-// Builder → Preview
-interface DeltaElementAddedMessage {
-  type: 'DELTA_ELEMENT_ADDED';
+// Builder → Preview (실코드: builder/utils/canvasDeltaMessenger.ts)
+export interface DeltaElementAddedMessage {
+  type: "DELTA_ELEMENT_ADDED";
   element: Element;
   childElements?: Element[];
 }
 
-interface DeltaElementUpdatedMessage {
-  type: 'DELTA_ELEMENT_UPDATED';
+export interface DeltaElementUpdatedMessage {
+  type: "DELTA_ELEMENT_UPDATED";
   elementId: string;
-  propsChanges: Record<string, unknown>;  // 변경된 props만
+  propsChanges: Record<string, unknown>; // 변경된 props만
+  fills?: unknown[];
   parentId?: string | null;
-  orderNum?: number;
 }
 
-interface DeltaElementRemovedMessage {
-  type: 'DELTA_ELEMENT_REMOVED';
+export interface DeltaElementRemovedMessage {
+  type: "DELTA_ELEMENT_REMOVED";
   elementId: string;
-  childIds?: string[];
+  childElementIds?: string[];
 }
 
-interface DeltaElementMovedMessage {
-  type: 'DELTA_ELEMENT_MOVED';
-  elementId: string;
-  parentId: string | null;
-  orderNum: number;
+export interface DeltaBatchUpdateMessage {
+  type: "DELTA_BATCH_UPDATE";
+  updates: Array<{
+    elementId: string;
+    propsChanges?: Record<string, unknown>;
+    fills?: unknown[];
+    parentId?: string | null;
+  }>;
 }
 ```
 
-## 전체 동기화가 필요한 경우
+Delta 메시지는 위 4종(`ADDED` / `UPDATED` / `REMOVED` / `BATCH_UPDATE`)입니다. MOVED delta 는 존재하지 않으며, 이동(부모/순서 변경)은 canonical document 전체 동기화가 반영합니다.
+
+## 전체 동기화 채널 — UPDATE_CANONICAL_DOCUMENT (단일)
+
+Builder → Preview 전체 동기화의 active channel 은 `UPDATE_CANONICAL_DOCUMENT` **단일**입니다 (ADR-125 Phase 3 — 구 `UpdateElementsMessage` bulk 수신은 제거됨). `UPDATE_ELEMENTS` 에 신규 의존 금지.
 
 ```typescript
-// 페이지 전환 시에만 전체 동기화
-const switchPage = (pageId: string) => {
-  const pageElements = getPageElements(pageId);
-
-  messenger.send({
-    type: 'UPDATE_ELEMENTS',  // 전체 동기화
-    elements: pageElements,
-    pageInfo: { pageId, layoutId },
-  });
+// ✅ 실코드: useIframeMessenger.ts sendCanonicalDocumentToIframe
+const message = {
+  type: "UPDATE_CANONICAL_DOCUMENT" as const,
+  document, // CompositionDocument | null — canonical document 전체
 };
+iframe.contentWindow.postMessage(message, window.location.origin);
+
+// preview/messaging/messageHandler.ts
+export interface UpdateCanonicalDocumentMessage {
+  type: "UPDATE_CANONICAL_DOCUMENT";
+  document: CompositionDocument | null;
+}
 ```
+
+canonical document 변경 감지 → `useIframeMessenger` effect 가 자동 전송하므로, mutation 코드에서 전체 동기화를 수동 호출하지 않습니다.
 
 ## 참조 파일
 
 - `apps/builder/src/builder/utils/canvasDeltaMessenger.ts` - Delta 메신저
+- `apps/builder/src/builder/hooks/useIframeMessenger.ts` - 전체 동기화 (`UPDATE_CANONICAL_DOCUMENT`)
 - `apps/builder/src/preview/messaging/messageHandler.ts` - 메시지 타입
 - `apps/builder/src/utils/dom/iframeMessenger.ts` - iframe 통신

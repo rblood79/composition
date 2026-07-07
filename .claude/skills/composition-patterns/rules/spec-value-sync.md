@@ -1,188 +1,96 @@
 ---
-title: "Spec ↔ Builder ↔ CSS 값 동기화"
+title: "Catalog ↔ Layout Engine ↔ CSS 값 동기화"
 impact: CRITICAL
-impactDescription: 세 소스 간 값 불일치 시 WebGL/CSS 렌더링 차이 발생
-tags: [spec, layout, sync]
+impactDescription: 소스 간 수치 불일치 시 Skia/CSS 렌더링 차이 (오발 줄바꿈, 높이/폭 발산)
+tags: [spec, catalog, layout, sync]
 ---
 
-컴포넌트 수치(padding, fontSize, borderWidth 등)는 **3곳에서 동일하게** 유지해야 합니다:
+컴포넌트 수치(padding, fontSize, lineHeight, borderWidth 등)의 **정본은 catalog rule sizes** (`COMPONENT_RULES_TABLE[type].sizes`)입니다. 3개 소비 경로가 같은 값을 읽어야 합니다:
 
-1. `@composition/specs` — ComponentSpec (예: `ButtonSpec.sizes.md.paddingX`)
-2. Builder 내부 상수 (예: `BUTTON_SIZE_CONFIG`)
-3. CSS 토큰 (예: `Button.css`의 `--spacing-*`)
+1. **Skia shapes** — `buildCatalogShapes(visual, props, size, ...)` 의 `size`(SizeSpec)
+2. **Layout engine 내부 상수** — `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` 의 `BUTTON_SIZE_CONFIG` 등 (catalog 에서 **자동 파생**)
+3. **Generated CSS** — `packages/specs/scripts/generate-css.ts` → `packages/shared/src/components/styles/generated/*.css`
+
+과거 "3곳 수동 동일 유지" 체계는 catalog 파생 체계로 대체됐습니다 — **catalog rule 1곳 편집 + 파생 경로 재생성/확인** 이 현행 규칙입니다.
 
 ## Incorrect
 
 ```typescript
-// ❌ Spec과 Builder 상수 값 불일치
-// packages/specs/src/components/Button.spec.ts
-md: { paddingX: 24 }
+// ❌ layout engine 에 catalog 와 무관한 하드코딩 size map 신설 — 정본 fork
+const MY_COMPONENT_SIZES = { md: { paddingX: 16 } }; // catalog rule 무시
 
-// apps/builder/.../engines/utils.ts
-md: { paddingLeft: 16, paddingRight: 16 }  // 불일치!
+// ❌ rule 무시 ad-hoc fallback — catalog 값과 발산
+const gap = props.gap ?? 4; // TagList lg=6 인데 4 로 렌더된 실사례 (resolveTagListGap 로 수정됨)
 ```
 
 ## Correct
 
 ```typescript
-// ✅ 세 소스 동일한 값
-// packages/specs/src/components/Button.spec.ts
-md: { paddingX: 24 }
+// ✅ catalog rule 에서 파생 — engines/utils.ts:900
+const BUTTON_SIZE_CONFIG = deriveSizeConfig(ruleSizesToSizeSpecMap("Button"));
+// ruleSizesToSizeSpecMap (utils.ts:653): resolveSkiaRule(type) → rule.sizes → SizeSpec 변환
+// deriveSizeConfig (utils.ts:619): TokenRef fontSize/lineHeight → resolveToken 으로 number 해소
 
-// apps/builder/.../engines/utils.ts
-md: { paddingLeft: 24, paddingRight: 24, borderWidth: 1 }  // 일치
-
-// CSS: --spacing-xl = 24px, border: 1px solid  // 일치
+// ✅ ADR-907 Layer D — 배치 코드와 높이 계산이 동일 resolver 심볼 공유
+export function resolveTagListGap(sizeName: string): number {
+  const tagListRule = resolveSkiaRule("TagList"); // catalog rule 이 gap 정본
+  ...
+}
 ```
 
-## 동기화 대상 값
+## 동기화 대상 값 (Button 기준)
 
-| Spec 값                               | Builder 내부 상수                                              | CSS 토큰                                                   |
-| ------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------- |
-| `ButtonSpec.sizes[size].paddingX`     | `BUTTON_SIZE_CONFIG[size].paddingLeft/Right`                   | `Button.css [data-size] padding (좌우)`                    |
-| `ButtonSpec.sizes[size].paddingY`     | `BUTTON_SIZE_CONFIG[size].paddingY`                            | `Button.css [data-size] padding (상하)`                    |
-| `ButtonSpec.sizes[size].fontSize`     | `BUTTON_SIZE_CONFIG[size].fontSize`                            | `Button.css [data-size] font-size`                         |
-| N/A (CSS 파생)                        | `BUTTON_SIZE_CONFIG[size].lineHeight`                          | `Button.css [data-size] line-height`                       |
-| `fontFamily.sans` (typography.ts)     | `measureTextWidth()` 기본 폰트                                 | `body { font-family }`                                     |
-| CSS base `border: 1px solid`          | `BUTTON_SIZE_CONFIG[size].borderWidth` (=1)                    | `Button.css base: border`                                  |
-| `ButtonSpec.variants[v].border`       | `PixiButton specDefaultBorderWidth` (=1)                       | `Button.css border-color`                                  |
-| `ButtonSpec.sizes[size].borderRadius` | `UI_COMPONENT_DEFAULT_BORDER_RADIUS[size]` (ElementSprite.tsx) | `Button.css [data-size] border-radius`                     |
-| `spec.sizes[size].height`             | `INLINE_FORM_HEIGHTS[tag][size]` (engines/utils.ts)            | N/A (Skia에서 Yoga finalHeight 사용, spec height는 참조용) |
-| `spec indicator size`                 | `INLINE_FORM_INDICATOR_WIDTHS[tag][size]` (engines/utils.ts)   | N/A                                                        |
+| 값                | catalog 정본                            | Layout engine 파생                                        | CSS                                  |
+| ----------------- | --------------------------------------- | --------------------------------------------------------- | ------------------------------------ |
+| paddingX/paddingY | `COMPONENT_RULES_TABLE.Button.sizes[s]` | `BUTTON_SIZE_CONFIG[s].paddingLeft/Right/paddingY` (파생) | generated Button CSS `[data-size]`   |
+| fontSize          | `sizes[s].fontSize` (TokenRef)          | `BUTTON_SIZE_CONFIG[s].fontSize` (resolveToken 해소)      | `var(--text-*)`                      |
+| lineHeight        | `sizes[s].lineHeight` (TokenRef)        | `BUTTON_SIZE_CONFIG[s].lineHeight` (resolveToken 해소)    | `var(--text-*--line-height)`         |
+| borderWidth       | `sizes[s].borderWidth`                  | `BUTTON_SIZE_CONFIG[s].borderWidth`                       | border 선언                          |
+| variant 색상      | `variants[v].fill` + `colors`           | (layout 무관)                                             | generate-css 가 rule 테이블에서 주입 |
 
-## Button/ToggleButton 사이즈 레퍼런스 테이블
+`sizes[s].height: 0` 은 **sentinel** — 명시 높이 없음(콘텐츠 파생 높이) 의미입니다. 유효 높이 값으로 취급 금지.
 
-CSS height = lineHeight + paddingY x 2 + borderWidth x 2 (명시적 height 없음)
+## Button/ToggleButton 사이즈 레퍼런스
 
-| Size | fontSize | lineHeight (px) | paddingY | borderWidth | **CSS height** | CSS 토큰 참조                 |
-| ---- | -------- | --------------- | -------- | ----------- | -------------- | ----------------------------- |
-| xs   | 10       | 16              | 1        | 1           | **20px**       | `--text-2xs`, `--spacing-3xs` |
-| sm   | 12       | 16              | 2        | 1           | **22px**       | `--text-xs`, `--spacing-2xs`  |
-| md   | 14       | 20              | 4        | 1           | **30px**       | `--text-sm`, `--spacing-xs`   |
-| lg   | 16       | 24              | 8        | 1           | **42px**       | `--text-base`, `--spacing-sm` |
-| xl   | 18       | 28              | 12       | 1           | **54px**       | `--text-lg`, `--spacing-md`   |
+CSS height = lineHeight + paddingY × 2 + borderWidth × 2 (명시적 height 없음). catalog `Button.sizes` + `packages/specs/src/primitives/typography.ts` 의 line-height 토큰 기준:
 
-### lineHeight 계산 (shared-tokens.css)
-
-CSS `line-height`는 unitless ratio로 정의되어 있으며, `fontSize x ratio`로 px 환산:
-
-| Size | CSS line-height token      | ratio                 | px  |
-| ---- | -------------------------- | --------------------- | --- |
-| xs   | `--text-2xs--line-height`  | `1/0.625 = 1.6`       | 16  |
-| sm   | `--text-xs--line-height`   | `1/0.75 = 1.333`      | 16  |
-| md   | `--text-sm--line-height`   | `1.25/0.875 = 1.4286` | 20  |
-| lg   | `--text-base--line-height` | `1.5/1 = 1.5`         | 24  |
-| xl   | `--text-lg--line-height`   | `1.75/1.125 = 1.556`  | 28  |
+| Size | fontSize 토큰               | lineHeight (px) | paddingY | borderWidth | **CSS height** |
+| ---- | --------------------------- | --------------- | -------- | ----------- | -------------- |
+| xs   | `{typography.text-2xs}` =10 | 16              | 1        | 1           | **20px**       |
+| sm   | `{typography.text-xs}` =12  | 16              | 2        | 1           | **22px**       |
+| md   | `{typography.text-sm}` =14  | 20              | 4        | 1           | **30px**       |
+| lg   | `{typography.text-base}`=16 | 24              | 8        | 1           | **42px**       |
+| xl   | `{typography.text-lg}` =18  | 28              | 12       | 1           | **54px**       |
 
 ### BUTTON_SIZE_CONFIG lineHeight 필수 규칙
 
-`BUTTON_SIZE_CONFIG`와 `TOGGLEBUTTON_SIZE_CONFIG`에는 `lineHeight` 필드가 필수.
-CSS Button은 명시적 `line-height: var(--text-*--line-height)`를 사용하므로,
-WebGL `estimateTextHeight()`에 이 값을 전달하지 않으면 font metrics 기반
-`line-height: normal`(~1.2x)로 계산되어 CSS와 높이가 불일치함.
+`BUTTON_SIZE_CONFIG` / `TOGGLEBUTTON_SIZE_CONFIG`(utils.ts:900/915)에는 `lineHeight` 필드가 필수입니다. CSS Button 은 명시적 `line-height: var(--text-*--line-height)` 를 사용하므로, Skia 측 `estimateTextHeight()`(utils.ts:2013)에 이 값을 전달하지 않으면 font metrics 기반 `line-height: normal`(~1.2x)로 계산되어 CSS 와 높이가 불일치합니다.
 
 ```typescript
-// calculateContentHeight() 내부
+// calculateContentHeight() 내부 (utils.ts:2397-2399)
+const configLineHeight = (sizeConfig as { lineHeight?: number }).lineHeight;
 const effectiveLineHeight = resolvedLineHeight ?? configLineHeight;
 const textHeight = estimateTextHeight(fontSize, effectiveLineHeight);
 ```
 
-## parseBoxModel 기본값
+단일 진입점: `getButtonSizeConfig(tag, size)` (utils.ts:1043) — button/submitbutton/fancybutton → `BUTTON_SIZE_CONFIG`, togglebutton → `TOGGLEBUTTON_SIZE_CONFIG`.
 
-`parseBoxModel()`은 폼 요소(`button`, `input`, `select`)에 inline style이 없을 때
-`BUTTON_SIZE_CONFIG` 기본값을 적용합니다. inline style이 있으면 해당 값을 우선 사용합니다.
+## 체크리스트 — 수치 수정 시
 
-- `calculateContentWidth()` → 순수 텍스트 너비만 반환 (padding/border 미포함)
-- `parseBoxModel()` → padding/border 기본값 제공 (BUTTON_SIZE_CONFIG 또는 inline)
-- `BlockEngine` → `contentWidth + padding + border` = 정확한 한 번 계산
+- [ ] `packages/shared/src/catalog/generated/componentRulesTable.ts` 의 해당 rule sizes/variants 편집 (정본 1곳)
+- [ ] variant 색상 변경 시 generated CSS 재생성: `pnpm --filter @composition/specs build` (generate:css 포함) → [spec-build-sync](spec-build-sync.md)
+- [ ] layout engine 파생 경로 확인 — 해당 type 이 `deriveSizeConfig`/`resolveSkiaRule` 파생인지, ad-hoc 하드코딩이 남아있지 않은지 grep
+- [ ] Skia ↔ CSS 시각 결과 확인 — `/cross-check`
+- [ ] ADR-907 Layer D: 배치 코드와 `calculateContentHeight()` 분기가 동일 resolver 심볼을 호출하는지 확인
 
-## Skia Spec Shapes 렌더링 주의사항
+## 삭제된 심볼 — 참조 금지 (grep 확증 2026-07-07, 0건)
 
-`ElementSprite.tsx`의 Spec shapes 렌더링 경로에서 시각 전용 속성(`borderRadius`, `borderColor` 등)을 읽을 때는
-반드시 `convertStyle()`의 반환값을 사용해야 합니다. `style.borderRadius`는 UI 패널에서 CSS 문자열
-(`"12px"`)로 저장되므로, `typeof === 'number'` 직접 체크 시 항상 `0`이 됩니다.
-
-```typescript
-// ❌ 금지: raw style 직접 typeof 체크
-const br = typeof style.borderRadius === "number" ? style.borderRadius : 0;
-
-// ✅ 필수: convertStyle() 반환값 사용
-const { borderRadius: convertedBorderRadius } = convertStyle(style);
-const br =
-  typeof convertedBorderRadius === "number"
-    ? convertedBorderRadius
-    : (convertedBorderRadius?.[0] ?? 0);
-```
-
-> Yoga가 변환하는 레이아웃 속성(width, height, padding)과 달리, `borderRadius`는 시각 전용이므로 Yoga를 거치지 않고 CSS 문자열 형태로 남아 있다.
-
-### Spec Shapes 높이 및 Fill 통합 (2026-02-12 추가)
-
-**specHeight = finalHeight**: `ElementSprite.tsx`에서 spec shapes에 전달하는 높이는 항상 Yoga 계산 높이(`finalHeight`)를 사용합니다. 이전의 `Math.min(sizeSpec.height, finalHeight)` 패턴은 제거되었습니다.
-
-```typescript
-// ✅ 항상 Yoga 높이 사용
-const specHeight = finalHeight;
-
-// ❌ 금지: spec 고정 높이 혼합
-const specHeight = Math.min(sizeSpec.height || finalHeight, finalHeight);
-```
-
-**gradient fill 이전**: spec shapes가 외부 box 데이터를 클리어하므로, gradient fill이 손실될 수 있습니다. 반드시 `boxData.fill`을 `specNode.box.fill`로 이전한 후 클리어:
-
-```typescript
-// ✅ gradient fill 보존
-if (boxData.fill && specNode.box) {
-  specNode.box.fill = boxData.fill;
-}
-boxData.fill = undefined; // spec shapes가 시각 담당하므로 클리어
-```
-
-**maxWidth safety clamp**: `containerWidth - padding * 2`가 1 미만이면 `containerWidth`로 폴백하여 padding=0 시 음수 maxWidth 방지.
-
-### Size별 기본 borderRadius
-
-`ElementSprite.tsx`의 `UI_COMPONENT_DEFAULT_BORDER_RADIUS` 상수는 Spec radius 토큰 값을 미러링한다.
-`style.borderRadius`가 설정되지 않은 UI 컴포넌트는 `element.props.size`에 따라 기본값을 적용한다:
-
-| size   | Spec 토큰     | radius 값 |
-| ------ | ------------- | --------- |
-| xs, sm | `{radius.sm}` | 4px       |
-| md     | `{radius.md}` | 6px       |
-| lg, xl | `{radius.lg}` | 8px       |
-
-```typescript
-// ✅ Spec 토큰 기반 size별 기본 borderRadius
-const UI_COMPONENT_DEFAULT_BORDER_RADIUS: Record<string, number> = {
-  xs: 4,
-  sm: 4,
-  md: 6,
-  lg: 8,
-  xl: 8,
-};
-const size = String(props?.size || "md");
-const defaultBorderRadius = UI_COMPONENT_DEFAULT_BORDER_RADIUS[size] ?? 6;
-
-// ❌ 금지: 하드코딩된 기본값
-const effectiveBorderRadius = isUIComponent ? 6 : 0;
-```
-
-## 체크리스트
-
-값 수정 시 반드시 확인:
-
-- [ ] `packages/specs/src/components/[Component].spec.ts`
-- [ ] `apps/builder/.../engines/utils.ts` (`BUTTON_SIZE_CONFIG` 등 내부 상수)
-- [ ] `apps/builder/.../canvas/ui/Pixi[Component].tsx` (이벤트 레이어 전용, alpha=0)
-- [ ] `apps/builder/.../sprites/ElementSprite.tsx` (Skia 폴백 — `convertStyle()` 사용 필수)
-- [ ] CSS 파일의 토큰/변수
-- [ ] `pnpm --filter @composition/specs build` 실행
-- [ ] `apps/builder/.../skia/specShapeConverter.ts` (색상/크기 변환)
-- [ ] `apps/builder/.../layout/engines/utils.ts` (`INLINE_FORM_HEIGHTS`, `INLINE_FORM_INDICATOR_WIDTHS`)
-- [ ] spec shapes의 모든 시각 속성이 `props.style?.X` 오버라이드를 지원하는지 확인
-- [ ] 배경 roundRect의 height가 `'auto'`인지 확인 (고정 높이 금지)
+`UI_COMPONENT_DEFAULT_BORDER_RADIUS` / `INLINE_FORM_HEIGHTS` / `INLINE_FORM_INDICATOR_WIDTHS` / `ElementSprite.tsx` / `Pixi*.tsx` — 과거 문서의 해당 체크리스트 행은 무효.
 
 ## 참조
 
-- [spec-build-sync](spec-build-sync.md) — 빌드 동기화 필수
-- `docs/COMPONENT_SPEC.md` §4.7.4.0, §4.7.4.5~4.7.4.6
+- `packages/shared/src/catalog/generated/componentRulesTable.ts` — 수치/색상 정본
+- `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` — deriveSizeConfig(:619) / ruleSizesToSizeSpecMap(:653) / BUTTON_SIZE_CONFIG(:900) / getButtonSizeConfig(:1043) / estimateTextHeight(:2013)
+- `packages/specs/src/primitives/typography.ts` — fontSize/line-height 토큰 값
+- [spec-build-sync](spec-build-sync.md) — 빌드/재생성 동기화
+- `.claude/rules/canvas-rendering.md` §2.6 — Container style pipeline (ADR-907 Layer A~D)

@@ -73,16 +73,16 @@ const element = elements.find((el) => el.id === id);
 
 ## Canvas 체크리스트
 
-### PIXI 렌더링
+### Skia/CanvasKit 렌더링
 
-- [ ] **isLeaf**: Text 요소에 설정
-- [ ] **Texture 재사용**: 동일 이미지 공유
-- [ ] **컬링**: 뷰포트 외 요소 렌더링 스킵
+- [ ] **WASM Paragraph 객체 캐싱 금지**: 메모리 누수 — 측정 결과값 `{width, height}` 만 LRU 캐싱 (`canvaskitTextMeasurer.ts` `lruSet()` 패턴, 상세: `.claude/rules/canvas-rendering.md` §3)
+- [ ] **측정기 ↔ 렌더러 fontFamilies 동일 배열**: CSS 체인 전체를 `split(",")` → `resolveFamily()` 매핑 (불일치 시 줄바꿈 위치 어긋남)
+- [ ] **컬링**: 뷰포트 외 요소 렌더링 스킵 (`useViewportCulling`)
 
 ### Viewport Culling
 
 - [ ] **좌표 시스템 일관성**: 뷰포트와 요소 bounds를 동일 좌표계(스크린 좌표)로 비교
-- [ ] **실시간 bounds**: `container.getBounds()` 사용 (`layoutBoundsRegistry`는 pan 후 stale)
+- [ ] **실시간 bounds**: `layoutBoundsRegistry` 기반 `getElementBoundsSimple()` 사용 (`workspace/canvas/elementRegistry.ts`) — 구 SpatialIndex 는 stale 좌표 이슈로 제거됨 (`useViewportCulling.ts` 헤더 참조)
 - [ ] **Cull/Render cycle 방지**: 부모 가시성 체크로 unmount→re-include 무한 loop 방지
 - [ ] **Overflow 자식 처리**: 부모가 화면에 있으면 자식은 `overflow: visible`로 보일 수 있으므로 cull하지 않음
 
@@ -135,7 +135,7 @@ Chrome DevTools → Performance 탭
 
 > 이 체크리스트는 아래 개별 규칙의 **통합 진입점**입니다.
 > Opus 4.8에서 범용 패턴(barrel import, Promise.all, 동적 import)은 자연스럽게 준수되므로,
-> 도메인 특화 항목(Canvas/PIXI, elementsMap)에 집중하세요.
+> 도메인 특화 항목(Canvas/Skia, elementsMap)에 집중하세요.
 
 - `perf-barrel-imports.md` - Barrel import 상세 (범용 — 레퍼런스용)
 - `perf-promise-all.md` - 병렬 처리 상세 (범용 — 레퍼런스용)

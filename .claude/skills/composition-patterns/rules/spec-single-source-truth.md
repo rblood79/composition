@@ -1,125 +1,104 @@
 ---
-title: ComponentSpec Single Source of Truth
+title: Visual Single Source of Truth (Catalog)
 impact: HIGH
-impactDescription: React/PIXI 간 일관성 보장, 중복 코드 제거
-tags: [spec, architecture, component]
+impactDescription: D3 시각 스타일 단일 소스 — Skia ↔ DOM/CSS 대등(symmetric) consumer 정합 보장
+tags: [spec, catalog, architecture, ssot]
 ---
 
-ComponentSpec은 React와 PIXI 렌더링의 **단일 소스**입니다. 컴포넌트 스타일/동작을 Spec에서만 정의합니다.
+D3(시각 스타일)의 SSOT 는 **catalog** 입니다 — `COMPONENT_RULES_TABLE`(변형/크기/fill 색상) + `bindings/*.binding.ts`(D2 props surface + `skiaPrimitive` 키). Builder(Skia)와 Preview/Publish(DOM+CSS)는 이 단일 소스에서 파생되는 **대등한(symmetric) consumer** 이며, 어느 한쪽이 다른 쪽의 기준이 아닙니다. 대칭 = **시각 결과의 동일성** (구현 방법 자유). 정본 규칙: `.claude/rules/ssot-hierarchy.md` (ADR-063).
 
 ## Incorrect
 
 ```tsx
-// ❌ React와 PIXI에서 각각 스타일 정의
-// React 컴포넌트
-const Button = ({ variant }) => (
-  <button className={variant === 'primary' ? 'bg-blue-500' : 'bg-gray-500'}>
-    Click
-  </button>
-);
+// ❌ 렌더러별 독립 스타일 정의 — DOM 과 Skia 가 서로 다른 소스에서 색을 읽음
+// (a) 수동 CSS 에 하드코딩
+.react-aria-Button { background: #2563eb; }
+// (b) Skia 생성기에 하드코딩
+const bg = "#2563eb";
 
-// PIXI 컴포넌트 - 동일한 로직 중복
-const PixiButton = ({ variant }) => {
-  const color = variant === 'primary' ? 0x3b82f6 : 0x6b7280;
-  // ...
-};
+// ❌ M3 토큰 + legacy background 개별 필드 — 이중 금지 패턴
+//    ({color.primary} 계열 토큰은 금지 — css-tokens.md / background* 필드는 ADR-908 로 타입 삭제)
+variants: {
+  primary: {
+    background: "{color.primary}",
+    backgroundHover: "{color.primary-hover}",
+    text: "{color.on-primary}",
+  },
+},
+
+// ❌ "CSS 가 기준, Skia 가 따라간다" 언어/구현 — 대칭 위반
+// ❌ @sync 주석으로 CSS ↔ CSS consumer-to-consumer 참조
 ```
 
 ## Correct
 
 ```tsx
-// ✅ ComponentSpec에서 단일 정의
-// packages/specs/src/components/Button.spec.ts
-export const ButtonSpec: ComponentSpec<ButtonProps> = {
-  name: 'Button',
-  variants: {
-    primary: {
-      background: '{color.primary}',
-      text: '{color.on-primary}',
-    },
-    secondary: {
-      background: '{color.secondary}',
-      text: '{color.on-secondary}',
-    },
-  },
-  render: {
-    shapes: (props, variant, size, state) => [
-      {
-        type: 'roundRect',
-        fill: variant.background,
-        // ...
+// ✅ catalog rule 단일 정의 — S2 TokenRef + ADR-908 FillTokenSpec
+// packages/shared/src/catalog/generated/componentRulesTable.ts (직접 편집 정본)
+export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
+  Button: {
+    defaultVariant: "primary",
+    defaultSize: "md",
+    variants: {
+      accent: {
+        fill: {
+          default: {
+            base: "{color.accent}",
+            hover: "{color.accent-hover}",
+            pressed: "{color.accent-pressed}",
+          },
+          outline: { base: "{color.transparent}" },
+        },
+        colors: {
+          text: "{color.on-accent}",
+          border: "{color.accent}",
+        },
       },
-    ],
+    },
+    sizes: {
+      /* fontSize/lineHeight/paddingX... TokenRef + number */
+    },
   },
 };
-
-// React - Spec 사용
-import { renderToReact } from '@composition/specs/renderers';
-const Button = (props) => renderToReact(ButtonSpec, props);
-
-// Skia - 동일한 Spec 사용 (ElementSprite.tsx)
-import { specShapesToSkia } from '../skia/specShapeConverter';
-const shapes = ButtonSpec.render.shapes(props, variant, size, state);
-const skiaNode = specShapesToSkia(shapes, theme, width, height);
-// → nodeRenderers.ts → CanvasKit Canvas API
 ```
 
-## Self-Rendering 컴포넌트 레이아웃 규칙
-
-Button 등 self-rendering 컴포넌트는 Spec 기본값과 inline style이 올바르게 분리되어야 합니다:
-
-- `calculateContentWidth()` → 순수 텍스트 너비만 반환 (padding/border 미포함)
-- `parseBoxModel()` → inline style이 없으면 `BUTTON_SIZE_CONFIG` 기본값 적용
-- 모든 variant에 `border`/`borderHover` 정의 필요 (CSS가 모든 variant에 border 적용하므로)
-
-**Note**: PixiButton 등 Pixi*.tsx 컴포넌트는 이벤트 처리(alpha=0) 전용. 실제 화면 렌더링은 `ElementSprite.tsx`의 `getSpecForTag()` → `specShapesToSkia()` 경로를 사용.
-
-### props.style 오버라이드 패턴 (2026-02-12)
-
-모든 49개 spec의 `render.shapes()`에서 시각 속성은 `props.style` 인라인 스타일을 우선 참조합니다:
+두 consumer 는 같은 테이블에서 파생됩니다:
 
 ```
-우선순위: props.style > state variant > variant default > spec size default
+COMPONENT_RULES_TABLE
+ ├─ DOM/CSS  : packages/specs/scripts/generate-css.ts 가 getComponentRulesTable() 로
+ │             variant 색상을 주입 → packages/shared/src/components/styles/generated/*.css
+ │             (렌더러: packages/shared/src/renderers/LayoutRenderers.tsx)
+ └─ Skia     : resolveComponentRule() (packages/shared/src/catalog/resolvers/resolveComponentRule.ts)
+               → builder ruleVariantToVisual() → buildCatalogShapes() (generic box+text)
+               → 비-box 도형은 binding.skiaPrimitive → skiaPrimitives.ts
 ```
 
-```typescript
-// ✅ 참조 패턴 (모든 spec에 적용)
-const bgColor = props.style?.backgroundColor ?? variant.background;
-const textColor = props.style?.color ?? variant.text;
-const borderRadius = props.style?.borderRadius ?? size.borderRadius;
-const borderWidth = props.style?.borderWidth ?? 1;
-const fontSize = props.style?.fontSize ?? size.fontSize;
-```
+- fill 은 `FillTokenSpec`(fillStyle × state 2축, ADR-908) 구조 — consumer 는 `resolveFillTokens()` / 주입된 `visual.fill` 경유로만 접근 (`variant.background*` 직접 access 금지, 타입 삭제됨)
+- TokenRef 는 S2 체계만 사용 (`{color.accent}` / `{color.neutral}` 등) — 매핑 정본: `.claude/rules/css-tokens.md`
 
-**v1.13 변경사항:**
-- `MIN_BUTTON_HEIGHT` (24px) 제거 — padding:0으로 최소 높이까지 축소 가능
-- 배경 roundRect `height: 'auto'` — Yoga 레이아웃 높이 사용 (고정 높이 금지)
-- `specHeight = finalHeight` — ElementSprite에서 항상 Yoga 계산 높이 사용
-- gradient fill 이전: `boxData.fill → specNode.box.fill` (spec shapes가 외부 fill 클리어 방지)
+## 잔존 spec — 3개뿐
 
-**v1.14 변경사항:**
-- **배경 roundRect `width: 'auto' as const`** — `props.style?.width` 사용 금지 (9개 spec 수정)
-- `specShapesToSkia` bgBox 추출 조건: `shape.width === 'auto' && shape.height === 'auto'`
-- `props.style?.width`가 숫자일 경우 bgBox 미추출 → 배경 미렌더링 버그
-- ElementSprite 퍼센트 width 이중 적용 수정: `computedContainerSize.width` 직접 사용
+catalog 미등록 native 3종만 spec 파일이 남아 있습니다 (`packages/specs/src/components/`):
 
-**v1.15 변경사항:**
-- **텍스트 줄바꿈 시 Skia 높이 자동 확장** — `measureSpecTextMinHeight()` 헬퍼 추가
-- `specHeight`를 `let`으로 변경, 다중 줄 텍스트일 때 `paddingY * 2 + wrappedHeight`로 확장
-- `cardCalculatedHeight` → `contentMinHeight` 패턴으로 `buildSkiaTreeHierarchical`에서 높이 반영
-- 다중 줄 텍스트 `paddingTop` 보정: `(specHeight - wrappedHeight) / 2` 수직 중앙
-- `updateTextChildren` box 자식 재귀 추가 (SkiaOverlay.tsx)
-- **BlockEngine 경로 텍스트 줄바꿈 높이** — `parseBoxModel`에서 요소 자체 width를 `calculateContentHeight`에 전달
-- ~~`styleToLayout` minHeight 기본 사이즈 수정~~ — **삭제됨** (W3-6). `enrichWithIntrinsicSize()`에 통합
-- **Button 높이 명시적 설정** — `enrichWithIntrinsicSize()`에서 `getButtonSizeConfig()` 기반 계산 (engines/utils.ts)
-- **인라인 padding 시 `MIN_BUTTON_HEIGHT` 미적용** — padding:0으로 완전 축소 허용
-- **`toNum` 함수 0값 버그 수정** — `parseFloat(v) || undefined` → `isNaN(parseFloat(v))` 체크
+| spec            | 성격                                                         |
+| --------------- | ------------------------------------------------------------ |
+| `Frame.spec.ts` | canonical layout container (D3, ADR-130 — ARIA role 없음)    |
+| `Group.spec.ts` | RAC ARIA semantic (D1 — `role="group"`), 시각 책임 추가 금지 |
+| `Slot.spec.ts`  | 플레이스홀더 슬롯 컨테이너                                   |
+
+그 외 124개 spec 은 ADR-912 로 삭제 완료 — 시각 수정은 catalog rule 을 직접 편집합니다. `COMPONENT_RULES_TABLE` 은 build-time 생성물이 아니라 **직접 편집 정본** 입니다 (ADR-912 1A-(a) 위상 전환, generate-rules.ts 삭제됨).
+
+## Self-Rendering 레이아웃 연계
+
+layout engine 내부 상수(`BUTTON_SIZE_CONFIG` 등)도 catalog rule 에서 파생됩니다 — `deriveSizeConfig(ruleSizesToSizeSpecMap("Button"))` (`apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts:900`). 수치 동기화 상세: [spec-value-sync](spec-value-sync.md).
 
 ## 참조
 
-- `docs/COMPONENT_SPEC.md` - 전체 설계 문서 (§4.7.4.4~4.7.4.8)
-- `packages/specs/src/components/Button.spec.ts` - 참조 구현
-- `apps/builder/src/.../skia/specShapeConverter.ts` - Shape[] → SkiaNodeData 변환
-- `apps/builder/src/.../sprites/ElementSprite.tsx` - getSpecForTag() + TAG_SPEC_MAP
-- [spec-build-sync](spec-build-sync.md) - Spec 수정 후 빌드 필수
-- [spec-value-sync](spec-value-sync.md) - Spec ↔ Builder ↔ CSS 값 동기화
+- `packages/shared/src/catalog/generated/componentRulesTable.ts` — COMPONENT_RULES_TABLE (직접 편집 정본)
+- `packages/shared/src/catalog/bindings/` — PrimitiveBinding (D2 props + skiaPrimitive)
+- `packages/shared/src/catalog/resolvers/resolveComponentRule.ts` — 런타임 rule resolver
+- `packages/specs/src/renderers/buildCatalogShapes.ts` — Skia generic 생성기
+- `packages/specs/scripts/generate-css.ts` — DOM CSS 생성기
+- `.claude/rules/ssot-hierarchy.md` — 3-Domain 분할 정본 (ADR-063)
+- [spec-shape-rendering](spec-shape-rendering.md) / [spec-value-sync](spec-value-sync.md) / [spec-build-sync](spec-build-sync.md)

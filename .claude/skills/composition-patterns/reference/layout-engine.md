@@ -1,678 +1,282 @@
-# Layout Engine Patterns
+# Layout Engine 구현 상세 — composition-engine (자체 Rust WASM) + JS 어댑터
+
+> **정본 분리**: 원칙·금지 패턴 정본은 [.claude/rules/layout-engine.md](../../../rules/layout-engine.md) 와
+> [.claude/rules/canvas-rendering.md](../../../rules/canvas-rendering.md). 본 문서는 그 정본이 다루지 않는
+> **구현 위치·계약·디버깅 진입점**만 담는다. 규칙이 충돌하면 정본 우선.
+>
+> **공식 결정**: [ADR-916](../../../../docs/adr/916-unified-rust-engine.md) — 자체 단일 Rust 엔진 통합
+> (Implemented 2026-07-06, endgame Taffy 완전 제거 포함). 본 문서 기준일: 2026-07-07.
 
 ## 목차
 
-- 레이아웃 엔진 핵심 패턴 (엔진 선택 / DirectContainer / LayoutComputedSizeContext) — L3~L62
-- enrichWithIntrinsicSize (텍스트 크기 주입) — L63
-- Card Nested Tree 레이아웃 — L104
-- Tabs 컨테이너 높이 계산 — L160
-- Compositional Component 레이아웃 패턴 (CRITICAL) — L185
-- Full-Tree WASM Layout 좌표계 규칙 — L220
-- enrichWithIntrinsicSize에 implicit-styled 자식 전달 — L287
-- ElementSprite CSS keyword → pixel 해석 — L319
-- CSS min-width:auto 에뮬레이션 (step 4.8) — L338
-- layoutVersion 계약 (ADR-012 P4) — L362
-- 레이아웃 엔진 개선 이력 (line-height / TextSprite / INLINE_BLOCK / Switch / Card / TagGroup) — L401~L548
-- Tag fit-content 폭 + flex-row 레이아웃 — L549
+1. 아키텍처 개요 — 계층과 호출 체인
+2. WASM 경계 계약 — LayoutEngineAPI / batch 직렬화 / grid track 정규화
+3. `calculateFullTreeLayout` 파이프라인 (Step 1~5)
+4. DFS 상단 JS 계층 — enrichment / implicit styles / CSS resolve
+5. Rust 측 구조 — composition-engine 모듈과 테스트
+6. WASM 로드/플래그
+7. 디버깅 진입점
+8. 역사적 맥락 (Dropflow → Taffy → 자체 엔진)
 
 ---
 
-## 레이아웃 엔진 핵심 패턴
+## 1. 아키텍처 개요
 
-> Wave 3-4 (2026-02-19) 이후 현행 아키텍처.
-
-### 엔진 선택
-
-| display 값                                     | 엔진                         |
-| ---------------------------------------------- | ---------------------------- |
-| `block`, `inline-block`, `inline`, `flow-root` | DropflowBlockEngine (JS)     |
-| `flex`, `inline-flex`                          | TaffyFlexEngine (Taffy WASM) |
-| `grid`, `inline-grid`                          | TaffyGridEngine (Taffy WASM) |
-
-### DirectContainer 패턴
-
-@pixi/layout 제거 후, 엔진 계산 결과(x/y/w/h)를 DirectContainer에서 직접 배치합니다:
-
-```typescript
-// ✅ 엔진 계산 결과를 DirectContainer x/y로 직접 주입
-<DirectContainer x={layout.x} y={layout.y}>
-  <ElementSprite element={element} width={layout.width} height={layout.height} />
-</DirectContainer>
-
-// ❌ 레이아웃 prop으로 재계산 요청 (구 @pixi/layout 패턴 — 제거됨)
-<pixiContainer layout={{ display: 'flex', flexDirection: 'column' }}>
-```
-
-### LayoutComputedSizeContext 패턴
-
-컴포넌트 내부 Sprite가 엔진이 계산한 border-box 크기를 읽어야 할 때 사용합니다.
-퍼센트(`%`) 크기나 자동 크기(`auto`, `fit-content`) 요소의 최종 픽셀 크기를 엔진에서 전파합니다.
-
-**CRITICAL**: DirectContainer는 엔진 결과를 **항상** computedSize로 전달합니다 (0도 유효한 값).
-null로 반환하면 ElementSprite가 `convertToTransform` fallback(width=100, height=100)을 사용하여 잘못된 크기로 렌더링됩니다.
-
-```typescript
-// ✅ DirectContainer: 엔진 결과 항상 전달 (0도 유효)
-const computedSize = useMemo(
-  () => ({ width: Math.max(width, 0), height: Math.max(height, 0) }),
-  [width, height],
-);
-
-// ❌ width > 0 && height > 0 일 때만 전달 → height=0이면 null → 100px fallback
-const computedSize = width > 0 && height > 0 ? { width, height } : null;
-```
-
-```typescript
-// ✅ LayoutComputedSizeContext로 엔진 계산 크기 읽기
-const computedSize = useContext(LayoutComputedSizeContext);
-const width =
-  computedSize?.width && computedSize.width > 0
-    ? computedSize.width
-    : fallbackWidth;
-
-// ❌ props.style?.width를 직접 파싱 (% 값이 100px로 오해석됨)
-const width = parseCSSSize(style?.width, undefined) ?? 0;
-```
-
-**Provider:** `BuilderCanvas.tsx` DirectContainer 래퍼
-**Consumer:** `ElementSprite.tsx`, `BoxSprite.tsx`, 히트 영역 Graphics 컴포넌트
-
-### enrichWithIntrinsicSize (텍스트 크기 주입)
-
-Button, Badge 등 텍스트 기반 intrinsic 크기를 가진 컴포넌트는 `enrichWithIntrinsicSize()`로 엔진에 크기를 주입합니다.
-구 `styleToLayout.ts` 방식의 수동 `layout.height` 계산은 삭제됐습니다 (W3-6 완료).
-
-```typescript
-// ✅ enrichWithIntrinsicSize — 엔진 layout 호출 전 intrinsic 크기 주입
-enrichWithIntrinsicSize(element, availableWidth, cssContext);
-// → element.intrinsicWidth / intrinsicHeight 설정
-// → TaffyFlexEngine/DropflowBlockEngine이 측정값으로 노드 크기 결정
-
-// ❌ styleToLayout.ts에서 layout.height 직접 설정 (삭제됨)
-// layout.height = calculateContentHeight(element, availableWidth);
-```
-
-#### contentHeight ≤ 0 early return 우회 조건
-
-`enrichWithIntrinsicSize` 내부에서 `contentHeight ≤ 0`이면 early return하여 intrinsicHeight 주입을 건너뜁니다.
-다음 두 경우에 이 검사를 우회합니다:
-
-1. **SPEC_SHAPES_INPUT_TAGS**: spec shapes로 자체 렌더링하는 입력 계열 컴포넌트
-2. **childElements가 있는 컨테이너**: CardHeader/CardContent 등 자체 텍스트는 없지만 자식 높이 합산이 필요한 래퍼
-
-```typescript
-// ✅ early return 조건 (3가지 우회)
-if (
-  box.contentHeight <= 0 &&
-  !needsWidth &&
-  !SPEC_SHAPES_INPUT_TAGS.has(tag) &&
-  !(childElements && childElements.length > 0)
-)
-  // 자식 있는 컨테이너 우회
-  return element;
-
-// ❌ childElements 체크 없이 early return → CardHeader/CardContent height=0
-// → DirectContainer computedSize=null → convertToTransform fallback 100×100
-```
-
-새로운 spec shapes 기반 컴포넌트를 추가할 때 `SPEC_SHAPES_INPUT_TAGS`에 태그를 등록해야 합니다.
-자식 Element가 있는 투명 컨테이너는 별도 등록 없이 `childElements` 체크로 자동 우회됩니다.
-
-### Card Nested Tree 레이아웃 (2026-02-26)
-
-Card는 복합 트리 구조(Card → CardHeader → Heading, Card → CardContent → Description)를 사용합니다.
-CardHeader/CardContent는 투명 래퍼로 자체 텍스트가 없으므로 특별한 레이아웃 처리가 필요합니다.
-
-#### 3-layer default system (Factory / Engine / CSS)
-
-| 계층            | 파일                                             | 역할                             |
-| --------------- | ------------------------------------------------ | -------------------------------- |
-| Factory         | `LayoutComponents.ts`                            | DB 생성 시 기본 style 설정       |
-| Engine implicit | `BuilderCanvas.tsx createContainerChildRenderer` | 기존 DB 요소에 누락된 style 주입 |
-| CSS             | `Card.css`                                       | Preview iframe 렌더링            |
-
-#### implicit style injection (BuilderCanvas.tsx)
-
-```typescript
-// Card → CardHeader/CardContent: width 확보
-if (containerTag === "card") {
-  /* width: '100%' 주입 */
-}
-// CardHeader → Heading: flex row에서 width 확보
-if (containerTag === "cardheader") {
-  /* flex: 1 주입 */
-}
-// CardContent → Description: flex column에서 width 확보
-if (containerTag === "cardcontent") {
-  /* width: '100%' 주입 */
-}
-```
-
-#### calculateContentHeight 컨테이너 브랜치 구조
-
-`childElements`가 있는 컨테이너의 높이 계산 분기:
-
-1. **전용 브랜치** (태그별): CardHeader/CardContent, Card, CheckboxGroup/RadioGroup, Tabs, ComboBox/Select 등
-2. **일반 flex 브랜치**: `display:flex/inline-flex` → flexDirection별 column=합산+gap, row=max
-3. **일반 block 브랜치**: `display:block` 또는 미지정 → 자식 높이 세로 합산 (gap 없음)
-
-모든 브랜치 공통: 자식 border-box 높이 = content-box(calculateContentHeight) + padding + border.
-Button 등 padding이 있는 자식의 높이를 정확히 반영하려면 반드시 border-box로 계산해야 합니다.
-
-```typescript
-// ✅ 일반 block 컨테이너: Menu(→MenuItem), Disclosure(→Header+Content) 등
-// display:flex가 아닌 모든 컨테이너가 이 경로를 통과
-const blockChildHeights = visibleBlockChildren.map(child => {
-  const contentH = calculateContentHeight(child, ...);
-  const childBox = parseBoxModel(child, 0, -1);
-  return contentH + childBox.padding.top + childBox.padding.bottom
-    + childBox.border.top + childBox.border.bottom;
-});
-return blockChildHeights.reduce((sum, h) => sum + h, 0);
-
-// ❌ block 컨테이너에 childElements 합산 핸들러 누락
-// → 자식이 있어도 calculateContentHeight가 텍스트 높이 fallback(~24px) 반환
-```
-
-### Tabs 컨테이너 높이 계산
-
-Tabs는 컨테이너로 처리되며 (`NON_CONTAINER_TAGS` 미포함), 활성 Panel을 내부에 렌더링하는 복합 컴포넌트입니다.
-`calculateContentHeight`에서 Tabs 전용 높이 케이스는 childElements 블록 **밖**에 배치합니다.
-Panel은 element tree에 자식이 없기 때문에, childElements 블록 안에서는 높이를 계산할 수 없습니다.
-
-```typescript
-// ✅ Tabs 높이 = tabBarHeight + tabPanelPadding * 2 + panelBorderBox
-// CSS spec sizes 기준 탭 바 높이: sm=25, md=30, lg=35
-// TabPanel padding: 16px (React-Aria 기본값)
-const TAB_BAR_HEIGHT = { sm: 25, md: 30, lg: 35 }[size] ?? 30;
-const TAB_PANEL_PADDING = 16;
-const tabsHeight =
-  TAB_BAR_HEIGHT + TAB_PANEL_PADDING * 2 + panelBorderBoxHeight;
-
-// ❌ childElements 블록 내에서 Tabs 높이 계산 시도
-// → Panel은 자식 element가 없어 panelBorderBoxHeight를 구할 수 없음
-```
-
-| size | tabBarHeight |
-| ---- | ------------ |
-| sm   | 25px         |
-| md   | 30px         |
-| lg   | 35px         |
-
-### Compositional Component 레이아웃 패턴 (CRITICAL)
-
-Monolithic(Spec Shapes 기반) → Compositional(Card 패턴) 아키텍처 전환 시 반드시 준수해야 하는 체크리스트입니다.
-Select, ComboBox 등 복합 컴포넌트를 자식 Element 트리 구조로 전환할 때 적용합니다.
-
-#### 전환 체크리스트
-
-| #   | 항목                                     | 검증                                                                                                                                                                                                               |
-| --- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1   | **isFormElement 제외**                   | `parseBoxModel`의 `isFormElement` 배열에서 제거. Compositional container는 BUTTON_SIZE_CONFIG padding/border를 사용하지 않음                                                                                       |
-| 2   | **SPEC_SHAPES_INPUT_TAGS 제외**          | `enrichWithIntrinsicSize`의 SPEC_SHAPES_INPUT_TAGS에서 제거. 자식 기반 높이 + CSS padding 경로 사용                                                                                                                |
-| 3   | **Factory 기본 스타일**                  | Factory 정의에 web CSS와 동일한 display/flexDirection/gap 설정                                                                                                                                                     |
-| 4   | **BuilderCanvas implicit style**         | `createContainerChildRenderer`에서 `??` 패턴으로 기본값 주입 (사용자 값 우선)                                                                                                                                      |
-| 5   | **calculateContentHeight 브랜치**        | 전용 높이 계산 브랜치에서 실제 visible 자식 순회 (Card 패턴)                                                                                                                                                       |
-| 6   | **자식 필터링**                          | web preview 비표시 조건(label prop 삭제 등)과 canvas 필터링 일치                                                                                                                                                   |
-| 7   | **DEFAULT_ELEMENT_HEIGHTS 동적화**       | 하드코딩 높이 대신 `fontSize * lineHeight` 동적 계산 사용                                                                                                                                                          |
-| 8   | **UI_SELECT_CHILD_TAGS 등록** (CRITICAL) | 자식 Element(`ComboBoxWrapper`, `ComboBoxInput`, `ComboBoxTrigger` 등)를 `UI_SELECT_CHILD_TAGS`에 등록. 미등록 시 `getSpriteType()` → 'flex'/'box' → `isUIComponent=false` → spec shapes 스킵 → 색상/보더 미렌더링 |
-| 9   | **TAG_SPEC_MAP 등록**                    | `ElementSprite.tsx`의 `TAG_SPEC_MAP`에 자식 태그 → Spec 클래스 매핑. 기존 Spec 재사용 가능 (아래 참조)                                                                                                             |
-
-#### Monolithic vs Compositional 구분
-
-```typescript
-// ✅ Compositional (Card 패턴) — 자식 Element가 store에 존재
-// Select, ComboBox, Card, Tabs 등
-// - isFormElement: 제외
-// - SPEC_SHAPES_INPUT_TAGS: 제외
-// - enrichment: CSS padding 경로 (padding 추가)
-// - calculateContentHeight: 자식 순회 합산
-
-// ❌ Monolithic (Spec Shapes 기반) — spec shapes가 전체 렌더링
-// Dropdown, Breadcrumbs 등
-// - SPEC_SHAPES_INPUT_TAGS: 포함
-// - enrichment: spec shapes 경로 (padding 미추가, 전체 시각적 높이 반환)
-```
-
-### Full-Tree WASM Layout 좌표계 규칙 (2026-03-01)
-
-fullTreeLayout 모드에서 Taffy WASM은 전체 트리를 한 번에 계산합니다. 이때 `layout.location`(x/y)은 **부모의 content-box 원점** 기준이며, 부모의 padding+border가 이미 반영된 좌표입니다.
-
-#### Taffy layout.location 좌표 원칙
+레이아웃은 **단일 엔진 + 단일 WASM 호출 흐름**이다. Taffy 는 2026-07-06 에 물리 삭제되었고
+(crate 2종 + pkg + JS 13파일), 자체 Rust 엔진 `composition-engine` 이 유일 경로다 — 폴백 없음.
 
 ```
-┌─── Parent border-box ─────────────────┐
-│ border                                │
-│  ┌─── Parent padding ──────────────┐  │
-│  │ padding                         │  │
-│  │  ┌─── Child (0,0) ───────────┐  │  │
-│  │  │ layout.location = (0,0)   │  │  │
-│  │  └───────────────────────────┘  │  │
-│  └─────────────────────────────────┘  │
-└───────────────────────────────────────┘
-
-Taffy layout.location은 부모 content-box 기준.
-→ 부모 padding=20이면, child의 실제 화면 좌표 = parent.x + 20 + child.location.x
-→ Taffy가 이미 padding offset을 좌표에 반영하므로 수동 추가는 이중 적용.
+useLayoutPublisher (canvas/hooks/)
+  └─ getCachedPageLayout (canvas/scene/layoutCache.ts — signature 기반 페이지 캐시)
+       └─ calculateFullTreeLayoutFromSceneModel (engines/fullTreeLayout.ts:2887 — ADR-125 canonical entry)
+            └─ calculateFullTreeLayout (fullTreeLayout.ts:2236 — DFS + batch 구성)
+                 └─ PersistentTaffyTree (engines/persistentTaffyTree.ts:59 — 증분 갱신 + handle 관리)
+                      └─ createLayoutEngine() (wasm-bindings/layoutBridge.ts:59 — factory seam)
+                           └─ CompositionEngineLayout (wasm-bindings/compositionEngine.ts:67 — 동기 wrapper)
+                                └─ wasm.rs LayoutEngine (packages/composition-engine/src/wasm.rs)
+                                     └─ tree::LayoutTree (src/tree.rs:217 — flex/block/grid dispatch)
 ```
 
-#### BuilderCanvas padding offset — 3개 위치 영점 처리
-
-per-level 엔진(TaffyFlex/DropflowBlock)은 `setupParentDimensions()`에서 부모 padding을 0으로 리셋하고, BuilderCanvas가 수동으로 padding offset을 추가합니다. fullTreeLayout은 실제 padding을 유지하므로 수동 offset이 **이중 적용**됩니다.
-
-| 위치                                            | 변수명             | per-level 엔진              | fullTreeLayout |
-| ----------------------------------------------- | ------------------ | --------------------------- | -------------- |
-| 1. Body 레벨 (ElementsLayer)                    | `contentOffsetX/Y` | `bodyBorder + bodyPadding`  | **0**          |
-| 2. 비-body 부모 (renderWithCustomEngine)        | `paddingOffsetX/Y` | `parentPadding.left/top`    | **0**          |
-| 3. 중첩 컨테이너 (createContainerChildRenderer) | `cachedPadding`    | `parsePadding(parentStyle)` | **{0,0,0,0}**  |
-
-```typescript
-// ✅ fullTreeLayout: 모든 padding offset = 0 (Taffy가 좌표에 포함)
-const contentOffsetX = fullTreeLayoutMap
-  ? 0
-  : bodyBorder.left + bodyPadding.left;
-const paddingOffsetX =
-  isBodyParent || fullTreeLayoutMap ? 0 : parentPadding.left;
-// cachedPadding: fullTreeLayout 분기에서 기본값 {0,0,0,0} 유지
-
-// ❌ fullTreeLayout에서도 수동 offset 추가 → padding 이중 적용
-// body padding=20 → child가 40px 떨어져 렌더링, hitarea 불일치
-```
-
-#### DFS post-order implicit style batch patching (step 3.6)
-
-fullTreeLayout의 `traversePostOrder`는 자식을 **먼저** 처리하고 부모를 나중에 처리합니다.
-부모의 `applyImplicitStyles`가 자식 스타일을 수정(marginLeft, flex:1 등)해도, 자식의 Taffy batch entry는 이미 생성된 후입니다.
-
-**해결**: step 3.5(synthetic label) 직후 step 3.6에서 `patchBatchStyleFromImplicit()`로 이미 생성된 batch entry를 패치합니다.
-
-```typescript
-// step 3.6: applyImplicitStyles가 수정한 실제 자식의 batch entry 패치
-for (const filteredChild of filteredChildren) {
-  const batchIdx = indexMap.get(filteredChild.id);
-  if (batchIdx === undefined) continue;
-  const originalEl = elementsMap.get(filteredChild.id);
-  if (!originalEl) continue;
-  // 원본과 수정본의 style 참조가 동일하면 변경 없음 → 스킵
-  if (filteredChild.props?.style === originalEl.props?.style) continue;
-  patchBatchStyleFromImplicit(batch[batchIdx].style, origStyle, modStyle);
-}
-```
-
-**영향 범위**: Checkbox/Radio → Label(marginLeft), Card → CardHeader/CardContent(width:'100%'), CardHeader → Heading(flex:1) 등 모든 implicit style injection이 fullTreeLayout에서 정확히 반영됩니다.
-
-### enrichWithIntrinsicSize에 implicit-styled 자식 전달 (2026-03-02)
-
-`enrichWithIntrinsicSize`가 `calculateContentWidth`를 호출할 때, 원본 자식(`getChildElements`)이 아닌 **implicit-styled 자식(`filteredChildren`)**을 전달해야 합니다.
-
-`applyImplicitStyles`가 SelectTrigger/ComboBoxWrapper에 주입하는 spec padding/gap이 `calculateContentWidth`에 반영되지 않으면, `fit-content`/`min-content` 계산 시 크기가 과소 산출됩니다.
-
-```typescript
-// ✅ filteredChildren 사용 — implicit styles(padding/gap) 포함된 정확한 크기 계산
-let enriched = enrichWithIntrinsicSize(
-  element,
-  availableWidth,
-  availableHeight,
-  computedStyle,
-  filteredChildren,
-  getChildElements,
-  isFlexChild,
-);
-// SelectTrigger: 14(padL) + 130(text) + 6(gap) + 18(icon) + 14(padR) = 182px ✓
-
-// ❌ getChildElements(elementId) — 원본 자식(spec padding/gap 없음) → 과소 산출
-let enriched = enrichWithIntrinsicSize(
-  element,
-  availableWidth,
-  availableHeight,
-  computedStyle,
-  getChildElements(elementId),
-  getChildElements,
-  isFlexChild,
-);
-// SelectTrigger: 130(text) + 18(icon) = 148px ✗ (34px 부족 → SelectIcon 잘림)
-```
-
-### ElementSprite CSS keyword → pixel 해석 (2026-03-02)
-
-ElementSprite의 `effectiveElement` 계산에서 CSS intrinsic keyword(`fit-content`/`min-content`/`max-content`)도 `%`와 동일하게 `computedContainerSize` pixel 값으로 교체해야 합니다.
-
-미처리 시 CSS keyword 문자열이 spec shapes에 전달되어, `existingStyle.width ?? finalWidth`의 `??` 연산자가 truthy 문자열을 우선하여 `finalWidth`가 무시됩니다. 결과: 배경/보더 미렌더링.
-
-```typescript
-// ✅ % + intrinsic keywords 모두 pixel로 교체
-const INTRINSIC_KEYWORDS = ["fit-content", "min-content", "max-content"];
-const needsResolveWidth =
-  typeof w === "string" && (w.endsWith("%") || INTRINSIC_KEYWORDS.includes(w));
-const needsResolveHeight =
-  typeof h === "string" && (h.endsWith("%") || INTRINSIC_KEYWORDS.includes(h));
-
-// ❌ % 만 처리 — fit-content 등이 문자열로 spec shapes에 전달
-const hasPercentWidth = typeof w === "string" && w.endsWith("%");
-// → width: 'fit-content' → spec shapes 배경/보더 미렌더링
-```
-
-### CSS min-width:auto 에뮬레이션 — step 4.8 (2026-03-02)
-
-CSS Flexbox §4.5: flex/grid item의 기본 min-width는 `auto` = content-based minimum.
-Taffy WASM은 텍스트 측정이 불가하여 min-content를 0으로 처리합니다.
-
-step 4.8은 텍스트 콘텐츠가 있는 **리프 노드**에 `measureTextWidth`(max-content) 기반 `minWidth`를 주입하여 shrink-wrap 환경에서 텍스트 축소를 방지합니다.
+| 계층                 | 위치                                                                                      | 역할                                                                                            |
+| -------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Rust 커널            | `packages/composition-engine/src/{flex,block,grid}.rs`                                    | CSS 명세 기반 단일 컨테이너 solver (flat f32 계약)                                              |
+| Rust 오케스트레이션  | `packages/composition-engine/src/tree.rs`                                                 | batch 트리 빌드 → post-order solve → dirty 증분 재계산                                          |
+| WASM wrapper         | `packages/composition-engine/src/wasm.rs`                                                 | `LayoutTree` 를 JS `LayoutEngineAPI` 16 메서드로 노출 (`#[cfg(target_arch = "wasm32")]` 게이트) |
+| JS 동기 wrapper      | `apps/builder/src/builder/workspace/canvas/wasm-bindings/compositionEngine.ts`            | raw 반환(Uint32Array/Float32Array) → number[]/Map 변환                                          |
+| 엔진 factory         | `wasm-bindings/layoutBridge.ts`                                                           | `createLayoutEngine()` — 자체 엔진 단독 반환 (ADR-916 Phase 0-A seam)                           |
+| Persistent 트리      | `layout/engines/persistentTaffyTree.ts`                                                   | elementId↔handle 매핑, JSON 비교 증분 갱신, 페이지 전환 reset                                   |
+| Full-tree 파이프라인 | `layout/engines/fullTreeLayout.ts`                                                        | DFS post-order + enrichment + batch 직렬화 + 2-pass 교정                                        |
+| DFS 상단 (JS 잔류)   | `layout/engines/{utils,implicitStyles,cssResolver,cssValueParser,taffyDisplayAdapter}.ts` | store/spec/tag 도메인 의존 계층 — Rust 이관 대상 아님 (ADR-916 2-B 실사)                        |
+
+### "Taffy" 네이밍 보존 규약
+
+`TaffyFlexEngine.ts` / `TaffyBlockEngine.ts` / `TaffyGridEngine.ts` / `persistentTaffyTree.ts` /
+`TaffyStyle`(layoutTypes.ts) 는 **심볼명만 Taffy 계보 표기로 보존**된 순수 TypeScript 코드다.
+엔진 클래스는 삭제되었고 (ADR-916 1-E, commit `f2ac4860c`), 남은 것은 live 소비되는 style 변환 helper 뿐:
+
+| 파일                           | 잔존 심볼                      | 소비처                                       |
+| ------------------------------ | ------------------------------ | -------------------------------------------- |
+| `TaffyFlexEngine.ts`           | `elementToTaffyStyle()` (:101) | fullTreeLayout.ts:42                         |
+| `TaffyBlockEngine.ts`          | `elementToTaffyBlockStyle()`   | fullTreeLayout.ts:41                         |
+| `TaffyGridEngine.ts`           | `parseGridTemplate()` (:33)    | fullTreeLayout.ts:43 (`coerceGridTrack`)     |
+| `wasm-bindings/layoutTypes.ts` | `TaffyStyle` 등 타입           | 자체 엔진 Rust `NodeStyle` 스키마와 1:1 대응 |
+
+**Why**: 이름까지 rename 하면 소비처 diff 표면만 커진다 — layoutTypes.ts 헤더가 "스타일 스키마 계보 표기로 유지"를 명문화.
+
+---
+
+## 2. WASM 경계 계약
+
+### LayoutEngineAPI (layoutBridge.ts:28)
 
-```typescript
-// ✅ step 4.8: flex/grid 자식 리프 노드에 max-content minWidth 주입
-if (FLEX_GRID_DISPLAYS.has(parentDisplay) && !hasTaffyChildren) {
-  // 캔버스 non-TEXT_LEAF 노드는 단일 행 렌더링 (줄바꿈 없음)
-  // → max-content(전체 텍스트 폭) = 올바른 최소 폭
-  const maxContentW = measureTextWidth(textContent, fontSize);
-  enriched.style.minWidth = maxContentW + padding + border;
-}
+`PersistentTaffyTree` 가 실제 호출하는 **batch 계약** 기준으로 인터페이스가 정의된다 (per-node API 아님):
+
+- batch 구축: `buildTreeBatch(nodesJson)` / `buildTreeBatchBinary(data)` / `hasBinaryProtocol()`
+- 증분 갱신: `createNodeRaw` / `updateStyleRaw` / `setChildren` / `markDirty` / `removeNode`
+- 계산/수집: `computeLayout(root, availW, availH)` / `getLayoutsBatch(handles)`
+- 상태: `isAvailable()` / `clear()` / `nodeCount()`
+
+`getLayoutsBatch` 는 WASM 이 flat `[x0,y0,w0,h0, x1,...]` Float32Array 를 반환하면
+`flatToLayoutMap()`(compositionEngine.ts:46) 이 handle 순서로 4개씩 슬라이스해 `Map<handle, LayoutResult>` 로 재구성한다.
+
+### batch JSON 계약
+
+- **post-order 배열** (리프 먼저, 루트 마지막). `children` 은 같은 배열 내 **인덱스** (forward-reference 는 Rust 측에서 Err).
+- 루트 handle = `handles[handles.length - 1]` (persistentTaffyTree.ts:178).
+- style 은 `taffyStyleToRecord()`(fullTreeLayout.ts:621) 로 **이미 정규화된 Record** 여야 한다
+  (숫자 dimension → `"Npx"` 문자열). `updateStyleRaw`/`createNodeRaw` 는 이중 변환을 피하려 raw 경로 사용.
+- Rust 측 스키마 = `NodeStyle`(tree.rs:99) — serde `camelCase` rename 으로 JS record 와 1:1.
+  `gridTemplateAreas` 필드는 **없음** — grid area 이름은 JS factory 가 숫자 line 으로 병기한다
+  (정본 rules/layout-engine.md §Grid area 이름 해석).
 
-// ❌ min-content(최장 단어 폭) 사용 — 캔버스 단일 행 렌더링과 불일치
-// "Choose an option..." → min-content ≈ 50px (단어 "option...") → 너무 좁음
-const minContentW = calculateMinContentWidth(textContent, fontSize);
-```
+### binary protocol — 현재 휴면 경로
+
+`binaryProtocol.ts`(`encodeBatchBinary`, :569, magic `"TAFF"`) 는 보존되어 있고
+`PersistentTaffyTree.buildFull`(:137) 이 `hasBinaryProtocol()` 로 분기하지만, **자체 엔진은 false 를
+반환**(wasm.rs `has_binary_protocol` → false) 하므로 현행 live 경로는 항상 JSON `buildTreeBatch` 다.
+`buildTreeBatchBinary` 는 계약 충족용 stub (호출 시 Err). binary 최적화는 별도 착수 대상.
 
-**적용 범위**: TEXT_LEAF_TAGS는 `enrichWithIntrinsicSize`에서 별도 처리되므로 step 4.8 대상 아님.
-Card/Tabs: Factory에 `width: '100%'` 설정하여 flex center에서 전체 폭 유지.
+### grid track / dimension 정규화 — 3 진입점 + grid branch 전용 px 화
 
-### layoutVersion 계약 (ADR-012 P4, 2026-03-02)
+- `coerceGridTrack()`(fullTreeLayout.ts:416): CSS string `"1fr auto"` → track array `["1fr","auto"]`.
+  이미 array 면 통과. `parseGridTemplate`(TaffyGridEngine.ts:33, 괄호 depth 토큰화) 위임.
+  공유 진입점 3곳 — `taffyStyleToRecord`(:657-665) / `buildNodeStyle` grid branch(:800-807) /
+  `patchBatchStyleFromImplicit`(:593).
+- `normalizeGridDimFields()`(fullTreeLayout.ts:466) + `GRID_DIM_FIELDS`(:435, 25 keys):
+  grid branch 는 `taffyStyleToRecord.dim()` 정규화를 우회하는 partial 직접 반환 경로라
+  숫자 값(`rowGap: 4` 등)을 자체적으로 `"4px"` 문자열화해야 한다.
+  **Why**: 누락 시 `build_tree_batch: invalid type integer 4, expected string` parse error →
+  layout null → persistent tree 리셋 무한 재시도 (2026-07-06 전수조사, fullTreeLayout.ts:430 주석).
+
+---
+
+## 3. `calculateFullTreeLayout` 파이프라인 (fullTreeLayout.ts:2236)
+
+진입 가드: `isCompositionEngineReady()` false 면 즉시 null (부트스트랩 폴링이 재시도 담당).
+
+**멀티페이지/Frame 격리**: persistent tree 는 `rootKey = page_id ?? frameMirrorId ?? rootElementId`
+별로 분리 저장 (`persistentTrees` Map, :144). **Why**: Frame body 는 page_id 가 null — 분리하지 않으면
+여러 reusable Frame 이 같은 트리를 공유해 root state 가 섞인다.
 
-`fullTreeLayoutMap` useMemo는 `[bodyElement, layoutVersion, pageWidth, pageHeight, _wasmLayoutReady]`에 의존합니다.
-`elementById`/`pageChildrenMap` 등 Map 참조를 deps에서 의도적으로 제외(P3-1 최적화)하므로, **layoutVersion 카운터가 유일한 재계산 트리거**입니다.
+| Step | 위치  | 내용                                                                                                                                                                                          |
+| ---- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | :2264 | `traversePostOrder` DFS — implicit style / enrichment / CSS resolve 를 항상 수행하며 `batch[]` + `indexMap` + `processedElementsMap` 구성. 최대 깊이 `MAX_TREE_DEPTH=100`(:81)                |
+| 1.5  | :2292 | body 루트에 breakpoint 페이지 크기 명시 주입 (content-box available + padding/border → border-box). **Why**: 자식 `100%` 기준 보장                                                            |
+| 2    | :2313 | `filteredChildIdsMap` 구성 → `publishFilteredChildrenMap` + synthetic elements publish                                                                                                        |
+| 3    | :2329 | **full rebuild vs 증분** 판정 (아래) → Path A `buildFull` / Path B `incrementalUpdate`                                                                                                        |
+| 4    | :2399 | `persistentTree.computeLayout(availableWidth, availableHeight)`                                                                                                                               |
+| 4.5  | :2402 | 2-pass width 교정 — 1차 enrichment 는 부모 availableWidth 기준이라 실제 할당 width(grid 1fr / flex-grow) 와 다르면 re-enrich → `updateNodeStyle` + `markDirty` → 재계산 (`WIDTH_TOLERANCE=2`) |
+| 4.5b | :2467 | TagGroup maxRows chip 접힘 — Taffy 실측 행 번호 기반                                                                                                                                          |
+| 4.5c | :2662 | RowsGroup 실측 height → TagList height 강제 (실측이 SSOT)                                                                                                                                     |
+| 5    | :2780 | `getLayoutsBatch()` → `Map<elementId, ComputedLayout>` + `sanitizeLayoutValue`(NaN/Infinity 방어) + overflow scroll `maxScroll` 갱신 (`queueMicrotask` 로 setState 격리)                      |
 
-#### 증가 필수 코드 경로
+에러 시(:2856): `resetPersistentTree(rootKey)` 후 null 반환 → 다음 프레임 Path A 재빌드.
+
+### Step 3 — full rebuild 판정 조건 (모두 fullTreeLayout.ts:2333-2388)
 
-| 코드 경로                        | 파일                  | 패턴                                                                     |
-| -------------------------------- | --------------------- | ------------------------------------------------------------------------ |
-| 초기 로딩 (`setElements`)        | `elements.ts`         | `set((state) => ({ elements, layoutVersion: state.layoutVersion + 1 }))` |
-| 페이지 전환 (`loadPageElements`) | `elements.ts`         | 동일 패턴                                                                |
-| 프로퍼티 변경 (`updateAndSave`)  | `inspectorActions.ts` | `LAYOUT_AFFECTING_PROPS` 체크 후 조건부 증가                             |
-| 텍스트 측정기 교체               | `SkiaOverlay.tsx`     | `useStore.getState().invalidateLayout()`                                 |
-| 폰트 로딩 완료                   | `BuilderCanvas.tsx`   | `useStore.getState().invalidateLayout()`                                 |
+1. `!persistentTree.isInitialized` — 최초.
+2. **신규 노드(prevJson 없음)가 grid container** — `addNode` 증분으로는 grid track 이 auto-placement 로 degrade.
+3. **신규 노드가 자식 서브트리 보유** — `addComplexElement` 일괄 등록 시 자식 layout=undefined 겹침 (ADR-912 R1 후속).
+4. **display 전환** (`prevParsed.display !== curDisplay`).
+5. **기존 grid container 의 `GRID_REBUILD_TRIGGER_KEYS`(:482, 20 keys) 변경** — `updateStyleRaw` 가
+   track/placement 캐시 invalidation 에 실패 (dimension 6키 포함, 2026-06-16 추가).
+   정적 가드: `fullTreeLayout.static.test.ts`.
 
-#### LAYOUT_AFFECTING_PROPS
+원칙·금지 패턴은 정본 §PersistentTaffyTree display/grid 전환 감지 참조 — 여기는 코드 위치만.
 
-```typescript
-const LAYOUT_AFFECTING_PROPS = new Set([
-  "style", // CSS 속성 변경
-  "size", // 컴포넌트 크기 변형 (sm/md/lg)
-  "label", // 텍스트 콘텐츠 변경 → intrinsic size 변경
-  "children", // 자식 콘텐츠 변경
-  "text", // 텍스트 콘텐츠
-  "placeholder", // placeholder 텍스트
-  "orientation", // 레이아웃 방향 (horizontal/vertical)
-  "items", // 항목 수 변경 → 크기 변경
-]);
-```
+### PersistentTaffyTree 변경 감지 2중 구조 (persistentTaffyTree.ts)
 
-새 프로퍼티가 레이아웃에 영향을 준다면 이 Set에 추가해야 합니다. 누락 시 해당 프로퍼티 변경이 캔버스에 즉시 반영되지 않고 새로고침 시에만 적용됩니다.
+- `_lastJsonMap`(:81): style JSON 문자열 비교 — 부모/형제 변경이 enrichment/display adapter 결과를
+  바꾸는 **간접 의존성**까지 포착. 동일하면 WASM 호출 스킵 (`updateNodeStyle`:213).
+- `childrenHashMap`(:87): `childIds.join(',')` 비교 → 동일하면 `setChildren` 스킵 (`updateChildren`:268).
+- store 레벨 `layoutVersion` 과는 **독립 계층** — layoutVersion 은 useMemo 재실행 트리거,
+  JSON 비교는 WASM 호출 최소화 (정본 §layoutVersion 계약).
 
-#### PersistentTaffyTree JSON 비교와의 관계
+### layoutVersion 3-심볼 체인 — 현행 코드 위치
 
-layoutVersion은 **Store → useMemo 레벨**의 dirty tracking입니다. 이와 별도로 PersistentTaffyTree는 **WASM 레벨**에서 JSON 문자열 비교 기반 변경 감지(P3-3)를 수행합니다. 두 계층은 독립적:
+정본 규칙이 인용하는 라인은 drift 되었다. 2026-07-07 실측:
 
-- layoutVersion 증가 → useMemo 재실행 → DFS 순회 → JSON 비교 → 변경된 노드만 WASM 업데이트
-- layoutVersion 미증가 → useMemo 스킵 → DFS/JSON 비교 미실행 → 레이아웃 고정
-
-### 레이아웃 엔진 개선 이력 (2026-02-23)
-
-#### line-height 이중 전략: normal vs 1.5 (2026-02-23)
-
-CSS Preview에서 컴포넌트별로 적용되는 `line-height`가 다르므로, 레이아웃 높이 계산도 이를 구분해야 합니다.
-
-| 컴포넌트                          | CSS line-height                            | 계산 방식                                           | 적용 위치                       |
-| --------------------------------- | ------------------------------------------ | --------------------------------------------------- | ------------------------------- |
-| **Text, Heading, Description 등** | `1.5` (`:root` 상속, Tailwind CSS v4 기본) | `fontSize * 1.5` 명시 전달                          | `calculateContentHeight` step 7 |
-| **Button, ToggleButton 등 UI**    | `normal` (폰트 메트릭 기반)                | `measureFontMetrics().lineHeight` (fontBoundingBox) | `estimateTextHeight()` 기본값   |
-
-```typescript
-// ✅ Text/Heading: CSS line-height: 1.5 상속 → 명시적 전달
-const fs = fontSize ?? 16;
-return estimateTextHeight(fs, fs * 1.5); // 16px → 24px
-
-// ✅ Button: CSS line-height: normal → fontBoundingBox 기반
-return estimateTextHeight(fontSize); // lineHeight 미전달 → measureFontMetrics 사용
-
-// ❌ 모든 컴포넌트에 동일한 배율 사용 — Button/Text 높이 불일치
-return Math.round(fontSize * 1.5); // Button sm: 31px (CSS 26px과 불일치)
-return Math.round(fontSize * 1.2); // Text: 19px (CSS 24px과 불일치)
-```
-
-**Skia 텍스트 렌더링 (styleConverter.ts)**: `convertToTextStyle()`에서 `style.lineHeight` 미지정 시 `leading = (1.5 - 1) * fontSize` 기본값 적용. TextSprite 전용이므로 Text/Heading에만 영향.
-
-#### TextSprite CSS 정합성: background/border + line-height (2026-02-23)
-
-TextSprite의 Skia 렌더링에서 CSS와의 정합성을 확보하기 위한 두 가지 수정:
-
-1. **background/border 렌더링**: `skiaNodeData`에 `box` 데이터(fillColor, strokeColor, borderRadius) 추가. `nodeRenderers.ts`의 `case 'text'`에서 `renderBox()` → `renderText()` 순서로 호출하여 배경 위에 텍스트 렌더링.
-
-2. **line-height 기본값**: `convertToTextStyle()`에서 CSS `line-height` 미지정 시 Tailwind CSS v4 기본 `1.5` 배율 적용 (`leading = (1.5 - 1) * fontSize`). CanvasKit `heightMultiplier = 1.5`로 CSS와 동일한 텍스트 줄 간격 보장.
-
-```typescript
-// ✅ TextSprite: box + text 데이터 모두 포함 (CSS 정합성)
-return {
-  type: 'text',
-  box: { fillColor, strokeColor, borderRadius }, // background/border
-  text: { content, fontSize, lineHeight, ... },   // 텍스트
-};
-
-// ✅ nodeRenderers.ts case 'text': 배경 먼저 → 텍스트 위에
-case 'text':
-  if (node.box) renderBox(ck, canvas, node); // 배경/테두리
-  if (fontMgr) renderText(ck, canvas, node, fontMgr); // 텍스트
-  break;
-
-// ✅ convertToTextStyle: line-height 미지정 시 CSS 기본값 1.5 적용
-let leading: number;
-if (style?.lineHeight) {
-  // 명시적 lineHeight 파싱
-} else {
-  leading = (1.5 - 1) * fontSize; // Tailwind CSS v4 :root 상속
-}
-```
-
-#### INLINE_BLOCK_TAGS border-box 수정
-
-`enrichWithIntrinsicSize`가 `INLINE_BLOCK_TAGS`(button, badge, togglebutton, togglebuttongroup 등)에 항상 padding+border를 포함한 border-box 높이를 반환.
-
-- `layoutInlineRun`이 `style.height`를 border-box 값으로 직접 사용하는 구조이므로 content-box 변환 불필요
-- `isInlineBlockTag` 플래그로 CSS padding 존재 여부와 무관하게 항상 padding+border 포함
-- 이전에 INLINE_BLOCK_TAGS에서 padding이 누락되어 높이가 축소되던 버그 수정
-
-```typescript
-// ✅ INLINE_BLOCK_TAGS: enrichWithIntrinsicSize가 border-box 높이 반환
-// layoutInlineRun이 이 값을 그대로 style.height로 사용
-const height = contentHeight + paddingY * 2 + borderWidth * 2; // border-box
-
-// ❌ content-box 반환 후 layoutInlineRun이 재계산 → 이중 적용
-const height = contentHeight; // content-box만 반환
-// → layoutInlineRun에서 padding 재추가 → 실제 높이 = contentHeight + padding * 4
-```
-
-#### LayoutContext.getChildElements
-
-`LayoutContext`에 `getChildElements?: (elementId: string) => Element[]` 선택적 메서드 추가.
-
-- `BuilderCanvas.tsx`에서 `pageChildrenMap` 기반으로 context에 주입
-- `enrichWithIntrinsicSize`에서 자식 Element 목록을 직접 조회 가능
-- ToggleButtonGroup처럼 자식 수와 크기를 기반으로 intrinsic 너비/높이를 계산하는 컴포넌트에 필요
-
-```typescript
-// ✅ LayoutContext에 getChildElements 주입 (BuilderCanvas.tsx)
-const layoutContext: LayoutContext = {
-  // ...기존 필드...
-  getChildElements: (elementId) => pageChildrenMap.get(elementId) ?? [],
-};
-
-// ✅ enrichWithIntrinsicSize에서 자식 기반 너비 계산
-const children = context.getChildElements?.(element.id) ?? [];
-const childWidths = children.map((child) => calculateChildWidth(child));
-element.intrinsicWidth = childWidths.reduce((sum, w) => sum + w, 0);
-
-// ❌ 자식 정보 없이 고정 fallback → ToggleButtonGroup 너비 부정확
-element.intrinsicWidth = 100; // 실제 자식 크기와 무관한 값
-```
-
-#### border shorthand 레이아웃 지원
-
-`parseBorder()`가 `border: "1px solid red"` shorthand에서 `borderWidth`를 추출.
-
-- `parseBorderShorthand()` (`cssValueParser.ts`) 연동
-- `border` shorthand 사용 시 레이아웃 엔진이 borderWidth를 인식하지 못하던 문제 해결
-- `border-top`, `border-right` 등 개별 속성과 동일한 수준으로 지원
-
-```typescript
-// ✅ border shorthand 파싱 — parseBorder()가 shorthand 처리
-// style = { border: "2px solid blue" }
-const { borderWidth } = parseBorder(style);
-// borderWidth = 2 (parseBorderShorthand() 연동으로 추출)
-
-// ❌ shorthand 미지원 — borderWidth가 0으로 폴백
-// style = { border: "2px solid blue" }
-const borderWidth = style.borderWidth ?? 0;
-// → 0 반환 (border 속성 무시)
-```
-
-#### Switch 라벨 줄바꿈 수정 (2026-02-21)
-
-`INLINE_FORM_INDICATOR_WIDTHS`의 switch 값이 spec `trackWidth`보다 10px 작아 WebGL Canvas에서 라벨이 줄바꿈되던 버그 수정.
-
-- `INLINE_FORM_INDICATOR_WIDTHS` switch: 26/34/42 → 36/44/52 (spec trackWidth 일치)
-- `INLINE_FORM_GAPS` 테이블 신규 추가: switch 8/10/12, checkbox/radio 6/8/10
-- column 방향 gap도 `INLINE_FORM_GAPS` 테이블로 컴포넌트별 분리
-- 근본 원인: 레이아웃 너비가 10px 작으면 `specShapeConverter`의 `shape.x > 0` maxWidth 자동 축소로 텍스트 영역이 추가 손실됨
-
-#### Card 텍스트 변경 미반영 버그 수정 (2026-02-21)
-
-Properties Panel에서 Card의 `heading`/`description`을 변경해도 WebGL Canvas에 반영되지 않던 버그 수정.
-
-- **근본 원인**: CardEditor는 `Card.props.heading/description`을 업데이트하지만, WebGL TextSprite는 자식 Element의 `props.children`을 읽음. 두 데이터 소스 간 동기화 누락.
-- **수정 파일**: `BuilderCanvas.tsx` (`createContainerChildRenderer`), `LayoutRenderers.tsx` (CSS Preview)
-- **수정 방법**: `containerTag === 'Card'` 분기 추가, `cardProps.heading ?? cardProps.title` → Heading 자식 주입, `cardProps.description` → Description 자식 주입
-- **CSS Preview 수정**: `LayoutRenderers.tsx`의 Card 렌더러에 `heading`, `subheading`, `footer` props 전달 추가
-- **패턴**: Tabs `_tabLabels`와 동일한 Container Props 주입 방식
-
-#### TagGroup label 두 줄 렌더링 버그 수정 (2026-02-22)
-
-WebGL Canvas에서 TagGroup의 label("Tag Group")이 두 줄로 렌더링되던 버그 수정.
-
-- **근본 원인 1 — Spec shapes 중복 렌더링**: `TagGroupSpec.render.shapes`에서 label 텍스트(fontSize 12px)를 렌더링하고, 동시에 자식 Label 엘리먼트(fontSize 14px)가 별도 렌더링되어 두 줄처럼 보임. Label은 자식 Element가 담당하므로 spec shapes에서 중복 렌더링하면 안 됨.
-- **근본 원인 2 — Canvas 2D ↔ CanvasKit 폭 측정 오차**: `calculateContentWidth`의 일반 텍스트 경로(line 759-760)에 `Math.ceil() + 2` 보정이 누락됨. INLINE_FORM 경로(line 718-719)에는 이미 적용되어 있었으나 일반 텍스트 경로에는 없었음.
-- **수정 파일 1**: `packages/specs/src/components/TagGroup.spec.ts` — shapes()에서 label 텍스트 shape 제거
-- **수정 파일 2**: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` (line 759-760) — 일반 텍스트 경로에 `Math.ceil(calculateTextWidth(...)) + 2` 보정 추가
-- **교훈**: 자식 Element가 렌더링하는 텍스트를 spec shapes에서 중복 정의하지 말 것. Canvas 2D measureText ↔ CanvasKit paragraph API 간 폭 오차 보정 패턴은 모든 텍스트 경로에 일관 적용 필요.
-
-### Tag fit-content 폭 + flex-row 레이아웃 (2026-03-06)
-
-TagGroup(flex-column) > TagList(flex-row, flex-wrap) > Tag(inline-block) 구조에서 Tag의 `width: fit-content`가 Canvas에서 올바르게 동작하려면 4가지 조건을 만족해야 합니다.
-
-#### 1. INLINE_BLOCK_TAGS의 calculateContentWidth 사용
-
-`enrichWithIntrinsicSize`에서 INLINE_BLOCK_TAGS(Tag 포함)가 childElements가 없을 때 `box.contentWidth`(availableWidth 기반)가 아닌 `calculateContentWidth`(텍스트 기반)를 사용해야 합니다.
-
-```typescript
-// O: 텍스트 기반 fit-content 폭
-const childResolvedWidth =
-  INLINE_BLOCK_TAGS.has(tag) || hasExplicitIntrinsicWidthKeyword
-    ? calculateContentWidth(
-        element,
-        undefined,
-        getChildElements,
-        _computedStyle,
-      )
-    : box.contentWidth;
-
-// X: availableWidth 기반 — Tag가 부모 전체 폭으로 확장
-const childResolvedWidth = box.contentWidth;
-```
-
-#### 2. Block-child normalization guard
-
-fullTreeLayout의 block-child 정규화에서 `enrichWithIntrinsicSize`가 이미 계산한 numeric px 폭을 `width: 100%`로 덮어쓰면 안 됩니다.
-
-```typescript
-// O: 기존 enriched 폭 보존
-const existingW = batch[childBatchIdx].style.width;
-if (
-  typeof existingW === "number" ||
-  (typeof existingW === "string" &&
-    existingW !== "auto" &&
-    existingW !== "100%")
-) {
-  continue; // enriched 폭 유지
-}
-
-// X: 무조건 100% — enriched fit-content 폭 소실
-batch[childBatchIdx].style.width = "100%";
-```
-
-#### 3. Parent-delegated size 상속 (effectiveGetChildElements)
-
-CSS는 `data-tag-size` 선택자로 TagGroup → Tag 사이즈를 자동 상속하지만, Canvas 엔진은 명시적 전파가 필요합니다. `getChildElements`가 원본 Element를 반환하므로 TagGroup의 size prop이 Tag 자식에 반영되지 않습니다.
-
-```typescript
-// O: effectiveGetChildElements 래퍼로 size 주입
-effectiveGetChildElements = (id) => {
-  const children = getChildElements(id);
-  return children.map((child) => {
-    if (child.tag !== "Tag" || child.props?.size) return child;
-    return { ...child, props: { ...child.props, size: tagGroupSize } };
-  });
-};
-
-// X: 원본 getChildElements — Tag가 항상 md 기본값으로 계산
-```
-
-**적용 위치** (fullTreeLayout.ts, 2곳):
-
-1. `filteredChildren` 루프 — DFS 순회 시 자식 size 주입
-2. `effectiveGetChildElements` — `calculateContentWidth` 재귀 호출 시 size 전파
-
-#### 4. Math.ceil — Taffy f32 정밀도 보정
-
-`enrichWithIntrinsicSize`에서 width 주입 시 `Math.ceil`을 적용하여 Taffy(f32)와 JS(f64) 간 부동소수점 정밀도 차이로 인한 불필요한 flex-wrap을 방지합니다.
-
-참조: `docs/bug/tag-vertical-stacking-in-flex-row.md`
-
-#### 5. PersistentTaffyTree display 전환 감지 (2026-03-23)
-
-`implicitStyles`가 주입하는 `display` 변경(예: GridList `layout: "stack"` → `"grid"`)은 PersistentTaffyTree의 증분 갱신(`updateNodeStyle`)으로 처리할 수 없습니다. Taffy WASM은 display 타입 변경 시 내부 노드 구조를 재구축해야 하므로 **full rebuild**가 필요합니다.
-
-**감지 로직** (`fullTreeLayout.ts` Step 3):
-
-```typescript
-// affectedNodeIds가 있으면 해당 노드만 검사, 없으면 전체 노드 검사
-const hasFilter = affectedNodeIds && affectedNodeIds.size > 0;
-for (const node of batch) {
-  if (hasFilter && !affectedNodeIds.has(node.elementId)) continue;
-  const prevJson = persistentTree.getLastJson(node.elementId);
-  if (!prevJson) continue;
-  const prevDisplay = JSON.parse(prevJson).display;
-  if (prevDisplay !== node.style.display) {
-    needsFullRebuild = true;
-    break;
-  }
-}
-```
-
-**주의사항**:
-
-- `affectedNodeIds`가 `undefined`일 때(캐시 미스) 감지를 건너뛰면 안 됨 — `layoutCache.getCachedPageLayout`에서 `pageDirtyState.hasDirty`가 false이면 `undefined` 전달
-- 성능: `affectedNodeIds` 있으면 dirty 노드만 검사(O(dirty)), 없으면 전체 검사(O(N)) — 캐시 미스는 드문 이벤트이므로 허용 가능
-
-**2026-03-23 버그 수정**: 기존 코드가 `affectedNodeIds && affectedNodeIds.size > 0` 조건을 걸어 `undefined` 시 전체 감지를 스킵 → GridList layout 전환이 새로고침 전까지 캔버스 미반영
-
-### 컴포넌트 등급 현황 (Wave 4 완료, 2026-02-19 / Breadcrumbs 승격 2026-02-23)
-
-모든 Pixi 컴포넌트가 A 또는 B+ 등급으로 전환 완료됐습니다.
-
-| 등급 | 의미                                     | 예시                                              |
-| ---- | ---------------------------------------- | ------------------------------------------------- |
-| A    | Taffy/Dropflow 레이아웃 위임 + 자식 분리 | Button, Badge, ProgressBar, TagGroup, Breadcrumbs |
-| B+   | Context 우선 + fallback, 일부 자체 계산  | Checkbox, Radio, Switch, Input                    |
-| B    | 엔진 위임하나 자체 텍스트 배치           | Card, Meter                                       |
-| D    | 캔버스 상호작용 불필요 (프리뷰 전용)     | Calendar, DatePicker, ColorPicker                 |
-
-> C등급 (자체 렌더링 + 수동 배치)은 Wave 4에서 전부 제거됐습니다.
-> `SELF_PADDING_TAGS`, `renderWithPixiLayout()` 등 구 패턴도 삭제 완료.
+| 심볼                            | 실제 위치                                                  |
+| ------------------------------- | ---------------------------------------------------------- |
+| `LAYOUT_PROP_KEYS`              | `canvas/scene/layoutCache.ts:112`                          |
+| `NON_LAYOUT_PROPS_UPDATE`       | `stores/utils/elementUpdate.ts:43`                         |
+| `INHERITED_LAYOUT_PROPS_UPDATE` | `stores/utils/elementUpdate.ts:97`                         |
+| `isLayoutAffectingUpdate()`     | `stores/utils/elementUpdate.ts:160` (블랙리스트 제외 방식) |
+
+---
+
+## 4. DFS 상단 JS 계층 (Rust 이관 제외 영역)
+
+ADR-916 2-B 착수 전 실사로 확정: DFS 상단 3-step (`resolveStyle` = store 의존 /
+`applyImplicitStyles` = tag/spec 의존 / `enrichWithIntrinsicSize` = specs·propagationRegistry 의존) 은
+**JS 잔류**. Rust 는 상단이 순수화한 TaffyStyle record 만 받는다.
+
+| 모듈                                  | 역할                                                                                                                              | 핵심 심볼                                                                                                                                                                                                                                                             |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `engines/utils.ts` (4,872줄)          | intrinsic 측정·box model·태그별 크기                                                                                              | `enrichWithIntrinsicSize`(:3959), `calculateContentWidth`(:1213), `calculateContentHeight`(:2036), `parseBoxModel`(:3651), `applyCommonTaffyStyle`(:4653), `applyFlexItemProperties`(:4747), `readGapValue`(:310 — longhand 우선 gap 읽기), `measureTextWidth`(:1094) |
+| `engines/implicitStyles.ts` (2,448줄) | 태그별 implicit style 주입 (순수 함수)                                                                                            | `applyImplicitStyles`, `resolveContainerStylesFallback`, `POPOVER_CHILDREN_TAGS`(:430), `FIELD_VISIBLE_CHILD_TAGS`(:453)                                                                                                                                              |
+| `engines/cssResolver.ts`              | inherit/initial/unset/revert + currentColor cascade                                                                               | `resolveStyle`, `getRootComputedStyle`(themeConfigStore 의존 — Rust 미이관 사유)                                                                                                                                                                                      |
+| `engines/cssValueParser.ts`           | px/%/vw/em/calc()/clamp()/var() 해석                                                                                              | `CSSVariableScope`, `createVariableScopeWithDOMFallback` — **주의**: `packages/specs/src/primitives/cssValueParser.ts`(ADR-907 Layer A) 와 별개 파일                                                                                                                  |
+| `engines/taffyDisplayAdapter.ts`      | CSS Display Level 3 이원 구조(outer/inner) → 엔진 display 매핑, blockification, inline-block 자식 부모 → flex row wrap 시뮬레이션 | `toTaffyDisplay`, `blockifyDisplay`, `getElementDisplay`, `needsBlockChildFullWidth`, `VERTICAL_ALIGN_MIDDLE_TAGS`(:152)                                                                                                                                              |
+
+### DFS post-order 와 implicit style 의 순서 문제
+
+`traversePostOrder` 는 자식을 먼저 batch 에 넣는다 → 부모의 `applyImplicitStyles` 가 자식 style 을
+수정해도 자식 batch entry 는 이미 생성된 후. 해결: `patchBatchStyleFromImplicit()`(fullTreeLayout.ts:540)
+가 변경된 속성만 찾아 이미 생성된 entry 를 패치 (`IMPLICIT_DIM_PROPS`:512 는 number→`"Npx"` 변환 대상).
+
+### Label DFS 주입 (ADR-048)
+
+- `LABEL_SIZE_STYLE`(fullTreeLayout.ts:84): size → `{fontSize, lineHeight("Npx" 문자열)}` — LabelSpec 단일 소스 미러.
+- `LABEL_DELEGATION_PARENT_TAGS`(:96, 20 태그) / `LABEL_WRAPPER_TAGS`(:122 — Checkbox/Radio).
+- 주입 조건 (`lineHeight == null`)·금지 패턴은 정본 §Label size delegation 참조.
+
+---
+
+## 5. Rust 측 구조 — `packages/composition-engine`
+
+Cargo.toml 에 **taffy dependency 부재가 crate 존재 이유** — 추가 금지 (Cargo.toml:5 주석).
+의존성: wasm-bindgen / js-sys / serde / serde_json 뿐.
+
+| 모듈               | 라인  | 담당                                                                                                                                                                                                                  | 계약                                                        |
+| ------------------ | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `flex.rs`          | 1,228 | CSS-FLEXBOX-1 — §9.7 grow/shrink 반복 동결, §9.3 wrap, align-content, main 음수 sentinel(intrinsic) 처리, `ALIGN_STRETCH` cross_is_auto 가드                                                                          | flat f32, `FLEX_FIELD_COUNT=17`/노드, 논리축                |
+| `block.rs`         | 712   | CSS 2.1 §8 — margin collapse(§8.3.1 through-collapse chain 포함), inline-block line box, fit-content                                                                                                                  | flat f32, `FIELD_COUNT=19`/노드, 물리축                     |
+| `grid.rs`          | 1,050 | CSS-GRID-1 §7 track sizing / §8 placement — repeat(auto-fill/fit)/minmax/named areas/span. 구 `grid_layout.rs` 산술 + `GridLayout.utils.ts` 알고리즘 통합 승계                                                        | 문자열 template + placement_spec (자식 flat 없음)           |
+| `tree.rs`          | 2,600 | 오케스트레이션 — `LayoutTree`(:217) handle 관리(free_list 재활용), `build_tree_batch`(:368), post-order `solve_node` → flex/block/grid dispatch, dirty 조상 전파 + clean 서브트리 skip, available 변경 시 전면 무효화 | `NodeStyle`(:99) camelCase JSON                             |
+| `style.rs`         | 1,042 | CSS 값 산술 커널 (cssValueParser 순수 계층 이식) — 단위/calc/clamp/min/max/env + font/border shorthand. var()/토큰은 JS 잔류 (선치환 입력)                                                                            | intrinsic → 센티넬 f32 (FIT/MIN/MAX_CONTENT)                |
+| `cascade.rs`       | 1,176 | cssResolver 자기완결 계층 — 상속 19종/초기값/cascade 키워드/currentColor/논리→물리                                                                                                                                    | `getRootComputedStyle` 은 미이식 (store 의존)               |
+| `display.rs`       | 283   | taffyDisplayAdapter 순수 문자열 계층 — parse/blockify/classify                                                                                                                                                        | tag 의존 함수는 미이식                                      |
+| `spatial_index.rs` | 394   | hit-test/viewport culling 그리드 셀 인덱스 — 구 composition_wasm(Taffy) crate 에서 분리 편입 (endgame kill criteria ②)                                                                                                | `#[wasm_bindgen]` 직접 export                               |
+| `wasm.rs`          | 175   | `LayoutEngine` wrapper — 16 메서드 `js_name` camelCase, JSON 역직렬화 + flat f32 직렬화 + Err→JsValue 만 담당                                                                                                         | `#[cfg(target_arch = "wasm32")]` — native cargo test 무영향 |
+
+핵심 좌표 계약: `tree.rs::compute_layout` 은 자식 좌표를 **부모 content-box 상대**로 산출한다
+(구 taffy_bridge 와 동일). 절대 좌표 누적은 소비처 책임 — 이를 tree.rs 버그로 오인해 수정하면
+live 렌더가 깨진다 (tree_golden 하네스가 조상 offset 누적으로 정합 확인, 2026-07-06 교훈).
+
+### 알려진 미구현 (dual-run FAIL 이 다음 fixture)
+
+- flex: `flex-basis: content` intrinsic 자동측정, aspect-ratio, align-self, auto margin 흡수, nested BFC
+- block: float/clear, writing-mode, BFC 내부 다단
+- grid: subgrid, 명시 track 의 min/max-content intrinsic (→0 폴백), dense 역채움, baseline, `fit-content()`
+- 참고: implicit auto row/column intrinsic 은 **tree.rs `solve_grid` 가 자식 선-solve 로 보완** (grid.rs 단독은 미측정)
+
+### 테스트 자산
+
+| 테스트                 | 위치                      | 성격                                                                                                                                                                                             |
+| ---------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| lib unit               | `src/*.rs` `#[cfg(test)]` | 모듈별 명세 단위 (2026-07-06 기준 211)                                                                                                                                                           |
+| `tests/golden.rs`      | 15 케이스                 | 세 완결 엔트리(`flex_layout`/`grid_layout`/`block_layout`) 를 **CSS 명세 계산값**으로 회귀 고정, TOL=1px                                                                                         |
+| `tests/tree_golden.rs` | 6 케이스 (N1~N5 + N6)     | **Chrome 실측 독립 oracle** — Taffy 소멸 후 tree.rs 회귀를 감시하는 유일한 외부 권위. N1~N5 = 중첩/혼합 실전 형상 (Chrome `getBoundingClientRect` root-상대), N6 = box-sizing 손계산 (padding≠0) |
+
+실행: `cargo test` (composition-engine 디렉토리, native). wasm.rs 는 게이트로 native 무영향.
+**주의**: 소스 수정 후 되돌리면 mtime 때문에 cargo 가 stale binary 를 재사용할 수 있다 — 의심 시 `cargo clean -p composition-engine`.
+
+---
+
+## 6. WASM 로드/플래그
+
+- `wasm-bindings/init.ts::initAllWasm()` — startup 에서 composition-engine WASM(+SpatialIndex) 과
+  CanvasKit 을 병렬 로드. `createLayoutEngine()` 이 **동기** factory 라 전역 캐시
+  (`compositionEngineWasm.ts`) 를 먼저 채워야 한다. 미준비 시 `CompositionEngineLayout.isAvailable()`
+  의 lazy re-init + 부트스트랩(useCanvasRuntimeBootstrap) 15초 폴링이 보상 — 폴백 코드 없음.
+- pkg 산출물: `wasm-bindings/composition-engine-pkg/` (wasm-pack `--target bundler`, out-dir 를
+  apps/builder 내부로 지정 — dev 서버 root 밖 절대 URL fetch 실패 회피). 빌드: `pnpm wasm:build:engine`.
+  pkg 는 gitignore (빌드 산출물).
+- `featureFlags.ts` — `UNIFIED_ENGINE_FLAGS.USE_RUST_LAYOUT_ENGINE: true` (상수. key 제거 시
+  `isUnifiedFlag` union 컴파일 에러라 유지), `UNIFIED_ENGINE: true` 가 `isUnifiedFlag()` 를 전역 true 로.
+  `WASM_FLAGS.SPATIAL_INDEX: true`.
+
+---
+
+## 7. 디버깅 진입점
+
+| 증상/신호                                                     | 보는 곳                                                                                                                                                         |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `[ADR-916] composition-engine WASM initialized` 로그 부재     | `compositionEngineWasm.ts:113` — WASM 로드 실패. init.ts 경로/flag 확인                                                                                         |
+| `[fullTreeLayout] WASM failed:` 에러                          | fullTreeLayout.ts catch(:2856) — batch payload parse error 가능성 (숫자 dimension 미정규화 → §2 grid branch px 화 확인)                                         |
+| `build_tree_batch: invalid type ... expected string/sequence` | grid track 미정규화(`coerceGridTrack`) 또는 `GRID_DIM_FIELDS` 누락                                                                                              |
+| `Sanitized non-finite values` 경고                            | Step 5 sanitize — 상류 enrichment 의 NaN 전파 (TokenRef 미해석 등)                                                                                              |
+| `[PersistentTaffyTree] buildFull: handles 길이 불일치`        | WASM 반환 handle ≠ batch 길이 — Rust 파싱 실패 후 부분 성공 여부 확인                                                                                           |
+| 등록 직후 겹침/1줄 degrade, 새로고침 후 정상                  | Step 3 full rebuild 조건 누락 (정본 §PersistentTaffyTree 금지 패턴)                                                                                             |
+| 편집이 캔버스에 미반영, 새로고침 후 반영                      | layoutVersion 3-심볼 체인 (§3 실측 위치) — `LAYOUT_PROP_KEYS` 누락 여부                                                                                         |
+| 특정 요소 layout 값 검사                                      | `getSharedLayoutMap()` / `onLayoutPublished()` (fullTreeLayout.ts:235/:188), persistent tree 의 `getLastJson(elementId)` 로 WASM 에 전달된 최종 style JSON 확인 |
+| 페이지/Frame 간 layout 오염                                   | `persistentTrees` rootKey 분리(:144) — frame mirror id fallback 체인 확인                                                                                       |
+| Rust 커널 회귀 의심                                           | `cargo test` → `tests/tree_golden.rs` (Chrome 실측 대조) — 좌표는 부모 content-box 상대 계약임을 전제                                                           |
+
+레이어 판정 순서: **Skia 렌더 좌표 이상 → 먼저 layout map 값 확인** (`getSharedLayoutMap`) →
+정상이면 렌더 경로 (canvas-rendering.md), 이상이면 batch style (`getLastJson`) → 상류 enrichment 순.
+
+---
+
+## 8. 역사적 맥락
+
+| 시기          | 구성                                                                                                                                                                                                               | 근거                             |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
+| 2026-01~02    | display 별 이종 엔진 — DropflowBlockEngine(JS) + TaffyFlexEngine/TaffyGridEngine(Taffy WASM), per-level 호출 + @pixi/layout                                                                                        | ADR-005 이전                     |
+| 2026-02~03    | Full-Tree 단일 WASM 호출 (DFS post-order batch) + PersistentTaffyTree 증분, Dropflow 제거 → Taffy 단일 엔진                                                                                                        | ADR-005 / ADR-009                |
+| 2026-07-03~06 | 자체 Rust 엔진 `composition-engine` — flex/block/grid/tree self-impl → dual-run diff 0 → live 전환 → **Taffy 물리 삭제** (crate 2종 + pkg + JS 13파일, dual-run 하네스 동반 소멸, tree_golden 이 독립 oracle 승계) | ADR-916 (Implemented 2026-07-06) |
+
+구 문서가 인용하던 `DropflowBlockEngine` / `NON_CONTAINER_TAGS` / `SPEC_RENDERS_ALL_TAGS` /
+`UI_SELECT_CHILD_TAGS` / `LAYOUT_AFFECTING_PROPS` 는 현재 코드에 존재하지 않는다 (2026-07-07 grep 0건).
+과거 결정 경위는 ADR-916 Status log 와 `docs/adr/design/916-unified-rust-engine-breakdown.md` 참조.

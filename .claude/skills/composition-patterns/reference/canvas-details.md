@@ -34,17 +34,17 @@ CSS Button은 명시적 `line-height: var(--text-*--line-height)`를 사용하�
 - `calculateContentHeight()`에서 inline lineHeight가 없으면 `sizeConfig.lineHeight` 사용
 - 값 변경 시 반드시 `spec-value-sync.md` 레퍼런스 테이블과 대조
 
-## Label size delegation 상세 (LabelSpec 단일 소스, 3경로 동기화)
+## Label size delegation 상세 (LABEL_SIZE_STYLE 단일 소스, 3경로 동기화)
 
-**LabelSpec sizes 매핑**:
+**LABEL_SIZE_STYLE 매핑** (`fullTreeLayout.ts` 정의 — `packages/specs/src/primitives/typography.ts` 의 `FONT_SIZE_TO_LINE_HEIGHT`/`getLabelLineHeight` 와 동일 소스. Label 시각 정본은 catalog `COMPONENT_RULES_TABLE.Label`):
 
 | size | fontSize | CSS 토큰  | lineHeight |
 | ---- | -------- | --------- | ---------- |
-| xs   | 10       | text-2xs  | (비례)     |
-| sm   | 12       | text-xs   | (비례)     |
+| xs   | 10       | text-2xs  | 16px       |
+| sm   | 12       | text-xs   | 16px       |
 | md   | 14       | text-sm   | 20px       |
-| lg   | 16       | text-base | (비례)     |
-| xl   | 18       | text-lg   | (비례)     |
+| lg   | 16       | text-base | 24px       |
+| xl   | 18       | text-lg   | 28px       |
 
 CSS 근거: `--text-sm` = 14px, `--text-sm--line-height` = calc(1.25/0.875) = 1.42857 → 14 × 1.42857 = 20px
 
@@ -55,7 +55,7 @@ CSS 근거: `--text-sm` = 14px, `--text-sm--line-height` = calc(1.25/0.875) = 1.
   - 주입 조건: `labelStyle.lineHeight == null` 기준 (`fontSize == null` 금지)
   - lineHeight 미주입 시 `fontSize * 1.5` fallback → CSS Preview(20px)와 불일치
   - batch height override: `Math.ceil(childFs * 1.5)` 대신 LABEL_SIZE_STYLE lineHeight 역참조
-- **Skia**: `ElementSprite.tsx` — `parentDelegatedSize` → `specProps.size` 주입 → LabelSpec shapes
+- **Skia**: `buildSpecNodeData.ts` — `resolveParentDelegatedSize()` (propagationRegistry `getParentTagsForChild` 기반 0-3 level 조상 탐색) → `specProps.size` 주입 → catalog Label rule shapes
 
 **조상 탐색 패턴 (lastDelegationAncestor)**:
 
@@ -73,39 +73,24 @@ CSS 근거: `--text-sm` = 14px, `--text-sm--line-height` = calc(1.25/0.875) = 1.
 
 - **CSS**: `Checkbox.css`에 `white-space: nowrap`
 - **Taffy**: `implicitStyles.ts` — 자식 Label + Synthetic Label에 `whiteSpace: "nowrap"` 주입
-- **Skia**: `isLabelInNowrapParent` primitive selector → useMemo deps 포함 필수
-  - `parentElement`를 useMemo 내에서 직접 참조 금지 (deps에 없으므로 stale closure)
+- **Skia**: `buildSpecNodeData.ts` 의 `isLabelInNowrapParent()` — text style override 블록에서 Label 자식 text 에 `whiteSpace: "nowrap"` 주입
 
-## CalendarGrid/CalendarHeader 다중 줄 보정 스킵
+## Calendar 계열 현행 렌더 경로 (catalog 기반)
 
-ElementSprite의 다중 줄 텍스트 paddingTop 보정 로직은 `baseline: "middle" + y > 0` (절대 좌표 배치) 텍스트에 간섭하여 Y 위치를 이탈시킨다.
+구 ElementSprite 시절의 다중 줄 보정 스킵(`isCalendarText`)과 spec `skipCSSGeneration` 서술은 폐기됨 — Calendar 계열 spec 은 삭제되고 catalog 로 전환.
 
-- `isCalendarText` 체크로 CalendarGrid/CalendarHeader 태그를 다중 줄 보정 블록에서 스킵
-- `isNowrapTag`에 추가 금지: `child.text.whiteSpace = "nowrap"` 설정 시 `align: "center"` 정렬 깨짐
-- CalendarGrid/CalendarHeader의 `skipCSSGeneration: true` 필수 — Generated CSS의 `display: grid` + `border`가 Taffy 레이아웃 방해
-
-```typescript
-// ElementSprite.tsx — 다중 줄 보정 블록
-const isCalendarText =
-  element.tag === "CalendarGrid" || element.tag === "CalendarHeader";
-if (!isCalendarText && ws !== "nowrap" && ws !== "pre") {
-  /* 보정 로직 */
-}
-```
+- 시각 정본: `COMPONENT_RULES_TABLE` (`packages/shared/src/catalog/generated/componentRulesTable.ts`) + `Calendar/RangeCalendar/CalendarGrid/CalendarHeader.binding.ts` (`packages/shared/src/catalog/bindings/`)
+- `CalendarHeader` 는 `CONTAINER_DIMENSION_TAGS` 등록 (`buildSpecNodeData.ts`) — 우측 chevron/center text 좌표가 컨테이너 폭 의존 (`_containerWidth` 주입)
+- `Calendar`/`RangeCalendar` 는 `SHELL_ONLY_CONTAINER_TAGS` (`buildSpecNodeData.ts`) — 자식 수 무관 `_hasChildren=true` (ADR-072)
+- `isNowrapTag` 는 현행 코드에서 Tag/Badge 기본 nowrap 판정 용도 (`buildSpecNodeData.ts` text style override 블록) — Calendar 와 무관
 
 ## Size Delegation 상세 (Compositional Component)
 
-**대상 태그**:
+**구현** (registry 기반 — 구 `PARENT_SIZE_DELEGATION_TAGS`/`SIZE_DELEGATION_PARENT_TAGS` Set 과 ElementSprite selector 는 폐기):
 
-- PARENT_SIZE_DELEGATION_TAGS (자식): SelectTrigger, ComboBoxWrapper, SelectValue, SelectIcon, ComboBoxInput, ComboBoxTrigger
-- SIZE_DELEGATION_PARENT_TAGS (부모): Select, ComboBox
-
-**구현**:
-
-- ElementSprite.tsx `parentDelegatedSize` selector: 부모/조부모 2단계 탐색으로 size 읽기
-- useMemo deps에 `parentDelegatedSize` 포함 필수 (누락 시 size 변경이 Skia 트리에 전파 안 됨)
-- size 우선순위: `props.size || parentDelegatedSize || tagGroupAncestorSize || "md"`
-- Layout 경로(`fullTreeLayout.ts`)의 `effectiveGetChildElements`도 동일하게 size 주입
+- Skia: `buildSpecNodeData.ts` 의 `resolveParentDelegatedSize()` — `getParentTagsForChild(element.type)` (`propagationRegistry.ts`) 로 delegation 부모 태그 집합을 얻어 0-3 level 조상 탐색으로 size 읽기 (Breadcrumb→Breadcrumbs 특수 분기 포함)
+- size 우선순위: `props.size ?? delegatedSize ?? defaultSize` — `props.size` 미명시 + delegatedSize 존재 시 `specProps.size` 로 주입
+- Layout 경로(`fullTreeLayout.ts`)의 `effectiveGetChildElements` 래퍼도 동일하게 size 주입
 
 ## Necessity Indicator 3경로 상세
 
@@ -114,20 +99,15 @@ S2 패턴의 필수 필드 표시. 3경로 동기화 필수.
 - **Preview (CSS)**: `renderNecessityIndicator()` — Label 내 `<span class="necessity-indicator">` 렌더링
   - `icon` 모드: `*` (빨간색 `--negative`)
   - `label` 모드: `(required)` 또는 `(optional)` (회색 `--fg-muted`)
-- **WebGL (Taffy)**: `fullTreeLayout.ts` Label DFS + `implicitStyles.ts` — Label `children` 텍스트에 indicator 추가
-- **WebGL (Skia)**: `ElementSprite.tsx` — `specProps.children`에 indicator 추가
+- **Layout (Taffy)**: `fullTreeLayout.ts` Label DFS + `implicitStyles.ts` — Label `children` 텍스트에 indicator 추가
+- **Skia**: `buildSpecNodeData.ts` — `_necessityIndicator` specProps 주입
 - **에디터**: 통합 Required select (None / Icon / Label) — `isRequired` + `necessityIndicator` 동시 설정
-- **공유 유틸**: `Field.tsx`의 `renderNecessityIndicator()`, `NecessityIndicator` 타입
-- LAYOUT_AFFECTING_PROPS + LAYOUT_PROP_KEYS에 `necessityIndicator`, `isRequired` 등록 필수
+- **공유 유틸**: `packages/shared/src/components/FieldNecessityIndicator` 의 `renderNecessityIndicator()`, `NecessityIndicator` 타입
+- layout prop 3-심볼 체인 점검 필수: `LAYOUT_PROP_KEYS` (`scene/layoutCache.ts` — `necessityIndicator`/`isRequired` 등록됨) / `NON_LAYOUT_PROPS_UPDATE` / `INHERITED_LAYOUT_PROPS_UPDATE` (`elementUpdate.ts`) — 정본: `.claude/rules/layout-engine.md`
 
 ## Collection Item Font 주입 상세 (ListBoxItem/GridListItem)
 
-TextSprite는 store의 원본 `element.props.style`을 직접 읽으므로, implicitStyles(Taffy 전용) 주입만으로는 렌더링에 반영되지 않음.
-
-- ElementSprite `collectionItemFontStyle` selector: 부모가 ListBoxItem/GridListItem이면 Text→"14:600", Description→"12:400" 반환
-- `effectiveElementForText` useMemo: `inlineAlertFontStyle` 또는 `collectionItemFontStyle`로 style override
-- 기존 InlineAlert 패턴(`inlineAlertFontStyle`)과 동일 구조
-- 새 collection 컴포넌트 추가 시 selector 조건에 부모 태그 추가
+현행 경로는 [layout-details.md](layout-details.md) "Collection Item font 주입 상세" 참조 — 구 ElementSprite `collectionItemFontStyle` selector 는 폐기됨 (심볼 소멸). Taffy 높이 계산은 `implicitStyles.ts` 의 `injectCollectionItemFontStyles()`, 시각은 catalog `COMPONENT_RULES_TABLE` rule 기반.
 
 ## Pointer → Move 상세
 
@@ -152,8 +132,8 @@ Spec `arc` shape → specShapeConverter에서 `type: "box"` + `arc` 데이터로
 
 Spec shapes가 레이아웃 엔진(Taffy) 결과(containerWidth/Height)를 필요로 할 때:
 
-- `_containerWidth`/`_containerHeight` props 주입: ElementSprite에서 `finalWidth`/`finalHeight`를 specProps에 전달
-- `CONTAINER_DIMENSION_TAGS` Set (모듈 상수): 주입 대상 태그 O(1) 조회. 새 Spec 추가 시 이 Set에 등록 필수
+- `_containerWidth`/`_containerHeight` props 주입: `buildSpecNodeData.ts` 에서 레이아웃 결과 w/h 를 specProps에 전달
+- `CONTAINER_DIMENSION_TAGS` Set (`buildSpecNodeData.ts` 모듈 상수): 주입 대상 태그 O(1) 조회. 컨테이너 폭 의존 shapes 추가 시 이 Set에 등록 필수
 - 2-pass height 교정: 모든 컨테이너에서 자식 width 제약 → 텍스트 줄바꿈 → height 재계산이 자동 동작 (fullTreeLayout Step 4.5)
 - 우측 역산 배치: `containerWidth - border - paddingRight - pad - iconSize/2` (텍스트 폭 추정 금지)
 - 정확한 세로 중앙: `containerHeight / 2` (`size.height / 2` 사용 금지 — border 미포함)
@@ -161,13 +141,9 @@ Spec shapes가 레이아웃 엔진(Taffy) 결과(containerWidth/Height)를 필�
 - 부모 delegation prop 변경 시: `updateSelectedPropertiesWithChildren`으로 부모+자식 atomic batch update
 - 상세: `.claude/skills/composition-patterns/rules/spec-container-dimension-injection.md`
 
-## registryVersion 캐싱
+## Popover 자식 레이아웃 엔진 제외
 
-LayoutContainer 'layout' 이벤트에서 `notifyLayoutChange()` 무조건 호출.
-
-## Popover 자식 Taffy 레이아웃 제외
-
-DatePicker/DateRangePicker 내부의 Calendar/RangeCalendar은 Preview에서 Popover로 표시되므로 WebGL Taffy 레이아웃에 참여하면 안 됨.
+DatePicker/DateRangePicker 내부의 Calendar/RangeCalendar은 Preview에서 Popover로 표시되므로 Skia 레이아웃 엔진 계산에 참여하면 안 됨.
 
 - `POPOVER_CHILDREN_TAGS` (모듈 스코프 상수): `Set(["Calendar", "RangeCalendar"])`
 - `implicitStyles.ts`에서 `filteredChildren`에서 제외하여 `labelPosition: "side"` 시 Label + DateInput만 row 배치

@@ -10,86 +10,88 @@ Element 계층 구조 규칙을 정의합니다.
 ## 계층 구조
 
 ```
-Page/Layout (최상위)
-└── Body (자동 생성, 루트 컨테이너)
+Page (canonical document)
+└── body (자동 생성, 루트 컨테이너 — type: "body")
     └── Frame/Container
         └── Component (Button, TextField, etc.)
             └── Leaf (Text, Image - 자식 불가)
 ```
 
+- Element 식별자 필드는 `type` (ADR-113 — `tag` 아님)
+- 형제 간 순서는 canonical document `children` 배열 위치가 SSOT (ADR-118) — `order_num` 필드/재정렬 파이프라인 소멸
+- 구 Layout/Slot 이원화(`layout_id` / `slot_name` 필드)는 canonical `FrameNode` + `reusable: true` + ref 참조로 흡수됨 (ADR-903/ADR-111 — `types/builder/layout.types.ts` 헤더 참조)
+
 ## Incorrect
 
 ```typescript
-// ❌ Page에 직접 컴포넌트 배치 (Body 무시)
+// ❌ Page에 직접 컴포넌트 배치 (body 무시)
 const element: Element = {
-  id: 'button-1',
-  tag: 'Button',
-  parent_id: null,  // 루트에 직접 배치
-  page_id: 'page-1',
+  id: "button-1",
+  type: "Button",
+  parent_id: null, // 루트에 직접 배치
+  page_id: "page-1",
 };
 
 // ❌ Leaf 요소에 자식 추가
 const textElement: Element = {
-  id: 'text-1',
-  tag: 'Text',
-  parent_id: 'some-parent',
+  id: "text-1",
+  type: "Text",
+  parent_id: "some-parent",
 };
 const childOfText: Element = {
-  id: 'child-1',
-  parent_id: 'text-1',  // Text는 자식을 가질 수 없음
+  id: "child-1",
+  parent_id: "text-1", // Text는 자식을 가질 수 없음
 };
 
-// ❌ page_id와 layout_id 동시 설정
+// ❌ projected render ID 를 부모로 사용 (ADR-135)
 const element: Element = {
-  page_id: 'page-1',
-  layout_id: 'layout-1',  // 상호 배타적
+  parent_id: "page1::page-frame::slot1", // "::page-frame::" projected ID 영속 금지
 };
 ```
 
 ## Correct
 
 ```typescript
-// ✅ Body를 통한 올바른 계층 구조
-import { findBodyByContext } from '@/builder/stores/utils/elementHelpers';
+// ✅ body를 통한 올바른 계층 구조
+import { ElementUtils } from '@/utils/element/elementUtils';
 
-const bodyElement = findBodyByContext(elements, pageId, layoutId);
+// layout 모드에서는 canonical document 로 frame node id 매칭 (4번째 인자 doc)
+const bodyId = ElementUtils.findBodyByContext(elements, pageId, layoutId, doc);
 
 const element: Element = {
   id: ElementUtils.generateId(),
-  tag: 'Button',
-  parent_id: bodyElement?.id ?? null,  // Body 아래에 배치
+  type: 'Button',
+  parent_id: bodyId ?? null,  // body 아래에 배치
   page_id: pageId,
-  layout_id: null,  // page_id와 상호 배타적
-  order_num: calculateNextOrderNum(bodyElement?.id, elements), // 0-based (빈 부모 → 0)
 };
 
-// ✅ order_num 재정렬 (배치 업데이트)
-import { reorderElements } from '@/builder/stores/utils/elementReorder';
+// ✅ 이동/재배치 — canonical mutation 단일 진입점 (순서 = children 배열 위치)
+import { moveElementToCanonicalTarget } from '@/adapters/canonical/canonicalMutations';
 
-// 비동기 콜백에서 반드시 get()으로 최신 상태 참조 (stale closure 방지)
-queueMicrotask(() => {
-  const { elements, batchUpdateElementOrders } = get();
-  reorderElements(elements, pageId, batchUpdateElementOrders);
-});
-
-// ✅ Leaf 요소는 항상 말단
-const LEAF_TAGS = ['Text', 'Image', 'Icon', 'Separator'];
-
-function canHaveChildren(tag: string): boolean {
-  return !LEAF_TAGS.includes(tag);
+const canonicalTarget = resolveCanonicalMoveTarget({ ... });
+// → workspace/canvas/interaction/resolveCanonicalMutationTarget.ts
+if (canonicalTarget) {
+  moveElementToCanonicalTarget(elementId, canonicalTarget);
 }
 
-// ✅ page_id XOR layout_id
-interface Element {
-  page_id?: string | null;   // Page 컨텍스트
-  layout_id?: string | null; // Layout 컨텍스트 (상호 배타적)
-  slot_name?: string | null; // Layout 슬롯 (page_id 있을 때만)
+// ✅ Leaf 요소는 항상 말단
+const LEAF_TYPES = ['Text', 'Image', 'Icon', 'Separator'];
+
+function canHaveChildren(type: string): boolean {
+  return !LEAF_TYPES.includes(type);
 }
 ```
 
+## Layout 합성 컨텍스트 (ADR-111/135)
+
+- Layout(재사용 셸)은 별도 `layout_id` 필드가 아니라 canonical `FrameNode` (`reusable: true`) 로 표현
+- Page 는 layout shell 을 `type: "ref"` 로 참조, slot 내용은 `descendants[path].children` 으로 보존
+- 화면 합성/hit-test 경계 규칙: `.claude/rules/canvas-rendering.md` §9 + `domain-layout-resolution.md` 참조
+
 ## 참조 파일
 
-- `apps/builder/src/types/builder/unified.types.ts` - Element 타입 정의
-- `apps/builder/src/builder/stores/utils/elementHelpers.ts` - findBodyByContext
-- `apps/builder/src/builder/utils/HierarchyManager.ts` - 계층 관리 (calculateNextOrderNum: 0-based)
-- `apps/builder/src/builder/stores/utils/elementReorder.ts` - order_num 재정렬 (computeReorderUpdates + batchUpdateElementOrders)
+- `apps/builder/src/types/builder/unified.types.ts` - Element 타입 정의 (`type` 필드, ADR-126 legacy projection)
+- `apps/builder/src/utils/element/elementUtils.ts` - `ElementUtils.findBodyByContext` (`type === "body"` 매칭)
+- `apps/builder/src/adapters/canonical/canonicalMutations.ts` - `moveElementToCanonicalTarget` (이동/재배치)
+- `apps/builder/src/builder/workspace/canvas/interaction/resolveCanonicalMutationTarget.ts` - `resolveCanonicalMoveTarget`
+- `packages/shared/src/types/composition-document.types.ts` - canonical schema (`FrameNode`)

@@ -3,7 +3,7 @@ name: composition-patterns
 description: Defines code patterns, rules, and best practices for composition Builder application. Covers layout engine, Canvas rendering, state management, styling, and component architecture. Use when writing, reviewing, refactoring, or debugging any composition code, or when making architectural decisions about the builder.
 TRIGGER when: user mentions "코드 패턴", "규칙 확인", "컨벤션 체크", "아키텍처 규칙", "composition 규칙", "패턴 체크", "코드 리뷰 기준", "code patterns", "conventions", "architecture rules", or asks about composition coding standards, Spec rules, rendering conventions, or state management patterns.
 user-invocable: true
-scope: composition Builder codebase (apps/builder, packages/specs, packages/shared, packages/layout-flow)
+scope: composition Builder codebase (apps/builder, packages/specs, packages/shared, packages/composition-engine)
 ---
 
 # composition Patterns Skill
@@ -15,7 +15,7 @@ composition Builder의 코드 패턴, 규칙 및 모범 사례 통합 스킬.
 
 ## 최상위 원칙 — SSOT 체인 3-Domain 분할 (CRITICAL)
 
-모든 코드 작업은 아래 분할을 준수. 정본: [`.claude/rules/ssot-hierarchy.md`](../../rules/ssot-hierarchy.md) / 공식 결정: [ADR-063](../../../docs/adr/063-ssot-chain-charter.md)
+모든 코드 작업은 아래 분할을 준수. 정본: [`.claude/rules/ssot-hierarchy.md`](../../rules/ssot-hierarchy.md) / 공식 결정: [ADR-063](../../../docs/adr/completed/063-ssot-chain-charter.md)
 
 | Domain             | 권위              | Spec 관여 |
 | ------------------ | ----------------- | --------- |
@@ -28,17 +28,17 @@ composition Builder의 코드 패턴, 규칙 및 모범 사례 통합 스킬.
 - RAC는 unstyled — 스타일은 composition이 D3에서 결정
 - RSP props는 RAC + custom으로 달성 가능한 범위에서 선별 채택
 
-## Runtime SSOT — Canonical Document (ADR-116 + ADR-122 In Progress)
+## Runtime SSOT — Canonical Document (ADR-116 + ADR-122 Implemented)
 
-ADR-111 (frame schema) / ADR-112 (editing semantics) / ADR-113 (tag→type rename) 가 land 한 후, ADR-116 이 `CompositionDocument` 를 storage SSOT 로 전환했고, ADR-118/119/120/121 이 legacy mirror persistence 를 제거했다. 현재 ADR-122 가 runtime mirror 제거 진행 중.
+ADR-111 (frame schema) / ADR-112 (editing semantics) / ADR-113 (tag→type rename) 반영 후, ADR-116 이 `CompositionDocument` 를 storage SSOT 로 전환했고 (Implemented 2026-05-02), ADR-118/119/120/121 이 legacy mirror persistence 를 제거했으며, ADR-122 가 runtime mirror 제거를 완결했다 (Implemented 2026-05-09). 잔존 boundary helper (`frameMirror`/`exportLegacyDocument` 등) 는 ADR-122 HC.3 allowlist 내 의도된 영역 — 상세: [docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md](../../../docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md).
 
 ### 9 ADR 체인 도착지점
 
 **"Pencil 호환 Canonical Document 가 단일 SSOT 로 Builder runtime 전체를 구동, legacy `Element[]` / `order_num` / hybrid mirror 는 cloud / export/import boundary 로만 격리"**
 
-### Runtime layer 규칙 (ADR-122 Target State)
+### Runtime layer 규칙 (ADR-122 Implemented — 현행 상태)
 
-| Layer                | Target                                                                | 금지                                                        |
+| Layer                | 현행                                                                  | 금지                                                        |
 | -------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------- |
 | Mutation             | canonical document patch primary                                      | `setElements(exportLegacyDocument(doc))` mirror write-back  |
 | Store read           | canonical selectors / canonical node lookup / resolved canonical tree | mutable `elementsMap`/`childrenMap` authoritative read      |
@@ -95,7 +95,7 @@ Pencil schema 에 없는 Composition 고유 영역 (`x-composition.events` / `ac
 - **[zustand-childrenmap-staleness](rules/zustand-childrenmap-staleness.md)** - childrenMap stale → elementsMap 최신 조회
 - **[validation-input-boundary](rules/validation-input-boundary.md)** / **[validation-error-boundary](rules/validation-error-boundary.md)**
 - **[style-no-inline-tailwind](rules/style-no-inline-tailwind.md)** / **[style-tv-variants](rules/style-tv-variants.md)** / **[style-react-aria-prefix](rules/style-react-aria-prefix.md)** / **[style-overlay-s2-pattern](rules/style-overlay-s2-pattern.md)**
-- **style-action-icon-button** — `ActionIconButton` 사용 (`.button-base` 우회, tooltip 내장)
+- **style-action-icon-button** (인라인 규칙 — 별도 rules/ 파일 없음) — `ActionIconButton` 사용 (`.button-base` 우회, tooltip 내장)
 - **[type-no-any](rules/type-no-any.md)** / **[type-explicit-return](rules/type-explicit-return.md)**
 
 #### PIXI / Security / Spec
@@ -109,7 +109,7 @@ Pencil schema 에 없는 Composition 고유 영역 (`x-composition.events` / `ac
 ### HIGH (강력 권장)
 
 - **[arch-reference-impl](rules/arch-reference-impl.md)** / **[spec-single-source-truth](rules/spec-single-source-truth.md)** / **[spec-shape-rendering](rules/spec-shape-rendering.md)** / **[spec-token-usage](rules/spec-token-usage.md)**
-- **spec-text-style** — `extractSpecTextStyle()` 사용, fontSize/fontWeight 하드코딩 금지
+- **spec-text-style** (인라인 규칙 — 별도 rules/ 파일 없음) — `extractSpecTextStyle()` 사용 (`apps/builder/src/builder/workspace/canvas/utils/specTextStyle.ts`), fontSize/fontWeight 하드코딩 금지
 - **[spec-container-dimension-injection](rules/spec-container-dimension-injection.md)** — `_containerWidth`/`_containerHeight` props 주입
 - **[style-css-reuse](rules/style-css-reuse.md)** / **[react-aria-hooks-required](rules/react-aria-hooks-required.md)** / **[react-aria-no-manual-aria](rules/react-aria-no-manual-aria.md)** / **[react-aria-stately-hooks](rules/react-aria-stately-hooks.md)**
 - **[supabase-no-direct-calls](rules/supabase-no-direct-calls.md)** / **[supabase-service-modules](rules/supabase-service-modules.md)** / **[supabase-rls-required](rules/supabase-rls-required.md)**
@@ -125,6 +125,9 @@ Pencil schema 에 없는 Composition 고유 영역 (`x-composition.events` / `ac
 | 도메인                     | 파일                                                                               |
 | -------------------------- | ---------------------------------------------------------------------------------- |
 | Layout Engine              | [reference/layout-engine.md](reference/layout-engine.md)                           |
+| Layout Engine 구현 상세    | [reference/layout-details.md](reference/layout-details.md)                         |
+| Canvas 렌더링 구현 상세    | [reference/canvas-details.md](reference/canvas-details.md)                         |
+| State 관리 구현 상세       | [reference/state-details.md](reference/state-details.md)                           |
 | Compositional Architecture | [reference/compositional-architecture.md](reference/compositional-architecture.md) |
 | Child Composition & Spec   | [reference/child-composition.md](reference/child-composition.md)                   |
 | Text Wrapping              | [reference/text-wrapping.md](reference/text-wrapping.md)                           |
@@ -139,7 +142,7 @@ Pencil schema 에 없는 Composition 고유 영역 (`x-composition.events` / `ac
 1. _hasChildren 패턴 (삭제/이동/조건 변경 금지)
 2. SHELL_ONLY_CONTAINER_TAGS / SYNTHETIC_CHILD_PROP_MERGE_TAGS 관련 로직 (ADR-072)
 3. buildSpecNodeData.ts의 _hasChildren 3-branch 주입 로직
-4. rearrangeShapesForColumn / SPEC_RENDERS_ALL_TAGS_SET 가드
+4. rearrangeShapesForColumn 가드 (specBuildHelpers.ts / buildSpecNodeData.ts)
 5. TAG_SPEC_MAP 등록 로직
 ```
 
@@ -190,8 +193,8 @@ Pencil schema 에 없는 Composition 고유 영역 (`x-composition.events` / `ac
 
 ## ADR
 
-- **[ADR-001](../../../docs/adr/001-state-management.md)** Zustand | **[ADR-002](../../../docs/adr/002-styling-approach.md)** ITCSS+tv() | **[ADR-003](../../../docs/adr/003-canvas-rendering.md)** Canvas
-- **[ADR-004](../../../docs/adr/004-preview-isolation.md)** iframe | **[ADR-005](../../../docs/adr/005-css-text-wrapping.md)** Text Wrap | **[ADR-008](../../../docs/adr/008-layout-engine.md)** Taffy
+- **[ADR-001](../../../docs/adr/completed/001-state-management.md)** Zustand | **[ADR-002](../../../docs/adr/completed/002-styling-approach.md)** ITCSS+tv() | **[ADR-003](../../../docs/adr/completed/003-canvas-rendering.md)** Canvas
+- **[ADR-004](../../../docs/adr/completed/004-preview-isolation.md)** iframe | **[ADR-005](../../../docs/adr/completed/005-css-text-wrapping.md)** Text Wrap | **[ADR-008](../../../docs/adr/completed/008-layout-engine.md)** Taffy (레이아웃 엔진은 이후 [ADR-916](../../../docs/adr/916-unified-rust-engine.md) 자체 Rust 엔진 `packages/composition-engine` 으로 대체)
 - **[Component Spec](../../../docs/COMPONENT_SPEC.md)** 단일 소스 아키텍처
 
 ## 규칙 효과 측정

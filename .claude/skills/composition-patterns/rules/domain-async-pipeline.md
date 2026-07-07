@@ -5,20 +5,22 @@ impactDescription: 파이프라인 순서 오류 = UI 불일치, 데이터 유�
 tags: [domain, async, pipeline]
 ---
 
-요소 변경 시 비동기 파이프라인 순서를 준수합니다.
+요소 변경 시 canonical-first 비동기 파이프라인 순서를 준수합니다.
 
-## 파이프라인 순서
+> **정본**: `.claude/rules/state-management.md` §Canonical sync 호출 순서 (CRITICAL). 본 문서는 그 구현 상세.
+
+## 파이프라인 순서 (canonical-first)
 
 ```
-1. Memory Update (즉시) → UI 반응
-2. Index Rebuild (즉시) → 검색 가능
-3. Layout Version Bump (즉시, 조건부) → fullTreeLayoutMap 재계산 트리거
-4. History Record (즉시) → Undo 가능
-5. IndexedDB Persist (백그라운드) → 영구 저장
-6. Preview Sync (백그라운드) → iframe 동기화
+1. Canonical Document Update (즉시) → mergeXxxIntoCanonicalDocument (wrapper → mergeElementsCanonicalPrimary)
+2. History Record (즉시) → canonicalEvents payload (상태 변경 전 기록)
+3. Memory Update (즉시) → set() — derived elements[] 갱신 + layoutVersion 조건부 +1
+4. Index Rebuild (즉시) → _rebuildIndexes() (canonical 우선 derive)
+5. IndexedDB Persist (백그라운드) → persistActiveCanonicalDocument(db)
+6. Preview Sync (자동) → useIframeMessenger effect → UPDATE_CANONICAL_DOCUMENT
 ```
 
-> **Step 3 조건**: `LAYOUT_AFFECTING_PROPS`(`style`, `size`, `label`, `children`, `text`, `placeholder`, `orientation`, `items`) 중 하나 이상 변경 시 `layoutVersion + 1`. 비-레이아웃 변경(color, opacity 등)은 스킵.
+> **layoutVersion 조건**: layout 영향 판정은 `NON_LAYOUT_PROPS_UPDATE` 블랙리스트 **제외 방식** (`isLayoutAffectingUpdate()`, `stores/utils/elementUpdate.ts`). 새 layout prop 추가 시 **3-심볼 체인** 점검 필수 — (1) `LAYOUT_PROP_KEYS` (`workspace/canvas/scene/layoutCache.ts`, 캐시 시그니처 — 추가 필수) / (2) `NON_LAYOUT_PROPS_UPDATE` (`stores/utils/elementUpdate.ts` — layout 영향 prop 은 **여기 추가 금지**) / (3) `INHERITED_LAYOUT_PROPS_UPDATE` (부모→자식 상속 prop 만). 상세: `.claude/rules/layout-engine.md`.
 
 ## Incorrect
 
@@ -26,7 +28,7 @@ tags: [domain, async, pipeline]
 // ❌ DB 저장 완료까지 대기 (UI 블로킹)
 const addElement = async (element: Element) => {
   const db = await getDB();
-  await db.elements.insert(element);  // 블로킹!
+  await db.insert(element); // 블로킹!
   set({ elements: [...elements, element] });
 };
 
@@ -34,73 +36,46 @@ const addElement = async (element: Element) => {
 set({ elements: newElements });
 // _rebuildIndexes() 호출 안 함 → elementsMap 불일치
 
-// ❌ Preview 동기화를 동기적으로 처리
-const updateElement = (id, props) => {
-  set({ ... });
-  messenger.sendElementUpdated(id, props);  // 동기 처리
-  await waitForPreviewAck();  // 불필요한 대기
-};
+// ❌ set 1차 → canonical 2차 (canonical-first 위반)
+set({ elements: [...elements, element] });
+get()._rebuildIndexes(); // stale canonical 로 mirror 빌드 → mirror field 누락 race
+mergeElementsCanonicalPrimary([element]); // 너무 늦음
 ```
 
 ## Correct
 
 ```typescript
-// ✅ 올바른 파이프라인 순서
-export const createAddElementAction = (set, get) => async (element: Element) => {
-  const state = get();
+// ✅ canonical-first 파이프라인 (실코드: stores/utils/elementCreation.ts createAddElementAction)
+export const createAddElementAction =
+  (set, get) => async (element: Element) => {
+    // 1. Canonical document 1차 갱신
+    //    (파일 내부 wrapper mergeCreatedElementsIntoCanonicalDocument →
+    //     adapters/canonical/canonicalMutations.ts 의 mergeElementsCanonicalPrimary)
+    mergeCreatedElementsIntoCanonicalDocument([elementToAdd]);
 
-  // 1. Memory Update (즉시) - UI 즉시 반응
-  set({ elements: [...state.elements, element] });
+    // 2. History 기록 (canonical event payload — ADR-124)
+    historyManager.addEntry({
+      type: "add",
+      elementId: elementToAdd.id,
+      data: { canonicalEvents: buildCanonicalInsertEvents([elementToAdd]) },
+    });
 
-  // 2. Index Rebuild (즉시) - O(1) 검색 보장
-  get()._rebuildIndexes();
+    // 3. derived store cache 갱신 — 구조 변경이므로 layoutVersion 무조건 증가
+    set((prevState) => ({
+      elements: [...prevState.elements, elementToAdd],
+      layoutVersion: prevState.layoutVersion + 1,
+    }));
 
-  // 3. History Record (즉시) - Undo 즉시 가능
-  historyManager.addEntry({
-    type: 'add',
-    elementId: element.id,
-    data: { element: structuredClone(element) },
-  });
+    // 4. canonical 기반 인덱스 재구축
+    get()._rebuildIndexes();
 
-  // 4. IndexedDB Persist (백그라운드) - 비블로킹
-  setTimeout(async () => {
+    // 5. Preview 동기화는 useIframeMessenger effect 가 자동 처리
+    //    (canonical document 변경 감지 → UPDATE_CANONICAL_DOCUMENT 전송)
+
+    // 6. IndexedDB canonical document 저장 (실패해도 메모리는 정상)
     const db = await getDB();
-    await db.elements.insert(sanitizeElement(element));
-  }, 0);
-
-  // 5. Preview Sync (백그라운드) - WebGL 모드가 아닐 때만
-  if (!isWebGLCanvas()) {
-    setTimeout(() => {
-      deltaMessenger.sendElementAdded(element);
-    }, 0);
-  }
-};
-
-// ✅ 배치 작업도 동일 패턴
-export const batchUpdateElements = (updates: Update[]) => {
-  // 1-3: 동기 작업 (즉시)
-  set({ elements: applyUpdates(elements, updates) });
-  get()._rebuildIndexes();
-  historyManager.addBatchEntry(updates);
-
-  // 4-5: 비동기 작업 (백그라운드)
-  queueMicrotask(async () => {
-    await persistUpdates(updates);
-    syncToPreview(updates);
-  });
-};
-```
-
-## 주의사항
-
-```typescript
-// ✅ structuredClone으로 히스토리용 복사 (참조 분리)
-historyManager.addEntry({
-  data: { element: structuredClone(element) }  // 깊은 복사
-});
-
-// ✅ sanitizeElement로 DB 저장 전 정리
-await db.elements.insert(sanitizeElement(element));
+    await persistActiveCanonicalDocument(db);
+  };
 ```
 
 ## 배치 삭제 파이프라인 (removeElements)
@@ -109,36 +84,27 @@ await db.elements.insert(sanitizeElement(element));
 순차 `for...await removeElement(id)` 호출은 **금지** — 각 호출마다 set() → 렌더 발생으로 요소가 하나씩 사라짐.
 
 ```typescript
-// ✅ 배치 삭제 — 단일 파이프라인 실행
+// ✅ 배치 삭제 — 단일 파이프라인 실행 (stores/utils/elementRemoval.ts)
 await removeElements(deletableIds);
 // → collectElementsToRemove() × N → 병합 → executeRemoval() 1회
-//   1. IndexedDB deleteMany (1회)
-//   2. History addEntry (1건)
-//   3. Skia unregisterSkiaNode (즉시)
-//   4. set() (1회, 원자적)
-//   5. postMessage (1회)
+//   1. History payload 구성 — canonicalEvents (buildCanonicalRemoveEvents,
+//      canonical mutation 전에 구성해 삭제 전 node 위치 보존)
+//   2. Skia unregisterSkiaNode (즉시 — React cleanup 지연 우회)
+//   3. canonical document 삭제 반영 (syncRemovedElementsToCanonical)
+//   4. historyManager.addEntry (1건)
+//   5. set() (1회, 원자적 — elements + 인덱스 + 선택 상태)
+//   6. persistActiveCanonicalDocument (백그라운드)
+//   7. postMessage (1회)
 
 // ❌ 순차 삭제 — N번 파이프라인 실행
-for (const id of ids) { await removeElement(id); }
+for (const id of ids) {
+  await removeElement(id);
+}
 ```
 
-## order_num 재정렬 파이프라인
+## 요소 순서 — children 배열 SSOT (ADR-118)
 
-`reorderElements()`는 `computeReorderUpdates()` 순수 함수 + `batchUpdateElementOrders()` 단일 set() 패턴입니다.
-
-```typescript
-// ✅ 비동기 콜백에서 항상 get()으로 최신 상태 참조
-queueMicrotask(() => {
-  const { elements, batchUpdateElementOrders } = get();
-  reorderElements(elements, pageId, batchUpdateElementOrders);
-});
-
-// ❌ 외부에서 캡처한 stale 상태 사용 — 비동기 실행 시 이미 변경됨
-const { elements } = get();
-setTimeout(() => {
-  reorderElements(elements, pageId, ...); // stale!
-}, 100);
-```
+order_num 재정렬 파이프라인은 **소멸**했습니다. 요소 순서는 canonical document 의 `children` 배열 위치가 단일 SSOT 이며, 순서/부모 변경은 canonical mutation (`moveElementToCanonicalTarget`, `adapters/canonical/canonicalMutations.ts`) 경유로만 수행합니다.
 
 ## layoutVersion 계약 (ADR-012 P4)
 
@@ -146,25 +112,50 @@ setTimeout(() => {
 
 ```typescript
 // ✅ Store 내부: set() 내에서 layoutVersion 증가
-set((state) => ({ elements: newElements, layoutVersion: state.layoutVersion + 1 }));
+set((state) => ({
+  elements: newElements,
+  layoutVersion: state.layoutVersion + 1,
+}));
 
 // ✅ Store 외부(텍스트 측정기 교체, 폰트 로딩 등): invalidateLayout() 호출
 useStore.getState().invalidateLayout();
 
-// ✅ inspectorActions: LAYOUT_AFFECTING_PROPS 체크 후 조건부 증가
-const LAYOUT_AFFECTING_PROPS = new Set(['style', 'size', 'label', 'children', 'text', 'placeholder', 'orientation', 'items']);
-const hasLayoutChange = Object.keys(propsUpdate).some(key => LAYOUT_AFFECTING_PROPS.has(key));
-if (hasLayoutChange) set((state) => ({ layoutVersion: state.layoutVersion + 1 }));
+// ✅ props 업데이트 경로: 블랙리스트 제외 방식 판정 (stores/utils/elementUpdate.ts)
+// NON_LAYOUT_PROPS_UPDATE 에 없는 style key 가 하나라도 있으면 layout 영향
+function isLayoutAffectingUpdate(
+  changedStyle: Record<string, unknown>,
+): boolean {
+  return Object.keys(changedStyle).some((k) => !NON_LAYOUT_PROPS_UPDATE.has(k));
+}
 
 // ❌ layoutVersion 미증가 → fullTreeLayoutMap 재계산 스킵 → 크기 고정
 set({ elements: newElements }); // layoutVersion 변경 없음!
+
+// ❌ 과거 심볼 LAYOUT_AFFECTING_PROPS allowlist Set — 현재 코드에 없음 (stale 참조 금지)
+```
+
+## 주의사항
+
+```typescript
+// ✅ structuredClone으로 히스토리용 복사 (참조 분리)
+historyManager.addEntry({
+  data: { element: structuredClone(element) }, // 깊은 복사 (legacy snapshot 경로)
+});
+
+// ✅ 비동기 콜백에서 항상 get()으로 최신 상태 참조 (stale closure 방지)
+queueMicrotask(() => {
+  const { elements } = get();
+  // ...
+});
 ```
 
 ## 참조 파일
 
-- `apps/builder/src/builder/stores/utils/elementCreation.ts` - 추가 파이프라인
-- `apps/builder/src/builder/stores/utils/elementUpdate.ts` - 업데이트 파이프라인
+- `apps/builder/src/builder/stores/utils/elementCreation.ts` - 추가 파이프라인 (canonical-first)
+- `apps/builder/src/builder/stores/utils/elementUpdate.ts` - 업데이트 파이프라인 + `NON_LAYOUT_PROPS_UPDATE` / `INHERITED_LAYOUT_PROPS_UPDATE`
 - `apps/builder/src/builder/stores/utils/elementRemoval.ts` - 삭제 파이프라인 (단일/배치)
-- `apps/builder/src/builder/stores/utils/elementReorder.ts` - order_num 재정렬 (순수 함수 + batch)
+- `apps/builder/src/adapters/canonical/canonicalMutations.ts` - canonical mutation wrapper (`mergeElementsCanonicalPrimary` 등)
+- `apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts` - `LAYOUT_PROP_KEYS` 캐시 시그니처
 - `apps/builder/src/builder/stores/inspectorActions.ts` - 프로퍼티 업데이트 + layoutVersion 증가
+- `apps/builder/src/builder/hooks/useIframeMessenger.ts` - Preview 동기화 (`UPDATE_CANONICAL_DOCUMENT`)
 - `apps/builder/src/builder/utils/canvasDeltaMessenger.ts` - Delta 동기화

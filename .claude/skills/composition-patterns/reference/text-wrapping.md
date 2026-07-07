@@ -28,14 +28,15 @@ CSS 텍스트 래핑 속성의 CanvasKit 에뮬레이션 패턴.
 
 ## SkiaNodeData.text 텍스트 래핑 필드
 
+`SkiaNodeData` (`apps/builder/src/builder/workspace/canvas/skia/nodeRendererTypes.ts`) 의 `text` 필드에 인라인 타입으로 정의 (별도 named 타입 없음):
+
 ```typescript
-interface SkiaTextData {
-  whiteSpace?: "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line";
-  wordBreak?: "normal" | "break-all" | "keep-all";
-  overflowWrap?: "normal" | "break-word" | "anywhere";
-  textOverflow?: "ellipsis" | "clip";
-  clipText?: boolean; // overflow:hidden|clip → canvas.clipRect()
-}
+// SkiaNodeData["text"] 중 래핑 관련 필드
+whiteSpace?: "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line";
+wordBreak?: "normal" | "break-all" | "keep-all";
+overflowWrap?: "normal" | "break-word" | "anywhere";
+textOverflow?: "ellipsis" | "clip";
+clipText?: boolean; // overflow:hidden|clip → canvas.clipRect()
 ```
 
 ## fontFamilies 정합성 (CRITICAL)
@@ -86,25 +87,24 @@ const specStyle = extractSpecTextStyle("button", props);
 
 ## 데이터 흐름
 
-### text/heading 요소 (TextSprite)
+text leaf 포함 전 컴포넌트가 `buildSpecNodeData.ts` 단일 파이프라인으로 Skia 노드를 생성한다 (구 TextSprite/ElementSprite 이원 경로 폐기 — ADR-058 Phase 4 에서 `buildTextNodeData` 도 폐지, text 요소는 catalog/spec shapes 경로로 통합):
 
 ```
-element.style → TextSprite.tsx → SkiaNodeData.text에 whiteSpace/wordBreak/overflowWrap/textOverflow/clipText 주입
+element.props.style
+  → buildSpecNodeData.ts (catalog/spec shapes 구성)
+  → specShapesToSkia() (specShapeConverter.ts)
+  → "Text style overrides" 블록: specNode.children 의 text 자식에
+     Phase A(whiteSpace/wordBreak/overflowWrap/lineHeight/textIndent/clipText)
+     + Phase B(textDecoration/textOverflow/wordSpacing/fontVariant/fontStretch/textShadow/verticalAlign) 주입
+  → nodeRendererText.ts 렌더
 ```
 
-### spec shapes(Button 등) (ElementSprite)
-
-```
-element.style → ElementSprite.tsx → specShapesToSkia() 결과의 text children에 수동 주입
-```
-
-**CRITICAL**: spec shapes는 element style을 자동 상속하지 않으므로, `specNode.children` 순회하여 text 자식에 수동 주입 필수.
+**CRITICAL**: spec/catalog shapes는 element style을 자동 상속하지 않으므로, `specNode.children` 순회하여 text 자식에 수동 주입 필수. Tag/Badge 는 기본 `nowrap`, Label-in-nowrap-parent (`isLabelInNowrapParent`) 특수 케이스 유지.
 
 ## CSS 상속 연동
 
-- `cssResolver.ts`: `INHERITED_PROPERTIES` Set에 `wordBreak`, `overflowWrap`, `whiteSpace` 등록
-- `elements.ts`: `INHERITED_LAYOUT_PROPS`에 동일 3개 속성 등록 (dirty tracking → layoutVersion 증가)
-- `elementUpdate.ts`: `INHERITED_LAYOUT_PROPS_UPDATE`에 동일 복사본 (순환 import 방지)
+- `cssResolver.ts` (layout/engines): `INHERITABLE_PROPERTIES` Set에 `wordBreak`, `overflowWrap`, `whiteSpace` 등록
+- `elementUpdate.ts`: `INHERITED_LAYOUT_PROPS_UPDATE`에 동일 3개 속성 등록 — 부모→자식 상속 전파 + layoutVersion 트리거 판정 (3-심볼 체인 정본: `.claude/rules/layout-engine.md`)
 
 ## isEllipsis 3중 조건 (CRITICAL)
 
