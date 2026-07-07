@@ -1,6 +1,6 @@
 ---
 name: react-spectrum
-description: React Spectrum 공식 Props API 레퍼런스. react-spectrum.adobe.com 공식 문서 기반. 컴포넌트 Props, 사용 예제, 접근성 패턴 포함. composition Spec props 설계 시 단일 레퍼런스.
+description: React Spectrum 공식 Props API 레퍼런스. react-spectrum.adobe.com 공식 문서 기반. 컴포넌트 Props, 사용 예제, 접근성 패턴 포함. composition D2 props (catalog binding) 설계 시 단일 레퍼런스.
 license: Apache-2.0
 compatibility: Requires a React project with react-aria-components or @react-spectrum/s2.
 metadata:

@@ -1,6 +1,6 @@
 ---
 name: review-adr
-description: ADR(Architecture Decision Record) 문서를 Risk-First 템플릿 대조 + 코드 검증 + 위험 스트레스 테스트로 검증합니다.
+description: 작성된 ADR 문서의 검증이 필요할 때 발동 — "ADR 리뷰/검토", "review ADR", 위험 평가 확인 요청 시. 코드 리뷰/PR 리뷰에는 사용하지 않는다.
 TRIGGER when: "ADR 리뷰", "ADR 검토", "설계 문서 리뷰", "아키텍처 리뷰", "review ADR", "architecture review", "design review", "ADR 위험 평가"
 user-invocable: true
 scope: docs/adr/ 디렉토리의 ADR 문서
@@ -38,18 +38,19 @@ Read .claude/rules/adr-writing.md              → 템플릿 체크리스트 (�
 
 ## Phase 1: 구조 검증 (Risk-First 템플릿 대조)
 
-### 필수 섹션 체크리스트 (adr-writing.md 의 6개 + 동적 seed)
+### 필수 섹션 체크리스트 (adr-writing.md 의 7개 + 동적 seed)
 
-| 섹션                    | 확인 기준                                          | 증거 형식         |
-| ----------------------- | -------------------------------------------------- | ----------------- |
-| Context                 | 측정 가능한 hard constraint 1개 이상               | `ADR:line N`      |
-| Alternatives Considered | 최소 2개 대안 + 각 대안에 4축 위험 평가            | `ADR:line N-M`    |
-| Risk Threshold Check    | 테이블 + HIGH+ 루프 판정                           | `ADR:line N`      |
-| Decision                | Alternatives 뒤, 위험 수용 근거 + 기각 사유        | `ADR:line N`      |
-| 구현 상세 분리          | 구현 상세가 design 파일에 있는가 (포인터만 본문에) | `ADR:line N` 링크 |
-| Gates                   | Gate 테이블 또는 "잔존 HIGH 위험 없음" 명시        | `ADR:line N`      |
+| 섹션                    | 확인 기준                                                                   | 증거 형식         |
+| ----------------------- | --------------------------------------------------------------------------- | ----------------- |
+| Context                 | 측정 가능한 hard constraint 1개 이상                                        | `ADR:line N`      |
+| Alternatives Considered | 최소 2개 대안 + 각 대안에 4축 위험 평가                                     | `ADR:line N-M`    |
+| Risk Threshold Check    | 테이블 + HIGH+ 루프 판정                                                    | `ADR:line N`      |
+| Decision                | Alternatives 뒤, 위험 수용 근거 + 기각 사유                                 | `ADR:line N`      |
+| 구현 상세 분리          | 구현 상세가 design 파일에 있는가 (포인터만 본문에)                          | `ADR:line N` 링크 |
+| Risks                   | Decision 뒤 / Gates 앞, ID/위험/심각도/대응 표 (또는 "잔존 HIGH 위험 없음") | `ADR:line N`      |
+| Gates                   | Gate 테이블 또는 "잔존 HIGH 위험 없음" 명시                                 | `ADR:line N`      |
 
-**adr-writing.md 동적 seed 확인** — 해당 seed 가 활성화되어 있으면 (예: 2026-04-20 반복 패턴 선차단 4 항목) 추가 검증. 비활성화되었으면 스킵.
+**adr-writing.md 동적 seed 확인** — 해당 seed 가 활성화되어 있으면 (예: 2026-04-20 반복 패턴 선차단 — 현행 seed 항목, 개수 미고정, adr-writing.md 참조) 추가 검증. 비활성화되었으면 스킵.
 
 ### 4축 위험 평가
 
@@ -158,14 +159,15 @@ ADR에 명시되지 않은 잠재 위험을 능동적으로 조사:
 
 ### 구조 검증
 
-| 섹션                    | 판정              | 품질         | 인용         |
-| ----------------------- | ----------------- | ------------ | ------------ |
-| Context                 | PASS/PARTIAL/FAIL | HIGH/MED/LOW | `ADR:line N` |
-| Alternatives (2개+)     | PASS/PARTIAL/FAIL | HIGH/MED/LOW | `ADR:line N` |
-| 4축 위험 평가           | PASS/PARTIAL/FAIL | HIGH/MED/LOW | `ADR:line N` |
-| Risk Threshold Check    | PASS/PARTIAL/FAIL | HIGH/MED/LOW | `ADR:line N` |
-| Decision 위험 수용 근거 | PASS/PARTIAL/FAIL | HIGH/MED/LOW | `ADR:line N` |
-| Gates                   | PASS/PARTIAL/FAIL | HIGH/MED/LOW | `ADR:line N` |
+| 섹션                                | 판정              | 품질         | 인용         |
+| ----------------------------------- | ----------------- | ------------ | ------------ |
+| Context                             | PASS/PARTIAL/FAIL | HIGH/MED/LOW | `ADR:line N` |
+| Alternatives (2개+)                 | PASS/PARTIAL/FAIL | HIGH/MED/LOW | `ADR:line N` |
+| 4축 위험 평가                       | PASS/PARTIAL/FAIL | HIGH/MED/LOW | `ADR:line N` |
+| Risk Threshold Check                | PASS/PARTIAL/FAIL | HIGH/MED/LOW | `ADR:line N` |
+| Decision 위험 수용 근거             | PASS/PARTIAL/FAIL | HIGH/MED/LOW | `ADR:line N` |
+| Risks (Decision 뒤/Gates 앞, ID 표) | PASS/PARTIAL/FAIL | HIGH/MED/LOW | `ADR:line N` |
+| Gates                               | PASS/PARTIAL/FAIL | HIGH/MED/LOW | `ADR:line N` |
 
 ### 코드 검증 (핵심 주장만)
 
@@ -201,7 +203,7 @@ ADR 이 건전하면 아래와 같이 보고:
 ```
 ### 종합 판정
 
-- 구조: PASS (6/6 섹션 HIGH 품질)
+- 구조: PASS (7/7 섹션 HIGH 품질)
 - 코드 정합: 8/8 VERIFIED
 - 누락 위험: 0건
 - 권고:
@@ -309,5 +311,5 @@ Subagent 리뷰 결과는 **가설 (hint)** 로 취급. Main 은 **확증자 (ve
 
 - "코드 리뷰해줘" → ❌ (코드 리뷰 → reviewer 에이전트)
 - "README 수정해줘" → ❌ (문서 편집)
-- "ADR 새로 작성해줘" → ❌ (작성 → documenter 에이전트)
+- "ADR 새로 작성해줘" → ❌ (작성 → create-adr 스킬 (`/new-adr`))
 - "PR 리뷰해줘" → ❌ (PR → reviewer 에이전트)

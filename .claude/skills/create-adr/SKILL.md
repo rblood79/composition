@@ -1,6 +1,6 @@
 ---
 name: create-adr
-description: 새 ADR(Architecture Decision Record) 생성. 번호 자동 할당 + Risk-First Design Loop 템플릿 적용 + README.md 동시 갱신.
+description: 아키텍처 결정을 새 ADR 문서로 기록해야 할 때 발동 — "ADR 생성/작성/만들어", "new ADR", 설계 결정 문서 추가 요청 시. 기존 ADR 리뷰/수정에는 사용하지 않는다.
 TRIGGER when: "ADR 생성", "ADR 작성", "새 ADR", "ADR 만들어", "create ADR", "new ADR", "아키텍처 결정 문서 작성", "설계 문서 생성", "ADR 추가"
 user-invocable: true
 scope: docs/adr/ 디렉토리에 새 ADR 문서 생성
@@ -13,16 +13,28 @@ scope: docs/adr/ 디렉토리에 새 ADR 문서 생성
 
 ---
 
+## Phase 0: Fork 게이트 (기존 ADR 분리/fork 인 경우)
+
+기존 ADR 의 잔여 영역 분리, base/응용 split, 선행 ADR 에 흡수 불가한 영역의 신규 제안이면 — `.claude/rules/adr-writing.md` §"ADR Fork / 분리 결정 시 전제·관점 점검" 의 **4 질문 lock-in + AskUserQuestion 사용자 explicit confirm (M2)** 을 먼저 통과해야 한다. **미통과 시 본 스킬 진행 금지** (파일 생성 차단). 완전 신규 주제 ADR 은 이 게이트 해당 없음.
+
+---
+
 ## Phase 1: 번호 할당 + 파일 생성
 
 ### 1-1. 다음 번호 결정
 
 ```bash
-# docs/adr/ 에서 가장 큰 번호 조회
-ls docs/adr/ docs/adr/completed/ | grep -oE '^[0-9]+' | sort -n | tail -1
+# docs/adr/ + docs/adr/completed/ 양쪽 스캔 — 900 미만 정규 밴드의 최대 번호
+ls docs/adr/ docs/adr/completed/ | grep -oE '^[0-9]+' | sort -n | awk '$1<900' | tail -1
 ```
 
-→ 마지막 번호 + 1 = 새 ADR 번호 (3자리 zero-pad: `052`, `053`, ...)
+→ **900 미만 정규 밴드의 최대 + 1** = 새 ADR 번호 (3자리 zero-pad; 현재 다음 번호 `148`)
+
+> **900+ 밴드**: 인프라/렌더링 특수 트랙 (현 최대 920). **사용자가 명시 요청할 때만** 900 밴드 최대 + 1 사용:
+>
+> ```bash
+> ls docs/adr/ docs/adr/completed/ | grep -oE '^[0-9]+' | sort -n | awk '$1>=900' | tail -1
+> ```
 
 > **주의**: `docs/adr/` 과 `docs/adr/completed/` 양쪽 모두 스캔. 번호 충돌 방지.
 
@@ -37,7 +49,7 @@ ls docs/adr/ docs/adr/completed/ | grep -oE '^[0-9]+' | sort -n | tail -1
 파일명: `docs/adr/{NNN}-{kebab-title}.md`
 
 ```
-예: docs/adr/052-canvas-text-caching.md
+예: docs/adr/148-canvas-text-caching.md
 ```
 
 ---
@@ -141,6 +153,14 @@ Proposed — {YYYY-MM-DD}
 
 > 구현 상세: [{NNN}-{title}-breakdown.md](design/{NNN}-{title}-breakdown.md)
 
+## Risks
+
+| ID  | 위험 | 심각도 | 대응 |
+| --- | ---- | :----: | ---- |
+| R1  | ...  |  MED   | ...  |
+
+[또는 "잔존 HIGH 위험 없음"]
+
 ## Gates
 
 | Gate | 시점 | 통과 조건 | 실패 시 대안 |
@@ -172,7 +192,7 @@ ADR 파일 생성 후 **반드시** `docs/adr/README.md`의 테이블에 항목�
 Read docs/adr/README.md
 ```
 
-- Status가 `Proposed` → **미구현** 섹션 테이블에 추가
+- Status가 `Proposed` → `### 미구현 (Proposed)` 섹션 테이블에 추가
 - 번호 순서 유지
 
 ### 추가 형식
@@ -183,20 +203,17 @@ Read docs/adr/README.md
 
 ### 현황 요약 카운트 갱신
 
-README 상단의 `미구현 (Proposed/계획)` 카운트를 +1 갱신하고, 합계도 +1 갱신한다.
+README 상단 `## 현황 요약` 표의 `미구현/진행 (Proposed/In Progress)` 행 카운트를 +1 갱신하고, 합계도 +1 갱신한다.
 
 ---
 
 ## Phase 4: 자기 검증
 
-생성된 ADR에 대해 `.claude/rules/adr-writing.md`의 검증 체크리스트를 실행:
+생성된 ADR에 대해 `.claude/rules/adr-writing.md` §"검증 체크리스트 (작성 완료 시)" **전체 항목 (7개) + "반복 패턴 선차단" seed (현행 5항목 — 개수 미고정, 정본 참조)** 를 실행한다. 사본 나열 대신 정본 파일을 직접 열어 대조한다.
 
-- [ ] Context에 측정 가능한 hard constraint가 1개 이상 있는가?
-- [ ] 대안이 2개 이상이고, 각각 4축 위험 평가가 있는가?
-- [ ] Risk Threshold Check 테이블이 있고, HIGH+ 대안에 대한 루프 판정이 있는가?
-- [ ] Decision에 기각된 대안의 기각 사유가 있는가?
-- [ ] 구현 상세가 ADR 본문이 아닌 design 문서에 있는가? (또는 구현 상세가 불필요한 수준인가?)
-- [ ] Gate가 있거나, "잔존 HIGH 위험 없음"이 명시되어 있는가?
+특히 놓치기 쉬운 항목:
+
+- [ ] **Risks 섹션이 Decision 뒤 / Gates 앞에 있고, ID 표 형식으로 잔존 운영 위험을 집약했는가?** (또는 "잔존 HIGH 위험 없음" 명시)
 
 **하나라도 실패하면 해당 섹션을 보강한 후 완료 보고.**
 
