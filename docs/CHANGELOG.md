@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Calendar 요일 locale CSS↔Skia 정합 — Skia 영어 → 앱 locale] - 2026-07-07
+
+### Bug Fixes
+
+- **Calendar Skia 요일 헤더가 영어(`Sun Mon…`)로 나와 Preview(한국어 `일 월…`)와 발산** (전수조사 발견):
+  - **Why**: Skia `calendar_month_grid` / `calendar_grid` escape 는 요일을 `Intl.DateTimeFormat(props.locale ?? "en-US")` 로 생성한다. Calendar 계열 factory(DatePicker/DateRangePicker/Calendar/RangeCalendar)가 CalendarGrid 자식에 `locale` 을 주입하지 않아 escape 가 `en-US` 로 fallback → 영어 요일. 반면 Preview DOM 은 RAC `I18nProvider` 의 locale context(`ko`)를 React context 로 읽어 한국어 → 두 렌더 발산. nav 타이틀(`2026년 7월`)은 CalendarHeader 의 static string(이미 `navigator.language` 로 생성)이라 양쪽 다 한국어여서 타이틀만 맞고 요일만 어긋남
+  - **근본 위치는 escape 아닌 factory**: escape mechanism 자체는 정상(locale 주면 한국어 emit — node 실측 확인). CalendarGrid.binding 도 `locale` 을 D2 prop 으로 이미 선언. 결함은 factory 미주입뿐
+  - 수정: `buildCalendarInitData` 가 monthText 와 동일 `navigator.language` locale 을 반환하도록 하고, 4개 Calendar 계열 factory 의 CalendarGrid 자식 props 에 `locale` 주입(RangeCalendar 는 헤더 타이틀 inline locale 도 동일 const 로 DRY)
+  - 위치: `apps/builder/src/builder/factories/definitions/DateColorComponents.ts`(`buildCalendarInitData` + DatePicker/DateRangePicker/Calendar 3사이트), `DisplayComponents.ts`(RangeCalendar)
+  - 검증: RED (factory 4종 CalendarGrid 에 locale 없음) → GREEN `calendarGridLocale.test.ts` 4 PASS. live builder: 기존 CalendarGrid 에 `locale: "ko-KR"` 주입(신규 factory 산출과 동일 상태) 후 escape locale 해소 실행 → 요일 `일 월 화 수 목 금 토` = DOM 정합(`matchesDOM: true`, 이전 en-US → `Sun…`). type-check PASS(baseline 69 불변), calendar escape 회귀 9 PASS
+  - 후속(비차단): 셀 pitch 발산(Skia cellSize 30 + gap 6 = 36 vs CSS 34) 은 별도 작업 — 본 수정은 지배적 locale 발산만
+
 ## [grid 컨테이너 CSS↔Skia 정합 — ProgressBar/Meter/Slider 레이아웃 실패 해소] - 2026-07-06
 
 ### Bug Fixes

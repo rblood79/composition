@@ -506,6 +506,11 @@ export function createRangeCalendarDefinition(
   const calMonth = now.getMonth();
   const firstDay = new Date(calYear, calMonth, 1).getDay();
   const calTotalDays = new Date(calYear, calMonth + 1, 0).getDate();
+  // locale: Skia calendar escape 는 React context 밖이라 props.locale 만 읽는다(미주입 시
+  //   en-US fallback → 요일 영어 발산). header 타이틀과 동일 locale 을 CalendarGrid 에 주입해
+  //   Skia 요일이 DOM(RAC I18nProvider)과 정합. 2026-07-07 전수조사.
+  const locale =
+    (typeof navigator !== "undefined" && navigator.language) || "ko-KR";
 
   return {
     type: "RangeCalendar",
@@ -524,7 +529,7 @@ export function createRangeCalendarDefinition(
       {
         type: "CalendarHeader",
         props: {
-          children: new Intl.DateTimeFormat(navigator.language || "ko-KR", {
+          children: new Intl.DateTimeFormat(locale, {
             year: "numeric",
             month: "long",
           }).format(now),
@@ -533,6 +538,7 @@ export function createRangeCalendarDefinition(
       {
         type: "CalendarGrid",
         props: {
+          locale,
           defaultToday: true,
           dayOffset: firstDay,
           totalDays: calTotalDays,

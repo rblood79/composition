@@ -6,14 +6,21 @@ function buildCalendarInitData() {
   const now = new Date();
   const calYear = now.getFullYear();
   const calMonth = now.getMonth();
+  // locale: DOM 은 RAC I18nProvider context 로 요일/타이틀 locale 을 얻지만, Skia
+  //   calendar escape 는 React context 밖이라 props.locale 만 읽는다(미주입 시 en-US
+  //   fallback → 요일 영어 발산). monthText 와 동일 locale 을 CalendarGrid 에 주입해
+  //   Skia 요일이 DOM 과 정합하게 한다. 2026-07-07 전수조사.
+  const locale =
+    (typeof navigator !== "undefined" && navigator.language) || "ko-KR";
   return {
     now,
+    locale,
     firstDay: new Date(calYear, calMonth, 1).getDay(),
     calTotalDays: new Date(calYear, calMonth + 1, 0).getDate(),
-    monthText: new Intl.DateTimeFormat(
-      (typeof navigator !== "undefined" && navigator.language) || "ko-KR",
-      { year: "numeric", month: "long" },
-    ).format(now),
+    monthText: new Intl.DateTimeFormat(locale, {
+      year: "numeric",
+      month: "long",
+    }).format(now),
   };
 }
 
@@ -42,7 +49,8 @@ export function createDatePickerDefinition(
 
   // ⭐ Layout/Slot System
 
-  const { now, firstDay, calTotalDays, monthText } = buildCalendarInitData();
+  const { now, locale, firstDay, calTotalDays, monthText } =
+    buildCalendarInitData();
 
   return {
     type: "DatePicker",
@@ -137,6 +145,7 @@ export function createDatePickerDefinition(
             type: "CalendarGrid",
             props: {
               defaultToday: true,
+              locale,
               dayOffset: firstDay,
               totalDays: calTotalDays,
               todayDate: now.getDate(),
@@ -168,7 +177,8 @@ export function createDateRangePickerDefinition(
 
   // ⭐ Layout/Slot System
 
-  const { now, firstDay, calTotalDays, monthText } = buildCalendarInitData();
+  const { now, locale, firstDay, calTotalDays, monthText } =
+    buildCalendarInitData();
 
   return {
     type: "DateRangePicker",
@@ -257,6 +267,7 @@ export function createDateRangePickerDefinition(
             type: "CalendarGrid",
             props: {
               defaultToday: true,
+              locale,
               dayOffset: firstDay,
               totalDays: calTotalDays,
               todayDate: now.getDate(),
@@ -288,7 +299,8 @@ export function createCalendarDefinition(
   // ⭐ Layout/Slot System
 
   // Calendar intrinsic width: cellSize*7 + gap*6 + paddingX*2 (md: 32*7+6*6+12*2 = 284)
-  const { now, firstDay, calTotalDays, monthText } = buildCalendarInitData();
+  const { now, locale, firstDay, calTotalDays, monthText } =
+    buildCalendarInitData();
 
   return {
     type: "Calendar",
@@ -328,6 +340,7 @@ export function createCalendarDefinition(
         type: "CalendarGrid",
         props: {
           defaultToday: true,
+          locale,
           dayOffset: firstDay,
           totalDays: calTotalDays,
           todayDate: now.getDate(),
