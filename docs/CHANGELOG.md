@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [docs/adr 문서 정리 — ADR-916 completed/ 이관 + README 표 포맷 점검] - 2026-07-08
+
+### Documentation
+
+- **ADR-916 본문 파일이 Status=Implemented(2026-07-06) 인데도 `docs/adr/completed/`로 이동되지 않고 루트에 잔존**:
+  - **Why**: 900번대 다른 Implemented ADR(900/902~909/912~914)은 모두 `completed/`에 있는데 916만 예외로 남아 있어 디렉터리 컨벤션과 실제 상태가 어긋났다. 정본 조회 시 "Implemented는 completed/에 있다"는 가정이 깨지는 지점.
+  - 조치: `git mv docs/adr/916-unified-rust-engine.md docs/adr/completed/916-unified-rust-engine.md`. 참조 경로 갱신 — `.claude/skills/composition-patterns/SKILL.md`, `.claude/skills/composition-patterns/reference/layout-engine.md`, `docs/reference/components/SPEC_CSS_BOUNDARY.md`, `docs/adr/design/916-unified-rust-engine-breakdown.md`, `docs/adr/README.md` 완료 표 링크. `docs/superpowers/plans/*`, `docs/adr/reviews/916.md`는 실행 당시 시점 기록이라 경로 유지(historical).
+  - design/reviews 하위 폴더(`docs/adr/design/`, `docs/adr/reviews/`)는 completed 여부와 무관하게 ADR 번호 기준으로 유지되는 기존 컨벤션 확인 — 916도 동일 패턴이라 본문 파일만 이동.
+
+### Infrastructure
+
+- **`docs/adr/README.md` 마크다운 표 컬럼 정렬 패딩으로 파일 크기 759KB, 최장 라인 17,881자**:
+  - **Why**: "완료" 표의 "비고" 컬럼이 최장 셀 폭에 맞춰 전 행 공백 패딩됨(Prettier 기본 GFM 표 정렬) — 706줄 중 303줄이 500자 초과, 편집/diff 가독성 저하.
+  - 압축 포맷(최소 패딩) 시도 → PostToolUse Prettier hook이 Edit 직후 재정렬해 원복(오히려 793KB로 증가). Prettier 3.x가 GFM 표 컬럼 정렬을 강제하는 기본 동작이라 hook 설정 변경 없이는 우회 불가 — 사용자 확인 후 정렬 패딩 상태 그대로 수용, 916 경로/링크 갱신만 반영.
+
 ## [Calendar CSS↔Skia 정합 — 요일 locale + width fit-content] - 2026-07-07
 
 ### Bug Fixes

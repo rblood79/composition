@@ -3,7 +3,7 @@
 **날짜:** 2026-03-18 (초판)
 **대상 독자:** composition 컴포넌트 개발에 처음 합류한 개발자
 
-> ⚠️ **STALE (2026-07-08)** — [ADR-142](../../adr/142-starter-spec-component-system-cutover.md)(Implemented 2026-06-02)로 D3 시각 SSOT가 컴포넌트당 spec 파일에서 **catalog(`COMPONENT_RULES_TABLE`) + theme/tokens root collection**으로 전환됨. 본 문서의 "Spec CSS 자동 생성 52개 / 수동 CSS 43개" 분류 테이블은 spec 시대(2026-03) 기준이며 현재 실체와 다르다 — 잔존 spec은 Frame/Group/Slot 3개 한정, 나머지는 catalog binding 경로. [ADR-036](../../adr/completed/036-spec-first-single-source.md)은 Superseded by ADR-142. 레이아웃 엔진도 "Taffy WASM"에서 자체 Rust 엔진(`packages/composition-engine`, [ADR-916](../../adr/916-unified-rust-engine.md))으로 대체됐다. 개념(Spec="What" 토큰 / 수동 CSS="How" 구조)은 catalog 전환 후에도 구조상 유효하나, 파일 경로·컴포넌트 목록은 재검증 필요.
+> ⚠️ **STALE (2026-07-08)** — [ADR-142](../../adr/142-starter-spec-component-system-cutover.md)(Implemented 2026-06-02)로 D3 시각 SSOT가 컴포넌트당 spec 파일에서 **catalog(`COMPONENT_RULES_TABLE`) + theme/tokens root collection**으로 전환됨. 본 문서의 "Spec CSS 자동 생성 52개 / 수동 CSS 43개" 분류 테이블은 spec 시대(2026-03) 기준이며 현재 실체와 다르다 — 잔존 spec은 Frame/Group/Slot 3개 한정, 나머지는 catalog binding 경로. [ADR-036](../../adr/completed/036-spec-first-single-source.md)은 Superseded by ADR-142. 레이아웃 엔진도 "Taffy WASM"에서 자체 Rust 엔진(`packages/composition-engine`, [ADR-916](../../adr/completed/916-unified-rust-engine.md))으로 대체됐다. 개념(Spec="What" 토큰 / 수동 CSS="How" 구조)은 catalog 전환 후에도 구조상 유효하나, 파일 경로·컴포넌트 목록은 재검증 필요.
 
 ---
 

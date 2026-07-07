@@ -195,7 +195,7 @@ Pencil schema 에 없는 Composition 고유 영역 (`x-composition.events` / `ac
 ## ADR
 
 - **[ADR-001](../../../docs/adr/completed/001-state-management.md)** Zustand | **[ADR-002](../../../docs/adr/completed/002-styling-approach.md)** ITCSS+tv() | **[ADR-003](../../../docs/adr/completed/003-canvas-rendering.md)** Canvas
-- **[ADR-004](../../../docs/adr/completed/004-preview-isolation.md)** iframe | **[ADR-005](../../../docs/adr/completed/005-css-text-wrapping.md)** Text Wrap | **[ADR-008](../../../docs/adr/completed/008-layout-engine.md)** Taffy (레이아웃 엔진은 이후 [ADR-916](../../../docs/adr/916-unified-rust-engine.md) 자체 Rust 엔진 `packages/composition-engine` 으로 대체)
+- **[ADR-004](../../../docs/adr/completed/004-preview-isolation.md)** iframe | **[ADR-005](../../../docs/adr/completed/005-css-text-wrapping.md)** Text Wrap | **[ADR-008](../../../docs/adr/completed/008-layout-engine.md)** Taffy (레이아웃 엔진은 이후 [ADR-916](../../../docs/adr/completed/916-unified-rust-engine.md) 자체 Rust 엔진 `packages/composition-engine` 으로 대체)
 - **[Component Spec](../../../docs/COMPONENT_SPEC.md)** 단일 소스 아키텍처 (spec 시대 기록, DEPRECATED — 현재 D3 SSOT는 [ADR-142](../../../docs/adr/142-starter-spec-component-system-cutover.md) catalog `COMPONENT_RULES_TABLE`)
 
 ## 규칙 효과 측정

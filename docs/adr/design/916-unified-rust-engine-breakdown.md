@@ -1,6 +1,6 @@
 # ADR-916 Design Breakdown: 자체 단일 Rust 엔진 통합
 
-> 본 문서는 [ADR-916](../916-unified-rust-engine.md)의 구현 상세. 결정 근거/대안/위험 평가는 ADR 본문 참조.
+> 본 문서는 [ADR-916](../completed/916-unified-rust-engine.md)의 구현 상세. 결정 근거/대안/위험 평가는 ADR 본문 참조.
 
 ## 0. 현황 Inventory (2026-07-03 freeze)
 
