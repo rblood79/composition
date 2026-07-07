@@ -1,6 +1,6 @@
 ---
 name: documenter
-description: Writes technical documentation, creates ADRs in docs/adr/ format, and updates reference docs for composition. Use when the user asks for documentation, ADR creation, or technical writing.
+description: Writes technical documentation, updates reference docs, and assists with ADR format cleanup for composition. Use when the user asks for documentation or technical writing. ADR creation is routed to the /new-adr skill and the architect agent.
 model: sonnet
 color: pink
 tools:
@@ -26,63 +26,24 @@ maxTurns: 20
 
 ```
 docs/
-├── adr/                     # 아키텍처 결정 기록 (AI 설계 포함)
-│   ├── 001-state-management.md
-│   ├── 002-styling-approach.md
-│   ├── 003-canvas-rendering.md
-│   └── 004-preview-isolation.md
+├── adr/                     # 아키텍처 결정 기록 (Risk-First 템플릿)
+│   ├── README.md            # ADR 현황 대시보드 (Status 변경 시 동시 갱신)
+│   ├── NNN-*.md             # 진행 중 (Proposed/Accepted) ADR
+│   ├── completed/           # Implemented/Superseded 완료 ADR
+│   ├── design/              # 구현 상세 breakdown (*-breakdown.md)
+│   └── reviews/             # ADR 리뷰 기록 (review-adr Phase 4.5 영속화)
+├── CHANGELOG.md             # 사용자-가시 변경 SSOT (규칙: .claude/rules/changelog.md)
 └── reference/               # 기술 참조 문서
-    └── components/
-        └── CSS_ARCHITECTURE.md
+    └── components/          # 컴포넌트 기술 문서 (SPEC_CSS_BOUNDARY.md 등)
 ```
 
 ## ADR 형식
 
-> **필수**: Risk-First Design Loop 순서를 따른다. Alternatives → Risk → Decision → Gates 순서.
-> 자세한 방법론은 architect agent의 "Risk-First Design Loop" 참조.
+> **정본**: [`.claude/rules/adr-writing.md`](../rules/adr-writing.md) — Risk-First 필수 순서(Context → Alternatives → Risk per Alternative → Threshold Check → Decision → **Risks** → Gates), Risks 섹션(Decision 뒤 / Gates 앞, ID 표) 포함 템플릿·검증 체크리스트·금지 패턴 전부 이 규칙이 단일 소스다. 템플릿을 여기 복제하지 않는다.
 
-```markdown
-# ADR-NNN: [Title]
+### ADR 번호 할당
 
-## Status
-
-Proposed | Accepted | Deprecated | Superseded
-
-## Context
-
-[문제 설명 + 제약 조건 (hard constraints 명시)]
-
-## Alternatives Considered
-
-### 대안 A: [이름]
-
-- 설명: ...
-- 위험: 기술(L/M/H/C) / 성능(L/M/H/C) / 유지보수(L/M/H/C) / 마이그레이션(L/M/H/C)
-
-### 대안 B: [이름]
-
-- 설명: ...
-- 위험: 기술(L/M/H/C) / 성능(L/M/H/C) / 유지보수(L/M/H/C) / 마이그레이션(L/M/H/C)
-
-## Decision
-
-[선택된 대안 + 위험 수용 근거]
-
-## Gates
-
-[잔존 HIGH 위험에 대한 Gate 테이블. 없으면 "잔존 HIGH 위험 없음" 명시]
-
-## Consequences
-
-### Positive
-
-### Negative
-```
-
-### ADR 번호 매기기
-
-- `docs/adr/`의 기존 ADR에서 다음 사용 가능한 번호 확인
-- 0으로 채워진 세 자리 형식 사용: 001, 002, ..., 010 등
+- `/new-adr` skill 경유 — 번호 자동 할당 + Risk-First 템플릿 + `docs/adr/README.md` 동시 갱신. 수동 번호 스캔 금지
 
 ## 작성 가이드라인
 
@@ -97,9 +58,9 @@ Proposed | Accepted | Deprecated | Superseded
 ### 핵심 아키텍처 개념
 
 - **Builder ↔ Preview**: iframe 격리, postMessage Delta 동기화
-- \*\*단일 렌더러: CanvasKit/Skia WASM (ADR-100 PixiJS 제거 완료)
-- **레이아웃**: Taffy WASM (Flex/Grid/Block) — 단일 엔진 체계, DirectContainer 직접 배치
-- **상태**: ADR-116/122 canonical document primary. Zustand 슬라이스 + transitional elementsMap read-only
+- **단일 렌더러**: CanvasKit/Skia WASM (ADR-900 PixiJS 제거 완료)
+- **레이아웃**: `packages/composition-engine` — 자체 Rust WASM 단일 엔진 (Flex/Grid/Block, ADR-916), DirectContainer 직접 배치
+- **상태**: ADR-116/122 canonical document primary (ADR-122 Implemented 2026-05-09). Zustand 슬라이스 + elementsMap read-only derived
 - **스타일링**: Tailwind CSS v4 + tv() variants
 - **컴포넌트**: React-Aria with hooks
 

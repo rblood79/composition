@@ -40,30 +40,27 @@ maxTurns: 25
 
 ### Storybook 스토리
 
-- 모든 UI 컴포넌트에 스토리 필수 (test-stories-required 규칙)
-- tv()에 정의된 모든 variant 조합 커버
-- 상태 있는 컴포넌트에 인터랙티브 스토리 포함
-- ArgTypes로 props 문서화
+- Storybook 은 **starter 카탈로그(`packages/react-aria-starter`) 한정** — 실행: `pnpm -F @composition/react-aria-starter-upstream storybook` (port 6006)
+- builder/specs 쪽 컴포넌트에는 스토리 인프라 없음 — 스토리 요청 시 starter 카탈로그 대상인지 먼저 확인
+- 스토리 작성 시 variant 조합 커버 + ArgTypes 로 props 문서화
 
-### E2E 테스트 (Playwright)
+### E2E / 시각 회귀 테스트
 
-- 핵심 사용자 플로우 End-to-End 테스트
-- Builder ↔ Preview 통신 검증
-- Canvas 인터랙션 테스트 (선택, 드래그, 리사이즈)
-- `pnpm exec playwright test`로 실행
+- 시각 회귀: `packages/specs` 에 `test:visual` (playwright test) 스크립트만 존재
+- builder 대상 E2E 인프라는 **미구축** — playwright.config / e2e 테스트 디렉토리 부재 (루트 `test:e2e` 스크립트는 선언만 존재). 도입 시 config 셋업부터 시작
 
 ## composition 테스트 고려사항
 
 ### Canvas 테스트
 
 - CanvasKit/Skia WASM 렌더링은 특별한 셋업 필요
-- Skia EventBoundary 이벤트 테스트 (ADR-100 PixiJS 제거)
-- Taffy WASM 엔진 계산 스타일로 레이아웃 검증
+- Skia EventBoundary 이벤트 테스트 (ADR-900 PixiJS 제거)
+- `packages/composition-engine` (자체 Rust WASM) 계산 결과로 레이아웃 검증 — Rust 측은 `cargo test` (lib + `tests/golden.rs` + `tests/tree_golden.rs` Chrome 실측 golden)
 
 ### 상태 테스트
 
 - 파이프라인 순서 검증: Memory → Index → History → DB → Preview
-- canonical node lookup + transitional `elementsMap` 정합성 테스트
+- canonical document ↔ read-only derived `elementsMap` 정합성 테스트 (ADR-122 Implemented)
 - 히스토리 기록이 적절한 Undo/Redo를 가능하게 하는지 확인
 - Zustand 슬라이스 간 상호작용 테스트
 - ADR-137 Selection Consumer Contract 테스트: Page A → Page B 전환 직후 page-bound action 은 wrong-page mutation 0, stale mismatch UI hide/disable, deferred update 이후 live page 정상 적용을 검증한다. projection/editing context 는 `apply*Explicit({ pageId, contextReason, ... })` 회귀 fixture 로 분리 검증한다.
@@ -80,10 +77,10 @@ maxTurns: 25
 
 1. **인라인 Tailwind 금지** → tv() 사용 여부
 2. **`any` 타입 금지** → 명시적 타입 여부
-3. **O(1) 검색** → elementsMap 사용, 배열 순회 없음
+3. **O(1) 검색** → canonical selectors 우선 + `elementsMap` read-only derived (ADR-122), 배열 순회 없음
 4. **히스토리 기록 필수** → 상태 변경 전 기록 여부
 5. **layoutVersion 증가** → 레이아웃 영향 props 변경 시 증가 여부
-6. **order_num 재정렬** → `batchUpdateElementOrders()` 사용 여부
+6. **순서 SSOT** → 요소 순서가 canonical `children[]` 배열 index 를 따르는지 (ADR-118, `order_num` 은 mirror)
 
 ## Error Recovery Protocol
 

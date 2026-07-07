@@ -10,7 +10,6 @@ tools:
   - Grep
   - Glob
   - Bash
-  - NotebookEdit
 skills:
   - composition-patterns
 memory: project
@@ -40,19 +39,15 @@ maxTurns: 30
 3. `Read .claude/skills/react-spectrum/references/components/{ComponentName}.md` → Spectrum S2 디자인 시스템 비교 (선택)
 4. 참조 결과를 composition 컨벤션(tv(), Zustand, Spec)에 맞게 내재화
 
-### IDE MCP (타입 검증)
+### 타입 검증
 
 구현 완료 후:
 
-1. `mcp__ide__getDiagnostics()` → 변경 파일의 타입 에러 확인
-2. 에러 0개 확인 후 다음 단계 진행
+1. `pnpm type-check` → 타입 에러 0개 확인 후 다음 단계 진행
 
-### Chrome MCP (시각적 검증, 선택)
+### 시각 검증 (evaluator 위임)
 
-Storybook/개발 서버가 실행 중일 때:
-
-1. `mcp__claude-in-chrome__navigate()` → Storybook 또는 dev 서버 이동
-2. `mcp__claude-in-chrome__computer(action: "screenshot")` → 렌더링 결과 확인
+Chrome MCP 도구는 이 agent 에 미등록. 런타임 시각 검증은 **evaluator(소연) agent 에 위임**한다 — Sprint Contract 를 `.claude/sprint-contract.md` 에 기록해 두면 evaluator 가 그 기준으로 PASS/FAIL 판정한다.
 
 ## Sprint Contract (구현 시작 전 필수)
 
@@ -62,7 +57,8 @@ Storybook/개발 서버가 실행 중일 때:
 
 1. 사용자의 요청을 분석하여 **검증 가능한 완료 기준**을 작성한다
 2. 사용자에게 계약을 제시하고 합의를 받는다
-3. 합의된 계약을 기반으로 구현을 시작한다
+3. 합의된 계약을 **`.claude/sprint-contract.md`** 에 기록한다 (evaluator 가 이 경로를 읽어 PASS/FAIL 판정)
+4. 기록된 계약을 기반으로 구현을 시작한다
 
 ### 계약 형식
 
@@ -90,7 +86,7 @@ Storybook/개발 서버가 실행 중일 때:
    1. Calendar 팝오버가 트리거 클릭 시 열린다 → 검증: Chrome MCP 클릭 테스트
    2. 날짜 선택 시 입력 필드에 YYYY-MM-DD 형식으로 표시된다 → 검증: form_input + screenshot
    3. Canvas(Skia)에서 DatePicker가 올바른 크기로 렌더링된다 → 검증: dev 서버 screenshot
-   4. size prop(sm/md/lg)이 3경로(CSS/Taffy/Skia)에서 동기화된다 → 검증: 각 size 전환 screenshot
+   4. size prop(sm/md/lg)이 3경로(CSS/Layout 엔진/Skia)에서 동기화된다 → 검증: 각 size 전환 screenshot
 ```
 
 ### 계약 생략 조건
@@ -168,7 +164,7 @@ gh search code "[패턴 키워드]" --language=TypeScript
 
 1. **composition 기존 코드** — 프로젝트 내 유사 구현이 이미 있는지 먼저 확인
 2. **React Spectrum S2 GitHub 소스** — S2 기능 추가/변환 시 실제 구현 참조 (API 문서 < 소스코드)
-3. **사용 중인 라이브러리의 공식 소스** — React-Aria, CanvasKit/Skia, Taffy 등의 구현 참조
+3. **사용 중인 라이브러리의 공식 소스** — React-Aria, CanvasKit/Skia 등의 구현 참조 (레이아웃 엔진은 자체 `packages/composition-engine` 소스 직접 확인)
 4. **검증된 오픈소스** — GitHub Stars 1k+ 프로젝트의 관련 구현
 5. **공식 문서/예제** — 라이브러리 공식 문서의 고급 패턴
 
@@ -186,7 +182,7 @@ gh search code "[패턴 키워드]" --language=TypeScript
 5. **히스토리 기록 필수** → 변경 전 상태 반드시 기록
 6. **O(1) 검색** → canonical selectors 우선, `elementsMap` read-only fallback. array traversal 금지 (ADR-122)
 7. **layoutVersion 증가 필수** → 레이아웃 영향 props 변경 시 `layoutVersion + 1` (누락 시 크기 고정 버그)
-8. **order_num 재정렬** → `batchUpdateElementOrders()` 단일 set() 사용, 개별 N회 호출 금지
+8. **순서 SSOT** → 요소 순서는 canonical `children[]` 배열 index 가 primary (ADR-118), `order_num` 은 mirror — 직접 재정렬 로직 신설 금지
 9. **Spec TokenRef 변환 필수** → shapes 내 숫자 연산에 TokenRef 직접 사용 금지, `resolveToken()` 필수
 
 ## 구현 패턴
@@ -220,7 +216,12 @@ const styles = tv({ base: '...', variants: { ... } });
 ### Canvas (Skia)
 
 - DirectContainer로 엔진 결과 x/y 직접 배치
-- 하이브리드 레이아웃 엔진 display 선택 규칙 준수
+- display 별 엔진 선택 규칙 준수 — 정본: [`.claude/rules/layout-engine.md`](../rules/layout-engine.md) §엔진 선택
+
+### 신규 컴포넌트 (catalog cutover — ADR-142/912)
+
+- 시각 스타일 SSOT 는 catalog `COMPONENT_RULES_TABLE` (`packages/shared/src/catalog/generated/componentRulesTable.ts`) + `packages/shared/src/catalog/bindings` — 신규 컴포넌트 시각 정의는 catalog 경유
+- spec 신규 작성 (`packages/specs/src/components/`) 은 Frame/Group/Slot 류 예외만 (잔존 spec 3개) — 일반 컴포넌트 spec 부활 금지
 
 ### Supabase
 
@@ -240,7 +241,7 @@ const styles = tv({ base: '...', variants: { ... } });
 3. History Record (즉시)
 4. DB Persist (백그라운드)
 5. Preview Sync (백그라운드)
-6. Order Rebalance (백그라운드) - batchUpdateElementOrders 단일 set()
+6. Order Rebalance (백그라운드) - 순서 SSOT 는 canonical `children[]` 배열 index (ADR-118, `order_num` 은 mirror)
 
 ## 성능 기준
 

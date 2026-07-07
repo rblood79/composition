@@ -8,6 +8,8 @@ tools:
   - Grep
   - Glob
   - Bash
+  - Write
+  - Edit
 skills:
   - composition-patterns
 memory: project
@@ -37,9 +39,9 @@ composition은 3-domain 분할 구조. ADR 설계/아키텍처 결정 시 **어�
 ### 핵심 아키텍처
 
 - **Builder ↔ Preview 분리**: Builder(에디터 UI)와 Preview(사용자 컴포넌트 렌더링)는 iframe으로 격리, postMessage Delta 동기화로 통신
-- \*\*단일 렌더러: CanvasKit/Skia WASM (ADR-100 PixiJS 제거 완료)
-- **레이아웃 엔진**: Taffy WASM (Flex/Grid/Block) — 단일 엔진 체계, DirectContainer 직접 배치
-- **상태 관리**: ADR-116/122 — `CompositionDocument` canonical = primary SSOT. legacy `elementsMap`/`childrenMap` 은 transitional read-only (mutable subscription 금지). Zustand 슬라이스 패턴 유지
+- **단일 렌더러**: CanvasKit/Skia WASM (ADR-900 PixiJS 제거 완료)
+- **레이아웃 엔진**: `packages/composition-engine` — 자체 Rust WASM 단일 엔진 (Flex/Grid/Block, ADR-916 Implemented 2026-07-06). JS 어댑터 심볼(TaffyFlexEngine/TaffyBlockEngine/TaffyGridEngine/persistentTaffyTree)은 이름 보존. DirectContainer 직접 배치
+- **상태 관리**: ADR-116/122 (Implemented 2026-05-09) — `CompositionDocument` canonical = primary SSOT. legacy `elementsMap`/`childrenMap` 은 read-only derived (mutable subscription 금지). Zustand 슬라이스 패턴 유지
 
 ### 성능 기준
 
@@ -53,8 +55,8 @@ composition은 3-domain 분할 구조. ADR 설계/아키텍처 결정 시 **어�
 
 - React 19, React-Aria Components, Zustand, TanStack Query
 - Tailwind CSS v4, tailwind-variants (tv())
-- CanvasKit/Skia WASM 단일 렌더러 (ADR-100 PixiJS 제거 완료)
-- Taffy WASM + Dropflow Fork (레이아웃 엔진)
+- CanvasKit/Skia WASM 단일 렌더러 (ADR-900 PixiJS 제거 완료)
+- `packages/composition-engine` (자체 Rust WASM 레이아웃 엔진, ADR-916)
 - Groq SDK (llama-3.3-70b-versatile), Supabase, Vite, TypeScript 5, pnpm
 
 ### 파이프라인 순서 (요소 변경 시)
@@ -64,7 +66,7 @@ composition은 3-domain 분할 구조. ADR 설계/아키텍처 결정 시 **어�
 3. History Record (즉시)
 4. DB Persist (백그라운드)
 5. Preview Sync (백그라운드)
-6. Order Rebalance (백그라운드) - batchUpdateElementOrders 단일 set()
+6. Order Rebalance (백그라운드) - 순서 SSOT 는 canonical `children[]` 배열 index (ADR-118, `order_num` 은 mirror)
 
 ## 문서 참조 (설계 시 외부 참조)
 
@@ -137,7 +139,3 @@ ADR 작성 시 위 규칙을 **전부** 따른다. 아래는 architect 에이전
 ## ADR 템플릿
 
 > [`.claude/rules/adr-writing.md`](../rules/adr-writing.md)의 템플릿 참조.
-
-```
-
-```

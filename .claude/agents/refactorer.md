@@ -29,9 +29,9 @@ maxTurns: 25
 3. **DirectContainer 패턴** → 엔진 결과 x/y 직접 배치
 4. **postMessage origin 검증** → 보안 필수
 5. **히스토리 기록 필수** → 상태 변경 전 반드시 기록
-6. **O(1) 검색** → elementsMap 사용, 요소 검색에 배열 순회 금지
+6. **O(1) 검색** → canonical selectors 우선 + `elementsMap` read-only derived (ADR-122), 요소 검색에 배열 순회 금지
 7. **layoutVersion 증가 필수** → 레이아웃 영향 props 변경 시 `layoutVersion + 1` (누락 시 크기 고정 버그)
-8. **order_num 재정렬** → `batchUpdateElementOrders()` 단일 set() 사용, 개별 N회 호출 금지
+8. **순서 SSOT** → 요소 순서는 canonical `children[]` 배열 index 가 primary (ADR-118), `order_num` 은 mirror — 직접 재정렬 로직 신설 금지
 9. **Spec TokenRef 변환 필수** → shapes 내 숫자 연산에 TokenRef 직접 사용 금지, `resolveToken()` 필수
 
 ## 파이프라인 순서 (반드시 보존)
@@ -43,7 +43,7 @@ maxTurns: 25
 3. History Record (즉시)
 4. DB Persist (백그라운드)
 5. Preview Sync (백그라운드)
-6. Order Rebalance (백그라운드) - batchUpdateElementOrders 단일 set()
+6. Order Rebalance (백그라운드) - 순서 SSOT 는 canonical `children[]` 배열 index (ADR-118, `order_num` 은 mirror)
 
 ## 리팩토링 워크플로우
 
@@ -56,10 +56,11 @@ maxTurns: 25
 ### 변경 중
 
 1. 명시적으로 변경하는 경우가 아니면 기존 public 인터페이스 보존
-2. O(1) 인덱스 기반 조회 유지 (elementsMap, childrenMap, pageIndex)
-3. Undo/Redo를 위한 히스토리 통합 유지
-4. postMessage Delta 동기화를 통한 Builder↔Preview 통신 유지
-5. Zustand 슬라이스 패턴 (StateCreator factory) 준수
+2. O(1) 조회 유지 — canonical selectors 우선 + `elementsMap`/`childrenMap`/`pageIndex` read-only derived (ADR-122)
+3. mutation 함수 이동/재작성 시 canonical-first 4단계 순서 보존: ① canonical document 갱신 (`canonicalMutations.ts` wrapper, 예: `mergeElementsCanonicalPrimary`) → ② legacy array `set()` → ③ `_rebuildIndexes()` → ④ `persistActiveCanonicalDocument` (정본: [`.claude/rules/state-management.md`](../rules/state-management.md) §Canonical sync 호출 순서)
+4. Undo/Redo를 위한 히스토리 통합 유지
+5. postMessage Delta 동기화를 통한 Builder↔Preview 통신 유지
+6. Zustand 슬라이스 패턴 (StateCreator factory) 준수
 
 ### 변경 후
 
@@ -73,8 +74,8 @@ maxTurns: 25
 - **상태**: Zustand 슬라이스 패턴, StateCreator factory
 - **스타일링**: Tailwind CSS v4 + tailwind-variants (tv())
 - **컴포넌트**: React-Aria Components with hooks
-- **Canvas**: CanvasKit/Skia WASM 단일 렌더러 (ADR-100), DirectContainer 직접 배치
-- **레이아웃**: Taffy WASM (Flex/Grid/Block) — 단일 엔진 체계
+- **Canvas**: CanvasKit/Skia WASM 단일 렌더러 (ADR-900), DirectContainer 직접 배치
+- **레이아웃**: `packages/composition-engine` — 자체 Rust WASM 단일 엔진 (Flex/Grid/Block, ADR-916). JS 어댑터 심볼(TaffyFlexEngine/TaffyBlockEngine/TaffyGridEngine/persistentTaffyTree)은 이름 보존
 - **검증**: Zod 경계 입력 검증
 
 ## Error Recovery Protocol

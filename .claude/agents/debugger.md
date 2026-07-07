@@ -35,12 +35,13 @@ maxTurns: 25
 ### 렌더링 파이프라인
 
 - **CanvasKit/Skia WASM**: 디자인 노드, AI 이펙트, 선택 오버레이 메인 렌더링
-- ~~PixiJS 8~~ — ADR-100으로 제거됨. Canvas 이벤트는 Skia EventBoundary 단일 처리
-- **레이아웃 엔진**: Taffy WASM (Flex/Grid/Block) — 단일 엔진 체계, DirectContainer 직접 배치
+- ~~PixiJS 8~~ — ADR-900으로 제거됨. Canvas 이벤트는 Skia EventBoundary 단일 처리
+- **레이아웃 엔진**: `packages/composition-engine` — 자체 Rust WASM 단일 엔진 (Flex/Grid/Block, ADR-916). JS 어댑터 심볼(TaffyFlexEngine/TaffyBlockEngine/TaffyGridEngine/persistentTaffyTree)은 이름 보존, DirectContainer 직접 배치
+- **Rust 측 디버깅**: `packages/composition-engine` 에서 `cargo test` — `tests/tree_golden.rs` (Chrome 실측 golden) 가 레이아웃 회귀 감시
 
 ### 상태 관리
 
-- **Zustand**: 슬라이스 패턴 (ADR-122 전환 중 — canonical document = primary, elementsMap/childrenMap = transitional read-only)
+- **Zustand**: 슬라이스 패턴 (ADR-122 Implemented 2026-05-09 — canonical document = primary, elementsMap/childrenMap = read-only derived)
 - **파이프라인**: Memory → Index → History → DB Persist → Preview Sync → Order Rebalance
 - **히스토리**: Undo/Redo를 위해 상태 변경 전 반드시 기록
 
@@ -55,13 +56,14 @@ maxTurns: 25
 
 - CanvasKit WASM 초기화 및 기능 플래그 확인
 - DirectContainer 레이아웃 속성 검사
-- Taffy WASM 레이아웃 계산 결과 검증
+- composition-engine (Rust WASM) 레이아웃 계산 결과 검증
+- grid 컨테이너 stale degrade 확인: 신규 grid / 신규 자식 서브트리 컨테이너 등록과 `GRID_REBUILD_TRIGGER_KEYS` 20-key (padding/gap/gridTemplate/width/height/min·max) 변경은 full rebuild 필수 — 증분 갱신만 타면 1줄 degrade (정본: `.claude/rules/layout-engine.md`)
 - 뷰포트 컬링 및 히트 영역 계산 확인
 
 ### 상태 관리 이슈
 
 - 파이프라인 순서 유지 여부 검증
-- canonical document ↔ elementsMap/childrenMap mirror 정합성 확인 (ADR-122: mirror 는 transitional)
+- canonical document ↔ elementsMap/childrenMap mirror 정합성 확인 (ADR-122 Implemented: mirror 는 read-only derived)
 - 히스토리 기록이 변경 전에 수행되는지 확인
 - Zustand 슬라이스 경계 검증
 - ADR-137 Selection Consumer Contract 검증: page-bound mutation 이 deferred `SelectedElement`/inspector display data 또는 stale `pageId` closure 를 commit source 로 쓰지 않는지 확인. selection 경로는 commit 시점 `readImmediateSelectionSnapshot()` + `apply*FromSelection(snapshot, ...)`, projection/editing context 는 `apply*Explicit({ pageId, contextReason, ... })` 로 분류되어야 한다.
@@ -71,7 +73,7 @@ maxTurns: 25
 - **목표**: 60fps Canvas, <3초 초기 로드, <500KB 번들
 - Canvas 렌더링 루프에서 비싼 연산 프로파일링
 - React 컴포넌트 불필요한 리렌더 확인
-- hot path 에서 array traversal 금지 — canonical selectors / canonical node lookup 우선, transitional `elementsMap` read-only fallback (ADR-122)
+- hot path 에서 array traversal 금지 — canonical selectors / canonical node lookup 우선, `elementsMap` 은 read-only derived fallback (ADR-122 Implemented)
 - 동적 임포트 기회를 위한 번들 크기 점검
 
 ### 통신 이슈

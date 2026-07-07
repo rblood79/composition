@@ -46,7 +46,8 @@ maxTurns: 20
 ### 3. Canvas (Skia)
 
 - [ ] DirectContainer 패턴 사용 (엔진 결과 x/y 직접 배치)
-- [ ] 하이브리드 레이아웃 엔진 display 선택 준수
+- [ ] display 별 엔진 선택 규칙 준수 — 정본: [`.claude/rules/layout-engine.md`](../rules/layout-engine.md) §엔진 선택
+- [ ] 신규 grid container / 신규 자식 서브트리 컨테이너 등록 시 full rebuild 강제 여부 — 기존 grid 의 `GRID_REBUILD_TRIGGER_KEYS` 20-key (padding/gap/gridTemplate/width/height/min·max) 변경도 full rebuild 필수 (증분 갱신만 타면 stale degrade)
 
 ### 4. 보안
 
@@ -72,8 +73,12 @@ maxTurns: 20
 ### 7. 레이아웃/Spec
 
 - [ ] 레이아웃 영향 props 변경 시 `layoutVersion + 1` 증가 여부
-- [ ] order_num 재정렬에 `batchUpdateElementOrders()` 단일 set() 사용 여부
+- [ ] 요소 순서 변경이 canonical `children[]` 배열 순서 SSOT 를 따르는지 (ADR-118 — `order_num` 은 mirror, 직접 재정렬 로직 신설 금지)
 - [ ] Spec shapes 내 TokenRef를 `resolveToken()`으로 변환했는지
+- [ ] `variant.background*` 직접 property access 없음 → `resolveFillTokens()` / `resolveIndicatorFill()` 경유 (ADR-908)
+- [ ] `props.style?.gap` / `padding` shorthand 단독 읽기 없음 → longhand 우선 + shorthand fallback (ADR-909 store longhand 정책)
+- [ ] collection renderer root 에 `style={element.props.style}` 전달 누락 없음 (ADR-907 — `rendererStyleContract.test.ts` allowlist 빈 Set)
+- [ ] `renderNodesMap.get(x) ?? sceneNodesMap.get(x)` 류 render fallback 없음 — `sceneNodesMap` 은 diagnostic 전용 (ADR-135/136)
 
 ### 8. 검증
 
@@ -86,6 +91,8 @@ maxTurns: 20
 - [ ] 각 대안에 4축 위험 평가 (기술/성능/유지보수/마이그레이션) 있음
 - [ ] Decision이 Alternatives 뒤에 위치 (순서: Alternatives → Decision)
 - [ ] Decision에 "위험 수용 근거" 명시됨
+- [ ] Risks 섹션이 Decision 뒤 / Gates 앞에 ID 표 형식으로 존재 (또는 "잔존 HIGH 위험 없음" 명시)
+- [ ] Risk Threshold Check 표가 존재하고 HIGH+ 대안에 대한 루프 판정 포함
 - [ ] HIGH 위험이 남은 경우 Gates 섹션 존재
 - [ ] Risk Threshold에 의한 대안 추가가 필요했는지 검토 (모든 대안이 HIGH면 대안 추가 필요)
 

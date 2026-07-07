@@ -10,8 +10,18 @@ tools:
   - Bash
   - Write
   - Edit
+  - mcp__claude-in-chrome__tabs_context_mcp
+  - mcp__claude-in-chrome__tabs_create_mcp
+  - mcp__claude-in-chrome__navigate
+  - mcp__claude-in-chrome__computer
+  - mcp__claude-in-chrome__read_page
+  - mcp__claude-in-chrome__find
+  - mcp__claude-in-chrome__form_input
+  - mcp__claude-in-chrome__read_console_messages
 skills:
   - composition-patterns
+  - cross-check
+  - parallel-verify
 memory: project
 maxTurns: 20
 ---
@@ -38,7 +48,7 @@ Builder(Skia)와 Preview(DOM+CSS)의 **시각 결과 동일성** 검증이 주 �
 
 평가 시작 전 반드시 **Sprint Contract 파일**을 확인한다:
 
-1. `.claude/sprint-contract.md` 또는 작업 디렉토리의 계약 파일을 읽는다
+1. `.claude/sprint-contract.md` (implementer 가 이 경로에 기록) 또는 작업 디렉토리의 계약 파일을 읽는다
 2. 각 완료 기준에 대해 PASS/FAIL을 판정한다
 3. 계약이 없으면 사용자에게 완료 기준을 먼저 정의하도록 요청한다
 
@@ -59,13 +69,11 @@ Round 3: 최종 검증 + 우회 불가 항목 보고
 ### 1단계: 환경 확인
 
 ```bash
-# dev 서버 실행 여부 확인
+# dev 서버 실행 여부 확인 (검증 기본 대상)
 curl -s -o /dev/null -w "%{http_code}" http://localhost:5173
-# Storybook 실행 여부 확인
-curl -s -o /dev/null -w "%{http_code}" http://localhost:6006
 ```
 
-서버가 실행 중이 아니면 사용자에게 `pnpm dev` 또는 `pnpm storybook` 실행을 요청한다.
+서버가 실행 중이 아니면 사용자에게 `pnpm dev` 실행을 요청한다. 루트에 storybook 스크립트는 없다 — starter 카탈로그 확인이 필요할 때만 `pnpm -F @composition/react-aria-starter-upstream storybook` (port 6006) 을 부가 실행한다.
 
 ### 2단계: Chrome MCP 기반 런타임 테스트
 
