@@ -84,7 +84,7 @@ use serde::Deserialize;
 use crate::block;
 use crate::flex;
 use crate::grid;
-use crate::style::{resolve_css_size_value, CssValueContext};
+use crate::style::{resolve_css_size_value, CssValueContext, FIT_CONTENT};
 
 /// 트리 노드의 스타일 표현 (taffy_bridge.rs `StyleInput` 대응).
 ///
@@ -1282,21 +1282,33 @@ fn write_flex_item(
 ) {
     let off = i * flex::FLEX_FIELD_COUNT;
 
-    // 명시 width/height (음수=미지정 → AUTO -1).
-    let expl_w = resolve_dimension_opt(cstyle.width.as_deref(), ctx);
-    let expl_h = resolve_dimension_opt(cstyle.height.as_deref(), ctx);
-
-    // 논리축 매핑: row → main=가로, cross=세로.
-    let (main_size, cross_size) = if is_row { (expl_w, expl_h) } else { (expl_h, expl_w) };
+    // 논리축 매핑: row → main=가로(width), cross=세로(height) / column → 반대.
+    // main 축은 `resolve_dimension_opt`(fit-content→AUTO), cross 축은
+    // `resolve_cross_dimension_opt`(fit-content→CONTENT 센티넬 보존 → flex.rs 가
+    // content_cross 로 shrink-to-fit, stretch 안 함). Calendar(column, width:fit-content)
+    // 의 width 는 cross 축이므로 CONTENT 로 통과되어 부모 폭 stretch 를 회피한다.
+    let (main_raw, cross_raw) = if is_row {
+        (cstyle.width.as_deref(), cstyle.height.as_deref())
+    } else {
+        (cstyle.height.as_deref(), cstyle.width.as_deref())
+    };
+    let main_size = resolve_dimension_opt(main_raw, ctx);
+    let cross_size = resolve_cross_dimension_opt(cross_raw, ctx);
     let (content_main, content_cross) = if is_row { (cw, ch) } else { (ch, cw) };
 
     let pad_border_main = axis_pad_border(cstyle, ctx, is_row);
     let pad_border_cross = axis_pad_border(cstyle, ctx, !is_row);
 
     // specified size 는 border-box — 논리축별 pad_border 감산 (min/max 동일).
+    // CONTENT 센티넬(fit-content)은 실 크기가 아니므로 spec_to_content 감산 제외 —
+    // flex.rs 가 content_cross 로 해소한다(pad/border 는 content_cross 산출에 이미 반영).
     data[off] = -1.0; // flex_basis AUTO (basis:content/px 는 단위 3 이후)
     data[off + 1] = main_size.map(|v| spec_to_content(v, pad_border_main)).unwrap_or(-1.0);
-    data[off + 2] = cross_size.map(|v| spec_to_content(v, pad_border_cross)).unwrap_or(-1.0);
+    data[off + 2] = match cross_size {
+        Some(v) if v == flex::CONTENT => flex::CONTENT,
+        Some(v) => spec_to_content(v, pad_border_cross),
+        None => -1.0,
+    };
     data[off + 3] = resolve_dimension(cstyle.margin_top.as_deref(), ctx);
     data[off + 4] = resolve_dimension(cstyle.margin_right.as_deref(), ctx);
     data[off + 5] = resolve_dimension(cstyle.margin_bottom.as_deref(), ctx);
@@ -1408,6 +1420,27 @@ fn resolve_dimension_opt(value: Option<&str>, ctx: &CssValueContext) -> Option<f
     }
     match resolve_css_size_value(trimmed, ctx) {
         Some(n) if n >= 0.0 => Some(n),
+        _ => None,
+    }
+}
+
+/// `resolve_dimension_opt` + fit-content 보존 변형. flex cross 축 intake 전용.
+///
+/// 일반 `resolve_dimension_opt` 은 fit-content(음수 센티넬)를 None(→AUTO)로 붕괴시켜
+/// flex cross 축에서 stretch 로 오처리한다(Calendar width:fit-content 가 부모 폭 전체로
+/// stretch). 본 변형은 fit-content 만 `FIT_CONTENT`(=flex::CONTENT -2) 센티넬로 통과시켜
+/// flex.rs `parse_item` 이 content_cross(shrink-to-fit)로 해소하게 한다. 그 외 intrinsic
+/// 키워드(min/max-content)는 아직 미지원 → None(AUTO) 유지.
+fn resolve_cross_dimension_opt(value: Option<&str>, ctx: &CssValueContext) -> Option<f32> {
+    let v = value?;
+    let trimmed = v.trim();
+    if trimmed.is_empty() || trimmed.eq_ignore_ascii_case("auto") {
+        return None;
+    }
+    match resolve_css_size_value(trimmed, ctx) {
+        Some(n) if n >= 0.0 => Some(n),
+        // fit-content: flex cross 축은 content 로 shrink-to-fit (stretch 아님).
+        Some(n) if n == FIT_CONTENT => Some(flex::CONTENT),
         _ => None,
     }
 }
@@ -1715,6 +1748,32 @@ mod tests {
         tree.compute_layout(handles[1], 300.0, 200.0);
         let c0 = tree.get_layout(handles[0]);
         assert_eq!(c0.width, 100.0, "flex cross 축 specified = border-box");
+    }
+
+    /// flex-column 자식이 `width:fit-content` 면 stretch(부모 폭) 대신 content 폭으로 축소.
+    ///
+    /// 실전(Calendar): 부모 body(flex-column) 안 Calendar(width:fit-content) 가 부모 폭
+    /// 전체로 stretch 되던 발산(Skia 350 vs CSS 256). fit-content 는 cross 축이므로
+    /// resolve_cross_dimension_opt 가 CONTENT 센티넬로 통과 → flex.rs 가 content_cross(자식
+    /// 내부 콘텐츠 폭)로 shrink-to-fit. 버그(fix 이전): fit-content→None→AUTO→stretch.
+    #[test]
+    fn flex_column_child_fit_content_width_shrinks_not_stretch() {
+        let mut tree = LayoutTree::new();
+        // 부모(flex-column, 300px) → 자식(width:fit-content) → 손자(width:60px).
+        //   자식은 content 폭 60 이어야 함(부모 폭 300 으로 stretch 아님).
+        let json = r#"[
+            {"style":{"width":"60px","height":"20px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"column","width":"fit-content"},"children":[0]},
+            {"style":{"display":"flex","flexDirection":"column","width":"300px","height":"200px"},"children":[1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 300.0, 200.0);
+        let child = tree.get_layout(handles[1]);
+        assert_eq!(
+            child.width, 60.0,
+            "fit-content 자식 width={} (expect content 60, not stretch 300)",
+            child.width
+        );
     }
 
     // ── 단위 3-a: block dispatch ──

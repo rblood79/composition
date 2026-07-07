@@ -3879,6 +3879,12 @@ export const INLINE_BLOCK_TAGS = new Set([
   //   (cellSize + text + cellSize)을 산출해야 Skia 시각(inline_icon_text replace)과 폭 대칭
   //   유지. 미등록 시 needsWidth=false → width 0 (DisclosureHeader 동일 회귀 경로).
   "calendarheader",
+  // 2026-07-07 전수조사: CalendarGrid 도 self-render escape(calendar_month_grid, 자식 없는
+  //   합성 leaf) 이므로 intrinsic 폭(cellSize*7 + gap*6, calculateContentWidth calendargrid 분기)을
+  //   주입받아야 한다. 미등록 시 needsWidth=false → width 미주입 → Calendar(fit-content) 부모에서
+  //   grid 가 available 폭으로 stretch → Calendar 가 부모 폭 전체로 팽창(CSS fit-content 256 발산).
+  //   CalendarHeader 동형(둘 다 Calendar 자식 self-render leaf).
+  "calendargrid",
   // DateInput 버그(2026-06-23): datefieldSegments escape 가 box+segment text+icon 을 한
   //   노드에 그리는데, layout 분기가 `width:"100%"`(부모 auto 에서 작게 계산)를 줘서
   //   box < 콘텐츠 → 텍스트가 box 밖으로 넘침. calculateContentWidth 의 dateinput 분기로

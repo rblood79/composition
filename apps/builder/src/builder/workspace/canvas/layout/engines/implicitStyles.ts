@@ -2162,8 +2162,17 @@ export function applyImplicitStyles(
       },
     } as CanvasLayoutNode;
 
-    // CalendarHeader/CalendarGrid 자식에 width: 100% + whiteSpace: nowrap 주입
+    // CalendarHeader/CalendarGrid 자식에 whiteSpace: nowrap 주입
     // whiteSpace: nowrap → ElementSprite 다중 줄 보정 로직 우회 (폰트 메트릭 기반 Y 이탈 방지)
+    //
+    // 2026-07-07 전수조사: `width: 100%` 주입 제거. 두 자식은 self-render escape leaf 로
+    //   INLINE_BLOCK_TAGS 등록(calendarheader/calendargrid) → enrichWithIntrinsicSize 가
+    //   calculateContentWidth 로 intrinsic 폭(cellSize*7 + gap*6 = md 246)을 주입한다.
+    //   `width: 100%` 를 강제하면 Calendar(fit-content) 부모에서 100% 가 available 폭으로
+    //   해소 → grid/header 가 부모 폭으로 stretch → Calendar 가 부모 폭 전체로 팽창(CSS
+    //   fit-content 256 발산). intrinsic 폭이면 Calendar fit-content = max(246,246) = 246
+    //   으로 CSS 정합(DateInput 2026-06-23 선례 동형 — layout width:100% 제거 + INLINE_BLOCK).
+    //   사용자가 Calendar 폭을 명시하면 그 폭이 컨테이너를 지배하고 자식 246 은 그 안에 배치.
     filteredChildren = filteredChildren.map((child) => {
       if (child.type === "CalendarHeader" || child.type === "CalendarGrid") {
         const cs = (child.props?.style || {}) as Record<string, unknown>;
@@ -2173,7 +2182,6 @@ export function applyImplicitStyles(
             ...child.props,
             style: {
               ...cs,
-              width: cs.width || "100%",
               whiteSpace: "nowrap",
             },
           },

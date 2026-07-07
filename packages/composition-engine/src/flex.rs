@@ -81,7 +81,9 @@ const OUT_FIELDS: usize = 4;
 /// auto / none 센티넬.
 const AUTO: f32 = -1.0;
 /// flex-basis: content 센티넬.
-const CONTENT: f32 = -2.0;
+/// content 센티넬 (flex-basis:content / cross fit-content). tree.rs intake 가
+/// cross 축 fit-content 를 본 값으로 write → `parse_item` 이 content_cross 로 해소.
+pub const CONTENT: f32 = -2.0;
 
 // flex_direction (컨테이너 파라미터)
 /// row — main 축 = x
@@ -235,12 +237,19 @@ fn parse_item(data: &[f32], i: usize, direction: u8) -> FlexItem {
     // hypothetical main content (min/max clamp 전 — §9.7 이 clamp 를 소유)
     let main_content = basis.max(0.0);
 
-    // cross content: height(논리 cross) 명시 시 사용, 없으면 content. stretch 는 배치 단계.
+    // cross content 결정:
+    //   - AUTO(-1): content 사용 + stretch 대상(cross_is_auto=true).
+    //   - CONTENT(-2, fit-content): content 사용하되 stretch 안 함(cross_is_auto=false).
+    //     CSS: width/height:fit-content 는 shrink-to-fit — align-items:stretch 무시.
+    //   - 명시 px(>=0): 그 값 유지, stretch 안 함.
+    // 버그(fix 이전): fit-content 는 tree.rs resolve_dimension_opt 에서 None→AUTO(-1)로
+    //   붕괴되어 stretch 됐다(Calendar width 100% 발산). CONTENT 센티넬을 보존하면 여기서
+    //   content_cross 로 shrink-to-fit + stretch 제외.
     let cross_is_auto = height == AUTO;
-    let cross_content = if !cross_is_auto {
-        clamp_size(height, min_cross, max_cross)
-    } else {
+    let cross_content = if cross_is_auto || height == CONTENT {
         clamp_size(content_cross, min_cross, max_cross)
+    } else {
+        clamp_size(height, min_cross, max_cross)
     };
 
     // margin 논리 매핑. row: main=left/right, cross=top/bottom / column: 반대
@@ -1091,6 +1100,28 @@ mod tests {
             &data, 300.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_STRETCH, 0.0,
         );
         assert!((out[3] - 100.0).abs() < 0.01, "cross height={} (expect stretch 100)", out[3]);
+    }
+
+    #[test]
+    fn fit_content_cross_uses_content_not_stretch() {
+        // ALIGN_STRETCH + 자식 cross(height) = FIT_CONTENT(=CONTENT 센티넬 -2) 면
+        // content_cross(60) 로 shrink-to-fit — stretch(컨테이너 cross 100) 안 함.
+        // CSS: width/height: fit-content 는 auto 와 달리 content 폭으로 축소, stretch 대상 아님.
+        // 버그(현재): resolve_dimension_opt 가 fit-content(-2)를 None→AUTO(-1)로 붕괴 →
+        //   cross_is_auto=true → 컨테이너 cross 로 stretch (Calendar width 100% 발산).
+        // 실전: Calendar(부모 flex-column, width:fit-content) 가 부모 폭 전체로 stretch.
+        let mut f = item(50.0, CONTENT); // cross(height) = FIT_CONTENT 센티넬
+        f[14] = 60.0; // content_cross = 자식 intrinsic content 폭 60
+        let data = flatten(&[f]);
+        let out = flex_layout_single_line(
+            &data, 300.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_STRETCH, 0.0,
+        );
+        // cross(height) = content 60 (stretch 100 아님)
+        assert!(
+            (out[3] - 60.0).abs() < 0.01,
+            "cross height={} (expect fit-content 60, not stretched 100)",
+            out[3]
+        );
     }
 
     #[test]
