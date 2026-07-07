@@ -3,6 +3,11 @@
 > 2026-07-07. **비실행 설계 참조** — 본 문서는 목표 구조와 전환 경로를 확정하는 설계도이며,
 > 각 Wave 착수는 후속 결정(필요 시 ADR 작성은 사용자 명시 요청 경유)이다.
 >
+> **공식 결정: [ADR-148](../../adr/148-reusable-slot-system-unification.md)** (Proposed 2026-07-08) —
+> 본 설계도의 Wave 0~4 는 ADR-148 Phase 0~4 로 승계됐다. 결정·위험·Gate 는 ADR-148 이 정본,
+> 본 문서는 아키텍처 상세(스키마 계약·인덱스·렌더 계약·패턴) reference 로 유지된다.
+> ADR-147 은 ADR-148 로 Superseded (2026-07-08).
+>
 > 근거 실측: [audits/2026-07-07-reusable-slot-landscape.md](../audits/2026-07-07-reusable-slot-landscape.md).
 > 상위 결정 승계: ADR-142(대안 E — 조합=canonical reusable 문서, Implemented) /
 > ADR-912(R-5 조합=데이터 proof, Implemented) / ADR-146·147(ListBox slot 실증) /
