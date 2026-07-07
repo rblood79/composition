@@ -4,6 +4,8 @@
 
 Implemented — 2026-04-24 (동일 세션 Phase 0 → Phase 4 완결, 9 commits)
 
+> **적용 범위 축소 (ADR-142, 2026-07-08)**: 본 ADR이 다루는 `FillTokenSpec`/`FillStateTokens`는 spec 파일(`VariantSpec`/`IndicatorModeSpec`) 스키마다. [ADR-142](../../142-starter-spec-component-system-cutover.md)로 일반 컴포넌트의 D3 SSOT가 catalog로 전환되며 본 스키마의 적용 범위는 잔존 spec 3개(Frame/Group/Slot)로 축소됐다.
+
 ## Context
 
 ADR-904와 ADR-905로 저장/런타임 정본은 top-level `fills`로 정리됐고, Preview/Publish는 `fills -> CSS background*` adapter를 통해 소비하도록 수렴했다. 그러나 component spec 계층은 아직 `background`, `backgroundHover`, `backgroundPressed`, `props.style?.backgroundColor` override를 중심으로 유지된다. 즉 runtime/storage SSOT는 `fills`인데, spec default visual contract는 여전히 background token 기반이다.

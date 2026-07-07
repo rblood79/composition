@@ -11,7 +11,9 @@ globs:
 
 # Canvas 렌더링 규칙
 
-> **SSOT 체인 연계 (CRITICAL)**: Skia 렌더는 [ssot-hierarchy.md](ssot-hierarchy.md) **D3(시각 스타일)의 direct consumer**. CSS/DOM consumer와 **대등(symmetric)** — 한쪽이 다른 쪽 기준 아님. 대칭 = "시각 결과의 동일성" (구현 방법 자유). Spec이 D1(DOM) 침범 금지.
+> **SSOT 체인 연계 (CRITICAL)**: Skia 렌더는 [ssot-hierarchy.md](ssot-hierarchy.md) **D3(시각 스타일)의 direct consumer**. CSS/DOM consumer와 **대등(symmetric)** — 한쪽이 다른 쪽 기준 아님. 대칭 = "시각 결과의 동일성" (구현 방법 자유). catalog/spec 이 D1(DOM) 침범 금지.
+>
+> **2026-07-08**: D3 SSOT 는 [ADR-142](../../docs/adr/142-starter-spec-component-system-cutover.md)(Implemented) 로 catalog(`COMPONENT_RULES_TABLE`) + theme/tokens 로 전환됨. 본 문서의 "Spec" 서술은 **잔존 spec 3개(Frame/Group/Slot) 한정** — 일반 컴포넌트는 catalog 경로 (ADR-036 은 Superseded by ADR-142).
 >
 > 구현 상세는 [canvas-details.md](../skills/composition-patterns/reference/canvas-details.md) 참조
 

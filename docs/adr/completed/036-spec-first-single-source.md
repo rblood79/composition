@@ -1,10 +1,12 @@
 # ADR-036: Spec-First Single Source — Spec shapes 기반 CSS 자동 생성
 
-> **SSOT domain**: D3 (시각 스타일). 본 ADR의 "Spec=SSOT"는 **시각 domain 한정**. D1(DOM/접근성)은 RAC 권위, D2(Props)는 RSP 참조. 정본: [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md), charter: [ADR-063](../063-ssot-chain-charter.md).
+> **Superseded by [ADR-142](../142-starter-spec-component-system-cutover.md) — 2026-07-08**. 컴포넌트당 spec 파일(`packages/specs/src/components/*.spec.ts`)을 D3(시각 스타일) SSOT로 두는 본 ADR의 메커니즘은 ADR-142로 폐기되었다. D3 SSOT는 이제 catalog(`COMPONENT_RULES_TABLE`) + theme/tokens root collection(ADR-110)이다. 재평가 근거는 ADR-142 §Risks R8 / Gate G7("ADR-142 Implemented 승격 시 ADR-036/907/908 status 재평가") — ADR-142는 2026-06-02 Implemented 승격되어 해당 Gate 조건이 충족되었다. 잔존 spec 3개(Frame/Group/Slot)는 D1 ARIA 예외 및 canonical layout container 한정으로 본 ADR 메커니즘의 예외적 존속이며, 일반 컴포넌트는 전부 catalog 경로다. 정본: [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md).
+
+> **SSOT domain (historical)**: D3 (시각 스타일). 본 ADR의 "Spec=SSOT"는 **시각 domain 한정**이었다. D1(DOM/접근성)은 RAC 권위, D2(Props)는 RSP 참조. charter: [ADR-063](../063-ssot-chain-charter.md).
 
 ## Status
 
-Implemented (후속 ADR-057/058/059/060/061/062로 D3 SSOT 적용 범위 확장 — 2026-04-14 완결)
+Superseded by ADR-142 — 2026-07-08 (후속 ADR-057/058/059/060/061/062로 D3 SSOT 적용 범위 확장한 이력은 2026-04-14 완결 상태로 보존. 컴포넌트당 spec 파일 메커니즘 자체는 ADR-142로 폐기)
 
 ## Date
 

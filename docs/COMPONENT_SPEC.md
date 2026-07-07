@@ -1,6 +1,8 @@
 # Component Spec Architecture - 상세 설계 문서
 
-> ⚠️ **DEPRECATED / STALE (2026-04-18)** — 본 문서는 **2026-03-03 시점 기준**이며 이후 다수의 ADR에 의해 **광범위하게 stale**합니다. 현행 상태와 일치하지 않는 심볼·파일명이 다수 포함되어 있으므로 **현재 작업의 레퍼런스로 사용 금지**.
+> ⚠️ **DEPRECATED / STALE (2026-04-18, 2026-07-08 재확인)** — 본 문서는 **2026-03-03 시점 기준**이며 이후 다수의 ADR에 의해 **광범위하게 stale**합니다. 현행 상태와 일치하지 않는 심볼·파일명이 다수 포함되어 있으므로 **현재 작업의 레퍼런스로 사용 금지**.
+>
+> **2026-07-08 추가**: [ADR-142](142-starter-spec-component-system-cutover.md)(Implemented 2026-06-02)로 D3 시각 SSOT가 컴포넌트당 spec 파일에서 **catalog(`COMPONENT_RULES_TABLE`) + theme/tokens root collection**으로 전환됨. 아래 §"대체 참조"의 "ADR-036 Spec-First 정본" / "Spec SSOT = spec 파일" 서술은 stale — [ADR-036](adr/completed/036-spec-first-single-source.md)은 Superseded by ADR-142. 잔존 spec은 Frame/Group/Slot 3개 한정.
 >
 > **stale 범위 (grep 94회 매칭)**:
 >

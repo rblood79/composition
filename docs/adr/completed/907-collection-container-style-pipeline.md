@@ -6,6 +6,8 @@ Implemented — 2026-04-24
 
 Phase 전원 land (Phase 1/2/3/5/4 순서). Gate G1-G8 충족 — 구현 상세 및 재audit 결과는 [breakdown 의 Phase 4 Execution Log](../design/907-collection-container-style-pipeline-breakdown.md#phase-4-execution-log-실행-결과) 참조.
 
+> **적용 범위 축소 (ADR-142, 2026-07-08)**: 본 ADR이 다루는 spec 파일(`ComponentSpec.render.shapes()`) 기반 style pipeline은 [ADR-142](../../142-starter-spec-component-system-cutover.md)로 일반 컴포넌트의 D3 SSOT가 catalog로 전환되며 적용 범위가 잔존 spec 3개(Frame/Group/Slot)로 축소됐다. 대부분의 collection/self-render 컨테이너는 이제 catalog `COMPONENT_RULES_TABLE` 경로를 따른다.
+
 **Supersedes**: [ADR-906 Collection spacing 런타임 계약](906-collection-spacing-runtime-contract.md) — 906 은 GridList 1건 + per-component resolver 방식이었으나, 9+ 동일 패턴 컴포넌트의 누적 scope 재계산 결과 본 ADR 로 승격한다. GridList 증상은 본 ADR Phase 3 pilot 으로 흡수.
 
 ## Context
