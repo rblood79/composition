@@ -131,6 +131,44 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
     });
   });
 
+  // 2026-07-07 전수조사 fix: Calendar/RangeCalendar 는 spec 삭제(ADR-912 cutover) +
+  //   structure.composition 부재(archetype "calendar") 인데, CSS(CalendarCommon.css
+  //   .react-aria-Calendar { width: fit-content }) 는 콘텐츠 폭(md 256px)으로 렌더된다.
+  //   layout(display:flex/column/width:fit-content)이 structure.containerStyles 에만 있으면
+  //   경로 A(top-level rule.containerStyles)·경로 B(structure.composition) 둘 다 미도달 →
+  //   {} 반환 → 부모 flex-column 에서 align-items:stretch 로 Calendar 가 부모 폭 전체로
+  //   stretch(Skia 350px vs CSS 256px 발산). top-level rule.containerStyles 승격으로 경로 A
+  //   도달(TabPanel 선례 동형).
+  describe("calendar — top-level containerStyles 승격 (width:fit-content Skia 도달)", () => {
+    it("empty parentStyle → top-level rule.containerStyles 의 display/flexDirection/width 반환", () => {
+      const fb = resolveContainerStylesFallback("calendar", {});
+      expect(fb).toEqual({
+        display: "flex",
+        flexDirection: "column",
+        width: "fit-content",
+      });
+    });
+
+    it("parentStyle.width 명시 → width 제외 (사용자/factory 편집 우선)", () => {
+      const fb = resolveContainerStylesFallback("calendar", {
+        width: "300px",
+      });
+      expect(fb).not.toHaveProperty("width");
+      expect(fb).toEqual({ display: "flex", flexDirection: "column" });
+    });
+  });
+
+  describe("rangecalendar — top-level containerStyles 승격 (Calendar 동형)", () => {
+    it("empty parentStyle → display/flexDirection/width:fit-content 반환", () => {
+      const fb = resolveContainerStylesFallback("rangecalendar", {});
+      expect(fb).toEqual({
+        display: "flex",
+        flexDirection: "column",
+        width: "fit-content",
+      });
+    });
+  });
+
   describe("menu — Menu.spec.containerStyles (Phase 0 일반화 + Phase 6 merge — 8 필드)", () => {
     it("empty parentStyle → display/flexDirection/padding/gap/width/maxHeight/overflow/outline 반환", () => {
       const fb = resolveContainerStylesFallback("menu", {});

@@ -939,6 +939,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // 2026-07-07 전수조사 fix: top-level containerStyles 추가 — Calendar 는 spec 삭제(ADR-912
+    //   cutover) + structure.composition 부재(archetype "calendar") 라, layout 이
+    //   structure.containerStyles(아래)에만 있으면 resolveContainerStylesFallback("calendar") 이
+    //   경로 A(top-level rule.containerStyles)·경로 B(structure.composition) 둘 다 미도달 → {}
+    //   반환 → 부모 flex-column 에서 align-items:stretch 로 Calendar 가 부모 폭 전체로 stretch
+    //   (Skia 350px vs CSS .react-aria-Calendar { width: fit-content } 256px 발산).
+    //   TabPanel/Tree 선례처럼 top-level containerStyles 로 승격해 경로 A 가 Skia layout 에 공급.
+    //   structure.containerStyles(아래)는 dirty baseline(resolveCatalogContainerBase)용 유지 —
+    //   동일값이라 baseline drift 0.
+    containerStyles: {
+      display: "flex",
+      flexDirection: "column",
+      width: "fit-content",
+    },
     sizes: {
       // ADR-912 단계5 step4 date-color (2026-06-16): paddingY/gap 보강 —
       //   Calendar.spec.ts 삭제 대비 generated Calendar.css(padding NNpx NNpx / gap NNpx) diff-0 유지.
@@ -8182,6 +8196,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.accent}",
         },
       },
+    },
+    // 2026-07-07 전수조사 fix: top-level containerStyles 추가 — Calendar 동형(spec 삭제 +
+    //   structure.composition 부재). structure.containerStyles(width:fit-content)가 layout
+    //   fallback 경로 A·B 둘 다 미도달 → 부모 flex-column stretch 발산. top-level 승격으로 경로 A
+    //   도달. 상세는 Calendar rule 주석 참조.
+    containerStyles: {
+      display: "flex",
+      flexDirection: "column",
+      width: "fit-content",
     },
     sizes: {
       // ADR-912 단계5 step4 date-color (2026-06-16): paddingX/paddingY/gap 보강 —

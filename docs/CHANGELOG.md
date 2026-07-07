@@ -7,9 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [Calendar 요일 locale CSS↔Skia 정합 — Skia 영어 → 앱 locale] - 2026-07-07
+## [Calendar CSS↔Skia 정합 — 요일 locale + width fit-content] - 2026-07-07
 
 ### Bug Fixes
+
+- **Calendar 가 Skia 에서 부모 폭 전체로 stretch (Skia 350px vs CSS fit-content 256px)** (전수조사 발견):
+  - **Why**: CSS 는 `CalendarCommon.css .react-aria-Calendar { width: fit-content }` 로 콘텐츠 폭(md 256px) 렌더. Calendar catalog rule 은 `structure.containerStyles.width: "fit-content"` 를 갖지만, layout fallback `resolveContainerStylesFallback` 은 **top-level `rule.containerStyles`(경로 A)** 또는 **`structure.composition`(경로 B)** 만 읽고 `structure.containerStyles` 는 직접 소비 안 함. Calendar 는 spec 삭제(ADR-912) + `structure.composition` 부재(archetype "calendar") → 두 경로 다 미도달 → `{}` 반환 → 부모 flex-column 에서 `align-items: stretch` 로 Calendar 가 부모 폭 전체로 stretch → Skia 350 vs CSS 256 발산
+  - 수정: Calendar/RangeCalendar rule 에 **top-level `containerStyles: { display, flexDirection, width: "fit-content" }`** 추가(경로 A 도달). TabPanel/Tree 선례 동형(spec 삭제 + composition 부재 컨테이너의 확립된 fix). `structure.containerStyles` 는 dirty baseline 용 유지(동일값 → drift 0). collection-item(ListBoxItem/GridListItem)은 top-level 미추가 → `{}` lock 유지(회귀 없음)
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`(Calendar/RangeCalendar top-level containerStyles)
+  - 검증: RED (`resolveContainerStylesFallback("calendar"/"rangecalendar", {})` → `{}`) → GREEN 3종 PASS(`display`/`flexDirection`/`width: fit-content` 반환 + parentStyle.width override 우선). 소비 경로 실측: fallback 출력이 `{}` → `{width:"fit-content",...}` 로 전환 확인(엔진 fit-content → content 폭 해소는 Toolbar/Menu/ToggleButtonGroup 동일 mechanism). type-check PASS(baseline 69), listboxitem/gridlistitem `{}` lock + calendar escape 9 회귀 유지
+  - 후속(비차단): 셀 pitch(Skia cellSize 30 + gap 6 = 36 vs CSS 34) 는 여전히 별도 작업
+
+- **Calendar Skia 요일 헤더가 영어(`Sun Mon…`)로 나와 Preview(한국어 `일 월…`)와 발산** (전수조사 발견):
 
 - **Calendar Skia 요일 헤더가 영어(`Sun Mon…`)로 나와 Preview(한국어 `일 월…`)와 발산** (전수조사 발견):
   - **Why**: Skia `calendar_month_grid` / `calendar_grid` escape 는 요일을 `Intl.DateTimeFormat(props.locale ?? "en-US")` 로 생성한다. Calendar 계열 factory(DatePicker/DateRangePicker/Calendar/RangeCalendar)가 CalendarGrid 자식에 `locale` 을 주입하지 않아 escape 가 `en-US` 로 fallback → 영어 요일. 반면 Preview DOM 은 RAC `I18nProvider` 의 locale context(`ko`)를 React context 로 읽어 한국어 → 두 렌더 발산. nav 타이틀(`2026년 7월`)은 CalendarHeader 의 static string(이미 `navigator.language` 로 생성)이라 양쪽 다 한국어여서 타이틀만 맞고 요일만 어긋남
