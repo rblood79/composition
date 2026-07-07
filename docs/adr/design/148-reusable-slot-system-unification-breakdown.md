@@ -7,12 +7,12 @@
 
 ## §1. Fork checkpoint lock-in (adr-writing.md 4질문) + 통합 동기 분류
 
-| 질문                       | 판정                                                                                                                                                                                                                                    |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| base/응용 분류             | **base = ADR-142** (조합=canonical reusable 문서, Implemented 2026-06-02) + **ADR-912 R-5** (조합=데이터 proof, Implemented 2026-06-18). **ADR-148 = 응용 실행 설계** — base 가 확정한 모델의 등록 단일화 + slot 일반화 + D2 계약 실현. |
-| schema 직교성              | canonical schema 필드 변경 0 (ADR-142 HC#4 승계). 신규 표현은 catalog entry(등록 layer)·`metadata.slotRole`·`x-composition.propsSchema`(extension layer)에만 — canonical core 와 직교.                                                  |
-| 선행 ADR 전제 reverse 검증 | ADR-147 의 전제를 자동 승계하지 않음 — 2026-07-07 landscape 실측으로 **stale 3건 확인 후 정정 승계** (본 ADR Context §승계 표). ADR-146(Implemented) → 147 → 148 방향 자연, reverse 없음.                                               |
-| codex 3차 미루지 말 것     | 전제·관점은 fork 시점(본 문서) lock-in. codex review 는 본문 정합 layer 로만 사용.                                                                                                                                                      |
+| 질문                       | 판정                                                                                                                                                                                                                                              |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| base/응용 분류             | **base = ADR-142** (조합=canonical reusable 문서, Implemented 2026-06-02) + **ADR-912 R-5** (조합=데이터 proof, Implemented 2026-06-18). **ADR-148 = 응용 실행 설계** — base 가 확정한 모델의 등록 단일화 + slot 일반화 + D2 계약 실현.           |
+| schema 직교성              | canonical schema 필드 변경 0 (ADR-142 HC#4 승계). 신규 표현은 catalog entry(등록 layer)·`metadata.slotRole`·origin extension 메타 propsSchema(위치는 ADR 본문 Decision 4 — x-composition vs metadata, Phase 2 확정)에만 — canonical core 와 직교. |
+| 선행 ADR 전제 reverse 검증 | ADR-147 의 전제를 자동 승계하지 않음 — 2026-07-07 landscape 실측으로 **stale 3건 확인 후 정정 승계** (본 ADR Context §승계 표). ADR-146(Implemented) → 147 → 148 방향 자연, reverse 없음.                                                         |
+| codex 3차 미루지 말 것     | 전제·관점은 fork 시점(본 문서) lock-in. codex review 는 본문 정합 layer 로만 사용.                                                                                                                                                                |
 
 **통합 동기 분류** (차단 메모리 `feedback-adr-consolidation-burden-not-essence` 2질문 통과 기록):
 
@@ -65,8 +65,12 @@ ADR-144/920 은 이미 Superseded, ADR-910/911 은 "비착수 비교 기록/비�
 
 - catalog entry(`kind:"reusable"`, type:"IconButton" — 명명은 RSP 관례 대조 후 확정) +
   `iconButtonTemplateOrigins.ts` origin seed (Button > Icon(slotRole:icon, optional) +
-  Text(slotRole:label), 템플릿 바인딩 `{icon}`/`{label}`) + `x-composition.propsSchema`
+  Text(slotRole:label), 템플릿 바인딩 `{icon}`/`{label}`) + origin extension 메타 propsSchema
   (label/icon/variant/size — PropContract 재사용, 신규 InspectorFieldKind 0).
+- **propsSchema 저장 위치 확정 선행** (ADR 본문 Decision 4): `x-composition` 채택 시
+  `CompositionExtension` 확장 필요(`packages/shared/src/types/composition-document.types.ts:899-930`
+  — ADR-131 이 축소 방향으로 판정한 namespace 라 정합 정당화 동반), `metadata.propsSchema`
+  채택 시 타입 변경 0 (CanonicalNode Extensibility hook, 동 파일 :630).
 - **propsSchema 첫 소비**: Inspector `resolveEditContract` 에 ref instance 분기 —
   origin propsSchema → generic 편집 필드. 편집 기록: root props override(1차) /
   `descendants` patch(자식 조준). fork UX 는 ADR-138 승계 (변경 0).
@@ -104,7 +108,8 @@ ADR-144/920 은 이미 Superseded, ADR-910/911 은 "비착수 비교 기록/비�
 설계도 §10 과 동일 — 신규: `packages/shared/src/catalog/slotRoles.ts`,
 `apps/builder/src/builder/components/iconbutton/iconButtonTemplateOrigins.ts`. 수정:
 `componentCatalog.ts` / `reusableCompositeOrigins.ts` / `useElementCreator.ts:158` /
-`entryUniverse.ts:259` / `paletteItems.ts` / Inspector `resolveEditContract` 경로 /
+`entryUniverse.ts:259` / `paletteItems.ts` / `packages/shared/src/catalog/resolvers/resolveEditContract.ts:253` /
+(x-composition 채택 시) `packages/shared/src/types/composition-document.types.ts` `CompositionExtension` 확장 /
 `componentRegistrationContract.test.ts` / `listBoxTemplateOrigins.ts`(상수 re-home).
 
 ## §6. 검증 체크리스트

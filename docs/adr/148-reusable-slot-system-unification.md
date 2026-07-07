@@ -27,7 +27,7 @@ reusable/slot 축의 결정과 구현이 4곳에 분산되어 있다: ADR-142(�
 
 **Hard Constraints**:
 
-1. canonical schema 필드 변경 0 (ADR-142 HC#4). 신규 표현은 catalog entry / `metadata.slotRole` / `x-composition.propsSchema` 에만.
+1. canonical schema 필드 변경 0 (ADR-142 HC#4). 신규 표현은 catalog entry / `metadata.slotRole` / origin extension 메타(propsSchema — 위치는 Decision 4)에만.
 2. 신규 조합 추가 = origin seed 모듈 1개 + catalog entry 1개, factory 코드 변경 0 (ADR-912 HC#5 — Toolbar/Form proof 로 실측 검증된 계약 승계).
 3. **placeable 단일성**: 같은 type 에 primitive entry 와 reusable entry 공존 시 `panel.placeable === true` 는 한쪽만 (`componentRegistrationContract.test.ts` 불변식으로 강제).
 4. type-check baseline 무증가 + 기존 registrationContract 10 it green 유지.
@@ -40,7 +40,7 @@ reusable/slot 축의 결정과 구현이 4곳에 분산되어 있다: ADR-142(�
 
 ### 대안 A: 단일 통합 ADR — 등록 단일화 + slot 일반화 + propsSchema 를 한 결정, 실행은 Phase 게이트 분리
 
-- 설명: 전면 reusable entry(kind-분리 인덱스 + placeable 단일성 + `REUSABLE_COMPOSITE_ORIGINS` catalog 파생 대체) + slotRole 공용 vocabulary shared 승격 + origin `x-composition.propsSchema` D2 계약을 단일 ADR 로 확정. Phase 0(ADR-147 승계 정합)~4(확대)는 독립 게이트.
+- 설명: 전면 reusable entry(kind-분리 인덱스 + placeable 단일성 + `REUSABLE_COMPOSITE_ORIGINS` catalog 파생 대체) + slotRole 공용 vocabulary shared 승격 + origin extension 메타 propsSchema D2 계약을 단일 ADR 로 확정. Phase 0(ADR-147 승계 정합)~4(확대)는 독립 게이트.
 - 근거: pencil 공식 format(reusable/ref/descendants/slot)과 RAC slot 모델이라는 두 외부 검증 자산의 접합 — ADR-142 대안 E 와 동일 계보. 등록·origin·propsSchema·slot 자식은 상호 결합 체인(entry→origin→propsSchema→slot 자식)이라 자연 그루핑상 단일 영역 (breakdown §1 직교성 분석).
 - 위험: 기술 M — propsSchema 소비가 유일한 신규 표면(Inspector generic 분기), 단일 슬라이스(Phase 2)로 격리 / 성능 L — 생성·렌더 경로는 기존 검증분 재사용 / 유지보수 L — 정본 1개, 파생 test 로 등록 drift 차단 / 마이그레이션 L — 개발 단계, 문서 영향 0 수식화.
 
@@ -75,7 +75,7 @@ reusable/slot 축의 결정과 구현이 4곳에 분산되어 있다: ADR-142(�
 1. **전면 reusable entry** (사용자 confirm 2026-07-07): 모든 조합 컴포넌트는 catalog `kind:"reusable"` entry 로 등록한다. 동명 type 충돌(Toolbar/Form — origin root 가 RAC primitive type)은 **kind-분리 인덱스**(`CATALOG_BY_TYPE` = kind≠reusable 렌더·binding 소비 전용 / `REUSABLE_BY_TYPE` = 생성·팔레트 전용)와 **placeable 단일성**(HC#3)으로 해소한다. type 명 재배치는 하지 않는다 — 인스턴스 canonical type 은 `"ref"` 라 palette type 은 식별자일 뿐이다.
 2. `REUSABLE_COMPOSITE_ORIGINS` 맵 / `entryUniverse` facet 판정 / palette 항목을 **catalog 파생으로 대체**한다. origin seed 모듈은 문서 부트스트랩 전용으로 잔존(`REUSABLE_ORIGIN_ENSURERS`), entry↔ensurer 누락은 test 로 강제한다.
 3. **slot 2축 직교 유지**: slot 이름 = child `metadata.slotRole`(공용 vocabulary — shared `slotRoles.ts` 신설, ADR-147 의 ListBox 전용 상수 re-home), 삽입 추천 목록 = `CanonicalNode.slot`(pencil semantics, resolver non-blocking 경고 유지). 컴포넌트별 slot 구성의 SSOT 는 코드 상수가 아니라 origin 문서의 자식 구성이다.
-4. **D2 편집 계약**: origin 의 `x-composition.propsSchema`(`PropContract` 재사용)가 reusable 편집 SSOT (ADR-142 Decision #14 실현). Inspector `resolveEditContract` 가 ref instance 선택 시 이를 소비하고, 편집은 root props override(1차) / `descendants` 3-mode(자식 조준)로 기록한다. 템플릿 바인딩 `{키}` ↔ propsSchema 키 1:1 — propagation 손등록의 데이터 대체 방향.
+4. **D2 편집 계약**: origin 의 extension 메타 `propsSchema`(`PropContract` 재사용)가 reusable 편집 SSOT (ADR-142 Decision #14 실현). **저장 위치는 Phase 2(G3) 진입 시 확정** — `x-composition.propsSchema` 는 `CompositionExtension` 타입 확장이 필요하고 해당 namespace 는 ADR-131 이 events/actions 를 root collection 으로 이전하며 축소 방향으로 판정했으므로(`composition-document.types.ts:899-920`), ADR-131 정합 정당화가 서면 x-composition, 아니면 `metadata.propsSchema`(CanonicalNode 명시 Extensibility hook, 동 파일 :630)를 채택한다. Inspector `resolveEditContract` 가 ref instance 선택 시 이를 소비하고, 편집은 root props override(1차) / `descendants` 3-mode(자식 조준)로 기록한다. 템플릿 바인딩 `{키}` ↔ propsSchema 키 1:1 — propagation 손등록의 데이터 대체 방향.
 5. **ADR-147 을 Superseded by 본 ADR 로 종결**한다. 반영 완료분(Phase 1~5)과 정정 3건(Context 표)은 본 ADR 이 정본으로 승계하고, 147 이 대기하던 cross-check/live 검증은 Phase 0 이 흡수한다.
 6. 실행은 Phase 0(승계 정합) → 1(등록 전환) → 2(IconButton 첫 신규 reusable + propsSchema 첫 소비) → 3/4(확대 — 컴포넌트별 DELEGATING 재판정 게이트 선통과 조건부). 신규 표면은 첫 소비자와 동시 도입 (`feedback-no-dormant-foundation-ahead-of-flip` 정합 — 소비처 없는 선축 금지).
 
