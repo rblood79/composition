@@ -1,13 +1,12 @@
 ---
 name: parallel-verify
-description: 병렬 서브에이전트로 컴포넌트 패밀리별 spec/factory/renderer/CSS 정합성을 동시 검증합니다.
-TRIGGER when: user mentions "병렬 검증", "전체 컴포넌트 체크", "패밀리별 검증", "parallel verify", "일괄 검증", "전체 정합성", or asks to verify all components across rendering paths simultaneously.
+description: 다수 컴포넌트/패밀리의 5-레이어(spec/factory/CSS renderer/Skia renderer/editor) 일괄 정합성 검증이 필요할 때 사용 — "병렬 검증", "전체 컴포넌트 체크", "패밀리별 검증", "parallel verify", "일괄 검증", "전체 정합성" 요청 또는 catalog/spec 대량 수정 후 다수 컴포넌트 영향 시 발동.
 user_invocable: true
 ---
 
 # Parallel Verify: 컴포넌트 패밀리별 병렬 검증
 
-> **SSOT 체인 내 위상**: [ssot-hierarchy.md](../../rules/ssot-hierarchy.md) **D3(시각 스타일) 대칭 집행 수단 (패밀리 일괄)**. 각 컴포넌트에서 Builder(Skia)와 Preview(DOM+CSS)가 동일 Spec에서 시각 결과를 대칭으로 산출하는지 집단 검증.
+> **SSOT 체인 내 위상**: [ssot-hierarchy.md](../../rules/ssot-hierarchy.md) **D3(시각 스타일) 대칭 집행 수단 (패밀리 일괄)**. 각 컴포넌트에서 Builder(Skia)와 Preview(DOM+CSS)가 동일 시각 정본(catalog `COMPONENT_RULES_TABLE` / 잔존 spec)에서 시각 결과를 대칭으로 산출하는지 집단 검증.
 
 변경된 컴포넌트를 패밀리별로 그룹화하고, 각 패밀리를 병렬 서브에이전트로 검증합니다.
 
@@ -15,15 +14,19 @@ user_invocable: true
 
 `git diff --name-only`에서 변경된 컴포넌트를 아래 패밀리로 분류합니다:
 
-| 패밀리          | 컴포넌트                                                                                                          |
-| --------------- | ----------------------------------------------------------------------------------------------------------------- |
-| **Buttons**     | Button, ToggleButton, ToggleButtonGroup, Menu, Toolbar, ButtonGroup                                               |
-| **Forms**       | TextField, NumberField, SearchField, Checkbox, CheckboxGroup, Radio, RadioGroup, Switch, Slider, Select, ComboBox |
-| **DateTime**    | DatePicker, DateRangePicker, DateField, TimeField, Calendar, RangeCalendar                                        |
-| **Collections** | Table, ListBox, GridList, TagGroup, Tree, Tabs                                                                    |
-| **Layout**      | Card, Panel, Group, Disclosure, DisclosureGroup, Accordion, Nav                                                   |
-| **Display**     | Badge, Avatar, StatusLight, ProgressBar, Meter, ProgressCircle, Image                                             |
-| **Overlays**    | Dialog, Popover, Tooltip, Toast                                                                                   |
+| 패밀리          | 컴포넌트 (대표 — catalog 실키 기준)                                                                                         |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **Buttons**     | Button, ToggleButton, ToggleButtonGroup, ButtonGroup, Menu, Toolbar                                                         |
+| **Forms**       | TextField, TextArea, NumberField, SearchField, Checkbox, CheckboxGroup, Radio, RadioGroup, Switch, Slider, Select, ComboBox |
+| **DateTime**    | DatePicker, DateRangePicker, DateField, TimeField, Calendar, RangeCalendar                                                  |
+| **Collections** | Table, TableView, ListBox, GridList, TagGroup, Tree, Tabs, Breadcrumbs, CardView                                            |
+| **Layout**      | frame, Card, Group, Disclosure, DisclosureGroup, Nav, Section                                                               |
+| **Display**     | Badge, Avatar, AvatarGroup, StatusLight, ProgressBar, Meter, ProgressCircle, Image, Skeleton, InlineAlert                   |
+| **Overlays**    | Dialog, Modal, Popover, Tooltip, Toast                                                                                      |
+| **Color**       | ColorArea, ColorField, ColorPicker, ColorSlider, ColorSwatch, ColorSwatchPicker, ColorWheel                                 |
+| **Text**        | Text, Heading, Paragraph, Code, Kbd, Link, Label                                                                            |
+
+전체 키 목록은 `packages/shared/src/catalog/generated/componentRulesTable.ts` 의 `COMPONENT_RULES_TABLE` 참조.
 
 ## Phase 2: 병렬 에이전트 실행
 
@@ -33,18 +36,22 @@ user_invocable: true
 각 에이전트에 전달할 프롬프트 템플릿:
 
 ```
-[패밀리명] 컴포넌트 정합성 검증. 아래 컴포넌트들의 5-레이어를 검증하세요:
+[패밀리명] 컴포넌트 정합성 검증. 아래 컴포넌트들의 5-레이어(spec/factory/css/skia/editor)를 검증하세요:
 컴포넌트: [컴포넌트 목록]
 
 각 컴포넌트에 대해:
-1. Spec 파일 읽기 → defaultVariant, defaultSize, sizes, variants 확인
-2. Factory 파일 읽기 → 기본 props가 Spec과 일치하는지 확인
-3. CSS 파일 읽기 → data-variant/data-size 선택자가 Spec sizes/variants와 일치하는지 확인
-4. WebGL 경로 확인:
-   - ElementSprite.tsx의 TAG_SPEC_MAP 등록 여부
+1. spec (Catalog/Spec) — catalog 등록 선판정: `packages/shared/src/catalog/generated/componentRulesTable.ts` 의
+   COMPONENT_RULES_TABLE 해당 키 (defaultVariant, defaultSize, variants, sizes, containerStyles) 읽기.
+   미등록(잔존 spec: Frame/Group/Slot 3개)만 `packages/specs/src/components/{Name}.spec.ts` 읽기
+2. factory — Factory 파일 읽기 → 기본 props가 Catalog/Spec과 일치하는지 확인
+3. css (CSS renderer) — `packages/shared/src/components/styles/{Name}.css` + `styles/generated/{Name}.css` 읽기
+   → data-variant/data-size 선택자가 catalog variants/sizes와 일치하는지 확인
+4. skia (Skia renderer) 경로 확인:
+   - tagSpecMap.ts의 TAG_SPEC_MAP 등록 OR catalog Skia cutover (StoreRenderBridge.ts의 isCatalogCutover)
    - specTextStyle.ts의 TEXT_BEARING_SPECS 등록 여부 (텍스트 컴포넌트)
    - utils.ts의 INLINE_BLOCK_TAGS 등록 여부 (fit-content 컴포넌트)
-5. Preview 렌더러 읽기 → variant/size props가 React 컴포넌트에 전달되는지 확인
+5. editor (Preview 렌더러) — `packages/shared/src/renderers/*Renderers.tsx` 읽기
+   → variant/size props가 React 컴포넌트에 전달되는지 확인
 
 불일치 발견 시 테이블로 보고:
 | 컴포넌트 | 레이어 | 이슈 | 심각도 |

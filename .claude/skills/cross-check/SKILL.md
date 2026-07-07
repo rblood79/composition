@@ -1,7 +1,6 @@
 ---
 name: cross-check
-description: CSS↔WebGL↔Canvas 렌더링 경로 정합성 검증. 변경된 컴포넌트의 모든 렌더링 경로를 교차 검증합니다.
-TRIGGER when: user mentions "정합성 체크", "정합성 검증", "렌더링 체크", "cross check", "CSS WebGL 비교", "렌더링 경로 확인", "Preview Canvas 비교", "CSS↔WebGL", or asks to verify rendering parity across paths.
+description: CSS↔Skia 2-way 렌더링 정합성 검증에 사용. spec/catalog/CSS/factory/렌더러 변경 후 Builder(Skia)↔Preview(DOM) 시각 대칭 검증이 필요할 때, 또는 "정합성 체크", "정합성 검증", "렌더링 체크", "cross check", "렌더링 경로 확인", "Preview Canvas 비교" 요청 시 발동.
 user_invocable: true
 ---
 
@@ -20,7 +19,7 @@ user_invocable: true
 
 # Cross-Check: 렌더링 경로 정합성 검증
 
-변경된 컴포넌트의 CSS(Preview) ↔ Skia Canvas (Builder, ADR-100 단일 렌더러) 렌더링 경로가 일관되게 동작하는지 검증합니다.
+변경된 컴포넌트의 CSS(Preview) ↔ Skia Canvas (Builder, ADR-900 단일 렌더러) 렌더링 경로가 일관되게 동작하는지 검증합니다.
 
 ## Phase 1: 변경 대상 식별
 
@@ -28,24 +27,25 @@ user_invocable: true
 
 변경 파일 → 컴포넌트 매핑:
 
-- `*.spec.ts` → 해당 컴포넌트
+- `componentRulesTable.ts` / `catalog/bindings/*.binding.ts` → 해당 catalog 컴포넌트
+- `*.spec.ts` → 해당 컴포넌트 (잔존 spec: Frame/Group/Slot 3개)
 - `*.css` → 해당 컴포넌트
-- `ElementSprite.tsx` → TAG_SPEC_MAP에 등록된 모든 변경 컴포넌트
+- `tagSpecMap.ts` / `StoreRenderBridge.ts` / `buildBoxNodeData.ts` → TAG_SPEC_MAP 등록 + catalog cutover 컴포넌트 전체
 - `fullTreeLayout.ts` / `utils.ts` → 영향받는 모든 컴포넌트
 - `implicitStyles.ts` → 해당 컨테이너 컴포넌트
 - `*Renderers.tsx` → 해당 Preview 렌더러 컴포넌트
 
 ## Phase 2: 컴포넌트별 5-레이어 교차 검증
 
-각 컴포넌트에 대해 아래 테이블을 작성합니다:
+**Step 0 — catalog 등록 선판정 (CRITICAL)**: 컴포넌트 키가 `packages/shared/src/catalog/generated/componentRulesTable.ts` 의 `COMPONENT_RULES_TABLE` 에 존재하면 **catalog 경로** (variants/sizes/containerStyles 해당 키), 미존재 시에만 잔존 spec 경로 (Frame/Group/Slot 3개). 판정 후 아래 테이블 작성:
 
-| 레이어               | 파일                                                  | 검증 항목                                           | 상태 |
-| -------------------- | ----------------------------------------------------- | --------------------------------------------------- | ---- |
-| **Spec**             | `packages/specs/src/components/{Name}.spec.ts`        | variants, sizes, render.shapes(), properties        |
-| **Factory**          | `apps/builder/src/builder/factories/definitions/*.ts` | 기본 props, style, 자식 구조                        |
-| **CSS Renderer**     | `packages/shared/src/components/styles/{Name}.css`    | data-variant/data-size 선택자, 토큰                 |
-| **WebGL Renderer**   | `ElementSprite.tsx` + `specTextStyle.ts` + `utils.ts` | TAG_SPEC_MAP, TEXT_BEARING_SPECS, INLINE_BLOCK_TAGS |
-| **Preview Renderer** | `packages/shared/src/renderers/*.tsx`                 | variant/size props 전달, data-\* 속성               |
+| 레이어               | 파일                                                                                                                                         | 검증 항목                                                                          | 상태 |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---- |
+| **Catalog/Spec**     | catalog: `componentRulesTable.ts` 해당 키 + `catalog/bindings/{Name}.binding.ts` / 잔존 spec: `packages/specs/src/components/{Name}.spec.ts` | catalog: variants, sizes, containerStyles / 잔존 spec: render.shapes(), properties |
+| **Factory**          | `apps/builder/src/builder/factories/definitions/*.ts`                                                                                        | 기본 props, style, 자식 구조                                                       |
+| **CSS Renderer**     | `packages/shared/src/components/styles/{Name}.css` + `styles/generated/{Name}.css`                                                           | data-variant/data-size 선택자, 토큰                                                |
+| **Skia Renderer**    | `tagSpecMap.ts` + `StoreRenderBridge.ts` + `buildBoxNodeData.ts` + `specTextStyle.ts` + `utils.ts`                                           | TAG_SPEC_MAP / isCatalogCutover, TEXT_BEARING_SPECS, INLINE_BLOCK_TAGS             |
+| **Preview Renderer** | `packages/shared/src/renderers/*.tsx`                                                                                                        | variant/size props 전달, data-\* 속성                                              |
 
 ## Phase 3: 정합성 검증 항목
 
@@ -64,7 +64,7 @@ user_invocable: true
 - [ ] Spec sizes의 fontSize/paddingX/paddingY/lineHeight/borderWidth가 CSS와 일치
 - [ ] Preview 렌더러가 `size` prop을 컴포넌트에 전달
 
-### 3.3 WebGL 레이아웃 정합성
+### 3.3 Skia 레이아웃 정합성
 
 - [ ] `INLINE_BLOCK_TAGS` 또는 `BUTTON_LIKE_TAGS` 등록 여부 (fit-content 필요 시)
 - [ ] `TEXT_BEARING_SPECS` 등록 여부 (텍스트 폭 측정 필요 시)
@@ -89,13 +89,13 @@ user_invocable: true
 
 | 컴포넌트 | 레이어 | 이슈                      | 심각도   | 수정 여부 |
 | -------- | ------ | ------------------------- | -------- | --------- |
-| Menu     | WebGL  | TEXT_BEARING_SPECS 미등록 | CRITICAL | 수정 완료 |
+| Menu     | Skia   | TEXT_BEARING_SPECS 미등록 | CRITICAL | 수정 완료 |
 
 발견된 이슈는 즉시 수정합니다. 수정 후 `pnpm build:specs && pnpm type-check`로 검증합니다.
 
 ### Phase 4.1: Validate → Fix → Repeat 루프 (CRITICAL)
 
-단발성 검증이 아닌 **수렴 루프**로 실행합니다. Playbook §6.3 Feedback Loop 패턴 적용.
+단발성 검증이 아닌 **수렴 루프**로 실행합니다.
 
 ```
 while (이슈 테이블에 미해결 CRITICAL/HIGH 존재):
@@ -168,15 +168,14 @@ Builder 에 `window.__composition_STORE__` 가 전역 노출되어 있어 UI 클
 ```javascript
 const store = window.__composition_STORE__;
 const st = store.getState();
-const bodyId = [...st.elementsMap.values()].find((e) => e.tag === "body")?.id;
+const bodyId = [...st.elementsMap.values()].find((e) => e.type === "body")?.id;
 const pageId = st.currentPageId;
 const id = crypto.randomUUID();
 await st.addElement({
   id,
-  tag: "Button",
+  type: "Button",
   parent_id: bodyId,
   page_id: pageId,
-  order_num: 0,
   props: {},
 });
 store.getState().setSelectedElement(id);
@@ -185,11 +184,11 @@ await new Promise((r) => setTimeout(r, 400)); // React 리렌더 대기
 
 ### 5.3 3축 대칭 확증
 
-| 축                          | 확인 방법                                                                                                           | 기대                                                                 |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| **Skia Canvas**             | `document.querySelector('canvas[data-testid=skia-canvas-unified]')` 존재 + 스크린샷 visual                          | 컴포넌트 shape 가 canvas 에 렌더됨                                   |
-| **Preview iframe DOM**      | Preview 토글 버튼 클릭 → `document.querySelector('iframe').contentDocument.querySelectorAll('.react-aria-{Tag}')`   | 해당 tag 의 RAC 인스턴스 렌더                                        |
-| **Style Panel Spec preset** | `.panel-contents` 중 Transform 섹션 포함한 root 에서 섹션별 `input[aria-label]` + `.react-aria-SelectValue` 값 추출 | Spec 기본값(예: ButtonSpec.sizes.md.borderRadius=6) 이 Panel 에 표시 |
+| 축                          | 확인 방법                                                                                                           | 기대                                                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Skia Canvas**             | `document.querySelector('canvas[data-testid=skia-canvas-unified]')` 존재 + 스크린샷 visual                          | 컴포넌트 shape 가 canvas 에 렌더됨                                                                            |
+| **Preview iframe DOM**      | Preview 토글 버튼 클릭 → `document.querySelector('iframe').contentDocument.querySelectorAll('.react-aria-{Tag}')`   | 해당 tag 의 RAC 인스턴스 렌더                                                                                 |
+| **Style Panel Spec preset** | `.panel-contents` 중 Transform 섹션 포함한 root 에서 섹션별 `input[aria-label]` + `.react-aria-SelectValue` 값 추출 | catalog 기본값(예: `COMPONENT_RULES_TABLE.Button.sizes.md.borderRadius = {radius.md}` = 6px) 이 Panel 에 표시 |
 
 Style Panel reader (input / Select / ToggleButtonGroup 통합 — 세션 17 정밀화):
 
@@ -289,7 +288,7 @@ icon class suffix → semantic 값 (row/column/block 등) 추가 변환은 optio
 
 아래에 해당하면 Phase 5를 건너뜁니다:
 
-- 개발 서버 또는 Storybook이 실행 중이지 않음
+- 개발 서버가 실행 중이지 않음
 - Chrome extension 미페어링 (사용자에게 설치 요청 후 skip)
 - 시각적 변화가 없는 수정 (로직·타입·스토어 변경만 포함)
 - CI 환경 (브라우저 없음)
