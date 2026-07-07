@@ -1,6 +1,6 @@
 # ADR-138 구현 상세 — 컴포넌트 패널 복합 컴포넌트 reusable origin-instance 부착
 
-> 본 문서는 [ADR-138](../138-component-palette-reusable.md) 의 구현 상세 (Phase / 파일 변경 / 시나리오 / 체크리스트). ADR 본문은 결정·위험·게이트만 담는다.
+> 본 문서는 [ADR-138](../completed/138-component-palette-reusable.md) 의 구현 상세 (Phase / 파일 변경 / 시나리오 / 체크리스트). ADR 본문은 결정·위험·게이트만 담는다.
 
 ## 1. Framing checkpoint
 

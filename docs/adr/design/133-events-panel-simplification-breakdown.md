@@ -1,6 +1,8 @@
 # ADR-133 Design Breakdown — EventsPanel UX 단순화 + canonical 단일화 + RAC 정합
 
 > 본 문서는 [ADR-133](../133-events-panel-simplification.md) 의 구현 상세. Phase 0~7 + Gate.
+>
+> **Deprecated — 2026-07-08** — ADR-133 폐기 (개별 재설계 대상)에 따라 본 breakdown 은 historical reference. 재설계 ADR 의 전제 검증 자료로만 참조.
 
 ## 1. framing checkpoint lock-in (ADR 본문 §framing checkpoint 4 질문 참조)
 

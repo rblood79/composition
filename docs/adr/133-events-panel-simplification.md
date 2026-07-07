@@ -1,6 +1,21 @@
 # ADR-133: EventsPanel UX 단순화 (1년차 신입 baseline) + canonical events/actions 단일화 + ActionsPanel 흡수 + RAC convention 정합
 
+> **Deprecated — 2026-07-08** — 개별 재설계 대상 (후속 ADR 미정). 설계 목적은 보존, 설계 문서는 폐기.
+
 ## Status
+
+**Deprecated — 2026-07-08** (설계 목적 보존 — 개별 재설계 대상, 후속 ADR 미정)
+
+### 폐기 사유
+
+사용자 결정 (2026-07-08 "133은 폐기 후 재설계 대상"): 설계 문서는 폐기하고 설계 목적만 보존한다.
+
+- **보존되는 설계 목적**: EventsPanel 편집 depth 4→2 단순화 (1년차 신입 baseline) / events·actions canonical root collection primary 전환 (ADR-131 후속) / ActionsPanel 의 EventsPanel 흡수 / RAC callback convention 정합 (breaking 3종 + callback gap 13종).
+- **재설계 참조 자료**: sub-decision D1~D9 + 전제 점검 4질문 (본문 §framing checkpoint) + RAC/RSC 벤치마크 evidence (`~/.claude/plans/rac-rsc-event-callback-benchmark.md`) 는 historical reference 로 보존 — 재설계 ADR 의 전제 검증 자료.
+- **ADR-010/032/034 체인**: 세 ADR 의 "Replaced by ADR-133" 마킹은 historical 기록으로 유지 — 재설계 ADR 이 이들의 최종 후속이 된다.
+- **ADR-148 과의 관계**: 도메인 직교 (events/actions 편집 표면 vs reusable 등록·slot 조합) — ADR-148 흡수 대상 아님 (2026-07-08 분류 확인).
+
+### 원본 Status (보존)
 
 Proposed — 2026-05-13 (ADR-010 / ADR-032 / ADR-034 supersede + ADR-131 §events/actions Phase 5 G3 partial revert)
 
@@ -11,6 +26,7 @@ Proposed — 2026-05-13 (ADR-010 / ADR-032 / ADR-034 supersede + ADR-131 §event
 - RAC/RSC 벤치마크 evidence: `~/.claude/plans/rac-rsc-event-callback-benchmark.md` (42 RAC + 9 RSP 컴포넌트 callback 전수 inventory + composition gap 측정)
 - 5 결정 사용자 explicit confirm: Q1 onClick deprecation / Q2 onMouseEnter/Leave rename / Q3 callback gap ADR-133 안 흡수 / Q4 mental model = 1년차 baseline / Q5 implemented:false 4 종 제거
 - 3 ADR (010/032/034) Deprecated 이동 동반
+- 2026-07-08 — 사용자 결정으로 Deprecated (개별 재설계 대상 — §폐기 사유 참조)
 
 ## Context
 

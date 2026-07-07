@@ -26,6 +26,10 @@
 ADR-144/920 은 이미 Superseded, ADR-910/911 은 "비착수 비교 기록/비실행 목표 참조" 위상
 명시 문서라 존속 (`feedback-target-vs-execution-adr-separation` — 목표 drift 판정 reference).
 
+**2차 confirm (2026-07-08)**: ADR-138 (Implemented) · ADR-144 (기 Superseded) 는 본 ADR 흡수로
+기록 정리 — 138 = fork UX 변경 0 승계 + 등록 축 Phase 1 대체 (`completed/` 이동), 144 = 145→146→147
+계보 경유 Phase 4 흡수. ADR-133 (events) 은 도메인 직교라 흡수 불가 — Deprecated 후 개별 재설계 대상.
+
 ## §2. ADR-147 승계 실측 (반영 완료분 — 재작업 아님)
 
 | 반영 완료 (커밋)                        | 내용                                                                                                                                                                                          |

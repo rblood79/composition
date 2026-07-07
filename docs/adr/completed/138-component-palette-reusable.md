@@ -13,6 +13,7 @@ Implemented — 2026-05-18
   - "dynamic 까지 체크가 되어야 제대로 확인" — pilot 은 dynamic items 검증 가능한 컴포넌트로
   - 시나리오 3 (instance 가 items 일부 patch + origin 나머지 반영) 처리 = **옵션 A 채택** — items 는 shallow override (instance 가 items 건드리면 origin 과 완전 분리)
 - 2026-05-18 — Phase 0~3 구현 완료 → Accepted → Implemented. vitest 11/11 (reusableTabs 8 + reusableCard 3) · type-check 0 new violation (baseline 547) · Chrome MCP 5 시나리오 runtime 통과 (우클릭 "Add as component" → origin 승격 / instance items override → "items (forked)" 표시 / "Reset to origin" → origin 재연결). Phase 0 freeze 로 신규 컴포넌트 2개 계획이 기존 인프라(LayerTree context menu / ComponentSemanticsSection override 목록) 재사용으로 대체 — 6 파일.
+- 2026-07-08 — [ADR-148](../148-reusable-slot-system-unification.md) 흡수 확인 (사용자 confirm "138 → 148 에 흡수"): 진입점·fork UX (AddAsComponentMenu / InstanceForkBadge) 는 ADR-148 이 변경 0 으로 승계, 등록 축 (REUSABLE_COMPOSITE_ORIGINS Toolbar/Form) 은 ADR-148 Phase 1 이 catalog reusable entry 로 대체 예정. 본 ADR 은 Implemented 기록으로 존속 — `completed/` 이동.
 
 ## Context
 
