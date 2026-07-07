@@ -12,6 +12,8 @@ argument-hint: [버그 설명]
 3. 렌더링 관련이면 수정 후 `/cross-check` 필수
 4. 동일 패턴 이슈 → codebase grep → 한 번에 일괄 sweep
 5. `pnpm type-check` 통과 확인
+6. 사용자-가시 버그면 실제 builder 실동작 1회 exercise (Chrome MCP 또는 사용자 confirm) + 무엇을 exercise 했는지 보고 명시 — CLAUDE.md §완료 기준
+7. 완료 시 CHANGELOG 반영 판정 — 사용자-가시 버그 수정이면 docs/CHANGELOG.md Bug Fixes 반영 (rules/changelog.md 트리거 #2)
 
 금지:
 

@@ -1,5 +1,5 @@
 ---
-description: CSS↔Skia↔Canvas 렌더링 경로 정합성 검증 워크플로 (단일 또는 지정 컴포넌트)
+description: CSS↔Skia 렌더링 경로 정합성 검증 워크플로 (단일 또는 지정 컴포넌트)
 argument-hint: [component-name]
 ---
 

@@ -17,7 +17,7 @@ argument-hint: [패밀리명 또는 글롭]
 # 디렉토리 보장
 mkdir -p .claude/stats/audits
 
-# 오늘 날짜 기준 파일명
+# 오늘 날짜 기준 파일명 (확장자는 .json 이나 내용은 JSONL append)
 DATE=$(date +%Y-%m-%d)
 REPORT_FILE=".claude/stats/audits/sweep-${DATE}.json"
 
@@ -37,7 +37,7 @@ REPORT_FILE=".claude/stats/audits/sweep-${DATE}.json"
 
 각 sweep 실행 후 위 구조로 한 줄 JSON 을 `sweep-${DATE}.json` 에 append.
 
-- **목적**: drift trend 추적 — 같은 컴포넌트 / 레이어에 반복적으로 issue 발견되면 근본 ADR 발의 시점 판단
+- **목적**: drift trend 추적 — 같은 컴포넌트 / 레이어에 반복적으로 issue 발견되면 근본 ADR 작성 시점 판단
 - **활용 예**: `jq -s 'group_by(.scope) | map({scope: .[0].scope, count: length})' .claude/stats/audits/sweep-*.json` 으로 패밀리별 drift 빈도
 - **PR 자동 생성 금지** — `.claude/rules/git-workflow.md` 절대 정책 준수. report 만 누적, fix 는 동일 세션 또는 사용자 승인 후 main 직접 push
 

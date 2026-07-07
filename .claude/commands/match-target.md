@@ -10,7 +10,7 @@ argument-hint: [ref-path-or-url] [target-selector] [budget?]
 1. `match-target` skill 실행 (Skill 도구) — Phase 0 사전 조건 통과 확인
 2. baseline similarity ≥ threshold 면 즉시 종료
 3. 미수렴 시 budget 내 PROPOSE→APPLY→CAPTURE→SCORE 루프
-4. 수렴/비수렴 결과 보고 후 `cross-check` skill 으로 회귀 확인 (수렴 시)
+4. 수렴/비수렴 결과 보고 후 type-check + `cross-check` skill 로 회귀 확인 (수렴 시)
 5. 사용자 승인 후 commit (자동 commit 금지)
 
-입력 누락 시 사용자에게 부족 항목 (참조 / target selector / budget) 질문 후 진행.
+입력 누락 시 사용자에게 부족 항목 (참조 / target selector) 질문 후 진행. budget 은 미제공 시 default 30.

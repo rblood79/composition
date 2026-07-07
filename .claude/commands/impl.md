@@ -15,5 +15,6 @@ argument-hint: [기능 설명]
 6. UI 포함 시 `evaluator` agent — Chrome MCP로 실제 동작 검증
 7. 렌더링 변경 있으면 `/cross-check` 실행
 8. 완료 전 `superpowers:verification-before-completion`
+9. 완료 시 CHANGELOG 반영 판정 — 신규 컴포넌트/prop/public API 면 docs/CHANGELOG.md Features 반영 (rules/changelog.md 트리거 #3)
 
-각 단계 통과 후 다음 단계로 진행. 단순 수정은 2~4만 수행 가능.
+각 단계 통과 후 다음 단계로 진행. 단순 수정은 3~4만 수행 가능.
