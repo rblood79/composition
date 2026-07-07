@@ -48,6 +48,7 @@
 - 과도기 무중단: 쓰기 시 canonical 1차 + **canonical→legacy 프로젝션** (역 mirror) 로 props.events 유지 → 런타임 무영향 (Phase 3 에서 제거)
 - ActionsPanel 흡수: cross-event reuse inline 토글 (anonymous→named id 승격) + `panels/actions/` 제거 + `PanelId "actions"` 제거 (HC4)
 - 기존 `syncEventsToRootCollection` (legacy→canonical mirror) 제거 — 방향 역전 완결
+- **history/persist 통합 (R8)**: canonical events/actions 편집 경로에 history record + DB persist 연결 — 현행 canonicalDocumentStore mutation 은 "In-memory skeleton (history/undo/persistence 미통합)" 자인 (`builder/stores/canonical/canonicalDocumentStore.ts:7-10`). legacy 경로의 `updateAndSave` → `historyManager.addEntry` (`builder/stores/inspectorActions.ts:561`) 와 동등한 undo/redo 보장 필수 (state-management 파이프라인 Memory→Index→History→DB)
 
 #### Phase 3 — Preview 런타임 canonical 소비 전환 + adapter 완결
 
@@ -55,8 +56,9 @@
 - Phase 2 의 canonical→legacy 프로젝션 제거 (boundary allowlist 외 legacy 접근 0)
 - 역방향 adapter `migrateRootCollectionToLegacy` 구현 + export 경로 연결 (HC5) + round-trip test (legacy→canonical→legacy 동등성)
 - 기존 프로젝트 hydration 1회 migration (`migrateLegacyElementsToRootCollections` 재사용)
+- **live 소비자 canonical 전환 (R4)**: workflowEdges (`builder/workspace/canvas/skia/workflowEdges.ts:202-205` — `getElementEvents` 소비, Skia navigation 엣지) / `elementMapper.ts:44` / `elementDiff.ts` 를 프로젝션 제거 **전에** canonical read 로 전환 — 미전환 시 silent 기능 소실 (Phase 0 에서 boundary vs live 2분류 freeze)
 - EventEngine 단위 test 신설 (navigate / setState / apiCall 대표 3 kind + chain/condition 분기)
-- **G2**: grep 게이트 전체 + live behavior 1회 (builder 에서 Button onPress → navigate 바인딩 → Preview 실행)
+- **G2**: grep 게이트 전체 + 이벤트 편집 undo/redo 1회 (R8) + live behavior 1회 (builder 에서 Button onPress → navigate 바인딩 → Preview 실행)
 
 ### Wave 2 — RAC convention 정합 (G2 통과 후 조건부)
 
@@ -74,13 +76,13 @@
 
 ## §4. Gate ↔ Risk 매핑
 
-| Gate | Phase | 대응 Risk      |
-| ---- | ----- | -------------- |
-| G0   | 0     | R4             |
-| G1   | 1     | R2             |
-| G2   | 2–3   | R1, R4, R5, R6 |
-| G3   | 4     | R3 (wave 격리) |
-| G4   | 5     | 전체           |
+| Gate | Phase | 대응 Risk          |
+| ---- | ----- | ------------------ |
+| G0   | 0     | R4                 |
+| G1   | 1     | R2                 |
+| G2   | 2–3   | R1, R4, R5, R6, R8 |
+| G3   | 4     | R3 (wave 격리)     |
+| G4   | 5     | 전체               |
 
 ## §5. 파일 좌표 (2026-07-08 실측 기준)
 
@@ -89,24 +91,25 @@
 - `apps/builder/src/builder/panels/events/` — EventsPanel.tsx (883 LOC) + 부속 (block editor 트리 WhenBlock/IfBlock/ThenElseBlock/BlockActionEditor + `actions/*ActionEditor.tsx` 25종은 L2 expand 내부로 재배치)
 - `apps/builder/src/builder/panels/actions/ActionsPanel.tsx` (154 LOC) — 제거
 - `apps/builder/src/builder/panels/core/types.ts:60` + `panelConfigs.ts:212` — `PanelId "actions"` 제거
-- `apps/builder/src/builder/stores/utils/inspectorActions.ts:290,980-1028` — `updateSelectedEvents` 계열 + `syncEventsToRootCollection` 방향 역전/제거
+- `apps/builder/src/builder/stores/inspectorActions.ts:290,980-1028` — `updateSelectedEvents` 계열 + `syncEventsToRootCollection` 방향 역전/제거 + history/persist 통합 (R8, `historyManager.addEntry` :561 동등성)
 - `apps/builder/src/utils/events/eventHandlers.ts:35-118` — canonical 소비 전환
 - `apps/builder/src/utils/events/eventEngine.ts` — 소비 입력 변경 + 단위 test 신설
-- `apps/builder/src/builder/adapters/canonical/rootCollectionMigration.ts` — 역방향 `migrateRootCollectionToLegacy` 구현 (:19 주석 실현)
+- `apps/builder/src/adapters/canonical/rootCollectionMigration.ts` — 역방향 `migrateRootCollectionToLegacy` 구현 (:19 주석 실현)
+- **live 소비자 (Phase 3 canonical 전환 대상 — R4)**: `apps/builder/src/builder/workspace/canvas/skia/workflowEdges.ts:202-205` (getElementEvents 소비) / `apps/builder/src/builder/stores/utils/elementDiff.ts` / `apps/builder/src/builder/inspector/utils/elementMapper.ts:44`
 - `apps/builder/src/builder/inspector/utils/elementMapper.ts:44` — `selectedElement.events` 매핑 제거/보류 판정 (Phase 0)
 
 **Wave 2**: `apps/builder/src/types/events/events.registry.ts` (:32-128 union / :180~ actions) + `packages/shared/src/components/metadata.ts` (supportedEvents)
 
 **소비 hooks (기존, 무변경)**: `stores/canonical/canonicalElementsBridge.ts:142,161,187`
 
-**boundary allowlist (무변경)**: `adapters/canonical/{compositionExtensionFields,slotAndLayoutAdapter,canonicalMutations,exportLegacyDocument,index}.ts` / `stores/canonical/{canonicalElementsView,canonicalDocumentStore}.ts` / `stores/utils/elementDiff.ts` / `workflowEdges.ts`
+**boundary allowlist (무변경 — adapter/serialize 경로만)**: `apps/builder/src/adapters/canonical/{compositionExtensionFields,slotAndLayoutAdapter,canonicalMutations,exportLegacyDocument,index}.ts` / `builder/stores/canonical/{canonicalElementsView,canonicalDocumentStore}.ts` — workflowEdges/elementDiff/elementMapper 는 allowlist 아님 (live 소비자, 위 전환 대상)
 
 ## §6. 검증 체크리스트
 
 - [ ] Phase 0: inventory 표 + allowlist + baseline freeze (commit hash)
 - [ ] Phase 1: UI sketch 사용자 confirm (AskUserQuestion)
-- [ ] Phase 2: HC2/HC4 grep 0건 + canonical→legacy 프로젝션 동작 (Preview 무중단)
-- [ ] Phase 3: HC3 grep 0건 + round-trip test + hydration migration + EventEngine test + **live 1회**
+- [ ] Phase 2: HC2/HC4 grep 0건 + canonical→legacy 프로젝션 동작 (Preview 무중단) + history/persist 통합 — 이벤트 편집 undo/redo 1회 (R8)
+- [ ] Phase 3: HC3 grep 0건 + live 소비자 (workflowEdges/elementDiff/elementMapper) canonical 전환 (R4) + round-trip test + hydration migration + EventEngine test + **live 1회**
 - [ ] Phase 4: 4-way 갱신 grep + 제거 4종 0건 + helper test + live 1회
 - [ ] Phase 5: type-check baseline 무증가 + README/CHANGELOG + 계보 링크 정합
 - [ ] 전 Phase: sub-group N≥3 / sliver commit 5+ 예상 시 사용자 confirm (M4)
