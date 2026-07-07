@@ -33,7 +33,7 @@ fi
 if echo "$prompt" | grep -qiE "ADR[- ]?[0-9]+.{0,30}(실행|진행|land|next)|execute[- ]?adr|Phase[- ]?[0-9α-ωA-Z\-]*.{0,15}(실행|진행|land|next)|다음 ?Phase|미[- ]?land|phase ?(자동|진행|실행|land)|adr ?phase ?(실행|진행)|P[- ]?[0-9α-ωA-Z]+.{0,15}(실행|land|진행)"; then
   hints="${hints}
 - ADR phase 실행 감지 → \`execute-adr\` skill (또는 \`/execute-adr {NNN}\`)
-  - Phase 0 사전 조건 6 항목 통과 필수 (design breakdown 존재 / Status / git clean / main / type-check baseline / dist 신선도 / framing 4 질문)
+  - Phase 0 사전 조건 전체 통과 필수 (ADR 존재+Status / design breakdown / git clean / main / type-check baseline / dist 신선도 / 전제·관점 자가 점검)
   - HIGH+ phase 는 mode=auto 라도 무조건 사용자 surface
   - main 직접 push (rules/git-workflow.md 절대 정책 — PR 금지)
   - max_phases=3 default (HIGH 비용 누적 차단)"
@@ -43,7 +43,7 @@ elif echo "$prompt" | grep -qiE "ADR|아키텍처 결정|설계 문서|architect
 - ADR 작업 감지:
   - 생성 → \`create-adr\` skill (번호 자동 할당 + Risk-First 템플릿)
   - 리뷰 → \`review-adr\` skill
-  - 실행/phase land → \`execute-adr\` skill
+  - 실행/phase 진행 → \`execute-adr\` skill
   - rules/adr-writing.md 자동 로드 (docs/adr/** 글롭)"
 fi
 
@@ -86,7 +86,7 @@ fi
 # 레이아웃 / Taffy
 if echo "$prompt" | grep -qiE "레이아웃|layout|Taffy|flex|grid|align|정렬"; then
   hints="${hints}
-- 레이아웃 작업 → rules/layout-engine.md 자동 로드 (packages/layout-flow/**)
+- 레이아웃 작업 → rules/layout-engine.md 자동 로드 (packages/composition-engine/**)
 - layoutVersion 3-심볼 체인: LAYOUT_PROP_KEYS (캐시) + NON_LAYOUT_PROPS_UPDATE (블랙리스트) + INHERITED_LAYOUT_PROPS_UPDATE (상속) 동시 점검"
 fi
 
@@ -94,7 +94,7 @@ fi
 if echo "$prompt" | grep -qiE "상태|store|zustand|slice|elementsMap|childrenMap"; then
   hints="${hints}
 - 상태관리 작업 → rules/state-management.md 자동 로드
-- 파이프라인 순서 필수: Memory → Index → History → DB → Preview → Rebalance
+- 파이프라인 순서 필수: Memory → Index → History → DB → Preview (요소 순서는 canonical children[] SSOT — ADR-118)
 - ADR-137 Selection Consumer Contract: page-bound mutation 은 commit 시점 \`readImmediateSelectionSnapshot()\` + \`apply*FromSelection(snapshot, ...)\` 또는 명시 context 의 \`apply*Explicit({ pageId, contextReason, ... })\` 로 분류"
 fi
 
@@ -115,16 +115,16 @@ if echo "$prompt" | grep -qiE "전체 검증|일괄|패밀리|컴포넌트 전�
 - 반복 검증 루틴 → \`/loop\` 활용"
 fi
 
-# 사용자 정정 / framing 재지정 — auto-memory 적재 권고
+# 사용자 정정 / 전제·관점 재지정 — auto-memory 기록 권고
 if echo "$prompt" | grep -qiE "아니야|아니라|그게 아니|잘못|틀렸|틀렸어|정정|다시 봐|다시 보니|본질은|그런 게 아니|반대|거꾸로|^아니|correct(ion)?|actually|wrong|misunderstood|reverse"; then
   hints="${hints}
-- 사용자 정정 감지 → 정정 내용이 framing / process / SSOT / 정책 / 의존 방향 류면 **same-session memory 적재 권고**:
+- 사용자 정정 감지 → 정정 내용이 전제·관점 / process / SSOT / 정책 / 의존 방향 류면 **same-session memory 기록 권고**:
   1. 정정 내용 요약 (1-2 문장 + Why + How to apply)
   2. \`~/.claude/projects/-Users-admin-work-composition/memory/feedback-*.md\` 신규 또는 기존 갱신
   3. \`MEMORY.md\` 인덱스에 한 줄 추가
   - 단발성 사실 정정 (typo / 변수명 / 숫자 오타) 이면 skip
   - 회피 패턴: \"다음에 기억하겠음\" 약속만 (메모리 미적재) — 다음 세션에서 동일 정정 재발 위험
-  - 우선 적재 카테고리: SSOT 경계, ADR 의존 방향, framing raise 의무, git/PR 정책, 재발 패턴"
+  - 우선 기록 카테고리: SSOT 경계, ADR 의존 방향, 전제·관점 제기 의무, git/PR 정책, 재발 패턴"
 fi
 
 # 완료 / 머지 — git working tree에 변경 있을 때만 의미 있음 (단순 질문 false-positive 차단)

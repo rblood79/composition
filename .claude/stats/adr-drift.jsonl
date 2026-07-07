@@ -29,3 +29,4 @@
 {"sha":"d30a98be7c2f7a141fd4afd919a3f65e6113600b","date":"2026-06-22T13:38:52+09:00","promoted_adrs":["docs/adr/914-component-entry-universe-collapse.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"f3f8e19ffa3076008a98e214a57efc148228836a","date":"2026-06-22T14:50:32+09:00","promoted_adrs":["docs/adr/completed/912-rac-pencil-rebuild-cutover.md","docs/adr/completed/914-component-entry-universe-collapse.md"],"readme_updated":true,"changelog_updated":false,"synced":false}
 {"sha":"c871ac6ea0a5c7ad504e4554ae9c9d00329aacc5","date":"2026-06-22T15:55:11+09:00","promoted_adrs":["docs/adr/completed/913-catalog-reference-rebuild.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
+{"sha":"fb8bb5123e62c204571b435b32e3b4baaec35ab3","date":"2026-07-06T01:22:56+09:00","promoted_adrs":["docs/adr/916-unified-rust-engine.md"],"readme_updated":true,"changelog_updated":true,"synced":true}

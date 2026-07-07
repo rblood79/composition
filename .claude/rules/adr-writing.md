@@ -6,7 +6,7 @@ globs:
 
 # ADR 작성 규칙 — Risk-First Design Loop
 
-> **SSOT 체인 연계 (CRITICAL)**: 새 ADR의 Context 섹션에 **3-domain 분할(D1 DOM/접근성 / D2 Props/API / D3 시각 스타일) 중 어느 것에 해당하는지** 명시 필수. 경계 교차 시 정당화 필요. 정본 원칙: [ssot-hierarchy.md](ssot-hierarchy.md). 공식 결정: [ADR-063](../../docs/adr/063-ssot-chain-charter.md).
+> **SSOT 체인 연계 (CRITICAL)**: 새 ADR의 Context 섹션에 **3-domain 분할(D1 DOM/접근성 / D2 Props/API / D3 시각 스타일) 중 어느 것에 해당하는지** 명시 필수. 경계 교차 시 정당화 필요. 정본 원칙: [ssot-hierarchy.md](ssot-hierarchy.md). 공식 결정: [ADR-063](../../docs/adr/completed/063-ssot-chain-charter.md).
 
 ## 왜 이 프로세스인가
 

@@ -23,8 +23,9 @@ composition/
 │ │ └── services/ # Supabase, AI 서비스
 │ └── publish/ # 프로젝트 배포 앱
 ├── packages/
+│ ├── composition-engine/ # 자체 Rust WASM 레이아웃 엔진 (ADR-916)
 │ ├── config/ # 공유 설정 (ESLint, TypeScript)
-│ ├── layout-flow/ # Taffy WASM 레이아웃 엔진
+│ ├── react-aria-starter/ # RAC starter upstream 스냅샷 (read-only 참조 baseline)
 │ ├── shared/ # 공유 유틸리티
 │ └── specs/ # 컴포넌트 스펙 (Skia 렌더링용)
 ├── docs/
@@ -55,17 +56,17 @@ composition은 3개 독립 domain으로 구성된다. 모든 코드/문서 작�
 - RSP props는 RAC + custom 구현으로 달성 가능한 범위에서 선별 채택
 
 **정본 규칙**: [.claude/rules/ssot-hierarchy.md](.claude/rules/ssot-hierarchy.md) (3-domain 정의/용어 사전/경계 판정/집행 메커니즘)
-**공식 결정 기록**: [ADR-063](docs/adr/063-ssot-chain-charter.md)
+**공식 결정 기록**: [ADR-063](docs/adr/completed/063-ssot-chain-charter.md)
 
 ## 핵심 아키텍처
 
 | 영역      | 기술                                                    | 비고                                                     |
 | --------- | ------------------------------------------------------- | -------------------------------------------------------- |
 | UI        | React 19, React-Aria Components                         | Builder ↔ Preview iframe 격리, postMessage 통신          |
-| State     | Zustand 슬라이스 + Jotai (스타일 패널) + TanStack Query | elementsMap(O(1)), childrenMap, pageIndex                |
+| State     | Zustand 슬라이스 + TanStack Query                       | elementsMap(O(1)), childrenMap, pageIndex — Jotai 제거 완료 |
 | Styling   | Tailwind CSS v4, tailwind-variants (`tv()`)             | 인라인 Tailwind 금지                                     |
-| Rendering | **CanvasKit/Skia WASM** (렌더링) + PixiJS 8 (이벤트)    | Dual Renderer — Skia=화면, PixiJS=EventBoundary(alpha=0) |
-| Layout    | Taffy WASM (Flex/Grid/Block)                            | 단일 엔진, DirectContainer 직접 배치                     |
+| Rendering | **CanvasKit/Skia WASM**                                 | 단일 렌더러 — 화면+이벤트 통합 (ADR-900)                 |
+| Layout    | 자체 Rust WASM 엔진 (packages/composition-engine, ADR-916) | Flex/Grid/Block 단일 엔진, DirectContainer 직접 배치  |
 | AI        | Groq SDK (llama-3.3-70b-versatile)                      | Tool Calling + Agent Loop                                |
 | Backend   | Supabase (Auth, Database, RLS)                          |                                                          |
 | Build     | Vite, TypeScript 5, pnpm                                | monorepo                                                 |
@@ -127,7 +128,7 @@ unit-test / type-check / codex:preflight 통과는 **"코드가 자기 자신과
 
 ## 상태 변경 파이프라인
 
-`Memory → Index → History (즉시) → DB → Preview → Rebalance (백그라운드)` — 순서 필수 보존. 상세: `.claude/rules/state-management.md`
+`Memory → Index → History (즉시) → DB → Preview (백그라운드)` — 순서 필수 보존. 요소 순서는 canonical `children[]` 배열이 SSOT (ADR-118), `order_num` 은 export mirror 파생. 상세: `.claude/rules/state-management.md`
 
 ## CHANGELOG 관리 (CRITICAL)
 
@@ -183,10 +184,10 @@ unit-test / type-check / codex:preflight 통과는 **"코드가 자기 자신과
 | CHANGELOG 규칙       | [.claude/rules/changelog.md](.claude/rules/changelog.md)                                                 | 트리거 기반 자동 갱신, Drift 감시, 14일/100 커밋 catch-up, Keep a Changelog 포맷 (`docs/CHANGELOG*` 자동 로드) |
 | CHANGELOG 본문       | [docs/CHANGELOG.md](docs/CHANGELOG.md)                                                                   | 현재 엔트리 — 연도별 아카이브 (`CHANGELOG-YYYY-archived.md`) 로 이관                  |
 | ADR 리뷰 저장소      | [docs/adr/reviews/](docs/adr/reviews/)                                                                   | Layer 0 Observation — `review-adr` Phase 4.5 자동 영속화, 9-taxonomy 구조화 (`writer.mjs`/`validate.mjs`) |
-| 렌더링 아키텍처 결정 | [ADR-100](docs/adr/100-unified-skia-rendering-engine.md)                                                 | Unified Skia Engine — PixiJS 제거, 대안/결정/Gate                                     |
-| 렌더링 구현 상세     | [ADR-100 breakdown](docs/adr/design/100-unified-skia-engine-breakdown.md)                                    | SceneGraph, Rust Layout, CSS3 렌더링 Phase 상세                                       |
+| 렌더링 아키텍처 결정 | [ADR-900](docs/adr/completed/900-unified-skia-rendering-engine.md)                                       | Unified Skia Engine — PixiJS 제거, 대안/결정/Gate                                     |
+| 렌더링 구현 상세     | [ADR-900 breakdown](docs/adr/design/900-unified-skia-engine-breakdown.md)                                    | SceneGraph, Rust Layout, CSS3 렌더링 Phase 상세                                       |
 | 컴포넌트 스펙        | [COMPONENT_SPEC.md](docs/COMPONENT_SPEC.md)                                                              | Spec 단일 소스 아키텍처                                                               |
-| CSS 상세             | [CSS_ARCHITECTURE.md](docs/reference/components/CSS_ARCHITECTURE.md)                                     | ITCSS + tv() 스타일링 상세                                                            |
+| CSS 상세             | [CSS_ARCHITECTURE.md](docs/features/completed/CSS_ARCHITECTURE.md)                                       | ITCSS + tv() 스타일링 상세                                                            |
 | CSS 자동 생성        | [docs/adr/completed/036-spec-first-single-source.md](docs/adr/completed/036-spec-first-single-source.md) | Spec → CSS 자동 생성, Archetype, CompositionSpec                                      |
 | Spec↔CSS 경계        | [SPEC_CSS_BOUNDARY.md](docs/reference/components/SPEC_CSS_BOUNDARY.md)                                   | Leaf(Spec CSS) vs Container(수동 CSS) 분류표, 결정 흐름도                             |
 
@@ -217,7 +218,7 @@ unit-test / type-check / codex:preflight 통과는 **"코드가 자기 자신과
 
 ## 렌더링 버그 수정 원칙
 
-2개 렌더링 타겟(CSS/Skia) × 5개 레이어(spec/factory/CSS renderer/Skia renderer/editor). — PixiJS 제거 완료 (ADR-100 Phase 8-9)
+2개 렌더링 타겟(CSS/Skia) × 5개 레이어(spec/factory/CSS renderer/Skia renderer/editor). — PixiJS 제거 완료 (ADR-900 Phase 8-9)
 
 - **모든 경로 검증**: 한 경로만 수정하고 다른 경로 누락 금지 → `/cross-check` 스킬로 검증
 - **전체 경로 추적**: factory → spec → renderer → editor 하류 파손 확인

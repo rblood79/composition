@@ -31,7 +31,7 @@ globs:
 ## 파이프라인 순서 (필수 보존)
 
 1. Memory Update (즉시) → 2. Index Rebuild → 3. History Record
-2. DB Persist (백그라운드) → 5. Preview Sync → 6. Order Rebalance (batchUpdateElementOrders 단일 set())
+2. DB Persist (백그라운드) → 5. Preview Sync — 요소 순서는 canonical `children[]` 배열 순서가 SSOT (ADR-118), `order_num` 은 export mirror 로만 파생 (legacy `batchUpdateElementOrders()` 심볼 소멸)
 
 ## 핵심 규칙
 

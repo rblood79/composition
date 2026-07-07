@@ -1,5 +1,5 @@
 ---
-description: Canvas/Skia 렌더링 관련 파일 작업 시 적용 (ADR-100 PixiJS 제거 완료)
+description: Canvas/Skia 렌더링 관련 파일 작업 시 적용 (ADR-900 PixiJS 제거 완료)
 globs:
   - "apps/builder/src/builder/canvas/**"
   - "packages/specs/**"
@@ -15,19 +15,19 @@ globs:
 >
 > 구현 상세는 [canvas-details.md](../skills/composition-patterns/reference/canvas-details.md) 참조
 
-## 1. Skia 단일 렌더러 핵심 (ADR-100)
+## 1. Skia 단일 렌더러 핵심 (ADR-900)
 
-- ADR-100 Unified Skia Engine — Skia 가 화면 + 이벤트 (EventBoundary) 통합 처리. PixiJS 완전 제거됨
-- DirectContainer 패턴: 엔진 계산 결과(x/y/w/h)로 직접 배치. **Why**: @pixi/layout 및 PixiJS 모두 제거 (ADR-100)
+- ADR-900 Unified Skia Engine — Skia 가 화면 + 이벤트 (EventBoundary) 통합 처리. PixiJS 완전 제거됨
+- DirectContainer 패턴: 엔진 계산 결과(x/y/w/h)로 직접 배치. **Why**: @pixi/layout 및 PixiJS 모두 제거 (ADR-900)
 - CanvasKit `heightMultiplier`에 `halfLeading: true` 필수. **Why**: CSS line-height 상하 균등 분배
 
 ## 2. Component Spec 규칙
 
 - TokenRef 숫자 연산 시 `resolveToken()` 변환 필수. **Why**: 미변환 시 NaN 전파
 - `_hasChildren` 체크: 배경 shapes 직후, standalone shapes 직전 배치. **Why**: 자식 유무에 따라 shapes 분기
-- Child Spec 추가 → `packages/specs/src/index.ts` + `components/index.ts` export + `pnpm build:specs` + `TAG_SPEC_MAP` 등록
+- Child Spec 추가 → `packages/specs/src/index.ts` + `components/index.ts` export + `pnpm build:specs` + `TAG_SPEC_MAP` 등록 (신규 child spec 은 D1 예외 컴포넌트만 — 일반 컴포넌트는 catalog)
 - Spec fontSize 우선순위: `props.size` 명시 시 `size.fontSize` 우선. **Why**: Propagation은 size prop만 변경, style.fontSize 미갱신
-- Spec Container Dimension Injection: `_containerWidth`/`_containerHeight` props 주입 (ElementSprite → specProps). `CONTAINER_DIMENSION_TAGS` Set 등록 필수. **Why**: Spec shapes가 Taffy 결과를 모르면 우측/중앙 배치 불가
+- Spec Container Dimension Injection: `_containerWidth`/`_containerHeight` props 주입 (buildSpecNodeData → specProps). `CONTAINER_DIMENSION_TAGS` Set 등록 필수. **Why**: Spec shapes가 레이아웃 엔진 결과를 모르면 우측/중앙 배치 불가
 
 ## 2.5.5. Fill Spec Schema SSOT (ADR-908 Implemented 2026-04-24)
 
@@ -105,11 +105,11 @@ collection/self-render 컨테이너 (`Breadcrumbs, ComboBox, GridList, ListBox, 
 
 ### 3분류 정의
 
-| 분류                | Set                               | `_hasChildren=true` 주입 | 예시                                                                                                                                       |
-| ------------------- | --------------------------------- | :----------------------: | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Shell-only**      | `SHELL_ONLY_CONTAINER_TAGS`       |  **자식 수 무관 항상**   | Calendar, Card, Dialog, Section, DisclosureGroup, Button/Checkbox/Radio/ToggleButtonGroup, Disclosure, Form, Popover, Tooltip, ColorPicker |
-| **Synthetic-merge** | `SYNTHETIC_CHILD_PROP_MERGE_TAGS` |         **차단**         | Breadcrumbs, ComboBox, GridList, ListBox, Select, Table, Tabs, TagGroup, Toolbar, Tree                                                     |
-| **Plain**           | (양쪽 다 미포함)                  |      자식 있을 때만      | TabPanel, TabPanels (shapes=[]), Frame (ADR-130 — canonical layout container) 및 대부분의 일반 컨테이너                                    |
+| 분류                | Set                               | `_hasChildren=true` 주입 | 예시                                                                                                                                                                                    |
+| ------------------- | --------------------------------- | :----------------------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Shell-only**      | `SHELL_ONLY_CONTAINER_TAGS`       |  **자식 수 무관 항상**   | Calendar/RangeCalendar, Card, Dialog, Section, DisclosureGroup, Button/Checkbox/Radio/ToggleButtonGroup, Disclosure, Form, Popover, Tooltip, ColorPicker/ColorSwatchPicker, body (17개) |
+| **Synthetic-merge** | `SYNTHETIC_CHILD_PROP_MERGE_TAGS` |         **차단**         | Breadcrumbs, ComboBox, GridList, Select, Table, Tabs, TagGroup, Toolbar, Tree (9개)                                                                                                     |
+| **Plain**           | (양쪽 다 미포함)                  |      자식 있을 때만      | TabPanel, TabPanels (shapes=[]), Frame (ADR-130 — canonical layout container) 및 대부분의 일반 컨테이너                                                                                 |
 
 ### 판정 알고리즘 (신규 컨테이너 추가 시)
 
@@ -143,8 +143,8 @@ ParagraphStyle 변경 시 **3곳 동시 업데이트** 필수: canvaskitTextMeas
 - Container/Composite: `skipCSSGeneration: true` — 수동 CSS가 구조 담당, Spec shapes는 Skia 전용
 - Generated CSS는 `@layer components { ... }` 래핑 필수. **Why**: unlayered 시 수동 CSS override 실패
 - Label은 spec shapes 경로로 렌더링 (TEXT_TAGS 아님). **Why**: 중복 등록 시 이중 렌더링
-- Label 기본 크기: fit-content (CSS + Factory + Taffy 3경로 동기화 필수)
-- Label size delegation: LabelSpec 단일 소스. DFS 주입 조건은 `lineHeight == null` 기준. **Why**: fontSize 조건 사용 시 factory 기본값과 충돌
+- Label 기본 크기: fit-content (CSS + Factory + 레이아웃 엔진 3경로 동기화 필수)
+- Label size delegation: `LABEL_SIZE_STYLE` 단일 소스 (fullTreeLayout.ts — catalog `COMPONENT_RULES_TABLE.Label` 정합). DFS 주입 조건은 `lineHeight == null` 기준. **Why**: fontSize 조건 사용 시 factory 기본값과 충돌
 
 ## 5. 토큰/테마 정합성
 
@@ -152,14 +152,14 @@ ParagraphStyle 변경 시 **3곳 동시 업데이트** 필수: canvaskitTextMeas
 - Select/ComboBox/SearchField gap: 모든 경로에서 고정 4px
 - Dark Mode Token: adaptive 배경(`{color.neutral}`) → 텍스트에 `{color.base}` (not `{color.white}`). **Why**: dark mode에서 반전
 - Skia color-mix: `mixWithBlackSrgb()` 사용 (oklch 근사 금지). **Why**: srgb 혼합과 수학적으로 다른 결과
-- Necessity Indicator: 3경로 동기화 (CSS renderNecessityIndicator / Taffy Label DFS / Skia specProps)
+- Necessity Indicator: 3경로 동기화 (CSS renderNecessityIndicator / 레이아웃 엔진 Label DFS / Skia specProps)
 
 ## 6. 레이아웃 통합
 
-- Size Delegation: 부모 size → 자식 직접 참조 (parentDelegatedSize). useMemo deps 포함 필수. **Why**: Store가 자식 size 미저장
-- CalendarGrid/CalendarHeader: 다중 줄 보정 스킵 + skipCSSGeneration 필수. **Why**: 절대 좌표 텍스트에 보정 간섭
-- Popover 자식(Calendar/RangeCalendar): Taffy 레이아웃에서 제외. **Why**: Preview Popover 표시
-- Collection Item Font: ElementSprite selector로 부모 기반 font 주입 (implicitStyles만으로는 TextSprite 미반영)
+- Size Delegation: 부모 size → 자식 직접 참조 (`resolveParentDelegatedSize`, buildSpecNodeData.ts). **Why**: Store가 자식 size 미저장
+- Calendar 계열 (CalendarGrid/CalendarHeader): catalog 경로 렌더 — CalendarHeader 는 `CONTAINER_DIMENSION_TAGS`, Calendar/RangeCalendar 는 Shell-only. 상세: canvas-details.md
+- Popover 자식(Calendar/RangeCalendar): 레이아웃 엔진 계산에서 제외. **Why**: Preview Popover 표시
+- Collection Item Font: layout 경로 `injectCollectionItemFontStyles` (implicitStyles.ts) + Skia 는 catalog rule (GridListItem/ListBoxItem) — 상세: layout-details.md
 - Arc Shape: `type: "box"` + `arc` 데이터로 변환. 트랙도 arc(360°)로 렌더링. **Why**: renderSolidBorder inset 차이
 - Pointer → Move: store의 `selectedElementIds`에서 읽기. `hitElementId` 직접 전달 금지. **Why**: 내부 자식 의도치 않은 이동
 
@@ -173,13 +173,13 @@ ParagraphStyle 변경 시 **3곳 동시 업데이트** 필수: canvaskitTextMeas
 ## 7. 금지 패턴 종합
 
 - ❌ TEXT_TAGS에 "Label" 재추가 (이중 렌더링)
-- ❌ Label factory에 `width/height: "fit-content"` 누락 (WebGL auto와 다름)
+- ❌ Label factory에 `width/height: "fit-content"` 누락 (레이아웃 엔진 auto 와 다름)
 - ❌ Label generated CSS 부활 (부모 CSS 변수 상속 깨짐)
 - ❌ CSS `var(--text-md)` 사용 (미정의 → `var(--text-base)` 사용)
 - ❌ Label lineHeight를 숫자로 전달 (parseLineHeight가 배율로 해석 → `"20px"` 문자열 필수)
 - ❌ DFS injection 조건에 `fontSize == null` 사용 (`lineHeight == null` 필수)
 - ❌ Label height에 `Math.ceil(fontSize * 1.5)` 사용 (LABEL_SIZE_STYLE 역참조 필수)
-- ❌ PARENT_VARIANT_TO_LABEL_TOKEN 방식 부활 (LabelSpec.variants 사용)
+- ❌ PARENT_VARIANT_TO_LABEL_TOKEN 방식 부활 (catalog `COMPONENT_RULES_TABLE.Label` variants 사용)
 - ❌ fontFamily 문자열을 단일 배열 요소로 전달 (`split(",")` 필수)
 - ❌ `getMaxWidth()`로 콘텐츠 폭 계산 (`getLongestLine()` 사용)
 - ❌ `type: "arc"` 별도 사용 (HMR 이슈 → box + arc 데이터)

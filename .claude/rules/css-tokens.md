@@ -179,7 +179,7 @@ Skia 측 color-mix 처리: canvas-rendering.md의 color-mix 규칙 참조.
 - `.indicator` — `--indicator-color` 설정 시 selected/hover 자동 파생
 - `.inset` — `--inset-bg`/`--inset-border` 설정 시 focus/invalid 자동 파생
 
-## Dark Mode — Skia/WebGL 적용 (ADR-021)
+## Dark Mode — Skia 적용 (ADR-021)
 
 Skia dark mode 적용 상세: canvas-rendering.md 참조.
 
