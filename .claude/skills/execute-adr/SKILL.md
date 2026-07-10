@@ -33,7 +33,7 @@ Phase 1 진입 전 모두 통과:
 - [ ] `git status` 의 branch 가 `main` — 다른 branch 면 "main 에서 직접 진행 (git-workflow.md 절대 정책)" 알림 + 사용자 confirm
 - [ ] `pnpm type-check` baseline PASS — 시작 시점 회귀 0 보장
 - [ ] dist 신선도 (cross-check skill §5.0) — `.spec-rebuild-pending` flag 없음 + dist 존재
-- [ ] **전제·관점 의문 자가 점검**: ADR 의 base / 응용 분류, 의존 방향, SSOT 경계 가 design breakdown 본문에서 1-line lock-in 되어 있는가? (adr-writing.md fork checkpoint 4 질문 통과 흔적 확인)
+- [ ] **전제 확정 확인 (종결 계약 — CLAUDE.md §전제·관점 의문 처리)**: `docs/adr/reviews/{NNN}.md` 최신 round 가 이슈 0건 또는 전부 `fixed` 면 전제 확정 — 재점검·재질문 없이 통과 (scope 무변경 전제). 리뷰 기록이 없을 때만 design breakdown 의 fork checkpoint 4 질문 lock-in 확인 (adr-writing.md)
 
 미충족 시 budget 0 사용 후 종료 — phase 1 진입 금지.
 
@@ -120,7 +120,7 @@ git commit -m "$(cat <<'COMMIT_EOF'
 
 {detailed body — 3-7 lines, why 중심}
 
-Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 COMMIT_EOF
 )"
 

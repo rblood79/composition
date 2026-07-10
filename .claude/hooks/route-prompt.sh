@@ -38,13 +38,18 @@ if echo "$prompt" | grep -qiE "ADR[- ]?[0-9]+.{0,30}(실행|진행|land|next)|ex
   - main 직접 push (rules/git-workflow.md 절대 정책 — PR 금지)
   - max_phases=3 default (HIGH 비용 누적 차단)"
 # ADR 작성 / 리뷰 (실행 키워드 미매칭 시)
+# 2026-07-11 축소: "ADR" 단독 mention 은 힌트 미주입 — 구현 중 매 턴 review 힌트가
+# 재주입되어 재검토 루프를 유발한 실측 (reviews/912=16 round) 에 따른 정정.
+# 의도 키워드 (리뷰/생성) 결합 시에만 해당 힌트 주입.
 elif echo "$prompt" | grep -qiE "ADR|아키텍처 결정|설계 문서|architecture decision"; then
-  hints="${hints}
-- ADR 작업 감지:
-  - 생성 → \`create-adr\` skill (번호 자동 할당 + Risk-First 템플릿)
-  - 리뷰 → \`review-adr\` skill
-  - 실행/phase 진행 → \`execute-adr\` skill
-  - rules/adr-writing.md 자동 로드 (docs/adr/** 글롭)"
+  if echo "$prompt" | grep -qiE "리뷰|검토|review"; then
+    hints="${hints}
+- ADR 리뷰 감지 → \`review-adr\` skill"
+  fi
+  if echo "$prompt" | grep -qiE "생성|작성|만들|초안|new ADR|create|draft|propose"; then
+    hints="${hints}
+- ADR 생성 감지 → \`create-adr\` skill (번호 자동 할당 + Risk-First 템플릿)"
+  fi
 fi
 
 # 새 컴포넌트 / S2 전환

@@ -264,15 +264,31 @@ unit-test / type-check / codex:preflight 통과는 **"코드가 자기 자신과
 
 ---
 
-**전제·관점 의문 처리 — Opus 4.8 literal instruction following (CRITICAL)**:
+**전제·관점 의문 처리 — 결정 지점 한정 (CRITICAL, 2026-07-11 재조정)**:
 
-ADR base/응용 분류, 의존 방향, SSOT 경계, 선행 ADR 의 전제 자동 승계, 추정 vs 실측 gap 같은 본질적 전제·관점 의문 발견 시 **다음 절차 순서 엄수**. Anthropic 공식 Opus 4.8 best practice §"More literal instruction following" (모델이 지시를 문자 그대로 해석 — 한 항목에서 다른 항목으로 암묵적 일반화 안 함, 요청 안 한 것 추론 안 함) + "Don't assume. Ask clarifying questions before acting" literal 패턴 + AISI sycophancy research 의 관점 재설정(reframing) 질문 패턴 적용 (~/.claude/plans/adr-123-124-125-126-sunny-crescent.md E2):
+> 구 버전 (Opus 4.8 literal instruction following 보정) 은 질문 의무 범위가 넓어 리뷰 승인된 ADR 구현 중에도 질문·재검토 루프가 반복됐다 (reviews/912=16 round, 913=11 round 실측). 현행 모델 (Fable 5) 은 자율 운영이 기본값이므로, 질문 의무를 아래 4개 결정 지점으로 한정하고 전제 확정의 종결 상태를 정의한다. AISI sycophancy research 의 관점 재설정 질문 패턴은 결정 지점 안에서 유지.
 
-1. **AskUserQuestion 1 회 호출** — 의문문 형식으로. 예: "이 관점이 현 ADR scope 안에 흡수 가능한가, 별도 ADR fork 가 필요한가?" / "이 추정 vs 실측 gap 이 전제 재검토 trigger 인가, design Phase 0 inventory 절차 결함인가?" (statement 형식 금지, 관점 재설정 질문만)
-2. **Don't assume** — 사용자 응답 받기 전 새 ADR 작성 / Phase 분해 / sub-group 분할 / fork 결정 **절대 금지**
-3. **차단 메모리 자기-인용 의무** — AskUserQuestion 호출 시점에 차단 카테고리 메모리 (no-derived-adr-mid-execution / execute-adr-surface-minimization / consolidation-burden / pr-vs-direct-push / settings-precedence) 의 차단 사유를 1 줄로 본문에 명시. 인용 없으면 호출 자체 무효. push-back 회피 (sycophancy default) 시 본질 손실 (예: ADR-111/112 24+ commits 우회 / ADR-127 즉석 fork) 이 마찰 비용보다 압도적으로 크다.
+**AskUserQuestion 의무 — 이 4개 결정 지점에서만**:
 
-**전제 검증 통과 ≠ 형식 통과 (CRITICAL)**: codex review PASS / agent dispatch 결과 / 메모리 인용 = **본문 정합 layer**, 전제·관점 layer 아님. 전제 검증 통과 = (1) 깊은 사고(adaptive thinking) 명시 진입 + (2) 사용자 explicit confirm + (3) 차단 메모리 카테고리 우선 평가 통과. 셋 모두 통과 못 하면 fork/분할 차단. 절차 컴플라이언스 (Risk 표 / Gate 매핑 / type-check PASS / codex review PASS) 통과해도 전제·관점 위반은 잡히지 않는다.
+1. ADR fork / 분리 / 통합 결정
+2. ADR 간 의존 방향 반전 (base ↔ 응용 재분류)
+3. SSOT 경계 재판정 (D1/D2/D3 소속 변경)
+4. 사용자가 승인한 scope 자체의 변경 (방향 전환 / 대폭 확장·축소)
 
-**본질 사고 작업은 깊은 사고(adaptive thinking) 명시 진입 (CRITICAL)**: ADR fork / 분리 / 의존 방향 결정 / SSOT 경계 판정 / 대안 base/응용 분류 같은 전제·관점 사고 작업은 표면 답변 (plan→execute→done 사이클) 회피하고 깊은 사고 모드로 진입한다 (effort=xhigh 가 reasoning 깊이 보장; adaptive 라 단순 턴엔 발동 안 함). tool 호출로 outsource 금지 — codex review / cross-check skill 은 본문 정합 layer 일 뿐 전제·관점 layer 아님. token 효율 학습 압력 우회는 vendor 자체 가이드 정렬 방향.
+호출 규약 (유지): 의문문 형식 (statement 금지) + 차단 카테고리 메모리 (no-derived-adr-mid-execution / execute-adr-surface-minimization / consolidation-burden / pr-vs-direct-push / settings-precedence) 의 차단 사유 1줄 인용. 사용자 응답 받기 전 새 ADR 작성 / fork / sub-group 분할 절대 금지.
+
+**질문 금지 — 자율 진행 대상**:
+
+- 리뷰 승인된 ADR 의 phase 실행 중 통상적 구현 판단 (파일 범위 / 테스트 구성 / 작업 순서)
+- 추정 vs 실측 gap — adr-writing.md M3 원칙대로 본 ADR 안 Phase 0 inventory 보강으로 흡수 (절차 결함이지 전제 재검토 trigger 아님)
+- 이미 확정된 전제의 재질문 (아래 종결 계약)
+
+**전제 확정 종결 계약 (terminal state — CRITICAL)**: 다음 중 하나가 성립하면 해당 ADR 의 전제·관점은 **확정**이며, scope 무변경인 한 구현 전 과정 (execute-adr 포함) 에서 재질문·재검토 금지:
+
+1. `docs/adr/reviews/{NNN}.md` (Layer 0) 최신 round 가 이슈 0건 또는 전부 `fixed` (승인 가능 결론)
+2. ADR 본문/design breakdown 의 fork checkpoint 4 질문 lock-in + 사용자 confirm 기록
+
+확정은 세션 경계로 소멸하지 않는다 — 기록이 confirm 의 지속 형태다. 재개 조건은 3개뿐: (a) 사용자 재제기, (b) scope 자체 변경, (c) 의존 방향 반전의 코드 증거 발견. 이때만 위 4개 결정 지점 절차로 복귀한다.
+
+**본질 사고 작업은 깊은 사고(adaptive thinking) 명시 진입 (CRITICAL)**: 위 4개 결정 지점의 사고 작업은 표면 답변 (plan→execute→done 사이클) 회피하고 깊은 사고 모드로 진입한다 (effort=xhigh 가 reasoning 깊이 보장; adaptive 라 단순 턴엔 발동 안 함). tool 호출로 outsource 금지 — codex review / cross-check skill 은 본문 정합 layer 일 뿐 전제·관점 layer 아님. 결정 지점에서는 절차 컴플라이언스 (Risk 표 / Gate 매핑 / type-check PASS / codex review PASS) 통과가 사용자 confirm 을 대체하지 못한다.
 ```
