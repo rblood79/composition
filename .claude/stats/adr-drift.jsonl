@@ -31,3 +31,4 @@
 {"sha":"c871ac6ea0a5c7ad504e4554ae9c9d00329aacc5","date":"2026-06-22T15:55:11+09:00","promoted_adrs":["docs/adr/completed/913-catalog-reference-rebuild.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"fb8bb5123e62c204571b435b32e3b4baaec35ab3","date":"2026-07-06T01:22:56+09:00","promoted_adrs":["docs/adr/916-unified-rust-engine.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"0fd2a3bd307e86de1f33975222ea2b814f201d86","date":"2026-07-08T01:13:28+09:00","promoted_adrs":["docs/adr/completed/138-component-palette-reusable.md"],"readme_updated":true,"changelog_updated":false,"synced":false}
+{"sha":"a360c13b5813173a2e1efa3ceb12b9e47f416ef1","date":"2026-07-08T02:14:10+09:00","promoted_adrs":["docs/adr/completed/916-unified-rust-engine.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
