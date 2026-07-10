@@ -1,9 +1,7 @@
 ---
 name: review-adr
-description: 작성된 ADR 문서의 검증이 필요할 때 발동 — "ADR 리뷰/검토", "review ADR", 위험 평가 확인 요청 시. 코드 리뷰/PR 리뷰에는 사용하지 않는다.
-TRIGGER when: "ADR 리뷰", "ADR 검토", "설계 문서 리뷰", "아키텍처 리뷰", "review ADR", "architecture review", "design review", "ADR 위험 평가"
+description: docs/adr/ 의 작성된 ADR 문서 검증이 필요할 때 발동 — "ADR 리뷰", "ADR 검토", "설계 문서 리뷰", "아키텍처 리뷰", "review ADR", "architecture review", "design review", "ADR 위험 평가" 요청 시. 코드 리뷰/PR 리뷰에는 사용하지 않는다.
 user-invocable: true
-scope: docs/adr/ 디렉토리의 ADR 문서
 ---
 
 # Review ADR: 아키텍처 결정 문서 검증

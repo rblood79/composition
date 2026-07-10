@@ -38,52 +38,50 @@
 <!-- usage-stats-begin -->
 <!-- 자동 생성: .claude/hooks/update-index.sh — 수동 편집 금지 -->
 
-## 📊 최근 30일 사용 빈도 (갱신: 2026-05-09)
+## 📊 최근 30일 사용 빈도 (갱신: 2026-07-11)
 
 ### Skills
 
-| Skill                                      | 호출 수 |
-| ------------------------------------------ | ------: |
-| review-adr                                 |      30 |
-| create-adr                                 |      17 |
-| composition-patterns                       |      11 |
-| superpowers:systematic-debugging           |      10 |
-| superpowers:writing-plans                  |       9 |
-| superpowers:subagent-driven-development    |       8 |
-| superpowers:brainstorming                  |       8 |
-| cross-check                                |       7 |
-| parallel-verify                            |       5 |
-| superpowers:executing-plans                |       4 |
-| update-config                              |       3 |
-| superpowers:using-superpowers              |       3 |
-| superpowers:using-git-worktrees            |       3 |
-| superpowers:dispatching-parallel-agents    |       3 |
-| execute-adr                                |       3 |
-| codex:rescue                               |       3 |
-| superpowers:verification-before-completion |       2 |
-| superpowers:test-driven-development        |       1 |
-| superpowers:requesting-code-review         |       1 |
-| superpowers:finishing-a-development-branch |       1 |
-| new-adr                                    |       1 |
-| codex:setup                                |       1 |
-| codex:codex-result-handling                |       1 |
-| claude-code-guide                          |       1 |
+| Skill | 호출 수 |
+| --- | ---: |
+| composition-patterns | 12 |
+| superpowers:systematic-debugging | 10 |
+| systematic-debugging | 7 |
+| review-adr | 6 |
+| execute-adr | 6 |
+| cross-check | 6 |
+| create-adr | 5 |
+| superpowers:brainstorming | 4 |
+| brainstorming | 4 |
+| writing-plans | 3 |
+| superpowers:writing-plans | 3 |
+| react-aria | 3 |
+| test-driven-development | 2 |
+| superpowers:subagent-driven-development | 2 |
+| executing-plans | 2 |
+| using-superpowers | 1 |
+| superpowers:writing-skills | 1 |
+| superpowers:test-driven-development | 1 |
+| superpowers:finishing-a-development-branch | 1 |
+| superpowers:executing-plans | 1 |
+| superpowers:dispatching-parallel-agents | 1 |
+| new-adr | 1 |
+| codex:setup | 1 |
+| codex:rescue | 1 |
 
 ### Agents
 
-| Agent                     | 호출 수 |
-| ------------------------- | ------: |
-| implementer               |     114 |
-| Explore                   |      69 |
-| general-purpose           |      62 |
-| reviewer                  |      54 |
-| architect                 |      30 |
-| debugger                  |      18 |
-| documenter                |      14 |
-| superpowers:code-reviewer |      12 |
-| codex:codex-rescue        |      11 |
-| refactorer                |       9 |
-| evaluator                 |       8 |
-| tester                    |       6 |
+| Agent | 호출 수 |
+| --- | ---: |
+| Explore | 205 |
+| reviewer | 40 |
+| general-purpose | 36 |
+| implementer | 29 |
+| debugger | 13 |
+| Plan | 3 |
+| codex:codex-rescue | 3 |
+| claude-code-guide | 3 |
+| documenter | 2 |
+| architect | 2 |
 
 <!-- usage-stats-end -->

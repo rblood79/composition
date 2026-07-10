@@ -1,9 +1,7 @@
 ---
 name: component-design
-description: 새 UI 컴포넌트를 생성/설계하거나 기존 컴포넌트의 구조를 변경(catalog 등록, S2 전환)해야 할 때 발동. 단순 버그 수정/스타일 변경에는 사용하지 않는다.
-TRIGGER when: user mentions "새 컴포넌트", "컴포넌트 만들어", "컴포넌트 구현", "컴포넌트 설계", "S2 전환", "S2 기능 추가", "컴포넌트 추가", "new component", "implement component", "design component", or asks to create, design, or implement a new UI component for composition.
+description: 새 UI 컴포넌트를 생성/설계하거나 기존 컴포넌트의 구조를 변경(catalog 등록, S2 전환)해야 할 때 발동 — "새 컴포넌트", "컴포넌트 만들어", "컴포넌트 구현", "컴포넌트 설계", "S2 전환", "S2 기능 추가", "컴포넌트 추가", "new component", "implement component", "design component" 요청 또는 composition 용 새 UI 컴포넌트 생성/설계/구현 요청 시. 단순 버그 수정/스타일 변경에는 사용하지 않는다.
 user-invocable: true
-scope: 새 컴포넌트 생성 또는 기존 컴포넌트의 구조적 변경 (단순 버그 수정, 스타일 변경은 제외)
 ---
 
 # Component Design Skill

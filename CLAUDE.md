@@ -112,14 +112,16 @@ unit-test / type-check / codex:preflight 통과는 **"코드가 자기 자신과
 
 ## Slash Commands (표준 워크플로)
 
-| Command         | 동작                                                      |
-| --------------- | --------------------------------------------------------- |
-| `/cross-check`  | CSS↔Skia 정합성 검증                                      |
-| `/new-adr`      | ADR 생성 (번호 자동 + Risk-First)                         |
-| `/impl`         | brainstorm → plan → implement → review → evaluate         |
-| `/fix`          | systematic-debugging → debugger → cross-check             |
-| `/review`       | verification-before-completion → reviewer agent           |
-| `/sweep`        | parallel-verify (패밀리 일괄)                             |
+| Command          | 동작                                                      |
+| ---------------- | --------------------------------------------------------- |
+| `/cross-check`   | CSS↔Skia 정합성 검증                                      |
+| `/new-adr`       | ADR 생성 (번호 자동 + Risk-First)                         |
+| `/impl`          | brainstorm → plan → implement → review → evaluate         |
+| `/fix`           | systematic-debugging → debugger → cross-check             |
+| `/review`        | verification-before-completion → reviewer agent           |
+| `/sweep`         | parallel-verify (패밀리 일괄)                             |
+| `/execute-adr`   | ADR 미완료 phase 자율 실행 (type-check + cross-check + main 직접 push) |
+| `/match-target`  | 참조 이미지 vision-based 수렴 루프 (visual tuning)        |
 
 자세한 skill 목록과 사용 빈도: [skills/INDEX.md](.claude/skills/INDEX.md)
 
@@ -163,11 +165,13 @@ unit-test / type-check / codex:preflight 통과는 **"코드가 자기 자신과
 
 ### 사용 통계 자동화
 
-| 스크립트                        | 호출 시점                 | 역할                                                          |
-| ------------------------------- | ------------------------- | ------------------------------------------------------------- |
-| `daily-stats-snapshot.sh`       | SessionStart (백그라운드) | 하루 1회 — 세션 transcript grep 집계 → `stats/daily-log.jsonl` 1 entry |
-| `update-index.sh`               | weekly-report.sh 종료 시  | `skills/INDEX.md` 하단 사용 빈도 블록 자동 갱신               |
-| `weekly-report.sh [days]`       | 수동 실행                 | 주간 리포트 + INDEX.md 갱신                                    |
+| 스크립트                        | 호출 시점                          | 역할                                                          |
+| ------------------------------- | ---------------------------------- | ------------------------------------------------------------- |
+| `daily-stats-snapshot.sh`       | SessionStart (백그라운드, 자동)    | 하루 1회 — 세션 transcript grep 집계 → `stats/daily-log.jsonl` 1 entry |
+| `update-index.sh`               | `weekly-report.sh` 종료 시 (연쇄)  | `skills/INDEX.md` 하단 사용 빈도 블록 갱신 — **자동 hook 미등록, 아래 수동 실행에만 의존** |
+| `weekly-report.sh [days]`       | **수동 실행 전용** (hook/cron 미등록) | 주간 리포트 + INDEX.md 갱신. 실행 안 하면 usage-stats 블록이 정체됨 — 주기적 수동 실행 권장 |
+
+> **참고**: `daily-log.jsonl` (일별 스냅샷) 만 SessionStart 로 자동 갱신된다. `INDEX.md` 의 usage-stats 블록은 `weekly-report.sh` / `update-index.sh` 를 **수동 실행**할 때만 갱신되므로, 블록 헤더의 "갱신: YYYY-MM-DD" 가 오래됐으면 `.claude/hooks/update-index.sh 30` 를 직접 실행한다.
 
 로그 파일:
 - `stats/daily-log.jsonl` — 일별 1 entry (`date/sessions/turns/skills/agents`). skill/agent 집계는 현존 세션 transcript(`~/.claude/projects/`) grep 기반 — transcript 정리 시 수치 감소 가능 (단조 누적 아님)

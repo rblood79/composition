@@ -94,13 +94,35 @@ if [ -z "$TRANSCRIPT" ] || [ ! -f "$TRANSCRIPT" ]; then
   exit 0
 fi
 
-# 직전 5개 사용자 메시지 (userType=external + content=string) 추출
+# 직전 사용자 메시지 (userType=external + content=string) 최근 8개
+#
+# 2026-07-11 오탐 방지 (derived-adr-block.sh 2026-06-01 fix 를 이 hook 에도 반영):
+#   jq 필터가 system 주입 메시지(<task-notification> / slash command / local-command
+#   stdout / 자율 loop tick / bash-input 등)도 userType=external + content=string 으로
+#   통과시켜, 이것들이 tail 윈도우를 잠식 → 진짜 사용자 발화("PR 만들어줘")가 윈도우 밖으로
+#   밀려남 → deny 오탐. 본 hook 은 derived-adr-block 과 달리 deny(강한 차단)를 쓰므로
+#   오염 시 사용자의 정당한 발의조차 막는 손실이 더 크다.
+#   → system 주입 패턴을 사용자 발화에서 제외한 뒤 tail -8 (마진 확대) 로 진짜 발화만 검사.
 RECENT_USER_MSG=$(jq -r '
   select(.type == "user"
     and (.userType // "") == "external"
     and ((.message.content // "") | type) == "string")
   | .message.content
-' "$TRANSCRIPT" 2>/dev/null | tail -5)
+  | select(
+      (startswith("<task-notification") | not)
+      and (startswith("<command-") | not)
+      and (startswith("<local-command") | not)
+      and (startswith("<bash-input>") | not)
+      and (startswith("<bash-stdout>") | not)
+      and (startswith("<bash-stderr>") | not)
+      and (startswith("Caveat:") | not)
+      and (contains("autonomous-loop") | not)
+      and (startswith("# Autonomous loop") | not)
+      and (startswith("You scheduled this tick") | not)
+      and (startswith("Use PushNotification") | not)
+      and ((. | gsub("^[[:space:]]+";"")) != "")
+    )
+' "$TRANSCRIPT" 2>/dev/null | tail -8)
 
 # 발의 의도 키워드 매칭 (case-insensitive)
 # 발의 (생성/머지):

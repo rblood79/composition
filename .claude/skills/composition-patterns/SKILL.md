@@ -1,9 +1,7 @@
 ---
 name: composition-patterns
-description: Defines code patterns, rules, and best practices for composition Builder application. Covers layout engine, Canvas rendering, state management, styling, and component architecture. Use when writing, reviewing, refactoring, or debugging any composition code, or when making architectural decisions about the builder.
-TRIGGER when: user mentions "코드 패턴", "규칙 확인", "컨벤션 체크", "아키텍처 규칙", "composition 규칙", "패턴 체크", "코드 리뷰 기준", "code patterns", "conventions", "architecture rules", or asks about composition coding standards, Spec rules, rendering conventions, or state management patterns.
+description: Defines code patterns, rules, and best practices for composition Builder application (apps/builder, packages/specs, packages/shared, packages/composition-engine). Covers layout engine, Canvas rendering, state management, styling, and component architecture. Use when writing, reviewing, refactoring, or debugging any composition code, when making architectural decisions about the builder, or on "코드 패턴", "규칙 확인", "컨벤션 체크", "아키텍처 규칙", "composition 규칙", "패턴 체크", "코드 리뷰 기준", "code patterns", "conventions", "architecture rules" requests.
 user-invocable: true
-scope: composition Builder codebase (apps/builder, packages/specs, packages/shared, packages/composition-engine)
 ---
 
 # composition Patterns Skill

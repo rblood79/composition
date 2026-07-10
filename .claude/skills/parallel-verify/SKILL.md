@@ -1,7 +1,7 @@
 ---
 name: parallel-verify
 description: 다수 컴포넌트/패밀리의 5-레이어(spec/factory/CSS renderer/Skia renderer/editor) 일괄 정합성 검증이 필요할 때 사용 — "병렬 검증", "전체 컴포넌트 체크", "패밀리별 검증", "parallel verify", "일괄 검증", "전체 정합성" 요청 또는 catalog/spec 대량 수정 후 다수 컴포넌트 영향 시 발동.
-user_invocable: true
+user-invocable: true
 ---
 
 # Parallel Verify: 컴포넌트 패밀리별 병렬 검증

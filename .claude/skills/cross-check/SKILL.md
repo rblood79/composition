@@ -1,7 +1,7 @@
 ---
 name: cross-check
 description: CSS↔Skia 2-way 렌더링 정합성 검증에 사용. spec/catalog/CSS/factory/렌더러 변경 후 Builder(Skia)↔Preview(DOM) 시각 대칭 검증이 필요할 때, 또는 "정합성 체크", "정합성 검증", "렌더링 체크", "cross check", "렌더링 경로 확인", "Preview Canvas 비교" 요청 시 발동.
-user_invocable: true
+user-invocable: true
 ---
 
 ## SSOT 체인 내 위상 (CRITICAL)

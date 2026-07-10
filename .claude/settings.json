@@ -46,8 +46,7 @@
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/type-check-gate.sh",
             "timeout": 120,
-            "asyncRewake": true,
-            "rewakeSummary": "type-check / build:specs 실패"
+            "asyncRewake": true
           },
           {
             "type": "command",

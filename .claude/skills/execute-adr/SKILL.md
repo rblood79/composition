@@ -1,7 +1,7 @@
 ---
 name: execute-adr
 description: Accepted 상태 ADR 의 미반영 phase 를 자율 실행해야 할 때 사용 — "ADR 실행", "execute adr", "Phase 실행해", "ADR-NNN 진행해줘", "다음 Phase 실행" 요청 또는 ADR 번호 + 진행 의지 결합 시 발동. fork checkpoint / HIGH 위험 phase / 전제·관점 의문은 사용자에게 surface.
-user_invocable: true
+user-invocable: true
 ---
 
 # Execute-ADR: Multi-Phase Autonomous Implementation
