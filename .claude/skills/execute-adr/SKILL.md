@@ -14,14 +14,14 @@ ADR + design breakdown 파일을 읽어 미반영 phase 를 순차 자율 실행
 
 ## 입력 요구사항
 
-| 입력           | 형식                                | 예시                                         |
-| -------------- | ----------------------------------- | -------------------------------------------- |
-| **ADR 번호**   | 정수 (NNN)                          | `912`                                        |
-| **phase 범위** | (optional) `P3-α` / `Phase 2` 등    | `P3-α` (생략 시 다음 미반영 phase 자동 선택) |
-| **mode**       | `auto` / `confirm-each-phase` 중 1  | default `confirm-each-phase`                 |
-| **max phases** | (optional) 한 세션 내 최대 phase 수 | default 3 (HIGH 비용 작업 누적 차단)         |
+| 입력           | 형식                                | 예시                                                               |
+| -------------- | ----------------------------------- | ------------------------------------------------------------------ |
+| **ADR 번호**   | 정수 (NNN)                          | `912`                                                              |
+| **phase 범위** | (optional) `P3-α` / `Phase 2` 등    | `P3-α` (생략 시 다음 미반영 phase 자동 선택)                       |
+| **mode**       | `auto` / `confirm-each-phase` 중 1  | default: 리뷰 승인 기록 있으면 `auto`, 없으면 `confirm-each-phase` |
+| **max phases** | (optional) 한 세션 내 최대 phase 수 | default 3 (HIGH 비용 작업 누적 차단)                               |
 
-`auto` 는 사용자가 명시적으로 지정한 경우만. default 는 phase 시작 / 종료마다 사용자 surface.
+**mode default 판정 (2026-07-11 종결 계약 — CLAUDE.md §전제·관점 의문 처리, 사용자 승인)**: `docs/adr/reviews/{NNN}.md` 최신 round 가 이슈 0건 또는 전부 `fixed` 면 default `auto` — phase 시작/종료 surface 생략. **HIGH+ phase surface 는 auto 에서도 유지**. 리뷰 승인 기록이 없으면 default `confirm-each-phase`. 사용자 명시 지정이 항상 우선.
 
 ## Phase 0: 사전 조건 (CRITICAL — 미충족 시 즉시 종료)
 
