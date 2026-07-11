@@ -106,6 +106,13 @@ unit-test / type-check / codex:preflight 통과는 **"코드가 자기 자신과
 - **Why (/insights 30일 진단, 2026-07-11)**: 세션 손실 주범이 tool-call 직렬화 실패 (파라미터 empty strip) + output token limit 초과 — reasoning 문제 아님 (buggy_code 20 세션 vs 잘못 이해 3 세션). 거대 단일 출력일수록 실패 확률이 높고, 실패 시 세션 전체가 손실된다. phase 분할은 손실 범위를 해당 phase 로 국한하는 유일한 사용자-측 레버. 상세: 메모리 `reference-insights-session-loss-diagnosis`.
 - tool call 이 직렬화 실패로 반환되면 **같은 호출 그대로 재시도 금지** — 더 작은 단위로 쪼개서 재시도.
 
+### 마크다운 표 편집 — 다중 Edit 대신 블록 단위 Write (2026-07-11)
+
+정렬된 마크다운 표·정렬 의존 텍스트를 수정할 때는 여러 Edit 호출로 부분 수정하지 않는다 — 표 블록 전체 (필요 시 파일 전체) 를 Write 로 교체한다:
+
+- **Why (/insights 30일 진단, 2026-07-11)**: Edit 의 old_string 이 공백/표 정렬 mismatch 로 반복 실패 → Python 줄 치환 우회 같은 rework 가 문서 세션 다수에서 관측됨. 표는 셀 폭 정렬 문자가 많아 Edit 정확 일치 실패 확률이 구조적으로 높다.
+- **포맷터가 되돌릴 수동 정렬 작업 금지**: Prettier PostToolUse hook 이 표 정렬을 재포맷하므로, 손으로 표 압축·칸 맞춤을 다듬는 작업은 hook 이 즉시 되돌린다. 내용만 쓰고 정렬은 포맷터에 위임.
+
 ## Agent 라우팅 매트릭스
 
 | 요청 유형          | 1차 agent    | 2차 검증                | 관련 skill                             |
