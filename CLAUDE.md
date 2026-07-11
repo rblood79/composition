@@ -253,7 +253,7 @@ unit-test / type-check / codex:preflight 통과는 **"코드가 자기 자신과
 
 **마지막 지침**:
 항상 **Plan 먼저 → Execute → Verify (`/cross-check` + `type-check`)** 순서를 지킨다.
-불확실한 부분은 질문을 먼저 하고, 가정하지 않는다.
+불확실한 부분이 아래 "전제·관점 의문 처리" 의 4개 결정 지점에 해당하면 질문을 먼저 한다. 그 외의 불확실성은 가정 대신 코드·문서 실측으로 해소한 뒤 자율 진행 + 사후 보고한다 (2026-07-11 한정 — 무조건부 "질문 먼저" 는 종결 계약과 충돌).
 
 **응답·문서 어휘 규칙 — 의회적·영어 은어 표현 회피 (CRITICAL)**:
 
@@ -298,7 +298,7 @@ unit-test / type-check / codex:preflight 통과는 **"코드가 자기 자신과
 
 **전제 확정 종결 계약 (terminal state — CRITICAL)**: 다음 중 하나가 성립하면 해당 ADR 의 전제·관점은 **확정**이며, scope 무변경인 한 구현 전 과정 (execute-adr 포함) 에서 재질문·재검토 금지:
 
-1. `docs/adr/reviews/{NNN}.md` (Layer 0) 최신 round 가 이슈 0건 또는 전부 `fixed` (승인 가능 결론)
+1. `docs/adr/reviews/{NNN}.md` (Layer 0) 최신 round 가 이슈 0건, 또는 모든 이슈 outcome 이 종결 상태 (`fixed`/`deferred`/`rejected` — `pending` 0건) 이고 CRITICAL/HIGH 는 전부 `fixed` (승인 가능 결론). **"전부 fixed" 단독 기준 금지** — writer outcome 스키마 4종 (fixed|deferred|rejected|pending) 과 불일치해, LOW 이슈가 `deferred`/`rejected` 로 종결된 실질 승인 ADR (ADR-146 round 6 실측) 을 미확정으로 잘못 판정한다 (2026-07-11 정정)
 2. ADR 본문/design breakdown 의 fork checkpoint 4 질문 lock-in + 사용자 confirm 기록
 
 확정은 세션 경계로 소멸하지 않는다 — 기록이 confirm 의 지속 형태다. 재개 조건은 3개뿐: (a) 사용자 재제기, (b) scope 자체 변경, (c) 의존 방향 반전의 코드 증거 발견. 이때만 위 4개 결정 지점 절차로 복귀한다.

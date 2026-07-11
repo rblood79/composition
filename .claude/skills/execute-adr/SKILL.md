@@ -21,19 +21,19 @@ ADR + design breakdown 파일을 읽어 미반영 phase 를 순차 자율 실행
 | **mode**       | `auto` / `confirm-each-phase` 중 1  | default: 리뷰 승인 기록 있으면 `auto`, 없으면 `confirm-each-phase` |
 | **max phases** | (optional) 한 세션 내 최대 phase 수 | default 3 (HIGH 비용 작업 누적 차단)                               |
 
-**mode default 판정 (2026-07-11 종결 계약 — CLAUDE.md §전제·관점 의문 처리, 사용자 승인)**: `docs/adr/reviews/{NNN}.md` 최신 round 가 이슈 0건 또는 전부 `fixed` 면 default `auto` — phase 시작/종료 surface 생략. **HIGH+ phase surface 는 auto 에서도 유지**. 리뷰 승인 기록이 없으면 default `confirm-each-phase`. 사용자 명시 지정이 항상 우선.
+**mode default 판정 (2026-07-11 종결 계약 — CLAUDE.md §전제·관점 의문 처리, 사용자 승인)**: `docs/adr/reviews/{NNN}.md` 최신 round 가 이슈 0건, 또는 모든 이슈 outcome 이 종결 상태 (`fixed`/`deferred`/`rejected` — `pending` 0건) 이고 CRITICAL/HIGH 는 전부 `fixed` 면 default `auto` — phase 시작/종료 surface 생략. **HIGH+ phase surface 는 auto 에서도 유지** (해당 phase 단위 판정 — §HIGH+ 차단 룰). 리뷰 승인 기록이 없으면 default `confirm-each-phase`. 사용자 명시 지정이 항상 우선.
 
 ## Phase 0: 사전 조건 (CRITICAL — 미충족 시 즉시 종료)
 
 Phase 1 진입 전 모두 통과:
 
-- [ ] `docs/adr/{NNN}-*.md` 또는 `docs/adr/completed/{NNN}-*.md` 존재 + Status 가 `Accepted` 또는 `In Progress` (Proposed / Implemented / Superseded → 진입 거부. `completed/` 매치 = 이미 Implemented → 진입 거부 — completed/ 탐색은 이 거부 사유를 확정하기 위한 것)
+- [ ] `docs/adr/{NNN}-*.md` 또는 `docs/adr/completed/{NNN}-*.md` 존재 + Status 가 `Accepted` 또는 `In Progress` (Implemented / Superseded → 진입 거부. `completed/` 매치 = 이미 Implemented → 진입 거부 — completed/ 탐색은 이 거부 사유를 확정하기 위한 것). **`Proposed` + 아래 전제 확정 조건 충족 시 → 되묻지 않고 `Accepted` 승격을 착수 절차에 포함** (Status 변경 + README.md 테이블 동시 갱신 후 진행 — adr-writing.md §Status 전이 "합의 완료" 가 리뷰 승인 기록으로 성립. 리뷰 승인 기록 없는 `Proposed` 만 진입 거부. Why: 리뷰 승인 ↔ Status 승격을 잇는 자동 절차 부재가 착수 시점 재질문의 1차 원인 — 2026-07-11 진단, ADR-148/149 실측)
 - [ ] design breakdown (`docs/adr/design/{NNN}-*-breakdown.md`) 존재 — 없으면 즉시 종료 + "design breakdown 없는 ADR 자율 실행 금지 (adr-writing.md 위반)" 보고
-- [ ] git working tree clean — uncommitted 변경 있으면 사용자에게 commit / stash 요청
+- [ ] git working tree clean — 단 **auto-dirty 파일 allowlist 는 dirty 판정에서 제외**: `.claude/stats/*` (SessionStart hook 자동 갱신) 는 잔여 커밋으로 선행 정리 후 통과 (사용자에게 되묻지 않음). 그 외 파일의 uncommitted 변경 있으면 사용자에게 commit / stash 요청 (Why: stats hook 이 매 세션 tree 를 dirty 로 만들어 세션 첫 착수마다 불필요 재질문 발생 — 2026-07-11 진단)
 - [ ] `git status` 의 branch 가 `main` — 다른 branch 면 "main 에서 직접 진행 (git-workflow.md 절대 정책)" 알림 + 사용자 confirm
 - [ ] `pnpm type-check` baseline PASS — 시작 시점 회귀 0 보장
 - [ ] dist 신선도 (cross-check skill §5.0) — `.spec-rebuild-pending` flag 없음 + dist 존재
-- [ ] **전제 확정 확인 (종결 계약 — CLAUDE.md §전제·관점 의문 처리)**: `docs/adr/reviews/{NNN}.md` 최신 round 가 이슈 0건 또는 전부 `fixed` 면 전제 확정 — 재점검·재질문 없이 통과 (scope 무변경 전제). 리뷰 기록이 없을 때만 design breakdown 의 fork checkpoint 4 질문 lock-in 확인 (adr-writing.md)
+- [ ] **전제 확정 확인 (종결 계약 — CLAUDE.md §전제·관점 의문 처리)**: `docs/adr/reviews/{NNN}.md` 최신 round 가 이슈 0건, 또는 모든 이슈 outcome 이 종결 상태 (`pending` 0건) 이고 CRITICAL/HIGH 전부 `fixed` 면 전제 확정 — 재점검·재질문 없이 통과 (scope 무변경 전제. `deferred`/`rejected` 는 종결 상태로 인정 — "전부 fixed" 단독 기준 금지). 리뷰 기록이 없을 때만 design breakdown 의 fork checkpoint 4 질문 lock-in 확인 (adr-writing.md)
 
 미충족 시 budget 0 사용 후 종료 — phase 1 진입 금지.
 
@@ -52,14 +52,15 @@ Phase 1 진입 전 모두 통과:
    - 사용자가 "잠깐" / "확인할게" / "아니" 답하면 종료 + 결과 요약
 ```
 
-### HIGH+ phase 자동 진행 차단 룰
+### HIGH+ phase 자동 진행 차단 룰 (phase 단위 판정 — 2026-07-11 정정)
 
-design breakdown 또는 ADR Risks 섹션에서 다음 키워드 발견 시 무조건 사용자 surface:
+**해당 phase 에 귀속된 위험만 판정한다**. 다음 중 하나면 무조건 사용자 surface:
 
-- HIGH / CRITICAL 위험
-- DB schema 변경 / migration
-- breaking change
-- Phase 분리 가능 표현 (adr-writing.md "이 Phase 를 별도 ADR 로 분리 가능한가?")
+- design breakdown 의 **해당 phase** risk-level 표기가 HIGH / CRITICAL
+- ADR Risks 표에서 **해당 phase 에 매핑된** R{ID} 심각도가 HIGH / CRITICAL
+- **해당 phase 의 작업 내용**에 DB schema 변경 / migration / breaking change 포함
+
+**문서 전체 키워드 grep 금지**: Risk-First 템플릿 특성상 "HIGH" 문자열은 4축 평가·Risk Threshold Check 로 거의 모든 ADR 문서에 존재한다. 문서 단위 검출은 리뷰 승인 auto 모드를 사실상 무효화하며, 착수 시점 불필요 재질문의 구조 원인이었다 (2026-07-11 진단).
 
 ## Phase 2: 구현 사이클 (단일 phase)
 

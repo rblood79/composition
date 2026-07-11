@@ -233,7 +233,7 @@ cat <<'EOF' | node .claude/scripts/adr-review/writer.mjs
       "summary": "<한 줄 요약>",
       "evidence": "<파일:line>",
       "root_cause": "<...>",
-      "outcome": "pending"
+      "outcome": "<기록 시점 실제 상태: pending | fixed | deferred | rejected>"
     }
   ],
   "bodyMd": "<Phase 4 마크다운 본문>"
@@ -242,6 +242,12 @@ EOF
 ```
 
 `issues` 가 빈 배열(`[]`)이어도 정상 — Layer 0 에 "이슈 없음 승인" 기록으로 저장.
+
+### Outcome 종결 의무 (2026-07-11 — 종결 계약 연계, CRITICAL)
+
+- `outcome` 은 **기록 시점의 실제 상태**를 반영한다 — 기본값 `pending` 을 기계적으로 넣지 않는다. 리뷰 중 이미 해소를 확인한 이슈는 `fixed` + `addressed_in` (commit/round 참조) 로 기록.
+- **종합 판정이 "승인 가능" 인 round 는 `pending` 잔존 금지** — 각 이슈를 `fixed` / `deferred` / `rejected` 중 하나로 종결한다. 이전 round 의 `pending` 이슈도 해소 여부를 확인해 해당 round frontmatter 의 `outcome` 을 직접 갱신한다 (round 본문은 append-only 보존, frontmatter outcome 필드만 상태 갱신 대상).
+- **Why**: execute-adr auto 모드와 전제 확정 종결 계약 (CLAUDE.md §전제·관점 의문 처리) 이 최신 round 의 outcome 을 기계 판독한다. `pending` 잔존 = 실질 승인 ADR 이 미확정으로 판정되어 착수 시점 재질문 루프 재발 (2026-07-11 진단: 912=7 / 913=10 pending 잔존 실측 — 본문 프로즈는 "승인 가능" 인데 frontmatter 는 미종결).
 
 ### 출력 처리
 

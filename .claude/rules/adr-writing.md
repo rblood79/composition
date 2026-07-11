@@ -49,6 +49,8 @@ ADR의 목적은 **미래의 개발자가 "왜 이렇게 결정했는가"를 이
 
 4 질문 통과 후 ADR 본문 작성 직전, **claude 가 AskUserQuestion 으로 사용자 명시 confirm 요청 의무**. ADR 본문에 4 질문 lock-in 만으로 confirm 자동 처리 금지 (ADR-127 우회 패턴: 본문 self-lock-in 으로 사용자 confirm 단계 skip). confirm 받은 적 없으면 fork 차단 — 현 ADR scope 안 흡수 (옵션 1) 또는 직후 phase 흡수 (옵션 2). 본 규칙 근거: `~/.claude/plans/adr-123-124-125-126-sunny-crescent.md` M2.
 
+**종결 계약 연계 (2026-07-11)**: 이미 사용자 confirm 기록이 있는 fork 결정 (CLAUDE.md §전제·관점 의문 처리 — 전제 확정 종결 계약 성립) 은 재질문 금지. 기록이 confirm 의 지속 형태이며, 세션 경계로 소멸하지 않는다.
+
 ### 4 질문 통과 절차 (사용자 1회 confirm 필수)
 
 ADR 분리 결정을 commit 하기 **전에** 다음 4 질문을 ADR 본문 또는 design breakdown §1 에 1줄씩 lock-in 한다. 사용자 confirm 받기 전에는 sub-phase 분해 (α/β/γ/δ 류) 진입 금지.
@@ -75,6 +77,8 @@ design breakdown 의 phase 실행 중 다음 조건 발견 시 **AskUserQuestion
 - **commit 단위 sliver 분해**: `narrow ADR-NNN ...` / `Phase X-α/β/γ` 형식 commit 이 5 개 이상 누적 예상. 사용자 question 예시: "본 phase 가 5+ commit 으로 분해 예상 — 단일 commit 통합 반영 가능?"
 
 confirm 받지 못하면 분할/inflation 차단, 단일 phase 안 진행 또는 design 재freeze 사용자 결정. ADR-126 Phase 2 sub-group 5 분할 + 22+ "narrow ..." commit 패턴 재발 차단 (~/.claude/plans/adr-123-124-125-126-sunny-crescent.md M4).
+
+**종결 계약 해제 조건 (2026-07-11)**: 리뷰 승인으로 전제가 확정된 ADR (CLAUDE.md §전제·관점 의문 처리 — 전제 확정 종결 계약 성립) 의 phase 실행 중에는 본 M4 질문 의무를 적용하지 않는다 — **자율 진행 + 사후 보고** (분할/확장 사실을 커밋 메시지·완료 보고에 명시) 로 대체. 단, 결정 지점 ④ (사용자가 승인한 scope 자체의 변경 — 방향 전환 / 대폭 확장·축소) 에 해당하면 여전히 질문 대상.
 
 ### 금지 패턴
 
