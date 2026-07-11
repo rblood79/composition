@@ -97,6 +97,15 @@ unit-test / type-check / codex:preflight 통과는 **"코드가 자기 자신과
 - commit 검증 블록 / 완료 보고에 **무엇을 실제로 exercise 했는지** 명시 (test 개수만 나열 금지).
 - **Why (ADR-144 사례, 2026-05-22)**: Wave C 가 `9 test / 50 cases PASS + type-check 0 violation + codex:preflight 통과` 로 Implemented 승격됐으나, live builder 에서 composite registration 이 "changed nothing" → closure rollback → 34 commit revert. test 검증 블록에 live behavior 항목이 0개였던 것이 근본 원인. 자동 종결은 `execute-adr` skill Phase 3 (live behavior 게이트) 경유 — 수동 종결 시 동일 게이트 자가 적용.
 
+### 대규모 작업 phase 분할 — 단일 거대 출력 금지 (2026-07-11)
+
+대규모 작업 (다수 파일 일괄 수정 / 전체 리팩토링 / 장문 문서 일괄 생성) 은 **phase 단위로 분할 실행**하고, 각 phase 종료 시점에 commit 가능한 상태를 유지한다:
+
+- 하나의 응답 / 하나의 tool call 에 전체 작업을 몰아넣지 않는다 — phase 당 응답 1개, tool call 도 파일·단계 단위로 분할.
+- 각 phase 완료 → 검증 → commit 후 다음 phase 진행 (CLAUDE.local.md "30분마다 WIP 커밋 분할" 원칙과 동일 방향).
+- **Why (/insights 30일 진단, 2026-07-11)**: 세션 손실 주범이 tool-call 직렬화 실패 (파라미터 empty strip) + output token limit 초과 — reasoning 문제 아님 (buggy_code 20 세션 vs 잘못 이해 3 세션). 거대 단일 출력일수록 실패 확률이 높고, 실패 시 세션 전체가 손실된다. phase 분할은 손실 범위를 해당 phase 로 국한하는 유일한 사용자-측 레버. 상세: 메모리 `reference-insights-session-loss-diagnosis`.
+- tool call 이 직렬화 실패로 반환되면 **같은 호출 그대로 재시도 금지** — 더 작은 단위로 쪼개서 재시도.
+
 ## Agent 라우팅 매트릭스
 
 | 요청 유형          | 1차 agent    | 2차 검증                | 관련 skill                             |
