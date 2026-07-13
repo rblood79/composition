@@ -2379,25 +2379,35 @@ export function applyImplicitStyles(
       paddingLeft: parentStyle.paddingLeft ?? s.px,
       paddingRight: parentStyle.paddingRight ?? s.px,
       gap: parentStyle.gap ?? s.gap,
+      // generated CSS variant emit `border: 1px solid ...` (전 variant 공통) — layout
+      //   미반영 시 border-box 2px 수축 (2026-07-14 sweep)
+      borderWidth: parentStyle.borderWidth ?? 1,
     });
 
-    // 자식 Heading/Description에 spec 기반 font 스타일 주입
+    // 자식 Heading/Description에 spec 기반 font 스타일 주입.
+    //   lineHeight 는 generated CSS 배율 고정값(.alert-heading 1.4 / .react-aria-Description
+    //   1.5) 미러 — 미주입 시 textLeafSpec(generic Heading 24 / Description rule 16)이 이겨
+    //   heading 24 vs 22.4, desc 2줄 32 vs 42 로 발산 (2026-07-14 sweep). 숫자는 배율로
+    //   해석되므로 "px" 문자열 필수 (Label lineHeight 규칙 동형).
     filteredChildren = filteredChildren.map((child) => {
       const cs = (child.props?.style || {}) as Record<string, unknown>;
       if (child.type === "Heading") {
+        const hfs = (cs.fontSize as number) ?? s.headingFontSize;
         return {
           ...child,
           props: {
             ...child.props,
             style: {
               ...cs,
-              fontSize: cs.fontSize ?? s.headingFontSize,
+              fontSize: hfs,
               fontWeight: cs.fontWeight ?? s.headingFontWeight,
+              lineHeight: cs.lineHeight ?? `${hfs * 1.4}px`,
             },
           },
         } as CanvasLayoutNode;
       }
       if (child.type === "Description") {
+        const dfs = (cs.fontSize as number) ?? s.descFontSize;
         return {
           ...child,
           props: {
@@ -2405,8 +2415,9 @@ export function applyImplicitStyles(
             style: {
               ...cs,
               width: cs.width ?? "100%",
-              fontSize: cs.fontSize ?? s.descFontSize,
+              fontSize: dfs,
               fontWeight: cs.fontWeight ?? s.descFontWeight,
+              lineHeight: cs.lineHeight ?? `${dfs * 1.5}px`,
             },
           },
         } as CanvasLayoutNode;

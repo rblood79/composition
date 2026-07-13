@@ -3565,6 +3565,15 @@ export function calculateContentHeight(
         element.props as Record<string, unknown> | undefined,
       )
     : null;
+  // TEXT_LEAF 빈 텍스트: CSS 는 빈 블록 요소에 line box 를 만들지 않아 height 0 —
+  //   lineHeight/fs*1.5 fallback 을 타면 Skia 만 24px 유령 높이 (Heading 빈 텍스트
+  //   CSS 0 vs Skia 24 발산, 2026-07-14 sweep). template placeholder("{label}")는
+  //   비어있지 않은 문자열이라 영향 없음.
+  if (TEXT_LEAF_TAGS.has(type)) {
+    const tlProps = element.props as Record<string, unknown> | undefined;
+    const tlText = tlProps?.children ?? tlProps?.text ?? tlProps?.label;
+    if (tlText == null || String(tlText) === "") return 0;
+  }
   const ws49 = style?.whiteSpace as string | undefined;
   if (
     TEXT_LEAF_TAGS.has(type) &&
@@ -3664,6 +3673,19 @@ export function calculateContentHeight(
   // Preview iframe의 :root { line-height: 1.5 } (Tailwind CSS v4 기본)이
   // Text 컴포넌트에 상속되므로 fontSize * 1.5를 명시적으로 전달
   // (Button 등 UI 컴포넌트는 line-height: normal → step 2에서 fontBoundingBox 기반 처리)
+  //
+  // 빈 leaf (텍스트 props 전무 + 자식 없음): CSS 는 빈 블록에 line box 를 만들지 않아
+  //   height 0 — 무조건 fs*1.5 를 반환하면 Skia 만 24px 유령 높이가 생긴다
+  //   (TabPanel/CardFooter 빈 컨테이너 +24, 2026-07-14 sweep).
+  {
+    const props8 = element.props as Record<string, unknown> | undefined;
+    const text8 = props8?.children ?? props8?.text ?? props8?.label;
+    const hasText8 = text8 != null && String(text8) !== "";
+    const hasKids8 =
+      (childElements?.length ?? 0) > 0 ||
+      (getChildElements?.(element.id)?.length ?? 0) > 0;
+    if (!hasText8 && !hasKids8) return 0;
+  }
   const fs = fontSize ?? 16;
   return estimateTextHeight(fs, textLeafSpec?.lineHeight ?? fs * 1.5);
 }
