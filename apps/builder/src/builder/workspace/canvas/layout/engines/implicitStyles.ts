@@ -1471,7 +1471,16 @@ export function applyImplicitStyles(
         : {
             // ADR-912 Phase 3-A-3a: display/flexDirection 인라인 제거 (specFallback=catalog base).
             ...specFallback,
-            gap: specFallback.gap ?? 4, // TextArea 동형 분기 대비 ?? 4 유지
+            // catalog sizes[size].gap 우선 — generated CSS `gap: Npx` 와 동일 source (md=6).
+            //   specFallback.gap 은 composition.gap 토큰 문자열이 drop 되어 4 고정 회귀 (2026-07-14 sweep).
+            gap:
+              specSizeField(
+                containerTag,
+                (containerProps?.size as string) ?? "md",
+                "gap",
+              ) ??
+              specFallback.gap ??
+              4,
             ...rawParentStyle,
           },
     );
@@ -1531,7 +1540,16 @@ export function applyImplicitStyles(
         : {
             // ADR-912 Phase 3-A-3a: display/flexDirection 인라인 제거 (specFallback=catalog base).
             ...specFallback,
-            gap: specFallback.gap ?? 4, // TextArea 동형 분기 대비 ?? 4 유지
+            // catalog sizes[size].gap 우선 — generated CSS `gap: Npx` 와 동일 source (md=6).
+            //   specFallback.gap 은 composition.gap 토큰 문자열이 drop 되어 4 고정 회귀 (2026-07-14 sweep).
+            gap:
+              specSizeField(
+                containerTag,
+                (containerProps?.size as string) ?? "md",
+                "gap",
+              ) ??
+              specFallback.gap ??
+              4,
             ...rawParentStyle,
           },
     );
@@ -1703,10 +1721,16 @@ export function applyImplicitStyles(
     } else {
       // ADR-912 Phase 3-A-3a: display/flexDirection 인라인 fallback 제거 — specFallback 이
       //   catalog structure.composition base(display:flex/flexDirection:column)를 담는다.
-      //   gap 은 TextArea(composition.gap 부재) 대비 ?? 4 유지.
+      //   gap 은 catalog sizes[size].gap (generated CSS `gap: Npx` 와 동일 source, md=6)
+      //   우선 — specFallback.gap 은 composition.gap 토큰 문자열이 drop 되어 4 고정
+      //   회귀였다 (CSS 6 vs Skia 4, 2026-07-14 sweep). TextArea 도 sizes.gap 보유.
+      const tfSizeName = (containerProps?.size as string) ?? "md";
       effectiveParent = withParentStyle(containerEl, {
         ...specFallback,
-        gap: specFallback.gap ?? 4,
+        gap:
+          specSizeField(containerTag, tfSizeName, "gap") ??
+          specFallback.gap ??
+          4,
         ...rawParentStyle,
       });
     }
@@ -1773,7 +1797,16 @@ export function applyImplicitStyles(
         : {
             // ADR-912 Phase 3-A-3a: display/flexDirection 인라인 제거 (specFallback=catalog base).
             ...specFallback,
-            gap: specFallback.gap ?? 4, // TextArea 동형 분기 대비 ?? 4 유지
+            // catalog sizes[size].gap 우선 — generated CSS `gap: Npx` 와 동일 source (md=6).
+            //   specFallback.gap 은 composition.gap 토큰 문자열이 drop 되어 4 고정 회귀 (2026-07-14 sweep).
+            gap:
+              specSizeField(
+                containerTag,
+                (containerProps?.size as string) ?? "md",
+                "gap",
+              ) ??
+              specFallback.gap ??
+              4,
             ...rawParentStyle,
           },
     );
@@ -2162,7 +2195,16 @@ export function applyImplicitStyles(
         : {
             // ADR-912 Phase 3-A-3a: display/flexDirection 인라인 제거 (specFallback=catalog base).
             ...specFallback,
-            gap: specFallback.gap ?? 4, // TextArea 동형 분기 대비 ?? 4 유지
+            // catalog sizes[size].gap 우선 — generated CSS `gap: Npx` 와 동일 source (md=6).
+            //   specFallback.gap 은 composition.gap 토큰 문자열이 drop 되어 4 고정 회귀 (2026-07-14 sweep).
+            gap:
+              specSizeField(
+                containerTag,
+                (containerProps?.size as string) ?? "md",
+                "gap",
+              ) ??
+              specFallback.gap ??
+              4,
             ...rawParentStyle,
           },
     );

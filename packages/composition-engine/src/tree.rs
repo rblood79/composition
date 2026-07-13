@@ -459,6 +459,24 @@ impl LayoutTree {
         node.children.iter().any(|&c| self.subtree_has_dirty(c))
     }
 
+    /// display:none 서브트리(`handle` 포함) 전체를 zero layout + clean 처리.
+    ///
+    /// none 자식은 solve 재귀에서 제외되므로, dirty 를 남기면 부모의
+    /// `subtree_has_dirty` skip 게이트가 영구 무력화된다 — 자손까지 함께 정리.
+    fn zero_subtree_layout(&mut self, handle: usize) {
+        let children = match self.get(handle) {
+            Some(n) => n.children.clone(),
+            None => return,
+        };
+        if let Some(n) = self.get_mut(handle) {
+            n.layout = NodeLayout { x: 0.0, y: 0.0, width: 0.0, height: 0.0 };
+            n.dirty = false;
+        }
+        for c in children {
+            self.zero_subtree_layout(c);
+        }
+    }
+
     /// 서브트리(`handle` 포함) 전체를 dirty 로 마킹.
     ///
     /// available-space 변경 시 skip 게이트를 전면 무효화하는 데 사용. 조상 전파와
@@ -501,6 +519,23 @@ impl LayoutTree {
 
         let children = node.children.clone();
         let display = classify_container_display(node.style.display.as_deref());
+        // display:none 자식은 layout 비참여 (CSS: 박스 미생성 — 크기/흐름/gap 전부 제외).
+        // zero layout 을 기록해 get_layouts_batch 완전성은 유지한다 (tree_golden N9).
+        let children: Vec<usize> = {
+            let mut flow = Vec::with_capacity(children.len());
+            for &c in &children {
+                let is_none = self
+                    .get(c)
+                    .map(|n| n.style.display.as_deref() == Some("none"))
+                    .unwrap_or(false);
+                if is_none {
+                    self.zero_subtree_layout(c);
+                } else {
+                    flow.push(c);
+                }
+            }
+            flow
+        };
 
         // 명시 크기(있으면) — auto 는 아래에서 content 로 채움.
         let (explicit_w, explicit_h) = self.resolve_self_size(handle, avail_w, avail_h);

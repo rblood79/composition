@@ -333,6 +333,38 @@ fn tree_golden_n8_block_child_fit_content_shrink_to_fit() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// N9 display:none 자식 — flex flow/gap 완전 비참여 (CSS: 박스 미생성)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// N9 TextField 실전 형상 (Chrome 실측 아님 — CSS display:none 계약 손계산, N6 선례).
+/// 순서: [0] n9-label, [1] n9-input, [2] n9-error(display:none), [3] n9-field.
+///
+/// flex column(rowGap 6) 의 셋째 자식(error)이 display:none 이면 CSS 는 박스를
+/// 생성하지 않는다 — 크기 0 은 물론 **gap 계산에서도 제외**된다. 회귀형: 엔진이
+/// none 자식을 0×0 참여자로 취급해 trailing gap +6 이 컨테이너 높이에 합산
+/// (live TextField/DateField/TimeField/NumberField dh+2~+6 발산, 2026-07-14
+/// sweep — FieldError factory 기본 style 이 display:none). none 자식의 explicit
+/// width/height(100×16)도 무시되어야 한다 (zero layout).
+const N9_EXPECTED: &[[f32; 4]] = &[
+    [0., 0., 63., 20.],  // [0] n9-label
+    [0., 26., 200., 30.], // [1] n9-input (20 + gap 6)
+    [0., 0., 0., 0.],    // [2] n9-error (display:none — zero layout, 흐름 비참여)
+    [0., 0., 200., 56.], // [3] n9-field (auto = 20+6+30 — trailing gap 없음)
+];
+const N9_BATCH: &str = r#"[
+  {"style":{"width":"63px","height":"20px"},"children":[]},
+  {"style":{"width":"200px","height":"30px"},"children":[]},
+  {"style":{"display":"none","width":"100px","height":"16px"},"children":[]},
+  {"style":{"display":"flex","flexDirection":"column","rowGap":"6px","width":"200px","height":"auto"},"children":[0,1,2]}
+]"#;
+
+#[test]
+fn tree_golden_n9_display_none_child_excluded_from_flow_and_gap() {
+    let rel = layout_relative(N9_BATCH);
+    assert_tree_bounds("N9 display:none 자식 비참여", &rel, N9_EXPECTED);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // field contract guard — EXPECTED 길이 = fixture 노드 수 (순서 drift 조기 검출)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -346,4 +378,5 @@ fn tree_golden_field_contract_guard() {
     assert_eq!(N6_EXPECTED.len(), 3, "N6 노드 3");
     assert_eq!(N7_EXPECTED.len(), 5, "N7 노드 5");
     assert_eq!(N8_EXPECTED.len(), 3, "N8 노드 3");
+    assert_eq!(N9_EXPECTED.len(), 4, "N9 노드 4");
 }
