@@ -12508,7 +12508,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       flexDirection: "column",
       // 실효 gap 0 — starter Tree.css `@supports selector(:has(.foo))` 블록이 gap:0 재선언
       //   (selected 행 이어붙임 디자인, 모던 브라우저 전부 매치). 2xs(2px)는 dead 값 (2026-07-14).
-      gap: 0,
+      gap: "0px",
       padding: "{spacing.xs}",
       width: "100%",
       maxHeight: "300px",

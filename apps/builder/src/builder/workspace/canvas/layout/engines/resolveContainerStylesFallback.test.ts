@@ -198,7 +198,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       expect(fb).toEqual({
         display: "flex",
         flexDirection: "column",
-        gap: 0, // starter Tree.css @supports :has 블록이 gap:0 재선언 — 실효값 (2026-07-14)
+        gap: "0px", // starter Tree.css @supports :has 블록이 gap:0 재선언 — 실효값 (2026-07-14)
         padding: 4, // {spacing.xs} = starter --spacing-1
         width: "100%",
         maxHeight: "300px",
@@ -331,7 +331,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       expect(resolveContainerStylesFallback("tree", {})).toEqual({
         display: "flex",
         flexDirection: "column",
-        gap: 0, // starter Tree.css @supports :has 블록이 gap:0 재선언 — 실효값 (2026-07-14)
+        gap: "0px", // starter Tree.css @supports :has 블록이 gap:0 재선언 — 실효값 (2026-07-14)
         padding: 4,
         width: "100%",
         maxHeight: "300px",
