@@ -22,6 +22,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 수정: `applyImplicitStyles` 에 table 분기 추가 — heightMode "fixed" 이고 사용자 `style.height` 미명시일 때 `props.height` 를 style.height/minHeight 로 주입. "auto"/"viewport"/"full" 은 content 유지(vh 단위는 엔진 px 모델 밖). `LAYOUT_PROP_KEYS` 에 `height`/`heightMode` 추가 — 편집 시 캐시 시그니처 무효화 (Disclosure isExpanded 선례 동형)
   - 검증: live builder Table 선택 배지 390×400 (CSS 402 border-box 정합), type-check PASS
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`, `apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts`
+- **Calendar/RangeCalendar 가 Skia 캔버스에서 부모 폭 전체로 stretch** (CSS fit-content 256/238 vs Skia 390/768 — 2026-07-07 수정의 미해결 잔존):
+  - **Why**: 2겹 소실 — ① 엔진 block 자식 intake(`write_block_item`)가 fit-content 센티넬(-2)을 AUTO(-1)로 붕괴시켜 block.rs 의 shrink-to-fit 커널(필드표상 지원)에 도달 못 함 (a359d513a 는 flex cross 축만 보존, body 는 block). ② JS 직렬화(`parseCSSPropWithContext`)가 intrinsic 키워드를 전역 drop — Calendar 컨테이너 intrinsic 은 자식(CalendarGrid) 측정 의존이라 enrich 선해석 불가.
+  - 수정: ① `write_block_item` width/height intake 를 `resolve_cross_dimension_opt`(fit-content 보존)로 전환. ② `buildNodeStyle` flex 분기에 calendar/rangecalendar allowlist — `width:fit-content` 를 record 에 복원해 엔진 센티넬로 전달 (전역 passthrough 는 2-pass 상호작용 미검증이라 allowlist 한정)
+  - 회귀 테스트: `tree_golden.rs` N8 (block 컨테이너 안 fit-content flex column — 변조 RED 200→fix GREEN 120)
+  - 검증: cargo test 259 PASS, live builder Calendar 390→278 / RangeCalendar 390→278 수렴 (잔여 Δ22/40 은 CalendarGrid 셀 메트릭 drift — 별도 항목)
+  - 위치: `packages/composition-engine/src/tree.rs`, `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`
+
+### Infrastructure
+
+- **layout 디버그 전역 `__composition_LAYOUT_DEBUG__` (dev 전용)**: 콘솔/자동화(Chrome MCP)의 CSS↔Skia parity 검증 하니스가 `getSharedLayoutMap`/`getSharedLayoutVersion` 을 읽는 단일 진입점. 콘솔 dynamic import 가 Vite HMR 이후 앱 그래프와 다른 모듈 인스턴스를 받는 문제 우회. production 빌드 제외.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`
 
 ## [문서 깨진 링크 475건 일괄 정리 — 경로 drift 복구 + 죽은 링크 해제] - 2026-07-13
 

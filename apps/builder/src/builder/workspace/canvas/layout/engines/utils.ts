@@ -4625,7 +4625,11 @@ export function parseCSSPropWithContext(
   if (typeof value === "string") {
     // % 값은 Taffy가 네이티브로 처리
     if (value.endsWith("%")) return value;
-    // intrinsic sizing 키워드는 Taffy에서 미지원 → undefined
+    // intrinsic sizing 키워드는 batch 직렬화에서 drop — enrichWithIntrinsicSize 가
+    //   numeric 으로 선해석하는 것이 전제. 전역 passthrough 는 2-pass(Step 4.5)
+    //   재계산과 충돌해 relayout 루프를 유발한다 (2026-07-13 실측 — 엔진 자체는
+    //   FIT_CONTENT(-2) 지원, tree_golden N8). fit-content 컨테이너의 개별 정합은
+    //   applyImplicitStyles 분기의 numeric 주입으로 처리 (Calendar 선례).
     if (
       value === "fit-content" ||
       value === "min-content" ||

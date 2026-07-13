@@ -304,6 +304,35 @@ fn tree_golden_n7_auto_column_flex_grow_no_distribution() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// N8 block 자식 width:fit-content — shrink-to-fit (stretch 아님)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// N8 Calendar 실전 형상 (Chrome 실측 아님 — CSS shrink-to-fit 산술 손계산, N6 선례).
+/// 순서: [0] n8-inner, [1] n8-cal, [2] n8-root.
+///
+/// block 컨테이너(root) 안의 block-level 자식(cal, flex column + width:fit-content)은
+/// shrink-to-fit — 콘텐츠 폭(120)으로 수축해야 한다. 회귀형: write_block_item 이
+/// fit-content 센티넬(-2)을 AUTO(-1)로 붕괴 → block.rs 가 auto stretch 로 오처리 →
+/// cal 이 부모 폭 200 전체를 차지 (live Calendar 390/768 stretch 발산, 2026-07-13
+/// sweep — a359d513a 는 flex cross 축만 보존했고 block intake 는 미보존).
+const N8_EXPECTED: &[[f32; 4]] = &[
+    [0., 0., 120., 40.],  // [0] n8-inner
+    [0., 0., 120., 40.],  // [1] n8-cal  (fit-content = 콘텐츠 폭 120, not 200)
+    [0., 0., 200., 300.], // [2] n8-root (explicit)
+];
+const N8_BATCH: &str = r#"[
+  {"style":{"width":"120px","height":"40px"},"children":[]},
+  {"style":{"display":"flex","flexDirection":"column","width":"fit-content","height":"auto"},"children":[0]},
+  {"style":{"width":"200px","height":"300px"},"children":[1]}
+]"#;
+
+#[test]
+fn tree_golden_n8_block_child_fit_content_shrink_to_fit() {
+    let rel = layout_relative(N8_BATCH);
+    assert_tree_bounds("N8 block 자식 fit-content", &rel, N8_EXPECTED);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // field contract guard — EXPECTED 길이 = fixture 노드 수 (순서 drift 조기 검출)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -316,4 +345,5 @@ fn tree_golden_field_contract_guard() {
     assert_eq!(N5_EXPECTED.len(), 3, "N5 노드 3");
     assert_eq!(N6_EXPECTED.len(), 3, "N6 노드 3");
     assert_eq!(N7_EXPECTED.len(), 5, "N7 노드 5");
+    assert_eq!(N8_EXPECTED.len(), 3, "N8 노드 3");
 }

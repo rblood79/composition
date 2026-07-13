@@ -249,6 +249,18 @@ export function getSharedLayoutVersion(): number {
   return _sharedLayoutVersion;
 }
 
+// dev 전용 디버그 전역 — 콘솔/자동화(Chrome MCP) 의 CSS↔Skia parity 검증 하니스가
+// layout 결과를 읽는 단일 진입점. 콘솔 dynamic import('/src/...') 는 Vite HMR 이후
+// 앱 그래프와 다른 모듈 인스턴스를 받아 module-level map 이 비어 보이는 문제가 있어
+// (2026-07-13 parity sweep 실측) window 전역으로 우회한다. production 빌드 제외.
+if (typeof window !== "undefined" && import.meta.env?.DEV) {
+  (window as unknown as Record<string, unknown>).__composition_LAYOUT_DEBUG__ =
+    {
+      getSharedLayoutMap,
+      getSharedLayoutVersion,
+    };
+}
+
 // ─── 공유 Filtered Children Map (Fix 1: 트리 소스 일원화) ────────────
 // Multi-page: 동일 페이지별 저장 패턴
 
@@ -782,7 +794,23 @@ function buildNodeStyle(
 
   if (normalized === "flex" || normalized === "inline-flex") {
     const taffyStyle: TaffyStyle = elementToTaffyStyle(enriched, computedStyle);
-    return taffyStyleToRecord(taffyStyle);
+    const record = taffyStyleToRecord(taffyStyle);
+    // Calendar/RangeCalendar: width:fit-content 를 엔진 FIT_CONTENT(-2) 센티넬로
+    //   통과 (allowlist). parseCSSPropWithContext 는 intrinsic 키워드를 전역 drop
+    //   하고 enrichWithIntrinsicSize 의 numeric 선해석에 의존하지만, Calendar
+    //   컨테이너 intrinsic 은 자식(CalendarGrid) 측정에 의존해 선해석이 불가 →
+    //   drop 시 auto(stretch)로 발산 (CSS fit-content 256 vs Skia 390/768 —
+    //   2026-07-13 parity sweep). 엔진은 block 자식 intake(tree_golden N8) +
+    //   flex cross 축(a359d513a)에서 shrink-to-fit 을 지원한다. 전역 passthrough
+    //   는 2-pass 재계산과의 상호작용 미검증이라 allowlist 로 한정.
+    if (
+      (type === "calendar" || type === "rangecalendar") &&
+      mergedStyle.width === "fit-content" &&
+      record.width === undefined
+    ) {
+      record.width = "fit-content";
+    }
+    return record;
   }
 
   if (normalized === "grid" || normalized === "inline-grid") {

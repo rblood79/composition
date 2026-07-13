@@ -1372,18 +1372,30 @@ fn write_block_item(
         _ => 0.0,
     };
 
-    // 명시 width/height (음수=미지정 → AUTO -1).
-    let expl_w = resolve_dimension_opt(cstyle.width.as_deref(), ctx);
-    let expl_h = resolve_dimension_opt(cstyle.height.as_deref(), ctx);
+    // 명시 width/height (음수=미지정 → AUTO -1). fit-content 는 FIT_CONTENT(-2)
+    // 센티넬 보존 — block.rs 가 shrink-to-fit(content 폭)으로 해소한다(필드표 §1/2).
+    // resolve_dimension_opt 로 붕괴시키면 auto stretch 로 오처리 → block-level
+    // Calendar(width:fit-content) 가 부모 폭 전체를 차지 (tree_golden N8).
+    let expl_w = resolve_cross_dimension_opt(cstyle.width.as_deref(), ctx);
+    let expl_h = resolve_cross_dimension_opt(cstyle.height.as_deref(), ctx);
 
     let pad_border_v = axis_pad_border(cstyle, ctx, false);
     let pad_border_h = axis_pad_border(cstyle, ctx, true);
 
     // specified size 는 border-box — 커널은 content 수학이므로 intake 에서 감산.
     // min/max 도 CSS box-sizing 적용 대상 (상수 shift 라 content 단계 clamp 와 등가).
+    // FIT_CONTENT 센티넬은 실 크기가 아니므로 감산 제외하고 그대로 통과.
     data[off] = display_code;
-    data[off + 1] = expl_w.map(|v| spec_to_content(v, pad_border_h)).unwrap_or(-1.0); // width AUTO=-1
-    data[off + 2] = expl_h.map(|v| spec_to_content(v, pad_border_v)).unwrap_or(-1.0); // height AUTO=-1
+    data[off + 1] = match expl_w {
+        Some(v) if v == flex::CONTENT => v,
+        Some(v) => spec_to_content(v, pad_border_h),
+        None => -1.0,
+    }; // width AUTO=-1 / FIT_CONTENT=-2
+    data[off + 2] = match expl_h {
+        Some(v) if v == flex::CONTENT => v,
+        Some(v) => spec_to_content(v, pad_border_v),
+        None => -1.0,
+    }; // height AUTO=-1 / FIT_CONTENT=-2
     data[off + 3] = resolve_dimension(cstyle.margin_top.as_deref(), ctx);
     data[off + 4] = resolve_dimension(cstyle.margin_right.as_deref(), ctx);
     data[off + 5] = resolve_dimension(cstyle.margin_bottom.as_deref(), ctx);
@@ -1433,7 +1445,8 @@ fn resolve_dimension_opt(value: Option<&str>, ctx: &CssValueContext) -> Option<f
     }
 }
 
-/// `resolve_dimension_opt` + fit-content 보존 변형. flex cross 축 intake 전용.
+/// `resolve_dimension_opt` + fit-content 보존 변형. flex cross 축 + block 자식
+/// width/height intake 에서 사용 (2026-07-13 block 확장 — tree_golden N8).
 ///
 /// 일반 `resolve_dimension_opt` 은 fit-content(음수 센티넬)를 None(→AUTO)로 붕괴시켜
 /// flex cross 축에서 stretch 로 오처리한다(Calendar width:fit-content 가 부모 폭 전체로
