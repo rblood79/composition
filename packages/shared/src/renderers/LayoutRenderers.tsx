@@ -1538,11 +1538,15 @@ export const renderDisclosureGroup = (
   //   defaultExpandedKeys 에 전달한다. uncontrolled 라 header 클릭 토글은 그룹 상태머신이 양방향
   //   관리(toggleKey) → 열고 닫기 모두 동작. (controlled expandedKeys 는 canonical 노드 prop 을
   //   header 클릭이 못 바꿔 lock 되므로 미사용 — Disclosure 단독 수정과 동일 사유.)
+  //   key 는 customId ?? id — canonical 렌더 경로(CanonicalNodeRenderer flatten)의
+  //   PreviewElement 는 customId 미보유라, customId 단독 의존 시 keys 가 빈 배열로
+  //   떨어져 그룹 전체가 접힌 채 시작 (intent: isExpanded ?? true = 펼침 — Skia 와
+  //   비대칭이던 근본, 2026-07-14 sweep). renderDisclosure 의 id fallback 과 동일 규칙.
   const defaultExpandedKeys = children
     .filter(
       (c) => c.type === "Disclosure" && Boolean(c.props?.isExpanded ?? true),
     )
-    .map((c) => c.customId)
+    .map((c) => c.customId ?? c.id)
     .filter((id): id is string => Boolean(id));
 
   return (
@@ -1612,7 +1616,9 @@ export const renderDisclosure = (
       //   그룹 내부: key 에 defaultExpanded 제외(재마운트 금지 — 그룹 expandedKeys 상태머신 보존) +
       //   defaultExpanded 미전달(그룹이 override). id 는 안정적 customId 로 toggleKey 키 고정.
       key={isInGroup ? element.id : `${element.id}:${defaultExpanded}`}
-      id={element.customId}
+      // customId ?? id — renderDisclosureGroup defaultExpandedKeys 와 동일 규칙 (canonical
+      //   경로 customId 부재 시 그룹 key 미매칭 → 항상 접힘 회귀 차단, 2026-07-14).
+      id={element.customId ?? element.id}
       data-element-id={element.id}
       title={title}
       size={(element.props.size as "sm" | "md" | "lg") || "md"}

@@ -2083,6 +2083,21 @@ export function calculateContentHeight(
     return disclosureHeaderDims().height;
   }
 
+  // 1.53. DisclosureContent: catalog rule fontSize/lineHeight 텍스트 높이.
+  //   CSS panel 은 텍스트 라인만(md 20px) — `.react-aria-DisclosurePanel > div` padding 은
+  //   display:contents 마커 div 에 걸려 미적용. 분기 부재 시 TEXT_LEAF 미분류 → 최종
+  //   fallback fontSize 16*1.5=24 로 CSS 대비 +4 drift (2026-07-14 sweep).
+  //   TEXT_LEAF_TAGS 등록 대신 전용 분기: 등록 시 enrichWithIntrinsicSize 가 intrinsic
+  //   width 를 주입해 full-width stretch 가 깨진다 (Link 분기 동형 패턴).
+  if (tag1 === "disclosurecontent") {
+    const props = element.props as Record<string, unknown> | undefined;
+    const specStyle = extractSpecTextStyle("disclosurecontent", props ?? {});
+    const fontSize =
+      parseNumericValue(style?.fontSize) ?? specStyle?.fontSize ?? 14;
+    const lh = parseLineHeight(style, fontSize) ?? specStyle?.lineHeight;
+    return estimateTextHeight(fontSize, lh);
+  }
+
   // 1.55. Link: padding/border 없는 텍스트 전용 인라인 요소 — fontSize 기반 높이
   if (tag1 === "link") {
     const props = element.props as Record<string, unknown> | undefined;

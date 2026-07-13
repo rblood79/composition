@@ -4544,23 +4544,27 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       sm: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
-        height: 28,
+        // height = line-height 16 + trigger paddingY 8*2 (generated Disclosure.css
+        //   `.react-aria-Button[slot='trigger'] padding: var(--spacing-sm) ...` — 전 size 고정 8).
+        //   구 28/30/32 는 fontSize 기준 산술로 CSS 실측(32/36/40)과 -4~-8 drift (2026-07-14 sweep).
+        height: 32,
         paddingX: 12,
         iconSize: 18,
       },
       md: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
-        // height 30 = fontSize 14 + paddingY 8*2. box(height>0)로 판정 → text baseline:middle +
-        //   leading icon y=height/2 정렬. iconSize 18 = DOM Button 기본 --icon-size.
-        height: 30,
+        // height 36 = line-height 20 + trigger paddingY 8*2. box(height>0)로 판정 → text
+        //   baseline:middle + leading icon y=height/2 정렬. iconSize 18 = DOM Button 기본 --icon-size.
+        height: 36,
         paddingX: 12,
         iconSize: 18,
       },
       lg: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
-        height: 32,
+        // height = line-height 24 + trigger paddingY 8*2.
+        height: 40,
         paddingX: 12,
         iconSize: 18,
       },
