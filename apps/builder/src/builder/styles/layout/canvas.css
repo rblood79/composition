@@ -32,7 +32,9 @@
   .app .canvas {
     padding: 0;
     background: var(--bg);
-    border: 1px solid var(--border);
+    /* 페이지 경계선은 outline — border 는 border-box 폭(디바이스 390px)을 잠식해
+       iframe viewport 가 388px 로 수축, Skia(390) 와 전 컴포넌트 dw+2 발산 */
+    outline: 1px solid var(--border);
     will-change: transform;
   }
 

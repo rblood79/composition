@@ -61,7 +61,7 @@ export const BuilderCanvas: React.FC<BuilderCanvasProps> = ({
         style={{
           width: currentBreakpoint?.max_width || "100%",
           height: currentBreakpoint?.max_height || "100%",
-          borderWidth: currentBreakpoint?.id === "screen" ? "0px" : "1px",
+          outlineWidth: currentBreakpoint?.id === "screen" ? "0px" : "1px",
         }}
       >
         <iframe
