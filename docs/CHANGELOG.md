@@ -35,6 +35,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Breadcrumbs**: catalog containerStyles 는 `display: flex`(블록 레벨 → stretch 의도)이고 CSS 도 388 stretch 인데, Skia 만 `INLINE_BLOCK_TAGS` fit-content 주입으로 194 수축 → 컨테이너 "breadcrumbs" 를 Set 에서 제거 (자식 "breadcrumb" 은 유지, 높이는 implicitStyles 분기 존속). Skia 194 → 390 (CSS 정합)
   - **Menu 는 보류**: factory `width:100%`(2026-06-23 사용자 결정 — Menu=목록 표현) vs Preview 렌더러(트리거 chip 표현)의 표현 방식 충돌 — 분류 수정이 아닌 표현 설계 판단 필요
   - 위치: `packages/shared/src/components/styles/Switch.css`, `packages/shared/src/renderers/LayoutRenderers.tsx`, `apps/builder/src/types/builder/unified.types.ts`, `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`
+- **CheckboxGroup/RadioGroup 높이 16px 수축** (CSS 84 vs Skia 68):
+  - **Why**: 2겹 gap 소실 — ① group 자체 gap(Label↔items)이 `specFallback.gap ?? 4` 였는데 containerStyles 의 토큰 문자열이 직렬화에서 drop 되어 실효 0. ② synthetic items wrapper gap 이 8 fallback — CSS `--cb-items-gap`/`--radio-items-gap` 은 12px 고정.
+  - 수정: group gap = catalog sizes gap(sm 8/md 12/lg 16, generated CSS `[data-size]` 미러), wrapper gap = 12 고정
+  - 검증: live builder CheckboxGroup/RadioGroup 84=84 정합
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`
 
 ### Infrastructure
 

@@ -1147,8 +1147,11 @@ export function applyImplicitStyles(
     );
 
     // ── synthetic items wrapper 합성 ──
-    //   CSS `.checkbox-items` 와 동형: orientation 축으로 자식 배치 + spec gap.
-    const itemGap = typeof specFallback.gap === "number" ? specFallback.gap : 8;
+    //   CSS `.checkbox-items` 와 동형: orientation 축으로 자식 배치.
+    //   items gap = `--cb-items-gap`/`--radio-items-gap` 12px 고정 (generated
+    //   CheckboxGroup/RadioGroup.css). 종전 specFallback.gap(8 fallback)은 group
+    //   gap 과 혼용된 오독 — CSS 84 vs Skia 68 높이 발산의 절반 (2026-07-13 sweep).
+    const itemGap = 12;
     const wrapperNode: CanvasLayoutNode = {
       id: `${containerEl.id}__items`,
       type: "__SyntheticItemsWrapper__",
@@ -1219,18 +1222,25 @@ export function applyImplicitStyles(
       ...otherChildren,
     ];
 
+    // group 자체 gap(Label↔items) = catalog sizes gap (sm 8/md 12/lg 16 —
+    //   generated .react-aria-CheckboxGroup[data-size] gap 미러). 종전
+    //   `specFallback.gap ?? 4` 는 containerStyles 의 토큰 문자열이 직렬화에서
+    //   drop 되어 실효 0 이었다 — CSS 84 vs Skia 68 발산의 나머지 절반.
+    const groupGap =
+      specSizeField(
+        containerTag,
+        (containerProps?.size as string) ?? "md",
+        "gap",
+      ) ?? 12;
     effectiveParent = withParentStyle(containerEl, {
       ...specFallback,
       // group flex-direction = labelPosition 축. CSS:
       //   top  → column (Label 위 + items 아래)
       //   side → row + align-items:flex-start (Label 좌측 + items 우측)
-      //   gap 은 specFallback(spec containerStyles 정적 gap) 유지 — labelPosition 으로
-      //   바꾸지 않는다(CSS 의 group gap 은 flex-direction 과 독립). size 별 gap 정합은
-      //   별도 선재 영역(specFallback 이 size 무관 정적 gap 만 반환).
       display: specFallback.display ?? "flex",
       flexDirection: sideMode ? "row" : "column",
       alignItems: sideMode ? "flex-start" : (specFallback.alignItems as string),
-      gap: specFallback.gap ?? 4,
+      gap: groupGap,
       ...rawParentStyle,
     });
   }
