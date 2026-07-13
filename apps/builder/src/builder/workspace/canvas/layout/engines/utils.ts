@@ -37,6 +37,7 @@ import {
   //   escape(datefieldSegments)와 단일 소스로 공유 + fontSize TokenRef→px 변환.
   buildDateInputDisplayText,
   resolveSpecFontSize,
+  getLabelLineHeight,
 } from "@composition/specs";
 import type { SizeSpec } from "@composition/specs";
 import {
@@ -2083,6 +2084,18 @@ export function calculateContentHeight(
     return disclosureHeaderDims().height;
   }
 
+  // 1.525. TreeItem: catalog rule 고정 box height read-through (DisclosureHeader 동형).
+  //   분기 부재 시 TEXT_LEAF 미분류 → fallback fontSize 16*1.5=24 로 DOM(starter Tree.css
+  //   min-height 32) 대비 행당 -8 drift (2026-07-14 sweep). Skia 렌더(buildCatalogShapes)와
+  //   동일 rule height 소비 → selection box ↔ 렌더 대칭.
+  if (tag1 === "treeitem") {
+    const props = element.props as Record<string, unknown> | undefined;
+    const sizeName = String(props?.size ?? "md");
+    const treeRule = resolveSkiaRule("TreeItem");
+    const ruleH = (treeRule?.sizes?.[sizeName] ?? treeRule?.sizes?.md)?.height;
+    if (typeof ruleH === "number" && ruleH > 0) return ruleH;
+  }
+
   // 1.53. DisclosureContent: catalog rule fontSize/lineHeight 텍스트 높이.
   //   CSS panel 은 텍스트 라인만(md 20px) — `.react-aria-DisclosurePanel > div` padding 은
   //   display:contents 마커 div 에 걸려 미적용. 분기 부재 시 TEXT_LEAF 미분류 → 최종
@@ -2267,10 +2280,13 @@ export function calculateContentHeight(
     const HEADER_HEIGHT = Math.round(fontSize * 1.75);
     const SECTION_TOP_PAD = Math.round(fontSize * 0.5);
 
+    // 카드 콘텐츠는 CSS line box 합 (md: label 20 + desc 16 + gap 4 = 40) — fontSize 합산은
+    //   DOM GridListItem 대비 카드당 -10 drift. skiaPrimitives gridListCard 와 동일 공식
+    //   (Layer D — 렌더/레이아웃 동일 메트릭, 2026-07-14 sweep).
     const cardHeight = (item: { description?: string }) =>
       cardPaddingY * 2 +
-      fontSize +
-      (item.description ? descFontSize + descGap : 0);
+      getLabelLineHeight(fontSize) +
+      (item.description ? getLabelLineHeight(descFontSize) + descGap : 0);
 
     const measureGridRows = (
       items: Array<{ description?: string }>,

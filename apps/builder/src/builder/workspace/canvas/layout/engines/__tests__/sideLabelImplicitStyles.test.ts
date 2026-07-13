@@ -108,7 +108,8 @@ describe("side-label implicit styles", () => {
     const parentStyle = getParentStyle(result);
     expect(parentStyle.flexDirection).toBe("row");
     expect(parentStyle.alignItems).toBe("flex-start");
-    expect(parentStyle.gap).toBe(4);
+    // CheckboxGroup group gap = catalog sizes.md.gap 12 (2026-07-13 CSS 정렬, 405c513d3)
+    expect(parentStyle.gap).toBe(12);
 
     const labelStyle = getChildStyle(result, "Label");
     expect(labelStyle.whiteSpace).toBe("nowrap");

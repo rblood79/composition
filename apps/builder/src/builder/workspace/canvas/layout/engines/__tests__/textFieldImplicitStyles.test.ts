@@ -78,7 +78,8 @@ describe("TextField applyImplicitStyles — ADR-108 P2 helper 소비", () => {
     );
     const ps = (effectiveParent.props?.style ?? {}) as Record<string, unknown>;
     expect(ps.flexDirection).toBe("column");
-    expect(ps.gap).toBe(4);
+    // catalog sizes.md.gap = 6 (generated CSS 동일 source — 2026-07-14 field gap 정렬)
+    expect(ps.gap).toBe(6);
     // Label 에 side-label 전용 width (FORM_SIDE_LABEL_WIDTH) / alignSelf 주입 없음.
     //   flexShrink 는 다른 Canvas 공통 규칙이 주입할 수 있어 본 테스트 scope 외.
     const lblStyle = (filteredChildren.find((c) => c.type === "Label")?.props

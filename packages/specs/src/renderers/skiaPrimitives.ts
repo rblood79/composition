@@ -16,7 +16,7 @@
  */
 
 import { parseBorderWidth, parsePxValue } from "../primitives";
-import { fontFamily } from "../primitives/typography";
+import { fontFamily, getLabelLineHeight } from "../primitives/typography";
 import {
   buildDateInputDisplayText,
   buildDatePickerShapes,
@@ -401,8 +401,11 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
       : null
     : readCardText(props.description);
 
-  const labelH = fontSize;
-  const descH = description ? descFontSize + descGap : 0;
+  // CSS 카드 콘텐츠는 line box 합 (md: label 20 + gap 4 + desc 16 = 40) — fontSize 합산
+  //   (14+4+12=30)은 DOM GridListItem(64) 대비 카드당 -10 drift (2026-07-14 sweep).
+  //   getLabelLineHeight = generated CSS line-height 토큰과 동일 소스.
+  const labelH = getLabelLineHeight(fontSize);
+  const descH = description ? getLabelLineHeight(descFontSize) + descGap : 0;
   const cardHeight = parsePxValue(
     style?.height,
     cardPaddingY * 2 + labelH + descH,
@@ -458,7 +461,8 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     shapes.push({
       type: "text",
       x: cardPaddingX,
-      y: cardPaddingY + fontSize + descGap,
+      // 2번째 줄 top = label line box(높이 labelH) 아래 + descGap (CSS line box 스택 동형)
+      y: cardPaddingY + labelH + descGap,
       text: description,
       fontSize: descFontSize,
       fontFamily: ff,

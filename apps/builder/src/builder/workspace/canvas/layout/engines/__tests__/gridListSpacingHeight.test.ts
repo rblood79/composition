@@ -47,12 +47,12 @@ function makeGridList(
 }
 
 // 기본 item card height 공식 — resolveGridListItemMetric(14) 분기 기준
-//   cardPaddingY=12, fontSize=14, descFontSize=12, descGap=4
-//   cardHeight = 12*2 + 14 + (12 + 4) = 54
-const BASELINE_CARD_H = 54;
+//   cardPaddingY=12, fontSize=14(line box 20), descFontSize=12(line box 16), descGap=4
+//   cardHeight = 12*2 + 20 + (16 + 4) = 64 (CSS GridListItem 64 정합 — 2026-07-14 line-height 전환)
+const BASELINE_CARD_H = 64;
 
 describe("calculateContentHeight — GridList stack baseline", () => {
-  it("4-item stack / no style → 4*54 + 3*12 = 252", () => {
+  it("4-item stack / no style → 4*64 + 3*12 = 292", () => {
     const h = calculateContentHeight(makeGridList());
     expect(h).toBe(4 * BASELINE_CARD_H + 3 * 12);
   });
@@ -90,10 +90,10 @@ describe("calculateContentHeight — GridList stack baseline", () => {
 
   it("style.fontSize=18 → large 카드 분기 (paddingY 16 / descGap 6), height 재계산", () => {
     const h = calculateContentHeight(makeGridList({ style: { fontSize: 18 } }));
-    // cardHeight = 16*2 + 18 + (16 + 6) = 72
-    // innerHeight = 4*72 + 3*12 = 324
+    // cardHeight = 16*2 + 28 + (24 + 6) = 90 (line box: 18→28, 16→24)
+    // innerHeight = 4*90 + 3*12 = 396
     // gap 은 default 12 유지 (style.gap 미지정)
-    expect(h).toBe(4 * 72 + 3 * 12);
+    expect(h).toBe(4 * 90 + 3 * 12);
   });
 });
 
@@ -102,7 +102,7 @@ describe("calculateContentHeight — GridList grid layout", () => {
     const h = calculateContentHeight(
       makeGridList({ layout: "grid", columns: 2 }),
     );
-    // 2 rows × 54 + 1 gap × 12 = 120
+    // 2 rows × 64 + 1 gap × 12 = 140
     expect(h).toBe(2 * BASELINE_CARD_H + 12);
   });
 
@@ -110,7 +110,7 @@ describe("calculateContentHeight — GridList grid layout", () => {
     const h = calculateContentHeight(
       makeGridList({ layout: "grid", columns: 3 }),
     );
-    // row1: 3 items (max cardH=54), row2: 1 item (54) → 2*54 + 1*12 = 120
+    // row1: 3 items (max cardH=64), row2: 1 item (64) → 2*64 + 1*12 = 140
     expect(h).toBe(2 * BASELINE_CARD_H + 12);
   });
 });
@@ -135,7 +135,7 @@ describe("calculateContentHeight — 3-경로 metric 대칭 (Skia/Layout)", () =
 
     // calculateContentHeight 결과가 동일 metric 공식 사용 확증
     const h = calculateContentHeight(makeGridList({ style }));
-    // innerHeight = 4*54 + 3*24 = 288, + padding 8*2 = 16 → 304
+    // innerHeight = 4*64 + 3*24 = 328, + padding 8*2 = 16 → 344
     expect(h).toBe(
       4 * BASELINE_CARD_H +
         3 * metric.rowGap +

@@ -25,7 +25,7 @@
   border: none;
 
   /* Default size */
-  height: 30px;
+  height: 36px;
   padding: 0px 12px;
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
@@ -46,7 +46,7 @@
 }
 
 .react-aria-DisclosureHeader[data-size="sm"] {
-  height: 28px;
+  height: 32px;
   padding: 0px 12px;
   font-size: var(--text-xs);
   border-radius: var(--radius-none);
@@ -54,7 +54,7 @@
 }
 
 .react-aria-DisclosureHeader[data-size="md"] {
-  height: 30px;
+  height: 36px;
   padding: 0px 12px;
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
@@ -62,7 +62,7 @@
 }
 
 .react-aria-DisclosureHeader[data-size="lg"] {
-  height: 32px;
+  height: 40px;
   padding: 0px 12px;
   font-size: var(--text-base);
   border-radius: var(--radius-none);

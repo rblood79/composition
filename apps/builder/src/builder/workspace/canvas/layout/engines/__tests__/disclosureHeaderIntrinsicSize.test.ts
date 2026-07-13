@@ -16,7 +16,7 @@ import {
  *
  * 수정: (1) INLINE_BLOCK_TAGS 에 "disclosureheader" 등록 → needsWidth=true.
  *   (2) calculateContentWidth disclosureheader 분기 = paddingX + iconSize + gap + text + paddingX
- *       (buildCatalogShapes Skia 공식과 1:1 대칭). (3) calculateContentHeight = rule height 30.
+ *       (buildCatalogShapes Skia 공식과 1:1 대칭). (3) calculateContentHeight = rule height 36 (line-height 20 + trigger paddingY 8*2, 2026-07-14).
  */
 const makeHeader = (props: Record<string, unknown> = {}): CanvasLayoutNode =>
   ({
@@ -54,11 +54,11 @@ describe("DisclosureHeader intrinsic size (ADR-912 B+icon width 회귀)", () => 
     expect(longW).toBeGreaterThan(shortW);
   });
 
-  test("calculateContentHeight — rule box height 30 (Skia rule height 대칭)", () => {
-    expect(calculateContentHeight(makeHeader())).toBe(30);
+  test("calculateContentHeight — rule box height 36 (Skia rule height 대칭)", () => {
+    expect(calculateContentHeight(makeHeader())).toBe(36);
   });
 
-  test("명시적 style.height override 우선 (rule 30 무시)", () => {
+  test("명시적 style.height override 우선 (rule 36 무시)", () => {
     const h = calculateContentHeight(makeHeader({ style: { height: 48 } }));
     expect(h).toBe(48);
   });

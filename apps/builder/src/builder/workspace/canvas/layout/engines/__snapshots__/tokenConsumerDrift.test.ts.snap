@@ -2,12 +2,14 @@
 
 exports[`ADR-081 G2 — token consumer drift cross-reference > C1 — tokenToCSSVar 매핑 회귀 (CSS var 문자열) > radius tokens → var(--radius-*) 매핑 1`] = `
 {
+  "2xl": "var(--radius-2xl)",
   "full": "var(--radius-full)",
   "lg": "var(--radius-lg)",
   "md": "var(--radius-md)",
   "none": "var(--radius-none)",
   "sm": "var(--radius-sm)",
   "xl": "var(--radius-xl)",
+  "xs": "var(--radius-xs)",
 }
 `;
 
@@ -51,12 +53,14 @@ exports[`ADR-081 G2 — token consumer drift cross-reference > C1 — tokenToCSS
 
 exports[`ADR-081 G2 — token consumer drift cross-reference > C2 — resolveToken 값 drift (Skia 렌더 경로 소비) > radius resolved values 1`] = `
 {
+  "2xl": 16,
   "full": 9999,
   "lg": 8,
   "md": 6,
   "none": 0,
   "sm": 4,
   "xl": 12,
+  "xs": 2,
 }
 `;
 
@@ -92,7 +96,7 @@ exports[`ADR-081 G2 — token consumer drift cross-reference > C2 — resolveTok
   "text-sm": 14,
   "text-sm--line-height": 20,
   "text-xl": 20,
-  "text-xl--line-height": 30,
+  "text-xl--line-height": 28,
   "text-xs": 12,
   "text-xs--line-height": 16,
 }

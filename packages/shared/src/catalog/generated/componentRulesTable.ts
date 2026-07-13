@@ -12506,7 +12506,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     containerStyles: {
       display: "flex",
       flexDirection: "column",
-      gap: "{spacing.2xs}",
+      // 실효 gap 0 — starter Tree.css `@supports selector(:has(.foo))` 블록이 gap:0 재선언
+      //   (selected 행 이어붙임 디자인, 모던 브라우저 전부 매치). 2xs(2px)는 dead 값 (2026-07-14).
+      gap: 0,
       padding: "{spacing.xs}",
       width: "100%",
       maxHeight: "300px",
@@ -12605,10 +12607,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.none}",
       },
       md: {
-        fontSize: "{typography.text-sm}",
-        height: 28,
+        // DOM(starter Tree.css)은 size 변형 없는 고정 메트릭: min-height 32(= paddingY 4*2 +
+        //   line box 24) + font-size text-base(16) + chevron svg 16. 구 28/text-sm/15 는
+        //   spec rowHeight 산술 잔존으로 CSS 실측 대비 -4~-8 drift (2026-07-14 sweep).
+        fontSize: "{typography.text-base}",
+        height: 32,
         paddingX: 8,
-        iconSize: 15,
+        iconSize: 16,
         indentPerLevel: 16,
         borderRadius: "{radius.none}",
       },
