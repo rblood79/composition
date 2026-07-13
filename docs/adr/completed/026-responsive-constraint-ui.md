@@ -411,7 +411,7 @@ width: auto / fit-content  → Fit
 
 - [ADR-008: Layout Engine](008-layout-engine.md) — Taffy WASM 단일 엔진
 - [ADR-009: Figma-Class Rendering](009-full-tree-wasm-layout.md) — 렌더링/레이아웃 파이프라인
-- [PENCIL_VS_composition_UI_UX.md](../legacy/PENCIL_VS_composition_UI_UX.md) — Pencil 비교 분석 (정렬/배치/스냅)
+- PENCIL_VS_composition_UI_UX.md — Pencil 비교 분석 (정렬/배치/스냅)
 
 ---
 

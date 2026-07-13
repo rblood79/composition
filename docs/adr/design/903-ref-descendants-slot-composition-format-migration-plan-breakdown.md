@@ -1,6 +1,6 @@
 # ADR-903 Breakdown: ref/descendants + slot 기본 composition 포맷 전환 계획
 
-> 본 문서는 [ADR-903](../adr/903-ref-descendants-slot-composition-format-migration-plan.md)의 구현 상세입니다.
+> 본 문서는 [ADR-903](../completed/903-ref-descendants-slot-composition-format-migration-plan.md)의 구현 상세입니다.
 
 ## 목표
 

@@ -11,4 +11,4 @@
 | ipc/    | IPC 통신 시스템                 |
 | ui/     | UI/디자인 킷, React 컴포넌트    |
 
-참조: [RENDERING_ARCHITECTURE.md](../RENDERING_ARCHITECTURE.md)
+참조: [RENDERING_ARCHITECTURE.md](../legacy/RENDERING_ARCHITECTURE.md)

@@ -1,6 +1,6 @@
 # ADR-054 구현 상세: 로컬 LLM 아키텍처
 
-> ADR 본문: [054-local-llm-architecture.md](../adr/054-local-llm-architecture.md)
+> ADR 본문: [054-local-llm-architecture.md](../completed/054-local-llm-architecture.md)
 
 ## Phase 구조
 

@@ -14,7 +14,7 @@ composition에는 `Panel`이라는 독립 컴포넌트가 존재한다. 본 컴�
 
 ### SSOT 체인 위배 (3-Domain 분할 기준)
 
-본 ADR은 SSOT 체인 정본 [ADR-063](../063-ssot-chain-charter.md) / [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md)의 **D2(Props/API)** 위반 해소 건이다.
+본 ADR은 SSOT 체인 정본 [ADR-063](063-ssot-chain-charter.md) / [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md)의 **D2(Props/API)** 위반 해소 건이다.
 
 - **D2 위반**: RSP 미규정 `variant` 5종 임의 도입 — 정본 규칙 §6 금지 패턴 "Spec에 RSP 미규정 prop 도입 (D2 위반)"에 정확히 해당
 - **D3 간접 영향**: `PanelSpec.variants`가 정의한 시각 스타일은 Group/Section/Card가 이미 커버 (시각 domain 대체재 존재)

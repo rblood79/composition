@@ -295,6 +295,6 @@ anchor 가 제공하던 per-instance row template style override 는 제거된�
 - `docs/migrations/shadcn-design-system.json`
 - [ADR-145](145-listbox-template-element-single-component-proof.md)
 - [ADR-142](142-starter-spec-component-system-cutover.md)
-- [ADR-132](completed/132-usecollectiondata-useasynclist-alignment.md)
-- [ADR-130](completed/130-layer3-canonical-vocabulary-alignment.md)
-- [ADR-076](completed/076-listbox-items-ssot.md)
+- [ADR-132](132-usecollectiondata-useasynclist-alignment.md)
+- [ADR-130](130-layer3-canonical-vocabulary-alignment.md)
+- [ADR-076](076-listbox-items-ssot-hybrid.md)

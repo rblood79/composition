@@ -171,5 +171,5 @@ GridList에서 Style Panel로 `padding`/`gap`을 편집해도 Preview CSS와 Bui
 - [packages/shared/src/renderers/SelectionRenderers.tsx](../../../packages/shared/src/renderers/SelectionRenderers.tsx)
 - [packages/shared/src/components/GridList.tsx](../../../packages/shared/src/components/GridList.tsx)
 - [packages/shared/src/components/styles/GridList.css](../../../packages/shared/src/components/styles/GridList.css)
-- [packages/specs/src/components/GridList.spec.ts](../../../packages/specs/src/components/GridList.spec.ts)
+- packages/specs/src/components/GridList.spec.ts
 - [apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts](../../../apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts)

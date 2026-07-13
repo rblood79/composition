@@ -203,9 +203,9 @@ ADR-106 (skipCSSGeneration 감사 Charter, Proposed 2026-04-21) §G3 "수동 CSS
 
 ## 참조
 
-- [ADR-059](completed/059-composite-field-skip-css-dismantle.md) — Composite Field CSS SSOT 확립, Tier 3 예외 9개 확정 + `@sync` 해체 원칙
+- [ADR-059](059-composite-field-skip-css-dismantle.md) — Composite Field CSS SSOT 확립, Tier 3 예외 9개 확정 + `@sync` 해체 원칙
 - [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 D3 금지 패턴 3번 정본
 - [ADR-078](078-listboxitem-spec-and-generator-child-selector.md) — Generator 자식 selector emit 확장 인프라 (ADR-078 Phase 2가 `childSpecs` inline emit 지원)
 - [ADR-106](106-skipcssgeneration-audit-charter.md) — skipCSSGeneration 감사 Charter, G3 Color family 슬롯 정의
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — D3 domain §6 금지 패턴 3번, §7 허용 패턴
-- [canvas-rendering.md](../../.claude/rules/canvas-rendering.md) — Spec-CSS 경계 §4
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — D3 domain §6 금지 패턴 3번, §7 허용 패턴
+- [canvas-rendering.md](../../../.claude/rules/canvas-rendering.md) — Spec-CSS 경계 §4

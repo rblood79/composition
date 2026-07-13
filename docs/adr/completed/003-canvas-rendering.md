@@ -10,9 +10,9 @@
 >
 > **후속 문서:**
 >
-> - [`docs/RENDERING_ARCHITECTURE.md`](../RENDERING_ARCHITECTURE.md) — CanvasKit/Skia WASM 렌더링 아키텍처 (현행 기준 문서)
+> - [`docs/RENDERING_ARCHITECTURE.md`](../../legacy/RENDERING_ARCHITECTURE.md) — CanvasKit/Skia WASM 렌더링 아키텍처 (현행 기준 문서)
 > - [`docs/adr/008-layout-engine.md`](008-layout-engine.md) — Taffy 단일 레이아웃 엔진 전략 (Dropflow 제거, TaffyBlockEngine 통합)
-> - [`docs/CSS_SUPPORT_MATRIX.md`](../CSS_SUPPORT_MATRIX.md) — CSS Level 3 지원 현황
+> - [`docs/CSS_SUPPORT_MATRIX.md`](../../CSS_SUPPORT_MATRIX.md) — CSS Level 3 지원 현황
 >
 > **참고:** 본 ADR의 Updates 섹션(2026-02-01~02-18, 30+ 항목)은 전환 과정의 상세 이력입니다.
 > 현행 아키텍처는 `docs/RENDERING_ARCHITECTURE.md`를 기준으로 참조하세요.

@@ -98,7 +98,7 @@ ADR-036 (Spec-First Single Source, Implemented 2026-03-16) 은 `CSSGenerator` �
 
 ADR-059 (Composite Field CSS SSOT 확립, Implemented 2026-04-15) 는 이 우회로가 낳은 문제의 핵심을 규명했다: **수동 CSS 파일이 Spec 에서 파생되지 않고 독립적으로 유지될 때 D3 대칭 consumer 원칙이 깨진다.** ADR-059 는 Composite Field 7개의 수동 CSS 독자 진실을 제거했고, `skipCSSGeneration: true` 잔존 Tier 3 예외 9개를 확정했다. 그 이후 추가 ADR 체인 (ADR-068/071/076/078/092/093/094/095) 을 통해 신규 `skipCSSGeneration: true` 선언이 추가되었다.
 
-[`ssot-hierarchy.md` §6 금지 패턴 3번](../../.claude/rules/ssot-hierarchy.md) 은 이를 명시한다:
+[`ssot-hierarchy.md` §6 금지 패턴 3번](../../../.claude/rules/ssot-hierarchy.md) 은 이를 명시한다:
 
 > ❌ 수동 CSS가 Spec에서 파생 아님 (D3 위반) — ADR-059
 
@@ -345,11 +345,11 @@ spec 토큰 파생 여부 + `@sync` 주석 연동 + 부모 관계 명확화 추�
 
 ## 참조
 
-- [ADR-036](completed/036-spec-first-single-source.md) — `skipCSSGeneration` 우회로 원설계 (Spec-First CSS 자동 생성)
-- [ADR-059](completed/059-composite-field-skip-css-dismantle.md) — Composite Field CSS SSOT 확립 (해체 원칙 수립 + Tier 3 예외 9개 확정)
+- [ADR-036](036-spec-first-single-source.md) — `skipCSSGeneration` 우회로 원설계 (Spec-First CSS 자동 생성)
+- [ADR-059](059-composite-field-skip-css-dismantle.md) — Composite Field CSS SSOT 확립 (해체 원칙 수립 + Tier 3 예외 9개 확정)
 - [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 D3 금지 패턴 3번 선언
 - [ADR-078](078-listboxitem-spec-and-generator-child-selector.md) — ListBoxItem.spec + Generator 자식 selector emit 확장 (G1 정당화 인프라)
-- [ADR-094](094-expandchildspecs-taglist-exception-removal.md) — `expandChildSpecs` 인프라 (G1 자동 등록)
+- [ADR-094](094-childspecs-registry-auto-registration.md) — `expandChildSpecs` 인프라 (G1 자동 등록)
 - [ADR-098](098-rsp-naming-audit-charter.md) — 감사 Charter + 분할 sub-ADR 패턴 선례 (RSP 네이밍)
 - [ADR-105](105-sync-annotation-audit-charter.md) — @sync 주석 감사 Charter (G3/G4 중복 scope)
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — §6 금지 패턴 3번 정본
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — §6 금지 패턴 3번 정본

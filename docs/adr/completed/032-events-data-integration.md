@@ -6,8 +6,8 @@ Deprecated — 2026-05-13 (Replaced by [ADR-133](133-events-panel-simplification
 
 ### land 영역 (ADR-131 / ADR-132 / ADR-133 흡수)
 
-- **events / actions root collection schema** — [ADR-131](../131-events-data-actions-first-class-collections.md) Phase 1-4 가 `CompositionDocument.events` / `actions` root field + `SerializedEvent` / `SerializedAction` 타입 land. v2 §1 (TriggerRegistry) + §2 (EffectRegistry 의 일부) 영역 partial supersede 완결
-- **dataBinding ↔ collections rename** — [ADR-132](../132-usecollectiondata-useasynclist-alignment.md) 가 `data_tables` → `collections` rename + `useCollectionData` `useAsyncList` 정통 정합 land
+- **events / actions root collection schema** — [ADR-131](131-events-data-actions-first-class-collections.md) Phase 1-4 가 `CompositionDocument.events` / `actions` root field + `SerializedEvent` / `SerializedAction` 타입 land. v2 §1 (TriggerRegistry) + §2 (EffectRegistry 의 일부) 영역 partial supersede 완결
+- **dataBinding ↔ collections rename** — [ADR-132](132-usecollectiondata-useasynclist-alignment.md) 가 `data_tables` → `collections` rename + `useCollectionData` `useAsyncList` 정통 정합 land
 - **canonical schema UI 표면 정합** — [ADR-133](133-events-panel-simplification.md) D2/D3/D4 가 EventsPanel canonical primary 전환 + ActionsPanel 흡수
 
 ### 미land 영역 (ADR-134 응용 이관)
@@ -31,7 +31,7 @@ composition Team
 ## Related ADRs
 
 - [ADR-010](010-events-panel.md): Events Panel Smart Recommendations
-- [ADR-013](013-quick-connect-data-binding.md): Quick Connect Data Binding
+- [ADR-013](../013-quick-connect-data-binding.md): Quick Connect Data Binding
 
 ---
 
@@ -764,7 +764,7 @@ Quick Connect 후 생성된 핸들러는 단순 산출물이 아니라
 ## References
 
 - [ADR-010](010-events-panel.md)
-- [ADR-013](013-quick-connect-data-binding.md)
+- [ADR-013](../013-quick-connect-data-binding.md)
 - [react-aria skill](/Users/admin/work/composition/.agents/skills/react-aria/SKILL.md)
 - [events.registry.ts](/Users/admin/work/composition/apps/builder/src/types/events/events.registry.ts)
 - [eventTypes.ts](/Users/admin/work/composition/apps/builder/src/builder/panels/events/types/eventTypes.ts)

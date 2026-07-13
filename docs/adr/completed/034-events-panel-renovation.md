@@ -145,11 +145,11 @@ broken binding, invalid condition, drift는
 
 세부 설계는 아래 문서에서 이어진다.
 
-- [events-panel-wireframe.md](design/events-panel-wireframe.md)
-- [events-panel-state-model.md](design/events-panel-state-model.md)
-- [events-panel-recipe-system.md](design/events-panel-recipe-system.md)
-- [events-panel-binding-diagnostics.md](design/events-panel-binding-diagnostics.md)
-- [events-panel-review-checklist.md](design/events-panel-review-checklist.md)
+- [events-panel-wireframe.md](../design/events-panel-wireframe.md)
+- [events-panel-state-model.md](../design/events-panel-state-model.md)
+- [events-panel-recipe-system.md](../design/events-panel-recipe-system.md)
+- [events-panel-binding-diagnostics.md](../design/events-panel-binding-diagnostics.md)
+- [events-panel-review-checklist.md](../design/events-panel-review-checklist.md)
 
 ---
 

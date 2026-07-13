@@ -1,6 +1,6 @@
 # ADR-073: Select/ComboBox items SSOT + `renderMenu` wiring 정리
 
-> **SSOT domain**: D2 (Props/API) **정렬** + D3 (시각 스타일) **보완**. ADR-066(Tabs items SSOT) / ADR-068(Menu items SSOT + MenuItem Spec) 패턴을 Select/ComboBox 로 확장. 정본: [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md), charter: [ADR-063](../063-ssot-chain-charter.md), 선례: [ADR-066](066-tabs-items-ssot-migration.md), [ADR-068](068-menu-items-ssot-and-menuitem-spec.md), 연관: [ADR-071](../071-generator-container-styles-menu-restore.md) Menu 정방향 복원.
+> **SSOT domain**: D2 (Props/API) **정렬** + D3 (시각 스타일) **보완**. ADR-066(Tabs items SSOT) / ADR-068(Menu items SSOT + MenuItem Spec) 패턴을 Select/ComboBox 로 확장. 정본: [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md), charter: [ADR-063](063-ssot-chain-charter.md), 선례: [ADR-066](066-tabs-items-ssot-migration.md), [ADR-068](068-menu-items-ssot-and-menuitem-spec.md), 연관: [ADR-071](071-generator-container-styles-menu-restore.md) Menu 정방향 복원.
 
 ## Status
 

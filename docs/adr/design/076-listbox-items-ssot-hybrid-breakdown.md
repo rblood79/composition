@@ -1,6 +1,6 @@
 # ADR-076 Implementation Breakdown — ListBox items SSOT + containerStyles Hybrid (ListBoxItem 듀얼 모드 보존)
 
-> ADR 본문: [076-listbox-items-ssot-hybrid.md](../adr/completed/076-listbox-items-ssot-hybrid.md)
+> ADR 본문: [076-listbox-items-ssot-hybrid.md](../completed/076-listbox-items-ssot-hybrid.md)
 >
 > Codex 1차 리뷰 반영 — 2026-04-18. 템플릿 모드 ListBoxItem(Field 자식 보유) 보존 + Popover debt 실제 출처(Popover.css:30) + reorder 일반화 부재 + layout 감사 선행 요구.
 

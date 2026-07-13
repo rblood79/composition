@@ -1,6 +1,6 @@
 # ADR-087 Breakdown — implicitStyles 잔존 ~25 분기 카테고리별 sweep
 
-> ADR: [087-implicitstyles-residual-branches-categorized-sweep.md](../adr/completed/087-implicitstyles-residual-branches-categorized-sweep.md)
+> ADR: [087-implicitstyles-residual-branches-categorized-sweep.md](../completed/087-implicitstyles-residual-branches-categorized-sweep.md)
 
 ## Phase 0 — 진입 감사 (모든 SP 공통 선행)
 

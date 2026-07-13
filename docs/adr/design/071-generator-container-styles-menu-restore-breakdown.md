@@ -1,7 +1,7 @@
 # ADR-071 구현 상세 — Generator containerStyles 인프라 + Menu 정방향 복원
 
-> **관련 ADR**: [071-generator-container-styles-menu-restore.md](../adr/071-generator-container-styles-menu-restore.md)
-> **SSOT 맥락**: [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) D3(시각) — Menu Spec의 "variants=Skia trigger / containerStyles=CSS popover" 이원성을 구조 수용.
+> **관련 ADR**: [071-generator-container-styles-menu-restore.md](../completed/071-generator-container-styles-menu-restore.md)
+> **SSOT 맥락**: [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) D3(시각) — Menu Spec의 "variants=Skia trigger / containerStyles=CSS popover" 이원성을 구조 수용.
 
 ## 목표
 

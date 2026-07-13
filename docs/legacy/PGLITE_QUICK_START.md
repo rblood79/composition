@@ -1,6 +1,6 @@
 # Electron + PGlite Quick Start Guide
 
-> **빠른 참조용 요약 문서** - 상세 내용은 [ELECTRON_PGLITE_IMPLEMENTATION_PLAN.md](./ELECTRON_PGLITE_IMPLEMENTATION_PLAN.md) 참조
+> **빠른 참조용 요약 문서** - 상세 내용은 [ELECTRON_PGLITE_IMPLEMENTATION_PLAN.md](PGLITE_IMPLEMENTATION.md) 참조
 
 ---
 
@@ -330,7 +330,7 @@ my-project.composition
 ## 🔍 다음 단계
 
 1. ✅ 이 문서 읽기
-2. ✅ 상세 계획 문서 읽기: [ELECTRON_PGLITE_IMPLEMENTATION_PLAN.md](./ELECTRON_PGLITE_IMPLEMENTATION_PLAN.md)
+2. ✅ 상세 계획 문서 읽기: [ELECTRON_PGLITE_IMPLEMENTATION_PLAN.md](PGLITE_IMPLEMENTATION.md)
 3. ✅ Phase 1 시작: Database Abstraction Layer 구현
 4. ⏭️ 각 Phase별로 순차 진행
 

@@ -1,6 +1,6 @@
 # ADR-070: MenuItem CSS 색상 SSOT — StateEffect hover/disabled 색상 emit 인프라
 
-> **SSOT domain**: D3 (시각 스타일) — popover 내 RAC `<MenuItem>`의 light/dark 시각 정합. CSSGenerator의 state 색상 emit 인프라(hover/disabled)를 신설하여 Spec → CSS 자동 파생 SSOT(ADR-036) 적용 범위를 확장한다. 정본: [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md), 선례: [ADR-068](068-menu-items-ssot-and-menuitem-spec.md).
+> **SSOT domain**: D3 (시각 스타일) — popover 내 RAC `<MenuItem>`의 light/dark 시각 정합. CSSGenerator의 state 색상 emit 인프라(hover/disabled)를 신설하여 Spec → CSS 자동 파생 SSOT(ADR-036) 적용 범위를 확장한다. 정본: [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md), 선례: [ADR-068](068-menu-items-ssot-and-menuitem-spec.md).
 >
 > **Codex 리뷰 반영(2026-04-17)**: 초안의 "states.selected 신설"은 selected SSOT를 VariantSpec.selectedBackground와 분산시키는 위반으로 판정 → **selected 처리 본 ADR scope 제외**. 초안의 "ListBoxItem.spec 신설(P3)"은 simple archetype이 layout/size까지 함께 emit하여 manual ListBox.css와 cascade 충돌 → **ListBoxItem.spec은 별도 ADR(P4 묶음)로 분리**.
 
@@ -100,7 +100,7 @@ ADR-068(2026-04-17 Implemented) 후 검증에서 **popover 내 `<MenuItem>` 의 
 - **대안 A 기각**: ADR-059 역행 채무 누적이 명백한 비용. 30초 절약 위해 미래 인프라 부담을 늘리는 것은 비합리
 - **대안 B 기각**: Codex 리뷰가 확증한 구조 충돌(simple archetype이 layout/size 동시 emit) + ListBox.css 표현 한계 미지수가 ADR Implemented 판정을 불확실하게 만듦. ADR-068이 검증한 분리 전략 적용
 
-> 구현 상세: [070-popover-item-css-ssot-breakdown.md](../design/070-popover-item-css-ssot-breakdown.md)
+> 구현 상세: [070-popover-item-css-ssot-breakdown.md](../design/completed/070-popover-item-css-ssot-breakdown.md)
 
 ## Gates
 

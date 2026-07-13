@@ -154,7 +154,7 @@ ADR-076 "ListBox items SSOT + containerStyles Hybrid" 종결 직후 진행한 cr
 - **대안 C 기각**: `@sync` 영구화는 SSOT 공식 포기. ADR-036/059/063 역행 debt 의 신규 발생
 - **대안 D 기각**: Skia-first 역생성은 `ssot-hierarchy.md` D3 symmetric consumer 모델 위반
 
-> 구현 상세: [078-listboxitem-spec-and-generator-child-selector-breakdown.md](../../adr/design/078-listboxitem-spec-and-generator-child-selector-breakdown.md)
+> 구현 상세: 078-listboxitem-spec-and-generator-child-selector-breakdown.md
 
 ## Gates
 

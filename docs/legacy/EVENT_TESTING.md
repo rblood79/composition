@@ -2,7 +2,7 @@
 
 > **Events Panel 상태**: ✅ Phase 5 완료 (2025-12-08)
 > **문서 작성일**: 2025-12-07
-> **기반 문서**: [EVENTS_PANEL_REDESIGN.md](./EVENTS_PANEL_REDESIGN.md)
+> **기반 문서**: [EVENTS_PANEL_REDESIGN.md](../features/completed/EVENTS_PANEL.md)
 
 ---
 
@@ -1392,4 +1392,4 @@
 ---
 
 **문서 작성**: Claude Code
-**기반 설계 문서**: [EVENTS_PANEL_REDESIGN.md](./EVENTS_PANEL_REDESIGN.md)
+**기반 설계 문서**: [EVENTS_PANEL_REDESIGN.md](../features/completed/EVENTS_PANEL.md)

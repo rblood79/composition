@@ -8,7 +8,7 @@ Implemented — 2026-04-21
 
 composition SSOT 체인 (ADR-036/063) 은 시각 metric 을 Spec SSOT 로 복귀시키는 중. ADR-086 G4 가 `implicitStyles.ts` 의 `Record<string, number>` 를 0건 달성했으나 감사 누락으로 **`utils.ts` (11건) + `cssResolver.ts` (1건) = 12건 잔존** 확인됨 (2026-04-21 재감사).
 
-### D3 domain 판정 ([ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### D3 domain 판정 ([ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 **D3 (시각 스타일) symmetric consumer 의 대칭 복구**. 단 12건 중 `FONT_STRETCH_KEYWORD_MAP` (CSS font-stretch 키워드→percentage 변환 표준) 은 D3 Spec SSOT 적용 대상이 아닌 **CSS 표준 상수**로 별도 판정.
 
@@ -185,4 +185,4 @@ Record 카운트: 3→2 건 (R2/R6 DEFAULT*ELEMENT*\* 만 잔존 = ADR-091-A1 sc
 - [ADR-086](086-implicitstyles-size-record-dissolution-and-breadcrumb-child.md) — G4 선례 (implicitStyles Record 해체, specSizeField 헬퍼)
 - [ADR-088](088-sizespec-columngap-slider-col-gap-dissolution.md) — SizeSpec 필드 확장 선례
 - [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 D3 domain 원칙
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — D3 symmetric consumer 정본
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — D3 symmetric consumer 정본

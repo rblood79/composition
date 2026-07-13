@@ -44,10 +44,10 @@ docs/
 
 > 핵심 아키텍처 및 기능 설계 문서입니다.
 
-- [AI 기능 설계](./adr/011-ai-assistant-design.md) - AI Agent Loop + Tool Calling 설계
-- [WASM 렌더링 아키텍처](./RENDERING_ARCHITECTURE.md) - CanvasKit/Skia WASM 전환
+- [AI 기능 설계](adr/completed/011-ai-assistant-design.md) - AI Agent Loop + Tool Calling 설계
+- [WASM 렌더링 아키텍처](legacy/RENDERING_ARCHITECTURE.md) - CanvasKit/Skia WASM 전환
 - [컴포넌트 스펙 아키텍처](./COMPONENT_SPEC.md) - 단일 소스 컴포넌트 스펙 + React Aria DOM 구조 레퍼런스
-- [레이아웃 엔진 ADR](./adr/008-layout-engine.md) - Taffy WASM 단일 엔진 전략
+- [레이아웃 엔진 ADR](adr/completed/008-layout-engine.md) - Taffy WASM 단일 엔진 전략
 - [CSS 속성 지원 체크리스트](./CSS_SUPPORT_MATRIX.md) - CSS 속성별 지원 상태
 - [컬러 피커 + Fill 시스템](./COLOR_PICKER.md) - Color/Gradient/EyeDropper/BlendMode/ImageFill
 - [Agent Teams 매뉴얼](./AGENTS_TEAMS.md) - Claude Code 에이전트 협업
@@ -64,20 +64,20 @@ docs/
 
 | ADR                                                     | 제목                                    | 상태                |
 | ------------------------------------------------------- | --------------------------------------- | ------------------- |
-| [001](./adr/001-state-management.md)                    | 상태 관리 (Zustand)                     | Accepted            |
-| [002](./adr/002-styling-approach.md)                    | 스타일링 (ITCSS + Tailwind)             | Accepted            |
-| [003](./adr/003-canvas-rendering.md)                    | Canvas 렌더링 (CanvasKit/Skia + PixiJS) | Superseded          |
-| [004](./adr/004-preview-isolation.md)                   | Preview 격리 (iframe + postMessage)     | Accepted            |
-| [005](./adr/005-css-text-wrapping.md)                   | CSS 텍스트 래핑 에뮬레이션              | Implemented         |
-| [006](./adr/006-child-composition-remaining.md)         | Child Composition 잔여 작업             | Implemented         |
-| [007](./adr/007-project-export.md)                      | 프로젝트 내보내기                       | Implemented         |
-| [008](./adr/008-layout-engine.md)                       | 캔버스 레이아웃 엔진 전환 (전략 D)      | Implemented         |
-| [009](./adr/009-full-tree-wasm-layout.md)               | Full-Tree WASM 레이아웃                 | Partial (Phase 0~2) |
-| [010](./adr/010-events-panel.md)                        | Events Panel                            | Partial (P0~P1)     |
-| [011](./adr/011-ai-assistant-design.md)                 | AI Assistant 설계 (Groq Tool Calling)   | Partial (A1~A4)     |
-| [012](./adr/012-rendering-layout-pipeline-hardening.md) | 렌더링/레이아웃 파이프라인 강화         | Proposed            |
+| [001](adr/completed/001-state-management.md)                    | 상태 관리 (Zustand)                     | Accepted            |
+| [002](adr/completed/002-styling-approach.md)                    | 스타일링 (ITCSS + Tailwind)             | Accepted            |
+| [003](adr/completed/003-canvas-rendering.md)                    | Canvas 렌더링 (CanvasKit/Skia + PixiJS) | Superseded          |
+| [004](adr/completed/004-preview-isolation.md)                   | Preview 격리 (iframe + postMessage)     | Accepted            |
+| [005](adr/completed/005-css-text-wrapping.md)                   | CSS 텍스트 래핑 에뮬레이션              | Implemented         |
+| [006](adr/completed/006-child-composition-remaining.md)         | Child Composition 잔여 작업             | Implemented         |
+| [007](adr/completed/007-project-export.md)                      | 프로젝트 내보내기                       | Implemented         |
+| [008](adr/completed/008-layout-engine.md)                       | 캔버스 레이아웃 엔진 전환 (전략 D)      | Implemented         |
+| [009](adr/completed/009-full-tree-wasm-layout.md)               | Full-Tree WASM 레이아웃                 | Partial (Phase 0~2) |
+| [010](adr/completed/010-events-panel.md)                        | Events Panel                            | Partial (P0~P1)     |
+| [011](adr/completed/011-ai-assistant-design.md)                 | AI Assistant 설계 (Groq Tool Calling)   | Partial (A1~A4)     |
+| [012](adr/completed/012-rendering-layout-pipeline-hardening.md) | 렌더링/레이아웃 파이프라인 강화         | Proposed            |
 | [013](./adr/013-quick-connect-data-binding.md)          | Quick Connect 데이터 바인딩             | Proposed            |
-| [014](./adr/014-fonts.md)                               | 폰트 시스템                             | Proposed            |
+| [014](adr/completed/014-fonts.md)                               | 폰트 시스템                             | Proposed            |
 | [015](./adr/015-sitemap-layout.md)                      | Sitemap 레이아웃                        | Proposed            |
 | [016](./adr/016-photoshop-ui-ux.md)                     | Photoshop UI/UX 적용 계획               | Proposed            |
 

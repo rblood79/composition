@@ -14,11 +14,11 @@ composition Team
 
 ## Related ADRs
 
-- [ADR-003](completed/003-canvas-rendering.md): PixiJS Canvas Rendering
-- [ADR-035](completed/035-workspace-canvas-refactor.md): Workspace Canvas Runtime Refactor
-- [ADR-037](completed/037-workspace-scene-runtime-rearchitecture.md): Workspace Scene Runtime Rearchitecture
-- [ADR-039](completed/039-page-scoped-rendering.md): Multi-page Canvas Page-Scoped Rendering
-- [ADR-040](completed/040-visible-page-delta-runtime.md): Visible Page + Delta Runtime
+- [ADR-003](003-canvas-rendering.md): PixiJS Canvas Rendering
+- [ADR-035](035-workspace-canvas-refactor.md): Workspace Canvas Runtime Refactor
+- [ADR-037](037-workspace-scene-runtime-rearchitecture.md): Workspace Scene Runtime Rearchitecture
+- [ADR-039](039-page-scoped-rendering.md): Multi-page Canvas Page-Scoped Rendering
+- [ADR-040](040-visible-page-delta-runtime.md): Visible Page + Delta Runtime
 - [Workspace Selection Drag Breakdown](../design/workspace-selection-drag-breakdown.md): 실행 설계
 
 ---

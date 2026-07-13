@@ -1,6 +1,6 @@
 # ADR-057: specShapeConverter Text Shape Feature Parity 이식
 
-> **SSOT domain**: D3 (시각 스타일). Text 컴포넌트의 Skia consumer가 Spec 시각 정의를 소비하는 경로 복원. 정본: [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md), charter: [ADR-063](../063-ssot-chain-charter.md).
+> **SSOT domain**: D3 (시각 스타일). Text 컴포넌트의 Skia consumer가 Spec 시각 정의를 소비하는 경로 복원. 정본: [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md), charter: [ADR-063](063-ssot-chain-charter.md).
 
 ## Status
 

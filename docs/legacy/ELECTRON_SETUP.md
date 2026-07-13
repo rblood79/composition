@@ -507,7 +507,7 @@ const pref = getUserDbPreference();
 - [PGlite Documentation](https://github.com/electric-sql/pglite)
 - [Electron Documentation](https://www.electronjs.org/docs)
 - [Electron Builder](https://www.electron.build/)
-- [composition Component Migration](./implementation/COMPONENT_MIGRATION_PLAN.md)
+- composition Component Migration
 
 ---
 

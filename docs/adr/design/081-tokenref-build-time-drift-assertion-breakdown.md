@@ -1,6 +1,6 @@
 # ADR-081 구현 상세 — TokenRef resolved-value build-time drift assertion
 
-> ADR 본문: [081-tokenref-build-time-drift-assertion.md](../adr/completed/081-tokenref-build-time-drift-assertion.md)
+> ADR 본문: [081-tokenref-build-time-drift-assertion.md](../completed/081-tokenref-build-time-drift-assertion.md)
 
 ## 개요
 

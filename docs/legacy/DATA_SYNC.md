@@ -3,7 +3,7 @@
 > **Status**: 📋 Planning Phase → 🔍 Analysis Complete
 > **Created**: 2025-12-05
 > **Updated**: 2025-12-06 (현재 구현 상태 분석 추가)
-> **Related**: [DATA_PANEL_SYSTEM.md](DATA_PANEL_SYSTEM.md), [useAsyncList](https://react-spectrum.adobe.com/react-stately/useAsyncList.html)
+> **Related**: [DATA_PANEL_SYSTEM.md](../features/completed/DATA_PANEL.md), [useAsyncList](https://react-spectrum.adobe.com/react-stately/useAsyncList.html)
 
 ---
 
@@ -1496,9 +1496,9 @@ src/
 ## 참고 자료
 
 - [React Stately useAsyncList](https://react-spectrum.adobe.com/react-stately/useAsyncList.html)
-- [DATA_PANEL_SYSTEM.md](DATA_PANEL_SYSTEM.md)
-- [COLLECTION_COMPONENTS_DATA_BINDING.md](COLLECTION_COMPONENTS_DATA_BINDING.md)
-- [CANVAS_RUNTIME_ISOLATION.md](CANVAS_RUNTIME_ISOLATION.md)
+- [DATA_PANEL_SYSTEM.md](../features/completed/DATA_PANEL.md)
+- [COLLECTION_COMPONENTS_DATA_BINDING.md](../features/completed/COLLECTION_DATA_BINDING.md)
+- [CANVAS_RUNTIME_ISOLATION.md](../features/completed/CANVAS_ISOLATION.md)
 
 ---
 

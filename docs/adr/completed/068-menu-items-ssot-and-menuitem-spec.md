@@ -1,6 +1,6 @@
 # ADR-068: Menu items SSOT + MenuItem Spec 신설 (D2 + D3 동시 정합)
 
-> **SSOT domain**: D2 (Props/API) **정렬** + D3 (시각 스타일) **누락 보완**. ADR-066(Tabs items SSOT) 패턴 직접 적용 + MenuItem Spec 신설로 D3 SSOT 완전 정합. 정본: [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md), charter: [ADR-063](../063-ssot-chain-charter.md), 선례: [ADR-066](066-tabs-items-ssot-migration.md).
+> **SSOT domain**: D2 (Props/API) **정렬** + D3 (시각 스타일) **누락 보완**. ADR-066(Tabs items SSOT) 패턴 직접 적용 + MenuItem Spec 신설로 D3 SSOT 완전 정합. 정본: [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md), charter: [ADR-063](063-ssot-chain-charter.md), 선례: [ADR-066](066-tabs-items-ssot-migration.md).
 
 ## Status
 
@@ -307,7 +307,7 @@ export interface RenderContext {
 
 MenuItem CSS는 `MenuItem.spec.ts`에서 자동 생성된 `MenuItem.css` 적용. **(Q10=i) `packages/shared/src/components/styles/index.css:137`(Menu Components 섹션)에 `@import "./generated/MenuItem.css";` 라인 수동 추가 필수** — `generate-css.ts`는 index.css 자동 갱신하지 않음 (다른 107 CSS도 동일 수동 패턴).
 
-> 구현 상세: [068-menu-items-ssot-and-menuitem-spec-breakdown.md](../design/068-menu-items-ssot-and-menuitem-spec-breakdown.md)
+> 구현 상세: [068-menu-items-ssot-and-menuitem-spec-breakdown.md](../design/completed/068-menu-items-ssot-and-menuitem-spec-breakdown.md)
 
 ## Gates
 

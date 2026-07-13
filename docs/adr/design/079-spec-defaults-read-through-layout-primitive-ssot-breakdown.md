@@ -1,6 +1,6 @@
 # ADR-079 Breakdown — Spec defaults read-through + Layout primitive SSOT 완전화
 
-> ADR: [079-spec-defaults-read-through-layout-primitive-ssot.md](../adr/completed/079-spec-defaults-read-through-layout-primitive-ssot.md)
+> ADR: [079-spec-defaults-read-through-layout-primitive-ssot.md](../completed/079-spec-defaults-read-through-layout-primitive-ssot.md)
 
 본 문서는 Phase 별 구현 상세를 담는다. ADR 본문은 Context/Alternatives/Decision/Gates 의 의사결정 축만 보유.
 

@@ -8,10 +8,10 @@
 
 ## Context
 
-### Domain (SSOT 체인 — [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### Domain (SSOT 체인 — [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 - **해당 domain**: **D3 (시각 스타일) 상위** — ADR-903과 동일한 위치. 본 ADR은 D1/D2/D3 위에 위치하는 **문서 구조 / composition source model** 의 테마·변수 선언 계층을 다룬다.
-- **ADR-903과의 관계**: ADR-903 §3.10의 `themes`/`variables` 필드는 타입 stub만 P0에 land되었고, ADR-903 본문에 구현 phase가 명시되지 않았다 ([903-additional-fields-land-status.md](design/903-additional-fields-land-status.md) §3 검증 결과). 본 ADR이 해당 gap에 대한 공식 land plan을 제공한다.
+- **ADR-903과의 관계**: ADR-903 §3.10의 `themes`/`variables` 필드는 타입 stub만 P0에 land되었고, ADR-903 본문에 구현 phase가 명시되지 않았다 ([903-additional-fields-land-status.md](../design/903-additional-fields-land-status.md) §3 검증 결과). 본 ADR이 해당 gap에 대한 공식 land plan을 제공한다.
 - **경계 정당화**: `themes` 필드는 ADR-021 (Theme 시스템) 을 canonical document 선언으로 투영하며, `variables` 필드는 ADR-022 (TokenRef/CSS 변수 체계) 의 design-time 선언을 투영한다. 두 필드 모두 D3 consumer (Skia/CSS) 가 동일 시각 결과를 산출하기 위한 상위 선언 구조다.
 
 ### 문제
@@ -107,7 +107,7 @@ ADR-903 P0 에서 canonical document root 에 4개 메타 필드 타입이 정�
 - **대안 A 기각**: 기술 HIGH (`themeConfigStore.ts:*` + `tokenResolver.ts` + `cssValueParser.ts` 동시 재작성 3+ 파일) + 마이그레이션 HIGH (기존 프로젝트 50+ fixture 역주입 필요) — 2개 HIGH가 ADR-903 P5-A 진입 전 완료 요건과 충돌.
 - **대안 C 보류**: `variables` Phase 3 (TokenRef resolver 통합) scope가 광범위하고 ADR-022 체계 전체에 영향. scope 측정 없이 단일 ADR에서 가이드라인 제시는 과도. 필요 시 ADR-110-b로 분리.
 
-> 구현 상세: [110-canonical-themes-variables-land-plan-breakdown.md](design/110-canonical-themes-variables-land-plan-breakdown.md)
+> 구현 상세: [110-canonical-themes-variables-land-plan-breakdown.md](../design/110-canonical-themes-variables-land-plan-breakdown.md)
 
 ## Risks
 
@@ -217,9 +217,9 @@ Phase 2 land 시 Gate G-B (a)/(b)/(c) 검증:
 
 ## References
 
-- [ADR-903](completed/903-ref-descendants-slot-composition-format-migration-plan.md) — ref/descendants + slot 기본 composition 포맷 전환 계획 (§3.10 themes/variables stub 발원지)
-- [ADR-021](completed/021-theme-system-redesign.md) — Tint + dark mode Theme 시스템
-- [ADR-022](completed/022-s2-color-token-migration.md) — S2 색상 TokenRef 체계
+- [ADR-903](903-ref-descendants-slot-composition-format-migration-plan.md) — ref/descendants + slot 기본 composition 포맷 전환 계획 (§3.10 themes/variables stub 발원지)
+- [ADR-021](021-theme-system-redesign.md) — Tint + dark mode Theme 시스템
+- [ADR-022](022-s2-color-token-migration.md) — S2 색상 TokenRef 체계
 - [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 3-Domain 분할 charter
-- [903-additional-fields-land-status.md](design/903-additional-fields-land-status.md) — P0 land 상태 검증 (§3 themes STUB / §3 variables PARTIAL 확인)
-- [903-phase5-persistence-imports-breakdown.md](design/903-phase5-persistence-imports-breakdown.md) — P5-A IndexedDB DB_VERSION 9 schema 정의 (themes/variables schema 계약 의존)
+- [903-additional-fields-land-status.md](../design/903-additional-fields-land-status.md) — P0 land 상태 검증 (§3 themes STUB / §3 variables PARTIAL 확인)
+- [903-phase5-persistence-imports-breakdown.md](../design/903-phase5-persistence-imports-breakdown.md) — P5-A IndexedDB DB_VERSION 9 schema 정의 (themes/variables schema 계약 의존)

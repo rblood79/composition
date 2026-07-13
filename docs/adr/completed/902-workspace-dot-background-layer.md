@@ -12,7 +12,7 @@ Builder workspace의 실제 작업 영역(Skia canvas) 배경은 현재 단색�
 
 레퍼런스로 조사한 **Stitch (Google, React Flow 기반)** 에디터는 동일 목적을 위해 작업 영역 **아래 레이어**에 SVG `<pattern>` 기반 도트 배경 2장(베이스 회색 + 마우스 따라가는 검정 글로우)을 깔고, 글로우 레이어에 `mask-image: radial-gradient` 를 적용해 커서 주변만 노출한다.
 
-### Domain (SSOT 체인 — [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### Domain (SSOT 체인 — [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 - **해당 domain**: **없음** — 본 변경은 **에디터 크롬(Builder 전용 UI shell)** 이며 D1/D2/D3 어디에도 속하지 않는다.
 - **D3 비적용 근거**: 배경 장식은 Preview/Publish에 존재하지 않는 Builder 전용 요소. CSS↔Skia 대칭 검증(`/cross-check`) 대상이 아님.

@@ -6,7 +6,7 @@ Implemented — 2026-04-21
 
 ## Context
 
-composition SSOT 체인 ([ADR-063](063-ssot-chain-charter.md) / [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md)) 은 D3 시각 스타일을 **Skia ↔ CSS 2-consumer symmetric** 구조로 정의. 그러나 `childSpecs` 패턴 (ADR-078/090/092/093) 은 **CSS 축만 공급** 하고 Skia 축은 여전히 `TAG_SPEC_MAP` registry 에 의존 — 대칭 깨진 상태.
+composition SSOT 체인 ([ADR-063](063-ssot-chain-charter.md) / [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md)) 은 D3 시각 스타일을 **Skia ↔ CSS 2-consumer symmetric** 구조로 정의. 그러나 `childSpecs` 패턴 (ADR-078/090/092/093) 은 **CSS 축만 공급** 하고 Skia 축은 여전히 `TAG_SPEC_MAP` registry 에 의존 — 대칭 깨진 상태.
 
 ### 실측 — debt 선언적 문서화 증거
 
@@ -44,7 +44,7 @@ ADR-092/093 리뷰 교차검증 중 Codex 가 동일 문제 재지적:
 
 즉 childSpecs 패턴을 쓰는 모든 ADR 이 Skia 축에서 **사실상 no-op** 상태. CSS 축만 작동 = D3 symmetric 원칙 미준수.
 
-### D3 domain 판정 ([ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### D3 domain 판정 ([ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 **D3 (시각 스타일) 대칭 복구 인프라**. 본 ADR 자체는 시각 스타일 값 변경 없음 — registry 경로 확장으로 child spec 이 **Skia 축 (layout + sprite + style panel) 에서도 읽히도록** 인프라 정비. 후속 ADR (091/092/093 재정정 포함) 이 이 인프라 위에서 실질 SSOT 복구.
 
@@ -188,4 +188,4 @@ ADR-093 에서 `TagGroupSpec.childSpecs: [TagListSpec]` 배선 완료 → `expan
 - [ADR-090](090-gridlistitem-spec-and-skia-metric-ssot.md) — 2번째 childSpecs 패턴
 - [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 D3 symmetric 원칙 정본
 - [ADR-083](083-archetype-base-styles-lifting.md) — `LOWERCASE_TAG_SPEC_MAP` Phase 0 인프라
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — D3 consumer 정의
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — D3 consumer 정의

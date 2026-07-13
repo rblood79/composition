@@ -198,4 +198,4 @@ Layer 1 + Layer 2 + Tooltip 추가 정리를 단일 작업으로 완료.
 - [React Spectrum S2 Dialog 소스](https://github.com/adobe/react-spectrum/blob/main/packages/@react-spectrum/s2/src/Dialog.tsx)
 - [MDN will-change 남용 경고](https://developer.mozilla.org/en-US/docs/Web/CSS/will-change)
 - [CSS Containment spec — paint containment](https://www.w3.org/TR/css-contain-2/#containment-paint)
-- [ADR-036](completed/036-spec-first-single-source.md): Spec-First CSS 자동 생성 (generated/Dialog.css 생성 경로)
+- [ADR-036](036-spec-first-single-source.md): Spec-First CSS 자동 생성 (generated/Dialog.css 생성 경로)

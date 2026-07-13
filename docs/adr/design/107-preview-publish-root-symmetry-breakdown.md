@@ -1,6 +1,6 @@
 # ADR-107 구현 상세 — Preview `:root` + body 대칭 복구 via shared-tokens
 
-> ADR: [107-preview-publish-root-symmetry.md](../adr/completed/107-preview-publish-root-symmetry.md)
+> ADR: [107-preview-publish-root-symmetry.md](../completed/107-preview-publish-root-symmetry.md)
 >
 > 개정 2026-04-22 (1차): Codex 리뷰 반영 — Phase 0 삭제 + Phase 2 에 Preview body 하드코딩 제거 추가 + G2 기준값 일반화.
 > 개정 2026-04-22 (2차): Codex 3차 리뷰 반영 — Builder cascade override 사실 서술 정직화 (1st family 동일이나 fallback chain 교체 발생) + Phase 5 Builder 탭 검증 G6 신설 + R6 mitigation 추가.

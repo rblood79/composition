@@ -1,6 +1,6 @@
 # ADR-110 Implementation Breakdown — `themes` / `variables` Land Plan
 
-> 본 문서는 [ADR-110](../110-canonical-themes-variables-land-plan.md) 의 **Phase 별 sub-step + 파일 변경 매트릭스 + 검증 명령** 을 분리한다. ADR 본문은 결정 + Risk + Gate 만 보유, 본 문서는 실행 상세를 보유.
+> 본 문서는 [ADR-110](../completed/110-canonical-themes-variables-land-plan.md) 의 **Phase 별 sub-step + 파일 변경 매트릭스 + 검증 명령** 을 분리한다. ADR 본문은 결정 + Risk + Gate 만 보유, 본 문서는 실행 상세를 보유.
 
 ## Phase 1 — Read-only Snapshot Adapter (Implemented 2026-04-27)
 

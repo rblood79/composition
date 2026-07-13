@@ -32,11 +32,11 @@ Phase 0-6 G1-G4 PASS land 후 Phase 7 (IndexedDB store land) → Phase 7-revert 
 
 ### 3-domain 분류 (ADR-063 정합)
 
-본 ADR 은 [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) 의 D1 (DOM/접근성) / D2 (Props/API) / D3 (시각 스타일) 중 **어느 직접 영역에도 속하지 않는 schema architecture layer** 결정이다. 단 D2 (Props/API) 와 연계 — UI node `props` 가 events/data/actions 의 id 를 string 으로 참조 (`props.onPress: "ev1"`).
+본 ADR 은 [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) 의 D1 (DOM/접근성) / D2 (Props/API) / D3 (시각 스타일) 중 **어느 직접 영역에도 속하지 않는 schema architecture layer** 결정이다. 단 D2 (Props/API) 와 연계 — UI node `props` 가 events/data/actions 의 id 를 string 으로 참조 (`props.onPress: "ev1"`).
 
 ### 문제 framing
 
-[ADR-116 (Canonical Document SSOT 전환)](completed/116-canonical-document-ssot-transition.md) Phase 5 §3 은 events / actions / dataBinding 을 **`x-composition` extension namespace** 로 분리 결정 (각 `CanonicalNode` 의 top-level 확장 필드 `node["x-composition"].events`). 결정 근거 = "Pencil-compatible canonical core 와 명확히 분리 + JSON 검색 쉬움".
+[ADR-116 (Canonical Document SSOT 전환)](116-canonical-document-ssot-transition.md) Phase 5 §3 은 events / actions / dataBinding 을 **`x-composition` extension namespace** 로 분리 결정 (각 `CanonicalNode` 의 top-level 확장 필드 `node["x-composition"].events`). 결정 근거 = "Pencil-compatible canonical core 와 명확히 분리 + JSON 검색 쉬움".
 
 본 ADR 의 framing 정정: **Pencil 정통 format 에는 events / dataBinding 이 존재하지 않는다**. `docs/pencil-copy/format-model.md` 의 Pencil `.pen` Top-Level 키 = `version` / `children` / `themes` / `variables` 만. Node taxonomy 의 비-UI 카테고리 = `prompt` (canvas-placed AI artifact) + `context` field (node-attached AI 메타) 둘 다 events/data 와 **별 카테고리** (visible canvas vs invisible behavior).
 
@@ -133,7 +133,7 @@ Phase 0-6 G1-G4 PASS land 후 Phase 7 (IndexedDB store land) → Phase 7-revert 
 
 Pencil `prompt` node (visible canvas artifact) 와 `context` field (node-attached AI 메타) 는 events / data / actions (invisible behavior) 와 **별 카테고리**. 본 ADR 에서 통합 결정하지 않음 — surface 최소화 (consolidation-burden 차단 메모리 정합). 후속 ADR 발의 시 framing 4 질문 다시 적용.
 
-> 구현 상세: [131-events-data-actions-first-class-collections-breakdown.md](design/131-events-data-actions-first-class-collections-breakdown.md)
+> 구현 상세: [131-events-data-actions-first-class-collections-breakdown.md](../design/131-events-data-actions-first-class-collections-breakdown.md)
 
 ## Risks
 
@@ -175,8 +175,8 @@ Pencil `prompt` node (visible canvas artifact) 와 `context` field (node-attache
 
 ## References
 
-- [ADR-110: Canonical Themes / Variables](completed/110-canonical-themes-variables-land-plan.md) — root collection 패턴 baseline
-- [ADR-116: Canonical Document SSOT 전환](completed/116-canonical-document-ssot-transition.md) — §3 Extension namespace 결정 (본 ADR 이 partial supersede)
-- [ADR-063: SSOT Chain Charter](completed/063-ssot-chain-charter.md) — 3-domain 분할 정본
-- [docs/pencil-copy/format-model.md](../pencil-copy/format-model.md) — Pencil `.pen` Format Model 1.1.53
-- [docs/adr/design/903-canonical-examples.md](design/903-canonical-examples.md) — Pencil canonical 정통 예제 4종 (events / data 부재 확인)
+- [ADR-110: Canonical Themes / Variables](110-canonical-themes-variables-land-plan.md) — root collection 패턴 baseline
+- [ADR-116: Canonical Document SSOT 전환](116-canonical-document-ssot-transition.md) — §3 Extension namespace 결정 (본 ADR 이 partial supersede)
+- [ADR-063: SSOT Chain Charter](063-ssot-chain-charter.md) — 3-domain 분할 정본
+- [docs/pencil-copy/format-model.md](../../pencil-copy/format-model.md) — Pencil `.pen` Format Model 1.1.53
+- [docs/adr/design/903-canonical-examples.md](../design/903-canonical-examples.md) — Pencil canonical 정통 예제 4종 (events / data 부재 확인)

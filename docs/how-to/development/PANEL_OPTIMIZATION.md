@@ -1873,6 +1873,6 @@ function DataTablePanelContent() {
 
 ## 관련 문서
 
-- [CLAUDE.md](../CLAUDE.md) - 프로젝트 전체 가이드
-- [COMPLETED_FEATURES.md](./COMPLETED_FEATURES.md) - 완료된 기능 목록
-- [PLANNED_FEATURES.md](./PLANNED_FEATURES.md) - 계획된 기능 목록
+- [CLAUDE.md](../../../CLAUDE.md) - 프로젝트 전체 가이드
+- [COMPLETED_FEATURES.md](../../reference/status/COMPLETED.md) - 완료된 기능 목록
+- [PLANNED_FEATURES.md](../../reference/status/PLANNED.md) - 계획된 기능 목록

@@ -1,6 +1,6 @@
 # ADR-080 Breakdown — Layout engine containerStyles Spec direct read-through
 
-> ADR: [080-layout-engine-spec-direct-read-through.md](../adr/completed/080-layout-engine-spec-direct-read-through.md)
+> ADR: [080-layout-engine-spec-direct-read-through.md](../completed/080-layout-engine-spec-direct-read-through.md)
 
 본 문서는 Phase 별 구현 상세를 담는다. ADR 본문은 Context/Alternatives/Decision/Gates 의 의사결정 축만 보유.
 

@@ -1,6 +1,6 @@
 # ADR-106 skipCSSGeneration 감사 Charter — 구현 상세 Breakdown
 
-> **연결 ADR**: [106-skipcssgeneration-audit-charter.md](../adr/completed/106-skipcssgeneration-audit-charter.md)
+> **연결 ADR**: [106-skipcssgeneration-audit-charter.md](../completed/106-skipcssgeneration-audit-charter.md)
 > **스냅샷 기준**: 2026-04-21
 
 ---

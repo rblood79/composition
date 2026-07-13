@@ -1,6 +1,6 @@
 # ADR-130 Design Breakdown — Layer 3 Canonical Vocabulary 정렬
 
-> **본 문서는 ADR-130 의 구현 상세 (Phase / 파일 변경표 / 체크리스트)** 입니다. 결정 / 위험 / Gate 는 [130-layer3-canonical-vocabulary-alignment.md](../130-layer3-canonical-vocabulary-alignment.md) 본문 참조.
+> **본 문서는 ADR-130 의 구현 상세 (Phase / 파일 변경표 / 체크리스트)** 입니다. 결정 / 위험 / Gate 는 [130-layer3-canonical-vocabulary-alignment.md](../completed/130-layer3-canonical-vocabulary-alignment.md) 본문 참조.
 >
 > **Source plan**: `/root/.claude/plans/vectorized-frolicking-mochi.md` (2026-05-09 explore+brainstorm 종합).
 

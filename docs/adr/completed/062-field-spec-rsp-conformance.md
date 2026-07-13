@@ -1,6 +1,6 @@
 # ADR-062: Field 컴포넌트 Spec 정리 — RSP 참조 기반 variant 제거 + isQuiet 보강
 
-> **SSOT domain**: D2 (Props/API). 본 ADR은 RSP 미규정 variant prop 제거 + 누락 isQuiet 보강 = D2 규칙 정립. 정본: [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md), charter: [ADR-063](../063-ssot-chain-charter.md).
+> **SSOT domain**: D2 (Props/API). 본 ADR은 RSP 미규정 variant prop 제거 + 누락 isQuiet 보강 = D2 규칙 정립. 정본: [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md), charter: [ADR-063](063-ssot-chain-charter.md).
 
 ## Status
 
@@ -14,11 +14,11 @@ composition의 Field 계열 컴포넌트 Spec은 React Spectrum(이하 RSP) 레�
 - **composition 11/11 Field 컴포넌트**: 전부 `variant` prop 선언 — 총 8종 값 혼재 (`default / accent / neutral / purple / negative / positive / error / filled`)
 - **composition isQuiet 누락 6개**: TextArea / SearchField / ColorField / DateField / TimeField / ComboBox — RSP 표준 prop조차 미구현
 
-상세 매트릭스: [breakdown 문서](../design/062-field-spec-rsp-conformance-breakdown.md#조사-매트릭스-2026-04-13-실측)
+상세 매트릭스: [breakdown 문서](../design/completed/062-field-spec-rsp-conformance-breakdown.md#조사-매트릭스-2026-04-13-실측)
 
 ADR-059 v2 Phase 1 Step 1(TextField 시험대) 실행 중 발견: variant 이름이 Spec(`accent/neutral/...`)과 CSS(`primary/secondary/tertiary/error/filled`)에서 완전 불일치하여 manual CSS variant 블록 전체가 dead code. 이 상태에서 `skipCSSGeneration` 해체를 진행하면 잘못된 variant 개념이 CSSGenerator 출력에 굳어짐.
 
-SSOT 체인 해석 ([ADR-063 charter](../063-ssot-chain-charter.md) / [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) 참조):
+SSOT 체인 해석 ([ADR-063 charter](063-ssot-chain-charter.md) / [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) 참조):
 
 본 ADR은 **3-domain 분할 중 D2(Props/API) 정리**.
 
@@ -145,7 +145,7 @@ composition은 3-domain 분할을 이미 암묵적으로 적용해 왔다:
 
 선택 근거 (HIGH 1개 수용):
 
-1. **D2 규칙 복원 (first principle)** — [charter](../063-ssot-chain-charter.md)의 D2는 RSP 참조 + RAC 지원 범위 마이그레이션으로 규정. A만 유일하게 D2 규칙에 정합 (B는 deprecated 경로 유지로 이탈 지속, C는 variant 유지로 D2 예외 창설).
+1. **D2 규칙 복원 (first principle)** — [charter](063-ssot-chain-charter.md)의 D2는 RSP 참조 + RAC 지원 범위 마이그레이션으로 규정. A만 유일하게 D2 규칙에 정합 (B는 deprecated 경로 유지로 이탈 지속, C는 variant 유지로 D2 예외 창설).
 2. **A의 HIGH(기술)는 1회성 편집 비용** — 34파일 원자적 커밋은 완료 시 회수 가능한 부채. B/C의 HIGH(유지보수)는 **장기 부채**로 시간에 따라 증가.
 3. **ADR-059 v2 variant 블로커만 해금** — variant 이름 불일치는 해제. **ADR-059 재개는 불가** — 나머지 블로커(size 3중 불일치, state selectors, bridge 변수, base defaults, composition 계약 부재)가 남아있어 별도 선행 과제 필요. 즉 본 ADR 완료 = ADR-059 재개 전제 중 하나 해제일 뿐이며 전제 전체 충족은 아님.
 4. **미래 작업 비용 감소** — React Aria 훅/S2 변환(ADR-052/053) 시 variant prop 정리 중복 작업 회피.
@@ -155,12 +155,12 @@ composition은 3-domain 분할을 이미 암묵적으로 적용해 왔다:
 
 - **대안 B 기각**: 유지보수 HIGH(deprecated 코드 장기 잔존)는 charter 3-domain 분할을 장기 훼손(D2 규칙과 호환 레이어의 이중 경로)하며 ADR-036 재승격 차단. 사용자 전환 완화 이득은 composition 초기 단계에서 weight 낮음.
 - **대안 C 기각**:
-  1. **D2 규칙 위반 (first principle)** — [charter](../063-ssot-chain-charter.md)의 D2(Props/API)는 "RSP 참조 + RAC/custom 구현 범위 마이그레이션"으로 규정. Field variant는 RSP에 없고 RAC 코어에도 없으므로 **D2 수용 대상 아님**. "variant 유지 + 비표준 확장 문서화"는 D2 규칙을 우회하는 예외 창설 — charter의 분할 체계 훼손. Spec=SSOT는 D3(시각)에 한정 적용되며 Field variant는 D2 영역에 속함.
+  1. **D2 규칙 위반 (first principle)** — [charter](063-ssot-chain-charter.md)의 D2(Props/API)는 "RSP 참조 + RAC/custom 구현 범위 마이그레이션"으로 규정. Field variant는 RSP에 없고 RAC 코어에도 없으므로 **D2 수용 대상 아님**. "variant 유지 + 비표준 확장 문서화"는 D2 규칙을 우회하는 예외 창설 — charter의 분할 체계 훼손. Spec=SSOT는 D3(시각)에 한정 적용되며 Field variant는 D2 영역에 속함.
   2. **사용 증거 부재 (보완)** — `apps/` grep 결과 Field variant prop 실제 호출 0건. 원칙 위반을 정당화할 정량 근거도 없음.
   3. **RSP 설계 결정의 연쇄 비용 (보완)** — RSP "Field=structural, 색상=다른 경로" 분리는 접근성·API 일관성 검증 결과. 이 분리를 깨면 React Aria 훅 전환(ADR-052) 및 S2 전환(ADR-053) 시 모든 Field 재작업 필수.
   4. **변경 회피의 착시 (보완)** — C는 "34파일 변경 피함"처럼 보이나, CSS/Skia/Spec 3경로 variant 이름 정렬(TextField의 `primary/secondary/tertiary/filled` vs Spec `accent/neutral/purple/negative/positive` 완전 불일치)은 여전히 필요. 변경 회피 규모는 표면보다 작음.
 
-> 구현 상세: [062-field-spec-rsp-conformance-breakdown.md](../design/062-field-spec-rsp-conformance-breakdown.md)
+> 구현 상세: [062-field-spec-rsp-conformance-breakdown.md](../design/completed/062-field-spec-rsp-conformance-breakdown.md)
 
 ## Gates
 

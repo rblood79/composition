@@ -264,7 +264,7 @@ indicator 자체의 시각적 속성 — 체크박스의 테두리/모서리, �
 ## 관련 문서
 
 - [ADR-036: Spec-First Single Source](../../adr/completed/036-spec-first-single-source.md) — CSS 자동 생성 아키텍처 결정 배경
-- [CSS_ARCHITECTURE.md](./CSS_ARCHITECTURE.md) — ITCSS 레이어 구조
+- [CSS_ARCHITECTURE.md](../../features/completed/CSS_ARCHITECTURE.md) — ITCSS 레이어 구조
 - `packages/specs/src/types/spec.types.ts` — `ComponentSpec` 인터페이스 (`skipCSSGeneration`, `archetype`)
 - `packages/specs/src/renderers/CSSGenerator.ts` — CSS 생성기 구현
 - `packages/specs/scripts/generate-css.ts` — 빌드 스크립트

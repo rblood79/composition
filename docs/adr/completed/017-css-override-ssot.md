@@ -767,6 +767,6 @@ react-aria-starter `theme.css`의 `--tint` 패턴 도입으로 **단일 변수 �
 ## 관련 문서
 
 - [ADR-002: Styling Approach](002-styling-approach.md) — ITCSS + CSS 변수 기반
-- [CSS_ARCHITECTURE.md](../reference/components/CSS_ARCHITECTURE.md) — CSS Import Chain, Layer 구조
-- [react-aria-starter/src/theme.css](../react-aria/react-aria-starter/src/theme.css) — 원본 시맨틱 토큰 체계
-- [CSS_SUPPORT_MATRIX.md](../CSS_SUPPORT_MATRIX.md) — CSS Level 3 지원 현황
+- [CSS_ARCHITECTURE.md](../../features/completed/CSS_ARCHITECTURE.md) — CSS Import Chain, Layer 구조
+- [react-aria-starter/src/theme.css](../../../packages/react-aria-starter/src/theme.css) — 원본 시맨틱 토큰 체계
+- [CSS_SUPPORT_MATRIX.md](../../CSS_SUPPORT_MATRIX.md) — CSS Level 3 지원 현황

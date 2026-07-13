@@ -274,7 +274,7 @@
 | callback gap 13 신규       | (각 신규 callback grep)                                             |     0      |    TBD     |     TBD     |      TBD       |
 | ADR-010 P0/P1 4 영역 보존  | (각 component import)                                               |     4      |    TBD     |     TBD     |      TBD       |
 
-Phase 0 종료 후 본 표를 update. 1.5x 이상 gap 발견 시 [feedback-adr-revert-after-review-fatigue](../../../~/.claude/projects/-Users-admin-work-composition/memory/feedback-adr-revert-after-review-fatigue.md) 차단 3 질문 자기-인용 + 사용자 AskUserQuestion 의무.
+Phase 0 종료 후 본 표를 update. 1.5x 이상 gap 발견 시 feedback-adr-revert-after-review-fatigue 차단 3 질문 자기-인용 + 사용자 AskUserQuestion 의무.
 
 ## 4. scope 경계 명시
 

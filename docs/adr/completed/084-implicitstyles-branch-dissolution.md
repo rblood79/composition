@@ -8,7 +8,7 @@ Implemented — 2026-04-20 (**Revision 3** 기반 land: `1b2cf60c` P0 flexWrap s
 
 ### D3 domain 판정 (ADR-063 SSOT 체인)
 
-본 ADR 은 [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) **D3 (시각 스타일) symmetric consumer 의 대칭 복구**. ADR-083 Phase 0 이 `applyImplicitStyles` 진입부에 공통 선주입 layer 를 구축하여 Spec.containerStyles 를 parentStyle 에 자동 주입하도록 했으나, 5 spec (Calendar / ProgressBar / Meter / SelectTrigger / Breadcrumbs) 의 하드코딩 분기가 **직접 할당 override** 로 Phase 0 효력 무효화. Skia 와 CSS 간 실제 레이아웃 값 불일치 상태.
+본 ADR 은 [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) **D3 (시각 스타일) symmetric consumer 의 대칭 복구**. ADR-083 Phase 0 이 `applyImplicitStyles` 진입부에 공통 선주입 layer 를 구축하여 Spec.containerStyles 를 parentStyle 에 자동 주입하도록 했으나, 5 spec (Calendar / ProgressBar / Meter / SelectTrigger / Breadcrumbs) 의 하드코딩 분기가 **직접 할당 override** 로 Phase 0 효력 무효화. Skia 와 CSS 간 실제 레이아웃 값 불일치 상태.
 
 ### 현재 비대칭 구조
 

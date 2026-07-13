@@ -1039,6 +1039,6 @@ react-colorful (HSB picker)
 
 ## 부록 B: 관련 ADR
 
-- [ADR-001: State Management](adr/001-state-management.md) — Zustand 슬라이스 + Jotai atom
-- [ADR-002: Styling Approach](adr/002-styling-approach.md) — CSS 파일 + data-* 패턴
-- [ADR-003: Canvas Rendering](adr/003-canvas-rendering.md) — CanvasKit/Skia WASM
+- [ADR-001: State Management](adr/completed/001-state-management.md) — Zustand 슬라이스 + Jotai atom
+- [ADR-002: Styling Approach](adr/completed/002-styling-approach.md) — CSS 파일 + data-* 패턴
+- [ADR-003: Canvas Rendering](adr/completed/003-canvas-rendering.md) — CanvasKit/Skia WASM

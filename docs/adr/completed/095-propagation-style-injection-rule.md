@@ -20,7 +20,7 @@ composition SSOT 체인 ([ADR-063](063-ssot-chain-charter.md)) 은 D3 시각 스
 
 잔존 ~8 분기 (Checkbox/Radio/Switch indicator marginLeft 등) 는 **runtime 계산값** (size-based) 라 본 ADR scope 외 — 후속 ADR 에서 별도 검토.
 
-### D3 domain 판정 ([ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### D3 domain 판정 ([ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 **D3 (시각 스타일) symmetric consumer 의 대칭 복구**. 자식 style 이 implicitStyles runtime 분기에 분산 → propagation schema 확장으로 부모 spec 선언으로 이관. Preview (DOM+CSS) 는 RSP 기반이라 자식 style 을 RAC 가 자동 처리하지만, Builder (Skia/Taffy) 는 implicitStyles 분기 없으면 대칭 실패. 본 ADR 은 **대칭 복구 인프라** — 후속 ADR 이 본 rule 로 다른 분기 해체 가능.
 
@@ -182,7 +182,7 @@ composition SSOT 체인 ([ADR-063](063-ssot-chain-charter.md)) 은 D3 시각 스
 ## 참조
 
 - [ADR-092](092-card-slot-spec-modeling.md) — Phase 5 에서 본 후속 ADR scope 명시
-- [ADR-048](048-props-propagation.md) — propagation SSOT 선례
-- [ADR-073](073-select-combobox-items-ssot-and-skia-rendering.md) — items SSOT + propagation 선례
+- [ADR-048](048-declarative-props-propagation.md) — propagation SSOT 선례
+- [ADR-073](073-select-combobox-items-ssot.md) — items SSOT + propagation 선례
 - [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 D3 domain
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — D3 symmetric consumer
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — D3 symmetric consumer

@@ -17,7 +17,7 @@ Implemented — 2026-04-20
 
 본 ADR 은 [ADR-087 후속 ADR 후보 #2](087-implicitstyles-residual-branches-categorized-sweep.md#후속-adr-후보) 가 예고한 해체 작업이다. ADR-087 SP6 이 TagGroup 등 synthetic-merge 카테고리 5 분기 중 4 분기를 해체했으나 **SliderTrack 의 `position: "relative"` 할당 1 건** 은 `ContainerStylesSchema` 가 `position` 필드를 지원하지 않아 `implicitStyles.ts` 분기에 잔존했다.
 
-### D3 domain 판정 ([ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### D3 domain 판정 ([ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 **D3 (시각 스타일) symmetric consumer 의 대칭 복구**. `position` 은 요소 배치 context 를 결정하는 시각 스타일 속성이며 Canvas(Skia) 와 Preview(DOM+CSS) 양쪽 consumer 가 동일 값을 받아야 한다. 현재는 `implicitStyles.ts` (Canvas 전용) 만 할당 중이고 Preview CSS 에는 해당 선언이 없다 — D3 symmetric 원칙 위반 상태.
 

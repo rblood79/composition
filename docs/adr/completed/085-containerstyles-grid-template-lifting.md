@@ -20,7 +20,7 @@ Proposed — 2026-04-20 (**Revision 1** — claude self-review 반영: PROGRESSB
 
 ### D3 domain 판정 (ADR-063 SSOT 체인)
 
-본 ADR 은 [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) **D3 (시각 스타일) symmetric consumer 의 대칭 복구** + **Schema 확장**. ADR-084 Phase A2 scope 외로 분리된 ProgressBar/Meter 의 `grid-template-areas` cascade 비대칭 해체.
+본 ADR 은 [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) **D3 (시각 스타일) symmetric consumer 의 대칭 복구** + **Schema 확장**. ADR-084 Phase A2 scope 외로 분리된 ProgressBar/Meter 의 `grid-template-areas` cascade 비대칭 해체.
 
 ### 현재 비대칭 구조
 

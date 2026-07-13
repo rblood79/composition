@@ -1,6 +1,6 @@
 # ADR-106-c Label CSS skipCSSGeneration 정당화 — 구현 상세 Breakdown
 
-> **연결 ADR**: [106-c-label-skipcss-ssot-recovery.md](../adr/completed/106-c-label-skipcss-ssot-recovery.md)
+> **연결 ADR**: [106-c-label-skipcss-ssot-recovery.md](../completed/106-c-label-skipcss-ssot-recovery.md)
 > **스냅샷 기준**: 2026-04-21
 
 ---

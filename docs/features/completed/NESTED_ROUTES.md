@@ -2058,5 +2058,5 @@ Layout: { id: 'layout-1', slug: '/products' }
 - [Next.js App Router](https://nextjs.org/docs/app/building-your-application/routing)
 - [Framer Page Structure](https://janeui.com/articles/framer-page-structure)
 - [React Router Nested Routes](https://reactrouter.com/start/declarative/routing)
-- [composition Layout/Slot System](./LAYOUT_PRESET_SYSTEM.md)
-- [composition Data Panel System](./DATA_PANEL_SYSTEM.md)
+- [composition Layout/Slot System](LAYOUT_PRESETS.md)
+- [composition Data Panel System](DATA_PANEL.md)

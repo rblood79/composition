@@ -118,7 +118,7 @@ Implemented — 2026-04-25 → 2026-04-27
 - **A (개별 ADR)**: 유지보수 HIGH — 4 ADR 의존 추적 + 리뷰 분산. 특히 D2 는 D1 의존이 자명하여 단독 ADR 은 premature.
 - **C (Defer)**: 유지보수 HIGH — D1 이 body 한정이 아닌 publish 전반 문제이므로 방치 시 장기 drift. ADR-063 위반 누적.
 
-> 구현 상세: [design/109-body-spec-ssot-completion-breakdown.md](../design/109-body-spec-ssot-completion-breakdown.md) (작성 예정 — D3/G3 follow-up 진입 시 land)
+> 구현 상세: design/109-body-spec-ssot-completion-breakdown.md (작성 예정 — D3/G3 follow-up 진입 시 land)
 
 ## Risks
 

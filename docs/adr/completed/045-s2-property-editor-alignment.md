@@ -136,8 +136,8 @@ ADR-023과 ADR-030을 통해 S2 컴포넌트와 전용 에디터 기반은 마�
 
 ## References
 
-- [ADR-023](completed/023-s2-component-variant-props.md): Variant props의 S2 전환
-- [ADR-030](completed/030-s2-spectrum-only-components.md): S2 전용 컴포넌트 도입
+- [ADR-023](023-s2-component-variant-props.md): Variant props의 S2 전환
+- [ADR-030](030-s2-spectrum-only-components.md): S2 전용 컴포넌트 도입
 - [ADR-041](041-spec-driven-property-editor.md): Property Editor 자동 생성 후속
 - [ADR-045 Breakdown](/Users/admin/work/composition/docs/adr/design/adr-045-s2-property-editor-alignment-breakdown.md): 컴포넌트별 실행 메모와 계약 확장 후보
 - [React Spectrum S2 Dialog](/Users/admin/work/composition/.agents/skills/react-spectrum-s2/references/components/Dialog.md)

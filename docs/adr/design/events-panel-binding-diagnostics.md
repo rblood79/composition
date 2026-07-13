@@ -6,8 +6,8 @@
 
 관련 문서:
 
-- [ADR-032](../adr/032-events-data-integration.md)
-- [ADR-034](../adr/034-events-panel-renovation.md)
+- [ADR-032](../completed/032-events-data-integration.md)
+- [ADR-034](../completed/034-events-panel-renovation.md)
 
 ---
 

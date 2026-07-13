@@ -155,7 +155,7 @@ Builder canvas의 DOM overlay layer에 Tabs 선택 시 TabList 우측에 `<butto
 - B 기각: SSOT 이중 진실 지양
 - D 기각: contentTree 참조 비용 과대
 
-> 구현 상세: [066-tabs-items-ssot-migration-breakdown.md](design/066-tabs-items-ssot-migration-breakdown.md)
+> 구현 상세: [066-tabs-items-ssot-migration-breakdown.md](../design/066-tabs-items-ssot-migration-breakdown.md)
 
 ## Gates
 

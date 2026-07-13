@@ -117,7 +117,7 @@ ADR-059 v2 Phase 1 Step 1(TextField 시험대)과 ADR-062(Field RSP Conformance)
 - **대안 C 기각**: 명문화의 공식 기록이 없으면 후속 개발자가 "왜 3-domain인가"를 추적 불가. 본 ADR-063 작성 과정 자체가 명료화 여정이었으므로, 그 결정과 근거를 공식 기록해야 재혼동 방지.
 
 > 구현 상세: [063-ssot-chain-charter-breakdown.md](../../adr/design/063-ssot-chain-charter-breakdown.md)
-> 정본 운영 규칙: [.claude/rules/ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md)
+> 정본 운영 규칙: [.claude/rules/ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md)
 
 ## Gates
 

@@ -30,7 +30,7 @@ Implemented — 2026-04-26 (Phase 0/1/2 완결 + Phase 3 G3 (a)/(e) + IndexedDB 
 
 composition은 현재 Builder(Skia)와 Preview/Publish(DOM + CSS, React Aria Components 기반)라는 두 렌더 경로를 가진다. [ADR-063](./063-ssot-chain-charter.md)은 이 둘의 **컴포넌트 렌더링 SSOT 체인**을 D1(RAC DOM/접근성) / D2(RSP Props/API) / D3(Spec 시각)으로 정립했지만, **page/layout/document composition 포맷**과 **컴포넌트 재사용 문법**은 아직 단일 정본으로 정리되지 않았다.
 
-### Domain (SSOT 체인 - [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### Domain (SSOT 체인 - [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 - **해당 domain**: **없음** - 본 ADR은 D1/D2/D3 상위에 위치하는 **문서 구조 / composition source model** 결정이다.
 - **D1/D2/D3와의 관계**: `reusable: true + type:"ref" + descendants + slot` 포맷은 페이지/레이아웃/재사용 구조를 정의하고, 그 결과로 생성된 `resolved tree`가 D1/D2/D3 체인을 거쳐 Builder/Preview/Publish에 소비된다.
@@ -40,11 +40,11 @@ composition은 현재 Builder(Skia)와 Preview/Publish(DOM + CSS, React Aria Com
 
 현재 구조는 composition source format이 **하이브리드**다.
 
-1. `Element` 레코드는 `parent_id`, `page_id`, `layout_id`, `slot_name`, `componentRole`, `masterId`, `overrides`, `descendants`를 함께 가진다 [packages/shared/src/types/element.types.ts](../../packages/shared/src/types/element.types.ts).
-2. Layout/Slot은 `tag="Slot"` + `Page.layout_id` + page element `slot_name` 조합으로 별도 해석된다 [apps/builder/src/types/builder/layout.types.ts](../../apps/builder/src/types/builder/layout.types.ts).
-3. Preview는 `resolveLayoutForPage()`로 layout-slot 합성을 수행하지만 [apps/builder/src/preview/utils/layoutResolver.ts](../../apps/builder/src/preview/utils/layoutResolver.ts), Skia 경로는 `useResolvedElement()`에서 instance root props만 병합한다 [apps/builder/src/builder/workspace/canvas/sprites/useResolvedElement.ts](../../apps/builder/src/builder/workspace/canvas/sprites/useResolvedElement.ts).
-4. `descendants`는 타입과 유틸은 있으나 실제 공통 resolved-tree 파이프라인에 정착하지 못했다 [apps/builder/src/utils/component/instanceResolver.ts](../../apps/builder/src/utils/component/instanceResolver.ts).
-5. frameset 성격의 반복 레이아웃은 `layoutTemplates`와 현재 layout/slot 시스템으로 표현되지만 [apps/builder/src/builder/templates/layoutTemplates.ts](../../apps/builder/src/builder/templates/layoutTemplates.ts), 기본 포맷 자체가 ref/slot-aware 하지는 않다.
+1. `Element` 레코드는 `parent_id`, `page_id`, `layout_id`, `slot_name`, `componentRole`, `masterId`, `overrides`, `descendants`를 함께 가진다 [packages/shared/src/types/element.types.ts](../../../packages/shared/src/types/element.types.ts).
+2. Layout/Slot은 `tag="Slot"` + `Page.layout_id` + page element `slot_name` 조합으로 별도 해석된다 [apps/builder/src/types/builder/layout.types.ts](../../../apps/builder/src/types/builder/layout.types.ts).
+3. Preview는 `resolveLayoutForPage()`로 layout-slot 합성을 수행하지만 apps/builder/src/preview/utils/layoutResolver.ts, Skia 경로는 `useResolvedElement()`에서 instance root props만 병합한다 apps/builder/src/builder/workspace/canvas/sprites/useResolvedElement.ts.
+4. `descendants`는 타입과 유틸은 있으나 실제 공통 resolved-tree 파이프라인에 정착하지 못했다 [apps/builder/src/utils/component/instanceResolver.ts](../../../apps/builder/src/utils/component/instanceResolver.ts).
+5. frameset 성격의 반복 레이아웃은 `layoutTemplates`와 현재 layout/slot 시스템으로 표현되지만 [apps/builder/src/builder/templates/layoutTemplates.ts](../../../apps/builder/src/builder/templates/layoutTemplates.ts), 기본 포맷 자체가 ref/slot-aware 하지는 않다.
 
 ### Hybrid 필드 사용 현황 (수량)
 
@@ -79,7 +79,7 @@ Pencil의 `.pen` 포맷은 이 지점에서 더 선언적이다. 공식 문서�
 
 ### NodesPanel Layout(Frame) 기능의 역사적 맥락
 
-현재 composition `NodesPanel > LayoutsTab` ([apps/builder/src/builder/panels/nodes/LayoutsTab/LayoutsTab.tsx](../../apps/builder/src/builder/panels/nodes/LayoutsTab/LayoutsTab.tsx))의 "Layout 생성/편집" 기능은 **CSS/DOM 기반 빌더 시대에 만든 시스템**이다. 당시 전제는:
+현재 composition `NodesPanel > LayoutsTab` (apps/builder/src/builder/panels/nodes/LayoutsTab/LayoutsTab.tsx)의 "Layout 생성/편집" 기능은 **CSS/DOM 기반 빌더 시대에 만든 시스템**이다. 당시 전제는:
 
 - Builder와 Preview가 모두 CSS 렌더러여서, 페이지 간 공통 layout shell을 재사용하려면 **DB 레벨 `layout_id` 외래키**와 **tag="Slot"** 특수 element 를 도입해야 했다
 - `LayoutsTab.createLayout` / `LayoutBodyEditor` / `LayoutSlugEditor` / `LayoutPresetSelector` / `ExistingSlotDialog` / `ElementSlotSelector` 는 모두 이 CSS 시대의 layout-vs-page 이원화 모델에 맞춘 UI 다
@@ -261,10 +261,10 @@ pencil 은 **primitive-centric** (`rectangle`/`ellipse`/`text`/`path` 등 저수
 - [ADR-063: SSOT 체인 정본 정의 — 3-Domain 분할](./063-ssot-chain-charter.md)
 - [The .pen Format](https://docs.pencil.dev/for-developers/the-pen-format)
 - [.pen Files](https://docs.pencil.dev/core-concepts/pen-files)
-- [packages/shared/src/types/element.types.ts](../../packages/shared/src/types/element.types.ts)
-- [apps/builder/src/types/builder/layout.types.ts](../../apps/builder/src/types/builder/layout.types.ts)
-- [apps/builder/src/preview/utils/layoutResolver.ts](../../apps/builder/src/preview/utils/layoutResolver.ts)
-- [apps/builder/src/builder/workspace/canvas/sprites/useResolvedElement.ts](../../apps/builder/src/builder/workspace/canvas/sprites/useResolvedElement.ts)
-- [apps/builder/src/utils/component/instanceResolver.ts](../../apps/builder/src/utils/component/instanceResolver.ts)
+- [packages/shared/src/types/element.types.ts](../../../packages/shared/src/types/element.types.ts)
+- [apps/builder/src/types/builder/layout.types.ts](../../../apps/builder/src/types/builder/layout.types.ts)
+- apps/builder/src/preview/utils/layoutResolver.ts
+- apps/builder/src/builder/workspace/canvas/sprites/useResolvedElement.ts
+- [apps/builder/src/utils/component/instanceResolver.ts](../../../apps/builder/src/utils/component/instanceResolver.ts)
 - [docs/pencil-extracted/engine/16_mcp-processor.txt](../pencil-extracted/engine/16_mcp-processor.txt)
 - [docs/pencil-extracted/index.txt](../pencil-extracted/index.txt)

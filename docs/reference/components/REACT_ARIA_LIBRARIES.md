@@ -1523,9 +1523,9 @@ const zonedDate = toZonedDateTime(date, "Asia/Seoul");
 
 ### Internal Documentation
 
-- [CLAUDE.md](../CLAUDE.md) - Project coding guidelines
-- [CSS_ARCHITECTURE.md](./CSS_ARCHITECTURE.md) - CSS architecture guide
-- [API_ENDPOINTS.md](./API_ENDPOINTS.md) - Mock Data API reference
+- [CLAUDE.md](../../../CLAUDE.md) - Project coding guidelines
+- [CSS_ARCHITECTURE.md](../../features/completed/CSS_ARCHITECTURE.md) - CSS architecture guide
+- [API_ENDPOINTS.md](../api/ENDPOINTS.md) - Mock Data API reference
 
 ---
 

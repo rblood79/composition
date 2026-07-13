@@ -1,6 +1,6 @@
 # ADR-100 구현 상세 — Select 자식 네이밍 RSP 정합 (ADR-098-a 슬롯)
 
-> ADR-100 본문: [100-select-child-naming-rsp-alignment.md](../adr/completed/100-select-child-naming-rsp-alignment.md)
+> ADR-100 본문: [100-select-child-naming-rsp-alignment.md](../completed/100-select-child-naming-rsp-alignment.md)
 >
 > 본 문서는 ADR-100 Decision (대안 C — SelectItem 내부 개념 정리 + SelectTrigger composition 고유 유지 정당화) 의 Phase 단위 실행 상세. ADR-098 감사 Charter 의 "098-a 슬롯" 구현.
 

@@ -526,7 +526,7 @@ updateThumb() — DOM 직접 조작 (transform, width/height)
 | `ResizeObserver(track)`                  | 창 리사이즈, 패널 애니메이션             |
 | `useStore.subscribe(panelLayout)`        | 패널 열림/닫힘 → 오프셋 재측정           |
 
-> 상세 설계: [CANVAS_SCROLLBAR.md](../../CANVAS_SCROLLBAR.md)
+> 상세 설계: [CANVAS_SCROLLBAR.md](CANVAS_SCROLLBAR.md)
 
 ---
 
@@ -580,10 +580,10 @@ CSS transform 제거 + WebGL resize(1160px)
 
 **관련 문서:**
 
-- [CANVAS_SCROLLBAR.md](../../CANVAS_SCROLLBAR.md) - 캔버스 스크롤바 설계
-- [CANVAS_RUNTIME_ISOLATION.md](./CANVAS_RUNTIME_ISOLATION.md) - 캔버스 런타임 격리
-- [RENDERING_ARCHITECTURE.md](../../RENDERING_ARCHITECTURE.md) - CanvasKit/Skia 렌더링 아키텍처
-- [Phase 10 B1.4](../phases/PHASE_10.md) - 줌/팬 구현 스펙
+- [CANVAS_SCROLLBAR.md](CANVAS_SCROLLBAR.md) - 캔버스 스크롤바 설계
+- [CANVAS_RUNTIME_ISOLATION.md](../../features/completed/CANVAS_ISOLATION.md) - 캔버스 런타임 격리
+- [RENDERING_ARCHITECTURE.md](../../legacy/RENDERING_ARCHITECTURE.md) - CanvasKit/Skia 렌더링 아키텍처
+- Phase 10 B1.4 - 줌/팬 구현 스펙
 
 ---
 
@@ -657,10 +657,10 @@ Grid와 Snap이 동일한 씬 좌표계를 사용하여 시각적 정합성을 �
 
 **관련 문서:**
 
-- [CANVAS_SCROLLBAR.md](../../CANVAS_SCROLLBAR.md) - 캔버스 스크롤바 설계
-- [CANVAS_RUNTIME_ISOLATION.md](./CANVAS_RUNTIME_ISOLATION.md) - 캔버스 런타임 격리
-- [RENDERING_ARCHITECTURE.md](../../RENDERING_ARCHITECTURE.md) - CanvasKit/Skia 렌더링 아키텍처
-- [Phase 10 B1.4](../phases/PHASE_10.md) - 줌/팬 구현 스펙
+- [CANVAS_SCROLLBAR.md](CANVAS_SCROLLBAR.md) - 캔버스 스크롤바 설계
+- [CANVAS_RUNTIME_ISOLATION.md](../../features/completed/CANVAS_ISOLATION.md) - 캔버스 런타임 격리
+- [RENDERING_ARCHITECTURE.md](../../legacy/RENDERING_ARCHITECTURE.md) - CanvasKit/Skia 렌더링 아키텍처
+- Phase 10 B1.4 - 줌/팬 구현 스펙
 
 **최종 업데이트:** 2026-02-12
 

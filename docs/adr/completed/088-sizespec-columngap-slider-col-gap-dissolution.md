@@ -15,7 +15,7 @@ Implemented — 2026-04-20
 
 본 ADR 은 [ADR-086 Addendum 1](086-implicitstyles-size-record-dissolution-and-breadcrumb-child.md#addendum-1--slider_col_gap-잔존-후속-adr-후보) 이 예고한 후속 해체 작업이다. ADR-086 Phase 2 가 10 Record 중 9 개를 폐쇄했으나 `SLIDER_COL_GAP` 1 개만 **semantic 충돌** 로 잔존했다.
 
-### D3 domain 판정 ([ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### D3 domain 판정 ([ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 **D3 (시각 스타일) symmetric consumer 의 대칭 복구**. `implicitStyles.ts` (Canvas Skia consumer) 가 spec.sizes SSOT 를 **우회** 하여 파일-스코프 `Record<string, number>` 로 column-gap 값을 하드코딩. 본 ADR 은 Slider 의 column-gap 을 Spec SSOT 로 복귀시킨다.
 
@@ -170,4 +170,4 @@ const SLIDER_COL_GAP: Record<string, number> = {
 
 - [ADR-086](086-implicitstyles-size-record-dissolution-and-breadcrumb-child.md) Addendum 1 — 본 ADR 의 발의 근거
 - [ADR-063](063-ssot-chain-charter.md) SSOT Chain Charter — D3 symmetric consumer 정본
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — D3 대칭 원칙
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — D3 대칭 원칙

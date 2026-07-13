@@ -1,6 +1,6 @@
 # ADR-105-b Breakdown: @sync F1 spec-to-spec primitives 공유
 
-> **ADR**: [105-b-sync-spec-to-spec-primitives-sharing.md](../adr/completed/105-b-sync-spec-to-spec-primitives-sharing.md)
+> **ADR**: [105-b-sync-spec-to-spec-primitives-sharing.md](../completed/105-b-sync-spec-to-spec-primitives-sharing.md)
 > **스냅샷 날짜**: 2026-04-21
 > **해소 건수**: 10건 (F1 전체)
 > **Status**: Implemented — 2026-04-21 (type-check 3/3 PASS, specs 205/205 PASS)

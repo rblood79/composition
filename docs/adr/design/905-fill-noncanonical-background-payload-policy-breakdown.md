@@ -63,7 +63,7 @@
 | --- | --- | --- |
 | Preview-generated batch | Preview가 생성한 element batch는 merge/DB 저장 전 `normalizeExternalFillIngressBatch()`를 거쳐 canonical `fills` 또는 allowlist payload만 유지한다. | [useIframeMessenger.ts](../../../apps/builder/src/builder/hooks/useIframeMessenger.ts) |
 | Clipboard paste | paste/cloned element는 새 id/offset 적용 후 `normalizeExternalFillIngress()`를 거쳐 generic fill ingress 규칙에 맞춘다. | [multiElementCopy.ts](../../../apps/builder/src/builder/utils/multiElementCopy.ts) |
-| Design Kit import | master/descendant import payload는 add 직전 `normalizeExternalFillIngress()`를 거쳐 canonical payload로 정리한다. | [kitLoader.ts](../../../apps/builder/src/utils/designKit/kitLoader.ts) |
+| Design Kit import | master/descendant import payload는 add 직전 `normalizeExternalFillIngress()`를 거쳐 canonical payload로 정리한다. | kitLoader.ts |
 | Generic store update ingress | Inspector/store update는 `sanitizeInspectorProps()` / `sanitizePropsPatch()`로 derived `background*` direct patch를 제거한다. 즉 generic update 경로는 canonical `fills`의 파생 필드를 정본으로 받지 않는다. | [inspectorActions.ts](../../../apps/builder/src/builder/stores/inspectorActions.ts), [elementUpdate.ts](../../../apps/builder/src/builder/stores/utils/elementUpdate.ts) |
 | Add / merge / snapshot ingress | add/addComplex/merge/hydrate snapshot은 element store 경계에서 `normalizeExternalFillIngress()`를 거쳐 canonical payload만 내부 state에 남긴다. | [elementCreation.ts](../../../apps/builder/src/builder/stores/utils/elementCreation.ts), [elements.ts](../../../apps/builder/src/builder/stores/elements.ts) |
 

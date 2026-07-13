@@ -15,7 +15,7 @@
 
 **ADR/breakdown:**
 
-- [ADR-073](../../adr/073-select-combobox-items-ssot.md)
+- [ADR-073](../../adr/completed/073-select-combobox-items-ssot.md)
 - [Breakdown](../../adr/design/073-select-combobox-items-ssot-breakdown.md)
 
 ---

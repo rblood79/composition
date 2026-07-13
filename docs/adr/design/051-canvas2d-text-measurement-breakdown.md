@@ -1,6 +1,6 @@
 # ADR-051 구현 설계: Canvas 2D 텍스트 측정 내재화
 
-> ADR: [051-pretext-text-measurement-integration.md](../adr/051-pretext-text-measurement-integration.md)
+> ADR: [051-pretext-text-measurement-integration.md](../completed/051-pretext-text-measurement-integration.md)
 > 상태: 설계 완료, Phase 0 대기
 
 ---

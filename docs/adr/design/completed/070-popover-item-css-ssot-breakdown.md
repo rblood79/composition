@@ -1,6 +1,6 @@
 # ADR-070 구현 상세 — MenuItem CSS 색상 SSOT (Codex 리뷰 v2)
 
-> ADR 본문: [070-popover-item-css-ssot.md](../adr/070-popover-item-css-ssot.md)
+> ADR 본문: [070-popover-item-css-ssot.md](../../completed/070-popover-item-css-ssot.md)
 
 본 문서는 ADR-070 P1+P2 구현 상세 + 후속 ADR(B/C) 설계 준비를 정리한다.
 

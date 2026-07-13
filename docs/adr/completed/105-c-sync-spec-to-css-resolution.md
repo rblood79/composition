@@ -23,7 +23,7 @@ Phase 0~3 완결. F2 6건 전부 해소.
 
 **D3 (시각 스타일) 전용 작업**. F2 카테고리(@sync spec-to-CSS)는 Spec 파일과 수동 CSS 파일 사이의 시각 값 동기화 경고다. 색상·크기·lineHeight 등 D3 영역만 관여하며 D1(DOM/접근성) / D2(Props/API) 침범 없음.
 
-정본: [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) / 공식 결정: [ADR-063](063-ssot-chain-charter.md)
+정본: [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) / 공식 결정: [ADR-063](063-ssot-chain-charter.md)
 
 ### 배경 — ADR-105 Charter F2 슬롯
 
@@ -196,8 +196,8 @@ B/C/A 모두 PASS. **A (P0+P1 주석 교체 + P2 실질 정합화)** 를 선정�
 - [ADR-105](105-sync-annotation-audit-charter.md) — @sync 감사 Charter, F2 슬롯 정의
 - [ADR-105-a](105-a-sync-utils-constants-primitives.md) — F3+F5 primitives 이관 (Implemented)
 - [ADR-105-b](105-b-sync-spec-to-spec-primitives-sharing.md) — F1 spec-to-spec (Proposed)
-- [ADR-106-b](106-b-taggroup-skipcssggeneration-justification.md) — Tag @sync 해소 확증
-- [ADR-076](completed/076-listbox-items-ssot.md) — ListBox containerStyles SSOT
+- [ADR-106-b](106-b-taggroup-css-skipcss-justification.md) — Tag @sync 해소 확증
+- [ADR-076](076-listbox-items-ssot-hybrid.md) — ListBox containerStyles SSOT
 - [ADR-078](078-listboxitem-spec-and-generator-child-selector.md) — Generator 자식 selector emit (ADR-078 Phase 2/3)
-- [ADR-090](completed/090-gridlistitem-spec.md) — GridListItem card metric SSOT
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — D3 symmetric consumer 원칙
+- [ADR-090](090-gridlistitem-spec-and-skia-metric-ssot.md) — GridListItem card metric SSOT
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — D3 symmetric consumer 원칙

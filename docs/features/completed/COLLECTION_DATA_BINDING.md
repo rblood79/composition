@@ -289,9 +289,9 @@ ListBox → 1 ListBoxItem
 
 ## 관련 문서
 
-- [CLAUDE.md](../../CLAUDE.md) - Collection Components 전체 가이드
+- [CLAUDE.md](../../../CLAUDE.md) - Collection Components 전체 가이드
 - [CHANGELOG.md](../../CHANGELOG.md) - 변경사항 로그
-- [Mock Data API](../../CLAUDE.md#mock-data-api-endpoints) - 테스트용 Mock 데이터
+- [Mock Data API](../../../CLAUDE.md#mock-data-api-endpoints) - 테스트용 Mock 데이터
 
 ## 향후 계획
 

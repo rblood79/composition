@@ -1166,7 +1166,7 @@ cat >> /Users/admin/.claude/projects/-Users-admin-work-composition/memory/MEMORY
 
 ## Skia-native Style Panel 전환
 
-- [ADR-067 Phase 1 완료](adr067-phase1-transform-pilot.md) — Transform 섹션 Zustand 직접 전환. computeSyntheticStyle 호출 0회 달성, Jotai Transform atoms 제거 (2026-04-15)
+- [ADR-067 Phase 1 완료](../../completed/067-style-panel-skia-native-read-path.md) — Transform 섹션 Zustand 직접 전환. computeSyntheticStyle 호출 0회 달성, Jotai Transform atoms 제거 (2026-04-15)
 EOF
 ```
 

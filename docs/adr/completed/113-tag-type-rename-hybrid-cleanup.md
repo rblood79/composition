@@ -91,7 +91,7 @@ Implemented — 2026-05-02. `Element.tag → Element.type` direct cutover 와 hy
 
 ## Context
 
-### Domain (SSOT 체인 - [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### Domain (SSOT 체인 - [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 - **해당 domain**: **D2 (Props/API) — 타입/필드 이름 정합** + **persistence schema** — pencil 공식 schema 정합. ADR-903 의 G5 (b)/(c)/(d)/(e)/(f) 잔여 흡수.
 

@@ -1,6 +1,6 @@
 # ADR-061: Focus Ring 토큰화 — 50개 리터럴 해체
 
-> **SSOT domain**: D3 (시각 스타일). Focus ring 리터럴 50건을 TokenRef로 전환하여 Spec 시각 SSOT 강화. D3 내부 정리. 정본: [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md), charter: [ADR-063](../063-ssot-chain-charter.md).
+> **SSOT domain**: D3 (시각 스타일). Focus ring 리터럴 50건을 TokenRef로 전환하여 Spec 시각 SSOT 강화. D3 내부 정리. 정본: [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md), charter: [ADR-063](063-ssot-chain-charter.md).
 
 ## Status
 
@@ -164,7 +164,7 @@ React Aria 접근성 요구사항에 따라 모든 인터랙션 컴포넌트는 
 - **Phase 4** — 50개 grep 0건 확인 + CSS utility 기반 `:focus-visible` 공통 스타일 정리 (중복 제거)
 - **Phase 5** — inset variant 도입 (`{focus.ring.inset}`) — Slider thumb / Switch thumb 등 inset focus 필요 컴포넌트에 적용
 
-> 구현 상세: [061-focus-ring-tokenization-breakdown.md](../design/061-focus-ring-tokenization-breakdown.md)
+> 구현 상세: [061-focus-ring-tokenization-breakdown.md](../design/completed/061-focus-ring-tokenization-breakdown.md)
 
 ## Gates
 

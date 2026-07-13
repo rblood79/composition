@@ -35,7 +35,7 @@ composition Builder 의 backend 의존성을 재평가한 결과, Supabase 사�
 
 `apps/builder/.type-errors-baseline.txt` 의 699 type 에러 중 G1 (snake_case `order_num` / `layout_id` / `slot_name` 227건) 의 상당 부분이 cloud row schema 호환 보존 코드에서 유래 — `ADR-128` 가 cloud premise 를 해체하면 G1 의 dead 기인 부분이 함께 제거 가능.
 
-**SSOT 체인 연계**: 본 ADR 은 [`ssot-hierarchy.md`](../../.claude/rules/ssot-hierarchy.md) 의 **D2 (Props/API) 외부 backend boundary** 영역. 3-domain 분할 중 D1 / D3 와 무관. ADR-116 (canonical-only runtime, internal data shape) 와 **직교** — internal canonical schema 결정과 external backend dependency 결정은 독립.
+**SSOT 체인 연계**: 본 ADR 은 [`ssot-hierarchy.md`](../../../.claude/rules/ssot-hierarchy.md) 의 **D2 (Props/API) 외부 backend boundary** 영역. 3-domain 분할 중 D1 / D3 와 무관. ADR-116 (canonical-only runtime, internal data shape) 와 **직교** — internal canonical schema 결정과 external backend dependency 결정은 독립.
 
 **Baseline framing reverse (CRITICAL)**:
 
@@ -122,7 +122,7 @@ ADR-121~127 의 본문이 명시한 "cloud transport boundary 유지" 명분 (�
 - **대안 C 기각**: 일괄 제거는 sub-phase 별 회귀 검증 불가 + 메모리 `feedback-agent-completion-failure-pattern` 의 "마감 단계 누락" 위험 동일 (단일 atomic 변경이 검증 단계 압축)
 - **대안 D 기각**: 사용자 명시 ("로그인 기능 외에는 제거") 는 auth 유지를 전제. auth 이전은 본 ADR scope 초과 — 미래 별 ADR 검토 영역
 
-> 구현 상세: [128-supabase-backend-decommission-breakdown.md](design/128-supabase-backend-decommission-breakdown.md)
+> 구현 상세: [128-supabase-backend-decommission-breakdown.md](../design/128-supabase-backend-decommission-breakdown.md)
 
 ## Risks
 

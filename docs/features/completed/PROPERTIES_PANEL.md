@@ -1012,7 +1012,7 @@ const handlePlaceholderChange = useCallback((value: string) => {
 - [React Suspense](https://react.dev/reference/react/Suspense)
 - [React Error Boundary](https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary)
 - [Zustand Documentation](https://docs.pmnd.rs/zustand/getting-started/introduction)
-- [CLAUDE.md - Performance Guidelines](../CLAUDE.md#react--zustand-performance-critical)
+- [CLAUDE.md - Performance Guidelines](../../../CLAUDE.md#react--zustand-performance-critical)
 
 ---
 

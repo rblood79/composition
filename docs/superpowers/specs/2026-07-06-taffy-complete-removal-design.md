@@ -1,7 +1,7 @@
 # Taffy 완전 제거 설계 (ADR-916 endgame)
 
 **작성일**: 2026-07-06
-**관련 ADR**: [ADR-916](../../adr/916-unified-rust-engine.md) — 자체 단일 Rust 레이아웃 엔진 통합 (Implemented 2026-07-06)
+**관련 ADR**: [ADR-916](../../adr/completed/916-unified-rust-engine.md) — 자체 단일 Rust 레이아웃 엔진 통합 (Implemented 2026-07-06)
 **선행 조건**: endgame kill criteria 3/3 충족 (① 독립 oracle tree_golden / ② SpatialIndex 분리 / ③ Status=Implemented)
 
 ## Goal

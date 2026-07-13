@@ -1,6 +1,6 @@
 # ADR-053 구현 분해: S2 Props 커버리지 확장
 
-> 상위 결정: [ADR-053](../adr/053-s2-props-coverage-expansion.md)
+> 상위 결정: [ADR-053](../completed/053-s2-props-coverage-expansion.md)
 
 ## 변경 패턴 분류
 

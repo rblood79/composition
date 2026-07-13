@@ -740,7 +740,7 @@ ListBox/GridList에 Field 자식 자동 생성. 수정 이유:
 - [React Aria ListBox](https://react-aria.adobe.com/ListBox)
 - [React Aria Collections](https://react-aria.adobe.com/collections)
 - [React Aria GridList](https://react-aria.adobe.com/GridList)
-- [ADR-001: State Management](./001-state-management.md)
+- [ADR-001: State Management](completed/001-state-management.md)
 
 ---
 

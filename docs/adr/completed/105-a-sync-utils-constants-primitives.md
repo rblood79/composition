@@ -10,7 +10,7 @@ Implemented — 2026-04-21
 
 **D3 (시각 스타일) 전용 작업**. `BUTTON_SIZE_CONFIG` (버튼 높이/패딩 metric)와 `DATE_PICKER_INPUT_HEIGHT` (DateInput 높이 metric)는 모두 시각 크기 상수이므로 D3 domain. D1 (DOM/접근성) / D2 (Props/API) 침범 없음.
 
-정본: [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) / 공식 결정: [ADR-063](063-ssot-chain-charter.md)
+정본: [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) / 공식 결정: [ADR-063](063-ssot-chain-charter.md)
 
 ### 배경 — ADR-105 Charter F3 슬롯
 
@@ -183,4 +183,4 @@ export const DATE_PICKER_INPUT_HEIGHT: Record<string, number> = {
 - [ADR-105](105-sync-annotation-audit-charter.md) — @sync 감사 Charter (본 ADR의 부모)
 - [ADR-091](091-utils-record-dissolution.md) — Class C primitives 이관 패턴 선례 (FONT_STRETCH_KEYWORD_MAP)
 - [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 D3 domain 원칙 (consumer-to-consumer 금지)
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — §4.2 @sync 금지 패턴 정본
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — §4.2 @sync 금지 패턴 정본

@@ -41,7 +41,7 @@ SearchClearButton:  SelectIconSpec  (SearchField 내부)
 
 이 공유 구조는 SelectIcon 이 단순 이름 문제가 아니라 **composition 아이콘 element 공통 Spec** 으로 기능함을 나타낸다. 제거 또는 리네이밍 시 4개 tag 에 동시 영향.
 
-### D1/D2/D3 domain 판정 ([ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### D1/D2/D3 domain 판정 ([ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 - **D3 (시각 스타일)**: SelectIcon 은 `render.shapes` 에서 chevron 아이콘 (`icon_font` type) + 배경 `roundRect` 를 직접 렌더링 — **100% D3 시각 스타일 domain**. Spec SSOT 관할.
 - **D2 (Props/API)**: RAC 공식 API 에 SelectIcon 미존재 → D2 정합 대상 아님. composition 고유 element.
@@ -204,7 +204,7 @@ D3 시각 SSOT 관점에서 SelectIcon 은 Spec-defined shapes (chevron `icon_fo
 - [ADR-100](100-select-child-naming-rsp-alignment.md) — 098-a 슬롯 (SelectItem/SelectTrigger 선례, 동일 패턴 적용)
 - [ADR-101](101-combobox-child-naming-rsp-alignment.md) — 098-b 슬롯 (ComboBoxItem/ComboBoxTrigger 선례, 동일 패턴 적용)
 - [ADR-099](099-collection-section-expansion.md) — 098-c 슬롯 (본 ADR 과 병행 Implemented)
-- [ADR-073](completed/073-select-combobox-items-ssot.md) — Select/ComboBox items SSOT 이관 (factory 구조 근거)
-- [ADR-019](completed/019-icon-system.md) — 아이콘 시스템 (SelectIcon+ComboBox 연동 C4, IconPicker C5)
+- [ADR-073](073-select-combobox-items-ssot.md) — Select/ComboBox items SSOT 이관 (factory 구조 근거)
+- [ADR-019](019-icon-system.md) — 아이콘 시스템 (SelectIcon+ComboBox 연동 C4, IconPicker C5)
 - [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 D1/D2/D3 domain 원칙
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — 3-domain 정본
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — 3-domain 정본

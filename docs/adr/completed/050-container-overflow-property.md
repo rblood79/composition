@@ -6,9 +6,9 @@
 
 ## Related ADRs
 
-- [ADR-008](completed/008-layout-engine.md): 레이아웃 엔진 전환 — overflow/aspectRatio applyCommonTaffyStyle() 추가 기록
+- [ADR-008](008-layout-engine.md): 레이아웃 엔진 전환 — overflow/aspectRatio applyCommonTaffyStyle() 추가 기록
 - [ADR-009](009-full-tree-wasm-layout.md): Phase E `overflow: scroll/auto` 완성 계획 — 본 ADR의 선행 인프라
-- [ADR-035](completed/035-workspace-canvas-refactor.md): Workspace Canvas Runtime — SharedSceneDerivedData, treeBoundsMap 인프라
+- [ADR-035](035-workspace-canvas-refactor.md): Workspace Canvas Runtime — SharedSceneDerivedData, treeBoundsMap 인프라
 
 ## Context
 

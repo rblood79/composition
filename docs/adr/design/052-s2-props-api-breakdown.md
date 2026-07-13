@@ -1,6 +1,6 @@
 # ADR-052 구현 분해: S2 Props API 정합성 마이그레이션
 
-> 상위 결정: [ADR-052](../adr/052-s2-props-api-alignment.md)
+> 상위 결정: [ADR-052](../completed/052-s2-props-api-alignment.md)
 
 ## 변경 패턴 분류
 

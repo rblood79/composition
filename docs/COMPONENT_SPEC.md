@@ -214,7 +214,7 @@ Element props  ──→  skiaNodeData 생성  ──→  글로벌 레지스트
 > | **TaffyBlockEngine** | Block/Inline 레이아웃 | `block`, `inline`, `inline-block` |
 >
 > React 경로는 브라우저 CSS 레이아웃을, Canvas 경로는 Taffy가 계산한 절대 px 값을 CanvasKit이 사용합니다.
-> 자세한 내용은 [ADR-008: 레이아웃 엔진](./adr/008-layout-engine.md)를 참조하세요.
+> 자세한 내용은 [ADR-008: 레이아웃 엔진](adr/completed/008-layout-engine.md)를 참조하세요.
 
 <details>
 <summary>Phase 1-4 레거시 데이터 흐름 (PixiJS 중심)</summary>
@@ -4462,7 +4462,7 @@ Body의 `display: 'block'` → TaffyBlockEngine 경로에서의 폼 컨트롤 �
 
 ### 9.4 flexDirection:column 지원
 
-> 레이아웃 엔진 관련 — §4.7.4 CSS 단위 규칙 및 [ADR-008: 레이아웃 엔진](./adr/008-layout-engine.md) 참조.
+> 레이아웃 엔진 관련 — §4.7.4 CSS 단위 규칙 및 [ADR-008: 레이아웃 엔진](adr/completed/008-layout-engine.md) 참조.
 
 Spec `shapes()` 함수는 항상 row 레이아웃 좌표를 생성. column 지원을 위한 3단계 변환:
 
@@ -7500,9 +7500,9 @@ function ElementSpriteButton({ element }) {
 
 ### D. 참조 문서
 
-- [ADR-002: Styling Approach](./adr/002-styling-approach.md) - 스타일링 결정
-- [ADR-003: Canvas Rendering](./adr/003-canvas-rendering.md) - 캔버스 렌더링 결정
-- [CSS_ARCHITECTURE.md](./reference/components/CSS_ARCHITECTURE.md) - CSS 아키텍처
+- [ADR-002: Styling Approach](adr/completed/002-styling-approach.md) - 스타일링 결정
+- [ADR-003: Canvas Rendering](adr/completed/003-canvas-rendering.md) - 캔버스 렌더링 결정
+- [CSS_ARCHITECTURE.md](features/completed/CSS_ARCHITECTURE.md) - CSS 아키텍처
 - [React Aria Components 공식 문서](https://react-aria.adobe.com)
 - [React Aria 라이브러리 통합 가이드](./reference/components/REACT_ARIA_LIBRARIES.md)
 - [React Aria 1.14.0 마이그레이션 기록](./legacy/REACT_ARIA_MIGRATION_1_14.md)

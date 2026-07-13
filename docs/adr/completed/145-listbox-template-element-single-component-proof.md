@@ -157,7 +157,7 @@ ADR-144 (Collection 컴포넌트 Template Element SSOT, **Superseded by ADR-145*
 - 대안 B: 유지보수 MED (already-known-good 패턴 over-engineering, codex fatigue)
 - 대안 C: 유지보수 MED (작업 중 scope 확장 위험)
 
-> 구현 상세: [145-listbox-template-element-single-component-proof-breakdown.md](design/145-listbox-template-element-single-component-proof-breakdown.md)
+> 구현 상세: [145-listbox-template-element-single-component-proof-breakdown.md](../design/145-listbox-template-element-single-component-proof-breakdown.md)
 
 ## Risks
 

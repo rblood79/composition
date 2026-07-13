@@ -1,6 +1,6 @@
 # 구현 순서 및 체크리스트
 
-> **관련 문서**: [05-supplement.md](./05-supplement.md) | [07-decisions.md](./07-decisions.md)
+> **관련 문서**: 05-supplement.md | 07-decisions.md
 > **작성일**: 초안(2025-12-09) | **최종 수정**: 2025-12-11 (Phase 4 폐기, Phase 10 추가)
 
 ---
@@ -51,7 +51,7 @@
 | **🚀 Phase 10** | **80시간** | **141시간 (~17.5일)** |
 
 > **Phase 9 상세**: 캔버스 가상화 4h + 웹 워커 2h + 추가 아이디어 4h = 10시간
-> **Phase 10 상세**: [10-webgl-builder-architecture.md](./10-webgl-builder-architecture.md) 참조
+> **Phase 10 상세**: 10-webgl-builder-architecture.md 참조
 
 ⚠️ **Phase 4 (Delta Sync)는 Phase 10 (WebGL Builder)으로 대체되어 폐기됨**
 
@@ -181,7 +181,7 @@
 
 > **⚠️ Phase 10 (WebGL Builder)으로 대체됨**
 > - WebGL 전환 시 postMessage 자체가 제거되므로 Delta Sync 불필요
-> - 상세: [10-webgl-builder-architecture.md](./10-webgl-builder-architecture.md)
+> - 상세: 10-webgl-builder-architecture.md
 
 <details>
 <summary>기존 계획 (참고용)</summary>
@@ -322,7 +322,7 @@
 
 ### Phase 9: 보완 최적화 (Supplement) (8시간)
 
-> **관련 문서**: [05-supplement.md](./05-supplement.md) | [08-additional-ideas.md](./08-additional-ideas.md)
+> **관련 문서**: 05-supplement.md | 08-additional-ideas.md
 >
 > **⚠️ Phase 10 (WebGL Builder) 결정에 따라 재분류됨**
 > - DOM 최적화 → Publish App 전용
@@ -417,4 +417,4 @@
 
 ---
 
-> **다음 문서**: [07-decisions.md](./07-decisions.md) - 결정 사항
+> **다음 문서**: 07-decisions.md - 결정 사항

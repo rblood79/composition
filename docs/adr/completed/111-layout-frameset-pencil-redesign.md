@@ -258,7 +258,7 @@ Implemented — 2026-05-02 direct cutover + G5 Pencil import/export parity closu
 
 ## Context
 
-### Domain (SSOT 체인 - [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### Domain (SSOT 체인 - [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 - **해당 domain**: **없음** — 본 ADR 은 D1/D2/D3 상위에 위치하는 **문서 구조 / Layout-Slot composition 모델** 결정. ADR-903 의 G3 (b)/(c)/(d) 잔여 영역 흡수.
 

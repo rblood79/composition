@@ -203,7 +203,7 @@ ROI 다이어트 후 HIGH 위험 0개. 잔존 MEDIUM 위험에 대한 완화:
 - **대안 B (Taffy 유지)**: Taffy는 외부 의존성이며 composition 특화 확장(sticky, grid-template-areas, spatial index 통합)이 불가. 장기적으로 레이아웃 엔진을 자체 제어해야 엔터프라이즈 요구사항 대응 가능.
 - **대안 C (브라우저 위임)**: 엔터프라이즈급 멀티페이지 동시 편집(5000+ 요소)에서 DOM reflow 비용이 60fps 제약과 구조적으로 충돌.
 
-> 구현 상세: [900-unified-skia-engine-breakdown.md](design/900-unified-skia-engine-breakdown.md)
+> 구현 상세: [900-unified-skia-engine-breakdown.md](../design/900-unified-skia-engine-breakdown.md)
 
 ## Gates
 

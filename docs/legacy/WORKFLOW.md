@@ -834,8 +834,8 @@ tests/
 
 ### 관련 ADR
 
-- [ADR-003: Canvas Rendering](./adr/003-canvas-rendering.md) - CanvasKit/Skia 선택 이유
-- [ADR-001: State Management](./adr/001-state-management.md) - Zustand 슬라이스 패턴
+- [ADR-003: Canvas Rendering](../adr/completed/003-canvas-rendering.md) - CanvasKit/Skia 선택 이유
+- [ADR-001: State Management](../adr/completed/001-state-management.md) - Zustand 슬라이스 패턴
 
 ### 관련 파일
 

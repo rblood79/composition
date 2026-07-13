@@ -2,7 +2,7 @@
 
 > **Superseded by [ADR-142](142-starter-spec-component-system-cutover.md) — 2026-07-08**. 컴포넌트당 spec 파일(`packages/specs/src/components/*.spec.ts`)을 D3(시각 스타일) SSOT로 두는 본 ADR의 메커니즘은 ADR-142로 폐기되었다. D3 SSOT는 이제 catalog(`COMPONENT_RULES_TABLE`) + theme/tokens root collection(ADR-110)이다. 재평가 근거는 ADR-142 §Risks R8 / Gate G7("ADR-142 Implemented 승격 시 ADR-036/907/908 status 재평가") — ADR-142는 2026-06-02 Implemented 승격되어 해당 Gate 조건이 충족되었다. 잔존 spec 3개(Frame/Group/Slot)는 D1 ARIA 예외 및 canonical layout container 한정으로 본 ADR 메커니즘의 예외적 존속이며, 일반 컴포넌트는 전부 catalog 경로다. 정본: [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md).
 
-> **SSOT domain (historical)**: D3 (시각 스타일). 본 ADR의 "Spec=SSOT"는 **시각 domain 한정**이었다. D1(DOM/접근성)은 RAC 권위, D2(Props)는 RSP 참조. charter: [ADR-063](../063-ssot-chain-charter.md).
+> **SSOT domain (historical)**: D3 (시각 스타일). 본 ADR의 "Spec=SSOT"는 **시각 domain 한정**이었다. D1(DOM/접근성)은 RAC 권위, D2(Props)는 RSP 참조. charter: [ADR-063](063-ssot-chain-charter.md).
 
 ## Status
 
@@ -18,14 +18,14 @@ composition Team
 
 ## Related ADRs
 
-- [ADR-017](017-css-token-architecture.md): CSS 토큰 아키텍처
-- [ADR-018](018-css-utility-classes.md): CSS Utility 클래스 체계
+- [ADR-017](017-css-override-ssot.md): CSS 토큰 아키텍처
+- [ADR-018](018-component-css-restructure.md): CSS Utility 클래스 체계
 - [ADR-021](021-theme-system-redesign.md): Theme System 재설계
-- [ADR-022](022-s2-color-token.md): S2 색상 토큰 전환
-- [ADR-023](023-s2-variant-props.md): S2 Variant Props
-- [ADR-038](../038-figma-import.md): Figma 디자인 임포트 시스템
+- [ADR-022](022-s2-color-token-migration.md): S2 색상 토큰 전환
+- [ADR-023](023-s2-component-variant-props.md): S2 Variant Props
+- [ADR-038](038-figma-import.md): Figma 디자인 임포트 시스템
 - [ADR-033](033-css-property-ssot-consolidation.md): CSS 속성 SSOT 통합 — 구조 변수화
-- [ADR-041](../041-spec-driven-property-editor.md): Spec 기반 프로퍼티 에디터 자동 생성
+- [ADR-041](041-spec-driven-property-editor.md): Spec 기반 프로퍼티 에디터 자동 생성
 
 ### D3 SSOT 적용 범위 확장 체인 (2026-04 완결)
 
@@ -36,7 +36,7 @@ composition Team
 - [ADR-061](061-focus-ring-tokenization.md) — Focus Ring 53개 spec TokenRef 전환
 - [ADR-062](062-field-spec-rsp-conformance.md) — Field variant 제거 + isQuiet 보강 (D2 부채 정리)
 - [ADR-059](059-composite-field-skip-css-dismantle.md) — Composite Field `skipCSSGeneration` 해체 (38→19, Tier 3 예외 9개 공식화, Phase 5 closure 2026-04-14)
-- [ADR-063](../063-ssot-chain-charter.md) — SSOT 체인 정본 Charter (3-Domain 분할 명문화)
+- [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 정본 Charter (3-Domain 분할 명문화)
 
 체인 완결 결과: ADR-036의 **D3 domain 한정 원칙**이 수립되었고, 실행 불가능한 잔존분(Tier 3 구조 예외)이 각 후속 ADR에 명시적으로 문서화되었다. `skipCSSGeneration:true=0` 엄격 조건은 현실적 의미가 없어 "Tier 3 예외 전수 + 구조적 사유 명시"로 대체됨.
 
@@ -44,7 +44,7 @@ composition Team
 
 ## Context
 
-> **D3 한정 명시 (2026-04-13 재확인)**: 본 ADR의 "Spec=SSOT" 원칙은 [charter ADR-063](../063-ssot-chain-charter.md)의 **D3(시각 스타일) domain 한정** 적용. D1(DOM/접근성)은 Adobe RAC 권위, D2(Props/API)는 RSP 참조 기반. "시각 정의 3중 분산"의 해결 범위도 D3에 국한되며, 본 ADR이 DOM 구조/접근성/props API 결정에 관여하는 것은 아님.
+> **D3 한정 명시 (2026-04-13 재확인)**: 본 ADR의 "Spec=SSOT" 원칙은 [charter ADR-063](063-ssot-chain-charter.md)의 **D3(시각 스타일) domain 한정** 적용. D1(DOM/접근성)은 Adobe RAC 권위, D2(Props/API)는 RSP 참조 기반. "시각 정의 3중 분산"의 해결 범위도 D3에 국한되며, 본 ADR이 DOM 구조/접근성/props API 결정에 관여하는 것은 아님.
 
 composition는 Skia/WebGL 캔버스 (빌더) + DOM (Preview/Publish) 이중 렌더링 아키텍처를 사용한다.
 현재 컴포넌트 시각 정의가 3곳에 분산되어 있어 **3중 동기화 고통**이 존재한다.
@@ -2400,10 +2400,10 @@ steps:
 - `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` — SIZE_CONFIG (Phase 0 제거 대상)
 - `packages/specs/scripts/generate-css.ts` — CSS 생성 스크립트 (기존)
 - `packages/shared/src/components/styles/utilities.css` — `.button-base`, `.inset`, `.indicator` utility (ADR-018)
-- [ADR-022](022-s2-color-token.md) — S2 색상 토큰 (tokenToCSSVar 체계)
+- [ADR-022](022-s2-color-token-migration.md) — S2 색상 토큰 (tokenToCSSVar 체계)
 - [ADR-021](021-theme-system-redesign.md) — Theme System (tint/darkMode 통합)
 - [ADR-033](033-css-property-ssot-consolidation.md) — CSS 변수 위임 패턴 (`--input-*`, `--btn-*`, `--label-*`)
-- [ADR-038](../038-figma-import.md) — Figma 디자인 임포트 (Spec shapes ↔ Figma 레이어 매핑 연계)
+- [ADR-038](038-figma-import.md) — Figma 디자인 임포트 (Spec shapes ↔ Figma 레이어 매핑 연계)
 
 ---
 

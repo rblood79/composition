@@ -45,7 +45,7 @@ Proposed — 2026-04-20 (**Revision 3** — Round 5 main 재검증 cross-cutting
 
 ### D3 domain 판정 (ADR-063 SSOT 체인)
 
-본 ADR 은 [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) **D3 (시각 스타일) symmetric consumer 의 대칭 복구 최종화**. ADR-084 (4 분기) + ADR-085 (1 분기 ProgressBar/Meter) + ADR-086 (3 분기 Calendar/SelectTrigger/ComboBoxWrapper + Breadcrumb child) 해체 후 잔존 ~25 분기 전면 sweep.
+본 ADR 은 [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) **D3 (시각 스타일) symmetric consumer 의 대칭 복구 최종화**. ADR-084 (4 분기) + ADR-085 (1 분기 ProgressBar/Meter) + ADR-086 (3 분기 Calendar/SelectTrigger/ComboBoxWrapper + Breadcrumb child) 해체 후 잔존 ~25 분기 전면 sweep.
 
 ### 현재 구조
 

@@ -279,11 +279,11 @@ D3 시각 SSOT 관점에서 CardHeader/CardContent/CardFooter 는 이미 `contai
 
 - [ADR-098](098-rsp-naming-audit-charter.md) — RSP 네이밍 정합 감사 Charter (본 ADR 의 상위 charter, 098-f 슬롯)
 - [ADR-092](092-card-slot-spec-modeling.md) — Card slot 모델링 ADR (CardHeader/CardContent/CardFooter spec 신설 + childSpecs 배선, 선행 결정)
-- [ADR-094](094-child-specs-expansion-infra.md) — expandChildSpecs 인프라 (childSpecs 자동 등록 메커니즘)
+- [ADR-094](094-childspecs-registry-auto-registration.md) — expandChildSpecs 인프라 (childSpecs 자동 등록 메커니즘)
 - [ADR-095](095-propagation-style-injection-rule.md) — Propagation schema 확장 (CardHeader→Heading flex:1 / CardContent→Description width:100% 주입)
 - [ADR-100](100-select-child-naming-rsp-alignment.md) — 098-a 슬롯 (SelectTrigger 정당화 선례)
 - [ADR-101](101-combobox-child-naming-rsp-alignment.md) — 098-b 슬롯 (ComboBoxTrigger 정당화 선례)
 - [ADR-102](102-select-icon-justification.md) — 098-d 슬롯 (SelectIcon 정당화 선례)
 - [ADR-103](103-checkbox-radio-items-justification.md) — 098-e 슬롯 (CheckboxItems/RadioItems 정당화 선례)
 - [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 D1/D2/D3 domain 원칙
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — 3-domain 정본
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — 3-domain 정본

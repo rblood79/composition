@@ -543,7 +543,7 @@
 
 | 우선순위 | 항목                          | 이유                                                                                                                                                       |
 | -------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P2       | ToggleButtonGroup `indicator` | 웹 Preview에서 SelectionIndicator가 동작하나 캔버스에서 미구현. [구현 계획](reference/components/TOGGLEBUTTONGROUP.md#캔버스-selectionindicator-구현-계획) |
+| P2       | ToggleButtonGroup `indicator` | 웹 Preview에서 SelectionIndicator가 동작하나 캔버스에서 미구현. [구현 계획](features/completed/TOGGLEBUTTONGROUP.md#캔버스-selectionindicator-구현-계획) |
 
 > **참고**: Tabs, Switch, Checkbox, Radio, Badge의 indicator는 이미 캔버스에서 구현됨.
 > 캔버스는 정적 렌더링이므로 CSS transition 기반 슬라이드 애니메이션은 재현 대상이 아님 (§13 참조).

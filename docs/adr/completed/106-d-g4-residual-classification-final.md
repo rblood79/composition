@@ -269,11 +269,11 @@ Charter 최초 작성(2026-04-21) 시 `rg -l 'skipCSSGeneration: true'` 명령�
 
 ## 참조
 
-- [ADR-059](completed/059-composite-field-skip-css-dismantle.md) — Composite Field CSS SSOT 확립, Tier 3 예외 확정
+- [ADR-059](059-composite-field-skip-css-dismantle.md) — Composite Field CSS SSOT 확립, Tier 3 예외 확정
 - [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 D3 금지 패턴 3번 정본
 - [ADR-105](105-sync-annotation-audit-charter.md) — @sync 주석 감사 Charter (Tag @sync 우선권)
 - [ADR-106](106-skipcssgeneration-audit-charter.md) — skipCSSGeneration 감사 Charter (G4 슬롯 정의)
 - [ADR-106-a](106-a-color-family-skipcss-dismantle.md) — G3→G2 Color family 재판정 (CSSGenerator 지원 범위 확정)
 - [ADR-106-b](106-b-taggroup-css-skipcss-justification.md) — G2 TagGroup.css 정당화 + @sync 4건 해소 (Tag @sync 해소 근거)
 - [ADR-106-c](106-c-label-skipcss-ssot-recovery.md) — G3→G2 Label 정당화
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — D3 domain §6 금지 패턴 3번, §7 허용 패턴
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — D3 domain §6 금지 패턴 3번, §7 허용 패턴

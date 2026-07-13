@@ -2,7 +2,7 @@
 
 ## Purpose
 
-이 문서는 [ADR-035](../adr/035-workspace-canvas-refactor.md)를 실행 가능한 작업 단위로 분해한 상세 플랜이다.
+이 문서는 [ADR-035](../completed/035-workspace-canvas-refactor.md)를 실행 가능한 작업 단위로 분해한 상세 플랜이다.
 
 목표는 다음과 같다.
 

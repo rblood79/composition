@@ -2,7 +2,7 @@
 
 > **작성일**: 2025-12-31
 > **상태**: ✅ 완료 (Completed) - 2025-12-31
-> **관련 문서**: [RENDERING_ARCHITECTURE.md](../RENDERING_ARCHITECTURE.md)
+> **관련 문서**: [RENDERING_ARCHITECTURE.md](../../legacy/RENDERING_ARCHITECTURE.md)
 
 ---
 

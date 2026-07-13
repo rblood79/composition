@@ -21,7 +21,7 @@ composition SSOT 체인 (ADR-036/063) 에서 Card 복합 컴포넌트의 **heade
   - `cardcontent` 분기 (`:1857`): 자식 `Description` Element 에 `style.width: "100%"` 주입
 - **CardHeader/CardContent 는 실제 element 로 사용 중** — spec 부재 + element 존재 = ADR-078 ListBoxItem 상황과 동일 패턴
 
-### D3 domain 판정 ([ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### D3 domain 판정 ([ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 **D3 (시각 스타일) symmetric consumer 의 대칭 복구**. CardHeader/CardContent 의 layout primitive (display/flexDirection/alignItems) 와 size-indexed padding 이 현재 spec 부재로 implicitStyles 분기에 runtime 로직으로 분산. 정식 spec 으로 리프팅하여 3경로 (CSS/Skia/Taffy) SSOT 확보.
 

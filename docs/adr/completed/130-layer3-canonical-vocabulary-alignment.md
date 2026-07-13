@@ -21,7 +21,7 @@ composition 의 element.type 어휘는 ADR-116 (`CompositionDocument` canonical 
 | pencil import               | `type: "frame"` | `apps/builder/src/adapters/pencil/pencilSchemaMap.ts:23-37`                                            |
 | builder UI palette/grouping | `type: "Group"` | `apps/builder/src/builder/factories/definitions/GroupComponents.ts:14-30`, `elementGrouping.ts:99,116` |
 
-**3-Domain 분할 framing 적용** ([ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md)):
+**3-Domain 분할 framing 적용** ([ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md)):
 
 - **D1 (DOM/접근성, RAC 절대 권위)**: RAC `Group` = `role="group"` ARIA semantic primitive (`packages/specs/src/components/Group.spec.ts:122`). RadioGroup/CheckboxGroup/ToggleButtonGroup 등 specialized component 가 자체 type literal 사용
 - **D2 (Props/API, RSP 참조)**: 본 ADR 범위 외 (props 변경 0)
@@ -40,7 +40,7 @@ composition 의 element.type 어휘는 ADR-116 (`CompositionDocument` canonical 
 
 - 사용자 인지 부담 (어휘 혼란 해소)
 - builder palette 노출은 Frame 만 (RAC ARIA Group palette entry 부활은 후속 슬라이스)
-- 13 row 매핑 표 ([breakdown §2](design/130-layer3-canonical-vocabulary-alignment-breakdown.md#§2-13-row-vocabulary-매핑-표-layer-3-ssot)) 가 단일 SSOT — 4 ADR (903/111/116/122) 교집합에 흩어진 결정을 단일 source 로 명문화
+- 13 row 매핑 표 ([breakdown §2](../design/130-layer3-canonical-vocabulary-alignment-breakdown.md#§2-13-row-vocabulary-매핑-표-layer-3-ssot)) 가 단일 SSOT — 4 ADR (903/111/116/122) 교집합에 흩어진 결정을 단일 source 로 명문화
 
 ## Alternatives Considered
 

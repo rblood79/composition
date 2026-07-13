@@ -1,6 +1,6 @@
 # ADR-072 구현 상세 — `_hasChildren` 컨벤션 SSOT + Shell-only 태그 재분류
 
-> ADR 본문: [072-hasChildren-convention-shell-only-tags.md](../adr/completed/072-hasChildren-convention-shell-only-tags.md)
+> ADR 본문: [072-hasChildren-convention-shell-only-tags.md](../completed/072-hasChildren-convention-shell-only-tags.md)
 
 ## 1. 컨테이너 3분류 정의
 

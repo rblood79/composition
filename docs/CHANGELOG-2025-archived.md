@@ -4430,7 +4430,7 @@ const { visibleElements } = useViewportCulling({
 
 #### 관련 문서
 
-- [11-canvas-resize-optimization.md](./performance/11-canvas-resize-optimization.md)
+- 11-canvas-resize-optimization.md
 
 ---
 
@@ -5360,9 +5360,9 @@ export function Panel({ isActive }: PanelProps) {
 
 #### 관련 문서
 
-- [docs/performance/README.md](performance/README.md)
-- [docs/performance/task.md](performance/task.md)
-- [docs/performance/10-webgl-builder-architecture.md](performance/10-webgl-builder-architecture.md)
+- [docs/performance/README.md](README.md)
+- docs/performance/task.md
+- docs/performance/10-webgl-builder-architecture.md
 
 ---
 
@@ -5761,7 +5761,7 @@ slotContent = pageElements
 
 #### Related Documentation
 
-- [Layout/Slot System Plan V2](./LAYOUT_SLOT_SYSTEM_PLAN_V2.md) - 전체 구현 계획
+- [Layout/Slot System Plan V2](features/completed/LAYOUT_SLOTS.md) - 전체 구현 계획
 
 ---
 
@@ -5926,8 +5926,8 @@ slotContent = pageElements
 
 ## Related Documentation
 
-- [Inspector Style System](./features/INSPECTOR_STYLE_SYSTEM.md) - Comprehensive guide to style management
-- [ToggleButtonGroup Indicator](./features/TOGGLEBUTTONGROUP_INDICATOR.md) - Indicator implementation details
+- [Inspector Style System](features/completed/INSPECTOR_STYLE.md) - Comprehensive guide to style management
+- [ToggleButtonGroup Indicator](features/completed/TOGGLEBUTTONGROUP.md) - Indicator implementation details
 - [CLAUDE.md](../CLAUDE.md) - Development guidelines and architecture
 
 ## Breaking Changes

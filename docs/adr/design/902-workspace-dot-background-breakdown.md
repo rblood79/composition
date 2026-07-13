@@ -1,6 +1,6 @@
 # ADR-102 Breakdown: Workspace Dot Background Layer — 구현 상세
 
-> 본 문서는 [ADR-102](../adr/102-workspace-dot-background-layer.md) 의 구현 상세 분리본. ADR 본문에는 포인터만 둔다.
+> 본 문서는 [ADR-102](../completed/902-workspace-dot-background-layer.md) 의 구현 상세 분리본. ADR 본문에는 포인터만 둔다.
 
 ## Phase 구성
 

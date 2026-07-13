@@ -12,7 +12,7 @@ Implemented — 2026-04-21
 
 spec-to-spec import 중립 판정: `ssot-hierarchy.md` §4.2의 consumer-to-consumer 금지 패턴은 **CSS↔CSS 참조**를 대상으로 한다. Spec 파일 간 직접 import는 Spec → Spec 관계이며, 두 파일 모두 D3 domain SSOT의 생산자이므로 구조적 금지 대상이 아니다. 다만 컴포넌트 spec 간 강결합(Button.spec → TextField.spec 직접 import 등)은 독립 진화 가능성을 차단하므로 primitives 추상화가 우선 검토된다.
 
-정본: [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) / 공식 결정: [ADR-063](063-ssot-chain-charter.md)
+정본: [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) / 공식 결정: [ADR-063](063-ssot-chain-charter.md)
 
 ### 배경 — ADR-105 Charter F1 슬롯
 
@@ -200,4 +200,4 @@ Tab height 공식: `paddingY×2 + lineHeight + borderWidth×1` (단면 border �
 - [ADR-105](105-sync-annotation-audit-charter.md) — @sync 감사 Charter (본 ADR의 부모)
 - [ADR-105-a](105-a-sync-utils-constants-primitives.md) — BUTTON_FAMILY_HEIGHTS primitives 패턴 선례
 - [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 D3 domain 원칙 (consumer-to-consumer 금지)
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — §4.2 @sync 금지 패턴 정본
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — §4.2 @sync 금지 패턴 정본

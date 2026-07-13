@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented — 2026-04-18 (P1~P7 종결, Codex 1~6차 리뷰 반영). **Patch by ADR-145 (Implemented 2026-05-27)**: ListBoxItem template element 도입 + row 시각 SSOT 분리 + Skia viewport intersection. 본 ADR 의 "items SSOT" decision 은 보존하되, row 시각 (fontSize / paddingX / itemHeight / color) 의 source 가 ListBox container `props.style` 단독 → ListBoxItem template element `props.style` 우선 + container fallback 으로 정밀화됨. 상세: [ADR-145](../145-listbox-template-element-single-component-proof.md)
+Implemented — 2026-04-18 (P1~P7 종결, Codex 1~6차 리뷰 반영). **Patch by ADR-145 (Implemented 2026-05-27)**: ListBoxItem template element 도입 + row 시각 SSOT 분리 + Skia viewport intersection. 본 ADR 의 "items SSOT" decision 은 보존하되, row 시각 (fontSize / paddingX / itemHeight / color) 의 source 가 ListBox container `props.style` 단독 → ListBoxItem template element `props.style` 우선 + container fallback 으로 정밀화됨. 상세: [ADR-145](145-listbox-template-element-single-component-proof.md)
 
 **Phase 커밋 체인** (origin/main):
 

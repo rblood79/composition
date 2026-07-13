@@ -1,6 +1,6 @@
 # ADR-074 구현 상세: 캔버스 입력 파이프라인 SSOT 재편
 
-> 본 문서는 [ADR-074](../adr/074-canvas-input-pipeline-decomposition.md) 의 Phase 구성, 파일 변경 범위, Gate 측정 방법, 롤백 전략을 상세화한다. ADR 본문은 "무엇을/왜" 에 한정하고 "어떻게" 는 이 문서에 둔다 (`.claude/rules/adr-writing.md` 스캐폴딩 규칙).
+> 본 문서는 [ADR-074](../completed/074-canvas-input-pipeline-decomposition.md) 의 Phase 구성, 파일 변경 범위, Gate 측정 방법, 롤백 전략을 상세화한다. ADR 본문은 "무엇을/왜" 에 한정하고 "어떻게" 는 이 문서에 둔다 (`.claude/rules/adr-writing.md` 스캐폴딩 규칙).
 
 ## Addendum 1 — Phase 순서 재조정 (2026-04-18)
 

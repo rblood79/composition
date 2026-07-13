@@ -36,7 +36,7 @@ BC 영향 0%, 런타임 코드 변경 0, 시각 변경 0. 편집한 파일 7개,
 - F4 (CSS 파일 @sync): Badge.css, ListBox.css — D3 시각 값 동기화 경고. Spec SSOT 직접 소비가 아닌 수동 CSS 독립 정의
 - F5 (Builder @sync): `utils.ts`, `implicitStyles.ts`, `cssComponentPresets.ts` — D3 Spec 값을 Canvas 레이아웃 계산에 하드코딩. `factory/definitions/` 내 2건은 DOM 구조 서술이므로 **D2 경계 포함** — 시각 값 동기화가 아닌 구조 주석이므로 정당화 허용
 
-정본: [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) / 공식 결정: [ADR-063](063-ssot-chain-charter.md)
+정본: [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) / 공식 결정: [ADR-063](063-ssot-chain-charter.md)
 
 ### 직전 ADR 맥락
 
@@ -179,7 +179,7 @@ rg "@sync" apps/builder/src/builder/factories/definitions/DateColorComponents.ts
 - [ADR-105-a](105-a-sync-utils-constants-primitives.md) — F3+F5 primitives 이관 (Implemented)
 - [ADR-105-b](105-b-sync-spec-to-spec-primitives-sharing.md) — F1 spec-to-spec (Proposed)
 - [ADR-105-c](105-c-sync-spec-to-css-resolution.md) — F2 spec-to-CSS (Implemented)
-- [ADR-106](106-skip-css-generation-debt-resolution.md) — G 카테고리 charter (skipCSSGeneration debt)
-- [ADR-106-b](106-b-taggroupcss-justification.md) — TagGroup.css 정당화 주석 형식 선례
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — D3 SSOT 정본
+- [ADR-106](106-skipcssgeneration-audit-charter.md) — G 카테고리 charter (skipCSSGeneration debt)
+- [ADR-106-b](106-b-taggroup-css-skipcss-justification.md) — TagGroup.css 정당화 주석 형식 선례
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — D3 SSOT 정본
 - [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 Charter (Accepted)

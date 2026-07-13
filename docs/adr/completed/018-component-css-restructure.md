@@ -408,4 +408,4 @@ starter 패턴: `&:where([data-pressed])` — specificity 0으로 컴포넌트�
 
 - [react-aria-starter CSS](../../docs/react-aria/react-aria-starter/src/) — 원본 참조
 - [ADR-017](017-css-override-ssot.md) — 선행 의존 (M3 제거 + Tailwind 통합)
-- [CSS_ARCHITECTURE.md](../reference/components/CSS_ARCHITECTURE.md) — 현행 ITCSS 구조
+- [CSS_ARCHITECTURE.md](../../features/completed/CSS_ARCHITECTURE.md) — 현행 ITCSS 구조

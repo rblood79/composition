@@ -1,6 +1,6 @@
 # ADR-097 구현 상세 — TagGroup items SSOT + TagList Hybrid Container
 
-> ADR-097 본문: [097-taggroup-items-ssot-hybrid.md](../adr/completed/097-taggroup-items-ssot-hybrid.md)
+> ADR-097 본문: [097-taggroup-items-ssot-hybrid.md](../completed/097-taggroup-items-ssot-hybrid.md)
 >
 > 본 문서는 ADR-097 Decision (대안 A — TagList spec-only 유지 + TagGroup.items SSOT) 의 실행 상세를 담는다. ADR-066/068/073/076 items SSOT 패턴 5 번째 적용.
 

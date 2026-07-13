@@ -1,6 +1,6 @@
 # ADR-108 r5 구현 상세 — `containerVariants` consumer 확장 Phase 계획
 
-> 본 문서는 [ADR-108 r5](../adr/108-container-runtime-derived-styles.md) 의 구현 상세 (Phase, 파일 변경표, 체크리스트, 코드 예시) 를 담는다. ADR 본문에는 Context/Alternatives/Decision/Risks/Gates 만 유지.
+> 본 문서는 [ADR-108 r5](../completed/108-container-runtime-derived-styles.md) 의 구현 상세 (Phase, 파일 변경표, 체크리스트, 코드 예시) 를 담는다. ADR 본문에는 Context/Alternatives/Decision/Risks/Gates 만 유지.
 >
 > **r4 → r5 변경 요약** (Codex r4 2 이슈 verified):
 >
@@ -527,7 +527,7 @@ composition: {
 **상태 정리**:
 
 - 이 mirror 는 "ADR-059 별도 해체 트랙이 곧 이어진다"는 의미가 아님
-- TagGroup `skipCSSGeneration:true` 는 [ADR-106-b](../adr/completed/106-b-taggroup-css-skipcss-justification.md) 에서 **G2 정당화** 완료
+- TagGroup `skipCSSGeneration:true` 는 [ADR-106-b](../completed/106-b-taggroup-css-skipcss-justification.md) 에서 **G2 정당화** 완료
 - [ADR-059 completed breakdown](completed/059-composite-field-skip-css-dismantle-breakdown.md) 에서도 **Tier 3 예외**로 확정
 - 따라서 ADR-108 완료 조건은 "TagGroup mirror 예외를 명시한 채 consumer 정합을 닫는 것"이며, `skipCSSGeneration` 해체 자체는 ADR-108 성공 조건이 아님
 

@@ -19,7 +19,7 @@ Implemented — 2026-05-18
 
 ### 3-domain 분류 (ADR-063 정합)
 
-본 ADR 은 [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) 의 D1 / D2 / D3 중:
+본 ADR 은 [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) 의 D1 / D2 / D3 중:
 
 - **어느 domain 도 변경하지 않는다** — D1 (RAC Tabs/Card DOM/ARIA) / D2 (`Tabs.props.items` + `Card.props.*`) / D3 (Tabs.spec / Card.spec 시각 스타일) 전부 그대로.
 - **canonical schema architecture 영역** — ADR-116 reusable schema (`reusable: true` + `type: "ref"` + `descendants[path]` 3-mode override + `slot: false | string[]`) 의 **검증·일반화 응용**. schema 변경 0.
@@ -99,7 +99,7 @@ instance 가 items 를 override 하면 origin 과 분리(fork)되지만, 사용�
 - **대안 B 기각**: AI/테마 통합은 사용자 framing("기본 요소 수정 → 복합 컴포넌트 일괄 수정")과 다른 가치. 또한 reusable 검증이 B 의 prerequisite — 검증 없이 AI 가 origin 변형을 생성하면 schema 정합성 보장 불가. ADR-134 (AI) 의 후속 영역.
 - **대안 C 기각**: A 대비 추가 사용자 이득 없이 두 영역 동시 drift 위험만 증가. ThemesPanel 상시 노출(B-1)은 schema 변경 없는 0.3 ADR 규모로, A 완료 후 독립 진행이 자연스럽다.
 
-> 구현 상세: [138-component-palette-reusable-breakdown.md](design/138-component-palette-reusable-breakdown.md)
+> 구현 상세: [138-component-palette-reusable-breakdown.md](../design/138-component-palette-reusable-breakdown.md)
 
 ## Risks
 

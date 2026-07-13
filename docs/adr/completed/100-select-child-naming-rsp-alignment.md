@@ -28,7 +28,7 @@ ADR-098 감사 매트릭스 (2026-04-21 WebFetch) 에서 composition 의 `Select
 | SelectItem    | HIGH (일괄)  | ADR-073 에서 items SSOT 로 이관 — 저장 데이터에 `tag` 없음   | **LOW**  |
 | SelectTrigger | HIGH (일괄)  | Compositional Architecture 유지 — 저장 데이터에 `tag` 직렬화 | **HIGH** |
 
-### D1/D2 domain 판정 ([ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### D1/D2 domain 판정 ([ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 - **D2 (Props/API)**: 네이밍 정합 영역. RSP 참조 기준 적용.
 - **D1 (DOM/접근성)**: SelectTrigger factory 는 **runtime DOM 에서 RAC `<Button slot="trigger">` 를 실제 렌더** — D1 은 이미 정합. 본 ADR 의 논의는 composition **element tree 저장 식별자 (tag)** 수준이며 이는 D1/D2 와 별개의 "builder element graph 분류" 축.
@@ -209,7 +209,7 @@ SelectTrigger → Button 리네이밍 시 발생하는 구체적 문제:
 
 - [ADR-098](098-rsp-naming-audit-charter.md) — RSP 네이밍 정합 감사 Charter (본 ADR 의 상위 charter, BC 재평가 정정 대상)
 - [ADR-099](099-collection-section-expansion.md) — 098-c 슬롯 (본 ADR 과 병행 Proposed)
-- [ADR-073](completed/073-select-combobox-items-ssot.md) — Select items SSOT 이관 (본 ADR 의 BC 재평가 기반)
+- [ADR-073](073-select-combobox-items-ssot.md) — Select items SSOT 이관 (본 ADR 의 BC 재평가 기반)
 - [ADR-076](076-listbox-items-ssot-hybrid.md) — items SSOT 체인 4번째 (migration 오케스트레이터 선례)
 - [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 D1/D2 domain 원칙
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — 3-domain 정본
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — 3-domain 정본

@@ -1,6 +1,6 @@
 # ADR-105 Breakdown: @sync 주석 감사 Charter 전체 매트릭스
 
-> **ADR**: [105-sync-annotation-audit-charter.md](../adr/completed/105-sync-annotation-audit-charter.md)
+> **ADR**: [105-sync-annotation-audit-charter.md](../completed/105-sync-annotation-audit-charter.md)
 > **스냅샷 날짜**: 2026-04-21
 > **총 건수**: 37건
 

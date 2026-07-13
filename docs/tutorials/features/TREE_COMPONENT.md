@@ -342,7 +342,7 @@ dataBinding: {
 **Problem:** Tree shows parent items but no children.
 
 **Solutions:**
-1. ✅ Verify `dataBinding` prop is passed in renderer ([CollectionRenderers.tsx:82](../../src/builder/preview/renderers/CollectionRenderers.tsx#L82))
+1. ✅ Verify `dataBinding` prop is passed in renderer ([CollectionRenderers.tsx:82](../../../packages/shared/src/renderers/CollectionRenderers.tsx#L82))
 2. ✅ Check API response has `children` arrays
 3. ✅ Ensure `children` is a non-empty array (not `null` or `undefined`)
 4. ✅ Verify `hasChildren` is calculated correctly
@@ -385,10 +385,10 @@ dataBinding: {
 
 | File | Purpose |
 |------|---------|
-| [src/builder/components/Tree.tsx](../../src/builder/components/Tree.tsx) | Tree component with DataBinding support |
-| [src/builder/preview/renderers/CollectionRenderers.tsx](../../src/builder/preview/renderers/CollectionRenderers.tsx) | Tree renderer in preview iframe |
-| [src/builder/components/metadata.ts](../../src/builder/components/metadata.ts) | Tree metadata (enables Data Section) |
-| [src/services/api/index.ts](../../src/services/api/index.ts) | Mock data endpoints |
+| [src/builder/components/Tree.tsx](../../../packages/react-aria-starter/src/Tree.tsx) | Tree component with DataBinding support |
+| [src/builder/preview/renderers/CollectionRenderers.tsx](../../../packages/shared/src/renderers/CollectionRenderers.tsx) | Tree renderer in preview iframe |
+| [src/builder/components/metadata.ts](../../../packages/shared/src/components/metadata.ts) | Tree metadata (enables Data Section) |
+| [src/services/api/index.ts](../../../apps/publish/src/index.ts) | Mock data endpoints |
 
 ### Key Functions
 
@@ -422,9 +422,9 @@ const renderTreeItemsRecursively = (items: any[]): React.ReactNode => {
 
 ## Related Documentation
 
-- [CLAUDE.md](../../CLAUDE.md) - Full project documentation
-- [Mock Data API](../../src/services/api/MOCK_DATA_IMPROVEMENTS.md) - Mock data endpoints
-- [Component Metadata](../../src/builder/components/metadata.ts) - Component configuration
+- [CLAUDE.md](../../../CLAUDE.md) - Full project documentation
+- Mock Data API - Mock data endpoints
+- [Component Metadata](../../../packages/shared/src/components/metadata.ts) - Component configuration
 - [React Aria Tree Docs](https://react-spectrum.adobe.com/react-aria/Tree.html) - Official React Aria documentation
 
 ---
@@ -444,6 +444,6 @@ const renderTreeItemsRecursively = (items: any[]): React.ReactNode => {
 
 For issues or questions:
 1. Check [Troubleshooting](#troubleshooting) section
-2. Review [CLAUDE.md](../../CLAUDE.md) documentation
+2. Review [CLAUDE.md](../../../CLAUDE.md) documentation
 3. Examine existing implementations (ListBox.tsx, Select.tsx)
 4. Check browser console for errors

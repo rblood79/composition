@@ -1,6 +1,6 @@
 # ADR-128 Design Breakdown — Supabase backend decommission
 
-> 본 문서는 [ADR-128](../128-supabase-backend-decommission.md) 의 구현 phase 상세. ADR 본문은 base 결정 (auth-only 격하 + dead code 인정 + ADR-121~127 premise stale 해체) 만 다루며, 단계적 cleanup phase 는 본 문서에서 분리 관리한다.
+> 본 문서는 [ADR-128](../completed/128-supabase-backend-decommission.md) 의 구현 phase 상세. ADR 본문은 base 결정 (auth-only 격하 + dead code 인정 + ADR-121~127 premise stale 해체) 만 다루며, 단계적 cleanup phase 는 본 문서에서 분리 관리한다.
 
 ## §1 Framing 4 질문 통과 (lock-in)
 

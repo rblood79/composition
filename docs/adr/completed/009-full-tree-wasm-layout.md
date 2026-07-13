@@ -1632,8 +1632,8 @@ Week 17:
 - [ADR-001: State Management](001-state-management.md) -- Zustand 슬라이스 패턴
 - [ADR-004: Preview Isolation](004-preview-isolation.md) -- Builder↔Preview 분리
 - [ADR-008](008-layout-engine.md) -- Taffy 단일 엔진 (TaffyBlock/Flex/Grid) 전략
-- [RENDERING_ARCHITECTURE.md](../RENDERING_ARCHITECTURE.md) -- WASM 아키텍처 상세
-- [MULTIPAGE.md](../MULTIPAGE.md) -- Multi-page Canvas 렌더링
+- [RENDERING_ARCHITECTURE.md](../../legacy/RENDERING_ARCHITECTURE.md) -- WASM 아키텍처 상세
+- [MULTIPAGE.md](../../reference/architecture/MULTIPAGE.md) -- Multi-page Canvas 렌더링
 
 ### 코드베이스
 

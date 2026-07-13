@@ -176,7 +176,7 @@ v1 breakdown의 단일 Pre-Phase 0(auto-derivation 메커니즘)을 **의존성 
 - **Phase 4** — 잔존 Composite ~48개 Archetype 그룹 전환
 - **Phase 5** — `@sync` 잔존 grep 0, `utils/fieldDelegation.ts` 폐지, ADR-036 재승격
 
-> 구현 상세: [059-composite-field-skip-css-dismantle-breakdown.md](../design/059-composite-field-skip-css-dismantle-breakdown.md) — v2 재작성 필요
+> 구현 상세: [059-composite-field-skip-css-dismantle-breakdown.md](../design/completed/059-composite-field-skip-css-dismantle-breakdown.md) — v2 재작성 필요
 
 ## Gates
 
@@ -319,7 +319,7 @@ D3 해체만 수행 시 Spec의 RSP 미규정 variants 필드가 잔존 → CSSG
 
 #### Per-component 분류 요약 (audit 축 1+2 완료 — 2026-04-14)
 
-38 컴포넌트의 전체 per-component target 표(38 row, 축 3 RSP 대조 pending)는 [breakdown 문서 Per-Component Target 표](../design/059-composite-field-skip-css-dismantle-breakdown.md#per-component-target-표-audit-완료--2026-04-14) 참조. Cell 집계:
+38 컴포넌트의 전체 per-component target 표(38 row, 축 3 RSP 대조 pending)는 [breakdown 문서 Per-Component Target 표](../design/completed/059-composite-field-skip-css-dismantle-breakdown.md#per-component-target-표-audit-완료--2026-04-14) 참조. Cell 집계:
 
 | Cell 그룹                                   | 개수 | 예시                                                                                                     |
 | ------------------------------------------- | :--: | -------------------------------------------------------------------------------------------------------- |
@@ -334,7 +334,7 @@ D3 해체만 수행 시 Spec의 RSP 미규정 variants 필드가 잔존 → CSSG
 
 Batch 실행 순서는 breakdown의 "Batch 계획" 섹션에서 B1 → B2 → B3 → B4 → B-defer → B-final 로 정의. B1(dead/desync 저위험)과 B2(ADR-062 선례 확장)에 리스크 집중, B3/B4 는 안정된 패턴 반복.
 
-구현 상세 및 batch 계획: [059-composite-field-skip-css-dismantle-breakdown.md](../design/059-composite-field-skip-css-dismantle-breakdown.md) Phase 4 재설계 섹션.
+구현 상세 및 batch 계획: [059-composite-field-skip-css-dismantle-breakdown.md](../design/completed/059-composite-field-skip-css-dismantle-breakdown.md) Phase 4 재설계 섹션.
 
 ### Gates (amendment — 원 Gates 위에 추가)
 

@@ -1,6 +1,6 @@
 # ADR-085 Breakdown — ContainerStylesSchema grid-template 확장 + ProgressBar/Meter parent 해체
 
-> ADR: [085-containerstyles-grid-template-lifting.md](../adr/completed/085-containerstyles-grid-template-lifting.md)
+> ADR: [085-containerstyles-grid-template-lifting.md](../completed/085-containerstyles-grid-template-lifting.md)
 
 ## Phase 구성
 

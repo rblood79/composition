@@ -1,6 +1,6 @@
 # ADR-105-c Breakdown: @sync F2 spec-to-CSS 해소 구현 상세
 
-> **ADR**: [105-c-sync-spec-to-css-resolution.md](../adr/completed/105-c-sync-spec-to-css-resolution.md)
+> **ADR**: [105-c-sync-spec-to-css-resolution.md](../completed/105-c-sync-spec-to-css-resolution.md)
 > **스냅샷 날짜**: 2026-04-21
 
 ---

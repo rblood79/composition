@@ -1,6 +1,6 @@
 # ADR-105-d Breakdown: @sync F4/F5 최종 종결 — 구현 상세
 
-> ADR: [105-d-sync-f4-f5-final-closure.md](../adr/completed/105-d-sync-f4-f5-final-closure.md)
+> ADR: [105-d-sync-f4-f5-final-closure.md](../completed/105-d-sync-f4-f5-final-closure.md)
 
 ## 개요
 

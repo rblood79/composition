@@ -67,7 +67,7 @@ composition 117 spec 중 **컬렉션 archetype 3종** (ListBox / GridList / Menu
 | `GridListSection` + `GridListHeader` + `GridListLoadMoreItem` | 없음 — items flat 배열만 지원                       |
 | `MenuSection` + `SubmenuTrigger`                              | `Separator` 는 있으나 section 그룹화 의미 전달 부재 |
 
-### D2 domain 판정 ([ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### D2 domain 판정 ([ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 **D2 (Props/API) 신규 기능 추가 + D3 (시각 스타일) 연장**. RAC 공식 Section/Header 는 D1 (DOM/접근성, RAC 절대) 에서 이미 지원되어 있으나 composition spec 계층에서 미노출. 본 ADR 은 spec 확장을 통해 D2 API 확장 + D3 Header 시각 규격 신설. D1 침범 없음 (RAC 컴포넌트 DOM 구조 그대로 사용).
 
@@ -215,7 +215,7 @@ composition 117 spec 중 **컬렉션 archetype 3종** (ListBox / GridList / Menu
 - [ADR-098](098-rsp-naming-audit-charter.md) — RSP 네이밍 정합 감사 Charter (본 ADR 의 상위 charter)
 - [ADR-097](097-taggroup-items-ssot-hybrid.md) — items SSOT 체인 5번째 컬렉션 (직전 선례)
 - [ADR-076](076-listbox-items-ssot-hybrid.md) — ListBox items SSOT (본 ADR 의 기반 — items 확장 대상)
-- [ADR-078](078-listboxitem-spec-generator-childspec-emit.md) — Generator `childSpecs` inline emit 패턴 (Phase 3 재사용)
-- [ADR-094](094-expand-child-specs-spec-only-container.md) — `expandChildSpecs` 패턴 (대안 B 참조, 본 ADR 미채택)
+- [ADR-078](078-listboxitem-spec-and-generator-child-selector.md) — Generator `childSpecs` inline emit 패턴 (Phase 3 재사용)
+- [ADR-094](094-childspecs-registry-auto-registration.md) — `expandChildSpecs` 패턴 (대안 B 참조, 본 ADR 미채택)
 - [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 D2 domain 원칙 (RSP 참조 기준)
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — D2 Props/API + D3 시각 스타일 정본
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — D2 Props/API + D3 시각 스타일 정본

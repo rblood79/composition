@@ -2,7 +2,7 @@
 
 ## Purpose
 
-이 문서는 [ADR-037](../adr/037-workspace-scene-runtime-rearchitecture.md)을
+이 문서는 [ADR-037](../completed/037-workspace-scene-runtime-rearchitecture.md)을
 실행 가능한 작업 단위로 분해한 상세 플랜이다.
 
 목표는 다음과 같다.

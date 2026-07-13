@@ -13,7 +13,7 @@ ADR-091 (Implemented) 은 `utils.ts` + `cssResolver.ts` 의 `Record<string, numb
 
 두 Record 모두 **tag → px mapping (size 축 무관)** 이라 ADR-086 G4 `specSizeField` 패턴으로는 해체 불가. 해체하려면 **ComponentSpec 최상위 스키마 확장** 이 필요하다.
 
-### D3 domain 판정 ([ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### D3 domain 판정 ([ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 **D3 (시각 스타일) symmetric consumer 대칭 복구**. intrinsic default 치수는 Spec 있는 컴포넌트의 "시각 기본값" 이므로 Spec SSOT 에 속한다. 단 HTML primitive tag (`div`, `p`, `li` 등) 는 ComponentSpec 이 없으므로 `packages/specs/src/primitives/` 로 이관 (ADR-091 Phase 1 Class C `FONT_STRETCH_KEYWORD_MAP` 선례 재사용).
 
@@ -198,6 +198,6 @@ ADR-091 (Implemented) 은 `utils.ts` + `cssResolver.ts` 의 `Record<string, numb
 - [ADR-091](091-utils-record-dissolution.md) — 본 ADR 의 선행, Addendum 1 명시 ("ComponentSpec.defaultWidth/Height Schema 확장 + R2/R6 해체 별도 세션 권장")
 - [ADR-086](086-implicitstyles-size-record-dissolution-and-breadcrumb-child.md) — G4 Record 0 건 목표 + `specSizeField` 헬퍼 선례
 - [ADR-088](088-sizespec-columngap-slider-col-gap-dissolution.md) — `SizeSpec` optional 필드 확장 선례
-- [ADR-083](083-layout-primitive-lifting-skia-consumer-generalization.md) — `LOWERCASE_TAG_SPEC_MAP` Phase 0 인프라 + hoist 선례
+- [ADR-083](083-archetype-base-styles-lifting.md) — `LOWERCASE_TAG_SPEC_MAP` Phase 0 인프라 + hoist 선례
 - [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 D3 domain 원칙
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — D3 symmetric consumer 정본
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — D3 symmetric consumer 정본

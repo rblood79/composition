@@ -158,7 +158,7 @@ composition Builder 렌더링 파이프라인은 JS 64,316줄(92%) + Rust 5,633�
 - **대안 B 기각**: Taffy 외부 종속 영구화 — 본 ADR 의 문제 정의 (외부 라이브러리 래핑 제거) 자체를 미해결. 단, B 의 실행 내용은 D 의 Phase 0 으로 흡수됨
 - **대안 C 기각**: CRITICAL 2건 (중간 검증 지점 없는 spec 전체 구현 + 전면 롤백 리스크). 동일 목적지를 D 가 게이트 기반으로 도달
 
-> 구현 상세: [916-unified-rust-engine-breakdown.md](design/916-unified-rust-engine-breakdown.md)
+> 구현 상세: [916-unified-rust-engine-breakdown.md](../design/916-unified-rust-engine-breakdown.md)
 
 ## Risks
 

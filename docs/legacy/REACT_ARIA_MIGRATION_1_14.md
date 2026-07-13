@@ -213,7 +213,7 @@ CSS 변환:
 
 ## Part 3: StyleValues 분할 최적화
 
-> **참조**: [STYLE_PANEL_PARSING_OPTIMIZATION.md](research/STYLE_PANEL_PARSING_OPTIMIZATION.md)
+> **참조**: [STYLE_PANEL_PARSING_OPTIMIZATION.md](../explanation/research/STYLE_PARSING.md)
 
 ### 3.1 현재 문제
 
@@ -569,7 +569,7 @@ pnpm build
 
 ## Part 5: 기존 1.13 업데이트 작업 상태
 
-> **참조**: [REACT_ARIA_1.13_UPDATE.md](REACT_ARIA_1.13_UPDATE.md)
+> **참조**: [REACT_ARIA_1.13_UPDATE.md](../reference/status/REACT_ARIA_1.13.md)
 
 ### 5.1 완료된 작업
 

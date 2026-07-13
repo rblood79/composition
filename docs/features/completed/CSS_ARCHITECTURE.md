@@ -559,9 +559,9 @@ export default defineConfig({
 
 ## 📚 Related Documentation
 
-- [ADR-002: Styling Approach](../../adr/002-styling-approach.md) - ITCSS + tailwind-variants 결정 배경
-- [ADR-017: CSS Override SSOT](../../adr/017-css-override-ssot.md) - M3 토큰 제거, 시맨틱 토큰 단일화
-- [ADR-018: Component CSS Restructure](../../adr/018-component-css-restructure.md) - utilities.css 패턴, CSS 61% 감소
+- [ADR-002: Styling Approach](../../adr/completed/002-styling-approach.md) - ITCSS + tailwind-variants 결정 배경
+- [ADR-017: CSS Override SSOT](../../adr/completed/017-css-override-ssot.md) - M3 토큰 제거, 시맨틱 토큰 단일화
+- [ADR-018: Component CSS Restructure](../../adr/completed/018-component-css-restructure.md) - utilities.css 패턴, CSS 61% 감소
 - [CSS_SUPPORT_MATRIX.md](../../CSS_SUPPORT_MATRIX.md) - CSS Level 3 지원 현황 (88%)
 - [CLAUDE.md](../../../CLAUDE.md) - 프로젝트 가이드라인
 

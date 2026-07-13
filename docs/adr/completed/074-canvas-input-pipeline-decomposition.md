@@ -1,6 +1,6 @@
 # ADR-074: 캔버스 입력 파이프라인 SSOT 재편 (pointerdown→render.frame 체감 최적화)
 
-> **SSOT domain**: D3 (시각 스타일) 경계를 건드리지 않는 **렌더 consumer 내부 구독/계산 SSOT 재편**. Spec/Skia/CSS 3-domain 모델은 불변. 본 ADR 은 `BuilderCanvas` 루트가 **구조 변경**과 **selection/overlay 변경**을 **동일한 입력 덩어리**로 병합하여 fan-out 을 유발하는 구조를 분리한다. 정본: [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md). 선례: [ADR-069](069-input-frame-violation-mitigation.md) `selectElementWithPageTransition` Phase 1 (prod gate PASS 종결), [ADR-067](../067-style-panel-skia-native-read-path.md) Zustand-native 구독 Phase 1~6 패턴, 2026-04-16 Phase B/C RenderContext 인덱스 + batch 인프라 세션.
+> **SSOT domain**: D3 (시각 스타일) 경계를 건드리지 않는 **렌더 consumer 내부 구독/계산 SSOT 재편**. Spec/Skia/CSS 3-domain 모델은 불변. 본 ADR 은 `BuilderCanvas` 루트가 **구조 변경**과 **selection/overlay 변경**을 **동일한 입력 덩어리**로 병합하여 fan-out 을 유발하는 구조를 분리한다. 정본: [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md). 선례: [ADR-069](069-input-frame-violation-mitigation.md) `selectElementWithPageTransition` Phase 1 (prod gate PASS 종결), [ADR-067](067-style-panel-skia-native-read-path.md) Zustand-native 구독 Phase 1~6 패턴, 2026-04-16 Phase B/C RenderContext 인덱스 + batch 인프라 세션.
 
 ## Status
 

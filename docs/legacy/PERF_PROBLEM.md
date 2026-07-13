@@ -1,6 +1,6 @@
 # 현재 문제 분석 및 목표 성능 지표
 
-> **관련 문서**: [README.md](./README.md) | [02-architecture.md](./02-architecture.md)
+> **관련 문서**: [README.md](./README.md) | 02-architecture.md
 > **최종 수정**: 2025-12-11 (A1.1 Panel Gateway 완료: Properties/Styles/Components)
 
 ---
@@ -140,7 +140,7 @@
 
 #### 2.3.6 Phase 7 모니터링 적용 위치
 
-> **현재 상태**: 🟡 구현만 완료, 실사용 안 함 ([task.md](./task.md) 참조)
+> **현재 상태**: 🟡 구현만 완료, 실사용 안 함 (task.md 참조)
 
 **구현된 파일**:
 - `src/builder/utils/performanceMonitor.ts` (370줄+)
@@ -301,4 +301,4 @@ export const sloMonitor = new SLOMonitor();
 
 ---
 
-> **다음 문서**: [02-architecture.md](./02-architecture.md) - 아키텍처 설계
+> **다음 문서**: 02-architecture.md - 아키텍처 설계

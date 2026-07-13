@@ -24,7 +24,7 @@ Implemented — 2026-04-19
 
 ## Context
 
-ADR-078 Phase 5 에서 ListBox 의 시각 정합성(padding/gap/textAlign/flex-direction) 을 복구했으나, 4종의 **구조적 우회/중복** 이 잔존한다. 본 ADR 은 이 잔존을 [ssot-hierarchy.md](../../rules/ssot-hierarchy.md) D3 정본 관점에서 구조적으로 해체하여 **Spec 을 layout primitive 의 완전한 SSOT** 로 승격한다.
+ADR-078 Phase 5 에서 ListBox 의 시각 정합성(padding/gap/textAlign/flex-direction) 을 복구했으나, 4종의 **구조적 우회/중복** 이 잔존한다. 본 ADR 은 이 잔존을 [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) D3 정본 관점에서 구조적으로 해체하여 **Spec 을 layout primitive 의 완전한 SSOT** 로 승격한다.
 
 **D3 (시각 스타일) 관점 잔존 debt**
 

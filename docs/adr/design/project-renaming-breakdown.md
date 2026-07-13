@@ -2,7 +2,7 @@
 
 ## Purpose
 
-이 문서는 [ADR-044](../adr/044-project-renaming-composition-to-composition.md)을 실행 가능한 작업 단위로 분해한 상세 플랜이다.
+이 문서는 [ADR-044](../completed/044-project-renaming-xstudio-to-composition.md)을 실행 가능한 작업 단위로 분해한 상세 플랜이다.
 ADR은 결정과 제약만 유지하며, 이 문서가 실제 구현 기준 문서다.
 
 ---

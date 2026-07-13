@@ -1,6 +1,6 @@
 # ADR-068 구현 상세 — Menu items SSOT + MenuItem Spec 신설
 
-> **본 문서는 ADR-068의 구현 상세**. 결정 근거는 [068-menu-items-ssot-and-menuitem-spec.md](../adr/068-menu-items-ssot-and-menuitem-spec.md) 참조.
+> **본 문서는 ADR-068의 구현 상세**. 결정 근거는 [068-menu-items-ssot-and-menuitem-spec.md](../../completed/068-menu-items-ssot-and-menuitem-spec.md) 참조.
 >
 > **2026-04-17 1차 정정** (Codex 1차 리뷰): Q1→Q6(items 풀 인터페이스), Q7(per-item 흡수), Q8(shared SSOT) 결정 반영. P0 변경 대상 파일 표를 실제 저장소 기준으로 재고정 + Q5=(i) 일관성 위해 Builder Skia 등록 항목 제거.
 >

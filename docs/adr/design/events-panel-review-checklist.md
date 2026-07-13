@@ -6,8 +6,8 @@
 
 관련 문서:
 
-- [ADR-032](../adr/032-events-data-integration.md)
-- [ADR-034](../adr/034-events-panel-renovation.md)
+- [ADR-032](../completed/032-events-data-integration.md)
+- [ADR-034](../completed/034-events-panel-renovation.md)
 - [events-panel-wireframe.md](events-panel-wireframe.md)
 - [events-panel-state-model.md](events-panel-state-model.md)
 - [events-panel-recipe-system.md](events-panel-recipe-system.md)
@@ -108,8 +108,8 @@
 
 ## Recommended Review Order
 
-1. [ADR-032](../adr/032-events-data-integration.md)
-2. [ADR-034](../adr/034-events-panel-renovation.md)
+1. [ADR-032](../completed/032-events-data-integration.md)
+2. [ADR-034](../completed/034-events-panel-renovation.md)
 3. [events-panel-wireframe.md](events-panel-wireframe.md)
 4. [events-panel-state-model.md](events-panel-state-model.md)
 5. [events-panel-recipe-system.md](events-panel-recipe-system.md)

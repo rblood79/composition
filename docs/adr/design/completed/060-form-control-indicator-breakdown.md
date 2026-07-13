@@ -1,6 +1,6 @@
 # ADR-060 Breakdown: Form Control Indicator 스키마 확장
 
-> 상위 ADR: [060-form-control-indicator-schema.md](../adr/060-form-control-indicator-schema.md)
+> 상위 ADR: [060-form-control-indicator-schema.md](../../completed/060-form-control-indicator-schema.md)
 
 ## 스키마 확장 설계
 

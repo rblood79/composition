@@ -1,6 +1,6 @@
 # ADR-105-a Breakdown: @sync F3+F5 상수 primitives 이관
 
-> **ADR**: [105-a-sync-utils-constants-primitives.md](../adr/completed/105-a-sync-utils-constants-primitives.md)
+> **ADR**: [105-a-sync-utils-constants-primitives.md](../completed/105-a-sync-utils-constants-primitives.md)
 > **스냅샷 날짜**: 2026-04-21
 > **해소 건수**: 6건 (F3 4건 + F5 stale 주석 2건)
 

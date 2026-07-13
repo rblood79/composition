@@ -1,6 +1,6 @@
 # ADR-069 Breakdown — 입력·프레임 Violation 완화 구현 상세
 
-> ADR 본문: [069-input-frame-violation-mitigation.md](../adr/069-input-frame-violation-mitigation.md)
+> ADR 본문: [069-input-frame-violation-mitigation.md](../../completed/069-input-frame-violation-mitigation.md)
 >
 > 본 문서는 Phase 목록, 파일 변경표, 체크리스트를 담는다. 결정 근거/대안 비교는 ADR 본문 참조.
 

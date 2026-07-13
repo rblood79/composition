@@ -8,9 +8,9 @@
 
 **Tech Stack:** TypeScript 5, pnpm monorepo, React Aria Components, CSSGenerator.
 
-**Source ADR:** [059-composite-field-skip-css-dismantle.md](../../adr/059-composite-field-skip-css-dismantle.md) § "Phase 4 재설계 (v2.1 amendment)"
-**Source breakdown:** [059-composite-field-skip-css-dismantle-breakdown.md](../../adr/design/059-composite-field-skip-css-dismantle-breakdown.md) § "B1 실행 결과" + Per-Component 표
-**선례 ADR:** [062-field-spec-rsp-conformance.md](../../adr/062-field-spec-rsp-conformance.md) — 11 Field variant 제거 + isQuiet 보강 방법론
+**Source ADR:** [059-composite-field-skip-css-dismantle.md](../../adr/completed/059-composite-field-skip-css-dismantle.md) § "Phase 4 재설계 (v2.1 amendment)"
+**Source breakdown:** [059-composite-field-skip-css-dismantle-breakdown.md](../../adr/design/completed/059-composite-field-skip-css-dismantle-breakdown.md) § "B1 실행 결과" + Per-Component 표
+**선례 ADR:** [062-field-spec-rsp-conformance.md](../../adr/completed/062-field-spec-rsp-conformance.md) — 11 Field variant 제거 + isQuiet 보강 방법론
 **B0.2 결과 (commit b1badff3)**: 5 컴포넌트 분기 판정 완료
 
 ---

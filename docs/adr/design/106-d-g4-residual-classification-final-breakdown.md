@@ -1,6 +1,6 @@
 # ADR-106-d G4 잔존 3건 최종 분류 — 구현 상세 Breakdown
 
-> **연결 ADR**: [106-d-g4-residual-classification-final.md](../adr/completed/106-d-g4-residual-classification-final.md)
+> **연결 ADR**: [106-d-g4-residual-classification-final.md](../completed/106-d-g4-residual-classification-final.md)
 > **스냅샷 기준**: 2026-04-21
 
 ---

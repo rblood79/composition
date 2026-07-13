@@ -1,6 +1,6 @@
 # ADR-061 Breakdown: Focus Ring 토큰화
 
-> 상위 ADR: [061-focus-ring-tokenization.md](../adr/061-focus-ring-tokenization.md)
+> 상위 ADR: [061-focus-ring-tokenization.md](../../completed/061-focus-ring-tokenization.md)
 
 ## 토큰 스키마 설계
 

@@ -20,7 +20,7 @@ ADR-093 (Implemented) 은 `TagList.spec.ts` 에 `containerStyles` 를 리프팅�
 
 ADR-066 (Tabs) / ADR-068 (Menu) / ADR-073 (Select/ComboBox) / ADR-076 (ListBox) 는 **items SSOT 패턴** 을 4 회 정립했다. 본 ADR 은 5 번째 적용 — `TagGroup.props.items: Tag[]` 배열 SSOT 로 전환하고, TagList 중간 컨테이너는 **spec-only container 로 유지** (Option A).
 
-### D3 domain 판정 ([ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### D3 domain 판정 ([ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 **D2 (Props/API) + D3 (시각 스타일) 혼합 작업**:
 
@@ -210,8 +210,8 @@ ADR-066 (Tabs) / ADR-068 (Menu) / ADR-073 (Select/ComboBox) / ADR-076 (ListBox) 
 
 - [ADR-093](093-synthetic-merge-containers-spec.md) — 본 ADR 의 선행. TagList containerStyles 리프팅 + Addendum 1 명시 debt
 - [ADR-076](076-listbox-items-ssot-hybrid.md) — ListBox items SSOT + Hybrid containerStyles 패턴 원본
-- [ADR-066](completed/066-tabs-items-ssot.md) / [ADR-068](completed/068-menu-items-ssot-menuitem-spec.md) / [ADR-073](completed/073-select-combobox-items-ssot.md) — items SSOT 체인 1-3 번째
+- [ADR-066](066-tabs-items-ssot-migration.md) / [ADR-068](068-menu-items-ssot-and-menuitem-spec.md) / [ADR-073](073-select-combobox-items-ssot.md) — items SSOT 체인 1-3 번째
 - [ADR-094](094-childspecs-registry-auto-registration.md) — `expandChildSpecs` 인프라 (TagList 자동 재생성 활용)
 - [ADR-087](087-implicitstyles-residual-branches-categorized-sweep.md) — SP6 후속 후보 명시
 - [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 D2/D3 domain 원칙
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — D3 symmetric consumer 정본
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — D3 symmetric consumer 정본

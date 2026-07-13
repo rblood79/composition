@@ -20,7 +20,7 @@ composition SSOT 체인 (ADR-036/063) 에서 **부모-자식 사이 중간 컨�
   - `taglist` (`:565-612`): orientation row/column, flexWrap wrap, gap:4, labelPosition="side" 시 flex:1/minWidth:0, Tag 자식 whiteSpace:nowrap 주입, maxRows 근사 계산 (대량 runtime 로직)
   - `radioitems/checkboxitems` (`:880-896`): orientation row/column, size-based gap (sm:8/md:12/lg:16), alignItems:center (horizontal)
 
-### D3 domain 판정 ([ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### D3 domain 판정 ([ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 **D3 (시각 스타일) symmetric consumer 의 대칭 복구**. 중간 컨테이너의 layout primitive (display/flexDirection/flexWrap/alignItems) 가 spec 부재로 implicitStyles 분기에 runtime 할당. orientation/size 기반 runtime 분기는 유지하되 base primitive 는 spec 으로 리프팅.
 

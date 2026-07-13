@@ -1,6 +1,6 @@
 # ADR-064: ComponentSpec shapes API — variant 파라미터 제거 + self-lookup 전환
 
-> **SSOT domain**: D3 내부 API 리팩토링 (Spec↔renderer 계약). variant 개념 자체가 아닌 **주입 주체**를 caller에서 callee로 이전. 정본: [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md), charter: [ADR-063](../063-ssot-chain-charter.md).
+> **SSOT domain**: D3 내부 API 리팩토링 (Spec↔renderer 계약). variant 개념 자체가 아닌 **주입 주체**를 caller에서 callee로 이전. 정본: [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md), charter: [ADR-063](063-ssot-chain-charter.md).
 
 ## Status
 
@@ -96,7 +96,7 @@ Implemented — 2026-04-15 (Proposed 2026-04-13)
 - **대안 B 기각**: caller 분기 로직은 "Spec이 자기 것을 모른다"는 역전된 의존. Field variant 제거 성공 후에도 분기 잔존으로 charter 관점에서 Spec 자율성 훼손.
 - **대안 C 기각**: optional 시그니처는 "이행 중" 상태를 영구화 — composition의 모든 상태 장기 혼재. 전 Spec(83 → 107) 중 어느 쪽이 자체 lookup인지 코드로 표기되지 않아 유지보수 HIGH.
 
-> 구현 상세: [064-componentspec-shapes-variant-removal-breakdown.md](../design/064-componentspec-shapes-variant-removal-breakdown.md)
+> 구현 상세: [064-componentspec-shapes-variant-removal-breakdown.md](../design/completed/064-componentspec-shapes-variant-removal-breakdown.md)
 
 ## Gates
 

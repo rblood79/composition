@@ -17,7 +17,7 @@ Builder Canvas 상호작용 중 Chrome DevTools에서 반복적으로 관찰되�
 
 ### SSOT 3-domain 분할과의 관계
 
-본 ADR은 [`.claude/rules/ssot-hierarchy.md`](../../.claude/rules/ssot-hierarchy.md) 3-domain(D1 DOM/접근성 / D2 Props / D3 시각 스타일) **경계 밖의 runtime 성능 최적화** 영역에 속한다. Spec/RAC/RSP의 권위 구조에는 개입하지 않으며, Builder 내부의 input→state→frame 파이프라인 비용만 다룬다.
+본 ADR은 [`.claude/rules/ssot-hierarchy.md`](../../../.claude/rules/ssot-hierarchy.md) 3-domain(D1 DOM/접근성 / D2 Props / D3 시각 스타일) **경계 밖의 runtime 성능 최적화** 영역에 속한다. Spec/RAC/RSP의 권위 구조에는 개입하지 않으며, Builder 내부의 input→state→frame 파이프라인 비용만 다룬다.
 
 ### 근본 원인 (재분석 완료)
 
@@ -36,7 +36,7 @@ Builder Canvas 상호작용 중 Chrome DevTools에서 반복적으로 관찰되�
 ### Hard Constraints
 
 1. Chrome Violation 임계 50ms — pointerdown p95 < 50ms, rAF handler p95 < 50ms 목표
-2. Canvas 60fps (frame budget 16.67ms) — [CLAUDE.md 성능 기준](../../CLAUDE.md#성능-기준)
+2. Canvas 60fps (frame budget 16.67ms) — [CLAUDE.md 성능 기준](../../../CLAUDE.md#성능-기준)
 3. 단일 React commit cycle 내 외부 Zustand store `set()` 호출 횟수 ≤ 1 (fan-out 제약)
 4. 기존 드래그/더블클릭/Escape 취소 동작 회귀 금지 (ADR-043 Phase 0~6 계약 유지)
 
@@ -120,7 +120,7 @@ Builder Canvas 상호작용 중 Chrome DevTools에서 반복적으로 관찰되�
 - **대안 C 기각**: 위험 HIGH 2~3건. 장기적으로 바람직하나 Violation 완화라는 **좁은 목표**에 과대 투자. ADR-037 후속 "SelectionModel 확장 ADR"로 별도 분리해야 drag/edit/double-click 회귀 테스트 매트릭스를 독립적으로 관리할 수 있다.
 - **대안 D 단독 기각**: dev-only 오버헤드로 전부 설명되지 않을 가능성 존재(예: WASM hitTest, `computeSelectionBoundsForHitTest` 중복 호출은 프로덕션에서도 동일 비용). 검증은 필요하나 변경 없이 끝낼 수 없다.
 
-> 구현 상세: [069-input-frame-violation-mitigation-breakdown.md](../design/069-input-frame-violation-mitigation-breakdown.md)
+> 구현 상세: [069-input-frame-violation-mitigation-breakdown.md](../design/completed/069-input-frame-violation-mitigation-breakdown.md)
 
 ## Gates
 

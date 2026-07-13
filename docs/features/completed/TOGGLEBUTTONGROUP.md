@@ -468,7 +468,7 @@ const drawIndicator = useCallback(
 
 ## 참고 자료
 
-- [CLAUDE.md - ToggleButtonGroup with Indicator](../../CLAUDE.md#togglebuttongroup-with-indicator)
+- [CLAUDE.md - ToggleButtonGroup with Indicator](../../../CLAUDE.md#togglebuttongroup-with-indicator)
 - [React Aria: ToggleButton](https://react-spectrum.adobe.com/react-aria/ToggleButton.html)
 - [MDN: MutationObserver](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver)
 - [CSS Transitions](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Transitions/Using_CSS_transitions)

@@ -26,7 +26,7 @@ Decision 단계에서는 `containerStyles.padding/gap/borderWidth` 를 전부 �
 
 본 ADR 은 [ADR-087 후속 ADR 후보 #4](087-implicitstyles-residual-branches-categorized-sweep.md#후속-adr-후보) 가 예고한 **GridListItem spec 신설** 작업이다. ADR-078 (ListBoxItem spec + Generator 자식 selector emit 확장) 의 패턴을 1:1 재사용한다.
 
-### D3 domain 판정 ([ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### D3 domain 판정 ([ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 **D3 (시각 스타일) symmetric consumer 의 대칭 복구**. GridListItem card metric 이 현재 **3곳에 산재**:
 

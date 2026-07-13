@@ -8,8 +8,8 @@
 
 **Tech Stack:** TypeScript 5, pnpm monorepo, Vite, CSSGenerator auto-emit (`packages/specs/src/renderers/CSSGenerator.ts`), React Aria Components, Skia WASM.
 
-**Source ADR:** [docs/adr/059-composite-field-skip-css-dismantle.md](../../adr/059-composite-field-skip-css-dismantle.md) § "Phase 4 재설계 (v2.1 amendment)"
-**Source breakdown:** [docs/adr/design/059-composite-field-skip-css-dismantle-breakdown.md](../../adr/design/059-composite-field-skip-css-dismantle-breakdown.md) § "Per-Component Target 표"
+**Source ADR:** [docs/adr/059-composite-field-skip-css-dismantle.md](../../adr/completed/059-composite-field-skip-css-dismantle.md) § "Phase 4 재설계 (v2.1 amendment)"
+**Source breakdown:** [docs/adr/design/059-composite-field-skip-css-dismantle-breakdown.md](../../adr/design/completed/059-composite-field-skip-css-dismantle-breakdown.md) § "Per-Component Target 표"
 
 ---
 

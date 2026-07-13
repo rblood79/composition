@@ -27,7 +27,7 @@ ADR-098 감사 매트릭스 (2026-04-21 WebFetch) 에서 composition 의 `ComboB
 | ComboBoxItem    | HIGH (일괄)  | ADR-073 에서 items SSOT 로 이관 — 저장 데이터에 `tag` 없음 (items 배열 내부 객체) | **LOW**  |
 | ComboBoxTrigger | HIGH (일괄)  | Compositional Architecture 유지 — 저장 데이터에 `tag: "ComboBoxTrigger"` 직렬화   | **HIGH** |
 
-### D1/D2 domain 판정 ([ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### D1/D2 domain 판정 ([ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 - **D2 (Props/API)**: 네이밍 정합 영역. RSP 참조 기준 적용.
 - **D1 (DOM/접근성)**: ComboBoxTrigger factory 는 **runtime DOM 에서 RAC ComboBox 내부 버튼을 실제 렌더** — D1 은 이미 정합. 본 ADR 의 논의는 composition **element tree 저장 식별자 (tag)** 수준이며 이는 D1/D2 와 별개의 "builder element graph 분류" 축.
@@ -211,6 +211,6 @@ SelectTrigger (ADR-100) 보다 3단 계층 복잡도가 더 높아, 리네이밍
 - [ADR-098](098-rsp-naming-audit-charter.md) — RSP 네이밍 정합 감사 Charter (본 ADR 의 상위 charter)
 - [ADR-100](100-select-child-naming-rsp-alignment.md) — 098-a 슬롯 (SelectItem/SelectTrigger 선례, 동일 패턴 적용)
 - [ADR-099](099-collection-section-expansion.md) — 098-c 슬롯 (본 ADR 과 병행 Implemented)
-- [ADR-073](completed/073-select-combobox-items-ssot.md) — Select/ComboBox items SSOT 이관 (본 ADR 의 BC 재평가 기반)
+- [ADR-073](073-select-combobox-items-ssot.md) — Select/ComboBox items SSOT 이관 (본 ADR 의 BC 재평가 기반)
 - [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 D1/D2 domain 원칙
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — 3-domain 정본
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — 3-domain 정본

@@ -522,7 +522,7 @@ export function mapElementToSelected(element: Element) {
 
 ## 참고 자료
 
-- [CLAUDE.md - Inspector Style Management System](../../CLAUDE.md#inspector-style-management-system)
+- [CLAUDE.md - Inspector Style Management System](../../../CLAUDE.md#inspector-style-management-system)
 - [React: style prop documentation](https://react.dev/reference/react-dom/components/common#applying-css-styles)
 - [MDN: getComputedStyle()](https://developer.mozilla.org/en-US/docs/Web/API/Window/getComputedStyle)
 - [CSS Flexbox Guide](https://css-tricks.com/snippets/css/a-guide-to-flexbox/)

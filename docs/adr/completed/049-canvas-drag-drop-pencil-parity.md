@@ -6,13 +6,13 @@
 
 ## Prerequisites
 
-- [ADR-043](docs/adr/043-selection-drag-alignment.md) Phase 0~4 완료 — **이미 충족** (같은 부모 내 reorder, drop indicator, Escape 취소)
-- [ADR-048](docs/adr/048-declarative-props-propagation.md) — 선언적 props 전파 엔진 (참조만, 직접 의존 아님)
+- [ADR-043](043-selection-drag-alignment.md) Phase 0~4 완료 — **이미 충족** (같은 부모 내 reorder, drop indicator, Escape 취소)
+- [ADR-048](048-declarative-props-propagation.md) — 선언적 props 전파 엔진 (참조만, 직접 의존 아님)
 
 ## Related ADRs
 
-- [ADR-043](docs/adr/043-selection-drag-alignment.md): Selection Drag Alignment — 본 ADR의 선행 인프라
-- [ADR-040](docs/adr/completed/040-visible-page-delta-runtime.md): Delta Runtime — elementsMap/childrenMap O(1) 인덱스
+- [ADR-043](043-selection-drag-alignment.md): Selection Drag Alignment — 본 ADR의 선행 인프라
+- [ADR-040](040-visible-page-delta-runtime.md): Delta Runtime — elementsMap/childrenMap O(1) 인덱스
 
 ## Context
 

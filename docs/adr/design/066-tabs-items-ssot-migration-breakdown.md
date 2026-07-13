@@ -1,6 +1,6 @@
 # ADR-066 구현 상세 — Tabs items SSOT 전환
 
-본 문서는 [ADR-066](../066-tabs-items-ssot-migration.md)의 구현 상세. Phase별 작업 순서 + 영향 파일 + 체크리스트.
+본 문서는 [ADR-066](../completed/066-tabs-items-ssot-migration.md)의 구현 상세. Phase별 작업 순서 + 영향 파일 + 체크리스트.
 
 ## Phase 1: Spec + Factory + Renderer (core)
 

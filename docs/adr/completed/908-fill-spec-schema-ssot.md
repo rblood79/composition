@@ -137,7 +137,7 @@ ADR-904와 ADR-905로 저장/런타임 정본은 top-level `fills`로 정리됐�
 - [docs/adr/905-fill-noncanonical-background-payload-policy.md](905-fill-noncanonical-background-payload-policy.md)
 - [packages/specs/src/types/spec.types.ts](../../../packages/specs/src/types/spec.types.ts)
 - [packages/specs/src/renderers/CSSGenerator.ts](../../../packages/specs/src/renderers/CSSGenerator.ts)
-- [packages/specs/src/renderers/ReactRenderer.ts](../../../packages/specs/src/renderers/ReactRenderer.ts)
+- packages/specs/src/renderers/ReactRenderer.ts
 - [packages/specs/src/renderers/utils/variantColors.ts](../../../packages/specs/src/renderers/utils/variantColors.ts)
 - [packages/specs/src/utils/stateEffect.ts](../../../packages/specs/src/utils/stateEffect.ts)
 - [packages/specs/scripts/validate-specs.ts](../../../packages/specs/scripts/validate-specs.ts)

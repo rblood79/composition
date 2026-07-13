@@ -1,6 +1,6 @@
 # ADR-106-a Breakdown: Color Family skipCSSGeneration 해체 — 구현 상세
 
-> 본 파일은 [ADR-106-a](../adr/completed/106-a-color-family-skipcss-dismantle.md) 의 구현 상세 분리 문서.
+> 본 파일은 [ADR-106-a](../completed/106-a-color-family-skipcss-dismantle.md) 의 구현 상세 분리 문서.
 > ADR 본문에는 `> 구현 상세: [링크]` 포인터만 기록함.
 
 ## 결론 요약

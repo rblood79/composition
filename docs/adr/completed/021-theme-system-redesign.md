@@ -837,8 +837,8 @@ IndexedDB 스키마(`lib/db.ts`)에서 themes/tokens 테이블 참조 확인:
 - [ADR-017: CSS Override SSOT — M3 제거 + Tint System](017-css-override-ssot.md)
 - [ADR-018: 컴포넌트 CSS 구조 재작성](018-component-css-restructure.md)
 - [ADR-022: React Spectrum S2 색상 토큰 체계 전환](022-s2-color-token-migration.md) — ColorTokens S2 전환, Phase A 전제
-- [preview-system.css](../../packages/shared/src/components/styles/theme/preview-system.css) — Tint Color System 구현
-- [shared-tokens.css](../../packages/shared/src/components/styles/theme/shared-tokens.css) — Tailwind 색상 팔레트
+- [preview-system.css](../../../packages/shared/src/components/styles/theme/preview-system.css) — Tint Color System 구현
+- [shared-tokens.css](../../../packages/shared/src/components/styles/theme/shared-tokens.css) — Tailwind 색상 팔레트
 - [Pencil 역설계 분석](../../docs/pencil-extracted/) — VariableManager, Node 테마 상속 체인
 
 ### 업계 참조

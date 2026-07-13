@@ -6,7 +6,7 @@
 
 관련 문서:
 
-- [ADR-034](../adr/034-events-panel-renovation.md)
+- [ADR-034](../completed/034-events-panel-renovation.md)
 
 ---
 

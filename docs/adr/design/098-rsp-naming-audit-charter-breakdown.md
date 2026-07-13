@@ -1,6 +1,6 @@
 # ADR-098 구현 상세 — RSP 네이밍 정합 감사 매트릭스 + 후속 ADR 로드맵
 
-> ADR-098 본문: [098-rsp-naming-audit-charter.md](../adr/completed/098-rsp-naming-audit-charter.md)
+> ADR-098 본문: [098-rsp-naming-audit-charter.md](../completed/098-rsp-naming-audit-charter.md)
 >
 > 본 문서는 ADR-098 Decision (대안 A — 감사 ADR + 후속 개별 리네이밍 ADR 분할) 의 실행 상세. **2026-04-21 WebFetch 매트릭스 스냅샷** 기반. 후속 ADR 발행 시 재검증 의무 (본문 Risk R1).
 

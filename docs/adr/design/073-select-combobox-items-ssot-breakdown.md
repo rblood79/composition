@@ -1,8 +1,8 @@
 # ADR-073 구현 상세 — Select/ComboBox items SSOT + wiring 정리
 
-> **관련 ADR**: [073-select-combobox-items-ssot.md](../adr/073-select-combobox-items-ssot.md)
-> **선례**: [ADR-066 Tabs items SSOT](../adr/completed/066-tabs-items-ssot-migration.md), [ADR-068 Menu items SSOT + MenuItem Spec](../adr/completed/068-menu-items-ssot-and-menuitem-spec.md)
-> **SSOT 맥락**: [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) D2(Props/API) 정렬 + D3(시각 스타일) 보완.
+> **관련 ADR**: [073-select-combobox-items-ssot.md](../completed/073-select-combobox-items-ssot.md)
+> **선례**: [ADR-066 Tabs items SSOT](../completed/066-tabs-items-ssot-migration.md), [ADR-068 Menu items SSOT + MenuItem Spec](../completed/068-menu-items-ssot-and-menuitem-spec.md)
+> **SSOT 맥락**: [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) D2(Props/API) 정렬 + D3(시각 스타일) 보완.
 > **2026-04-18 Codex 2차 리뷰 반영**: widening scope 4건(ItemsManager Menu 전용 / 선택 상태 역매핑 재설계 / dataBinding 우선순위 / Factory·Hierarchy·canvas 연쇄) + DB migration 경로 정정.
 
 ## 목표

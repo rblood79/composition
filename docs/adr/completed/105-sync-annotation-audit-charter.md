@@ -8,7 +8,7 @@ Implemented — 2026-04-21 (첫 후속 sub-ADR 105-a Proposed 발행으로 Gate 
 
 ### 배경 — ADR-063 SSOT 체인 위반 패턴
 
-ADR-063 (SSOT 체인 Charter, Accepted 2026-04-21) 은 composition 의 3-domain 분할 구조를 명문화했다. 그 중 **D3 (시각 스타일) 영역에서의 핵심 금지 패턴**은 [`ssot-hierarchy.md` §4.2](../../.claude/rules/ssot-hierarchy.md):
+ADR-063 (SSOT 체인 Charter, Accepted 2026-04-21) 은 composition 의 3-domain 분할 구조를 명문화했다. 그 중 **D3 (시각 스타일) 영역에서의 핵심 금지 패턴**은 [`ssot-hierarchy.md` §4.2](../../../.claude/rules/ssot-hierarchy.md):
 
 > `@sync` 주석으로 CSS↔CSS 참조는 consumer-to-consumer 금지 패턴.
 
@@ -279,4 +279,4 @@ builder 코드 (factory, implicitStyles, utils, cssComponentPresets) 가 Spec �
 - [ADR-098](098-rsp-naming-audit-charter.md) — 감사 Charter + 분할 sub-ADR 패턴 선례 (RSP 네이밍)
 - [ADR-091](091-utils-record-dissolution.md) — utils.ts 상수 primitives 이관 패턴 (Class C)
 - [ADR-078](078-listboxitem-spec-and-generator-child-selector.md) — Generator 자식 selector emit 확장 선례
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — §4.2 consumer-to-consumer 금지 패턴 정본
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — §4.2 consumer-to-consumer 금지 패턴 정본

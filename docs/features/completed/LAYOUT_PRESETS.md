@@ -2,7 +2,7 @@
 
 **Status**: ✅ Complete
 **완료일**: 2025-11-26
-**관련 계획 문서**: [LAYOUT_SLOT_SYSTEM_PLAN_V2.md](../LAYOUT_SLOT_SYSTEM_PLAN_V2.md)
+**관련 계획 문서**: [LAYOUT_SLOT_SYSTEM_PLAN_V2.md](LAYOUT_SLOTS.md)
 
 ---
 
@@ -323,7 +323,7 @@ slotContent = pageElements
 
 ## 향후 개선 계획
 
-> **상세 계획**: [PLANNED_FEATURES.md](../PLANNED_FEATURES.md#-layout-preset-개선-계획)
+> **상세 계획**: [PLANNED_FEATURES.md](../../reference/status/PLANNED.md#-layout-preset-개선-계획)
 
 | 기능 | 우선순위 | 설명 |
 |------|----------|------|
@@ -335,6 +335,6 @@ slotContent = pageElements
 
 ## 관련 문서
 
-- [LAYOUT_SLOT_SYSTEM_PLAN_V2.md](../LAYOUT_SLOT_SYSTEM_PLAN_V2.md) - 전체 Layout/Slot 시스템 계획
-- [PLANNED_FEATURES.md](../PLANNED_FEATURES.md) - 계획 중인 기능들
-- [PANEL_SYSTEM.md](../PANEL_SYSTEM.md) - 패널 시스템 아키텍처
+- [LAYOUT_SLOT_SYSTEM_PLAN_V2.md](LAYOUT_SLOTS.md) - 전체 Layout/Slot 시스템 계획
+- [PLANNED_FEATURES.md](../../reference/status/PLANNED.md) - 계획 중인 기능들
+- [PANEL_SYSTEM.md](../../reference/components/PANEL_SYSTEM.md) - 패널 시스템 아키텍처

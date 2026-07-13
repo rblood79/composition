@@ -14,7 +14,7 @@ composition Team
 
 ## Related ADRs
 
-- [ADR-036](completed/036-spec-first-single-source.md): Spec-First Single Source (CSS 자동 생성)
+- [ADR-036](036-spec-first-single-source.md): Spec-First Single Source (CSS 자동 생성)
 - [ADR-045](045-s2-property-editor-alignment.md): 기존 계약과 Property Editor surface 정렬
 - [ADR-046](046-s2-contract-expansion-form-colorfield-tabs.md): 자동 생성 전 계약 확정
 - [ADR-048](048-declarative-props-propagation.md): S2 Context 기반 선언적 Props Propagation — ChildSyncField를 PropagationSpec으로 대체(supersede). ChildSyncField는 미구현 상태에서 직행 전환
@@ -1571,4 +1571,4 @@ properties: {
 - `apps/builder/src/builder/components/property/` — PropertyInput/Select/Switch/SizeToggle
 - `packages/specs/src/types/spec.types.ts` — ComponentSpec 타입 정의
 - `packages/shared/src/components/metadata.ts` — 컴포넌트 메타데이터
-- [ADR-036](completed/036-spec-first-single-source.md) — Spec-First Single Source (CSS 자동 생성)
+- [ADR-036](036-spec-first-single-source.md) — Spec-First Single Source (CSS 자동 생성)

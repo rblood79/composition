@@ -1,6 +1,6 @@
 # ADR-060: Form Control Indicator 스키마 확장 — 매직 테이블 해체
 
-> **SSOT domain**: D3 (시각 스타일). Checkbox/Radio/Switch/Slider의 indicator 수치를 `spec.sizes.*.indicator`로 SSOT 단일화. D3 내부 정리. 정본: [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md), charter: [ADR-063](../063-ssot-chain-charter.md).
+> **SSOT domain**: D3 (시각 스타일). Checkbox/Radio/Switch/Slider의 indicator 수치를 `spec.sizes.*.indicator`로 SSOT 단일화. D3 내부 정리. 정본: [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md), charter: [ADR-063](063-ssot-chain-charter.md).
 
 ## Status
 
@@ -175,7 +175,7 @@ Form control 컴포넌트는 "클릭 영역(container)"과 "시각적 지시자(
 - **Phase 4** — **Slider + SliderTrack + SliderThumb 전환** — `SLIDER_DIMENSIONS` 해체 + 3개 하위 spec의 독립 참조 해제
 - **Phase 5** — **index.ts export 4개 제거 + 매직 테이블 상수 완전 삭제** + 잔존 import grep 0건 확인
 
-> 구현 상세: [060-form-control-indicator-breakdown.md](../design/060-form-control-indicator-breakdown.md)
+> 구현 상세: [060-form-control-indicator-breakdown.md](../design/completed/060-form-control-indicator-breakdown.md)
 
 ## Gates
 

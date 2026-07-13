@@ -1,6 +1,6 @@
 # ADR-086 Breakdown — implicitStyles size Record 해체 + Breadcrumb child layout SSOT 복귀
 
-> ADR: [086-implicitstyles-size-record-dissolution-and-breadcrumb-child.md](../adr/completed/086-implicitstyles-size-record-dissolution-and-breadcrumb-child.md)
+> ADR: [086-implicitstyles-size-record-dissolution-and-breadcrumb-child.md](../completed/086-implicitstyles-size-record-dissolution-and-breadcrumb-child.md)
 
 ## Phase 구성
 

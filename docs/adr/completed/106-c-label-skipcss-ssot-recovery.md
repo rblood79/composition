@@ -304,11 +304,11 @@ Label CSS의 핵심 font-size 전달 메커니즘은 Label 자신이 emit하는 
 
 ## 참조
 
-- [ADR-059](completed/059-composite-field-skip-css-dismantle.md) — Composite Field CSS SSOT 확립, Tier 3 예외 확정
+- [ADR-059](059-composite-field-skip-css-dismantle.md) — Composite Field CSS SSOT 확립, Tier 3 예외 확정
 - [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 D3 금지 패턴 3번 정본
-- [ADR-083](083-spec-first-lifting.md) — Label archetype 처리 + LABEL_SIZE_STYLE 패턴 도입
+- [ADR-083](083-archetype-base-styles-lifting.md) — Label archetype 처리 + LABEL_SIZE_STYLE 패턴 도입
 - [ADR-106](106-skipcssgeneration-audit-charter.md) — skipCSSGeneration 감사 Charter G3 Label 슬롯 정의
 - [ADR-106-a](106-a-color-family-skipcss-dismantle.md) — G2 정당화 선례 (G3 → G2 재판정 패턴)
 - [ADR-106-b](106-b-taggroup-css-skipcss-justification.md) — G2 정당화 선례 (@sync 주석 교체 패턴)
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — D3 domain §6 금지 패턴 3번, §7 허용 패턴
-- [canvas-rendering.md](../../.claude/rules/canvas-rendering.md) — §4 Spec-CSS 경계
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — D3 domain §6 금지 패턴 3번, §7 허용 패턴
+- [canvas-rendering.md](../../../.claude/rules/canvas-rendering.md) — §4 Spec-CSS 경계

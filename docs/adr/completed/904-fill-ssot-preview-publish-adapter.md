@@ -43,7 +43,7 @@ xstudio 시절의 저장 포맷은 DOM+CSS 편집 흐름을 중심으로 설계�
 - Pencil 포맷 유사성은 확보하되, composition 내부의 ADR-063 D1/D2/D3 경계를 침범하지 않는다.
 - Preview/Publish DOM 경로는 CSS 기반 소비를 당분간 허용한다.
 - 대규모 저장 스키마 재작성보다 adapter-first 전략을 우선한다.
-- **CSSGenerator 경로와의 관계**: Fill↔CSS 파생은 CSSGenerator auto-gen 범위 **밖** (Inspector 액션 내부 `fillsToCssBackground()` 수동 동기화). [ADR-036](036-spec-first-single-source.md)/[ADR-059](059-skip-css-generation-dismantlement.md) 의 Generator auto-gen 대상은 `spec.render.shapes` 기반 **정적 속성** (size/spacing/border tokens) 이므로, 런타임 **동적 인스턴스 값**인 `fills` 와 직교한다. Generator 자식 selector/variant emit 확장은 본 ADR 범위에 포함되지 않는다.
+- **CSSGenerator 경로와의 관계**: Fill↔CSS 파생은 CSSGenerator auto-gen 범위 **밖** (Inspector 액션 내부 `fillsToCssBackground()` 수동 동기화). [ADR-036](036-spec-first-single-source.md)/[ADR-059](059-composite-field-skip-css-dismantle.md) 의 Generator auto-gen 대상은 `spec.render.shapes` 기반 **정적 속성** (size/spacing/border tokens) 이므로, 런타임 **동적 인스턴스 값**인 `fills` 와 직교한다. Generator 자식 selector/variant emit 확장은 본 ADR 범위에 포함되지 않는다.
 
 ## Alternatives Considered
 

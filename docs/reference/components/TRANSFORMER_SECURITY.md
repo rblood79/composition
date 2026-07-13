@@ -811,9 +811,9 @@ const result = await executeTransformer(transformerId, inputData);
 
 ### Related Documentation
 
-- [CLAUDE.md](../CLAUDE.md) - Project guidelines (Dataset Component section)
-- [PLANNED_FEATURES.md](./PLANNED_FEATURES.md) - Dataset Component details
-- [WEB_BUILDER_DATA_ARCHITECTURE_ANALYSIS.md](./WEB_BUILDER_DATA_ARCHITECTURE_ANALYSIS.md) - Data architecture
+- [CLAUDE.md](../../../CLAUDE.md) - Project guidelines (Dataset Component section)
+- [PLANNED_FEATURES.md](../status/PLANNED.md) - Dataset Component details
+- [WEB_BUILDER_DATA_ARCHITECTURE_ANALYSIS.md](../../explanation/architecture/DATA_ARCHITECTURE.md) - Data architecture
 
 ### External Resources
 

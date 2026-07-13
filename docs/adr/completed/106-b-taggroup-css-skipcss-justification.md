@@ -301,11 +301,11 @@ TagGroup.css 는 307줄로 아래 구조를 포함한다:
 
 ## 참조
 
-- [ADR-059](completed/059-composite-field-skip-css-dismantle.md) — Tier 3 예외 표 정본 (B4 실행 결과 TagGroup 등재)
+- [ADR-059](059-composite-field-skip-css-dismantle.md) — Tier 3 예외 표 정본 (B4 실행 결과 TagGroup 등재)
 - [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 D3 금지 패턴 3번 정본
-- [ADR-093](093-taglist-layout-primitive-ssot.md) — TagList spec skipCSSGeneration:true G1 정당화
-- [ADR-097](097-taggroup-items-ssot.md) — TagGroup items SSOT
+- [ADR-093](093-synthetic-merge-containers-spec.md) — TagList spec skipCSSGeneration:true G1 정당화
+- [ADR-097](097-taggroup-items-ssot-hybrid.md) — TagGroup items SSOT
 - [ADR-105](105-sync-annotation-audit-charter.md) — @sync 주석 감사 Charter (F4 TagGroup.css 2건, F2 Tag.spec.ts 2건)
 - [ADR-106](106-skipcssgeneration-audit-charter.md) — skipCSSGeneration 감사 Charter G2 슬롯 정의
 - [ADR-106-a](106-a-color-family-skipcss-dismantle.md) — G2 정당화 선례 (Color family 4건)
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — D3 domain §6 금지 패턴 3번, §7 허용 패턴
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — D3 domain §6 금지 패턴 3번, §7 허용 패턴

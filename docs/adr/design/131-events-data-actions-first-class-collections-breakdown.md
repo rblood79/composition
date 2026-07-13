@@ -1,6 +1,6 @@
 # ADR-131 구현 상세 — events/data/actions 일급 컴포넌트 루트 컬렉션
 
-본 문서는 [ADR-131](../131-events-data-actions-first-class-collections.md) 의 phase plan / inventory / gate 측정 방법 / framing 4 질문 lock-in 을 정의한다.
+본 문서는 [ADR-131](../completed/131-events-data-actions-first-class-collections.md) 의 phase plan / inventory / gate 측정 방법 / framing 4 질문 lock-in 을 정의한다.
 
 ## 1. framing 4 질문 lock-in
 

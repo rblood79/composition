@@ -26,7 +26,7 @@ Proposed — 2026-04-20 (**Revision 4** — Round 5 main 재검증 HIGH 086-R5-1
 
 ### D3 domain 판정 (ADR-063 SSOT 체인)
 
-본 ADR 은 [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) **D3 (시각 스타일) symmetric consumer 의 대칭 복구**. ADR-084 scope 외로 분리된 "size-based padding/gap" 과 "Breadcrumb child 주입" 2 주제를 통합 해체. 공통 기반 = "implicitStyles 분기 내 size-indexed 로직의 Spec SSOT 복귀".
+본 ADR 은 [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) **D3 (시각 스타일) symmetric consumer 의 대칭 복구**. ADR-084 scope 외로 분리된 "size-based padding/gap" 과 "Breadcrumb child 주입" 2 주제를 통합 해체. 공통 기반 = "implicitStyles 분기 내 size-indexed 로직의 Spec SSOT 복귀".
 
 ### 현재 비대칭 구조
 

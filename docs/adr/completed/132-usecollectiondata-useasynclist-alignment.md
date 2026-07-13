@@ -32,7 +32,7 @@ Implemented — 2026-05-13
 
 ### 3-domain 분류 (ADR-063 정합)
 
-본 ADR 은 [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) 의 D1 (DOM/접근성) / D2 (Props/API) / D3 (시각 스타일) 중 **어느 직접 영역에도 속하지 않는 data flow architecture layer** 결정이다. 단 D1 / D2 와 간접 연계 — RAC/RSC collection 컴포넌트 (Table / ListBox / GridList / ComboBox / Select / Tree) 의 `items` prop 흐름이 D1 (RAC 절대 권위) 의 정통 RSP `useAsyncList` 패턴을 따라야 한다는 제약.
+본 ADR 은 [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) 의 D1 (DOM/접근성) / D2 (Props/API) / D3 (시각 스타일) 중 **어느 직접 영역에도 속하지 않는 data flow architecture layer** 결정이다. 단 D1 / D2 와 간접 연계 — RAC/RSC collection 컴포넌트 (Table / ListBox / GridList / ComboBox / Select / Tree) 의 `items` prop 흐름이 D1 (RAC 절대 권위) 의 정통 RSP `useAsyncList` 패턴을 따라야 한다는 제약.
 
 ### 문제 framing
 

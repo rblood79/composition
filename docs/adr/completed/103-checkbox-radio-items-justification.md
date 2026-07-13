@@ -71,7 +71,7 @@ RadioGroup (element)
         └── Radio (element)
 ```
 
-### D1/D2/D3 domain 판정 ([ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### D1/D2/D3 domain 판정 ([ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 - **D3 (시각 스타일)**: CheckboxItems/RadioItems 는 `containerStyles` 에서 `display:flex` / `flexDirection:column` layout primitive 를 정의하고, `sizes.sm/md/lg` 에서 `gap:8/12/16` 을 D3 Spec SSOT 로 관리 — **D3 시각 스타일 domain**. Spec 관할.
 - **D2 (Props/API)**: RAC 공식 API 에 CheckboxItems/RadioItems 미존재 → D2 정합 대상 아님. composition 고유 element. ADR-098 Charter Decision "composition 고유 네이밍은 Compositional Architecture 정당화 가능 시 유지 허용" 에 해당.
@@ -234,4 +234,4 @@ D3 시각 SSOT 관점에서 CheckboxItems/RadioItems 는 이미 `containerStyles
 - [ADR-102](102-select-icon-justification.md) — 098-d 슬롯 (SelectIcon 정당화 선례, 동일 패턴 적용)
 - [ADR-099](099-collection-section-expansion.md) — 098-c 슬롯 (Section 계열 확장, 병행 Implemented)
 - [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 D1/D2/D3 domain 원칙
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — 3-domain 정본
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — 3-domain 정본

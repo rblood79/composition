@@ -690,7 +690,7 @@ src/builder/styles/
 
 ### Documentation
 
-- [CSS_ARCHITECTURE.md](CSS_ARCHITECTURE.md)
+- [CSS_ARCHITECTURE.md](../../features/completed/CSS_ARCHITECTURE.md)
 
 ---
 
@@ -730,7 +730,7 @@ Dynamic Material Design 3 Color Roles visualization in Theme Studio.
 
 ### Documentation
 
-- [M3_PALETTE_MAPPING.md](M3_PALETTE_MAPPING.md)
+- M3_PALETTE_MAPPING.md
 
 ---
 
@@ -786,7 +786,7 @@ src/builder/panels/
 
 ### Documentation
 
-- [PANEL_SYSTEM.md](PANEL_SYSTEM.md)
+- [PANEL_SYSTEM.md](../components/PANEL_SYSTEM.md)
 
 ---
 
@@ -841,8 +841,8 @@ src/builder/panels/properties/editors/
 
 ### Documentation
 
-- [LAYOUT_PRESET_SYSTEM.md](features/LAYOUT_PRESET_SYSTEM.md)
-- [LAYOUT_SLOT_SYSTEM_PLAN_V2.md](LAYOUT_SLOT_SYSTEM_PLAN_V2.md)
+- [LAYOUT_PRESET_SYSTEM.md](../../features/completed/LAYOUT_PRESETS.md)
+- [LAYOUT_SLOT_SYSTEM_PLAN_V2.md](../../features/completed/LAYOUT_SLOTS.md)
 
 ---
 
@@ -897,7 +897,7 @@ src/preview/
 
 ### Documentation
 
-- [PREVIEW_RUNTIME_ISOLATION.md](features/PREVIEW_RUNTIME_ISOLATION.md)
+- [PREVIEW_RUNTIME_ISOLATION.md](../../features/completed/CANVAS_ISOLATION.md)
 
 ---
 
@@ -974,7 +974,7 @@ const params = useRouteParams();
 
 ### Documentation
 
-- [DATA_PANEL_SYSTEM.md](features/DATA_PANEL_SYSTEM.md)
+- [DATA_PANEL_SYSTEM.md](../../features/completed/DATA_PANEL.md)
 
 ---
 
@@ -1065,7 +1065,7 @@ renderTree(pages, getLabel, onClick, onDelete, null, 0);
 
 ### Documentation
 
-- [NESTED_ROUTES_SLUG_SYSTEM.md](features/NESTED_ROUTES_SLUG_SYSTEM.md)
+- [NESTED_ROUTES_SLUG_SYSTEM.md](../../features/completed/NESTED_ROUTES.md)
 
 ---
 
@@ -1177,9 +1177,9 @@ packages/
 
 ### Documentation
 
-- [docs/performance/README.md](performance/README.md) - 개요 및 완료 현황
-- [docs/performance/task.md](performance/task.md) - 상세 작업 체크리스트
-- [docs/performance/10-webgl-builder-architecture.md](performance/10-webgl-builder-architecture.md) - WebGL 아키텍처
+- [docs/performance/README.md](../../README.md) - 개요 및 완료 현황
+- docs/performance/task.md - 상세 작업 체크리스트
+- docs/performance/10-webgl-builder-architecture.md - WebGL 아키텍처
 
 ---
 
@@ -1216,4 +1216,4 @@ packages/
 ---
 
 **Last Updated**: 2025-12-11
-**Next Steps**: See [PLANNED_FEATURES.md](PLANNED_FEATURES.md) for upcoming implementations
+**Next Steps**: See [PLANNED_FEATURES.md](PLANNED.md) for upcoming implementations

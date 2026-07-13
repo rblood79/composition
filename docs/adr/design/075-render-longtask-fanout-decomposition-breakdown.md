@@ -1,6 +1,6 @@
 # ADR-075 구현 상세: Render longtask fan-out 해체
 
-> 본 문서는 [ADR-075](../adr/completed/075-render-longtask-fanout-decomposition.md) 의 Phase 구성, 파일 변경 범위, Gate 측정 방법, 롤백 전략을 상세화한다. ADR 본문은 "무엇을/왜" 에 한정하고 "어떻게" 는 이 문서에 둔다.
+> 본 문서는 [ADR-075](../completed/075-render-longtask-fanout-decomposition.md) 의 Phase 구성, 파일 변경 범위, Gate 측정 방법, 롤백 전략을 상세화한다. ADR 본문은 "무엇을/왜" 에 한정하고 "어떻게" 는 이 문서에 둔다.
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-이 문서는 [ADR-043](../adr/043-selection-drag-alignment.md)을 실행 가능한 작업 단위로 분해한 상세 플랜이다.
+이 문서는 [ADR-043](../completed/043-selection-drag-alignment.md)을 실행 가능한 작업 단위로 분해한 상세 플랜이다.
 이 문서가 실제 구현 기준 문서이며, ADR은 결정과 제약만 유지한다.
 
 목표는 다음과 같다.

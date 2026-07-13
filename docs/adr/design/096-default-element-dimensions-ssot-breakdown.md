@@ -1,6 +1,6 @@
 # ADR-096 구현 상세 — Default Element Dimensions SSOT
 
-> ADR-096 본문: [096-default-element-dimensions-ssot.md](../adr/completed/096-default-element-dimensions-ssot.md)
+> ADR-096 본문: [096-default-element-dimensions-ssot.md](../completed/096-default-element-dimensions-ssot.md)
 >
 > 본 문서는 ADR-096 Decision (하이브리드 대안 A) 의 실행 상세를 담는다. ADR 본문의 "구현 상세" 링크 대상.
 

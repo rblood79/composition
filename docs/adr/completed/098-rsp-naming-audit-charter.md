@@ -66,7 +66,7 @@ ADR-092 (Implemented) 은 Card 계열 SSOT 정리 중 **"CardContent 등 RSP 공
 
 본 ADR 은 composition 117 spec 의 **RSP/RAC 공식 API 네이밍 차이를 체계적으로 감사** 하여 리네이밍 대상을 식별하고, 각 리네이밍을 후속 개별 ADR 로 분할 처리할 기반을 마련한다. 본 ADR 자체는 리네이밍을 수행하지 않으며 감사 + 우선순위 확정 + 분할 계획만 담당.
 
-### D3 domain 판정 ([ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### D3 domain 판정 ([ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 **D2 (Props/API) 전용 작업**. composition 컴포넌트 네이밍은 D2 영역 — RSP 참조 기반으로 custom 확장 허용하되 공식 API 네이밍과의 불필요한 divergence 는 제거 대상. D3 (시각 스타일) / D1 (DOM/접근성) 침범 없음.
 
@@ -209,9 +209,9 @@ react-aria.adobe.com 공식 docs 기준 수집. composition 117 spec 과 대조.
 
 ## 참조
 
-- [ADR-092](092-synthetic-merge-containers-spec.md) — CardContent 리네이밍 debt 선행 기록
+- [ADR-092](092-card-slot-spec-modeling.md) — CardContent 리네이밍 debt 선행 기록
 - [ADR-097](097-taggroup-items-ssot-hybrid.md) — items SSOT 체인 5번째 컬렉션 완결, 본 ADR 직전 Implemented
-- [ADR-066](completed/066-tabs-items-ssot.md) / [ADR-068](completed/068-menu-items-ssot-menuitem-spec.md) / [ADR-073](completed/073-select-combobox-items-ssot.md) / [ADR-076](076-listbox-items-ssot-hybrid.md) — items SSOT 체인 1-4 번째 (분할 ADR 패턴 선례)
+- [ADR-066](066-tabs-items-ssot-migration.md) / [ADR-068](068-menu-items-ssot-and-menuitem-spec.md) / [ADR-073](073-select-combobox-items-ssot.md) / [ADR-076](076-listbox-items-ssot-hybrid.md) — items SSOT 체인 1-4 번째 (분할 ADR 패턴 선례)
 - [ADR-063](063-ssot-chain-charter.md) — SSOT 체인 D2 domain 원칙 (RSP 참조 기준)
-- [ADR-022](completed/022-css-token-s2-renaming.md) — S2 토큰 리네이밍 선례 (D3 영역)
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) — D2 Props/API domain 정본
+- [ADR-022](022-s2-color-token-migration.md) — S2 토큰 리네이밍 선례 (D3 영역)
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) — D2 Props/API domain 정본

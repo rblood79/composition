@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [문서 깨진 링크 475건 일괄 정리 — 경로 drift 복구 + 죽은 링크 해제] - 2026-07-13
+
+### Documentation
+
+- **`docs/` + `.claude/` 전역에 깨진 상대 링크 475건 누적**:
+  - **Why**: 근본 원인은 파일 이동 후 인바운드 링크 미갱신. 최대 단일 원인은 `23ba7f814` "Reorganize docs directory based on Diátaxis framework"(2025-12-27) — **108 rename / 0 delete** 인데 이를 가리키던 링크를 하나도 갱신하지 않았다. 여기에 ADR `completed/` 이관, ADR 파일명 리네임(slug 변경), 삭제된 소스 파일 인용이 겹쳐 누적됐다.
+  - 조사 결과 "삭제되어 복구 불가"로 보이던 링크 대부분이 실제로는 **rename 이었음** — git rename 이력을 SSOT 로 삼아 정확한 현행 경로를 복원했다(추측/유사도 매칭 아님).
+- **439건 재연결** — 우선순위 기반 해석:
+  1. git rename 이력 체인 추적(`git log --diff-filter=R -M`) → 정확한 현행 경로 (118건)
+  2. 저장소 내 basename 유일 매칭 (201건)
+  3. basename 다중 매칭 → 선호 규칙(`.claude` > `.agents`, 같은 트리, 최단 경로) (88건)
+  4. ADR 번호 기반 (32건) — **링크 레이블의 `[ADR-NNN]` 번호가 authoritative**. 파일명 slug 만 stale 한 경우(`076-listbox-items-ssot.md` → `-hybrid.md`, `022-s2-color-token.md` → `-migration.md`) 같은 번호의 실제 파일로 연결. 파일명 유사도 매칭은 오연결 위험이 있어 배제 — 예: `[ADR-106](106-skip-css-generation-debt-resolution.md)` 는 레이블·설명("charter")상 `106-skipcssgeneration-audit-charter.md` 가 정답이나 유사도로는 `106-b-*` 가 선택됨.
+- **36건 링크 해제(텍스트 보존)** — 대상 파일이 실제로 존재하지 않는 경우:
+  - **Why**: 완료 ADR·CHANGELOG 는 작성 시점의 사실 기록이다. ADR-908 이 `ReactRenderer.ts` 를, ADR-906 이 `GridList.spec.ts` 를 인용한 것은 정확한 기록이고, 그 파일들은 이후 ADR-142/912 가 삭제했다. CHANGELOG 가 당시 추가된 테스트 파일을 인용한 것도 마찬가지. 링크만 제거하고 파일명 텍스트는 남겨 기록을 보존한다 — 존재하지 않는 파일을 "유사한 현행 파일"로 재연결하면 기록이 왜곡된다.
+  - 해당: 삭제된 소스 파일 인용(903/905/906/908), Diátaxis 재편 이전에 삭제된 문서(`PLANNED_FEATURES.md`, `performance/*` 등), CHANGELOG 의 삭제된 테스트 파일 인용, 저장소 파일이 아닌 malformed 경로(`~/.claude/…/memory/…`).
+- **의도적 미수정 2건** — 링크 형태이나 실제 링크가 아닌 **문서 예시**:
+  - `.claude/rules/changelog.md` 의 CHANGELOG 헤더 작성 예시, `docs/adr/design/115-*-breakdown.md` 의 bash 블록 내 "ADR 본문에 붙여넣을 텍스트" 예시. 링크 검사기는 깨진 링크로 보고하지만 경로를 고치면 예시가 오히려 틀어진다.
+- 검증: 재스캔 결과 잔여 깨진 링크 = 위 의도적 2건뿐. diff 453 add / 452 delete (링크 타깃만 치환, 본문 텍스트 무변경). 소스 코드 변경 0.
+
 ## [docs/adr 문서 정리 — 완료 ADR 5건 completed/ 이관 + README 상태 표 재정합] - 2026-07-13
 
 ### Documentation
@@ -3709,18 +3728,18 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
 ### Architecture
 
 - **ADR-124 Phase 3 — `migrateV1EntryToV2` adapter (G3 PASS)**:
-  - 신규 file [`historyEntryMigration.ts`](apps/builder/src/builder/stores/history/historyEntryMigration.ts) — v1 IndexedDB entry 의 legacy snapshot field (`element` / `prevElement` / `props` / `prevProps` / `childElements` / `elements` / `prevElements` / `batchUpdates`) 를 canonical event sequence 로 변환.
+  - 신규 file [`historyEntryMigration.ts`](../apps/builder/src/builder/stores/history/historyEntryMigration.ts) — v1 IndexedDB entry 의 legacy snapshot field (`element` / `prevElement` / `props` / `prevProps` / `childElements` / `elements` / `prevElements` / `batchUpdates`) 를 canonical event sequence 로 변환.
   - 변환 정책: identity preserve (canonicalEvents 보유) → diff 기반 (update/batch) → legacy snapshot fallback (prevProps / batchUpdates) → graceful degradation (`canonicalEvents: []` for add/remove structural snapshots).
   - `historyIndexedDB.getEntriesByPage` 통합 — load 시점에 `migrateV1EntriesToV2(entries)` 일괄 변환. Phase 5 v1→v2 onupgradeneeded migration 의 prerequisite adapter.
-  - 신규 unit test [`historyEntryMigration.test.ts`](apps/builder/src/builder/stores/history/__tests__/historyEntryMigration.test.ts) 13 시나리오 PASS — extractPropsFromDiff (3) + migrateV1EntryToV2 (9) + 배치 변환 (1).
+  - 신규 unit test [`historyEntryMigration.test.ts`](../apps/builder/src/builder/stores/history/__tests__/historyEntryMigration.test.ts) 13 시나리오 PASS — extractPropsFromDiff (3) + migrateV1EntryToV2 (9) + 배치 변환 (1).
 - **ADR-123 Phase 3 — Cloud write path canonicalization (G3 PASS)**:
   - `syncProjectToCloud` 재작성: `documentsApi.upsertDocument(projectId, localDocument)` primary call → 실패 시 legacy fallback (warn but proceed). legacy `pages`/`elements` upload 는 migration window 호환성 위해 보존 (Phase 4 boundary marker 부착).
   - `dashboard/index.tsx` cloud project 생성 분기 통합 — `'cloud'` / `'both'` 분기를 `documentsApi.upsertDocument(newProject.id, initialDocument)` 단일 path 로 통합 + legacy `pagesApi.createPage` / `elementsApi.createElement` seed 는 Phase 4 quarantine 후 제거 예정.
   - `services/api/index.ts` 에 `documentsApi` re-export 추가.
-  - 신규 static guard test [`projectSync.upload.static.test.ts`](apps/builder/src/utils/projectSync.upload.static.test.ts) 3 시나리오 PASS + [`dashboardCloudSeed.static.test.ts`](apps/builder/src/dashboard/__tests__/dashboardCloudSeed.static.test.ts) 5 시나리오 PASS.
+  - 신규 static guard test `projectSync.upload.static.test.ts` 3 시나리오 PASS + `dashboardCloudSeed.static.test.ts` 5 시나리오 PASS.
 - **ADR-123 Phase 4 — Legacy boundary quarantine (G4 PASS)**:
   - canonicalMutations thin wrapper 3개 (`createElementCanonicalPrimary` / `updateElementCanonicalPrimary` / `createMultipleElementsCanonicalPrimary`) 에 ADR-123 Phase 4 boundary contract JSDoc 강화 — 허용 caller 명시 (dbPersistence / useIframeMessenger / elements.ts).
-  - 신규 grep gate [`cloudBoundary.static.test.ts`](apps/builder/src/adapters/canonical/__tests__/cloudBoundary.static.test.ts) 5 시나리오 PASS — node fs recursive readdir + readFile 정규식 매칭으로 외부 도구 (`rg`) 의존 제거 (memory: feedback-vitest-no-tests-misleading.md). legacyElementsApiService / PagesApiService / canonicalMutations thin wrapper 3개 / legacyToCanonical 의 production hot path import 가 boundary allowlist 외에 0건임을 강제.
+  - 신규 grep gate `cloudBoundary.static.test.ts` 5 시나리오 PASS — node fs recursive readdir + readFile 정규식 매칭으로 외부 도구 (`rg`) 의존 제거 (memory: feedback-vitest-no-tests-misleading.md). legacyElementsApiService / PagesApiService / canonicalMutations thin wrapper 3개 / legacyToCanonical 의 production hot path import 가 boundary allowlist 외에 0건임을 강제.
   - **boundary allowlist (Phase 4 시점)**:
     - `legacyElementsApiService`: `services/api/index.ts` re-export / `utils/projectSync.ts` cloud sync / `canonicalMutations.ts` wrapper / `dbPersistence.ts` factory persist / `dashboard/index.tsx` cloud seed
     - `PagesApiService`: 동일 + `usePageManager.ts` type-only import
@@ -3746,7 +3765,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
   - `addDiffEntry`: type === "update" 시 `buildCanonicalUpdateEvent(prevElement.id, prevElement.props, nextElement.props)` 결과를 `data.canonicalEvents` 에 부착. 기존 add/remove 분기는 유지.
   - `addBatchDiffEntry`: 각 diff 에 대해 `buildCanonicalUpdateEvent` 생성하여 `canonicalEvents` 배열 누적, entry data 에 `{ diffs, canonicalEvents }` 동시 저장.
   - 위치: `apps/builder/src/builder/stores/history.ts:14-19,322-417,424-497`
-  - 신규 static guard test [`historyEntryCanonicalEvents.static.test.ts`](apps/builder/src/builder/stores/history/__tests__/historyEntryCanonicalEvents.static.test.ts) 6 시나리오 PASS — import / addDiffEntry update 분기 / id+props 전달 / addBatchDiffEntry push 패턴 / data shape / helper export.
+  - 신규 static guard test [`historyEntryCanonicalEvents.static.test.ts`](../apps/builder/src/builder/stores/history/__tests__/historyEntryCanonicalEvents.static.test.ts) 6 시나리오 PASS — import / addDiffEntry update 분기 / id+props 전달 / addBatchDiffEntry push 패턴 / data shape / helper export.
   - **historyActions.ts 의 case "update"/"batch" legacy fallback 은 유지** — `applyCanonicalHistoryEventsToActiveDocument` 가 canonical events 를 우선 적용 (early-return), legacy fallback 은 v1 IndexedDB entry 호환을 위해 Phase 5 v2 migration 후 제거 예정.
 
 ### Process
@@ -3762,7 +3781,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
   - `downloadProjectFromCloud` 재작성: `documentsApi.getDocumentByProjectId(projectId)` primary 시도 → row 존재 시 `db.documents.put` + early return (legacy fallback 진입 0).
   - row 없음 (migration window 또는 fresh project): legacy `pages` + `elements` + `legacyToCanonical()` fallback 유지 + 변환 결과를 `documentsApi.upsertDocument` 로 best-effort seed (실패 non-fatal — RLS / migration 미적용 환경 보호).
   - 위치: `apps/builder/src/utils/projectSync.ts`
-  - 신규 static guard test [`projectSync.documentsApi.static.test.ts`](apps/builder/src/utils/projectSync.documentsApi.static.test.ts) 6 시나리오 PASS — documentsApi import / primary path 우선 / early return / seed / legacy fallback 보존.
+  - 신규 static guard test `projectSync.documentsApi.static.test.ts` 6 시나리오 PASS — documentsApi import / primary path 우선 / early return / seed / legacy fallback 보존.
 
 ### Process
 
@@ -3778,7 +3797,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
   - `applyCanonicalHistoryEventsToDocument` 의 reduce loop 에 update case 추가 — DFS 로 nodeId 일치 노드 props 교체 (immutable, parent chain copy).
   - `buildCanonicalUpdateEvent(nodeId, prevProps, nextProps)` helper export — props 객체 spread clone (aliasing 방지).
   - `getCanonicalHistoryEventIds` 의 update event 처리 추가 — 양 방향 모두 nodeId 를 upsertIds 에 추가 (mutation 만, structural change 없음).
-  - 신규 unit test [`canonicalUpdateEvent.test.ts`](apps/builder/src/builder/stores/history/__tests__/canonicalUpdateEvent.test.ts) 6 시나리오 PASS — round-trip / deep round-trip / missing nodeId / clone / event IDs / multiple sequence.
+  - 신규 unit test [`canonicalUpdateEvent.test.ts`](../apps/builder/src/builder/stores/history/__tests__/canonicalUpdateEvent.test.ts) 6 시나리오 PASS — round-trip / deep round-trip / missing nodeId / clone / event IDs / multiple sequence.
   - 위치: `apps/builder/src/builder/stores/history/canonicalHistoryEvents.ts` + `__tests__/canonicalUpdateEvent.test.ts`
 - **ADR-125 Phase 1 — Canonical scene model boundary 강화**:
   - `CanonicalSceneModel` interface 에 transition-derived-readonly contract JSDoc 명시 — `elements` 가 canonical-native traversal 결과의 `Element[]` projection / `elementsMap` `childrenByParent` 가 derived view 임을 명시 + Phase 2 에서 layout engine 이 canonical-native 입력으로 전환되면 derived view 사용 빈도 감소 명시.

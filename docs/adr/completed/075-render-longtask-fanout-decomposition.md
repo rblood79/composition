@@ -1,6 +1,6 @@
 # ADR-075: Render longtask fan-out 해체 — SkiaCanvas rAF / StoreRenderBridge subscriber 축소
 
-> **SSOT domain**: D3 (시각 스타일) 경계 불변. 본 ADR 은 **렌더 consumer 내부 subscription + rAF work 스케줄링 최적화**. Spec/Skia/CSS 3-domain 모델 무관. 정본: [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md). 직접 선례: [ADR-074](completed/074-canvas-input-pipeline-decomposition.md) (함수 본체 최적화 완료, 본 ADR 은 Addendum 2 에서 이관된 체감 경로), [ADR-069](completed/069-input-frame-violation-mitigation.md) (prod gate 방식), [ADR-067](067-style-panel-skia-native-read-path.md) (Zustand-native 세분화 선례).
+> **SSOT domain**: D3 (시각 스타일) 경계 불변. 본 ADR 은 **렌더 consumer 내부 subscription + rAF work 스케줄링 최적화**. Spec/Skia/CSS 3-domain 모델 무관. 정본: [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md). 직접 선례: [ADR-074](074-canvas-input-pipeline-decomposition.md) (함수 본체 최적화 완료, 본 ADR 은 Addendum 2 에서 이관된 체감 경로), [ADR-069](069-input-frame-violation-mitigation.md) (prod gate 방식), [ADR-067](067-style-panel-skia-native-read-path.md) (Zustand-native 세분화 선례).
 
 ## Status
 

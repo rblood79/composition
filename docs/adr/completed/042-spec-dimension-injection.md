@@ -40,9 +40,9 @@ composition Team
 
 ## Related ADRs
 
-- [ADR-036](completed/036-spec-first-single-source.md): Spec-First Single Source (CSS 자동 생성)
-- [ADR-008](completed/008-layout-engine.md): 캔버스 레이아웃 엔진 전환 (Taffy WASM)
-- [ADR-012](completed/012-rendering-layout-pipeline-hardening.md): 렌더링/레이아웃 파이프라인 하드닝
+- [ADR-036](036-spec-first-single-source.md): Spec-First Single Source (CSS 자동 생성)
+- [ADR-008](008-layout-engine.md): 캔버스 레이아웃 엔진 전환 (Taffy WASM)
+- [ADR-012](012-rendering-layout-pipeline-hardening.md): 렌더링/레이아웃 파이프라인 하드닝
 
 ---
 

@@ -28,7 +28,7 @@ composition의 Skia 렌더 파이프라인은 spec `render.shapes(props, size, s
 **Soft Constraints**:
 
 - Chrome MCP `Page.captureScreenshot`이 CanvasKit/WebGL 충돌로 timeout — 시각 회귀 검증은 Vitest 대칭으로 대체
-- SSOT 체인 정본([ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md)) D3(시각 스타일) 정리 작업이며, D1(DOM/RAC) / D2(Props/RSP) 경계 침범 금지
+- SSOT 체인 정본([ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md)) D3(시각 스타일) 정리 작업이며, D1(DOM/RAC) / D2(Props/RSP) 경계 침범 금지
 
 ## Alternatives Considered
 

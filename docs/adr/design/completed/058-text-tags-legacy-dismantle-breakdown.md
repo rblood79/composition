@@ -1,6 +1,6 @@
 # ADR-058 Breakdown — TEXT_TAGS 예외 경로 해체 구현 상세
 
-> 본 문서는 [ADR-058](../adr/058-text-tags-legacy-dismantle.md)의 구현 상세를 분리 관리한다.
+> 본 문서는 [ADR-058](../../completed/058-text-tags-legacy-dismantle.md)의 구현 상세를 분리 관리한다.
 > ADR 본문은 결정과 위험 평가, 고수준 Gate 테이블만 담고, 각 Phase의 파일 변경·작업 순서·검증 체크리스트·파일 인벤토리는 여기에 둔다.
 
 ## 목차

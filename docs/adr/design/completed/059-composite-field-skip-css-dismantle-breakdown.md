@@ -1,6 +1,6 @@
 # ADR-059 v2 Breakdown: Composite Field CSS SSOT 확립 — 대칭 파이프라인 복귀
 
-> 상위 ADR: [059-composite-field-skip-css-dismantle.md](../adr/059-composite-field-skip-css-dismantle.md) (v2, 2026-04-13)
+> 상위 ADR: [059-composite-field-skip-css-dismantle.md](../../completed/059-composite-field-skip-css-dismantle.md) (v2, 2026-04-13)
 >
 > **v1→v2 변경**: 2층 구조(generated + 수동 override) 기각, 수동 CSS 완전 삭제 + spec.states 확장 결정. byte diff Gate 폐기, `/cross-check` 대칭 검증으로 대체
 
@@ -270,7 +270,7 @@ TextField 패턴 적용. 각 컴포넌트별 sub-step:
 
 ## Phase 4 재설계 (v2.1 amendment — 2026-04-14)
 
-> **변경 이유**: 원 v2 Phase 4는 "skipCSS 해체만" 스코프. 실측 결과 잔존 38 컴포넌트 중 다수가 D2 부채(RSP 미규정 wrapper variant prop) 동반 → D3 해체 단독으로는 ADR-036 재승격 조건 불충족. Phase 4를 **D2+D3 통합 해체**로 재정의. 자세한 결정 근거는 [ADR-059 "Phase 4 재설계 (v2.1 amendment)"](../adr/059-composite-field-skip-css-dismantle.md#phase-4-재설계-v21-amendment--2026-04-14) 참조.
+> **변경 이유**: 원 v2 Phase 4는 "skipCSS 해체만" 스코프. 실측 결과 잔존 38 컴포넌트 중 다수가 D2 부채(RSP 미규정 wrapper variant prop) 동반 → D3 해체 단독으로는 ADR-036 재승격 조건 불충족. Phase 4를 **D2+D3 통합 해체**로 재정의. 자세한 결정 근거는 [ADR-059 "Phase 4 재설계 (v2.1 amendment)"](../../completed/059-composite-field-skip-css-dismantle.md#phase-4-재설계-v21-amendment--2026-04-14) 참조.
 >
 > **하단 "Phase 4 — 잔존 Composite ~48개" 섹션은 본 재설계에 의해 superseded**. 이력 추적 목적으로 원문 보존.
 

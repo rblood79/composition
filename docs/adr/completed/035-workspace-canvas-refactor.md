@@ -17,7 +17,7 @@ composition Team
 - [ADR-008](008-layout-engine.md): 캔버스 레이아웃 엔진 전환
 - [ADR-009](009-full-tree-wasm-layout.md): Figma-Class Rendering & Layout
 - [ADR-012](012-rendering-layout-pipeline-hardening.md): 렌더링/레이아웃 파이프라인 하드닝
-- [ADR-027](027-inline-text-editing.md): Canvas Inline Text Editing
+- [ADR-027](../027-inline-text-editing.md): Canvas Inline Text Editing
 
 ---
 

@@ -49,7 +49,7 @@ composition는 3개 렌더링 타겟(CSS/DOM Preview, Skia/WebGL Canvas, PixiJS 
 
 **Pretext 분석에서 도출된 인사이트**: Pretext(DOM-free 텍스트 측정 라이브러리)가 Canvas 2D `measureText()` + greedy line-breaking으로 CSS pixel-perfect 줄바꿈을 7,680 테스트 케이스에서 증명. Canvas 2D는 CSS Preview와 동일한 브라우저 네이티브 폰트 엔진을 사용.
 
-> 상세 분석: [PRETEXT_ANALYSIS.md](../explanation/research/PRETEXT_ANALYSIS.md)
+> 상세 분석: [PRETEXT_ANALYSIS.md](../../explanation/research/PRETEXT_ANALYSIS.md)
 
 ## Alternatives Considered
 

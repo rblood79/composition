@@ -93,8 +93,8 @@ inline (element.style.*) → computed (element.computedStyle.*) → synthetic (c
 - **A 기각**: 증상 완화로는 D3 대칭 원칙 복원 불가. CSS 문자열 흉내는 Skia-native 아키텍처의 근본 부채
 - **C 기각**: 종착점 없는 2중화는 유지보수 부담을 영구화. 이번 결정의 핵심은 "생태계 단일화"이며, 부분 유지는 이를 훼손
 
-> 구현 상세: [067-style-panel-skia-native-read-path-breakdown.md](../design/067-style-panel-skia-native-read-path-breakdown.md)
-> 원 설계 검토 기록: [docs/superpowers/specs/2026-04-15-style-panel-skia-native-read-path-design.md](../superpowers/specs/2026-04-15-style-panel-skia-native-read-path-design.md)
+> 구현 상세: [067-style-panel-skia-native-read-path-breakdown.md](../design/completed/067-style-panel-skia-native-read-path-breakdown.md)
+> 원 설계 검토 기록: [docs/superpowers/specs/2026-04-15-style-panel-skia-native-read-path-design.md](../../superpowers/specs/2026-04-15-style-panel-skia-native-read-path-design.md)
 
 ## Gates
 

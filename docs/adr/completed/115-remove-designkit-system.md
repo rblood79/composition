@@ -16,13 +16,13 @@ Implemented — 2026-04-27 (PR #263 머지)
 
 ## Context
 
-### Domain (SSOT 체인 — [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### Domain (SSOT 체인 — [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 - **해당 domain**: **D2 (Props/API) + D3 (시각 스타일) 의 사용자 향 기능 단일화** — DesignKit 패널이 D3 의 별도 SSOT 분기를 시도했으나 ADR-021 Theme System 과 D3 권위 중복.
 
 ### 배경
 
-[ADR-020](completed/020-design-kit-improvement.md) 에서 도입된 DesignKit 패널 시스템은 변수 / 테마 / 토큰 / Master 컴포넌트를 `.kit.json` 으로 묶어 프로젝트 간 재사용하는 기능이다. 5-Layer 아키텍처 + 6-step 적용 파이프라인 + Zod 검증 등 **인프라는 견고**하지만, ADR-020 §2 의 자가 분석에서 이미 다음이 명시됨:
+[ADR-020](020-design-kit-improvement.md) 에서 도입된 DesignKit 패널 시스템은 변수 / 테마 / 토큰 / Master 컴포넌트를 `.kit.json` 으로 묶어 프로젝트 간 재사용하는 기능이다. 5-Layer 아키텍처 + 6-step 적용 파이프라인 + Zod 검증 등 **인프라는 견고**하지만, ADR-020 §2 의 자가 분석에서 이미 다음이 명시됨:
 
 - **§2.1 (CRITICAL)**: 킷 콘텐츠 빈약 — 내장 킷 1개, 컴포넌트 2개 (Card / Badge), Card 는 `Box + 2 Text` 로 composition 의 실제 Card Compositional Architecture 와 무관
 - **§2.2 (HIGH)**: composition 컴포넌트 시스템 미활용 — 46+ 컴포넌트가 있음에도 Box / Text 만 사용
@@ -176,11 +176,11 @@ DesignKit 의 **고유 가치** 라 할만한 것은 ADR-020 §2.6 (시각적 �
 
 ## References
 
-- [ADR-020](completed/020-design-kit-improvement.md) — 본 ADR 가 Supersede 하는 DesignKit 패널 분석/개선 계획 (Status: Proposed → Superseded)
-- [ADR-021](completed/021-theme-system-redesign.md) — Theme System Redesign (DesignKit 의 변수/테마/토큰 영역의 단일 권위)
-- [ADR-029](completed/029-builder-css-dead-code-cleanup.md) — Builder CSS dead code cleanup (본 ADR 의 단일 PR 즉시 제거 패턴 선례)
+- [ADR-020](020-design-kit-improvement.md) — 본 ADR 가 Supersede 하는 DesignKit 패널 분석/개선 계획 (Status: Proposed → Superseded)
+- [ADR-021](021-theme-system-redesign.md) — Theme System Redesign (DesignKit 의 변수/테마/토큰 영역의 단일 권위)
+- [ADR-029](029-builder-css-dead-code-cleanup.md) — Builder CSS dead code cleanup (본 ADR 의 단일 PR 즉시 제거 패턴 선례)
 - [ADR-111](111-layout-frameset-pencil-redesign.md) — pencil 호환 frame 재설계 (line 249 reference 정리 대상)
 - [ADR-112](112-editing-semantics-ui-5elements.md) — Editing Semantics UI 5요소 (G4-A 시각 마커에서 DesignKit 제거)
 - [ADR-114](114-imports-resolver-designkit-integration.md) — pencil imports resolver + DesignKit 통합 (Superseded 2026-04-30; DesignKit scope 는 본 ADR 로 무효화, imports resolver/cache 잔여는 ADR-116 으로 흡수)
-- [ADR-016](016-photoshop-ui-ux.md) — Photoshop UI/UX (line 43 다이어그램 DesignKitPanel 박스 제거)
+- [ADR-016](../016-photoshop-ui-ux.md) — Photoshop UI/UX (line 43 다이어그램 DesignKitPanel 박스 제거)
 - [ADR-011](011-ai-assistant-design.md) — AI Assistant Design (line 1079 `appliedKitIds` 표 footnote — ADR-054 Superseded + 본 ADR-115 제거)

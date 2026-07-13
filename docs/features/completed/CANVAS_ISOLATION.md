@@ -282,6 +282,6 @@ export type PreviewStoreState = RuntimeStoreState;
 
 ## Related Documentation
 
-- [CLAUDE.md - Canvas Runtime](../../CLAUDE.md#canvas-runtime-iframe)
-- [PERFORMANCE_REPORT.md](../PERFORMANCE_REPORT.md)
-- [PROPERTIES_PANEL_OPTIMIZATION.md](../PROPERTIES_PANEL_OPTIMIZATION.md)
+- [CLAUDE.md - Canvas Runtime](../../../CLAUDE.md#canvas-runtime-iframe)
+- [PERFORMANCE_REPORT.md](../../legacy/PERFORMANCE_REPORT.md)
+- [PROPERTIES_PANEL_OPTIMIZATION.md](PROPERTIES_PANEL.md)

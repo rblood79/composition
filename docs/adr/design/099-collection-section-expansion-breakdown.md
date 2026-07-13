@@ -1,6 +1,6 @@
 # ADR-099 구현 상세 — Collection Section/Header 확장 (ListBox/GridList/Menu)
 
-> ADR-099 본문: [099-collection-section-expansion.md](../adr/completed/099-collection-section-expansion.md)
+> ADR-099 본문: [099-collection-section-expansion.md](../completed/099-collection-section-expansion.md)
 >
 > 본 문서는 ADR-099 Decision (대안 A — items discriminated union + Hybrid section 엔트리) 의 Phase 단위 실행 상세. ADR-098 감사 Charter 의 "098-c 슬롯" 구현.
 
