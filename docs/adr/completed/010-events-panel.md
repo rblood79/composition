@@ -2,7 +2,7 @@
 
 ## Status
 
-Deprecated — 2026-05-13 (Replaced by [ADR-133](../133-events-panel-simplification.md))
+Deprecated — 2026-05-13 (Replaced by [ADR-133](133-events-panel-simplification.md))
 
 ### land 영역 (ADR-133 흡수)
 

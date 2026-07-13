@@ -1,6 +1,6 @@
 # ADR-147: ListBoxItem Slot Composition Model
 
-> **Superseded by [ADR-148](148-reusable-slot-system-unification.md)** — 2026-07-08. Phase 1~5 반영분(조합 자식 slotRole + DOM `<Text slot>` emit + Properties slot 편집)은 ADR-148 이 정본으로 승계한다. 본문 전제 3건(Skia `render.shapes` 경로 — ADR-912 가 `listbox_item` escape 로 대체 / SelectionIndicator 조합 자식 — 구현은 render-time concern / `slot` 필드 semantics — pencil 공식 reusable ID 추천 목록, slot 이름은 `metadata.slotRole`)의 정정본은 ADR-148 Context §승계 표 참조.
+> **Superseded by [ADR-148](../148-reusable-slot-system-unification.md)** — 2026-07-08. Phase 1~5 반영분(조합 자식 slotRole + DOM `<Text slot>` emit + Properties slot 편집)은 ADR-148 이 정본으로 승계한다. 본문 전제 3건(Skia `render.shapes` 경로 — ADR-912 가 `listbox_item` escape 로 대체 / SelectionIndicator 조합 자식 — 구현은 render-time concern / `slot` 필드 semantics — pencil 공식 reusable ID 추천 목록, slot 이름은 `metadata.slotRole`)의 정정본은 ADR-148 Context §승계 표 참조.
 
 ## Status
 
@@ -86,7 +86,7 @@ ADR-142(Proposed) 는 컴포넌트를 canonical 문서 + generic 렌더러로 �
 
 기각된 대안: 대안 B(flat 유지 — 본질 미해결로 유지보수 HIGH), 대안 C(자유 조합 — HC9/RAC 위반 + scope 폭증).
 
-> 구현 상세: [147-listboxitem-slot-composition-breakdown.md](design/147-listboxitem-slot-composition-breakdown.md)
+> 구현 상세: [147-listboxitem-slot-composition-breakdown.md](../design/147-listboxitem-slot-composition-breakdown.md)
 
 ## Risks
 
@@ -128,8 +128,8 @@ ADR-142(Proposed) 는 컴포넌트를 canonical 문서 + generic 렌더러로 �
 
 - React Aria ListBox: <https://react-aria.adobe.com/ListBox> (Text slots: label/description, SelectionIndicator)
 - `docs/migrations/shadcn-design-system.json` (pencil reusable/ref/descendants/slot 패턴)
-- [ADR-146](completed/146-listboxitem-ref-template-row-projection.md) — base (ref-template + slot allow-list 선언)
-- [ADR-145](completed/145-listbox-template-element-single-component-proof.md)
+- [ADR-146](146-listboxitem-ref-template-row-projection.md) — base (ref-template + slot allow-list 선언)
+- [ADR-145](145-listbox-template-element-single-component-proof.md)
 - [ADR-142](142-starter-spec-component-system-cutover.md) — canonical 컴포넌트 시스템(forward-compatible)
-- [ADR-132](completed/132-usecollectiondata-useasynclist-alignment.md) — dataBinding read model
-- [ADR-076](completed/076-listbox-items-ssot.md)
+- [ADR-132](132-usecollectiondata-useasynclist-alignment.md) — dataBinding read model
+- [ADR-076](076-listbox-items-ssot-hybrid.md)

@@ -6,7 +6,7 @@ Proposed — 2026-07-08
 
 진행 로그:
 
-- 2026-07-08 — [ADR-133](133-events-panel-simplification.md) Deprecated (사용자 결정 "133은 폐기 후 재설계 대상") 의 후속으로 작성. 사용자 명시 지시 "ADR-133 설계목적만 파악후 전면 재설계 진행해" — 설계 목적 4개만 승계, 설계 구조는 2026-07-08 코드 실측 기반 신규.
+- 2026-07-08 — [ADR-133](completed/133-events-panel-simplification.md) Deprecated (사용자 결정 "133은 폐기 후 재설계 대상") 의 후속으로 작성. 사용자 명시 지시 "ADR-133 설계목적만 파악후 전면 재설계 진행해" — 설계 목적 4개만 승계, 설계 구조는 2026-07-08 코드 실측 기반 신규.
 
 ## Context
 
@@ -169,7 +169,7 @@ Proposed — 2026-07-08
 
 ## References
 
-- [ADR-133](133-events-panel-simplification.md) — **Deprecated 2026-07-08, 본 ADR 이 후속** (설계 목적 승계 원천, D1~D9 + F1~F5 historical 분석 자료)
+- [ADR-133](completed/133-events-panel-simplification.md) — **Deprecated 2026-07-08, 본 ADR 이 후속** (설계 목적 승계 원천, D1~D9 + F1~F5 historical 분석 자료)
 - [ADR-131](completed/131-events-data-actions-first-class-collections.md) — events/actions root collection schema base (Implemented 2026-05-13)
 - [ADR-122](completed/122-canonical-only-runtime-legacy-mirror-removal.md) — canonical-only runtime 방향 정본
 - [ADR-010](completed/010-events-panel.md) / [ADR-032](completed/032-events-data-integration.md) / [ADR-034](completed/034-events-panel-renovation.md) — Deprecated 계보 (본 ADR 이 최종 후속)

@@ -4,9 +4,9 @@
 
 Implemented — 2026-06-02 (scope 축소 — 아래 완료 경계 참조)
 
-> Proposed 2026-05-19 (컴포넌트당 contract 모델 → canonical 문서 모델 개정). Round 2 review "승인 가능"([reviews/142.md](reviews/142.md)) + Phase 0 inventory 실측 recalibration([§Phase 0 Inventory Recalibration](#phase-0-inventory-recalibration-2026-05-30)) 후 대안 E 결정 승인 → **Accepted (2026-05-30)**.
+> Proposed 2026-05-19 (컴포넌트당 contract 모델 → canonical 문서 모델 개정). Round 2 review "승인 가능"([reviews/142.md](../reviews/142.md)) + Phase 0 inventory 실측 recalibration([§Phase 0 Inventory Recalibration](#phase-0-inventory-recalibration-2026-05-30)) 후 대안 E 결정 승인 → **Accepted (2026-05-30)**.
 >
-> **Implemented (2026-06-02) — 축소된 scope.** 대안 E(canonical 문서 SSOT + RAC primitive binding)의 공통 기반(G2)과 family 단위 cutover 가 land 됐다. **DOM/Inspector 경로는 7 family 전부 catalog generic 으로 전환**(family ①~⑧, `cutover:"catalog"`). **Skia generic 전환은 box+text+skiaPrimitive 합성으로 재현 가능한 family 까지** 완료 — primitives(①)·fields(②)·selection(③, Slider 제외)·Tree(⑤)·overlays Dialog/Modal/Popover/DropZone(⑥). **Skia 잔여(`skiaLegacy:true` 유지)는 후속 ADR 로 명시 이관** — collections 7종(ListBox/Menu/Select/ComboBox/Tabs/TagGroup/GridList)·Table·date 4종(Calendar/RangeCalendar/DatePicker/DateRangePicker)·Tooltip·Slider 의 Skia generic backend(items 순회 / 2D grid / 날짜 grid 생성기)는 [ADR-146](completed/146-listboxitem-ref-template-row-projection.md)(ListBox 단일 proof, Implemented) + [ADR-920](920-rac-format-interactive-projected-tree.md)(Interactive Projected Tree — collection/Table Skia 하위 노드 직접 접근 + virtualization, Proposed)이 이어받는다. color(TailSwatch/ColorPicker arc·wheel·gradient)는 사용자 지시(2026-05-31)로 본 ADR scope 외.
+> **Implemented (2026-06-02) — 축소된 scope.** 대안 E(canonical 문서 SSOT + RAC primitive binding)의 공통 기반(G2)과 family 단위 cutover 가 land 됐다. **DOM/Inspector 경로는 7 family 전부 catalog generic 으로 전환**(family ①~⑧, `cutover:"catalog"`). **Skia generic 전환은 box+text+skiaPrimitive 합성으로 재현 가능한 family 까지** 완료 — primitives(①)·fields(②)·selection(③, Slider 제외)·Tree(⑤)·overlays Dialog/Modal/Popover/DropZone(⑥). **Skia 잔여(`skiaLegacy:true` 유지)는 후속 ADR 로 명시 이관** — collections 7종(ListBox/Menu/Select/ComboBox/Tabs/TagGroup/GridList)·Table·date 4종(Calendar/RangeCalendar/DatePicker/DateRangePicker)·Tooltip·Slider 의 Skia generic backend(items 순회 / 2D grid / 날짜 grid 생성기)는 [ADR-146](146-listboxitem-ref-template-row-projection.md)(ListBox 단일 proof, Implemented) + [ADR-920](920-rac-format-interactive-projected-tree.md)(Interactive Projected Tree — collection/Table Skia 하위 노드 직접 접근 + virtualization, Proposed)이 이어받는다. color(TailSwatch/ColorPicker arc·wheel·gradient)는 사용자 지시(2026-05-31)로 본 ADR scope 외.
 >
 > **축소 근거(사용자 결정 2026-06-02)**: collections 의 Skia generic backend(데이터-시각 결합형 multi-item / 2D grid 렌더)는 R4(HIGH)가 가리키는 대규모 영역으로, ADR-142 의 family loop 안에서 atomic 하게 처리하기에 무게가 과하다. DOM cutover 와 box+text 재현 가능 Skia 는 본 ADR 에서 종결하고, 데이터-결합형 Skia 는 ADR-920 의 projected-tree 메커니즘으로 분리한다. ADR-142 의 §7 완료 판정도 이 경계로 갱신한다(아래 §7 갱신 주석 참조).
 
@@ -137,7 +137,7 @@ ADR-063 과의 관계: ADR-063 은 D3 시각 SSOT 를 "Spec" 으로 불렀다. �
 - **대안 C 기각**: 컴포넌트당 contract 객체는 스키마가 두꺼워도 `ComponentSpec` 과 같은 종류 — canonical 문서와 평행한 두 번째 SSOT 다. drift 가 재발한다. 사용자 검토(2026-05-19)에서 "실패 반복" 으로 기각됐다.
 - **대안 D 기각**: `react-aria-components` 를 제품 곳곳에서 직접 import 하면 RAC 버전 업데이트가 제품 코드를 직접 흔들고, composition-specific 계약(props mapping·canonical·Inspector·Skia)을 둘 단일 위치가 사라진다.
 
-> 구현 상세: [142-starter-spec-component-system-cutover-breakdown.md](design/142-starter-spec-component-system-cutover-breakdown.md)
+> 구현 상세: [142-starter-spec-component-system-cutover-breakdown.md](../design/142-starter-spec-component-system-cutover-breakdown.md)
 
 ## Risks
 
@@ -194,7 +194,7 @@ ADR-063 과의 관계: ADR-063 은 D3 시각 SSOT 를 "Spec" 으로 불렀다. �
 
 ## Phase 0 Inventory Recalibration (2026-05-30)
 
-> Phase 0 inventory(Gate G1) 실측으로 본문 추정 3개를 교정한다. **결정(대안 E)·Hard Constraints·Alternatives 는 불변** — 위험 calibration + 카운트 정정만 한다. 근거 데이터: [`docs/reference/audits/2026-05-30-canonical-component-inventory.md`](../reference/audits/2026-05-30-canonical-component-inventory.md). review: [`docs/adr/reviews/142.md`](reviews/142.md) Round 2.
+> Phase 0 inventory(Gate G1) 실측으로 본문 추정 3개를 교정한다. **결정(대안 E)·Hard Constraints·Alternatives 는 불변** — 위험 calibration + 카운트 정정만 한다. 근거 데이터: [`docs/reference/audits/2026-05-30-canonical-component-inventory.md`](../../reference/audits/2026-05-30-canonical-component-inventory.md). review: [`docs/adr/reviews/142.md`](../reviews/142.md) Round 2.
 
 | 항목                                | 본문 추정                          | 실측 교정                                                                                                               | 근거 (inventory §)                                                                          |
 | ----------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |

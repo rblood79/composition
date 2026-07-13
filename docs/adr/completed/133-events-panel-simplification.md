@@ -2,11 +2,11 @@
 
 > **Deprecated — 2026-07-08** — 개별 재설계 대상. 설계 목적은 보존, 설계 문서는 폐기.
 >
-> **후속: [ADR-149](149-events-panel-canonical-simplification.md)** (2026-07-08 작성) — 설계 목적 4개 승계 + 2026-07-08 실측 기반 2-Wave 재설계.
+> **후속: [ADR-149](../149-events-panel-canonical-simplification.md)** (2026-07-08 작성) — 설계 목적 4개 승계 + 2026-07-08 실측 기반 2-Wave 재설계.
 
 ## Status
 
-**Deprecated — 2026-07-08** (설계 목적 보존 — 후속: [ADR-149](149-events-panel-canonical-simplification.md))
+**Deprecated — 2026-07-08** (설계 목적 보존 — 후속: [ADR-149](../149-events-panel-canonical-simplification.md))
 
 ### 폐기 사유
 
@@ -29,13 +29,13 @@ Proposed — 2026-05-13 (ADR-010 / ADR-032 / ADR-034 supersede + ADR-131 §event
 - 5 결정 사용자 explicit confirm: Q1 onClick deprecation / Q2 onMouseEnter/Leave rename / Q3 callback gap ADR-133 안 흡수 / Q4 mental model = 1년차 baseline / Q5 implemented:false 4 종 제거
 - 3 ADR (010/032/034) Deprecated 이동 동반
 - 2026-07-08 — 사용자 결정으로 Deprecated (개별 재설계 대상 — §폐기 사유 참조)
-- 2026-07-08 — 후속 [ADR-149](149-events-panel-canonical-simplification.md) 작성 (사용자 지시 "설계목적만 파악후 전면 재설계") — 목적 4개 승계, 구조는 실측 기반 신규 (2-Wave)
+- 2026-07-08 — 후속 [ADR-149](../149-events-panel-canonical-simplification.md) 작성 (사용자 지시 "설계목적만 파악후 전면 재설계") — 목적 4개 승계, 구조는 실측 기반 신규 (2-Wave)
 
 ## Context
 
 ### 3-domain 분류 (ADR-063 정합)
 
-본 ADR 은 [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) 의 D1 (DOM/접근성) / D2 (Props/API) / D3 (시각 스타일) 중:
+본 ADR 은 [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) 의 D1 (DOM/접근성) / D2 (Props/API) / D3 (시각 스타일) 중:
 
 - **D2 (Props/API) 정합 결정** — RAC/RSC 컴포넌트의 callback props (`onPress` / `onChange` / `onSelectionChange` / `onSubmit` / ...) 가 EventsPanel UI 의 primary navigation 단위. 사용자 mental model = "이 element 의 onPress 시 무엇이 일어나는가" 단일 질문 → 1-step expand 로 응답
 - **schema architecture 정합** — `CompositionDocument.events` / `actions` root collection (ADR-131 Phase 1-4) primary store 전환
@@ -44,7 +44,7 @@ Proposed — 2026-05-13 (ADR-010 / ADR-032 / ADR-034 supersede + ADR-131 §event
 
 #### F1. 현 EventsPanel UX 뎁스 4 + overlay 2 — RAC 정통 mental model 괴리
 
-현 [EventsPanel.tsx](../../apps/builder/src/builder/panels/events/EventsPanel.tsx) (884 LOC) 구조:
+현 [EventsPanel.tsx](../../../apps/builder/src/builder/panels/events/EventsPanel.tsx) (884 LOC) 구조:
 
 ```
 L1 PanelHeader (Events + Add 버튼)
@@ -83,7 +83,7 @@ chain 개념은 RAC 측 부재 — handler 안에서 user 가 직접 작성. com
 
 #### F3. ActionsPanel dead UI 상태 — ADR-131 Phase 5 G3 UX 표면 결정 잘못
 
-[ActionsPanel.tsx](../../apps/builder/src/builder/panels/actions/ActionsPanel.tsx) (155 LOC):
+[ActionsPanel.tsx](../../../apps/builder/src/builder/panels/actions/ActionsPanel.tsx) (155 LOC):
 
 - minimum viable (id text input + kind text input + next text input + remove)
 - kind 별 specialized config UI **없음** / chain DAG visualization **없음** / cross-event 사용 표시 **없음**
@@ -214,7 +214,7 @@ ADR-131 canonical schema 가치 (cross-event reuse / DAG chain / id 참조) 가 
 
 **대안 A 채택** — UX simplification + canonical primary + ActionsPanel 흡수 + breaking changes 3 종 + callback gap 전수 추가.
 
-> 구현 상세: [133-events-panel-simplification-breakdown.md](design/133-events-panel-simplification-breakdown.md)
+> 구현 상세: [133-events-panel-simplification-breakdown.md](../design/133-events-panel-simplification-breakdown.md)
 
 ### framing checkpoint 4 질문 lock-in (M2 — 사용자 explicit confirm 2026-05-13)
 
@@ -314,14 +314,14 @@ historical context 보존 — 본문 archive (completed/ 이동) 만, 본문 삭
 
 ## References
 
-- [ADR-131: events/data/actions 일급 컴포넌트 루트 컬렉션](completed/131-events-data-actions-first-class-collections.md) — schema base (Phase 5 G3 ActionsPanel UX 결정 partial reverse 대상). Implemented 2026-05-13
+- [ADR-131: events/data/actions 일급 컴포넌트 루트 컬렉션](131-events-data-actions-first-class-collections.md) — schema base (Phase 5 G3 ActionsPanel UX 결정 partial reverse 대상). Implemented 2026-05-13
 - [ADR-132: useCollectionData useAsyncList 정합 + collections rename + Transformer 제거](132-usecollectiondata-useasynclist-alignment.md) — collections rename baseline
-- [ADR-110: Canonical Themes / Variables](completed/110-canonical-themes-variables-land-plan.md) — root collection 패턴 baseline
-- [ADR-116: Canonical Document SSOT 전환](completed/116-canonical-document-ssot-transition.md) — Phase 5 §3 partial supersede (ADR-131 경유)
-- [ADR-063: SSOT Chain Charter](completed/063-ssot-chain-charter.md) — 3-domain 분할 정본 (D2 Props/API 정합 결정)
-- [ADR-010: Events Panel Smart Recommendations](completed/010-events-panel.md) — Deprecated by ADR-133
-- [ADR-032: Events Platform 재설계 v2](completed/032-events-data-integration.md) — Deprecated by ADR-133
-- [ADR-034: Events Panel Renovation](completed/034-events-panel-renovation.md) — Deprecated by ADR-133
+- [ADR-110: Canonical Themes / Variables](110-canonical-themes-variables-land-plan.md) — root collection 패턴 baseline
+- [ADR-116: Canonical Document SSOT 전환](116-canonical-document-ssot-transition.md) — Phase 5 §3 partial supersede (ADR-131 경유)
+- [ADR-063: SSOT Chain Charter](063-ssot-chain-charter.md) — 3-domain 분할 정본 (D2 Props/API 정합 결정)
+- [ADR-010: Events Panel Smart Recommendations](010-events-panel.md) — Deprecated by ADR-133
+- [ADR-032: Events Platform 재설계 v2](032-events-data-integration.md) — Deprecated by ADR-133
+- [ADR-034: Events Panel Renovation](034-events-panel-renovation.md) — Deprecated by ADR-133
 - RAC/RSC 벤치마크 evidence: `~/.claude/plans/rac-rsc-event-callback-benchmark.md`
 - React Aria Components docs: https://react-spectrum.adobe.com/react-aria/
 - React Spectrum docs: https://react-spectrum.adobe.com/

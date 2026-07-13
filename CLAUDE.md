@@ -55,10 +55,10 @@ composition은 3개 독립 domain으로 구성된다. 모든 코드/문서 작�
 - RAC 선택 이유 = 스타일 자유도 (unstyled primitive) — 디자인은 D3에서 composition이 결정
 - RSP props는 RAC + custom 구현으로 달성 가능한 범위에서 선별 채택
 
-**2026-07-08 갱신**: D3 SSOT는 [ADR-142](docs/adr/142-starter-spec-component-system-cutover.md)(Implemented 2026-06-02)로 컴포넌트당 spec 파일에서 catalog + theme/tokens로 전환됨. [ADR-036](docs/adr/completed/036-spec-first-single-source.md)은 Superseded by ADR-142.
+**2026-07-08 갱신**: D3 SSOT는 [ADR-142](docs/adr/completed/142-starter-spec-component-system-cutover.md)(Implemented 2026-06-02)로 컴포넌트당 spec 파일에서 catalog + theme/tokens로 전환됨. [ADR-036](docs/adr/completed/036-spec-first-single-source.md)은 Superseded by ADR-142.
 
 **정본 규칙**: [.claude/rules/ssot-hierarchy.md](.claude/rules/ssot-hierarchy.md) (3-domain 정의/용어 사전/경계 판정/집행 메커니즘)
-**공식 결정 기록**: [ADR-063](docs/adr/completed/063-ssot-chain-charter.md) (charter), [ADR-142](docs/adr/142-starter-spec-component-system-cutover.md) (D3 SSOT 재정의)
+**공식 결정 기록**: [ADR-063](docs/adr/completed/063-ssot-chain-charter.md) (charter), [ADR-142](docs/adr/completed/142-starter-spec-component-system-cutover.md) (D3 SSOT 재정의)
 
 ## 핵심 아키텍처
 

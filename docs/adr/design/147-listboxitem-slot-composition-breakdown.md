@@ -1,6 +1,6 @@
 # ADR-147 구현 상세 — ListBoxItem Slot Composition Model
 
-> 본 문서는 [ADR-147](../147-listboxitem-slot-composition.md) 의 구현 상세(Phase, 파일 경계, 작업 순서, 체크리스트)다. 결정/위험/대안은 ADR 본문 참조.
+> 본 문서는 [ADR-147](../completed/147-listboxitem-slot-composition.md) 의 구현 상세(Phase, 파일 경계, 작업 순서, 체크리스트)다. 결정/위험/대안은 ADR 본문 참조.
 
 ## §1. Fork checkpoint lock-in (4질문)
 

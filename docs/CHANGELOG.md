@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [docs/adr 문서 정리 — 완료 ADR 5건 completed/ 이관 + README 상태 표 재정합] - 2026-07-13
+
+### Documentation
+
+- **`docs/adr/` 루트에 종결 상태(Implemented / Superseded / Deprecated) ADR 5건이 잔존**:
+  - **Why**: ADR-916 이관(2026-07-08)과 같은 문제의 잔여분. 루트는 진행 중(Proposed / Accepted / Partial) ADR 전용이라는 컨벤션과 실제 상태가 어긋나, "루트에 있으면 진행 중"이라는 정본 조회 가정이 깨진다.
+  - 이관: ADR-142(Implemented 2026-06-02) / ADR-133(Deprecated 2026-07-08, 후속 ADR-149) / ADR-144(Superseded by ADR-145) / ADR-147(Superseded by ADR-148) / ADR-920(Superseded by ADR-910) → `docs/adr/completed/` (`git mv`, 본문 내용 무변경).
+  - 이관 후 루트 잔존 11건은 전부 진행 중 상태로 확인 — 013 / 015 / 016 / 027(Partial) / 117 / 134 / 148 / 149 / 910 / 911 / 915.
+  - `design/` · `reviews/` 하위 폴더는 ADR 번호 기준 유지(기존 컨벤션) — 본문 파일만 이동.
+- **참조 경로 갱신** — 이관 5건을 가리키던 링크 전수:
+  - 이관 파일 내부: `design/…` → `../design/…`, `completed/…` → 형제 경로, 저장소 루트 참조 `../../` → `../../../`.
+  - 외부 참조: `CLAUDE.md`, `.claude/rules/{canvas-rendering,css-tokens,ssot-hierarchy}.md`, `.claude/skills/composition-patterns/SKILL.md`, `docs/COMPONENT_SPEC.md`, `docs/reference/components/SPEC_CSS_BOUNDARY.md`, `docs/reference/audits/2026-05-30-canonical-component-inventory.md`, `docs/adr/{148,149}-*.md`, `docs/adr/completed/{010,032,034,036,131,146,907,908}-*.md`, `docs/adr/design/{133,142,147}-*-breakdown.md`, `docs/adr/reviews/144.md`.
+  - `docs/CHANGELOG.md` 의 과거 엔트리 내 경로 문자열은 작성 시점 기록이라 유지(historical).
+- **`docs/adr/README.md` 상태 표 재정합** — 이관 과정에서 드러난 기존 오분류 동시 교정:
+  - **Why**: "미구현(Proposed)" 표에 이미 Implemented 인 ADR 8건(141 / 143 / 145 / 146 / 912 / 913 / 914 / 916)이 잔존해, 표만 보면 완료 작업이 미착수로 읽혔다. 이관 대상 142 / 147 / 920 도 같은 표에 있었다.
+  - 조치: Implemented 9건(141 / 142 / 143 / 145 / 146 / 912 / 913 / 914 / 916) → "완료" 표 이동(완료일 컬럼 채움), Superseded 2건(147 / 920) → "Superseded / Deprecated" 표 이동(후속 ADR 명시). 행 본문은 보존.
+  - 현황 요약 수치 실측 재계산: 완료 156(완료 표 146 + Superseded/Deprecated 10) / 부분 완료 3 / 미구현 10 / 합계 169. 기존 수치(132 / 8 / 13 / 153)는 stale.
+  - 사전 존재 깨진 링크 6건 동시 수정 — 032 / 034 / 035 / 037 / 039 가 `completed/` 이관 후에도 루트 경로로 참조되던 건, 존재하지 않는 `design/068-…-breakdown.md` 링크 제거.
+
 ## [docs/adr 문서 정리 — ADR-916 completed/ 이관 + README 표 포맷 점검] - 2026-07-08
 
 ### Documentation

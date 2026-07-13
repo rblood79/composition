@@ -4,7 +4,7 @@
 
 Implemented — 2026-04-24 (동일 세션 Phase 0 → Phase 4 완결, 9 commits)
 
-> **적용 범위 축소 (ADR-142, 2026-07-08)**: 본 ADR이 다루는 `FillTokenSpec`/`FillStateTokens`는 spec 파일(`VariantSpec`/`IndicatorModeSpec`) 스키마다. [ADR-142](../../142-starter-spec-component-system-cutover.md)로 일반 컴포넌트의 D3 SSOT가 catalog로 전환되며 본 스키마의 적용 범위는 잔존 spec 3개(Frame/Group/Slot)로 축소됐다.
+> **적용 범위 축소 (ADR-142, 2026-07-08)**: 본 ADR이 다루는 `FillTokenSpec`/`FillStateTokens`는 spec 파일(`VariantSpec`/`IndicatorModeSpec`) 스키마다. [ADR-142](142-starter-spec-component-system-cutover.md)로 일반 컴포넌트의 D3 SSOT가 catalog로 전환되며 본 스키마의 적용 범위는 잔존 spec 3개(Frame/Group/Slot)로 축소됐다.
 
 ## Context
 

@@ -13,7 +13,7 @@
 
 composition 아키텍처는 **3개의 독립 domain**으로 구성된다. 각 domain은 고유 권위를 가지며 경계 교차 금지.
 
-> **2026-07-08 갱신 (ADR-142 Implemented)**: D3 SSOT는 컴포넌트당 spec 파일에서 **catalog(`COMPONENT_RULES_TABLE`) + theme/tokens root collection**으로 전환됐다. 아래 표와 "D3 (시각 스타일)" 절은 이 전환을 반영한다. 잔존 spec 3개(Frame/Group/Slot)는 D1 ARIA 예외(Group) 및 canonical layout container(Frame) 한정 존속이며, 일반 컴포넌트는 전부 catalog 경로다. 상세: [ADR-142](../../docs/adr/142-starter-spec-component-system-cutover.md), [ADR-036 Superseded 안내](../../docs/adr/completed/036-spec-first-single-source.md).
+> **2026-07-08 갱신 (ADR-142 Implemented)**: D3 SSOT는 컴포넌트당 spec 파일에서 **catalog(`COMPONENT_RULES_TABLE`) + theme/tokens root collection**으로 전환됐다. 아래 표와 "D3 (시각 스타일)" 절은 이 전환을 반영한다. 잔존 spec 3개(Frame/Group/Slot)는 D1 ARIA 예외(Group) 및 canonical layout container(Frame) 한정 존속이며, 일반 컴포넌트는 전부 catalog 경로다. 상세: [ADR-142](../../docs/adr/completed/142-starter-spec-component-system-cutover.md), [ADR-036 Superseded 안내](../../docs/adr/completed/036-spec-first-single-source.md).
 
 | Domain              | 권위                                                       | 내용                                                      | Spec 개입                                               |
 | ------------------- | ---------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------- |

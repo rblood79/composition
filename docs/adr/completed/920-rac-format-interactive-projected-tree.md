@@ -1,6 +1,6 @@
 # ADR-920: RAC Format Interactive Projected Tree
 
-> **Superseded by [ADR-910](910-rac-pencil-component-architecture.md)** (2026-06-02). 본 ADR 은 ADR-910 과 같은 외부 입력(`react-aria-starter` + Pencil format)에서 출발한 수렴 설계다. 두 설계의 base/override 원리는 동일하며(ADR-920 HC#5 ≡ ADR-910 HC#3), ADR-910 을 상위 컴포넌트 아키텍처로 두고 본 ADR 의 핵심 가치인 **Interactive Projected Tree**(collection 깊은 노드 hit-test/drill-in/edit-route)를 ADR-910 이 흡수했다(ADR-910 HC#7 + Risks T-PROJECT/T-DEEP/T-TPL + Gates G8/G9 + breakdown §4.12/§5.11/§7-4/⑪). behavior/page frame/data 축은 이미 ADR-131/132/135/136 관할이라 ADR-910 에서 bridge 참조로 위임했다. 본 문서는 설계 근거 기록으로 보존한다.
+> **Superseded by [ADR-910](../910-rac-pencil-component-architecture.md)** (2026-06-02). 본 ADR 은 ADR-910 과 같은 외부 입력(`react-aria-starter` + Pencil format)에서 출발한 수렴 설계다. 두 설계의 base/override 원리는 동일하며(ADR-920 HC#5 ≡ ADR-910 HC#3), ADR-910 을 상위 컴포넌트 아키텍처로 두고 본 ADR 의 핵심 가치인 **Interactive Projected Tree**(collection 깊은 노드 hit-test/drill-in/edit-route)를 ADR-910 이 흡수했다(ADR-910 HC#7 + Risks T-PROJECT/T-DEEP/T-TPL + Gates G8/G9 + breakdown §4.12/§5.11/§7-4/⑪). behavior/page frame/data 축은 이미 ADR-131/132/135/136 관할이라 ADR-910 에서 bridge 참조로 위임했다. 본 문서는 설계 근거 기록으로 보존한다.
 
 ## Status
 
@@ -180,7 +180,7 @@ HIGH가 남는다. D의 HIGH는 구현 복잡도이며, Gate를 통해 phase별�
 - **대안 C 기각**: hidden pointer와 flat hit rectangles는 Skia editor의 직접 조작 요구와
   Preview tree를 분리한다.
 
-> 구현 상세: [920-rac-format-interactive-projected-tree-breakdown.md](design/920-rac-format-interactive-projected-tree-breakdown.md)
+> 구현 상세: [920-rac-format-interactive-projected-tree-breakdown.md](../design/920-rac-format-interactive-projected-tree-breakdown.md)
 
 ## Gates
 

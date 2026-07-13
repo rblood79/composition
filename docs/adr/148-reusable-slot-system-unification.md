@@ -128,9 +128,9 @@ reusable/slot 축의 결정과 구현이 4곳에 분산되어 있다: ADR-142(�
 
 ## References
 
-- [ADR-142](142-starter-spec-component-system-cutover.md) — base (조합=canonical reusable 문서, Implemented)
+- [ADR-142](completed/142-starter-spec-component-system-cutover.md) — base (조합=canonical reusable 문서, Implemented)
 - [ADR-912](completed/912-rac-pencil-rebuild-cutover.md) — R-5 proof + 6 registry collapse (Implemented)
-- [ADR-147](147-listboxitem-slot-composition.md) — **Superseded by 본 ADR** (slot 모델 실증 승계)
+- [ADR-147](completed/147-listboxitem-slot-composition.md) — **Superseded by 본 ADR** (slot 모델 실증 승계)
 - [ADR-146](completed/146-listboxitem-ref-template-row-projection.md) / [ADR-138](completed/138-component-palette-reusable.md) — projection·fork UX 승계 (변경 0, 138 흡수 사용자 confirm 2026-07-08)
-- [ADR-144](144-collection-template-element-ssot.md) — 기 Superseded (by ADR-145) — 145→146→147 계보 경유로 잔여 collection item slot 확산은 본 ADR Phase 4 가 흡수 (2026-07-08 확인)
+- [ADR-144](completed/144-collection-template-element-ssot.md) — 기 Superseded (by ADR-145) — 145→146→147 계보 경유로 잔여 collection item slot 확산은 본 ADR Phase 4 가 흡수 (2026-07-08 확인)
 - [REUSABLE_SLOT_DESIGN.md](../reference/components/REUSABLE_SLOT_DESIGN.md) / [landscape 실측](../reference/audits/2026-07-07-reusable-slot-landscape.md)

@@ -414,7 +414,7 @@ cutover 후 허용되는 legacy usage:
 > | 9 (`codex:preflight`)                       | type-check 5/5 + 관련 vitest PASS 로 갈음                                                                                                             |
 > | 10 (status 동기화 + ADR-036/907/908 재평가) | ✅ — 본 종결 커밋에서 README/ADR status 동기화. ADR-036/907/908 재평가는 Skia 완전 전환(ADR-920) 시점으로 이연                                        |
 >
-> **Skia 잔여 이관처**: collections(7) + Table = [ADR-920](../920-rac-format-interactive-projected-tree.md) Interactive Projected Tree(projected draw/hit tree, virtualization). ListBox 단일 proof = [ADR-146](../completed/146-listboxitem-ref-template-row-projection.md)(Implemented). date(4) Skia 날짜 grid / Tooltip / Slider track 도 동일 generic backend 선행 필요(ADR-920 범위). color 는 사용자 지시로 본 ADR 외.
+> **Skia 잔여 이관처**: collections(7) + Table = [ADR-920](../completed/920-rac-format-interactive-projected-tree.md) Interactive Projected Tree(projected draw/hit tree, virtualization). ListBox 단일 proof = [ADR-146](../completed/146-listboxitem-ref-template-row-projection.md)(Implemented). date(4) Skia 날짜 grid / Tooltip / Slider track 도 동일 generic backend 선행 필요(ADR-920 범위). color 는 사용자 지시로 본 ADR 외.
 
 원판정(전체 Skia 전환 시 적용):
 

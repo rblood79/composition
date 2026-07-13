@@ -1,7 +1,7 @@
 # Canonical 컴포넌트 시스템 Inventory — ADR-142 Phase 0
 
 **작성일**: 2026-05-30
-**ADR**: [ADR-142](../../adr/142-starter-spec-component-system-cutover.md) Phase 0 (Gate G0/G1) 산출물
+**ADR**: [ADR-142](../../adr/completed/142-starter-spec-component-system-cutover.md) Phase 0 (Gate G0/G1) 산출물
 **리뷰 연계**: [docs/adr/reviews/142.md](../../adr/reviews/142.md) Round 2 MEDIUM #2(R4 scope)/#3(R2 size)/LOW(R9) 실측 확정
 **방법**: starter `import` 구조 grep + spec `render.shapes` 패턴 grep + registry 카운트 (read-only, 2026-05-30 HEAD)
 

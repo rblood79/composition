@@ -1,8 +1,8 @@
 # ADR-144: Collection 컴포넌트 Template Element SSOT — RAC dynamic collection 정통 패턴 적용
 
-> **Superseded by [ADR-145](completed/145-listbox-template-element-single-component-proof.md)** — 2026-05-27
+> **Superseded by [ADR-145](145-listbox-template-element-single-component-proof.md)** — 2026-05-27
 >
-> 최종 계보 (2026-07-08 확인): ADR-145 (Implemented) → ADR-146 (Implemented) → ADR-147 (Superseded) → **[ADR-148](148-reusable-slot-system-unification.md)** — 잔여 collection item slot 확산은 ADR-148 Phase 4 로 흡수.
+> 최종 계보 (2026-07-08 확인): ADR-145 (Implemented) → ADR-146 (Implemented) → ADR-147 (Superseded) → **[ADR-148](../148-reusable-slot-system-unification.md)** — 잔여 collection item slot 확산은 ADR-148 Phase 4 로 흡수.
 
 ## Status
 
@@ -172,7 +172,7 @@ ADR-066 (Tabs items SSOT) / ADR-068 (Menu items SSOT) / ADR-073 (Select / ComboB
 - 대안 C: schema 본질 위반 — canonical descendants 의 element path 전제 깨뜨림
 - 대안 D: 유지보수 HIGH — 동일 RAC 패턴 schema 본질 동일성 위반
 
-> 구현 상세: [144-collection-template-element-ssot-breakdown.md](design/144-collection-template-element-ssot-breakdown.md)
+> 구현 상세: [144-collection-template-element-ssot-breakdown.md](../design/144-collection-template-element-ssot-breakdown.md)
 
 ## Risks
 

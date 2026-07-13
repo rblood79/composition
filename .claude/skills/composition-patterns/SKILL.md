@@ -25,7 +25,7 @@ composition Builder의 코드 패턴, 규칙 및 모범 사례 통합 스킬.
 - 대칭 = **시각 결과의 동일성** (구현 방법 자유)
 - RAC는 unstyled — 스타일은 composition이 D3에서 결정
 - RSP props는 RAC + custom으로 달성 가능한 범위에서 선별 채택
-- **2026-07-08**: D3 SSOT는 [ADR-142](../../../docs/adr/142-starter-spec-component-system-cutover.md)(Implemented)로 컴포넌트당 spec 파일에서 catalog + theme/tokens로 전환. [ADR-036](../../../docs/adr/completed/036-spec-first-single-source.md)은 Superseded by ADR-142
+- **2026-07-08**: D3 SSOT는 [ADR-142](../../../docs/adr/completed/142-starter-spec-component-system-cutover.md)(Implemented)로 컴포넌트당 spec 파일에서 catalog + theme/tokens로 전환. [ADR-036](../../../docs/adr/completed/036-spec-first-single-source.md)은 Superseded by ADR-142
 
 ## Runtime SSOT — Canonical Document (ADR-116 + ADR-122 Implemented)
 
@@ -194,7 +194,7 @@ Pencil schema 에 없는 Composition 고유 영역 (`x-composition.events` / `ac
 
 - **[ADR-001](../../../docs/adr/completed/001-state-management.md)** Zustand | **[ADR-002](../../../docs/adr/completed/002-styling-approach.md)** ITCSS+tv() | **[ADR-003](../../../docs/adr/completed/003-canvas-rendering.md)** Canvas
 - **[ADR-004](../../../docs/adr/completed/004-preview-isolation.md)** iframe | **[ADR-005](../../../docs/adr/completed/005-css-text-wrapping.md)** Text Wrap | **[ADR-008](../../../docs/adr/completed/008-layout-engine.md)** Taffy (레이아웃 엔진은 이후 [ADR-916](../../../docs/adr/completed/916-unified-rust-engine.md) 자체 Rust 엔진 `packages/composition-engine` 으로 대체)
-- **[Component Spec](../../../docs/COMPONENT_SPEC.md)** 단일 소스 아키텍처 (spec 시대 기록, DEPRECATED — 현재 D3 SSOT는 [ADR-142](../../../docs/adr/142-starter-spec-component-system-cutover.md) catalog `COMPONENT_RULES_TABLE`)
+- **[Component Spec](../../../docs/COMPONENT_SPEC.md)** 단일 소스 아키텍처 (spec 시대 기록, DEPRECATED — 현재 D3 SSOT는 [ADR-142](../../../docs/adr/completed/142-starter-spec-component-system-cutover.md) catalog `COMPONENT_RULES_TABLE`)
 
 ## 규칙 효과 측정
 
