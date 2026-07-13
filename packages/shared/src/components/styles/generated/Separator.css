@@ -23,7 +23,7 @@
 
   /* Default size */
   height: 1px;
-  padding: 8px 0px;
+  padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-none);
 }
@@ -135,21 +135,21 @@
 
 .react-aria-Separator[data-size="sm"] {
   height: 1px;
-  padding: 4px 0px;
+  padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-none);
 }
 
 .react-aria-Separator[data-size="md"] {
   height: 1px;
-  padding: 8px 0px;
+  padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-none);
 }
 
 .react-aria-Separator[data-size="lg"] {
   height: 1px;
-  padding: 16px 0px;
+  padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-none);
 }

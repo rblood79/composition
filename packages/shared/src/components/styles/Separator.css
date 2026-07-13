@@ -4,6 +4,12 @@
  * M3 Variants: solid, dashed, dotted, primary, secondary, surface
  * Sizes: sm, md, lg
  *
+ * DOM 계약 (2026-07-14 정렬): 렌더러는 `data-size` / `data-variant` 속성을 emit 하고,
+ * RAC 는 **수평(기본) 방향에 aria-orientation 을 emit 하지 않는다** (수직일 때만
+ * aria-orientation='vertical'). 구 `.horizontal/.vertical/.sm/.md/.lg` 클래스 계약은
+ * 레거시 병기 — 클래스만 매치하던 시절 기본 HR 이 어느 규칙에도 안 걸려 2x18 로
+ * 렌더되던 결함(Skia 390x1 과 발산)의 근본.
+ *
  * Reference: https://m3.material.io/components/divider
  */
 
@@ -14,96 +20,116 @@
     flex-shrink: 0;
   }
 
-  /* Horizontal orientation (default) */
-  .react-aria-Separator.horizontal {
+  /* Horizontal orientation (default — aria-orientation 미emit)
+     padding/border/배경 명시 재선언: generated Separator.css 가 import 순서에 따라
+     base border(1px solid)를 이겨 1px 라인이 outline box 로 렌더되던 결함 차단
+     (라인 = background 1px + margin 간격이 정본, Skia 390x1 대칭). */
+  .react-aria-Separator.horizontal,
+  .react-aria-Separator[aria-orientation="horizontal"],
+  .react-aria-Separator:not(.vertical):not([aria-orientation="vertical"]) {
     width: 100%;
     height: 1px;
-  }
-
-  .react-aria-Separator[aria-orientation='horizontal'] {
-    width: 100%;
-    height: 1px;
+    padding: 0;
+    border: none;
+    background-color: var(--bg-muted);
   }
 
   /* Vertical orientation */
-  .react-aria-Separator.vertical {
+  .react-aria-Separator.vertical,
+  .react-aria-Separator[aria-orientation="vertical"] {
     height: 100%;
     width: 1px;
-  }
-
-  .react-aria-Separator[aria-orientation='vertical'] {
-    height: 100%;
-    width: 1px;
+    padding: 0;
+    border: none;
+    background-color: var(--bg-muted);
   }
 
   /* Size variants - Horizontal */
   .react-aria-Separator.horizontal.sm,
-  .react-aria-Separator[aria-orientation='horizontal'].sm {
+  .react-aria-Separator[aria-orientation="horizontal"].sm,
+  .react-aria-Separator[data-size="sm"]:not(.vertical):not(
+      [aria-orientation="vertical"]
+    ) {
     height: 1px;
     margin: var(--spacing-xs) 0;
   }
 
   .react-aria-Separator.horizontal.md,
-  .react-aria-Separator[aria-orientation='horizontal'].md {
+  .react-aria-Separator[aria-orientation="horizontal"].md,
+  .react-aria-Separator[data-size="md"]:not(.vertical):not(
+      [aria-orientation="vertical"]
+    ) {
     height: 1px;
     margin: var(--spacing-sm) 0;
   }
 
   .react-aria-Separator.horizontal.lg,
-  .react-aria-Separator[aria-orientation='horizontal'].lg {
+  .react-aria-Separator[aria-orientation="horizontal"].lg,
+  .react-aria-Separator[data-size="lg"]:not(.vertical):not(
+      [aria-orientation="vertical"]
+    ) {
     height: 2px;
     margin: var(--spacing-lg) 0;
   }
 
   /* Size variants - Vertical */
   .react-aria-Separator.vertical.sm,
-  .react-aria-Separator[aria-orientation='vertical'].sm {
+  .react-aria-Separator[aria-orientation="vertical"].sm,
+  .react-aria-Separator[aria-orientation="vertical"][data-size="sm"] {
     width: 1px;
     margin: 0 var(--spacing-xs);
   }
 
   .react-aria-Separator.vertical.md,
-  .react-aria-Separator[aria-orientation='vertical'].md {
+  .react-aria-Separator[aria-orientation="vertical"].md,
+  .react-aria-Separator[aria-orientation="vertical"][data-size="md"] {
     width: 1px;
     margin: 0 var(--spacing-sm);
   }
 
   .react-aria-Separator.vertical.lg,
-  .react-aria-Separator[aria-orientation='vertical'].lg {
+  .react-aria-Separator[aria-orientation="vertical"].lg,
+  .react-aria-Separator[aria-orientation="vertical"][data-size="lg"] {
     width: 2px;
     margin: 0 var(--spacing-lg);
   }
 
   /* Dashed variant */
-  .react-aria-Separator.dashed {
+  .react-aria-Separator.dashed,
+  .react-aria-Separator[data-variant="dashed"] {
     background-color: transparent;
     border-top: 1px dashed var(--border);
   }
 
   .react-aria-Separator.vertical.dashed,
-  .react-aria-Separator[aria-orientation='vertical'].dashed {
+  .react-aria-Separator[aria-orientation="vertical"].dashed,
+  .react-aria-Separator[aria-orientation="vertical"][data-variant="dashed"] {
     border-top: none;
     border-left: 1px dashed var(--border);
   }
 
   /* Dotted variant */
-  .react-aria-Separator.dotted {
+  .react-aria-Separator.dotted,
+  .react-aria-Separator[data-variant="dotted"] {
     background-color: transparent;
     border-top: 1px dotted var(--border);
   }
 
   .react-aria-Separator.vertical.dotted,
-  .react-aria-Separator[aria-orientation='vertical'].dotted {
+  .react-aria-Separator[aria-orientation="vertical"].dotted,
+  .react-aria-Separator[aria-orientation="vertical"][data-variant="dotted"] {
     border-top: none;
     border-left: 1px dotted var(--border);
   }
 
   /* Large dashed/dotted thickness */
-  .react-aria-Separator.lg.dashed {
+  .react-aria-Separator.lg.dashed,
+  .react-aria-Separator[data-size="lg"][data-variant="dashed"] {
     border-width: 2px;
   }
 
-  .react-aria-Separator.lg.dotted {
+  .react-aria-Separator.lg.dotted,
+  .react-aria-Separator[data-size="lg"][data-variant="dotted"] {
     border-width: 2px;
   }
 }

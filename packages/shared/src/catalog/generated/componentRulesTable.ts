@@ -9471,26 +9471,29 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // paddingY 4/8/16 → 0 (2026-07-14): 간격은 margin(수동 Separator.css + Skia
+      //   implicitStyles sep_margin) 소관 — padding 으로 emit 되면 border-box 하한이
+      //   높이(1px)를 이겨 DOM 이 18px box 로 렌더 (Skia 390x1 과 발산 근본).
       sm: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 1,
         paddingX: 0,
-        paddingY: 4,
+        paddingY: 0,
       },
       md: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 1,
         paddingX: 0,
-        paddingY: 8,
+        paddingY: 0,
       },
       lg: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 1,
         paddingX: 0,
-        paddingY: 16,
+        paddingY: 0,
       },
     },
     structure: {
