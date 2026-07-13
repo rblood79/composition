@@ -812,6 +812,28 @@ export function applyImplicitStyles(
     return { effectiveParent, filteredChildren };
   }
 
+  // ── Table ──────────────────────────────────────────────────────────
+  // CSS Table.tsx 는 heightMode(default "fixed") 에서 컨테이너 높이를
+  // props.height(px, default 300) 로 고정한다 — 가상화 스크롤 영역이라 행 수와
+  // 무관. Skia layout 이 이를 미소비하면 content(헤더+바디 48px)로 수축해
+  // CSS(402) vs Skia(48) 발산 (2026-07-13 parity sweep). 사용자 style.height
+  // 명시 시 그 값 우선(미주입). heightMode "auto"/"viewport"/"full" 은 content
+  // 유지 — viewport/full 은 vh 단위라 엔진 px 모델 밖 (근사 주입보다 무주입이 안전).
+  if (containerTag === "table") {
+    const heightMode = (containerProps?.heightMode as string) ?? "fixed";
+    if (parentStyle.height == null && heightMode === "fixed") {
+      const fixedH =
+        typeof containerProps?.height === "number"
+          ? (containerProps.height as number)
+          : 300;
+      effectiveParent = withParentStyle(containerEl, {
+        ...parentStyle,
+        height: fixedH,
+        minHeight: fixedH,
+      });
+    }
+  }
+
   // ── TagGroup ───────────────────────────────────────────────────────
   // CSS 구조: TagGroup(column) > Label + TagList(row wrap) > Tags
   // TagList가 있으면 column 통과, 없으면(레거시) row wrap으로 보정

@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 회귀 테스트: `tree_golden.rs` N7 (Tabs 실전 형상 — definite 부모 안 auto-height column + flexGrow:1 자식, CSS 산술 손계산 golden). 변조→RED 확인 후 fix→GREEN (panels 971→24, tabs 1000→53)
   - 검증: cargo test 258 PASS (lib 234 + golden 15 + tree_golden 8 + doc 1), live builder 에서 Tabs 선택 확인 — TabList+패널이 콘텐츠 높이로 수렴
   - 위치: `packages/composition-engine/src/tree.rs` (solve_flex avail_main), `packages/composition-engine/tests/tree_golden.rs`
+- **Table 이 Skia 캔버스에서 고정 높이를 잃고 48px 로 수축** (CSS 402px vs Skia 48px):
+  - **Why**: CSS `Table.tsx` 는 `heightMode`(default "fixed") 에서 컨테이너 높이를 `props.height`(px, default 300) 로 고정하는 가상화 스크롤 계약인데, Skia layout 은 이 prop 을 소비하지 않고 content(헤더 24+바디 24)로 수축 — 렌더러만 아는 높이 계약이 layout 경로에 부재.
+  - 수정: `applyImplicitStyles` 에 table 분기 추가 — heightMode "fixed" 이고 사용자 `style.height` 미명시일 때 `props.height` 를 style.height/minHeight 로 주입. "auto"/"viewport"/"full" 은 content 유지(vh 단위는 엔진 px 모델 밖). `LAYOUT_PROP_KEYS` 에 `height`/`heightMode` 추가 — 편집 시 캐시 시그니처 무효화 (Disclosure isExpanded 선례 동형)
+  - 검증: live builder Table 선택 배지 390×400 (CSS 402 border-box 정합), type-check PASS
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`, `apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts`
 
 ## [문서 깨진 링크 475건 일괄 정리 — 경로 drift 복구 + 죽은 링크 해제] - 2026-07-13
 

@@ -147,6 +147,11 @@ const LAYOUT_PROP_KEYS = [
   //   시그니처에 포함. 누락 시 isExpanded 만 바뀌면 노드 시그니처 동일 → 캐시 히트로
   //   레이아웃 재계산 skip → collapse 가 Skia/layout 에 반영 안 됨.
   "isExpanded",
+  // Table 고정 높이 (2026-07-13 parity sweep): heightMode="fixed" 의 props.height 를
+  //   applyImplicitStyles 가 style.height 로 주입 — 편집 시 캐시 시그니처가 바뀌어야
+  //   재레이아웃된다 (Disclosure isExpanded 선례 동형).
+  "height",
+  "heightMode",
 ];
 
 function serializeLayoutRelevantValue(value: unknown): string {
