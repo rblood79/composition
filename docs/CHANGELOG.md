@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [CSS↔Skia 정합 수정 — ADR-916 후속 parity sweep] - 2026-07-13
+
+### Bug Fixes
+
+- **Tabs 가 Skia 캔버스에서 페이지 전체 높이로 폭발** (CSS 53px vs Skia 844/1024px):
+  - **Why**: 엔진 `solve_flex` 가 column flex 컨테이너의 main 축 available 산출 시, 컨테이너 height:auto(indefinite) 인데도 부모가 내려준 definite available(페이지 높이)을 그대로 main 으로 전달 → `implicitStyles` 가 TabPanels 에 주입하는 `flexGrow:1` 이 grow 분배를 발동해 페이지 높이를 채움. CSS §9.7 은 free space 를 definite main 에서만 산출 — 블록 레벨 stretch 는 인라인축(width)에만 적용된다. Taffy 시절엔 indefinite 처리로 무해했던 주입이 ADR-916 자체 엔진 전환 후 회귀로 전환된 사례.
+  - 수정: column 방향 main(=height)은 컨테이너 자신의 explicit height 가 있을 때만 definite, auto 면 `-1`(indefinite sentinel) 전달 — `flex.rs` 의 기존 Step 0 가드(available<0 → grow 미발동, hypothetical 유지)가 발동
+  - 회귀 테스트: `tree_golden.rs` N7 (Tabs 실전 형상 — definite 부모 안 auto-height column + flexGrow:1 자식, CSS 산술 손계산 golden). 변조→RED 확인 후 fix→GREEN (panels 971→24, tabs 1000→53)
+  - 검증: cargo test 258 PASS (lib 234 + golden 15 + tree_golden 8 + doc 1), live builder 에서 Tabs 선택 확인 — TabList+패널이 콘텐츠 높이로 수렴
+  - 위치: `packages/composition-engine/src/tree.rs` (solve_flex avail_main), `packages/composition-engine/tests/tree_golden.rs`
+
 ## [문서 깨진 링크 475건 일괄 정리 — 경로 drift 복구 + 죽은 링크 해제] - 2026-07-13
 
 ### Documentation

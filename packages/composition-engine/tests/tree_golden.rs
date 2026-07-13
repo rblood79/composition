@@ -270,6 +270,40 @@ fn tree_golden_n6_padded_flex_row_border_box() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// N7 auto-height column + flexGrow 자식 — indefinite main 은 grow 미발동 (CSS §9.7)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// N7 Tabs 실전 형상 (Chrome 실측 아님 — CSS §9.7 산술 손계산, N6 선례).
+/// 순서: [0] n7-list, [1] n7-content, [2] n7-panels, [3] n7-tabs, [4] n7-root.
+///
+/// root(block, height:1000px definite) 안의 tabs(flex column, height:auto)가
+/// flexGrow:1 자식(panels)을 가질 때: 컨테이너 main 크기가 indefinite 이므로
+/// free space 분배(grow)는 발동하지 않고 hypothetical(content 24)을 유지해야
+/// 한다(§9.7 — free space 는 definite main 에서만 산출). 회귀형: 부모가 준
+/// definite available(1000)을 main 크기로 오인해 panels 가 971 로 grow →
+/// tabs 가 페이지 높이로 폭발 (live Tabs 844/1024 발산, 2026-07-13 sweep).
+const N7_EXPECTED: &[[f32; 4]] = &[
+    [0., 0., 200., 29.],   // [0] n7-list  (고정 29)
+    [0., 29., 50., 24.],   // [1] n7-content
+    [0., 29., 200., 24.],  // [2] n7-panels (grow 미발동 = content 24, cross stretch 200)
+    [0., 0., 200., 53.],   // [3] n7-tabs  (auto = 29+24)
+    [0., 0., 200., 1000.], // [4] n7-root  (explicit 1000)
+];
+const N7_BATCH: &str = r#"[
+  {"style":{"width":"200px","height":"29px"},"children":[]},
+  {"style":{"width":"50px","height":"24px"},"children":[]},
+  {"style":{"display":"flex","flexDirection":"column","height":"auto","flexGrow":1},"children":[1]},
+  {"style":{"display":"flex","flexDirection":"column","width":"200px","height":"auto"},"children":[0,2]},
+  {"style":{"width":"200px","height":"1000px"},"children":[3]}
+]"#;
+
+#[test]
+fn tree_golden_n7_auto_column_flex_grow_no_distribution() {
+    let rel = layout_relative(N7_BATCH);
+    assert_tree_bounds("N7 auto-height column + flexGrow", &rel, N7_EXPECTED);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // field contract guard — EXPECTED 길이 = fixture 노드 수 (순서 drift 조기 검출)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -281,4 +315,5 @@ fn tree_golden_field_contract_guard() {
     assert_eq!(N4_EXPECTED.len(), 4, "N4 노드 4");
     assert_eq!(N5_EXPECTED.len(), 3, "N5 노드 3");
     assert_eq!(N6_EXPECTED.len(), 3, "N6 노드 3");
+    assert_eq!(N7_EXPECTED.len(), 5, "N7 노드 5");
 }

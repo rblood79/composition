@@ -597,10 +597,19 @@ impl LayoutTree {
         }
 
         // 3) main/cross available.
+        //
+        // column main(=height)은 컨테이너 자신의 height 가 explicit 일 때만 definite.
+        // height:auto 는 부모가 definite available 을 내려줘도 indefinite 다 —
+        // 블록 레벨 stretch 는 인라인축(width)에만 적용되고, flex free space 는
+        // definite main 에서만 산출된다(CSS §9.7). 상속 avail_h 를 그대로 main 으로
+        // 넘기면 flexGrow 자식이 페이지 높이로 grow 한다(tree_golden N7, live Tabs
+        // 844/1024 발산). row main(=width)은 auto 여도 블록 레벨 stretch 로 definite
+        // → 상속 available 유지.
         let (avail_main, avail_cross) = if is_row {
             (child_avail_w, child_avail_h)
         } else {
-            (child_avail_h, child_avail_w)
+            let main_h = if explicit_h > 0.0 { child_avail_h } else { -1.0 };
+            (main_h, child_avail_w)
         };
 
         let out = flex::flex_layout(
