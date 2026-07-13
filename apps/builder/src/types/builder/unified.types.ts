@@ -2371,7 +2371,11 @@ export function createDefaultStatusLightProps(): BaseElementProps {
     children: "Available",
     size: "md",
     style: {
-      display: "flex",
+      // catalog(D3 SSOT)·factory definition(2026-06-23 정정)과 동일한 inline-flex.
+      // 종전 flex 는 factory 정정에서 누락된 이중 default 소스 — palette 단순 경로
+      // (getDefaultProps)로 생성된 StatusLight 만 블록 stretch 로 발산했다
+      // (CSS 388 vs Skia 75, 2026-07-13 parity sweep).
+      display: "inline-flex",
       flexDirection: "row",
       alignItems: "center",
       gap: 8,

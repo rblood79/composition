@@ -14,7 +14,10 @@
       --switch-thumb-color: var(--fg-on-accent);
     }
 
-    display: flex;
+    /* catalog(D3 SSOT) containerStyles = inline-flex — 블록 stretch(flex) 였던
+       종전 값은 Skia(fit-content)와 폭 발산 (CSS 388 vs Skia 89, 2026-07-13 sweep).
+       S2 Switch 도 inline-flex. */
+    display: inline-flex;
     position: relative;
     align-items: center;
     gap: var(--switch-gap, 10px);

@@ -1382,7 +1382,9 @@ export const renderStatusLight = (
       data-element-id={element.id}
       data-custom-id={element.customId}
       style={{
-        display: "flex",
+        // catalog(D3 SSOT) generated StatusLight.css = inline-flex — 블록 stretch(flex)
+        // 였던 종전 inline 값은 Skia(fit-content 75)와 폭 발산 (CSS 388, 2026-07-13 sweep).
+        display: "inline-flex",
         flexDirection: "row",
         alignItems: "center",
         gap: 8,

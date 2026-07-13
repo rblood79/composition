@@ -3860,7 +3860,10 @@ export const INLINE_BLOCK_TAGS = new Set([
   "statuslight",
   "link",
   "linkbutton",
-  "breadcrumbs",
+  // "breadcrumbs" (컨테이너) 제거 (2026-07-13 parity sweep): catalog containerStyles 는
+  //   display:flex (블록 레벨 → 부모 폭 stretch) 이고 CSS 도 388 stretch 인데, fit-content
+  //   주입이 Skia 만 194 로 수축시켜 폭 발산. 높이는 implicitStyles breadcrumbs 분기가
+  //   계속 주입. 자식 "breadcrumb" (아래) 은 유지 — 개별 crumb 은 inline intrinsic.
   // ADR-086 P5: Breadcrumb child — implicitStyles 의 width/height 주입이 제거되므로
   //   enrichWithIntrinsicSize 가 calculateContentWidth/Height 의 breadcrumb 분기로
   //   intrinsic 치수를 산출해야 Taffy 가 배치할 수 있다.

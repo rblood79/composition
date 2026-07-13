@@ -29,6 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 검증: cargo test 259 PASS, live builder Calendar 390→278 / RangeCalendar 390→278 수렴 (잔여 Δ22/40 은 CalendarGrid 셀 메트릭 drift — 별도 항목)
   - 위치: `packages/composition-engine/src/tree.rs`, `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`
 
+- **Switch/StatusLight/Breadcrumbs 폭 발산 — fit-content ↔ stretch 분류 3종 정렬** (2026-07-13 parity sweep):
+  - **Switch**: catalog(D3 SSOT) containerStyles 는 `inline-flex` 인데 수동 `Switch.css` 가 `display: flex`(블록 stretch) → CSS 388 vs Skia 89 발산. CSS 를 inline-flex 로 정정 (S2 Switch 동일). **Why**: 수동 CSS 가 catalog 에서 파생되지 않은 D3 위반 잔존
+  - **StatusLight**: `createDefaultStatusLightProps`(palette 단순 경로)가 `display: flex` 로 남아 있던 이중 default 소스 — 2026-06-23 정정이 factory definition 에만 적용됨. getDefaultProps 도 inline-flex 로 정정 + Preview 렌더러 하드코드 기본값도 inline-flex 정렬. CSS 388 → 75 (Skia 75 정합)
+  - **Breadcrumbs**: catalog containerStyles 는 `display: flex`(블록 레벨 → stretch 의도)이고 CSS 도 388 stretch 인데, Skia 만 `INLINE_BLOCK_TAGS` fit-content 주입으로 194 수축 → 컨테이너 "breadcrumbs" 를 Set 에서 제거 (자식 "breadcrumb" 은 유지, 높이는 implicitStyles 분기 존속). Skia 194 → 390 (CSS 정합)
+  - **Menu 는 보류**: factory `width:100%`(2026-06-23 사용자 결정 — Menu=목록 표현) vs Preview 렌더러(트리거 chip 표현)의 표현 방식 충돌 — 분류 수정이 아닌 표현 설계 판단 필요
+  - 위치: `packages/shared/src/components/styles/Switch.css`, `packages/shared/src/renderers/LayoutRenderers.tsx`, `apps/builder/src/types/builder/unified.types.ts`, `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`
+
 ### Infrastructure
 
 - **layout 디버그 전역 `__composition_LAYOUT_DEBUG__` (dev 전용)**: 콘솔/자동화(Chrome MCP)의 CSS↔Skia parity 검증 하니스가 `getSharedLayoutMap`/`getSharedLayoutVersion` 을 읽는 단일 진입점. 콘솔 dynamic import 가 Vite HMR 이후 앱 그래프와 다른 모듈 인스턴스를 받는 문제 우회. production 빌드 제외.
