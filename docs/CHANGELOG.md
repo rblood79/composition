@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ProgressCircle / Avatar size 변경이 selection 영역에 미반영] - 2026-07-14
+
+### Bug Fixes
+
+- **ProgressCircle / Avatar 의 size 를 바꿔도 selection 영역(레이아웃 bounds)이 안 바뀜** (CSS/Skia 공통):
+  - **Why**: factory(`DisplayComponents.ts`)가 두 컴포넌트에 `props.style.width/height` 를 **32 숫자로 하드코딩**해 저장했다. 그러나 정원형 leaf 의 크기 SSOT 는 catalog `COMPONENT_RULES_TABLE.{Avatar,ProgressCircle}.sizes.{...}.height`(diameter=height) 다. inline 숫자가 있으면 `enrichWithIntrinsicSize` 가 `needsWidth/needsHeight=false` 로 **early return** 하여 size→diameter 분기가 아예 호출되지 않는다 → size 를 sm/lg 로 바꿔도 layout bounds 가 32 에 고정 → selection 박스 미갱신 + 양쪽 렌더 크기 미반영. **md 에서만 우연히 catalog 값(32)과 일치**해 정상으로 보였다.
+  - 수정: (1) factory inline `width/height` 제거 — 크기 결정권을 catalog 로 환원(`marginLeft:-8` 같은 catalog 미보유 값은 보존). (2) Avatar 는 `IMAGE_INTRINSIC_TAGS` 소속이라 `needsWidth` 조건(문자열 키워드 한정)에 안 걸려 inline 제거 시 width 가 0 이 되던 문제 → `CIRCLE_LEAF_TAGS` 분기를 `needsWidth` + `childResolvedWidth` 양쪽에 추가. (3) 기존 직렬화 프로젝트의 stale inline 은 hydration migration(`circleLeafInlineSizeMigration`)이 strip — **factory 기본값(32)과 정확히 일치할 때만** 제거하여 사용자가 조정한 크기는 보존.
+  - 검증: live builder 3축 실측 — Size 컨트롤 L 클릭 시 store `size:"lg"` / layout bounds 64×64(selection) / Preview DOM `data-size="lg"` width 64px 전부 일치. 기존 프로젝트 새로고침 시 stale inline(`width:32`)이 실제로 strip 되어 `style:{}` 로 정리됨을 확인. 회귀 테스트 31건 신규(레이아웃 20 + migration 11).
+  - 위치: `apps/builder/src/builder/factories/definitions/DisplayComponents.ts`, `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`, `apps/builder/src/adapters/canonical/circleLeafInlineSizeMigration.ts`
+
 ## [Avatar 이니셜 정렬 CSS↔Skia 발산 수정] - 2026-07-14
 
 ### Bug Fixes

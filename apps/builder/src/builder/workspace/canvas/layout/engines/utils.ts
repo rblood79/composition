@@ -93,18 +93,36 @@ import {
   shouldSetAutoHeightForAspectRatio,
 } from "../../../../utils/aspectRatio";
 
-// ─── ProgressCircle diameter (ADR-912 Phase 5 — catalog SSOT collapse) ──────
-// ProgressCircle 은 정원형이라 diameter = `componentRulesTable.ProgressCircle.sizes.{...}.height`.
+// ─── 정원형 leaf diameter (ADR-912 Phase 5 — catalog SSOT collapse) ──────────
+// ProgressCircle / Avatar 는 정원형이라 diameter = `componentRulesTable.{Type}.sizes.{...}.height`.
 //   구 `PROGRESSCIRCLE_DIAMETER` 평행 상수(sm:24/md:32/lg:64)는 catalog `.sizes.height` 와 byte
 //   일치하던 dual-SSOT 미러였다(Δ8). catalog read-through 로 단일화. strokeWidth(sm/md:3, lg:4)는
 //   Skia escape(value_fill_arc)+DOM adapter 전용이라 layout 측정 무관 → 흡수 대상 아님.
-function progressCircleDiameter(sizeName: string): number {
-  const sizes = resolveSkiaRule("ProgressCircle")?.sizes as
-    | Record<string, ComponentRuleSize>
-    | undefined;
+//
+// **size 변경이 selection 영역에 반영되려면 본 read-through 가 유일 크기 source 여야 한다**
+//   (2026-07-14): factory 가 `props.style.width/height` 를 숫자로 박아두면 enrichWithIntrinsicSize
+//   가 `needsWidth/needsHeight=false` 로 early return 하여 본 분기가 아예 호출되지 않는다 →
+//   size 를 바꿔도 layout bounds 가 factory 기본값(32)에 고정 → selection 박스 미갱신.
+//   factory inline 은 제거됐고(DisplayComponents.ts), 기존 프로젝트는 hydration migration
+//   (circleLeafInlineSizeMigration.ts)이 strip 한다.
+const CIRCLE_LEAF_DIAMETER_FALLBACK = 32;
+
+/** 소문자 element type → catalog PascalCase key (resolveSkiaRule 입력). */
+const CIRCLE_LEAF_TAGS: ReadonlyMap<string, string> = new Map([
+  ["progresscircle", "ProgressCircle"],
+  ["avatar", "Avatar"],
+]);
+
+function circleLeafDiameter(type: string, sizeName: string): number {
+  const catalogKey = CIRCLE_LEAF_TAGS.get(type);
+  const sizes = catalogKey
+    ? (resolveSkiaRule(catalogKey)?.sizes as
+        | Record<string, ComponentRuleSize>
+        | undefined)
+    : undefined;
   const entry = sizes?.[sizeName] ?? sizes?.md;
   const h = entry?.height;
-  return typeof h === "number" ? h : 32;
+  return typeof h === "number" ? h : CIRCLE_LEAF_DIAMETER_FALLBACK;
 }
 
 // ADR-912 Phase 5 — DisclosureHeader box height/paddingX/iconSize 도 catalog `.sizes` read-through.
@@ -1471,15 +1489,15 @@ export function calculateContentWidth(
     return Math.ceil(measuredWidth);
   }
 
-  // 1.3. ProgressCircle: diameter 기반 고정 크기
+  // 1.3. ProgressCircle / Avatar: diameter 기반 고정 크기 (정원형 leaf)
   //   ADR-912 단계5: spec 삭제(generate-css virtual 일반화) 정합 — diameter = rule.height
-  //   (componentRulesTable.ProgressCircle.sizes.{sm:24,md:32,lg:64} 인라인 미러, 정원형이라 diameter=height).
-  //   strokeWidth 는 Skia escape(value_fill_arc)+DOM adapter 전용이라 layout 측정 무관.
-  if (type === "progresscircle") {
+  //   (componentRulesTable.{ProgressCircle.sizes.{sm:24,md:32,lg:64} / Avatar.sizes.{xs:24..xl:48}},
+  //   정원형이라 diameter=height). strokeWidth 는 Skia escape(value_fill_arc)+DOM adapter 전용이라
+  //   layout 측정 무관.
+  if (CIRCLE_LEAF_TAGS.has(type)) {
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = String(props?.size ?? "md");
-    const diameter = progressCircleDiameter(sizeName);
-    return diameter;
+    return circleLeafDiameter(type, sizeName);
   }
 
   // 🚀 ToggleButtonGroup: 자식 ToggleButton 의 실제 border-box 폭을 산출하여 합산/max.
@@ -2515,12 +2533,11 @@ export function calculateContentHeight(
     return estimateTextHeight(fontSize, effectiveLineHeight);
   }
 
-  // 2.6a. ProgressCircle: diameter 기반 고정 크기 (ADR-912 단계5 — diameter = rule.height 인라인 미러)
-  if (type === "progresscircle") {
+  // 2.6a. ProgressCircle / Avatar: diameter 기반 고정 크기 (정원형 leaf — diameter = rule.height)
+  if (CIRCLE_LEAF_TAGS.has(type)) {
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = String(props?.size ?? "md");
-    const diameter = progressCircleDiameter(sizeName);
-    return diameter;
+    return circleLeafDiameter(type, sizeName);
   }
 
   // 2.6. ProgressBar/Meter: spec shapes 기반 높이 계산
@@ -4048,6 +4065,11 @@ export function enrichWithIntrinsicSize(
     hasExplicitIntrinsicWidthKeyword ||
     (INLINE_BLOCK_TAGS.has(type) &&
       (!rawWidth || INTRINSIC_SIZE_KEYWORDS.has(rawWidth as string))) ||
+    // 정원형 leaf(ProgressCircle/Avatar): width = diameter = catalog sizes.height.
+    //   progresscircle 은 INLINE_BLOCK_TAGS 로도 커버되지만 avatar 는 IMAGE_INTRINSIC_TAGS 소속이라
+    //   아래 조건(문자열 키워드 한정)에 안 걸린다 — width 미주입 시 layout 0 → 명시 분기 필요.
+    (CIRCLE_LEAF_TAGS.has(type) &&
+      (!rawWidth || INTRINSIC_SIZE_KEYWORDS.has(rawWidth as string))) ||
     (isFlexChild &&
       TEXT_LEAF_TAGS.has(type) &&
       (!rawWidth || INTRINSIC_SIZE_KEYWORDS.has(rawWidth as string))) ||
@@ -4193,7 +4215,9 @@ export function enrichWithIntrinsicSize(
           getChildElements,
           _computedStyle,
         )
-      : INLINE_BLOCK_TAGS.has(type) || hasExplicitIntrinsicWidthKeyword
+      : INLINE_BLOCK_TAGS.has(type) ||
+          CIRCLE_LEAF_TAGS.has(type) ||
+          hasExplicitIntrinsicWidthKeyword
         ? calculateContentWidth(
             element,
             undefined,

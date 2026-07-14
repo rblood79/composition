@@ -31,6 +31,7 @@ import { countUserPagesForAutoName } from "../pages/systemComponentsPage";
 import { migrateLegacyListBoxTemplatesToOrigins } from "../../adapters/canonical/legacyListBoxTemplateMigration";
 import { migrateCheckboxRadioItemsStructure } from "../../adapters/canonical/checkboxRadioItemsMigration";
 import { migrateFieldInlineLayout } from "../../adapters/canonical/fieldInlineLayoutMigration";
+import { migrateCircleLeafInlineSize } from "../../adapters/canonical/circleLeafInlineSizeMigration";
 import { ensureReusableCompositeOrigins } from "../components/reusableCompositeOrigins";
 
 const PAGE_STACK_GAP = 80;
@@ -380,10 +381,14 @@ export const usePageManager = ({
         //   anchor strip 을 hydration 시점에 함께 수행. anchor 가 제거되면 document 참조가
         //   바뀌어 아래 persist-back 으로 IndexedDB 가 정리된다(멱등 — anchor 없으면 no-op).
         const document = ensureReusableCompositeOrigins(
-          // ADR-913 후속 (2026-06-19): field inline display/flexDirection strip (persist-back 경로).
-          migrateFieldInlineLayout(
-            migrateCheckboxRadioItemsStructure(
-              migrateLegacyListBoxTemplatesToOrigins(baseDocument),
+          // 2026-07-14: 정원형 leaf(Avatar/ProgressCircle) stale inline width/height strip
+          //   (persist-back 경로) — 크기 결정권을 catalog sizes 로 환원.
+          migrateCircleLeafInlineSize(
+            // ADR-913 후속 (2026-06-19): field inline display/flexDirection strip (persist-back 경로).
+            migrateFieldInlineLayout(
+              migrateCheckboxRadioItemsStructure(
+                migrateLegacyListBoxTemplatesToOrigins(baseDocument),
+              ),
             ),
           ),
         );

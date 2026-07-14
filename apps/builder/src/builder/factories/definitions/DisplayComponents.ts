@@ -23,10 +23,11 @@ export function createAvatarDefinition(
         initials: "A",
         size: "md",
         isDisabled: false,
-        style: {
-          width: 32,
-          height: 32,
-        },
+        // width/height inline 금지 (2026-07-14): 정원형 leaf 의 크기는 catalog
+        //   `COMPONENT_RULES_TABLE.Avatar.sizes.{xs..xl}.height` 가 SSOT 다. inline 숫자를 박으면
+        //   enrichWithIntrinsicSize 가 needsWidth/needsHeight=false 로 early return 하여 size→
+        //   diameter 분기가 아예 안 돌고, size 를 바꿔도 layout bounds(=selection 박스)가 32 로
+        //   고정된다. [[feedback-layout-default-belongs-in-catalog-not-factory-overlay]]
       } as ComponentElementProps,
       parent_id: parentId,
     },
@@ -64,6 +65,8 @@ export function createAvatarGroupDefinition(
       } as ComponentElementProps,
       parent_id: parentId,
     },
+    // 자식 Avatar 의 width/height inline 은 제거(크기는 catalog sizes SSOT — createAvatarDefinition
+    //   주석 참조). marginLeft:-8(겹침 효과)은 catalog 미보유 레이아웃 값이라 inline 유지.
     children: [
       {
         type: "Avatar",
@@ -71,8 +74,6 @@ export function createAvatarGroupDefinition(
           initials: "A",
           size: "md",
           style: {
-            width: 32,
-            height: 32,
             marginLeft: -8,
           },
         } as ComponentElementProps,
@@ -83,8 +84,6 @@ export function createAvatarGroupDefinition(
           initials: "B",
           size: "md",
           style: {
-            width: 32,
-            height: 32,
             marginLeft: -8,
           },
         } as ComponentElementProps,
@@ -95,8 +94,6 @@ export function createAvatarGroupDefinition(
           initials: "C",
           size: "md",
           style: {
-            width: 32,
-            height: 32,
             marginLeft: -8,
           },
         } as ComponentElementProps,
@@ -441,10 +438,8 @@ export function createProgressCircleDefinition(
         size: "md",
         isIndeterminate: false,
         isDisabled: false,
-        style: {
-          width: 32,
-          height: 32,
-        },
+        // width/height inline 금지 — 크기는 catalog `COMPONENT_RULES_TABLE.ProgressCircle.sizes`
+        //   .{sm:24,md:32,lg:64}.height 가 SSOT (createAvatarDefinition 주석 참조).
       } as ComponentElementProps,
       parent_id: parentId,
     },

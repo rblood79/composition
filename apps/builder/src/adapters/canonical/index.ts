@@ -47,6 +47,7 @@ import {
 import { migrateLegacyListBoxTemplatesToOrigins } from "./legacyListBoxTemplateMigration";
 import { migrateCheckboxRadioItemsStructure } from "./checkboxRadioItemsMigration";
 import { migrateFieldInlineLayout } from "./fieldInlineLayoutMigration";
+import { migrateCircleLeafInlineSize } from "./circleLeafInlineSizeMigration";
 import { ensureReusableCompositeOrigins } from "../../builder/components/reusableCompositeOrigins";
 import { buildIdPathContext, segId } from "./idPath";
 import { buildLegacyElementMetadata } from "./legacyMetadata";
@@ -326,16 +327,20 @@ export function legacyToCanonical(
     : undefined;
 
   return ensureReusableCompositeOrigins(
-    // ADR-913 후속 (2026-06-19): field family inline display/flexDirection strip —
-    //   labelPosition="side" CSS↔Skia 대칭 복구. checkboxRadio migration 동형 chain.
-    migrateFieldInlineLayout(
-      migrateCheckboxRadioItemsStructure(
-        migrateLegacyListBoxTemplatesToOrigins({
-          version: "composition-1.0",
-          ...(themesSnapshot !== undefined ? { themes: themesSnapshot } : {}),
-          ...(tokensSnapshot !== undefined ? { tokens: tokensSnapshot } : {}),
-          children: [...layoutFrames, ...reusableMasters, ...pageNodes],
-        }),
+    // 2026-07-14: 정원형 leaf(Avatar/ProgressCircle) stale inline width/height strip —
+    //   size 변경이 selection 영역에 반영되도록 크기 결정권을 catalog sizes 로 환원.
+    migrateCircleLeafInlineSize(
+      // ADR-913 후속 (2026-06-19): field family inline display/flexDirection strip —
+      //   labelPosition="side" CSS↔Skia 대칭 복구. checkboxRadio migration 동형 chain.
+      migrateFieldInlineLayout(
+        migrateCheckboxRadioItemsStructure(
+          migrateLegacyListBoxTemplatesToOrigins({
+            version: "composition-1.0",
+            ...(themesSnapshot !== undefined ? { themes: themesSnapshot } : {}),
+            ...(tokensSnapshot !== undefined ? { tokens: tokensSnapshot } : {}),
+            children: [...layoutFrames, ...reusableMasters, ...pageNodes],
+          }),
+        ),
       ),
     ),
   );
