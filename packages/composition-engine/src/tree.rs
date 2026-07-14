@@ -758,28 +758,60 @@ impl LayoutTree {
 
         // 1) 자식 재귀 solve → 각 자식 content 크기 확보.
         //
-        // **cross 를 stretch 하지 않는 컨테이너는 자식에게 indefinite cross available 을 내린다.**
-        //   `align-items` 가 stretch(기본값)면 auto-cross 자식은 컨테이너 cross 로 늘어나므로
-        //   containing block 이 확정이다. flex-start/center/end 면 자식은 **shrink-to-fit** —
-        //   자기 콘텐츠가 크기를 정하므로, 그 자식이 **컨테이너**일 때 그 안쪽 `%` cross 가
-        //   참조할 확정 basis 가 없다. 이 신호가 자식의 `cross_definite_self` 규칙 (b)
-        //   (`avail_* >= 0`) 로 전달돼 shrink-to-fit / stretch 를 구분한다.
+        // **cross 를 stretch 하지 않는 컨테이너는 auto-cross 자식에게 indefinite cross
+        //   available 을 내린다.** `align-items` 가 stretch(기본값)면 auto-cross 자식은 컨테이너
+        //   cross 로 늘어나므로 containing block 이 확정이다. flex-start/center/end 면 그 자식은
+        //   **shrink-to-fit** — 자기 콘텐츠가 크기를 정하므로, 그 자식이 **컨테이너**일 때 그
+        //   안쪽 `%` cross 가 참조할 확정 basis 가 없다(CSS §10.2 → `%` → auto). 이 신호가 자식의
+        //   `cross_definite_self` 규칙 (b)(`avail_* >= 0`) 로 전달된다.
+        //
+        //   **단, cross 를 명시한 자식은 예외 (2026-07-14)**: `align-items` 는 *auto-cross 자식을
+        //   늘릴지*만 정할 뿐, **cross 를 명시한 자식에는 아무 영향이 없다**. 그런 자식의 cross 는
+        //   `align-items` 와 무관하게 **확정**이다. 이 예외가 없으면 `align-items:flex-start` 인
+        //   컨테이너 밑에서 `width:100%` 로 폭이 확정된 자식(SelectTrigger)까지 indefinite 를 받아
+        //   → 그 자식의 main(row=width) 이 indefinite → **flex grow 분배가 통째로 skip**
+        //   (flex.rs Step 0 early return) → `flex:1`(basis 0%) 인 DateInput 이 **폭 0 으로 붕괴**
+        //   했다 (DOM 은 grow 로 308). 반대로 예외를 자식별이 아니라 컨테이너 전체로 넓히면
+        //   (cross_definite_self 로 판정) width 미지정 DatePicker 가 shrink-to-fit 을 잃고
+        //   available(350)로 팽창한다 — 그래서 **자식별 판정**이어야 한다.
         //
         //   **주의 — 축을 정확히**: row 컨테이너의 cross 는 **height**, column 은 **width**.
         //   초기 시도가 이걸 `%` 해석 컨텍스트와 뒤섞어(`align-items:center` row trigger 가
         //   자식에게 indefinite height 를 내려 SelectValue 가 0) 회귀를 냈다. 여기서 내리는 건
         //   **available 뿐**이고, `%` 해석은 위 `cross_ctx` 가 별도로 담당한다.
         let stretches_children_cross = align_items == 0;
-        let (child_solve_w, child_solve_h) = if stretches_children_cross {
-            (child_avail_w, child_avail_h)
-        } else if is_row {
-            (child_avail_w, INDEFINITE_AVAIL) // row → cross = height
-        } else {
-            (INDEFINITE_AVAIL, child_avail_h) // column → cross = width
+        let child_cross_solve = |c: usize| -> (f32, f32) {
+            if stretches_children_cross {
+                return (child_avail_w, child_avail_h);
+            }
+            // 자식이 cross 를 **명시**했으면 align-items 와 무관하게 확정 → available 유지.
+            let cross_raw = self.get(c).and_then(|n| {
+                if is_row {
+                    n.style.height.clone()
+                } else {
+                    n.style.width.clone()
+                }
+            });
+            let child_cross_explicit = cross_raw
+                .as_deref()
+                .map(|v| {
+                    let t = v.trim();
+                    !t.is_empty() && !t.eq_ignore_ascii_case("auto") && t != "fit-content"
+                })
+                .unwrap_or(false);
+            if child_cross_explicit {
+                (child_avail_w, child_avail_h)
+            } else if is_row {
+                (child_avail_w, INDEFINITE_AVAIL) // row → cross = height
+            } else {
+                (INDEFINITE_AVAIL, child_avail_h) // column → cross = width
+            }
         };
+        let child_solves: Vec<(f32, f32)> = children.iter().map(|&c| child_cross_solve(c)).collect();
         let mut child_sizes: Vec<(f32, f32)> = Vec::with_capacity(children.len());
-        for &c in children {
-            let cs = self.solve_node(c, child_solve_w, child_solve_h);
+        for (i, &c) in children.iter().enumerate() {
+            let (sw, sh) = child_solves[i];
+            let cs = self.solve_node(c, sw, sh);
             child_sizes.push(cs);
         }
 
@@ -902,11 +934,12 @@ impl LayoutTree {
                 }
 
                 self.mark_subtree_dirty(c);
-                // cross available 은 1차 solve 와 동일 규칙 (컨테이너 cross 가 auto 면 indefinite).
+                // cross available 은 1차 solve 와 동일 규칙 (자식별 — 위 child_solve_cross).
+                let (cs_w, cs_h) = child_solves[i];
                 let (re_w, re_h) = if is_row {
-                    self.solve_node(c, used_main, child_solve_h)
+                    self.solve_node(c, used_main, cs_h)
                 } else {
-                    self.solve_node(c, child_solve_w, used_main)
+                    self.solve_node(c, cs_w, used_main)
                 };
 
                 if overridden {
@@ -2991,6 +3024,46 @@ mod tests {
         let trg = tree.get_layout(handles[3]);
         assert_eq!(trg.height, 30.0, "trigger explicit height 30 유지 (live 28 회귀)");
         assert_eq!(di.height, 20.0, "DateInput height:100% → 부모 content-box 20 (live 0 회귀)");
+    }
+
+    /// `flex:1`(basis 0%) 자식이 **definite main 컨테이너 안에서 grow** 해야 한다.
+    ///
+    /// 회귀 (2026-07-14, DatePicker): column DatePicker 의 `align-items:flex-start` 가
+    ///   **cross 를 명시한 자식(SelectTrigger `width:100%`)에게까지** indefinite width 를
+    ///   내려 → trigger 의 main(row=width) 이 indefinite → flex.rs Step 0 early-return 으로
+    ///   **grow 분배 전체 skip** → `flex:1`(basis 0%) DateInput 이 **폭 0** 으로 붕괴.
+    ///   (DOM 은 grow 로 308.) `align-items` 는 auto-cross 자식만 대상이다.
+    #[test]
+    fn flex_grow_basis_zero_child_grows_in_definite_main_container() {
+        let mut tree = LayoutTree::new();
+        // live batch 실측 그대로 (2026-07-14, JS 가 intrinsic width 를 굳히지 않게 고친 뒤):
+        //   DateInput 은 width 없음 + `flex:1`(grow 1 / basis 0%) + minWidth 0.
+        // post-order: Label(0), DateInput(1), SelectIcon(2), SelectTrigger(3), DatePicker(4), body(5)
+        let json = r#"[
+            {"style":{"display":"block","width":"fit-content","height":"20px","minWidth":"74px","flexShrink":0},"children":[]},
+            {"style":{"display":"block","height":"100%","flexGrow":1,"flexShrink":1,"flexBasis":"0%","minWidth":"0px"},"children":[]},
+            {"style":{"display":"block","width":"18px","height":"18px","flexShrink":0},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","alignItems":"center","columnGap":"4px","rowGap":"4px","height":"30px","width":"100%",
+                      "paddingTop":"4px","paddingBottom":"4px","paddingLeft":"12px","paddingRight":"4px",
+                      "borderTop":"1px","borderBottom":"1px","borderLeft":"1px","borderRight":"1px"},"children":[1,2]},
+            {"style":{"display":"flex","flexDirection":"column","alignItems":"flex-start","rowGap":"4px","columnGap":"4px"},"children":[0,3]},
+            {"style":{"display":"block","width":"390px","height":"844px","overflowX":"auto","overflowY":"auto"},"children":[4]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[5], 390.0, 844.0);
+
+        let trg = tree.get_layout(handles[3]);
+        assert_eq!(trg.width, 390.0, "trigger width:100% → 390");
+
+        // trigger content-box = 390 - paddingL 12 - paddingR 4 - border 2 = 372.
+        // 372 - icon 18 - gap 4 = 350 → DateInput 이 남은 공간을 전부 grow.
+        let di = tree.get_layout(handles[1]);
+        assert_eq!(di.width, 350.0, "flex:1 (basis 0%) → 남은 공간 grow (0 붕괴 회귀)");
+        assert_eq!(di.height, 20.0, "height:100% → trigger content-box 20");
+
+        // icon 은 DateInput 뒤로 밀려난다 — grow 가 죽으면 x=17 로 딸려온다.
+        let ic = tree.get_layout(handles[2]);
+        assert_eq!(ic.x, 367.0, "icon 이 grow 된 DateInput 뒤에 배치 (x=17 회귀)");
     }
 
     #[test]

@@ -4055,6 +4055,27 @@ export function enrichWithIntrinsicSize(
   const overflow = (style?.overflow as string) ?? "visible";
   const isOverflowClipped = overflow !== "visible";
 
+  // grow 하는 flex item 은 intrinsic width 를 **명시 width 로 굳히면 안 된다** (2026-07-14).
+  //   CSS 에서 intrinsic 폭은 flex **base size** 일 뿐이고 used 폭은 grow 분배 결과다.
+  //   `width` 로 박으면 free space 분배가 원천 차단된다 (flex-grow 가 죽음).
+  //   회귀: DatePicker > SelectTrigger > DateInput(`flex:1 minWidth:0`) 이 INLINE_BLOCK_TAGS
+  //   소속이라 needsWidth=true → width=102(콘텐츠) 주입 → trigger 가 350 인데 DateInput 은
+  //   102 에 고정, icon 이 x=119 로 딸려옴 (DOM 은 grow 로 308 / icon x=345).
+  //   같은 `flex:1 minWidth:0` 을 받는 SelectValue 는 INLINE_BLOCK_TAGS 비소속이라 width
+  //   미주입 → 정상 grow. 즉 Select 의 정상 동작은 **우연**이었다.
+  const growRaw =
+    style?.flexGrow ??
+    (typeof style?.flex === "number"
+      ? style.flex
+      : typeof style?.flex === "string"
+        ? parseFloat(style.flex)
+        : undefined);
+  const growsInFlex =
+    isFlexChild === true &&
+    typeof growRaw === "number" &&
+    Number.isFinite(growRaw) &&
+    growRaw > 0;
+
   const rawHeight = style?.height;
   const needsHeight =
     !rawHeight || INTRINSIC_SIZE_KEYWORDS.has(rawHeight as string);
@@ -4251,19 +4272,31 @@ export function enrichWithIntrinsicSize(
     // flex-wrap 컨테이너에서 자식 합계가 부모 폭을 미세하게 초과하여
     // 불필요한 wrap이 발생하는 것을 방지
     const ceiledWidth = Math.ceil(injectWidth);
-    injectedStyle.width = ceiledWidth;
+    // grow 하는 item 은 width 를 굳히지 않는다 (위 growsInFlex 주석). 이때 intrinsic 폭은
+    //   버리는 게 아니라 **min-width:auto 상당의 하한**으로만 남긴다 — free space 가 없으면
+    //   콘텐츠 폭을 지키고, 있으면 그 위로 grow 한다. minWidth 를 사용자가 명시했으면 그게 우선
+    //   (`flex:1 minWidth:0` 은 "콘텐츠 밑으로도 줄어도 된다"는 명시적 의사표시 → 하한 0 유지).
+    if (!growsInFlex) {
+      injectedStyle.width = ceiledWidth;
+    }
     // CSS min-width:auto 에뮬레이션: flex item의 기본 min-width는 콘텐츠 크기
     // width를 주입하면 Taffy가 flex-shrink로 축소할 수 있으므로 minWidth도 동시 설정
-    // 사용자가 명시적 minWidth를 설정한 경우는 보존
-    if (isFlexChild && !style?.minWidth) {
+    // 사용자가 명시적 minWidth를 설정한 경우는 보존 —
+    //   `!style?.minWidth` 는 **minWidth:0 을 미설정으로 오판**한다(falsy 함정). 0 은 "콘텐츠
+    //   밑으로 축소 허용"이라는 명시 값이므로 덮어쓰면 안 된다 (DateInput/SelectValue 가
+    //   implicitStyles 에서 `minWidth: 0` 을 받는다) → `== null` 로 판정.
+    if (isFlexChild && style?.minWidth == null) {
       injectedStyle.minWidth = ceiledWidth;
     }
   }
 
-  // 변경이 없으면 원본 반환
+  // 변경이 없으면 원본 반환.
+  //   minWidth 도 비교 대상 — growsInFlex 경로는 width 를 주입하지 않으므로(위) minWidth 만
+  //   바뀔 수 있고, width/height 만 보면 그 주입이 조용히 버려진다.
   if (
     injectedStyle.height === undefined &&
-    injectedStyle.width === style?.width
+    injectedStyle.width === style?.width &&
+    injectedStyle.minWidth === style?.minWidth
   ) {
     return element;
   }

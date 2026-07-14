@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [flex-grow 분배 복구 — intrinsic 폭을 명시 width 로 굳혀 grow 차단 / align-items 를 indefinite 신호로 오용] - 2026-07-14
+
+### Bug Fixes
+
+- **`flex:1` 자식이 grow 하지 못하고 콘텐츠 폭에 고정** (직전 커밋 `d0435ed4e` 의 잔여 항목 해소):
+  - 증상: Skia DatePicker 의 DateInput 이 폭 **102**(콘텐츠)에 고정되고 chevron 아이콘이 x=119 로 딸려옴. DOM 은 `flex:1 1 0%` 로 **308** 까지 grow 하고 아이콘은 우측 끝(x=345). 같은 페이지의 **TextField 도 96 에 고정**(DOM 390) — 동일 결함의 다른 발현이었다.
+  - **(1) layout — intrinsic 폭을 `width` 로 굳혀 grow 를 원천 차단** (`enrichWithIntrinsicSize`): `INLINE_BLOCK_TAGS` 자식은 콘텐츠 폭을 **명시 `width`** 로 주입받는다. **Why**: CSS 에서 intrinsic 폭은 flex **base size** 일 뿐이고 used 폭은 free space 분배 결과다 — `width` 로 박으면 분배가 불가능해진다. `dateinput` 은 standalone DateField 의 box 가 텍스트를 담도록 2026-06-23 에 `INLINE_BLOCK_TAGS` 로 등록됐는데, 그 등록이 **picker 안에서 grow 해야 하는 경우까지** 폭을 굳혔다. 같은 `flex:1 minWidth:0` 을 받는 **SelectValue 는 `INLINE_BLOCK_TAGS` 비소속**이라 애초에 width 가 안 박혀 정상 grow 했다 — Select 의 정상 동작은 **우연**이었다. 수정: `flex-grow > 0` 인 flex item 에는 width 를 주입하지 않고, intrinsic 폭은 `minWidth` 하한으로만 남긴다.
+  - **(2) layout — `minWidth: 0` 을 미설정으로 오판** (falsy 함정): 보존 가드가 `!style?.minWidth` 라서 **`0` 을 미설정으로 읽어** intrinsic 폭으로 덮어썼다. `minWidth: 0` 은 implicitStyles 가 `flex:1` 과 **짝으로** 주입하는 "콘텐츠 밑으로도 축소 허용" 명시값이다. 수정: `== null` 판정. 동시에 "변경 없으면 원본 반환" 가드가 width/height 만 비교해 **minWidth 단독 주입을 조용히 버리던** 문제도 함께 수정.
+  - **(3) 엔진 — `align-items` 를 컨테이너 cross 의 indefinite 신호로 오용** (`tree.rs::solve_flex`): 비-stretch 컨테이너가 **모든** 자식에게 `INDEFINITE_AVAIL` 을 내려보냈다. **Why**: `align-items` 는 *auto-cross 자식을 늘릴지*만 정할 뿐 **cross 를 명시한 자식에는 아무 영향이 없다**. `align-items:flex-start` 인 DatePicker 밑에서 **`width:100%` 로 폭이 확정된 SelectTrigger** 까지 indefinite 를 받아 → trigger 의 main(row=width) 이 indefinite → `flex.rs` 의 **Step 0 early-return 으로 grow 분배가 통째로 skip** → `flex:1`(basis 0%) 인 DateInput 이 **폭 0** 으로 붕괴했다. 수정: **자식별 판정** — cross 를 명시한 자식은 available 을 그대로 받고, auto-cross 자식만 indefinite 를 받는다. (컨테이너 단위로 넓히면 width 미지정 DatePicker 가 shrink-to-fit 을 잃고 350 으로 팽창 — 그래서 자식별이어야 한다.)
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`, `packages/composition-engine/src/tree.rs`
+  - 검증 (live builder 실측, 수정 전 → 후): DateInput 폭 **102 → 310** (DOM 308, 잔여 2px 은 아이콘 18 vs DOM 버튼 20 차이 — layout 아님), SelectIcon x **119 → 327** (DOM 325), **TextField 96 → 390** (DOM probe 실측 390 으로 확증). 페이지 전체 18개 요소 before/after diff 결과 **변경 3건이 전부 위 의도된 수정**이며 부수 변화 0건. Rust 280건 전체 통과(회귀 0, Chrome 실측 golden 25건 + shrink-to-fit/stretch 양쪽 contract 동시 lock), 신규 회귀 테스트 Rust 1건 + JS 8건(수정 전 RED 5건 확인). canvas 실패 12건은 clean-tree baseline 과 동일한 기존 실패(`tagSpecMap`/`canvasSceneNode` 등, 격리 실행으로 무관함 확증). type-check PASS.
+
 ## [DatePicker DateInput height 0 — 2-pass 가 주입 height 삭제 / stretch vs shrink-to-fit 구분] - 2026-07-14
 
 ### Bug Fixes
@@ -17,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **(2) 엔진 — stretch 부모와 shrink-to-fit 부모를 구분하지 못함** — 직전 커밋(7ab97be2e)의 `cross_definite_self` 가 **명시 크기(`explicit_*`)만** 보았다. **Why**: block 부모 안의 block-level flex 컨테이너는 **width 명시가 없어도 부모 폭으로 stretch** 되므로 그 폭은 확정이다(`body(block) > DatePicker > SelectTrigger(width:100%)` → 390 이 정답, DOM 390). 명시 크기만 보면 이 케이스를 shrink-to-fit 으로 오판해 trigger 가 콘텐츠 폭(160)으로 수축한다. definite 판정에 **(b) 부모가 definite available 을 내려줌(`avail_* >= 0`)** 을 추가 — shrink-wrap 하는 부모(flex `align-items:flex-start` 등)만 자식에게 `INDEFINITE_AVAIL`(음수)을 내려보내므로, 이 신호로 두 케이스가 갈린다. 직전 커밋의 shrink-to-fit 정합(`body(flex column, align-items:flex-start)`)은 그대로 유지.
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`, `packages/composition-engine/src/tree.rs`
   - 검증 (live builder 실측): DateInput **h=20**(수정 전 0, Skia 에서 소실) = DOM 20, SelectTrigger **390×30** = DOM 390×30, DatePicker **390×54** = DOM 390×54. Rust 신규 3건(1-pass 정확성 + stretch 390 + shrink-to-fit 93 동시 lock) + 전체 279건 통과(회귀 0, Chrome 실측 golden 25건 포함). canvas+specs 11 failed/1490 passed = clean-tree baseline 동일. type-check PASS.
-  - **잔여**: Skia DateInput 폭이 102(콘텐츠) vs DOM 348(`flex:1` grow) — layout 이 `flex:1` item 에 intrinsic 폭을 **명시 width 로 주입**해 grow 를 막는다. 표시되는 box(trigger)와 텍스트는 정합이라 시각 영향은 없으나 별도 정리 대상.
+  - **잔여**: Skia DateInput 폭이 102(콘텐츠) vs DOM 348(`flex:1` grow) — layout 이 `flex:1` item 에 intrinsic 폭을 **명시 width 로 주입**해 grow 를 막는다. 표시되는 box(trigger)와 텍스트는 정합이라 시각 영향은 없으나 별도 정리 대상. → **해소됨** (위 "flex-grow 분배 복구" 엔트리).
 
 ## [DatePicker CSS↔Skia 레이아웃 정합 — shrink-to-fit % / DateInput box 오인] - 2026-07-14
 
