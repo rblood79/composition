@@ -44,6 +44,9 @@ export const radioBinding: PrimitiveBinding = {
       },
       isSelected: { kind: "boolean", label: "Selected", section: "state" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC Radio 공식 prop —
+      //   generic toRacProps 경로로 RAC Radio 에 직접 전달.
+      autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
     },
     toRacProps: "default",
   },

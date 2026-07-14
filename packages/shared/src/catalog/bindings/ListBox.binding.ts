@@ -80,6 +80,12 @@ export const listBoxBinding: PrimitiveBinding = {
         ],
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC 공식 prop — renderListBox 기소비.
+      disallowEmptySelection: {
+        kind: "boolean",
+        label: "Disallow Empty Selection",
+        section: "state",
+      },
     },
     toRacProps: "default",
   },

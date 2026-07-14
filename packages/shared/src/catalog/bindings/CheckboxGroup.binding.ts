@@ -70,6 +70,23 @@ export const checkboxGroupBinding: PrimitiveBinding = {
       isRequired: { kind: "boolean", label: "Required", section: "state" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): isReadOnly/necessityIndicator 는
+      //   renderCheckboxGroup 기소비, errorMessage 는 배선 동반 (CheckboxGroup.tsx FieldError).
+      isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
+      necessityIndicator: {
+        kind: "enum",
+        label: "Necessity Indicator",
+        section: "appearance",
+        options: [
+          { value: "icon", label: "Icon" },
+          { value: "label", label: "Label" },
+        ],
+      },
+      errorMessage: {
+        kind: "string",
+        label: "Error Message",
+        section: "state",
+      },
     },
     toRacProps: "default",
   },

@@ -68,6 +68,23 @@ export const progressBarBinding: PrimitiveBinding = {
         label: "Show Value Label",
         section: "content",
       },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): renderProgressBar 기소비 —
+      //   RSP ProgressBar 공식 prop (labelPosition top/side, valueLabel 커스텀 표기).
+      labelPosition: {
+        kind: "enum",
+        label: "Label Position",
+        section: "appearance",
+        default: "top",
+        options: [
+          { value: "top", label: "Top" },
+          { value: "side", label: "Side" },
+        ],
+      },
+      valueLabel: {
+        kind: "string",
+        label: "Value Label",
+        section: "content",
+      },
     },
     toRacProps: "default",
   },

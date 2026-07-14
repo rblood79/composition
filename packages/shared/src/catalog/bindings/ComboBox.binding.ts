@@ -68,6 +68,53 @@ export const comboBoxBinding: PrimitiveBinding = {
         ],
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): renderComboBox 전부 기소비 —
+      //   RAC/RSP ComboBox 공식 prop. menuTrigger 는 popover 열림 시점 제어.
+      isRequired: { kind: "boolean", label: "Required", section: "state" },
+      isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
+      allowsCustomValue: {
+        kind: "boolean",
+        label: "Allow Custom Value",
+        section: "state",
+      },
+      menuTrigger: {
+        kind: "enum",
+        label: "Menu Trigger",
+        section: "state",
+        default: "input",
+        options: [
+          { value: "input", label: "Input" },
+          { value: "focus", label: "Focus" },
+          { value: "manual", label: "Manual" },
+        ],
+      },
+      name: { kind: "string", label: "Name", section: "content" },
+      errorMessage: {
+        kind: "string",
+        label: "Error Message",
+        section: "state",
+      },
+      autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
+      necessityIndicator: {
+        kind: "enum",
+        label: "Necessity Indicator",
+        section: "appearance",
+        options: [
+          { value: "icon", label: "Icon" },
+          { value: "label", label: "Label" },
+        ],
+      },
+      validationBehavior: {
+        kind: "enum",
+        label: "Validation",
+        section: "state",
+        options: [
+          { value: "native", label: "Native" },
+          { value: "aria", label: "ARIA" },
+        ],
+      },
     },
     toRacProps: "default",
     // size 를 ComboBox.tsx 가 React prop 으로 소비 + 자기 `data-size` 를 재작성

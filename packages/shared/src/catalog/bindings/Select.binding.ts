@@ -77,6 +77,27 @@ export const selectBinding: PrimitiveBinding = {
         ],
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): renderSelect 전부 기소비 —
+      //   RAC Select / RSP Picker 공식 prop.
+      isRequired: { kind: "boolean", label: "Required", section: "state" },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
+      name: { kind: "string", label: "Name", section: "content" },
+      errorMessage: {
+        kind: "string",
+        label: "Error Message",
+        section: "state",
+      },
+      autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
+      necessityIndicator: {
+        kind: "enum",
+        label: "Necessity Indicator",
+        section: "appearance",
+        options: [
+          { value: "icon", label: "Icon" },
+          { value: "label", label: "Label" },
+        ],
+      },
     },
     toRacProps: "default",
     // size 를 Select.tsx 가 React prop 으로 소비 (chevron/trigger/popover 크기 결정) + 자기

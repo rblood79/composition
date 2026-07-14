@@ -48,6 +48,9 @@ export const sliderBinding: PrimitiveBinding = {
       minValue: { kind: "number", label: "Min Value", section: "content" },
       maxValue: { kind: "number", label: "Max Value", section: "content" },
       step: { kind: "number", label: "Step", section: "content", min: 0 },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): 초기값 — renderSlider 가
+      //   uncontrolled defaultValue 로 기소비 (드래그 상호작용 보존).
+      value: { kind: "number", label: "Value", section: "content" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",

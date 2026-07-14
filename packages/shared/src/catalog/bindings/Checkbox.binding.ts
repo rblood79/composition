@@ -54,6 +54,13 @@ export const checkboxBinding: PrimitiveBinding = {
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC Checkbox 공식 prop —
+      //   isReadOnly/isRequired/name/value 는 renderCheckbox 기소비, autoFocus 는 배선 동반.
+      isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
+      isRequired: { kind: "boolean", label: "Required", section: "state" },
+      name: { kind: "string", label: "Name", section: "content" },
+      value: { kind: "string", label: "Value", section: "content" },
+      autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
     },
     toRacProps: "default",
   },

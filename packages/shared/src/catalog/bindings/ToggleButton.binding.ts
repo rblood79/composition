@@ -66,6 +66,8 @@ export const toggleButtonBinding: PrimitiveBinding = {
       // RAC ToggleButton selection / state props
       isSelected: { kind: "boolean", label: "Selected", section: "state" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC 공식 prop — renderToggleButton 배선 동반.
+      autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
     },
     toRacProps: "default",
   },

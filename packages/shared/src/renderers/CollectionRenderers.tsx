@@ -131,6 +131,7 @@ export const renderTree = (
         (element.props.selectionMode as "none" | "single" | "multiple") ||
         "single"
       }
+      disallowEmptySelection={Boolean(element.props.disallowEmptySelection)}
       selectionBehavior={
         (element.props.selectionBehavior as "replace" | "toggle") || "replace"
       }
@@ -652,6 +653,7 @@ export const renderToggleButtonGroup = (
       className={element.props.className}
       orientation={orientation}
       selectionMode={element.props.selectionMode as "single" | "multiple"}
+      disallowEmptySelection={Boolean(element.props.disallowEmptySelection)}
       indicator={indicator}
       isEmphasized={Boolean(element.props.isEmphasized)}
       isQuiet={Boolean(element.props.isQuiet)}
@@ -727,6 +729,7 @@ export const renderToggleButton = (
         ? {}
         : { defaultSelected: Boolean(element.props.isSelected) })}
       isDisabled={Boolean(element.props.isDisabled)}
+      autoFocus={Boolean(element.props.autoFocus)}
       isEmphasized={Boolean(element.props.isEmphasized)}
       size={(element.props.size as "sm" | "md" | "lg") || "md"}
       style={element.props.style}

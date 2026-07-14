@@ -75,6 +75,13 @@ export const toggleButtonGroupBinding: PrimitiveBinding = {
         ],
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC/RSP 공식 prop —
+      //   renderToggleButtonGroup 배선 동반 (세그먼트 컨트롤의 빈 선택 차단).
+      disallowEmptySelection: {
+        kind: "boolean",
+        label: "Disallow Empty Selection",
+        section: "state",
+      },
     },
     toRacProps: "default",
   },

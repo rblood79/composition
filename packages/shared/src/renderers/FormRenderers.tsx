@@ -574,6 +574,7 @@ export const renderCheckbox = (
       isRequired={Boolean(element.props.isRequired)}
       name={element.props.name ? String(element.props.name) : undefined}
       value={element.props.value ? String(element.props.value) : undefined}
+      autoFocus={Boolean(element.props.autoFocus)}
       isEmphasized={Boolean(element.props.isEmphasized)}
       size={(element.props.size as "sm" | "md" | "lg") || "md"}
       onChange={async (isSelected) => {
@@ -677,6 +678,11 @@ export const renderCheckboxGroup = (
       }
       labelPosition={(element.props.labelPosition as "top" | "side") || "top"}
       name={element.props.name ? String(element.props.name) : undefined}
+      errorMessage={
+        element.props.errorMessage
+          ? String(element.props.errorMessage)
+          : undefined
+      }
       onChange={async (newSelectedValues) => {
         const batch: Array<{ id: string; props: Record<string, unknown> }> = [
           {
@@ -875,6 +881,11 @@ export const renderRadioGroup = (
       }
       labelPosition={(element.props.labelPosition as "top" | "side") || "top"}
       name={element.props.name ? String(element.props.name) : undefined}
+      errorMessage={
+        element.props.errorMessage
+          ? String(element.props.errorMessage)
+          : undefined
+      }
       onChange={(selectedValue) => {
         const batch: Array<{ id: string; props: Record<string, unknown> }> = [
           {
@@ -920,6 +931,8 @@ export const renderSwitch = (
       isDisabled={Boolean(element.props.isDisabled)}
       isReadOnly={Boolean(element.props.isReadOnly)}
       name={element.props.name ? String(element.props.name) : undefined}
+      value={element.props.value ? String(element.props.value) : undefined}
+      autoFocus={Boolean(element.props.autoFocus)}
       style={element.props.style}
       className={element.props.className}
       isEmphasized={Boolean(element.props.isEmphasized)}
