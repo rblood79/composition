@@ -429,6 +429,9 @@ export function isInlineLevel(display: string): boolean {
  * 조건:
  * - 자식 display가 inline-level이 아님 (block, flex, grid 등)
  * - 자식에 명시적 width가 없거나 'auto'
+ *
+ * **주의**: 본 판정은 자식 축만 본다. 부모가 **진짜 CSS flex 컨테이너**인 경우엔
+ *   호출하면 안 된다 — `isInlineBlockSimulationParent` 로 먼저 게이팅할 것.
  */
 export function needsBlockChildFullWidth(
   childDisplay: string,
@@ -437,6 +440,29 @@ export function needsBlockChildFullWidth(
   if (isInlineLevel(childDisplay)) return false;
   if (childWidth != null && childWidth !== "auto") return false;
   return true;
+}
+
+/**
+ * 부모의 flex-row-wrap 이 **IFC 시뮬레이션**(block 부모 + inline-level 자식 →
+ * `toTaffyDisplay` 가 row+wrap 합성)인지, 아니면 **사용자/카탈로그가 선언한 진짜
+ * CSS flex 컨테이너**인지 판별.
+ *
+ * **Why (TagGroup labelPosition="side" CSS↔Skia 비대칭, 2026-07-14)**:
+ *   `needsBlockChildFullWidth` 의 block-child width:100% 보정은 IFC 시뮬레이션
+ *   전용이다 (CSS block container 안의 block 자식은 부모 폭 100%). 그런데 호출부가
+ *   결과 style(`display:flex && flexWrap:wrap`)만 보고 게이팅해, **진짜 flex row-wrap
+ *   컨테이너**까지 오폭했다. CSS flex item 은 block-level 이어도 부모 폭 100% 가 아니다.
+ *
+ *   실제 사고: side 모드 TagGroup(`display:flex + row + wrap`)의 TagList 자식이
+ *   `flex:1 / flexBasis:0%` 를 받았음에도 `width:100%` 를 덮어써 350px 로 고정 →
+ *   `Label(68) + gap(4) + TagList(350) > 350` → TagList 가 **둘째 줄로 wrap** 되어
+ *   Skia 만 세로 배치. DOM 은 flex-basis 가 이겨 정상 가로 배치 → 비대칭.
+ *
+ * @param cssDisplay 요소의 **실제 CSS display** (blockify 후 effectiveDisplay)
+ */
+export function isInlineBlockSimulationParent(cssDisplay: string): boolean {
+  const inner = parseDisplay(cssDisplay).inner;
+  return inner !== "flex" && inner !== "grid";
 }
 
 /**

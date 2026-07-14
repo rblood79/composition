@@ -724,11 +724,18 @@ impl LayoutTree {
         }
 
         // 2) 자식 → flex flat f32 (논리축 main/cross 변환).
+        //    flex-basis 의 `%` 는 **main 축** 컨테이너 크기 기준 (column 이면 height).
+        //    그 외 자식 % (width/padding 등) 는 inline 축(=width) 기준 → ctx 유지.
+        let main_ctx = if is_row {
+            ctx.clone()
+        } else {
+            self.ctx_for(child_avail_h)
+        };
         let mut data = vec![0.0f32; children.len() * flex::FLEX_FIELD_COUNT];
         for (i, &c) in children.iter().enumerate() {
             let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
             let (cw, ch) = child_sizes[i];
-            write_flex_item(&mut data, i, &cstyle, cw, ch, is_row, &ctx);
+            write_flex_item(&mut data, i, &cstyle, cw, ch, is_row, &ctx, &main_ctx);
         }
 
         // 3) main/cross available.
@@ -1415,6 +1422,10 @@ fn spec_to_content(v: f32, pad_border: f32) -> f32 {
 ///
 /// specified size(width/height, min/max 동일) = border-box — intake 에서
 /// `spec_to_content` 로 pad_border 감산 후 flex.rs 에 content 값으로 전달한다.
+///
+/// `ctx` 는 cross 축(=자식 % 의 inline containing block) 기준, `main_ctx` 는 main 축
+/// 기준이다. `flex-basis` 의 `%` 는 **main 축** 컨테이너 크기를 기준으로 해소해야 하므로
+/// (column 이면 height) 별도 ctx 를 받는다.
 fn write_flex_item(
     data: &mut [f32],
     i: usize,
@@ -1423,6 +1434,7 @@ fn write_flex_item(
     ch: f32,
     is_row: bool,
     ctx: &CssValueContext,
+    main_ctx: &CssValueContext,
 ) {
     let off = i * flex::FLEX_FIELD_COUNT;
 
@@ -1446,7 +1458,19 @@ fn write_flex_item(
     // specified size 는 border-box — 논리축별 pad_border 감산 (min/max 동일).
     // CONTENT 센티넬(fit-content)은 실 크기가 아니므로 spec_to_content 감산 제외 —
     // flex.rs 가 content_cross 로 해소한다(pad/border 는 content_cross 산출에 이미 반영).
-    data[off] = -1.0; // flex_basis AUTO (basis:content/px 는 단위 3 이후)
+    // flex-basis: 명시값(px/%/em…) → flex.rs 가 width 보다 우선 소비.
+    //   `auto`(미지정 포함) 는 AUTO(-1), `content` 는 CONTENT(-2) 센티넬 → flex.rs 가
+    //   width → content 순으로 fallback. `%` 는 main 축 기준(main_ctx).
+    //   basis 도 specified size = border-box → pad_border 감산 후 content 값으로 전달.
+    data[off] = resolve_flex_basis(cstyle.flex_basis.as_deref(), main_ctx)
+        .map(|v| {
+            if v == flex::CONTENT {
+                flex::CONTENT
+            } else {
+                spec_to_content(v, pad_border_main)
+            }
+        })
+        .unwrap_or(-1.0);
     data[off + 1] = main_size.map(|v| spec_to_content(v, pad_border_main)).unwrap_or(-1.0);
     data[off + 2] = match cross_size {
         Some(v) if v == flex::CONTENT => flex::CONTENT,
@@ -1628,6 +1652,35 @@ fn resolve_cross_dimension_opt(value: Option<&str>, ctx: &CssValueContext) -> Op
     match resolve_css_size_value(trimmed, ctx) {
         Some(n) if n >= 0.0 => Some(n),
         // fit-content: flex cross 축은 content 로 shrink-to-fit (stretch 아님).
+        Some(n) if n == FIT_CONTENT => Some(flex::CONTENT),
+        _ => None,
+    }
+}
+
+/// `flex-basis` 해소 — main 축 기준 ctx 를 받는다.
+///
+/// 반환: `Some(px)` = 명시 basis / `Some(flex::CONTENT)` = `content` 키워드 /
+///       `None` = `auto`(미지정 포함) → 호출부가 AUTO(-1) 센티넬로 기록.
+///
+/// **Why (2026-07-14)**: `NodeStyle.flex_basis` 는 선언·역직렬화만 되고
+/// `write_flex_item` 이 항상 AUTO(-1) 를 하드코딩해 **flex.rs 의 basis 해석
+/// 우선순위(명시 basis → width → content)에 명시 basis 가 도달하지 못했다**
+/// (`inset_*` 와 동형 silent failure — JS 는 정확히 보내고 Rust 가 안 읽음).
+/// 사고: `flex:1`(basis 0%) 자식이 basis=content 로 fallback → 남은 공간을
+/// 차지하지 못하고 자기 content 폭을 요구 → row-wrap 컨테이너에서 다음 줄로 밀림
+/// (TagGroup `labelPosition="side"` 의 TagList).
+fn resolve_flex_basis(value: Option<&str>, main_ctx: &CssValueContext) -> Option<f32> {
+    let v = value?;
+    let trimmed = v.trim();
+    if trimmed.is_empty() || trimmed.eq_ignore_ascii_case("auto") {
+        return None;
+    }
+    // `content` 키워드 → flex.rs CONTENT 센티넬 (content_main 으로 해소).
+    if trimmed.eq_ignore_ascii_case("content") {
+        return Some(flex::CONTENT);
+    }
+    match resolve_css_size_value(trimmed, main_ctx) {
+        Some(n) if n >= 0.0 => Some(n),
         Some(n) if n == FIT_CONTENT => Some(flex::CONTENT),
         _ => None,
     }
@@ -2606,6 +2659,89 @@ mod tests {
         // 중심이 DOM(175, 4) 과 일치.
         assert_eq!(c.x + c.width / 2.0, 175.0, "thumb 중심 x = DOM 과 동일");
         assert_eq!(c.y + c.height / 2.0, 4.0, "thumb 중심 y = 트랙 세로 중앙");
+    }
+
+    // ── flex-basis ────────────────────────────────────────────────────────
+    //
+    // `NodeStyle.flex_basis` 는 선언·역직렬화만 되고 **write_flex_item 이 항상 AUTO(-1)
+    // 를 써넣어** flex.rs 의 basis 해석 우선순위(명시 basis → width → content)에
+    // 명시 basis 가 도달하지 못했다 (inset_* 와 동형 silent failure).
+    //
+    // 실제 사고 (TagGroup labelPosition="side"): TagList 가 `flex:1`(grow 1, basis 0%)
+    //   인데 basis 가 AUTO → content(칩 합산 폭)로 fallback → 컨테이너를 넘겨 wrap →
+    //   Label 옆이 아니라 **둘째 줄**로 밀림. DOM 은 basis 0 이 이겨 정상 가로 배치.
+
+    #[test]
+    fn flex_basis_zero_percent_grows_into_remaining_space() {
+        let mut tree = LayoutTree::new();
+        // **TagGroup side 실제 케이스**: 컨테이너 350(row), Label 68 고정,
+        //   TagList `flex:1`(basis 0%) → 남은 폭 350-68-4(gap)=278 전부 차지.
+        //   basis 가 content(자식 합산 400)로 fallback 하면 wrap 되어 둘째 줄로 밀린다.
+        let json = r#"[
+            {"style":{"width":"68px","height":"20px","flexShrink":0},"children":[]},
+            {"style":{"width":"400px","height":"30px"},"children":[]},
+            {"style":{"display":"flex","flexGrow":1,"flexShrink":1,"flexBasis":"0%","minWidth":"0px","height":"30px"},"children":[1]},
+            {"style":{"display":"flex","flexDirection":"row","flexWrap":"wrap","columnGap":"4px","width":"350px"},"children":[0,2]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[3], 350.0, 400.0);
+        let label = tree.get_layout(handles[0]);
+        let list = tree.get_layout(handles[2]);
+        assert_eq!(label.x, 0.0, "Label 은 좌측");
+        assert_eq!(
+            list.x, 72.0,
+            "basis:0% → Label(68) + gap(4) 뒤에 같은 줄 배치 (wrap 되면 x=0)"
+        );
+        assert_eq!(list.y, 0.0, "같은 줄 — wrap 되면 y > 0");
+        assert_eq!(
+            list.width, 278.0,
+            "grow 로 남은 폭 전부 (350 - 68 - 4). basis=content(400) 면 wrap"
+        );
+    }
+
+    #[test]
+    fn flex_basis_explicit_px_overrides_width() {
+        let mut tree = LayoutTree::new();
+        // CSS: flex-basis 는 main 축에서 width 를 이긴다 (grow/shrink 0 이면 basis 그대로).
+        let json = r#"[
+            {"style":{"width":"200px","flexBasis":"50px","flexGrow":0,"flexShrink":0,"height":"10px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","width":"300px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 300.0, 100.0);
+        let c = tree.get_layout(handles[0]);
+        assert_eq!(c.width, 50.0, "flex-basis(50) 가 width(200) 를 이긴다");
+    }
+
+    #[test]
+    fn flex_basis_auto_falls_back_to_width() {
+        let mut tree = LayoutTree::new();
+        // basis:auto → width 사용 (기존 동작 보존 — 회귀 가드).
+        let json = r#"[
+            {"style":{"width":"120px","flexBasis":"auto","flexGrow":0,"flexShrink":0,"height":"10px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","width":"300px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 300.0, 100.0);
+        assert_eq!(tree.get_layout(handles[0]).width, 120.0, "basis:auto → width");
+    }
+
+    #[test]
+    fn flex_basis_percent_resolves_against_main_axis_in_column() {
+        let mut tree = LayoutTree::new();
+        // column 컨테이너의 main 축은 **height**. basis 50% 는 컨테이너 height(200)
+        //   기준 100 이어야 한다 (width 300 기준 150 이 아니라).
+        let json = r#"[
+            {"style":{"flexBasis":"50%","flexGrow":0,"flexShrink":0,"width":"10px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"column","width":"300px","height":"200px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 300.0, 200.0);
+        assert_eq!(
+            tree.get_layout(handles[0]).height,
+            100.0,
+            "column main=height → 50% of 200 (width 기준 150 이면 축 매핑 오류)"
+        );
     }
 
     #[test]

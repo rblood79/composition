@@ -36,6 +36,7 @@ import {
   toTaffyDisplay,
   blockifyDisplay,
   getElementDisplay,
+  isInlineBlockSimulationParent,
   needsBlockChildFullWidth,
 } from "./taffyDisplayAdapter";
 import { elementToTaffyBlockStyle } from "./TaffyBlockEngine";
@@ -2070,7 +2071,20 @@ function traversePostOrder(
   // 5.5. block→flex-row-wrap 변환 시 block-level 자식에 width:100% 주입
   // CSS block container 내 block-level 자식은 자동으로 부모 폭 100%이지만
   // Taffy flex-row-wrap 시뮬레이션에서는 명시적 설정 필요 (taffyDisplayAdapter 규칙)
-  if (styleRecord.display === "flex" && styleRecord.flexWrap === "wrap") {
+  //
+  // **부모 게이트 (2026-07-14)**: 본 보정은 **IFC 시뮬레이션 부모** 전용이다
+  //   (block/flow-root 부모 + inline-level 자식 → toTaffyDisplay 가 row+wrap 합성).
+  //   결과 style(display:flex && flexWrap:wrap)만 보면 **사용자/카탈로그가 선언한 진짜
+  //   CSS flex 컨테이너**까지 오폭한다 — CSS flex item 은 block-level 이어도 부모 폭
+  //   100% 가 아니다(flex-basis/grow 가 폭을 정한다).
+  //   사고: labelPosition="side" TagGroup(catalog containerVariants → flex+row+wrap)의
+  //   TagList 자식이 `flex:1/flexBasis:0%` 를 받았음에도 width:100%(=350) 로 덮여
+  //   `Label(68)+gap(4)+350 > 350` → 둘째 줄로 wrap → Skia 만 세로 배치(CSS 는 정상 가로).
+  if (
+    styleRecord.display === "flex" &&
+    styleRecord.flexWrap === "wrap" &&
+    isInlineBlockSimulationParent(effectiveDisplay)
+  ) {
     for (let ci = 0; ci < childIds.length; ci++) {
       const childEl = elementsMap.get(childIds[ci]);
       const childStyle = (childEl?.props?.style ?? {}) as Record<
