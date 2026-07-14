@@ -202,6 +202,20 @@ export const renderTextField = (
         "top"
       }
       name={element.props.name ? String(element.props.name) : undefined}
+      maxLength={
+        element.props.maxLength !== undefined
+          ? Number(element.props.maxLength)
+          : undefined
+      }
+      minLength={
+        element.props.minLength !== undefined
+          ? Number(element.props.minLength)
+          : undefined
+      }
+      pattern={
+        element.props.pattern ? String(element.props.pattern) : undefined
+      }
+      autoFocus={Boolean(element.props.autoFocus)}
       {...resolveInputHintProps(element.props)}
       onChange={(value) => {
         const updatedProps = {
@@ -273,6 +287,8 @@ export const renderNumberField = (
         "top"
       }
       name={element.props.name ? String(element.props.name) : undefined}
+      autoFocus={Boolean(element.props.autoFocus)}
+      isWheelDisabled={Boolean(element.props.isWheelDisabled)}
       onChange={(value) => {
         const updatedProps = {
           ...element.props,
@@ -340,6 +356,20 @@ export const renderSearchField = (
         "top"
       }
       name={element.props.name ? String(element.props.name) : undefined}
+      maxLength={
+        element.props.maxLength !== undefined
+          ? Number(element.props.maxLength)
+          : undefined
+      }
+      minLength={
+        element.props.minLength !== undefined
+          ? Number(element.props.minLength)
+          : undefined
+      }
+      pattern={
+        element.props.pattern ? String(element.props.pattern) : undefined
+      }
+      autoFocus={Boolean(element.props.autoFocus)}
       {...resolveInputHintProps(element.props)}
       size={(element.props.size as "xs" | "sm" | "md" | "lg" | "xl") || "md"}
       onChange={(value) => {

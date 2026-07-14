@@ -31,6 +31,10 @@ import type {
 import { buildLegacyElementMetadata } from "../legacyMetadata";
 import { exportLegacyDocument } from "../exportLegacyDocument";
 import { legacyToCanonical } from "../index";
+import {
+  firstUserPageNode,
+  userExportedElements,
+} from "./helpers/systemBootstrapNodes";
 import type { LegacyAdapterInput } from "../types";
 import type { Element } from "@/types/builder/unified.types";
 import type { DataBinding } from "@/types/builder/unified.types";
@@ -94,13 +98,26 @@ function buildCanonicalFromElements(elements: Element[]): CompositionDocument {
 }
 
 /**
+ * bootstrap origin element 를 걷어낸 export 결과 (fixture 가 넣은 element 만).
+ *
+ * `legacyToCanonical` 이 모든 document 에 시스템 Components 페이지 + ListBox template
+ * origin 을 bootstrap 하므로, 필터 없는 `exportLegacyDocument(doc)[0]` 은 fixture element
+ * 가 아니라 `page-components-body` 다.
+ */
+function exportUserElements(doc: CompositionDocument): Element[] {
+  return userExportedElements(exportLegacyDocument(doc));
+}
+
+/**
  * dummy page wrapper 안의 첫 element node 추출 (G7 cutover 검증 helper).
+ *
+ * `legacyToCanonical` 이 시스템 Components 페이지를 첫 편집 페이지 **앞에** bootstrap 하므로
+ * `doc.children[0]` 은 dummy page 가 아니다 — `firstUserPageNode` 로 skip 한다.
  */
 function firstElementNode(
   doc: CompositionDocument,
 ): CanonicalNode & { "x-composition"?: CompositionExtension } {
-  const pageNode = doc.children[0];
-  const node = pageNode?.children?.[0];
+  const node = firstUserPageNode(doc).children?.[0];
   if (!node) {
     throw new Error("test fixture: page node has no children");
   }
@@ -290,7 +307,7 @@ describe("exportLegacyDocument — G7 cutover extension reverse", () => {
       } as CanonicalNode,
     ]);
 
-    const elements = exportLegacyDocument(doc);
+    const elements = exportUserElements(doc);
     expect(elements).toHaveLength(1);
     expect(elements[0].events).toEqual([{ id: "evt-1", kind: "onPress" }]);
     // props 에 events 미잔존
@@ -313,7 +330,7 @@ describe("exportLegacyDocument — G7 cutover extension reverse", () => {
       } as CanonicalNode,
     ]);
 
-    const [el] = exportLegacyDocument(doc);
+    const [el] = exportUserElements(doc);
     expect(el.dataBinding).toEqual({
       type: "collection",
       source: "supabase",
@@ -331,7 +348,7 @@ describe("exportLegacyDocument — G7 cutover extension reverse", () => {
       },
     ]);
 
-    const [el] = exportLegacyDocument(doc);
+    const [el] = exportUserElements(doc);
     expect(el.events).toBeUndefined();
     expect(el.dataBinding).toBeUndefined();
   });
@@ -347,7 +364,7 @@ describe("exportLegacyDocument — G7 cutover extension reverse", () => {
       } as CanonicalNode,
     ]);
 
-    const [el] = exportLegacyDocument(doc);
+    const [el] = exportUserElements(doc);
     // top-level events 는 미설정 (extension 미정의)
     expect(el.events).toBeUndefined();
     expect(el.props.events).toEqual([{ id: "stale-evt", kind: "onPress" }]);
@@ -394,7 +411,7 @@ describe("exportLegacyDocument — G7 cutover extension reverse", () => {
       } as CanonicalNode,
     ]);
 
-    const elements = exportLegacyDocument(doc);
+    const elements = exportUserElements(doc);
 
     expect(
       elements.filter((element) => element.id === "card-heading"),
@@ -445,7 +462,7 @@ describe("exportLegacyDocument — G7 cutover extension reverse", () => {
       },
     ]);
 
-    expect(exportLegacyDocument(doc)).toEqual([
+    expect(exportUserElements(doc)).toEqual([
       expect.objectContaining({
         id: "page-card",
         page_id: "page-1",
@@ -472,7 +489,7 @@ describe("Round-trip — legacy → canonical (extension) → legacy 동등", ()
     };
 
     const doc = buildCanonicalFromElements([original]);
-    const [restored] = exportLegacyDocument(doc);
+    const [restored] = exportUserElements(doc);
     expect(restored.id).toBe(original.id);
     expect(restored.type).toBe(original.type);
     expect(restored.props).toEqual(original.props);
@@ -501,7 +518,7 @@ describe("Round-trip — legacy → canonical (extension) → legacy 동등", ()
     };
 
     const doc = buildCanonicalFromElements([original]);
-    const [restored] = exportLegacyDocument(doc);
+    const [restored] = exportUserElements(doc);
     expect(restored.dataBinding).toEqual(original.dataBinding);
     expect(restored.props).not.toHaveProperty("dataBinding");
   });
@@ -527,7 +544,7 @@ describe("Round-trip — legacy → canonical (extension) → legacy 동등", ()
     };
 
     const doc = buildCanonicalFromElements([original]);
-    const [restored] = exportLegacyDocument(doc);
+    const [restored] = exportUserElements(doc);
     expect(restored.events).toEqual(original.events);
     expect(restored.dataBinding).toEqual(original.dataBinding);
     expect(restored.props).toEqual({ variant: "primary" });
@@ -545,7 +562,7 @@ describe("Round-trip — legacy → canonical (extension) → legacy 동등", ()
     };
 
     const doc = buildCanonicalFromElements([original]);
-    const [restored] = exportLegacyDocument(doc);
+    const [restored] = exportUserElements(doc);
     expect(restored.events).toBeUndefined();
     expect(restored.dataBinding).toBeUndefined();
   });
@@ -566,7 +583,7 @@ describe("Round-trip — legacy → canonical (extension) → legacy 동등", ()
     };
 
     const doc = buildCanonicalFromElements([original]);
-    const [restored] = exportLegacyDocument(doc);
+    const [restored] = exportUserElements(doc);
     // top-level events = extension 으로 분리 후 복원
     expect(restored.events).toEqual([{ id: "top-evt", kind: "onClick" }]);
     // props.events 는 CanonicalNode.props 통해 복원
@@ -865,7 +882,7 @@ describe("G6-2 second slice — history parity 자동 cover (canonicalDocumentSy
     ];
 
     const doc = buildCanonicalFromElements(elements);
-    const pageNode = doc.children[0];
+    const pageNode = firstUserPageNode(doc);
     const node1 = pageNode.children![0] as CanonicalNode & {
       "x-composition"?: CompositionExtension;
     };
@@ -901,7 +918,7 @@ describe("G6-2 second slice — history parity 자동 cover (canonicalDocumentSy
     };
 
     const doc = buildCanonicalFromElements([original]);
-    const [restored] = exportLegacyDocument(doc);
+    const [restored] = exportUserElements(doc);
 
     // history undo simulation: 변경 직전 element 재구성. forward → reverse 동등
     expect(restored.events).toEqual(original.events);

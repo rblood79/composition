@@ -147,6 +147,23 @@ export const textFieldBinding: PrimitiveBinding = {
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): 길이/패턴 검증 + 포커스 —
+      //   RAC TextField 공식 prop. renderTextField 가 shared TextField(AriaTextFieldProps
+      //   extends)로 전달.
+      maxLength: { kind: "number", label: "Max Length", section: "state" },
+      minLength: { kind: "number", label: "Min Length", section: "state" },
+      pattern: { kind: "string", label: "Pattern", section: "state" },
+      autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
+      // RSP 표준 required 표시 방식 — renderTextField 기소비 (icon "*" / label "(required)")
+      necessityIndicator: {
+        kind: "enum",
+        label: "Necessity Indicator",
+        section: "appearance",
+        options: [
+          { value: "icon", label: "Icon" },
+          { value: "label", label: "Label" },
+        ],
+      },
     },
     toRacProps: "default",
   },

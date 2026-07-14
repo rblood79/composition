@@ -74,6 +74,80 @@ export const dateRangePickerBinding: PrimitiveBinding = {
       },
       minValue: { kind: "string", label: "Min Value", section: "state" },
       maxValue: { kind: "string", label: "Max Value", section: "state" },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): renderDateRangePicker 기소비 —
+      //   RAC/RSP DateRangePicker 공식 prop. hideTimeZone/shouldForceLeadingZeros/
+      //   shouldCloseOnSelect 는 렌더러 기본값이 true (`!== false`) 라 default: true 명시.
+      startName: { kind: "string", label: "Start Name", section: "content" },
+      endName: { kind: "string", label: "End Name", section: "content" },
+      isRequired: { kind: "boolean", label: "Required", section: "state" },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
+      isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
+      necessityIndicator: {
+        kind: "enum",
+        label: "Necessity Indicator",
+        section: "appearance",
+        options: [
+          { value: "icon", label: "Icon" },
+          { value: "label", label: "Label" },
+        ],
+      },
+      hourCycle: {
+        kind: "enum",
+        label: "Hour Cycle",
+        section: "locale",
+        options: [
+          { value: "12", label: "12" },
+          { value: "24", label: "24" },
+        ],
+      },
+      hideTimeZone: {
+        kind: "boolean",
+        label: "Hide Time Zone",
+        section: "locale",
+        default: true,
+      },
+      pageBehavior: {
+        kind: "enum",
+        label: "Page Behavior",
+        section: "content",
+        options: [
+          { value: "visible", label: "Visible" },
+          { value: "single", label: "Single" },
+        ],
+      },
+      shouldForceLeadingZeros: {
+        kind: "boolean",
+        label: "Leading Zeros",
+        section: "locale",
+        default: true,
+      },
+      shouldCloseOnSelect: {
+        kind: "boolean",
+        label: "Close On Select",
+        section: "state",
+        default: true,
+      },
+      maxVisibleMonths: {
+        kind: "number",
+        label: "Max Visible Months",
+        section: "content",
+        min: 1,
+      },
+      allowsNonContiguousRanges: {
+        kind: "boolean",
+        label: "Non-contiguous Ranges",
+        section: "state",
+      },
+      validationBehavior: {
+        kind: "enum",
+        label: "Validation",
+        section: "state",
+        options: [
+          { value: "native", label: "Native" },
+          { value: "aria", label: "ARIA" },
+        ],
+      },
     },
     toRacProps: "default",
     // size 는 DateRangePicker.tsx 가 React prop 으로 직접 소비 + 자기 `data-size` 를 다시 emit

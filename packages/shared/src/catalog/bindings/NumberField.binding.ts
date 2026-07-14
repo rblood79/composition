@@ -72,6 +72,24 @@ export const numberFieldBinding: PrimitiveBinding = {
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC NumberField 공식 prop —
+      //   renderNumberField 가 shared NumberField(AriaNumberFieldProps extends)로 전달.
+      autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
+      isWheelDisabled: {
+        kind: "boolean",
+        label: "Wheel Disabled",
+        section: "state",
+      },
+      // RSP 표준 required 표시 방식 — renderNumberField 기소비
+      necessityIndicator: {
+        kind: "enum",
+        label: "Necessity Indicator",
+        section: "appearance",
+        options: [
+          { value: "icon", label: "Icon" },
+          { value: "label", label: "Label" },
+        ],
+      },
     },
     toRacProps: "default",
     // size 를 NumberField.tsx 가 React prop 으로 소비 (stepper 버튼 + 입력 크기 결정) + 자기

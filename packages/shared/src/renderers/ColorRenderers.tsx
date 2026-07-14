@@ -153,6 +153,7 @@ export const renderColorField = (
         (element.props.validationBehavior as "native" | "aria" | undefined) ||
         undefined
       }
+      isWheelDisabled={Boolean(element.props.isWheelDisabled)}
       necessityIndicator={
         (element.props.necessityIndicator as "icon" | "label" | undefined) ??
         inheritedProps.necessityIndicator

@@ -24,6 +24,7 @@ import { legacyToCanonical } from "../index";
 import { convertComponentRole } from "../componentRoleAdapter";
 import { convertPageLayout } from "../slotAndLayoutAdapter";
 import { exportLegacyDocument } from "../exportLegacyDocument";
+import { userExportedElements } from "./helpers/systemBootstrapNodes";
 
 // ─────────────────────────────────────────────
 // Fixtures — Legacy roundtrip test types
@@ -180,7 +181,9 @@ describe("exportLegacyDocument (3-A-impl)", () => {
       makeElement("el-a", { customId: "el-a", page_id: "page-1" }),
     ];
     const doc = legacyToCanonical(makeAdapterInput(before), adapterDeps);
-    const after = exportLegacyDocument(doc);
+    // legacyToCanonical 이 bootstrap 하는 시스템 Components 페이지의 ListBox template origin
+    // 은 실제 element 다 (export 대상). 본 테스트가 보는 건 fixture 가 넣은 element 뿐.
+    const after = userExportedElements(exportLegacyDocument(doc));
 
     // page-1 자체는 element 가 아니므로 export 결과에서 제외
     expect(after.find((e) => e.id === "page-1")).toBeUndefined();

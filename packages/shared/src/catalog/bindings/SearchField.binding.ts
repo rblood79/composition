@@ -132,6 +132,22 @@ export const searchFieldBinding: PrimitiveBinding = {
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC SearchField 공식 prop —
+      //   renderSearchField 가 shared SearchField(AriaSearchFieldProps extends)로 전달.
+      maxLength: { kind: "number", label: "Max Length", section: "state" },
+      minLength: { kind: "number", label: "Min Length", section: "state" },
+      pattern: { kind: "string", label: "Pattern", section: "state" },
+      autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
+      // RSP 표준 required 표시 방식 — renderSearchField 기소비
+      necessityIndicator: {
+        kind: "enum",
+        label: "Necessity Indicator",
+        section: "appearance",
+        options: [
+          { value: "icon", label: "Icon" },
+          { value: "label", label: "Label" },
+        ],
+      },
     },
     toRacProps: "default",
     // size 를 SearchField.tsx 가 React prop 으로 소비 (search/clear 아이콘 + 입력 크기 결정) +

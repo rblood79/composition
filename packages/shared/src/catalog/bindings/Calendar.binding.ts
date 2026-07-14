@@ -35,6 +35,34 @@ export const calendarBinding: PrimitiveBinding = {
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): renderCalendar 기소비 —
+      //   RAC Calendar 공식 prop. min/maxValue 는 ISO 문자열로 렌더러가 파싱,
+      //   maxVisibleMonths 는 RSP visibleMonths 대응 (렌더러 기본 1).
+      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
+      pageBehavior: {
+        kind: "enum",
+        label: "Page Behavior",
+        section: "content",
+        options: [
+          { value: "visible", label: "Visible" },
+          { value: "single", label: "Single" },
+        ],
+      },
+      minValue: { kind: "string", label: "Min Value", section: "state" },
+      maxValue: { kind: "string", label: "Max Value", section: "state" },
+      errorMessage: {
+        kind: "string",
+        label: "Error Message",
+        section: "state",
+      },
+      maxVisibleMonths: {
+        kind: "number",
+        label: "Max Visible Months",
+        section: "content",
+        min: 1,
+        default: 1,
+      },
     },
     toRacProps: "default",
   },

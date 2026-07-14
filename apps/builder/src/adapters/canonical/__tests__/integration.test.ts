@@ -33,6 +33,11 @@ import {
   type ResolvedTokenMap,
 } from "../variablesAdapter";
 import { resolveToken } from "@composition/specs";
+import {
+  COMPONENTS_SYSTEM_PAGE_ID,
+  FALLBACK_HOME_PAGE_ID,
+  userDocumentChildren,
+} from "./helpers/systemBootstrapNodes";
 
 const deps = { convertComponentRole, convertPageLayout };
 
@@ -95,13 +100,21 @@ describe("legacyToCanonical integration (ADR-903 P1)", () => {
   // ============================================
   // TC1: 빈 입력
   // ============================================
-  it("TC1: returns empty canonical document for empty input", () => {
+  it("TC1: empty input → 사용자 콘텐츠 0 + 시스템 bootstrap 페이지만", () => {
     const doc = legacyToCanonical(
       { elements: [], pages: [], layouts: [] },
       deps,
     );
     expect(doc.version).toBe("composition-1.0");
-    expect(doc.children).toEqual([]);
+    // legacyToCanonical 은 Option B(anchor-less ListBox) 를 위해 시스템 Components 페이지와
+    // ListBox template origin 을 항상 bootstrap 한다. 편집 페이지가 없으면 fallback Home 도.
+    expect(doc.children.map((node) => node.id)).toEqual([
+      COMPONENTS_SYSTEM_PAGE_ID,
+      FALLBACK_HOME_PAGE_ID,
+    ]);
+    // 사용자 콘텐츠는 0 — fallback Home 페이지는 비어 있다.
+    const home = doc.children.find((n) => n.id === FALLBACK_HOME_PAGE_ID);
+    expect(home?.children?.flatMap((body) => body.children ?? [])).toEqual([]);
   });
 
   // ============================================
@@ -321,8 +334,9 @@ describe("legacyToCanonical integration (ADR-903 P1)", () => {
 
     const doc = legacyToCanonical({ elements, pages, layouts: [] }, deps);
 
-    expect(doc.children).toHaveLength(1);
-    const pageFrame = doc.children[0];
+    const children = userDocumentChildren(doc);
+    expect(children).toHaveLength(1);
+    const pageFrame = children[0];
     expect(pageFrame.type).toBe("frame");
     expect(pageFrame.id).toBe("P1");
     expect(pageFrame.name).toBe("Plain Page");
@@ -352,15 +366,17 @@ describe("legacyToCanonical integration (ADR-903 P1)", () => {
     const doc = legacyToCanonical({ elements, pages, layouts }, deps);
 
     // 순서: [layout-L1 (frame+reusable), master m1 (reusable), page P1 (ref)]
-    expect(doc.children[0].id).toBe("layout-L1");
-    expect(doc.children[0].reusable).toBe(true);
-    expect(doc.children[0].type).toBe("frame");
+    // (시스템 bootstrap 페이지는 첫 편집 페이지 앞에 삽입되므로 제외하고 본다)
+    const children = userDocumentChildren(doc);
+    expect(children[0].id).toBe("layout-L1");
+    expect(children[0].reusable).toBe(true);
+    expect(children[0].type).toBe("frame");
 
-    expect(doc.children[1].reusable).toBe(true);
-    expect(doc.children[1].type).toBe("Button");
+    expect(children[1].reusable).toBe(true);
+    expect(children[1].type).toBe("Button");
 
-    expect(doc.children[2].type).toBe("ref");
-    expect((doc.children[2] as RefNode).ref).toBe("layout-L1");
+    expect(children[2].type).toBe("ref");
+    expect((children[2] as RefNode).ref).toBe("layout-L1");
   });
 });
 

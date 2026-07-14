@@ -89,6 +89,40 @@ export const timeFieldBinding: PrimitiveBinding = {
         label: "Error Message",
         section: "state",
       },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): renderTimeField 기소비 —
+      //   RAC TimeField 공식 prop. placeholderValue 는 "HH:mm" 문자열로 렌더러가 파싱.
+      //   hideTimeZone 렌더러 기본값이 true (`!== false`) 라 default: true 명시.
+      hideTimeZone: {
+        kind: "boolean",
+        label: "Hide Time Zone",
+        section: "locale",
+        default: true,
+      },
+      name: { kind: "string", label: "Name", section: "content" },
+      autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
+      necessityIndicator: {
+        kind: "enum",
+        label: "Necessity Indicator",
+        section: "appearance",
+        options: [
+          { value: "icon", label: "Icon" },
+          { value: "label", label: "Label" },
+        ],
+      },
+      validationBehavior: {
+        kind: "enum",
+        label: "Validation",
+        section: "state",
+        options: [
+          { value: "native", label: "Native" },
+          { value: "aria", label: "ARIA" },
+        ],
+      },
+      placeholderValue: {
+        kind: "string",
+        label: "Placeholder Value",
+        section: "content",
+      },
     },
     toRacProps: "default",
     // size 를 TimeField.tsx 가 React prop 으로 소비 + 자기 `data-size` 를 재작성

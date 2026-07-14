@@ -71,6 +71,12 @@ export const textAreaBinding: PrimitiveBinding = {
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC TextField 공식 prop —
+      //   generic toRacProps 경로로 RAC TextField 에 직접 전달 (TextField parity).
+      name: { kind: "string", label: "Name", section: "content" },
+      maxLength: { kind: "number", label: "Max Length", section: "state" },
+      minLength: { kind: "number", label: "Min Length", section: "state" },
+      autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
     },
     toRacProps: "default",
   },

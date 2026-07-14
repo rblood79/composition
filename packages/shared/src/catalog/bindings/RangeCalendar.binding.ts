@@ -32,6 +32,27 @@ export const rangeCalendarBinding: PrimitiveBinding = {
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): renderRangeCalendar 기소비 —
+      //   RAC RangeCalendar 공식 prop. min/maxValue 는 ISO 문자열로 렌더러가 파싱.
+      minValue: { kind: "string", label: "Min Value", section: "state" },
+      maxValue: { kind: "string", label: "Max Value", section: "state" },
+      errorMessage: {
+        kind: "string",
+        label: "Error Message",
+        section: "state",
+      },
+      maxVisibleMonths: {
+        kind: "number",
+        label: "Max Visible Months",
+        section: "content",
+        min: 1,
+        default: 1,
+      },
+      allowsNonContiguousRanges: {
+        kind: "boolean",
+        label: "Non-contiguous Ranges",
+        section: "state",
+      },
     },
     toRacProps: "default",
   },

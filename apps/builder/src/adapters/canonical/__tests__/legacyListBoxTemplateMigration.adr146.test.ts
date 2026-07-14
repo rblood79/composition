@@ -235,4 +235,29 @@ describe("Option B — ListBox anchor-less migration", () => {
     expect(countNodes(migrated.children, isListBoxTemplateAnchor)).toBe(0);
     expect(findNodeById("listbox-ref")?.children ?? []).toEqual([]);
   });
+
+  // migration 의 over-reach 방지 가드 — bootstrap/strip 이 ListBox 계열에만 닿아야 한다.
+  // (구 `listBoxTemplate.adr145.test.ts` TC5 에서 이관. anchor 주입 설계는 Option B 로 대체되어
+  //  나머지 TC1~TC4 는 폐기됐지만, 이 범위 가드는 설계와 무관하게 유효.)
+  it("leaves other collection containers (GridList) untouched", () => {
+    const doc = legacyToCanonical(
+      {
+        elements: [
+          el({
+            id: "gl-1",
+            type: "GridList",
+            page_id: "P1",
+            props: { items: [] },
+          }),
+        ],
+        pages: [page({ id: "P1", title: "Home", slug: "/" })],
+        layouts: [],
+      },
+      deps,
+    );
+
+    const gridList = findNode(doc.children, (node) => node.type === "GridList");
+    expect(gridList).toBeDefined();
+    expect(gridList!.children ?? []).toHaveLength(0);
+  });
 });

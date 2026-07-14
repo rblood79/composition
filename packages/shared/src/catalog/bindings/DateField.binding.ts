@@ -88,6 +88,42 @@ export const dateFieldBinding: PrimitiveBinding = {
       },
       minValue: { kind: "string", label: "Min Value", section: "state" },
       maxValue: { kind: "string", label: "Max Value", section: "state" },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): renderDateField 기소비 —
+      //   RAC DateField 공식 prop. placeholderValue 는 ISO 문자열로 렌더러가 파싱.
+      hourCycle: {
+        kind: "enum",
+        label: "Hour Cycle",
+        section: "locale",
+        options: [
+          { value: "12", label: "12" },
+          { value: "24", label: "24" },
+        ],
+      },
+      name: { kind: "string", label: "Name", section: "content" },
+      autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
+      necessityIndicator: {
+        kind: "enum",
+        label: "Necessity Indicator",
+        section: "appearance",
+        options: [
+          { value: "icon", label: "Icon" },
+          { value: "label", label: "Label" },
+        ],
+      },
+      validationBehavior: {
+        kind: "enum",
+        label: "Validation",
+        section: "state",
+        options: [
+          { value: "native", label: "Native" },
+          { value: "aria", label: "ARIA" },
+        ],
+      },
+      placeholderValue: {
+        kind: "string",
+        label: "Placeholder Value",
+        section: "content",
+      },
     },
     toRacProps: "default",
     // size 는 DateField.tsx(DELEGATING 렌더)가 **React prop 으로 직접 소비**한다 (하위 Label/

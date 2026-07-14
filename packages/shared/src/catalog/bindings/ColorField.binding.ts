@@ -72,6 +72,64 @@ export const colorFieldBinding: PrimitiveBinding = {
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): renderColorField 기소비 —
+      //   RAC ColorField 공식 prop (channel/colorSpace 는 hex 외 채널 편집 모드).
+      errorMessage: {
+        kind: "string",
+        label: "Error Message",
+        section: "state",
+      },
+      name: { kind: "string", label: "Name", section: "content" },
+      autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
+      channel: {
+        kind: "enum",
+        label: "Channel",
+        section: "content",
+        options: [
+          { value: "hue", label: "Hue" },
+          { value: "saturation", label: "Saturation" },
+          { value: "brightness", label: "Brightness" },
+          { value: "lightness", label: "Lightness" },
+          { value: "red", label: "Red" },
+          { value: "green", label: "Green" },
+          { value: "blue", label: "Blue" },
+          { value: "alpha", label: "Alpha" },
+        ],
+      },
+      colorSpace: {
+        kind: "enum",
+        label: "Color Space",
+        section: "content",
+        options: [
+          { value: "rgb", label: "RGB" },
+          { value: "hsl", label: "HSL" },
+          { value: "hsb", label: "HSB" },
+        ],
+      },
+      validationBehavior: {
+        kind: "enum",
+        label: "Validation",
+        section: "state",
+        options: [
+          { value: "native", label: "Native" },
+          { value: "aria", label: "ARIA" },
+        ],
+      },
+      necessityIndicator: {
+        kind: "enum",
+        label: "Necessity Indicator",
+        section: "appearance",
+        options: [
+          { value: "icon", label: "Icon" },
+          { value: "label", label: "Label" },
+        ],
+      },
+      // RAC 공식 — 스크롤 휠 값 변경 차단 (renderColorField 배선 동반 추가)
+      isWheelDisabled: {
+        kind: "boolean",
+        label: "Wheel Disabled",
+        section: "state",
+      },
     },
     toRacProps: "default",
   },
