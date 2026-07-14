@@ -1218,6 +1218,18 @@ const overlayBackdrop: SkiaPrimitiveDrawFn = () => [
  * 사용(RangeCalendar.spec = `...CalendarSpec`, 시각 동형). 자식이 있으면(`_hasChildren`)
  * shell(bg+border)만, standalone 이면 full grid.
  */
+
+/**
+ * Calendar/RangeCalendar 의 nav chevron 은 DOM(`<ChevronLeft size={16}>`)에서 **size 무관 고정
+ * 16px** 이다 (Calendar.tsx:122-126). Skia glyph 도 동일 16 으로 못 박아 CSS↔Skia 대칭 유지 —
+ * rule `size.fontSize` 파생(가변) 금지. TagGroup remove X 축1 과 동형(DOM 고정-크기 아이콘 컨벤션).
+ *
+ * **두 경로가 공유한다**: `inline_icon_text`(CalendarHeader 자식이 있을 때) + `calendar_grid`
+ * (standalone — 자식 없을 때 Calendar 가 직접 그리는 nav row). 과거 `calendar_grid` 만 `fontSize+2`
+ * 로 남아 sm 14 / md 16 / lg 18 로 가변했다 — **md 만 우연히 DOM 16 과 일치**하고 sm/lg 는 어긋남.
+ */
+const CALENDAR_CHEVRON_DOM_PX = 16;
+
 const calendarGrid: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   const borderRadius = parsePxValue(
     style?.borderRadius,
@@ -1284,7 +1296,8 @@ const calendarGrid: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
       iconName: "chevron-left",
       x: paddingX + cellSize / 2,
       y: navRowY + headerHeight / 2,
-      fontSize: fontSize + 2,
+      // DOM `<ChevronLeft size={16}>` 고정 — fontSize 파생(가변) 금지 (inline_icon_text 와 동일).
+      fontSize: CALENDAR_CHEVRON_DOM_PX,
       fill: textColor,
       strokeWidth: 2,
     },
@@ -1318,7 +1331,8 @@ const calendarGrid: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
       iconName: "chevron-right",
       x: calendarWidth - paddingX - cellSize / 2,
       y: navRowY + headerHeight / 2,
-      fontSize: fontSize + 2,
+      // DOM `<ChevronRight size={16}>` 고정 — fontSize 파생(가변) 금지 (inline_icon_text 와 동일).
+      fontSize: CALENDAR_CHEVRON_DOM_PX,
       fill: textColor,
       strokeWidth: 2,
     },
@@ -2155,13 +2169,6 @@ const leadingIcon: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
  *   (spec render.shapes 동형).
  * - color = visual.text(좌우 icon 동일), textAlign = visual.textAlign ?? "center".
  */
-/**
- * CalendarHeader chevron 은 DOM(Calendar/RangeCalendar `<ChevronLeft size={16}>`)에서 size 무관
- * 고정 16px 이다. Skia glyph 도 동일 16 으로 못 박아 CSS↔Skia 대칭 유지(rule size.fontSize 파생
- * 가변 금지). TagGroup remove X 축1 과 동형(DOM 고정-크기 아이콘 컨벤션).
- */
-const CALENDAR_CHEVRON_DOM_PX = 16;
-
 const inlineIconText: SkiaPrimitiveDrawFn = ({
   props,
   size,
