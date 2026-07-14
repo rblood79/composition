@@ -51,7 +51,6 @@ function makeSceneNode(id: string, parentId: string | null): CanvasSceneNode {
     pageId: PAGE_ID,
     page_id: PAGE_ID,
     layoutId: null,
-    layout_id: null,
     sourceNode: {
       id,
       type: "Frame",

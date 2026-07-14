@@ -40,6 +40,18 @@ import {
 } from "./importRegistry";
 import { extractCanonicalPropsFromResolved } from "./extractCanonicalProps";
 
+/**
+ * ADR-122 residual boundary — instance 는 두 shape 으로 들어온다.
+ *
+ * 1. canonical ref: `type: "ref"` + `ref`.
+ * 2. legacy mirror: top-level `componentRole: "instance"` + `masterId` (+ `overrides`).
+ *    `componentSemanticsMirror.withComponentInstanceMirror` 가 붙이고,
+ *    `StoreRenderBridge` 가 `isInstanceElement`/`getInstanceMasterRef` 로 찾아 이 함수에
+ *    넘긴다. 즉 **살아있는 경로**다 — mirror 필드는 계산된 키(COMPONENT_*_MIRROR_FIELD)로
+ *    쓰이므로 `componentRole:` 리터럴 grep 에는 안 걸린다는 점에 주의.
+ *
+ * ADR-116 G5 grep gate 는 이 파일을 legacy mirror 경계로 allowlist 한다 (panelNode 와 동류).
+ */
 type ComponentInstanceFields = {
   componentRole?: unknown;
   masterId?: unknown;

@@ -51,7 +51,7 @@ function isImageElement(element: CanvasSceneNode): boolean {
 function toSyntheticSceneNode(element: CanvasLayoutNode): CanvasSceneNode {
   const parentId = element.parentId ?? element.parent_id ?? null;
   const pageId = element.pageId ?? element.page_id ?? null;
-  const layoutId = element.layoutId ?? element.layout_id ?? null;
+  const layoutId = element.layoutId ?? null;
   const nameCandidate = element.name ?? element.componentName;
   const name = typeof nameCandidate === "string" ? nameCandidate : undefined;
   const slot =
@@ -76,7 +76,6 @@ function toSyntheticSceneNode(element: CanvasLayoutNode): CanvasSceneNode {
     layoutId,
     parent_id: parentId,
     page_id: pageId,
-    layout_id: layoutId,
     sourceNode,
   };
   if (typeof element.customId === "string")

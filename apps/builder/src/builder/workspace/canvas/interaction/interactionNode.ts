@@ -4,7 +4,6 @@ export interface CanvasInteractionNode {
   props: Record<string, unknown>;
   parent_id?: string | null;
   page_id?: string | null;
-  layout_id?: string | null;
   parentId?: string | null;
   pageId?: string | null;
   layoutId?: string | null;
@@ -14,6 +13,4 @@ export interface CanvasInteractionNode {
   name?: string | null;
   ref?: string;
   projection?: unknown;
-  masterId?: string | null;
-  componentRole?: unknown;
 }

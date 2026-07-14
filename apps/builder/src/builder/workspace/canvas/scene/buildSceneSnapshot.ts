@@ -51,7 +51,7 @@ function createNodeProjectionSignature(node: CanvasSceneNode | null) {
   return {
     deleted: node.deleted === true,
     id: node.id,
-    layoutId: node.layoutId ?? node.layout_id ?? null,
+    layoutId: node.layoutId ?? null,
     pageId: node.pageId ?? node.page_id ?? null,
     parentId: node.parentId ?? node.parent_id ?? null,
     projection: node.projection ?? null,

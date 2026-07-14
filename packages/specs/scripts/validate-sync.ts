@@ -131,7 +131,7 @@ async function main(): Promise<void> {
       continue;
     }
 
-    const expectedCSS = generateCSS(spec, false, variantSourceFor(name));
+    const expectedCSS = generateCSS(spec, variantSourceFor(name));
     const cssPath = path.join(GENERATED_DIR, `${name}.css`);
 
     try {

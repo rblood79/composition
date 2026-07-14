@@ -244,30 +244,20 @@ function isSliderTrackLeaf<Props>(spec: ComponentSpec<Props>): boolean {
 export function generateCSS<Props>(
   spec: ComponentSpec<Props>,
   /**
-   * ADR-078 Phase 2: 자식 inline emit 시 true.
-   * - 파일 헤더, `@layer components {`/`}`, animation at-rules 를 생략 — 부모가 담당.
-   * - `skipCSSGeneration: true` 자식도 embed 는 허용 (독립 파일 emit 만 차단).
-   */
-  _embedMode = false,
-  /**
    * ADR-912 ②-6-A (1A-(a)): variant 색상 base source 주입 (build script 가 정본 table 에서 변환해 전달).
    * `variantName → ComponentVisualRule`. 제공 시 해당 variant 색상은 spec 이 아니라 본 맵(=table 파생)에서
-   * 읽혀 DOM CSS 와 Skia runtime rule 이 같은 정본 table 파생이 된다. 미제공(undefined) 시 기존
-   * `variantToVisual(spec.variants)` fallback (전환기 — embed/test 호출부 불변). variant 색상 채널 한정 —
-   * size/구조 CSS 는 여전히 spec.
+   * 읽혀 DOM CSS 와 Skia runtime rule 이 같은 정본 table 파생이 된다. 미제공(undefined) variant 는 skip.
    */
   _variantSource?: Record<string, ComponentVisualRule>,
 ): string | null {
   // Container/Composite 컴포넌트: 수동 CSS가 구조 담당, Spec은 Skia용.
-  // embedMode 에서는 skipCSSGeneration 우회 — 독립 파일 emit 이 아닌 부모 내부 inline emit 은 허용.
-  if (spec.skipCSSGeneration && !_embedMode) return null;
+  if (spec.skipCSSGeneration) return null;
 
   const archetype = spec.archetype;
 
   const lines: string[] = [];
 
-  // ADR-078 Phase 2: 파일 헤더 + @layer 오픈 — embed 모드에서는 부모가 이미 emit 했으므로 생략
-  if (!_embedMode) {
+  {
     // 파일 헤더
     lines.push(
       `/* ============================================================`,
@@ -615,35 +605,11 @@ export function generateCSS<Props>(
     lines.push(...rootSelectorRules);
   }
 
-  // ADR-078 Phase 2: 자식 embed 모드 — @layer close / atRules 는 부모가 처리
-  if (_embedMode) {
-    return lines.join("\n");
-  }
-
-  // ADR-078 Phase 2: 자식 Spec inline emit — 부모 @layer 블록 내부에 append.
-  //   ListBox/ListBoxItem 같은 "자식 selector 를 부모 CSS 파일에 흡수" 케이스.
-  if (spec.childSpecs && spec.childSpecs.length > 0) {
-    for (const child of spec.childSpecs) {
-      const childInner = generateCSS(child, /* _embedMode */ true);
-      if (!childInner) continue;
-      lines.push("");
-      lines.push(`/* ─── Child Spec: ${child.name} (ADR-078) ─── */`);
-      lines.push("");
-      lines.push(childInner);
-    }
-  }
-
   lines.push("");
   lines.push("} /* @layer components */");
 
   // ─── Phase 4-infra: Animation at-rules (@layer 바깥) ───
-  // ADR-078 Phase 2: 자식 Spec 의 animation at-rules 도 부모와 함께 @layer 바깥에 emit
   const atRules = generateAnimationAtRules(spec);
-  if (spec.childSpecs && spec.childSpecs.length > 0) {
-    for (const child of spec.childSpecs) {
-      atRules.push(...generateAnimationAtRules(child));
-    }
-  }
   if (atRules.length > 0) {
     lines.push("");
     lines.push(...atRules);
@@ -1739,7 +1705,7 @@ export async function generateAllCSS(
   const path = await import("path");
 
   for (const spec of specs) {
-    const css = generateCSS(spec, false, variantSourceFor?.(spec.name));
+    const css = generateCSS(spec, variantSourceFor?.(spec.name));
     if (css === null) {
       console.log(`  ⏭ Skipped: ${spec.name} (skipCSSGeneration)`);
       continue;

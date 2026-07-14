@@ -11,7 +11,6 @@ export interface CanvasLayoutNode {
   props: Record<string, unknown>;
   parent_id?: string | null;
   page_id?: string | null;
-  layout_id?: string | null;
   parentId?: string | null;
   pageId?: string | null;
   layoutId?: string | null;

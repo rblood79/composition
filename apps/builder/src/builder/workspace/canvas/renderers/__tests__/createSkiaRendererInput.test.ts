@@ -21,7 +21,7 @@ const makeSceneNode = (
   const props = partial.props ?? {};
   const parentId = partial.parentId ?? partial.parent_id ?? null;
   const pageId = partial.pageId ?? partial.page_id ?? "page-1";
-  const layoutId = partial.layoutId ?? partial.layout_id ?? null;
+  const layoutId = partial.layoutId ?? null;
   return {
     props,
     parentId,
@@ -29,7 +29,6 @@ const makeSceneNode = (
     layoutId,
     parent_id: parentId,
     page_id: pageId,
-    layout_id: layoutId,
     sourceNode: {
       id: partial.id,
       type: partial.type as CanvasSceneNode["sourceNode"]["type"],

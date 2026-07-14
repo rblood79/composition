@@ -520,6 +520,5 @@ export {
   BASE_TAG_SPEC_MAP,
   TAG_SPEC_MAP,
   LOWERCASE_TAG_SPEC_MAP,
-  expandChildSpecs,
 } from "./runtime/tagToElement";
 export { resolveContainerStylesFallback } from "./runtime/containerStylesFallback";

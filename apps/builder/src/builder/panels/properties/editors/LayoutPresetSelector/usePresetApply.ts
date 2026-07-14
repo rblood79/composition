@@ -46,7 +46,6 @@ interface PresetElementNode {
   props: Record<string, unknown>;
   parent_id?: string | null;
   page_id?: string | null;
-  layout_id?: string | null;
   deleted?: boolean;
 }
 

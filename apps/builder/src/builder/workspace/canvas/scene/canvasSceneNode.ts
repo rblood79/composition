@@ -205,10 +205,6 @@ export interface CanvasSceneNode {
    */
   page_id?: string | null;
   /**
-   * @deprecated ADR-126 transition alias. Prefer `layoutId` in new Skia code.
-   */
-  layout_id?: string | null;
-  /**
    * Canonical scene nodes are omitted instead of marked deleted. Legacy
    * bootstrap adapters may still pass falsey deleted markers during transition.
    */
@@ -405,7 +401,6 @@ function toCanvasSceneNode(
     layoutId: scope.layoutId,
     parent_id: parentId,
     page_id: scope.pageId,
-    layout_id: scope.layoutId,
     ...(customId ? { customId } : {}),
     ...(node.name !== undefined ? { name: node.name } : {}),
     ...(node.name !== undefined ? { componentName: node.name } : {}),
@@ -619,7 +614,6 @@ function appendListBoxRowProjection(
     layoutId: scope.layoutId,
     parent_id: listBoxSceneNode.id,
     page_id: scope.pageId,
-    layout_id: scope.layoutId,
     projection: {
       kind: "listbox-rows",
       listBoxId: listBoxSceneNode.id,
@@ -657,7 +651,6 @@ function appendListBoxRowProjection(
         layoutId: scope.layoutId,
         parent_id: rowsGroupId,
         page_id: scope.pageId,
-        layout_id: scope.layoutId,
         projection: {
           kind: "listbox-row",
           listBoxId: listBoxSceneNode.id,
@@ -767,7 +760,6 @@ function appendGridListRowProjection(
     layoutId: scope.layoutId,
     parent_id: gridListSceneNode.id,
     page_id: scope.pageId,
-    layout_id: scope.layoutId,
     projection: {
       kind: "gridlist-rows",
       listBoxId: gridListSceneNode.id,
@@ -810,7 +802,6 @@ function appendGridListRowProjection(
         layoutId: scope.layoutId,
         parent_id: rowsGroupId,
         page_id: scope.pageId,
-        layout_id: scope.layoutId,
         projection: {
           kind: "gridlist-row",
           listBoxId: gridListSceneNode.id,
@@ -926,7 +917,6 @@ function appendTableRowProjection(
     layoutId: scope.layoutId,
     parent_id: tableSceneNode.id,
     page_id: scope.pageId,
-    layout_id: scope.layoutId,
     projection: {
       kind: "table-rows",
       listBoxId: tableSceneNode.id,
@@ -985,7 +975,6 @@ function appendTableRowProjection(
         layoutId: scope.layoutId,
         parent_id: rowsGroupId,
         page_id: scope.pageId,
-        layout_id: scope.layoutId,
         projection: {
           kind: "table-row",
           listBoxId: tableSceneNode.id,
@@ -1039,7 +1028,6 @@ function appendTableRowProjection(
           layoutId: scope.layoutId,
           parent_id: rowId,
           page_id: scope.pageId,
-          layout_id: scope.layoutId,
           projection: {
             kind: "table-cell",
             listBoxId: tableSceneNode.id,
@@ -1219,7 +1207,6 @@ function appendTagRowProjection(
     layoutId: scope.layoutId,
     parent_id: tagListSceneNode.id,
     page_id: scope.pageId,
-    layout_id: scope.layoutId,
     projection: {
       kind: "tag-rows",
       listBoxId: tagListSceneNode.id,
@@ -1264,7 +1251,6 @@ function appendTagRowProjection(
         layoutId: scope.layoutId,
         parent_id: rowsGroupId,
         page_id: scope.pageId,
-        layout_id: scope.layoutId,
         projection: {
           kind: "tag-row",
           listBoxId: tagListSceneNode.id,
@@ -1307,7 +1293,6 @@ function appendTagRowProjection(
         layoutId: scope.layoutId,
         parent_id: rowsGroupId,
         page_id: scope.pageId,
-        layout_id: scope.layoutId,
         projection: {
           kind: "tag-row",
           listBoxId: tagListSceneNode.id,
@@ -1474,7 +1459,6 @@ function appendTabRowProjection(
     layoutId: scope.layoutId,
     parent_id: tabListSceneNode.id,
     page_id: scope.pageId,
-    layout_id: scope.layoutId,
     projection: {
       kind: "tab-rows",
       listBoxId: tabListSceneNode.id,
@@ -1518,7 +1502,6 @@ function appendTabRowProjection(
         layoutId: scope.layoutId,
         parent_id: rowsGroupId,
         page_id: scope.pageId,
-        layout_id: scope.layoutId,
         projection: {
           kind: "tab-row",
           listBoxId: tabListSceneNode.id,
@@ -1629,7 +1612,6 @@ function appendBreadcrumbRowProjection(
     layoutId: scope.layoutId,
     parent_id: breadcrumbsSceneNode.id,
     page_id: scope.pageId,
-    layout_id: scope.layoutId,
     projection: {
       kind: "breadcrumb-rows",
       listBoxId: breadcrumbsSceneNode.id,
@@ -1671,7 +1653,6 @@ function appendBreadcrumbRowProjection(
         layoutId: scope.layoutId,
         parent_id: rowsGroupId,
         page_id: scope.pageId,
-        layout_id: scope.layoutId,
         projection: {
           kind: "breadcrumb-row",
           listBoxId: breadcrumbsSceneNode.id,

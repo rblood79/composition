@@ -182,38 +182,21 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
 };
 
 /**
- * ADR-094: `BASE_TAG_SPEC_MAP` 각 spec 의 `childSpecs` 를 PascalCase 키로 자동 추가.
+ * 정본 spec registry.
  *
- * - 수동 등록 entry 가 우선 (덮어쓰지 않음).
- * - child spec 의 `element` 가 정적 문자열이면 `getElementForTag` 가 그대로 반환.
- * - child spec 의 `element` 가 함수면 Heading 류 동적 분기 규칙 그대로 적용.
+ * ADR-094 는 각 spec 의 `childSpecs` 를 PascalCase 키로 자동 등록하는 `expandChildSpecs`
+ * 를 두었으나, ADR-142/912 cutover 로 `childSpecs` 를 가진 spec 이 전수 삭제되어(잔존
+ * spec = Frame/Group/Slot, 셋 다 childSpecs 없음) 항등 함수가 됐다 — 2026-07-15 제거.
+ * 구 child spec 들(CardHeader/FormField/DialogFooter 등)은 catalog binding 이 담당한다.
  */
-export function expandChildSpecs(
-  base: Record<string, ComponentSpec>,
-): Record<string, ComponentSpec> {
-  const out: Record<string, ComponentSpec> = { ...base };
-  for (const spec of Object.values(base)) {
-    const children = spec.childSpecs;
-    if (!children || children.length === 0) continue;
-    for (const child of children) {
-      if (out[child.name] === undefined) {
-        out[child.name] = child;
-      }
-    }
-  }
-  return out;
-}
-
-export const TAG_SPEC_MAP: Record<string, ComponentSpec> =
-  expandChildSpecs(BASE_TAG_SPEC_MAP);
+export const TAG_SPEC_MAP: Record<string, ComponentSpec> = BASE_TAG_SPEC_MAP;
 
 /**
  * ADR-108 P0: lowercase type → ComponentSpec lookup map.
  *
  * `TAG_SPEC_MAP` (PascalCase 키) 을 build-time 1회 lowercase Map 으로 변환.
  * Canvas layout engine 의 `resolveContainerStylesFallback` + `specSizeField` 등
- * type 정규화 경로의 SSOT. apps/builder 는 BUILDER_ALIAS_MAP 과 병합하여
- * 자체 LOWERCASE map 을 파생한다 (sprites/builderAliasMap.ts 참조).
+ * type 정규화 경로의 SSOT.
  */
 export const LOWERCASE_TAG_SPEC_MAP: ReadonlyMap<
   string,

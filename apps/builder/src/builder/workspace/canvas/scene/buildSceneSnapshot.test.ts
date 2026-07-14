@@ -31,8 +31,7 @@ const makeNode = (
     parent_id: partial.parent_id ?? partial.parentId ?? null,
     pageId: partial.pageId ?? partial.page_id ?? null,
     page_id: partial.page_id ?? partial.pageId ?? null,
-    layoutId: partial.layoutId ?? partial.layout_id ?? null,
-    layout_id: partial.layout_id ?? partial.layoutId ?? null,
+    layoutId: partial.layoutId ?? null,
     props: partial.props ?? {},
     sourceNode: { id: partial.id, type: partial.type },
   }) as CanvasSceneNode;

@@ -49,10 +49,10 @@ export function buildLegacyCanvasSceneGraph(
   const parentById = new Map<string, string>();
 
   for (const element of elements) {
-    const layoutId =
-      typeof (element as { layout_id?: unknown }).layout_id === "string"
-        ? ((element as { layout_id: string }).layout_id ?? null)
-        : null;
+    // legacy Element 의 snake_case `layout_id` 를 읽는 유일한 지점 (본 함수가 legacy →
+    // scene 경계). CanvasSceneNode 쪽으로는 camelCase `layoutId` 만 내보낸다.
+    const rawLayoutId = (element as { layout_id?: unknown }).layout_id;
+    const layoutId = typeof rawLayoutId === "string" ? rawLayoutId : null;
     const node: CanvasSceneNode = {
       id: element.id,
       type: element.type,
@@ -62,7 +62,6 @@ export function buildLegacyCanvasSceneGraph(
       layoutId,
       parent_id: element.parent_id ?? null,
       page_id: element.page_id ?? null,
-      layout_id: layoutId,
       deleted: element.deleted,
       ...(element.customId ? { customId: element.customId } : {}),
       ...(element.componentName ? { name: element.componentName } : {}),

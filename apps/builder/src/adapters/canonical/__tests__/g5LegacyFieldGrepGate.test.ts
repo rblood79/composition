@@ -79,6 +79,20 @@ const EXCLUDE_PATH_PATTERNS: readonly RegExp[] = [
   // canonical → legacy compat extraction view: COMPAT_EXTRACTION_RUNTIME_FILES
   // 목록과 정합. store layer 에 위치하지만 의도적 legacy emit 영역.
   /\/apps\/builder\/src\/builder\/stores\/canonical\/canonicalElementsView\.ts$/,
+  // legacy Element[] → CanvasSceneNode bootstrap fallback (BuilderCanvas 가 active canonical
+  // document 부재 시 호출). legacy Element 의 snake_case `layout_id` 를 읽는 것이 이 함수의
+  // 존재 이유 — canonicalElementsView 와 같은 legacy 경계 영역.
+  /\/apps\/builder\/src\/builder\/stores\/canonical\/canonicalSceneModelLegacy\.ts$/,
+  // ADR-122 residual: legacy mirror instance element 의 componentRole/masterId/overrides 를
+  // 선언한다. PropertiesPanel 의 panelNodeToElement → isComponentInstanceMirrorElement 가
+  // 이 필드를 실제로 읽으므로(소비처 live) 선언을 지워선 안 된다.
+  /\/apps\/builder\/src\/builder\/panels\/panelNode\.ts$/,
+  // ADR-122 residual: instance 해석의 legacy mirror 분기. instance 는 canonical ref 뿐 아니라
+  // top-level componentRole/masterId/overrides 로도 들어오며(withComponentInstanceMirror →
+  // StoreRenderBridge), storeBridge.test.ts TC9/TC12~15 가 그 경로를 지킨다. 2026-07-15 에
+  // "죽은 분기" 로 보고 제거했다가 해당 테스트가 즉시 잡아냈다 — mirror 필드는 계산된 키로
+  // 쓰여서 `componentRole:` 리터럴 grep 에 안 걸린다.
+  /\/apps\/builder\/src\/resolvers\/canonical\/storeBridge\.ts$/,
 ];
 
 /** design §9.3 첫번째 grep 의 5 필드 (legacy field name) */
@@ -221,6 +235,9 @@ function scanFilesForPattern(
     }
     const lines = content.split("\n");
     for (let i = 0; i < lines.length; i++) {
+      // 주석은 logic-access 가 아니다 — scanClassified 의 comment bucket 과 동일 취급.
+      // (이 skip 이 없으면 "이 필드를 왜 안 읽는가" 를 설명하는 주석 자체가 위반으로 잡힌다.)
+      if (COMMENT_LINE_PATTERN.test(lines[i])) continue;
       if (pattern.test(lines[i])) {
         out.push(`${relPath}:${i + 1} -> ${lines[i].trim()}`);
       }
@@ -373,9 +390,18 @@ describe("ADR-116 Phase 4 G5 — §9.3.1 strict logic-access grep gate (PASS mar
   });
 
   it("runtime compatibility extraction does not read metadata legacy props", () => {
+    // canonical metadata 에서 legacy mirror 를 **읽는** 것만 잡는다 — member access
+    // (`x.metadata.legacyProps`) 와 추출 helper.
+    //
+    // 구 패턴은 `\blegacyProps\b` 로 단순 언급까지 잡아 canonical **쓰기** 측을 위반으로
+    // 오판했다: `canonicalMutations.buildCanonicalMutationMetadata` 의
+    // `legacyProps: legacyMetadata.legacyProps` 는 stale incomingMetadata 가 신규
+    // legacyMetadata 를 덮어쓰지 못하게 고정하는 write 이고(2026-06-29 RadioGroup 형제 순서
+    // 회귀 수정), gate 가 막으려는 "extraction 이 legacy mirror 를 읽어 props 를 만든다" 와
+    // 방향이 반대다. 진짜 extraction 파일 9개는 여전히 0건.
     const violations = scanFilesForPattern(
       COMPAT_EXTRACTION_RUNTIME_FILES,
-      /metadata\.legacyProps|\blegacyProps\b|extractLegacyProps/,
+      /metadata\.legacyProps|extractLegacyProps/,
     );
     if (violations.length > 0) {
       throw new Error(

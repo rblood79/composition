@@ -30,11 +30,22 @@ const EXCLUDE_PATH_PATTERNS: readonly RegExp[] = [
   /\/packages\/shared\/src\/types\/pencil-adapter\.types\.ts$/,
 ];
 
+/**
+ * canonical `RefNode.descendants` 를 읽는 것이 정당한 파일들.
+ *
+ * gate 가 막으려는 것은 **legacy `Element.descendants`** 접근이지, canonical RefNode 의
+ * 필드 접근이 아니다 (파일 상단 주석 참조 — "raw grep 은 0 이 될 수 없다"). 아래 목록은
+ * canonical 문서를 직접 소비하는 resolver / store / 파생 뷰 모델 경계다.
+ */
 const CANONICAL_DESCENDANTS_ALLOWLIST = new Set([
   "apps/builder/src/lib/db/indexedDB/adapter.ts",
   "apps/builder/src/resolvers/canonical/index.ts",
   "apps/builder/src/builder/stores/canonical/canonicalElementsView.ts",
   "apps/builder/src/builder/stores/canonical/canonicalDocumentStore.ts",
+  // canonical 파생 뷰 모델 — RefNode.descendants 를 scene / panel 노드로 투영한다.
+  // (ADR-126/135 이후 신설. gate 작성 시점에는 없던 canonical 경계 파일.)
+  "apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts",
+  "apps/builder/src/builder/panels/panelNode.ts",
   "packages/shared/src/utils/export.utils.ts",
   "packages/shared/src/utils/compositionDocumentOrder.ts",
   "packages/shared/src/types/composition-vocabulary.ts",

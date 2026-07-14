@@ -47,7 +47,6 @@ function makeNode(index: number, parentId: string | null): CanvasSceneNode {
     pageId: PAGE_ID,
     page_id: PAGE_ID,
     layoutId: null,
-    layout_id: null,
     // sourceNode 는 signature 직렬화 대상 아님 (createNodeProjectionSignature 는
     // id/type/props/parentId/pageId/layoutId/projection/ref/reusable/deleted 만
     // 참조). 최소 유효값으로 채운다.

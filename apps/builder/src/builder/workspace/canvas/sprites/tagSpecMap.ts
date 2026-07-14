@@ -1,37 +1,21 @@
 /**
- * TAG_SPEC_MAP — Builder 측 merged spec registry (ADR-108 P0)
+ * Builder 측 spec registry 진입점.
  *
- * packages/specs 정본 `TAG_SPEC_MAP` (102 entries — `childSpecs` 자동 확장 포함) 를
- * `BUILDER_ALIAS_MAP` (8 alias — ADR-912 4단계로 TabBar BC alias 제거) 과 병합하여 Canvas layout engine /
- * StoreRenderBridge / specPresetResolver / useLayoutAuxiliary 등이 소비하는
- * 단일 merged map 을 생성한다.
+ * ADR-142 cutover 이후 컴포넌트당 spec 파일은 폐기됐고, `packages/specs` 의 `TAG_SPEC_MAP`
+ * 에는 잔존 spec 3개(Frame/Group/Slot)만 남는다. 일반 컴포넌트의 시각 SSOT 는 catalog
+ * (`COMPONENT_RULES_TABLE`) + theme/tokens 다 — `resolveComponentRule` 을 쓸 것.
  *
- * 배경:
- *   - ADR-108 P0 이전: builder 가 독자 BASE_TAG_SPEC_MAP (108 entries) 유지 →
- *     packages/specs 와 13 항목 drift 발생 (8 진짜 alias + 3 누락 spec 등록 +
- *     2 stale 후보).
- *   - ADR-108 P0 이후: packages/specs 정본 (102) + builder 전용 8 alias layer.
- *     IllustratedMessage / CardView / TableView 는 packages/specs 정본으로 승격.
+ * 과거 이 모듈은 builder 전용 alias 계층(`BUILDER_ALIAS_MAP`)을 정본 map 위에 얹었으나,
+ * ADR-912 로 alias 가 전수 제거되어 빈 객체만 남았고(2026-07-15 파일 삭제) 지금은 정본 map
+ * 을 그대로 재노출한다.
  *
- * IMAGE_TAGS 는 layout 과 무관한 이미지 렌더링 태그 집합 — 별도 유지.
+ * IMAGE_TAGS 는 layout 과 무관한 이미지 렌더링 태그 집합 — 여기 함께 둔다.
  */
 
 import type { ComponentSpec } from "@composition/specs";
-import { TAG_SPEC_MAP as BASE_TAG_SPEC_MAP } from "@composition/specs";
-import { BUILDER_ALIAS_MAP } from "./builderAliasMap";
+import { TAG_SPEC_MAP } from "@composition/specs";
 
-/**
- * Builder 측 최종 TAG_SPEC_MAP — packages/specs 정본 + 8 alias.
- *
- * 수동 alias 가 정본 entry 와 type 이름 겹칠 가능성은 없도록 builderAliasMap 이
- * 유지 (Spec 등록 누락이 아닌 진짜 alias 만). 충돌 시 packages/specs 정본 우선
- * (alias spread 뒤에 정본 spread → 정본이 덮어쓰기 방지 위해 alias 먼저).
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const TAG_SPEC_MAP: Record<string, ComponentSpec<any>> = {
-  ...BUILDER_ALIAS_MAP,
-  ...BASE_TAG_SPEC_MAP,
-};
+export { TAG_SPEC_MAP };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getSpecForTag(type: string): ComponentSpec<any> | null {

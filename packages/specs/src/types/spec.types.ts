@@ -252,20 +252,6 @@ export interface ComponentSpec<Props = Record<string, unknown>> {
    */
   skipVariantCss?: boolean;
 
-  /**
-   * ADR-078: 자식 Spec 참조 — 부모 CSS 파일 내 자식 selector 블록 inline emit.
-   *
-   * - 설정 시 CSSGenerator 는 본 Spec 의 `@layer components` 블록 내부 후미에
-   *   각 자식 Spec 의 base/variants/sizes/states/media 블록을 같은 @layer 에 append.
-   * - Animation at-rules 은 @layer 바깥에서 부모+자식 합산 emit.
-   * - 자식 Spec 은 일반적으로 `skipCSSGeneration: true` 로 설정하여 독립 파일 emit 을 중단
-   *   (중복 방지). 독립 emit 이 필요한 자식(예: Menu/MenuItem 선례)은 설정 생략 가능.
-   * - 용도: ListBox/ListBoxItem, GridList/GridListItem 등 컬렉션 계열에서 자식 item metric
-   *   을 독립 Spec 으로 소유하되 부모 CSS 파일에 자식 selector 를 함께 emit 하는 경우.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  childSpecs?: ComponentSpec<any>[];
-
   /** 렌더링 정의 */
   render: RenderSpec<Props>;
 }

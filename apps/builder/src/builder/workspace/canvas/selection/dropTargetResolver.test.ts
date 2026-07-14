@@ -24,7 +24,6 @@ function makeElement(
     type: "Box",
     page_id: "page-1",
     parent_id: null,
-    order_num: 0,
     props: {},
     deleted: false,
     ...overrides,
@@ -47,7 +46,6 @@ describe("resolveDropTarget cross-page body targets", () => {
     });
     const source = makeElement("source-card", {
       parent_id: page1Body.id,
-      order_num: 0,
     });
 
     mockBounds.set(page1Body.id, { x: 0, y: 0, width: 800, height: 600 });
@@ -95,14 +93,12 @@ describe("resolveDropTarget cross-page body targets", () => {
     const source = makeElement("source-button", {
       type: "Button",
       parent_id: page1Body.id,
-      order_num: 0,
     });
     const cardInstance = {
       ...makeElement("card-instance", {
         type: "ref",
         page_id: "page-2",
         parent_id: page2Body.id,
-        order_num: 0,
       }),
       ref: "card-origin",
     };
@@ -159,19 +155,16 @@ describe("resolveDropTarget cross-page body targets", () => {
     const source = makeElement("source-button", {
       type: "Button",
       parent_id: page1Body.id,
-      order_num: 0,
     });
     const firstCard = makeElement("first-card", {
       type: "Card",
       page_id: "page-2",
       parent_id: page2Body.id,
-      order_num: 0,
     });
     const secondCard = makeElement("second-card", {
       type: "Card",
       page_id: "page-2",
       parent_id: page2Body.id,
-      order_num: 1,
     });
 
     mockBounds.set(page1Body.id, { x: 0, y: 0, width: 800, height: 600 });
@@ -228,7 +221,6 @@ describe("resolveDropTarget cross-page body targets", () => {
     const source = makeElement("source-button", {
       type: "Button",
       parent_id: page1Body.id,
-      order_num: 0,
     });
 
     mockBounds.set(page1Body.id, { x: 0, y: 0, width: 800, height: 600 });
@@ -273,14 +265,12 @@ describe("resolveDropTarget cross-page body targets", () => {
     const source = makeElement("source-button", {
       type: "Button",
       parent_id: page1Body.id,
-      order_num: 0,
     });
     const instance = {
       ...makeElement("card-instance", {
         type: "ref",
         page_id: "page-2",
         parent_id: page2Body.id,
-        order_num: 0,
       }),
       ref: "card-origin",
     };
@@ -288,13 +278,11 @@ describe("resolveDropTarget cross-page body targets", () => {
       type: "CardContent",
       page_id: "page-2",
       parent_id: instance.id,
-      order_num: 0,
     });
     const slotDescendant = makeElement("card-instance/slot", {
       type: "CardContent",
       page_id: "page-2",
       parent_id: instance.id,
-      order_num: 1,
       slot: [],
     });
 
@@ -361,13 +349,11 @@ describe("resolveDropTarget cross-page body targets", () => {
     });
     const source = makeElement("source-card", {
       parent_id: page1Body.id,
-      order_num: 0,
     });
     const projectedSlot = makeElement("page-2::page-frame::slot-content", {
       type: "Slot",
       page_id: "page-2",
       parent_id: "page-2::page-frame::frame-body",
-      order_num: 0,
     });
 
     mockBounds.set(page1Body.id, { x: 0, y: 0, width: 800, height: 600 });
@@ -408,11 +394,9 @@ describe("resolveDropTarget cross-page body targets", () => {
     });
     const source = makeElement("source-card", {
       parent_id: pageBody.id,
-      order_num: 0,
     });
     const sibling = makeElement("sibling-card", {
       parent_id: pageBody.id,
-      order_num: 1,
     });
 
     mockBounds.set(pageBody.id, { x: 0, y: 0, width: 800, height: 600 });
@@ -447,15 +431,12 @@ describe("resolveDropTarget cross-page body targets", () => {
     const group = makeElement("group", {
       type: "Frame",
       parent_id: pageBody.id,
-      order_num: 0,
     });
     const source = makeElement("source-card", {
       parent_id: group.id,
-      order_num: 0,
     });
     const sibling = makeElement("sibling-card", {
       parent_id: group.id,
-      order_num: 1,
     });
 
     mockBounds.set(pageBody.id, { x: 0, y: 0, width: 800, height: 600 });
@@ -501,16 +482,13 @@ describe("resolveDropTarget cross-page body targets", () => {
     });
     const first = makeElement("first-card", {
       parent_id: pageBody.id,
-      order_num: 0,
     });
     const source = makeElement("source-button", {
       type: "Button",
       parent_id: pageBody.id,
-      order_num: 1,
     });
     const last = makeElement("last-card", {
       parent_id: pageBody.id,
-      order_num: 2,
     });
 
     mockBounds.set(pageBody.id, { x: 0, y: 0, width: 800, height: 600 });
@@ -562,16 +540,13 @@ describe("resolveDropTarget cross-page body targets", () => {
     });
     const first = makeElement("first-card", {
       parent_id: pageBody.id,
-      order_num: 0,
     });
     const source = makeElement("source-button", {
       type: "Button",
       parent_id: pageBody.id,
-      order_num: 1,
     });
     const last = makeElement("last-card", {
       parent_id: pageBody.id,
-      order_num: 2,
     });
 
     mockBounds.set(pageBody.id, { x: 0, y: 0, width: 800, height: 600 });
@@ -625,20 +600,16 @@ describe("resolveDropTarget cross-page body targets", () => {
     });
     const first = makeElement("first-card", {
       parent_id: pageBody.id,
-      order_num: 0,
     });
     const source = makeElement("source-button", {
       type: "Button",
       parent_id: pageBody.id,
-      order_num: 1,
     });
     const third = makeElement("third-card", {
       parent_id: pageBody.id,
-      order_num: 2,
     });
     const last = makeElement("last-card", {
       parent_id: pageBody.id,
-      order_num: 3,
     });
 
     mockBounds.set(pageBody.id, { x: 0, y: 0, width: 500, height: 200 });
@@ -703,7 +674,6 @@ describe("resolveDropTarget cross-page body targets", () => {
     const source = makeElement("source-button", {
       type: "Button",
       parent_id: sourceBody.id,
-      order_num: 0,
     });
 
     mockBounds.set(sourceBody.id, { x: 0, y: 0, width: 300, height: 200 });
@@ -752,16 +722,13 @@ describe("resolveDropTarget cross-page body targets", () => {
     });
     const first = makeElement("first-card", {
       parent_id: pageBody.id,
-      order_num: 0,
     });
     const middle = makeElement("middle-button", {
       type: "Button",
       parent_id: pageBody.id,
-      order_num: 1,
     });
     const source = makeElement("source-card", {
       parent_id: pageBody.id,
-      order_num: 2,
     });
 
     mockBounds.set(pageBody.id, { x: 0, y: 0, width: 800, height: 600 });
@@ -800,11 +767,15 @@ describe("resolveDropTarget cross-page body targets", () => {
     ).toEqual([{ id: first.id }, { id: source.id }, { id: middle.id }]);
   });
 
-  it("uses childrenByParent source order even when input metadata order differs", () => {
+  // ADR-118: 순서 SSOT 는 canonical children[] 배열 순서다. 구 버전은 요소마다 `order_num`
+  // decoy 를 심어 "metadata 순서와 어긋나도 배열 순서를 따른다" 를 검증했으나, order_num 필드
+  // 자체가 소멸(2026-07-15 DropTargetNode 에서 제거)해 decoy 를 표현할 수 없다. 배열 순서가
+  // 유일한 입력이라는 계약은 아래 기대값이 그대로 지킨다.
+  it("derives reorder from childrenByParent array order", () => {
     const body = makeElement("body", { type: "body" });
-    const first = makeElement("first", { parent_id: body.id, order_num: 2 });
-    const middle = makeElement("middle", { parent_id: body.id, order_num: 0 });
-    const source = makeElement("source", { parent_id: body.id, order_num: 1 });
+    const first = makeElement("first", { parent_id: body.id });
+    const middle = makeElement("middle", { parent_id: body.id });
+    const source = makeElement("source", { parent_id: body.id });
     const store = {
       childrenByParent: new Map([[body.id, [first, middle, source]]]),
       elementsById: new Map([

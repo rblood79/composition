@@ -34,11 +34,8 @@ export interface DropTargetNode {
   parent_id?: string | null;
   page_id?: string | null;
   deleted?: boolean;
-  order_num?: number;
   slot?: false | string[];
   ref?: string;
-  componentRole?: unknown;
-  masterId?: unknown;
 }
 
 export interface DropTarget {

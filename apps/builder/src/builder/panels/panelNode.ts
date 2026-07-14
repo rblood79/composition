@@ -6,7 +6,6 @@ export interface PanelNode {
   props: Record<string, unknown>;
   parent_id?: string | null;
   page_id?: string | null;
-  layout_id?: string | null;
   customId?: string | null;
   componentName?: string | null;
   name?: string | null;

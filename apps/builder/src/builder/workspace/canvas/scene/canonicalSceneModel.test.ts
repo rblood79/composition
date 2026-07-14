@@ -81,7 +81,7 @@ describe("buildCanonicalSceneModel — ADR-127 Phase 2 (canonical-native)", () =
     ]).toEqual(["body-1", "second", "first"]);
   });
 
-  it("keeps a temporary layout_id alias on frame scene nodes during the ADR-126 interaction cutover", () => {
+  it("propagates the frame layoutId onto scene nodes", () => {
     const document: CompositionDocument = {
       version: "composition-1.0",
       children: [
@@ -105,7 +105,6 @@ describe("buildCanonicalSceneModel — ADR-127 Phase 2 (canonical-native)", () =
     const body = model.sceneNodesMap.get("frame-body-1");
 
     expect(body?.layoutId).toBe("frame-1");
-    expect(body?.layout_id).toBe("frame-1");
     expect(body?.pageId).toBeNull();
     expect(body?.page_id).toBeNull();
   });
