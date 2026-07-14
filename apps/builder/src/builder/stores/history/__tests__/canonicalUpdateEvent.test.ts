@@ -155,6 +155,122 @@ describe("buildCanonicalUpdateEvent + apply", () => {
     expect(undoIds.deleteIds).toEqual([]);
   });
 
+  it("R7: RefNode descendants children-override 내부 노드 update round-trip", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          props: { layoutType: "page" },
+          children: [
+            {
+              id: "inst-1",
+              type: "ref",
+              ref: "master-1",
+              props: {},
+              descendants: {
+                "0": {
+                  children: [
+                    { id: "inner-1", type: "Button", props: { label: "A" } },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const event = buildCanonicalUpdateEvent(
+      "inner-1",
+      { label: "A" },
+      { label: "B" },
+    );
+
+    const readInnerProps = (
+      current: CompositionDocument,
+    ): Record<string, unknown> => {
+      const inst = current.children[0].children![0] as unknown as {
+        descendants: Record<string, { children: { props: object }[] }>;
+      };
+      return inst.descendants["0"].children[0].props as Record<string, unknown>;
+    };
+
+    const afterRedo = applyCanonicalHistoryEventsToDocument(
+      doc,
+      [event],
+      "redo",
+    );
+    expect(readInnerProps(afterRedo)).toEqual({ label: "B" });
+    // 원본 불변 (불변 재조립 검증)
+    expect(readInnerProps(doc)).toEqual({ label: "A" });
+
+    const afterUndo = applyCanonicalHistoryEventsToDocument(
+      afterRedo,
+      [event],
+      "undo",
+    );
+    expect(readInnerProps(afterUndo)).toEqual({ label: "A" });
+  });
+
+  it("R7: RefNode descendants full-node-override 내부 노드 update round-trip", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          props: { layoutType: "page" },
+          children: [
+            {
+              id: "inst-1",
+              type: "ref",
+              ref: "master-1",
+              props: {},
+              descendants: {
+                "1": {
+                  id: "inner-2",
+                  type: "Text",
+                  props: { text: "old" },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const event = buildCanonicalUpdateEvent(
+      "inner-2",
+      { text: "old" },
+      { text: "new" },
+    );
+
+    const readOverrideProps = (
+      current: CompositionDocument,
+    ): Record<string, unknown> => {
+      const inst = current.children[0].children![0] as unknown as {
+        descendants: Record<string, { props: object }>;
+      };
+      return inst.descendants["1"].props as Record<string, unknown>;
+    };
+
+    const afterRedo = applyCanonicalHistoryEventsToDocument(
+      doc,
+      [event],
+      "redo",
+    );
+    expect(readOverrideProps(afterRedo)).toEqual({ text: "new" });
+
+    const afterUndo = applyCanonicalHistoryEventsToDocument(
+      afterRedo,
+      [event],
+      "undo",
+    );
+    expect(readOverrideProps(afterUndo)).toEqual({ text: "old" });
+  });
+
   it("multiple update events: applied in sequence", () => {
     const initial = makeDoc();
     const e1 = buildCanonicalUpdateEvent(

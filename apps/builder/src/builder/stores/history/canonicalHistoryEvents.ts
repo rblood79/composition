@@ -19,6 +19,7 @@ import type { Element } from "@/types/core/store.types";
 import {
   getCanonicalRefOverrideEntries,
   visitCanonicalDocumentElements,
+  withCanonicalRefOverrides,
 } from "../canonical/canonicalElementsView";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 
@@ -53,6 +54,18 @@ export type CanonicalHistoryNodeEvent =
 export type CanonicalHistoryEventIds = {
   upsertIds: string[];
   deleteIds: string[];
+};
+
+/** canonical 트리 안의 노드 좌표 (move/replace event 빌드용 pre-mutation 캡처 단위). */
+export type CanonicalNodeLocation = {
+  parentId: string | null;
+  index: number;
+};
+
+/** replace event 빌드용 pre-mutation 캡처 (노드 clone + 좌표). */
+export type CanonicalReplaceCapture = {
+  node: CanonicalNode;
+  location: CanonicalNodeLocation | null;
 };
 
 type NodeLocation = {
@@ -158,11 +171,18 @@ function findLocationInDescendants(
   return null;
 }
 
-function findLocation(
+export function findLocation(
   doc: CompositionDocument,
   nodeId: string,
 ): NodeLocation | null {
   return findLocationInNodes(doc.children, nodeId, null);
+}
+
+function getActiveDocument(): CompositionDocument | null {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId) return null;
+  return canonical.documents.get(projectId) ?? null;
 }
 
 function insertNode(
@@ -212,9 +232,61 @@ function replaceNodeProps(
         return { ...node, children: childResult.nodes } as CanonicalNode;
       }
     }
+    if (node.type === "ref") {
+      const refResult = replaceNodePropsInRefOverrides(
+        node as RefNode,
+        nodeId,
+        nextProps,
+      );
+      if (refResult.changed) {
+        changed = true;
+        return refResult.node;
+      }
+    }
     return node;
   });
   return { nodes: result, changed };
+}
+
+/**
+ * RefNode `descendants` override 내부 노드의 props update 탐색.
+ * `findLocationInDescendants` 와 동일한 override 순회 — update event 가
+ * instance 내부 요소를 대상으로 할 때 조용한 no-op 이 되는 것을 방지.
+ */
+function replaceNodePropsInRefOverrides(
+  refNode: RefNode,
+  nodeId: string,
+  nextProps: Record<string, unknown>,
+): { node: RefNode; changed: boolean } {
+  const entries = getCanonicalRefOverrideEntries(refNode);
+  if (entries.length === 0) return { node: refNode, changed: false };
+
+  let changed = false;
+  const nextDescendants: NonNullable<RefNode["descendants"]> = {};
+  for (const [path, override] of entries) {
+    if (isCanonicalNode(override)) {
+      const result = replaceNodeProps([override], nodeId, nextProps);
+      if (result.changed) {
+        changed = true;
+        nextDescendants[path] = result.nodes[0] as DescendantOverride;
+        continue;
+      }
+    } else if (isChildrenOverride(override)) {
+      const result = replaceNodeProps(override.children, nodeId, nextProps);
+      if (result.changed) {
+        changed = true;
+        nextDescendants[path] = { ...override, children: result.nodes };
+        continue;
+      }
+    }
+    nextDescendants[path] = override;
+  }
+
+  if (!changed) return { node: refNode, changed: false };
+  return {
+    node: withCanonicalRefOverrides(refNode, nextDescendants),
+    changed: true,
+  };
 }
 
 function applyNodePropsUpdate(
@@ -330,12 +402,8 @@ export function buildCanonicalUpdateEvent(
 export function buildCanonicalInsertEvents(
   elements: Element[],
 ): CanonicalHistoryNodeEvent[] {
+  const doc = getActiveDocument();
   return elements.map((element) => {
-    const doc = useCanonicalDocumentStore
-      .getState()
-      .documents.get(
-        useCanonicalDocumentStore.getState().currentProjectId ?? "",
-      );
     const location = doc ? findLocation(doc, element.id) : null;
     return {
       type: "insert",
@@ -353,16 +421,12 @@ export function buildCanonicalRemoveEvents(
   allRemovedElements: Element[] = rootElements,
 ): CanonicalHistoryNodeEvent[] {
   const removedIds = new Set(allRemovedElements.map((element) => element.id));
+  const doc = getActiveDocument();
   return rootElements
     .filter(
       (element) => !element.parent_id || !removedIds.has(element.parent_id),
     )
     .map((element) => {
-      const doc = useCanonicalDocumentStore
-        .getState()
-        .documents.get(
-          useCanonicalDocumentStore.getState().currentProjectId ?? "",
-        );
       const location = doc ? findLocation(doc, element.id) : null;
       return {
         type: "remove",
@@ -421,4 +485,181 @@ export function buildCanonicalUngroupEvents(
   });
   const removeEvent = buildCanonicalRemoveEvents([groupElement])[0];
   return [...moveEvents, removeEvent];
+}
+
+/**
+ * update event 빌드 helper — **full merged props 계약 강제**.
+ *
+ * `replaceNodeProps` 는 props 전체 교체 semantic 이므로, patch-only props 를
+ * event 에 기록하면 undo/redo 가 나머지 props 를 소거한다. 반드시 merged
+ * 전체 props 를 가진 Element 쌍을 전달할 것.
+ */
+export function buildCanonicalUpdateEventFromElements(
+  prevElement: Element,
+  nextElement: Element,
+): CanonicalHistoryNodeEvent {
+  return buildCanonicalUpdateEvent(
+    nextElement.id,
+    prevElement.props as Record<string, unknown>,
+    nextElement.props as Record<string, unknown>,
+  );
+}
+
+/**
+ * canonical mutation **이전** 시점의 노드 좌표 스냅샷.
+ * move/replace event 빌드 시 from-location 은 반드시 mutation 전에 캡처.
+ */
+export function captureCanonicalNodeLocations(
+  nodeIds: string[],
+): Map<string, CanonicalNodeLocation> {
+  const captured = new Map<string, CanonicalNodeLocation>();
+  const doc = getActiveDocument();
+  if (!doc) return captured;
+  for (const nodeId of nodeIds) {
+    const location = findLocation(doc, nodeId);
+    if (location) {
+      captured.set(nodeId, {
+        parentId: location.parentId,
+        index: location.index,
+      });
+    }
+  }
+  return captured;
+}
+
+/**
+ * move event 빌드 — reorder/reparent 표현.
+ *
+ * `from` 은 mutation 전 `captureCanonicalNodeLocations` 캡처, `to` 미지정 시
+ * **mutation 후** active document 에서 해석한다. to 를 해석할 수 없거나
+ * from === to (no-op) 인 move 는 조용히 제외 — 좌표 불명 move 를 기록하면
+ * redo 가 트리를 훼손한다.
+ *
+ * 대상은 일반 트리 노드 전용 — ref override 내부 노드 금지
+ * (`findLocationInDescendants` 가 full-node override 에 parentId null 을
+ * 반환하므로 재적용이 불안전).
+ */
+export function buildCanonicalMoveEvents(
+  moves: Array<{
+    nodeId: string;
+    from: CanonicalNodeLocation;
+    to?: CanonicalNodeLocation;
+  }>,
+): CanonicalHistoryNodeEvent[] {
+  const doc = getActiveDocument();
+  const events: CanonicalHistoryNodeEvent[] = [];
+  for (const move of moves) {
+    let to = move.to ?? null;
+    if (!to && doc) {
+      const location = findLocation(doc, move.nodeId);
+      if (location) {
+        to = { parentId: location.parentId, index: location.index };
+      }
+    }
+    if (!to) continue;
+    if (to.parentId === move.from.parentId && to.index === move.from.index) {
+      continue;
+    }
+    events.push({
+      type: "move",
+      nodeId: move.nodeId,
+      fromParentId: move.from.parentId,
+      fromIndex: move.from.index,
+      toParentId: to.parentId,
+      toIndex: to.index,
+    });
+  }
+  return events;
+}
+
+/**
+ * canonical mutation **이전** 시점의 노드 clone + 좌표 스냅샷
+ * (replace event 의 prev 소스).
+ */
+export function captureCanonicalReplaceSources(
+  nodeIds: string[],
+): Map<string, CanonicalReplaceCapture> {
+  const captured = new Map<string, CanonicalReplaceCapture>();
+  const doc = getActiveDocument();
+  if (!doc) return captured;
+  for (const nodeId of nodeIds) {
+    const location = findLocation(doc, nodeId);
+    if (location) {
+      captured.set(nodeId, {
+        node: cloneNode(location.node),
+        location: { parentId: location.parentId, index: location.index },
+      });
+    }
+  }
+  return captured;
+}
+
+/**
+ * replace event 쌍 빌드 — 같은 id 노드의 props 외 필드
+ * (ref `descendants` / mirror metadata 등) 변경을 `[remove@loc, insert@loc]`
+ * 로 표현. 기존 apply 기계를 그대로 재사용하므로 별도 apply 로직 불필요
+ * (`insertNode` 가 same-id 선제거 후 삽입).
+ *
+ * 두 모드:
+ * - **pre-mutation 모드** (`prevCaptures` 미전달): canonical document 가 아직
+ *   변경되지 않은 시점에 호출. prev 는 현재 doc 에서, next 는 updated
+ *   Element 로부터 빌드.
+ * - **post-mutation 모드** (`prevCaptures` 전달): mutation 전에
+ *   `captureCanonicalReplaceSources` 로 prev 를 캡처해 두고, mutation 후
+ *   호출. next 는 현재 doc 에서 조회.
+ *
+ * 대상은 일반 트리 노드 전용 (ref node 자신 포함) — ref override **내부**
+ * 노드 금지. override 내부 props 변경은 update event 가 커버.
+ */
+export function buildCanonicalReplaceEvents(
+  prevElements: Element[],
+  nextElements: Element[],
+  prevCaptures?: Map<string, CanonicalReplaceCapture>,
+): CanonicalHistoryNodeEvent[] {
+  const prevById = new Map(
+    prevElements.map((element) => [element.id, element]),
+  );
+  const doc = getActiveDocument();
+  const events: CanonicalHistoryNodeEvent[] = [];
+
+  for (const nextElement of nextElements) {
+    const prevElement = prevById.get(nextElement.id);
+    if (!prevElement) continue;
+
+    const capture = prevCaptures?.get(nextElement.id);
+    const prevNode =
+      capture?.node ?? getCanonicalHistoryNodeSnapshot(prevElement);
+
+    const postLocation = doc ? findLocation(doc, nextElement.id) : null;
+    const location: CanonicalNodeLocation =
+      capture?.location ??
+      (postLocation
+        ? { parentId: postLocation.parentId, index: postLocation.index }
+        : {
+            parentId: getCanonicalEventParentId(prevElement),
+            index: siblingIndexForElement(prevElement, prevElements),
+          });
+
+    const nextNode =
+      prevCaptures && postLocation?.node
+        ? cloneNode(postLocation.node)
+        : createCanonicalHistoryNodeFromElement(nextElement);
+
+    events.push(
+      {
+        type: "remove",
+        node: prevNode,
+        parentId: location.parentId,
+        index: location.index,
+      },
+      {
+        type: "insert",
+        node: nextNode,
+        parentId: location.parentId,
+        index: location.index,
+      },
+    );
+  }
+
+  return events;
 }
