@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Icon DOM 이 size 무시하고 24px 고정 — internal leaf 의 size/variant passthrough 누락] - 2026-07-15
+
+### Bug Fixes
+
+- **Icon 컴포넌트가 md 를 제외한 모든 size 에서 DOM↔Skia 비대칭** (사용자 보고: "Icon 컴퍼넌트 skia - css 의 M size 를 제외하고는 정합성이 일치하지 않는다"). Skia 는 size 를 정상 반영(16/18/24/36/48)하는데 **DOM 의 `<svg>` 는 항상 24px** 였다 — md 에서만 우연히 일치.
+  - **Why**: `Icon.tsx` 는 size 를 **React prop 으로 소비**해 `ICON_SIZE_MAP[size]` → `<svg width>` 를 계산하는데, `Icon.binding` 에 `propPassthrough: ["size"]` 가 없어 `toRacProps` 가 size 를 **`data-size` 속성으로만** 라우팅했다. SVG `width` 는 **속성**이라 `[data-size]` CSS 로는 도달할 수 없다 → React prop 이 안 오면 컴포넌트 default `"md"` 로 고정. Skia 는 store 의 `props.size` 를 직접 읽어 정상이므로 **md(24) 에서만 두 값이 우연히 같아** 사용자 증상과 정확히 일치한다.
+  - **선례와 동일 root-cause**: `Avatar` / `ProgressCircle` / `StatusLight` 는 같은 이유로 이미 `propPassthrough` 를 갖고 있었다 — Icon 만 누락. 2026-07-14 의 field wrapper 6종 수정은 "wrapper 가 `data-size` 를 덮어쓰는" 유형만 훑어 **size 를 계산 입력으로 쓰는 internal leaf** 를 놓쳤다.
+  - 라이브 실측(수정 전): xs DOM 24 vs Skia 16 / sm 24 vs 18 / **md 24 = 24** / lg 24 vs 36 / xl 24 vs 48.
+  - 위치: `packages/shared/src/catalog/bindings/Icon.binding.ts`
+- **Badge 의 variant / size / fillStyle 이 전부 default 로 덮어써짐** (동행 감사 발견). `Badge.tsx` 가 `{...props}` **뒤에** 자기 `data-variant` / `data-size` / `data-fill-style` 를 재작성하는데 passthrough 가 없어, React prop 이 `undefined` → default(`accent` / `sm`)가 `toRacProps` 의 값을 **덮어쓴다**. `fillStyle` 은 컴포넌트 default 가 없어 **속성 자체가 소실**된다. `Badge.css` 가 세 축을 모두 셀렉터로 소비하므로 실제 시각 결함.
+  - 위치: `packages/shared/src/catalog/bindings/Badge.binding.ts` (`propPassthrough: ["variant", "size", "fillStyle"]`)
+
+### 검증
+
+- **라이브 5 size sweep** (설정 → 새로고침 → 초기 렌더 실측, DOM `<svg width>` vs Skia layout box): xs **16/16** · sm **18/18** · md **24/24** · lg **36/36** · xl **48/48** — 전 size 일치. 수정 전에는 DOM 이 5 size 모두 24 고정이었다.
+- `sizePassthroughContract.test.ts` 확장 — 감시 대상을 "DELEGATING wrapper" 에서 **"size 를 React prop 으로 읽는 전 컴포넌트"** 로 재정의(Icon/Badge/StatusLight/Avatar/ProgressCircle 추가) + `{...props}` 뒤 `data-*` 재작성 축 전수를 검사하는 multi-axis 계약 신설. **수정 전 6 RED → 수정 후 GREEN**, Badge 수정만 되돌리면 3 RED (load-bearing 확증).
+- `Icon.binding.test.ts` 계약 정정 — 기존 테스트가 "size 는 `data-*` 로만 emit" 이라는 **결함 자체를 계약으로 고정**하고 있었다.
+- **Skeleton 은 제외**: `size` 를 accepts 에 갖지만 빌더가 타는 base 분기에서 `data-size` 를 emit 하지 않고 CSS 에도 `[data-size]` 규칙이 없어 **소비처가 0** — passthrough 를 넣어도 시각 효과가 없어 근거 없는 확대로 판단, 제외 사유를 테스트에 명시.
+- `packages/shared` + `packages/specs` 1575 통과. type-check 0 error. 사전 실패 1건(`disclosureHeaderIconSize` — clean tree 에서도 동일 실패 확인, 본 변경 무관).
+
 ## [Skia 아이콘 glyph 가 iconSize 아닌 typography fontSize 로 그려짐 — icon_font 크기 채널 복구] - 2026-07-14
 
 ### Bug Fixes

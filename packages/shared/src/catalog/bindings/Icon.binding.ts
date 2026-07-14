@@ -10,6 +10,13 @@
  *
  * Icon 은 box+text 가 아닌 비-DOM-trivial primitive → Skia 는 `skiaPrimitive: "icon_font"`
  * draw module(renderers/skiaPrimitives.ts)이 Lucide glyph 단일 shape 로 그린다.
+ *
+ * **propPassthrough: ["size"] (2026-07-14, 사용자 적발 — "md 를 제외하고 정합 불일치")**:
+ * `Icon.tsx` 는 size 를 **React prop 으로 소비**해 `ICON_SIZE_MAP[size]` → `<svg width>` 를
+ * 계산한다. SVG width 는 **속성**이라 `data-size` CSS 로는 도달 불가 — passthrough 가 없으면
+ * size 가 `undefined` → default `"md"` → **DOM 이 영원히 24px 고정**이다. Skia 는 store 의
+ * `props.size` 를 직접 읽어 정상(16/18/24/36/48) → **md 에서만 우연히 24 로 일치**하고 나머지
+ * 4 size 는 전부 비대칭. Avatar / ProgressCircle / StatusLight 선례와 동일 root-cause.
  */
 import type { PrimitiveBinding } from "../types";
 
@@ -45,6 +52,9 @@ export const iconBinding: PrimitiveBinding = {
       },
     },
     toRacProps: "default",
+    // Icon.tsx 가 size 를 React prop 으로 소비(ICON_SIZE_MAP[size] → svg width). data-size 만으로는
+    //   CSS 가 SVG 속성에 도달 못 함 → React prop + data-* 둘 다 emit.
+    propPassthrough: ["size"],
   },
   // Icon 은 Lucide glyph(icon_font) primitive — box+text 가 아님.
   skiaPrimitive: "icon_font",

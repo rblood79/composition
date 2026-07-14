@@ -22,7 +22,19 @@ describe("Icon binding (non-RAC leaf primitive)", () => {
     expect(accepts.strokeWidth.kind).toBe("number");
   });
 
-  it("toRacProps: size/variant → data-*, iconName/strokeWidth → prop", () => {
+  /**
+   * **계약 정정 (2026-07-14, 사용자 적발: "md 를 제외하고 정합성이 일치하지 않는다")**.
+   *
+   * 이전 계약은 `size` 가 **`data-size` 로만** 나가는 것이었는데, 그게 곧 결함이었다.
+   * `Icon.tsx` 는 size 를 **React prop 으로 소비**해 `ICON_SIZE_MAP[size]` → `<svg width>` 를
+   * 계산한다. SVG width 는 **속성**이라 `[data-size]` CSS 로 도달할 수 없다 → React prop 이
+   * 안 오면 default `"md"` 고정 → **DOM 이 항상 24px**. Skia 는 store 의 props.size 를 직접
+   * 읽어 정상(16/18/24/36/48)이므로 **md 에서만 우연히 24 로 일치**하고 나머지는 전부 어긋났다.
+   *
+   * → `propPassthrough: ["size"]` 로 **React prop + data-\* 둘 다** emit 한다.
+   *   (data-* 는 CSS/디버그 마커용으로 계속 유지 — 둘 중 하나를 고르는 게 아니다.)
+   */
+  it("toRacProps: size 는 React prop + data-size 둘 다 emit (variant 는 data-* 만)", () => {
     const result = toRacProps(
       {
         id: "icon1",
@@ -39,7 +51,10 @@ describe("Icon binding (non-RAC leaf primitive)", () => {
     expect(result).toEqual({
       iconName: "star",
       strokeWidth: 1.5,
+      // Icon.tsx 가 React prop 으로 소비 → svg width/height 계산의 입력
+      size: "lg",
       "data-size": "lg",
+      // variant 는 색상만 바꾸고 CSS `[data-variant]` 가 처리 → data-* 만으로 충분
       "data-variant": "default",
     });
   });

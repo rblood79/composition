@@ -10,6 +10,13 @@
  * D1: composition 내부 `<span>` (RAC primitive 아님 — internal source).
  * D2: children/variant/fillStyle(bold·subtle·outline)/size/isDot/isPulsing 편집 surface.
  * D3: 시각(배경/텍스트)은 theme/tokens data-* rules. Skia 는 buildCatalogShapes box+text.
+ *
+ * **propPassthrough (2026-07-14, Icon 전수 감사 동행)**: `Badge.tsx:78-93` 은 `{...props}` **뒤에**
+ * 자기 `data-variant` / `data-size` / `data-fill-style` 를 다시 쓴다. passthrough 가 없으면 React
+ * prop 이 `undefined` → default(`variant:"accent"` / `size:"sm"` / `fillStyle:undefined`) 가
+ * **toRacProps 가 넣어준 data-* 를 덮어써** CSS 가 영원히 default 매칭이다(fillStyle 은 아예 속성
+ * 소실). StatusLight 선례와 동일 root-cause — internal leaf 의 semantic prop 을 data-attr 라우팅이
+ * 차단하는 구조.
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -50,6 +57,9 @@ export const badgeBinding: PrimitiveBinding = {
       isPulsing: { kind: "boolean", label: "Pulsing", section: "state" },
     },
     toRacProps: "default",
+    // Badge.tsx 가 {...props} 뒤에 자기 data-variant/data-size/data-fill-style 를 재작성 →
+    //   React prop 으로도 통과시켜야 default 덮어쓰기를 막는다 (data-* 도 함께 emit).
+    propPassthrough: ["variant", "size", "fillStyle"],
   },
   // isDot 모드는 비-DOM-trivial 원(circle) → skiaPrimitive "dot"(isDot 아니면 box+text fallback).
   skiaPrimitive: "dot",
