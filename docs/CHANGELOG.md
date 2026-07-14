@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [field 패밀리 root width — catalog 단일 정본 (DatePicker 가 auto 로 떨어지던 split 제거)] - 2026-07-15
+
+### Bug Fixes
+
+- **DatePicker/DateRangePicker 의 Style 패널 width 기본값이 `auto`** — 같은 field 패밀리의 다른 컴포넌트는 모두 `100%` 인데 이 둘만 달랐다 (사용자 적발).
+  - **Why**: Style 패널 Transform 의 width 는 `toStr(inline, specDefault, "auto")` 이고 **`specDefault` = catalog `composition.containerStyles.width`** 다 (`TransformSection.tsx`). 2026-06-24 정정이 **TextField/TextArea/SearchField/ColorField 4종만** catalog 로 올리고, 나머지는 "factory inline `width:100%` 가 baseline 이라 정합" 으로 남겨뒀다. 그런데 **DatePicker/DateRangePicker 는 factory 조차 root width 를 주지 않아** catalog·factory 어느 쪽에서도 값을 못 받고 `auto` fallback 으로 떨어졌다. 나머지 5종(NumberField/DateField/TimeField/Select/ComboBox)은 catalog 가 똑같이 비어 있었지만 factory inline 이 가려 증상만 없던 상태 — 즉 **패밀리 정본이 두 갈래로 쪼개져 있던 것**이 근본 원인이다.
+  - 수정: catalog `composition.containerStyles.width: "100%"` 를 **비어 있던 7종 전부**에 추가 (DatePicker / DateRangePicker / NumberField / DateField / TimeField / Select / ComboBox) → `pnpm generate:css` 로 7개 CSS 재생성. layout 기본값은 factory inline 이 아니라 catalog 소유라는 D3 계약(`feedback-layout-default-belongs-in-catalog-not-factory-overlay`) 에도 정합 — factory inline 은 Style 패널 false dirty 를 만들어 `useResetStyles` 에 baseline mirror 를 계속 쌓게 한다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (7 entry) + `packages/shared/src/components/styles/generated/{DatePicker,DateRangePicker,DateField,TimeField,NumberField,Select,ComboBox}.css`
+
+### 검증
+
+- **라이브 실측** (Chrome, 실제 builder): DatePicker 선택 → Style 패널 `PropertyUnitInput value` 가 `"auto"` → **`"100%"`** (대조군 TextField 와 동일값). 생성 CSS 규칙 `.react-aria-DatePicker { width: 100% }` 확인, Preview DOM 폭 350px = 부모 body content 폭(390 − padding 40), **Skia layout 폭 350 = DOM 350 → CSS↔Skia 대칭 유지**.
+- 회귀 계약: `fieldFamilyWidthContract.test.ts` 신규 — field 10종의 catalog width + resolver 출력 전수 고정 (21 test). `resolveCatalogContainerBase.snapshot.test.ts` 의 기존 "width 없음" 기대값 7건은 이번 정본화에 맞춰 갱신.
+- catalog 스위트 328/328 통과, `pnpm type-check` 신규 위반 0. (builder utils/factories 의 기존 실패 11건은 clean tree 에서도 동일 — 본 변경과 무관)
+
 ## [DisclosureGroup size 미반영 — propagation 은 cascade 하지 않는다 (3단 중첩 경로 명시 필요)] - 2026-07-15
 
 ### Bug Fixes

@@ -26,7 +26,13 @@ describe("resolveCatalogContainerBase — field류 base layout (kebab raw, gap=C
 
   // 2026-06-24: field 패밀리 width 정본 정정 — 기존 stale "fit-content" → "100%"
   //   (TextField/TextArea/SearchField). factory inline(width:100%) ↔ CSS Preview(fit-content)
-  //   시각 비대칭 + Style Panel false dirty 해소. NumberField/DateField 는 catalog 미채움 정합.
+  //   시각 비대칭 + Style Panel false dirty 해소.
+  //
+  // 2026-07-15: **나머지 7 type 도 catalog 로 승격** — 위 정정이 3 type 만 올리고 나머지는
+  //   "factory inline 100% 가 baseline 이라 정합" 으로 남겼는데, factory 조차 root width 를
+  //   안 주던 **DatePicker/DateRangePicker** 는 어느 쪽에서도 못 받아 Style 패널이 `auto` 로
+  //   떨어졌다 (사용자 적발). catalog 를 패밀리 단일 정본으로 채워 split 자체를 제거.
+  //   전수 계약: `fieldFamilyWidthContract.test.ts`.
   it("TextField → flex-column base + gap CSS-var + width:100%", () => {
     expect(resolveCatalogContainerBase("TextField")).toEqual({
       display: "flex",
@@ -62,76 +68,86 @@ describe("resolveCatalogContainerBase — field류 base layout (kebab raw, gap=C
     });
   });
 
-  it("NumberField → flex-column base + gap CSS-var + color (width 없음)", () => {
+  it("NumberField → flex-column base + gap CSS-var + color + width:100%", () => {
     expect(resolveCatalogContainerBase("NumberField")).toEqual({
       display: "flex",
       "flex-direction": "column",
       "align-items": "flex-start",
       "box-sizing": "border-box",
+      width: "100%",
       color: "var(--fg)",
       gap: "var(--spacing-xs)",
     });
   });
 
-  it("DateField → flex-column base + gap CSS-var (width/color 없음)", () => {
+  it("DateField → flex-column base + gap CSS-var + width:100% (color 없음)", () => {
     expect(resolveCatalogContainerBase("DateField")).toEqual({
       display: "flex",
       "flex-direction": "column",
       "align-items": "flex-start",
       "box-sizing": "border-box",
+      width: "100%",
       gap: "var(--spacing-xs)",
     });
   });
 
-  it("TimeField → flex-column base + gap CSS-var", () => {
+  it("TimeField → flex-column base + gap CSS-var + width:100%", () => {
     expect(resolveCatalogContainerBase("TimeField")).toEqual({
       display: "flex",
       "flex-direction": "column",
       "align-items": "flex-start",
       "box-sizing": "border-box",
+      width: "100%",
       gap: "var(--spacing-xs)",
     });
   });
 
-  it("DatePicker → flex-column base + gap CSS-var + color", () => {
+  // DatePicker/DateRangePicker 가 2026-07-15 적발 지점 — factory 도 catalog 도 root width 를
+  //   안 줘서 Style 패널이 `auto` fallback 을 표시했다. 나머지 5 는 factory inline 이 가려
+  //   증상이 없었을 뿐 catalog 는 똑같이 비어 있었다.
+  it("DatePicker → flex-column base + gap CSS-var + color + width:100%", () => {
     expect(resolveCatalogContainerBase("DatePicker")).toEqual({
       display: "flex",
       "flex-direction": "column",
       "align-items": "flex-start",
       "box-sizing": "border-box",
+      width: "100%",
       color: "var(--fg)",
       gap: "var(--spacing-xs)",
     });
   });
 
-  it("DateRangePicker → flex-column base + gap CSS-var + color", () => {
+  it("DateRangePicker → flex-column base + gap CSS-var + color + width:100%", () => {
     expect(resolveCatalogContainerBase("DateRangePicker")).toEqual({
       display: "flex",
       "flex-direction": "column",
       "align-items": "flex-start",
       "box-sizing": "border-box",
+      width: "100%",
       color: "var(--fg)",
       gap: "var(--spacing-xs)",
     });
   });
 
-  it("ComboBox → flex-column base + gap CSS-var + color", () => {
+  it("ComboBox → flex-column base + gap CSS-var + color + width:100%", () => {
     expect(resolveCatalogContainerBase("ComboBox")).toEqual({
       display: "flex",
       "flex-direction": "column",
       "align-items": "flex-start",
       "box-sizing": "border-box",
+      width: "100%",
       color: "var(--fg)",
       gap: "var(--spacing-xs)",
     });
   });
 
-  it("Select → flex-column base + gap CSS-var + color", () => {
+  it("Select → flex-column base + gap CSS-var + color + width:100%", () => {
     expect(resolveCatalogContainerBase("Select")).toEqual({
       display: "flex",
       "flex-direction": "column",
       "align-items": "flex-start",
       "box-sizing": "border-box",
+      width: "100%",
       color: "var(--fg)",
       gap: "var(--spacing-xs)",
     });

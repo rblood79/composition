@@ -2463,6 +2463,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         layout: "flex-column",
         gap: "var(--spacing-xs)",
         containerStyles: {
+          // 2026-07-15: field 패밀리 root width catalog 정본 (fieldFamilyWidthContract.test.ts).
+          //   패널 Transform width = toStr(inline, specDefault, "auto") 이고 specDefault 가 이 값 →
+          //   부재 시 "auto" 로 떨어진다 (DatePicker 적발 지점).
+          width: "100%",
           color: "var(--fg)",
         },
         containerVariants: {
@@ -2919,6 +2923,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       composition: {
         layout: "flex-column",
         gap: "var(--spacing-xs)",
+        containerStyles: {
+          // 2026-07-15: field 패밀리 root width catalog 정본 (fieldFamilyWidthContract.test.ts).
+          //   패널 Transform width = toStr(inline, specDefault, "auto") 이고 specDefault 가 이 값 →
+          //   부재 시 "auto" 로 떨어진다 (DatePicker 적발 지점).
+          width: "100%",
+        },
         containerVariants: {
           "label-position": {
             side: {
@@ -3289,6 +3299,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         layout: "flex-column",
         gap: "var(--spacing-xs)",
         containerStyles: {
+          // 2026-07-15: field 패밀리 root width catalog 정본 (fieldFamilyWidthContract.test.ts).
+          //   패널 Transform width = toStr(inline, specDefault, "auto") 이고 specDefault 가 이 값 →
+          //   부재 시 "auto" 로 떨어진다 (DatePicker 적발 지점).
+          width: "100%",
           color: "var(--fg)",
         },
         containerVariants: {
@@ -3726,6 +3740,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         layout: "flex-column",
         gap: "var(--spacing-xs)",
         containerStyles: {
+          // 2026-07-15: field 패밀리 root width catalog 정본 (fieldFamilyWidthContract.test.ts).
+          //   패널 Transform width = toStr(inline, specDefault, "auto") 이고 specDefault 가 이 값 →
+          //   부재 시 "auto" 로 떨어진다 (DatePicker 적발 지점).
+          width: "100%",
           color: "var(--fg)",
         },
         containerVariants: {
@@ -6916,6 +6934,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         layout: "flex-column",
         gap: "var(--spacing-xs)",
         containerStyles: {
+          // 2026-07-15: field 패밀리 root width catalog 정본 (fieldFamilyWidthContract.test.ts).
+          //   패널 Transform width = toStr(inline, specDefault, "auto") 이고 specDefault 가 이 값 →
+          //   부재 시 "auto" 로 떨어진다 (DatePicker 적발 지점).
+          width: "100%",
           color: "var(--fg)",
         },
         containerVariants: {
@@ -8870,6 +8892,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         layout: "flex-column",
         gap: "var(--spacing-xs)",
         containerStyles: {
+          // 2026-07-15: field 패밀리 root width catalog 정본 (fieldFamilyWidthContract.test.ts).
+          //   패널 Transform width = toStr(inline, specDefault, "auto") 이고 specDefault 가 이 값 →
+          //   부재 시 "auto" 로 떨어진다 (DatePicker 적발 지점).
+          width: "100%",
           color: "var(--fg)",
         },
         containerVariants: {
@@ -11641,6 +11667,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       composition: {
         layout: "flex-column",
         gap: "var(--spacing-xs)",
+        containerStyles: {
+          // 2026-07-15: field 패밀리 root width catalog 정본 (fieldFamilyWidthContract.test.ts).
+          //   패널 Transform width = toStr(inline, specDefault, "auto") 이고 specDefault 가 이 값 →
+          //   부재 시 "auto" 로 떨어진다 (DatePicker 적발 지점).
+          width: "100%",
+        },
         containerVariants: {
           "label-position": {
             side: {
