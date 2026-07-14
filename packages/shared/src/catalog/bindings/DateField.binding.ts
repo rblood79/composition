@@ -90,5 +90,12 @@ export const dateFieldBinding: PrimitiveBinding = {
       maxValue: { kind: "string", label: "Max Value", section: "state" },
     },
     toRacProps: "default",
+    // size 는 DateField.tsx(DELEGATING 렌더)가 **React prop 으로 직접 소비**한다 (하위 Label/
+    //   DateInput 크기 결정 + 자기 `data-size={size}` 를 `{...props}` 뒤에 재작성). catalog 의
+    //   size kind 는 기본 data-attr 라우팅(`data-size`)이라 그대로 두면 wrapper 의 size 가
+    //   undefined → **default("md") 고정**, 게다가 그 "md" 가 toRacProps 의 `data-size="xl"` 를
+    //   **덮어써** Preview 가 size 변경을 전혀 반영 못 한다 (DatePicker 에서 재현된 버그와 동일
+    //   구조 — 2026-07-14 전수 확장). ProgressCircle/Avatar/StatusLight 선례 동형.
+    propPassthrough: ["size"],
   },
 };

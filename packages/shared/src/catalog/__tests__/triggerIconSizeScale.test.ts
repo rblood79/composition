@@ -108,13 +108,50 @@ describe("트리거 아이콘 크기 — 아이콘 스케일 단일 SSOT", () =>
     expect(violations).toEqual([]);
   });
 
-  it("Skia 소비값 SelectIcon.iconSize 와 md/lg/xl 일치 (DOM↔Skia 대칭)", () => {
+  /**
+   * 2026-07-14 후속: 최초 수정은 md/lg/xl 만 맞췄고 xs/sm 은 어긋난 채 남겼다
+   * (DOM 14/16 vs catalog iconSize 10/14). catalog `iconSize` 는 **Skia 전용**이다 —
+   * `--icon-size` CSS 변수는 Disclosure 만 소비하므로 Select/Date 계열의 `iconSize`
+   * 변경은 DOM 에 영향이 없다(폭발 반경 확인 완료). 따라서 catalog 를 DOM 아이콘
+   * 스케일(14/16)로 수렴시켜 **5개 size 전부** 한 숫자를 공유하게 한다.
+   *
+   * 대상 4종은 모두 같은 SelectIcon 자식을 그린다:
+   *  - `SelectIcon.iconSize`   → Skia glyph 크기 (icon_font primitive)
+   *  - `SelectTrigger.iconSize` → Skia SelectIcon **레이아웃 박스** (implicitStyles)
+   *  - `Select` / `ComboBox`   → 같은 트리거 계열 (동일 스케일 유지)
+   */
+  const ICON_SCALE_NUM: Record<string, number> = {
+    xs: 14,
+    sm: 16,
+    md: 18,
+    lg: 22,
+    xl: 28,
+  };
+
+  it.each(["SelectIcon", "SelectTrigger", "Select", "ComboBox"])(
+    "%s.sizes[*].iconSize 가 아이콘 스케일과 5개 size 전부 일치 (DOM↔Skia 대칭)",
+    (type) => {
+      const sizes = (COMPONENT_RULES_TABLE[type]?.sizes ?? {}) as Record<
+        string,
+        { iconSize?: number }
+      >;
+      const actual: Record<string, number | undefined> = {};
+      for (const size of Object.keys(ICON_SCALE_NUM)) {
+        actual[size] = sizes[size]?.iconSize;
+      }
+      expect(actual).toEqual(ICON_SCALE_NUM);
+    },
+  );
+
+  it("SelectIcon 은 height === iconSize (glyph 자체가 박스 — 넘침 차단)", () => {
     const sizes = (COMPONENT_RULES_TABLE.SelectIcon?.sizes ?? {}) as Record<
       string,
-      { iconSize?: number }
+      { iconSize?: number; height?: number }
     >;
-    for (const size of ["md", "lg", "xl"] as const) {
-      expect(`${sizes[size]?.iconSize}px`).toBe(ICON_SCALE[size]);
+    for (const size of Object.keys(ICON_SCALE_NUM)) {
+      expect(sizes[size]?.height, `SelectIcon.${size}.height`).toBe(
+        sizes[size]?.iconSize,
+      );
     }
   });
 });

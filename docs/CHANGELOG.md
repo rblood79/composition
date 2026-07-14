@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [트리거 아이콘 glyph 가 size 를 안 따름 + size passthrough 전수 확장 — 아이콘 스케일 단일 SSOT] - 2026-07-14
+
+### Bug Fixes
+
+- **트리거 아이콘 glyph 가 size 를 바꿔도 항상 16px 고정** (Select / ComboBox / SearchField / DatePicker / DateRangePicker 전부). 앞선 수정이 맞춘 건 아이콘을 **감싸는 박스**(`--dp-btn-width` / `--select-chevron-size`)였고, 그 **안의 glyph** 는 별개 축이었다.
+  - **Why**: wrapper 들이 아이콘 svg 를 `width={16}` / `<Icon style={{ fontSize: 16 }} />` 로 **하드코딩**했다. svg 의 `width`/`height` 는 **속성**이라 CSS 변수로는 못 덮는다 → size 를 xs~xl 어디로 바꿔도 DOM glyph 는 16 고정인데, Skia 는 `SelectIcon.sizes[*].iconSize` 로 그린다 → **전 size 비대칭**. md 에서 "박스 18 = Skia 18" 만 보고 일치로 오판했던 지점 — 실측하면 그 안의 glyph 는 16 이었다.
+  - 수정: catalog `SelectIcon.iconSize` 를 읽는 `resolveTriggerIconSize()` 단일 resolver 를 두고, 5개 wrapper 가 전부 이걸 경유(Skia 의 `icon_font` 와 **같은 source**).
+  - 위치: `packages/shared/src/catalog/resolvers/resolveTriggerIconSize.ts` (신규), `packages/shared/src/components/{Select,ComboBox,SearchField,DatePicker,DateRangePicker}.tsx`
+- **xs/sm 아이콘 크기가 DOM(14/16) ↔ Skia(10/14) 로 어긋남** (직전 엔트리의 "알려진 잔여" — **해소됨**).
+  - **Why**: catalog `iconSize` 가 xs/sm 만 10/14 로 DOM 아이콘 스케일(14/16)과 달랐다. `iconSize` 는 **Skia 전용**이다 — 이걸 emit 하는 `--icon-size` CSS 변수는 Disclosure 만 소비하므로(폭발 반경 확인) catalog 를 DOM 스케일로 수렴시켜도 DOM 렌더에 영향이 없다.
+  - 수정: `SelectIcon` / `SelectTrigger` / `Select` / `ComboBox` 의 `sizes.{xs,sm}.iconSize` 를 14/16 으로 통일 → **5개 size 전부 14/16/18/22/28 한 숫자**. `SelectIcon` 은 `height === iconSize` 가 불변식이라 height 도 동반 수정(glyph 넘침 차단).
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (+ `pnpm generate:css` → Select/ComboBox 의 `--icon-size` 만 변경, 소비처 없음)
+- **size 변경 미반영이 DatePicker 만의 문제가 아니었음 — `propPassthrough` 전수 확장** (직전 엔트리의 "미검증 의심 4종" — **확증 후 수정**).
+  - **Why**: `DateField` / `TimeField` / `Select` / `ComboBox` / `SearchField` / `NumberField` 전부 wrapper 가 `size` 를 React prop 으로 소비 + 자기 `data-size` 를 `{...props}` 뒤에 재작성하는데 binding 에 `propPassthrough` 가 없었다 → `toRacProps` 실측 결과 **6종 모두 `size` React prop 이 `undefined`** (= wrapper default `"md"` 고정 + `data-size` 덮어씀). DatePicker 와 동일 결함.
+  - 위치: `packages/shared/src/catalog/bindings/{DateField,TimeField,Select,ComboBox,SearchField,NumberField}.binding.ts`
+- **SearchField / NumberField 의 size propagation 이 옛 평면 트리 기준** (DatePicker 와 동일 결함).
+  - **Why**: factory 트리는 `X > SelectTrigger > {SelectValue, SelectIcon}` 인데 size 규칙만 평면 경로(`childPath: "SelectIcon"`)로 남아 **매칭 실패** — NumberField 는 자식 경로 규칙이 **아예 없었다**. 같은 파일의 `placeholder` 규칙이 이미 `["SelectTrigger","SelectValue"]` 중첩 경로를 쓰고 있던 게 트리 구조의 증거다(size 만 안 따라감). 자식의 stale size 가 부모를 계속 가린다.
+  - 위치: `apps/builder/src/builder/utils/propagationRegistry.ts`
+
+### Architecture
+
+- **아이콘 스케일 = 단일 SSOT (catalog `SelectIcon.iconSize`)**: DOM glyph / DOM 박스 / Skia glyph / Skia 레이아웃 박스가 전부 같은 숫자에서 파생. typography 토큰(`--text-*`)을 아이콘 크기로 쓰는 경로는 제거됨(폰트 스케일 ≠ 아이콘 스케일).
+- **회귀 테스트 3종 신설** (전부 수정 전 RED 확인):
+  - `triggerIconGlyphSize.test.tsx` — 5개 wrapper × 5 size 의 DOM glyph == catalog `iconSize`, + "size 를 바꿔도 안 변함(16 고정)" 차단.
+  - `sizePassthroughContract.test.ts` — wrapper self-compose 8종의 `propPassthrough: ["size"]` + `toRacProps` 가 React prop·`data-size` **둘 다** emit.
+  - `sizePropagationPathContract.test.ts` — propagation `childPath` 를 **실제 factory 트리에 대고** 검증. 트리에 있는 size-bearing 자식이 해소 가능한 규칙으로 전부 덮이는지 확인(형제 동일 type 은 엔진과 같이 `filter` 로 전부 매칭). 트리에 없는 type 을 가리키는 dead rule 은 무해하므로 통과시킨다.
+
+### 검증
+
+- **live builder, 실제 Inspector 클릭**으로 size 변경 (store action 직접 호출은 전파 안 됨 — Inspector 경로만 `buildPropagationUpdates` 를 태운다):
+  - **DatePicker** 5 size 전부: DOM glyph = DOM 박스 = Skia = **14 / 16 / 18 / 22 / 28**.
+  - **Select** 5 size 전부: store = DOM `data-size` = chevron 박스 = DOM glyph = Skia = **14 / 16 / 18 / 22 / 28** (이전엔 glyph 가 16 고정 + passthrough 없어 `data-size` 자체가 md 고정).
+- 신규 테스트 3종 + 기존 스위트: `packages/shared` 524 passed, `builder utils` 29 passed. type-check PASS. 유일한 실패(`disclosureHeaderIconSize`)는 **수정 전 baseline 에서도 동일하게 실패**함을 격리 실행으로 확증(본 변경과 무관).
+
 ## [DatePicker size 변경 미반영 — CSS passthrough 누락 + propagation 경로가 옛 트리 기준] - 2026-07-14
 
 ### Bug Fixes
@@ -16,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **(2) Skia SelectIcon — propagation rule 이 옛 평면 트리 기준**: factory canonical 자식 통일(2026-06-23)로 트리가 `DatePicker > SelectTrigger > {DateInput, SelectIcon}` 이 됐는데, propagation rule 은 spec 시대의 **평면 경로**(`childPath: "DateInput"`)를 그대로 두고 **`SelectTrigger`/`SelectIcon` 규칙은 아예 없었다**. **Why**: DateInput 은 자기 size 가 없어 Skia delegation(`props.size ?? delegated`)으로 우연히 정상이었지만, **SelectIcon 은 store 에 `size:"md"` 가 남아** 그 stale 값이 `props.size` 앞자리를 차지해 부모를 영원히 가렸다 → 아이콘이 md(18)에 고정. 수정: `size → SelectTrigger` / `size → ["SelectTrigger","DateInput"]` / `size → ["SelectTrigger","SelectIcon"]` (+ granularity 경로도 2단계로) — SearchField/Select 가 같은 자식 구조에 이미 갖고 있던 규칙과 정합. `override: true` 라 자식의 stale 값을 이긴다.
   - 위치: `packages/shared/src/catalog/bindings/{DatePicker,DateRangePicker}.binding.ts`, `apps/builder/src/builder/utils/propagationRegistry.ts`
   - 검증 (live builder, **실제 Inspector 클릭**으로 size 변경): M → DOM 아이콘 18 = Skia 18 / picker 350×54 양쪽 동일. L → DOM 22 = Skia 22 / 350×70 동일. XL → DOM 28 = Skia 28 / 350×90 동일. 자식(SelectTrigger/DateInput/**SelectIcon**)이 전부 부모 size 로 전파됨(이전엔 SelectIcon 만 md 고정). 신규 회귀 테스트 7건(수정 전 RED — glyph 가 부모 size 무관하게 16 고정 / passthrough 미포함 확인). type-check PASS, 기존 실패는 baseline 과 동일(격리 실행 확증).
-  - **알려진 잔여(별도 결함)**: xs/sm 에서 DOM 아이콘(14/16)과 Skia(10/14)가 다르다 — catalog `SelectIcon.sizes.{xs,sm}.iconSize`(10/14)가 Select `.select-chevron` 스케일(14/16)과 어긋나 있다(**본 수정 이전부터 존재**). md/lg/xl 은 일치.
+  - ~~**알려진 잔여(별도 결함)**: xs/sm 에서 DOM 아이콘(14/16)과 Skia(10/14)가 다르다~~ → **해소됨** (위 2026-07-14 엔트리). 다만 근본 원인은 xs/sm 스케일 불일치**만이 아니라**, DOM glyph 가 size 와 무관하게 **16px 하드코딩**이었던 것 — 여기서 "md/lg/xl 은 일치" 라고 본 건 DOM **박스**와 Skia **glyph** 를 비교한 오판이었다.
 
 ## [DatePicker 트리거 아이콘 크기 — typography 토큰 대신 아이콘 스케일로 통일 (DOM↔Skia 대칭)] - 2026-07-14
 

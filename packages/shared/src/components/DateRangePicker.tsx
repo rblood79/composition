@@ -24,6 +24,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getLocalTimeZone, today, now } from "@internationalized/date";
 import { safeParseDateString } from "../utils/core/dateUtils";
 import type { ComponentSize } from "../types";
+import { resolveTriggerIconSize } from "../catalog/resolvers/resolveTriggerIconSize";
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
@@ -112,6 +113,9 @@ export function DateRangePicker<T extends DateValue>({
   validationBehavior,
   ...props
 }: DateRangePickerProps<T>) {
+  // 트리거 calendar glyph 크기 — Skia SelectIcon 과 동일한 catalog 값 (DatePicker 동형).
+  const triggerIconSize = resolveTriggerIconSize(size);
+
   const effectiveTimezone = timezone || getLocalTimeZone();
 
   const effectiveGranularity = includeTime
@@ -179,7 +183,7 @@ export function DateRangePicker<T extends DateValue>({
       <Group>
         {showCalendarIcon && calendarIconPosition === "left" && (
           <Button slot="prefix">
-            <Icon iconName={iconName} style={{ fontSize: 16 }} />
+            <Icon iconName={iconName} style={{ fontSize: triggerIconSize }} />
           </Button>
         )}
         <DateInput slot="start">
@@ -205,7 +209,7 @@ export function DateRangePicker<T extends DateValue>({
         </DateInput>
         {showCalendarIcon && calendarIconPosition === "right" && (
           <Button>
-            <Icon iconName={iconName} style={{ fontSize: 16 }} />
+            <Icon iconName={iconName} style={{ fontSize: triggerIconSize }} />
           </Button>
         )}
         {allowClear && props.value && (

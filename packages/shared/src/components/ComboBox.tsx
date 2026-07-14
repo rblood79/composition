@@ -24,6 +24,7 @@ import { getIconData } from "@composition/specs";
 import type { ComponentSize } from "../types";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 
+import { resolveTriggerIconSize } from "../catalog/resolvers/resolveTriggerIconSize";
 import { useResolvedCollectionItems } from "../hooks";
 import {
   type NecessityIndicator,
@@ -92,6 +93,10 @@ export function ComboBox<T extends object>({
   isQuiet,
   ...props
 }: ComboBoxProps<T>) {
+  // chevron glyph 크기 — Skia SelectIcon 과 동일한 catalog 값 (Select/DatePicker 동형).
+  //   구 `width={16}` 하드코딩은 size 를 바꿔도 glyph 가 16 고정이었다 (2026-07-14).
+  const chevronIconSize = resolveTriggerIconSize(size);
+
   // ADR-912 영역 B Task 7: collection source acquisition 단일화.
   //   useCollectionData 직접 호출(이중 source)을 제거하고 useResolvedCollectionItems 단일 진입점으로 통일.
   //   dataBinding(async/dataTable/API)과 정적 props.items 가 같은 toItemProjectionRow normalizer 를
@@ -260,8 +265,8 @@ export function ComboBox<T extends object>({
             if (!data) return null;
             return (
               <svg
-                width={16}
-                height={16}
+                width={chevronIconSize}
+                height={chevronIconSize}
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"

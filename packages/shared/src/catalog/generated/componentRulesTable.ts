@@ -2394,7 +2394,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
         height: 20,
-        iconSize: 10,
+        iconSize: 14,
         gap: 2,
       },
       sm: {
@@ -2402,7 +2402,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 22,
-        iconSize: 14,
+        iconSize: 16,
         gap: 4,
       },
       md: {
@@ -8799,7 +8799,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
         height: 20,
-        iconSize: 10,
+        iconSize: 14,
         gap: 2,
       },
       sm: {
@@ -8807,7 +8807,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 22,
-        iconSize: 14,
+        iconSize: 16,
         gap: 4,
       },
       md: {
@@ -9199,18 +9199,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // 아이콘 스케일 = 14/16/18/22/28 (Select `.select-chevron` / DatePicker `--dp-btn-*` 와 동일).
+    //   `height === iconSize` 가 불변식 — SelectIcon 은 glyph 자체가 박스다.
+    //   **2026-07-14 정정**: xs/sm 이 10/14 로 DOM(14/16)과 어긋나 있었다. `iconSize` 는 Skia 전용
+    //   (`--icon-size` CSS 변수는 Disclosure 만 소비) 이라 DOM 폭발 반경 없음 → catalog 를 DOM 스케일로 수렴.
     sizes: {
       xs: {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.none}",
-        height: 10,
-        iconSize: 10,
+        height: 14,
+        iconSize: 14,
       },
       sm: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
-        height: 14,
-        iconSize: 14,
+        height: 16,
+        iconSize: 16,
       },
       md: {
         fontSize: "{typography.text-base}",
@@ -9287,7 +9291,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
         height: 20,
-        iconSize: 10,
+        iconSize: 14,
         paddingX: 4,
         paddingY: 1,
         borderWidth: 1,
@@ -9296,7 +9300,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 22,
-        iconSize: 14,
+        iconSize: 16,
         paddingX: 8,
         paddingY: 2,
         borderWidth: 1,

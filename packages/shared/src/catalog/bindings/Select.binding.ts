@@ -79,5 +79,9 @@ export const selectBinding: PrimitiveBinding = {
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",
+    // size 를 Select.tsx 가 React prop 으로 소비 (chevron/trigger/popover 크기 결정) + 자기
+    //   `data-size` 를 재작성 → passthrough 없으면 default("md") 고정 + toRacProps 의 data-size
+    //   를 덮어씀 (DateField.binding 과 동일 근거, 2026-07-14 전수 확장).
+    propPassthrough: ["size"],
   },
 };

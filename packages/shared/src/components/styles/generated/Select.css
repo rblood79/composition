@@ -25,14 +25,14 @@
   font-size: var(--text-2xs);
   border-radius: var(--radius-xs);
   gap: 2px;
-  --icon-size: 10px;
+  --icon-size: 14px;
 }
 
 .react-aria-Select[data-size="sm"] {
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
   gap: 4px;
-  --icon-size: 14px;
+  --icon-size: 16px;
 }
 
 .react-aria-Select[data-size="md"] {

@@ -29,6 +29,7 @@ import type {
   DataBindingValue,
 } from "../types";
 
+import { resolveTriggerIconSize } from "../catalog/resolvers/resolveTriggerIconSize";
 import { useResolvedCollectionItems } from "../hooks";
 import {
   type NecessityIndicator,
@@ -106,6 +107,11 @@ export function Select<T extends object>({
   isQuiet,
   ...props
 }: SelectProps<T>) {
+  // chevron glyph 크기 — Skia SelectIcon 과 **동일한** catalog 값(D3 대칭). `.select-chevron`
+  //   span 은 `--select-chevron-size` 로 **박스**만 잡고, 안의 svg 는 `width={16}` 하드코딩이라
+  //   size 를 바꿔도 glyph 가 16 고정이었다 (DatePicker 와 동일 결함 — 2026-07-14).
+  const chevronIconSize = resolveTriggerIconSize(size);
+
   const selectRef = useRef<HTMLDivElement>(null);
   const [popoverWidth, setPopoverWidth] = useState(0);
 
@@ -308,8 +314,8 @@ export function Select<T extends object>({
                 if (data) {
                   return (
                     <svg
-                      width={16}
-                      height={16}
+                      width={chevronIconSize}
+                      height={chevronIconSize}
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -335,8 +341,8 @@ export function Select<T extends object>({
                 const defaultData = getIconData("chevron-down");
                 return defaultData ? (
                   <svg
-                    width={16}
-                    height={16}
+                    width={chevronIconSize}
+                    height={chevronIconSize}
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"

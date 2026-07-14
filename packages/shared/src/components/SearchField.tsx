@@ -18,6 +18,7 @@ import {
 } from "react-aria-components";
 import type { ComponentSize } from "../types";
 import { getIconData } from "@composition/specs";
+import { resolveTriggerIconSize } from "../catalog/resolvers/resolveTriggerIconSize";
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
@@ -49,6 +50,9 @@ export function SearchField({
 }: SearchFieldProps) {
   const searchIconData = getIconData("search");
   const clearIconData = getIconData("x");
+  // search/clear glyph 크기 — Skia SelectIcon 과 동일한 catalog 값 (Select/DatePicker 동형).
+  //   구 `width={16}` 하드코딩은 size 를 바꿔도 glyph 가 16 고정이었다 (2026-07-14).
+  const iconSize = resolveTriggerIconSize(size);
 
   return (
     <AriaSearchField
@@ -72,8 +76,8 @@ export function SearchField({
         {searchIconData && (
           <span className="search-icon" aria-hidden="true">
             <svg
-              width={16}
-              height={16}
+              width={iconSize}
+              height={iconSize}
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -94,8 +98,8 @@ export function SearchField({
         <Button>
           {clearIconData && (
             <svg
-              width={16}
-              height={16}
+              width={iconSize}
+              height={iconSize}
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"

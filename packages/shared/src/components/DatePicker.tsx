@@ -24,6 +24,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getLocalTimeZone, today, now } from "@internationalized/date";
 import { safeParseDateString } from "../utils/core/dateUtils";
 import type { ComponentSize } from "../types";
+import { resolveTriggerIconSize } from "../catalog/resolvers/resolveTriggerIconSize";
 import { Icon } from "./Icon";
 import {
   type NecessityIndicator,
@@ -131,6 +132,10 @@ export function DatePicker<T extends DateValue>({
   calendarSystem,
   ...props
 }: DatePickerProps<T>) {
+  // 트리거 calendar glyph 크기 — Skia SelectIcon 과 **동일한** catalog 값(D3 대칭).
+  //   구 `fontSize: 16` 하드코딩은 size 를 바꿔도 DOM glyph 가 16 고정이었다 (2026-07-14).
+  const triggerIconSize = resolveTriggerIconSize(size);
+
   // 타임존 설정 (명시하지 않으면 로컬 타임존 사용)
   const effectiveTimezone = timezone || getLocalTimeZone();
 
@@ -208,9 +213,9 @@ export function DatePicker<T extends DateValue>({
       <Group>
         {showCalendarIcon && calendarIconPosition === "left" && (
           <Button slot="prefix">
-            {/* canonical SelectIcon.iconName 소비 → Builder(Skia) 와 시각 대칭(D3). 위치(Button
-                slot)는 RAC DOM(D1) 유지, 어떤 아이콘인지(D2) 만 동적. */}
-            <Icon iconName={iconName} style={{ fontSize: 16 }} />
+            {/* canonical SelectIcon 의 iconName + iconSize 를 함께 소비 → Builder(Skia) 와 시각
+                대칭(D3). 위치(Button slot)는 RAC DOM(D1) 유지, 아이콘 종류/크기(D2/D3)만 동적. */}
+            <Icon iconName={iconName} style={{ fontSize: triggerIconSize }} />
           </Button>
         )}
         <DateInput>
@@ -225,7 +230,7 @@ export function DatePicker<T extends DateValue>({
         </DateInput>
         {showCalendarIcon && calendarIconPosition === "right" && (
           <Button>
-            <Icon iconName={iconName} style={{ fontSize: 16 }} />
+            <Icon iconName={iconName} style={{ fontSize: triggerIconSize }} />
           </Button>
         )}
         {allowClear && props.value && (

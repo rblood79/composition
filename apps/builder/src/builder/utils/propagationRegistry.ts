@@ -198,10 +198,25 @@ const textFieldPropagationRules: PropagationRule[] = [
 ];
 
 // ADR-912 단계5 step4 small-B (2026-06-16): SearchField.spec 삭제 — propagation.rules 인라인 보존.
+//
+// **2026-07-14 정정 — size childPath 가 옛 평면 트리 기준이었다** (DatePicker 와 동일 결함):
+//   factory 트리는 `SearchField > SelectTrigger > {SelectIcon, SelectValue}` 인데 size 규칙만
+//   평면 경로(`"SelectValue"` / `"SelectIcon"`)로 남아 **매칭 실패** → 자식의 stale size 가
+//   부모를 계속 가린다 (Skia 는 `props.size ?? delegated` 라 자기 size 가 앞자리).
+//   바로 아래 placeholder 규칙이 이미 `["SelectTrigger","SelectValue"]` 로 **중첩** 경로를
+//   쓰고 있는 것이 트리 구조의 증거다 — size 만 안 따라간 것.
 const searchFieldPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "SelectTrigger", override: true },
-  { parentProp: "size", childPath: "SelectValue", override: true },
-  { parentProp: "size", childPath: "SelectIcon", override: true },
+  {
+    parentProp: "size",
+    childPath: ["SelectTrigger", "SelectValue"],
+    override: true,
+  },
+  {
+    parentProp: "size",
+    childPath: ["SelectTrigger", "SelectIcon"],
+    override: true,
+  },
   { parentProp: "size", childPath: "Label", override: true },
   {
     parentProp: "label",
@@ -223,9 +238,23 @@ const textAreaPropagationRules: PropagationRule[] = [
 ];
 
 // ADR-912 단계5 step4 small-B (2026-06-16): NumberField.spec 삭제 — propagation.rules 인라인 보존.
+//
+// **2026-07-14 정정** — factory 트리는 `NumberField > SelectTrigger > {SelectValue, SelectIcon×2}`
+//   (stepper minus/plus) 인데 size 규칙에 자식 경로가 **아예 없었다** → SelectValue/SelectIcon 의
+//   stale size 가 부모를 가린다 (SearchField/DatePicker 와 동일 결함).
 const numberFieldPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "Label", override: true },
   { parentProp: "size", childPath: "SelectTrigger", override: true },
+  {
+    parentProp: "size",
+    childPath: ["SelectTrigger", "SelectValue"],
+    override: true,
+  },
+  {
+    parentProp: "size",
+    childPath: ["SelectTrigger", "SelectIcon"],
+    override: true,
+  },
   {
     parentProp: "label",
     childPath: "Label",
