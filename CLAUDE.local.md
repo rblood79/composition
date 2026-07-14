@@ -5,7 +5,7 @@
 - 선호 모델: Opus 4.8 (1M context)
 - 응답 언어: 한국어 (코드/기술 용어 영어 유지)
 - Effort: xhigh (코딩·에이전트 기본 권장; max 는 토큰 대비 diminishing returns + overthinking 경향이라 실험용)
-- Thinking: adaptive (settings `alwaysThinkingEnabled=false`) — 단순 턴은 직접 응답, 복잡 framing 작업은 effort=xhigh 로 깊은 reasoning 확보. 레퍼런스 "adaptive thinking reliably drives better performance than extended thinking"
+- Thinking: 항상 켬 (settings `alwaysThinkingEnabled=true`) — **effort `xhigh`/`max` 는 thinking 이 켜져 있을 때만 허용**. thinking 을 끈 상태(adaptive)에서 xhigh 를 쓰면 `400 output_config.effort 'xhigh' is not supported when thinking is disabled` 로 턴이 실패한다 (2026-07-13 실측). adaptive 로 되돌리려면 effort 를 `high` 이하로 함께 낮출 것
 
 ## 병렬 세션 패턴
 
