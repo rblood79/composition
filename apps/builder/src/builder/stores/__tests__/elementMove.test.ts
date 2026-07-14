@@ -95,27 +95,27 @@ describe("moveElementToContainer", () => {
       id: sourceCard.id,
       page_id: "page-2",
       parent_id: page2Body.id,
-      order_num: 1,
     });
     expect(movedHeading).toMatchObject({
       id: sourceHeading.id,
       page_id: "page-2",
       parent_id: sourceCard.id,
-      order_num: 0,
     });
     expect(retainedTargetButton).toMatchObject({
       id: targetButton.id,
       page_id: "page-2",
       parent_id: page2Body.id,
-      order_num: 0,
     });
 
+    // 순서 SSOT 는 canonical children[] (ADR-118) — `order_num` 은 export mirror 로만
+    // 파생되고 runtime 에서는 유지되지 않는다. 따라서 삽입 위치는 children 배열 순서로
+    // 단언한다 (Set 비교는 순서를 못 보므로 삽입 index 회귀를 놓친다).
     expect(
       (state.childrenMap.get(page1Body.id) ?? []).map((el) => el.id),
     ).toEqual([]);
     expect(
-      new Set((state.childrenMap.get(page2Body.id) ?? []).map((el) => el.id)),
-    ).toEqual(new Set([targetButton.id, sourceCard.id]));
+      (state.childrenMap.get(page2Body.id) ?? []).map((el) => el.id),
+    ).toEqual([targetButton.id, sourceCard.id]);
 
     const page1Ids = new Set(
       state.pageElementsSnapshot["page-1"]?.map((element) => element.id) ?? [],
@@ -156,25 +156,16 @@ describe("moveElementToContainer", () => {
     useStore.getState().moveElementToContainer(source.id, page2Body.id, 1);
 
     const state = useStore.getState();
-    expect(
-      (
-        state.elementsMap.get(targetFirst.id) as
-          | { order_num?: number }
-          | undefined
-      )?.order_num,
-    ).toBe(0);
     expect(state.elementsMap.get(source.id)).toMatchObject({
       page_id: page2Body.page_id,
       parent_id: page2Body.id,
-      order_num: 1,
     });
+    // 형제들의 order_num 이 둘 다 0 으로 중복이어도 기존 children[] 순서를 기준으로
+    // index 1 에 삽입되어야 한다. 순서 SSOT 는 canonical children[] (ADR-118) —
+    // order_num 은 runtime 에서 유지되지 않으므로 배열 순서로 검증한다.
     expect(
-      (
-        state.elementsMap.get(targetSecond.id) as
-          | { order_num?: number }
-          | undefined
-      )?.order_num,
-    ).toBe(2);
+      (state.childrenMap.get(page2Body.id) ?? []).map((el) => el.id),
+    ).toEqual([targetFirst.id, source.id, targetSecond.id]);
   });
 
   // 회귀 — canonical mutation 이 등록된 상태(실제 빌더)에서 move 후 store mirror

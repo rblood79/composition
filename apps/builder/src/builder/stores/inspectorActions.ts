@@ -205,6 +205,19 @@ function getInspectorWritableProps(element: Element): Record<string, unknown> {
   return (element.props ?? {}) as Record<string, unknown>;
 }
 
+/**
+ * instance mirror 요소의 override 채널은 `overrides` 다 — canonical sync 는
+ * `legacy.overrides` 가 있으면 그것을 그대로 `RefNode.props` 로 쓰고, 없을 때만
+ * `element.props` 를 master 와 diff 한다 (canonicalMutations). 호출부가
+ * `isInspectorInstanceElement` 로 instance 라고 판정했으면 mirror 작성도 같은
+ * 기준이어야 하며, 그렇지 않으면 canonical `ref` instance 의 override 가
+ * `overrides` 에 실리지 않아 mirror consumer (Inspector/LayerTree) 가 못 본다.
+ *
+ * 단 `props` 취급은 두 mirror 형태가 다르다:
+ * - legacy mirror instance: `props` 는 resolved props → 덮으면 병합값 소실. 보존.
+ * - canonical `ref` instance: `RefNode.props` 자체가 override map → mirror `props`
+ *   도 같은 map 을 들고 있어야 canonical 과 정합.
+ */
 function buildInspectorUpdatedElement(
   element: Element,
   props: Record<string, unknown>,
@@ -213,6 +226,15 @@ function buildInspectorUpdatedElement(
   if (isComponentInstanceMirrorElement(element)) {
     return {
       ...element,
+      ...additionalUpdates,
+      [COMPONENT_OVERRIDES_MIRROR_FIELD]: props,
+    } as Element;
+  }
+
+  if (isCanonicalRefElement(element)) {
+    return {
+      ...element,
+      props,
       ...additionalUpdates,
       [COMPONENT_OVERRIDES_MIRROR_FIELD]: props,
     } as Element;
@@ -347,6 +369,8 @@ function buildInspectorPersistencePayload(
   props: Record<string, unknown>,
   additionalUpdates?: Partial<Element>,
 ): Record<string, unknown> {
+  // buildInspectorUpdatedElement 와 동일한 mirror 형태를 저장해야 한다
+  // (legacy instance 는 resolved props 보존, canonical ref 는 props == override map).
   const payload: Record<string, unknown> = isComponentInstanceMirrorElement(
     element,
   )
@@ -354,7 +378,9 @@ function buildInspectorPersistencePayload(
         props: element.props ?? {},
         [COMPONENT_OVERRIDES_MIRROR_FIELD]: props,
       }
-    : { props };
+    : isCanonicalRefElement(element)
+      ? { props, [COMPONENT_OVERRIDES_MIRROR_FIELD]: props }
+      : { props };
 
   if (additionalUpdates?.customId !== undefined) {
     payload.custom_id = additionalUpdates.customId;

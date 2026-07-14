@@ -30,8 +30,11 @@ describe("useDragBridge persistence contract", () => {
       resolve(__dirname, "useDragBridge.ts"),
       "utf-8",
     );
+    // drop commit 블록 = canonical move 호출부터 changed 분기 진입 직전까지.
+    // (과거 앵커였던 `postMoveStore = buildDragReadModelFromCanonicalDocument` 는
+    //  canonical move event 전환 때 삭제됨 — 계약은 그대로, 앵커만 이동)
     const commitBlock = source.match(
-      /const moveResult =[\s\S]*?postMoveStore = buildDragReadModelFromCanonicalDocument/,
+      /const moveResult =[\s\S]*?if \(moveResult\.changed\)/,
     )?.[0];
 
     expect(commitBlock).toBeTruthy();

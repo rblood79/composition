@@ -34,6 +34,9 @@ const mockLiveElementsState = vi.hoisted(() => ({
   elementsMap: new Map<string, Element>(),
   setPages: vi.fn(),
   setElements: vi.fn(),
+  // canonical mutation 후 store mirror 재구축 (state-management: canonical → set →
+  // _rebuildIndexes). double 에서 빠지면 deleteReusableFrame 이 TypeError 로 죽는다.
+  _rebuildIndexes: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -187,6 +190,8 @@ describe("frameActions canonical reusable frame API", () => {
           setPages: mockLiveElementsState.setPages,
         }),
       );
+      // canonical delete 후 store mirror 재구축 (canonical → set → _rebuildIndexes)
+      expect(mockLiveElementsState._rebuildIndexes).toHaveBeenCalled();
       expect(mockDb.documents.put).toHaveBeenCalledWith(
         "proj-1",
         expect.objectContaining({ version: "composition-1.0" }),
