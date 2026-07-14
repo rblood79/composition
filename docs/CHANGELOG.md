@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [TagGroup labelPosition=side CSS↔Skia 정합 — flex-basis / flex item 재-solve / align-content] - 2026-07-14
+
+### Bug Fixes
+
+- **TagGroup `labelPosition="side"` 가 Skia 에서만 세로로 쌓이고, 칩이 한 줄로 나열되며 TagGroup 영역을 벗어남** (CSS 는 정상):
+  - catalog `containerVariants["label-position"].side` / `implicitStyles` / WASM 입력(batch `flexDirection:"row"`)까지 **전부 정상**이었다. 근본은 아래 3겹이 겹친 것.
+  - **(1) block-child `width:100%` 보정의 오폭** — 이 보정은 **IFC 시뮬레이션 부모** 전용이다(block 부모 + inline-level 자식 → `toTaffyDisplay` 가 row+wrap 을 합성. CSS block container 안의 block 자식이 부모 폭 100% 인 것을 재현). 그런데 게이트가 **결과 style**(`display:flex && flexWrap:wrap`)만 보고 있어 **사용자/catalog 가 선언한 진짜 CSS flex 컨테이너**까지 잡았다. **Why**: CSS flex item 은 block-level 이어도 부모 폭 100% 가 아니다 — flex-basis/grow 가 폭을 정한다. side TagGroup 이 정확히 `flex + row + wrap` 이라 TagList 가 `width:100%`(350px) 로 고정 → `Label(68) + gap(4) + 350 > 350` → 둘째 줄로 wrap → 세로 배치처럼 보임. `isInlineBlockSimulationParent(effectiveDisplay)` 게이트 추가.
+  - **(2) 엔진이 `flex-basis` 를 읽지 않음** — `NodeStyle.flex_basis` 는 선언·역직렬화만 되고 `write_flex_item` 이 **항상 AUTO(-1) 를 하드코딩**했다. `flex.rs` 의 basis 해석 우선순위(명시 basis → width → content)에 명시 basis 가 도달하지 못함. **Why**: `inset_*` 와 동형의 조용한 실패 — JS 는 정확히 보내고 Rust 가 안 읽는다. 결과: `flex:1`(basis 0%) 자식이 basis=content 로 fallback → 남은 공간을 못 쓰고 자기 content 폭을 요구 → row-wrap 에서 다음 줄로 밀림. `resolve_flex_basis` 신설(`%` 는 **main 축** 기준이라 별도 `main_ctx` 전달, `content` 키워드 → CONTENT 센티넬).
+  - **(3) flex item 의 subtree 를 used size 로 재-solve 하지 않음** — `solve_flex` 가 자식을 **분배 전 available 폭**으로 한 번만 solve 하고, grow/shrink 로 최종 폭이 바뀌어도 subtree 를 다시 풀지 않았다. **Why**: CSS 는 flex item 의 used main size 로 내용을 다시 배치한다(§9.9). TagList(flex:1)가 350 기준으로 칩을 wrap 해 굳은 뒤 실제 폭 278 을 받으니 **칩이 한 줄로 나열되며 자기 박스를 넘침**. 재-solve 패스 추가(used main ≠ 배치 기준 main 인 컨테이너 자식만, 1회. 증분 skip 우회를 위해 `mark_subtree_dirty` 선행, explicit main 자식은 used 값으로 임시 override 후 원복).
+  - **(4) multi-line `align-content` 가 indefinite cross 에서 분배** — `cross_free = available_cross − total_line_cross` 가 `cross_is_definite` 를 안 봤다. **Why**: CSS §8.4 — 컨테이너 cross 가 indefinite(height:auto)면 컨테이너가 라인 합계로 축소되므로 분배할 free space 자체가 없다. 상속 `available_cross`(페이지 높이 400)를 그대로 써서 **없는 여유 공간**을 라인 사이에 분배 → TagList 둘째 줄이 y=202, height 232 로 폭주. 단일 라인 경로는 이미 보호돼 있었으나(ToggleButtonGroup 397→30) multi-line 이 미보호였다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/{fullTreeLayout,taffyDisplayAdapter}.ts`, `packages/composition-engine/src/{tree,flex}.rs`
+  - 검증 (live builder 실측 — test PASS 단독 종결 아님): Inspector 로 top → side 전환 시 즉시 정합. Skia Label(x0,w68) + TagList(**x72, w278, h64**) = DOM Label(x0,w67.8) + `.tag-list-wrapper`(**x71.8, w278.2, h64**). 칩 4번째가 **(0,34) 둘째 줄**로 DOM 과 동일. TagGroup 높이 350×64 일치(수정 전 429). Rust 신규 8건(RED 확인) + 전체 274건 통과(회귀 0, Chrome 실측 golden 25건 포함). JS 신규 7건 + layout engines 155건 통과. canvas+specs 11 failed/1486 passed = clean-tree baseline 과 동일.
+
 ## [레이아웃 엔진 position:absolute 지원 — SliderThumb selection box 정합] - 2026-07-14
 
 ### Features

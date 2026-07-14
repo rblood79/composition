@@ -549,7 +549,21 @@ pub fn flex_layout(
         } else {
             0.0
         };
-    let cross_free = (available_cross - total_line_cross).max(0.0);
+    // cross 가 **indefinite**(컨테이너 height:auto 등) 면 align-content 가 분배할 free
+    //   space 자체가 없다 — 컨테이너는 라인 합계로 축소된다(CSS §8.4: align-content 는
+    //   컨테이너 cross 가 definite 일 때만 의미). 상속받은 available_cross(부모 폭/높이)를
+    //   그대로 쓰면 **없는 여유 공간**을 라인 사이에 분배해 세로 gap 이 폭주한다.
+    //
+    // **Why (TagGroup side, 2026-07-14)**: TagList(height:auto)가 2줄로 wrap 될 때
+    //   available_cross=400(상속 페이지 높이) − 라인합 64 = 336 을 align-content:stretch
+    //   가 분배 → 둘째 줄이 y=202 로 밀리고 컨테이너 height 가 232 로 폭주.
+    //   단일 라인 경로는 `cross_is_definite` 로 이미 보호돼 있었으나(ToggleButtonGroup
+    //   397→30), multi-line 경로는 미보호였다.
+    let cross_free = if cross_is_definite {
+        (available_cross - total_line_cross).max(0.0)
+    } else {
+        0.0
+    };
 
     let (mut cross_start_offset, mut cross_between_extra, stretch_extra) =
         align_content_offsets(align_content, cross_free, line_count);
@@ -1022,12 +1036,38 @@ mod tests {
     fn align_content_center_two_lines() {
         // 3개 basis 100, available_main 250 → line1=[0,1](200≤250), line2=[2].
         // 2 라인 각 cross 30, available_cross 200 → total 60, free 140, center → start 70
+        //
+        // `cross_is_definite=true` 필수 (2026-07-14): align-content 는 컨테이너 cross 가
+        //   **definite 일 때만** free space 를 분배한다(CSS §8.4). indefinite 면 컨테이너가
+        //   라인 합계로 축소되므로 분배할 공간 자체가 없다. 본 테스트는 center 분배를
+        //   검증하는 것이므로 definite 로 호출한다 (기존엔 false 였으나, 그 전제로 분배가
+        //   일어나던 것이 TagGroup side 의 세로 gap 폭주 근본이었다 —
+        //   indefinite 미분배는 `multi_line_indefinite_align_content_does_not_distribute` 가 가드).
         let data = flatten(&[item(100.0, 30.0), item(100.0, 30.0), item(100.0, 30.0)]);
-        let out = flex_layout(&data, 250.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_CENTER, WRAP_WRAP, 0.0, 0.0, false);
+        let out = flex_layout(&data, 250.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_CENTER, WRAP_WRAP, 0.0, 0.0, true);
         // line1 items(0,1) y = 70, line2 item(2) y = 70+30 = 100
         assert!((out[1] - 70.0).abs() < 0.01, "line1 item0 y={}", out[1]);
         assert!((out[5] - 70.0).abs() < 0.01, "line1 item1 y={}", out[5]);
         assert!((out[9] - 100.0).abs() < 0.01, "line2 item2 y={}", out[9]);
+    }
+
+    #[test]
+    fn multi_line_indefinite_align_content_does_not_distribute() {
+        // **회귀 게이트 (TagGroup labelPosition="side", 2026-07-14)**: 컨테이너 cross 가
+        //   indefinite(height:auto) 면 align-content 는 분배할 free space 가 없다.
+        //   상속 available_cross(부모 높이)를 그대로 쓰면 **없는 여유 공간**을 라인 사이에
+        //   분배해 세로 gap 이 폭주한다 (TagList 2줄 → 둘째 줄 y=202, height 232).
+        //   단일 라인은 `cross_is_definite` 로 이미 보호돼 있었으나(ToggleButtonGroup 397→30),
+        //   multi-line 경로가 미보호였다.
+        let data = flatten(&[item(100.0, 30.0), item(100.0, 30.0), item(100.0, 30.0)]);
+        // available_cross 400(상속 페이지 높이) 이지만 indefinite → 분배 없음.
+        let out = flex_layout(&data, 250.0, 400.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_STRETCH, WRAP_WRAP, 0.0, 4.0, false);
+        assert!((out[1] - 0.0).abs() < 0.01, "line1 y=0, got {}", out[1]);
+        assert!(
+            (out[9] - 34.0).abs() < 0.01,
+            "line2 y = line1 cross(30) + gap_cross(4) = 34 — 분배되면 커진다. got {}",
+            out[9]
+        );
     }
 
     #[test]

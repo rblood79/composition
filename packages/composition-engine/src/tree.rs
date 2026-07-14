@@ -754,7 +754,8 @@ impl LayoutTree {
             (main_h, child_avail_w)
         };
 
-        let out = flex::flex_layout(
+        let cross_definite = if is_row { explicit_h > 0.0 } else { explicit_w > 0.0 };
+        let mut out = flex::flex_layout(
             &data,
             avail_main,
             avail_cross,
@@ -765,8 +766,120 @@ impl LayoutTree {
             wrap,
             gap_main,
             gap_cross,
-            if is_row { explicit_h > 0.0 } else { explicit_w > 0.0 },
+            cross_definite,
         );
+
+        // 3.5) **flex item 재-solve** — used main size 로 자식 내용 재배치 (CSS §9.9).
+        //
+        // 자식 subtree 는 3-1) 에서 **분배 전 available**(child_avail_w/h) 로 solve 됐다.
+        // grow/shrink 로 자식의 최종(used) main 크기가 그와 달라지면, 자식 내부의 wrap /
+        // `%` / auto height 는 **틀린 폭 기준**으로 굳는다 — CSS 는 used size 로 내용을
+        // 다시 배치한다.
+        //
+        // **Why (TagGroup labelPosition="side", 2026-07-14)**: TagList(flex:1) 가 분배 전
+        //   폭 350 으로 solve 되어 칩이 350 기준 1줄로 wrap → 분배 후 실제 폭은 278 인데
+        //   칩 배치는 350 기준 그대로 → **칩이 한 줄로 나열되며 TagGroup 영역을 벗어남**
+        //   (DOM 은 278 에서 2줄). 재-solve 로 content_main/cross 를 갱신 후 flex 재배치.
+        //
+        // 대상: (a) 컨테이너(자식 보유) — leaf 는 내용 재배치가 없어 무의미.
+        //       (b) main 축 explicit 없음 — 명시 크기면 내용도 그 크기 기준으로 이미 정확.
+        //       (c) used main 이 solve available 과 유의미하게 다름.
+        // 재-solve 는 **1회만** (수렴 가정 — 재배치가 다시 폭을 바꾸지는 않는다).
+        {
+            const RESOLVE_EPS: f32 = 0.5;
+            let mut changed = false;
+            for (i, &c) in children.iter().enumerate() {
+                let off = i * 4;
+                let (used_w, used_h) = (out[off + 2], out[off + 3]);
+                let used_main = if is_row { used_w } else { used_h };
+
+                let Some(cn) = self.get(c) else { continue };
+                if cn.children.is_empty() {
+                    continue; // leaf — 재배치할 내용 없음
+                }
+                let cstyle = cn.style.clone();
+
+                // 자식이 **실제로 내용을 배치할 때 쓴 main 크기**:
+                //   main explicit → 그 값(border-box) / auto → 상속 available.
+                // `used_main`(flex 분배 결과, border-box) 이 이와 다르면 내용이 틀린 폭
+                //   기준으로 굳은 것 — explicit 이어도 shrink 로 줄어들 수 있다.
+                let main_raw = if is_row {
+                    cstyle.width.as_deref()
+                } else {
+                    cstyle.height.as_deref()
+                };
+                let laid_out_main = resolve_dimension_opt(main_raw, &ctx)
+                    .unwrap_or(if is_row { child_avail_w } else { child_avail_h });
+                if (used_main - laid_out_main).abs() <= RESOLVE_EPS {
+                    continue; // 분배로 안 바뀜 — 재배치 불필요
+                }
+
+                // used main 으로 재-solve → 새 content 크기.
+                //   1차 solve 가 subtree 를 clean 으로 만들었으므로(`solve_*` 말미의
+                //   `dirty=false`), 그대로 부르면 증분 skip 이 **stale 캐시**를 돌려준다.
+                //   재-solve 전에 subtree 를 dirty 로 되돌린다.
+                //
+                //   explicit main 자식은 `solve_node` 가 자기 스타일의 명시값을 우선하므로
+                //   available 만 바꿔선 안 된다 — 명시 main 을 **used 값으로 덮어써** 재-solve
+                //   한 뒤 원복한다(스타일 원본 보존).
+                let overridden = resolve_dimension_opt(main_raw, &ctx).is_some();
+                let saved_main = if is_row {
+                    cstyle.width.clone()
+                } else {
+                    cstyle.height.clone()
+                };
+                if overridden {
+                    if let Some(n) = self.get_mut(c) {
+                        let v = Some(format!("{}px", used_main));
+                        if is_row {
+                            n.style.width = v;
+                        } else {
+                            n.style.height = v;
+                        }
+                    }
+                }
+
+                self.mark_subtree_dirty(c);
+                let (re_w, re_h) = if is_row {
+                    self.solve_node(c, used_main, child_avail_h)
+                } else {
+                    self.solve_node(c, child_avail_w, used_main)
+                };
+
+                if overridden {
+                    if let Some(n) = self.get_mut(c) {
+                        if is_row {
+                            n.style.width = saved_main;
+                        } else {
+                            n.style.height = saved_main;
+                        }
+                    }
+                }
+
+                // flex 입력의 content 슬롯 갱신 (13=content_main, 14=content_cross).
+                let d_off = i * flex::FLEX_FIELD_COUNT;
+                let (new_cm, new_cc) = if is_row { (re_w, re_h) } else { (re_h, re_w) };
+                data[d_off + 13] = new_cm;
+                data[d_off + 14] = new_cc;
+                changed = true;
+            }
+
+            if changed {
+                out = flex::flex_layout(
+                    &data,
+                    avail_main,
+                    avail_cross,
+                    direction,
+                    justify,
+                    align_items,
+                    align_content,
+                    wrap,
+                    gap_main,
+                    gap_cross,
+                    cross_definite,
+                );
+            }
+        }
 
         // 4) 자식 위치 반영 + bounding box 로 컨테이너 content 크기 도출.
         //    bounding box 는 offset 전 좌표 기준(컨테이너 content 크기), 저장은 offset 후
@@ -2696,6 +2809,89 @@ mod tests {
         assert_eq!(
             list.width, 278.0,
             "grow 로 남은 폭 전부 (350 - 68 - 4). basis=content(400) 면 wrap"
+        );
+    }
+
+    // ── flex item 재-solve (used size 로 내용 재배치) ──────────────────────
+    //
+    // CSS: flex item 의 최종 used main size 가 확정되면 **그 크기로 item 의 내용을 다시
+    // 배치**한다. 기존 solve_flex 는 자식을 **분배 전 available 폭**으로 한 번만 solve 하고,
+    // grow/shrink 로 폭이 바뀌어도 subtree 를 재-solve 하지 않았다 → 자식 내부의 wrap /
+    // `%` / auto height 가 **분배 전 폭** 기준으로 굳는다.
+    //
+    // 실제 사고 (TagGroup labelPosition="side"): TagList(flex:1) 가 350 available 로 solve
+    //   되어 칩이 350 기준으로 wrap → 분배 후 실제 폭 278 인데 칩 배치는 350 기준 그대로 →
+    //   **칩이 한 줄로 나열되며 TagGroup 영역을 벗어남**. DOM 은 278 에서 2줄 wrap.
+
+    #[test]
+    fn flex_item_subtree_relayouts_at_used_width() {
+        let mut tree = LayoutTree::new();
+        // **TagGroup side 실제 케이스**: 컨테이너 350, Label 68 + gap 4 → TagList 는 278.
+        //   TagList 안의 칩(90/54/96/67) 은 278 폭에서 wrap 되어야 한다:
+        //     row1: 90 + 4 + 54 + 4 + 96 = 248, 다음 67 은 248+4+67=319 > 278 → row2.
+        //   분배 전 폭(350)으로 굳으면 4개가 전부 1줄(90+54+96+67+gap*3 = 319 ≤ 350) →
+        //   TagList height 30(1줄) + 칩이 자기 박스(278)를 넘침.
+        let json = r#"[
+            {"style":{"width":"68px","height":"20px","flexShrink":0},"children":[]},
+            {"style":{"width":"90px","height":"30px","flexShrink":0},"children":[]},
+            {"style":{"width":"54px","height":"30px","flexShrink":0},"children":[]},
+            {"style":{"width":"96px","height":"30px","flexShrink":0},"children":[]},
+            {"style":{"width":"67px","height":"30px","flexShrink":0},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","flexWrap":"wrap","columnGap":"4px","rowGap":"4px","flexGrow":1,"flexShrink":1,"flexBasis":"0%","minWidth":"0px"},"children":[1,2,3,4]},
+            {"style":{"display":"flex","flexDirection":"row","flexWrap":"wrap","columnGap":"4px","alignItems":"flex-start","width":"350px"},"children":[0,5]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[6], 350.0, 400.0);
+
+        let list = tree.get_layout(handles[5]);
+        assert_eq!(list.width, 278.0, "TagList = 350 - 68 - 4");
+
+        // 칩 4개가 278 폭에서 2줄로 wrap — 4번째(67px)가 둘째 줄.
+        let c4 = tree.get_layout(handles[4]);
+        assert!(
+            c4.y > 0.0,
+            "4번째 칩은 둘째 줄이어야 한다 (분배 전 350 으로 굳으면 y=0 한 줄). y={}",
+            c4.y
+        );
+        // 칩이 자기 컨테이너(278) 안에 들어와야 한다 — 넘치면 TagGroup 밖으로 삐져나감.
+        for (i, &h) in [handles[1], handles[2], handles[3], handles[4]]
+            .iter()
+            .enumerate()
+        {
+            let c = tree.get_layout(h);
+            assert!(
+                c.x + c.width <= 278.0 + 0.5,
+                "칩 {} 이 TagList(278) 를 벗어남: x={} w={}",
+                i,
+                c.x,
+                c.width
+            );
+        }
+        // TagList height = 2줄 (30 + 4 + 30 = 64).
+        assert_eq!(list.height, 64.0, "2줄 wrap → 30 + rowGap4 + 30");
+    }
+
+    #[test]
+    fn flex_item_shrink_relayouts_text_like_child_height() {
+        let mut tree = LayoutTree::new();
+        // shrink 로 좁아진 item 안의 wrap 컨테이너도 재-solve 대상.
+        //   컨테이너 200, item 은 shrink 되어 100 → 안의 60px 블록 2개가 1줄(124>100 이라 2줄).
+        let json = r#"[
+            {"style":{"width":"60px","height":"10px","flexShrink":0},"children":[]},
+            {"style":{"width":"60px","height":"10px","flexShrink":0},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","flexWrap":"wrap","columnGap":"4px","rowGap":"4px","width":"200px","flexShrink":1},"children":[0,1]},
+            {"style":{"width":"100px","height":"10px","flexShrink":0},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","width":"200px"},"children":[2,3]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[4], 200.0, 200.0);
+        let item = tree.get_layout(handles[2]);
+        assert_eq!(item.width, 100.0, "shrink → 200 - 100 = 100");
+        let b = tree.get_layout(handles[1]);
+        assert!(
+            b.y > 0.0,
+            "shrink 후 폭 100 에서 60+4+60=124 > 100 → 둘째 줄. y={}",
+            b.y
         );
     }
 
