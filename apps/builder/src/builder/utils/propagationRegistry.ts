@@ -524,13 +524,31 @@ const datePickerPropagationRules: PropagationRule[] = [
     childProp: "children",
     override: true,
   },
+  // ⚠️ 아래 DateInput/SelectIcon 경로는 **2단계(`SelectTrigger` 경유)** 다 (2026-07-14).
+  //   factory canonical 자식 통일(2026-06-23)로 트리가
+  //   `DatePicker > SelectTrigger > {DateInput, SelectIcon}` 이 됐는데 본 rule 은 spec 시대의
+  //   **평면 경로(`"DateInput"`)** 그대로라 매칭되지 않았다. DateInput 은 자기 size 가 없어
+  //   Skia delegation(`props.size ?? delegated`)으로 우연히 정상이었지만, **SelectIcon 은 factory 가
+  //   `size:"md"` 를 박아둬** 그 stale 값이 부모를 가려 **size 변경이 아이콘에 영원히 미반영**됐다
+  //   (사용자 적발). SelectTrigger 규칙도 없었다. SearchField/Select 는 같은 자식 구조에
+  //   SelectTrigger/SelectValue/SelectIcon rule 을 모두 갖고 있다(선례).
   {
     parentProp: "granularity",
-    childPath: "DateInput",
+    childPath: ["SelectTrigger", "DateInput"],
     childProp: "_granularity",
     override: true,
   },
-  { parentProp: "size", childPath: "DateInput", override: true },
+  { parentProp: "size", childPath: "SelectTrigger", override: true },
+  {
+    parentProp: "size",
+    childPath: ["SelectTrigger", "DateInput"],
+    override: true,
+  },
+  {
+    parentProp: "size",
+    childPath: ["SelectTrigger", "SelectIcon"],
+    override: true,
+  },
   { parentProp: "size", childPath: "Calendar", override: true },
   { parentProp: "size", childPath: "Label", override: true },
   {
@@ -567,13 +585,24 @@ const dateRangePickerPropagationRules: PropagationRule[] = [
     childProp: "children",
     override: true,
   },
+  // DateInput/SelectIcon 은 `SelectTrigger` 경유 2단계 경로 — DatePicker 와 동일 근거(위 주석).
   {
     parentProp: "granularity",
-    childPath: "DateInput",
+    childPath: ["SelectTrigger", "DateInput"],
     childProp: "_granularity",
     override: true,
   },
-  { parentProp: "size", childPath: "DateInput", override: true },
+  { parentProp: "size", childPath: "SelectTrigger", override: true },
+  {
+    parentProp: "size",
+    childPath: ["SelectTrigger", "DateInput"],
+    override: true,
+  },
+  {
+    parentProp: "size",
+    childPath: ["SelectTrigger", "SelectIcon"],
+    override: true,
+  },
   { parentProp: "size", childPath: "Calendar", override: true },
   { parentProp: "size", childPath: "RangeCalendar", override: true },
   { parentProp: "size", childPath: "Label", override: true },

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [DatePicker size 변경 미반영 — CSS passthrough 누락 + propagation 경로가 옛 트리 기준] - 2026-07-14
+
+### Bug Fixes
+
+- **DatePicker 의 size 를 바꿔도 CSS(Preview) 가 그대로이고, Skia SelectIcon 크기도 안 바뀜** (사용자 적발). 원인이 **서로 다른 2개**였다:
+  - **(1) CSS/DOM — binding 에 `propPassthrough: ["size"]` 누락**: `toRacProps` 는 `kind:"size"` 를 **`data-size` 속성으로만** 라우팅한다(RAC primitive 는 unstyled → CSS 가 `[data-size]` 로 처리). 그런데 DatePicker 는 `source: internal` — composition wrapper(`DatePicker.tsx`)가 **size 를 React prop 으로 직접 소비**하고(하위 Label/DateInput/Button 크기 결정) `{...props}` **뒤에** 자기 `data-size={size}` 를 다시 쓴다. **Why**: passthrough 가 없으니 wrapper 의 `size` 가 undefined → **default `"md"` 고정**, 게다가 그 `md` 가 `toRacProps` 가 넣어준 `data-size="lg"` 를 **덮어써** CSS selector 가 영원히 md 로 매칭됐다. ProgressCircle/Avatar/StatusLight 가 같은 이유로 이미 `propPassthrough` 를 쓰고 있었다(선례). 수정: DatePicker/DateRangePicker binding 에 `propPassthrough: ["size"]` 추가.
+  - **(2) Skia SelectIcon — propagation rule 이 옛 평면 트리 기준**: factory canonical 자식 통일(2026-06-23)로 트리가 `DatePicker > SelectTrigger > {DateInput, SelectIcon}` 이 됐는데, propagation rule 은 spec 시대의 **평면 경로**(`childPath: "DateInput"`)를 그대로 두고 **`SelectTrigger`/`SelectIcon` 규칙은 아예 없었다**. **Why**: DateInput 은 자기 size 가 없어 Skia delegation(`props.size ?? delegated`)으로 우연히 정상이었지만, **SelectIcon 은 store 에 `size:"md"` 가 남아** 그 stale 값이 `props.size` 앞자리를 차지해 부모를 영원히 가렸다 → 아이콘이 md(18)에 고정. 수정: `size → SelectTrigger` / `size → ["SelectTrigger","DateInput"]` / `size → ["SelectTrigger","SelectIcon"]` (+ granularity 경로도 2단계로) — SearchField/Select 가 같은 자식 구조에 이미 갖고 있던 규칙과 정합. `override: true` 라 자식의 stale 값을 이긴다.
+  - 위치: `packages/shared/src/catalog/bindings/{DatePicker,DateRangePicker}.binding.ts`, `apps/builder/src/builder/utils/propagationRegistry.ts`
+  - 검증 (live builder, **실제 Inspector 클릭**으로 size 변경): M → DOM 아이콘 18 = Skia 18 / picker 350×54 양쪽 동일. L → DOM 22 = Skia 22 / 350×70 동일. XL → DOM 28 = Skia 28 / 350×90 동일. 자식(SelectTrigger/DateInput/**SelectIcon**)이 전부 부모 size 로 전파됨(이전엔 SelectIcon 만 md 고정). 신규 회귀 테스트 7건(수정 전 RED — glyph 가 부모 size 무관하게 16 고정 / passthrough 미포함 확인). type-check PASS, 기존 실패는 baseline 과 동일(격리 실행 확증).
+  - **알려진 잔여(별도 결함)**: xs/sm 에서 DOM 아이콘(14/16)과 Skia(10/14)가 다르다 — catalog `SelectIcon.sizes.{xs,sm}.iconSize`(10/14)가 Select `.select-chevron` 스케일(14/16)과 어긋나 있다(**본 수정 이전부터 존재**). md/lg/xl 은 일치.
+
 ## [DatePicker 트리거 아이콘 크기 — typography 토큰 대신 아이콘 스케일로 통일 (DOM↔Skia 대칭)] - 2026-07-14
 
 ### Bug Fixes

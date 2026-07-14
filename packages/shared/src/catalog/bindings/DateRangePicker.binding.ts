@@ -76,5 +76,9 @@ export const dateRangePickerBinding: PrimitiveBinding = {
       maxValue: { kind: "string", label: "Max Value", section: "state" },
     },
     toRacProps: "default",
+    // size 는 DateRangePicker.tsx 가 React prop 으로 직접 소비 + 자기 `data-size` 를 다시 emit
+    //   → passthrough 없으면 default("md") 고정 + toRacProps 의 data-size 를 덮어씀
+    //   (DatePicker.binding 과 동일 근거, ProgressCircle/Avatar/StatusLight 선례).
+    propPassthrough: ["size"],
   },
 };

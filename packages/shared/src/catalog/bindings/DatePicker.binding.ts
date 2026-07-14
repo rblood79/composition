@@ -87,5 +87,12 @@ export const datePickerBinding: PrimitiveBinding = {
       maxValue: { kind: "string", label: "Max Value", section: "state" },
     },
     toRacProps: "default",
+    // size 는 DatePicker.tsx(INTERNAL_RENDERERS 어댑터)가 **React prop 으로 직접 소비**한다
+    //   (Label/DateInput/Button 하위 크기 결정 + 자기 `data-size` emit). catalog 의 size kind 는
+    //   기본 data-attr 라우팅(`data-size`)이라 그대로 두면 DatePicker.tsx 의 size 가 undefined →
+    //   **항상 default("md") 고정**, 게다가 wrapper 가 `{...props}` 뒤에 `data-size={size}` 를 다시
+    //   써서 toRacProps 가 넣어준 `data-size="lg"` 까지 **덮어쓴다** → Preview 가 size 변경을 전혀
+    //   반영 못 함 (2026-07-14 사용자 적발). ProgressCircle/Avatar/StatusLight 선례 동형.
+    propPassthrough: ["size"],
   },
 };

@@ -482,4 +482,68 @@ describe("buildSpecNodeData", () => {
       );
     });
   });
+
+  // 회귀 방지 (2026-07-14, 사용자 적발): DatePicker 의 size 를 바꿔도 Skia SelectIcon 이
+  //   그대로였다. 자식 store 에 남은 **stale size**(예 "md")가 `props.size ?? delegated` 의
+  //   앞자리를 차지해 부모(xl)를 영원히 가렸기 때문. `override: true` propagation rule 이 준
+  //   size 는 **자식 자신의 props.size 를 이겨야** 한다(resolveOverriddenPropagatedSize).
+  //
+  //   `resolveParentDelegatedSize` 로는 못 고친다 — reverse index 가 **평면 childPath 만**
+  //   등록하고 중첩 경로(["SelectTrigger","SelectIcon"])는 제외하며, 애초에 props.size 뒤의
+  //   fallback 이라 stale 값을 못 이긴다.
+  describe("SelectIcon size — override propagation 이 자식 stale size 를 이긴다", () => {
+    function iconGlyphSize(
+      parentSize: string,
+      childStaleSize?: string,
+    ): number | null {
+      const picker = makeElement("dp", {
+        type: "DatePicker",
+        props: { size: parentSize, iconName: "calendar" },
+      });
+      const trigger = makeElement("tr", {
+        type: "SelectTrigger",
+        parent_id: "dp",
+      });
+      const icon = makeElement("ic", {
+        type: "SelectIcon",
+        parent_id: "tr",
+        props: childStaleSize ? { size: childStaleSize } : {},
+      });
+      const node = buildSpecNodeData({
+        element: icon,
+        layout: makeLayout({ x: 0, y: 0, width: 28, height: 28 }),
+        theme: "light",
+        elementsMap: new Map([
+          [picker.id, picker],
+          [trigger.id, trigger],
+          [icon.id, icon],
+        ]),
+      });
+      const found = findIconPath(node) as { size?: number } | null;
+      return found?.size ?? null;
+    }
+
+    // glyph 크기는 catalog `sizes[*].fontSize`(typography 토큰) 파생 — md=16 / lg=18 / xl=20.
+    //   (박스 크기 `iconSize` 18/22/28 과는 다른 축. 여기서 검증하는 건 **부모를 따라가는가**.)
+    const MD = iconGlyphSize("md");
+    const XL = iconGlyphSize("xl");
+
+    it("부모 size 가 다르면 아이콘 glyph 도 다르다 (전제 — 크기 축이 살아있음)", () => {
+      expect(MD).not.toBeNull();
+      expect(XL).not.toBeNull();
+      expect(XL).toBeGreaterThan(MD as number);
+    });
+
+    it("자식에 stale size('md') 가 남아 있어도 부모(xl) 가 이긴다 (핵심 회귀)", () => {
+      // 수정 전: 자식의 stale "md" 가 `props.size ?? delegated` 앞자리를 차지해 부모를 가렸다.
+      expect(iconGlyphSize("xl", "md")).toBe(XL);
+    });
+
+    it("자식 stale size 가 있어도 부모 size 변경이 그대로 반영된다", () => {
+      expect(iconGlyphSize("md", "md")).toBe(MD);
+      expect(iconGlyphSize("xl", "md")).toBe(XL);
+      // 부모만 바꿨는데 glyph 가 따라 변한다 = size 변경 반영됨
+      expect(iconGlyphSize("xl", "md")).not.toBe(iconGlyphSize("md", "md"));
+    });
+  });
 });

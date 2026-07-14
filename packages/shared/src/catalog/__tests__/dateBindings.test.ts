@@ -99,4 +99,38 @@ describe("family ⑦ date — catalog 등록 + Skia generic 발효", () => {
     expect(result.showCalendarIcon).toBe(true);
     expect(result["data-size"]).toBe("md");
   });
+
+  // 회귀 방지 (2026-07-14, 사용자 적발): DatePicker size 를 바꿔도 **CSS(Preview) 가 미반영**.
+  //   `toRacProps` 는 size(kind:"size")를 기본적으로 `data-size` 속성으로만 라우팅하는데,
+  //   DatePicker/DateRangePicker 는 source=internal — composition wrapper(DatePicker.tsx)가
+  //   **size 를 React prop 으로 직접 소비**하고(하위 Label/DateInput/Button 크기 결정)
+  //   `{...props}` **뒤에** 자기 `data-size={size}` 를 다시 쓴다. 따라서 passthrough 가 없으면
+  //   (1) wrapper 의 size 가 undefined → default "md" 고정, (2) 그 "md" 가 toRacProps 의
+  //   `data-size="lg"` 까지 **덮어써** CSS selector 가 영원히 md 로 매칭된다.
+  //   ProgressCircle/Avatar/StatusLight 선례 동형.
+  describe("size passthrough — wrapper 가 size 를 React prop 으로 소비하는 internal 컴포넌트", () => {
+    const PASSTHROUGH_TYPES = ["DatePicker", "DateRangePicker"] as const;
+
+    it.each(PASSTHROUGH_TYPES)(
+      "%s binding 은 propPassthrough 에 size 를 포함한다",
+      (type) => {
+        const binding = getPrimitiveBinding(type)!;
+        expect(binding.props.propPassthrough).toContain("size");
+      },
+    );
+
+    it.each(PASSTHROUGH_TYPES)(
+      "%s toRacProps: size 가 React prop + data-size 둘 다 emit",
+      (type) => {
+        const result = toRacProps(
+          { id: "n1", type, props: { size: "xl" } },
+          getPrimitiveBinding(type)!,
+        );
+        // React prop — wrapper 가 이걸 못 받으면 default("md") 로 고정된다
+        expect(result.size).toBe("xl");
+        // data-* — CSS selector(.react-aria-DatePicker[data-size="xl"]) 매칭용
+        expect(result["data-size"]).toBe("xl");
+      },
+    );
+  });
 });
