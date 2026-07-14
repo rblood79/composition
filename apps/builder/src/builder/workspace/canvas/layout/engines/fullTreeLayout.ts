@@ -2459,7 +2459,18 @@ export function calculateFullTreeLayout(
       // 모든 노드를 순회하며 실제 width vs enrichment width 비교
       for (let i = 0; i < batch.length; i++) {
         const node = batch[i];
-        const childEl = elementsMap.get(node.elementId);
+        // **processedElementsMap 우선** (DFS injection + implicitStyles 적용본).
+        //   store 원본(elementsMap)에는 implicitStyles 가 주입한 height 가 없다 — 아래
+        //   "명시 height 는 skip" 가드가 store 만 보면 **주입된 height 를 auto 로 오판**한다.
+        //   회귀 (2026-07-14 DatePicker): SelectTrigger 의 height(30px)는 implicitStyles
+        //   selecttrigger 분기가 주입하고 store 엔 없다 → 가드 미발동 → childUpdates 에 편입 →
+        //   아래 "컨테이너는 height 제거" 분기가 **주입된 30px 을 삭제** → trigger 가 auto(28)로
+        //   축소되고, 그 안의 DateInput(`height:100%`)이 **auto 부모 기준 → 0** 으로 붕괴
+        //   (Skia 에서 DateInput 이 사라짐). 아래 update 루프(2637)는 이미 processedElementsMap
+        //   을 쓰고 있어 **selection 루프만 비대칭**이었다.
+        const childEl =
+          processedElementsMap.get(node.elementId) ??
+          elementsMap.get(node.elementId);
         if (!childEl) continue;
 
         // root(body) 노드는 Step 1.5에서 pageWidth/Height를 명시적으로 설정하므로 스킵

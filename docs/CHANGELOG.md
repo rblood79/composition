@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [DatePicker DateInput height 0 — 2-pass 가 주입 height 삭제 / stretch vs shrink-to-fit 구분] - 2026-07-14
+
+### Bug Fixes
+
+- **Skia 에서 DateInput 의 height 가 0 이 되어 사라짐** (직전 수정 후 잔존, block body 프로젝트에서 재현):
+  - 엔진 1-pass 는 **정확했다** (실측: DateInput h=20 / trigger h=30 / DatePicker h=54, DOM 과 일치). 값을 망가뜨린 건 그 뒤의 **2-pass 재계산(Step 4.5)** 이었다.
+  - **(1) 2-pass selection 루프가 store 원본을 봄** — "명시 height 를 가진 노드는 skip" 가드가 `elementsMap`(store 원본)에서 height 를 읽는데, **SelectTrigger 의 height(30px)는 store 에 없고 `implicitStyles` 가 주입**한다. **Why**: 가드가 주입된 height 를 `undefined`(=auto)로 잘못 읽어 skip 하지 않고 `childUpdates` 에 편입 → 뒤이은 "컨테이너는 height 제거(엔진 auto 계산)" 분기가 **주입된 30px 을 삭제** → trigger 가 auto(28)로 축소되고, 그 안의 DateInput(`height:100%`)이 **auto 부모 기준 → 0** 으로 붕괴. 같은 블록의 **update 루프는 이미 `processedElementsMap` 을 쓰고 있어 selection 루프만 비대칭**이었다. `.claude/rules/layout-engine.md` §2-Pass re-enrichment 의 "Step 4.5에서 processedElementsMap 우선 사용" 규칙 위반. 수정: selection 루프도 `processedElementsMap ?? elementsMap`.
+  - **(2) 엔진 — stretch 부모와 shrink-to-fit 부모를 구분하지 못함** — 직전 커밋(7ab97be2e)의 `cross_definite_self` 가 **명시 크기(`explicit_*`)만** 보았다. **Why**: block 부모 안의 block-level flex 컨테이너는 **width 명시가 없어도 부모 폭으로 stretch** 되므로 그 폭은 확정이다(`body(block) > DatePicker > SelectTrigger(width:100%)` → 390 이 정답, DOM 390). 명시 크기만 보면 이 케이스를 shrink-to-fit 으로 오판해 trigger 가 콘텐츠 폭(160)으로 수축한다. definite 판정에 **(b) 부모가 definite available 을 내려줌(`avail_* >= 0`)** 을 추가 — shrink-wrap 하는 부모(flex `align-items:flex-start` 등)만 자식에게 `INDEFINITE_AVAIL`(음수)을 내려보내므로, 이 신호로 두 케이스가 갈린다. 직전 커밋의 shrink-to-fit 정합(`body(flex column, align-items:flex-start)`)은 그대로 유지.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`, `packages/composition-engine/src/tree.rs`
+  - 검증 (live builder 실측): DateInput **h=20**(수정 전 0, Skia 에서 소실) = DOM 20, SelectTrigger **390×30** = DOM 390×30, DatePicker **390×54** = DOM 390×54. Rust 신규 3건(1-pass 정확성 + stretch 390 + shrink-to-fit 93 동시 lock) + 전체 279건 통과(회귀 0, Chrome 실측 golden 25건 포함). canvas+specs 11 failed/1490 passed = clean-tree baseline 동일. type-check PASS.
+  - **잔여**: Skia DateInput 폭이 102(콘텐츠) vs DOM 348(`flex:1` grow) — layout 이 `flex:1` item 에 intrinsic 폭을 **명시 width 로 주입**해 grow 를 막는다. 표시되는 box(trigger)와 텍스트는 정합이라 시각 영향은 없으나 별도 정리 대상.
+
 ## [DatePicker CSS↔Skia 레이아웃 정합 — shrink-to-fit % / DateInput box 오인] - 2026-07-14
 
 ### Bug Fixes

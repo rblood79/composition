@@ -723,20 +723,33 @@ impl LayoutTree {
 
         // **cross 축 `%` 기준 = 컨테이너 자신의 cross 가 definite 일 때만 available**.
         //
-        // CSS §10.2: `%` 크기는 containing block 의 해당 축이 **content 에 의존(auto)** 하면
-        // `auto` 로 푼다. 컨테이너의 cross 가 auto(shrink-to-fit) 면 그 크기는 아직 자식으로
-        // 부터 도출되는 중이라 자식의 `%` cross 가 참조할 확정값이 없다.
+        // CSS §10.2: `%` 크기는 containing block 의 해당 축이 **content 에 의존(shrink-to-fit)**
+        // 이면 `auto` 로 푼다 — 그 축 크기가 아직 자식으로부터 도출되는 중이라 참조할 확정값이 없다.
         //
-        // **Why (DatePicker, 2026-07-14)**: body(column) > DatePicker(width 미지정, column)
-        //   > SelectTrigger(width:100%). DatePicker 의 cross(=width) 는 auto 인데, 자식의
-        //   100% 를 **상속 available(350)** 로 풀면 trigger 가 350 이 되고 → shrink-to-fit
-        //   이어야 할 DatePicker 가 그 자식을 감싸며 350 으로 팽창한다
-        //   (실측: DOM 113.1 vs Skia 350). indefinite 로 풀면 100% → auto → 콘텐츠 폭.
+        // definite 판정 2가지 (둘 중 하나면 definite):
+        //   (a) 자신이 그 축에 **명시 크기** 보유 (`explicit_*`)
+        //   (b) **부모가 그 축의 definite available 을 내려줌** (`avail_* >= 0`) — block 부모의
+        //       block-level 자식은 부모 폭으로 **stretch** 되므로 width 가 확정이다. 반대로
+        //       shrink-wrap 하는 부모(예: flex `align-items:flex-start` 의 cross)는 자식에게
+        //       **INDEFINITE_AVAIL(음수)** 를 내려보내 "네 크기는 네 콘텐츠가 정한다" 를 알린다.
+        //
+        // **Why (DatePicker, 2026-07-14)**:
+        //   - shrink-wrap 부모: `body(flex column, align-items:flex-start) > DatePicker(width 미지정)
+        //     > SelectTrigger(width:100%)`. 자식의 100% 를 상속 available(350)로 풀면 trigger 가
+        //     350 → shrink-to-fit 이어야 할 DatePicker 가 그걸 감싸며 350 으로 팽창(DOM 113.1).
+        //   - stretch 부모: `body(block) > DatePicker(width 미지정) > SelectTrigger(width:100%)`.
+        //     여기선 DatePicker 가 block-level 이라 **390 으로 stretch** → trigger 100% = 390 이
+        //     정답이다(DOM 390). (a) 만 보면 이 케이스가 indefinite 로 오판돼 trigger 가 160 으로
+        //     수축한다 — (b) 가 그 구분을 담당.
         //
         // main 축(`ctx`/`main_ctx`) 과 padding/margin/gap 은 **기존 그대로** available 기준 —
-        //   available 자체를 죽이면 shrink-to-fit 의 상한(=available)과 main 축 배치가 무너진다
+        //   available 자체를 죽이면 shrink-to-fit 의 상한과 main 축 배치가 무너진다
         //   (초기 시도에서 SelectValue width 0 회귀). 바뀌는 건 **cross 축 `%` 해석뿐**.
-        let cross_definite_self = if is_row { explicit_h > 0.0 } else { explicit_w > 0.0 };
+        let cross_definite_self = if is_row {
+            explicit_h > 0.0 || avail_h >= 0.0
+        } else {
+            explicit_w > 0.0 || avail_w >= 0.0
+        };
         let cross_ctx = if cross_definite_self {
             self.ctx_for(if is_row { child_avail_h } else { child_avail_w })
         } else {
@@ -744,10 +757,20 @@ impl LayoutTree {
         };
 
         // 1) 자식 재귀 solve → 각 자식 content 크기 확보.
-        //    cross 가 indefinite 면 자식 subtree 의 `%` cross 도 auto 로 풀려야 하므로
-        //    해당 축 available 을 indefinite 센티넬로 내린다 (자식의 `resolve_self_size` →
-        //    `%` → auto). main 축 available 은 유지.
-        let (child_solve_w, child_solve_h) = if cross_definite_self {
+        //
+        // **cross 를 stretch 하지 않는 컨테이너는 자식에게 indefinite cross available 을 내린다.**
+        //   `align-items` 가 stretch(기본값)면 auto-cross 자식은 컨테이너 cross 로 늘어나므로
+        //   containing block 이 확정이다. flex-start/center/end 면 자식은 **shrink-to-fit** —
+        //   자기 콘텐츠가 크기를 정하므로, 그 자식이 **컨테이너**일 때 그 안쪽 `%` cross 가
+        //   참조할 확정 basis 가 없다. 이 신호가 자식의 `cross_definite_self` 규칙 (b)
+        //   (`avail_* >= 0`) 로 전달돼 shrink-to-fit / stretch 를 구분한다.
+        //
+        //   **주의 — 축을 정확히**: row 컨테이너의 cross 는 **height**, column 은 **width**.
+        //   초기 시도가 이걸 `%` 해석 컨텍스트와 뒤섞어(`align-items:center` row trigger 가
+        //   자식에게 indefinite height 를 내려 SelectValue 가 0) 회귀를 냈다. 여기서 내리는 건
+        //   **available 뿐**이고, `%` 해석은 위 `cross_ctx` 가 별도로 담당한다.
+        let stretches_children_cross = align_items == 0;
+        let (child_solve_w, child_solve_h) = if stretches_children_cross {
             (child_avail_w, child_avail_h)
         } else if is_row {
             (child_avail_w, INDEFINITE_AVAIL) // row → cross = height
@@ -2909,20 +2932,86 @@ mod tests {
     ///   `0%` 를 그대로 0 으로 두면 grow 할 free space 도 없어(indefinite) DateInput 이
     ///   **w=0 으로 붕괴** → DatePicker 가 Label 폭(74)까지만 수축 (DOM 은 113).
     ///   basis 를 content 로 보면 intrinsic 폭(71)이 살아 trigger/DatePicker 가 콘텐츠를 감싼다.
+    /// DatePicker 실측 회귀 (2026-07-14 2차): `height:100%` 자식이 **explicit height 부모** 안에서
+    /// 0 이 되면 안 된다.
+    ///
+    /// 실측 batch: SelectTrigger(row, height 30px explicit, padding 4/4, border 1/1)
+    ///   > DateInput(width 102px, `height:100%`, flex:1 basis 0%).
+    /// trigger content-box = 30 - 8 - 2 = 20 → DateInput height 20 이어야 한다.
+    /// 회귀 시 h=0 (Skia DateInput 이 안 보임).
+    #[test]
+    fn percent_height_child_resolves_against_explicit_parent_content_box() {
+        let mut tree = LayoutTree::new();
+        // post-order: DateInput(0), SelectIcon(1), SelectTrigger(2)
+        let json = r#"[
+            {"style":{"display":"block","width":"102px","height":"100%","flexGrow":1,"flexShrink":1,"flexBasis":"0%","minWidth":"0px"},"children":[]},
+            {"style":{"display":"block","width":"18px","height":"18px","flexShrink":0},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","alignItems":"center","columnGap":"4px","height":"30px","width":"100%",
+                      "paddingTop":"4px","paddingBottom":"4px","paddingLeft":"12px","paddingRight":"4px",
+                      "borderTop":"1px","borderBottom":"1px","borderLeft":"1px","borderRight":"1px"},"children":[0,1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 390.0, 400.0);
+
+        let di = tree.get_layout(handles[0]);
+        assert_eq!(di.height, 20.0, "height:100% 가 0 으로 붕괴 (부모 content-box 20)");
+        let trg = tree.get_layout(handles[2]);
+        assert_eq!(trg.height, 30.0, "trigger 가 explicit 30 을 유지해야 함");
+    }
+
+    /// 위와 동일하나 **실측 전체 체인** (body block > DatePicker column > trigger row > DateInput).
+    /// live 에서 DateInput h=0 / trigger h=28 로 나오던 회귀 — 부모 체인을 포함해야 재현된다.
+    #[test]
+    fn datepicker_full_chain_dateinput_percent_height_not_zero() {
+        let mut tree = LayoutTree::new();
+        // post-order: Label(0), DateInput(1), SelectIcon(2), SelectTrigger(3), DatePicker(4), body(5)
+        // live batch 실측 그대로 (2026-07-14) — body 는 width/height explicit.
+        let json = r#"[
+            {"style":{"display":"block","width":"fit-content","height":"20px","minWidth":"74px","flexShrink":0},"children":[]},
+            {"style":{"display":"block","width":"102px","height":"100%","flexGrow":1,"flexShrink":1,"flexBasis":"0%","minWidth":"0px"},"children":[]},
+            {"style":{"display":"block","width":"18px","height":"18px","flexShrink":0},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","alignItems":"center","columnGap":"4px","rowGap":"4px","height":"30px","width":"100%",
+                      "paddingTop":"4px","paddingBottom":"4px","paddingLeft":"12px","paddingRight":"4px",
+                      "borderTop":"1px","borderBottom":"1px","borderLeft":"1px","borderRight":"1px"},"children":[1,2]},
+            {"style":{"display":"flex","flexDirection":"column","alignItems":"flex-start","rowGap":"4px","columnGap":"4px"},"children":[0,3]},
+            {"style":{"display":"block","width":"390px","height":"844px","overflowX":"auto","overflowY":"auto"},"children":[4]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[5], 390.0, 844.0);
+
+        // block body 는 DatePicker(block-level)를 390 으로 **stretch** → 그 안의
+        //   trigger `width:100%` 도 390 이어야 한다(DOM 실측 390). shrink-to-fit 으로
+        //   오판하면 trigger 가 콘텐츠 폭(160)으로 수축한다.
+        let dp = tree.get_layout(handles[4]);
+        assert_eq!(dp.width, 390.0, "block 부모 안 DatePicker 는 390 으로 stretch");
+        let trg_w = tree.get_layout(handles[3]).width;
+        assert_eq!(trg_w, 390.0, "trigger width:100% → 390 (160 으로 수축 회귀)");
+
+        let di = tree.get_layout(handles[1]);
+        let trg = tree.get_layout(handles[3]);
+        assert_eq!(trg.height, 30.0, "trigger explicit height 30 유지 (live 28 회귀)");
+        assert_eq!(di.height, 20.0, "DateInput height:100% → 부모 content-box 20 (live 0 회귀)");
+    }
+
     #[test]
     fn percent_flex_basis_with_indefinite_main_falls_back_to_content() {
         let mut tree = LayoutTree::new();
         // post-order: DateInput(0, flex:1 basis 0%, intrinsic 71), icon(1, 18),
-        //             trigger(2, row, width auto), DatePicker(3, column, width auto)
+        //             trigger(2, row, width auto), DatePicker(3, column, width auto),
+        //             body(4, flex column, align-items:flex-start → DatePicker 를 shrink-wrap)
+        //
+        // shrink-wrap 부모가 있어야 DatePicker 의 cross(width) 가 indefinite 가 된다 —
+        // root 로 직접 solve 하면 부모가 definite available 을 내려준 것과 같아(rule (b))
+        // stretch 되므로 이 시나리오가 재현되지 않는다.
         let json = r#"[
             {"style":{"width":"71px","height":"20px","flexGrow":1,"flexShrink":1,"flexBasis":"0%"},"children":[]},
             {"style":{"width":"18px","height":"18px"},"children":[]},
             {"style":{"display":"flex","flexDirection":"row","alignItems":"center","columnGap":"4px"},"children":[0,1]},
-            {"style":{"display":"flex","flexDirection":"column"},"children":[2]}
+            {"style":{"display":"flex","flexDirection":"column"},"children":[2]},
+            {"style":{"display":"flex","flexDirection":"column","alignItems":"flex-start","width":"350px"},"children":[3]}
         ]"#;
         let handles = tree.build_tree_batch(json).unwrap();
-        // 부모 available 350 이지만 DatePicker/trigger 는 width 미지정 → shrink-to-fit.
-        tree.compute_layout(handles[3], 350.0, 400.0);
+        tree.compute_layout(handles[4], 350.0, 400.0);
 
         let di = tree.get_layout(handles[0]);
         assert_eq!(di.width, 71.0, "basis 0% 가 0 으로 굳어 DateInput 이 붕괴");
