@@ -1531,7 +1531,7 @@ export const renderDisclosureGroup = (
   element: PreviewElement,
   context: RenderContext,
 ): React.ReactNode => {
-  const { renderElement } = context;
+  const { renderElement, updateElementProps } = context;
 
   const children = context.childrenByParent.get(element.id) ?? [];
 
@@ -1578,6 +1578,25 @@ export const renderDisclosureGroup = (
       data-size={(element.props.size as string) || "md"}
       allowsMultipleExpanded={multiple}
       defaultExpandedKeys={defaultExpandedKeys}
+      // 그룹 안 Disclosure 의 header 클릭은 **그룹의** onExpandedChange 로만 통지된다
+      //   (RAC: groupState.toggleKey — 개별 Disclosure 의 onExpandedChange 는 호출 안 됨).
+      //   Preview runtime store 의 isExpanded 를 동기화해 Preview 내부 정합을 유지한다
+      //   (renderDisclosure 단독 경로가 하는 것과 동형). 2026-07-14.
+      onExpandedChange={(keys) => {
+        const expandedKeySet = new Set<string>([...keys].map((k) => String(k)));
+        for (const child of children) {
+          if (child.type !== "Disclosure") continue;
+          const key = child.customId ?? child.id;
+          if (!key) continue;
+          const next = expandedKeySet.has(key);
+          // 변경분만 기록 (불필요한 store 갱신 방지).
+          //   isExpanded 미지정 = 펼침(binding default) → 그 기준으로 비교.
+          const prev = (child.props as Record<string, unknown> | undefined)
+            ?.isExpanded;
+          if ((prev !== false) === next) continue;
+          updateElementProps(child.id, { isExpanded: next });
+        }
+      }}
       style={element.props.style}
       className={element.props.className}
     >
