@@ -20,7 +20,7 @@ ADR-912(spec→catalog cutover, Implemented 2026-06-18)로 컴포넌트 편집 p
 **비교 기준 교정 (audit §9, 사용자 지적 2026-06-25)**: 위 층위 B 1차 감사(§2~§6)는 **RAC/RSP 공식 prop** 만 비교 기준으로 썼다. 그러나 "레퍼런스엔 없지만 spec 에 있던 custom prop"(`contextualHelp`/`necessityIndicator`/Card `accentColor` 등)은 공식 대조로 검출 자체가 안 됐다. 정확한 기준은 **cutover 로 삭제된 spec 파일**. 삭제된 132 spec 복원 후 `interface {Name}Props` ↔ 현재 `accepts` 전수 diff(5 패밀리 병렬 에이전트, live consumer grep 검증). 핵심 발견:
 
 - **"live consumer 있는데 accepts 누락"**: 렌더러는 이미 `props.{x}` 소비 중인데 편집 UI 만 결손 → 복원 시 즉시 동작. Form submit 계열·`labelAlign`/`necessityIndicator`/`validationBehavior`/`locale`·Dialog `role`·FileTrigger·Image `src`/`alt`/`objectFit`·Card `accentColor` 등 → **P1 로 흡수**.
-- **`contextualHelp` 전멸**(12 spec → 0 binding, RSP 표준) + RSP custom 계열 → accepts + 렌더러 wiring 양쪽 필요 → 신규 **P1.5**.
+- **`contextualHelp` 전멸**(12 spec → 0 binding, RSP 표준) + RSP custom 계열 → accepts + 렌더러 wiring 양쪽 필요 → 신규 **P1.5**. (contextualHelp 자체는 2026-07-14 리뷰 round 1 + 사용자 재판정으로 **제외 확정** — 삭제 spec render 소비 0건의 dead-restoration + 설치 RAC 1.18.0 에 prop 부재. P1.5-c 와 동일 기준, 상세: breakdown §2 이행 상태 표)
 - **노이즈**(폐기 컴포넌트 15종 / children 흡수 / 서브파트 전파 / RAC render-state) → 복원 금지.
 
 본 ADR은 **층위 B 중 P0(정정·중복 포함) + P1(폼 기능 + §9-1 live-consumer 결손) + P1.5(RSP custom)**로 scope를 좁힌다. P2/P3(컬렉션 core, Color 채널, Heading.level, Popover/Tooltip placement 등)은 후속 분리.
