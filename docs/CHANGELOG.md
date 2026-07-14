@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [DisclosureGroup allowsMultipleExpanded CSS↔Skia 미반영] - 2026-07-14
+
+### Bug Fixes
+
+- **DisclosureGroup 의 `allowsMultipleExpanded` 가 CSS/Skia 양쪽 모두 반영 안 됨** (단독 Disclosure 는 정상):
+  - **Why**: 두 경로가 서로 다른 진실을 봤다. **DOM(RAC)** 은 그룹 상태머신(`useDisclosureGroupState`)이 개별 `isExpanded` 를 override 하며 `allowsMultipleExpanded=false` 면 후보 중 **첫 번째만** 펼친다. 반면 **Skia** 는 `applyImplicitStyles`(DisclosureContent `display:none`)와 `resolveDisclosureHeaderParent`(chevron 방향)가 오직 `disclosure.props.isExpanded === false` 만 보고 **부모 그룹의 제약을 전혀 몰라** 자식 Disclosure 를 전부 펼쳐 그렸다. 단독 Disclosure 는 그룹 상태머신이 없어 양쪽이 우연히 일치했다.
+  - 추가 원인 2건: (1) `allowsMultipleExpanded` / `isExpanded` 가 `LAYOUT_AFFECTING_PROP_KEYS` 에 없어 Inspector 편집 시 `layoutVersion` 이 증가하지 않았다 → 재레이아웃 skip. `LAYOUT_PROP_KEYS`(캐시 시그니처)에도 `allowsMultipleExpanded` 누락. (2) RAC DisclosureGroup 은 **uncontrolled** 라 `defaultExpandedKeys` 가 초기값으로만 쓰인다 → `false→true` 로 되돌려도 내부 `expandedKeys` 가 축약된 `{첫 번째}` 상태를 유지(useEffect 가 축약만 하고 복원 안 함) → Preview 에 미반영.
+  - 수정: 그룹 확장 판정을 `resolveGroupExpandedDisclosureIds` / `isDisclosureExpandedInContext` **SSOT helper** 로 통합하고 DOM(`defaultExpandedKeys`) / Skia(content 숨김 + chevron)가 같은 규칙을 소비하도록 정렬(RAC `useDisclosureGroupState` 와 동형 — 첫 번째 키만 유지). layout 무효화 체인 2곳에 키 등록. `renderDisclosureGroup` 의 React `key` 에 `allowsMultipleExpanded` 포함 → 토글 시 재마운트로 초기 상태 재적용.
+  - 검증: live builder 왕복 실측 — 토글 OFF 시 CSS `aria-expanded=[true,false]` + Skia contentHeight `[20,0]` / ON 시 CSS `[true,true]` + Skia `[20,20]`, chevron 방향까지 대칭. 회귀 테스트 15건 신규.
+  - 위치: `packages/shared/src/utils/disclosureGroupExpansion.ts`, `packages/shared/src/renderers/LayoutRenderers.tsx`, `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`, `apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts`, `apps/builder/src/builder/stores/utils/layoutInvalidation.ts`
+
 ## [ProgressCircle / Avatar size 변경이 selection 영역에 미반영] - 2026-07-14
 
 ### Bug Fixes

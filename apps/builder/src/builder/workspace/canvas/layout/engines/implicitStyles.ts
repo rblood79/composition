@@ -33,6 +33,7 @@ import type { SizeSpec, TokenRef } from "@composition/specs";
 import { getNecessityIndicatorSuffix } from "@composition/shared/components";
 import {
   getComponentRulesTable,
+  isDisclosureExpandedInContext,
   resolveCatalogContainerBase,
   resolveCatalogContainerVariants,
   resolveCatalogStructure,
@@ -2512,18 +2513,38 @@ export function applyImplicitStyles(
   //   DisclosureContent 가 collapse 와 무관하게 항상 그려졌다. DOM(renderDisclosure)은
   //   별도로 isExpanded(controlled) 전환으로 RAC 가 패널 숨김 — 양쪽 시각 대칭.
   //   isExpanded 기본값 true(binding default) → 명시 false 일 때만 숨긴다.
-  if (containerTag === "disclosure" && containerProps?.isExpanded === false) {
-    filteredChildren = filteredChildren.map((child) => {
-      if (child.type !== "DisclosureContent") return child;
-      const cs = (child.props?.style || {}) as Record<string, unknown>;
-      return {
-        ...child,
-        props: {
-          ...child.props,
-          style: { ...cs, display: "none" },
-        },
-      } as CanvasLayoutNode;
-    });
+  //
+  //   **그룹 제약 반영 (2026-07-14)**: 부모가 DisclosureGroup 이면 개별 isExpanded 만으로는
+  //   부족하다 — RAC 는 그룹 상태머신이 개별 값을 override 하며, allowsMultipleExpanded=false 면
+  //   후보 중 첫 번째만 펼친다(react-stately useDisclosureGroupState). 이를 모르면 Skia 가
+  //   자식 Disclosure 를 전부 펼쳐 그려 CSS 와 발산한다. 판정은 DOM(defaultExpandedKeys)과
+  //   **같은 SSOT helper**(isDisclosureExpandedInContext) 경유.
+  if (containerTag === "disclosure") {
+    const parent = containerEl.parent_id
+      ? elementById.get(containerEl.parent_id)
+      : undefined;
+    const groupChildren =
+      parent?.type === "DisclosureGroup"
+        ? getChildElements(parent.id)
+        : undefined;
+    const expanded = isDisclosureExpandedInContext(
+      containerEl,
+      parent,
+      groupChildren,
+    );
+    if (!expanded) {
+      filteredChildren = filteredChildren.map((child) => {
+        if (child.type !== "DisclosureContent") return child;
+        const cs = (child.props?.style || {}) as Record<string, unknown>;
+        return {
+          ...child,
+          props: {
+            ...child.props,
+            style: { ...cs, display: "none" },
+          },
+        } as CanvasLayoutNode;
+      });
+    }
   }
 
   return {

@@ -34,6 +34,7 @@ import {
 import {
   isCatalogCutover,
   getPrimitiveBinding,
+  isDisclosureExpandedInContext,
   toSkiaStyle,
 } from "@composition/shared";
 import {
@@ -580,15 +581,34 @@ function resolveDateInputParent(
 function resolveDisclosureHeaderParent(
   element: CanvasSceneNode,
   elementsMap: Map<string, CanvasSceneNode>,
+  childrenMap?: Map<string, CanvasSceneNode[]>,
 ): Record<string, unknown> | null {
   if (element.type !== "DisclosureHeader" || !element.parent_id) return null;
 
   const parent = elementsMap.get(element.parent_id);
   if (!parent || parent.type !== "Disclosure") return null;
 
-  const pp = getProps(parent);
   // isExpanded 기본값 true (binding default) — 명시 false 일 때만 collapsed.
-  return { isExpanded: pp.isExpanded !== false };
+  // **그룹 제약 반영 (2026-07-14)**: 조부모가 DisclosureGroup 이면 RAC 그룹 상태머신이 개별
+  //   isExpanded 를 override 한다(allowsMultipleExpanded=false → 후보 중 첫 번째만 펼침).
+  //   이를 모르면 그룹이 접은 Disclosure 의 chevron 이 펼침 방향으로 남아 CSS 와 발산.
+  //   판정은 DOM(defaultExpandedKeys) / layout(implicitStyles) 과 **같은 SSOT helper** 경유.
+  const grandParent = parent.parent_id
+    ? elementsMap.get(parent.parent_id)
+    : undefined;
+  const groupChildren =
+    grandParent?.type === "DisclosureGroup"
+      ? (childrenMap?.get(grandParent.id) ??
+        [...elementsMap.values()].filter((n) => n.parent_id === grandParent.id))
+      : undefined;
+
+  return {
+    isExpanded: isDisclosureExpandedInContext(
+      parent,
+      grandParent,
+      groupChildren,
+    ),
+  };
 }
 
 /** Label necessity indicator from parent field */
@@ -1180,10 +1200,12 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     specProps = { ...specProps, ...dateProps };
   }
 
-  // DisclosureHeader → 부모 Disclosure isExpanded 전파 (chevron 방향)
+  // DisclosureHeader → 부모 Disclosure isExpanded 전파 (chevron 방향).
+  //   조부모가 DisclosureGroup 이면 그룹 제약(allowsMultipleExpanded) 까지 반영 → childrenMap 전달.
   const disclosureHeaderProps = resolveDisclosureHeaderParent(
     element,
     elementsMap,
+    input.childrenMap,
   );
   if (disclosureHeaderProps) {
     specProps = { ...specProps, ...disclosureHeaderProps };

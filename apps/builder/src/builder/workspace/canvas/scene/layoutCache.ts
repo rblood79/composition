@@ -147,6 +147,12 @@ const LAYOUT_PROP_KEYS = [
   //   시그니처에 포함. 누락 시 isExpanded 만 바뀌면 노드 시그니처 동일 → 캐시 히트로
   //   레이아웃 재계산 skip → collapse 가 Skia/layout 에 반영 안 됨.
   "isExpanded",
+  // DisclosureGroup allowsMultipleExpanded (2026-07-14): false 면 그룹이 자식 Disclosure 중
+  //   첫 번째만 펼치므로(RAC useDisclosureGroupState 동형) 나머지 DisclosureContent 에
+  //   display:none 이 주입된다(applyImplicitStyles). 그룹 노드의 prop 이지만 자식 레이아웃을
+  //   바꾸므로 시그니처 포함 — isExpanded 선례 동형(시그니처는 페이지 전역 join 이라
+  //   그룹 노드 변경만으로 전체 재레이아웃 트리거).
+  "allowsMultipleExpanded",
   // Table 고정 높이 (2026-07-13 parity sweep): heightMode="fixed" 의 props.height 를
   //   applyImplicitStyles 가 style.height 로 주입 — 편집 시 캐시 시그니처가 바뀌어야
   //   재레이아웃된다 (Disclosure isExpanded 선례 동형).

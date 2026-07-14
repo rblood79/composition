@@ -31,6 +31,10 @@ import { parseColor } from "react-aria-components";
 import { Slot } from "../components/Slot";
 import { getIconData } from "@composition/specs";
 import { getElementDataBinding } from "../utils/compositionExtensionFields";
+import {
+  allowsMultipleExpanded,
+  resolveGroupExpandedDisclosureIds,
+} from "../utils/disclosureGroupExpansion";
 import { resolveCalendarHeaderStyle } from "./DateRenderers";
 import type {
   PreviewElement,
@@ -1542,23 +1546,37 @@ export const renderDisclosureGroup = (
   //   PreviewElement 는 customId 미보유라, customId 단독 의존 시 keys 가 빈 배열로
   //   떨어져 그룹 전체가 접힌 채 시작 (intent: isExpanded ?? true = 펼침 — Skia 와
   //   비대칭이던 근본, 2026-07-14 sweep). renderDisclosure 의 id fallback 과 동일 규칙.
+  //
+  //   확장 후보 판정은 `resolveGroupExpandedDisclosureIds`(SSOT) 경유 — Skia(content 숨김 +
+  //   chevron)와 **같은 규칙**을 소비해야 allowsMultipleExpanded 가 양쪽에 대칭 반영된다
+  //   (2026-07-14: Skia 가 그룹 제약을 몰라 전부 펼치던 발산 수정).
+  const expandedIds = resolveGroupExpandedDisclosureIds(
+    element.props as Record<string, unknown>,
+    children.map((c) => ({ id: c.id, type: c.type, props: c.props })),
+  );
   const defaultExpandedKeys = children
-    .filter(
-      (c) => c.type === "Disclosure" && Boolean(c.props?.isExpanded ?? true),
-    )
+    .filter((c) => c.type === "Disclosure" && expandedIds.has(c.id))
     .map((c) => c.customId ?? c.id)
     .filter((id): id is string => Boolean(id));
 
+  const multiple = allowsMultipleExpanded(
+    element.props as Record<string, unknown>,
+  );
+
   return (
     <DisclosureGroup
-      key={element.id}
+      // key 에 allowsMultipleExpanded 포함 — RAC DisclosureGroup 은 **uncontrolled** 라
+      //   `defaultExpandedKeys` 가 초기값으로만 쓰인다. false→true 로 되돌려도 내부
+      //   expandedKeys 는 이미 축약된 {첫 번째} 상태를 유지한다(useDisclosureGroupState 의
+      //   useEffect 는 축약만 하고 복원하지 않음) → Inspector 토글이 Preview 에 반영 안 됨.
+      //   key 변경으로 재마운트해 초기 상태를 다시 적용한다(renderDisclosure 의
+      //   `key={id}:${defaultExpanded}` 동형). 2026-07-14.
+      key={`${element.id}:${multiple}`}
       id={element.customId}
       data-element-id={element.id}
       data-variant={(element.props.variant as string) || "default"}
       data-size={(element.props.size as string) || "md"}
-      allowsMultipleExpanded={Boolean(
-        element.props.allowsMultipleExpanded ?? true,
-      )}
+      allowsMultipleExpanded={multiple}
       defaultExpandedKeys={defaultExpandedKeys}
       style={element.props.style}
       className={element.props.className}

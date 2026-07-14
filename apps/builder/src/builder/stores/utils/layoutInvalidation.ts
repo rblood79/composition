@@ -36,6 +36,12 @@ export const LAYOUT_AFFECTING_PROP_KEYS = new Set([
   "formatOptions",
   "showValueLabel",
   "valueLabel",
+  // Disclosure 확장 상태 (2026-07-14): 둘 다 자식 DisclosureContent 의 display:none 주입
+  //   (applyImplicitStyles)을 좌우한다 → Inspector 편집 시 layoutVersion 이 올라야
+  //   재레이아웃된다. allowsMultipleExpanded 는 그룹 노드 prop 이지만
+  //   collectDirtyElementSubtree 가 자식까지 dirty 로 만들어 자식 Disclosure 도 갱신된다.
+  "isExpanded",
+  "allowsMultipleExpanded",
   "padding",
   "paddingTop",
   "paddingRight",
