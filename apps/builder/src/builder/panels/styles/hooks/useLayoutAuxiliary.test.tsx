@@ -2,42 +2,46 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 
-// ADR-082 P4: TAG_SPEC_MAP 을 mock 하여 Spec fallback 경로 검증.
-//   실제 TAG_SPEC_MAP 등록 spec 중 containerStyles 에 alignItems/justifyContent 를
-//   공급하는 케이스가 현재 없음 (ListBoxItem 은 미등록). test 전용 spec 으로 분기 검증.
-vi.mock("../../../workspace/canvas/sprites/tagSpecMap", () => ({
-  TAG_SPEC_MAP: {
-    TestAlignSpec: {
-      containerStyles: {
-        display: "flex",
-        flexDirection: "row",
-        alignItems: "flex-start",
-        justifyContent: "center",
-      },
-    },
-    VariantGridSpec: {
-      containerStyles: {
-        display: "flex",
-        flexDirection: "column",
-      },
-      composition: {
-        containerVariants: {
-          "label-position": {
-            side: {
-              styles: {
-                display: "grid",
-              },
-            },
+// ADR-082 P4 / ADR-108 P3: Panel 의 layout fallback 경로 검증.
+//   fallback source 는 ADR-912 Phase 4 로 builder-local TAG_SPEC_MAP 에서 catalog
+//   (`resolveComponentRule` / `resolveCatalogContainerBase` / `resolveCatalogContainerVariants`)
+//   로 전환됐다. 실제 catalog entry 중 alignItems/justifyContent 를 containerStyles 로
+//   공급하며 variant override 까지 가진 조합이 없어, 합성 catalog rule 로 분기를 검증한다.
+//   (base/variants resolver 는 resolveComponentRule 을 모듈 내부에서 호출하므로 barrel
+//    mock 으로 가로채지지 않는다 → 3개를 함께 mock 해야 한다.)
+type CatalogTestRule = {
+  structure?: { containerStyles?: Record<string, string> };
+  containerVariants?: Record<
+    string,
+    Record<string, { styles: Record<string, string> }>
+  >;
+};
+
+const CATALOG_RULES = vi.hoisted(
+  () =>
+    ({
+      TestAlignSpec: {
+        structure: {
+          containerStyles: {
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "flex-start",
+            justifyContent: "center",
           },
         },
       },
-    },
-    VariantFlexSpec: {
-      containerStyles: {
-        display: "flex",
-        flexDirection: "column",
+      VariantGridSpec: {
+        structure: {
+          containerStyles: { display: "flex", flexDirection: "column" },
+        },
+        containerVariants: {
+          "label-position": { side: { styles: { display: "grid" } } },
+        },
       },
-      composition: {
+      VariantFlexSpec: {
+        structure: {
+          containerStyles: { display: "flex", flexDirection: "column" },
+        },
         containerVariants: {
           "label-position": {
             side: {
@@ -50,9 +54,30 @@ vi.mock("../../../workspace/canvas/sprites/tagSpecMap", () => ({
           },
         },
       },
+    }) satisfies Record<string, CatalogTestRule>,
+);
+
+vi.mock("@composition/shared", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@composition/shared")>();
+  const rules: Record<string, CatalogTestRule | undefined> = CATALOG_RULES;
+  return {
+    ...actual,
+    resolveComponentRule: (type: string) => rules[type],
+    resolveCatalogContainerBase: (type: string) =>
+      rules[type]?.structure?.containerStyles ?? {},
+    resolveCatalogContainerVariants: (
+      type: string,
+      props: Record<string, unknown>,
+    ) => {
+      const value = props?.labelPosition;
+      const match =
+        typeof value === "string"
+          ? rules[type]?.containerVariants?.["label-position"]?.[value]
+          : undefined;
+      return { styles: match ? { ...match.styles } : {} };
     },
-  },
-}));
+  };
+});
 
 import {
   useFlexDirectionKeys,

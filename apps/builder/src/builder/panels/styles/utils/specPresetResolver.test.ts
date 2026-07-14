@@ -421,11 +421,13 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     });
 
     it("Button (sizes 전용 — 기존 회귀 경로 보존)", () => {
-      // ButtonSpec.containerStyles = { display:"inline-flex", alignItems, justifyContent, width }
       // sizes.md.borderRadius='{radius.md}'=6 → Appearance.borderRadius
       expect(resolveAppearanceSpecPreset("Button", "md").borderRadius).toBe(6);
       const layout = resolveLayoutSpecPreset("Button", "md");
-      expect(layout.display).toBe("inline-flex");
+      // catalog Button.containerStyles.display 는 `flex` — 구 ButtonSpec 의 `inline-flex` 에서
+      // 의도적으로 바뀐 값이다. Direction selector 는 block/flex-row/flex-column 만 인식해
+      // inline-flex 면 Direction 이 block 으로 오표시된다 (사용자 지적, 2026-06-27).
+      expect(layout.display).toBe("flex");
       expect(layout.alignItems).toBe("center");
     });
 
