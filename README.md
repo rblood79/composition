@@ -59,5 +59,5 @@ composition/
 
 ## Documentation
 
-- [모노레포 구조](./docs/MONOREPO.md)
+- [모노레포 구조](docs/reference/architecture/MONOREPO.md)
 - [변경 이력](./docs/CHANGELOG.md)
