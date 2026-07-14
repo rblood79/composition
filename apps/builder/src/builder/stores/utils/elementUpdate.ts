@@ -266,6 +266,23 @@ function cloneForHistory<T>(value: T): T {
   }
 }
 
+/** 단일 요소 update entry 기록. prev/next 모두 merged 전체 props 여야 한다. */
+function recordUpdateHistoryEntry(
+  elementId: string,
+  prevProps: Record<string, unknown>,
+  nextProps: Record<string, unknown>,
+): void {
+  historyManager.addEntry({
+    type: "update",
+    elementId,
+    data: {
+      canonicalEvents: [
+        buildCanonicalUpdateEvent(elementId, prevProps, nextProps),
+      ],
+    },
+  });
+}
+
 function hasShallowPatchChanges(
   prev: Record<string, unknown>,
   patch: Record<string, unknown>,
@@ -398,19 +415,11 @@ export const createUpdateElementPropsAction =
     // 🚀 Phase 1: Immer → 함수형 업데이트
     // 1. 히스토리 추가 (상태 변경 전에 기록)
     if (currentState.currentPageId && prevPropsClone && mergedNextPropsClone) {
-      historyManager.addEntry({
-        type: "update",
-        elementId: elementId,
-        data: {
-          canonicalEvents: [
-            buildCanonicalUpdateEvent(
-              elementId,
-              prevPropsClone as Record<string, unknown>,
-              mergedNextPropsClone as Record<string, unknown>,
-            ),
-          ],
-        },
-      });
+      recordUpdateHistoryEntry(
+        elementId,
+        prevPropsClone as Record<string, unknown>,
+        mergedNextPropsClone as Record<string, unknown>,
+      );
     }
 
     // ADR-040 Phase 3: indexOf + with() 증분 패치 (elements.map/find O(N) 제거)
@@ -549,19 +558,11 @@ export const createUpdateElementAction =
       prevPropsClone &&
       newPropsClone
     ) {
-      historyManager.addEntry({
-        type: "update",
-        elementId: elementId,
-        data: {
-          canonicalEvents: [
-            buildCanonicalUpdateEvent(
-              elementId,
-              prevPropsClone as Record<string, unknown>,
-              newPropsClone as Record<string, unknown>,
-            ),
-          ],
-        },
-      });
+      recordUpdateHistoryEntry(
+        elementId,
+        prevPropsClone as Record<string, unknown>,
+        newPropsClone as Record<string, unknown>,
+      );
     }
 
     // ADR-006 P3-1: props.style 변경 시 dirty tracking

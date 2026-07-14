@@ -14,9 +14,11 @@ import { historyManager } from "../history";
 import {
   buildCanonicalGroupEvents,
   buildCanonicalInsertEvents,
+  buildCanonicalMoveEvents,
   buildCanonicalRemoveEvents,
   buildCanonicalUngroupEvents,
   buildCanonicalUpdateEvent,
+  type CanonicalNodeLocation,
 } from "../history/canonicalHistoryEvents";
 
 /**
@@ -92,7 +94,6 @@ export function trackGroupCreation(
       },
     },
   });
-
 }
 
 /**
@@ -126,7 +127,6 @@ export function trackUngroup(
       },
     },
   });
-
 }
 
 /**
@@ -148,7 +148,31 @@ export function trackMultiDelete(elements: Element[]): void {
       },
     });
   });
+}
 
+/**
+ * Track a canonical container move in history.
+ *
+ * `from` 은 canonical mutation **이전** 에 캡처한 좌표여야 한다
+ * (`captureCanonicalNodeLocations` 를 mutation 앞에서 호출). mutation 후에
+ * 캡처하면 이동 후 좌표가 기록되어 undo 가 제자리로 되돌리지 못한다.
+ */
+export function trackCanonicalMove(
+  elementId: string,
+  from: CanonicalNodeLocation | undefined,
+): void {
+  if (!from) return;
+
+  const canonicalEvents = buildCanonicalMoveEvents([
+    { nodeId: elementId, from },
+  ]);
+  if (canonicalEvents.length === 0) return;
+
+  historyManager.addEntry({
+    type: "move",
+    elementId,
+    data: { canonicalEvents },
+  });
 }
 
 /**
@@ -179,7 +203,6 @@ export function trackMultiPaste(newElements: Element[]): void {
       ]),
     },
   });
-
 }
 
 // ============================================
@@ -237,7 +260,6 @@ export async function undoBatchUpdate(
       ),
     ),
   );
-
 }
 
 /**
@@ -265,7 +287,6 @@ export async function redoBatchUpdate(
       ),
     ),
   );
-
 }
 
 /**
@@ -297,7 +318,6 @@ export async function undoGroupCreation<TElement extends Element>(
 
   // Remove group
   await removeElement(groupId);
-
 }
 
 /**
@@ -323,5 +343,4 @@ export async function redoGroupCreation(
       updateElement(childId, { parent_id: groupElement.id }),
     ),
   );
-
 }

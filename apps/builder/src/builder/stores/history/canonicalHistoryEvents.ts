@@ -21,7 +21,10 @@ import {
   visitCanonicalDocumentElements,
   withCanonicalRefOverrides,
 } from "../canonical/canonicalElementsView";
-import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
+import {
+  selectActiveCanonicalDocument,
+  useCanonicalDocumentStore,
+} from "../canonical/canonicalDocumentStore";
 
 export type CanonicalHistoryNodeEvent =
   | {
@@ -176,13 +179,6 @@ export function findLocation(
   nodeId: string,
 ): NodeLocation | null {
   return findLocationInNodes(doc.children, nodeId, null);
-}
-
-function getActiveDocument(): CompositionDocument | null {
-  const canonical = useCanonicalDocumentStore.getState();
-  const projectId = canonical.currentProjectId;
-  if (!projectId) return null;
-  return canonical.documents.get(projectId) ?? null;
 }
 
 function insertNode(
@@ -386,6 +382,13 @@ export function getCanonicalHistoryEventIds(
   };
 }
 
+/**
+ * update event 빌드 — **full merged props 계약 강제**.
+ *
+ * `replaceNodeProps` 는 props 전체 교체 semantic 이므로, patch-only props 를
+ * event 에 기록하면 undo/redo 가 나머지 props 를 소거한다. 반드시 merged
+ * 전체 props 를 전달할 것.
+ */
 export function buildCanonicalUpdateEvent(
   nodeId: string,
   prevProps: Record<string, unknown>,
@@ -402,7 +405,7 @@ export function buildCanonicalUpdateEvent(
 export function buildCanonicalInsertEvents(
   elements: Element[],
 ): CanonicalHistoryNodeEvent[] {
-  const doc = getActiveDocument();
+  const doc = selectActiveCanonicalDocument();
   return elements.map((element) => {
     const location = doc ? findLocation(doc, element.id) : null;
     return {
@@ -421,7 +424,7 @@ export function buildCanonicalRemoveEvents(
   allRemovedElements: Element[] = rootElements,
 ): CanonicalHistoryNodeEvent[] {
   const removedIds = new Set(allRemovedElements.map((element) => element.id));
-  const doc = getActiveDocument();
+  const doc = selectActiveCanonicalDocument();
   return rootElements
     .filter(
       (element) => !element.parent_id || !removedIds.has(element.parent_id),
@@ -487,22 +490,10 @@ export function buildCanonicalUngroupEvents(
   return [...moveEvents, removeEvent];
 }
 
-/**
- * update event 빌드 helper — **full merged props 계약 강제**.
- *
- * `replaceNodeProps` 는 props 전체 교체 semantic 이므로, patch-only props 를
- * event 에 기록하면 undo/redo 가 나머지 props 를 소거한다. 반드시 merged
- * 전체 props 를 가진 Element 쌍을 전달할 것.
- */
-export function buildCanonicalUpdateEventFromElements(
-  prevElement: Element,
-  nextElement: Element,
-): CanonicalHistoryNodeEvent {
-  return buildCanonicalUpdateEvent(
-    nextElement.id,
-    prevElement.props as Record<string, unknown>,
-    nextElement.props as Record<string, unknown>,
-  );
+/** canonical 트리에 해당 노드가 실제로 자리를 잡았는지 여부만 확인. */
+export function hasCanonicalNodeLocation(nodeId: string): boolean {
+  const doc = selectActiveCanonicalDocument();
+  return doc ? findLocation(doc, nodeId) !== null : false;
 }
 
 /**
@@ -513,7 +504,7 @@ export function captureCanonicalNodeLocations(
   nodeIds: string[],
 ): Map<string, CanonicalNodeLocation> {
   const captured = new Map<string, CanonicalNodeLocation>();
-  const doc = getActiveDocument();
+  const doc = selectActiveCanonicalDocument();
   if (!doc) return captured;
   for (const nodeId of nodeIds) {
     const location = findLocation(doc, nodeId);
@@ -546,7 +537,7 @@ export function buildCanonicalMoveEvents(
     to?: CanonicalNodeLocation;
   }>,
 ): CanonicalHistoryNodeEvent[] {
-  const doc = getActiveDocument();
+  const doc = selectActiveCanonicalDocument();
   const events: CanonicalHistoryNodeEvent[] = [];
   for (const move of moves) {
     let to = move.to ?? null;
@@ -580,7 +571,7 @@ export function captureCanonicalReplaceSources(
   nodeIds: string[],
 ): Map<string, CanonicalReplaceCapture> {
   const captured = new Map<string, CanonicalReplaceCapture>();
-  const doc = getActiveDocument();
+  const doc = selectActiveCanonicalDocument();
   if (!doc) return captured;
   for (const nodeId of nodeIds) {
     const location = findLocation(doc, nodeId);
@@ -619,7 +610,7 @@ export function buildCanonicalReplaceEvents(
   const prevById = new Map(
     prevElements.map((element) => [element.id, element]),
   );
-  const doc = getActiveDocument();
+  const doc = selectActiveCanonicalDocument();
   const events: CanonicalHistoryNodeEvent[] = [];
 
   for (const nextElement of nextElements) {

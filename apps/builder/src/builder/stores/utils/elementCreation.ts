@@ -18,7 +18,7 @@ import { getCanonicalRefOverrideEntries } from "../canonical/canonicalElementsVi
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import {
   buildCanonicalInsertEvents,
-  captureCanonicalNodeLocations,
+  hasCanonicalNodeLocation,
 } from "../history/canonicalHistoryEvents";
 import {
   areCanonicalMutationStoreActionsRegistered,
@@ -216,11 +216,11 @@ export const createAddElementAction =
     //    paste/group 처럼 caller 가 단일 batch entry 로 별도 기록하는 흐름은
     //    skipHistory 로 이중 기록 차단 (기존: addElement entry + trackMultiPaste
     //    entry 가 중복 생성되어 undo 를 여러 번 눌러야 했다).
-    const hasCanonicalLocation =
-      captureCanonicalNodeLocations([elementToAdd.id]).size > 0;
     if (
       !options?.skipHistory &&
-      (isPageContext || isReusableContext || hasCanonicalLocation)
+      (isPageContext ||
+        isReusableContext ||
+        hasCanonicalNodeLocation(elementToAdd.id))
     ) {
       historyManager.addEntry({
         type: "add",
@@ -307,9 +307,11 @@ export const createAddComplexElementAction =
     // 🚀 Phase 1: Immer → 함수형 업데이트
     // 1. 히스토리 추가 — page/reusable context 또는 merge 후 canonical 위치
     //    존재 시 (addElement 와 동일 기준)
-    const hasCanonicalLocation =
-      captureCanonicalNodeLocations([parentToAdd.id]).size > 0;
-    if (isPageContext || isReusableContext || hasCanonicalLocation) {
+    if (
+      isPageContext ||
+      isReusableContext ||
+      hasCanonicalNodeLocation(parentToAdd.id)
+    ) {
       historyManager.addEntry({
         type: "add",
         elementId: parentToAdd.id,

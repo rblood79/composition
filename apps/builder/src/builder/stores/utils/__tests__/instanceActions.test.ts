@@ -722,7 +722,7 @@ describe("instance store actions", () => {
 
     const result = useStore.getState().detachInstance("ref");
     const detachedRoot = useStore.getState().elementsMap.get("ref") as
-      | (Element & { ref?: string })
+      | (Element & { ref?: string; reusable?: boolean })
       | undefined;
     const materializedChildren = useStore
       .getState()

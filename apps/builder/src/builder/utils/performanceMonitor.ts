@@ -405,7 +405,7 @@ export class PerformanceMonitor {
   private getHistoryMemory(): number {
     try {
       const stats = historyManager.getMemoryStats();
-      return stats.commandStoreStats?.estimatedMemoryUsage ?? 0;
+      return stats.estimatedMemoryUsage;
     } catch {
       return 0;
     }

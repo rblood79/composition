@@ -32,11 +32,8 @@ import {
   updateAnimationTargets,
   clearAllAnimations,
 } from "../skia/dragAnimator";
-import { historyManager } from "../../../stores/history";
-import {
-  buildCanonicalMoveEvents,
-  captureCanonicalNodeLocations,
-} from "../../../stores/history/canonicalHistoryEvents";
+import { captureCanonicalNodeLocations } from "../../../stores/history/canonicalHistoryEvents";
+import { trackCanonicalMove } from "../../../stores/utils/historyHelpers";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { getDB } from "../../../../lib/db";
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
@@ -392,17 +389,7 @@ export function useDragBridge({
           }
           if (moveResult.changed) {
             didMove = true;
-            const from = fromLocations.get(elementId);
-            const moveEvents = from
-              ? buildCanonicalMoveEvents([{ nodeId: elementId, from }])
-              : [];
-            if (moveEvents.length > 0) {
-              historyManager.addEntry({
-                type: "move",
-                elementId,
-                data: { canonicalEvents: moveEvents },
-              });
-            }
+            trackCanonicalMove(elementId, fromLocations.get(elementId));
           }
         }
       }

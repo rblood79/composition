@@ -11,10 +11,8 @@ import {
 import { Page } from "../../types/builder/unified.types";
 import type { PageLayoutDirection } from "./canvasSettings";
 import { historyManager } from "./history";
-import {
-  buildCanonicalMoveEvents,
-  captureCanonicalNodeLocations,
-} from "./history/canonicalHistoryEvents";
+import { captureCanonicalNodeLocations } from "./history/canonicalHistoryEvents";
+import { trackCanonicalMove } from "./utils/historyHelpers";
 import {
   createCompleteProps,
   findElementById,
@@ -1402,18 +1400,8 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         if (result.changed) {
           // LayerTree cross-container 이동 undo 지원 — canonical move event.
           // (과거 이 경로는 history 미기록으로 undo 자체가 불가했다)
-          const from = fromLocations.get(elementId);
-          if (prevState.currentPageId && from) {
-            const moveEvents = buildCanonicalMoveEvents([
-              { nodeId: elementId, from },
-            ]);
-            if (moveEvents.length > 0) {
-              historyManager.addEntry({
-                type: "move",
-                elementId,
-                data: { canonicalEvents: moveEvents },
-              });
-            }
+          if (prevState.currentPageId) {
+            trackCanonicalMove(elementId, fromLocations.get(elementId));
           }
           // canonical(SSOT)이 갱신됐으면 store mirror(elements 배열 + 인덱스)도
           //   canonical 기준으로 재구축한다. getCanonicalOrStoreElements 가
