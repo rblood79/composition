@@ -18,7 +18,11 @@ import {
   resolveInstanceProps,
 } from "../../../utils/component/instanceResolver";
 import { historyManager } from "../history";
-import { buildCanonicalReplaceEvents } from "../history/canonicalHistoryEvents";
+import {
+  buildCanonicalInsertEvents,
+  buildCanonicalReplaceEvents,
+  captureCanonicalReplaceSources,
+} from "../history/canonicalHistoryEvents";
 import { createCompleteProps } from "./elementHelpers";
 import { buildIdPathContext } from "../../../adapters/canonical/idPath";
 import {
@@ -590,14 +594,27 @@ function applyElementSnapshotBatch(
 ): void {
   const state = get();
 
+  // ADR-122 HC#2 정합 순서로 재배열 (2026-07-15, §Residual 해소):
+  // ① prev 캡처 (pre-mutation) → ② canonical sync 1차 → ③ replace event
+  // entry (post-mutation 빌드 — detach 확장 subtree children 포함) → ④ set
+  // (legacy mirror 2차) → ⑤ _rebuildIndexes
+  const prevCaptures = captureCanonicalReplaceSources(
+    previousElements.map((element) => element.id),
+  );
+
+  syncInstanceElementsToCanonical(nextElements);
+
   if (state.currentPageId) {
     historyManager.addEntry({
       type: "batch",
       elementId,
       elementIds: nextElements.map((element) => element.id),
       data: {
-        prevElements: previousElements,
-        elements: nextElements,
+        canonicalEvents: buildCanonicalReplaceEvents(
+          previousElements,
+          nextElements,
+          prevCaptures,
+        ),
       },
     });
   }
@@ -625,9 +642,6 @@ function applyElementSnapshotBatch(
       layoutVersion: prevState.layoutVersion + 1,
     };
   });
-  // ADR-122 §Residual: set 1차 → sync → _rebuildIndexes (canonical-first 아님,
-  // race 회피용 sync 선행) — syncInstanceElementsToCanonical JSDoc 참조
-  syncInstanceElementsToCanonical(nextElements);
   get()._rebuildIndexes();
   const sourceElements = getInstanceActionSourceElements(get());
   const persistedElements = nextElements.map(
@@ -687,6 +701,16 @@ export function createInstance(
   // ADR-122 §Residual: set 1차 → sync → _rebuildIndexes (canonical-first 아님,
   // race 회피용 sync 선행) — syncInstanceElementsToCanonical JSDoc 참조
   syncInstanceElementsToCanonical([instanceElement]);
+  // 히스토리 — canonical insert event (sync 후 doc 조회 기반 빌드)
+  if (state.currentPageId) {
+    historyManager.addEntry({
+      type: "add",
+      elementId: instanceElement.id,
+      data: {
+        canonicalEvents: buildCanonicalInsertEvents([instanceElement]),
+      },
+    });
+  }
   get()._rebuildIndexes();
   persistElementsAfterInstanceMutation([instanceElement]);
 

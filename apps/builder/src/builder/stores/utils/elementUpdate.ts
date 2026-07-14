@@ -985,7 +985,7 @@ export const createBatchUpdateElementsAction =
 
     // 2. 히스토리 엔트리 추가 — update event (props) + move event (parent_id)
     //    를 단일 batch entry 로. move 의 to-location 은 sync 후 doc 에서 해석.
-    //    (과거: 혼합 batch 에서 구조 변경이 history 누락 + addBatchDiffEntry 가
+    //    (과거: 혼합 batch 에서 구조 변경이 history 누락 + batch diff 기록이
     //     props-only event 를 만들어 undo 시 parent 복원이 skip 되던 결함)
     const currentPageId = get().currentPageId;
     if (currentPageId) {

@@ -195,28 +195,8 @@ export function trackMultiPaste(newElements: Element[]): void {
 }
 
 // ============================================
-// G.5: AI Batch Transaction + Instance Propagation
+// G.5: Instance Propagation
 // ============================================
-
-/**
- * Track AI batch-design operation as a single atomic history entry.
- *
- * AI가 batch_design 도구로 여러 요소를 한 번에 생성/수정/삭제할 때,
- * 모든 변경사항을 단일 히스토리 엔트리로 묶어 원자적 Undo/Redo를 보장한다.
- *
- * @param prevElements - AI 작업 전 상태
- * @param nextElements - AI 작업 후 상태
- */
-export function trackAIBatchOperation(
-  prevElements: Element[],
-  nextElements: Element[],
-): void {
-  if (prevElements.length === 0 && nextElements.length === 0) return;
-  historyManager.addBatchDiffEntry(prevElements, nextElements);
-  console.log(
-    `✅ [History] Tracked AI batch operation: ${prevElements.length} → ${nextElements.length} elements`,
-  );
-}
 
 /**
  * Track master → instance propagation as a single batch history entry.

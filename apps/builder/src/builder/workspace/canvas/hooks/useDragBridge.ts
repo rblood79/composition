@@ -367,8 +367,8 @@ export function useDragBridge({
 
       // 단일 canonical-primary commit — history 는 canonical move event 로 표현
       // (형제 순서 변화는 canonical children[] 이 SSOT 라 move event 하나로 복원,
-      //  ADR-118. 과거 prevElements/elements 스냅샷 방식은 flat Element[] →
-      //  canonical 전체 교체 fallback 을 유발했다)
+      //  ADR-118. 과거 요소 스냅샷 배열 방식은 flat Element[] → canonical 전체
+      //  교체 fallback 을 유발했다)
       let didMove = false;
       if (finalTarget && !finalTarget.isAdjacentInsertion) {
         const updates = computeReorderFromDropTarget(

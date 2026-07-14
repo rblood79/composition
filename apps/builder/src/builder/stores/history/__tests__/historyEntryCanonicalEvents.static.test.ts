@@ -59,9 +59,9 @@ describe("history entry canonical event 부착 (ADR-124 Phase 2)", () => {
     const read = (relativePath: string) =>
       readFile(resolve(__dirname, "..", "..", relativePath), "utf-8");
 
-    // NOTE: batchUpdateElements (구조 변경 batch) 의 legacy 기록은 Phase 4 에서
-    // move event 전환과 함께 제거 — 그 시점에 "batchUpdates" 전면 부재 단언 추가.
     const elementUpdate = await read("utils/elementUpdate.ts");
+    expect(elementUpdate).not.toContain("batchUpdates:");
+    expect(elementUpdate).not.toContain("addBatchDiffEntry");
     expect(elementUpdate).not.toContain("prevElement: prevElementClone");
     expect(elementUpdate).not.toContain("props: newPropsClone");
 
@@ -76,9 +76,28 @@ describe("history entry canonical event 부착 (ADR-124 Phase 2)", () => {
     const historyHelpers = await read("utils/historyHelpers.ts");
     expect(historyHelpers).not.toMatch(/data:\s*\{\s*\n\s*batchUpdates/);
 
-    // resetInstanceOverrideField 전환 (applyElementSnapshotBatch 는 Phase 4)
+    // resetInstanceOverrideField + applyElementSnapshotBatch 전환 완료
     const instanceActions = await read("utils/instanceActions.ts");
     expect(instanceActions).not.toContain("element: nextElement,");
+    expect(instanceActions).not.toContain("prevElements: previousElements");
+
+    // autoDetach 분기 전환 완료 — legacy snapshot 기록 잔존 0건
+    const elementRemoval = await read("utils/elementRemoval.ts");
+    expect(elementRemoval).not.toContain("prevElements:");
+
+    // canvas 드래그 전환 완료 — snapshot payload + sentinel 제거
+    const dragBridge = await readFile(
+      resolve(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "workspace/canvas/hooks/useDragBridge.ts",
+      ),
+      "utf-8",
+    );
+    expect(dragBridge).not.toContain("prevElements");
+    expect(dragBridge).not.toContain('"drag-reorder"');
   });
 
   it("buildCanonicalUpdateEvent helper 가 canonicalHistoryEvents.ts 에 export 됨", async () => {

@@ -25,7 +25,13 @@ import {
 } from "@/adapters/canonical/canonicalMutations";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import { getActiveCanonicalDocumentElements } from "../canonical/canonicalElementsView";
-import { buildCanonicalRemoveEvents } from "../history/canonicalHistoryEvents";
+import {
+  buildCanonicalRemoveEvents,
+  buildCanonicalReplaceEvents,
+  captureCanonicalReplaceSources,
+  type CanonicalHistoryNodeEvent,
+  type CanonicalReplaceCapture,
+} from "../history/canonicalHistoryEvents";
 import { isListBoxTemplateAnchor } from "../../components/listbox/listBoxTemplateOrigins";
 import { isRenderProjectionId } from "../../projection/renderProjectionIds";
 
@@ -253,39 +259,22 @@ async function executeRemoval(
       ? [...filteredElements, ...autoDetach.elements]
       : filteredElements;
 
-  // 히스토리 payload는 canonical mutation 전에 구성해 삭제 전 node 위치를 보존한다.
+  // 히스토리 소스는 canonical mutation 전에 캡처해 삭제 전 node/위치를 보존한다.
+  // - remove events: 삭제 대상 (pre-mutation doc 조회)
+  // - autoDetach: 영향 instance 의 prev 캡처 → replace event 는 mutation 후 빌드
   // ADR-073 P5: skipHistory=true 시 히스토리 기록 생략 (migration 경로에서 undo 스택 오염 방지)
-  let historyEntry: Parameters<typeof historyManager.addEntry>[0] | null = null;
-  if (currentState.currentPageId && !options.skipHistory) {
-    historyEntry =
-      autoDetach.elements.length > 0
-        ? {
-            type: "batch",
-            elementId: rootElements[0].id,
-            elementIds: [
-              ...elementIdsToRemove,
-              ...autoDetach.elements.map((element) => element.id),
-            ],
-            data: {
-              prevElements: [
-                ...allUniqueElements.map((element) => ({ ...element })),
-                ...autoDetach.previousElements.map((element) => ({
-                  ...element,
-                })),
-              ],
-              elements: autoDetach.elements.map((element) => ({ ...element })),
-            },
-          }
-        : {
-            type: "remove",
-            elementId: rootElements[0].id,
-            data: {
-              canonicalEvents: buildCanonicalRemoveEvents(
-                rootElements,
-                allUniqueElements,
-              ),
-            },
-          };
+  const shouldRecordHistory = Boolean(
+    currentState.currentPageId && !options.skipHistory,
+  );
+  let removeEvents: CanonicalHistoryNodeEvent[] = [];
+  let detachPrevCaptures: Map<string, CanonicalReplaceCapture> | null = null;
+  if (shouldRecordHistory) {
+    removeEvents = buildCanonicalRemoveEvents(rootElements, allUniqueElements);
+    if (autoDetach.elements.length > 0) {
+      detachPrevCaptures = captureCanonicalReplaceSources(
+        autoDetach.previousElements.map((element) => element.id),
+      );
+    }
   }
 
   // 선택 상태 정리
@@ -331,8 +320,36 @@ async function executeRemoval(
   }
 
   syncRemovedElementsToCanonical(updatedElements);
-  if (historyEntry) {
-    historyManager.addEntry(historyEntry);
+  if (shouldRecordHistory) {
+    // detach replace event 는 post-mutation doc 에서 next node (확장 subtree
+    // children 포함) 를 조회해 빌드
+    const detachEvents = detachPrevCaptures
+      ? buildCanonicalReplaceEvents(
+          autoDetach.previousElements,
+          autoDetach.elements,
+          detachPrevCaptures,
+        )
+      : [];
+    const canonicalEvents = [...removeEvents, ...detachEvents];
+    if (canonicalEvents.length > 0) {
+      historyManager.addEntry(
+        autoDetach.elements.length > 0
+          ? {
+              type: "batch",
+              elementId: rootElements[0].id,
+              elementIds: [
+                ...elementIdsToRemove,
+                ...autoDetach.elements.map((element) => element.id),
+              ],
+              data: { canonicalEvents },
+            }
+          : {
+              type: "remove",
+              elementId: rootElements[0].id,
+              data: { canonicalEvents },
+            },
+      );
+    }
   }
 
   set((state) => ({

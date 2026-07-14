@@ -239,6 +239,16 @@ export class HistoryManager {
       return;
     }
 
+    // 회귀 감지 (DEV 전용): 모든 신규 entry 는 canonicalEvents 필수 —
+    // 미부착 entry 는 undo 시 legacy full-replace fallback 을 유발한다.
+    if (import.meta.env?.DEV && !entry.data.canonicalEvents?.length) {
+      console.warn(
+        "[History] entry without canonicalEvents (legacy fallback 유발):",
+        entry.type,
+        entry.elementId,
+      );
+    }
+
     const pageHistory = this.pageHistories.get(this.currentPageId);
     if (!pageHistory) {
       console.warn(

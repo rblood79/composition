@@ -67,6 +67,24 @@ function findCanonicalNodeById(
   return undefined;
 }
 
+/**
+ * 실빌더 환경 정렬 helper — canonical document 시드.
+ * canonical event 기반 history (replace/insert event) 의 undo/redo 는
+ * active canonical document 를 요구한다 (ADR-116 primary SSOT).
+ */
+function seedCanonicalFromStore(): void {
+  registerCanonicalMutationStoreActions({
+    getCurrentProjectId: () => "instance-project",
+    getCurrentLegacySnapshot: () => ({
+      elements: useStore.getState().elements,
+      pages: [],
+      layouts: [],
+    }),
+  });
+  useCanonicalDocumentStore.getState().setCurrentProject("instance-project");
+  mergeElementsCanonicalPrimary(useStore.getState().elements);
+}
+
 describe("instance store actions", () => {
   const addEntrySpy = vi.spyOn(historyManager, "addEntry");
 
@@ -324,8 +342,10 @@ describe("instance store actions", () => {
         type: "batch",
         elementId: "instance",
         data: expect.objectContaining({
-          prevElements: [instance],
-          elements: [expect.objectContaining({ id: "instance" })],
+          canonicalEvents: expect.arrayContaining([
+            expect.objectContaining({ type: "remove" }),
+            expect.objectContaining({ type: "insert" }),
+          ]),
         }),
       }),
     );
@@ -698,6 +718,7 @@ describe("instance store actions", () => {
       ]),
     } as never);
     useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     const result = useStore.getState().detachInstance("ref");
     const detachedRoot = useStore.getState().elementsMap.get("ref") as
@@ -711,9 +732,9 @@ describe("instance store actions", () => {
     expect(detachedRoot).toMatchObject({
       id: "ref",
       type: "Button",
-      reusable: undefined,
       props: { label: "Instance", style: { color: "blue", padding: "8px" } },
     });
+    expect(detachedRoot?.reusable).toBeUndefined();
     expect(detachedRoot?.ref).toBeUndefined();
     expect(materializedChildren).toHaveLength(1);
     expect(materializedChildren[0]).toMatchObject({
@@ -726,9 +747,9 @@ describe("instance store actions", () => {
         type: "batch",
         elementId: "ref",
         data: expect.objectContaining({
-          prevElements: [ref],
-          elements: expect.arrayContaining([
-            expect.objectContaining({ id: "ref", type: "Button" }),
+          canonicalEvents: expect.arrayContaining([
+            expect.objectContaining({ type: "remove" }),
+            expect.objectContaining({ type: "insert" }),
           ]),
         }),
       }),
@@ -998,10 +1019,14 @@ describe("instance store actions", () => {
       elementsMap: new Map([["button", button]]),
     } as never);
     useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     const result = await useStore.getState().toggleComponentOrigin("button");
 
-    expect(result?.previousElements).toEqual([button]);
+    // canonical 시드 후 source 는 canonical-derived 형태 — 핵심 필드만 비교
+    expect(result?.previousElements).toMatchObject([
+      { id: "button", customId: "primary-action" },
+    ]);
     expect(useStore.getState().elementsMap.get("button")).toMatchObject({
       componentName: "primary-action",
       reusable: true,
@@ -1163,6 +1188,7 @@ describe("instance store actions", () => {
       ]),
     } as never);
     useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     await useStore.getState().toggleComponentOrigin("origin");
     const detachedInstance = useStore.getState().elementsMap.get("instance") as
@@ -1173,9 +1199,14 @@ describe("instance store actions", () => {
       .elements.find((element) => element.parent_id === "instance");
 
     expect(confirmSpy).toHaveBeenCalled();
-    expect(useStore.getState().elementsMap.get("origin")).toMatchObject({
-      reusable: false,
-    });
+    // canonical-derived element 는 reusable=false 시 키 자체를 생략 — falsy 검사
+    expect(
+      (
+        useStore.getState().elementsMap.get("origin") as
+          | { reusable?: boolean }
+          | undefined
+      )?.reusable,
+    ).toBeFalsy();
     expect(detachedInstance).toMatchObject({
       id: "instance",
       type: "Button",
@@ -1230,6 +1261,7 @@ describe("instance store actions", () => {
       ]),
     } as never);
     useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     await useStore.getState().removeElement("origin");
 
