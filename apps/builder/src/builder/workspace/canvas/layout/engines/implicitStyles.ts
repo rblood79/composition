@@ -2134,24 +2134,31 @@ export function applyImplicitStyles(
     const sideMode = hasResolvedSideLabelVariant(fieldVariant.styles);
     const hasLabel = !!containerProps?.label;
     const sizeName = (containerProps?.size as string) ?? "md";
-    // 입력 box(SelectTrigger > DateInput) height 는 SelectTrigger.sizes(=입력 trigger 행 높이)에서
-    //   읽는다. DatePicker/DateRangePicker.sizes.height 는 컨테이너 entry 인데 입력 box height 인 척
+    // 입력 box(SelectTrigger) 의 height 는 `selecttrigger` 분기(위)가 SelectTrigger.sizes.height
+    //   (md=30) 로 소유한다 — DatePicker 분기는 box height 를 주입하지 않는다.
+    //   DatePicker/DateRangePicker.sizes.height 는 컨테이너 entry 인데 입력 box height 인 척
     //   하던 잘못된 결합이라 catalog 에서 제거됨(2026-06-23) — 컨테이너 height 는 자식 합산 auto(54).
-    //   SelectTrigger.sizes.height(md=30) 가 입력 box height 의 SSOT(Select/ComboBox 동형 trigger 행).
-    const inputHeight =
-      specSizeField("selecttrigger", sizeName, "height") ?? 30;
     filteredChildren = children.filter((c) => {
       if (c.type === "Label") return hasLabel;
       return !POPOVER_CHILDREN_TAGS.has(c.type);
     });
 
-    // DateInput(trigger field)에 height + 세그먼트 텍스트 생성용 부모 props 주입.
+    // DateInput(trigger field)에 세그먼트 텍스트 생성용 부모 props 주입.
     //   width 는 주입하지 않는다(2026-06-23): 이전엔 `width:"100%"` 를 줬으나 부모 container
     //   가 width:auto(body align-items:flex-start)라 Taffy 가 `100%` 를 콘텐츠보다 작게 계산
     //   → box < 콘텐츠 → 텍스트 overflow. width 미주입 시 INLINE_BLOCK_TAGS(dateinput) +
     //   needsWidth → calculateContentWidth(dateinput 분기)가 콘텐츠 자연폭(segment text +
     //   icon + padding)을 산출 → box 가 콘텐츠를 담는다(DisclosureHeader/CalendarHeader 동형).
     //   사용자 명시 width(cs.width)는 보존. side 모드는 injectSideLabel 이 flex:1/minWidth:0 주입.
+    //
+    // height 도 주입하지 않는다 (2026-07-14): `inputHeight`(=SelectTrigger.sizes.height, md=30)
+    //   는 **입력 box(=SelectTrigger) 행 높이**이지 그 **안쪽 DateInput 의 높이가 아니다**.
+    //   DateInput 에 30 을 주면 padding(4+4) + border(1+1) 을 가진 30px trigger 안에서
+    //   자식이 30 이 되어 위아래로 5px 씩 넘친다 (실측 2026-07-14: Skia DateInput y=5 h=30
+    //   vs DOM h=20). CSS 는 trigger content-box = 30 - 8 - 2 = **20** 이고 DateInput 은
+    //   height 미지정(콘텐츠 = segment 텍스트 줄높이 20) → 20. box 높이는 SelectTrigger 가
+    //   이미 소유하므로(implicitStyles selecttrigger 분기) DateInput 은 콘텐츠 높이로 둔다.
+    //   Select 의 SelectValue 가 height 주입 없이 콘텐츠(21)로 남는 것과 동형.
     filteredChildren = filteredChildren.map((child) => {
       if (child.type === "DateInput") {
         const cs = (child.props?.style || {}) as Record<string, unknown>;
@@ -2168,7 +2175,6 @@ export function applyImplicitStyles(
             style: {
               ...cs,
               ...(cs.width !== undefined ? { width: cs.width } : {}),
-              height: inputHeight,
             },
           },
         } as CanvasLayoutNode;

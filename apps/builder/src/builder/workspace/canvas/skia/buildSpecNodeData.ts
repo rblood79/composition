@@ -550,14 +550,35 @@ function resolveToggleGroupContext(
   };
 }
 
-/** DateInput parent type/granularity/hourCycle/locale */
+/**
+ * DateInput parent type/granularity/hourCycle/locale
+ *
+ * **SelectTrigger 경유 조회 (2026-07-14)**: picker(DatePicker/DateRangePicker) 는
+ *   factory canonical 자식 통일(2026-06-23) 이후 `DatePicker > SelectTrigger > DateInput`
+ *   구조다 — DateInput 의 **직계 부모가 SelectTrigger** 라 한 단계만 보던 기존 조회는
+ *   `DATE_INPUT_PARENT_TAGS` 에 걸리지 않아 `null` 을 반환했다. 결과: **Skia 그리기 경로**의
+ *   picker DateInput 에 `_parentTag/_granularity/_hourCycle/_locale` 이 전부 미주입 →
+ *   escape(`datefieldSegments`)가 `_parentTag` 기본값 "DateField" 로 fallback 하여
+ *   **picker 인데도 box/border 를 그리는** 분기를 탄다(SelectTrigger box 와 이중 렌더).
+ *   granularity/locale 도 무시돼 시간 세그먼트/로케일 placeholder 가 반영되지 않는다.
+ *   DateField/TimeField(standalone)는 직계 부모가 그대로라 기존 경로 유지.
+ *
+ * NOTE: **layout 경로**(implicitStyles selecttrigger 분기)는 별도로 `_locale` 을 주입하지만,
+ *   DFS post-order 상 자식(DateInput)의 `enrichWithIntrinsicSize` 가 부모(SelectTrigger)의
+ *   주입보다 **먼저** 실행돼 폭 측정에는 아직 반영되지 않는다 — locale 별 placeholder 폭
+ *   정합은 본 수정 범위 밖(사전 존재 결함, baseline 에서도 동일).
+ */
 function resolveDateInputParent(
   element: CanvasSceneNode,
   elementsMap: Map<string, CanvasSceneNode>,
 ): Record<string, unknown> | null {
   if (element.type !== "DateInput" || !element.parent_id) return null;
 
-  const parent = elementsMap.get(element.parent_id);
+  let parent = elementsMap.get(element.parent_id);
+  // picker 는 SelectTrigger 래퍼를 한 단계 건너뛴다.
+  if (parent?.type === "SelectTrigger" && parent.parent_id) {
+    parent = elementsMap.get(parent.parent_id);
+  }
   if (!parent || !DATE_INPUT_PARENT_TAGS.has(parent.type)) return null;
 
   const pp = getProps(parent);

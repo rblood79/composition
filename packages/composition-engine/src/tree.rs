@@ -86,6 +86,11 @@ use crate::flex;
 use crate::grid;
 use crate::style::{resolve_css_size_value, CssValueContext, FIT_CONTENT};
 
+/// indefinite available 센티넬 (음수). `%` 크기는 indefinite containing block 에 대해
+/// `auto` 로 풀린다(CSS §10.2) — `resolve_dimension` 이 음수 ctx 에서 0(=auto) 을 반환하고,
+/// `solve_flex/block` 의 `avail >= 0.0` 가드가 감산을 건너뛴다.
+const INDEFINITE_AVAIL: f32 = -1.0;
+
 /// 트리 노드의 스타일 표현 (taffy_bridge.rs `StyleInput` 대응).
 ///
 /// 모든 필드 optional — 미설정 필드는 CSS 초기값. camelCase JSON 계약은
@@ -716,10 +721,42 @@ impl LayoutTree {
         let (gap_main, gap_cross) =
             if is_row { (gap_col, gap_row) } else { (gap_row, gap_col) };
 
+        // **cross 축 `%` 기준 = 컨테이너 자신의 cross 가 definite 일 때만 available**.
+        //
+        // CSS §10.2: `%` 크기는 containing block 의 해당 축이 **content 에 의존(auto)** 하면
+        // `auto` 로 푼다. 컨테이너의 cross 가 auto(shrink-to-fit) 면 그 크기는 아직 자식으로
+        // 부터 도출되는 중이라 자식의 `%` cross 가 참조할 확정값이 없다.
+        //
+        // **Why (DatePicker, 2026-07-14)**: body(column) > DatePicker(width 미지정, column)
+        //   > SelectTrigger(width:100%). DatePicker 의 cross(=width) 는 auto 인데, 자식의
+        //   100% 를 **상속 available(350)** 로 풀면 trigger 가 350 이 되고 → shrink-to-fit
+        //   이어야 할 DatePicker 가 그 자식을 감싸며 350 으로 팽창한다
+        //   (실측: DOM 113.1 vs Skia 350). indefinite 로 풀면 100% → auto → 콘텐츠 폭.
+        //
+        // main 축(`ctx`/`main_ctx`) 과 padding/margin/gap 은 **기존 그대로** available 기준 —
+        //   available 자체를 죽이면 shrink-to-fit 의 상한(=available)과 main 축 배치가 무너진다
+        //   (초기 시도에서 SelectValue width 0 회귀). 바뀌는 건 **cross 축 `%` 해석뿐**.
+        let cross_definite_self = if is_row { explicit_h > 0.0 } else { explicit_w > 0.0 };
+        let cross_ctx = if cross_definite_self {
+            self.ctx_for(if is_row { child_avail_h } else { child_avail_w })
+        } else {
+            self.ctx_for(INDEFINITE_AVAIL)
+        };
+
         // 1) 자식 재귀 solve → 각 자식 content 크기 확보.
+        //    cross 가 indefinite 면 자식 subtree 의 `%` cross 도 auto 로 풀려야 하므로
+        //    해당 축 available 을 indefinite 센티넬로 내린다 (자식의 `resolve_self_size` →
+        //    `%` → auto). main 축 available 은 유지.
+        let (child_solve_w, child_solve_h) = if cross_definite_self {
+            (child_avail_w, child_avail_h)
+        } else if is_row {
+            (child_avail_w, INDEFINITE_AVAIL) // row → cross = height
+        } else {
+            (INDEFINITE_AVAIL, child_avail_h) // column → cross = width
+        };
         let mut child_sizes: Vec<(f32, f32)> = Vec::with_capacity(children.len());
         for &c in children {
-            let cs = self.solve_node(c, child_avail_w, child_avail_h);
+            let cs = self.solve_node(c, child_solve_w, child_solve_h);
             child_sizes.push(cs);
         }
 
@@ -735,7 +772,9 @@ impl LayoutTree {
         for (i, &c) in children.iter().enumerate() {
             let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
             let (cw, ch) = child_sizes[i];
-            write_flex_item(&mut data, i, &cstyle, cw, ch, is_row, &ctx, &main_ctx);
+            write_flex_item(
+                &mut data, i, &cstyle, cw, ch, is_row, &ctx, &main_ctx, &cross_ctx,
+            );
         }
 
         // 3) main/cross available.
@@ -840,10 +879,11 @@ impl LayoutTree {
                 }
 
                 self.mark_subtree_dirty(c);
+                // cross available 은 1차 solve 와 동일 규칙 (컨테이너 cross 가 auto 면 indefinite).
                 let (re_w, re_h) = if is_row {
-                    self.solve_node(c, used_main, child_avail_h)
+                    self.solve_node(c, used_main, child_solve_h)
                 } else {
-                    self.solve_node(c, child_avail_w, used_main)
+                    self.solve_node(c, child_solve_w, used_main)
                 };
 
                 if overridden {
@@ -1548,6 +1588,7 @@ fn write_flex_item(
     is_row: bool,
     ctx: &CssValueContext,
     main_ctx: &CssValueContext,
+    cross_ctx: &CssValueContext,
 ) {
     let off = i * flex::FLEX_FIELD_COUNT;
 
@@ -1556,13 +1597,17 @@ fn write_flex_item(
     // `resolve_cross_dimension_opt`(fit-content→CONTENT 센티넬 보존 → flex.rs 가
     // content_cross 로 shrink-to-fit, stretch 안 함). Calendar(column, width:fit-content)
     // 의 width 는 cross 축이므로 CONTENT 로 통과되어 부모 폭 stretch 를 회피한다.
+    //
+    // cross 축 `%` 는 **`cross_ctx`** 로 푼다 — 컨테이너 자신의 cross 가 auto(콘텐츠 의존)
+    // 면 indefinite 라 `%` → auto (CSS §10.2). `ctx`(=available) 로 풀면 shrink-to-fit
+    // 컨테이너가 자식 `100%` 를 상속 available 로 키워 되레 팽창한다 (DatePicker 350 vs 113).
     let (main_raw, cross_raw) = if is_row {
         (cstyle.width.as_deref(), cstyle.height.as_deref())
     } else {
         (cstyle.height.as_deref(), cstyle.width.as_deref())
     };
     let main_size = resolve_dimension_opt(main_raw, ctx);
-    let cross_size = resolve_cross_dimension_opt(cross_raw, ctx);
+    let cross_size = resolve_cross_dimension_opt(cross_raw, cross_ctx);
     let (content_main, content_cross) = if is_row { (cw, ch) } else { (ch, cw) };
 
     let pad_border_main = axis_pad_border(cstyle, ctx, is_row);
@@ -1790,6 +1835,16 @@ fn resolve_flex_basis(value: Option<&str>, main_ctx: &CssValueContext) -> Option
     }
     // `content` 키워드 → flex.rs CONTENT 센티넬 (content_main 으로 해소).
     if trimmed.eq_ignore_ascii_case("content") {
+        return Some(flex::CONTENT);
+    }
+    // **`%` basis 는 main 이 indefinite 면 `content` 로 취급** (CSS §9.2.3):
+    //   containing block 의 main 이 content 의존(auto)이면 `%` 를 풀 확정값이 없다.
+    //   `0%`(= `flex:1` 의 shorthand 전개) 를 그대로 0 으로 두면 grow 할 free space 도
+    //   없어(indefinite) item 이 **폭 0 으로 붕괴**한다 — DatePicker 안 DateInput 이
+    //   trigger(width auto) 에서 w=0 이 되던 회귀 (2026-07-14).
+    //   CSS 는 이 경우 basis 를 content 로 보고 intrinsic 폭을 쓴다.
+    let main_indefinite = main_ctx.container_size.map(|s| s < 0.0).unwrap_or(true);
+    if main_indefinite && trimmed.ends_with('%') {
         return Some(flex::CONTENT);
     }
     match resolve_css_size_value(trimmed, main_ctx) {
@@ -2046,6 +2101,69 @@ mod tests {
         // stretch(default align-items) 로 자식이 컨테이너 cross 로 늘어날 수 있으나,
         // 컨테이너 height 미정이면 자식 max cross(50) 가 bounding box.
         assert_eq!(container.height, 50.0, "intrinsic height = max child bottom");
+    }
+
+    /// DatePicker 실측 회귀 — `align-items:flex-start` 부모의 **width 미지정** flex 자식은
+    /// 부모 폭으로 stretch 되면 안 되고 콘텐츠 폭(shrink-to-fit)이어야 한다.
+    ///
+    /// body(flex column, width 350, align-items:flex-start)
+    ///   └ DatePicker(flex column, width 미지정)   ← CSS 124, Skia 350 발산
+    ///       ├ Label(74×20)
+    ///       └ trigger(flex row, width 미지정)
+    ///           └ DateInput(110×20)
+    ///
+    /// CSS: align-items:flex-start 라 cross(=width) 가 auto 인 자식은 fit-content.
+    /// 회귀 시 DatePicker/trigger 가 350 으로 팽창한다.
+    #[test]
+    fn flex_start_auto_cross_child_shrinks_to_fit() {
+        let mut tree = LayoutTree::new();
+        // post-order: DateInput(0), trigger(1), Label(2), DatePicker(3), body(4)
+        let json = r#"[
+            {"style":{"width":"110px","height":"20px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","alignItems":"center"},"children":[0]},
+            {"style":{"width":"74px","height":"20px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"column","rowGap":"4px"},"children":[2,1]},
+            {"style":{"display":"flex","flexDirection":"column","width":"350px","alignItems":"flex-start"},"children":[3]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[4], 350.0, 400.0);
+
+        let dp = tree.get_layout(handles[3]);
+        let trg = tree.get_layout(handles[1]);
+        // 콘텐츠 최대폭 = DateInput 110 (Label 74 보다 큼) → DatePicker 110, 350 이 아님.
+        assert_eq!(dp.width, 110.0, "DatePicker 가 부모 폭으로 stretch 됨 (CSS 는 fit-content)");
+        assert_eq!(trg.width, 110.0, "trigger 가 부모 폭으로 stretch 됨");
+        // 높이는 Label 20 + gap 4 + trigger 20 = 44.
+        assert_eq!(dp.height, 44.0);
+    }
+
+    /// DatePicker 실측 회귀 (본체) — shrink-to-fit 부모의 `width:100%` 자식.
+    ///
+    /// CSS: 부모가 shrink-to-fit(auto cross) 이면 자식의 `100%` 는 **부모의 확정 폭**을
+    /// 기준으로 풀린다(순환 → 콘텐츠가 폭을 정하고 100% 는 그에 맞춤). 따라서 100% 자식은
+    /// 부모를 팽창시키지 못한다 — 부모 폭은 여전히 콘텐츠(110).
+    ///
+    /// 엔진 회귀: `100%` 를 **available(350)** 로 풀어 부모까지 350 으로 팽창시킨다.
+    /// 실측(2026-07-14): DOM DatePicker 124.3 vs Skia 350.
+    #[test]
+    fn percent_width_child_does_not_inflate_shrink_to_fit_parent() {
+        let mut tree = LayoutTree::new();
+        // post-order: DateInput(0), trigger(1, width:100%), Label(2), DatePicker(3), body(4)
+        let json = r#"[
+            {"style":{"width":"110px","height":"20px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","alignItems":"center","width":"100%"},"children":[0]},
+            {"style":{"width":"74px","height":"20px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"column","rowGap":"4px"},"children":[2,1]},
+            {"style":{"display":"flex","flexDirection":"column","width":"350px","alignItems":"flex-start"},"children":[3]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[4], 350.0, 400.0);
+
+        let dp = tree.get_layout(handles[3]);
+        assert_eq!(
+            dp.width, 110.0,
+            "width:100% 자식이 shrink-to-fit 부모를 available(350) 로 팽창시킴"
+        );
     }
 
     /// 중첩 flex — 손자까지 bottom-up solve.
@@ -2784,6 +2902,37 @@ mod tests {
     //   인데 basis 가 AUTO → content(칩 합산 폭)로 fallback → 컨테이너를 넘겨 wrap →
     //   Label 옆이 아니라 **둘째 줄**로 밀림. DOM 은 basis 0 이 이겨 정상 가로 배치.
 
+    /// `%` flex-basis 는 main 이 **indefinite** 면 `content` 로 취급 (CSS §9.2.3).
+    ///
+    /// **Why (DatePicker, 2026-07-14)**: DatePicker(column, width auto) > SelectTrigger
+    ///   (row, width auto — 부모 cross 가 auto 라 indefinite) > DateInput(`flex:1` → basis 0%).
+    ///   `0%` 를 그대로 0 으로 두면 grow 할 free space 도 없어(indefinite) DateInput 이
+    ///   **w=0 으로 붕괴** → DatePicker 가 Label 폭(74)까지만 수축 (DOM 은 113).
+    ///   basis 를 content 로 보면 intrinsic 폭(71)이 살아 trigger/DatePicker 가 콘텐츠를 감싼다.
+    #[test]
+    fn percent_flex_basis_with_indefinite_main_falls_back_to_content() {
+        let mut tree = LayoutTree::new();
+        // post-order: DateInput(0, flex:1 basis 0%, intrinsic 71), icon(1, 18),
+        //             trigger(2, row, width auto), DatePicker(3, column, width auto)
+        let json = r#"[
+            {"style":{"width":"71px","height":"20px","flexGrow":1,"flexShrink":1,"flexBasis":"0%"},"children":[]},
+            {"style":{"width":"18px","height":"18px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","alignItems":"center","columnGap":"4px"},"children":[0,1]},
+            {"style":{"display":"flex","flexDirection":"column"},"children":[2]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        // 부모 available 350 이지만 DatePicker/trigger 는 width 미지정 → shrink-to-fit.
+        tree.compute_layout(handles[3], 350.0, 400.0);
+
+        let di = tree.get_layout(handles[0]);
+        assert_eq!(di.width, 71.0, "basis 0% 가 0 으로 굳어 DateInput 이 붕괴");
+        // trigger = 71 + gap 4 + icon 18 = 93 (콘텐츠 폭), 350 아님.
+        let trg = tree.get_layout(handles[2]);
+        assert_eq!(trg.width, 93.0);
+        let dp = tree.get_layout(handles[3]);
+        assert_eq!(dp.width, 93.0);
+    }
+
     #[test]
     fn flex_basis_zero_percent_grows_into_remaining_space() {
         let mut tree = LayoutTree::new();
@@ -3239,3 +3388,4 @@ mod tests {
         );
     }
 }
+

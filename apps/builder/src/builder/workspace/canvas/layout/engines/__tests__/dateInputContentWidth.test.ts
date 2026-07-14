@@ -48,14 +48,24 @@ describe("DateInput intrinsic content width (2026-06-23 box < content 버그)", 
     expect(w).toBeGreaterThanOrEqual(12 + 4 + 16 + 4);
   });
 
-  test("DateField(non-picker) — icon 공간 없음, picker 보다 좁다 (같은 날짜 텍스트)", () => {
+  test("picker 안 DateInput = segment text 폭만 (padding/gap/icon 미포함) — standalone DateField 보다 좁다", () => {
+    // 2026-07-14 정정: 종전 테스트는 "picker 가 icon 공간만큼 더 넓다" 를 기대했다. 그 전제는
+    //   layout 이 옛 escape-box 공식(paddingX + text + gap + icon + padRight)을 쓰던 시절의 것이다.
+    //   실제 renderer(skiaPrimitives datefieldSegments)는 picker 일 때 box/border/icon 을 **안 그리고**
+    //   segment text 만 그린다 — box 는 SelectTrigger, icon 은 SelectIcon 이 담당(이중 렌더 방지).
+    //   DOM 실측(2026-07-14)도 picker 안 DateInput = border 0 / padding 0 / DateSegment 뿐 (71.1px).
+    //   layout 이 padding+icon 을 또 더해 DatePicker 가 178 로 팽창(DOM 113.1)하던 것이 버그였다.
+    //   → picker 는 **순수 텍스트 폭**, standalone DateField 는 **좌우 padding 포함 box** 라
+    //     같은 날짜 텍스트면 DateField 쪽이 더 넓다.
     const picker = calculateContentWidth(
       makeDateInput({ _parentTag: "DatePicker" }),
     );
     const field = calculateContentWidth(
       makeDateInput({ _parentTag: "DateField" }),
     );
-    expect(field).toBeLessThan(picker);
+    expect(picker).toBeLessThan(field);
+    // DateField = picker(텍스트) + paddingX*2 (md=12) — icon/gap 은 어느 쪽에도 없다.
+    expect(field - picker).toBe(24);
   });
 
   test("DateRangePicker(범위 '–') — DatePicker 보다 넓다 (범위 텍스트 2배)", () => {

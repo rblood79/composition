@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [DatePicker CSS↔Skia 레이아웃 정합 — shrink-to-fit % / DateInput box 오인] - 2026-07-14
+
+### Bug Fixes
+
+- **DatePicker 가 Skia 에서만 부모 폭 전체로 팽창하고, DateInput 이 입력 box 를 위아래로 넘침** (CSS 는 정상, 유사 컴포넌트 Select 는 정상):
+  - Select 가 "정상" 이었던 건 store 에 `width:100%` 가 **명시**돼 있어 부모가 definite 였기 때문이다. DatePicker 는 width 미지정(=shrink-to-fit)이라 아래 결함이 드러났다. 근본은 4겹.
+  - **(1) 엔진 — `%` 자식이 shrink-to-fit 부모를 팽창시킴** — 컨테이너 자신의 cross 가 auto 인데도 자식의 `%` cross 를 **상속 available** 로 풀었다. **Why**: CSS §10.2 — containing block 의 해당 축이 content 의존(auto)이면 `%` 는 `auto` 로 푼다. `body(column, align-items:flex-start) > DatePicker(width 미지정) > SelectTrigger(width:100%)` 에서 trigger 의 100% 가 350 으로 풀리고, shrink-to-fit 이어야 할 DatePicker 가 그 자식을 감싸며 **350 으로 팽창**(DOM 113.1). cross 축 `%` 전용 `cross_ctx` 도입 — 컨테이너 cross 가 definite 일 때만 available 기준, 아니면 indefinite. **main 축/padding/margin/gap 은 기존대로 available 기준**(available 자체를 죽이면 shrink-to-fit 상한과 main 배치가 무너져 SelectValue 폭 0 회귀).
+  - **(2) 엔진 — `%` flex-basis 가 indefinite main 에서 0 으로 굳음** — `flex:1` 은 `flex-basis:0%` 로 전개되는데, main 이 indefinite 면 grow 할 free space 도 없어 item 이 **폭 0 으로 붕괴**한다. **Why**: CSS §9.2.3 — `%` basis 는 main 이 indefinite 면 `content` 로 취급한다. 위 (1) 수정으로 trigger 의 main(width)이 auto 가 되자 그 안의 DateInput(`flex:1`)이 0 이 됐다. `resolve_flex_basis` 에 indefinite-main → CONTENT 분기 추가.
+  - **(3) layout — DateInput 에 trigger 행 높이(30) 를 주입** — `SelectTrigger.sizes.height`(md=30)는 **입력 box 행 높이**이지 그 안쪽 DateInput 의 높이가 아니다. **Why**: trigger 는 border 1px + paddingY 4px 를 가진 30px box 이므로 content-box 는 `30 − 8 − 2 = 20`. 30 을 주면 자식이 box 를 **위아래 5px 씩 넘친다**(Skia DateInput y=5 h=30 vs DOM h=20). box 높이는 `selecttrigger` 분기가 이미 소유하므로 DatePicker 분기의 height 주입 제거 → 콘텐츠 높이(20). Select 의 SelectValue 가 height 주입 없이 콘텐츠로 남는 것과 동형.
+  - **(4) layout — DateInput 폭이 padding/gap/icon 을 이중 계상** — `calculateContentWidth` 가 옛 escape-box 공식(`paddingX + text + gap + icon + padRight`)을 유지했다. **Why**: renderer(`datefieldSegments`)는 picker 일 때 이미 **segment text 만** 그린다(box 는 SelectTrigger, icon 은 SelectIcon — 이중 렌더 방지). layout 만 옛 공식을 써서 trigger 가 제공하는 padding/icon 을 DateInput 이 또 더했다(102 → 138, DatePicker 178). DOM 실측도 picker 안 DateInput = border 0 / padding 0 / 자식은 DateSegment 뿐. picker 는 순수 텍스트 폭, standalone DateField 는 좌우 padding 포함 box 로 분리.
+  - **(부수) Skia `_parentTag`/`_locale` 미전파** — `resolveDateInputParent` 가 직계 부모만 봐서 `DatePicker > SelectTrigger > DateInput` 구조에서 `null` 반환 → escape 가 `_parentTag` 기본값 "DateField" 로 fallback(picker 인데 box 를 그리는 분기). SelectTrigger 를 한 단계 건너뛰도록 수정.
+  - 위치: `packages/composition-engine/src/tree.rs`, `apps/builder/src/builder/workspace/canvas/layout/engines/{implicitStyles,utils}.ts`, `apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts`
+  - 검증 (live builder 실측): DatePicker 높이 **54 = DOM 54**, DateInput 높이 **20 = DOM 20**(수정 전 30, box 밖으로 넘침), Label 74 ≈ DOM 74.8, trigger 높이 30 = DOM 30, SelectIcon 세로 중앙 복귀. **Select 는 350 유지(무회귀)**. 폭은 layout 산식이 양쪽 동일해졌음을 확증 — Skia DateInput 102 = `measureText("MM / DD / YYYY")` 101.96, DOM 71.1 = `"연도. 월. 일."` — 잔여 차이는 전적으로 **placeholder 텍스트가 다른 것**(아래 Known Issues). Rust 신규 3건(RED 확인) + 전체 277건 통과(회귀 0, Chrome 실측 golden 25건 포함). JS 신규 4건 + layout engines 217건 통과. canvas+specs 11 failed = clean-tree baseline 동일.
+
+### Known Issues
+
+- **Skia 가 DateInput placeholder 에 브라우저 locale 을 반영하지 않음** (사전 존재, baseline 동일): DOM(RAC)은 브라우저 locale 로 `연도. 월. 일.` 을 그리는데 Skia 는 `_locale` 미지정 시 `en-US` 기본값(`MM / DD / YYYY`)을 쓴다. `locale` prop 을 설정해도 layout 폭에는 반영되지 않는다 — DFS post-order 상 자식(DateInput)의 `enrichWithIntrinsicSize` 가 부모(SelectTrigger)의 prop 주입보다 먼저 실행되기 때문. 레이아웃 산식이 아니라 **측정 대상 텍스트**의 문제라 본 수정 범위와 분리.
+
 ## [TagGroup labelPosition=side CSS↔Skia 정합 — flex-basis / flex item 재-solve / align-content] - 2026-07-14
 
 ### Bug Fixes

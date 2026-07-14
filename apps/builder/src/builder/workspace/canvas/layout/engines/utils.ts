@@ -1333,26 +1333,16 @@ export function calculateContentWidth(
       lg: 16,
       xl: 24,
     };
-    const DF_PADDING_Y: Record<string, number> = {
-      xs: 1,
-      sm: 2,
-      md: 4,
-      lg: 8,
-      xl: 12,
-    };
-    const DF_ICON: Record<string, number> = {
-      xs: 10,
-      sm: 14,
-      md: 16,
-      lg: 20,
-      xl: 22,
-    };
-    const paddingX = DF_PADDING_X[sizeName] ?? DF_PADDING_X.md;
-    const padRight = isPicker
-      ? (DF_PADDING_Y[sizeName] ?? DF_PADDING_Y.md)
-      : paddingX;
-    const iconSz = isPicker ? (DF_ICON[sizeName] ?? DF_ICON.md) : 0;
-    const gap = isPicker ? 4 : 0;
+    // picker(DatePicker/DateRangePicker) 안에서는 **segment text 폭만** — padding/gap/icon 제외.
+    //   skiaPrimitives `datefieldSegments` 가 picker 일 때 box/border/icon 을 그리지 않고
+    //   **segment text 만** 그린다(SelectTrigger 가 box, SelectIcon 이 icon — 이중 렌더 방지).
+    //   layout 만 옛 escape-box 공식(paddingX + text + gap + icon + padRight)을 유지해 renderer 와
+    //   어긋나 있었다 → DateInput 폭이 콘텐츠(71)보다 36 넓은 138 이 되고, trigger 가 padding/icon 을
+    //   또 더해 DatePicker 가 178 로 팽창(DOM 실측 113.1). DOM: picker 안 DateInput 은
+    //   border 0 / padding 0 / 자식 = DateSegment 뿐 → 폭 = segment text.
+    //   DateField/TimeField(standalone)는 DateInput 이 box 자체 → 좌우 paddingX 유지.
+    const paddingX = isPicker ? 0 : (DF_PADDING_X[sizeName] ?? DF_PADDING_X.md);
+    const padRight = paddingX;
 
     const rule = resolveSkiaRule("DateInput");
     const fontSize = resolveSpecFontSize(
@@ -1369,7 +1359,7 @@ export function calculateContentWidth(
       locale: props?._locale as string | undefined,
     });
     const textWidth = measureTextWidth(displayText, fontSize, ffamily, 400);
-    return Math.ceil(paddingX + textWidth + gap + iconSz + padRight);
+    return Math.ceil(paddingX + textWidth + padRight);
   }
 
   // 1.15. Link: padding/border 없는 텍스트 전용 인라인 요소
@@ -2826,9 +2816,28 @@ export function calculateContentHeight(
   // ADR-912 Phase 6 (2026-06-20): 인라인 height 미러 → resolveSkiaRule("DateInput").sizes.height
   //   read-through. catalog 동형(xs20/sm22/md30/lg42/xl54 byte-identical). DateInput spec 은 이미 삭제됨
   //   (64ac87bdb) — 인라인 미러가 cutover 잔여였고 본 read-through 로 마무리. datefield 선례(:2606) 동형.
+  //
+  // **DatePicker/DateRangePicker 안에서는 box 가 아니라 텍스트 행** (2026-07-14):
+  //   standalone DateField 에서는 DateInput 이 **테두리 있는 입력 box** 자체라 catalog height
+  //   (md=30) 가 맞다. 그러나 picker 안에서는 `SelectTrigger`(=RAC Group) 가 box 를 소유하고
+  //   (border 1px + paddingY 4px + --bg-inset 배경, height 30) DateInput 은 그 **content-box 를
+  //   채우는 투명 텍스트 행**이다 — 실측 CSS: border 0 / padding 0 / background transparent /
+  //   height 20. catalog 30 을 그대로 쓰면 30px trigger 안에서 자식이 30 이 되어 위아래 5px 씩
+  //   넘친다 (Skia DateInput y=5 h=30 vs DOM h=20).
+  //   → picker 안에서는 trigger content-box = height - paddingY*2 - borderWidth*2 로 산출.
+  //     (md: 30 - 8 - 2 = 20 — DOM 실측과 일치. 전 size 동일 공식.)
   if (type === "dateinput") {
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = (props?.size as string) ?? "md";
+    const parentTag = props?._parentTag as string | undefined;
+    if (parentTag === "DatePicker" || parentTag === "DateRangePicker") {
+      const trg = resolveSkiaRule("SelectTrigger");
+      const entry = trg?.sizes[sizeName] ?? trg?.sizes.md;
+      const h = typeof entry?.height === "number" ? entry.height : 30;
+      const py = typeof entry?.paddingY === "number" ? entry.paddingY : 4;
+      const bw = typeof entry?.borderWidth === "number" ? entry.borderWidth : 1;
+      return Math.max(0, h - py * 2 - bw * 2);
+    }
     const rule = resolveSkiaRule("DateInput");
     return (rule?.sizes[sizeName]?.height ??
       rule?.sizes.md?.height ??
