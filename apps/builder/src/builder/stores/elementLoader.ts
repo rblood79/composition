@@ -302,14 +302,25 @@ export function createElementLoaderSlice(
   };
 
   /**
-   * 페이지 언로드 (메모리 해제)
+   * 페이지 언로드 — bookkeeping 전용 (2026-07-14 강등)
+   *
+   * 과거에는 elements/elementsMap 에서 해당 페이지 요소를 물리 제거했다.
+   * 요소 소실 사건 조사 (Task #8) 로 강등:
+   * 1. `_rebuildIndexes` 가 canonical-first 로 인덱스만 재구축하므로, 제거
+   *    직후 elements(부분) vs elementsMap(전체) split-brain 이 됐다.
+   * 2. canonical document 가 전체 노드를 유지하므로 메모리 절감 실효 없음
+   *    (lazy loading 은 ADR-116 canonical primary 이전 시대의 최적화).
+   * 3. 부분 elements 배열을 full-replace 경로 (page-shell bridge / history
+   *    sync) 가 canonical 에 투영하면 자동 persist 가 영구 손실을 확정 —
+   *    실사건의 손실 fuse. store-level 제거는 금지한다.
+   *
+   * loadedPages/LRU bookkeeping 만 유지 — lazyLoad 재진입 시 dedup 이 무해.
    */
   const unloadPage = (pageId: string): void => {
     const state = get();
 
     // 현재 페이지는 언로드 불가
     if (pageId === state.currentPageId) {
-      console.warn(`[Loader] Cannot unload current page: ${pageId}`);
       return;
     }
 
@@ -318,40 +329,12 @@ export function createElementLoaderSlice(
       return;
     }
 
-    // 해당 페이지 요소 제거
-    set((s) => {
-      const newElementsMap = new Map(s.elementsMap);
-      const removedIds: string[] = [];
-
-      // 해당 페이지 요소 찾기 및 제거
-      newElementsMap.forEach((el, id) => {
-        if (el.page_id === pageId) {
-          removedIds.push(id);
-        }
-      });
-
-      removedIds.forEach((id) => newElementsMap.delete(id));
-
-      // elements 배열에서도 제거
-      const newElements = s.elements.filter((el) => el.page_id !== pageId);
-
-      return {
-        elements: newElements,
-        elementsMap: newElementsMap,
-        pageElementsSnapshot: Object.fromEntries(
-          Object.entries(s.pageElementsSnapshot).filter(
-            ([cachedPageId]) => cachedPageId !== pageId,
-          ),
-        ),
-        loadedPages: new Set([...s.loadedPages].filter((id) => id !== pageId)),
-      };
-    });
+    set((s) => ({
+      loadedPages: new Set([...s.loadedPages].filter((id) => id !== pageId)),
+    }));
 
     // LRU 캐시에서도 제거
     pageCache.remove(pageId);
-
-    // 인덱스 재구축
-    get()._rebuildIndexes();
   };
 
   /**

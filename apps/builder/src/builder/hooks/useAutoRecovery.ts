@@ -146,9 +146,13 @@ export function useAutoRecovery(options?: {
       console.log("  Health before:", healthBefore);
 
       try {
-        // 1단계: 비활성 페이지 언로드
-        console.log("  Step 1: Unloading inactive pages...");
-        useStore.getState().clearAllPages();
+        // 1단계: (2026-07-14 제거) 비활성 페이지 store-level 언로드 —
+        // freeze 로 healthScore 가 급락하는 바로 그 시점에 store 요소를
+        // 물리 제거해 부분 상태를 만들고, full-replace 경로 + 자동 persist 로
+        // 영구 손실을 확정시키던 fuse (요소 소실 사건 조사, Task #8).
+        // canonical-first 파생 구조에서 메모리 절감 실효도 없음.
+        // LRU 캐시 정리 (3단계) 만 유지한다.
+        console.log("  Step 1: store-level page unload removed (loss fuse)");
 
         // 2단계: 히스토리 정리 (trim 메서드 미구현 - 스킵)
         console.log("  Step 2: History trimming skipped (not implemented)");
