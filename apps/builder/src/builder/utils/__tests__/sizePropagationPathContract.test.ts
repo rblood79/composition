@@ -8,6 +8,7 @@ import {
   createDatePickerDefinition,
   createDateRangePickerDefinition,
 } from "../../factories/definitions/DateColorComponents";
+import { createDisclosureDefinition } from "../../factories/definitions/NavigationComponents";
 import { getPropagationRules } from "../propagationRegistry";
 
 /**
@@ -80,17 +81,33 @@ const TARGETS = [
   { type: "DateRangePicker", build: createDateRangePickerDefinition },
   { type: "SearchField", build: createSearchFieldDefinition },
   { type: "NumberField", build: createNumberFieldDefinition },
+  // 2026-07-15 사용자 적발 — Disclosure 는 **size 규칙이 아예 0건**이었다 (아래 주석 참조).
+  { type: "Disclosure", build: createDisclosureDefinition },
 ] as const;
 
 /**
- * size 를 시각에 반영하는 trigger 계열 자식 — 여기에 전파가 안 닿으면 stale size 가 남는다.
- * (Label 은 별도 delegation 경로가 있어 제외 — 본 계약의 대상은 trigger 서브트리.)
+ * size 를 시각에 반영하는 자식 — 여기에 전파가 안 닿으면 자식이 defaultSize(md)에 고정된다.
+ * (Label 은 별도 delegation 경로가 있어 제외 — 본 계약의 대상은 trigger/컨테이너 서브트리.)
+ *
+ * **DisclosureHeader / DisclosureContent 추가 (2026-07-15, 사용자 보고: "Disclosure size 변경 시
+ * DisclosureHeader 변경 안 됨(css, skia), DisclosureContent(css만 변경)")**:
+ * Disclosure 는 propagation 규칙이 **하나도 등록돼 있지 않았다** — 옛 경로 stale 이 아니라 **부재**.
+ * 규칙 부재는 두 경로를 동시에 끊는다:
+ *  1. Inspector 전파(`buildPropagationUpdates`) → 자식 store 에 size 가 안 써짐.
+ *  2. **Skia delegation** — `resolveParentDelegatedSize` 가 `getParentTagsForChild()`(propagation
+ *     **역인덱스**)로 부모를 찾는다. 규칙이 없으면 역인덱스도 비어 delegation 이 `null` →
+ *     자식이 catalog `defaultSize`(md)로 고정. 두 자식 다 catalog 에 sm/md/lg sizes 가 있는데도
+ *     Skia 가 md 만 그린 이유가 이것이다.
+ * (DOM 은 별개 축 — `renderDisclosure` 가 wrapper self-compose 로 헤더를 직접 그려서 canonical
+ *  자식 노드가 독립 렌더되지 않는다. Content 만 CSS `font-size` **상속**으로 우연히 반응했다.)
  */
 const SIZE_BEARING_CHILDREN = [
   "SelectTrigger",
   "SelectValue",
   "SelectIcon",
   "DateInput",
+  "DisclosureHeader",
+  "DisclosureContent",
 ] as const;
 
 describe("size propagation childPath 가 factory 트리와 일치", () => {

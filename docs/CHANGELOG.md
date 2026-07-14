@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Disclosure size 가 자식에 안 내려감 — propagation rule 부재 + layout md 고정 + CSS 상속 체인 단절] - 2026-07-15
+
+### Bug Fixes
+
+- **Disclosure 의 size 를 바꿔도 DisclosureHeader 가 CSS·Skia 둘 다 안 변하고, DisclosureContent 는 CSS 만 변함** (사용자 보고). **세 겹의 독립 결함**이 겹쳐 있었다 — 하나만 고쳐도 증상이 안 사라진다.
+  - **(1) propagation rule 이 아예 없었다** (`propagationRegistry.ts`). 옛 경로가 stale 한 게 아니라 Disclosure 항목 **자체가 부재**. 이건 **두 경로를 동시에** 끊는다: Inspector 전파(`buildPropagationUpdates`)가 자식 store 에 size 를 못 쓰고, **Skia delegation 도 죽는다** — `resolveParentDelegatedSize` 가 `getParentTagsForChild()`(propagation **역인덱스**)로 부모를 찾기 때문이다. 규칙이 없으면 역인덱스가 비어 delegation 이 `null` → 자식이 `defaultSize`(md) 고정. Card(`size → CardHeader/CardContent/CardFooter`)와 같은 rule 을 추가.
+  - **(2) layout 이 size 를 무시하고 `.sizes.md` 를 하드코딩** (`layout/engines/utils.ts`). `disclosureHeaderDims()` 가 size 인자를 안 받아, catalog 에 sm/md/lg(height 32/36/40)가 다 있는데도 항상 md(36) 를 읽었다. 바로 옆 `statusLightDims(sizeName)` / `sliderTrackRowHeight(sizeName)` 는 size 를 받는데 이 함수만 누락 — 동형으로 맞춤.
+  - **(3) DOM 헤더의 font-size 상속 체인이 두 곳에서 끊김** (catalog `Disclosure.structure.composition.staticSelectors`). 헤더는 `<Disclosure><Heading><Button slot="trigger">` 구조인데, `<Heading>`은 `<h3>` 로 렌더돼 **브라우저 기본 16px** 을, `.react-aria-Button` base 는 **`font-size: var(--text-sm)`(14px)** 를 각자 선언해 부모 `[data-size]` 의 font-size 를 차단했다. **`inherit` 는 직계 부모를 따르므로 Button 에만 넣으면 Heading 의 16px 을 물려받는다** — 체인의 **두 노드 모두** `font-size: inherit` 필요. 같은 체인의 `justify-content` / `--icon-size` 가 이미 "Button base 가 부모를 덮는다" 는 동일 함정을 겪었던 세 번째 사례.
+  - **Why (증상이 자식별로 갈린 이유)**: `DisclosureContent` 는 자기 font-size 를 선언하지 않아 부모 Disclosure 의 font-size 를 **CSS 상속으로 우연히** 받았다 → "Content 는 CSS 만 변경". Header 는 위 (3) 으로 상속이 막혀 CSS 도 안 변했고, (1)+(2) 로 Skia 도 md 고정이었다 → "Header 는 둘 다 안 변경".
+  - 위치: `apps/builder/src/builder/utils/propagationRegistry.ts` · `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` · `packages/shared/src/catalog/generated/componentRulesTable.ts` (+ `pnpm generate:css`)
+
+### 검증
+
+- **라이브 3 size sweep** (Inspector 실제 클릭 → 새로고침 → 실측). store / Skia layout height / DOM 헤더 버튼 font·height:
+
+  | size | store(부모·자식) | Skia Header | DOM 헤더 폰트    | DOM 헤더 높이 |
+  | ---- | ---------------- | ----------- | ---------------- | ------------- |
+  | sm   | sm               | 32          | **12px** (전 16) | 34            |
+  | md   | md               | 36          | 14px             | 36            |
+  | lg   | lg               | 40          | **16px** (전 14) | 39            |
+
+  수정 전에는 Skia 가 3 size 모두 36/20 고정이었고 DOM 헤더 폰트는 전 size 14px 였다. Content 도 Skia 16/20/24 로 size 를 따라간다.
+
+- `sizePropagationPathContract.test.ts` 에 Disclosure 추가 — **수정 전 RED** ("Disclosure size 규칙 존재: expected 0 to be greater than 0" — 규칙 0건이 테스트로 확증됨). size-bearing 자식 목록에 `DisclosureHeader`/`DisclosureContent` 등록.
+- `disclosureHeaderFontInherit.test.ts` 신규 — 상속 체인 두 노드의 `font-size: inherit` + **상속 source(`Disclosure.sizes`) = Skia source(`DisclosureHeader.sizes`)** fontSize 일치를 고정 (갈리면 inherit 가 DOM 을 변하게만 할 뿐 Skia 와 못 맞춤). 수정 전 2 RED.
+- **stale 테스트 정정**: `disclosureHeaderIconSize.test.ts` 의 height 기대값이 `28/30/32`(fontSize + paddingY\*2 **산술 추정**) 로 남아 있었다. 2026-07-14 sweep 이 catalog 를 CSS 실측값 `32/36/40` 으로 고쳤는데 테스트만 안 따라와 계속 RED 였던 것 — 이번 라이브 실측(DOM 34/36/39)이 catalog 가 옳음을 확증해 기대값을 정정했다.
+- `packages/shared/src/catalog` + `apps/builder/src/builder/utils` **336 통과 / 실패 0**. type-check 0 error.
+
 ## [Icon DOM 이 size 무시하고 24px 고정 — internal leaf 의 size/variant passthrough 누락] - 2026-07-15
 
 ### Bug Fixes

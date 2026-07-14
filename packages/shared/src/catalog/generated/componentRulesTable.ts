@@ -4324,6 +4324,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         staticSelectors: {
           ".react-aria-Heading": {
             margin: "0",
+            // `<Heading>` 은 `<h3>` 로 렌더돼 **브라우저 기본 h3 font-size(16px)** 를 갖는다 →
+            //   `.react-aria-Disclosure[data-size]` 의 font-size 상속 체인을 여기서 끊는다.
+            //   아래 trigger 버튼의 `font-size: inherit` 는 **직계 부모**(= 이 Heading)를 따르므로,
+            //   Heading 이 먼저 inherit 하지 않으면 버튼이 h3 기본 16px 을 물려받는다
+            //   (sm 실측: Disclosure 12px → Heading 16px → Button 16px, 기대 12px).
+            "font-size": "inherit",
           },
           // 헤더 trigger 버튼 — starter `.disclosure-button` 정합 (flex + font-weight 600 + hover bg).
           //   composition <Disclosure> 는 <Heading><Button slot="trigger"> 구조라 RAC 기본 .react-aria-Button.
@@ -4341,6 +4347,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             //   명시 flex-start 로 override — starter .disclosure-button(text-align:start, 기본
             //   justify normal=flex-start) 정합. 누락 시 헤더 chevron+title 이 중앙 정렬로 발산.
             "justify-content": "flex-start",
+            // RAC `.react-aria-Button` base 가 `font-size: var(--text-sm)`(14) 를 **자기 값으로
+            //   선언**해(Button.css:35) 부모 `.react-aria-Disclosure[data-size]` 의 font-size
+            //   상속을 차단한다 → trigger 헤더가 전 size 14px 고정(사용자 적발 2026-07-15:
+            //   "Disclosure size 변경 시 DisclosureHeader 변경 안 됨(css, skia)").
+            //   Skia 는 `DisclosureHeader.sizes.fontSize`(sm 12 / md 14 / lg 16)를 그리므로
+            //   sm/lg 에서 DOM↔Skia 비대칭. `inherit` 로 부모 size 폰트를 받는다 — 위
+            //   justify-content 와 **동일한 "Button base 가 부모를 덮는다"** 함정.
+            //   대칭 근거: `Disclosure.sizes.fontSize` = `DisclosureHeader.sizes.fontSize`
+            //   (둘 다 text-xs/text-sm/text-base) → inherit 값이 Skia 가 읽는 값과 일치.
+            "font-size": "inherit",
             gap: "var(--spacing-xs)",
             padding: "var(--spacing-sm) var(--spacing-md)",
             "border-radius": "var(--radius-md)",

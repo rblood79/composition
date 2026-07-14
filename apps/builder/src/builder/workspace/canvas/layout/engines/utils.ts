@@ -130,14 +130,20 @@ function circleLeafDiameter(type: string, sizeName: string): number {
 //   `componentRulesTable.DisclosureHeader.sizes.md` 와 byte 일치하던 dual-SSOT 미러였다(Δ8).
 //   `gap`(=6)은 catalog `.sizes` 에 대응 키 부재(leading_icon module 전용 layout gap)라 layout-private
 //   유지. fontSize text-sm(14)는 style override 우선이라 본 헬퍼 밖.
-function disclosureHeaderDims(): {
+//
+// **2026-07-15 (사용자 적발: "Disclosure size 변경 시 DisclosureHeader 변경 안 됨")**: 본 헬퍼가
+//   size 를 안 받고 **항상 `.sizes.md`** 를 읽어, catalog 에 sm/md/lg(height 32/36/40)가 다 있는데도
+//   layout box 가 md(36) 에 고정됐다. 바로 옆 `statusLightDims(sizeName)` / `sliderTrackRowHeight(sizeName)`
+//   는 size 를 받는데 이 함수만 누락 — size 인자를 받아 동형으로 맞춘다 (미존재 size 는 md fallback).
+function disclosureHeaderDims(sizeName: string = "md"): {
   height: number;
   paddingX: number;
   iconSize: number;
 } {
-  const entry = resolveSkiaRule("DisclosureHeader")?.sizes?.md as
-    | ComponentRuleSize
+  const sizes = resolveSkiaRule("DisclosureHeader")?.sizes as
+    | Record<string, ComponentRuleSize>
     | undefined;
+  const entry = sizes?.[sizeName] ?? sizes?.md;
   const num = (v: unknown, fb: number) => (typeof v === "number" ? v : fb);
   return {
     height: num(entry?.height, 30),
@@ -1283,14 +1289,15 @@ export function calculateContentWidth(
     const props = element.props as Record<string, unknown> | undefined;
     const text = String(props?.children ?? props?.title ?? "Section");
     if (!text) return 0;
-    const dhDims = disclosureHeaderDims();
+    const dhDims = disclosureHeaderDims(String(props?.size ?? "md"));
     const paddingX =
       parseNumericValue(
         style?.paddingLeft ?? style?.paddingRight ?? style?.padding,
       ) ?? dhDims.paddingX;
     const fontSize = parseNumericValue(style?.fontSize) ?? 14;
     // iconSize: catalog rule iconSize(>0) 우선, style fontSize override 시 round(fontSize*1.1) —
-    //   leading_icon module 과 동형. 본 분기는 rule 고정 size(md)이므로 catalog 기본, override 시만 비례.
+    //   leading_icon module 과 동형. rule iconSize 는 전 size 18 고정(DOM chevron 고정-크기 컨벤션,
+    //   위 catalog 주석 참조)이라 size 별로 갈리지 않는다 — override 시만 비례.
     const iconSize =
       parseNumericValue(style?.fontSize) != null
         ? Math.round(fontSize * 1.1)
@@ -2082,14 +2089,17 @@ export function calculateContentHeight(
     return dims.height;
   }
 
-  // 1.52. DisclosureHeader: rule 고정 box height (ADR-912 Phase 5 — catalog read-through).
+  // 1.52. DisclosureHeader: catalog rule box height (ADR-912 Phase 5 — catalog read-through).
   //   구 인라인 `return 30` 은 `componentRulesTable.DisclosureHeader.sizes.md.height` 와 byte
   //   일치하던 dual-SSOT 미러였다(= spec rowHeight: fontSize 14 + paddingY 8*2). leading icon
   //   y=height/2 정렬 기준이라 layout height 와 Skia rule height(buildSpecNodeData ruleSizeToSizeSpec)가
   //   동일해야 selection box(layout) ↔ Skia 렌더 대칭. 명시적 style.height override 는 §1(L1527)이 우선.
-  //   StatusLight `dims.height` 패턴 동형. catalog `.sizes.md.height` read-through 로 단일화.
+  //   StatusLight `dims.height` 패턴 동형.
+  //   **2026-07-15**: 구 `disclosureHeaderDims()` 는 size 무시 + `.sizes.md` 고정이라 sm/lg 에서
+  //   catalog(32/40) 과 어긋난 36 을 반환했다 → `props.size` 를 넘겨 size 별 read-through.
   if (tag1 === "disclosureheader") {
-    return disclosureHeaderDims().height;
+    const props = element.props as Record<string, unknown> | undefined;
+    return disclosureHeaderDims(String(props?.size ?? "md")).height;
   }
 
   // 1.525. TreeItem: catalog rule 고정 box height read-through (DisclosureHeader 동형).

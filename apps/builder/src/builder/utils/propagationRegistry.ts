@@ -117,6 +117,26 @@ const cardContentPropagationRules: PropagationRule[] = [
   },
 ];
 
+/**
+ * Disclosure size → 자식 (2026-07-15, 사용자 보고: "Disclosure size 변경 시 DisclosureHeader
+ * 변경 안 됨(css, skia), DisclosureContent(css만 변경)").
+ *
+ * Disclosure 는 **propagation 규칙이 하나도 없었다** — 옛 경로 stale 이 아니라 **부재**.
+ * 규칙 부재는 Skia 를 **두 겹으로** 끊는다:
+ *  1. Inspector 전파(`buildPropagationUpdates`)가 자식 store 에 size 를 안 쓴다.
+ *  2. **Skia delegation 도 죽는다** — `resolveParentDelegatedSize`(buildSpecNodeData.ts:421)가
+ *     `getParentTagsForChild()`, 즉 본 registry 의 **역인덱스**로 부모를 찾기 때문이다. 규칙이
+ *     없으면 역인덱스가 비어 delegation 이 `null` → 자식이 catalog `defaultSize`(md) 고정.
+ *     `DisclosureHeader` / `DisclosureContent` 둘 다 catalog 에 sm/md/lg sizes 가 정의돼 있는데도
+ *     Skia 가 md 만 그린 원인이 이것이다.
+ *
+ * Card(`size → CardHeader/CardContent/CardFooter`) 와 동일 패턴 — Disclosure 만 누락돼 있었다.
+ */
+const disclosurePropagationRules: PropagationRule[] = [
+  { parentProp: "size", childPath: "DisclosureHeader", override: true },
+  { parentProp: "size", childPath: "DisclosureContent", override: true },
+];
+
 // ADR-912 단계5 step4 경량 이관 (2026-06-17): GridList.spec 삭제 — propagation.rules 인라인 보존.
 //   variant → GridListItem 전파(카드 accent 색). childPath string 이라 spec 객체 의존 0.
 const gridListPropagationRules: PropagationRule[] = [
@@ -945,6 +965,9 @@ registerPropagationRules("Card", cardPropagationRules);
 //   ADR-912 (2026-06-15): CardHeader/CardContent spec 삭제 → propagation-only 인라인 spec 으로 보존.
 registerPropagationRules("CardHeader", cardHeaderPropagationRules);
 registerPropagationRules("CardContent", cardContentPropagationRules);
+// 2026-07-15: Disclosure size → DisclosureHeader/DisclosureContent (규칙 자체가 부재했다 —
+//   Inspector 전파 + Skia delegation 역인덱스가 함께 죽어 자식이 md 고정).
+registerPropagationRules("Disclosure", disclosurePropagationRules);
 registerPropagationRules("GridList", gridListPropagationRules);
 // ADR-912 단계5 step4 (2026-06-17): ListBox.spec 삭제 → 빈 propagation-only spec(rules 부재 = 구
 //   no-op 동작 동일). 정적 모드 shapes 가 부모 variant 직접 참조라 자식 전파 불필요(ListBox.spec:352).

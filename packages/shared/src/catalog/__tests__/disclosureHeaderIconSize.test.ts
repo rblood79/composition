@@ -53,9 +53,18 @@ describe("DisclosureHeader rule iconSize = DOM chevron 18px 고정 (Button 기�
     expect(px).toEqual([12, 12, 12]);
   });
 
-  it("height = fontSize + paddingY*2 (sm 28 / md 30 / lg 32)", () => {
-    expect(rule.sizes.sm?.height).toBe(28);
-    expect(rule.sizes.md?.height).toBe(30);
-    expect(rule.sizes.lg?.height).toBe(32);
+  /**
+   * **기대값 정정 (2026-07-15)**: 구 `28 / 30 / 32` 는 `fontSize + paddingY*2` 라는 **산술 추정**이었고
+   * CSS 실측(32/36/40)과 -4~-8 drift 였다. 2026-07-14 sweep 이 catalog 를 실측값으로 고쳤는데
+   * **본 테스트만 옛 추정값에 남아** 계속 RED 였다 (Δ 미갱신 = stale 계약).
+   *
+   * 실측 근거 (라이브 DOM `.react-aria-Button[slot='trigger']` getBoundingClientRect):
+   * sm **34** / md **36** / lg **39** — line-height 반올림 오차 ±2 안에서 catalog 32/36/40 과 일치.
+   * height 는 산술이 아니라 **line-height + trigger paddingY(전 size 8 고정)** 의 실측 결과다.
+   */
+  it("height 는 CSS 실측 기준 (sm 32 / md 36 / lg 40)", () => {
+    expect(rule.sizes.sm?.height).toBe(32);
+    expect(rule.sizes.md?.height).toBe(36);
+    expect(rule.sizes.lg?.height).toBe(40);
   });
 });
