@@ -3563,26 +3563,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           {
             childSelector: ".react-aria-Button",
             prefix: "dp-btn",
+            // 트리거 아이콘 크기 = **아이콘 스케일** (Select 의 `.select-chevron` 과 동일:
+            //   14/16/18/22/28, `SelectIcon.sizes[*].iconSize` 정합).
+            //   **typography 토큰(`--text-*`) 사용 금지 (2026-07-14)**: 폰트 크기 스케일은
+            //   아이콘 박스 스케일이 아니다 — `--text-xl`(20) / `--text-2xl`(24) / `--text-3xl`(30)
+            //   을 쓰면 Skia(`SelectIcon.iconSize` 18/22/28)와 md/lg/xl 전부 어긋난다
+            //   (실측 md: DOM 버튼 20 vs Skia 18). Select 는 처음부터 px 아이콘 스케일이라
+            //   정합이었고, DatePicker/DateRangePicker 만 typography 스케일을 쓰던 예외였다.
             variables: {
               xs: {
-                "--dp-btn-width": "var(--text-sm)",
-                "--dp-btn-height": "var(--text-sm)",
+                "--dp-btn-width": "14px",
+                "--dp-btn-height": "14px",
               },
               sm: {
-                "--dp-btn-width": "var(--text-base)",
-                "--dp-btn-height": "var(--text-base)",
+                "--dp-btn-width": "16px",
+                "--dp-btn-height": "16px",
               },
               md: {
-                "--dp-btn-width": "var(--text-xl)",
-                "--dp-btn-height": "var(--text-xl)",
+                "--dp-btn-width": "18px",
+                "--dp-btn-height": "18px",
               },
               lg: {
-                "--dp-btn-width": "var(--text-2xl)",
-                "--dp-btn-height": "var(--text-2xl)",
+                "--dp-btn-width": "22px",
+                "--dp-btn-height": "22px",
               },
               xl: {
-                "--dp-btn-width": "var(--text-3xl)",
-                "--dp-btn-height": "var(--text-3xl)",
+                "--dp-btn-width": "28px",
+                "--dp-btn-height": "28px",
               },
             },
             bridges: {
@@ -4012,26 +4019,27 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           {
             childSelector: ".react-aria-Button",
             prefix: "drp-btn",
+            // 트리거 아이콘 크기 = 아이콘 스케일 (dp-btn 과 동일 근거 — 위 DatePicker 주석 참조).
             variables: {
               xs: {
-                "--drp-btn-width": "var(--text-sm)",
-                "--drp-btn-height": "var(--text-sm)",
+                "--drp-btn-width": "14px",
+                "--drp-btn-height": "14px",
               },
               sm: {
-                "--drp-btn-width": "var(--text-base)",
-                "--drp-btn-height": "var(--text-base)",
+                "--drp-btn-width": "16px",
+                "--drp-btn-height": "16px",
               },
               md: {
-                "--drp-btn-width": "var(--text-xl)",
-                "--drp-btn-height": "var(--text-xl)",
+                "--drp-btn-width": "18px",
+                "--drp-btn-height": "18px",
               },
               lg: {
-                "--drp-btn-width": "var(--text-2xl)",
-                "--drp-btn-height": "var(--text-2xl)",
+                "--drp-btn-width": "22px",
+                "--drp-btn-height": "22px",
               },
               xl: {
-                "--drp-btn-width": "var(--text-3xl)",
-                "--drp-btn-height": "var(--text-3xl)",
+                "--drp-btn-width": "28px",
+                "--drp-btn-height": "28px",
               },
             },
             bridges: {

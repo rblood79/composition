@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [DatePicker 트리거 아이콘 크기 — typography 토큰 대신 아이콘 스케일로 통일 (DOM↔Skia 대칭)] - 2026-07-14
+
+### Bug Fixes
+
+- **DatePicker/DateRangePicker 의 트리거 아이콘이 DOM 20 vs Skia 18 로 어긋남** (md 기준):
+  - **Why**: catalog 의 `dp-btn`/`drp-btn` delegation 만 아이콘 박스 크기를 **typography 토큰**(`--text-xl` 등)으로 지정하고 있었다. **폰트 크기 스케일은 아이콘 박스 스케일이 아니다** — `--text-xl`=20 / `--text-2xl`=24 / `--text-3xl`=30 이라 Skia 가 소비하는 `SelectIcon.sizes[*].iconSize`(18/22/28)와 **md/lg/xl 전부** 어긋났다. Select 는 처음부터 `.select-chevron` 을 **px 아이콘 스케일**(14/16/18/22/28)로 지정해 정합이었고, **DatePicker/DateRangePicker 만 예외**였다.
+  - 수정: `dp-btn`/`drp-btn` 을 Select 와 동일한 아이콘 스케일(14/16/18/22/28)로 통일 → DOM/Skia 가 **전 size 동일 값**. catalog(D3 SSOT) 편집 후 `pnpm generate:css` 로 CSS 재생성.
+  - **부수 효과**: 아이콘이 2px 넓던 만큼 DateInput 폭도 밀려 있었다(Skia 310 vs DOM 308). 아이콘을 맞추자 **DateInput 폭 불일치도 함께 해소** — DatePicker 전 요소가 DOM 과 완전 일치.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (delegation `dp-btn`/`drp-btn`), `packages/shared/src/components/styles/generated/{DatePicker,DateRangePicker}.css` (재생성)
+  - 검증 (live builder 실측): 아이콘 **Skia 18×18 @ x=327 = DOM 18×18 @ x=327**, DateInput **Skia 310 = DOM 310**, SelectTrigger 350×30, DatePicker 350×54 — **전 요소 일치, 잔여 0**. DOM probe 로 5개 size 전수 확인(xs 14 / sm 16 / md 18 / lg 22 / xl 28 = `SelectIcon.iconSize` 정합). 신규 회귀 테스트 5건(수정 전 RED 3건 확인) — typography 토큰 재도입 차단 포함. shared 1 failed(`disclosureHeaderIconSize`, 기존 실패 — 격리 실행으로 무관 확증) / specs 544 통과 / type-check PASS.
+
 ## [flex-grow 분배 복구 — intrinsic 폭을 명시 width 로 굳혀 grow 차단 / align-items 를 indefinite 신호로 오용] - 2026-07-14
 
 ### Bug Fixes
@@ -17,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **(2) layout — `minWidth: 0` 을 미설정으로 오판** (falsy 함정): 보존 가드가 `!style?.minWidth` 라서 **`0` 을 미설정으로 읽어** intrinsic 폭으로 덮어썼다. `minWidth: 0` 은 implicitStyles 가 `flex:1` 과 **짝으로** 주입하는 "콘텐츠 밑으로도 축소 허용" 명시값이다. 수정: `== null` 판정. 동시에 "변경 없으면 원본 반환" 가드가 width/height 만 비교해 **minWidth 단독 주입을 조용히 버리던** 문제도 함께 수정.
   - **(3) 엔진 — `align-items` 를 컨테이너 cross 의 indefinite 신호로 오용** (`tree.rs::solve_flex`): 비-stretch 컨테이너가 **모든** 자식에게 `INDEFINITE_AVAIL` 을 내려보냈다. **Why**: `align-items` 는 *auto-cross 자식을 늘릴지*만 정할 뿐 **cross 를 명시한 자식에는 아무 영향이 없다**. `align-items:flex-start` 인 DatePicker 밑에서 **`width:100%` 로 폭이 확정된 SelectTrigger** 까지 indefinite 를 받아 → trigger 의 main(row=width) 이 indefinite → `flex.rs` 의 **Step 0 early-return 으로 grow 분배가 통째로 skip** → `flex:1`(basis 0%) 인 DateInput 이 **폭 0** 으로 붕괴했다. 수정: **자식별 판정** — cross 를 명시한 자식은 available 을 그대로 받고, auto-cross 자식만 indefinite 를 받는다. (컨테이너 단위로 넓히면 width 미지정 DatePicker 가 shrink-to-fit 을 잃고 350 으로 팽창 — 그래서 자식별이어야 한다.)
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`, `packages/composition-engine/src/tree.rs`
-  - 검증 (live builder 실측, 수정 전 → 후): DateInput 폭 **102 → 310** (DOM 308, 잔여 2px 은 아이콘 18 vs DOM 버튼 20 차이 — layout 아님), SelectIcon x **119 → 327** (DOM 325), **TextField 96 → 390** (DOM probe 실측 390 으로 확증). 페이지 전체 18개 요소 before/after diff 결과 **변경 3건이 전부 위 의도된 수정**이며 부수 변화 0건. Rust 280건 전체 통과(회귀 0, Chrome 실측 golden 25건 + shrink-to-fit/stretch 양쪽 contract 동시 lock), 신규 회귀 테스트 Rust 1건 + JS 8건(수정 전 RED 5건 확인). canvas 실패 12건은 clean-tree baseline 과 동일한 기존 실패(`tagSpecMap`/`canvasSceneNode` 등, 격리 실행으로 무관함 확증). type-check PASS.
+  - 검증 (live builder 실측, 수정 전 → 후): DateInput 폭 **102 → 310** (DOM 308, 잔여 2px 은 아이콘 18 vs DOM 버튼 20 차이 — layout 아님, **위 "트리거 아이콘 크기" 엔트리에서 해소**), SelectIcon x **119 → 327** (DOM 325 → 아이콘 수정 후 327 로 일치), **TextField 96 → 390** (DOM probe 실측 390 으로 확증). 페이지 전체 18개 요소 before/after diff 결과 **변경 3건이 전부 위 의도된 수정**이며 부수 변화 0건. Rust 280건 전체 통과(회귀 0, Chrome 실측 golden 25건 + shrink-to-fit/stretch 양쪽 contract 동시 lock), 신규 회귀 테스트 Rust 1건 + JS 8건(수정 전 RED 5건 확인). canvas 실패 12건은 clean-tree baseline 과 동일한 기존 실패(`tagSpecMap`/`canvasSceneNode` 등, 격리 실행으로 무관함 확증). type-check PASS.
 
 ## [DatePicker DateInput height 0 — 2-pass 가 주입 height 삭제 / stretch vs shrink-to-fit 구분] - 2026-07-14
 

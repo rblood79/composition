@@ -262,28 +262,28 @@
 }
 
 .react-aria-DatePicker[data-size="xs"] .react-aria-Button {
-  --dp-btn-width: var(--text-sm);
-  --dp-btn-height: var(--text-sm);
+  --dp-btn-width: 14px;
+  --dp-btn-height: 14px;
 }
 
 .react-aria-DatePicker[data-size="sm"] .react-aria-Button {
-  --dp-btn-width: var(--text-base);
-  --dp-btn-height: var(--text-base);
+  --dp-btn-width: 16px;
+  --dp-btn-height: 16px;
 }
 
 .react-aria-DatePicker[data-size="md"] .react-aria-Button {
-  --dp-btn-width: var(--text-xl);
-  --dp-btn-height: var(--text-xl);
+  --dp-btn-width: 18px;
+  --dp-btn-height: 18px;
 }
 
 .react-aria-DatePicker[data-size="lg"] .react-aria-Button {
-  --dp-btn-width: var(--text-2xl);
-  --dp-btn-height: var(--text-2xl);
+  --dp-btn-width: 22px;
+  --dp-btn-height: 22px;
 }
 
 .react-aria-DatePicker[data-size="xl"] .react-aria-Button {
-  --dp-btn-width: var(--text-3xl);
-  --dp-btn-height: var(--text-3xl);
+  --dp-btn-width: 28px;
+  --dp-btn-height: 28px;
 }
 
 .react-aria-DatePicker .react-aria-Button {
