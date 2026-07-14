@@ -5,6 +5,7 @@ import type {
   RefNode,
 } from "@composition/shared";
 import {
+  mergeElementsCanonicalPrimary,
   registerCanonicalMutationStoreActions,
   resetCanonicalMutationStoreActions,
 } from "@/adapters/canonical/canonicalMutations";
@@ -352,41 +353,69 @@ describe("instance store actions", () => {
     } as never);
     useStore.getState()._rebuildIndexes();
 
+    // 실빌더 환경 정렬: canonical document 시드 (replace event undo 경로가
+    // canonical doc 을 요구 — ADR-116 primary SSOT)
+    registerCanonicalMutationStoreActions({
+      getCurrentProjectId: () => "instance-project",
+      getCurrentLegacySnapshot: () => ({
+        elements: useStore.getState().elements,
+        pages: [],
+        layouts: [],
+      }),
+    });
+    useCanonicalDocumentStore.getState().setCurrentProject("instance-project");
+    mergeElementsCanonicalPrimary([master, instance]);
+
     const result = useStore
       .getState()
       .resetInstanceOverrideField("instance", "label");
 
-    expect(result?.previousState).toEqual(instance);
-    expect(useStore.getState().elementsMap.get("instance")).toMatchObject({
-      [COMPONENT_OVERRIDES_MIRROR_FIELD]: { style: { color: "blue" } },
+    // canonical 시드 후 source 는 canonical-derived 형태 (ref 의 overrides 는
+    // props 로 노출) — 핵심 필드만 비교
+    expect(result?.previousState).toMatchObject({
+      id: "instance",
+      props: {
+        label: "Instance",
+        style: { color: "blue" },
+      },
     });
+    const afterReset = useStore.getState().elementsMap.get("instance");
+    expect(afterReset).toMatchObject({
+      props: { style: { color: "blue" } },
+    });
+    expect(
+      (afterReset?.props as Record<string, unknown> | undefined)?.label,
+    ).toBeUndefined();
+    // canonical replace event 쌍 (remove prev + insert next) 부착 검증
     expect(addEntrySpy).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "update",
         elementId: "instance",
         data: expect.objectContaining({
-          prevElement: instance,
-          element: expect.objectContaining({
-            [COMPONENT_OVERRIDES_MIRROR_FIELD]: {
-              style: { color: "blue" },
-            },
-          }),
+          canonicalEvents: [
+            expect.objectContaining({ type: "remove" }),
+            expect.objectContaining({ type: "insert" }),
+          ],
         }),
       }),
     );
 
     await useStore.getState().undo();
     expect(useStore.getState().elementsMap.get("instance")).toMatchObject({
-      [COMPONENT_OVERRIDES_MIRROR_FIELD]: {
+      props: {
         label: "Instance",
         style: { color: "blue" },
       },
     });
 
     await useStore.getState().redo();
-    expect(useStore.getState().elementsMap.get("instance")).toMatchObject({
-      [COMPONENT_OVERRIDES_MIRROR_FIELD]: { style: { color: "blue" } },
+    const afterRedo = useStore.getState().elementsMap.get("instance");
+    expect(afterRedo).toMatchObject({
+      props: { style: { color: "blue" } },
     });
+    expect(
+      (afterRedo?.props as Record<string, unknown> | undefined)?.label,
+    ).toBeUndefined();
   });
 
   it("resets a canonical ref props override field", () => {
@@ -427,11 +456,29 @@ describe("instance store actions", () => {
     } as never);
     useStore.getState()._rebuildIndexes();
 
+    // 실빌더 환경 정렬: canonical document 시드
+    registerCanonicalMutationStoreActions({
+      getCurrentProjectId: () => "instance-project",
+      getCurrentLegacySnapshot: () => ({
+        elements: useStore.getState().elements,
+        pages: [],
+        layouts: [],
+      }),
+    });
+    useCanonicalDocumentStore.getState().setCurrentProject("instance-project");
+    mergeElementsCanonicalPrimary([ref]);
+
     const result = useStore
       .getState()
       .resetInstanceOverrideField("ref", "text", "slot/label");
 
-    expect(result?.previousState).toEqual(ref);
+    // canonical 시드 후 source 는 canonical-derived 형태 — 핵심 필드만 비교
+    expect(result?.previousState).toMatchObject({
+      id: "ref",
+      descendants: {
+        "slot/label": { text: "Custom label", tone: "accent" },
+      },
+    });
     expect(useStore.getState().elementsMap.get("ref")).toMatchObject({
       descendants: {
         "slot/label": { tone: "accent" },
@@ -440,17 +487,16 @@ describe("instance store actions", () => {
         },
       },
     });
+    // canonical replace event 쌍 (remove prev + insert next) 부착 검증
     expect(addEntrySpy).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "update",
         elementId: "ref",
         data: expect.objectContaining({
-          prevElement: ref,
-          element: expect.objectContaining({
-            descendants: expect.objectContaining({
-              "slot/label": { tone: "accent" },
-            }),
-          }),
+          canonicalEvents: [
+            expect.objectContaining({ type: "remove" }),
+            expect.objectContaining({ type: "insert" }),
+          ],
         }),
       }),
     );

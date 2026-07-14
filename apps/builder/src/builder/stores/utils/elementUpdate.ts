@@ -7,7 +7,12 @@ import {
 } from "../../../types/core/store.types";
 import { sanitizeFillDerivedStylePatch } from "../../panels/styles/utils/fillDerivedStyleProps";
 import { historyManager } from "../history";
-import { buildCanonicalUpdateEvent } from "../history/canonicalHistoryEvents";
+import {
+  buildCanonicalMoveEvents,
+  buildCanonicalUpdateEvent,
+  captureCanonicalNodeLocations,
+  type CanonicalHistoryNodeEvent,
+} from "../history/canonicalHistoryEvents";
 import { createCompleteProps } from "./elementHelpers";
 import type { ElementsState } from "../elements";
 import { getDB } from "../../../lib/db";
@@ -849,12 +854,10 @@ export const createBatchUpdateElementsAction =
     if (validUpdates.length === 0) return;
 
     // 🚀 Phase 1: Immer → 함수형 업데이트
-    // 1. 히스토리용 이전 상태 저장 (props 변경 시에만)
-    const prevStates: Array<{
-      elementId: string;
-      prevProps: ComponentElementProps;
-      prevElement: Element;
-    }> = [];
+    // 1. 히스토리용 canonical update event 수집 (props 변경 시에만)
+    //    batchUpdateElements 는 `{...el, ...updates}` 로 props 를 전체
+    //    교체하므로 updates.props 자체가 full next props 다.
+    const updateEvents: CanonicalHistoryNodeEvent[] = [];
 
     // 업데이트 맵 생성 (O(1) 조회용)
     const updateMap = new Map<string, Partial<Element>>();
@@ -862,15 +865,24 @@ export const createBatchUpdateElementsAction =
       const element = elementLookup.get(elementId);
       if (element) {
         if (elementUpdates.props) {
-          prevStates.push({
-            elementId,
-            prevProps: cloneForHistory(element.props),
-            prevElement: cloneForHistory(element),
-          });
+          updateEvents.push(
+            buildCanonicalUpdateEvent(
+              elementId,
+              cloneForHistory(element.props) as Record<string, unknown>,
+              cloneForHistory(elementUpdates.props) as Record<string, unknown>,
+            ),
+          );
         }
         updateMap.set(elementId, elementUpdates);
       }
     }
+
+    // 구조 변경(parent_id) 대상의 from-location 은 canonical mutation 전에 캡처
+    const structuralIds = validUpdates
+      .filter((u) => u.updates.parent_id !== undefined)
+      .map((u) => u.elementId);
+    const structuralFromLocations =
+      captureCanonicalNodeLocations(structuralIds);
 
     // 2. 단일 메모리 상태 업데이트 (불변)
     const updatedElements = sourceElements.map((el) => {
@@ -971,43 +983,26 @@ export const createBatchUpdateElementsAction =
       }),
     }));
 
-    // 2. 히스토리 엔트리 추가
+    // 2. 히스토리 엔트리 추가 — update event (props) + move event (parent_id)
+    //    를 단일 batch entry 로. move 의 to-location 은 sync 후 doc 에서 해석.
+    //    (과거: 혼합 batch 에서 구조 변경이 history 누락 + addBatchDiffEntry 가
+    //     props-only event 를 만들어 undo 시 parent 복원이 skip 되던 결함)
     const currentPageId = get().currentPageId;
-    if (currentPageId && prevStates.length > 0) {
-      // props 변경이 있는 경우: batch 타입 엔트리
-      historyManager.addEntry({
-        type: "batch",
-        elementId: prevStates[0].elementId,
-        data: {
-          batchUpdates: prevStates.map((ps, i) => ({
-            elementId: ps.elementId,
-            newProps: cloneForHistory(
-              validUpdates[i]?.updates.props ?? {},
-            ) as ComponentElementProps,
-            prevProps: ps.prevProps,
-          })),
-        },
-      });
-    } else if (currentPageId && prevStates.length === 0) {
-      // 구조 변경만 있는 경우 (parent_id): diff 기반 히스토리
-      const hasStructuralChange = validUpdates.some(
-        (u) => u.updates.parent_id !== undefined,
+    if (currentPageId) {
+      const moveEvents = buildCanonicalMoveEvents(
+        structuralIds.flatMap((nodeId) => {
+          const from = structuralFromLocations.get(nodeId);
+          return from ? [{ nodeId, from }] : [];
+        }),
       );
-      if (hasStructuralChange) {
-        const affectedIds = validUpdates.map((u) => u.elementId);
-        const prevElements = affectedIds
-          .map((id) => elementLookup.get(id))
-          .filter((el): el is Element => el !== undefined)
-          .map((el) => cloneForHistory(el) as Element);
-        const nextElements = affectedIds
-          .map((id) => updatedElements.find((el) => el.id === id))
-          .filter((el): el is Element => el !== undefined);
-        if (
-          prevElements.length > 0 &&
-          prevElements.length === nextElements.length
-        ) {
-          historyManager.addBatchDiffEntry(prevElements, nextElements);
-        }
+      const canonicalEvents = [...updateEvents, ...moveEvents];
+      if (canonicalEvents.length > 0) {
+        historyManager.addEntry({
+          type: updateEvents.length > 0 ? "batch" : "move",
+          elementId: validUpdates[0].elementId,
+          elementIds: validUpdates.map((u) => u.elementId),
+          data: { canonicalEvents },
+        });
       }
     }
 

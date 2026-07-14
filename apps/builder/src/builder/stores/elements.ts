@@ -12,6 +12,10 @@ import { Page } from "../../types/builder/unified.types";
 import type { PageLayoutDirection } from "./canvasSettings";
 import { historyManager } from "./history";
 import {
+  buildCanonicalMoveEvents,
+  captureCanonicalNodeLocations,
+} from "./history/canonicalHistoryEvents";
+import {
   createCompleteProps,
   findElementById,
   computeCanvasElementStyle,
@@ -154,7 +158,10 @@ export interface ElementsState {
   mergeElements: (elements: Element[]) => void;
   replaceElementId: (oldId: string, newId: string) => void;
   loadPageElements: (elements: Element[], pageId: string) => void;
-  addElement: (element: Element) => Promise<void>;
+  addElement: (
+    element: Element,
+    options?: { skipHistory?: boolean },
+  ) => Promise<void>;
   updateElementProps: (
     elementId: string,
     props: ComponentElementProps,
@@ -1385,12 +1392,29 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       if (!newParent) return;
 
       if (areCanonicalMutationStoreActionsRegistered()) {
+        // from-location 은 canonical mutation 전에 캡처 (move event 용)
+        const fromLocations = captureCanonicalNodeLocations([elementId]);
         const result = moveElementCanonicalPrimary(
           elementId,
           newParentId,
           insertionIndex,
         );
         if (result.changed) {
+          // LayerTree cross-container 이동 undo 지원 — canonical move event.
+          // (과거 이 경로는 history 미기록으로 undo 자체가 불가했다)
+          const from = fromLocations.get(elementId);
+          if (prevState.currentPageId && from) {
+            const moveEvents = buildCanonicalMoveEvents([
+              { nodeId: elementId, from },
+            ]);
+            if (moveEvents.length > 0) {
+              historyManager.addEntry({
+                type: "move",
+                elementId,
+                data: { canonicalEvents: moveEvents },
+              });
+            }
+          }
           // canonical(SSOT)이 갱신됐으면 store mirror(elements 배열 + 인덱스)도
           //   canonical 기준으로 재구축한다. getCanonicalOrStoreElements 가
           //   canonical 우선 derive 하므로 이동 결과가 정확히 반영된다.

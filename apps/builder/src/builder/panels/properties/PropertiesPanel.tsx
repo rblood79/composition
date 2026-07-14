@@ -550,7 +550,11 @@ const MultiSelectContent = memo(function MultiSelectContent({
         },
       );
       if (newElements.length === 0) return;
-      await Promise.all(newElements.map((element) => addElement(element)));
+      await Promise.all(
+        newElements.map((element) =>
+          addElement(element, { skipHistory: true }),
+        ),
+      );
       trackMultiPaste(newElements);
       console.log(`✅ [Paste] Pasted ${newElements.length} elements`);
     } catch (error) {
@@ -626,7 +630,7 @@ const MultiSelectContent = memo(function MultiSelectContent({
         elementsMap,
         currentPageId,
       );
-      await addElement(groupElement);
+      await addElement(groupElement, { skipHistory: true });
       await Promise.all(
         updatedChildren.map(async (child) => {
           await updateElement(child.id, {
@@ -954,7 +958,7 @@ function PropertiesPanelContent() {
       await Promise.all(
         newElements.map((element) => {
           console.log("[Paste] Adding element:", element.id, element.type);
-          return addElement(element);
+          return addElement(element, { skipHistory: true });
         }),
       );
 
@@ -1013,7 +1017,11 @@ function PropertiesPanelContent() {
       }
 
       // Add all new elements to store
-      await Promise.all(newElements.map((element) => addElement(element)));
+      await Promise.all(
+        newElements.map((element) =>
+          addElement(element, { skipHistory: true }),
+        ),
+      );
 
       // ⭐ Track in history AFTER adding elements
       trackMultiPaste(newElements);
@@ -1165,7 +1173,7 @@ function PropertiesPanelContent() {
       );
 
       // Add group to store (this saves to DB)
-      await addElement(groupElement);
+      await addElement(groupElement, { skipHistory: true });
 
       // Update children with new parent_id + page_id.
       // updateElement 가 store-layer 에서 atomic (set callback 안 latest state 기반

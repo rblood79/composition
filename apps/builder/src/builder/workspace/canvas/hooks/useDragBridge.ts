@@ -14,7 +14,6 @@
 
 import { useEffect, useRef, type MutableRefObject } from "react";
 import { useStore } from "../../../stores";
-import type { Element } from "../../../../types/core/store.types";
 import { useDragInteraction } from "../selection/useDragInteraction";
 import {
   resolveDropTarget,
@@ -34,8 +33,11 @@ import {
   clearAllAnimations,
 } from "../skia/dragAnimator";
 import { historyManager } from "../../../stores/history";
+import {
+  buildCanonicalMoveEvents,
+  captureCanonicalNodeLocations,
+} from "../../../stores/history/canonicalHistoryEvents";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
-import { visitCanonicalDocumentElements } from "../../../stores/canonical/canonicalElementsView";
 import { getDB } from "../../../../lib/db";
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
 import { getSceneBounds } from "../skia/renderCommands";
@@ -43,12 +45,6 @@ import type { BoundingBox } from "../selection/types";
 import { moveElementToCanonicalTarget } from "../../../../adapters/canonical/canonicalMutations";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
 import { resolveCanonicalMoveTarget } from "../interaction";
-
-type DragSnapshotEntry = {
-  id: string;
-  page_id?: string | null;
-  parent_id?: string | null;
-};
 
 type SceneBoundsResolver = (
   elementId: string,
@@ -123,16 +119,6 @@ function formatPx(value: number): string {
   return `${Number.isInteger(rounded) ? rounded : rounded.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")}px`;
 }
 
-function toDragSnapshotEntry(
-  element: CanvasInteractionNode,
-): DragSnapshotEntry {
-  return {
-    id: element.id,
-    page_id: element.page_id,
-    parent_id: element.parent_id,
-  };
-}
-
 export function resolveDragReadModel(
   fallback: DragReadModelFallback,
   resolvers: DragReadModelResolvers = {},
@@ -168,54 +154,6 @@ function buildDragReadModelFromElements(
     }
   }
   return { elementsById, childrenByParent };
-}
-
-function buildDragReadModelFromCanonicalDocument(
-  doc: Parameters<typeof visitCanonicalDocumentElements>[0],
-): DragReadModel {
-  const elements: CanvasInteractionNode[] = [];
-  visitCanonicalDocumentElements(doc, (element) => {
-    elements.push(element);
-  });
-  return buildDragReadModelFromElements(elements);
-}
-
-export function collectDragSnapshotEntries(
-  elementsById: ReadonlyMap<string, CanvasInteractionNode>,
-  childrenByParent: ReadonlyMap<string, CanvasInteractionNode[]>,
-  draggedId: string,
-): DragSnapshotEntry[] {
-  const dragged = elementsById.get(draggedId);
-  if (!dragged) return [];
-
-  const entries = new Map<string, DragSnapshotEntry>();
-  const addElement = (element: CanvasInteractionNode | undefined): void => {
-    if (!element) return;
-    entries.set(element.id, toDragSnapshotEntry(element));
-  };
-
-  for (const element of elementsById.values()) {
-    if (element.parent_id === dragged.parent_id) {
-      addElement(element);
-    }
-  }
-
-  const stack = [draggedId];
-  while (stack.length > 0) {
-    const currentId = stack.pop();
-    if (!currentId) continue;
-
-    addElement(elementsById.get(currentId));
-
-    const children = childrenByParent.get(currentId) ?? [];
-    for (const child of children) {
-      const childId = child.id;
-      if (entries.has(childId)) continue;
-      stack.push(childId);
-    }
-  }
-
-  return Array.from(entries.values());
 }
 
 async function persistActiveCanonicalDocument(
@@ -283,8 +221,6 @@ export function useDragBridge({
   getInteractiveChildrenMap,
   enabled = true,
 }: UseDragBridgeOptions): void {
-  const dragStartSnapshotRef = useRef<DragSnapshotEntry[] | null>(null);
-
   const lastResolvedDropTargetRef = useRef<DropTarget | null>(null);
 
   const { startMove, updateDrag, endDrag, cancelDrag } = useDragInteraction({
@@ -311,15 +247,6 @@ export function useDragBridge({
         lastResolvedDropTargetRef.current = null;
         dropIndicatorSnapshotRef.current = null;
         return;
-      }
-
-      // 드래그 시작 시 원래 parent/page 스냅샷 캡처
-      if (!dragStartSnapshotRef.current) {
-        dragStartSnapshotRef.current = collectDragSnapshotEntries(
-          dragStore.elementsById,
-          dragStore.childrenByParent,
-          draggedId,
-        );
       }
 
       // 드래그 요소 시각적 오프셋 (store 변경 없음)
@@ -420,15 +347,12 @@ export function useDragBridge({
         _delta,
       );
       const finalTarget = lastResolvedDropTargetRef.current;
-      const startSnapshot = dragStartSnapshotRef.current;
-
       // 시각적 상태 해제
       clearAllAnimations();
       setDragVisualOffset(null, 0, 0, true);
       setDragSiblingOffsets(null);
 
       lastResolvedDropTargetRef.current = null;
-      dragStartSnapshotRef.current = null;
       dropIndicatorSnapshotRef.current = null;
 
       if (manualPositionProps) {
@@ -441,23 +365,11 @@ export function useDragBridge({
         return;
       }
 
-      const prevSnapshotMap = new Map(
-        (startSnapshot ?? []).map((snapshot) => [snapshot.id, snapshot]),
-      );
-      if (startSnapshot && finalTarget?.isReparent) {
-        const targetSiblings = dragStore.childrenByParent.get(
-          finalTarget.containerId,
-        );
-        targetSiblings?.forEach((sibling) => {
-          const element = dragStore.elementsById.get(sibling.id);
-          if (element && !prevSnapshotMap.has(element.id)) {
-            prevSnapshotMap.set(element.id, toDragSnapshotEntry(element));
-          }
-        });
-      }
-
-      // 단일 canonical-primary commit
-      let postMoveStore: DragReadModel | null = null;
+      // 단일 canonical-primary commit — history 는 canonical move event 로 표현
+      // (형제 순서 변화는 canonical children[] 이 SSOT 라 move event 하나로 복원,
+      //  ADR-118. 과거 prevElements/elements 스냅샷 방식은 flat Element[] →
+      //  canonical 전체 교체 fallback 을 유발했다)
+      let didMove = false;
       if (finalTarget && !finalTarget.isAdjacentInsertion) {
         const updates = computeReorderFromDropTarget(
           finalTarget,
@@ -470,81 +382,33 @@ export function useDragBridge({
             insertionIndex: finalTarget.insertionIndex,
             elementsMap: dragStore.elementsById,
           });
+          // from-location 은 mutation 전에 캡처
+          const fromLocations = captureCanonicalNodeLocations([elementId]);
           const moveResult = canonicalTarget
             ? moveElementToCanonicalTarget(elementId, canonicalTarget)
             : { changed: false, document: null };
           if (moveResult.document) {
             useStore.getState()._rebuildIndexes?.();
-            postMoveStore = buildDragReadModelFromCanonicalDocument(
-              moveResult.document,
-            );
+          }
+          if (moveResult.changed) {
+            didMove = true;
+            const from = fromLocations.get(elementId);
+            const moveEvents = from
+              ? buildCanonicalMoveEvents([{ nodeId: elementId, from }])
+              : [];
+            if (moveEvents.length > 0) {
+              historyManager.addEntry({
+                type: "move",
+                elementId,
+                data: { canonicalEvents: moveEvents },
+              });
+            }
           }
         }
       }
 
-      // History + DB Persist
-      if (startSnapshot) {
-        const state = useStore.getState();
-        const historyStore =
-          postMoveStore ??
-          resolveDragReadModel(state, {
-            getInteractiveElementsMap,
-            getInteractiveChildrenMap,
-          });
-        const affectedIds = new Set(prevSnapshotMap.keys());
-        if (finalTarget?.isReparent) {
-          const newSiblings = historyStore.childrenByParent.get(
-            finalTarget.containerId,
-          );
-          newSiblings?.forEach((c) => affectedIds.add(c.id));
-          affectedIds.add(elementId);
-        }
-
-        const affectedIdList = Array.from(affectedIds);
-        const prevElements = affectedIdList
-          .map((id) => {
-            const snapshot = prevSnapshotMap.get(id);
-            const el = historyStore.elementsById.get(id);
-            if (!snapshot || !el) return undefined;
-            return {
-              ...el,
-              page_id:
-                snapshot.page_id === undefined ? el.page_id : snapshot.page_id,
-              parent_id:
-                snapshot.parent_id === undefined
-                  ? el.parent_id
-                  : snapshot.parent_id,
-            };
-          })
-          .filter((el): el is NonNullable<typeof el> => el !== undefined);
-        const nextElements = affectedIdList
-          .map((id) => historyStore.elementsById.get(id))
-          .filter((el): el is NonNullable<typeof el> => el !== undefined);
-
-        if (prevElements.length > 0 && nextElements.length > 0) {
-          const hasChange =
-            Boolean(finalTarget && !finalTarget.isAdjacentInsertion) ||
-            prevElements.some((p) => {
-              const next = historyStore.elementsById.get(p.id);
-              return (
-                next &&
-                (next.parent_id !== p.parent_id || next.page_id !== p.page_id)
-              );
-            });
-          if (hasChange) {
-            historyManager.addEntry({
-              type: "batch",
-              elementId: "drag-reorder",
-              elementIds: affectedIdList,
-              data: {
-                prevElements: prevElements as Element[],
-                elements: nextElements as Element[],
-              },
-            });
-          }
-        }
-
-        // DB Persist
+      // DB Persist — 실제 이동이 있었을 때만
+      if (didMove) {
         queueMicrotask(() => {
           void (async () => {
             try {
@@ -572,7 +436,6 @@ export function useDragBridge({
       setDragSiblingOffsets(null);
       dropIndicatorSnapshotRef.current = null;
       lastResolvedDropTargetRef.current = null;
-      dragStartSnapshotRef.current = null;
     };
   }, [
     enabled,

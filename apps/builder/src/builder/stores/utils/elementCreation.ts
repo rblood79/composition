@@ -16,7 +16,10 @@ import type {
 import { getActiveCanonicalDocument } from "@/builder/stores/canonical/canonicalElementsBridge";
 import { getCanonicalRefOverrideEntries } from "../canonical/canonicalElementsView";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
-import { buildCanonicalInsertEvents } from "../history/canonicalHistoryEvents";
+import {
+  buildCanonicalInsertEvents,
+  captureCanonicalNodeLocations,
+} from "../history/canonicalHistoryEvents";
 import {
   areCanonicalMutationStoreActionsRegistered,
   mergeElementsCanonicalPrimary,
@@ -184,7 +187,8 @@ async function persistActiveCanonicalDocument(db: BuilderDb): Promise<void> {
  * @returns addElement 액션 함수
  */
 export const createAddElementAction =
-  (set: SetState, get: GetState) => async (element: Element) => {
+  (set: SetState, get: GetState) =>
+  async (element: Element, options?: { skipHistory?: boolean }) => {
     const normalizedElement = normalizeExternalFillIngress(
       normalizeElementTagInElement(element),
     );
@@ -207,8 +211,17 @@ export const createAddElementAction =
     mergeCreatedElementsIntoCanonicalDocument([elementToAdd]);
 
     // 🚀 Phase 1: Immer → 함수형 업데이트
-    // 1. 히스토리 추가 (canonical parent 가 page 또는 reusable frame 안일 때)
-    if (isPageContext || isReusableContext) {
+    // 1. 히스토리 추가 — page/reusable context 외에 merge 후 canonical 에 실제
+    //    위치가 잡힌 추가 (projected slot 경유 등) 도 커버.
+    //    paste/group 처럼 caller 가 단일 batch entry 로 별도 기록하는 흐름은
+    //    skipHistory 로 이중 기록 차단 (기존: addElement entry + trackMultiPaste
+    //    entry 가 중복 생성되어 undo 를 여러 번 눌러야 했다).
+    const hasCanonicalLocation =
+      captureCanonicalNodeLocations([elementToAdd.id]).size > 0;
+    if (
+      !options?.skipHistory &&
+      (isPageContext || isReusableContext || hasCanonicalLocation)
+    ) {
       historyManager.addEntry({
         type: "add",
         elementId: elementToAdd.id,
@@ -292,8 +305,11 @@ export const createAddComplexElementAction =
     mergeCreatedElementsIntoCanonicalDocument(allElements);
 
     // 🚀 Phase 1: Immer → 함수형 업데이트
-    // 1. 히스토리 추가 (canonical parent 가 page 또는 reusable frame 안일 때)
-    if (isPageContext || isReusableContext) {
+    // 1. 히스토리 추가 — page/reusable context 또는 merge 후 canonical 위치
+    //    존재 시 (addElement 와 동일 기준)
+    const hasCanonicalLocation =
+      captureCanonicalNodeLocations([parentToAdd.id]).size > 0;
+    if (isPageContext || isReusableContext || hasCanonicalLocation) {
       historyManager.addEntry({
         type: "add",
         elementId: parentToAdd.id,
