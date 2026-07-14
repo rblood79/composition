@@ -232,7 +232,11 @@ export const BuilderCore: React.FC = () => {
       try {
         const db = await getDB();
         if (!disposed) {
-          await db.documents.put(projectId, doc);
+          // 자동 구독 persist — 급감 가드 대상 (allowShrink 전달 금지).
+          // 부분 상태가 canonical 에 투영된 경우 여기서 write 가 차단된다.
+          await db.documents.put(projectId, doc, {
+            reason: "canonical-subscriber",
+          });
         }
       } catch (error) {
         console.warn("[ADR-116] canonical document persist failed:", error);

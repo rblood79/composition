@@ -59,7 +59,11 @@ async function persistActiveCanonicalDocument(db: BuilderDb): Promise<void> {
   if (!projectId) return;
   const doc = canonical.documents.get(projectId);
   if (!doc) return;
-  await db.documents.put(projectId, doc);
+  // 요소 삭제는 의도된 대량 감소 가능 (서브트리/다중 선택) — 급감 가드 명시 통과
+  await db.documents.put(projectId, doc, {
+    allowShrink: true,
+    reason: "element-removal",
+  });
 }
 
 /**

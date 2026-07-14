@@ -55,7 +55,9 @@ async function persistActiveCanonicalDocument(): Promise<void> {
   const doc = canonical.documents.get(projectId);
   if (!doc) return;
   const db = await getDB();
-  await db.documents.put(projectId, doc);
+  // undo/redo 는 급감 가드 대상 유지 (allowShrink 금지) — ADR-122 잔존
+  // (raw legacy 기반 full-replace) 이 부분 상태를 투영하는 경우를 여기서 차단.
+  await db.documents.put(projectId, doc, { reason: "history-undo-redo" });
 }
 
 function syncHistoryElementsToCanonical(elements: Element[]): void {

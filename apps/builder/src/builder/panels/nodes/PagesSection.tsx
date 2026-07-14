@@ -303,7 +303,11 @@ export const PagesSection = memo(function PagesSection({
             : null;
           if (!activeProjectId || !doc) return;
           const db = await getDB();
-          await db.documents.put(activeProjectId, doc);
+          // 페이지 삭제는 의도된 대량 감소 — 급감 가드 명시 통과
+          await db.documents.put(activeProjectId, doc, {
+            allowShrink: true,
+            reason: "page-delete",
+          });
         } catch (error) {
           console.error("페이지 삭제 에러:", error);
         }

@@ -11,6 +11,7 @@ import type {
   DatabaseAdapter,
   Project,
   CanonicalDocumentRecord,
+  CanonicalDocumentBackupRecord,
   SerializedActionRecord,
   SerializedEventRecord,
 } from "../types";
@@ -21,9 +22,16 @@ import type {
   Variable,
 } from "../../../types/builder/data.types";
 import { LRUCache } from "./LRUCache";
+import {
+  BACKUP_GENERATIONS,
+  countCanonicalDocumentNodes,
+  evaluateDocumentPersist,
+  shouldWriteBackup,
+  type DocumentPersistOptions,
+} from "./documentPersistGuard";
 
 const DB_NAME = "composition";
-const DB_VERSION = 19; // ADR-143 Phase 4: design_tokens / design_themes store 폐기 (ThemeStudio dead code 제거).
+const DB_VERSION = 20; // 2026-07-14: documents_backup ring 도입 (요소 소실 사건 대응 — 덮어쓰기 전 세대 보존).
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -201,6 +209,19 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           console.log("[IndexedDB] Created store: documents");
         }
 
+        // Canonical documents backup ring (DB_VERSION 20 — 2026-07-14)
+        // 덮어쓰기 전 세대 보존: 프로젝트당 BACKUP_GENERATIONS 세대,
+        // 시간 버킷 (documentPersistGuard.shouldWriteBackup) 로 회전 소모 방지.
+        if (!db.objectStoreNames.contains("documents_backup")) {
+          const backupStore = db.createObjectStore("documents_backup", {
+            keyPath: "backup_id",
+          });
+          backupStore.createIndex("project_id", "project_id", {
+            unique: false,
+          });
+          console.log("[IndexedDB] Created store: documents_backup");
+        }
+
         for (const legacyStore of [
           "pages",
           "elements",
@@ -360,6 +381,47 @@ export class IndexedDBAdapter implements DatabaseAdapter {
 
   // === Helper Methods ===
 
+  /**
+   * documents_backup ring 에 기존 row 세대 보존 (2026-07-14).
+   *
+   * - 시간 버킷: 최신 백업이 BACKUP_MIN_INTERVAL_MS 이내면 skip.
+   * - 프로젝트당 BACKUP_GENERATIONS 초과분은 오래된 것부터 prune.
+   * - 백업 실패는 본 write 를 막지 않는다 (best-effort — 원본 persist 가 우선).
+   */
+  private async writeDocumentBackup(
+    existing: CanonicalDocumentRecord,
+  ): Promise<void> {
+    try {
+      const backups = await this.getAllByIndex<CanonicalDocumentBackupRecord>(
+        "documents_backup",
+        "project_id",
+        existing.project_id,
+      );
+      backups.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+
+      if (!shouldWriteBackup(backups[0]?.updated_at, Date.now())) {
+        return;
+      }
+
+      const backup: CanonicalDocumentBackupRecord = {
+        backup_id: `${existing.project_id}::${existing.updated_at}`,
+        project_id: existing.project_id,
+        document: existing.document,
+        updated_at: existing.updated_at,
+      };
+      await this.putToStore("documents_backup", backup);
+
+      const pruneTargets = [backup, ...backups]
+        .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+        .slice(BACKUP_GENERATIONS);
+      for (const stale of pruneTargets) {
+        await this.deleteFromStore("documents_backup", stale.backup_id);
+      }
+    } catch (error) {
+      console.warn("[IndexedDB] document backup write failed:", error);
+    }
+  }
+
   private ensureDB(): IDBDatabase {
     if (!this.db) {
       throw new Error("Database not initialized. Call init() first.");
@@ -494,10 +556,54 @@ export class IndexedDBAdapter implements DatabaseAdapter {
   // === Canonical Documents (ADR-116 primary storage) ===
 
   documents = {
+    /**
+     * 급감 가드 + 백업 ring 경유 write (2026-07-14 요소 소실 사건 대응).
+     *
+     * - node 수 급감 write 는 기본 거부 (throw 하지 않고 skip + 경고 —
+     *   실패 모드가 "새로고침 시 DB 상태로 복원" 이 되도록).
+     * - 덮어쓰기 전 기존 row 를 documents_backup ring 에 보존 (프로젝트당
+     *   BACKUP_GENERATIONS 세대, BACKUP_MIN_INTERVAL_MS 시간 버킷).
+     */
     put: async (
       projectId: string,
       document: CompositionDocument,
+      options?: DocumentPersistOptions,
     ): Promise<CompositionDocument> => {
+      const existing = await this.getFromStore<CanonicalDocumentRecord>(
+        "documents",
+        projectId,
+      );
+
+      if (existing) {
+        const decision = evaluateDocumentPersist(
+          countCanonicalDocumentNodes(existing.document),
+          countCanonicalDocumentNodes(document),
+          options,
+        );
+        if (!decision.allowed) {
+          console.error(
+            "🚨 [IndexedDB] canonical document write BLOCKED " +
+              `(project ${projectId}${options?.reason ? `, from ${options.reason}` : ""}): ` +
+              decision.blockReason,
+          );
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("composition:document-persist-blocked", {
+                detail: {
+                  projectId,
+                  prevCount: decision.prevCount,
+                  nextCount: decision.nextCount,
+                  reason: options?.reason ?? null,
+                },
+              }),
+            );
+          }
+          return document;
+        }
+
+        await this.writeDocumentBackup(existing);
+      }
+
       const record: CanonicalDocumentRecord = {
         project_id: projectId,
         document,
@@ -505,6 +611,18 @@ export class IndexedDBAdapter implements DatabaseAdapter {
       };
       await this.putToStore("documents", record);
       return document;
+    },
+
+    /** 백업 ring 조회 (최신순) — 사고 시 콘솔 복구용 진입점 */
+    getBackups: async (
+      projectId: string,
+    ): Promise<CanonicalDocumentBackupRecord[]> => {
+      const backups = await this.getAllByIndex<CanonicalDocumentBackupRecord>(
+        "documents_backup",
+        "project_id",
+        projectId,
+      );
+      return backups.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
     },
 
     get: async (projectId: string): Promise<CompositionDocument | null> => {

@@ -35,6 +35,28 @@ export interface CanonicalDocumentRecord {
   updated_at: string;
 }
 
+/**
+ * documents_backup ring row (2026-07-14 요소 소실 사건 대응).
+ * `backup_id` = `${project_id}::${원본 row 의 updated_at}`.
+ */
+export interface CanonicalDocumentBackupRecord {
+  backup_id: string;
+  project_id: string;
+  document: CompositionDocument;
+  updated_at: string;
+}
+
+/**
+ * documents.put 급감 가드 옵션 — adapter 구현은
+ * `indexedDB/documentPersistGuard.ts` 판정 경유.
+ */
+export interface DocumentPersistOptions {
+  /** 대량 삭제가 의도된 흐름 (요소 삭제 / 페이지 삭제) 에서만 true */
+  allowShrink?: boolean;
+  /** 진단 로그용 호출 출처 */
+  reason?: string;
+}
+
 // === ADR-131 — Root collection store records ===
 //
 // 각 store row 는 SerializedEvent/Action 본체 + `project_id` 필드.
@@ -74,14 +96,17 @@ export interface DatabaseAdapter {
   };
 
   // Canonical document primary storage (ADR-116)
+  // put 은 급감 가드 + 백업 ring 경유 (2026-07-14 — documentPersistGuard.ts).
   documents: {
     put(
       projectId: string,
       document: CompositionDocument,
+      options?: DocumentPersistOptions,
     ): Promise<CompositionDocument>;
     get(projectId: string): Promise<CompositionDocument | null>;
     delete(projectId: string): Promise<void>;
     getAll(): Promise<CanonicalDocumentRecord[]>;
+    getBackups(projectId: string): Promise<CanonicalDocumentBackupRecord[]>;
   };
 
   // Data Tables (Data Panel System)

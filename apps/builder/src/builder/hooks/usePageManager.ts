@@ -364,6 +364,18 @@ export const usePageManager = ({
             version: "composition-1.0",
             children: [],
           } satisfies CompositionDocument);
+        if (!persistedDocument) {
+          // 2026-07-14 요소 소실 사건 근본 의심 경로: documents.get 이 (일시적으로)
+          // null 을 반환하면 빈 fallback 이 아래 migration/ensure 체인을 통과하며
+          // "fallback Home + 시스템 Components + template origins" skeleton 이 되고,
+          // persist-back 이 실제 row 를 그 skeleton 으로 덮어써 영구 손실이 확정됐다.
+          // 실측: 소실 후 row 가 정확히 skeleton 형상 (27 nodes). 진단 로그로 추적.
+          console.error(
+            "🚨 [initializeProject] documents row 미존재 — 빈 fallback 으로 " +
+              `세션 진행 (project ${projectId}). persist-back 은 skip 된다. ` +
+              "기존 프로젝트라면 IndexedDB read-miss 이상 신호.",
+          );
+        }
         // Option B (anchor-less): origin bootstrap + 기존 instance 의 in-tree template
         //   anchor strip 을 hydration 시점에 함께 수행. anchor 가 제거되면 document 참조가
         //   바뀌어 아래 persist-back 으로 IndexedDB 가 정리된다(멱등 — anchor 없으면 no-op).
@@ -375,8 +387,13 @@ export const usePageManager = ({
             ),
           ),
         );
-        if (document !== persistedDocument) {
-          await db.documents.put(projectId, document);
+        // persist-back 은 "기존 row 를 읽은" 경우에만 — null read 에서 파생된
+        // skeleton 을 write 하면 (read 가 일시 miss 였을 때) 실제 데이터를 덮어쓴다.
+        // 신규 프로젝트 row 는 dashboard 생성 시점에 이미 기록되므로 여기서 만들 이유 없음.
+        if (persistedDocument && document !== persistedDocument) {
+          await db.documents.put(projectId, document, {
+            reason: "hydration-migrate-back",
+          });
         }
 
         useCanonicalDocumentStore.getState().setDocument(projectId, document);
