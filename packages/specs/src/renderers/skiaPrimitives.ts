@@ -2564,10 +2564,15 @@ const avatar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     visual?.text ??
     ("{color.neutral}" as TokenRef);
 
+  // x=0/y=0 + align:center/baseline:middle → 컨테이너(=원 지름) 전체 기준 정중앙.
+  // specShapeConverter 의 text x 계약은 "중심 좌표"가 아니라 "좌측 오프셋 padding" 이다:
+  //   x>0 + align:center → paddingLeft=x, maxWidth=containerWidth-2x (좌우 대칭 여백 축소)
+  // 따라서 x=radius 를 넘기면 정렬 기준 구간이 [radius, radius+diameter] 로 밀려
+  // 이니셜이 원 우측 가장자리에 그려진다(DOM Avatar.tsx 의 justifyContent:center 와 발산).
   shapes.push({
     type: "text" as const,
-    x: radius,
-    y: radius,
+    x: 0,
+    y: 0,
     text,
     fontSize,
     fontFamily: ff,

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Avatar 이니셜 정렬 CSS↔Skia 발산 수정] - 2026-07-14
+
+### Bug Fixes
+
+- **Avatar 이니셜이 Skia 에서 원 우측 가장자리에 그려짐** (CSS 는 정중앙):
+  - **Why**: `specShapeConverter` 의 text `x` 계약은 "중심 좌표"가 아니라 **좌측 오프셋 padding** 이다 — `align:center` + `x>0` 이면 `paddingLeft=x`, `maxWidth=containerWidth-2x` 로 좌우 대칭 여백을 깎는다. `avatar` primitive 가 원 중심을 지정할 의도로 `x: radius` 를 넘겨(md=16) `maxWidth = 32-32 = 0` → containerWidth 로 clamp 되면서 정렬 기준 구간이 `[16, 48]` 로 밀렸고, 그 중앙(x=32)이 지름 32 원의 **우측 끝**이 됐다. DOM(`Avatar.tsx` 의 flex `justifyContent:center`)은 원 정중앙 → 시각 발산.
+  - 수정: 이니셜 text shape 을 `x=0 / y=0 + align:center + baseline:middle` 로 전환 — 컨테이너 전체 기준 중앙 정렬 관용구(다른 primitive 와 동일)로 통일.
+  - 검증: 실행 중인 빌더의 실제 `specShapesToSkia` 로 실측 — 수정 전 정렬 기준 중앙 x=32(원 우측 끝) → 수정 후 x=16(원 정중앙, circle 중심과 일치). 회귀 테스트 9건 신규(수정 되돌리면 정렬 3건 FAIL 확인).
+  - 위치: `packages/specs/src/renderers/skiaPrimitives.ts`, `packages/specs/src/renderers/__tests__/skiaPrimitives.avatar.test.ts`
+
 ## [Canonical 문서 영구 손실 차단 — 요소 소실 사건 대응] - 2026-07-14
 
 ### Bug Fixes
