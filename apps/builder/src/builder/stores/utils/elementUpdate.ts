@@ -7,6 +7,7 @@ import {
 } from "../../../types/core/store.types";
 import { sanitizeFillDerivedStylePatch } from "../../panels/styles/utils/fillDerivedStyleProps";
 import { historyManager } from "../history";
+import { buildCanonicalUpdateEvent } from "../history/canonicalHistoryEvents";
 import { createCompleteProps } from "./elementHelpers";
 import type { ElementsState } from "../elements";
 import { getDB } from "../../../lib/db";
@@ -383,28 +384,26 @@ export const createUpdateElementPropsAction =
     const prevPropsClone = shouldRecordHistory
       ? cloneForHistory(element.props)
       : null;
-    const newPropsClone = shouldRecordHistory
-      ? cloneForHistory(sanitizedProps)
-      : null;
-    const prevElementClone = shouldRecordHistory
-      ? cloneForHistory(element)
+    // canonical update event 는 full merged props 계약 — patch 가 아닌
+    // 병합된 전체 props 를 기록해야 undo/redo 가 props 를 소거하지 않는다.
+    const mergedNextPropsClone = shouldRecordHistory
+      ? cloneForHistory({ ...element.props, ...sanitizedProps })
       : null;
 
     // 🚀 Phase 1: Immer → 함수형 업데이트
     // 1. 히스토리 추가 (상태 변경 전에 기록)
-    if (
-      currentState.currentPageId &&
-      prevPropsClone &&
-      newPropsClone &&
-      prevElementClone
-    ) {
+    if (currentState.currentPageId && prevPropsClone && mergedNextPropsClone) {
       historyManager.addEntry({
         type: "update",
         elementId: elementId,
         data: {
-          props: newPropsClone,
-          prevProps: prevPropsClone,
-          prevElement: prevElementClone,
+          canonicalEvents: [
+            buildCanonicalUpdateEvent(
+              elementId,
+              prevPropsClone as Record<string, unknown>,
+              mergedNextPropsClone as Record<string, unknown>,
+            ),
+          ],
         },
       });
     }
@@ -531,11 +530,10 @@ export const createUpdateElementAction =
     const prevPropsClone = shouldRecordHistory
       ? cloneForHistory(element.props)
       : null;
+    // updateElement 는 `{...element, ...sanitizedUpdates}` 로 props 를 전체
+    // 교체하므로 sanitizedUpdates.props 자체가 full next props 다.
     const newPropsClone = shouldRecordHistory
       ? cloneForHistory(sanitizedUpdates.props)
-      : null;
-    const prevElementClone = shouldRecordHistory
-      ? cloneForHistory(element)
       : null;
 
     // 🚀 Phase 1: Immer → 함수형 업데이트
@@ -544,16 +542,19 @@ export const createUpdateElementAction =
       currentState.currentPageId &&
       sanitizedUpdates.props &&
       prevPropsClone &&
-      newPropsClone &&
-      prevElementClone
+      newPropsClone
     ) {
       historyManager.addEntry({
         type: "update",
         elementId: elementId,
         data: {
-          props: newPropsClone,
-          prevProps: prevPropsClone,
-          prevElement: prevElementClone,
+          canonicalEvents: [
+            buildCanonicalUpdateEvent(
+              elementId,
+              prevPropsClone as Record<string, unknown>,
+              newPropsClone as Record<string, unknown>,
+            ),
+          ],
         },
       });
     }
@@ -687,7 +688,6 @@ export const createBatchUpdateElementPropsAction =
     const prevStates: Array<{
       elementId: string;
       prevProps: ComponentElementProps;
-      prevElement: Element;
     }> = [];
 
     // 업데이트 맵 생성 (O(1) 조회용)
@@ -700,7 +700,6 @@ export const createBatchUpdateElementPropsAction =
         prevStates.push({
           elementId,
           prevProps: cloneForHistory(element.props),
-          prevElement: cloneForHistory(element),
         });
         updateMap.set(elementId, props);
 
@@ -775,17 +774,24 @@ export const createBatchUpdateElementPropsAction =
     }
 
     // 2. 단일 히스토리 엔트리 추가 (batch 타입)
+    // canonical update event — full merged props 계약 (updatedElementMap 의
+    // merged 결과를 next 로 기록).
     const currentPageId = get().currentPageId;
     if (currentPageId && prevStates.length > 0) {
       historyManager.addEntry({
         type: "batch",
         elementId: prevStates[0].elementId, // 대표 요소
+        elementIds: prevStates.map((s) => s.elementId),
         data: {
-          batchUpdates: validUpdates.map((u, i) => ({
-            elementId: u.elementId,
-            newProps: cloneForHistory(u.props),
-            prevProps: prevStates[i]?.prevProps,
-          })),
+          canonicalEvents: prevStates.map((s) =>
+            buildCanonicalUpdateEvent(
+              s.elementId,
+              s.prevProps as Record<string, unknown>,
+              cloneForHistory(
+                updatedElementMap.get(s.elementId)?.props ?? {},
+              ) as Record<string, unknown>,
+            ),
+          ),
         },
       });
     }

@@ -18,6 +18,7 @@ import {
   resolveInstanceProps,
 } from "../../../utils/component/instanceResolver";
 import { historyManager } from "../history";
+import { buildCanonicalReplaceEvents } from "../history/canonicalHistoryEvents";
 import { createCompleteProps } from "./elementHelpers";
 import { buildIdPathContext } from "../../../adapters/canonical/idPath";
 import {
@@ -918,12 +919,18 @@ export function resetInstanceOverrideField(
   }
 
   if (state.currentPageId) {
+    // replace event 쌍 (pre-mutation 모드) — override/descendants mirror field
+    // 변경은 props update event 로 표현 불가. canonical sync (아래
+    // syncInstanceElementsToCanonical) 전 호출이므로 prev 는 현재 doc 에서,
+    // next 는 nextElement 로부터 빌드된다.
     historyManager.addEntry({
       type: "update",
       elementId: instanceId,
       data: {
-        element: nextElement,
-        prevElement: previousState,
+        canonicalEvents: buildCanonicalReplaceEvents(
+          [previousState],
+          [nextElement],
+        ),
       },
     });
   }

@@ -44,6 +44,10 @@ import {
   mergeElementsCanonicalPrimary,
 } from "@/adapters/canonical/canonicalMutations";
 import { historyManager } from "./history";
+import {
+  buildCanonicalReplaceEvents,
+  buildCanonicalUpdateEvent,
+} from "./history/canonicalHistoryEvents";
 import { useCanonicalDocumentStore } from "./canonical/canonicalDocumentStore";
 import { visitCanonicalDocumentElements } from "./canonical/canonicalElementsView";
 import { normalizeElementTags } from "./utils/elementTagNormalizer";
@@ -547,21 +551,24 @@ export const createInspectorActionsSlice: StateCreator<
     );
 
     // 🚀 히스토리 엔트리 추가 (props 변경 시)
+    // instance mirror: overrides/descendants 등 props 외 mirror field 변경은
+    //   replace event 쌍 (pre-mutation 모드 — canonical sync 전 호출이므로
+    //   prev 는 현재 doc, next 는 updated element 로부터 빌드)
+    // 일반 요소: full merged props 의 update event
     if (currentPageId && Object.keys(propsUpdate).length > 0) {
-      const historyData = isComponentInstanceMirrorElement(element)
-        ? {
-            prevElement,
-            element: structuredClone(updatedElement),
-          }
-        : {
-            prevProps,
-            props: structuredClone(newProps),
-            prevElement,
-          };
+      const canonicalEvents = isComponentInstanceMirrorElement(element)
+        ? buildCanonicalReplaceEvents([prevElement], [updatedElement])
+        : [
+            buildCanonicalUpdateEvent(
+              elementId,
+              prevProps,
+              structuredClone(newProps),
+            ),
+          ];
       historyManager.addEntry({
         type: "update",
         elementId: elementId,
-        data: historyData,
+        data: { canonicalEvents },
       });
     }
 

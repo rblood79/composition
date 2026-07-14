@@ -16,6 +16,7 @@ import {
   buildCanonicalInsertEvents,
   buildCanonicalRemoveEvents,
   buildCanonicalUngroupEvents,
+  buildCanonicalUpdateEvent,
 } from "../history/canonicalHistoryEvents";
 
 /**
@@ -32,35 +33,34 @@ export function trackBatchUpdate<TElement extends Element>(
 ): void {
   if (elementIds.length === 0) return;
 
-  // Collect previous props for all elements
-  const batchUpdates = elementIds
+  // canonical update event — full merged props 계약 (prev/next 모두 전체 props)
+  const canonicalEvents = elementIds
     .map((id) => {
       const element = elementsMap.get(id);
       if (!element) return null;
 
-      return {
-        elementId: id,
-        prevProps: element.props as ComponentElementProps,
-        newProps: { ...element.props, ...updates } as ComponentElementProps,
-      };
+      return buildCanonicalUpdateEvent(
+        id,
+        structuredClone(element.props) as Record<string, unknown>,
+        structuredClone({ ...element.props, ...updates }) as Record<
+          string,
+          unknown
+        >,
+      );
     })
-    .filter((update): update is NonNullable<typeof update> => update !== null);
+    .filter((event): event is NonNullable<typeof event> => event !== null);
 
-  if (batchUpdates.length === 0) return;
+  if (canonicalEvents.length === 0) return;
 
   // Add to history
   historyManager.addEntry({
     type: "batch",
     elementId: elementIds[0], // Primary element for reference
-    elementIds: elementIds,
+    elementIds: [...elementIds],
     data: {
-      batchUpdates,
+      canonicalEvents,
     },
   });
-
-  console.log(
-    `✅ [History] Tracked batch update for ${batchUpdates.length} elements`,
-  );
 }
 
 /**
