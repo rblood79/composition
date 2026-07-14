@@ -52,6 +52,8 @@ export const disclosureGroupBinding: PrimitiveBinding = {
         section: "appearance",
         default: "md",
       },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC 공식 prop — renderDisclosureGroup 배선 동반.
+      isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",
   },

@@ -676,6 +676,11 @@ export const renderPopover = (
           | "bottom start"
           | "bottom end") || undefined
       }
+      offset={
+        element.props.offset !== undefined
+          ? Number(element.props.offset)
+          : undefined
+      }
       crossOffset={
         element.props.crossOffset !== undefined
           ? Number(element.props.crossOffset)
@@ -1577,6 +1582,7 @@ export const renderDisclosureGroup = (
       data-variant={(element.props.variant as string) || "default"}
       data-size={(element.props.size as string) || "md"}
       allowsMultipleExpanded={multiple}
+      isDisabled={Boolean(element.props.isDisabled)}
       defaultExpandedKeys={defaultExpandedKeys}
       // 그룹 안 Disclosure 의 header 클릭은 **그룹의** onExpandedChange 로만 통지된다
       //   (RAC: groupState.toggleKey — 개별 Disclosure 의 onExpandedChange 는 호출 안 됨).
@@ -1659,6 +1665,7 @@ export const renderDisclosure = (
       data-element-id={element.id}
       title={title}
       size={(element.props.size as "sm" | "md" | "lg") || "md"}
+      isDisabled={Boolean(element.props.isDisabled)}
       {...(isInGroup ? {} : { defaultExpanded })}
       onExpandedChange={(isExpanded) =>
         updateElementProps(element.id, { isExpanded })

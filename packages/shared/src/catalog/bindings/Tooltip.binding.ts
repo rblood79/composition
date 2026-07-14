@@ -25,6 +25,40 @@ export const tooltipBinding: PrimitiveBinding = {
         section: "appearance",
         default: "md",
       },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): renderTooltip 기소비 —
+      //   RAC Tooltip 공식 배치 prop (placement/offset/crossOffset/shouldFlip/containerPadding).
+      placement: {
+        kind: "enum",
+        label: "Placement",
+        section: "appearance",
+        options: [
+          { value: "top", label: "Top" },
+          { value: "bottom", label: "Bottom" },
+          { value: "left", label: "Left" },
+          { value: "right", label: "Right" },
+          { value: "top start", label: "Top Start" },
+          { value: "top end", label: "Top End" },
+          { value: "bottom start", label: "Bottom Start" },
+          { value: "bottom end", label: "Bottom End" },
+        ],
+      },
+      offset: { kind: "number", label: "Offset", section: "appearance" },
+      crossOffset: {
+        kind: "number",
+        label: "Cross Offset",
+        section: "appearance",
+      },
+      shouldFlip: {
+        kind: "boolean",
+        label: "Should Flip",
+        section: "appearance",
+        default: true,
+      },
+      containerPadding: {
+        kind: "number",
+        label: "Container Padding",
+        section: "appearance",
+      },
     },
     toRacProps: "default",
   },

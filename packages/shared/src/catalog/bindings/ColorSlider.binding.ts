@@ -30,6 +30,19 @@ export const colorSliderBinding: PrimitiveBinding = {
     accepts: {
       label: { kind: "string", label: "Label", section: "content" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): orientation 은 renderColorSlider
+      //   기소비 (가로/세로 치수 전환). channel/colorSpace 는 RAC 공식이나 renderColorSlider
+      //   가 정적 gradient div 라 소비 경로 부재 — dead 편집 UI 방지를 위해 미추가.
+      orientation: {
+        kind: "enum",
+        label: "Orientation",
+        section: "appearance",
+        default: "horizontal",
+        options: [
+          { value: "horizontal", label: "Horizontal" },
+          { value: "vertical", label: "Vertical" },
+        ],
+      },
     },
     toRacProps: "default",
   },
