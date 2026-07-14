@@ -722,4 +722,25 @@ export const messageSender = {
       getTargetOrigin(),
     );
   },
+
+  /**
+   * Preview 상호작용으로 바뀐 element props 를 builder store 에 역전파 (2026-07-14).
+   *
+   * **Why**: Preview 의 `updateElementProps` 는 **Preview runtime store 전용**이라 builder store
+   *   (= Skia 렌더 source) 로 올라가지 않는다. 그래서 Preview 에서 Disclosure header 를 클릭해
+   *   접어도 Skia 는 펼친 채 남아 CSS↔Skia 가 발산했다.
+   *
+   * **적용 범위**: 문서 prop 을 실제로 바꾸는 상호작용에만 사용한다(Disclosure 확장 상태 등
+   *   binding/factory 가 보유한 prop). 순수 런타임 상태(hover/focus 등)는 대상 아님.
+   */
+  sendPropsChanged(elementId: string, props: Record<string, unknown>): void {
+    window.parent.postMessage(
+      {
+        type: "ELEMENT_PROPS_CHANGED",
+        elementId,
+        payload: { props },
+      },
+      getTargetOrigin(),
+    );
+  },
 };

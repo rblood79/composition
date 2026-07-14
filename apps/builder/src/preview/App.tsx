@@ -15,6 +15,7 @@ import React, {
 import { useRuntimeStore, getRuntimeStore } from "./store";
 import { CanvasRouter, setGlobalNavigate } from "./router";
 import { MessageHandler, messageSender } from "./messaging";
+import { pickBuilderSyncedProps } from "./messaging/builderPropSync";
 import { useNavigate } from "react-router-dom";
 import { rendererMap } from "@composition/shared/renderers";
 import {
@@ -511,13 +512,33 @@ function CanvasContent() {
     return map;
   }, [resolvedElements]);
 
+  /**
+   * Preview runtime store 갱신 + **문서 prop 은 builder store 로 역전파** (2026-07-14).
+   *
+   * Preview 의 `updateElementProps` 는 Preview runtime store 전용이라 builder store
+   * (= Skia 렌더 source) 로 올라가지 않는다 → Preview 에서 Disclosure header 를 클릭해 접어도
+   * Skia 는 펼친 채 남아 CSS↔Skia 발산했다. 역전파 대상은 `pickBuilderSyncedProps` allowlist
+   * 로 좁힌다(순수 런타임 상태까지 올려보내면 무의미한 문서 편집/히스토리가 쌓임).
+   */
+  const updateElementPropsWithBuilderSync = useCallback(
+    (id: string, props: Record<string, unknown>) => {
+      updateElementProps(id, props);
+
+      const synced = pickBuilderSyncedProps(props);
+      if (synced) {
+        messageSender.sendPropsChanged(id, synced);
+      }
+    },
+    [updateElementProps],
+  );
+
   // RenderContext 생성
   const renderContext: RenderContext = useMemo(
     () => ({
       elements: resolvedElements,
       elementsById,
       childrenByParent,
-      updateElementProps,
+      updateElementProps: updateElementPropsWithBuilderSync,
       batchUpdateElementProps,
       setElements: (newElements: PreviewElement[]) => {
         setElements(newElements as RuntimeElement[]);
@@ -533,7 +554,7 @@ function CanvasContent() {
       resolvedElements,
       elementsById,
       childrenByParent,
-      updateElementProps,
+      updateElementPropsWithBuilderSync,
       batchUpdateElementProps,
       setElements,
       eventEngine,

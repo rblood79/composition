@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Preview 상호작용 → Skia 동기화 (Disclosure header 클릭)] - 2026-07-14
+
+### Bug Fixes
+
+- **Preview 에서 Disclosure header 를 클릭해 접어도 Skia 는 펼친 채 남던 발산**:
+  - **Why**: Preview 의 `updateElementProps`(`useRuntimeStore`)는 **Preview runtime store 전용**이라 builder store(= Skia 렌더 source)로 올라가지 않았다. 그래서 header 클릭이 CSS 에만 반영되고 Skia 는 이전 상태를 그렸다. 추가로 RAC 는 그룹 안 Disclosure 의 확장을 **그룹의** `onExpandedChange` 로만 통지하는데(개별 Disclosure 의 핸들러는 호출 안 함) `renderDisclosureGroup` 에 그 핸들러가 없어 그룹 안에서는 Preview store 조차 갱신되지 않았다.
+  - 수정: (1) `renderDisclosureGroup` 에 `onExpandedChange` 추가 — 각 자식의 `isExpanded` 를 동기화. (2) Preview → builder 역전파 경로 신설 — `ELEMENT_PROPS_CHANGED` 메시지로 문서 prop 변경을 builder 에 알리고 `useStore.updateElementProps` 로 갱신(layoutVersion / dirty / canonical sync / persist 일괄 처리). 역전파는 `pickBuilderSyncedProps` **allowlist**(`isExpanded`)로 좁혀, hover/focus 같은 순수 런타임 상태가 문서 편집·undo 히스토리를 오염시키지 않게 했다.
+  - 동작: header 클릭은 Inspector 의 State > Expanded 토글과 **동일한 문서 편집**으로 취급된다(undo/redo 가능, 새로고침 후 유지).
+  - 검증: live builder 3축 실측 — Section 1 header 클릭 시 store `[true,false]` / CSS `aria-expanded=[true,false]` / Skia contentHeight `[20,0]` 전부 일치. `allowsMultipleExpanded=false` 규칙(다른 하나 자동 닫힘)도 양쪽 반영. 회귀 테스트 6건 신규.
+  - 위치: `apps/builder/src/preview/messaging/builderPropSync.ts`, `apps/builder/src/preview/App.tsx`, `apps/builder/src/preview/messaging/messageHandler.ts`, `apps/builder/src/builder/hooks/useIframeMessenger.ts`, `packages/shared/src/renderers/LayoutRenderers.tsx`
+
 ## [DisclosureGroup allowsMultipleExpanded CSS↔Skia 미반영] - 2026-07-14
 
 ### Bug Fixes

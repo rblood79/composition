@@ -878,6 +878,23 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
         });
       }
 
+      // Preview 상호작용 → builder store 역전파 (2026-07-14).
+      //   Preview 의 updateElementProps 는 Preview runtime store 전용이라 builder store
+      //   (= Skia 렌더 source) 로 올라가지 않는다 → Preview 에서 Disclosure header 를 클릭해
+      //   접어도 Skia 는 펼친 채 남아 CSS↔Skia 발산했다. Preview 가 문서 prop(allowlist:
+      //   isExpanded 등) 변경 시 본 메시지를 보내고, builder store 를 갱신해 Skia 를 동기화한다.
+      //   updateElementProps 가 layoutVersion / dirty / canonical sync / persist 를 모두 처리.
+      if (
+        event.data.type === "ELEMENT_PROPS_CHANGED" &&
+        event.data.elementId &&
+        event.data.payload?.props
+      ) {
+        const { elementId, payload } = event.data;
+        startTransition(() => {
+          void useStore.getState().updateElementProps(elementId, payload.props);
+        });
+      }
+
       // ⭐ 드래그 선택 (Shift + Drag Lasso Selection)
       // 🚀 Phase 21: startTransition 적용
       if (event.data.type === "ELEMENTS_DRAG_SELECTED") {
