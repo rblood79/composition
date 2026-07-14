@@ -884,31 +884,21 @@ const switchToggle: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
  *   style.backgroundColor → visual.fill.default.base → {color.accent}. border = {color.base} 2px(spec 정합).
  */
 const sliderThumb: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
-  const diameter =
-    typeof size.height === "number" && size.height > 0 ? size.height : 18;
-  const r = diameter / 2;
-  const fillColor =
-    (style?.backgroundColor as string | undefined) ??
-    visual?.fill?.default.base ??
-    ("{color.accent}" as TokenRef);
   void props;
-  return [
-    {
-      id: "thumb",
-      type: "circle",
-      x: r,
-      y: r,
-      radius: r,
-      fill: fillColor,
-    },
-    {
-      type: "border",
-      target: "thumb",
-      borderWidth: 2,
-      color: "{color.base}" as TokenRef,
-      radius: r,
-    },
-  ];
+  void size;
+  void visual;
+  void style;
+  // shapes 0 (replace 모드) — 그리기는 SliderTrack 의 slider_fill_bar 가 담당한다.
+  //
+  // **Why (2026-07-14)**: 이 escape 가 자기 box 안에 원을 그리려면 box 가 value 위치에 있어야
+  //   하는데, 그 배치는 implicitStyles 의 `position:absolute + left:%` 주입에 의존했다. 그러나
+  //   composition-engine(Rust)은 absolute/inset 을 레이아웃에 반영하지 않는다(Style.inset_* 는
+  //   tree.rs 에 선언만 되고 어떤 알고리즘도 읽지 않음, Position::Absolute 부재) → box 가 항상
+  //   원점(0,0)에 고정되어 thumb 이 트랙 좌측 끝에 그려졌다(value 무관 x 고정 + y 미정렬).
+  //   `_containerWidth` 를 아는 slider_fill_bar 로 렌더 소유권을 되돌려 DOM 좌표와 일치시킨다.
+  //   SliderThumb element 자체는 selection/hit box 로만 잔존(box 위치 정합은 엔진의 absolute
+  //   지원이 전제라 별도 과제).
+  return [];
 };
 
 // ===========================================================================
@@ -1827,10 +1817,16 @@ const valueFillBar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
  *   이중 렌더 0 (calendar_grid escape 동형). `_hasChildren` 체크 없음(SliderThumb 자식이라 항상
  *   true → value_fill_bar 의 `_hasChildren` early-return 에 걸리는 dead 분기를 본 primitive 가 우회).
  *
- * 좌표 (2026-06-10): layout box height = trackHeight(8, ProgressBarTrack 동일)로 통일됨.
+ * 좌표: layout box height = trackHeight(8, ProgressBarTrack 동일).
  *   트랙은 box 전체(trackY=0, height=trackHeight). thumb 은 box 세로 중앙(trackHeight/2) 기준
  *   ±thumbSize/2 로 box 밖으로 그린다 (DOM 의 thumb position:absolute 와 동형 — box layout 제외).
- *   thumb x=width*p/100, y=trackHeight/2. (이전: box=thumbSize 18px 전제로 trackY=세로중앙 였음)
+ *   thumb 중심 = (width*p/100, trackHeight/2) — CSS `.react-aria-SliderThumb{top:50%}` +
+ *   RAC inline `left:${p}%; transform:translate(-50%,-50%)` 와 동일 좌표.
+ *
+ * **thumb 렌더 소유권 (2026-07-14 복귀)**: 2026-06-10 에 SliderThumb element 로 이관했으나,
+ *   그 전제인 `position:absolute + left:%` 배치가 composition-engine(Rust)에서 성립하지 않는다
+ *   (inset_* 미소비 / Position::Absolute 부재 → thumb box 가 원점 고정 → x 가 value 를 따라가지
+ *   않고 y 도 트랙 중앙에서 벗어남). `_containerWidth` 를 아는 본 escape 로 되돌려 DOM 정합 회복.
  * 색: track 배경 = `style.backgroundColor` → `visual.fill.default.base`(neutral-subtle).
  *     fill = `style.color` → `visual.fillBar` → `{color.accent}`. thumb = fill 과 동색(handle=accent).
  *     thumb border = `{color.base}` 2px(spec 정합).
@@ -1915,10 +1911,51 @@ const sliderFillBar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     }
   }
 
-  // 2026-06-10: thumb 핸들 렌더는 SliderThumb element(SliderThumb.spec.render.shapes)로 이전.
-  //   slider_fill_bar 는 track 배경 + value 채움만 그린다 (value_fill_bar 와 동형, 단 replace 모드
-  //   유지 — SliderTrack box 자체 생성). SliderThumb element 가 left:percent% 위치에 원형 핸들을
-  //   자체 렌더 → DOM(RAC SliderThumb) 과 아키텍처 대칭 + SliderThumb 삭제 시 thumb 사라짐.
+  // ── thumb 핸들 (2026-07-14 렌더 소유권 복귀) ────────────────────────────────
+  // 2026-06-10 에 thumb 렌더를 SliderThumb element 로 넘겼으나, 그 전제("SliderThumb 이
+  //   left:percent% 로 배치된다")가 **레이아웃 엔진에서 성립하지 않는다**:
+  //   composition-engine(Rust)은 `position:absolute` / `inset_*` 를 레이아웃에 **반영하지 않는다**
+  //   (Style.inset_* 필드는 tree.rs 에 선언·역직렬화만 되고 flex/block/grid 어느 알고리즘도
+  //   읽지 않으며 Position::Absolute 개념 자체가 없음). 그래서 implicitStyles 가 주입한
+  //   `left:"50%" + top + marginLeft` 가 전량 무시되어 SliderThumb box 가 항상 컨테이너
+  //   원점(0,0)에 고정 → thumb 이 value 와 무관하게 트랙 좌측 끝에 그려지고(x 발산),
+  //   세로도 트랙 중앙이 아니었다(y 발산). CSS(RAC useSliderThumb: left:%+translate(-50%,-50%))
+  //   와 정면 발산.
+  //
+  // 본 escape 는 `_containerWidth`(=트랙 실폭) + value 를 이미 정확히 알고 replace 모드로
+  //   트랙 box 전체를 소유하므로, thumb 을 여기서 그리면 엔진의 absolute 미지원과 무관하게
+  //   DOM 과 동일한 좌표가 나온다. (SliderThumb element 는 selection/hit box 전용으로 잔존 —
+  //   그 box 의 위치 정합은 엔진의 absolute 지원 없이는 불가능하므로 별도 과제.)
+  //
+  // 좌표 (DOM 대칭): thumb 중심 = (width * p, trackHeight/2)
+  //   ← CSS `.react-aria-SliderThumb{top:50%}` + RAC inline `left:${p*100}%; translate(-50%,-50%)`
+  //   trackHeight/2 는 트랙 box 세로 중앙 → thumb 이 트랙보다 커서 box 위아래로 넘침(정상).
+  const thumbSize =
+    typeof size.thumbSize === "number" && size.thumbSize > 0
+      ? size.thumbSize
+      : 18;
+  const thumbRadius = thumbSize / 2;
+  const thumbCenterY = trackHeight / 2;
+
+  percents.forEach((p, i) => {
+    const cx = (width * p) / 100;
+    shapes.push({
+      id: `thumb-${i}`,
+      type: "circle",
+      x: cx,
+      y: thumbCenterY,
+      radius: thumbRadius,
+      fill: fillColor,
+    });
+    // border 2px {color.base} — CSS `.react-aria-SliderThumb{border:2px solid var(--bg)}` 정합.
+    shapes.push({
+      type: "border",
+      target: `thumb-${i}`,
+      borderWidth: 2,
+      color: "{color.base}" as TokenRef,
+      radius: thumbRadius,
+    });
+  });
 
   return shapes;
 };

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Slider thumb 위치 — Skia↔CSS 발산 해소] - 2026-07-14
+
+### Bug Fixes
+
+- **SliderThumb 이 value 를 따라가지 않고 트랙 좌측 끝에 고정 (x/y 동시 발산)**:
+  - 증상: Skia 캔버스에서 Slider 의 thumb 이 **value 와 무관하게 항상 트랙 좌측 끝**에 그려지고, 세로도 트랙 중앙선에서 벗어남. CSS(Preview)는 정상 — 양쪽 발산. (실측 md/350px/value=50: DOM thumb 중심 (175, 4) vs Skia (9, 9))
+  - **Why**: thumb 렌더를 SliderThumb element 가 담당하면서 그 box 배치를 `implicitStyles` 의 `position:absolute + left:${percent}% + top` 주입에 의존했는데, **composition-engine(Rust)은 absolute/inset 을 레이아웃에 반영하지 않는다** — `Style.inset_top/right/bottom/left`(`tree.rs`)는 선언·역직렬화만 되고 flex/block/grid 어느 알고리즘도 읽지 않으며 `Position::Absolute` 개념 자체가 없다. 주입된 좌표가 전량 무시되어 thumb box 가 항상 컨테이너 원점(0,0)에 고정됐다. (margin 은 정상 소비 — 엔진이 읽는 유일한 오프셋 채널)
+  - 수정: thumb 렌더 소유권을 **SliderTrack 의 `slider_fill_bar` escape 로 복귀**. 이 escape 는 `_containerWidth`(트랙 실폭)와 value 를 이미 정확히 알고 replace 모드로 트랙 box 전체를 소유하므로, 엔진의 absolute 미지원과 무관하게 DOM 과 동일 좌표를 산출한다. thumb 중심 = `(width * percent, trackHeight / 2)` — RAC `useSliderThumb`(`left:${p}% + translate(-50%,-50%)`) + CSS `.react-aria-SliderThumb{top:50%}` 정합. range(2-thumb) 지원.
+  - `slider_thumb` escape 는 **shapes 0** 으로 전환 (SliderThumb element 는 selection/hit box 전용) — 이중 렌더 차단.
+  - 위치: `packages/specs/src/renderers/skiaPrimitives.ts` (`sliderFillBar` / `sliderThumb`)
+  - 검증: 회귀 테스트 14건 (thumb x 가 value 추종 0/25/50/75/100% + y=trackHeight/2 + range 2-thumb + min/max 정규화). live builder 3축 실측 — 트랙 폭 350px / 175px 양쪽에서 Skia thumb 중심이 DOM 과 완전 일치 (폭 비의존 확인).
+  - **잔존 (별도 과제)**: SliderThumb 의 **selection/hit box** 는 여전히 원점 고정 — 엔진의 `position:absolute` 지원이 전제라 본 수정 범위 밖. 보이는 thumb 은 정상.
+
 ## [Preview 상호작용 → Skia 동기화 (Disclosure header 클릭)] - 2026-07-14
 
 ### Bug Fixes
