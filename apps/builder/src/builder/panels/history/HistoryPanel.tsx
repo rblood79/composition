@@ -7,6 +7,8 @@ import { Button } from "@composition/shared/components";
 import { iconProps, iconSmall } from "../../../utils/ui/uiConstants";
 import { historyManager, type HistoryEntry } from "../../stores/history";
 import { useStore } from "../../stores";
+import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
+import { getHistoryEntryLabel } from "./historyEntryLabel";
 import "./HistoryPanel.css";
 
 type HistoryListItem = {
@@ -20,47 +22,6 @@ type HistoryListItem = {
 function formatTimestamp(timestamp: number): string {
   const date = new Date(timestamp);
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
-function getElementLabel(entry: HistoryEntry): string | null {
-  const element = entry.data.element || entry.data.prevElement;
-  if (element?.customId) return element.customId;
-  if (element?.type) return element.type;
-  if (entry.elementId && entry.elementId !== "batch_diff")
-    return entry.elementId;
-  return null;
-}
-
-function getEntryLabel(entry: HistoryEntry): string {
-  const elementLabel = getElementLabel(entry);
-  const baseLabel = elementLabel ? ` ${elementLabel}` : "";
-
-  switch (entry.type) {
-    case "add":
-      return `추가${baseLabel}`;
-    case "remove":
-      return `삭제${baseLabel}`;
-    case "update":
-      return `수정${baseLabel}`;
-    case "move":
-      return `이동${baseLabel}`;
-    case "batch": {
-      const count = entry.elementIds?.length ?? entry.data.diffs?.length ?? 0;
-      return `일괄 수정 (${count})`;
-    }
-    case "group": {
-      const count =
-        entry.data.groupData?.childIds?.length ?? entry.elementIds?.length ?? 0;
-      return `그룹 (${count})`;
-    }
-    case "ungroup": {
-      const count =
-        entry.data.groupData?.childIds?.length ?? entry.elementIds?.length ?? 0;
-      return `그룹 해제 (${count})`;
-    }
-    default:
-      return "변경";
-  }
 }
 
 /**
@@ -87,6 +48,11 @@ function HistoryPanelContent() {
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [historyInfo, setHistoryInfo] = useState(
     historyManager.getCurrentPageHistory(),
+  );
+  const activeDoc = useCanonicalDocumentStore((state) =>
+    state.currentProjectId
+      ? (state.documents.get(state.currentProjectId) ?? null)
+      : null,
   );
 
   useEffect(() => {
@@ -138,7 +104,7 @@ function HistoryPanelContent() {
     const mapped: HistoryListItem[] = entries.map((entry, index) => ({
       id: entry.id,
       index,
-      label: getEntryLabel(entry),
+      label: getHistoryEntryLabel(entry, activeDoc),
       timestamp: entry.timestamp,
     }));
 
@@ -155,7 +121,7 @@ function HistoryPanelContent() {
     }
 
     return ordered;
-  }, [entries]);
+  }, [entries, activeDoc]);
 
   if (displayEntries.length === 0) {
     return (
