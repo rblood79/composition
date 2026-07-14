@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [프로퍼티 패널 RAC/RSP 정합 감사 — 누락 편집 prop 일괄 추가] - 2026-07-15
+
+### Features
+
+- **36개 컴포넌트 binding accepts 에 누락 편집 prop 추가** (Phase 1~3):
+  - 전 catalog binding (115개) 의 `accepts` 를 RAC/RSP 공식 Props 레퍼런스와 전수 대조 — "렌더러가 이미 소비 중이거나 RAC 공식인데 Property 패널에 편집 UI 가 없던" prop 을 선별 추가
+  - fields/date (Phase 1): TextField/TextArea/SearchField/NumberField 의 maxLength/minLength/pattern/autoFocus/necessityIndicator, ColorField 의 channel/colorSpace 등 8종, DatePicker/DateRangePicker 의 isRequired/isInvalid/name/pageBehavior/shouldCloseOnSelect/maxVisibleMonths 등 12~15종, Calendar/RangeCalendar 의 min/maxValue/pageBehavior 등
+  - selection/collections (Phase 2): Checkbox/Switch 의 isReadOnly/isRequired/name/value/autoFocus, Select/ComboBox 의 validation·필드 상태 7~11종, Slider value, Meter/ProgressBar 의 labelPosition/valueLabel, ListBox/GridList/Tree/TagGroup/ToggleButtonGroup 의 disallowEmptySelection
+  - buttons/overlays (Phase 3): Button/Link/Radio autoFocus, Tooltip/Popover 의 placement/offset/crossOffset/shouldFlip/containerPadding, Disclosure/DisclosureGroup/DropZone isDisabled, ColorSlider orientation
+  - **Why**: ADR-142 catalog cutover 후 binding `accepts` 가 D2 편집 SSOT 인데, 다수 컴포넌트에서 DOM 렌더러가 소비하는 공식 prop 이 패널에 미노출 (TagGroup maxRows 2026-07-01 사례와 동형 누락이 전 패밀리에 잔존)
+  - 미소비 prop 은 렌더러 배선 동반 (FormRenderers/DateRenderers/ColorRenderers/CollectionRenderers/LayoutRenderers). 소비 경로가 없는 prop (ColorArea colorSpace, Modal isDismissable, staticColor 계열 등) 은 dead 편집 UI 방지를 위해 의도적 미추가
+  - 위치: `packages/shared/src/catalog/bindings/*.binding.ts` (36개), `packages/shared/src/renderers/*.tsx` (5개) (commit: 6e6c55122, 250a8e852, ae3527a7e)
+
 ## [undo/redo/History 패널 — canonical 아키텍처 정합 정비 (ADR-124 후속 완결)] - 2026-07-15
 
 ### Bug Fixes
