@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [레이아웃 엔진 position:absolute 지원 — SliderThumb selection box 정합] - 2026-07-14
+
+### Features
+
+- **composition-engine: `position:absolute` / `fixed` (out-of-flow) 지원 추가**:
+  - 기존: `Style.inset_top/right/bottom/left` 필드가 `tree.rs` 에 **선언·역직렬화만** 되고 flex/block/grid 어느 알고리즘도 읽지 않았다. `Position::Absolute` 개념 자체가 없어 **absolute 자식이 일반 in-flow 자식으로 배치** → 주입한 `left/top` 이 전량 무시되고 항상 컨테이너 원점(0,0) 고정 (조용한 실패 — JS 쪽 `left → insetLeft` 매핑은 정상이라 코드만 읽으면 멀쩡해 보였음).
+  - 추가: `solve_node` 가 자식을 **in-flow / out-of-flow 로 분리**(`display:none` 처리와 동형). in-flow 배치로 컨테이너 크기가 확정된 뒤 `place_absolute_children` 이 inset + margin 으로 배치한다.
+  - CSS 계약 준수: absolute 자식은 **컨테이너 auto 크기·형제 배치·gap 에 기여하지 않는다**(out-of-flow). containing block = 부모 **padding box**. `left` 우선, 없으면 `right` 역산, 둘 다 auto 면 static 근사. inset `%` 는 containing block 기준. **음수 inset/margin 허용** (`translate(-50%)` 에뮬레이션 채널 — `resolve_inset` / `resolve_signed` 신규).
+  - 미지원(의도적): margin auto 센터링, 조상 체인 탐색(가장 가까운 positioned ancestor — 직계 부모를 containing block 으로 간주), `fixed` 의 viewport 기준.
+  - 위치: `packages/composition-engine/src/tree.rs`
+  - 검증: Rust 테스트 7건 신규 (inset 배치 / `%` inset / 음수 margin 중심보정 / out-of-flow 크기·형제 비기여 / right·bottom 역산 / padding box 원점 / absolute-only 자식). RED 확인 — out-of-flow 분리를 끄면 6건 FAIL. 기존 260건 전부 통과(회귀 0).
+
+### Bug Fixes
+
+- **SliderThumb 의 selection/hit box 가 항상 트랙 좌측 끝에 고정**:
+  - 증상: 보이는 thumb 은 정상인데 **선택 영역·클릭 판정 박스가 value 와 무관하게 원점**에 있어, thumb 을 클릭해도 안 잡히고 엉뚱한 위치가 선택됨.
+  - **Why**: `implicitStyles` 가 주입하는 `position:absolute + left:${percent}% + top + marginLeft` 를 **엔진이 소비하지 않았다**(위 Features 항목). 주입 자체는 처음부터 정상이었다.
+  - 수정: 엔진의 absolute 지원으로 **JS 변경 없이 해소**. 실측 (md/350px/value=50): selection box `{x:166, y:-5, 18×18}` → 중심 **(175, 4)** = DOM 과 완전 일치.
+  - 검증: live builder 실측 — value 0/25/50/75/100 에서 selection box 중심이 `trackWidth × value%` 를 정확히 추종(0/87.5/175/262.5/350), y 는 트랙 세로 중앙(4) 고정. steady-state(value=80) 에서 Skia (280,4) = DOM (280,4).
+
+- **Slider value=0 이 50 으로 튀던 문제** (falsy 함정):
+  - `implicitStyles` 의 `Number(rawValue) || 50` 에서 **`0` 이 falsy 라 50 으로 대체**됨 → value 0 인 Slider 의 thumb 이 트랙 **중앙**에 배치.
+  - 수정: `Number.isFinite(Number(v)) ? Number(v) : 50` — NaN 일 때만 fallback.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`
+  - 검증: 회귀 테스트 7건 신규 (`sliderThumbImplicitStyles.test.ts` — value=0 게이트 포함, RED 확인).
+
 ## [Slider thumb 위치 — Skia↔CSS 발산 해소] - 2026-07-14
 
 ### Bug Fixes

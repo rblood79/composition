@@ -521,15 +521,21 @@ impl LayoutTree {
         let display = classify_container_display(node.style.display.as_deref());
         // display:none 자식은 layout 비참여 (CSS: 박스 미생성 — 크기/흐름/gap 전부 제외).
         // zero layout 을 기록해 get_layouts_batch 완전성은 유지한다 (tree_golden N9).
+        //
+        // position:absolute/fixed 자식도 **in-flow 에서 제외**한다 (CSS: out-of-flow —
+        //   컨테이너 크기/형제 배치/gap 에 기여하지 않음). 흐름 배치가 끝나 컨테이너
+        //   크기가 확정된 뒤 `place_absolute_children` 이 inset/margin 으로 배치한다.
+        let mut abs_children: Vec<usize> = Vec::new();
         let children: Vec<usize> = {
             let mut flow = Vec::with_capacity(children.len());
             for &c in &children {
-                let is_none = self
-                    .get(c)
-                    .map(|n| n.style.display.as_deref() == Some("none"))
-                    .unwrap_or(false);
-                if is_none {
+                let Some(cn) = self.get(c) else { continue };
+                if cn.style.display.as_deref() == Some("none") {
                     self.zero_subtree_layout(c);
+                    continue;
+                }
+                if is_out_of_flow(cn.style.position.as_deref()) {
+                    abs_children.push(c);
                 } else {
                     flow.push(c);
                 }
@@ -540,7 +546,9 @@ impl LayoutTree {
         // 명시 크기(있으면) — auto 는 아래에서 content 로 채움.
         let (explicit_w, explicit_h) = self.resolve_self_size(handle, avail_w, avail_h);
 
-        // leaf: 자기 크기만.
+        // leaf(=in-flow 자식 없음): 자기 크기만. absolute 자식만 있는 경우도 여기 해당 —
+        //   컨테이너 크기는 absolute 자식에 영향받지 않으므로(out-of-flow) 그대로 확정한 뒤
+        //   absolute 배치만 수행한다.
         if children.is_empty() {
             let w = explicit_w;
             let h = explicit_h;
@@ -548,11 +556,14 @@ impl LayoutTree {
                 n.layout = NodeLayout { x: 0.0, y: 0.0, width: w, height: h };
                 n.dirty = false;
             }
+            if !abs_children.is_empty() {
+                self.place_absolute_children(handle, &abs_children, w, h, avail_w);
+            }
             return (w, h);
         }
 
         // display 별 dispatch — 자식을 먼저 solve → flat f32 → 커널 → 위치 배치.
-        match display {
+        let (cw, ch) = match display {
             ContainerDisplay::Flex => {
                 self.solve_flex(handle, &children, explicit_w, explicit_h, avail_w, avail_h)
             }
@@ -561,6 +572,95 @@ impl LayoutTree {
             }
             ContainerDisplay::Grid => {
                 self.solve_grid(handle, &children, explicit_w, explicit_h, avail_w, avail_h)
+            }
+        };
+
+        // out-of-flow 자식 배치 — 컨테이너 크기 확정 후 (containing block 이 필요).
+        if !abs_children.is_empty() {
+            self.place_absolute_children(handle, &abs_children, cw, ch, avail_w);
+        }
+        (cw, ch)
+    }
+
+    /// `position:absolute|fixed` 자식 배치 (CSS out-of-flow).
+    ///
+    /// **containing block**: 가장 가까운 positioned 조상의 **padding box**. 본 엔진은
+    /// 조상 체인을 거슬러 올라가지 않고 **직계 부모를 containing block 으로 간주**한다
+    /// (composition 의 실사용 패턴 — `position:relative` 부모 + absolute 자식이 전부).
+    ///
+    /// 좌표계: 형제 in-flow 자식과 동일하게 **부모 border-box 원점 기준 상대 좌표**를
+    /// 기록한다(`solve_flex/block/grid` 의 `x + off_x` 와 같은 공간).
+    ///
+    /// 해석 규칙 (CSS 근사):
+    /// - `left` 지정 → x = pad_border_start + left. `right` 만 지정 → x = (cb_right - right - w).
+    /// - 둘 다 auto → static 위치 근사로 pad_border_start (0 오프셋).
+    /// - `margin_left/top` 은 최종 좌표에 **가산** (음수 허용 — `translate(-50%)` 에뮬레이션).
+    /// - `width/height` auto → 자식 solve 결과(content) 사용.
+    ///
+    /// 미지원(의도적): `inset` % 는 containing block 기준으로 해석되며, margin auto 센터링,
+    /// 조상 체인 탐색(가장 가까운 positioned ancestor), `fixed` 의 viewport 기준은 미구현.
+    fn place_absolute_children(
+        &mut self,
+        handle: usize,
+        abs_children: &[usize],
+        container_w: f32,
+        container_h: f32,
+        avail_w: f32,
+    ) {
+        let style = self.get(handle).map(|n| n.style.clone()).unwrap_or_default();
+        let parent_ctx = self.ctx_for(avail_w);
+
+        // containing block = 부모 padding box.
+        let pb_start_x = pad_border_start(&style, &parent_ctx, true);
+        let pb_start_y = pad_border_start(&style, &parent_ctx, false);
+        let pb_total_x = axis_pad_border(&style, &parent_ctx, true);
+        let pb_total_y = axis_pad_border(&style, &parent_ctx, false);
+        let cb_w = (container_w - pb_total_x).max(0.0);
+        let cb_h = (container_h - pb_total_y).max(0.0);
+
+        for &c in abs_children {
+            // 자식 solve — available = containing block (%/auto 해석 기준).
+            let (mut w, mut h) = self.solve_node(c, cb_w, cb_h);
+
+            let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
+            // inset % 는 containing block 기준 (CSS) — 축별 ctx.
+            let ctx_x = self.ctx_for(cb_w);
+            let ctx_y = self.ctx_for(cb_h);
+
+            // 자식 명시 크기 우선 (solve 반환이 0 인 auto leaf 대비).
+            let ew = resolve_dimension(cstyle.width.as_deref(), &ctx_x);
+            let eh = resolve_dimension(cstyle.height.as_deref(), &ctx_y);
+            if ew > 0.0 {
+                w = ew;
+            }
+            if eh > 0.0 {
+                h = eh;
+            }
+
+            let left = resolve_inset(cstyle.inset_left.as_deref(), &ctx_x);
+            let right = resolve_inset(cstyle.inset_right.as_deref(), &ctx_x);
+            let top = resolve_inset(cstyle.inset_top.as_deref(), &ctx_y);
+            let bottom = resolve_inset(cstyle.inset_bottom.as_deref(), &ctx_y);
+
+            // margin 은 음수 허용 (translate(-50%) 에뮬레이션 채널).
+            let ml = resolve_signed(cstyle.margin_left.as_deref(), &ctx_x);
+            let mt = resolve_signed(cstyle.margin_top.as_deref(), &ctx_y);
+
+            // left 우선, 없으면 right 로 역산, 둘 다 없으면 static 근사(0).
+            let x = match (left, right) {
+                (Some(l), _) => pb_start_x + l,
+                (None, Some(r)) => pb_start_x + (cb_w - r - w),
+                (None, None) => pb_start_x,
+            } + ml;
+            let y = match (top, bottom) {
+                (Some(t), _) => pb_start_y + t,
+                (None, Some(b)) => pb_start_y + (cb_h - b - h),
+                (None, None) => pb_start_y,
+            } + mt;
+
+            if let Some(n) = self.get_mut(c) {
+                n.layout = NodeLayout { x, y, width: w, height: h };
+                n.dirty = false;
             }
         }
     }
@@ -1478,6 +1578,37 @@ fn resolve_dimension_opt(value: Option<&str>, ctx: &CssValueContext) -> Option<f
         Some(n) if n >= 0.0 => Some(n),
         _ => None,
     }
+}
+
+/// `position` 이 out-of-flow(absolute/fixed)인가.
+///
+/// CSS: absolute/fixed 자식은 정상 흐름에서 빠져 컨테이너 크기·형제 배치·gap 에
+/// 기여하지 않는다. static/relative/sticky 는 in-flow.
+#[inline]
+fn is_out_of_flow(position: Option<&str>) -> bool {
+    matches!(position, Some("absolute") | Some("fixed"))
+}
+
+/// inset(top/right/bottom/left) 해결 — **음수 허용**, auto/미지정은 None.
+///
+/// `resolve_dimension_opt` 와 달리 음수를 버리지 않는다. CSS 에서 `left:-10px` 은
+/// 유효하며(컨테이닝 블록 밖으로 밀어냄), 0 으로 뭉개면 배치가 달라진다.
+fn resolve_inset(value: Option<&str>, ctx: &CssValueContext) -> Option<f32> {
+    let v = value?;
+    let trimmed = v.trim();
+    if trimmed.is_empty() || trimmed.eq_ignore_ascii_case("auto") {
+        return None;
+    }
+    resolve_css_size_value(trimmed, ctx)
+}
+
+/// margin 등 **부호 있는** 길이 해결 — 미지정/auto/해석불가는 0.
+///
+/// 음수 margin 은 CSS 유효값이며, absolute 배치에서 `translate(-50%, -50%)` 를
+/// 에뮬레이션하는 채널이다 (예: SliderThumb `marginLeft: -thumbSize/2`).
+#[inline]
+fn resolve_signed(value: Option<&str>, ctx: &CssValueContext) -> f32 {
+    resolve_inset(value, ctx).unwrap_or(0.0)
 }
 
 /// `resolve_dimension_opt` + fit-content 보존 변형. flex cross 축 + block 자식
@@ -2421,6 +2552,127 @@ mod tests {
         assert_eq!(c0.x, 10.0, "셀 x = padding-left offset");
         assert_eq!(c1.x, 110.0, "셀2 x = 10 + 100");
         assert_eq!(c0.y, 10.0, "셀 y = padding-top offset");
+    }
+
+    // ── position:absolute (out-of-flow) ──
+    //
+    // 2026-07-14: 엔진이 absolute/inset 을 아예 읽지 않아 absolute 자식이 항상 부모
+    //   원점(0,0)에 고정되던 버그 회귀 게이트 (SliderThumb 가 value 위치로 안 가던 원인).
+
+    #[test]
+    fn absolute_child_positioned_by_inset() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"position":"absolute","left":"30px","top":"10px","width":"20px","height":"20px","insetLeft":"30px","insetTop":"10px"},"children":[]},
+            {"style":{"display":"block","position":"relative","width":"200px","height":"100px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 400.0, 400.0);
+        let c = tree.get_layout(handles[0]);
+        assert_eq!(c.x, 30.0, "insetLeft 가 x 로 반영");
+        assert_eq!(c.y, 10.0, "insetTop 이 y 로 반영");
+        assert_eq!((c.width, c.height), (20.0, 20.0));
+    }
+
+    #[test]
+    fn absolute_child_percent_inset_uses_containing_block() {
+        let mut tree = LayoutTree::new();
+        // containing block = 부모 padding box (200×100). left:50% → 100.
+        let json = r#"[
+            {"style":{"position":"absolute","insetLeft":"50%","width":"20px","height":"20px"},"children":[]},
+            {"style":{"display":"block","position":"relative","width":"200px","height":"100px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 400.0, 400.0);
+        let c = tree.get_layout(handles[0]);
+        assert_eq!(c.x, 100.0, "left:50% = containing block 폭의 절반");
+    }
+
+    #[test]
+    fn absolute_child_negative_margin_offsets_center() {
+        let mut tree = LayoutTree::new();
+        // **SliderThumb 실제 케이스**: 트랙 350×8, thumb 18px, value=50%.
+        //   left:50% + marginLeft:-9 → x = 175 - 9 = 166 (중심 175).
+        //   top:trackHeight/2 - thumbSize/2 = 4 - 9 = -5 (중심 4) — 음수 inset 허용.
+        let json = r#"[
+            {"style":{"position":"absolute","insetLeft":"50%","insetTop":"-5px","marginLeft":"-9px","width":"18px","height":"18px"},"children":[]},
+            {"style":{"display":"grid","position":"relative","width":"350px","height":"8px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 400.0, 400.0);
+        let c = tree.get_layout(handles[0]);
+        assert_eq!(c.x, 166.0, "left:50%(175) + marginLeft:-9 → 166 (중심 175)");
+        assert_eq!(c.y, -5.0, "음수 insetTop 보존 (트랙 위로 넘침 — 중심 4)");
+        // 중심이 DOM(175, 4) 과 일치.
+        assert_eq!(c.x + c.width / 2.0, 175.0, "thumb 중심 x = DOM 과 동일");
+        assert_eq!(c.y + c.height / 2.0, 4.0, "thumb 중심 y = 트랙 세로 중앙");
+    }
+
+    #[test]
+    fn absolute_child_excluded_from_container_size_and_siblings() {
+        let mut tree = LayoutTree::new();
+        // out-of-flow: absolute 자식은 auto 컨테이너 크기에 기여하지 않고,
+        //   in-flow 형제의 배치(block 세로 stacking)도 밀지 않는다.
+        let json = r#"[
+            {"style":{"position":"absolute","insetLeft":"0px","insetTop":"0px","width":"500px","height":"500px"},"children":[]},
+            {"style":{"height":"30px"},"children":[]},
+            {"style":{"height":"40px"},"children":[]},
+            {"style":{"display":"block","position":"relative","width":"100px"},"children":[0,1,2]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[3], 400.0, 400.0);
+        let parent = tree.get_layout(handles[3]);
+        assert_eq!(parent.height, 70.0, "auto 높이 = in-flow 자식(30+40)만 — absolute 500 제외");
+        // in-flow 형제는 absolute 자식을 무시하고 0 부터 stacking.
+        assert_eq!(tree.get_layout(handles[1]).y, 0.0, "첫 in-flow 자식 y=0");
+        assert_eq!(tree.get_layout(handles[2]).y, 30.0, "둘째 in-flow 자식 y=30 (absolute 영향 없음)");
+    }
+
+    #[test]
+    fn absolute_child_right_bottom_inset() {
+        let mut tree = LayoutTree::new();
+        // right/bottom 만 지정 → 반대편에서 역산.
+        let json = r#"[
+            {"style":{"position":"absolute","insetRight":"10px","insetBottom":"20px","width":"30px","height":"40px"},"children":[]},
+            {"style":{"display":"block","position":"relative","width":"200px","height":"100px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 400.0, 400.0);
+        let c = tree.get_layout(handles[0]);
+        assert_eq!(c.x, 160.0, "right:10 → x = 200 - 10 - 30");
+        assert_eq!(c.y, 40.0, "bottom:20 → y = 100 - 20 - 40");
+    }
+
+    #[test]
+    fn absolute_child_inside_padded_parent_uses_padding_box() {
+        let mut tree = LayoutTree::new();
+        // containing block = padding box → 원점이 padding-left/top 만큼 이동.
+        let json = r#"[
+            {"style":{"position":"absolute","insetLeft":"0px","insetTop":"0px","width":"10px","height":"10px"},"children":[]},
+            {"style":{"display":"block","position":"relative","width":"200px","height":"100px","paddingLeft":"20px","paddingTop":"15px","paddingRight":"20px","paddingBottom":"15px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 400.0, 400.0);
+        let c = tree.get_layout(handles[0]);
+        assert_eq!(c.x, 20.0, "left:0 = padding box 원점 (padding-left)");
+        assert_eq!(c.y, 15.0, "top:0 = padding box 원점 (padding-top)");
+    }
+
+    #[test]
+    fn absolute_only_child_does_not_collapse_explicit_parent() {
+        let mut tree = LayoutTree::new();
+        // absolute 자식만 있는 컨테이너 — in-flow 자식 0 이지만 명시 크기 유지 +
+        //   absolute 배치는 정상 수행 (leaf 분기에서 조기 반환하지 않아야 함).
+        let json = r#"[
+            {"style":{"position":"absolute","insetLeft":"25px","insetTop":"5px","width":"10px","height":"10px"},"children":[]},
+            {"style":{"display":"grid","position":"relative","width":"100px","height":"50px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 400.0, 400.0);
+        let p = tree.get_layout(handles[1]);
+        let c = tree.get_layout(handles[0]);
+        assert_eq!((p.width, p.height), (100.0, 50.0), "명시 크기 보존");
+        assert_eq!((c.x, c.y), (25.0, 5.0), "absolute 자식 배치 수행");
     }
 
     // ── get_layouts_batch ──

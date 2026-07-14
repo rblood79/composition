@@ -2071,9 +2071,11 @@ export function applyImplicitStyles(
     const sliderEl = sliderId ? elementById.get(sliderId) : null;
     const sliderProps = sliderEl?.props as Record<string, unknown> | undefined;
     const rawValue = sliderProps?.value ?? 50;
+    // `Number(v) || 50` 금지 — **value=0 이 falsy 라 50 으로 튄다** (2026-07-14 실측:
+    //   value 0 인데 thumb 이 트랙 중앙에 그려짐). NaN 일 때만 fallback.
     const values = Array.isArray(rawValue)
       ? (rawValue as number[])
-      : [Number(rawValue) || 50];
+      : [Number.isFinite(Number(rawValue)) ? Number(rawValue) : 50];
     const min = Number(sliderProps?.minValue ?? 0);
     const max = Number(sliderProps?.maxValue ?? 100);
     const range = max - min || 1;
