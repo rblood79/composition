@@ -127,13 +127,22 @@ function getCanonicalOrBootstrapBuilderElements(state: {
 
 function getPageShellBridgeElements(state: {
   elements?: Element[];
+  pages?: Array<{ id: string }>;
 }): Element[] {
   // Page store mutations are the one remaining legacy page-shell surface.
   // At this boundary the active canonical document is stale by definition:
   // append must include the newly-created body shell, and delete must exclude
   // removed-page elements after instance materialization.
-  const { elements = [] } = state;
-  return elements;
+  //
+  // 2026-07-14 (Task #8 요소 소실 사건): raw `state.elements` 전체 교체 금지.
+  // legacy store 가 부분 상태 (store-level unload / HMR 분리 인스턴스 / 부분
+  // hydrate) 일 때 canonical 전체가 그 부분 집합으로 잘리고 자동 persist 가
+  // 손실을 확정했다. canonical-first 병합 (누락 body shell 보충) 을 base 로,
+  // 삭제 페이지 제외만 legacy pages 목록에서 반영한다.
+  const pageIds = new Set((state.pages ?? []).map((page) => page.id));
+  return getCanonicalOrBootstrapBuilderElements(state).filter(
+    (element) => element.page_id == null || pageIds.has(element.page_id),
+  );
 }
 
 function hasPageShellTopologyChanged(
@@ -215,6 +224,9 @@ export const BuilderCore: React.FC = () => {
       }
       pagesRef = state.pages;
       if (pageShellBridgeSuspendedRef.current) return;
+      // pages 가 빈 과도 상태 (store reset / HMR 재생성 / init 직전) 에서
+      // 재구성하면 전 페이지 요소가 제외 대상이 된다 — 재구성 금지 (Task #8).
+      if (!state.pages || state.pages.length === 0) return;
       setElementsCanonicalPrimary(getPageShellBridgeElements(state));
     });
   }, [projectId]);
