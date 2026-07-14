@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Canonical 문서 영구 손실 차단 — 요소 소실 사건 대응] - 2026-07-14
+
+### Bug Fixes
+
+- **프로젝트 요소 대량 소실 (사건 3회 재현) — 손실 아키텍처 3층 절단**:
+  - **Why**: 3층 결합 — ① freeze 시 AutoRecovery `clearAllPages()` / LRU eviction 이 legacy store 를 부분 상태로 만듦 (canonical-first 인덱스 재구축과 어긋나는 split-brain, 메모리 절감 실효 없음) ② page-shell bridge 가 raw `state.elements` 로 canonical 을 전체 교체 → 부분 집합으로 잘림 ③ persist 구독이 canonical 변경마다 IndexedDB 단일 row 를 무검증 덮어쓰기 → 영구 확정. 별도 주 용의: hydration 의 `documents.get` null read 시 빈 fallback 이 migration 체인을 통과해 skeleton (fallback Home + 시스템 Components + template origins, 27 nodes) 이 되고 persist-back 이 실제 row 를 덮어씀 — 소실 후 row 가 skeleton 형상과 정확히 일치.
+  - 수정 (3 커밋): 급감 가드 (`documents.put` 단일 관문 — 기존 대비 30% 미만 급감 write 기본 거부, 요소/페이지 삭제만 `allowShrink` 통과) + `documents_backup` ring (DB v20, 프로젝트당 5세대/60s 버킷) + null read 시 persist-back 금지 + AutoRecovery store-level unload 제거 + bridge canonical-first 재구성 전환.
+  - 검증: 단위/static 계약 17건 + live exercise — 급감 write (24→2) 차단 실측, 페이지 추가/삭제 roundtrip 보존, **부분 store (3요소) 강제 후 bridge 발화에도 canonical 무손실** (구 코드라면 붕괴).
+  - 위치: `apps/builder/src/lib/db/indexedDB/{adapter,documentPersistGuard}.ts`, `apps/builder/src/builder/hooks/{usePageManager,useAutoRecovery}.ts`, `apps/builder/src/builder/stores/elementLoader.ts`, `apps/builder/src/builder/main/BuilderCore.tsx`
+
 ## [CSS↔Skia 정합 수정 2차 — parity 잔여 백로그 sweep] - 2026-07-14
 
 ### Bug Fixes
