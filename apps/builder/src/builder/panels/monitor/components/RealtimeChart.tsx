@@ -14,7 +14,7 @@ interface RealtimeChartProps {
   data: DataPoint[];
   width?: number;
   height?: number;
-  metric?: "memoryPercent" | "historyEntries" | "cacheSize";
+  metric?: "memoryPercent" | "historyEntries";
   showThresholds?: boolean;
 }
 

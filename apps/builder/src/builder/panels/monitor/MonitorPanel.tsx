@@ -89,10 +89,9 @@ function MonitorPanelContent() {
   const getStatsForTimeSeries = useCallback(() => {
     if (!stats) return null;
     return {
-      memoryUsage: stats.commandStoreStats.estimatedMemoryUsage,
+      memoryUsage: stats.estimatedMemoryUsage,
       memoryPercent: stats.browserMemory?.usagePercent ?? 0,
       historyEntries: stats.totalEntries,
-      cacheSize: stats.commandStoreStats.cacheSize,
     };
   }, [stats]);
 
@@ -126,8 +125,8 @@ function MonitorPanelContent() {
     if (activeTab !== "memory") return; // 🛡️ 탭 가드 추가
 
     // 이전 값과 비교하여 실제로 변경된 경우에만 업데이트
-    const prevValue = prevStatsRef.current?.commandStoreStats?.estimatedMemoryUsage;
-    const newValue = stats.commandStoreStats.estimatedMemoryUsage;
+    const prevValue = prevStatsRef.current?.estimatedMemoryUsage;
+    const newValue = stats.estimatedMemoryUsage;
 
     if (prevValue !== newValue) {
       prevStatsRef.current = stats;
@@ -268,25 +267,10 @@ function MonitorPanelContent() {
                   icon={<Activity size={iconProps.size} />}
                 />
                 <StatCard
-                  label="Commands"
-                  value={stats.commandStoreStats.commandCount.toString()}
-                  icon={<Activity size={iconProps.size} />}
-                />
-                <StatCard
-                  label="Cache Size"
-                  value={stats.commandStoreStats.cacheSize.toString()}
-                  icon={<Database size={iconProps.size} />}
-                />
-                <StatCard
                   label="Memory Usage"
-                  value={formatBytes(stats.commandStoreStats.estimatedMemoryUsage)}
+                  value={formatBytes(stats.estimatedMemoryUsage)}
                   icon={<Cpu size={iconProps.size} />}
-                  highlight={stats.commandStoreStats.estimatedMemoryUsage > 50 * 1024 * 1024}
-                />
-                <StatCard
-                  label="Compression"
-                  value={`${(stats.commandStoreStats.compressionRatio * 100).toFixed(1)}%`}
-                  icon={<Activity size={iconProps.size} />}
+                  highlight={stats.estimatedMemoryUsage > 50 * 1024 * 1024}
                 />
               </>
             )}

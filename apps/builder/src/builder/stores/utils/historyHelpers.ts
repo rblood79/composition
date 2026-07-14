@@ -93,9 +93,6 @@ export function trackGroupCreation(
     },
   });
 
-  console.log(
-    `✅ [History] Tracked group creation: ${groupElement.id} with ${childElements.length} children`,
-  );
 }
 
 /**
@@ -130,9 +127,6 @@ export function trackUngroup(
     },
   });
 
-  console.log(
-    `✅ [History] Tracked ungroup: ${groupId} with ${childElements.length} children`,
-  );
 }
 
 /**
@@ -155,9 +149,6 @@ export function trackMultiDelete(elements: Element[]): void {
     });
   });
 
-  console.log(
-    `✅ [History] Tracked multi-delete for ${elements.length} elements`,
-  );
 }
 
 /**
@@ -189,9 +180,6 @@ export function trackMultiPaste(newElements: Element[]): void {
     },
   });
 
-  console.log(
-    `✅ [History] Tracked multi-paste: single batch entry for ${newElements.length} elements`,
-  );
 }
 
 // ============================================
@@ -222,9 +210,6 @@ export function trackInstancePropagation<TElement extends Element>(
   // Master + 모든 Instance를 하나의 batch로 추적
   const allIds = [masterRefId, ...instanceIds];
   trackBatchUpdate(allIds, updates, elementsMap);
-  console.log(
-    `✅ [History] Tracked instance propagation: master ${masterRefId} → ${instanceIds.size} instances`,
-  );
 }
 
 /**
@@ -253,9 +238,6 @@ export async function undoBatchUpdate(
     ),
   );
 
-  console.log(
-    `✅ [History] Undid batch update for ${batchUpdates.length} elements`,
-  );
 }
 
 /**
@@ -284,9 +266,6 @@ export async function redoBatchUpdate(
     ),
   );
 
-  console.log(
-    `✅ [History] Redid batch update for ${batchUpdates.length} elements`,
-  );
 }
 
 /**
@@ -319,7 +298,6 @@ export async function undoGroupCreation<TElement extends Element>(
   // Remove group
   await removeElement(groupId);
 
-  console.log(`✅ [History] Undid group creation: ${groupId}`);
 }
 
 /**
@@ -346,5 +324,4 @@ export async function redoGroupCreation(
     ),
   );
 
-  console.log(`✅ [History] Redid group creation: ${groupElement.id}`);
 }

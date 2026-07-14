@@ -18,41 +18,18 @@ describe("history entry canonical event 부착 (ADR-124 Phase 2)", () => {
     return readFile(resolve(__dirname, "..", "..", "history.ts"), "utf-8");
   }
 
-  it("imports buildCanonicalUpdateEvent from canonicalHistoryEvents", async () => {
+  it("dead API (diff entry 생성기) 와 CommandDataStore 통합이 제거됨 (2026-07-15 정비)", async () => {
     const source = await readHistorySource();
-    expect(source).toContain("buildCanonicalUpdateEvent");
-    expect(source).toContain("./history/canonicalHistoryEvents");
+    expect(source).not.toContain("addDiffEntry(");
+    expect(source).not.toContain("addBatchDiffEntry(");
+    expect(source).not.toContain("commandDataStore");
+    expect(source).not.toContain("convertToCommandChanges");
   });
 
-  it("addDiffEntry: type === 'update' 시 buildCanonicalUpdateEvent 호출", async () => {
+  it("addEntry: canonicalEvents 미부착 entry 에 DEV 경고 가드 존재", async () => {
     const source = await readHistorySource();
-    expect(source).toMatch(
-      /type === "update"\s*\?\s*\[\s*\n\s*buildCanonicalUpdateEvent\(/,
-    );
-  });
-
-  it("addDiffEntry: prevElement.id + prevElement.props + nextElement.props 전달", async () => {
-    const source = await readHistorySource();
-    // buildCanonicalUpdateEvent(prevElement.id, prevElement.props, nextElement.props) 패턴
-    expect(source).toContain(
-      "buildCanonicalUpdateEvent(\n                  prevElement.id,",
-    );
-  });
-
-  it("addBatchDiffEntry: 각 diff 에 대해 buildCanonicalUpdateEvent 호출", async () => {
-    const source = await readHistorySource();
-    expect(source).toContain("canonicalEvents.push(");
-    expect(source).toContain(
-      "buildCanonicalUpdateEvent(\n            prevElements[i].id,",
-    );
-  });
-
-  it("addBatchDiffEntry: entry data 에 canonicalEvents 포함", async () => {
-    const source = await readHistorySource();
-    // batch entry data 가 diffs + canonicalEvents 를 모두 포함
-    expect(source).toMatch(
-      /data:\s*\{\s*\n\s*diffs,\s*\n\s*canonicalEvents,\s*\n\s*\}/,
-    );
+    expect(source).toContain("entry.data.canonicalEvents?.length");
+    expect(source).toContain("entry without canonicalEvents");
   });
 
   it("R1 group A call site: legacy snapshot field 기록 잔존 0건", async () => {

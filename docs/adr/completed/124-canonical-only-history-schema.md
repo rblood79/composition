@@ -11,6 +11,7 @@ Implemented — 2026-05-10
 - 2026-05-10 Proposed → Accepted (codex review 9/9 closure)
 - 2026-05-10 Phase 0-5 직렬 land — Phase 0 inventory / Phase 1 CanonicalUpdateEvent + apply / Phase 2 entry layer canonical event 부착 / Phase 3 migrateV1EntryToV2 adapter (in-memory) / Phase 4 HistoryEntry data field deprecation marker / Phase 5 IndexedDB DB_VERSION v1→v2 + onupgradeneeded migration
 - 2026-05-10 Implemented (canonical event sequence 가 undo/redo primary path)
+- 2026-07-15 후속 정비 완결 — Phase 2 의 "모든 신규 entry 가 canonical event 부착" 계약이 실제로는 diff API 에만 구현되어 있던 gap 을 해소: 전 mutation call site (props/batch/inspector/instance/drag/removal/creation) 를 canonical event (update/move/replace) 로 전환, dead diff API (`addDiffEntry`/`addBatchDiffEntry`) + CommandDataStore 삭제, legacy fallback 은 v1 IndexedDB entry 전용으로 격하 + HC#2 순서 정정. 상세: docs/CHANGELOG.md 2026-07-15 엔트리
 
 > Phase 4 의 legacy field type 삭제 + historyActions.ts case "update"/"batch" legacy fallback 제거는 v1 entry 가 모두 v2 변환되어 raw read 0건 달성된 후 (별도 followup) 진행. 현재 deprecation marker 로 신규 caller 는 차단됨.
 

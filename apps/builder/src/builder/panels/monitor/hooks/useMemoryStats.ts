@@ -13,12 +13,8 @@ import { historyManager } from "../../../stores/history";
 export interface MemoryStats {
   pageCount: number;
   totalEntries: number;
-  commandStoreStats: {
-    commandCount: number;
-    cacheSize: number;
-    estimatedMemoryUsage: number;
-    compressionRatio: number;
-  };
+  /** history entry payload 합산 추정치 (bytes) */
+  estimatedMemoryUsage: number;
   browserMemory: {
     usedJSHeapSize: number;
     totalJSHeapSize: number;
@@ -79,14 +75,14 @@ export function useMemoryStats(options: UseMemoryStatsOptions = {}) {
       // 권장사항 생성
       const recommendation = generateRecommendation(
         historyStats.totalEntries,
-        historyStats.commandStoreStats.estimatedMemoryUsage,
+        historyStats.estimatedMemoryUsage,
         browserMemory?.usagePercent
       );
 
       setStats({
         pageCount: historyStats.pageCount,
         totalEntries: historyStats.totalEntries,
-        commandStoreStats: historyStats.commandStoreStats,
+        estimatedMemoryUsage: historyStats.estimatedMemoryUsage,
         browserMemory,
         recommendation,
         isBrowserMemorySupported: !!perfWithMemory.memory,

@@ -262,34 +262,23 @@ async function syncCloudCompatibilityForCanonicalEvents(
  */
 export const createUndoAction = (set: SetState, get: GetState) => async () => {
   try {
-    console.log("🎯 Undo 함수 시작");
     const state = get();
     const { currentPageId } = state;
-    console.log("🎯 currentPageId:", currentPageId);
     if (!currentPageId) {
-      console.log("🚫 currentPageId 없음, return");
       return;
     }
 
     // 히스토리 작업 시작 표시
     set({ historyOperationInProgress: true });
 
-    console.log("🔄 Undo 시작");
 
     // historyManager에서 항목 가져오기
     const entry = historyManager.undo();
     if (!entry) {
-      console.log("⚠️ Undo 불가능: 히스토리 항목 없음");
       set({ historyOperationInProgress: false });
       return;
     }
 
-    console.log("🔍 Undo 항목 확인:", {
-      type: entry.type,
-      elementId: entry.elementId,
-      hasData: !!entry.data,
-      dataKeys: entry.data ? Object.keys(entry.data) : [],
-    });
 
     // 1. 메모리 상태 업데이트 (우선) - 안전한 데이터 복사
     let elementIdsToRemove: string[] = [];
@@ -311,21 +300,13 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
         }
 
         case "update": {
-          console.log("🔍 Update 케이스 데이터 준비:", {
-            hasPrevProps: !!entry.data.prevProps,
-            hasPrevElement: !!entry.data.prevElement,
-            prevProps: entry.data.prevProps,
-            prevElement: entry.data.prevElement,
-          });
 
           // 🚀 Phase 2: structuredClone 사용
           if (entry.data.prevProps) {
             prevProps = cloneForHistory(entry.data.prevProps);
-            console.log("✅ prevProps 준비 완료:", prevProps);
           }
           if (entry.data.prevElement) {
             prevElement = cloneForHistory(entry.data.prevElement);
-            console.log("✅ prevElement 준비 완료:", prevElement);
           }
           break;
         }
@@ -341,36 +322,23 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
                 cloneForHistory(child),
               ),
             );
-            console.log(
-              `🔄 Undo: 자식 요소 ${entry.data.childElements.length}개 복원`,
-              {
-                parent: entry.data.element?.type,
-                children: entry.data.childElements.map((child: Element) => ({
-                  id: child.id,
-                  type: child.type,
-                })),
-              },
-            );
           }
           break;
         }
 
         case "batch": {
           // Batch update - 각 요소의 이전 props 저장
-          console.log("🔄 Undo: Batch update 데이터 준비");
           break;
         }
 
         case "group": {
           // Group 생성 - 그룹 삭제 + 자식들 원래 부모로 이동 준비
-          console.log("🔄 Undo: Group 생성 데이터 준비");
           elementIdsToRemove = [entry.elementId]; // 그룹 요소 삭제
           break;
         }
 
         case "ungroup": {
           // Ungroup - 그룹 재생성 + 자식들 그룹 안으로 이동 준비
-          console.log("🔄 Undo: Ungroup 데이터 준비");
           if (entry.data.element) {
             // 🚀 Phase 2: structuredClone 사용
             elementsToRestore.push(cloneForHistory(entry.data.element));
@@ -379,7 +347,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
         }
       }
 
-      console.log("✅ 히스토리 데이터 준비 완료, try 블록 끝");
     } catch (error: unknown) {
       console.error("⚠️ 히스토리 데이터 준비 중 오류:", error);
       console.error("⚠️ 오류 상세:", {
@@ -392,14 +359,12 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
       return;
     }
 
-    console.log("🚀 함수형 업데이트 호출 직전, entry.type:", entry.type);
 
     // 🚀 Phase 1: Immer → 함수형 업데이트
     const currentState = {
       ...get(),
       elements: getHistorySourceElements(get),
     };
-    console.log("🔧 Undo 함수형 업데이트 실행됨, entry.type:", entry.type);
 
     let updatedElements = currentState.elements;
     let updatedSelectedElementId = currentState.selectedElementId;
@@ -436,12 +401,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
         }
 
         case "update": {
-          console.log("📥 Update 케이스 실행됨:", {
-            elementId: entry.elementId,
-            hasPrevProps: !!prevProps,
-            hasPrevElement: !!prevElement,
-            hasDiff: !!entry.data.diff,
-          });
 
           if (entry.data.diff) {
             updatedElements = applySerializedHistoryDiff(
@@ -463,12 +422,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
           );
           if (elementIndex >= 0 && prevProps) {
             const element = currentState.elements[elementIndex];
-            console.log("🔄 Undo: Props 복원", {
-              elementId: entry.elementId,
-              elementTag: element.type,
-              currentProps: { ...element.props },
-              restoringTo: prevProps,
-            });
 
             updatedElements = currentState.elements.map((el, i) =>
               i === elementIndex ? { ...el, props: prevProps } : el,
@@ -476,7 +429,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
 
             // 선택된 요소가 업데이트된 경우 selectedElementProps도 업데이트
             if (currentState.selectedElementId === entry.elementId) {
-              console.log("🔄 Undo: 선택된 요소 props도 업데이트");
               const restoredElement = { ...element, props: prevProps };
               updatedSelectedElementProps = createCompleteProps(
                 restoredElement,
@@ -484,10 +436,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
               );
             }
           } else if (elementIndex >= 0 && prevElement) {
-            console.log("🔄 Undo: 전체 요소 복원", {
-              elementId: entry.elementId,
-              prevElement,
-            });
             // 전체 요소가 저장된 경우
             updatedElements = currentState.elements.map((el, i) =>
               i === elementIndex ? { ...el, ...prevElement } : el,
@@ -505,17 +453,8 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
 
         case "remove": {
           // 삭제된 요소와 자식 요소들 복원
-          console.log("🔄 Undo: 요소 복원 중:", {
-            restoringCount: elementsToRestore.length,
-          });
 
           elementsToRestore.forEach((el, index) => {
-            console.log(`📥 복원 요소 ${index + 1}:`, {
-              id: el.id,
-              type: el.type,
-              tabId: (el.props as { tabId?: string }).tabId,
-              title: (el.props as { title?: string }).title,
-            });
           });
 
           updatedElements = [...currentState.elements, ...elementsToRestore];
@@ -553,9 +492,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
             );
           } else if (entry.data.batchUpdates) {
             // Batch update Undo - 각 요소의 이전 props 복원
-            console.log("🔄 Undo: Batch update 복원 중:", {
-              updateCount: entry.data.batchUpdates.length,
-            });
 
             // 업데이트 맵 생성
             const updateMap = new Map<string, ComponentElementProps>();
@@ -571,10 +507,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
             updatedElements = currentState.elements.map((el) => {
               const prevPropsForEl = updateMap.get(el.id);
               if (prevPropsForEl) {
-                console.log(`📥 복원 요소 props:`, {
-                  elementId: el.id,
-                  type: el.type,
-                });
                 return { ...el, props: prevPropsForEl };
               }
               return el;
@@ -601,7 +533,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
 
         case "group": {
           // Group 생성 Undo - 그룹 삭제 + 자식들 원래 parent로 이동
-          console.log("🔄 Undo: Group 생성 취소 중");
 
           // 1. 그룹 요소 삭제
           let filteredElements = currentState.elements.filter(
@@ -623,10 +554,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
             filteredElements = filteredElements.map((el) => {
               const update = childUpdates.get(el.id);
               if (update) {
-                console.log(`📥 자식 요소 원래 parent로 이동:`, {
-                  childId: el.id,
-                  newParentId: update.parent_id,
-                });
                 return {
                   ...el,
                   parent_id: update.parent_id,
@@ -650,17 +577,12 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
 
         case "ungroup": {
           // Ungroup Undo - 그룹 재생성 + 자식들 그룹 안으로 이동
-          console.log("🔄 Undo: Ungroup 취소 중");
 
           // 1. 그룹 요소 복원
           let restoredElements = [
             ...currentState.elements,
             ...elementsToRestore,
           ];
-          console.log(`📥 그룹 요소 복원:`, {
-            groupId: elementsToRestore[0]?.id,
-            type: elementsToRestore[0]?.type,
-          });
 
           // 2. 자식 요소들을 그룹 안으로 이동
           if (entry.data.elements) {
@@ -670,10 +592,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
 
             restoredElements = restoredElements.map((el) => {
               if (childIds.has(el.id)) {
-                console.log(`📥 자식 요소 그룹 안으로 이동:`, {
-                  childId: el.id,
-                  groupId: entry.elementId,
-                });
                 return {
                   ...el,
                   parent_id: entry.elementId,
@@ -734,7 +652,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
       console.warn("⚠️ 데이터베이스 업데이트 실패 (메모리는 정상):", dbError);
     }
 
-    console.log("✅ Undo 완료");
   } catch (error) {
     console.error("Undo 시 오류:", error);
   } finally {
@@ -758,11 +675,9 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
     // 히스토리 작업 시작 표시
     set({ historyOperationInProgress: true });
 
-    console.log("🔄 Redo 시작");
 
     const entry = historyManager.redo();
     if (!entry) {
-      console.log("⚠️ Redo 불가능: 히스토리 항목 없음");
       set({ historyOperationInProgress: false });
       return;
     }
@@ -786,16 +701,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
               ...entry.data.childElements.map((child: Element) =>
                 cloneForHistory(child),
               ),
-            );
-            console.log(
-              `🔄 Redo: 자식 요소 ${entry.data.childElements.length}개 추가`,
-              {
-                parent: entry.data.element?.type,
-                children: entry.data.childElements.map((child: Element) => ({
-                  id: child.id,
-                  type: child.type,
-                })),
-              },
             );
           }
           break;
@@ -824,13 +729,11 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
 
         case "batch": {
           // Batch update Redo - newProps 데이터 준비
-          console.log("🔄 Redo: Batch update 데이터 준비");
           break;
         }
 
         case "group": {
           // Group 생성 Redo - 그룹 요소 추가 준비
-          console.log("🔄 Redo: Group 생성 데이터 준비");
           // 🚀 Phase 2: structuredClone 사용
           if (entry.data.element) {
             elementsToAdd.push(cloneForHistory(entry.data.element));
@@ -840,7 +743,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
 
         case "ungroup": {
           // Ungroup Redo - 그룹 요소 삭제 준비
-          console.log("🔄 Redo: Ungroup 데이터 준비");
           elementIdsToRemove = [entry.elementId];
           break;
         }
@@ -964,9 +866,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
             );
           } else if (entry.data.batchUpdates) {
             // Batch update Redo - 각 요소의 newProps 적용
-            console.log("🔄 Redo: Batch update 적용 중:", {
-              updateCount: entry.data.batchUpdates.length,
-            });
 
             // 업데이트 맵 생성
             const updateMap = new Map<string, ComponentElementProps>();
@@ -982,10 +881,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
             updatedElements = currentState.elements.map((el) => {
               const newPropsForEl = updateMap.get(el.id);
               if (newPropsForEl) {
-                console.log(`📥 적용 요소 props:`, {
-                  elementId: el.id,
-                  type: el.type,
-                });
                 return { ...el, props: { ...el.props, ...newPropsForEl } };
               }
               return el;
@@ -1012,14 +907,9 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
 
         case "group": {
           // Group 생성 Redo - 그룹 추가 + 자식들 그룹 안으로 이동
-          console.log("🔄 Redo: Group 생성 중");
 
           // 1. 그룹 요소 추가
           let newElements = [...currentState.elements, ...elementsToAdd];
-          console.log(`📥 그룹 요소 추가:`, {
-            groupId: elementsToAdd[0]?.id,
-            type: elementsToAdd[0]?.type,
-          });
 
           // 2. 자식 요소들을 그룹 안으로 이동
           if (entry.data.elements) {
@@ -1029,10 +919,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
 
             newElements = newElements.map((el) => {
               if (childIds.has(el.id)) {
-                console.log(`📥 자식 요소 그룹 안으로 이동:`, {
-                  childId: el.id,
-                  groupId: entry.elementId,
-                });
                 return {
                   ...el,
                   parent_id: entry.elementId,
@@ -1048,7 +934,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
 
         case "ungroup": {
           // Ungroup Redo - 그룹 삭제 + 자식들 원래 parent로 이동
-          console.log("🔄 Redo: Ungroup 실행 중");
 
           // 1. 그룹 요소 삭제
           let filteredElements = currentState.elements.filter(
@@ -1070,10 +955,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
             filteredElements = filteredElements.map((el) => {
               const update = childUpdates.get(el.id);
               if (update) {
-                console.log(`📥 자식 요소 원래 parent로 이동:`, {
-                  childId: el.id,
-                  newParentId: update.parent_id,
-                });
                 return {
                   ...el,
                   parent_id: update.parent_id,
@@ -1139,7 +1020,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
       console.warn("⚠️ 데이터베이스 업데이트 실패 (메모리는 정상):", dbError);
     }
 
-    console.log("✅ Redo 완료");
   } catch (error) {
     console.error("Redo 시 오류:", error);
   } finally {
@@ -1171,20 +1051,15 @@ export const createGoToHistoryIndexAction =
       // 히스토리 작업 시작 표시
       set({ historyOperationInProgress: true });
 
-      console.log("🎯 GoToHistoryIndex 시작:", { targetIndex });
 
       // historyManager에서 모든 엔트리를 한 번에 가져옴
       const result = historyManager.goToIndex(targetIndex);
       if (!result) {
-        console.log("⚠️ GoToHistoryIndex: 이동할 엔트리 없음");
         set({ historyOperationInProgress: false });
         return;
       }
 
       const { entries, direction } = result;
-      console.log(
-        `🔄 GoToHistoryIndex: ${entries.length}개 엔트리 ${direction}`,
-      );
 
       // 현재 상태를 가져와서 누적 업데이트
       const { elements: sourceElements } = state;
@@ -1247,7 +1122,6 @@ export const createGoToHistoryIndexAction =
       // 데이터베이스 동기화 (마지막 상태만)
       await syncDatabaseForEntries(entries, direction, get);
 
-      console.log("✅ GoToHistoryIndex 완료");
     } catch (error) {
       console.error("GoToHistoryIndex 시 오류:", error);
     } finally {
@@ -1823,7 +1697,6 @@ async function syncDatabaseForEntries(
     await persistActiveCanonicalDocument(removedElementIds.size);
     void affectedElementIds;
     void elementsMap;
-    console.log("✅ GoToHistoryIndex DB 동기화 완료");
   } catch (error) {
     console.warn("⚠️ GoToHistoryIndex DB 동기화 실패:", error);
   }

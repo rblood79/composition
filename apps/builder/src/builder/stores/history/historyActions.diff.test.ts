@@ -8,7 +8,7 @@ import {
 } from "@/adapters/canonical/canonicalMutations";
 import type { Element } from "../../../types/core/store.types";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
-import { historyManager } from "../history";
+import { createElementDiff, historyManager, serializeDiff } from "../history";
 import { useStore } from "../index";
 
 vi.mock("../../../lib/db", () => ({
@@ -108,7 +108,13 @@ describe("historyActions canonical diff/event application", () => {
       .setDocument("history-project", makeDocument([before]));
     useCanonicalDocumentStore.getState().setCurrentProject("history-project");
 
-    historyManager.addDiffEntry("update", before, after);
+    // v1 스타일 diff-only entry (canonicalEvents 없음) — legacy diff read
+    // path + HC#2 flip (canonical 1차 sync) 검증
+    historyManager.addEntry({
+      type: "update",
+      elementId: before.id,
+      data: { diff: serializeDiff(createElementDiff(before, after)) },
+    });
 
     useCanonicalDocumentStore
       .getState()
@@ -146,7 +152,17 @@ describe("historyActions canonical diff/event application", () => {
       .setDocument("history-project", makeDocument([beforeA, beforeB]));
     useCanonicalDocumentStore.getState().setCurrentProject("history-project");
 
-    historyManager.addBatchDiffEntry([beforeA, beforeB], [afterA, afterB]);
+    historyManager.addEntry({
+      type: "batch",
+      elementId: "batch_diff",
+      elementIds: [beforeA.id, beforeB.id],
+      data: {
+        diffs: [
+          serializeDiff(createElementDiff(beforeA, afterA)),
+          serializeDiff(createElementDiff(beforeB, afterB)),
+        ],
+      },
+    });
 
     useCanonicalDocumentStore
       .getState()

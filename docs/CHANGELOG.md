@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [undo/redo/History 패널 — canonical 아키텍처 정합 정비 (ADR-124 후속 완결)] - 2026-07-15
+
+### Bug Fixes
+
+- **속성 편집·드래그 이동·인스턴스 조작의 undo 가 canonical-only 데이터를 손상시킬 수 있던 legacy 경로 제거** (사용자 보고: history 기능이 오래전 제작 후 현재 코드 미반영):
+  - **Why**: ADR-124 가 canonical event 부착을 diff API 에만 구현했는데 실제 mutation 은 전부 plain `addEntry` 호출 — 최다 빈도 편집이 deprecated snapshot 으로 기록되고, undo 는 flat Element[] → canonical **전체 교체** fallback 을 타면서 ref descendants/slot·frame metadata 소실 위험 + HC#2 (canonical 1차) 위반이 상존했다.
+  - 전 call site 를 canonical event 로 전환: update event (full merged props 계약) / move event (빌더 신설) / replace event 쌍 (instance mirror field 표현, 빌더 신설)
+  - 위치: `stores/utils/{elementUpdate,instanceActions,historyHelpers,elementRemoval,elementCreation}.ts`, `stores/inspectorActions.ts`, `workspace/canvas/hooks/useDragBridge.ts`
+- **LayerTree cross-container 이동이 undo 불가** — history 자체가 미기록. move event 기록 신설 (`stores/elements.ts` moveElementToContainer)
+- **paste/duplicate/group 후 undo 를 요소 수만큼 눌러야 하던 이중 기록** — addElement 개별 entry + trackMultiPaste/trackGroupCreation batch entry 가 중복 생성. `addElement(…, { skipHistory })` 로 단일 batch entry 화
+- **구조 변경 (parent_id) batch 의 undo 가 부모를 복원하지 않던 latent 결함** — batch diff 기록이 props-only event 를 만들어 parent 복원이 early-return 에 가려짐. update+move event 병합 entry 로 정정
+- **대량 paste 의 undo 가 새로고침 시 유실** — 급감 가드가 undo persist 를 차단해 메모리·DB 발산. entry 의 canonical event deleteIds 로 산출한 `expectedShrinkNodeCount` 검증 통과 시에만 허용 (fail-closed — 2026-07-14 소실 차단책의 정량 검증 예외, 사용자 승인)
+- **instance 내부 요소 update 의 undo 가 조용히 no-op** — canonical update 적용기 `replaceNodeProps` 가 ref descendants override 를 탐색하지 않던 사각지대 해소 (`stores/history/canonicalHistoryEvents.ts`)
+- **History 패널 label 이 원시 UUID/`drag-reorder` sentinel 노출** — canonicalEvents + 현재 canonical document 조회 기반으로 재설계, 삭제된 노드는 truncated id + "(삭제됨)" (`panels/history/historyEntryLabel.ts` 신설)
+
+### Architecture
+
+- **HC#2 순서 정정 (ADR-122 §Residual 부분 해소)**: undo/redo/goToHistoryIndex 의 legacy fallback 을 canonical 1차 → set 2차 + canonical 재파생으로 전환, source-order 정적 가드 추가. legacy fallback 은 구 IndexedDB v1 entry 전용으로 격하. `applyElementSnapshotBatch` (instance detach) 도 canonical-first 재배열
+- **잔재 정리**: `addDiffEntry`/`addBatchDiffEntry` (호출처 0)/`trackAIBatchOperation` (호출처 0) + CommandDataStore (deprecated 필드만 읽던 부기, 342 LOC) 삭제 — Monitor 패널 통계는 entry 기반 `estimatedMemoryUsage` 로 대체. historyActions 디버그 console.log 127줄 제거. `addEntry` 에 canonicalEvents 미부착 DEV 경고 가드
+- 커버 범위는 요소 도메인 한정 (사용자 결정) — root collections (themes/variables/events/actions/collections)/페이지/Frame CRUD 의 undo 미지원은 알려진 제한으로 유지
+
+### 검증
+
+- 핵심 불변식 _canonical doc → mutation → undo → 원본 deep-equal_ roundtrip 을 mutation family 별 신설 (move/replace/R7 override/batch/v1 legacy 발산-0/v1·v2 혼합 cross-jump/급감 가드 delta) — history·instance·가드 테스트 87건 PASS, type-check PASS (baseline 69→68, 1건 실수정). 라이브 검증 (Chrome MCP 시나리오) 은 본 정비 마지막 단계에서 수행
+
 ## [field 패밀리 root width — catalog 단일 정본 (DatePicker 가 auto 로 떨어지던 split 제거)] - 2026-07-15
 
 ### Bug Fixes

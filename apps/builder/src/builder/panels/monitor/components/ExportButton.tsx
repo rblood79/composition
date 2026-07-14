@@ -32,18 +32,7 @@ export function ExportButton({ stats, format = "json" }: ExportButtonProps) {
       const rows = [
         ["Page Count", stats.pageCount, timestamp],
         ["Total Entries", stats.totalEntries, timestamp],
-        ["Command Count", stats.commandStoreStats.commandCount, timestamp],
-        ["Cache Size", stats.commandStoreStats.cacheSize, timestamp],
-        [
-          "Memory Usage (bytes)",
-          stats.commandStoreStats.estimatedMemoryUsage,
-          timestamp,
-        ],
-        [
-          "Compression Ratio",
-          stats.commandStoreStats.compressionRatio.toFixed(4),
-          timestamp,
-        ],
+        ["Memory Usage (bytes)", stats.estimatedMemoryUsage, timestamp],
       ];
       content =
         BOM + [headers, ...rows].map((row) => row.join(",")).join("\n");

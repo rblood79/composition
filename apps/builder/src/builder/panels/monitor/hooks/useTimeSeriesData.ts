@@ -13,7 +13,6 @@ export interface DataPoint {
   memoryUsage: number; // bytes
   memoryPercent: number; // 0-100
   historyEntries: number;
-  cacheSize: number;
 }
 
 interface UseTimeSeriesOptions {
@@ -27,7 +26,6 @@ export function useTimeSeriesData(
     memoryUsage: number;
     memoryPercent: number;
     historyEntries: number;
-    cacheSize: number;
   } | null,
   options: UseTimeSeriesOptions = {}
 ) {
@@ -44,7 +42,6 @@ export function useTimeSeriesData(
       memoryUsage: stats.memoryUsage,
       memoryPercent: stats.memoryPercent,
       historyEntries: stats.historyEntries,
-      cacheSize: stats.cacheSize,
     };
 
     setData((prev) => {
