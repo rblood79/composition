@@ -25,6 +25,7 @@ import {
 import {
   applyCanonicalHistoryEventsToActiveDocument,
   getCanonicalHistoryEventIds,
+  type CanonicalHistoryNodeEvent,
 } from "./canonicalHistoryEvents";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import { visitCanonicalDocumentElements } from "../canonical/canonicalElementsView";
@@ -48,16 +49,51 @@ type HistoryCompatibilityElementMap<TElement extends Element = Element> = Map<
   TElement
 >;
 
-async function persistActiveCanonicalDocument(): Promise<void> {
+/**
+ * undo/redo 결과 persist.
+ *
+ * 급감 가드와의 계약 (2026-07-15 사용자 승인): blanket allowShrink 금지 유지.
+ * 대신 적용된 entry 의 canonical event deleteIds 로 산출한 **설명 가능한
+ * 감소량** (`expectedShrinkNodeCount`) 을 전달 — 가드가
+ * `nextCount ≥ prevCount − expected` 검증 통과 시에만 급감을 허용한다
+ * (대량 paste 의 undo 가 DB 저장 차단 → 새로고침 시 undo 유실되던 결함 해소).
+ * delta 를 초과하는 감소는 기존과 동일하게 차단 (fail-closed).
+ */
+async function persistActiveCanonicalDocument(
+  expectedShrinkNodeCount?: number,
+): Promise<void> {
   const canonical = useCanonicalDocumentStore.getState();
   const projectId = canonical.currentProjectId;
   if (!projectId) return;
   const doc = canonical.documents.get(projectId);
   if (!doc) return;
   const db = await getDB();
-  // undo/redo 는 급감 가드 대상 유지 (allowShrink 금지) — ADR-122 잔존
-  // (raw legacy 기반 full-replace) 이 부분 상태를 투영하는 경우를 여기서 차단.
-  await db.documents.put(projectId, doc, { reason: "history-undo-redo" });
+  await db.documents.put(projectId, doc, {
+    reason: "history-undo-redo",
+    ...(expectedShrinkNodeCount && expectedShrinkNodeCount > 0
+      ? { expectedShrinkNodeCount }
+      : {}),
+  });
+}
+
+/** 적용 entry 들의 canonical event 에서 방향 기준 제거 node 수 산출 (union). */
+function countExpectedShrinkNodes(
+  entries: Array<
+    | { data: { canonicalEvents?: CanonicalHistoryNodeEvent[] } }
+    | null
+    | undefined
+  >,
+  direction: "undo" | "redo",
+): number {
+  const deleteIdSet = new Set<string>();
+  for (const entry of entries) {
+    const events = entry?.data.canonicalEvents;
+    if (!events || events.length === 0) continue;
+    for (const id of getCanonicalHistoryEventIds(events, direction).deleteIds) {
+      deleteIdSet.add(id);
+    }
+  }
+  return deleteIdSet.size;
 }
 
 function syncHistoryElementsToCanonical(elements: Element[]): void {
@@ -690,9 +726,10 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
 
     // 3. Canonical document persistence (ADR-128: cloud compatibility sync dead)
     try {
-      await persistActiveCanonicalDocument();
+      await persistActiveCanonicalDocument(
+        countExpectedShrinkNodes([entry], "undo"),
+      );
       void appliedCanonicalEvents;
-      void entry;
     } catch (dbError) {
       console.warn("⚠️ 데이터베이스 업데이트 실패 (메모리는 정상):", dbError);
     }
@@ -1094,9 +1131,10 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
 
     // 3. Canonical document persistence (ADR-128: cloud compatibility sync dead)
     try {
-      await persistActiveCanonicalDocument();
+      await persistActiveCanonicalDocument(
+        countExpectedShrinkNodes([entry], "redo"),
+      );
       void appliedCanonicalEvents;
-      void entry;
     } catch (dbError) {
       console.warn("⚠️ 데이터베이스 업데이트 실패 (메모리는 정상):", dbError);
     }
@@ -1782,8 +1820,7 @@ async function syncDatabaseForEntries(
 
   // ADR-128: cloud sync dead — IndexedDB persistence via persistActiveCanonicalDocument
   try {
-    await persistActiveCanonicalDocument();
-    void removedElementIds;
+    await persistActiveCanonicalDocument(removedElementIds.size);
     void affectedElementIds;
     void elementsMap;
     console.log("✅ GoToHistoryIndex DB 동기화 완료");

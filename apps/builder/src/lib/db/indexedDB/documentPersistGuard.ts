@@ -87,6 +87,18 @@ export function evaluateDocumentPersist(
     return { allowed: true, prevCount, nextCount };
   }
   if (nextCount < prevCount * GUARD_SHRINK_RATIO) {
+    // history undo/redo 의 "설명 가능한 감소" — entry deleteIds 산출량 한도
+    // 안의 급감만 통과 (2026-07-15 사용자 승인 예외). delta 를 초과하는
+    // 감소는 여전히 차단 (fail-closed — 가드 본래 목적인 '설명 불가능한
+    // 대량 소실 차단' 유지).
+    const expectedShrink = options?.expectedShrinkNodeCount;
+    if (
+      typeof expectedShrink === "number" &&
+      expectedShrink > 0 &&
+      nextCount >= prevCount - expectedShrink
+    ) {
+      return { allowed: true, prevCount, nextCount };
+    }
     return {
       allowed: false,
       prevCount,

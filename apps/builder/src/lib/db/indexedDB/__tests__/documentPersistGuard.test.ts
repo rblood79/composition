@@ -77,6 +77,26 @@ describe("evaluateDocumentPersist — 급감 가드", () => {
   it("증가 write 는 항상 허용", () => {
     expect(evaluateDocumentPersist(50, 120).allowed).toBe(true);
   });
+
+  it("expectedShrinkNodeCount: 설명 가능한 감소 (history undo 의 entry delta) 는 통과", () => {
+    // 60-node 문서에서 50-node paste 를 undo → 10 (< 60×0.3=18 → 원래 차단)
+    // entry deleteIds 가 50 을 설명 → nextCount(10) ≥ prevCount(60) − 50 → 허용
+    expect(
+      evaluateDocumentPersist(60, 10, { expectedShrinkNodeCount: 50 }).allowed,
+    ).toBe(true);
+  });
+
+  it("expectedShrinkNodeCount: delta 를 초과하는 감소는 여전히 차단 (fail-closed)", () => {
+    // 예상 감소 5 인데 실제 55 감소 → 설명 불가능한 소실 → 차단 유지
+    expect(
+      evaluateDocumentPersist(60, 5, { expectedShrinkNodeCount: 5 }).allowed,
+    ).toBe(false);
+    // 0/미지정은 기존 동작과 동일
+    expect(
+      evaluateDocumentPersist(60, 10, { expectedShrinkNodeCount: 0 }).allowed,
+    ).toBe(false);
+    expect(evaluateDocumentPersist(60, 10).allowed).toBe(false);
+  });
 });
 
 describe("shouldWriteBackup — 시간 버킷", () => {

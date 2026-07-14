@@ -53,6 +53,13 @@ export interface CanonicalDocumentBackupRecord {
 export interface DocumentPersistOptions {
   /** 대량 삭제가 의도된 흐름 (요소 삭제 / 페이지 삭제) 에서만 true */
   allowShrink?: boolean;
+  /**
+   * 설명 가능한 감소량 (history undo/redo 전용, 2026-07-15 사용자 승인) —
+   * entry 의 canonical event deleteIds 로 산출한 예상 제거 node 수.
+   * 가드는 `nextCount ≥ prevCount − expectedShrinkNodeCount` 일 때만 통과
+   * (delta 불일치 시 기존과 동일하게 차단 — fail-closed).
+   */
+  expectedShrinkNodeCount?: number;
   /** 진단 로그용 호출 출처 */
   reason?: string;
 }
