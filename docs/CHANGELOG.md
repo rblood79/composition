@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Skia 아이콘 glyph 가 iconSize 아닌 typography fontSize 로 그려짐 — icon_font 크기 채널 복구] - 2026-07-14
+
+### Bug Fixes
+
+- **Skia 아이콘이 size 별 iconSize 보다 작게 렌더링** (사용자 보고). 박스는 `iconSize` 로 커지는데 **glyph 만 typography 를 따라가** 박스 안에서 작게 그려졌다 — L→XL 로 키워도 glyph 가 거의 그대로였다.
+  - **Why**: `icon_font` primitive 가 `style?.fontSize != null` 이면 그 값을 glyph 크기로 썼다. 이 판정은 `style` 이 **override 전용**이던 시절엔 맞았지만, ADR-912 `toSkiaStyle` 이후 `style` 은 **rule base ⊕ override 병합 map** 이다 — base 에 rule 의 `fontSize`(typography)가 **항상** 들어오므로 판정이 상시 참이 되어 `iconSize` 채널이 죽었다. `SelectIcon` 은 두 축의 값이 달라(xs 14 vs 10 / sm 16 vs 12 / md 18 vs 16 / lg 22 vs 18 / xl 28 vs 20) 전 size 에서 glyph 가 박스보다 작았다.
+  - **일반 `Icon` 이 멀쩡해 보인 건 우연**: catalog `Icon` 은 `fontSize` 와 `iconSize` 를 같은 값(16/16 · 24/24 · 48/48)으로 써서 어느 쪽이 이기든 결과가 같았다 — 이 우연이 결함을 가려줬다.
+  - 수정: 크기 채널을 `iconSize`(merged → rule 순)로 읽고, `fontSize` 는 **사용자가 `props.style` 에 직접 넣었을 때만** override 로 수용(merged base 의 rule fontSize 는 무시).
+  - 위치: `packages/specs/src/renderers/skiaPrimitives.ts` (`iconFont`)
+
+### 검증
+
+- 라이브(실제 Inspector 클릭 5 size sweep): DatePicker 의 Skia glyph = Skia 박스 = DOM glyph = **14 / 16 / 18 / 22 / 28** 전 size 일치. 수정 전 XL 은 glyph 가 20 에 머물렀다.
+- 회귀 테스트 `skiaPrimitives.iconFontSizeChannel.test.ts` (신규 8 케이스) — **수정 전 6/8 RED** 확인. 통과하는 2개는 원래 통과해야 할 케이스(사용자 override / Icon 의 값 일치)라 판별력 확증.
+- `packages/specs` 552 통과. type-check 0 error. `packages/shared` 는 기존 실패 1건(`disclosureHeaderIconSize` — 본 변경 stash 후 clean tree 에서 동일 실패 확인, 무관).
+
 ## [트리거 아이콘 glyph 가 size 를 안 따름 + size passthrough 전수 확장 — 아이콘 스케일 단일 SSOT] - 2026-07-14
 
 ### Bug Fixes

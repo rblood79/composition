@@ -50,14 +50,34 @@ export type SkiaPrimitiveDrawFn = (ctx: {
 }) => Shape[] | null;
 
 /**
- * `icon_font` — Lucide 아이콘 단일 glyph. size.iconSize 기준, style.fontSize override.
+ * `icon_font` — Lucide 아이콘 단일 glyph. **iconSize 가 크기 채널**, 사용자 fontSize 만 override.
  * 색은 style.color → variant.text. (Icon primitive)
+ *
+ * **fontSize 를 base 로 읽으면 안 된다 (2026-07-14 회귀)**: ADR-912 `toSkiaStyle` 이후 `style`
+ * 은 override 전용이 아니라 **rule base ⊕ override 병합 map** 이다. base 에 rule 의 `fontSize`
+ * (typography)와 `iconSize`(아이콘 스케일)가 **둘 다** 들어오므로, `style.fontSize != null` 로
+ * override 를 판정하면 **항상 참** 이 되어 iconSize 가 죽는다. SelectIcon 은 두 축의 값이 달라
+ * (lg: iconSize 22 vs text-lg 18, xl: 28 vs 20) glyph 가 박스보다 작게 그려졌다 — 박스는
+ * iconSize 로 배치되는데 glyph 만 typography 를 따라간 비대칭.
+ *
+ * Icon(일반) 이 멀쩡해 보였던 건 **우연**이다 — catalog Icon 은 fontSize 와 iconSize 가 값이
+ * 같게(16/16, 24/24, 48/48) 작성돼 있어 어느 쪽이 이기든 결과가 같았다.
+ *
+ * 따라서 크기 채널은 `iconSize`(merged → rule 순)로 읽고, `fontSize` 는 **사용자가 props.style
+ * 에 직접 넣었을 때만** override 로 받는다(merged base 의 fontSize 는 무시).
  */
 const iconFont: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
-  const iconSize = size.iconSize ?? 24;
+  // 크기 채널 = iconSize (merged map 우선 — size 별 rule 값이 이미 해소돼 들어온다).
+  const iconSize = resolveSpecFontSize(
+    (style?.iconSize as string | number | undefined) ?? size.iconSize ?? 24,
+    24,
+  );
+  // fontSize override 는 **사용자 입력(props.style)** 일 때만 — merged base 의 rule fontSize 아님.
+  const userFontSize = (props.style as Record<string, unknown> | undefined)
+    ?.fontSize as string | number | undefined;
   const effectiveSize =
-    style?.fontSize != null
-      ? resolveSpecFontSize(style.fontSize as string | number, iconSize)
+    userFontSize != null
+      ? resolveSpecFontSize(userFontSize, iconSize)
       : iconSize;
   return [
     {
