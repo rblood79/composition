@@ -31,8 +31,8 @@
 ### Phase 0 — Inventory freeze (G0)
 
 - legacy `props.events` read/write site 전수 grep 표 (본문 실측 표 기반 + commit hash 고정)
-- boundary allowlist 확정: `adapters/canonical/*` (Pencil import/export) / `exportLegacyDocument.ts` / `elementDiff.ts` / `workflowEdges.ts` — allowlist 외 접근은 G2 grep 게이트 대상
-- EventType union 멤버 실측 고정 (`events.registry.ts:32-128`) + type-check baseline 값 freeze
+- boundary allowlist 확정: `adapters/canonical/*` (Pencil import/export) / `exportLegacyDocument.ts` — allowlist 외 접근은 G2 grep 게이트 대상. **`elementDiff.ts`/`workflowEdges.ts`/`elementMapper` 는 allowlist 아님** (live 소비자 — §5 전환 대상, 본문 R4. round 2 정정 2026-07-14: 구 bullet 이 이 2건을 allowlist 에 포함해 §5 와 자기모순이었음)
+- EventType union 멤버 실측 고정 (`events.registry.ts:30-160` — onRemove:138/onScroll:145/onResize:150/onLoad:155 포함, union 정의 :165) + type-check baseline 값 freeze (round 2 정정: 구 인용 ":32-128" 은 4멤버 절삭)
 
 ### Wave 1 — canonical end-to-end + 2-depth UI
 
@@ -44,7 +44,7 @@
 
 #### Phase 2 — EventsPanel canonical primary 재작성 + ActionsPanel 흡수
 
-- EventsPanel 신규: `useEventsForTarget(elementId)` + `useDocumentActions()` direct r/w — legacy 접근 0건 (HC2)
+- EventsPanel 신규: 읽기 = `useEventsForTarget(elementId)` + `useDocumentActions()` 구독 (두 hook 은 `canonicalElementsBridge.ts:161-196` useSyncExternalStore **read 전용** — round 2 정정: 구 "direct r/w" 표기는 부정확). 쓰기 = **canonical write 단일 진입점 wrapper 신설** (예: `updateEventsRootCollection`/`updateActionsRootCollection` — ADR-131 "root collection mutation 은 sync wrapper 경유" 계약 동형, 호출 순서 canonical 1차 → history → persist). legacy 접근 0건 (HC2)
 - 과도기 무중단: 쓰기 시 canonical 1차 + **canonical→legacy 프로젝션** (역 mirror) 로 props.events 유지 → 런타임 무영향 (Phase 3 에서 제거)
 - ActionsPanel 흡수: cross-event reuse inline 토글 (anonymous→named id 승격) + `panels/actions/` 제거 + `PanelId "actions"` 제거 (HC4)
 - 기존 `syncEventsToRootCollection` (legacy→canonical mirror) 제거 — 방향 역전 완결

@@ -63,6 +63,11 @@ ADR-144/920 은 이미 Superseded, ADR-910/911 은 "비착수 비교 기록/비�
 - `componentRegistrationContract.test.ts` 불변식 4종 추가: ① reusable entry 마다 ensurer 존재
   ② 동명 primitive placeable=false ③ reusableId 형식 `component-<kebab>` ④ placeable
   reusable entry 는 PALETTE_ORDER 포함.
+- **shared catalog 전역 type 유일성 test 개정** (round 2 지적 2026-07-14):
+  `packages/shared/src/catalog/__tests__/componentCatalog.test.ts:32-35` 의
+  `it("type 중복 없음")` (`new Set(types).size === types.length`) 이 동명 type 2-entry
+  (Toolbar/Form primitive+reusable) 와 정면 충돌 → **(kind, type) 복합 유일성** 으로 개정
+  (동일 kind 내 type 중복 없음 + 동명 type 은 placeable 단일성 test 로 커버). G2 통과 조건에 포함.
 - Gate G2.
 
 ### Phase 2 — IconButton 첫 신규 reusable 수직 슬라이스
@@ -95,6 +100,11 @@ ADR-144/920 은 이미 Superseded, ADR-910/911 은 "비착수 비교 기록/비�
 
 - GridListItem(label/description) → Menu item(icon/label/shortcut/description — itemSchema
   8키 정합). ADR-147 모델 복제: origin 조합 자식 + slotRole + projection 주입.
+- **ADR-150 A2/A3 표면 공유 조정** (round 2 지적 2026-07-14): projection 주입 경로
+  (`canvasSceneNode.ts:13,1791` slotRole 소비)가 ADR-150 A2(window 전환, appendXxxRowProjection
+  광범위 수정)/A3(drill-in — row 내부 slot 자식이 바로 대상)와 동일 표면. **후행 착수 측이
+  선행 측의 land 상태를 Phase 진입 시 재실측**하고, 본 Phase 진입 시점에 150 A2/A3 이 반영돼
+  있으면 G4 를 window/hit tree 위에서 재검증한다 (역순이면 150 G-A2/G-A3 이 본 Phase 결과 위에서 검증).
 - Gate G4 동형.
 
 ## §4. Gate ↔ Risk 매핑
