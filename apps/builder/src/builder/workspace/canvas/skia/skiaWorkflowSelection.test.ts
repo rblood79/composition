@@ -294,6 +294,8 @@ describe("buildSelectionRenderData editing semantics", () => {
         slotMarkerRole: null,
       },
     ]);
-    expect(result.showHandles).toBe(false);
+    // multi-select 에서도 combined bounds 의 corner handles 를 표시한다 (Figma/Pencil/Sketch
+    // 정합 — 사용자가 selection 영역을 시각적으로 인식). 8468c4391 에서 의도적으로 바뀐 동작.
+    expect(result.showHandles).toBe(true);
   });
 });

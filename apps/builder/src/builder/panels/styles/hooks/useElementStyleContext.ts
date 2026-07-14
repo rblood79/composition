@@ -1,3 +1,4 @@
+import { resolveComponentRule } from "@composition/shared";
 import { getSpecForTag } from "../../../workspace/canvas/sprites/tagSpecMap";
 import type { PanelNode } from "../../panelNode";
 import { useCanonicalPropertyElementsMap } from "../../properties/hooks/useCanonicalPropertyRead";
@@ -14,8 +15,18 @@ function asNonEmptyString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
+/**
+ * "우리가 아는 컴포넌트 타입인가" 판정 — 등록처는 catalog 다.
+ *
+ * ADR-142 cutover 로 컴포넌트당 spec 파일이 폐기되어(잔존 spec = Frame/Group/Slot)
+ * `getSpecForTag` 단독 판정은 ListBox 같은 일반 컴포넌트에 대해 항상 false 가 된다.
+ * 그러면 origin 이 hydrate 되지 않은 ref instance 가 componentName fallback 을 못 받고
+ * `type: "ref"` 로 떨어져, Style Panel 이 해당 컴포넌트 기본값 대신 전역 fallback 을 표시한다.
+ * catalog(`resolveComponentRule`)를 1차 registry 로 보고, 잔존 spec 3개는 보조로 남긴다.
+ */
 function isRegisteredSpecType(type: string | undefined): boolean {
-  return type !== undefined && getSpecForTag(type) !== null;
+  if (type === undefined) return false;
+  return resolveComponentRule(type) != null || getSpecForTag(type) !== null;
 }
 
 function findRefOriginElement(

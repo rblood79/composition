@@ -234,9 +234,12 @@ describe("useLayoutValues — ADR-108 P3 variant-aware Panel fallback", () => {
     ]);
 
     const { result } = renderHook(() => useLayoutValues("el-side-textfield"));
-    expect(result.current?.display).toBe("grid");
-    expect(result.current?.alignItems).toBe("start");
-    expect(result.current?.gap).toBe("var(--spacing-xs)");
+    // catalog 의 label-position:side 는 grid 가 아니라 flex-row 다 — DateField/TimeField/
+    // NumberField/SearchField 와 통일하면서 generated CSS 와 Skia(getSideLabelParentStyle) 의
+    // 대칭까지 맞춘 의도적 변경 (ADR-913 후속 fix, 2026-06-19).
+    expect(result.current?.display).toBe("flex");
+    expect(result.current?.flexDirection).toBe("row");
+    expect(result.current?.alignItems).toBe("flex-start");
   });
 
   it("inline layout 값은 variant fallback 보다 우선", () => {

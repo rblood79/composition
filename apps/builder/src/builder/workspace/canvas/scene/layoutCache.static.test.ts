@@ -18,8 +18,10 @@ describe("layoutCache filtered children republish contract", () => {
     expect(source).toMatch(
       /filteredChildIdsMap: Map<string, string\[]> \| null;/,
     );
+    // synthetic 노드 타입은 CanvasSceneNode → CanvasLayoutNode 로 이름이 바뀌었다.
+    // 계약(캐시 엔트리가 synthetic map 을 보유)은 동일 — 현재 심볼로 앵커.
     expect(source).toMatch(
-      /syntheticElementsMap: Map<string, CanvasSceneNode> \| null;/,
+      /syntheticElementsMap: Map<string, CanvasLayoutNode> \| null;/,
     );
     expect(source).toMatch(/rootKey: string;/);
     expect(source).toMatch(

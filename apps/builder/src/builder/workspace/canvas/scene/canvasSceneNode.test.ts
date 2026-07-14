@@ -842,10 +842,10 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
     const headerRow = graph.nodesMap.get(
       toCollectionRowProjectionId("table", "table-1", "__header__"),
     );
+    // header 여부는 projection metadata 가 보유 (구 `props._isHeader` 는 소비처 0 으로 소멸).
     expect(headerRow).toMatchObject({
       type: "TableRow",
       parentId: rowsGroup?.id,
-      props: { _isHeader: true },
       projection: { kind: "table-row", listBoxId: "table-1", isHeader: true },
     });
 
@@ -854,18 +854,20 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
     );
     expect(dataRow).toMatchObject({
       type: "TableRow",
-      props: { _isHeader: false },
       projection: { kind: "table-row", itemKey: "r1", isHeader: false },
     });
 
     // header 셀: label = column.label, cell: row.cells[columnId].
+    // ADR-912 Pattern B (TableCell catalog cutover, 2026-06-13): header/data 굵기와 컬럼 폭은
+    // `_isHeader`/`_columnWidth` 대신 보편 D3 style 채널(fontWeight 600/400, width)로 주입된다 —
+    // buildCatalogShapes 가 셀 종류를 모른 채 그리게 하기 위함 (컴포넌트 식별 분기 0).
     const headerNameCell = graph.nodesMap.get(
       toCollectionCellProjectionId("table", "table-1", "__header__", "name"),
     );
     expect(headerNameCell).toMatchObject({
       type: "TableCell",
       parentId: headerRow?.id,
-      props: { children: "Name", _isHeader: true, _columnWidth: 120 },
+      props: { children: "Name", style: { width: 120, fontWeight: 600 } },
       projection: { kind: "table-cell", columnId: "name", isHeader: true },
     });
 
@@ -875,7 +877,7 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
     expect(dataRoleCell).toMatchObject({
       type: "TableCell",
       parentId: dataRow?.id,
-      props: { children: "Admin", _isHeader: false, _columnWidth: 80 },
+      props: { children: "Admin", style: { width: 80, fontWeight: 400 } },
       projection: { kind: "table-cell", columnId: "role", itemKey: "r1" },
     });
 
