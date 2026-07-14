@@ -30,7 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 검증
 
-- 핵심 불변식 _canonical doc → mutation → undo → 원본 deep-equal_ roundtrip 을 mutation family 별 신설 (move/replace/R7 override/batch/v1 legacy 발산-0/v1·v2 혼합 cross-jump/급감 가드 delta) — history·instance·가드 테스트 87건 PASS, type-check PASS (baseline 69→68, 1건 실수정). 라이브 검증 (Chrome MCP 시나리오) 은 본 정비 마지막 단계에서 수행
+- 핵심 불변식 _canonical doc → mutation → undo → 원본 deep-equal_ roundtrip 을 mutation family 별 신설 (move/replace/R7 override/batch/v1 legacy 발산-0/v1·v2 혼합 cross-jump/급감 가드 delta) — history·instance·가드 테스트 87건 PASS, type-check PASS (baseline 69→68, 1건 실수정)
+- **라이브 실측** (Chrome, 실제 builder — 신규 프로젝트): ① 요소 추가 → 패널 label "추가 button_1" (UUID 아님) → undo 소멸/redo 복귀 ② Inspector 텍스트 편집 → label "수정 button_1" → undo 시 Canvas(Skia)+Inspector 동시 복원 ③ **LayerTree cross-container 이동이 history 에 기록되고 (신규) undo 로 원 부모·순서 복귀** ④ **paste 가 정확히 1 entry → undo 1회 완전 롤백** (이중 기록 해소) ⑤ 패널 cross-jump (시작 상태↔최신) 양방향 ⑥ 새로고침 후 Skia+DOM Preview+History 패널 복원 및 복원 스택 위 undo 정상. 콘솔: canonicalEvents 미부착 DEV 경고 0건 / persist BLOCKED 0건. (별개 관찰: paste 가 선택된 Button 의 자식으로 중첩 삽입해 button-in-button hydration 경고 — paste target 로직의 기존 이슈, history 무관)
 
 ## [field 패밀리 root width — catalog 단일 정본 (DatePicker 가 auto 로 떨어지던 split 제거)] - 2026-07-15
 
