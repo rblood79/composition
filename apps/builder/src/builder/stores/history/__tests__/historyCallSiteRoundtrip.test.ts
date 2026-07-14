@@ -193,6 +193,79 @@ describe("R1 call site → canonicalEvents 부착 + roundtrip", () => {
     expect(getCanonicalProps("text-b")).toEqual({ children: "B1" });
   });
 
+  it("HC#2 flip: v1 legacy entry undo 후 canonical ↔ store elements 발산 0", async () => {
+    const before = makeElement("text-1", { children: "v1-before" });
+    const after = makeElement("text-1", { children: "v1-after" });
+    seed([after]);
+
+    // v1 IndexedDB 스타일 entry (canonicalEvents 없음 — legacy snapshot 만)
+    historyManager.addEntry({
+      type: "batch",
+      elementId: "text-1",
+      elementIds: ["text-1"],
+      data: {
+        prevElements: [before],
+        elements: [after],
+      },
+    });
+
+    await useStore.getState().undo();
+
+    // canonical 이 먼저 갱신되고 store 는 canonical 재파생 — 발산 0
+    expect(getCanonicalProps("text-1")).toMatchObject({
+      children: "v1-before",
+    });
+    const storeElement = useStore.getState().elementsMap.get("text-1");
+    expect(storeElement?.props).toMatchObject({ children: "v1-before" });
+
+    const doc = useCanonicalDocumentStore
+      .getState()
+      .getDocument("history-project");
+    const canonicalIds = (doc?.children ?? []).map((child) => child.id);
+    const storeIds = useStore.getState().elements.map((el) => el.id);
+    expect(storeIds).toEqual(canonicalIds);
+  });
+
+  it("goToHistoryIndex: v2/v1 혼합 시퀀스 cross-jump 정합", async () => {
+    const original = makeElement("text-1", { children: "step0" });
+    seed([original]);
+
+    // entry 1 (v2): step0 → step1
+    await useStore.getState().updateElementProps("text-1", {
+      children: "step1",
+    });
+    // entry 2 (v1 스타일): step1 → step2
+    const step1 = makeElement("text-1", { children: "step1" });
+    const step2 = makeElement("text-1", { children: "step2" });
+    historyManager.addEntry({
+      type: "batch",
+      elementId: "text-1",
+      elementIds: ["text-1"],
+      data: { prevElements: [step1], elements: [step2] },
+    });
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument("history-project", makeDocument([step2]));
+    useStore.setState({
+      elements: [step2],
+      elementsMap: new Map([[step2.id, step2]]),
+    } as never);
+
+    // index -1 (시작 상태) 로 jump → 두 entry 모두 역방향 적용
+    await useStore.getState().goToHistoryIndex(-1);
+    expect(getCanonicalProps("text-1")).toMatchObject({ children: "step0" });
+    expect(useStore.getState().elementsMap.get("text-1")?.props).toMatchObject({
+      children: "step0",
+    });
+
+    // index 1 (끝) 로 jump → 두 entry 모두 정방향 재적용
+    await useStore.getState().goToHistoryIndex(1);
+    expect(getCanonicalProps("text-1")).toMatchObject({ children: "step2" });
+    expect(useStore.getState().elementsMap.get("text-1")?.props).toMatchObject({
+      children: "step2",
+    });
+  });
+
   it("trackBatchUpdate: full-merged update events 부착 (batchUpdates 미기록)", () => {
     const a = makeElement("el-a", { color: "red", size: "md" });
     const elementsMap = new Map([[a.id, a]]);

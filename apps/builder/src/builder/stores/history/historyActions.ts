@@ -652,15 +652,22 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
         }
       }
 
+    // HC#2 (canonical 1차) — legacy fallback (v1 IndexedDB entry 전용) 도
+    // canonical 을 먼저 갱신하고, set 은 canonical 재파생 결과를 사용해
+    // legacy mirror ↔ canonical 발산을 원천 차단 (ADR-122 §Residual 해소,
+    // 2026-07-15 — 신규 entry 는 전부 canonicalEvents 부착이라 이 분기는
+    // 구 IndexedDB v1 entry 전용).
+    if (!appliedCanonicalEvents) {
+      syncHistoryElementsToCanonical(updatedElements);
+      updatedElements = getActiveCanonicalHistoryElements() ?? updatedElements;
+    }
+
     set({
       elements: updatedElements,
       selectedElementId: updatedSelectedElementId,
       selectedElementProps: updatedSelectedElementProps,
     });
 
-    if (!appliedCanonicalEvents) {
-      syncHistoryElementsToCanonical(updatedElements);
-    }
     // 🔧 CRITICAL: elementsMap 재구축 (Undo 후 인덱스 동기화)
     get()._rebuildIndexes();
 
@@ -1052,15 +1059,19 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
         }
       }
 
+    // HC#2 (canonical 1차) — undo 와 동일: legacy fallback (v1 entry 전용) 은
+    // canonical 먼저 갱신 후 재파생 결과로 set (ADR-122 §Residual 해소).
+    if (!appliedCanonicalEvents) {
+      syncHistoryElementsToCanonical(updatedElements);
+      updatedElements = getActiveCanonicalHistoryElements() ?? updatedElements;
+    }
+
     set({
       elements: updatedElements,
       selectedElementId: updatedSelectedElementId,
       selectedElementProps: updatedSelectedElementProps,
     });
 
-    if (!appliedCanonicalEvents) {
-      syncHistoryElementsToCanonical(updatedElements);
-    }
     // 🔧 CRITICAL: elementsMap 재구축 (Redo 후 인덱스 동기화)
     get()._rebuildIndexes();
 
@@ -1161,6 +1172,14 @@ export const createGoToHistoryIndexAction =
         updatedSelectedElementProps = applyResult.selectedElementProps;
       }
 
+      // HC#2 (canonical 1차) — undo/redo 와 동일: 혼합(v1 포함) 시퀀스는
+      // canonical 먼저 갱신 후 재파생 결과로 set (ADR-122 §Residual 해소).
+      if (!allEntriesAppliedAsCanonicalEvents) {
+        syncHistoryElementsToCanonical(updatedElements);
+        updatedElements =
+          getActiveCanonicalHistoryElements() ?? updatedElements;
+      }
+
       // 최종 상태 한 번에 업데이트 (렌더링은 여기서만 발생)
       set({
         elements: updatedElements,
@@ -1168,9 +1187,6 @@ export const createGoToHistoryIndexAction =
         selectedElementProps: updatedSelectedElementProps,
       });
 
-      if (!allEntriesAppliedAsCanonicalEvents) {
-        syncHistoryElementsToCanonical(updatedElements);
-      }
       // elementsMap 재구축
       get()._rebuildIndexes();
 
