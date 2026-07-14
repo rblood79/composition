@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [CSS↔Skia 정합 수정 2차 — parity 잔여 백로그 sweep] - 2026-07-14
+
+### Bug Fixes
+
+- **전 컴포넌트 공통 폭 +2px 발산 — 페이지 경계선 border→outline**:
+  - **Why**: `.app .canvas` 의 `border: 1px solid` 가 border-box 폭을 좌우 1px 씩 잠식 → Preview iframe viewport 가 390 대신 388 로 수축, 모든 컴포넌트의 CSS 측정치가 Skia 대비 -2px. outline 은 레이아웃 비참여라 시각 동일 + 폭 복원.
+  - 위치: `apps/builder/src/builder/styles/layout/canvas.css`, `apps/builder/src/builder/main/BuilderCanvas.tsx`
+- **field 계열 10종 높이 +2~+6 발산** (TextField/TextArea/DateField/TimeField/NumberField/Select/ComboBox/SearchField/DatePicker/DateRangePicker):
+  - **Why**: 2겹 — ① 엔진이 `display:none` 자식(도움말/에러 슬롯)을 flex flow + gap 계산에 참여시킴 (CSS 는 완전 비참여 + trailing gap 없음). ② implicitStyles field 분기 gap 이 고정 4 fallback — catalog sizes gap(xs 2/sm 4/md 6/lg 8/xl 10)과 불일치.
+  - 수정: `solve_node` 에서 display:none 자식 flow 제외 + `zero_subtree_layout`(레이아웃 0 + dirty clear — 증분 skip 게이트 보존). gap 은 `specSizeField` catalog read-through.
+  - 회귀 테스트: `tree_golden.rs` N9 (display:none 자식 — trailing gap 미발생 golden)
+  - 위치: `packages/composition-engine/src/tree.rs`, `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`
+- **Disclosure/DisclosureGroup 높이 발산 + 그룹 초기 펼침 비대칭**:
+  - **Why**: 3겹 — ① catalog DisclosureHeader sizes(28/30/32)가 DOM 실측(트리거 line-height + paddingY 8×2 = 32/36/40)과 불일치. ② disclosurecontent 높이가 텍스트 미분류로 fs×1.5 fallback. ③ canonical 렌더 경로(CanonicalNodeRenderer) flatten 이 customId 를 누락 → `defaultExpandedKeys` 미매칭으로 DOM 그룹이 항상 접힘 (Skia 는 펼침 — 구조 발산).
+  - 수정: catalog 32/36/40 + generated CSS 재생성, content 텍스트 높이 extractSpecTextStyle 산출, renderDisclosureGroup/renderDisclosure `customId ?? id` 정렬
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`, `packages/shared/src/renderers/LayoutRenderers.tsx`, `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`
+- **GridList 카드 높이 -30 / Tree 항목 메트릭 발산**:
+  - **Why**: GridList — Skia 카드 높이가 fontSize 합산 모델인데 CSS 는 line-height 모델(label 24 + desc 20) → 행당 -10. Tree — catalog TreeItem md 가 DOM starter `Tree.css` 고정 메트릭(32px/text-base/16)과 불일치 + gap 이 starter `@supports :has` 재선언(0)과 발산.
+  - 수정: gridListCard(Skia shapes)와 layout 높이 분기를 `getLabelLineHeight` 동일 심볼 공유로 전환(Layer D 계약), TreeItem md 32/text-base/16 + Tree gap `"0px"` (containerStyles 타입 계약 `Record<string,string>`)
+  - 위치: `packages/specs/src/renderers/skiaPrimitives.ts`, `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`, `packages/shared/src/catalog/generated/componentRulesTable.ts`
+- **빈 텍스트 leaf 유령 24px + InlineAlert 높이 -10**:
+  - **Why**: 텍스트 leaf 가 text/label 부재여도 fs×1.5 fallback 높이를 가짐 → CSS 0h 와 발산 (기본 텍스트 없는 Heading 등). InlineAlert 는 자식 Heading/Description lineHeight 미주입(generated CSS 배율 1.4/1.5 미러 부재) + border 2px 레이아웃 미참여.
+  - 수정: 빈 leaf → 높이 0 가드 2곳(TEXT_LEAF 분기 + 최종 generic fallback), inlinealert 분기에 lineHeight("px" 문자열)/borderWidth 주입
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`, `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`
+- **Separator 기본 HR 이 2×18 outline box 로 렌더** (Skia 390×1 이 정합):
+  - **Why**: 수동 CSS 가 `.horizontal` 클래스/`aria-orientation` 속성만 매치하는데 RAC 는 수평(기본) 방향에 aria-orientation 을 emit 하지 않음 → 기본 HR 이 어떤 크기 규칙에도 안 걸림 + generated CSS paddingY(4/8/16)가 import 순서에 따라 두께로 잔존.
+  - 수정: `:not(.vertical):not([aria-orientation="vertical"])` 기본 수평 규칙(width 100%/height 1px/padding 0) + `data-size`/`data-variant` 계약 병기, catalog Separator paddingY→0 (간격은 margin 소관)
+  - 위치: `packages/shared/src/components/styles/Separator.css`, `packages/shared/src/catalog/generated/componentRulesTable.ts`
+
 ## [CSS↔Skia 정합 수정 — ADR-916 후속 parity sweep] - 2026-07-13
 
 ### Bug Fixes
