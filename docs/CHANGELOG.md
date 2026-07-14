@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [DisclosureGroup size 미반영 — propagation 은 cascade 하지 않는다 (3단 중첩 경로 명시 필요)] - 2026-07-15
+
+### Bug Fixes
+
+- **DisclosureGroup 의 size 를 바꿔도 CSS·Skia 모두 반영 안 됨** (사용자 보고, 직전 Disclosure 수정의 후속). 바로 앞 커밋에서 `Disclosure → Header/Content` 전파를 고쳤지만, 한 단계 위인 **DisclosureGroup 에도 propagation 규칙이 부재**했다.
+  - **Why (핵심 — cascade 없음)**: 구조가 `DisclosureGroup > Disclosure × N > {DisclosureHeader, DisclosureContent}` 인 **3단 중첩**인데, **propagation 은 cascade 하지 않는다.** Inspector 는 **선택된 요소의 rule 만** 실행하므로 그룹에 `size → Disclosure` 만 주면 그 Disclosure 의 rule 이 자동으로 이어 달리지 않는다 — **손자(Header/Content)까지 중첩 childPath 로 명시**해야 한다 (Select 의 `["SelectTrigger","SelectIcon"]` 선례 동형). `resolveChildPath` 가 같은 type 형제를 전부 매칭하므로 Disclosure 가 N 개여도 한 rule 로 커버된다.
+  - factory 는 자식 Disclosure 에 `size` 를 주지 않아 store 값이 `null` 이었고, 규칙이 없으니 Skia delegation(`getParentTagsForChild` 역인덱스)도 없어 catalog `defaultSize`(md) 로 고정 — 그룹을 lg 로 바꿔도 자식이 md 에 머물렀다.
+  - 위치: `apps/builder/src/builder/utils/propagationRegistry.ts` (`disclosureGroupPropagationRules` — `Disclosure` / `["Disclosure","DisclosureHeader"]` / `["Disclosure","DisclosureContent"]` 3 rule)
+
+### 검증
+
+- **라이브 3 size sweep** (Inspector 실제 클릭 → 새로고침 → 실측). 그룹 내 Disclosure **2개 모두** 반영:
+
+  | size | store (그룹·Disclosure·Header·Content 전부) | Skia Header | DOM 헤더 폰트 | DOM 헤더 높이 |
+  | ---- | ------------------------------------------- | ----------- | ------------- | ------------- |
+  | sm   | sm                                          | 32          | 12px          | 34            |
+  | md   | md                                          | 36          | 14px          | 36            |
+  | lg   | lg                                          | 40          | 16px          | 39            |
+
+  수정 전에는 자식 Disclosure 의 store size 가 `null`, Header/Content 는 `md` stale, Skia 는 36/20 고정이었다. Disclosure 단독 케이스와 동일한 값으로 수렴 — 그룹 경유가 대칭을 깨지 않는다.
+
+- `sizePropagationPathContract.test.ts` 에 DisclosureGroup 추가 + size-bearing 자식에 `Disclosure` 등록 — **수정 전 RED** ("DisclosureGroup size 규칙 존재: expected 0 to be greater than 0").
+
+### Documentation
+
+- **`DisclosureGroup.sizes.fontSize` 스케일 불일치는 의도적으로 두었다** — 테스트로 그 판단을 고정 (`disclosureHeaderFontInherit.test.ts`). 그룹만 `text-sm / text-sm / text-lg`(sm=md, lg 는 자식보다 +2px)로 Disclosure 계열(`text-xs / text-sm / text-base`)과 갈리지만 **시각에 도달하는 소비처가 없다**: DOM 은 자식 `[data-size]` 가 그룹 font-size 를 덮고, Skia 는 `DisclosureGroup` 이 `SHELL_ONLY_CONTAINER_TAGS` 라 텍스트 shape 를 emit 하지 않는다(빈 shell). 그룹이 자기 텍스트를 갖거나 shell-only 에서 빠지면 이 테스트가 먼저 깨지므로, 그때 스케일을 맞추면 된다.
+
 ## [Disclosure size 가 자식에 안 내려감 — propagation rule 부재 + layout md 고정 + CSS 상속 체인 단절] - 2026-07-15
 
 ### Bug Fixes

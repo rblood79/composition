@@ -8,7 +8,10 @@ import {
   createDatePickerDefinition,
   createDateRangePickerDefinition,
 } from "../../factories/definitions/DateColorComponents";
-import { createDisclosureDefinition } from "../../factories/definitions/NavigationComponents";
+import {
+  createDisclosureDefinition,
+  createDisclosureGroupDefinition,
+} from "../../factories/definitions/NavigationComponents";
 import { getPropagationRules } from "../propagationRegistry";
 
 /**
@@ -83,6 +86,9 @@ const TARGETS = [
   { type: "NumberField", build: createNumberFieldDefinition },
   // 2026-07-15 사용자 적발 — Disclosure 는 **size 규칙이 아예 0건**이었다 (아래 주석 참조).
   { type: "Disclosure", build: createDisclosureDefinition },
+  // 2026-07-15 후속 적발 — DisclosureGroup 도 동일 부재. 여기는 **3단 중첩**
+  //   (Group > Disclosure > {Header, Content}) 이라 childPath 가 배열이어야 한다.
+  { type: "DisclosureGroup", build: createDisclosureGroupDefinition },
 ] as const;
 
 /**
@@ -100,12 +106,18 @@ const TARGETS = [
  *     Skia 가 md 만 그린 이유가 이것이다.
  * (DOM 은 별개 축 — `renderDisclosure` 가 wrapper self-compose 로 헤더를 직접 그려서 canonical
  *  자식 노드가 독립 렌더되지 않는다. Content 만 CSS `font-size` **상속**으로 우연히 반응했다.)
+ *
+ * **Disclosure 추가 (2026-07-15 후속, DisclosureGroup 적발)**: 그룹 관점에선 `Disclosure` 자신이
+ * size-bearing 자식이다 — factory 가 자식 Disclosure 에 `size` 를 안 주므로 store 값이 `null` 이고,
+ * 그룹 규칙이 없으면 delegation 도 없어 catalog `defaultSize`(md) 로 고정된다. 그룹 size 를 lg 로
+ * 바꿔도 자식 Disclosure/Header/Content 가 md 에 머무는 원인.
  */
 const SIZE_BEARING_CHILDREN = [
   "SelectTrigger",
   "SelectValue",
   "SelectIcon",
   "DateInput",
+  "Disclosure",
   "DisclosureHeader",
   "DisclosureContent",
 ] as const;

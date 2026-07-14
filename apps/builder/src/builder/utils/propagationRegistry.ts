@@ -137,6 +137,36 @@ const disclosurePropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "DisclosureContent", override: true },
 ];
 
+/**
+ * DisclosureGroup size → 자식 (2026-07-15 후속, 사용자 보고: "DisclosureGroup 도 size 변경이
+ * 반영되지 않는다 - css, skia").
+ *
+ * Disclosure 와 **동일하게 규칙이 부재**했다. 다만 여기는 **3단 중첩**이다:
+ *   `DisclosureGroup > Disclosure × N > {DisclosureHeader, DisclosureContent}`
+ *
+ * **propagation 은 cascade 하지 않는다** — Inspector 는 **선택된 요소의 rule 만** 실행하므로,
+ * Group 에 `size → Disclosure` 만 주면 그 Disclosure 의 rule 이 자동으로 이어 달리지 않는다.
+ * 손자까지 **명시적 중첩 childPath** 로 적어야 한다 (Select 의 `["SelectTrigger","SelectIcon"]`
+ * 선례 동형). `resolveChildPath` 는 같은 type 형제를 **전부** 매칭하므로 Disclosure 가 N 개여도
+ * 한 rule 로 전부 커버된다.
+ *
+ * factory 는 자식 Disclosure 에 `size` 를 주지 않는다(store 값 `null`) → 규칙 없이는 delegation 도
+ * 없어 catalog `defaultSize`(md) 고정. 그룹을 lg 로 바꿔도 자식이 md 에 머문 원인.
+ */
+const disclosureGroupPropagationRules: PropagationRule[] = [
+  { parentProp: "size", childPath: "Disclosure", override: true },
+  {
+    parentProp: "size",
+    childPath: ["Disclosure", "DisclosureHeader"],
+    override: true,
+  },
+  {
+    parentProp: "size",
+    childPath: ["Disclosure", "DisclosureContent"],
+    override: true,
+  },
+];
+
 // ADR-912 단계5 step4 경량 이관 (2026-06-17): GridList.spec 삭제 — propagation.rules 인라인 보존.
 //   variant → GridListItem 전파(카드 accent 색). childPath string 이라 spec 객체 의존 0.
 const gridListPropagationRules: PropagationRule[] = [
@@ -968,6 +998,9 @@ registerPropagationRules("CardContent", cardContentPropagationRules);
 // 2026-07-15: Disclosure size → DisclosureHeader/DisclosureContent (규칙 자체가 부재했다 —
 //   Inspector 전파 + Skia delegation 역인덱스가 함께 죽어 자식이 md 고정).
 registerPropagationRules("Disclosure", disclosurePropagationRules);
+// 2026-07-15: DisclosureGroup size → Disclosure + 손자(Header/Content). propagation 은 cascade 안
+//   하므로 3단 중첩 경로를 명시 (Disclosure 규칙이 자동으로 이어 달리지 않는다).
+registerPropagationRules("DisclosureGroup", disclosureGroupPropagationRules);
 registerPropagationRules("GridList", gridListPropagationRules);
 // ADR-912 단계5 step4 (2026-06-17): ListBox.spec 삭제 → 빈 propagation-only spec(rules 부재 = 구
 //   no-op 동작 동일). 정적 모드 shapes 가 부모 variant 직접 참조라 자식 전파 불필요(ListBox.spec:352).
