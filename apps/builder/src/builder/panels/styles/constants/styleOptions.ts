@@ -40,6 +40,21 @@ export const BORDER_STYLES: { value: string; label: string }[] = [
   { value: "outset", label: "outset" },
 ];
 
+export const BLEND_MODE_OPTIONS: { value: string; label: string }[] = [
+  { value: "normal", label: "Normal" },
+  { value: "multiply", label: "Multiply" },
+  { value: "screen", label: "Screen" },
+  { value: "overlay", label: "Overlay" },
+  { value: "darken", label: "Darken" },
+  { value: "lighten", label: "Lighten" },
+  { value: "color-dodge", label: "Color Dodge" },
+  { value: "color-burn", label: "Color Burn" },
+  { value: "hard-light", label: "Hard Light" },
+  { value: "soft-light", label: "Soft Light" },
+  { value: "difference", label: "Difference" },
+  { value: "exclusion", label: "Exclusion" },
+];
+
 export const UNIT_OPTIONS = {
   size: ["px", "%", "vh", "vw", "auto"],
   spacing: ["auto", "px"],

@@ -29,7 +29,9 @@ import { ColorPickerPanel } from "./ColorPickerPanel";
 import { GradientEditor } from "./GradientEditor";
 import { MeshGradientEditor } from "./MeshGradientEditor";
 import { ImageFillEditor } from "./ImageFillEditor";
-import { BlendModeSelector } from "./BlendModeSelector";
+import { Blend } from "lucide-react";
+import { PropertySelect } from "../../../components";
+import { BLEND_MODE_OPTIONS } from "../constants/styleOptions";
 
 import "./FillDetailPopover.css";
 
@@ -176,9 +178,13 @@ export const FillDetailPopover = memo(function FillDetailPopover({
       )}
 
       <div className="fill-detail-popover__divider" />
-      <BlendModeSelector
+      <PropertySelect
+        icon={Blend}
+        label="Blend"
+        className="blend-mode"
         value={fill.blendMode}
-        onChange={handleBlendModeChange}
+        options={BLEND_MODE_OPTIONS}
+        onChange={(value) => handleBlendModeChange(value as BlendMode)}
       />
     </div>
   );

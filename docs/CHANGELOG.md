@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Fill 팝오버 Blend 셀렉터를 PropertySelect 로 통일] - 2026-07-16
+
+### Features
+
+- **Fill 편집 팝오버의 Blend 모드 셀렉터를 네이티브 `<select>` 에서 PropertySelect 로 교체**:
+  - 패널의 다른 enum 필드(Border Style / Box Shadow / Overflow)와 동일한 `PropertySelect` 사용 — Padding(`PropertyUnitInput`)과 같은 `components/property/` 폴더 자매 컴포넌트로, `fieldset` + `legend` + 아이콘 + 컨트롤 구조를 통일한다(chevron 포함 RAC Select).
+  - BLEND_MODE_OPTIONS 12종을 `styleOptions.ts` 로 이동(다른 옵션 상수와 동일 위치). 아이콘은 lucide `Blend`.
+  - 검증: Chrome MCP 실빌더 — Blend fieldset(legend "Blend") 렌더 + dropdown 12옵션 표시 + Multiply 선택 시 store `blendMode` 반영·버튼 텍스트 갱신 확인.
+  - 잔존: 기존 `BlendModeSelector.tsx` / `.css` 는 사용처 0건(dead) — 파일 삭제는 사용자 승인 후 별도.
+  - 위치: `apps/builder/src/builder/panels/styles/components/FillDetailPopover.tsx`, `constants/styleOptions.ts`
+
 ## [Background 컬러 피커 popover 폭 정렬 — 호출자(swatch) width] - 2026-07-15
 
 ### Features
