@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [boxShadow / overflow Skia 배선 복원 — spec·catalog 경로 effects/clip/scroll 공급] - 2026-07-15
+
+### Bug Fixes
+
+- **boxShadow(그림자)와 overflow(클리핑·스크롤)가 Preview DOM 에는 적용되나 Builder Skia 캔버스에서 무반응이던 결함 — 렌더러 능력은 있고 공급 배선만 끊긴 구조를 복원 (Phase 1~3)**:
+  - **Why**: Skia 렌더 계약(`renderCommands`)은 `SkiaNodeData.effects`(→`beginRenderEffects`, drop-shadow 다중 지원) / `clipChildren`(→`CMD_CHILDREN_BEGIN` clip rect) / `scrollOffset`+`scrollbar`(→자식 좌표 이동 + 스크롤바)를 이미 소비하고 있었고, box 경로(`buildBoxNodeData`)는 이 필드들을 채웠다. 그러나 대다수 컴포넌트가 지나는 spec/catalog 경로(`buildSpecNodeData`)는 이 3필드를 전혀 방출하지 않았고(그림자·클리핑 소실), 스크롤은 box·spec 양 경로 모두 `StoreRenderBridge` 가 `scrollState` 를 미전달해(sprite 시대 배선이 bridge 이관 때 탈락) `scrollOffset`/`scrollbar` 산출 자체가 불가했다. hit-test 만 `scrollVersion` 을 반영해 렌더↔인터랙션 split-brain 상태였다.
+  - 수정 (Phase 1 — boxShadow): `buildSpecNodeData` 가 box 경로와 동일 파서 `buildSkiaEffects(style)` 로 CSS effects(boxShadow→drop-shadow, filter→blur/color-matrix, opacity, backdrop-filter)와 blendMode 를 node 에 접붙임. transform 은 transform-origin 보정이 별도 필요해 제외.
+  - 수정 (Phase 2 — overflow 클리핑): `buildSpecNodeData` 가 overflow hidden/clip/scroll/auto 에서 node-level `clipChildren=true` 설정(box 경로와 동일 계약). 기존 텍스트 `clipText` 는 spec 내부 텍스트만 잘라 요소 자식 클리핑에는 별도 필요.
+  - 수정 (Phase 3 — overflow 스크롤): `SpecBuildInput.scrollState` 추가 + `buildSpecNodeData` 가 `scrollOffset`/`scrollbar` 산출(box 경로 `buildBoxNodeData:175-204` 와 동일 계약). `StoreRenderBridge.buildNodeForElement` 가 `useScrollState.scrollMap` 에서 조회해 spec/box 3 호출부에 공급. bridge 가 `useScrollState` 를 구독 → wheel(`scrollBy`)로 scrollTop/scrollLeft 변경 시 해당 요소만 `incrementalSync` 재빌드(`registerSkiaNode` 가 `registryVersion` 을 올려 command stream 갱신). maxScroll(콘텐츠 크기) 변경은 layout publish(fullRebuild)가 커버. `canvas-rendering.md §8`(자식 boundsMap scrollOffset 차감 + scrollVersion 캐시 무효화) 계약 준수.
+  - 검증: 단위·회귀 테스트 16건(effects 5 + clipChildren 6 + scroll 5) + type-check PASS(baseline 67). Chrome MCP 실빌더 — Form 컨테이너에 boxShadow(빨간 그림자) → 캔버스 렌더 확인, overflow:hidden → 자식 110px 클리핑, overflow:scroll → 스크롤바 썸 렌더 + 휠 스크롤 시 내용 이동 + 썸 이동(hit-test 정합) 확인, 좌(CSS Preview)·우(Skia 캔버스) 그림자·클리핑·스크롤바 시각 대칭 확인.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{buildSpecNodeData,StoreRenderBridge}.ts`
+
 ## [Border 편집 gate 정합 — 편집기 계약(companion write) + border-style 3경로 배선] - 2026-07-15
 
 ### Bug Fixes
