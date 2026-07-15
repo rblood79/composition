@@ -627,6 +627,20 @@ export interface CanonicalNode {
   props?: Record<string, unknown>;
 
   /**
+   * Background fill 스택 — canonical 1차 필드 (2026-07-15 SSOT 경계 확정).
+   *
+   * Pencil fill 개념 정합 (6종: color / image / linear- / radial- / angular- /
+   * mesh-gradient). 항목 구조 정본은
+   * `apps/builder/src/types/builder/fill.types.ts::FillItem` (serializable JSON).
+   * `Element.fills` (element.types.ts) 와 동일 payload — canonical 이 SSOT,
+   * derived `Element[]` / `CanvasSceneNode` 는 mirror.
+   *
+   * `theme` 필드와 같은 노드 레벨 시각 override 계열. 빈 배열 대신 필드 자체를
+   * 생략한다 (소비자는 `length > 0` 판정).
+   */
+  fills?: unknown[];
+
+  /**
    * Extensibility hook — 메타데이터 저장소.
    *
    * 사용 예:

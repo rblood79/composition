@@ -181,6 +181,33 @@ function extractCanonicalComponentMirrorFields(
 // ─────────────────────────────────────────────
 
 /**
+ * canonical node 의 fills 복원.
+ *
+ * 1순위: canonical 1차 필드 `node.fills` (2026-07-15 SSOT 경계 확정 이후 쓰기).
+ * 2순위: `metadata.legacyProps.fills` — ADR-116 G1 §3 격리 보존분 (1차 필드
+ * 도입 전 마이그레이션된 구 문서). 읽기 시점 승격 fallback 이며, 해당 노드가
+ * 다음 mutation 을 거치면 1차 필드로 재기록된다.
+ */
+function readCanonicalNodeFills(
+  node: CanonicalNode,
+  metadata: CanonicalScopeMetadata | undefined,
+): Element["fills"] {
+  // canonical schema 는 boundary 상 unknown[] — 항목 정본(FillItem)은 builder
+  // 소유 타입이므로 derived Element boundary 에서 narrow.
+  if (Array.isArray(node.fills) && node.fills.length > 0) {
+    return node.fills as Element["fills"];
+  }
+  const legacyProps = (
+    metadata as { legacyProps?: { fills?: unknown } } | undefined
+  )?.legacyProps;
+  const legacyFills = legacyProps?.fills;
+  if (Array.isArray(legacyFills) && legacyFills.length > 0) {
+    return legacyFills as Element["fills"];
+  }
+  return undefined;
+}
+
+/**
  * canonical CanonicalNode + parent context → Element 재구성.
  *
  * `node.props` 미정의 노드(page placeholder, slot synthetic 등)는 기존처럼
@@ -216,7 +243,7 @@ export function canonicalNodeToElement(
       parent_id: parentId,
       page_id: scope.pageId,
       layout_id: scope.layoutId,
-      fills: undefined,
+      fills: readCanonicalNodeFills(node, metadata),
       componentName: node.name,
       ...extFields,
       ...mirrorFields,

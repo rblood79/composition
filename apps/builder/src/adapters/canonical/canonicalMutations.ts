@@ -715,6 +715,11 @@ function legacyElementToCanonicalNode(
     type: tagToType(element.type),
     name: element.componentName,
     props: element.props as Record<string, unknown>,
+    // fills 는 canonical 1차 필드 (CanonicalNode.fills). 빈 배열은 필드 생략과
+    // 동일 의미이므로 싣지 않는다 — upsert 가 노드를 통째 교체하므로 생략이 곧 제거.
+    ...(Array.isArray(element.fills) && element.fills.length > 0
+      ? { fills: element.fills }
+      : {}),
     ...(previousNode?.children ? { children: previousNode.children } : {}),
     ...getCanonicalSlotDeclaration(element),
     metadata: buildCanonicalMutationMetadata(metadataElement),
