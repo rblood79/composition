@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Fill 팝오버 gradient Rotation 을 PropertyUnitInput 으로 통일] - 2026-07-16
+
+### Features
+
+- **Fill 편집 팝오버의 gradient Rotation 입력을 ScrubInput 에서 PropertyUnitInput 으로 교체** (Linear / Angular):
+  - blend(PropertySelect)와 동일한 property 계열 — Padding(`PropertyUnitInput`)과 같은 컴포넌트로 `fieldset` + `legend` + 아이콘(lucide `RotateCw`) + 값 + 단위 dropdown 구조를 통일한다.
+  - 단위는 CSS 표준 `deg` — `PropertyUnitInput` 의 `parseUnitValue` 단위 정규식이 `[a-z%]+` 라 `°` 기호를 파싱하지 못하기 때문. `allowKeywords=false`, min 0 / max 360.
+  - Radial 의 Center/Radius, Angular 의 Center 는 요청 범위 밖이라 ScrubInput 유지(Angular 는 Center=ScrubInput + Rotation=PropertyUnitInput 혼재).
+  - 검증: Chrome MCP 실빌더 — Rotation fieldset(legend "Rotation") + RotateCw 아이콘 렌더 + "90" 입력 시 store `rotation` 반영·input 표시값 갱신 확인.
+  - 위치: `apps/builder/src/builder/panels/styles/components/GradientControls.tsx`
+
 ## [Fill 팝오버 Blend 셀렉터를 PropertySelect 로 통일] - 2026-07-16
 
 ### Features

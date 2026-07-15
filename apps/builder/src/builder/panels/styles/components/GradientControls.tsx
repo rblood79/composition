@@ -10,20 +10,25 @@
  * @updated 2026-02-11 Phase 3 — ScrubInput 적용
  */
 
-import { memo, useCallback } from 'react';
+import { memo, useCallback } from "react";
 import type {
   FillItem,
   LinearGradientFillItem,
   RadialGradientFillItem,
   AngularGradientFillItem,
-} from '../../../../types/builder/fill.types';
-import { FillType } from '../../../../types/builder/fill.types';
-import { ScrubInput } from './ScrubInput';
+} from "../../../../types/builder/fill.types";
+import { FillType } from "../../../../types/builder/fill.types";
+import { RotateCw } from "lucide-react";
+import { ScrubInput } from "./ScrubInput";
+import { PropertyUnitInput } from "../../../components";
 
-import './GradientControls.css';
+import "./GradientControls.css";
 
 interface GradientControlsProps {
-  fill: LinearGradientFillItem | RadialGradientFillItem | AngularGradientFillItem;
+  fill:
+    | LinearGradientFillItem
+    | RadialGradientFillItem
+    | AngularGradientFillItem;
   onChange: (updates: Partial<FillItem>) => void;
 }
 
@@ -35,27 +40,28 @@ const LinearControls = memo(function LinearControls({
   onChange: (updates: Partial<FillItem>) => void;
 }) {
   const handleRotation = useCallback(
-    (value: number) => {
-      onChange({ rotation: value } as Partial<LinearGradientFillItem>);
+    (value: string) => {
+      const num = parseFloat(value);
+      if (!Number.isNaN(num)) {
+        onChange({ rotation: num } as Partial<LinearGradientFillItem>);
+      }
     },
     [onChange],
   );
 
   return (
-    <>
-      <span className="gradient-controls__label">Rotation</span>
-      <div className="gradient-controls__row">
-        <ScrubInput
-          value={Math.round(fill.rotation)}
-          onCommit={handleRotation}
-          min={0}
-          max={360}
-          suffix="°"
-          label="Rotation"
-          className="gradient-controls__scrub"
-        />
-      </div>
-    </>
+    <PropertyUnitInput
+      icon={RotateCw}
+      label="Rotation"
+      className="gradient-rotation"
+      value={`${Math.round(fill.rotation)}deg`}
+      units={["deg"]}
+      defaultUnit="deg"
+      allowKeywords={false}
+      onChange={handleRotation}
+      min={0}
+      max={360}
+    />
   );
 });
 
@@ -176,8 +182,11 @@ const AngularControls = memo(function AngularControls({
   );
 
   const handleRotation = useCallback(
-    (value: number) => {
-      onChange({ rotation: value } as Partial<AngularGradientFillItem>);
+    (value: string) => {
+      const num = parseFloat(value);
+      if (!Number.isNaN(num)) {
+        onChange({ rotation: num } as Partial<AngularGradientFillItem>);
+      }
     },
     [onChange],
   );
@@ -205,18 +214,18 @@ const AngularControls = memo(function AngularControls({
           className="gradient-controls__scrub"
         />
       </div>
-      <span className="gradient-controls__label">Rotation</span>
-      <div className="gradient-controls__row">
-        <ScrubInput
-          value={Math.round(fill.rotation)}
-          onCommit={handleRotation}
-          min={0}
-          max={360}
-          suffix="°"
-          label="Rotation"
-          className="gradient-controls__scrub"
-        />
-      </div>
+      <PropertyUnitInput
+        icon={RotateCw}
+        label="Rotation"
+        className="gradient-rotation"
+        value={`${Math.round(fill.rotation)}deg`}
+        units={["deg"]}
+        defaultUnit="deg"
+        allowKeywords={false}
+        onChange={handleRotation}
+        min={0}
+        max={360}
+      />
     </>
   );
 });
@@ -228,13 +237,22 @@ export const GradientControls = memo(function GradientControls({
   return (
     <div className="gradient-controls">
       {fill.type === FillType.LinearGradient && (
-        <LinearControls fill={fill as LinearGradientFillItem} onChange={onChange} />
+        <LinearControls
+          fill={fill as LinearGradientFillItem}
+          onChange={onChange}
+        />
       )}
       {fill.type === FillType.RadialGradient && (
-        <RadialControls fill={fill as RadialGradientFillItem} onChange={onChange} />
+        <RadialControls
+          fill={fill as RadialGradientFillItem}
+          onChange={onChange}
+        />
       )}
       {fill.type === FillType.AngularGradient && (
-        <AngularControls fill={fill as AngularGradientFillItem} onChange={onChange} />
+        <AngularControls
+          fill={fill as AngularGradientFillItem}
+          onChange={onChange}
+        />
       )}
     </div>
   );
