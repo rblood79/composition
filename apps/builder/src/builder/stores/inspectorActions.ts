@@ -56,6 +56,7 @@ import {
   collectDirtyElementSubtree,
   LAYOUT_AFFECTING_PROP_KEYS,
 } from "./utils/layoutInvalidation";
+import { applyBorderCompanionDefaults } from "./utils/borderCompanionDefaults";
 import { mergePropsWithStyleDeep } from "../../adapters/canonical/instanceResolver";
 
 // CSS shorthand → longhand 분배 매핑 (inspectorActions 공용).
@@ -736,7 +737,8 @@ export const createInspectorActionsSlice: StateCreator<
         "borderRadius",
       ]);
 
-      if (value === "" || value === null || value === undefined) {
+      const isClearing = value === "" || value === null || value === undefined;
+      if (isClearing) {
         delete currentStyle[property];
       } else {
         // Canvas spec shapes는 fontSize/fontWeight 등을 숫자로 기대
@@ -752,6 +754,12 @@ export const createInspectorActionsSlice: StateCreator<
       }
 
       distributeShorthand(currentStyle as Record<string, unknown>, property);
+      if (!isClearing) {
+        applyBorderCompanionDefaults(
+          currentStyle as Record<string, unknown>,
+          property,
+        );
+      }
 
       updateAndSave(
         element.id,
@@ -783,7 +791,8 @@ export const createInspectorActionsSlice: StateCreator<
         ...((resolvedElement.props?.style as Record<string, string>) || {}),
       };
 
-      if (value === "" || value === null || value === undefined) {
+      const isClearing = value === "" || value === null || value === undefined;
+      if (isClearing) {
         delete currentStyle[property];
       } else {
         const NUMERIC_STYLE_PROPS = new Set([
@@ -814,6 +823,12 @@ export const createInspectorActionsSlice: StateCreator<
       }
 
       distributeShorthand(currentStyle as Record<string, unknown>, property);
+      if (!isClearing) {
+        applyBorderCompanionDefaults(
+          currentStyle as Record<string, unknown>,
+          property,
+        );
+      }
 
       const newProps = {
         ...getInspectorWritableProps(element),
@@ -874,7 +889,9 @@ export const createInspectorActionsSlice: StateCreator<
       };
 
       Object.entries(styles).forEach(([property, value]) => {
-        if (value === "" || value === null || value === undefined) {
+        const isClearing =
+          value === "" || value === null || value === undefined;
+        if (isClearing) {
           delete currentStyle[property];
         } else {
           const NUMERIC_STYLE_PROPS = new Set([
@@ -904,6 +921,12 @@ export const createInspectorActionsSlice: StateCreator<
           }
         }
         distributeShorthand(currentStyle as Record<string, unknown>, property);
+        if (!isClearing) {
+          applyBorderCompanionDefaults(
+            currentStyle as Record<string, unknown>,
+            property,
+          );
+        }
       });
 
       updateAndSave(
