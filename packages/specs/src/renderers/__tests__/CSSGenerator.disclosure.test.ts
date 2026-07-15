@@ -95,7 +95,7 @@ describe("Disclosure 군 catalog rule structure → generated CSS (3경로 SSOT)
 
   it("Disclosure CSS: 헤더 trigger 버튼이 flex + font-weight 600 (레퍼런스 정합)", () => {
     const { spec } = virtualSpecFor("Disclosure");
-    const css = generateCSS(spec, false, undefined);
+    const css = generateCSS(spec);
     // 헤더 버튼 selector + 굵기 600 (DOM 헤더가 normal weight 로 발산하던 것 방지)
     expect(css).toContain(".react-aria-Button[slot='trigger']");
     expect(css).toMatch(/font-weight:\s*600/);
@@ -106,20 +106,20 @@ describe("Disclosure 군 catalog rule structure → generated CSS (3경로 SSOT)
 
   it("Disclosure CSS: 패널 콘텐츠 div padding emit (콘텐츠 들여쓰기 정합)", () => {
     const { spec } = virtualSpecFor("Disclosure");
-    const css = generateCSS(spec, false, undefined);
+    const css = generateCSS(spec);
     expect(css).toContain(".react-aria-DisclosurePanel > div");
   });
 
   it("Disclosure CSS: chevron rotate selector + data-expanded 90deg", () => {
     const { spec } = virtualSpecFor("Disclosure");
-    const css = generateCSS(spec, false, undefined);
+    const css = generateCSS(spec);
     expect(css).toContain(".disclosure-chevron");
     expect(css).toMatch(/\[data-expanded\][\s\S]*?rotate:\s*90deg/);
   });
 
   it("Disclosure CSS: 루트는 leaf padding(4px 12px) 이 아니라 block 컨테이너", () => {
     const { spec } = virtualSpecFor("Disclosure");
-    const css = generateCSS(spec, false, undefined);
+    const css = generateCSS(spec);
     const rootBlock =
       css.match(/\.react-aria-Disclosure \{[\s\S]*?\}/)?.[0] ?? "";
     // containerStyles(display:block) 보유 → sizes.padding 의 컨테이너 leaf emit skip
@@ -129,7 +129,7 @@ describe("Disclosure 군 catalog rule structure → generated CSS (3경로 SSOT)
 
   it("Disclosure CSS: spacing 변수는 composition 토큰(--spacing-sm/md/lg/xs) — 미정의 --spacing-2/3/4 금지", () => {
     const { spec } = virtualSpecFor("Disclosure");
-    const css = generateCSS(spec, false, undefined);
+    const css = generateCSS(spec);
     // 미정의 변수(--spacing-2/3/4)는 컴퓨티드 0 으로 발산 → composition 토큰만 허용
     expect(css).not.toMatch(/var\(--spacing-[234]\)/);
     expect(css).toMatch(/var\(--spacing-(xs|sm|md|lg)\)/);
@@ -143,7 +143,7 @@ describe("Disclosure 군 catalog rule structure → generated CSS (3경로 SSOT)
 
   it("DisclosureGroup CSS: flex column + overflow hidden 컨테이너", () => {
     const { spec } = virtualSpecFor("DisclosureGroup");
-    const css = generateCSS(spec, false, undefined);
+    const css = generateCSS(spec);
     expect(css).toMatch(/flex-direction:\s*column/);
     expect(css).toMatch(/overflow:\s*hidden/);
   });

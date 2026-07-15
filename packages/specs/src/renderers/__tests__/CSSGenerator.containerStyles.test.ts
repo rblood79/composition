@@ -138,7 +138,9 @@ describe("generateCSS — containerStyles S3 semantic (ADR-071)", () => {
 
   it("keeps defaultVariant injection + variants block when containerStyles absent (baseline)", () => {
     // ADR-912 단계5: production 동형으로 _variantSource 주입 (구 variantToVisual fallback 제거).
-    const css = generateCSS(baseSpec, false, variantSourceFromSpec(baseSpec));
+    // b6b9b3514 가 중간 boolean 파라미터를 제거해 2-인자 시그니처 — 구 3-인자
+    // 호출이 남으면 _variantSource=false 로 variant 블록이 통째 스킵된다.
+    const css = generateCSS(baseSpec, variantSourceFromSpec(baseSpec));
     expect(css).toContain("background: var(--fg);");
     expect(css).toContain('[data-variant="primary"]');
   });

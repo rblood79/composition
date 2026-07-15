@@ -45,7 +45,7 @@ describe("CSSGenerator snapshot baseline", () => {
     if (spec.skipCSSGeneration) continue;
     it(`${spec.name}`, () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const css = generateCSS(spec as any, false, variantSourceFromSpec(spec));
+      const css = generateCSS(spec as any, variantSourceFromSpec(spec));
       expect(css).toMatchSnapshot();
     });
   }
