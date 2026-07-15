@@ -6,6 +6,7 @@ import type {
 } from "@composition/shared";
 
 import { readLegacyMetadataCustomId } from "../../../../adapters/canonical/legacyMetadata";
+import type { FillItem } from "../../../../types/builder/fill.types";
 import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
 import { normalizeFrameLayoutId } from "../../../../adapters/canonical/frameMirror";
 import {
@@ -216,6 +217,13 @@ export interface CanvasSceneNode {
   componentName?: string;
   name?: string;
   metadata?: CanonicalNode["metadata"];
+  /**
+   * Background fill 스택 — canonical 1차 필드 `CanonicalNode.fills` 운반.
+   * Skia 소비: buildBoxNodeData(전체 fill 모델) / buildSpecNodeData catalog
+   * 배경 채널(color fill). 빈 배열 대신 필드 생략. canonical boundary 는
+   * unknown[] — Element 구조 호환을 위해 여기서 FillItem[] 로 narrow.
+   */
+  fills?: FillItem[];
   reusable?: true;
   projection?: CanvasProjectionMetadata;
   ref?: string;
@@ -392,6 +400,18 @@ function toCanvasSceneNode(
   }
 
   const customId = readLegacyMetadataCustomId(metadata);
+  // fills: canonical 1차 필드 우선, 1차 필드 도입(2026-07-15) 전 구 문서는
+  // metadata.legacyProps.fills 격리 보존분 fallback (canonicalElementsView 동일 규칙).
+  const legacyPropsFills = (
+    node.metadata as { legacyProps?: { fills?: unknown } } | undefined
+  )?.legacyProps?.fills;
+  const nodeFills = (
+    Array.isArray(node.fills) && node.fills.length > 0
+      ? node.fills
+      : Array.isArray(legacyPropsFills) && legacyPropsFills.length > 0
+        ? legacyPropsFills
+        : undefined
+  ) as FillItem[] | undefined;
   const sceneNode: CanvasSceneNode = {
     id: node.id,
     type: isLegacySlotHoisted ? "Slot" : node.type,
@@ -405,6 +425,7 @@ function toCanvasSceneNode(
     ...(node.name !== undefined ? { name: node.name } : {}),
     ...(node.name !== undefined ? { componentName: node.name } : {}),
     ...(node.metadata ? { metadata: node.metadata } : {}),
+    ...(nodeFills ? { fills: nodeFills } : {}),
     sourceNode: node,
   };
 

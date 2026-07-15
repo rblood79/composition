@@ -36,6 +36,7 @@ import {
   getPrimitiveBinding,
   isDisclosureExpandedInContext,
   toSkiaStyle,
+  fillsToCssBackgroundStyle,
 } from "@composition/shared";
 import {
   resolveSkiaVisualRule,
@@ -1497,6 +1498,26 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
         height: existingStyle.height ?? (h > 0 ? h : undefined),
       },
     };
+  }
+
+  // ---------- Background fills → catalog 배경 채널 (2026-07-15) ----------
+  // canonical 1차 필드 fills 를 catalog 경로(buildCatalogShapes)의 배경 채널에 주입.
+  // 우선순위: fills > style.backgroundColor — 커밋 시 sanitizeFillDerivedStylePatch 가
+  //   backgroundColor 를 제거해 통상 상호배타이나, 공존 시 fills 가 이긴다 (buildCatalogShapes
+  //   의 bgColor 1순위가 style.backgroundColor 이므로 여기서 덮어써 계약 고정).
+  // 잔존 한계: catalog shape fill 채널은 색상 전용 — gradient/image/mesh fill 은
+  //   box 경로(buildBoxNodeData)만 표현. color fill 만 주입된다.
+  if (Array.isArray(element.fills) && element.fills.length > 0) {
+    const fillBg = fillsToCssBackgroundStyle(element.fills);
+    if (fillBg.backgroundColor) {
+      specProps = {
+        ...specProps,
+        style: {
+          ...((specProps.style as Record<string, unknown> | undefined) ?? {}),
+          backgroundColor: fillBg.backgroundColor,
+        },
+      };
+    }
   }
 
   // ---------- shapes 생성 ----------

@@ -1136,3 +1136,67 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
     expect(columnGap).toBe(6);
   });
 });
+
+describe("buildCanvasSceneGraph — Background(fills) 운반 (2026-07-15)", () => {
+  const COLOR_FILL = {
+    id: "f1",
+    type: "color",
+    enabled: true,
+    opacity: 1,
+    blendMode: "normal",
+    color: "#112233FF",
+  };
+
+  function makeFillsDocument(
+    node: Record<string, unknown>,
+  ): CompositionDocument {
+    return {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          props: {},
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [node],
+        },
+      ],
+    } as unknown as CompositionDocument;
+  }
+
+  it("canonical 1차 필드 fills 를 scene node 로 운반한다", () => {
+    const graph = buildCanvasSceneGraph(
+      makeFillsDocument({
+        id: "box-1",
+        type: "Box",
+        props: {},
+        fills: [COLOR_FILL],
+      }),
+    );
+    expect(graph.nodesMap.get("box-1")?.fills).toEqual([COLOR_FILL]);
+  });
+
+  it("1차 필드가 없으면 metadata.legacyProps.fills 로 fallback 한다 (구 문서)", () => {
+    const graph = buildCanvasSceneGraph(
+      makeFillsDocument({
+        id: "box-legacy",
+        type: "Box",
+        props: {},
+        metadata: {
+          type: "legacy-element-props",
+          legacyProps: { id: "box-legacy", fills: [COLOR_FILL], type: "Box" },
+        },
+      }),
+    );
+    expect(graph.nodesMap.get("box-legacy")?.fills).toEqual([COLOR_FILL]);
+  });
+
+  it("fills 미보유 노드는 scene node 에 fills 필드를 만들지 않는다", () => {
+    const graph = buildCanvasSceneGraph(
+      makeFillsDocument({ id: "box-plain", type: "Box", props: {} }),
+    );
+    const node = graph.nodesMap.get("box-plain");
+    expect(node).toBeDefined();
+    expect("fills" in (node as object)).toBe(false);
+  });
+});

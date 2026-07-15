@@ -295,3 +295,46 @@ describe("ADR-916 2-C 안 A — precomputedProjectionSignature 주입 정합성"
     expect(wrong.sceneVersion).not.toBe(internal.sceneVersion);
   });
 });
+
+describe("Background(fills) projection signature (2026-07-15)", () => {
+  const makeFillNode = (fills?: unknown[]): CanvasSceneNode =>
+    ({
+      id: "box-1",
+      type: "Box",
+      parentId: null,
+      parent_id: null,
+      pageId: "page-1",
+      page_id: "page-1",
+      layoutId: null,
+      props: { style: {} },
+      ...(fills ? { fills } : {}),
+      sourceNode: { id: "box-1", type: "Box" },
+    }) as unknown as CanvasSceneNode;
+
+  it("fills-only 변경이 projection signature 를 바꾼다 (ADR-136 phantom change 차단)", () => {
+    const empty = new Map();
+    const sigWithout = createResolvedProjectionSignature({
+      elements: [makeFillNode()],
+      pageSnapshots: empty,
+    });
+    const sigWith = createResolvedProjectionSignature({
+      elements: [
+        makeFillNode([
+          { id: "f1", type: "color", enabled: true, color: "#FF0000FF" },
+        ]),
+      ],
+      pageSnapshots: empty,
+    });
+    const sigWithOther = createResolvedProjectionSignature({
+      elements: [
+        makeFillNode([
+          { id: "f1", type: "color", enabled: true, color: "#00FF00FF" },
+        ]),
+      ],
+      pageSnapshots: empty,
+    });
+
+    expect(sigWith).not.toBe(sigWithout);
+    expect(sigWith).not.toBe(sigWithOther);
+  });
+});

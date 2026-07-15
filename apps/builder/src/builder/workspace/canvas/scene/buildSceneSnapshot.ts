@@ -50,6 +50,10 @@ function createNodeProjectionSignature(node: CanvasSceneNode | null) {
   if (!node) return null;
   return {
     deleted: node.deleted === true,
+    // fills 는 top-level 시각 필드 (props 밖) — ADR-136 projection-relevant field
+    // 추가 규칙에 따라 signature 입력에 동시 등재 (누락 시 fills-only 변경이
+    // same-count phantom change 로 미감지).
+    fills: node.fills ?? null,
     id: node.id,
     layoutId: node.layoutId ?? null,
     pageId: node.pageId ?? node.page_id ?? null,
