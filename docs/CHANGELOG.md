@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Preview body 아트보드 정합 — canonical body 노드 min-height:100vh] - 2026-07-15
+
+### Bug Fixes
+
+- **canonical Preview 에서 body 박스가 아트보드 높이를 채우지 못하고 content 로 collapse 하던 비대칭**:
+  - **Why**: canonical DOM 렌더 경로는 body 노드를 중첩 `<div>` 로 렌더하며 `element.props.style`(height 無)만 얹어 `display:block` content-fit 로 collapse(실측 96px). 반면 Skia(Builder)는 layout map 의 body 높이(페이지 프레임 844px)를 그대로 그린다 → body 박스 자체가 844 vs 96 으로 갈림. 콘텐츠 좌표는 layout map 공유로 완전 일치(Text/Avatar x/y/w/h byte-identical)하나, **body 배경/테두리가 있으면 Builder ↔ Preview 가 시각적으로 달라지는 D3 대칭 위반**.
+  - 수정: canonical generic 렌더에서 `type==="body"` 이고 사용자가 height/minHeight 미지정 시 `min-height:100vh` 주입 → viewport(=preview iframe=device frame=Skia artboard) 기준으로 body 를 아트보드에 정합(실측 96→844). 사용자가 height/minHeight 명시 시 보존(주입 skip).
+  - **왜 100vh 인가**: 라이브 실측 결과 `min-height:100%` 는 상위 frame 이 auto height 라 percentage cascade 가 0 으로 처리되어 무효(body 96 유지). `100vh` 는 상위 체인과 무관하게 viewport 로 resolve → body 844 fill.
+  - 범위: builder Preview 전용(`CanonicalNodeRenderer`). Publish 앱은 별도 body 렌더 경로(`useBodyElement`)라 미영향.
+  - 위치: `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx` (+ `__tests__/CanonicalNodeRenderer.bodyFill.test.tsx` 회귀 4건)
+
 ## [기존 테스트 실패 6건 해소 — Avatar/ColorField 팩토리 정합 + stale 단언 갱신] - 2026-07-15
 
 ### Bug Fixes

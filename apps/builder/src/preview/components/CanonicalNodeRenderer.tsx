@@ -494,12 +494,30 @@ export function CanonicalNodeRenderer({
     if (staticAttrs) Object.assign(specDataAttrs, staticAttrs);
   }
 
+  // D3 대칭 정합(2026-07-15): canonical body 노드는 Skia 아트보드(페이지 프레임 높이, 예 844)를
+  //   채우지만, canonical DOM 경로는 body 를 중첩 <div> 로 렌더하며 element.props.style(height 無)만
+  //   얹어 display:block content-fit 로 collapse(예 96) → Skia body 박스(844) vs DOM(96) 비대칭.
+  //   콘텐츠 좌표는 layout map 공유로 완전 일치하나, body 배경/테두리가 있으면 Builder↔Preview 가
+  //   시각적으로 갈린다(대칭 위반). viewport(=preview iframe=device frame=Skia artboard) 기준
+  //   min-height:100vh 로 body 박스를 아트보드에 정합한다. %-height 는 상위 frame 이 auto height 라
+  //   cascade 가 0 으로 처리되어 무효(라이브 실측: %=collapse 96, vh=fill 844) → 100vh 필수.
+  //   사용자가 height/minHeight 를 명시하면 그 의도를 보존(주입 skip).
+  const genericStyle = adaptedEl.props?.style as
+    | React.CSSProperties
+    | undefined;
+  const resolvedStyle: React.CSSProperties | undefined =
+    adaptedEl.type === "body" &&
+    genericStyle?.height == null &&
+    genericStyle?.minHeight == null
+      ? { ...genericStyle, minHeight: "100vh" }
+      : genericStyle;
+
   return React.createElement(
     resolveGenericHtmlTag(adaptedEl.type),
     {
       key: node.id,
       ...markerProps,
-      style: adaptedEl.props?.style as React.CSSProperties | undefined,
+      style: resolvedStyle,
       className: mergedClassName,
       ...specDataAttrs,
     },
