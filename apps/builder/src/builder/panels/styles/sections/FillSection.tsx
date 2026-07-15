@@ -209,6 +209,7 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
   const styleValues = useAppearanceValues(selectedId);
   const {
     addFill,
+    ensureColorFill,
     removeFill,
     reorderFill,
     toggleFill,
@@ -222,7 +223,9 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
 
   // fills가 없을 때 표시할 기본 색상: 현재 요소의 backgroundColor 또는 #FFFFFF
   // computedStyle이 color(srgb ...) 형식을 반환할 수 있으므로 정규화 필요
-  const placeholderColorHex8 = resolveFillSeedColor(styleValues?.backgroundColor);
+  const placeholderColorHex8 = resolveFillSeedColor(
+    styleValues?.backgroundColor,
+  );
   const virtualFill: ColorFillItem = createVirtualColorFill(
     styleValues?.backgroundColor,
   );
@@ -260,6 +263,8 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
 
   // popover 콜백: fills가 없으면 fill 생성과 동시에 색상 적용
   // fills가 있으면 기존 fill 업데이트
+  // 가상 fill 승격은 ensureColorFill(create-or-update) — 드래그 tick 간 표시
+  // (firstFill) 재렌더 지연이 있어도 중복 append 불가 (2026-07-15 소스 분열 해소).
   const handleColorChange = useCallback(
     (color: string) => {
       if (firstFill && firstFill.type === FillType.Color) {
@@ -268,10 +273,10 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
         } as Partial<ColorFillItem>);
       } else if (!firstFill) {
         // 가상 fill 상태 → 실제 fill 생성 (사용자가 색상을 변경한 순간)
-        addFill(FillType.Color, color);
+        ensureColorFill(color);
       }
     },
-    [firstFill, updateFillPreviewThrottled, addFill],
+    [firstFill, updateFillPreviewThrottled, ensureColorFill],
   );
 
   const handleColorChangeEnd = useCallback(
@@ -279,10 +284,10 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
       if (firstFill && firstFill.type === FillType.Color) {
         updateFill(firstFill.id, { color } as Partial<ColorFillItem>);
       } else if (!firstFill) {
-        addFill(FillType.Color, color);
+        ensureColorFill(color);
       }
     },
-    [firstFill, updateFill, addFill],
+    [firstFill, updateFill, ensureColorFill],
   );
 
   const handleFillUpdate = useCallback(
