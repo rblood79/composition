@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Border 편집 gate 정합 — 편집기 계약(companion write) + border-style 3경로 배선] - 2026-07-15
+
+### Bug Fixes
+
+- **Appearance 의 border 편집(color/width/radius/style)이 컴포넌트·경로별로 되다 안 되다 하던 결함 — DOM/Skia 경로별 gate 편차 전면 정합**:
+  - **Why**: 테두리는 CSS 상 width/color/style 3속성이 모두 갖춰져야 보인다. CSS `border-style` 초기값이 `none` 이라 style 패널에서 borderColor/borderWidth 만 인라인으로 써도 Preview DOM 은 테두리를 그리지 않았고, 생성 CSS 가 border-style 을 선언한 컴포넌트(Card/ListBox, Button `.button-base`)만 보이고 border-style 부재인 TextField root·Frame(CSS 부재)은 무반응이었다. Skia 3경로도 그리기 gate 가 서로 달랐다 — catalog(`buildCatalogShapes`)는 borderColor 필요, spec(`applyInlineBorderOverlay`)은 width+color 동시 필요(+radius 가 이 gate 뒤라 radius 단독 무반응), box(`buildBoxNodeData`)는 strokeStyle 키 자체 미방출. borderStyle 은 사용자 style 이 catalog/spec/box 어디에서도 소비되지 않아 렌더러가 8종 전부 지원함에도 solid 로만 그려졌다.
+  - 수정 (편집기 계약, Figma 류): borderColor/borderWidth/borderStyle 중 하나를 처음 설정할 때 나머지 축의 기본값(style:solid / width:1 / color:`#d4d4d4`=lightColors.border)을 store 인라인 style 에 동반 기록. SSOT(store) 단일 지점에 불변식을 두어 DOM/Skia 4경로가 항상 동일한 3필드를 받게 하여 경로별 gate 편차를 구조적으로 소멸. 기본 color 는 고정 hex 라 DOM↔Skia 동일 값으로 시각 대칭. `borderStyle="none"` 은 테두리 숨김 의도이므로 companion 미주입.
+    - 위치: `apps/builder/src/builder/stores/utils/borderCompanionDefaults.ts` (신규), `stores/inspectorActions.ts` (updateSelectedStyle/updateSelectedStyles/updateSelectedStylePreview 배선)
+  - 수정 (border-style 3경로 공통 소비): 우선순위 사용자 style → catalog visual → 기본 solid. `none` 은 4경로 모두 테두리 숨김으로 대칭.
+    - catalog: `buildCatalogShapes` 가 `visual.borderStyle` 만 읽던 것을 사용자 `style.borderStyle` 우선으로 정정 + none 시 border shape 미생성. `BorderShape.style` 타입을 렌더러 지원 8종(`BorderStyleValue`: solid/dashed/dotted/double/groove/ridge/inset/outset)으로 확장.
+    - spec: `applyInlineBorderOverlay` 의 borderRadius 반영을 width+color gate 앞으로 분리(radius 단독 반영 회복) + `none` 조기 종료 + strokeStyle 캐스트를 협소한 `"dashed"|"dotted"` → 8종으로 정정.
+    - box: `buildBoxNodeData` 가 `box.strokeStyle` 키를 방출(div dashed/dotted 등 렌더) + `none` 시 stroke 억제.
+    - 위치: `packages/specs/src/renderers/buildCatalogShapes.ts`, `packages/specs/src/types/shape.types.ts`, `apps/builder/src/builder/workspace/canvas/skia/{buildSpecNodeData,buildBoxNodeData}.ts`
+  - 검증: 단위·회귀 테스트 18건(companion 계약 8 + catalog borderStyle 5 + box borderStyle 4 + spec static guard 1) + specs 렌더러 362 + skia 129 회귀 통과, type-check PASS(baseline 67). Chrome MCP 실빌더 — Button(catalog)·TextField(catalog)·frame(spec)·Box(box) 4종에 color/width/radius/style 시나리오 적용, 편집기 계약 매트릭스(color→+solid+w1 / width→+solid+color / radius→border無 / style=dashed→+w1+color) 4경로 동일 확인 + dashed/dotted/radius 테두리가 Skia 캔버스 ↔ CSS Preview 시각 대칭 렌더 확인.
+
 ## [Gradient fill Skia 렌더 복원 — catalog/spec 경로 FillStyle 채널 + angular/radial 정합] - 2026-07-15
 
 ### Bug Fixes
