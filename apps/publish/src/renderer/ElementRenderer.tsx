@@ -9,7 +9,11 @@
  */
 
 import { memo, useMemo } from "react";
-import { adaptElementFillStyle, type Element } from "@composition/shared";
+import {
+  adaptElementFillStyle,
+  resolveBodyArtboardStyle,
+  type Element,
+} from "@composition/shared";
 import { getComponent } from "../registry/ComponentRegistry";
 import { ActionExecutor } from "@composition/shared";
 import type { EventRuntimeContext } from "@composition/shared";
@@ -140,19 +144,12 @@ export const ElementRenderer = memo(function ElementRenderer({
     ...restProps
   } = adaptedElement.props as Record<string, unknown>;
 
-  // D3 대칭 정합(2026-07-15): canonical body 노드는 중첩 <div> 로 렌더되며 height 없는 style 만
-  //   얹어 display content-fit 로 collapse → Skia 아트보드(페이지 프레임 높이) 와 body 박스 비대칭.
-  //   실제 <body> 주입(useBodyElement)은 배경만 마스킹하고, 세로 중앙정렬/자식 full-height 는
-  //   중첩 body div 높이에 의존해 발산한다(라이브 실측: flex-center body 자식이 뷰포트 중앙 대신
-  //   collapse 박스 최상단에 갇힘). preview CanonicalNodeRenderer 와 동일하게 min-height:100vh 로
-  //   body 박스를 뷰포트(=publish 페이지=Skia artboard)에 정합한다. height/minHeight 명시 시 보존.
-  const bodyStyle = style as React.CSSProperties | undefined;
-  const resolvedStyle: React.CSSProperties | undefined =
-    adaptedElement.type === "body" &&
-    bodyStyle?.height == null &&
-    bodyStyle?.minHeight == null
-      ? { ...bodyStyle, minHeight: "100vh" }
-      : bodyStyle;
+  // D3 대칭 정합: canonical body 노드를 Skia 아트보드 높이에 맞춘다(shared 단일 소스 —
+  //   builder Preview `CanonicalNodeRenderer` 와 동일 로직). 근거는 resolveBodyArtboardStyle 참조.
+  const resolvedStyle = resolveBodyArtboardStyle(
+    adaptedElement.type,
+    style as React.CSSProperties | undefined,
+  );
 
   // Card: structural children 감지 (Preview renderCard와 동일 로직)
   const STRUCTURAL_CARD_TAGS = new Set([

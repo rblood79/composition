@@ -7,14 +7,12 @@ import type { RenderContext } from "../../types/index";
 import { CanonicalNodeRenderer } from "../CanonicalNodeRenderer";
 
 /**
- * D3 대칭 정합(2026-07-15): canonical body 노드는 Skia 아트보드(페이지 프레임 높이)를 채우지만,
- * canonical DOM 경로는 body 를 중첩 <div> 로 렌더하며 element.props.style(height 無)만 얹어
- * display:block content-fit 로 collapse → Skia body 박스(예 844) vs DOM(예 96) 비대칭.
- * body 배경/테두리가 있으면 Builder↔Preview 가 시각적으로 갈리므로(대칭 위반),
- * viewport(=preview iframe=device frame=Skia artboard) 기준 min-height:100vh 로 정합한다.
+ * D3 대칭 정합 — canonical body 노드가 Skia 아트보드 높이를 채우도록 `resolveBodyArtboardStyle`
+ * (shared 단일 소스, publish `ElementRenderer` 와 공유)을 이 렌더 경로에 배선했는지 검증한다.
  *
- * 라이브 실측(Chrome MCP): %-height 는 상위 frame 이 auto height 라 cascade 가 0 처리되어
- * body=96 유지, 100vh 는 body=844 로 fill → 100vh 필수. 콘텐츠 좌표는 layout map 공유로 불변.
+ * 주입/보존 규칙 자체(모든 분기)는 렌더러 독립적인
+ * `packages/shared/src/utils/__tests__/bodyArtboardStyle.test.ts` 가 커버한다. 본 파일은
+ * "helper 결과가 실제 DOM style 로 도달하는가"라는 wiring 만 확인한다.
  */
 
 const ctx = {} as unknown as RenderContext;
@@ -23,8 +21,8 @@ const ctx = {} as unknown as RenderContext;
 // vocabulary 에는 "Body" 만 등재 — vocabulary 정리 전까지 fixture 에서 cast.
 const BODY_TYPE = "body" as ResolvedNode["type"];
 
-describe("CanonicalNodeRenderer — body 아트보드 정합(min-height:100vh)", () => {
-  it("height/minHeight 미지정 body 노드에 min-height:100vh 를 주입한다", () => {
+describe("CanonicalNodeRenderer — body 아트보드 정합 wiring", () => {
+  it("height 미지정 body 노드의 DOM style 에 min-height:100vh 가 도달한다", () => {
     const node: ResolvedNode = {
       id: "body-1",
       type: BODY_TYPE,
@@ -44,11 +42,10 @@ describe("CanonicalNodeRenderer — body 아트보드 정합(min-height:100vh)",
     ) as HTMLElement | null;
     expect(body).not.toBeNull();
     expect(body!.style.minHeight).toBe("100vh");
-    // 기존 스타일은 보존
-    expect(body!.style.display).toBe("block");
+    expect(body!.style.display).toBe("block"); // 기존 스타일 보존
   });
 
-  it("사용자가 minHeight 를 명시하면 100vh 주입을 skip(의도 보존)한다", () => {
+  it("사용자가 minHeight 를 명시하면 렌더 결과에 100vh 를 주입하지 않는다", () => {
     const node: ResolvedNode = {
       id: "body-2",
       type: BODY_TYPE,
@@ -67,49 +64,5 @@ describe("CanonicalNodeRenderer — body 아트보드 정합(min-height:100vh)",
       "[data-canonical-id='body-2']",
     ) as HTMLElement | null;
     expect(body!.style.minHeight).toBe("500px");
-  });
-
-  it("사용자가 height 를 명시하면 100vh 주입을 skip 한다", () => {
-    const node: ResolvedNode = {
-      id: "body-3",
-      type: BODY_TYPE,
-      props: { style: { display: "block", height: "600px" } },
-    };
-
-    const { container } = render(
-      <CanonicalNodeRenderer
-        node={node}
-        renderContext={ctx}
-        cutoverPrimitives={new Set()}
-      />,
-    );
-
-    const body = container.querySelector(
-      "[data-canonical-id='body-3']",
-    ) as HTMLElement | null;
-    expect(body!.style.minHeight).toBe("");
-    expect(body!.style.height).toBe("600px");
-  });
-
-  it("body 가 아닌 일반 컨테이너(frame)에는 100vh 를 주입하지 않는다", () => {
-    const node: ResolvedNode = {
-      id: "frame-1",
-      type: "frame",
-      props: { style: { display: "block" } },
-    };
-
-    const { container } = render(
-      <CanonicalNodeRenderer
-        node={node}
-        renderContext={ctx}
-        cutoverPrimitives={new Set()}
-      />,
-    );
-
-    const frame = container.querySelector(
-      "[data-canonical-id='frame-1']",
-    ) as HTMLElement | null;
-    expect(frame).not.toBeNull();
-    expect(frame!.style.minHeight).toBe("");
   });
 });
