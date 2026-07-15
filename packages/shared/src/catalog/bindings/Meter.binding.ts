@@ -69,18 +69,11 @@ export const meterBinding: PrimitiveBinding = {
         label: "Show Value Label",
         section: "content",
       },
-      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): renderMeter 기소비 —
-      //   RSP Meter 공식 prop (labelPosition top/side, valueLabel 커스텀 표기).
-      labelPosition: {
-        kind: "enum",
-        label: "Label Position",
-        section: "appearance",
-        default: "top",
-        options: [
-          { value: "top", label: "Top" },
-          { value: "side", label: "Side" },
-        ],
-      },
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): valueLabel 은 Meter wrapper 가
+      //   <span class="value">{valueLabel}</span> 로 직접 렌더 → 작동. RSP 공식 labelPosition
+      //   (top/side) 은 Meter wrapper 가 data-label-position emit 안 하고 Meter.css 에도
+      //   [data-label-position] 규칙 부재 → D3 시각 소비 경로 없어 dead 편집 UI 라 미추가
+      //   (ColorArea channel / TagGroup orientation 제거와 동일 근거). D3 CSS+Skia 구현 후 재노출.
       valueLabel: {
         kind: "string",
         label: "Value Label",
