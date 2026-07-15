@@ -1,13 +1,14 @@
 /**
  * GradientControls - 그래디언트 타입별 속성 편집 컨트롤
  *
- * Gradient Phase 2 + Phase 3 ScrubInput 적용
+ * 모든 수치 입력은 패널 표준 PropertyUnitInput (Padding/blend 계열, fieldset+
+ * legend+아이콘+단위 dropdown) 사용 — deg(rotation) / %(center·radius).
  * - Linear: Rotation (0~360)
- * - Radial: Center X/Y, Radius width/height
- * - Angular: Center X/Y, Rotation
+ * - Radial: Center X/Y, Radius width/height (%)
+ * - Angular: Center X/Y (%), Rotation
  *
  * @since 2026-02-10 Gradient Phase 2
- * @updated 2026-02-11 Phase 3 — ScrubInput 적용
+ * @updated 2026-07-16 ScrubInput → PropertyUnitInput 통일 (패널 표준 컴포넌트)
  */
 
 import { memo, useCallback } from "react";
@@ -18,8 +19,7 @@ import type {
   AngularGradientFillItem,
 } from "../../../../types/builder/fill.types";
 import { FillType } from "../../../../types/builder/fill.types";
-import { RotateCw } from "lucide-react";
-import { ScrubInput } from "./ScrubInput";
+import { RotateCw, MoveHorizontal, MoveVertical } from "lucide-react";
 import { PropertyUnitInput } from "../../../components";
 
 import "./GradientControls.css";
@@ -73,85 +73,103 @@ const RadialControls = memo(function RadialControls({
   onChange: (updates: Partial<FillItem>) => void;
 }) {
   const handleCenterX = useCallback(
-    (value: number) => {
-      onChange({
-        center: { ...fill.center, x: value / 100 },
-      } as Partial<RadialGradientFillItem>);
+    (value: string) => {
+      const num = parseFloat(value);
+      if (!Number.isNaN(num)) {
+        onChange({
+          center: { ...fill.center, x: num / 100 },
+        } as Partial<RadialGradientFillItem>);
+      }
     },
     [fill.center, onChange],
   );
 
   const handleCenterY = useCallback(
-    (value: number) => {
-      onChange({
-        center: { ...fill.center, y: value / 100 },
-      } as Partial<RadialGradientFillItem>);
+    (value: string) => {
+      const num = parseFloat(value);
+      if (!Number.isNaN(num)) {
+        onChange({
+          center: { ...fill.center, y: num / 100 },
+        } as Partial<RadialGradientFillItem>);
+      }
     },
     [fill.center, onChange],
   );
 
   const handleRadiusW = useCallback(
-    (value: number) => {
-      onChange({
-        radius: { ...fill.radius, width: value / 100 },
-      } as Partial<RadialGradientFillItem>);
+    (value: string) => {
+      const num = parseFloat(value);
+      if (!Number.isNaN(num)) {
+        onChange({
+          radius: { ...fill.radius, width: num / 100 },
+        } as Partial<RadialGradientFillItem>);
+      }
     },
     [fill.radius, onChange],
   );
 
   const handleRadiusH = useCallback(
-    (value: number) => {
-      onChange({
-        radius: { ...fill.radius, height: value / 100 },
-      } as Partial<RadialGradientFillItem>);
+    (value: string) => {
+      const num = parseFloat(value);
+      if (!Number.isNaN(num)) {
+        onChange({
+          radius: { ...fill.radius, height: num / 100 },
+        } as Partial<RadialGradientFillItem>);
+      }
     },
     [fill.radius, onChange],
   );
 
   return (
     <>
-      <span className="gradient-controls__label">Center</span>
-      <div className="gradient-controls__row">
-        <ScrubInput
-          value={Math.round(fill.center.x * 100)}
-          onCommit={handleCenterX}
-          min={0}
-          max={100}
-          suffix="%"
-          label="Center X"
-          className="gradient-controls__scrub"
-        />
-        <ScrubInput
-          value={Math.round(fill.center.y * 100)}
-          onCommit={handleCenterY}
-          min={0}
-          max={100}
-          suffix="%"
-          label="Center Y"
-          className="gradient-controls__scrub"
-        />
-      </div>
-      <span className="gradient-controls__label">Radius</span>
-      <div className="gradient-controls__row">
-        <ScrubInput
-          value={Math.round(fill.radius.width * 100)}
-          onCommit={handleRadiusW}
-          min={0}
-          max={100}
-          suffix="%"
-          label="Radius width"
-          className="gradient-controls__scrub"
-        />
-        <ScrubInput
-          value={Math.round(fill.radius.height * 100)}
-          onCommit={handleRadiusH}
-          min={0}
-          max={100}
-          suffix="%"
-          label="Radius height"
-          className="gradient-controls__scrub"
-        />
-      </div>
+      <PropertyUnitInput
+        icon={MoveHorizontal}
+        label="Center X"
+        className="gradient-center-x"
+        value={`${Math.round(fill.center.x * 100)}%`}
+        units={["%"]}
+        defaultUnit="%"
+        allowKeywords={false}
+        onChange={handleCenterX}
+        min={0}
+        max={100}
+      />
+      <PropertyUnitInput
+        icon={MoveVertical}
+        label="Center Y"
+        className="gradient-center-y"
+        value={`${Math.round(fill.center.y * 100)}%`}
+        units={["%"]}
+        defaultUnit="%"
+        allowKeywords={false}
+        onChange={handleCenterY}
+        min={0}
+        max={100}
+      />
+      <PropertyUnitInput
+        icon={MoveHorizontal}
+        label="Radius Width"
+        className="gradient-radius-w"
+        value={`${Math.round(fill.radius.width * 100)}%`}
+        units={["%"]}
+        defaultUnit="%"
+        allowKeywords={false}
+        onChange={handleRadiusW}
+        min={0}
+        max={100}
+      />
+      <PropertyUnitInput
+        icon={MoveVertical}
+        label="Radius Height"
+        className="gradient-radius-h"
+        value={`${Math.round(fill.radius.height * 100)}%`}
+        units={["%"]}
+        defaultUnit="%"
+        allowKeywords={false}
+        onChange={handleRadiusH}
+        min={0}
+        max={100}
+      />
     </>
   );
 });
@@ -164,19 +182,25 @@ const AngularControls = memo(function AngularControls({
   onChange: (updates: Partial<FillItem>) => void;
 }) {
   const handleCenterX = useCallback(
-    (value: number) => {
-      onChange({
-        center: { ...fill.center, x: value / 100 },
-      } as Partial<AngularGradientFillItem>);
+    (value: string) => {
+      const num = parseFloat(value);
+      if (!Number.isNaN(num)) {
+        onChange({
+          center: { ...fill.center, x: num / 100 },
+        } as Partial<AngularGradientFillItem>);
+      }
     },
     [fill.center, onChange],
   );
 
   const handleCenterY = useCallback(
-    (value: number) => {
-      onChange({
-        center: { ...fill.center, y: value / 100 },
-      } as Partial<AngularGradientFillItem>);
+    (value: string) => {
+      const num = parseFloat(value);
+      if (!Number.isNaN(num)) {
+        onChange({
+          center: { ...fill.center, y: num / 100 },
+        } as Partial<AngularGradientFillItem>);
+      }
     },
     [fill.center, onChange],
   );
@@ -193,27 +217,30 @@ const AngularControls = memo(function AngularControls({
 
   return (
     <>
-      <span className="gradient-controls__label">Center</span>
-      <div className="gradient-controls__row">
-        <ScrubInput
-          value={Math.round(fill.center.x * 100)}
-          onCommit={handleCenterX}
-          min={0}
-          max={100}
-          suffix="%"
-          label="Center X"
-          className="gradient-controls__scrub"
-        />
-        <ScrubInput
-          value={Math.round(fill.center.y * 100)}
-          onCommit={handleCenterY}
-          min={0}
-          max={100}
-          suffix="%"
-          label="Center Y"
-          className="gradient-controls__scrub"
-        />
-      </div>
+      <PropertyUnitInput
+        icon={MoveHorizontal}
+        label="Center X"
+        className="gradient-center-x"
+        value={`${Math.round(fill.center.x * 100)}%`}
+        units={["%"]}
+        defaultUnit="%"
+        allowKeywords={false}
+        onChange={handleCenterX}
+        min={0}
+        max={100}
+      />
+      <PropertyUnitInput
+        icon={MoveVertical}
+        label="Center Y"
+        className="gradient-center-y"
+        value={`${Math.round(fill.center.y * 100)}%`}
+        units={["%"]}
+        defaultUnit="%"
+        allowKeywords={false}
+        onChange={handleCenterY}
+        min={0}
+        max={100}
+      />
       <PropertyUnitInput
         icon={RotateCw}
         label="Rotation"

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Fill 팝오버 gradient Center/Radius 를 PropertyUnitInput 으로 통일] - 2026-07-16
+
+### Features
+
+- **gradient Center X/Y·Radius Width/Height 입력을 ScrubInput 에서 PropertyUnitInput 으로 교체** (rotation 통일 후속):
+  - Radial(Center X/Y + Radius W/H)·Angular(Center X/Y) 의 6개 ScrubInput 을 PropertyUnitInput 으로 전환 — 이로써 gradient 팝오버의 **모든 수치 입력이 패널 표준 컴포넌트**(Padding/blend/rotation 계열)로 통일된다. `ScrubInput` import 제거.
+  - 단위 `%`, 축 아이콘(lucide `MoveHorizontal`=가로 X·Width / `MoveVertical`=세로 Y·Height), `allowKeywords=false`, min 0 / max 100.
+  - 레이아웃: `GradientControls.css` 의 grid(`auto 1fr`) → `flex-direction: column` full-width 세로 스택. **Why**: 이전 grid 는 오른쪽 열(Center Y·Radius Height)이 좁아 값이 잘려 안 보였다. ScrubInput 전용 `__label`/`__row`/`__scrub` 등 클래스 제거.
+  - 검증: Chrome MCP 실빌더 — radial 팝오버에서 Center X/Y(30/40)·Radius W/H(60/50) 4개가 full-width PropertyUnitInput(축 아이콘+값+chevron)으로 렌더되고 값이 정확히 표시됨을 확인.
+  - 위치: `apps/builder/src/builder/panels/styles/components/GradientControls.tsx`, `GradientControls.css`
+
 ## [Fill 팝오버 gradient Rotation 을 PropertyUnitInput 으로 통일] - 2026-07-16
 
 ### Features
