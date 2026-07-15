@@ -765,3 +765,85 @@ describe("useResetStyles — appearance select baseline (M3/M5)", () => {
     expect(result.current).toBe(true);
   });
 });
+
+/**
+ * 배경(fills)이 dirty 소스에 포함되는지 회귀 가드 (M1).
+ *
+ * 배경은 fills(canonical 1차 필드)로 이동해 computeDirtyStyleProps 가 props.style 만 보면
+ * "배경만 바꾼" 요소의 Appearance reset 버튼이 안 뜬다. fills 를 adapt(color) + 별도 표시
+ * (gradient/image)해 dirty 로 잡는다. catalog appearance preset 은 mock({}) 으로 격리.
+ */
+describe("useResetStyles — fills backgroundColor dirty (M1)", () => {
+  const originalState = useStore.getState();
+
+  beforeEach(() => {
+    vi.spyOn(preset, "resolveAppearanceSpecPreset").mockReturnValue({});
+    useStore.setState({
+      selectedElementId: null,
+      selectedElementProps: null as unknown as ComponentElementProps,
+      currentPageId: null,
+      elements: [],
+      elementsMap: new Map(),
+      childrenMap: new Map(),
+      dirtyElementIds: new Set(),
+      layoutVersion: 0,
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    useStore.setState(originalState, true);
+  });
+
+  function selectWithFills(fills: unknown[] | undefined): void {
+    const element = {
+      id: "tg-fills",
+      type: "TagGroup",
+      props: { size: "md", style: {} },
+      ...(fills ? { fills } : {}),
+    } as unknown as Element;
+    useStore.setState({
+      selectedElementId: element.id,
+      selectedElementProps: element.props,
+      currentPageId: null,
+      elements: [element],
+      elementsMap: new Map([[element.id, element]]),
+      childrenMap: new Map(),
+      dirtyElementIds: new Set(),
+      layoutVersion: 0,
+    });
+  }
+
+  it("color fill 이 있으면 backgroundColor dirty (배경만 변경 → reset 버튼 노출)", () => {
+    selectWithFills([{ type: "color", enabled: true, color: "#123456FF" }]);
+    const { result } = renderHook(() => useHasDirtyStyles(["backgroundColor"]));
+    expect(result.current).toBe(true);
+  });
+
+  it("gradient fill 도 backgroundColor dirty (backgroundImage 라 색 미surface)", () => {
+    selectWithFills([
+      {
+        type: "linear-gradient",
+        enabled: true,
+        stops: [
+          { color: "#000000", position: 0 },
+          { color: "#FFFFFF", position: 1 },
+        ],
+      },
+    ]);
+    const { result } = renderHook(() => useHasDirtyStyles(["backgroundColor"]));
+    expect(result.current).toBe(true);
+  });
+
+  it("fills 가 없으면 backgroundColor dirty 아님", () => {
+    selectWithFills(undefined);
+    const { result } = renderHook(() => useHasDirtyStyles(["backgroundColor"]));
+    expect(result.current).toBe(false);
+  });
+
+  it("빈 fills 배열은 dirty 아님 (무 fill 과 동일 semantics)", () => {
+    selectWithFills([]);
+    const { result } = renderHook(() => useHasDirtyStyles(["backgroundColor"]));
+    expect(result.current).toBe(false);
+  });
+});

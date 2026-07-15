@@ -9,7 +9,8 @@
  * 🚀 Body 기본값 보존: Reset 시 컴포넌트 기본값으로 복원
  */
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, type CSSProperties } from "react";
+import { adaptStyleWithFills } from "@composition/shared";
 import { useStore } from "../../../stores";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { visitCanonicalDocumentElements } from "../../../stores/canonical/canonicalElementsView";
@@ -589,6 +590,7 @@ export function computeDirtyStyleProps(
   element: {
     type: string;
     props?: Readonly<Record<string, unknown>>;
+    fills?: unknown[];
   },
   context?: {
     parentType?: string;
@@ -596,7 +598,17 @@ export function computeDirtyStyleProps(
   },
   properties?: string[],
 ): string[] {
-  const currentStyle = (element.props?.style as Record<string, unknown>) || {};
+  const rawStyle = (element.props?.style as Record<string, unknown>) || {};
+  // 배경(backgroundColor)은 fills(canonical 1차 SSOT)로 이동했다. dirty 판정은 fills 로 adapt 한
+  //   effective style 을 기준으로 해야 "배경만 바꾼" 요소의 Appearance reset 버튼이 뜬다(M1).
+  //   color fill 은 adaptStyleWithFills 가 backgroundColor 를 채워 아래 baseline 비교로 잡히고,
+  //   gradient/image fill 은 backgroundImage 라 backgroundColor 가 비므로 별도 dirty 표시.
+  const hasFills = Array.isArray(element.fills) && element.fills.length > 0;
+  const currentStyle = hasFills
+    ? ((adaptStyleWithFills(rawStyle as CSSProperties, element.fills) as
+        | Record<string, unknown>
+        | undefined) ?? rawStyle)
+    : rawStyle;
   const { legacyStyle, specStyle, subpartStyle } = resolveResetBaseline(
     element,
     context,
@@ -607,6 +619,12 @@ export function computeDirtyStyleProps(
   const dirty: string[] = [];
   for (const prop of keys) {
     const currentValue = resolveCurrentStyleValue(prop, currentStyle);
+    // fills 가 있는데 backgroundColor 가 surface 되지 않은 경우(gradient/image fill)도
+    //   배경이 default(무 fill)에서 바뀐 것이므로 dirty.
+    if (prop === "backgroundColor" && hasFills && currentValue === undefined) {
+      dirty.push(prop);
+      continue;
+    }
     if (currentValue === undefined) continue;
     const resetValue = resolveTargetValue(
       prop,
