@@ -66,6 +66,13 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
 
   if (!styleValues) return null;
 
+  // Box Shadow: 현재 값이 알려진 프리셋이 아니면(import/paste 된 임의 CSS) 동적 "custom" 항목을
+  //   추가해 RAC Select 가 빈 선택으로 표시되지 않게 한다(M4). 알려진 프리셋이면 안정 참조 유지.
+  const shadowKey = boxShadowToPresetKey(styleValues.boxShadow);
+  const shadowOptions = SHADOW_PRESET_OPTIONS.some((o) => o.value === shadowKey)
+    ? SHADOW_PRESET_OPTIONS
+    : [...SHADOW_PRESET_OPTIONS, { value: shadowKey, label: "custom" }];
+
   return (
     <>
       <Suspense fallback={null}>
@@ -140,10 +147,16 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
           icon={Eclipse}
           label="Box Shadow"
           className="box-shadow"
-          value={boxShadowToPresetKey(styleValues.boxShadow)}
-          options={SHADOW_PRESET_OPTIONS}
+          value={shadowKey}
+          options={shadowOptions}
           onChange={(value) => {
-            if (value === "" || value === "none") {
+            // PropertySelect 가 "reset" → "" 로 변환. Reset("") 은 inline boxShadow
+            //   키를 삭제해 baseline("none" 또는 catalog)으로 복귀시킨다 — "none" 을
+            //   기록하던 과거 동작은 영구 dirty 원인이었다(M3). "none" 항목은 사용자가
+            //   명시적으로 고른 값이므로 그대로 기록.
+            if (value === "") {
+              updateStyle("boxShadow", "");
+            } else if (value === "none") {
               updateStyle("boxShadow", "none");
             } else {
               const cssValue = shadows[value as keyof typeof shadows];

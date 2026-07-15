@@ -90,6 +90,9 @@ export const FLEX_WRAP_OPTIONS: { value: string; label: string }[] = [
 ];
 
 export const OVERFLOW_OPTIONS: { value: string; label: string }[] = [
+  // "reset" 은 PropertySelect 가 onChange("") 로 변환 → inline overflow 키 삭제.
+  //   "auto" 는 실제 CSS overflow 값(필요 시 스크롤)이라 reset 센티널로 겸용 불가 → 별도 항목.
+  { value: "reset", label: "Reset" },
   { value: "visible", label: "Visible" },
   { value: "hidden", label: "Hidden" },
   { value: "scroll", label: "Scroll" },
