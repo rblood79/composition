@@ -19,6 +19,8 @@ import { FillType } from "../../../types/builder/fill.types";
 import type { Element } from "../../../types/core/store.types";
 import { saveService } from "../../../services/save";
 import { useStore } from "../index";
+import { historyManager } from "../history";
+import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 
 describe("inspectorActions fill write-through", () => {
   beforeEach(() => {
@@ -315,6 +317,71 @@ describe("inspectorActions fill write-through", () => {
       (child?.props?.style as { backgroundImage?: string } | undefined)
         ?.backgroundImage,
     ).toBeUndefined();
+  });
+
+  it("fills 변경은 replace event(prev/next fills 포함)로 history 에 기록된다 — undo/redo 복원 (M2b)", () => {
+    const oldFill = {
+      id: "old",
+      type: FillType.Color,
+      color: "#AAAAAAFF",
+      enabled: true,
+      opacity: 1,
+      blendMode: "normal",
+    };
+    const baseElement = {
+      id: "fill-target",
+      type: "Box",
+      props: { style: {} },
+      fills: [oldFill],
+    } as unknown as Element;
+
+    // 이전 테스트가 syncInspectorElementToCanonical 로 남긴 stale canonical 노드(fills 없음)를
+    //   history snapshot 이 읽지 않도록 canonical doc store 를 비운다 → fallback 이 element.fills 직독.
+    useCanonicalDocumentStore.setState({
+      documents: new Map(),
+      currentProjectId: null,
+    });
+
+    useStore.setState({
+      selectedElementId: "fill-target",
+      selectedElementProps: { style: {} },
+      // currentPageId 가 있어야 updateAndSave 의 history 블록이 실행된다.
+      currentPageId: "page-1",
+      elements: [baseElement],
+      elementsMap: new Map([["fill-target", baseElement]]),
+      childrenMap: new Map(),
+      dirtyElementIds: new Set(),
+      layoutVersion: 0,
+    });
+
+    const addEntrySpy = vi.spyOn(historyManager, "addEntry");
+
+    useStore.getState().updateSelectedFills([
+      {
+        id: "new",
+        type: FillType.Color,
+        color: "#BBBBBBFF",
+        enabled: true,
+        opacity: 1,
+        blendMode: "normal",
+      },
+    ]);
+
+    expect(addEntrySpy).toHaveBeenCalled();
+    const entry = addEntrySpy.mock.calls.at(-1)?.[0] as {
+      data?: {
+        canonicalEvents?: Array<{ type: string }>;
+      };
+    };
+    const events = entry?.data?.canonicalEvents ?? [];
+    // 핵심 동작 변화(M2b): fills 변경이 props-only update event 가 아니라
+    //   replace(remove@prev + insert@next) 쌍으로 라우팅되어야 한다. update event 의
+    //   replaceNodeProps 는 props 만 교체해 fills(canonical 1차 필드)를 버려 undo 로 배경이
+    //   복원 안 되던 결함의 수정 지점. full node(fills 포함) 캡처는 buildCanonicalReplaceEvents
+    //   + legacyElementToCanonicalNode 가 보장(canonicalReplaceEvents.test.ts).
+    expect(events.map((e) => e.type)).toEqual(["remove", "insert"]);
+
+    addEntrySpy.mockRestore();
   });
 
   it("hydrateProjectSnapshot 경로도 legacy background payload 를 canonicalize 한다", () => {

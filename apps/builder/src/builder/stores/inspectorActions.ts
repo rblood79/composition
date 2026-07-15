@@ -581,17 +581,26 @@ export const createInspectorActionsSlice: StateCreator<
     // instance mirror: overrides/descendants 등 props 외 mirror field 변경은
     //   replace event 쌍 (pre-mutation 모드 — canonical sync 전 호출이므로
     //   prev 는 현재 doc, next 는 updated element 로부터 빌드)
+    // fills(배경 canonical 1차 필드) 변경도 props-only update event 로는 캡처 안 되므로
+    //   (replaceNodeProps 가 props 만 교체) replace event 로 full node 를 기록해야 undo 로
+    //   배경이 복원된다(M2b). buildCanonicalReplaceEvents 는 prev/next 노드에 fills 를 포함.
     // 일반 요소: full merged props 의 update event
-    if (currentPageId && Object.keys(propsUpdate).length > 0) {
-      const canonicalEvents = isComponentInstanceMirrorElement(element)
-        ? buildCanonicalReplaceEvents([prevElement], [updatedElement])
-        : [
-            buildCanonicalUpdateEvent(
-              elementId,
-              prevProps,
-              structuredClone(newProps),
-            ),
-          ];
+    const hasNonPropsCanonicalChange =
+      additionalUpdates !== undefined && "fills" in additionalUpdates;
+    if (
+      currentPageId &&
+      (Object.keys(propsUpdate).length > 0 || hasNonPropsCanonicalChange)
+    ) {
+      const canonicalEvents =
+        isComponentInstanceMirrorElement(element) || hasNonPropsCanonicalChange
+          ? buildCanonicalReplaceEvents([prevElement], [updatedElement])
+          : [
+              buildCanonicalUpdateEvent(
+                elementId,
+                prevProps,
+                structuredClone(newProps),
+              ),
+            ];
       historyManager.addEntry({
         type: "update",
         elementId: elementId,

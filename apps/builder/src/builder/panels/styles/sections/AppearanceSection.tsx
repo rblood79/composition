@@ -197,10 +197,18 @@ const APPEARANCE_PROPS = [
 export const AppearanceSection = memo(function AppearanceSection() {
   const resetStyles = useResetStyles();
   const hasDirty = useHasDirtyStyles(APPEARANCE_PROPS);
+  const selectedId = useStore((s) => s.selectedElementId);
 
   const handleReset = () => {
     resetStyles(APPEARANCE_PROPS);
-    useStore.getState().updateSelectedFills([]);
+    // fills(배경 canonical SSOT)는 style reset 대상이 아니므로 별도로 비운다. 단, 비어있으면
+    //   호출 자체가 스퍼리어스 history entry/mutation 을 만들므로 non-empty 일 때만 실행(M2a).
+    const state = useStore.getState();
+    const el = selectedId ? state.elementsMap.get(selectedId) : undefined;
+    const fills = (el as { fills?: unknown[] } | undefined)?.fills;
+    if (Array.isArray(fills) && fills.length > 0) {
+      state.updateSelectedFills([]);
+    }
   };
 
   return (
