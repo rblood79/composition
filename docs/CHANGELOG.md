@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Background 컬러 피커 popover 폭 정렬 — 호출자(swatch) width] - 2026-07-15
+
+### Features
+
+- **Background 컬러 피커 popover 폭을 호출자(swatch 버튼) width 에 정렬** (기존 244px 고정 → 180px, 좌측 정렬):
+  - padding/border 4-way 편집 블록이 각자 섹션 컨텐츠 폭을 채우는 것과 동형. swatch 버튼이 Background fieldset 을 꽉 채우므로(180px), RAC 가 노출하는 `--trigger-width`(trigger 기준)를 popover width 로 써서 동일 컬럼 폭 + 좌측 정렬로 뜬다. 내부 컬러 피커도 그 폭에 맞춰 늘어난다.
+  - **Why**: 기존 `.fill-detail-popover-container.react-aria-Popover { width: 244px }` 하드코딩(specificity 0,2,0)이 호출 컨텍스트와 무관한 고정 폭이었다. `--trigger-width` 는 fill 타입(Color↔Gradient)이 바뀌어도 trigger(swatch)가 안 변해 고정 — 기존 244px 의 "전환 시 위치 점프 방지" 목적도 그대로 유지된다.
+  - FillSection(Background) + FillLayerRow(추가 레이어) popover 가 같은 클래스라 각자 자기 trigger 폭으로 정렬된다.
+  - 위치: `apps/builder/src/builder/panels/styles/components/FillLayerRow.css`
+
 ## [ProgressBar/Meter Label Position=side — 레이블 가로 배치 D3 구현] - 2026-07-15
 
 ### Features

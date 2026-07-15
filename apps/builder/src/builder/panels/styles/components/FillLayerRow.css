@@ -32,7 +32,9 @@
     border: 1.5px solid var(--border);
     border-radius: 3px;
     background: transparent;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease;
   }
 
   .fill-layer-row__toggle[data-selected] .fill-layer-row__checkbox {
@@ -80,7 +82,15 @@
     width: 18px;
     height: 18px;
     border-radius: 2px;
-    background: conic-gradient(#FF0000, #FFFF00, #00FF00, #00FFFF, #0000FF, #FF00FF, #FF0000);
+    background: conic-gradient(
+      #ff0000,
+      #ffff00,
+      #00ff00,
+      #00ffff,
+      #0000ff,
+      #ff00ff,
+      #ff0000
+    );
   }
 
   /* Image swatch */
@@ -159,11 +169,13 @@
 
   /* Fill detail popover container */
   .fill-detail-popover-container {
-
-    /* 고정 너비: Color ↔ Gradient 전환 시 위치 점프 방지 */
+    /* width = 호출자(swatch 버튼 = DialogTrigger) width. swatch 가 Background
+       fieldset 을 꽉 채우므로 padding/border 편집 블록과 동일 컬럼 폭으로 뜬다.
+       --trigger-width 는 fill 타입(Color↔Gradient)이 바뀌어도 trigger 가 안 변해
+       고정 — 기존 244px 하드코딩의 "전환 시 위치 점프 방지" 목적도 유지 (2026-07-15). */
     &.react-aria-Popover {
       max-width: none;
-      width: 244px;
+      width: var(--trigger-width);
     }
 
     .react-aria-Dialog {
