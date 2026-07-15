@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Gradient fill Skia 렌더 복원 — catalog/spec 경로 FillStyle 채널 + angular/radial 정합] - 2026-07-15
+
+### Bug Fixes
+
+- **gradient fill(linear/radial/angular/mesh)이 CSS(Preview)에서만 렌더되고 Skia 캔버스에는 미표시되던 결함**:
+  - **Why**: catalog/spec 경로(`buildSpecNodeData`)의 배경 채널이 단색 전용(hex6 `backgroundColor` + `_fillBgAlpha`)이라 비-color fill 이 소거됨. 렌더러 자체는 `SkiaNodeData.box.fill: FillStyle` 채널 + `applyFill`(mesh 는 RuntimeEffect)로 이미 gradient 를 지원 — box 경로(`buildBoxNodeData`)만 이 채널을 쓰고 있었다.
+  - 수정: `buildSpecNodeData` 가 `specShapesToSkia` 변환 직후 top enabled 비-color fill 을 `fillsToSkiaFillStyle(fills, w, h)` 로 변환해 최상위 `box.fill` 에 접붙임 (box 경로와 동일 계약 — shader 성공 시 fillColor 무시). gradient 단독 fills 는 `fillsToSkiaFallbackColor`(첫 stop/point 색)를 hex6 채널에 주입해 bg box 방출(border-radius 해소) + shader 실패/이미지 로딩 중 graceful fallback 확보.
+- **angular gradient 의 rotation 이 Skia 에서 무시되어 CSS `from Ndeg` 와 시작 각도가 어긋나던 결함**:
+  - **Why**: `angularGradientFillItemToSkia` 의 localMatrix 가 -90° 고정 행렬 — `item.rotation` 미소비.
+  - 수정: θ = rotation − 90° 일반 회전 행렬로 교체 (rotation=0 은 기존 -90° 보정과 동치 — 회귀 테스트로 고정).
+- **radial gradient 의 radius 가 DOM 에서 소거되고 Skia 는 원형 근사라 falloff 크기가 양 경로 모두 fill 모델과 어긋나던 결함**:
+  - **Why**: DOM 어댑터가 `circle`(farthest-corner) 고정 출력으로 radius 미반영, Skia 는 `max(rx, ry)` 원형 근사.
+  - 수정: DOM 은 `radial-gradient(rw% rh% at cx% cy%, ...)` ellipse 크기 명시(radius 무효 시 기존 circle 보존), Skia 는 `RadialGradientFill.matrix`(localMatrix) 신설 + y-scale(ry/rx) 로 타원 표현 — `MakeTwoPointConicalGradient` 8번째 인자로 전달.
+- 검증: 단위 테스트 19건(buildSpecNodeData 4 + fallbackColor 6 + gradient 행렬 7 + fillAdapter radial 2) + Chrome MCP 실빌더 — body 요소에 linear(135°)/radial(center 30/30, 타원 60/50)/angular(45°)/mesh(2×2 4색) 순차 설정, 4종 모두 좌(CSS Preview)·우(Skia 캔버스) 시각 동일 확인.
+- 잔존 한계: catalog 컴포넌트의 image fill 은 캐시 히트 후 렌더(box 경로와 동일), image/mesh 의 fill-level opacity 미표현(기존과 동일) — 후속 과제.
+- 위치: `apps/builder/src/builder/workspace/canvas/skia/{buildSpecNodeData,fills,types}.ts`, `apps/builder/src/builder/panels/styles/utils/fillToSkia.ts`, `packages/shared/src/utils/fillAdapter.ts`
+
 ## [Background(fills) alpha 채널 복원 — 반투명 fill 불투명 렌더 수정] - 2026-07-15
 
 ### Bug Fixes

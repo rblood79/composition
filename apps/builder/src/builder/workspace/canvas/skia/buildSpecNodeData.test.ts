@@ -4,6 +4,12 @@ import { resolveCanonicalRefTree } from "../../../utils/canonicalRefResolution";
 import { buildSpecNodeData } from "./buildSpecNodeData";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
+import type {
+  FillItem,
+  LinearGradientFillItem,
+  MeshGradientFillItem,
+} from "../../../../types/builder/fill.types";
+import { FillType } from "../../../../types/builder/fill.types";
 
 function makeLayout(
   partial: Pick<ComputedLayout, "x" | "y" | "width" | "height">,
@@ -544,6 +550,82 @@ describe("buildSpecNodeData", () => {
       expect(iconGlyphSize("xl", "md")).toBe(XL);
       // 부모만 바꿨는데 glyph 가 따라 변한다 = size 변경 반영됨
       expect(iconGlyphSize("xl", "md")).not.toBe(iconGlyphSize("md", "md"));
+    });
+  });
+
+  describe("Background fills → bg box FillStyle (gradient/mesh)", () => {
+    const LINEAR: LinearGradientFillItem = {
+      id: "lg1",
+      type: FillType.LinearGradient,
+      enabled: true,
+      opacity: 1,
+      blendMode: "normal",
+      rotation: 90,
+      stops: [
+        { color: "#FF0000FF", position: 0 },
+        { color: "#0000FFFF", position: 1 },
+      ],
+    };
+
+    const MESH: MeshGradientFillItem = {
+      id: "mg1",
+      type: FillType.MeshGradient,
+      enabled: true,
+      opacity: 1,
+      blendMode: "normal",
+      rows: 2,
+      columns: 2,
+      points: [
+        { position: [0, 0], color: "#00FF00FF" },
+        { position: [1, 0], color: "#0000FFFF" },
+        { position: [0, 1], color: "#FF0000FF" },
+        { position: [1, 1], color: "#FFFFFFFF" },
+      ],
+    };
+
+    function buildWithFills(fills: FillItem[]): SkiaNodeData | null {
+      const button = makeElement("btn", {
+        type: "Button",
+        props: { children: "Go" },
+        fills,
+      });
+      return buildSpecNodeData({
+        element: button,
+        layout: makeLayout({ x: 0, y: 0, width: 200, height: 40 }),
+        theme: "light",
+        elementsMap: new Map([[button.id, button]]),
+      });
+    }
+
+    it("linear gradient fill → 최상위 box 에 linear-gradient FillStyle 접붙임", () => {
+      const node = buildWithFills([LINEAR]);
+      expect(node?.box?.fill?.type).toBe("linear-gradient");
+    });
+
+    it("mesh gradient fill → mesh-gradient FillStyle 접붙임", () => {
+      const node = buildWithFills([MESH]);
+      expect(node?.box?.fill?.type).toBe("mesh-gradient");
+    });
+
+    it("gradient fill 의 fallback fillColor 는 첫 stop 색 (shader 실패 대비)", () => {
+      const node = buildWithFills([LINEAR]);
+      // fillsToSkiaFallbackColor 가 hex6 "#FF0000" 로 주입 → bg box fillColor 적색
+      expect(node?.box?.fillColor?.[0]).toBeCloseTo(1, 2);
+      expect(node?.box?.fillColor?.[1]).toBeCloseTo(0, 2);
+      expect(node?.box?.fillColor?.[2]).toBeCloseTo(0, 2);
+    });
+
+    it("color fill 만 있으면 FillStyle 접붙임 없음 (기존 hex6 채널 유지)", () => {
+      const colorFill: FillItem = {
+        id: "c1",
+        type: FillType.Color,
+        enabled: true,
+        opacity: 1,
+        blendMode: "normal",
+        color: "#123456FF",
+      };
+      const node = buildWithFills([colorFill]);
+      expect(node?.box?.fill).toBeUndefined();
     });
   });
 });

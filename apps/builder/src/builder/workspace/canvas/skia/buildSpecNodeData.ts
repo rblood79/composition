@@ -37,7 +37,11 @@ import {
   isDisclosureExpandedInContext,
   toSkiaStyle,
 } from "@composition/shared";
-import { fillsToSkiaFillColor } from "../../../panels/styles/utils/fillToSkia";
+import {
+  fillsToSkiaFillColor,
+  fillsToSkiaFallbackColor,
+  fillsToSkiaFillStyle,
+} from "../../../panels/styles/utils/fillToSkia";
 import {
   resolveSkiaVisualRule,
   resolveSkiaRule,
@@ -1509,10 +1513,14 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   //   채널 시프트가 어긋남) — fillsToSkiaFillColor(alpha = hex alpha × opacity)
   //   결과를 hex6 + `_fillBgAlpha` 로 나눠 싣는다. DOM 은 fillsToCssBackgroundStyle
   //   의 rgba() 출력이 동일 합성 alpha 를 표현 (대칭).
-  // 잔존 한계: catalog shape fill 채널은 색상 전용 — gradient/image/mesh fill 은
-  //   box 경로(buildBoxNodeData)만 표현. color fill 만 주입된다.
+  // 비-color fill(gradient/mesh)만 있으면 fillsToSkiaFallbackColor(첫 stop/point 색)
+  //   로 주입한다 — bg box 방출(border-radius 해소)을 유도하기 위함. 실제 페인트는
+  //   변환 뒤 box.fill(FillStyle) shader 가 덮으므로, 이 색은 shader 실패(이미지
+  //   로딩 중 등)에만 노출된다.
   if (Array.isArray(element.fills) && element.fills.length > 0) {
-    const skiaFill = fillsToSkiaFillColor(element.fills);
+    const skiaFill =
+      fillsToSkiaFillColor(element.fills) ??
+      fillsToSkiaFallbackColor(element.fills);
     if (skiaFill) {
       const toHexByte = (v: number): string =>
         Math.round(Math.max(0, Math.min(1, v)) * 255)
@@ -1596,6 +1604,22 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   const specNode = withAccentOverride(resolvedAccent, () =>
     specShapesToSkia(shapes, theme, w, specHeight, element.id),
   );
+
+  // ---------- Background fills → bg box FillStyle (gradient/image/mesh) ----------
+  // top enabled fill 이 비-color 면 box 경로(buildBoxNodeData)와 동일 계약으로 최상위
+  // box 의 FillStyle 채널에 싣는다 — renderBox 가 applyFill(shader) 성공 시 fillColor
+  // 를 무시하므로, 위에서 주입한 hex6 fallback 은 shader 실패 시에만 노출된다.
+  // 기하(각도/center/radius)는 w × specHeight 박스 기준 — DOM CSS gradient 와 동일 기준.
+  if (
+    Array.isArray(element.fills) &&
+    element.fills.length > 0 &&
+    specNode.box
+  ) {
+    const fillStyle = fillsToSkiaFillStyle(element.fills, w, specHeight);
+    if (fillStyle && fillStyle.type !== "color") {
+      specNode.box.fill = fillStyle;
+    }
+  }
 
   // ---------- Inline CSS border overlay ----------
   applyInlineBorderOverlay(specNode, style);

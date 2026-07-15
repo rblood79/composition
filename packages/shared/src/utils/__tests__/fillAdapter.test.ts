@@ -72,6 +72,49 @@ describe("fillAdapter", () => {
     });
   });
 
+  it("radial fill 의 radius 를 ellipse 크기로 반영한다 (radius 소거 회귀)", () => {
+    // 회귀(2026-07-15): `circle`(farthest-corner) 고정 출력이 radius 를 소거해
+    // Skia(radius 소비)와 falloff 크기가 어긋나던 결함.
+    expect(
+      fillsToCssBackgroundStyle([
+        {
+          type: "radial-gradient",
+          enabled: true,
+          opacity: 1,
+          center: { x: 0.3, y: 0.3 },
+          radius: { width: 0.6, height: 0.5 },
+          stops: [
+            { color: "#FFD700FF", position: 0 },
+            { color: "#8A2BE2FF", position: 1 },
+          ],
+        },
+      ]),
+    ).toEqual({
+      backgroundImage:
+        "radial-gradient(60% 50% at 30% 30%, #FFD700 0%, #8A2BE2 100%)",
+    });
+  });
+
+  it("radial fill 의 radius 가 없으면 기존 circle 출력을 보존한다", () => {
+    expect(
+      fillsToCssBackgroundStyle([
+        {
+          type: "radial-gradient",
+          enabled: true,
+          opacity: 1,
+          center: { x: 0.5, y: 0.5 },
+          stops: [
+            { color: "#000000FF", position: 0 },
+            { color: "#FFFFFFFF", position: 1 },
+          ],
+        },
+      ]),
+    ).toEqual({
+      backgroundImage:
+        "radial-gradient(circle at 50% 50%, #000000 0%, #FFFFFF 100%)",
+    });
+  });
+
   it("fills 가 있으면 기존 background 필드를 지우고 파생 CSS 로 치환한다", () => {
     const adapted = adaptElementFillStyle({
       id: "el-1",

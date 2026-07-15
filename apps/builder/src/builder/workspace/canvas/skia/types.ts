@@ -60,6 +60,8 @@ export interface RadialGradientFill {
   colors: Float32Array[];
   positions: number[];
   repeating?: boolean;
+  /** localMatrix — 비대칭 radius(타원) 표현용 y-scale 등 (row-major 3x3) */
+  matrix?: Float32Array;
   /** 색상 보간 공간. "oklab"이면 지각적 균일 보간 적용. 기본값: "srgb" */
   interpolation?: "srgb" | "oklab";
 }

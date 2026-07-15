@@ -15,6 +15,10 @@ interface FillLike {
     x?: unknown;
     y?: unknown;
   } | null;
+  radius?: {
+    width?: unknown;
+    height?: unknown;
+  } | null;
   stops?: FillGradientStopLike[] | null;
   url?: unknown;
   mode?: unknown;
@@ -129,8 +133,21 @@ export function fillsToCssBackgroundStyle(
         const cy = isFiniteNumber(fill.center?.y)
           ? Math.round(fill.center.y * 100)
           : 50;
+        // fill 모델 radius(비율 0~1)를 ellipse 크기로 반영 — 과거 `circle`
+        // (farthest-corner) 고정은 radius 를 소거해 Skia(radius 소비)와 falloff
+        // 크기가 어긋났다 (2026-07-15 정정). radius 무효 시 기존 circle 보존.
+        const rw = isFiniteNumber(fill.radius?.width)
+          ? Math.round(fill.radius.width * 100)
+          : null;
+        const rh = isFiniteNumber(fill.radius?.height)
+          ? Math.round(fill.radius.height * 100)
+          : null;
+        const size =
+          rw !== null && rh !== null && rw > 0 && rh > 0
+            ? `${rw}% ${rh}%`
+            : "circle";
         return {
-          backgroundImage: `radial-gradient(circle at ${cx}% ${cy}%, ${gradientStopsToCss(fill.stops, readFillOpacity(fill))})`,
+          backgroundImage: `radial-gradient(${size} at ${cx}% ${cy}%, ${gradientStopsToCss(fill.stops, readFillOpacity(fill))})`,
         };
       }
       case "angular-gradient": {

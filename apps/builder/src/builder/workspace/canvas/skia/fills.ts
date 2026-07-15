@@ -127,6 +127,8 @@ export function applyFill(
         flatColors,
         fillPositions,
         fill.repeating ? ck.TileMode.Repeat : ck.TileMode.Clamp,
+        // localMatrix — 비대칭 radius(타원) y-scale (fillToSkia 가 계산)
+        fill.matrix,
       );
       if (!shader) {
         if (process.env.NODE_ENV === "development") {
