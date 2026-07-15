@@ -36,6 +36,12 @@ export interface AppearanceSpecPreset {
   backgroundColor?: string;
   /** ADR-082: containerStyles / composition 에서 공급된 테두리 색상 CSS 값 */
   borderColor?: string;
+  /** containerStyles 의 border-style CSS 값 (예: "dashed" — DropZone). 부재 시 패널 fallback "solid" */
+  borderStyle?: string;
+  /** containerStyles 의 box-shadow CSS 값 (예: "var(--shadow-lg)"). 부재 시 패널 fallback "none" */
+  boxShadow?: string;
+  /** containerStyles 의 overflow CSS 값 (예: "hidden" — Card / "auto"). 부재 시 패널 fallback "visible" */
+  overflow?: string;
 }
 
 export interface LayoutSpecPreset {
@@ -423,6 +429,13 @@ function appearanceFromContainerStyles(
   if (bg) out.backgroundColor = bg;
   const bc = resolveToCSSVar(cs.border);
   if (bc) out.borderColor = bc;
+  // borderStyle / boxShadow / overflow — containerStyles 의 CSS 문자열 그대로 노출.
+  //   normalizeContainerKeysToCamel 이 kebab(box-shadow/border-style)을 camel 로 collapse 하므로
+  //   camelCase 키만 읽으면 된다. 패널 표시/ dirty baseline 이 하드코딩 solid/none/visible 대신
+  //   컴포넌트 catalog 기본값을 반영하게 한다(M5).
+  if (typeof cs.borderStyle === "string") out.borderStyle = cs.borderStyle;
+  if (typeof cs.boxShadow === "string") out.boxShadow = cs.boxShadow;
+  if (typeof cs.overflow === "string") out.overflow = cs.overflow;
   return out;
 }
 

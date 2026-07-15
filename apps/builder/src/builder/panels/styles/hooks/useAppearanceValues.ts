@@ -64,9 +64,9 @@ export function useAppearanceValues(
         numToPx(specPreset.borderRadius),
         "0px",
       ),
-      borderStyle: firstDefined(s.borderStyle, undefined, "solid"),
-      boxShadow: firstDefined(s.boxShadow, undefined, "none"),
-      overflow: firstDefined(s.overflow, undefined, "visible"),
+      borderStyle: firstDefined(s.borderStyle, specPreset.borderStyle, "solid"),
+      boxShadow: firstDefined(s.boxShadow, specPreset.boxShadow, "none"),
+      overflow: firstDefined(s.overflow, specPreset.overflow, "visible"),
     };
   }, [id, effectiveStyle, specPreset]);
 }

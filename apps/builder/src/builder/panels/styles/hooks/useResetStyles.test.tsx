@@ -693,3 +693,75 @@ describe("useResetStyles — layout preset baseline", () => {
     expect(dirty.current).toBe(false);
   });
 });
+
+/**
+ * Appearance select(boxShadow/borderStyle)의 dirty baseline 회귀 가드 (M3/M5).
+ *
+ * factory 가 boxShadow/borderStyle 를 props.style 에 inline 주입하지 않으므로(legacyStyle
+ * fallback=undefined), baseline 하드코딩 기본값(boxShadow="none" / borderStyle="solid")이 없으면
+ * 패널에서 default 값(none/solid)을 고를 때마다 영구 dirty 가 된다. catalog appearance preset 을
+ * mock({}) 하여 fallback 경로만 격리 검증한다.
+ */
+describe("useResetStyles — appearance select baseline (M3/M5)", () => {
+  const originalState = useStore.getState();
+
+  beforeEach(() => {
+    vi.spyOn(preset, "resolveAppearanceSpecPreset").mockReturnValue({});
+    useStore.setState({
+      selectedElementId: null,
+      selectedElementProps: null as unknown as ComponentElementProps,
+      currentPageId: null,
+      elements: [],
+      elementsMap: new Map(),
+      childrenMap: new Map(),
+      dirtyElementIds: new Set(),
+      layoutVersion: 0,
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    useStore.setState(originalState, true);
+  });
+
+  function selectWithStyle(style: Record<string, unknown>): void {
+    const element = makeTaggedElement("tg-appearance", "TagGroup", {
+      size: "md",
+      style,
+    });
+    useStore.setState({
+      selectedElementId: element.id,
+      selectedElementProps: element.props,
+      currentPageId: null,
+      elements: [element],
+      elementsMap: new Map([[element.id, element]]),
+      childrenMap: new Map(),
+      dirtyElementIds: new Set(),
+      layoutVersion: 0,
+    });
+  }
+
+  it("boxShadow:'none' 은 dirty 가 아니다 (baseline none)", () => {
+    selectWithStyle({ boxShadow: "none" });
+    const { result } = renderHook(() => useHasDirtyStyles(["boxShadow"]));
+    expect(result.current).toBe(false);
+  });
+
+  it("실제 그림자 값은 boxShadow dirty 로 전환된다", () => {
+    selectWithStyle({ boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)" });
+    const { result } = renderHook(() => useHasDirtyStyles(["boxShadow"]));
+    expect(result.current).toBe(true);
+  });
+
+  it("borderStyle:'solid' 은 dirty 가 아니다 (baseline solid)", () => {
+    selectWithStyle({ borderStyle: "solid" });
+    const { result } = renderHook(() => useHasDirtyStyles(["borderStyle"]));
+    expect(result.current).toBe(false);
+  });
+
+  it("borderStyle:'dashed' 은 dirty 로 전환된다", () => {
+    selectWithStyle({ borderStyle: "dashed" });
+    const { result } = renderHook(() => useHasDirtyStyles(["borderStyle"]));
+    expect(result.current).toBe(true);
+  });
+});

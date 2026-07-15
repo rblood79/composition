@@ -204,6 +204,22 @@ function resolveSpecStyleDefaults(
       "borderRadius",
       numToPx(appearancePreset.borderRadius),
     ),
+    // borderStyle / boxShadow: factory 가 이 두 축을 props.style 에 inline 주입하지 않으므로
+    //   legacyStyle fallback 이 항상 undefined → 하드코딩 기본값(solid/none)을 baseline 으로 둬야
+    //   패널에서 default 값 선택 시 false dirty 가 안 난다. catalog containerStyles 값(DropZone
+    //   dashed 등)이 있으면 그것이 우선.
+    borderStyle: normalizeStyleValue(
+      "borderStyle",
+      appearancePreset.borderStyle ?? "solid",
+    ),
+    boxShadow: normalizeStyleValue(
+      "boxShadow",
+      appearancePreset.boxShadow ?? "none",
+    ),
+    // overflow: getDefaultProps 가 body(auto)/Card(hidden)/CardContent(hidden) 에 inline 주입하므로
+    //   하드코딩 fallback("visible")을 두면 그 값이 legacyStyle 를 덮어써 false dirty 가 된다.
+    //   catalog 값만 공급하고(부재 시 undefined) legacyStyle(getDefaultProps) fallthrough 를 보존.
+    overflow: normalizeStyleValue("overflow", appearancePreset.overflow),
     fontFamily: normalizeStyleValue("fontFamily", typographyPreset.fontFamily),
     fontSize: normalizeStyleValue(
       "fontSize",

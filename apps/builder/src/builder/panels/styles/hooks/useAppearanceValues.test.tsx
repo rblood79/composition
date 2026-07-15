@@ -47,6 +47,9 @@ describe("useAppearanceValues — ADR-082 P3 spec fallback (backgroundColor/bord
       borderWidth: 1,
       backgroundColor: "var(--bg-raised)",
       borderColor: "var(--border)",
+      borderStyle: "dashed",
+      boxShadow: "var(--shadow-lg)",
+      overflow: "hidden",
     });
   });
 
@@ -74,6 +77,36 @@ describe("useAppearanceValues — ADR-082 P3 spec fallback (backgroundColor/bord
     expect(result.current?.borderColor).toBe("var(--border)");
   });
 
+  it("spec preset supplies borderStyle/boxShadow/overflow when inline absent (M5)", () => {
+    const { result } = renderHook(() => useAppearanceValues("el-spec-only"));
+    expect(result.current?.borderStyle).toBe("dashed");
+    expect(result.current?.boxShadow).toBe("var(--shadow-lg)");
+    expect(result.current?.overflow).toBe("hidden");
+  });
+
+  it("inline borderStyle/boxShadow/overflow wins over spec preset (M5)", () => {
+    setTestElements([
+      {
+        id: "el-appearance-inline",
+        type: "ListBox",
+        props: {
+          size: "md",
+          style: {
+            borderStyle: "dotted",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.5)",
+            overflow: "scroll",
+          },
+        },
+      } as Element,
+    ]);
+    const { result } = renderHook(() =>
+      useAppearanceValues("el-appearance-inline"),
+    );
+    expect(result.current?.borderStyle).toBe("dotted");
+    expect(result.current?.boxShadow).toBe("0 1px 2px rgba(0,0,0,0.5)");
+    expect(result.current?.overflow).toBe("scroll");
+  });
+
   it("falls back to hardcoded defaults when neither inline nor spec present", () => {
     vi.spyOn(preset, "resolveAppearanceSpecPreset").mockReturnValue({});
     const { result } = renderHook(() => useAppearanceValues("el-spec-only"));
@@ -81,6 +114,10 @@ describe("useAppearanceValues — ADR-082 P3 spec fallback (backgroundColor/bord
     expect(result.current?.borderColor).toBe("#000000");
     expect(result.current?.borderRadius).toBe("0px");
     expect(result.current?.borderWidth).toBe("0px");
+    // borderStyle/boxShadow/overflow 하드코딩 fallback (M5)
+    expect(result.current?.borderStyle).toBe("solid");
+    expect(result.current?.boxShadow).toBe("none");
+    expect(result.current?.overflow).toBe("visible");
   });
 
   it("returns null when id is null", () => {
