@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [패널 Appearance dirty/reset/컬러 피커 정리 — 배경(fills) dirty 소스화 + boxShadow/overflow 정합] - 2026-07-15
+
+### Bug Fixes
+
+- **배경을 fills 로만 바꾸면 Appearance 리셋 버튼이 안 뜨던 결함 (M1)**:
+  - **Why**: 배경이 canonical `fills` 필드로 이관된 뒤 dirty 판정(`computeDirtyStyleProps`)이 `props.style` 만 검사 → color/gradient/image fill 변경이 감지 안 됨.
+  - 수정: fills 로 effective style 을 adapt(color→backgroundColor 비교)하고, gradient/image fill 은 backgroundImage 라 색이 surface 안 되므로 별도 dirty 표시.
+  - 위치: `apps/builder/src/builder/panels/styles/hooks/useResetStyles.ts`
+- **Appearance 리셋 시 배경(fills)이 undo 로 복원 안 되고, fills 가 없어도 무조건 비우던 결함 (M2)**:
+  - **Why**: `updateAndSave` 의 history 가 props-only update event 라 canonical 1차 필드인 fills 를 버렸다(`replaceNodeProps` 가 props 만 교체). handleReset 은 fills 유무와 무관하게 `updateSelectedFills([])` 를 호출해 스퍼리어스 history/mutation 을 남겼다.
+  - 수정: fills 변경을 replace event(full node, instance mirror 와 동일 경로)로 기록해 undo/redo 배경 복원. handleReset 은 fills 가 non-empty 일 때만 삭제.
+  - 위치: `apps/builder/src/builder/stores/inspectorActions.ts`, `panels/styles/sections/AppearanceSection.tsx`
+- **Box Shadow 를 한 번 만지면 영구 dirty 이고 Reset 이 "none" 을 기록하던 결함 (M3)**:
+  - **Why**: PropertySelect 가 Reset("reset")→onChange("") 로 변환하는데 box-shadow onChange 가 ""(Reset)·"none" 을 모두 "none" 으로 기록 → baseline 부재와 결합해 영구 dirty. dirty baseline(`resolveSpecStyleDefaults`)에 boxShadow/borderStyle 축 자체가 없었다.
+  - 수정: Reset("")→inline 키 삭제(baseline 복귀), "none"→명시 "none" 기록. dirty baseline 에 boxShadow(?? none)/borderStyle(?? solid) 추가(factory 가 두 축을 inline 주입 안 하므로 fallback 안전).
+  - 위치: `panels/styles/sections/AppearanceSection.tsx`, `panels/styles/hooks/useResetStyles.ts`
+- **비프리셋 그림자(import/paste 된 임의 CSS)가 Select 에서 빈 선택으로 표시되던 결함 (M4)**:
+  - 수정: 현재 boxShadow 가 알려진 프리셋이 아니면 동적 "custom" 항목을 추가해 표시.
+  - 위치: `panels/styles/sections/AppearanceSection.tsx`
+- **borderStyle/boxShadow/overflow 가 컴포넌트 catalog 기본값을 무시하고 항상 solid/none/visible 로 고정 표시 + overflow 에 Reset 항목 부재 (M5)**:
+  - **Why**: appearance preset 이 이 3축을 catalog containerStyles 에서 읽지 않았다.
+  - 수정: `AppearanceSpecPreset` + `appearanceFromContainerStyles` 확장(camel-normalized). 표시값 우선순위 inline > catalog > 하드코딩. `OVERFLOW_OPTIONS` 에 Reset 항목 추가(auto 는 실 CSS 값이라 별도).
+  - 위치: `panels/styles/utils/specPresetResolver.ts`, `panels/styles/hooks/useAppearanceValues.ts`, `panels/styles/constants/styleOptions.ts`
+- **컬러 피커가 색 확정(커밋)마다 열린 popover 가 닫히던 결함 (M6)**:
+  - **Why**: `ColorPickerInner` 의 key 에 value 를 포함 → 커밋마다 재마운트 → DialogTrigger open 상태 소실.
+  - 수정: key 를 selectedElementId 단독으로 축소(요소 전환 시에만 remount), 외부 value 는 useEffect 로 로컬 상태 동기화 + hex Input focus 중 스킵 가드(PropertyUnitInput 계약 정합).
+  - 위치: `apps/builder/src/builder/components/property/PropertyColor.tsx`
+- 검증: 회귀 테스트 확장(useResetStyles boxShadow/borderStyle/fills dirty + useAppearanceValues catalog 표시 + inspectorFills fills replace event) 총 74 통과, type-check PASS(baseline 67). Chrome MCP 실빌더 — Box Shadow md→Reset 시 none 복귀 + modify 카운트 감소(영구 dirty 아님), Overflow 드롭다운 Reset 항목 노출, 컬러 popover 다중 커밋 유지, 배경 fill 추가 후 undo(제거)/redo(복원) 확인.
+
 ## [boxShadow / overflow Skia 배선 복원 — spec·catalog 경로 effects/clip/scroll 공급] - 2026-07-15
 
 ### Bug Fixes
