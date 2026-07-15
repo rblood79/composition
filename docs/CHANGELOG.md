@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ProgressBar/Meter Label Position=side — 레이블 가로 배치 D3 구현] - 2026-07-15
+
+### Features
+
+- **ProgressBar/Meter Label Position 편집 + side 레이아웃**:
+  - 프로퍼티 패널 Appearance 에 Label Position(top/side) 편집 속성 추가 (RAC/RSP 정합 감사 후속).
+  - `side` = **Label · Track(진행 막대) · Value** 가로 한 줄 배치 (기존 `top` 은 label+value 윗줄 / bar 아랫줄 2단 grid).
+  - **Why**: 정합 감사 시 labelPosition 이 D3 시각 소비 경로 없어 dead 편집 UI 로 제거됐던 것을, CSS+Skia 대칭 구현 완료 후 재노출.
+  - CSS(Preview DOM): catalog `componentRulesTable` 의 ProgressBar/Meter `containerVariants["label-position"].side` (structure.composition=DOM / top-level=Skia) → generated CSS `display:flex; flex-direction:row` + `.bar{order:1;flex:1}` + `.value{order:2}`.
+  - Skia(빌더 캔버스): `implicitStyles` ProgressBar/Meter 분기가 side 일 때 자식 배열을 `label→track→value` 재정렬 + 부모 grid→flex-row 전환 (fullTreeLayout order sort 가 store 원본만 읽어 주입 order 미반영이라 배열 재정렬로 대칭 확보).
+  - factory inline `display:grid` 제거 (NumberField ADR-913 정정 동형 — inline specificity(1-0-0)가 generated CSS `[data-label-position="side"]`(0-2-0)를 이기던 근본 차단 해소).
+  - live 검증(Chrome MCP): Preview DOM `display:flex` label→bar→value + Skia layout Label(x0)→Track(x68)→Value(x320) 대칭 확인.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`, `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`, `apps/builder/src/builder/factories/definitions/DisplayComponents.ts`, `packages/shared/src/components/Meter.tsx`
+
 ## [컬러 피커 UI 간결화 — 입력 모드 3종 + 얇은 hue/alpha 슬라이더] - 2026-07-15
 
 ### Features
