@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [추가 Fill(FillLayerRow) 팝오버 24px 붕괴 수정] - 2026-07-16
+
+### Bug Fixes
+
+- **추가 Fill(2번째~)의 swatch 클릭 시 편집 팝오버가 24px 로 붕괴하던 문제**:
+  - primary Fill 은 `FillSection` 의 `color-swatch-button`(Background fieldset 을 채워 ≈180px)이 trigger 라 팝오버가 180px 로 정상. 추가 Fill 은 `FillLayerRow` 의 24px swatch(`fill-layer-row__swatch-btn`)가 trigger 인데, 두 진입점이 **같은 `.fill-detail-popover-container` Popover** 를 쓰고 그 폭이 `width: var(--trigger-width)` 라 24px trigger → 팝오버가 24px 로 붕괴해 편집 불가였다.
+  - **Why**: 2026-07-15 "팝오버 폭 = 호출자 폭" 변경이 primary(180px swatch)만 상정했고, 24px swatch 진입점을 놓쳤다.
+  - 수정: `.fill-detail-popover-container.react-aria-Popover` 에 `min-width: 180px` 추가. primary 는 이미 180px 라 불변, 24px trigger 만 180px 로 복원 → 두 진입점 동일 폭.
+  - 검증: Chrome MCP 실빌더 — FillLayerRow swatch 팝오버 computed `min-width: 180px` / `width: 180px`(rendered ≈171px, 우측 경계 shift), FillTypeSelector·컬러영역·HEX·Blend 전체 콘텐츠 정상 렌더 확인.
+  - 위치: `apps/builder/src/builder/panels/styles/components/FillLayerRow.css`
+
 ## [Fill 팝오버 FillTypeSelector 선택 배경 검정 회귀 수정] - 2026-07-16
 
 ### Bug Fixes
