@@ -8,7 +8,6 @@
   .gradient-controls {
     display: grid;
     grid-template-columns: auto 1fr;
-    gap: 4px 8px;
     align-items: center;
   }
 

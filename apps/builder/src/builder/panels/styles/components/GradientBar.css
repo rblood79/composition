@@ -7,7 +7,7 @@
 @layer components {
   .gradient-bar {
     position: relative;
-    height: 28px;
+    height: 8px;
     border-radius: 4px;
     cursor: crosshair;
     overflow: visible;
