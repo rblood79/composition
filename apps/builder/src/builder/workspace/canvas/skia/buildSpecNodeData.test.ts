@@ -610,6 +610,42 @@ describe("buildSpecNodeData", () => {
     });
   });
 
+  // 회귀 방지 (overflow 클리핑 Skia 배선 복원): spec/catalog 경로가 node-level clipChildren 을
+  //   설정하지 않아 overflow:hidden 컨테이너의 요소 자식이 캔버스에서 넘쳐 보였다. box 경로
+  //   (buildBoxNodeData:169-173)와 동일 계약으로 overflow hidden/clip/scroll/auto 에서 clipChildren=true.
+  describe("overflow → node.clipChildren (컨테이너 자식 클리핑)", () => {
+    function clipChildrenFor(overflow?: string): boolean | undefined {
+      const el = makeElement("card", {
+        type: "Card",
+        props: {
+          ...(overflow ? { style: { overflow } } : {}),
+        },
+      });
+      const node = buildSpecNodeData({
+        element: el,
+        layout: makeLayout({ x: 0, y: 0, width: 200, height: 120 }),
+        theme: "light",
+        elementsMap: new Map([[el.id, el]]),
+      });
+      return node?.clipChildren;
+    }
+
+    it.each(["hidden", "clip", "scroll", "auto"])(
+      "overflow:%s → clipChildren=true",
+      (overflow) => {
+        expect(clipChildrenFor(overflow)).toBe(true);
+      },
+    );
+
+    it("overflow:visible → clipChildren 미설정", () => {
+      expect(clipChildrenFor("visible")).not.toBe(true);
+    });
+
+    it("overflow 미지정 → clipChildren 미설정", () => {
+      expect(clipChildrenFor()).not.toBe(true);
+    });
+  });
+
   describe("Background fills → bg box FillStyle (gradient/mesh)", () => {
     const LINEAR: LinearGradientFillItem = {
       id: "lg1",

@@ -1656,6 +1656,24 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     ];
   }
 
+  // ---------- Overflow: clipChildren (컨테이너 요소 자식 클리핑) ----------
+  // box 경로(buildBoxNodeData:169-173)와 동일 계약. overflow hidden/clip/scroll/auto →
+  // renderCommands.ts:519-536 CMD_CHILDREN_BEGIN 이 clip rect 를 적용해 요소 자식을 클리핑.
+  // 아래 clipText(specNode.children 텍스트)는 spec 내부 텍스트만 자르므로 catalog 컨테이너의
+  // 요소 자식 클리핑에는 이 node-level clipChildren 이 별도로 필요하다 (그동안 spec 경로에
+  // 미설정이라 overflow:hidden 컨테이너의 자식이 캔버스에서 넘쳐 보였다).
+  {
+    const overflow = style.overflow as string | undefined;
+    if (
+      overflow === "hidden" ||
+      overflow === "clip" ||
+      overflow === "scroll" ||
+      overflow === "auto"
+    ) {
+      specNode.clipChildren = true;
+    }
+  }
+
   // Focus ring: componentState가 focusVisible/focused를 지원하게 되면 활성화
   // 현재 componentState는 "default" | "disabled"만 가능
 
