@@ -262,7 +262,7 @@ export const GradientControls = memo(function GradientControls({
   onChange,
 }: GradientControlsProps) {
   return (
-    <div className="gradient-controls">
+    <div className={`gradient-controls gradient-controls--${fill.type}`}>
       {fill.type === FillType.LinearGradient && (
         <LinearControls
           fill={fill as LinearGradientFillItem}

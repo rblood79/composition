@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Fill 팝오버 gradient Center/Radius 를 grid-template-areas 나란히 배치] - 2026-07-16
+
+### Features
+
+- **gradient Center X/Y·Radius Width/Height 를 grid-template-areas 로 나란히 2열 배치** (직전 full-width 세로 스택 → 쌍 나란히):
+  - Center X/Y 가 한 행, Radius Width/Height 가 한 행에 나란히. gradient 타입마다 컨트롤 구성이 달라 타입별 areas 를 정의 — Radial `"cx cy" / "rw rh"`, Angular `"cx cy" / "rot rot"`, Linear `"rot rot"`. 단일 값 Rotation 은 2열 전체 폭.
+  - 열은 `1fr 1fr` 균등 — 직전 시도의 `auto 1fr` 은 오른쪽 열(Center Y·Radius Height)이 좁아 값이 잘렸다. GradientControls 컨테이너에 타입별 클래스(`gradient-controls--{type}`) + 각 필드에 `grid-area` 부여.
+  - 검증: Chrome MCP 실빌더 — radial 팝오버에서 Center X/Y(30/40)·Radius Width/Height(60/50)가 나란히 배치되고 값이 잘림 없이 표시됨을 확인.
+  - 위치: `apps/builder/src/builder/panels/styles/components/GradientControls.tsx`, `GradientControls.css`
+
 ## [Fill 팝오버 gradient Center/Radius 를 PropertyUnitInput 으로 통일] - 2026-07-16
 
 ### Features

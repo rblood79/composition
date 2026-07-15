@@ -2,15 +2,51 @@
  * GradientControls Styles
  *
  * gradient 타입별 수치 컨트롤 컨테이너. 각 필드는 패널 표준 PropertyUnitInput
- * (fieldset+legend+아이콘+단위) 이므로 full-width 세로 스택으로 배치한다
- * (2026-07-16 ScrubInput → PropertyUnitInput 통일). 이전 grid(auto 1fr) +
- * __label/__row/__scrub 등은 ScrubInput 전용이라 제거됨.
+ * (fieldset+legend+아이콘+단위) 이며, grid-template-areas 로 쌍(Center X/Y,
+ * Radius Width/Height)을 나란히 2열 배치한다 (2026-07-16). 단일 값(Rotation)은
+ * 2열 전체 폭(rot rot). 열은 1fr 1fr 균등 — 이전 auto 1fr 은 오른쪽 열이 좁아
+ * 값이 잘렸다.
  */
 
 @layer components {
   .gradient-controls {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 6px;
+  }
+
+  /* Linear: Rotation 만 — 전체 폭 */
+  .gradient-controls--linear-gradient {
+    grid-template-areas: "rot rot";
+  }
+
+  /* Radial: Center X/Y 나란히, Radius Width/Height 나란히 */
+  .gradient-controls--radial-gradient {
+    grid-template-areas:
+      "cx cy"
+      "rw rh";
+  }
+
+  /* Angular: Center X/Y 나란히, Rotation 전체 폭 */
+  .gradient-controls--angular-gradient {
+    grid-template-areas:
+      "cx cy"
+      "rot rot";
+  }
+
+  .gradient-center-x {
+    grid-area: cx;
+  }
+  .gradient-center-y {
+    grid-area: cy;
+  }
+  .gradient-radius-w {
+    grid-area: rw;
+  }
+  .gradient-radius-h {
+    grid-area: rh;
+  }
+  .gradient-rotation {
+    grid-area: rot;
   }
 }
