@@ -19,11 +19,15 @@ import { CanonicalNodeRenderer } from "../CanonicalNodeRenderer";
 
 const ctx = {} as unknown as RenderContext;
 
+// canonical page shell 의 runtime type 은 소문자 "body" 인데 ComponentTag
+// vocabulary 에는 "Body" 만 등재 — vocabulary 정리 전까지 fixture 에서 cast.
+const BODY_TYPE = "body" as ResolvedNode["type"];
+
 describe("CanonicalNodeRenderer — body 아트보드 정합(min-height:100vh)", () => {
   it("height/minHeight 미지정 body 노드에 min-height:100vh 를 주입한다", () => {
     const node: ResolvedNode = {
       id: "body-1",
-      type: "body",
+      type: BODY_TYPE,
       props: { style: { display: "block" } },
     };
 
@@ -47,7 +51,7 @@ describe("CanonicalNodeRenderer — body 아트보드 정합(min-height:100vh)",
   it("사용자가 minHeight 를 명시하면 100vh 주입을 skip(의도 보존)한다", () => {
     const node: ResolvedNode = {
       id: "body-2",
-      type: "body",
+      type: BODY_TYPE,
       props: { style: { display: "block", minHeight: "500px" } },
     };
 
@@ -68,7 +72,7 @@ describe("CanonicalNodeRenderer — body 아트보드 정합(min-height:100vh)",
   it("사용자가 height 를 명시하면 100vh 주입을 skip 한다", () => {
     const node: ResolvedNode = {
       id: "body-3",
-      type: "body",
+      type: BODY_TYPE,
       props: { style: { display: "block", height: "600px" } },
     };
 
