@@ -249,6 +249,13 @@ export function buildCatalogShapes(
     (bgColor != null && (fill?.alpha ?? 1) !== 0) ||
     !!borderColor;
 
+  // Background(fills) 합성 alpha (hex alpha × fill.opacity) — builder
+  // (buildSpecNodeData)가 hex6 backgroundColor + `_fillBgAlpha` 로 분해 주입.
+  // 색 문자열 채널은 hex6 전용(hex8 은 hexStringToNumber 채널 시프트가 어긋남)
+  // 이라 alpha 는 본 데이터 키로만 운반된다 (ADR-142 §3 데이터 분기).
+  const fillBgAlpha =
+    typeof props._fillBgAlpha === "number" ? props._fillBgAlpha : 1;
+
   const shapes: Shape[] = [];
   if (hasVisibleBg) {
     shapes.push({
@@ -260,7 +267,7 @@ export function buildCatalogShapes(
       height: "auto" as unknown as number,
       radius: borderRadius,
       fill: bgColor,
-      fillAlpha: fill?.alpha ?? 1,
+      fillAlpha: (fill?.alpha ?? 1) * fillBgAlpha,
     });
     if (borderColor) {
       // border-style 은 보편 D3 속성(CSS border-style 동형). visual.borderStyle 우선,

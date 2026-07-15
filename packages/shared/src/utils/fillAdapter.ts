@@ -9,6 +9,7 @@ interface FillLike {
   type?: unknown;
   enabled?: unknown;
   color?: unknown;
+  opacity?: unknown;
   rotation?: unknown;
   center?: {
     x?: unknown;
@@ -38,13 +39,55 @@ function toHex6(color: unknown): string | undefined {
   return undefined;
 }
 
+/** "#RRGGBB[AA]" → 채널 분해 (a 는 0-1) */
+function parseHexColor(
+  color: unknown,
+): { r: number; g: number; b: number; a: number } | undefined {
+  if (typeof color !== "string") return undefined;
+  const match = /^#([0-9a-fA-F]{6})([0-9a-fA-F]{2})?$/.exec(color);
+  if (!match) return undefined;
+  return {
+    r: parseInt(match[1].slice(0, 2), 16),
+    g: parseInt(match[1].slice(2, 4), 16),
+    b: parseInt(match[1].slice(4, 6), 16),
+    a: match[2] !== undefined ? parseInt(match[2], 16) / 255 : 1,
+  };
+}
+
+function round3(value: number): number {
+  return Math.round(value * 1000) / 1000;
+}
+
+/**
+ * hex alpha × fill-level opacity 합성 CSS 색.
+ * 합성 alpha 가 1 이면 기존 출력 형식(hex6) 보존, 미만이면 rgba() —
+ * alpha 절단(toHex6 단독)으로 반투명 fill 이 불투명 렌더되던 결함(2026-07-15)
+ * 의 수정 지점. Skia 경로(fillToSkia)는 이미 alpha×opacity 를 적용하므로
+ * 본 합성이 DOM↔Skia 대칭을 회복한다.
+ */
+function toCssColorWithAlpha(
+  color: unknown,
+  opacity: number,
+): string | undefined {
+  const parsed = parseHexColor(color);
+  if (!parsed) return undefined;
+  const alpha = round3(parsed.a * opacity);
+  if (alpha >= 1) return toHex6(color);
+  return `rgba(${parsed.r}, ${parsed.g}, ${parsed.b}, ${alpha})`;
+}
+
+function readFillOpacity(fill: FillLike): number {
+  return isFiniteNumber(fill.opacity) ? fill.opacity : 1;
+}
+
 function gradientStopsToCss(
   stops: FillGradientStopLike[] | null | undefined,
+  opacity: number,
 ): string {
   if (!stops || stops.length === 0) return "#000000 0%, #FFFFFF 100%";
   return stops
     .map((stop, index) => {
-      const color = toHex6(stop.color) ?? "#000000";
+      const color = toCssColorWithAlpha(stop.color, opacity) ?? "#000000";
       const rawPosition = isFiniteNumber(stop.position)
         ? stop.position
         : index === stops.length - 1
@@ -70,13 +113,13 @@ export function fillsToCssBackgroundStyle(
 
     switch (fill?.type) {
       case "color": {
-        const color = toHex6(fill.color);
+        const color = toCssColorWithAlpha(fill.color, readFillOpacity(fill));
         return color ? { backgroundColor: color } : {};
       }
       case "linear-gradient": {
         const rotation = isFiniteNumber(fill.rotation) ? fill.rotation : 0;
         return {
-          backgroundImage: `linear-gradient(${rotation}deg, ${gradientStopsToCss(fill.stops)})`,
+          backgroundImage: `linear-gradient(${rotation}deg, ${gradientStopsToCss(fill.stops, readFillOpacity(fill))})`,
         };
       }
       case "radial-gradient": {
@@ -87,7 +130,7 @@ export function fillsToCssBackgroundStyle(
           ? Math.round(fill.center.y * 100)
           : 50;
         return {
-          backgroundImage: `radial-gradient(circle at ${cx}% ${cy}%, ${gradientStopsToCss(fill.stops)})`,
+          backgroundImage: `radial-gradient(circle at ${cx}% ${cy}%, ${gradientStopsToCss(fill.stops, readFillOpacity(fill))})`,
         };
       }
       case "angular-gradient": {
@@ -99,7 +142,7 @@ export function fillsToCssBackgroundStyle(
           ? Math.round(fill.center.y * 100)
           : 50;
         return {
-          backgroundImage: `conic-gradient(from ${rotation}deg at ${cx}% ${cy}%, ${gradientStopsToCss(fill.stops)})`,
+          backgroundImage: `conic-gradient(from ${rotation}deg at ${cx}% ${cy}%, ${gradientStopsToCss(fill.stops, readFillOpacity(fill))})`,
         };
       }
       case "image": {

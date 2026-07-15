@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Background(fills) alpha 채널 복원 — 반투명 fill 불투명 렌더 수정] - 2026-07-15
+
+### Bug Fixes
+
+- **fill 의 alpha(hex 8자리 alpha × fill-level opacity)가 캔버스/Preview 렌더에서 소거되어 반투명 배경이 불투명으로 표시되던 결함**:
+  - **Why**: `fillsToCssBackgroundStyle` 의 color 분기가 `toHex6` 로 hex8 의 alpha 를 절단하고 `fill.opacity` 도 미소비 — 커밋(store fill `#86326329`, alpha 16%)은 정상인데 Preview computed 는 `rgb(134,50,99)` (불투명). Skia 변환기(`fillToSkia`)는 alpha 를 정상 적용하므로 DOM↔Skia 대칭 위반이기도 했고, catalog Skia 채널은 이 CSS 산출(hex6)을 주입받아 캔버스도 불투명이었다.
+  - 수정:
+    - DOM: color 분기가 합성 alpha(hex alpha × opacity) < 1 이면 `rgba()` 로 emit (불투명은 기존 hex6 유지). gradient stop alpha 도 동일 수정 — Skia 는 이미 stop alpha 적용이라 대칭 회복.
+    - Skia catalog: 색 문자열 채널은 hex6 전용(hex8 은 `hexStringToNumber` 채널 시프트가 어긋남)이라, builder 주입부가 `fillsToSkiaFillColor` 결과를 hex6 `backgroundColor` + 데이터 키 `_fillBgAlpha` 로 분해 전달하고 `buildCatalogShapes` 가 bg shape `fillAlpha` 에 곱함 (ADR-142 §3 데이터 분기).
+  - 검증: 단위 테스트 5건(adapter 3 + catalog 2) + Chrome MCP 실빌더 — alpha 71% fill 이 Preview computed `rgba(191,107,156,0.71)` + Skia 캔버스 동일 반투명 렌더 확인.
+  - 잔존 한계: image/mesh fill 의 fill-level opacity 는 양 경로 모두 미표현 (기존과 동일) — 후속 과제.
+  - 위치: `packages/shared/src/utils/fillAdapter.ts`, `packages/specs/src/renderers/buildCatalogShapes.ts`, `apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts`
+
 ## [컬러 피커 HEX 입력 관용 — bare hex 조용한 원복 수정] - 2026-07-15
 
 ### Bug Fixes

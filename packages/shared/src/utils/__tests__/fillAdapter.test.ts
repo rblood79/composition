@@ -20,6 +20,58 @@ describe("fillAdapter", () => {
     });
   });
 
+  it("color fill 의 hex alpha 를 rgba() 로 보존한다 (alpha 절단 회귀)", () => {
+    // 회귀(2026-07-15): toHex6 절단으로 alpha 16% fill 이 불투명 렌더 —
+    // Skia(fillToSkia)는 alpha 를 적용해 DOM↔Skia 대칭 위반이기도 했다.
+    expect(
+      fillsToCssBackgroundStyle([
+        {
+          type: "color",
+          enabled: true,
+          opacity: 1,
+          color: "#86326329", // alpha 0x29 = 41/255
+        },
+      ]),
+    ).toEqual({
+      backgroundColor: "rgba(134, 50, 99, 0.161)",
+    });
+  });
+
+  it("color fill 의 fill-level opacity 를 alpha 에 합성한다", () => {
+    expect(
+      fillsToCssBackgroundStyle([
+        {
+          type: "color",
+          enabled: true,
+          opacity: 0.5,
+          color: "#FF0000FF",
+        },
+      ]),
+    ).toEqual({
+      backgroundColor: "rgba(255, 0, 0, 0.5)",
+    });
+  });
+
+  it("gradient stop 의 hex alpha 를 rgba() stop 으로 보존한다", () => {
+    expect(
+      fillsToCssBackgroundStyle([
+        {
+          type: "linear-gradient",
+          enabled: true,
+          opacity: 1,
+          rotation: 90,
+          stops: [
+            { color: "#FF000080", position: 0 }, // alpha 0x80 ≈ 0.502
+            { color: "#00FF00FF", position: 1 },
+          ],
+        },
+      ]),
+    ).toEqual({
+      backgroundImage:
+        "linear-gradient(90deg, rgba(255, 0, 0, 0.502) 0%, #00FF00 100%)",
+    });
+  });
+
   it("fills 가 있으면 기존 background 필드를 지우고 파생 CSS 로 치환한다", () => {
     const adapted = adaptElementFillStyle({
       id: "el-1",

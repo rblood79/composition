@@ -36,8 +36,8 @@ import {
   getPrimitiveBinding,
   isDisclosureExpandedInContext,
   toSkiaStyle,
-  fillsToCssBackgroundStyle,
 } from "@composition/shared";
+import { fillsToSkiaFillColor } from "../../../panels/styles/utils/fillToSkia";
 import {
   resolveSkiaVisualRule,
   resolveSkiaRule,
@@ -1505,16 +1505,27 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   // 우선순위: fills > style.backgroundColor — 커밋 시 sanitizeFillDerivedStylePatch 가
   //   backgroundColor 를 제거해 통상 상호배타이나, 공존 시 fills 가 이긴다 (buildCatalogShapes
   //   의 bgColor 1순위가 style.backgroundColor 이므로 여기서 덮어써 계약 고정).
+  // alpha 분해: catalog 색 문자열 채널은 hex6 전용 (hex8 은 hexStringToNumber
+  //   채널 시프트가 어긋남) — fillsToSkiaFillColor(alpha = hex alpha × opacity)
+  //   결과를 hex6 + `_fillBgAlpha` 로 나눠 싣는다. DOM 은 fillsToCssBackgroundStyle
+  //   의 rgba() 출력이 동일 합성 alpha 를 표현 (대칭).
   // 잔존 한계: catalog shape fill 채널은 색상 전용 — gradient/image/mesh fill 은
   //   box 경로(buildBoxNodeData)만 표현. color fill 만 주입된다.
   if (Array.isArray(element.fills) && element.fills.length > 0) {
-    const fillBg = fillsToCssBackgroundStyle(element.fills);
-    if (fillBg.backgroundColor) {
+    const skiaFill = fillsToSkiaFillColor(element.fills);
+    if (skiaFill) {
+      const toHexByte = (v: number): string =>
+        Math.round(Math.max(0, Math.min(1, v)) * 255)
+          .toString(16)
+          .padStart(2, "0");
+      const hex6 =
+        `#${toHexByte(skiaFill[0])}${toHexByte(skiaFill[1])}${toHexByte(skiaFill[2])}`.toUpperCase();
       specProps = {
         ...specProps,
+        _fillBgAlpha: skiaFill[3],
         style: {
           ...((specProps.style as Record<string, unknown> | undefined) ?? {}),
-          backgroundColor: fillBg.backgroundColor,
+          backgroundColor: hex6,
         },
       };
     }
