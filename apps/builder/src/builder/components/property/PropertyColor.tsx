@@ -28,8 +28,8 @@ interface PropertyColorProps {
 
 /**
  * 내부 ColorPicker 컴포넌트 - 드래그 중 로컬 상태 관리
- * key prop으로 외부 value 변경 시 재마운트하여 상태 동기화
- * 🚀 Jotai selectAtom equality 체크로 동일 값이면 리렌더 없음 → key 변경 없음
+ * 외부 value 변경은 useEffect 로 로컬 상태에 동기화한다 (remount 금지).
+ * 🚀 Jotai selectAtom equality 체크로 동일 값이면 리렌더 없음
  */
 function ColorPickerInner({
   initialValue,
@@ -47,6 +47,15 @@ function ColorPickerInner({
   const focusedElementIdRef = useRef<string | null>(null);
 
   React.useEffect(() => {
+    // preview / 커밋 경로가 store 를 mutate 하면서 initialValue 가 편집값으로
+    // 먼저 바뀌어도, 같은 요소를 편집(hex Input focus) 중이면 로컬 편집 세션을
+    // 유지한다 (PropertyUnitInput 의 activeElement 스킵 계약과 동형 — style-ssot.md).
+    const currentSelectedId = selectedElementId ?? null;
+    const isFocusedOnSameElement =
+      focusedElementIdRef.current !== null &&
+      focusedElementIdRef.current === currentSelectedId;
+    if (isFocusedOnSameElement) return;
+
     queueMicrotask(() => {
       setLocalColor(initialValue);
       setInputValue(initialValue);
@@ -170,7 +179,10 @@ export const PropertyColor = memo(
       >
         {label && <legend className="fieldset-legend">{label}</legend>}
         <ColorPickerInner
-          key={`${selectedElementId ?? "none"}:${value}`}
+          // key 에 value 를 넣지 않는다 — 커밋마다 remount 되어 열린 popover 가
+          // 닫히던 결함(2026-07-15). 외부 value 변경은 ColorPickerInner 의
+          // useEffect 가 로컬 상태로 동기화한다. 요소 전환 시에만 remount.
+          key={selectedElementId ?? "none"}
           initialValue={value}
           onChange={onChange}
           label={label}
