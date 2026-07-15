@@ -182,13 +182,19 @@
       --btn-border-radius: var(--radius-sm);
     }
 
-    /* width = 호출자(swatch 버튼 = DialogTrigger) width. swatch 가 Background
-       fieldset 을 꽉 채우므로 padding/border 편집 블록과 동일 컬럼 폭으로 뜬다.
-       --trigger-width 는 fill 타입(Color↔Gradient)이 바뀌어도 trigger 가 안 변해
-       고정 — 기존 244px 하드코딩의 "전환 시 위치 점프 방지" 목적도 유지 (2026-07-15). */
+    /* width = 호출자(swatch 버튼 = DialogTrigger) width. primary Fill(FillSection
+       color-swatch-button)은 Background fieldset 을 꽉 채우므로(≈180px) padding/border
+       편집 블록과 동일 컬럼 폭으로 뜬다. --trigger-width 는 fill 타입(Color↔Gradient)이
+       바뀌어도 trigger 가 안 변해 고정 — 기존 244px 하드코딩의 "전환 시 위치 점프 방지"
+       목적도 유지 (2026-07-15).
+       추가 Fill(2번째~)의 FillLayerRow 는 동일 팝오버를 24px swatch(fill-layer-row__
+       swatch-btn) trigger 로 여는데, 그 경우 --trigger-width 가 24px → 팝오버가 24px 로
+       붕괴한다. min-width 로 primary 폭(180px) 이상을 보장 → 두 진입점 모두 동일 폭
+       (primary 는 이미 180px 라 불변, 24px trigger 만 180px 로 복원) (2026-07-16). */
     &.react-aria-Popover {
       max-width: none;
       width: var(--trigger-width);
+      min-width: 180px;
     }
 
     .react-aria-Dialog {

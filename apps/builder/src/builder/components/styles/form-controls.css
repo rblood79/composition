@@ -86,6 +86,14 @@
         width: 100%;
         min-width: 0;
 
+        /* 개별 Select 포커스 링 제거 — 부모 .react-aria-Group:focus-within 에서만 표시.
+         * generated Select.css (unlayered) 의 .react-aria-Select[data-focus-visible]
+         * outline 이 이 컨텍스트로 leak 되어 builder-system layer 규칙으로는 못 이기므로
+         * !important 필요 (Switch line 140 패턴과 동일). 이중 focus ring 방지. */
+        &[data-focus-visible] {
+          outline: none !important;
+        }
+
         .react-aria-Button {
           display: flex;
           align-items: center;
@@ -95,6 +103,12 @@
           border-width: 0;
           min-width: 0;
           width: 100%;
+
+          /* Button 개별 포커스 링 제거 — 부모 Group 에서만 표시
+           * (generated Select.css .react-aria-Button[data-focus-visible] leak 차단) */
+          &[data-focus-visible] {
+            outline: none !important;
+          }
 
           .control-label {
             position: static;
