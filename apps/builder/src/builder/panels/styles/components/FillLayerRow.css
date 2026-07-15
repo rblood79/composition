@@ -169,6 +169,19 @@
 
   /* Fill detail popover container */
   .fill-detail-popover-container {
+    /* indicator ToggleButtonGroup(FillTypeSelector, Gradient subtype 등)의 선택
+       배경 복원. 팝오버는 [data-context="builder"] 밖으로 portal 되어
+       inspector-layout.css(@layer builder-system)의 indicator --button-color
+       오버라이드를 못 받는다 → components layer 의 [data-selected]{--button-color:
+       var(--fg)} 로 떨어져 SelectionIndicator(button-base → background:
+       var(--button-color)) 가 검정이 된다. Layout 섹션 direction 그룹과 동일하게
+       --button-color 를 bg-overlay 로 복원 (2026-07-16). 특정도 0-4-0 > 0-3-0. */
+    .react-aria-ToggleButtonGroup[data-indicator="true"]
+      .react-aria-ToggleButton {
+      --button-color: var(--bg-overlay);
+      --btn-border-radius: var(--radius-sm);
+    }
+
     /* width = 호출자(swatch 버튼 = DialogTrigger) width. swatch 가 Background
        fieldset 을 꽉 채우므로 padding/border 편집 블록과 동일 컬럼 폭으로 뜬다.
        --trigger-width 는 fill 타입(Color↔Gradient)이 바뀌어도 trigger 가 안 변해

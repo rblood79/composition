@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Fill 팝오버 FillTypeSelector 선택 배경 검정 회귀 수정] - 2026-07-16
+
+### Bug Fixes
+
+- **Fill 팝오버의 indicator ToggleButtonGroup(FillTypeSelector 등) 선택 버튼 배경이 검정으로 표시되던 문제**:
+  - Background swatch 클릭 시 열리는 팝오버에서 Color/Gradient/Image 탭(및 Gradient subtype)의 활성 버튼 배경이 검정으로 나타났다. 정상은 Layout 섹션 Direction 그룹과 동일한 밝은색(`--bg-overlay`) 칩.
+  - **Why**: indicator 모드 `SelectionIndicator` 는 `button-base`(`background: var(--button-color)`)로 칠해진다. 선택된 ToggleButton 은 components layer 에서 `--button-color: var(--fg)`(라이트모드 검정). Layout Direction 그룹은 `[data-context="builder"]`(inspector-layout.css, `@layer builder-system`)의 `--button-color: var(--bg-overlay)` 오버라이드로 정상 표시되지만, 팝오버는 RAC portal 로 `[data-context="builder"]` **밖으로 렌더**되어 이 오버라이드를 못 받아 검정 `--fg` 가 SelectionIndicator 에 상속됐다.
+  - 수정: `.fill-detail-popover-container` 스코프에 동일 오버라이드(`--button-color: var(--bg-overlay)` + `--btn-border-radius: var(--radius-sm)`) 복원. 특정도 0-4-0 > default-selected 0-3-0 (같은 `@layer components`).
+  - 검증: Chrome MCP 실빌더 — 선택된 SelectionIndicator 배경 computed = `oklch(0.985 0 0)`(bg-overlay, 밝음), `--fg`(oklch 27.8%, 검정) 아님. 확대 스크린샷으로 밝은 raised 칩 확인.
+  - 위치: `apps/builder/src/builder/panels/styles/components/FillLayerRow.css`
+
 ## [Fill 팝오버 gradient Center/Radius 를 grid-template-areas 나란히 배치] - 2026-07-16
 
 ### Features
