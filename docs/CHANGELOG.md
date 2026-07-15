@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Background(fills) canonical 파이프라인 복원 — Appearance 배경 기능 전면 복구] - 2026-07-15
+
+### Bug Fixes
+
+- **Appearance > Background(fills) 기능 전체가 canonical 전환(ADR-116/122) 이후 죽어 있던 결함 — 5개 층 절단 전면 복원**:
+  - **Why**: canonical 문서 전환 때 `element.fills` 가 이관되지 않아 (1) 쓰기: canonical node 에 fills 미탑재(`metadata.legacyProps` 격리 보존만, 복원 경로 0건), (2) 읽기: canonical→Element 파생이 `fills: undefined` 하드코딩 → 커밋 직후 스와치 리셋 + 구조 변경 1회에 fills 소거, (3) Preview: `fills: []` 하드코딩이 truthy 빈 배열로 사용자 `style.background*` 까지 능동 소거, (4) Skia: canonical scene node 가 fills 미운반 → 캔버스 미반영, (5) 패널: 표시(canonical, 빈 값) vs 액션(legacy elementsMap, 실값) 소스 분열 → 드래그마다 addFill 중복 누적.
+  - 수정 (schema 위치는 사용자 confirm 으로 **canonical 1차 필드** 확정 — Pencil fill 6종 개념 정합, `theme` 노드 레벨 선례):
+    - 쓰기·읽기: `CanonicalNode.fills` 1차 필드 신설 + `legacyElementToCanonicalNode` 탑재 + `canonicalNodeToElement` 복원(구 문서는 `metadata.legacyProps.fills` fallback 승격)
+    - Preview: `CanonicalNodeRenderer` fills 운반 + `adaptStyleWithFills` 빈 배열=fills 없음 semantics 정정
+    - Skia: `CanvasSceneNode.fills` 운반 + catalog 배경 채널 소비(우선순위 fills > style.backgroundColor, color fill 한정) + ADR-136 projection signature 에 fills 등재
+    - 패널: `getCurrentFills` canonical 우선 통일 + `ensureColorFill`(create-or-update) 로 가상 fill 승격 중복 append 구조적 차단
+  - 검증: canonical 왕복 회귀 테스트 16건 신규 + Chrome MCP 실빌더 exercise — 배경 설정 → 캔버스(Skia)/Preview(DOM) 대칭 반영 → 자식 추가(구조 변경) 생존 → 새로고침(IndexedDB persist/hydrate) 생존 확인
+  - 잔존 한계: catalog 컴포넌트의 gradient/image fill 은 Skia catalog shape 채널이 색상 전용이라 미표현(box 경로는 전체 fill 모델 지원) — 후속 과제
+  - 위치: `packages/shared/src/types/composition-document.types.ts`, `apps/builder/src/adapters/canonical/canonicalMutations.ts`, `apps/builder/src/builder/stores/canonical/canonicalElementsView.ts`, `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`, `packages/shared/src/utils/fillAdapter.ts`, `apps/builder/src/builder/workspace/canvas/scene/{canvasSceneNode,buildSceneSnapshot}.ts`, `apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts`, `apps/builder/src/builder/panels/styles/{hooks/useFillActions.ts,sections/FillSection.tsx}` (commit: 5eb7cb7fd~2ff56825f 4-phase)
+
 ## [Preview body 아트보드 정합 — canonical body 노드 min-height:100vh] - 2026-07-15
 
 ### Bug Fixes
