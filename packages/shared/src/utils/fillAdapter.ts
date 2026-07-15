@@ -38,7 +38,9 @@ function toHex6(color: unknown): string | undefined {
   return undefined;
 }
 
-function gradientStopsToCss(stops: FillGradientStopLike[] | null | undefined): string {
+function gradientStopsToCss(
+  stops: FillGradientStopLike[] | null | undefined,
+): string {
   if (!stops || stops.length === 0) return "#000000 0%, #FFFFFF 100%";
   return stops
     .map((stop, index) => {
@@ -56,7 +58,10 @@ function gradientStopsToCss(stops: FillGradientStopLike[] | null | undefined): s
 
 export function fillsToCssBackgroundStyle(
   fills: unknown[] | null | undefined,
-): Pick<CSSProperties, "backgroundColor" | "backgroundImage" | "backgroundSize"> {
+): Pick<
+  CSSProperties,
+  "backgroundColor" | "backgroundImage" | "backgroundSize"
+> {
   if (!fills) return {};
 
   for (let i = fills.length - 1; i >= 0; i--) {
@@ -146,7 +151,10 @@ export function adaptStyleWithFills(
   style: CSSProperties | undefined,
   fills: unknown[] | null | undefined,
 ): CSSProperties | undefined {
-  if (!fills) return style;
+  // 빈 배열 = fills 없음과 동일 semantics. truthy 빈 배열이 아래 delete 만
+  // 수행하고 아무것도 추가하지 않으면 style.background* 사용자 편집을 능동
+  // 소거한다 (canonical Preview fills:[] 하드코딩과 결합해 배경 전멸 — 2026-07-15).
+  if (!fills || fills.length === 0) return style;
 
   const nextStyle: CSSProperties = { ...(style ?? {}) };
   delete nextStyle.backgroundColor;
@@ -159,7 +167,9 @@ export function adaptStyleWithFills(
   };
 }
 
-export function adaptElementFillStyle<T extends FillAdaptableElement>(element: T): T {
+export function adaptElementFillStyle<T extends FillAdaptableElement>(
+  element: T,
+): T {
   if (!("fills" in element)) return element;
 
   return {

@@ -221,7 +221,7 @@ function flattenNodeChildrenByParent(
           ) as PreviewElement["props"],
           parent_id: node.id,
           page_id: null,
-          fills: [],
+          fills: child.fills,
         })),
       );
     }
@@ -299,7 +299,7 @@ export function CanonicalNodeRenderer({
       props: canonicalProps as PreviewElement["props"],
       parent_id: null,
       page_id: null,
-      fills: [],
+      fills: node.fills,
     },
     getFrameElementMirrorId(canonicalProps),
   );

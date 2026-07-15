@@ -48,4 +48,25 @@ describe("fillAdapter", () => {
       backgroundImage: "linear-gradient(90deg, #FF0000 0%, #00FF00 100%)",
     });
   });
+
+  it("빈 fills 배열은 fills 없음과 동일 — style.background* 를 보존한다", () => {
+    // 회귀(2026-07-15): truthy 빈 배열이 delete 만 수행해 canonical Preview 의
+    // fills:[] 하드코딩과 결합, 사용자 style 배경을 능동 소거하던 결함.
+    const adapted = adaptElementFillStyle({
+      id: "el-2",
+      type: "Box",
+      fills: [],
+      props: {
+        style: {
+          backgroundColor: "#ffffff",
+          backgroundImage: "linear-gradient(0deg, #000 0%, #fff 100%)",
+        },
+      },
+    });
+
+    expect(adapted.props?.style).toEqual({
+      backgroundColor: "#ffffff",
+      backgroundImage: "linear-gradient(0deg, #000 0%, #fff 100%)",
+    });
+  });
 });
