@@ -50,8 +50,16 @@ describe("Button/ToggleButton → Text 텍스트 척도(fontSize/lineHeight) inl
       "fontSize",
       "lineHeight",
     ]);
-    // size prop 직접 전파 rule 은 없어야 함(Text 컴포넌트 독립 척도 16/24 적용 방지).
-    expect(rules.some((r) => r.childPath === "Text" && !r.asStyle)).toBe(false);
+    // size prop 직접 전파 rule 도 **있어야** 한다 (2026-06-28 결정, propagationRegistry 참조).
+    //
+    // 구 버전은 이 rule 이 없어야 한다고 봤다 — Text 가 자기 독립 척도(16/24)를 적용할까봐.
+    // 실제로는 위 fontSize/lineHeight 가 **inline style** 로 함께 전파되고, inline 은
+    // specificity 상 Text.css 의 `[data-size]` 를 이긴다 → size prop 을 전파해도 시각은
+    // 버튼 척도 그대로다. 그래서 size 를 전파해 Icon 형제와 데이터 일관(형제 size 불일치 제거)을
+    // 맞추는 쪽으로 정리됐다. (rule 부재는 Skia delegation 역인덱스도 함께 죽인다.)
+    const sizeRule = rules.find((r) => r.childPath === "Text" && !r.asStyle);
+    expect(sizeRule, "size → Text 전파 rule 부재").toBeDefined();
+    expect(sizeRule!.parentProp).toBe("size");
   });
 
   it("ToggleButton 동형 (Button 과 같은 Text 척도 전파)", () => {
@@ -145,8 +153,10 @@ describe("buildPropagationUpdates — Button size 변경 시 Text 척도 inline 
         const tm = buttonTextMetrics(size);
         expect(style.fontSize).toBe(tm.fontSize);
         expect(style.lineHeight).toBe(tm.lineHeight);
-        // Text 에 size prop 직접 전파 안 함(독립 척도 적용 방지).
-        expect(textUpdate!.props.size).toBeUndefined();
+        // size prop 은 부모 값 그대로 전파된다 (Icon 형제와 데이터 일관). 시각은 위 inline
+        // fontSize/lineHeight 가 Text.css [data-size] 를 specificity 로 이겨 버튼 척도 유지 —
+        // 즉 size 전파가 Text 독립 척도(16/24)를 끌어오지 않는다.
+        expect(textUpdate!.props.size).toBe(size);
       }
     },
   );

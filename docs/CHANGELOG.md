@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [기존 테스트 실패 6건 해소 — Avatar/ColorField 팩토리 정합 + stale 단언 갱신] - 2026-07-15
+
+### Bug Fixes
+
+- **팔레트로 추가한 Avatar 의 크기 변경이 무시되던 버그** (selection 박스 32px 고정):
+  - **Why**: `createDefaultAvatarProps`(palette-add else 분기 baseline)가 `style:{width:32,height:32}` inline 을 유지했는데, 팩토리 `createAvatarDefinition`은 2026-07-14 에 이 inline 을 제거했다(catalog `Avatar.sizes.{xs..xl}.height` 가 크기 SSOT). inline 숫자가 있으면 `enrichWithIntrinsicSize` 가 early return 하여 size→diameter 분기가 안 돌고 layout bounds 가 32 로 고정된다.
+  - 수정: baseline 에서 inline width/height 제거 → 팩토리와 byte-identical (entryUniverseContract Gate G4 정합)
+  - 위치: `apps/builder/src/types/builder/unified.types.ts` (`createDefaultAvatarProps`)
+- **신규 ColorField 의 gap reset 버튼이 항상 활성(false dirty)이던 버그**:
+  - **Why**: 팩토리가 `gap:4` 를 emit 했으나 dirty baseline resolver(`resolveLayoutSpecPreset`)는 `composition.gap`(var(--spacing-xs)) 이 아니라 catalog `sizes.md.gap=8` 을 읽는다. Select(6=6)/SearchField(8=8) 등 형제는 `factory inline gap == sizes.md.gap` 불변식을 지키는데 ColorField 만 4≠8 이었다(2026-07-02 회귀).
+  - 수정: 팩토리 + baseline 의 gap 을 catalog SSOT 값 8 로 정합 (시각 gap 4px→8px, size 스케일 xs6/sm6/md8/lg10/xl12 단조성 복원)
+  - 위치: `apps/builder/src/builder/factories/definitions/DateColorComponents.ts`, `src/types/builder/unified.types.ts`
+
+### Infrastructure
+
+- **history 정비/canonical persist 가드/TextField DELEGATING 전환 후 낡은 정적·DOM 단언 4건 갱신** (production 은 정상, 테스트만 stale):
+  - BuilderCore.static: `db.documents.put(projectId, doc, { reason })` 급감 가드 3번째 인자 추가 → 정확 문자열 단언을 prefix 매칭으로 완화
+  - usePageManager.canonical: `ensureListBoxTemplateOrigins` bootstrap 이 문서 생성/마이그레이션 시점으로 이동(b80465573) → hydrate 경로 단언에서 제거
+  - CanonicalNodeRenderer.field ×2: TextField DELEGATING 전환(f556385db) 으로 canonical marker 가 delegating wrapper 로 이동 → 마커 위치 단언 갱신(primitive 엔 data-element-id 유지)
+  - 위치: `apps/builder/src/builder/main/BuilderCore.static.test.ts`, `hooks/__tests__/usePageManager.canonical.test.ts`, `preview/components/__tests__/CanonicalNodeRenderer.field.test.tsx`
+
 ## [프로퍼티 패널 RAC/RSP 정합 감사 — 누락 편집 prop 일괄 추가] - 2026-07-15
 
 ### Features

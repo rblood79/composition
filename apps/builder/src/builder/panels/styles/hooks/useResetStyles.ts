@@ -261,6 +261,22 @@ function resolveSubpartContextDefaultStyle(
     }
     return {};
   }
+  if (type === "CalendarHeader") {
+    // factory(DateColorComponents)가 CalendarHeader 에 주입하는 5개 style 미러.
+    //   verticalAlign 은 ContainerStyles 스키마에 없는 필드(Typography 훅이
+    //   element.props.style.verticalAlign 만 읽음)라 catalog specStyle 로 못 덮는다 →
+    //   여기 baseline 이 유일 source. 나머지 flex 4개는 specStyle 이 공급하나 factory 와
+    //   동일 값이므로 미러에 함께 둬도 무해(DateInput 선례). 부모 무관(Calendar/RangeCalendar
+    //   공통)이라 컨텍스트 분기 없음. Why: 8c1578075 가 factory inline 만 넣고 baseline 을
+    //   누락해 신규 DatePicker/DateRangePicker 의 Vertical Align 이 false dirty 였다.
+    return {
+      display: "flex",
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      verticalAlign: "middle",
+    };
+  }
   if (type === "SelectValue") {
     // NumberField: block 콘텐츠. 그 외 Select/ComboBox/SearchField: flex 콘텐츠.
     if (grandParentType === "NumberField") {

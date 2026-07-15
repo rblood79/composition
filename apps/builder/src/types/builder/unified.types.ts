@@ -2083,14 +2083,14 @@ export function createDefaultTimeFieldProps(): BaseElementProps {
 
 export function createDefaultColorFieldProps(): ColorFieldElementProps {
   return {
-    // CSS base: Group border:1px solid var(--outline-variant)
-    //   2026-06-24: flexDirection column → row (catalog 정본 정합). ColorField 는 Label·hex 입력(80px)·
-    //   ColorSwatch(28) 를 가로 배치하는 composition 특화 디자인 — catalog composition.layout 이
-    //   2026-06-23 "사용자 결정 = factory 정본" 으로 flex-row 확정됐으나 factory inline 이 column 으로
-    //   남아 Skia(column) ≠ CSS Preview(row) 시각 비대칭 + Style Panel false dirty 였다. row 정합.
+    // dirty/reset baseline — factory(DateColorComponents createColorFieldDefinition)
+    //   props.style 미러. factory 는 row 축 inline 을 제거하고(catalog composition.layout
+    //   "flex-row" 가 담당) width:100% + gap 만 남겼다. gap 은 catalog sizes.md.gap=8 이
+    //   dirty resolver 의 실제 source 이므로 factory 와 동일하게 8 — NumberField(width:100%/
+    //   gap:6) 미러 선례와 동형으로 정합.
     style: {
-      display: "flex",
-      flexDirection: "row",
+      width: "100%",
+      gap: 8,
     },
   };
 }
@@ -2270,7 +2270,13 @@ export function createDefaultAvatarProps(): BaseElementProps {
     initials: "A",
     size: "md",
     isDisabled: false,
-    style: { width: 32, height: 32 },
+    // width/height inline 금지 (2026-07-14): factory(createAvatarDefinition) 와 동형.
+    //   정원형 leaf 의 크기는 catalog `COMPONENT_RULES_TABLE.Avatar.sizes.{xs..xl}.height`
+    //   가 SSOT 다. inline 숫자를 박으면 enrichWithIntrinsicSize 가 needsWidth/needsHeight=
+    //   false 로 early return 하여 size→diameter 분기가 안 돌고, size 를 바꿔도 layout bounds
+    //   (=selection 박스)가 32 로 고정된다. palette-add(getDefaultProps) 경로도 factory 와
+    //   byte-identical 이어야 함 (entryUniverseContract Gate G4).
+    //   [[feedback-layout-default-belongs-in-catalog-not-factory-overlay]]
   };
 }
 

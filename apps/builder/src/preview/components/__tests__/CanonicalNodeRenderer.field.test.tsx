@@ -40,8 +40,14 @@ describe("CanonicalNodeRenderer — ADR-142 family ② fields cutover", () => {
     expect(tf).not.toBeNull();
     // size → data-size (theme 가 값 적용)
     expect(tf?.getAttribute("data-size")).toBe("lg");
-    // 마커가 RAC primitive 에 직접 부착 (legacy 는 wrapper div)
-    expect(tf?.getAttribute("data-canonical-id")).toBe("tf-1");
+    // TextField 는 DELEGATING(f556385db) — labelPosition="side" 를 grid→flex-row 로 통일하면서
+    //   self-compose 위임 렌더러(FormRenderers)가 primitive 를 합성한다. canonical marker
+    //   (data-canonical-id)는 delegating wrapper(display:contents)에 부착되고, RAC primitive 에는
+    //   data-element-id 만 남는다 — Tabs/ProgressBar/Slider 등 위임 컴포넌트 공통 패턴.
+    expect(tf?.getAttribute("data-element-id")).toBe("tf-1");
+    expect(
+      container.querySelector("[data-canonical-id='tf-1']"),
+    ).not.toBeNull();
   });
 
   it("cutover 된 Form 을 RAC Form 으로 렌더 (data-variant + 마커)", () => {
@@ -115,7 +121,11 @@ describe("CanonicalNodeRenderer — ADR-142 family ② fields cutover", () => {
     // node.type(TextField) 으로 복원되어 cutover RAC 경로 진입
     const tf = container.querySelector(".react-aria-TextField");
     expect(tf).not.toBeNull();
-    expect(tf?.getAttribute("data-canonical-id")).toBe("tf-3");
+    // DELEGATING(f556385db) — marker 는 wrapper, primitive 엔 data-element-id (위 tf-1 참조)
+    expect(tf?.getAttribute("data-element-id")).toBe("tf-3");
+    expect(
+      container.querySelector("[data-canonical-id='tf-3']"),
+    ).not.toBeNull();
   });
 
   it("props.type='text' 를 가진 Input(generic) 이 <text> 가 아닌 <input> 으로 렌더", () => {

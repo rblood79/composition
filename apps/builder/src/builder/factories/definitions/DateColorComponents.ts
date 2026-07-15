@@ -507,12 +507,15 @@ export function createColorFieldDefinition(
         //   display:flex + flex-direction:row + align-items:center)가 담당 — CSS 재생성 +
         //   Skia getSideLabelParentStyle(side)/specFallback 이 row 를 공급하므로 factory inline 불요.
         //   inline 제거로 (a) reset 버튼 오활성 해소 (b) side variant CSS specificity 정상화.
-        //   width:100% / gap 은 catalog composition(containerStyles.width:100% + gap:var(--spacing-xs))
-        //   정본 — spacing-xs=0.25rem=4px 이므로 숫자 4 로 정합(기존 factory gap:"8px" 는 catalog 와
-        //   불일치라 dirty 유발이었음). Select gap:6 선례 동형(숫자 px).
+        //   width:100% 는 catalog composition.containerStyles.width:100% 정본. gap 은 dirty/reset
+        //   baseline resolver(resolveLayoutSpecPreset)가 composition.gap 이 아니라 **sizes.{size}.gap**
+        //   을 읽는다 — ColorField sizes.md.gap=8 이므로 숫자 8 로 정합. Select gap:6=sizes.md.gap:6,
+        //   SearchField gap:8=sizes.md.gap:8 선례 동형(factory inline gap == catalog sizes.md.gap 불변식).
+        //   (2026-07-02 gap:4 는 composition.gap=var(--spacing-xs) 만 보고 sizes.md.gap=8 을 놓친
+        //   회귀였고 신규 ColorField gap false dirty 유발 — 2026-07-15 정정.)
         style: {
           width: "100%",
-          gap: 4,
+          gap: 8,
         },
       } as ComponentElementProps,
       parent_id: parentId,

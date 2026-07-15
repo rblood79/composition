@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { resolveComponentRule } from "@composition/shared";
 
 import {
   createSelectDefinition,
@@ -66,18 +67,40 @@ const CASES: Array<{
 ];
 
 describe("ADR-912 R1 Select family — factory layout props.style 회귀 가드", () => {
+  // 부모 column flex 의 SSOT 는 catalog `composition.layout: "flex-column"` 이다.
+  //
+  // 구 버전은 factory 가 이를 `props.style` 로 inline emit 하는지 검사했으나, 그 inline 은
+  // 2026-06-30(ee83644c1) 에 **의도적으로 제거**됐다 — inline flexDirection:column 의 specificity
+  // (1-0-0) 가 generated CSS 의 `[data-label-position="side"]`(@layer components) 를 이겨
+  // labelPosition="side" 를 무력화했고, Skia 쪽도 getSideLabelParentStyle 의 rawParentStyle
+  // 마지막 spread 가 row 를 column 으로 덮었다. top 모드 기본 column 은 catalog +
+  // Skia specFallback(implicitStyles resolveCatalogContainerBase) 이 담당한다.
+  //
+  // 그래서 가드를 양방향으로 다시 앵커한다: catalog 가 column 을 공급하는가 + factory 가
+  // inline 으로 되살리지 않는가. (자식 SelectTrigger 의 row flex 는 여전히 factory inline —
+  // 아래 케이스에서 그대로 검증.)
+  it.each(CASES)("$name 부모 column flex 는 catalog 가 공급", ({ name }) => {
+    const rule = resolveComponentRule(name) as
+      | { structure?: { composition?: { layout?: string } } }
+      | undefined;
+    expect(
+      rule?.structure?.composition?.layout,
+      `${name} catalog composition.layout 누락 → Skia block 으로 떨어짐`,
+    ).toBe("flex-column");
+  });
+
   it.each(CASES)(
-    "$name 부모는 column flex 를 props.style 로 emit",
-    ({ make }) => {
-      const def = make(makeContext());
-      const ps = parentStyle(def);
-      expect(ps.display, "부모 display 누락 → Skia block 으로 떨어짐").toBe(
-        "flex",
-      );
+    "$name 부모는 display/flexDirection 을 props.style 로 inline emit 하지 않는다",
+    ({ make, name }) => {
+      const ps = parentStyle(make(makeContext()));
+      expect(
+        ps.display,
+        `${name} inline display 부활 → labelPosition="side" 무력화 (ee83644c1 회귀)`,
+      ).toBeUndefined();
       expect(
         ps.flexDirection,
-        "부모 flexDirection 누락 → 자식 stacking 무너짐",
-      ).toBe("column");
+        `${name} inline flexDirection 부활 → side selector 를 specificity 로 이김`,
+      ).toBeUndefined();
     },
   );
 

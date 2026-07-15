@@ -26,7 +26,9 @@ describe("usePageManager.initializeProject canonical-only hydrate", () => {
 
     expect(initFnSource).toMatch(/db\.documents\.get\(projectId\)/);
     expect(initFnSource).toContain("useCanonicalDocumentStore");
-    expect(initFnSource).toContain("ensureListBoxTemplateOrigins");
+    // ListBox anchor-less bootstrap(ensureListBoxTemplateOrigins)은 문서 생성/마이그레이션 시점
+    //   (createInitialProjectDocument + legacyListBoxTemplateMigration)으로 이동했다(b80465573).
+    //   initializeProject 는 canonical document 를 hydrate 만 하고 재-bootstrap 하지 않는다.
     expect(initFnSource).toContain("deriveProjectEditorPageModelFromDocument");
     expect(initFnSource).not.toMatch(/db\.pages\./);
     expect(initFnSource).not.toMatch(/db\.elements\./);

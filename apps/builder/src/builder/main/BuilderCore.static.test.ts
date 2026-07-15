@@ -44,7 +44,10 @@ describe("BuilderCore canonical document direct cutover contract", () => {
       "utf-8",
     );
 
-    expect(source).toContain("db.documents.put(projectId, doc)");
+    // documents.put 은 급감 가드 옵션(3번째 인자 { reason }) 을 받으므로 정확 문자열이 아닌
+    //   prefix 매칭 — canonical document 를 primary storage 로 persist 하는 계약만 검증.
+    //   (project-canonical-persist-loss-architecture: allowShrink/reason 가드 도입, 2026-07-14)
+    expect(source).toMatch(/db\.documents\.put\(projectId, doc[,)]/);
     expect(source).toContain(
       "page shell mutations also update the canonical doc",
     );
