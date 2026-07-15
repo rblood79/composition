@@ -646,6 +646,87 @@ describe("buildSpecNodeData", () => {
     });
   });
 
+  // 회귀 방지 (overflow 스크롤 Skia 배선 복원): spec/catalog 경로가 scrollState 를 받지
+  //   못해 scrollOffset/scrollbar 를 산출하지 않았다 (sprite 시대 배선이 bridge 이관 때 탈락).
+  //   box 경로(buildBoxNodeData:175-204)와 동일 계약으로 scrollOffset/scrollbar 를 산출한다.
+  describe("overflow:scroll + scrollState → scrollOffset / scrollbar", () => {
+    function buildScroll(
+      overflow: string,
+      scrollState?: {
+        scrollTop: number;
+        scrollLeft: number;
+        maxScrollTop: number;
+        maxScrollLeft: number;
+      } | null,
+    ): SkiaNodeData | null {
+      const el = makeElement("card", {
+        type: "Card",
+        props: { style: { overflow } },
+      });
+      return buildSpecNodeData({
+        element: el,
+        layout: makeLayout({ x: 0, y: 0, width: 200, height: 120 }),
+        theme: "light",
+        elementsMap: new Map([[el.id, el]]),
+        scrollState,
+      });
+    }
+
+    it("overflow:scroll + scrollState → scrollOffset 반영 + 수직 scrollbar", () => {
+      const node = buildScroll("scroll", {
+        scrollTop: 30,
+        scrollLeft: 0,
+        maxScrollTop: 100,
+        maxScrollLeft: 0,
+      });
+      expect(node?.scrollOffset).toEqual({ scrollTop: 30, scrollLeft: 0 });
+      expect(node?.scrollbar?.vertical).toBeDefined();
+      expect(node?.scrollbar?.horizontal).toBeUndefined();
+    });
+
+    it("overflow:auto + 수평 scroll → 수평 scrollbar", () => {
+      const node = buildScroll("auto", {
+        scrollTop: 0,
+        scrollLeft: 40,
+        maxScrollTop: 0,
+        maxScrollLeft: 80,
+      });
+      expect(node?.scrollOffset).toEqual({ scrollTop: 0, scrollLeft: 40 });
+      expect(node?.scrollbar?.horizontal).toBeDefined();
+      expect(node?.scrollbar?.vertical).toBeUndefined();
+    });
+
+    it("scrollState 없으면 scrollOffset 미설정", () => {
+      const node = buildScroll("scroll", null);
+      expect(node?.scrollOffset).toBeUndefined();
+      expect(node?.scrollbar).toBeUndefined();
+    });
+
+    it("overflow:hidden 은 scrollState 있어도 scrollOffset 미설정 (scroll/auto 만)", () => {
+      const node = buildScroll("hidden", {
+        scrollTop: 30,
+        scrollLeft: 0,
+        maxScrollTop: 100,
+        maxScrollLeft: 0,
+      });
+      expect(node?.scrollOffset).toBeUndefined();
+      // 단, hidden 은 여전히 clipChildren 은 true (Phase 2)
+      expect(node?.clipChildren).toBe(true);
+    });
+
+    it("maxScroll 0 이면 해당 축 scrollbar 없음 (thumb 불필요)", () => {
+      const node = buildScroll("scroll", {
+        scrollTop: 0,
+        scrollLeft: 0,
+        maxScrollTop: 0,
+        maxScrollLeft: 0,
+      });
+      // scrollOffset 은 설정되나 scrollbar 는 없음
+      expect(node?.scrollOffset).toEqual({ scrollTop: 0, scrollLeft: 0 });
+      expect(node?.scrollbar).toBeUndefined();
+    });
+  });
+
   describe("Background fills → bg box FillStyle (gradient/mesh)", () => {
     const LINEAR: LinearGradientFillItem = {
       id: "lg1",

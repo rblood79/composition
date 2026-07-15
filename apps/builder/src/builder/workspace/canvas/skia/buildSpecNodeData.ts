@@ -95,6 +95,16 @@ interface SpecBuildInput {
   elementsMap: Map<string, CanvasSceneNode>;
   /** 형제 조회용 — resolveBreadcrumbItemContext, resolveToggleGroupPosition */
   childrenMap?: Map<string, CanvasSceneNode[]>;
+  /**
+   * overflow:scroll/auto 스크롤 상태 (useScrollState.scrollMap 조회 결과).
+   * box 경로(buildBoxNodeData)와 동일 계약으로 scrollOffset/scrollbar 를 산출한다.
+   */
+  scrollState?: {
+    scrollTop: number;
+    scrollLeft: number;
+    maxScrollTop: number;
+    maxScrollLeft: number;
+  } | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -1124,7 +1134,8 @@ function buildCatalogShapesOrPrimitive(
  * 7. Disabled opacity / focus ring
  */
 export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
-  const { element, layout, theme, childElements, elementsMap } = input;
+  const { element, layout, theme, childElements, elementsMap, scrollState } =
+    input;
   const type = element.type;
 
   // ADR-912 단계 5 step 4 (TEXT_LEAF spec 삭제 후속, 2026-06-09): catalog Skia cutover type 은
@@ -1671,6 +1682,35 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
       overflow === "auto"
     ) {
       specNode.clipChildren = true;
+    }
+
+    // ---------- Overflow: scroll (scrollOffset / scrollbar) ----------
+    // box 경로(buildBoxNodeData:175-204)와 동일 계약. scrollState 는 StoreRenderBridge 가
+    // useScrollState.scrollMap 에서 조회해 주입. renderCommands.ts:535/549 가 scrollOffset 으로
+    // 자식 좌표를 이동하고 :570-571 이 scrollbar 를 그린다. 컨테이너 폭/높이는 spec 노드 기준
+    // (w × specHeight) — DOM overflow 컨테이너와 동일 기준.
+    if (scrollState && (overflow === "scroll" || overflow === "auto")) {
+      specNode.scrollOffset = {
+        scrollTop: scrollState.scrollTop,
+        scrollLeft: scrollState.scrollLeft,
+      };
+      const sb: NonNullable<SkiaNodeData["scrollbar"]> = {};
+      if (scrollState.maxScrollTop > 0) {
+        const contentH = specHeight + scrollState.maxScrollTop;
+        const thumbH = Math.max(20, (specHeight / contentH) * specHeight);
+        const thumbY =
+          (scrollState.scrollTop / scrollState.maxScrollTop) *
+          (specHeight - thumbH);
+        sb.vertical = { trackHeight: specHeight, thumbHeight: thumbH, thumbY };
+      }
+      if (scrollState.maxScrollLeft > 0) {
+        const contentW = w + scrollState.maxScrollLeft;
+        const thumbW = Math.max(20, (w / contentW) * w);
+        const thumbX =
+          (scrollState.scrollLeft / scrollState.maxScrollLeft) * (w - thumbW);
+        sb.horizontal = { trackWidth: w, thumbWidth: thumbW, thumbX };
+      }
+      if (Object.keys(sb).length > 0) specNode.scrollbar = sb;
     }
   }
 

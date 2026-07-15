@@ -29,6 +29,7 @@ import {
   SYNTHETIC_CHILD_PROP_MERGE_TAGS,
 } from "./buildSpecNodeData";
 import { registerSkiaNode, unregisterSkiaNode } from "./useSkiaNode";
+import { useScrollState } from "../../../stores/scrollState";
 import { getSkImage, loadSkImage, releaseSkImage } from "./imageCache";
 import { getSpecForTag, IMAGE_TAGS } from "../sprites/tagSpecMap";
 import { onLayoutPublished } from "../layout";
@@ -142,6 +143,7 @@ function isSpecPath(element: CanvasSceneNode): boolean {
 export class StoreRenderBridge {
   private unsubscribe: (() => void) | null = null;
   private unsubscribeLayout: (() => void) | null = null;
+  private unsubscribeScroll: (() => void) | null = null;
   private registeredIds = new Set<string>();
   /** 이미지 src → element id 매핑 (라이프사이클 관리) */
   private loadedImageSrcs = new Map<string, string>();
@@ -199,6 +201,38 @@ export class StoreRenderBridge {
     // 변경 구독: Zustand store + layout publish
     this.unsubscribe = subscribe(() => resync(false));
     this.unsubscribeLayout = onLayoutPublished(() => resync(true));
+
+    // 스크롤 구독: wheel(scrollBy)로 scrollTop/scrollLeft 가 바뀌면 해당 요소만 재빌드한다.
+    //   메인 store subscribe 는 별도 store(useScrollState) 변경에 반응하지 않으므로 필요.
+    //   재빌드된 노드가 fresh scrollOffset 을 담고, registerSkiaNode 가 registryVersion 을
+    //   올려 다음 프레임에서 command stream 이 갱신된다(hit-test 는 scrollVersion 으로 이미
+    //   무효화됨 — 렌더↔인터랙션 split-brain 해소). maxScroll(콘텐츠 크기) 변경은 layout
+    //   publish(onLayoutPublished→fullRebuild)가 커버하므로 여기서는 위치 변경만 감지한다.
+    let prevScrollMap = useScrollState.getState().scrollMap;
+    this.unsubscribeScroll = useScrollState.subscribe((state) => {
+      const nextScrollMap = state.scrollMap;
+      if (nextScrollMap === prevScrollMap) return;
+      const changed = new Set<string>();
+      for (const [sid, s] of nextScrollMap) {
+        const p = prevScrollMap.get(sid);
+        if (
+          !p ||
+          p.scrollTop !== s.scrollTop ||
+          p.scrollLeft !== s.scrollLeft
+        ) {
+          changed.add(sid);
+        }
+      }
+      prevScrollMap = nextScrollMap;
+      if (changed.size === 0) return;
+      this.incrementalSync(
+        changed,
+        getElements(),
+        getLayoutMap(),
+        resolveTheme(),
+        getChildrenMap?.() ?? null,
+      );
+    });
   }
 
   /**
@@ -576,6 +610,10 @@ export class StoreRenderBridge {
       }
     }
 
+    // overflow:scroll/auto 스크롤 상태 — spec/box 양 경로에 공급 (sprite 시대 배선이 bridge
+    // 이관 때 탈락했던 부분). scrollBy(wheel) 후 아래 scrollState 구독이 이 요소를 재빌드한다.
+    const scrollState = useScrollState.getState().scrollMap.get(id) ?? null;
+
     if (isSpecPath(effectiveElement)) {
       // childrenMap은 props 변경 시 rebuild되지 않는다 (구조 변경만 rebuild).
       // SYNTHETIC_CHILD_PROP_MERGE_TAGS는 자식 props로 shapes를 만들므로(_crumbs 등)
@@ -593,10 +631,11 @@ export class StoreRenderBridge {
         childElements,
         elementsMap,
         childrenMap: childrenMap ?? undefined,
+        scrollState,
       });
       if (nodeData) return nodeData;
       return (
-        buildBoxNodeData({ element: effectiveElement, layout }) ??
+        buildBoxNodeData({ element: effectiveElement, layout, scrollState }) ??
         buildSkiaNodeData(effectiveElement, ctx)
       );
     }
@@ -625,6 +664,7 @@ export class StoreRenderBridge {
         layout,
         isCollectionItem,
         theme: ctx.theme,
+        scrollState,
       }) ?? buildSkiaNodeData(effectiveElement, ctx)
     );
   }
@@ -709,6 +749,10 @@ export class StoreRenderBridge {
     if (this.unsubscribeLayout) {
       this.unsubscribeLayout();
       this.unsubscribeLayout = null;
+    }
+    if (this.unsubscribeScroll) {
+      this.unsubscribeScroll();
+      this.unsubscribeScroll = null;
     }
     this.pendingResync = null;
     this.prevElementsMap = null;
