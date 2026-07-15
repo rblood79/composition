@@ -10,9 +10,9 @@
  * @see docs/COLOR_PICKER.md Section 3.4
  */
 
-import { colord, extend } from 'colord';
-import namesPlugin from 'colord/plugins/names';
-import hwbPlugin from 'colord/plugins/hwb';
+import { colord, extend } from "colord";
+import namesPlugin from "colord/plugins/names";
+import hwbPlugin from "colord/plugins/hwb";
 
 // colord 플러그인 등록 (named colors: 'red', 'blue' 등)
 extend([namesPlugin, hwbPlugin]);
@@ -59,31 +59,47 @@ export interface HsbColor {
  * @param fallback 파싱 실패 시 반환값 (기본: "#000000FF")
  * @returns "#RRGGBBAA" 형식 문자열
  */
-export function normalizeToHex8(input: string, fallback = '#000000FF'): string {
-  if (!input || input === 'inherit' || input === 'initial' || input === 'unset') {
+export function normalizeToHex8(input: string, fallback = "#000000FF"): string {
+  if (
+    !input ||
+    input === "inherit" ||
+    input === "initial" ||
+    input === "unset"
+  ) {
     return fallback;
   }
 
   // CSS 변수 참조는 변환 불가
-  if (input.startsWith('var(') || input.startsWith('$--')) {
+  if (input.startsWith("var(") || input.startsWith("$--")) {
     return fallback;
   }
 
   // transparent 특수 처리
-  if (input === 'transparent') {
-    return '#00000000';
+  if (input === "transparent") {
+    return "#00000000";
   }
 
   // CSS Color Level 4: color(srgb r g b) 또는 color(srgb r g b / a) 파싱
   // 최신 브라우저의 getComputedStyle()이 이 형식을 반환할 수 있음
-  const srgbMatch = input.match(/^color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+))?\)$/);
+  const srgbMatch = input.match(
+    /^color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+))?\)$/,
+  );
   if (srgbMatch) {
-    const r = Math.round(parseFloat(srgbMatch[1]) * 255).toString(16).padStart(2, '0');
-    const g = Math.round(parseFloat(srgbMatch[2]) * 255).toString(16).padStart(2, '0');
-    const b = Math.round(parseFloat(srgbMatch[3]) * 255).toString(16).padStart(2, '0');
-    const a = srgbMatch[4] !== undefined
-      ? Math.round(parseFloat(srgbMatch[4]) * 255).toString(16).padStart(2, '0')
-      : 'FF';
+    const r = Math.round(parseFloat(srgbMatch[1]) * 255)
+      .toString(16)
+      .padStart(2, "0");
+    const g = Math.round(parseFloat(srgbMatch[2]) * 255)
+      .toString(16)
+      .padStart(2, "0");
+    const b = Math.round(parseFloat(srgbMatch[3]) * 255)
+      .toString(16)
+      .padStart(2, "0");
+    const a =
+      srgbMatch[4] !== undefined
+        ? Math.round(parseFloat(srgbMatch[4]) * 255)
+            .toString(16)
+            .padStart(2, "0")
+        : "FF";
     return `#${r}${g}${b}${a}`.toUpperCase();
   }
 
@@ -92,15 +108,40 @@ export function normalizeToHex8(input: string, fallback = '#000000FF'): string {
     if (!c.isValid()) return fallback;
 
     const rgba = c.toRgb();
-    const r = Math.round(rgba.r).toString(16).padStart(2, '0');
-    const g = Math.round(rgba.g).toString(16).padStart(2, '0');
-    const b = Math.round(rgba.b).toString(16).padStart(2, '0');
-    const a = Math.round(rgba.a * 255).toString(16).padStart(2, '0');
+    const r = Math.round(rgba.r).toString(16).padStart(2, "0");
+    const g = Math.round(rgba.g).toString(16).padStart(2, "0");
+    const b = Math.round(rgba.b).toString(16).padStart(2, "0");
+    const a = Math.round(rgba.a * 255)
+      .toString(16)
+      .padStart(2, "0");
 
     return `#${r}${g}${b}${a}`.toUpperCase();
   } catch {
     return fallback;
   }
+}
+
+/**
+ * HEX **입력 필드 전용** 정규화 — 사용자 타이핑 관용을 흡수한 뒤 normalizeToHex8 위임.
+ *
+ * `#` 없는 bare hex ("FF3B30" / "FF3B30FF" / "F30" / "F308") 는 유효 CSS 색이
+ * 아니라 colord 검증에서 탈락 → normalizeToHex8 이 fallback(이전 값)을 반환해
+ * **입력이 조용히 이전 색으로 원복**되던 결함(2026-07-15)의 수정 지점.
+ * `#` 보충은 입력 UI 관용이므로 여기에만 두고, normalizeToHex8 은 CSS 값
+ * 일반 정규화(마이그레이션 등 렌더 정합 소비처) 의미를 보존한다.
+ */
+export function normalizeHexInputToHex8(
+  input: string,
+  fallback = "#000000FF",
+): string {
+  const trimmed = input.trim();
+  const candidate =
+    /^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{4}$|^[0-9a-fA-F]{6}$|^[0-9a-fA-F]{8}$/.test(
+      trimmed,
+    )
+      ? `#${trimmed}`
+      : trimmed;
+  return normalizeToHex8(candidate, fallback);
 }
 
 // ============================================
@@ -117,10 +158,18 @@ export function hex8ToRgba(hex: string): RgbaColor {
 
 /** RGBA 객체 → "#RRGGBBAA" */
 export function rgbaToHex8(rgba: RgbaColor): string {
-  const r = Math.round(Math.max(0, Math.min(255, rgba.r))).toString(16).padStart(2, '0');
-  const g = Math.round(Math.max(0, Math.min(255, rgba.g))).toString(16).padStart(2, '0');
-  const b = Math.round(Math.max(0, Math.min(255, rgba.b))).toString(16).padStart(2, '0');
-  const a = Math.round(Math.max(0, Math.min(1, rgba.a)) * 255).toString(16).padStart(2, '0');
+  const r = Math.round(Math.max(0, Math.min(255, rgba.r)))
+    .toString(16)
+    .padStart(2, "0");
+  const g = Math.round(Math.max(0, Math.min(255, rgba.g)))
+    .toString(16)
+    .padStart(2, "0");
+  const b = Math.round(Math.max(0, Math.min(255, rgba.b)))
+    .toString(16)
+    .padStart(2, "0");
+  const a = Math.round(Math.max(0, Math.min(1, rgba.a)) * 255)
+    .toString(16)
+    .padStart(2, "0");
   return `#${r}${g}${b}${a}`.toUpperCase();
 }
 
@@ -133,7 +182,12 @@ export function hex8ToHsl(hex: string): HslColor {
   const c = colord(hex);
   if (!c.isValid()) return { h: 0, s: 0, l: 0, a: 1 };
   const hsl = c.toHsl();
-  return { h: Math.round(hsl.h), s: Math.round(hsl.s), l: Math.round(hsl.l), a: hsl.a };
+  return {
+    h: Math.round(hsl.h),
+    s: Math.round(hsl.s),
+    l: Math.round(hsl.l),
+    a: hsl.a,
+  };
 }
 
 /** HSL 객체 → "#RRGGBBAA" */
@@ -151,7 +205,12 @@ export function hex8ToHsb(hex: string): HsbColor {
   const c = colord(hex);
   if (!c.isValid()) return { h: 0, s: 0, b: 0, a: 1 };
   const hsv = c.toHsv();
-  return { h: Math.round(hsv.h), s: Math.round(hsv.s), b: Math.round(hsv.v), a: hsv.a };
+  return {
+    h: Math.round(hsv.h),
+    s: Math.round(hsv.s),
+    b: Math.round(hsv.v),
+    a: hsv.a,
+  };
 }
 
 /** HSB 객체 → "#RRGGBBAA" */
@@ -167,7 +226,7 @@ export function hsbToHex8(hsb: HsbColor): string {
 /** "#RRGGBBAA" → CSS 문자열 (rgba 형식) */
 export function hex8ToCss(hex: string): string {
   const c = colord(hex);
-  if (!c.isValid()) return 'rgba(0, 0, 0, 1)';
+  if (!c.isValid()) return "rgba(0, 0, 0, 1)";
   const rgba = c.toRgb();
   if (rgba.a === 1) {
     return `rgb(${rgba.r}, ${rgba.g}, ${rgba.b})`;
@@ -201,11 +260,13 @@ export function hex6ToHex8(hex: string): string {
 // Gradient Stops → CSS
 // ============================================
 
-import type { GradientStop } from '../../../../types/builder/fill.types';
+import type { GradientStop } from "../../../../types/builder/fill.types";
 
 /** GradientStop[] → CSS 그래디언트 색상 스톱 문자열 */
 export function gradientStopsToCss(stops: GradientStop[]): string {
-  return stops.map(s => `${s.color.slice(0, 7)} ${Math.round(s.position * 100)}%`).join(', ');
+  return stops
+    .map((s) => `${s.color.slice(0, 7)} ${Math.round(s.position * 100)}%`)
+    .join(", ");
 }
 
 // ============================================
@@ -215,10 +276,5 @@ export function gradientStopsToCss(stops: GradientStop[]): string {
 /** "#RRGGBBAA" → Float32Array [r, g, b, a] (0-1 범위) */
 export function hex8ToFloat32(hex: string): Float32Array {
   const rgba = hex8ToRgba(hex);
-  return Float32Array.of(
-    rgba.r / 255,
-    rgba.g / 255,
-    rgba.b / 255,
-    rgba.a,
-  );
+  return Float32Array.of(rgba.r / 255, rgba.g / 255, rgba.b / 255, rgba.a);
 }

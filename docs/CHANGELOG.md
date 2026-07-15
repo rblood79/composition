@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [컬러 피커 HEX 입력 관용 — bare hex 조용한 원복 수정] - 2026-07-15
+
+### Bug Fixes
+
+- **컬러 피커 HEX 필드에 `#` 없이 hex 를 입력하면 조용히 이전 색으로 원복되던 결함**:
+  - **Why**: `HexFields` 가 입력값을 `normalizeToHex8` 로 바로 넘기는데, `#` 없는 bare hex ("FF3B30")는 유효 CSS 색이 아니라 colord 검증에서 탈락 → fallback(이전 값) 반환 → **이전 색이 그대로 재커밋**되어 사용자 입력이 무시된 것처럼 보임 (에러 표시도 없음).
+  - 수정: HEX 입력 필드 전용 `normalizeHexInputToHex8` 신설 — 공백 trim + 3/4/6/8자리 bare hex 에 `#` 보충 후 기존 정규화 위임. `normalizeToHex8` 자체는 CSS 값 일반 정규화(마이그레이션 소비처) 의미 보존을 위해 무변경.
+  - 검증: 단위 테스트 7건 + Chrome MCP 실빌더 — bare hex `FF3B30` 입력 → fill `#FF3B30FF` 커밋 → Skia/Preview/스와치/피커 동기화 확인.
+  - 위치: `apps/builder/src/builder/panels/styles/utils/colorUtils.ts`, `components/ColorInputFields.tsx`
+
 ## [Background(fills) canonical 파이프라인 복원 — Appearance 배경 기능 전면 복구] - 2026-07-15
 
 ### Bug Fixes

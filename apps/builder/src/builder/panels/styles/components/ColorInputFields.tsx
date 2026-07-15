@@ -24,6 +24,7 @@ import {
   hex8ToCss,
   cssToHex8,
   normalizeToHex8,
+  normalizeHexInputToHex8,
 } from "../utils/colorUtils";
 import { ScrubInput } from "./ScrubInput";
 import { useStore } from "../../../stores";
@@ -142,7 +143,9 @@ function HexFields({ value, onChange }: ColorInputFieldsProps) {
         label="HEX"
         value={hex}
         onChange={(v) => {
-          const normalized = normalizeToHex8(v, hex);
+          // 입력 관용: `#` 생략/공백 허용 — bare hex 가 fallback(이전 값)으로
+          // 원복되던 결함 수정 (normalizeHexInputToHex8 주석 참조)
+          const normalized = normalizeHexInputToHex8(v, hex);
           onChange(normalized);
         }}
       />
