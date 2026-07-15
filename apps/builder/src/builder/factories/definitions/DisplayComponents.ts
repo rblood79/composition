@@ -260,17 +260,13 @@ export function createProgressBarDefinition(
         value: 50,
         showValueLabel: true,
         size: "md",
-        // Grid 속성 store 직접 주입 (Skia/Taffy 즉시 반영).
-        // store 에는 longhand (rowGap/columnGap) 만 — shorthand `gap` 은 미저장
-        // 하여 React inline style 의 shorthand/longhand collision 경고 회피.
-        // Panel 의 Gap 필드는 inspectorActions 에서 gap → rowGap + columnGap
-        // 동시 쓰기로 처리.
+        // ADR-913 동형 (2026-07-15): inline display/gridTemplate 제거 — labelPosition="side" 차단 근본.
+        //   inline display:grid (specificity 1-0-0) 가 generated CSS `[data-label-position="side"]`
+        //   (0-2-0) 를 이겨 side flex 를 무력화한다 (NumberField 정정과 동일 근거). top 모드 grid 는
+        //   catalog structure.containerStyles(display:grid + gridTemplate) + Skia
+        //   resolveContainerStylesFallback 이 담당. store 는 longhand (rowGap/columnGap) 만 유지.
         style: {
           width: "100%",
-          display: "grid",
-          gridTemplateColumns: "1fr auto",
-          gridTemplateRows: "auto auto",
-          gridTemplateAreas: '"label value" "bar bar"',
           rowGap: 4,
           columnGap: 12,
         },
@@ -355,13 +351,11 @@ export function createMeterDefinition(
         showValueLabel: true,
         variant: "informative",
         size: "md",
-        // Grid 속성 store 직접 주입 (ProgressBar 와 동일 이유).
+        // ADR-913 동형 (2026-07-15): inline display/gridTemplate 제거 — labelPosition="side" 차단 근본
+        //   (ProgressBar 와 동일). top 모드 grid 는 catalog structure.containerStyles + Skia
+        //   resolveContainerStylesFallback 담당. store 는 longhand (rowGap/columnGap) 만 유지.
         style: {
           width: "100%",
-          display: "grid",
-          gridTemplateColumns: "1fr auto",
-          gridTemplateRows: "auto auto",
-          gridTemplateAreas: '"label value" "bar bar"',
           rowGap: 4,
           columnGap: 12,
         },

@@ -1826,9 +1826,9 @@ export function applyImplicitStyles(
     const hasLabel = !!containerProps?.label;
     const showValueLabel = containerProps?.showValueLabel !== false;
     const sizeName = (containerProps?.size as string) ?? "md";
-    // ADR-913 동형: labelPosition="side" 시 부모 grid → flex-row 전환 + 자식 order 재배치.
-    //   canonical 순서는 label→value→track 이라 flex 기본 흐름이면 label-value-track 이 되므로,
-    //   Track order:1 / Value order:2 로 label-track-value 를 만든다 (CSS .bar order:1 / .value order:2 대칭).
+    // ADR-913 동형: labelPosition="side" 시 부모 grid → flex-row 전환 + 자식 배열 재정렬(map 직후).
+    //   canonical 순서 label→value→track 을 label→track→value 로 정렬해 CSS side flex(.bar order:1 /
+    //   .value order:2)와 동일 시각 결과를 만든다. Track flexGrow:1 로 막대가 남는 폭을 채운다.
     const isSideLabel = containerProps?.labelPosition === "side";
 
     // layout 엔진이 Skia 렌더링과 동일한 텍스트로 fit-content width를 측정해야 함
@@ -1867,7 +1867,6 @@ export function applyImplicitStyles(
               fontSize: labelFontSize,
               minWidth: cs.minWidth ?? 0,
               whiteSpace: cs.whiteSpace ?? "nowrap",
-              ...(isSideLabel ? { order: 0 } : {}),
             },
           },
         } as CanvasLayoutNode;
@@ -1887,7 +1886,7 @@ export function applyImplicitStyles(
               gridArea: cs.gridArea ?? "bar",
               width: cs.width ?? "100%",
               height: barHeight,
-              ...(isSideLabel ? { order: 1, flexGrow: 1 } : {}),
+              ...(isSideLabel ? { flexGrow: 1 } : {}),
             },
           },
         } as CanvasLayoutNode;
@@ -1908,13 +1907,27 @@ export function applyImplicitStyles(
               fontSize: valueFontSize,
               lineHeight: `${valueLineHeight}px`,
               whiteSpace: cs.whiteSpace ?? "nowrap",
-              ...(isSideLabel ? { order: 2 } : {}),
             },
           },
         } as CanvasLayoutNode;
       }
       return child;
     });
+
+    // side: canonical 순서(label→value→track)를 label→track→value 로 배열 재정렬. Skia order sort
+    //   (fullTreeLayout getOrder)는 store 원본 style.order 만 읽어 implicitStyles 주입 order 를 못 보므로,
+    //   배열 순서 자체를 바꿔 CSS(.bar order:1 / .value order:2)와 동일 시각 결과(label-track-value)를 만든다.
+    if (isSideLabel) {
+      const sideRank = (t: string): number =>
+        t === "Label"
+          ? 0
+          : t === "ProgressBarTrack" || t === "MeterTrack"
+            ? 1
+            : 2;
+      filteredChildren = [...filteredChildren].sort(
+        (a, b) => sideRank(a.type) - sideRank(b.type),
+      );
+    }
 
     // 부모 container style: display/gridTemplate* 은 resolveContainerStylesFallback 이
     //   spec.containerStyles 로부터 이미 parentStyle 에 선주입 → 여기서는 gap 만 처리.
