@@ -68,11 +68,20 @@ export const progressBarBinding: PrimitiveBinding = {
         label: "Show Value Label",
         section: "content",
       },
-      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): valueLabel 은 ProgressBar wrapper 가
-      //   <span class="value">{valueLabel}</span> 로 직접 렌더 → 작동. RSP 공식 labelPosition
-      //   (top/side) 은 wrapper 가 data-label-position emit 은 하나 ProgressBar.css 에
-      //   [data-label-position] 규칙 부재 → 시각 무효(dead 편집 UI)라 미추가
-      //   (ColorArea channel / TagGroup orientation 제거와 동일 근거). D3 CSS+Skia 구현 후 재노출.
+      // RAC/RSP 정합 감사 (2026-07-15): valueLabel 은 ProgressBar wrapper 가 <span class="value"> 로
+      //   직접 렌더. labelPosition(top/side) 은 D3 구현 완료로 재노출 — CSS(catalog structure.composition.
+      //   containerVariants["label-position"].side → generated ProgressBar.css) + Skia(implicitStyles
+      //   자식 order 재배치). side = label · track · value 가로 배치.
+      labelPosition: {
+        kind: "enum",
+        label: "Label Position",
+        section: "appearance",
+        default: "top",
+        options: [
+          { value: "top", label: "Top" },
+          { value: "side", label: "Side" },
+        ],
+      },
       valueLabel: {
         kind: "string",
         label: "Value Label",

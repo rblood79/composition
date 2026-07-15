@@ -78,6 +78,21 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
+.react-aria-Meter[data-label-position="side"] {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.react-aria-Meter[data-label-position="side"] .bar {
+  order: 1;
+  flex: 1;
+}
+
+.react-aria-Meter[data-label-position="side"] .value {
+  order: 2;
+}
+
 .react-aria-Meter[data-variant="informative"] {
   --fill-color: var(--color-info-600);
 }

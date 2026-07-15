@@ -1826,6 +1826,10 @@ export function applyImplicitStyles(
     const hasLabel = !!containerProps?.label;
     const showValueLabel = containerProps?.showValueLabel !== false;
     const sizeName = (containerProps?.size as string) ?? "md";
+    // ADR-913 동형: labelPosition="side" 시 부모 grid → flex-row 전환 + 자식 order 재배치.
+    //   canonical 순서는 label→value→track 이라 flex 기본 흐름이면 label-value-track 이 되므로,
+    //   Track order:1 / Value order:2 로 label-track-value 를 만든다 (CSS .bar order:1 / .value order:2 대칭).
+    const isSideLabel = containerProps?.labelPosition === "side";
 
     // layout 엔진이 Skia 렌더링과 동일한 텍스트로 fit-content width를 측정해야 함
     const autoFormattedValue = formatProgressValue(
@@ -1863,6 +1867,7 @@ export function applyImplicitStyles(
               fontSize: labelFontSize,
               minWidth: cs.minWidth ?? 0,
               whiteSpace: cs.whiteSpace ?? "nowrap",
+              ...(isSideLabel ? { order: 0 } : {}),
             },
           },
         } as CanvasLayoutNode;
@@ -1882,6 +1887,7 @@ export function applyImplicitStyles(
               gridArea: cs.gridArea ?? "bar",
               width: cs.width ?? "100%",
               height: barHeight,
+              ...(isSideLabel ? { order: 1, flexGrow: 1 } : {}),
             },
           },
         } as CanvasLayoutNode;
@@ -1902,6 +1908,7 @@ export function applyImplicitStyles(
               fontSize: valueFontSize,
               lineHeight: `${valueLineHeight}px`,
               whiteSpace: cs.whiteSpace ?? "nowrap",
+              ...(isSideLabel ? { order: 2 } : {}),
             },
           },
         } as CanvasLayoutNode;
@@ -1922,6 +1929,17 @@ export function applyImplicitStyles(
       4;
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
+      // side: grid → flex-row 전환 (자식 order 로 label-track-value 재배치). gridTemplate* 는
+      //   flex 에서 무효라 명시 제거 — display 전환은 layoutVersion/full-rebuild 로 반영됨.
+      ...(isSideLabel
+        ? {
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            gridTemplateAreas: undefined,
+            gridTemplateColumns: undefined,
+          }
+        : {}),
       rowGap:
         parentStyle.rowGap ?? specSizeField(containerTag, sizeName, "gap") ?? 4,
       columnGap: progressGap,

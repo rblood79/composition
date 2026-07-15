@@ -80,6 +80,7 @@ export function Meter({
   showValueLabel = true,
   valueLabel,
   customFormatter,
+  labelPosition = "top",
   isLoading,
   ...props
 }: MeterProps) {
@@ -130,6 +131,7 @@ export function Meter({
       )}
       data-variant={variant}
       data-size={size}
+      data-label-position={labelPosition}
     >
       {({ percentage, valueText }) => (
         <>

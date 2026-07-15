@@ -79,6 +79,21 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
+.react-aria-ProgressBar[data-label-position="side"] {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.react-aria-ProgressBar[data-label-position="side"] .bar {
+  order: 1;
+  flex: 1;
+}
+
+.react-aria-ProgressBar[data-label-position="side"] .value {
+  order: 2;
+}
+
 .react-aria-ProgressBar[data-variant="default"] {
   --fill-color: var(--accent);
   --track-color: var(--accent-subtle);

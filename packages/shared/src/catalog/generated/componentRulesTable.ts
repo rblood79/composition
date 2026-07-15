@@ -6324,6 +6324,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Meter: {
     defaultVariant: "informative",
     defaultSize: "md",
+    // ADR-913 동형: label-position:side (Skia resolveActiveContainerVariants 소비 — 부모 flex-row).
+    //   CSS 대칭 = structure.composition.containerVariants["label-position"], 자식 order 는 implicitStyles.
+    containerVariants: {
+      "label-position": {
+        side: {
+          styles: {
+            display: "flex",
+            "flex-direction": "row",
+            "align-items": "center",
+          },
+        },
+      },
+    },
     variants: {
       informative: {
         fill: {
@@ -6461,6 +6474,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         containerVariants: {
+          // ADR-913 동형: label-position:side — progress 3요소(label/track/value) grid→flex-row.
+          //   부모 flex-row + 자식 order(track 중간, value 끝) + track flex:1. Skia 자식 order 는
+          //   implicitStyles ProgressBar/Meter 분기가 동일 값 주입 (D3 대칭).
+          "label-position": {
+            side: {
+              styles: {
+                display: "flex",
+                "flex-direction": "row",
+                "align-items": "center",
+              },
+              nested: [
+                { selector: ".bar", styles: { order: "1", flex: "1" } },
+                { selector: ".value", styles: { order: "2" } },
+              ],
+            },
+          },
           variant: {
             informative: {
               styles: {
@@ -7509,6 +7538,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   ProgressBar: {
     defaultVariant: "default",
     defaultSize: "md",
+    // ADR-913 동형: label-position:side (Skia resolveActiveContainerVariants 소비 — 부모 flex-row).
+    //   CSS 대칭 = structure.composition.containerVariants["label-position"], 자식 order 는 implicitStyles.
+    containerVariants: {
+      "label-position": {
+        side: {
+          styles: {
+            display: "flex",
+            "flex-direction": "row",
+            "align-items": "center",
+          },
+        },
+      },
+    },
     variants: {
       default: {
         fill: {
@@ -7636,6 +7678,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         containerVariants: {
+          // ADR-913 동형: label-position:side — progress 3요소(label/track/value) grid→flex-row.
+          //   부모 flex-row + 자식 order(track 중간, value 끝) + track flex:1. Skia 자식 order 는
+          //   implicitStyles ProgressBar/Meter 분기가 동일 값 주입 (D3 대칭).
+          "label-position": {
+            side: {
+              styles: {
+                display: "flex",
+                "flex-direction": "row",
+                "align-items": "center",
+              },
+              nested: [
+                { selector: ".bar", styles: { order: "1", flex: "1" } },
+                { selector: ".value", styles: { order: "2" } },
+              ],
+            },
+          },
           variant: {
             default: {
               styles: {
