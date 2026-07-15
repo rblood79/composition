@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Publish body 아트보드 정합 — ElementRenderer body 노드 min-height:100vh (preview 정합 후속)] - 2026-07-15
+
+### Bug Fixes
+
+- **Publish 에서 세로 중앙정렬 body 의 콘텐츠가 뷰포트 대신 collapse 박스 최상단에 갇히던 비대칭** (preview 정합 `ed96db23a` 후속):
+  - **Why**: publish 도 canonical body 노드를 중첩 `<div>` 로 렌더하며 height 없는 style 만 얹어 content-fit 로 collapse 한다. `useBodyElement` 이 body 스타일을 실제 `<body>` 태그에 주입해 **배경은 실제 body 가 뷰포트를 채워 정상**이지만, **세로 중앙정렬(flex + justifyContent:center)·자식 height:100%** 처럼 body 박스 높이에 의존하는 레이아웃은 실제 body 가 마스킹하지 못한다. 라이브 실측: flex-center body(minHeight 미지정) 자식이 뷰포트 중앙(y494) 대신 collapse 박스(h34) 최상단(y17)에 갇힘 → Skia(전체 아트보드 중앙) 와 발산.
+  - 수정: `ElementRenderer` 에서 `type==="body"` & 사용자 height/minHeight 미지정 시 `min-height:100vh` 주입(preview `CanonicalNodeRenderer` 와 동일 규칙). 라이브 재검증: 중첩 body div 34→988(100vh), 자식 y17→477(중심 494=뷰포트 중앙).
+  - 범위: publish 앱은 vitest 인프라 부재 → live(Chrome MCP) + type-check 검증. preview 회귀 테스트가 동일 로직 패턴 커버.
+  - 위치: `apps/publish/src/renderer/ElementRenderer.tsx`
+
 ## [패널 Appearance dirty/reset/컬러 피커 정리 — 배경(fills) dirty 소스화 + boxShadow/overflow 정합] - 2026-07-15
 
 ### Bug Fixes
