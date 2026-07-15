@@ -20,7 +20,12 @@
 
 import { parseBorderWidth, parsePxValue } from "../primitives";
 import { fontFamily } from "../primitives/typography";
-import type { ComponentState, Shape, SizeSpec } from "../types";
+import type {
+  BorderStyleValue,
+  ComponentState,
+  Shape,
+  SizeSpec,
+} from "../types";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 import { measureSpecTextWidth } from "./utils/measureText";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
@@ -269,17 +274,20 @@ export function buildCatalogShapes(
       fill: bgColor,
       fillAlpha: (fill?.alpha ?? 1) * fillBgAlpha,
     });
-    if (borderColor) {
-      // border-style 은 보편 D3 속성(CSS border-style 동형). visual.borderStyle 우선,
-      // 없으면 specShapeConverter 가 "solid" fallback(미지정 시 style 키 생략 → solid).
-      const borderStyle = visual?.borderStyle;
+    // border-style 은 보편 D3 속성(CSS border-style 동형). 3경로 공통 우선순위:
+    //   사용자 style.borderStyle → catalog visual.borderStyle → (미지정 시)
+    //   specShapeConverter 가 "solid" fallback(style 키 생략 → solid).
+    //   "none" 은 테두리 숨김 의도 — border shape 자체를 생성하지 않는다(DOM border-style:none 대칭).
+    const borderStyle =
+      (style?.borderStyle as string | undefined) ?? visual?.borderStyle;
+    if (borderColor && borderStyle !== "none") {
       shapes.push({
         type: "border",
         target: "bg",
         borderWidth,
         color: borderColor,
         radius: borderRadius,
-        ...(borderStyle ? { style: borderStyle } : {}),
+        ...(borderStyle ? { style: borderStyle as BorderStyleValue } : {}),
       });
     }
   }

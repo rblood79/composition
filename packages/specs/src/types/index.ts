@@ -55,6 +55,7 @@ export type {
   TextShape,
   ShadowShape,
   BorderShape,
+  BorderStyleValue,
   ContainerShape,
   ContainerLayout,
   GradientShape,

@@ -212,6 +212,19 @@ export interface ShadowShape {
 }
 
 /**
+ * CSS border-style 값 집합 (Skia nodeRendererBorders 8종 렌더 대응).
+ */
+export type BorderStyleValue =
+  | "solid"
+  | "dashed"
+  | "dotted"
+  | "double"
+  | "groove"
+  | "ridge"
+  | "inset"
+  | "outset";
+
+/**
  * 테두리
  *
  * [적용 방식]
@@ -236,8 +249,13 @@ export interface BorderShape {
   /** 테두리 색상 */
   color: ColorValue;
 
-  /** 테두리 스타일 */
-  style?: "solid" | "dashed" | "dotted";
+  /**
+   * 테두리 스타일. Skia 렌더러(nodeRendererBorders)가 8종 전부 지원하고,
+   * 사용자 style.borderStyle(패널 select)도 8종을 방출하므로 CSS border-style
+   * 전체 집합을 수용한다. sides(partial_border) 경로는 dashed/dotted 만 dasharray
+   * 로 표현하고 나머지는 solid 선으로 degrade.
+   */
+  style?: BorderStyleValue;
 
   /** 모서리 반경 */
   radius?: number | [number, number, number, number];

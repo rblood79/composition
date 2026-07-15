@@ -5,6 +5,7 @@
  * PixiJS 의존성 없음. element.props + layoutMap에서 구축.
  */
 
+import type { BorderStyleValue } from "@composition/specs";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
@@ -208,17 +209,28 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
       ? parseClipPath(style.clipPath, w, h)
       : undefined;
 
-  // Stroke — PixiStrokeStyle (color, width, alpha)
-  const strokeColor = stroke?.color
-    ? Float32Array.of(
-        ((stroke.color >> 16) & 0xff) / 255,
-        ((stroke.color >> 8) & 0xff) / 255,
-        (stroke.color & 0xff) / 255,
-        stroke.alpha ?? 1,
-      )
-    : isCardItem || isCollectionItem
-      ? Float32Array.of(0.83, 0.83, 0.83, 1)
+  // border-style: 사용자 style.borderStyle → box.strokeStyle (nodeRendererBorders 8종
+  //   렌더). "none" 은 테두리 자체를 숨긴다(DOM border-style:none 대칭) → stroke 억제.
+  //   catalog/spec 경로와 동일 규약. solid 는 렌더러 기본값이라 키 생략.
+  const borderStyleRaw = style.borderStyle as string | undefined;
+  const suppressBorder = borderStyleRaw === "none";
+  const strokeStyleValue: BorderStyleValue | undefined =
+    borderStyleRaw && borderStyleRaw !== "solid" && borderStyleRaw !== "none"
+      ? (borderStyleRaw as BorderStyleValue)
       : undefined;
+
+  // Stroke — PixiStrokeStyle (color, width, alpha)
+  const strokeColor =
+    !suppressBorder && stroke?.color
+      ? Float32Array.of(
+          ((stroke.color >> 16) & 0xff) / 255,
+          ((stroke.color >> 8) & 0xff) / 255,
+          (stroke.color & 0xff) / 255,
+          stroke.alpha ?? 1,
+        )
+      : !suppressBorder && (isCardItem || isCollectionItem)
+        ? Float32Array.of(0.83, 0.83, 0.83, 1)
+        : undefined;
 
   return {
     type: "box",
@@ -246,8 +258,10 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
           : {}),
       borderRadius: br,
       strokeColor,
-      strokeWidth:
-        stroke?.width ?? (isCardItem || isCollectionItem ? 1 : undefined),
+      strokeWidth: suppressBorder
+        ? undefined
+        : (stroke?.width ?? (isCardItem || isCollectionItem ? 1 : undefined)),
+      ...(strokeStyleValue ? { strokeStyle: strokeStyleValue } : {}),
     },
   } as SkiaNodeData;
 }

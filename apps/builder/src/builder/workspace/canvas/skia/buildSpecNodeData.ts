@@ -25,6 +25,7 @@ import {
   getSkiaPrimitiveMode,
   normalizeBreadcrumbRspSizeKey,
   racStateAttrs,
+  type BorderStyleValue,
   type ComponentState,
   type ComponentSpec,
   type PropagationRule,
@@ -1833,6 +1834,29 @@ function applyInlineBorderOverlay(
   specNode: SkiaNodeData,
   style: Record<string, unknown>,
 ): void {
+  // (1) border-radius inline override — 테두리(width/color) 유무와 독립.
+  //     radius 단독 편집도 반영해야 한다 (기존엔 아래 width/color gate 뒤에 있어
+  //     radius 단독이 무반응이었다 — catalog/box 경로는 이미 독립 반영).
+  if (style.borderRadius != null) {
+    if (!specNode.box) {
+      specNode.box = {
+        fillColor: Float32Array.of(0, 0, 0, 0),
+        borderRadius: 0,
+      };
+    }
+    specNode.box.borderRadius = parseCSSSize(
+      style.borderRadius as string | number,
+    );
+  }
+
+  // (2) border-style="none" — 테두리 숨김 의도(DOM border-style:none 대칭).
+  //     radius 는 위에서 이미 적용됐으므로 여기서 종료.
+  const borderStyle = style.borderStyle as string | undefined;
+  if (borderStyle === "none") return;
+
+  // (3) border(width+color). Phase 1 편집기 계약으로 width/color 는 항상 동반
+  //     기록되므로 단독 케이스는 store 단에서 소멸하지만, 방어적으로 둘 다 유효할
+  //     때만 그린다 (spec 자체 border transparent 를 회색으로 덮지 않기 위함).
   const borderWidth = style.borderWidth;
   if (borderWidth == null) return;
 
@@ -1857,7 +1881,7 @@ function applyInlineBorderOverlay(
     return;
   }
 
-  // box가 없으면 생성
+  // box가 없으면 생성 (radius branch 에서 이미 생성됐을 수 있음)
   if (!specNode.box) {
     specNode.box = {
       fillColor: Float32Array.of(0, 0, 0, 0),
@@ -1870,16 +1894,9 @@ function applyInlineBorderOverlay(
   specNode.box.strokeColor = colorIntToFloat32(borderHex, 1);
   specNode.box.strokeWidth = bw;
 
-  // borderStyle
-  const borderStyle = style.borderStyle as string | undefined;
-  if (borderStyle && borderStyle !== "solid" && borderStyle !== "none") {
-    specNode.box.strokeStyle = borderStyle as "dashed" | "dotted";
-  }
-
-  // borderRadius (inline override)
-  if (style.borderRadius != null) {
-    specNode.box.borderRadius = parseCSSSize(
-      style.borderRadius as string | number,
-    );
+  // border-style → strokeStyle. solid 는 렌더러 기본값이라 키 생략, 그 외 7종은
+  //   nodeRendererBorders 가 전부 렌더(dashed/dotted/double/groove/ridge/inset/outset).
+  if (borderStyle && borderStyle !== "solid") {
+    specNode.box.strokeStyle = borderStyle as BorderStyleValue;
   }
 }
