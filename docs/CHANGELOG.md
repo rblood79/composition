@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [컬러 피커 UI 간결화 — 입력 모드 3종 + 얇은 hue/alpha 슬라이더] - 2026-07-15
+
+### Features
+
+- **컬러 피커 입력 모드를 HEX / RGBA / CSS 3종으로 축소** (HSL / HSB 숨김):
+  - HSL / HSB 는 동일 내부값(`#RRGGBBAA`)의 표기 변환 뷰일 뿐 표현 가능한 색 집합이 동일 — 셀렉터에서만 숨겼고 `ColorInputMode` 타입·변환 함수(`hex8ToHsl` 등)는 보존해 마이그레이션/소비처 영향 없음. CSS 모드는 named color·외부 CSS 문자열 붙여넣기 유일 관로라 유지.
+  - 위치: `apps/builder/src/builder/panels/styles/components/ColorInputModeSelector.tsx`
+- **색조(hue)·알파 슬라이더 트랙 높이 28→8px 축소**:
+  - 피커 상단 두 슬라이더를 얇게 조정. 피커로 scope 된 오버라이드라 공용 `ColorSlider` 다른 사용처(GradientBar 등)에는 영향 없음.
+  - 위치: `apps/builder/src/builder/panels/styles/components/ColorPickerPanel.css`
+
 ## [Publish body 아트보드 정합 — ElementRenderer body 노드 min-height:100vh (preview 정합 후속)] - 2026-07-15
 
 ### Bug Fixes

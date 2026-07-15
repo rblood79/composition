@@ -25,8 +25,8 @@
     gap: 4px;
   }
 
-  /* Hue/Alpha 슬라이더: GradientBar와 동일 높이 통일 */
+  /* Hue/Alpha 슬라이더: 얇은 트랙 (2026-07-15, 28→8px) */
   .color-picker-panel .react-aria-ColorSlider .react-aria-SliderTrack {
-    height: 28px;
+    height: 8px;
   }
 }
