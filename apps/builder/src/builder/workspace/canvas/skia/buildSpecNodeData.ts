@@ -71,6 +71,7 @@ import {
   parseTextShadow,
   parseTextDecoration,
   parseDecorationColor,
+  buildSkiaEffects,
 } from "../sprites/styleConverter";
 import {
   rearrangeShapesForColumn,
@@ -1627,6 +1628,23 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
 
   // ---------- Phantom indicator offset ----------
   applyPhantomIndicatorOffset(specNode, type, size, style, specHeight);
+
+  // ---------- CSS effects (boxShadow / filter / opacity / backdropFilter) ----------
+  // box 경로(buildBoxNodeData:68) 와 동일 파서(buildSkiaEffects)로 공급하여 D3 시각 대칭
+  // 복원. boxShadow → drop-shadow, filter → blur/color-matrix, opacity, backdropFilter →
+  // background-blur. renderCommands.ts:502/865 가 CMD_ELEMENT_BEGIN.effects → beginRenderEffects
+  // 로 소비한다. spec/catalog 경로는 그동안 이 배선이 없어 캔버스에서 boxShadow 등이 무반응이었다.
+  // transform 은 transform-origin 보정(box 경로 155-162)이 별도로 필요하고 본 배선의 대상이
+  // 아니므로 제외 — effects/blendMode 만 접붙인다.
+  const cssEffects = buildSkiaEffects(
+    style as Parameters<typeof buildSkiaEffects>[0],
+  );
+  if (cssEffects.effects && cssEffects.effects.length > 0) {
+    specNode.effects = [...(specNode.effects ?? []), ...cssEffects.effects];
+  }
+  if (cssEffects.blendMode && !specNode.blendMode) {
+    specNode.blendMode = cssEffects.blendMode;
+  }
 
   // ---------- Disabled opacity ----------
   if (componentState === "disabled") {

@@ -553,6 +553,63 @@ describe("buildSpecNodeData", () => {
     });
   });
 
+  // 회귀 방지 (boxShadow Skia 배선 복원): spec/catalog 경로가 style.boxShadow 를
+  //   buildSkiaEffects 로 공급하지 않아 캔버스에서 그림자가 무반응이었다. box 경로
+  //   (buildBoxNodeData:68) 와 동일 파서로 drop-shadow effect 를 node.effects 에 접붙인다.
+  describe("CSS effects → node.effects (boxShadow / filter / opacity)", () => {
+    function buildWithStyle(
+      style: Record<string, unknown>,
+      componentState?: string,
+    ): SkiaNodeData | null {
+      const el = makeElement("btn", {
+        type: "Button",
+        props: {
+          children: "Go",
+          ...(componentState ? { isDisabled: true } : {}),
+          style,
+        },
+      });
+      return buildSpecNodeData({
+        element: el,
+        layout: makeLayout({ x: 0, y: 0, width: 200, height: 40 }),
+        theme: "light",
+        elementsMap: new Map([[el.id, el]]),
+      });
+    }
+
+    it("style.boxShadow → drop-shadow effect 접붙임", () => {
+      const node = buildWithStyle({
+        boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+      });
+      expect(node?.effects?.some((e) => e.type === "drop-shadow")).toBe(true);
+    });
+
+    it("다중 boxShadow → drop-shadow effect 2개", () => {
+      const node = buildWithStyle({
+        boxShadow: "0 1px 2px rgba(0,0,0,0.2), 0 4px 8px rgba(0,0,0,0.1)",
+      });
+      const shadows = node?.effects?.filter((e) => e.type === "drop-shadow");
+      expect(shadows?.length).toBe(2);
+    });
+
+    it("boxShadow 없으면 drop-shadow effect 없음", () => {
+      const node = buildWithStyle({});
+      expect(node?.effects?.some((e) => e.type === "drop-shadow")).not.toBe(
+        true,
+      );
+    });
+
+    it("style.opacity<1 → opacity effect 접붙임", () => {
+      const node = buildWithStyle({ opacity: 0.5 });
+      expect(node?.effects?.some((e) => e.type === "opacity")).toBe(true);
+    });
+
+    it("style.filter: blur() → layer-blur effect 접붙임", () => {
+      const node = buildWithStyle({ filter: "blur(4px)" });
+      expect(node?.effects?.some((e) => e.type === "layer-blur")).toBe(true);
+    });
+  });
+
   describe("Background fills → bg box FillStyle (gradient/mesh)", () => {
     const LINEAR: LinearGradientFillItem = {
       id: "lg1",
