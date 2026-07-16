@@ -55,7 +55,7 @@ Accepted — 2026-07-17 (리뷰 round 1 승인 — 이슈 3건 전부 fixed, `do
 
 ### 대안 C: 비활성 패널 unmount (`if (!isActive) return null` 가드 부활)
 
-- 설명: `PanelContent` 에 실제 isActive 를 내리고 비활성 패널은 null 렌더 (unmount). 패널 3종(FontManagerPanel.tsx:28 / ThemesPanel.tsx:395 / DataTableEditorPanel.tsx:355)에 잔존하는 dead 가드를 전 패널로 확장하는 방향.
+- 설명: `PanelContent` 에 실제 isActive 를 내리고 비활성 패널은 null 렌더 (unmount). left/right 패널 12종에 잔존하는 dead 가드 (Phase 0 재실측 2026-07-17 — 리뷰 round 1 의 "3종" 은 단일행 grep undercount, design §5 하단 참조) 를 살리는 방향.
 - 근거: 가장 단순한 구현. 다수 앱의 탭 패널 기본 패턴.
 - 위험:
   - 기술: L — 메커니즘 자체는 자명
@@ -114,7 +114,7 @@ Accepted — 2026-07-17 (리뷰 round 1 승인 — 이슈 3건 전부 fixed, `do
 
 - 캔버스 선택 클릭의 동기 비용에서 숨은 패널 몫(commit effect 순회 ~74%) 제거 — `PanelContainer.tsx` 1곳으로 패널 14종 + 신규 패널 자동 커버
 - 선택 외 갱신 축(문서 편집·테마)에서도 숨은 패널 비용 제거 — 별도 배선 없이 동일 원리 적용
-- 패널 활성/비활성 의미가 React 공식 메커니즘으로 표준화 — `isActive={true}` 하드코딩과 잔존 3패널(Fonts/Themes/DataTableEditor)의 dead 가드 정리 계기
+- 패널 활성/비활성 의미가 React 공식 메커니즘으로 표준화 — left/right 12패널의 dead 가드 정리 계기 (Phase 0 재실측; `isActive={true}` 하드코딩 자체는 bottom/modal 경로 계약 때문에 유지)
 
 ### Negative
 
