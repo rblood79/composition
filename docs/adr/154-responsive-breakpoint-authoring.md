@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-07-16 (초안 — 리뷰 전)
+Accepted — 2026-07-16 (리뷰 round 1 승인 — 이슈 3건 전부 fixed, `docs/adr/reviews/154.md`. execute-adr 착수)
 
 ## Context
 
