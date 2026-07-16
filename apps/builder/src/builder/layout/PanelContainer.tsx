@@ -10,7 +10,14 @@
  * 🚀 성능 최적화 (2024-12): React.memo로 불필요한 리렌더링 방지
  */
 
-import { Activity, memo, useMemo } from "react";
+import {
+  Activity,
+  memo,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 import type { PanelSide, PanelId } from "../panels/core/types";
 import { PanelRegistry } from "../panels/core/PanelRegistry";
 
@@ -77,9 +84,75 @@ function PanelWrapper({
   isActive,
   panelWidth,
 }: PanelWrapperProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const scrollMemoryRef = useRef(
+    new Map<Element, { top: number; left: number }>(),
+  );
+  const isActiveRef = useRef(isActive);
+  const restoringRef = useRef(false);
+
+  // ADR-155 G4: Activity hidden 은 display:none 이라 자손의 DOM 스크롤 offset 이
+  // 소실된다 (이전 content-visibility:auto 숨김은 box 유지로 보존). scroll 을
+  // capture 로 기록해 두고 재활성 commit 시점에 복원한다. hidden 중에는 scroll
+  // 이벤트가 발생하지 않으므로 기록은 visible 구간의 최종값이다.
+  useEffect(() => {
+    const node = wrapperRef.current;
+    if (!node) return;
+    const onScroll = (e: Event) => {
+      // 숨김 전환·복원 중 브라우저 clamp 가 쏘는 scroll(0) 이 기록을 덮지 않게 차단
+      if (!isActiveRef.current || restoringRef.current) return;
+      const t = e.target;
+      if (t instanceof Element) {
+        scrollMemoryRef.current.set(t, {
+          top: t.scrollTop,
+          left: t.scrollLeft,
+        });
+      }
+    };
+    node.addEventListener("scroll", onScroll, { capture: true, passive: true });
+    return () =>
+      node.removeEventListener("scroll", onScroll, { capture: true });
+  }, []);
+
+  // Activity 의 visible 전환은 부모 commit 과 별개 pass 로 display 를 복구할 수
+  // 있어, 동기 layout effect 시점에는 box 부재로 scrollTop 대입이 0 으로 clamp
+  // 될 수 있다 — 적용 확인될 때까지 rAF 로 수 프레임 재시도.
+  useLayoutEffect(() => {
+    isActiveRef.current = isActive;
+    if (!isActive) return;
+    restoringRef.current = true;
+    let raf = 0;
+    let attempts = 0;
+    const restore = () => {
+      let pending = false;
+      for (const [el, pos] of scrollMemoryRef.current) {
+        if (!el.isConnected) {
+          scrollMemoryRef.current.delete(el);
+          continue;
+        }
+        if (el.scrollTop !== pos.top) el.scrollTop = pos.top;
+        if (el.scrollLeft !== pos.left) el.scrollLeft = pos.left;
+        if (el.scrollTop !== pos.top || el.scrollLeft !== pos.left) {
+          pending = true;
+        }
+      }
+      if (pending && attempts++ < 10) {
+        raf = requestAnimationFrame(restore);
+      } else {
+        restoringRef.current = false;
+      }
+    };
+    restore();
+    return () => {
+      cancelAnimationFrame(raf);
+      restoringRef.current = false;
+    };
+  }, [isActive]);
+
   const content = <PanelContent panelId={panelId} side={side} />;
   return (
     <div
+      ref={wrapperRef}
       className="panel-wrapper"
       data-panel={panelId}
       data-active={isActive}

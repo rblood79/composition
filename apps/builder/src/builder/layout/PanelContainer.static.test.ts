@@ -16,7 +16,9 @@ describe("PanelContainer Activity gating contract (ADR-155)", () => {
 
   it("PanelWrapper 가 PanelContent 를 Activity mode 로 감싼다", async () => {
     const source = await readSource();
-    expect(source).toMatch(/import \{ Activity, /);
+    expect(source).toMatch(
+      /import \{[\s\S]*?\bActivity,[\s\S]*?\} from "react"/,
+    );
     expect(source).toMatch(
       /<Activity mode=\{isActive \? "visible" : "hidden"\}>\{content\}<\/Activity>/,
     );
@@ -31,5 +33,13 @@ describe("PanelContainer Activity gating contract (ADR-155)", () => {
   it("data-active CSS 채널 유지 (슬라이드 애니메이션·레이아웃 공간 담당)", async () => {
     const source = await readSource();
     expect(source).toMatch(/data-active=\{isActive\}/);
+  });
+
+  it("스크롤 복원 메커니즘 유지 (G4 — Activity display:none 의 scroll offset 소실 보완)", async () => {
+    const source = await readSource();
+    expect(source).toMatch(/scrollMemoryRef/);
+    expect(source).toMatch(/requestAnimationFrame\(restore\)/);
+    // clamp scroll(0) 이 기록을 덮어쓰지 않게 하는 가드 — 제거 시 복원이 무효화된다
+    expect(source).toMatch(/!isActiveRef\.current \|\| restoringRef\.current/);
   });
 });
