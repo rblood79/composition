@@ -16,7 +16,7 @@
  * />
  */
 
-import React, { useCallback, memo } from 'react';
+import React, { useCallback, memo } from "react";
 import {
   Select as AriaSelect,
   Button,
@@ -24,21 +24,46 @@ import {
   Popover,
   ListBox,
   ListBoxItem,
-} from 'react-aria-components';
-import { ChevronDown, Database, Globe, Variable, Link2, X, RefreshCw } from 'lucide-react';
-import { iconProps, iconEditProps } from '../../../utils/ui/uiConstants';
-import { PropertyFieldset } from './PropertyFieldset';
-import { useCollections, useApiEndpoints, useVariables } from '../../stores/data';
-import './PropertyDataBinding.css';
+} from "react-aria-components";
+import {
+  ChevronDown,
+  Database,
+  Globe,
+  Variable,
+  Link2,
+  X,
+  RefreshCw,
+} from "lucide-react";
+import { iconProps, iconEditProps } from "../../../utils/ui/uiConstants";
+import { PropertyFieldset } from "./PropertyFieldset";
+import { useSelectTriggerFocusRestore } from "./useSelectTriggerFocusRestore";
+import {
+  useCollections,
+  useApiEndpoints,
+  useVariables,
+} from "../../stores/data";
+import "./PropertyDataBinding.css";
 
 // ============================================
 // Constants
 // ============================================
 
 const REFRESH_MODE_OPTIONS = [
-  { value: 'manual', label: '수동 갱신', description: '직접 갱신 호출 시에만 새로고침' },
-  { value: 'onMount', label: '마운트 시', description: '컴포넌트 마운트 시 1회 갱신' },
-  { value: 'interval', label: '주기적', description: '설정된 간격으로 자동 갱신' },
+  {
+    value: "manual",
+    label: "수동 갱신",
+    description: "직접 갱신 호출 시에만 새로고침",
+  },
+  {
+    value: "onMount",
+    label: "마운트 시",
+    description: "컴포넌트 마운트 시 1회 갱신",
+  },
+  {
+    value: "interval",
+    label: "주기적",
+    description: "설정된 간격으로 자동 갱신",
+  },
 ] as const;
 
 // ============================================
@@ -46,11 +71,11 @@ const REFRESH_MODE_OPTIONS = [
 // ============================================
 
 /** 데이터 갱신 모드 */
-export type RefreshMode = 'manual' | 'onMount' | 'interval';
+export type RefreshMode = "manual" | "onMount" | "interval";
 
 export interface DataBindingValue {
   /** 바인딩 소스 타입 */
-  source: 'dataTable' | 'api' | 'variable' | 'route';
+  source: "dataTable" | "api" | "variable" | "route";
   /** 소스 이름 */
   name: string;
   /** 데이터 경로 (예: "items[0].name", "user.email") */
@@ -81,10 +106,10 @@ interface PropertyDataBindingProps {
 // ============================================
 
 const SOURCE_OPTIONS = [
-  { value: 'dataTable', label: 'DataTable', icon: Database },
-  { value: 'api', label: 'API', icon: Globe },
-  { value: 'variable', label: 'Variable', icon: Variable },
-  { value: 'route', label: 'Route Param', icon: Link2 },
+  { value: "dataTable", label: "DataTable", icon: Database },
+  { value: "api", label: "API", icon: Globe },
+  { value: "variable", label: "Variable", icon: Variable },
+  { value: "route", label: "Route Param", icon: Link2 },
 ] as const;
 
 // ============================================
@@ -92,7 +117,7 @@ const SOURCE_OPTIONS = [
 // ============================================
 
 export const PropertyDataBinding = memo(function PropertyDataBinding({
-  label = '데이터 바인딩',
+  label = "데이터 바인딩",
   value,
   onChange,
   className,
@@ -104,35 +129,34 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
   const variables = useVariables();
 
   // 직접 prop 값 사용 (fully controlled)
-  const source = value?.source || '';
-  const name = value?.name || '';
-  const path = value?.path || '';
-  const refreshMode = value?.refreshMode || 'manual';
+  const source = value?.source || "";
+  const name = value?.name || "";
+  const path = value?.path || "";
+  const refreshMode = value?.refreshMode || "manual";
   const refreshInterval = value?.refreshInterval || 5000;
-
 
   // 소스 타입별 이름 옵션 가져오기
   const getNameOptions = useCallback(() => {
     switch (source) {
-      case 'dataTable':
+      case "dataTable":
         return collections.map((dt) => ({
           value: dt.name,
           label: dt.name,
           description: dt.description,
         }));
-      case 'api':
+      case "api":
         return apiEndpoints.map((api) => ({
           value: api.name,
           label: api.name,
           description: api.description,
         }));
-      case 'variable':
+      case "variable":
         return variables.map((v) => ({
           value: v.name,
           label: v.name,
           description: `${v.scope} - ${v.type}`,
         }));
-      case 'route':
+      case "route":
         // Route params는 자유 입력 (동적)
         return [];
       default:
@@ -143,15 +167,15 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
   // 소스 타입 변경 (fully controlled - onChange 즉시 호출)
   const handleSourceChange = useCallback(
     (key: React.Key | null) => {
-      const newSource = key as DataBindingValue['source'] | '';
+      const newSource = key as DataBindingValue["source"] | "";
       if (newSource) {
         // 소스 변경 시 name, path 초기화
-        onChange({ source: newSource, name: '', path: '' });
+        onChange({ source: newSource, name: "", path: "" });
       } else {
         onChange(null);
       }
     },
-    [onChange]
+    [onChange],
   );
 
   // 소스 이름 변경
@@ -159,9 +183,11 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
     (key: React.Key | null) => {
       const newName = key as string;
       if (source) {
-        console.log(`🔗 PropertyDataBinding: ${source} 소스에서 "${newName}" 선택됨`);
+        console.log(
+          `🔗 PropertyDataBinding: ${source} 소스에서 "${newName}" 선택됨`,
+        );
         onChange({
-          source: source as DataBindingValue['source'],
+          source: source as DataBindingValue["source"],
           name: newName,
           path,
           refreshMode: value?.refreshMode,
@@ -169,7 +195,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
         });
       }
     },
-    [source, path, value?.refreshMode, value?.refreshInterval, onChange]
+    [source, path, value?.refreshMode, value?.refreshInterval, onChange],
   );
 
   // 경로 변경 (blur 시 저장)
@@ -178,7 +204,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
       const newPath = e.target.value;
       if (source && name) {
         onChange({
-          source: source as DataBindingValue['source'],
+          source: source as DataBindingValue["source"],
           name,
           path: newPath || undefined,
           refreshMode: value?.refreshMode,
@@ -186,7 +212,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
         });
       }
     },
-    [source, name, value?.refreshMode, value?.refreshInterval, onChange]
+    [source, name, value?.refreshMode, value?.refreshInterval, onChange],
   );
 
   // 갱신 모드 변경
@@ -195,15 +221,16 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
       const newMode = key as RefreshMode;
       if (source && name) {
         onChange({
-          source: source as DataBindingValue['source'],
+          source: source as DataBindingValue["source"],
           name,
           path: value?.path,
           refreshMode: newMode,
-          refreshInterval: newMode === 'interval' ? (value?.refreshInterval || 5000) : undefined,
+          refreshInterval:
+            newMode === "interval" ? value?.refreshInterval || 5000 : undefined,
         });
       }
     },
-    [source, name, value?.path, value?.refreshInterval, onChange]
+    [source, name, value?.path, value?.refreshInterval, onChange],
   );
 
   // 갱신 간격 변경
@@ -212,15 +239,15 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
       const newInterval = parseInt(e.target.value, 10);
       if (source && name && !isNaN(newInterval) && newInterval > 0) {
         onChange({
-          source: source as DataBindingValue['source'],
+          source: source as DataBindingValue["source"],
           name,
           path: value?.path,
-          refreshMode: 'interval',
+          refreshMode: "interval",
           refreshInterval: newInterval,
         });
       }
     },
-    [source, name, value?.path, onChange]
+    [source, name, value?.path, onChange],
   );
 
   // 바인딩 제거
@@ -230,10 +257,16 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
 
   // 바인딩 표현식 프리뷰
   const bindingExpression = value
-    ? `{{${value.source}.${value.name}${value.path ? '.' + value.path : ''}}}`
-    : '';
+    ? `{{${value.source}.${value.name}${value.path ? "." + value.path : ""}}}`
+    : "";
 
   const nameOptions = getNameOptions();
+
+  // popover 닫힘 전환 gap 의 focus ring 깜빡임 방지 (Select 하나당 1개) —
+  // 상세 주석은 useSelectTriggerFocusRestore.ts 참조
+  const sourceSelectFocus = useSelectTriggerFocusRestore();
+  const nameSelectFocus = useSelectTriggerFocusRestore();
+  const refreshSelectFocus = useSelectTriggerFocusRestore();
 
   return (
     <PropertyFieldset legend={label} icon={Link2} className={className}>
@@ -259,11 +292,14 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
             className="react-aria-Select binding-source-select"
             selectedKey={source || null}
             onSelectionChange={handleSourceChange}
+            onOpenChange={sourceSelectFocus.restoreFocusOnClose}
             aria-label="소스 타입"
             isDisabled={disabled}
           >
-            <Button className="react-aria-Button">
-              
+            <Button
+              className="react-aria-Button"
+              ref={sourceSelectFocus.triggerRef}
+            >
               <SelectValue>{"소스 선택..."}</SelectValue>
               <span aria-hidden="true" className="select-chevron">
                 <ChevronDown size={iconProps.size} />
@@ -288,17 +324,21 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
         </div>
 
         {/* 소스 이름 선택 (route 제외) */}
-        {source && source !== 'route' && (
+        {source && source !== "route" && (
           <div className="binding-row">
             {nameOptions.length > 0 ? (
               <AriaSelect
                 className="react-aria-Select binding-name-select"
                 selectedKey={name || null}
                 onSelectionChange={handleNameChange}
+                onOpenChange={nameSelectFocus.restoreFocusOnClose}
                 aria-label="소스 이름"
                 isDisabled={disabled}
               >
-                <Button className="react-aria-Button">
+                <Button
+                  className="react-aria-Button"
+                  ref={nameSelectFocus.triggerRef}
+                >
                   <SelectValue>{"이름 선택..."}</SelectValue>
                   <span aria-hidden="true" className="select-chevron">
                     <ChevronDown size={iconProps.size} />
@@ -330,24 +370,30 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
               </AriaSelect>
             ) : (
               <div className="binding-empty">
-                등록된 {source === 'dataTable' ? 'DataTable' : source === 'api' ? 'API' : 'Variable'}이 없습니다.
+                등록된{" "}
+                {source === "dataTable"
+                  ? "DataTable"
+                  : source === "api"
+                    ? "API"
+                    : "Variable"}
+                이 없습니다.
               </div>
             )}
           </div>
         )}
 
         {/* Route Param 직접 입력 */}
-        {source === 'route' && (
+        {source === "route" && (
           <div className="binding-row">
             <input
               className="react-aria-Input"
               type="text"
-              key={`route-${value?.name || ''}`}
+              key={`route-${value?.name || ""}`}
               defaultValue={name}
               onBlur={(e) => {
                 const newName = e.target.value;
                 if (newName) {
-                  onChange({ source: 'route', name: newName, path });
+                  onChange({ source: "route", name: newName, path });
                 }
               }}
               placeholder="파라미터 이름 (예: productId)"
@@ -362,7 +408,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
             <input
               className="react-aria-Input binding-path-input"
               type="text"
-              key={`path-${value?.source || ''}-${value?.name || ''}`}
+              key={`path-${value?.source || ""}-${value?.name || ""}`}
               defaultValue={path}
               onBlur={handlePathBlur}
               placeholder="데이터 경로 (예: items[0].name)"
@@ -372,7 +418,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
         )}
 
         {/* 갱신 설정 (api, dataTable만 해당) */}
-        {source && name && (source === 'api' || source === 'dataTable') && (
+        {source && name && (source === "api" || source === "dataTable") && (
           <>
             <div className="binding-row binding-refresh-row">
               <label className="binding-row-label">
@@ -383,10 +429,14 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
                 className="react-aria-Select binding-refresh-select"
                 selectedKey={refreshMode}
                 onSelectionChange={handleRefreshModeChange}
+                onOpenChange={refreshSelectFocus.restoreFocusOnClose}
                 aria-label="갱신 모드"
                 isDisabled={disabled}
               >
-                <Button className="react-aria-Button">
+                <Button
+                  className="react-aria-Button"
+                  ref={refreshSelectFocus.triggerRef}
+                >
                   <SelectValue />
                   <span aria-hidden="true" className="select-chevron">
                     <ChevronDown size={iconProps.size} />
@@ -417,7 +467,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
             </div>
 
             {/* 갱신 간격 (interval 모드에서만) */}
-            {refreshMode === 'interval' && (
+            {refreshMode === "interval" && (
               <div className="binding-row binding-interval-row">
                 <label className="binding-row-label">
                   <span>갱신 간격</span>
@@ -428,7 +478,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
                     type="number"
                     min="1000"
                     step="1000"
-                    key={`interval-${value?.source || ''}-${value?.name || ''}`}
+                    key={`interval-${value?.source || ""}-${value?.name || ""}`}
                     defaultValue={refreshInterval}
                     onBlur={handleRefreshIntervalBlur}
                     placeholder="5000"

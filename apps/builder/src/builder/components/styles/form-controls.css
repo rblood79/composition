@@ -87,10 +87,12 @@
         min-width: 0;
 
         /* 개별 Select 포커스 링 제거 — 부모 .react-aria-Group:focus-within 에서만 표시.
-         * generated Select.css (unlayered) 의 .react-aria-Select[data-focus-visible]
+         * generated Select.css (unlayered) 의 .react-aria-Select[data-focus-visible|pressed|focused]
          * outline 이 이 컨텍스트로 leak 되어 builder-system layer 규칙으로는 못 이기므로
-         * !important 필요 (Switch line 140 패턴과 동일). 이중 focus ring 방지. */
-        &[data-focus-visible] {
+         * !important 필요 (Switch line 137-142 패턴과 동일). 이중 focus ring 방지. */
+        &[data-focus-visible],
+        &[data-pressed],
+        &[data-focused] {
           outline: none !important;
         }
 
@@ -104,9 +106,12 @@
           min-width: 0;
           width: 100%;
 
-          /* Button 개별 포커스 링 제거 — 부모 Group 에서만 표시
-           * (generated Select.css .react-aria-Button[data-focus-visible] leak 차단) */
-          &[data-focus-visible] {
+          /* Button 개별 포커스 링 제거 — 부모 Group 에서만 표시.
+           * generated Select.css 의 .react-aria-Button[data-focus-visible] + [data-pressed]
+           * (드롭다운 클릭/열림 시 pressed outline) leak 을 모두 차단. */
+          &[data-focus-visible],
+          &[data-pressed],
+          &[data-focused] {
             outline: none !important;
           }
 
@@ -214,8 +219,17 @@
     }
 
     /* 포커스 스타일을 부모 Group에 적용
-     * Input/Button 사이 이동 시 깜빡임 방지 */
-    .react-aria-Group:focus-within {
+     * Input/Button 사이 이동 시 깜빡임 방지.
+     * Select 는 popover 열림 시 focus 가 ListBox(portal)로 이동해 :focus-within 을 잃으므로
+     * RAC 상태 속성으로 보강 (ComboBox 와 동작 일치):
+     * - [data-open]: popover 열린 동안 유지
+     * - [data-focused]: 보조 방어선 (portal 내 focus 도 focused 로 잡힘).
+     *   단, 값 선택 → 닫힘 → Button focus 복귀 전환 구간에선 리렌더 타이밍에 따라
+     *   해제될 수 있어 이것만으론 깜빡임을 못 막음 — 전환 gap 자체는
+     *   PropertySelect.handleOpenChange 의 동기 focus 복원이 제거한다. */
+    .react-aria-Group:focus-within,
+    .react-aria-Group:has(.react-aria-Select[data-open]),
+    .react-aria-Group:has(.react-aria-Select[data-focused]) {
       outline: 2px solid var(--focus-ring);
       outline-offset: -2px;
     }

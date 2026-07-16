@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [빌더 패널 Select focus ring 이중 표시·소실·깜빡임 수정] - 2026-07-16
+
+### Bug Fixes
+
+- **프로퍼티/스타일 패널 Select 의 focus ring 이 이중 표시되고, popover 열림/닫힘 시 소실·깜빡이던 문제**:
+  - 3중 증상: (1) Tab focus 시 부모 Group ring + Select/Button 개별 ring 동시 표시(이중), (2) popover 열린 동안 부모 ring 소실(ComboBox 와 불일치 — ComboBox 는 열림-선택-닫힘 전 과정 유지), (3) 값 선택/트리거 재클릭 닫힘 시 ring 이 ~170ms 꺼졌다 켜지는 깜빡임.
+  - **Why**: ① canvas 컴포넌트용 generated Select.css(unlayered)의 `[data-focus-visible]`/`[data-pressed]` outline 이 `@layer builder-system` 보다 cascade 우선이라 빌더 패널 컨텍스트로 leak — 패널 focus 설계(부모 `.react-aria-Group:focus-within` 단일 ring)와 충돌. ② Select 는 popover 열림 시 focus 가 ListBox(portal)로 이동해 `:focus-within` 을 잃음. ③ 닫힘 시 focus 가 body 로 낙하했다가 RAC FocusScope 복원까지 수십~수백 ms gap 동안 CSS 가 볼 수 있는 신호가 전부 꺼짐 (`data-focused` 도 리렌더 타이밍에 따라 해제 — 레이스라 CSS 단독 해결 불가).
+  - 수정: ① form-controls.css 에서 Group 하위 Select/Button 의 `[data-focus-visible|pressed|focused]` outline 제거 (`!important` — unlayered leak 차단, Switch 기존 패턴과 동일). ② Group ring 조건에 `:has(.react-aria-Select[data-open])` + `[data-focused]` 추가 — popover 열린 동안 유지. ③ `useSelectTriggerFocusRestore` 훅 신설 — 닫힘 시 다음 frame(paint 직전)에 focus 가 popover 내부/body 미아 상태면 트리거로 복원. 외부 클릭으로 다른 컨트롤에 간 focus 는 강탈하지 않음(동기 무조건 복원은 focus 강탈 회귀 실측으로 기각). PropertySelect + PropertyDataBinding(소스/이름/갱신 모드 Select 3개) 적용.
+  - 유사 패턴 전수 점검: GradientEditor/MeshGradientEditor(Fill popover portal — `.section` 밖이라 부모 ring 패턴 비대상), SelectionMemory·이벤트 패널 계열·SettingsPanel(부모 ring 없음) 해당 없음 판정. PropertyIconPicker(DialogTrigger 기반 인접 패턴)는 증상 미실측으로 보류.
+  - 검증: Chrome MCP 실빌더 rAF 프레임 레코더 — Tab focus 단일 ring, popover 열림 중 ring 유지, 값 선택/재클릭 닫힘 시 ring off ~170ms → 0~1 frame(인지 불가), 외부 클릭 시 RAC 기본 동작 보존. type-check PASS.
+  - 위치: `apps/builder/src/builder/components/styles/form-controls.css`, `apps/builder/src/builder/components/property/{PropertySelect,PropertyDataBinding}.tsx`, `apps/builder/src/builder/components/property/useSelectTriggerFocusRestore.ts`(신규)
+
 ## [추가 Fill(FillLayerRow) 팝오버 24px 붕괴 수정] - 2026-07-16
 
 ### Bug Fixes

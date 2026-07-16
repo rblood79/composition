@@ -9,6 +9,7 @@ import {
 } from "react-aria-components";
 import { ChevronDown } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
+import { useSelectTriggerFocusRestore } from "./useSelectTriggerFocusRestore";
 
 interface PropertySelectProps {
   label: string;
@@ -42,6 +43,16 @@ export const PropertySelect = memo(
     const [isOpen, setIsOpen] = useState(false);
     const groupRef = useRef<HTMLDivElement>(null);
     const selectRef = useRef<HTMLDivElement>(null);
+    // 🚀 Fix: popover 닫힘 전환 gap 의 focus ring 깜빡임 방지 —
+    // 상세 주석은 useSelectTriggerFocusRestore.ts 참조
+    const { triggerRef, restoreFocusOnClose } = useSelectTriggerFocusRestore();
+    const handleOpenChange = useCallback(
+      (open: boolean) => {
+        setIsOpen(open);
+        restoreFocusOnClose(open);
+      },
+      [restoreFocusOnClose],
+    );
     const [popoverMetrics, setPopoverMetrics] = useState({
       width: 0,
       offset: 0,
@@ -124,7 +135,7 @@ export const PropertySelect = memo(
             className="react-aria-Select"
             ref={selectRef}
             isOpen={isOpen}
-            onOpenChange={setIsOpen}
+            onOpenChange={handleOpenChange}
             selectedKey={
               value === ""
                 ? options.some((opt) => opt.value === "reset")
@@ -135,7 +146,7 @@ export const PropertySelect = memo(
             onSelectionChange={handleChange}
             aria-label={label}
           >
-            <Button className="react-aria-Button">
+            <Button className="react-aria-Button" ref={triggerRef}>
               {Icon && (
                 <label className="control-label">
                   <Icon
