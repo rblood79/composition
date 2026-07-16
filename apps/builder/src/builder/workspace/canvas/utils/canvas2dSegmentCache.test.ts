@@ -381,6 +381,26 @@ describe("needsFallback", () => {
       }),
     ).toBe(true);
   });
+
+  it("fontVariant: small-caps면 fallback 필요 (ADR-151 B18 — buildFontString 미포함, CanvasKit 렌더는 적용)", () => {
+    expect(
+      needsFallback({
+        fontSize: 16,
+        fontFamily: "Arial",
+        fontVariant: "small-caps",
+      }),
+    ).toBe(true);
+  });
+
+  it("fontVariant: normal이면 fallback 불필요", () => {
+    expect(
+      needsFallback({
+        fontSize: 16,
+        fontFamily: "Arial",
+        fontVariant: "normal",
+      }),
+    ).toBe(false);
+  });
 });
 
 // ============================================

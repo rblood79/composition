@@ -397,6 +397,8 @@ export function needsFallback(style: TextMeasureStyle): boolean {
   if (style.whiteSpace && style.whiteSpace !== "normal") return true;
   // break-all: 문자 단위 분할 — CanvasKit ZWS 삽입 방식이 더 정확
   if (style.wordBreak === "break-all") return true;
+  // fontVariant(small-caps 등): buildFontString 미포함 — CanvasKit 렌더는 적용하므로 측정도 CanvasKit 로
+  if (style.fontVariant && style.fontVariant !== "normal") return true;
   return false;
 }
 

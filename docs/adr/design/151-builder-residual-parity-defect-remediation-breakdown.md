@@ -132,12 +132,11 @@
 - **B13 Checkbox dw+7.6 → 해소 (dw+0.6)**: 원인 = `calculateContentWidth` PHANTOM_INDICATOR 분기가 라벨 폭을 기본 폰트 (16px/400) 로 측정 — DOM 라벨은 catalog Label (14px/600) 상속. `extractSpecTextStyle("label", { size })` 경유로 정렬 (`specTextStyle.ts` TEXT_BEARING_SPECS 에 label entry 추가). 라이브 실측 94 vs 93.4.
 - 검증: `pnpm build:specs` ✓ / `pnpm type-check` PASS / vitest 339/339 PASS / 라이브 재확증 (StatusLight·Badge·Checkbox·ToggleButton — Chrome MCP battery 실측)
 
-### Phase 5: 잠재 결함 (B18~B20)
+### Phase 5: 잠재 결함 (B18~B20) — ✅ 완료 (2026-07-16)
 
-- B18 fontVariant: 노출 경로 (패널 미노출) 재확인 → 방어 수정 (`needsFallback` 에 fontVariant 검사 1줄) 또는 명시 보류 판정
-- B19 position:fixed: preview/publish 에서 fixed 사용 가능 여부 확인 → 사용 가능하면 cameraX/Y 배선, 불가하면 보류 판정 기록
-- B20 useStyleSource: 스타일 소스 배지 정확도 — 소규모 수정 또는 보류 판정
-- 본 Phase 는 전 항목 "수정 없이 보류" 종결 가능 (과잉 변경 금지 원칙)
+- **B18 fontVariant → 방어 수정 반영**: `canvas2dSegmentCache.ts needsFallback()` 에 `fontVariant !== "normal"` 검사 1줄 추가 — small-caps 등은 CanvasKit 측정 경로로 우회해 측정↔렌더 (CanvasKit `resolveFontVariantFeatures`) 일치. 회귀 테스트 2건 동반 (`canvas2dSegmentCache.test.ts`, 45/45 PASS). 패널에 fontVariant 편집 UI 는 여전히 없음 — canonical 문서 직접 주입 경로 대비 방어.
+- **B19 position:fixed → 보류 판정**: 스타일 패널에 CSS `position` 속성 편집 경로 자체가 없음 확인 (TransformSection 의 "fixed" 는 size mode 이며 CSS position 아님 — grep 전수). 사용자가 fixed 를 만들 방법이 없어 노출 경로 0 — cameraX/Y 배선은 position 편집 UI 도입 시점의 선행 조건으로 기록만 유지 (`renderCommands.ts:824` TODO 존치).
+- **B20 useStyleSource → 보류 판정**: 스타일 소스 배지 (Inspector 표시 정확도) 는 CSS↔Skia 시각 파리티와 무관 — 본 ADR scope (파리티·잠재 렌더 결함) 밖 개선 항목. 과잉 변경 금지 원칙으로 보류 (`useStyleSource.ts:57` TODO 존치).
 
 ### Phase 6: 재발 방지 + 종결
 
