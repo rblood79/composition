@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Bug Fixes
 
+- **IllustratedMessage 캔버스↔Preview 시각 발산 (Skia 48 vs CSS 240 → md 240=240 / sm 197=197)** (ADR-151 후속, 06f1319b3):
+  - **Why**: 3겹 — layout 높이 분기 부재 (escape 그리기가 48px 박스를 넘침) + escape 가 top-left 고정으로 padding/factory 정렬(alignItems:flex-start) 미소비 + DOM 컴포넌트가 md 하드코딩 (binding propPassthrough 부재로 size prop 미도달)
+  - 수정: `resolveIllustratedMessageMetric` (catalog rule sizes read-through) 을 DOM/Skia escape/layout 3경로 단일 산식으로 도입 — escape 는 element style (padding/gap/alignItems, longhand 우선) 소비, layout 분기는 content-box 계약 (caller 가 style padding 가산)
+  - 위치: `packages/specs/src/renderers/utils/illustratedMessageMetrics.ts` (신규), `skiaPrimitives.ts`, `packages/shared/src/components/IllustratedMessage.tsx`, `apps/builder/.../layout/engines/utils.ts`
+  - 신규 관측 (후속): preview 가 prop 편집을 canonical 재송신 전까지 미반영 — breakdown §Phase 6 잔여 표 기록
+
 - **TableView flex 부모 발산 (Skia 350×80 vs CSS 179.4×106 → 350×82 = 350×82)** (ADR-151 후속):
   - **Why**: catalog CSS 채널 이중 단절 — generated/TableView.css 가 index.css 미import + renderTableView 가 `react-aria-TableView` 클래스 미부여 raw div → width:100%/text-sm 이 DOM 미도달. 재배선 시 archetype base `align-items:center` 가 살아나 자식 stretch 붕괴 + DOM border-box +2 를 엔진 미합산 + Cell 폰트가 상속 의존 (root text-sm cascade 로 파괴) — 4겹 원인
   - 수정: import + 클래스 부여 (inline dup 은 catalog CSS 단일 위임으로 제거) + catalog `alignItems:"stretch"` 양 채널 + layout 채널 `borderWidth:"1px"` + Column/Cell 16/24 subtree 미러
