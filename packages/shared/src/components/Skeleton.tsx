@@ -113,6 +113,14 @@ export interface SkeletonProps {
 
   /** Test ID */
   "data-testid"?: string;
+
+  /**
+   * ADR-151 후속 (2026-07-17): cutover 경로(CanonicalNodeRenderer)가 marker
+   * (data-element-id/data-canonical-id) 및 data-* 를 props 로 주입한다 — root 에
+   * passthrough 하지 않으면 preview 측정/클릭 선택이 이 요소를 못 찾는다
+   * (IllustratedMessage 동형 결함, StatusLight 패턴).
+   */
+  [dataAttr: `data-${string}`]: string | undefined;
 }
 
 /**
@@ -145,7 +153,9 @@ function SkeletonLine({
 
   return (
     <div
-      className={className ? `react-aria-Skeleton ${className}` : "react-aria-Skeleton"}
+      className={
+        className ? `react-aria-Skeleton ${className}` : "react-aria-Skeleton"
+      }
       data-variant="text"
       data-animation={animation !== "none" ? animation : undefined}
       style={{
@@ -177,19 +187,25 @@ export function Skeleton({
   index,
   "aria-label": ariaLabel = "Loading...",
   "data-testid": testId = "skeleton",
+  ...rest
 }: SkeletonProps) {
   // Component-specific variants render their own structure
   if (componentVariant) {
     return (
       <div
-        className={className ? `react-aria-Skeleton ${className}` : "react-aria-Skeleton"}
+        {...rest}
+        className={
+          className ? `react-aria-Skeleton ${className}` : "react-aria-Skeleton"
+        }
         data-component-variant={componentVariant}
         data-size={size}
         data-animation={animation !== "none" ? animation : undefined}
-        style={{
-          "--skeleton-index": index,
-          ...style,
-        } as React.CSSProperties}
+        style={
+          {
+            "--skeleton-index": index,
+            ...style,
+          } as React.CSSProperties
+        }
         role="status"
         aria-label={ariaLabel}
         aria-busy="true"
@@ -204,6 +220,7 @@ export function Skeleton({
   if (variant === "text" && lines > 1) {
     return (
       <div
+        {...rest}
         className="react-aria-Skeleton-group"
         style={{
           display: "flex",
@@ -233,15 +250,20 @@ export function Skeleton({
   // Base skeleton
   return (
     <div
-      className={className ? `react-aria-Skeleton ${className}` : "react-aria-Skeleton"}
+      {...rest}
+      className={
+        className ? `react-aria-Skeleton ${className}` : "react-aria-Skeleton"
+      }
       data-variant={variant}
       data-animation={animation !== "none" ? animation : undefined}
-      style={{
-        width: typeof width === "number" ? `${width}px` : width,
-        height: typeof height === "number" ? `${height}px` : height,
-        "--skeleton-index": index,
-        ...style,
-      } as React.CSSProperties}
+      style={
+        {
+          width: typeof width === "number" ? `${width}px` : width,
+          height: typeof height === "number" ? `${height}px` : height,
+          "--skeleton-index": index,
+          ...style,
+        } as React.CSSProperties
+      }
       role="status"
       aria-label={ariaLabel}
       aria-busy="true"
@@ -316,7 +338,11 @@ function renderComponentVariant(componentVariant: ComponentSkeletonVariant) {
       return (
         <>
           {[1, 2, 3, 4].map((i) => (
-            <span key={i} className="skeleton-cell" style={{ width: `${20 + i * 5}%` }} />
+            <span
+              key={i}
+              className="skeleton-cell"
+              style={{ width: `${20 + i * 5}%` }}
+            />
           ))}
         </>
       );
@@ -485,8 +511,17 @@ Skeleton.Text = function SkeletonText({
 Skeleton.Circle = function SkeletonCircle({
   size: circleSize = 48,
   ...props
-}: Omit<SkeletonProps, "variant" | "width" | "height" | "size"> & { size?: number }) {
-  return <Skeleton variant="circular" width={circleSize} height={circleSize} {...props} />;
+}: Omit<SkeletonProps, "variant" | "width" | "height" | "size"> & {
+  size?: number;
+}) {
+  return (
+    <Skeleton
+      variant="circular"
+      width={circleSize}
+      height={circleSize}
+      {...props}
+    />
+  );
 };
 
 /**

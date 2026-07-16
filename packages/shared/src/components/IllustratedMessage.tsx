@@ -31,6 +31,13 @@ export interface IllustratedMessageProps {
   style?: React.CSSProperties;
   /** 추가 className */
   className?: string;
+  /**
+   * ADR-151 후속 (2026-07-17): cutover 경로(CanonicalNodeRenderer)가 marker
+   * (data-element-id/data-canonical-id) 및 data-* 를 props 로 주입한다 — root `<div>`
+   * 에 passthrough 하지 않으면 preview 측정/클릭 선택(closest("[data-element-id]"))이
+   * 이 요소를 못 찾는다 (StatusLight 동형 패턴).
+   */
+  [dataAttr: `data-${string}`]: string | undefined;
 }
 
 /**
@@ -44,12 +51,14 @@ export function IllustratedMessage({
   description,
   style,
   className,
+  ...rest
 }: IllustratedMessageProps): React.ReactElement {
   const headingText = heading || "No content";
   const descriptionText = description || "There is nothing to display.";
 
   return (
     <div
+      {...rest}
       role="status"
       style={{
         display: "flex",
