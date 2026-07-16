@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-151 잔여 3건 해소 — TableView 발산 / preview marker 소실 / components 페이지 안내] - 2026-07-17
+
+### Bug Fixes
+
+- **TableView flex 부모 발산 (Skia 350×80 vs CSS 179.4×106 → 350×82 = 350×82)** (ADR-151 후속):
+  - **Why**: catalog CSS 채널 이중 단절 — generated/TableView.css 가 index.css 미import + renderTableView 가 `react-aria-TableView` 클래스 미부여 raw div → width:100%/text-sm 이 DOM 미도달. 재배선 시 archetype base `align-items:center` 가 살아나 자식 stretch 붕괴 + DOM border-box +2 를 엔진 미합산 + Cell 폰트가 상속 의존 (root text-sm cascade 로 파괴) — 4겹 원인
+  - 수정: import + 클래스 부여 (inline dup 은 catalog CSS 단일 위임으로 제거) + catalog `alignItems:"stretch"` 양 채널 + layout 채널 `borderWidth:"1px"` + Column/Cell 16/24 subtree 미러
+  - 위치: `packages/shared/styles/index.css`, `packages/shared/src/renderers/LayoutRenderers.tsx`, `packages/shared/src/catalog/generated/componentRulesTable.ts`
+- **IllustratedMessage/Skeleton preview 측정·클릭 선택 불가 — cutover marker 소실** (ADR-151 후속):
+  - **Why**: cutover 경로는 `data-element-id` 를 컴포넌트 props 로 주입하는데 두 컴포넌트가 rest 미전개로 소실 — "preview 미렌더" 관측의 실체 (시각 렌더는 정상). preview 클릭 선택 (`closest("[data-element-id]")`) 도 불가였음
+  - 수정: `...rest` 전개 (StatusLight 패턴, Skeleton 은 3분기 전부) + 비위임 internal leaf 7종 marker contract 테스트
+  - 잔여: 측정 가능 전환 후 IllustratedMessage Skia 48 vs CSS 240 시각 발산 신규 관측 (escape 기하 + layout 높이 분기 부재) — 후속
+- **components 시스템 페이지 preview 빈 화면** (ADR-151 후속, 사용자 (a)안):
+  - **Why**: `pageRole:"components"` 페이지는 `isRuntimePageNode` 가 설계상 제외 + legacy fallback 이 ADR-125 이후 dead (UPDATE_ELEMENTS 미수신) → 빈 화면 + 경고만 잔존
+  - 수정: 필터 유지 + "Components page is not previewable" 안내 렌더 (`apps/builder/src/preview/App.tsx`)
+
 ## [빌더 잔여 CSS↔Skia 발산 일소 — ADR-151 Phase 0~6] - 2026-07-17
 
 ### Bug Fixes
