@@ -29,7 +29,9 @@ describe("family ③ selection — catalog 등록 + cutover gate", () => {
       expect(entry, `${type} catalog entry`).toBeDefined();
       expect(entry?.kind).toBe("primitive");
       expect(entry?.family).toBe("selection");
-      expect((entry as { cutover?: string } | undefined)?.cutover).toBe("catalog");
+      expect((entry as { cutover?: string } | undefined)?.cutover).toBe(
+        "catalog",
+      );
     }
   });
 
@@ -69,7 +71,10 @@ describe("family ③ selection — toRacProps 변환 계약", () => {
     expect(result["data-size"]).toBe("md");
   });
 
-  it("Slider: minValue/maxValue/step + orientation 통과", () => {
+  it("Slider: minValue/maxValue/step + labelPosition 통과", () => {
+    // 2026-07-16: orientation 패널 항목 제거 → labelPosition(enum) 으로 대체. enum kind 는
+    //   toRacProps 에서 React prop 으로 passthrough (field 컴포넌트 labelPosition 동형).
+    //   실제 DOM 은 renderSlider 가 destructure → data-label-position emit 이라 RAC leak 없음.
     const result = toRacProps(
       {
         id: "s1",
@@ -78,7 +83,7 @@ describe("family ③ selection — toRacProps 변환 계약", () => {
           minValue: 0,
           maxValue: 100,
           step: 10,
-          orientation: "vertical",
+          labelPosition: "side",
         },
       },
       getPrimitiveBinding("Slider")!,
@@ -86,7 +91,7 @@ describe("family ③ selection — toRacProps 변환 계약", () => {
     expect(result.minValue).toBe(0);
     expect(result.maxValue).toBe(100);
     expect(result.step).toBe(10);
-    expect(result.orientation).toBe("vertical");
+    expect(result.labelPosition).toBe("side");
     expect(result["data-size"]).toBe("md");
   });
 

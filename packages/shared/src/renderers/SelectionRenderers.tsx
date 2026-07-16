@@ -1527,6 +1527,10 @@ export const renderSlider = (
       //   (buildSpecNodeData:800)/layout(utils:2608) 은 이미 소비하나 DOM 은 SliderOutput
       //   무조건 렌더였음(showValueLabel=false 시 비대칭). 기본 true.
       showValueLabel={element.props.showValueLabel !== false}
+      // 2026-07-16: labelPosition forward — data-label-position emit 으로 generated CSS
+      //   `[data-label-position="side"]` 소비 (Label · Track · Value 가로 배치). Skia 대칭은
+      //   implicitStyles Slider 분기. orientation 패널 항목 제거 → labelPosition 으로 대체.
+      labelPosition={(element.props.labelPosition as "top" | "side") || "top"}
       formatOptions={
         element.props.formatOptions as Intl.NumberFormatOptions | undefined
       }

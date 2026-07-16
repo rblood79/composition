@@ -1978,6 +1978,11 @@ export function applyImplicitStyles(
     const showValue =
       (containerProps?.showValueLabel ?? containerProps?.showValue) !== false;
     const sizeName = (containerProps?.size as string) ?? "md";
+    // 2026-07-16: labelPosition="side" 시 부모 grid → flex-row 전환 + 자식 배열 재정렬.
+    //   canonical 순서 label→value→track(SliderOutput→SliderTrack)을 label→track→value 로 정렬해
+    //   CSS side flex(.react-aria-SliderTrack order:1/flex:1 · .react-aria-SliderOutput order:2)와
+    //   동일 시각 결과(Label · Track · Value)를 만든다. ProgressBar/Meter side 선례 동형.
+    const isSideLabel = containerProps?.labelPosition === "side";
 
     // value → 포맷된 텍스트 계산 (ElementSprite 미러링)
     const sliderValue = containerProps?.value;
@@ -2054,6 +2059,8 @@ export function applyImplicitStyles(
               gridRowEnd: cs.gridRowEnd ?? "3",
               width: cs.width ?? "100%",
               height: trackHeight,
+              // side: flex-row 에서 Track 이 남는 폭을 채운다 (grid props 는 flex 에서 무효).
+              ...(isSideLabel ? { flexGrow: 1 } : {}),
             },
           },
         } as CanvasLayoutNode;
@@ -2085,6 +2092,18 @@ export function applyImplicitStyles(
       return child;
     });
 
+    // side: canonical 순서(label→value→track)를 label→track→value 로 배열 재정렬. Skia order sort
+    //   (fullTreeLayout getOrder)는 store 원본 style.order 만 읽어 implicitStyles 주입 order 를 못 보므로,
+    //   배열 순서 자체를 바꿔 CSS(.react-aria-SliderTrack order:1 / .react-aria-SliderOutput order:2)와
+    //   동일 시각 결과(Label · Track · Value)를 만든다 (ProgressBar/Meter side 선례 동형).
+    if (isSideLabel) {
+      const sideRank = (t: string): number =>
+        t === "Label" ? 0 : t === "SliderTrack" ? 1 : 2;
+      filteredChildren = [...filteredChildren].sort(
+        (a, b) => sideRank(a.type) - sideRank(b.type),
+      );
+    }
+
     // 부모 container style: display/gridTemplate* 은 resolveContainerStylesFallback 이
     //   slider archetype/spec.containerStyles 로부터 이미 parentStyle 에 선주입 → gap 만 처리.
     //   ADR-912 Phase 3-A-1 (Δ4): row-gap 도 .sizes.gap=4 read-through (column-gap 은 ADR-088 에서
@@ -2093,6 +2112,18 @@ export function applyImplicitStyles(
     const sliderColGap = specSizeField("slider", sizeName, "columnGap") ?? 16;
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
+      // side: grid → flex-row 전환 (자식 배열 재정렬로 label-track-value). gridTemplate* 는
+      //   flex 에서 무효라 명시 제거 — display 전환은 layoutVersion/full-rebuild 로 반영됨
+      //   (ProgressBar/Meter 분기 동형).
+      ...(isSideLabel
+        ? {
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            gridTemplateAreas: undefined,
+            gridTemplateColumns: undefined,
+          }
+        : {}),
       rowGap: parentStyle.rowGap ?? sliderRowGap,
       columnGap: parentStyle.columnGap ?? sliderColGap,
     });

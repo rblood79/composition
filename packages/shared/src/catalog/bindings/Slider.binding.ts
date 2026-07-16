@@ -35,14 +35,20 @@ export const sliderBinding: PrimitiveBinding = {
         section: "appearance",
         default: "md",
       },
-      orientation: {
+      // 2026-07-16: orientation 패널 항목 제거 → labelPosition 으로 대체 (사용자 명세).
+      //   labelPosition="side" 시 Label · Track · Value 가로 배치 (RSP Slider labelPosition
+      //   레퍼런스 정합, ProgressBar/Meter side 선례 동형). D3 구현 3중:
+      //   CSS(catalog structure.composition.containerVariants["label-position"] → generated
+      //   Slider.css) + Skia(top-level containerVariants + implicitStyles 자식 재정렬) +
+      //   DOM(shared Slider data-label-position emit / renderSlider forward).
+      labelPosition: {
         kind: "enum",
-        label: "Orientation",
+        label: "Label Position",
         section: "appearance",
-        default: "horizontal",
+        default: "top",
         options: [
-          { value: "horizontal", label: "Horizontal" },
-          { value: "vertical", label: "Vertical" },
+          { value: "top", label: "Top" },
+          { value: "side", label: "Side" },
         ],
       },
       minValue: { kind: "number", label: "Min Value", section: "content" },

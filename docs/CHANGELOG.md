@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Slider labelPosition — orientation 패널 항목 대체] - 2026-07-16
+
+### Breaking Changes
+
+- **Slider 속성 패널 `orientation` 항목 제거 → `labelPosition` 으로 대체**:
+  - Slider Inspector 의 Orientation(horizontal/vertical) 편집 항목 삭제, Label Position(Top/Side) 추가
+  - **Why**: orientation=vertical 은 Slider grid 레이아웃(`"label output"` / `"track track"`) 미지원이라 실효 없던 편집 항목. RSP Slider 는 labelPosition 을 시각 배치 축으로 사용 → 레퍼런스 정합
+  - 기존 프로젝트 영향 없음: 저장된 `orientation` prop 은 `renderSlider` 가 여전히 forward(기본 horizontal), 데이터 마이그레이션 불요. 패널 편집 항목만 제거
+  - 위치: `packages/shared/src/catalog/bindings/Slider.binding.ts`
+
+### Features
+
+- **Slider `labelPosition="side"` — Label · Track · Value 가로 배치** (RSP Slider labelPosition 레퍼런스 정합):
+  - `side` 시 grid(`"label output"` / `"track track"`) → flex-row 전환. Label · Track · Value 순서로 한 줄 가로 배치 (Track 이 남는 폭 flex:1 로 채움)
+  - D3 3중 대칭 구현: CSS(catalog `structure.composition.containerVariants["label-position"]` → generated `Slider.css` `[data-label-position="side"]`) + Skia(top-level `containerVariants` + `implicitStyles` 자식 배열 재정렬 label→track→value) + DOM(shared `Slider` `data-label-position` emit / `renderSlider` forward)
+  - **Why**: ProgressBar/Meter `labelPosition="side"` 선례(2026-07-15)와 동형 통일. 사용자 명세 = side 일 때 Label · Track · Value 표시
+  - live 검증(Chrome MCP): DOM Preview + Skia Canvas 양쪽 Label·Track·Value 가로 배치 대칭 확인 (side 전환 시 높이 32→20 축소 = 2행→1행)
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`(Slider), `packages/shared/src/components/Slider.tsx`, `SelectionRenderers.renderSlider`, `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`(Slider 분기)
+
 ## [catalog prop parity 복원 종결 — ADR-915 Implemented] - 2026-07-16
 
 > ADR-912(spec→catalog cutover)로 축소됐던 컴포넌트 편집 prop("프로퍼티 대량 소실") 복원의 마지막 잔여를 종결. 대부분은 07-15 "RAC/RSP 정합 감사"가 선행 복원했고, 본 세션은 남은 live·대칭 셀만 grep + Chrome MCP live 검증으로 복원.

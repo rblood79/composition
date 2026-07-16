@@ -9687,6 +9687,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       gridTemplateAreas: '"label output" "track track"',
       gridTemplateColumns: "1fr auto",
     },
+    // 2026-07-16: labelPosition="side" (Skia resolveActiveContainerVariants 소비 — 부모 grid→flex-row).
+    //   CSS 대칭 = structure.composition.containerVariants["label-position"], 자식 재정렬(label→track→value)은
+    //   implicitStyles Slider 분기 (ProgressBar/Meter side 선례 동형).
+    containerVariants: {
+      "label-position": {
+        side: {
+          styles: {
+            display: "flex",
+            "flex-direction": "row",
+            "align-items": "center",
+          },
+        },
+      },
+    },
     sizes: {
       sm: {
         fontSize: "{typography.text-xs}",
@@ -9777,6 +9791,30 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
             ".react-aria-SliderOutput": {
               "font-size": "var(--text-lg)",
+            },
+          },
+        },
+        containerVariants: {
+          // 2026-07-16: labelPosition="side" — Slider 3요소(label/track/value) grid→flex-row.
+          //   부모 flex-row + 자식 order(track 중간 flex:1, value 끝) → Label · Track · Value 가로 배치.
+          //   Skia 자식 재정렬은 implicitStyles Slider 분기가 동일 시각 결과 주입 (D3 대칭).
+          "label-position": {
+            side: {
+              styles: {
+                display: "flex",
+                "flex-direction": "row",
+                "align-items": "center",
+              },
+              nested: [
+                {
+                  selector: ".react-aria-SliderTrack",
+                  styles: { order: "1", flex: "1" },
+                },
+                {
+                  selector: ".react-aria-SliderOutput",
+                  styles: { order: "2" },
+                },
+              ],
             },
           },
         },

@@ -48,6 +48,14 @@ export interface SliderProps<T> extends AriaSliderProps<T> {
    */
   showValueLabel?: boolean;
   /**
+   * 라벨 위치 (RSP Slider labelPosition 레퍼런스).
+   * - "top": Label · Value 상단, Track 하단 (grid 기본)
+   * - "side": Label · Track · Value 가로 배치 (flex-row)
+   * data-label-position 로 emit → generated Slider.css `[data-label-position="side"]` 소비.
+   * @default 'top'
+   */
+  labelPosition?: "top" | "side";
+  /**
    * Show loading skeleton instead of slider
    * @default false
    */
@@ -68,6 +76,7 @@ export function Slider<T extends number | number[]>({
   formatOptions,
   customFormatter,
   showValueLabel = true,
+  labelPosition = "top",
   isLoading,
   ...props
 }: SliderProps<T>) {
@@ -109,6 +118,7 @@ export function Slider<T extends number | number[]>({
       className={sliderClassName}
       data-emphasized={isEmphasized || undefined}
       data-size={size}
+      data-label-position={labelPosition}
     >
       {label && <Label>{label}</Label>}
       {showValueLabel && (

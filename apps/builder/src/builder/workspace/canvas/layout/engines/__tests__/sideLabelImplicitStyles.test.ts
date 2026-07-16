@@ -354,4 +354,58 @@ describe("side-label implicit styles", () => {
     expect(parentStyle.flex).toBe(1);
     expect(parentStyle.minWidth).toBe(0);
   });
+
+  it("Slider side variant는 grid→flex-row 전환 + 자식을 label→track→value 로 재정렬한다", () => {
+    // 2026-07-16: labelPosition="side" → Label · Track · Value 가로 배치 (ProgressBar/Meter 동형).
+    //   canonical 자식 순서(label→output→track)를 label→track→value(output) 로 배열 재정렬 +
+    //   Track flexGrow:1 로 남는 폭 채움. 부모 grid→flex-row 명시 전환 (gridTemplate* 제거).
+    const result = applyContainer(
+      "Slider",
+      { label: "Volume", labelPosition: "side", value: 50, size: "md" },
+      [
+        makeChild("lbl", "Label"),
+        makeChild("out", "SliderOutput"),
+        makeChild("trk", "SliderTrack"),
+      ],
+    );
+
+    const parentStyle = getParentStyle(result);
+    expect(parentStyle.display).toBe("flex");
+    expect(parentStyle.flexDirection).toBe("row");
+    expect(parentStyle.alignItems).toBe("center");
+    // grid template 은 flex 에서 무효라 명시 제거
+    expect(parentStyle.gridTemplateAreas).toBeUndefined();
+    expect(parentStyle.gridTemplateColumns).toBeUndefined();
+
+    // Track 이 남는 폭을 채운다
+    const trackStyle = getChildStyle(result, "SliderTrack");
+    expect(trackStyle.flexGrow).toBe(1);
+
+    // 자식 배열 순서 = label → track → value(output)
+    const order = result.filteredChildren.map((child) => child.type);
+    expect(order).toEqual(["Label", "SliderTrack", "SliderOutput"]);
+  });
+
+  it("Slider top 기본은 자식 재정렬 없음 + Track flexGrow 미주입", () => {
+    const result = applyContainer(
+      "Slider",
+      { label: "Volume", labelPosition: "top", value: 50, size: "md" },
+      [
+        makeChild("lbl", "Label"),
+        makeChild("out", "SliderOutput"),
+        makeChild("trk", "SliderTrack"),
+      ],
+    );
+
+    const parentStyle = getParentStyle(result);
+    // top 은 grid 유지 → side 전용 flex-row 강제 미발생
+    expect(parentStyle.flexDirection).not.toBe("row");
+
+    const trackStyle = getChildStyle(result, "SliderTrack");
+    expect(trackStyle.flexGrow).toBeUndefined();
+
+    // canonical 순서(label→output→track) 유지
+    const order = result.filteredChildren.map((child) => child.type);
+    expect(order).toEqual(["Label", "SliderOutput", "SliderTrack"]);
+  });
 });
