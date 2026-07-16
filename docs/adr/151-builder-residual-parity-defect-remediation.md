@@ -2,9 +2,9 @@
 
 ## Status
 
-Proposed — 2026-07-16
+Accepted — 2026-07-16 (Proposed 2026-07-16, 리뷰 round 1 승인 가능 + 사용자 착수 승인)
 
-> 사용자 지시: ADR 생성까지만 — 구현 착수 금지. Phase 실행은 사용자 승인 후 시작한다.
+> 착수 조건 (사용자 지시 2026-07-16): Phase 0 battery 재실측 freeze 선행(G1) / 원인 축 그룹당 1 phase + 1 커밋 / 판정 기준 ±2px + 텍스트 측정 기인 규명 시 수용(원인 미상은 크기 무관 수용 금지) / B7 Menu 는 AskUserQuestion 확인 후 진행 / 수정 컴포넌트 tree_golden 편입 + 그룹 완료 시 /cross-check.
 
 ## Context
 
