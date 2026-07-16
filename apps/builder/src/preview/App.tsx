@@ -125,7 +125,7 @@ function CanvasContent() {
   const currentLayoutId = useRuntimeStore((s) => s.currentLayoutId);
   const currentPageId = useRuntimeStore((s) => s.currentPageId);
   const canonicalDocument = useRuntimeStore((s) => s.canonicalDocument);
-  const [, bumpImportRegistryVersion] = useState(0);
+  const [importRegistryVersion, bumpImportRegistryVersion] = useState(0);
   const navigate = useNavigate();
 
   // ⭐ 모듈 레벨 싱글톤 EventEngine 사용
@@ -189,44 +189,31 @@ function CanvasContent() {
     };
   }, [canonicalDocument]);
 
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    if (!canonicalDocument) return;
-
+  // ADR-116 canonical resolve — 문서 단위 1회 메모이제이션.
+  //
+  // 이전에는 (1) dev 전용 로깅 effect 가 순수 console.log 목적으로 full
+  // resolve 를 1회, (2) renderElementsTree 가 매 렌더마다 full resolve 를
+  // 1회 더 수행했다 (문서 변경당 2회+). preview 는 builder 와 같은 main
+  // thread 를 공유하므로 (same-origin iframe) 이 비용이 builder 프레임
+  // 사이에 끼어 jank 를 가중시켰다. resolve 실패 시 null → 렌더 경로가
+  // legacy fallback (안전망 동작 기존과 동일).
+  //
+  // importRegistryVersion: prefetchDocumentImports 완료 시 bump — resolve
+  // 결과가 import registry 내용에 의존하므로 재계산 트리거로 포함한다.
+  const resolvedCanonicalNodes = useMemo(() => {
+    if (!USE_CANONICAL_RENDER || !canonicalDocument) return null;
+    void importRegistryVersion;
     try {
-      const resolved = resolveCanonicalDocument(
+      return resolveCanonicalDocument(
         canonicalDocument,
         undefined,
         canonicalImportRegistry,
       );
-
-      const refCount = canonicalDocument.children.filter(
-        (c) => c.type === "ref",
-      ).length;
-      const reusableCount = canonicalDocument.children.filter(
-        (c) => c.reusable,
-      ).length;
-
-      console.log("[ADR-116] preview canonical resolve", {
-        input: {
-          elements: elements.length,
-          currentPageId,
-          currentLayoutId,
-        },
-        document: {
-          version: canonicalDocument.version,
-          children: canonicalDocument.children.length,
-          reusables: reusableCount,
-          refs: refCount,
-        },
-        resolved: {
-          rootCount: resolved.length,
-        },
-      });
     } catch (err) {
       console.warn("[ADR-116] preview canonical resolve failed", err);
+      return null;
     }
-  }, [canonicalDocument, elements.length, currentPageId, currentLayoutId]);
+  }, [canonicalDocument, importRegistryVersion]);
 
   // ⭐ 이전에 적용된 body 스타일 키들을 추적
   const appliedStyleKeysRef = useRef<Set<string>>(new Set());
@@ -891,24 +878,18 @@ function CanvasContent() {
     //
     // USE_CANONICAL_RENDER === true 시:
     //  1. Builder 가 보낸 CompositionDocument 를 직접 사용
-    //  2. resolveCanonicalDocument → ResolvedNode[]
+    //  2. resolvedCanonicalNodes (문서 단위 메모이제이션된 resolve 결과) 사용
     //  3. 현재 page 에 해당하는 노드만 필터링
     //  4. CanonicalNodeRenderer 로 렌더링
     //
     // document 미수신/resolve 실패 시 아래 legacy element fallback 으로 렌더링.
     // ──────────────────────────────────────────────────────────────────────────
-    if (USE_CANONICAL_RENDER && canonicalDocument) {
+    if (resolvedCanonicalNodes) {
       try {
-        const resolved = resolveCanonicalDocument(
-          canonicalDocument,
-          undefined,
-          canonicalImportRegistry,
-        );
-
         // 현재 page 에 해당하는 top-level 노드 필터링.
         // page 식별은 runtime audience helper를 사용한다.
         // currentPageId 없으면 (layout-edit 모드) 모든 page 노드 통과.
-        const pageNodes = resolved.filter((node) => {
+        const pageNodes = resolvedCanonicalNodes.filter((node) => {
           if (!isRuntimePageNode(node)) return false;
           const meta = node.metadata as Record<string, unknown> | undefined;
           if (!currentPageId) return true;
@@ -924,7 +905,7 @@ function CanvasContent() {
           // canonical 결과 없음 → legacy fallback (안전망)
           console.warn(
             "[ADR-116] preview canonical 노드 없음 — legacy fallback",
-            { currentPageId, resolvedCount: resolved.length },
+            { currentPageId, resolvedCount: resolvedCanonicalNodes.length },
           );
         } else {
           return (
@@ -1019,7 +1000,7 @@ function CanvasContent() {
 
     return rootElements.map((el) => renderElement(el, el.id));
   }, [
-    canonicalDocument,
+    resolvedCanonicalNodes,
     resolvedElements,
     renderElement,
     currentLayoutId,

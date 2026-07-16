@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Builder 프레임 jank 2건 제거 — FontMgr 프레임 밖 재구축 + Preview resolve 중복 정리] - 2026-07-16
+
+### Performance
+
+- **Skia FontMgr 재구축을 rAF 프레임 밖으로 분리** (부팅 프레임 ~460ms 제거):
+  - 폰트 배치 로드 종료 지점(`loadAllCustomFontsToSkia` / `syncCustomFontsWithSkia`)에서 `warmFontMgr()` 로 `ck.FontMgr.FromData` 전체 재파싱을 선지불
+  - **Why**: 렌더 루프의 lazy `getFontMgr()` 가 첫 rAF 프레임 안에서 재구축을 지불해 draw 비용과 한 프레임에 겹침 — 실측 부팅 `render.frame` 1005ms = draw 542ms + FromData ~460ms. 수정 후 frame−draw 잔차 460ms → 7ms (Chrome MCP 실측)
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/fontManager.ts`, `apps/builder/src/builder/fonts/loadCustomFontsToSkia.ts`
+- **Preview canonical resolve 를 문서 변경당 2회+ → 1회로 축소**:
+  - dev 전용 로깅 effect 의 full `resolveCanonicalDocument`(순수 console.log 목적) 제거 + 렌더 경로 resolve 를 문서 단위 `useMemo` 로 메모이제이션 (import registry prefetch 완료 시에만 재계산)
+  - **Why**: preview 는 same-origin iframe 이라 builder 와 main thread 를 공유 — 편집 중 문서 변경마다 전체 문서 resolve 2회 + `[ADR-116] preview canonical resolve` 콘솔 로그가 builder 프레임 사이에 끼어 pointer 인터랙션 600ms long frame 을 가중
+  - 위치: `apps/builder/src/preview/App.tsx` (정적 가드: `previewFrameMirror.static.test.ts` — registry 경유 resolve 1회 + memo 존재 고정)
+
 ## [Slider labelPosition — orientation 패널 항목 대체] - 2026-07-16
 
 ### Breaking Changes

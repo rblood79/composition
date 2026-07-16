@@ -28,11 +28,14 @@ describe("preview frame mirror contract", () => {
       "const canonicalImportRegistry = getSharedImportRegistry();",
     );
     expect(source).toContain(".prefetchDocumentImports(canonicalDocument)");
+    // 문서 단위 useMemo 1회 — dev 로깅 전용 중복 resolve 는 perf 정리로 제거됨
+    // (렌더 경로 resolve 를 memo 로 공유). registry 미경유 resolve 재도입 차단.
     expect(
       source.match(
         /resolveCanonicalDocument\(\s*canonicalDocument,\s*undefined,\s*canonicalImportRegistry,\s*\)/g,
       ) ?? [],
-    ).toHaveLength(2);
+    ).toHaveLength(1);
+    expect(source).toContain("const resolvedCanonicalNodes = useMemo(");
   });
 
   it("renders canonical document content even when legacy preview elements are empty", async () => {
