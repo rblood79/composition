@@ -603,6 +603,26 @@ export function renderText(
       } else if (textAlign === ck.TextAlign.Right) {
         alignOffset = -widthDiff;
       }
+    } else if (!isEllipsis && layoutMaxWidth >= 100000) {
+      // nowrap/pre + 명시 maxWidth 밴드 + center/right 정렬 (ADR-151 후속 2026-07-17):
+      // nowrap 은 위(:566)에서 paragraph 를 intrinsic 폭으로 재layout 하므로 paragraph
+      // 내부 align 이 무효가 된다 (폭 == 글자 폭) — CSS 는 white-space:nowrap 이어도
+      // text-align 을 유지하므로 밴드 내 외부 offset 으로 정렬을 복원한다.
+      // (IllustratedMessage placeholder ○ glyph 가 박스 좌측에 붙던 원인 — DOM 은
+      // flex center. calendar 요일 등 nowrap+center escape 전반 동일 계열.)
+      const band = node.text.maxWidth;
+      if (
+        typeof band === "number" &&
+        band < 100000 &&
+        band > effectiveLayoutWidth
+      ) {
+        const bandDiff = band - effectiveLayoutWidth;
+        if (textAlign === ck.TextAlign.Center) {
+          alignOffset = bandDiff / 2;
+        } else if (textAlign === ck.TextAlign.Right) {
+          alignOffset = bandDiff;
+        }
+      }
     }
 
     setCachedParagraph(key, paragraph);
