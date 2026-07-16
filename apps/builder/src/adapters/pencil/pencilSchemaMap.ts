@@ -18,6 +18,8 @@ export const PENCIL_DIRECT_NODE_FIELDS = [
   "name",
   "clip",
   "placeholder",
+  // ADR-154 — responsive breakpoint override (shared PENCIL_NODE_FIELDS 미러)
+  "responsive",
 ] as const;
 
 export const PENCIL_TO_CANONICAL_TYPE = {

@@ -34,6 +34,7 @@
  */
 
 import type { ComponentTag } from "./composition-vocabulary";
+import type { ElementResponsiveConfig } from "./responsive.types";
 
 // ─────────────────────────────────────────────
 // ThemeSnapshot — ADR-110 Phase 1
@@ -639,6 +640,21 @@ export interface CanonicalNode {
    * 생략한다 (소비자는 `length > 0` 판정).
    */
   fills?: unknown[];
+
+  /**
+   * Breakpoint 별 반응형 override — canonical 1차 필드 (ADR-154 Phase 1).
+   *
+   * 저장 규약: **desktop = base** (`props.style` 에 그대로 저장, 본 필드 미사용).
+   * tablet/mobile 은 base 와 다른 **override 만** 본 필드에 저장하며, resolve 는
+   * `getResponsiveValueWithCascade` (responsive.types.ts) 단일 진입점의
+   * desktop-first cascade 를 따른다. override 값도 store longhand 정책
+   * (ADR-909) 준수 — shorthand (`gap`/`padding`/`margin`) 저장 금지.
+   *
+   * `fills`/`theme` 와 같은 노드 레벨 시각 override 계열 — 값이 없으면 필드
+   * 자체를 생략한다. pencil roundtrip 은 direct field 로 보존
+   * (`PENCIL_NODE_FIELDS` 등재, clip/placeholder 선례).
+   */
+  responsive?: ElementResponsiveConfig;
 
   /**
    * Extensibility hook — 메타데이터 저장소.

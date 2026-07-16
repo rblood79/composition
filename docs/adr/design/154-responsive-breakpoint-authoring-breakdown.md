@@ -27,14 +27,14 @@
 | 레이아웃 resolve 주입 지점                                                                      | **부재**                                                                                                   | `layout/engines/fullTreeLayout.ts` (processedElementsMap 생성 앞단)                 | Phase 2 신규                              |
 | Preview/Publish @media 출력                                                                     | **부재** (`generateStaticHtml` 은 title+viewport 만: `packages/shared/src/utils/export.utils.ts:982-1008`) | —                                                                                   | Phase 3 신규                              |
 
-## 3. Phase 1 — 데이터 모델 (canonical schema)
+## 3. Phase 1 — 데이터 모델 (canonical schema) ✅ Implemented 2026-07-16
 
 1. `CanonicalNode` 에 `responsive?: ElementResponsiveConfig` optional 필드 추가 (`composition-document.types.ts`). 타입은 `responsive.types.ts` 의 것을 shared 로 이동 또는 re-export (builder→shared 역방향 import 금지, package boundary: specs ← shared ← builder).
 2. 저장 규약:
    - **desktop = base**: desktop 값은 기존 `props.style` 에 그대로 저장 (BC 무변경). `responsive.styles.{prop}.{tablet|mobile}` 에는 **override 만** 저장 — cascade resolve 는 `getResponsiveValueWithCascade` 단일 진입점.
    - **longhand 정책 준수 (ADR-909)**: responsive override 도 store longhand only (gap → rowGap/columnGap 분배). `distributeShorthand` 경로 공유.
-3. mutation: `canonicalMutations.ts` wrapper 경유 + canonical 1차 → set → `_rebuildIndexes` → persist 순서 (state-management.md 의무). history event 는 canonical replace event.
-4. roundtrip: `.pen` export/import (`adapters/pencil/pencilSchemaMap.ts`) 에 `responsive` 필드 보존 여부 판정 — pencil format 미규정 필드면 `PENCIL_DIRECT_NODE_FIELDS` 등재 또는 x-composition extension 경유 (Phase 1 착수 시 판정, ADR-116 §3).
+3. mutation: `canonicalMutations.ts` wrapper 경유 + canonical 1차 → set → `_rebuildIndexes` → persist 순서 (state-management.md 의무). history event 는 canonical replace event. **(Phase 2 로 이연 — 첫 소비자인 Inspector 편집과 함께 도입. 소비자 0 상태의 wrapper 선반영은 dormant foundation 회피 원칙 위배)**
+4. roundtrip: `.pen` export/import (`adapters/pencil/pencilSchemaMap.ts`) 에 `responsive` 필드 보존 여부 판정 — pencil format 미규정 필드면 `PENCIL_DIRECT_NODE_FIELDS` 등재 또는 x-composition extension 경유 (Phase 1 착수 시 판정, ADR-116 §3). **판정 결과 (2026-07-16): direct field 등재 채택** — shared `PENCIL_NODE_FIELDS` + 양방향 `assignIfPresent` (clip/placeholder 선례). x-composition 기각: 해당 extension 은 events/actions 류 비-시각 payload 용이고, responsive 는 serializable 시각 config 라 direct field 정합.
 5. 정적 가드: 기존 문서 (responsive 필드 없음) 로드 무영향 테스트.
 
 ## 4. Phase 2 — Builder 편집 경로

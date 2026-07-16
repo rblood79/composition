@@ -13,6 +13,8 @@ export * from "./event.types";
 export * from "./font.types";
 // ADR-903 P0 — Canonical Document Format
 export * from "./composition-document.types";
+// ADR-154 Phase 1 — Responsive breakpoint 타입 (builder 에서 이동)
+export * from "./responsive.types";
 export * from "./composition-vocabulary";
 // ADR-903 P0 Stream 2 — Pencil Adapter + Canonical Resolver Cache
 export * from "./pencil-adapter.types";

@@ -1,7 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import type { PencilDocument } from "@composition/shared";
+import type {
+  ElementResponsiveConfig,
+  PencilDocument,
+} from "@composition/shared";
 import {
   exportPencilDocument,
   normalizePencilDocumentForSchemaCompare,
@@ -37,6 +40,36 @@ describe("ADR-111 Pencil roundtrip adapter", () => {
       );
     },
   );
+
+  it("preserves CanonicalNode.responsive through export/import (ADR-154 G4)", () => {
+    const responsive: ElementResponsiveConfig = {
+      visibility: { mobile: false },
+      styles: { flexDirection: { tablet: "column" } },
+    };
+    const exported = exportPencilDocument({
+      version: "composition-1.0",
+      children: [
+        {
+          id: "hero",
+          type: "frame",
+          responsive,
+          children: [],
+        },
+      ],
+    });
+
+    expect(exported.children[0]).toEqual(
+      expect.objectContaining({ responsive }),
+    );
+
+    const reimported = importPencilDocument(exported);
+    const node = reimported.children[0] as {
+      responsive?: unknown;
+      props?: Record<string, unknown>;
+    };
+    expect(node.responsive).toEqual(responsive);
+    expect(node.props?.responsive).toBeUndefined();
+  });
 
   it("keeps composition-only component identity in metadata.compositionType", () => {
     const exported = exportPencilDocument({
