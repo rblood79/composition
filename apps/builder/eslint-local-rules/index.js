@@ -38,6 +38,8 @@ const ADR126_ELEMENT_IMPORT_ALLOWED_FILES = new Set([
   "src/builder/panels/monitor/hooks/useComponentMemory.ts",
   "src/builder/panels/nodes/PagesSection.tsx",
   "src/builder/panels/properties/PropertiesPanel.tsx",
+  // ADR-155 Phase 2: PropertiesPanel 에서 이전된 legacy elementsMap 변환 (동일 계약)
+  "src/builder/panels/properties/panelNodeElementMap.ts",
   "src/builder/panels/properties/utils/batchPropertyUtils.ts",
   "src/builder/panels/styles/utils/fillExternalIngress.ts",
   "src/builder/stores/canonical/canonicalElementsView.ts",

@@ -1,7 +1,7 @@
 # ADR-155 구현 상세: 숨은 패널 selection fan-out 차단 — 패널 활성 gating
 
 > 본문: [155-hidden-panel-selection-fanout-gating.md](../155-hidden-panel-selection-fanout-gating.md)
-> Status: Accepted — 2026-07-17 (리뷰 round 1 승인). Phase 0 진행 중.
+> Status: Accepted — 2026-07-17 (리뷰 round 1 승인). Phase 0·1·2 핵심 완료 — 잔여: 12패널 dead 가드 제거 + Phase 3 (G3/G4 대형 문서 실측 + 종결).
 
 ## 1. Baseline 실측 (2026-07-17, adr151-followup-verify 프로젝트 43 요소, 패널 전부 접힘 상태)
 
@@ -53,11 +53,16 @@
    - 콘솔 error/warning 0 (HMR 적용 이후 상호작용 구간).
    - **미판정 잔여**: 파일럿 2종에는 popover 없음 — 스파이크 (f) portal 잔존 체크는 Phase 2 에서 Select 보유 패널 (properties/styles) 로 확인. 슬라이드-아웃 300ms 중 내용 즉시 소멸 여부는 정지 스크린샷 한계 — G4 (Phase 3) 시각 확인 항목.
 
-### Phase 2 — 전 패널 확대
+### Phase 2 — 부수효과 이전 + 전 패널 확대 — **핵심 완료 2026-07-17 (잔여 1건)**
 
-1. left/right 전 패널로 Activity 래핑 확대 (`PanelWrapper` 단일 지점이라 개별 패널 코드 무변경).
-2. `PanelContent` 의 `isActive={true}` 하드코딩 정리 — **실값 전달 금지** 원칙 유지 (가드 패널이 즉시 unmount 로 전환되어 기각된 대안 C 동작 = Hard Constraint 3 위반). 단 **Phase 0 재실측으로 전제 갱신 (§5 하단)**: (i) 가드는 3패널이 아니라 **left/right 12패널 전수** (2행 스타일 9 + 1행 스타일 3), (ii) `PanelProps.isActive` 는 bottom 경로 (`BottomPanelArea.tsx:162` 실전달, MonitorPanel 가드 live) 가 실사용하므로 **prop 타입 제거 불가**. 따라서 정리 방식 = left/right 12패널의 dead 가드 제거 + `PanelContent` 의 `isActive={true}` 하드코딩 유지 (bottom/modal 경로 계약 보존). 12패널 가드 제거는 같은 커밋으로 묶는다. 파일럿 Phase 1 은 하드코딩 유지 상태라 이 위험 미해당.
-3. 정적 가드 테스트: `PanelContainer.static.test.ts` — Activity 래핑 존재 + `isActive={true}` 하드코딩 재도입 차단.
+1. **부수효과 이전 (사용자 승인 방향)**:
+   - properties 캔버스 전역 단축키 11 핸들러 (Cmd+C/V/D/A, Escape, Cmd+Alt+X, Cmd+G/Shift+G, 정렬 6, 분배 2) + Tab 네비게이션 raw listener → **`panels/properties/CanvasSelectionShortcuts.tsx` 신설 host 로 이전** (BuilderCore mount, leaf null 렌더라 구독 재렌더 비전파). 핸들러 본문 verbatim 이동 — Copy All/Paste 의 `scope: "panel:properties"` 도 원본 그대로 보존 (scope 는 포커스 기반이라 등록 위치 무관). panel-scoped Copy/Paste Properties 2종 + Cmd+? 도움말은 패널 잔류 (Cmd+? 는 properties 숨김 중 비동작으로 동작 변화 — 도움말 modal 이 패널 내부 UI 라 수용).
+   - styles Copy/Paste Styles 단축키 → 동일 host 로 이전 (핸들러는 툴바 버튼용으로 패널에도 잔류 — 같은 `useStyleActions` 경유). Focus Mode/전체 접기는 패널 UI 조작이라 잔류.
+   - nodes/datatable 부트스트랩 2건은 **이전 불필요로 정정** (§5 — BuilderCore 가 이미 primary, Phase 0 grep `| head` 절단 오판).
+   - `panelNodeToElement`/`panelNodeMapToElementMap` 을 `panelNodeElementMap.ts` 로 분리 (host 공유 + react-refresh 경고 회피). ADR-126 Element allowlist 에 등재 (동일 계약 이동, 신규 도입 아님).
+2. left/right 전 패널 Activity 래핑 확대 완료 — `PanelWrapper` 무조건부 래핑 (파일럿 allowlist 제거). fonts/TypographySection font sync effect 에 재장착 catch-up 1줄 추가 (HC2).
+3. 정적 가드 테스트 완료: `PanelContainer.static.test.ts` 3건 — Activity 래핑 존재 / `isActive={true}` 하드코딩 유지 (실값 전달 재도입 차단) / data-active CSS 채널 유지. **잔여**: left/right 12패널 dead 가드 제거 (기능 무영향 정리 — 하드코딩 유지라 실값 전달 위험 없음, 별도 커밋 예정).
+4. **라이브 검증 (2026-07-17, 리로드 후)**: 비활성 10패널 전부 Activity hidden / 선택 클릭 4회 mutation: styles·nodes·theme 0 vs active properties 330 / **Escape 가 host 에서 발화 (properties 패널 hidden 상태 포함)** — 콘솔 로그 소스 `CanvasSelectionShortcuts.tsx` 확인 / nodes·datatable hidden 부트에서 프로젝트·데이터 정상 로드 / popover 열린 채 실클릭 전환 시 interactOutside 로 먼저 닫힘 (portal 잔존 없음 — 단 **키보드 단축키 패널 전환은 pointerdown 없이 전환되므로 G4 에서 확인**) / 콘솔 error 0 / LoAF (>50ms 프레임) 관찰자에 클릭 3회 동안 **0건** (baseline 86~205ms 상시 — 소형 문서 참고치, G3 판정은 대형 문서로).
 
 ### Phase 3 — Gate 총괄 실측 + 종결
 
@@ -69,28 +74,38 @@
 
 `usePanelIsActive(panelId)` (layout store 직구독) + `useSelectedElementData(enabled)` selector sentinel gating 을 패널 4소비처에 배선. Activity 래핑은 제거 (롤백 = 래퍼 삭제 1곳).
 
-## 4. 파일 변경 표 (추정)
+## 4. 파일 변경 표 (실제 — Phase 2 까지)
 
-| 파일                                                                      | Phase | 변경                                           |
-| ------------------------------------------------------------------------- | ----- | ---------------------------------------------- |
-| `apps/builder/src/builder/layout/PanelContainer.tsx`                      | 1→2   | Activity 래핑 + isActive 하드코딩 정리 (~30줄) |
-| `apps/builder/src/builder/layout/__tests__/PanelContainer.static.test.ts` | 2     | 신규 — 래핑/하드코딩 정적 가드                 |
-| `apps/builder/src/builder/layout/PanelContainer.css` 또는 해당 스타일     | 1     | data-active 숨김과 Activity 숨김의 역할 정리   |
-| (fallback 시) `stores/index.ts`, `panels/{styles,properties,events}/*`    | —     | enabled 파라미터 배선                          |
+| 파일                                                                      | Phase | 변경                                                                           |
+| ------------------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------ |
+| `apps/builder/src/builder/layout/PanelContainer.tsx`                      | 1→2   | Activity 래핑 (파일럿 allowlist → 무조건부). isActive={true} 하드코딩 유지     |
+| `apps/builder/src/builder/layout/PanelContainer.static.test.ts`           | 2     | 신규 — 래핑/하드코딩/data-active 정적 가드 3건                                 |
+| `apps/builder/src/builder/panels/properties/CanvasSelectionShortcuts.tsx` | 2     | 신규 — 캔버스 전역 단축키 host (PropertiesPanel 11 핸들러 + Styles copy/paste) |
+| `apps/builder/src/builder/panels/properties/panelNodeElementMap.ts`       | 2     | 신규 — PanelNode→Element 변환 분리 (host 공유)                                 |
+| `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx`          | 2     | 전역 단축키 핸들러 ~590줄 host 이전 제거, scoped 2종 + Cmd+? 잔류              |
+| `apps/builder/src/builder/panels/styles/StylesPanel.tsx`                  | 2     | Copy/Paste Styles 단축키 entry 제거 (핸들러는 버튼용 잔류)                     |
+| `apps/builder/src/builder/main/BuilderCore.tsx`                           | 2     | CanvasSelectionShortcutsHost mount                                             |
+| `apps/builder/src/builder/panels/fonts/FontManagerPanel.tsx`              | 2     | 재장착 catch-up sync 1줄                                                       |
+| `apps/builder/src/builder/panels/styles/sections/TypographySection.tsx`   | 2     | 재장착 catch-up sync 1줄                                                       |
+| `apps/builder/eslint-local-rules/index.js`                                | 2     | ADR-126 Element allowlist 에 panelNodeElementMap.ts 등재                       |
+| (잔여) left/right 12패널                                                  | 2/3   | dead 가드 제거 (기능 무영향 정리)                                              |
+| (fallback 시) `stores/index.ts`, `panels/{styles,properties,events}/*`    | —     | enabled 파라미터 배선 — 미사용 (G2 통과로 fallback 미발동)                     |
 
-## 5. 숨은 패널 effect 의존 inventory (Phase 0 실측 2026-07-17 — G1 판정 입력)
+## 5. 숨은 패널 effect 의존 inventory (Phase 0 실측 → Phase 2 정정 2026-07-17 — G1 판정)
 
-| 패널                                                                    | 숨김 중 필요한 부수효과                                                                                                                                                                                 | 판정 (gating 가능/제외)                                                                                              |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| nodes                                                                   | `initializeProject(projectId)` — **앱 전체에서 유일한 프로젝트 부트스트랩 호출처** (`NodesPanel.tsx:123-127`, grep 전수). 미실행 시 페이지 로드 자체가 안 됨                                            | **의존 O** — 제외 또는 부트스트랩을 BuilderCore 급으로 이전. 제외 시 TreeItem 재생성 축 잔존                         |
-| datatable                                                               | collections/apiEndpoints/variables store 하이드레이션 (`DataTablePanel.tsx:72-96`) — 캔버스 `useCollectionData` 가 이 store 를 소비 (`useCollectionData.ts:239`, `:542` pending 판정 — 자체 fetch 없음) | **의존 O** — 제외 또는 하이드레이션을 프로젝트 로드 시점으로 이전. 제외 시 데이터 바인딩 컴포넌트가 패널 열림에 종속 |
-| properties                                                              | **캔버스 전역 단축키 등록** — Cmd+C/V/D/A, Escape, Cmd+G/Shift+G, 정렬 6종, 분배 2종, Cmd+Alt+X, Cmd+? (`PropertiesPanel.tsx:1414-1574`) + Tab 네비게이션 raw listener (`:1578-1595`)                   | **의존 O** — 제외 또는 단축키 등록을 전역 host 로 이전. 제외 시 입력 fan-out 축 잔존                                 |
-| styles                                                                  | Copy/Paste Styles (Cmd+Shift+C/V)·Focus Mode (Alt+Shift+S)·전체 접기 (Alt+S) 단축키 (`StylesPanel.tsx:88-136`) — 현재는 패널 숨김 중에도 동작                                                           | **의존 △** — 이전 또는 "패널 열림 시만 동작" 수용 (동작 변화 승인 필요)                                              |
-| fonts                                                                   | font registry window listener (`FontManagerPanel.tsx:37-50`) — 자기 표시 sync. effect 본문에 initial sync 호출 없음 → 재장착 시 catch-up 누락                                                           | gating 가능 — 재장착 catch-up sync 1줄 추가 조건 (HC2)                                                               |
-| styles/TypographySection                                                | 동일 font sync listener (`TypographySection.tsx:125-142`)                                                                                                                                               | 동일 조건                                                                                                            |
-| history                                                                 | `historyManager.subscribe` + mount 시 즉시 `updateHistory()` (`HistoryPanel.tsx:58-68`) — 재장착 시 초기 read 내장                                                                                      | gating 가능 ✓                                                                                                        |
-| theme / ai / components / settings / events / actions / datatableEditor | 전역 부수효과 0 — 테마 적용은 store/핸들러 소관 (effect 아님), AI 는 scroll·context sync (abort 없음), events 키보드는 편집기 열림 중만, `ExecutionDebugger` 는 소비처 0 (dead)                         | gating 가능 ✓                                                                                                        |
-| monitor                                                                 | bottom 경로 — `BottomPanelArea.tsx:162` 가 isActive **실전달** (가드 live) + 닫힘 시 영역 자체 null. PanelContainer 밖                                                                                  | **ADR 범위 밖** (이미 unmount gating)                                                                                |
+| 패널                                                                    | 숨김 중 필요한 부수효과                                                                                                                                                                                                                           | 판정 (gating 가능/제외)                                                                                                            |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| nodes                                                                   | ~~`initializeProject` 유일 호출처~~ → **Phase 2 정정: `BuilderCore.tsx:455` 가 primary 부트스트랩** (Phase 0 grep 이 `\| head` 절단으로 놓친 오판). `NodesPanel.tsx:123-127` 은 `pageCount===0` fallback 잔재                                     | **gating 안전** — 이전 불필요 (primary 가 패널 밖에 이미 존재). nodes hidden 부트로 프로젝트 정상 로드 라이브 실증                 |
+| datatable                                                               | ~~하이드레이션 유일 경로~~ → **Phase 2 정정: `BuilderCore.tsx:472` `initializeForProject` 가 동일 fetch 3종 (variables/collections/apiEndpoints) 의 상위집합을 부트에서 실행** (`stores/data.ts:184-229`). `DataTablePanel.tsx:72-96` 은 fallback | **gating 안전** — 이전 불필요. hidden 부트에서 데이터 정상 로드 라이브 실증                                                        |
+| properties                                                              | **캔버스 전역 단축키 등록** — Cmd+C/V/D/A, Escape, Cmd+G/Shift+G, 정렬 6종, 분배 2종, Cmd+Alt+X + Tab 네비게이션 raw listener                                                                                                                     | **이전 완료 (Phase 2)** — `CanvasSelectionShortcuts.tsx` host (BuilderCore mount). panel:properties scope 2종 + Cmd+? 는 패널 잔류 |
+| styles                                                                  | Copy/Paste Styles (Cmd+Shift+C/V) 단축키 — 숨김 중에도 동작하던 계약. Focus Mode (Alt+Shift+S)·전체 접기 (Alt+S) 는 패널 UI 조작이라 숨김 중 무의미                                                                                               | **Copy/Paste 이전 완료 (Phase 2)** — 동일 host. Focus/접기 2종은 패널 잔류 (숨김 중 비동작 = 의미상 정상)                          |
+| fonts                                                                   | font registry window listener (`FontManagerPanel.tsx`) — 자기 표시 sync. effect 본문에 initial sync 호출 없음 → 재장착 시 catch-up 누락                                                                                                           | gating 가능 — **catch-up sync 1줄 추가 완료 (Phase 2)**                                                                            |
+| styles/TypographySection                                                | 동일 font sync listener (`TypographySection.tsx`)                                                                                                                                                                                                 | 동일 — **catch-up 추가 완료 (Phase 2)**                                                                                            |
+| history                                                                 | `historyManager.subscribe` + mount 시 즉시 `updateHistory()` (`HistoryPanel.tsx:58-68`) — 재장착 시 초기 read 내장                                                                                                                                | gating 가능 ✓                                                                                                                      |
+| theme / ai / components / settings / events / actions / datatableEditor | 전역 부수효과 0 — 테마 적용은 store/핸들러 소관 (effect 아님), AI 는 scroll·context sync (abort 없음), events 키보드는 편집기 열림 중만, `ExecutionDebugger` 는 소비처 0 (dead)                                                                   | gating 가능 ✓                                                                                                                      |
+| monitor                                                                 | bottom 경로 — `BottomPanelArea.tsx:162` 가 isActive **실전달** (가드 live) + 닫힘 시 영역 자체 null. PanelContainer 밖                                                                                                                            | **ADR 범위 밖** (이미 unmount gating)                                                                                              |
+
+**G1 최종 판정 (Phase 2)**: 제외 목록 = **공집합** — 전 패널 Activity 적용. 부트스트랩 2건은 오판 정정 (primary 가 이미 패널 밖), 단축키 2건은 host 이전 완료.
 
 **가드 실측 정정 (리뷰 round 1 m1 의 재정정)**: `if (!isActive)` 가드는 3종이 아니라 **left/right 패널 12종 전수 + MonitorPanel(live)** — 리뷰의 단일행 grep (`isActive) return null`) 이 2행 스타일 (`if (!isActive) {\n return null`) 9곳을 놓침. 12종 전부 `PanelContent` 의 `isActive={true}` 하드코딩으로 dead (2026-07-17 `grep -rn "!isActive"` 전수). `ModalPanelContainer.tsx:194` 도 `isActive={true}` 전달 (modal 은 조건부 mount 라 정상). ActionsPanel 만 가드 없음.
 

@@ -82,20 +82,10 @@ function StylesPanelContent() {
     await pasteStyles();
   }, [pasteStyles]);
 
+  // ADR-155 Phase 2: Copy/Paste Styles 단축키는 CanvasSelectionShortcuts host 로
+  // 이전 (패널 Activity gating 중에도 동작 유지). 핸들러는 툴바 버튼용으로 잔류.
   const shortcuts = useMemo(
     () => [
-      {
-        key: "c",
-        modifier: "cmdShift" as const,
-        handler: handleCopyStyles,
-        description: "Copy Styles",
-      },
-      {
-        key: "v",
-        modifier: "cmdShift" as const,
-        handler: handlePasteStyles,
-        description: "Paste Styles",
-      },
       {
         key: "s",
         modifier: "altShift" as const,
@@ -116,19 +106,10 @@ function StylesPanelContent() {
         description: "Expand/Collapse All Sections",
       },
     ],
-    [
-      handleCopyStyles,
-      handlePasteStyles,
-      toggleFocusMode,
-      collapsedSections,
-      expandAll,
-      collapseAll,
-    ],
+    [toggleFocusMode, collapsedSections, expandAll, collapseAll],
   );
 
   useKeyboardShortcutsRegistry(shortcuts, [
-    handleCopyStyles,
-    handlePasteStyles,
     toggleFocusMode,
     collapsedSections,
     expandAll,

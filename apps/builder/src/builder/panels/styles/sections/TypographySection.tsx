@@ -131,6 +131,9 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         })),
       );
 
+    // ADR-155: Activity 재표시로 effect 재장착 시 숨김 중 놓친 갱신 catch-up
+    syncFonts();
+
     window.addEventListener("composition:custom-fonts-updated", syncFonts);
     const handleStorage = (event: StorageEvent) => {
       if (event.key !== FONT_REGISTRY_STORAGE_KEY) return;

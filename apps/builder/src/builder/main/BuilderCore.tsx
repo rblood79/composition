@@ -10,6 +10,7 @@ import { applyCanonicalThemes } from "@/adapters/canonical";
 import "../panels";
 
 import { BuilderHeader, Breakpoint } from "./BuilderHeader";
+import { CanvasSelectionShortcutsHost } from "../panels/properties/CanvasSelectionShortcuts";
 import { BuilderCanvas } from "./BuilderCanvas";
 
 import { BuilderViewport } from "./BuilderViewport";
@@ -1105,6 +1106,10 @@ export const BuilderCore: React.FC = () => {
 
   return (
     <BuilderViewport>
+      {/* ADR-155 Phase 2: 캔버스 전역 선택 단축키 host — 패널 Activity gating 과
+          무관하게 항상 mounted. leaf null 렌더라 구독 재렌더가 여기로 전파 안 됨 */}
+      <CanvasSelectionShortcutsHost />
+
       {/* 에러 표시 */}
       {error && (
         <div className="error-banner">

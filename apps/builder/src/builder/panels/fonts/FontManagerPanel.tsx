@@ -37,13 +37,19 @@ function FontManagerContent() {
   useEffect(() => {
     const syncRegistry = () => setRegistry(loadFontRegistry());
 
+    // ADR-155: Activity 재표시로 effect 재장착 시 숨김 중 놓친 갱신 catch-up
+    syncRegistry();
+
     window.addEventListener("composition:custom-fonts-updated", syncRegistry);
     const handleStorage = (e: StorageEvent) => {
       if (e.key === FONT_REGISTRY_STORAGE_KEY) syncRegistry();
     };
     window.addEventListener("storage", handleStorage);
     return () => {
-      window.removeEventListener("composition:custom-fonts-updated", syncRegistry);
+      window.removeEventListener(
+        "composition:custom-fonts-updated",
+        syncRegistry,
+      );
       window.removeEventListener("storage", handleStorage);
     };
   }, []);
