@@ -70,6 +70,13 @@ export function StatusLight({
   const fillBase = rule?.variants?.[variant]?.fill?.default?.base;
   const dotColor = colorTokenToCss(fillBase);
 
+  // ADR-151 B9 (2026-07-16): catalog sizes[size].height(고정 높이 — md 24) read-through.
+  //   미주입 시 텍스트 상속 line-height(1.5)로 DOM 21px vs Skia(catalog 24) 발산.
+  //   fontSize/dotColor 와 동일한 catalog 런타임 직독 패턴.
+  const ruleHeight = rule?.sizes?.[sizeKey]?.height;
+  const boxHeight =
+    typeof ruleHeight === "number" && ruleHeight > 0 ? ruleHeight : undefined;
+
   return (
     <div
       {...rest}
@@ -78,6 +85,7 @@ export function StatusLight({
         flexDirection: "row",
         alignItems: "center",
         gap: 8,
+        ...(boxHeight !== undefined ? { height: boxHeight } : {}),
         ...style,
       }}
       className={className}

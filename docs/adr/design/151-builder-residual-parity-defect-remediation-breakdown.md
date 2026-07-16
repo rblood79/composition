@@ -57,6 +57,17 @@
 | ADR-100 구 이슈 (GridListItem overflow / TagGroup Show all / body 색 하드코딩) | **2026-07-16 재실측 — 3건 모두 재현 불가, 미편입 확정**. GridList projection row 3건 overflow 0 (마지막 row bottom 일치) / TagGroup Label+TagList overflow 0 / Skia 렌더 파일에 white 하드코드 grep 0건 + 양쪽 body 시각 동일. 단 GridList 재실측 중 **신규 내부 발산 B21 발견** (§1-A) |
 | instanceActions `set` 1차 잔존                                                 | ADR-122 §Residual 에 기록된 의도된 보류 — 본 ADR 범위 제외                                                                                                                                                                                                                              |
 
+### 1-E. 신규 발견 회귀 — B22 Skia 폭 채널 붕괴 (Phase 4 실측 중 발견, **미해결 CRITICAL**)
+
+| #   | 컴포넌트                                                | Phase 4 실측 (2026-07-16 오후)                                                       | Phase 0 freeze (동일 날, dev 서버 재기동 전) |
+| --- | ------------------------------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------- |
+| B22 | Text / Separator / Table / Disclosure / DisclosureGroup | Skia 폭 31 (Text) / 0 (Separator·Table·Disclosure·DisclosureGroup) — CSS 는 390 정상 | 전부 0/0 (양쪽 390 동일 — §1-B B14/B16 참조) |
+
+- **세션 변경 무관 확증**: 미커밋 수정 전체 `git stash` 상태에서도 동일 재현 → Phase 1~4 변경 기인 아님. 본 세션 커밋 3개 (7db1b5c9e / 85fb83216 / a1a7544e2) diff 에도 해당 컴포넌트 폭 경로 없음. b6b9b3514 tagToElement diff 는 항등 확인.
+- **유력 가설**: stale specs dist 뒤 잠복하던 선행 소스 회귀가 본 세션 첫 `pnpm build:specs` + dev 서버 재기동으로 노출 (`feedback-specs-dist-dev-restart-gate` 계열 — Phase 0 freeze 실측은 stale dist 를 서빙하던 구 서버에서 수행됨).
+- **원인 커밋 확정 미완**: 진단용 `git checkout <sha> -- <files>` 되돌림 실험이 auto-mode 분류기에 차단 — 사용자 허가 필요.
+- **영향**: B8 Table 판정 보류 (Skia 폭 0 상태에서 dh 판정 무의미). **B22 해소 전 Phase 6 Implemented 승격 불가** (§2 기준 2 — 원인 미상 수용 금지).
+
 ## 2. 허용 오차 판정 기준 (Decision 보조 — ADR 본문 §Decision 의 기준 상세)
 
 1. **±2px 이내 + 원인이 텍스트 측정 엔진 차이(Canvas 2D↔CanvasKit↔브라우저)로 규명된 경우**: 수용 (ADR-042 사용자 결정 승계). 수용 항목은 golden 기대값에 오차 포함해 고정.
@@ -112,12 +123,14 @@
 - 2026-07-16 재실측 결과 B14/B15/B16/B17 전 항목 0/0 (§1-B) — 07-14 이후 수정 반영으로 대상 소멸
 - 잔여 작업 (golden 편입) 은 Phase 6 으로 흡수. BC 확인은 Phase 0 에서 완료 (새로고침 후 83 요소 보존)
 
-### Phase 4: 소형 오차 판정 (B8~B13)
+### Phase 4: 소형 오차 판정 (B8~B13) — ✅ 완료 (2026-07-16; B8 은 B22 종속 보류)
 
-- §2 기준 적용: 원인 규명 → ±2px 이내 텍스트 측정 기인이면 수용 처리 (golden 기대값 고정), 아니면 수정
-- **B13 Checkbox 는 07-16 재실측 dw+7.6 으로 수정 승격** — 소형 판정 아닌 원인 규명 후 수정
-- B9 StatusLight dh+3 은 ±3 경계 — §2 기준 3 초과 아님이나 원인 미상 수용 금지 원칙 적용
-- 수용/수정 판정 결과를 본 문서에 기록 (판정 근거 1줄씩)
+- **B8 Table dh-2 → 보류 (B22 종속)**: Phase 4 실측 시점에 Table 이 B22 (Skia 폭 채널 붕괴, §1-E) 에 걸려 Skia 0×400 으로 측정 — dh 판정 무의미. B22 해소 후 재판정.
+- **B9 StatusLight dh+3 → 해소 (24=24)**: 원인 = DOM 컴포넌트가 catalog `sizes[size].height`(md 24) 를 미소비하고 텍스트 상속 line-height 로 21px 렌더. `StatusLight.tsx` 에 rule height read-through 주입 (`> 0` sentinel 가드 — 메모리 `project-button-configheight-zero-sentinel-collapse` 승계). 라이브 실측 Skia 24 = CSS 24.
+- **B10 ToggleButton dw+2.5 / B11 ToggleButtonGroup dw+2.8 → 수용**: DOM 라벨 텍스트 폭 87.52 = Canvas 2D `measureText` 87.52 동일 확증 — 잔여 오차는 Skia 폭 모델의 보수 가중 (ceil + 마진) 기인, 텍스트 측정 엔진 계열로 규명. §2 기준 1 적용 수용, golden 기대값에 오차 포함 고정 (Phase 6).
+- **B12 Badge dh+2 → 해소 (dh 0)**: 원인 = catalog Badge `sizes[*].borderWidth: 1` 이 dead 값 (generated CSS 가 `border-width: 1px` 을 내지만 border-style 부재로 used value 0 — DOM 은 border 미렌더) 인데 Skia 높이 모델만 borderWidth×2 가산. catalog borderWidth 0 정정 (5 sizes) + generated Badge.css 재생성. 라이브 실측 51×20 vs 52.1×20 (dw-1.1 은 텍스트 측정 기인 수용).
+- **B13 Checkbox dw+7.6 → 해소 (dw+0.6)**: 원인 = `calculateContentWidth` PHANTOM_INDICATOR 분기가 라벨 폭을 기본 폰트 (16px/400) 로 측정 — DOM 라벨은 catalog Label (14px/600) 상속. `extractSpecTextStyle("label", { size })` 경유로 정렬 (`specTextStyle.ts` TEXT_BEARING_SPECS 에 label entry 추가). 라이브 실측 94 vs 93.4.
+- 검증: `pnpm build:specs` ✓ / `pnpm type-check` PASS / vitest 339/339 PASS / 라이브 재확증 (StatusLight·Badge·Checkbox·ToggleButton — Chrome MCP battery 실측)
 
 ### Phase 5: 잠재 결함 (B18~B20)
 

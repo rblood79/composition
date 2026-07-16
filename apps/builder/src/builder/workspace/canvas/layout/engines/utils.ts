@@ -1765,16 +1765,15 @@ export function calculateContentWidth(
     const indicatorGap = hasCSSGapSec3
       ? (readGapValue(style) ?? specIndicatorGap)
       : specIndicatorGap;
-    // Spec에서 실제 text style 추출 (fontWeight/fontFamily 정합성)
-    const indicatorSpecStyle = extractSpecTextStyle(
-      type,
-      props as Record<string, unknown>,
-    );
-    // fallback: typography 토큰 매칭 text-sm=14, text-md=16, text-lg=18
-    const fontSize =
-      indicatorSpecStyle?.fontSize ??
-      (sizeName === "S" ? 14 : sizeName === "L" ? 18 : 16);
-    const indicatorFontWeight = indicatorSpecStyle?.fontWeight ?? 400;
+    // ADR-151 B13 (2026-07-16): 라벨 텍스트 측정은 catalog **Label** 메트릭 기준 —
+    //   DOM 은 자식 Label element 가 catalog Label CSS(md 14px/fw600)로 렌더하므로,
+    //   Checkbox 자체 sizes.fontSize(md 16)/fw400 로 측정하면 md 기준 폭 +7~8px 발산.
+    const indicatorSpecStyle = extractSpecTextStyle("label", {
+      size: sizeName,
+    });
+    // fallback: catalog Label md (text-sm 14 / fw600)
+    const fontSize = indicatorSpecStyle?.fontSize ?? 14;
+    const indicatorFontWeight = indicatorSpecStyle?.fontWeight ?? 600;
     const indicatorFontFamily =
       indicatorSpecStyle?.fontFamily ?? specFontFamily.sans;
     const labelText = String(

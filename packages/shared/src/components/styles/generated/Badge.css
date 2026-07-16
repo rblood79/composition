@@ -27,7 +27,7 @@
   font-size: var(--text-xs);
   border-radius: var(--radius-full);
   line-height: var(--text-xs--line-height);
-  border-width: 1px;
+  border-width: 0px;
   gap: 4px;
 }
 
@@ -362,7 +362,7 @@
   font-size: var(--text-2xs);
   border-radius: var(--radius-full);
   line-height: var(--text-2xs--line-height);
-  border-width: 1px;
+  border-width: 0px;
   gap: 2px;
 }
 
@@ -372,7 +372,7 @@
   font-size: var(--text-xs);
   border-radius: var(--radius-full);
   line-height: var(--text-xs--line-height);
-  border-width: 1px;
+  border-width: 0px;
   gap: 4px;
 }
 
@@ -382,7 +382,7 @@
   font-size: var(--text-sm);
   border-radius: var(--radius-full);
   line-height: var(--text-sm--line-height);
-  border-width: 1px;
+  border-width: 0px;
   gap: 4px;
 }
 
@@ -392,7 +392,7 @@
   font-size: var(--text-base);
   border-radius: var(--radius-full);
   line-height: var(--text-base--line-height);
-  border-width: 1px;
+  border-width: 0px;
   gap: 6px;
 }
 
@@ -402,7 +402,7 @@
   font-size: var(--text-lg);
   border-radius: var(--radius-full);
   line-height: var(--text-lg--line-height);
-  border-width: 1px;
+  border-width: 0px;
   gap: 8px;
 }
 

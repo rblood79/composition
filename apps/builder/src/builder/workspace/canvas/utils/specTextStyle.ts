@@ -94,6 +94,11 @@ const TEXT_BEARING_SPECS: Record<
   link: { defaultSize: "md", catalogType: "Link" },
   a: { defaultSize: "md", catalogType: "Link" },
   linkbutton: { defaultSize: "md", catalogType: "Link" },
+  // ADR-151 B13 (2026-07-16): Label 등록 — DFS injection(fullTreeLayout)이 style 인라인 주입으로
+  //   여전히 우선하고(각 소비 분기가 style.fontSize ?? specStyle 순서), 본 entry 는 injection 미도달
+  //   경로(Checkbox/Radio/Switch 라벨 폭 측정 등)의 fallback 을 16/400 → catalog Label(md 14/600)로
+  //   정렬한다. DOM 은 자식 Label 이 catalog Label CSS 로 렌더되므로 이것이 DOM 계약.
+  label: { defaultSize: "md", catalogType: "Label" },
   // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): catalog cutover(FAMILY_3) → spec 생략,
   //   측정이 resolveSkiaRule(catalogType) + buildCatalogShapes 기반(rule textWeight:400 → drift 0).
   checkbox: { defaultSize: "md", catalogType: "Checkbox" },
