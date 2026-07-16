@@ -11,21 +11,21 @@
 
 출처: 44종 battery 라이브 sweep (테스트 프로젝트 `adr916-parity-sweep`). dw/dh = Skia − CSS 오차(px).
 
-| #   | 컴포넌트          | 실측 오차              | 추정 원인 축                                                                                      | 규모 |
-| --- | ----------------- | ---------------------- | ------------------------------------------------------------------------------------------------- | ---- |
-| B1  | Calendar          | dw+22 / dh+18          | CalendarGrid 셀 메트릭 (셀 폭·행 높이 산출이 DOM 실측과 불일치)                                   | 대형 |
-| B2  | RangeCalendar     | dw+40 / dh+42          | B1 과 동일 축 (2-month grid 로 오차 2배 증폭)                                                     | 대형 |
-| B3  | Card              | dh-3                   | card-description 폰트 상속 16/24 vs catalog Description 14/20 — 3경로 동기화 필요                 | 중형 |
-| B4  | Link              | dh-5                   | 텍스트 leaf 메트릭 (lineHeight 산출 경로)                                                         | 중형 |
-| B5  | Tree              | dh+6                   | **재현 불가 — explicit-height 주입 경로 미해명** (조사 우선)                                      | 중형 |
-| B6  | Tabs              | TabPanels padding 잔여 | TabPanels padding 3경로 비대칭                                                                    | 중형 |
-| B7  | Menu              | 표현 자체 발산         | factory `width:100%` 목록 표현 vs Skia 렌더러 트리거 chip — **설계 판단 보류 (사용자 결정 지점)** | 중형 |
-| B8  | Table             | dh-2                   | 소형 — 허용 오차 판정 대상                                                                        | 소형 |
-| B9  | StatusLight       | dh+3                   | 소형 — 허용 오차 판정 대상                                                                        | 소형 |
-| B10 | ToggleButton      | dh+2.5                 | 소형 — 허용 오차 판정 대상                                                                        | 소형 |
-| B11 | ToggleButtonGroup | dw+2.8                 | 소형 — 허용 오차 판정 대상                                                                        | 소형 |
-| B12 | Badge             | dh+2                   | 소형 — `a3656130a` (Icon/Badge propPassthrough) 반영 후 재실측 필요                               | 소형 |
-| B13 | Checkbox          | dw 소폭                | 소형 — 허용 오차 판정 대상                                                                        | 소형 |
+| #   | 컴포넌트          | 실측 오차              | 추정 원인 축                                                                                                                                     | 규모 |
+| --- | ----------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---- |
+| B1  | Calendar          | dw+22 / dh+18          | CalendarGrid 셀 메트릭 (셀 폭·행 높이 산출이 DOM 실측과 불일치)                                                                                  | 대형 |
+| B2  | RangeCalendar     | dw+40 / dh+42          | B1 과 동일 축 (2-month grid 로 오차 2배 증폭)                                                                                                    | 대형 |
+| B3  | Card              | dh-3                   | card-description 폰트 상속 16/24 vs catalog Description.sizes (md 12/16 · lg 14/20 — 적용 size 축은 Phase 0 재실측으로 확정) — 3경로 동기화 필요 | 중형 |
+| B4  | Link              | dh-5                   | 텍스트 leaf 메트릭 (lineHeight 산출 경로)                                                                                                        | 중형 |
+| B5  | Tree              | dh+6                   | **재현 불가 — explicit-height 주입 경로 미해명** (조사 우선)                                                                                     | 중형 |
+| B6  | Tabs              | TabPanels padding 잔여 | TabPanels padding 3경로 비대칭                                                                                                                   | 중형 |
+| B7  | Menu              | 표현 자체 발산         | factory `width:100%` 목록 표현 vs Skia 렌더러 트리거 chip — **설계 판단 보류 (사용자 결정 지점)**                                                | 중형 |
+| B8  | Table             | dh-2                   | 소형 — 허용 오차 판정 대상                                                                                                                       | 소형 |
+| B9  | StatusLight       | dh+3                   | 소형 — 허용 오차 판정 대상                                                                                                                       | 소형 |
+| B10 | ToggleButton      | dh+2.5                 | 소형 — 허용 오차 판정 대상                                                                                                                       | 소형 |
+| B11 | ToggleButtonGroup | dw+2.8                 | 소형 — 허용 오차 판정 대상                                                                                                                       | 소형 |
+| B12 | Badge             | dh+2                   | 소형 — `a3656130a` (Icon/Badge propPassthrough) 반영 후 재실측 필요                                                                              | 소형 |
+| B13 | Checkbox          | dw 소폭                | 소형 — 허용 오차 판정 대상                                                                                                                       | 소형 |
 
 ### 1-B. fresh factory 기본 폭 분류 비대칭 (회귀 아님 — 재구축 battery 에서만 노출)
 
@@ -79,7 +79,7 @@
 
 ### Phase 2: 중형 — 텍스트 메트릭 계열 (B3, B4, B6) + Tree 조사 (B5)
 
-- B3 Card: card-description 폰트를 catalog Description(14/20) 과 3경로 (generated CSS / Skia / layout) 동기화 — `pnpm generate:css` 동반
+- B3 Card: card-description 폰트를 catalog Description.sizes 정본과 3경로 (generated CSS / Skia / layout) 동기화 — 목표 수치(적용 size 축)는 Phase 0 재실측으로 확정 (catalog 실측: md 12/16 · lg 14/20, `componentRulesTable.ts:4123`). `pnpm generate:css` 동반
 - B4 Link: 텍스트 leaf lineHeight 경로 (`extractSpecTextStyle` 등록 여부) 확인 후 정렬
 - B6 Tabs: TabPanels padding 3경로 대조
 - B5 Tree: dh+6 재현 조건 규명 (explicit-height 주입 경로 추적) — 규명 결과에 따라 수정 또는 §2 기준 수용

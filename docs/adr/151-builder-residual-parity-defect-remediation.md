@@ -42,7 +42,7 @@ ADR-916(자체 레이아웃 엔진 전환) 완결 후 라이브 44종 battery sw
 - 위험:
   - 기술: LOW — 개별 수정 자체는 단순
   - 성능: LOW — 런타임 구조 변경 없음
-  - 유지보수: **HIGH** — 원인 축을 공유하는 버그를 증상 단위로 수정하면 3경로(generated CSS / Skia shapes / layout `calculateContentHeight`) 동기화 누락이 반복된다. 실측 반복 사례 3곳: ① Card card-description — starter CSS 상속(16/24)과 catalog `Description`(14/20) 이원화 (`packages/shared/src/catalog/generated/componentRulesTable.ts` ↔ generated CSS), ② Disclosure 군 3겹 발산 — catalog `DisclosureHeader.sizes` / `extractSpecTextStyle`(specTextStyle.ts) / `renderDisclosureGroup` 이 각각 따로 수정됨 (5b51c90af), ③ Separator — CSS `.horizontal` 규칙과 catalog paddingY 가 독립 수정되다 기본 HR 미포착 (07-14). engine scope 는 fix 8건에 회귀테스트 동반 0건 — 동일 지점 재발산 무방비
+  - 유지보수: **HIGH** — 원인 축을 공유하는 버그를 증상 단위로 수정하면 3경로(generated CSS / Skia shapes / layout `calculateContentHeight`) 동기화 누락이 반복된다. 실측 반복 사례 3곳: ① Card card-description — starter CSS 상속(16/24)과 catalog `Description.sizes`(md 12/16 · lg 14/20 — size 축별 상이) 이원화 (`packages/shared/src/catalog/generated/componentRulesTable.ts:4123` ↔ generated CSS), ② Disclosure 군 3겹 발산 — catalog `DisclosureHeader.sizes` / `extractSpecTextStyle`(specTextStyle.ts) / `renderDisclosureGroup` 이 각각 따로 수정됨 (5b51c90af), ③ Separator — CSS `.horizontal` 규칙과 catalog paddingY 가 독립 수정되다 기본 HR 미포착 (07-14). engine scope 는 fix 8건에 회귀테스트 동반 0건 — 동일 지점 재발산 무방비
   - 마이그레이션: LOW — 롤백 단위 작음
 - 외부 참조: 시각 회귀를 개별 대응만으로 관리한 프로젝트의 공통 실패 패턴 — 기준선(golden) 부재 시 수정과 회귀가 교대로 누적 (Chromium layout test 가 fuzzy-match 기준선을 두는 이유)
 
@@ -62,7 +62,7 @@ ADR-916(자체 레이아웃 엔진 전환) 완결 후 라이브 44종 battery sw
 - 설명: 소형 오차 포함 전 항목을 0px 까지 수정. 필요 시 렌더/측정 경로에 보정 레이어 추가.
 - 근거: "대칭 = 시각 결과 동일성" 원칙의 문자적 극단 해석.
 - 위험:
-  - 기술: **HIGH** — Canvas 2D↔CanvasKit↔브라우저 텍스트 측정의 sub-pixel 차이는 엔진 구조적 차이로, 0px 일치가 불가능한 지점이 존재. 해당 코드 경로 3곳: ① `canvas2dSegmentCache.ts` Canvas 2D `measureText` 세그먼트 측정 vs ② `canvaskitTextMeasurer.ts` CanvasKit Paragraph 측정 (`getMaxIntrinsicWidth`) vs ③ `nodeRendererText.ts:449` 렌더 시 재layout 교정 — 세 지점이 각기 다른 폭을 산출하는 것이 전제된 설계 (ADR-042 에서 사용자가 이미 "불가" 판정)
+  - 기술: **HIGH** — Canvas 2D↔CanvasKit↔브라우저 텍스트 측정의 sub-pixel 차이는 엔진 구조적 차이로, 0px 일치가 불가능한 지점이 존재. 해당 코드 경로 3곳: ① `canvas2dSegmentCache.ts` Canvas 2D `measureText` 세그먼트 측정 vs ② `canvaskitTextMeasurer.ts` CanvasKit Paragraph 측정 (`getMaxIntrinsicWidth`) vs ③ `nodeRendererText.ts` 렌더 단 교정 2곳 (:449 Canvas 2D 측정 gate + `+1` sub-pixel 보정 / :574 CanvasKit `getMaxIntrinsicWidth` 재layout) — 세 지점이 각기 다른 폭을 산출하는 것이 전제된 설계 (ADR-042 에서 사용자가 이미 "불가" 판정)
   - 성능: MEDIUM — 0px 수렴을 위한 이중 측정/보정 패스는 렌더 hot path 비용 증가
   - 유지보수: **HIGH** — 경험적 보정 상수(`+2/+4px`)의 재도입 압력. canvas-rendering.md 금지 패턴 (`calculateContentWidth` 보정 금지, `enrichWithIntrinsicSize` 보정 금지) 과 정면 충돌 — 보정 상수는 폰트/브라우저/엔진 버전 변경마다 재튜닝 필요
   - 마이그레이션: LOW
