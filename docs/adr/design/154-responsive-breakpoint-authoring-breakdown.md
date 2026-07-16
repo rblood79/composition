@@ -24,7 +24,7 @@
 | `CanonicalNode.responsive` 필드                                                                 | **부재**                                                                                                   | `packages/shared/src/types/composition-document.types.ts:593`                       | Phase 1 신규 (optional)                   |
 | activeBreakpoint 편집 상태 / 스위처 UI                                                          | **부재**                                                                                                   | —                                                                                   | Phase 2 신규                              |
 | 캔버스 breakpoint 폭 전환                                                                       | **부재** (고정 1920×1080: `BuilderCanvas.tsx:104-105`, `viewportSync.ts:22`)                               | —                                                                                   | Phase 2 신규                              |
-| 레이아웃 resolve 주입 지점                                                                      | **부재**                                                                                                   | `fullTreeLayout.ts` (processedElementsMap 생성 앞단)                                | Phase 2 신규                              |
+| 레이아웃 resolve 주입 지점                                                                      | **부재**                                                                                                   | `layout/engines/fullTreeLayout.ts` (processedElementsMap 생성 앞단)                 | Phase 2 신규                              |
 | Preview/Publish @media 출력                                                                     | **부재** (`generateStaticHtml` 은 title+viewport 만: `packages/shared/src/utils/export.utils.ts:982-1008`) | —                                                                                   | Phase 3 신규                              |
 
 ## 3. Phase 1 — 데이터 모델 (canonical schema)
@@ -50,10 +50,11 @@
 
 ## 5. Phase 3 — Preview/Publish 출력
 
-1. **단일 출력 모델**: @media CSS (`generateMediaQueryString` 재사용). publish 런타임 JS resolve 금지 (R3 발산 차단).
+1. **단일 출력 모델**: @media CSS (`generateMediaQueryString` 재사용). publish 런타임 JS resolve 금지 (R2 발산 차단).
 2. responsive override → element 별 CSS 규칙 emit: `ElementGeneratedCSS` (baseCSS + mediaQueries) 를 Preview 스타일 주입 경로와 `generateStaticHtml`/SSG 출력에 추가.
 3. Preview iframe 리사이즈로 breakpoint 동작 확인 경로 확보 (BreakpointContext Provider — `forcedBreakpoint` 테스트용).
 4. visibility override 는 `display:none` @media 규칙로 통일 (JS 분기 금지).
+5. **inline style specificity 해소 (R6 — 리뷰 round 1 발견)**: Preview/Publish 는 요소 스타일을 inline 으로 적용 (`style={element.props.style}` — `packages/shared/src/renderers/__tests__/rendererStyleContract.allowlist.ts` 빈 allowlist = 전 renderer 통과, `CanonicalNodeRenderer.tsx:314` `data-element-id` 마커 존재). inline 은 `@media` stylesheet 규칙보다 우선하므로 **responsive override 보유 요소는 base 스타일도 `[data-element-id="..."]` selector stylesheet 로 승격**하거나 **CSS custom property 간접화** (inline 에는 `var(--x)` 만 두고 값은 stylesheet 에서 breakpoint 별 재정의) 중 1안을 Phase 3 착수 시 확정. 미해소 시 G2 (Preview 리사이즈 실측) 에서 FAIL.
 
 ## 6. Phase 4 — 검증·종결
 
@@ -64,18 +65,19 @@
 
 ## 7. 파일 변경표 (예상 — Phase 0 재실측으로 확정)
 
-| 파일                                                                                             | 변경                                          |
-| ------------------------------------------------------------------------------------------------ | --------------------------------------------- |
-| `packages/shared/src/types/composition-document.types.ts`                                        | `CanonicalNode.responsive?` 추가              |
-| `apps/builder/src/types/builder/responsive.types.ts`                                             | shared 이동 또는 re-export 정리               |
-| `apps/builder/src/builder/stores/canvasSettings.ts`                                              | `activeBreakpoint` 상태                       |
-| `apps/builder/src/builder/workspace/canvas/BuilderCanvas.tsx` + `viewportSync.ts`                | 아트보드 폭 전환                              |
-| `apps/builder/src/builder/workspace/canvas/layout/fullTreeLayout.ts`                             | resolve 주입 + layoutVersion/LAYOUT_PROP_KEYS |
-| `apps/builder/src/builder/workspace/canvas/scene/buildSceneStructureSnapshot.ts`                 | signature input 등재                          |
-| `apps/builder/src/builder/panels/styles/*` / `properties/editors/ResponsiveVisibilityEditor.tsx` | 배지 + 배선                                   |
-| `apps/builder/src/adapters/canonical/canonicalMutations.ts`                                      | responsive mutation wrapper                   |
-| `apps/builder/src/adapters/pencil/pencilSchemaMap.ts`                                            | roundtrip 보존                                |
-| `apps/builder/src/preview/*` + `packages/shared/src/utils/export.utils.ts`                       | @media 출력                                   |
+| 파일                                                                                             | 변경                                                        |
+| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| `packages/shared/src/types/composition-document.types.ts`                                        | `CanonicalNode.responsive?` 추가                            |
+| `apps/builder/src/types/builder/responsive.types.ts`                                             | shared 이동 또는 re-export 정리                             |
+| `apps/builder/src/builder/stores/canvasSettings.ts`                                              | `activeBreakpoint` 상태                                     |
+| `apps/builder/src/builder/workspace/canvas/BuilderCanvas.tsx` + `viewportSync.ts`                | 아트보드 폭 전환                                            |
+| `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`                     | resolve 주입 + layoutVersion 트리거                         |
+| `apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts`                                 | `LAYOUT_PROP_KEYS` responsive 시그니처 등재                 |
+| `apps/builder/src/builder/workspace/canvas/scene/buildSceneSnapshot.ts`                          | `buildSceneStructureSnapshot()` (:109) signature input 등재 |
+| `apps/builder/src/builder/panels/styles/*` / `properties/editors/ResponsiveVisibilityEditor.tsx` | 배지 + 배선                                                 |
+| `apps/builder/src/adapters/canonical/canonicalMutations.ts`                                      | responsive mutation wrapper                                 |
+| `apps/builder/src/adapters/pencil/pencilSchemaMap.ts`                                            | roundtrip 보존                                              |
+| `apps/builder/src/preview/*` + `packages/shared/src/utils/export.utils.ts`                       | @media 출력                                                 |
 
 ## 8. 테스트 계획
 
