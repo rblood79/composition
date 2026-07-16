@@ -1,6 +1,8 @@
 # ADR (Architecture Decision Records) 관리 대시보드
 
-> **최종 업데이트**: 2026-07-16 — **ADR-153 Proposed (유사 빌더 렌더링 최적화 도입 — 측정 보강 우선 + Picture 캐시 단계 도입)**. 사용자 명시 요청("유사 빌더 장점 심층 분석 → 적용 요소 ADR 생성까지만 — 착수 금지"). 리서치 문서 2건(`docs/explanation/research/PENCIL_ECOSYSTEM_ANALYSIS.md` 5/27 + `PENCIL_RENDERING_OPTIMIZATION.md` 5/28)의 처방 후보 7건을 2026-07-16 코드 실측으로 재판정 — 절반은 stale: RBush 는 Rust WASM `SpatialIndex`(ADR-916)로, RenderLayer 분리·T2 backing 은 `SkiaRenderer` dual-surface + 5종 프레임 분류(idle/present/camera-only/content/full) + camera-only blit 으로 기해소. 잔존 실제 격차 4건 확정: ① Picture(display list) 캐시 0건 — 요소 1개 편집 = command stream 전체 재빌드(`renderCommands.ts` 단일 global 캐시) + contentSurface 전체 재페인트 ② incremental build budget 부재 ③ GPU 시간/draw-call/cache miss 사유/speedscope export 측정 부재 ④ Paint 풀·통합 lifecycle 부재(`Paint()` 75건 산재). 대안 3 + 4축 평가: A(open-pencil 3-tier 일괄 이식 — 기존 contentSurface 와 이중 캐시 invalidate 경합, 기술·유지보수 HIGH 2) 기각 / **B(측정 보강 우선 + evidence 단계 도입: Phase 1 측정 → Phase 2 Paint 풀링 → Phase 3 node Picture 캐시(T3 등가) → Phase 4 incremental budget 조건부, HIGH 0) 채택** / C(측정+Paint 만 — 본질 격차 미해소) 기각. Gates G1(production 번들 diff 0 + 계측 오버헤드 <0.5ms)/G2(cross-check 시각 대칭 + 재기록 범위 = 변경 노드 한정 실측)/G3(WASM heap 상한 + leak 0)/G4(Phase 4 진입 = contentRenderTime p95 >8ms 실측 시에만 — 미달 시 미도입 종결). invalidate 키 = ADR-136 sceneVersion signature SSOT 재사용, BC 0%. 렌더링 외 후보 처분: AI dual embed → ADR-134 영역 / Worker process 분리 → 향후 별도 ADR / P2P 협업·native Skia 기각. design breakdown `design/153-render-optimization-measurement-first-adoption-breakdown.md`. **Phase 실행은 사용자 승인 후 시작**.
+> **최종 업데이트**: 2026-07-16 — **Proposed/Accepted 착수 순서 재산정 + 추천 model·착수 프롬프트 기록** (사용자 요청). 기존 5건 순서(915→148→150→149)에 신규 3건(151/152/153)을 편입해 재산정. 재산정 사유 2건: (1) ADR-150 이 리뷰 round 2 승인(2026-07-14)으로 기존 "리뷰 미실시" 상태 해소, (2) ADR-915 잔여 scope 정정 — 2026-07-14 리뷰 정합에서 "P1 완료" 표기가 과소였음이 드러나 실제 잔여(P1-a SearchField value/name · P1-g 폼 공통 4종×8+Table/Image/Card asset/Link/FileTrigger · P1.5-d showValueLabel)가 이전보다 큼. **재산정 순서: ① 915 잔여 종결 → ② 151 → ③ 148 → ④ 150 → ⑤ 152 → ⑥ 149 → ⑦ 153** (911 은 비착수 — 150 완료 시 proof gate G-state/G-projected 자동 충족). 151 을 148 앞에 둔 근거 = 사용자-가시 발산 즉시 수정이면서 150-A2 선행 조건(R6)·153 검증 기준선을 함께 해소하는 의존 그래프 상류. 상세 준비도·추천 model·복붙 착수 프롬프트: 아래 [§권장 착수 순서](#권장-착수-순서--2026-07-16-재산정). **151/152/153 은 "생성까지만 — 착수 금지" 사용자 지시 유지** → 본 순서는 착수 승인 시점의 실행 순서 제안이며 지금 실행 지시 아님.
+>
+> **2026-07-16 — ADR-153 Proposed (유사 빌더 렌더링 최적화 도입 — 측정 보강 우선 + Picture 캐시 단계 도입)**. 사용자 명시 요청("유사 빌더 장점 심층 분석 → 적용 요소 ADR 생성까지만 — 착수 금지"). 리서치 문서 2건(`docs/explanation/research/PENCIL_ECOSYSTEM_ANALYSIS.md` 5/27 + `PENCIL_RENDERING_OPTIMIZATION.md` 5/28)의 처방 후보 7건을 2026-07-16 코드 실측으로 재판정 — 절반은 stale: RBush 는 Rust WASM `SpatialIndex`(ADR-916)로, RenderLayer 분리·T2 backing 은 `SkiaRenderer` dual-surface + 5종 프레임 분류(idle/present/camera-only/content/full) + camera-only blit 으로 기해소. 잔존 실제 격차 4건 확정: ① Picture(display list) 캐시 0건 — 요소 1개 편집 = command stream 전체 재빌드(`renderCommands.ts` 단일 global 캐시) + contentSurface 전체 재페인트 ② incremental build budget 부재 ③ GPU 시간/draw-call/cache miss 사유/speedscope export 측정 부재 ④ Paint 풀·통합 lifecycle 부재(`Paint()` 75건 산재). 대안 3 + 4축 평가: A(open-pencil 3-tier 일괄 이식 — 기존 contentSurface 와 이중 캐시 invalidate 경합, 기술·유지보수 HIGH 2) 기각 / **B(측정 보강 우선 + evidence 단계 도입: Phase 1 측정 → Phase 2 Paint 풀링 → Phase 3 node Picture 캐시(T3 등가) → Phase 4 incremental budget 조건부, HIGH 0) 채택** / C(측정+Paint 만 — 본질 격차 미해소) 기각. Gates G1(production 번들 diff 0 + 계측 오버헤드 <0.5ms)/G2(cross-check 시각 대칭 + 재기록 범위 = 변경 노드 한정 실측)/G3(WASM heap 상한 + leak 0)/G4(Phase 4 진입 = contentRenderTime p95 >8ms 실측 시에만 — 미달 시 미도입 종결). invalidate 키 = ADR-136 sceneVersion signature SSOT 재사용, BC 0%. 렌더링 외 후보 처분: AI dual embed → ADR-134 영역 / Worker process 분리 → 향후 별도 ADR / P2P 협업·native Skia 기각. design breakdown `design/153-render-optimization-measurement-first-adoption-breakdown.md`. **Phase 실행은 사용자 승인 후 시작**.
 >
 > **2026-07-16 — ADR-151 Proposed (빌더 잔여 CSS↔Skia 발산·잠재 결함 일소 전략)**. 사용자 명시 요청("빌더 버그 전수 체크 + 수정방안 ADR 생성까지만 — 착수 금지"). 인벤토리 20건 = 2026-07-13/14 라이브 sweep 잔여 발산 13건(B1~B13: Calendar/RangeCalendar 대형, Card/Link/Tree/Tabs/Menu 중형, ±2~3px 소형 6종) + fresh factory 폭 분류 비대칭 4건(B14~B17) + 코드 실측 잠재 결함 3건(B18~B20: fontVariant 측정 비대칭 / position:fixed 카메라 역보정 미활성 / 스타일 소스 배지 부모 체크 미구현). stale 진단 1건 정정 동반 — Button catalog height=0 sentinel 붕괴는 `deriveSizeConfig()` 가 height 미매핑으로 현 코드 비활성. 대안 3 + 4축 평가: A(산발 수정, 유지보수 HIGH — 3경로 동기화 누락 반복) 기각 / **B(원인 축 그룹 일괄 + 허용 오차 판정 기준 명문화(ADR-042 승계: ±2px 이내+텍스트 측정 기인 규명 시 수용, 원인 미상 수용 금지) + tree_golden 독립 oracle 편입, HIGH 0) 채택** / C(0px 완전 일치, 기술·유지보수 HIGH 2 — layout 보정 금지 규칙 충돌) 기각. Gates G1(Phase 0 재실측 인벤토리 freeze)/G2(그룹별 Chrome MCP live 실측)/G3(golden 편입+잔여 오차 전수 기록). B7 Menu 표현(factory 목록 vs 렌더러 트리거 chip)은 사용자 결정 대기 항목으로 격리. design breakdown `design/151-builder-residual-parity-defect-remediation-breakdown.md`. **Phase 실행은 사용자 승인 후 시작**.
 >
@@ -411,6 +413,139 @@
 | [910](910-rac-pencil-component-architecture.md)              | RAC core + Pencil format 1차 원리 컴포넌트 아키텍처                                                                                                          | Proposed | 독립 설계 ADR (사용자 요청 2026-06-01 "기존 spec 무시, RAC core + Pencil 방법론으로 새로 설계"). RAC(data/render 분리 + 접근성 hooks) + Pencil canonical document format 을 1차 원리로 백지 재유도 → 대안 E(Canonical 문서 SSOT + RAC primitive binding) 채택. **정본: 컴포넌트 = 노드 데이터(base/override 2층)** — 노드는 의미값(content/variant/size)을 `props` 에, 사용자 시각 override(fontSize/fill/padding/gap)를 `props.style` 에 보유. 시각 base(컴포넌트 default)는 노드가 아니라 theme rule 에서 resolve. `props.style` = "사용자가 base 를 덮어쓴 키만 담는 override layer"(키 존재=override, 부재=base) — base/override 는 노드 간(origin↔ref.descendants) 분리(ADR-907 Layer B 보존, 평면화 철회). **단일 공급원** — Properties Panel·Style Panel·DOM·Skia·Publish 가 같은 노드 하나 + 같은 theme rule 을 읽음. 패널은 `resolveEditContract(node)`(의미∪`props.style` 계약 합집합) 결과를 `section` 태그로 필터링한 두 view(저장 평면화 불필요). leaf=`PrimitiveBinding` ~35 / 조합=reusable 문서 / 등록=단일 `componentCatalog` / 렌더=generic 렌더러 1개(traversal 1 + DOM·Skia backend 2, `toReactStyle`/`toSkiaStyle` 단일 어댑터가 base⊕override 병합). 잔존 HIGH 8건(T-1 generic 공통기반 / T-3·T-ADAPT base⊕override backend 어댑터 / T-4 collection virtualization↔Taffy / T-7 Skia state / T-PARITY 기능 퇴보 방어 / **T-PROJECT·T-DEEP ADR-920 흡수 Interactive Projected Tree**) — 전부 Gate 1:1(G-parity/G8/G9 포함) + family 격리. **[ADR-920](completed/920-rac-format-interactive-projected-tree.md) 흡수·supersede (2026-06-02)**: 같은 외부 입력의 Codex 독립 설계 중 collection Interactive Projected Tree(깊은 노드 hit-test/drill-in/edit-route)를 HC#7 + breakdown §4.12/§5.11/§7-4/⑪ 로 흡수. behavior/page frame/data 축은 ADR-131/132/135/136 관할이라 bridge 참조만. 설계 산출물 ①~⑩ + ⑪(920 흡수 경계) breakdown 동봉. design breakdown `design/910-rac-pencil-component-architecture-breakdown.md`. **문서 위상: 점진 cutover 전략의 비교 기록 (비착수)** — 사용자 옵션 B 결정(2026-06-02)으로 점진 cutover(legacy 격리)는 착수하지 않고, 실제 `execute-adr` 착수는 [ADR-912](completed/912-rac-pencil-rebuild-cutover.md)(백지 직행) 단독. 910 은 supersede 없이 점진 전략 비교 기록으로 유지. 같은 목표 구조의 비실행 목표 참조(Target Reference)는 [ADR-911](911-rac-pencil-target-component-architecture.md). 910=점진 cutover / 911=목표 자체 / 912=백지 직행(착수). |                          **P1**                          |
 | [911](911-rac-pencil-target-component-architecture.md)       | RAC core + Pencil format 백지 목표 컴포넌트 아키텍처 (비실행 목표 참조)                                                                                      | Proposed | **비실행 목표 참조(Target Reference) / 백지 목표 아키텍처 설계서** (사용자 요청 2026-06-02 "서두 조건 Status/Context/HC/SC 기반으로 재작성 — 현재코드 수정 설계서 아님"). ADR-910 이 현재 124 spec / family cutover / 레거시 제거를 다루는 **전환(cutover) 실행 설계서**가 된 데 대해, 911 은 현재 코드를 참조하지 않고 **"조건을 만족하는 목표 구조가 정적으로 무엇인가"** 만 1차 원리(RAC core + Pencil format)로 유도한다. 같은 대안 E(Canonical 문서 SSOT + RAC primitive binding) 채택 — 목표 구조가 910/912 와 수렴하되 전략이 다름(910=점진 cutover / 911=목표 자체 / 912=백지 직행). **착수/execute-adr/phase land 는 ADR-912(백지 직행, 유일 착수)로 진행하고(사용자 옵션 B 2026-06-02, codex review 라우팅 동기화), 911 은 912 실행 중 목표 구조 drift 를 판정하는 reference 로 사용한다.** HC 1~7 ↔ 목표 구조 1:1 증명(breakdown ⑨). Risks 는 **목표 성립 불확실성만**(R-1 generic 공통기반 / R-2 base⊕override 단일 어댑터 / R-3 Interactive Projected Tree 60fps+깊은노드 / R-4 Skia 상태모델) — 마이그레이션 축 N/A, 실행 위험(정합성 회귀 / 등록 collapse / 레거시 제거)은 912 보유. Gate 는 증명 게이트(G-slice/G-adapter/G-projected/G-state) — 실행 게이트는 912. design breakdown `design/911-rac-pencil-target-component-architecture-breakdown.md`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |                          **P1**                          |
 | [915](915-catalog-prop-parity-restoration.md)                | catalog binding.accepts prop parity 복원 (ADR-912 후속) — P0 정정 + P1 폼 기능 결손                                                                          | Accepted | **Accepted (2026-06-25)**. ADR-912 spec→catalog cutover 후 `binding.accepts` 편집 prop 이 공식(RAC/React Spectrum) 대비 축소 → 사용자 보고 "프로퍼티 대량 소실". 전수 감사([docs/reference/adr-912-prop-parity-audit.md](../reference/adr-912-prop-parity-audit.md)) 결과 두 층위: 층위 A(field kind 렌더러 `binding`/`items-manager` 누락)는 `1419a5773`/`24f38b75b` 로 복원 완료, 층위 B(`accepts` 자체 prop 누락)는 미해결. 본 ADR 은 **대안 B(좁은 scope) 채택** — P0 정정(InlineAlert variant `informative`→`info` / TableView allowsResizingColumns 명칭 / Radio isSelected / MeterTrack isIndeterminate / 폼 variant→isEmphasized D2 정렬) + P1 폼 기능 결손(value/name/errorMessage/maxLength/pattern/granularity/defaultSelected 등 입력·Date·그룹). P2/P3(컬렉션 core·Color 채널·Heading.level·Popover placement)는 후속 분리. 실행 순서 P0→P1. design breakdown `design/915-catalog-prop-parity-restoration-breakdown.md`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |                          **P1**                          |
+
+### 권장 착수 순서 — 2026-07-16 재산정
+
+> 위 "미구현 (Proposed)" 표의 우선순위(P1/P2/P3)는 ADR 번호별 중요도이고, 아래는 **실제 착수 시 실행 순서**를 준비도·의존 그래프·즉시 가치로 재산정한 결과다. **151/152/153 은 "생성까지만 — 착수 금지" 사용자 지시가 걸려 있어**, 본 표는 착수 승인 시점의 실행 순서 제안이다. 추천 model 은 작업 성격(함정 밀도·판단 복잡도·컨텍스트 규모)에 맞춘 것이며, `xhigh` effort 는 thinking 켠 상태에서만 유효(CLAUDE.local.md 실측).
+
+| 순위 | ADR                                                          | 착수 준비도                                                                           | 추천 model       | 근거 요약                                                                                                                                                                                            |
+| :--: | ------------------------------------------------------------ | ------------------------------------------------------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|  1   | **915 잔여**                                                 | Accepted + 리뷰 round 1 정합 완료                                                     | Opus 4.8 · xhigh | 사용자 보고 회귀("프로퍼티 대량 소실") 마무리. 확립된 복원 패턴(`db2cf46bc`/`0173de4a1`) 반복 sweep — 설계 판단 적고 115 binding+renderer 대조에 1M context 이점. 종결 후 Implemented 승격           |
+|  2   | [151](151-builder-residual-parity-defect-remediation.md)     | Proposed + 리뷰 round 1 승인 가능 (이슈 2건 fixed, HIGH 0)                            | Fable 5 · xhigh  | 사용자-가시 CSS↔Skia 발산 13+폭 비대칭 4+잠재 결함 3 일소. 150-A2 선행 의존(R6)·153 검증 기준선 함께 해소하는 의존 상류. 915(D2)와 도메인 직교 병렬 가능. 함정 밀도 최고(skia 16/layout 11/engine 8) |
+|  3   | [148](148-reusable-slot-system-unification.md)               | Proposed + round 1(07-07)·round 2(07-14) 승인                                         | Fable 5 · xhigh  | 컴포넌트 축 기반 정본(reusable/slot) — 150-A3·149 인접면 선행 확정. 후속 ADR 승계 전제라 설계 오류 파급 큼. 151 이 즉시 가치+후속 차단 해제라 한 순위 뒤                                             |
+|  4   | [150](150-rac-pencil-residual-interaction-execution.md)      | Proposed + 리뷰 round 2 승인 가능 (07-14) — "리뷰 미실시" 해소                        | Fable 5 · xhigh  | A1(상태 threading) 독립·저비용 병렬 가능. A2(window/가상화)는 R6 에 따라 151 완료 후 안전. A3 은 A2 의존 + 148 Phase 4 와 `canvasSceneNode` 표면 공유 → 진입 시 재실측                               |
+|  5   | [152](152-data-panel-collection-binding-integration.md)      | Proposed + round 1 정정 → round 2 승인 가능                                           | Fable 5 · xhigh  | 직교 데이터 도메인(D2). publish 소비 0건=배포 앱 실기능 결손 + name 참조 rename silent 파손 → "깨진 상태 아님"인 149 보다 앞. 파일 겹침 적어 병렬 후보                                               |
+|  6   | [149](149-events-panel-canonical-simplification.md)          | Proposed + round 1·round 2 승인                                                       | Fable 5 · xhigh  | 직교 도메인(events). legacy 경로 동작 중이라 긴급성 낮음 + G1(UI design)이 사용자 confirm 게이트라 사용자 가용 시점 착수. canonical mutation+undo 통합이 최다 회귀 영역                              |
+|  7   | [153](153-render-optimization-measurement-first-adoption.md) | Proposed + round 1 "수정 후 재리뷰" — 지적 반영 완료, round 2 미실시 + 파일 untracked | Fable 5 · xhigh  | 성능 최적화(기능 결손 아님). Phase 4 는 실측 evidence 게이트(G4)라 착수 압력 낮음. 151 발산 정리 후 착수가 G2 시각 대칭·baseline 측정 관점 최적. 착수 전 커밋+round 2 재리뷰 필요                    |
+|  —   | [911](911-rac-pencil-target-component-architecture.md)       | 착수 대상 아님                                                                        | —                | 비실행 목표 참조(proof gate 전용). 150 완료 시 G-state/G-projected 잔여 증명 자동 충족                                                                                                               |
+
+**착수 프롬프트** (착수 승인 시 복붙용 — Proposed ADR 은 `/execute-adr` 가 Accepted 전제라 승격 지시 포함, 각 ADR 의 리뷰 확정 게이트·결정 지점을 명시해 새 세션이 차단 조건 승계):
+
+<details>
+<summary>1. ADR-915 잔여 종결</summary>
+
+```
+/execute-adr 915
+
+잔여 scope 는 breakdown "이행 상태 실측 (2026-07-14)" 표가 정본:
+- P1-a 잔여: SearchField value/name (TextArea 는 rendererMap 키 부재로 제외 확정)
+- P1-g 잔여: 폼 공통 4종(labelAlign 등)×8 컴포넌트, Table columns/rows, Image, Card asset 계열, Link, FileTrigger
+- P1.5-d: Slider showValueLabel — accepts + renderSlider forward 양쪽 필요
+제외 확정 항목(P1.5-a contextualHelp / P1.5-c icon / fillOffset·isFilled)은 재론 금지.
+각 prop 은 live consumer grep 검증 후 복원(dead restoration 금지).
+완료 시 Inspector 실편집 1회 exercise 후 Implemented 승격 + README/CHANGELOG 동시 갱신.
+```
+
+</details>
+
+<details>
+<summary>2. ADR-151 (착수 승인 겸)</summary>
+
+```
+ADR-151 착수를 승인한다. Proposed → Accepted 승격 후 /execute-adr 151
+
+- Phase 0: battery 재실측으로 인벤토리 freeze 먼저 (07-13/14 실측치는 stale — G1)
+- 원인 축 그룹 단위로 수정, 그룹당 1 phase + 1 커밋
+- 판정 기준: ±2px 이내 + 텍스트 측정 기인 규명 시 수용. 원인 미상은 크기 무관 수용 금지
+- B7 Menu 표현은 기술 판정 아님 — 수정안을 AskUserQuestion 으로 내게 확인받고 진행
+- 수정 컴포넌트는 tree_golden battery 편입, 각 그룹 완료 시 /cross-check
+```
+
+</details>
+
+<details>
+<summary>3. ADR-148 (착수 승인 겸)</summary>
+
+```
+ADR-148 착수를 승인한다. 리뷰 round 2 의 breakdown 보강 2건 조건이 반영됐는지 먼저
+확인·해소하고 Accepted 승격 후 /execute-adr 148
+
+- phase 당 검증 + 커밋, 각 phase 완료 시 live builder 에서 reusable/slot 동작 1회 exercise
+  (test/type-check PASS 단독 종결 금지)
+- Phase 4(collection item slot)는 150-A2/A3 과 canvasSceneNode 표면을 공유 —
+  진입 시점에 150 진행 상태 재실측 후 조정
+```
+
+</details>
+
+<details>
+<summary>4. ADR-150 (착수 승인 겸)</summary>
+
+```
+ADR-150 착수를 승인한다. Accepted 승격 후 /execute-adr 150 — A1 부터.
+
+- A1: 상태 전용 무효화 채널 설계가 1차 산출물 (R1) — overlay draw pass 후보 우선 검토,
+  sceneVersion signature 에 상태 미포함, pointermove FPS 실측을 G-A1 조건에 포함
+- A2 진입 전제: ADR-151 발산 정리 완료 또는 fixture 격리 확인 (R6) — 미충족 시 A2 hold 하고 보고
+- A3 은 A2 완료 후. window 는 캔버스 전용 — LayerTree 패널 소비자 정책 분리 명시 (R2)
+- 각 축 게이트(G-A1~A3) 통과 실측을 커밋 검증 블록에 명시
+```
+
+</details>
+
+<details>
+<summary>5. ADR-152 (착수 승인 겸)</summary>
+
+```
+ADR-152 착수를 승인한다. Accepted 승격 후 /execute-adr 152
+
+- Phase 0 실측 먼저 (binding 이중 저장 위치 분포 격차6 포함) — legacy 경로 흡수는 실측 게이트 조건부
+- dataBinding v2 는 additive (collectionId + fieldMap). 기존 name 바인딩은 lazy upgrade —
+  로드 시점 재직렬화 0, 저장 시에만 v2 기록
+- fieldMap 소비는 resolveCollectionItems shared 계약 내부 주입 — Skia projector/DOM wrapper
+  호출부 변경 최소화. raw 소비 3종(Table/Tree/Tabs)은 Phase 3/4 에서 정렬
+- 완료 기준: 동일 collections 스냅샷에서 Skia↔DOM 동일 row/label (/cross-check) +
+  publish 앱 실렌더 1회 exercise
+```
+
+</details>
+
+<details>
+<summary>6. ADR-149 (착수 승인 겸)</summary>
+
+```
+ADR-149 착수를 승인한다. Accepted 승격 후 /execute-adr 149
+
+- G1(이벤트 패널 UI design)은 사용자 confirm 게이트 — 설계안을 AskUserQuestion 으로
+  내게 먼저 확인받은 뒤 구현 진입
+- canonical mutation 은 순서 계약(canonical 1차 → set → _rebuildIndexes → persist) 준수,
+  history/undo 통합은 G2 조건(undo/redo 실측)으로 검증 (R8)
+- workflowEdges 소비자는 R4 의 boundary vs live 2분류 freeze 기준으로만 전환
+```
+
+</details>
+
+<details>
+<summary>7. ADR-153 (선행 정리 + 착수, 2단계)</summary>
+
+```
+[지금] ADR-153 착수 준비만 진행: untracked 파일 3건(본문/design breakdown/reviews) 커밋 +
+/review-adr 153 round 2 재리뷰로 round 1 지적(M1 volatile 면제/M2 캐시 수명/L1/L2) 반영 승인 확정.
+착수(phase 실행)는 하지 마라.
+```
+
+```
+[착수 승인 시] ADR-153 착수를 승인한다. Accepted 승격 후 /execute-adr 153 — Phase 1 부터.
+
+- Phase 순차: 1 측정 보강 → 2 Paint 풀링 → 3 node Picture 캐시 → 4 는 G4
+  (contentRenderTime p95 >8ms 실측) 통과 시에만 진입, 미달이면 미도입으로 종결
+- Phase 3: invalidate 키 = ADR-136 sceneVersion signature SSOT 재사용 (신규 전역 카운터 금지),
+  volatile 노드(활성 애니메이션/드래그)는 캐시 면제 + 위치-불변 record (R6),
+  image LRU 퇴거 시 참조 Picture 동시 invalidate — 해제 순서 Picture → Image (R2)
+- 매 phase: production 번들 diff 0 + 계측 오버헤드 <0.5ms (G1) + /cross-check 시각 대칭 (G2)
+```
+
+</details>
 
 ### Superseded / Deprecated (ADR-133 / ADR-134 supersede — 2026-05-13 / ADR-145 supersede ADR-144 — 2026-05-27 / 사용자 결정 ADR-038 — 2026-05-13 / 사용자 결정 ADR-133 폐기 — 2026-07-08)
 
