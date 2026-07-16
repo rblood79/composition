@@ -284,6 +284,17 @@ export type { LayoutToken } from "./renderers";
 // Select/ComboBox — ADR-912 단계5 step4 (2026-06-17): catalog cutover spec 삭제로 export 제거.
 //   시각/CSS 는 STRUCTURE_META virtual, Skia 는 buildCatalogShapes generic 으로 이전.
 
+// IllustratedMessage — ADR-151 후속 (2026-07-17): escape 기하 발산 (Skia 48 vs CSS 240) 수정.
+//   DOM(IllustratedMessage.tsx)/Skia escape/layout(calculateContentHeight) 3경로 공유 metric SSOT.
+export {
+  ILLUSTRATED_MESSAGE_BOX,
+  resolveIllustratedMessageMetric,
+} from "./renderers/utils/illustratedMessageMetrics";
+export type {
+  IllustratedMessageMetric,
+  IllustratedMessageSizeLike,
+} from "./renderers/utils/illustratedMessageMetrics";
+
 // ListBox — ADR-912 단계5 step4 (2026-06-17): ListBox.spec 물리 삭제(catalog cutover).
 //   resolveListBoxSpacingMetric + 2 타입은 collectionItemMetrics 로 이관(GridList 선례). ListBoxSpec/Props 제거.
 export { resolveListBoxSpacingMetric } from "./renderers/utils/collectionItemMetrics";

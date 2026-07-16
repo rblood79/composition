@@ -38,6 +38,9 @@ import {
   buildDateInputDisplayText,
   resolveSpecFontSize,
   getLabelLineHeight,
+  // ADR-151 후속 (2026-07-17): IllustratedMessage 높이 분기 — escape(skiaPrimitives)/DOM 과
+  //   동일 metric SSOT (Layer D 동일 resolver 원칙).
+  resolveIllustratedMessageMetric,
 } from "@composition/specs";
 import type { SizeSpec } from "@composition/specs";
 import {
@@ -2090,6 +2093,38 @@ export function calculateContentHeight(
     const sizeName = String(props?.size ?? "md");
     const dims = statusLightDims(sizeName);
     return dims.height;
+  }
+
+  // 1.51. IllustratedMessage: metric SSOT content-box 높이 (ADR-151 후속 2026-07-17).
+  //   분기 부재 시 generic fallback 0 + style padding 48 = 48 로 escape 그리기
+  //   (placeholder 120 + 텍스트)가 박스를 넘침 — DOM 240 과 발산. escape(skiaPrimitives
+  //   illustrated_message)/DOM(IllustratedMessage.tsx) 과 동일 resolver — catalog rule
+  //   sizes read-through (StatusLight 동형).
+  //   **content-box 계약**: caller(fullTreeLayout:1936)가 element style padding 을 별도
+  //   가산하므로 padding 포함 반환 시 이중 계상 (288 실측). factory 기본 style 이
+  //   padding 을 보유 — style padding 전무일 때만 컴포넌트 내부 fallback padding
+  //   (metric paddingY, DOM 인라인 기본값) 을 포함해 DOM 총높이와 정합.
+  if (tag1 === "illustratedmessage") {
+    const props = element.props as Record<string, unknown> | undefined;
+    const sizeName = String(props?.size ?? "md");
+    const imSizes = resolveSkiaRule("IllustratedMessage")?.sizes as
+      | Record<string, ComponentRuleSize>
+      | undefined;
+    const m = resolveIllustratedMessageMetric(
+      sizeName,
+      imSizes?.[sizeName] ?? imSizes?.md,
+    );
+    const s = (element.props?.style ?? {}) as Record<string, unknown>;
+    // gap 은 escape/DOM 과 동일하게 element style 우선 (longhand → shorthand → metric).
+    //   factory 기본 style 의 gap 은 md 미러 고정값이라 size 전환 시 catalog gap 과 갈라짐.
+    const gap = parsePxValue(
+      (s.rowGap ?? s.gap) as string | number | undefined,
+      m.gap,
+    );
+    const contentHeight = m.box + gap * 2 + m.headingLine + m.descLine;
+    const hasStylePadding =
+      s.padding != null || s.paddingTop != null || s.paddingBottom != null;
+    return hasStylePadding ? contentHeight : contentHeight + m.paddingY * 2;
   }
 
   // 1.52. DisclosureHeader: catalog rule box height (ADR-912 Phase 5 — catalog read-through).

@@ -25,6 +25,7 @@ import {
 } from "./datePickerShapes";
 import type { Shape, SizeSpec, TokenRef } from "../types";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
+import { resolveIllustratedMessageMetric } from "./utils/illustratedMessageMetrics";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
 import { resolveTreeIndent } from "./buildCatalogShapes";
 import { measureSpecTextWidth } from "./utils/measureText";
@@ -2403,17 +2404,18 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
  *   heading/description 은 props(자식 Element 아님, factory children:[]). DOM(IllustratedMessage.tsx)
  *   인라인 style 과 시각 대칭.
  *
- *   size-key 별 dims/headingFontSize/gap 은 자체 인라인 매핑(rule table 미보유 — escape 자기 완결).
- *   fontSize 는 ctx.size.fontSize(rule TokenRef → resolveSpecFontSize), text 색은 visual.text.
+ *   metric(box/padding/gap/heading·desc 폰트/line height/전체 높이)은
+ *   `resolveIllustratedMessageMetric`(illustratedMessageMetrics.ts — DOM/layout 과 공유 SSOT,
+ *   catalog rule sizes read-through) 단일 산식. 텍스트 색은 visual.text.
+ *
+ * **ADR-151 후속 (2026-07-17) 기하 정렬**: 구 escape 는 top-left(0,0) 고정 + padding/정렬
+ *   배치 부재 + layout 높이 분기 부재로 박스(48)를 넘쳐 그렸다 (DOM 240 vs Skia 48).
+ *   DOM(flex column + factory style: padding/gap/alignItems) 과 동일 기하로 재작성 —
+ *   padding/gap/alignItems 는 element style 우선 (longhand → shorthand → metric fallback,
+ *   style-ssot 규칙), 가로 폭은 `_containerWidth`(CONTAINER_DIMENSION_TAGS 주입) 기준.
+ *   factory 기본 style 이 alignItems:flex-start (catalog structure.containerStyles 미러) 라
+ *   기본 렌더는 좌측 정렬 — style 부재 시 컴포넌트 내부 기본(center)과 동일하게 center.
  */
-const ILLUSTRATION_ESCAPE_DIMS: Readonly<
-  Record<string, { box: number; headingFs: number; gap: number }>
-> = {
-  sm: { box: 80, headingFs: 16, gap: 8 },
-  md: { box: 120, headingFs: 18, gap: 12 },
-  lg: { box: 160, headingFs: 20, gap: 16 },
-};
-
 const illustratedMessage: SkiaPrimitiveDrawFn = ({
   props,
   size,
@@ -2424,13 +2426,49 @@ const illustratedMessage: SkiaPrimitiveDrawFn = ({
   if ((props as Record<string, unknown>)._hasChildren) return [];
 
   const sizeName = (props.size as string) ?? "md";
-  const dims =
-    ILLUSTRATION_ESCAPE_DIMS[sizeName] ?? ILLUSTRATION_ESCAPE_DIMS.md;
+  // fontSize 는 size(rule) 만 — merged style map 의 fontSize 는 base 가 항상 채워져
+  // override 판정 불능 (feedback-merged-style-map-kills-override-detection). DOM 도
+  // heading/desc 에 metric fs 를 명시해 root fontSize 를 상속하지 않는다.
+  const m = resolveIllustratedMessageMetric(sizeName, size);
 
-  const descFs = resolveSpecFontSize(
-    (style?.fontSize as string | number | undefined) ?? size.fontSize,
-    14,
+  // element style 소비 (store longhand 정책: longhand → shorthand → metric fallback).
+  const padTop = parsePxValue(
+    (style?.paddingTop ?? style?.padding) as string | number | undefined,
+    m.paddingY,
   );
+  const padLeft = parsePxValue(
+    (style?.paddingLeft ?? style?.padding) as string | number | undefined,
+    m.paddingX,
+  );
+  const padRight = parsePxValue(
+    (style?.paddingRight ?? style?.padding) as string | number | undefined,
+    m.paddingX,
+  );
+  const gap = parsePxValue(
+    (style?.rowGap ?? style?.gap) as string | number | undefined,
+    m.gap,
+  );
+  const alignItems = (style?.alignItems as string | undefined) ?? "center";
+
+  const containerWidth =
+    typeof props._containerWidth === "number" && props._containerWidth > 0
+      ? (props._containerWidth as number)
+      : m.box + padLeft + padRight;
+  const contentX = padLeft;
+  const contentW = Math.max(containerWidth - padLeft - padRight, m.box);
+  const boxX =
+    alignItems === "flex-start"
+      ? contentX
+      : alignItems === "flex-end"
+        ? contentX + contentW - m.box
+        : contentX + (contentW - m.box) / 2;
+  const textAlign =
+    alignItems === "flex-start"
+      ? ("left" as const)
+      : alignItems === "flex-end"
+        ? ("right" as const)
+        : ("center" as const);
+
   const ff = (style?.fontFamily as string) || fontFamily.sans;
   const textColor =
     (style?.color as string | undefined) ??
@@ -2443,44 +2481,63 @@ const illustratedMessage: SkiaPrimitiveDrawFn = ({
 
   const shapes: Shape[] = [];
 
-  // 일러스트 placeholder 영역
+  // 일러스트 placeholder 영역 — DOM `--bg-muted` solid ({color.neutral-subtle}).
   shapes.push({
     id: "illustration",
     type: "roundRect" as const,
-    x: 0,
-    y: 0,
-    width: dims.box,
-    height: dims.box,
+    x: boxX,
+    y: padTop,
+    width: m.box,
+    height: m.box,
     radius: 12,
     fill: "{color.neutral-subtle}" as TokenRef,
-    fillAlpha: 0.5,
   });
 
-  // Heading 텍스트
+  // placeholder 중앙 ○ glyph — DOM `&#9675;` fontSize 48 / --fg-muted 미러.
   shapes.push({
-    id: "heading",
+    id: "illustration-glyph",
     type: "text" as const,
-    x: 0,
-    y: dims.box + dims.gap,
-    text: heading,
-    fontSize: dims.headingFs,
-    fontFamily: ff,
-    fontWeight: 600,
-    fill: textColor,
-    align: "center" as const,
-  });
-
-  // Description 텍스트
-  shapes.push({
-    id: "description",
-    type: "text" as const,
-    x: 0,
-    y: dims.box + dims.gap + dims.headingFs + 8,
-    text: description,
-    fontSize: descFs,
+    x: boxX,
+    y: padTop + m.box / 2,
+    text: "○",
+    fontSize: 48,
     fontFamily: ff,
     fill: "{color.neutral-subdued}" as TokenRef,
     align: "center" as const,
+    baseline: "middle" as const,
+    maxWidth: m.box,
+    whiteSpace: "nowrap" as const,
+  });
+
+  // Heading 텍스트 — DOM fontWeight 600 / var(--fg), lineHeight 1.5 밴드 세로 중앙.
+  shapes.push({
+    id: "heading",
+    type: "text" as const,
+    x: contentX,
+    y: padTop + m.box + gap + m.headingLine / 2,
+    text: heading,
+    fontSize: m.headingFs,
+    fontFamily: ff,
+    fontWeight: 600,
+    fill: textColor,
+    align: textAlign,
+    baseline: "middle" as const,
+    maxWidth: contentW,
+  });
+
+  // Description 텍스트 — DOM var(--fg-muted), lineHeight 1.5 밴드 세로 중앙.
+  shapes.push({
+    id: "description",
+    type: "text" as const,
+    x: contentX,
+    y: padTop + m.box + gap + m.headingLine + gap + m.descLine / 2,
+    text: description,
+    fontSize: m.descFs,
+    fontFamily: ff,
+    fill: "{color.neutral-subdued}" as TokenRef,
+    align: textAlign,
+    baseline: "middle" as const,
+    maxWidth: contentW,
   });
 
   return shapes;

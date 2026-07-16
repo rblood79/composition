@@ -57,6 +57,10 @@ export const illustratedMessageBinding: PrimitiveBinding = {
       },
     },
     toRacProps: "default",
+    // ADR-151 후속 (2026-07-17): size 는 DOM 컴포넌트의 metric 계산 semantic input —
+    //   data-attr 가 아니라 React prop 으로 통과 (StatusLight/Avatar 선례 동형). 미통과 시
+    //   IllustratedMessage.tsx 가 md 고정으로 렌더되어 Skia escape(sm/lg 반응)와 비대칭.
+    propPassthrough: ["size"],
   },
   skiaPrimitive: "illustrated_message",
 };

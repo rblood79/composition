@@ -14,19 +14,29 @@
  *   roundRect + heading text + description text 를 그린다 — buildCatalogShapes box+text 는 단일 box +
  *   단일 text 만 가능해 nested placeholder+2text 표현 불가.
  *
+ * **ADR-151 후속 (2026-07-17)**: 기하(box/padding/gap/heading·desc 폰트/line height)를
+ *   `resolveIllustratedMessageMetric`(specs — escape/layout 과 공유 SSOT) + catalog rule sizes
+ *   read-through(StatusLight 패턴)로 전환. 구 md 하드코딩은 size prop(sm/lg) 미소비였고,
+ *   line-height 를 1.5 로 명시해 layout 분기 산식(headingLine/descLine)과 px 일치.
+ *
  * D1: composition `<div role="status">` (internal source, INTERNAL_RENDERERS 어댑터).
  * D2: heading + description + variant(default) + size(sm/md/lg) 편집.
  * D3: 시각(placeholder dim/text 색)은 인라인 style + 부모 CSS 변수(--bg-muted/--fg/--fg-muted).
- *     spec.render.shapes 의 Skia escape 와 시각 대칭.
+ *     Skia escape(illustrated_message)와 metric SSOT 로 시각 대칭.
  */
 
 import React from "react";
+import { resolveIllustratedMessageMetric } from "@composition/specs";
+import type { IllustratedMessageSizeLike } from "@composition/specs";
+import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule";
 
 export interface IllustratedMessageProps {
   /** 헤딩 텍스트 */
   heading?: string;
   /** 설명 텍스트 */
   description?: string;
+  /** 크기 (catalog sizes sm/md/lg — padding/gap/폰트/placeholder 변) */
+  size?: "sm" | "md" | "lg" | string;
   /** 인라인 style override (cutover 경로의 toReactStyle 결과) */
   style?: React.CSSProperties;
   /** 추가 className */
@@ -44,17 +54,26 @@ export interface IllustratedMessageProps {
  * IllustratedMessage — 빈 상태(empty state) 표시 컴포넌트.
  *
  * cutover DOM 경로(CanonicalNodeRenderer)가 marker props/style 을 주입하므로,
- * 본 컴포넌트는 heading/description + style/className 만 소비한다.
+ * 본 컴포넌트는 heading/description/size + style/className 만 소비한다.
  */
 export function IllustratedMessage({
   heading,
   description,
+  size = "md",
   style,
   className,
   ...rest
 }: IllustratedMessageProps): React.ReactElement {
   const headingText = heading || "No content";
   const descriptionText = description || "There is nothing to display.";
+
+  // catalog rule sizes read-through — Skia escape/layout 분기와 동일 metric source.
+  const sizeKey = String(size).toLowerCase();
+  const rule = resolveComponentRule("IllustratedMessage");
+  const m = resolveIllustratedMessageMetric(
+    sizeKey,
+    rule?.sizes?.[sizeKey] as IllustratedMessageSizeLike | undefined,
+  );
 
   return (
     <div
@@ -65,8 +84,8 @@ export function IllustratedMessage({
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: 12,
-        padding: 24,
+        gap: m.gap,
+        padding: `${m.paddingY}px ${m.paddingX}px`,
         textAlign: "center",
         ...style,
       }}
@@ -75,8 +94,8 @@ export function IllustratedMessage({
       {/* 일러스트 placeholder */}
       <div
         style={{
-          width: 120,
-          height: 120,
+          width: m.box,
+          height: m.box,
           borderRadius: 12,
           backgroundColor: "var(--bg-muted, #f3f4f6)",
           display: "flex",
@@ -89,11 +108,22 @@ export function IllustratedMessage({
         &#9675;
       </div>
       <div
-        style={{ fontSize: 18, fontWeight: 600, color: "var(--fg, #1f2937)" }}
+        style={{
+          fontSize: m.headingFs,
+          lineHeight: 1.5,
+          fontWeight: 600,
+          color: "var(--fg, #1f2937)",
+        }}
       >
         {headingText}
       </div>
-      <div style={{ fontSize: 14, color: "var(--fg-muted, #6b7280)" }}>
+      <div
+        style={{
+          fontSize: m.descFs,
+          lineHeight: 1.5,
+          color: "var(--fg-muted, #6b7280)",
+        }}
+      >
         {descriptionText}
       </div>
     </div>
