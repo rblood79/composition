@@ -21,6 +21,7 @@ import { rendererMap } from "@composition/shared/renderers";
 import {
   adaptElementFillStyle,
   getCatalogCutoverTypes,
+  isComponentsPageMetadata,
   isRuntimePageNode,
 } from "@composition/shared";
 import { getElementForTag } from "@composition/specs";
@@ -886,6 +887,52 @@ function CanvasContent() {
     // ──────────────────────────────────────────────────────────────────────────
     if (resolvedCanonicalNodes) {
       try {
+        // ADR-151 후속 (2026-07-17, 사용자 (a)안): components 시스템 페이지
+        // (pageRole="components", slug "/__components")는 isRuntimePageNode 가
+        // 의도적으로 제외하는 editor 전용 surface — 빈 화면 + legacy fallback
+        // 경고(아래 warn) 대신 "preview 미지원" 안내를 렌더한다.
+        const isComponentsSystemPage =
+          currentPageId != null &&
+          resolvedCanonicalNodes.some((node) => {
+            const meta = node.metadata as Record<string, unknown> | undefined;
+            const resolvedPageId =
+              typeof meta?.pageId === "string" && meta.pageId.length > 0
+                ? meta.pageId
+                : node.id;
+            return (
+              resolvedPageId === currentPageId &&
+              isComponentsPageMetadata(node.metadata)
+            );
+          });
+        if (isComponentsSystemPage) {
+          return (
+            <div
+              role="status"
+              data-preview-notice="components-page"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: "60vh",
+                gap: 8,
+                padding: 24,
+                textAlign: "center",
+                color: "var(--fg-muted, #9ca3af)",
+                fontFamily: "var(--font-sans, sans-serif)",
+              }}
+            >
+              <div style={{ fontSize: 15, fontWeight: 600 }}>
+                Components page is not previewable
+              </div>
+              <div style={{ fontSize: 13 }}>
+                This system page stores reusable component origins and has no
+                runtime output.
+              </div>
+            </div>
+          );
+        }
+
         // 현재 page 에 해당하는 top-level 노드 필터링.
         // page 식별은 runtime audience helper를 사용한다.
         // currentPageId 없으면 (layout-edit 모드) 모든 page 노드 통과.
