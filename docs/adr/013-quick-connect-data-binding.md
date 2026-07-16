@@ -4,6 +4,10 @@
 
 Proposed
 
+> **선행 의존 (2026-07-16 확정)**: [ADR-152](152-data-panel-collection-binding-integration.md)(바인딩 계약 v2 — `collectionId`+`fieldMap`, `props.dataBinding` 정규화) 완료가 선행 조건이다. 계약 확정 전에 구현하면 Quick Connect 가 name 기반 v1 바인딩을 신규 생산해 ADR-152 의 lazy upgrade 부담을 늘린다. ADR-152 로의 병합 여부는 2026-07-16 사용자 확인으로 **분리 유지** 확정 (계약 layer ↔ UX 자동화 layer 직교).
+>
+> **Stale 재고 (2026-07-16 실측)**: 본문 구현 상세 다수가 작성 시점(2026-03) 이후 소멸된 코드를 인용한다 — Phase 1-B 대상 `PixiListBox`/`PixiList` 소멸(ADR-900 PixiJS 제거), Phase 1-A 의 spec shapes 전제 소멸(ADR-142 catalog 전환), Phase 4 대상 에디터 6종 중 5종 소멸(`ListBox/Select/ComboBox/GridList/MenuEditor` 부재 — `TableEditor.tsx` 만 잔존). `ADD_COLUMN_ELEMENTS` 파이프라인 / presets(`dataTablePresets.ts`) / `stores/data.ts` 는 생존하나 store 이중화는 ADR-152 격차 5 해소 대상. **착수 시 Phase 0 재-inventory 필수** — 본문 Phase 1~5 파일 목록·라인 번호는 그대로 사용 금지.
+
 ## Date
 
 2026-03-02 (effective date — 검토 완료 기준)

@@ -10,6 +10,8 @@ Proposed — 2026-07-16
 
 **Domain 분류**: 본 결정은 **D2(Props/API — `dataBinding` prop 계약)** 중심이며, 데이터 자체의 SSOT 는 3-domain 밖의 데이터 도메인(ADR-131 이 `data_tables` 로 확정)이다. D3 는 소비 대칭(Builder Skia projector ↔ Preview DOM wrapper 가 동일 row/label 산출)으로만 관여하고, D1(RAC DOM/접근성)은 무변경. CSS Generator emit 과 무관한 ADR 이다 (inspector `kind:"binding"` 필드만 관여).
 
+**후속 응용 ADR**: [ADR-013](013-quick-connect-data-binding.md)(Quick Connect — 바인딩 생성 1클릭 UX)은 본 ADR 의 계약 v2 write 경로(`collectionId`+`fieldMap`, `props.dataBinding` 정규화)를 소비하는 응용이며, 본 ADR 완료가 선행 조건이다. 병합 여부는 2026-07-16 사용자 확인으로 **분리 유지** 확정 — 계약 layer(본 ADR)와 UX 자동화 layer(013)는 직교하고, 합치면 실패 시 원인 분리가 불가한 위험 누적 구조가 된다.
+
 **실측 현행 격차 (2026-07-16)**:
 
 1. **name 기반 바인딩 참조** — `useCollectionData.ts:298` 이 `collections.find((dt) => dt.name === propertyBinding.name)` 로 resolve. DataTable rename 시 바인딩이 silent 파손된다. `PropertyDataBinding` 타입(`packages/shared/src/types/collection.types.ts:207-220`)에 id 필드 자체가 없다.
