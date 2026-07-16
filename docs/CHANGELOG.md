@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [숨은 패널 selection fan-out 차단 — ADR-155 패널 활성 gating] - 2026-07-17
+
+### Performance
+
+- **비활성 패널을 React 19.2 `<Activity mode="hidden">` 으로 gating — 선택 클릭 시 숨은 패널 작업 완전 소거** (ADR-155 Phase 0~3 Implemented):
+  - **Why**: `PanelContainer` 의 `isActive={true}` 하드코딩 + memo 전파 차단으로 화면에 없는 패널 14종이 매 선택 클릭마다 store 구독 갱신을 실행 — 클릭당 ~110ms (86~205ms) 동기 long task 의 본체가 숨은 패널 commit effect 순회 (busy 샘플 ~74%, 숨은 스타일 입력 25개 host update = 클릭당 DOM 속성 쓰기 93건)
+  - 수정: `PanelWrapper` 가 비활성 패널을 Activity hidden 으로 무조건부 래핑 — hidden 중 uSES 구독 자체가 해제되어 갱신 알림을 받지 않음 (DOM·컴포넌트 상태 보존, 재활성 시 최신화). 슬라이드 애니메이션의 `data-active` CSS 채널은 속성축 분리로 공존
+  - 숨김 중에도 필요하던 캔버스 전역 단축키 (Cmd+C/V/D/A·Escape·그룹·정렬 등 PropertiesPanel 발 11 핸들러 + Styles Copy/Paste) 는 신설 `CanvasSelectionShortcuts` host (BuilderCore mount) 로 이전 — properties 패널이 닫혀 있어도 동작
+  - Activity `display:none` 이 소실시키는 패널 스크롤 위치는 scroll 기록 → 재활성 rAF 복원으로 보완 (실측 420→0 회귀 → 1600px 보존)
+  - 실측 (550 요소 문서, Chrome MCP): 선택 클릭 longtask 0건 (pointerdown duration 24ms) / commit effect busy 비율 74%→12% (MutationEffects 0%) / hidden 패널 mutation 0 (이전 클릭당 ~125건)
+  - left/right 12패널의 dead `if (!isActive)` 가드 제거 동반 (bottom 경로 MonitorPanel 은 live 가드 유지)
+  - 위치: `apps/builder/src/builder/layout/PanelContainer.tsx`, `apps/builder/src/builder/panels/properties/CanvasSelectionShortcuts.tsx`, `apps/builder/src/builder/main/BuilderCore.tsx`
+
 ## [선택 클릭 재렌더 낭비 제거 — canonical elements view 문서당 1회 캐시] - 2026-07-17
 
 ### Performance

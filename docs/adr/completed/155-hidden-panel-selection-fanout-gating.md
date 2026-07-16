@@ -2,9 +2,9 @@
 
 ## Status
 
-Accepted — 2026-07-17 (리뷰 round 1 승인 — 이슈 3건 전부 fixed, `docs/adr/reviews/155.md`. Proposed 2026-07-17)
+Implemented — 2026-07-17 (Phase 0~3 전체 완료. Accepted 2026-07-17 — 리뷰 round 1 승인, 이슈 3건 전부 fixed, `docs/adr/reviews/155.md`. Proposed 2026-07-17)
 
-> 착수: 2026-07-17 execute-adr — Phase 0 (inventory + Activity 스파이크) 부터.
+> 진행 로그: Phase 0 (inventory + 스파이크) `2e1fbacde` / Phase 1 (파일럿, G2 PASS) `f01b2f64d` / Phase 2 (부수효과 이전 + 전 패널 확대) `e1e4fa97f` / 후속 정리 (12패널 dead 가드 제거) `b563085fe` / Phase 3 (G3·G4 실측 + 스크롤 복원) `92b62469b`. Gate 실측값: design breakdown §5.6.
 
 ## Context
 
@@ -88,7 +88,7 @@ Accepted — 2026-07-17 (리뷰 round 1 승인 — 이슈 3건 전부 fixed, `do
 - **대안 A 기각**: 소비처별 배선(4곳+섹션)과 신규 구독마다의 gating 계약 준수가 지속 유지보수 부담이며, 선택 외 갱신 축은 여전히 숨은 패널 비용을 지불한다. 단 B 의 Gate 실패 시 fallback 경로로 보존한다.
 - **대안 C 기각**: 패널 로컬 상태 소실이 Hard Constraint 3 을 직접 위반 — 현행 설계가 의도적으로 지키던 사용자 가시 계약의 회귀.
 
-> 구현 상세: [155-hidden-panel-selection-fanout-gating-breakdown.md](design/155-hidden-panel-selection-fanout-gating-breakdown.md)
+> 구현 상세: [155-hidden-panel-selection-fanout-gating-breakdown.md](../design/155-hidden-panel-selection-fanout-gating-breakdown.md)
 
 ## Risks
 
@@ -108,6 +108,8 @@ Accepted — 2026-07-17 (리뷰 round 1 승인 — 이슈 3건 전부 fixed, `do
 | G3   | Phase 3        | 대형 문서 기준 클릭 longtask <50ms + commit effect 샘플 비율 유의미 감소 (baseline 74%) — 소형 문서 단독 판정 금지 | 원인 재분해 후 fallback A 병용 검토                |
 | G4   | Phase 3        | 패널 로컬 상태(스크롤·입력) 보존 + 토글 애니메이션 회귀 0건                                                        | CSS 역할 재조정 (data-active 유지 + Activity 병행) |
 
+> **Gate 통과 기록 (2026-07-17)**: G1 ✅ 제외 목록 공집합 (design §5 — nodes/datatable 부트스트랩은 BuilderCore primary 재확인, 캔버스 전역 단축키는 host 이전) / G2 ✅ 파일럿 2종 hidden mutation 0 + 재활성 즉시 최신화 / G3 ✅ 550 요소 문서에서 선택 클릭 longtask 0건 (pointerdown duration 24ms), commit effect busy 샘플 74% → 12% (MutationEffects 0%) / G4 ✅ 스크롤 1600px 복원·검색 입력 세션 보존·popover 잔존 없음·토글 애니메이션 회귀 0 — 스크롤 offset 은 display:none 소실 실측 (420→0) 후 PanelWrapper 복원 메커니즘으로 보완 (`92b62469b`).
+
 ## Consequences
 
 ### Positive
@@ -121,3 +123,4 @@ Accepted — 2026-07-17 (리뷰 round 1 승인 — 이슈 3건 전부 fixed, `do
 - React 19.2 `Activity` 에 대한 프로젝트 첫 의존 — React 마이너 업그레이드 시 동작 확인 대상 추가
 - hidden 패널의 갱신이 idle 로 이연되므로, 숨은 패널이 실시간이어야 하는 기능을 향후 추가할 경우 해당 패널을 제외 목록으로 관리해야 함 (design §5 inventory 가 그 정본)
 - 파일럿·실측 Gate 4개를 통과해야 하는 검증 비용 (일회성)
+- Activity 의 display:none 은 DOM 스크롤 offset 을 소실시킴 (이전 content-visibility:auto 는 box 유지로 보존) — PanelWrapper 의 scroll 기록 → rAF 복원 메커니즘이 보완하며, 이 로직이 유지보수 대상에 추가됨 (정적 가드로 제거 차단)

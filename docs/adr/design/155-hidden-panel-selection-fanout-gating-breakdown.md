@@ -1,7 +1,7 @@
 # ADR-155 구현 상세: 숨은 패널 selection fan-out 차단 — 패널 활성 gating
 
-> 본문: [155-hidden-panel-selection-fanout-gating.md](../155-hidden-panel-selection-fanout-gating.md)
-> Status: Accepted — 2026-07-17 (리뷰 round 1 승인). Phase 0·1·2 핵심 완료 — 잔여: 12패널 dead 가드 제거 + Phase 3 (G3/G4 대형 문서 실측 + 종결).
+> 본문: [155-hidden-panel-selection-fanout-gating.md](../completed/155-hidden-panel-selection-fanout-gating.md)
+> Status: Implemented — 2026-07-17 (Phase 0~3 전체 완료 + Gate 4종 통과. 리뷰 round 1 승인 후 착수, 같은 날 종결).
 
 ## 1. Baseline 실측 (2026-07-17, adr151-followup-verify 프로젝트 43 요소, 패널 전부 접힘 상태)
 
@@ -53,7 +53,7 @@
    - 콘솔 error/warning 0 (HMR 적용 이후 상호작용 구간).
    - **미판정 잔여**: 파일럿 2종에는 popover 없음 — 스파이크 (f) portal 잔존 체크는 Phase 2 에서 Select 보유 패널 (properties/styles) 로 확인. 슬라이드-아웃 300ms 중 내용 즉시 소멸 여부는 정지 스크린샷 한계 — G4 (Phase 3) 시각 확인 항목.
 
-### Phase 2 — 부수효과 이전 + 전 패널 확대 — **핵심 완료 2026-07-17 (잔여 1건)**
+### Phase 2 — 부수효과 이전 + 전 패널 확대 — **완료 2026-07-17**
 
 1. **부수효과 이전 (사용자 승인 방향)**:
    - properties 캔버스 전역 단축키 11 핸들러 (Cmd+C/V/D/A, Escape, Cmd+Alt+X, Cmd+G/Shift+G, 정렬 6, 분배 2) + Tab 네비게이션 raw listener → **`panels/properties/CanvasSelectionShortcuts.tsx` 신설 host 로 이전** (BuilderCore mount, leaf null 렌더라 구독 재렌더 비전파). 핸들러 본문 verbatim 이동 — Copy All/Paste 의 `scope: "panel:properties"` 도 원본 그대로 보존 (scope 는 포커스 기반이라 등록 위치 무관). panel-scoped Copy/Paste Properties 2종 + Cmd+? 도움말은 패널 잔류 (Cmd+? 는 properties 숨김 중 비동작으로 동작 변화 — 도움말 modal 이 패널 내부 UI 라 수용).
@@ -61,20 +61,20 @@
    - nodes/datatable 부트스트랩 2건은 **이전 불필요로 정정** (§5 — BuilderCore 가 이미 primary, Phase 0 grep `| head` 절단 오판).
    - `panelNodeToElement`/`panelNodeMapToElementMap` 을 `panelNodeElementMap.ts` 로 분리 (host 공유 + react-refresh 경고 회피). ADR-126 Element allowlist 에 등재 (동일 계약 이동, 신규 도입 아님).
 2. left/right 전 패널 Activity 래핑 확대 완료 — `PanelWrapper` 무조건부 래핑 (파일럿 allowlist 제거). fonts/TypographySection font sync effect 에 재장착 catch-up 1줄 추가 (HC2).
-3. 정적 가드 테스트 완료: `PanelContainer.static.test.ts` 3건 — Activity 래핑 존재 / `isActive={true}` 하드코딩 유지 (실값 전달 재도입 차단) / data-active CSS 채널 유지. **잔여**: left/right 12패널 dead 가드 제거 (기능 무영향 정리 — 하드코딩 유지라 실값 전달 위험 없음, 별도 커밋 예정).
+3. 정적 가드 테스트 완료: `PanelContainer.static.test.ts` 3건 — Activity 래핑 존재 / `isActive={true}` 하드코딩 유지 (실값 전달 재도입 차단) / data-active CSS 채널 유지. left/right 12패널 dead 가드 제거는 후속 정리 커밋 `b563085fe` 로 완료 (MonitorPanel 은 bottom 경로 live 가드라 제외, DataTablePanel 은 param 잔존 — query enabled 소비).
 4. **라이브 검증 (2026-07-17, 리로드 후)**: 비활성 10패널 전부 Activity hidden / 선택 클릭 4회 mutation: styles·nodes·theme 0 vs active properties 330 / **Escape 가 host 에서 발화 (properties 패널 hidden 상태 포함)** — 콘솔 로그 소스 `CanvasSelectionShortcuts.tsx` 확인 / nodes·datatable hidden 부트에서 프로젝트·데이터 정상 로드 / popover 열린 채 실클릭 전환 시 interactOutside 로 먼저 닫힘 (portal 잔존 없음 — 단 **키보드 단축키 패널 전환은 pointerdown 없이 전환되므로 G4 에서 확인**) / 콘솔 error 0 / LoAF (>50ms 프레임) 관찰자에 클릭 3회 동안 **0건** (baseline 86~205ms 상시 — 소형 문서 참고치, G3 판정은 대형 문서로).
 
-### Phase 3 — Gate 총괄 실측 + 종결
+### Phase 3 — Gate 총괄 실측 + 종결 — **완료 2026-07-17**
 
-1. **G3/G4 실측** (대형 문서 병행): 클릭 longtask, commit effect 비율, 패널 로컬 상태 (스크롤/입력값) 보존, 패널 토글 애니메이션 회귀.
-2. CHANGELOG Performance 엔트리 + ADR Implemented 승격 + README 갱신.
-3. live behavior 게이트 (CLAUDE.md 완료 기준): Chrome MCP 로 선택→패널 표시·토글·상태 보존 1회 exercise 기록.
+1. **G3/G4 실측 완료** (대형 문서 `adr155-g3-perf` 550 요소 — §5.6 실측값). G4 에서 스크롤 offset 소실 회귀 발견 → `PanelWrapper` scroll 기록→rAF 복원 메커니즘으로 보완 (`92b62469b`).
+2. CHANGELOG Performance 엔트리 + ADR Implemented 승격 + README 갱신 완료.
+3. live behavior 게이트: Chrome MCP 로 선택 클릭→패널 갱신·6패널 토글·스크롤/입력 상태 보존·Escape host 발화 exercise 기록 (§5.6).
 
 ### Fallback (G2/G3 실패 시) — 대안 A 경로
 
 `usePanelIsActive(panelId)` (layout store 직구독) + `useSelectedElementData(enabled)` selector sentinel gating 을 패널 4소비처에 배선. Activity 래핑은 제거 (롤백 = 래퍼 삭제 1곳).
 
-## 4. 파일 변경 표 (실제 — Phase 2 까지)
+## 4. 파일 변경 표 (실제)
 
 | 파일                                                                      | Phase | 변경                                                                           |
 | ------------------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------ |
@@ -88,7 +88,8 @@
 | `apps/builder/src/builder/panels/fonts/FontManagerPanel.tsx`              | 2     | 재장착 catch-up sync 1줄                                                       |
 | `apps/builder/src/builder/panels/styles/sections/TypographySection.tsx`   | 2     | 재장착 catch-up sync 1줄                                                       |
 | `apps/builder/eslint-local-rules/index.js`                                | 2     | ADR-126 Element allowlist 에 panelNodeElementMap.ts 등재                       |
-| (잔여) left/right 12패널                                                  | 2/3   | dead 가드 제거 (기능 무영향 정리)                                              |
+| left/right 12패널 (Settings/Nodes/Styles/… gateway)                       | 2/3   | dead `if (!isActive)` 가드 + 미사용 PanelProps param/import 제거 (`b563085fe`) |
+| `apps/builder/src/builder/layout/PanelContainer.tsx` (2차)                | 3     | G4 보완 — scroll capture 기록 → 재활성 rAF 복원 + clamp 가드 (`92b62469b`)     |
 | (fallback 시) `stores/index.ts`, `panels/{styles,properties,events}/*`    | —     | enabled 파라미터 배선 — 미사용 (G2 통과로 fallback 미발동)                     |
 
 ## 5. 숨은 패널 effect 의존 inventory (Phase 0 실측 → Phase 2 정정 2026-07-17 — G1 판정)
@@ -122,11 +123,26 @@
 | (e) uSES 구독                   | visible 2 → hidden 1 → visible 2 (해제/재구독)                                                                                                                                       | Zustand 구독도 동일 의미 기대                                                                                                                         |
 | (f) **portal 누수 (신규 발견)** | popover 열린 채 hidden 전환 → 패널 본체 display:none, **portal 된 popover 는 body 에 잔존 + display:block (화면에 계속 보임)**. 포커스는 BODY 로 정상 해제, 재표시 시 open 상태 보존 | **G2 체크 항목 추가** — 실사용 (패널 탭 클릭 전환) 에서 RAC interactOutside 가 popover 를 먼저 닫는지 확인. 안 닫히면 전환 시 overlay 강제 close 필요 |
 
+## 5.6. Phase 3 Gate 실측 (2026-07-17 — `adr155-g3-perf` 프로젝트 550 요소, Chrome MCP)
+
+측정 환경: Home 페이지에 frame 25 × Text 20 = 525 요소 주입 (addComplexElement 배치, IndexedDB persist·리로드 hydrate 확인) + Components 페이지 초기 25 요소. 좌측 패널 전부 hidden (nodes 는 500 노드 트리 보유 상태로 hidden), 우측 properties 활성. 선택 클릭은 Components 페이지 (Canvas 모드) 요소 대상 — Home 은 preview(CSS) 모드 페이지라 캔버스 선택 경로가 아님.
+
+| Gate | 항목                          | baseline (§1, 43 요소)                  | 실측 (550 요소)                                                                | 판정 |
+| ---- | ----------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------ | ---- |
+| G3   | 선택 클릭 longtask (≥50ms)    | ~110ms (86~205ms) 상시                   | **0건** (선택 클릭 6회 + 연속 8회; Event Timing pointerdown duration 24ms)      | ✅   |
+| G3   | commit effect busy 샘플 비율  | ~74% (Mutation+PassiveUnmount 반반)      | **12%** (MutationEffects 0% / Passive 4%; busy 자체 클릭당 ~110ms → ~14ms 상당) | ✅   |
+| G4   | 패널 로컬 상태 — 스크롤       | 보존 (content-visibility:auto box 유지)  | 소실 실측 (420→0) → **복원 메커니즘 추가 후 1600px 보존** (`92b62469b`)         | ✅   |
+| G4   | 패널 로컬 상태 — 입력 세션    | 보존                                     | 검색어·필터 결과 보존 (React state — Activity 비-unmount)                       | ✅   |
+| G4   | popover 잔존                  | —                                        | 실클릭 전환 시 interactOutside 선닫힘; 직접 keydown 패널 토글은 미배선 (CommandPalette 경유뿐) 이라 잔존 경로 없음 | ✅   |
+| G4   | 토글 애니메이션               | 300ms 슬라이드                           | 회귀 신호 0 (다수 토글 관측 + data-active CSS 채널 정적 가드 + 콘솔 error 0)    | ✅   |
+
+측정 한계 (기록 의무): baseline 74% 는 43 요소 프로젝트/실창 측정치로 이번 550 요소 문서와 동일 환경이 아니다. 다만 MutationEffects 0% + longtask 0건은 fan-out 기제 자체의 소거를 직접 보여주는 값이라 환경 차와 무관하게 유효. JS Self-Profiling 은 연속 8클릭 구간 1958 샘플 (sampleInterval 1ms) 기준.
+
 ## 6. 검증 체크리스트 (Phase 3 종결 조건)
 
-- [ ] G1~G4 전부 통과 기록 (본 문서에 실측값 추가)
-- [ ] 대형 문서 기준 클릭 longtask 실측 — 소형 문서 단독 판정 금지
-- [ ] 패널 토글 → 현재 선택 즉시 반영 (stale 표시 0건)
-- [ ] 패널 로컬 상태 (스크롤·입력 세션) 보존
-- [ ] `pnpm type-check` PASS + 관련 vitest PASS
-- [ ] live behavior exercise 기록 (Chrome MCP)
+- [x] G1~G4 전부 통과 기록 (§5.6 실측값)
+- [x] 대형 문서 기준 클릭 longtask 실측 — 550 요소, longtask 0건 (소형 단독 판정 아님)
+- [x] 패널 토글 → 현재 선택 즉시 반영 (stale 표시 0건 — Phase 2 라이브 검증 + Phase 3 재확인)
+- [x] 패널 로컬 상태 (스크롤·입력 세션) 보존 — 스크롤은 복원 메커니즘 보완 후 충족 (`92b62469b`)
+- [x] `pnpm type-check` PASS + `PanelContainer.static.test.ts` 4/4 PASS
+- [x] live behavior exercise 기록 (Chrome MCP — §5.6)
