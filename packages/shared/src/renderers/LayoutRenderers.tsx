@@ -2124,12 +2124,30 @@ const TABLEVIEW_CHILD_STYLE: Record<
     // textAlign left: catalog COMPONENT_RULES_TABLE.Column.variants.default.textAlign 미러
     //   (starter Table.css `.react-aria-Column{text-align:left}` 정본). Skia(rule.textAlign)와
     //   동일 값 명시 — generic div 인라인 완결 패턴(브라우저 기본 left 의존 대신 SSOT 미러).
-    style: { flex: "1", padding: 8, fontWeight: 600, textAlign: "left" },
+    // fontSize/lineHeight 16/24: catalog COMPONENT_RULES_TABLE.Column sizes 미러 (ADR-151
+    //   후속 2026-07-17) — 루트 .react-aria-TableView 가 font-size:text-sm(14) 을 cascade
+    //   하면서 상속 의존이 깨져(행 37 vs Skia 40) 명시 미러로 전환. Skia
+    //   calculateContentHeight(estimateTextHeight 16/24 + paddingY*2=40)와 동일 source.
+    style: {
+      flex: "1",
+      padding: 8,
+      fontWeight: 600,
+      textAlign: "left",
+      fontSize: 16,
+      lineHeight: "24px",
+    },
   },
   Cell: {
     role: "gridcell",
     // textAlign left: catalog COMPONENT_RULES_TABLE.Cell.variants.default.textAlign 미러.
-    style: { flex: "1", padding: 8, textAlign: "left" },
+    // fontSize/lineHeight 16/24: Column 동형 — catalog Cell sizes 미러.
+    style: {
+      flex: "1",
+      padding: 8,
+      textAlign: "left",
+      fontSize: 16,
+      lineHeight: "24px",
+    },
   },
 };
 
@@ -2189,11 +2207,17 @@ export const renderTableView = (
   const children = context.childrenByParent.get(element.id) ?? [];
 
   // ADR-912 R7 G1-b: S2 variant 모델(default/quiet) — 구 isQuiet boolean 흡수.
-  //   variant 우선, legacy isQuiet:true → quiet 정규화. quiet=transparent+no border.
+  //   variant 우선, legacy isQuiet:true → quiet 정규화. quiet=transparent border(catalog CSS).
   const variant =
     (element.props.variant as string | undefined) ??
     (element.props.isQuiet === true ? "quiet" : "default");
-  const isQuiet = variant === "quiet";
+
+  // ADR-151 후속 (2026-07-17): display/border/radius/width/fontSize 는 generated
+  //   TableView.css(.react-aria-TableView[data-variant]) 단일 위임 — 구 inline 상수가
+  //   catalog CSS 를 가리고 클래스 미부여로 width:100%/text-sm 이 미도달해 Skia(catalog
+  //   containerStyles 소비)와 발산했다(flex 부모 350×80 vs 179.4×106). overflow 만 CSS 에
+  //   없는 잔여 inline(둥근 모서리 클리핑).
+  const userClassName = element.props.className as string | undefined;
 
   return (
     <div
@@ -2203,14 +2227,14 @@ export const renderTableView = (
       data-variant={variant}
       role="grid"
       style={{
-        display: "flex",
-        flexDirection: "column",
-        border: isQuiet ? "none" : "1px solid var(--border, #e5e7eb)",
-        borderRadius: 6,
         overflow: "hidden",
         ...element.props.style,
       }}
-      className={element.props.className}
+      className={
+        userClassName
+          ? `react-aria-TableView ${userClassName}`
+          : "react-aria-TableView"
+      }
     >
       {/* renderTabs 패턴: 자식 트리(TableHeader/TableBody/Column/Row/Cell)를 부모가 직접
           generic div 로 그린다. 자식 type 은 CATALOG_CUTOVER_TYPES 미등록 → CanonicalNodeRenderer

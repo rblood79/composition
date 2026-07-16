@@ -10897,10 +10897,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: "auto",
       },
     },
+    // ADR-151 후속 (2026-07-17): alignItems stretch — CSS 채널 재배선(react-aria-TableView
+    //   클래스 부착)으로 archetype default base 의 align-items:center 가 살아나 자식
+    //   header/row 가 fit-content 로 수축(161/146 vs 350)·셀 줄바꿈. Skia(엔진 flex 기본
+    //   stretch)와 대칭 위해 양 채널 명시. borderWidth 1 은 layout 채널 전용 — DOM 은
+    //   variant border 1px(border-box +2)인데 엔진이 미합산해 dh 2 잔존(B8 Table 동형).
     containerStyles: {
       display: "flex",
       flexDirection: "column",
       width: "100%",
+      alignItems: "stretch",
+      borderWidth: "1px",
     },
     structure: {
       archetype: "default",
@@ -10909,6 +10916,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
         flexDirection: "column",
         width: "100%",
+        alignItems: "stretch",
       },
     },
   },
