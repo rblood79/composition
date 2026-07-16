@@ -2133,13 +2133,16 @@ export function calculateContentHeight(
     return estimateTextHeight(fontSize, lh);
   }
 
-  // 1.55. Link: padding/border 없는 텍스트 전용 인라인 요소 — fontSize 기반 높이
+  // 1.55. Link: padding/border 없는 텍스트 전용 인라인 요소 — fontSize/lineHeight 기반 높이
+  // ADR-151 B4 (2026-07-16): catalog Link.sizes.lineHeight(typography pair) read-through —
+  //   undefined 고정 전달은 estimateTextHeight fallback(md 16) 으로 CSS(20)와 발산.
   if (tag1 === "link") {
     const props = element.props as Record<string, unknown> | undefined;
     const specStyle = extractSpecTextStyle("link", props ?? {});
     const fontSize =
       parseNumericValue(style?.fontSize) ?? specStyle?.fontSize ?? 14;
-    return estimateTextHeight(fontSize, undefined);
+    const lh = parseLineHeight(style, fontSize) ?? specStyle?.lineHeight;
+    return estimateTextHeight(fontSize, lh);
   }
 
   // 1.56. Column/Cell (TableView 자식 텍스트 leaf): border-box height = 텍스트 높이 + 세로 padding.
@@ -2260,6 +2263,24 @@ export function calculateContentHeight(
       hasDescription: typeof desc === "string" && desc.length > 0,
       minHeight: parseNumericValue(style?.minHeight) ?? 20,
     });
+  }
+
+  // 1.55b2. GridListItem (projection row) — ADR-151 B21 (2026-07-16): 전용 분기 부재 시
+  //   generic 경로가 content 24 를 산출해 row 총높이 50 (pad 24 + border 2 + 24) vs DOM 64 로
+  //   내부 발산 (컨테이너 gridlist 분기는 64 로 맞아 총합이 은폐). DOM 계약: label line-height
+  //   + sizes.gap(2) + description line-height = 38 (+ implicitStyles 주입 pad 24/border 2 = 64).
+  //   descFontSize = fontSize - 2 (gridListCard/gridlist 분기 동형).
+  if (tag1 === "gridlistitem") {
+    const props = element.props as Record<string, unknown> | undefined;
+    const fontSize = parseNumericValue(style?.fontSize) ?? 14;
+    const gap =
+      parseNumericValue(style?.rowGap ?? style?.columnGap ?? style?.gap) ?? 2;
+    const desc = props?.description;
+    const hasDesc = typeof desc === "string" && desc.length > 0;
+    return (
+      getLabelLineHeight(fontSize) +
+      (hasDesc ? gap + getLabelLineHeight(fontSize - 2) : 0)
+    );
   }
 
   // 1.55c. GridList (ADR-099 Phase 5): items SSOT 기반 intrinsic border-box height.

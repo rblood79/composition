@@ -5883,28 +5883,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // ADR-151 B4 (2026-07-16): lineHeight 토큰 pair 명시 — 미정의 시 DOM 은 상속 1.5(md 21px),
+      //   Skia layout 은 estimateTextHeight fallback(md 16px) 으로 3자 발산. Description/Button 동형.
       xs: {
         fontSize: "{typography.text-2xs}",
+        lineHeight: "{typography.text-2xs--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
       sm: {
         fontSize: "{typography.text-xs}",
+        lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
       md: {
         fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
       lg: {
         fontSize: "{typography.text-base}",
+        lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
       xl: {
         fontSize: "{typography.text-lg}",
+        lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
@@ -12680,6 +12687,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       maxHeight: "300px",
       overflow: "auto",
       outline: "none",
+      // ADR-151 B5 (2026-07-16): 수동 Tree.css `border: 1px solid` 를 layout 이 미반영해
+      //   세로 2px 발산 (Skia 72 vs CSS 74) — Calendar/RangeCalendar 동형 layout 채널 보정.
+      borderWidth: "1px",
     },
     variants: {
       default: {

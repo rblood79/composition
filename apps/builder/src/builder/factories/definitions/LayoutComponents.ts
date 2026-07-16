@@ -214,8 +214,10 @@ export function createCardDefinition(
         // ADR-912 childSpec→catalog cutover (2026-06-15): CardFooter layout 을 factory props.style
         //   복귀. ADR-092 Phase 4 가 CardFooterSpec.containerStyles(display/flexDirection/alignItems/
         //   justifyContent/width) + sizes.md.gap 으로 이관했던 것을 spec 삭제 대비 factory 로 되돌림 —
-        //   Skia/Taffy 직접 read. paddingTop/borderTopWidth 는 시각적 구분선으로 기존 보존. gap 4px =
-        //   CardFooterSpec.sizes.md.gap. DialogFooter(justifyContent:flex-end) 동일 정렬.
+        //   Skia/Taffy 직접 read. gap 4px = CardFooterSpec.sizes.md.gap. DialogFooter 동일 정렬.
+        // ADR-151 B3 (2026-07-16): borderTopWidth "1px" 제거 — borderTopStyle/Color 부재라 DOM 은
+        //   CSS 표준상 border 0 (구분선 미표시), Skia 는 layout 만 +1px 반영해 Card 총높이 +1 발산.
+        //   양쪽 어디서도 구분선을 만들지 못하는 dead 값. 구분선 도입은 별도 디자인 결정으로 분리.
         type: "CardFooter",
         props: {
           style: {
@@ -226,7 +228,6 @@ export function createCardDefinition(
             gap: "4px",
             width: "100%",
             paddingTop: "8px",
-            borderTopWidth: "1px",
           },
         } as ComponentElementProps,
       },

@@ -85,7 +85,20 @@
 - 검증: 라이브 재실측 Calendar/RangeCalendar 둘 다 **Skia 256×254 = CSS 256×254 (dw 0/dh 0)**, 자식 header/grid 238 폭 일치. vitest 226/226 (구공식 미러 테스트 3건 → DOM golden 238/200 절대값으로 갱신) + type-check PASS. generated CSS diff 0 확인
 - tree_golden 케이스 추가는 Phase 6 일괄 (JS-side 수정이라 1차 oracle 은 `calendarHeaderIntrinsicSize.test.ts` 절대값 golden)
 
-### Phase 2: 중형 — 텍스트 메트릭 계열 (B3, B4, B6) + Tree 조사 (B5)
+### Phase 2: 중형 — 텍스트 메트릭 계열 (B3, B4) + Tree (B5) + GridList row (B21) — ✅ 완료 (2026-07-16)
+
+실측 결과 (수정 후): Card 390×322 = 390×322 (0/0) / Link dh 0 (dw+1.5 는 Canvas 2D↔브라우저 텍스트 측정 기인 — §2 기준 1 수용) / Tree 390×74 = 390×74 (0/0) / GridList projection row 64 = CSS 64 (pitch 76 = 64+gap12).
+
+원인·수정 4건:
+
+1. **B3 Card (dh-3 → 0)**: ① renderCardContent 가 Description 을 plain `card-description` div 로 렌더 → generated Description.css (catalog 파생) 미도달 → Card 폰트 16/24 상속 (Skia catalog lg 14/20 과 -4). `react-aria-Description` 클래스 + data-size/variant 부여로 catalog CSS 도달. ② CardFooter factory `borderTopWidth: "1px"` 가 borderTopStyle 부재로 DOM 은 border 0, Skia layout 만 +1 — 양쪽 어디서도 구분선을 만들지 못하는 dead 값 제거 (구분선 도입은 별도 디자인 결정)
+2. **B4 Link (dh-5 → 0)**: catalog Link.sizes 에 lineHeight 토큰 pair 부재 → DOM 상속 1.5(21px) vs Skia estimateTextHeight fallback(16px) 3자 발산. lineHeight "{typography.\*--line-height}" 5 size 추가 (generated Link.css line-height emit) + utils link 분기 specStyle.lineHeight read-through
+3. **B5 Tree (dh+6/-2 → 0)**: 실체는 수동 Tree.css `border: 1px solid` 의 layout 미반영 (Calendar 동형 축) — Tree containerStyles 에 borderWidth "1px". (07-14 의 +6 기록은 이후 gap 정합 수정으로 +6→-2 로 축소돼 있었음 — explicit-height 주입 가설은 기각)
+4. **B21 GridList row (내부 50 vs 64 → 64=64)**: projection GridListItem 의 layout 전용 분기 부재 → generic content 24 + pad 24 + border 2 = 50. DOM 계약 (label lh + sizes.gap 2 + desc lh = 38) 분기 추가 — 컨테이너 분기(이미 64 정합)와 총합 일치
+
+검증: vitest layout 226/226 (tree fallback lock 2건 borderWidth 반영) + rendererStyleContract 12/12 + type-check PASS + Chrome MCP 라이브 재실측 4항목.
+
+(구) 계획 메모:
 
 - B3 Card: card-description 폰트를 catalog Description.sizes 정본과 3경로 (generated CSS / Skia / layout) 동기화 — 목표 수치(적용 size 축)는 Phase 0 재실측으로 확정 (catalog 실측: md 12/16 · lg 14/20, `componentRulesTable.ts:4123`). `pnpm generate:css` 동반
 - B4 Link: 텍스트 leaf lineHeight 경로 (`extractSpecTextStyle` 등록 여부) 확인 후 정렬 (07-16 실측: Skia 27×16 vs CSS 25.5×21 — 높이 축 5px)

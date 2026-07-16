@@ -201,7 +201,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
   //   (ToggleButtonGroup slice 0 / ListBox 선례 동형 — spec 삭제 시 Skia layout fallback
   //   빈 객체 → TreeItem 세로 배치 안 됨, DOM 은 starter Tree.css flex column 적용 → 비대칭).
   describe("tree — Tree.containerStyles (ADR-913 slice 4, ListBox/Menu 동형)", () => {
-    it("empty parentStyle → display:flex/column + 8 필드 반환 (starter Tree.css 정합)", () => {
+    it("empty parentStyle → display:flex/column + 9 필드 반환 (starter Tree.css 정합)", () => {
       const fb = resolveContainerStylesFallback("tree", {});
       expect(fb).toEqual({
         display: "flex",
@@ -212,6 +212,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         maxHeight: "300px",
         overflow: "auto",
         outline: "none",
+        borderWidth: "1px", // ADR-151 B5 (2026-07-16) — Tree.css border 1px layout 반영
       });
     });
   });
@@ -335,7 +336,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       });
     });
 
-    it("tree → 8필드 (ADR-913 slice 4, listbox 동형)", () => {
+    it("tree → 9필드 (ADR-913 slice 4, listbox 동형 + ADR-151 B5 borderWidth)", () => {
       expect(resolveContainerStylesFallback("tree", {})).toEqual({
         display: "flex",
         flexDirection: "column",
@@ -345,6 +346,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         maxHeight: "300px",
         overflow: "auto",
         outline: "none",
+        borderWidth: "1px", // ADR-151 B5 (2026-07-16)
       });
     });
 

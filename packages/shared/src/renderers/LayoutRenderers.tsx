@@ -394,7 +394,10 @@ export const renderCardContent = (
       style={element.props?.style as React.CSSProperties}
     >
       {children.map((child) => {
-        // Description: React Aria slot 컨텍스트 없이 직접 렌더링
+        // Description: React Aria slot 컨텍스트 없이 직접 렌더링.
+        // ADR-151 B3 (2026-07-16): `react-aria-Description` 클래스 + data-size 를 부여해
+        //   generated Description.css(catalog 파생 — lg 14/20)가 도달하게 한다. 미부여 시
+        //   Card 폰트(16/24)를 상속해 Skia(catalog 14/20)와 세로 -4px 발산.
         if (child.type === "Description") {
           const text =
             typeof child.props?.children === "string"
@@ -406,7 +409,9 @@ export const renderCardContent = (
             <div
               key={child.id}
               data-element-id={child.id}
-              className="card-description"
+              className="react-aria-Description card-description"
+              data-size={(child.props?.size as string) ?? undefined}
+              data-variant={(child.props?.variant as string) ?? undefined}
               style={child.props?.style as React.CSSProperties}
             >
               {text}
