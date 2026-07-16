@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useStore } from "../../../stores";
-import { visitCanonicalDocumentElements } from "../../../stores/canonical/canonicalElementsView";
+import { getCanonicalDocumentElementsView } from "../../../stores/canonical/canonicalElementsView";
 import { useActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
 import type { PanelNode } from "../../panelNode";
 
@@ -27,14 +27,12 @@ function buildElementsMap(elements: PanelNode[]): Map<string, PanelNode> {
 
 function useCanonicalPropertySourceElements(): PanelNode[] {
   const canonicalDocument = useActiveCanonicalDocument();
-  const canonicalElements = useMemo(() => {
-    if (!canonicalDocument) return null;
-    const elements: PanelNode[] = [];
-    visitCanonicalDocumentElements(canonicalDocument, (element) => {
-      elements.push(element);
-    });
-    return elements;
-  }, [canonicalDocument]);
+  // 문서 참조당 1회 캐시된 shared view — hook 인스턴스 (패널·섹션마다 다수)
+  // 각각이 문서를 재-materialize 하지 않는다. 공유 참조이므로 읽기 전용 취급.
+  const canonicalElements = canonicalDocument
+    ? (getCanonicalDocumentElementsView(canonicalDocument)
+        .elements as PanelNode[])
+    : null;
   const storeElements = useStore((state) => {
     if (canonicalElements) return EMPTY_ELEMENTS;
     const { elements: legacyElements } = state;

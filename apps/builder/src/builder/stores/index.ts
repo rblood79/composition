@@ -20,7 +20,7 @@ import {
   resolveCanonicalRefElement,
 } from "../utils/canonicalRefResolution";
 import type { CompositionDocument } from "@composition/shared";
-import { visitCanonicalDocumentElements } from "./canonical/canonicalElementsView";
+import { getCanonicalDocumentElementsView } from "./canonical/canonicalElementsView";
 import { useActiveCanonicalDocument } from "./canonical/canonicalElementsBridge";
 import { getElementDataBinding } from "../../adapters/canonical/compositionExtensionFields";
 import { mergePropsWithStyleDeep } from "../../adapters/canonical/instanceResolver";
@@ -109,14 +109,12 @@ const EMPTY_ELEMENTS: Element[] = [];
 // 간단한 선택기들 (Zustand의 내장 최적화 활용)
 export const useElements = (): Element[] => {
   const activeCanonicalDocument = useActiveCanonicalDocument();
-  const canonicalElements = useMemo(() => {
-    if (!activeCanonicalDocument) return null;
-    const elements: Element[] = [];
-    visitCanonicalDocumentElements(activeCanonicalDocument, (element) => {
-      elements.push(element);
-    });
-    return elements;
-  }, [activeCanonicalDocument]);
+  // 문서 참조당 1회 캐시된 shared view — hook 인스턴스마다 재-materialize 하지
+  // 않는다. 반환 배열은 공유 참조이므로 consumer 는 읽기 전용으로 취급.
+  const canonicalElements = activeCanonicalDocument
+    ? (getCanonicalDocumentElementsView(activeCanonicalDocument)
+        .elements as Element[])
+    : null;
   const storeElements = useStore((state) => {
     if (canonicalElements) return EMPTY_ELEMENTS;
     const { elements: legacyElements } = state;
@@ -170,13 +168,8 @@ function findElementInCanonicalDocument(
   elementId: string,
 ): Element | undefined {
   if (!doc) return undefined;
-  let match: Element | undefined;
-  visitCanonicalDocumentElements(doc, (element) => {
-    if (element.id === elementId) {
-      match = element;
-    }
-  });
-  return match;
+  // shared view byId 는 중복 id 시 last-match — 기존 전체 순회 재할당과 동일 의미.
+  return getCanonicalDocumentElementsView(doc).byId.get(elementId);
 }
 
 // ============================================
@@ -209,16 +202,12 @@ export const useSelectedElementData = (): SelectedElement | null => {
   const hasCanonicalDocument = activeCanonicalDocument !== null;
   const canonicalSelectedElement = useMemo(() => {
     if (!selectedElementId || !activeCanonicalDocument) return null;
-    const elements: Element[] = [];
-    let selectedElement: Element | null = null;
-    visitCanonicalDocumentElements(activeCanonicalDocument, (element) => {
-      elements.push(element);
-      if (element.id === selectedElementId) {
-        selectedElement = element;
-      }
-    });
+    // 선택마다 문서 전체를 재-materialize 하지 않는다 — 문서 참조당 1회 캐시된
+    // shared view 에서 O(1) lookup (선택 클릭 동기 재렌더 비용의 주범이었음).
+    const view = getCanonicalDocumentElementsView(activeCanonicalDocument);
+    const selectedElement = view.byId.get(selectedElementId);
     if (!selectedElement) return null;
-    return resolveCanonicalRefElement(selectedElement, elements);
+    return resolveCanonicalRefElement(selectedElement, view.elements);
   }, [activeCanonicalDocument, selectedElementId]);
 
   // 🚀 추가 정보를 위해 elementsMap에서 한 번만 읽기 (구독 아님)

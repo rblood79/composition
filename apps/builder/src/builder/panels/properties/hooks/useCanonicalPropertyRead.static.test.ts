@@ -12,11 +12,13 @@ describe("useCanonicalPropertyRead", () => {
     const directChildrenMapFallback = ["state.", "children", "Map"].join("");
 
     expect(source).toContain("useActiveCanonicalDocument");
-    expect(source).toContain("visitCanonicalDocumentElements");
-    expect(source).not.toContain("useCanonicalElements");
+    // perf: 인스턴스별 visitCanonicalDocumentElements 재-materialize 대신
+    // 문서 참조당 1회 캐시되는 shared view 경유 (내부적으로 동일 traversal).
+    expect(source).toContain("getCanonicalDocumentElementsView");
+    expect(source).not.toContain("useCanonicalElements()");
     expect(source).toContain("useCanonicalPropertySourceElements");
     expect(source).toContain(
-      "visitCanonicalDocumentElements(canonicalDocument, (element) => {",
+      "getCanonicalDocumentElementsView(canonicalDocument)",
     );
     expect(source).toContain("const { elements: legacyElements } = state;");
     expect(source).toContain("return legacyElements ?? EMPTY_ELEMENTS;");

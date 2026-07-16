@@ -11,7 +11,10 @@ import type {
 // ADR-912 단계5 step4 small-B (2026-06-16): SectionSpec/TextFieldSpec + SizeSpec import 제거 —
 //   spec consumer parity describe 삭제로 미사용(catalog cutover spec 삭제).
 
-import { canonicalDocumentToElements } from "../canonicalElementsView";
+import {
+  canonicalDocumentToElements,
+  getCanonicalDocumentElementsView,
+} from "../canonicalElementsView";
 
 function makeDoc(
   children: CompositionDocument["children"],
@@ -438,3 +441,77 @@ describe("canonicalDocumentToElements", () => {
 //   TextField/Section catalog cutover spec 삭제로 render.shapes consumer 검증 대상 소멸
 //   (Button 선례 동형, canonical props → element 변환은 위 describe 가 직접 커버). 시각은
 //   catalog rule(COMPONENT_RULES_TABLE) + buildCatalogShapes generic box 경로.
+
+describe("getCanonicalDocumentElementsView", () => {
+  it("caches the view per document reference (same doc → same view object)", () => {
+    const doc = makeDoc([
+      {
+        id: "button-1",
+        type: "Button",
+        props: { variant: "primary" },
+      },
+    ]);
+
+    const first = getCanonicalDocumentElementsView(doc);
+    const second = getCanonicalDocumentElementsView(doc);
+
+    expect(second).toBe(first);
+    expect(second.elements).toBe(first.elements);
+    expect(second.byId).toBe(first.byId);
+  });
+
+  it("rebuilds the view for a new document reference (clone-on-write)", () => {
+    const doc = makeDoc([
+      { id: "button-1", type: "Button", props: { variant: "primary" } },
+    ]);
+    const cloned = makeDoc([
+      { id: "button-1", type: "Button", props: { variant: "secondary" } },
+    ]);
+
+    const first = getCanonicalDocumentElementsView(doc);
+    const second = getCanonicalDocumentElementsView(cloned);
+
+    expect(second).not.toBe(first);
+    expect(second.byId.get("button-1")?.props).toMatchObject({
+      variant: "secondary",
+    });
+  });
+
+  it("matches canonicalDocumentToElements output and indexes every element by id", () => {
+    const doc = makeDoc([
+      {
+        id: "section-1",
+        type: "Section",
+        props: { variant: "default" },
+        children: [
+          { id: "button-1", type: "Button", props: { children: "A" } },
+          { id: "button-2", type: "Button", props: { children: "B" } },
+        ],
+      },
+    ]);
+
+    const view = getCanonicalDocumentElementsView(doc);
+    const reference = canonicalDocumentToElements(doc);
+
+    expect(view.elements).toEqual(reference);
+    expect([...view.byId.keys()].sort()).toEqual(
+      reference.map((element) => element.id).sort(),
+    );
+    expect(view.byId.get("button-2")).toBe(
+      view.elements.find((element) => element.id === "button-2"),
+    );
+  });
+
+  it("keeps last-match semantics for duplicate ids (traversal parity)", () => {
+    const doc = makeDoc([
+      { id: "dup", type: "Button", props: { children: "first" } },
+      { id: "dup", type: "Button", props: { children: "last" } },
+    ]);
+
+    const view = getCanonicalDocumentElementsView(doc);
+
+    // 기존 findElementInCanonicalDocument (전체 순회 + 재할당) 는 마지막 매치를
+    // 반환했다 — byId 도 동일해야 소비처 의미가 보존된다.
+    expect(view.byId.get("dup")?.props).toMatchObject({ children: "last" });
+  });
+});

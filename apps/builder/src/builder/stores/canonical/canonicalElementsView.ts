@@ -280,6 +280,49 @@ function collectCanonicalDocumentElements(doc: CompositionDocument): Element[] {
   return result;
 }
 
+// ─────────────────────────────────────────────
+// Document-keyed derived view cache
+// ─────────────────────────────────────────────
+
+export type CanonicalDocumentElementsView = {
+  readonly elements: readonly Element[];
+  readonly byId: ReadonlyMap<string, Element>;
+};
+
+const elementsViewCache = new WeakMap<
+  CompositionDocument,
+  CanonicalDocumentElementsView
+>();
+
+/**
+ * 문서 참조당 1회만 평탄화하는 derived view. canonical store 는 clone-on-write
+ * (mutation 시에만 document 참조 교체 — canonicalElementsBridge 참조) 를 보장하므로
+ * 참조 키 WeakMap 캐시가 안전하다.
+ *
+ * 선택 변경 hot path (useSelectedElementData / findElementInCanonicalDocument /
+ * useCanonicalPropertySourceElements) 가 선택·hook 인스턴스마다 문서 전체를
+ * 재-materialize 하던 비용을 제거한다.
+ *
+ * `byId` 는 중복 id 시 last-match — 기존 전체 순회 재할당 (`match = element`)
+ * 의미와 동일하다.
+ */
+export function getCanonicalDocumentElementsView(
+  doc: CompositionDocument,
+): CanonicalDocumentElementsView {
+  const cached = elementsViewCache.get(doc);
+  if (cached) return cached;
+
+  const elements: Element[] = [];
+  const byId = new Map<string, Element>();
+  visitCanonicalDocumentElements(doc, (element) => {
+    elements.push(element);
+    byId.set(element.id, element);
+  });
+  const view: CanonicalDocumentElementsView = { elements, byId };
+  elementsViewCache.set(doc, view);
+  return view;
+}
+
 export function visitCanonicalDocumentElements(
   doc: CompositionDocument,
   visitor: (element: Element, node: CanonicalNode) => void,
