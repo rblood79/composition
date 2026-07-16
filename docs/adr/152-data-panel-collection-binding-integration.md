@@ -17,19 +17,20 @@ Proposed — 2026-07-16
 3. **column mapping 부재** — item label 이 하드코딩 필드 휴리스틱(`packages/shared/src/collections/resolveCollectionItems.ts:169-176`, `label > textValue > children > name > title > value`)으로만 결정된다. schema 가 `{ email, age }` 인 테이블은 어떤 컬럼을 표시할지 사용자가 선택할 수 없다.
 4. **publish 소비 0건** — `apps/publish/src` 에 collections 소비 코드가 없어, 배포된 앱에서 바인딩된 collection 이 데이터를 렌더하지 못한다 (ADR-132 §scope 경계 W4 지정 영역).
 5. **store 이중화** — `useDataStore`(`stores/data.ts`, Supabase SSOT) 와 `useDataTableStore`(`stores/datatable.ts`, 별도 상태 기계) 공존.
+6. **binding 이중 저장 위치** — `getElementDataBinding` 이 `props.dataBinding` 우선 + legacy top-level `element.dataBinding` fallback 의 2 위치를 읽는다 (`apps/builder/src/adapters/canonical/compositionExtensionFields.ts:74-94`). scene projection signature 는 `props` 만 포함하므로 (`buildSceneSnapshot.ts:49-66`) legacy top-level 위치만 가진 요소는 binding 변경이 sceneVersion 에 미감지되는 사각이 있다.
 
 **Hard Constraints**:
 
 1. **데이터 SSOT = `data_tables`(collections) 유지** — ADR-131 Phase 8 에서 사용자가 확정한 전제 (canonical document 에 `data` root field 미도입). 본 ADR 은 이 경계를 변경하지 않는다.
-2. **read 진입점 = `useCollectionData` 단일 경유** (ADR-132 Implemented) — 신규 소비 경로를 추가하지 않는다.
+2. **빌더 DOM RAC collection 의 items read = `useCollectionData` 단일 경유 유지** (ADR-132 Implemented — 원 scope 는 RAC collection 컴포넌트의 items read). Builder Skia 는 scene model 이 collections 를 직접 구독하는 기존 별도 경로(`BuilderCanvas.tsx:197-205`)이고, 본 ADR Phase 6 의 publish read 경로 신설은 이 constraint 의 scope 밖이다 — 단 두 경로 모두 `resolveBoundCollection` / `resolveCollectionItems` shared 계약을 공유해야 한다.
 3. **Skia ↔ DOM 대칭** — 동일 collections 스냅샷에서 Builder Skia projection 과 Preview DOM wrapper 가 동일 row/label 을 산출해야 한다 (`/cross-check` 검증 가능).
 4. **하위 호환** — 저장된 name 기반 `dataBinding` 을 가진 기존 프로젝트는 로드만으로 파손 0건이어야 한다 (lazy resolve — 로드 시점 재직렬화 0 파일, 저장 시에만 upgrade).
 5. **성능** — collections 변경 → scene rebuild 는 기존 구독 구조(`BuilderCanvas.tsx:197-205` useMemo) 유지. pointer hot path 에 데이터 resolve 추가 금지 (60fps 기준).
 
 **Soft Constraints**:
 
-- `resolveCollectionItems` 단일 계약(ADR-912 영역 B)이 이미 Skia/DOM 양쪽에서 소비되고 있어, 매핑 확장 지점이 구조적으로 준비되어 있다.
-- Data 패널에 `ColumnSelector` 등 schema UI 자산이 기존재 — 재사용 가능.
+- `resolveCollectionItems` 단일 계약(ADR-912 영역 B)을 Skia projector 전체 + DOM wrapper 7/10(GridList/ListBox/ComboBox/Breadcrumbs/TagGroup/Menu/Select)이 이미 소비 — 매핑 확장 지점이 구조적으로 준비되어 있다. raw 소비 잔여 3종(Table/Tree/Tabs DOM wrapper)은 본 ADR 에서 정렬 대상.
+- Data 패널의 `ColumnSelector` 는 API 응답 감지 컬럼 import UI(`DetectedColumn[]` 체크박스)라 목적이 달라 직접 재사용 대상은 아님 — fieldMap 매핑 UI 는 `PropertyDataBinding` 의 기존 Select 패턴 위에 신규 구성 (참고 패턴 수준).
 
 ## Alternatives Considered
 
@@ -45,7 +46,7 @@ Proposed — 2026-07-16
 
 ### 대안 B: id 참조 바인딩 계약 v2 + fieldMap + 읽기 경로 일원화 + publish 직렬화
 
-- 설명: `PropertyDataBinding` 에 `collectionId`(안정 참조) + `fieldMap`(label/value/description/icon 역할별 컬럼 매핑)을 additive 확장. resolve 는 id 우선 + name fallback 단일 헬퍼로 통일. fieldMap 은 `resolveCollectionItems` 에 주입하고 기존 휴리스틱은 fallback 으로 격하 (Skia/DOM 이 같은 함수를 소비하므로 대칭 자동 유지). legacy 경로(datatableId / `type:"collection"`)는 실사용 실측 후 조건부 흡수. publish 시 data snapshot(schema+mockData) 직렬화 + publish 앱이 동일 shared 계약으로 소비.
+- 설명: `PropertyDataBinding` 에 `collectionId`(안정 참조) + `fieldMap`(label/value/description/icon 역할별 컬럼 매핑)을 additive 확장. resolve 는 id 우선 + name fallback 단일 헬퍼로 통일. fieldMap 은 `resolveCollectionItems` 에 주입하고 기존 휴리스틱은 fallback 으로 격하 (Skia projector 전체 + DOM wrapper 7/10 이 같은 함수를 소비 — raw 소비 3종은 Phase 3/4 정렬로 대칭 확보). legacy 경로(datatableId / `type:"collection"`)는 실사용 실측 후 조건부 흡수. publish 시 data snapshot(schema+mockData) 직렬화 + publish 앱이 동일 shared 계약으로 소비.
 - 근거: Webflow CMS / Framer CMS 는 collection field 를 요소에 역할별로 매핑하는 field-binding UI 가 표준이고, Retool/Appsmith 류 빌더는 datasource 를 id 로 참조해 rename-safe 하다. 업계 공통 패턴과 정합.
 - 위험:
   - 기술: M — id/name 이중 resolve 전환기 존재 (단일 헬퍼로 국소화)
@@ -80,7 +81,7 @@ Proposed — 2026-07-16
 선택 근거:
 
 1. 잔존 위험이 기술 M / 마이그레이션 M 뿐이며, 둘 다 단일 resolve 헬퍼와 lazy upgrade(로드 시 재직렬화 0 파일, 기존 프로젝트 파손 0)로 국소화된다.
-2. `resolveCollectionItems` 단일 계약을 Skia/DOM 이 이미 공유하므로, fieldMap 확장이 D3 대칭(Hard Constraint 3)을 구조적으로 보존한다 — 별도 동기화 코드가 늘지 않는다.
+2. `resolveCollectionItems` 단일 계약을 Skia projector 전체와 DOM wrapper 7/10 이 이미 공유하고, fieldMap 은 dataBinding 에 실려 projection rows 입력으로 이미 전달되므로(`getFlatProjectionRows({collections, dataBinding, props})`) shared 함수 내부 소비 시 기존 호출부 변경이 0 에 수렴한다 — D3 대칭(Hard Constraint 3)을 구조적으로 보존. raw 소비 잔여 3종(Table/Tree/Tabs DOM wrapper — `Table.tsx:206`/`Tree.tsx:93`/`Tabs.tsx:124`)은 Phase 3/4 에서 shared 계약 경유로 정렬한다.
 3. ADR-131(데이터 SSOT)·ADR-132(read 진입점) 의 확정 전제를 그대로 준수하면서 그 위의 미완 영역만 채운다.
 
 기각 사유:
@@ -92,13 +93,14 @@ Proposed — 2026-07-16
 
 ## Risks
 
-| ID  | 위험                                                                           | 심각도 | 대응                                                                                                                          |
-| --- | ------------------------------------------------------------------------------ | :----: | ----------------------------------------------------------------------------------------------------------------------------- |
-| R1  | id/name 이중 resolve 전환기에 기존 name 바인딩 프로젝트 회귀                   |  MED   | `resolveBoundCollection` 단일 헬퍼 (id 우선 + name fallback) + 직접 `name` find 패턴 grep 가드 + G1 live 확인                 |
-| R2  | fieldMap 을 Skia projector / DOM wrapper 중 한쪽만 반영해 label 비대칭         |  MED   | 주입 지점을 `resolveCollectionItems` 옵션 단일 계약으로 한정 (호출부 2곳) + G2 `/cross-check`                                 |
-| R3  | publish data snapshot 형식 결정 부담 (runtimeData 포함 여부 / API source 처리) |  MED   | snapshot = schema + mockData 한정 (runtimeData 제외), API 는 publish 런타임 직접 fetch — Phase 0 인벤토리로 확정 후 G3 실기동 |
-| R4  | legacy 경로(datatableId / `type:"collection"`) 실사용 존재 시 제거 파손        |  MED   | Phase 0 실측 → G0 조건부 (0~4건 흡수 / 5건+ 마이그레이션 단계 확장). `useDataTableStore` 제거는 원본 삭제 승인 규칙 준수      |
-| R5  | 10 컴포넌트 일괄 반영 중 scope inflation                                       |  LOW   | 대표 3종(ListBox/Table/Select) 선행 검증 후 패밀리 sweep — Phase 3/4 분리                                                     |
+| ID  | 위험                                                                                                                        | 심각도 | 대응                                                                                                                                                                                                                |
+| --- | --------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | id/name 이중 resolve 전환기에 기존 name 바인딩 프로젝트 회귀                                                                |  MED   | `resolveBoundCollection` 단일 헬퍼 (id 우선 + name fallback) + 직접 `name` find 패턴 grep 가드 + G1 live 확인                                                                                                       |
+| R2  | fieldMap 을 Skia projector / DOM wrapper 중 한쪽만 반영해 label 비대칭                                                      |  MED   | fieldMap 소비를 shared 함수 내부(dataBinding 이 이미 projection rows 입력에 포함)로 한정해 기존 호출부 변경 0 유지 + raw 소비 3종(Table/Tree/Tabs DOM)은 Phase 3/4 에서 shared 계약 경유로 정렬 + G2 `/cross-check` |
+| R3  | publish data snapshot 형식 결정 부담 (runtimeData 포함 여부 / API source 처리)                                              |  MED   | snapshot = schema + mockData 한정 (runtimeData 제외), API 는 publish 런타임 직접 fetch — Phase 0 인벤토리로 확정 후 G3 실기동                                                                                       |
+| R4  | legacy 경로(datatableId / `type:"collection"`) 실사용 존재 시 제거 파손                                                     |  MED   | Phase 0 실측 → G0 조건부 (0~4건 흡수 / 5건+ 마이그레이션 단계 확장). `useDataTableStore` 제거는 원본 삭제 승인 규칙 준수                                                                                            |
+| R5  | 10 컴포넌트 일괄 반영 중 scope inflation                                                                                    |  LOW   | 대표 3종(ListBox/Table/Select) 선행 검증 후 패밀리 sweep — Phase 3/4 분리                                                                                                                                           |
+| R6  | legacy top-level `element.dataBinding` 저장 위치 잔존 시 scene signature 사각 (격차 6) — binding 변경이 sceneVersion 미감지 |  MED   | Phase 1 lazy upgrade 시 write 를 `props.dataBinding` 단일 위치로 정규화 (top-level 은 read fallback 만 유지) + Phase 0 에서 top-level 보유 element 실측                                                             |
 
 잔존 HIGH 위험 없음.
 
