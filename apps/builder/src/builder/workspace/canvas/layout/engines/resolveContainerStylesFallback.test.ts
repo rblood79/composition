@@ -177,21 +177,16 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
     });
   });
 
-  describe("menu — Menu.spec.containerStyles (Phase 0 일반화 + Phase 6 merge — 8 필드)", () => {
-    it("empty parentStyle → display/flexDirection/padding/gap/width/maxHeight/overflow/outline 반환", () => {
+  describe("menu — 트리거 박스 containerStyles (ADR-151 B7, 2026-07-16 사용자 결정)", () => {
+    it("empty parentStyle → display/alignItems/width(fit-content) 반환 — 목록 panel 메트릭 아님", () => {
       const fb = resolveContainerStylesFallback("menu", {});
-      // Phase 6: Menu containerStyles 에 display/flexDirection 2 필드 추가 → 8 필드 반환.
-      // Menu 분기는 filteredChildren=[] 로 early return 하므로 effectiveParent 에
-      // parentStyle 전파는 발생하지 않음. 본 test 는 단순히 lookup 계약 확증.
+      // ADR-151 B7: 캔버스 Menu 표현 = 트리거 버튼 통일. 구 목록 panel 8필드(flex/column/
+      // gap/padding/width:100%/maxH/overflow/outline)는 Skia 만 소비해 390px 전폭 바 발산.
+      // DOM 목록 panel 규칙은 structure 채널(generated Menu.css) 유지.
       expect(fb).toEqual({
-        display: "flex",
-        flexDirection: "column",
-        padding: 4, // {spacing.xs}
-        gap: 2, // {spacing.2xs}
-        width: "100%",
-        maxHeight: "300px",
-        overflow: "auto",
-        outline: "none",
+        display: "inline-flex",
+        alignItems: "center",
+        width: "fit-content",
       });
     });
   });
@@ -323,16 +318,11 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       });
     });
 
-    it("menu → 8필드 (Phase 6 merge, listbox 동형)", () => {
+    it("menu → 트리거 박스 3필드 (ADR-151 B7 — 목록 panel 메트릭에서 전환)", () => {
       expect(resolveContainerStylesFallback("menu", {})).toEqual({
-        display: "flex",
-        flexDirection: "column",
-        gap: 2,
-        padding: 4,
-        width: "100%",
-        maxHeight: "300px",
-        overflow: "auto",
-        outline: "none",
+        display: "inline-flex",
+        alignItems: "center",
+        width: "fit-content",
       });
     });
 

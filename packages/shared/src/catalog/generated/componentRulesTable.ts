@@ -6196,15 +6196,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   (background/border)은 fallback KEYS 비대상 → Skia render shell variant 담당. gap 은
     //   spec `{spacing.2xs}`(=2), padding 은 `{spacing.xs}`(=4). CSS emit 무관(STRUCTURE_META Menu
     //   entry 의 containerStyles 만 emit → generated Menu.css diff-0).
+    // ADR-151 B7 (2026-07-16 사용자 결정): 캔버스 Menu 표현 = 트리거 버튼 통일 — top-level
+    //   containerStyles(layout 채널)를 구 목록 panel 메트릭(flex/column/gap2/pad4/width:100%/
+    //   maxH300/overflow)에서 트리거 박스(fit-content)로 전환. DOM 목록 panel 규칙은 structure
+    //   채널(generated Menu.css)이라 무변. DOM 캔버스 표현은 MenuTrigger 버튼(fit-content×30).
     containerStyles: {
-      display: "flex",
-      flexDirection: "column",
-      gap: "{spacing.2xs}",
-      padding: "{spacing.xs}",
-      width: "100%",
-      maxHeight: "300px",
-      overflow: "auto",
-      outline: "none",
+      display: "inline-flex",
+      alignItems: "center",
+      width: "fit-content",
     },
     sizes: {
       sm: {

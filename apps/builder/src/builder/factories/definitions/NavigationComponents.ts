@@ -34,14 +34,10 @@ export function createMenuDefinition(
         size: "md",
         selectionMode: "none",
         items,
-        // catalog containerStyles 정본 — display:flex/flexDirection:column/width:100% (항목 세로 목록).
-        //   factory(block/fit-content)가 CSS(.react-aria-Menu flex/column)와 시각 비대칭 + Style Panel
-        //   false dirty 였음 (2026-06-23 layout 방향 충돌 정정, 사용자 결정 = CSS/catalog 정본).
-        style: {
-          display: "flex",
-          flexDirection: "column",
-          width: "100%",
-        },
+        // ADR-151 B7 (2026-07-16 사용자 결정): 캔버스 Menu 표현 = 트리거 버튼 통일.
+        //   구 list-era style(display:flex/column/width:100%, 2026-06-23 결정)은 Skia 만 소비해
+        //   390px 전폭 바 vs DOM 트리거 버튼(fit-content) 표현 발산 — 제거. layout 기본값은
+        //   catalog top-level containerStyles(트리거 박스)가 공급 (factory inline 금지 원칙).
       } as ComponentElementProps,
       parent_id: parentId,
     },
