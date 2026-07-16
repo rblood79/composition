@@ -220,6 +220,8 @@ export default defineConfig(({ command }) => {
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
         // ⚠️ COEP/COOP 제거 - Supabase 인증과 충돌
         // 외부 API는 /api/proxy를 통해 호출하므로 COEP 불필요
+        // JS Self-Profiling API (new Profiler) 허용 — dev 성능 진단용
+        "Document-Policy": "js-profiling",
       },
       hmr: {
         overlay: true,
