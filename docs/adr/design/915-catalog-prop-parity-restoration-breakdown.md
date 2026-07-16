@@ -1,6 +1,6 @@
 # ADR-915 구현 상세 — catalog binding.accepts prop parity 복원
 
-> ADR 본문: [915-catalog-prop-parity-restoration.md](../915-catalog-prop-parity-restoration.md)
+> ADR 본문: [915-catalog-prop-parity-restoration.md](../completed/915-catalog-prop-parity-restoration.md)
 > 감사 근거: [docs/reference/adr-912-prop-parity-audit.md](../../reference/adr-912-prop-parity-audit.md)
 
 ## §1. base/응용 분류 lock-in (adr-writing.md 4 질문)
@@ -35,6 +35,26 @@
 | P1.5-b 입력 힌트          | ✅ 완료 — accepts `2f19e3b0e` + renderer wiring `0173de4a1`(`resolveInputHintProps`)                                                                                                                                                                                    | TextField:94-145 / SearchField:79-122                                    |
 | P1.5-c field icon         | ✅ 보류 확정 (dead restoration → 별도 ADR)                                                                                                                                                                                                                              | §1.5-c 결론                                                              |
 | P1.5-d Slider 시각        | 🔶 재분류 — live 는 **showValueLabel 1개**(layout `utils.ts:2585-2591` 소비, DOM `renderSlider` 미forward → accepts+wiring 양쪽 필요). **fillOffset/isFilled 는 전 src 0건 + 삭제 spec 소비 0건 = dead** → trackGradient 와 동급, P1.5-c 동형으로 제외/별도 ADR 재판정  | 2026-07-14 grep                                                          |
+
+### 이행 상태 최종 (2026-07-16 — execute-adr 세션 종결)
+
+> 2026-07-16 execute-adr 세션에서 잔여 scope 를 live-consumer grep + Chrome MCP live 검증으로 재실측한 결과, 2026-07-14 표는 07-15 "RAC/RSP 정합 감사"(커밋 `6e6c55122`/`250a8e852`/`ae3527a7e`) 반영 전이라 stale 이었다. 감사가 P1-b(TextField/TextArea maxLength/minLength/pattern)·P1-d 일부(Checkbox/Switch value)·P1-e 일부(errorMessage)·P1-f(DatePicker/DateRangePicker) + P1-a SearchField value/name + Link/FileTrigger + necessityIndicator×6 을 기복원했다. 남은 진짜 잔여를 다음과 같이 종결:
+
+| 항목                                               | 종결                              | 근거                                                                                                                                                                                                                                       |
+| -------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| NumberField `locale`                               | ✅ 복원 (`fbdea9ef1`)             | renderNumberField(FormRenderers:273) DOM-live. form-common 4종 중 유일 DOM-live 셀. Chrome MCP: 패널 Locale 필드 표시 + "en-US" 편집 커밋 확인                                                                                             |
+| Slider `showValueLabel`                            | ✅ 복원 (`fbdea9ef1`+`566a712f5`) | accepts + shared Slider 조건부 SliderOutput + renderSlider forward + **implicitStyles prop-name 버그 수정**(`showValue`→`showValueLabel`, Skia child-filter 미동작 정정). Chrome MCP: 토글 off→on 양방향 CSS Preview·Skia Canvas 대칭 확인 |
+| form-common labelAlign                             | ⛔ 제외 (dead/비대칭)             | Skia 는 FORM_INHERITANCE_TAGS(TextField/NumberField/SearchField/ColorField) 조상에서만 소비(5/8 dead), 그 3개도 DOM 미소비→비대칭. 사용자 결정 지점 ④ option A(live only)                                                                  |
+| form-common validationBehavior                     | ⛔ 제외 (dead)                    | Form(FormRenderers:137)만 소비(Form.binding 기보유), 8개 field 렌더러 미forward                                                                                                                                                            |
+| form-common necessityIndicator (TextArea/TagGroup) | ⛔ 제외 (dead)                    | 두 렌더러 미소비. 나머지 6개는 07-15 감사 기복원                                                                                                                                                                                           |
+| Table `columns`/`rows`                             | ⛔ 제외 (redundant/no-editor)     | columns 는 dataBinding/columnMapping(ADR-132)으로 이미 편집 경로 존재(별도 필드 redundant), rows 는 적합 editor kind 부재(P1-c formatOptions G3 동형)                                                                                      |
+| Card `asset`/`assetSrc`/`preview`                  | 🔶 후속 분리 (Skia 작업)          | Card.tsx(188-208) DOM 완비이나 Skia Card asset 미렌더 → DOM-only 비대칭. Skia card-asset shape 렌더 추가는 별도 작업(labelAlign 동형 D3 대칭 원칙)                                                                                         |
+| Image `src`/`alt`/`objectFit`                      | 🔶 후속 분리 (신규 등록)          | catalog 미등록(palette-only). tag-기반 rendererMap(renderImage)+Skia buildImageNodeData 로 동작하나 property 패널엔 Image.binding.ts 신규 + facet 분류 + skiaPrimitive 와이어링 필요(Avatar 패턴). 사용자 결정 지점 ④: 별도 작업 분리      |
+| P1-d `defaultSelected`                             | ⛔ 제외 (dead)                    | 렌더러(FormRenderers:569/930)가 `props.isSelected` 를 읽고 defaultSelected 는 그로부터 파생 — accepts 만 추가 시 미소비                                                                                                                    |
+| P1-e CheckboxGroup value/defaultValue              | ⛔ 제외 (dead)                    | 그룹 selection 은 자식 selection 파생(FormRenderers:667 selectedValues), 07-15 감사가 errorMessage 만 추가                                                                                                                                 |
+| 0-2 TableView 명칭                                 | ⏸ 잔여 (minor P0)                 | 미이행 — 명칭 정합(문서-only), 별도 정합 작업으로 이관                                                                                                                                                                                     |
+
+**종결 판정**: 사용자 지정 scope(P1-a/P1-g/P1.5-d)의 live·대칭 셀은 전부 복원, dead/redundant/asymmetric 은 사용자의 "dead restoration 금지" 규칙 + 결정 지점 ④(option A) 대로 제외, Skia 작업/신규 등록 요구 항목(Card asset Skia·Image)은 사용자 승인 하에 후속 분리. ADR Status → Implemented.
 
 ### Phase 0 — P0 정정 (추가 아님, 오류 수정)
 

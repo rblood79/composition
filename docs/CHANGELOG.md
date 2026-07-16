@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [catalog prop parity 복원 종결 — ADR-915 Implemented] - 2026-07-16
+
+> ADR-912(spec→catalog cutover)로 축소됐던 컴포넌트 편집 prop("프로퍼티 대량 소실") 복원의 마지막 잔여를 종결. 대부분은 07-15 "RAC/RSP 정합 감사"가 선행 복원했고, 본 세션은 남은 live·대칭 셀만 grep + Chrome MCP live 검증으로 복원.
+
+### Bug Fixes
+
+- **Slider "값 라벨 표시"(showValueLabel) 토글이 Builder(Skia)에서 안 먹던 비대칭** (ADR-915 P1.5-d):
+  - showValueLabel=false 시 Preview(DOM)는 값 라벨을 숨기나 Builder Canvas(Skia)는 "50" 라벨이 남음
+  - **Why**: `implicitStyles.ts` Slider 분기가 canonical prop `showValueLabel` 대신 존재하지 않는 레거시 이름 `showValue`(unified.types)를 읽어, SliderOutput 자식이 절대 필터링되지 않음. `resolveProgressProps`의 showValueLabel 체크는 ProgressBar/Meter 전용이라 Slider 미커버
+  - 수정: `showValueLabel ?? showValue` 브리지 (canonical 우선 + 레거시 fallback)
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`
+  - 검증: Chrome MCP builder 에서 토글 off→on 양방향 CSS Preview·Skia Canvas 대칭 확인 (commit `566a712f5`)
+
+### Features
+
+- **NumberField `locale` + Slider `showValueLabel` 편집 prop 복원** (ADR-915 P1-g/P1.5-d):
+  - NumberField `locale`: 숫자 포맷 로케일 편집 UI (renderNumberField 기소비 — DOM-live)
+  - Slider `showValueLabel`: 값 라벨 표시 토글 (accepts + shared Slider 조건부 SliderOutput + renderSlider DOM forward)
+  - 위치: `packages/shared/src/catalog/bindings/{NumberField,Slider}.binding.ts` / `packages/shared/src/components/Slider.tsx` / `packages/shared/src/renderers/SelectionRenderers.tsx`
+  - 복원 원칙: live consumer grep 검증 후 복원(dead restoration 금지). form-common labelAlign/validationBehavior·Table columns/rows·P1-d defaultSelected·P1-e CheckboxGroup value 는 dead/redundant/asymmetric 으로 제외(결정 지점 ④ option A). Card asset(Skia 렌더 필요)·Image(신규 catalog 등록 필요)·0-2 TableView 명칭은 후속 분리
+  - 상세: [ADR-915](adr/completed/915-catalog-prop-parity-restoration.md)
+
 ## [빌더 패널 Select focus ring 이중 표시·소실·깜빡임 수정] - 2026-07-16
 
 ### Bug Fixes

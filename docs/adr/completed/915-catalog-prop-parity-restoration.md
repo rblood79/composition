@@ -2,15 +2,23 @@
 
 ## Status
 
-Accepted — 2026-06-25
+Implemented — 2026-07-16
 
 > Proposed → Accepted (2026-06-25): 대안 B HIGH 0 + 사용자 explicit confirm (P0 정정 → P1 폼 기능 순서 착수). Gate G1~G4 는 각 phase 진입 시 관리.
+>
+> Accepted → Implemented (2026-07-16, execute-adr 세션): P1 live-consumer 복원의 대부분은 07-15 "RAC/RSP 정합 감사"(`6e6c55122`/`250a8e852`/`ae3527a7e`)가 선행 완료(P1-b/P1-d 일부/P1-e 일부/P1-f + SearchField value/name + Link/FileTrigger + necessityIndicator×6). 본 세션에서 남은 진짜 잔여를 live-consumer grep + Chrome MCP live 검증으로 종결:
+>
+> - **복원**: NumberField `locale`(`fbdea9ef1`) + Slider `showValueLabel`(`fbdea9ef1` accepts/DOM + `566a712f5` implicitStyles prop-name 버그 정정). Chrome MCP builder 에서 Locale 필드 편집("en-US") 커밋 + showValueLabel 토글 CSS Preview·Skia Canvas 대칭 실동작 확인.
+> - **제외(dead/redundant/asymmetric — "dead restoration 금지" + 결정 지점 ④ option A)**: form-common labelAlign(5/8 dead + 3/8 Skia-only 비대칭)/validationBehavior(8/8 Form만)/necessityIndicator-TextArea·TagGroup, Table columns/rows(dataBinding 편집 경로 기존재 + rows editor kind 부재), P1-d defaultSelected(렌더러 isSelected 파생), P1-e CheckboxGroup value/defaultValue(자식 selection 파생), P1.5-a contextualHelp/P1.5-c icon/fillOffset·isFilled(기제외 확정).
+> - **후속 분리(사용자 승인 결정 지점 ④)**: Card asset 계열(Skia card-asset 렌더 추가 필요), Image(신규 catalog 컴포넌트 등록 필요), 0-2 TableView 명칭(minor P0 문서 정합).
+>
+> 상세: [design breakdown §이행 상태 최종](../design/915-catalog-prop-parity-restoration-breakdown.md).
 
 ## Context
 
 ADR-912(spec→catalog cutover, Implemented 2026-06-18)로 컴포넌트 편집 prop 정의가 `packages/specs`(124 spec 파일)에서 `packages/shared/src/catalog/bindings`(115 binding 파일)의 `props.accepts`로 이전됐다. cutover는 **메커니즘 전환**이 목표였고 prop 축소를 의도하지 않았으나, 이전 과정에서 각 컴포넌트의 편집 가능 prop 집합이 **공식(RAC/React Spectrum) 대비 축소**됐다. 사용자 보고: "컴포넌트 프로퍼티 대량 소실".
 
-전수 감사([docs/reference/adr-912-prop-parity-audit.md](../reference/adr-912-prop-parity-audit.md))로 소실이 두 층위임을 확인:
+전수 감사([docs/reference/adr-912-prop-parity-audit.md](../../reference/adr-912-prop-parity-audit.md))로 소실이 두 층위임을 확인:
 
 - **층위 A** — field kind 렌더러 누락(`binding`/`items-manager`). 커밋 `1419a5773`/`24f38b75b`로 이미 복원. 정의 11종 ↔ 처리 11종 일치.
 - **층위 B** — `accepts` 자체의 prop 누락. field kind 검사로 안 잡힘. 본 ADR 대상.
@@ -94,7 +102,7 @@ ADR-912(spec→catalog cutover, Implemented 2026-06-18)로 컴포넌트 편집 p
 - **대안 A 기각**: 컬렉션 core/Color/Date/신규 kind를 한 ADR에 묶으면 유지보수 위험 HIGH + scope 폭증. P2/P3는 후속 분리가 검증 단위를 명확히 함.
 - **대안 C 기각**: "대량 소실" 핵심인 폼 prop이 미해결로 남아 사용자 보고 미충족.
 
-> 구현 상세: [915-catalog-prop-parity-restoration-breakdown.md](design/915-catalog-prop-parity-restoration-breakdown.md)
+> 구현 상세: [915-catalog-prop-parity-restoration-breakdown.md](../design/915-catalog-prop-parity-restoration-breakdown.md)
 
 ## Risks
 
