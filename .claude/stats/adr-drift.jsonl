@@ -33,3 +33,4 @@
 {"sha":"0fd2a3bd307e86de1f33975222ea2b814f201d86","date":"2026-07-08T01:13:28+09:00","promoted_adrs":["docs/adr/completed/138-component-palette-reusable.md"],"readme_updated":true,"changelog_updated":false,"synced":false}
 {"sha":"a360c13b5813173a2e1efa3ceb12b9e47f416ef1","date":"2026-07-08T02:14:10+09:00","promoted_adrs":["docs/adr/completed/916-unified-rust-engine.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"7a31507fbbe6a7f28800a7042338a923035ac18b","date":"2026-07-13T21:05:48+09:00","promoted_adrs":["docs/adr/completed/142-starter-spec-component-system-cutover.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
+{"sha":"21e74c8286cc173b70817965ee735fd6a0eae764","date":"2026-07-16T13:20:44+09:00","promoted_adrs":["docs/adr/completed/915-catalog-prop-parity-restoration.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
