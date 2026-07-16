@@ -15,7 +15,7 @@ Proposed — 2026-07-17
 
 구조 원인은 패널 시스템의 의도된 설계다: `PanelContainer.tsx:49-57` 의 `PanelContent` 가 **`isActive={true}` 하드코딩 + `memo(panelId, side)`** 로, (1) 화면에 없는 패널(Styles/Properties/Events/Themes/History 등 14종)까지 모든 선택 구독을 실행하고 (2) 실제 활성 상태를 내려도 memo 가 전파를 차단한다. 이 설계는 remount 비용 제거와 패널 로컬 상태(스크롤·입력) 보존이 목적이었으나, 그 대가로 숨은 패널이 매 클릭 갱신 비용을 지불한다. 선행 완화(ADR 없음, 커밋 `6ee06262a`)로 선택 시 canonical 문서 전체 재-materialize 는 문서당 1회 캐시로 해소됐고, 본 ADR 은 잔여 병목인 패널 fan-out 을 다룬다.
 
-선택 구독 소비처: `stores/index.ts:197` `useSelectedElementData` → `useDebouncedSelectedElementData` ×4 (`panels/styles/StylesPanel.tsx:33,51` / `panels/properties/PropertiesPanel.tsx:789` / `panels/events/EventsPanel.tsx:281`) + 스타일 4섹션의 `selectedElementId` 직구독 + `panels/nodes/LayersSection.tsx:102`.
+선택 구독 소비처: `stores/index.ts:190` `useSelectedElementData` → `useDebouncedSelectedElementData` ×4 (`panels/styles/StylesPanel.tsx:33,51` / `panels/properties/PropertiesPanel.tsx:789` / `panels/events/EventsPanel.tsx:281`) + 스타일 4섹션의 `selectedElementId` 직구독 + `panels/nodes/LayersSection.tsx:102`.
 
 **3-Domain 판정**: 본 ADR 은 D1(DOM/접근성)/D2(Props)/D3(시각 스타일) SSOT 경계와 무관한 **builder 내부 UI 아키텍처** 결정이다. 경계 교차 없음.
 
@@ -55,7 +55,7 @@ Proposed — 2026-07-17
 
 ### 대안 C: 비활성 패널 unmount (`if (!isActive) return null` 가드 부활)
 
-- 설명: `PanelContent` 에 실제 isActive 를 내리고 비활성 패널은 null 렌더 (unmount). 패널 14종에 이미 존재하는 dead 가드를 되살리는 방향.
+- 설명: `PanelContent` 에 실제 isActive 를 내리고 비활성 패널은 null 렌더 (unmount). 패널 3종(FontManagerPanel.tsx:28 / ThemesPanel.tsx:395 / DataTableEditorPanel.tsx:355)에 잔존하는 dead 가드를 전 패널로 확장하는 방향.
 - 근거: 가장 단순한 구현. 다수 앱의 탭 패널 기본 패턴.
 - 위험:
   - 기술: L — 메커니즘 자체는 자명
@@ -114,7 +114,7 @@ Proposed — 2026-07-17
 
 - 캔버스 선택 클릭의 동기 비용에서 숨은 패널 몫(commit effect 순회 ~74%) 제거 — `PanelContainer.tsx` 1곳으로 패널 14종 + 신규 패널 자동 커버
 - 선택 외 갱신 축(문서 편집·테마)에서도 숨은 패널 비용 제거 — 별도 배선 없이 동일 원리 적용
-- 패널 활성/비활성 의미가 React 공식 메커니즘으로 표준화 — `isActive={true}` 하드코딩과 각 패널의 dead 가드 정리 계기
+- 패널 활성/비활성 의미가 React 공식 메커니즘으로 표준화 — `isActive={true}` 하드코딩과 잔존 3패널(Fonts/Themes/DataTableEditor)의 dead 가드 정리 계기
 
 ### Negative
 

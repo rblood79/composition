@@ -32,7 +32,7 @@
 
 - `apps/builder/src/builder/layout/PanelContainer.tsx:49-57` — `PanelContent = memo(({panelId, side}) => <PanelComponent isActive={true} .../>)`. isActive 하드코딩 + memo 가 활성 전환 전파를 차단하는 **의도된** 설계 (파일 상단 주석: remount 비용 제거 + 상태 보존).
 - `apps/builder/src/builder/layout/PanelContainer.tsx:129-137` — `PanelWrapper` 가 `data-active` 로 CSS 표시/숨김.
-- 선택 구독 소비처: `stores/index.ts:197` `useSelectedElementData` → `useDebouncedSelectedElementData` ×4 (`panels/styles/StylesPanel.tsx:33,51`, `panels/properties/PropertiesPanel.tsx:789`, `panels/events/EventsPanel.tsx:281`) + 각 스타일 섹션의 `selectedElementId` 직구독 + `panels/nodes/LayersSection.tsx:102`.
+- 선택 구독 소비처: `stores/index.ts:190` `useSelectedElementData` → `useDebouncedSelectedElementData` ×4 (`panels/styles/StylesPanel.tsx:33,51`, `panels/properties/PropertiesPanel.tsx:789`, `panels/events/EventsPanel.tsx:281`) + 각 스타일 섹션의 `selectedElementId` 직구독 + `panels/nodes/LayersSection.tsx:102`.
 
 ## 3. Phase 계획
 
@@ -51,7 +51,7 @@
 ### Phase 2 — 전 패널 확대
 
 1. left/right 전 패널로 Activity 래핑 확대 (`PanelWrapper` 단일 지점이라 개별 패널 코드 무변경).
-2. `PanelContent` 의 `isActive={true}` 하드코딩 정리 — Activity 가 액티브 의미를 대체하므로 prop 제거 또는 실값 전달로 정리 (각 패널의 `if (!isActive) return null` 가드 dead code 정리는 후속 별도 커밋).
+2. `PanelContent` 의 `isActive={true}` 하드코딩 정리 — Activity 가 액티브 의미를 대체하므로 **prop 자체를 제거**한다. **실값 전달 금지** — `if (!isActive) return null` 가드가 잔존하는 3패널 (`FontManagerPanel.tsx:28` / `ThemesPanel.tsx:395` / `DataTableEditorPanel.tsx:355`) 이 즉시 unmount 로 전환되어 기각된 대안 C 의 동작 (Hard Constraint 3 위반) 이 된다. prop 제거와 3패널 가드 제거를 **같은 커밋**으로 묶는다. 파일럿 Phase 1 은 하드코딩 유지 상태라 이 위험 미해당.
 3. 정적 가드 테스트: `PanelContainer.static.test.ts` — Activity 래핑 존재 + `isActive={true}` 하드코딩 재도입 차단.
 
 ### Phase 3 — Gate 총괄 실측 + 종결
