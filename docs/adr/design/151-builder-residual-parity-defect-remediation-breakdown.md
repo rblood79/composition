@@ -71,6 +71,12 @@
 
 - **영향/조치**: B8 Table dh-2 는 block body 컨텍스트 (오전 값 400 vs 402) 로 재판정 가능. bisect 사용자 허가 요청은 **철회** (회귀 아님 확정).
 
+**해소 (2026-07-16 심야)** — 실측 5종 배선 완료:
+
+- **Text/Table/Disclosure/DisclosureGroup**: catalog top-level `containerStyles.width: "100%"` 선언 (CSS generator 는 structure 채널이라 generated CSS diff 0 — Phase 1 borderWidth 채널 선례). 단 buildNodeStyle 의 fallback 후주입은 `enrichWithIntrinsicSize` 의 flex-자식 TEXT_LEAF intrinsic width 하드닝 (utils.ts needsWidth) 에 밀리므로, `applyImplicitStyles` 에 **선주입 분기** (`B22_CSS_FULL_WIDTH_TAGS`) 추가 — enrich 가 explicit width 로 보고 하드닝을 건너뛴다.
+- **Separator**: orientation 조건부 (vertical 은 width:1px 별도 축) 라 catalog 무조건부 채널로 표현 불가 — `applyImplicitStyles` separator 분기에서 horizontal 한정 `width:100%` 주입. 사용자/factory 명시 width 우선.
+- 검증: flex-column body (발산 컨텍스트) 에서 Text Skia 350 = CSS 350, Separator 350 / block body (기존 컨텍스트) 무변화 (Text 350, Button 69) — 합성 트리 + 라이브 실측 이중 확증. 회귀 테스트: fallback lock 4종 + Separator implicitStyles 4 케이스. 잔여 20종 (generated CSS base width:100% 보유 field 류 등) 은 flex 부모 battery 로 후속 판정 (Phase 6 golden 편입 시).
+
 ## 2. 허용 오차 판정 기준 (Decision 보조 — ADR 본문 §Decision 의 기준 상세)
 
 1. **±2px 이내 + 원인이 텍스트 측정 엔진 차이(Canvas 2D↔CanvasKit↔브라우저)로 규명된 경우**: 수용 (ADR-042 사용자 결정 승계). 수용 항목은 golden 기대값에 오차 포함해 고정.

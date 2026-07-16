@@ -4288,6 +4288,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Disclosure: {
     defaultSize: "md",
+    // ADR-151 B22 (2026-07-16): generated/수동 CSS 의 base `width: 100%` 를 layout 이
+    //   미소비 — flex 부모에서 fit-content 붕괴 (block 부모는 IFC 주입이 가림). layout
+    //   fallback 채널(top-level)로 공급. CSS 는 기존 규칙 그대로 — generated CSS diff 0.
+    containerStyles: {
+      width: "100%",
+    },
     variants: {},
     sizes: {
       sm: {
@@ -4479,6 +4485,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   DisclosureGroup: {
     defaultVariant: "default",
     defaultSize: "md",
+    // ADR-151 B22 (2026-07-16): generated/수동 CSS 의 base `width: 100%` 를 layout 이
+    //   미소비 — flex 부모에서 fit-content 붕괴 (block 부모는 IFC 주입이 가림). layout
+    //   fallback 채널(top-level)로 공급. CSS 는 기존 규칙 그대로 — generated CSS diff 0.
+    containerStyles: {
+      width: "100%",
+    },
     variants: {
       default: {
         fill: {
@@ -10766,6 +10778,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Table: {
     defaultVariant: "default",
     defaultSize: "md",
+    // ADR-151 B22 (2026-07-16): generated/수동 CSS 의 base `width: 100%` 를 layout 이
+    //   미소비 — flex 부모에서 fit-content 붕괴 (block 부모는 IFC 주입이 가림). layout
+    //   fallback 채널(top-level)로 공급. CSS 는 기존 규칙 그대로 — generated CSS diff 0.
+    containerStyles: {
+      width: "100%",
+    },
     variants: {
       default: {
         fill: {
@@ -11263,6 +11281,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Text: {
     defaultVariant: "default",
     defaultSize: "md",
+    // ADR-151 B22 (2026-07-16): generated/수동 CSS 의 base `width: 100%` 를 layout 이
+    //   미소비 — flex 부모에서 fit-content 붕괴 (block 부모는 IFC 주입이 가림). layout
+    //   fallback 채널(top-level)로 공급. CSS 는 기존 규칙 그대로 — generated CSS diff 0.
+    containerStyles: {
+      width: "100%",
+    },
     variants: {
       default: {
         fill: {

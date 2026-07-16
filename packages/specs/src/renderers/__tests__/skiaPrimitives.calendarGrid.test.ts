@@ -113,21 +113,22 @@ describe("skiaPrimitive 'calendar_month_grid' — CalendarGrid value-fill (ADR-9
     });
   });
 
-  it("날짜 셀 좌표 = spec 1:1 (cellSize=30 gap=6, day 1 dayOffset=1 → col=1 row=0)", () => {
+  it("날짜 셀 좌표 = DOM 셀 모델 1:1 (cellBox=cellSize+4, day 1 dayOffset=1 → col=1 row=0)", () => {
     const shapes = draw({
       props: { dayOffset: 1, totalDays: 31 },
       size: sizeMd,
       visual,
       style: undefined,
     })!;
-    // day 1: idx=0+1=1 → col=1, row=0. cellLeft = 1*(30+6) = 36. gridStartY=cellSize=30.
-    //   cy = 30 + 0*(30+6) + 30/2 = 45.
+    // ADR-151 B1 (2026-07-16): gap 모델 → DOM `td { padding: 2px }` 셀 모델.
+    //   cellBox = cellSize + CELL_PAD*2 = 34. day 1: idx=0+1=1 → col=1, row=0.
+    //   cellLeft = 1*34 + 2 = 36. gridStartY=cellSize=30. cy = 30 + 0*34 + 2 + 30/2 = 47.
     const day1 = texts(shapes).find(
       (t) => (t as { text?: string }).text === "1",
     );
     expect(day1).toBeDefined();
     expect((day1 as { x?: number }).x).toBe(36);
-    expect((day1 as { y?: number }).y).toBe(45);
+    expect((day1 as { y?: number }).y).toBe(47);
   });
 
   it("today 날짜 text 는 fontWeight 700 (강조), 비-today 는 400", () => {

@@ -356,6 +356,19 @@ const CONTAINER_STYLES_FALLBACK_KEYS = [
   "borderWidth",
 ] as const;
 
+/**
+ * ADR-151 B22 (2026-07-16): generated/수동 CSS 가 base 에 `width:100%` 를 주는 type.
+ * catalog top-level containerStyles.width 로 선언되며 applyImplicitStyles 가 element
+ * style 에 **선주입**한다 (enrichWithIntrinsicSize 의 flex-자식 intrinsic width 하드닝
+ * 선점 방지). Separator 는 orientation 조건부라 별도 분기.
+ */
+const B22_CSS_FULL_WIDTH_TAGS = new Set([
+  "text",
+  "table",
+  "disclosure",
+  "disclosuregroup",
+]);
+
 // ─── 내부 상수 ──────────────────────────────────────────────────────
 
 // ComboBox/Select/SelectTrigger/ComboBoxWrapper 공통 spec padding 상수(SPEC_PADDING)는
@@ -834,6 +847,42 @@ export function applyImplicitStyles(
         ...parentStyle,
         height: fixedH,
         minHeight: fixedH,
+      });
+    }
+  }
+
+  // ── CSS base width:100% 채널 선주입 (ADR-151 B22) ─────────────────────
+  // generated/수동 CSS 가 base 에 `width:100%` 를 주는 type (catalog top-level
+  // containerStyles.width 로 선언 — text/table/disclosure/disclosuregroup) 은 여기서
+  // element style 에 **선주입**해야 한다. buildNodeStyle 의 fallback merge (후주입) 는
+  // enrichWithIntrinsicSize 의 flex-자식 TEXT_LEAF intrinsic width 하드닝 (utils.ts
+  // needsWidth) 이 먼저 rawStyle.width 를 채우면 밀린다 — 선주입 시 enrich 가 explicit
+  // width 로 보고 하드닝을 건너뛴다. 사용자 명시 width 는 항상 우선 (curStyle 체크).
+  if (B22_CSS_FULL_WIDTH_TAGS.has(containerTag)) {
+    const curStyle = (effectiveParent.props?.style ?? {}) as Record<
+      string,
+      unknown
+    >;
+    if (curStyle.width == null && parentStyle.width != null) {
+      effectiveParent = withParentStyle(effectiveParent, {
+        ...curStyle,
+        width: parentStyle.width,
+      });
+    }
+  }
+
+  // ── Separator ──────────────────────────────────────────────────────
+  // 수동 Separator.css 계약: horizontal(`:not(.vertical)`) → `width:100%` (ADR-151 B22).
+  // vertical 은 width:1px + height:100% 별도 축 — orientation 조건부라 catalog
+  // top-level(무조건부) containerStyles 채널로 표현 불가 → 본 분기에서 주입.
+  // 사용자/factory 명시 width 우선 (Toolbar vertical separator 는 explicit width 보유).
+  if (containerTag === "separator") {
+    const orientation =
+      (containerProps?.orientation as string | undefined) ?? "horizontal";
+    if (orientation !== "vertical" && parentStyle.width == null) {
+      effectiveParent = withParentStyle(containerEl, {
+        ...parentStyle,
+        width: "100%",
       });
     }
   }

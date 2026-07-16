@@ -340,6 +340,20 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       });
     });
 
+    it("text/table/disclosure/disclosuregroup → width:100% (ADR-151 B22 — generated/수동 CSS 폭 채널 배선)", () => {
+      // DOM 폭 원천 = CSS `width:100%` (Text generated archetype base / Table 수동 CSS /
+      //   Disclosure(Group) generated). flex 부모에서 Skia 만 fit-content 붕괴하던 발산의 배선.
+      for (const t of ["text", "table", "disclosure", "disclosuregroup"]) {
+        expect(resolveContainerStylesFallback(t, {})).toEqual({
+          width: "100%",
+        });
+      }
+      // 사용자 명시 width 우선 — fallback 미주입
+      expect(resolveContainerStylesFallback("text", { width: 120 })).toEqual(
+        {},
+      );
+    });
+
     it("slider → display:grid + gridTemplateAreas/Columns (grid 경로)", () => {
       expect(resolveContainerStylesFallback("slider", {})).toEqual({
         display: "grid",
