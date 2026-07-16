@@ -952,6 +952,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       display: "flex",
       flexDirection: "column",
       width: "fit-content",
+      // ADR-151 B1 (2026-07-16): generated Calendar.css 의 `border: 1px solid` 를 layout 이
+      //   미반영해 border-box 총폭 2px 발산 — layout fallback 채널(top-level)로 공급.
+      //   CSS 는 structure.containerStyles 채널이라 generated CSS diff 0.
+      borderWidth: "1px",
     },
     sizes: {
       // ADR-912 단계5 step4 date-color (2026-06-16): paddingY/gap 보강 —
@@ -8313,6 +8317,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       display: "flex",
       flexDirection: "column",
       width: "fit-content",
+      // ADR-151 B2 (2026-07-16): Calendar 동형 — generated RangeCalendar.css border 1px 의
+      //   layout 미반영 2px 발산 보정 (top-level = layout 채널, CSS diff 0).
+      borderWidth: "1px",
     },
     sizes: {
       // ADR-912 단계5 step4 date-color (2026-06-16): paddingX/paddingY/gap 보강 —

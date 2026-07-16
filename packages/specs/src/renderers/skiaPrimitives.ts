@@ -1429,7 +1429,11 @@ const calendarGrid: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
 const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
   const iconSize = (size.iconSize as unknown as number) ?? 26;
   const cellSize = iconSize + 4;
-  const gap = (size.gap as unknown as number) || 6;
+  // ADR-151 B1/B2 (2026-07-16): DOM 셀 박스 모델 정렬 — table `td { padding: 2px }`
+  //   (CalendarCommon.css --spacing-2xs) → 셀 pitch = cellSize + 4, inter-cell gap 없음.
+  //   구 코드의 sizes.gap(컨테이너 세로 gap 값) 오용은 셀 간격 6px 로 DOM(4px)과 발산.
+  const CELL_PAD = 2;
+  const cellBox = cellSize + CELL_PAD * 2;
   const fontSize = resolveSpecFontSize(size.fontSize as string | number, 14);
   const ff =
     ((props.style as Record<string, unknown> | undefined)
@@ -1474,7 +1478,7 @@ const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
     }
   });
   for (let col = 0; col < 7; col++) {
-    const cellLeft = col * (cellSize + gap);
+    const cellLeft = col * cellBox + CELL_PAD;
     shapes.push({
       type: "text" as const,
       x: cellLeft,
@@ -1495,9 +1499,9 @@ const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
     const idx = day - 1 + dayOffset;
     const row = Math.floor(idx / 7);
     const col = idx % 7;
-    const cellLeft = col * (cellSize + gap);
+    const cellLeft = col * cellBox + CELL_PAD;
     const cx = cellLeft + cellSize / 2;
-    const cy = gridStartY + row * (cellSize + gap) + cellSize / 2;
+    const cy = gridStartY + row * cellBox + CELL_PAD + cellSize / 2;
 
     shapes.push({
       type: "text" as const,

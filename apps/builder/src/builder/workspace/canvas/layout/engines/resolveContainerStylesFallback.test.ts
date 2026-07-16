@@ -140,12 +140,15 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
   //   stretch(Skia 350px vs CSS 256px 발산). top-level rule.containerStyles 승격으로 경로 A
   //   도달(TabPanel 선례 동형).
   describe("calendar — top-level containerStyles 승격 (width:fit-content Skia 도달)", () => {
-    it("empty parentStyle → top-level rule.containerStyles 의 display/flexDirection/width 반환", () => {
+    it("empty parentStyle → top-level rule.containerStyles 의 display/flexDirection/width/borderWidth 반환", () => {
       const fb = resolveContainerStylesFallback("calendar", {});
+      // ADR-151 B1 (2026-07-16): borderWidth "1px" 추가 — generated CSS border 1px 의
+      //   layout 미반영 2px 발산 보정 (fallback allowlist 에 borderWidth 편입).
       expect(fb).toEqual({
         display: "flex",
         flexDirection: "column",
         width: "fit-content",
+        borderWidth: "1px",
       });
     });
 
@@ -154,17 +157,22 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         width: "300px",
       });
       expect(fb).not.toHaveProperty("width");
-      expect(fb).toEqual({ display: "flex", flexDirection: "column" });
+      expect(fb).toEqual({
+        display: "flex",
+        flexDirection: "column",
+        borderWidth: "1px",
+      });
     });
   });
 
   describe("rangecalendar — top-level containerStyles 승격 (Calendar 동형)", () => {
-    it("empty parentStyle → display/flexDirection/width:fit-content 반환", () => {
+    it("empty parentStyle → display/flexDirection/width:fit-content/borderWidth 반환", () => {
       const fb = resolveContainerStylesFallback("rangecalendar", {});
       expect(fb).toEqual({
         display: "flex",
         flexDirection: "column",
         width: "fit-content",
+        borderWidth: "1px",
       });
     });
   });

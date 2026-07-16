@@ -40,12 +40,13 @@ describe("CalendarHeader intrinsic size (ADR-912 B+icon width 회귀)", () => {
     expect(w).toBeGreaterThan(0);
   });
 
-  test("width 는 calendar grid 폭과 동일 (cellSize*7 + gap*6, md 기준 174)", () => {
-    // md: iconSize 26 → cellSize 30, gap 6 → 30*7 + 6*6 = 210 + 36 = 246.
+  test("width 는 calendar grid 폭과 동일 (cellBox*7, md 기준 238)", () => {
+    // ADR-151 B1/B2 (2026-07-16): DOM table `td { padding: 2px }` 박스 모델 정렬 —
+    //   md: iconSize 26 → cellSize 30 → cellBox 34 → 34*7 = 238 (DOM 실측 동일).
     //   (CalendarHeader 는 Calendar 자식 → grid 폭과 동일해야 헤더가 grid 위 정렬).
     const w = calculateContentWidth(makeHeader());
-    const cellSize = 26 + 4;
-    expect(w).toBe(cellSize * 7 + 6 * 6);
+    const cellBox = 26 + 4 + 4;
+    expect(w).toBe(cellBox * 7);
   });
 
   test("size 별 width 차이 (sm < md < lg)", () => {
@@ -90,19 +91,23 @@ const makeDateInput = (props: Record<string, unknown> = {}): CanvasLayoutNode =>
   }) as CanvasLayoutNode;
 
 describe("CalendarGrid intrinsic size (ADR-912 Phase 6 read-through)", () => {
-  test("width — calendar grid 폭 (cellSize*7 + gap*6, md=246)", () => {
-    const cellSize = 26 + 4;
-    expect(calculateContentWidth(makeGrid())).toBe(cellSize * 7 + 6 * 6);
+  test("width — calendar grid 폭 (cellBox*7, md=238 — DOM td padding 계약)", () => {
+    // ADR-151 B1/B2 (2026-07-16): DOM 실측 golden — md 238 (구 gap 오용 식은 246 발산).
+    const cellBox = 26 + 4 + 4;
+    expect(calculateContentWidth(makeGrid())).toBe(cellBox * 7);
+    expect(calculateContentWidth(makeGrid())).toBe(238);
   });
 
   test("height — totalRows 기반 (md, offset4/29일 → 5행)", () => {
-    // cellSize 30, gap 6, totalRows = ceil((29+4)/7) = 5 → 30 + 5*(30+6) - 6 = 30 + 180 - 6 = 204
+    // ADR-151 B1/B2 (2026-07-16): DOM = 요일 th 행(cellSize) + 행 pitch cellBox(cellSize+4).
+    //   cellSize 30, cellBox 34, totalRows 5 → 30 + 5*34 = 200 (DOM 실측 golden — 구 식은 204).
     const cellSize = 26 + 4;
-    const gp = 6;
+    const cellBox = cellSize + 4;
     const totalRows = Math.ceil((29 + 4) / 7);
     expect(calculateContentHeight(makeGrid())).toBe(
-      cellSize + totalRows * (cellSize + gp) - gp,
+      cellSize + totalRows * cellBox,
     );
+    expect(calculateContentHeight(makeGrid())).toBe(200);
   });
 
   test("height — size 별 cellSize/gap 반영 (sm < md < lg, 동일 행수)", () => {

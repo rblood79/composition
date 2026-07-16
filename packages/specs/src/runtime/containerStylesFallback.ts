@@ -41,6 +41,9 @@ const CONTAINER_STYLES_FALLBACK_KEYS = [
   "gridTemplateColumns",
   "gridTemplateRows",
   "position",
+  // ADR-151 B1/B2 (2026-07-16): generated CSS `border: 1px solid` 를 layout 이 미반영하는
+  //   컴포넌트(Calendar/RangeCalendar)의 border-box 2px 발산 보정 채널. builder 미러와 동일 집합.
+  "borderWidth",
 ] as const;
 
 /**

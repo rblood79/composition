@@ -74,11 +74,16 @@
 - ADR-100 구 이슈 3건 재현 불가 — 미편입 확정 (§1-D). 신규 발견 B21 (GridList 내부 row 발산) 편입
 - Phase 3 은 대상 소멸 (B14~B17 해소) → **golden 편입만 Phase 6 으로 흡수, phase 자체 skip**
 
-### Phase 1: 대형 발산 — Calendar / RangeCalendar (B1, B2)
+### Phase 1: 대형 발산 — Calendar / RangeCalendar (B1, B2) — ✅ 완료 (2026-07-16, dw 0/dh 0)
 
-- CalendarGrid 셀 메트릭 산출 경로 (`calculateContentHeight` calendar 분기 + catalog CalendarGrid/CalendarCell sizes) 를 DOM 실측 기반으로 정렬
-- 선행 참조: `feedback-calendar-width-fit-content-3-layer-and-2pass-residual` (width 3계층 수정 이력 — 동일 계층 구분 적용)
-- 검증: cross-check (Calendar, RangeCalendar) + tree_golden 케이스 추가
+원인 3겹 확정 + 수정:
+
+1. **generated RangeCalendar.css 미import** (`styles/index.css:96` — "generated 없음" 주석이 허위): 컨테이너 chrome (padding 8/gap 6/border 1) 전체가 죽어 CSS 238×230. import 추가 → 256×254 (Calendar 동형)
+2. **셀 메트릭 gap 오용**: layout (`utils.ts` 1.2a width + calendargrid height) 과 Skia draw (`skiaPrimitives.ts calendarMonthGrid`) 가 `sizes.gap`(컨테이너 세로 gap 값 6) 을 inter-cell 간격으로 오용 → 246×204. DOM 계약은 `td { padding: 2px }` 박스 모델 (pitch = cellSize+4, gap 없음) → cellBox 식으로 정렬 → 238×200
+3. **border 1px layout 미반영**: generated CSS `border: 1px solid` 을 layout 이 모름 → catalog top-level containerStyles 에 `borderWidth: "1px"` (layout 채널 — CSS diff 0) + `CONTAINER_STYLES_FALLBACK_KEYS` allowlist 에 borderWidth 편입 (specs/builder 미러 양쪽)
+
+- 검증: 라이브 재실측 Calendar/RangeCalendar 둘 다 **Skia 256×254 = CSS 256×254 (dw 0/dh 0)**, 자식 header/grid 238 폭 일치. vitest 226/226 (구공식 미러 테스트 3건 → DOM golden 238/200 절대값으로 갱신) + type-check PASS. generated CSS diff 0 확인
+- tree_golden 케이스 추가는 Phase 6 일괄 (JS-side 수정이라 1차 oracle 은 `calendarHeaderIntrinsicSize.test.ts` 절대값 golden)
 
 ### Phase 2: 중형 — 텍스트 메트릭 계열 (B3, B4, B6) + Tree 조사 (B5)
 

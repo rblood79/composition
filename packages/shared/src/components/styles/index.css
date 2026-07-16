@@ -93,7 +93,8 @@
 /* Calendar Components */
 @import "./generated/Calendar.css";
 @import "./Calendar.css"; /* CalendarCell states + size-responsive inner elements */
-@import "./RangeCalendar.css"; /* generated 없음 — 수동 유지 */
+@import "./generated/RangeCalendar.css"; /* 컨테이너 chrome (padding/gap/border) — ADR-151 B2: 미import 로 padding 0 발산 (Skia 262×256 vs CSS 238×230) */
+@import "./RangeCalendar.css"; /* CalendarCell range-band states — 수동 유지 */
 
 /* Group Components — skipCSSGeneration, 수동 CSS */
 @import "./generated/CheckboxGroup.css";

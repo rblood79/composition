@@ -1395,9 +1395,13 @@ export function calculateContentWidth(
     );
     const entry = rule?.sizes[sizeName] ?? rule?.sizes.md;
     const iconSize = typeof entry?.iconSize === "number" ? entry.iconSize : 26;
-    const gap = typeof entry?.gap === "number" ? entry.gap : 6;
     const cellSize = iconSize + 4;
-    return cellSize * 7 + gap * 6;
+    // ADR-151 B1/B2 (2026-07-16): DOM 은 table + `td { padding: var(--spacing-2xs) }`(2px)
+    //   박스 모델 — 셀 pitch = cellSize + 4 (td padding 좌우), inter-cell gap 없음.
+    //   구 식(cellSize*7 + sizes.gap*6)의 sizes.gap 은 컨테이너 세로 gap(header↔grid) 값이라
+    //   inter-cell 축에 쓰면 md 246px vs DOM 238px 발산. CalendarCommon.css 계약과 정렬.
+    const cellBox = cellSize + 4;
+    return cellBox * 7;
   }
 
   // 1.17. Breadcrumb (child) — ADR-086 P5: implicitStyles 의 style 주입 제거 후
@@ -2864,7 +2868,6 @@ export function calculateContentHeight(
     const rule = resolveSkiaRule("CalendarGrid");
     const entry = rule?.sizes[sizeName] ?? rule?.sizes.md;
     const iconSize = typeof entry?.iconSize === "number" ? entry.iconSize : 26;
-    const gp = typeof entry?.gap === "number" ? entry.gap : 6;
     const cellSize = iconSize + 4;
     const now = new Date();
     const dayOffset =
@@ -2874,7 +2877,11 @@ export function calculateContentHeight(
       (props?.totalDays as number) ??
       new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     const totalRows = Math.ceil((totalDays + dayOffset) / 7);
-    return cellSize + totalRows * (cellSize + gp) - gp;
+    // ADR-151 B1/B2 (2026-07-16): DOM = 요일 th 행(height: cellSize, padding 미포함) +
+    //   날짜 td 행(td padding 2px 상하 → 행 pitch = cellSize + 4). 구 식의 sizes.gap(세로
+    //   컨테이너 gap 값) 오용이 md 204px vs DOM 200px 발산. CalendarCommon.css 계약과 정렬.
+    const cellBox = cellSize + 4;
+    return cellSize + totalRows * cellBox;
   }
 
   // 3.6a. DatePicker: 자식 기반 동적 높이 계산 (Card/Calendar 패턴)
