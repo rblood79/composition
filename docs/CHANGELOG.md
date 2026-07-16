@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [선택 클릭 재렌더 낭비 제거 — canonical elements view 문서당 1회 캐시] - 2026-07-17
+
+### Performance
+
+- **선택 클릭마다 canonical 문서 전체 재-materialize 하던 경로를 문서 참조당 1회 캐시로 통합** (빌더 성능 개선 3번):
+  - **Why**: `useSelectedElementData` 가 선택 변경마다 `visitCanonicalDocumentElements` 로 전체 노드를 legacy Element 로 재생성 (Styles ×2 / Properties / Events 4개 패널 소비처 각각 실행) + ref 요소용 `findElementInCanonicalDocument` 가 추가 전체 순회 — 클릭당 문서 4~8회 평탄화. 숨은 패널도 `PanelContainer` 가 `isActive={true}` 하드코딩으로 항상 구독하므로 패널 수만큼 증폭. 비용이 문서 크기 × 패널 수로 선형 증가하는 구조
+  - 수정: `getCanonicalDocumentElementsView(doc)` — WeakMap 문서 참조 키 캐시 (`{elements, byId}`). canonical store 의 clone-on-write 보장 (mutation 시에만 참조 교체) 위에서 안전. 선택 시 O(1) `byId` lookup, `useElements`/`useCanonicalPropertySourceElements` 도 인스턴스별 재평탄화 → 공유 view 로 전환 (문서 편집 시 N회 → 1회)
+  - 실측 exercise: Chrome MCP live — 선택 클릭 → 패널 반영 정상, `updateElementProps` mutation → clone-on-write 참조 교체 + 파생 뷰 신규 값 반영 + 원복 확인. 소형 테스트 문서 (26 요소) 에서는 클릭당 React 커밋 총합이 측정 한계 내 동일 (병목이 RAC 패널 fan-out 으로 이동) — 효과는 문서 크기에 비례
+  - 계약 테스트: 캐시 동일 참조 / clone-on-write 재구축 / byId last-match (기존 순회 의미 보존) 4건 (`canonicalElementsView.test.ts`)
+  - 위치: `apps/builder/src/builder/stores/canonical/canonicalElementsView.ts`, `apps/builder/src/builder/stores/index.ts`, `apps/builder/src/builder/panels/properties/hooks/useCanonicalPropertyRead.ts`
+
 ## [ADR-151 잔여 3건 해소 — TableView 발산 / preview marker 소실 / components 페이지 안내] - 2026-07-17
 
 ### Bug Fixes
