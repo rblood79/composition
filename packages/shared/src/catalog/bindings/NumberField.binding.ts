@@ -90,6 +90,11 @@ export const numberFieldBinding: PrimitiveBinding = {
           { value: "label", label: "Label" },
         ],
       },
+      // ADR-915 P1-g (2026-07-16): RAC NumberField 공식 locale — renderNumberField
+      //   (FormRenderers:273) 가 `element.props.locale` 를 RAC NumberField 로 전달(숫자 포맷
+      //   로케일). form-common 4종 중 유일하게 DOM-live 인 셀(labelAlign/validationBehavior 는
+      //   개별 field 미소비, 나머지 locale 은 Date/NumberField 외 dead — 감사 후 잔여).
+      locale: { kind: "string", label: "Locale", section: "content" },
     },
     toRacProps: "default",
     // size 를 NumberField.tsx 가 React prop 으로 소비 (stepper 버튼 + 입력 크기 결정) + 자기

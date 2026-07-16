@@ -42,6 +42,12 @@ export interface SliderProps<T> extends AriaSliderProps<T> {
    */
   customFormatter?: (value: number) => string;
   /**
+   * 값 라벨(SliderOutput) 표시 여부 (RSP showValueLabel).
+   * false 면 값 라벨을 숨긴다 — Skia(buildSpecNodeData:800)/layout(utils:2608) 과 대칭.
+   * @default true
+   */
+  showValueLabel?: boolean;
+  /**
    * Show loading skeleton instead of slider
    * @default false
    */
@@ -61,6 +67,7 @@ export function Slider<T extends number | number[]>({
   locale = "ko-KR",
   formatOptions,
   customFormatter,
+  showValueLabel = true,
   isLoading,
   ...props
 }: SliderProps<T>) {
@@ -104,11 +111,13 @@ export function Slider<T extends number | number[]>({
       data-size={size}
     >
       {label && <Label>{label}</Label>}
-      <SliderOutput>
-        {({ state }) =>
-          state.values.map((value) => formatValue(value)).join(" – ")
-        }
-      </SliderOutput>
+      {showValueLabel && (
+        <SliderOutput>
+          {({ state }) =>
+            state.values.map((value) => formatValue(value)).join(" – ")
+          }
+        </SliderOutput>
+      )}
       <SliderTrack>
         {({ state, isDisabled }) => (
           <>

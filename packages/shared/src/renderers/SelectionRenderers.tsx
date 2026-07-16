@@ -1523,6 +1523,10 @@ export const renderSlider = (
       size={(element.props.size as "sm" | "md" | "lg") || "md"}
       isDisabled={Boolean(element.props.isDisabled)}
       isEmphasized={Boolean(element.props.isEmphasized)}
+      // ADR-915 P1.5-d (2026-07-16): 값 라벨 표시 여부를 DOM 에도 forward — Skia
+      //   (buildSpecNodeData:800)/layout(utils:2608) 은 이미 소비하나 DOM 은 SliderOutput
+      //   무조건 렌더였음(showValueLabel=false 시 비대칭). 기본 true.
+      showValueLabel={element.props.showValueLabel !== false}
       formatOptions={
         element.props.formatOptions as Intl.NumberFormatOptions | undefined
       }
