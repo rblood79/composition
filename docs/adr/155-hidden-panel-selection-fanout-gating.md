@@ -2,9 +2,9 @@
 
 ## Status
 
-Proposed — 2026-07-17
+Accepted — 2026-07-17 (리뷰 round 1 승인 — 이슈 3건 전부 fixed, `docs/adr/reviews/155.md`. Proposed 2026-07-17)
 
-> **구현 착수 금지** — 리뷰 승인 후 진행.
+> 착수: 2026-07-17 execute-adr — Phase 0 (inventory + Activity 스파이크) 부터.
 
 ## Context
 

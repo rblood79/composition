@@ -1,7 +1,7 @@
 # ADR-155 구현 상세: 숨은 패널 selection fan-out 차단 — 패널 활성 gating
 
 > 본문: [155-hidden-panel-selection-fanout-gating.md](../155-hidden-panel-selection-fanout-gating.md)
-> Status: Proposed — 2026-07-17. **구현 착수 금지 — 리뷰 승인 후 진행.**
+> Status: Accepted — 2026-07-17 (리뷰 round 1 승인). Phase 0 진행 중.
 
 ## 1. Baseline 실측 (2026-07-17, adr151-followup-verify 프로젝트 43 요소, 패널 전부 접힘 상태)
 
