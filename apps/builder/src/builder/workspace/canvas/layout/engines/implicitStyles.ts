@@ -1970,7 +1970,13 @@ export function applyImplicitStyles(
   //   SliderOutput 이 Label 다음 줄로 wrap 되어 우상단 미배치 → grid 패턴으로 통일.
   if (SLIDER_TAGS.has(containerTag)) {
     const hasLabel = !!containerProps?.label;
-    const showValue = containerProps?.showValue !== false;
+    // ADR-915 P1.5-d (2026-07-16): canonical prop 은 `showValueLabel`(FormComponents factory:499
+    //   + binding + DOM renderSlider + utils:2608 소비). 기존 `showValue` 는 unified.types 레거시
+    //   이름이라 실제 element.props 엔 부재 → 항상 undefined → SliderOutput 이 절대 필터링 안 돼
+    //   showValueLabel=false 여도 Skia 값 라벨이 남던 비대칭 버그. showValueLabel 우선 + 레거시
+    //   showValue fallback.
+    const showValue =
+      (containerProps?.showValueLabel ?? containerProps?.showValue) !== false;
     const sizeName = (containerProps?.size as string) ?? "md";
 
     // value → 포맷된 텍스트 계산 (ElementSprite 미러링)
