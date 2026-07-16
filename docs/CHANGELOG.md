@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [빌더 잔여 CSS↔Skia 발산 일소 — ADR-151 Phase 0~6] - 2026-07-17
+
+### Bug Fixes
+
+- **Calendar/RangeCalendar 대형 발산 (dw+6~24/dh+2~26 → 0/0)** (ADR-151 Phase 1):
+  - **Why**: generated RangeCalendar.css 미import (컨테이너 chrome 전체 죽음) + 셀 메트릭이 컨테이너 gap 값을 inter-cell 간격으로 오용 + border 1px layout 미반영 — 3겹 원인
+  - 수정: import 추가 + DOM `td { padding: 2px }` 셀 박스 모델 정렬 (cellBox=cellSize+4) + catalog `borderWidth: "1px"` layout 채널
+  - 위치: `packages/shared/styles/index.css`, `apps/builder/.../layout/engines/utils.ts`, `packages/specs/src/renderers/skiaPrimitives.ts`
+- **Card dh-3 / Link dh-5 / Tree dh+6 / GridList 내부 row 50 vs 64** (ADR-151 Phase 2):
+  - **Why**: Card Description 이 catalog CSS 미도달 (plain div) + Link lineHeight 토큰 부재 (3자 발산) + Tree border 1px layout 미반영 + GridListItem projection layout 분기 부재
+  - 수정: `react-aria-Description` 클래스 정렬 + Link.sizes lineHeight 5종 + Tree borderWidth + row 메트릭 DOM 계약 분기
+- **StatusLight dh+3 / Badge dh+2 / Checkbox dw+7.6 / Table dh-2** (ADR-151 Phase 4/6):
+  - **Why**: StatusLight 가 catalog height(24) 미소비 · Badge catalog borderWidth 1 이 dead 값 (CSS border-style 부재) 인데 Skia 만 가산 · Checkbox 라벨을 기본 폰트로 측정 (catalog Label 14/600 아님) · Table 은 DOM 외곽 border 1px 을 Skia 단일 box 가 미합산
+  - 수정: rule height read-through · borderWidth 0 정정 · `extractSpecTextStyle("label")` 정렬 · table 분기 border×2 합산 (402=402)
+- **CSS base `width:100%` 채널의 Skia 미배선 — flex 부모에서 fit-content 붕괴 (B22)** (ADR-151 Phase 4~6):
+  - **Why**: Text/Table/Separator/Heading/Paragraph/Description 의 DOM 폭 원천인 CSS `width:100%` 를 Skia layout 이 소비하지 않음 — plain block body 에서는 IFC 시뮬레이션 주입이 우연히 같은 값을 만들어 은폐, flex-column(align-items:flex-start) body 에서만 노출 (Text Skia 31 vs CSS 350)
+  - 수정: catalog top-level `containerStyles.width:"100%"` + `applyImplicitStyles` 선주입 (`B22_CSS_FULL_WIDTH_TAGS` — 후주입은 intrinsic 하드닝에 밀림). Disclosure(Group) 은 전제 착오로 판명되어 철회 (generated CSS 에 base width 규칙 없음 — DOM 정본 fit-content)
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`, `apps/builder/.../layout/engines/implicitStyles.ts`
+- **Menu 캔버스 표현 발산 — Skia 만 390px 전폭 바** (ADR-151 B7, 사용자 결정 "트리거 버튼 통일"):
+  - catalog menu containerStyles 를 트리거 박스 (inline-flex/fit-content) 로 전환 — DOM MenuTrigger 패턴 (61.2×30) 과 정합
+- **fontVariant 텍스트 측정 비대칭 방어** (ADR-151 Phase 5): `needsFallback()` 에 fontVariant 검사 — small-caps 는 CanvasKit 측정 경로로 우회해 측정↔렌더 일치
+
+### Architecture
+
+- **허용 오차 판정 기준 명문화 + golden 편입** (ADR-151 Implemented 승격, 2026-07-17):
+  - ±2px 이내 + 텍스트 측정 엔진 기인 규명 시 수용 (ADR-042 승계, 원인 미상은 크기 무관 수용 금지) — ToggleButton +2.5 / ToggleButtonGroup +2.8 / Link dw+1.5 / Badge dw-1.1 수용, breakdown 실측표가 golden 기대값
+  - Rust `tree_golden.rs` N10 (flex-start column percent 폭 계약) + JS 절대값 golden (calendar 238/200 · table 402 · width:100% 선주입 6케이스 등) 편입 — engine scope 회귀테스트 공백 해소
+  - 잔여 후속 이관 4건 (엔진 percent-in-intrinsic / TableView flex 발산 / IllustratedMessage preview 미렌더 / preview 페이지 전환 요소 미공급) 은 design breakdown §Phase 6 잔여 기록 표 정본
+
 ## [Skia 스크롤 컨테이너 오컬링 수정 — 스크롤로 뷰포트에 들어온 자식 미렌더] - 2026-07-16
 
 ### Bug Fixes

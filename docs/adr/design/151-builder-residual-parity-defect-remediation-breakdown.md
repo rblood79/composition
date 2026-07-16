@@ -1,6 +1,6 @@
 # ADR-151 Design Breakdown: 빌더 잔여 CSS↔Skia 발산·잠재 결함 일소
 
-> 본 문서는 [ADR-151](../151-builder-residual-parity-defect-remediation.md)의 구현 상세입니다.
+> 본 문서는 [ADR-151](../completed/151-builder-residual-parity-defect-remediation.md)의 구현 상세입니다.
 > ADR 본문은 결정만 기록하고, Phase 목록 / 파일 변경표 / 체크리스트는 여기에만 둡니다.
 >
 > **상태: 착수 승인 (2026-07-16) — Phase 0 재실측 freeze 완료.** 실행 조건: 원인 축 그룹당 1 phase + 1 커밋 / ±2px+텍스트 측정 기인 규명 시 수용 / B7 은 AskUserQuestion / tree_golden 편입 + 그룹 완료 시 cross-check.

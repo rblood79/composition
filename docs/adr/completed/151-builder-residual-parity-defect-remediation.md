@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted — 2026-07-16 (Proposed 2026-07-16, 리뷰 round 1 승인 가능 + 사용자 착수 승인)
+Implemented — 2026-07-17 (Proposed/Accepted 2026-07-16, Phase 0~6 완결)
+
+> **Phase 진행 로그**: P0 재실측 freeze `d14594f88` → P1 Calendar/RangeCalendar `7db1b5c9e` → P2 텍스트 메트릭+Tree+GridList `85fb83216` → B7 Menu 트리거 통일 `a1a7544e2` (사용자 결정) → P4 소형 오차 판정 `747f729d6` → P5 잠재 결함 `1c8248659` → B22 근본 원인 확정+배선 `325d52504`/`ed7b9d845` → P6 최종 sweep+golden 편입+B8 해소+Disclosure 전제 착오 철회 `3158414b6`. **live behavior 검증**: Chrome MCP 로 block + flex-column(align-items:flex-start) 2-컨텍스트 battery 실측 (G2 그룹별 + G3 최종 — 수정 항목 오차 소멸/수용 항목 판정 근거 기록). 잔여 오차·후속 이관 항목은 design breakdown §Phase 6 "잔여 기록" 표가 정본.
 
 > 착수 조건 (사용자 지시 2026-07-16): Phase 0 battery 재실측 freeze 선행(G1) / 원인 축 그룹당 1 phase + 1 커밋 / 판정 기준 ±2px + 텍스트 측정 기인 규명 시 수용(원인 미상은 크기 무관 수용 금지) / B7 Menu 는 AskUserQuestion 확인 후 진행 / 수정 컴포넌트 tree_golden 편입 + 그룹 완료 시 /cross-check.
 
@@ -99,7 +101,7 @@ ADR-916(자체 레이아웃 엔진 전환) 완결 후 라이브 44종 battery sw
 - **대안 A 기각**: 3경로 동기화 누락 재발이 실측으로 반복 확인된 방식 — 유지보수 HIGH 를 완화할 장치가 없음. sweep 으로 21종을 찾아 수정한 직후에도 13건이 남았다는 사실 자체가 개별 대응의 한계 증거
 - **대안 C 기각**: ADR-042 에서 사용자가 이미 기각한 목표의 재도입 — 기술·유지보수 HIGH 2건에 대한 수용 근거를 만들 수 없고, layout 보정 금지 규칙과 충돌
 
-> 구현 상세: [151-builder-residual-parity-defect-remediation-breakdown.md](design/151-builder-residual-parity-defect-remediation-breakdown.md)
+> 구현 상세: [151-builder-residual-parity-defect-remediation-breakdown.md](../design/151-builder-residual-parity-defect-remediation-breakdown.md)
 
 ## Risks
 
