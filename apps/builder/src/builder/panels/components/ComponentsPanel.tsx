@@ -6,13 +6,10 @@
  *
  * ⭐ Layout/Slot System: Page 모드와 Layout 모드 모두 지원
  *
- * 🛡️ Gateway 패턴 적용 (2025-12-11)
- * - isActive 체크를 최상단에서 수행
- * - Content 컴포넌트 분리로 비활성 시 훅 실행 방지
+ * 비활성 gating 은 PanelContainer 의 <Activity mode="hidden"> 이 담당 (ADR-155)
  */
 
 import { useCallback } from "react";
-import type { PanelProps } from "../core/types";
 import ComponentList from "./ComponentList";
 import { useStore } from "../../stores";
 import { useEditModeStore } from "../../stores/editMode";
@@ -32,22 +29,12 @@ function getComponentsPanelElements(doc: CompositionDocument): PanelNode[] {
   return elements;
 }
 
-/**
- * ComponentsPanel - Gateway 컴포넌트
- * 🛡️ isActive 체크 후 Content 렌더링
- */
-export function ComponentsPanel({ isActive }: PanelProps) {
-  // 🛡️ Gateway: 비활성 시 즉시 반환 (훅 실행 방지)
-  if (!isActive) {
-    return null;
-  }
-
+export function ComponentsPanel() {
   return <ComponentsPanelContent />;
 }
 
 /**
  * ComponentsPanelContent - 실제 콘텐츠 컴포넌트
- * 훅은 여기서만 실행됨 (isActive=true일 때만)
  */
 function ComponentsPanelContent() {
   const selectedElementId = useStore((state) => state.selectedElementId);

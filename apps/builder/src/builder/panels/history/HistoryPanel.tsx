@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Clock, History, Redo, Trash2, Undo } from "lucide-react";
-import type { PanelProps } from "../core/types";
 import { PanelHeader, EmptyState } from "../../components";
 import { ActionIconButton } from "../../components/ui";
 import { Button } from "@composition/shared/components";
@@ -28,12 +27,9 @@ function formatTimestamp(timestamp: number): string {
  * HistoryPanel - 히스토리 패널
  *
  * Photoshop History 패널처럼 변경 내역을 리스트로 보여줍니다.
+ * 비활성 gating 은 PanelContainer 의 <Activity mode="hidden"> 이 담당 (ADR-155).
  */
-export function HistoryPanel({ isActive }: PanelProps) {
-  if (!isActive) {
-    return null;
-  }
-
+export function HistoryPanel() {
   return <HistoryPanelContent />;
 }
 

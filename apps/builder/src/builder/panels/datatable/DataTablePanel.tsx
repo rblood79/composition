@@ -110,10 +110,8 @@ export function DataTablePanel({ isActive }: PanelProps) {
   const editingTableId =
     editorMode?.type === "table-edit" ? editorMode.tableId : null;
 
-  // Performance: Don't render if not active
-  if (!isActive) {
-    return null;
-  }
+  // 비활성 gating 은 PanelContainer 의 <Activity mode="hidden"> 이 담당 (ADR-155).
+  // isActive param 은 query enabled / 초기 로드 effect 조건으로만 잔존.
 
   // No project selected
   if (!currentProjectId) {

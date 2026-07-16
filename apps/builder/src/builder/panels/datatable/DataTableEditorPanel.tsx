@@ -25,7 +25,6 @@ import {
   Shield,
   X,
 } from "lucide-react";
-import type { PanelProps } from "../core/types";
 import { useDataTableEditorStore } from "./stores/dataTableEditorStore";
 import { useDataStore } from "../../stores/data";
 import {
@@ -348,11 +347,10 @@ function getModeKey(mode: NonNullable<DataTableEditorMode>): string {
   }
 }
 
-export function DataTableEditorPanel({ isActive }: PanelProps) {
+// 비활성 gating 은 PanelContainer 의 <Activity mode="hidden"> 이 담당 (ADR-155)
+export function DataTableEditorPanel() {
   const mode = useDataTableEditorStore((state) => state.mode);
   const close = useDataTableEditorStore((state) => state.close);
-
-  if (!isActive) return null;
 
   // 에디터가 열리지 않은 상태
   if (!mode) {

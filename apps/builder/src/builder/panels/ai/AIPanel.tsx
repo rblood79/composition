@@ -12,7 +12,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
-import type { PanelProps } from "../core/types";
 import { PanelHeader } from "../../components";
 import { Button } from "@composition/shared/components";
 import { MessageCircle, Trash2, Bot } from "lucide-react";
@@ -282,10 +281,7 @@ function AIPanelContent() {
   );
 }
 
-export function AIPanel({ isActive }: PanelProps) {
-  if (!isActive) {
-    return null;
-  }
-
+// 비활성 gating 은 PanelContainer 의 <Activity mode="hidden"> 이 담당 (ADR-155)
+export function AIPanel() {
   return <AIPanelContent />;
 }

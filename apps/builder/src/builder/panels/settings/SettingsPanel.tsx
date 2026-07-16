@@ -21,7 +21,6 @@ import {
   Settings,
 } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
-import type { PanelProps } from "../core/types";
 import { useStore } from "../../stores";
 import type { PageLayoutDirection } from "../../stores/canvasSettings";
 import { useUiStore } from "../../../stores/uiStore";
@@ -177,10 +176,7 @@ function SettingsContent() {
   );
 }
 
-export function SettingsPanel({ isActive }: PanelProps) {
-  if (!isActive) {
-    return null;
-  }
-
+// 비활성 gating 은 PanelContainer 의 <Activity mode="hidden"> 이 담당 (ADR-155)
+export function SettingsPanel() {
   return <SettingsContent />;
 }

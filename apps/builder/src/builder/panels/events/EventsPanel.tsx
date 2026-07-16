@@ -10,7 +10,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { Button } from "react-aria-components";
 import { Search, X } from "lucide-react";
-import type { PanelProps } from "../core/types";
 import type { SelectedElement } from "../../inspector/types";
 import type { ActionType } from "@/types/events/events.types";
 import {
@@ -275,16 +274,12 @@ function ActionPickerOverlay({
   );
 }
 
-export function EventsPanel({ isActive }: PanelProps) {
+// 비활성 gating 은 PanelContainer 의 <Activity mode="hidden"> 이 담당 (ADR-155)
+export function EventsPanel() {
   // Builder Store에서 선택된 요소와 이벤트 업데이트 함수 가져오기
   // 🚀 Phase 3: 디바운스된 선택 데이터 사용
   const selectedElement = useDebouncedSelectedElementData();
   const updateEvents = useStore((state) => state.updateSelectedEvents);
-
-  // 활성 상태가 아니면 렌더링하지 않음 (성능 최적화)
-  if (!isActive) {
-    return null;
-  }
 
   // 선택된 요소가 없으면 빈 상태 표시
   if (!selectedElement) {

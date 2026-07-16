@@ -14,7 +14,6 @@ import {
 } from "react-aria-components";
 import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
 import { iconProps } from "../../../utils/ui/uiConstants";
-import type { PanelProps } from "../core/types";
 import {
   useThemeConfigStore,
   useThemeConfigTint,
@@ -388,10 +387,9 @@ function ThemesContent() {
 }
 
 // ============================================================================
-// ThemesPanel (Gateway)
+// ThemesPanel — 비활성 gating 은 PanelContainer 의 <Activity mode="hidden"> 이 담당 (ADR-155)
 // ============================================================================
 
-export function ThemesPanel({ isActive }: PanelProps) {
-  if (!isActive) return null;
+export function ThemesPanel() {
   return <ThemesContent />;
 }

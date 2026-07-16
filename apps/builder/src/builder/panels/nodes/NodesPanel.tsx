@@ -13,7 +13,6 @@ import {
   useState,
 } from "react";
 import { useParams } from "react-router-dom";
-import type { PanelProps } from "../core/types";
 import "./NodesPanel.css";
 import { useStore } from "../../stores";
 import { useEditModeStore } from "../../stores/editMode";
@@ -28,7 +27,8 @@ import {
   scheduleNextFrame,
 } from "../../utils/scheduleTask";
 
-export function NodesPanel({ isActive }: PanelProps) {
+// 비활성 gating 은 PanelContainer 의 <Activity mode="hidden"> 이 담당 (ADR-155)
+export function NodesPanel() {
   // URL params
   const { projectId } = useParams<{ projectId: string }>();
 
@@ -65,11 +65,6 @@ export function NodesPanel({ isActive }: PanelProps) {
     },
     [setEditMode, setEditModeCurrentPageId, setEditModeCurrentLayoutId],
   );
-
-  // 활성 상태가 아니면 렌더링하지 않음 (성능 최적화)
-  if (!isActive) {
-    return null;
-  }
 
   return (
     <div className="nodes-panel nodes-panel--new-tree">

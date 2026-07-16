@@ -3,7 +3,6 @@
  */
 
 import { useState, useMemo, useCallback, memo } from "react";
-import type { PanelProps } from "../core/types";
 import { useStore, useDebouncedSelectedElementData } from "../../stores";
 import { ActionIconButton, ActionIconToggleButton } from "../../components/ui";
 import { Copy, ClipboardPaste, PencilRuler, Palette } from "lucide-react";
@@ -22,10 +21,8 @@ import { useDirtyStyleProps } from "./hooks/useResetStyles";
 import { useKeyboardShortcutsRegistry } from "@/builder/hooks";
 import "./StylesPanel.css";
 
-export function StylesPanel({ isActive }: PanelProps) {
-  if (!isActive) {
-    return null;
-  }
+// 비활성 gating 은 PanelContainer 의 <Activity mode="hidden"> 이 담당 (ADR-155)
+export function StylesPanel() {
   return <StylesPanelContent />;
 }
 

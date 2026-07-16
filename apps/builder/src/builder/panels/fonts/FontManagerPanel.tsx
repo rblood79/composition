@@ -7,7 +7,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Type } from "lucide-react";
-import type { PanelProps } from "../core/types";
 import { PanelHeader, EmptyState } from "../../components";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { validateFontFile, FONT_LIMITS } from "@composition/shared";
@@ -24,8 +23,8 @@ import { FontUploadZone } from "./components/FontUploadZone";
 import { FontFamilyGroup } from "./components/FontFamilyGroup";
 import "./FontManagerPanel.css";
 
-export function FontManagerPanel({ isActive }: PanelProps) {
-  if (!isActive) return null;
+// 비활성 gating 은 PanelContainer 의 <Activity mode="hidden"> 이 담당 (ADR-155)
+export function FontManagerPanel() {
   return <FontManagerContent />;
 }
 
