@@ -145,13 +145,17 @@ async function loadSingleFontToSkia(face: FontFaceAsset): Promise<boolean> {
  */
 export async function loadAllCustomFontsToSkia(): Promise<number> {
   const registry = loadFontRegistry();
-  if (registry.faces.length === 0) return 0;
 
   let loaded = 0;
   for (const face of registry.faces) {
     const ok = await loadSingleFontToSkia(face);
     if (ok) loaded++;
   }
+
+  // 부트 폰트 배치(빌트인 → 커스텀)의 종료 지점 — FromData 전체 재파싱을
+  // 첫 rAF 프레임의 lazy getFontMgr() 경로에서 분리해 여기서 선지불한다.
+  // (커스텀 폰트 0개여도 빌트인 로드가 dirty 를 세팅한 상태라 warm 필요)
+  skiaFontManager.warmFontMgr();
   return loaded;
 }
 
@@ -179,5 +183,9 @@ export async function syncCustomFontsWithSkia(): Promise<number> {
     const ok = await loadSingleFontToSkia(face);
     if (ok) loaded++;
   }
+
+  // 동기화 배치 종료 지점 — notifyLayoutChange 이후 프레임이 dirty 재구축을
+  // 프레임 안에서 지불하지 않도록 여기서 선재구축한다.
+  skiaFontManager.warmFontMgr();
   return loaded;
 }

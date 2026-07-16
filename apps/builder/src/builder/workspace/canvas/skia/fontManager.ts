@@ -191,6 +191,24 @@ export class SkiaFontManager {
   }
 
   /**
+   * dirty 상태면 FontMgr을 즉시 재구축한다 — rAF 프레임 밖 선재구축용.
+   *
+   * getFontMgr()의 lazy 재구축(FromData 전체 재파싱)은 수백 ms 급이라
+   * 렌더 루프의 프레임 안에서 지불되면 draw 비용과 한 프레임에 겹친다.
+   * 폰트 배치 로드가 끝나는 지점(loadAllCustomFontsToSkia /
+   * syncCustomFontsWithSkia)에서 이 메서드를 호출해 재구축을 프레임 밖
+   * 태스크로 옮긴다. getFontMgr()의 lazy 경로는 안전망으로 유지된다.
+   */
+  warmFontMgr(): void {
+    if (!this.dirty || this.buffers.size === 0) return;
+    try {
+      this.getFontMgr();
+    } catch {
+      // 재구축 실패 시 렌더 루프의 lazy 경로가 재시도한다
+    }
+  }
+
+  /**
    * 사용자 폰트 이름 → CanvasKit FontMgr이 인식하는 내부 이름으로 변환.
    * 폰트 바이너리 내장 이름과 사용자가 지정한 이름이 다를 수 있으므로
    * ParagraphBuilder의 fontFamilies에 이 메서드를 통해 변환된 이름을 전달해야 한다.
