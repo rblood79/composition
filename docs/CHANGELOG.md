@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 수정: `resolveIllustratedMessageMetric` (catalog rule sizes read-through) 을 DOM/Skia escape/layout 3경로 단일 산식으로 도입 — escape 는 element style (padding/gap/alignItems, longhand 우선) 소비, layout 분기는 content-box 계약 (caller 가 style padding 가산)
   - 위치: `packages/specs/src/renderers/utils/illustratedMessageMetrics.ts` (신규), `skiaPrimitives.ts`, `packages/shared/src/components/IllustratedMessage.tsx`, `apps/builder/.../layout/engines/utils.ts`
   - 신규 관측 (후속): preview 가 prop 편집을 canonical 재송신 전까지 미반영 — breakdown §Phase 6 잔여 표 기록
+- **Skia nowrap 텍스트의 center/right 정렬 소실 — placeholder ○ 박스 좌측 고정** (ADR-151 후속, d96cf04e2):
+  - **Why**: nowrap 은 CanvasKit 큰 width 버그 회피로 paragraph 를 intrinsic 폭으로 재layout — 내부 align 무효 + 외부 보정 부재로 밴드 좌측 고정 (CSS 는 nowrap 이어도 text-align 유지)
+  - 수정: 명시 maxWidth 밴드가 있으면 (band − intrinsic) 차 offset 으로 center/right 복원 — calendar 요일 등 nowrap+center escape 전반 동일 계열
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/nodeRendererText.ts`
 
 - **TableView flex 부모 발산 (Skia 350×80 vs CSS 179.4×106 → 350×82 = 350×82)** (ADR-151 후속):
   - **Why**: catalog CSS 채널 이중 단절 — generated/TableView.css 가 index.css 미import + renderTableView 가 `react-aria-TableView` 클래스 미부여 raw div → width:100%/text-sm 이 DOM 미도달. 재배선 시 archetype base `align-items:center` 가 살아나 자식 stretch 붕괴 + DOM border-box +2 를 엔진 미합산 + Cell 폰트가 상속 의존 (root text-sm cascade 로 파괴) — 4겹 원인
