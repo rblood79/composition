@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Skia 스크롤 컨테이너 오컬링 수정 — 스크롤로 뷰포트에 들어온 자식 미렌더] - 2026-07-16
+
+### Bug Fixes
+
+- **overflow scroll/auto 컨테이너 스크롤 시 fold 아래 컴포넌트 미렌더**:
+  - page(body)/컨테이너를 스크롤해 뷰포트로 들어온 자식이 마우스 오버 시 hover outline (레이아웃) 만 보이고 컴포넌트 본체는 그려지지 않던 문제
+  - **Why**: `executeRenderCommands` 의 AABB 컬링용 절대좌표 스택(`translateStack`)이 `CMD_CHILDREN_BEGIN` 의 scroll translate (`canvas.translate(-scrollLeft, -scrollTop)`) 를 미반영 — 자식을 스크롤 전 좌표로 판정해 화면 밖으로 오컬링. boundsMap/hit-test 경로는 scroll 차감돼 outline 만 정상 표시. Tree 경로(`nodeRendererTree`)는 자식 컬링 경계에 scrollOffset 을 이미 반영했으나 Command Stream 경로 전환 시 동일 보정이 누락
+  - 수정: CHILDREN_BEGIN 에서 컬링 스택에 스크롤 오프셋 반영 + `scrollDeltaStack` 으로 CHILDREN_END 복원 (중첩 스크롤 대응). 뷰포트 밖에 남는 자식의 컬링은 유지 (회귀 테스트 2건)
+  - 검증: 라이브 builder 에서 body overflow=scroll + 콘텐츠 오버플로 상태로 wheel 스크롤 → fold 아래 Form/TextField 렌더 확인 (Chrome MCP 실측)
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts`
+
 ## [Builder 프레임 jank 2건 제거 — FontMgr 프레임 밖 재구축 + Preview resolve 중복 정리] - 2026-07-16
 
 ### Performance

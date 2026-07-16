@@ -1,8 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest";
+import type { Canvas, CanvasKit } from "canvaskit-wasm";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import { clearSkiaRegistry, registerSkiaNode } from "./useSkiaNode";
 import { setDragVisualOffset } from "./nodeRendererTree";
-import { buildRenderCommandStream } from "./renderCommands";
+import {
+  buildRenderCommandStream,
+  executeRenderCommands,
+} from "./renderCommands";
 import type { SkiaNodeData } from "./nodeRenderers";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 
@@ -90,5 +94,79 @@ describe("buildRenderCommandStream drag top layer", () => {
       page2Body.id,
       source.id,
     ]);
+  });
+});
+
+describe("executeRenderCommands scroll-aware culling", () => {
+  afterEach(() => {
+    clearSkiaRegistry();
+  });
+
+  const stubCk = {
+    LTRBRect: () => ({}),
+    ClipOp: { Intersect: 0 },
+  } as unknown as CanvasKit;
+
+  function makeRecordingCanvas() {
+    const translates: Array<[number, number]> = [];
+    const canvas = {
+      save() {},
+      restore() {},
+      saveLayer() {},
+      concat() {},
+      clipRect() {},
+      clipPath() {},
+      translate(x: number, y: number) {
+        translates.push([x, y]);
+      },
+    } as unknown as Canvas;
+    return { canvas, translates };
+  }
+
+  function buildScrolledPageStream(childY: number) {
+    const body = makeElement("scroll-body", { type: "body" });
+    const child = makeElement("below-fold-child", { parent_id: body.id });
+
+    registerNode(body.id, {
+      width: 800,
+      height: 600,
+      clipChildren: true,
+      scrollOffset: { scrollTop: 1000, scrollLeft: 0 },
+    });
+    registerNode(child.id, { width: 100, height: 100 });
+
+    return buildRenderCommandStream(
+      [body.id],
+      new Map([[body.id, [child]]]),
+      new Map([
+        [
+          child.id,
+          { x: 0, y: childY, width: 100, height: 100 } as ComputedLayout,
+        ],
+      ]),
+      { [body.id]: { x: 0, y: 0 } },
+    );
+  }
+
+  const viewport = { x: 0, y: 0, width: 800, height: 600 } as DOMRect;
+
+  it("renders a child scrolled into the viewport", () => {
+    // 스크롤 전 y=1400 (뷰포트 밖) → scrollTop=1000 반영 시 400 (뷰포트 안)
+    const stream = buildScrolledPageStream(1400);
+    const { canvas, translates } = makeRecordingCanvas();
+
+    executeRenderCommands(stubCk, canvas, stream.commands, viewport);
+
+    expect(translates).toContainEqual([0, 1400]);
+  });
+
+  it("still culls a child that remains outside the viewport after scroll", () => {
+    // y=2400 → scrollTop=1000 반영해도 1400 (뷰포트 밖) → 컬링 유지
+    const stream = buildScrolledPageStream(2400);
+    const { canvas, translates } = makeRecordingCanvas();
+
+    executeRenderCommands(stubCk, canvas, stream.commands, viewport);
+
+    expect(translates).not.toContainEqual([0, 2400]);
   });
 });

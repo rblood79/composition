@@ -735,6 +735,9 @@ export function executeRenderCommands(
   // 드래그 반투명 레이어 추적 스택 (ELEMENT_BEGIN/END 쌍 대응)
   const dragAlphaStack: boolean[] = [];
 
+  // CHILDREN_BEGIN/END 스크롤 오프셋 스택 (컬링 절대좌표를 canvas.translate와 동기화)
+  const scrollDeltaStack: Array<{ dx: number; dy: number }> = [];
+
   // mask-image 레이어 스택: 요소별 마스크 정보 저장
   // ELEMENT_BEGIN에서 mask 있으면 push, ELEMENT_END에서 pop 후 합성
   interface MaskLayerEntry {
@@ -1020,6 +1023,17 @@ export function executeRenderCommands(
             -cmd.scrollOffset.scrollLeft,
             -cmd.scrollOffset.scrollTop,
           );
+          // 컬링용 절대좌표 스택에도 동일 스크롤 반영 — 미반영 시 스크롤로
+          // 뷰포트에 들어온 자식이 스크롤 전 좌표로 판정되어 오컬링된다.
+          const top = translateStack[stackTop];
+          translateStack[stackTop] = {
+            x: top.x - cmd.scrollOffset.scrollLeft,
+            y: top.y - cmd.scrollOffset.scrollTop,
+          };
+          scrollDeltaStack.push({
+            dx: cmd.scrollOffset.scrollLeft,
+            dy: cmd.scrollOffset.scrollTop,
+          });
         }
         break;
       }
@@ -1027,6 +1041,14 @@ export function executeRenderCommands(
       case CMD_CHILDREN_END: {
         if (cmd.hasScrollOffset) {
           canvas.restore();
+          const delta = scrollDeltaStack.pop();
+          if (delta) {
+            const top = translateStack[stackTop];
+            translateStack[stackTop] = {
+              x: top.x + delta.dx,
+              y: top.y + delta.dy,
+            };
+          }
         }
 
         if (cmd.scrollbar && cmd.scrollbarNode) {
