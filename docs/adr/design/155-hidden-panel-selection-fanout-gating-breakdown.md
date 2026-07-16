@@ -42,11 +42,16 @@
 2. **Activity 스파이크**: scratch 페이지에서 `<Activity mode="hidden">` 로 RAC TextField/Tree/Popover 를 감싼 최소 재현 — (a) hidden 중 store 갱신이 클릭 task 에 commit effect 를 만드는지, (b) visible 전환 시 최신 상태 즉시 표시, (c) display 처리 방식이 `.panel-wrapper` CSS (`data-active` transform) 와 충돌하는지 확인. → **완료** — 결과는 §5.5.
 3. baseline 재실측 기록 (§1 절차, 대형 문서 포함). → §1 표 (2026-07-17 동일 날짜 실측) 를 Phase 0 baseline 으로 확정. **대형 문서 (500+ 요소) 실측은 아직 없음** — G3 판정 전 필수 (사용자 실창 LoAF 95~220ms 로그만 보유).
 
-### Phase 1 — 파일럿 (저위험 패널 2종)
+### Phase 1 — 파일럿 (저위험 패널 2종) — **완료 2026-07-17, G2 PASS**
 
-1. `PanelWrapper` 에서 `<Activity mode={isActive ? "visible" : "hidden"}>` 로 `PanelContent` 래핑 — 대상: History + Themes (selection 미소비·상태 단순).
-2. CSS 정합: Activity 의 숨김 처리와 기존 `data-active` CSS 이중화 제거 여부 판정 (충돌 시 `data-active` 유지 + Activity 만 갱신 지연 담당).
-3. **G2 실측**: 파일럿 패널의 클릭당 DOM 쓰기/remount 소거 + 재활성 시 현재 선택·테마 상태 즉시 표시 (Chrome MCP live).
+1. `PanelWrapper` 에서 `<Activity mode={isActive ? "visible" : "hidden"}>` 로 `PanelContent` 래핑 — 대상: History + Themes (selection 미소비·상태 단순). → **완료** — `ACTIVITY_GATED_PANELS: ReadonlySet<PanelId>` allowlist 방식 (`PanelContainer.tsx`), Phase 2 에서 전 패널 확대.
+2. CSS 정합 판정 → **`data-active` CSS 유지 확정** — 이중화가 아니라 역할 분리: CSS 는 슬라이드 애니메이션 + flex 레이아웃 공간 담당, Activity 는 갱신 지연 + effect 수명 + 상태 보존 담당. 속성축 (transform/opacity/margin vs display) 이 분리돼 충돌 없음 (라이브 확인 — 토글 열림/닫힘 정상).
+3. **G2 실측 (2026-07-17, adr151-followup-verify 43 요소, Chrome MCP live)**:
+   - 캔버스 선택 클릭 6회: **gated theme 0 / history 0 mutation** vs ungated styles **751** (클릭당 ~125) / nodes 48 — 클릭당 DOM 쓰기·remount 완전 소거.
+   - 재숨김 후 클릭 2회 재확인: theme 0 / history 0 vs styles 252 — gating 재진입 유지.
+   - 재활성 즉시 표시: 테마 패널 (Colors/Accent 현재값 체크·스와치 27·Radius/Typography/Preview) + 히스토리 패널 (24/24 최신 엔트리) 정상. Activity `display:none !important` 제거 확인.
+   - 콘솔 error/warning 0 (HMR 적용 이후 상호작용 구간).
+   - **미판정 잔여**: 파일럿 2종에는 popover 없음 — 스파이크 (f) portal 잔존 체크는 Phase 2 에서 Select 보유 패널 (properties/styles) 로 확인. 슬라이드-아웃 300ms 중 내용 즉시 소멸 여부는 정지 스크린샷 한계 — G4 (Phase 3) 시각 확인 항목.
 
 ### Phase 2 — 전 패널 확대
 

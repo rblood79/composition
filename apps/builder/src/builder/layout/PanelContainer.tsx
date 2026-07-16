@@ -10,9 +10,21 @@
  * 🚀 성능 최적화 (2024-12): React.memo로 불필요한 리렌더링 방지
  */
 
-import { memo, useMemo } from "react";
+import { Activity, memo, useMemo } from "react";
 import type { PanelSide, PanelId } from "../panels/core/types";
 import { PanelRegistry } from "../panels/core/PanelRegistry";
+
+/**
+ * ADR-155 Phase 1 파일럿: Activity gating 대상 패널.
+ * 비활성 패널을 <Activity mode="hidden"> 으로 감싸 store 구독·effect 를 내리고
+ * 갱신을 클릭 task 밖으로 지연 (상태·DOM 은 보존, 재활성 시 최신화).
+ * data-active CSS (슬라이드 애니메이션) 는 그대로 유지 — 속성축 분리 (design §5.5 (c)).
+ * G2 통과 후 전 패널 확대 (G1 의존 패널은 부수효과 이전 후 — design §5).
+ */
+const ACTIVITY_GATED_PANELS: ReadonlySet<PanelId> = new Set<PanelId>([
+  "history",
+  "theme",
+]);
 
 export interface PanelContainerProps {
   /** 현재 사이드 (left/right) */
@@ -46,7 +58,10 @@ interface PanelContentProps {
   side: PanelSide;
 }
 
-const PanelContent = memo(function PanelContent({ panelId, side }: PanelContentProps) {
+const PanelContent = memo(function PanelContent({
+  panelId,
+  side,
+}: PanelContentProps) {
   const panelConfig = PanelRegistry.getPanel(panelId);
   if (!panelConfig) {
     console.warn(`[PanelContainer] Panel "${panelId}" not found in registry`);
@@ -65,6 +80,7 @@ function PanelWrapper({
   isActive,
   panelWidth,
 }: PanelWrapperProps) {
+  const content = <PanelContent panelId={panelId} side={side} />;
   return (
     <div
       className="panel-wrapper"
@@ -76,7 +92,11 @@ function PanelWrapper({
         minWidth: `${panelWidth}px`,
       }}
     >
-      <PanelContent panelId={panelId} side={side} />
+      {ACTIVITY_GATED_PANELS.has(panelId) ? (
+        <Activity mode={isActive ? "visible" : "hidden"}>{content}</Activity>
+      ) : (
+        content
+      )}
     </div>
   );
 }
