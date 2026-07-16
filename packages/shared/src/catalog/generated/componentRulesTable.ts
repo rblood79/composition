@@ -4127,6 +4127,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Description: {
     defaultVariant: "default",
     defaultSize: "md",
+    // ADR-151 B22 잔여 (2026-07-16): Text 동형 — generated CSS base `width: 100%` 를
+    //   layout 이 미소비 (flex 부모에서 fit-content 80 vs CSS 350 실측). layout
+    //   fallback 채널(top-level)로 공급. CSS 는 기존 규칙 그대로 — generated CSS diff 0.
+    containerStyles: {
+      width: "100%",
+    },
     variants: {
       default: {
         fill: {
@@ -4288,12 +4294,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Disclosure: {
     defaultSize: "md",
-    // ADR-151 B22 (2026-07-16): generated/수동 CSS 의 base `width: 100%` 를 layout 이
-    //   미소비 — flex 부모에서 fit-content 붕괴 (block 부모는 IFC 주입이 가림). layout
-    //   fallback 채널(top-level)로 공급. CSS 는 기존 규칙 그대로 — generated CSS diff 0.
-    containerStyles: {
-      width: "100%",
-    },
+    // ADR-151 Phase 6 정정 (2026-07-16): B22 가 추가했던 containerStyles.width="100%" 철회 —
+    //   generated Disclosure.css 에는 base width 규칙이 없다 (width:100% 는 DisclosureHeader
+    //   의 것 — B22 전제 착오). DOM 정본 = flex 부모에서 fit-content (실측 168.2 vs Skia
+    //   강제 350 역방향 발산). block 부모 정합은 §5.5 IFC 주입이 담당 (390=390 유지).
     variants: {},
     sizes: {
       sm: {
@@ -4485,12 +4489,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   DisclosureGroup: {
     defaultVariant: "default",
     defaultSize: "md",
-    // ADR-151 B22 (2026-07-16): generated/수동 CSS 의 base `width: 100%` 를 layout 이
-    //   미소비 — flex 부모에서 fit-content 붕괴 (block 부모는 IFC 주입이 가림). layout
-    //   fallback 채널(top-level)로 공급. CSS 는 기존 규칙 그대로 — generated CSS diff 0.
-    containerStyles: {
-      width: "100%",
-    },
+    // ADR-151 Phase 6 정정 (2026-07-16): B22 의 containerStyles.width="100%" 철회 —
+    //   generated DisclosureGroup.css 에 base width 규칙 없음 (Disclosure 동형 착오).
+    //   DOM 정본 = flex 부모에서 fit-content (실측 106.9 vs Skia 강제 350 역방향 발산).
     variants: {
       default: {
         fill: {
@@ -5271,6 +5272,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Heading: {
     defaultVariant: "default",
     defaultSize: "md",
+    // ADR-151 B22 잔여 (2026-07-16): Text 동형 — generated CSS base `width: 100%` 를
+    //   layout 이 미소비 (flex 부모에서 Skia 80 vs CSS 350 실측). layout fallback
+    //   채널(top-level)로 공급. CSS 는 기존 규칙 그대로 — generated CSS diff 0.
+    containerStyles: {
+      width: "100%",
+    },
     variants: {
       default: {
         fill: {
@@ -7407,6 +7414,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Paragraph: {
     defaultVariant: "default",
     defaultSize: "md",
+    // ADR-151 B22 잔여 (2026-07-16): Text 동형 — generated CSS base `width: 100%` 를
+    //   layout 이 미소비 (flex 부모에서 fit-content 80 vs CSS 350 실측). layout
+    //   fallback 채널(top-level)로 공급. CSS 는 기존 규칙 그대로 — generated CSS diff 0.
+    containerStyles: {
+      width: "100%",
+    },
     variants: {
       default: {
         fill: {

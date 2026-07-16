@@ -365,6 +365,36 @@ fn tree_golden_n9_display_none_child_excluded_from_flow_and_gap() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// N10 flex-start column — width:100% 자식 vs 무폭 자식 (ADR-151 B22 형상)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// N10 B22 실전 형상 (Chrome 실측 아님 — CSS percent 해석 손계산, N6 선례).
+/// 순서: [0] n10-full, [1] n10-bare, [2] n10-root.
+///
+/// `align-items:flex-start` column 에서 cross stretch 가 꺼지므로 자식 폭은 자신의
+/// width 선언이 전부다: `width:100%` 자식은 containing block content 폭(200)으로
+/// 확장, 무폭(leaf, 콘텐츠 없음) 자식은 fit-content=0 으로 수축한다. ADR-151 B22 는
+/// JS 측이 CSS `width:100%` 채널을 엔진에 안 보내 full 이 bare 처럼 0/fit-content 로
+/// 붕괴한 결함 — 엔진 자체의 percent 해석 계약을 여기 고정한다 (catalog
+/// containerStyles.width="100%" 배선의 하류 엔진 전제).
+const N10_EXPECTED: &[[f32; 4]] = &[
+    [0., 0., 200., 24.], // [0] n10-full (100% → 200)
+    [0., 24., 0., 10.],  // [1] n10-bare (flex-start → fit-content = 0)
+    [0., 0., 200., 34.], // [2] n10-root (auto = 24+10)
+];
+const N10_BATCH: &str = r#"[
+  {"style":{"width":"100%","height":"24px"},"children":[]},
+  {"style":{"height":"10px"},"children":[]},
+  {"style":{"display":"flex","flexDirection":"column","alignItems":"flex-start","width":"200px","height":"auto"},"children":[0,1]}
+]"#;
+
+#[test]
+fn tree_golden_n10_flex_start_column_percent_width_child() {
+    let rel = layout_relative(N10_BATCH);
+    assert_tree_bounds("N10 flex-start column percent width", &rel, N10_EXPECTED);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // field contract guard — EXPECTED 길이 = fixture 노드 수 (순서 drift 조기 검출)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -379,4 +409,5 @@ fn tree_golden_field_contract_guard() {
     assert_eq!(N7_EXPECTED.len(), 5, "N7 노드 5");
     assert_eq!(N8_EXPECTED.len(), 3, "N8 노드 3");
     assert_eq!(N9_EXPECTED.len(), 4, "N9 노드 4");
+    assert_eq!(N10_EXPECTED.len(), 3, "N10 노드 3");
 }

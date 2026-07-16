@@ -365,8 +365,14 @@ const CONTAINER_STYLES_FALLBACK_KEYS = [
 const B22_CSS_FULL_WIDTH_TAGS = new Set([
   "text",
   "table",
-  "disclosure",
-  "disclosuregroup",
+  // ADR-151 Phase 6 정정 (2026-07-16): disclosure/disclosuregroup 제외 — generated CSS 에
+  //   base width 규칙이 없다 (width:100% 는 DisclosureHeader 의 것, B22 전제 착오). DOM
+  //   정본 = flex 부모 fit-content (실측 168.2/106.9) → 강제 350 이 역방향 발산이었음.
+  // ADR-151 Phase 6 잔여 판정 (2026-07-16): flex 부모 battery 에서 Text 동형 발산
+  //   실측 (Heading Skia 80 vs CSS 350) — 같은 generated CSS base width:100% 계열.
+  "heading",
+  "paragraph",
+  "description",
 ]);
 
 // ─── 내부 상수 ──────────────────────────────────────────────────────
@@ -843,10 +849,20 @@ export function applyImplicitStyles(
         typeof containerProps?.height === "number"
           ? (containerProps.height as number)
           : 300;
+      // ADR-151 B8 (2026-07-16): DOM 은 외곽 .react-aria-Table(border 1px, height 미지정)
+      //   안의 .react-aria-TableVirtualizer 에 height(400) 를 준다 — 외곽 border-box 402.
+      //   Skia 는 Table element 단일 box 라 border 2px 를 height 에 합산해야 대칭 (dh-2 해소).
+      const bwRaw = parentStyle.borderWidth;
+      const bw =
+        typeof bwRaw === "number"
+          ? bwRaw
+          : typeof bwRaw === "string"
+            ? Number.parseFloat(bwRaw) || 0
+            : 1; // Table.css `border: 1px solid` 정본 — 미선언 시 1
       effectiveParent = withParentStyle(containerEl, {
         ...parentStyle,
-        height: fixedH,
-        minHeight: fixedH,
+        height: fixedH + bw * 2,
+        minHeight: fixedH + bw * 2,
       });
     }
   }

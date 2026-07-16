@@ -340,10 +340,10 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       });
     });
 
-    it("text/table/disclosure/disclosuregroup → width:100% (ADR-151 B22 — generated/수동 CSS 폭 채널 배선)", () => {
-      // DOM 폭 원천 = CSS `width:100%` (Text generated archetype base / Table 수동 CSS /
-      //   Disclosure(Group) generated). flex 부모에서 Skia 만 fit-content 붕괴하던 발산의 배선.
-      for (const t of ["text", "table", "disclosure", "disclosuregroup"]) {
+    it("text/table → width:100% (ADR-151 B22 — generated/수동 CSS 폭 채널 배선)", () => {
+      // DOM 폭 원천 = CSS `width:100%` (Text generated archetype base / Table 수동 CSS).
+      //   flex 부모에서 Skia 만 fit-content 붕괴하던 발산의 배선.
+      for (const t of ["text", "table"]) {
         expect(resolveContainerStylesFallback(t, {})).toEqual({
           width: "100%",
         });
@@ -352,6 +352,30 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       expect(resolveContainerStylesFallback("text", { width: 120 })).toEqual(
         {},
       );
+    });
+
+    it("disclosure/disclosuregroup → width fallback 없음 (ADR-151 Phase 6 정정 — B22 전제 착오 철회)", () => {
+      // generated Disclosure(Group).css 에 base width 규칙 없음 (width:100% 는
+      //   DisclosureHeader 의 것). DOM 정본 = flex 부모 fit-content (실측 168.2/106.9)
+      //   — 강제 width:100% 는 역방향 발산. block 부모 정합은 §5.5 IFC 주입 담당.
+      expect(
+        resolveContainerStylesFallback("disclosure", {}),
+      ).not.toHaveProperty("width");
+      expect(
+        resolveContainerStylesFallback("disclosuregroup", {}),
+      ).not.toHaveProperty("width");
+    });
+
+    it("heading/paragraph/description → width:100% (ADR-151 Phase 6 — B22 잔여 flex battery 판정)", () => {
+      // 2026-07-16 flex 부모 battery 실측: Heading Skia 80(fit-content) vs CSS 350 —
+      //   Text 동형 발산 (Paragraph/Description 도 같은 generated CSS width:100% 계열).
+      for (const t of ["heading", "paragraph", "description"]) {
+        expect(resolveContainerStylesFallback(t, {})).toEqual({
+          width: "100%",
+        });
+        // 사용자/factory 명시 width 우선 — fallback 미주입
+        expect(resolveContainerStylesFallback(t, { width: 120 })).toEqual({});
+      }
     });
 
     it("slider → display:grid + gridTemplateAreas/Columns (grid 경로)", () => {

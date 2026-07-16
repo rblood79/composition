@@ -59,6 +59,8 @@
 
 ### 1-E. B22 — generated CSS `width:100%` 채널의 Skia layout 미배선 (Phase 4 중 발견 → **2026-07-16 심야 근본 원인 확정: 회귀 아님**)
 
+> **Phase 6 정정 (2026-07-17)**: 아래 본문의 "Disclosure(Group)=generated width:100%" 전제는 **착오** — generated Disclosure(Group).css 에는 base width 규칙이 없다 (`width:100%` 는 DisclosureHeader 의 것). 2종의 배선은 Phase 6 에서 철회됐고, flex 부모의 Skia 0 붕괴 실체는 엔진 percent-in-intrinsic 계약 (후속 이관) — §Phase 6 잔여 기록 참조. Text/Table/Separator 배선과 Phase 6 의 Heading/Paragraph/Description 추가 배선은 유효.
+
 | #   | 컴포넌트                                                | Phase 4 실측 (2026-07-16 오후)                                                       | Phase 0 freeze (동일 날 오전)                |
 | --- | ------------------------------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------- |
 | B22 | Text / Separator / Table / Disclosure / DisclosureGroup | Skia 폭 31 (Text) / 0 (Separator·Table·Disclosure·DisclosureGroup) — CSS 는 350 정상 | 전부 0/0 (양쪽 390 동일 — §1-B B14/B16 참조) |
@@ -147,11 +149,30 @@
 - **B19 position:fixed → 보류 판정**: 스타일 패널에 CSS `position` 속성 편집 경로 자체가 없음 확인 (TransformSection 의 "fixed" 는 size mode 이며 CSS position 아님 — grep 전수). 사용자가 fixed 를 만들 방법이 없어 노출 경로 0 — cameraX/Y 배선은 position 편집 UI 도입 시점의 선행 조건으로 기록만 유지 (`renderCommands.ts:824` TODO 존치).
 - **B20 useStyleSource → 보류 판정**: 스타일 소스 배지 (Inspector 표시 정확도) 는 CSS↔Skia 시각 파리티와 무관 — 본 ADR scope (파리티·잠재 렌더 결함) 밖 개선 항목. 과잉 변경 금지 원칙으로 보류 (`useStyleSource.ts:57` TODO 존치).
 
-### Phase 6: 재발 방지 + 종결
+### Phase 6: 재발 방지 + 종결 — ✅ 완료 (2026-07-17)
 
-- tree_golden battery 에 Phase 1~4 수정 컴포넌트 케이스 추가 (Chrome 실측 golden — 독립 oracle 원칙, `feedback-dual-run-diff-zero-blind-to-uncovered-input-dimension`)
-- sweep 하니스 최종 1회 실행 — 잔여 오차 전수 기록 (수용 판정 포함)
-- CHANGELOG 반영 + ADR Implemented 승격 (live behavior 검증 블록 명시)
+**battery 재구축 + 2-컨텍스트 최종 sweep** (원본 battery 는 세션 간 소실 — 아래 사건 기록. 동일 스크립트로 재구축, block body + flex-column(align-items:flex-start) body 두 컨텍스트 측정 — `feedback-b22-css-width-channel-masked-by-block-parent-ifc` 원칙):
+
+- **flex 컨텍스트 40종 sweep**: Calendar/RangeCalendar 0/0 · Card 0/0 · Tree 0/0 · Tabs 0/0 · GridList 0/0 · TagGroup 0/0 · RadioGroup dw0.7 · StatusLight 24=24 (dw0.1) · Checkbox +0.6 · Link dh0 (dw+1.5 수용) · ToggleButton +2.5 / TBG +2.8 (수용 — golden 기대값 고정) · Badge −1.1 (수용) · Menu 62 vs 61.2 (B7 트리거 통일 정합) · **field 류 12종 전부 350=350** (TextField/NumberField/SearchField/ColorField/DateField/TimeField/DatePicker/DateRangePicker/ComboBox/Select/TextArea + Meter/ProgressBar/InlineAlert) — **B22 잔여 field 가설 (factory/composition 채널로 이미 도달) 확증**
+- **신규 발견 + 수정 2건**:
+  - **Heading/Paragraph/Description — B22 동형 발산** (Skia fit-content 80 vs CSS 350): catalog top-level `containerStyles.width:"100%"` + `B22_CSS_FULL_WIDTH_TAGS` 3종 추가. 라이브 확증 flex 350=350 / block 350=350 (generated CSS diff 0)
+  - **B8 Table dh−2 해소 (402=402)**: 원인 = DOM 은 외곽 `.react-aria-Table`(border 1px, height 미지정) 안 `.react-aria-TableVirtualizer` 에 fixed height(400) → 외곽 border-box 402. Skia 는 단일 box 라 implicitStyles table 분기가 border×2 를 height 에 합산 (400→402). 라이브 확증 flex/block 양쪽 402=402
+- **B22 전제 착오 정정 (철회 1건)**: **Disclosure/DisclosureGroup 은 generated CSS 에 base width 규칙이 없다** (`width:100%` 는 DisclosureHeader 의 것 — B22 가 혼동). DOM 정본 = flex 부모 fit-content (실측 168.2/106.9) 인데 B22 배선이 Skia 를 350 으로 강제해 **역방향 발산** → catalog containerStyles + Set 에서 2종 철회. block 컨텍스트는 §5.5 IFC 주입으로 350=350 유지 (철회 후 라이브 확증)
+- **golden 편입**: Rust `tree_golden.rs` **N10** (flex-start column 의 width:100% 자식=200 vs 무폭 자식=0 — B22 배선의 하류 엔진 percent 계약, 11/11 PASS) + JS `tableFixedHeightBorderImplicitStyles.test.ts` (B8 4케이스 + Heading 3종 선주입 6케이스) + `resolveContainerStylesFallback.test.ts` 확장 (3종 lock + Disclosure 철회 lock). 수용 오차 항목 (B10/B11/B4/B12) 은 본 표의 실측치가 golden 기대값 (텍스트 측정기 의존이라 vitest 절대값 lock 불가 — 사유 기재)
+- 검증: layout 244/244 · shared 590/590 · specs 563/563 · tree_golden 11/11 · type-check(--force) PASS · generate:css diff 0 · Chrome MCP 라이브 (flex+block 2 컨텍스트, 수정 5종 + 철회 2종 + field 7종 실측)
+
+**잔여 기록 (수정하지 않음 — 원인 규명 완료, 후속 이관)**:
+
+| 항목                                          | 실측                                                           | 원인                                                                                                                                                                | 처리                                                              |
+| --------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Disclosure / DisclosureGroup (flex 부모 한정) | Skia 0×56 vs CSS 168.2×56 (fit-content)                        | 엔진이 fit-content 부모 안 자식 %폭 (DisclosureHeader width:100%) 을 0 으로 해석 — CSS 는 intrinsic 계산 시 % 를 auto 로 강등. 엔진 intrinsic-sizing 계약 작업 필요 | 후속 (엔진 percent-in-intrinsic — ADR-151 범위 밖 엔진 계약 변경) |
+| TableView (flex 부모)                         | Skia 350×80 vs CSS 179.4×106                                   | 미규명 (ADR-151 인벤토리 밖 신규 관측)                                                                                                                              | 후속 확인                                                         |
+| IllustratedMessage                            | preview iframe 미렌더 (CSS 측정 불가)                          | 미규명 (renderer/데이터 미도달 추정)                                                                                                                                | 후속 확인                                                         |
+| preview 페이지 전환                           | Components 페이지로 전환 시 preview 요소 0 렌더 (Home 은 정상) | 미규명 — UPDATE_PAGE_INFO 후 요소 재공급 부재 관측                                                                                                                  | 후속 확인                                                         |
+
+**사건 기록 (2026-07-16 23:35 KST)**: Phase 6 라이브 sweep 중 브라우저 origin 스토리지 (IndexedDB 3 DB) 가 **외부 요인으로 전체 재초기화** — LevelDB 디렉토리 자체가 삭제·재생성됐고 (신생 DB 파일 번호), `adr151-parity-freeze`/`AAA` 프로젝트 행 + documents_backup ring 20개 + history DB 가 소실, 낯선 프로젝트 "ASDE" (타이핑된 이름 — 본 세션은 키 입력 없음) 가 생성됨. 병렬 세션 또는 사용자 조작 추정. 사용자 확인: **복구 불필요** (2026-07-17). 소실 후 상태 스냅샷: scratchpad `idb-snapshot-233849`. 최종 sweep 측정치는 소실 전 확보분 + ASDE 재구축 확증분으로 완결.
+
+- CHANGELOG 반영 + ADR Implemented 승격 (closure 5단계) — 본 phase 종결 커밋
 
 ### 사용자 결정 대기 항목 (Phase 밖)
 
