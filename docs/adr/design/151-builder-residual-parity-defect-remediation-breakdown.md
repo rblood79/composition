@@ -57,16 +57,19 @@
 | ADR-100 구 이슈 (GridListItem overflow / TagGroup Show all / body 색 하드코딩) | **2026-07-16 재실측 — 3건 모두 재현 불가, 미편입 확정**. GridList projection row 3건 overflow 0 (마지막 row bottom 일치) / TagGroup Label+TagList overflow 0 / Skia 렌더 파일에 white 하드코드 grep 0건 + 양쪽 body 시각 동일. 단 GridList 재실측 중 **신규 내부 발산 B21 발견** (§1-A) |
 | instanceActions `set` 1차 잔존                                                 | ADR-122 §Residual 에 기록된 의도된 보류 — 본 ADR 범위 제외                                                                                                                                                                                                                              |
 
-### 1-E. 신규 발견 회귀 — B22 Skia 폭 채널 붕괴 (Phase 4 실측 중 발견, **미해결 CRITICAL**)
+### 1-E. B22 — generated CSS `width:100%` 채널의 Skia layout 미배선 (Phase 4 중 발견 → **2026-07-16 심야 근본 원인 확정: 회귀 아님**)
 
-| #   | 컴포넌트                                                | Phase 4 실측 (2026-07-16 오후)                                                       | Phase 0 freeze (동일 날, dev 서버 재기동 전) |
+| #   | 컴포넌트                                                | Phase 4 실측 (2026-07-16 오후)                                                       | Phase 0 freeze (동일 날 오전)                |
 | --- | ------------------------------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------- |
-| B22 | Text / Separator / Table / Disclosure / DisclosureGroup | Skia 폭 31 (Text) / 0 (Separator·Table·Disclosure·DisclosureGroup) — CSS 는 390 정상 | 전부 0/0 (양쪽 390 동일 — §1-B B14/B16 참조) |
+| B22 | Text / Separator / Table / Disclosure / DisclosureGroup | Skia 폭 31 (Text) / 0 (Separator·Table·Disclosure·DisclosureGroup) — CSS 는 350 정상 | 전부 0/0 (양쪽 390 동일 — §1-B B14/B16 참조) |
 
-- **세션 변경 무관 확증**: 미커밋 수정 전체 `git stash` 상태에서도 동일 재현 → Phase 1~4 변경 기인 아님. 본 세션 커밋 3개 (7db1b5c9e / 85fb83216 / a1a7544e2) diff 에도 해당 컴포넌트 폭 경로 없음. b6b9b3514 tagToElement diff 는 항등 확인.
-- **유력 가설**: stale specs dist 뒤 잠복하던 선행 소스 회귀가 본 세션 첫 `pnpm build:specs` + dev 서버 재기동으로 노출 (`feedback-specs-dist-dev-restart-gate` 계열 — Phase 0 freeze 실측은 stale dist 를 서빙하던 구 서버에서 수행됨).
-- **원인 커밋 확정 미완**: 진단용 `git checkout <sha> -- <files>` 되돌림 실험이 auto-mode 분류기에 차단 — 사용자 허가 필요.
-- **영향**: B8 Table 판정 보류 (Skia 폭 0 상태에서 dh 판정 무의미). **B22 해소 전 Phase 6 Implemented 승격 불가** (§2 기준 2 — 원인 미상 수용 금지).
+**근본 원인 (라이브 전진 진단으로 확정 — bisect 불필요, 초기 "stale dist 노출 회귀" 가설 기각)**:
+
+1. **회귀 아님 — 측정 컨텍스트 차이**: 오전 freeze 는 **plain block body** (padding 만) 에서 측정 — fullTreeLayout §5.5 IFC 시뮬레이션이 block 자식에 `width:100%` 를 주입해 양쪽 390 일치. 오후 실측은 **`display:flex + flexDirection:column + alignItems:flex-start` body** (프로젝트 Home 페이지, 사용자 저작 스타일) 에서 수행 — §5.5 게이트 (`isInlineBlockSimulationParent`, 38f258203 의도된 동작) 가 진짜 flex 부모를 정확히 제외하면서 잠복 결함이 노출된 것. 세션 커밋/stash/dist 전부 무관 (합성 최소 트리 + 실페이지 데이터로 `calculateFullTreeLayout` 직접 호출 대조 실증).
+2. **실존 결함 = D3 채널 누락**: 이들 컴포넌트의 DOM 폭 원천은 **CSS 의 `width: 100%` 규칙** (Text = generated archetype base / Separator = 수동 CSS `:not(.vertical)` 계약 / Table = 수동 CSS / Disclosure(Group) = generated) 인데, **Skia layout 은 이 채널을 소비하지 않는다** (catalog top-level containerStyles 부재 → fallback `{}`). block 부모에서는 §5.5 주입이 우연히 같은 값을 만들어 가려졌고, flex 부모에서는 CSS 만 width:100% 를 적용해 발산 (Text: DOM 350 vs Skia fit-content 31; iframe 내 대조 실험 — 같은 flex-start 컨테이너에서 class 없는 span 은 30.8, `.react-aria-Text` class 만 부여하면 350).
+3. **범위**: base 레벨 `width:100%` 를 가진 generated CSS 는 25종 (Text/Heading/Paragraph/Description/field 류 등). field 류는 factory/composition 채널로 이미 폭이 도달하는 경우가 많아, 실측 발산 확인된 5종 (Text/Separator/Table/Disclosure/DisclosureGroup) 을 1차 수정 대상으로 한다. 나머지는 flex 부모 컨텍스트 battery 로 후속 판정.
+
+- **영향/조치**: B8 Table dh-2 는 block body 컨텍스트 (오전 값 400 vs 402) 로 재판정 가능. bisect 사용자 허가 요청은 **철회** (회귀 아님 확정).
 
 ## 2. 허용 오차 판정 기준 (Decision 보조 — ADR 본문 §Decision 의 기준 상세)
 
