@@ -167,7 +167,21 @@ vehicle 확정 + 하니스 핵심 land 완료:
 - **leg 1** 실 DOM `getBoundingClientRect`(리셋 후 root-상대) / **leg 2** `buildTreeBatch → computeLayout → getLayoutsBatch` + `tree_golden.rs::layout_relative` 조상 offset 누적 이식. diff > 1px.
 - **tree_golden N1~N10 전수 재현 10/10 PASS** — N6~N10 손계산 기준선을 실 DOM 으로 재확증. flaky 0 (3회).
 
-**G1 잔여 (다음 Phase 1 진입점)**: §1-2 flex 교차축 384 + main 축 288 = 672 조합 파라메트릭 매트릭스 + 명명 fixture(GT-1~4 / BP-3/4 / NST-1~4 등). 각 축의 정확한 값 열거는 breakdown 에 미기재(원본 생성기는 세션 scratchpad 소실) → 재도출 필요. G1 미충족이므로 Phase 1 은 **부분 land**(하니스 인프라 + N1~N10 baseline), Phase 2 진입 전 잔여 매트릭스 완결 필요.
+### 2-6. G1 매트릭스 재도출 완결 (2026-07-18)
+
+§1-2 672 조합 파라메트릭 매트릭스를 재도출해 land. 원본 생성기(scratchpad 소실)의 축 값 열거를 §1-3 소비 판정 + 조합 수(384/288)로 역산:
+
+- **교차축 384** = direction(2) × wrap(2) × alignItems(4: flex-start/end/center/stretch) × alignContent(6: +space-between/around) × crossSize(2: definite/auto) × lines(2). 전부 **소비 O 필드**(align_self=E1 등 미소비 9필드 제외).
+- **main 축 288** = direction(2) × justifyContent(6) × gap(2) × grow(2) × shrink(2) × basis(3: auto/0/50px).
+- 구조: 테스트 컨테이너를 definite `root`(200×500 block) 아래 **중첩** — root 자기 크기(E5) 격리. `tests/parity/{harness.ts, flexSweep.browser.test.ts}`.
+- **결과: 384/384 + 288/288 + tree_golden 10/10 = 전부 PASS, flaky 0 (3회)**. **G1 충족 → Phase 1 완결**.
+
+**하니스가 표면화한 잠복 발산 2종 (문서화 17군 밖, 비-라이브 → 후속 판정)**:
+
+1. **nested block-level flex 컨테이너 `width:auto`** — CSS 는 block inline 채움(부모 200), 엔진은 shrink-to-fit(70). `display:block` 부모 명시로도 재현 → 실 발산. **비-라이브**: catalog `containerStyles` 가 항상 width(px/100%) 주입 → builder 도달 불가. 매트릭스는 builder-정확 패턴 `width:100%`(N10 계약, 양쪽 채움)로 구성.
+2. **overflow flex 정렬** (`justify-content`/`align-content` = flex-end·center + 음수 free space) — CSS 는 unsafe 음수 offset(시작 밖 overflow), 엔진은 0 클램프. **비-라이브**: 정합 region 은 양수 free space. 매트릭스는 컨테이너를 children 합보다 크게 구성해 회피.
+
+두 발산 모두 「선언 O · 송신 O · 소비 O 이나 해석 상이」 축(§1-3 40필드 중)에 해당 — E-list 미등재. 라이브 도달 경로 확인 시 후속 ADR 또는 §Residual 편입 판정.
 
 ## 3. Phase 2 — align-self / justify-self + percent height (G2)
 
