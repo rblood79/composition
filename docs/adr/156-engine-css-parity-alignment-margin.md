@@ -4,7 +4,9 @@
 
 ## Status
 
-Proposed — 2026-07-17
+Accepted — 2026-07-18
+
+> Proposed(2026-07-17) → [reviews/156.md](reviews/156.md) round 2 전건 종결(HIGH×3/MED×5/LOW×2 전부 `fixed`, `pending` 0)로 전제 확정 → execute-adr Phase 1 착수와 함께 승격.
 
 ## Context
 
