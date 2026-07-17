@@ -271,6 +271,10 @@ export const renderCard = (
             | "user"
             | "product") || undefined
         }
+        // ADR-148 Phase 3 cross-check: variant 전달 누락 정정 — 미전달 시 Card 내부
+        // default "primary" 로 고정되어 data-variant 가 편집을 무시 (Skia 는 catalog
+        // rule 로 variant fill 을 소비 → CSS↔Skia 발산, ADR-912 R6 전환 잔존 결함).
+        variant={(element.props.variant as string) || undefined}
         size={(element.props.size as "sm" | "md" | "lg" | undefined) || "md"}
         isQuiet={Boolean(element.props.isQuiet)}
         isSelected={Boolean(element.props.isSelected)}
@@ -330,6 +334,8 @@ export const renderCard = (
         (element.props.cardType as "default" | "asset" | "user" | "product") ||
         undefined
       }
+      // ADR-148 Phase 3 cross-check: variant 전달 누락 정정 (structural 분기와 동일).
+      variant={(element.props.variant as string) || undefined}
       size={(element.props.size as "sm" | "md" | "lg" | undefined) || "md"}
       isQuiet={Boolean(element.props.isQuiet)}
       isSelected={Boolean(element.props.isSelected)}

@@ -49,7 +49,8 @@ export const COMPLEX_COMPONENT_TAGS = new Set([
   "CheckboxGroup",
   "RadioGroup",
   // Layout
-  "Card",
+  // ADR-148 Phase 3: Card 는 reusable composite origin(`component-card`) 전환 → COMPLEX 제외.
+  //   useElementCreator 가 COMPLEX 분기 前 reusable entry 체크로 type:"ref" 생성 (Form 동형).
   // Navigation
   "Menu",
   "Disclosure",
@@ -63,7 +64,9 @@ export const COMPLEX_COMPONENT_TAGS = new Set([
   // ADR-912 R-5: Form 은 reusable composite origin(`component-form`) 전환 → COMPLEX 제외.
   //   useElementCreator 가 COMPLEX 분기 前 REUSABLE_COMPOSITE_ORIGINS 체크로 type:"ref" 생성.
   "Toast",
-  "InlineAlert",
+  // ADR-148 Phase 3: InlineAlert 는 reusable composite origin(`component-inline-alert`) 전환
+  //   → COMPLEX 제외 (Form 동형). Toast 는 생성 진입점 0(palette 비노출 — imperative 알림
+  //   설계)이라 보류 — 유지.
   // Date & Color
   "DatePicker",
   "DateRangePicker",

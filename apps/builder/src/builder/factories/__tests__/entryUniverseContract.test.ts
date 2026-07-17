@@ -59,8 +59,10 @@ const INVENTORY = {
   defaultPropsMap: 92,
   // ADR-914 Phase 4-B (2026-06-21): Avatar creator 제거 → 55 → 54 (Avatar 는 creation.mode
   //   ="none" leaf, palette-add 는 else 분기 getDefaultProps). placeable 집합 1 축소.
-  creators: 54,
-  complexComponentTags: 48,
+  // ADR-148 Phase 3 (2026-07-17): Card/InlineAlert creator 제거 → 54 → 52 (reusable origin
+  //   전환 — palette-add 는 type:"ref" instance, Toolbar/Form 동형). COMPLEX 도 2 축소.
+  creators: 52,
+  complexComponentTags: 46,
   propagationRegistered: 31,
   syntheticChildPropMerge: 9,
   popoverChildren: 2,
@@ -157,9 +159,10 @@ describe("ADR-914 entry universe contract", () => {
   });
 
   it("Phase 4-C — reusableOrigin mode ⟺ isReusableCompositeType", () => {
-    // resolver 를 직접 호출 (Toolbar/Form 은 placeable 아님). 두 set 이 disjoint 라
+    // resolver 를 직접 호출 (reusable type 은 placeable 아님). 두 set 이 disjoint 라
     //   reusableOrigin 판정이 COMPLEX 보다 우선해도 complex 를 가리지 않음.
-    for (const type of ["Toolbar", "Form"]) {
+    //   ADR-148 Phase 3: InlineAlert/Card 합류 (factory-대체군 전환).
+    for (const type of ["Toolbar", "Form", "InlineAlert", "Card"]) {
       expect(isReusableCompositeType(type)).toBe(true);
       expect(resolveComponentEntryRuntime(type).creation.mode).toBe(
         "reusableOrigin",
@@ -205,14 +208,14 @@ describe("ADR-914 entry universe contract", () => {
   });
 
   it("Phase 4 creation facet — reusableOrigin 은 REUSABLE_COMPOSITE_ORIGINS 파생", () => {
-    // Toolbar/Form 은 creators 에 없으므로(R-5 ref instance 경로) placeable 아님 →
-    // resolver 를 직접 호출해 reusableOrigin mode 를 검증.
-    expect(resolveComponentEntryRuntime("Toolbar").creation.mode).toBe(
-      "reusableOrigin",
-    );
-    expect(resolveComponentEntryRuntime("Form").creation.mode).toBe(
-      "reusableOrigin",
-    );
+    // reusable type 은 creators 에 없으므로(R-5 ref instance 경로) placeable 아님 →
+    // resolver 를 직접 호출해 reusableOrigin mode 를 검증 (ADR-148 Phase 3:
+    // InlineAlert/Card 합류).
+    for (const type of ["Toolbar", "Form", "InlineAlert", "Card"]) {
+      expect(resolveComponentEntryRuntime(type).creation.mode).toBe(
+        "reusableOrigin",
+      );
+    }
   });
 
   it("Phase 4 creation facet — leaf(none) 은 creator 부재 + COMPLEX 미포함", () => {
@@ -583,8 +586,10 @@ describe("ADR-914 entry universe contract", () => {
       // exception 으로만 허용된다 (allowlist 가 없으면 차단).
       expect(allowedAbsent("TAG_SPEC_MAP", comp)).toBe(true);
     }
-    // InlineAlert/TextArea/frame 은 placeable & !renderer (load-bearing rendererMap).
-    for (const comp of ["InlineAlert", "TextArea", "frame"]) {
+    // TextArea/frame 은 placeable & !renderer (load-bearing rendererMap).
+    //   InlineAlert 는 ADR-148 Phase 3 reusable 전환으로 primitive placeable:false —
+    //   placeable 전제가 깨져 exception 루프에서 제외 (ref instance 경로).
+    for (const comp of ["TextArea", "frame"]) {
       const e = resolveComponentEntryRuntime(comp);
       expect(
         e.placeable && !e.render.hasRendererEntry,

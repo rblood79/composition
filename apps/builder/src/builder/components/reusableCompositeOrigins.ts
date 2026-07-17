@@ -16,6 +16,14 @@ import {
   ICONBUTTON_ORIGIN_ID,
   ensureIconButtonTemplateOrigins,
 } from "./iconbutton/iconButtonTemplateOrigins";
+import {
+  INLINE_ALERT_ORIGIN_ID,
+  ensureInlineAlertTemplateOrigins,
+} from "./inlinealert/inlineAlertTemplateOrigins";
+import {
+  CARD_ORIGIN_ID,
+  ensureCardTemplateOrigins,
+} from "./card/cardTemplateOrigins";
 
 /**
  * ADR-912 R-5 (HC#5 "조합 = 데이터") → **ADR-148 Phase 1 (catalog 파생 대체)**.
@@ -40,6 +48,8 @@ export const REUSABLE_ORIGIN_ENSURERS: Readonly<
   [TOOLBAR_ORIGIN_ID]: ensureToolbarTemplateOrigins,
   [FORM_ORIGIN_ID]: ensureFormTemplateOrigins,
   [ICONBUTTON_ORIGIN_ID]: ensureIconButtonTemplateOrigins,
+  [INLINE_ALERT_ORIGIN_ID]: ensureInlineAlertTemplateOrigins,
+  [CARD_ORIGIN_ID]: ensureCardTemplateOrigins,
 };
 
 /** `type` 이 reusable composite (origin ref 로 생성) 인지 여부 — catalog 파생. */

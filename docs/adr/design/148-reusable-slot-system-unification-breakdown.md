@@ -150,14 +150,31 @@ ADR-147 이 주석으로 선언한 "자식은 authoring 구조 + slot 스타일 
 - palette 노출 (PALETTE_ORDER + ICON_MAP 1항목).
 - Gate G3.
 
-### Phase 3 — factory-대체군 확대 (조건부)
+### Phase 3 — factory-대체군 확대 (조건부) — **Implemented 2026-07-17 (적격 2종 / 보류 2종)**
 
-- 대상: Toast / InlineAlert / IllustratedMessage (heading+description 2-slot 동형 3종) →
-  Card 4-region (propagation title→Header 등을 템플릿 바인딩+propsSchema 로 대체).
-- **각 컴포넌트별 DELEGATING/어댑터 재판정 선행** (renderToast·INTERNAL_RENDERERS 가 origin
-  자식 재귀로 환원 가능한지 — ADR-912 R-5 적격 기준). 부적격 → 해당 컴포넌트만 보류.
-- kill criteria (Toolbar 선례): factory definition fallback 0 + live parity.
-- Gate G4 (컴포넌트별 반복).
+> **Implemented 2026-07-17 (G4 통과 — 적격분 한정)**: 재판정 선행 후 적격 2종
+> (InlineAlert/Card) 수직 슬라이스 반영, 보류 2종은 아래 재판정 표에 사유 기록.
+> live G4 exercise + cross-check 발견 1건(HIGH) 즉시 수정 — ADR 본문 진행 로그 참조.
+
+**재판정 기록 (2026-07-17 실측 — G4 선행 관문)**:
+
+| 대상               | DOM 렌더러                                                                                                             | Skia                                               | 생성 경로                                                                                                  | 판정                                                                                                                                     |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| InlineAlert        | generic fallback + 자식 재귀 (rendererMap 위임 제거됨, ADR-912 internal 4 slice)                                       | catalog box shell (escape 없음)                    | palette ✓                                                                                                  | **적격 — 반영**                                                                                                                          |
+| Card               | `renderCard` structural children 재귀 (CardHeader/Content/Preview/Footer 감지)                                         | catalog box shell (escape 없음)                    | palette ✓                                                                                                  | **적격 — 반영** (propagation title/description 라우팅은 템플릿 바인딩이 대체, legacy flat 문서용 rule 존속)                              |
+| Toast              | 자식 재귀 ✓ (flat fallback 은 자식 0 한정)                                                                             | escape 없음 ✓                                      | **진입점 0** — palette 비노출(catalog 주석: "imperative 알림 — paletteItems 비포함" 설계 기록) + AI 미참조 | **보류** — 전환 시 소비처 0 (dormant foundation 금지) 또는 palette 노출(제품 결정) 강요. factory seam 은 도달 불가 dead 상태로 유지      |
+| IllustratedMessage | `INTERNAL_RENDERERS["illustrated"]` flat props self-compose (heading/description props 직접 소비, factory children:[]) | `illustrated_message` escape (append — props 소비) | palette ✓                                                                                                  | **부적격** — 환원에 escape+어댑터 재작성 필요 (ADR-912 진로 1번 proof slice 의 의도 설계). escape 기하 잔존은 [ADR-151 이관 백로그] 참조 |
+
+- 반영 내용 (적격 2종 — Phase 2 패턴 조립): origin seed 2건
+  (`inlineAlertTemplateOrigins.ts` — InlineAlert > Heading `{title}` + Description
+  `{description}` / `cardTemplateOrigins.ts` — Card 4-region, 바인딩은 depth-2 자식) +
+  propsSchema (InlineAlert: title/description/variant, Card: +size) + catalog
+  `reusableEntry` 2건 + 동명 primitive `placeable:false` + `REUSABLE_ORIGIN_ENSURERS` 2줄.
+- factory seam 삭제: `createInlineAlertDefinition`/`createCardDefinition` + ComponentFactory
+  method/creators + `COMPLEX_COMPONENT_TAGS` 2항목 (Toolbar/Form 선례. Toast seam 은 보류로 유지).
+- kill criteria 충족: factory definition fallback 0 (palette-add → `type:"ref"` instance) +
+  live parity (양축 치환 + 편집 왕복).
+- Gate G4 (컴포넌트별) — InlineAlert ✓ / Card ✓.
 
 ### Phase 4 — collection item slot 이식 (조건부)
 
@@ -200,6 +217,7 @@ scene 제외 stale 주석) / `apps/builder/src/builder/panels/properties/editors
 - [x] Phase 0: slot 자식 배선 정정 (§2-1 4개 층 + stale 주석) + cross-check 3축 + live 1회(slot 자식 편집 왕복 포함) + shared re-home — **2026-07-17 완료** (G1 통과, ADR 본문 진행 로그)
 - [x] Phase 1: registrationContract 불변식 4종 + palette 스냅샷 무변 + live palette-add — **2026-07-17 완료** (G2 통과, ADR 본문 진행 로그)
 - [x] Phase 2: propsSchema 편집 왕복 + 키 1:1 test + origin 전파 live 확인 — **2026-07-17 완료** (G3 통과, ADR 본문 진행 로그)
-- [ ] Phase 3/4: 대상별 재판정 기록 + kill criteria
+- [x] Phase 3: 대상별 재판정 기록 (적격 2 / 보류 2) + kill criteria (fallback 0 + live parity) — **2026-07-17 완료** (G4 통과, ADR 본문 진행 로그)
+- [ ] Phase 4: collection item slot 이식 (조건부 — ADR-150 A2/A3 표면 재실측 선행)
 - [ ] 전 Phase: type-check baseline 무증가, `pnpm build:specs` 무관(spec 비접촉) 확인
 - [ ] closure: ADR-147/README/CHANGELOG 동기 (Implemented 승격 시 CHANGELOG 트리거)

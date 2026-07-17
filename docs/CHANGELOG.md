@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [InlineAlert·Card reusable 전환 + Card variant 렌더 수정 — ADR-148 Phase 3] - 2026-07-17
+
+### Bug Fixes
+
+- **Card variant 편집이 Preview DOM 에 반영되지 않던 결함 수정** (ADR-148 Phase 3 cross-check 발견):
+  - **Why**: `renderCard` 가 `element.props.variant` 를 shared `Card` 컴포넌트에 전달하지 않아 DOM `data-variant` 가 내부 default "primary" 로 고정 — Skia 는 catalog rule 로 variant fill 을 소비해 편집 시 CSS↔Skia 발산 (ADR-912 R6 의 S2 variant 모델 전환 때 전달 누락, legacy flat Card 포함 전 경로 잔존 결함)
+  - 수정: structural/legacy 두 분기 모두 variant 전달 — 편집 실시간 전파·새로고침 왕복 대칭 확인
+  - 위치: `packages/shared/src/renderers/LayoutRenderers.tsx`
+
+### Features
+
+- **InlineAlert / Card — factory-대체군 reusable 조합 전환** (ADR-148 Phase 3, Toolbar/Form/IconButton 동형):
+  - 팔레트 생성이 `type:"ref"` instance 로 전환 — origin 조합 문서(InlineAlert > Heading `{title}` + Description `{description}` / Card 4-region: Preview>Image·Header>Heading `{title}`·Content>Description `{description}`·Footer)가 렌더 정본. Card 는 바인딩이 depth-2 자식에 위치 (중첩 치환 첫 실사용)
+  - **propsSchema 편집**: instance 선택 시 Title/Description/Variant(+Card 는 Size) 필드 자동 파생 — 편집은 instance override (Overrides 표시 + Reset), 구 Card `title→CardHeader.Heading` propagation 라우팅을 템플릿 바인딩이 대체 (legacy flat 문서용 propagation rule 존속)
+  - factory seam 삭제: `createInlineAlertDefinition`/`createCardDefinition` + ComponentFactory method/creators + `COMPLEX_COMPONENT_TAGS` 2항목 (kill criteria "definition fallback 0" 충족)
+  - 재판정 보류 2종 기록: Toast (생성 진입점 0 — palette 비노출 imperative 알림 설계) / IllustratedMessage (DOM 어댑터+Skia escape 가 flat props self-compose — 환원 부적격, ADR-912 진로 1번 의도 설계)
+  - 위치: `apps/builder/src/builder/components/{inlinealert,card}/`(origin seed) / `packages/shared/src/catalog/componentCatalog.ts`(reusableEntry 2건) / `apps/builder/src/builder/factories/`(seam 삭제)
+
 ## [IconButton 신규 reusable + propsSchema 편집 — ADR-148 Phase 2] - 2026-07-17
 
 ### Features

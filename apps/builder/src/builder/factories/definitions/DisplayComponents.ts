@@ -137,49 +137,10 @@ export function createStatusLightDefinition(
   };
 }
 
-/**
- * InlineAlert 컴포넌트 정의
- *
- * CSS DOM 구조:
- * InlineAlert (parent, type="InlineAlert", flex column)
- *   ├─ Heading (type="Heading", children="Alert Title")
- *   └─ Description (type="Description", children="Alert description text.")
- */
-export function createInlineAlertDefinition(
-  context: ComponentCreationContext,
-): ComponentDefinition {
-  const { parentElement, elements } = context;
-  const parentId = parentElement?.id || null;
-
-  return {
-    type: "InlineAlert",
-    parent: {
-      type: "InlineAlert",
-      props: {
-        variant: "info",
-      } as ComponentElementProps,
-      parent_id: parentId,
-    },
-    children: [
-      {
-        type: "Heading",
-        props: {
-          children: "Alert Heading",
-          level: 3,
-          className: "alert-heading",
-        } as ComponentElementProps,
-      },
-      {
-        type: "Description",
-        props: {
-          children:
-            "There was an error processing your request. Please try again.",
-          className: "react-aria-Description",
-        } as ComponentElementProps,
-      },
-    ],
-  };
-}
+// ADR-148 Phase 3 (2026-07-17): createInlineAlertDefinition 삭제 — InlineAlert 는
+//   reusable origin(`component-inline-alert`, inlineAlertTemplateOrigins.ts)으로 전환.
+//   palette-add 는 catalog reusable entry 를 보고 type:"ref" instance 를 생성한다
+//   (Toolbar/Form/IconButton 동형 — 조합 자식 트리는 origin 문서가 데이터로 보유).
 
 /**
  * ButtonGroup 컴포넌트 정의

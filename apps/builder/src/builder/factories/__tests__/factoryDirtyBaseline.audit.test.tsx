@@ -27,7 +27,6 @@ import type { Element } from "../../../types/core/store.types";
 import type { ComponentDefinition, ComponentCreationContext } from "../types";
 
 import {
-  createCardDefinition,
   createTabsDefinition,
   createTreeDefinition,
 } from "../definitions/LayoutComponents";
@@ -47,7 +46,6 @@ import {
   createMeterDefinition,
   createProgressCircleDefinition,
   createStatusLightDefinition,
-  createInlineAlertDefinition,
   createAvatarGroupDefinition,
   createButtonGroupDefinition,
 } from "../definitions/DisplayComponents";
@@ -92,7 +90,8 @@ import {
 type Creator = (ctx: ComponentCreationContext) => ComponentDefinition;
 
 const CREATORS: Record<string, Creator> = {
-  Card: createCardDefinition,
+  // ADR-148 Phase 3: Card/InlineAlert 는 reusable origin 전환 — factory definition 삭제로
+  //   본 audit 대상에서 제외 (origin seed 의 inline 값은 origin 문서가 데이터로 보유).
   Tabs: createTabsDefinition,
   Tree: createTreeDefinition,
   TextField: createTextFieldDefinition,
@@ -108,7 +107,6 @@ const CREATORS: Record<string, Creator> = {
   Meter: createMeterDefinition,
   ProgressCircle: createProgressCircleDefinition,
   StatusLight: createStatusLightDefinition,
-  InlineAlert: createInlineAlertDefinition,
   AvatarGroup: createAvatarGroupDefinition,
   ButtonGroup: createButtonGroupDefinition,
   frame: createFrameLayoutDefinition,

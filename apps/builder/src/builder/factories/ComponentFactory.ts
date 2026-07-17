@@ -39,7 +39,6 @@ import {
   createBreadcrumbsDefinition,
 } from "./definitions/GroupComponents";
 import {
-  createCardDefinition,
   createTabsDefinition,
   createTreeDefinition,
 } from "./definitions/LayoutComponents";
@@ -75,7 +74,6 @@ import {
   //   진입점이 사라져 미사용. 정의 함수 자체는 DisplayComponents.ts 에 보존(factoryOwnership.test).
   createAvatarGroupDefinition,
   createStatusLightDefinition,
-  createInlineAlertDefinition,
   createButtonGroupDefinition,
   createProgressBarDefinition,
   createMeterDefinition,
@@ -115,7 +113,8 @@ export class ComponentFactory {
     Select: ComponentFactory.createSelect,
     ComboBox: ComponentFactory.createComboBox,
     Slider: ComponentFactory.createSlider,
-    Card: ComponentFactory.createCard,
+    // ADR-148 Phase 3: Card/InlineAlert 는 reusable origin 전환 — creators 진입점 제거.
+    //   palette-add 는 useElementCreator 가 type:"ref" instance 생성 (Toolbar/Form 동형).
     Tabs: ComponentFactory.createTabs,
     Tree: ComponentFactory.createTree,
     TagGroup: ComponentFactory.createTagGroup,
@@ -152,7 +151,6 @@ export class ComponentFactory {
     //   단일 element 생성(createAvatarDefinition parent.props 와 byte-identical) → tree diff 0.
     AvatarGroup: ComponentFactory.createAvatarGroup,
     StatusLight: ComponentFactory.createStatusLight,
-    InlineAlert: ComponentFactory.createInlineAlert,
     // ⭐ Display Components (Phase 2)
     ButtonGroup: ComponentFactory.createButtonGroup,
     // ⭐ Display Components (Phase 3)
@@ -352,12 +350,6 @@ export class ComponentFactory {
     return this.createComponent(createSliderDefinition, context);
   }
 
-  private static async createCard(
-    context: ComponentCreationContext,
-  ): Promise<ComponentCreationResult> {
-    return this.createComponent(createCardDefinition, context);
-  }
-
   private static async createTabs(
     context: ComponentCreationContext,
   ): Promise<ComponentCreationResult> {
@@ -528,12 +520,6 @@ export class ComponentFactory {
     context: ComponentCreationContext,
   ): Promise<ComponentCreationResult> {
     return this.createComponent(createStatusLightDefinition, context);
-  }
-
-  private static async createInlineAlert(
-    context: ComponentCreationContext,
-  ): Promise<ComponentCreationResult> {
-    return this.createComponent(createInlineAlertDefinition, context);
   }
 
   // ==================== Display Components (Phase 2) ====================

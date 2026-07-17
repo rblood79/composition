@@ -266,10 +266,13 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
   //   spec.render.shapes Skia fallback 제거 — 시각은 rule(COMPONENT_RULES_TABLE.InlineAlert, 5 variant)
   //   + buildCatalogShapes generic box+border(shell, render.shapes 가 text 0 → 자식 Element 가
   //   heading/desc 담당). DOM 은 generic fallback(rendererMap 제거) + staticAttrs role="alert".
+  // ADR-148 Phase 3: 동명 reusable entry(조합 생성·팔레트)가 placeable — primitive entry 는
+  //   origin 내부 렌더·binding 소비 전용으로 placeable:false (placeable 단일성 HC#3, Toolbar 동형).
   primitiveEntry("InlineAlert", "primitives", FAMILY_1_CUTOVER, {
     category: "content",
     label: "inline alert",
     icon: "AlertTriangle",
+    placeable: false,
   }),
   // ADR-912 진로 1번 IllustratedMessage proof slice (2026-06-06): 빈 상태(empty state) internal leaf.
   //   catalog 등록으로 spec.render.shapes Skia fallback 제거 — Skia 는 skiaPrimitive
@@ -382,10 +385,13 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
   //   DOM=react-aria-Card[data-variant] generic. layout=factory props.style(ADR-907 Layer B). palette
   //   노출(기존 PALETTE_ONLY overlay → catalog entry.panel 파생으로 전환, category layout). R2 TreeItem
   //   패턴(제거→레퍼런스 재생성)의 컨테이너 적용 사례.
+  // ADR-148 Phase 3: 동명 reusable entry(조합 생성·팔레트)가 placeable — primitive entry 는
+  //   origin 내부 렌더·binding 소비 전용으로 placeable:false (placeable 단일성 HC#3, Toolbar 동형).
   primitiveEntry("Card", "primitives", FAMILY_1_CUTOVER, {
     category: "layout",
     label: "card",
     icon: "AppWindowMac",
+    placeable: false,
   }),
   // ADR-912 childSpec→catalog cutover (2026-06-15): Card 4 자식 슬롯 컨테이너 일괄 (CardHeader/
   //   CardContent/CardFooter/CardPreview). Card.spec.childSpecs(ADR-094 expandChildSpecs) 경로로
@@ -1163,6 +1169,19 @@ const REUSABLE_ENTRIES: ComponentCatalogEntry[] = [
     category: "buttons",
     label: "icon button",
     icon: "SquarePlus",
+  }),
+  // ADR-148 Phase 3 — factory-대체군 2종 (재판정 적격: DOM 자식 재귀 + Skia box shell +
+  // 전용 escape/어댑터 없음). Toast 는 생성 진입점 0(palette 비노출 — imperative 알림 설계)
+  // 으로 보류, IllustratedMessage 는 escape+어댑터 flat self-compose 로 부적격 (breakdown §3).
+  reusableEntry("InlineAlert", "primitives", "component-inline-alert", {
+    category: "content",
+    label: "inline alert",
+    icon: "AlertTriangle",
+  }),
+  reusableEntry("Card", "primitives", "component-card", {
+    category: "layout",
+    label: "card",
+    icon: "AppWindowMac",
   }),
 ];
 

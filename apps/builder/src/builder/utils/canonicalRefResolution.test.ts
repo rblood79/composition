@@ -665,3 +665,68 @@ describe("ADR-148 Phase 2 — 템플릿 바인딩 `{키}` 치환 (propsSchema ga
     });
   });
 });
+
+describe("ADR-148 Phase 3 — depth-2 템플릿 바인딩 (Card 4-region 동형)", () => {
+  it("중첩 region 자식(depth-2)의 placeholder 도 root override/default 로 치환된다", () => {
+    const origin = makeElement("component-card", {
+      type: "Card",
+      reusable: true,
+      props: { variant: "primary", size: "md" },
+      metadata: {
+        propsSchema: {
+          title: { kind: "string", label: "Title", default: "Card Title" },
+          description: {
+            kind: "string",
+            label: "Description",
+            default: "Card description text goes here.",
+          },
+        },
+      },
+    } as never);
+    const header = makeElement("component-card__header", {
+      type: "CardHeader",
+      parent_id: "component-card",
+      name: "Header",
+      props: {},
+    } as never);
+    const title = makeElement("component-card__title", {
+      type: "Heading",
+      parent_id: "component-card__header",
+      name: "Title",
+      props: { children: "{title}" },
+    } as never);
+    const content = makeElement("component-card__content", {
+      type: "CardContent",
+      parent_id: "component-card",
+      name: "Content",
+      props: {},
+    } as never);
+    const description = makeElement("component-card__description", {
+      type: "Description",
+      parent_id: "component-card__content",
+      name: "Description",
+      props: { children: "{description}" },
+    } as never);
+    const instance = makeElement("instance", {
+      type: "ref",
+      ref: "component-card",
+      parent_id: "body",
+      props: { title: "Quarterly Report" },
+    } as never);
+    const elements = [origin, header, title, content, description, instance];
+    const tree = resolveCanonicalRefTree({
+      elements,
+      elementsMap: new Map(elements.map((e) => [e.id, e])),
+    });
+
+    // depth-2 synthetic id = `${instanceId}/${parentSegment}/${childSegment}`
+    expect(tree.elementsMap.get("instance/Header/Title")?.props).toMatchObject({
+      children: "Quarterly Report",
+    });
+    expect(
+      tree.elementsMap.get("instance/Content/Description")?.props,
+    ).toMatchObject({
+      children: "Card description text goes here.",
+    });
+  });
+});
