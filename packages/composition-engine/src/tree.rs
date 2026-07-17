@@ -1289,6 +1289,9 @@ impl LayoutTree {
         };
 
         // grid_layout — 셀 bounds flat [x,y,w,h,...].
+        // justify-content/align-content (E12) — 고정 트랙이 컨테이너보다 작을 때 트랙셋 정렬.
+        let justify_content = style.justify_content.as_deref().unwrap_or("");
+        let align_content = style.align_content.as_deref().unwrap_or("");
         let bounds = grid::grid_layout(
             &template_cols,
             &template_rows,
@@ -1299,6 +1302,8 @@ impl LayoutTree {
             container_h,
             col_gap,
             row_gap,
+            justify_content,
+            align_content,
         );
 
         // 셀 좌표 반영 + 각 자식을 셀 크기로 재귀 solve.

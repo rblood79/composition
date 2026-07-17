@@ -93,3 +93,64 @@ describe("ADR-156 Phase 3 — E13 span-aware placement 엔진↔CSS 정합 (G3)"
     expect(bad, `${c.name} 발산:\n${bad.join("\n")}`).toEqual([]);
   });
 });
+
+// ── E12: 컨테이너 트랙 정렬 (justify-content / align-content) ──
+// 고정 트랙(px)이 컨테이너보다 작을 때만 free space → 트랙셋 정렬. fr 은 free≈0.
+const E12_CASES: ParityCase[] = [
+  nested(
+    {
+      display: "grid",
+      gridTemplateColumns: ["100px", "100px"],
+      gridTemplateRows: ["50px"],
+      justifyContent: "center",
+      width: "300px",
+      height: "50px",
+    },
+    [
+      { label: "a", style: {} },
+      { label: "b", style: {} },
+    ],
+    "E12 grid: justify-content:center offsets fixed tracks (free/2=50)",
+  ),
+  nested(
+    {
+      display: "grid",
+      gridTemplateColumns: ["100px", "100px"],
+      gridTemplateRows: ["50px"],
+      justifyContent: "space-between",
+      width: "300px",
+      height: "50px",
+    },
+    [
+      { label: "a", style: {} },
+      { label: "b", style: {} },
+    ],
+    "E12 grid: justify-content:space-between distributes column gap",
+  ),
+  nested(
+    {
+      display: "grid",
+      gridTemplateColumns: ["100px"],
+      gridTemplateRows: ["40px", "40px"],
+      alignContent: "center",
+      width: "100px",
+      height: "200px",
+    },
+    [
+      { label: "a", style: {} },
+      { label: "b", style: {} },
+    ],
+    "E12 grid: align-content:center offsets fixed row tracks (free/2=60)",
+  ),
+];
+
+describe("ADR-156 Phase 3 — E12 track alignment 엔진↔CSS 정합 (G3)", () => {
+  beforeAll(async () => {
+    await initCompositionEngineWasm();
+  });
+
+  it.each(E12_CASES)("$name", (c) => {
+    const bad = runParityCase(c);
+    expect(bad, `${c.name} 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+});

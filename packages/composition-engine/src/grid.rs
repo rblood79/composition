@@ -793,6 +793,40 @@ fn place_children(
         .collect()
 }
 
+// ─── 컨테이너 트랙 정렬 (E12) ───────────────────────────────────────────
+
+/// justify-content / align-content 로 트랙셋을 컨테이너 안에서 정렬 (CSS-GRID-1 §10.4/§10.5).
+///
+/// 트랙 총합이 컨테이너보다 작을 때(전부 고정 트랙)만 free space 가 생긴다 — fr/auto 트랙은
+/// 컨테이너를 채우므로 free≈0 → 오프셋 없음. `(start_offset, extra_gap)` 반환: start_offset 은
+/// 트랙셋 전체 이동, extra_gap 은 트랙 사이 추가 간격(space-*). flex `align_content_offsets` 대칭.
+fn track_distribution(mode: &str, free: f32, n: usize) -> (f32, f32) {
+    if free <= 0.5 || n == 0 {
+        return (0.0, 0.0);
+    }
+    match mode.trim() {
+        "center" => (free / 2.0, 0.0),
+        "end" | "flex-end" => (free, 0.0),
+        "space-between" => {
+            if n > 1 {
+                (0.0, free / (n as f32 - 1.0))
+            } else {
+                (free / 2.0, 0.0) // 단일 트랙 space-between → center (CSS)
+            }
+        }
+        "space-around" => {
+            let unit = free / n as f32;
+            (unit / 2.0, unit)
+        }
+        "space-evenly" => {
+            let unit = free / (n as f32 + 1.0);
+            (unit, unit)
+        }
+        // start / flex-start / stretch / normal / 기타 → 오프셋 없음
+        _ => (0.0, 0.0),
+    }
+}
+
 // ─── 공개 API: 완결 grid 레이아웃 ──────────────────────────────────────
 
 /// 자식 placement 문자열 파싱. 자식당 `area_name|grid_column|grid_row` (파이프 구분),
@@ -837,6 +871,8 @@ pub fn grid_layout(
     available_h: f32,
     col_gap: f32,
     row_gap: f32,
+    justify_content: &str,
+    align_content: &str,
 ) -> Box<[f32]> {
     // 트랙 해결.
     let mut col_tracks = parse_template_to_tracks(template_cols.trim(), available_w, col_gap);
@@ -861,12 +897,31 @@ pub fn grid_layout(
         parse_placements(placement_spec)
     };
 
-    let bounds = place_children(&placements, &tracks_x, &tracks_y, col_gap, row_gap, &areas);
+    // ── E12: 컨테이너 트랙 정렬 (justify-content / align-content) ──
+    // 트랙 총합 < 컨테이너(고정 트랙)일 때만 free space → 오프셋/추가 gap. fr/auto 는 free≈0.
+    // available 이 음수(indefinite)면 free 음수 → 분배 없음(auto 축은 정렬 대상 아님).
+    let n_cols = tracks_x.len();
+    let n_rows = tracks_y.len();
+    let total_x: f32 =
+        tracks_x.iter().sum::<f32>() + col_gap * n_cols.saturating_sub(1) as f32;
+    let total_y: f32 =
+        tracks_y.iter().sum::<f32>() + row_gap * n_rows.saturating_sub(1) as f32;
+    let (off_x, extra_col_gap) = track_distribution(justify_content, available_w - total_x, n_cols);
+    let (off_y, extra_row_gap) = track_distribution(align_content, available_h - total_y, n_rows);
+
+    let bounds = place_children(
+        &placements,
+        &tracks_x,
+        &tracks_y,
+        col_gap + extra_col_gap,
+        row_gap + extra_row_gap,
+        &areas,
+    );
 
     let mut out = Vec::with_capacity(bounds.len() * 4);
     for (x, y, w, h) in bounds {
-        out.push(x);
-        out.push(y);
+        out.push(x + off_x);
+        out.push(y + off_y);
         out.push(w);
         out.push(h);
     }
@@ -1097,7 +1152,7 @@ mod tests {
     #[test]
     fn test_grid_layout_auto_placement() {
         // 2열 grid, 4 자식 auto. cols "1fr 1fr" at 200 → [100,100], rows "50px 50px"
-        let out = grid_layout("1fr 1fr", "50px 50px", "", "", 4, 200.0, 100.0, 0.0, 0.0);
+        let out = grid_layout("1fr 1fr", "50px 50px", "", "", 4, 200.0, 100.0, 0.0, 0.0, "", "");
         assert_eq!(out.len(), 16);
         // child0 (0,0)
         assert!(approx_eq(out[0], 0.0));
@@ -1114,7 +1169,7 @@ mod tests {
         // E13: 2열 grid. child0 = column span 2 (1행 전체 점유). child1/child2 auto 는
         //   점유를 스킵해 2행에 배치돼야 한다 (구현 전엔 child_index%cols 로 child1 이
         //   (1행,2열)에 겹쳤다).
-        let out = grid_layout("1fr 1fr", "50px 50px", "", "|span 2|\n||\n||", 3, 200.0, 100.0, 0.0, 0.0);
+        let out = grid_layout("1fr 1fr", "50px 50px", "", "|span 2|\n||\n||", 3, 200.0, 100.0, 0.0, 0.0, "", "");
         assert_eq!(out.len(), 12);
         // child0: col span 2 → x=0 w=200, row1 → y=0
         assert!(approx_eq(out[0], 0.0));
@@ -1141,6 +1196,8 @@ mod tests {
             100.0,
             0.0,
             0.0,
+            "",
+            "",
         );
         assert_eq!(out.len(), 4);
         // header: col 1-3 → w=200, row 1-2 → h=40
@@ -1163,6 +1220,8 @@ mod tests {
             100.0,
             0.0,
             0.0,
+            "",
+            "",
         );
         assert_eq!(out.len(), 12);
         // 3 트랙 각 ≈213.33. child0 x=0, child1 x≈213.33, child2 x≈426.67
@@ -1174,9 +1233,36 @@ mod tests {
     #[test]
     fn test_grid_layout_placement_spec_span() {
         // 자식0 gridColumn "1 / 3" span 2. cols "100px 100px", 개행 placement.
-        let out = grid_layout("100px 100px", "50px", "", "|1 / 3|", 1, 200.0, 50.0, 0.0, 0.0);
+        let out = grid_layout("100px 100px", "50px", "", "|1 / 3|", 1, 200.0, 50.0, 0.0, 0.0, "", "");
         assert_eq!(out.len(), 4);
         // colStart 1 colEnd 3 → width 200
         assert!(approx_eq(out[2], 200.0));
+    }
+
+    #[test]
+    fn test_grid_layout_justify_content_center() {
+        // E12: 고정 트랙 100+100=200, 컨테이너 300 → free 100. justify-content:center → offset 50.
+        let out = grid_layout("100px 100px", "50px", "", "", 2, 300.0, 50.0, 0.0, 0.0, "center", "");
+        assert_eq!(out.len(), 8);
+        assert!(approx_eq(out[0], 50.0)); // child0 x = free/2
+        assert!(approx_eq(out[4], 150.0)); // child1 x = 50 + 100
+    }
+
+    #[test]
+    fn test_grid_layout_justify_content_space_between() {
+        // E12: 고정 트랙 100+100, 컨테이너 300 → free 100. space-between(n=2) → gap += 100.
+        let out = grid_layout(
+            "100px 100px", "50px", "", "", 2, 300.0, 50.0, 0.0, 0.0, "space-between", "",
+        );
+        assert!(approx_eq(out[0], 0.0)); // child0 x=0
+        assert!(approx_eq(out[4], 200.0)); // child1 x = track0(100) + extra gap(100)
+    }
+
+    #[test]
+    fn test_grid_layout_fr_no_justify_offset() {
+        // fr 트랙은 컨테이너를 채워 free≈0 → justify-content 무효(오프셋 0).
+        let out = grid_layout("1fr 1fr", "50px", "", "", 2, 300.0, 50.0, 0.0, 0.0, "center", "");
+        assert!(approx_eq(out[0], 0.0)); // 오프셋 없음
+        assert!(approx_eq(out[4], 150.0)); // 각 트랙 150
     }
 }
