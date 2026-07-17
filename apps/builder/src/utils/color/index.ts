@@ -28,9 +28,8 @@ export {
   extractRGB,
   extractHSL,
 
-  // Pixi Canvas Support
+  // Skia 색상 변환 (0xRRGGBB 숫자 — 심볼명의 "Pixi" 는 ADR-900 이전 잔재)
   cssColorToPixiHex,
-  pixiHexToCssColor,
 
   // Re-exports from colord
   colord,
@@ -41,4 +40,4 @@ export {
   type Colord,
   type RgbaColor,
   type HslaColor,
-} from './colorUtils';
+} from "./colorUtils";

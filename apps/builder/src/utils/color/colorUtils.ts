@@ -18,13 +18,19 @@
  * @since 2025-12-20 Phase 1 - Quick Wins
  */
 
-import { colord, extend, type Colord, type RgbaColor, type HslaColor } from 'colord';
-import namesPlugin from 'colord/plugins/names';
-import hwbPlugin from 'colord/plugins/hwb';
-import labPlugin from 'colord/plugins/lab';
-import mixPlugin from 'colord/plugins/mix';
-import a11yPlugin from 'colord/plugins/a11y';
-import type { ColorValueHSL, ColorValueRGB } from '../../types/theme';
+import {
+  colord,
+  extend,
+  type Colord,
+  type RgbaColor,
+  type HslaColor,
+} from "colord";
+import namesPlugin from "colord/plugins/names";
+import hwbPlugin from "colord/plugins/hwb";
+import labPlugin from "colord/plugins/lab";
+import mixPlugin from "colord/plugins/mix";
+import a11yPlugin from "colord/plugins/a11y";
+import type { ColorValueHSL, ColorValueRGB } from "../../types/theme";
 
 // CSS Color Level 4 지원 및 색상 조작/접근성을 위한 플러그인 확장
 extend([namesPlugin, hwbPlugin, labPlugin, mixPlugin, a11yPlugin]);
@@ -62,7 +68,7 @@ export interface ParsedColor {
   isTransparent: boolean;
 }
 
-export type ColorFormat = 'hex' | 'rgb' | 'rgba' | 'hsl' | 'hsla';
+export type ColorFormat = "hex" | "rgb" | "rgba" | "hsl" | "hsla";
 
 // ============================================
 // Core Functions
@@ -74,8 +80,10 @@ export type ColorFormat = 'hex' | 'rgb' | 'rgba' | 'hsl' | 'hsla';
  * @param value - CSS 색상 값 (hex, rgb, hsl, named color 등)
  * @returns 파싱된 색상 정보 또는 null (유효하지 않은 경우)
  */
-export function parseColor(value: string | null | undefined): ParsedColor | null {
-  if (!value || typeof value !== 'string') {
+export function parseColor(
+  value: string | null | undefined,
+): ParsedColor | null {
+  if (!value || typeof value !== "string") {
     return null;
   }
 
@@ -114,7 +122,7 @@ export function parseColor(value: string | null | undefined): ParsedColor | null
  * 색상 유효성 검사
  */
 export function isValidColor(value: string | null | undefined): boolean {
-  if (!value || typeof value !== 'string') {
+  if (!value || typeof value !== "string") {
     return false;
   }
 
@@ -130,36 +138,38 @@ export function isValidColor(value: string | null | undefined): boolean {
  */
 export function formatColor(
   color: ParsedColor | string | null | undefined,
-  format: ColorFormat
+  format: ColorFormat,
 ): string {
   let parsed: ParsedColor | null;
 
-  if (typeof color === 'string') {
+  if (typeof color === "string") {
     parsed = parseColor(color);
   } else {
     parsed = color ?? null;
   }
 
   if (!parsed) {
-    return '';
+    return "";
   }
 
   const { instance, rgb, hsl } = parsed;
 
   switch (format) {
-    case 'hex':
-      return instance.alpha() < 1 ? instance.toHex() : instance.toHex().slice(0, 7);
+    case "hex":
+      return instance.alpha() < 1
+        ? instance.toHex()
+        : instance.toHex().slice(0, 7);
 
-    case 'rgb':
+    case "rgb":
       return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
 
-    case 'rgba':
+    case "rgba":
       return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${rgb.a})`;
 
-    case 'hsl':
+    case "hsl":
       return `hsl(${Math.round(hsl.h)}, ${Math.round(hsl.s)}%, ${Math.round(hsl.l)}%)`;
 
-    case 'hsla':
+    case "hsla":
       return `hsla(${Math.round(hsl.h)}, ${Math.round(hsl.s)}%, ${Math.round(hsl.l)}%, ${hsl.a})`;
 
     default:
@@ -179,10 +189,10 @@ export function formatColor(
  */
 export function adjustBrightness(
   color: string | ParsedColor,
-  amount: number
+  amount: number,
 ): string {
-  const parsed = typeof color === 'string' ? parseColor(color) : color;
-  if (!parsed) return '';
+  const parsed = typeof color === "string" ? parseColor(color) : color;
+  if (!parsed) return "";
 
   if (amount > 0) {
     return parsed.instance.lighten(amount).toHex();
@@ -199,10 +209,10 @@ export function adjustBrightness(
  */
 export function adjustSaturation(
   color: string | ParsedColor,
-  amount: number
+  amount: number,
 ): string {
-  const parsed = typeof color === 'string' ? parseColor(color) : color;
-  if (!parsed) return '';
+  const parsed = typeof color === "string" ? parseColor(color) : color;
+  if (!parsed) return "";
 
   if (amount > 0) {
     return parsed.instance.saturate(amount).toHex();
@@ -215,8 +225,8 @@ export function adjustSaturation(
  * 알파 값 설정
  */
 export function setAlpha(color: string | ParsedColor, alpha: number): string {
-  const parsed = typeof color === 'string' ? parseColor(color) : color;
-  if (!parsed) return '';
+  const parsed = typeof color === "string" ? parseColor(color) : color;
+  if (!parsed) return "";
 
   return parsed.instance.alpha(Math.max(0, Math.min(1, alpha))).toHex();
 }
@@ -225,8 +235,8 @@ export function setAlpha(color: string | ParsedColor, alpha: number): string {
  * 보색 생성
  */
 export function getComplementary(color: string | ParsedColor): string {
-  const parsed = typeof color === 'string' ? parseColor(color) : color;
-  if (!parsed) return '';
+  const parsed = typeof color === "string" ? parseColor(color) : color;
+  if (!parsed) return "";
 
   return parsed.instance.rotate(180).toHex();
 }
@@ -241,12 +251,12 @@ export function getComplementary(color: string | ParsedColor): string {
 export function mixColors(
   color1: string | ParsedColor,
   color2: string | ParsedColor,
-  ratio: number = 0.5
+  ratio: number = 0.5,
 ): string {
-  const parsed1 = typeof color1 === 'string' ? parseColor(color1) : color1;
-  const parsed2 = typeof color2 === 'string' ? parseColor(color2) : color2;
+  const parsed1 = typeof color1 === "string" ? parseColor(color1) : color1;
+  const parsed2 = typeof color2 === "string" ? parseColor(color2) : color2;
 
-  if (!parsed1 || !parsed2) return '';
+  if (!parsed1 || !parsed2) return "";
 
   return parsed1.instance.mix(parsed2.instance, ratio).toHex();
 }
@@ -259,16 +269,16 @@ export function mixColors(
  * 대비 색상 반환 (텍스트용)
  */
 export function getContrastColor(
-  backgroundColor: string | ParsedColor
+  backgroundColor: string | ParsedColor,
 ): string {
   const parsed =
-    typeof backgroundColor === 'string'
+    typeof backgroundColor === "string"
       ? parseColor(backgroundColor)
       : backgroundColor;
 
-  if (!parsed) return '#000000';
+  if (!parsed) return "#000000";
 
-  return parsed.isLight ? '#000000' : '#FFFFFF';
+  return parsed.isLight ? "#000000" : "#FFFFFF";
 }
 
 /**
@@ -276,10 +286,10 @@ export function getContrastColor(
  */
 export function getContrastRatio(
   color1: string | ParsedColor,
-  color2: string | ParsedColor
+  color2: string | ParsedColor,
 ): number {
-  const parsed1 = typeof color1 === 'string' ? parseColor(color1) : color1;
-  const parsed2 = typeof color2 === 'string' ? parseColor(color2) : color2;
+  const parsed1 = typeof color1 === "string" ? parseColor(color1) : color1;
+  const parsed2 = typeof color2 === "string" ? parseColor(color2) : color2;
 
   if (!parsed1 || !parsed2) return 1;
 
@@ -292,7 +302,7 @@ export function getContrastRatio(
 export function meetsWCAG_AA(
   foreground: string | ParsedColor,
   background: string | ParsedColor,
-  isLargeText: boolean = false
+  isLargeText: boolean = false,
 ): boolean {
   const ratio = getContrastRatio(foreground, background);
   return ratio >= (isLargeText ? 3 : 4.5);
@@ -306,9 +316,9 @@ export function meetsWCAG_AA(
  * RGB 개별 값 추출
  */
 export function extractRGB(
-  color: string | ParsedColor
+  color: string | ParsedColor,
 ): { r: number; g: number; b: number } | null {
-  const parsed = typeof color === 'string' ? parseColor(color) : color;
+  const parsed = typeof color === "string" ? parseColor(color) : color;
   if (!parsed) return null;
 
   const { r, g, b } = parsed.rgb;
@@ -319,9 +329,9 @@ export function extractRGB(
  * HSL 개별 값 추출
  */
 export function extractHSL(
-  color: string | ParsedColor
+  color: string | ParsedColor,
 ): { h: number; s: number; l: number } | null {
-  const parsed = typeof color === 'string' ? parseColor(color) : color;
+  const parsed = typeof color === "string" ? parseColor(color) : color;
   if (!parsed) return null;
 
   const { h, s, l } = parsed.hsl;
@@ -343,7 +353,10 @@ export function extractHSL(
  * @param fallback - 파싱 실패 시 반환할 기본값 (0xRRGGBB)
  * @returns Pixi용 숫자 색상 (0xRRGGBB)
  */
-export function cssColorToPixiHex(color: string | null | undefined, fallback: number): number {
+export function cssColorToPixiHex(
+  color: string | null | undefined,
+  fallback: number,
+): number {
   if (!color) return fallback;
 
   const parsed = parseColor(color);
@@ -351,19 +364,6 @@ export function cssColorToPixiHex(color: string | null | undefined, fallback: nu
 
   const { r, g, b } = parsed.rgb;
   return (r << 16) | (g << 8) | b;
-}
-
-/**
- * Pixi용 숫자 형식을 CSS hex 문자열로 변환
- *
- * @param pixiColor - Pixi 색상 (0xRRGGBB)
- * @returns CSS hex 문자열 (#RRGGBB)
- */
-export function pixiHexToCssColor(pixiColor: number): string {
-  const r = (pixiColor >> 16) & 0xff;
-  const g = (pixiColor >> 8) & 0xff;
-  const b = pixiColor & 0xff;
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
 // ============================================
@@ -387,7 +387,12 @@ export function hslToRgb(hsl: ColorValueHSL): ColorValueRGB {
 export function rgbToHsl(rgb: ColorValueRGB): ColorValueHSL {
   const color = colord({ r: rgb.r, g: rgb.g, b: rgb.b, a: rgb.a });
   const hsl = color.toHsl();
-  return { h: Math.round(hsl.h), s: Math.round(hsl.s), l: Math.round(hsl.l), a: hsl.a };
+  return {
+    h: Math.round(hsl.h),
+    s: Math.round(hsl.s),
+    l: Math.round(hsl.l),
+    a: hsl.a,
+  };
 }
 
 /**
@@ -467,7 +472,10 @@ export function parseColorString(colorString: string): ColorValueHSL | null {
 /**
  * 색상 밝기 조정 (레거시 호환)
  */
-export function adjustLightness(hsl: ColorValueHSL, amount: number): ColorValueHSL {
+export function adjustLightness(
+  hsl: ColorValueHSL,
+  amount: number,
+): ColorValueHSL {
   return {
     ...hsl,
     l: Math.max(0, Math.min(100, hsl.l + amount)),
@@ -477,7 +485,10 @@ export function adjustLightness(hsl: ColorValueHSL, amount: number): ColorValueH
 /**
  * 색상 채도 조정 (레거시 호환) - HSL 타입용
  */
-export function adjustSaturationHsl(hsl: ColorValueHSL, amount: number): ColorValueHSL {
+export function adjustSaturationHsl(
+  hsl: ColorValueHSL,
+  amount: number,
+): ColorValueHSL {
   return {
     ...hsl,
     s: Math.max(0, Math.min(100, hsl.s + amount)),
@@ -487,7 +498,9 @@ export function adjustSaturationHsl(hsl: ColorValueHSL, amount: number): ColorVa
 /**
  * 분할 보색 생성 (레거시 호환)
  */
-export function getSplitComplementaryColors(hsl: ColorValueHSL): [ColorValueHSL, ColorValueHSL, ColorValueHSL] {
+export function getSplitComplementaryColors(
+  hsl: ColorValueHSL,
+): [ColorValueHSL, ColorValueHSL, ColorValueHSL] {
   const complementary = (hsl.h + 180) % 360;
   return [
     hsl,
