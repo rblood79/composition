@@ -2,13 +2,14 @@
 
 ## Status
 
-Proposed — 2026-07-08
+Accepted — 2026-07-17 (Proposed 2026-07-08)
 
 진행 로그:
 
 - 2026-07-07 — landscape 전수 실측 ([audits/2026-07-07-reusable-slot-landscape.md](../reference/audits/2026-07-07-reusable-slot-landscape.md)) + 등록 구조 사용자 explicit confirm (**전면 reusable entry**) + 전체 설계도 작성 ([REUSABLE_SLOT_DESIGN.md](../reference/components/REUSABLE_SLOT_DESIGN.md)).
 - 2026-07-08 — 사용자 명시 요청("관련 미진행 ADR 폐기 + 신규 단일 ADR")으로 본 ADR 작성. 폐기 범위 explicit confirm: **ADR-147 만 Superseded by 본 ADR** (144/920 은 기존 Superseded, 910/911 은 비실행 참조 위상 존속). fork 4질문 + 통합 동기 분류(b류 — 가시 효과 큰 단일 영역 closure)는 breakdown §1 lock-in.
 - 2026-07-17 — 사용자 재제기("slot 개념만 적용되었을 뿐 정상 동작 아님") + 코드 실측으로 **승계 전제 정정**: ADR-147 반영 완료분의 slot 조합 자식은 렌더·편집·projection 어디서도 소비되지 않는 미배선 구조로 확인 (Context 승계 표 #4, breakdown §2-1 실측 표). Phase 0 을 검증-only 에서 **승계 정정(배선) + 검증** phase 로 확장, R8 추가.
+- 2026-07-17 — **Accepted 승격** (execute-adr 착수 절차): 리뷰 round 1(2026-07-07)·round 2(2026-07-14) 이슈 3건 전부 `fixed`, pending 0 — 종결 계약 성립. README 테이블 동시 갱신.
 
 ## Context
 
