@@ -36,3 +36,4 @@
 {"sha":"21e74c8286cc173b70817965ee735fd6a0eae764","date":"2026-07-16T13:20:44+09:00","promoted_adrs":["docs/adr/completed/915-catalog-prop-parity-restoration.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"069b749618a6c2393d60deb0527af1edc09c7661","date":"2026-07-17T00:09:33+09:00","promoted_adrs":["docs/adr/completed/151-builder-residual-parity-defect-remediation.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"75294b8a9cceae9e272daf490a804238d7fffcdd","date":"2026-07-17T05:35:36+09:00","promoted_adrs":["docs/adr/completed/155-hidden-panel-selection-fanout-gating.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
+{"sha":"901eb108807fbf99d9c4cbc14a0f7ce19eb441ce","date":"2026-07-17T15:43:33+09:00","promoted_adrs":["docs/adr/completed/148-reusable-slot-system-unification.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
