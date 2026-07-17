@@ -303,6 +303,19 @@ CSS 규칙: 부모에 `padding-top`/`border-top`/BFC 생성 요인이 없으면 
 - E7: flow 배치에서 음수 margin 을 좌표 산술에 반영 (현재 absolute translate 패턴만 지원). 형제 위치·컨테이너 크기 양쪽 영향.
 - E8: `flex_direction` 의 `row-reverse`/`column-reverse` 와 `flex_wrap` 의 `wrap-reverse` 소비. 현재 `parse_flex_wrap`(`tree.rs`)이 `wrap-reverse` → `WRAP_WRAP` 로 **정규화하며 reverse 정보를 버린다** — 파서와 배치 양쪽 수정 필요. `flexDirection` 은 캐시 키에 이미 등재됨(추가 작업 없음).
 
+### 5-4. 진행 상태 — Phase 4 반영 완료 (2026-07-18, commit `6abd83aac`)
+
+**구현 (엔진 = `packages/composition-engine/src`)**:
+
+- **E7 음수 margin**: `write_flex_item`/`write_block_item` 의 margin 4필드를 `resolve_dimension`(음수 `n >= 0.0` 필터로 0-clamp) → `resolve_signed`(음수 보존)로 교체. block.rs `collapse_margins`(mixed/음수 정확) + flex.rs `place_line_main_axis` cursor 가 이미 음수를 처리해, 형제 당김(flex b.x 30)·auto-width 확장(block b.w = avail − m_left − m_right = 320)이 복원됐다.
+- **E8 reverse**: `solve_flex` 배치 직후 **순수 기하 reflection** 후처리. row/column-reverse 는 main 물리축, wrap-reverse 는 cross 물리축을 반사한다. 정의역은 definite 컨테이너 크기(없으면 forward content extent). `flex_direction_is_reverse`/`flex_wrap_is_reverse` 헬퍼 추가. flex.rs 커널·golden 계약 무변경 → R2 회피. 3종 전부 파리티 + live 반영(a.x 160 / c.y 170).
+- **E3 부모-자식 상쇄 + E17 overflow BFC**: `solve_block` 이 차단 요인(`overflow_creates_bfc` / top·bottom `pad_border` / flex·grid item = `parent_is_flex_or_grid`) 부재 시 `can_collapse_top`/`bottom` 을 활성화해 `block::block_layout` 에 전달. metadata(first/lastChildMargin)로 탈출 margin 을 회수 — 자식 y 에서 `escaped_top` 차감(content 원점 정렬) + 컨테이너 height 에서 제외 + `TreeNode.escaped_mt/mb` 로 조상 hoist(상쇄 chain 전파). `block::collapse_margins` pub 화, `node_establishes_bfc`(자식 BFC → bfc_flag), `pad_border_end` 헬퍼 추가.
+- **R6**: `LAYOUT_STYLE_KEYS`(`layoutCache.ts`)에 `overflowX`/`overflowY` 등재.
+
+**검증**: `cargo test` 293(266 lib + 15 golden + 11 tree_golden + 1 doc — Phase 4 는 파리티로 검증, Rust 단위 무증가) / 파리티 `phase4.browser.test.ts` 8/8 + 전체 스위트 36 flaky 0 / type-check baseline 63 무증가.
+
+**§Residual (E3/E17 block height live 마스킹)**: 엔진은 정확(파리티 + live 직접 호출 mid.h=20)하나, 빌더 파이프라인이 auto-height block 컨테이너 높이를 **JS 선계산**(`calculateContentHeight`/`enrichWithIntrinsicSize`, utils.ts — 마진 상쇄 미구현)으로 주입해 live Skia 는 mid.h=50(상쇄 전)을 그린다 → 엔진 변경이 block 경로에서 live-inert(회귀 0). ADR §Residual + R5 Layer 2 후속에 구체 항목으로 등재. flex 경로(E7-flex, E8)는 엔진 결과가 Skia 까지 도달해 live 반영됨.
+
 ## 5.5. Phase 4.5 — 좌표계 (G4)
 
 **대상**: E10(`position:relative` inset offset) + E11(absolute 3종).

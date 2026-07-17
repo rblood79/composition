@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [flow 배치 발산(음수 margin·reverse·부모-자식 상쇄·overflow BFC)가 Builder(Skia)에서 CSS 와 어긋나던 결함 — ADR-156 Phase 4] - 2026-07-18
+
+### Bug Fixes
+
+- **음수 margin 이 Builder(Skia)에서 무시되던 결함 수정** (ADR-156 E7):
+  - 증상: `marginTop:-10px`/`marginLeft:-20px` 등 음수 margin 이 Skia 에서 0 으로 처리돼 형제 당김·요소 확장이 소실 (Preview 는 정상)
+  - **Why**: 엔진의 margin 해석기(`resolve_dimension`)가 `n >= 0.0` 필터로 음수를 0 으로 뭉갰다. `resolve_signed`(음수 보존)로 교체 — 배치 커널(`block.rs collapse_margins`/`flex.rs` cursor)은 이미 음수를 정확히 처리
+- **flex `row-reverse`/`column-reverse`/`wrap-reverse` 가 Builder(Skia)에서 무시되던 결함 수정** (ADR-156 E8):
+  - 증상: Inspector Direction 을 reverse 로 바꿔도 Skia 는 정방향으로 그림 (Preview 는 역방향) — CSS↔Skia 비대칭
+  - **Why**: 엔진 파서가 `row-reverse`→`row`, `wrap-reverse`→`wrap` 으로 정규화하며 reverse 정보를 버렸다. 배치 직후 **순수 기하 reflection**(row/column-reverse=main 축, wrap-reverse=cross 축)으로 정정 — 배치 커널 무변경
+- **부모-자식 마진 상쇄(block) 미구현 + overflow BFC 상쇄 차단 결함** (ADR-156 E3/E17):
+  - 엔진이 부모에 padding/border/overflow≠visible 이 없을 때 첫 자식 top margin 이 부모와 상쇄돼 밖으로 탈출하는 CSS 규칙(§8.3.1)을 미구현. `solve_block` 이 BFC 차단 요인 판정 후 상쇄를 활성화하고 탈출 margin 을 조상으로 전파하도록 구현. `overflow:hidden/scroll/auto` 는 BFC 로 상쇄를 차단(E17, E3 와 동시 구현)
+  - **Why (§Residual)**: 엔진은 정확(파리티 + live 직접 호출 mid.h=20)하나, 빌더가 auto-height block 컨테이너 높이를 JS 로 선계산(`calculateContentHeight`, 마진 상쇄 미구현)해 주입하므로 live Skia 는 아직 상쇄 전 높이를 그린다 → 엔진 변경은 block 경로에서 live-inert(회귀 0). Layer 2(adapter) 후속 과제로 등재
+- **R6 계열**: overflow 편집이 상쇄 재판정 relayout 을 유발하도록 `LAYOUT_STYLE_KEYS` 에 `overflowX`/`overflowY` 등재
+- 위치: `packages/composition-engine/src/{tree.rs,block.rs}`, `apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts`
+- 검증: Chrome 차등 파리티(`tests/parity/phase4.browser.test.ts`) 8 fixture + 전체 스위트 36 + Rust 293 tests + live(빌더: E7-flex 음수 margin·E8 reverse 3종 Skia 반영 확인, E3/E17 block-height 는 Layer 2 §Residual)
+
 ## [grid 정렬·배치가 Builder(Skia)에서 CSS 와 어긋나던 결함 — ADR-156 Phase 3 (grid 커널, 옵션 3-b)] - 2026-07-18
 
 ### Bug Fixes
