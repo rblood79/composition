@@ -102,6 +102,12 @@ const LAYOUT_STYLE_KEYS = [
   "gridRow",
   "gridRowStart",
   "overflow",
+  // ADR-156 P4 (R6): 파이프라인은 overflowX/overflowY longhand 를 송신하고(utils.ts),
+  //   엔진은 overflow≠visible 로 BFC 를 판정해 부모-자식 마진 상쇄를 차단한다(E17).
+  //   shorthand "overflow" 만 등재돼 있으면 longhand 편집이 style 시그니처 불변 →
+  //   캐시 히트 → 상쇄 재판정 skip. 두 longhand 를 등재해 overflow 편집이 relayout 유발.
+  "overflowX",
+  "overflowY",
   "whiteSpace",
   "wordBreak",
   "fontFamily",

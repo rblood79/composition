@@ -212,6 +212,13 @@ struct TreeNode {
     /// 자식 available 이 바뀌므로, 자식만 재계산하면 부모 배치가 stale 해진다.
     /// parent 포인터로 dirty 를 root 까지 상향 전파해 정확성을 보장한다.
     parent: Option<usize>,
+    /// 부모-자식 마진 상쇄로 이 컨테이너 **밖으로 hoisted 된** 첫 자식 top /
+    /// 마지막 자식 bottom margin (E3/ADR-156 P4). `solve_block` 이 BFC 차단 요인
+    /// (padding/border/overflow≠visible / flex·grid item)이 없을 때만 nonzero 로 채운다.
+    /// 부모(=조부모)의 `solve_block` 이 이 노드를 block flat 으로 직렬화할 때 자기 style
+    /// margin 과 collapse 하여 상쇄 chain 을 잇는다. 비-block solve(flex/grid/leaf)는 0.
+    escaped_mt: f32,
+    escaped_mb: f32,
 }
 
 /// 자체 레이아웃 트리 엔진 (taffy_bridge.rs `TaffyLayoutEngine` 대응).
@@ -274,6 +281,8 @@ impl LayoutTree {
             layout: NodeLayout::ZERO,
             dirty: true,
             parent: None,
+            escaped_mt: 0.0,
+            escaped_mb: 0.0,
         })
     }
 
@@ -394,6 +403,8 @@ impl LayoutTree {
                 layout: NodeLayout::ZERO,
                 dirty: true,
                 parent: None,
+                escaped_mt: 0.0,
+                escaped_mb: 0.0,
             });
             // 자식들의 parent 를 이 노드로 배선 (조상 dirty 전파 경로 확보).
             for &ch in &child_handles {
@@ -550,6 +561,13 @@ impl LayoutTree {
 
         // 명시 크기(있으면) — auto 는 아래에서 content 로 채움.
         let (explicit_w, explicit_h) = self.resolve_self_size(handle, avail_w, avail_h);
+
+        // 재계산마다 hoisted margin 리셋 (E3). solve_block 만 nonzero 로 채우고,
+        // flex/grid/leaf 는 0 유지 — display 가 block→flex 로 바뀌어도 stale escaped 잔존 없음.
+        if let Some(n) = self.get_mut(handle) {
+            n.escaped_mt = 0.0;
+            n.escaped_mb = 0.0;
+        }
 
         // leaf(=in-flow 자식 없음): 자기 크기만. absolute 자식만 있는 경우도 여기 해당 —
         //   컨테이너 크기는 absolute 자식에 영향받지 않으므로(out-of-flow) 그대로 확정한 뒤
@@ -984,6 +1002,53 @@ impl LayoutTree {
             }
         }
 
+        // 3.9) **reverse 반사** (E8/ADR-156 P4). row/column-reverse 는 main 축, wrap-reverse
+        //   는 cross 축을 반사한다. CSS 의 reverse 는 해당 축의 start/end 를 뒤집는 것이라
+        //   **정방향 배치의 순수 기하 반사**로 정확히 재현된다 (justify/gap/free-space/align
+        //   전부 최종 좌표에 이미 녹아 있어 반사가 일괄 처리). flex.rs 커널·golden 계약을
+        //   건드리지 않아 R2(flex 계약 파손) 회피.
+        //
+        //   반사 정의역: 물리축이 definite 컨테이너 크기를 가지면 그 크기, auto(indefinite)면
+        //   정방향 content extent(= 배치 최댓값) — auto 축은 컨테이너가 content 로 축소되므로
+        //   content extent 반사 = 순수 순서 반전(bbox 보존).
+        let main_reverse = flex_direction_is_reverse(style.flex_direction.as_deref());
+        let cross_reverse = flex_wrap_is_reverse(style.flex_wrap.as_deref());
+        if main_reverse || cross_reverse {
+            // 물리축 매핑: row → main=x/cross=y, column → main=y/cross=x.
+            let reflect_x = if is_row { main_reverse } else { cross_reverse };
+            let reflect_y = if is_row { cross_reverse } else { main_reverse };
+            // 각 물리축의 definite 크기 (없으면 None → content extent 사용).
+            let (x_size, y_size) = if is_row {
+                (
+                    if avail_main >= 0.0 { Some(avail_main) } else { None },
+                    if cross_definite { Some(avail_cross) } else { None },
+                )
+            } else {
+                (
+                    if cross_definite { Some(avail_cross) } else { None },
+                    if avail_main >= 0.0 { Some(avail_main) } else { None },
+                )
+            };
+            let mut cmax_x: f32 = 0.0;
+            let mut cmax_y: f32 = 0.0;
+            for i in 0..children.len() {
+                let off = i * 4;
+                cmax_x = cmax_x.max(out[off] + out[off + 2]);
+                cmax_y = cmax_y.max(out[off + 1] + out[off + 3]);
+            }
+            let ext_x = x_size.unwrap_or(cmax_x);
+            let ext_y = y_size.unwrap_or(cmax_y);
+            for i in 0..children.len() {
+                let off = i * 4;
+                if reflect_x {
+                    out[off] = ext_x - out[off] - out[off + 2];
+                }
+                if reflect_y {
+                    out[off + 1] = ext_y - out[off + 1] - out[off + 3];
+                }
+            }
+        }
+
         // 4) 자식 위치 반영 + bounding box 로 컨테이너 content 크기 도출.
         //    bounding box 는 offset 전 좌표 기준(컨테이너 content 크기), 저장은 offset 후
         //    (자식 화면 좌표는 padding 안쪽) — 섞으면 컨테이너 크기에 padding 이중 반영.
@@ -1074,26 +1139,77 @@ impl LayoutTree {
             child_sizes.push(cs);
         }
 
+        // 부모-자식 마진 상쇄 차단 판정 (E3/E17/ADR-156 P4).
+        //   CSS 2.1 §8.3.1: 첫 자식 top margin 은 부모에 top padding/border 가 없고 부모가
+        //   BFC 를 확립하지 않을 때만 부모와 상쇄해 밖으로 탈출한다. 마지막 자식 bottom 도 대칭.
+        //   차단 요인: ① overflow≠visible (BFC, E17) ② top/bottom padding·border
+        //   ③ 이 block 이 flex/grid **item** (부모가 flex/grid → item 은 BFC).
+        let creates_bfc = overflow_creates_bfc(&style);
+        let parent_is_flex_or_grid = self
+            .get(handle)
+            .and_then(|n| n.parent)
+            .and_then(|p| self.get(p))
+            .map(|p| {
+                matches!(
+                    classify_container_display(p.style.display.as_deref()),
+                    ContainerDisplay::Flex | ContainerDisplay::Grid
+                )
+            })
+            .unwrap_or(false);
+        let block_is_bfc = creates_bfc || parent_is_flex_or_grid;
+        let can_collapse_top = !block_is_bfc && off_y == 0.0; // off_y = padding_top+border_top
+        let bottom_barrier = pad_border_end(&style, &parent_ctx, false);
+        let can_collapse_bottom = !block_is_bfc && bottom_barrier == 0.0;
+
         // 2) 자식 → block flat f32 (19필드, 물리축).
         let mut data = vec![0.0f32; children.len() * block::FIELD_COUNT];
         for (i, &c) in children.iter().enumerate() {
             let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
             let (cw, ch) = child_sizes[i];
             write_block_item(&mut data, i, &cstyle, cw, ch, &ctx, &height_ctx);
+            let off = i * block::FIELD_COUNT;
+            // 자식이 자기 자식 상쇄로 hoisted margin 을 보유하면 자기 style margin 과 collapse
+            //   해 상쇄 chain 을 잇는다 (E3 전파). 자식이 BFC 확립 시 형제 관통 상쇄 차단 flag.
+            let (ch_esc_mt, ch_esc_mb, ch_bfc) = self
+                .get(c)
+                .map(|n| (n.escaped_mt, n.escaped_mb, node_establishes_bfc(&n.style)))
+                .unwrap_or((0.0, 0.0, false));
+            if ch_esc_mt != 0.0 {
+                data[off + 3] = block::collapse_margins(data[off + 3], ch_esc_mt);
+            }
+            if ch_esc_mb != 0.0 {
+                data[off + 5] = block::collapse_margins(data[off + 5], ch_esc_mb);
+            }
+            if ch_bfc {
+                data[off + 7] = 1.0; // bfc_flag
+            }
         }
 
-        // 3) block_layout — BFC 격리 가정(부모-자식 collapse 미전파, 단위 3-a scope).
-        let out = block::block_layout(&data, child_avail_w, child_avail_h, false, false, 0.0);
+        // 3) block_layout — 부모-자식 collapse 활성 (차단 요인 없을 때). metadata
+        //    (firstChildMarginTop/lastChildMarginBottom) 로 탈출 margin 을 회수한다.
+        let out = block::block_layout(
+            &data,
+            child_avail_w,
+            child_avail_h,
+            can_collapse_top,
+            can_collapse_bottom,
+            0.0,
+        );
+        let meta_off = children.len() * 4;
+        // 탈출한 top margin — block.rs 는 첫 자식을 여전히 y=escaped_top 에 배치하고 이 값을
+        //   metadata 로 보고한다. 상쇄된 margin 은 컨테이너 **밖**으로 나가므로 자식 y 에서
+        //   빼 컨테이너 content 원점(y=0)에 맞추고, 컨테이너 밖으로 hoist 한다.
+        let escaped_top = out[meta_off];
+        let escaped_bottom = out[meta_off + 1];
 
         // 4) 자식 위치 반영 + bounding box 로 컨테이너 content 크기 도출.
-        //    (out 마지막 2값은 firstChildMarginTop/lastChildMarginBottom metadata — 단위 3-a 미소비.)
         //    bounding box 는 offset 전 좌표 기준(컨테이너 content 크기), 저장은 offset 후
         //    (자식 화면 좌표는 padding 안쪽) — 섞으면 컨테이너 크기에 padding 이중 반영.
         let mut max_right: f32 = 0.0;
         let mut max_bottom: f32 = 0.0;
         for (i, &c) in children.iter().enumerate() {
             let off = i * 4;
-            let (x, y, w, h) = (out[off], out[off + 1], out[off + 2], out[off + 3]);
+            let (x, y, w, h) = (out[off], out[off + 1] - escaped_top, out[off + 2], out[off + 3]);
             max_right = max_right.max(x + w);
             max_bottom = max_bottom.max(y + h);
             if let Some(n) = self.get_mut(c) {
@@ -1101,11 +1217,13 @@ impl LayoutTree {
             }
         }
 
-        // 컨테이너 크기: 명시 있으면 명시, 없으면 자식 bounding box.
+        // 컨테이너 크기: 명시 있으면 명시, 없으면 자식 bounding box(탈출 margin 제외됨).
         let container_w = if explicit_w > 0.0 { explicit_w } else { max_right };
         let container_h = if explicit_h > 0.0 { explicit_h } else { max_bottom };
         if let Some(n) = self.get_mut(handle) {
             n.layout = NodeLayout { x: 0.0, y: 0.0, width: container_w, height: container_h };
+            n.escaped_mt = escaped_top;
+            n.escaped_mb = escaped_bottom;
             n.dirty = false;
         }
         (container_w, container_h)
@@ -1503,12 +1621,31 @@ fn classify_container_display(display: Option<&str>) -> ContainerDisplay {
 }
 
 /// flex-direction → flex.rs DIR_ROW(0)/DIR_COLUMN(1). row-reverse/column-reverse
-/// 는 단위 2 미지원(축만 매핑, reverse 는 다음) → row/column 로 정규화.
+/// 는 축만 매핑 — reverse 는 배치 후 `solve_flex` 가 main 축 반사로 처리(E8).
 fn parse_flex_direction(v: Option<&str>) -> u8 {
     match v.map(|s| s.trim().to_ascii_lowercase()).as_deref() {
         Some("column") | Some("column-reverse") => flex::DIR_COLUMN,
         _ => flex::DIR_ROW,
     }
+}
+
+/// flex-direction 이 `row-reverse`/`column-reverse` 인가 (E8/ADR-156 P4).
+/// reverse 는 정방향 배치 결과를 main 축으로 반사해 구현한다 (순수 기하 — flex.rs
+/// 커널·golden 계약 무변경). 반사 정의역은 컨테이너 definite main, auto 면 content extent.
+fn flex_direction_is_reverse(v: Option<&str>) -> bool {
+    matches!(
+        v.map(|s| s.trim().to_ascii_lowercase()).as_deref(),
+        Some("row-reverse") | Some("column-reverse")
+    )
+}
+
+/// flex-wrap 이 `wrap-reverse` 인가 (E8). 라인 스택을 cross 축으로 반사 —
+/// 라인 순서 반전 + 라인 내 align 방향 반전을 한 번에 처리한다 (CSS §5.2 cross-start/end 반전).
+fn flex_wrap_is_reverse(v: Option<&str>) -> bool {
+    matches!(
+        v.map(|s| s.trim().to_ascii_lowercase()).as_deref(),
+        Some("wrap-reverse")
+    )
 }
 
 /// justify-content → flex.rs JUSTIFY_* (start=0/center=1/end=2/space-between=3/
@@ -1693,6 +1830,40 @@ fn pad_border_start(style: &NodeStyle, ctx: &CssValueContext, horizontal: bool) 
     resolve_dimension(p, ctx) + resolve_dimension(b, ctx)
 }
 
+/// pad_border 의 **끝** 성분 (horizontal → right, 아니면 bottom). 마진 상쇄 차단
+/// 판정(bottom barrier)에서 padding_bottom+border_bottom 을 읽는다 (E3/ADR-156 P4).
+fn pad_border_end(style: &NodeStyle, ctx: &CssValueContext, horizontal: bool) -> f32 {
+    let (p, b) = if horizontal {
+        (style.padding_right.as_deref(), style.border_right.as_deref())
+    } else {
+        (style.padding_bottom.as_deref(), style.border_bottom.as_deref())
+    };
+    resolve_dimension(p, ctx) + resolve_dimension(b, ctx)
+}
+
+/// `overflow_x`/`overflow_y` 가 `visible` 이 아닌 값을 하나라도 가지면 BFC 생성
+/// (CSS 2.1 §9.4.1 — E17/ADR-156 P4). BFC 는 부모-자식 마진 상쇄를 차단한다.
+fn overflow_creates_bfc(style: &NodeStyle) -> bool {
+    let non_visible = |v: Option<&str>| {
+        matches!(v.map(|s| s.trim().to_ascii_lowercase()).as_deref(), Some(o) if o != "visible")
+    };
+    non_visible(style.overflow_x.as_deref()) || non_visible(style.overflow_y.as_deref())
+}
+
+/// 이 노드가 새 BFC 를 확립하는가 (형제 관통 상쇄 차단 — block.rs bfc_flag).
+/// overflow≠visible + flex/grid 컨테이너가 대상. block.rs 는 flex/grid 자식을
+/// block-level box 로 취급하나, 그 자식은 자기 내부에 독립 formatting context 를
+/// 만들어 형제 margin 이 관통하지 못한다 (E3/E17).
+fn node_establishes_bfc(style: &NodeStyle) -> bool {
+    if overflow_creates_bfc(style) {
+        return true;
+    }
+    matches!(
+        style.display.as_deref().map(|s| s.trim().to_ascii_lowercase()).as_deref(),
+        Some("flex") | Some("grid") | Some("inline-flex") | Some("inline-grid")
+    )
+}
+
 /// specified size(border-box, 전역 `* { box-sizing: border-box }` 계약) →
 /// 커널 content 입력. pad_border 감산, 0 하한 (pad_border 초과 시 content 0 =
 /// border-box 가 pad_border 로 floor — CSS 동일).
@@ -1777,10 +1948,13 @@ fn write_flex_item(
         Some(v) => spec_to_content(v, pad_border_cross),
         None => -1.0,
     };
-    data[off + 3] = resolve_dimension(cstyle.margin_top.as_deref(), ctx);
-    data[off + 4] = resolve_dimension(cstyle.margin_right.as_deref(), ctx);
-    data[off + 5] = resolve_dimension(cstyle.margin_bottom.as_deref(), ctx);
-    data[off + 6] = resolve_dimension(cstyle.margin_left.as_deref(), ctx);
+    // margin 은 **부호 있는** 해석(E7/ADR-156 P4) — `resolve_signed` 는 음수를 보존한다.
+    // `resolve_dimension` 은 `n >= 0.0` 필터로 음수를 0 으로 뭉개, `marginLeft:-20px` 형제
+    // 당김(flex main cursor)·auto-width 확장(=avail - m)이 소실됐다 (BM-1/E7-flex).
+    data[off + 3] = resolve_signed(cstyle.margin_top.as_deref(), ctx);
+    data[off + 4] = resolve_signed(cstyle.margin_right.as_deref(), ctx);
+    data[off + 5] = resolve_signed(cstyle.margin_bottom.as_deref(), ctx);
+    data[off + 6] = resolve_signed(cstyle.margin_left.as_deref(), ctx);
     data[off + 7] = pad_border_main;
     data[off + 8] = pad_border_cross;
     // min/max 도 축별 ctx (E6) — main(column=minHeight/maxHeight)은 main_ctx, cross(row=
@@ -1865,11 +2039,14 @@ fn write_block_item(
         Some(v) => spec_to_content(v, pad_border_v),
         None => -1.0,
     }; // height AUTO=-1 / FIT_CONTENT=-2
-    data[off + 3] = resolve_dimension(cstyle.margin_top.as_deref(), ctx);
-    data[off + 4] = resolve_dimension(cstyle.margin_right.as_deref(), ctx);
-    data[off + 5] = resolve_dimension(cstyle.margin_bottom.as_deref(), ctx);
-    data[off + 6] = resolve_dimension(cstyle.margin_left.as_deref(), ctx);
-    data[off + 7] = 0.0; // bfc_flag — 단위 3-a 미판정(BFC 감지는 상단/후속 단위)
+    // margin 은 **부호 있는** 해석(E7/ADR-156 P4) — 음수 보존. block.rs `collapse_margins`
+    // 는 mixed/음수를 정확히 처리하고, auto width 는 `available - m_left - m_right` 로 음수
+    // margin 만큼 확장(E7-block b.w 320). `resolve_dimension` 음수 0-clamp 가 이를 막았다.
+    data[off + 3] = resolve_signed(cstyle.margin_top.as_deref(), ctx);
+    data[off + 4] = resolve_signed(cstyle.margin_right.as_deref(), ctx);
+    data[off + 5] = resolve_signed(cstyle.margin_bottom.as_deref(), ctx);
+    data[off + 6] = resolve_signed(cstyle.margin_left.as_deref(), ctx);
+    data[off + 7] = 0.0; // bfc_flag — E3/E17 에서 solve_block 이 자식 BFC 판정 후 override
     data[off + 8] = pad_border_v; // pad_border_v (상하)
     data[off + 9] = pad_border_h; // pad_border_h (좌우)
     data[off + 10] = resolve_dimension_opt(cstyle.min_width.as_deref(), ctx)

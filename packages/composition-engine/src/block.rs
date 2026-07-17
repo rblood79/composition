@@ -59,9 +59,10 @@ const AUTO: f32 = -1.0;
 /// Sentinel for "fit-content" (use content intrinsic size)
 const FIT_CONTENT: f32 = -2.0;
 
-/// CSS margin collapse (CSS 2.1 §8.3.1)
+/// CSS margin collapse (CSS 2.1 §8.3.1). `tree.rs` 가 부모-자식 상쇄 chain 전파
+/// (hoisted margin ↔ 자기 style margin)에서 재사용하므로 pub (E3/ADR-156 P4).
 #[inline]
-fn collapse_margins(a: f32, b: f32) -> f32 {
+pub fn collapse_margins(a: f32, b: f32) -> f32 {
     if a >= 0.0 && b >= 0.0 {
         a.max(b)
     } else if a < 0.0 && b < 0.0 {
