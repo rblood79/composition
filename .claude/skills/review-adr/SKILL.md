@@ -112,14 +112,14 @@ Grep "{위험 관련 키워드}" --type=ts -n -C 3
 
 ADR에 명시되지 않은 잠재 위험을 능동적으로 조사:
 
-| 위험 영역         | 탐색 방법                                                                                                                                      |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| 렌더링 파리티     | CSS↔Skia 경로 양쪽에서 변경 영향 grep                                                                                                          |
-| 성능 절벽         | O(n) 순회, WASM 반복 호출, 불필요한 리렌더 패턴                                                                                                |
-| 마이그레이션 깨짐 | 영향받는 파일 수 grep, import 체인 추적                                                                                                        |
-| 레이아웃 부작용   | layoutVersion 3-심볼 체인 점검: LAYOUT_PROP_KEYS (layoutCache.ts) / NON_LAYOUT_PROPS_UPDATE (elementUpdate.ts) / INHERITED_LAYOUT_PROPS_UPDATE |
-| 상태 동기화       | Zustand → Preview postMessage 누락 가능성                                                                                                      |
-| SSOT 체인         | `@sync` 주석, consumer-to-consumer 참조 금지                                                                                                   |
+| 위험 영역         | 탐색 방법                                                                                                                                                                                                                                                                                                                              |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 렌더링 파리티     | CSS↔Skia 경로 양쪽에서 변경 영향 grep                                                                                                                                                                                                                                                                                                  |
+| 성능 절벽         | O(n) 순회, WASM 반복 호출, 불필요한 리렌더 패턴                                                                                                                                                                                                                                                                                        |
+| 마이그레이션 깨짐 | 영향받는 파일 수 grep, import 체인 추적                                                                                                                                                                                                                                                                                                |
+| 레이아웃 부작용   | layoutVersion **5-심볼 2계층** 체인 점검 — A(트리거): LAYOUT_AFFECTING_PROP_KEYS (layoutInvalidation.ts, props) / NON_LAYOUT_PROPS_UPDATE (elementUpdate.ts, style blacklist) / INHERITED_LAYOUT_PROPS_UPDATE · B(캐시 시그니처, layoutCache.ts): **LAYOUT_STYLE_KEYS** (style) / LAYOUT_PROP_KEYS (props). A·B 는 AND, 축별 배열 상이 |
+| 상태 동기화       | Zustand → Preview postMessage 누락 가능성                                                                                                                                                                                                                                                                                              |
+| SSOT 체인         | `@sync` 주석, consumer-to-consumer 참조 금지                                                                                                                                                                                                                                                                                           |
 
 ### 대안 위험 레벨 검토
 

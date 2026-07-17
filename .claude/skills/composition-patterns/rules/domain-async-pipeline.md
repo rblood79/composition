@@ -20,7 +20,7 @@ tags: [domain, async, pipeline]
 6. Preview Sync (자동) → useIframeMessenger effect → UPDATE_CANONICAL_DOCUMENT
 ```
 
-> **layoutVersion 조건**: layout 영향 판정은 `NON_LAYOUT_PROPS_UPDATE` 블랙리스트 **제외 방식** (`isLayoutAffectingUpdate()`, `stores/utils/elementUpdate.ts`). 새 layout prop 추가 시 **3-심볼 체인** 점검 필수 — (1) `LAYOUT_PROP_KEYS` (`workspace/canvas/scene/layoutCache.ts`, 캐시 시그니처 — 추가 필수) / (2) `NON_LAYOUT_PROPS_UPDATE` (`stores/utils/elementUpdate.ts` — layout 영향 prop 은 **여기 추가 금지**) / (3) `INHERITED_LAYOUT_PROPS_UPDATE` (부모→자식 상속 prop 만). 상세: `.claude/rules/layout-engine.md`.
+> **layoutVersion 조건**: 새 layout prop / style 키 추가 시 **5-심볼 2계층 체인** 점검 필수. **계층 A(layoutVersion 트리거)**: props 축은 `LAYOUT_AFFECTING_PROP_KEYS` (`stores/utils/layoutInvalidation.ts`) 에 **추가 필수** / style 축은 `NON_LAYOUT_PROPS_UPDATE` (`stores/utils/elementUpdate.ts`) 에 **추가 금지** (`isLayoutAffectingUpdate()` 가 blacklist 제외 방식으로 판정) / 상속은 `INHERITED_LAYOUT_PROPS_UPDATE`. **계층 B(캐시 시그니처, `workspace/canvas/scene/layoutCache.ts`)**: style 축은 **`LAYOUT_STYLE_KEYS`**, props 축은 `LAYOUT_PROP_KEYS` — **두 배열은 서로 다른 축을 읽으므로 style 키를 `LAYOUT_PROP_KEYS` 에 넣으면 무반영**. A·B 는 AND 조건. 정본: `.claude/rules/layout-engine.md` §"5-심볼 2계층 체인".
 
 ## Incorrect
 
@@ -155,7 +155,8 @@ queueMicrotask(() => {
 - `apps/builder/src/builder/stores/utils/elementUpdate.ts` - 업데이트 파이프라인 + `NON_LAYOUT_PROPS_UPDATE` / `INHERITED_LAYOUT_PROPS_UPDATE`
 - `apps/builder/src/builder/stores/utils/elementRemoval.ts` - 삭제 파이프라인 (단일/배치)
 - `apps/builder/src/adapters/canonical/canonicalMutations.ts` - canonical mutation wrapper (`mergeElementsCanonicalPrimary` 등)
-- `apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts` - `LAYOUT_PROP_KEYS` 캐시 시그니처
+- `apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts` - 캐시 시그니처 (계층 B) — `LAYOUT_STYLE_KEYS`(style 축) + `LAYOUT_PROP_KEYS`(props 축)
+- `apps/builder/src/builder/stores/utils/layoutInvalidation.ts` - `LAYOUT_AFFECTING_PROP_KEYS` (계층 A, Inspector props 편집 트리거)
 - `apps/builder/src/builder/stores/inspectorActions.ts` - 프로퍼티 업데이트 + layoutVersion 증가
 - `apps/builder/src/builder/hooks/useIframeMessenger.ts` - Preview 동기화 (`UPDATE_CANONICAL_DOCUMENT`)
 - `apps/builder/src/builder/utils/canvasDeltaMessenger.ts` - Delta 동기화

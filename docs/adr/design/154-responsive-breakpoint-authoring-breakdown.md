@@ -42,7 +42,7 @@
 1. **activeBreakpoint 상태**: `canvasSettings` 슬라이스에 `activeBreakpoint: BreakpointName` (기본 desktop). 페이지 아트보드 폭을 breakpoint 대표 폭으로 전환 (desktop 1920 유지 / tablet 1024 / mobile 390 — 대표 폭은 리뷰에서 확정).
 2. **스위처 UI**: 캔버스 툴바에 Monitor/Tablet/Smartphone 토글 (lucide, `BREAKPOINTS[].icon` 재사용).
 3. **레이아웃/렌더 resolve**: `fullTreeLayout.ts` 의 요소 style 소비 앞단에서 `activeBreakpoint !== "desktop"` 이면 override merge (base ⊕ cascade). 주의:
-   - **layoutVersion 계약**: activeBreakpoint 변경 + responsive override 편집 모두 `layoutVersion + 1` 경로 통과. `LAYOUT_PROP_KEYS` 에 responsive 시그니처 반영 (누락 시 캐시 히트로 미반영 — layout-engine.md 3-심볼 체인).
+   - **layoutVersion 계약**: activeBreakpoint 변경 + responsive override 편집 모두 `layoutVersion + 1` 경로 통과. 계층 B 캐시 시그니처는 **`LAYOUT_STYLE_KEYS`** 에 반영 — override 가 **style 축**이므로 `LAYOUT_PROP_KEYS`(props 축, `props[key]` 만 읽어 style 키는 항상 undefined)에 넣으면 시그니처가 불변이라 무반영이다 (누락 시 캐시 히트 — layout-engine.md §"5-심볼 2계층 체인").
    - **sceneVersion projection signature**: responsive 는 projection-relevant field → `buildSceneStructureSnapshot()` signature input 에 동시 등재 (canvas-rendering.md §9 — 누락 시 phantom change 미감지).
    - **merged map override 판정 함정**: base⊕override 병합 map 에서 `style?.X != null` 재판정 금지 (메모리 feedback-merged-style-map-kills-override-detection) — resolve 결과와 override 존재 판정을 분리.
 4. **Inspector**: 비-desktop breakpoint 에서 스타일 편집 시 override 로 저장 + 필드에 breakpoint 배지 (Figma/Webflow 관행). `ResponsiveVisibilityEditor` 를 PropertySection 으로 배선 (visibility → `display:none` emit).
@@ -72,7 +72,7 @@
 | `apps/builder/src/builder/stores/canvasSettings.ts`                                              | `activeBreakpoint` 상태                                     |
 | `apps/builder/src/builder/workspace/canvas/BuilderCanvas.tsx` + `viewportSync.ts`                | 아트보드 폭 전환                                            |
 | `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`                     | resolve 주입 + layoutVersion 트리거                         |
-| `apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts`                                 | `LAYOUT_PROP_KEYS` responsive 시그니처 등재                 |
+| `apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts`                                 | **`LAYOUT_STYLE_KEYS`** responsive 시그니처 등재 (style 축) |
 | `apps/builder/src/builder/workspace/canvas/scene/buildSceneSnapshot.ts`                          | `buildSceneStructureSnapshot()` (:109) signature input 등재 |
 | `apps/builder/src/builder/panels/styles/*` / `properties/editors/ResponsiveVisibilityEditor.tsx` | 배지 + 배선                                                 |
 | `apps/builder/src/adapters/canonical/canonicalMutations.ts`                                      | responsive mutation wrapper                                 |
@@ -82,6 +82,6 @@
 ## 8. 테스트 계획
 
 - unit: cascade resolve (desktop-first fallback 경계값 1279/1280, 767/768) / longhand 분배 / 미디어쿼리 문자열.
-- 정적 가드: `LAYOUT_PROP_KEYS` responsive 등재 + signature input 등재 (기존 `fullTreeLayout.static.test.ts` 패턴).
+- 정적 가드: **`LAYOUT_STYLE_KEYS`** responsive 등재 (style 축 — `LAYOUT_PROP_KEYS` 아님) + signature input 등재 (기존 `fullTreeLayout.static.test.ts` 패턴).
 - roundtrip: canonical ↔ .pen ↔ canonical 에서 `responsive` 보존.
 - live: Phase 4 Chrome MCP 3-exercise.

@@ -73,4 +73,4 @@ gap/padding 표시 는 longhand 우선: `useLayoutValues.ts:67` — `firstDefine
 2. preset 이 필요하면 `specPresetResolver.ts` 의 해당 Preset 인터페이스 + 추출 로직 확장 (source 는 catalog — spec 직독 금지)
 3. shorthand 성 속성이면 `distributeShorthand` 분배 대상인지 판정 (store longhand 정책)
 4. dirty/reset 배열에 longhand 포함
-5. layout 영향 속성이면 layout-engine.md 의 3-심볼 체인 (`LAYOUT_PROP_KEYS` 등) 점검
+5. layout 영향 속성이면 layout-engine.md 의 **5-심볼 2계층 체인** 점검 — Style 패널이 쓰는 키는 대개 **style 축**이므로 계층 B 는 `LAYOUT_PROP_KEYS` 가 아니라 **`LAYOUT_STYLE_KEYS`** 다 (props 축과 배열이 다름)

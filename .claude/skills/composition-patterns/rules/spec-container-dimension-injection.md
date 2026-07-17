@@ -107,11 +107,12 @@ updateElementProps(childId, { allowsRemoving: true }); // 2nd set()
   - catalog cutover type → `packages/specs/src/renderers/skiaPrimitives.ts` draw module 또는 `buildCatalogShapes.ts` 에서 `props._containerWidth` 읽기
   - 잔존 spec (Frame/Group/Slot) → 해당 `*.spec.ts` 의 `render.shapes()` 에서 읽기
 - [ ] `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` — `calculateContentWidth` / `parseBoxModel` (폭 계산 근거 정합)
-- [ ] `apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts:112` — delegation prop 이 layout 에 영향 주면 `LAYOUT_PROP_KEYS` 에 추가
+- [ ] `apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts` — delegation prop 이 layout 에 영향 주면 계층 B 캐시 시그니처에 추가: **props 축이면 `LAYOUT_PROP_KEYS`, style 축이면 `LAYOUT_STYLE_KEYS`** (배열이 다름)
+- [ ] `apps/builder/src/builder/stores/utils/layoutInvalidation.ts` — props 축이면 계층 A `LAYOUT_AFFECTING_PROP_KEYS` 에도 추가 (A·B 는 AND — 한쪽만 넣으면 무반영)
 - [ ] Properties 편집이 부모+자식 동시 갱신이면 `updateSelectedPropertiesWithChildren` 사용 (inspectorActions.ts)
 
 ## 참조
 
 - [spec-shape-rendering](spec-shape-rendering.md) — Shape 생성 경로 (catalog + 잔존 spec)
 - [spec-value-sync](spec-value-sync.md) — catalog ↔ layout engine 값 동기화
-- `.claude/rules/layout-engine.md` — layoutVersion 계약 / LAYOUT_PROP_KEYS 3-심볼 체인
+- `.claude/rules/layout-engine.md` — layoutVersion 계약 / **5-심볼 2계층 체인** (계층 A 트리거 × 계층 B 캐시 시그니처, props 축 ↔ style 축 분리)

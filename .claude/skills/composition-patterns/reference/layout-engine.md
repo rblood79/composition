@@ -152,16 +152,21 @@ useLayoutPublisher (canvas/hooks/)
 - store 레벨 `layoutVersion` 과는 **독립 계층** — layoutVersion 은 useMemo 재실행 트리거,
   JSON 비교는 WASM 호출 최소화 (정본 §layoutVersion 계약).
 
-### layoutVersion 3-심볼 체인 — 현행 코드 위치
+### layoutVersion 5-심볼 2계층 체인 — 현행 코드 위치
 
-정본 규칙이 인용하는 라인은 drift 되었다. 2026-07-07 실측:
+2026-07-17 실측 (이전 표는 심볼 3개만 담고 라인도 drift 했다 — **라인은 또 drift 하므로 심볼명 grep 을 1차 수단으로 쓸 것**):
 
-| 심볼                            | 실제 위치                                                  |
-| ------------------------------- | ---------------------------------------------------------- |
-| `LAYOUT_PROP_KEYS`              | `canvas/scene/layoutCache.ts:112`                          |
-| `NON_LAYOUT_PROPS_UPDATE`       | `stores/utils/elementUpdate.ts:43`                         |
-| `INHERITED_LAYOUT_PROPS_UPDATE` | `stores/utils/elementUpdate.ts:97`                         |
-| `isLayoutAffectingUpdate()`     | `stores/utils/elementUpdate.ts:160` (블랙리스트 제외 방식) |
+| 계층                     | 심볼                             | 실제 위치                              | 축    | 방식                  |
+| ------------------------ | -------------------------------- | -------------------------------------- | ----- | --------------------- |
+| A (layoutVersion 트리거) | `LAYOUT_AFFECTING_PROP_KEYS`     | `stores/utils/layoutInvalidation.ts:6` | props | allowlist             |
+| A                        | `NON_LAYOUT_PROPS_UPDATE`        | `stores/utils/elementUpdate.ts:49`     | style | **blacklist**         |
+| A                        | `INHERITED_LAYOUT_PROPS_UPDATE`  | `stores/utils/elementUpdate.ts:103`    | 상속  | allowlist             |
+| B (캐시 시그니처)        | **`LAYOUT_STYLE_KEYS`**          | `canvas/scene/layoutCache.ts:49`       | style | allowlist             |
+| B                        | `LAYOUT_PROP_KEYS`               | `canvas/scene/layoutCache.ts:112`      | props | allowlist             |
+| —                        | `isLayoutAffectingUpdate()`      | `stores/utils/elementUpdate.ts:166`    | —     | A-style 판정 진입점   |
+| —                        | `createElementLayoutSignature()` | `canvas/scene/layoutCache.ts:183`      | —     | B 진입점 (두 축 결합) |
+
+A·B 는 **AND 조건**이며 축(props/style)에 따라 배열이 갈린다. 정본: `.claude/rules/layout-engine.md` §"5-심볼 2계층 체인". 주의: `LAYOUT_AFFECTING_PROPS`(`_KEYS` 없음)는 코드에 0건인 과거 심볼이나, **`LAYOUT_AFFECTING_PROP_KEYS` 는 활성**이다 — 혼동 금지.
 
 ---
 
@@ -259,7 +264,8 @@ live 렌더가 깨진다 (tree_golden 하네스가 조상 offset 누적으로 �
 | `Sanitized non-finite values` 경고                            | Step 5 sanitize — 상류 enrichment 의 NaN 전파 (TokenRef 미해석 등)                                                                                              |
 | `[PersistentTaffyTree] buildFull: handles 길이 불일치`        | WASM 반환 handle ≠ batch 길이 — Rust 파싱 실패 후 부분 성공 여부 확인                                                                                           |
 | 등록 직후 겹침/1줄 degrade, 새로고침 후 정상                  | Step 3 full rebuild 조건 누락 (정본 §PersistentTaffyTree 금지 패턴)                                                                                             |
-| 편집이 캔버스에 미반영, 새로고침 후 반영                      | layoutVersion 3-심볼 체인 (§3 실측 위치) — `LAYOUT_PROP_KEYS` 누락 여부                                                                                         |
+| 편집이 캔버스에 미반영, 새로고침 후 반영                      | 계층 B(캐시 시그니처) 누락 — style 키면 **`LAYOUT_STYLE_KEYS`**, props 키면 `LAYOUT_PROP_KEYS` (§ 5-심볼 2계층 체인 실측 위치)                                  |
+| 편집이 캔버스에 미반영, 새로고침 해도 그대로                  | 계층 A(layoutVersion 트리거) 누락 — props 키면 `LAYOUT_AFFECTING_PROP_KEYS` 미등재, style 키면 `NON_LAYOUT_PROPS_UPDATE` 에 잘못 등재                           |
 | 특정 요소 layout 값 검사                                      | `getSharedLayoutMap()` / `onLayoutPublished()` (fullTreeLayout.ts:235/:188), persistent tree 의 `getLastJson(elementId)` 로 WASM 에 전달된 최종 style JSON 확인 |
 | 페이지/Frame 간 layout 오염                                   | `persistentTrees` rootKey 분리(:144) — frame mirror id fallback 체인 확인                                                                                       |
 | Rust 커널 회귀 의심                                           | `cargo test` → `tests/tree_golden.rs` (Chrome 실측 대조) — 좌표는 부모 content-box 상대 계약임을 전제                                                           |

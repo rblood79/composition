@@ -19,7 +19,24 @@ globs:
 
 - `fullTreeLayoutMap` useMemo는 `layoutVersion` 카운터에 의존
 - 레이아웃 영향 **모든 코드 경로**에서 `layoutVersion + 1` 필수
-- 새 layout prop 추가 시 **3-심볼 체인 점검**: (1) `LAYOUT_PROP_KEYS` (`layoutCache.ts:112`, 캐시 시그니처 — 추가 필수) / (2) `NON_LAYOUT_PROPS_UPDATE` (`elementUpdate.ts:43`, 블랙리스트 — layout 영향 있는 prop은 **여기 추가 금지**, `isLayoutAffectingUpdate()` 가 `!set.has(k)` 로 판정) / (3) `INHERITED_LAYOUT_PROPS_UPDATE` (`elementUpdate.ts:97`, 부모→자식 상속 — fontSize/lineHeight 류만). **Why**: `LAYOUT_PROP_KEYS` 누락 → 캐시 히트로 변경 미반영. `NON_LAYOUT_PROPS_UPDATE` 오등록 → layoutVersion 증가 skip. (참고: `LAYOUT_AFFECTING_PROPS` 는 과거 심볼 — 현재 코드에 없음)
+
+### 5-심볼 2계층 체인 (신규 layout prop / style 키 추가 시 점검)
+
+두 계층은 **AND 조건**이다 — 계층 A 가 재계산을 트리거하고, 계층 B 가 그 재계산에서 캐시를 무효화한다. **한쪽만 등재하면 무반영**이다. 그리고 **props 축과 style 축은 배열이 서로 다르다** — 추가하려는 키가 `element.props.foo` 인지 `element.props.style.foo` 인지 먼저 판정할 것.
+
+| 계층                        | 심볼                            | 위치                                    | 축    | 방식                                 |
+| --------------------------- | ------------------------------- | --------------------------------------- | ----- | ------------------------------------ |
+| **A. layoutVersion 트리거** | `LAYOUT_AFFECTING_PROP_KEYS`    | `stores/utils/layoutInvalidation.ts`    | props | **allowlist** (`has(key)`)           |
+| A                           | `NON_LAYOUT_PROPS_UPDATE`       | `stores/utils/elementUpdate.ts`         | style | **blacklist** (`!set.has(k)`)        |
+| A                           | `INHERITED_LAYOUT_PROPS_UPDATE` | `stores/utils/elementUpdate.ts`         | 상속  | allowlist (fontSize/lineHeight 류만) |
+| **B. 페이지 캐시 시그니처** | **`LAYOUT_STYLE_KEYS`**         | `workspace/canvas/scene/layoutCache.ts` | style | allowlist                            |
+| B                           | `LAYOUT_PROP_KEYS`              | `workspace/canvas/scene/layoutCache.ts` | props | allowlist                            |
+
+- **계층 A 진입점 2개**: Inspector top-level props 편집은 `inspectorActions.ts` 가 `LAYOUT_AFFECTING_PROP_KEYS.has(key)` 로 판정(`"style"` 키 통째 포함) / style 필드 변경은 `isLayoutAffectingUpdate()` 가 `NON_LAYOUT_PROPS_UPDATE` **제외 방식**으로 판정. **layout 영향 style 키를 `NON_LAYOUT_PROPS_UPDATE` 에 넣지 말 것** (넣으면 layoutVersion 증가 skip).
+- **계층 B 는 축이 갈린다**: `createElementLayoutSignature()` 가 `LAYOUT_STYLE_KEYS` → `style[key]`, `LAYOUT_PROP_KEYS` → `props[key]` 를 각각 읽어 시그니처를 만든다. **`LAYOUT_PROP_KEYS` 에는 `style.*` 키가 하나도 없다** (`children`/`text`/`size`/`iconName`/`isExpanded` 등 props 전용. `height`/`heightMode` 는 Table 의 **props**.height 이지 style.height 아님).
+- **Why**: 계층 B 누락 → 캐시 히트로 변경 미반영(재계산은 돌지만 같은 시그니처라 이전 결과 재사용). 계층 A 누락 → 재계산 자체를 안 함. **실증**: `isExpanded`/`allowsMultipleExpanded` 가 `LAYOUT_AFFECTING_PROP_KEYS`(A) 와 `LAYOUT_PROP_KEYS`(B) **양쪽에 누락**되어 Disclosure collapse 가 Skia 에 무반영 (CHANGELOG 2026-05-09/07-14). **ADR-156 R6**: `justifySelf`/`justifyItems`/`gridAutoColumns`/`gridAutoRows`/`gridColumnStart`/`gridRowStart`/`overflowX`/`overflowY`/`order` 가 `LAYOUT_STYLE_KEYS`(B) 미등재 — 엔진을 고쳐도 해당 키만 바뀌는 편집은 캐시 히트로 흡수된다.
+- **grep 함정**: `gridColumn`/`gridRow` shorthand 는 `LAYOUT_STYLE_KEYS` 에 있으나 `gridColumnStart`/`gridRowStart` 는 **없다** — 본 문서 §"Grid area 이름 해석" 이 factory 에 요구하는 **숫자 line 병기** 형태로 쓰면 캐시 키에 걸리지 않는다. `overflow` 는 등재됐으나 파이프라인은 `overflowX`/`overflowY` 를 송신한다.
+- 심볼명 주의: **`LAYOUT_AFFECTING_PROPS`**(뒤에 `_KEYS` 없음)는 과거 심볼로 코드에 **0건**이다. 현행은 **`LAYOUT_AFFECTING_PROP_KEYS`** — 두 이름을 혼동해 "과거 심볼" 로 넘기지 말 것.
 
 ## CONTAINER_TAGS
 
@@ -82,15 +99,21 @@ globs:
 - Step 4.5: 실제 width vs enrichment width 비교 → 차이 시 re-enrich + dirty + recompute
 - 2-pass에서 `buildFull()` 호출 금지 — `updateNodeStyle` + `markDirty` + `computeLayout`만 사용
 
-## Layout Prop 변경 → Canvas 반영 (7곳 체크리스트)
+## Layout Prop 변경 → Canvas 반영 (체크리스트)
 
-1. `LAYOUT_PROP_KEYS` (`layoutCache.ts:112`) — 캐시 시그니처 (layout-relevant prop이면 **추가 필수**)
-2. `NON_LAYOUT_PROPS_UPDATE` (`elementUpdate.ts:43`) — layoutVersion 트리거 판정 블랙리스트 (layout 영향 prop은 **여기 추가 금지** — `isLayoutAffectingUpdate` 가 블랙리스트 제외 방식으로 판정)
-3. `INHERITED_LAYOUT_PROPS_UPDATE` (`elementUpdate.ts:97`) — 부모→자식 상속 전파 (fontSize/lineHeight/textAlign 등 상속성 prop만)
+**0단계 — 축 판정**: 추가하려는 키가 `element.props.foo`(props 축)인가 `element.props.style.foo`(style 축)인가? 축에 따라 봐야 할 배열이 다르다 (§"5-심볼 2계층 체인").
+
+| #   | 항목                              | props 축                                                                | style 축                                                                                 |
+| --- | --------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| 1   | **계층 A — layoutVersion 트리거** | `LAYOUT_AFFECTING_PROP_KEYS` (`layoutInvalidation.ts`) 에 **추가 필수** | `NON_LAYOUT_PROPS_UPDATE` (`elementUpdate.ts`) 에 **추가 금지** (blacklist 제외 방식)    |
+| 2   | **계층 B — 캐시 시그니처**        | `LAYOUT_PROP_KEYS` (`layoutCache.ts`) 에 **추가 필수**                  | **`LAYOUT_STYLE_KEYS`** (`layoutCache.ts`) 에 **추가 필수**                              |
+| 3   | 상속 전파 (해당 시)               | —                                                                       | `INHERITED_LAYOUT_PROPS_UPDATE` (`elementUpdate.ts`, fontSize/lineHeight/textAlign 류만) |
+
 4. `pageLayoutSignature` deps — elementById 포함
 5. `patchBatchStyleFromImplicit` — 배열 타입 지원
-6. display/grid 전환 감지 — full rebuild 조건
-7. `LAYOUT_AFFECTING_PROPS` — **과거 심볼, 현재 코드 없음** (stale 참조 제거)
+6. display/grid 전환 감지 — full rebuild 조건 (§"PersistentTaffyTree display/grid 전환 감지")
+
+**계층 A·B 는 AND** — 하나만 등재하면 무반영이며, 증상이 서로 다르다: A 누락 = 재계산 자체를 안 함 / B 누락 = 재계산은 돌지만 시그니처 동일 → 캐시 히트로 이전 결과 재사용. 새로고침 후에만 반영되면 B 를 의심할 것.
 
 ## Overflow Scroll + Flex Shrink 보정
 
@@ -123,6 +146,8 @@ collection/self-render 컨테이너의 `calculateContentHeight()` 분기는 **La
 
 ## 금지 패턴
 
+- **style 키를 `LAYOUT_PROP_KEYS` 에 추가 금지** → `LAYOUT_STYLE_KEYS` 가 style 축이다 (`LAYOUT_PROP_KEYS` 는 `props[key]` 만 읽으므로 `style.foo` 를 넣어도 항상 `undefined` = 시그니처 불변 = 무반영)
+- **계층 A(layoutVersion 트리거) 단독 등재 금지** → 계층 B(캐시 시그니처) 동반 필수. 역도 같음 (§"5-심볼 2계층 체인")
 - flex 자식 width 주입 시 minWidth 미설정 금지 → `enrichWithIntrinsicSize`에서 동시 주입 필수
 - overflow flexShrink 보정에서 `scroll/auto`만 체크 금지 → `!== "visible"` 필수
 - DFS 조건에 `fontSize == null` 사용 금지 → `lineHeight == null` 필수

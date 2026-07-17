@@ -103,7 +103,7 @@ S2 패턴의 필수 필드 표시. 3경로 동기화 필수.
 - **Skia**: `buildSpecNodeData.ts` — `_necessityIndicator` specProps 주입
 - **에디터**: 통합 Required select (None / Icon / Label) — `isRequired` + `necessityIndicator` 동시 설정
 - **공유 유틸**: `packages/shared/src/components/FieldNecessityIndicator` 의 `renderNecessityIndicator()`, `NecessityIndicator` 타입
-- layout prop 3-심볼 체인 점검 필수: `LAYOUT_PROP_KEYS` (`scene/layoutCache.ts` — `necessityIndicator`/`isRequired` 등록됨) / `NON_LAYOUT_PROPS_UPDATE` / `INHERITED_LAYOUT_PROPS_UPDATE` (`elementUpdate.ts`) — 정본: `.claude/rules/layout-engine.md`
+- layout prop **5-심볼 2계층 체인** 점검 필수. `necessityIndicator`/`isRequired` 는 **props 축**이라 계층 A `LAYOUT_AFFECTING_PROP_KEYS`(`stores/utils/layoutInvalidation.ts`) + 계층 B `LAYOUT_PROP_KEYS`(`scene/layoutCache.ts`) **양쪽 등록됨** (정상 사례). style 축 키라면 계층 B 는 **`LAYOUT_STYLE_KEYS`** 를 써야 한다 — 정본: `.claude/rules/layout-engine.md` §"5-심볼 2계층 체인"
 
 ## Collection Item Font 주입 상세 (ListBoxItem/GridListItem)
 

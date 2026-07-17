@@ -118,7 +118,7 @@ S2 패턴의 필수 필드 표시. 3경로 동기화 필수.
 - **WebGL (Skia)**: `ElementSprite.tsx` — `specProps.children`에 indicator 추가
 - **에디터**: 통합 Required select (None / Icon / Label) — `isRequired` + `necessityIndicator` 동시 설정
 - **공유 유틸**: `Field.tsx`의 `renderNecessityIndicator()`, `NecessityIndicator` 타입
-- LAYOUT_AFFECTING_PROPS + LAYOUT_PROP_KEYS에 `necessityIndicator`, `isRequired` 등록 필수
+- `LAYOUT_AFFECTING_PROP_KEYS`(계층 A, `stores/utils/layoutInvalidation.ts`) + `LAYOUT_PROP_KEYS`(계층 B, `scene/layoutCache.ts`)에 `necessityIndicator`, `isRequired` 등록 필수 — 둘 다 **props 축**이며 A·B 는 AND (한쪽만 넣으면 무반영). style 축 키라면 계층 B 는 **`LAYOUT_STYLE_KEYS`** 를 쓴다. 심볼명 주의: `LAYOUT_AFFECTING_PROPS`(`_KEYS` 없음)는 코드에 없는 과거 이름. 정본: `.claude/rules/layout-engine.md` §"5-심볼 2계층 체인"
 
 ## Collection Item Font 주입 상세 (ListBoxItem/GridListItem)
 

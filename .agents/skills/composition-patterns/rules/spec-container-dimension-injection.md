@@ -130,7 +130,8 @@ updateElementProps(childId, { allowsRemoving: true }); // 2nd set()
 - [ ] `packages/specs/src/components/{Component}.spec.ts` — `_containerWidth`/`_containerHeight` props 추가
 - [ ] `apps/builder/src/.../sprites/ElementSprite.tsx` — specProps에 dimension 주입
 - [ ] `apps/builder/src/.../layout/engines/utils.ts` — `calculateContentWidth`, `parseBoxModel`
-- [ ] `apps/builder/src/.../scene/layoutCache.ts` — `LAYOUT_PROP_KEYS`에 delegation prop 추가
+- [ ] `apps/builder/src/.../scene/layoutCache.ts` — 계층 B 캐시 시그니처에 delegation prop 추가: **props 축이면 `LAYOUT_PROP_KEYS`, style 축이면 `LAYOUT_STYLE_KEYS`** (배열이 다름)
+- [ ] `apps/builder/src/.../stores/utils/layoutInvalidation.ts` — props 축이면 계층 A `LAYOUT_AFFECTING_PROP_KEYS` 에도 추가 (A·B 는 AND). 정본: `.claude/rules/layout-engine.md`
 - [ ] `apps/builder/src/.../panels/properties/editors/{Component}Editor.tsx` — `updateSelectedPropertiesWithChildren` 사용
 
 ## 참조
