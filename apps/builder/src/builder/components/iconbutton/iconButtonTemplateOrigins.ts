@@ -4,6 +4,10 @@ import {
   COMPONENTS_SYSTEM_BODY_ID,
   ensureComponentsSystemPage,
 } from "../../pages/systemComponentsPage";
+import {
+  buttonIconPx,
+  buttonTextMetrics,
+} from "../../utils/propagationRegistry";
 
 /**
  * ADR-148 Phase 2: IconButton — 첫 신규 reusable 수직 슬라이스 (propsSchema 첫 소비).
@@ -62,14 +66,29 @@ export const ICONBUTTON_PROPS_SCHEMA: PropsSchema = {
  * IconButton origin 의 조합 자식 — Icon(optional) + Text(label).
  * slotRole 병기(metadata.slotRole + props.slot)는 ListBoxItem origin seed 규약 승계
  * (`getSlotRole` 이 metadata 우선 / props.slot fallback 양축 판독).
+ *
+ * **Button 척도 주입 (2026-07-18 정정)**: 자식에 size + inline 척도(fontSize/lineHeight,
+ * iconPx)를 seed 시점에 주입한다 — `ButtonChildSection.buildButtonChild`(팔레트/패널 생성
+ * 경로)와 동일 계약, `buttonIconPx`/`buttonTextMetrics` 단일 소스. 미주입 시 Text/Icon 이
+ * 각자의 default(md) 스케일(Text md=text-base 16/24, Icon md=24)로 렌더되는데, 같은 size
+ * 리터럴이 Button 척도(md=text-sm 14/20, icon 18)보다 한 단계 위라 IconButton 이 Button
+ * 보다 한 단계씩 크게 보였다 (propagation rule 은 *변경* 시점에만 작동 — seed 초기값은
+ * 여기서 직접).
  */
-function iconButtonOriginChildren(): CanonicalNode[] {
+function iconButtonOriginChildren(size = "md"): CanonicalNode[] {
+  const iconPx = buttonIconPx(size);
+  const tm = buttonTextMetrics(size);
   return [
     {
       id: `${ICONBUTTON_ORIGIN_ID}__icon`,
       type: "Icon",
       name: "Icon",
-      props: { slot: "icon", iconName: "{icon}" },
+      props: {
+        slot: "icon",
+        iconName: "{icon}",
+        size,
+        style: { fontSize: iconPx, height: iconPx },
+      },
       metadata: {
         type: "iconbutton-origin-child",
         systemOwned: true,
@@ -81,7 +100,12 @@ function iconButtonOriginChildren(): CanonicalNode[] {
       id: `${ICONBUTTON_ORIGIN_ID}__label`,
       type: "Text",
       name: "Label",
-      props: { slot: "label", children: "{label}" },
+      props: {
+        slot: "label",
+        children: "{label}",
+        size,
+        style: { fontSize: tm.fontSize, lineHeight: tm.lineHeight },
+      },
       metadata: {
         type: "iconbutton-origin-child",
         systemOwned: true,
@@ -89,6 +113,40 @@ function iconButtonOriginChildren(): CanonicalNode[] {
       },
     },
   ];
+}
+
+/**
+ * 기존 문서 자식의 부재 척도 채움 — 구버전 seed(척도 미주입)로 생성된 origin 회복.
+ * **부재 시에만** 채운다: 사용자가 명시한 size/style 값은 절대 덮지 않는다 (repairOrigin
+ * 의 "사용자 편집 보존" 원칙 유지). 기준 size 는 origin root props.size (사용자가 origin
+ * size 를 바꿨어도 그 기준으로 정합).
+ */
+function withButtonScaleDefaults(
+  children: readonly CanonicalNode[] | undefined,
+  rootSize: string,
+): CanonicalNode[] | undefined {
+  if (!children) return undefined;
+  const iconPx = buttonIconPx(rootSize);
+  const tm = buttonTextMetrics(rootSize);
+  return children.map((child) => {
+    const role = (child.metadata as { slotRole?: unknown } | undefined)
+      ?.slotRole;
+    if (role !== "icon" && role !== "label") return child;
+    const props = { ...(child.props ?? {}) } as Record<string, unknown>;
+    const style = {
+      ...((props.style as Record<string, unknown> | undefined) ?? {}),
+    };
+    if (role === "icon") {
+      style.fontSize ??= iconPx;
+      style.height ??= iconPx;
+    } else {
+      style.fontSize ??= tm.fontSize;
+      style.lineHeight ??= tm.lineHeight;
+    }
+    props.size ??= rootSize;
+    props.style = style;
+    return { ...child, props };
+  });
 }
 
 function createIconButtonOrigin(): CanonicalNode {
@@ -117,10 +175,17 @@ function repairOrigin(
 ): CanonicalNode {
   const base = createNode();
   if (!existing) return base;
+  const props = existing.props ?? base.props;
+  const rootSize =
+    typeof (props as { size?: unknown } | undefined)?.size === "string"
+      ? (props as { size: string }).size
+      : "md";
   return {
     ...base,
-    props: existing.props ?? base.props,
-    children: existing.children ?? base.children,
+    props,
+    // 구버전 seed(척도 미주입) 자식 회복 — 부재 척도만 채움 (사용자 값 보존).
+    children:
+      withButtonScaleDefaults(existing.children, rootSize) ?? base.children,
     metadata: {
       ...base.metadata,
       ...(existing.metadata ?? {}),

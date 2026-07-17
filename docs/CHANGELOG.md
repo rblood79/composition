@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [IconButton origin 크기 정정 — Button 척도 seed 주입] - 2026-07-18
+
+### Bug Fixes
+
+- **IconButton origin 이 Button 보다 한 단계씩 크게 렌더되던 결함 수정** (ADR-148 Phase 2 후속):
+  - **Why**: origin seed 가 자식 Icon/Text 에 Button 척도(size + inline fontSize/lineHeight/iconPx)를 주입하지 않아, 자식이 각자의 default(md) 스케일(Text md=text-base 16/24, Icon md=24)로 렌더 — 같은 size 리터럴이 Button 척도(md=text-sm 14/20, icon 18)보다 타이포 토큰 한 단계 위라 전 size 에서 한 단계 크게 보였다. propagation rule 은 _변경_ 시점에만 작동해 seed 초기값을 못 채운다 (팔레트 생성 경로 `buildButtonChild` 는 직접 주입 — origin seed 만 누락)
+  - 수정: seed 자식에 `buttonIconPx`/`buttonTextMetrics` 단일 소스로 척도 주입 + `repairOrigin` 이 구버전 문서의 무척도 자식을 root size 기준으로 채움 (사용자 명시 값은 보존) — 기존 프로젝트는 reload 시 자동 회복
+  - 검증: live — reload 후 origin 92×30 (Button md 정합, 이전 103×54), Size S/M 전환 시 22/30 전파 왕복, vitest 신규 2건
+  - 위치: `apps/builder/src/builder/components/iconbutton/iconButtonTemplateOrigins.ts`
+
 ## [Components 페이지 origin slot 자식 더블클릭 편집 — collection item unfold] - 2026-07-17
 
 ### Bug Fixes

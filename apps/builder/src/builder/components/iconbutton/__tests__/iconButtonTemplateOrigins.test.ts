@@ -13,6 +13,10 @@ import {
   ICONBUTTON_PROPS_SCHEMA,
 } from "../iconButtonTemplateOrigins";
 import {
+  buttonIconPx,
+  buttonTextMetrics,
+} from "../../../utils/propagationRegistry";
+import {
   REUSABLE_ORIGIN_ENSURERS,
   getReusableCompositeOriginId,
   isReusableCompositeType,
@@ -71,6 +75,80 @@ describe("ADR-148 Phase 2 IconButton reusable origin", () => {
       props: { slot: "label", children: "{label}" },
       metadata: expect.objectContaining({ slotRole: "label" }),
     });
+  });
+
+  it("seed 자식이 Button 척도를 주입받는다 — Text/Icon 자체 default(md) 스케일 한 단계 확대 차단 (2026-07-18)", () => {
+    const doc = ensureIconButtonTemplateOrigins(makeDocument());
+    const origin = findById(doc.children, ICONBUTTON_ORIGIN_ID);
+
+    // Icon: size 정합 + inline px = buttonIconPx("md") = 18 (Icon catalog md=24 차단).
+    expect(origin?.children?.[0]?.props).toMatchObject({
+      size: "md",
+      style: { fontSize: buttonIconPx("md"), height: buttonIconPx("md") },
+    });
+    // Text(label): size 정합 + Button 텍스트 척도 = 14/"20px" (Text catalog md=16/24 차단).
+    const tm = buttonTextMetrics("md");
+    expect(origin?.children?.[1]?.props).toMatchObject({
+      size: "md",
+      style: { fontSize: tm.fontSize, lineHeight: tm.lineHeight },
+    });
+  });
+
+  it("repair — 구버전 seed 문서(무척도 자식)에 root size 기준 척도를 채우고, 사용자 명시 값은 보존한다", () => {
+    // 구버전 seed 형태: root size lg, 자식에 size/inline 척도 없음 + label 에 사용자 fontSize.
+    const stale = ensureIconButtonTemplateOrigins(makeDocument());
+    const staleOrigin = findById(stale.children, ICONBUTTON_ORIGIN_ID)!;
+    const staleDoc: CompositionDocument = {
+      ...stale,
+      children: JSON.parse(
+        JSON.stringify(stale.children).replace(
+          JSON.stringify(staleOrigin),
+          JSON.stringify({
+            ...staleOrigin,
+            props: { variant: "primary", size: "lg" },
+            children: [
+              {
+                id: `${ICONBUTTON_ORIGIN_ID}__icon`,
+                type: "Icon",
+                name: "Icon",
+                props: { slot: "icon", iconName: "{icon}" },
+                metadata: staleOrigin.children?.[0]?.metadata,
+              },
+              {
+                id: `${ICONBUTTON_ORIGIN_ID}__label`,
+                type: "Text",
+                name: "Label",
+                props: {
+                  slot: "label",
+                  children: "{label}",
+                  style: { fontSize: 99 },
+                },
+                metadata: staleOrigin.children?.[1]?.metadata,
+              },
+            ],
+          }),
+        ),
+      ),
+    };
+
+    const repaired = ensureIconButtonTemplateOrigins(staleDoc);
+    const origin = findById(repaired.children, ICONBUTTON_ORIGIN_ID);
+
+    // root size(lg) 기준으로 부재 척도 채움.
+    expect(origin?.children?.[0]?.props).toMatchObject({
+      size: "lg",
+      style: { fontSize: buttonIconPx("lg"), height: buttonIconPx("lg") },
+    });
+    const tmLg = buttonTextMetrics("lg");
+    expect(origin?.children?.[1]?.props).toMatchObject({
+      size: "lg",
+      style: { fontSize: 99, lineHeight: tmLg.lineHeight },
+    });
+    // 사용자 명시 fontSize(99)는 덮지 않는다.
+    expect(
+      (origin?.children?.[1]?.props?.style as Record<string, unknown>)
+        ?.fontSize,
+    ).toBe(99);
   });
 
   it("is idempotent — 재적용해도 내용 무변 + origin 중복 seed 없음", () => {
