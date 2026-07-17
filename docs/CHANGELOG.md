@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [grid 정렬·배치가 Builder(Skia)에서 CSS 와 어긋나던 결함 — ADR-156 Phase 3 (grid 커널, 옵션 3-b)] - 2026-07-18
+
+### Bug Fixes
+
+- **grid 컨테이너/자식 정렬·배치가 Builder(Skia)에서 CSS(Preview)와 어긋나던 결함 4종 수정** (ADR-156 Phase 3, 옵션 3-b):
+  - **E13 span 배치**: `grid-column: span 2` 등 셀을 여러 칸 차지하는 자식 뒤의 자동 배치 자식이 점유된 칸에 겹치던 결함. CSS 그리드 배치 알고리즘(§8.5)의 2-phase 점유 처리로 정정 (명시 행 아이템 먼저 → 자동 아이템은 빈 칸으로)
+  - **E12 트랙 정렬**: 고정 크기 트랙이 컨테이너보다 작을 때 `justify-content`(열)/`align-content`(행)가 무시돼 항상 좌상단에 몰리던 결함. start/center/end/space-between/around/evenly 반영
+  - **E14 auto-flow**: `grid-auto-flow: column` 이 무시돼 항상 행 우선 배치되던 결함 + `grid-auto-columns` 로 암시 열 크기 지정 반영 (열 우선 배치)
+  - **E2 자식 정렬(세로)**: `align-items`/`align-self` 가 무시돼 자식이 항상 셀 좌상단에 꽉 차게 그려지던 결함. 비-stretch 정렬 시 자식을 셀 세로 여유에서 start/center/end 배치
+  - **Why**: 레이아웃 엔진 `grid.rs` 에 정렬 처리가 0줄이었고, `grid-auto-flow`/`gridAutoColumns` 등이 미소비였다. 발산 필드가 페이지 레이아웃 캐시 시그니처(`LAYOUT_STYLE_KEYS`)에 미등재라 해당 편집이 캐시 히트로 무반응이던 계열 결함(R6)도 함께 해소
+  - **옵션 3-b 범위**: 엔진은 정렬(위치)만 추가하고 크기는 기존 stretch 를 유지 — `justify-items`(가로 배치·크기)는 별도 폭 보정 로직과의 이중 적용 우려로 후속 판정(§Residual)
+  - 위치: `packages/composition-engine/src/{grid.rs,tree.rs}`, `apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts`
+  - 검증: Chrome 차등 파리티(`tests/parity/phase3.browser.test.ts`) 8 fixture + Rust 293 tests + live(빌더 grid: 기본 stretch 셀 채움 회귀 0 / align center 세로 중앙 / span 2행 배치)
+
 ## [정렬 피커·percent 높이가 Builder(Skia)에서 동작하지 않던 결함 — ADR-156 Phase 2 (E1 align-self / E6 percent height)] - 2026-07-18
 
 ### Bug Fixes

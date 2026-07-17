@@ -261,6 +261,23 @@ live 검증(G2): Inspector 9칸 피커 **가로 전용 이동**(`leftTop`→`cen
 
 G3 통과 조건에 **live builder grid 컴포넌트 시각 회귀 0** 을 포함한다 (ProgressBar 등 grid 사용처 — `project-adr916-grid-gap-offset-succession-bug` 이력 있는 영역).
 
+### 4-1. 진행 상태 — Phase 3 반영 완료 (2026-07-18, 옵션 3-b 채택)
+
+**책임 경계 확정 = 옵션 3-b** (사용자 승인): 엔진은 정렬(위치)만 추가하고 크기 stretch 유지, JS DFS 사전 조정(`fullTreeLayout.ts:1516` 트랙 폭 강제) 존속. E2 + E12 + E13 + E14 반영, G3 충족. 4 sub-commit:
+
+- **3-α (R6+E13, `efb73aebc`)**: `LAYOUT_STYLE_KEYS` 에 `justifyItems`·`gridAutoColumns/Rows`·`gridColumnStart/RowStart` 등재. E13 = CSS-GRID-1 §8.5 **2-phase occupancy 배치**(Phase 0 명시 row 먼저 → Phase 1 auto 커서) — 구 `child_index%cols` 가 span 점유를 무시하던 것(row-span 아이템과 auto 아이템 열 뒤바뀜)을 정정. `parse_grid_line` → `parse_axis_placement`(위치 명시/span 분리).
+- **3-β (E12, `9da71d972`)**: `track_distribution`(start/center/end/space-\*) 로 고정 트랙셋을 컨테이너 안 정렬(justify-content 열 / align-content 행). fr/auto 는 free≈0 → 무영향.
+- **3-γ (E14, `0a235507d`)**: `place_children` flow-aware(column-major 커서), flow:column 시 gridAutoColumns 로 암시 열 확장.
+- **3-δ (E2, `7d391f78d`)**: `grid_block_align` 로 **비-stretch align(세로)** 시 자식 실제 height 로 셀 세로 배치. 기본 stretch 유지.
+
+**검증**: cargo **293**(신규 grid: span occupancy / axis placement / justify center·space-between / fr-no-offset / auto-flow column / align) · Chrome 차등 파리티 `tests/parity/phase3.browser.test.ts` **8 fixture**(E13 2 + E12 3 + E14 1 + E2 2) + 기존 20 무회귀, flaky 0 · type-check baseline 63 무증가 · **live**(Chrome MCP): 기본 stretch grid 2×2 셀 채움(회귀 0) + align-items:center 자식 y=30(중앙)·edit→start y=0(relayout) + column span 2 뒤 자식 2행 밀림, 테스트 11요소 제거 후 원복.
+
+**§Residual (옵션 3-b 계약 — 후속 판정)**:
+
+- **justify-items/justify-self (가로 배치·크기)** — JS DFS 가 grid 자식 폭을 트랙 폭으로 강제하므로 엔진이 justify 를 더해도 live 에서 이중 적용/무효. 옵션 3-a(엔진 크기 respect + JS DFS 제거)로만 해소 가능. 파리티(엔진 직접 경로)에선 정합하나 live 는 미달 → E2 justify 축 fixture 미추가.
+- **align:stretch 하 explicit-height 자식 축소** — CSS 는 explicit-height grid item 을 stretch 안 하나(자기 크기 유지), 옵션 3-b 는 stretch 유지(`grid_implicit_auto_row_multi_row_max_height` 등 live 의존 테스트). 옵션 3-a 영역.
+- **gridAutoRows override(flow:row 암시 행)** — tree.rs `solve_grid` intrinsic 측정이 암시 행 크기를 소유. gridAutoRows px 로 override 하려면 tree.rs intrinsic 분기 수정 필요 → `grid_layout` 의 `auto_rows` 파라미터 현재 미소비(`let _ = auto_rows`).
+
 ## 5. Phase 4 — block/flex flow (G4)
 
 **대상**: E3 + **E7**(음수 margin) + **E8**(reverse) + **E17**(overflow BFC — E3 와 동시 필수).
