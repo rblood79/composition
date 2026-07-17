@@ -15,8 +15,6 @@
     "type-check:strict": "tsc -p tsconfig.app.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check:pixi-plan": "node scripts/check-pixi-component-plan.mjs",
-    "fix:pixi-plan": "node scripts/check-pixi-component-plan.mjs --write",
     "clean": "rm -rf dist node_modules/.vite"
   },
   "dependencies": {

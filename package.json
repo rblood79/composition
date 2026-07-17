@@ -29,8 +29,6 @@
     "clean": "turbo run clean && rm -rf node_modules",
     "playwright:install": "npx playwright install",
     "test:e2e": "playwright test",
-    "check:pixi-plan": "pnpm -F @composition/builder check:pixi-plan",
-    "fix:pixi-plan": "pnpm -F @composition/builder fix:pixi-plan",
     "wasm:build:engine": "wasm-pack build packages/composition-engine --target bundler --out-dir ../../apps/builder/src/builder/workspace/canvas/wasm-bindings/composition-engine-pkg",
     "prepare:wasm": "node scripts/prepare-wasm.mjs",
     "prepare:specs": "node packages/specs/scripts/extract-lucide-icons.mjs && pnpm run build:specs",
