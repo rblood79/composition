@@ -98,7 +98,14 @@ ADR-147 이 주석으로 선언한 "자식은 authoring 구조 + slot 스타일 
   live 항목에 **origin slot 자식 편집 → instance 시각 반영 왕복** 포함 (미배선 재발 감지 항목).
 - Gate G1.
 
-### Phase 1 — 등록 전환 (전면 reusable entry)
+### Phase 1 — 등록 전환 (전면 reusable entry) — **Implemented 2026-07-17**
+
+> **Implemented 2026-07-17 (G2 통과)**: 아래 전 항목 반영 — reusableEntry 헬퍼/entry 2건/
+> 인덱스 2원화/파생 대체 3건(`REUSABLE_ORIGIN_ENSURERS` 는 reusableId→ensure 매핑, ensure 는
+> catalog entry 순회)/불변식 R①~R④/(kind,type) 복합 유일성 개정. `useElementCreator`/
+> `entryUniverse` 는 wrapper 심볼 유지 + 내부 조회처만 catalog 로 교체(로직 무변경).
+> live palette-add(Toolbar/Form → `type:"ref"` instance + origin resolve 렌더) 확인 —
+> ADR 본문 진행 로그 참조.
 
 - `componentCatalog.ts`: `reusableEntry()` 헬퍼 + **Toolbar/Form reusable entry 2건** +
   동명 primitive entry `panel.placeable:false` 2건 + 인덱스 2원화
@@ -182,7 +189,7 @@ scene 제외 stale 주석) / `apps/builder/src/builder/panels/properties/editors
 ## §6. 검증 체크리스트
 
 - [x] Phase 0: slot 자식 배선 정정 (§2-1 4개 층 + stale 주석) + cross-check 3축 + live 1회(slot 자식 편집 왕복 포함) + shared re-home — **2026-07-17 완료** (G1 통과, ADR 본문 진행 로그)
-- [ ] Phase 1: registrationContract 불변식 4종 + palette 스냅샷 무변 + live palette-add
+- [x] Phase 1: registrationContract 불변식 4종 + palette 스냅샷 무변 + live palette-add — **2026-07-17 완료** (G2 통과, ADR 본문 진행 로그)
 - [ ] Phase 2: propsSchema 편집 왕복 + 키 1:1 test + origin 전파 live 확인
 - [ ] Phase 3/4: 대상별 재판정 기록 + kill criteria
 - [ ] 전 Phase: type-check baseline 무증가, `pnpm build:specs` 무관(spec 비접촉) 확인

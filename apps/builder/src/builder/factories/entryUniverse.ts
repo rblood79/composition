@@ -73,7 +73,8 @@ export type RenderFacetMode =
  * - `none`: factory child tree 가 필요 없는 leaf. creator 함수 불필요 (palette-add 는
  *   useElementCreator else 분기로 `getDefaultProps(type)` 단일 element 생성). Avatar 가
  *   Phase 4-B 에서 creator 제거 후 이 mode 의 proof.
- * - `reusableOrigin`: Components page reusable origin (`REUSABLE_COMPOSITE_ORIGINS`) 으로
+ * - `reusableOrigin`: Components page reusable origin (catalog `kind:"reusable"` entry —
+ *   ADR-148 Phase 1 로 구 `REUSABLE_COMPOSITE_ORIGINS` 맵 대체) 으로
  *   대체된 composite (Toolbar/Form). palette-add 는 type:"ref" instance 생성.
  * - `complex`: `COMPLEX_COMPONENT_TAGS` 멤버 — factory creator 가 child tree 를 만든다
  *   (declaredChildren + delegate 포함). 사용자 결정: delegate(Table custom) 식별용 새
@@ -246,9 +247,10 @@ function resolveDefaultsFacet(type: string): {
  *   ref instance 경로) 의미상 composite. 단 현 두 set 은 disjoint 라 순서 무관.
  * - none = creator 부재 leaf (palette-add 는 useElementCreator else 분기).
  *
- * **Phase 4-C (membership SSOT, 2026-06-21)**: `complex` mode 의 membership SSOT 는
- * `COMPLEX_COMPONENT_TAGS` (constants.ts), `reusableOrigin` 은 `REUSABLE_COMPOSITE_ORIGINS`
- * (`isReusableCompositeType`) 다. 본 resolver 는 두 set 을 *읽어* facet mode 로 노출하고,
+ * **Phase 4-C (membership SSOT, 2026-06-21) / ADR-148 Phase 1 (2026-07-17)**: `complex`
+ * mode 의 membership SSOT 는 `COMPLEX_COMPONENT_TAGS` (constants.ts), `reusableOrigin` 은
+ * **catalog `kind:"reusable"` entry** (`REUSABLE_BY_TYPE` — `isReusableCompositeType` 이
+ * `getReusableEntry` 로 파생) 다. 본 resolver 는 두 set 을 *읽어* facet mode 로 노출하고,
  * `useElementCreator:192` 의 palette-add gate 가 **동일 두 set 을 같은 우선순위로 소비**한다
  * (entryUniverse:183 ↔ useElementCreator:192 가 같은 SSOT 를 congruent 소비 — 별도
  * declaration 파일 없이 단일 source 공유). `entryUniverseContract` 가 `creation.mode==="complex"

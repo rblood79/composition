@@ -60,7 +60,11 @@ import {
   Upload,
   Users,
 } from "lucide-react";
-import { getPanelMeta, type PanelMeta } from "@composition/shared";
+import {
+  getPanelMeta,
+  getReusableEntry,
+  type PanelMeta,
+} from "@composition/shared";
 
 export interface PaletteItem {
   type: string;
@@ -243,7 +247,9 @@ export function getPaletteItems(): PaletteItem[] {
   return PALETTE_ORDER.map(({ type, source }) => {
     const meta =
       source === "catalog"
-        ? getPanelMeta(type)
+        ? // ADR-148 Phase 1: 동명 primitive/reusable 공존 type(Toolbar/Form)은 placeable
+          //   단일성에 따라 reusable entry 가 palette 정본 — reusable 우선, 그 외 primitive.
+          (getReusableEntry(type)?.panel ?? getPanelMeta(type))
         : { ...PALETTE_ONLY[type], placeable: true as const };
     if (!meta) {
       throw new Error(

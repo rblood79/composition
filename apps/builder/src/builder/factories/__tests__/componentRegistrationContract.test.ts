@@ -30,7 +30,13 @@ import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
 
 import { rendererMap } from "@composition/shared/renderers";
-import { getCatalogCutoverTypes } from "@composition/shared";
+import {
+  getCatalogCutoverTypes,
+  getCatalogEntry,
+  getReusableEntries,
+} from "@composition/shared";
+import { REUSABLE_ORIGIN_ENSURERS } from "@/builder/components/reusableCompositeOrigins";
+import { getPaletteItems } from "@/builder/panels/components/paletteItems";
 import { TAG_SPEC_MAP } from "@composition/specs";
 import { TAG_SPEC_MAP as BUILDER_TAG_SPEC_MAP } from "@/builder/workspace/canvas/sprites/tagSpecMap";
 import { ComponentFactory } from "@/builder/factories/ComponentFactory";
@@ -264,5 +270,63 @@ describe("ADR-139 컴포넌트 등록·대칭 gate", () => {
     expect(ratchetVerdict(6, 5)).toBe("append");
     expect(ratchetVerdict(4, 5)).toBe("shrink");
     expect(ratchetVerdict(5, 5)).toBe("ok");
+  });
+});
+
+/**
+ * ADR-148 Phase 1 — 전면 reusable entry 등록 불변식 (G2).
+ *
+ * 등록 SSOT 가 catalog `kind:"reusable"` entry 로 단일화되면서(구 `REUSABLE_COMPOSITE_ORIGINS`
+ * 맵 대체), entry ↔ origin ensurer ↔ palette 의 drift 를 build 시점에 차단한다.
+ * 신규 조합 추가 = origin seed 모듈 + catalog entry 1개 — 아래 불변식이 자동 적용된다.
+ */
+describe("ADR-148 Phase 1 — reusable entry 등록 불변식", () => {
+  const reusableEntries = getReusableEntries();
+
+  it("불변식 R① — reusable entry 마다 origin ensurer 존재 (양방향)", () => {
+    for (const e of reusableEntries) {
+      expect(
+        REUSABLE_ORIGIN_ENSURERS[e.reusableId],
+        `catalog reusable entry "${e.type}" (${e.reusableId}) 의 ensurer 부재 — ` +
+          `REUSABLE_ORIGIN_ENSURERS 에 seed 모듈 ensure 를 등록하세요.`,
+      ).toBeTypeOf("function");
+    }
+    const catalogIds = new Set(reusableEntries.map((e) => e.reusableId));
+    for (const id of Object.keys(REUSABLE_ORIGIN_ENSURERS)) {
+      expect(
+        catalogIds.has(id),
+        `ensurer "${id}" 에 대응하는 catalog reusable entry 부재 (dead ensurer)`,
+      ).toBe(true);
+    }
+  });
+
+  it("불변식 R② — 동명 primitive entry 는 placeable=false (placeable 단일성)", () => {
+    for (const e of reusableEntries) {
+      const primitive = getCatalogEntry(e.type);
+      if (primitive) {
+        expect(
+          primitive.panel.placeable,
+          `동명 primitive entry "${e.type}" 는 placeable=false 여야 함 (reusable 이 palette 정본)`,
+        ).toBe(false);
+      }
+    }
+  });
+
+  it("불변식 R③ — reusableId 형식 `component-<kebab>`", () => {
+    for (const e of reusableEntries) {
+      expect(e.reusableId).toMatch(/^component-[a-z0-9]+(-[a-z0-9]+)*$/);
+    }
+  });
+
+  it("불변식 R④ — placeable reusable entry 는 palette 에 노출", () => {
+    const paletteTypes = new Set(getPaletteItems().map((i) => i.type));
+    for (const e of reusableEntries) {
+      if (e.panel.placeable) {
+        expect(
+          paletteTypes.has(e.type),
+          `placeable reusable entry "${e.type}" 가 PALETTE_ORDER 에 없음`,
+        ).toBe(true);
+      }
+    }
   });
 });

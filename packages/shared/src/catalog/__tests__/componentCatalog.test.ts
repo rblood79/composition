@@ -29,9 +29,28 @@ describe("componentCatalog — entry 무결성", () => {
     }
   });
 
-  it("type 중복 없음", () => {
-    const types = componentCatalog.map((e) => e.type);
-    expect(new Set(types).size).toBe(types.length);
+  it("(kind, type) 복합 유일성 — 동일 kind 내 type 중복 없음", () => {
+    // ADR-148 Phase 1: 동명 type 2-entry(Toolbar/Form primitive+reusable)가 설계상 허용되어
+    //   전역 type 유일성에서 (kind,type) 복합 유일성으로 개정 (리뷰 round 2 m1). 동명 type 의
+    //   palette 노출 단일성은 아래 placeable 단일성 test 가 커버.
+    const keys = componentCatalog.map((e) => `${e.kind}:${e.type}`);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it("동명 type 의 primitive/reusable 공존 시 placeable 은 reusable 한쪽만 (placeable 단일성)", () => {
+    const byType = new Map<string, typeof componentCatalog>();
+    for (const e of componentCatalog) {
+      byType.set(e.type, [...(byType.get(e.type) ?? []), e]);
+    }
+    for (const [type, entries] of byType) {
+      if (entries.length < 2) continue;
+      const placeables = entries.filter((e) => e.panel.placeable);
+      expect(
+        placeables.length,
+        `동명 type "${type}" 의 placeable entry 는 정확히 1개여야 함`,
+      ).toBe(1);
+      expect(placeables[0]?.kind).toBe("reusable");
+    }
   });
 
   it("모든 entry 의 panel.placeable 정의", () => {
@@ -60,8 +79,10 @@ describe("componentCatalog — family atomicity (불변식 D)", () => {
 });
 
 describe("componentCatalog — family ① (primitives) 구성", () => {
-  it("family ① primitive 전부 등록 (reusable 없음)", () => {
-    const fam1 = componentCatalog.filter((e) => e.family === "primitives");
+  it("family ① primitive 전부 등록 (ADR-148: 동명 reusable entry 는 별도 kind — 본 검사 제외)", () => {
+    const fam1 = componentCatalog.filter(
+      (e) => e.family === "primitives" && e.kind === "primitive",
+    );
     const types = fam1.map((e) => e.type).sort();
     expect(types).toEqual(
       [
@@ -162,9 +183,15 @@ describe("getCatalogCutoverTypes — cutover 게이트 파생", () => {
   it("cutover==='catalog' entry 만 반환 (native 제외)", () => {
     const cutoverTypes = getCatalogCutoverTypes();
     // native(frame/Slot)는 cutover 개념 없음 → 게이트 제외(metadata-only).
-    const expectedCatalog = componentCatalog
-      .filter((e) => e.kind !== "native" && e.cutover === "catalog")
-      .map((e) => e.type);
+    // ADR-148: 동명 primitive/reusable(Toolbar/Form) 이 둘 다 cutover==="catalog" 라
+    //   Set 파생과 비교 위해 dedup (중복 무해 — 인스턴스는 type:"ref" 라 게이트 무영향).
+    const expectedCatalog = [
+      ...new Set(
+        componentCatalog
+          .filter((e) => e.kind !== "native" && e.cutover === "catalog")
+          .map((e) => e.type),
+      ),
+    ];
     expect([...cutoverTypes].sort()).toEqual(expectedCatalog.sort());
   });
 });

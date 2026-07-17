@@ -6,7 +6,7 @@ import {
   TOOLBAR_ORIGIN_ID,
 } from "../toolbarTemplateOrigins";
 import {
-  REUSABLE_COMPOSITE_ORIGINS,
+  REUSABLE_ORIGIN_ENSURERS,
   ensureReusableCompositeOrigins,
   getReusableCompositeOriginId,
   isReusableCompositeType,
@@ -113,9 +113,10 @@ describe("ADR-912 R-5 Toolbar reusable composite origin", () => {
 
 describe("ADR-912 R-5 reusable composite registry", () => {
   it("maps Toolbar to its origin id (code change 0 enabler)", () => {
-    expect(REUSABLE_COMPOSITE_ORIGINS.Toolbar).toBe(TOOLBAR_ORIGIN_ID);
-    expect(isReusableCompositeType("Toolbar")).toBe(true);
+    // ADR-148 Phase 1: 하드코딩 맵 → catalog reusable entry 파생 (id parity = seed 상수).
     expect(getReusableCompositeOriginId("Toolbar")).toBe(TOOLBAR_ORIGIN_ID);
+    expect(isReusableCompositeType("Toolbar")).toBe(true);
+    expect(REUSABLE_ORIGIN_ENSURERS[TOOLBAR_ORIGIN_ID]).toBeTypeOf("function");
   });
 
   it("returns null / false for non-composite types", () => {

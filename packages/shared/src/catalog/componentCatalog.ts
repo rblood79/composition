@@ -34,7 +34,9 @@ function primitiveEntry(
   type: string,
   family: ComponentCatalogEntry["family"],
   cutover: CutoverState,
-  panel: { category: string; label: string; icon: string },
+  // placeable: 기본 true. 동명 reusable entry 가 있는 type(Toolbar/Form)만 false —
+  //   placeable 단일성 (ADR-148 HC#3: 같은 type 의 primitive/reusable 중 한쪽만 palette).
+  panel: { category: string; label: string; icon: string; placeable?: boolean },
 ): Extract<ComponentCatalogEntry, { kind: "primitive" }> {
   const binding = getPrimitiveBinding(type) as PrimitiveBinding;
   return {
@@ -43,6 +45,31 @@ function primitiveEntry(
     family,
     cutover,
     binding,
+    panel: { ...panel, placeable: panel.placeable ?? true },
+  };
+}
+
+/**
+ * ADR-148 Phase 1 — reusable(조합) entry 헬퍼. 인스턴스 canonical type 은 `"ref"` 이고
+ * `type` 은 palette-facing 식별자다. 조합 트리는 `reusableId` 가 가리키는 Components page
+ * origin 문서(데이터)가 보유 — 코드 정의 없음 (ADR-142 "조합=canonical reusable 문서").
+ *
+ * `cutover: "catalog"` 고정 (신경로 태생) — `CATALOG_CUTOVER_TYPES` 에 포함되지만
+ * 인스턴스는 `type:"ref"` 라 cutover 게이트 실질 무영향 (동명 primitive 와 Set 중복 무해,
+ * ADR-148 R6).
+ */
+function reusableEntry(
+  type: string,
+  family: ComponentCatalogEntry["family"],
+  reusableId: string,
+  panel: { category: string; label: string; icon: string },
+): Extract<ComponentCatalogEntry, { kind: "reusable" }> {
+  return {
+    kind: "reusable",
+    type,
+    family,
+    cutover: "catalog",
+    reusableId,
     panel: { ...panel, placeable: true },
   };
 }
@@ -81,10 +108,13 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "button group",
     icon: "GroupIcon",
   }),
+  // ADR-148 Phase 1: 동명 reusable entry(조합 생성·팔레트)가 placeable — primitive entry 는
+  //   origin 내부 leaf 렌더·binding 소비 전용으로 placeable:false (placeable 단일성 HC#3).
   primitiveEntry("Toolbar", "primitives", FAMILY_1_CUTOVER, {
     category: "buttons",
     label: "toolbar",
     icon: "Settings",
+    placeable: false,
   }),
   primitiveEntry("Link", "primitives", FAMILY_1_CUTOVER, {
     category: "layout",
@@ -490,10 +520,12 @@ const FAMILY_2_ENTRIES: ComponentCatalogEntry[] = [
     label: "color field",
     icon: "Palette",
   }),
+  // ADR-148 Phase 1: 동명 reusable entry 가 placeable — placeable 단일성 (Toolbar 동형).
   primitiveEntry("Form", "fields", FAMILY_2_CUTOVER, {
     category: "forms",
     label: "form",
     icon: "GroupIcon",
+    placeable: false,
   }),
   // ADR-912 6 registry collapse T1 (catalog 미등록 spec cutover 첫 slice, 2026-06-11): 데이터 매핑
   //   internal leaf. render.shapes `() => []`(Skia 0 shape) → escape 불필요, generic 0 shape.
@@ -1105,6 +1137,26 @@ const FAMILY_8_ENTRIES: ComponentCatalogEntry[] = [
  * ⑧ native(frame/Slot)는 metadata-only(cutover 게이트 미포함, canonical-native 렌더 유지).
  *   (MaskedFrame 은 2026-06-16 dead orphan 폐기)
  */
+/**
+ * ADR-148 Phase 1 — 전면 reusable entry ("1 컴포넌트 = 1 등록"의 reusable 축 완성).
+ * `REUSABLE_COMPOSITE_ORIGINS`(builder 별도 레지스트리)를 catalog 파생으로 대체하는 SSOT.
+ * reusableId 리터럴은 builder origin seed 모듈(`{toolbar,form}TemplateOrigins.ts`)의
+ * `TOOLBAR_ORIGIN_ID`/`FORM_ORIGIN_ID` 와 동일 — parity 는 builder
+ * `componentRegistrationContract.test.ts` 불변식이 강제한다 (shared → builder import 불가).
+ */
+const REUSABLE_ENTRIES: ComponentCatalogEntry[] = [
+  reusableEntry("Toolbar", "primitives", "component-toolbar", {
+    category: "buttons",
+    label: "toolbar",
+    icon: "Settings",
+  }),
+  reusableEntry("Form", "fields", "component-form", {
+    category: "forms",
+    label: "form",
+    icon: "GroupIcon",
+  }),
+];
+
 export const componentCatalog: readonly ComponentCatalogEntry[] = [
   ...FAMILY_1_ENTRIES,
   ...FAMILY_2_ENTRIES,
@@ -1114,17 +1166,56 @@ export const componentCatalog: readonly ComponentCatalogEntry[] = [
   ...FAMILY_6_ENTRIES,
   ...FAMILY_7_ENTRIES,
   ...FAMILY_8_ENTRIES,
+  ...REUSABLE_ENTRIES,
 ];
 
-/** type → catalog entry 조회 (O(1)). */
+/**
+ * type → catalog entry 조회 (O(1)) — **kind ≠ reusable 전용** (ADR-148 인덱스 2원화).
+ * 렌더·binding·defaultProps 소비자 경계: reusable instance 는 canonical `type:"ref"` 라
+ * 렌더 경로가 이 인덱스로 reusable entry 를 조회할 일이 없고, resolve 된 origin 자식
+ * (primitive type)만 조회한다. 동명 type(Toolbar/Form)의 primitive/reusable 충돌은
+ * 인덱스 분리로 해소 — 생성·팔레트는 `REUSABLE_BY_TYPE` 사용.
+ */
 const CATALOG_BY_TYPE: ReadonlyMap<string, ComponentCatalogEntry> = new Map(
-  componentCatalog.map((e) => [e.type, e]),
+  componentCatalog.filter((e) => e.kind !== "reusable").map((e) => [e.type, e]),
+);
+
+/** type → reusable entry 조회 (O(1)) — 생성·팔레트·entryUniverse facet 전용. */
+const REUSABLE_BY_TYPE: ReadonlyMap<
+  string,
+  Extract<ComponentCatalogEntry, { kind: "reusable" }>
+> = new Map(
+  componentCatalog
+    .filter(
+      (e): e is Extract<ComponentCatalogEntry, { kind: "reusable" }> =>
+        e.kind === "reusable",
+    )
+    .map((e) => [e.type, e]),
 );
 
 export function getCatalogEntry(
   type: string,
 ): ComponentCatalogEntry | undefined {
   return CATALOG_BY_TYPE.get(type);
+}
+
+/** ADR-148: type → reusable entry (생성·팔레트 소비자 전용 — 렌더 경로 사용 금지). */
+export function getReusableEntry(
+  type: string,
+): Extract<ComponentCatalogEntry, { kind: "reusable" }> | undefined {
+  return REUSABLE_BY_TYPE.get(type);
+}
+
+/** ADR-148: type → reusable origin 문서 id (없으면 null). */
+export function getReusableOriginId(type: string): string | null {
+  return REUSABLE_BY_TYPE.get(type)?.reusableId ?? null;
+}
+
+/** ADR-148: 등록된 모든 reusable entry (ensurer 순회·불변식 test 소비). */
+export function getReusableEntries(): ReadonlyArray<
+  Extract<ComponentCatalogEntry, { kind: "reusable" }>
+> {
+  return [...REUSABLE_BY_TYPE.values()];
 }
 
 /**

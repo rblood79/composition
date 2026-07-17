@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Architecture
 
 - **slotRole 공용 vocabulary shared 승격** (ADR-148 Decision 3): builder-local `LISTBOX_ITEM_SLOT_ROLES`/`getListBoxItemSlotRole` 제거 → shared `SLOT_ROLES`(12종)+`getSlotRole`+`resolveSlotComposition`+`isSlotEnabled` — 컴포넌트별 allow-set 을 코드에 두지 않고 origin 문서의 자식 구성이 SSOT. `ListBoxItemEditor` 는 slot 조합 문서에서 내용 설정 시 제거된 slot 자식을 자동 재생성(양방향 동기, dead edit 차단)
+- **reusable 등록 단일화 — catalog `kind:"reusable"` entry** (ADR-148 Phase 1): 별도 레지스트리 `REUSABLE_COMPOSITE_ORIGINS` 하드코딩 맵을 catalog entry 파생으로 대체 — "1 컴포넌트 = 1 등록"이 reusable 축(Toolbar/Form)까지 완성. 인덱스 2원화(`CATALOG_BY_TYPE` kind≠reusable 렌더·binding 전용 / `REUSABLE_BY_TYPE` 생성·팔레트 전용) + 동명 primitive `placeable:false`(placeable 단일성) + `REUSABLE_ORIGIN_ENSURERS`(entry↔ensurer drift 는 registrationContract 불변식 R①~R④ 가 차단). 인스턴스 canonical `type:"ref"` 저장은 무변 — 기존 문서 영향 0
+  - 위치: `packages/shared/src/catalog/componentCatalog.ts`, `apps/builder/src/builder/components/reusableCompositeOrigins.ts`, `apps/builder/src/builder/factories/__tests__/componentRegistrationContract.test.ts`
 
 ## [숨은 패널 selection fan-out 차단 — ADR-155 패널 활성 gating] - 2026-07-17
 
