@@ -173,14 +173,14 @@ fn golden_flex_wrap_two_lines() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// grid golden — grid_layout(cols, rows, areas, placement, count, w, h, cgap, rgap)
+// grid golden — grid_layout(cols, rows, areas, placement, count, w, h, cgap, rgap, "", "", "")
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[test]
 fn golden_grid_fixed_2x2() {
     // 2×2 fixed tracks, no gap. cols "100px 100px" rows "50px 50px".
     // auto-placement row-major: (0,0)(0,1)(1,0)(1,1).
-    let out = grid_layout("100px 100px", "50px 50px", "", "", 4, 200.0, 100.0, 0.0, 0.0, "", "");
+    let out = grid_layout("100px 100px", "50px 50px", "", "", 4, 200.0, 100.0, 0.0, 0.0, "", "", "", "", "");
     assert_bounds(
         "grid_fixed_2x2",
         &out,
@@ -197,7 +197,7 @@ fn golden_grid_fixed_2x2() {
 fn golden_grid_fr_distribution() {
     // cols "1fr 1fr", available 300, col_gap 0. 각 트랙 150.
     // rows "100px". 2 children auto-placement → (0,0)(0,1).
-    let out = grid_layout("1fr 1fr", "100px", "", "", 2, 300.0, 100.0, 0.0, 0.0, "", "");
+    let out = grid_layout("1fr 1fr", "100px", "", "", 2, 300.0, 100.0, 0.0, 0.0, "", "", "", "", "");
     assert_bounds(
         "grid_fr_distribution",
         &out,
@@ -210,7 +210,7 @@ fn golden_grid_fixed_plus_fr_with_gap() {
     // cols "100px 1fr", available 300, col_gap 20.
     // fixed 100 + gap 20 소비 → 남은 fr 공간 = 300 - 100 - 20 = 180 → 1fr=180.
     // 트랙 sizing 은 정확: [100, 180]. 명세상 x: 0, 120 (100 + gap 20).
-    let out = grid_layout("100px 1fr", "50px", "", "", 2, 300.0, 50.0, 20.0, 0.0, "", "");
+    let out = grid_layout("100px 1fr", "50px", "", "", 2, 300.0, 50.0, 20.0, 0.0, "", "", "", "", "");
     assert_bounds(
         "grid_fixed_plus_fr_gap",
         &out,
@@ -224,7 +224,7 @@ fn golden_grid_auto_placement_offsets_include_leading_gaps() {
     // column gap 20, row gap 10.
     // tracks: cols [100,180], rows [50,140].
     // 2번째 column x = 100 + 20 = 120, 2번째 row y = 50 + 10 = 60.
-    let out = grid_layout("100px 1fr", "50px 1fr", "", "", 4, 300.0, 200.0, 20.0, 10.0, "", "");
+    let out = grid_layout("100px 1fr", "50px 1fr", "", "", 4, 300.0, 200.0, 20.0, 10.0, "", "", "", "", "");
     assert_bounds(
         "grid_auto_placement_offsets_include_leading_gaps",
         &out,
@@ -252,8 +252,7 @@ fn golden_grid_minmax_fr_max() {
         0.0,
         0.0,
         "",
-        "",
-    );
+        "", "", "", "");
     assert_bounds(
         "grid_minmax_fr_max",
         &out,
@@ -279,8 +278,7 @@ fn golden_grid_named_areas() {
         0.0,
         0.0,
         "",
-        "",
-    );
+        "", "", "", "");
     // header: col 1..3 (0..300 width=300), row 1 (y=0, h=40).
     // main: col 2 (x=100, w=200), row 2 (y=40, h=100).
     assert_bounds(

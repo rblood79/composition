@@ -154,3 +154,37 @@ describe("ADR-156 Phase 3 — E12 track alignment 엔진↔CSS 정합 (G3)", () 
     expect(bad, `${c.name} 발산:\n${bad.join("\n")}`).toEqual([]);
   });
 });
+
+// ── E14: grid-auto-flow:column + gridAutoColumns (암시 열) ──
+const E14_CASES: ParityCase[] = [
+  nested(
+    {
+      display: "grid",
+      gridTemplateRows: ["50px", "50px"],
+      gridAutoFlow: "column",
+      gridAutoColumns: ["60px"],
+      width: "120px",
+      height: "100px",
+    },
+    // flow:column → col1(2행) 채운 뒤 col2(암시 60px). 4 자식 column-major.
+    [
+      { label: "a", style: {} },
+      { label: "b", style: {} },
+      { label: "c", style: {} },
+      { label: "d", style: {} },
+    ],
+    "E14 grid: auto-flow column fills rows first, gridAutoColumns implicit tracks",
+    120,
+  ),
+];
+
+describe("ADR-156 Phase 3 — E14 auto-flow/track 엔진↔CSS 정합 (G3)", () => {
+  beforeAll(async () => {
+    await initCompositionEngineWasm();
+  });
+
+  it.each(E14_CASES)("$name", (c) => {
+    const bad = runParityCase(c);
+    expect(bad, `${c.name} 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+});

@@ -1292,6 +1292,10 @@ impl LayoutTree {
         // justify-content/align-content (E12) — 고정 트랙이 컨테이너보다 작을 때 트랙셋 정렬.
         let justify_content = style.justify_content.as_deref().unwrap_or("");
         let align_content = style.align_content.as_deref().unwrap_or("");
+        // grid-auto-flow/columns/rows (E14). auto_columns/rows 는 track array → space-join.
+        let auto_flow = style.grid_auto_flow.as_deref().unwrap_or("");
+        let auto_columns = join_tracks(style.grid_auto_columns.as_deref());
+        let auto_rows = join_tracks(style.grid_auto_rows.as_deref());
         let bounds = grid::grid_layout(
             &template_cols,
             &template_rows,
@@ -1304,6 +1308,9 @@ impl LayoutTree {
             row_gap,
             justify_content,
             align_content,
+            auto_flow,
+            &auto_columns,
+            &auto_rows,
         );
 
         // 셀 좌표 반영 + 각 자식을 셀 크기로 재귀 solve.

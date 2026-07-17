@@ -644,6 +644,24 @@ fn mark_block(occ: &mut HashSet<(i32, i32)>, r0: i32, c0: i32, rs: i32, cs: i32)
     }
 }
 
+/// 고정 행 r 에서 span 이 들어가는 첫 free 열 (row-flow definite-row 아이템용).
+fn first_free_col(occ: &HashSet<(i32, i32)>, r: i32, rs: i32, cs: i32, cols: i32) -> i32 {
+    let mut c = 1;
+    while !block_fits(occ, r, c, rs, cs, cols) && c <= cols {
+        c += 1;
+    }
+    c.min(cols.max(1))
+}
+
+/// 고정 열 c 에서 span 이 들어가는 첫 free 행 (col-flow definite-column 아이템용).
+fn first_free_row(occ: &HashSet<(i32, i32)>, c: i32, rs: i32, cs: i32, rows: i32) -> i32 {
+    let mut r = 1;
+    while !block_fits(occ, r, c, rs, cs, i32::MAX) && r <= rows.max(1) + 10_000 {
+        r += 1;
+    }
+    r
+}
+
 /// 자식 placement 의도 — (열 명시 start, 열 span, 행 명시 start, 행 span). None=해당 축 auto.
 struct PlacementIntent {
     col_start: Option<i32>,
@@ -700,8 +718,10 @@ fn place_children(
     col_gap: f32,
     row_gap: f32,
     areas: &[(String, AreaRect)],
+    flow_column: bool,
 ) -> Vec<(f32, f32, f32, f32)> {
     let cols = tracks_x.len().max(1) as i32;
+    let rows = tracks_y.len().max(1) as i32;
     let items: Vec<PlacementIntent> = placements
         .iter()
         .map(|p| resolve_placement_intent(p, areas))
@@ -710,66 +730,58 @@ fn place_children(
     let mut occ: HashSet<(i32, i32)> = HashSet::new();
     let mut resolved: Vec<Option<(i32, i32)>> = vec![None; items.len()];
 
-    // ── Phase 0: 명시 row 아이템 (CSS §8.5 step 1+2) ──
+    // ── Phase 0: flow 고정축이 명시된 아이템 (CSS §8.5 step 1+2) ──
+    //   row-flow: 명시 row → row band 첫 free 열 / col-flow: 명시 col → col band 첫 free 행.
     for (i, it) in items.iter().enumerate() {
-        let Some(r) = it.row_start else { continue };
-        let c = if let Some(c) = it.col_start {
-            c // fully-definite
+        let pos = if !flow_column {
+            it.row_start.map(|r| {
+                let c = it
+                    .col_start
+                    .unwrap_or_else(|| first_free_col(&occ, r, it.row_span, it.col_span, cols));
+                (r, c)
+            })
         } else {
-            // definite-row-auto-col: row band 첫 free 열.
-            let mut c = 1;
-            while !block_fits(&occ, r, c, it.row_span, it.col_span, cols) && c <= cols {
-                c += 1;
-            }
-            c.min(cols.max(1))
+            it.col_start.map(|c| {
+                let r = it
+                    .row_start
+                    .unwrap_or_else(|| first_free_row(&occ, c, it.row_span, it.col_span, rows));
+                (r, c)
+            })
         };
-        mark_block(&mut occ, r, c, it.row_span, it.col_span);
-        resolved[i] = Some((r, c));
+        if let Some((r, c)) = pos {
+            mark_block(&mut occ, r, c, it.row_span, it.col_span);
+            resolved[i] = Some((r, c));
+        }
     }
 
-    // ── Phase 1: 나머지 (auto row) — 커서 row-major sparse (CSS §8.5 step 4) ──
+    // ── Phase 1: 나머지 — 커서 sparse (CSS §8.5 step 4). flow 방향으로 major/minor 순회 ──
     let mut cur_row = 1i32;
     let mut cur_col = 1i32;
     for (i, it) in items.iter().enumerate() {
         if resolved[i].is_some() {
             continue;
         }
-        if let Some(c) = it.col_start {
-            // definite-col-auto-row: 커서 row 부터 그 열에서 첫 free.
-            let mut r = cur_row;
-            while !block_fits(&occ, r, c, it.row_span, it.col_span, cols) && r < cur_row + 10_000 {
-                r += 1;
-            }
-            mark_block(&mut occ, r, c, it.row_span, it.col_span);
-            resolved[i] = Some((r, c));
-            cur_row = r;
-            cur_col = c + it.col_span;
+        let (r, c) = if !flow_column {
+            place_auto_row_flow(&occ, it, cols, cur_row, cur_col)
         } else {
-            // fully-auto: 커서에서 row-major 스캔.
-            let mut r = cur_row;
-            let mut placed = None;
-            'scan: while r < cur_row + 10_000 {
-                let mut c = if r == cur_row { cur_col } else { 1 };
-                while c + it.col_span - 1 <= cols.max(it.col_span) {
-                    if c + it.col_span - 1 <= cols
-                        && block_fits(&occ, r, c, it.row_span, it.col_span, cols)
-                    {
-                        placed = Some((r, c));
-                        break 'scan;
-                    }
-                    c += 1;
-                }
-                r += 1;
-            }
-            let (r, c) = placed.unwrap_or((cur_row, 1));
-            mark_block(&mut occ, r, c, it.row_span, it.col_span);
-            resolved[i] = Some((r, c));
+            place_auto_col_flow(&occ, it, rows, cur_row, cur_col)
+        };
+        mark_block(&mut occ, r, c, it.row_span, it.col_span);
+        resolved[i] = Some((r, c));
+        if !flow_column {
             cur_row = r;
             cur_col = c + it.col_span;
-        }
-        if cur_col > cols {
-            cur_row += 1;
-            cur_col = 1;
+            if cur_col > cols {
+                cur_row += 1;
+                cur_col = 1;
+            }
+        } else {
+            cur_col = c;
+            cur_row = r + it.row_span;
+            if cur_row > rows {
+                cur_col += 1;
+                cur_row = 1;
+            }
         }
     }
 
@@ -791,6 +803,66 @@ fn place_children(
             )
         })
         .collect()
+}
+
+/// row-flow(기본) fully-auto 아이템 배치 — 커서에서 row-major 스캔.
+fn place_auto_row_flow(
+    occ: &HashSet<(i32, i32)>,
+    it: &PlacementIntent,
+    cols: i32,
+    cur_row: i32,
+    cur_col: i32,
+) -> (i32, i32) {
+    // definite-col-auto-row: 커서 row 부터 그 열에서 첫 free.
+    if let Some(c) = it.col_start {
+        let mut r = cur_row;
+        while !block_fits(occ, r, c, it.row_span, it.col_span, cols) && r < cur_row + 10_000 {
+            r += 1;
+        }
+        return (r, c);
+    }
+    let mut r = cur_row;
+    while r < cur_row + 10_000 {
+        let mut c = if r == cur_row { cur_col } else { 1 };
+        while c + it.col_span - 1 <= cols {
+            if block_fits(occ, r, c, it.row_span, it.col_span, cols) {
+                return (r, c);
+            }
+            c += 1;
+        }
+        r += 1;
+    }
+    (cur_row, 1)
+}
+
+/// col-flow(grid-auto-flow:column) fully-auto 아이템 배치 — 커서에서 column-major 스캔.
+fn place_auto_col_flow(
+    occ: &HashSet<(i32, i32)>,
+    it: &PlacementIntent,
+    rows: i32,
+    cur_row: i32,
+    cur_col: i32,
+) -> (i32, i32) {
+    // definite-row-auto-col: 커서 col 부터 그 행에서 첫 free.
+    if let Some(r) = it.row_start {
+        let mut c = cur_col;
+        while !block_fits(occ, r, c, it.row_span, it.col_span, i32::MAX) && c < cur_col + 10_000 {
+            c += 1;
+        }
+        return (r, c);
+    }
+    let mut c = cur_col;
+    while c < cur_col + 10_000 {
+        let mut r = if c == cur_col { cur_row } else { 1 };
+        while r + it.row_span - 1 <= rows {
+            if block_fits(occ, r, c, it.row_span, it.col_span, i32::MAX) {
+                return (r, c);
+            }
+            r += 1;
+        }
+        c += 1;
+    }
+    (1, cur_col)
 }
 
 // ─── 컨테이너 트랙 정렬 (E12) ───────────────────────────────────────────
@@ -825,6 +897,19 @@ fn track_distribution(mode: &str, free: f32, n: usize) -> (f32, f32) {
         // start / flex-start / stretch / normal / 기타 → 오프셋 없음
         _ => (0.0, 0.0),
     }
+}
+
+/// grid-auto-columns/rows 문자열 → 암시 트랙 px 크기 (E14). 첫 토큰의 px 값만 소비
+/// (fr/%/auto/minmax intrinsic 은 미측정 → fallback). CSS 는 auto 트랙 리스트를 반복 적용하나
+/// 옵션 3-b 범위에선 단일 px 값 + fallback 으로 한정.
+fn parse_implicit_track_size(spec: &str, fallback: f32) -> f32 {
+    let first = spec.split_whitespace().next().unwrap_or("").trim();
+    if let Some(px) = first.strip_suffix("px") {
+        if let Ok(v) = px.trim().parse::<f32>() {
+            return v.max(0.0);
+        }
+    }
+    fallback
 }
 
 // ─── 공개 API: 완결 grid 레이아웃 ──────────────────────────────────────
@@ -873,14 +958,18 @@ pub fn grid_layout(
     row_gap: f32,
     justify_content: &str,
     align_content: &str,
+    auto_flow: &str,
+    auto_columns: &str,
+    auto_rows: &str,
 ) -> Box<[f32]> {
+    let _ = auto_rows; // gridAutoRows override(flow:row 암시 행)는 tree.rs intrinsic 소유 — §Residual.
     // 트랙 해결.
     let mut col_tracks = parse_template_to_tracks(template_cols.trim(), available_w, col_gap);
     resolve_grid_tracks(&mut col_tracks, available_w, col_gap);
     let mut row_tracks = parse_template_to_tracks(template_rows.trim(), available_h, row_gap);
     resolve_grid_tracks(&mut row_tracks, available_h, row_gap);
 
-    let tracks_x: Vec<f32> = col_tracks.iter().map(|t| t.size).collect();
+    let mut tracks_x: Vec<f32> = col_tracks.iter().map(|t| t.size).collect();
     let tracks_y: Vec<f32> = row_tracks.iter().map(|t| t.size).collect();
 
     // named areas.
@@ -896,6 +985,23 @@ pub fn grid_layout(
     } else {
         parse_placements(placement_spec)
     };
+
+    // ── E14: grid-auto-flow:column → column-major 배치 + 암시 컬럼(gridAutoColumns) ──
+    // flow:column 은 행(gridTemplateRows)을 채운 뒤 다음 열로 넘어가며, 명시 열을 넘어서는
+    // 열은 암시 트랙(gridAutoColumns px)으로 생성된다. 행은 명시 트랙(tree.rs 소유)이므로
+    // 여기선 컬럼만 확장한다 (row-flow 암시 행은 tree.rs intrinsic 이 담당 — §Residual).
+    let flow_column = auto_flow.contains("column");
+    if flow_column && child_count > 0 {
+        let rows = tracks_y.len().max(1);
+        let needed_cols = child_count.div_ceil(rows as u32) as usize;
+        if needed_cols > tracks_x.len() {
+            let fallback = tracks_x.last().copied().unwrap_or(100.0);
+            let implicit = parse_implicit_track_size(auto_columns, fallback);
+            while tracks_x.len() < needed_cols {
+                tracks_x.push(implicit);
+            }
+        }
+    }
 
     // ── E12: 컨테이너 트랙 정렬 (justify-content / align-content) ──
     // 트랙 총합 < 컨테이너(고정 트랙)일 때만 free space → 오프셋/추가 gap. fr/auto 는 free≈0.
@@ -916,6 +1022,7 @@ pub fn grid_layout(
         col_gap + extra_col_gap,
         row_gap + extra_row_gap,
         &areas,
+        flow_column,
     );
 
     let mut out = Vec::with_capacity(bounds.len() * 4);
@@ -1115,7 +1222,7 @@ mod tests {
         // 2열, 4 자식 auto-placement. tracks_x=[100,100] tracks_y=[50,50]
         let placements = vec![ChildPlacement::default(); 4];
         let areas: Vec<(String, AreaRect)> = Vec::new();
-        let result = place_children(&placements, &[100.0, 100.0], &[50.0, 50.0], 0.0, 0.0, &areas);
+        let result = place_children(&placements, &[100.0, 100.0], &[50.0, 50.0], 0.0, 0.0, &areas, false);
         assert_eq!(result.len(), 4);
         assert_eq!(result[0], (0.0, 0.0, 100.0, 50.0)); // child0 (0,0)
         assert_eq!(result[1], (100.0, 0.0, 100.0, 50.0)); // child1 (1,0)
@@ -1129,7 +1236,7 @@ mod tests {
         let mut placements = vec![ChildPlacement::default(); 1];
         placements[0].grid_column = "1 / 3".to_string();
         let areas: Vec<(String, AreaRect)> = Vec::new();
-        let result = place_children(&placements, &[100.0, 100.0], &[50.0], 0.0, 0.0, &areas);
+        let result = place_children(&placements, &[100.0, 100.0], &[50.0], 0.0, 0.0, &areas, false);
         // colStart 1, colEnd 3 → width = track0 + track1 = 200
         assert!(approx_eq(result[0].2, 200.0));
     }
@@ -1139,7 +1246,7 @@ mod tests {
         let areas = parse_template_areas("\"header header\" \"sidebar main\"");
         let mut placements = vec![ChildPlacement::default(); 1];
         placements[0].area_name = "header".to_string();
-        let result = place_children(&placements, &[100.0, 100.0], &[50.0, 50.0], 0.0, 0.0, &areas);
+        let result = place_children(&placements, &[100.0, 100.0], &[50.0, 50.0], 0.0, 0.0, &areas, false);
         // header: col 1-3, row 1-2 → x=0 y=0 w=200 h=50
         assert!(approx_eq(result[0].0, 0.0));
         assert!(approx_eq(result[0].1, 0.0));
@@ -1152,7 +1259,7 @@ mod tests {
     #[test]
     fn test_grid_layout_auto_placement() {
         // 2열 grid, 4 자식 auto. cols "1fr 1fr" at 200 → [100,100], rows "50px 50px"
-        let out = grid_layout("1fr 1fr", "50px 50px", "", "", 4, 200.0, 100.0, 0.0, 0.0, "", "");
+        let out = grid_layout("1fr 1fr", "50px 50px", "", "", 4, 200.0, 100.0, 0.0, 0.0, "", "", "", "", "");
         assert_eq!(out.len(), 16);
         // child0 (0,0)
         assert!(approx_eq(out[0], 0.0));
@@ -1169,7 +1276,7 @@ mod tests {
         // E13: 2열 grid. child0 = column span 2 (1행 전체 점유). child1/child2 auto 는
         //   점유를 스킵해 2행에 배치돼야 한다 (구현 전엔 child_index%cols 로 child1 이
         //   (1행,2열)에 겹쳤다).
-        let out = grid_layout("1fr 1fr", "50px 50px", "", "|span 2|\n||\n||", 3, 200.0, 100.0, 0.0, 0.0, "", "");
+        let out = grid_layout("1fr 1fr", "50px 50px", "", "|span 2|\n||\n||", 3, 200.0, 100.0, 0.0, 0.0, "", "", "", "", "");
         assert_eq!(out.len(), 12);
         // child0: col span 2 → x=0 w=200, row1 → y=0
         assert!(approx_eq(out[0], 0.0));
@@ -1197,8 +1304,7 @@ mod tests {
             0.0,
             0.0,
             "",
-            "",
-        );
+            "", "", "", "");
         assert_eq!(out.len(), 4);
         // header: col 1-3 → w=200, row 1-2 → h=40
         assert!(approx_eq(out[0], 0.0));
@@ -1221,8 +1327,7 @@ mod tests {
             0.0,
             0.0,
             "",
-            "",
-        );
+            "", "", "", "");
         assert_eq!(out.len(), 12);
         // 3 트랙 각 ≈213.33. child0 x=0, child1 x≈213.33, child2 x≈426.67
         assert!(approx_eq(out[0], 0.0));
@@ -1233,7 +1338,7 @@ mod tests {
     #[test]
     fn test_grid_layout_placement_spec_span() {
         // 자식0 gridColumn "1 / 3" span 2. cols "100px 100px", 개행 placement.
-        let out = grid_layout("100px 100px", "50px", "", "|1 / 3|", 1, 200.0, 50.0, 0.0, 0.0, "", "");
+        let out = grid_layout("100px 100px", "50px", "", "|1 / 3|", 1, 200.0, 50.0, 0.0, 0.0, "", "", "", "", "");
         assert_eq!(out.len(), 4);
         // colStart 1 colEnd 3 → width 200
         assert!(approx_eq(out[2], 200.0));
@@ -1242,7 +1347,7 @@ mod tests {
     #[test]
     fn test_grid_layout_justify_content_center() {
         // E12: 고정 트랙 100+100=200, 컨테이너 300 → free 100. justify-content:center → offset 50.
-        let out = grid_layout("100px 100px", "50px", "", "", 2, 300.0, 50.0, 0.0, 0.0, "center", "");
+        let out = grid_layout("100px 100px", "50px", "", "", 2, 300.0, 50.0, 0.0, 0.0, "center", "", "", "", "");
         assert_eq!(out.len(), 8);
         assert!(approx_eq(out[0], 50.0)); // child0 x = free/2
         assert!(approx_eq(out[4], 150.0)); // child1 x = 50 + 100
@@ -1252,16 +1357,30 @@ mod tests {
     fn test_grid_layout_justify_content_space_between() {
         // E12: 고정 트랙 100+100, 컨테이너 300 → free 100. space-between(n=2) → gap += 100.
         let out = grid_layout(
-            "100px 100px", "50px", "", "", 2, 300.0, 50.0, 0.0, 0.0, "space-between", "",
-        );
+            "100px 100px", "50px", "", "", 2, 300.0, 50.0, 0.0, 0.0, "space-between", "", "", "", "");
         assert!(approx_eq(out[0], 0.0)); // child0 x=0
         assert!(approx_eq(out[4], 200.0)); // child1 x = track0(100) + extra gap(100)
     }
 
     #[test]
+    fn test_grid_layout_auto_flow_column() {
+        // E14: flow:column, 2 명시 행, gridAutoColumns 60px, 4 자식 → column-major 배치.
+        //   명시 열 없음 → 암시 열 2개(60px). 자식이 열을 세로로 채운 뒤 다음 열로 넘어간다.
+        let out = grid_layout(
+            "", "50px 50px", "", "", 4, 200.0, 100.0, 0.0, 0.0, "", "", "column", "60px", "",
+        );
+        assert_eq!(out.len(), 16);
+        assert!(approx_eq(out[0], 0.0) && approx_eq(out[1], 0.0)); // c0 (r1,c1)
+        assert!(approx_eq(out[2], 60.0)); // 암시 열 폭
+        assert!(approx_eq(out[4], 0.0) && approx_eq(out[5], 50.0)); // c1 (r2,c1)
+        assert!(approx_eq(out[8], 60.0) && approx_eq(out[9], 0.0)); // c2 (r1,c2)
+        assert!(approx_eq(out[12], 60.0) && approx_eq(out[13], 50.0)); // c3 (r2,c2)
+    }
+
+    #[test]
     fn test_grid_layout_fr_no_justify_offset() {
         // fr 트랙은 컨테이너를 채워 free≈0 → justify-content 무효(오프셋 0).
-        let out = grid_layout("1fr 1fr", "50px", "", "", 2, 300.0, 50.0, 0.0, 0.0, "center", "");
+        let out = grid_layout("1fr 1fr", "50px", "", "", 2, 300.0, 50.0, 0.0, 0.0, "center", "", "", "", "");
         assert!(approx_eq(out[0], 0.0)); // 오프셋 없음
         assert!(approx_eq(out[4], 150.0)); // 각 트랙 150
     }
