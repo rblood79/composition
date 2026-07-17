@@ -159,7 +159,7 @@ diff                 : |css - eng| > 1.0px 인 (node, field) 나열
 
 하니스가 틀리면 모든 결과가 무의미하다. **기존 Chrome 검증 fixture(N1 flex-in-flex)를 하니스로 재현해 통과**시키는 것을 Phase 1 완료 조건에 포함한다 (세션에서 1회 확인 완료).
 
-### 2-5. 진행 상태 (2026-07-18, commit `614bbd3c3`)
+### 2-5. 진행 상태 — 1차 land (2026-07-18, commit `614bbd3c3`, → §2-6 에서 완결)
 
 vehicle 확정 + 하니스 핵심 land 완료:
 
