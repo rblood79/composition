@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [정렬 피커·percent 높이가 Builder(Skia)에서 동작하지 않던 결함 — ADR-156 Phase 2 (E1 align-self / E6 percent height)] - 2026-07-18
+
+### Bug Fixes
+
+- **Inspector 정렬 피커(`align-self`)가 Preview(CSS)에서만 동작하고 Builder(Skia)에서 무반응이던 결함 수정** (ADR-156 E1):
+  - 증상: 정렬 피커로 자식을 부모 안에서 위/아래·중앙 정렬해도 Skia 캔버스에서 위치가 바뀌지 않음 (Preview 는 정상) — CSS↔Skia 비대칭
+  - **Why**: 레이아웃 엔진 `NodeStyle.align_self` 가 **선언만 되고 읽는 코드가 0곳**이었다. store→엔진 송신(`taffyStyleToRecord`)은 정상이나 엔진이 값을 버려, 정렬이 Preview 에서만 반영됐다. 추가로 9칸 피커가 함께 쓰는 `justifySelf` 가 페이지 레이아웃 캐시 시그니처(`LAYOUT_STYLE_KEYS`)에 미등재라, 가로 전용 이동(`leftTop`→`centerTop`)이 캐시 히트로 흡수돼 재배치 자체가 일어나지 않았다
+  - 수정: `flex.rs` 필드 계약을 17→18 필드로 확장해 per-item `align_self` 를 소비(`place_line_cross_axis` 가 컨테이너 `align-items` 를 override, `auto`=상속). `layoutCache.ts` 의 `LAYOUT_STYLE_KEYS` 에 `justifySelf` 등재. `justify-self` 는 flex 에서 무효(grid 전용)라 소비는 Phase 3
+  - 위치: `packages/composition-engine/src/{flex.rs,tree.rs}`, `apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts`
+- **percent 높이(`height:50%` 등)가 Builder(Skia)에서 컨테이너 폭 기준으로 잘못 계산되던 결함 수정** (ADR-156 E6):
+  - 증상: 자식에 `height:50%` 를 주면 Skia 가 컨테이너 **높이**가 아니라 **폭**의 50% 로 그림 (Preview 는 높이 기준) — 폭≠높이 컨테이너에서 비대칭
+  - **Why**: 엔진의 percent 해석 컨텍스트(`ctx_for`)가 폭 단일 축만 담아, column 자식의 `height`·block 자식의 `height` 를 폭 기준으로 해소했다
+  - 수정: `height`/`minHeight`/`maxHeight` 를 축별 컨텍스트(높이 기준)로 라우팅. 컨테이너 높이가 **명시 definite** 일 때만 실축, `auto` 면 percent→`auto`(CSS §10.5). `padding`/`margin` 의 percent 는 폭 기준 유지
+  - 위치: `packages/composition-engine/src/tree.rs`
+  - 검증: Chrome 차등 파리티 하니스(`tests/parity/phase2.browser.test.ts`, 실 DOM = ground truth) 8 fixture + 672 조합 무회귀 + Rust 288 tests + live(빌더 store 편집 → Skia 반영, Preview 대칭). 잔여 발산(E2/E3/E7/E8 등)은 후속 Phase
+
 ## [block 부모 안 컴포넌트가 Skia 에서 세로 중앙에 놓이던 결함 — flex line 승격 조건 정정] - 2026-07-17
 
 ### Bug Fixes

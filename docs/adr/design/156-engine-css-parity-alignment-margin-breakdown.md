@@ -226,6 +226,17 @@ Inspector 정렬 피커 (TransformSection.tsx:235 handleSelfAlignment)
 
 live 검증(G2): Inspector 9칸 피커 **가로 전용 이동**(`leftTop`→`centerTop`) → Skia 반영 → Preview 대칭 + Transform % 높이 편집 → Skia 반영. **세로 이동 단독 검증 금지** (R6 을 가림).
 
+### 3-3. 진행 상태 — Phase 2 반영 완료 (2026-07-18, commit `6a2c50d0b`)
+
+**E1 + E6 land 완료, G2 충족.**
+
+- **E1 align-self**: `flex.rs` `FLEX_FIELD_COUNT` 17→18 (off 17=align_self, **0=auto 상속** = zero-init·CSS 기본값이라 기존 golden/테스트 배열 무변경). `place_line_cross_axis` 가 per-item `align_self` 를 `resolve_self_align` 로 해소해 컨테이너 `align_items` override. `tree.rs` `parse_align_self` + `write_flex_item` off 17 주입. `justify_self` 는 flex 무효(grid 전용, Phase 3)라 캐시 키만 등재 — 소비는 Phase 3.
+- **R6**: `layoutCache.ts` `LAYOUT_STYLE_KEYS` 에 `justifySelf` 등재.
+- **E6 percent height**: `main_ctx`(column=height)·min/max·`write_block_item`(신규 `height_ctx` 파라미터) 를 축별 ctx 로 라우팅. **컨테이너 height 명시 definite 일 때만 실축, auto 면 INDEFINITE→percent auto**(CSS §10.5) — `write_block_item`(height_ctx)·leaf `resolve_self_size`(solve_block 의 `child_containing_h`) 양 경로 동일 게이트. padding/margin percent 는 폭 기준 유지(R8).
+- **필드 계약(R2)**: `golden.rs:368` assert 17→18, `flex_item` 헬퍼 `[f32; 18]`(off 17=0=auto → golden 기대값 무변경).
+- **검증**: cargo test **288**(`--lib` 261 = 기존 256 + 신규 align_self 5 / golden 15 / tree_golden 11 / doc 1) · Chrome 차등 파리티 `tests/parity/phase2.browser.test.ts` 8 fixture(E1 4 + E6 4) + 672 sweep 무회귀 + N1~N10, **flaky 0**(3회) · type-check baseline 63 무증가 · **live**(Chrome MCP): 빌더 store 편집 → align-self 3자식 cross 0·40·80px 계단(flex-start/center/end) + alignSelf 편집 시 relayout(+80 이동, R6 캐시 키 정상) + `height:50%`→150(=50%×300), 테스트 요소 6개 제거 후 프로젝트 원복.
+- **회귀 기준선 수치 갱신**: Rust 283→**288** (align_self 5 추가). 본 breakdown §8 · 본문 Hard constraint 의 "283" 은 이 값으로 승계.
+
 ## 4. Phase 3 — grid 커널 (G3, HIGH)
 
 **대상**: E2 + **E12/E13/E14** (round 2 흡수 — 근원이 동일 커널).
