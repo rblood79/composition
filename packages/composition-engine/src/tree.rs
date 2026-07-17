@@ -1316,18 +1316,42 @@ impl LayoutTree {
         // 셀 좌표 반영 + 각 자식을 셀 크기로 재귀 solve.
         // bounding box 는 offset 전 좌표 기준(컨테이너 content 크기), 저장은 offset 후
         // (자식 화면 좌표는 padding 안쪽) — 섞으면 컨테이너 크기에 padding 이중 반영.
+        //
+        // E2 (ADR-156 Phase 3, 옵션 3-b): align-items/align-self **세로 배치**. 자식 height 가
+        //   확정(explicit)이거나 align≠stretch 면 자식을 셀 안에서 start/center/end 로 배치하고
+        //   자식 실제 height 를 쓴다(stretch 기본은 셀 채움 유지). **width(justify)는 stretch 유지**
+        //   — JS DFS(fullTreeLayout) 가 grid 자식 폭을 트랙 폭으로 강제하므로 엔진이 justify 를
+        //   더해도 live 에서 이중 적용/무효가 되어 §Residual (옵션 3-b 계약).
+        let grid_align_items = parse_align_items(style.align_items.as_deref());
         let mut max_right: f32 = 0.0;
         let mut max_bottom: f32 = 0.0;
         for (i, &c) in children.iter().enumerate() {
             let off = i * 4;
             let (x, y, w, h) = (bounds[off], bounds[off + 1], bounds[off + 2], bounds[off + 3]);
-            // 자식을 셀 크기로 재귀 solve (셀 안 flex/block 컨테이너 배치용).
-            // 자식 자기 크기는 셀 크기로 override — grid item 은 셀을 채운다(stretch 기본).
-            self.solve_node(c, w, h);
+            // 자식을 셀 크기로 재귀 solve → 자식 실제 크기(explicit/content) 회수.
+            let (_cw, ch) = self.solve_node(c, w, h);
+            let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
+            let align = grid_block_align(cstyle.align_self.as_deref(), grid_align_items);
+            // **오직 명시적 비-stretch 정렬(align≠stretch)일 때만** 재배치한다. 기본 stretch 는
+            //   explicit-height 자식이어도 셀 채움을 유지 — 옵션 3-b "크기 stretch 유지" 계약 +
+            //   live grid 컴포넌트(ProgressBar 등)가 이에 의존(회귀 방지). CSS 상 explicit-height
+            //   자식은 stretch 안 하지만, 그 축소는 옵션 3-a 영역이라 §Residual.
+            let (fy, fh) = if align != 0 {
+                let real_h = ch.max(0.0).min(h);
+                let free = (h - real_h).max(0.0);
+                let dy = match align {
+                    2 => free / 2.0, // center
+                    3 => free,       // end
+                    _ => 0.0,        // start(1)
+                };
+                (y + dy, real_h)
+            } else {
+                (y, h) // stretch fill (기본)
+            };
             max_right = max_right.max(x + w);
-            max_bottom = max_bottom.max(y + h);
+            max_bottom = max_bottom.max(fy + fh);
             if let Some(n) = self.get_mut(c) {
-                n.layout = NodeLayout { x: x + off_x, y: y + off_y, width: w, height: h };
+                n.layout = NodeLayout { x: x + off_x, y: fy + off_y, width: w, height: fh };
             }
         }
 
@@ -1525,6 +1549,20 @@ fn parse_align_self(v: Option<&str>) -> f32 {
         Some("flex-end") | Some("end") => 4.0,
         // auto/normal/미지정/기타 → 0 (컨테이너 align-items 상속)
         _ => 0.0,
+    }
+}
+
+/// grid 블록축(행) 정렬 코드 — align-self(자식) → parse_align_items 코드(0=stretch/1=start/
+/// 2=center/3=end), auto/미지정은 컨테이너 align-items 상속. E2(ADR-156 Phase 3, 옵션 3-b)
+/// 의 세로 배치용 — justify(가로)는 JS DFS 폭 강제로 §Residual.
+fn grid_block_align(align_self: Option<&str>, container: u8) -> u8 {
+    match align_self.map(|s| s.trim().to_ascii_lowercase()).as_deref() {
+        Some("stretch") => 0,
+        Some("flex-start") | Some("start") | Some("self-start") => 1,
+        Some("center") => 2,
+        Some("flex-end") | Some("end") | Some("self-end") => 3,
+        // auto/normal/미지정 → 컨테이너 align-items 상속
+        _ => container,
     }
 }
 

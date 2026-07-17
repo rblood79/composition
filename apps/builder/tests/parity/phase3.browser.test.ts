@@ -188,3 +188,49 @@ describe("ADR-156 Phase 3 — E14 auto-flow/track 엔진↔CSS 정합 (G3)", () 
     expect(bad, `${c.name} 발산:\n${bad.join("\n")}`).toEqual([]);
   });
 });
+
+// ── E2: per-item align (세로) — 옵션 3-b 범위 (justify/가로는 §Residual) ──
+// 비-stretch align 시 자식을 셀 세로 여유에서 배치. width 는 stretch 유지(JS DFS 폭 강제).
+const E2_CASES: ParityCase[] = [
+  nested(
+    {
+      display: "grid",
+      gridTemplateColumns: ["100px"],
+      gridTemplateRows: ["100px"],
+      alignItems: "center",
+      width: "100px",
+      height: "100px",
+    },
+    // 자식 height 40 + align-items:center → 세로 중앙(y=30), width 는 셀 채움(100).
+    [{ label: "k", style: { height: "40px" } }],
+    "E2 grid: align-items:center centers child vertically (y=30, keeps width stretch)",
+    100,
+  ),
+  nested(
+    {
+      display: "grid",
+      gridTemplateColumns: ["100px"],
+      gridTemplateRows: ["100px", "100px"],
+      alignItems: "start",
+      width: "100px",
+      height: "200px",
+    },
+    [
+      { label: "a", style: { height: "40px" } },
+      // align-self:end 가 컨테이너 start 를 override → 셀 하단(y=100+60=160).
+      { label: "b", style: { height: "40px", alignSelf: "end" } },
+    ],
+    "E2 grid: align-self:end overrides container align-items:start (bottom of cell)",
+  ),
+];
+
+describe("ADR-156 Phase 3 — E2 per-item align 엔진↔CSS 정합 (G3, 3-b)", () => {
+  beforeAll(async () => {
+    await initCompositionEngineWasm();
+  });
+
+  it.each(E2_CASES)("$name", (c) => {
+    const bad = runParityCase(c);
+    expect(bad, `${c.name} 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+});
