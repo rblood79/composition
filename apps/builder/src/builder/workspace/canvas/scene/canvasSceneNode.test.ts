@@ -665,7 +665,7 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
     ).toBe(false);
   });
 
-  it("suppresses ListBoxItem slot composed children from the visible scene (ADR-148 — `_slots` 로 접혀 escape 가 소비)", () => {
+  it("keeps reusable origin ListBoxItem slot children in the scene (ADR-148 후속 2026-07-17 — 더블클릭 drill/편집 대상)", () => {
     const doc: CompositionDocument = {
       version: "composition-1.0",
       children: [
@@ -720,13 +720,14 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
 
     const graph = buildCanvasSceneGraph(doc, { includeReusableFrames: true });
 
-    // ListBoxItem 자체는 scene 에 존재(listbox_item escape 가 단일 paint)
+    // ListBoxItem 자체는 scene 에 존재(listbox_item escape 가 shell paint)
     expect(graph.nodesMap.get("lbi-origin")).toBeDefined();
-    // slot 조합 자식(Icon/Label/Description)은 가시 scene 에서 제외 — stacked 중복 렌더 방지
-    //   (구성·스타일은 projection `_slots` 로 접혀 소비된다 — ADR-148 Phase 0)
-    expect(graph.nodesMap.has("lbi-origin__icon")).toBe(false);
-    expect(graph.nodesMap.has("lbi-origin__label")).toBe(false);
-    expect(graph.nodesMap.has("lbi-origin__description")).toBe(false);
+    // reusable origin 의 slot 조합 자식(Icon/Label/Description)은 실 scene 노드로 선다 —
+    //   더블클릭 drill/선택/편집 대상 (Card origin 동형). 이중 렌더는 escape `_hasChildren`
+    //   shell gating 이 차단 (2026-07-17 — 구 접힘 계약은 비-reusable item 한정으로 축소).
+    expect(graph.nodesMap.has("lbi-origin__icon")).toBe(true);
+    expect(graph.nodesMap.has("lbi-origin__label")).toBe(true);
+    expect(graph.nodesMap.has("lbi-origin__description")).toBe(true);
   });
 
   it("propagates the resolved origin ListBoxItem style onto projected rows (ADR-147 Layer 3)", () => {
@@ -972,10 +973,99 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
     // owner GridList scene props 에도 주입 (layout §1.55c gating — Layer D 대칭).
     const owner = graph.nodesMap.get("gridlist-1");
     expect(owner?.props._slots).toBeDefined();
-    // origin 의 slot 조합 자식은 가시 scene 에 서지 않는다 (escape 소비 — 이중 렌더 차단).
+    // reusable origin 의 slot 자식은 실 scene 노드로 선다 (Card origin 동형 — 더블클릭
+    //   drill/편집 대상, 2026-07-17). 이중 렌더 차단은 escape `_hasChildren` shell gating.
     expect(
       graph.nodesMap.get("component-gridlist-item-default__label"),
-    ).toBeUndefined();
+    ).toBeDefined();
+  });
+
+  it("unfolds slot children of reusable origins only — non-reusable items stay folded (더블클릭 drill, 2026-07-17)", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                // Components 페이지 origin (reusable) — slot 자식이 authoring 표면.
+                {
+                  id: "component-listbox-item-default",
+                  type: "ListBoxItem",
+                  reusable: true,
+                  props: { children: "{label}", description: "{description}" },
+                  children: [
+                    {
+                      id: "component-listbox-item-default__label",
+                      type: "Text",
+                      props: { slot: "label", children: "{label}" },
+                      metadata: {
+                        type: "listbox-item-slot",
+                        slotRole: "label",
+                      },
+                    },
+                    {
+                      id: "component-listbox-item-default__description",
+                      type: "Text",
+                      props: { slot: "description", children: "{description}" },
+                      metadata: {
+                        type: "listbox-item-slot",
+                        slotRole: "description",
+                      },
+                    },
+                  ],
+                },
+                // 비-reusable item 의 slot 자식은 기존 접힘 유지 (escape 가 flat props 로
+                //   내용을 그리므로 실 노드로 서면 이중 렌더).
+                {
+                  id: "plain-item-1",
+                  type: "ListBoxItem",
+                  props: { children: "Aardvark" },
+                  children: [
+                    {
+                      id: "plain-item-1__label",
+                      type: "Text",
+                      props: { slot: "label", children: "Aardvark" },
+                      metadata: {
+                        type: "listbox-item-slot",
+                        slotRole: "label",
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc, { includeReusableFrames: true });
+
+    // origin slot 자식 = 실 scene 노드 (interaction map 에 승격 → 더블클릭 drill 가능).
+    const label = graph.nodesMap.get("component-listbox-item-default__label");
+    const description = graph.nodesMap.get(
+      "component-listbox-item-default__description",
+    );
+    expect(label).toBeDefined();
+    expect(description).toBeDefined();
+    expect(label?.parentId).toBe("component-listbox-item-default");
+    const originChildren =
+      graph.childrenByParent.get("component-listbox-item-default") ?? [];
+    expect(originChildren.map((c) => c.id)).toEqual([
+      "component-listbox-item-default__label",
+      "component-listbox-item-default__description",
+    ]);
+
+    // 비-reusable item 의 slot 자식은 접힘 유지.
+    expect(graph.nodesMap.get("plain-item-1")).toBeDefined();
+    expect(graph.nodesMap.get("plain-item-1__label")).toBeUndefined();
   });
 
   it("projects a data-bound Table into 2D RowsGroup → Row → Cell tree (ADR-912 C1)", () => {

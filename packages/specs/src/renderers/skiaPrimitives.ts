@@ -367,6 +367,11 @@ function readCardText(value: unknown): string | null {
  *   컴포넌트 식별 분기 0). template placeholder(`{label}`) → "Label"/"Description" sample.
  */
 const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+  // ADR-148 후속 (2026-07-17) — reusable origin 은 slot 자식이 실 scene 노드로 서므로
+  //   (canvasSceneNode unfold), 자식 실재(`_hasChildren` — buildSpecNodeData 주입) 시
+  //   내용(text)은 자식이 담당하고 본 escape 는 card shell(bg+border)만 그린다.
+  //   projection 행은 자식이 없어 미주입 → 기존 flat-props 렌더(BC).
+  const contentHidden = props._hasChildren === true;
   const fontSize = resolveSpecFontSize(
     (style?.fontSize as string | number | undefined) ?? size.fontSize,
     14,
@@ -487,13 +492,15 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   const shapes: Shape[] = [];
 
   // 카드 박스 (bg + border) — GridListItem.spec renderOneCard 정본.
+  //   shell 모드(자식이 내용 담당)에서는 높이를 layout 결과("auto" = node height)에 위임 —
+  //   metric cardHeight 는 flat props 기준이라 자식 합산 높이와 어긋난다.
   shapes.push({
     id: "card-bg",
     type: "roundRect",
     x: 0,
     y: 0,
     width: "auto",
-    height: cardHeight,
+    height: contentHidden ? ("auto" as unknown as number) : cardHeight,
     radius: cardBorderRadius,
     fill: bgColor,
   });
@@ -527,7 +534,8 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     | number
     | undefined;
   let stackY = cardPaddingY;
-  for (const entry of stackEntries) {
+  // shell 모드: 내용 스택은 실 자식 노드가 렌더 (이중 렌더 차단).
+  for (const entry of contentHidden ? [] : stackEntries) {
     if (entry === "label") {
       shapes.push({
         type: "text",
@@ -608,6 +616,11 @@ function readInjectedSlotComposition(
  *   소비한다. `_slots` 부재 = legacy 문서/비-projection 경로 → 기존 flat-props 동작(BC).
  */
 const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+  // ADR-148 후속 (2026-07-17) — reusable origin 은 slot 자식이 실 scene 노드로 서므로
+  //   (canvasSceneNode unfold), 자식 실재(`_hasChildren`) 시 내용(icon/label/description)은
+  //   자식이 담당하고 본 escape 는 shell(selection row-bg + check)만 그린다.
+  //   projection 행은 자식이 없어 미주입 → 기존 flat-props 렌더(BC).
+  const contentHidden = props._hasChildren === true;
   const fontSize = resolveSpecFontSize(
     (style?.fontSize as string | number | undefined) ?? size.fontSize,
     14,
@@ -750,7 +763,8 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   }
 
   // icon slot (좌측, 수직 중앙) — 구성 gating 은 iconName 계산에서 선반영.
-  if (iconName) {
+  //   shell 모드: icon 은 실 자식(Icon 노드)이 렌더.
+  if (!contentHidden && iconName) {
     shapes.push({
       type: "icon_font",
       iconName,
@@ -812,16 +826,21 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
           overflow: "ellipsis",
         };
 
-  if (stackEntries.length === 2) {
-    shapes.push(stackTextShape(stackEntries[0]!, paddingTop + lineHeight / 2));
-    shapes.push(
-      stackTextShape(
-        stackEntries[1]!,
-        paddingTop + lineHeight + rowGap + lineHeight / 2,
-      ),
-    );
-  } else if (stackEntries.length === 1) {
-    shapes.push(stackTextShape(stackEntries[0]!, rowHeight / 2));
+  // shell 모드: label/description 스택은 실 자식 노드가 렌더 (이중 렌더 차단).
+  if (!contentHidden) {
+    if (stackEntries.length === 2) {
+      shapes.push(
+        stackTextShape(stackEntries[0]!, paddingTop + lineHeight / 2),
+      );
+      shapes.push(
+        stackTextShape(
+          stackEntries[1]!,
+          paddingTop + lineHeight + rowGap + lineHeight / 2,
+        ),
+      );
+    } else if (stackEntries.length === 1) {
+      shapes.push(stackTextShape(stackEntries[0]!, rowHeight / 2));
+    }
   }
 
   // selection-indicator (우측 체크마크)

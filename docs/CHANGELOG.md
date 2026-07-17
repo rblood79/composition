@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Components 페이지 origin slot 자식 더블클릭 편집 — collection item unfold] - 2026-07-17
+
+### Bug Fixes
+
+- **GridListItem/ListBoxItem origin 의 slot 하위 요소를 더블클릭으로 선택·편집할 수 없던 결함 수정** (ADR-148 후속):
+  - **Why**: scene 빌더의 slot 자식 접힘(인스턴스 이중 렌더 차단용)이 Components 페이지의 reusable origin 에도 적용되어 slot 자식(Icon/Label/Description)의 interaction node 가 없었고, 더블클릭 drill-down 이 참조하는 `interactiveChildrenMap` 이 빈 배열이라 컨텍스트 진입·자식 선택 분기가 발동하지 않았다
+  - 수정: reusable origin 은 접지 않고 slot 자식을 실 scene 노드로 세운다 (Card origin·DOM renderer children-first 와 동형 authoring 표면). 이중 렌더는 `listbox_item`/`gridlist_card` escape 의 `_hasChildren` shell gating(자식 실재 시 shell 만 — 내용은 자식이 담당)으로 차단, layout item metric 분기도 childful 이면 일반 컨테이너 자식 합산으로 전환. projection 행은 자식이 없어 기존 동작 완전 보존
+  - 검증: origin 카드 더블클릭 → editingContext 진입 + label slot 자식 선택 + Inspector 편집면 (live), 인스턴스 카드 무회귀 (live + vitest 신규 9건)
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts` / `packages/specs/src/renderers/skiaPrimitives.ts` / `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`
+
 ## [Reusable·Slot 시스템 단일화 완결 — ADR-148 Implemented (Phase 4 collection item slot 이식)] - 2026-07-17
 
 ### Features

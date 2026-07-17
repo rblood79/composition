@@ -1851,10 +1851,16 @@ export function buildCanvasSceneGraph(
       //   `listbox_item` skiaPrimitive escape(단일 replace paint)와 DOM emit 이 소비하므로,
       //   가시 scene 에 그대로 두면 세로 stacked 이중 렌더가 된다. (구 주석의 "spec
       //   render.shapes 단일 렌더러" 는 ADR-912 가 물리 삭제한 경로 참조라 정정 — 2026-07-17)
+      //
+      // 단, reusable origin(Components 페이지)은 접지 않는다 (2026-07-17): slot 자식이
+      //   scene/interaction node 로 서야 더블클릭 drill/선택/편집이 가능하다 (Card origin ·
+      //   DOM renderer children-first 와 동형 authoring 표면). 이중 렌더는 escape 의
+      //   `_hasChildren` shell gating 이 차단 (buildSpecNodeData 가 자식 실재 시만 주입).
       if (
         (node.type === "ListBoxItem" ||
           node.type === "GridListItem" ||
           node.type === "MenuItem") &&
+        node.reusable !== true &&
         getSlotRole(child) != null
       ) {
         // ADR-148 Phase 4: GridListItem/MenuItem origin 의 slot 조합 자식도 동일 접힘 —

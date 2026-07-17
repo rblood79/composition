@@ -2286,10 +2286,13 @@ export function calculateContentHeight(
     );
   }
 
-  // 1.55b-2. ListBoxItem: 조합 자식 suppress 후 render.shapes 가 단일 렌더러이므로,
-  //   intrinsic height 도 render.shapes 의 rowHeight 공식과 동일하게 계산한다.
+  // 1.55b-2. ListBoxItem: 조합 자식 suppress 후 escape 가 단일 렌더러이므로,
+  //   intrinsic height 도 escape 의 rowHeight 공식과 동일하게 계산한다.
   //   (명시적 style.height 는 위 §1 에서 이미 우선 반환)
-  if (tag1 === "listboxitem") {
+  //   ADR-148 후속 (2026-07-17): reusable origin 은 slot 자식이 실 scene 노드로 서므로
+  //   (unfold — escape 는 `_hasChildren` shell), childful 이면 metric 분기를 skip 하고
+  //   일반 컨테이너 자식 합산 경로를 따른다 (자식 overflow 차단).
+  if (tag1 === "listboxitem" && !(childElements && childElements.length > 0)) {
     const props = element.props as Record<string, unknown> | undefined;
     const fontSize = parseNumericValue(style?.fontSize) ?? 14;
     const m = resolveListBoxItemMetric(fontSize);
@@ -2318,7 +2321,9 @@ export function calculateContentHeight(
   //   내부 발산 (컨테이너 gridlist 분기는 64 로 맞아 총합이 은폐). DOM 계약: label line-height
   //   + sizes.gap(2) + description line-height = 38 (+ implicitStyles 주입 pad 24/border 2 = 64).
   //   descFontSize = fontSize - 2 (gridListCard/gridlist 분기 동형).
-  if (tag1 === "gridlistitem") {
+  //   ADR-148 후속 (2026-07-17): childful(reusable origin unfold) 이면 metric 분기 skip —
+  //   listboxitem 분기와 동일 사유 (일반 컨테이너 자식 합산 경로).
+  if (tag1 === "gridlistitem" && !(childElements && childElements.length > 0)) {
     const props = element.props as Record<string, unknown> | undefined;
     const fontSize = parseNumericValue(style?.fontSize) ?? 14;
     const gap =
