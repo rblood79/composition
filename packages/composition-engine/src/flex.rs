@@ -566,9 +566,12 @@ pub fn flex_layout(
     };
 
     let (mut cross_start_offset, mut cross_between_extra, stretch_extra) =
-        align_content_offsets(align_content, cross_free, line_count);
-    if line_count <= 1 {
-        // 단일 라인은 align-content 정렬(center/end/space-*) offset 전체 무효(CSS §8.4).
+        align_content_offsets(align_content, cross_free, line_count, wrap);
+    if wrap == WRAP_NOWRAP {
+        // align-content 정렬(center/end/space-*) offset 은 **single-line 컨테이너**에 무효
+        //   (CSS §8.4: "no effect on a single-line flex container (i.e. one with flex-wrap:nowrap)").
+        // 판정 기준은 `flex-wrap:nowrap` 이지 "결과 라인이 1개"가 아니다 (CSS §5.2) —
+        //   wrap 컨테이너는 라인이 1개여도 multi-line 이라 align-content 가 그대로 적용된다.
         cross_start_offset = 0.0;
         cross_between_extra = 0.0;
     }
@@ -580,11 +583,22 @@ pub fn flex_layout(
         if stretch_extra > 0.0 {
             this_line_cross += stretch_extra;
         }
-        // 단일 라인 + definite: 라인 cross = 컨테이너 cross(available_cross).
-        // align-items(center/end/stretch/clamp)가 이 공간 안에서 정렬/채움 (CSS: 단일 라인
-        //   flex 컨테이너의 라인 cross = 컨테이너 cross). indefinite(height auto)면 자식 max
-        //   유지 → 컨테이너가 content 로 축소(ToggleButtonGroup height 30, 397 아님).
-        if line_count == 1 && cross_is_definite {
+        // single-line(nowrap) + definite: 라인 cross = 컨테이너 cross(available_cross).
+        // align-items(center/end/stretch/clamp)가 이 공간 안에서 정렬/채움 (CSS §9.4 step 8:
+        //   "If the flex container is single-line and has a definite cross size, the outer cross
+        //   size of the flex line is the flex container's inner cross size"). indefinite(height
+        //   auto)면 자식 max 유지 → 컨테이너가 content 로 축소(ToggleButtonGroup height 30, 397 아님).
+        //
+        // **Why `wrap == WRAP_NOWRAP` 이지 `line_count == 1` 이 아닌가 (2026-07-17)**:
+        //   CSS §5.2 는 single-line 을 **flex-wrap:nowrap** 으로 정의한다 — wrap 컨테이너는
+        //   라인이 1개로 떨어져도 multi-line 이고, 라인 cross 는 자식 max 로 남아 align-content
+        //   가 배치한다. `line_count == 1` 로 판정하면 wrap 컨테이너의 유일 라인까지 컨테이너
+        //   cross 로 승격시켜 align-content:flex-start 를 무력화한다.
+        //   실제 증상: body(display:block, 페이지 높이 definite) > Button 은 block IFC 시뮬레이션
+        //   (INLINE_BLOCK_PARENT_CONFIG = wrap + align-items:center + align-content:flex-start)
+        //   을 타는데, 라인이 페이지 높이로 승격되며 align-items:center 가 Button 을 세로 중앙에
+        //   배치 → CSS(좌상단)와 Skia(좌중앙) 비대칭. wrap 이면 승격하지 않아야 상단에 쌓인다.
+        if wrap == WRAP_NOWRAP && cross_is_definite {
             this_line_cross = this_line_cross.max(available_cross);
         }
 
@@ -615,15 +629,20 @@ fn align_content_offsets(
     align_content: u8,
     cross_free: f32,
     line_count: usize,
+    wrap: u8,
 ) -> (f32, f32, f32) {
     if line_count == 0 {
         return (0.0, 0.0, 0.0);
     }
     match align_content {
         ALIGN_CONTENT_STRETCH => {
-            if line_count <= 1 {
-                // 단일 라인: align-content stretch 무효(CSS §8.4). 라인 부풀리기 없음.
+            if wrap == WRAP_NOWRAP {
+                // single-line(nowrap): align-content stretch 무효(CSS §8.4). 라인 부풀리기 없음 —
+                //   라인 cross 는 호출부의 §9.4 step 8 승격이 이미 컨테이너 cross 로 맞춘다.
                 // 자식 stretch(align-items:stretch)는 place_line_cross_axis 가 available_cross 로 별도 처리.
+                //
+                // 판정은 `flex-wrap:nowrap` 기준 (CSS §5.2) — wrap 컨테이너는 라인이 1개여도
+                //   multi-line 이라 §9.4 step 9 로 그 유일 라인이 컨테이너 cross 를 채워야 한다.
                 (0.0, 0.0, 0.0)
             } else {
                 // 여유를 라인마다 균등 분배 (라인 cross 크기 증가)
@@ -1251,6 +1270,39 @@ mod tests {
         // 2라인: item0 y=0, item1 은 첫 라인이 stretch_extra 로 팽창해 20 보다 큰 y 로 밀림.
         assert!((out[1] - 0.0).abs() < 0.01, "item0 y={} (라인0 시작)", out[1]);
         assert!(out[5] > 20.0 + 0.01, "item1 y={} (라인1 — 라인0 stretch 로 20 초과)", out[5]);
+    }
+
+    // ── wrap 컨테이너는 라인 1개여도 multi-line (CSS Flexbox §5.2) ──
+
+    #[test]
+    fn wrap_single_line_definite_align_content_start_keeps_line_at_top() {
+        // block IFC 시뮬레이션 (taffyDisplayAdapter INLINE_BLOCK_PARENT_CONFIG):
+        //   body(display:block, 페이지 높이 definite) > Button(inline-block)
+        //   → flex/row/wrap + align_items:center + align_content:flex-start
+        // CSS §5.2: flex-wrap:wrap 은 라인이 1개여도 **multi-line 컨테이너** — §9.4 step 8 의
+        //   "single-line 이면 라인 cross = 컨테이너 cross" 규칙은 nowrap 전용이다.
+        //   따라서 라인 cross = 자식 max(32), align-content:flex-start 가 라인을 상단에 배치
+        //   → 자식 y=0 (CSS block 의 line box 가 상단부터 쌓이는 것과 동일).
+        let data = flatten(&[item(80.0, 32.0)]);
+        let out = flex_layout(
+            &data, 1200.0, 800.0, DIR_ROW, JUSTIFY_START, ALIGN_CENTER,
+            ALIGN_CONTENT_START, WRAP_WRAP, 0.0, 0.0, true,
+        );
+        assert!((out[1] - 0.0).abs() < 0.01, "y={} (expect 0 — wrap 은 multi-line, 라인 상단 고정)", out[1]);
+        assert!((out[3] - 32.0).abs() < 0.01, "height={} (expect 32 — 라인 cross 는 자식 max)", out[3]);
+    }
+
+    #[test]
+    fn wrap_single_line_definite_align_content_stretch_still_fills() {
+        // 회귀 가드: wrap + 라인 1개 + definite + align-content:stretch(default) 는
+        //   CSS §9.4 step 9 로 라인이 컨테이너 cross 를 채운다 → align_items:center 가 중앙 배치.
+        //   (align_content:flex-start 만 상단 고정 — stretch 는 기존 동작 유지)
+        let data = flatten(&[item(80.0, 32.0)]);
+        let out = flex_layout(
+            &data, 1200.0, 800.0, DIR_ROW, JUSTIFY_START, ALIGN_CENTER,
+            ALIGN_CONTENT_STRETCH, WRAP_WRAP, 0.0, 0.0, true,
+        );
+        assert!((out[1] - 384.0).abs() < 0.01, "y={} (expect 384 — stretch 로 라인이 800 을 채움)", out[1]);
     }
 
     #[test]

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [block 부모 안 컴포넌트가 Skia 에서 세로 중앙에 놓이던 결함 — flex line 승격 조건 정정] - 2026-07-17
+
+### Bug Fixes
+
+- **`display: block` 컨테이너에 등록한 Button 등 컴포넌트가 Builder(Skia)에서만 세로 중앙에 배치되던 결함 수정**:
+  - 증상: Home page(body, Layout direction `block`)에 Button 을 등록하면 Preview(CSS)는 좌상단, Builder(Skia)는 좌측·세로 중앙 — CSS↔Skia 비대칭
+  - **Why**: block 부모는 inline-level 자식(Button = inline-block)을 만나면 CSS inline formatting context 를 flex row wrap 으로 시뮬레이션한다 (`INLINE_BLOCK_PARENT_CONFIG` = wrap + `align-items:center` + `align-content:flex-start`). 그런데 레이아웃 엔진이 CSS 의 "single-line 컨테이너" 를 **결과 라인 수 1개**(`line_count == 1`)로 판정해, wrap 컨테이너의 유일한 라인까지 컨테이너 cross(페이지 높이)로 승격시켰다. 승격된 라인 안에서 `align-items:center` 가 작동해 Button 이 페이지 세로 중앙으로 이동하고, 상단 고정용 `align-content:flex-start` 는 무력화됐다. CSS 명세(§5.2)의 single-line 은 **`flex-wrap:nowrap`** 을 뜻하며, wrap 컨테이너는 라인이 1개여도 multi-line 이라 라인 cross 가 자식 높이로 남아 상단에 쌓인다
+  - 수정: 라인 cross 승격(§9.4 step 8)과 align-content 무효화(§8.4) 판정 기준을 `line_count == 1` → `wrap == WRAP_NOWRAP` 으로 정정. `align_content_offsets` 의 stretch 분기도 같은 기준으로 정렬해 `wrap + 1라인 + align-content:stretch` 기존 동작 보존
+  - 검증: body(1920×1080) > Button 실측 y=525(중앙) → **y=0(상단)**, Preview 와 대칭 복구. Rust 256 tests PASS (신규 2: 상단 고정 + stretch 회귀 가드)
+  - 위치: `packages/composition-engine/src/flex.rs`
+
 ## [IconButton origin 크기 정정 — Button 척도 seed 주입] - 2026-07-18
 
 ### Bug Fixes
