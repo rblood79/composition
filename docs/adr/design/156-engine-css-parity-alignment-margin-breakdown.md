@@ -159,6 +159,16 @@ diff                 : |css - eng| > 1.0px 인 (node, field) 나열
 
 하니스가 틀리면 모든 결과가 무의미하다. **기존 Chrome 검증 fixture(N1 flex-in-flex)를 하니스로 재현해 통과**시키는 것을 Phase 1 완료 조건에 포함한다 (세션에서 1회 확인 완료).
 
+### 2-5. 진행 상태 (2026-07-18, commit `614bbd3c3`)
+
+vehicle 확정 + 하니스 핵심 land 완료:
+
+- **vehicle = `@vitest/browser` + Playwright(Chromium)** (후보 1 변형 — dev 서버 대신 vitest 가 엔진 WASM 을 직접 번들). `apps/builder/vitest.browser.config.ts` + `tests/parity/engineCssParity.browser.test.ts` + `pnpm -F @composition/builder test:parity`. 의존 `@vitest/browser-playwright@4.1.9` + chromium-1228.
+- **leg 1** 실 DOM `getBoundingClientRect`(리셋 후 root-상대) / **leg 2** `buildTreeBatch → computeLayout → getLayoutsBatch` + `tree_golden.rs::layout_relative` 조상 offset 누적 이식. diff > 1px.
+- **tree_golden N1~N10 전수 재현 10/10 PASS** — N6~N10 손계산 기준선을 실 DOM 으로 재확증. flaky 0 (3회).
+
+**G1 잔여 (다음 Phase 1 진입점)**: §1-2 flex 교차축 384 + main 축 288 = 672 조합 파라메트릭 매트릭스 + 명명 fixture(GT-1~4 / BP-3/4 / NST-1~4 등). 각 축의 정확한 값 열거는 breakdown 에 미기재(원본 생성기는 세션 scratchpad 소실) → 재도출 필요. G1 미충족이므로 Phase 1 은 **부분 land**(하니스 인프라 + N1~N10 baseline), Phase 2 진입 전 잔여 매트릭스 완결 필요.
+
 ## 3. Phase 2 — align-self / justify-self + percent height (G2)
 
 **대상**: E1 (사용자 도달 가능 유일 1차 결함) + **E6** (round 2 승격 — E1 동급 severity).
