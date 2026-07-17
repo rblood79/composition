@@ -28,6 +28,7 @@
 //! auto 는 여전히 미측정), dense packing 의 빈칸 역채움, baseline 정렬, `fit-content()`
 //! 함수. 현행 catalog grid 컨테이너 사용 범위로 한정.
 
+use std::collections::HashSet;
 use wasm_bindgen::prelude::*;
 
 /// Sentinel: fr track 의 size 미결정 상태. resolve 후 실제 px 로 대체된다.
@@ -419,52 +420,9 @@ fn parse_template_areas(template: &str) -> Vec<(String, AreaRect)> {
     areas
 }
 
-// ─── gridColumn / gridRow line 파싱 (span 지원) ─────────────────────────
-
-/// `gridColumn`/`gridRow` 값을 (start, end) 1-based line 으로 파싱. span 키워드 지원.
-/// (GridLayout.utils.ts parseGridLine 동일)
-fn parse_grid_line(value: &str, auto_start: i32) -> (i32, i32) {
-    let v = value.trim();
-    if let Some(slash) = v.find('/') {
-        let start_part = v[..slash].trim();
-        let end_part = v[slash + 1..].trim();
-        let start_is_span = start_part.starts_with("span");
-        let end_is_span = end_part.starts_with("span");
-
-        if start_is_span && !end_is_span {
-            // "span 2 / 5" → end 고정, start = end - span.
-            let span_val = start_part
-                .trim_start_matches("span")
-                .trim()
-                .parse::<i32>()
-                .unwrap_or(1);
-            let end = end_part.parse::<i32>().unwrap_or(auto_start + span_val);
-            return (end - span_val, end);
-        }
-        if !start_is_span && end_is_span {
-            // "1 / span 3" → start 고정, end = start + span.
-            let start = start_part.parse::<i32>().unwrap_or(auto_start);
-            let span_val = end_part
-                .trim_start_matches("span")
-                .trim()
-                .parse::<i32>()
-                .unwrap_or(1);
-            return (start, start + span_val);
-        }
-        // "1 / 4"
-        let start = start_part.parse::<i32>().unwrap_or(auto_start);
-        let end = end_part.parse::<i32>().unwrap_or(start + 1);
-        return (start, end);
-    }
-
-    // 슬래시 없음.
-    if v.starts_with("span") {
-        let span_val = v.trim_start_matches("span").trim().parse::<i32>().unwrap_or(1);
-        return (auto_start, auto_start + span_val);
-    }
-    let start = v.parse::<i32>().unwrap_or(auto_start);
-    (start, start + 1)
-}
+// ─── gridColumn / gridRow line 파싱 → parse_axis_placement (place_children 앞에 정의) ───
+// (구 parse_grid_line 은 E13/ADR-156 Phase 3 에서 제거 — 위치 명시 여부와 span 을 분리하는
+//  parse_axis_placement 로 대체해 occupancy 커서가 span 점유를 반영한다.)
 
 // ─── cell 배치 ─────────────────────────────────────────────────────────
 
@@ -611,8 +569,130 @@ struct ChildPlacement {
     grid_row: String,
 }
 
+/// gridColumn/gridRow 한 축 문자열 → `(명시 start line, span)`. `None` = auto 위치.
+///
+/// E13(ADR-156 Phase 3): 기존 `parse_grid_line` 은 `(start, end)` 를 주되 auto 위치를
+/// child_index 로 강제해 **span 을 점유로 반영하지 못했다** (span 2 뒤 자식이 옆에 겹침).
+/// 본 헬퍼는 위치 명시 여부와 span 을 분리해, occupancy 커서가 점유 셀을 스킵하게 한다.
+/// - `""` / `"auto"` → `(None, 1)`
+/// - `"2"` → `(Some(2), 1)`
+/// - `"1 / 3"` → `(Some(1), 2)`  (end-start=span)
+/// - `"span 2"` → `(None, 2)`
+/// - `"1 / span 2"` → `(Some(1), 2)`
+/// - `"span 2 / 4"` → `(Some(2), 2)`  (end 고정 → start=end-span)
+fn parse_axis_placement(value: &str) -> (Option<i32>, i32) {
+    let v = value.trim();
+    if v.is_empty() || v.eq_ignore_ascii_case("auto") {
+        return (None, 1);
+    }
+    let span_of = |s: &str| {
+        s.trim_start_matches("span")
+            .trim()
+            .parse::<i32>()
+            .unwrap_or(1)
+            .max(1)
+    };
+    if let Some(slash) = v.find('/') {
+        let a = v[..slash].trim();
+        let b = v[slash + 1..].trim();
+        let a_span = a.starts_with("span");
+        let b_span = b.starts_with("span");
+        return match (a_span, b_span) {
+            // "span N / end" → end 고정, start=end-N
+            (true, false) => {
+                let span = span_of(a);
+                (b.parse::<i32>().ok().map(|e| e - span), span)
+            }
+            // "start / span N"
+            (false, true) => (a.parse::<i32>().ok(), span_of(b)),
+            // "span N / span M" → 위치 auto, span=첫째
+            (true, true) => (None, span_of(a)),
+            // "start / end" 숫자
+            (false, false) => match (a.parse::<i32>().ok(), b.parse::<i32>().ok()) {
+                (Some(s), Some(e)) => (Some(s), (e - s).max(1)),
+                (Some(s), None) => (Some(s), 1),
+                _ => (None, 1),
+            },
+        };
+    }
+    if v.starts_with("span") {
+        return (None, span_of(v));
+    }
+    (v.parse::<i32>().ok(), 1)
+}
+
+/// span 블록이 (row0,col0)에서 점유 없이 열 범위 안에 들어가는가.
+fn block_fits(occ: &HashSet<(i32, i32)>, r0: i32, c0: i32, rs: i32, cs: i32, cols: i32) -> bool {
+    if c0 < 1 || c0 + cs - 1 > cols {
+        return false;
+    }
+    for r in r0..r0 + rs {
+        for c in c0..c0 + cs {
+            if occ.contains(&(r, c)) {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+fn mark_block(occ: &mut HashSet<(i32, i32)>, r0: i32, c0: i32, rs: i32, cs: i32) {
+    for r in r0..r0 + rs {
+        for c in c0..c0 + cs {
+            occ.insert((r, c));
+        }
+    }
+}
+
+/// 자식 placement 의도 — (열 명시 start, 열 span, 행 명시 start, 행 span). None=해당 축 auto.
+struct PlacementIntent {
+    col_start: Option<i32>,
+    col_span: i32,
+    row_start: Option<i32>,
+    row_span: i32,
+}
+
+/// ChildPlacement 문자열 → PlacementIntent (area 이름 / 숫자 gridArea / gridColumn·Row).
+fn resolve_placement_intent(p: &ChildPlacement, areas: &[(String, AreaRect)]) -> PlacementIntent {
+    if !p.area_name.is_empty() {
+        if let Some((_, rect)) = areas.iter().find(|(n, _)| n == &p.area_name) {
+            return PlacementIntent {
+                col_start: Some(rect.col_start),
+                col_span: (rect.col_end - rect.col_start).max(1),
+                row_start: Some(rect.row_start),
+                row_span: (rect.row_end - rect.row_start).max(1),
+            };
+        }
+    } else if p.grid_column.matches('/').count() == 3 {
+        // 숫자 gridArea shorthand "r / c / r / c".
+        let parts: Vec<&str> = p.grid_column.split('/').map(|s| s.trim()).collect();
+        let rs: i32 = parts[0].parse().unwrap_or(1);
+        let cs: i32 = parts[1].parse().unwrap_or(1);
+        let re: i32 = parts[2].parse().unwrap_or(rs + 1);
+        let ce: i32 = parts[3].parse().unwrap_or(cs + 1);
+        return PlacementIntent {
+            col_start: Some(cs),
+            col_span: (ce - cs).max(1),
+            row_start: Some(rs),
+            row_span: (re - rs).max(1),
+        };
+    }
+    let (col_start, col_span) = parse_axis_placement(&p.grid_column);
+    let (row_start, row_span) = parse_axis_placement(&p.grid_row);
+    PlacementIntent { col_start, col_span, row_start, row_span }
+}
+
 /// tracks + placement 배열로 모든 자식 bounds 계산. gridArea 이름/숫자, gridColumn/Row span,
-/// auto-placement(row-major) 를 통합 처리한다.
+/// **occupancy 기반 2-phase auto-placement**(CSS-GRID-1 §8.5, grid-auto-flow:row sparse)를
+/// 통합 처리한다.
+///
+/// E13(ADR-156 Phase 3): 이전 구현은 auto 위치를 `child_index % cols` 로 계산해 span 점유를
+/// 무시했다 (span 2 자식 뒤 자식이 겹침). CSS §8.5 는 **정의된 row 를 가진 아이템을 먼저**
+/// 배치하고(step 2), **fully-auto 아이템을 커서로 나중에** 배치한다(step 4) — 단일 패스는
+/// 이 순서를 못 지켜 row-span 아이템과 auto 아이템의 열이 뒤바뀐다(실측: a.x 100↔rspan.x 0).
+/// 따라서 2-phase 로 처리한다:
+///   Phase 0 — 명시 row 아이템(fully-definite + definite-row-auto-col): row band 첫 free 열.
+///   Phase 1 — 나머지(definite-col-auto-row + fully-auto): 커서 row-major 스캔.
 fn place_children(
     placements: &[ChildPlacement],
     tracks_x: &[f32],
@@ -622,60 +702,95 @@ fn place_children(
     areas: &[(String, AreaRect)],
 ) -> Vec<(f32, f32, f32, f32)> {
     let cols = tracks_x.len().max(1) as i32;
-    let mut out = Vec::with_capacity(placements.len());
+    let items: Vec<PlacementIntent> = placements
+        .iter()
+        .map(|p| resolve_placement_intent(p, areas))
+        .collect();
 
-    for (idx, p) in placements.iter().enumerate() {
-        let child_index = idx as i32;
-        let (mut col_start, mut col_end, mut row_start, mut row_end) = (1, 2, 1, 2);
+    let mut occ: HashSet<(i32, i32)> = HashSet::new();
+    let mut resolved: Vec<Option<(i32, i32)>> = vec![None; items.len()];
 
-        if !p.area_name.is_empty() {
-            // named area 조회.
-            if let Some((_, rect)) = areas.iter().find(|(n, _)| n == &p.area_name) {
-                col_start = rect.col_start;
-                col_end = rect.col_end;
-                row_start = rect.row_start;
-                row_end = rect.row_end;
-            }
-        } else if p.grid_column.contains('/') && p.grid_column.matches('/').count() == 3 {
-            // 숫자 gridArea shorthand "r / c / r / c" (grid_column 필드에 담긴 경우).
-            let parts: Vec<&str> = p.grid_column.split('/').map(|s| s.trim()).collect();
-            row_start = parts[0].parse().unwrap_or(1);
-            col_start = parts[1].parse().unwrap_or(1);
-            row_end = parts[2].parse().unwrap_or(row_start + 1);
-            col_end = parts[3].parse().unwrap_or(col_start + 1);
-        } else if !p.grid_column.is_empty() || !p.grid_row.is_empty() {
-            let auto_col = (child_index % cols) + 1;
-            let auto_row = (child_index / cols) + 1;
-            if !p.grid_column.is_empty() {
-                let (s, e) = parse_grid_line(&p.grid_column, auto_col);
-                col_start = s;
-                col_end = e;
-            } else {
-                col_start = auto_col;
-                col_end = col_start + 1;
-            }
-            if !p.grid_row.is_empty() {
-                let (s, e) = parse_grid_line(&p.grid_row, auto_row);
-                row_start = s;
-                row_end = e;
-            } else {
-                row_start = auto_row;
-                row_end = row_start + 1;
-            }
+    // ── Phase 0: 명시 row 아이템 (CSS §8.5 step 1+2) ──
+    for (i, it) in items.iter().enumerate() {
+        let Some(r) = it.row_start else { continue };
+        let c = if let Some(c) = it.col_start {
+            c // fully-definite
         } else {
-            // 완전 auto-placement (row-major).
-            col_start = (child_index % cols) + 1;
-            col_end = col_start + 1;
-            row_start = (child_index / cols) + 1;
-            row_end = row_start + 1;
-        }
-
-        out.push(cell_bounds_for_child(
-            col_start, col_end, row_start, row_end, tracks_x, tracks_y, col_gap, row_gap,
-        ));
+            // definite-row-auto-col: row band 첫 free 열.
+            let mut c = 1;
+            while !block_fits(&occ, r, c, it.row_span, it.col_span, cols) && c <= cols {
+                c += 1;
+            }
+            c.min(cols.max(1))
+        };
+        mark_block(&mut occ, r, c, it.row_span, it.col_span);
+        resolved[i] = Some((r, c));
     }
 
-    out
+    // ── Phase 1: 나머지 (auto row) — 커서 row-major sparse (CSS §8.5 step 4) ──
+    let mut cur_row = 1i32;
+    let mut cur_col = 1i32;
+    for (i, it) in items.iter().enumerate() {
+        if resolved[i].is_some() {
+            continue;
+        }
+        if let Some(c) = it.col_start {
+            // definite-col-auto-row: 커서 row 부터 그 열에서 첫 free.
+            let mut r = cur_row;
+            while !block_fits(&occ, r, c, it.row_span, it.col_span, cols) && r < cur_row + 10_000 {
+                r += 1;
+            }
+            mark_block(&mut occ, r, c, it.row_span, it.col_span);
+            resolved[i] = Some((r, c));
+            cur_row = r;
+            cur_col = c + it.col_span;
+        } else {
+            // fully-auto: 커서에서 row-major 스캔.
+            let mut r = cur_row;
+            let mut placed = None;
+            'scan: while r < cur_row + 10_000 {
+                let mut c = if r == cur_row { cur_col } else { 1 };
+                while c + it.col_span - 1 <= cols.max(it.col_span) {
+                    if c + it.col_span - 1 <= cols
+                        && block_fits(&occ, r, c, it.row_span, it.col_span, cols)
+                    {
+                        placed = Some((r, c));
+                        break 'scan;
+                    }
+                    c += 1;
+                }
+                r += 1;
+            }
+            let (r, c) = placed.unwrap_or((cur_row, 1));
+            mark_block(&mut occ, r, c, it.row_span, it.col_span);
+            resolved[i] = Some((r, c));
+            cur_row = r;
+            cur_col = c + it.col_span;
+        }
+        if cur_col > cols {
+            cur_row += 1;
+            cur_col = 1;
+        }
+    }
+
+    // ── 최종 bounds (child 순서) ──
+    items
+        .iter()
+        .enumerate()
+        .map(|(i, it)| {
+            let (r, c) = resolved[i].unwrap_or((1, 1));
+            cell_bounds_for_child(
+                c,
+                c + it.col_span,
+                r,
+                r + it.row_span,
+                tracks_x,
+                tracks_y,
+                col_gap,
+                row_gap,
+            )
+        })
+        .collect()
 }
 
 // ─── 공개 API: 완결 grid 레이아웃 ──────────────────────────────────────
@@ -929,17 +1044,15 @@ mod tests {
     }
 
     #[test]
-    fn test_grid_line_span() {
-        // "span 2" from auto_start 1 → (1, 3)
-        assert_eq!(parse_grid_line("span 2", 1), (1, 3));
-        // "1 / 3" → (1, 3)
-        assert_eq!(parse_grid_line("1 / 3", 1), (1, 3));
-        // "1 / span 3" → (1, 4)
-        assert_eq!(parse_grid_line("1 / span 3", 1), (1, 4));
-        // "span 2 / 5" → (3, 5)
-        assert_eq!(parse_grid_line("span 2 / 5", 1), (3, 5));
-        // "2" → (2, 3)
-        assert_eq!(parse_grid_line("2", 1), (2, 3));
+    fn test_axis_placement_span() {
+        // (명시 start, span) 분리 — E13 occupancy 커서 입력.
+        assert_eq!(parse_axis_placement("span 2"), (None, 2)); // 위치 auto, span 2
+        assert_eq!(parse_axis_placement("1 / 3"), (Some(1), 2)); // start 1, span 2
+        assert_eq!(parse_axis_placement("1 / span 3"), (Some(1), 3));
+        assert_eq!(parse_axis_placement("span 2 / 5"), (Some(3), 2)); // end 5 고정 → start 3
+        assert_eq!(parse_axis_placement("2"), (Some(2), 1));
+        assert_eq!(parse_axis_placement(""), (None, 1));
+        assert_eq!(parse_axis_placement("auto"), (None, 1));
     }
 
     #[test]
@@ -994,6 +1107,25 @@ mod tests {
         // child3 (1,1) → x=100 y=50
         assert!(approx_eq(out[12], 100.0));
         assert!(approx_eq(out[13], 50.0));
+    }
+
+    #[test]
+    fn test_grid_layout_span_occupancy() {
+        // E13: 2열 grid. child0 = column span 2 (1행 전체 점유). child1/child2 auto 는
+        //   점유를 스킵해 2행에 배치돼야 한다 (구현 전엔 child_index%cols 로 child1 이
+        //   (1행,2열)에 겹쳤다).
+        let out = grid_layout("1fr 1fr", "50px 50px", "", "|span 2|\n||\n||", 3, 200.0, 100.0, 0.0, 0.0);
+        assert_eq!(out.len(), 12);
+        // child0: col span 2 → x=0 w=200, row1 → y=0
+        assert!(approx_eq(out[0], 0.0));
+        assert!(approx_eq(out[1], 0.0));
+        assert!(approx_eq(out[2], 200.0));
+        // child1: span 점유 회피 → 2행 1열 (x=0 y=50)
+        assert!(approx_eq(out[4], 0.0));
+        assert!(approx_eq(out[5], 50.0));
+        // child2: 2행 2열 (x=100 y=50)
+        assert!(approx_eq(out[8], 100.0));
+        assert!(approx_eq(out[9], 50.0));
     }
 
     #[test]

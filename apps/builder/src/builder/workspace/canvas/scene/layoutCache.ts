@@ -91,8 +91,16 @@ const LAYOUT_STYLE_KEYS = [
   "gridTemplateColumns",
   "gridTemplateRows",
   "gridAutoFlow",
+  // ADR-156 R6 (Phase 3) — grid 계열 발산 필드가 캐시 시그니처 미등재라 엔진을 고쳐도
+  // 해당 키만 바뀐 편집이 캐시 히트로 흡수됨. justifyItems(E2)·gridAutoColumns/Rows(E14)·
+  // gridColumnStart/RowStart(E13, layout-engine.md 가 factory 에 숫자 line 병기 요구)를 등재.
+  "justifyItems",
+  "gridAutoColumns",
+  "gridAutoRows",
   "gridColumn",
+  "gridColumnStart",
   "gridRow",
+  "gridRowStart",
   "overflow",
   "whiteSpace",
   "wordBreak",
