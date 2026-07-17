@@ -45,6 +45,8 @@ import {
   tagToType,
 } from "./tagRename";
 import { migrateLegacyListBoxTemplatesToOrigins } from "./legacyListBoxTemplateMigration";
+import { ensureGridListTemplateOrigins } from "../../builder/components/gridlist/gridListTemplateOrigins";
+import { ensureMenuTemplateOrigins } from "../../builder/components/menu/menuTemplateOrigins";
 import { migrateCheckboxRadioItemsStructure } from "./checkboxRadioItemsMigration";
 import { migrateFieldInlineLayout } from "./fieldInlineLayoutMigration";
 import { migrateCircleLeafInlineSize } from "./circleLeafInlineSizeMigration";
@@ -334,12 +336,22 @@ export function legacyToCanonical(
       //   labelPosition="side" CSS↔Skia 대칭 복구. checkboxRadio migration 동형 chain.
       migrateFieldInlineLayout(
         migrateCheckboxRadioItemsStructure(
-          migrateLegacyListBoxTemplatesToOrigins({
-            version: "composition-1.0",
-            ...(themesSnapshot !== undefined ? { themes: themesSnapshot } : {}),
-            ...(tokensSnapshot !== undefined ? { tokens: tokensSnapshot } : {}),
-            children: [...layoutFrames, ...reusableMasters, ...pageNodes],
-          }),
+          // ADR-148 Phase 4: GridListItem/MenuItem collection item slot origin —
+          //   ListBox 동형 hydration 체인 (Components 페이지 seed, 멱등 repair).
+          ensureMenuTemplateOrigins(
+            ensureGridListTemplateOrigins(
+              migrateLegacyListBoxTemplatesToOrigins({
+                version: "composition-1.0",
+                ...(themesSnapshot !== undefined
+                  ? { themes: themesSnapshot }
+                  : {}),
+                ...(tokensSnapshot !== undefined
+                  ? { tokens: tokensSnapshot }
+                  : {}),
+                children: [...layoutFrames, ...reusableMasters, ...pageNodes],
+              }),
+            ),
+          ),
         ),
       ),
     ),

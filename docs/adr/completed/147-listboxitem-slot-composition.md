@@ -1,6 +1,6 @@
 # ADR-147: ListBoxItem Slot Composition Model
 
-> **Superseded by [ADR-148](../148-reusable-slot-system-unification.md)** — 2026-07-08. Phase 1~5 반영분(조합 자식 slotRole + DOM `<Text slot>` emit + Properties slot 편집)은 ADR-148 이 정본으로 승계한다. 본문 전제 3건(Skia `render.shapes` 경로 — ADR-912 가 `listbox_item` escape 로 대체 / SelectionIndicator 조합 자식 — 구현은 render-time concern / `slot` 필드 semantics — pencil 공식 reusable ID 추천 목록, slot 이름은 `metadata.slotRole`)의 정정본은 ADR-148 Context §승계 표 참조.
+> **Superseded by [ADR-148](148-reusable-slot-system-unification.md)** — 2026-07-08. Phase 1~5 반영분(조합 자식 slotRole + DOM `<Text slot>` emit + Properties slot 편집)은 ADR-148 이 정본으로 승계한다. 본문 전제 3건(Skia `render.shapes` 경로 — ADR-912 가 `listbox_item` escape 로 대체 / SelectionIndicator 조합 자식 — 구현은 render-time concern / `slot` 필드 semantics — pencil 공식 reusable ID 추천 목록, slot 이름은 `metadata.slotRole`)의 정정본은 ADR-148 Context §승계 표 참조.
 
 ## Status
 

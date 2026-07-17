@@ -20,6 +20,12 @@ import type {
 import type { RuntimeMenuItem } from "@composition/specs";
 
 import { useResolvedCollectionItems } from "../hooks";
+// ADR-148 Phase 4 — MenuItem slot 구성 소비 (origin slot 자식의 존재 gating / 스타일 overlay).
+import {
+  isSlotEnabled,
+  type SlotComposition,
+  type SlotRole,
+} from "../catalog/slotRoles";
 import "./styles/generated/Menu.css";
 
 /**
@@ -54,6 +60,53 @@ export interface MenuButtonProps<T>
   selectedKeys?: string[];
   /** ADR-073 Task 7: selection change callback */
   onSelectionChange?: (keys: string[]) => void;
+  /**
+   * ADR-148 Phase 4 — MenuItem slot 구성 (origin `component-menu-item-default` 자식에서
+   * 파생, provider 가 renderMenu 경유로 주입). null/미주입 = legacy 문서 → 기존 동작.
+   */
+  slotComposition?: SlotComposition | null;
+}
+
+/**
+ * ADR-148 Phase 4: MenuItem slot 콘텐츠 — icon/label/shortcut(content 행) + description
+ * (2번째 행) 을 slot 구성으로 **존재 gating**(구성에 없는 slot 은 데이터가 있어도 미 emit —
+ * origin 에서 slot 자식을 지우면 사라진다) + **스타일 overlay**(slot 자식 props.style) 소비.
+ * 행 배치(icon|label|shortcut 한 행 / description 아래 행)는 Menu markup 구조 고정 —
+ * 순서 축은 content 행 구조상 소비하지 않는다 (ListBox 의 icon 고정 배치와 동형 판정).
+ * null 이면 기존 동작(BC).
+ */
+export function renderMenuItemSlotParts(
+  item: Pick<RuntimeMenuItem, "icon" | "label" | "shortcut" | "description">,
+  slotComposition?: SlotComposition | null,
+): React.ReactNode {
+  const styleOf = (role: SlotRole): React.CSSProperties | undefined =>
+    slotComposition?.slots[role]?.style as React.CSSProperties | undefined;
+  return (
+    <>
+      <span className="menu-item-content">
+        {isSlotEnabled(slotComposition, "icon") && item.icon && (
+          <span className="menu-item-icon" style={styleOf("icon")}>
+            {item.icon}
+          </span>
+        )}
+        {isSlotEnabled(slotComposition, "label") && (
+          <span className="menu-item-label" style={styleOf("label")}>
+            {item.label}
+          </span>
+        )}
+        {isSlotEnabled(slotComposition, "shortcut") && item.shortcut && (
+          <kbd className="menu-item-shortcut" style={styleOf("shortcut")}>
+            {item.shortcut}
+          </kbd>
+        )}
+      </span>
+      {isSlotEnabled(slotComposition, "description") && item.description && (
+        <span className="menu-item-description" style={styleOf("description")}>
+          {item.description}
+        </span>
+      )}
+    </>
+  );
 }
 
 export function MenuButton<T extends object>({
@@ -67,6 +120,7 @@ export function MenuButton<T extends object>({
   selectionMode,
   selectedKeys,
   onSelectionChange,
+  slotComposition,
   ...props
 }: MenuButtonProps<T>) {
   // ADR-073 Task 7: selection props → RAC Menu props 변환
@@ -238,20 +292,7 @@ export function MenuButton<T extends object>({
           return (
             <SubmenuTrigger>
               <AriaMenuItem textValue={item.label} isDisabled={item.isDisabled}>
-                <span className="menu-item-content">
-                  {item.icon && (
-                    <span className="menu-item-icon">{item.icon}</span>
-                  )}
-                  <span className="menu-item-label">{item.label}</span>
-                  {item.shortcut && (
-                    <kbd className="menu-item-shortcut">{item.shortcut}</kbd>
-                  )}
-                </span>
-                {item.description && (
-                  <span className="menu-item-description">
-                    {item.description}
-                  </span>
-                )}
+                {renderMenuItemSlotParts(item, slotComposition)}
               </AriaMenuItem>
               <Popover data-size={size}>
                 <Menu
@@ -270,16 +311,7 @@ export function MenuButton<T extends object>({
 
         return (
           <AriaMenuItem textValue={item.label} isDisabled={item.isDisabled}>
-            <span className="menu-item-content">
-              {item.icon && <span className="menu-item-icon">{item.icon}</span>}
-              <span className="menu-item-label">{item.label}</span>
-              {item.shortcut && (
-                <kbd className="menu-item-shortcut">{item.shortcut}</kbd>
-              )}
-            </span>
-            {item.description && (
-              <span className="menu-item-description">{item.description}</span>
-            )}
+            {renderMenuItemSlotParts(item, slotComposition)}
           </AriaMenuItem>
         );
       };
@@ -345,20 +377,7 @@ export function MenuButton<T extends object>({
     const renderRuntimeMenuItem = (item: RuntimeMenuItem): React.ReactNode => {
       const hasSubmenu = item.children && item.children.length > 0;
 
-      const content = (
-        <>
-          <span className="menu-item-content">
-            {item.icon && <span className="menu-item-icon">{item.icon}</span>}
-            <span className="menu-item-label">{item.label}</span>
-            {item.shortcut && (
-              <kbd className="menu-item-shortcut">{item.shortcut}</kbd>
-            )}
-          </span>
-          {item.description && (
-            <span className="menu-item-description">{item.description}</span>
-          )}
-        </>
-      );
+      const content = renderMenuItemSlotParts(item, slotComposition);
 
       if (hasSubmenu) {
         return (

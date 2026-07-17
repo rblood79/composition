@@ -20,10 +20,11 @@
 
 /** slot 이름 공용 vocabulary — additive string union (확장 비용 상수 1줄, ADR-148 R5). */
 export const SLOT_ROLES = [
-  // P2 collection item (ADR-147 가동분)
+  // P2 collection item (ADR-147 가동분 + Phase 4 MenuItem)
   "icon",
   "label",
   "description",
+  "shortcut",
   // P3 named-region (Card/Dialog 계열)
   "header",
   "content",

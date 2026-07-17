@@ -50,6 +50,14 @@ export interface RenderContext {
   listBoxTemplateSlotComposition?:
     | import("@composition/shared").SlotComposition
     | null;
+  /** ADR-148 Phase 4 — GridListItem slot 구성 (ListBox 동형). */
+  gridListTemplateSlotComposition?:
+    | import("@composition/shared").SlotComposition
+    | null;
+  /** ADR-148 Phase 4 — MenuItem slot 구성 (ListBox 동형). */
+  menuItemTemplateSlotComposition?:
+    | import("@composition/shared").SlotComposition
+    | null;
 }
 
 /**

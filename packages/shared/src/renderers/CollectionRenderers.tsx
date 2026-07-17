@@ -31,6 +31,9 @@ import type {
 import { isMenuSectionEntry, isMenuSeparatorEntry } from "@composition/specs";
 import { getSelectedChildIds } from "./selection";
 import { getElementDataBinding } from "../utils/compositionExtensionFields";
+// ADR-148 Phase 4 — MenuItem slot 구성 소비 (origin slot 자식의 존재 gating / 스타일 overlay).
+import { resolveSlotComposition } from "../catalog/slotRoles";
+import { renderMenuItemSlotParts } from "../components/Menu";
 
 /**
  * Stored → Runtime 변환 (Q11=나: EVENT_REGISTRY에 직접 의존 금지)
@@ -772,6 +775,16 @@ export const renderMenu = (
     (e) => isMenuSectionEntry(e) || isMenuSeparatorEntry(e),
   );
 
+  // ADR-148 Phase 4 — MenuItem slot 구성: renderListBox/renderGridList 동형 fallback
+  //   (provider 주입 → legacy 전체-트리 origin 리터럴 조회). Menu 는 items 데이터 기반이라
+  //   template child 축 없음. null = legacy 문서 → 기존 동작(BC).
+  const menuItemSlotComposition =
+    context.menuItemTemplateSlotComposition !== undefined
+      ? context.menuItemTemplateSlotComposition
+      : resolveSlotComposition(
+          context.childrenByParent.get("component-menu-item-default"),
+        );
+
   // React 19: `key` 는 props spread 로 전달 불가 — JSX 에서 직접 명시.
   const commonProps = {
     id: element.customId,
@@ -792,6 +805,8 @@ export const renderMenu = (
         selectedKeys: keys,
       });
     },
+    // ADR-148 Phase 4: MenuButton 내부 item emit 이 slot 구성을 소비 (양 경로 공통).
+    slotComposition: menuItemSlotComposition,
   } as const;
 
   if (hasStructuredEntries) {
@@ -808,16 +823,7 @@ export const renderMenu = (
         // 따라서 href 가 있을 때만 prop 을 전개(conditional spread)해 키 자체를 제거한다.
         {...(item.href ? { href: item.href } : {})}
       >
-        <span className="menu-item-content">
-          {item.icon && <span className="menu-item-icon">{item.icon}</span>}
-          <span className="menu-item-label">{item.label}</span>
-          {item.shortcut && (
-            <kbd className="menu-item-shortcut">{item.shortcut}</kbd>
-          )}
-        </span>
-        {item.description && (
-          <span className="menu-item-description">{item.description}</span>
-        )}
+        {renderMenuItemSlotParts(item, menuItemSlotComposition)}
       </MenuItem>
     );
 

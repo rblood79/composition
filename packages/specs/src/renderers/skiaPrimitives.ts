@@ -371,6 +371,14 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     (style?.fontSize as string | number | undefined) ?? size.fontSize,
     14,
   );
+  // ADR-148 Phase 4 — slot 구성 소비 (listbox_item 동형: projection 이 GridListItem origin
+  //   slot 자식에서 파생해 주입한 props._slots — 존재 gating + style overlay + 스택 순서).
+  //   _slots 부재 = legacy 문서/비-projection 경로 → 기존 flat-props 동작(BC).
+  const slotComposition = readInjectedSlotComposition(props._slots);
+  const slotEnabled = (role: string): boolean =>
+    !slotComposition || slotComposition.slots[role] != null;
+  const labelSlotStyle = slotComposition?.slots["label"]?.style;
+  const descriptionSlotStyle = slotComposition?.slots["description"]?.style;
   // 카드 padding: longhand 우선 → shorthand → rule sizes (style-ssot.md).
   const cardPaddingX = parsePxValue(
     style?.paddingLeft ?? style?.padding,
@@ -386,7 +394,21 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   );
   // label↔description 수직 간격 (spec descGap 4 = label baseline 아래 description top).
   const descGap = 4;
-  const descFontSize = fontSize - 2;
+  // slot 자식 style overlay (fontSize) — 부재 시 기존 기본값 (label=fontSize, desc=fontSize-2).
+  const labelFontSize =
+    labelSlotStyle?.fontSize != null
+      ? resolveSpecFontSize(
+          labelSlotStyle.fontSize as string | number,
+          fontSize,
+        )
+      : fontSize;
+  const descFontSize =
+    descriptionSlotStyle?.fontSize != null
+      ? resolveSpecFontSize(
+          descriptionSlotStyle.fontSize as string | number,
+          fontSize - 2,
+        )
+      : fontSize - 2;
   const ff = (style?.fontFamily as string) || fontFamily.sans;
   const textColor =
     (style?.color as string | undefined) ??
@@ -416,20 +438,46 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
       readCardText(props.textValue) ??
       readCardText(props.value) ??
       "");
-  const description = isTemplatePreview
+  const descriptionRaw = isTemplatePreview
     ? props.description != null && props.description !== ""
       ? "Description"
       : null
     : readCardText(props.description);
+  // 구성 gating — slot 자식이 구성에 없으면 데이터가 있어도 미렌더 (ADR-148 Decision 3).
+  const description = slotEnabled("description") ? descriptionRaw : null;
+  const showLabel = slotEnabled("label");
+
+  // label/description 수직 스택 순서 — slot 자식 등장 순서 소비 (기본: label → description).
+  const stackEntries: Array<"label" | "description"> = [];
+  const pushStackEntry = (entry: "label" | "description") => {
+    if (stackEntries.includes(entry)) return;
+    if (entry === "label" && !showLabel) return;
+    if (entry === "description" && !description) return;
+    stackEntries.push(entry);
+  };
+  if (slotComposition) {
+    for (const role of slotComposition.order) {
+      if (role === "label" || role === "description") pushStackEntry(role);
+    }
+  }
+  pushStackEntry("label");
+  pushStackEntry("description");
 
   // CSS 카드 콘텐츠는 line box 합 (md: label 20 + gap 4 + desc 16 = 40) — fontSize 합산
   //   (14+4+12=30)은 DOM GridListItem(64) 대비 카드당 -10 drift (2026-07-14 sweep).
   //   getLabelLineHeight = generated CSS line-height 토큰과 동일 소스.
-  const labelH = getLabelLineHeight(fontSize);
-  const descH = description ? getLabelLineHeight(descFontSize) + descGap : 0;
+  const entryLineHeight = (entry: "label" | "description"): number =>
+    entry === "label"
+      ? getLabelLineHeight(labelFontSize)
+      : getLabelLineHeight(descFontSize);
+  const contentHeight = stackEntries.reduce(
+    (sum, entry, index) =>
+      sum + entryLineHeight(entry) + (index > 0 ? descGap : 0),
+    0,
+  );
   const cardHeight = parsePxValue(
     style?.height,
-    cardPaddingY * 2 + labelH + descH,
+    cardPaddingY * 2 + contentHeight,
   );
   const labelFontWeight =
     (style?.fontWeight as string | number | undefined) ??
@@ -465,30 +513,45 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     radius: cardBorderRadius,
   });
 
-  // label (top-left)
-  shapes.push({
-    type: "text",
-    x: cardPaddingX,
-    y: cardPaddingY,
-    text: label,
-    fontSize,
-    fontFamily: ff,
-    fontWeight: labelFontWeight,
-    fill: textColor,
-  });
-
-  // description (optional, 2번째 줄)
-  if (description) {
-    shapes.push({
-      type: "text",
-      x: cardPaddingX,
-      // 2번째 줄 top = label line box(높이 labelH) 아래 + descGap (CSS line box 스택 동형)
-      y: cardPaddingY + labelH + descGap,
-      text: description,
-      fontSize: descFontSize,
-      fontFamily: ff,
-      fill: "{color.neutral-subdued}" as TokenRef,
-    });
+  // label/description 수직 스택 (top-left) — slot 자식 순서/스타일 소비 (ADR-148 Phase 4).
+  //   entry y = 이전 entry line box 아래 + descGap (CSS line box 스택 동형, 기존 기하 유지).
+  const labelFill = (labelSlotStyle?.color as string | undefined) ?? textColor;
+  const labelWeight =
+    (labelSlotStyle?.fontWeight as string | number | undefined) ??
+    labelFontWeight;
+  const descriptionFill =
+    (descriptionSlotStyle?.color as string | undefined) ??
+    ("{color.neutral-subdued}" as TokenRef);
+  const descriptionWeight = descriptionSlotStyle?.fontWeight as
+    | string
+    | number
+    | undefined;
+  let stackY = cardPaddingY;
+  for (const entry of stackEntries) {
+    if (entry === "label") {
+      shapes.push({
+        type: "text",
+        x: cardPaddingX,
+        y: stackY,
+        text: label,
+        fontSize: labelFontSize,
+        fontFamily: ff,
+        fontWeight: labelWeight,
+        fill: labelFill,
+      });
+    } else {
+      shapes.push({
+        type: "text",
+        x: cardPaddingX,
+        y: stackY,
+        text: description ?? "",
+        fontSize: descFontSize,
+        fontFamily: ff,
+        ...(descriptionWeight != null ? { fontWeight: descriptionWeight } : {}),
+        fill: descriptionFill,
+      });
+    }
+    stackY += entryLineHeight(entry) + descGap;
   }
 
   return shapes;

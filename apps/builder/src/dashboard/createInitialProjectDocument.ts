@@ -1,5 +1,7 @@
 import type { CompositionDocument } from "@composition/shared";
 import { ensureListBoxTemplateOrigins } from "../builder/components/listbox/listBoxTemplateOrigins";
+import { ensureGridListTemplateOrigins } from "../builder/components/gridlist/gridListTemplateOrigins";
+import { ensureMenuTemplateOrigins } from "../builder/components/menu/menuTemplateOrigins";
 import { ensureReusableCompositeOrigins } from "../builder/components/reusableCompositeOrigins";
 
 type PageSeed = {
@@ -25,29 +27,34 @@ export function createInitialProjectDocument(
   page: PageSeed,
   body: BodySeed,
 ): CompositionDocument {
+  // ADR-148 Phase 4: GridListItem/MenuItem collection item slot origin — ListBox 동형 체인.
   return ensureReusableCompositeOrigins(
-    ensureListBoxTemplateOrigins({
-      version: "composition-1.0",
-      children: [
-        {
-          id: page.id,
-          type: "frame",
-          name: page.title,
-          metadata: {
-            type: "legacy-page",
-            pageId: page.id,
-            slug: page.slug ?? null,
-            parent_id: null,
-          },
+    ensureMenuTemplateOrigins(
+      ensureGridListTemplateOrigins(
+        ensureListBoxTemplateOrigins({
+          version: "composition-1.0",
           children: [
             {
-              id: body.id,
-              type: body.type as CanonicalNodeType,
-              props: asCanonicalProps(body.props),
+              id: page.id,
+              type: "frame",
+              name: page.title,
+              metadata: {
+                type: "legacy-page",
+                pageId: page.id,
+                slug: page.slug ?? null,
+                parent_id: null,
+              },
+              children: [
+                {
+                  id: body.id,
+                  type: body.type as CanonicalNodeType,
+                  props: asCanonicalProps(body.props),
+                },
+              ],
             },
           ],
-        },
-      ],
-    }),
+        }),
+      ),
+    ),
   );
 }

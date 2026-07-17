@@ -154,6 +154,50 @@ if (!fieldCreationRequestedRef.current) {
 }
 
 /**
+ * ADR-148 Phase 4: GridListItem slot 콘텐츠 — label/description span 을 slot 구성으로
+ * **존재 gating**(구성에 없는 slot 미 emit) + **스타일 overlay**(slot 자식 props.style) +
+ * **emit 순서**(등장 순서 — 카드 flex-column 이라 DOM 순서 = 시각 스택 순서, Skia
+ * gridlist_card stackEntries 와 대칭) 소비한다. null 이면 기존 동작(BC).
+ */
+function renderGridListItemSlotContent(opts: {
+  label: React.ReactNode;
+  description: string | null;
+  slotComposition?: SlotComposition | null;
+}): React.ReactNode {
+  const { label, description, slotComposition } = opts;
+  const slotStyleOf = (role: SlotRole): React.CSSProperties | undefined =>
+    slotComposition?.slots[role]?.style as React.CSSProperties | undefined;
+
+  const labelNode = isSlotEnabled(slotComposition, "label") ? (
+    <span className="gridlist-item-label" style={slotStyleOf("label")}>
+      {label}
+    </span>
+  ) : null;
+  const descriptionNode =
+    isSlotEnabled(slotComposition, "description") && description ? (
+      <span
+        className="gridlist-item-description"
+        style={slotStyleOf("description")}
+      >
+        {description}
+      </span>
+    ) : null;
+
+  const descriptionFirst =
+    slotComposition != null &&
+    slotComposition.order.indexOf("description") !== -1 &&
+    slotComposition.order.indexOf("description") <
+      slotComposition.order.indexOf("label");
+
+  return (
+    <>
+      {descriptionFirst ? descriptionNode : labelNode}
+      {descriptionFirst ? labelNode : descriptionNode}
+    </>
+  );
+}
+
+/**
  * ListBox 렌더링
  */
 export const renderListBox = (
@@ -691,6 +735,22 @@ export const renderGridList = (
     context.childrenByParent.get(element.id) ?? []
   ).filter((child) => child.type === "GridListItem");
 
+  // ADR-148 Phase 4 — slot 구성: renderListBox 동형 3단 fallback (template child 자식 →
+  //   provider 주입 → legacy 전체-트리 origin 리터럴 조회). null = legacy 문서 → 기존 동작.
+  const templateSlotComposition = (() => {
+    const template = gridListChildren[0];
+    const fromTemplate = template
+      ? resolveSlotComposition(context.childrenByParent.get(template.id))
+      : null;
+    if (fromTemplate) return fromTemplate;
+    if (context.gridListTemplateSlotComposition !== undefined) {
+      return context.gridListTemplateSlotComposition;
+    }
+    return resolveSlotComposition(
+      context.childrenByParent.get("component-gridlist-item-default"),
+    );
+  })();
+
   // key 시그니처용 — selectedKeys 직렬화. defaultSelectedKeys(uncontrolled) 는 mount 시점
   //   selection 만 읽으므로, 패널에서 selectedKeys 토글 시 이 시그니처가 바뀌어 key 가 달라지고
   //   GridList 가 re-mount → 새 defaultSelectedKeys 를 다시 읽게 한다 (Checkbox/RadioGroup 동형).
@@ -742,47 +802,42 @@ export const renderGridList = (
             isDisabled={Boolean(gridListItemTemplate.props.isDisabled)}
             className={gridListItemTemplate.props.className}
           >
-            {fieldChildren.length > 0 ? (
-              fieldChildren.map((field) => {
-                const fieldKey = (field.props as { key?: string }).key;
-                const fieldValue = fieldKey ? item[fieldKey] : undefined;
+            {fieldChildren.length > 0
+              ? fieldChildren.map((field) => {
+                  const fieldKey = (field.props as { key?: string }).key;
+                  const fieldValue = fieldKey ? item[fieldKey] : undefined;
 
-                return (
-                  <DataField
-                    key={field.id}
-                    fieldKey={fieldKey || ""}
-                    label={(field.props as { label?: string }).label}
-                    type={
-                      (field.props as { type?: string }).type as
-                        | "string"
-                        | "number"
-                        | "boolean"
-                        | "date"
-                        | "image"
-                        | "url"
-                        | "email"
-                    }
-                    value={fieldValue}
-                    visible={
-                      (field.props as { visible?: boolean }).visible !== false
-                    }
-                    style={field.props.style}
-                    className={field.props.className}
-                  />
-                );
-              })
-            ) : (
-              <>
-                <span className="gridlist-item-label">
-                  {String(gridListItemTemplate.props.label || "")}
-                </span>
-                {gridListItemTemplate.props.description && (
-                  <span className="gridlist-item-description">
-                    {String(gridListItemTemplate.props.description)}
-                  </span>
-                )}
-              </>
-            )}
+                  return (
+                    <DataField
+                      key={field.id}
+                      fieldKey={fieldKey || ""}
+                      label={(field.props as { label?: string }).label}
+                      type={
+                        (field.props as { type?: string }).type as
+                          | "string"
+                          | "number"
+                          | "boolean"
+                          | "date"
+                          | "image"
+                          | "url"
+                          | "email"
+                      }
+                      value={fieldValue}
+                      visible={
+                        (field.props as { visible?: boolean }).visible !== false
+                      }
+                      style={field.props.style}
+                      className={field.props.className}
+                    />
+                  );
+                })
+              : renderGridListItemSlotContent({
+                  label: String(gridListItemTemplate.props.label || ""),
+                  description: gridListItemTemplate.props.description
+                    ? String(gridListItemTemplate.props.description)
+                    : null,
+                  slotComposition: templateSlotComposition,
+                })}
           </GridListItem>
         );
       }
@@ -800,14 +855,11 @@ export const renderGridList = (
               textValue={item.textValue ?? item.label}
               isDisabled={Boolean(item.isDisabled)}
             >
-              <>
-                <span className="gridlist-item-label">{item.label}</span>
-                {item.description && (
-                  <span className="gridlist-item-description">
-                    {item.description}
-                  </span>
-                )}
-              </>
+              {renderGridListItemSlotContent({
+                label: item.label,
+                description: item.description ?? null,
+                slotComposition: templateSlotComposition,
+              })}
             </GridListItem>
           );
 

@@ -2,7 +2,7 @@
 
 > **Superseded by [ADR-145](145-listbox-template-element-single-component-proof.md)** — 2026-05-27
 >
-> 최종 계보 (2026-07-08 확인): ADR-145 (Implemented) → ADR-146 (Implemented) → ADR-147 (Superseded) → **[ADR-148](../148-reusable-slot-system-unification.md)** — 잔여 collection item slot 확산은 ADR-148 Phase 4 로 흡수.
+> 최종 계보 (2026-07-08 확인): ADR-145 (Implemented) → ADR-146 (Implemented) → ADR-147 (Superseded) → **[ADR-148](148-reusable-slot-system-unification.md)** — 잔여 collection item slot 확산은 ADR-148 Phase 4 로 흡수.
 
 ## Status
 

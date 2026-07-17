@@ -2324,7 +2324,12 @@ export function calculateContentHeight(
     const gap =
       parseNumericValue(style?.rowGap ?? style?.columnGap ?? style?.gap) ?? 2;
     const desc = props?.description;
-    const hasDesc = typeof desc === "string" && desc.length > 0;
+    // ADR-148 Phase 4: description slot 자식이 구성(_slots)에 없으면 1줄
+    //   (gridlist_card escape 동일 gating — listbox 분기 동형).
+    const hasDesc =
+      typeof desc === "string" &&
+      desc.length > 0 &&
+      isSlotEnabled(readSlotComposition(props?._slots), "description");
     return (
       getLabelLineHeight(fontSize) +
       (hasDesc ? gap + getLabelLineHeight(fontSize - 2) : 0)
@@ -2374,10 +2379,15 @@ export function calculateContentHeight(
     // 카드 콘텐츠는 CSS line box 합 (md: label 20 + desc 16 + gap 4 = 40) — fontSize 합산은
     //   DOM GridListItem 대비 카드당 -10 drift. skiaPrimitives gridListCard 와 동일 공식
     //   (Layer D — 렌더/레이아웃 동일 메트릭, 2026-07-14 sweep).
+    // ADR-148 Phase 4: description slot 자식이 구성(owner props._slots — projection 주입)에
+    //   없으면 카드 1줄 (gridlist_card escape 동일 gating, listbox 분기 동형).
+    const gridSlotComposition = readSlotComposition(props?._slots);
     const cardHeight = (item: { description?: string }) =>
       cardPaddingY * 2 +
       getLabelLineHeight(fontSize) +
-      (item.description ? getLabelLineHeight(descFontSize) + descGap : 0);
+      (item.description && isSlotEnabled(gridSlotComposition, "description")
+        ? getLabelLineHeight(descFontSize) + descGap
+        : 0);
 
     const measureGridRows = (
       items: Array<{ description?: string }>,

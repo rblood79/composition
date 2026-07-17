@@ -217,13 +217,16 @@ function CanvasContent() {
     }
   }, [canonicalDocument, importRegistryVersion]);
 
-  // ADR-148 Phase 0 — ListBox 행 template 의 slot 구성 (문서 1회 계산 → renderContext 주입).
-  //   표준 ListBox instance 는 anchor-less bare ref 라 renderer 의 subtree childrenByParent 로는
-  //   Components 페이지 origin slot 자식에 접근 불가. builder projection
+  // ADR-148 Phase 0/4 — collection item template 의 slot 구성 (문서 1회 계산 → renderContext
+  //   주입). 표준 instance 는 anchor-less bare ref 라 renderer 의 subtree childrenByParent 로는
+  //   Components 페이지 origin slot 자식에 접근 불가. ListBox 는 builder projection
   //   (resolveListBoxTemplateOriginId)과 동일 해석: master(component-listbox) slot[0] →
-  //   기본 component-listbox-item-default. 구성 null = legacy 문서 → 렌더러 기존 동작.
-  const listBoxTemplateSlotComposition = useMemo(() => {
-    if (!resolvedCanonicalNodes) return null;
+  //   기본 component-listbox-item-default. GridList/Menu(Phase 4)는 anchor-less 단일 origin
+  //   리터럴. 구성 null = legacy 문서 → 렌더러 기존 동작.
+  const templateSlotCompositions = useMemo(() => {
+    if (!resolvedCanonicalNodes) {
+      return { listBox: null, gridList: null, menuItem: null };
+    }
     const byId = new Map<string, { slot?: unknown; children?: unknown[] }>();
     const walk = (node: unknown): void => {
       if (!node || typeof node !== "object") return;
@@ -239,13 +242,21 @@ function CanvasContent() {
     };
     resolvedCanonicalNodes.forEach(walk);
     const masterSlot = byId.get("component-listbox")?.slot;
-    const originId =
+    const listBoxOriginId =
       Array.isArray(masterSlot) && typeof masterSlot[0] === "string"
         ? masterSlot[0]
         : "component-listbox-item-default";
-    const origin = byId.get(originId);
-    return origin ? resolveSlotComposition(origin.children) : null;
+    const compositionOf = (originId: string) => {
+      const origin = byId.get(originId);
+      return origin ? resolveSlotComposition(origin.children) : null;
+    };
+    return {
+      listBox: compositionOf(listBoxOriginId),
+      gridList: compositionOf("component-gridlist-item-default"),
+      menuItem: compositionOf("component-menu-item-default"),
+    };
   }, [resolvedCanonicalNodes]);
+  const listBoxTemplateSlotComposition = templateSlotCompositions.listBox;
 
   // ⭐ 이전에 적용된 body 스타일 키들을 추적
   const appliedStyleKeysRef = useRef<Set<string>>(new Set());
@@ -568,8 +579,10 @@ function CanvasContent() {
       // Q11=나: shared 렌더러는 EVENT_REGISTRY에 직접 의존 금지 → context 주입
       // 현재 단계에서는 noop resolver (P6에서 이벤트 연결 확장 예정)
       resolveActionId: (_id: string) => undefined,
-      // ADR-148 Phase 0 — ListBox slot 구성 (anchor-less 표준 shape 의 DOM 소비 경로)
+      // ADR-148 Phase 0/4 — collection item slot 구성 (anchor-less 표준 shape 의 DOM 소비 경로)
       listBoxTemplateSlotComposition,
+      gridListTemplateSlotComposition: templateSlotCompositions.gridList,
+      menuItemTemplateSlotComposition: templateSlotCompositions.menuItem,
     }),
     [
       resolvedElements,
@@ -580,6 +593,7 @@ function CanvasContent() {
       setElements,
       eventEngine,
       listBoxTemplateSlotComposition,
+      templateSlotCompositions,
     ],
   );
 

@@ -36,6 +36,9 @@ export type ComponentTag =
   | "CardContent"
   | "CardFooter"
   | "CardHeader"
+  // ADR-148 Phase 4 정정: 실존 컴포넌트(catalog rule + renderer + Card origin 자식)인데
+  //   유니온에서 누락 — cardTemplateOrigins(Phase 3) 가 canonical 자식 type 으로 사용.
+  | "CardPreview"
   | "CardView"
   | "Checkbox"
   | "CheckboxGroup"

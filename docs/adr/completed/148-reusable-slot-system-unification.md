@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted — 2026-07-17 (Proposed 2026-07-08)
+Implemented — 2026-07-17 (Proposed 2026-07-08, Accepted 2026-07-17)
 
 진행 로그:
 
-- 2026-07-07 — landscape 전수 실측 ([audits/2026-07-07-reusable-slot-landscape.md](../reference/audits/2026-07-07-reusable-slot-landscape.md)) + 등록 구조 사용자 explicit confirm (**전면 reusable entry**) + 전체 설계도 작성 ([REUSABLE_SLOT_DESIGN.md](../reference/components/REUSABLE_SLOT_DESIGN.md)).
+- 2026-07-07 — landscape 전수 실측 ([audits/2026-07-07-reusable-slot-landscape.md](../../reference/audits/2026-07-07-reusable-slot-landscape.md)) + 등록 구조 사용자 explicit confirm (**전면 reusable entry**) + 전체 설계도 작성 ([REUSABLE_SLOT_DESIGN.md](../../reference/components/REUSABLE_SLOT_DESIGN.md)).
 - 2026-07-08 — 사용자 명시 요청("관련 미진행 ADR 폐기 + 신규 단일 ADR")으로 본 ADR 작성. 폐기 범위 explicit confirm: **ADR-147 만 Superseded by 본 ADR** (144/920 은 기존 Superseded, 910/911 은 비실행 참조 위상 존속). fork 4질문 + 통합 동기 분류(b류 — 가시 효과 큰 단일 영역 closure)는 breakdown §1 lock-in.
 - 2026-07-17 — 사용자 재제기("slot 개념만 적용되었을 뿐 정상 동작 아님") + 코드 실측으로 **승계 전제 정정**: ADR-147 반영 완료분의 slot 조합 자식은 렌더·편집·projection 어디서도 소비되지 않는 미배선 구조로 확인 (Context 승계 표 #4, breakdown §2-1 실측 표). Phase 0 을 검증-only 에서 **승계 정정(배선) + 검증** phase 로 확장, R8 추가.
 - 2026-07-17 — **Accepted 승격** (execute-adr 착수 절차): 리뷰 round 1(2026-07-07)·round 2(2026-07-14) 이슈 3건 전부 `fixed`, pending 0 — 종결 계약 성립. README 테이블 동시 갱신.
@@ -16,6 +16,7 @@ Accepted — 2026-07-17 (Proposed 2026-07-08)
 - 2026-07-17 — **Phase 2 Implemented (G3 통과)**: IconButton 첫 신규 reusable 수직 슬라이스 + propsSchema 첫 소비. ① origin seed `iconButtonTemplateOrigins.ts`(root=Button primitive — Button.binding 파일럿 "아이콘 붙은 Button 은 reusable 조합 문서" 실현; 자식 Icon(slotRole:icon, optional)+Text(slotRole:label), 바인딩 `{icon}`/`{label}`; RSP 대조: 동명 컴포넌트 없음 → placeable 단일성 조치 불필요) ② **템플릿 바인딩 `{키}` 치환 엔진 신설** — shared `templateBinding.ts`(추출/판독/바인딩 산출/치환, **propsSchema gate**: 미선언 origin 의 placeholder 는 원형 보존 — ListBox row-data 바인딩 공존 계약) + resolve **양축 배선**(flat synthetic: `canonicalRefResolution.ts` / nested children: ADR-903 `resolvers/canonical` `_resolveRefNodeUncached` — 중첩 reusable 은 `_resolvedFrom` 에서 재귀 중단) ③ Inspector 소비 — `resolveEditContract` (A′) 분기: raw ref instance + doc → origin propsSchema → generic semantic 필드(dirty 판정 = instance 자체 props 보유, variant/size 옵션은 origin root type 의 theme rule 파생) ④ catalog entry + palette(PALETTE_ORDER/ICON_MAP/oracle). 검증: 신규 테스트 27건(templateBinding 11 + resolve 치환 5 + origin·키 1:1·Inspector 6 + 불변식 자동 확장) + shared 629 green + type-check 0 + **live G3 exercise**(palette-add → 양축 star+"Button" default 렌더 → Label "Save"/Icon heart/Variant negative 편집 → 양축 즉시 반영 + Overrides dirty·Reset 표시 → origin size xl 편집 → override 없는 instance 전파(data-size=xl) + override 우선(variant negative 유지) → md 원복). cross-check 중 **CSS↔Skia 발산 1건(HIGH) 발견·즉시 수정**: 치환을 flat 축만 배선하면 Preview(nested children consumer)가 placeholder 원형 렌더 — nested 축 배선으로 대칭 복원. 참고: Button 자식 시각 순서는 양축 공유 기존 규칙(Text 앞/Icon 뒤)이 origin 자식 순서보다 우선 — 발산 아님, 순서 소비는 Phase 3 검토 대상. 기존 실패 2건(factoryOwnership grid props / importRegistry G6-4 정적 가드 — stash 왕복으로 본 phase 무관 확인) 별도 보고.
 
 - 2026-07-17 — **Phase 3 Implemented (G4 통과 — 적격 2종 / 보류 2종)**: factory-대체군 재판정 선행 (breakdown §3 재판정 표) — **InlineAlert/Card 적격** (DOM 자식 재귀 + catalog box shell + escape 없음) / **Toast 보류** (생성 진입점 0 — palette 비노출 "imperative 알림" 설계 기록 + AI 미참조. 전환 시 소비처 0 dormant 또는 palette 노출 제품 결정 강요) / **IllustratedMessage 부적격** (DOM `INTERNAL_RENDERERS` + Skia `illustrated_message` escape 모두 flat props self-compose — ADR-912 진로 1번 의도 설계, 환원에 재작성 필요). 적격 2종은 Phase 2 패턴 조립: origin seed 2건 (InlineAlert 2-slot `{title}`/`{description}` / Card 4-region — 바인딩 depth-2 자식, 구 propagation title/description 라우팅을 템플릿 바인딩이 대체) + propsSchema + catalog `reusableEntry` 2건 + 동명 primitive `placeable:false` + ensurer 2줄 + **factory seam 삭제** (`createInlineAlertDefinition`/`createCardDefinition` + method/creators + COMPLEX 2항목 — Toolbar/Form 선례, kill criteria "definition fallback 0" 충족). 검증: 신규 테스트 12건 (origin 2×5~6 + resolve depth-2 치환 1) + 계약 스위트 green (creators 54→52 / COMPLEX 48→46 인벤토리 정정, InlineAlert rendererMap exception 루프 제외) + type-check 0 + **live G4 exercise** (reload hydration seed 자동 합류 → palette-add 2종 → `type:"ref"` instance + 양축 default 치환 렌더 (Card 는 depth-2) → InlineAlert Title "Payment failed" 편집 → 양축 즉시 반영 + Overrides dirty/Reset → Card Variant secondary 편집 + 원복 → 실시간 전파·persist 왕복 확인). cross-check 중 **CSS↔Skia 발산 1건 (HIGH) 발견·즉시 수정**: `renderCard` 가 variant prop 을 shared Card 에 미전달 — DOM `data-variant` 가 항상 default "primary" 로 고정 (ADR-912 R6 S2 variant 전환 잔존 결함, legacy flat Card 포함 전 경로) → 전달 1줄×2분기 정정으로 대칭 복원. 부수 관찰 (scope 외 기록): ref instance 의 자식으로 다른 ref 를 넣은 중첩 시나리오에서 origin 자식 ↔ instance 자식 혼합 순서가 CSS (origin 먼저) / Skia (instance 먼저) 로 상이 — instance 자식 병합 순서의 기존 영역 (ADR-138 승계), Phase 4 진입 시 재실측 대상.
+- 2026-07-17 — **Phase 4 Implemented (G4 통과 — 마지막 phase, Status 승격)**: collection item slot 이식 — GridListItem(label/description) + MenuItem(icon/label/shortcut/description, itemSchema 8키 중 시각 slot 4키 — 잔여 value/href/isDisabled/onActionId 는 데이터·동작 축이라 slot 대상 아님 판정). **선행 관문**: ADR-150 A2/A3 land 상태 재실측 — docs-only (코드 land 0, `COLLECTION_ROW_PROJECTION_WINDOW_LIMIT=100` 정적 cap 존속) → breakdown 조정 조항의 "역순" 분기 (150 G-A2/G-A3 이 본 결과 위에서 검증). ADR-147 모델 복제: ① origin seed 2건 (`gridListTemplateOrigins.ts`/`menuTemplateOrigins.ts` — anchor-less 단일 origin 리터럴, 멱등 repair) + hydration 3곳 체인 (createInitialProjectDocument/adapters·canonical/usePageManager — REUSABLE_ORIGIN_ENSURERS 아님: catalog reusableEntry 순회 기반이라 palette 비노출 origin 에 부적합) ② shared `SLOT_ROLES` += "shortcut" (R5 additive 1줄) ③ **projection `_slots` 주입** — `appendGridListRowProjection` 에 origin resolve + owner/카드 주입 + origin style overlay + `templateOriginId` 채움 + visit slot-자식 접힘 3타입 확장 (ListBoxItem→+GridListItem/MenuItem) ④ Skia `gridlist_card` escape 소비 (gating/스타일 overlay/스택 순서 — listbox_item 동형 stackEntries) + layout §1.55b2/§1.55c description gating (Layer D 대칭) ⑤ DOM emit 소비 — `renderGridList` 3단 fallback + `renderMenuItemSlotParts` 공용 helper (Menu.tsx MenuButton 내부 3곳 + CollectionRenderers 구조화 경로) + Preview provider 확장 (`templateSlotCompositions` 통합 계산 — gridList/menuItem 키 추가). Menu 는 Skia 에 trigger 만 렌더 (catalog rule, projection 없음) — 소비 표면 DOM 단일 축 기록. 검증: 신규 테스트 12건 (origin seed 2×2~4 + scene projection 1 — 구성·origin style·owner 주입·이중 렌더 차단) + specs 581/shared renderers 67/builder canvas 670 green + type-check 0 + **live G4 exercise** (reload hydration seed 자동 합류 (기존 프로젝트) → GridList/Menu 추가 + items 주입 → Skia 카드 label/description 2줄 렌더 → origin label slot style.color 편집 → 양 카드 즉시 전파 + persist 왕복 → **origin description slot 자식 삭제 → Skia 카드 1줄 (그리기+layout 높이) + Preview DOM description 미 emit (데이터 존재에도)** → Menu popover 4-slot emit → origin shortcut slot 삭제 → reload 후 shortcut 미 emit → origin 삭제 → ensure 신품 재시드 (멱등 repair 왕복)). scope 외 관찰 3건 기록: (a) **publish 앱 미소비** — apps/publish 는 registry 로 shared 컴포넌트 직접 렌더 (renderer/context 미경유) 라 slot 구성이 닿지 않음, Phase 0 ListBox 때부터의 기존 gap (잔존 위험 R9 로 아래 추가) (b) preview 실시간 전파 — origin slot 자식 삭제가 열린 preview 에 즉시 push 안 됨 (reload 후 반영, preview sync 채널 기존 특성) (c) 검증 중 잘못된 API 호출 (`updateSelectedStyle` 객체 인자) 이 origin children 재배열을 남김 — 정상 편집 경로는 순서 보존 확인, 시각은 canonical 순서를 정확히 소비.
 
 ## Context
 
@@ -93,8 +94,8 @@ reusable/slot 축의 결정과 구현이 4곳에 분산되어 있다: ADR-142(�
 - **대안 B 기각**: 상호 결합 체인을 3문서로 나누면 cross-gate drift — ADR-146(선언)→147(실현) 분리가 낳은 본문 stale 과 동형 재발. 유지보수 HIGH.
 - **대안 C 기각**: 등록 이원화 영구화 + 결정 비추적. "1 컴포넌트=1 등록" 목표(ADR-912) 미완 고착. 유지보수 HIGH.
 
-> 구현 상세: [148-reusable-slot-system-unification-breakdown.md](design/148-reusable-slot-system-unification-breakdown.md)
-> 아키텍처 상세(스키마 계약·인덱스·렌더 계약·패턴 5+1): [REUSABLE_SLOT_DESIGN.md](../reference/components/REUSABLE_SLOT_DESIGN.md)
+> 구현 상세: [148-reusable-slot-system-unification-breakdown.md](../design/148-reusable-slot-system-unification-breakdown.md)
+> 아키텍처 상세(스키마 계약·인덱스·렌더 계약·패턴 5+1): [REUSABLE_SLOT_DESIGN.md](../../reference/components/REUSABLE_SLOT_DESIGN.md)
 
 ## Risks
 
@@ -109,7 +110,9 @@ reusable/slot 축의 결정과 구현이 4곳에 분산되어 있다: ADR-142(�
 | R7  | 단일 ADR 다축 통합 — 한 phase 실패 시 원인 분리 곤란                                                                                                                                                                                                                                            |  MED   | Phase = 독립 검증·revert 단위 (breakdown §3). Gate 실패는 해당 phase 만 보류, 선행 phase 산출물 유지                                                     |
 | R8  | **ADR-147 승계분 slot 자식 미배선 확정** (2026-07-17 실측 — Context 표 #4): Phase 0 이 검증-only 가 아니라 정정 phase 가 되며, 배선 범위가 DOM emit·Skia escape·projection·편집기 4개 층으로 확대될 수 있음. 미정정 시 Phase 2(propsSchema)·Phase 4(모델 복제)가 미작동 모델을 복제해 결함 확산 |  HIGH  | G1 을 배선 정정 게이트로 확장(배선 완료 후 cross-check 3축 + live). Phase 2/4 는 G1 선통과 조건. 배선 좌표·범위는 breakdown §2-1/§3 Phase 0              |
 
-잔존 HIGH 위험은 R8 1건 — G1 이 1:1 대응한다 (Phase 0 에서 정정·검증 후에만 후속 phase 진입). 그 외 phase 는 검증된 기존 메커니즘(R-5 생성 경로 / ADR-138 fork UX)의 확장이며, 유일한 신규 표면(propsSchema 소비)은 Phase 2 단일 슬라이스로 격리된다.
+| R9 | **publish 앱 slot 구성 미소비** (Phase 4 live 실측, 2026-07-17): `apps/publish` 는 registry 로 shared 컴포넌트를 직접 렌더 (shared renderer/RenderContext 미경유) 라 slot 구성 provider 가 닿지 않음 — origin 에서 slot 자식을 지워도 publish 출력은 flat-props BC 동작 유지. Phase 0 ListBox 배선 때부터의 기존 gap (신규 회귀 아님) | MED | 기록 + 후속 분리 — publish 는 published 문서만 로드하며 Components 페이지가 publishExcluded 라 origin 접근 자체가 별도 설계 필요 (publish 시점 구성 snapshot 동봉 등). builder Skia/Preview 양축 대칭은 G1/G4 로 검증 완료 |
+
+잔존 HIGH 위험은 R8 1건 — G1 이 1:1 대응한다 (Phase 0 에서 정정·검증 후에만 후속 phase 진입). 그 외 phase 는 검증된 기존 메커니즘(R-5 생성 경로 / ADR-138 fork UX)의 확장이며, 유일한 신규 표면(propsSchema 소비)은 Phase 2 단일 슬라이스로 격리된다. R9 (publish) 는 Implemented 시점 잔존 MED — 후속 분리 기록.
 
 ## Gates
 
@@ -138,9 +141,9 @@ reusable/slot 축의 결정과 구현이 4곳에 분산되어 있다: ADR-142(�
 
 ## References
 
-- [ADR-142](completed/142-starter-spec-component-system-cutover.md) — base (조합=canonical reusable 문서, Implemented)
-- [ADR-912](completed/912-rac-pencil-rebuild-cutover.md) — R-5 proof + 6 registry collapse (Implemented)
-- [ADR-147](completed/147-listboxitem-slot-composition.md) — **Superseded by 본 ADR** (slot 모델 실증 승계)
-- [ADR-146](completed/146-listboxitem-ref-template-row-projection.md) / [ADR-138](completed/138-component-palette-reusable.md) — projection·fork UX 승계 (변경 0, 138 흡수 사용자 confirm 2026-07-08)
-- [ADR-144](completed/144-collection-template-element-ssot.md) — 기 Superseded (by ADR-145) — 145→146→147 계보 경유로 잔여 collection item slot 확산은 본 ADR Phase 4 가 흡수 (2026-07-08 확인)
-- [REUSABLE_SLOT_DESIGN.md](../reference/components/REUSABLE_SLOT_DESIGN.md) / [landscape 실측](../reference/audits/2026-07-07-reusable-slot-landscape.md)
+- [ADR-142](142-starter-spec-component-system-cutover.md) — base (조합=canonical reusable 문서, Implemented)
+- [ADR-912](912-rac-pencil-rebuild-cutover.md) — R-5 proof + 6 registry collapse (Implemented)
+- [ADR-147](147-listboxitem-slot-composition.md) — **Superseded by 본 ADR** (slot 모델 실증 승계)
+- [ADR-146](146-listboxitem-ref-template-row-projection.md) / [ADR-138](138-component-palette-reusable.md) — projection·fork UX 승계 (변경 0, 138 흡수 사용자 confirm 2026-07-08)
+- [ADR-144](144-collection-template-element-ssot.md) — 기 Superseded (by ADR-145) — 145→146→147 계보 경유로 잔여 collection item slot 확산은 본 ADR Phase 4 가 흡수 (2026-07-08 확인)
+- [REUSABLE_SLOT_DESIGN.md](../../reference/components/REUSABLE_SLOT_DESIGN.md) / [landscape 실측](../../reference/audits/2026-07-07-reusable-slot-landscape.md)

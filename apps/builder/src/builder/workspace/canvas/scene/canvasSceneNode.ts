@@ -22,6 +22,7 @@ import {
   type ListBoxCollectionDataSource,
   type ListBoxProjectionRow,
 } from "../../../components/listbox/listBoxRowProjectionModel";
+import { GRIDLIST_ITEM_DEFAULT_ORIGIN_ID } from "../../../components/gridlist/gridListTemplateOrigins";
 // ADR-907 Layer D: chip gap 정본 = TagList catalog rule. projection 배치와 layout
 //   height 계산이 동일 resolver(resolveTagListGap)를 공유해 size 별 gap(lg=6) 을 정합.
 import { resolveTagListGap } from "../layout/engines/utils";
@@ -718,8 +719,9 @@ function appendListBoxRowProjection(
 
 /**
  * GridList scene node 판정 — GridList 컴포넌트(또는 그 ref instance).
- * GridList 는 origin 인프라(ensureGridListTemplateOrigins) 부재 + factory children:[] 이므로
- * ListBox 보다 단순(authoring mode / template anchor 개념 없음).
+ * GridList 는 factory children:[] + anchor-less 단일 origin(ADR-148 Phase 4 —
+ * ensureGridListTemplateOrigins 리터럴 참조)이므로 ListBox 보다 단순
+ * (authoring mode / template anchor 개념 없음).
  */
 function isGridListSceneSource(
   gridListSceneNode: CanvasSceneNode,
@@ -760,10 +762,11 @@ function resolveDataBoundGridListProjection(
 /**
  * GridList projected rows-group + 카드(GridListItem) projected node 생성.
  *
- * ListBox 대비 단순: origin/anchor 인프라 없음(templateAnchorId/templateOriginId = null) →
- * projected GridListItem 은 row 데이터(label/description/value)만 props 로 받아 GridListItem.spec.
- * render.shapes 가 카드를 자체 렌더(step1). rowsGroup 은 GridList 의 layout(grid/stack) + columns
- * 를 flex 로 반영하여 카드가 grid 배치되게 한다(배치는 Taffy layout 담당).
+ * ListBox 대비 단순: template anchor 없음(templateAnchorId = null) — origin 은 anchor-less
+ * 단일(`component-gridlist-item-default`, ADR-148 Phase 4)로 리터럴 해석해 slot 구성(`_slots`)
+ * 과 origin style 을 카드에 주입한다. projected GridListItem 은 row 데이터(label/description/
+ * value)를 props 로 받아 `gridlist_card` escape 가 카드를 자체 렌더. rowsGroup 은 GridList 의
+ * layout(grid/stack) + columns 를 flex 로 반영하여 카드가 grid 배치되게 한다(배치는 layout 엔진 담당).
  */
 function appendGridListRowProjection(
   gridListSceneNode: CanvasSceneNode,
@@ -772,6 +775,7 @@ function appendGridListRowProjection(
   graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
     parentById: Map<string, string>;
   },
+  getDocumentNodesById: () => Map<string, CanonicalNode>,
 ): void {
   const props = gridListSceneNode.props;
   const { rows, sourceNode } = projection;
@@ -779,6 +783,26 @@ function appendGridListRowProjection(
   const numCols =
     layout === "grid" ? Math.max(1, Number(props.columns) || 2) : 1;
   const gap = typeof props.gap === "number" ? (props.gap as number) : 12;
+
+  // ADR-148 Phase 4 — ADR-147 모델 복제 (appendListBoxRowProjection 동형): Components
+  //   페이지의 GridListItem 기본 origin 에서 slot 구성(존재·순서·slot 자식 style)과
+  //   origin style 을 해석해 projected 카드에 주입한다. GridList 는 anchor-less 단일
+  //   origin (master slot[] 참조 체계 없음 — 리터럴 id). origin 미존재/slot 자식 없음
+  //   = legacy 문서 → 미주입, consumer 는 기존 flat-props 동작(BC).
+  const templateOriginNode = getDocumentNodesById().get(
+    GRIDLIST_ITEM_DEFAULT_ORIGIN_ID,
+  );
+  const templateOriginId = templateOriginNode ? templateOriginNode.id : null;
+  const originStyle =
+    (templateOriginNode?.props?.style as Record<string, unknown> | undefined) ??
+    {};
+  const slotComposition = resolveSlotComposition(templateOriginNode?.children);
+  if (slotComposition) {
+    // 컨테이너 layout(utils.ts §1.55c gridlist 분기)이 카드 높이(description 유무)를
+    //   같은 구성으로 gating 하도록 owner GridList scene props 에도 주입 (Layer D 대칭).
+    (gridListSceneNode.props as Record<string, unknown>)._slots =
+      slotComposition;
+  }
 
   const rowsGroupId = toCollectionRowsGroupProjectionId(
     "gridlist",
@@ -806,7 +830,7 @@ function appendGridListRowProjection(
       kind: "gridlist-rows",
       listBoxId: gridListSceneNode.id,
       templateAnchorId: null,
-      templateOriginId: null,
+      templateOriginId,
     },
     sourceNode,
   };
@@ -828,11 +852,15 @@ function appendGridListRowProjection(
       children: row.label,
       description: row.description ?? "",
       textValue: row.label,
-      style: { width: cardWidthStyle },
+      // ADR-148 Phase 4: origin style overlay (ListBox templateAnchorStyle 동형).
+      //   카드 폭은 layout(stack|grid) 산식이 항상 우선.
+      style: { ...originStyle, width: cardWidthStyle },
       _isSelected: isListBoxRowSelected(props, row.itemKey, row.rowIndex),
     };
     if (row.value) rowProps.value = row.value;
     if (row.isDisabled) rowProps.isDisabled = true;
+    // ADR-148 Phase 4: slot 구성(존재·순서·slot 자식 style) — gridlist_card escape/DOM emit 소비.
+    if (slotComposition) rowProps._slots = slotComposition;
 
     addSceneNode(
       {
@@ -850,7 +878,7 @@ function appendGridListRowProjection(
           itemKey: row.itemKey,
           rowIndex: row.rowIndex,
           templateAnchorId: null,
-          templateOriginId: null,
+          templateOriginId,
         },
         sourceNode,
       },
@@ -1823,7 +1851,14 @@ export function buildCanvasSceneGraph(
       //   `listbox_item` skiaPrimitive escape(단일 replace paint)와 DOM emit 이 소비하므로,
       //   가시 scene 에 그대로 두면 세로 stacked 이중 렌더가 된다. (구 주석의 "spec
       //   render.shapes 단일 렌더러" 는 ADR-912 가 물리 삭제한 경로 참조라 정정 — 2026-07-17)
-      if (node.type === "ListBoxItem" && getSlotRole(child) != null) {
+      if (
+        (node.type === "ListBoxItem" ||
+          node.type === "GridListItem" ||
+          node.type === "MenuItem") &&
+        getSlotRole(child) != null
+      ) {
+        // ADR-148 Phase 4: GridListItem/MenuItem origin 의 slot 조합 자식도 동일 접힘 —
+        //   gridlist_card escape / DOM emit 이 `_slots` 로 소비 (독립 scene 노드 금지).
         return;
       }
       visit(child, nextParentId, nextScope);
@@ -1848,6 +1883,7 @@ export function buildCanvasSceneGraph(
         gridListProjection,
         nextScope,
         graph,
+        getDocumentNodesById,
       );
     }
     if (sceneNode && tableProjection) {

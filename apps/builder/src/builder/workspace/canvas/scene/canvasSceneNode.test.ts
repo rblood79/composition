@@ -888,6 +888,96 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
     });
   });
 
+  it("projects the GridListItem origin slot composition + origin style onto cards (ADR-148 Phase 4)", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "gridlist-1",
+                  type: "GridList",
+                  props: {
+                    items: [
+                      {
+                        id: "aardvark",
+                        label: "Aardvark",
+                        description: "A desc",
+                      },
+                    ],
+                  },
+                },
+                // origin — anchor-less 단일 리터럴 (component-gridlist-item-default).
+                //   description slot 자식 제거 + label slot 자식 style + origin style.
+                {
+                  id: "component-gridlist-item-default",
+                  type: "GridListItem",
+                  reusable: true,
+                  props: {
+                    children: "{label}",
+                    description: "{description}",
+                    style: { paddingTop: 20 },
+                  },
+                  children: [
+                    {
+                      id: "component-gridlist-item-default__label",
+                      type: "Text",
+                      props: {
+                        slot: "label",
+                        children: "{label}",
+                        style: { color: "#00ff00" },
+                      },
+                      metadata: {
+                        type: "gridlist-item-slot",
+                        slotRole: "label",
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc, { includeReusableFrames: true });
+    const card = graph.nodesMap.get(
+      toCollectionRowProjectionId("gridlist", "gridlist-1", "aardvark"),
+    );
+    const slots = card?.props._slots as
+      | {
+          order: string[];
+          slots: Record<string, { style?: Record<string, unknown> }>;
+        }
+      | undefined;
+
+    // 구성: description slot 자식이 제거된 origin → 구성에 없음 (카드 1줄 gating 근거).
+    expect(slots?.order).toEqual(["label"]);
+    expect(slots?.slots.description).toBeUndefined();
+    expect(slots?.slots.label?.style).toMatchObject({ color: "#00ff00" });
+    // origin style overlay + 카드 폭은 layout 산식 우선 (stack = 100%).
+    expect(card?.props.style).toMatchObject({
+      paddingTop: 20,
+      width: "100%",
+    });
+    // owner GridList scene props 에도 주입 (layout §1.55c gating — Layer D 대칭).
+    const owner = graph.nodesMap.get("gridlist-1");
+    expect(owner?.props._slots).toBeDefined();
+    // origin 의 slot 조합 자식은 가시 scene 에 서지 않는다 (escape 소비 — 이중 렌더 차단).
+    expect(
+      graph.nodesMap.get("component-gridlist-item-default__label"),
+    ).toBeUndefined();
+  });
+
   it("projects a data-bound Table into 2D RowsGroup → Row → Cell tree (ADR-912 C1)", () => {
     const doc: CompositionDocument = {
       version: "composition-1.0",

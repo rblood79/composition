@@ -29,6 +29,8 @@ import {
 import { canonicalDocumentToElements } from "../stores/canonical/canonicalElementsView";
 import { countUserPagesForAutoName } from "../pages/systemComponentsPage";
 import { migrateLegacyListBoxTemplatesToOrigins } from "../../adapters/canonical/legacyListBoxTemplateMigration";
+import { ensureGridListTemplateOrigins } from "../components/gridlist/gridListTemplateOrigins";
+import { ensureMenuTemplateOrigins } from "../components/menu/menuTemplateOrigins";
 import { migrateCheckboxRadioItemsStructure } from "../../adapters/canonical/checkboxRadioItemsMigration";
 import { migrateFieldInlineLayout } from "../../adapters/canonical/fieldInlineLayoutMigration";
 import { migrateCircleLeafInlineSize } from "../../adapters/canonical/circleLeafInlineSizeMigration";
@@ -387,7 +389,12 @@ export const usePageManager = ({
             // ADR-913 후속 (2026-06-19): field inline display/flexDirection strip (persist-back 경로).
             migrateFieldInlineLayout(
               migrateCheckboxRadioItemsStructure(
-                migrateLegacyListBoxTemplatesToOrigins(baseDocument),
+                // ADR-148 Phase 4: GridListItem/MenuItem slot origin — ListBox 동형 체인.
+                ensureMenuTemplateOrigins(
+                  ensureGridListTemplateOrigins(
+                    migrateLegacyListBoxTemplatesToOrigins(baseDocument),
+                  ),
+                ),
               ),
             ),
           ),

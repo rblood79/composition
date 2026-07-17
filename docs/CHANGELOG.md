@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Reusable·Slot 시스템 단일화 완결 — ADR-148 Implemented (Phase 4 collection item slot 이식)] - 2026-07-17
+
+### Features
+
+- **GridList 카드 / Menu item 의 slot 구성이 origin 문서를 따라가도록 이식** (ADR-148 Phase 4 — 마지막 phase, ADR-147 ListBoxItem 모델 복제):
+  - Components 페이지에 GridListItem origin(label/description slot 자식) + MenuItem origin(icon/label/shortcut/description — Menu itemSchema 8키 중 시각 slot 4키) 이 자동 seed 되고, **origin 에서 slot 자식을 지우면 모든 GridList 카드/Menu item 에서 해당 slot 이 사라진다** (데이터가 있어도 미렌더 — 구성 SSOT = origin 자식 구성). slot 자식 `style` 편집은 전 instance 에 스타일 overlay 로 전파
+  - 소비 배선: GridList projection `_slots` 주입(origin style overlay + `templateOriginId` 포함) + Skia `gridlist_card` escape(gating/overlay/스택 순서) + layout 카드 높이 gating + DOM emit(`renderGridList` 3단 fallback / `renderMenuItemSlotParts` 공용 helper — MenuButton 내부 3경로 포함) + Preview provider `templateSlotCompositions` 통합. `SLOT_ROLES` 에 `shortcut` 추가 (additive 1줄)
+  - Menu 는 Skia 캔버스에 trigger 버튼만 렌더(항목은 Preview popover) — Menu item 의 소비 표면은 DOM 단일 축으로 기록
+  - 위치: `apps/builder/src/builder/components/{gridlist,menu}/*TemplateOrigins.ts`(신규) / `canvasSceneNode.ts`(projection) / `packages/specs/src/renderers/skiaPrimitives.ts`(escape) / `packages/shared/src/renderers/SelectionRenderers.tsx`·`CollectionRenderers.tsx`·`components/Menu.tsx`(DOM emit)
+
+### Documentation
+
+- **ADR-148 Status Implemented 승격 + closure**: Phase 0(ListBoxItem slot 배선 정정) → 1(catalog reusable 등록 단일화) → 2(IconButton + propsSchema + 템플릿 바인딩) → 3(InlineAlert/Card 전환) → 4(collection item slot 이식) 전 phase 완결. 본문 `docs/adr/completed/` 이동 + README 대시보드 재산정(완료 163). 잔존 R9 기록: publish 앱은 registry 직접 렌더 경로라 slot 구성 미소비 (Phase 0 부터의 기존 gap — 후속 분리)
+
 ## [InlineAlert·Card reusable 전환 + Card variant 렌더 수정 — ADR-148 Phase 3] - 2026-07-17
 
 ### Bug Fixes

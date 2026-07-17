@@ -129,6 +129,16 @@ export interface RenderContext {
    * null/미주입 = legacy 문서 → 렌더러는 기존 flat-props 동작.
    */
   listBoxTemplateSlotComposition?: SlotComposition | null;
+  /**
+   * ADR-148 Phase 4 — GridListItem 카드 template 의 slot 구성 (ListBox 동형,
+   * origin `component-gridlist-item-default` 자식에서 파생).
+   */
+  gridListTemplateSlotComposition?: SlotComposition | null;
+  /**
+   * ADR-148 Phase 4 — MenuItem 의 slot 구성 (ListBox 동형, origin
+   * `component-menu-item-default` 자식에서 파생 — icon/label/shortcut/description).
+   */
+  menuItemTemplateSlotComposition?: SlotComposition | null;
 }
 
 // ============================================

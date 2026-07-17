@@ -1,6 +1,6 @@
 # ADR-148 구현 상세 — Reusable·Slot 시스템 단일화
 
-> 본 문서는 [ADR-148](../148-reusable-slot-system-unification.md) 의 구현 상세(Phase, 파일 경계,
+> 본 문서는 [ADR-148](../completed/148-reusable-slot-system-unification.md) 의 구현 상세(Phase, 파일 경계,
 > Gate 매핑, 체크리스트)다. 결정/위험/대안은 ADR 본문, **아키텍처 상세(스키마 계약·인덱스
 > 구조·propsSchema·렌더 계약)는 [REUSABLE_SLOT_DESIGN.md](../../reference/components/REUSABLE_SLOT_DESIGN.md)
 > §1~§5** 를 정본으로 참조한다. 실측 근거: [audits/2026-07-07-reusable-slot-landscape.md](../../reference/audits/2026-07-07-reusable-slot-landscape.md).
@@ -176,7 +176,7 @@ ADR-147 이 주석으로 선언한 "자식은 authoring 구조 + slot 스타일 
   live parity (양축 치환 + 편집 왕복).
 - Gate G4 (컴포넌트별) — InlineAlert ✓ / Card ✓.
 
-### Phase 4 — collection item slot 이식 (조건부)
+### Phase 4 — collection item slot 이식 (조건부) — **Implemented 2026-07-17 (G4 통과)**
 
 - GridListItem(label/description) → Menu item(icon/label/shortcut/description — itemSchema
   8키 정합). ADR-147 모델 복제: origin 조합 자식 + slotRole + projection 주입.
@@ -186,6 +186,20 @@ ADR-147 이 주석으로 선언한 "자식은 authoring 구조 + slot 스타일 
   선행 측의 land 상태를 Phase 진입 시 재실측**하고, 본 Phase 진입 시점에 150 A2/A3 이 반영돼
   있으면 G4 를 window/hit tree 위에서 재검증한다 (역순이면 150 G-A2/G-A3 이 본 Phase 결과 위에서 검증).
 - Gate G4 동형.
+- **반영 기록 (2026-07-17)**: 선행 재실측 — ADR-150 은 docs-only (Proposed, 코드 land 0,
+  `COLLECTION_ROW_PROJECTION_WINDOW_LIMIT=100` 존속) → "역순" 분기 확정. 구현 표면:
+  `gridListTemplateOrigins.ts`/`menuTemplateOrigins.ts` (anchor-less 단일 origin, 멱등 repair) +
+  hydration 3곳 체인 (`createInitialProjectDocument` / `adapters/canonical/index` /
+  `usePageManager` — ListBox 동형, REUSABLE_ORIGIN_ENSURERS 는 catalog entry 순회 기반이라
+  palette 비노출 origin 에 부적합 판정) + `SLOT_ROLES` += "shortcut" +
+  `appendGridListRowProjection` origin resolve/`_slots` 주입/origin style overlay/templateOriginId +
+  visit slot-자식 접힘 3타입 확장 + `gridlist_card` escape 소비 (stackEntries 동형) +
+  layout §1.55b2/§1.55c gating + `renderGridList` 3단 fallback + `renderMenuItemSlotParts`
+  공용 helper (MenuButton 내부 3곳 + 구조화 경로) + Preview provider `templateSlotCompositions`
+  통합. **MenuItem 판정**: itemSchema 8키 중 시각 slot 4키만 이식 (잔여 4키 = 데이터·동작 축);
+  Menu 는 Skia 에 trigger 만 렌더 → 소비 표면 DOM 단일 축. **scope 외 관찰**: publish 앱
+  미소비 (registry 직접 렌더 — Phase 0 부터의 기존 gap, ADR R9 기록) / preview 실시간 전파는
+  reload 후 반영 (기존 특성). 상세: ADR 본문 진행 로그.
 
 ## §4. Gate ↔ Risk 매핑
 
@@ -218,6 +232,6 @@ scene 제외 stale 주석) / `apps/builder/src/builder/panels/properties/editors
 - [x] Phase 1: registrationContract 불변식 4종 + palette 스냅샷 무변 + live palette-add — **2026-07-17 완료** (G2 통과, ADR 본문 진행 로그)
 - [x] Phase 2: propsSchema 편집 왕복 + 키 1:1 test + origin 전파 live 확인 — **2026-07-17 완료** (G3 통과, ADR 본문 진행 로그)
 - [x] Phase 3: 대상별 재판정 기록 (적격 2 / 보류 2) + kill criteria (fallback 0 + live parity) — **2026-07-17 완료** (G4 통과, ADR 본문 진행 로그)
-- [ ] Phase 4: collection item slot 이식 (조건부 — ADR-150 A2/A3 표면 재실측 선행)
-- [ ] 전 Phase: type-check baseline 무증가, `pnpm build:specs` 무관(spec 비접촉) 확인
-- [ ] closure: ADR-147/README/CHANGELOG 동기 (Implemented 승격 시 CHANGELOG 트리거)
+- [x] Phase 4: collection item slot 이식 (조건부 — ADR-150 A2/A3 표면 재실측 선행: docs-only "역순" 분기 확정) — **2026-07-17 완료** (G4 통과, ADR 본문 진행 로그)
+- [x] 전 Phase: type-check baseline 무증가 (0 error) — Phase 4 는 spec 접촉 (`skiaPrimitives.ts`) 으로 `pnpm build:specs` 재실행 (93 CSS regen 무변)
+- [x] closure: ADR-147/README/CHANGELOG 동기 — **2026-07-17 완료** (Implemented 승격 커밋)
