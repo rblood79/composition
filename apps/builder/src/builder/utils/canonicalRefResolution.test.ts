@@ -532,3 +532,136 @@ describe("canonicalRefResolution", () => {
     ]);
   });
 });
+
+describe("ADR-148 Phase 2 — 템플릿 바인딩 `{키}` 치환 (propsSchema gate)", () => {
+  function makeIconButtonTree(instanceOverrides: LegacyOverrides = {}) {
+    const origin = makeElement("component-iconbutton", {
+      type: "Button",
+      reusable: true,
+      props: { variant: "primary", size: "md" },
+      metadata: {
+        propsSchema: {
+          label: { kind: "string", label: "Label", default: "Button" },
+          icon: { kind: "icon", label: "Icon", default: "star" },
+        },
+      },
+    } as never);
+    const iconChild = makeElement("component-iconbutton__icon", {
+      type: "Icon",
+      parent_id: "component-iconbutton",
+      name: "Icon",
+      props: { iconName: "{icon}" },
+    } as never);
+    const labelChild = makeElement("component-iconbutton__label", {
+      type: "Text",
+      parent_id: "component-iconbutton",
+      name: "Label",
+      props: { children: "{label}" },
+    } as never);
+    const instance = makeElement("instance", {
+      type: "ref",
+      ref: "component-iconbutton",
+      parent_id: "body",
+      ...instanceOverrides,
+    } as never);
+    const elements = [origin, iconChild, labelChild, instance];
+    return resolveCanonicalRefTree({
+      elements,
+      elementsMap: new Map(elements.map((e) => [e.id, e])),
+    });
+  }
+
+  it("instance root override 가 synthetic 자식 placeholder 에 치환된다", () => {
+    const tree = makeIconButtonTree({
+      props: { label: "Save", icon: "check" },
+    });
+    expect(tree.elementsMap.get("instance/Label")?.props).toMatchObject({
+      children: "Save",
+    });
+    expect(tree.elementsMap.get("instance/Icon")?.props).toMatchObject({
+      iconName: "check",
+    });
+  });
+
+  it("override 없는 키는 propsSchema default 로 치환된다", () => {
+    const tree = makeIconButtonTree();
+    expect(tree.elementsMap.get("instance/Label")?.props).toMatchObject({
+      children: "Button",
+    });
+    expect(tree.elementsMap.get("instance/Icon")?.props).toMatchObject({
+      iconName: "star",
+    });
+  });
+
+  it("descendants patch 가 placeholder 를 literal 로 대체하면 그 값을 보존한다", () => {
+    const tree = makeIconButtonTree({
+      props: { label: "Save" },
+      descendants: { Label: { children: "Custom" } },
+    });
+    expect(tree.elementsMap.get("instance/Label")?.props).toMatchObject({
+      children: "Custom",
+    });
+  });
+
+  it("nested children 축 — resolved root 가 물려받는 origin children 도 치환된다 (Preview consumer)", () => {
+    const origin = makeElement("component-iconbutton", {
+      type: "Button",
+      reusable: true,
+      props: { variant: "primary" },
+      metadata: {
+        propsSchema: {
+          label: { kind: "string", label: "Label", default: "Button" },
+        },
+      },
+      children: [
+        {
+          id: "component-iconbutton__label",
+          type: "Text",
+          props: { children: "{label}" },
+        },
+      ],
+    } as never);
+    const instance = makeElement("instance", {
+      type: "ref",
+      ref: "component-iconbutton",
+      props: { label: "Save" },
+    } as never);
+
+    const resolved = resolveCanonicalRefElement(instance, [origin, instance]);
+    const children = (resolved as { children?: Array<{ props?: unknown }> })
+      .children;
+    expect(children?.[0]?.props).toMatchObject({ children: "Save" });
+    // origin 자체의 children 은 불변 (참조 공유 오염 금지)
+    const originChildren = (origin as { children?: Array<{ props?: unknown }> })
+      .children;
+    expect(originChildren?.[0]?.props).toMatchObject({ children: "{label}" });
+  });
+
+  it("propsSchema 미선언 origin 의 placeholder 는 원형 보존된다 (row-data 바인딩 공존)", () => {
+    const origin = makeElement("component-listbox-item-default", {
+      type: "ListBoxItem",
+      reusable: true,
+      props: {},
+    });
+    const labelChild = makeElement("component-listbox-item-default__label", {
+      type: "Text",
+      parent_id: "component-listbox-item-default",
+      name: "Label",
+      props: { children: "{label}" },
+    } as never);
+    // instance root 에 우연히 동명 키(label)가 있어도 schema gate 가 없으므로 오염 금지.
+    const instance = makeElement("row", {
+      type: "ref",
+      ref: "component-listbox-item-default",
+      props: { label: "오염 후보" },
+    } as never);
+    const elements = [origin, labelChild, instance];
+    const tree = resolveCanonicalRefTree({
+      elements,
+      elementsMap: new Map(elements.map((e) => [e.id, e])),
+    });
+    expect(tree.elementsMap.get("row/Label")?.props).toMatchObject({
+      children: "{label}",
+    });
+  });
+});

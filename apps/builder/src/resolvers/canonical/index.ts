@@ -23,6 +23,12 @@ import type {
 } from "@composition/shared";
 
 import {
+  readPropsSchema,
+  resolveTemplateBindingValues,
+  substituteTemplateBindingsInChildren,
+} from "@composition/shared";
+
+import {
   resolveCanonicalRefProps,
   resolveCanonicalDescendantOverride,
 } from "@/utils/component/instanceResolver";
@@ -186,10 +192,25 @@ function _resolveRefNodeUncached(
   const resolvedInstanceChildren = (refNode.children ?? []).map((child) =>
     resolveNode(child, doc, cache, imports),
   );
-  const resolvedChildren = [
+  // ADR-148 Phase 2 — 템플릿 바인딩 `{키}` 치환 (propsSchema gate).
+  //   origin 이 metadata.propsSchema 를 선언한 reusable 에 한해, resolved instance root
+  //   props(= origin 기본 + override merge)를 schema 키로 좁힌 바인딩으로 자식 placeholder
+  //   를 치환한다. builder Skia 축(resolveCanonicalRefTree)과 동일 계약 — 한쪽만 치환하면
+  //   CSS↔Skia 발산. 미선언 origin(ListBox 계열 row-data 바인딩)은 원형 보존.
+  const propsSchema = readPropsSchema(master);
+  const templateBindings = propsSchema
+    ? resolveTemplateBindingValues(propsSchema, resolvedProps)
+    : undefined;
+  const mergedChildren = [
     ...resolvedOriginChildren,
     ...resolvedInstanceChildren,
   ];
+  const resolvedChildren = templateBindings
+    ? (substituteTemplateBindingsInChildren(
+        mergedChildren,
+        templateBindings,
+      ) as ResolvedNode[])
+    : mergedChildren;
 
   // ── Step 4: ResolvedNode 산출 (메타 필드 주입) ────────────────────────────
   const overrideFields = collectOverrideFields(refNode);

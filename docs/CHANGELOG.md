@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [IconButton 신규 reusable + propsSchema 편집 — ADR-148 Phase 2] - 2026-07-17
+
+### Features
+
+- **IconButton — 첫 신규 reusable 조합 컴포넌트** (ADR-148 Phase 2):
+  - 팔레트 Buttons 카테고리에 "icon button" 추가 — 클릭 시 `type:"ref"` instance 생성, origin(Button > Icon + Text 조합 문서)이 렌더 정본
+  - **propsSchema 편집**: instance 선택 시 Inspector 에 Label/Icon/Variant/Size 4필드 자동 파생(origin `metadata.propsSchema` — ADR-148 Decision 4 확정). 편집은 instance override 로 기록되어 Overrides 표시 + Reset 지원, origin 수정은 override 없는 instance 에 전파
+  - **템플릿 바인딩 `{키}` 치환 엔진 신설**: origin 자식의 `{label}`/`{icon}` placeholder 를 instance 편집값으로 치환 — propagation 손등록(코드 규칙)의 데이터 대체 방향. propsSchema 미선언 origin(ListBox 계열 row-data 바인딩)의 placeholder 는 원형 보존
+  - 위치: `packages/shared/src/catalog/templateBinding.ts`(엔진) / `apps/builder/src/builder/components/iconbutton/iconButtonTemplateOrigins.ts`(origin seed) / `resolveEditContract.ts`(Inspector 분기)
+
+### Bug Fixes
+
+- **reusable 치환의 CSS↔Skia 발산 선차단** (ADR-148 Phase 2 cross-check 발견):
+  - **Why**: resolve 는 flat synthetic 축(builder Skia)과 nested children 축(Preview DOM — ADR-903 resolver)을 모두 소비 표면으로 가짐 — flat 축만 치환하면 Preview 가 `{label}` 원형을 렌더
+  - 수정: 양축(`canonicalRefResolution.ts` + `resolvers/canonical/index.ts`) 동일 바인딩 배선, 중첩 reusable 은 `_resolvedFrom` 에서 재귀 중단(안쪽 row-data placeholder 오염 방지)
+
 ## [ListBoxItem slot 자식 배선 — ADR-148 Phase 0 승계 정정] - 2026-07-17
 
 ### Bug Fixes

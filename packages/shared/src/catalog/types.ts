@@ -207,7 +207,11 @@ export interface PropContract {
   visibleWhen?: VisibilityCondition;
 }
 
-/** reusable 조합 컴포넌트가 노출하는 편집 prop 스키마 (`x-composition` extension 메타). */
+/**
+ * reusable 조합 컴포넌트가 노출하는 편집 prop 스키마.
+ * 저장 위치 = origin root `metadata.propsSchema` (ADR-148 Decision 4 확정 2026-07-17 —
+ * x-composition 은 ADR-131 축소 방향 namespace 라 기각). 판독은 `readPropsSchema()` 단일 진입.
+ */
 export type PropsSchema = Record<string, PropContract>;
 
 /** 컴포넌트 팔레트 표시 메타. */

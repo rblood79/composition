@@ -29,8 +29,9 @@
 import type { CanonicalNode } from "../../types/composition-document.types";
 import type { CompositionDocument } from "../../types/composition-document.types";
 import type { ResolvedNode } from "../../types/canonical-resolver.types";
-import type { InspectorFieldKind, PropContract } from "../types";
-import { getCatalogEntry } from "../componentCatalog";
+import type { InspectorFieldKind, PropContract, PropsSchema } from "../types";
+import { getCatalogEntry, getReusableEntries } from "../componentCatalog";
+import { readPropsSchema } from "../templateBinding";
 import { resolveComponentRule } from "./resolveComponentRule";
 import { resolveMergedStyle } from "./resolveMergedStyle";
 import type { ComponentRule } from "../../types/composition-document.types";
@@ -244,6 +245,42 @@ function deriveOptions(
   return undefined;
 }
 
+/** 문서 트리에서 id 로 노드 탐색 (DFS) — reusable origin lookup 용. */
+function findDocumentNodeById(
+  nodes: readonly CanonicalNode[] | undefined,
+  id: string,
+): CanonicalNode | null {
+  if (!nodes) return null;
+  for (const node of nodes) {
+    if (node.id === id) return node;
+    const found = findDocumentNodeById(node.children, id);
+    if (found) return found;
+  }
+  return null;
+}
+
+/**
+ * ADR-148 Phase 2 — ref instance 의 reusable origin + propsSchema 판정.
+ *
+ * `node.ref` 가 catalog reusable entry 의 reusableId 이고 문서 내 origin root 가
+ * `metadata.propsSchema` 를 선언했을 때만 반환한다 (미선언 reusable — Toolbar/Form —
+ * 은 기존 동작 유지: semantic 필드 없음).
+ */
+function resolveReusablePropsSchema(
+  node: CanonicalNode | ResolvedNode,
+  doc: CompositionDocument | null | undefined,
+): { origin: CanonicalNode; schema: PropsSchema } | null {
+  const ref = (node as { ref?: unknown }).ref;
+  if (typeof ref !== "string" || ref.length === 0 || !doc) return null;
+  if (!getReusableEntries().some((entry) => entry.reusableId === ref)) {
+    return null;
+  }
+  const origin = findDocumentNodeById(doc.children, ref);
+  if (!origin) return null;
+  const schema = readPropsSchema(origin);
+  return schema ? { origin, schema } : null;
+}
+
 /**
  * 노드 → 편집 계약 (semantic ∪ universal style).
  *
@@ -259,6 +296,34 @@ export function resolveEditContract(
   const fields: ResolvedField[] = [];
   // size / variant 옵션 파생 source (theme rule). 1회 조회 후 두 분기 공유. 미등록 type 은 undefined.
   const rule = resolveComponentRule(node.type, doc);
+
+  // (A′) semantic — reusable ref instance 의 origin propsSchema (ADR-148 Phase 2).
+  //   node 는 raw instance(type:"ref") 라 (A) primitive accepts 와 상호 배타적으로 발동.
+  //   isOverridden = instance 자체 props 보유 여부 (resolve 이전이라 dirty 판정 정확).
+  //   write target 은 (A) 와 동일하게 node.props[key] — instance root props override.
+  const reusable = resolveReusablePropsSchema(node, doc);
+  if (reusable) {
+    const originRule = resolveComponentRule(reusable.origin.type, doc);
+    for (const [key, contract] of Object.entries(reusable.schema)) {
+      const isOverridden = Object.hasOwn(props, key);
+      const baseValue = reusable.origin.props?.[key] ?? contract.default;
+      fields.push({
+        key,
+        kind: contract.kind,
+        label: contract.label ?? key,
+        section: contract.section ?? "content",
+        origin: "semantic",
+        isOverridden,
+        baseValue,
+        currentValue: isOverridden ? props[key] : baseValue,
+        min: contract.min,
+        max: contract.max,
+        step: contract.step,
+        options: deriveOptions(contract, originRule, reusable.origin, key),
+        itemsManager: contract.itemsManager,
+      });
+    }
+  }
 
   // (A) semantic — getCatalogEntry(type).binding.props.accepts (primitive). origin:"semantic".
   const entry = getCatalogEntry(node.type);

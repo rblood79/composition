@@ -1155,6 +1155,15 @@ const REUSABLE_ENTRIES: ComponentCatalogEntry[] = [
     label: "form",
     icon: "GroupIcon",
   }),
+  // ADR-148 Phase 2 — 첫 신규 reusable (propsSchema 첫 소비). origin root 는 Button
+  // primitive (Button.binding 파일럿: "아이콘이 붙은 Button 은 reusable 조합 문서").
+  // RSP 대조: RSP/S2 에 IconButton 동명 컴포넌트 없음(icon-only 는 ActionButton) —
+  // 동명 primitive 충돌 없어 placeable 단일성 조치 불필요, ADR 명명 유지.
+  reusableEntry("IconButton", "primitives", "component-iconbutton", {
+    category: "buttons",
+    label: "icon button",
+    icon: "SquarePlus",
+  }),
 ];
 
 export const componentCatalog: readonly ComponentCatalogEntry[] = [

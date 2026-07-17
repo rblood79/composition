@@ -1,3 +1,10 @@
+import {
+  readPropsSchema,
+  resolveTemplateBindingValues,
+  substituteTemplateBindingsInChildren,
+  substituteTemplateBindingsInProps,
+} from "@composition/shared";
+
 import { mergePropsWithStyleDeep } from "./instanceResolver";
 import { resolveReference } from "../../utils/component/referenceResolution";
 import type { LegacyElementMirrorFields } from "./legacyElementFields";
@@ -120,9 +127,36 @@ export function resolveCanonicalRefElement<
     ...refFieldOverrides
   } = node as T & CanonicalRefFields & LegacyElementMirrorFields;
 
+  const mergedProps = mergePropsWithStyleDeep(
+    getNodeProps(master),
+    getRefOverrideProps(node),
+  );
+
+  // ADR-148 Phase 2 — nested children consumer 축 치환 (propsSchema gate).
+  //   resolved root 는 `{...master}` 로 origin 의 nested `children` 을 물려받고 Preview
+  //   `CanonicalNodeRenderer` 가 이를 직접 렌더한다. flat synthetic 축(resolveCanonicalRefTree)
+  //   만 치환하면 CSS↔Skia 발산 — 두 축 모두 같은 바인딩으로 치환한다. 인스턴스가 자체
+  //   children 을 갖는 경우(override children) 그 배열이 유효 소비 대상이므로 그쪽을 치환.
+  const schema = readPropsSchema(master);
+  const bindings = schema
+    ? resolveTemplateBindingValues(schema, mergedProps)
+    : undefined;
+  const nodeChildren = (node as { children?: unknown }).children;
+  const masterChildren = (master as { children?: unknown }).children;
+  const effectiveChildren = Array.isArray(nodeChildren)
+    ? nodeChildren
+    : masterChildren;
+  const substitutedChildren =
+    bindings && Array.isArray(effectiveChildren)
+      ? substituteTemplateBindingsInChildren(effectiveChildren, bindings)
+      : undefined;
+
   return {
     ...master,
     ...refFieldOverrides,
+    ...(substitutedChildren !== undefined
+      ? { children: substitutedChildren }
+      : {}),
     id: node.id,
     customId: node.customId,
     parentId: getParentId(node),
@@ -131,10 +165,7 @@ export function resolveCanonicalRefElement<
     parent_id: getParentId(node),
     page_id: getPageId(node) ?? getPageId(master),
     layout_id: getLayoutId(node),
-    props: mergePropsWithStyleDeep(
-      getNodeProps(master),
-      getRefOverrideProps(node),
-    ),
+    props: mergedProps,
     ref,
     name: node.name ?? master.name,
     componentName: node.componentName ?? master.componentName,
@@ -255,6 +286,38 @@ function getOverrideNodeSlot(node: OverrideNode): false | string[] | undefined {
   return slot === false || Array.isArray(slot) ? slot : undefined;
 }
 
+/**
+ * ADR-148 Phase 2 — 템플릿 바인딩 치환 (propsSchema gate).
+ *
+ * origin root 가 `metadata.propsSchema` 를 선언한 reusable 에 한해, resolved instance
+ * root props(origin 기본 + override merge) 를 schema 키로 좁힌 바인딩을 산출한다.
+ * propsSchema 미선언 origin(ListBox 계열 — placeholder 가 row-data 바인딩)은 undefined
+ * 를 반환해 synthetic 자식의 `{키}` 를 원형 보존한다.
+ */
+function resolveMasterTemplateBindings<T extends CanonicalRefResolvableNode>(
+  master: T,
+  resolvedRootProps: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  const schema = readPropsSchema(master);
+  if (!schema) return undefined;
+  return resolveTemplateBindingValues(schema, resolvedRootProps);
+}
+
+function withTemplateBindings<T extends CanonicalRefResolvableNode>(
+  element: T,
+  templateBindings: Record<string, unknown> | undefined,
+): T {
+  if (!templateBindings) return element;
+  const props = getNodeProps(element);
+  const substituted = substituteTemplateBindingsInProps(
+    props,
+    templateBindings,
+  );
+  return substituted === props
+    ? element
+    : ({ ...element, props: substituted } as T);
+}
+
 function applyDescendantPatchToElement<T extends CanonicalRefResolvableNode>(
   element: T,
   patch: Record<string, unknown> | null,
@@ -330,6 +393,7 @@ function materializeOverrideChildren<T extends CanonicalRefResolvableNode>(
   resultChildrenMap: Map<string, T[]>,
   resultElements: T[],
   pathPrefix: string,
+  templateBindings?: Record<string, unknown>,
 ): void {
   const syntheticChildren: T[] = [];
 
@@ -360,6 +424,7 @@ function materializeOverrideChildren<T extends CanonicalRefResolvableNode>(
           resultChildrenMap,
           resultElements,
           nextPath,
+          templateBindings,
         );
       }
       return;
@@ -390,9 +455,12 @@ function materializeOverrideChildren<T extends CanonicalRefResolvableNode>(
       ...(slot !== undefined ? { slot } : {}),
     } as T;
 
-    const resolvedChild = isCanonicalRefElement(syntheticChild)
-      ? resolveCanonicalRefElement(syntheticChild, resultElementsMap.values())
-      : syntheticChild;
+    const resolvedChild = withTemplateBindings(
+      isCanonicalRefElement(syntheticChild)
+        ? resolveCanonicalRefElement(syntheticChild, resultElementsMap.values())
+        : syntheticChild,
+      templateBindings,
+    );
 
     resultElements.push(resolvedChild);
     resultElementsMap.set(syntheticId, resolvedChild);
@@ -405,6 +473,7 @@ function materializeOverrideChildren<T extends CanonicalRefResolvableNode>(
         resultElementsMap.values(),
       );
       if (master) {
+        // 중첩 ref 는 자신의 origin propsSchema 기준으로 새 바인딩을 산출한다.
         materializeSyntheticDescendants(
           syntheticChild,
           master,
@@ -413,6 +482,7 @@ function materializeOverrideChildren<T extends CanonicalRefResolvableNode>(
           resultElementsMap,
           resultChildrenMap,
           resultElements,
+          resolveMasterTemplateBindings(master, getNodeProps(resolvedChild)),
         );
         return;
       }
@@ -430,6 +500,7 @@ function materializeOverrideChildren<T extends CanonicalRefResolvableNode>(
         resultChildrenMap,
         resultElements,
         nextPath,
+        templateBindings,
       );
     }
   });
@@ -457,6 +528,7 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
   resultElementsMap: Map<string, T>,
   resultChildrenMap: Map<string, T[]>,
   resultElements: T[],
+  templateBindings?: Record<string, unknown>,
   pathPrefix = "",
   visitedSourceIds: Set<string> = new Set(),
 ): void {
@@ -478,9 +550,9 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
     const existingSyntheticChild = resultElementsMap.get(syntheticId);
 
     if (existingSyntheticChild) {
-      const patchedExistingChild = applyDescendantPatchToElement(
-        existingSyntheticChild,
-        patch,
+      const patchedExistingChild = withTemplateBindings(
+        applyDescendantPatchToElement(existingSyntheticChild, patch),
+        templateBindings,
       );
       replaceResultElement(
         patchedExistingChild,
@@ -504,6 +576,7 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
           resultChildrenMap,
           resultElements,
           path,
+          templateBindings,
         );
       } else {
         materializeSyntheticDescendants(
@@ -514,6 +587,7 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
           resultElementsMap,
           resultChildrenMap,
           resultElements,
+          templateBindings,
           path,
           nextVisitedSourceIds,
         );
@@ -531,7 +605,12 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
       parent_id: syntheticParentId,
       page_id: getPageId(refElement) ?? getPageId(sourceChild),
       layout_id: getLayoutId(refElement) ?? getLayoutId(sourceChild),
-      props: mergePropsWithStyleDeep(getNodeProps(sourceChild), patchProps),
+      props: templateBindings
+        ? substituteTemplateBindingsInProps(
+            mergePropsWithStyleDeep(getNodeProps(sourceChild), patchProps),
+            templateBindings,
+          )
+        : mergePropsWithStyleDeep(getNodeProps(sourceChild), patchProps),
       reusable: undefined,
     } as T;
 
@@ -555,6 +634,7 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
         resultChildrenMap,
         resultElements,
         path,
+        templateBindings,
       );
     } else {
       materializeSyntheticDescendants(
@@ -565,6 +645,7 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
         resultElementsMap,
         resultChildrenMap,
         resultElements,
+        templateBindings,
         path,
         nextVisitedSourceIds,
       );
@@ -627,6 +708,8 @@ export function resolveCanonicalRefTree<
       elementsMap,
       childrenMap,
       elements,
+      // ADR-148 Phase 2 — origin 이 propsSchema 를 선언한 reusable 에 한해 `{키}` 치환.
+      resolveMasterTemplateBindings(master, getNodeProps(resolvedRoot)),
     );
   }
 

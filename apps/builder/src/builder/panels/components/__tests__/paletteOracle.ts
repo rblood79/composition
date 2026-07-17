@@ -158,6 +158,13 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     label: "button",
     icon: "MousePointer",
   },
+  // ADR-148 Phase 2 — 첫 신규 reusable (의도적 palette 추가).
+  {
+    type: "IconButton",
+    category: "buttons",
+    label: "icon button",
+    icon: "SquarePlus",
+  },
   {
     type: "ToggleButton",
     category: "buttons",

@@ -15,6 +15,8 @@ export * from "./outputs/toSkiaStyle";
 export * from "./bindings";
 // ADR-148 Phase 0 — slotRole 공용 vocabulary + slot 구성 resolver (설계도 §2-1)
 export * from "./slotRoles";
+// ADR-148 Phase 2 — reusable 템플릿 바인딩 `{키}` 치환 엔진 (propsSchema gate)
+export * from "./templateBinding";
 // ADR-142 G2(b) B — 컴포넌트 시각 규칙 resolver (build-time 생성 테이블 소비, spec 참조 0)
 export * from "./resolvers/resolveComponentRule";
 // 트리거 아이콘 glyph 크기 — DOM wrapper 와 Skia icon_font 가 공유하는 단일 SSOT
