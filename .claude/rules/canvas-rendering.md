@@ -211,7 +211,7 @@ ParagraphStyle 변경 시 **3곳 동시 업데이트** 필수: canvaskitTextMeas
 - **Slot roundtrip 무손실**: Frame apply/remove/apply 반복 후 header/content/footer/custom Slot 의 `RefNode.descendants[path].children` 순서 보존. unapply 시 Slot mirror metadata 보존 → reapply 시 path 복원
 - **bootstrap canonical-only**: store mirror hydrate 는 canonical traversal 만 (`canonicalDocumentToElements()` 등). `deriveProjectRenderModelFromDocument()` elements 는 Skia 그리기 전용 — mirror hydrate source 로 사용 금지
 - **sceneVersion signature (ADR-136)**: `sceneVersion` = layoutVersion + pagePositionsVersion + **projection content signature** (node id/type/parent/page/layout id, ref·reusable·deleted state, stable props, ADR-135 projection metadata). signature 계산은 `buildSceneStructureSnapshot()` 시점만 (pointer hot path 금지)
-- **projection-relevant field 추가 규칙**: frame metadata / projection prop / ref state / 신규 canonical schema field 추가 시 signature input 목록 **동시 갱신** — `layoutVersion` 3-심볼 체인과 동급 보수 의무. 누락 시 same-count phantom change 미감지 (signature false negative)
+- **projection-relevant field 추가 규칙**: frame metadata / projection prop / ref state / 신규 canonical schema field 추가 시 signature input 목록 **동시 갱신** — `layoutVersion` 5-심볼 2계층 체인 (layout-engine.md) 과 동급 보수 의무. 누락 시 same-count phantom change 미감지 (signature false negative)
 
 ## 상세 레퍼런스
 

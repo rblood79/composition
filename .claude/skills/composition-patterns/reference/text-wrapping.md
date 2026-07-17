@@ -104,7 +104,7 @@ element.props.style
 ## CSS 상속 연동
 
 - `cssResolver.ts` (layout/engines): `INHERITABLE_PROPERTIES` Set에 `wordBreak`, `overflowWrap`, `whiteSpace` 등록
-- `elementUpdate.ts`: `INHERITED_LAYOUT_PROPS_UPDATE`에 동일 3개 속성 등록 — 부모→자식 상속 전파 + layoutVersion 트리거 판정 (3-심볼 체인 정본: `.claude/rules/layout-engine.md`)
+- `elementUpdate.ts`: `INHERITED_LAYOUT_PROPS_UPDATE`에 동일 3개 속성 등록 — 부모→자식 상속 전파 + layoutVersion 트리거 판정 (계층 A). **style 축이므로 계층 B 는 `LAYOUT_STYLE_KEYS` 동반 등재 필수** — 정본: `.claude/rules/layout-engine.md` §"5-심볼 2계층 체인"
 
 ## isEllipsis 3중 조건 (CRITICAL)
 

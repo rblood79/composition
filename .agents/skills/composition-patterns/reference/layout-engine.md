@@ -370,26 +370,22 @@ Card/Tabs: Factory에 `width: '100%'` 설정하여 flex center에서 전체 폭 
 | -------------------------------- | --------------------- | ------------------------------------------------------------------------ |
 | 초기 로딩 (`setElements`)        | `elements.ts`         | `set((state) => ({ elements, layoutVersion: state.layoutVersion + 1 }))` |
 | 페이지 전환 (`loadPageElements`) | `elements.ts`         | 동일 패턴                                                                |
-| 프로퍼티 변경 (`updateAndSave`)  | `inspectorActions.ts` | `LAYOUT_AFFECTING_PROPS` 체크 후 조건부 증가                             |
+| 프로퍼티 변경 (`updateAndSave`)  | `inspectorActions.ts` | `LAYOUT_AFFECTING_PROP_KEYS` 체크 후 조건부 증가 (계층 A / props 축)     |
 | 텍스트 측정기 교체               | `SkiaOverlay.tsx`     | `useStore.getState().invalidateLayout()`                                 |
 | 폰트 로딩 완료                   | `BuilderCanvas.tsx`   | `useStore.getState().invalidateLayout()`                                 |
 
-#### LAYOUT_AFFECTING_PROPS
+#### LAYOUT_AFFECTING_PROP_KEYS (계층 A / props 축)
 
-```typescript
-const LAYOUT_AFFECTING_PROPS = new Set([
-  "style", // CSS 속성 변경
-  "size", // 컴포넌트 크기 변형 (sm/md/lg)
-  "label", // 텍스트 콘텐츠 변경 → intrinsic size 변경
-  "children", // 자식 콘텐츠 변경
-  "text", // 텍스트 콘텐츠
-  "placeholder", // placeholder 텍스트
-  "orientation", // 레이아웃 방향 (horizontal/vertical)
-  "items", // 항목 수 변경 → 크기 변경
-]);
-```
+선언: `apps/builder/src/builder/stores/utils/layoutInvalidation.ts` (`style`/`size`/`label`/`children`/`text`/`placeholder`/`orientation`/`items` 외 30여 키. `"style"` 키를 통째로 포함해 style 객체 갱신을 잡는다). 소비: `inspectorActions.ts`. 전용 테스트: `layoutInvalidation.test.ts`.
 
-새 프로퍼티가 레이아웃에 영향을 준다면 이 Set에 추가해야 합니다. 누락 시 해당 프로퍼티 변경이 캔버스에 즉시 반영되지 않고 새로고침 시에만 적용됩니다.
+**이것만으로는 부족하다** — layoutVersion 체인은 **5-심볼 2계층**이며 두 계층은 AND 다:
+
+| 계층                    | props 축                     | style 축                                  |
+| ----------------------- | ---------------------------- | ----------------------------------------- |
+| A. layoutVersion 트리거 | `LAYOUT_AFFECTING_PROP_KEYS` | `NON_LAYOUT_PROPS_UPDATE` (**blacklist**) |
+| B. 캐시 시그니처        | `LAYOUT_PROP_KEYS`           | **`LAYOUT_STYLE_KEYS`**                   |
+
+새 프로퍼티가 레이아웃에 영향을 준다면 **축(props/style)을 먼저 판정**하고 해당 열의 A·B 양쪽에 반영해야 합니다. 계층 A 누락 시 재계산 자체를 건너뛰고, 계층 B 누락 시 재계산은 돌지만 시그니처가 같아 캐시 히트로 이전 결과를 재사용합니다 (= 새로고침 시에만 반영). 정본: `.claude/rules/layout-engine.md` §"5-심볼 2계층 체인". 심볼명 주의: `LAYOUT_AFFECTING_PROPS`(`_KEYS` 없음)는 코드에 0건인 과거 이름입니다.
 
 #### PersistentTaffyTree JSON 비교와의 관계
 

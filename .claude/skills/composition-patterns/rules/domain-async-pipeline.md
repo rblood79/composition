@@ -132,6 +132,10 @@ function isLayoutAffectingUpdate(
 set({ elements: newElements }); // layoutVersion 변경 없음!
 
 // ❌ 과거 심볼 LAYOUT_AFFECTING_PROPS allowlist Set — 현재 코드에 없음 (stale 참조 금지)
+//    단 LAYOUT_AFFECTING_PROP_KEYS(_KEYS 접미)는 활성 — layoutInvalidation.ts 에서 import 할 것
+
+// ❌ style 키를 LAYOUT_PROP_KEYS 에 등재 — props[key] 만 읽으므로 항상 undefined
+//    = 시그니처 불변 = 캐시 히트 = 무반영. style 축은 LAYOUT_STYLE_KEYS
 ```
 
 ## 주의사항

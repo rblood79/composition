@@ -284,5 +284,5 @@ live 렌더가 깨진다 (tree_golden 하네스가 조상 offset 누적으로 �
 | 2026-07-03~06 | 자체 Rust 엔진 `composition-engine` — flex/block/grid/tree self-impl → dual-run diff 0 → live 전환 → **Taffy 물리 삭제** (crate 2종 + pkg + JS 13파일, dual-run 하네스 동반 소멸, tree_golden 이 독립 oracle 승계) | ADR-916 (Implemented 2026-07-06) |
 
 구 문서가 인용하던 `DropflowBlockEngine` / `NON_CONTAINER_TAGS` / `SPEC_RENDERS_ALL_TAGS` /
-`UI_SELECT_CHILD_TAGS` / `LAYOUT_AFFECTING_PROPS` 는 현재 코드에 존재하지 않는다 (2026-07-07 grep 0건).
+`UI_SELECT_CHILD_TAGS` / `LAYOUT_AFFECTING_PROPS` 는 현재 코드에 존재하지 않는다 (2026-07-07 grep 0건 — 단 **`LAYOUT_AFFECTING_PROP_KEYS`(`_KEYS` 접미)는 활성 심볼**이므로 혼동 금지. 위 §"layoutVersion 5-심볼 2계층 체인" 참조).
 과거 결정 경위는 ADR-916 Status log 와 `docs/adr/design/916-unified-rust-engine-breakdown.md` 참조.

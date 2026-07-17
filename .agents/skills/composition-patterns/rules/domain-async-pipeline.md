@@ -18,7 +18,9 @@ tags: [domain, async, pipeline]
 6. Preview Sync (백그라운드) → iframe 동기화
 ```
 
-> **Step 3 조건**: `LAYOUT_AFFECTING_PROPS`(`style`, `size`, `label`, `children`, `text`, `placeholder`, `orientation`, `items`) 중 하나 이상 변경 시 `layoutVersion + 1`. 비-레이아웃 변경(color, opacity 등)은 스킵.
+> **Step 3 조건**: **`LAYOUT_AFFECTING_PROP_KEYS`**(`stores/utils/layoutInvalidation.ts` — `style`/`size`/`label`/`children`/`text`/`placeholder`/`orientation`/`items` 외 30여 키) 중 하나 이상 변경 시 `layoutVersion + 1`. 비-레이아웃 변경(color, opacity 등)은 스킵.
+>
+> 이는 **5-심볼 2계층 체인의 계층 A(props 축)** 일 뿐이다. style 축 트리거는 `NON_LAYOUT_PROPS_UPDATE`(blacklist), 그리고 **계층 B(캐시 시그니처)** 로 `LAYOUT_STYLE_KEYS`(style) / `LAYOUT_PROP_KEYS`(props) 를 **AND 로 함께** 등재해야 한다 — 계층 A 만 넣으면 캐시 히트로 무반영. 정본: `.claude/rules/layout-engine.md` §"5-심볼 2계층 체인". 심볼명 주의: `LAYOUT_AFFECTING_PROPS`(`_KEYS` 없음)는 코드에 0건.
 
 ## Incorrect
 
@@ -163,19 +165,11 @@ set((state) => ({
 // ✅ Store 외부(텍스트 측정기 교체, 폰트 로딩 등): invalidateLayout() 호출
 useStore.getState().invalidateLayout();
 
-// ✅ inspectorActions: LAYOUT_AFFECTING_PROPS 체크 후 조건부 증가
-const LAYOUT_AFFECTING_PROPS = new Set([
-  "style",
-  "size",
-  "label",
-  "children",
-  "text",
-  "placeholder",
-  "orientation",
-  "items",
-]);
+// ✅ inspectorActions: LAYOUT_AFFECTING_PROP_KEYS 체크 후 조건부 증가 (계층 A / props 축)
+//    선언은 stores/utils/layoutInvalidation.ts — 여기서 재정의하지 말고 import 할 것
+import { LAYOUT_AFFECTING_PROP_KEYS } from "./utils/layoutInvalidation";
 const hasLayoutChange = Object.keys(propsUpdate).some((key) =>
-  LAYOUT_AFFECTING_PROPS.has(key),
+  LAYOUT_AFFECTING_PROP_KEYS.has(key),
 );
 if (hasLayoutChange)
   set((state) => ({ layoutVersion: state.layoutVersion + 1 }));
