@@ -28,7 +28,9 @@ export const componentMap: Record<
   ),
   Radio: lazy(() =>
     import("@composition/shared/components/Radio").then((module) => ({
-      default: module.Radio,
+      default: module.Radio as unknown as React.ComponentType<
+        Record<string, unknown>
+      >,
     })),
   ),
   RadioGroup: lazy(() =>
@@ -61,7 +63,12 @@ export const componentMap: Record<
       default: module.Tree,
     })),
   ),
-  Table: lazy(() => import("@composition/shared/components/Table")),
+  Table: lazy(
+    () =>
+      import("@composition/shared/components/Table") as unknown as Promise<{
+        default: React.ComponentType<Record<string, unknown>>;
+      }>,
+  ),
   Tabs: lazy(() =>
     import("@composition/shared/components/Tabs").then((module) => ({
       default: module.Tabs,
@@ -79,7 +86,9 @@ export const componentMap: Record<
   ),
   Popover: lazy(() =>
     import("@composition/shared/components/Popover").then((module) => ({
-      default: module.Popover,
+      default: module.Popover as unknown as React.ComponentType<
+        Record<string, unknown>
+      >,
     })),
   ),
   ToggleButton: lazy(() =>
@@ -139,7 +148,9 @@ export const componentMap: Record<
   ),
   Switch: lazy(() =>
     import("@composition/shared/components/Switch").then((module) => ({
-      default: module.Switch,
+      default: module.Switch as unknown as React.ComponentType<
+        Record<string, unknown>
+      >,
     })),
   ),
   Slider: lazy(() =>
