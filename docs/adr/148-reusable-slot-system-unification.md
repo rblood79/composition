@@ -10,6 +10,7 @@ Accepted — 2026-07-17 (Proposed 2026-07-08)
 - 2026-07-08 — 사용자 명시 요청("관련 미진행 ADR 폐기 + 신규 단일 ADR")으로 본 ADR 작성. 폐기 범위 explicit confirm: **ADR-147 만 Superseded by 본 ADR** (144/920 은 기존 Superseded, 910/911 은 비실행 참조 위상 존속). fork 4질문 + 통합 동기 분류(b류 — 가시 효과 큰 단일 영역 closure)는 breakdown §1 lock-in.
 - 2026-07-17 — 사용자 재제기("slot 개념만 적용되었을 뿐 정상 동작 아님") + 코드 실측으로 **승계 전제 정정**: ADR-147 반영 완료분의 slot 조합 자식은 렌더·편집·projection 어디서도 소비되지 않는 미배선 구조로 확인 (Context 승계 표 #4, breakdown §2-1 실측 표). Phase 0 을 검증-only 에서 **승계 정정(배선) + 검증** phase 로 확장, R8 추가.
 - 2026-07-17 — **Accepted 승격** (execute-adr 착수 절차): 리뷰 round 1(2026-07-07)·round 2(2026-07-14) 이슈 3건 전부 `fixed`, pending 0 — 종결 계약 성립. README 테이블 동시 갱신.
+- 2026-07-17 — **Phase 0 Implemented (G1 통과)**: slot 자식 배선 정정 완료 — shared `slotRoles.ts` 신설(공용 vocabulary + `resolveSlotComposition`, builder-local 상수 re-home) + projection `_slots` 주입 + 소비 3경로(Skia `listbox_item` escape / DOM emit / layout 높이) 배선 + 편집기 양방향 동기 + stale 주석 정리. 검증: 신규 테스트 23건(slotRoles 12 + escape 9 + scene 2) + 관련 스위트 green(type-check 0) + **live 왕복 exercise**(adr148-p0-verify 프로젝트 — origin description slot 자식 제거→양축 미렌더·행 높이 50→32, label slot style 편집→origin 카드·instance 행·DOM inline 반영, 복원→원상). cross-check 중 발견 3건(layout Layer D 미배선 HIGH / anchor-less DOM 접근 불가 MED / icon 크기 CSS 비대칭 MED) 즉시 수정. 잔존: origin 패널의 편집 계약 표면은 Phase 2(propsSchema) 영역, Components 페이지 origin 카드 box 높이는 layout 이 flat props 기준(사용자 문서 무영향).
 
 ## Context
 

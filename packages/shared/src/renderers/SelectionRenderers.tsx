@@ -38,6 +38,13 @@ import {
   isGridListSectionEntry,
 } from "@composition/specs";
 import { getElementDataBinding } from "../utils/compositionExtensionFields";
+// ADR-148 Phase 0 — slot 구성 소비 (origin slot 자식의 존재 gating / 스타일 / 순서).
+import {
+  isSlotEnabled,
+  resolveSlotComposition,
+  type SlotComposition,
+  type SlotRole,
+} from "../catalog/slotRoles";
 
 function readCollectionItemLabel(item: Record<string, unknown>): string {
   return String(item.name || item.title || item.label || item.id || "");
@@ -58,28 +65,59 @@ function resolveTemplateText(
 }
 
 /**
- * ADR-147: ListBoxItem slot 콘텐츠 — RAC `<Text slot="label">`/`<Text slot="description">`
- * + decorative icon + selection 체크마크. Builder Skia `ListBoxItem.spec.render.shapes` 의
+ * ADR-147/148: ListBoxItem slot 콘텐츠 — RAC `<Text slot="label">`/`<Text slot="description">`
+ * + decorative icon + selection 체크마크. Builder Skia `listbox_item` skiaPrimitive 의
  * icon/label/description/check 와 D3 시각 대칭. 체크마크는 `isSelected` 일 때만(Skia 와 동일).
+ *
+ * **ADR-148 Phase 0 (slot 자식 배선)**: `slotComposition`(origin slot 조합 자식에서 파생) 이
+ * 있으면 slot **존재 gating**(구성에 없는 slot 미 emit) + **스타일 overlay**(slot 자식
+ * props.style) + **emit 순서**(label/description 등장 순서 — ListBox.css 가 flex-column 이라
+ * DOM 순서 = 시각 스택 순서, Skia stackEntries 와 대칭) 를 소비한다. null 이면 기존 동작(BC).
  */
 function renderListBoxItemSlotContent(opts: {
   label: React.ReactNode;
   description: string | null;
   iconName: string | null;
   isSelected: boolean;
+  slotComposition?: SlotComposition | null;
 }): React.ReactNode {
-  const { label, description, iconName, isSelected } = opts;
+  const { label, description, iconName, isSelected, slotComposition } = opts;
+  const slotStyleOf = (role: SlotRole): React.CSSProperties | undefined =>
+    slotComposition?.slots[role]?.style as React.CSSProperties | undefined;
+
+  const iconStyle = slotStyleOf("icon");
+  const iconNode =
+    isSlotEnabled(slotComposition, "icon") && iconName ? (
+      // 컨테이너 박스·텍스트 여백은 ListBox.css `--lb-icon-size` 가 스케일 (행 스코프 주입).
+      <span slot="icon" aria-hidden="true">
+        <Icon iconName={iconName} style={{ fontSize: 16, ...iconStyle }} />
+      </span>
+    ) : null;
+
+  const labelNode = isSlotEnabled(slotComposition, "label") ? (
+    <AriaText slot="label" style={slotStyleOf("label")}>
+      {label}
+    </AriaText>
+  ) : null;
+  const descriptionNode =
+    isSlotEnabled(slotComposition, "description") && description ? (
+      <AriaText slot="description" style={slotStyleOf("description")}>
+        {description}
+      </AriaText>
+    ) : null;
+
+  // label/description emit 순서 — slot 자식 등장 순서 (기본: label → description).
+  const descriptionFirst =
+    slotComposition != null &&
+    slotComposition.order.indexOf("description") !== -1 &&
+    slotComposition.order.indexOf("description") <
+      slotComposition.order.indexOf("label");
+
   return (
     <>
-      {iconName ? (
-        <span slot="icon" aria-hidden="true">
-          <Icon iconName={iconName} style={{ fontSize: 16 }} />
-        </span>
-      ) : null}
-      <AriaText slot="label">{label}</AriaText>
-      {description ? (
-        <AriaText slot="description">{description}</AriaText>
-      ) : null}
+      {iconNode}
+      {descriptionFirst ? descriptionNode : labelNode}
+      {descriptionFirst ? labelNode : descriptionNode}
       {isSelected ? (
         <Icon
           iconName="check"
@@ -128,6 +166,42 @@ export const renderListBox = (
   const listBoxTemplateChildren = (
     context.childrenByParent.get(element.id) ?? []
   ).filter((child) => child.type === "ListBoxItem" || child.type === "ref");
+
+  // ADR-148 Phase 0 — slot 구성: template anchor(resolved ref)의 자식(= origin slot 조합
+  //   자식이 ref resolution 으로 확장된 것)에서 파생. PreviewElement 는 metadata 를 운반하지
+  //   않으므로 판독은 props.slot fallback(getSlotRole) 경유. null = legacy 문서 → 기존 동작.
+  const templateSlotComposition = (() => {
+    const anchor = listBoxTemplateChildren[0];
+    const fromAnchor = anchor
+      ? resolveSlotComposition(context.childrenByParent.get(anchor.id))
+      : null;
+    if (fromAnchor) return fromAnchor;
+    // Option B(anchor-less/bare-ref — 표준 신규 shape): renderer 의 childrenByParent 는
+    //   현 노드 서브트리 한정이라 Components 페이지 origin 에 접근 불가 → provider(Preview
+    //   App)가 문서에서 계산해 context 로 주입한 구성 사용 (builder projection
+    //   resolveListBoxTemplateOriginId 의 master slot[0] → default origin 해석과 대칭).
+    if (context.listBoxTemplateSlotComposition !== undefined) {
+      return context.listBoxTemplateSlotComposition;
+    }
+    // legacy(비-canonical) preview 경로: 전체 elements 기반 childrenByParent 에서 기본
+    //   origin 의 slot 자식 직접 조회. id 리터럴 = listBoxTemplateOrigins 시드 규약
+    //   (shared 는 builder 를 import 할 수 없어 리터럴 공유).
+    return resolveSlotComposition(
+      context.childrenByParent.get("component-listbox-item-default"),
+    );
+  })();
+  // icon slot 자식 fontSize = icon 크기 채널 (Skia iconSize 와 대칭). ListBox.css 가
+  //   `--lb-icon-size` 로 icon 박스와 :has 텍스트 여백을 함께 스케일한다.
+  const iconSlotFontSize = templateSlotComposition?.slots.icon?.style?.fontSize;
+  const rowSlotStyleVars =
+    iconSlotFontSize != null
+      ? ({
+          "--lb-icon-size":
+            typeof iconSlotFontSize === "number"
+              ? `${iconSlotFontSize}px`
+              : String(iconSlotFontSize),
+        } as React.CSSProperties)
+      : undefined;
 
   // ColumnMapping이 있고 visible columns가 있으면 Field Elements 자동 생성
   const columnMapping = (element.props as { columnMapping?: ColumnMapping })
@@ -297,8 +371,18 @@ export const renderListBox = (
           className={listBoxItemTemplate.props.className}
           // ADR-147 (layout edit): template anchor 의 layout style 을 각 행에 적용.
           //   CSS 가 flex/gap/align 을 처리 → Skia render.shapes 와 D3 대칭.
+          //   ADR-148: icon slot 크기 채널(--lb-icon-size) 을 행 스코프에 주입.
           style={
-            listBoxItemTemplate.props.style as React.CSSProperties | undefined
+            rowSlotStyleVars
+              ? {
+                  ...(listBoxItemTemplate.props.style as
+                    | React.CSSProperties
+                    | undefined),
+                  ...rowSlotStyleVars,
+                }
+              : (listBoxItemTemplate.props.style as
+                  | React.CSSProperties
+                  | undefined)
           }
           textValue={label}
         >
@@ -312,6 +396,7 @@ export const renderListBox = (
                 description: templateDescription,
                 iconName: templateIcon,
                 isSelected,
+                slotComposition: templateSlotComposition,
               })
             )
           }
@@ -376,6 +461,8 @@ export const renderListBox = (
       data-element-id={element.id}
       textValue={item.textValue ?? item.label}
       isDisabled={Boolean(item.isDisabled)}
+      // ADR-148: icon slot 크기 채널(--lb-icon-size) — Path 1 과 동일 주입.
+      style={rowSlotStyleVars}
       // RAC ListBoxItem 은 `href` 키가 존재하기만 하면(undefined 값이어도) link 모드로
       // 진입해 DOM 에 `href=""` 를 렌더 → React 경고("empty string passed to href").
       // 따라서 href 가 있을 때만 prop 을 전개(conditional spread)해 키 자체를 제거한다.
@@ -388,6 +475,7 @@ export const renderListBox = (
           description: item.description ?? null,
           iconName: item.icon ?? null,
           isSelected,
+          slotComposition: templateSlotComposition,
         })
       }
     </ListBoxItem>

@@ -67,10 +67,17 @@ ADR-147 이 주석으로 선언한 "자식은 authoring 구조 + slot 스타일 
 > 각 Phase 는 독립 검증·revert 단위. Phase 3/4 는 재판정 게이트 **선통과 조건부** — 부적격
 > 컴포넌트는 개별 보류 (전체 phase 차단 아님).
 
-### Phase 0 — ADR-147 승계 정정 (slot 자식 배선 + slot 정본 확정)
+### Phase 0 — ADR-147 승계 정정 (slot 자식 배선 + slot 정본 확정) — **Implemented 2026-07-17**
 
 > **2026-07-17 확장**: §2-1 실측(slot 자식 소비처 0)에 따라 검증-only 에서 **정정 phase** 로
 > 확장 (본문 R8/G1). 후속 phase (특히 2/4)는 본 phase 의 배선 결과 위에서만 진행.
+>
+> **Implemented 2026-07-17 (G1 통과)**: `_slots` 주입 계약(shared `slotRoles.ts` `SlotComposition`)
+> 으로 배선 — projection(row + owner + ListBoxItem 자기 구성) → Skia escape / DOM emit / layout
+> 높이 소비. anchor-less 표준 shape 의 DOM 축은 Preview App 이 문서에서 구성을 1회 계산해
+> `renderContext.listBoxTemplateSlotComposition` 으로 주입(builder `resolveListBoxTemplateOriginId`
+> 해석과 대칭). 편집기는 slot 조합 문서에서 내용 설정 시 제거된 slot 자식을 자동 재생성
+> (`listBoxItemSlotChildActions.ts`). live 왕복 exercise 는 ADR 본문 진행 로그 참조.
 
 - **slot 자식 배선 정정** (§2-1 좌표 4개 층): Decision 3("slot 구성의 SSOT = origin 문서의
   자식 구성")을 구현이 충족하도록 소비 경로를 정합한다. 최소 범위 —
@@ -174,7 +181,7 @@ scene 제외 stale 주석) / `apps/builder/src/builder/panels/properties/editors
 
 ## §6. 검증 체크리스트
 
-- [ ] Phase 0: slot 자식 배선 정정 (§2-1 4개 층 + stale 주석) + cross-check 3축 + live 1회(slot 자식 편집 왕복 포함) + shared re-home
+- [x] Phase 0: slot 자식 배선 정정 (§2-1 4개 층 + stale 주석) + cross-check 3축 + live 1회(slot 자식 편집 왕복 포함) + shared re-home — **2026-07-17 완료** (G1 통과, ADR 본문 진행 로그)
 - [ ] Phase 1: registrationContract 불변식 4종 + palette 스냅샷 무변 + live palette-add
 - [ ] Phase 2: propsSchema 편집 왕복 + 키 1:1 test + origin 전파 live 확인
 - [ ] Phase 3/4: 대상별 재판정 기록 + kill criteria

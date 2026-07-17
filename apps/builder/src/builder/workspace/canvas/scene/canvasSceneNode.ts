@@ -4,6 +4,8 @@ import type {
   DescendantOverride,
   RefNode,
 } from "@composition/shared";
+// ADR-148 Phase 0 — slotRole 공용 vocabulary (설계도 §2-1, builder-local 상수 re-home).
+import { getSlotRole, resolveSlotComposition } from "@composition/shared";
 
 import { readLegacyMetadataCustomId } from "../../../../adapters/canonical/legacyMetadata";
 import type { FillItem } from "../../../../types/builder/fill.types";
@@ -11,7 +13,6 @@ import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
 import { normalizeFrameLayoutId } from "../../../../adapters/canonical/frameMirror";
 import {
   detectListBoxAuthoringMode,
-  getListBoxItemSlotRole,
   isListBoxTemplateAnchor,
   LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
   LISTBOX_ORIGIN_ID,
@@ -610,14 +611,32 @@ function appendListBoxRowProjection(
   //   사용자가 Components 페이지의 origin ListBoxItem 에 준 style(height/padding 등)이 instance 행에
   //   반영되어야 한다. anchor 는 raw ref(style 없음)일 수 있으므로 origin master 의 props.style 을 base 로,
   //   anchor 자체 override(있으면)를 위에 merge 한다. width 는 항상 100% (행 폭 고정).
-  const originStyle = templateOriginId
-    ? ((getDocumentNodesById().get(templateOriginId)?.props?.style as
-        | Record<string, unknown>
-        | undefined) ?? {})
-    : {};
+  const templateOriginNode = templateOriginId
+    ? getDocumentNodesById().get(templateOriginId)
+    : undefined;
+  const originStyle =
+    (templateOriginNode?.props?.style as Record<string, unknown> | undefined) ??
+    {};
   const anchorStyle =
     (templateAnchor?.props?.style as Record<string, unknown> | undefined) ?? {};
   const templateAnchorStyle = { ...originStyle, ...anchorStyle };
+  // ADR-148 Phase 0 — slot 구성 소비: origin(또는 anchor 가 자식을 보유하면 anchor)의
+  //   slot 조합 자식(metadata.slotRole)에서 구성(존재·순서)과 slot 자식 style 을 추출해
+  //   projected row 의 `_slots` 로 주입한다. listbox_item escape(Skia)와 DOM emit 이
+  //   이를 소비 — origin 에서 slot 자식을 지우거나 스타일을 바꾸면 instance 행이 따라간다
+  //   (구성·스타일 SSOT = origin 문서의 자식 구성, Decision 3). null(slot 자식 없음)이면
+  //   미주입 → consumer 는 legacy flat-props 동작(BC).
+  const slotComposition = resolveSlotComposition(
+    templateAnchor?.children?.length
+      ? templateAnchor.children
+      : templateOriginNode?.children,
+  );
+  if (slotComposition) {
+    // 컨테이너 layout(utils.ts §1.55b listbox 분기)이 행 높이(description 유무)를 같은
+    //   구성으로 gating 하도록 owner ListBox scene props 에도 주입 (Layer D 대칭).
+    (listBoxSceneNode.props as Record<string, unknown>)._slots =
+      slotComposition;
+  }
   const rowsGroupId = toListBoxRowsGroupProjectionId(listBoxSceneNode.id);
   const rowsGroup: CanvasSceneNode = {
     id: rowsGroupId,
@@ -661,6 +680,8 @@ function appendListBoxRowProjection(
     if (row.value) rowProps.value = row.value;
     if (row.icon) rowProps.icon = row.icon; // ADR-147: icon slot
     if (row.isDisabled) rowProps.isDisabled = true;
+    // ADR-148 Phase 0: slot 구성(존재·순서·slot 자식 style) — escape/DOM emit 소비.
+    if (slotComposition) rowProps._slots = slotComposition;
 
     addSceneNode(
       {
@@ -1725,6 +1746,17 @@ export function buildCanvasSceneGraph(
     const nextParentId = sceneNode?.id ?? parentSceneId;
 
     if (sceneNode) {
+      // ADR-148 Phase 0: ListBoxItem 자체(주로 Components 페이지 origin)의 slot 조합
+      //   자식 구성을 자기 scene props 에 주입 — 아래 suppression 으로 자식 노드는 scene
+      //   에서 빠지므로, `listbox_item` escape 가 origin 자체 렌더에서도 구성(존재/순서/
+      //   스타일)을 따르게 한다 (origin 편집 → Components 페이지 즉시 반영).
+      if (node.type === "ListBoxItem" && node.children?.length) {
+        const ownSlotComposition = resolveSlotComposition(node.children);
+        if (ownSlotComposition) {
+          (sceneNode.props as Record<string, unknown>)._slots =
+            ownSlotComposition;
+        }
+      }
       addSceneNode(sceneNode, graph);
     }
 
@@ -1786,12 +1818,12 @@ export function buildCanvasSceneGraph(
       if (suppressBreadcrumbChildren && child.type === "Breadcrumb") {
         return;
       }
-      // ADR-147 (RAC 표준): ListBoxItem 의 slot 조합 자식(Icon/Label/Description)은
-      //   render.shapes 가 단일 렌더러로 그리므로 가시 scene 에서 제외(세로 stacked 중복 방지).
-      if (
-        node.type === "ListBoxItem" &&
-        getListBoxItemSlotRole(child) != null
-      ) {
+      // ADR-148 Phase 0 (구 ADR-147): ListBoxItem 의 slot 조합 자식(Icon/Label/Description)은
+      //   독립 scene 노드로 세우지 않는다 — 구성·스타일이 projection 의 `_slots` 로 접혀
+      //   `listbox_item` skiaPrimitive escape(단일 replace paint)와 DOM emit 이 소비하므로,
+      //   가시 scene 에 그대로 두면 세로 stacked 이중 렌더가 된다. (구 주석의 "spec
+      //   render.shapes 단일 렌더러" 는 ADR-912 가 물리 삭제한 경로 참조라 정정 — 2026-07-17)
+      if (node.type === "ListBoxItem" && getSlotRole(child) != null) {
         return;
       }
       visit(child, nextParentId, nextScope);

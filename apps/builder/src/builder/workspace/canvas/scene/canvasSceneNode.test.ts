@@ -665,7 +665,7 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
     ).toBe(false);
   });
 
-  it("suppresses ListBoxItem slot composed children from the visible scene (ADR-147 render.shapes 단일 렌더러)", () => {
+  it("suppresses ListBoxItem slot composed children from the visible scene (ADR-148 — `_slots` 로 접혀 escape 가 소비)", () => {
     const doc: CompositionDocument = {
       version: "composition-1.0",
       children: [
@@ -720,9 +720,10 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
 
     const graph = buildCanvasSceneGraph(doc, { includeReusableFrames: true });
 
-    // ListBoxItem 자체는 scene 에 존재(render.shapes 가 렌더)
+    // ListBoxItem 자체는 scene 에 존재(listbox_item escape 가 단일 paint)
     expect(graph.nodesMap.get("lbi-origin")).toBeDefined();
     // slot 조합 자식(Icon/Label/Description)은 가시 scene 에서 제외 — stacked 중복 렌더 방지
+    //   (구성·스타일은 projection `_slots` 로 접혀 소비된다 — ADR-148 Phase 0)
     expect(graph.nodesMap.has("lbi-origin__icon")).toBe(false);
     expect(graph.nodesMap.has("lbi-origin__label")).toBe(false);
     expect(graph.nodesMap.has("lbi-origin__description")).toBe(false);
@@ -787,6 +788,103 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
       paddingTop: 12,
       paddingBottom: 12,
       width: "100%",
+    });
+    // origin 에 slot 조합 자식이 없으면 `_slots` 미주입 — legacy flat-props 동작(BC).
+    expect(aardvark?.props._slots).toBeUndefined();
+  });
+
+  it("projects the origin slot composition onto rows as `_slots` (ADR-148 Phase 0 — 구성·스타일 배선)", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "listbox-1",
+                  type: "ListBox",
+                  props: {
+                    items: [
+                      { id: "aardvark", label: "Aardvark", icon: "star" },
+                    ],
+                  },
+                  children: [
+                    {
+                      id: "template-anchor",
+                      type: "ref",
+                      ref: "component-listbox-item-default",
+                      props: {},
+                      metadata: {
+                        type: "legacy-element-props",
+                        templateRole: "listbox-item-template-anchor",
+                      },
+                    },
+                  ],
+                },
+                // origin — icon slot 자식이 제거된 상태 + label slot 자식에 style.
+                {
+                  id: "component-listbox-item-default",
+                  type: "ListBoxItem",
+                  reusable: true,
+                  props: { children: "{label}", description: "{description}" },
+                  children: [
+                    {
+                      id: "component-listbox-item-default__label",
+                      type: "Text",
+                      props: {
+                        slot: "label",
+                        children: "{label}",
+                        style: { fontWeight: 700, color: "#ff0000" },
+                      },
+                      metadata: {
+                        type: "listbox-item-slot",
+                        slotRole: "label",
+                      },
+                    },
+                    {
+                      id: "component-listbox-item-default__description",
+                      type: "Text",
+                      props: { slot: "description", children: "{description}" },
+                      metadata: {
+                        type: "listbox-item-slot",
+                        slotRole: "description",
+                        optional: true,
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc, { includeReusableFrames: true });
+    const aardvark = graph.nodesMap.get(
+      toListBoxRowProjectionId("listbox-1", "aardvark"),
+    );
+    const slots = aardvark?.props._slots as
+      | {
+          order: string[];
+          slots: Record<string, { style?: Record<string, unknown> }>;
+        }
+      | undefined;
+
+    // 구성: origin slot 자식의 존재·순서 그대로 — icon 은 제거 상태라 구성에 없음.
+    expect(slots?.order).toEqual(["label", "description"]);
+    expect(slots?.slots.icon).toBeUndefined();
+    // 스타일: slot 자식 props.style 이 구성에 실려 escape/DOM emit 이 overlay 소비.
+    expect(slots?.slots.label?.style).toMatchObject({
+      fontWeight: 700,
+      color: "#ff0000",
     });
   });
 

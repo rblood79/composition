@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ListBoxItem slot 자식 배선 — ADR-148 Phase 0 승계 정정] - 2026-07-17
+
+### Bug Fixes
+
+- **origin slot 조합 자식(Icon/Label/Description) 편집이 화면에 반영되지 않던 미배선 정정** (ADR-148 Phase 0 — 사용자 보고 "slot 개념만 적용되었을 뿐 정상 동작 아님"):
+  - **Why**: ADR-147 이 도입한 slot 조합 자식(`metadata.slotRole`)의 소비처가 정의부 + Skia scene 제외 판정 2곳뿐 — 렌더(DOM/Skia)·projection·편집기 전 경로가 flat props 만 읽어, origin 에서 slot 자식을 지우거나 스타일을 바꿔도 화면 변화 0 (write-only authoring 구조)
+  - 수정: projection 이 origin slot 자식에서 `resolveSlotComposition()` 구성(존재·순서·스타일)을 `_slots` 로 주입하고, Skia `listbox_item` escape / DOM emit(`renderListBoxItemSlotContent`) / layout 높이(`calculateContentHeight` listbox·listboxitem 분기) 3경로가 이를 소비 — origin 에서 description slot 자식을 지우면 instance 행이 양축(Skia/Preview)에서 1줄로, label slot 자식 style(color/fontWeight/fontSize)은 행 라벨에 overlay, icon slot fontSize 는 `--lb-icon-size` CSS 변수로 DOM 여백까지 대칭
+  - 위치: `packages/shared/src/catalog/slotRoles.ts`(신규 — 공용 vocabulary+resolver), `packages/specs/src/renderers/skiaPrimitives.ts`, `packages/shared/src/renderers/SelectionRenderers.tsx`, `apps/builder/.../canvasSceneNode.ts`, `apps/builder/.../layout/engines/utils.ts`, `apps/builder/src/preview/App.tsx`
+
+### Architecture
+
+- **slotRole 공용 vocabulary shared 승격** (ADR-148 Decision 3): builder-local `LISTBOX_ITEM_SLOT_ROLES`/`getListBoxItemSlotRole` 제거 → shared `SLOT_ROLES`(12종)+`getSlotRole`+`resolveSlotComposition`+`isSlotEnabled` — 컴포넌트별 allow-set 을 코드에 두지 않고 origin 문서의 자식 구성이 SSOT. `ListBoxItemEditor` 는 slot 조합 문서에서 내용 설정 시 제거된 slot 자식을 자동 재생성(양방향 동기, dead edit 차단)
+
 ## [숨은 패널 selection fan-out 차단 — ADR-155 패널 활성 gating] - 2026-07-17
 
 ### Performance

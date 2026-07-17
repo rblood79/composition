@@ -23,6 +23,7 @@ import {
   getCatalogCutoverTypes,
   isComponentsPageMetadata,
   isRuntimePageNode,
+  resolveSlotComposition,
 } from "@composition/shared";
 import { getElementForTag } from "@composition/specs";
 import {
@@ -215,6 +216,36 @@ function CanvasContent() {
       return null;
     }
   }, [canonicalDocument, importRegistryVersion]);
+
+  // ADR-148 Phase 0 — ListBox 행 template 의 slot 구성 (문서 1회 계산 → renderContext 주입).
+  //   표준 ListBox instance 는 anchor-less bare ref 라 renderer 의 subtree childrenByParent 로는
+  //   Components 페이지 origin slot 자식에 접근 불가. builder projection
+  //   (resolveListBoxTemplateOriginId)과 동일 해석: master(component-listbox) slot[0] →
+  //   기본 component-listbox-item-default. 구성 null = legacy 문서 → 렌더러 기존 동작.
+  const listBoxTemplateSlotComposition = useMemo(() => {
+    if (!resolvedCanonicalNodes) return null;
+    const byId = new Map<string, { slot?: unknown; children?: unknown[] }>();
+    const walk = (node: unknown): void => {
+      if (!node || typeof node !== "object") return;
+      const record = node as {
+        id?: unknown;
+        slot?: unknown;
+        children?: unknown[];
+      };
+      if (typeof record.id === "string") {
+        byId.set(record.id, record);
+      }
+      if (Array.isArray(record.children)) record.children.forEach(walk);
+    };
+    resolvedCanonicalNodes.forEach(walk);
+    const masterSlot = byId.get("component-listbox")?.slot;
+    const originId =
+      Array.isArray(masterSlot) && typeof masterSlot[0] === "string"
+        ? masterSlot[0]
+        : "component-listbox-item-default";
+    const origin = byId.get(originId);
+    return origin ? resolveSlotComposition(origin.children) : null;
+  }, [resolvedCanonicalNodes]);
 
   // ⭐ 이전에 적용된 body 스타일 키들을 추적
   const appliedStyleKeysRef = useRef<Set<string>>(new Set());
@@ -537,6 +568,8 @@ function CanvasContent() {
       // Q11=나: shared 렌더러는 EVENT_REGISTRY에 직접 의존 금지 → context 주입
       // 현재 단계에서는 noop resolver (P6에서 이벤트 연결 확장 예정)
       resolveActionId: (_id: string) => undefined,
+      // ADR-148 Phase 0 — ListBox slot 구성 (anchor-less 표준 shape 의 DOM 소비 경로)
+      listBoxTemplateSlotComposition,
     }),
     [
       resolvedElements,
@@ -546,6 +579,7 @@ function CanvasContent() {
       batchUpdateElementProps,
       setElements,
       eventEngine,
+      listBoxTemplateSlotComposition,
     ],
   );
 

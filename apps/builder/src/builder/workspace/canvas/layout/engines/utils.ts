@@ -66,6 +66,8 @@ import {
   HTML_PRIMITIVE_DEFAULT_HEIGHTS,
 } from "@composition/specs";
 import type { ComponentRuleSize } from "@composition/shared";
+// ADR-148 Phase 0 — projection 주입 slot 구성(_slots) gating (listbox_item escape 와 Layer D 대칭).
+import { isSlotEnabled, readSlotComposition } from "@composition/shared";
 import {
   resolveSkiaRule,
   ruleSizeToSizeSpec,
@@ -2233,8 +2235,16 @@ export function calculateContentHeight(
           ];
     // ADR-147: description 행은 render.shapes 에서 더 높음(itemHeightWithDescription).
     //   행마다 description 유무로 높이를 합산해야 description 항목이 잘리지 않는다.
+    // ADR-148 Phase 0: origin 구성에서 description slot 자식이 제거됐으면(projection 이
+    //   owner props._slots 로 주입) 데이터에 description 이 있어도 1줄 — escape gating 과
+    //   동일 판정 (Layer D 대칭, 미반영 시 paint 1줄 vs layout 2줄 발산).
+    const descriptionSlotEnabled = isSlotEnabled(
+      readSlotComposition(props?._slots),
+      "description",
+    );
     const itemHeightOf = (item: unknown): number => {
       const hasDesc =
+        descriptionSlotEnabled &&
         item != null &&
         typeof item === "object" &&
         [
@@ -2294,7 +2304,11 @@ export function calculateContentHeight(
         parseNumericValue(style?.paddingTop ?? style?.padding) ?? m.paddingY,
       paddingBottom:
         parseNumericValue(style?.paddingBottom ?? style?.padding) ?? m.paddingY,
-      hasDescription: typeof desc === "string" && desc.length > 0,
+      // ADR-148 Phase 0: description slot 자식이 구성(_slots)에 없으면 1줄 (escape 동일 gating).
+      hasDescription:
+        typeof desc === "string" &&
+        desc.length > 0 &&
+        isSlotEnabled(readSlotComposition(props?._slots), "description"),
       minHeight: parseNumericValue(style?.minHeight) ?? 20,
     });
   }

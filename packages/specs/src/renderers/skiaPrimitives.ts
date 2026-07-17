@@ -495,6 +495,31 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
 };
 
 /**
+ * ADR-148 Phase 0 — projection 이 주입한 slot 구성(`props._slots`)의 방어적 판독.
+ *
+ * 계약 정본: `packages/shared/src/catalog/slotRoles.ts` `SlotComposition` — package boundary
+ * (specs ← shared) 때문에 본 파일이 shared 를 import 할 수 없어 동일 shape 를 구조적으로
+ * 읽는다. shape 이 어긋나면 null (legacy flat-props 동작 fallback).
+ */
+type InjectedSlotComposition = {
+  order: string[];
+  slots: Record<string, { style?: Record<string, unknown> } | undefined>;
+};
+
+function readInjectedSlotComposition(
+  raw: unknown,
+): InjectedSlotComposition | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const record = raw as Record<string, unknown>;
+  const slots = record.slots;
+  if (!slots || typeof slots !== "object" || Array.isArray(slots)) return null;
+  const order = Array.isArray(record.order)
+    ? record.order.filter((role): role is string => typeof role === "string")
+    : [];
+  return { order, slots: slots as InjectedSlotComposition["slots"] };
+}
+
+/**
  * `listbox_item` — ListBox 행 항목 (selection row-bg + icon + label + description + check, replace 모드).
  *
  * **ADR-912 collection sub-part cutover (2026-06-14, gridlist_card replace 선례 동형)**: ListBoxItem 은
@@ -511,12 +536,28 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
  *
  *   icon/label/description = projection(appendListBoxRowProjection)이 주입한 props.icon/children/
  *   description 보편 데이터. template placeholder(`{label}`) → "Label"/"Description" sample.
+ *
+ *   **ADR-148 Phase 0 (slot 자식 배선)**: projection 이 origin slot 조합 자식(Icon/Label/
+ *   Description, `metadata.slotRole`)에서 파생한 `props._slots`(SlotComposition) 를 함께
+ *   주입하며, 본 escape 는 이를 slot **존재 gating**(구성에 없는 slot 은 데이터가 있어도
+ *   미렌더 — origin 에서 slot 자식을 지우면 사라진다), **스타일 overlay**(slot 자식
+ *   props.style 의 fontSize/fontWeight/color), **스택 순서**(label/description 등장 순서)로
+ *   소비한다. `_slots` 부재 = legacy 문서/비-projection 경로 → 기존 flat-props 동작(BC).
  */
 const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   const fontSize = resolveSpecFontSize(
     (style?.fontSize as string | number | undefined) ?? size.fontSize,
     14,
   );
+  // ADR-148 Phase 0 — slot 구성 소비 (존재 gating + style overlay + 스택 순서).
+  const slotComposition = readInjectedSlotComposition(props._slots);
+  const slotEnabled = (role: string): boolean =>
+    !slotComposition || slotComposition.slots[role] != null;
+  const slotStyleOf = (role: string): Record<string, unknown> | undefined =>
+    slotComposition?.slots[role]?.style;
+  const labelSlotStyle = slotStyleOf("label");
+  const descriptionSlotStyle = slotStyleOf("description");
+  const iconSlotStyle = slotStyleOf("icon");
   // padding longhand 우선 → shorthand → rule sizes (style-ssot.md).
   const paddingLeft = parsePxValue(
     style?.paddingLeft ?? style?.padding,
@@ -538,9 +579,23 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     style?.rowGap ?? style?.columnGap ?? style?.gap,
     typeof size.gap === "number" ? size.gap : 2,
   );
+  // label fontSize: slot 자식 style overlay 우선 (lineHeight 매핑도 이 값 기준).
+  const labelFontSize =
+    labelSlotStyle?.fontSize != null
+      ? resolveSpecFontSize(
+          labelSlotStyle.fontSize as string | number,
+          fontSize,
+        )
+      : fontSize;
   // lineHeight: fontSize 기반 매핑 (resolveListBoxItemMetric 동형).
   const lineHeight =
-    fontSize <= 12 ? 16 : fontSize <= 14 ? 20 : fontSize <= 16 ? 24 : 28;
+    labelFontSize <= 12
+      ? 16
+      : labelFontSize <= 14
+        ? 20
+        : labelFontSize <= 16
+          ? 24
+          : 28;
 
   // template placeholder 처리 (Item spec readText 동형).
   const labelRaw = props.children ?? props.textValue ?? props.value;
@@ -551,16 +606,34 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
       readCardText(props.textValue) ??
       readCardText(props.value) ??
       "");
-  const description = isTemplatePreview
+  const descriptionRaw = isTemplatePreview
     ? props.description != null && props.description !== ""
       ? "Description"
       : null
     : readCardText(props.description);
+  // 구성 gating — slot 자식이 구성에 없으면 데이터가 있어도 미렌더 (ADR-148 Decision 3).
+  const description = slotEnabled("description") ? descriptionRaw : null;
+  const showLabel = slotEnabled("label");
+
+  // label/description 수직 스택 순서 — slot 자식 등장 순서 소비 (기본: label → description).
+  const stackEntries: Array<"label" | "description"> = [];
+  const pushStackEntry = (entry: "label" | "description") => {
+    if (stackEntries.includes(entry)) return;
+    if (entry === "label" && !showLabel) return;
+    if (entry === "description" && !description) return;
+    stackEntries.push(entry);
+  };
+  if (slotComposition) {
+    for (const role of slotComposition.order) {
+      if (role === "label" || role === "description") pushStackEntry(role);
+    }
+  }
+  pushStackEntry("label");
+  pushStackEntry("description");
 
   const minHeight = parsePxValue(style?.minHeight, 20);
-  const contentHeight = description
-    ? lineHeight + rowGap + lineHeight
-    : lineHeight;
+  const contentHeight =
+    stackEntries.length === 2 ? lineHeight + rowGap + lineHeight : lineHeight;
   const rowHeight = parsePxValue(
     style?.height,
     Math.max(paddingTop + paddingBottom + contentHeight, minHeight),
@@ -572,9 +645,12 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     : ((style?.color as string | undefined) ??
       visual?.text ??
       ("{color.neutral}" as TokenRef));
-  // icon/check slot (spec ListBoxItem.spec.ts:180-195 좌표 공식).
-  const iconName = readCardText(props.icon);
-  const iconSize = typeof size.iconSize === "number" ? size.iconSize : 16;
+  // icon/check slot (spec ListBoxItem.spec.ts:180-195 좌표 공식) — 구성 gating + style overlay.
+  const iconName = slotEnabled("icon") ? readCardText(props.icon) : null;
+  const iconSize = parsePxValue(
+    iconSlotStyle?.fontSize,
+    typeof size.iconSize === "number" ? size.iconSize : 16,
+  );
   const slotGap = 6;
   const showCheck = Boolean(props.isSelected);
   const checkSize = iconSize;
@@ -610,7 +686,7 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     });
   }
 
-  // icon slot (좌측, 수직 중앙)
+  // icon slot (좌측, 수직 중앙) — 구성 gating 은 iconName 계산에서 선반영.
   if (iconName) {
     shapes.push({
       type: "icon_font",
@@ -618,56 +694,71 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
       x: slotInset + iconSize / 2,
       y: rowHeight / 2,
       fontSize: iconSize,
-      fill: textColor,
+      fill: props.isDisabled
+        ? textColor
+        : ((iconSlotStyle?.color as string | undefined) ?? textColor),
       baseline: "middle",
     });
   }
 
-  // label + (optional) description 수직 스택
-  if (description) {
-    shapes.push({
-      type: "text",
-      x: textX,
-      y: paddingTop + lineHeight / 2,
-      text: label,
-      fontSize,
-      fontFamily: ff,
-      fontWeight: labelFontWeight,
-      fill: textColor,
-      align: "left",
-      baseline: "middle",
-      maxWidth,
-      overflow: "ellipsis",
-    });
-    shapes.push({
-      type: "text",
-      x: textX,
-      y: paddingTop + lineHeight + rowGap + lineHeight / 2,
-      text: description,
-      fontSize: Math.max(11, fontSize - 1),
-      fontFamily: ff,
-      fontWeight: 400,
-      fill: "{color.neutral-subdued}" as TokenRef,
-      align: "left",
-      baseline: "middle",
-      maxWidth,
-      overflow: "ellipsis",
-    });
-  } else {
-    shapes.push({
-      type: "text",
-      x: textX,
-      y: rowHeight / 2,
-      text: label,
-      fontSize,
-      fontFamily: ff,
-      fontWeight: labelFontWeight,
-      fill: textColor,
-      align: "left",
-      baseline: "middle",
-      maxWidth,
-      overflow: "ellipsis",
-    });
+  // label + (optional) description 수직 스택 — slot 자식 순서/스타일 소비 (ADR-148 Phase 0).
+  //   단일 줄이면 rowHeight/2 세로 중앙, 2줄이면 paddingTop 기준 스택 (기존 기하 유지).
+  const descriptionFontSize = parsePxValue(
+    descriptionSlotStyle?.fontSize,
+    Math.max(11, fontSize - 1),
+  );
+  const labelFill = props.isDisabled
+    ? textColor
+    : ((labelSlotStyle?.color as string | undefined) ?? textColor);
+  const descriptionFill =
+    (descriptionSlotStyle?.color as string | undefined) ??
+    ("{color.neutral-subdued}" as TokenRef);
+  const labelWeight =
+    (labelSlotStyle?.fontWeight as string | number | undefined) ??
+    labelFontWeight;
+  const descriptionWeight =
+    (descriptionSlotStyle?.fontWeight as string | number | undefined) ?? 400;
+  const stackTextShape = (entry: "label" | "description", y: number): Shape =>
+    entry === "label"
+      ? {
+          type: "text",
+          x: textX,
+          y,
+          text: label,
+          fontSize: labelFontSize,
+          fontFamily: ff,
+          fontWeight: labelWeight,
+          fill: labelFill,
+          align: "left",
+          baseline: "middle",
+          maxWidth,
+          overflow: "ellipsis",
+        }
+      : {
+          type: "text",
+          x: textX,
+          y,
+          text: description ?? "",
+          fontSize: descriptionFontSize,
+          fontFamily: ff,
+          fontWeight: descriptionWeight,
+          fill: descriptionFill,
+          align: "left",
+          baseline: "middle",
+          maxWidth,
+          overflow: "ellipsis",
+        };
+
+  if (stackEntries.length === 2) {
+    shapes.push(stackTextShape(stackEntries[0]!, paddingTop + lineHeight / 2));
+    shapes.push(
+      stackTextShape(
+        stackEntries[1]!,
+        paddingTop + lineHeight + rowGap + lineHeight / 2,
+      ),
+    );
+  } else if (stackEntries.length === 1) {
+    shapes.push(stackTextShape(stackEntries[0]!, rowHeight / 2));
   }
 
   // selection-indicator (우측 체크마크)

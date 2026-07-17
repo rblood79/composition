@@ -10,35 +10,12 @@ export const LISTBOX_ITEM_SELECTED_ORIGIN_ID =
 export const LISTBOX_ORIGIN_ID = "component-listbox";
 export const LISTBOX_TEMPLATE_ANCHOR_ROLE = "listbox-item-template-anchor";
 
-/**
- * ADR-147: ListBoxItem 내부 slot role (조합 자식 식별자).
- *
- * React Aria `ListBoxItem` 의 `<Text slot="label">`/`<Text slot="description">` + decorative
- * `Icon` 에 대응. SelectionIndicator 는 선택 상태 기반 동적 렌더(Skia 체크마크 / DOM Check)이므로
- * 조합 자식 노드가 아니라 render-time concern 으로 처리한다(ComponentTag 에 `SelectionIndicator` 부재).
- *
- * 식별은 `CanonicalNode.slot`(reusable id allow-list) 가 아니라 child `metadata.slotRole` 로 한다 —
- * pencil 의 child `name` + `descendants[childId]` 패턴 정합.
- */
-export const LISTBOX_ITEM_SLOT_ROLES = [
-  "icon",
-  "label",
-  "description",
-] as const;
-export type ListBoxItemSlotRole = (typeof LISTBOX_ITEM_SLOT_ROLES)[number];
-
-/** child 노드에서 ADR-147 slotRole 을 읽는다(없으면 null). */
-export function getListBoxItemSlotRole(
-  node: unknown,
-): ListBoxItemSlotRole | null {
-  if (!isRecord(node)) return null;
-  const metadata = node.metadata;
-  if (!isRecord(metadata)) return null;
-  const role = metadata.slotRole;
-  return (LISTBOX_ITEM_SLOT_ROLES as readonly string[]).includes(role as string)
-    ? (role as ListBoxItemSlotRole)
-    : null;
-}
+// ADR-148 Phase 0: 구 builder-local `LISTBOX_ITEM_SLOT_ROLES`/`getListBoxItemSlotRole` 은
+//   shared 공용 vocabulary 로 re-home 됐다 — `@composition/shared` 의 `SLOT_ROLES`/
+//   `getSlotRole`/`resolveSlotComposition` 사용 (설계도 §2-1: 컴포넌트별 allow-set 을
+//   코드에 두지 않는다. 어느 slot 을 갖는지는 아래 origin seed 의 자식 구성이 SSOT).
+//   SelectionIndicator 는 선택 상태 기반 동적 렌더(Skia 체크마크 / DOM Check)라 조합
+//   자식 노드가 아니라 render-time concern (ADR-147 판정 승계).
 
 /**
  * ADR-147: ListBoxItem reusable origin 의 조합 자식(Icon / Text(label) / Text(description)).

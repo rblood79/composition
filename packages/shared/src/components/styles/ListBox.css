@@ -124,7 +124,9 @@
       color: var(--fg-muted);
     }
 
-    /* ADR-147: icon slot — 좌측 절대 위치(Skia 절대 좌표 paint 와 D3 대칭). */
+    /* ADR-147: icon slot — 좌측 절대 위치(Skia 절대 좌표 paint 와 D3 대칭).
+     * ADR-148: 크기는 --lb-icon-size — icon slot 자식 style.fontSize 가 있으면 렌더러가
+     * 행 스코프에 주입 (Skia iconSize 채널과 대칭), 기본 16px. */
     [slot="icon"] {
       position: absolute;
       left: var(--spacing-md);
@@ -133,15 +135,15 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 16px;
-      height: 16px;
+      width: var(--lb-icon-size, 16px);
+      height: var(--lb-icon-size, 16px);
       color: inherit;
       pointer-events: none;
     }
 
-    /* icon 존재 시 텍스트 영역 좌측 여백 확보(Skia textX = paddingX + 16 + 6 와 정합). */
+    /* icon 존재 시 텍스트 영역 좌측 여백 확보(Skia textX = paddingX + iconSize + 6 와 정합). */
     &:has([slot="icon"]) {
-      padding-left: calc(var(--spacing-md) + 16px + 6px);
+      padding-left: calc(var(--spacing-md) + var(--lb-icon-size, 16px) + 6px);
     }
 
     /* ADR-147: selection-indicator slot — 우측 체크마크(Skia check shape 와 대칭). */

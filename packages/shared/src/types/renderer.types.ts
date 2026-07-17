@@ -9,6 +9,7 @@
 
 import type { ReactNode, CSSProperties } from "react";
 import type { DataBinding } from "./element.types";
+import type { SlotComposition } from "../catalog/slotRoles";
 
 // ============================================
 // Element Props Types
@@ -120,6 +121,14 @@ export interface RenderContext {
    * Preview App이 EVENT_REGISTRY.resolve를 주입. builder preview는 noop 가능.
    */
   resolveActionId?: (id: string) => (() => void) | undefined;
+  /**
+   * ADR-148 Phase 0 — ListBox 행 template 의 slot 구성 (origin 문서 자식에서 파생).
+   * 표준 ListBox instance 는 anchor-less bare ref 라 renderer 가 childrenByParent 로
+   * Components 페이지 origin 에 접근할 수 없다 — provider(Preview App)가 문서에서
+   * 1회 계산해 주입한다 (builder projection resolveListBoxTemplateOriginId 와 대칭).
+   * null/미주입 = legacy 문서 → 렌더러는 기존 flat-props 동작.
+   */
+  listBoxTemplateSlotComposition?: SlotComposition | null;
 }
 
 // ============================================
