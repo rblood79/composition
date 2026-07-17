@@ -15,6 +15,7 @@
     "type-check:strict": "tsc -p tsconfig.app.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:parity": "vitest run --config vitest.browser.config.ts",
     "clean": "rm -rf dist node_modules/.vite"
   },
   "dependencies": {
@@ -74,6 +75,7 @@
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react-swc": "catalog:",
     "@vitest/browser": "^4.1.9",
+    "@vitest/browser-playwright": "4.1.9",
     "@vitest/coverage-v8": "^4.1.9",
     "@vitest/ui": "^4.1.9",
     "eslint": "^10.4.1",
