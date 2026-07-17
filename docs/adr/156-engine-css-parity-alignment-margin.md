@@ -36,6 +36,18 @@ Proposed — 2026-07-17
 
 E1 은 코드 경로가 끝까지 확증된 사용자-가시 결함이다: Inspector 정렬 피커(`TransformSection.tsx:239` `handleSelfAlignment`)가 `alignSelf`/`justifySelf` 를 store 에 쓰고 → `LAYOUT_STYLE_KEYS`(`layoutCache.ts:84`)가 style 시그니처에 포함해 캐시를 무효화하고(`createElementLayoutSignature`, `layoutCache.ts:185-190` — style 축은 `LAYOUT_STYLE_KEYS`, props 축은 별개 배열 `LAYOUT_PROP_KEYS`:112) → `taffyStyleToRecord`(`fullTreeLayout.ts:664`)가 엔진에 송신하는데 → 엔진 `NodeStyle`(`tree.rs:123`)은 필드를 **선언만 하고 읽는 코드가 0곳**이다(`grep style.align_self` → 0 hit). 결과적으로 정렬 버튼이 Preview 에서만 동작한다.
 
+### 2차 정밀 sweep (2026-07-17 — Phase 0/G0 전수 완성)
+
+본 ADR 작성 직후 G0 3축 교차표를 NodeStyle 49필드 전수로 완성하고 차등 하니스를 49 케이스로 확장 대조한 결과([breakdown §1-1-b, §1-3](design/156-engine-css-parity-alignment-margin-breakdown.md)):
+
+- **미소비 필드는 3개가 아니라 8개** + 미선언 2건(`order`, `grid_template_areas` — serde silent drop). 추가 5개: `overflow_x/y`, `grid_auto_flow`/`grid_auto_columns`/`grid_auto_rows`, `aspect_ratio` — 전부 파이프라인 송신 실존 확인.
+- **추가 발산 12군 (E6~E17)**. 사용자 도달 가능 축: percent height 폭 기준 오해석(E6 — Transform % 단위), 음수 margin 무시(E7), reverse 방향 3종 무시(E8 — `styleOptions.ts:80-81` 노출), position:relative offset 무시(E10), absolute stretch/static/auto-margin 미구현(E11), grid span-blind placement(E13), gridAuto\* 계열(E14), aspect-ratio(E15).
+- **E5 는 root self-sizing 결함군으로 확장** — auto 높이 padding 뿐 아니라 border 누락·min/max clamp 무시·무폭 flex root 의 availW 미채움 포함. 중첩이면 전부 정합(root 한정 재확증).
+- **잠복 결합 1건**: `overflow_x/y` 미소비(E17)는 현재 E3(부모-자식 상쇄) 부재가 가려준다 — Phase 4 에서 E3 구현 시 overflow BFC 상쇄 차단을 함께 구현하지 않으면 새 발산이 생긴다.
+- 정합 확인 영역도 확장: grid 트랙 산술(percent/minmax/repeat/auto intrinsic)·flex min/max 재분배·fit-content·중첩 컨테이너 자기 크기 등(breakdown §1-2).
+
+**E6~E17 의 Phase 매핑/우선순위 재편은 본 ADR 리뷰 시 확정** — 기존 Phase 2~5 의 E1~E5 담당은 유지하고, E6(도달 가능 + 근원 코드 확정 `tree.rs:905,919`/`write_block_item` 폭 ctx)은 severity 상 E1 과 동급 후보.
+
 ### Hard constraints (측정 가능)
 
 - **시각 diff ≤ 1px** — 기존 `golden.rs`/`tree_golden.rs` 의 `TOL: f32 = 1.0` 승계

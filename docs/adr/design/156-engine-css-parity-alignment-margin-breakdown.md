@@ -18,29 +18,64 @@
 
 **E5 범위 한정 (중요)**: 같은 padding 노드가 **중첩(비-root)** 이면 통과한다(실측 확인). `compute_layout(root, w, -1)` 의 root 자기 auto 높이 계산에만 결함. 명시 높이 root 는 통과 → 엔진의 border-box 계약 자체는 정상.
 
+### 1-1-b. 2차 정밀 sweep 발산 (2026-07-17, 하니스 49 케이스 — G0 전수 완성분)
+
+정적 3축 교차표 전수 완성(§1-3) + 확장 매트릭스 실측에서 **추가 발산 12군(E6~E17)** 이 확인됐다. "도달 가능" = Inspector 편집 경로 실존을 grep 으로 확인한 것.
+
+| ID  | 발산                                                                                                                                                            | 최소 재현 (케이스)                                            | CSS → 엔진                                                                  | 라이브 노출                                                 |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| E6  | percent height 를 **폭 기준으로 해석** — block 은 `write_block_item` 단일 폭 ctx(`tree.rs:1066`), flex column 은 `laid_out_main` 의 폭 `ctx`(`tree.rs:905,919`) | block root(h300) + 자식 `height:50%` (BP-1/2)                 | `k.h` 150 → **100** (=50%×폭200). auto 부모: CSS 0 vs 엔진 100 (PH-1, FP-1) | **도달 가능** (Transform 섹션 % 단위)                       |
+| E7  | 음수 margin 을 flow 배치에서 무시 (absolute translate 패턴만 지원)                                                                                              | 형제 `marginTop:-10px`/`marginLeft:-20px` (BM-1)              | `b.x` -20 → **0**, `b.y` 10 → **20**                                        | **도달 가능** (Inspector 음수 입력)                         |
+| E8  | `row-reverse`/`column-reverse`/`wrap-reverse` 전면 무시 (정방향으로 배치)                                                                                       | row-reverse 2자식 (FRV-1/2, FWR-1)                            | `a.x` 160 → **0**                                                           | **도달 가능** (`styleOptions.ts:80-81` Direction 옵션 노출) |
+| E9  | `align-items:baseline` 미구현 (flex-start fallback — 빈 박스 baseline=하단 조차 미적용)                                                                         | h20/h50 형제 baseline (BL-1)                                  | `a.y` 30 → **0**                                                            | 잠재                                                        |
+| E10 | `position:relative` inset offset 무시 (in-flow 취급은 정상, 시각 offset 만 소실)                                                                                | relative + top10/left15 (REL-1)                               | `k.x` 15 → **0**, `k.y` 10 → **0**                                          | 도달 가능 (left/top → inset 송신 확인)                      |
+| E11 | absolute 3종 미구현 — ① 양측 inset 지정 시 크기 stretch(ABS-1/4) ② inset 무지정 static position(ABS-3) ③ `margin:auto` 중앙(ABS-5)                              | left+right 지정 + width auto                                  | `k.w` 180 → **0** / `k.y` 30 → **0** / `k.x` 80 → **0**                     | 도달 가능                                                   |
+| E12 | grid 컨테이너 트랙 정렬 `justify-content`/`align-content` 무시 + **auto 트랙 align-content:stretch 미구현** (definite 높이의 잉여 공간 분배 없음)               | justifyContent:center 고정 트랙 (GJC-1, GAC-1, GAR-2)         | `c0.x` 50 → **0** / implicit 행 100 → **30**                                | 부분 (E2 인접 — grid.rs 정렬 0줄의 컨테이너 축)             |
+| E13 | grid auto-placement 가 **span 을 무시** (placement 커서가 점유 셀을 스킵하지 않음)                                                                              | column/row span 2 + 후속 자식 (GSP-1/2)                       | `c1.y` 30 → **0** (span 아래가 아니라 옆에 배치)                            | 도달 가능                                                   |
+| E14 | `gridAutoFlow`/`gridAutoColumns`/`gridAutoRows` 미소비 — flow:column 이 row 로, 명시 auto 트랙 크기가 intrinsic 으로 degrade                                    | flow:column + autoColumns 60px (GAF-1), autoRows 40px (GAR-1) | `c2.x` 60 → **0**, 행 40 → **0**                                            | 도달 가능                                                   |
+| E15 | `aspect_ratio` 미소비 (한 축 명시 + ratio 파생 크기 전면 소실)                                                                                                  | `width:100px` + `aspectRatio:2` (AR-1/2/3)                    | `k.h` 50 → **0**                                                            | 도달 가능 (Image 계열 유입 경로)                            |
+| E16 | `order` — NodeStyle **선언조차 없음** (serde silent drop). 송신은 존재(`taffyStyleToRecord` order emit)                                                         | `order:-1` 중간 자식 (ORD-1)                                  | `b.x` 0 → **40** (재배열 무시)                                              | 잠재 (Inspector 편집 UI 없음)                               |
+| E17 | `overflow_x/y` 미소비 — **현재는 E3 부재가 가림** (overflow BFC 의 상쇄 차단과 "상쇄 자체 미구현"이 우연 일치, BC-2 diff 0)                                     | overflowY:hidden + 자식 marginTop (BC-2)                      | 현재 diff 0 (**잠복**)                                                      | Phase 4 (E3) 구현 시 BFC 차단 조건 결합 의무                |
+
+**E5 확장 — root self-sizing 결함군 재정의 (2026-07-17)**: E5 는 "root auto 높이 + padding 누락" 단건이 아니라 **root 자기 크기 경로 전반의 결함군**이다. 실측: ① border 도 동일 누락 (RT-1, h 30→20) ② 무폭 flex/grid root 가 availW 를 채우지 않고 fit-content 로 수축 (RT-2, w 200→40) ③ root 자기 min/maxHeight clamp 무시 (MH-1 30→80 미달, MH-2 100→50 초과). **중첩이면 4형상 전부 정합** (NST-1~4: 무폭 fill·minHeight·maxHeight·grid fill) — 라이브 root(body)는 명시 크기라 전부 잠재이나, Phase 5 (E5) 작업 시 이 결함군 전체를 함께 정합할 것.
+
 ### 1-2. 정합 확인 영역 (회귀 기준선 — Phase 2~5 가 깨면 안 됨)
 
-| 축                                                                                     | 조합 수 | 결과      |
-| -------------------------------------------------------------------------------------- | ------: | --------- |
-| flex 교차축 (direction × wrap × align-items × align-content × definite/auto × 1줄/2줄) |     384 | 전부 통과 |
-| flex main 축 (direction × justify-content × gap × grow × shrink × basis)               |     288 | 전부 통과 |
-| 인접 형제 마진 상쇄                                                                    |       — | 통과      |
-| box-sizing border-box (명시 크기 + padding/border)                                     |       — | 통과      |
-| 부모 padding 이 마진 상쇄를 차단하는 경우                                              |       — | 통과      |
+| 축                                                                                                    | 조합 수 | 결과                                 |
+| ----------------------------------------------------------------------------------------------------- | ------: | ------------------------------------ |
+| flex 교차축 (direction × wrap × align-items × align-content × definite/auto × 1줄/2줄)                |     384 | 전부 통과                            |
+| flex main 축 (direction × justify-content × gap × grow × shrink × basis)                              |     288 | 전부 통과                            |
+| 인접 형제 마진 상쇄                                                                                   |       — | 통과                                 |
+| box-sizing border-box (명시 크기 + padding/border)                                                    |       — | 통과                                 |
+| 부모 padding 이 마진 상쇄를 차단하는 경우                                                             |       — | 통과                                 |
+| grid 트랙 산술 — percent / minmax(40px,1fr) / repeat(2,1fr) / auto intrinsic (2차 sweep GT-1~4)       |       4 | 통과                                 |
+| grid gap 위치 산술 rowGap/columnGap (GGAP-1 위치 축)                                                  |       — | 통과                                 |
+| percent padding/margin 폭 기준 해석 — block+flex (BP-3/4, FPM-1)                                      |       — | 통과                                 |
+| flex item min/max clamp 재분배 + flexBasis % (FMM-1/2, FB-1)                                          |       — | 통과                                 |
+| fit-content (+minWidth clamp) / inline-block 형제 / display:none 제외 (FIT-1/2, IB-1, DN-1)           |       — | 통과                                 |
+| **중첩** 컨테이너 자기 크기 — 무폭 fill·min/maxHeight clamp·grid fill (NST-1~4)                       |       4 | 통과 (root 만 결함 — §1-1-b E5 확장) |
+| absolute % inset / space-between+margin / wrap+rowGap / 인접 상쇄 비대칭 (ABS-2, FJC-1, FWG-1, BMB-1) |       — | 통과                                 |
 
 ### 1-3. 엔진 필드 3축 교차표 (Phase 0 산출물 — G0)
 
 각 `NodeStyle` 필드를 **선언(tree.rs) / 소비(읽는 코드 존재) / 송신(파이프라인이 실제로 보냄)** 3축으로 전수 분류한다. 본 ADR 이 다루는 것은 **선언 O + 송신 O + 소비 X** 칸이다.
 
-실측 확인된 「선언 O · 소비 X」 (grep `style.justify_items` / `style.align_self` / `style.justify_self` → 0 hit):
+**전수 확증 완료 (2026-07-17 2차 sweep)** — NodeStyle 49필드 전체를 `.{field}` 접근 grep 으로 분류한 결과, 「선언 O · 송신 O · 소비 X」 는 3건이 아니라 **8건**이며, 「선언 X · 송신 O」(serde silent drop) 2건이 별도로 존재한다:
 
-| 필드            | 선언        | 소비     | 송신 (파이프라인)                                                    |
-| --------------- | ----------- | -------- | -------------------------------------------------------------------- |
-| `justify_items` | tree.rs:115 | **없음** | `fullTreeLayout.ts:840` (grid branch)                                |
-| `align_self`    | tree.rs:123 | **없음** | `fullTreeLayout.ts:664` (taffyStyleToRecord, 주경로) + `:849` (grid) |
-| `justify_self`  | tree.rs:124 | **없음** | `fullTreeLayout.ts:665 근처` + `:850` (grid)                         |
+| 필드                  | 선언            | 소비     | 송신 (파이프라인)                                                                             | 발산 ID |
+| --------------------- | --------------- | -------- | --------------------------------------------------------------------------------------------- | ------- |
+| `justify_items`       | tree.rs:115     | **없음** | `fullTreeLayout.ts:840` (grid branch)                                                         | E2      |
+| `align_self`          | tree.rs:123     | **없음** | `fullTreeLayout.ts:664` (taffyStyleToRecord, 주경로) + `:849` (grid)                          | E1      |
+| `justify_self`        | tree.rs:124     | **없음** | `fullTreeLayout.ts:665 근처` + `:850` (grid)                                                  | E1      |
+| `overflow_x`/`_y`     | tree.rs:108-109 | **없음** | `fullTreeLayout.ts:645-646` + `utils.ts:4934-4938`                                            | E17     |
+| `grid_auto_flow`      | tree.rs:129     | **없음** | `fullTreeLayout.ts:673-674` + `:832`                                                          | E14     |
+| `grid_auto_columns`   | tree.rs:130     | **없음** | `fullTreeLayout.ts:675-676` + `:833-834`                                                      | E14     |
+| `grid_auto_rows`      | tree.rs:131     | **없음** | `fullTreeLayout.ts:677-678` + `:835`                                                          | E14     |
+| `aspect_ratio`        | tree.rs:172     | **없음** | `fullTreeLayout.ts:734-741` + `utils.ts:4942-4948`                                            | E15     |
+| `order`               | **선언 없음**   | —        | `taffyStyleToRecord` order emit (serde silent drop)                                           | E16     |
+| `grid_template_areas` | **선언 없음**   | —        | `applyBatchStyle` array passthrough (기지 — factory 숫자 line 병기로 완화, tree.rs 헤더 자인) | —       |
 
-Phase 0 은 위 3건이 전부인지(다른 미소비 필드 유무) 전수 확증한다. **잔여 미소비 필드가 발견되면 본 ADR scope 안에서 표만 갱신** — 신규 ADR fork 금지 (adr-writing.md M3: 추정 vs 실측 gap 은 Phase 0 inventory 보강으로 흡수).
+나머지 39필드는 소비 존재를 확인했다. 단 소비 ≠ 정합 — 소비되면서도 해석이 틀린 축(E6 percent height 폭 ctx, E7 음수 margin, E8 reverse 계열, E12 grid 컨테이너 정렬 등)은 §1-1-b 동적 실측이 담당한다. grid 커널은 min/max clamp 소비가 0 (flex/block 만 구현 — E2 인접).
 
 ### 1-4. 계약 차이 (버그 아님 — 하니스 작성 시 필수 지식)
 
