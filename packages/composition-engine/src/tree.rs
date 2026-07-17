@@ -816,12 +816,18 @@ impl LayoutTree {
         }
 
         // 2) 자식 → flex flat f32 (논리축 main/cross 변환).
-        //    flex-basis 의 `%` 는 **main 축** 컨테이너 크기 기준 (column 이면 height).
+        //    flex-basis / height 의 `%` 는 **main 축** 컨테이너 크기 기준 (column 이면 height).
         //    그 외 자식 % (width/padding 등) 는 inline 축(=width) 기준 → ctx 유지.
+        //
+        //    **column main 은 컨테이너 height 가 명시 definite 일 때만 실축** (E6/CSS §10.5):
+        //    auto 높이 컨테이너의 percent 자식(height/basis %)은 참조할 확정 높이가 없어 auto 로
+        //    푼다. child_avail_h 는 부모가 내려준 available 이라 auto 여도 양수일 수 있으므로
+        //    (그대로 쓰면 percent 가 상속 available 기준으로 잘못 해소), explicit_h 게이트로
+        //    indefinite 를 명시한다. row 는 main=width 라 ctx(폭) 그대로.
         let main_ctx = if is_row {
             ctx.clone()
         } else {
-            self.ctx_for(child_avail_h)
+            self.ctx_for(if explicit_h > 0.0 { child_avail_h } else { INDEFINITE_AVAIL })
         };
         let mut data = vec![0.0f32; children.len() * flex::FLEX_FIELD_COUNT];
         for (i, &c) in children.iter().enumerate() {
@@ -902,7 +908,8 @@ impl LayoutTree {
                 } else {
                     cstyle.height.as_deref()
                 };
-                let laid_out_main = resolve_dimension_opt(main_raw, &ctx)
+                // main 축 `%` 는 main_ctx (E6) — column 이면 height 기준.
+                let laid_out_main = resolve_dimension_opt(main_raw, &main_ctx)
                     .unwrap_or(if is_row { child_avail_w } else { child_avail_h });
                 if (used_main - laid_out_main).abs() <= RESOLVE_EPS {
                     continue; // 분배로 안 바뀜 — 재배치 불필요
@@ -916,7 +923,7 @@ impl LayoutTree {
                 //   explicit main 자식은 `solve_node` 가 자기 스타일의 명시값을 우선하므로
                 //   available 만 바꿔선 안 된다 — 명시 main 을 **used 값으로 덮어써** 재-solve
                 //   한 뒤 원복한다(스타일 원본 보존).
-                let overridden = resolve_dimension_opt(main_raw, &ctx).is_some();
+                let overridden = resolve_dimension_opt(main_raw, &main_ctx).is_some();
                 let saved_main = if is_row {
                     cstyle.width.clone()
                 } else {
@@ -1050,11 +1057,20 @@ impl LayoutTree {
         };
         // 자식 write / gap 해석 ctx 는 content 폭 기준 (자식 % 의 containing block).
         let ctx = self.ctx_for(child_avail_w);
+        // 자식이 percent height 를 해소하는 containing block 높이 (E6) — 컨테이너 height 가
+        // **명시 definite** 일 때만 실축, auto 면 INDEFINITE (CSS §10.5). child_avail_h 는
+        // auto 여도 부모 available 로 양수라, 그대로 내리면 자식이 height:50% 를 상속
+        // available 로 잘못 해소한다(E6 auto-parent PH-1/FP-1: leaf 의 resolve_self_size 가
+        // avail_h 기준으로 250 을 냄). height_ctx(write_block_item) 와 solve_node(leaf 자기
+        // 크기) **양 경로**에 같은 게이트를 적용해야 percent height 가 일관되게 auto 가 된다.
+        let child_containing_h = if explicit_h > 0.0 { child_avail_h } else { INDEFINITE_AVAIL };
+        let height_ctx = self.ctx_for(child_containing_h);
 
-        // 1) 자식 재귀 solve → content 크기 확보.
+        // 1) 자식 재귀 solve → content 크기 확보. auto 컨테이너면 avail_h=INDEFINITE 를 내려
+        //    자식 percent height 가 auto 로 해소되게 한다 (위 게이트와 동일 근거).
         let mut child_sizes: Vec<(f32, f32)> = Vec::with_capacity(children.len());
         for &c in children {
-            let cs = self.solve_node(c, child_avail_w, child_avail_h);
+            let cs = self.solve_node(c, child_avail_w, child_containing_h);
             child_sizes.push(cs);
         }
 
@@ -1063,7 +1079,7 @@ impl LayoutTree {
         for (i, &c) in children.iter().enumerate() {
             let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
             let (cw, ch) = child_sizes[i];
-            write_block_item(&mut data, i, &cstyle, cw, ch, &ctx);
+            write_block_item(&mut data, i, &cstyle, cw, ch, &ctx, &height_ctx);
         }
 
         // 3) block_layout — BFC 격리 가정(부모-자식 collapse 미전파, 단위 3-a scope).
@@ -1484,6 +1500,22 @@ fn parse_align_items(v: Option<&str>) -> u8 {
     }
 }
 
+/// align-self → flex.rs off-17 코드 (0=auto 상속 / 1=stretch / 2=start / 3=center / 4=end).
+///
+/// **0=auto 가 기본값**: `align-self:auto`(미지정 포함)는 컨테이너 `align-items` 상속(CSS).
+/// flex.rs off 17 이 zero-init 이면 자동으로 auto 가 되므로, 미지정 자식은 항상 상속한다.
+/// justify-self 는 flex item 에 무효(grid 전용, Phase 3) — 여기선 align-self 만 소비.
+fn parse_align_self(v: Option<&str>) -> f32 {
+    match v.map(|s| s.trim().to_ascii_lowercase()).as_deref() {
+        Some("stretch") => 1.0,
+        Some("flex-start") | Some("start") => 2.0,
+        Some("center") => 3.0,
+        Some("flex-end") | Some("end") => 4.0,
+        // auto/normal/미지정/기타 → 0 (컨테이너 align-items 상속)
+        _ => 0.0,
+    }
+}
+
 /// align-content → flex.rs ALIGN_CONTENT_* (stretch=0/start=1/center=2/end=3/
 /// space-between=4/space-around=5).
 fn parse_align_content(v: Option<&str>) -> u8 {
@@ -1662,7 +1694,11 @@ fn write_flex_item(
     } else {
         (cstyle.height.as_deref(), cstyle.width.as_deref())
     };
-    let main_size = resolve_dimension_opt(main_raw, ctx);
+    // main 축 `%` 는 **`main_ctx`** 로 푼다 (E6/ADR-156 P2) — column 이면 main=height 라
+    // percent height 가 컨테이너 **높이** 기준이어야 한다. `ctx`(폭) 로 풀면 height:50% 가
+    // 폭의 50% 로 잘못 해석된다. main_ctx 는 컨테이너 height 가 명시 definite 일 때만 실축을
+    // 담고(auto 면 indefinite→auto), row 면 ctx(폭) 와 동일하다(main=width).
+    let main_size = resolve_dimension_opt(main_raw, main_ctx);
     let cross_size = resolve_cross_dimension_opt(cross_raw, cross_ctx);
     let (content_main, content_cross) = if is_row { (cw, ch) } else { (ch, cw) };
 
@@ -1697,18 +1733,23 @@ fn write_flex_item(
     data[off + 6] = resolve_dimension(cstyle.margin_left.as_deref(), ctx);
     data[off + 7] = pad_border_main;
     data[off + 8] = pad_border_cross;
-    data[off + 9] = resolve_dimension_opt(min_main_str(cstyle, is_row), ctx)
+    // min/max 도 축별 ctx (E6) — main(column=minHeight/maxHeight)은 main_ctx, cross(row=
+    // minHeight/maxHeight)는 cross_ctx. 폭 축(minWidth 등)은 두 ctx 모두 폭 기준이라 무변경.
+    data[off + 9] = resolve_dimension_opt(min_main_str(cstyle, is_row), main_ctx)
         .map(|v| spec_to_content(v, pad_border_main)).unwrap_or(-1.0);
-    data[off + 10] = resolve_dimension_opt(max_main_str(cstyle, is_row), ctx)
+    data[off + 10] = resolve_dimension_opt(max_main_str(cstyle, is_row), main_ctx)
         .map(|v| spec_to_content(v, pad_border_main)).unwrap_or(-1.0);
-    data[off + 11] = resolve_dimension_opt(min_cross_str(cstyle, is_row), ctx)
+    data[off + 11] = resolve_dimension_opt(min_cross_str(cstyle, is_row), cross_ctx)
         .map(|v| spec_to_content(v, pad_border_cross)).unwrap_or(-1.0);
-    data[off + 12] = resolve_dimension_opt(max_cross_str(cstyle, is_row), ctx)
+    data[off + 12] = resolve_dimension_opt(max_cross_str(cstyle, is_row), cross_ctx)
         .map(|v| spec_to_content(v, pad_border_cross)).unwrap_or(-1.0);
     data[off + 13] = content_main;
     data[off + 14] = content_cross;
     data[off + 15] = cstyle.flex_grow.unwrap_or(0.0).max(0.0);
     data[off + 16] = cstyle.flex_shrink.unwrap_or(1.0).max(0.0);
+    // align_self (E1) — 0=auto(컨테이너 align-items 상속)/1~4 명시. flex item 은
+    // justify_self 무효(grid 전용)라 여기선 align_self 만 소비.
+    data[off + 17] = parse_align_self(cstyle.align_self.as_deref());
 }
 
 /// 자식 스타일 + solve 된 content 크기 → block.rs flat f32 (19필드, 물리축).
@@ -1735,6 +1776,7 @@ fn write_block_item(
     cw: f32,
     ch: f32,
     ctx: &CssValueContext,
+    height_ctx: &CssValueContext,
 ) {
     let off = i * block::FIELD_COUNT;
 
@@ -1749,8 +1791,12 @@ fn write_block_item(
     // 센티넬 보존 — block.rs 가 shrink-to-fit(content 폭)으로 해소한다(필드표 §1/2).
     // resolve_dimension_opt 로 붕괴시키면 auto stretch 로 오처리 → block-level
     // Calendar(width:fit-content) 가 부모 폭 전체를 차지 (tree_golden N8).
+    //
+    // **height 의 `%` 는 `height_ctx`** (E6/ADR-156 P2) — 컨테이너 height 가 명시 definite
+    // 일 때만 실축, auto 면 indefinite→auto (CSS §10.5). `ctx`(폭) 로 풀면 height:50% 가
+    // 폭의 50% 로 잘못 해소된다(BP-1/2). width 는 그대로 ctx(폭).
     let expl_w = resolve_cross_dimension_opt(cstyle.width.as_deref(), ctx);
-    let expl_h = resolve_cross_dimension_opt(cstyle.height.as_deref(), ctx);
+    let expl_h = resolve_cross_dimension_opt(cstyle.height.as_deref(), height_ctx);
 
     let pad_border_v = axis_pad_border(cstyle, ctx, false);
     let pad_border_h = axis_pad_border(cstyle, ctx, true);
@@ -1780,9 +1826,10 @@ fn write_block_item(
         .map(|v| spec_to_content(v, pad_border_h)).unwrap_or(-1.0);
     data[off + 11] = resolve_dimension_opt(cstyle.max_width.as_deref(), ctx)
         .map(|v| spec_to_content(v, pad_border_h)).unwrap_or(-1.0);
-    data[off + 12] = resolve_dimension_opt(cstyle.min_height.as_deref(), ctx)
+    // min/max height 의 `%` 도 height_ctx (E6) — 컨테이너 높이 기준. min/max width 는 ctx(폭).
+    data[off + 12] = resolve_dimension_opt(cstyle.min_height.as_deref(), height_ctx)
         .map(|v| spec_to_content(v, pad_border_v)).unwrap_or(-1.0);
-    data[off + 13] = resolve_dimension_opt(cstyle.max_height.as_deref(), ctx)
+    data[off + 13] = resolve_dimension_opt(cstyle.max_height.as_deref(), height_ctx)
         .map(|v| spec_to_content(v, pad_border_v)).unwrap_or(-1.0);
     data[off + 14] = cw; // content_w
     data[off + 15] = ch; // content_h

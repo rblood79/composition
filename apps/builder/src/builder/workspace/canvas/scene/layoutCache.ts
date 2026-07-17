@@ -82,6 +82,9 @@ const LAYOUT_STYLE_KEYS = [
   "alignItems",
   "alignContent",
   "alignSelf",
+  // justifySelf — 9칸 정렬 피커가 alignSelf 와 함께 송신(TransformSection). 미등재 시
+  // 가로 전용 이동(leftTop→centerTop, alignSelf 불변)이 캐시 히트로 흡수돼 무반응 (ADR-156 R6).
+  "justifySelf",
   "gap",
   "rowGap",
   "columnGap",

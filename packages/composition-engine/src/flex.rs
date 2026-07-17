@@ -45,27 +45,31 @@
 //! `flex-wrap: nowrap` 이면 전 아이템이 단일 라인. `wrap` 이면 아이템 outer main-size
 //! 누적이 available_main 을 초과하기 직전에 새 라인 시작 (각 라인은 최소 1개 아이템).
 //!
-//! ## 필드 계약 (`FLEX_FIELD_COUNT` = 17, 노드당)
+//! ## 필드 계약 (`FLEX_FIELD_COUNT` = 18, 노드당)
 //!
-//! | off | 필드              | 센티넬                    |
-//! | --- | ----------------- | ------------------------- |
-//! | 0   | flex_basis        | AUTO=-1, CONTENT=-2       |
-//! | 1   | width             | AUTO=-1 (논리 main)       |
-//! | 2   | height            | AUTO=-1 (논리 cross)      |
-//! | 3   | margin_top        |                           |
-//! | 4   | margin_right      |                           |
-//! | 5   | margin_bottom     |                           |
-//! | 6   | margin_left       |                           |
-//! | 7   | pad_border_main   | main 축 padding+border 합 |
-//! | 8   | pad_border_cross  | cross 축 padding+border 합|
-//! | 9   | min_main          | AUTO=-1                   |
-//! | 10  | max_main          | NONE=-1                   |
-//! | 11  | min_cross         | AUTO=-1                   |
-//! | 12  | max_cross         | NONE=-1                   |
-//! | 13  | content_main      | content 크기 (main)       |
-//! | 14  | content_cross     | content 크기 (cross)      |
-//! | 15  | flex_grow         | ≥0 (default 0)            |
-//! | 16  | flex_shrink       | ≥0 (default 1)            |
+//! | off | 필드              | 센티넬                          |
+//! | --- | ----------------- | ------------------------------- |
+//! | 0   | flex_basis        | AUTO=-1, CONTENT=-2             |
+//! | 1   | width             | AUTO=-1 (논리 main)             |
+//! | 2   | height            | AUTO=-1 (논리 cross)            |
+//! | 3   | margin_top        |                                 |
+//! | 4   | margin_right      |                                 |
+//! | 5   | margin_bottom     |                                 |
+//! | 6   | margin_left       |                                 |
+//! | 7   | pad_border_main   | main 축 padding+border 합       |
+//! | 8   | pad_border_cross  | cross 축 padding+border 합      |
+//! | 9   | min_main          | AUTO=-1                         |
+//! | 10  | max_main          | NONE=-1                         |
+//! | 11  | min_cross         | AUTO=-1                         |
+//! | 12  | max_cross         | NONE=-1                         |
+//! | 13  | content_main      | content 크기 (main)             |
+//! | 14  | content_cross     | content 크기 (cross)            |
+//! | 15  | flex_grow         | ≥0 (default 0)                  |
+//! | 16  | flex_shrink       | ≥0 (default 1)                  |
+//! | 17  | align_self        | 0=auto(상속) 1=stretch 2=start 3=center 4=end (E1/ADR-156 P2) |
+//!
+//! off 17(`align_self`)은 **0=auto 가 zero-init 기본값 겸 CSS 기본값**이라, 값을 안 쓰는
+//! 입력 배열(기존 golden/테스트)은 자동으로 컨테이너 `align_items` 를 상속한다.
 //!
 //! main/cross 축은 컨테이너 `flex_direction` 에 따라 물리축(x/y)에 매핑된다.
 //! 아이템 필드는 이미 논리축(main/cross) 기준으로 상류에서 변환되어 들어온다.
@@ -73,7 +77,7 @@
 use wasm_bindgen::prelude::*;
 
 /// 노드당 입력 필드 수.
-pub const FLEX_FIELD_COUNT: usize = 17;
+pub const FLEX_FIELD_COUNT: usize = 18;
 
 /// 출력 필드 수 (x, y, width, height).
 const OUT_FIELDS: usize = 4;
@@ -106,6 +110,30 @@ const ALIGN_STRETCH: u8 = 0;
 const ALIGN_START: u8 = 1;
 const ALIGN_CENTER: u8 = 2;
 const ALIGN_END: u8 = 3;
+
+// align_self (per-item cross 정렬, E1). 입력 field(off 17) 값 → 컨테이너 align_items
+// override. 0=auto 는 컨테이너 값 상속(CSS `align-self:auto` 기본). 1~4 는 명시.
+// **0 이 auto 인 이유**: zero-init 입력 배열이 자동으로 상속(=CSS 기본)이 되어, 값을 안
+// 쓰는 기존 golden/테스트 배열이 무변경으로 통과한다.
+const ALIGN_SELF_AUTO: u8 = 0;
+const ALIGN_SELF_STRETCH: u8 = 1;
+const ALIGN_SELF_START: u8 = 2;
+const ALIGN_SELF_CENTER: u8 = 3;
+const ALIGN_SELF_END: u8 = 4;
+
+/// per-item `align_self`(0=auto/1~4) 를 라인 `align_items`(ALIGN_*) 로 해소.
+/// auto → 컨테이너 값 상속, 그 외 → 대응 ALIGN_* 코드.
+#[inline]
+fn resolve_self_align(align_self: u8, container_align: u8) -> u8 {
+    match align_self {
+        ALIGN_SELF_STRETCH => ALIGN_STRETCH,
+        ALIGN_SELF_START => ALIGN_START,
+        ALIGN_SELF_CENTER => ALIGN_CENTER,
+        ALIGN_SELF_END => ALIGN_END,
+        // ALIGN_SELF_AUTO + 미지의 값 → 컨테이너 상속
+        _ => container_align,
+    }
+}
 
 // flex_wrap (컨테이너 파라미터)
 /// nowrap — 단일 라인
@@ -186,6 +214,9 @@ struct FlexItem {
     max_cross: f32,
     flex_grow: f32,
     flex_shrink: f32,
+    /// per-item cross 정렬(0=auto 상속 / 1~4 명시) — E1. place_line_cross_axis 가
+    /// resolve_self_align 으로 컨테이너 align_items 를 override.
+    align_self: u8,
     // §9.7 상태
     frozen: bool,
     target_main: f32,
@@ -224,6 +255,11 @@ fn parse_item(data: &[f32], i: usize, direction: u8) -> FlexItem {
     let content_cross = data[off + 14];
     let flex_grow = data[off + 15];
     let flex_shrink = data[off + 16];
+    // align_self: 0=auto(상속)/1=stretch/2=start/3=center/4=end. 음수/비정상은 auto(0).
+    let align_self = {
+        let v = data[off + 17];
+        if v > 0.0 { v as u8 } else { ALIGN_SELF_AUTO }
+    };
 
     // flex-basis 해석 우선순위: flex_basis(명시) → width(논리 main) → content.
     // CONTENT / AUTO 센티넬은 content_main 로 fallback (intrinsic 자동측정 미구현).
@@ -277,6 +313,7 @@ fn parse_item(data: &[f32], i: usize, direction: u8) -> FlexItem {
         max_cross,
         flex_grow,
         flex_shrink,
+        align_self,
         frozen: false,
         target_main: main_content,
     }
@@ -752,7 +789,9 @@ fn place_line_cross_axis(
         let cross_avail = line_cross_size - it.margin_cross_start - it.margin_cross_end;
         let cross_free = (cross_avail - item_cross_border).max(0.0);
 
-        let (cross_pos_local, cross_final) = match align_items {
+        // per-item align_self 가 컨테이너 align_items 를 override (E1). auto → 상속.
+        let effective_align = resolve_self_align(it.align_self, align_items);
+        let (cross_pos_local, cross_final) = match effective_align {
             // stretch 는 cross size 가 auto 일 때만 컨테이너 cross 로 확장한다 (CSS 명세).
             // 명시적 cross size(예: column 자식 width:100px)는 그 값을 유지 —
             // start 정렬처럼 배치하되 크기는 border-box content 유지.
@@ -826,6 +865,63 @@ mod tests {
         f[15] = grow;
         f[16] = shrink;
         f
+    }
+
+    /// align_self(off 17) 설정 헬퍼 — 0=auto/1=stretch/2=start/3=center/4=end.
+    fn with_align_self(mut f: [f32; FLEX_FIELD_COUNT], code: f32) -> [f32; FLEX_FIELD_COUNT] {
+        f[17] = code;
+        f
+    }
+
+    // ── E1 align-self (ADR-156 Phase 2) ──
+
+    #[test]
+    fn align_self_end_overrides_container_start() {
+        // 컨테이너 align_items=START, 자식 align_self=END → 자식이 cross 끝(row: y=80).
+        let child = with_align_self(item(50.0, 20.0), 4.0); // 4=END
+        let data = flatten(&[child]);
+        let out = flex_layout_single_line(&data, 300.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_START, 0.0);
+        assert_eq!(out[1], 80.0); // available_cross 100 - h 20
+    }
+
+    #[test]
+    fn align_self_center_overrides_container_stretch_and_keeps_size() {
+        // 컨테이너 STRETCH, 자식 align_self=CENTER + 명시 cross(h=30) → 중앙 배치 + 크기 유지(stretch 안 함).
+        let child = with_align_self(item(50.0, 30.0), 3.0); // 3=CENTER
+        let data = flatten(&[child]);
+        let out = flex_layout_single_line(&data, 300.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_STRETCH, 0.0);
+        assert_eq!(out[1], 35.0); // (100-30)/2
+        assert_eq!(out[3], 30.0); // 크기 보존 — stretch 미적용
+    }
+
+    #[test]
+    fn align_self_auto_inherits_container_center() {
+        // 자식 align_self=auto(0) → 컨테이너 align_items=CENTER 상속.
+        let child = item(50.0, 20.0); // field 17 = 0 = auto
+        let data = flatten(&[child]);
+        let out = flex_layout_single_line(&data, 300.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_CENTER, 0.0);
+        assert_eq!(out[1], 40.0); // (100-20)/2 — 상속된 center
+    }
+
+    #[test]
+    fn align_self_stretch_overrides_container_start() {
+        // 컨테이너 START, 자식 align_self=stretch + auto cross → 컨테이너 cross 채움.
+        let mut f = item(50.0, AUTO);
+        f[2] = AUTO;
+        let child = with_align_self(f, 1.0); // 1=STRETCH
+        let data = flatten(&[child]);
+        let out = flex_layout_single_line(&data, 300.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_START, 0.0);
+        assert_eq!(out[3], 100.0); // cross 채움
+    }
+
+    #[test]
+    fn align_self_column_end_maps_to_x() {
+        // column 컨테이너: cross=x. 자식 align_self=END → 자식이 cross 끝(x).
+        // available_cross(=width)=200, 자식 width=40 → END → x=160.
+        let child = with_align_self(item(30.0, 40.0), 4.0); // main=height 30, cross=width 40
+        let data = flatten(&[child]);
+        let out = flex_layout_single_line(&data, 300.0, 200.0, DIR_COLUMN, JUSTIFY_START, ALIGN_START, 0.0);
+        assert_eq!(out[0], 160.0); // column cross = x = 200 - 40
     }
 
     fn flatten(items: &[[f32; FLEX_FIELD_COUNT]]) -> Vec<f32> {
