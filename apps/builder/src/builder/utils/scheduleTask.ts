@@ -11,7 +11,7 @@
  * - 'background': 낮은 우선순위 (인스펙터 hydration)
  */
 
-type TaskPriority = 'user-blocking' | 'user-visible' | 'background';
+type TaskPriority = "user-blocking" | "user-visible" | "background";
 
 interface SchedulerPostTaskOptions {
   priority?: TaskPriority;
@@ -19,7 +19,10 @@ interface SchedulerPostTaskOptions {
 }
 
 interface Scheduler {
-  postTask: <T>(callback: () => T, options?: SchedulerPostTaskOptions) => Promise<T>;
+  postTask: <T>(
+    callback: () => T,
+    options?: SchedulerPostTaskOptions,
+  ) => Promise<T>;
   yield: (options?: { priority?: TaskPriority }) => Promise<void>;
 }
 
@@ -36,18 +39,18 @@ declare global {
  */
 export function scheduleBackgroundTask(
   callback: () => void,
-  options?: { timeout?: number }
+  options?: { timeout?: number },
 ): number | void {
   const timeout = options?.timeout ?? 100;
 
   // 1. scheduler.postTask API (Chromium 94+)
-  if (typeof window !== 'undefined' && window.scheduler?.postTask) {
-    window.scheduler.postTask(callback, { priority: 'background' });
+  if (typeof window !== "undefined" && window.scheduler?.postTask) {
+    window.scheduler.postTask(callback, { priority: "background" });
     return;
   }
 
   // 2. requestIdleCallback (대부분의 브라우저)
-  if (typeof requestIdleCallback !== 'undefined') {
+  if (typeof requestIdleCallback !== "undefined") {
     return requestIdleCallback(
       (deadline) => {
         // 최소 시간 보장 또는 timeout 만료 시 실행
@@ -55,7 +58,7 @@ export function scheduleBackgroundTask(
           callback();
         }
       },
-      { timeout }
+      { timeout },
     );
   }
 
@@ -70,13 +73,13 @@ export function scheduleBackgroundTask(
  */
 export function scheduleVisibleTask(callback: () => void): void {
   // 1. scheduler.postTask API
-  if (typeof window !== 'undefined' && window.scheduler?.postTask) {
-    window.scheduler.postTask(callback, { priority: 'user-visible' });
+  if (typeof window !== "undefined" && window.scheduler?.postTask) {
+    window.scheduler.postTask(callback, { priority: "user-visible" });
     return;
   }
 
   // 2. queueMicrotask (동기 작업 직후)
-  if (typeof queueMicrotask !== 'undefined') {
+  if (typeof queueMicrotask !== "undefined") {
     queueMicrotask(callback);
     return;
   }
@@ -90,10 +93,33 @@ export function scheduleVisibleTask(callback: () => void): void {
  * - requestAnimationFrame 래퍼
  */
 export function scheduleNextFrame(callback: () => void): number {
-  if (typeof requestAnimationFrame !== 'undefined') {
+  if (typeof requestAnimationFrame !== "undefined") {
     return requestAnimationFrame(callback);
   }
   return window.setTimeout(callback, 16);
+}
+
+/**
+ * 프레임 정렬 스케줄이되 hidden/background 탭에서도 발화하도록 보강한 스케줄러.
+ *
+ * - 문서가 visible: `requestAnimationFrame` (프레임 배칭 유지 — focused 탭 hot path 무변경)
+ * - 문서가 hidden: `setTimeout` (rAF 는 background 탭에서 발화하지 않아 여기에 예약된 작업이
+ *   탭 refocus/reload 전까지 정체됨 — hidden 탭에서 preview 를 읽는 parity 자동화가 그
+ *   정체로 stale 을 관측)
+ *
+ * 스케줄러 종류와 무관하게 취소하는 함수를 반환한다.
+ */
+export function scheduleFrameOrTimeout(callback: () => void): () => void {
+  if (typeof document !== "undefined" && document.hidden) {
+    const id = window.setTimeout(callback, 0);
+    return () => window.clearTimeout(id);
+  }
+  if (typeof requestAnimationFrame !== "undefined") {
+    const id = requestAnimationFrame(callback);
+    return () => cancelAnimationFrame(id);
+  }
+  const id = window.setTimeout(callback, 16);
+  return () => window.clearTimeout(id);
 }
 
 /**
@@ -103,7 +129,7 @@ export function scheduleNextFrame(callback: () => void): number {
  */
 export async function yieldToMain(): Promise<void> {
   // 1. scheduler.yield API (실험적)
-  if (typeof window !== 'undefined' && window.scheduler?.yield) {
+  if (typeof window !== "undefined" && window.scheduler?.yield) {
     return window.scheduler.yield();
   }
 
@@ -118,7 +144,7 @@ export async function yieldToMain(): Promise<void> {
  */
 export function scheduleCancelableBackgroundTask(
   callback: () => void,
-  options?: { timeout?: number }
+  options?: { timeout?: number },
 ): () => void {
   let cancelled = false;
 
@@ -132,8 +158,8 @@ export function scheduleCancelableBackgroundTask(
 
   return () => {
     cancelled = true;
-    if (typeof taskId === 'number') {
-      if (typeof cancelIdleCallback !== 'undefined') {
+    if (typeof taskId === "number") {
+      if (typeof cancelIdleCallback !== "undefined") {
         cancelIdleCallback(taskId);
       } else {
         clearTimeout(taskId);

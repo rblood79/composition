@@ -83,6 +83,25 @@ describe("P3-D-4: useIframeMessenger UPDATE_ELEMENTS schema 전환 (RED phase)",
       expect(source).not.toContain("sendElementsToIframe(elements)");
     });
 
+    // ADR-151 잔여 ② — hidden 탭 preview 정체 회귀 가드.
+    // canonical 재송신은 hidden 탭에서 미발화하는 requestAnimationFrame(scheduleNextFrame)
+    // 이 아니라 scheduleFrameOrTimeout 로 예약해야 한다 (background 탭 parity 자동화가
+    // reload 없이 preview 를 읽을 수 있도록).
+    it("canonical 재송신은 hidden 탭에서도 발화하는 scheduleFrameOrTimeout 로 예약한다", async () => {
+      const fs = await import("node:fs/promises");
+      const path = await import("node:path");
+      const filePath = path.resolve(__dirname, "../useIframeMessenger.ts");
+      const source = await fs.readFile(filePath, "utf-8");
+      const effectBlock = source.match(
+        /pendingCanonicalDocumentCancelRef\.current = (\w+)\(\(\) => \{[\s\S]{0,300}sendCanonicalDocumentToIframe\(activeCanonicalDocument\);/,
+      );
+      expect(
+        effectBlock,
+        "canonical 재송신 스케줄 블록 추출 실패 — 시그니처 변경 시 regex 동기화",
+      ).not.toBeNull();
+      expect(effectBlock![1]).toBe("scheduleFrameOrTimeout");
+    });
+
     it("runtime compare mode 에서는 WebGL-only no-op 으로 빠지지 않는다", async () => {
       const fs = await import("node:fs/promises");
       const path = await import("node:path");

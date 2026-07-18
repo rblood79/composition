@@ -63,7 +63,10 @@ import {
   isValidBootstrapMessage,
   isValidPreviewMessage,
 } from "../../utils/messageValidation";
-import { scheduleNextFrame } from "../utils/scheduleTask";
+import {
+  scheduleFrameOrTimeout,
+  scheduleNextFrame,
+} from "../utils/scheduleTask";
 // ADR-056 Phase 3: Base Typography 초기 동기화
 import { useThemeConfigStore } from "../../stores/themeConfigStore";
 import { normalizeExternalFillIngressBatch } from "../panels/styles/utils/fillExternalIngress";
@@ -1077,7 +1080,9 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
   ]);
 
   const lastSentCanonicalDocumentRef = useRef<CompositionDocument | null>(null);
-  const pendingCanonicalDocumentFrameRef = useRef<number | null>(null);
+  // hidden 탭에서도 발화하는 스케줄러 사용 (rAF 는 background 탭 미발화 → preview 정체).
+  // 취소는 스케줄러 종류 무관 cancel 함수로 수행하므로 numeric frame id 대신 cancel 을 보관.
+  const pendingCanonicalDocumentCancelRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (isWebGLOnly) return;
@@ -1086,17 +1091,17 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
       return;
     }
 
-    cancelScheduledFrame(pendingCanonicalDocumentFrameRef.current);
+    pendingCanonicalDocumentCancelRef.current?.();
 
-    pendingCanonicalDocumentFrameRef.current = scheduleNextFrame(() => {
-      pendingCanonicalDocumentFrameRef.current = null;
+    pendingCanonicalDocumentCancelRef.current = scheduleFrameOrTimeout(() => {
+      pendingCanonicalDocumentCancelRef.current = null;
       lastSentCanonicalDocumentRef.current = activeCanonicalDocument;
       sendCanonicalDocumentToIframe(activeCanonicalDocument);
     });
 
     return () => {
-      cancelScheduledFrame(pendingCanonicalDocumentFrameRef.current);
-      pendingCanonicalDocumentFrameRef.current = null;
+      pendingCanonicalDocumentCancelRef.current?.();
+      pendingCanonicalDocumentCancelRef.current = null;
     };
   }, [activeCanonicalDocument, isWebGLOnly, sendCanonicalDocumentToIframe]);
 

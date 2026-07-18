@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [preview 가 background 탭에서 편집을 반영하지 않던 결함 — ADR-151 잔여 ②] - 2026-07-18
+
+### Bug Fixes
+
+- **background(hidden) 탭에서 요소 편집이 Preview 에 reload 전까지 미반영되던 결함** (ADR-151 잔여 ②):
+  - Preview 로의 canonical 문서 재송신(`UPDATE_CANONICAL_DOCUMENT`)이 `requestAnimationFrame`(`scheduleNextFrame`)으로 예약돼 있었는데, rAF 는 background 탭에서 발화하지 않아 재송신이 정체 → 편집이 reload(PREVIEW_READY 초기 송신) 전까지 Preview DOM 에 반영되지 않았다
+  - **Why**: focused 실사용자는 무영향(rAF 정상 발화)이나, Preview 를 hidden 탭에서 읽는 CSS↔Skia parity 자동화(ADR-151/156 sweep)가 이 정체로 "prop 편집 stale" 을 관측 — 매 편집마다 reload 강제. layouts/pages 송신은 동기인데 canonical 송신만 rAF 였던 비대칭이 근본 원인
+  - 수정: visible→`requestAnimationFrame` / hidden→`setTimeout` 하이브리드 스케줄러 `scheduleFrameOrTimeout` 도입 + canonical 재송신 effect 배선 (focused 탭 hot path 무변경)
+  - 라이브 확증: hidden 탭에서 prop 편집 → `UPDATE_CANONICAL_DOCUMENT` 송신 + Preview DOM 반영 (reload 불필요). 회귀 가드: `scheduleTask.test.ts`(5) + canonical effect source-guard
+  - 위치: `apps/builder/src/builder/utils/scheduleTask.ts`, `apps/builder/src/builder/hooks/useIframeMessenger.ts`
+
 ## [composition-engine CSS 정합 복구 완결 — ADR-156 Implemented (Phase 6 R7 정적 가드)] - 2026-07-18
 
 ### Architecture
