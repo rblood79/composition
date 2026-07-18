@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [명시 높이 grid 자식이 Builder(Skia)에서 셀 높이로 늘어나던 결함 — ADR-156 §Residual 옵션 3-a 세로축] - 2026-07-18
+
+### Bug Fixes
+
+- **명시 height grid 자식이 stretch 로 셀 높이로 늘어나던 결함** (ADR-156 §Residual, 옵션 3-a 세로축):
+  - `align-self:stretch`(기본)인 grid 자식이 **명시 height**(예: `height:40px`)를 가져도 Builder 레이아웃 엔진이 이를 무시하고 셀/행 높이로 stretch → Preview(DOM/CSS)와 발산. CSS 는 definite height 가 stretch 를 이겨 그 높이를 유지 + top 정렬한다.
+  - **Why**: `tree.rs::solve_grid` 의 stretch 분기가 자식 explicit height 를 확인하지 않고 셀 높이 `h` 로 채웠음. `align-self:stretch` 는 자식 height 가 `auto` 일 때만 셀을 채워야 함(definite 는 유지).
+  - 수정: `resolve_self_size` 로 자식 explicit height 감지 → `align==stretch && explicit height` 이면 `start(top)` 정렬 코드로 승격해 explicit height 유지. auto-height 자식은 stretch 로 셀 채움(무회귀).
+  - **CSS-incorrect 단언 정정**: 기존 cargo 테스트 2개(`grid_implicit_auto_row_multi_row_max_height`·`grid_mixed_px_and_auto_rows_preserve_px`)가 짧은 명시-height 자식을 셀로 stretch 한다고 단언 → Chrome ground truth(harness `domLeg`: c0 h=30/h=40/h=20)로 반증 후 정정. row 높이(max intrinsic) 자체는 무변경.
+  - 라이브 확증: builder grid(200×100) + 자식(height:40) → Skia layout map 자식 `{y:0, h:40}`(셀 100 으로 stretch 안 함). ProgressBar/Meter/Slider 는 explicit height == 셀 → 무회귀.
+  - 위치: `packages/composition-engine/src/tree.rs` (`solve_grid` 세로 배치 분기), `apps/builder/tests/parity/phase3a-align.browser.test.ts`
+  - 잔여: 수평 mirror(justify:stretch 하 explicit-**width** 자식) 는 §Residual(미착수 — grid 에서 드묾).
+
 ## [Grid justify-items/justify-self 가로 배치가 Builder(Skia)에서 무시되던 결함 — ADR-156 §Residual 옵션 3-a] - 2026-07-18
 
 ### Bug Fixes

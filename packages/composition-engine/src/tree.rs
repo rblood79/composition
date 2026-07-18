@@ -1691,23 +1691,39 @@ impl LayoutTree {
             let (x, y, w, h) = (bounds[off], bounds[off + 1], bounds[off + 2], bounds[off + 3]);
             // 자식을 셀 크기로 재귀 solve → 자식 실제 크기(explicit/content) 회수.
             let (cw, ch) = self.solve_node(c, w, h);
+            // 자식 **명시(definite) 크기** 여부 — auto/미설정/intrinsic 센티넬은 0.
+            //   stretch 하 explicit dimension respect 판정에 쓴다(아래 세로축). percentage/
+            //   calc 는 셀(w,h) 기준 resolve → definite 로 취급(CSS grid area 는 definite).
+            let (_child_ew, child_eh) = self.resolve_self_size(c, w, h);
             let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
             let align = grid_block_align(cstyle.align_self.as_deref(), grid_align_items);
-            // **오직 명시적 비-stretch 정렬(align≠stretch)일 때만** 재배치한다. 기본 stretch 는
-            //   explicit-height 자식이어도 셀 채움을 유지 — 옵션 3-b "크기 stretch 유지" 계약 +
-            //   live grid 컴포넌트(ProgressBar 등)가 이에 의존(회귀 방지). CSS 상 explicit-height
-            //   자식은 stretch 안 하지만, 그 축소는 옵션 3-a stretch 영역이라 §Residual.
-            let (fy, fh) = if align != 0 {
+            // 세로(block) 배치 코드 결정 (ADR-156 옵션 3-a 세로축 — §Residual "align:stretch
+            //   explicit-height" 해소):
+            //   - align≠stretch → 그 정렬 코드(start/center/end) + 자식 실제 height.
+            //   - align==stretch **인데 자식이 explicit height** → CSS 는 stretch 를 무효화하고
+            //     explicit height 를 유지 + start(top) 정렬 (definite size 가 stretch 를 이김).
+            //   - align==stretch + auto height → 셀 채움(h) (기본 stretch — auto-height 자식만).
+            //   live grid(ProgressBar/Meter/Slider)는 각 auto row 를 자식 intrinsic 으로 sizing
+            //   → 자식 explicit height == 셀 height → free=0 → 무회귀. row 안에 키 큰 형제가 있어
+            //   짧은 explicit 자식이 셀보다 작을 때만 top 정렬로 갈린다(CSS 정합).
+            let block_align = if align != 0 {
+                align
+            } else if child_eh > 0.0 {
+                1 // stretch + explicit height → start(top), explicit 유지
+            } else {
+                0 // stretch fill (auto height)
+            };
+            let (fy, fh) = if block_align != 0 {
                 let real_h = ch.max(0.0).min(h);
                 let free = (h - real_h).max(0.0);
-                let dy = match align {
+                let dy = match block_align {
                     2 => free / 2.0, // center
                     3 => free,       // end
                     _ => 0.0,        // start(1)
                 };
                 (y + dy, real_h)
             } else {
-                (y, h) // stretch fill (기본)
+                (y, h) // stretch fill (기본 — auto-height 자식)
             };
             // E2 justify(가로) — grid_block_align(세로) 대칭 (ADR-156 옵션 3-a). justify≠stretch
             //   이고 자식이 실제 width(cw>0, explicit/content)를 가지면 셀 안 start/center/end 로
@@ -3376,6 +3392,68 @@ mod tests {
         );
     }
 
+    /// E2 옵션 3-a 세로축: align-items 기본(stretch)인데 자식이 explicit height →
+    /// CSS 는 stretch 를 무효화 → explicit height 유지 + top 정렬 (definite 가 stretch 이김).
+    /// Chrome ground truth 실측 일치 (parity harness Case B). 폭은 세로축 전용 수정이라
+    /// justify 기본 stretch 유지 — 수평 explicit-width mirror 는 미착수(§Residual).
+    #[test]
+    fn grid_stretch_explicit_height_respects_and_top_aligns() {
+        let mut tree = LayoutTree::new();
+        // 1열 200 · 1행 100. c0 explicit height 40 (셀 100 보다 짧음, align 기본 stretch).
+        let json = r#"[
+            {"style":{"height":"40px"},"children":[]},
+            {"style":{"display":"grid","width":"200px","height":"100px","gridTemplateColumns":["1fr"],"gridTemplateRows":["100px"]},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 200.0, 100.0);
+        let c = tree.get_layout(handles[0]);
+        assert_eq!(
+            (c.y, c.height),
+            (0.0, 40.0),
+            "stretch 하 explicit height 유지 + top 정렬"
+        );
+        assert_eq!(c.width, 200.0, "width 는 justify 기본 stretch 유지(세로축 전용 수정)");
+    }
+
+    /// 회귀 가드: auto-height 자식(explicit 없음)은 stretch 로 셀 채움 유지 —
+    /// live grid(빈 셀/full-height 아이템)가 의존. child_eh==0 → stretch 분기.
+    #[test]
+    fn grid_stretch_auto_height_still_fills_cell() {
+        let mut tree = LayoutTree::new();
+        // c0 height 미설정(auto) → content 0 이지만 stretch 로 셀(80) 채움.
+        let json = r#"[
+            {"style":{},"children":[]},
+            {"style":{"display":"grid","width":"120px","height":"80px","gridTemplateColumns":["1fr"],"gridTemplateRows":["80px"]},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 120.0, 80.0);
+        let c = tree.get_layout(handles[0]);
+        assert_eq!(
+            (c.y, c.height),
+            (0.0, 80.0),
+            "auto-height 자식은 stretch 로 셀 채움(무회귀)"
+        );
+    }
+
+    /// align-self:center + explicit height (3-b 정렬 유지 확인) — 셀 중앙 배치 + 크기 유지.
+    #[test]
+    fn grid_align_self_center_explicit_height_centers() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"height":"40px","alignSelf":"center"},"children":[]},
+            {"style":{"display":"grid","width":"120px","height":"100px","gridTemplateColumns":["1fr"],"gridTemplateRows":["100px"]},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 120.0, 100.0);
+        let c = tree.get_layout(handles[0]);
+        // center → y=(100-40)/2=30, h=40.
+        assert_eq!(
+            (c.y, c.height),
+            (30.0, 40.0),
+            "align-self:center + explicit height 중앙 배치"
+        );
+    }
+
     /// grid line placement — 자식 gridColumn span (start/end 분리 → 결합 재조립).
     #[test]
     fn grid_child_column_span() {
@@ -3476,6 +3554,11 @@ mod tests {
     }
 
     /// implicit auto row 여러 행 — 자식 3개 2열 → 2행, 각 행 높이 = 그 행 자식 max intrinsic.
+    ///
+    /// **row 높이**는 max intrinsic 으로 sizing 되지만, 셀보다 **짧은 explicit-height 자식**
+    /// (c0: 30 < row0 50)은 셀을 stretch 로 채우지 않고 explicit height 를 유지 + top 정렬
+    /// 한다 (ADR-156 옵션 3-a 세로축 — CSS `align-self:stretch` 는 definite height 를 이기지
+    /// 못함). Chrome ground truth 실측: c0 {y:0, h:30} (parity harness Case A).
     #[test]
     fn grid_implicit_auto_row_multi_row_max_height() {
         let mut tree = LayoutTree::new();
@@ -3490,14 +3573,17 @@ mod tests {
         let handles = tree.build_tree_batch(json).unwrap();
         let root = handles[3];
         tree.compute_layout(root, 200.0, -1.0);
-        // row0 높이 = max(30,50) = 50 → c0,c1 셀 높이 50.
-        assert_eq!(tree.get_layout(handles[0]).height, 50.0, "row0 max height");
-        assert_eq!(tree.get_layout(handles[1]).height, 50.0, "row0 max height");
-        // c2 는 row1 (y=50), 높이 40.
+        // row0 셀 높이 = max(30,50) = 50. c0 은 explicit 30 유지(셀보다 짧음) + top 정렬,
+        //   c1 은 explicit 50 == 셀 → 그대로 50.
+        let c0 = tree.get_layout(handles[0]);
+        assert_eq!(c0.height, 30.0, "c0 explicit height 30 (셀 50 로 stretch 안 함)");
+        assert_eq!(c0.y, 0.0, "c0 top 정렬 (stretch 무효)");
+        assert_eq!(tree.get_layout(handles[1]).height, 50.0, "c1 explicit 50 == 셀");
+        // c2 는 row1 (y=50), 높이 40 (== 셀).
         let c2 = tree.get_layout(handles[2]);
         assert_eq!(c2.y, 50.0, "c2 row1 y = row0 height 50");
         assert_eq!(c2.height, 40.0, "row1 height = 40");
-        // 컨테이너 intrinsic = 50 + 40 = 90.
+        // 컨테이너 intrinsic = row0(50) + row1(40) = 90 (row 높이는 max intrinsic 유지).
         assert_eq!(tree.get_layout(root).height, 90.0, "컨테이너 = row0+row1 = 90");
     }
 
@@ -3680,10 +3766,15 @@ mod tests {
     }
 
     /// 명시 auto row 혼합: px row 는 고정 유지, auto row 만 intrinsic 측정.
+    ///
+    /// px row(40) 는 트랙 크기로 고정되지만, 그 row 의 **짧은 explicit 자식**(c0: 20)은
+    /// stretch 로 셀을 채우지 않고 explicit height 유지 + top 정렬한다 (ADR-156 옵션 3-a
+    /// 세로축). row0=40px 인 증거는 c1.y=40 (row1 시작). Chrome ground truth 실측:
+    /// c0 {y:0, h:20} (parity harness Case D).
     #[test]
     fn grid_mixed_px_and_auto_rows_preserve_px() {
         let mut tree = LayoutTree::new();
-        // rows "40px auto". row0 자식 h=20(px row 40 고정), row1 자식 h=25(auto 측정).
+        // rows "40px auto". row0 자식 h=20(셀 40 안에서 20 유지), row1 자식 h=25(auto 측정).
         let json = r#"[
             {"style":{"height":"20px","gridColumnStart":"1","gridColumnEnd":"2","gridRowStart":"1","gridRowEnd":"2"},"children":[]},
             {"style":{"height":"25px","gridColumnStart":"1","gridColumnEnd":"2","gridRowStart":"2","gridRowEnd":"3"},"children":[]},
@@ -3691,8 +3782,11 @@ mod tests {
         ]"#;
         let handles = tree.build_tree_batch(json).unwrap();
         tree.compute_layout(handles[2], 200.0, -1.0);
-        assert_eq!(tree.get_layout(handles[0]).height, 40.0, "px row 40 고정(자식 20 무관)");
+        // c0 은 explicit 20 유지(px row 40 로 stretch 안 함) + top 정렬.
+        assert_eq!(tree.get_layout(handles[0]).height, 20.0, "c0 explicit 20 유지(셀 40)");
+        assert_eq!(tree.get_layout(handles[0]).y, 0.0, "c0 top 정렬");
         assert_eq!(tree.get_layout(handles[1]).height, 25.0, "auto row = 자식 intrinsic 25");
+        // px row 는 여전히 40 (c1 이 row1 = y=40 에서 시작 → row0 트랙 40 고정 증거).
         assert_eq!(tree.get_layout(handles[1]).y, 40.0, "row1 y = px row 40");
         assert_eq!(tree.get_layout(handles[2]).height, 65.0, "컨테이너 = 40 + 25 = 65");
     }
