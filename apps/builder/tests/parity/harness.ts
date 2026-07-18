@@ -1,4 +1,9 @@
 import { CompositionEngineLayout } from "@/builder/workspace/canvas/wasm-bindings/compositionEngine";
+import {
+  calculateFullTreeLayout,
+  resetPersistentTree,
+} from "@/builder/workspace/canvas/layout/engines/fullTreeLayout";
+import type { CanvasLayoutNode } from "@/types/builder/unified.types";
 
 /**
  * ADR-156 Phase 1 — 엔진 ↔ CSS 차등 하니스 코어 (G1)
@@ -182,4 +187,107 @@ export function runParityCase(c: ParityCase): string[] {
   const dom = domLeg(c.nodes, c.availW);
   const eng = engineLeg(c.nodes, c.availW, c.availH);
   return diffCase(c.nodes, dom, eng);
+}
+
+// ── leg 3: 빌더 실 파이프라인 (Layer 2 — ADR-156 §Residual R5) ──
+// engineLeg 는 엔진을 **직접** 호출(buildTreeBatch→computeLayout)하므로 빌더의 JS 선계산
+// 층(`enrichWithIntrinsicSize`/`calculateContentHeight` 주입 → `calculateFullTreeLayout` 이
+// auto-height 컨테이너에서 그 주입을 제거하고 엔진 결과 재사용) 발산을 미검출한다. 이 leg 는
+// `calculateFullTreeLayout`(빌더 canvas 가 소비하는 실 진입점)을 그대로 돌려 **엔진 결과가
+// Skia 좌표까지 온전히 도달하는지**를 CSS ground truth 와 대조한다.
+//
+// 노드 type 은 특수 분기(catalog/spec) 없는 generic block 컨테이너 `box`. fixture style 은
+// TaffyStyle 레코드(camelCase, "30px"/"block") = React.CSSProperties 호환.
+let pipelineCaseSeq = 0;
+export function pipelineLeg(
+  nodes: CaseNode[],
+  availW: number,
+  availH: number,
+): Bounds[] {
+  const n = nodes.length;
+  const rootIdx = n - 1;
+  const ids = nodes.map((_, i) => `p${i}`);
+  // 케이스마다 unique page_id → persistentTrees 키 충돌(상태 누수) 방지.
+  const pageId = `parity-pipeline-${pipelineCaseSeq++}`;
+
+  const elementsMap = new Map<string, CanvasLayoutNode>();
+  const childrenMap = new Map<string, string[]>();
+  nodes.forEach((node, i) => {
+    const style: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(node.style)) {
+      style[k] = Array.isArray(v) ? v.join(" ") : v;
+    }
+    const childIds = (node.children ?? []).map((ci) => ids[ci]);
+    childrenMap.set(ids[i], childIds);
+    elementsMap.set(ids[i], {
+      id: ids[i],
+      type: "box",
+      page_id: i === rootIdx ? pageId : null,
+      props: { style },
+    } as unknown as CanvasLayoutNode);
+  });
+
+  const getChild = (id: string): CanvasLayoutNode[] =>
+    (childrenMap.get(id) ?? []).map((cid) => elementsMap.get(cid)!);
+
+  resetPersistentTree(pageId);
+  const map = calculateFullTreeLayout(
+    ids[rootIdx],
+    elementsMap,
+    childrenMap,
+    availW,
+    availH,
+    getChild,
+  );
+  resetPersistentTree(pageId);
+  if (!map) {
+    throw new Error(
+      "calculateFullTreeLayout null — composition-engine WASM 미준비 확인",
+    );
+  }
+
+  // ComputedLayout.x/y = 부모 상대 → 조상 합산으로 절대(engineLeg 동형).
+  const parent = new Array<number>(n).fill(-1);
+  nodes.forEach((node, i) => {
+    (node.children ?? []).forEach((ci) => {
+      parent[ci] = i;
+    });
+  });
+  const local = ids.map((id) => {
+    const r = map.get(id);
+    if (!r) throw new Error(`calculateFullTreeLayout: ${id} 결과 누락`);
+    return r;
+  });
+  const absX = new Array<number>(n);
+  const absY = new Array<number>(n);
+  for (let i = 0; i < n; i++) {
+    let ax = local[i].x;
+    let ay = local[i].y;
+    let p = parent[i];
+    while (p !== -1) {
+      ax += local[p].x;
+      ay += local[p].y;
+      p = parent[p];
+    }
+    absX[i] = ax;
+    absY[i] = ay;
+  }
+  const rx = absX[rootIdx];
+  const ry = absY[rootIdx];
+  return local.map((r, i) => ({
+    x: absX[i] - rx,
+    y: absY[i] - ry,
+    w: r.width,
+    h: r.height,
+  }));
+}
+
+/**
+ * 케이스 1개를 CSS(leg1) ↔ 빌더 파이프라인(leg3) 으로 돌려 발산 목록 반환.
+ * 빈 배열 = 엔진 결과가 JS 선계산 마스킹 없이 Skia 좌표까지 정합 도달.
+ */
+export function runPipelineParityCase(c: ParityCase): string[] {
+  const dom = domLeg(c.nodes, c.availW);
+  const pipe = pipelineLeg(c.nodes, c.availW, c.availH);
+  return diffCase(c.nodes, dom, pipe);
 }
