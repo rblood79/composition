@@ -458,6 +458,54 @@ impl LayoutTree {
             self.last_compute = Some((root, available_width, available_height));
         }
         self.solve_node(root, available_width, available_height);
+        self.fixup_root_self_size(root, available_width, available_height);
+    }
+
+    /// E5: root 자기 크기 결함군 정정 (ADR-156 Phase 5).
+    ///
+    /// solve_block/flex/grid 는 auto 크기를 **content bounding box**(shrink-to-fit, pad_border
+    /// 제외)로 반환한다. 중첩 노드는 부모의 배치 커널이 stretch/clamp 하지만 **root 는 부모가
+    /// 없어** 그 shrink-to-fit 이 그대로 최종 크기가 된다. CSS 는 block-level root 를 containing
+    /// block(availW)으로 fill 하고, auto 높이에 pad_border 를 더하며, 자기 min/max 로 clamp 한다.
+    ///
+    /// **explicit 차원은 건드리지 않는다** — 라이브 root(body)는 명시 크기라 회귀 0. auto 축에만 적용.
+    fn fixup_root_self_size(&mut self, root: usize, avail_w: f32, avail_h: f32) {
+        let style = self.get(root).map(|n| n.style.clone()).unwrap_or_default();
+        let ctx_w = self.ctx_for(avail_w);
+        let ctx_h = self.ctx_for(avail_h);
+        let has_w = resolve_dimension_opt(style.width.as_deref(), &ctx_w).is_some();
+        let has_h = resolve_dimension_opt(style.height.as_deref(), &ctx_h).is_some();
+        // 컨테이너 자신의 세로 pad_border (auto 높이 = content + pad_border, border-box).
+        let own_pb_v = axis_pad_border(&style, &ctx_w, false);
+
+        let mut layout = self.get(root).map(|n| n.layout).unwrap_or(NodeLayout::ZERO);
+
+        // ① auto width → availW fill (block-level root). explicit 폭은 유지.
+        if !has_w && avail_w > 0.0 {
+            layout.width = avail_w;
+            // min/max width clamp (자기 크기 — CSS §10.4).
+            if let Some(mn) = resolve_dimension_opt(style.min_width.as_deref(), &ctx_w) {
+                layout.width = layout.width.max(mn);
+            }
+            if let Some(mx) = resolve_dimension_opt(style.max_width.as_deref(), &ctx_w) {
+                layout.width = layout.width.min(mx);
+            }
+        }
+
+        // ② auto height → content + pad_border, 이어서 자기 min/max clamp. explicit 높이는 유지.
+        if !has_h {
+            layout.height += own_pb_v;
+            if let Some(mn) = resolve_dimension_opt(style.min_height.as_deref(), &ctx_h) {
+                layout.height = layout.height.max(mn);
+            }
+            if let Some(mx) = resolve_dimension_opt(style.max_height.as_deref(), &ctx_h) {
+                layout.height = layout.height.min(mx);
+            }
+        }
+
+        if let Some(n) = self.get_mut(root) {
+            n.layout = layout;
+        }
     }
 
     /// 서브트리(`handle` 포함)에 dirty 노드가 하나라도 있으면 true.
@@ -560,7 +608,18 @@ impl LayoutTree {
         };
 
         // 명시 크기(있으면) — auto 는 아래에서 content 로 채움.
-        let (explicit_w, explicit_h) = self.resolve_self_size(handle, avail_w, avail_h);
+        let (mut explicit_w, mut explicit_h) = self.resolve_self_size(handle, avail_w, avail_h);
+        // E15: aspect-ratio — 한 축만 명시되고 다른 축이 auto 면 ratio 로 파생 (CSS §4).
+        //   ratio = width / height → height = width/ratio, width = height*ratio.
+        if let Some(ratio) = self.get(handle).and_then(|n| n.style.aspect_ratio) {
+            if ratio > 0.0 {
+                if explicit_w > 0.0 && explicit_h <= 0.0 {
+                    explicit_h = explicit_w / ratio;
+                } else if explicit_h > 0.0 && explicit_w <= 0.0 {
+                    explicit_w = explicit_h * ratio;
+                }
+            }
+        }
 
         // 재계산마다 hoisted margin 리셋 (E3). solve_block 만 nonzero 로 채우고,
         // flex/grid/leaf 는 0 유지 — display 가 block→flex 로 바뀌어도 stale escaped 잔존 없음.
@@ -1102,6 +1161,54 @@ impl LayoutTree {
             }
         }
 
+        // 3.8) **main 축 margin:auto** (E4/ADR-156 P5). CSS §8.1: auto margin 은 justify-content
+        //   보다 우선해 잉여 공간을 흡수한다. flex.rs 는 auto 를 0 으로 받으므로(resolve_signed)
+        //   tree.rs 후처리로 main 축 위치를 재배치한다. **단일 라인(nowrap) 근사** — multi-line 은
+        //   §Residual. definite main 축에서만 (indefinite 면 잉여 공간 개념 없음).
+        let is_nowrap = !matches!(style.flex_wrap.as_deref(), Some("wrap") | Some("wrap-reverse"));
+        if is_nowrap && avail_main >= 0.0 {
+            let (pos_i, size_i) = if is_row { (0usize, 2usize) } else { (1usize, 3usize) };
+            let auto_flags: Vec<(bool, bool)> = children
+                .iter()
+                .map(|&c| {
+                    let cs = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
+                    if is_row {
+                        (
+                            cs.margin_left.as_deref() == Some("auto"),
+                            cs.margin_right.as_deref() == Some("auto"),
+                        )
+                    } else {
+                        (
+                            cs.margin_top.as_deref() == Some("auto"),
+                            cs.margin_bottom.as_deref() == Some("auto"),
+                        )
+                    }
+                })
+                .collect();
+            let auto_count: usize = auto_flags.iter().map(|&(s, e)| s as usize + e as usize).sum();
+            if auto_count > 0 {
+                let mut used = 0.0;
+                for i in 0..children.len() {
+                    used += out[i * 4 + size_i];
+                }
+                used += gap_main * children.len().saturating_sub(1) as f32;
+                let share = (avail_main - used).max(0.0) / auto_count as f32;
+                let mut cursor = 0.0;
+                for i in 0..children.len() {
+                    let (ms, me) = auto_flags[i];
+                    if ms {
+                        cursor += share;
+                    }
+                    out[i * 4 + pos_i] = cursor;
+                    cursor += out[i * 4 + size_i];
+                    if me {
+                        cursor += share;
+                    }
+                    cursor += gap_main;
+                }
+            }
+        }
+
         // 3.9) **reverse 반사** (E8/ADR-156 P4). row/column-reverse 는 main 축, wrap-reverse
         //   는 cross 축을 반사한다. CSS 의 reverse 는 해당 축의 start/end 를 뒤집는 것이라
         //   **정방향 배치의 순수 기하 반사**로 정확히 재현된다 (justify/gap/free-space/align
@@ -1309,7 +1416,22 @@ impl LayoutTree {
         let mut max_bottom: f32 = 0.0;
         for (i, &c) in children.iter().enumerate() {
             let off = i * 4;
-            let (x, y, w, h) = (out[off], out[off + 1] - escaped_top, out[off + 2], out[off + 3]);
+            let (mut x, y, w, h) = (out[off], out[off + 1] - escaped_top, out[off + 2], out[off + 3]);
+            // E4: 가로 margin:auto → content box 잉여 공간 분배 (ADR-156 Phase 5, CSS §10.3.3).
+            //   both auto = 중앙, left auto = 우측 정렬. auto width 자식은 free 0 이라 무영향.
+            let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
+            let ml_auto = cstyle.margin_left.as_deref() == Some("auto");
+            let mr_auto = cstyle.margin_right.as_deref() == Some("auto");
+            if ml_auto || mr_auto {
+                let free = (child_avail_w - w).max(0.0);
+                x = if ml_auto && mr_auto {
+                    free / 2.0
+                } else if ml_auto {
+                    free
+                } else {
+                    x
+                };
+            }
             max_right = max_right.max(x + w);
             max_bottom = max_bottom.max(y + h);
             if let Some(n) = self.get_mut(c) {
@@ -2119,8 +2241,11 @@ fn write_block_item(
     // **height 의 `%` 는 `height_ctx`** (E6/ADR-156 P2) — 컨테이너 height 가 명시 definite
     // 일 때만 실축, auto 면 indefinite→auto (CSS §10.5). `ctx`(폭) 로 풀면 height:50% 가
     // 폭의 50% 로 잘못 해소된다(BP-1/2). width 는 그대로 ctx(폭).
-    let expl_w = resolve_cross_dimension_opt(cstyle.width.as_deref(), ctx);
-    let expl_h = resolve_cross_dimension_opt(cstyle.height.as_deref(), height_ctx);
+    let mut expl_w = resolve_cross_dimension_opt(cstyle.width.as_deref(), ctx);
+    let mut expl_h = resolve_cross_dimension_opt(cstyle.height.as_deref(), height_ctx);
+    // E15: aspect-ratio 파생 (ADR-156 Phase 5) — 한 축 명시 + 다른 축 auto 면 ratio 로 파생하고
+    //   **definite** 로 표기해 부모 block 이 stretch 하지 않게 한다 (auto -1 이면 컨테이너 폭으로 팽창).
+    apply_aspect_to_dims(cstyle.aspect_ratio, &mut expl_w, &mut expl_h);
 
     let pad_border_v = axis_pad_border(cstyle, ctx, false);
     let pad_border_h = axis_pad_border(cstyle, ctx, true);
@@ -2269,6 +2394,24 @@ fn resolve_inset(value: Option<&str>, ctx: &CssValueContext) -> Option<f32> {
 #[inline]
 fn resolve_signed(value: Option<&str>, ctx: &CssValueContext) -> f32 {
     resolve_inset(value, ctx).unwrap_or(0.0)
+}
+
+/// E15: aspect-ratio 파생 — 한 축만 definite 이고 다른 축이 auto(None)면 ratio 로 파생한다.
+///
+/// `ratio = width / height` → height = width/ratio, width = height*ratio. 파생 결과를 definite
+/// 로 표기해 부모 배치 커널이 auto(stretch)로 오처리하지 않게 한다. FIT_CONTENT/음수 센티넬은
+/// 실 크기가 아니므로 파생 제외(양수 definite 만 대상).
+#[inline]
+fn apply_aspect_to_dims(aspect_ratio: Option<f32>, w: &mut Option<f32>, h: &mut Option<f32>) {
+    let Some(ratio) = aspect_ratio else { return };
+    if ratio <= 0.0 {
+        return;
+    }
+    match (*w, *h) {
+        (Some(wv), None) if wv > 0.0 => *h = Some(wv / ratio),
+        (None, Some(hv)) if hv > 0.0 => *w = Some(hv * ratio),
+        _ => {}
+    }
 }
 
 /// `resolve_dimension_opt` + fit-content 보존 변형. flex cross 축 + block 자식
@@ -2488,15 +2631,121 @@ mod tests {
     }
 
     #[test]
-    fn compute_leaf_auto_is_zero_unit1() {
+    fn compute_leaf_auto_root_fills_width_zero_height() {
         let mut tree = LayoutTree::new();
-        // auto/미설정은 단위 1 에선 0 (intrinsic 은 단위 2).
+        // E5(ADR-156 P5): block-level **root** 는 auto width 를 availW 로 fill 한다(CSS §10.3.3).
+        //   auto height 는 content(leaf=0) + pad_border(0) = 0. (중첩 leaf 는 부모가 stretch —
+        //   root 만 fixup_root_self_size 가 직접 채운다.)
         let json = r#"[{"style":{"width":"auto"},"children":[]}]"#;
         let handles = tree.build_tree_batch(json).unwrap();
         tree.compute_layout(handles[0], 400.0, 300.0);
         let l = tree.get_layout(handles[0]);
-        assert_eq!(l.width, 0.0);
-        assert_eq!(l.height, 0.0);
+        assert_eq!(l.width, 400.0, "block-level root auto width → availW fill");
+        assert_eq!(l.height, 0.0, "auto height, leaf content 0");
+    }
+
+    // ── E5 root 자기 크기 결함군 / E4 margin auto / E15 aspect-ratio (ADR-156 Phase 5) ──
+
+    /// E5: root auto height = content + pad_border, auto width = availW fill.
+    #[test]
+    fn e5_root_auto_height_adds_padding_and_fills_width() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","width":"100px","height":"20px"},"children":[]},
+            {"style":{"display":"block","paddingTop":"10px","paddingRight":"10px","paddingBottom":"10px","paddingLeft":"10px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 300.0, -1.0);
+        let r = tree.get_layout(handles[1]);
+        assert_eq!(r.width, 300.0, "auto width → availW fill");
+        assert_eq!(r.height, 40.0, "content 20 + padding 20");
+    }
+
+    /// E5: 무폭 flex root 가 availW 를 채운다 (block-level 컨테이너).
+    #[test]
+    fn e5_root_nowidth_flex_fills_available_width() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"40px","height":"20px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 200.0, -1.0);
+        assert_eq!(tree.get_layout(handles[1]).width, 200.0, "flex root fills availW");
+    }
+
+    /// E5: root auto height 자기 min/max clamp.
+    #[test]
+    fn e5_root_auto_height_min_max_clamp() {
+        let mut up = LayoutTree::new();
+        let json_min = r#"[
+            {"style":{"display":"block","width":"100px","height":"30px"},"children":[]},
+            {"style":{"display":"block","minHeight":"80px"},"children":[0]}
+        ]"#;
+        let h = up.build_tree_batch(json_min).unwrap();
+        up.compute_layout(h[1], 300.0, -1.0);
+        assert_eq!(up.get_layout(h[1]).height, 80.0, "minHeight clamp up");
+
+        let mut down = LayoutTree::new();
+        let json_max = r#"[
+            {"style":{"display":"block","width":"100px","height":"100px"},"children":[]},
+            {"style":{"display":"block","maxHeight":"50px"},"children":[0]}
+        ]"#;
+        let h2 = down.build_tree_batch(json_max).unwrap();
+        down.compute_layout(h2[1], 300.0, -1.0);
+        assert_eq!(down.get_layout(h2[1]).height, 50.0, "maxHeight clamp down");
+    }
+
+    /// E4: block 자식 가로 margin:auto → 중앙 정렬.
+    #[test]
+    fn e4_block_margin_auto_centers() {
+        let mut tree = LayoutTree::new();
+        // mid(width 200) > k(width 80, marginLeft/Right auto) → k.x = (200-80)/2 = 60.
+        let json = r#"[
+            {"style":{"display":"block","width":"80px","height":"20px","marginLeft":"auto","marginRight":"auto"},"children":[]},
+            {"style":{"display":"block","width":"200px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 300.0, -1.0);
+        assert_eq!(tree.get_layout(handles[0]).x, 60.0, "margin auto 중앙");
+    }
+
+    /// E4: flex row 자식 marginLeft:auto → 잉여 공간 흡수(우측으로 밀림).
+    #[test]
+    fn e4_flex_margin_auto_pushes_end() {
+        let mut tree = LayoutTree::new();
+        // flex row(width 200) > k(width 40, marginLeft auto) → k.x = 200 - 40 = 160.
+        let json = r#"[
+            {"style":{"width":"40px","height":"20px","marginLeft":"auto"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","width":"200px","height":"50px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 300.0, -1.0);
+        assert_eq!(tree.get_layout(handles[0]).x, 160.0, "auto margin free space 흡수");
+    }
+
+    /// E15: aspect-ratio — 한 축 명시 + ratio 로 다른 축 파생.
+    #[test]
+    fn e15_aspect_ratio_derives_missing_axis() {
+        let mut w2h = LayoutTree::new();
+        // width 100 + ratio 2 → height 50.
+        let json_w = r#"[
+            {"style":{"display":"block","width":"100px","aspectRatio":2},"children":[]},
+            {"style":{"display":"block","width":"300px","height":"600px"},"children":[0]}
+        ]"#;
+        let h = w2h.build_tree_batch(json_w).unwrap();
+        w2h.compute_layout(h[1], 300.0, -1.0);
+        assert_eq!(w2h.get_layout(h[0]).height, 50.0, "width 100 / ratio 2 = 50");
+
+        let mut h2w = LayoutTree::new();
+        // height 60 + ratio 3 → width 180 (부모가 stretch 하지 않아야 — write_block_item definite).
+        let json_h = r#"[
+            {"style":{"display":"block","height":"60px","aspectRatio":3},"children":[]},
+            {"style":{"display":"block","width":"300px","height":"600px"},"children":[0]}
+        ]"#;
+        let h2 = h2w.build_tree_batch(json_h).unwrap();
+        h2w.compute_layout(h2[1], 300.0, -1.0);
+        assert_eq!(h2w.get_layout(h2[0]).width, 180.0, "height 60 * ratio 3 = 180 (no stretch)");
     }
 
     #[test]
