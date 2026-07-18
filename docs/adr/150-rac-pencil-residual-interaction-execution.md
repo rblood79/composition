@@ -2,7 +2,11 @@
 
 ## Status
 
-Proposed — 2026-07-13 (리뷰 round 1 반영 개정 2026-07-14)
+Accepted — 2026-07-18 (리뷰 round 2 승인 — 이슈 0건, 합의 완료 → Accepted 승격 · execute-adr A1 착수)
+
+> 진행 로그:
+>
+> - Proposed 2026-07-13 (리뷰 round 1 반영 개정 2026-07-14) → Accepted 2026-07-18 (reviews/150.md round 2 이슈 0건)
 
 > **문서 위상: 실행 ADR (ADR-912 후속)**. [ADR-912](completed/912-rac-pencil-rebuild-cutover.md)(백지 직행, Implemented 2026-06-18)가 승격 시점에 명시 기록한 잔여 — [ADR-911](911-rac-pencil-target-component-architecture.md) R-3 잔여(가상화 스크롤 60fps + drill-in data edit UI) + R-4 잔여(hover/pressed/focusVisible interaction threading) — 를 단일 scope 로 실행한다. 사용자 결정 2026-07-13 (AskUserQuestion "새 실행 ADR 1건 작성"). 910/911 은 비실행 참조 위상 그대로 존속하며, 본 ADR 완료 시 911 의 proof gate G-state(hover/pressed/selected 3축)/G-projected 잔여 증명이 충족된다.
 
