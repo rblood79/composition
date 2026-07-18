@@ -345,6 +345,22 @@ flow 수정(Phase 4)과 축이 독립적이라 분리한다. `position`/`top`/`l
 - E5 root 결함군: `compute_layout(root, w, -1)` 의 root 자기 크기 경로에서 ① padding/border 를 auto 높이에 합산 ② 무폭 flex/grid root 가 availW 를 채우도록 ③ 자기 min/max clamp 적용. **중첩 경로는 이미 정확**하므로 root 분기만 정합하고, NST-1~4(중첩 4형상)를 회귀 기준선으로 고정.
 - E15 `aspect_ratio`: 한 축 명시 + ratio 로 다른 축 파생. 캐시 키 등재됨(추가 작업 없음). `tree.rs:172` 선언은 있으나 소비 0.
 
+### 6-b. 진행 상태 — Phase 5 반영 완료 (2026-07-18, commit `db40890c8`)
+
+**구현 (엔진 = `packages/composition-engine/src/tree.rs`)**:
+
+- **E5 root 결함군**: `fixup_root_self_size`(compute_layout 후처리) 신설. `solve_block/flex/grid` 는 auto 크기를 **content bounding box**(shrink-to-fit, pad_border 제외)로 반환하고 중첩 노드는 부모의 배치 커널이 stretch/clamp 하지만 **root 는 부모가 없어** 그 shrink-to-fit 이 그대로 최종 크기가 된다. block-level root 를 `availW` fill + auto 높이에 `axis_pad_border` 합산 + 자기 min/max clamp. **explicit 차원은 미변경**(auto 축에만 적용).
+- **E4 margin auto**: `solve_block` step 4 에서 가로 `margin:auto` → content box 잉여 균등 분배(both auto = 중앙, left auto = 우측). `solve_flex` 3.8) main 축 `margin:auto` → 잉여 흡수(justify 보다 우선, **단일 라인 nowrap 근사** — multi-line 은 §Residual). auto width 자식은 free 0 이라 무영향.
+- **E15 aspect-ratio**: `apply_aspect_to_dims` 헬퍼(한 축 definite + 다른 축 auto → ratio 파생, definite 표기)를 `solve_node`(노드 자기 크기) + `write_block_item`(부모가 stretch 안 하도록 definite 표기) 양쪽에 적용.
+
+**검증**: `cargo test` **303**(lib 276 = 270+6 E4/E5/E15, +golden 15 +tree_golden 11 +doc 1) / 파리티 `phase5.browser.test.ts` **9/9** + 전체 스위트 **50 무회귀**(672 조합·flex sweep 무손상) / type-check baseline 63 무증가. 기존 `compute_leaf_auto_is_zero_unit1` 은 root auto width fill 로 (0,0)→(400,0) 정정(CSS-correct).
+
+**파리티 발견 — block root 도 fill 필요**: ADR §1-1-b E5 확장은 "무폭 **flex/grid** root"만 지목했으나, 차등 하니스에서 **block root 도** `root.w` 300 vs eng 100(content) 발산이 드러났다 → block 포함 전 root 를 availW fill 로 확장. 근원은 `solve_block:1380` `container_w = max_right`(shrink-to-fit)가 root 에서 override 되지 않던 것.
+
+**live behavior (Skia scene, `getSharedLayoutMap`)**: E15 aspect frame(width 100 + aspectRatio 2) → scene w100×**h50**(파생) · E4 block child(width 80 + marginLeft/Right auto, mid 200) → local **x=60**(중앙) 반영 확인. **E4 는 Inspector 입력 경로가 없어(잠재) store 주입으로 exercise**. E4 flex 는 동일 메커니즘(파리티 검증).
+
+**E5 전제 정정 (ADR §1-1-b "라이브 root 명시 크기" 반증)**: 라이브 `body`(page-components-body)는 `props.style.width/height` 가 **미정의(auto)** 였다 — ADR 이 잠재로 분류한 근거("라이브 root 는 명시 높이")가 실측과 불일치. 따라서 fixup 이 live 발동한다. 다만 결과가 **CSS-correct 이고 무회귀**: block-level body 가 availW(390, 모바일 기기 폭) 를 fill 하는데, 기존 `max_right` 도 full-width 자식(390) 존재로 390 이라 값이 동일하고, 자식 stacking·시각 렌더가 파손 없음(screenshot 확인). 오히려 full-width 자식이 없는 페이지에서 body 가 수축하던 잠재 결함이 함께 정합됐다. (Layer 2 마스킹 대상이 아니라 엔진 결과가 직접 도달 — Phase 4 block-height 와 대비.)
+
 ## 7. Phase 6 — 종결 (G6)
 
 - **(R7) `NodeStyle` 정적 가드 신설** — 기존 `golden.rs:368` 의 `assert_eq!(FLEX_FIELD_COUNT, 17)` 패턴을 승계해:

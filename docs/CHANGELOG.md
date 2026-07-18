@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [margin auto·root 자기 크기·aspect-ratio 가 Builder(Skia)에서 CSS 와 어긋나던 결함 — ADR-156 Phase 5] - 2026-07-18
+
+### Bug Fixes
+
+- **root(페이지 body) 자기 크기 결함군 수정** (ADR-156 E5):
+  - 증상: 무폭 root 가 availW 를 채우지 않고 content 로 수축 / auto 높이에 padding·border 누락 / 자기 min·max 높이 clamp 무시
+  - **Why**: 엔진의 `solve_block/flex/grid` 는 auto 크기를 content bounding box(shrink-to-fit)로 반환하고, 중첩 노드는 부모 커널이 stretch/clamp 하지만 **root 는 부모가 없어** 그 값이 그대로 최종 크기가 됐다. `fixup_root_self_size`(compute_layout 후처리)로 block-level root 를 availW fill + auto 높이 pad_border 합산 + 자기 min/max clamp. explicit 차원은 미변경
+  - 라이브 영향: body 가 auto 크기라 fill 이 live 발동하나 CSS-correct(availW = 기기 폭)이며 무회귀(기존 full-width 자식으로 동일 폭). full-width 자식이 없던 페이지에서 body 수축이 함께 정합됨
+- **`margin:auto` 정렬 미구현 수정** (ADR-156 E4):
+  - block 가로 `margin:auto` → content box 잉여 균등 분배(중앙). flex main 축 `margin:auto` → 잉여 흡수(justify-content 보다 우선, 단일 라인)
+  - **Why**: 엔진이 auto margin 을 0 으로 처리(`resolve_signed`)해 정렬이 소실. solve_block/solve_flex 후처리로 잉여 공간 분배. (Inspector 입력 경로는 아직 없어 pencil import / 향후 정렬 기능 유입 대비)
+- **`aspect-ratio` 미소비 수정** (ADR-156 E15):
+  - 증상: 한 축만 명시하고 `aspect-ratio` 로 다른 축을 파생해야 하는데 파생 크기가 전면 소실(예: width 100 + ratio 2 → height 0)
+  - **Why**: `aspect_ratio` 필드가 선언만 되고 소비 0곳. `apply_aspect_to_dims` 로 `solve_node`(자기 크기) + `write_block_item`(부모 stretch 차단) 양쪽에서 파생. width 100 + ratio 2 → height 50, height 60 + ratio 3 → width 180
+- 위치: `packages/composition-engine/src/tree.rs`
+- 검증: Chrome 차등 파리티(`tests/parity/phase5.browser.test.ts`) 9 fixture + 전체 스위트 50 + Rust 303 tests(E4/E5/E15 +6) + type-check 63 무증가. **live(빌더 Skia scene)**: E15 aspect(w100→h50)·E4 block margin auto(x60 중앙) 반영, E5 body 회귀 0(시각 파손 없음) 확인
+
 ## [position(relative offset·absolute 3종)이 Builder(Skia)에서 CSS 와 어긋나던 결함 — ADR-156 Phase 4.5] - 2026-07-18
 
 ### Bug Fixes
