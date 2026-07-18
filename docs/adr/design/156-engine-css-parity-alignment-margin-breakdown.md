@@ -1,6 +1,6 @@
 # ADR-156 구현 상세 — composition-engine CSS 정합 복구
 
-> 본 문서는 [ADR-156](../156-engine-css-parity-alignment-margin.md) 의 구현 상세다. 결정/위험/Gate 는 본문 참조.
+> 본 문서는 [ADR-156](../completed/156-engine-css-parity-alignment-margin.md) 의 구현 상세다. 결정/위험/Gate 는 본문 참조.
 
 ## 1. Phase 0 inventory — 실측 기준선 (freeze 대상)
 
@@ -81,7 +81,7 @@
 
 소비 있음 40필드도 **소비 ≠ 정합** — 소비되면서도 해석이 틀린 축(E6 percent height 폭 ctx, E7 음수 margin, E8 reverse 계열, E12 grid 컨테이너 정렬 등)은 §1-1-b 동적 실측이 담당한다. grid 커널은 min/max clamp 소비가 0 (flex/block 만 구현 — E2 인접).
 
-**stale 위험**: 본 표는 문서 산출물이라 필드 추가 시 자동으로 갱신되지 않는다 → **R7 / G6 의 정적 가드**가 상시성의 근거다.
+**stale 위험**: 본 표는 문서 산출물이라 필드 추가 시 자동으로 갱신되지 않는다 → **R7 / G6 의 정적 가드**가 상시성의 근거다. **구현 후 (2026-07-18, Phase 6 land)**: Phase 2~5 배선으로 미소비 9→**2**(`justifySelf`/`justifyItems`)로 축소됐고, R7 가드(`tree.rs::nodestyle_field_contract_guard` + pub const `NODESTYLE_FIELD_COUNT`/`UNCONSUMED_NODESTYLE_FIELDS`)가 이 현재 상태를 코드로 고정한다(§7-b). 본 표는 Phase 0 freeze 원형이라 9필드 서술을 유지한다.
 
 ### 1-3-b. 캐시 키 등재 축 (R6 — 4번째 축)
 
@@ -371,9 +371,25 @@ flow 수정(Phase 4)과 축이 독립적이라 분리한다. `position`/`top`/`l
 - README 표 Implemented 승격 + 요약 갱신
 - 미해결 잔여를 본문 §Residual 에 기록 (옵션 3-b 채택 시 grid fit-content 잔존 등)
 
+### 7-b. 진행 상태 — Phase 6 반영 완료 (2026-07-18, ADR-156 종결)
+
+**R7 정적 가드 (엔진 = `packages/composition-engine/src/tree.rs`)**:
+
+- `nodestyle_field_contract_guard`(`#[cfg(test)] mod tests`) 신설. `golden.rs::golden_field_contract_guard`(FLEX_FIELD_COUNT assert) 패턴 승계하되 필드 **수**만이 아니라 「선언 O · 소비 X」 축까지 코드로 고정 — 3중 방어:
+  1. **전수 구조분해(`..` 금지)** — `NodeStyle` 49필드를 전부 명시(`_` 바인딩). 필드 추가 시 `error[E0027]: pattern does not mention field` 컴파일 RED → breakdown §1-3 3축 교차표 갱신 강제. probe 필드 임시 추가로 RED 실증 후 원복 확인.
+  2. **산술 계약** — `CONSUMED_COUNT(47) + UNCONSUMED_NODESTYLE_FIELDS.len()(2) == NODESTYLE_FIELD_COUNT(49)`. §1-3 의 "49 = 소비 + 미소비" 를 코드 assert 로 고정.
+  3. **미소비 allowlist** — `pub const UNCONSUMED_NODESTYLE_FIELDS = ["justifySelf", "justifyItems"]`(camelCase serde 계약명) 가 본문 §Residual(E2 grid 가로축, 옵션 3-b) 과 1:1.
+- pub const `NODESTYLE_FIELD_COUNT` / `UNCONSUMED_NODESTYLE_FIELDS` 를 `NodeStyle` 직후에 배치 — §1-3 의 "49필드"·"미소비" 를 greppable 코드 앵커로.
+
+**§1-3 교차표와의 관계 (소비 전환 반영)**: G0 시점 미소비 9필드가 Phase 2~5 배선으로 7 소비 전환(align_self=Phase 2 / overflow_x·y=Phase 4 / grid_auto_flow·columns·rows=Phase 3 / aspect_ratio=Phase 5) → 현재 미소비 2(justify_self / justify_items, `.{field}` grep 0 hit). 산술 `49 = 소비 40+7 + 미소비 2`. §1-3 표 자체는 Phase 0 freeze 산출물이라 원형 유지하되, 본 가드가 "구현 후 현재 상태" 를 코드로 상시 추적한다.
+
+**검증**: `cargo test` **304**(lib 277 = 276+1 가드, +golden 15 +tree_golden 11 +doc 1) / 가드 GREEN(현재 49필드·47+2 정합) + 필드 추가 RED(E0027 실증) 양방향 확인 / type-check baseline 63 무증가. **live behavior = 가드 자체의 RED/GREEN exercise** — Phase 6 은 렌더 동작 변경 0(NodeStyle struct 무변경, 신규 pub const 는 `#[cfg(test)]` 및 문서 앵커 전용)이라 Chrome/WASM 재빌드 불필요.
+
+**closure**: 본문 Status Accepted→Implemented / G6 충족 / Hard constraint 304 / README 완료 163→164·미구현 13→12 / completed/ 이관 / CHANGELOG ADR-156 종결 엔트리.
+
 ## 8. 검증 계약 (전 Phase 공통)
 
-- Rust: `cargo test` — 총 **283** (`--lib` 256 / `--test golden` 15 / `--test tree_golden` 11 / doc 1)
+- Rust: `cargo test` — 총 **304** (`--lib` 277 / `--test golden` 15 / `--test tree_golden` 11 / doc 1). Phase 2 +5(align_self) / Phase 4.5 +4 / Phase 5 +6 / Phase 6 +1(R7 가드). 원안 283(lib 256)에서 누적.
 - 차등: §1-2 의 **12행 전체**(672 조합 포함) 무회귀 + 담당 Phase 의 발산 fixture 0
 - **(R6) 캐시 키 등재**: 해당 Phase 의 §1-3-b 행이 `LAYOUT_STYLE_KEYS` 에 반영됐는지 확인 — 미등재 상태의 live 검증은 "무반응" 을 엔진 결함으로 잘못 판정하게 한다
 - **live behavior 필수** (CLAUDE.md 완료 기준): Phase 2/3 은 실제 빌더에서 Inspector 조작 → Skia 반영 → Preview 대칭을 Chrome MCP 로 1회 exercise. **해당 키만 변하는 조작으로 수행** (Phase 2 = 가로 전용 이동). test PASS 단독 종결 금지.

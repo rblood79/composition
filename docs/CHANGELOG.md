@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [composition-engine CSS 정합 복구 완결 — ADR-156 Implemented (Phase 6 R7 정적 가드)] - 2026-07-18
+
+### Architecture
+
+- **ADR-156 Implemented 승격 — 엔진↔CSS 레이아웃 정합 복구 전건 종결** (Phase 0~6):
+  - 실 Chrome(`@vitest/browser`+Playwright, DOM `getBoundingClientRect` ground truth) 자동 차등 oracle 을 도입해 순환 oracle(`golden.rs` 기대값 = "CSS 명세 손계산")을 끊고 엔진↔CSS 발산 17군(E1~E17)을 수정
+  - 사용자-가시 수정(E1 align-self / E6 percent height / E7 음수 margin / E8 reverse 3종 / E10·E11 position relative·absolute / E13·E14 grid placement·auto 트랙)은 Phase 2~5 CHANGELOG 엔트리에 개별 기록
+  - **Why**: `wrap` 승격 결함(`bb6ab7e40`)이 34 flex unit + 15 golden 을 전부 통과한 근본 원인 = 엔진과 테스트가 같은 명세 해석을 공유(순환 oracle). Chrome 실측을 독립 oracle 로 세워 재발을 자동 차단
+  - 검증: cargo **304**(lib 277) + 파리티 스위트 **50**(phase2/3/4/4_5/5 + 672 조합) flaky 0 + type-check baseline 63
+  - §Residual: Layer 2 block-height 마스킹(R5) / grid justify 가로축(옵션 3-b) / E9 baseline / E16 order
+  - 위치: `docs/adr/completed/156-engine-css-parity-alignment-margin.md` (root 이관)
+
+### Infrastructure
+
+- **NodeStyle 정적 필드 계약 가드 신설** (ADR-156 Phase 6, R7):
+  - `nodestyle_field_contract_guard` — `NodeStyle` 49필드 **전수 구조분해(`..` 금지)** 로 필드 추가 시 컴파일 RED(`error[E0027]`) + 산술 계약 `소비 47 + 미소비 2 = 선언 49` + 미소비 allowlist `UNCONSUMED_NODESTYLE_FIELDS = [justifySelf, justifyItems]` (§Residual 1:1)
+  - **Why**: 「선언 O·소비 X」 축이 breakdown §1-3 문서 표 단독이라 stale 화 — 본 ADR 이 발견한 미소비 9필드가 어떤 가드에도 걸리지 않았다. 이제 필드 추가 시 교차표 갱신을 컴파일러가 강제. Phase 2~5 배선으로 원 미소비 9→2(`justify_self`/`justify_items` = grid 가로축, 옵션 3-b)
+  - 위치: `packages/composition-engine/src/tree.rs` (pub const `NODESTYLE_FIELD_COUNT`/`UNCONSUMED_NODESTYLE_FIELDS` + `#[cfg(test)]` 가드)
+
 ## [margin auto·root 자기 크기·aspect-ratio 가 Builder(Skia)에서 CSS 와 어긋나던 결함 — ADR-156 Phase 5] - 2026-07-18
 
 ### Bug Fixes

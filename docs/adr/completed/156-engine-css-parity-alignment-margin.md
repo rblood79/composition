@@ -4,19 +4,19 @@
 
 ## Status
 
-Accepted — 2026-07-18
+Implemented — 2026-07-18
 
-> Proposed(2026-07-17) → [reviews/156.md](reviews/156.md) round 2 전건 종결(HIGH×3/MED×5/LOW×2 전부 `fixed`, `pending` 0)로 전제 확정 → execute-adr Phase 1 착수와 함께 승격.
+> Proposed(2026-07-17) → [reviews/156.md](../reviews/156.md) round 2 전건 종결(HIGH×3/MED×5/LOW×2 전부 `fixed`, `pending` 0)로 전제 확정 → Accepted(2026-07-18, execute-adr Phase 1 착수) → **Phase 0~6 전건 반영으로 Implemented(2026-07-18)**. Gate G0~G6 전부 충족(아래 Gates 표). 커밋: Phase 1 `614bbd3c3`/Phase 2 `6a2c50d0b`/Phase 3 `efb73aebc`~`7d391f78d`/Phase 4 `6abd83aac`/Phase 4.5 `be8c95824`/Phase 5 `db40890c8`/Phase 6(R7 가드) 본 커밋.
 
 ## Context
 
 ### Domain 소속
 
-**D3 (시각 스타일)** 단독. [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) 상 Builder(Skia)와 Preview/Publish(DOM+CSS)는 D3 의 **대등 symmetric consumer** 이며, 대칭은 "시각 결과의 동일성"으로 정의된다. 본 ADR 은 Skia consumer 경로의 레이아웃 엔진(`packages/composition-engine`)이 CSS consumer 와 동일한 시각 결과를 산출하는지의 문제다. D1(DOM/ARIA)·D2(Props/API) 변경 0 — 엔진은 catalog/theme 이 결정한 D3 값을 좌표로 환산할 뿐 SSOT 를 소유하지 않는다. 경계 교차 없음.
+**D3 (시각 스타일)** 단독. [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) 상 Builder(Skia)와 Preview/Publish(DOM+CSS)는 D3 의 **대등 symmetric consumer** 이며, 대칭은 "시각 결과의 동일성"으로 정의된다. 본 ADR 은 Skia consumer 경로의 레이아웃 엔진(`packages/composition-engine`)이 CSS consumer 와 동일한 시각 결과를 산출하는지의 문제다. D1(DOM/ARIA)·D2(Props/API) 변경 0 — 엔진은 catalog/theme 이 결정한 D3 값을 좌표로 환산할 뿐 SSOT 를 소유하지 않는다. 경계 교차 없음.
 
 ### 문제
 
-[ADR-916](completed/916-unified-rust-engine.md)(Implemented 2026-07-06)으로 자체 Rust 엔진이 Taffy 를 대체했다. 엔진의 목적은 **CSS 레이아웃 재현** — Skia 가 CSS 와 같은 결과를 그리게 하는 것이다. 그러나 재현 여부를 검증하는 기준(oracle)이 CSS 자신이 아니었다.
+[ADR-916](916-unified-rust-engine.md)(Implemented 2026-07-06)으로 자체 Rust 엔진이 Taffy 를 대체했다. 엔진의 목적은 **CSS 레이아웃 재현** — Skia 가 CSS 와 같은 결과를 그리게 하는 것이다. 그러나 재현 여부를 검증하는 기준(oracle)이 CSS 자신이 아니었다.
 
 2026-07-17, `display:block` body 에 등록한 Button 이 Preview 는 좌상단·Skia 는 좌중앙에 놓이는 결함이 보고됐다(수정 완료, commit `bb6ab7e40`). 원인은 엔진이 CSS 의 "single-line 컨테이너"를 `flex-wrap:nowrap`(CSS §5.2 정의)이 아니라 **결과 라인 수 1개**로 판정한 것이었다. 이 결함은 **flex 단위 테스트 34개 + `golden.rs` 15개를 전부 통과한 채** 라이브에 존재했다 (34 = 결함 존재 시점 `flex.rs` 테스트 수 — `git show bb6ab7e40~1` 실측. 현재 36개는 이 결함을 잡으려 추가한 RED 테스트 2개를 포함한 값이라 근거로 쓸 수 없다).
 
@@ -24,9 +24,9 @@ Accepted — 2026-07-18
 
 ### 실측 (2026-07-17, Chrome 차등 sweep)
 
-실제 Chrome 을 ground truth 로 하는 차등 하니스를 구성해 엔진을 전수 대조했다(방법·재현: [breakdown §2](design/156-engine-css-parity-alignment-margin-breakdown.md)).
+실제 Chrome 을 ground truth 로 하는 차등 하니스를 구성해 엔진을 전수 대조했다(방법·재현: [breakdown §2](../design/156-engine-css-parity-alignment-margin-breakdown.md)).
 
-**정합 확인**: flex 교차축 **384 조합**(direction × wrap × align-items × align-content × definite/auto × 1줄/2줄) + main 축 **288 조합**(direction × justify-content × gap × grow × shrink × basis) 전부 통과. 2차 sweep 49 케이스에서 grid 트랙 산술·중첩 컨테이너 자기 크기·fit-content 등도 정합 확인([breakdown §1-2](design/156-engine-css-parity-alignment-margin-breakdown.md) 12행이 회귀 기준선).
+**정합 확인**: flex 교차축 **384 조합**(direction × wrap × align-items × align-content × definite/auto × 1줄/2줄) + main 축 **288 조합**(direction × justify-content × gap × grow × shrink × basis) 전부 통과. 2차 sweep 49 케이스에서 grid 트랙 산술·중첩 컨테이너 자기 크기·fit-content 등도 정합 확인([breakdown §1-2](../design/156-engine-css-parity-alignment-margin-breakdown.md) 12행이 회귀 기준선).
 
 **1차 발산 5종**:
 
@@ -42,7 +42,7 @@ E1 은 코드 경로가 끝까지 확증된 사용자-가시 결함이다: Inspe
 
 ### 2차 정밀 sweep (2026-07-17 — Phase 0/G0 전수 완성)
 
-본 ADR 작성 직후 G0 3축 교차표를 NodeStyle 49필드 전수로 완성하고 차등 하니스를 49 케이스로 확장 대조한 결과([breakdown §1-1-b, §1-3](design/156-engine-css-parity-alignment-margin-breakdown.md)):
+본 ADR 작성 직후 G0 3축 교차표를 NodeStyle 49필드 전수로 완성하고 차등 하니스를 49 케이스로 확장 대조한 결과([breakdown §1-1-b, §1-3](../design/156-engine-css-parity-alignment-margin-breakdown.md)):
 
 - **미소비 필드는 3개가 아니라 9개**(표 8행 — `overflow_x`/`_y` 합산 표기) + 미선언 2건(`order`, `grid_template_areas` — serde silent drop). 추가분: `overflow_x`/`overflow_y`, `grid_auto_flow`/`grid_auto_columns`/`grid_auto_rows`, `aspect_ratio` — 전부 파이프라인 송신 실존 확인.
 - **추가 발산 12군 (E6~E17)**. 사용자 도달 가능 축: percent height 폭 기준 오해석(E6 — Transform % 단위), 음수 margin 무시(E7), reverse 방향 3종 무시(E8 — `styleOptions.ts:80-81` 노출), position:relative offset 무시(E10), absolute stretch/static/auto-margin 미구현(E11), grid span-blind placement(E13), gridAuto\* 계열(E14), aspect-ratio(E15).
@@ -51,7 +51,7 @@ E1 은 코드 경로가 끝까지 확증된 사용자-가시 결함이다: Inspe
 
 ### Phase 매핑 확정 (round 2 리뷰, 2026-07-17)
 
-E6~E17 의 배치는 [reviews/156.md](reviews/156.md) round 2 에서 확정했다. **분리 없이 본 ADR 안 흡수** — G0 계약(신규 ADR fork 금지)과 R3 의 기존 판단("분리 시 oracle·회귀 기준선을 공유하지 못해 중복 비용")이 E6~E17 에도 동일 적용된다.
+E6~E17 의 배치는 [reviews/156.md](../reviews/156.md) round 2 에서 확정했다. **분리 없이 본 ADR 안 흡수** — G0 계약(신규 ADR fork 금지)과 R3 의 기존 판단("분리 시 oracle·회귀 기준선을 공유하지 못해 중복 비용")이 E6~E17 에도 동일 적용된다.
 
 | 발산                                    | Phase             | 근거                                                                                               |
 | --------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------- |
@@ -71,7 +71,7 @@ E6~E17 의 배치는 [reviews/156.md](reviews/156.md) round 2 에서 확정했�
 ### Hard constraints (측정 가능)
 
 - **시각 diff ≤ 1px** — 기존 `golden.rs`/`tree_golden.rs` 의 `TOL: f32 = 1.0` 승계
-- **정합 기준선 무회귀** — 672 조합(flex 교차축 384 + main 축 288) + **2차 sweep 정합 영역 12행**(breakdown §1-2) + 기존 Rust 테스트(`cargo test --lib` **276**(Phase 5 E4/E5/E15 +6) + `golden` 15 + `tree_golden` 11 + doc 1 = **303**. Phase 4.5 +4 / Phase 5 +6) + **파리티 스위트 50 무회귀**(phase2/3/4/4_5/5 포함)
+- **정합 기준선 무회귀** — 672 조합(flex 교차축 384 + main 축 288) + **2차 sweep 정합 영역 12행**(breakdown §1-2) + 기존 Rust 테스트(`cargo test --lib` **277**(Phase 5 E4/E5/E15 +6, Phase 6 R7 가드 +1) + `golden` 15 + `tree_golden` 11 + doc 1 = **304**. Phase 4.5 +4 / Phase 5 +6 / Phase 6 +1) + **파리티 스위트 50 무회귀**(phase2/3/4/4_5/5 포함)
 - **Canvas 60fps** — 레이아웃은 pointer hot path 가 아니나 `computeLayout` 비용 증가가 프레임 예산을 침범하지 않을 것
 - **live behavior 검증 1회** — test PASS 단독 종결 금지 (CLAUDE.md 완료 기준)
 
@@ -130,7 +130,7 @@ E6~E17 의 배치는 [reviews/156.md](reviews/156.md) round 2 에서 확정했�
 - **대안 C**: 성능 HIGH(DOM 왕복 리플로우 → 60fps 붕괴) + ADR-916 결정 역행. Taffy 물리 삭제 완료 상태에서 마이그레이션 HIGH.
 - **대안 D**: 기능 퇴보가 enterprise 목표와 충돌하고, UI 없는 발산(E3/E5/E17)은 해소 불가.
 
-> 구현 상세: [156-engine-css-parity-alignment-margin-breakdown.md](design/156-engine-css-parity-alignment-margin-breakdown.md)
+> 구현 상세: [156-engine-css-parity-alignment-margin-breakdown.md](../design/156-engine-css-parity-alignment-margin-breakdown.md)
 
 ## Risks
 
@@ -155,7 +155,7 @@ E6~E17 의 배치는 [reviews/156.md](reviews/156.md) round 2 에서 확정했�
 | G3   | Phase 3 착수 전 / 종료 | **충족 (2026-07-18, 옵션 3-b, efb73aebc~7d391f78d)**: (착수 전) 옵션 3-b 책임 경계 확정(사용자 승인 — 정렬만, 크기 stretch 유지, JS DFS 존속) · (종료) **E2 + E12 + E13 + E14** 발산 0 + **live grid 컴포넌트 시각 회귀 0**(기본 stretch 2×2 셀 채움 + align center y=30 + span 2행) + JS DFS 보정과 이중 적용 없음(justify 축은 §Residual) + **(R6)** `justifyItems`·`gridAutoColumns`·`gridAutoRows`·`gridColumnStart`·`gridRowStart` 캐시 키 등재                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | 이중 적용 해소 불가 시 옵션 3-b(정렬만, 크기 stretch 유지)로 축소 + 잔존 §Residual 기록 (채택)     |
 | G4   | Phase 4 / 4.5 종료     | **Phase 4 충족 (2026-07-18, 6abd83aac)**: **E3 + E7 + E8 + E17** 파리티 발산 0(phase4 8/8) + **(R6)** `overflowX`/`overflowY` 캐시 키 등재 + 상쇄 차단 케이스(E3-2 padding / E17-1 overflow)·전체 파리티 36 무회귀 + **live**: E7-flex·E8 3종(row/column/wrap-reverse) Skia 반영 확인. E3/E17 엔진 정확(직접 호출 mid.h=20)이나 block height 는 빌더 Layer 2(`calculateContentHeight` JS 선계산)가 마스킹 → §Residual(R5, 엔진 변경 live-inert = 회귀 0). · **Phase 4.5 충족 (2026-07-18, be8c95824)**: **E10**(relative offset) + **E11 3종**(① 양측 inset auto size stretch / ② inset 무지정 static position / ③ margin auto 중앙) 파리티 발산 0(phase4_5 5/5, ABS-2 % inset 회귀 기준선 포함) + 전체 파리티 41 무회귀 + Rust 단위 +4 + 캐시 키 이미 등재(position/top/left/right/bottom/margin\*) + **live**: E10 krel(15,30)·E11 ①kabs(180×60@10,15)·②kstat(y30)·③kmarg(x80) 전부 Skia scene 반영 — **position/absolute 경로는 Layer 2 마스킹 없음**(block-height 와 대비, 회귀 0) | block 경로 회귀 시 E3 를 중첩 컨테이너 한정으로 축소 (root 탈출은 시각 무해)                       |
 | G5   | Phase 5 종료           | **충족 (2026-07-18, db40890c8)**: **E4 + E5(결함군 전체) + E15** 파리티 발산 0(phase5 9/9) + 전체 파리티 50 무회귀(672 조합·flex sweep 무손상) + Rust 단위 +6 + **live**: E15 aspect(w100→h50) · E4 block margin auto(x60 중앙) Skia 반영. **E5 발견(ADR 전제 정정)**: 라이브 body 는 명시 크기가 아니라 auto 라 fixup 이 live 발동하나, 결과가 CSS-correct(block-level root 는 availW 390 fill = 기존 max_right 390, full-width 자식 존재) → 회귀 0·시각 파손 없음. 파리티가 **block root 도**(flex/grid 뿐 아니라) availW 미충족을 드러내 block 포함 전 root fill 로 확장                                                                                                                                                                                                                                                                                                                                                                                                            | E5 결함군 중 min/max clamp 만 잔존 시 §Residual 기록 후 종결 (전 결함군 반영 완료 — 잔존 없음)     |
-| G6   | Phase 6 (종결) 종료    | **(R7)** `NodeStyle` 필드 정적 가드 신설 — 필드 수 assert + 미소비 allowlist 가 §Residual 잔존과 1:1 일치 + CHANGELOG/README 반영                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | 가드 구현 불가 시 교차표를 breakdown §1-3 에 유지하고 §Residual 에 stale 위험 명시                 |
+| G6   | Phase 6 (종결) 종료    | **충족 (2026-07-18)**: **(R7)** `tree.rs::nodestyle_field_contract_guard` 신설 — ① `NodeStyle` 49필드 **전수 구조분해(`..` 금지)** 로 필드 추가 시 컴파일 RED(E0027 실증 후 probe 원복) ② 산술 계약 `소비 47 + 미소비 2 = 선언 49`(pub const `NODESTYLE_FIELD_COUNT`) ③ 미소비 allowlist `UNCONSUMED_NODESTYLE_FIELDS = [justifySelf, justifyItems]` 가 §Residual(E2 grid 가로축, 옵션 3-b) 과 1:1. Phase 2~5 배선으로 원 미소비 9필드 중 7 소비 전환 → 잔존 2. `cargo test` 304(lib 277) + CHANGELOG/README 반영                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | 가드 구현 불가 시 교차표를 breakdown §1-3 에 유지하고 §Residual 에 stale 위험 명시                 |
 
 ## Consequences
 
@@ -179,7 +179,8 @@ E6~E17 의 배치는 [reviews/156.md](reviews/156.md) round 2 에서 확정했�
 - **E2 grid justify-items/justify-self (가로 배치·크기)** — 옵션 3-b 채택(Phase 3, 2026-07-18)으로 엔진은 정렬만 추가하고 크기 stretch 유지. JS DFS(`fullTreeLayout.ts:1516`)가 grid 자식 폭을 트랙 폭으로 강제하므로 엔진이 justify 를 더해도 live 에서 이중 적용/무효. 파리티(엔진 직접) 정합, live 미달. 옵션 3-a(엔진 크기 respect + JS DFS 제거)로만 해소.
 - **align:stretch 하 explicit-height grid item 축소** — CSS 는 stretch 안 하나 옵션 3-b 는 stretch 유지(live 컴포넌트 의존). 옵션 3-a 영역.
 - **gridAutoRows override(flow:row 암시 행)** — tree.rs `solve_grid` intrinsic 측정이 소유. `grid_layout.auto_rows` 파라미터 현재 미소비. flow:column 암시 열(gridAutoColumns)은 반영됨(E14).
-- **E16 `order`** — `NodeStyle` 미선언(serde silent drop) + Inspector 편집 UI 부재. 유입 경로(pencil import 등)가 생기면 재평가. R7 가드의 미소비 allowlist 에 등재.
+- **E16 `order`** — `NodeStyle` 미선언(serde silent drop) + Inspector 편집 UI 부재. 유입 경로(pencil import 등)가 생기면 재평가. 미선언이라 R7 가드의 필드 수(49)·allowlist 에는 불포함이나, `nodestyle_field_contract_guard` 주석이 "선언 O·송신 O" 로 전환 시 재판정을 명문화한다.
+- **R7 정적 가드 land (2026-07-18, Phase 6)** — 「선언 O·소비 X」 축이 문서 표(breakdown §1-3) 단독이라 stale 화하던 것을 `packages/composition-engine/src/tree.rs::nodestyle_field_contract_guard` 로 코드화. 미소비 allowlist(`UNCONSUMED_NODESTYLE_FIELDS = [justifySelf, justifyItems]`)가 본 §Residual 의 E2 grid 가로축(옵션 3-b 잔존)과 1:1. 필드 추가 시 전수 구조분해가 컴파일 RED → 교차표 갱신 강제.
 - **E9 `align-items:baseline`** — CSS baseline 정렬은 텍스트 메트릭 의존이라 본 ADR 의 기하 전용 scope(R1 fixture 계약: 텍스트 미포함) 밖. 별도 판정 필요.
 - **`grid_template_areas`** — 미선언이나 factory 가 숫자 line 을 병기해 완화됨(`layout-engine.md` §"Grid area 이름 해석"). 이름 해석 자체는 미지원 유지.
 - **E3/E17 block 컨테이너 height 의 live 마스킹 (Layer 2)** — Phase 4(2026-07-18)에서 엔진의 부모-자식 상쇄를 구현했고 파리티(엔진 직접, phase4 8/8) 및 live 탭 직접 호출(`buildTreeBatch`→`computeLayout`, mid.h=20)로 정확 확인됐다. 그러나 빌더 파이프라인은 auto-height block 컨테이너의 높이를 엔진이 아니라 **JS 선계산**(`calculateContentHeight`/`enrichWithIntrinsicSize`, utils.ts)으로 산출·주입하며, 이 JS 경로는 마진 상쇄를 하지 않아 live Skia 는 여전히 상쇄 전 높이(mid.h=50)를 그린다. 엔진 변경은 이 마스킹으로 block 경로에서 **live-inert**(회귀 0). E17(overflow BFC)도 동일 경로라 Layer 2 가 상쇄 자체를 안 해 우연히 CSS 와 일치(잠복 유지). **해소 조건**: Layer 2 의 block height 선계산에 부모-자식/overflow BFC 상쇄를 반영하거나, block 컨테이너 height 를 엔진 결과로 대체. R5 adapter 층 후속의 구체 항목. 대조적으로 flex 경로(E7-flex, E8 reverse 3종)는 엔진 결과가 Skia 까지 도달해 live 반영 확인됨.
