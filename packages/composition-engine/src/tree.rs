@@ -598,11 +598,57 @@ impl LayoutTree {
             }
         };
 
+        // E10: position:relative 자식은 in-flow 배치 후 자기 box 만 inset 만큼 시각 이동.
+        //   형제 위치·컨테이너 크기(cw/ch)에는 영향 없음(CSS §9.4.3 relative 계약) — 이미
+        //   배치된 자식 layout 만 옮긴다. 자식 subtree 좌표는 부모 상대라 조상 누적
+        //   (get_layouts_batch 소비처)이 함께 이동시킨다.
+        self.apply_relative_offsets(&children, avail_w, ch);
+
         // out-of-flow 자식 배치 — 컨테이너 크기 확정 후 (containing block 이 필요).
         if !abs_children.is_empty() {
             self.place_absolute_children(handle, &abs_children, cw, ch, avail_w);
         }
         (cw, ch)
+    }
+
+    /// E10: `position:relative` 자식에 inset 시각 offset 적용.
+    ///
+    /// relative 는 in-flow 로 배치돼(형제·컨테이너 크기 불변) 자기 box 만 top/left/right/bottom
+    /// 만큼 이동한다(CSS §9.4.3). solve_flex/block/grid 가 이미 배치한 자식 layout 을 옮기며,
+    /// 자식 subtree 좌표는 부모 상대라 조상 누적(get_layouts_batch)이 함께 이동시킨다.
+    ///
+    /// left 우선(있으면 right 무시) / top 우선 — LTR 근사. % inset 은 containing block 크기
+    /// 기준(라이브 편집 경로는 px 만 송신 — % offset 은 fixture 밖 근사).
+    fn apply_relative_offsets(&mut self, flow_children: &[usize], avail_w: f32, container_h: f32) {
+        for &c in flow_children {
+            let Some(cn) = self.get(c) else { continue };
+            if cn.style.position.as_deref() != Some("relative") {
+                continue;
+            }
+            let cstyle = cn.style.clone();
+            let ctx_x = self.ctx_for(avail_w);
+            let ctx_y = self.ctx_for(container_h);
+            let left = resolve_inset(cstyle.inset_left.as_deref(), &ctx_x);
+            let right = resolve_inset(cstyle.inset_right.as_deref(), &ctx_x);
+            let top = resolve_inset(cstyle.inset_top.as_deref(), &ctx_y);
+            let bottom = resolve_inset(cstyle.inset_bottom.as_deref(), &ctx_y);
+            let dx = match (left, right) {
+                (Some(l), _) => l,
+                (None, Some(r)) => -r,
+                (None, None) => 0.0,
+            };
+            let dy = match (top, bottom) {
+                (Some(t), _) => t,
+                (None, Some(b)) => -b,
+                (None, None) => 0.0,
+            };
+            if dx != 0.0 || dy != 0.0 {
+                if let Some(n) = self.get_mut(c) {
+                    n.layout.x += dx;
+                    n.layout.y += dy;
+                }
+            }
+        }
     }
 
     /// `position:absolute|fixed` 자식 배치 (CSS out-of-flow).
@@ -641,6 +687,28 @@ impl LayoutTree {
         let cb_w = (container_w - pb_total_x).max(0.0);
         let cb_h = (container_h - pb_total_y).max(0.0);
 
+        // static position (E11 ②) — inset 무지정 시 정상 흐름 위치를 유지한다.
+        //   block 흐름 근사: static_y = 문서 순서상 선행 in-flow 형제들의 누적 하단,
+        //   static_x = content 원점(pb_start_x). display:none/out-of-flow 는 흐름 비참여.
+        let all_children = self
+            .get(handle)
+            .map(|n| n.children.clone())
+            .unwrap_or_default();
+        let mut static_pos: Vec<(usize, f32, f32)> = Vec::new();
+        let mut flow_bottom = pb_start_y;
+        for &ch in &all_children {
+            let Some(cnode) = self.get(ch) else { continue };
+            if cnode.style.display.as_deref() == Some("none") {
+                continue;
+            }
+            if is_out_of_flow(cnode.style.position.as_deref()) {
+                static_pos.push((ch, pb_start_x, flow_bottom));
+            } else {
+                let l = cnode.layout;
+                flow_bottom = (l.y + l.height).max(flow_bottom);
+            }
+        }
+
         for &c in abs_children {
             // 자식 solve — available = containing block (%/auto 해석 기준).
             let (mut w, mut h) = self.solve_node(c, cb_w, cb_h);
@@ -650,7 +718,9 @@ impl LayoutTree {
             let ctx_x = self.ctx_for(cb_w);
             let ctx_y = self.ctx_for(cb_h);
 
-            // 자식 명시 크기 우선 (solve 반환이 0 인 auto leaf 대비).
+            // 명시 크기 유무 — auto 면 stretch(E11 ①) 대상. 명시 크기는 solve 반환 우선.
+            let has_w = resolve_dimension_opt(cstyle.width.as_deref(), &ctx_x).is_some();
+            let has_h = resolve_dimension_opt(cstyle.height.as_deref(), &ctx_y).is_some();
             let ew = resolve_dimension(cstyle.width.as_deref(), &ctx_x);
             let eh = resolve_dimension(cstyle.height.as_deref(), &ctx_y);
             if ew > 0.0 {
@@ -665,24 +735,54 @@ impl LayoutTree {
             let top = resolve_inset(cstyle.inset_top.as_deref(), &ctx_y);
             let bottom = resolve_inset(cstyle.inset_bottom.as_deref(), &ctx_y);
 
-            // margin 은 음수 허용 (translate(-50%) 에뮬레이션 채널).
-            let ml = resolve_signed(cstyle.margin_left.as_deref(), &ctx_x);
-            let mt = resolve_signed(cstyle.margin_top.as_deref(), &ctx_y);
+            // margin — auto 는 잉여 공간 흡수(E11 ③) 대상이라 별도 감지, 그 외 음수 허용
+            // (translate(-50%) 에뮬레이션 채널).
+            let ml_auto = cstyle.margin_left.as_deref() == Some("auto");
+            let mr_auto = cstyle.margin_right.as_deref() == Some("auto");
+            let mt_auto = cstyle.margin_top.as_deref() == Some("auto");
+            let mb_auto = cstyle.margin_bottom.as_deref() == Some("auto");
+            let ml = if ml_auto {
+                0.0
+            } else {
+                resolve_signed(cstyle.margin_left.as_deref(), &ctx_x)
+            };
+            let mr = if mr_auto {
+                0.0
+            } else {
+                resolve_signed(cstyle.margin_right.as_deref(), &ctx_x)
+            };
+            let mt = if mt_auto {
+                0.0
+            } else {
+                resolve_signed(cstyle.margin_top.as_deref(), &ctx_y)
+            };
+            let mb = if mb_auto {
+                0.0
+            } else {
+                resolve_signed(cstyle.margin_bottom.as_deref(), &ctx_y)
+            };
 
-            // left 우선, 없으면 right 로 역산, 둘 다 없으면 static 근사(0).
-            let x = match (left, right) {
-                (Some(l), _) => pb_start_x + l,
-                (None, Some(r)) => pb_start_x + (cb_w - r - w),
-                (None, None) => pb_start_x,
-            } + ml;
-            let y = match (top, bottom) {
-                (Some(t), _) => pb_start_y + t,
-                (None, Some(b)) => pb_start_y + (cb_h - b - h),
-                (None, None) => pb_start_y,
-            } + mt;
+            let (sx, sy) = static_pos
+                .iter()
+                .find(|&&(h, _, _)| h == c)
+                .map(|&(_, x, y)| (x, y))
+                .unwrap_or((pb_start_x, pb_start_y));
+
+            // 축별 배치 — x/y 대칭 (stretch / margin auto / static 을 한 함수로).
+            let (x, nw) = resolve_abs_axis(
+                pb_start_x, cb_w, left, right, w, has_w, ml, mr, ml_auto, mr_auto, sx,
+            );
+            let (y, nh) = resolve_abs_axis(
+                pb_start_y, cb_h, top, bottom, h, has_h, mt, mb, mt_auto, mb_auto, sy,
+            );
 
             if let Some(n) = self.get_mut(c) {
-                n.layout = NodeLayout { x, y, width: w, height: h };
+                n.layout = NodeLayout {
+                    x,
+                    y,
+                    width: nw,
+                    height: nh,
+                };
                 n.dirty = false;
             }
         }
@@ -2099,6 +2199,54 @@ fn resolve_dimension_opt(value: Option<&str>, ctx: &CssValueContext) -> Option<f
 #[inline]
 fn is_out_of_flow(position: Option<&str>) -> bool {
     matches!(position, Some("absolute") | Some("fixed"))
+}
+
+/// absolute 배치 한 축의 (위치, 크기) 산출 (CSS §10.3.7 / §10.6.4 근사).
+///
+/// - 양측 inset + 크기 auto → **stretch**: size = cb − start − end − margins (E11 ①).
+/// - 양측 inset + 크기 definite + margin auto → 잉여 공간 분배(중앙/한쪽) (E11 ③).
+/// - 한쪽 inset → 그 기준 배치 (start 우선, end 는 역산).
+/// - 양측 auto → **static position** 유지 (E11 ②).
+///
+/// `m_*_auto` 이면 해당 margin 은 잉여 흡수용이라 `m_*` 는 0 으로 전달된다.
+#[allow(clippy::too_many_arguments)]
+fn resolve_abs_axis(
+    pb_start: f32,
+    cb_size: f32,
+    start: Option<f32>,
+    end: Option<f32>,
+    size: f32,
+    has_explicit_size: bool,
+    m_start: f32,
+    m_end: f32,
+    m_start_auto: bool,
+    m_end_auto: bool,
+    static_pos: f32,
+) -> (f32, f32) {
+    match (start, end) {
+        (Some(s), Some(e)) => {
+            if !has_explicit_size {
+                // ① stretch — 크기가 잉여 공간을 채운다.
+                let sz = (cb_size - s - e - m_start - m_end).max(0.0);
+                (pb_start + s + m_start, sz)
+            } else {
+                // 크기 definite + 양측 inset → over-constrained. margin auto 가 잉여를 흡수.
+                let free = cb_size - s - e - size - m_start - m_end;
+                let start_margin = if m_start_auto && m_end_auto {
+                    free / 2.0 // ③ 중앙
+                } else if m_start_auto {
+                    free // 끝쪽 정렬
+                } else {
+                    // margin-end auto 흡수, 또는 over-constrained(end 무시) → 시작쪽 정렬.
+                    m_start
+                };
+                (pb_start + s + start_margin, size)
+            }
+        }
+        (Some(s), None) => (pb_start + s + m_start, size),
+        (None, Some(e)) => (pb_start + cb_size - e - size - m_end, size),
+        (None, None) => (static_pos + m_start, size), // ② static position
+    }
 }
 
 /// inset(top/right/bottom/left) 해결 — **음수 허용**, auto/미지정은 None.
@@ -3590,6 +3738,83 @@ mod tests {
         let c = tree.get_layout(handles[0]);
         assert_eq!((p.width, p.height), (100.0, 50.0), "명시 크기 보존");
         assert_eq!((c.x, c.y), (25.0, 5.0), "absolute 자식 배치 수행");
+    }
+
+    // ── position:relative 시각 offset (E10) + absolute 3종 (E11) ──
+
+    /// E10: relative 자식은 in-flow(형제 무이동) + 자기 box 만 inset 만큼 이동.
+    #[test]
+    fn relative_child_offset_shifts_self_not_siblings() {
+        let mut tree = LayoutTree::new();
+        // pre(20) → k(relative, left15/top10: flow y=20 → 30) → post(flow y=40 유지).
+        let json = r#"[
+            {"style":{"display":"block","height":"20px"},"children":[]},
+            {"style":{"display":"block","height":"20px","position":"relative","insetLeft":"15px","insetTop":"10px"},"children":[]},
+            {"style":{"display":"block","height":"20px"},"children":[]},
+            {"style":{"display":"block","width":"300px","height":"600px"},"children":[0,1,2]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[3], 300.0, -1.0);
+        assert_eq!(tree.get_layout(handles[0]).y, 0.0, "pre flow y=0");
+        let k = tree.get_layout(handles[1]);
+        assert_eq!(k.x, 15.0, "relative left:15 시각 이동");
+        assert_eq!(k.y, 30.0, "flow 20 + top:10 = 30");
+        assert_eq!(
+            tree.get_layout(handles[2]).y,
+            40.0,
+            "post 는 k flow box(20..40) 기준 → 40 (relative offset 무영향)"
+        );
+    }
+
+    /// E11 ①: 양측 inset + 크기 auto → containing block 안에서 stretch.
+    #[test]
+    fn absolute_stretch_both_insets_auto_size() {
+        let mut tree = LayoutTree::new();
+        // cb 200×100, k left10/right10/top15/bottom25 + 크기 auto → stretch.
+        let json = r#"[
+            {"style":{"position":"absolute","insetLeft":"10px","insetRight":"10px","insetTop":"15px","insetBottom":"25px"},"children":[]},
+            {"style":{"display":"block","position":"relative","width":"200px","height":"100px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 400.0, 400.0);
+        let c = tree.get_layout(handles[0]);
+        assert_eq!(c.x, 10.0, "left:10");
+        assert_eq!(c.width, 180.0, "stretch w = 200 - 10 - 10");
+        assert_eq!(c.y, 15.0, "top:15");
+        assert_eq!(c.height, 60.0, "stretch h = 100 - 15 - 25");
+    }
+
+    /// E11 ②: inset 무지정 → 정상 흐름 위치(static position) 유지.
+    #[test]
+    fn absolute_static_position_no_inset() {
+        let mut tree = LayoutTree::new();
+        // pre(30) 뒤 abs k inset 무지정 → static position (0, 30).
+        let json = r#"[
+            {"style":{"display":"block","height":"30px"},"children":[]},
+            {"style":{"position":"absolute","width":"20px","height":"20px"},"children":[]},
+            {"style":{"display":"block","position":"relative","width":"200px","height":"100px"},"children":[0,1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 400.0, 400.0);
+        let c = tree.get_layout(handles[1]);
+        assert_eq!(c.x, 0.0, "static x = content 원점");
+        assert_eq!(c.y, 30.0, "static y = 선행 in-flow 형제(30) 하단");
+    }
+
+    /// E11 ③: margin auto + 양측 inset + 명시 크기 → 잉여 공간 균등 분배(중앙).
+    #[test]
+    fn absolute_margin_auto_centers() {
+        let mut tree = LayoutTree::new();
+        // left0/right0 + width40 + marginLeft/Right auto → free 160 균등 → x=80.
+        let json = r#"[
+            {"style":{"position":"absolute","insetLeft":"0px","insetRight":"0px","insetTop":"0px","width":"40px","height":"20px","marginLeft":"auto","marginRight":"auto"},"children":[]},
+            {"style":{"display":"block","position":"relative","width":"200px","height":"100px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 400.0, 400.0);
+        let c = tree.get_layout(handles[0]);
+        assert_eq!(c.x, 80.0, "margin auto 중앙 = (200 - 40)/2");
+        assert_eq!(c.width, 40.0, "명시 width 보존");
     }
 
     // ── get_layouts_batch ──
