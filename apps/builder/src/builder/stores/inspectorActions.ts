@@ -27,7 +27,7 @@ import { sanitizeFillDerivedStylePatch } from "../panels/styles/utils/fillDerive
 import { saveService } from "../../services/save";
 import { getDB } from "../../lib/db";
 import { getElementDataBinding } from "../../adapters/canonical/compositionExtensionFields";
-import { migrateLegacyEventsToRootEvents } from "../../adapters/canonical/rootCollectionMigration";
+import { writeEventsToRootCollection } from "./canonical/rootCollectionEventsWrite";
 import {
   COMPONENT_DESCENDANTS_MIRROR_FIELD,
   COMPONENT_OVERRIDES_MIRROR_FIELD,
@@ -318,48 +318,10 @@ function syncEventsToRootCollection(
   elementId: string,
   events: readonly unknown[] | undefined,
 ): void {
-  const store = useCanonicalDocumentStore.getState();
-  if (!store.currentProjectId) return;
-
-  // 1) 이 element 가 target 인 기존 events 제거 (clean slate)
-  const doc = store.getDocument(store.currentProjectId);
-  const existingEvents = doc?.events ?? [];
-  const filteredEvents = existingEvents.filter((e) => e.target !== elementId);
-
-  // 2) 이 element 의 events 가 actions chain 참조하던 것 제거
-  const existingActions = doc?.actions ?? [];
-  const eventsForThisElement = existingEvents.filter(
-    (e) => e.target === elementId,
-  );
-  const refIds = new Set<string>();
-  for (const ev of eventsForThisElement) {
-    if (ev.actionRef) refIds.add(ev.actionRef);
-    if (ev.fallbackActionRef) refIds.add(ev.fallbackActionRef);
-  }
-  // chain follow — visited set 로 DAG 안전
-  const visited = new Set<string>();
-  const queue = [...refIds];
-  while (queue.length > 0) {
-    const cur = queue.shift()!;
-    if (visited.has(cur)) continue;
-    visited.add(cur);
-    const action = existingActions.find((a) => a.id === cur);
-    if (action?.next) queue.push(...action.next);
-  }
-  const filteredActions = existingActions.filter((a) => !visited.has(a.id));
-
-  // 3) 신규 events 변환
-  const eventArr = Array.isArray(events) ? events : [];
-  const result = migrateLegacyEventsToRootEvents(
-    elementId,
-    eventArr as Parameters<typeof migrateLegacyEventsToRootEvents>[1],
-  );
-
-  const nextEvents = [...filteredEvents, ...result.events];
-  const nextActions = [...filteredActions, ...result.actions];
-
-  store.setEvents(nextEvents.length > 0 ? nextEvents : undefined);
-  store.setActions(nextActions.length > 0 ? nextActions : undefined);
+  // ADR-149 Phase 2a — root collection derive 로직을
+  // `canonical/rootCollectionEventsWrite.ts` (writeEventsToRootCollection) 로 추출.
+  // 단일 구현 유지 + 테스트 가능 단위 (rootCollectionEventsWrite.test.ts).
+  writeEventsToRootCollection(elementId, events);
 }
 
 // ADR-131 Phase 8 (2026-05-13): syncDataBindingToRootCollection 제거.
@@ -471,6 +433,14 @@ export interface InspectorActionsState {
   addSelectedEvent: (event: EventHandler) => void;
   updateSelectedEvent: (id: string, event: EventHandler) => void;
   removeSelectedEvent: (id: string) => void;
+  /**
+   * ADR-149 Phase 2a — canonical events 단일 write 진입점 (elementId 파라미터화).
+   * updateAndSave(node projection + history + persist, R8) + canonical root collection 파생.
+   */
+  updateEventsRootCollection: (
+    elementId: string,
+    events: readonly EventHandler[],
+  ) => void;
   // Fill Actions (Color Picker Phase 1)
   /** fills 배열 업데이트 + style.backgroundColor 동기화 + 히스토리/DB 저장 */
   updateSelectedFills: (fills: FillItem[]) => void;
@@ -1091,6 +1061,18 @@ export const createInspectorActionsSlice: StateCreator<
       });
 
       syncEventsToRootCollection(element.id, updatedEvents);
+    },
+
+    // ADR-149 Phase 2a — canonical events 단일 write 진입점 (elementId 파라미터화).
+    // updateAndSave: node projection(props.events) + history + DB persist (R8, transitional).
+    // syncEventsToRootCollection → writeEventsToRootCollection: canonical root
+    // collection(doc.events / doc.actions) 파생 (primary read view). EventsPanel(Phase 2b)
+    // 및 4개 selected-* mutation 의 단일 경유점 (2b 에서 위임 전환).
+    updateEventsRootCollection: (elementId, events) => {
+      updateAndSave(elementId, {
+        events: events as unknown as ElementEvent[],
+      });
+      syncEventsToRootCollection(elementId, events);
     },
 
     // ============================================
