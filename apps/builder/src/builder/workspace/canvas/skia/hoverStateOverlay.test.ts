@@ -60,6 +60,7 @@ function baseParams(overrides: {
   treeBoundsMap: Map<string, BoundingBox>;
   cacheRef: { current: HoverStateNodeCache | null };
   registryVersion?: number;
+  racStateInput?: { isHovered?: boolean; isPressed?: boolean };
 }) {
   return {
     bridge: overrides.bridge,
@@ -70,7 +71,7 @@ function baseParams(overrides: {
     theme: "light" as const,
     childrenMap: null,
     registryVersion: overrides.registryVersion ?? 1,
-    racStateInput: { isHovered: true },
+    racStateInput: overrides.racStateInput ?? { isHovered: true },
     cacheRef: overrides.cacheRef,
   };
 }
@@ -167,6 +168,36 @@ describe("computeHoverStateNodes (ADR-150 A1)", () => {
     const second = computeHoverStateNodes(params);
     expect(spy.calls()).toBe(1); // 두 번째는 캐시 히트
     expect(second).toBe(first); // 동일 배열 참조
+  });
+
+  it("S3: pressed 는 hover 와 시그니처가 달라 단일 캐시 공유 불가(별도 cacheRef 필요)", () => {
+    // 같은 대상이라도 racStateInput(hover↔pressed) 이 다르면 stateKeyOf 가 갈려
+    // 캐시 키가 달라진다 → 하나의 cacheRef 를 공유하면 매 호출 재빌드(thrash).
+    // SkiaCanvas 가 hover/pressed 에 별도 cacheRef 를 쓰는 이유를 고정한다.
+    const spy = makeBridgeSpy();
+    const cacheRef: { current: HoverStateNodeCache | null } = { current: null };
+    const tree = new Map([["btn", bounds(0, 0, 10, 10)]]);
+    const hs = hoverState("btn", ["btn"]);
+    computeHoverStateNodes(
+      baseParams({
+        bridge: spy.bridge,
+        hoverState: hs,
+        treeBoundsMap: tree,
+        cacheRef,
+        racStateInput: { isHovered: true },
+      }),
+    );
+    computeHoverStateNodes(
+      baseParams({
+        bridge: spy.bridge,
+        hoverState: hs,
+        treeBoundsMap: tree,
+        cacheRef, // 동일 ref 재사용
+        racStateInput: { isPressed: true },
+      }),
+    );
+    expect(spy.calls()).toBe(2); // 상태 전이 → 캐시 미스 → 재빌드
+    expect(cacheRef.current?.key).toContain("pressed");
   });
 
   it("registryVersion 변경 시 캐시 무효화(재빌드)", () => {

@@ -48,6 +48,7 @@ import {
   useElementHoverInteraction,
   type ElementHoverState,
 } from "../hooks/useElementHoverInteraction";
+import { useElementPressInteraction } from "../hooks/useElementPressInteraction";
 import { useScrollWheelInteraction } from "../hooks/useScrollWheelInteraction";
 import { DEFAULT_MINIMAP_CONFIG, type MinimapConfig } from "./workflowMinimap";
 import type { BoundingBox } from "../selection/types";
@@ -215,12 +216,20 @@ export function SkiaCanvas({
   const storeRenderBridgeRef = useRef<StoreRenderBridge | null>(null);
   // ADR-150 A1 — hover 상태 fill overlay 노드 캐시 (registryVersion/theme/hoveredLeafIds 시그니처).
   const hoverStateNodeCacheRef = useRef<HoverStateNodeCache | null>(null);
+  // ADR-150 A1 S3 — pressed 상태 fill overlay 노드 캐시 (hover 와 별도 시그니처 namespace).
+  const pressedStateNodeCacheRef = useRef<HoverStateNodeCache | null>(null);
   const lastWorkflowOverlaySignatureRef = useRef("");
   const lastWorkflowGraphSignatureRef = useRef("");
   const lastWfSubTogglesRef = useRef("");
 
   // 호버 상태
   const elementHoverStateRef = useRef<ElementHoverState>({
+    hoveredElementId: null,
+    hoveredLeafIds: [],
+    isGroupHover: false,
+  });
+  // ADR-150 A1 S3 — pressed 상태 (ElementHoverState 형태 재사용: element + leaf).
+  const pressedStateRef = useRef<ElementHoverState>({
     hoveredElementId: null,
     hoveredLeafIds: [],
     isGroupHover: false,
@@ -348,6 +357,14 @@ export function SkiaCanvas({
     hoverStateRef: elementHoverStateRef,
     overlayVersionRef,
     treeBoundsMapRef,
+  });
+
+  // ADR-150 A1 S3 — pressed 축: pointerdown 시점의 hover 상태를 snapshot 해 pressed 로 유지.
+  useElementPressInteraction({
+    containerEl,
+    hoverStateRef: elementHoverStateRef,
+    pressedStateRef,
+    overlayVersionRef,
   });
 
   useScrollWheelInteraction({
@@ -721,20 +738,42 @@ export function SkiaCanvas({
           dpr,
           prevEdgeGeometryCache: edgeGeometryCacheRef.current,
           prevEdgeGeometryCacheKey: edgeGeometryCacheKeyRef.current,
-          // ADR-150 A1 — hover 상태 fill overlay 노드. treeBoundsMap(절대좌표) 확정 후 호출.
-          buildHoverStateNodes: (treeBoundsMap) =>
-            computeHoverStateNodes({
+          // ADR-150 A1 — hover/pressed 상태 fill overlay 노드. treeBoundsMap(절대좌표) 확정 후 호출.
+          buildHoverStateNodes: (treeBoundsMap) => {
+            const theme = resolveSkiaTheme(
+              useThemeConfigStore.getState().darkMode,
+            );
+            const layoutMap = getSharedLayoutMap();
+            const hoverNodes = computeHoverStateNodes({
               bridge: storeRenderBridgeRef.current,
               hoverState: elementHoverStateRef.current,
               treeBoundsMap,
               elementsMap: currentRendererInput.renderNodesMap,
-              layoutMap: getSharedLayoutMap(),
-              theme: resolveSkiaTheme(useThemeConfigStore.getState().darkMode),
+              layoutMap,
+              theme,
               childrenMap: currentRendererInput.childrenMap,
               registryVersion,
               racStateInput: { isHovered: true },
               cacheRef: hoverStateNodeCacheRef,
-            }),
+            });
+            const pressedNodes = computeHoverStateNodes({
+              bridge: storeRenderBridgeRef.current,
+              hoverState: pressedStateRef.current,
+              treeBoundsMap,
+              elementsMap: currentRendererInput.renderNodesMap,
+              layoutMap,
+              theme,
+              childrenMap: currentRendererInput.childrenMap,
+              registryVersion,
+              racStateInput: { isPressed: true },
+              cacheRef: pressedStateNodeCacheRef,
+            });
+            // pressed 를 뒤에 두어 hover fill 위에 덮어 그린다(우선순위 disabled>pressed>hover).
+            // 미press 시 pressedNodes=[] → hoverNodes 그대로 반환(배열 재할당 회피).
+            return pressedNodes.length === 0
+              ? hoverNodes
+              : [...hoverNodes, ...pressedNodes];
+          },
         }),
       );
 
