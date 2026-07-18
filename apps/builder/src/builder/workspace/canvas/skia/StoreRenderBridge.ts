@@ -38,7 +38,7 @@ import type { TransitionManager } from "./transitionManager";
 import { ANIMATABLE_NUMERIC_PROPERTIES } from "./interpolators";
 import type { CanonicalNode } from "@composition/shared";
 import { isCatalogCutover } from "@composition/shared";
-import { parsePxValue } from "@composition/specs";
+import { parsePxValue, type RacStateInput } from "@composition/specs";
 // ADR-912 단계5 step4 (2026-06-17): InlineAlertSpec import 제거 — InlineAlert 자식 font 분기를
 //   resolveSkiaRule("InlineAlert").sizes read-through 로 이관(spec 삭제 선행, rule fallback).
 import { resolveSkiaRule } from "./resolveSkiaVisualRule";
@@ -494,6 +494,43 @@ export class StoreRenderBridge {
   /**
    * 단일 요소의 SkiaNodeData 빌드 (routing + build).
    */
+  /**
+   * ADR-150 A1 — overlay 상태 fill 재렌더용 노드 빌드.
+   *
+   * hovered/pressed leaf 노드를 racStateInput(hover/pressed/focusVisible) 반영해 재빌드한다.
+   * scene 빌드(command stream)는 racStateInput 미주입이라 default fill 을 유지하고, 이 결과는
+   * overlay pass 에서만 그려진다 — command stream 캐시(4중 버전 키) 무변경 + scene rebuild 0
+   * (ADR-136 §9 sceneVersion signature 에 상태 미포함). 무효화는 기존 overlayVersion 채널 재사용.
+   *
+   * 좌표: 반환 노드의 x/y 는 layout 상대다. caller(overlay)가 treeBoundsMap 절대좌표로
+   *   배치한다(renderNode translate 계약).
+   */
+  public buildInteractionStateNode(
+    id: string,
+    racStateInput: RacStateInput,
+    elementsMap: Map<string, CanvasSceneNode>,
+    layoutMap: Map<string, ComputedLayout> | null,
+    theme: "light" | "dark",
+    childrenMap: Map<string, CanvasSceneNode[]> | null,
+  ): import("./nodeRendererTypes").SkiaNodeData | null {
+    const element = elementsMap.get(id);
+    if (!element) return null;
+    const layout = layoutMap?.get(id) ?? undefined;
+    const ctx: BuildContext = {
+      layoutMap: layoutMap ?? EMPTY_LAYOUT_MAP,
+      theme,
+    };
+    return this.buildNodeForElement(
+      element,
+      id,
+      layout,
+      ctx,
+      elementsMap,
+      childrenMap,
+      racStateInput,
+    );
+  }
+
   private buildNodeForElement(
     element: CanvasSceneNode,
     id: string,
@@ -501,6 +538,7 @@ export class StoreRenderBridge {
     ctx: BuildContext,
     elementsMap: Map<string, CanvasSceneNode>,
     childrenMap: Map<string, CanvasSceneNode[]> | null,
+    racStateInput?: RacStateInput,
   ): import("./nodeRendererTypes").SkiaNodeData | null {
     // ADR-903 P2 D-C: instance → resolved (master props 머지)
     // master/instance 시스템에서 instance.props 는 createInstance 시 빈 객체로
@@ -632,6 +670,7 @@ export class StoreRenderBridge {
         elementsMap,
         childrenMap: childrenMap ?? undefined,
         scrollState,
+        racStateInput,
       });
       if (nodeData) return nodeData;
       return (

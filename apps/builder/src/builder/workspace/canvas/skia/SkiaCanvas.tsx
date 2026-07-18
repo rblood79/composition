@@ -60,6 +60,10 @@ import {
 import { Camera } from "../viewport/Camera";
 import { viewportState as mutableViewport } from "../viewport/viewportState";
 import { StoreRenderBridge } from "./StoreRenderBridge";
+import {
+  computeHoverStateNodes,
+  type HoverStateNodeCache,
+} from "./hoverStateOverlay";
 import { getSharedLayoutMap } from "../layout/engines/fullTreeLayout";
 import { useStore } from "../../../stores";
 import { useAIVisualFeedbackStore } from "../../../stores/aiVisualFeedback";
@@ -209,6 +213,8 @@ export function SkiaCanvas({
   const invalidationPacketRef = useRef(invalidationPacket);
   const rendererInputRef = useRef(rendererInput);
   const storeRenderBridgeRef = useRef<StoreRenderBridge | null>(null);
+  // ADR-150 A1 — hover 상태 fill overlay 노드 캐시 (registryVersion/theme/hoveredLeafIds 시그니처).
+  const hoverStateNodeCacheRef = useRef<HoverStateNodeCache | null>(null);
   const lastWorkflowOverlaySignatureRef = useRef("");
   const lastWorkflowGraphSignatureRef = useRef("");
   const lastWfSubTogglesRef = useRef("");
@@ -715,6 +721,20 @@ export function SkiaCanvas({
           dpr,
           prevEdgeGeometryCache: edgeGeometryCacheRef.current,
           prevEdgeGeometryCacheKey: edgeGeometryCacheKeyRef.current,
+          // ADR-150 A1 — hover 상태 fill overlay 노드. treeBoundsMap(절대좌표) 확정 후 호출.
+          buildHoverStateNodes: (treeBoundsMap) =>
+            computeHoverStateNodes({
+              bridge: storeRenderBridgeRef.current,
+              hoverState: elementHoverStateRef.current,
+              treeBoundsMap,
+              elementsMap: currentRendererInput.renderNodesMap,
+              layoutMap: getSharedLayoutMap(),
+              theme: resolveSkiaTheme(useThemeConfigStore.getState().darkMode),
+              childrenMap: currentRendererInput.childrenMap,
+              registryVersion,
+              racStateInput: { isHovered: true },
+              cacheRef: hoverStateNodeCacheRef,
+            }),
         }),
       );
 

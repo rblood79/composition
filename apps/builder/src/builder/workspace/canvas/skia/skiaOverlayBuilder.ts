@@ -77,6 +77,18 @@ import {
   getCSSVariable,
 } from "../utils/cssVariableReader";
 import { hexToColor4fChannels } from "./themeWatcher";
+import { renderNode } from "./nodeRendererTree";
+import type { SkiaNodeData } from "./nodeRendererTypes";
+
+// ADR-150 A1 — hover 상태 fill 노드는 항상 화면 내 hovered 요소라 컬링 대상이 아니다.
+//   renderNode 는 cullingBounds 의 x/y/width/height 만 읽으므로 plain object cast 로 충분
+//   (DOMRect 생성자 회피 → jsdom static test 안전).
+const HOVER_STATE_CULL_BOUNDS = {
+  x: -1e7,
+  y: -1e7,
+  width: 2e7,
+  height: 2e7,
+} as DOMRect;
 
 // ============================================
 // Workflow Overlay Data
@@ -200,6 +212,11 @@ export interface OverlayBuildInput {
   skiaCanvasWidth: number;
   skiaCanvasHeight: number;
   dpr: number;
+  /**
+   * ADR-150 A1 — hover/pressed 상태 fill 재렌더 노드. hovered leaf 를 상태 fill 로
+   * 재빌드한 결과(x/y = treeBoundsMap 절대좌표). default shape 위에 덮어 그린다.
+   */
+  hoverStateNodes?: SkiaNodeData[];
 }
 
 function resolveSelectedFrameIdForTitle(
@@ -255,6 +272,7 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
     skiaCanvasWidth,
     skiaCanvasHeight,
     dpr,
+    hoverStateNodes,
   } = input;
 
   const { ai, selection, workflow } = invalidationPacket;
@@ -478,6 +496,16 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
       // sibling visual offset으로 실제 위치가 transient하게 바뀌기 때문에,
       // raw bounds 기반 hover와 drop target 표시가 중복 렌더될 수 있다.
       if (!dropIndicatorState) {
+        // ── Hover/Pressed State Fill (ADR-150 A1) ──
+        // hovered leaf 노드를 상태 fill(hover/pressed)로 재렌더해 default shape 위에 덮는다.
+        // command stream(default)은 무변경 — 상태 시각은 overlay 전용(scene rebuild 0, ADR-136 §9).
+        // renderNode 는 씬-로컬 절대좌표계에서 node.x/y 로 translate(hover outline 과 동일 좌표계).
+        if (hoverStateNodes) {
+          for (const stateNode of hoverStateNodes) {
+            renderNode(ck, canvas, stateNode, HOVER_STATE_CULL_BOUNDS, fontMgr);
+          }
+        }
+
         const {
           hoveredElementId: hoveredCtxId,
           hoveredLeafIds,

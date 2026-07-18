@@ -25,6 +25,7 @@ import {
   getSkiaPrimitiveMode,
   normalizeBreadcrumbRspSizeKey,
   racStateAttrs,
+  type RacStateInput,
   type BorderStyleValue,
   type ComponentState,
   type ComponentSpec,
@@ -105,6 +106,13 @@ interface SpecBuildInput {
     maxScrollTop: number;
     maxScrollLeft: number;
   } | null;
+  /**
+   * ADR-150 A1 — RAC 상호작용 상태(hover/pressed/focusVisible) 입력.
+   * scene 빌드(StoreRenderBridge)는 미주입 → default 유지(변경 0). overlay 재렌더가
+   * hovered/pressed leaf 노드에만 `{ isHovered: true }` 등을 주입해 상태 fill 을 방출한다.
+   * racStateAttrs 우선순위: disabled > pressed > hover > focusVisible.
+   */
+  racStateInput?: RacStateInput;
 }
 
 // ---------------------------------------------------------------------------
@@ -1499,7 +1507,11 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
         specProps.disabled ||
         breadcrumbCtx?._parentIsDisabled,
       );
+  // racStateInput(overlay 재렌더 주입) 을 먼저 펼치고 isDisabled 를 나중에 명시 —
+  //   scene 판정 isDisabled(breadcrumb 예외/부모 전파 포함)가 항상 우선하고, overlay 는
+  //   hover/pressed/focusVisible 만 덮어쓴다(isDisabled undefined 로 덮이는 사고 방지).
   const componentState: ComponentState = racStateAttrs({
+    ...input.racStateInput,
     isDisabled: isNodeDisabled,
   });
 
