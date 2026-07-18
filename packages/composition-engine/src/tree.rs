@@ -172,6 +172,22 @@ pub struct NodeStyle {
     pub aspect_ratio: Option<f32>,
 }
 
+/// `NodeStyle` 선언 필드 수 — ADR-156 R7/G6 정적 가드 앵커.
+///
+/// breakdown §1-3 3축 교차표의 "NodeStyle 49필드" 를 코드로 고정한다. 이 값을
+/// 바꾸면(= 필드 추가/삭제) `nodestyle_field_contract_guard` 의 전수 구조분해가
+/// 먼저 컴파일 RED 이므로, 교차표 갱신 없이 필드만 늘리는 silent drift 가 차단된다.
+pub const NODESTYLE_FIELD_COUNT: usize = 49;
+
+/// 「선언 O · 송신 O · 소비 X」 필드 (camelCase = serde 계약명).
+///
+/// ADR-156 §Residual 잔존과 1:1. 파이프라인이 값을 보내지만 엔진이 읽지 않는
+/// 필드로, 소비 코드를 배선하면 이 목록에서 제거한다. 반대로 신규 미소비 필드가
+/// 생기면 여기 등재해야 `nodestyle_field_contract_guard` 산술(소비+미소비=선언)이
+/// 맞는다. `order`(E16)·`grid_template_areas` 는 `NodeStyle` 미선언(serde silent
+/// drop)이라 필드 수(49)에 불포함 — 유입 경로가 생기면 선언 후 재판정.
+pub const UNCONSUMED_NODESTYLE_FIELDS: [&str; 2] = ["justifySelf", "justifyItems"];
+
 /// batch 트리 빌드 입력 (taffy_bridge.rs `BatchNodeInput` 대응).
 ///
 /// post-order(리프 먼저, 루트 마지막) 배열. `children` 은 같은 배열 내 인덱스.
@@ -2478,6 +2494,98 @@ fn resolve_flex_basis(value: Option<&str>, main_ctx: &CssValueContext) -> Option
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// ADR-156 R7/G6 — `NodeStyle` 정적 필드 계약 가드.
+    ///
+    /// `golden.rs::golden_field_contract_guard`(FLEX_FIELD_COUNT assert) 패턴을
+    /// 승계하되, 필드 **수**만이 아니라 「선언 O · 소비 X」 축까지 코드로 고정한다.
+    ///
+    /// 3중 방어:
+    /// 1. **전수 구조분해(`..` 금지)** — `NodeStyle` 에 필드를 추가하면 여기서 즉시
+    ///    컴파일 RED. 대응: breakdown §1-3 3축 교차표(선언/소비/송신) 갱신 + 소비
+    ///    여부 판정 → 미소비면 `UNCONSUMED_NODESTYLE_FIELDS` 등재. 문서 표 단독은
+    ///    stale 화하므로(본 ADR 이 발견한 미소비 9필드가 어떤 가드에도 안 걸렸음)
+    ///    이 구조분해가 상시성의 근거다.
+    /// 2. **산술 계약** — 소비 47 + 미소비 2 = 선언 49 (breakdown §1-3 "49 = 소비 +
+    ///    미소비" 앵커). 필드를 소비 배선하며 allowlist 에서 빼면 CONSUMED_COUNT 도
+    ///    함께 갱신해야 통과.
+    /// 3. **미소비 allowlist** — `UNCONSUMED_NODESTYLE_FIELDS` 가 §Residual 과 1:1.
+    #[test]
+    fn nodestyle_field_contract_guard() {
+        // (1) 전수 구조분해 — `..` 절대 금지. 필드 추가 시 컴파일 RED.
+        //     소비 여부와 무관하게 49필드를 전부 명시(바인딩은 `_`)해야 통과한다.
+        let NodeStyle {
+            display: _,
+            position: _,
+            overflow_x: _,
+            overflow_y: _,
+            flex_direction: _,
+            flex_wrap: _,
+            justify_content: _,
+            justify_items: _,
+            align_items: _,
+            align_content: _,
+            flex_grow: _,
+            flex_shrink: _,
+            flex_basis: _,
+            align_self: _,
+            justify_self: _,
+            grid_template_columns: _,
+            grid_template_rows: _,
+            grid_auto_flow: _,
+            grid_auto_columns: _,
+            grid_auto_rows: _,
+            grid_column_start: _,
+            grid_column_end: _,
+            grid_row_start: _,
+            grid_row_end: _,
+            width: _,
+            height: _,
+            min_width: _,
+            min_height: _,
+            max_width: _,
+            max_height: _,
+            margin_top: _,
+            margin_right: _,
+            margin_bottom: _,
+            margin_left: _,
+            padding_top: _,
+            padding_right: _,
+            padding_bottom: _,
+            padding_left: _,
+            border_top: _,
+            border_right: _,
+            border_bottom: _,
+            border_left: _,
+            inset_top: _,
+            inset_right: _,
+            inset_bottom: _,
+            inset_left: _,
+            column_gap: _,
+            row_gap: _,
+            aspect_ratio: _,
+        } = NodeStyle::default();
+
+        // (2) 산술 계약 — 소비 + 미소비 = 선언. breakdown §1-3 "49 = 소비 40 + 미소비 9"
+        //     가 Phase 2~5 배선으로 "49 = 소비 47 + 미소비 2" 로 이동했다(7필드 소비 전환:
+        //     align_self / overflow_x·y / grid_auto_flow·columns·rows / aspect_ratio).
+        const CONSUMED_COUNT: usize = 47;
+        assert_eq!(
+            CONSUMED_COUNT + UNCONSUMED_NODESTYLE_FIELDS.len(),
+            NODESTYLE_FIELD_COUNT,
+            "소비({CONSUMED_COUNT}) + 미소비({}) ≠ 선언({NODESTYLE_FIELD_COUNT}) — \
+             필드 추가/소비 전환 시 breakdown §1-3 교차표 동반 갱신 (ADR-156 R7)",
+            UNCONSUMED_NODESTYLE_FIELDS.len(),
+        );
+
+        // (3) 미소비 allowlist — §Residual(E2 grid 가로 배치·크기, 옵션 3-b) 과 1:1.
+        //     grep `.{field}`(pub 선언 제외) 0 hit = 미소비. 소비 배선 시 제거.
+        assert_eq!(
+            UNCONSUMED_NODESTYLE_FIELDS,
+            ["justifySelf", "justifyItems"],
+            "미소비 필드 변경 — ADR-156 §Residual + breakdown §1-3 동반 갱신",
+        );
+    }
 
     /// BatchNodeInput 형식(`{style, children}`)의 leaf 노드 JSON 1개.
     fn style_json(width: &str, height: &str) -> String {
