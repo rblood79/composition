@@ -2,10 +2,11 @@
 
 ## Status
 
-Proposed — 2026-07-08
+Accepted — 2026-07-19 (리뷰 round 3 승인 — `reviews/149.md`: round 1 3건 + round 2 3건 이슈 전건 fixed 재검증, HIGH/CRITICAL 0, drift 0, 종결 계약 성립)
 
 진행 로그:
 
+- 2026-07-19 — Proposed → **Accepted**. reviews/149.md round 3 재리뷰: 구조 7/7 PASS, 핵심 코드 정합 4/4 VERIFIED(eventHandlers legacy props.events 소비 / canonicalDocumentStore history 미통합 / migrateRootCollectionToLegacy 미구현 / workflowEdges live 소비자), round 1·2 이슈 종결 재확인, 2026-07-14 이후 drift 는 `b563085fe`(ADR-155 dead guard 정리, Phase 0 re-freeze 흡수) 1건뿐. 착수 시 G1(Wave 1 UI design 사용자 explicit confirm) 이 구현 전 게이트로 존속.
 - 2026-07-08 — [ADR-133](completed/133-events-panel-simplification.md) Deprecated (사용자 결정 "133은 폐기 후 재설계 대상") 의 후속으로 작성. 사용자 명시 지시 "ADR-133 설계목적만 파악후 전면 재설계 진행해" — 설계 목적 4개만 승계, 설계 구조는 2026-07-08 코드 실측 기반 신규.
 
 ## Context
