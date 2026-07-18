@@ -32,6 +32,8 @@ import {
   type PropagationRule,
   type Shape,
   type SizeSpec,
+  lightColors,
+  darkColors,
 } from "@composition/specs";
 import {
   isCatalogCutover,
@@ -120,9 +122,10 @@ interface SpecBuildInput {
 // ---------------------------------------------------------------------------
 
 // ADR-150 A1 S4 — focus ring(RAC data-focus-visible 정합). CSS `outline: 2px solid
-// var(--focus-ring); outline-offset: 2px` 동형. 색상 = --focus-ring(blue-500 #3b82f6).
-// nodeRendererBorders 가 box.outline* 를 bounds 바깥 offset stroke 로 렌더.
-const FOCUS_RING_COLOR = Float32Array.of(59 / 255, 130 / 255, 246 / 255, 1);
+// var(--focus-ring); outline-offset: 2px` 동형(Checkbox/GridList/ColorPicker.css 실측).
+// 색상은 하드코딩 금지 — theme accent(lightColors/darkColors.accent, tint 반영)로 해소해
+// DOM --focus-ring(preview tint 파생)과 대칭 + dark mode/커스텀 tint 대응(cross-check §3.5
+// "focusVisible = var(--accent)"). nodeRendererBorders 가 box.outline* 를 offset stroke 로 렌더.
 const FOCUS_RING_WIDTH = 2;
 const FOCUS_RING_OFFSET = 2;
 
@@ -1747,7 +1750,13 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
         borderRadius: 0,
       };
     }
-    specNode.box.outlineColor = FOCUS_RING_COLOR;
+    // theme accent(=CSS --accent, tint 파생) 해소 — withAccentOverride 스코프 밖이라
+    // 전역 theme accent(preview --focus-ring 과 동일 tint 계열). fallback blue-500.
+    const accentHex = cssColorToHex(
+      (theme === "dark" ? darkColors : lightColors).accent,
+      0x3b82f6,
+    );
+    specNode.box.outlineColor = colorIntToFloat32(accentHex, 1);
     specNode.box.outlineWidth = FOCUS_RING_WIDTH;
     specNode.box.outlineOffset = FOCUS_RING_OFFSET;
   }
