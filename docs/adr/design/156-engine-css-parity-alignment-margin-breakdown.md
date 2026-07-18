@@ -325,6 +325,18 @@ flow 수정(Phase 4)과 축이 독립적이라 분리한다. `position`/`top`/`l
 - E10: relative 는 in-flow 취급이 정상이고 **시각 offset 만 소실** → 배치 후 offset 적용 단계 추가.
 - E11: ① 양측 inset 지정 + 크기 auto → stretch (`k.w` 180 vs 0) ② inset 무지정 → static position 유지 (`k.y` 30 vs 0) ③ `margin:auto` + 양측 inset → 중앙 (`k.x` 80 vs 0). ABS-2(% inset)는 이미 정합이므로 회귀 기준선.
 
+### 5-5-b. 진행 상태 — Phase 4.5 반영 완료 (2026-07-18, commit `be8c95824`)
+
+**구현 (엔진 = `packages/composition-engine/src/tree.rs`)**:
+
+- **E10 relative offset**: `solve_node` 이 컨테이너 배치(solve_flex/block/grid) 직후 `apply_relative_offsets` 후처리 호출 — `position:relative` flow 자식만 `inset`(left/right → x, top/bottom → y, left/top 우선)만큼 자기 layout 을 이동. 형제 위치·컨테이너 크기(cw/ch)에는 영향 없음(CSS §9.4.3). 자식 subtree 는 부모 상대 좌표라 조상 누적(`get_layouts_batch` 소비처)이 함께 이동시킨다.
+- **E11 absolute 3종**: `place_absolute_children` 을 축별 `resolve_abs_axis(pb_start, cb_size, start, end, size, has_explicit_size, m_start, m_end, m_start_auto, m_end_auto, static_pos)` 헬퍼로 리팩터(x/y 대칭). ① 양측 inset + 크기 auto → `cb − start − end − margins` stretch. ② 양측 inset auto → `static_pos`(문서 순서상 선행 in-flow 형제들의 누적 하단 = block 흐름 근사, static_x = content 원점)로 배치. ③ 양측 inset + 명시 크기 + margin auto → 잉여 공간을 auto margin 이 흡수(양쪽 auto = 중앙). static position 은 abs 루프 진입 전 `all_children` 문서 순서 1-pass 로 선계산.
+- **캐시 키**: 추가 불필요 — `position`/`top`/`left`/`right`/`bottom`/`marginLeft`/`marginRight` 는 이미 `LAYOUT_STYLE_KEYS` 등재(layoutCache.ts:51,60,62,122-125) 실측 확인 → Inspector 편집도 캐시 무효화.
+
+**검증**: `cargo test` **297**(lib 270 = 266+4 relative/abs 단위, +golden 15 +tree_golden 11 +doc 1) / 파리티 `phase4_5.browser.test.ts` **5/5**(E10 + E11 ①②③ + ABS-2 % inset 회귀 기준선) + 전체 스위트 **41 무회귀**(phase2/3/4/4_5) / type-check baseline 63 무증가. 기존 absolute 7 테스트(단측 inset·right/bottom 역산·padding box·translate 에뮬레이션·grid 부모) 무회귀.
+
+**live behavior (Skia scene, `getSharedLayoutMap`)**: 빌더 store 에 relative/absolute frame 추가 → E10 `krel` 로컬 (15,30)(flow 20 + offset 10) · E11 ① `kabs`(180×60 @ 10,15) · ② `kstat` y=30(선행 30px 형제 뒤) · ③ `kmarg` x=80(중앙) 전부 반영 확인. **Phase 4 의 block-height 마스킹과 대비 — position/absolute 경로는 Layer 2(`calculateContentHeight`) 선계산 대상이 아니라 엔진 결과가 Skia 까지 직접 도달**(회귀 0, 테스트 요소 전량 정리 후 baseline 복원).
+
 ## 6. Phase 5 — margin auto + root self-sizing + aspect-ratio (G5)
 
 **대상**: E4, E5(결함군 전체), **E15**(round 2 흡수). 전부 라이브 노출이 잠재적이라 후순위.

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [position(relative offset·absolute 3종)이 Builder(Skia)에서 CSS 와 어긋나던 결함 — ADR-156 Phase 4.5] - 2026-07-18
+
+### Bug Fixes
+
+- **`position:relative` 시각 offset 이 Builder(Skia)에서 무시되던 결함 수정** (ADR-156 E10):
+  - 증상: relative 요소에 `top`/`left` 를 줘도 Skia 는 정상 흐름 위치 그대로 그림 (Preview 는 offset 반영) — CSS↔Skia 비대칭
+  - **Why**: 엔진이 relative 를 in-flow 로만 배치하고 inset 시각 이동 단계가 없었다. `solve_node` 이 컨테이너 배치 직후 `apply_relative_offsets` 후처리로 relative 자식만 자기 box 를 inset 만큼 이동(형제·컨테이너 크기 불변, CSS §9.4.3)
+- **`position:absolute` 3종 미구현 결함 수정** (ADR-156 E11):
+  - ① 양측 inset(`left`+`right` 또는 `top`+`bottom`) + 크기 auto → containing block 안에서 stretch (기존: 크기 0)
+  - ② inset 무지정 → 정상 흐름 위치(static position) 유지 (기존: 컨테이너 원점 0,0 고정)
+  - ③ `margin:auto` + 양측 inset + 명시 크기 → 잉여 공간 균등 분배(중앙) (기존: 좌상단 고정)
+  - **Why**: `place_absolute_children` 이 `left` 우선·단측 역산·static 근사(0)만 처리. 축별 `resolve_abs_axis` 헬퍼로 리팩터해 stretch/static/margin-auto 를 CSS 근사(§10.3.7/§10.6.4)로 구현. static position 은 문서 순서상 선행 in-flow 형제 하단으로 근사
+  - 회귀 기준선: `%` inset(ABS-2)은 이미 정합 — 유지 확인
+- 위치: `packages/composition-engine/src/tree.rs`
+- 검증: Chrome 차등 파리티(`tests/parity/phase4_5.browser.test.ts`) 5 fixture + 전체 스위트 41 + Rust 297 tests(relative/abs +4) + type-check 63 무증가. **live(빌더 Skia scene)**: relative offset(15,30)·absolute stretch(180×60@10,15)·static(y30)·margin-auto(x80) 전부 반영 확인 — position/absolute 경로는 Layer 2 마스킹 없이 Skia 직접 도달(Phase 4 block-height 와 대비)
+
 ## [flow 배치 발산(음수 margin·reverse·부모-자식 상쇄·overflow BFC)가 Builder(Skia)에서 CSS 와 어긋나던 결함 — ADR-156 Phase 4] - 2026-07-18
 
 ### Bug Fixes
