@@ -49,6 +49,7 @@ import {
   type ElementHoverState,
 } from "../hooks/useElementHoverInteraction";
 import { useElementPressInteraction } from "../hooks/useElementPressInteraction";
+import { useFocusVisibleModality } from "../hooks/useFocusVisibleModality";
 import { useScrollWheelInteraction } from "../hooks/useScrollWheelInteraction";
 import { DEFAULT_MINIMAP_CONFIG, type MinimapConfig } from "./workflowMinimap";
 import type { BoundingBox } from "../selection/types";
@@ -218,6 +219,9 @@ export function SkiaCanvas({
   const hoverStateNodeCacheRef = useRef<HoverStateNodeCache | null>(null);
   // ADR-150 A1 S3 — pressed 상태 fill overlay 노드 캐시 (hover 와 별도 시그니처 namespace).
   const pressedStateNodeCacheRef = useRef<HoverStateNodeCache | null>(null);
+  // ADR-150 A1 S4 — focus ring overlay 노드 캐시 + keyboard modality (focusVisible 소스).
+  const focusStateNodeCacheRef = useRef<HoverStateNodeCache | null>(null);
+  const keyboardModalityRef = useRef(false);
   const lastWorkflowOverlaySignatureRef = useRef("");
   const lastWorkflowGraphSignatureRef = useRef("");
   const lastWfSubTogglesRef = useRef("");
@@ -364,6 +368,12 @@ export function SkiaCanvas({
     containerEl,
     hoverStateRef: elementHoverStateRef,
     pressedStateRef,
+    overlayVersionRef,
+  });
+
+  // ADR-150 A1 S4 — focusVisible 축: 입력 modality(keyboard/pointer) 추적.
+  useFocusVisibleModality({
+    keyboardModalityRef,
     overlayVersionRef,
   });
 
@@ -768,11 +778,35 @@ export function SkiaCanvas({
               racStateInput: { isPressed: true },
               cacheRef: pressedStateNodeCacheRef,
             });
-            // pressed 를 뒤에 두어 hover fill 위에 덮어 그린다(우선순위 disabled>pressed>hover).
-            // 미press 시 pressedNodes=[] → hoverNodes 그대로 반환(배열 재할당 회피).
-            return pressedNodes.length === 0
-              ? hoverNodes
-              : [...hoverNodes, ...pressedNodes];
+            // focusVisible 소스 = keyboard modality 일 때의 선택 요소(단일). 링은 bounds 밖
+            // outline 이라 leaf 불필요 → hoveredLeafIds=[]. focused id 없으면 targetIds 비어 [].
+            // 선택 변경은 overlayVersion 을 이미 bump(:selection 무효화) → 인라인 store read 안전.
+            const focusedId = keyboardModalityRef.current
+              ? (useStore.getState().selectedElementIds[0] ?? null)
+              : null;
+            const focusNodes = computeHoverStateNodes({
+              bridge: storeRenderBridgeRef.current,
+              hoverState: {
+                hoveredElementId: focusedId,
+                hoveredLeafIds: [],
+                isGroupHover: false,
+              },
+              treeBoundsMap,
+              elementsMap: currentRendererInput.renderNodesMap,
+              layoutMap,
+              theme,
+              childrenMap: currentRendererInput.childrenMap,
+              registryVersion,
+              racStateInput: { isFocusVisible: true },
+              cacheRef: focusStateNodeCacheRef,
+            });
+            // 레이어 순서 = focus → hover → pressed. focus 링은 bounds 밖이라 뒤 레이어 fill
+            // 에 안 가리고, focus 레이어의 (default)fill 은 hover/pressed fill 이 덮어 우선순위
+            // (disabled>pressed>hover>focusVisible) 유지. 미상태 시 hoverNodes 그대로(재할당 회피).
+            if (pressedNodes.length === 0 && focusNodes.length === 0) {
+              return hoverNodes;
+            }
+            return [...focusNodes, ...hoverNodes, ...pressedNodes];
           },
         }),
       );

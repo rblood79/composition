@@ -119,6 +119,13 @@ interface SpecBuildInput {
 // Constants
 // ---------------------------------------------------------------------------
 
+// ADR-150 A1 S4 — focus ring(RAC data-focus-visible 정합). CSS `outline: 2px solid
+// var(--focus-ring); outline-offset: 2px` 동형. 색상 = --focus-ring(blue-500 #3b82f6).
+// nodeRendererBorders 가 box.outline* 를 bounds 바깥 offset stroke 로 렌더.
+const FOCUS_RING_COLOR = Float32Array.of(59 / 255, 130 / 255, 246 / 255, 1);
+const FOCUS_RING_WIDTH = 2;
+const FOCUS_RING_OFFSET = 2;
+
 const CONTAINER_DIMENSION_TAGS = new Set([
   "Tag",
   "Breadcrumbs",
@@ -1729,8 +1736,21 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     }
   }
 
-  // Focus ring: componentState가 focusVisible/focused를 지원하게 되면 활성화
-  // 현재 componentState는 "default" | "disabled"만 가능
+  // ---------- Focus ring (ADR-150 A1 S4) ----------
+  // componentState="focusVisible" 일 때 focus ring outline 활성화(912 잔여 3종 중 마지막).
+  // racStateInput.isFocusVisible → racStateAttrs → "focusVisible" → 여기서 box.outline* 주입.
+  // 링은 overlay 채널 재렌더(computeHoverStateNodes, isFocusVisible)로 focused 노드에 도달.
+  if (componentState === "focusVisible") {
+    if (!specNode.box) {
+      specNode.box = {
+        fillColor: Float32Array.of(0, 0, 0, 0),
+        borderRadius: 0,
+      };
+    }
+    specNode.box.outlineColor = FOCUS_RING_COLOR;
+    specNode.box.outlineWidth = FOCUS_RING_WIDTH;
+    specNode.box.outlineOffset = FOCUS_RING_OFFSET;
+  }
 
   // ---------- Text style overrides (ADR-057 Phase A/B: style → child.text) ----------
   // 기존 whiteSpace-only override를 13개 필드로 일반화.

@@ -60,7 +60,11 @@ function baseParams(overrides: {
   treeBoundsMap: Map<string, BoundingBox>;
   cacheRef: { current: HoverStateNodeCache | null };
   registryVersion?: number;
-  racStateInput?: { isHovered?: boolean; isPressed?: boolean };
+  racStateInput?: {
+    isHovered?: boolean;
+    isPressed?: boolean;
+    isFocusVisible?: boolean;
+  };
 }) {
   return {
     bridge: overrides.bridge,
@@ -198,6 +202,23 @@ describe("computeHoverStateNodes (ADR-150 A1)", () => {
     );
     expect(spy.calls()).toBe(2); // 상태 전이 → 캐시 미스 → 재빌드
     expect(cacheRef.current?.key).toContain("pressed");
+  });
+
+  it("S4: focusVisible 는 hover/pressed 와 시그니처가 달라 별도 cacheRef 필요", () => {
+    // focus ring 은 hover/pressed 와 독립 overlay 레이어 → 별도 캐시 namespace.
+    const spy = makeBridgeSpy();
+    const cacheRef: { current: HoverStateNodeCache | null } = { current: null };
+    computeHoverStateNodes(
+      baseParams({
+        bridge: spy.bridge,
+        hoverState: hoverState("btn", []), // focus 링은 leaf 불필요(bounds 밖 outline)
+        treeBoundsMap: new Map([["btn", bounds(0, 0, 10, 10)]]),
+        cacheRef,
+        racStateInput: { isFocusVisible: true },
+      }),
+    );
+    expect(spy.builtIds).toEqual(["btn"]);
+    expect(cacheRef.current?.key).toContain("focusVisible");
   });
 
   it("registryVersion 변경 시 캐시 무효화(재빌드)", () => {
