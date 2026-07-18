@@ -38,11 +38,26 @@
 
 ### Wave 1 — canonical end-to-end + 2-depth UI
 
-#### Phase 1 — UI design lock-in (G1)
+#### Phase 1 — UI design lock-in (G1) ✅ Implemented (G1 사용자 confirm 2026-07-19)
 
 - UI sketch + interaction flow: L1 = supportedEvents 기반 callback props list (populated/empty 상태), L2 = inline expand (1-action 기본 + power-user toggle: chain/condition/debounce·throttle)
 - ADR-010 P0/P1 4 영역 (추천 chips / 템플릿 / 추천 액션 chips / 누락 경고) 의 신규 표면 내 위치 명시
-- **사용자 explicit confirm (AskUserQuestion)** 후 Phase 2 진입
+- **사용자 explicit confirm (AskUserQuestion)** 후 Phase 2 진입 — **2026-07-19 확정** (execute-adr G1, 사용자 "승인 — Phase 2 착수")
+
+**Lock-in design (G1 확정 2026-07-19)** — Phase 2 재작성의 목표 구조:
+
+```
+L1 — 기본 표면 (depth 1, overlay 0)
+  ⚡ {supportedEvents callback}  ·  바인딩 상태  ·  클릭 → L2 inline expand
+  빈 상태: 💡 추천 이벤트 chips(①) + 📋 템플릿 chips(②)
+L2 — inline accordion (depth 2, overlay 아님)
+  액션 목록(기본 1개) · [+ 액션 추가] · 💡 추천 액션 chips(③)
+  ⚙ 고급 ▸ : 조건 · debounce/throttle · "다른 이벤트서도 사용" 토글(ActionsPanel 흡수: anon→named id)
+  ⚠ 누락 경고(④)
+```
+
+- depth ≤ 2 / overlay 0 (HC1) — 현행 WhenBlock/IfBlock/ThenElseBlock/BlockActionEditor 3~4 depth 대체
+- ADR-010 4영역: ①② = L1 빈 상태, ③④ = L2 내부. ActionsPanel 별도 패널 제거(HC4), cross-event reuse 는 L2 고급 토글로 흡수
 
 #### Phase 2 — EventsPanel canonical primary 재작성 + ActionsPanel 흡수
 
@@ -109,7 +124,7 @@
 ## §6. 검증 체크리스트
 
 - [x] Phase 0: inventory 표 + allowlist + baseline freeze (commit hash) — **완료 2026-07-19** (`bf4e6aac4`, [inventory](149-events-panel-inventory.md))
-- [ ] Phase 1: UI sketch 사용자 confirm (AskUserQuestion)
+- [x] Phase 1: UI sketch 사용자 confirm (AskUserQuestion) — **완료 2026-07-19** (G1 lock-in design 확정)
 - [ ] Phase 2: HC2/HC4 grep 0건 + canonical→legacy 프로젝션 동작 (Preview 무중단) + history/persist 통합 — 이벤트 편집 undo/redo 1회 (R8)
 - [ ] Phase 3: HC3 grep 0건 + live 소비자 (workflowEdges/elementDiff/elementMapper) canonical 전환 (R4) + round-trip test + hydration migration + EventEngine test + **live 1회**
 - [ ] Phase 4: 4-way 갱신 grep + 제거 4종 0건 + helper test + live 1회
