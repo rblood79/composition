@@ -186,7 +186,11 @@ pub const NODESTYLE_FIELD_COUNT: usize = 49;
 /// 생기면 여기 등재해야 `nodestyle_field_contract_guard` 산술(소비+미소비=선언)이
 /// 맞는다. `order`(E16)·`grid_template_areas` 는 `NodeStyle` 미선언(serde silent
 /// drop)이라 필드 수(49)에 불포함 — 유입 경로가 생기면 선언 후 재판정.
-pub const UNCONSUMED_NODESTYLE_FIELDS: [&str; 2] = ["justifySelf", "justifyItems"];
+///
+/// **2026-07-18 (옵션 3-a)**: `justifySelf`/`justifyItems` 는 `solve_grid` 의
+/// `grid_inline_justify`/`parse_justify_items` 배선으로 소비 전환 → 목록 비움.
+/// 남은 미소비 필드 0 (49 전부 소비).
+pub const UNCONSUMED_NODESTYLE_FIELDS: [&str; 0] = [];
 
 /// batch 트리 빌드 입력 (taffy_bridge.rs `BatchNodeInput` 대응).
 ///
@@ -1679,19 +1683,20 @@ impl LayoutTree {
         //   — JS DFS(fullTreeLayout) 가 grid 자식 폭을 트랙 폭으로 강제하므로 엔진이 justify 를
         //   더해도 live 에서 이중 적용/무효가 되어 §Residual (옵션 3-b 계약).
         let grid_align_items = parse_align_items(style.align_items.as_deref());
+        let grid_justify_items = parse_justify_items(style.justify_items.as_deref());
         let mut max_right: f32 = 0.0;
         let mut max_bottom: f32 = 0.0;
         for (i, &c) in children.iter().enumerate() {
             let off = i * 4;
             let (x, y, w, h) = (bounds[off], bounds[off + 1], bounds[off + 2], bounds[off + 3]);
             // 자식을 셀 크기로 재귀 solve → 자식 실제 크기(explicit/content) 회수.
-            let (_cw, ch) = self.solve_node(c, w, h);
+            let (cw, ch) = self.solve_node(c, w, h);
             let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
             let align = grid_block_align(cstyle.align_self.as_deref(), grid_align_items);
             // **오직 명시적 비-stretch 정렬(align≠stretch)일 때만** 재배치한다. 기본 stretch 는
             //   explicit-height 자식이어도 셀 채움을 유지 — 옵션 3-b "크기 stretch 유지" 계약 +
             //   live grid 컴포넌트(ProgressBar 등)가 이에 의존(회귀 방지). CSS 상 explicit-height
-            //   자식은 stretch 안 하지만, 그 축소는 옵션 3-a 영역이라 §Residual.
+            //   자식은 stretch 안 하지만, 그 축소는 옵션 3-a stretch 영역이라 §Residual.
             let (fy, fh) = if align != 0 {
                 let real_h = ch.max(0.0).min(h);
                 let free = (h - real_h).max(0.0);
@@ -1704,10 +1709,29 @@ impl LayoutTree {
             } else {
                 (y, h) // stretch fill (기본)
             };
+            // E2 justify(가로) — grid_block_align(세로) 대칭 (ADR-156 옵션 3-a). justify≠stretch
+            //   이고 자식이 실제 width(cw>0, explicit/content)를 가지면 셀 안 start/center/end 로
+            //   배치. `cw>0` 가드: auto-width 자식(cw=0, 콘텐츠 폭 미지정)은 stretch 로 셀을 채워
+            //   0 붕괴 방지(intrinsic shrink-to-fit justify 는 JS 협업 필요 — §Residual). 기본
+            //   stretch 는 셀 폭 채움 유지. **컨테이너 auto-width(max_right)는 셀 우변 x+w 기준
+            //   유지** — 트랙 extent 이 컨테이너 폭이지 자식 배치가 아님(CSS grid 계약).
+            let justify = grid_inline_justify(cstyle.justify_self.as_deref(), grid_justify_items);
+            let (fx, fw) = if justify != 0 && cw > 0.0 {
+                let real_w = cw.min(w);
+                let free = (w - real_w).max(0.0);
+                let dx = match justify {
+                    2 => free / 2.0, // center
+                    3 => free,       // end
+                    _ => 0.0,        // start(1)
+                };
+                (x + dx, real_w)
+            } else {
+                (x, w) // stretch fill (기본 또는 auto-width 자식)
+            };
             max_right = max_right.max(x + w);
             max_bottom = max_bottom.max(fy + fh);
             if let Some(n) = self.get_mut(c) {
-                n.layout = NodeLayout { x: x + off_x, y: fy + off_y, width: w, height: fh };
+                n.layout = NodeLayout { x: fx + off_x, y: fy + off_y, width: fw, height: fh };
             }
         }
 
@@ -1937,6 +1961,35 @@ fn grid_block_align(align_self: Option<&str>, container: u8) -> u8 {
         Some("center") => 2,
         Some("flex-end") | Some("end") | Some("self-end") => 3,
         // auto/normal/미지정 → 컨테이너 align-items 상속
+        _ => container,
+    }
+}
+
+/// justify-items → grid 인라인축(열) 코드 (stretch=0/start=1/center=2/end=3).
+/// `parse_align_items` 의 가로축 대칭. LTR 에서 left→start / right→end.
+fn parse_justify_items(v: Option<&str>) -> u8 {
+    match v.map(|s| s.trim().to_ascii_lowercase()).as_deref() {
+        Some("flex-start") | Some("start") | Some("left") => 1,
+        Some("center") => 2,
+        Some("flex-end") | Some("end") | Some("right") => 3,
+        // stretch/normal/기타 → 0 (default stretch)
+        _ => 0,
+    }
+}
+
+/// grid 인라인축(열) 정렬 코드 — justify-self(자식) → parse_justify_items 코드(0=stretch/
+/// 1=start/2=center/3=end), auto/미지정은 컨테이너 justify-items 상속. E2(ADR-156 옵션 3-a)
+/// 의 가로 배치용 — `grid_block_align`(세로) 대칭.
+fn grid_inline_justify(justify_self: Option<&str>, container: u8) -> u8 {
+    match justify_self
+        .map(|s| s.trim().to_ascii_lowercase())
+        .as_deref()
+    {
+        Some("stretch") => 0,
+        Some("flex-start") | Some("start") | Some("self-start") | Some("left") => 1,
+        Some("center") => 2,
+        Some("flex-end") | Some("end") | Some("self-end") | Some("right") => 3,
+        // auto/normal/미지정 → 컨테이너 justify-items 상속
         _ => container,
     }
 }
@@ -2567,9 +2620,10 @@ mod tests {
         } = NodeStyle::default();
 
         // (2) 산술 계약 — 소비 + 미소비 = 선언. breakdown §1-3 "49 = 소비 40 + 미소비 9"
-        //     가 Phase 2~5 배선으로 "49 = 소비 47 + 미소비 2" 로 이동했다(7필드 소비 전환:
-        //     align_self / overflow_x·y / grid_auto_flow·columns·rows / aspect_ratio).
-        const CONSUMED_COUNT: usize = 47;
+        //     가 Phase 2~5 배선으로 "49 = 소비 47 + 미소비 2", 옵션 3-a(2026-07-18)로
+        //     "49 = 소비 49 + 미소비 0" 으로 이동했다(justify_self/justify_items 소비 전환:
+        //     solve_grid grid_inline_justify).
+        const CONSUMED_COUNT: usize = 49;
         assert_eq!(
             CONSUMED_COUNT + UNCONSUMED_NODESTYLE_FIELDS.len(),
             NODESTYLE_FIELD_COUNT,
@@ -2578,11 +2632,11 @@ mod tests {
             UNCONSUMED_NODESTYLE_FIELDS.len(),
         );
 
-        // (3) 미소비 allowlist — §Residual(E2 grid 가로 배치·크기, 옵션 3-b) 과 1:1.
-        //     grep `.{field}`(pub 선언 제외) 0 hit = 미소비. 소비 배선 시 제거.
+        // (3) 미소비 allowlist — 옵션 3-a 로 justify 2필드 소비 전환 후 **빈 배열**(전부 소비).
+        //     신규 미소비 필드가 생기면 여기 + UNCONSUMED_NODESTYLE_FIELDS 동반 등재.
+        let empty: [&str; 0] = [];
         assert_eq!(
-            UNCONSUMED_NODESTYLE_FIELDS,
-            ["justifySelf", "justifyItems"],
+            UNCONSUMED_NODESTYLE_FIELDS, empty,
             "미소비 필드 변경 — ADR-156 §Residual + breakdown §1-3 동반 갱신",
         );
     }
@@ -3276,6 +3330,50 @@ mod tests {
         // child2 (0,1): y = 50 + 20 gap = 70.
         let c2 = tree.get_layout(handles[2]);
         assert_eq!(c2.y, 70.0, "c2.y = 50 + row_gap 20");
+    }
+
+    /// E2 옵션 3-a: justify-items:end — explicit-width 자식이 셀 우측 배치 + 폭 respect.
+    #[test]
+    fn grid_justify_items_end_respects_explicit_width() {
+        let mut tree = LayoutTree::new();
+        // 1열 200폭 · 1행 100높이. 자식 width:40 height:100 (컨테이너 justifyItems:end).
+        let json = r#"[
+            {"style":{"width":"40px","height":"100px"},"children":[]},
+            {"style":{"display":"grid","width":"200px","height":"100px","gridTemplateColumns":["1fr"],"gridTemplateRows":["100px"],"justifyItems":"end"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 200.0, 100.0);
+        let c = tree.get_layout(handles[0]);
+        // justify-items:end → x = 200 - 40 = 160, w=40 (stretch 아닌 explicit 폭).
+        assert_eq!(
+            (c.x, c.width),
+            (160.0, 40.0),
+            "justify-items:end 우측 배치 + 폭 respect"
+        );
+    }
+
+    /// E2 옵션 3-a: justify-self:center override + auto-width 자식은 stretch 유지(cw>0 가드).
+    #[test]
+    fn grid_justify_self_center_and_auto_stretch() {
+        let mut tree = LayoutTree::new();
+        // 자식0: width:40 justifySelf:center → 중앙. 자식1: auto width → stretch fill.
+        let json = r#"[
+            {"style":{"width":"40px","height":"100px","justifySelf":"center"},"children":[]},
+            {"style":{"height":"100px"},"children":[]},
+            {"style":{"display":"grid","width":"200px","height":"200px","gridTemplateColumns":["1fr"],"gridTemplateRows":["100px","100px"]},"children":[0,1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 200.0, 200.0);
+        let c0 = tree.get_layout(handles[0]);
+        // justify-self:center → x=(200-40)/2=80, w=40.
+        assert_eq!((c0.x, c0.width), (80.0, 40.0), "justify-self:center");
+        let c1 = tree.get_layout(handles[1]);
+        // auto-width 자식은 justify 대상 아님(cw=0 가드) → stretch fill(x=0, w=200).
+        assert_eq!(
+            (c1.x, c1.width),
+            (0.0, 200.0),
+            "auto-width 자식 stretch 유지(cw>0 가드)"
+        );
     }
 
     /// grid line placement — 자식 gridColumn span (start/end 분리 → 결합 재조립).

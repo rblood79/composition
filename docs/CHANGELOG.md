@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Grid justify-items/justify-self 가로 배치가 Builder(Skia)에서 무시되던 결함 — ADR-156 §Residual 옵션 3-a] - 2026-07-18
+
+### Bug Fixes
+
+- **Grid 자식 justify-items/justify-self(가로) 미반영** (ADR-156 §Residual E2, 옵션 3-a):
+  - grid 컨테이너의 `justify-items` 또는 자식 `justify-self`(start/center/end)가 Builder 레이아웃 엔진에서 무시돼, 명시 폭(예: `width:40px`) grid 자식이 항상 셀 폭으로 stretch 되고 가로 정렬이 적용 안 됨 → Preview(DOM/CSS)와 발산.
+  - **Why**: `grid.rs` 셀 커널은 셀 bounds 만 반환하고, `tree.rs::solve_grid` 의 per-child 마감이 세로(align)만 자식 실크기로 재배치하고 가로(justify)는 항상 stretch 였음(옵션 3-b 계약).
+  - 수정: `tree.rs::solve_grid` 에 `grid_inline_justify`(=`grid_block_align` 가로 대칭) + `parse_justify_items` 배선 — justify≠stretch 이고 자식이 실제 width(cw>0)를 가지면 셀 안 start/center/end 배치 + 폭 respect. auto-width 자식(cw=0)은 stretch 유지.
+  - **JS DFS 제거 불요 확증**: §Residual 은 "JS DFS 가 폭을 트랙 폭으로 강제 → JS DFS 제거로만 해소" 라 했으나, 신설 2-layer 파리티 하니스(`pipelineLeg`)로 explicit-width 자식은 JS DFS 무해(Layer 1 === Layer 2)를 실측 → 엔진 단독 수정으로 양 레이어 정합.
+  - 위치: `packages/composition-engine/src/tree.rs` (`solve_grid`/`grid_inline_justify`/`parse_justify_items`), `apps/builder/tests/parity/phase3a.browser.test.ts`
+  - 잔여: intrinsic(shrink-to-fit) 폭 justify + align 세로축 explicit-height respect 는 §Residual(별도 착수).
+
 ## [preview 가 background 탭에서 편집을 반영하지 않던 결함 — ADR-151 잔여 ②] - 2026-07-18
 
 ### Bug Fixes
