@@ -7,6 +7,7 @@ Accepted — 2026-07-18 (리뷰 round 2 승인 — 이슈 0건, 합의 완료 �
 > 진행 로그:
 >
 > - Proposed 2026-07-13 (리뷰 round 1 반영 개정 2026-07-14) → Accepted 2026-07-18 (reviews/150.md round 2 이슈 0건)
+> - **Phase A1 (Skia hover/pressed/focusVisible 상태 threading) Implemented 2026-07-19** — S2 hover(`d2b7a1b2f`) · S3 pressed(`99947f241`) · S4 focusVisible+focus ring(`e98ab8887`, cross-check 색 정정 `433ba3a6c`). 무효화 채널 = **hovered/pressed/focused 노드 한정 overlay draw pass**(R1 후보 b — `overlayVersion` 재사용, sceneVersion signature 미변경 → scene rebuild 0, ADR-136 §9 준수). G-A1: 3축 threading 정확성 + state→fill 대칭(Skia·DOM 동일 catalog `FillStateTokens`, shared source) + focus ring theme accent(=`var(--accent)`)/2px/offset2 DOM 대칭 + disabled 우선순위 보존(회귀 0) 확증. hover/pressed live-verified, focus ring 결정적 확증(ringSet). exact pixel 3축 시각 + pointermove FPS 는 foreground 사용자 확인(hidden-탭 RAF pause 로 자동화 캡처 불가). A2/A3 미착수 — ADR Status 는 Accepted 유지.
 
 > **문서 위상: 실행 ADR (ADR-912 후속)**. [ADR-912](completed/912-rac-pencil-rebuild-cutover.md)(백지 직행, Implemented 2026-06-18)가 승격 시점에 명시 기록한 잔여 — [ADR-911](911-rac-pencil-target-component-architecture.md) R-3 잔여(가상화 스크롤 60fps + drill-in data edit UI) + R-4 잔여(hover/pressed/focusVisible interaction threading) — 를 단일 scope 로 실행한다. 사용자 결정 2026-07-13 (AskUserQuestion "새 실행 ADR 1건 작성"). 910/911 은 비실행 참조 위상 그대로 존속하며, 본 ADR 완료 시 911 의 proof gate G-state(hover/pressed/selected 3축)/G-projected 잔여 증명이 충족된다.
 

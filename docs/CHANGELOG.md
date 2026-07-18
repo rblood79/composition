@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Builder Skia 상호작용 상태 시각(hover/pressed/focus) — ADR-150 Phase A1] - 2026-07-19
+
+### Features
+
+- **Builder Skia 캔버스 hover/pressed/focus 상태 시각화** (ADR-150 Phase A1):
+  - Builder 캔버스(Skia)가 요소 hover 시 hover fill, pointerdown 유지 시 pressed fill, keyboard focus(Tab 등) 시 focus ring 을 Preview DOM(RAC `data-hovered`/`data-pressed`/`data-focus-visible`)과 동일 규칙으로 표시. 그동안 disabled 만 시각화되고 hover/pressed/focus 는 threading 부재로 미표시였음
+  - **Why**: catalog `FillStateTokens`(ADR-908)에 hover/pressed 색이 이미 존재했으나 "어느 노드가 어느 상태인가"를 잇는 threading + 상태 변화를 그리기에 도달시키는 무효화 채널이 없어 Skia 화면이 상태에 반응하지 못했음 (912 잔여 3종)
+  - focus ring 색은 theme accent(`var(--accent)`, tint 파생)로 해소 → dark mode/커스텀 tint 대응 + DOM `--focus-ring`(2px/offset2) 대칭
+  - focus 소스 = keyboard modality ∩ 선택 요소 (빌더 캔버스는 요소별 keyboard focus 부재 — RAC `useFocusVisible` 축소판 modality 추적)
+  - 위치: `hoverStateOverlay.ts` / `useElementPressInteraction.ts` / `useFocusVisibleModality.ts` (신규), `buildSpecNodeData.ts`(focus ring), `SkiaCanvas.tsx`(배선)
+
+### Architecture
+
+- **상태 전용 overlay 무효화 채널** (ADR-150 Phase A1):
+  - hover/pressed/focus 대상 노드만 상태 fill/ring 으로 재빌드해 overlay draw pass 에 덮어 그림 — command stream(default shape) 및 scene 무변경(scene rebuild 0)
+  - **Why**: `sceneVersion` signature 에 상호작용 상태를 넣으면 매 pointermove 가 scene rebuild 를 유발(ADR-135/136 Render-Space Boundary 위반). 상태는 기존 `overlayVersion` 채널로만 반영해 signature 불변 유지
+  - 위치: `SkiaCanvas.tsx`, `skiaFramePlan.ts`, `skiaOverlayBuilder.ts`
+
 ## [명시 높이 grid 자식이 Builder(Skia)에서 셀 높이로 늘어나던 결함 — ADR-156 §Residual 옵션 3-a 세로축] - 2026-07-18
 
 ### Bug Fixes

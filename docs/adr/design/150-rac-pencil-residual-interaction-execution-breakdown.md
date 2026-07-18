@@ -25,6 +25,8 @@
 
 ## §3 Phase A1 — Skia hover/pressed/focusVisible 상태 threading
 
+> **✅ Implemented 2026-07-19** — 무효화 채널 = hovered/pressed/focused 노드 한정 overlay draw pass(후보 b, `overlayVersion` 재사용 → scene rebuild 0). 커밋: S2 hover `d2b7a1b2f` · S3 pressed `99947f241` · S4 focus `e98ab8887` · cross-check 색 정정 `433ba3a6c`. 신규 파일 `hoverStateOverlay.ts` / `useElementPressInteraction.ts` / `useFocusVisibleModality.ts`. focus 소스 = keyboard modality ∩ 선택 요소(빌더 캔버스 요소 keyboard focus 부재). exact pixel 시각/FPS 는 foreground 확인(hidden-탭 RAF pause).
+
 **목표**: Builder Skia 화면이 hover/pressed(+selected 확증, focusVisible) 상태 시각을 Preview DOM(RAC `data-hovered`/`data-pressed`/`data-selected`)과 동일 규칙으로 표시.
 
 - 시각 데이터·소비 분기는 기존재: catalog rule `FillStateTokens.hover/pressed`(ADR-908, rule 값 실측 hover 341/pressed 271) + `buildCatalogShapes.ts:163-170` state→fill 분기. **실제 공백은 둘** — ① threading(hit-test → 노드별 상태 주입), ② **상태 전용 무효화 채널**(현 command stream 캐시는 4중 버전 키 단독이라 상태 변화가 그리기에 도달 불가).
