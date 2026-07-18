@@ -61,6 +61,14 @@ L2 — inline accordion (depth 2, overlay 아님)
 
 #### Phase 2 — EventsPanel canonical primary 재작성 + ActionsPanel 흡수
 
+> **Sub-step 분해 (execute-adr scoping 2026-07-19)** — 878 LOC + infra 대형 rewrite, R2/R8 회귀 위험 → 3 sub-step 독립 commit·검증 단위 (리뷰 승인 ADR 이라 M4 자율 분할, 사후 보고):
+>
+> - **2a — canonical write infra (R8 foundation, TDD)**: `updateEventsRootCollection`/`updateActionsRootCollection` write wrapper 신설. **canonical 1차**(`useCanonicalDocumentStore`) → **history**(`historyManager.addEntry({ type:"update", data:{ canonicalEvents:[...] } })` — history.ts 는 **이미 canonicalEvents 기반**, 모든 entry 가 `data.canonicalEvents` 필수 DEV guard, ADR-124) → **persist**(`persistActiveCanonicalDocument`). 과도기 canonical→legacy 프로젝션(props.events 유지) 동반. TDD: write→undo/redo→persist round. 통합 지점 — `canonicalDocumentStore.ts`(927 LOC, `updateNode` 패턴) / `history.ts:223` addEntry / `inspectorActions.ts:407` persist.
+> - **2b — EventsPanel 2-depth UI 재작성**: G1 lock-in design(L1 supportedEvents callback list / L2 inline accordion). 읽기 = `useEventsForTarget`+`useDocumentActions`(read 전용), 쓰기 = 2a wrapper. block editor 트리(WhenBlock/IfBlock/ThenElseBlock/BlockActionEditor) → L2 inline 재배치, `actions/*ActionEditor.tsx` 25종 재사용. HC1(depth≤2/overlay 0) + ADR-010 4영역.
+> - **2c — ActionsPanel 흡수 + legacy 정리**: cross-event reuse 토글(anon→named id) + `panels/actions/` 제거 + `PanelId "actions"` 제거(HC4, panelConfigs.ts:212 / types.ts:60) + `syncEventsToRootCollection`(legacy→canonical mirror, inspectorActions.ts:317) 제거(방향 역전 완결).
+>
+> G2(Phase 2–3 합동 게이트): grep(HC2/HC4) + 이벤트 편집 undo/redo 1회(R8) + live 1회. **다음 세션 진입점 = 2a**.
+
 - EventsPanel 신규: 읽기 = `useEventsForTarget(elementId)` + `useDocumentActions()` 구독 (두 hook 은 `canonicalElementsBridge.ts:161-196` useSyncExternalStore **read 전용** — round 2 정정: 구 "direct r/w" 표기는 부정확). 쓰기 = **canonical write 단일 진입점 wrapper 신설** (예: `updateEventsRootCollection`/`updateActionsRootCollection` — ADR-131 "root collection mutation 은 sync wrapper 경유" 계약 동형, 호출 순서 canonical 1차 → history → persist). legacy 접근 0건 (HC2)
 - 과도기 무중단: 쓰기 시 canonical 1차 + **canonical→legacy 프로젝션** (역 mirror) 로 props.events 유지 → 런타임 무영향 (Phase 3 에서 제거)
 - ActionsPanel 흡수: cross-event reuse inline 토글 (anonymous→named id 승격) + `panels/actions/` 제거 + `PanelId "actions"` 제거 (HC4)
