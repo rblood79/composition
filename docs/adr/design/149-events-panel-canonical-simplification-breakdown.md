@@ -28,7 +28,9 @@
 
 > 각 Phase 는 독립 검증·revert 단위. sub-group N≥3 분할 / sliver commit 5+ 예상 시 adr-writing.md M4 — 사용자 confirm 의무 (R3).
 
-### Phase 0 — Inventory freeze (G0)
+### Phase 0 — Inventory freeze (G0) ✅ Implemented 2026-07-19
+
+> freeze 산출물: [149-events-panel-inventory.md](149-events-panel-inventory.md) (commit `bf4e6aac4`). type-check baseline 63/PASS, EventType union 24종, EventsPanel 878 LOC, R4 live 소비자에 `canvasDeltaMessenger.ts:241` 신규 편입.
 
 - legacy `props.events` read/write site 전수 grep 표 (본문 실측 표 기반 + commit hash 고정)
 - boundary allowlist 확정: `adapters/canonical/*` (Pencil import/export) / `exportLegacyDocument.ts` — allowlist 외 접근은 G2 grep 게이트 대상. **`elementDiff.ts`/`workflowEdges.ts`/`elementMapper` 는 allowlist 아님** (live 소비자 — §5 전환 대상, 본문 R4. round 2 정정 2026-07-14: 구 bullet 이 이 2건을 allowlist 에 포함해 §5 와 자기모순이었음)
@@ -95,7 +97,7 @@
 - `apps/builder/src/utils/events/eventHandlers.ts:35-118` — canonical 소비 전환
 - `apps/builder/src/utils/events/eventEngine.ts` — 소비 입력 변경 + 단위 test 신설
 - `apps/builder/src/adapters/canonical/rootCollectionMigration.ts` — 역방향 `migrateRootCollectionToLegacy` 구현 (:19 주석 실현)
-- **live 소비자 (Phase 3 canonical 전환 대상 — R4)**: `apps/builder/src/builder/workspace/canvas/skia/workflowEdges.ts:202-205` (getElementEvents 소비) / `apps/builder/src/builder/stores/utils/elementDiff.ts` / `apps/builder/src/builder/inspector/utils/elementMapper.ts:44`
+- **live 소비자 (Phase 3 canonical 전환 대상 — R4)**: `apps/builder/src/builder/workspace/canvas/skia/workflowEdges.ts:202-205` (getElementEvents 소비) / `apps/builder/src/builder/utils/canvasDeltaMessenger.ts:22,241` (getElementEvents 소비 — Preview delta 페이로드, **Phase 0 freeze 신규 확인**) / `apps/builder/src/builder/stores/utils/elementDiff.ts` (events 참조 여부 Phase 3 재확인) / `apps/builder/src/builder/inspector/utils/elementMapper.ts:44` — 상세: [inventory §1-B](149-events-panel-inventory.md)
 - `apps/builder/src/builder/inspector/utils/elementMapper.ts:44` — `selectedElement.events` 매핑 제거/보류 판정 (Phase 0)
 
 **Wave 2**: `apps/builder/src/types/events/events.registry.ts` (:32-128 union / :180~ actions) + `packages/shared/src/components/metadata.ts` (supportedEvents)
@@ -106,7 +108,7 @@
 
 ## §6. 검증 체크리스트
 
-- [ ] Phase 0: inventory 표 + allowlist + baseline freeze (commit hash)
+- [x] Phase 0: inventory 표 + allowlist + baseline freeze (commit hash) — **완료 2026-07-19** (`bf4e6aac4`, [inventory](149-events-panel-inventory.md))
 - [ ] Phase 1: UI sketch 사용자 confirm (AskUserQuestion)
 - [ ] Phase 2: HC2/HC4 grep 0건 + canonical→legacy 프로젝션 동작 (Preview 무중단) + history/persist 통합 — 이벤트 편집 undo/redo 1회 (R8)
 - [ ] Phase 3: HC3 grep 0건 + live 소비자 (workflowEdges/elementDiff/elementMapper) canonical 전환 (R4) + round-trip test + hydration migration + EventEngine test + **live 1회**
