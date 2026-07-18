@@ -180,9 +180,11 @@
 
 - CHANGELOG 반영 + ADR Implemented 승격 (closure 5단계) — 본 phase 종결 커밋
 
-### 사용자 결정 대기 항목 (Phase 밖)
+### 사용자 결정 항목 (Phase 밖) — 종결
 
-- **B7 Menu 표현**: 07-16 재실측으로 발산 형태 확정 — Preview DOM 은 RAC MenuTrigger 패턴의 **트리거 버튼** (61.2×30, fit-content, factory `style.width:100%` 미소비 — display:contents wrapper), Skia 는 factory style 을 소비해 **390×30 full-width**. 어느 표현이 정본인지는 제품 결정 (scope 결정 지점) — 사용자 확인 후 별도 처리.
+- **B7 Menu 표현**: 07-16 재실측으로 발산 형태 확정 — Preview DOM 은 RAC MenuTrigger 패턴의 **트리거 버튼** (61.2×30, fit-content, factory `style.width:100%` 미소비 — display:contents wrapper), Skia 는 factory style 을 소비해 **390×30 full-width**. 어느 표현이 정본인지는 제품 결정 (scope 결정 지점).
+  - **결정 (2026-07-16, 사용자, a1a7544e2)**: 캔버스 Menu 표현 = **트리거 버튼** 통일. factory list-era style 제거 + catalog top-level containerStyles 를 트리거 박스(inline-flex/fit-content)로 전환 → Skia 62×30 = DOM 61.2×30 (dw+0.8 텍스트 측정 수용). RAC MenuTrigger 런타임 동작(클릭 → popover)과 일치.
+  - **재확인 (2026-07-18, 사용자)**: ADR-151 잔여 재검토에서 트리거 버튼 표현 **유지** 재확인 — 변경 없음. 파리티 결함 없음(순수 제품 표현 선택). 종결.
 
 ## 4. 파일 변경 예상 (Phase 0 재실측 후 확정)
 
