@@ -37,3 +37,4 @@
 {"sha":"069b749618a6c2393d60deb0527af1edc09c7661","date":"2026-07-17T00:09:33+09:00","promoted_adrs":["docs/adr/completed/151-builder-residual-parity-defect-remediation.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"75294b8a9cceae9e272daf490a804238d7fffcdd","date":"2026-07-17T05:35:36+09:00","promoted_adrs":["docs/adr/completed/155-hidden-panel-selection-fanout-gating.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"901eb108807fbf99d9c4cbc14a0f7ce19eb441ce","date":"2026-07-17T15:43:33+09:00","promoted_adrs":["docs/adr/completed/148-reusable-slot-system-unification.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
+{"sha":"b84a223436253aefd0f183720fda181de73a1084","date":"2026-07-18T11:42:10+09:00","promoted_adrs":["docs/adr/completed/156-engine-css-parity-alignment-margin.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
