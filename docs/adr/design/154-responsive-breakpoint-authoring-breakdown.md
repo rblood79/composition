@@ -69,6 +69,22 @@ Phase 2 착수 시 라이브 재실측 결과, §2 인벤토리의 아래 2행�
 
 ## 5. Phase 3 — Preview/Publish 출력
 
+> **✅ Implemented 2026-07-19 (execute-adr, live 검증)** — 커밋 `cb049019d`(3-a shared @media SSOT) + `f04af96b0`(3-b Preview 주입) + `66da1a7d6`(3-c Publish 출력). 3-sub-step 분할 실행.
+>
+> **R6 확정 (2안 중 개선안 채택)**: breakdown 이 제시한 2안(① base 를 `[data-element-id]` stylesheet 로 승격 + inline strip / ② CSS custom property 간접화) 대신 **더 단순한 3안**을 채택 — tablet/mobile override 만 `@media { [data-element-id] { prop: value !important } }` 로 emit, **base inline 무변경**. 근거: CSS cascade 상 stylesheet `!important` 선언(important-author 버킷)이 non-important inline(normal-author 버킷)을 origin/importance 단계에서 이긴다(특이도 비교 이전). inline strip / base 승격 불필요 → desktop 렌더 BC 0. `!important` 는 `[data-element-id]` selector + tablet/mobile @media 로 스코프 한정.
+>
+> **SSOT (R2)**: `packages/shared/src/utils/responsiveCss.ts` 의 `buildResponsiveElementCss` / `collectResponsiveCss` 가 Preview(App.tsx)·Publish(export.utils.ts) 공용 단일 진입점. Builder(Skia) `resolveResponsiveLayoutNode` 와 **동일** `getResponsiveValueWithCascade` 로 breakpoint 값 pre-resolve → 3경로 발산 0. `BREAKPOINTS` 상호배타 범위(desktop≥1280/tablet768–1279/mobile≤767)라 mobile 이 tablet 을 자연 상속 못 하므로 각 bp 를 cascade pre-resolve 하여 해당 @media 에 직접 삽입.
+>
+> **G2 live 검증 (Chrome MCP, 실제 project 000 Button + 생성 정적 HTML)**:
+>
+> - Preview iframe 리사이즈 3-breakpoint: desktop 1400px→200px(base inline) / tablet 1000px→200px(mobile-only override 미적용, cascade) / mobile 500px→80px(`@media !important` 가 inline 200px 이김).
+> - Publish(generateStaticHtml) 정적 HTML resizable iframe: tablet→flex-direction:column(override) / mobile→column(cascade)+width:80px(override).
+> - **Skia↔DOM 대칭 동시 실측** (activeBreakpoint=mobile): Skia layout width=80 == DOM preview computed width=80px — 두 consumer 동일 override 값.
+> - persist roundtrip: base(props.style)/override(responsive.styles) 새로고침 후 IDB→canonical→element 생존. 검증 후 요소 원상 복구(responsive 0건 확인).
+> - 15 unit test (responsiveCss 12 + generateStaticHtml.responsive 3).
+>
+> **잔여 (후속)**: (a) **render-visual props 대칭** — Phase 2 잔여와 동일. `fontSize`/`textAlign`(2/14) 은 Skia glyph 가 base 값 렌더(skiaNodeRegistry resolve 미주입). DOM @media 는 정상 emit 되나 Skia glyph 만 미대칭. (b) **apps/publish SSG(ElementRenderer)** — ADR §2 인벤토리가 명명한 publish 출력은 `generateStaticHtml` 단일 경로라 본 phase 는 그로 한정. apps/publish 리액트 SSG 앱도 inline style 적용 구조라 동일 @media 주입이 필요하나 ADR scope 밖 후속(scope inflation 회피). (c) **BreakpointContext Provider(forcedBreakpoint 테스트용, 항목 3)** — 실제 iframe 리사이즈로 @media 가 동작하므로 강제 breakpoint provider 는 미착수(선택). (d) generateStaticHtml 의 base 숫자 스타일 inline 미적용은 pre-existing 한계(ADR-154 무관).
+
 1. **단일 출력 모델**: @media CSS (`generateMediaQueryString` 재사용). publish 런타임 JS resolve 금지 (R2 발산 차단).
 2. responsive override → element 별 CSS 규칙 emit: `ElementGeneratedCSS` (baseCSS + mediaQueries) 를 Preview 스타일 주입 경로와 `generateStaticHtml`/SSG 출력에 추가.
 3. Preview iframe 리사이즈로 breakpoint 동작 확인 경로 확보 (BreakpointContext Provider — `forcedBreakpoint` 테스트용).
