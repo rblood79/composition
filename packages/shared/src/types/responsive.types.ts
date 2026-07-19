@@ -108,8 +108,24 @@ export interface ResponsiveStyles {
   gridTemplateColumns?: ResponsiveStyleValue;
   /** Grid 템플릿 로우 */
   gridTemplateRows?: ResponsiveStyleValue;
-  /** Gap */
+  /** Gap (shorthand) */
   gap?: ResponsiveStyleValue;
+  /**
+   * Gap / padding / margin longhand (ADR-909 store longhand 정책).
+   * Inspector `buildResponsiveStyleOverride` 는 shorthand 편집을 longhand 로
+   * 분배 저장하므로, 실제 `responsive.styles` 에 담기는 키는 아래 longhand 다
+   * (shorthand 키는 legacy/직접 입력 fallback).
+   */
+  rowGap?: ResponsiveStyleValue;
+  columnGap?: ResponsiveStyleValue;
+  paddingTop?: ResponsiveStyleValue;
+  paddingRight?: ResponsiveStyleValue;
+  paddingBottom?: ResponsiveStyleValue;
+  paddingLeft?: ResponsiveStyleValue;
+  marginTop?: ResponsiveStyleValue;
+  marginRight?: ResponsiveStyleValue;
+  marginBottom?: ResponsiveStyleValue;
+  marginLeft?: ResponsiveStyleValue;
   /** Display */
   display?: ResponsiveValue<
     | "flex"

@@ -22,3 +22,5 @@ export * from "./font.utils";
 export * from "./fontRegistry";
 export * from "./fillAdapter";
 export * from "./bodyArtboardStyle";
+// ADR-154 Phase 3: 반응형 override → @media CSS (Preview/Publish 공용 SSOT)
+export * from "./responsiveCss";
