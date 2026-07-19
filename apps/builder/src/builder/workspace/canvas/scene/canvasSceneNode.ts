@@ -35,7 +35,7 @@ import {
 import {
   toListBoxRowProjectionId,
   toListBoxRowsGroupProjectionId,
-  toListBoxSpacerProjectionId,
+  toCollectionSpacerProjectionId,
   toCollectionRowProjectionId,
   toCollectionRowsGroupProjectionId,
   toCollectionCellProjectionId,
@@ -98,6 +98,19 @@ export type CanvasProjectionMetadata =
   //   자동 skip. 총 content height(스크롤바) + window 행 절대 위치를 보존.
   | {
       kind: "listbox-spacer";
+      listBoxId: string;
+      position: "lead" | "trail";
+    }
+  // ADR-150 A2 (GridList/Table 확산): listbox-spacer 동형 layout-only spacer.
+  //   GridList grid 모드 spacer 는 width:100% 라 wrap-flow 에서 자체 시각 행을 점유(visual row
+  //   경계 정합). Table spacer 는 header 행 아래에 삽입(header 는 항상 투영). 셋 다 비-hit·비-render.
+  | {
+      kind: "gridlist-spacer";
+      listBoxId: string;
+      position: "lead" | "trail";
+    }
+  | {
+      kind: "table-spacer";
       listBoxId: string;
       position: "lead" | "trail";
     }
@@ -259,10 +272,19 @@ export interface CanvasSceneNode {
 export interface CollectionWindowResolution {
   /** 절대 index [startIndex, endIndex) — 이 구간 행만 투영. */
   window: CollectionWindow;
-  /** 균일 행 높이(px) — leading/trailing spacer 높이 산출. */
+  /**
+   * 균일 **visual row 높이**(px, stride) — leading/trailing spacer 높이 산출.
+   * ListBox/Table(1열)은 item 높이 그대로. GridList grid 모드는 카드 높이+rowGap(=시각 행 stride).
+   */
   rowHeight: number;
   /** window 전 원본 전체 행 수 — 총 content height(스크롤바) + trailing spacer. */
   totalRows: number;
+  /**
+   * ADR-150 A2 (GridList 확산): 시각 행당 열 수. 1열(ListBox/Table/GridList stack)은 1(기본),
+   * GridList grid 모드는 numCols. spacer 계산이 item index → visual row 로 변환할 때 사용
+   * (visual row = ceil(itemIndex / columns)). 미지정 = 1.
+   */
+  columns?: number;
 }
 
 interface BuildCanvasSceneGraphOptions {
@@ -582,6 +604,71 @@ function isListBoxRowSelected(
 }
 
 /**
+ * ADR-150 A2 (ListBox proof → GridList/Table 확산): window resolution → **visual row(시각 행)**
+ * 단위 leading/trailing spacer 행 수. spacer 는 시각 행 단위로 높이를 채워 window 행이 절대
+ * 위치에 오도록 밀어내고 총 content height(스크롤바)를 보존한다.
+ *
+ * `columns` 로 item index 를 visual row 로 변환한다(visual row = ceil(itemIndex / columns)):
+ * - ListBox/Table/GridList stack (columns 1 또는 미지정) → visual row = item index (기존 동작 불변).
+ * - GridList grid (columns=numCols) → 시각 한 줄 = numCols 카드. lead=startIndex/numCols 줄.
+ *
+ * window 은 resolver 에서 columns 경계로 정렬돼 있어(startIndex/endIndex 가 numCols 배수, tail
+ * clamp 예외) ceil 이 정확한 시각 행 수를 준다. spacer 높이 = 반환값 × resolution.rowHeight(stride).
+ */
+function resolveCollectionSpacerVisualRows(
+  resolution: CollectionWindowResolution,
+): { lead: number; trail: number } {
+  const columns = Math.max(1, resolution.columns ?? 1);
+  const totalVisualRows = Math.ceil(resolution.totalRows / columns);
+  const leadVisual = Math.ceil(resolution.window.startIndex / columns);
+  const endVisual = Math.ceil(resolution.window.endIndex / columns);
+  return {
+    lead: Math.max(0, leadVisual),
+    trail: Math.max(0, totalVisualRows - endVisual),
+  };
+}
+
+/**
+ * ADR-150 A2: 가상화 spacer(비-hit·비-render layout-only Box) 노드 생성. family 별 projection
+ * id/kind 만 다르고 구조는 동형(width:100% + 고정 height + flexShrink:0). GridList grid 모드에서
+ * width:100% 는 wrap-flow 에서 spacer 가 자체 시각 행을 점유하게 해 window 카드가 올바른 열에서
+ * 시작하도록 정렬한다.
+ */
+function createCollectionSpacerNode(input: {
+  family: "listbox" | "gridlist" | "table";
+  kind: "listbox-spacer" | "gridlist-spacer" | "table-spacer";
+  ownerId: string;
+  rowsGroupId: string;
+  position: "lead" | "trail";
+  height: number;
+  scope: SceneScopeContext;
+  sourceNode: CanonicalNode;
+}): CanvasSceneNode {
+  return {
+    id: toCollectionSpacerProjectionId(
+      input.family,
+      input.ownerId,
+      input.position,
+    ),
+    type: "Box",
+    props: {
+      style: { width: "100%", height: input.height, flexShrink: 0 },
+    },
+    parentId: input.rowsGroupId,
+    pageId: input.scope.pageId,
+    layoutId: input.scope.layoutId,
+    parent_id: input.rowsGroupId,
+    page_id: input.scope.pageId,
+    projection: {
+      kind: input.kind,
+      listBoxId: input.ownerId,
+      position: input.position,
+    },
+    sourceNode: input.sourceNode,
+  };
+}
+
+/**
  * data-bound ListBox 의 projection 결정(gating)을 단일 소스로 계산.
  *
  * visit 의 anchor suppression 과 appendListBoxRowProjection 이 **동일 판정**을 공유해야
@@ -718,37 +805,25 @@ function appendListBoxRowProjection(
   //   높이를 채운다 — window 행이 절대 위치(startIndex*rowHeight)에 오도록 밀어내고, 총
   //   content height = totalRows*rowHeight 를 flex column 자식 합으로 보존(스크롤바 정확).
   //   spacer 는 fills 없는 layout-only Box (비-hit/비-시각). window 없으면(legacy cap) 미삽입.
+  //   ListBox 는 1열(rowsGroup gap 0)이라 columns 미지정 → visual row = item index.
   const { windowResolution } = projection;
   const rowHeight = windowResolution?.rowHeight ?? 0;
-  const leadRows = windowResolution
-    ? Math.max(0, windowResolution.window.startIndex)
-    : 0;
-  const trailRows = windowResolution
-    ? Math.max(0, windowResolution.totalRows - windowResolution.window.endIndex)
-    : 0;
-  const createSpacerNode = (
-    position: "lead" | "trail",
-    height: number,
-  ): CanvasSceneNode => ({
-    id: toListBoxSpacerProjectionId(listBoxSceneNode.id, position),
-    type: "Box",
-    props: {
-      style: { width: "100%", height, flexShrink: 0 },
-    },
-    parentId: rowsGroupId,
-    pageId: scope.pageId,
-    layoutId: scope.layoutId,
-    parent_id: rowsGroupId,
-    page_id: scope.pageId,
-    projection: {
+  const spacerRows = windowResolution
+    ? resolveCollectionSpacerVisualRows(windowResolution)
+    : { lead: 0, trail: 0 };
+  const createSpacerNode = (position: "lead" | "trail", height: number) =>
+    createCollectionSpacerNode({
+      family: "listbox",
       kind: "listbox-spacer",
-      listBoxId: listBoxSceneNode.id,
+      ownerId: listBoxSceneNode.id,
+      rowsGroupId,
       position,
-    },
-    sourceNode: templateAnchor ?? sourceNode,
-  });
-  if (leadRows > 0 && rowHeight > 0) {
-    addSceneNode(createSpacerNode("lead", leadRows * rowHeight), graph);
+      height,
+      scope,
+      sourceNode: templateAnchor ?? sourceNode,
+    });
+  if (spacerRows.lead > 0 && rowHeight > 0) {
+    addSceneNode(createSpacerNode("lead", spacerRows.lead * rowHeight), graph);
   }
 
   for (const row of rows) {
@@ -798,8 +873,11 @@ function appendListBoxRowProjection(
     );
   }
 
-  if (trailRows > 0 && rowHeight > 0) {
-    addSceneNode(createSpacerNode("trail", trailRows * rowHeight), graph);
+  if (spacerRows.trail > 0 && rowHeight > 0) {
+    addSceneNode(
+      createSpacerNode("trail", spacerRows.trail * rowHeight),
+      graph,
+    );
   }
 }
 
@@ -835,18 +913,30 @@ function resolveDataBoundGridListProjection(
   gridListSceneNode: CanvasSceneNode,
   sourceNode: CanonicalNode,
   options: BuildCanvasSceneGraphOptions,
-): { rows: ListBoxProjectionRow[]; sourceNode: CanonicalNode } | null {
+): {
+  rows: ListBoxProjectionRow[];
+  sourceNode: CanonicalNode;
+  /** ADR-150 A2 (GridList 확산): 가상화 window 해석. null=legacy 정적 cap. */
+  windowResolution: CollectionWindowResolution | null;
+} | null {
   if (!isGridListSceneSource(gridListSceneNode, sourceNode)) return null;
 
   const dataBinding = getElementDataBinding(sourceNode);
-  const rows = getListBoxProjectionRows({
-    collections: options.collections,
-    dataBinding,
-    props: gridListSceneNode.props,
-  });
+  // ADR-150 A2: BuilderCanvas 가 가상화 대상으로 판정했으면 window 슬라이스(grid 는 numCols
+  //   경계 정렬된 절대 index), 아니면 undefined → getListBoxProjectionRows default(정적 cap).
+  const windowResolution =
+    options.collectionWindows?.get(gridListSceneNode.id) ?? null;
+  const rows = getListBoxProjectionRows(
+    {
+      collections: options.collections,
+      dataBinding,
+      props: gridListSceneNode.props,
+    },
+    windowResolution?.window,
+  );
   if (rows.length === 0) return null;
 
-  return { rows, sourceNode };
+  return { rows, sourceNode, windowResolution };
 }
 
 /**
@@ -860,7 +950,11 @@ function resolveDataBoundGridListProjection(
  */
 function appendGridListRowProjection(
   gridListSceneNode: CanvasSceneNode,
-  projection: { rows: ListBoxProjectionRow[]; sourceNode: CanonicalNode },
+  projection: {
+    rows: ListBoxProjectionRow[];
+    sourceNode: CanonicalNode;
+    windowResolution: CollectionWindowResolution | null;
+  },
   scope: SceneScopeContext,
   graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
     parentById: Map<string, string>;
@@ -926,6 +1020,31 @@ function appendGridListRowProjection(
   };
   addSceneNode(rowsGroup, graph);
 
+  // ADR-150 A2 (GridList 확산): 가상화 window 활성 시 leading/trailing spacer. grid 모드는
+  //   width:100% spacer 가 wrap-flow 에서 자체 시각 행을 점유해 window 카드가 올바른 열(0번)에서
+  //   시작하도록 정렬한다 — resolveCollectionSpacerVisualRows 가 columns=numCols 로 item index →
+  //   시각 행 수를 환산. window 없으면(legacy cap) 미삽입.
+  const { windowResolution } = projection;
+  const rowHeight = windowResolution?.rowHeight ?? 0;
+  const spacerRows = windowResolution
+    ? resolveCollectionSpacerVisualRows(windowResolution)
+    : { lead: 0, trail: 0 };
+  if (spacerRows.lead > 0 && rowHeight > 0) {
+    addSceneNode(
+      createCollectionSpacerNode({
+        family: "gridlist",
+        kind: "gridlist-spacer",
+        ownerId: gridListSceneNode.id,
+        rowsGroupId,
+        position: "lead",
+        height: spacerRows.lead * rowHeight,
+        scope,
+        sourceNode,
+      }),
+      graph,
+    );
+  }
+
   // grid 모드 카드 폭: (100% - gap*(numCols-1)) / numCols. stack 은 100%.
   const cardWidthStyle =
     layout === "grid" && numCols > 1
@@ -972,6 +1091,22 @@ function appendGridListRowProjection(
         },
         sourceNode,
       },
+      graph,
+    );
+  }
+
+  if (spacerRows.trail > 0 && rowHeight > 0) {
+    addSceneNode(
+      createCollectionSpacerNode({
+        family: "gridlist",
+        kind: "gridlist-spacer",
+        ownerId: gridListSceneNode.id,
+        rowsGroupId,
+        position: "trail",
+        height: spacerRows.trail * rowHeight,
+        scope,
+        sourceNode,
+      }),
       graph,
     );
   }

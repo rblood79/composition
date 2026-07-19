@@ -80,11 +80,19 @@ export function toListBoxRowsGroupProjectionId(listBoxId: string): string {
  * 하위라 boundary guard(canonical mutation 차단)가 자동 적용되지만, kind 가 row/rows-group/
  * cell 이 아니라 interaction handler 는 건너뛴다.
  */
+export function toCollectionSpacerProjectionId(
+  family: string,
+  ownerId: string,
+  position: "lead" | "trail",
+): string {
+  return `${RENDER_PROJECTION_PREFIX}${family}-spacer:${ownerId}:${position}`;
+}
+
 export function toListBoxSpacerProjectionId(
   listBoxId: string,
   position: "lead" | "trail",
 ): string {
-  return `${RENDER_PROJECTION_PREFIX}listbox-spacer:${listBoxId}:${position}`;
+  return toCollectionSpacerProjectionId("listbox", listBoxId, position);
 }
 
 /**

@@ -269,3 +269,212 @@ describe("scene model 통합 — G-A2 핵심: 투영 노드 수 ≤ window+overs
     expect(rowNodes).toHaveLength(100);
   });
 });
+
+// ── ADR-150 A2 GridList 확산 (stack + grid numCols) ────────────────────────
+
+function gridListDoc(opts: {
+  itemCount: number;
+  style?: Record<string, unknown>;
+  layout?: "stack" | "grid";
+  columns?: number;
+  withDescription?: boolean;
+  asRefInstance?: boolean;
+}): CompositionDocument {
+  const items = Array.from({ length: opts.itemCount }, (_, i) => ({
+    id: `g${i}`,
+    label: `Card ${i}`,
+    ...(opts.withDescription ? { description: `desc ${i}` } : {}),
+  }));
+  const commonProps = {
+    items,
+    style: opts.style,
+    layout: opts.layout,
+    columns: opts.columns,
+  };
+  const owner = opts.asRefInstance
+    ? {
+        id: "gridlist-1",
+        type: "ref",
+        name: "GridList",
+        ref: "component-gridlist",
+        props: commonProps,
+      }
+    : {
+        id: "gridlist-1",
+        type: "GridList",
+        props: commonProps,
+        children: [],
+      };
+  return {
+    version: "composition-1.0",
+    children: [
+      {
+        id: "page-1",
+        type: "frame",
+        metadata: { type: "legacy-page", pageId: "page-1" },
+        children: [
+          {
+            id: "body-1",
+            type: "Body",
+            props: {},
+            children: [owner],
+          },
+        ],
+      },
+    ],
+  } as unknown as CompositionDocument;
+}
+
+describe("resolveVirtualizedCollectionWindows — GridList 확산", () => {
+  it("stack 모드: 카드 stride 56(pad24+label20+gap12), columns 1, window", () => {
+    const map = resolveVirtualizedCollectionWindows({
+      doc: gridListDoc({ itemCount: 1000, style: SCROLLABLE, layout: "stack" }),
+      collections: [],
+      scrollTops: new Map(),
+    });
+    const entry = map.get("gridlist-1");
+    expect(entry?.rowHeight).toBe(56);
+    expect(entry?.columns).toBe(1);
+    expect(entry?.totalRows).toBe(1000);
+    // viewport 400 / 56 = 8 visible, overscan 6 → end 14.
+    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 14 });
+  });
+
+  it("grid 모드(columns 2): numCols 2, window 는 numCols 배수로 정렬", () => {
+    const map = resolveVirtualizedCollectionWindows({
+      doc: gridListDoc({
+        itemCount: 1000,
+        style: SCROLLABLE,
+        layout: "grid",
+        columns: 2,
+      }),
+      collections: [],
+      scrollTops: new Map(),
+    });
+    const entry = map.get("gridlist-1");
+    expect(entry?.rowHeight).toBe(56);
+    expect(entry?.columns).toBe(2);
+    // 시각 행 window {0,14} × numCols 2 → item {0,28}.
+    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 28 });
+  });
+
+  it("grid 모드 스크롤: 시각 행 firstVisible±overscan → item index numCols 정렬", () => {
+    const map = resolveVirtualizedCollectionWindows({
+      doc: gridListDoc({
+        itemCount: 1000,
+        style: SCROLLABLE,
+        layout: "grid",
+        columns: 2,
+      }),
+      collections: [],
+      scrollTops: new Map([["gridlist-1", 560]]), // 10 시각 행 × 56
+    });
+    // firstVisibleVisualRow = floor(560/56)=10, start 4, end 10+8+6=24 → item {8,48}.
+    expect(map.get("gridlist-1")?.window).toEqual({
+      startIndex: 8,
+      endIndex: 48,
+    });
+  });
+
+  it("description 카드는 taller stride 76(pad24+label20+desc16+gap4+rowGap12)", () => {
+    const map = resolveVirtualizedCollectionWindows({
+      doc: gridListDoc({
+        itemCount: 1000,
+        style: SCROLLABLE,
+        layout: "stack",
+        withDescription: true,
+      }),
+      collections: [],
+      scrollTops: new Map(),
+    });
+    expect(map.get("gridlist-1")?.rowHeight).toBe(76);
+  });
+
+  it("ref 인스턴스 GridService(type:'ref' + name:'GridList')도 가상화 대상", () => {
+    const map = resolveVirtualizedCollectionWindows({
+      doc: gridListDoc({
+        itemCount: 500,
+        style: SCROLLABLE,
+        layout: "grid",
+        columns: 2,
+        asRefInstance: true,
+      }),
+      collections: [],
+      scrollTops: new Map(),
+    });
+    const entry = map.get("gridlist-1");
+    expect(entry).toBeDefined();
+    expect(entry?.columns).toBe(2);
+    expect(entry?.totalRows).toBe(500);
+  });
+
+  it("bounded height 없음 → 제외", () => {
+    const map = resolveVirtualizedCollectionWindows({
+      doc: gridListDoc({ itemCount: 1000, style: { overflowY: "auto" } }),
+      collections: [],
+      scrollTops: new Map(),
+    });
+    expect(map.has("gridlist-1")).toBe(false);
+  });
+});
+
+describe("scene model 통합 — GridList G-A2: 카드 노드 수 ≤ window (10k grid)", () => {
+  it("10000행 GridList grid(cols 2) → 카드 노드 28개(window) + trailing spacer", () => {
+    const doc = gridListDoc({
+      itemCount: 10000,
+      style: SCROLLABLE,
+      layout: "grid",
+      columns: 2,
+    });
+    const collectionWindows = resolveVirtualizedCollectionWindows({
+      doc,
+      collections: [],
+      scrollTops: new Map(),
+    });
+    const model = buildCanonicalSceneModel(doc, {
+      collections: [],
+      collectionWindows,
+    });
+    const cardNodes = model.sceneNodes.filter(
+      (n) => n.projection?.kind === "gridlist-row",
+    );
+    const spacers = model.sceneNodes.filter(
+      (n) => n.projection?.kind === "gridlist-spacer",
+    );
+    // 시각 window {0,14}(행) × 2 = item {0,28} → 28 카드 (10000 아님).
+    expect(cardNodes).toHaveLength(28);
+    // scrollTop 0 → lead spacer 없음, trailing spacer 1개(시각 행 5000-14=4986 × 56).
+    expect(spacers).toHaveLength(1);
+    expect(spacers[0]?.projection?.position).toBe("trail");
+    expect(model.sceneNodes.length).toBeLessThan(100);
+  });
+
+  it("grid 스크롤 시 lead+trail spacer 가 시각 행 stride 로 절대 위치 보존", () => {
+    const doc = gridListDoc({
+      itemCount: 10000,
+      style: SCROLLABLE,
+      layout: "grid",
+      columns: 2,
+    });
+    const collectionWindows = resolveVirtualizedCollectionWindows({
+      doc,
+      collections: [],
+      scrollTops: new Map([["gridlist-1", 560]]), // 10 시각 행
+    });
+    const model = buildCanonicalSceneModel(doc, {
+      collections: [],
+      collectionWindows,
+    });
+    const spacers = model.sceneNodes
+      .filter((n) => n.projection?.kind === "gridlist-spacer")
+      .map((n) => ({
+        pos: n.projection?.position,
+        h: (n.props?.style as Record<string, unknown> | undefined)?.height,
+      }));
+    // window item {8,48} → lead 시각 행 = ceil(8/2)=4 × 56 = 224, trail = (5000-24) × 56.
+    const lead = spacers.find((s) => s.pos === "lead");
+    const trail = spacers.find((s) => s.pos === "trail");
+    expect(lead?.h).toBe(4 * 56);
+    expect(trail?.h).toBe((5000 - 24) * 56);
+  });
+});
