@@ -551,6 +551,13 @@ function collectRuntimeElements(
       element[COMPONENT_ROLE_RUNTIME_FIELD] = "master";
       element.reusable = true;
     }
+    // ADR-154: responsive override (tablet/mobile) 를 runtime element 로 전달 —
+    // SSG/preview 는 base 를 inline 으로 적용하고 override 는 @media <style> 로 별도
+    // emit(collectResponsiveCssFromElements). canonical 1차 필드.
+    const responsive = node.responsive ?? sourceNode.responsive;
+    if (responsive) {
+      element.responsive = responsive;
+    }
     if (
       isLegacySlotHoistedNode(node) &&
       typeof (node.metadata as CanonicalMetadata | undefined)?.slotName ===

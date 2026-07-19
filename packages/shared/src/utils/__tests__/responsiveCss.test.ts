@@ -5,6 +5,7 @@ import type { ElementResponsiveConfig } from "../../types/responsive.types";
 import {
   buildResponsiveElementCss,
   collectResponsiveCss,
+  collectResponsiveCssFromElements,
 } from "../responsiveCss";
 
 /**
@@ -169,5 +170,64 @@ describe("collectResponsiveCss", () => {
       { id: "a", type: "Text", props: { style: {} } },
     ];
     expect(collectResponsiveCss(tree)).toBe("");
+  });
+});
+
+describe("collectResponsiveCssFromElements (flat runtime model — apps/publish)", () => {
+  it("flat Element[] — responsive 보유 요소만 수집 (deleted 제외)", () => {
+    const elements = [
+      {
+        id: "root",
+        props: { style: { flexDirection: "row" } },
+        responsive: {
+          styles: { flexDirection: { tablet: "column" } },
+        } as ElementResponsiveConfig,
+      },
+      { id: "plain", props: { style: { color: "red" } } },
+      {
+        id: "resp",
+        props: { style: { width: "100%" } },
+        responsive: {
+          styles: { width: { mobile: 80 } },
+        } as ElementResponsiveConfig,
+      },
+      {
+        id: "gone",
+        props: { style: {} },
+        responsive: {
+          visibility: { mobile: false },
+        } as ElementResponsiveConfig,
+        deleted: true,
+      },
+    ];
+    const css = collectResponsiveCssFromElements(elements);
+    expect(css).toContain(`[data-element-id="root"]{flex-direction:column`);
+    expect(css).toContain(`[data-element-id="resp"]{width:80px`);
+    // base-only / deleted 요소는 규칙 없음
+    expect(css).not.toContain("plain");
+    expect(css).not.toContain("gone");
+  });
+
+  it("visibility false → display:none @media", () => {
+    const elements = [
+      {
+        id: "v",
+        props: { style: {} },
+        responsive: {
+          visibility: { mobile: false },
+        } as ElementResponsiveConfig,
+      },
+    ];
+    expect(collectResponsiveCssFromElements(elements)).toContain(
+      `[data-element-id="v"]{display:none !important}`,
+    );
+  });
+
+  it("responsive 요소 0 → 빈 문자열", () => {
+    expect(
+      collectResponsiveCssFromElements([
+        { id: "a", props: { style: { color: "blue" } } },
+      ]),
+    ).toBe("");
   });
 });

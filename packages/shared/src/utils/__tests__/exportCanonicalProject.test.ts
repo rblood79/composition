@@ -97,6 +97,40 @@ describe("project export canonical CompositionDocument payload", () => {
     ]);
   });
 
+  it("carries CanonicalNode.responsive into the derived runtime element (ADR-154)", () => {
+    const docWithResponsive: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-home",
+          type: "frame",
+          name: "Home",
+          children: [
+            {
+              id: "box-1",
+              type: "frame",
+              props: { style: { width: "100%" } },
+              responsive: {
+                styles: { width: { mobile: 80 } },
+                visibility: { tablet: false },
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const renderModel = deriveProjectRenderModelFromDocument(
+      docWithResponsive,
+      projectId,
+      "page-home",
+    );
+    const box = renderModel.elements.find((e) => e.id === "box-1");
+    expect(box?.responsive).toEqual({
+      styles: { width: { mobile: 80 } },
+      visibility: { tablet: false },
+    });
+  });
+
   it("derives page order from document children without page order mirrors", () => {
     const documentWithReorderedPages: CompositionDocument = {
       version: "composition-1.0",

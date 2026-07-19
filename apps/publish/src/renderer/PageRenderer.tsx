@@ -10,7 +10,10 @@
 
 import { memo, useMemo } from "react";
 import type { Element, Page } from "@composition/shared";
-import { buildElementTree } from "@composition/shared";
+import {
+  buildElementTree,
+  collectResponsiveCssFromElements,
+} from "@composition/shared";
 import { ElementRenderer } from "./ElementRenderer";
 import { useBodyElement } from "../hooks/useBodyElement";
 
@@ -48,6 +51,15 @@ export const PageRenderer = memo(function PageRenderer({
   // ADR-109 D1: body element → document.body className/style 동기화
   useBodyElement(pageElements);
 
+  // ADR-154: 반응형 override(tablet/mobile) 를 @media <style> 로 emit. ElementRenderer
+  // 는 base(props.style) 만 inline 으로 적용하므로, breakpoint override 는 이 스타일이
+  // 담당한다 (선택자 [data-element-id] 는 ElementRenderer 가 이미 부여). Preview App /
+  // generateStaticHtml 과 동일 SSOT(getResponsiveValueWithCascade) → 3경로 발산 0.
+  const responsiveCss = useMemo(
+    () => collectResponsiveCssFromElements(pageElements),
+    [pageElements],
+  );
+
   return (
     <div
       className={className}
@@ -55,6 +67,9 @@ export const PageRenderer = memo(function PageRenderer({
       data-page-id={page.id}
       data-page-slug={page.slug}
     >
+      {responsiveCss ? (
+        <style data-adr154-responsive="">{responsiveCss}</style>
+      ) : null}
       {rootElements.map((element) => (
         <ElementRenderer
           key={element.id}

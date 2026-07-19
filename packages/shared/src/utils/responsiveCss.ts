@@ -155,3 +155,29 @@ export function collectResponsiveCss(nodes: readonly CanonicalNode[]): string {
   walk(nodes);
   return parts.join("\n");
 }
+
+/**
+ * flat runtime render model(`Element[]` — apps/publish React SSG / preview 파생)에서
+ * responsive @media CSS 를 수집. `collectResponsiveCss`(nested `CanonicalNode[]`)의 flat
+ * 대응 — 각 element 의 `props.style`(base) + `responsive` 로 `buildResponsiveElementCss`
+ * 호출. ElementRenderer 는 base 를 inline 으로만 적용하므로 override 는 이 `<style>` 로
+ * 별도 emit 된다 (선택자 `[data-element-id]` 는 ElementRenderer 가 이미 부여).
+ */
+export function collectResponsiveCssFromElements(
+  elements: ReadonlyArray<{
+    id: string;
+    props?: Record<string, unknown>;
+    responsive?: ElementResponsiveConfig;
+    deleted?: boolean;
+  }>,
+): string {
+  const parts: string[] = [];
+  for (const el of elements) {
+    if (el.deleted) continue;
+    const style = (el.props as { style?: Record<string, unknown> } | undefined)
+      ?.style;
+    const css = buildResponsiveElementCss(el.id, style, el.responsive);
+    if (css) parts.push(css);
+  }
+  return parts.join("\n");
+}

@@ -24,6 +24,7 @@
 // Phase 5: DB 저장 포맷 전환 (type 컬럼 → type 컬럼)
 
 import type { CSSProperties, ReactNode } from "react";
+import type { ElementResponsiveConfig } from "./responsive.types";
 
 // ============================================
 // Data Binding Types
@@ -105,6 +106,13 @@ export interface Element {
   deleted?: boolean;
   dataBinding?: DataBinding;
   events?: unknown[];
+
+  /**
+   * ADR-154: breakpoint 반응형 override (tablet/mobile). desktop = base(`props.style`).
+   * runtime(publish/preview)은 base 를 inline 으로 적용하고 override 는
+   * `collectResponsiveCssFromElements` 로 `@media` `<style>` 을 별도 emit 한다.
+   */
+  responsive?: ElementResponsiveConfig;
 
   // --- G.1: Component-Instance System ---
   /**
