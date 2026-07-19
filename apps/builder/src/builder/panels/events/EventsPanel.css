@@ -583,4 +583,210 @@
   [data-theme="dark"] .template-show-more {
     color: var(--color-primary-400);
   }
+
+  /* ==========================================================================
+     ADR-149 Phase 2b — 2-depth callback list + inline accordion
+     ========================================================================== */
+
+  /* L1 — supportedEvents callback 목록 */
+  .event-callback-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .event-callback-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 10px;
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: left;
+    color: var(--fg);
+    font-size: 12px;
+  }
+
+  .event-callback-row:hover {
+    border-color: var(--border-hover);
+  }
+
+  .event-callback-row.is-bound {
+    border-color: var(--accent);
+  }
+
+  .event-callback-icon {
+    flex-shrink: 0;
+  }
+
+  .event-callback-name {
+    flex: 1;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .event-callback-status {
+    flex-shrink: 0;
+    color: var(--fg-muted);
+    font-size: 11px;
+  }
+
+  /* L2 — inline accordion 본체 */
+  .event-accordion-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 10px 10px;
+    margin: 2px 0 4px;
+    background: var(--bg-muted);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  .event-accordion-empty {
+    margin: 0;
+    color: var(--fg-muted);
+    font-size: 11px;
+  }
+
+  .event-action-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .event-action-summary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 6px 8px;
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: left;
+    color: var(--fg);
+    font-size: 12px;
+  }
+
+  .event-action-summary:hover {
+    border-color: var(--border-hover);
+  }
+
+  .event-action-name {
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  .event-action-detail {
+    flex: 1;
+    color: var(--fg-muted);
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .event-action-detail.is-warning {
+    color: var(--notice);
+  }
+
+  .event-action-warn-icon {
+    flex-shrink: 0;
+    color: var(--notice);
+  }
+
+  .event-action-editor {
+    padding: 6px 4px 2px;
+  }
+
+  .event-add-action-btn,
+  .event-remove-handler-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 8px;
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--fg-muted);
+    font-size: 11px;
+    align-self: flex-start;
+  }
+
+  .event-add-action-btn:hover {
+    color: var(--fg);
+    border-color: var(--accent);
+  }
+
+  .event-remove-handler-btn {
+    border-style: solid;
+  }
+
+  .event-remove-handler-btn:hover {
+    color: var(--negative);
+    border-color: var(--negative);
+  }
+
+  .event-add-action-picker {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .event-warning-banner {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    background: var(--notice-subtle);
+    border-radius: 4px;
+    color: var(--fg-on-notice);
+    font-size: 11px;
+  }
+
+  /* 고급 설정 */
+  .event-advanced-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 2px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--fg-muted);
+    font-size: 11px;
+    align-self: flex-start;
+  }
+
+  .event-advanced-toggle:hover {
+    color: var(--fg);
+  }
+
+  .event-advanced-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .event-advanced-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px 2px 0;
+  }
 }
