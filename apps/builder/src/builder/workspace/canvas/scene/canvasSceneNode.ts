@@ -503,7 +503,7 @@ function addSceneNode(
   }
 }
 
-function getListBoxTemplateAnchor(
+export function getListBoxTemplateAnchor(
   children: readonly CanonicalNode[] | undefined,
 ): CanonicalNode | null {
   const anchor = children?.find(
@@ -531,7 +531,7 @@ function getTemplateOriginId(anchor: CanonicalNode | null): string | null {
  * **Why**: ADR-146 in-instance anchor 를 제거(Option B)해도 data-bound 행이 Components 페이지의
  *   origin ListBoxItem style(height/padding 등)을 동일하게 상속하도록 단일 진입점을 유지한다.
  */
-function resolveListBoxTemplateOriginId(
+export function resolveListBoxTemplateOriginId(
   sourceNode: CanonicalNode,
   templateAnchor: CanonicalNode | null,
   getDocumentNodesById: () => Map<string, CanonicalNode>,

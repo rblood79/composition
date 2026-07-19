@@ -18,12 +18,20 @@ import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import {
   resolveCollectionItems,
   resolveCollectionWindow,
+  resolveSlotComposition,
+  isSlotEnabled,
   type CollectionDataSource,
 } from "@composition/shared";
 import { resolveListBoxItemMetric } from "@composition/specs";
 
 import { getElementDataBinding } from "../../../../adapters/canonical/compositionExtensionFields";
-import type { CollectionWindowResolution } from "./canvasSceneNode";
+import { resolveListBoxItemRowHeightFromStyle } from "../layout/engines/utils";
+import {
+  getListBoxTemplateAnchor,
+  resolveListBoxTemplateOriginId,
+  type CollectionWindowResolution,
+} from "./canvasSceneNode";
+import { flattenCanonicalDocumentNodes } from "./canonicalSceneModel";
 
 /** catalog ListBoxItem 기본 행 높이(fontSize 14: paddingY*2 + lineHeight = 28). */
 export const DEFAULT_LISTBOX_ROW_HEIGHT =
@@ -80,6 +88,35 @@ export interface ResolveVirtualizedWindowsInput {
 }
 
 /**
+ * ListBox owner 의 정확한 균일 행 높이 — template row style(origin ◁ anchor override) +
+ * description 유무를 layout 과 **동일 resolver**(`resolveListBoxItemRowHeightFromStyle`)로 산출.
+ * spacer 높이 + 총 content height(스크롤바)가 실제 렌더 행 높이와 정합(2026-07-19 A 선택 —
+ * live 검증에서 균일-28 nominal 이 description 행에서 어긋남을 확인). description 있는 행은 taller.
+ */
+function resolveListBoxRowHeight(
+  node: CanonicalNode,
+  sampleDescription: string | null | undefined,
+  getDocNodes: () => Map<string, CanonicalNode>,
+): number {
+  const anchor = getListBoxTemplateAnchor(node.children);
+  const originId = resolveListBoxTemplateOriginId(node, anchor, getDocNodes);
+  const origin = originId ? getDocNodes().get(originId) : undefined;
+  // appendListBoxRowProjection 의 templateAnchorStyle 과 동일 병합(origin ◁ anchor).
+  const rowStyle: Record<string, unknown> = {
+    ...((origin?.props?.style as Record<string, unknown> | undefined) ?? {}),
+    ...((anchor?.props?.style as Record<string, unknown> | undefined) ?? {}),
+  };
+  const slotComposition = resolveSlotComposition(
+    anchor?.children?.length ? anchor.children : origin?.children,
+  );
+  const hasDescription =
+    typeof sampleDescription === "string" &&
+    sampleDescription.length > 0 &&
+    isSlotEnabled(slotComposition, "description");
+  return resolveListBoxItemRowHeightFromStyle(rowStyle, hasDescription);
+}
+
+/**
  * 가상화 대상 ListBox owner 의 window map 산출. `buildCanonicalSceneModel(collectionWindows)`
  * 로 주입. scroll 변화마다 재호출되지만 doc walk + O(1) count 라 저렴 —
  * rebuild 게이팅은 결과 window 의 [start,end) signature 로 상위에서 처리(BuilderCanvas).
@@ -88,7 +125,11 @@ export function resolveVirtualizedCollectionWindows(
   input: ResolveVirtualizedWindowsInput,
 ): Map<string, CollectionWindowResolution> {
   const result = new Map<string, CollectionWindowResolution>();
-  const rowHeight = input.rowHeight ?? DEFAULT_LISTBOX_ROW_HEIGHT;
+  // origin(template) 노드 lookup — resolveListBoxTemplateOriginId 가 소비.
+  const docNodesById = new Map<string, CanonicalNode>(
+    flattenCanonicalDocumentNodes(input.doc).map((n) => [n.id, n]),
+  );
+  const getDocNodes = () => docNodesById;
 
   const visit = (node: CanonicalNode): void => {
     if (isListBoxOwnerNode(node)) {
@@ -97,16 +138,24 @@ export function resolveVirtualizedCollectionWindows(
       const viewportHeight = readBoundedHeightPx(style);
       if (viewportHeight != null && isScrollOverflow(style)) {
         const dataBinding = getElementDataBinding(node);
-        // totalRows 만 필요 — 빈 window 로 slice 회피(원본 count 는 그대로 반환).
-        const { totalRows } = resolveCollectionItems(
+        // 1행 sample 로 totalRows + description 유무 동시 획득(window slice 회피).
+        const sample = resolveCollectionItems(
           {
             collections: input.collections,
             dataBinding,
             props: node.props as Record<string, unknown> | undefined,
           },
-          { startIndex: 0, endIndex: 0 },
+          { startIndex: 0, endIndex: 1 },
         );
+        const totalRows = sample.totalRows;
         if (totalRows > 0) {
+          const rowHeight =
+            input.rowHeight ??
+            resolveListBoxRowHeight(
+              node,
+              sample.rows[0]?.description,
+              getDocNodes,
+            );
           const scrollTop = input.scrollTops.get(node.id) ?? 0;
           const window = resolveCollectionWindow({
             totalRows,

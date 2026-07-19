@@ -335,6 +335,34 @@ function parseNumericValue(value: unknown): number | undefined {
   return undefined;
 }
 
+/**
+ * ADR-150 A2: ListBoxItem 행의 padding-box 높이를 row style + description 유무로 산출.
+ *
+ * `calculateContentHeight` 의 listboxitem 분기(§1.55b-2)와 collection 가상화 window resolver
+ * (`resolveVirtualizedCollectionWindows`)가 **동일 공식**을 공유하는 단일 소스 — 가상화 spacer /
+ * content height(스크롤바)가 실제 렌더 행 높이와 정확히 정합하도록 한다. style 파싱은
+ * `parseNumericValue`(px/숫자만, percent/rem 거부) 로 layout 경로와 동일.
+ */
+export function resolveListBoxItemRowHeightFromStyle(
+  style: Record<string, unknown> | undefined,
+  hasDescription: boolean,
+): number {
+  const fontSize = parseNumericValue(style?.fontSize) ?? 14;
+  const m = resolveListBoxItemMetric(fontSize);
+  return resolveListBoxItemRowHeight({
+    lineHeight: m.lineHeight,
+    rowGap:
+      parseNumericValue(style?.rowGap ?? style?.columnGap ?? style?.gap) ??
+      m.gap,
+    paddingTop:
+      parseNumericValue(style?.paddingTop ?? style?.padding) ?? m.paddingY,
+    paddingBottom:
+      parseNumericValue(style?.paddingBottom ?? style?.padding) ?? m.paddingY,
+    hasDescription,
+    minHeight: parseNumericValue(style?.minHeight) ?? 20,
+  });
+}
+
 // store 는 gap shorthand 를 rowGap/columnGap longhand 로 분배 저장 —
 // longhand 우선으로 읽지 않으면 편집이 무시된다.
 function readGapValue(
@@ -2294,26 +2322,14 @@ export function calculateContentHeight(
   //   일반 컨테이너 자식 합산 경로를 따른다 (자식 overflow 차단).
   if (tag1 === "listboxitem" && !(childElements && childElements.length > 0)) {
     const props = element.props as Record<string, unknown> | undefined;
-    const fontSize = parseNumericValue(style?.fontSize) ?? 14;
-    const m = resolveListBoxItemMetric(fontSize);
     const desc = props?.description;
-    // §2.6 Layer D: render.shapes 와 동일 resolver 로 row height 산출 (공식 중복 차단).
-    return resolveListBoxItemRowHeight({
-      lineHeight: m.lineHeight,
-      rowGap:
-        parseNumericValue(style?.rowGap ?? style?.columnGap ?? style?.gap) ??
-        m.gap,
-      paddingTop:
-        parseNumericValue(style?.paddingTop ?? style?.padding) ?? m.paddingY,
-      paddingBottom:
-        parseNumericValue(style?.paddingBottom ?? style?.padding) ?? m.paddingY,
-      // ADR-148 Phase 0: description slot 자식이 구성(_slots)에 없으면 1줄 (escape 동일 gating).
-      hasDescription:
-        typeof desc === "string" &&
-        desc.length > 0 &&
-        isSlotEnabled(readSlotComposition(props?._slots), "description"),
-      minHeight: parseNumericValue(style?.minHeight) ?? 20,
-    });
+    // ADR-148 Phase 0: description slot 자식이 구성(_slots)에 없으면 1줄 (escape 동일 gating).
+    const hasDescription =
+      typeof desc === "string" &&
+      desc.length > 0 &&
+      isSlotEnabled(readSlotComposition(props?._slots), "description");
+    // §2.6 Layer D: render.shapes / 가상화 window 와 동일 resolver 로 row height 산출.
+    return resolveListBoxItemRowHeightFromStyle(style, hasDescription);
   }
 
   // 1.55b2. GridListItem (projection row) — ADR-151 B21 (2026-07-16): 전용 분기 부재 시

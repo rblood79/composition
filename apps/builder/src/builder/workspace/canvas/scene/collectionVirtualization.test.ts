@@ -12,10 +12,12 @@ import { buildCanonicalSceneModel } from "./canonicalSceneModel";
 function listBoxDoc(opts: {
   itemCount: number;
   style?: Record<string, unknown>;
+  withDescription?: boolean;
 }): CompositionDocument {
   const items = Array.from({ length: opts.itemCount }, (_, i) => ({
     id: `k${i}`,
     label: `Item ${i}`,
+    ...(opts.withDescription ? { description: `desc ${i}` } : {}),
   }));
   return {
     version: "composition-1.0",
@@ -164,6 +166,32 @@ describe("resolveVirtualizedCollectionWindows — 가상화 대상 판정 + wind
     expect(entry).toBeDefined();
     expect(entry?.totalRows).toBe(60);
     expect(entry?.window).toEqual({ startIndex: 0, endIndex: 21 });
+  });
+
+  it("description 있는 행은 taller rowHeight(itemHeightWithDescription 50) + 그에 맞는 window", () => {
+    // A(정확 rowHeight): description 행은 label+desc 2줄이라 nominal 28 이 아닌 50.
+    const map = resolveVirtualizedCollectionWindows({
+      doc: listBoxDoc({
+        itemCount: 1000,
+        style: SCROLLABLE,
+        withDescription: true,
+      }),
+      collections: [],
+      scrollTops: new Map(),
+    });
+    const entry = map.get("listbox-1");
+    expect(entry?.rowHeight).toBe(50); // itemHeightWithDescription (fontSize14)
+    // viewport 400 / 50 = 8 visible, overscan 6 → end 14.
+    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 14 });
+  });
+
+  it("description 없는 기본 행은 rowHeight 28 (itemHeight)", () => {
+    const map = resolveVirtualizedCollectionWindows({
+      doc: listBoxDoc({ itemCount: 1000, style: SCROLLABLE }),
+      collections: [],
+      scrollTops: new Map(),
+    });
+    expect(map.get("listbox-1")?.rowHeight).toBe(28);
   });
 
   it('height "400px" 문자열도 bounded 로 인식', () => {
