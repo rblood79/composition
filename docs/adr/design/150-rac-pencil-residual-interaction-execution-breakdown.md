@@ -39,7 +39,7 @@
 
 ## §4 Phase A2 — collection 가상화 스크롤 (CollectionWindow)
 
-> **진행 상태 (2026-07-19): ListBox proof delivered · 시각 최종 확인 대기** — 작업 항목 1~5 (window resolver / draw·hit 동일 window / content height + spacer / 정확 행 높이 / LayerTree 패널 분리) 전부 반영. 커밋 `b9698aa4c` · `90dd52b32` · `73e7b367b` · `360a12201`(ref 인스턴스 감지 수정) · `34c56ea70`(정확 행 높이). G-A2 핵심(노드 수 상한 · 재투영 · spacer 총 높이 불변 · 경계 게이팅 · 정확 행 높이)은 실행 중 builder HMR 모듈 합성 probe(10k 행, 프로젝트 무mutation)로 확증. **잔여 = 실제 canvas 60fps 스크롤 픽셀의 foreground 사용자 확인 1회** (실제 대량 요소 렌더 필요 — 실제 요소 무접촉 지시로 자동화 보류). GridList/Table 확산은 미착수. 재실행 시 sub-1~3 재실행 금지 — 시각 확인 후 ADR Status 승격만 남음.
+> **진행 상태 (2026-07-20): ListBox + GridList + Table 전 family delivered · 시각 최종 확인 대기** — ListBox proof(2026-07-19): 작업 항목 1~5 반영, 커밋 `b9698aa4c` · `90dd52b32` · `73e7b367b` · `360a12201`(ref 인스턴스) · `34c56ea70`(정확 행 높이). GridList 확산(`4a29fcf5a`): 공유 인프라 일반화(`CollectionWindowResolution.columns` + spacer helper + generic spacer id), grid 모드는 시각 행 공간 window → numCols 배수 item 환산. Table 확산(`e994822b9`): `getTableProjectionRows` window 위드닝(header 항상 + data windowing + 절대 rowIndex), header 높이 scrollTop 보정, 행 높이 균일(catalog TableRow.sizes). G-A2 핵심(노드 수 상한 · 재투영 · spacer 총 높이 보존 · 경계 게이팅 · 정확 행 높이)은 3 family 전부 실행 중 builder HMR 모듈 합성 probe(10k, 프로젝트 무mutation)로 확증(GridList grid 28 카드·Table md 16 data행 등). 유닛 30/30 + scene 100/100 회귀 0. **잔여 = 실제 canvas 60fps 스크롤 픽셀의 foreground 사용자 확인 1회** (실제 대량 요소 렌더 필요 — 실제 요소 무접촉 지시로 자동화 보류). 재실행 시 재실행 금지 — 시각 확인 후 ADR Status 승격만 남음. GridList grid 는 rowGap 1개 근사(스크롤바 미소 오차, ListBox/Table 은 gap 0 정확).
 
 **목표**: 정적 cap(100) 제거 → scrollOffset 기반 window 로 10k row 에서도 draw/hit 노드 수 ≤ window+overscan, 60fps.
 
