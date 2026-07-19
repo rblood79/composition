@@ -1,6 +1,6 @@
 # ADR-149 구현 상세 — EventsPanel 전면 재설계 (2-depth UX + canonical primary + RAC callback 정합)
 
-> 본 문서는 [ADR-149](../149-events-panel-canonical-simplification.md) 의 구현 상세 (Wave/Phase, 파일 변경, Gate 매핑, 체크리스트). 결정/위험/대안은 ADR 본문. 실측 baseline: 2026-07-08 코드 recon (본문 §Context 실측 표).
+> 본 문서는 [ADR-149](../completed/149-events-panel-canonical-simplification.md) 의 구현 상세 (Wave/Phase, 파일 변경, Gate 매핑, 체크리스트). 결정/위험/대안은 ADR 본문. 실측 baseline: 2026-07-08 코드 recon (본문 §Context 실측 표).
 
 ## §1. Fork checkpoint lock-in (adr-writing.md 4질문)
 

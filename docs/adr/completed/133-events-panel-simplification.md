@@ -2,11 +2,11 @@
 
 > **Deprecated — 2026-07-08** — 개별 재설계 대상. 설계 목적은 보존, 설계 문서는 폐기.
 >
-> **후속: [ADR-149](../149-events-panel-canonical-simplification.md)** (2026-07-08 작성) — 설계 목적 4개 승계 + 2026-07-08 실측 기반 2-Wave 재설계.
+> **후속: [ADR-149](149-events-panel-canonical-simplification.md)** (2026-07-08 작성) — 설계 목적 4개 승계 + 2026-07-08 실측 기반 2-Wave 재설계.
 
 ## Status
 
-**Deprecated — 2026-07-08** (설계 목적 보존 — 후속: [ADR-149](../149-events-panel-canonical-simplification.md))
+**Deprecated — 2026-07-08** (설계 목적 보존 — 후속: [ADR-149](149-events-panel-canonical-simplification.md))
 
 ### 폐기 사유
 
@@ -29,7 +29,7 @@ Proposed — 2026-05-13 (ADR-010 / ADR-032 / ADR-034 supersede + ADR-131 §event
 - 5 결정 사용자 explicit confirm: Q1 onClick deprecation / Q2 onMouseEnter/Leave rename / Q3 callback gap ADR-133 안 흡수 / Q4 mental model = 1년차 baseline / Q5 implemented:false 4 종 제거
 - 3 ADR (010/032/034) Deprecated 이동 동반
 - 2026-07-08 — 사용자 결정으로 Deprecated (개별 재설계 대상 — §폐기 사유 참조)
-- 2026-07-08 — 후속 [ADR-149](../149-events-panel-canonical-simplification.md) 작성 (사용자 지시 "설계목적만 파악후 전면 재설계") — 목적 4개 승계, 구조는 실측 기반 신규 (2-Wave)
+- 2026-07-08 — 후속 [ADR-149](149-events-panel-canonical-simplification.md) 작성 (사용자 지시 "설계목적만 파악후 전면 재설계") — 목적 4개 승계, 구조는 실측 기반 신규 (2-Wave)
 
 ## Context
 
