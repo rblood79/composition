@@ -8,6 +8,7 @@ import type {
 import type { Element, Page } from "../../../../types/builder/unified.types";
 import type { Layout } from "../../../../types/builder/layout.types";
 import { saveService } from "../../../../services/save";
+import { historyManager } from "../../history";
 import { useCanonicalDocumentStore } from "../../canonical/canonicalDocumentStore";
 import {
   registerCanonicalMutationStoreActions,
@@ -1287,6 +1288,52 @@ describe("element mutations keep canonical document primary", () => {
     expect(
       doc3.children?.find((n) => n.id === "frame-body")?.responsive,
     ).toBeUndefined();
+  });
+
+  it("updateSelectedStylePreview writes responsive override to elementsMap without history at non-desktop (ADR-154)", () => {
+    const body = makeElement("frame-body", "body", {
+      layout_id: "frame-1",
+      props: { style: { display: "flex", width: "100%" } },
+    });
+    const state = makeState([body]);
+    state.activeBreakpoint = "mobile"; // 비-desktop 편집 컨텍스트
+    state.selectedElementId = "frame-body";
+    state.selectedElementIds = ["frame-body"];
+    state.selectedElementIdsSet = new Set(["frame-body"]);
+    state.selectedElementProps = body.props as Record<string, unknown>;
+    registerCanonicalActions(state);
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeFrameDocument([
+        {
+          id: "frame-body",
+          type: "body" as CanonicalNode["type"],
+          props: body.props as Record<string, unknown>,
+          children: [],
+        },
+      ]),
+    );
+
+    const inspectorActions = createInspectorActionsSlice(
+      createSetMock(state) as never,
+      () => state as never,
+      {} as never,
+    );
+
+    // preview (드래그/타이핑 중) → responsive override 로 elementsMap 즉시 반영
+    inspectorActions.updateSelectedStylePreview("width", "80%");
+
+    const el = state.elementsMap.get("frame-body");
+    // 캔버스용 responsive override 반영 (mobile)
+    expect(el?.responsive?.styles?.width?.mobile).toBe(80);
+    // base(props.style.width) 무변경 — desktop base 오염 없음
+    expect(
+      (el?.props?.style as Record<string, unknown> | undefined)?.width,
+    ).toBe("100%");
+    // preview 는 히스토리 엔트리를 만들지 않는다 (commit 경로만 기록)
+    expect(historyManager.addEntry).not.toHaveBeenCalled();
+    // 레이아웃 재계산 트리거 (layoutVersion bump)
+    expect(state.layoutVersion).toBeGreaterThan(0);
   });
 
   it("updateElementProps preserves frame slot sibling order", async () => {

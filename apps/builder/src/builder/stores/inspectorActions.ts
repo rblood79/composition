@@ -862,74 +862,97 @@ export const createInspectorActionsSlice: StateCreator<
       const { elements, selectedElementId } = get();
       if (!selectedElementId) return;
 
-      // ADR-154: 비-desktop breakpoint 에서는 base(props.style) 를 preview 로 편집하지
-      // 않는다 (잘못된 breakpoint 의 base 오염 방지). override 는 commit 경로
-      // (updateSelectedStyle)가 element.responsive 로 기록한다. 이 cut 에서 responsive
-      // 편집은 live preview 없이 commit 시 반영.
-      if (get().activeBreakpoint !== "desktop") return;
+      const activeBreakpoint = get().activeBreakpoint;
 
       const element = getInspectorElementById(elements, selectedElementId);
       if (!element) return;
 
-      // 첫 프리뷰 시 원본 요소 스냅샷 저장 (히스토리 정확성)
+      // 첫 프리뷰 시 원본 요소 스냅샷 저장 (히스토리 정확성 + commit base).
+      // desktop / 비-desktop 공통 — commit 경로(updateSelectedStyle)가 이 스냅샷을
+      // pre-preview base 로 사용해 base/override 를 정확히 기록한다.
       if (!prePreviewElement || prePreviewElement.id !== selectedElementId) {
         prePreviewElement = structuredClone(element);
       }
 
-      const resolvedElement = getResolvedInspectorElement(
-        element,
-        getInspectorLookupElements(elements),
-      );
-      const currentStyle = {
-        ...((resolvedElement.props?.style as Record<string, string>) || {}),
-      };
+      let updatedElement: Element;
 
-      const isClearing = value === "" || value === null || value === undefined;
-      if (isClearing) {
-        delete currentStyle[property];
-      } else {
-        const NUMERIC_STYLE_PROPS = new Set([
-          "fontSize",
-          "fontWeight",
-          "lineHeight",
-          "letterSpacing",
-          "opacity",
-          "padding",
-          "paddingTop",
-          "paddingRight",
-          "paddingBottom",
-          "paddingLeft",
-          "gap",
-          "rowGap",
-          "columnGap",
-          "borderWidth",
-          "borderRadius",
-        ]);
-        if (NUMERIC_STYLE_PROPS.has(property)) {
-          const num = parseFloat(value);
-          (currentStyle as Record<string, unknown>)[property] = !isNaN(num)
-            ? num
-            : value;
-        } else {
-          currentStyle[property] = value;
-        }
-      }
-
-      distributeShorthand(currentStyle as Record<string, unknown>, property);
-      if (!isClearing) {
-        applyBorderCompanionDefaults(
-          currentStyle as Record<string, unknown>,
+      if (activeBreakpoint !== "desktop") {
+        // ADR-154: 비-desktop 은 base(props.style) 대신 responsive override 를 preview
+        // 로 반영한다. elementsMap 만 갱신(히스토리/DB 없음)하고 base 는 무변경이라
+        // base 오염이 없다. commit 경로(updateSelectedStyle)가 동일
+        // buildResponsiveStyleOverride 로 최종 override 를 기록하며,
+        // resolveResponsiveLayoutNode 가 activeBreakpoint 기준으로 이 preview override
+        // 를 merge → 드래그/타이핑 중 캔버스 즉시 반영. (숫자/shorthand 변환은
+        // buildResponsiveStyleOverride 내부에서 처리.)
+        const nextResponsive = buildResponsiveStyleOverride(
+          element.responsive,
           property,
+          value,
+          activeBreakpoint,
         );
+        updatedElement = buildInspectorUpdatedElement(
+          element,
+          getInspectorWritableProps(element),
+          { responsive: nextResponsive },
+        );
+      } else {
+        // desktop = base preview (기존 동작)
+        const resolvedElement = getResolvedInspectorElement(
+          element,
+          getInspectorLookupElements(elements),
+        );
+        const currentStyle = {
+          ...((resolvedElement.props?.style as Record<string, string>) || {}),
+        };
+
+        const isClearing =
+          value === "" || value === null || value === undefined;
+        if (isClearing) {
+          delete currentStyle[property];
+        } else {
+          const NUMERIC_STYLE_PROPS = new Set([
+            "fontSize",
+            "fontWeight",
+            "lineHeight",
+            "letterSpacing",
+            "opacity",
+            "padding",
+            "paddingTop",
+            "paddingRight",
+            "paddingBottom",
+            "paddingLeft",
+            "gap",
+            "rowGap",
+            "columnGap",
+            "borderWidth",
+            "borderRadius",
+          ]);
+          if (NUMERIC_STYLE_PROPS.has(property)) {
+            const num = parseFloat(value);
+            (currentStyle as Record<string, unknown>)[property] = !isNaN(num)
+              ? num
+              : value;
+          } else {
+            currentStyle[property] = value;
+          }
+        }
+
+        distributeShorthand(currentStyle as Record<string, unknown>, property);
+        if (!isClearing) {
+          applyBorderCompanionDefaults(
+            currentStyle as Record<string, unknown>,
+            property,
+          );
+        }
+
+        const newProps = {
+          ...getInspectorWritableProps(element),
+          style: currentStyle,
+        };
+        updatedElement = buildInspectorUpdatedElement(element, newProps);
       }
 
-      const newProps = {
-        ...getInspectorWritableProps(element),
-        style: currentStyle,
-      };
-      const updatedElement = buildInspectorUpdatedElement(element, newProps);
-
-      // elementsMap만 업데이트 (캔버스 렌더링용)
+      // 공통 tail — elementsMap 만 업데이트 (캔버스 렌더링용)
       // ⚠️ selectedElementProps는 업데이트하지 않음!
       // → Jotai atom이 변경되지 않아 PropertyUnitInput의 value prop 유지
       // → blur 시 valueActuallyChanged 정상 감지 → onChange(DB 저장) 호출
