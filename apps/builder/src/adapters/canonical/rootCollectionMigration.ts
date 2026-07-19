@@ -93,6 +93,12 @@ export function migrateLegacyEventsToRootEvents(
           : handler.condition;
     }
 
+    // ADR-149 Phase 3-a — round-trip fidelity: 패널 L2 고급이 편집하는 event-level
+    // 필드를 index-sig slot 으로 보존 (reverse adapter 가 복원). 미정의는 미방출.
+    if (handler.enabled !== undefined) event.enabled = handler.enabled;
+    if (handler.debounce !== undefined) event.debounce = handler.debounce;
+    if (handler.throttle !== undefined) event.throttle = handler.throttle;
+
     const thenChain = buildActionChain(handler.actions, `${handler.id}__a`);
     if (thenChain.head) {
       event.actionRef = thenChain.head;
@@ -130,6 +136,10 @@ function buildActionChain(
     if (legacy.config !== undefined) {
       action.config = legacy.config;
     }
+    // ADR-149 Phase 3-a — action-level fidelity 보존 (reverse 가 복원).
+    if (legacy.delay !== undefined) action.delay = legacy.delay;
+    if (legacy.condition !== undefined) action.condition = legacy.condition;
+    if (legacy.enabled !== undefined) action.enabled = legacy.enabled;
     if (i + 1 < ids.length) {
       action.next = [ids[i + 1]];
     }
@@ -137,6 +147,88 @@ function buildActionChain(
   });
 
   return { head: ids[0], list };
+}
+
+/**
+ * `migrateLegacyEventsToRootEvents` 의 역함수 — canonical root collection
+ * (`SerializedEvent[]` + `SerializedAction[]`) 에서 특정 `target` UI node 의
+ * legacy `EventHandler[]` 를 복원. ADR-149 Phase 3-a (HC5, rootCollectionMigration
+ * :19 주석 실현). 2026-05-15 에 제거됐던 `rootEventsToLegacyByTarget` 의 재도입.
+ *
+ * - `event.target === targetId` 인 events 만 대상
+ * - `actionRef` chain (`action.next[0]`) 을 순회하여 `actions[]` 복원 (visited set
+ *   로 순환 차단)
+ * - `fallbackActionRef` chain → `elseActions[]`
+ * - `condition`: `{ expr: string }` → string 역변환 (그 외 Record 는 passthrough)
+ * - fidelity slot (event `enabled`/`debounce`/`throttle`, action `delay`/`condition`/
+ *   `enabled`) 복원 — forward 가 index-sig 로 보존한 것
+ *
+ * **round-trip 계약**: `migrateRootCollectionToLegacy(target,
+ * migrateLegacyEventsToRootEvents(target, L).{events,actions})` === `L`
+ * (id 명시 fixture 기준). id 미정의 action 은 forward 가 `<eventId>__a<i>` 생성 →
+ * reverse 는 그 id 를 보존 (id 부여만 차이).
+ */
+export function migrateRootCollectionToLegacy(
+  targetId: string,
+  events: readonly SerializedEvent[] | undefined,
+  actions: readonly SerializedAction[] | undefined,
+): LegacyEventHandlerShape[] {
+  if (!events || events.length === 0) return [];
+
+  const actionById = new Map<string, SerializedAction>();
+  for (const a of actions ?? []) actionById.set(a.id, a);
+
+  const result: LegacyEventHandlerShape[] = [];
+  for (const event of events) {
+    if (event.target !== targetId) continue;
+
+    const handler: LegacyEventHandlerShape = {
+      id: event.id,
+      event: event.kind,
+      actions: event.actionRef
+        ? walkActionChain(event.actionRef, actionById)
+        : [],
+    };
+
+    if (event.condition !== undefined) {
+      const expr = (event.condition as Record<string, unknown>).expr;
+      handler.condition = typeof expr === "string" ? expr : event.condition;
+    }
+    if (event.enabled !== undefined) handler.enabled = event.enabled;
+    if (event.debounce !== undefined) handler.debounce = event.debounce;
+    if (event.throttle !== undefined) handler.throttle = event.throttle;
+
+    if (event.fallbackActionRef) {
+      const elseActions = walkActionChain(event.fallbackActionRef, actionById);
+      if (elseActions.length > 0) handler.elseActions = elseActions;
+    }
+
+    result.push(handler);
+  }
+  return result;
+}
+
+/** actionRef chain (`next[0]`) 을 순회하여 legacy action list 복원 (순환 차단). */
+function walkActionChain(
+  headId: string,
+  actionById: Map<string, SerializedAction>,
+): LegacyEventActionShape[] {
+  const out: LegacyEventActionShape[] = [];
+  const visited = new Set<string>();
+  let cur: string | undefined = headId;
+  while (cur && !visited.has(cur)) {
+    visited.add(cur);
+    const action = actionById.get(cur);
+    if (!action) break;
+    const legacy: LegacyEventActionShape = { id: action.id, type: action.kind };
+    if (action.config !== undefined) legacy.config = action.config;
+    if (action.delay !== undefined) legacy.delay = action.delay;
+    if (action.condition !== undefined) legacy.condition = action.condition;
+    if (action.enabled !== undefined) legacy.enabled = action.enabled;
+    out.push(legacy);
+    cur = Array.isArray(action.next) ? action.next[0] : undefined;
+  }
+  return out;
 }
 
 // ADR-131 Phase 8 (2026-05-13): migrateLegacyDataBindingToRootData 제거.

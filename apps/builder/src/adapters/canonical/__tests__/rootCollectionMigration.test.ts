@@ -17,6 +17,7 @@ import {
   mergeIntoDocument,
   migrateLegacyElementsToRootCollections,
   migrateLegacyEventsToRootEvents,
+  migrateRootCollectionToLegacy,
 } from "../rootCollectionMigration";
 
 describe("ADR-131 Phase 2 — rootCollectionMigration", () => {
@@ -206,6 +207,163 @@ describe("ADR-131 Phase 2 — rootCollectionMigration", () => {
       expect(result.events).toHaveLength(2);
       expect(result.events?.find((e) => e.id === "ev1")?.kind).toBe("onPress");
       expect(result.events?.find((e) => e.id === "ev2")).toBeDefined();
+    });
+  });
+
+  // ADR-149 Phase 3-a — 역방향 adapter (HC5)
+  describe("migrateRootCollectionToLegacy (reverse, ADR-149 Phase 3-a)", () => {
+    it("returns empty when no events for target", () => {
+      expect(
+        migrateRootCollectionToLegacy("btn-1", undefined, undefined),
+      ).toEqual([]);
+      expect(
+        migrateRootCollectionToLegacy(
+          "btn-1",
+          [{ id: "ev1", type: "event", kind: "onPress", target: "other" }],
+          [],
+        ),
+      ).toEqual([]);
+    });
+
+    it("filters events by target and restores action chain", () => {
+      const events: SerializedEvent[] = [
+        {
+          id: "ev1",
+          type: "event",
+          kind: "onPress",
+          target: "btn-1",
+          actionRef: "a1",
+        },
+        { id: "ev2", type: "event", kind: "onClick", target: "btn-2" },
+      ];
+      const actions: SerializedAction[] = [
+        {
+          id: "a1",
+          type: "action",
+          kind: "navigate",
+          config: { path: "/x" },
+          next: ["a2"],
+        },
+        { id: "a2", type: "action", kind: "showToast" },
+      ];
+      const legacy = migrateRootCollectionToLegacy("btn-1", events, actions);
+      expect(legacy).toHaveLength(1);
+      expect(legacy[0]).toMatchObject({ id: "ev1", event: "onPress" });
+      expect(legacy[0].actions?.map((a) => a.id)).toEqual(["a1", "a2"]);
+      expect(legacy[0].actions?.[0]).toMatchObject({
+        type: "navigate",
+        config: { path: "/x" },
+      });
+    });
+
+    it("restores condition {expr} → string and fallbackActionRef → elseActions", () => {
+      const legacy = migrateRootCollectionToLegacy(
+        "btn-1",
+        [
+          {
+            id: "ev1",
+            type: "event",
+            kind: "onPress",
+            target: "btn-1",
+            actionRef: "a1",
+            fallbackActionRef: "e1",
+            condition: { expr: "user.isLoggedIn" },
+          },
+        ],
+        [
+          { id: "a1", type: "action", kind: "navigate" },
+          { id: "e1", type: "action", kind: "showToast" },
+        ],
+      );
+      expect(legacy[0].condition).toBe("user.isLoggedIn");
+      expect(legacy[0].elseActions?.map((a) => a.id)).toEqual(["e1"]);
+    });
+
+    it("guards action next[] cycle (visited set)", () => {
+      const legacy = migrateRootCollectionToLegacy(
+        "btn-1",
+        [
+          {
+            id: "ev1",
+            type: "event",
+            kind: "onPress",
+            target: "btn-1",
+            actionRef: "a1",
+          },
+        ],
+        [
+          { id: "a1", type: "action", kind: "navigate", next: ["a2"] },
+          { id: "a2", type: "action", kind: "showToast", next: ["a1"] },
+        ],
+      );
+      // a1 → a2 → (a1 already visited, stop)
+      expect(legacy[0].actions?.map((a) => a.id)).toEqual(["a1", "a2"]);
+    });
+  });
+
+  // ADR-149 Phase 3-a — round-trip 동등성 (HC5): legacy → forward → reverse → legacy
+  describe("round-trip 동등성 (legacy ↔ canonical)", () => {
+    function roundTrip(
+      target: string,
+      legacy: Parameters<typeof migrateLegacyEventsToRootEvents>[1],
+    ) {
+      const fwd = migrateLegacyEventsToRootEvents(target, legacy);
+      return migrateRootCollectionToLegacy(target, fwd.events, fwd.actions);
+    }
+
+    it("identity for single event + single action (explicit ids)", () => {
+      const legacy = [
+        {
+          id: "ev1",
+          event: "onPress",
+          actions: [{ id: "a1", type: "navigate", config: { path: "/home" } }],
+        },
+      ];
+      expect(roundTrip("btn-1", legacy)).toEqual(legacy);
+    });
+
+    it("identity preserving fidelity fields (enabled/debounce/throttle/delay)", () => {
+      const legacy = [
+        {
+          id: "ev1",
+          event: "onChange",
+          enabled: false,
+          debounce: 300,
+          actions: [
+            {
+              id: "a1",
+              type: "apiCall",
+              config: { endpoint: "/api" },
+              delay: 100,
+              enabled: true,
+            },
+          ],
+        },
+        {
+          id: "ev2",
+          event: "onPress",
+          throttle: 500,
+          condition: "state.ready === true",
+          actions: [{ id: "a2", type: "showToast", config: {} }],
+          elseActions: [{ id: "e2", type: "logEvent", config: {} }],
+        },
+      ];
+      expect(roundTrip("btn-1", legacy)).toEqual(legacy);
+    });
+
+    it("multi-action chain identity", () => {
+      const legacy = [
+        {
+          id: "ev1",
+          event: "onPress",
+          actions: [
+            { id: "a1", type: "navigate", config: { path: "/a" } },
+            { id: "a2", type: "showToast", config: { message: "hi" } },
+            { id: "a3", type: "logEvent", config: {} },
+          ],
+        },
+      ];
+      expect(roundTrip("btn-1", legacy)).toEqual(legacy);
     });
   });
 });
