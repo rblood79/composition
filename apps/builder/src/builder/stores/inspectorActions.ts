@@ -13,6 +13,10 @@
 
 import { StateCreator } from "zustand";
 import type {
+  BreakpointName,
+  ElementResponsiveConfig,
+} from "@composition/shared";
+import type {
   Element,
   ComponentElementProps,
 } from "../../types/core/store.types";
@@ -89,6 +93,87 @@ function distributeShorthand(
     if (value === undefined) delete style[lh];
     else style[lh] = value;
   }
+}
+
+// ADR-154: 반응형 override 저장 시 숫자 변환 대상 (Canvas spec shapes 는 숫자 기대)
+const RESPONSIVE_NUMERIC_STYLE_PROPS = new Set([
+  "fontSize",
+  "fontWeight",
+  "lineHeight",
+  "letterSpacing",
+  "opacity",
+  "padding",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "gap",
+  "rowGap",
+  "columnGap",
+  "borderWidth",
+  "borderRadius",
+  "width",
+  "height",
+  "margin",
+  "order",
+]);
+
+function toResponsiveStyleValue(
+  property: string,
+  value: string,
+): string | number {
+  if (RESPONSIVE_NUMERIC_STYLE_PROPS.has(property)) {
+    const num = parseFloat(value);
+    if (!Number.isNaN(num)) return num;
+  }
+  return value;
+}
+
+/**
+ * ADR-154: activeBreakpoint override 를 `element.responsive.styles` 에 write.
+ * base `props.style` 과 동일한 longhand 정책(ADR-909) — shorthand(gap/padding/margin)은
+ * longhand 로 분배 저장. 빈 값(clear)은 해당 breakpoint 키를 제거하고, 키가 비면 삭제.
+ * desktop 은 호출측에서 제외(base 편집).
+ */
+function buildResponsiveStyleOverride(
+  existing: ElementResponsiveConfig | undefined,
+  property: string,
+  value: string,
+  breakpoint: BreakpointName,
+): ElementResponsiveConfig {
+  const styles: Record<string, Record<string, unknown>> = {};
+  const existingStyles = (existing?.styles ?? {}) as Record<
+    string,
+    Record<string, unknown>
+  >;
+  for (const k of Object.keys(existingStyles)) {
+    styles[k] = { ...existingStyles[k] };
+  }
+
+  const isClearing = value === "" || value === null || value === undefined;
+  const longhands = SHORTHAND_TO_LONGHAND[property] ?? [property];
+  const converted = isClearing
+    ? undefined
+    : toResponsiveStyleValue(property, value);
+
+  for (const key of longhands) {
+    if (converted === undefined) {
+      if (styles[key]) {
+        delete styles[key][breakpoint];
+        if (Object.keys(styles[key]).length === 0) delete styles[key];
+      }
+    } else {
+      styles[key] = { ...(styles[key] ?? {}), [breakpoint]: converted };
+    }
+  }
+
+  const next: ElementResponsiveConfig = { ...existing };
+  if (Object.keys(styles).length > 0) {
+    next.styles = styles as unknown as ElementResponsiveConfig["styles"];
+  } else {
+    delete next.styles;
+  }
+  return next;
 }
 
 function sanitizeInspectorProps(
@@ -443,6 +528,8 @@ interface RequiredState {
   layoutVersion: number;
   dirtyElementIds: Set<string>;
   currentPageId: string | null;
+  /** ADR-154: 반응형 override 편집 분기용 (canvasSettings slice) */
+  activeBreakpoint: BreakpointName;
   updateElement: (
     elementId: string,
     updates: Partial<Element>,
@@ -537,7 +624,8 @@ export const createInspectorActionsSlice: StateCreator<
     //   배경이 복원된다(M2b). buildCanonicalReplaceEvents 는 prev/next 노드에 fills 를 포함.
     // 일반 요소: full merged props 의 update event
     const hasNonPropsCanonicalChange =
-      additionalUpdates !== undefined && "fills" in additionalUpdates;
+      additionalUpdates !== undefined &&
+      ("fills" in additionalUpdates || "responsive" in additionalUpdates);
     if (
       currentPageId &&
       (Object.keys(propsUpdate).length > 0 || hasNonPropsCanonicalChange)
@@ -576,9 +664,16 @@ export const createInspectorActionsSlice: StateCreator<
     // 🚀 단일 set() 호출 - 배칭으로 리렌더링 최소화
     // ADR-006 P3-1: 레이아웃 영향 prop 변경 시 layoutVersion 증가 → fullTreeLayoutMap 재계산 트리거
     // style 변경 외에도 size, label, children, text 등 레이아웃에 영향을 미치는 prop 포함
-    const hasLayoutChange = Object.keys(propsUpdate).some((key) =>
-      LAYOUT_AFFECTING_PROP_KEYS.has(key),
-    );
+    // ADR-154: responsive override 는 props 축이 아니라 top-level 필드로 오므로
+    // propsUpdate 키 검사에 걸리지 않는다 — additionalUpdates.responsive 변경도
+    // 전역 재레이아웃(resolve 재계산) 대상이므로 layoutVersion bump 을 강제.
+    const hasResponsiveChange =
+      additionalUpdates !== undefined && "responsive" in additionalUpdates;
+    const hasLayoutChange =
+      hasResponsiveChange ||
+      Object.keys(propsUpdate).some((key) =>
+        LAYOUT_AFFECTING_PROP_KEYS.has(key),
+      );
     set((prevState) => {
       const stateUpdate: Partial<CombinedState> = {
         elements: newElements,
@@ -671,6 +766,28 @@ export const createInspectorActionsSlice: StateCreator<
         savedPrePreview && savedPrePreview.id === element.id
           ? savedPrePreview
           : element;
+
+      // ADR-154: 비-desktop breakpoint 편집은 base(props.style) 대신
+      // element.responsive.styles override 로 저장 (desktop = base, 기존 동작 유지).
+      const activeBreakpoint = get().activeBreakpoint;
+      if (activeBreakpoint !== "desktop") {
+        const nextResponsive = buildResponsiveStyleOverride(
+          baseElement.responsive,
+          property,
+          value,
+          activeBreakpoint,
+        );
+        updateAndSave(
+          element.id,
+          {},
+          { responsive: nextResponsive },
+          savedPrePreview && savedPrePreview.id === element.id
+            ? savedPrePreview
+            : undefined,
+        );
+        return;
+      }
+
       const resolvedBaseElement = getResolvedInspectorElement(
         baseElement,
         getInspectorLookupElements(),
@@ -734,6 +851,12 @@ export const createInspectorActionsSlice: StateCreator<
     updateSelectedStylePreview: (property, value) => {
       const { elements, selectedElementId } = get();
       if (!selectedElementId) return;
+
+      // ADR-154: 비-desktop breakpoint 에서는 base(props.style) 를 preview 로 편집하지
+      // 않는다 (잘못된 breakpoint 의 base 오염 방지). override 는 commit 경로
+      // (updateSelectedStyle)가 element.responsive 로 기록한다. 이 cut 에서 responsive
+      // 편집은 live preview 없이 commit 시 반영.
+      if (get().activeBreakpoint !== "desktop") return;
 
       const element = getInspectorElementById(elements, selectedElementId);
       if (!element) return;

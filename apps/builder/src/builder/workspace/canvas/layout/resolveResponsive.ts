@@ -5,12 +5,13 @@
  * **새 노드**를 반환한다 (non-mutating). desktop 은 base 그대로(무변경).
  *
  * SSOT 체인: D3(시각 스타일) — resolve 단일 진입점 `getResponsiveValueWithCascade`.
- * layout 경로(useLayoutPublisher)와 render 경로(renderCommands)가 **동일 helper** 를
- * 호출해 Skia↔DOM 시각 대칭을 자동 성립시킨다.
+ * layout 경로(useLayoutPublisher)와 render 경로가 **동일 helper** 를 호출해 Skia↔DOM
+ * 시각 대칭을 자동 성립시킨다.
  *
  * longhand 정책(ADR-909, R4): gap/padding/margin shorthand override 는 longhand 로
- * 분배해 base longhand 를 확실히 override 한다 (엔진 `applyCommonTaffyStyle` 의
- * gap→rowGap/columnGap 적용 순서로 인한 편집 무시 회귀 방지).
+ * 분배해 base longhand 를 확실히 override 한다(엔진 `applyCommonTaffyStyle` 의
+ * gap→rowGap/columnGap 적용 순서로 인한 편집 무시 회귀 방지). 그 외 키(longhand 포함)는
+ * 직접 merge 하므로, 저장 형식이 shorthand 든 longhand 든 정확히 resolve 된다.
  *
  * 함정(feedback-merged-style-map-kills-override-detection): 여기서 만든 merged style
  * 로 "override 존재" 를 재판정하지 말 것 — Inspector 는 raw `element.responsive` 를 읽는다.
@@ -19,45 +20,18 @@
 import {
   getResponsiveValueWithCascade,
   type BreakpointName,
+  type ResponsiveValue,
 } from "@composition/shared";
 import type { CanvasLayoutNode } from "./layoutNode";
 
 type StyleMap = Record<string, unknown>;
 
-/** ResponsiveStyles 키 → style 직접 매핑 키 (shorthand 분배 대상 제외) */
-const DIRECT_STYLE_KEYS = [
-  "flexDirection",
-  "gridTemplateColumns",
-  "gridTemplateRows",
-  "display",
-  "order",
-  "width",
-  "height",
-  "fontSize",
-  "textAlign",
-  "justifyContent",
-  "alignItems",
-] as const;
-
-function applyDirect(
-  merged: StyleMap,
-  base: StyleMap,
-  responsiveStyles: Record<string, unknown>,
-  key: string,
-  breakpoint: BreakpointName,
-): boolean {
-  const respValue = responsiveStyles[key];
-  if (respValue == null) return false;
-  const baseValue = base[key];
-  const resolved = getResponsiveValueWithCascade(
-    respValue as Record<BreakpointName, unknown>,
-    breakpoint,
-    baseValue,
-  );
-  if (resolved === baseValue) return false;
-  merged[key] = resolved;
-  return true;
-}
+/** shorthand → longhand 분배 대상 (그 외 키는 직접 merge) */
+const SHORTHAND_LONGHANDS: Record<string, string[]> = {
+  gap: ["rowGap", "columnGap"],
+  padding: ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"],
+  margin: ["marginTop", "marginRight", "marginBottom", "marginLeft"],
+};
 
 /**
  * activeBreakpoint 기준 responsive override 를 merge 한 노드 반환.
@@ -79,50 +53,44 @@ export function resolveResponsiveLayoutNode<T extends CanvasLayoutNode>(
   let changed = false;
 
   if (styles) {
-    const s = styles as Record<string, unknown>;
+    const styleRecord = styles as Record<string, ResponsiveValue<unknown>>;
+    for (const key of Object.keys(styleRecord)) {
+      const respValue = styleRecord[key];
+      if (respValue == null) continue;
 
-    for (const key of DIRECT_STYLE_KEYS) {
-      if (applyDirect(merged, base, s, key, activeBreakpoint)) changed = true;
-    }
+      const longhands = SHORTHAND_LONGHANDS[key];
+      if (longhands) {
+        // shorthand → longhand 분배 (base fallback 없이 override 값만)
+        const resolved = getResponsiveValueWithCascade(
+          respValue,
+          activeBreakpoint,
+          undefined,
+        );
+        if (resolved == null) continue;
+        for (const lh of longhands) merged[lh] = resolved;
+        delete merged[key];
+        changed = true;
+        continue;
+      }
 
-    // gap shorthand → rowGap/columnGap longhand 분배 (ADR-909)
-    if (s.gap != null) {
+      // 직접 merge (DIRECT + longhand 키 공통)
+      const baseValue = base[key];
       const resolved = getResponsiveValueWithCascade(
-        s.gap as Record<BreakpointName, unknown>,
+        respValue,
         activeBreakpoint,
-        undefined,
+        baseValue,
       );
-      if (resolved != null) {
-        merged.rowGap = resolved;
-        merged.columnGap = resolved;
-        delete merged.gap;
+      if (resolved !== baseValue) {
+        merged[key] = resolved;
         changed = true;
       }
-    }
-
-    // padding/margin shorthand → 4-way longhand 분배 (ADR-909)
-    for (const box of ["padding", "margin"] as const) {
-      if (s[box] == null) continue;
-      const resolved = getResponsiveValueWithCascade(
-        s[box] as Record<BreakpointName, unknown>,
-        activeBreakpoint,
-        undefined,
-      );
-      if (resolved == null) continue;
-      const cap = box === "padding" ? "padding" : "margin";
-      merged[`${cap}Top`] = resolved;
-      merged[`${cap}Right`] = resolved;
-      merged[`${cap}Bottom`] = resolved;
-      merged[`${cap}Left`] = resolved;
-      delete merged[box];
-      changed = true;
     }
   }
 
   // visibility override: false → display:none (cascade, JS 분기 금지)
   if (visibility) {
     const visible = getResponsiveValueWithCascade(
-      visibility as Record<BreakpointName, boolean>,
+      visibility as ResponsiveValue<boolean>,
       activeBreakpoint,
       true,
     );

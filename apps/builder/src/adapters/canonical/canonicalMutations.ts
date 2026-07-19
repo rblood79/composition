@@ -720,6 +720,15 @@ function legacyElementToCanonicalNode(
     ...(Array.isArray(element.fills) && element.fills.length > 0
       ? { fills: element.fills }
       : {}),
+    // ADR-154: responsive override 는 canonical 1차 필드 (CanonicalNode.responsive).
+    // 빈 config 는 생략(=제거). fills 선례 동형.
+    ...(element.responsive &&
+    ((element.responsive.styles &&
+      Object.keys(element.responsive.styles).length > 0) ||
+      (element.responsive.visibility &&
+        Object.keys(element.responsive.visibility).length > 0))
+      ? { responsive: element.responsive }
+      : {}),
     ...(previousNode?.children ? { children: previousNode.children } : {}),
     ...getCanonicalSlotDeclaration(element),
     metadata: buildCanonicalMutationMetadata(metadataElement),
