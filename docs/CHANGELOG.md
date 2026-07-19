@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Preview / Publish(DOM)**: 요소별 `@media` CSS 출력 — tablet/mobile override 만 `[data-element-id]` selector 로 emit, iframe/뷰포트 리사이즈 시 breakpoint 동작
   - 위치: `packages/shared/src/utils/responsiveCss.ts`(신규 SSOT) · `apps/builder/src/builder/workspace/canvas/layout/resolveResponsive.ts` · `apps/builder/src/preview/App.tsx` · `packages/shared/src/utils/export.utils.ts`
 - **canonical schema `CanonicalNode.responsive`** (ADR-154 Phase 1): optional 필드 + `responsive.types.ts` shared 이동 + .pen import/export roundtrip 보존. responsive 부재 문서 로드 무영향.
+- **Inspector 반응형 저작 UI** (ADR-154 Phase 2 후속, 2026-07-19):
+  - 스타일 패널 헤더에 항상-표시 **breakpoint 배지** (현재 편집 대상: Desktop=base 중립 / Tablet·Mobile=override 강조) + **Responsive 섹션** — 활성 breakpoint 에서 override 된 필드를 chip 목록으로 표시(어느 필드가 override 인지), 각 chip ✕ 로 해당 override 제거
+  - **Visibility 편집기 배선**: 그동안 참조 0건 orphan 이던 `ResponsiveVisibilityEditor` 를 PropertySection 으로 배선 — desktop 은 base(lock, Display 속성으로 제어), tablet/mobile 만 `responsive.visibility` override(→ `@media display:none`). 신규 store 액션 `updateSelectedResponsiveVisibility(bp, visible)`(tablet/mobile 만, 기본값 표시는 override 키 제거)
+  - override 존재 판정은 raw `element.responsive` 를 읽는 `useResponsiveOverrides` 훅 (병합 map 재판정 회피 — feedback-merged-style-map-kills-override-detection)
+  - live 검증(Chrome MCP, project 000 Card): Tablet↔Mobile 배지/섹션 전환 + "Width" override chip 노출·✕clear + Mobile visibility hidden(eye-off) 반영 + desktop base(width 100%) 격리 확인. 패널 Activity(ADR-155) 가시 시에만 live 갱신
+  - 위치: `apps/builder/src/builder/panels/styles/StylesPanel.tsx` · `sections/ResponsiveSection.tsx`(신규) · `hooks/useResponsiveOverrides.ts`(신규) · `panels/properties/editors/ResponsiveVisibilityEditor.tsx`(lockedBreakpoints) · `stores/inspectorActions.ts` · `panelNode.ts`(responsive 타입 노출)
 
 ### Architecture
 
@@ -25,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why (R6 — inline specificity)**: Preview/Publish 는 스타일을 inline(`style=`)으로 적용해 일반 stylesheet 규칙이 inline 을 못 이긴다. stylesheet `!important`(important-author 버킷)가 non-important inline(normal-author 버킷)을 origin/importance 단계에서 이기는 CSS cascade 규칙을 이용 — override `@media` 만 `!important` 로 emit 하고 base inline 은 무변경(desktop BC 0, inline strip 불필요).
   - live 검증(Chrome MCP): Preview/Publish 리사이즈 3-breakpoint(desktop 200/tablet 200/mobile 80px) + Skia layout width == DOM computed width(80==80px) 동시 대칭 + persist roundtrip.
   - **render-visual props 대칭 (2026-07-19 후속 fix)**: `fontSize`/`textAlign`(2/14) Skia glyph 를 `StoreRenderBridge.buildNodeForElement`(렌더 단일 choke point)에서 layout 과 동일 `resolveResponsiveLayoutNode` 적용 → glyph 가 activeBreakpoint override 값 렌더. layout(12/14)+render-visual(2/14) = 14/14 Skia↔DOM 대칭 완성. 위치: `apps/builder/src/builder/workspace/canvas/skia/StoreRenderBridge.ts` + `useSkiaNode.ts`(`__composition_SKIA_DEBUG__` render-side parity probe 신규).
-  - 잔여(후속): apps/publish 리액트 SSG 앱 @media(ADR §2 인벤토리가 명명한 publish 는 `generateStaticHtml` 단일 경로 — SSG 는 scope 밖) / breakpoint 배지 UI.
+  - 잔여(후속): apps/publish 리액트 SSG 앱 @media(ADR §2 인벤토리가 명명한 publish 는 `generateStaticHtml` 단일 경로 — SSG 는 scope 밖) / `updateSelectedStylePreview` 비-desktop live preview.
 
 ## [EventsPanel 2-depth 재설계 + canonical events primary 편집 — ADR-149 (Wave 1)] - 2026-07-19
 

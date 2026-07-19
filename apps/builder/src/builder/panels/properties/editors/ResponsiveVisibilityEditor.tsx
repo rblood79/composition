@@ -27,6 +27,12 @@ interface ResponsiveVisibilityEditorProps {
   title?: string;
   /** 비활성화 */
   disabled?: boolean;
+  /**
+   * ADR-154: base(desktop)로 lock 할 breakpoint. lock 된 행은 disabled + "Base"
+   * 힌트로 표시되고 토글 불가 — desktop 가시성은 base props.style.display 로
+   * 제어하므로(responsive.visibility 는 tablet/mobile override 전용) 여기서 편집 금지.
+   */
+  lockedBreakpoints?: BreakpointName[];
 }
 
 /**
@@ -60,36 +66,43 @@ export const ResponsiveVisibilityEditor = memo(
     onChange,
     title = "Responsive Visibility",
     disabled = false,
+    lockedBreakpoints = [],
   }: ResponsiveVisibilityEditorProps) {
-    // 가시성 토글 핸들러
+    const isLocked = useCallback(
+      (bp: BreakpointName) => lockedBreakpoints.includes(bp),
+      [lockedBreakpoints],
+    );
+
+    // 가시성 토글 핸들러 (lock 된 breakpoint 는 무시)
     const handleToggle = useCallback(
       (breakpoint: BreakpointName) => {
+        if (lockedBreakpoints.includes(breakpoint)) return;
         const currentValue = visibility[breakpoint] ?? true; // 기본값은 표시
         onChange({
           ...visibility,
           [breakpoint]: !currentValue,
         });
       },
-      [visibility, onChange],
+      [visibility, onChange, lockedBreakpoints],
     );
 
-    // 전체 표시 핸들러
+    // 전체 표시 핸들러 (lock 된 breakpoint 보존)
     const handleShowAll = useCallback(() => {
-      onChange({
-        desktop: true,
-        tablet: true,
-        mobile: true,
-      });
-    }, [onChange]);
+      const next: ResponsiveVisibility = { ...visibility };
+      for (const bp of BREAKPOINT_ORDER) {
+        if (!lockedBreakpoints.includes(bp)) next[bp] = true;
+      }
+      onChange(next);
+    }, [visibility, onChange, lockedBreakpoints]);
 
-    // 전체 숨김 핸들러
+    // 전체 숨김 핸들러 (lock 된 breakpoint 보존)
     const handleHideAll = useCallback(() => {
-      onChange({
-        desktop: false,
-        tablet: false,
-        mobile: false,
-      });
-    }, [onChange]);
+      const next: ResponsiveVisibility = { ...visibility };
+      for (const bp of BREAKPOINT_ORDER) {
+        if (!lockedBreakpoints.includes(bp)) next[bp] = false;
+      }
+      onChange(next);
+    }, [visibility, onChange, lockedBreakpoints]);
 
     return (
       <PropertySection title={title} icon={Eye}>
@@ -99,20 +112,31 @@ export const ResponsiveVisibilityEditor = memo(
             {BREAKPOINT_ORDER.map((bp) => {
               const isVisible = visibility[bp] ?? true;
               const config = BREAKPOINTS[bp];
+              const locked = isLocked(bp);
 
               return (
                 <button
                   key={bp}
                   type="button"
-                  className={`responsive-visibility-btn ${isVisible ? "visible" : "hidden"}`}
+                  className={`responsive-visibility-btn ${isVisible ? "visible" : "hidden"}${locked ? " locked" : ""}`}
                   onClick={() => handleToggle(bp)}
-                  disabled={disabled}
-                  title={`${config.label}: ${isVisible ? "Visible" : "Hidden"} (${config.minWidth}px${config.maxWidth ? `-${config.maxWidth}px` : "+"})`}
+                  disabled={disabled || locked}
+                  title={
+                    locked
+                      ? `${config.label}: Base (Display 속성으로 제어)`
+                      : `${config.label}: ${isVisible ? "Visible" : "Hidden"} (${config.minWidth}px${config.maxWidth ? `-${config.maxWidth}px` : "+"})`
+                  }
                   aria-pressed={isVisible}
                 >
                   <BreakpointIcon breakpoint={bp} size={iconEditProps.size} />
                   <span className="responsive-visibility-label">
                     {config.label}
+                    {locked && (
+                      <span className="responsive-visibility-base">
+                        {" "}
+                        · Base
+                      </span>
+                    )}
                   </span>
                   {isVisible ? (
                     <Eye size={iconSmall.size} />
@@ -196,6 +220,17 @@ export const ResponsiveVisibilityEditor = memo(
         .responsive-visibility-btn:disabled {
           opacity: 0.5;
           cursor: not-allowed;
+        }
+
+        .responsive-visibility-btn.locked {
+          border-color: var(--border);
+          background: var(--bg-raised);
+          opacity: 0.65;
+        }
+
+        .responsive-visibility-base {
+          color: var(--fg-muted);
+          font-size: var(--text-2xs);
         }
 
         .responsive-visibility-label {

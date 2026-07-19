@@ -67,6 +67,7 @@ type MockState = {
   editingContextId: string | null;
   dirtyElementIds: Set<string>;
   layoutVersion: number;
+  activeBreakpoint: "desktop" | "tablet" | "mobile";
   _cancelHydrateSelectedProps: ReturnType<typeof vi.fn>;
   updateElement: ReturnType<typeof vi.fn>;
   batchUpdateElementProps: ReturnType<typeof vi.fn>;
@@ -145,6 +146,11 @@ function makeState(elements: Element[]): MockState {
     editingContextId: null,
     dirtyElementIds: new Set(),
     layoutVersion: 0,
+    // ADR-154: updateSelectedStyle 은 activeBreakpoint !== "desktop" 일 때 base 대신
+    // responsive override 로 저장한다. mock state 가 이 값을 누락하면 undefined !==
+    // "desktop" 이 참이 되어 base 편집 테스트가 responsive 분기로 새어 실패한다 —
+    // 기본값 desktop(base) 을 명시.
+    activeBreakpoint: "desktop",
     _cancelHydrateSelectedProps: vi.fn(),
     updateElement: vi.fn(),
     batchUpdateElementProps: vi.fn(),
@@ -1223,6 +1229,64 @@ describe("element mutations keep canonical document primary", () => {
       paddingBottom: 8,
       paddingLeft: 8,
     });
+  });
+
+  it("updateSelectedResponsiveVisibility writes tablet/mobile override, no-ops desktop, and clears on show (ADR-154)", () => {
+    const body = makeElement("frame-body", "body", {
+      layout_id: "frame-1",
+      props: { style: { display: "flex" } },
+    });
+    const state = makeState([body]);
+    state.selectedElementId = "frame-body";
+    state.selectedElementIds = ["frame-body"];
+    state.selectedElementIdsSet = new Set(["frame-body"]);
+    state.selectedElementProps = body.props as Record<string, unknown>;
+    registerCanonicalActions(state);
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeFrameDocument([
+        {
+          id: "frame-body",
+          type: "body" as CanonicalNode["type"],
+          props: body.props as Record<string, unknown>,
+          children: [],
+        },
+      ]),
+    );
+
+    const inspectorActions = createInspectorActionsSlice(
+      createSetMock(state) as never,
+      () => state as never,
+      {} as never,
+    );
+
+    // 1) mobile 숨김 → responsive.visibility.mobile === false (canonical 1차 필드)
+    inspectorActions.updateSelectedResponsiveVisibility("mobile", false);
+    expect(state.elementsMap.get("frame-body")?.responsive).toMatchObject({
+      visibility: { mobile: false },
+    });
+    const doc1 = useCanonicalDocumentStore.getState().getDocument("project-1")
+      ?.children[0] as FrameNode;
+    expect(
+      doc1.children?.find((n) => n.id === "frame-body")?.responsive,
+    ).toMatchObject({ visibility: { mobile: false } });
+
+    // 2) desktop = base → no-op (responsive 불변, desktop 키 미생성)
+    inspectorActions.updateSelectedResponsiveVisibility("desktop", false);
+    const afterDesktop = state.elementsMap.get("frame-body")?.responsive;
+    expect(afterDesktop).toMatchObject({ visibility: { mobile: false } });
+    expect(afterDesktop?.visibility).not.toHaveProperty("desktop");
+
+    // 3) mobile 다시 표시(true) → override 키 제거 → 빈 config → canonical 에서 생략
+    inspectorActions.updateSelectedResponsiveVisibility("mobile", true);
+    expect(
+      state.elementsMap.get("frame-body")?.responsive?.visibility?.mobile,
+    ).toBeUndefined();
+    const doc3 = useCanonicalDocumentStore.getState().getDocument("project-1")
+      ?.children[0] as FrameNode;
+    expect(
+      doc3.children?.find((n) => n.id === "frame-body")?.responsive,
+    ).toBeUndefined();
   });
 
   it("updateElementProps preserves frame slot sibling order", async () => {

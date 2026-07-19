@@ -489,6 +489,16 @@ export interface InspectorActionsState {
   updateSelectedStyles: (styles: Record<string, string>) => void;
   /** 실시간 프리뷰: 히스토리/DB 저장 없이 캔버스만 업데이트 */
   updateSelectedStylePreview: (property: string, value: string) => void;
+  /**
+   * ADR-154: breakpoint 별 가시성 override 편집 (tablet/mobile 만).
+   * visible=false → `element.responsive.visibility[breakpoint]=false` (→ @media
+   * display:none). visible=true → 기본값이므로 override 키 제거. desktop 은
+   * base(props.style.display)로 제어하므로 no-op (호출측에서 lock).
+   */
+  updateSelectedResponsiveVisibility: (
+    breakpoint: BreakpointName,
+    visible: boolean,
+  ) => void;
   updateSelectedProperty: (key: string, value: unknown) => void;
   updateSelectedProperties: (properties: Record<string, unknown>) => void;
   /** 부모+자식 props를 단일 batch 히스토리로 atomic 업데이트 (Child Composition Pattern) */
@@ -949,6 +959,39 @@ export const createInspectorActionsSlice: StateCreator<
       });
 
       syncInspectorElementToCanonical(updatedElement);
+    },
+
+    updateSelectedResponsiveVisibility: (breakpoint, visible) => {
+      // desktop = base — 가시성은 base props.style.display 로 제어. responsive.visibility
+      // 는 tablet/mobile override 만 (desktop visibility=false 를 허용하면 responsiveCss
+      // 가 tablet/mobile @media 만 방출해 Skia↔DOM 비대칭 발생 — resolveResponsive.ts /
+      // responsiveCss.ts 정합).
+      if (breakpoint === "desktop") return;
+
+      const element = getSelectedElement();
+      if (!element) return;
+
+      const existing = element.responsive;
+      const visibility: Record<string, boolean> = {
+        ...(existing?.visibility ?? {}),
+      };
+      if (visible) {
+        delete visibility[breakpoint]; // 기본값(표시) → override 제거
+      } else {
+        visibility[breakpoint] = false;
+      }
+
+      // buildResponsiveStyleOverride 와 동일 계약: 빈 config({}) = cleared 상태
+      // (resolveResponsive/responsiveCss 가 !styles && !visibility 를 no-op 처리,
+      // canonicalMutations 가 빈 config 를 생략=제거).
+      const next: ElementResponsiveConfig = { ...existing };
+      if (Object.keys(visibility).length > 0) {
+        next.visibility = visibility as ElementResponsiveConfig["visibility"];
+      } else {
+        delete next.visibility;
+      }
+
+      updateAndSave(element.id, {}, { responsive: next });
     },
 
     updateSelectedStyles: (styles) => {

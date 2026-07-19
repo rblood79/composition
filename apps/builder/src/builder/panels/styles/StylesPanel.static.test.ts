@@ -20,4 +20,33 @@ describe("StylesPanel canonical selected data contract", () => {
     expect(source).not.toContain("s.elementsMap.get(id)");
     expect(source).not.toContain("s.elementsMap");
   });
+
+  it("wires ADR-154 breakpoint 배지 + ResponsiveSection", async () => {
+    const source = await readFile(
+      resolve(__dirname, "StylesPanel.tsx"),
+      "utf-8",
+    );
+
+    // 활성 breakpoint 를 항상 표시하는 헤더 배지
+    expect(source).toContain("BreakpointHeaderBadge");
+    expect(source).toContain("s.activeBreakpoint");
+    // override 요약/편집 섹션이 AllSections 에 포함
+    expect(source).toContain("<ResponsiveSection />");
+  });
+
+  it("ResponsiveSection wires override chips + visibility editor (locked desktop)", async () => {
+    const source = await readFile(
+      resolve(__dirname, "sections/ResponsiveSection.tsx"),
+      "utf-8",
+    );
+
+    // 활성 breakpoint override prop 목록 (어느 필드가 override 인지)
+    expect(source).toContain("useResponsiveOverrides");
+    expect(source).toContain("activeOverriddenProps");
+    // desktop=base lock 으로 visibility 편집기 배선
+    expect(source).toContain("ResponsiveVisibilityEditor");
+    expect(source).toContain('lockedBreakpoints={["desktop"]}');
+    // override 제거는 활성 breakpoint clear 재사용
+    expect(source).toContain('updateSelectedStyle(prop, "")');
+  });
 });
