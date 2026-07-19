@@ -75,10 +75,18 @@ export function renderImage(
       const altText = node.image?.altText;
       if (altText && fontMgr) {
         const altFontSize = Math.max(11, Math.min(14, node.width * 0.06));
+        // CanvasKit ParagraphStyle 생성자는 default textStyle 을 요구한다 — 누락 시
+        //   textStyle.color 접근에서 크래시("Cannot read properties of undefined").
+        //   nodeRendererText.ts:366 과 동일하게 textStyle 을 명시(아래 pushStyle 과 동일 값).
         const paraStyle = new ck.ParagraphStyle({
           textAlign: ck.TextAlign.Center,
           maxLines: 2,
           ellipsis: "…",
+          textStyle: {
+            color: ck.Color(156, 163, 175, 1),
+            fontSize: altFontSize,
+            fontFamilies: ["Pretendard", "sans-serif"],
+          },
         });
         const builder = ck.ParagraphBuilder.Make(paraStyle, fontMgr);
         builder.pushStyle(

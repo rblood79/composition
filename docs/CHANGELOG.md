@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Skia Image 대체텍스트 placeholder 크래시 수정] - 2026-07-20
+
+### Bug Fixes
+
+- **Image 대체텍스트(alt) placeholder 렌더 크래시** (Skia):
+  - 로드되지 않은(broken/loading src) Image 요소가 `altText` 를 가지면 `renderImage` 의 placeholder 경로가 `new ck.ParagraphStyle({ textAlign, maxLines, ellipsis })` 를 **`textStyle` 없이** 생성 → CanvasKit 생성자가 `textStyle.color` 접근에서 `Cannot read properties of undefined (reading 'color')` 크래시. 매 프레임 재시도로 Skia overlay 렌더가 크래시 루프(콘솔 flood).
+  - **Why**: CanvasKit `ParagraphStyle` 생성자는 default `textStyle` 을 요구한다 (정상 사용처 `nodeRendererText.ts:366` 은 `textStyle` 명시). placeholder 경로만 누락 — unloaded image + altText 조합이 실제 렌더될 때만 발현되는 잠복 버그(collection 가상화 작업과 무관, 렌더 경로 dispatch 는 `node.type==="image"` 한정).
+  - 수정: `textStyle`(color/fontSize/fontFamilies — 아래 pushStyle 과 동일 값) 명시 주입.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/nodeRendererImage.ts`
+
 ## [반응형 Breakpoint 저작 배선 — ADR-154 (Phase 1~3)] - 2026-07-19
 
 ### Features
