@@ -20,6 +20,7 @@ import {
   resolveCollectionWindow,
   resolveSlotComposition,
   isSlotEnabled,
+  getTableProjectionRows,
   type CollectionDataSource,
   type CollectionWindow,
 } from "@composition/shared";
@@ -96,13 +97,47 @@ function isGridListOwnerNode(node: CanonicalNode): boolean {
   return record.name === "GridList" || record.componentName === "GridList";
 }
 
+/**
+ * Table owner node 판정 — 직접(`type:"Table"`) 또는 ref 인스턴스(`type:"ref"` +
+ * name/componentName "Table"). scene 빌더 `isTableSceneSource` 와 동일 판정.
+ */
+function isTableOwnerNode(node: CanonicalNode): boolean {
+  if (node.type === "Table") return true;
+  if (node.type !== "ref") return false;
+  const record = node as unknown as {
+    name?: unknown;
+    componentName?: unknown;
+  };
+  return record.name === "Table" || record.componentName === "Table";
+}
+
 /** 가상화 대상 collection owner family 판정 (미해당 = null). */
 function resolveCollectionOwnerKind(
   node: CanonicalNode,
-): "listbox" | "gridlist" | null {
+): "listbox" | "gridlist" | "table" | null {
   if (isListBoxOwnerNode(node)) return "listbox";
   if (isGridListOwnerNode(node)) return "gridlist";
+  if (isTableOwnerNode(node)) return "table";
   return null;
+}
+
+/**
+ * Table 행 높이(px) — catalog TableRow.sizes 정합(sm 36 / md 44 / lg 52). header·data 행 모두
+ * 동일 size 이므로 균일. SSOT = `componentRulesTable.TableRow.sizes` (값 변경 시 동반 갱신 —
+ * ListBox/GridList 가 metric resolver 를 쓰는 것과 달리 Table 은 전용 resolver 부재라 상수 미러).
+ */
+const TABLE_ROW_HEIGHT_BY_SIZE: Record<string, number> = {
+  sm: 36,
+  md: 44,
+  lg: 52,
+};
+
+function resolveTableRowHeight(
+  props: Record<string, unknown> | undefined,
+): number {
+  const size = props?.size;
+  const key = size === "sm" || size === "lg" ? size : "md";
+  return TABLE_ROW_HEIGHT_BY_SIZE[key];
 }
 
 /**
@@ -238,22 +273,36 @@ export function resolveVirtualizedCollectionWindows(
       const viewportHeight = readBoundedHeightPx(style);
       if (viewportHeight != null && isScrollOverflow(style)) {
         const dataBinding = getElementDataBinding(node);
-        // 1행 sample 로 totalRows + description 유무 동시 획득(window slice 회피).
-        const sample = resolveCollectionItems(
-          {
-            collections: input.collections,
-            dataBinding,
-            props: node.props as Record<string, unknown> | undefined,
-          },
-          { startIndex: 0, endIndex: 1 },
-        );
-        const totalRows = sample.totalRows;
-        if (totalRows > 0) {
-          // family 별 stride(시각 행 높이) + 열 수. ListBox 는 1열·item 높이 그대로,
-          //   GridList 는 카드 높이+rowGap stride + numCols(grid). rowHeight override(테스트)는
-          //   1열 가정으로만 적용.
-          let rowHeight: number;
-          let columns: number;
+        const props = node.props as Record<string, unknown> | undefined;
+        const rawScrollTop = input.scrollTops.get(node.id) ?? 0;
+
+        // family 별 총 행 수 + stride(시각 행 높이) + 열 수 + scrollTop 보정.
+        let totalRows = 0;
+        let rowHeight = 0;
+        let columns = 1;
+        let scrollTop = rawScrollTop;
+
+        if (family === "table") {
+          // Table 소스는 props.rows / dataBinding(props.items 아님) → getTableProjectionRows 로
+          //   data 행 수 획득. 행 높이는 size 균일(header·data 동일). window 는 data 행 index 공간.
+          const { totalDataRows } = getTableProjectionRows(
+            { collections: input.collections, dataBinding, props },
+            { startIndex: 0, endIndex: 1 },
+          );
+          totalRows = totalDataRows;
+          rowHeight = input.rowHeight ?? resolveTableRowHeight(props);
+          columns = 1;
+          // header 행(=1 row 높이)이 스크롤 content 최상단을 차지 → data 행 window 는 header 만큼
+          //   내려간 위치. scrollTop 에서 header 높이를 빼 data 행 index 공간으로 정렬한다
+          //   (header sticky 아님, overscan 이 잔여 오차 흡수).
+          scrollTop = Math.max(0, rawScrollTop - rowHeight);
+        } else {
+          // ListBox/GridList: props.items/dataBinding 1행 sample 로 totalRows + description 동시 획득.
+          const sample = resolveCollectionItems(
+            { collections: input.collections, dataBinding, props },
+            { startIndex: 0, endIndex: 1 },
+          );
+          totalRows = sample.totalRows;
           if (input.rowHeight != null) {
             rowHeight = input.rowHeight;
             columns = 1;
@@ -273,7 +322,9 @@ export function resolveVirtualizedCollectionWindows(
             );
             columns = 1;
           }
-          const scrollTop = input.scrollTops.get(node.id) ?? 0;
+        }
+
+        if (totalRows > 0) {
           const window = resolveWindowWithColumns({
             totalRows,
             scrollTop,

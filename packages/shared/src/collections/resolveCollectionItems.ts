@@ -463,15 +463,23 @@ function readRowCells(
 }
 
 /**
- * collections/dataBinding/props.rows → TableProjectionRow[](header 1행 + data N행).
+ * collections/dataBinding/props.rows → TableProjectionRow[](header 1행 + data N행) + totalDataRows.
  *
  * data source: readDataBindingRows(flat 와 동일) → cells 차원 부착. props.columns 가 컬럼 차원.
- * window: data 행만 windowLimit 적용(header 행은 항상 1개 포함, limit 무관).
+ * `window`: `number`(legacy 정적 cap `[0, limit)`) 또는 `CollectionWindow`(ADR-150 A2 scrollOffset
+ * 기반 절대 index `[startIndex, endIndex)`). **header 행은 항상 1개 포함**(window 무관) 하고 window
+ * 은 data 행에만 적용된다. 슬라이스여도 각 data 행의 `rowIndex` 는 절대 index(post-slice 0 아님)로
+ * 보존 — striped(짝/홀) + selected 시각 + spacer 절대 위치 정합. `totalDataRows` 는 window 전 원본
+ * data 행 전체 수(총 content height / 스크롤바 / trailing spacer 산출용).
  */
 export function getTableProjectionRows(
   input: Record<string, unknown> | CollectionProjectionRowsInput | undefined,
-  windowLimit = COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
-): { columns: TableColumnDef[]; rows: TableProjectionRow[] } {
+  window: number | CollectionWindow = COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
+): {
+  columns: TableColumnDef[];
+  rows: TableProjectionRow[];
+  totalDataRows: number;
+} {
   const props = isProjectionRowsInput(input) ? input.props : input;
   const columns = readTableColumns(props);
 
@@ -497,9 +505,11 @@ export function getTableProjectionRows(
     rowKey: "__header__",
   };
 
+  const { start, end } = resolveSliceBounds(window, sourceRows.length);
   const dataRows = sourceRows
-    .slice(0, windowLimit)
-    .map((item, rowIndex): TableProjectionRow => {
+    .slice(start, end)
+    .map((item, i): TableProjectionRow => {
+      const rowIndex = start + i;
       const record = isRecord(item) ? item : {};
       const rowKey = getItemKey(item, rowIndex);
       return {
@@ -511,5 +521,9 @@ export function getTableProjectionRows(
       };
     });
 
-  return { columns, rows: [headerRow, ...dataRows] };
+  return {
+    columns,
+    rows: [headerRow, ...dataRows],
+    totalDataRows: sourceRows.length,
+  };
 }

@@ -1145,20 +1145,30 @@ function resolveDataBoundTableProjection(
   columns: TableColumnDef[];
   rows: TableProjectionRow[];
   sourceNode: CanonicalNode;
+  /** ADR-150 A2 (Table 확산): data 행 가상화 window 해석. null=legacy 정적 cap. */
+  windowResolution: CollectionWindowResolution | null;
 } | null {
   if (!isTableSceneSource(tableSceneNode, sourceNode)) return null;
 
   const dataBinding = getElementDataBinding(sourceNode);
-  const { columns, rows } = getTableProjectionRows({
-    collections: options.collections,
-    dataBinding,
-    props: tableSceneNode.props,
-  });
-  // data 행(header 제외)이 하나도 없으면 projection 의미 없음 → standalone 유지.
-  // (빈 데이터 Table 의 정상 경로 — 샘플 fallback 제거 후 실제 작동, 2026-06-22)
-  if (rows.filter((r) => r.kind === "data").length === 0) return null;
+  // ADR-150 A2: BuilderCanvas 가 가상화 대상으로 판정했으면 window(=data 행 index 공간)로
+  //   data 행 슬라이스. header 행은 항상 포함. 미판정이면 undefined → legacy 정적 cap.
+  const windowResolution =
+    options.collectionWindows?.get(tableSceneNode.id) ?? null;
+  const { columns, rows, totalDataRows } = getTableProjectionRows(
+    {
+      collections: options.collections,
+      dataBinding,
+      props: tableSceneNode.props,
+    },
+    windowResolution?.window,
+  );
+  // 원본 data 행(header 제외)이 하나도 없으면 projection 의미 없음 → standalone 유지.
+  //   totalDataRows 로 gating(window 슬라이스 후 rows 수 아님) — 스크롤로 window 가 비어도
+  //   빈 테이블로 오판하지 않는다. (빈 데이터 Table 정상 경로, 2026-06-22)
+  if (totalDataRows === 0) return null;
 
-  return { columns, rows, sourceNode };
+  return { columns, rows, sourceNode, windowResolution };
 }
 
 /** Table size prop → TableRow/TableCell size (sm/md/lg). 기본 md. */
@@ -1180,13 +1190,14 @@ function appendTableRowProjection(
     columns: TableColumnDef[];
     rows: TableProjectionRow[];
     sourceNode: CanonicalNode;
+    windowResolution: CollectionWindowResolution | null;
   },
   scope: SceneScopeContext,
   graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
     parentById: Map<string, string>;
   },
 ): void {
-  const { columns, rows, sourceNode } = projection;
+  const { columns, rows, sourceNode, windowResolution } = projection;
   const props = tableSceneNode.props;
   const size = readTableSize(props);
   const totalWidth = columns.reduce((sum, col) => sum + col.width, 0) || 360;
@@ -1222,7 +1233,7 @@ function appendTableRowProjection(
   };
   addSceneNode(rowsGroup, graph);
 
-  for (const row of rows) {
+  const addRow = (row: TableProjectionRow): void => {
     const isHeader = row.kind === "header";
     // striped: data 행 중 홀수(rowIndex 1,3,...)에 _striped (Table.spec: !isEven → rowIndex%2!==0).
     const striped = isStripedVariant && !isHeader && row.rowIndex % 2 !== 0;
@@ -1338,7 +1349,46 @@ function appendTableRowProjection(
         graph,
       );
     }
+  };
+
+  // ADR-150 A2 (Table 확산): header 는 항상 투영 + data 행만 window. 첫 data 행 직전에 lead
+  //   spacer, 마지막 뒤에 trail spacer 로 window 밖 data 행 높이를 채운다 — window data 행이
+  //   절대 위치(startIndex*rowHeight)에 오도록 밀어내고 총 content height(header + 전체 data)를
+  //   보존(스크롤바 정확). header 는 스크롤 content 의 일부(sticky 아님)라 spacer 는 header 아래.
+  //   Table 은 1열(columns 미지정) — visual row = data row index.
+  const rowHeight = windowResolution?.rowHeight ?? 0;
+  const spacerRows = windowResolution
+    ? resolveCollectionSpacerVisualRows(windowResolution)
+    : { lead: 0, trail: 0 };
+  const addTableSpacer = (
+    position: "lead" | "trail",
+    visualRows: number,
+  ): void => {
+    if (visualRows > 0 && rowHeight > 0) {
+      addSceneNode(
+        createCollectionSpacerNode({
+          family: "table",
+          kind: "table-spacer",
+          ownerId: tableSceneNode.id,
+          rowsGroupId,
+          position,
+          height: visualRows * rowHeight,
+          scope,
+          sourceNode,
+        }),
+        graph,
+      );
+    }
+  };
+  let dataStarted = false;
+  for (const row of rows) {
+    if (row.kind === "data" && !dataStarted) {
+      dataStarted = true;
+      addTableSpacer("lead", spacerRows.lead);
+    }
+    addRow(row);
   }
+  addTableSpacer("trail", spacerRows.trail);
 }
 
 // ---------------------------------------------------------------------------

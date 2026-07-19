@@ -445,7 +445,9 @@ describe("scene model 통합 — GridList G-A2: 카드 노드 수 ≤ window (10
     expect(cardNodes).toHaveLength(28);
     // scrollTop 0 → lead spacer 없음, trailing spacer 1개(시각 행 5000-14=4986 × 56).
     expect(spacers).toHaveLength(1);
-    expect(spacers[0]?.projection?.position).toBe("trail");
+    expect(
+      (spacers[0]?.projection as { position?: string } | undefined)?.position,
+    ).toBe("trail");
     expect(model.sceneNodes.length).toBeLessThan(100);
   });
 
@@ -468,7 +470,7 @@ describe("scene model 통합 — GridList G-A2: 카드 노드 수 ≤ window (10
     const spacers = model.sceneNodes
       .filter((n) => n.projection?.kind === "gridlist-spacer")
       .map((n) => ({
-        pos: n.projection?.position,
+        pos: (n.projection as { position?: string } | undefined)?.position,
         h: (n.props?.style as Record<string, unknown> | undefined)?.height,
       }));
     // window item {8,48} → lead 시각 행 = ceil(8/2)=4 × 56 = 224, trail = (5000-24) × 56.
@@ -476,5 +478,189 @@ describe("scene model 통합 — GridList G-A2: 카드 노드 수 ≤ window (10
     const trail = spacers.find((s) => s.pos === "trail");
     expect(lead?.h).toBe(4 * 56);
     expect(trail?.h).toBe((5000 - 24) * 56);
+  });
+});
+
+// ── ADR-150 A2 Table 확산 (header 상시 + data 행 windowing) ─────────────────
+
+function tableDoc(opts: {
+  rowCount: number;
+  style?: Record<string, unknown>;
+  size?: "sm" | "md" | "lg";
+  asRefInstance?: boolean;
+}): CompositionDocument {
+  const columns = [
+    { id: "a", label: "A", width: 100 },
+    { id: "b", label: "B", width: 100 },
+  ];
+  const rows = Array.from({ length: opts.rowCount }, (_, i) => ({
+    id: `r${i}`,
+    a: `a${i}`,
+    b: `b${i}`,
+  }));
+  const commonProps = { columns, rows, size: opts.size, style: opts.style };
+  const owner = opts.asRefInstance
+    ? {
+        id: "table-1",
+        type: "ref",
+        name: "Table",
+        ref: "component-table",
+        props: commonProps,
+      }
+    : { id: "table-1", type: "Table", props: commonProps, children: [] };
+  return {
+    version: "composition-1.0",
+    children: [
+      {
+        id: "page-1",
+        type: "frame",
+        metadata: { type: "legacy-page", pageId: "page-1" },
+        children: [
+          {
+            id: "body-1",
+            type: "Body",
+            props: {},
+            children: [owner],
+          },
+        ],
+      },
+    ],
+  } as unknown as CompositionDocument;
+}
+
+describe("resolveVirtualizedCollectionWindows — Table 확산", () => {
+  it("md 행 높이 44 + columns 1, data 행 window (header 제외 totalRows)", () => {
+    const map = resolveVirtualizedCollectionWindows({
+      doc: tableDoc({ rowCount: 10000, style: SCROLLABLE, size: "md" }),
+      collections: [],
+      scrollTops: new Map(),
+    });
+    const entry = map.get("table-1");
+    expect(entry?.rowHeight).toBe(44);
+    expect(entry?.columns).toBe(1);
+    expect(entry?.totalRows).toBe(10000); // data 행만 (header 제외)
+    // scrollTop 0 → header offset 후 0. visibleCount ceil(400/44)=10, overscan 6 → {0,16}.
+    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 16 });
+  });
+
+  it("스크롤: header 높이 보정 후 data 행 firstVisible±overscan", () => {
+    const map = resolveVirtualizedCollectionWindows({
+      doc: tableDoc({ rowCount: 10000, style: SCROLLABLE, size: "md" }),
+      collections: [],
+      scrollTops: new Map([["table-1", 44 + 44 * 100]]), // header + 100 data 행
+    });
+    // adjusted = 4444-44 = 4400, firstVisible=floor(4400/44)=100, {94, 100+10+6=116}.
+    expect(map.get("table-1")?.window).toEqual({
+      startIndex: 94,
+      endIndex: 116,
+    });
+  });
+
+  it("size sm → 36 / lg → 52", () => {
+    const sm = resolveVirtualizedCollectionWindows({
+      doc: tableDoc({ rowCount: 500, style: SCROLLABLE, size: "sm" }),
+      collections: [],
+      scrollTops: new Map(),
+    });
+    const lg = resolveVirtualizedCollectionWindows({
+      doc: tableDoc({ rowCount: 500, style: SCROLLABLE, size: "lg" }),
+      collections: [],
+      scrollTops: new Map(),
+    });
+    expect(sm.get("table-1")?.rowHeight).toBe(36);
+    expect(lg.get("table-1")?.rowHeight).toBe(52);
+  });
+
+  it("ref 인스턴스 Table(type:'ref' + name:'Table')도 가상화 대상", () => {
+    const map = resolveVirtualizedCollectionWindows({
+      doc: tableDoc({ rowCount: 500, style: SCROLLABLE, asRefInstance: true }),
+      collections: [],
+      scrollTops: new Map(),
+    });
+    const entry = map.get("table-1");
+    expect(entry).toBeDefined();
+    expect(entry?.totalRows).toBe(500);
+  });
+
+  it("data 0행 → 제외", () => {
+    const map = resolveVirtualizedCollectionWindows({
+      doc: tableDoc({ rowCount: 0, style: SCROLLABLE }),
+      collections: [],
+      scrollTops: new Map(),
+    });
+    expect(map.has("table-1")).toBe(false);
+  });
+});
+
+describe("scene model 통합 — Table G-A2: header 상시 + data 행 ≤ window (10k)", () => {
+  it("10000행 Table → header 1 + data 16(window) TableRow + trailing spacer", () => {
+    const doc = tableDoc({ rowCount: 10000, style: SCROLLABLE, size: "md" });
+    const collectionWindows = resolveVirtualizedCollectionWindows({
+      doc,
+      collections: [],
+      scrollTops: new Map(),
+    });
+    const model = buildCanonicalSceneModel(doc, {
+      collections: [],
+      collectionWindows,
+    });
+    const rowNodes = model.sceneNodes.filter(
+      (n) => n.projection?.kind === "table-row",
+    );
+    const headerRows = rowNodes.filter(
+      (n) =>
+        (n.projection as { isHeader?: boolean } | undefined)?.isHeader === true,
+    );
+    const dataRows = rowNodes.filter(
+      (n) =>
+        (n.projection as { isHeader?: boolean } | undefined)?.isHeader ===
+        false,
+    );
+    const spacers = model.sceneNodes.filter(
+      (n) => n.projection?.kind === "table-spacer",
+    );
+    // header 는 항상 1개, data 행은 window 16개 (10000 아님).
+    expect(headerRows).toHaveLength(1);
+    expect(dataRows).toHaveLength(16);
+    // scrollTop 0 → lead spacer 없음, trailing spacer 1개.
+    expect(spacers).toHaveLength(1);
+    expect(
+      (spacers[0]?.projection as { position?: string } | undefined)?.position,
+    ).toBe("trail");
+    expect(model.sceneNodes.length).toBeLessThan(100);
+  });
+
+  it("스크롤 시 lead+trail spacer 가 data 행 절대 위치 보존", () => {
+    const doc = tableDoc({ rowCount: 10000, style: SCROLLABLE, size: "md" });
+    const collectionWindows = resolveVirtualizedCollectionWindows({
+      doc,
+      collections: [],
+      scrollTops: new Map([["table-1", 44 + 44 * 100]]),
+    });
+    const model = buildCanonicalSceneModel(doc, {
+      collections: [],
+      collectionWindows,
+    });
+    const spacers = model.sceneNodes
+      .filter((n) => n.projection?.kind === "table-spacer")
+      .map((n) => ({
+        pos: (n.projection as { position?: string } | undefined)?.position,
+        h: (n.props?.style as Record<string, unknown> | undefined)?.height,
+      }));
+    // window {94,116} → lead = 94 × 44, trail = (10000-116) × 44.
+    expect(spacers.find((s) => s.pos === "lead")?.h).toBe(94 * 44);
+    expect(spacers.find((s) => s.pos === "trail")?.h).toBe((10000 - 116) * 44);
+  });
+
+  it("collectionWindows 미제공 → legacy cap 100 data행 (BC)", () => {
+    const doc = tableDoc({ rowCount: 10000, style: SCROLLABLE, size: "md" });
+    const model = buildCanonicalSceneModel(doc, { collections: [] });
+    const dataRows = model.sceneNodes.filter(
+      (n) =>
+        n.projection?.kind === "table-row" &&
+        (n.projection as { isHeader?: boolean } | undefined)?.isHeader ===
+          false,
+    );
+    expect(dataRows).toHaveLength(100);
   });
 });
