@@ -27,6 +27,19 @@
 | 레이아웃 resolve 주입 지점                                                                      | **부재**                                                                                                   | `layout/engines/fullTreeLayout.ts` (processedElementsMap 생성 앞단)                 | Phase 2 신규                              |
 | Preview/Publish @media 출력                                                                     | **부재** (`generateStaticHtml` 은 title+viewport 만: `packages/shared/src/utils/export.utils.ts:982-1008`) | —                                                                                   | Phase 3 신규                              |
 
+## 2.1 Phase 0 재실측 정정 (2026-07-19 · execute-adr)
+
+Phase 2 착수 시 라이브 재실측 결과, §2 인벤토리의 아래 2행이 **stale** 임을 확인 (M3 원칙 — 추정 vs 실측 gap = Phase 0 freeze 부실, 새 ADR fork 아님. 본 정정으로 흡수):
+
+| 자산                             | §2 원 판정                | 재실측 (2026-07-19)                                                                                                                                                                                                                       | 처리                                    |
+| -------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| breakpoint 스위처 UI             | **부재** (Phase 2 신규)   | **존재 (live)** — `BuilderHeader.tsx:166` `ToggleButtonGroup` (desktop/laptop/tablet/mobile 4 preset), `BuilderCore.tsx:402` breakpoints 목록 + `handleBreakpointChange` (localStorage 저장)                                              | **재사용** — 중복 스위처 미생성         |
+| 캔버스 breakpoint 폭 전환        | **부재** (고정 1920×1080) | **존재 (live)** — `useWorkspaceCanvasSizing.ts` 가 선택된 breakpoint 의 `max_width/max_height` 로 아트보드 폭 전환 (`Workspace.tsx:91` `pageWidth={canvasSize.width}`). "고정 1920×1080" 은 `BuilderCanvas` DEFAULT 상수일 뿐 실동작 아님 | **재사용** — 폭 전환 배선 불필요        |
+| responsive override resolve      | 부재 (Phase 2 신규)       | **부재 확정** — `fullTreeLayout.ts` 에 responsive/activeBreakpoint/cascade 0건. 기존 스위처는 아트보드만 리사이즈, override 미연결                                                                                                        | **신규 (핵심 gap)**                     |
+| activeBreakpoint(BreakpointName) | 부재                      | 부재 — 기존 선택은 `Set<Key>` (4 preset), layout/Inspector 가 읽을 `BreakpointName` 미노출                                                                                                                                                | **신규** — 기존 선택기에서 파생(bridge) |
+
+**정정에 따른 Phase 2 방향 조정**: 신규 스위처/폭 전환을 만들지 않고 **기존 BuilderHeader 선택기를 단일 source 로 재사용**한다. 기존 선택(`Set<Key>`, desktop/laptop/tablet/mobile) → `activeBreakpoint: BreakpointName` 파생 (laptop→desktop tier 매핑, laptop 은 아트보드 크기 preset 일 뿐 override tier 없음). desktop/laptop 편집은 base(기존 동작 무변경), tablet/mobile 편집만 override. 이로써 Phase 2 실작업은 **resolve 배선 + R1 계약 + Inspector override 편집 + mutation** 으로 좁혀진다.
+
 ## 3. Phase 1 — 데이터 모델 (canonical schema) ✅ Implemented 2026-07-16
 
 1. `CanonicalNode` 에 `responsive?: ElementResponsiveConfig` optional 필드 추가 (`composition-document.types.ts`). 타입은 `responsive.types.ts` 의 것을 shared 로 이동 또는 re-export (builder→shared 역방향 import 금지, package boundary: specs ← shared ← builder).
@@ -39,12 +52,14 @@
 
 ## 4. Phase 2 — Builder 편집 경로
 
-1. **activeBreakpoint 상태**: `canvasSettings` 슬라이스에 `activeBreakpoint: BreakpointName` (기본 desktop). 페이지 아트보드 폭을 breakpoint 대표 폭으로 전환 (desktop 1920 유지 / tablet 1024 / mobile 390 — 대표 폭은 리뷰에서 확정).
-2. **스위처 UI**: 캔버스 툴바에 Monitor/Tablet/Smartphone 토글 (lucide, `BREAKPOINTS[].icon` 재사용).
-3. **레이아웃/렌더 resolve**: `fullTreeLayout.ts` 의 요소 style 소비 앞단에서 `activeBreakpoint !== "desktop"` 이면 override merge (base ⊕ cascade). 주의:
-   - **layoutVersion 계약**: activeBreakpoint 변경 + responsive override 편집 모두 `layoutVersion + 1` 경로 통과. 계층 B 캐시 시그니처는 **`LAYOUT_STYLE_KEYS`** 에 반영 — override 가 **style 축**이므로 `LAYOUT_PROP_KEYS`(props 축, `props[key]` 만 읽어 style 키는 항상 undefined)에 넣으면 시그니처가 불변이라 무반영이다 (누락 시 캐시 히트 — layout-engine.md §"5-심볼 2계층 체인").
-   - **sceneVersion projection signature**: responsive 는 projection-relevant field → `buildSceneStructureSnapshot()` signature input 에 동시 등재 (canvas-rendering.md §9 — 누락 시 phantom change 미감지).
-   - **merged map override 판정 함정**: base⊕override 병합 map 에서 `style?.X != null` 재판정 금지 (메모리 feedback-merged-style-map-kills-override-detection) — resolve 결과와 override 존재 판정을 분리.
+> **§2.1 재실측 반영 (2026-07-19)**: 항목 1·2(activeBreakpoint 상태·스위처 UI·아트보드 폭 전환)는 기존 자산 재사용으로 대체됨. 아래 1·2 는 신규 build 가 아니라 **기존 BuilderHeader 선택기 → activeBreakpoint 파생 bridge**.
+
+1. **activeBreakpoint 파생 (bridge, 기존 선택기 재사용)**: `canvasSettings` 슬라이스에 `activeBreakpoint: BreakpointName` (기본 desktop) 추가 — layout/Inspector 가 읽을 SSOT. 값은 **기존 BuilderHeader 선택기**(`BuilderCore.handleBreakpointChange`, `Set<Key>` 4 preset)에서 파생하여 store 에 write (desktop/laptop→desktop, tablet→tablet, mobile→mobile). 아트보드 폭 전환은 기존 `useWorkspaceCanvasSizing` 이 이미 담당 → 신규 배선 불필요.
+2. **스위처 UI**: 신규 생성 안 함 — 기존 `BuilderHeader` `ToggleButtonGroup` 재사용 (§2.1). laptop preset 은 아트보드 크기 전용(override tier 없음), desktop tier 로 resolve.
+3. **레이아웃/렌더 resolve (핵심 신규)**: `fullTreeLayout.ts` 의 요소 style 소비 앞단에서 `activeBreakpoint !== "desktop"` 이면 override merge (base ⊕ cascade, `getResponsiveValueWithCascade` 단일 진입점). 주의:
+   - **layoutVersion 계약 (R1 HIGH)**: activeBreakpoint 변경(전역) + responsive override 편집(요소별) 모두 `layoutVersion + 1` 경로 통과. **채택 방식**: resolve 를 **시그니처 계산 이전**에 수행하여 effective(merged) style 로 `createElementLayoutSignature` 가 계산되게 한다 — override 를 `LAYOUT_STYLE_KEYS` 에 별도 등재하지 않고도 merged style 이 시그니처에 자연 반영(activeBreakpoint 변경→merge 결과 변경→시그니처 변경→캐시 miss). activeBreakpoint 전역 term 은 `pageLayoutSignature` 에 prefix 로 추가(또는 cache 비교 dimension). `LAYOUT_PROP_KEYS`(props 축) 오등재 함정 회피.
+   - **sceneVersion projection signature**: responsive 는 projection-relevant field → `buildSceneStructureSnapshot()` signature input 에 activeBreakpoint + element.responsive 동시 등재 (canvas-rendering.md §9 — 누락 시 phantom change 미감지).
+   - **merged map override 판정 함정**: base⊕override 병합 map 에서 `style?.X != null` 재판정 금지 (메모리 feedback-merged-style-map-kills-override-detection) — Inspector override 존재 판정은 **raw `element.responsive`** 를 읽고, resolve 결과(merged style)와 분리.
 4. **Inspector**: 비-desktop breakpoint 에서 스타일 편집 시 override 로 저장 + 필드에 breakpoint 배지 (Figma/Webflow 관행). `ResponsiveVisibilityEditor` 를 PropertySection 으로 배선 (visibility → `display:none` emit).
 5. **Skia 대칭**: builder 는 resolve 된 단일 스타일만 소비하므로 Skia 렌더러 변경 최소 — cross-check 로 3 breakpoint × 대표 컴포넌트 검증.
 
