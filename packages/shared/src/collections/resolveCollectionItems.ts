@@ -28,6 +28,96 @@
 export const COLLECTION_ROW_PROJECTION_WINDOW_LIMIT = 100;
 
 /**
+ * ADR-150 A2: 가상화 window 의 viewport 상/하 여유 행 수(overscan).
+ * 스크롤 시 window 경계 바로 밖 행을 미리 투영해 빈 영역 노출을 방지한다.
+ */
+export const DEFAULT_COLLECTION_OVERSCAN = 6;
+
+/**
+ * ADR-150 A2: scrollOffset 기반 투영 window — 절대 index `[startIndex, endIndex)`.
+ * draw tree 와 hit tree 가 **동일 window** 를 공유하는 단일 소스(R2).
+ */
+export interface CollectionWindow {
+  /** inclusive, >= 0 */
+  startIndex: number;
+  /** exclusive, <= totalRows */
+  endIndex: number;
+}
+
+export interface CollectionWindowInput {
+  /** window 전 원본 행 전체 수. */
+  totalRows: number;
+  /** 컨테이너 수직 스크롤 위치(px). */
+  scrollTop: number;
+  /** 컨테이너 가시 높이(px). */
+  viewportHeight: number;
+  /** 측정된 template 행 높이(px). `<=0` 이면 측정 실패로 간주 → legacy cap fallback. */
+  rowHeight: number;
+  /** viewport 상/하 여유 행 수 (기본 `DEFAULT_COLLECTION_OVERSCAN`). */
+  overscan?: number;
+}
+
+/**
+ * ADR-150 A2 (ListBox 선행 proof): scrollOffset + 측정 row height 로 투영 window 산출.
+ *
+ * window 는 정수 row 경계로 quantize 되므로 overscan slack 안의 스크롤은 window 를 바꾸지
+ * 않는다 — scene rebuild 를 row 경계 이동 시점으로만 국한한다(pointer/scroll hot path 무회귀).
+ * draw/hit 두 경로가 각자 계산하면 클릭 오배정/유령 row 가 생기므로 본 함수가 단일 소스(R2).
+ *
+ * `rowHeight<=0`(측정 실패) → legacy 정적 cap `[0, min(total, LIMIT))` 로 격하(R5) —
+ * 측정 실패가 대용량 전량 투영으로 폭발하지 않게 한다.
+ */
+export function resolveCollectionWindow(
+  input: CollectionWindowInput,
+): CollectionWindow {
+  const { totalRows, scrollTop, viewportHeight, rowHeight } = input;
+  if (totalRows <= 0) return { startIndex: 0, endIndex: 0 };
+  if (rowHeight <= 0) {
+    return {
+      startIndex: 0,
+      endIndex: Math.min(totalRows, COLLECTION_ROW_PROJECTION_WINDOW_LIMIT),
+    };
+  }
+  const overscan = input.overscan ?? DEFAULT_COLLECTION_OVERSCAN;
+  const firstVisible = Math.max(0, Math.floor(scrollTop / rowHeight));
+  const visibleCount = Math.max(0, Math.ceil(viewportHeight / rowHeight));
+  const startIndex = Math.max(0, firstVisible - overscan);
+  const endIndex = Math.min(totalRows, firstVisible + visibleCount + overscan);
+  return { startIndex, endIndex };
+}
+
+/**
+ * `number | CollectionWindow` → clamp 된 `[start, end)` 슬라이스 경계.
+ * number(legacy cap) 은 `[0, min(limit, total))`, window 는 절대 index 를 total 로 클램프.
+ */
+function resolveSliceBounds(
+  window: number | CollectionWindow,
+  total: number,
+): { start: number; end: number } {
+  if (typeof window === "number") {
+    return { start: 0, end: Math.min(Math.max(0, window), total) };
+  }
+  const start = Math.max(0, Math.min(window.startIndex, total));
+  const end = Math.max(start, Math.min(window.endIndex, total));
+  return { start, end };
+}
+
+/**
+ * collections/dataBinding/props.items → window 전 원본 행 배열(정규화 전).
+ * `getFlatProjectionRows` / `resolveCollectionItems` 가 source 선택 + totalRows 산출에 공유.
+ */
+function readSourceRows(
+  input: Record<string, unknown> | CollectionProjectionRowsInput | undefined,
+): unknown[] {
+  const props = isProjectionRowsInput(input) ? input.props : input;
+  const dataBindingRows = isProjectionRowsInput(input)
+    ? readDataBindingRows(input.dataBinding, input.collections)
+    : [];
+  if (dataBindingRows.length > 0) return dataBindingRows;
+  return Array.isArray(props?.items) ? props.items : [];
+}
+
+/**
  * collection data source (collections store entry). dataTable/static/collection 바인딩의
  * row 데이터 출처. ListBox/GridList/Table 공통.
  */
@@ -75,7 +165,7 @@ export type CollectionProjectionRowsInput = {
  * 단일 책임에 위임한다(중복 source of truth 방지).
  */
 export interface ResolvedCollectionItems {
-  /** 정규화된 item 행 (kind:'item'|'section'). */
+  /** 정규화된 item 행 (kind:'item'|'section'). window 적용 시 window 슬라이스만. */
   rows: CollectionProjectionRow[];
   /** source 판정 — 어느 경로에서 rows 가 나왔는지. */
   sourceKind:
@@ -84,6 +174,8 @@ export interface ResolvedCollectionItems {
     | "collection"
     | "fallback"
     | "empty";
+  /** ADR-150 A2: window 적용 전 원본 행 전체 수 (총 content height / scrollbar 산출용). */
+  totalRows: number;
 }
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
@@ -229,25 +321,20 @@ export function toItemProjectionRow(
 /**
  * collections/dataBinding/props.items → flat item row 배열 (kind:'item' 만, section 없음).
  * ListBox getRows 정본. GridList 는 본 함수 대신 getGridListProjectionRows(section 분기) 사용.
+ *
+ * `window`: `number`(legacy 정적 cap — `[0, limit)`) 또는 `CollectionWindow`(ADR-150 A2
+ * scrollOffset 기반 절대 index `[startIndex, endIndex)`). window 슬라이스여도 각 행의
+ * `rowIndex` 는 **절대 index**(post-slice 0 이 아님)로 보존 — selection·위치 offset 정합.
  */
 export function getFlatProjectionRows(
   input: Record<string, unknown> | CollectionProjectionRowsInput | undefined,
-  windowLimit = COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
+  window: number | CollectionWindow = COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
 ): CollectionProjectionRow[] {
-  const props = isProjectionRowsInput(input) ? input.props : input;
-  const dataBindingRows = isProjectionRowsInput(input)
-    ? readDataBindingRows(input.dataBinding, input.collections)
-    : [];
-  const sourceRows =
-    dataBindingRows.length > 0
-      ? dataBindingRows
-      : Array.isArray(props?.items)
-        ? props.items
-        : [];
-
+  const sourceRows = readSourceRows(input);
+  const { start, end } = resolveSliceBounds(window, sourceRows.length);
   return sourceRows
-    .slice(0, windowLimit)
-    .map((item, rowIndex) => toItemProjectionRow(item, rowIndex));
+    .slice(start, end)
+    .map((item, i) => toItemProjectionRow(item, start + i));
 }
 
 /**
@@ -262,7 +349,7 @@ export function getFlatProjectionRows(
  */
 export function resolveCollectionItems(
   input: Record<string, unknown> | CollectionProjectionRowsInput | undefined,
-  windowLimit = COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
+  window: number | CollectionWindow = COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
 ): ResolvedCollectionItems {
   const props = isProjectionRowsInput(input) ? input.props : input;
   const dataBindingRows = isProjectionRowsInput(input)
@@ -283,9 +370,13 @@ export function resolveCollectionItems(
     sourceKind = "empty";
   }
 
+  // totalRows 는 window 전 원본 전체 수 (readSourceRows 와 동일 source 선택).
+  const totalRows = readSourceRows(input).length;
+
   return {
-    rows: getFlatProjectionRows(input, windowLimit),
+    rows: getFlatProjectionRows(input, window),
     sourceKind,
+    totalRows,
   };
 }
 

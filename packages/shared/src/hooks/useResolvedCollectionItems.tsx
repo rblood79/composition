@@ -111,7 +111,16 @@ export function useResolvedCollectionItems(
       .slice(0, windowLimit)
       .map((item, rowIndex) => toItemProjectionRow(item, rowIndex));
 
-    return { rows, sourceKind, loading, error, reload };
+    // ADR-150 A2: totalRows = window/cap 전 원본 전체 수. DOM(Preview)은 RAC 브라우저
+    //   스크롤이라 canvas window 와 무관하나, 계약 필드는 대칭 노출(캔버스 소비자 정합).
+    return {
+      rows,
+      sourceKind,
+      totalRows: sourceRows.length,
+      loading,
+      error,
+      reload,
+    };
     // boundData/items 참조 동일성 + 길이 기반 — hasBoundRows/hasStaticItems 가 deps 대표.
   }, [
     boundData,
