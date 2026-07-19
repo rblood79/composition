@@ -433,87 +433,53 @@
 | [910](910-rac-pencil-component-architecture.md)              | RAC core + Pencil format 1차 원리 컴포넌트 아키텍처                                                                                                          | Proposed                                        | 독립 설계 ADR (사용자 요청 2026-06-01 "기존 spec 무시, RAC core + Pencil 방법론으로 새로 설계"). RAC(data/render 분리 + 접근성 hooks) + Pencil canonical document format 을 1차 원리로 백지 재유도 → 대안 E(Canonical 문서 SSOT + RAC primitive binding) 채택. **정본: 컴포넌트 = 노드 데이터(base/override 2층)** — 노드는 의미값(content/variant/size)을 `props` 에, 사용자 시각 override(fontSize/fill/padding/gap)를 `props.style` 에 보유. 시각 base(컴포넌트 default)는 노드가 아니라 theme rule 에서 resolve. `props.style` = "사용자가 base 를 덮어쓴 키만 담는 override layer"(키 존재=override, 부재=base) — base/override 는 노드 간(origin↔ref.descendants) 분리(ADR-907 Layer B 보존, 평면화 철회). **단일 공급원** — Properties Panel·Style Panel·DOM·Skia·Publish 가 같은 노드 하나 + 같은 theme rule 을 읽음. 패널은 `resolveEditContract(node)`(의미∪`props.style` 계약 합집합) 결과를 `section` 태그로 필터링한 두 view(저장 평면화 불필요). leaf=`PrimitiveBinding` ~35 / 조합=reusable 문서 / 등록=단일 `componentCatalog` / 렌더=generic 렌더러 1개(traversal 1 + DOM·Skia backend 2, `toReactStyle`/`toSkiaStyle` 단일 어댑터가 base⊕override 병합). 잔존 HIGH 8건(T-1 generic 공통기반 / T-3·T-ADAPT base⊕override backend 어댑터 / T-4 collection virtualization↔Taffy / T-7 Skia state / T-PARITY 기능 퇴보 방어 / **T-PROJECT·T-DEEP ADR-920 흡수 Interactive Projected Tree**) — 전부 Gate 1:1(G-parity/G8/G9 포함) + family 격리. **[ADR-920](completed/920-rac-format-interactive-projected-tree.md) 흡수·supersede (2026-06-02)**: 같은 외부 입력의 Codex 독립 설계 중 collection Interactive Projected Tree(깊은 노드 hit-test/drill-in/edit-route)를 HC#7 + breakdown §4.12/§5.11/§7-4/⑪ 로 흡수. behavior/page frame/data 축은 ADR-131/132/135/136 관할이라 bridge 참조만. 설계 산출물 ①~⑩ + ⑪(920 흡수 경계) breakdown 동봉. design breakdown `design/910-rac-pencil-component-architecture-breakdown.md`. **문서 위상: 점진 cutover 전략의 비교 기록 (비착수)** — 사용자 옵션 B 결정(2026-06-02)으로 점진 cutover(legacy 격리)는 착수하지 않고, 실제 `execute-adr` 착수는 [ADR-912](completed/912-rac-pencil-rebuild-cutover.md)(백지 직행) 단독. 910 은 supersede 없이 점진 전략 비교 기록으로 유지. 같은 목표 구조의 비실행 목표 참조(Target Reference)는 [ADR-911](911-rac-pencil-target-component-architecture.md). 910=점진 cutover / 911=목표 자체 / 912=백지 직행(착수). |                                 **P1**                                  |
 | [911](911-rac-pencil-target-component-architecture.md)       | RAC core + Pencil format 백지 목표 컴포넌트 아키텍처 (비실행 목표 참조)                                                                                      | Proposed                                        | **비실행 목표 참조(Target Reference) / 백지 목표 아키텍처 설계서** (사용자 요청 2026-06-02 "서두 조건 Status/Context/HC/SC 기반으로 재작성 — 현재코드 수정 설계서 아님"). ADR-910 이 현재 124 spec / family cutover / 레거시 제거를 다루는 **전환(cutover) 실행 설계서**가 된 데 대해, 911 은 현재 코드를 참조하지 않고 **"조건을 만족하는 목표 구조가 정적으로 무엇인가"** 만 1차 원리(RAC core + Pencil format)로 유도한다. 같은 대안 E(Canonical 문서 SSOT + RAC primitive binding) 채택 — 목표 구조가 910/912 와 수렴하되 전략이 다름(910=점진 cutover / 911=목표 자체 / 912=백지 직행). **착수/execute-adr/phase land 는 ADR-912(백지 직행, 유일 착수)로 진행하고(사용자 옵션 B 2026-06-02, codex review 라우팅 동기화), 911 은 912 실행 중 목표 구조 drift 를 판정하는 reference 로 사용한다.** HC 1~7 ↔ 목표 구조 1:1 증명(breakdown ⑨). Risks 는 **목표 성립 불확실성만**(R-1 generic 공통기반 / R-2 base⊕override 단일 어댑터 / R-3 Interactive Projected Tree 60fps+깊은노드 / R-4 Skia 상태모델) — 마이그레이션 축 N/A, 실행 위험(정합성 회귀 / 등록 collapse / 레거시 제거)은 912 보유. Gate 는 증명 게이트(G-slice/G-adapter/G-projected/G-state) — 실행 게이트는 912. design breakdown `design/911-rac-pencil-target-component-architecture-breakdown.md`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |                                 **P1**                                  |
 
-### 권장 착수 순서 — 2026-07-16 재산정
+### 권장 착수 순서 — 2026-07-19 재산정
 
-> 위 "미구현 (Proposed)" 표의 우선순위(P1/P2/P3)는 ADR 번호별 중요도이고, 아래는 **실제 착수 시 실행 순서**를 준비도·의존 그래프·즉시 가치로 재산정한 결과다. **152/153 은 "생성까지만 — 착수 금지" 사용자 지시가 걸려 있고 151 은 2026-07-16 착수 승인(Accepted)이므로**, 본 표는 착수 승인 시점의 실행 순서 제안이다. 추천 model 은 작업 성격(함정 밀도·판단 복잡도·컨텍스트 규모)에 맞춘 것이며, `xhigh` effort 는 thinking 켠 상태에서만 유효(CLAUDE.local.md 실측).
+> **완료 이력** (execute-adr): 915(2026-07-16) → 151(07-17) → 148(07-17) → 149(07-19, Option A Wave 1 편집) → 150-A1(07-19, Skia 상태 threading). 아래 표는 **남은 진행 중·미착수 ADR** 의 실행 순서다. **154/150 은 Accepted·리뷰 승인 완료라 승인 없이 이어서 진행 가능**하고, **152/153 은 "생성까지만 — 착수 금지" 사용자 지시가 유효**하다. 위 "미구현 (Proposed)" 표의 P1/P2/P3 은 ADR 번호별 중요도이고, 본 표는 준비도·의존 그래프·즉시 가치로 재산정한 실행 순서다. `xhigh` effort 는 thinking 켠 상태에서만 유효(CLAUDE.local.md 실측).
 
-| 순위 | ADR                                                           | 착수 준비도                                                                           | 추천 model       | 근거 요약                                                                                                                                                                                                                           |
-| :--: | ------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|  1   | **915 잔여** ✅ 완료                                          | ✅ Implemented (2026-07-16, execute-adr)                                              | Opus 4.8 · xhigh | 잔여 live·대칭 셀(NumberField locale + Slider showValueLabel) 복원 + implicitStyles prop-name 버그 정정 + Chrome MCP live 검증. 대부분 07-15 감사 선행 완료. Card asset(Skia)·Image(신규 등록)·0-2 는 후속 분리. **다음 착수: 151** |
-|  2   | **151** ✅ 완료                                               | ✅ Implemented (2026-07-17, execute-adr — Phase 0~6 + B22)                            | Fable 5 · xhigh  | 완료 — 잔여(엔진 percent-in-intrinsic 등)는 breakdown §Phase 6 잔여 기록. **다음 착수: 148**                                                                                                                                        |
-|  3   | **148** ✅ 완료                                               | ✅ Implemented (2026-07-17, execute-adr — Phase 0~4 + closure)                        | Fable 5 · xhigh  | 컴포넌트 축 기반 정본(reusable/slot) — 150-A3·149 인접면 선행 확정 완료. publish slot 구성 미소비는 R9 잔존 기록                                                                                                                    |
-|  4   | [150](150-rac-pencil-residual-interaction-execution.md)       | Accepted · **A1 Implemented (2026-07-19)** — A2/A3 미착수, 리뷰 round 2 승인 (07-14)  | Fable 5 · xhigh  | A1(상태 threading) 독립·저비용 병렬 가능. A2(window/가상화)는 R6 에 따라 151 완료 후 안전. A3 은 A2 의존 + 148 Phase 4 와 `canvasSceneNode` 표면 공유 → 진입 시 재실측                                                              |
-|  5   | [152](152-data-panel-collection-binding-integration.md)       | Proposed + round 1 정정 → round 2 승인 가능                                           | Fable 5 · xhigh  | 직교 데이터 도메인(D2). publish 소비 0건=배포 앱 실기능 결손 + name 참조 rename silent 파손 → "깨진 상태 아님"인 149 보다 앞. 파일 겹침 적어 병렬 후보                                                                              |
-|  6   | [149](completed/149-events-panel-canonical-simplification.md) | ✅ Implemented (2026-07-19, Option A — Wave 1 편집 delivered)                         | Fable 5 · xhigh  | 직교 도메인(events). legacy 경로 동작 중이라 긴급성 낮음 + G1(UI design)이 사용자 confirm 게이트라 사용자 가용 시점 착수. canonical mutation+undo 통합이 최다 회귀 영역                                                             |
-|  7   | [153](153-render-optimization-measurement-first-adoption.md)  | Proposed + round 1 "수정 후 재리뷰" — 지적 반영 완료, round 2 미실시 + 파일 untracked | Fable 5 · xhigh  | 성능 최적화(기능 결손 아님). Phase 4 는 실측 evidence 게이트(G4)라 착수 압력 낮음. 151 발산 정리 후 착수가 G2 시각 대칭·baseline 측정 관점 최적. 착수 전 커밋+round 2 재리뷰 필요                                                   |
-|  —   | [911](911-rac-pencil-target-component-architecture.md)        | 착수 대상 아님                                                                        | —                | 비실행 목표 참조(proof gate 전용). 150 완료 시 G-state/G-projected 잔여 증명 자동 충족                                                                                                                                              |
+| 순위 | ADR                                                                                                      | 착수 준비도                                                   | 추천 model      | 근거 요약                                                                                                                                                                  |
+| :--: | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|  1   | [154](154-responsive-breakpoint-authoring.md)                                                            | Accepted · **Phase 1 착수됨** (`e065fdb74`) — Phase 2~4 잔여  | Fable 5 · xhigh | 진행 중, 승인 불필요. 직교 도메인(반응형 저작). R1 HIGH=layoutVersion 5-심볼 2계층 등재 누락 → G1 정적 가드. Phase 3 @media specificity(R6) 확인                           |
+|  2   | [150](150-rac-pencil-residual-interaction-execution.md) (A2/A3)                                          | Accepted · **A1 Implemented (2026-07-19)** — A2/A3 미착수     | Fable 5 · xhigh | A2(collection 가상화 window)는 R6 상 151 완료로 진입 안전(충족됨). A3(projected drill-in/data edit)은 A2 의존 + 148 Phase 4 `canvasSceneNode` 표면 공유 → 진입 시 재실측   |
+|  3   | [152](152-data-panel-collection-binding-integration.md)                                                  | Proposed + round 1 정정 → round 2 승인 가능                   | Fable 5 · xhigh | ⛔ **착수 금지**(사용자 지시 2026-07-16, 승인 후 실행). publish 소비 0건=배포 앱 실기능 결손 + name 참조 rename silent 파손 → 가치 높음. 직교 D2, 파일 겹침 적어 병렬 후보 |
+|  4   | [013](013-quick-connect-data-binding.md)                                                                 | Proposed (Risk-First 재작성)                                  | Fable 5 · xhigh | 🔗 **152 선행 필수**(착수 조건 G0 = 152 Implemented + Phase 0 재-inventory). 152 완료 후 착수                                                                              |
+|  5   | [153](153-render-optimization-measurement-first-adoption.md)                                             | Proposed + round 1 지적 반영, round 2 미실시 + 파일 untracked | Fable 5 · xhigh | ⛔ **착수 금지**(생성까지만). 성능 최적화(기능 결손 아님). Phase 4 는 실측 evidence 게이트(G4). 착수 전 커밋 + round 2 재리뷰 필요                                         |
+|  —   | [910](910-rac-pencil-component-architecture.md) / [911](911-rac-pencil-target-component-architecture.md) | 착수 대상 아님                                                | —               | 910=점진 cutover 비교 기록(실행은 ADR-912 백지 직행으로 완료) / 911=비실행 목표 참조(proof gate 전용). 150 완료 시 911 G-state/G-projected 잔여 증명 자동 충족             |
 
 **착수 프롬프트** (착수 승인 시 복붙용 — Proposed ADR 은 `/execute-adr` 가 Accepted 전제라 승격 지시 포함, 각 ADR 의 리뷰 확정 게이트·결정 지점을 명시해 새 세션이 차단 조건 승계):
 
 <details>
-<summary>1. ADR-915 잔여 종결</summary>
+<summary>1. ADR-154 (진행 중 — 이어가기)</summary>
 
 ```
-/execute-adr 915
+/execute-adr 154 — Phase 1 완료, Phase 2 부터.
 
-잔여 scope 는 breakdown "이행 상태 실측 (2026-07-14)" 표가 정본:
-- P1-a 잔여: SearchField value/name (TextArea 는 rendererMap 키 부재로 제외 확정)
-- P1-g 잔여: 폼 공통 4종(labelAlign 등)×8 컴포넌트, Table columns/rows, Image, Card asset 계열, Link, FileTrigger
-- P1.5-d: Slider showValueLabel — accepts + renderSlider forward 양쪽 필요
-제외 확정 항목(P1.5-a contextualHelp / P1.5-c icon / fillOffset·isFilled)은 재론 금지.
-각 prop 은 live consumer grep 검증 후 복원(dead restoration 금지).
-완료 시 Inspector 실편집 1회 exercise 후 Implemented 승격 + README/CHANGELOG 동시 갱신.
-```
-
-</details>
-
-<details>
-<summary>2. ADR-151 (착수 승인 겸)</summary>
-
-```
-ADR-151 착수를 승인한다. Proposed → Accepted 승격 후 /execute-adr 151
-
-- Phase 0: battery 재실측으로 인벤토리 freeze 먼저 (07-13/14 실측치는 stale — G1)
-- 원인 축 그룹 단위로 수정, 그룹당 1 phase + 1 커밋
-- 판정 기준: ±2px 이내 + 텍스트 측정 기인 규명 시 수용. 원인 미상은 크기 무관 수용 금지
-- B7 Menu 표현은 기술 판정 아님 — 수정안을 AskUserQuestion 으로 내게 확인받고 진행
-- 수정 컴포넌트는 tree_golden battery 편입, 각 그룹 완료 시 /cross-check
+- Phase 1(CanonicalNode.responsive canonical 1차 필드 + .pen 양방향 보존)은 e065fdb74 로 반영됨
+- Phase 2: builder viewport 스위처 + resolve 단일 진입점. R1(layoutVersion·signature 등재 누락)은
+  G1 정적 가드(5-심볼 2계층 체인) 통과 필수 — props/style 축 분리 확인
+- Phase 3: publish @media 단일 출력. inline-style vs @media specificity(R6) 확인
+- Phase 4: G3 live behavior — 실제 builder 에서 breakpoint 전환 1회 exercise 후
+  Implemented 승격 + README/CHANGELOG 동시 갱신
 ```
 
 </details>
 
 <details>
-<summary>3. ADR-148 (착수 승인 겸)</summary>
+<summary>2. ADR-150 (A1 완료 — A2 이어가기)</summary>
 
 ```
-ADR-148 착수를 승인한다. 리뷰 round 2 의 breakdown 보강 2건 조건이 반영됐는지 먼저
-확인·해소하고 Accepted 승격 후 /execute-adr 148
+/execute-adr 150 — A1 완료(2026-07-19), A2 부터.
 
-- phase 당 검증 + 커밋, 각 phase 완료 시 live builder 에서 reusable/slot 동작 1회 exercise
-  (test/type-check PASS 단독 종결 금지)
-- Phase 4(collection item slot)는 150-A2/A3 과 canvasSceneNode 표면을 공유 —
-  진입 시점에 150 진행 상태 재실측 후 조정
-```
-
-</details>
-
-<details>
-<summary>4. ADR-150 (착수 승인 겸)</summary>
-
-```
-ADR-150 착수를 승인한다. Accepted 승격 후 /execute-adr 150 — A1 부터.
-
-- A1: 상태 전용 무효화 채널 설계가 1차 산출물 (R1) — overlay draw pass 후보 우선 검토,
-  sceneVersion signature 에 상태 미포함, pointermove FPS 실측을 G-A1 조건에 포함
-- A2 진입 전제: ADR-151 발산 정리 완료 또는 fixture 격리 확인 (R6) — 미충족 시 A2 hold 하고 보고
-- A3 은 A2 완료 후. window 는 캔버스 전용 — LayerTree 패널 소비자 정책 분리 명시 (R2)
-- 각 축 게이트(G-A1~A3) 통과 실측을 커밋 검증 블록에 명시
+- A2 진입 전제: ADR-151 발산 정리 완료(충족됨) 또는 fixture 격리 확인 (R6)
+- A2: collection 가상화 window(60fps) — 캔버스 전용, LayerTree 패널 소비자 정책 분리 명시 (R2)
+- A3(projected drill-in/data edit)은 A2 완료 후 + 148 Phase 4 canvasSceneNode 표면 재실측
+- 각 축 게이트(G-A2/G-A3) 통과 실측을 커밋 검증 블록에 명시
 ```
 
 </details>
 
 <details>
-<summary>5. ADR-152 (착수 승인 겸)</summary>
+<summary>3. ADR-152 (착수 승인 겸)</summary>
 
 ```
 ADR-152 착수를 승인한다. Accepted 승격 후 /execute-adr 152
@@ -530,22 +496,20 @@ ADR-152 착수를 승인한다. Accepted 승격 후 /execute-adr 152
 </details>
 
 <details>
-<summary>6. ADR-149 (착수 승인 겸)</summary>
+<summary>4. ADR-013 (152 완료 후)</summary>
 
 ```
-ADR-149 착수를 승인한다. Accepted 승격 후 /execute-adr 149
+[152 Implemented 후] ADR-013 착수를 승인한다. 착수 조건 G0(152 Implemented) 충족 확인 +
+Phase 0 재-inventory 후 Proposed → Accepted 승격 → /execute-adr 013
 
-- G1(이벤트 패널 UI design)은 사용자 confirm 게이트 — 설계안을 AskUserQuestion 으로
-  내게 먼저 확인받은 뒤 구현 진입
-- canonical mutation 은 순서 계약(canonical 1차 → set → _rebuildIndexes → persist) 준수,
-  history/undo 통합은 G2 조건(undo/redo 실측)으로 검증 (R8)
-- workflowEdges 소비자는 R4 의 boundary vs live 2분류 freeze 기준으로만 전환
+- 152 의 binding v2(collectionId + fieldMap) 계약 위에서만 Quick Connect 1클릭 자동화 배선
+- Risk-First 재작성본(2026-07-16) 의 Phase 0~5 / R1~R5 / G0~G3 기준, stale 전제 7건은 재론 금지
 ```
 
 </details>
 
 <details>
-<summary>7. ADR-153 (선행 정리 + 착수, 2단계)</summary>
+<summary>5. ADR-153 (선행 정리 + 착수, 2단계)</summary>
 
 ```
 [지금] ADR-153 착수 준비만 진행: untracked 파일 3건(본문/design breakdown/reviews) 커밋 +
