@@ -12,6 +12,9 @@
 
 export {
   COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
+  // ADR-150 A2: 가상화 window 계약 (ListBox 선행 proof).
+  DEFAULT_COLLECTION_OVERSCAN,
+  resolveCollectionWindow,
   isRecord,
   readArray,
   isProjectionRowsInput,
@@ -34,6 +37,8 @@ export type {
   CollectionDataSource,
   CollectionProjectionRow,
   CollectionProjectionRowsInput,
+  CollectionWindow,
+  CollectionWindowInput,
   ResolvedCollectionItems,
   TableColumnDef,
   TableProjectionRow,

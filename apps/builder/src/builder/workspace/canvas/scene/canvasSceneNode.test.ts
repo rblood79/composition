@@ -5,10 +5,12 @@ import type { CompositionDocument } from "@composition/shared";
 import {
   buildCanvasSceneGraph,
   buildCanvasScenePageIndex,
+  type CollectionWindowResolution,
 } from "./canvasSceneNode";
 import {
   toListBoxRowProjectionId,
   toListBoxRowsGroupProjectionId,
+  toListBoxSpacerProjectionId,
   toCollectionRowProjectionId,
   toCollectionRowsGroupProjectionId,
   toCollectionCellProjectionId,
@@ -1476,5 +1478,142 @@ describe("buildCanvasSceneGraph — Background(fills) 운반 (2026-07-15)", () =
     const node = graph.nodesMap.get("box-plain");
     expect(node).toBeDefined();
     expect("fills" in (node as object)).toBe(false);
+  });
+});
+
+// ── ADR-150 A2: ListBox 가상화 window 투영 (ListBox 선행 proof) ────────────────
+
+describe("buildCanvasSceneGraph — ADR-150 A2 ListBox 가상화 window", () => {
+  function buildListBoxDoc(itemCount: number): CompositionDocument {
+    const items = Array.from({ length: itemCount }, (_, i) => ({
+      id: `k${i}`,
+      label: `Item ${i}`,
+    }));
+    return {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "listbox-1",
+                  type: "ListBox",
+                  props: { items },
+                  children: [
+                    {
+                      id: "template-anchor",
+                      type: "ref",
+                      ref: "component-listbox-item-default",
+                      props: {},
+                      metadata: {
+                        type: "legacy-element-props",
+                        templateRole: "listbox-item-template-anchor",
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+  }
+
+  const projectedRows = (graph: ReturnType<typeof buildCanvasSceneGraph>) =>
+    graph.nodes.filter((n) => n.projection?.kind === "listbox-row");
+
+  it("window {94,116} of 1000 → window 행 22개만 투영 + leading/trailing spacer + 절대 rowIndex", () => {
+    const doc = buildListBoxDoc(1000);
+    const resolution: CollectionWindowResolution = {
+      window: { startIndex: 94, endIndex: 116 },
+      rowHeight: 40,
+      totalRows: 1000,
+    };
+    const graph = buildCanvasSceneGraph(doc, {
+      collectionWindows: new Map([["listbox-1", resolution]]),
+    });
+
+    // window 밖 행은 투영 노드로 존재하지 않음 (10k → 22).
+    const rows = projectedRows(graph);
+    expect(rows).toHaveLength(22);
+    // 첫/끝 행의 rowIndex 는 절대 index (post-slice 0 이 아님).
+    expect(rows[0].projection).toMatchObject({ itemKey: "k94", rowIndex: 94 });
+    expect(rows[21].projection).toMatchObject({
+      itemKey: "k115",
+      rowIndex: 115,
+    });
+    expect(
+      graph.nodesMap.get(toListBoxRowProjectionId("listbox-1", "k0")),
+    ).toBe(undefined);
+
+    // leading spacer = startIndex * rowHeight = 94*40 = 3760.
+    const lead = graph.nodesMap.get(
+      toListBoxSpacerProjectionId("listbox-1", "lead"),
+    );
+    expect(lead).toMatchObject({
+      type: "Box",
+      projection: { kind: "listbox-spacer", position: "lead" },
+      props: { style: { height: 3760, flexShrink: 0 } },
+    });
+    expect("fills" in (lead as object)).toBe(false);
+
+    // trailing spacer = (totalRows - endIndex) * rowHeight = (1000-116)*40 = 35360.
+    const trail = graph.nodesMap.get(
+      toListBoxSpacerProjectionId("listbox-1", "trail"),
+    );
+    expect(trail).toMatchObject({
+      projection: { kind: "listbox-spacer", position: "trail" },
+      props: { style: { height: 35360 } },
+    });
+
+    // 총 content height = leadingSpacer + window 행 + trailingSpacer = totalRows*rowHeight.
+    const leadH = (lead?.props.style as { height: number }).height;
+    const trailH = (trail?.props.style as { height: number }).height;
+    expect(leadH + 22 * 40 + trailH).toBe(1000 * 40);
+  });
+
+  it("window {0,16} → startIndex 0 이면 leading spacer 없음, trailing spacer 만", () => {
+    const doc = buildListBoxDoc(1000);
+    const graph = buildCanvasSceneGraph(doc, {
+      collectionWindows: new Map([
+        [
+          "listbox-1",
+          {
+            window: { startIndex: 0, endIndex: 16 },
+            rowHeight: 40,
+            totalRows: 1000,
+          },
+        ],
+      ]),
+    });
+    expect(projectedRows(graph)).toHaveLength(16);
+    expect(
+      graph.nodesMap.get(toListBoxSpacerProjectionId("listbox-1", "lead")),
+    ).toBeUndefined();
+    const trail = graph.nodesMap.get(
+      toListBoxSpacerProjectionId("listbox-1", "trail"),
+    );
+    // (1000-16)*40 = 39360.
+    expect((trail?.props.style as { height: number }).height).toBe(39360);
+  });
+
+  it("collectionWindows 미제공 → legacy 정적 cap(100) + spacer 없음 (BC)", () => {
+    const doc = buildListBoxDoc(150);
+    const graph = buildCanvasSceneGraph(doc);
+    expect(projectedRows(graph)).toHaveLength(100);
+    expect(
+      graph.nodesMap.get(toListBoxSpacerProjectionId("listbox-1", "lead")),
+    ).toBeUndefined();
+    expect(
+      graph.nodesMap.get(toListBoxSpacerProjectionId("listbox-1", "trail")),
+    ).toBeUndefined();
   });
 });

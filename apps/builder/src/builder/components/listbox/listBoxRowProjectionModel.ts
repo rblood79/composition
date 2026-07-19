@@ -13,6 +13,7 @@ import {
   type CollectionDataSource,
   type CollectionProjectionRow,
   type CollectionProjectionRowsInput,
+  type CollectionWindow,
 } from "../collection/collectionRowProjectionModel";
 
 export const LISTBOX_ROW_PROJECTION_WINDOW_LIMIT =
@@ -30,7 +31,8 @@ export type ListBoxProjectionRow = CollectionProjectionRow;
  */
 export function getListBoxProjectionRows(
   input: Record<string, unknown> | CollectionProjectionRowsInput | undefined,
-  windowLimit = LISTBOX_ROW_PROJECTION_WINDOW_LIMIT,
+  // ADR-150 A2: number(legacy 정적 cap) | CollectionWindow(scrollOffset 기반 절대 index).
+  window: number | CollectionWindow = LISTBOX_ROW_PROJECTION_WINDOW_LIMIT,
 ): ListBoxProjectionRow[] {
-  return getFlatProjectionRows(input, windowLimit);
+  return getFlatProjectionRows(input, window);
 }

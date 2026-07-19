@@ -1,5 +1,6 @@
 import type {
   CanonicalNode,
+  CollectionWindow,
   CompositionDocument,
   DescendantOverride,
   RefNode,
@@ -34,6 +35,7 @@ import {
 import {
   toListBoxRowProjectionId,
   toListBoxRowsGroupProjectionId,
+  toListBoxSpacerProjectionId,
   toCollectionRowProjectionId,
   toCollectionRowsGroupProjectionId,
   toCollectionCellProjectionId,
@@ -89,6 +91,15 @@ export type CanvasProjectionMetadata =
       rowIndex: number;
       templateAnchorId: string | null;
       templateOriginId: string | null;
+    }
+  // ADR-150 A2 (ListBox 가상화): leading/trailing spacer — window 밖 행이 차지했을 높이를
+  //   채우는 layout-only 노드(비-hit, 비-render 시각). row/rows-group/cell kind 가 아니라
+  //   isCollectionRow(sGroup/Cell)ProjectionKind 가 모두 false → interaction/write handler 가
+  //   자동 skip. 총 content height(스크롤바) + window 행 절대 위치를 보존.
+  | {
+      kind: "listbox-spacer";
+      listBoxId: string;
+      position: "lead" | "trail";
     }
   // ADR-912 단계 4 C1 (GridList projection): listbox-row/rows 동형 메타.
   //   `listBoxId` 는 collection owner id 의미로 일반화(GridList node id). GridList 는 origin/anchor
@@ -240,9 +251,28 @@ export interface CanvasSceneNode {
   sourceNode: CanonicalNode;
 }
 
+/**
+ * ADR-150 A2 (ListBox 선행 proof): 가상화된 collection owner 의 window 해석.
+ * BuilderCanvas 가 scrollState + 측정 metric 으로 precompute 하여 scene 빌드에 주입하는 단일
+ * 소스 — draw/hit tree 가 **동일 window** 를 공유(R2). 미제공 owner 는 legacy 정적 cap 투영.
+ */
+export interface CollectionWindowResolution {
+  /** 절대 index [startIndex, endIndex) — 이 구간 행만 투영. */
+  window: CollectionWindow;
+  /** 균일 행 높이(px) — leading/trailing spacer 높이 산출. */
+  rowHeight: number;
+  /** window 전 원본 전체 행 수 — 총 content height(스크롤바) + trailing spacer. */
+  totalRows: number;
+}
+
 interface BuildCanvasSceneGraphOptions {
   collections?: readonly ListBoxCollectionDataSource[];
   includeReusableFrames?: boolean;
+  /**
+   * ADR-150 A2: collection owner id → 가상화 window. bounded height + overflow scroll/auto
+   * ListBox 만 등재(BuilderCanvas 판정). 미등재 owner 는 legacy `[0, cap)` 투영(BC).
+   */
+  collectionWindows?: ReadonlyMap<string, CollectionWindowResolution>;
 }
 
 export interface CanvasSceneGraph {
@@ -566,6 +596,8 @@ function resolveDataBoundListBoxProjection(
   rows: ListBoxProjectionRow[];
   templateAnchor: CanonicalNode | null;
   sourceNode: CanonicalNode;
+  /** ADR-150 A2: 가상화 window 해석(BuilderCanvas 주입). null=legacy 정적 cap. */
+  windowResolution: CollectionWindowResolution | null;
 } | null {
   if (!isListBoxSceneSource(listBoxSceneNode, sourceNode)) return null;
 
@@ -581,17 +613,25 @@ function resolveDataBoundListBoxProjection(
   });
   if (mode.mode !== "data-bound") return null;
 
-  const rows = getListBoxProjectionRows({
-    collections: options.collections,
-    dataBinding,
-    props: listBoxSceneNode.props,
-  });
+  // ADR-150 A2: BuilderCanvas 가 이 owner 를 가상화 대상으로 판정했으면 window 슬라이스,
+  //   아니면 undefined → getListBoxProjectionRows default(정적 cap) 로 legacy 투영.
+  const windowResolution =
+    options.collectionWindows?.get(listBoxSceneNode.id) ?? null;
+  const rows = getListBoxProjectionRows(
+    {
+      collections: options.collections,
+      dataBinding,
+      props: listBoxSceneNode.props,
+    },
+    windowResolution?.window,
+  );
   if (rows.length === 0) return null;
 
   return {
     rows,
     templateAnchor: getListBoxTemplateAnchor(sourceNode.children),
     sourceNode,
+    windowResolution,
   };
 }
 
@@ -601,6 +641,7 @@ function appendListBoxRowProjection(
     rows: ListBoxProjectionRow[];
     templateAnchor: CanonicalNode | null;
     sourceNode: CanonicalNode;
+    windowResolution: CollectionWindowResolution | null;
   },
   scope: SceneScopeContext,
   graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
@@ -673,6 +714,43 @@ function appendListBoxRowProjection(
   };
   addSceneNode(rowsGroup, graph);
 
+  // ADR-150 A2 (ListBox 가상화): window 활성 시 leading/trailing spacer 로 window 밖 행
+  //   높이를 채운다 — window 행이 절대 위치(startIndex*rowHeight)에 오도록 밀어내고, 총
+  //   content height = totalRows*rowHeight 를 flex column 자식 합으로 보존(스크롤바 정확).
+  //   spacer 는 fills 없는 layout-only Box (비-hit/비-시각). window 없으면(legacy cap) 미삽입.
+  const { windowResolution } = projection;
+  const rowHeight = windowResolution?.rowHeight ?? 0;
+  const leadRows = windowResolution
+    ? Math.max(0, windowResolution.window.startIndex)
+    : 0;
+  const trailRows = windowResolution
+    ? Math.max(0, windowResolution.totalRows - windowResolution.window.endIndex)
+    : 0;
+  const createSpacerNode = (
+    position: "lead" | "trail",
+    height: number,
+  ): CanvasSceneNode => ({
+    id: toListBoxSpacerProjectionId(listBoxSceneNode.id, position),
+    type: "Box",
+    props: {
+      style: { width: "100%", height, flexShrink: 0 },
+    },
+    parentId: rowsGroupId,
+    pageId: scope.pageId,
+    layoutId: scope.layoutId,
+    parent_id: rowsGroupId,
+    page_id: scope.pageId,
+    projection: {
+      kind: "listbox-spacer",
+      listBoxId: listBoxSceneNode.id,
+      position,
+    },
+    sourceNode: templateAnchor ?? sourceNode,
+  });
+  if (leadRows > 0 && rowHeight > 0) {
+    addSceneNode(createSpacerNode("lead", leadRows * rowHeight), graph);
+  }
+
   for (const row of rows) {
     const projectionId = toListBoxRowProjectionId(
       listBoxSceneNode.id,
@@ -718,6 +796,10 @@ function appendListBoxRowProjection(
       },
       graph,
     );
+  }
+
+  if (trailRows > 0 && rowHeight > 0) {
+    addSceneNode(createSpacerNode("trail", trailRows * rowHeight), graph);
   }
 }
 

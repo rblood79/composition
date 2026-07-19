@@ -73,6 +73,21 @@ export function toListBoxRowsGroupProjectionId(listBoxId: string): string {
 }
 
 /**
+ * ADR-150 A2: 가상화 window 의 leading/trailing spacer projection id.
+ *
+ * spacer 는 layout-only(비-hit, 비-render 시각) 노드로, window 밖 행이 차지했을 높이를
+ * 채워 총 content height(스크롤바) + window 행의 절대 위치를 보존한다. `projection:` prefix
+ * 하위라 boundary guard(canonical mutation 차단)가 자동 적용되지만, kind 가 row/rows-group/
+ * cell 이 아니라 interaction handler 는 건너뛴다.
+ */
+export function toListBoxSpacerProjectionId(
+  listBoxId: string,
+  position: "lead" | "trail",
+): string {
+  return `${RENDER_PROJECTION_PREFIX}listbox-spacer:${listBoxId}:${position}`;
+}
+
+/**
  * id 가 render-space projection id 인가.
  *
  * collection namespace(`projection:listbox-row:` 등)는 모두 `projection:` prefix 의
