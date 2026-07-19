@@ -24,7 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Builder(Skia) `resolveResponsiveLayoutNode` 와 DOM(@media) `responsiveCss.ts` 가 **동일** `getResponsiveValueWithCascade` 로 breakpoint 값 pre-resolve → 발산 0. `BREAKPOINTS` 상호배타 범위라 mobile 이 tablet 을 cascade 상속 못 하는 문제는 각 breakpoint 를 cascade pre-resolve 하여 해당 `@media` 에 직접 삽입해 해소.
   - **Why (R6 — inline specificity)**: Preview/Publish 는 스타일을 inline(`style=`)으로 적용해 일반 stylesheet 규칙이 inline 을 못 이긴다. stylesheet `!important`(important-author 버킷)가 non-important inline(normal-author 버킷)을 origin/importance 단계에서 이기는 CSS cascade 규칙을 이용 — override `@media` 만 `!important` 로 emit 하고 base inline 은 무변경(desktop BC 0, inline strip 불필요).
   - live 검증(Chrome MCP): Preview/Publish 리사이즈 3-breakpoint(desktop 200/tablet 200/mobile 80px) + Skia layout width == DOM computed width(80==80px) 동시 대칭 + persist roundtrip.
-  - 잔여(후속): render-visual `fontSize`/`textAlign`(2/14)은 Skia glyph 가 base 값 렌더(skiaNodeRegistry resolve 미주입) — DOM @media 는 정상, layout props 12/14 는 Skia↔DOM 대칭. apps/publish 리액트 SSG 앱 @media(ADR §2 인벤토리가 명명한 publish 는 `generateStaticHtml` 단일 경로 — SSG 는 scope 밖).
+  - **render-visual props 대칭 (2026-07-19 후속 fix)**: `fontSize`/`textAlign`(2/14) Skia glyph 를 `StoreRenderBridge.buildNodeForElement`(렌더 단일 choke point)에서 layout 과 동일 `resolveResponsiveLayoutNode` 적용 → glyph 가 activeBreakpoint override 값 렌더. layout(12/14)+render-visual(2/14) = 14/14 Skia↔DOM 대칭 완성. 위치: `apps/builder/src/builder/workspace/canvas/skia/StoreRenderBridge.ts` + `useSkiaNode.ts`(`__composition_SKIA_DEBUG__` render-side parity probe 신규).
+  - 잔여(후속): apps/publish 리액트 SSG 앱 @media(ADR §2 인벤토리가 명명한 publish 는 `generateStaticHtml` 단일 경로 — SSG 는 scope 밖) / breakpoint 배지 UI.
 
 ## [EventsPanel 2-depth 재설계 + canonical events primary 편집 — ADR-149 (Wave 1)] - 2026-07-19
 

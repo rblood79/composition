@@ -10,7 +10,8 @@ Implemented — 2026-07-19 (Phase 1~3 전체 delivered, execute-adr. Accepted 20
 > - **Phase 2** (Builder 편집, 2026-07-19 `c262b1566`/`b693f0862`/`e8e70b9ed`): 기존 BuilderHeader 스위처 → `activeBreakpoint` bridge + `resolveResponsiveLayoutNode` (R1 — 시그니처 계산 이전 resolve 로 merged style 이 캐시 자연 무효화) + Inspector override 편집·canonical write. live: tablet flexDirection override → Skia 즉시 반영(row↔column) + persist roundtrip.
 > - **Phase 3** (Preview/Publish @media, 2026-07-19 `cb049019d`/`f04af96b0`/`66da1a7d6`): `responsiveCss.ts` SSOT (Preview·Publish 공용, Skia `resolveResponsiveLayoutNode` 와 동일 `getResponsiveValueWithCascade`) + `@media !important` (R6 — stylesheet important-author 가 non-important inline 을 이김, base inline BC 0). live G2: Preview/Publish 리사이즈 3-breakpoint + Skia↔DOM 동시 대칭(width 80==80px).
 > - **Gate**: G1(Phase 2 정적+live) / G2(Phase 3 리사이즈 실측+Skia↔DOM 대칭) / G3(live behavior 3-exercise) / G4(Phase 1 roundtrip) 전부 통과. type-check baseline 63 유지, 관련 test 29 PASS.
-> - **잔여 (후속)**: (a) render-visual props 대칭 — `fontSize`/`textAlign`(2/14)은 Skia glyph 가 base 값 렌더(skiaNodeRegistry resolve 미주입), DOM @media 는 정상 (layout props 12/14 는 Skia↔DOM 대칭). (b) apps/publish SSG @media (ADR §2 인벤토리가 명명한 publish 는 `generateStaticHtml` 단일 경로 — apps/publish 리액트 SSG 는 scope 밖 후속). (c) breakpoint 배지 UI·`ResponsiveVisibilityEditor` 배선 / `updateSelectedStylePreview` 비-desktop live preview.
+> - **render-visual props 대칭 — 해소 완료 (2026-07-19 후속 fix)**: `fontSize`/`textAlign`(2/14) Skia glyph 대칭을 `StoreRenderBridge.buildNodeForElement` (렌더 단일 choke point) 에서 layout 과 **동일** `resolveResponsiveLayoutNode` 적용으로 해소. activeBreakpoint 변경 → layout republish → forceFullRebuild 로 자연 재resolve. live(window probe, `__composition_SKIA_DEBUG__.getSkiaNode`): 라벨 glyph fontSize desktop 14 ↔ mobile 40(override) 전환 + reversible. 이제 layout(12/14)+render-visual(2/14) 14/14 Skia↔DOM 대칭.
+> - **잔여 (후속)**: (a) apps/publish SSG @media (ADR §2 인벤토리가 명명한 publish 는 `generateStaticHtml` 단일 경로 — apps/publish 리액트 SSG 는 scope 밖 후속). (b) breakpoint 배지 UI·`ResponsiveVisibilityEditor` 배선 / `updateSelectedStylePreview` 비-desktop live preview.
 
 ## Context
 
@@ -130,4 +131,4 @@ composition 은 노코드 **웹사이트** 빌더이지만 breakpoint 기반 반
 - Inspector 복잡도 증가 — breakpoint 배지·override dirty 표시가 스타일 패널 전반에 접점 추가 (`useHasDirtyStyles` 판정 배열 확장 포함).
 - canonical schema 필드 1 증가 — mutation wrapper/history/roundtrip/signature 4곳 동시 보수 의무가 영구 추가.
 - full-tree 재계산 트리거 1종 추가 — layoutVersion 계약 관리 표면 확대.
-- render-visual props (`fontSize`/`textAlign` 2/14) Skia glyph 대칭 미완 — Builder 캔버스에서 텍스트 크기/정렬 override 는 base 값으로 그려지고 DOM/@media 만 반영 (layout props 12/14 는 대칭). skiaNodeRegistry resolve 주입으로 후속 해소 (Implemented 승격 시 명시된 잔여).
+- ~~render-visual props (`fontSize`/`textAlign` 2/14) Skia glyph 대칭 미완~~ → **해소 (2026-07-19)**: `StoreRenderBridge.buildNodeForElement` 에서 layout 과 동일 `resolveResponsiveLayoutNode` 적용 — glyph 가 activeBreakpoint 기준 override 값으로 렌더 (live: fontSize desktop 14 ↔ mobile 40). layout+render 14/14 Skia↔DOM 대칭.

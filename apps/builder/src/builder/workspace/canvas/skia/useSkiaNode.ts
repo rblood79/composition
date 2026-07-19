@@ -115,3 +115,16 @@ export function useSkiaNode(
     };
   }, [elementId, data]);
 }
+
+// dev 전용 디버그 전역 — CSS↔Skia parity 검증 하니스(콘솔/Chrome MCP)가 render 결과
+// (built SkiaNodeData: text.fontSize/align 등 glyph 채널)를 읽는 진입점. layout 측
+// `__composition_LAYOUT_DEBUG__.getSharedLayoutMap` 의 render 대응. 탭 hidden(RAF pause)
+// 시에도 StoreRenderBridge.sync 는 React effect/layout publish 로 실행되어 registry 가
+// 갱신되므로, 스크린샷 없이 render-visual 결과(예: ADR-154 반응형 fontSize resolve)를
+// window probe 로 확증할 수 있다. production 빌드 제외.
+if (typeof window !== "undefined" && import.meta.env?.DEV) {
+  (window as unknown as Record<string, unknown>).__composition_SKIA_DEBUG__ = {
+    getSkiaNode,
+    getSkiaRegistrySize,
+  };
+}

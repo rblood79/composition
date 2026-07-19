@@ -30,6 +30,8 @@ import {
 } from "./buildSpecNodeData";
 import { registerSkiaNode, unregisterSkiaNode } from "./useSkiaNode";
 import { useScrollState } from "../../../stores/scrollState";
+import { useStore } from "../../../stores";
+import { resolveResponsiveLayoutNode } from "../layout/resolveResponsive";
 import { getSkImage, loadSkImage, releaseSkImage } from "./imageCache";
 import { getSpecForTag, IMAGE_TAGS } from "../sprites/tagSpecMap";
 import { onLayoutPublished } from "../layout";
@@ -565,6 +567,17 @@ export class StoreRenderBridge {
         if (resolved) effectiveElement = resolved;
       }
     }
+
+    // ADR-154: 반응형 override 를 activeBreakpoint 기준 resolve — render-visual props
+    //   (fontSize/textAlign 등)가 base 가 아닌 override 값으로 glyph 에 반영되게 한다.
+    //   layout 경로(useLayoutPublisher)와 **동일** resolveResponsiveLayoutNode 를 써서
+    //   Skia glyph == Skia box(layout) == DOM(@media) 3경로 정합(R2). desktop 또는
+    //   responsive 부재면 identity(무비용). activeBreakpoint 변경 → invalidateLayout →
+    //   layout republish → 이 sync 가 forceFullRebuild 로 재실행되어 자연 재resolve.
+    effectiveElement = resolveResponsiveLayoutNode(
+      effectiveElement,
+      useStore.getState().activeBreakpoint,
+    );
 
     // TagGroup maxRows chip 접힘 — layout(fullTreeLayout Step 4.5b)이 이미 Taffy 실측 rowY 기준으로
     //   초과 chip(+ 미접힘 시 Show all)을 RowsGroup Taffy 트리에서 제외했다. 제외된 chip 은
