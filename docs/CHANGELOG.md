@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [EventsPanel 2-depth 재설계 + canonical events primary 편집 — ADR-149 (Wave 1)] - 2026-07-19
+
+### Features
+
+- **EventsPanel 2-depth UX 전면 재작성** (ADR-149 Wave 1, Phase 2b):
+  - 기존 878 LOC block editor 트리(WhenBlock/IfBlock/ThenElseBlock + action-picker/action-editor overlay, depth 3~4)를 **2-depth inline UX**로 대체 (HC1: depth ≤ 2, overlay 0)
+  - **L1** = 컴포넌트 supportedEvents callback props 목록 — 각 이벤트를 바인딩 상태(미설정/N 액션)와 함께 행으로 표시. 빈 상태에서 추천 이벤트 chips + 템플릿 chips
+  - **L2** = 행 클릭 시 inline accordion — 액션 목록 + inline 액션 config 에디터(25종 ActionEditor 재사용) + 추천 액션 chips + 설정 누락 경고 + 고급(조건/debounce·throttle) + 이벤트 제거
+  - 위치: `apps/builder/src/builder/panels/events/EventsPanel.tsx`(878→~330 LOC) + `components/EventAccordionItem.tsx`(신규)
+
+### Architecture
+
+- **canonical events/actions primary 편집** (ADR-149 Phase 2a/2c):
+  - EventsPanel 이 canonical root collection(`document.events`/`document.actions`)에 쓰는 **단일 write 진입점 `updateEventsRootCollection`** 확정 — `updateAndSave`(node projection + history + persist) + `writeEventsToRootCollection`(canonical root 파생, `stores/canonical/rootCollectionEventsWrite.ts`)
+  - dead selected-\* events mutation 4종 + `syncEventsToRootCollection` delegate 제거
+  - **Why**: 편집 SSOT 를 canonical 문서로 이동 (ADR-131 root collection 소비). 과도기 props.events 는 history/persist/런타임 매개로 유지
+- **역방향 adapter `migrateRootCollectionToLegacy`** (ADR-149 Phase 3-a, HC5):
+  - canonical root(`SerializedEvent[]`+`SerializedAction[]`) → legacy `EventHandler[]` 복원 (actionRef chain 순회 + fallbackActionRef→elseActions + condition {expr}→string + fidelity slot). forward fidelity 보강(enabled/debounce/throttle/delay) 으로 round-trip 동등성 확보
+  - 위치: `apps/builder/src/adapters/canonical/rootCollectionMigration.ts`
+- **ActionsPanel 제거 + dead EventHandlerFactory 은퇴** (ADR-149 Phase 2c/3-b):
+  - ADR-131 Phase 5 G3 raw skeleton ActionsPanel + PanelId `"actions"` 제거(HC4). dead `EventHandlerFactory`(`utils/events/eventHandlers.ts`) 삭제 — import 소비처 0
+  - **Why (Option A 재정의)**: Phase 3 recon 에서 원 전제(런타임이 canonical 소비하도록 EventHandlerFactory 전환)가 거짓 판명 — 패널 이벤트를 올바로 소비하는 런타임 0개(Preview 미발화 + publish `element.events` mismatch). 실제 런타임 발화 bridge + Wave 2 convention + true 방향 역전 + cross-event reuse 는 **별도 ADR 이관**(사용자 confirm)
+
 ## [Builder Skia 상호작용 상태 시각(hover/pressed/focus) — ADR-150 Phase A1] - 2026-07-19
 
 ### Features
