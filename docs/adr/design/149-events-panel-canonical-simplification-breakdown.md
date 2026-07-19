@@ -75,9 +75,15 @@ L2 — inline accordion (depth 2, overlay 아님)
 - 기존 `syncEventsToRootCollection` (legacy→canonical mirror) 제거 — 방향 역전 완결
 - **history/persist 통합 (R8)**: canonical events/actions 편집 경로에 history record + DB persist 연결 — 현행 canonicalDocumentStore mutation 은 "In-memory skeleton (history/undo/persistence 미통합)" 자인 (`builder/stores/canonical/canonicalDocumentStore.ts:7-10`). legacy 경로의 `updateAndSave` → `historyManager.addEntry` (`builder/stores/inspectorActions.ts:561`) 와 동등한 undo/redo 보장 필수 (state-management 파이프라인 Memory→Index→History→DB)
 
-#### Phase 3 — Preview 런타임 canonical 소비 전환 + adapter 완결
+#### Phase 3 — Option A 재정의 (retire + adapter) — 사용자 confirm 2026-07-19
 
-- `EventHandlerFactory.createEventHandlers` 가 canonical document 파생 (target=element 의 `SerializedEvent[]`) 소비 — `element.props.events` 읽기 0건 (HC3)
+> **⚠️ 전제 붕괴 → 재정의 (Phase 3 recon)**: 아래 원 계획(HC3 EventHandlerFactory canonical 소비 + R4 live 소비자 전환)은 **거짓 전제**로 판명. Explore recon + 직접 grep: `EventHandlerFactory` **dead**(import 0), Preview **이벤트 미발화**(createEventHandlerMap provider 0), 유일 live 런타임=publish 가 `element.events{trigger,payload}` read = 패널 `props.events{event,config}` 와 이중 mismatch(broken). **props.events 를 올바로 소비하는 런타임 0개**. 사용자 AskUserQuestion → **Option A**: retire dead + 역방향 adapter 만 ADR-149 내, 실제 런타임 발화 bridge + true 방향 역전 + Wave 2 + cross-event reuse = **별도 ADR**. 상세: [inventory §1-B 정정](149-events-panel-inventory.md).
+>
+> **Option A 실행 (완료)**: **3-a**(`424703388`) 역방향 adapter `migrateRootCollectionToLegacy`(HC5) + forward fidelity + round-trip 동등성 test 24/24. **3-b**(`97932279d`) dead `eventHandlers.ts` 삭제(EventEngine 은 preview variable-sync live 보존). **3-c 이관**: builder-side reader(workflowEdges/canvasDeltaMessenger) canonical 전환은 canonical root 의 undo 통합 부재로 undo 후 버그 유발 → props.events(undo-정합) 유지, 별도 ADR.
+>
+> **별도 ADR 이관분 (원 Phase 3/4 내용)**:
+
+- ~~`EventHandlerFactory.createEventHandlers` 가 canonical document 파생 (target=element 의 `SerializedEvent[]`) 소비 — `element.props.events` 읽기 0건 (HC3)~~ → EventHandlerFactory dead, 삭제됨. 실제 런타임(publish/preview) canonical 발화 = 별도 ADR
 - Phase 2 의 canonical→legacy 프로젝션 제거 (boundary allowlist 외 legacy 접근 0)
 - 역방향 adapter `migrateRootCollectionToLegacy` 구현 + export 경로 연결 (HC5) + round-trip test (legacy→canonical→legacy 동등성)
 - 기존 프로젝트 hydration 1회 migration (`migrateLegacyElementsToRootCollections` 재사용)
@@ -86,9 +92,11 @@ L2 — inline accordion (depth 2, overlay 아님)
 - **2c 이관 (2a legacy-first 아키텍처 하드 의존)**: ① **cross-event reuse 토글**(anon→named id) — canonical-primary write 전환 후 EventsPanel L2 고급에 추가. `updateActionsRootCollection` 신설 + actionRef 공유 (inline props.events 모델에선 표현 불가) ② **true 방향 역전** — canonical 을 1차 write, props.events 는 파생 projection(canonical→legacy)로 전환. Phase 2 의 legacy-first(updateAndSave 먼저) 를 canonical-first 로 반전 (HC3 runtime 소비 전환과 동반) ③ canonical root 의 undo/redo 재파생 (R8 완결 — Phase 2 는 legacy props.events 만 undo/redo, canonical root 는 write 시점만 파생)
 - **G2**: grep 게이트 전체 + 이벤트 편집 undo/redo 1회 (R8) + live behavior 1회 (builder 에서 Button onPress → navigate 바인딩 → Preview 실행)
 
-### Wave 2 — RAC convention 정합 (G2 통과 후 조건부)
+### Wave 2 — RAC convention 정합 (G2 통과 후 조건부) → **별도 ADR 이관 (2026-07-19)**
 
-#### Phase 4 — EventType 정합 + migration helper
+> Wave 2 는 원래 Wave 1 G2(런타임 canonical 소비) 통과 후 조건부였다. Option A 재정의로 G2(런타임 발화)가 별도 ADR 이관됐고, EventType RAC convention(onClick→onPress deprecate 등)은 런타임 발화 정합과 함께 다뤄야 자연스러우므로 **동일 별도 ADR 로 이관**. ADR-149 는 편집 UX(2-depth) + canonical primary 편집 + 역방향 adapter + dead retire 로 종결.
+
+#### Phase 4 — EventType 정합 + migration helper (별도 ADR 이관)
 
 - gap 재실측: `.claude/skills/react-aria/references/components/` 대조 → 추가 목록 확정 (구 133 D9 의 Table 6 / SearchField 1 / ComboBox 1 / Press 4 / Hover 1 은 출발점 후보)
 - breaking 3종 (Q1/Q2/Q5 승계): onClick deprecate→onPress / onMouseEnter·Leave→onHoverStart·End / onMouseDown·Up·KeyPress·DoubleClick 4종 제거
