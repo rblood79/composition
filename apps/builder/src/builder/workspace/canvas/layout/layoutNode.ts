@@ -20,4 +20,9 @@ export interface CanvasLayoutNode {
   deleted?: boolean;
   reusable?: boolean;
   slot?: false | string[];
+  /**
+   * ADR-154 반응형 override. resolve 파이프(useLayoutPublisher / renderCommands)가
+   * activeBreakpoint 기준 base⊕override merge 에 사용. 저장은 raw, 소비 시 resolve.
+   */
+  responsive?: import("@composition/shared").ElementResponsiveConfig;
 }

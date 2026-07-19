@@ -11,6 +11,7 @@
  */
 
 import { StateCreator } from "zustand";
+import type { BreakpointName } from "@composition/shared";
 
 /** 페이지 배치 방향 */
 export type PageLayoutDirection = "horizontal" | "vertical" | "zigzag";
@@ -106,6 +107,17 @@ export interface SettingsState {
   pageLayoutDirection: PageLayoutDirection;
   /** 페이지 배치 방향 설정 */
   setPageLayoutDirection: (direction: PageLayoutDirection) => void;
+
+  /**
+   * ADR-154: 현재 활성 반응형 breakpoint (기본값: 'desktop').
+   * layout/Inspector 가 읽는 responsive resolve SSOT. 기존 BuilderHeader
+   * breakpoint 선택기에서 파생 write (BuilderCore.handleBreakpointChange).
+   * 변경 시 layoutVersion bump 은 bridge 에서 invalidateLayout() 로 처리
+   * (전역 재레이아웃 — 모든 요소 resolve 재계산).
+   */
+  activeBreakpoint: BreakpointName;
+  /** 활성 breakpoint 설정 (bridge 전용 — 호출 후 invalidateLayout 필요) */
+  setActiveBreakpoint: (breakpoint: BreakpointName) => void;
 }
 
 /**
@@ -122,6 +134,7 @@ export const createSettingsSlice: StateCreator<SettingsState> = (set) => ({
   workflowStraightEdges: true,
   workflowFocusedPageId: null,
   pageLayoutDirection: "horizontal" as PageLayoutDirection,
+  activeBreakpoint: "desktop" as BreakpointName,
   gridSize: 8,
   historyInfo: {
     canUndo: false,
@@ -211,7 +224,9 @@ export const createSettingsSlice: StateCreator<SettingsState> = (set) => ({
    * Workflow Data source connections 표시 토글
    */
   toggleWorkflowDataSources: () => {
-    set((state) => ({ showWorkflowDataSources: !state.showWorkflowDataSources }));
+    set((state) => ({
+      showWorkflowDataSources: !state.showWorkflowDataSources,
+    }));
   },
 
   /**
@@ -225,7 +240,9 @@ export const createSettingsSlice: StateCreator<SettingsState> = (set) => ({
    * Workflow Layout group visualization 표시 토글
    */
   toggleWorkflowLayoutGroups: () => {
-    set((state) => ({ showWorkflowLayoutGroups: !state.showWorkflowLayoutGroups }));
+    set((state) => ({
+      showWorkflowLayoutGroups: !state.showWorkflowLayoutGroups,
+    }));
   },
 
   /**
@@ -247,5 +264,14 @@ export const createSettingsSlice: StateCreator<SettingsState> = (set) => ({
    */
   setPageLayoutDirection: (direction: PageLayoutDirection) => {
     set({ pageLayoutDirection: direction });
+  },
+
+  /**
+   * ADR-154: 활성 breakpoint 설정. 값만 변경하며, 전역 재레이아웃 트리거는
+   * 호출측(BuilderCore bridge)이 invalidateLayout() 로 수행 (slice 경계상
+   * layoutVersion 은 elements slice 소유 — cross-slice bump 회피).
+   */
+  setActiveBreakpoint: (breakpoint: BreakpointName) => {
+    set({ activeBreakpoint: breakpoint });
   },
 });

@@ -23,6 +23,7 @@ import {
   publishSyntheticElementsMap,
 } from "../layout";
 import type { ComputedLayout } from "../layout";
+import type { CanvasLayoutNode } from "../layout/layoutNode";
 import {
   getCachedPageLayout,
   createPageElementsSignature,
@@ -30,6 +31,8 @@ import {
   buildPageChildrenMap,
   buildChildrenIdMap,
 } from "../scene/layoutCache";
+import { resolveResponsiveLayoutNode } from "../layout/resolveResponsive";
+import { useStore } from "../../../stores";
 
 interface PageLayoutInput {
   pageId: string;
@@ -104,6 +107,10 @@ export function useLayoutPublisher(
 
   useEffect(() => {
     const all = [...pagesRef.current, ...framePagesRef.current];
+    // ADR-154: 현재 activeBreakpoint 를 publish 시점에 읽어 resolve 에 사용.
+    // activeBreakpoint 변경은 bridge(invalidateLayout)로 layoutVersion 을 bump →
+    // 본 effect 가 재실행되고, resolve 된 style 로 시그니처가 달라져 캐시 miss.
+    const activeBreakpoint = useStore.getState().activeBreakpoint;
     const activeKeys = new Set<string>();
     const layoutUpdates: Array<{
       key: string;
@@ -127,28 +134,45 @@ export function useLayoutPublisher(
         bodyElement.id;
       activeKeys.add(key);
 
-      const sourceElementById = new Map(elementById);
-      sourceElementById.set(bodyElement.id, bodyElement);
-      for (const element of pageElements) {
-        sourceElementById.set(element.id, element);
-      }
-      const pageChildrenMap = buildPageChildrenMap({
+      // ADR-154: responsive override resolve (base ⊕ cascade). desktop 은 원본
+      // identity 반환이라 기존 경로 비용 0. 시그니처/엔진/children map 모두 resolved
+      // 노드로 계산 → activeBreakpoint·override 변경이 자연히 캐시 miss 를 유발.
+      const resolvedBody = resolveResponsiveLayoutNode(
         bodyElement,
-        elementById: sourceElementById,
-        pageElements,
-      });
-      const pageElementsSignature = createPageElementsSignature(pageElements);
-      const freshElements = pageElements.map(
+        activeBreakpoint,
+      );
+      const sourceElementById = new Map<string, CanvasLayoutNode>();
+      for (const [id, node] of elementById) {
+        sourceElementById.set(
+          id,
+          resolveResponsiveLayoutNode(node, activeBreakpoint),
+        );
+      }
+      sourceElementById.set(resolvedBody.id, resolvedBody);
+      for (const element of pageElements) {
+        sourceElementById.set(
+          element.id,
+          resolveResponsiveLayoutNode(element, activeBreakpoint),
+        );
+      }
+      const resolvedPageElements = pageElements.map(
         (el) => sourceElementById.get(el.id) ?? el,
       );
+      const pageChildrenMap = buildPageChildrenMap({
+        bodyElement: resolvedBody,
+        elementById: sourceElementById,
+        pageElements: resolvedPageElements,
+      });
+      const pageElementsSignature = createPageElementsSignature(pageElements);
+      const freshElements = resolvedPageElements;
       const pageLayoutSignature = createPageLayoutSignature(
-        bodyElement,
+        resolvedBody,
         freshElements,
       );
       const childrenIdMap = buildChildrenIdMap(pageChildrenMap);
 
       const layoutMap = getCachedPageLayout({
-        bodyElement,
+        bodyElement: resolvedBody,
         childrenIdMap,
         elementById: sourceElementById,
         pageChildrenMap,

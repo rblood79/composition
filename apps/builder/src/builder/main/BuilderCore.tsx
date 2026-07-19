@@ -5,6 +5,15 @@ import { Key } from "react-aria-components";
 import { useStore } from "../stores";
 import { historyManager } from "../stores/history";
 import { applyCanonicalThemes } from "@/adapters/canonical";
+import type { BreakpointName } from "@composition/shared";
+
+/**
+ * ADR-154: BuilderHeader breakpoint preset(id) → 반응형 BreakpointName 매핑.
+ * laptop 은 아트보드 크기 preset 전용(override tier 없음) → desktop tier 로 resolve.
+ */
+function toResponsiveBreakpoint(value: string): BreakpointName {
+  return value === "tablet" || value === "mobile" ? value : "desktop";
+}
 
 // 패널 등록 (side effect import - registerAllPanels() 자동 실행)
 import "../panels";
@@ -173,6 +182,9 @@ export const BuilderCore: React.FC = () => {
   const currentPageId = useStore((state) => state.currentPageId);
   // const selectedElementId = useStore((state) => state.selectedElementId);  // 사용하지 않음
   const setSelectedElement = useStore((state) => state.setSelectedElement);
+  // ADR-154: 반응형 breakpoint bridge (기존 선택기 → activeBreakpoint SSOT)
+  const setActiveBreakpoint = useStore((state) => state.setActiveBreakpoint);
+  const invalidateLayout = useStore((state) => state.invalidateLayout);
   const historyInfo = useStore((state) => state.historyInfo);
 
   // UI 설정 (글로벌 uiStore에서 가져옴 - Phase 1)
@@ -407,10 +419,28 @@ export const BuilderCore: React.FC = () => {
   ]);
 
   // breakpoint 변경 시 로컬 스토리지에 저장
-  const handleBreakpointChange = useCallback((value: Key) => {
-    const newBreakpoint = new Set<Key>([value]);
-    setBreakpoint(newBreakpoint);
-    localStorage.setItem("builder-breakpoint", String(value));
+  const handleBreakpointChange = useCallback(
+    (value: Key) => {
+      const newBreakpoint = new Set<Key>([value]);
+      setBreakpoint(newBreakpoint);
+      localStorage.setItem("builder-breakpoint", String(value));
+      // ADR-154: 반응형 override resolve SSOT 동기화 + 전역 재레이아웃.
+      // desktop/laptop → desktop tier, tablet/mobile → 동명 tier.
+      setActiveBreakpoint(toResponsiveBreakpoint(String(value)));
+      invalidateLayout();
+    },
+    [setActiveBreakpoint, invalidateLayout],
+  );
+
+  // ADR-154: 마운트/복원 시 활성 breakpoint 를 store 에 1회 동기화
+  // (localStorage 로 tablet/mobile 로 복원된 경우 store 기본값 desktop 과 정합).
+  useEffect(() => {
+    const initial = Array.from(breakpoint)[0];
+    if (initial != null) {
+      setActiveBreakpoint(toResponsiveBreakpoint(String(initial)));
+    }
+    // 마운트 1회만 — 이후 변경은 handleBreakpointChange 경유
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 프로젝트 정보 가져오기 (IndexedDB만 조회 - Supabase 동기화는 대시보드에서 처리)

@@ -60,6 +60,7 @@ type CanonicalComponentMirrorFields = {
   ref?: string;
   reusable?: true;
   slot?: false | string[];
+  responsive?: CanonicalNode["responsive"];
 };
 
 const ROOT_SCOPE: ElementScopeContext = {
@@ -168,6 +169,10 @@ function extractCanonicalComponentMirrorFields(
   }
   if (node.slot === false || Array.isArray(node.slot)) {
     out.slot = node.slot;
+  }
+  // ADR-154: 반응형 override mirror (top-level canonical 필드 → Element)
+  if (node.responsive) {
+    out.responsive = node.responsive;
   }
   if (node.metadata) {
     out.metadata = node.metadata;

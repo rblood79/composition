@@ -117,6 +117,14 @@ export interface Element {
   fills?: import("./fill.types").FillItem[];
   /** Border 설정 (Phase 1: 타입만 추가, UI 미연결) */
   border?: import("./fill.types").BorderConfig;
+
+  // --- ADR-154: 반응형 Breakpoint override ---
+  /**
+   * Breakpoint 별 시각 override (ADR-154). canonical `CanonicalNode.responsive`
+   * mirror. desktop = base(`props.style`), tablet/mobile 은 override 만 저장.
+   * resolve 는 `getResponsiveValueWithCascade` 단일 진입점.
+   */
+  responsive?: import("@composition/shared").ElementResponsiveConfig;
 }
 
 // === G.1/G.2 타입 별칭 및 가드 ===

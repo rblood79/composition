@@ -34,12 +34,13 @@ describe("useLayoutPublisher invalidation contract", () => {
       /const key =\s*bodyElement\.page_id\s*\?\?\s*getFrameElementMirrorId\(bodyElement\)\s*\?\?\s*bodyElement\.id;/,
     );
     expect(source).toContain("activeKeys.add(key);");
-    expect(source).toContain("const sourceElementById = new Map(elementById);");
     expect(source).toContain(
-      "sourceElementById.set(bodyElement.id, bodyElement);",
+      "const sourceElementById = new Map<string, CanvasLayoutNode>();",
+    );
+    expect(source).toContain(
+      "sourceElementById.set(resolvedBody.id, resolvedBody);",
     );
     expect(source).toContain("for (const element of pageElements)");
-    expect(source).toContain("sourceElementById.set(element.id, element);");
     expect(source).toContain("elementById: sourceElementById,");
     expect(source).toContain("layoutUpdates.push({ key, map: layoutMap });");
     expect(source).toMatch(/publishFilteredChildrenMap\(null, key\);/);
@@ -68,5 +69,33 @@ describe("useLayoutPublisher invalidation contract", () => {
     );
 
     expect(source).toContain("input.projectionVersion");
+  });
+
+  // ADR-154 R1: responsive override 는 시그니처/엔진 소비 이전에 resolve 되어야
+  // activeBreakpoint·override 변경이 자연히 캐시 miss 를 유발한다. resolve 가
+  // signature 계산 앞단에서 누락되면 편집이 캐시 히트로 흡수돼 무반영이 된다.
+  it("resolves responsive overrides before signature/layout (ADR-154)", async () => {
+    const source = await readFile(
+      resolve(__dirname, "useLayoutPublisher.ts"),
+      "utf-8",
+    );
+
+    // resolve helper import + activeBreakpoint 읽기
+    expect(source).toContain("resolveResponsiveLayoutNode");
+    expect(source).toContain(
+      "const activeBreakpoint = useStore.getState().activeBreakpoint;",
+    );
+    // body + 각 요소가 resolve 를 거침 (포맷 무관 — 인자 순서만 확인)
+    expect(source).toMatch(
+      /resolveResponsiveLayoutNode\(\s*bodyElement,\s*activeBreakpoint,?\s*\)/,
+    );
+    expect(source).toMatch(
+      /resolveResponsiveLayoutNode\(\s*element,\s*activeBreakpoint,?\s*\)/,
+    );
+    // 시그니처는 resolved body/elements 로 계산 (raw 아님)
+    expect(source).toMatch(
+      /createPageLayoutSignature\(\s*resolvedBody,\s*freshElements,?\s*\)/,
+    );
+    expect(source).toContain("bodyElement: resolvedBody,");
   });
 });
