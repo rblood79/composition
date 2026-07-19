@@ -1,6 +1,6 @@
 # ADR-154 구현 상세 — 반응형 Breakpoint 저작 배선
 
-> 본문: [154-responsive-breakpoint-authoring.md](../154-responsive-breakpoint-authoring.md)
+> 본문: [154-responsive-breakpoint-authoring.md](../completed/154-responsive-breakpoint-authoring.md)
 > 상태: Accepted (2026-07-16) — 리뷰 round 1 승인, execute-adr 진행
 
 ## 1. Scope lock-in

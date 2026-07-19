@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [반응형 Breakpoint 저작 배선 — ADR-154 (Phase 1~3)] - 2026-07-19
+
+### Features
+
+- **viewport 별 반응형 스타일 저작** (ADR-154, desktop/tablet/mobile 3-breakpoint desktop-first cascade):
+  - 기존 BuilderHeader breakpoint 스위처를 `activeBreakpoint` SSOT 로 재사용 — tablet/mobile 선택 시 스타일 편집이 base(desktop)가 아닌 **override**로 저장 (`element.responsive.styles.{prop}.{tablet|mobile}`), desktop 은 기존 `props.style`(base) 그대로 (BC 0)
+  - **Builder(Skia)**: `resolveResponsiveLayoutNode` 가 `activeBreakpoint` 기준으로 override 를 merge — tablet 에서 flexDirection override 편집 시 캔버스 자식 배치 즉시 전환(row↔column), width override 시 레이아웃 폭 반영
+  - **Preview / Publish(DOM)**: 요소별 `@media` CSS 출력 — tablet/mobile override 만 `[data-element-id]` selector 로 emit, iframe/뷰포트 리사이즈 시 breakpoint 동작
+  - 위치: `packages/shared/src/utils/responsiveCss.ts`(신규 SSOT) · `apps/builder/src/builder/workspace/canvas/layout/resolveResponsive.ts` · `apps/builder/src/preview/App.tsx` · `packages/shared/src/utils/export.utils.ts`
+- **canonical schema `CanonicalNode.responsive`** (ADR-154 Phase 1): optional 필드 + `responsive.types.ts` shared 이동 + .pen import/export roundtrip 보존. responsive 부재 문서 로드 무영향.
+
+### Architecture
+
+- **3경로(Skia/Preview/Publish) resolve 단일 진입점** (ADR-154, R2):
+  - Builder(Skia) `resolveResponsiveLayoutNode` 와 DOM(@media) `responsiveCss.ts` 가 **동일** `getResponsiveValueWithCascade` 로 breakpoint 값 pre-resolve → 발산 0. `BREAKPOINTS` 상호배타 범위라 mobile 이 tablet 을 cascade 상속 못 하는 문제는 각 breakpoint 를 cascade pre-resolve 하여 해당 `@media` 에 직접 삽입해 해소.
+  - **Why (R6 — inline specificity)**: Preview/Publish 는 스타일을 inline(`style=`)으로 적용해 일반 stylesheet 규칙이 inline 을 못 이긴다. stylesheet `!important`(important-author 버킷)가 non-important inline(normal-author 버킷)을 origin/importance 단계에서 이기는 CSS cascade 규칙을 이용 — override `@media` 만 `!important` 로 emit 하고 base inline 은 무변경(desktop BC 0, inline strip 불필요).
+  - live 검증(Chrome MCP): Preview/Publish 리사이즈 3-breakpoint(desktop 200/tablet 200/mobile 80px) + Skia layout width == DOM computed width(80==80px) 동시 대칭 + persist roundtrip.
+  - 잔여(후속): render-visual `fontSize`/`textAlign`(2/14)은 Skia glyph 가 base 값 렌더(skiaNodeRegistry resolve 미주입) — DOM @media 는 정상, layout props 12/14 는 Skia↔DOM 대칭. apps/publish 리액트 SSG 앱 @media(ADR §2 인벤토리가 명명한 publish 는 `generateStaticHtml` 단일 경로 — SSG 는 scope 밖).
+
 ## [EventsPanel 2-depth 재설계 + canonical events primary 편집 — ADR-149 (Wave 1)] - 2026-07-19
 
 ### Features
