@@ -172,6 +172,9 @@ function repairOrigin(
     ...base,
     props: existing.props ?? base.props,
     children: existing.children ?? base.children,
+    // ADR-154: 사용자 responsive override 는 top-level canonical 필드라 base(seed)에
+    // 없다. props 처럼 existing 을 보존하지 않으면 reseed(hydration repair)마다 소실된다.
+    ...(existing.responsive ? { responsive: existing.responsive } : {}),
     metadata: {
       ...base.metadata,
       ...(existing.metadata ?? {}),

@@ -82,6 +82,8 @@ function repairOrigin(
     ...base,
     props: existing.props ?? base.props,
     children: existing.children ?? base.children,
+    // ADR-154: 사용자 responsive override 보존 (composite origin reseed 소실 방지)
+    ...(existing.responsive ? { responsive: existing.responsive } : {}),
     metadata: {
       ...base.metadata,
       ...(existing.metadata ?? {}),

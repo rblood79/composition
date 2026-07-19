@@ -231,6 +231,12 @@ export interface CanvasSceneNode {
   ref?: string;
   descendants?: Record<string, DescendantOverride>;
   slot?: false | string[];
+  /**
+   * ADR-154 반응형 override. layout/render resolve 경로(useLayoutPublisher /
+   * renderCommands)가 activeBreakpoint 기준 base⊕override merge 에 사용.
+   * canonical `CanonicalNode.responsive` 에서 복사.
+   */
+  responsive?: CanonicalNode["responsive"];
   sourceNode: CanonicalNode;
 }
 
@@ -435,6 +441,8 @@ function toCanvasSceneNode(
   if (node.slot === false || Array.isArray(node.slot)) {
     sceneNode.slot = node.slot;
   }
+  // ADR-154: 반응형 override 를 scene node 로 전달 (resolve 소비 경로).
+  if (node.responsive) sceneNode.responsive = node.responsive;
   if (node.type === "ref") {
     const refNode = node as RefNode;
     sceneNode.ref = refNode.ref;

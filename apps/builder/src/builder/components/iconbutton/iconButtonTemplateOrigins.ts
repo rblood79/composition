@@ -186,6 +186,8 @@ function repairOrigin(
     // 구버전 seed(척도 미주입) 자식 회복 — 부재 척도만 채움 (사용자 값 보존).
     children:
       withButtonScaleDefaults(existing.children, rootSize) ?? base.children,
+    // ADR-154: 사용자 responsive override 보존 (composite origin reseed 소실 방지)
+    ...(existing.responsive ? { responsive: existing.responsive } : {}),
     metadata: {
       ...base.metadata,
       ...(existing.metadata ?? {}),
