@@ -56,8 +56,6 @@ export type PanelId =
   | "styles"
   | "events"
   | "history"
-  // ADR-131 Phase 5 G3 — Actions root collection editor panel
-  | "actions"
   // Bottom panels
   | "monitor";
 

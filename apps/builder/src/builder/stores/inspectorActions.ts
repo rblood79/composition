@@ -303,26 +303,10 @@ function getSelectedPropsForState(
   return (resolved.props ?? fallbackProps) as Record<string, unknown>;
 }
 
-/**
- * ADR-131 Phase 4 — root collection sync helper.
- *
- * Inspector mutation 직후 canonical document `events` / `actions` / `data`
- * root collection 에 동일 변경을 sync. legacy Element.events / dataBinding 도
- * 유지 (dual-write — preview/Skia 가 legacy 경로로 read).
- *
- * dev data 0 가정 — 신규 input 가 root collection 의 primary SSOT 가 됨.
- * Phase 6 cleanup 시점에 legacy field 자체를 제거하고 root collection 단일
- * SSOT 전환.
- */
-function syncEventsToRootCollection(
-  elementId: string,
-  events: readonly unknown[] | undefined,
-): void {
-  // ADR-149 Phase 2a — root collection derive 로직을
-  // `canonical/rootCollectionEventsWrite.ts` (writeEventsToRootCollection) 로 추출.
-  // 단일 구현 유지 + 테스트 가능 단위 (rootCollectionEventsWrite.test.ts).
-  writeEventsToRootCollection(elementId, events);
-}
+// ADR-149 Phase 2c (2026-07-19): syncEventsToRootCollection delegate 제거 —
+// `updateEventsRootCollection` 가 `writeEventsToRootCollection`
+// (canonical/rootCollectionEventsWrite.ts) 를 직접 호출. dead selected-* mutation
+// 4종 제거로 유일 caller 소멸 → 단일 write 진입점 확정.
 
 // ADR-131 Phase 8 (2026-05-13): syncDataBindingToRootCollection 제거.
 // data SSOT 는 `collections` / `api_endpoints` / `variables`.
@@ -429,13 +413,10 @@ export interface InspectorActionsState {
   ) => void;
   updateSelectedCustomId: (customId: string) => void;
   updateSelectedDataBinding: (dataBinding: DataBinding | undefined) => void;
-  updateSelectedEvents: (events: EventHandler[]) => void;
-  addSelectedEvent: (event: EventHandler) => void;
-  updateSelectedEvent: (id: string, event: EventHandler) => void;
-  removeSelectedEvent: (id: string) => void;
   /**
-   * ADR-149 Phase 2a — canonical events 단일 write 진입점 (elementId 파라미터화).
+   * ADR-149 Phase 2a/2c — canonical events 단일 write 진입점 (elementId 파라미터화).
    * updateAndSave(node projection + history + persist, R8) + canonical root collection 파생.
+   * Phase 2c: dead selected-* events mutation 4종 제거 (EventsPanel 이 본 진입점만 사용).
    */
   updateEventsRootCollection: (
     elementId: string,
@@ -1012,67 +993,17 @@ export const createInspectorActionsSlice: StateCreator<
     // Event Actions
     // ============================================
 
-    updateSelectedEvents: (events) => {
-      const element = getSelectedElement();
-      if (!element) return;
-
-      updateAndSave(element.id, {
-        events: events as unknown as ElementEvent[],
-      });
-
-      // ADR-131 Phase 4 — root collection mirror write
-      syncEventsToRootCollection(element.id, events);
-    },
-
-    addSelectedEvent: (event) => {
-      const element = getSelectedElement();
-      if (!element) return;
-
-      const currentEvents = (element.props?.events as EventHandler[]) || [];
-      const next = [...currentEvents, event];
-      updateAndSave(element.id, {
-        events: next as unknown as ElementEvent[],
-      });
-
-      syncEventsToRootCollection(element.id, next);
-    },
-
-    updateSelectedEvent: (id, event) => {
-      const element = getSelectedElement();
-      if (!element) return;
-
-      const currentEvents = (element.props?.events as EventHandler[]) || [];
-      const updatedEvents = currentEvents.map((e) => (e.id === id ? event : e));
-      updateAndSave(element.id, {
-        events: updatedEvents as unknown as ElementEvent[],
-      });
-
-      syncEventsToRootCollection(element.id, updatedEvents);
-    },
-
-    removeSelectedEvent: (id) => {
-      const element = getSelectedElement();
-      if (!element) return;
-
-      const currentEvents = (element.props?.events as EventHandler[]) || [];
-      const updatedEvents = currentEvents.filter((e) => e.id !== id);
-      updateAndSave(element.id, {
-        events: updatedEvents as unknown as ElementEvent[],
-      });
-
-      syncEventsToRootCollection(element.id, updatedEvents);
-    },
-
-    // ADR-149 Phase 2a — canonical events 단일 write 진입점 (elementId 파라미터화).
+    // ADR-149 Phase 2a/2c — canonical events 단일 write 진입점 (elementId 파라미터화).
     // updateAndSave: node projection(props.events) + history + DB persist (R8, transitional).
-    // syncEventsToRootCollection → writeEventsToRootCollection: canonical root
-    // collection(doc.events / doc.actions) 파생 (primary read view). EventsPanel(Phase 2b)
-    // 및 4개 selected-* mutation 의 단일 경유점 (2b 에서 위임 전환).
+    // writeEventsToRootCollection: canonical root collection(doc.events / doc.actions) 파생
+    // (primary read view). EventsPanel(Phase 2b)의 유일한 events write 경유점.
+    // Phase 2c: dead selected-* mutation 4종 제거 + syncEventsToRootCollection delegate
+    // inline (단일 진입점 확정). true 방향 역전(canonical-first write)은 Phase 3.
     updateEventsRootCollection: (elementId, events) => {
       updateAndSave(elementId, {
         events: events as unknown as ElementEvent[],
       });
-      syncEventsToRootCollection(elementId, events);
+      writeEventsToRootCollection(elementId, events);
     },
 
     // ============================================

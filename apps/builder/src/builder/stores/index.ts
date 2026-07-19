@@ -370,13 +370,9 @@ export const useUpdateCustomId = () =>
   useStore((state) => state.updateSelectedCustomId);
 export const useUpdateDataBinding = () =>
   useStore((state) => state.updateSelectedDataBinding);
-export const useUpdateEvents = () =>
-  useStore((state) => state.updateSelectedEvents);
-export const useAddEvent = () => useStore((state) => state.addSelectedEvent);
-export const useUpdateEvent = () =>
-  useStore((state) => state.updateSelectedEvent);
-export const useRemoveEvent = () =>
-  useStore((state) => state.removeSelectedEvent);
+// ADR-149 Phase 2c (2026-07-19): useUpdateEvents/useAddEvent/useUpdateEvent/
+// useRemoveEvent 제거 — dead selected-* events mutation 4종 제거 (소비처 0).
+// EventsPanel 은 useStore(s => s.updateEventsRootCollection) 단일 진입점 사용.
 
 /**
  * 🔧 레거시 호환: useInspectorActions (개별 hook 조합)
@@ -389,10 +385,8 @@ export const useInspectorActions = () => ({
   updateProperties: useUpdateProperties(),
   updateCustomId: useUpdateCustomId(),
   updateDataBinding: useUpdateDataBinding(),
-  updateEvents: useUpdateEvents(),
-  addEvent: useAddEvent(),
-  updateEvent: useUpdateEvent(),
-  removeEvent: useRemoveEvent(),
+  // ADR-149 Phase 2c: events 필드 제거 (updateEvents/addEvent/updateEvent/removeEvent) —
+  // dead selected-* mutation 제거. EventsPanel 은 updateEventsRootCollection 직접 사용.
 });
 
 // ============================================

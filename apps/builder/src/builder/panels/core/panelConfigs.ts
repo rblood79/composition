@@ -18,7 +18,6 @@ import {
   Activity,
   History,
   Type,
-  Workflow,
 } from "lucide-react";
 import type { PanelConfig } from "./types";
 import { PanelRegistry } from "./PanelRegistry";
@@ -38,9 +37,9 @@ import { StylesPanel } from "../styles/StylesPanel";
 import { EventsPanel } from "../events/EventsPanel";
 import { HistoryPanel } from "../history/HistoryPanel";
 
-// ADR-131 Phase 5 — Inspector UI panel (events 는 EventsPanel 기존 / actions 신규)
 // ADR-131 Phase 8 (2026-05-13): DataPanel 제거 — DataTablePanel (기존) 가 data SSOT.
-import { ActionsPanel } from "../actions/ActionsPanel";
+// ADR-149 Phase 2c (2026-07-19): ActionsPanel 제거 — cross-event reuse 는 EventsPanel
+// L2 고급 토글로 흡수 예정 (Phase 3). document.actions 는 canonical read view.
 
 // Font Manager panel
 import { FontManagerPanel } from "../fonts/FontManagerPanel";
@@ -206,20 +205,8 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     description: "이벤트 핸들러 관리",
     shortcut: "Ctrl+Shift+E",
   },
-  // ADR-131 Phase 5 G3 — Actions root collection panel
-  // (DataPanel 은 Phase 8 에서 제거 — DataTablePanel 이 data SSOT)
-  {
-    id: "actions",
-    name: "액션",
-    nameEn: "Actions",
-    icon: Workflow,
-    component: ActionsPanel,
-    category: "editor",
-    defaultPosition: "right",
-    minWidth: 233,
-    maxWidth: 500,
-    description: "document.actions 루트 컬렉션 (ADR-131)",
-  },
+  // ADR-149 Phase 2c (2026-07-19): actions 패널 제거 (HC4) — ADR-131 Phase 5 G3
+  // raw skeleton panel 이었음. cross-event reuse 는 EventsPanel L2 고급 토글로 흡수 (Phase 3).
   {
     id: "history",
     name: "히스토리",
