@@ -51,6 +51,23 @@ function isScrollOverflow(style: Record<string, unknown> | undefined): boolean {
   return overflowY === "scroll" || overflowY === "auto";
 }
 
+/**
+ * ListBox owner node 판정 — 직접(`type:"ListBox"`, Components 페이지 origin) 또는 **ref
+ * 인스턴스**(페이지에 놓인 ListBox 는 origin 을 가리키는 `type:"ref"` + `name/componentName
+ * "ListBox"`). 후자 누락 시 실제 페이지 ListBox 가 가상화되지 않는다(2026-07-19 live 검증에서
+ * 발견 — 유닛 fixture 가 type:"ListBox" 직접 노드만 써서 갭이 은폐됨). scene 빌더의
+ * `isListBoxSceneSource`(componentName/name "ListBox") 와 동일 판정.
+ */
+function isListBoxOwnerNode(node: CanonicalNode): boolean {
+  if (node.type === "ListBox") return true;
+  if (node.type !== "ref") return false;
+  const record = node as unknown as {
+    name?: unknown;
+    componentName?: unknown;
+  };
+  return record.name === "ListBox" || record.componentName === "ListBox";
+}
+
 export interface ResolveVirtualizedWindowsInput {
   doc: CompositionDocument;
   collections: readonly CollectionDataSource[];
@@ -74,7 +91,7 @@ export function resolveVirtualizedCollectionWindows(
   const rowHeight = input.rowHeight ?? DEFAULT_LISTBOX_ROW_HEIGHT;
 
   const visit = (node: CanonicalNode): void => {
-    if (node.type === "ListBox") {
+    if (isListBoxOwnerNode(node)) {
       const style =
         (node.props?.style as Record<string, unknown> | undefined) ?? {};
       const viewportHeight = readBoundedHeightPx(style);

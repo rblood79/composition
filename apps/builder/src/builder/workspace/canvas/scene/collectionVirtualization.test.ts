@@ -119,6 +119,53 @@ describe("resolveVirtualizedCollectionWindows — 가상화 대상 판정 + wind
     expect(map.has("listbox-1")).toBe(false);
   });
 
+  it("ref 인스턴스 ListBox(type:'ref' + name:'ListBox')도 가상화 대상 (live 회귀 방지)", () => {
+    // 페이지에 놓인 ListBox 는 origin 을 가리키는 ref 노드다 (type:'ListBox' 직접 아님).
+    // 2026-07-19 live 검증에서 이 경로 누락이 발견됨 — 유닛 fixture 가 직접 노드만 썼던 갭.
+    const items = Array.from({ length: 60 }, (_, i) => ({
+      id: `k${i}`,
+      label: `Row ${i}`,
+    }));
+    const doc = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "listbox-instance-1",
+                  type: "ref",
+                  name: "ListBox",
+                  ref: "component-listbox",
+                  props: {
+                    items,
+                    style: { width: "100%", height: 400, overflowY: "auto" },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+    const map = resolveVirtualizedCollectionWindows({
+      doc,
+      collections: [],
+      scrollTops: new Map(),
+    });
+    const entry = map.get("listbox-instance-1");
+    expect(entry).toBeDefined();
+    expect(entry?.totalRows).toBe(60);
+    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 21 });
+  });
+
   it('height "400px" 문자열도 bounded 로 인식', () => {
     const map = resolveVirtualizedCollectionWindows({
       doc: listBoxDoc({
