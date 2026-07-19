@@ -39,6 +39,8 @@
 
 ## §4 Phase A2 — collection 가상화 스크롤 (CollectionWindow)
 
+> **진행 상태 (2026-07-19): ListBox proof delivered · 시각 최종 확인 대기** — 작업 항목 1~5 (window resolver / draw·hit 동일 window / content height + spacer / 정확 행 높이 / LayerTree 패널 분리) 전부 반영. 커밋 `b9698aa4c` · `90dd52b32` · `73e7b367b` · `360a12201`(ref 인스턴스 감지 수정) · `34c56ea70`(정확 행 높이). G-A2 핵심(노드 수 상한 · 재투영 · spacer 총 높이 불변 · 경계 게이팅 · 정확 행 높이)은 실행 중 builder HMR 모듈 합성 probe(10k 행, 프로젝트 무mutation)로 확증. **잔여 = 실제 canvas 60fps 스크롤 픽셀의 foreground 사용자 확인 1회** (실제 대량 요소 렌더 필요 — 실제 요소 무접촉 지시로 자동화 보류). GridList/Table 확산은 미착수. 재실행 시 sub-1~3 재실행 금지 — 시각 확인 후 ADR Status 승격만 남음.
+
 **목표**: 정적 cap(100) 제거 → scrollOffset 기반 window 로 10k row 에서도 draw/hit 노드 수 ≤ window+overscan, 60fps.
 
 - **선행 조건 (R6, round 1 MEDIUM 반영)**: ADR-916 사후 parity sweep 백로그 중 collection 축 발산(Table/Tree/Card) 정리 **또는** 10k fixture 에서 발산 영향 격리 확인 — row height/content height 판정 기반이 엔진 layout 결과이기 때문.
