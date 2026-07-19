@@ -20,6 +20,7 @@ import { useNavigate } from "react-router-dom";
 import { rendererMap } from "@composition/shared/renderers";
 import {
   adaptElementFillStyle,
+  collectResponsiveCss,
   getCatalogCutoverTypes,
   isComponentsPageMetadata,
   isRuntimePageNode,
@@ -1003,8 +1004,16 @@ function CanvasContent() {
             { currentPageId, resolvedCount: resolvedCanonicalNodes.length },
           );
         } else {
+          // ADR-154 Phase 3: 반응형 override → @media CSS 를 iframe 문서에 주입.
+          // stylesheet !important 가 base inline 을 이기므로(R6) iframe 리사이즈 시
+          // tablet/mobile override 가 적용된다. resolve 는 shared collectResponsiveCss
+          // 단일 진입점(R2 — Builder Skia resolveResponsiveLayoutNode 와 동일 helper).
+          const responsiveCss = collectResponsiveCss(pageNodes);
           return (
             <>
+              {responsiveCss ? (
+                <style data-adr154-responsive="">{responsiveCss}</style>
+              ) : null}
               {pageNodes.map((node) => (
                 <CanonicalNodeRenderer
                   key={node.id}
