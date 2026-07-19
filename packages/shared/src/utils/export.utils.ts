@@ -26,6 +26,7 @@ import type { ZodError } from "zod";
 import { ExportedProjectSchema } from "../schemas/project.schema";
 import { buildRegistryFontFaceCss } from "./fontRegistry";
 import type { FontRegistryV2 } from "../types/font.types";
+import { collectResponsiveCss } from "./responsiveCss";
 
 // ============================================
 // Constants
@@ -1000,6 +1001,12 @@ export function generateStaticHtml(
     ? buildRegistryFontFaceCss(fontRegistry)
     : "";
 
+  // ADR-154 Phase 3: 반응형 override → @media CSS (Preview 와 동일 SSOT).
+  // 런타임 JS 는 요소 스타일을 inline 으로 적용하므로, tablet/mobile override 는
+  // stylesheet !important @media 로 emit 해 inline 을 이긴다(R6). resolve 는
+  // Builder(Skia)/Preview 와 동일 getResponsiveValueWithCascade 단일 진입점(R2).
+  const responsiveCss = collectResponsiveCss(document.children ?? []);
+
   return `<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -1010,11 +1017,14 @@ export function generateStaticHtml(
     /* Reset */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    
+
 
     ${customFontCss}
 
     ${themeCSS}
+
+    /* ADR-154 반응형 breakpoint override (@media) */
+    ${responsiveCss}
 
     /* Navigation */
     .publish-nav {
@@ -1135,6 +1145,8 @@ export function generateStaticHtml(
         const dom = document.createElement(type);
         dom.className = 'component';
         dom.dataset.canonicalId = node.id;
+        // ADR-154: 반응형 @media selector([data-element-id]) 매칭용 마커 (Preview 정합)
+        dom.dataset.elementId = node.id;
 
         const props = node.props || {};
         if (props.style) {
