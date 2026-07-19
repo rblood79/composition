@@ -73,6 +73,12 @@ import {
   buildSceneStructureSnapshot,
   createResolvedProjectionSignature,
 } from "./scene";
+// ADR-150 A2: collection 가상화 window 해석 (bounded+overflow ListBox → window map).
+import {
+  resolveVirtualizedCollectionWindows,
+  collectionWindowSignature,
+} from "./scene/collectionVirtualization";
+import { useScrollState } from "../../stores/scrollState";
 import { buildLegacyCanvasSceneGraph } from "../../stores/canonical/canonicalSceneModelLegacy";
 import {
   computeWorkflowEdges,
@@ -199,10 +205,37 @@ export function BuilderCanvas({
     () => Array.from(collectionsMap.values()),
     [collectionsMap],
   );
+  // ADR-150 A2 (ListBox 가상화): bounded height + overflow scroll/auto data-bound ListBox 의
+  //   scrollOffset 기반 window map. scrollMap 변화마다 재계산되나 doc walk + O(1) count 라 저렴.
+  const scrollMap = useScrollState((state) => state.scrollMap);
+  const collectionWindows = useMemo(() => {
+    if (!activeCanonicalDocument) return undefined;
+    const scrollTops = new Map<string, number>();
+    for (const [id, scrollState] of scrollMap) {
+      scrollTops.set(id, scrollState.scrollTop);
+    }
+    return resolveVirtualizedCollectionWindows({
+      doc: activeCanonicalDocument,
+      collections,
+      scrollTops,
+    });
+  }, [activeCanonicalDocument, collections, scrollMap]);
+  // window [start,end) 경계 signature — overscan slack 안 스크롤은 불변 → scene rebuild 억제(HC#1).
+  const collectionWindowSig = collectionWindows
+    ? collectionWindowSignature(collectionWindows)
+    : "";
+
   const canonicalSceneModel = useMemo(() => {
     if (!activeCanonicalDocument) return null;
-    return buildCanonicalSceneModel(activeCanonicalDocument, { collections });
-  }, [activeCanonicalDocument, collections]);
+    return buildCanonicalSceneModel(activeCanonicalDocument, {
+      collections,
+      collectionWindows,
+    });
+    // collectionWindows 는 window 경계 signature(collectionWindowSig)로 게이팅한다 — map
+    //   identity 는 scroll 마다 바뀌지만 window 불변 구간은 rebuild 를 억제(pointer/scroll
+    //   hot path 무회귀, ADR-136 §9). signature 변경 시 최신 map 을 읽어 재투영.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCanonicalDocument, collections, collectionWindowSig]);
 
   // Store state
   const storeElements = useStore((state) => {

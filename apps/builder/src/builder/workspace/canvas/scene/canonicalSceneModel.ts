@@ -8,6 +8,7 @@ import {
   buildCanvasSceneGraph,
   buildCanvasScenePageIndex,
   type CanvasSceneNode,
+  type CollectionWindowResolution,
 } from "./canvasSceneNode";
 import type { ListBoxCollectionDataSource } from "../../../components/listbox/listBoxRowProjectionModel";
 
@@ -58,6 +59,11 @@ export interface CanonicalSceneModel {
 
 type BuildCanonicalSceneModelOptions = {
   collections?: readonly ListBoxCollectionDataSource[];
+  /**
+   * ADR-150 A2: 가상화된 collection owner 의 window map (BuilderCanvas precompute).
+   * 미제공 owner 는 legacy 정적 cap 투영(BC).
+   */
+  collectionWindows?: ReadonlyMap<string, CollectionWindowResolution>;
 };
 
 function buildSceneParentById(
@@ -166,6 +172,7 @@ export function buildCanonicalSceneModel(
   const sceneGraph = resolveSceneGraph(
     buildCanvasSceneGraph(doc, {
       collections: options.collections,
+      collectionWindows: options.collectionWindows,
       includeReusableFrames: true,
     }),
   );
