@@ -52,6 +52,10 @@ Phase 2 착수 시 라이브 재실측 결과, §2 인벤토리의 아래 2행�
 
 ## 4. Phase 2 — Builder 편집 경로
 
+> **✅ 핵심 Implemented 2026-07-19 (execute-adr, live 검증)** — 커밋 `c262b1566`(2-a resolve 배선) + `b693f0862`(2-b Inspector override) + `e8e70b9ed`(2-c threading 누락 해소). layout-affecting responsive override 저작이 실제 builder 에서 end-to-end 작동 확인 (Chrome MCP): tablet 에서 flexDirection override 편집 → Skia 자식 배치 즉시 전환(row↔column) + desktop base 격리(override 미침범) + persist→reload roundtrip 생존. 아래는 실제 배선 결과 반영.
+>
+> **잔여 (후속)**: (a) **render-visual props 대칭** — layout props(flexDirection/gap/padding/display/order/width/height/justify·align/grid 12/14)는 layout resolve→layoutMap 좌표로 Skia 대칭 성립. `fontSize`/`textAlign`(2/14)은 skiaNodeRegistry(scene node style 소비)가 resolve 미적용이라 텍스트 glyph 가 base 값 렌더 → box(layout)와 glyph 불일치 잔존. 해소 = skiaNodeRegistry 빌드 지점 resolve 주입. (b) **breakpoint 배지 UI** + `ResponsiveVisibilityEditor` PropertySection 배선(항목 4 후반) 미착수 — override 편집은 작동하나 어느 필드가 override 인지 시각 표시 없음. (c) **updateSelectedStylePreview** 는 비-desktop 에서 live preview skip(commit 시 반영) — drag 중 실시간 미리보기 후속.
+>
 > **§2.1 재실측 반영 (2026-07-19)**: 항목 1·2(activeBreakpoint 상태·스위처 UI·아트보드 폭 전환)는 기존 자산 재사용으로 대체됨. 아래 1·2 는 신규 build 가 아니라 **기존 BuilderHeader 선택기 → activeBreakpoint 파생 bridge**.
 
 1. **activeBreakpoint 파생 (bridge, 기존 선택기 재사용)**: `canvasSettings` 슬라이스에 `activeBreakpoint: BreakpointName` (기본 desktop) 추가 — layout/Inspector 가 읽을 SSOT. 값은 **기존 BuilderHeader 선택기**(`BuilderCore.handleBreakpointChange`, `Set<Key>` 4 preset)에서 파생하여 store 에 write (desktop/laptop→desktop, tablet→tablet, mobile→mobile). 아트보드 폭 전환은 기존 `useWorkspaceCanvasSizing` 이 이미 담당 → 신규 배선 불필요.
