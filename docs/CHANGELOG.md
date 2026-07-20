@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Compare 모드 줌 fit/축소 시 캔버스 전체 소실 수정 — viewport containerSize 좌표계] - 2026-07-20
+
+### Bug Fixes
+
+- **compare(미리보기 분할) 모드에서 화면에 맞추기/화면 채우기/축소 직후 Skia 캔버스 콘텐츠 전체가 사라짐** (dot 배경만 남고, 이후 어떤 줌/pan 으로도 회복 불가 — reload 로만 복구):
+  - viewport store 의 `containerSize` 를 workspace 전체 요소(좌측 preview pane 포함)로 측정하는데, `zoomToFit`/`zoomToFill`(ZoomControls·⌘0)과 `zoomViewportAtContainerCenter`(확대/축소/100%/200%)는 이 값을 보정 없이 사용 — pan 이 좌측 preview pane 폭만큼 오른쪽으로 밀려 콘텐츠가 우측 인스펙터 패널 아래로 이동했다. 렌더 파이프라인은 매 프레임 정상(command stream 310개 방출 실측)이라 "전체 미렌더" 로 오인되는 증상.
+  - **Why**: 초기 배치(`centerCanvas`)만 `compareSplit` 로 수동 보정하고 있었고, 나머지 줌 경로는 좌표계가 갈라진 `containerSize` 를 그대로 소비했다. compare 좌표계 분리는 측정 시점에 한 번만 해소되어야 할 문제.
+  - 수정: `useWorkspaceCanvasSizing` 의 ResizeObserver 측정 대상을 workspace 전체 → **Skia canvas 가 실제 차지하는 우측 pane(`canvasAreaRef`)** 으로 교체. `effectiveWidth` 수동 보정 제거 — fit/fill/줌 중심·`panToPage`·`buildVisiblePageSet`·workflow minimap 등 `containerSize` 전 소비자가 자동 정합. compare 토글 시 DOM 교체를 재관측하도록 effect deps 에 `compareMode` 추가.
+  - 검증: live(Chrome MCP) — fit(94%) 후 pan 이 canvas 영역 기준 정확 중앙(검산 376.2 = 실측 376.17), 축소(84%) 중심 유지, 콘텐츠 소실 재현 소멸 · `useWorkspaceCanvasSizing.static.test.ts` 5 케이스(보정 재도입 차단 가드) · type-check PASS(Cached 0)
+  - 위치: `apps/builder/src/builder/workspace/hooks/useWorkspaceCanvasSizing.ts` · `Workspace.tsx` · `components/WorkspaceCompareMode.tsx`
+  - 부수 판정: "panel 추가 직후 instance 미렌더" 관찰은 코드 결함이 아니라 **Chrome MCP hidden 탭의 rAF pause 관찰 아티팩트**로 확정 (visible 탭에서 즉시 렌더 실증 — 연속 rAF 루프 구조상 store 파생이 옳으면 다음 프레임에 반영됨)
+
 ## [ListBox Selected variant slot 배선 — selected 행 origin 스타일 소비] - 2026-07-20
 
 ### Bug Fixes

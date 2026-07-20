@@ -36,6 +36,8 @@ export function Workspace({
   fallbackCanvas,
 }: WorkspaceProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // compare 모드에서 Skia canvas 가 차지하는 우측 pane — viewport containerSize 기준
+  const canvasAreaRef = useRef<HTMLDivElement>(null);
 
   // Feature flags
   const useWebGL = isWebGLCanvas();
@@ -48,8 +50,8 @@ export function Workspace({
   const { canvasSize } = useWorkspaceCanvasSizing({
     breakpoint,
     breakpoints,
+    canvasAreaRef,
     compareMode,
-    compareSplit,
     containerRef,
   });
 
@@ -61,6 +63,7 @@ export function Workspace({
   if (compareMode && fallbackCanvas) {
     return (
       <WorkspaceCompareMode
+        canvasAreaRef={canvasAreaRef}
         compareSplit={compareSplit}
         containerRef={containerRef}
         fallbackCanvas={fallbackCanvas}

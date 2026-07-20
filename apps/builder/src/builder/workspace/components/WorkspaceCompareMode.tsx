@@ -1,8 +1,14 @@
-import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from "react";
+import type {
+  CSSProperties,
+  PointerEvent as ReactPointerEvent,
+  ReactNode,
+} from "react";
 import { BuilderCanvas } from "../canvas/BuilderCanvas";
 import { WorkspaceStatusIndicator } from "./WorkspaceStatusIndicator";
 
 interface WorkspaceCompareModeProps {
+  /** Skia canvas 가 차지하는 우측 pane — viewport containerSize 측정 기준 */
+  canvasAreaRef: React.RefObject<HTMLDivElement | null>;
   compareSplit: number;
   containerRef: React.RefObject<HTMLDivElement | null>;
   fallbackCanvas: ReactNode;
@@ -16,6 +22,7 @@ interface WorkspaceCompareModeProps {
 }
 
 export function WorkspaceCompareMode({
+  canvasAreaRef,
   compareSplit,
   containerRef,
   fallbackCanvas,
@@ -52,7 +59,7 @@ export function WorkspaceCompareMode({
 
       <div className="workspace-compare-panel workspace-compare-panel--right">
         <div className="workspace-compare-label">Canvas</div>
-        <div className="workspace-compare-content">
+        <div ref={canvasAreaRef} className="workspace-compare-content">
           <BuilderCanvas pageWidth={pageWidth} pageHeight={pageHeight} />
         </div>
       </div>

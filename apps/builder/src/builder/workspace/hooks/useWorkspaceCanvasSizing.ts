@@ -12,8 +12,13 @@ import { subscribeToPanelLayoutChanges } from "../utils/panelLayoutRuntime";
 interface UseWorkspaceCanvasSizingOptions {
   breakpoint?: Set<Key>;
   breakpoints?: Breakpoint[];
+  /**
+   * compare 모드에서 Skia canvas 가 실제 차지하는 영역 (우측 split pane).
+   * viewport 좌표계(pan/zoom/fit/visiblePageSet)의 containerSize 는 이 영역 기준.
+   * 미지정 또는 null 이면 containerRef 로 fallback (비-compare 모드는 두 요소가 동일).
+   */
+  canvasAreaRef?: React.RefObject<HTMLDivElement | null>;
   compareMode: boolean;
-  compareSplit: number;
   containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -29,8 +34,8 @@ export interface UseWorkspaceCanvasSizingResult {
 export function useWorkspaceCanvasSizing({
   breakpoint,
   breakpoints,
+  canvasAreaRef,
   compareMode,
-  compareSplit,
   containerRef,
 }: UseWorkspaceCanvasSizingOptions): UseWorkspaceCanvasSizingResult {
   const containerSizeRef = useRef({ height: 0, width: 0 });
@@ -115,21 +120,9 @@ export function useWorkspaceCanvasSizing({
       return false;
     }
 
-    const effectiveWidth = compareMode
-      ? containerSize.width * ((100 - compareSplit) / 100)
-      : containerSize.width;
-
-    applyViewportState(
-      computeFitViewport({
-        canvasSize,
-        containerSize: {
-          height: containerSize.height,
-          width: effectiveWidth,
-        },
-      }),
-    );
+    applyViewportState(computeFitViewport({ canvasSize, containerSize }));
     return true;
-  }, [canvasSize, compareMode, compareSplit]);
+  }, [canvasSize]);
 
   const centerCanvasAt100 = useCallback(() => {
     const containerSize = containerSizeRef.current;
@@ -137,22 +130,11 @@ export function useWorkspaceCanvasSizing({
       return false;
     }
 
-    const effectiveWidth = compareMode
-      ? containerSize.width * ((100 - compareSplit) / 100)
-      : containerSize.width;
-
     applyViewportState(
-      computeCenteredViewport({
-        canvasSize,
-        containerSize: {
-          height: containerSize.height,
-          width: effectiveWidth,
-        },
-        zoom: 1,
-      }),
+      computeCenteredViewport({ canvasSize, containerSize, zoom: 1 }),
     );
     return true;
-  }, [canvasSize, compareMode, compareSplit]);
+  }, [canvasSize]);
 
   useEffect(() => {
     centerCanvasRef.current = centerCanvas;
@@ -203,7 +185,11 @@ export function useWorkspaceCanvasSizing({
   }, [compareMode]);
 
   useEffect(() => {
-    const container = containerRef.current;
+    // compare 모드에서는 Skia canvas 영역(우측 pane)이 viewport 좌표계의 기준이다.
+    // workspace 전체 폭으로 측정하면 fit/줌 중심의 pan 이 좌측 preview pane 폭만큼
+    // 오른쪽으로 밀려 콘텐츠가 우측 패널 아래로 사라진다 (Phase C 2026-07-20).
+    // compareMode dep: 토글 시 DOM 트리가 교체되므로 새 요소를 재관측해야 한다.
+    const container = canvasAreaRef?.current ?? containerRef.current;
     if (!container) {
       return;
     }
@@ -283,7 +269,7 @@ export function useWorkspaceCanvasSizing({
       }
       resizeObserver.disconnect();
     };
-  }, [containerRef]);
+  }, [canvasAreaRef, compareMode, containerRef]);
 
   return {
     canvasSize,
