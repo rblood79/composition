@@ -122,15 +122,32 @@ export const useScrollState = create<ScrollStateStore>((set, _get) => ({
 
   updateMaxScroll: (elementId, maxScrollTop, maxScrollLeft) => {
     set((state) => {
-      const nextMap = new Map(state.scrollMap);
-      const existing = nextMap.get(elementId) ?? { ...DEFAULT_SCROLL_STATE };
+      const existing = state.scrollMap.get(elementId) ?? {
+        ...DEFAULT_SCROLL_STATE,
+      };
 
       const clampedMaxTop = Math.max(0, maxScrollTop);
       const clampedMaxLeft = Math.max(0, maxScrollLeft);
+      const newTop = clamp(existing.scrollTop, 0, clampedMaxTop);
+      const newLeft = clamp(existing.scrollLeft, 0, clampedMaxLeft);
 
+      // no-op 가드: 결과 entry 가 기존과 동일하면 state 유지 → 불필요 리렌더/구독 루프 방지.
+      //   ADR-150 A2 collection maxScroll 재주입(BuilderCanvas)이 scroll 마다 반복돼도
+      //   값 불변 구간에서는 scrollMap reference 를 새로 만들지 않는다.
+      if (
+        state.scrollMap.has(elementId) &&
+        existing.maxScrollTop === clampedMaxTop &&
+        existing.maxScrollLeft === clampedMaxLeft &&
+        existing.scrollTop === newTop &&
+        existing.scrollLeft === newLeft
+      ) {
+        return state;
+      }
+
+      const nextMap = new Map(state.scrollMap);
       nextMap.set(elementId, {
-        scrollTop: clamp(existing.scrollTop, 0, clampedMaxTop),
-        scrollLeft: clamp(existing.scrollLeft, 0, clampedMaxLeft),
+        scrollTop: newTop,
+        scrollLeft: newLeft,
         maxScrollTop: clampedMaxTop,
         maxScrollLeft: clampedMaxLeft,
       });

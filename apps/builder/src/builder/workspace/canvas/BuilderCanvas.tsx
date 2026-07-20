@@ -225,6 +225,28 @@ export function BuilderCanvas({
     ? collectionWindowSignature(collectionWindows)
     : "";
 
+  // ADR-150 A2 스크롤 입력 배선: data-bound collection 은 element 자식이 0개라
+  //   GAP 4(fullTreeLayout.ts maxScroll, childrenMap 자식 위치 기반)가 스크롤 범위를 못 구한다.
+  //   resolver 가 투영 총 높이로 산출한 maxScrollTop 을 useScrollState 에 주입 → 휠 스크롤
+  //   (useScrollWheelInteraction, maxScrollTop>0 게이트)이 활성화된다. maxScrollTop 값이 바뀔
+  //   때만 재주입하도록 signature 로 게이팅(스크롤마다 X). updateMaxScroll 자체도 no-op 가드 보유.
+  const collectionMaxScrollSig = collectionWindows
+    ? Array.from(
+        collectionWindows,
+        ([id, r]) => `${id}:${r.maxScrollTop ?? 0}`,
+      ).join("|")
+    : "";
+  useEffect(() => {
+    if (!collectionWindows) return;
+    const updateMaxScroll = useScrollState.getState().updateMaxScroll;
+    for (const [id, r] of collectionWindows) {
+      if (r.maxScrollTop != null) updateMaxScroll(id, r.maxScrollTop, 0);
+    }
+    // collectionMaxScrollSig 로 게이팅 — collectionWindows identity 는 scroll 마다 바뀌나
+    //   maxScrollTop 값 불변이면 effect skip.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collectionMaxScrollSig]);
+
   const canonicalSceneModel = useMemo(() => {
     if (!activeCanonicalDocument) return null;
     return buildCanonicalSceneModel(activeCanonicalDocument, {

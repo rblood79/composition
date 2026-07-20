@@ -333,7 +333,23 @@ export function resolveVirtualizedCollectionWindows(
             overscan: input.overscan,
             columns,
           });
-          result.set(node.id, { window, rowHeight, totalRows, columns });
+          // ADR-150 A2 스크롤 입력 배선: data-bound collection 은 childrenMap element 자식이
+          //   0개라 GAP 4(fullTreeLayout.ts maxScroll)가 스크롤 범위를 못 구한다. 투영 총 content
+          //   height(visual row 수 × stride, table 은 header 1행 가산)에서 viewport 를 빼
+          //   maxScrollTop 을 직접 산출 → BuilderCanvas 가 updateMaxScroll 로 주입.
+          const visualRows = Math.ceil(totalRows / Math.max(1, columns));
+          const headerRows = family === "table" ? 1 : 0;
+          const contentHeight = (visualRows + headerRows) * rowHeight;
+          const maxScrollTop = Math.max(0, contentHeight - viewportHeight);
+          result.set(node.id, {
+            window,
+            rowHeight,
+            totalRows,
+            columns,
+            viewportHeight,
+            contentHeight,
+            maxScrollTop,
+          });
         }
       }
     }

@@ -664,3 +664,76 @@ describe("scene model 통합 — Table G-A2: header 상시 + data 행 ≤ window
     expect(dataRows).toHaveLength(100);
   });
 });
+
+// ── ADR-150 A2 스크롤 입력 배선: maxScrollTop = contentHeight − viewportHeight ─────
+// data-bound collection 은 element 자식이 0개라 GAP 4(fullTreeLayout maxScroll)가 스크롤
+// 범위를 못 구한다. resolver 가 투영 총 높이로 산출한 maxScrollTop 을 BuilderCanvas 가
+// useScrollState.updateMaxScroll 로 주입해 휠 스크롤을 활성화한다(설계 breakdown §4 line 53).
+
+describe("resolveVirtualizedCollectionWindows — maxScrollTop (스크롤 입력 배선)", () => {
+  it("ListBox: contentHeight(totalRows×rowHeight) − viewportHeight", () => {
+    const entry = resolveVirtualizedCollectionWindows({
+      doc: listBoxDoc({ itemCount: 1000, style: SCROLLABLE }),
+      collections: [],
+      scrollTops: new Map(),
+    }).get("listbox-1");
+    // rowHeight 28, viewport 400 → contentHeight 28000, maxScrollTop 27600.
+    expect(entry?.viewportHeight).toBe(400);
+    expect(entry?.contentHeight).toBe(28000);
+    expect(entry?.maxScrollTop).toBe(27600);
+  });
+
+  it("content 가 viewport 안에 들어가면 maxScrollTop 0 (스크롤 불가)", () => {
+    const entry = resolveVirtualizedCollectionWindows({
+      doc: listBoxDoc({ itemCount: 10, style: SCROLLABLE }),
+      collections: [],
+      scrollTops: new Map(),
+    }).get("listbox-1");
+    // contentHeight 10×28=280 < viewport 400 → max(0, 280−400)=0.
+    expect(entry?.contentHeight).toBe(280);
+    expect(entry?.maxScrollTop).toBe(0);
+  });
+
+  it("maxScrollTop 은 scrollTop 과 무관(총 스크롤 범위 = 불변)", () => {
+    const doc = listBoxDoc({ itemCount: 1000, style: SCROLLABLE });
+    const at0 = resolveVirtualizedCollectionWindows({
+      doc,
+      collections: [],
+      scrollTops: new Map(),
+    }).get("listbox-1")?.maxScrollTop;
+    const at2800 = resolveVirtualizedCollectionWindows({
+      doc,
+      collections: [],
+      scrollTops: new Map([["listbox-1", 2800]]),
+    }).get("listbox-1")?.maxScrollTop;
+    expect(at0).toBe(27600);
+    expect(at2800).toBe(27600);
+  });
+
+  it("GridList grid(cols 2): 시각 행 수 ceil(totalRows/columns)×rowHeight 기반", () => {
+    const entry = resolveVirtualizedCollectionWindows({
+      doc: gridListDoc({
+        itemCount: 1000,
+        style: SCROLLABLE,
+        layout: "grid",
+        columns: 2,
+      }),
+      collections: [],
+      scrollTops: new Map(),
+    }).get("gridlist-1");
+    // visualRows ceil(1000/2)=500, rowHeight 56 → contentHeight 28000, maxScrollTop 27600.
+    expect(entry?.contentHeight).toBe(28000);
+    expect(entry?.maxScrollTop).toBe(27600);
+  });
+
+  it("Table: header 1행 가산 (visualRows+1)×rowHeight", () => {
+    const entry = resolveVirtualizedCollectionWindows({
+      doc: tableDoc({ rowCount: 10000, style: SCROLLABLE, size: "md" }),
+      collections: [],
+      scrollTops: new Map(),
+    }).get("table-1");
+    // rowHeight 44, data 10000 + header 1 = 10001 → contentHeight 440044, maxScrollTop 439644.
+    expect(entry?.contentHeight).toBe(10001 * 44);
+    expect(entry?.maxScrollTop).toBe(10001 * 44 - 400);
+  });
+});

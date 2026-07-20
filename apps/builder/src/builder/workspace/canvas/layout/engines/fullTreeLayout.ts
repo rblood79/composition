@@ -122,6 +122,13 @@ const LABEL_DELEGATION_PARENT_TAGS = new Set([
 //   Checkbox/Radio 는 여전히 Label 자식 보유 → 유지.
 const LABEL_WRAPPER_TAGS = new Set(["Checkbox", "Radio"]);
 
+// ADR-150 A2: scrollOffset 기반 가상화(collectionVirtualization) 대상 collection owner.
+//   이들은 data-bound(props.items/rows) 라 childrenMap element 자식이 0개이고, 스크롤
+//   content 는 projection(spacer 총 높이)으로 표현된다. GAP 4 의 childrenMap 기반 maxScroll
+//   (=자식 0 → 0)이 BuilderCanvas 의 projection-height 기반 updateMaxScroll(정확값)을 덮어쓰지
+//   않도록, childrenMap 이 빈 경우 GAP 4 에서 skip 한다(자식 있는 static collection 은 GAP 4 유지).
+const A2_WINDOWED_COLLECTION_TAGS = new Set(["ListBox", "GridList", "Table"]);
+
 // ─── NaN/Infinity sanitize 유틸 (ADR-006 P0-2) ───────────────────────
 
 const sanitizeStats = { count: 0 };
@@ -2877,6 +2884,18 @@ export function calculateFullTreeLayout(
       const overflow = elStyle?.overflow as string | undefined;
       if (overflow === "scroll" || overflow === "auto") {
         const scrollChildIds = childrenMap.get(elementId) ?? [];
+        // ADR-150 A2: data-bound 가상화 collection(자식 0개)은 projection-height 기반
+        //   maxScroll(BuilderCanvas)이 담당 → childrenMap 기반 0 으로 덮어쓰지 않도록 skip.
+        //   origin 은 type("ListBox"), ref 인스턴스는 componentName 으로 식별(양쪽 검사).
+        const elWithName = el as { componentName?: unknown } | undefined;
+        const isWindowedCollection =
+          (typeof el?.type === "string" &&
+            A2_WINDOWED_COLLECTION_TAGS.has(el.type)) ||
+          (typeof elWithName?.componentName === "string" &&
+            A2_WINDOWED_COLLECTION_TAGS.has(elWithName.componentName));
+        if (scrollChildIds.length === 0 && isWindowedCollection) {
+          continue;
+        }
         let maxRight = 0;
         let maxBottom = 0;
         for (const cid of scrollChildIds) {

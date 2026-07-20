@@ -285,6 +285,22 @@ export interface CollectionWindowResolution {
    * (visual row = ceil(itemIndex / columns)). 미지정 = 1.
    */
   columns?: number;
+  /**
+   * ADR-150 A2 스크롤 입력 배선: bounded viewport 높이(px, `style.height`/`maxHeight`).
+   * `maxScrollTop = contentHeight − viewportHeight` 산출 근거.
+   */
+  viewportHeight?: number;
+  /**
+   * 전 행 투영 총 content height(px) = (visual row 수 + table header) × rowHeight.
+   * 스크롤바 범위 + trailing spacer 총 높이의 단일 소스.
+   */
+  contentHeight?: number;
+  /**
+   * ADR-150 A2 스크롤 입력 배선: `max(0, contentHeight − viewportHeight)`. data-bound
+   * collection 은 element 자식이 0개라 GAP 4(`fullTreeLayout` maxScroll)가 못 구한다 →
+   * BuilderCanvas 가 이 값을 `useScrollState.updateMaxScroll` 로 주입해 휠 스크롤 활성화.
+   */
+  maxScrollTop?: number;
 }
 
 interface BuildCanvasSceneGraphOptions {
