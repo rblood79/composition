@@ -76,9 +76,17 @@ Phase 0 완료 조건: 위 6개 경로의 라인/심볼 재확정 + auto-height 
 - **scope**: sample mode(auto-height >10 — "샘플 + remainder"). ≤10 순수 dataBinding(hatch 없음, windowResolution null)은 미주입 → §1.55b 3-item fallback 잔존이나 **전량 투영이라 clip 폭 작음**(소소 residual, 후속). items-based/static 은 무영향(기존 경로).
 - **검증**: `listBoxDataBoundContentHeight.test.ts`(§1.55b 주입 소비 + `enrichWithIntrinsicSize` end-to-end 통합 + 회귀 3-item fallback 유지 + 명시 height 우선) + `collectionVirtualization.test.ts`(scene 주입 1000×28 발동 / ≤10 미발동) + engines·scene·renderers 322 PASS + type-check no-new(builder cache-miss 실행). live(pure-dataBinding >10 collection)은 빈 프로젝트+setup 비용+rАF-pause 로 미실행 — 파이프라인 링크(scene 주입 concrete value / §1.55b 소비 / enrich 통합)는 개별+통합 결정론 검증.
 
-### Phase 4 — GridList / Table 확산
+### Phase 4 — GridList / Table 확산 ✅ delivered 2026-07-21 (`f443c1ce9`)
 
-- GridList(행=grid row 묶음, `resolveGridListSpacingMetric`) / Table(data 행만, header 제외) 에 동일 정책 확산. A2 확산 계보(ListBox→GridList/Table)와 동일 순서.
+- GridList(행=grid row 묶음, `resolveGridListSpacingMetric`) / Table(data 행만, header 제외) 에 Phase 2/3 ListBox 정책 확산. A2 확산 계보(ListBox→GridList/Table)와 동일 순서.
+- **scene 배선 (ListBox 동형 승계)**:
+  - `collectionVirtualization.ts` sample-mode 분기를 `family === "listbox"` 전용에서 **3 family dispatch** 로 확장(`viewportHeight == null` 진입 후 scroll 분기와 동일 family 산출). table=`getTableProjectionRows(totalDataRows)` + `resolveTableRowHeight`, gridlist=`resolveGridListRowStride`(stride + numCols), listbox=`resolveListBoxRowHeight`. gate: auto-height + `totalRows > COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT(10)` → window `{0,10}` + `mode:"sample"`.
+  - `canvasSceneNode.ts`: `appendGridListRowProjection` / `appendTableRowProjection` 이 sample mode 에서 trailing 을 빈 spacer 대신 `createCollectionRemainderNode(family)` hatch 로 emit. overlay(`buildCollectionRemainderTargets` kind 필터) + hit-test(`resolveCanvasInteractionTarget`)는 `collection-remainder` kind 기반 **family-agnostic** 이라 사선 hatch·"+N more"·owner-select redirect 자동 승계.
+- **배치 진실성 비대칭 (probe 실측 — GridList 주입 필요 / Table 주입 불필요)**:
+  - **GridList**: §1.55c(`tag1 === "gridlist"`)가 `props.items` 조기 반환(dataBinding 미접근) → 순수 dataBinding 소유자 4-item fallback clip. scene 이 owner 에 `_projectedRowsContentHeight = ceil(totalRows/columns) × rowHeight`(window resolver stride = samples/hatch 동일) 주입, §1.55c 가 `metric.padding + 주입 + metric.border` 반환. **단 GridList 는 `SPEC_SHAPES_INPUT_TAGS` 미포함**(ListBox 는 포함) → `enrichWithIntrinsicSize` 가 §1.55c border-box 위에 `box.padding` 재가산(probe: pad10 시 312→**332 이중**). 주입 소유자에 한해 `isInjectedGridListOwner` 가드로 `isSpecShapesInput` 동급 취급 → 재가산 skip(§1.55b ListBox 선례 동형). items-based(미주입) GridList 는 가드 미적용 = 기존 경로 불변.
+  - **Table**: `calculateContentHeight` 에 `tag1 === "table"` 분기 **부재** → generic child-sum 경로. header + 샘플 data 행 + hatch(명시 height) 를 그대로 합산(probe: calc=5132 = header/rows 132 + hatch 5000) → **주입 불필요**, hatch emit 만. Table default 는 owner padding 없어 child-sum double-pad 도 없음.
+  - `layoutCache.ts` `LAYOUT_PROP_KEYS`: `_projectedRowsContentHeight` 는 Phase 3 에서 이미 등재(prop명 공용, family 무관) → 무변경.
+- **검증**: `gridListDataBoundContentHeight.test.ts`(§1.55c 주입 소비 + enrich double-pad 회피 5020≠5040 + items-based 불변 + 명시 height 우선, 7 case) + `collectionVirtualization.test.ts` Phase 4(GridList stack/grid sample resolution + Table sample + scene hatch emit + owner 주입 GridList 有/Table 無, 7 case) + engines·scene 회귀(4 key file 67 PASS) + type-check no-new(builder cache-miss). 기존 A2 테스트 "GridList bounded height 없음 → 제외" 는 Phase 4 전환 반영으로 sample resolution 계약으로 정정. **live(pure-dataBinding >10 GridList/Table)는 Phase 5 로 이연**(빈 프로젝트 + rАF-pause + setup 비용, Phase 3 선례 동일). scene 주입/§1.55c 소비/enrich 통합/Table child-sum 은 concrete value 로 개별+통합 결정론 검증.
 
 ### Phase 5 — 검증 + 측정
 
