@@ -64,10 +64,17 @@ Phase 0 완료 조건: 위 6개 경로의 라인/심볼 재확정 + auto-height 
 
 **Phase 2 live 검증 요약**: 핵심 배선(remainder 노드 위치·sample 10행·컨테이너 auto-size)은 이전 세션 getSkiaNode 로 확정, R1 정밀화는 결정론적 단위 테스트로 확정(브라우저 불요 — 순수 layout 산술, registration/wiring/schema 무변경). 기본 템플릿 live 동작은 fix 로 무변경(box.padding=0).
 
-### Phase 3 — layout 배치 진실성 (Layer D)
+### Phase 3 — layout 배치 진실성 (Layer D) ✅ delivered 2026-07-21 (`08714d251`)
 
-- `calculateContentHeight` collection 분기가 auto-height data-bound 소유자에서 **totalRows 전체 높이**(샘플 + remainder)를 반환하도록 확정 — scene hatch 높이 계산과 **동일 rowHeight resolver 심볼** 공유 (ADR-907 Layer D 계약).
-- 시그니처/캐시: 행 수 변화가 layout 캐시 키에 반영되는지 확인 (기존 items 경로 유지 — 신규 키 없음 예상).
+- **문제**: `calculateContentHeight` §1.55b(ListBox 분기, utils.ts:2247)는 `props.items` 만 순회 — dataBinding/collections 미접근(시그니처에 collections 없음). 순수 dataBinding 소유자(props.items 없음)는 3-item fallback 반환 → scene 은 sample(10행)+hatch(remainder)를 totalRows 전체 높이로 투영 → enrich 가 owner 를 3-item 으로 고정 → 투영 rowsGroup 이 clip(Hard Constraint 2 위반). (items-based data-bound 은 §1.55b 가 전체 items 합산이라 우연히 정합 — Phase 2 live 가 props.items=100 으로 검증한 이유.)
+- **수정 (dimension injection)**:
+  - scene(`appendListBoxRowProjection`): sample mode owner 에 `_projectedRowsContentHeight = totalRows × rowHeight`(window resolver rowHeight = samples/hatch 와 동일) 주입.
+  - §1.55b: 주입값 있으면 items fallback 대신 `padding + 전체 높이 + border` 반환(rowsGroup gap=0 → inter-row gap 없음). 명시 height(§1)/scroll mode 는 여전히 우선.
+  - `layoutCache.ts` `LAYOUT_PROP_KEYS`: `_projectedRowsContentHeight` 등재.
+- **box-model 선택 근거**: dimension injection(주입값 = totalRows × window resolver rowHeight 50)은 렌더 행(50, Phase 2 R1 fix)·hatch 와 정합. 대안 child-sum(§1.55b 가 rowsGroup 자식 flex 재합산)은 explicit-padding 행에서 flex child-sum(utils.ts:3593)이 R1 이중가산(58)을 재현해 렌더(50)와 발산 → 기각.
+- **시그니처/캐시 — "신규 키 없음 예상" 정정**: 설계 시 "신규 키 없음 예상"이었으나 **검증 결과 신규 키 필수**. 행 수 변화 시 owner 의 `items`/`children` 시그니처는 불변(dataBinding=외부 collections 데이터)이라, 주입 prop 을 시그니처에 등재하지 않으면 owner 레이아웃이 캐시 히트로 stale(이전 행 수 높이). `height`/`isExpanded`/`heightMode`(applyImplicitStyles 주입 prop) 선례와 동형. `LAYOUT_AFFECTING_PROP_KEYS`(layoutVersion 트리거, layoutInvalidation.ts)는 불필요 — 사용자 편집이 아니라 scene 파생이라 sceneVersion 이 재계산 트리거.
+- **scope**: sample mode(auto-height >10 — "샘플 + remainder"). ≤10 순수 dataBinding(hatch 없음, windowResolution null)은 미주입 → §1.55b 3-item fallback 잔존이나 **전량 투영이라 clip 폭 작음**(소소 residual, 후속). items-based/static 은 무영향(기존 경로).
+- **검증**: `listBoxDataBoundContentHeight.test.ts`(§1.55b 주입 소비 + `enrichWithIntrinsicSize` end-to-end 통합 + 회귀 3-item fallback 유지 + 명시 height 우선) + `collectionVirtualization.test.ts`(scene 주입 1000×28 발동 / ≤10 미발동) + engines·scene·renderers 322 PASS + type-check no-new(builder cache-miss 실행). live(pure-dataBinding >10 collection)은 빈 프로젝트+setup 비용+rАF-pause 로 미실행 — 파이프라인 링크(scene 주입 concrete value / §1.55b 소비 / enrich 통합)는 개별+통합 결정론 검증.
 
 ### Phase 4 — GridList / Table 확산
 
