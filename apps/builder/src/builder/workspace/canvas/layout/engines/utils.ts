@@ -4315,7 +4315,19 @@ export function enrichWithIntrinsicSize(
     // ComboBox/Select: calculateContentHeight가 전체 시각적 높이(label+input/trigger)를 반환
     // spec shapes가 내부 padding 없이 렌더링하므로 추가 padding/border 불필요
     const isSpecShapesInput = SPEC_SHAPES_INPUT_TAGS.has(type);
-    if (!isSpecShapesInput) {
+    // ADR-157 R1: childless ListBoxItem 행은 §1.55b-2(resolveListBoxItemRowHeightFromStyle)가
+    //   이미 **padding-box**(padding 포함, border 제외)를 반환한다 — window resolver/render.shapes/
+    //   컨테이너 calc 와 동일한 border 규약(GridListItem content-box 형제와 대비). 따라서 여기서
+    //   box.padding 을 재가산하면 explicit padding 이 있는 행에서 행당 +padding 이중 계산이 되어
+    //   (desc 50→58 / plain 28→36) auto-height data-bound ListBox 의 컨테이너/hatch 높이가
+    //   아래 형제 배치를 밀어낸다. padding 은 skip 하고 border 만 재가산한다(§1.55b-2 는 padding-box
+    //   = border 제외). childful(reusable origin unfold)은 generic content-box 합산 경로라 제외 —
+    //   §1.55b-2 gating(`!(childElements>0)`)과 동일 조건.
+    const isChildlessListBoxItemRow =
+      type === "listboxitem" && !(childElements && childElements.length > 0);
+    if (isChildlessListBoxItemRow) {
+      injectHeight += box.border.top + box.border.bottom;
+    } else if (!isSpecShapesInput) {
       // BUTTON_LIKE_BOX_TAGS(button 등): inline padding이 설정된 경우
       // applyCommonTaffyStyle은 parsePadding(style)로 inline 값을 Taffy에 전달하지만,
       // box.padding은 parseBoxModel 내부 sizeConfig 로직으로 spec 값을 반환할 수 있다.
