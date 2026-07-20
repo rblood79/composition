@@ -37,6 +37,7 @@ import {
   toListBoxRowProjectionId,
   toListBoxRowsGroupProjectionId,
   toCollectionSpacerProjectionId,
+  toCollectionRemainderProjectionId,
   toCollectionRowProjectionId,
   toCollectionRowsGroupProjectionId,
   toCollectionCellProjectionId,
@@ -114,6 +115,15 @@ export type CanvasProjectionMetadata =
       kind: "table-spacer";
       listBoxId: string;
       position: "lead" | "trail";
+    }
+  // ADR-157 (data-bound collection 표시 정책): auto-height/unbounded 소유자의 샘플 window 밖
+  //   나머지 행 영역 — 계산된 높이(hiddenRows × rowHeight)의 layout-참여 Box. spacer(비-render)와
+  //   달리 overlay 가 사선 hatch + "+N more" 라벨을 그린다(빌더 저작 보조 시각, D3 대칭 비대상).
+  //   deep hit 시 owner(listBoxId) select redirect. hiddenRows 는 라벨 텍스트용.
+  | {
+      kind: "collection-remainder";
+      listBoxId: string;
+      hiddenRows: number;
     }
   // ADR-912 단계 4 C1 (GridList projection): listbox-row/rows 동형 메타.
   //   `listBoxId` 는 collection owner id 의미로 일반화(GridList node id). GridList 는 origin/anchor
@@ -302,6 +312,13 @@ export interface CollectionWindowResolution {
    * BuilderCanvas 가 이 값을 `useScrollState.updateMaxScroll` 로 주입해 휠 스크롤 활성화.
    */
   maxScrollTop?: number;
+  /**
+   * ADR-157: 표시 정책 판별. 미지정/`"scroll"` = A2 가상화(bounded height + overflow scroll,
+   * lead/trail 빈 spacer 로 scrollable content height 보존). `"sample"` = auto-height/unbounded
+   * data-bound 소유자 — 앞부분 window 행만 투영하고 나머지는 hatch placeholder(빈 trailing
+   * spacer 아님). scene 이 trailing 을 hatch 로 emit 할지 spacer 로 emit 할지 판별한다.
+   */
+  mode?: "scroll" | "sample";
 }
 
 interface BuildCanvasSceneGraphOptions {
@@ -730,6 +747,41 @@ function createCollectionSpacerNode(input: {
 }
 
 /**
+ * ADR-157: 샘플 window 밖 나머지 행 영역의 hatch placeholder 노드. spacer 와 동일한 layout-참여
+ * Box(width:100% + 고정 height=hiddenHeight + flexShrink:0)이지만 `collection-remainder` kind 로,
+ * overlay(buildCollectionRemainderTargets)가 사선 hatch + "+N more" 라벨을 그린다(빌더 저작 보조
+ * 시각). deep hit 시 owner select redirect. `hiddenRows` 는 라벨 텍스트용.
+ */
+function createCollectionRemainderNode(input: {
+  family: "listbox" | "gridlist" | "table";
+  ownerId: string;
+  rowsGroupId: string;
+  height: number;
+  hiddenRows: number;
+  scope: SceneScopeContext;
+  sourceNode: CanonicalNode;
+}): CanvasSceneNode {
+  return {
+    id: toCollectionRemainderProjectionId(input.family, input.ownerId),
+    type: "Box",
+    props: {
+      style: { width: "100%", height: input.height, flexShrink: 0 },
+    },
+    parentId: input.rowsGroupId,
+    pageId: input.scope.pageId,
+    layoutId: input.scope.layoutId,
+    parent_id: input.rowsGroupId,
+    page_id: input.scope.pageId,
+    projection: {
+      kind: "collection-remainder",
+      listBoxId: input.ownerId,
+      hiddenRows: input.hiddenRows,
+    },
+    sourceNode: input.sourceNode,
+  };
+}
+
+/**
  * data-bound ListBox 의 projection 결정(gating)을 단일 소스로 계산.
  *
  * visit 의 anchor suppression 과 appendListBoxRowProjection 이 **동일 판정**을 공유해야
@@ -970,11 +1022,30 @@ function appendListBoxRowProjection(
     );
   }
 
+  // ADR-157: sample mode(auto-height/unbounded 소유자)는 trailing 을 빈 spacer 대신 hatch
+  //   placeholder 로 emit — 나머지 hiddenRows 영역을 계산된 높이로 채워 컨테이너가 totalRows
+  //   전체 높이에 auto-size 되게 하고(배치 진실성), overlay 가 그 위에 사선 + "+N more" 를 그린다.
+  //   scroll mode(A2)는 종전대로 빈 trailing spacer(스크롤 content height 보존).
   if (spacerRows.trail > 0 && rowHeight > 0) {
-    addSceneNode(
-      createSpacerNode("trail", spacerRows.trail * rowHeight),
-      graph,
-    );
+    if (windowResolution?.mode === "sample") {
+      addSceneNode(
+        createCollectionRemainderNode({
+          family: "listbox",
+          ownerId: listBoxSceneNode.id,
+          rowsGroupId,
+          height: spacerRows.trail * rowHeight,
+          hiddenRows: spacerRows.trail,
+          scope,
+          sourceNode: templateAnchor ?? sourceNode,
+        }),
+        graph,
+      );
+    } else {
+      addSceneNode(
+        createSpacerNode("trail", spacerRows.trail * rowHeight),
+        graph,
+      );
+    }
   }
 }
 

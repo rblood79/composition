@@ -96,6 +96,20 @@ export function toListBoxSpacerProjectionId(
 }
 
 /**
+ * ADR-157: data-bound collection 샘플 window 밖 나머지 영역(hatch placeholder) projection id.
+ *
+ * spacer(비-render) 와 달리 overlay 가 사선 hatch + "+N more" 라벨을 그리는 대상이지만,
+ * canonical document / IndexedDB / history 저장 금지 계약은 동일(`projection:` prefix →
+ * boundary guard 자동 적용). owner 당 1개(position 없음). deep hit 시 owner select redirect.
+ */
+export function toCollectionRemainderProjectionId(
+  family: string,
+  ownerId: string,
+): string {
+  return `${RENDER_PROJECTION_PREFIX}${family}-remainder:${ownerId}`;
+}
+
+/**
  * id 가 render-space projection id 인가.
  *
  * collection namespace(`projection:listbox-row:` 등)는 모두 `projection:` prefix 의

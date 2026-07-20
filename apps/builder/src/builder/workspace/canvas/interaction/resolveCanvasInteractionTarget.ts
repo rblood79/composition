@@ -79,6 +79,13 @@ type ProjectionLike =
       columnId?: string;
       templateAnchorId?: string | null;
       templateOriginId?: string | null;
+    }
+  // ADR-157: 샘플 나머지 hatch placeholder. 클릭 시 owner collection select redirect
+  //   (row/rows 동형). hiddenRows 는 overlay 라벨 전용 — interaction 은 listBoxId 만 사용.
+  | {
+      kind: "collection-remainder";
+      listBoxId: string;
+      hiddenRows: number;
     };
 
 type ProjectedInteractionNode = CanvasInteractionNode & {
@@ -158,7 +165,9 @@ export function resolveCanvasInteractionTarget(input: {
       //   Breadcrumbs select redirect. listBoxId = Breadcrumbs scene node id (중간 컨테이너
       //   없는 직접). crumb 1노드 = spec render.shapes seam 유지 + selection 보존이 증명 대상.
       projection.kind === "breadcrumb-row" ||
-      projection.kind === "breadcrumb-rows"
+      projection.kind === "breadcrumb-rows" ||
+      // ADR-157: 샘플 나머지 hatch placeholder 클릭 → owner collection select (행 선택 아님).
+      projection.kind === "collection-remainder"
     ) {
       return {
         kind: "select",

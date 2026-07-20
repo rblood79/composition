@@ -23,6 +23,7 @@ import {
   resolveSlotComposition,
   isSlotEnabled,
   getTableProjectionRows,
+  COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT,
   type CollectionDataSource,
   type CollectionWindow,
 } from "@composition/shared";
@@ -351,6 +352,38 @@ export function resolveVirtualizedCollectionWindows(
             viewportHeight,
             contentHeight,
             maxScrollTop,
+          });
+        }
+      } else if (family === "listbox" && viewportHeight == null) {
+        // ADR-157 Phase 2 (ListBox 선행 proof): auto-height/unbounded(명시 height 없음)
+        //   data-bound ListBox — 앞부분 샘플 N행만 투영하고 나머지는 계산된 높이의 hatch
+        //   placeholder 로 표시한다. 명시 bounded height 소유자(scroll=A2 / non-scroll=고정
+        //   높이)는 컨테이너 높이가 이미 고정이라 제외 — auto-height(컨테이너가 content 에
+        //   auto-size)만 sample 대상. 자식 직접 구성 ListBox 는 totalRows 0 → 무영향.
+        const dataBinding = getElementDataBinding(node);
+        const props = node.props as Record<string, unknown> | undefined;
+        const sample = resolveCollectionItems(
+          { collections: input.collections, dataBinding, props },
+          { startIndex: 0, endIndex: 1 },
+        );
+        const totalRows = sample.totalRows;
+        if (totalRows > COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT) {
+          const rowHeight =
+            input.rowHeight ??
+            resolveListBoxRowHeight(
+              node,
+              sample.rows[0]?.description,
+              getDocNodes,
+            );
+          result.set(node.id, {
+            window: {
+              startIndex: 0,
+              endIndex: COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT,
+            },
+            rowHeight,
+            totalRows,
+            columns: 1,
+            mode: "sample",
           });
         }
       }

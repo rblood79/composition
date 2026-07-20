@@ -1,4 +1,4 @@
-import type { CanvasKit, Canvas } from "canvaskit-wasm";
+import type { CanvasKit, Canvas, FontMgr } from "canvaskit-wasm";
 import type { EditingSemanticsRole } from "../../../utils/editingSemantics";
 import type { BoundingBox } from "../selection/types";
 import { SkiaDisposable } from "./disposable";
@@ -65,6 +65,76 @@ export function renderSlotHatchPattern(
     borderPaint.setStrokeWidth(1.5 / zoom);
     borderPaint.setColor(getSemanticOverlayColor(ck, role, SLOT_BORDER_ALPHA));
     canvas.drawRect(rect, borderPaint);
+  } finally {
+    scope.dispose();
+  }
+}
+
+const REMAINDER_LABEL_FONT_SIZE = 12;
+const REMAINDER_LABEL_ALPHA = 0.95;
+
+/**
+ * ADR-157: data-bound collection 샘플 window 밖 나머지 영역 마커 — 사선 hatch(+border) 위에
+ * "+N more" 라벨(줌 독립 고정 폰트). hatch 는 slot marker 와 동일 시각 언어(빌더 저작 보조 시각,
+ * D3 대칭 비대상)이며 role=null(중립 blue). Preview/Publish 는 실데이터를 그대로 렌더한다.
+ */
+export function renderCollectionRemainderMarker(
+  ck: CanvasKit,
+  canvas: Canvas,
+  bounds: BoundingBox,
+  hiddenRows: number,
+  zoom: number,
+  fontMgr?: FontMgr,
+): void {
+  if (bounds.width <= 0 || bounds.height <= 0) return;
+  // 사선 hatch + 테두리 (slot marker 동형, role=null → 중립 blue).
+  renderSlotHatchPattern(ck, canvas, bounds, zoom, null, true);
+  if (!fontMgr || hiddenRows <= 0) return;
+
+  const label = `+${hiddenRows} more`;
+  const scope = new SkiaDisposable();
+  try {
+    const fontStyle = {
+      weight: ck.FontWeight.Medium,
+      width: ck.FontWidth.Normal,
+      slant: ck.FontSlant.Upright,
+    };
+    const typeface =
+      fontMgr.matchFamilyStyle("Pretendard Variable", fontStyle) ??
+      fontMgr.matchFamilyStyle("Inter Variable", fontStyle) ??
+      fontMgr.matchFamilyStyle("Pretendard", fontStyle) ??
+      fontMgr.matchFamilyStyle("Inter", fontStyle) ??
+      fontMgr.matchFamilyStyle("sans-serif", fontStyle) ??
+      fontMgr.matchFamilyStyle("", fontStyle);
+    if (!typeface) return;
+
+    const font = scope.track(new ck.Font(typeface, REMAINDER_LABEL_FONT_SIZE));
+    font.setSubpixel(true);
+
+    const paint = scope.track(new ck.Paint());
+    paint.setAntiAlias(true);
+    paint.setStyle(ck.PaintStyle.Fill);
+    paint.setColor(getSemanticOverlayColor(ck, null, REMAINDER_LABEL_ALPHA));
+
+    const glyphIds = font.getGlyphIDs(label);
+    const glyphWidths = font.getGlyphWidths(glyphIds);
+    const textWidth = glyphWidths.reduce((sum, w) => sum + w, 0);
+
+    // 나머지 영역 중앙에 줌 독립 고정 폰트로 배치 (scene 좌표 → invZoom 스케일 후 screen px).
+    const invZoom = 1 / zoom;
+    const centerX = bounds.x + bounds.width / 2;
+    const centerY = bounds.y + bounds.height / 2;
+    canvas.save();
+    canvas.translate(centerX, centerY);
+    canvas.scale(invZoom, invZoom);
+    canvas.drawText(
+      label,
+      -textWidth / 2,
+      REMAINDER_LABEL_FONT_SIZE * 0.35,
+      paint,
+      font,
+    );
+    canvas.restore();
   } finally {
     scope.dispose();
   }

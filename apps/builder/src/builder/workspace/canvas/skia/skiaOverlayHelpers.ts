@@ -39,6 +39,11 @@ export interface SlotMarkerTarget {
   slotMarkerRole: EditingSemanticsRole;
 }
 
+export interface CollectionRemainderTarget {
+  bounds: BoundingBox;
+  hiddenRows: number;
+}
+
 export interface PageTitleRenderItem {
   elementCount: number;
   highlighted: boolean;
@@ -173,6 +178,27 @@ export function buildSlotMarkerTargets(
       showHatch: true,
       slotMarkerRole,
     });
+  }
+
+  return targets;
+}
+
+/**
+ * ADR-157: data-bound collection 샘플 나머지(hatch placeholder) 노드의 overlay 대상 산출.
+ * `projection.kind === "collection-remainder"` 인 render-space Box 를 treeBoundsMap 에서 찾아
+ * 절대 bounds + hiddenRows(라벨용)를 수집한다. slot marker 와 달리 소유 collection 안에 이미
+ * 채워진 layout Box 이므로 padding inset 없이 bounds 원본을 쓴다(rowsGroup 안 sample 행 바로 아래).
+ */
+export function buildCollectionRemainderTargets(
+  treeBoundsMap: Map<string, BoundingBox>,
+  elementsMap: Map<string, CanvasSceneNode> = new Map(),
+): CollectionRemainderTarget[] {
+  const targets: CollectionRemainderTarget[] = [];
+
+  for (const [id, bounds] of treeBoundsMap) {
+    const projection = elementsMap.get(id)?.projection;
+    if (projection?.kind !== "collection-remainder") continue;
+    targets.push({ bounds, hiddenRows: projection.hiddenRows });
   }
 
   return targets;

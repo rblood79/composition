@@ -32,7 +32,10 @@ import {
   renderLasso,
   renderPageTitle,
 } from "./selectionRenderer";
-import { renderSlotHatchPattern } from "./slotMarkerRenderer";
+import {
+  renderSlotHatchPattern,
+  renderCollectionRemainderMarker,
+} from "./slotMarkerRenderer";
 import {
   renderWorkflowEdges,
   renderDataSourceEdges,
@@ -63,6 +66,7 @@ import {
   buildMinimapViewportBounds,
   buildPageTitleRenderItems,
   buildSlotMarkerTargets,
+  buildCollectionRemainderTargets,
   shouldRenderWorkflowMinimap,
   type PageTitleBounds,
 } from "./skiaOverlayHelpers";
@@ -463,6 +467,22 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
           cameraZoom,
           target.slotMarkerRole,
           target.showHatch,
+        );
+      }
+
+      // ── Collection Remainder (ADR-157: 샘플 나머지 hatch + "+N more") ──
+      const remainderTargets = buildCollectionRemainderTargets(
+        treeBoundsMap,
+        elementsMap,
+      );
+      for (const target of remainderTargets) {
+        renderCollectionRemainderMarker(
+          ck,
+          canvas,
+          target.bounds,
+          target.hiddenRows,
+          cameraZoom,
+          fontMgr,
         );
       }
 

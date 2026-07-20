@@ -91,9 +91,39 @@ describe("resolveVirtualizedCollectionWindows — 가상화 대상 판정 + wind
     });
   });
 
-  it("bounded height 없음 → 가상화 제외(unbounded = 스크롤 컨테이너 아님)", () => {
+  it("bounded height 없음(auto-height) → ADR-157 sample resolution (window [0,10] + mode:'sample')", () => {
+    // A2 가상화(bounded scroll) 대상은 아니지만, auto-height data-bound 소유자는 ADR-157
+    //   샘플 정책 대상 — 앞부분 10행 window + 나머지 hatch(scene 이 emit). scrollTop/maxScroll 무관.
     const map = resolveVirtualizedCollectionWindows({
       doc: listBoxDoc({ itemCount: 1000, style: { overflowY: "auto" } }),
+      collections: [],
+      scrollTops: new Map(),
+    });
+    const entry = map.get("listbox-1");
+    expect(entry).toBeDefined();
+    expect(entry?.mode).toBe("sample");
+    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 10 });
+    expect(entry?.totalRows).toBe(1000);
+    expect(entry?.rowHeight).toBe(28);
+    // sample 은 스크롤 아님 → viewportHeight/maxScrollTop 미설정.
+    expect(entry?.maxScrollTop).toBeUndefined();
+  });
+
+  it("auto-height + 데이터 ≤ 샘플 상한(10) → 전량 투영(sample resolution 없음)", () => {
+    const map = resolveVirtualizedCollectionWindows({
+      doc: listBoxDoc({ itemCount: 8, style: { overflowY: "auto" } }),
+      collections: [],
+      scrollTops: new Map(),
+    });
+    expect(map.has("listbox-1")).toBe(false);
+  });
+
+  it("명시 height + overflow visible(비-scroll) → sample/A2 모두 제외 (컨테이너 고정 높이)", () => {
+    const map = resolveVirtualizedCollectionWindows({
+      doc: listBoxDoc({
+        itemCount: 1000,
+        style: { height: 400, overflow: "visible" },
+      }),
       collections: [],
       scrollTops: new Map(),
     });
@@ -267,6 +297,64 @@ describe("scene model 통합 — G-A2 핵심: 투영 노드 수 ≤ window+overs
       (n) => n.projection?.kind === "listbox-row",
     );
     expect(rowNodes).toHaveLength(100);
+  });
+});
+
+describe("ADR-157 — auto-height ListBox 샘플 + hatch remainder (scene emit)", () => {
+  it("sample resolution → 10행 투영 + collection-remainder hatch 1개(hiddenRows/height)", () => {
+    const doc = listBoxDoc({ itemCount: 1000, style: { overflowY: "auto" } });
+    const collectionWindows = resolveVirtualizedCollectionWindows({
+      doc,
+      collections: [],
+      scrollTops: new Map(),
+    });
+    const model = buildCanonicalSceneModel(doc, {
+      collections: [],
+      collectionWindows,
+    });
+    const rowNodes = model.sceneNodes.filter(
+      (n) => n.projection?.kind === "listbox-row",
+    );
+    expect(rowNodes).toHaveLength(10);
+
+    const remainder = model.sceneNodes.filter(
+      (n) => n.projection?.kind === "collection-remainder",
+    );
+    expect(remainder).toHaveLength(1);
+    expect(
+      (remainder[0]?.projection as { hiddenRows?: number } | undefined)
+        ?.hiddenRows,
+    ).toBe(990);
+    // hatch box 높이 = hiddenRows(990) × rowHeight(28) → 컨테이너가 totalRows 전체 높이에 auto-size.
+    const style = remainder[0]?.props?.style as { height?: number } | undefined;
+    expect(style?.height).toBe(990 * 28);
+    // trailing 은 hatch 이지 빈 spacer 아님 (sample mode).
+    expect(
+      model.sceneNodes.filter((n) => n.projection?.kind === "listbox-spacer"),
+    ).toHaveLength(0);
+    // remainder projection id 는 canonical 저장 금지 계약(projection: prefix).
+    expect(remainder[0]?.id.startsWith("projection:")).toBe(true);
+  });
+
+  it("데이터 ≤ 샘플 상한(10) → 전량 투영 + remainder 없음", () => {
+    const doc = listBoxDoc({ itemCount: 8, style: { overflowY: "auto" } });
+    const collectionWindows = resolveVirtualizedCollectionWindows({
+      doc,
+      collections: [],
+      scrollTops: new Map(),
+    });
+    const model = buildCanonicalSceneModel(doc, {
+      collections: [],
+      collectionWindows,
+    });
+    expect(
+      model.sceneNodes.filter((n) => n.projection?.kind === "listbox-row"),
+    ).toHaveLength(8);
+    expect(
+      model.sceneNodes.filter(
+        (n) => n.projection?.kind === "collection-remainder",
+      ),
+    ).toHaveLength(0);
   });
 });
 
