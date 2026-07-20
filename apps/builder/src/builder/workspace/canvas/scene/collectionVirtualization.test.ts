@@ -334,9 +334,19 @@ describe("ADR-157 — auto-height ListBox 샘플 + hatch remainder (scene emit)"
     ).toHaveLength(0);
     // remainder projection id 는 canonical 저장 금지 계약(projection: prefix).
     expect(remainder[0]?.id.startsWith("projection:")).toBe(true);
+
+    // ADR-157 Phase 3: owner 에 totalRows 전체 높이(= 1000 × rowHeight 28) 주입 →
+    //   layout §1.55b 가 소비해 3-item fallback clip 방지(배치 진실성).
+    const owner = model.sceneNodes.find(
+      (n) => (n.type ?? "").toLowerCase() === "listbox",
+    );
+    expect(
+      (owner?.props as { _projectedRowsContentHeight?: number } | undefined)
+        ?._projectedRowsContentHeight,
+    ).toBe(1000 * 28);
   });
 
-  it("데이터 ≤ 샘플 상한(10) → 전량 투영 + remainder 없음", () => {
+  it("데이터 ≤ 샘플 상한(10) → 전량 투영 + remainder 없음 + owner 높이 주입 없음", () => {
     const doc = listBoxDoc({ itemCount: 8, style: { overflowY: "auto" } });
     const collectionWindows = resolveVirtualizedCollectionWindows({
       doc,
@@ -355,6 +365,14 @@ describe("ADR-157 — auto-height ListBox 샘플 + hatch remainder (scene emit)"
         (n) => n.projection?.kind === "collection-remainder",
       ),
     ).toHaveLength(0);
+    // sample mode 미발동(≤10) → owner 높이 주입 없음 (전량 투영이라 자식 합산으로 정합).
+    const owner = model.sceneNodes.find(
+      (n) => (n.type ?? "").toLowerCase() === "listbox",
+    );
+    expect(
+      (owner?.props as { _projectedRowsContentHeight?: number } | undefined)
+        ?._projectedRowsContentHeight,
+    ).toBeUndefined();
   });
 });
 

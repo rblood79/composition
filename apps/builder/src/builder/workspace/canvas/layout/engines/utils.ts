@@ -2253,6 +2253,25 @@ export function calculateContentHeight(
       defaultFontSize: fontSize,
     });
 
+    // ADR-157 Phase 3 (배치 진실성): §1.55b 는 props.items 만 순회한다 — dataBinding/collections
+    //   미접근이라 순수 dataBinding 소유자는 3-item fallback 을 반환하고, scene 은 sample(N행) +
+    //   hatch(remainder) 를 totalRows 전체 높이로 투영한다 → owner clip. scene 이 sample mode
+    //   owner 에 주입한 `_projectedRowsContentHeight`(= totalRows × rowHeight, window resolver
+    //   출력 = samples/hatch 와 동일 rowHeight)를 소비해 padding + 전체 높이 + border 를 반환한다.
+    //   rowsGroup gap=0 이라 inter-row gap 없음(주입값 = 순수 행 합). 캐시: layoutCache.ts
+    //   LAYOUT_PROP_KEYS 에 등재(행 수 변화 시 owner 시그니처 무효화 — height/isExpanded 선례).
+    const projectedRowsContentHeight = parseNumericValue(
+      props?._projectedRowsContentHeight,
+    );
+    if (projectedRowsContentHeight !== undefined) {
+      return (
+        metric.paddingTop +
+        metric.paddingBottom +
+        projectedRowsContentHeight +
+        metric.borderWidth * 2
+      );
+    }
+
     const entries =
       Array.isArray(rawEntries) && rawEntries.length > 0
         ? rawEntries

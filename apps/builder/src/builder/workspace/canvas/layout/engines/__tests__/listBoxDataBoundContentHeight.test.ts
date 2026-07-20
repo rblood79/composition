@@ -1,0 +1,93 @@
+/**
+ * ADR-157 Phase 3 — data-bound ListBox 소유자 배치 진실성 (layout Layer D).
+ *
+ * `calculateContentHeight` §1.55b(ListBox 분기)는 `props.items` 만 순회한다 — dataBinding/
+ * collections 미접근. 따라서 순수 dataBinding 소유자(props.items 없음)는 3-item 기본값 fallback 을
+ * 반환하고, scene 은 sample(10행) + hatch(remainder) 를 totalRows 전체 높이로 투영한다 →
+ * layout(3-item) ≠ scene(totalRows) → enrich 가 owner 를 3-item 으로 고정 → 투영된 rowsGroup 이
+ * clip 된다(Hard Constraint 2 배치 진실성 위반).
+ *
+ * Phase 3: scene 이 sample mode owner 에 `_projectedRowsContentHeight`(= totalRows × rowHeight,
+ * hatch 와 동일 rowHeight resolver 출력)를 주입하고, §1.55b 가 items fallback 대신 그 값을 소비해
+ * padding + totalRows 전체 높이 + border 를 반환한다. rowHeight 는 scene(window resolver) 이
+ * 산출한 값 — samples + hatch 와 동일 → 배치 진실성.
+ */
+
+import { describe, expect, it } from "vitest";
+
+import { resolveListBoxSpacingMetric } from "@composition/specs";
+import type { CanvasLayoutNode } from "../../layoutNode";
+import { calculateContentHeight, enrichWithIntrinsicSize } from "../utils";
+
+function makeListBox(
+  props: Record<string, unknown>,
+  style?: Record<string, unknown>,
+): CanvasLayoutNode {
+  return {
+    id: "lb-1",
+    type: "ListBox",
+    props: style ? { ...props, style } : props,
+  } as CanvasLayoutNode;
+}
+
+describe("calculateContentHeight — data-bound ListBox _projectedRowsContentHeight (ADR-157 P3)", () => {
+  const m = resolveListBoxSpacingMetric({});
+
+  it("_projectedRowsContentHeight 주입 시 padding + 전체 높이 + border 반환 (items fallback 아님)", () => {
+    // 100행 × rowHeight 50 = 5000 inner content (samples 10×50 + hatch 90×50).
+    const h = calculateContentHeight(
+      makeListBox({ _projectedRowsContentHeight: 5000 }),
+    );
+    expect(h).toBe(m.paddingTop + m.paddingBottom + 5000 + m.borderWidth * 2);
+  });
+
+  it("주입값은 3-item 기본 fallback 보다 훨씬 큼 (clip 방지)", () => {
+    const injected = calculateContentHeight(
+      makeListBox({ _projectedRowsContentHeight: 5000 }),
+    );
+    const fallback = calculateContentHeight(makeListBox({})); // items 없음 → 3-item
+    expect(injected).toBeGreaterThan(fallback);
+    expect(injected).toBeGreaterThan(1000);
+  });
+
+  it("_projectedRowsContentHeight 없으면 기존 items 경로 유지 (회귀 — 3-item fallback)", () => {
+    const h = calculateContentHeight(makeListBox({}));
+    // 3 fallback items(label-only) → padding + 3×itemHeight + 2×rowGap + border.
+    const expected =
+      m.paddingTop +
+      m.paddingBottom +
+      3 * m.itemHeight +
+      2 * m.rowGap +
+      m.borderWidth * 2;
+    expect(h).toBe(expected);
+  });
+
+  it("명시적 style.height 는 여전히 우선 (bounded/explicit 소유자 — §1 우선)", () => {
+    const h = calculateContentHeight(
+      makeListBox({ _projectedRowsContentHeight: 5000 }, { height: 240 }),
+    );
+    expect(h).toBe(240);
+  });
+
+  it("enrich 통합: sample-mode owner(_projectedRowsContentHeight + rowsGroup child) → style.height = 전체 border-box", () => {
+    // 런타임 경로: enrich childful 분기 → calculateContentHeight §1.55b → 주입값 소비.
+    //   listbox 는 SPEC_SHAPES_INPUT 이라 enrich 가 padding/border 재가산 안 함(§1.55b 가 이미 border-box).
+    const owner = makeListBox({ _projectedRowsContentHeight: 5000 });
+    const rowsGroup = {
+      id: "rg-1",
+      type: "Rows",
+      props: { style: { display: "flex", flexDirection: "column" } },
+    } as CanvasLayoutNode;
+    const out = enrichWithIntrinsicSize(
+      owner,
+      400,
+      0,
+      undefined,
+      [rowsGroup],
+      () => [],
+    );
+    const h = (out.props?.style as Record<string, unknown> | undefined)
+      ?.height as number | undefined;
+    expect(h).toBe(m.paddingTop + m.paddingBottom + 5000 + m.borderWidth * 2);
+  });
+});

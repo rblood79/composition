@@ -175,6 +175,12 @@ const LAYOUT_PROP_KEYS = [
   //   재레이아웃된다 (Disclosure isExpanded 선례 동형).
   "height",
   "heightMode",
+  // ADR-157 Phase 3 (2026-07-21): scene 이 sample mode data-bound ListBox owner 에 주입하는
+  //   totalRows 전체 높이(= totalRows × rowHeight). collection 행 수 변화 시 scene 이 이 값을
+  //   갱신하는데, owner 의 items/children 시그니처는 불변(dataBinding 은 외부 데이터)이므로
+  //   본 키가 없으면 owner 레이아웃이 캐시 히트로 stale(이전 행 수 높이) 된다 — height/isExpanded
+  //   선례 동형(§1.55b 가 소비, layoutInvalidation 은 scene 파생이라 불필요).
+  "_projectedRowsContentHeight",
 ];
 
 function serializeLayoutRelevantValue(value: unknown): string {

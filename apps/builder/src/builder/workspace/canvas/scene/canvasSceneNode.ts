@@ -905,6 +905,22 @@ function appendListBoxRowProjection(
     (listBoxSceneNode.props as Record<string, unknown>)._slots =
       slotComposition;
   }
+  // ADR-157 Phase 3 (배치 진실성): sample mode(auto-height data-bound) owner 는 layout §1.55b 가
+  //   props.items 만 순회해 순수 dataBinding 소유자에서 3-item fallback 으로 clip 된다. scene 이
+  //   totalRows 전체 높이(= totalRows × rowHeight — samples + hatch 와 동일 window resolver
+  //   rowHeight)를 owner props 에 주입해 §1.55b 가 이를 소비하도록 한다(layout = scene 정합).
+  //   scroll mode 는 explicit height(§1 우선)라 무시되고, legacy(window null)는 기존 items 경로.
+  const ownerWindow = projection.windowResolution;
+  if (
+    ownerWindow?.mode === "sample" &&
+    ownerWindow.totalRows > 0 &&
+    ownerWindow.rowHeight > 0
+  ) {
+    (
+      listBoxSceneNode.props as Record<string, unknown>
+    )._projectedRowsContentHeight =
+      ownerWindow.totalRows * ownerWindow.rowHeight;
+  }
   const rowsGroupId = toListBoxRowsGroupProjectionId(listBoxSceneNode.id);
   const rowsGroup: CanvasSceneNode = {
     id: rowsGroupId,
