@@ -247,6 +247,31 @@ export const renderListBox = (
         } as React.CSSProperties)
       : undefined;
 
+  // 2026-07-20 (Selected variant 배선) — 행 template origin root style 소비.
+  //   base(default origin `slot[0]`) 는 모든 행에, selected(Selected variant origin) 는
+  //   data-selected 행에만 overlay. builder Skia projection(templateAnchorStyle +
+  //   selectedOriginStyle)과 D3 대칭 — catalog CSS(data-selected accent-subtle)는 base 로
+  //   유지되고 origin style 은 inline override 층이다. 미주입(null) = legacy → 기존 동작.
+  const rowTemplateStyles = context.listBoxRowTemplateStyles;
+  const rowBaseTemplateStyle = (rowTemplateStyles?.base ?? undefined) as
+    | React.CSSProperties
+    | undefined;
+  const rowSelectedTemplateStyle = (rowTemplateStyles?.selected ??
+    undefined) as React.CSSProperties | undefined;
+  const composeRowStyle = (
+    localStyle: React.CSSProperties | undefined,
+  ):
+    | React.CSSProperties
+    | ((values: { isSelected: boolean }) => React.CSSProperties)
+    | undefined => {
+    if (!rowBaseTemplateStyle && !rowSelectedTemplateStyle) return localStyle;
+    return ({ isSelected }) => ({
+      ...rowBaseTemplateStyle,
+      ...localStyle,
+      ...(isSelected ? rowSelectedTemplateStyle : undefined),
+    });
+  };
+
   // ColumnMapping이 있고 visible columns가 있으면 Field Elements 자동 생성
   const columnMapping = (element.props as { columnMapping?: ColumnMapping })
     .columnMapping;
@@ -416,7 +441,8 @@ export const renderListBox = (
           // ADR-147 (layout edit): template anchor 의 layout style 을 각 행에 적용.
           //   CSS 가 flex/gap/align 을 처리 → Skia render.shapes 와 D3 대칭.
           //   ADR-148: icon slot 크기 채널(--lb-icon-size) 을 행 스코프에 주입.
-          style={
+          //   2026-07-20: origin root style(base) + Selected variant overlay 합성.
+          style={composeRowStyle(
             rowSlotStyleVars
               ? {
                   ...(listBoxItemTemplate.props.style as
@@ -426,8 +452,8 @@ export const renderListBox = (
                 }
               : (listBoxItemTemplate.props.style as
                   | React.CSSProperties
-                  | undefined)
-          }
+                  | undefined),
+          )}
           textValue={label}
         >
           {({ isSelected }) =>
@@ -506,7 +532,8 @@ export const renderListBox = (
       textValue={item.textValue ?? item.label}
       isDisabled={Boolean(item.isDisabled)}
       // ADR-148: icon slot 크기 채널(--lb-icon-size) — Path 1 과 동일 주입.
-      style={rowSlotStyleVars}
+      //   2026-07-20: origin root style(base) + Selected variant overlay 합성.
+      style={composeRowStyle(rowSlotStyleVars)}
       // RAC ListBoxItem 은 `href` 키가 존재하기만 하면(undefined 값이어도) link 모드로
       // 진입해 DOM 에 `href=""` 를 렌더 → React 경고("empty string passed to href").
       // 따라서 href 가 있을 때만 prop 을 전개(conditional spread)해 키 자체를 제거한다.

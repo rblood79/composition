@@ -159,8 +159,10 @@ function createListBoxItemSelectedOrigin(): CanonicalNode {
       children: "{label}",
       textValue: "{label}",
       description: "{description}",
+      // 시맨틱 정본 변수 (css-tokens.md: {color.accent-subtle} ↔ --accent-subtle).
+      //   구 seed 의 `--color-accent-subtle` 은 정의부 0건인 죽은 변수였다 (2026-07-20 정정).
       style: {
-        backgroundColor: "var(--color-accent-subtle)",
+        backgroundColor: "var(--accent-subtle)",
       },
     },
     // ADR-147: selected variant 도 동일 slot 조합 자식. 차이는 origin props.style(배경).
@@ -194,6 +196,23 @@ function createListBoxOrigin(): CanonicalNode {
   };
 }
 
+/** 구 seed 의 죽은 변수 리터럴 (정의부 0건) — repair 시 정본 변수로 한정 교체. */
+const LEGACY_SELECTED_BG = "var(--color-accent-subtle)";
+
+function repairLegacyDeadVarProps(
+  props: CanonicalNode["props"],
+): CanonicalNode["props"] {
+  const style = (props as Record<string, unknown> | undefined)?.style as
+    | Record<string, unknown>
+    | undefined;
+  if (style?.backgroundColor !== LEGACY_SELECTED_BG) return props;
+  // 사용자 편집값이 아닌 구 seed 리터럴만 교체 (사용자 값 보존 원칙 유지).
+  return {
+    ...props,
+    style: { ...style, backgroundColor: "var(--accent-subtle)" },
+  };
+}
+
 function repairOrigin(
   existing: CanonicalNode | undefined,
   createNode: () => CanonicalNode,
@@ -202,7 +221,7 @@ function repairOrigin(
   if (!existing) return base;
   return {
     ...base,
-    props: existing.props ?? base.props,
+    props: repairLegacyDeadVarProps(existing.props ?? base.props),
     children: existing.children ?? base.children,
     // ADR-154: 사용자 responsive override 보존 (composite origin reseed 소실 방지)
     ...(existing.responsive ? { responsive: existing.responsive } : {}),

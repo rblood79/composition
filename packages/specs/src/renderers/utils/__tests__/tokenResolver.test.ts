@@ -1,5 +1,32 @@
 import { describe, it, expect } from "vitest";
-import { tokenToCSSVar, resolveToken } from "../tokenResolver";
+import { tokenToCSSVar, resolveToken, resolveColor } from "../tokenResolver";
+
+// 2026-07-20 (Selected variant 배선) — origin props.style 의 var() 리터럴이 Skia fill 로
+//   도달하는 경로. 역변환 가능한 단순 var() 는 토큰 해석 (theme 정합), 불가하면 passthrough.
+describe("resolveColor — var(--xxx) 시맨틱 변수 역변환", () => {
+  it("var(--accent-subtle) → {color.accent-subtle} 토큰 해석 (검정 붕괴 방지)", () => {
+    const light = resolveColor("var(--accent-subtle)", "light");
+    expect(light).toBe(resolveToken("{color.accent-subtle}", "light"));
+    expect(light).not.toBe("var(--accent-subtle)");
+    // dark theme 도 토큰 테이블 정합.
+    expect(resolveColor("var(--accent-subtle)", "dark")).toBe(
+      resolveToken("{color.accent-subtle}", "dark"),
+    );
+  });
+
+  it("역변환 불가한 var() 는 passthrough (기존 동작 보존)", () => {
+    expect(resolveColor("var(--unknown-thing)", "light")).toBe(
+      "var(--unknown-thing)",
+    );
+  });
+
+  it("hex/token 입력 동작 불변", () => {
+    expect(resolveColor("#ff0000", "light")).toBe("#ff0000");
+    expect(resolveColor("{color.accent}", "light")).toBe(
+      resolveToken("{color.accent}", "light"),
+    );
+  });
+});
 
 describe("tokenResolver — surface elevation", () => {
   it("{color.raised} maps to var(--bg-raised)", () => {

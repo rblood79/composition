@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ListBox Selected variant slot 배선 — selected 행 origin 스타일 소비] - 2026-07-20
+
+### Bug Fixes
+
+- **ListBox slot 등록의 `ListBoxItem/Selected` variant 가 죽은 등록** (Skia/Preview 공통):
+  - ListBox origin 의 `slot: [Default, Selected]` 중 Selected 는 렌더 소비처가 0 — selected 행 배경이 catalog token(accent-subtle) 하드결선이라 사용자가 Selected origin 스타일/배경을 편집해도 어디에도 반영되지 않았다.
+  - 추가로 Skia 쪽은 projection 이 `_isSelected` 만 주입하고 `listbox_item` escape 는 `props.isSelected` 를 읽어 **selected row-bg/체크마크 자체가 죽은 분기**였고, seed 의 `var(--color-accent-subtle)` 는 정의부 0건인 죽은 변수였다.
+  - **Why**: ADR-146 의 slot variant 모델(Selected origin)이 등록만 되고 소비 배선이 한 번도 구현되지 않았다 (사용자 재기: "전혀 연계성이 없이 등록만되어있다").
+  - 수정 (Skia+DOM 대칭, catalog fill=base / origin=override 층):
+    - projection: selected 행 해석 resolver(`resolveListBoxSelectedOriginId` — slot 의 `metadata.variant==="selected"` → slot[1] → 상수) + Selected origin `props.style` overlay + **canonical `fills` 채널 운반**(Style 패널 Background 는 fills 에 기록됨 — buildSpecNodeData fills→hex6 변환 재사용) + `isSelected` 보편 축 주입
+    - escape(`listbox_item`): row-bg fill 을 `style.backgroundColor(override) → catalog selected fill → 투명` 우선순위로 통일, Default origin 배경도 행에 렌더
+    - Preview DOM: `RenderContext.listBoxRowTemplateStyles`(base+selected) 주입 + RAC render-prop style 로 `data-selected` 행에 overlay
+    - `resolveColor`: `var(--xxx)` 시맨틱 변수 문자열을 토큰 역변환 해석 (Skia 검정(0x000000) 붕괴 방지, dark theme 정합)
+    - seed/repair: `var(--color-accent-subtle)` → `var(--accent-subtle)` 정정 (구 seed 리터럴 한정 교체)
+  - 검증: canvasSceneNode 32 + listbox_item escape 21 + tokenResolver 14 + shared renderers 67 PASS · live(Chrome MCP): Preview 에서 Cat 행 선택 시 Selected origin 배경(#ff3366) inline 반영 + persist(selectedKey) 초기 렌더 확인, Skia 는 Selected origin fills 렌더 실증
+  - 위치: `canvasSceneNode.ts` · `skiaPrimitives.ts` · `tokenResolver.ts` · `SelectionRenderers.tsx` · `preview/App.tsx` · `renderer.types.ts` · `listBoxTemplateOrigins.ts`
+
 ## [Reusable instance 편집 계약 복원 — ref fallback] - 2026-07-20
 
 ### Bug Fixes

@@ -21,6 +21,7 @@ import { rendererMap } from "@composition/shared/renderers";
 import {
   adaptElementFillStyle,
   collectResponsiveCss,
+  fillsToCssBackgroundStyle,
   getCatalogCutoverTypes,
   isComponentsPageMetadata,
   isRuntimePageNode,
@@ -226,15 +227,32 @@ function CanvasContent() {
   //   리터럴. 구성 null = legacy 문서 → 렌더러 기존 동작.
   const templateSlotCompositions = useMemo(() => {
     if (!resolvedCanonicalNodes) {
-      return { listBox: null, gridList: null, menuItem: null };
+      return {
+        listBox: null,
+        listBoxRowStyles: null,
+        gridList: null,
+        menuItem: null,
+      };
     }
-    const byId = new Map<string, { slot?: unknown; children?: unknown[] }>();
+    const byId = new Map<
+      string,
+      {
+        slot?: unknown;
+        children?: unknown[];
+        metadata?: unknown;
+        props?: unknown;
+        fills?: unknown;
+      }
+    >();
     const walk = (node: unknown): void => {
       if (!node || typeof node !== "object") return;
       const record = node as {
         id?: unknown;
         slot?: unknown;
         children?: unknown[];
+        metadata?: unknown;
+        props?: unknown;
+        fills?: unknown;
       };
       if (typeof record.id === "string") {
         byId.set(record.id, record);
@@ -247,17 +265,65 @@ function CanvasContent() {
       Array.isArray(masterSlot) && typeof masterSlot[0] === "string"
         ? masterSlot[0]
         : "component-listbox-item-default";
+    // Selected variant origin 해석 (2026-07-20 — builder resolveListBoxSelectedOriginId 대칭):
+    //   slot 배열 중 metadata.variant==="selected" → fallback slot[1] → 표준 상수.
+    const listBoxSelectedOriginId = (() => {
+      if (Array.isArray(masterSlot)) {
+        for (const entry of masterSlot) {
+          if (typeof entry !== "string") continue;
+          const metadata = byId.get(entry)?.metadata as
+            | { variant?: unknown }
+            | undefined;
+          if (metadata?.variant === "selected") return entry;
+        }
+        if (typeof masterSlot[1] === "string") return masterSlot[1];
+      }
+      return "component-listbox-item-selected";
+    })();
+    const rootStyleOf = (originId: string): Record<string, unknown> | null => {
+      const record = byId.get(originId);
+      const props = record?.props as { style?: unknown } | undefined;
+      const style = props?.style;
+      const styleRecord =
+        style && typeof style === "object" && !Array.isArray(style)
+          ? (style as Record<string, unknown>)
+          : null;
+      // Style 패널 Background 편집은 canonical `fills` 채널에 기록된다 (커밋 시 sanitize
+      //   가 style.backgroundColor 를 비움). fills 파생 배경이 style 위에 merge — builder
+      //   Skia projection(row fills → buildSpecNodeData 배경 변환)과 동일 우선순위.
+      const legacyPropsFills = (
+        record?.metadata as { legacyProps?: { fills?: unknown } } | undefined
+      )?.legacyProps?.fills;
+      const fills =
+        Array.isArray(record?.fills) && record.fills.length > 0
+          ? record.fills
+          : Array.isArray(legacyPropsFills) && legacyPropsFills.length > 0
+            ? legacyPropsFills
+            : undefined;
+      const fillBackground = fillsToCssBackgroundStyle(fills) as Record<
+        string,
+        unknown
+      >;
+      const merged = { ...(styleRecord ?? {}), ...fillBackground };
+      return Object.keys(merged).length > 0 ? merged : null;
+    };
     const compositionOf = (originId: string) => {
       const origin = byId.get(originId);
       return origin ? resolveSlotComposition(origin.children) : null;
     };
     return {
       listBox: compositionOf(listBoxOriginId),
+      // 행 root style — base(default origin) + selected(variant origin) overlay 층.
+      listBoxRowStyles: {
+        base: rootStyleOf(listBoxOriginId),
+        selected: rootStyleOf(listBoxSelectedOriginId),
+      },
       gridList: compositionOf("component-gridlist-item-default"),
       menuItem: compositionOf("component-menu-item-default"),
     };
   }, [resolvedCanonicalNodes]);
   const listBoxTemplateSlotComposition = templateSlotCompositions.listBox;
+  const listBoxRowTemplateStyles = templateSlotCompositions.listBoxRowStyles;
 
   // ⭐ 이전에 적용된 body 스타일 키들을 추적
   const appliedStyleKeysRef = useRef<Set<string>>(new Set());
@@ -582,6 +648,8 @@ function CanvasContent() {
       resolveActionId: (_id: string) => undefined,
       // ADR-148 Phase 0/4 — collection item slot 구성 (anchor-less 표준 shape 의 DOM 소비 경로)
       listBoxTemplateSlotComposition,
+      // 2026-07-20 — 행 template origin root style (base + Selected variant overlay).
+      listBoxRowTemplateStyles,
       gridListTemplateSlotComposition: templateSlotCompositions.gridList,
       menuItemTemplateSlotComposition: templateSlotCompositions.menuItem,
     }),
@@ -594,6 +662,7 @@ function CanvasContent() {
       setElements,
       eventEngine,
       listBoxTemplateSlotComposition,
+      listBoxRowTemplateStyles,
       templateSlotCompositions,
     ],
   );

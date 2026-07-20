@@ -16,6 +16,7 @@ import {
   detectListBoxAuthoringMode,
   isListBoxTemplateAnchor,
   LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
+  LISTBOX_ITEM_SELECTED_ORIGIN_ID,
   LISTBOX_ORIGIN_ID,
 } from "../../../components/listbox/listBoxTemplateOrigins";
 import {
@@ -476,18 +477,7 @@ function toCanvasSceneNode(
   }
 
   const customId = readLegacyMetadataCustomId(metadata);
-  // fills: canonical 1차 필드 우선, 1차 필드 도입(2026-07-15) 전 구 문서는
-  // metadata.legacyProps.fills 격리 보존분 fallback (canonicalElementsView 동일 규칙).
-  const legacyPropsFills = (
-    node.metadata as { legacyProps?: { fills?: unknown } } | undefined
-  )?.legacyProps?.fills;
-  const nodeFills = (
-    Array.isArray(node.fills) && node.fills.length > 0
-      ? node.fills
-      : Array.isArray(legacyPropsFills) && legacyPropsFills.length > 0
-        ? legacyPropsFills
-        : undefined
-  ) as FillItem[] | undefined;
+  const nodeFills = readCanonicalNodeFills(node);
   const sceneNode: CanvasSceneNode = {
     id: node.id,
     type: isLegacySlotHoisted ? "Slot" : node.type,
@@ -520,6 +510,26 @@ function toCanvasSceneNode(
   }
 
   return sceneNode;
+}
+
+/**
+ * canonical 노드의 fills 판독 — 1차 필드 우선, 1차 필드 도입(2026-07-15) 전 구 문서는
+ * `metadata.legacyProps.fills` 격리 보존분 fallback (canonicalElementsView 동일 규칙).
+ */
+function readCanonicalNodeFills(
+  node: CanonicalNode | undefined,
+): FillItem[] | undefined {
+  if (!node) return undefined;
+  const legacyPropsFills = (
+    node.metadata as { legacyProps?: { fills?: unknown } } | undefined
+  )?.legacyProps?.fills;
+  return (
+    Array.isArray(node.fills) && node.fills.length > 0
+      ? node.fills
+      : Array.isArray(legacyPropsFills) && legacyPropsFills.length > 0
+        ? legacyPropsFills
+        : undefined
+  ) as FillItem[] | undefined;
 }
 
 function addSceneNode(
@@ -584,6 +594,41 @@ export function resolveListBoxTemplateOriginId(
   }
 
   return LISTBOX_ITEM_DEFAULT_ORIGIN_ID;
+}
+
+/**
+ * selected 행의 template variant origin id 를 해석한다 (2026-07-20, 사용자 승인 "variant 배선").
+ *
+ * master(ref target 또는 Components 페이지의 origin ListBox 자신)의 `slot` 등록 배열에서
+ * `metadata.variant === "selected"` 인 문서 노드를 찾는다. 우선순위:
+ *   1. slot 배열 중 variant==="selected" metadata 를 가진 origin.
+ *   2. slot[1] (seed 규약: [Default, Selected]).
+ *   3. 표준 상수 안전망.
+ *
+ * **Why**: `slot: [Default, Selected]` 등록에서 Selected 는 지금까지 렌더 소비처 0 인 죽은
+ *   등록이었다 — selected 행 배경이 catalog fill token 하드결선이라 사용자가 Selected origin
+ *   스타일을 편집해도 무반영. 본 resolver 가 selected 행 style overlay 의 단일 진입점이다
+ *   (catalog fill = base 유지, origin props.style = override 층 — Default origin 의
+ *   templateAnchorStyle 채널과 동형).
+ */
+export function resolveListBoxSelectedOriginId(
+  sourceNode: CanonicalNode,
+  getDocumentNodesById: () => Map<string, CanonicalNode>,
+): string {
+  const slot =
+    sourceNode.type === "ref"
+      ? getDocumentNodesById().get((sourceNode as RefNode).ref)?.slot
+      : sourceNode.slot;
+  if (Array.isArray(slot)) {
+    for (const entry of slot) {
+      if (typeof entry !== "string") continue;
+      const candidate = getDocumentNodesById().get(entry);
+      const metadata = candidate?.metadata as { variant?: unknown } | undefined;
+      if (metadata?.variant === "selected") return entry;
+    }
+    if (typeof slot[1] === "string") return slot[1];
+  }
+  return LISTBOX_ITEM_SELECTED_ORIGIN_ID;
 }
 
 function isListBoxSceneSource(
@@ -773,6 +818,24 @@ function appendListBoxRowProjection(
   const anchorStyle =
     (templateAnchor?.props?.style as Record<string, unknown> | undefined) ?? {};
   const templateAnchorStyle = { ...originStyle, ...anchorStyle };
+  // 2026-07-20 (사용자 승인 "variant 배선") — selected 행은 slot 등록의 Selected variant
+  //   origin(ListBoxItem/Selected) props.style 을 default origin style 위에 overlay 한다.
+  //   catalog fill token(accent-subtle)은 base 로 유지 — origin 스타일이 없으면 기존 시각 그대로.
+  const selectedOriginId = resolveListBoxSelectedOriginId(
+    sourceNode,
+    getDocumentNodesById,
+  );
+  const selectedOriginNode = getDocumentNodesById().get(selectedOriginId);
+  const selectedOriginStyle =
+    (selectedOriginNode?.props?.style as Record<string, unknown> | undefined) ??
+    {};
+  // Style 패널 Background 편집은 props.style 이 아니라 canonical `fills` 채널에 기록된다
+  //   (커밋 시 sanitize 가 style.backgroundColor 를 비움 — buildSpecNodeData 계약과 동일).
+  //   행 scene node 에 origin fills 를 실으면 buildSpecNodeData 의 fills→hex6 변환이
+  //   그대로 재사용되어 escape row-bg 로 흐른다. default origin fills 는 모든 행,
+  //   selected origin fills 는 selected 행이 override.
+  const defaultOriginFills = readCanonicalNodeFills(templateOriginNode);
+  const selectedOriginFills = readCanonicalNodeFills(selectedOriginNode);
   // ADR-148 Phase 0 — slot 구성 소비: origin(또는 anchor 가 자식을 보유하면 anchor)의
   //   slot 조합 자식(metadata.slotRole)에서 구성(존재·순서)과 slot 자식 style 을 추출해
   //   projected row 의 `_slots` 로 주입한다. listbox_item escape(Skia)와 DOM emit 이
@@ -847,24 +910,42 @@ function appendListBoxRowProjection(
       listBoxSceneNode.id,
       row.itemKey,
     );
+    const isRowSelected = isListBoxRowSelected(
+      props,
+      row.itemKey,
+      row.rowIndex,
+    );
     const rowProps: Record<string, unknown> = {
       children: row.label,
       description: row.description ?? "",
       textValue: row.label,
       // ADR-147: anchor layout style overlay. width 는 항상 100% (list 행 폭 고정).
-      style: { ...templateAnchorStyle, width: "100%" },
-      _isSelected: isListBoxRowSelected(props, row.itemKey, row.rowIndex),
+      //   selected 행은 Selected variant origin style 을 위에 overlay (2026-07-20).
+      style: {
+        ...templateAnchorStyle,
+        ...(isRowSelected ? selectedOriginStyle : {}),
+        width: "100%",
+      },
+      // 보편 selection 축(ADR-142 §3) — listbox_item escape 는 props.isSelected 를 읽는다.
+      //   구 주입이 _isSelected 뿐이라 Skia selected row-bg/check 가 죽은 분기였다 (2026-07-20).
+      isSelected: isRowSelected,
+      _isSelected: isRowSelected,
     };
     if (row.value) rowProps.value = row.value;
     if (row.icon) rowProps.icon = row.icon; // ADR-147: icon slot
     if (row.isDisabled) rowProps.isDisabled = true;
     // ADR-148 Phase 0: slot 구성(존재·순서·slot 자식 style) — escape/DOM emit 소비.
     if (slotComposition) rowProps._slots = slotComposition;
+    // origin fills 채널 (2026-07-20) — buildSpecNodeData fills→배경 변환 재사용.
+    const rowFills = isRowSelected
+      ? (selectedOriginFills ?? defaultOriginFills)
+      : defaultOriginFills;
 
     addSceneNode(
       {
         id: projectionId,
         type: "ListBoxItem",
+        ...(rowFills ? { fills: rowFills } : {}),
         props: rowProps,
         parentId: rowsGroupId,
         pageId: scope.pageId,

@@ -130,6 +130,21 @@ export interface RenderContext {
    */
   listBoxTemplateSlotComposition?: SlotComposition | null;
   /**
+   * ListBox 행 template origin 의 root style (2026-07-20, Selected variant 배선).
+   *
+   * provider(Preview App)가 문서에서 master `slot` 등록을 해석해 주입:
+   * - `base`: default origin(`slot[0]`) 의 `props.style` — 모든 행에 적용.
+   * - `selected`: Selected variant origin(`metadata.variant==="selected"`, fallback `slot[1]`)
+   *   의 `props.style` — `data-selected` 행에만 overlay.
+   *
+   * builder Skia projection(appendListBoxRowProjection 의 templateAnchorStyle +
+   * selectedOriginStyle overlay)과 대칭. null/미주입 = legacy → catalog CSS base 만.
+   */
+  listBoxRowTemplateStyles?: {
+    base: Record<string, unknown> | null;
+    selected: Record<string, unknown> | null;
+  } | null;
+  /**
    * ADR-148 Phase 4 — GridListItem 카드 template 의 slot 구성 (ListBox 동형,
    * origin `component-gridlist-item-default` 자식에서 파생).
    */

@@ -60,6 +60,15 @@ export function resolveColor(
   if (typeof value === "string" && value.startsWith("{")) {
     return resolveToken(value as TokenRef, theme);
   }
+  // `var(--accent-subtle)` 류 시맨틱 CSS 변수 문자열 (2026-07-20) — origin props.style
+  //   의 backgroundColor 가 var() 리터럴로 Skia fill 에 도달하는 경로 (Selected variant
+  //   배선). 역변환 가능한 단순 var() 는 토큰으로 해석해 theme(light/dark) 정합 색을
+  //   반환한다. 역변환 불가(복합 표현/미등록 변수)면 기존 동작(문자열 passthrough —
+  //   hexStringToNumber 에서 0x000000) 유지.
+  if (typeof value === "string" && value.startsWith("var(")) {
+    const tokenRef = cssVarToTokenRef(value);
+    if (tokenRef) return resolveToken(tokenRef, theme);
+  }
   return value;
 }
 

@@ -744,8 +744,18 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
 
   const shapes: Shape[] = [];
 
-  // selection row-bg (selected → accent-subtle). hover/pressed 는 빌더 정적 캔버스 미발생.
-  if (props.isSelected) {
+  // row-bg — style.backgroundColor(origin style override 층, 2026-07-20) 우선.
+  //   selected 행: projection 이 Selected variant origin style 을 merge 주입 → 그 backgroundColor
+  //   가 catalog fill(selected accent-subtle) 을 override. origin 스타일 부재 시 기존 시각 유지.
+  //   비선택 행: Default origin 이 배경을 지정한 경우만 그린다 (기본: 투명 — 기존 동작).
+  //   hover/pressed 는 빌더 정적 캔버스 미발생.
+  const rowBgFill =
+    (style?.backgroundColor as string | undefined) ??
+    (props.isSelected
+      ? (visual?.fill?.default.selected ??
+        ("{color.accent-subtle}" as TokenRef))
+      : undefined);
+  if (rowBgFill) {
     shapes.push({
       id: "row-bg",
       type: "roundRect",
@@ -757,8 +767,7 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
         style?.borderRadius,
         typeof size.borderRadius === "number" ? size.borderRadius : 4,
       ),
-      fill:
-        visual?.fill?.default.selected ?? ("{color.accent-subtle}" as TokenRef),
+      fill: rowBgFill,
     });
   }
 

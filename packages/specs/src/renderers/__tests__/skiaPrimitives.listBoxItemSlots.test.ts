@@ -192,3 +192,36 @@ describe("listbox_item slot 구성 소비 (ADR-148 Phase 0 배선)", () => {
     expect(textShapes(shapes)).toHaveLength(2);
   });
 });
+
+// 2026-07-20 (Selected variant 배선) — row-bg fill 우선순위:
+//   style.backgroundColor(origin style override 층) > catalog fill(selected) > 투명.
+describe("listbox_item row-bg — origin style override 층 (2026-07-20)", () => {
+  function rowBg(shapes: Shape[] | null): AnyShape | undefined {
+    return ((shapes ?? []) as Array<AnyShape & { id?: string }>).find(
+      (s) => s.id === "row-bg",
+    );
+  }
+
+  it("isSelected + backgroundColor 부재 → catalog fallback(accent-subtle) 유지", () => {
+    const shapes = drawWith({ ...flatProps, isSelected: true });
+    expect(rowBg(shapes)?.fill).toBe("{color.accent-subtle}");
+  });
+
+  it("isSelected + style.backgroundColor → origin override 가 fill 로 반영", () => {
+    const shapes = drawWith(
+      { ...flatProps, isSelected: true },
+      { backgroundColor: "var(--accent-subtle)" },
+    );
+    expect(rowBg(shapes)?.fill).toBe("var(--accent-subtle)");
+  });
+
+  it("비선택 + style.backgroundColor → Default origin 배경도 행에 렌더", () => {
+    const shapes = drawWith({ ...flatProps }, { backgroundColor: "#eee" });
+    expect(rowBg(shapes)?.fill).toBe("#eee");
+  });
+
+  it("비선택 + backgroundColor 부재 → row-bg 미생성 (기존 투명 동작 BC)", () => {
+    const shapes = drawWith({ ...flatProps });
+    expect(rowBg(shapes)).toBeUndefined();
+  });
+});

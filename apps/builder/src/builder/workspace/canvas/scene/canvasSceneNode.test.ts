@@ -220,6 +220,115 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
     expect(aardvark?.ref).toBeUndefined();
   });
 
+  // 2026-07-20 (Selected variant 배선): selected 행은 slot 등록의 Selected origin
+  //   props.style 을 overlay 하고, 보편 selection 축(isSelected — listbox_item escape 판독 축)
+  //   을 주입한다. 구 주입이 _isSelected 뿐이라 Skia selected row-bg/check 가 죽은 분기였다.
+  it("selected 행에 Selected variant origin style overlay + isSelected 보편 축 주입", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "component-listbox-item-default",
+                  type: "ListBoxItem",
+                  reusable: true,
+                  props: {},
+                },
+                {
+                  id: "component-listbox-item-selected",
+                  type: "ListBoxItem",
+                  reusable: true,
+                  metadata: { variant: "selected" },
+                  props: {
+                    style: { backgroundColor: "var(--accent-subtle)" },
+                  },
+                  // Style 패널 Background 편집 채널 (canonical fills) — 행 fills 운반 검증.
+                  fills: [
+                    {
+                      id: "f1",
+                      type: "color",
+                      color: "#FF3366FF",
+                      enabled: true,
+                      opacity: 1,
+                    },
+                  ],
+                },
+                {
+                  id: "listbox-1",
+                  type: "ListBox",
+                  slot: [
+                    "component-listbox-item-default",
+                    "component-listbox-item-selected",
+                  ],
+                  props: {
+                    selectedKey: "cat",
+                    items: [
+                      { id: "aardvark", label: "Aardvark" },
+                      { id: "cat", label: "Cat" },
+                    ],
+                  },
+                  children: [
+                    {
+                      id: "template-anchor",
+                      type: "ref",
+                      ref: "component-listbox-item-default",
+                      props: {},
+                      metadata: {
+                        type: "legacy-element-props",
+                        templateRole: "listbox-item-template-anchor",
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc);
+    const selectedRow = graph.nodesMap.get(
+      toListBoxRowProjectionId("listbox-1", "cat"),
+    );
+    const normalRow = graph.nodesMap.get(
+      toListBoxRowProjectionId("listbox-1", "aardvark"),
+    );
+
+    expect(selectedRow?.props.isSelected).toBe(true);
+    expect(selectedRow?.props._isSelected).toBe(true);
+    expect(
+      (selectedRow?.props.style as Record<string, unknown>).backgroundColor,
+    ).toBe("var(--accent-subtle)");
+
+    expect(normalRow?.props.isSelected).toBe(false);
+    expect(
+      (normalRow?.props.style as Record<string, unknown>).backgroundColor,
+    ).toBeUndefined();
+
+    // fills 채널 (Style 패널 Background 편집 저장소): selected 행에만 Selected origin
+    //   fills 가 실린다 — buildSpecNodeData fills→hex6 배경 변환 재사용 경로.
+    expect(selectedRow?.fills).toEqual([
+      {
+        id: "f1",
+        type: "color",
+        color: "#FF3366FF",
+        enabled: true,
+        opacity: 1,
+      },
+    ]);
+    expect(normalRow?.fills).toBeUndefined();
+  });
+
   // ADR-912 단계 4 C1: GridList projection (ListBox 동형, origin/anchor 없음).
   it("projects data-bound GridList items as GridListItem scene nodes", () => {
     const doc: CompositionDocument = {
