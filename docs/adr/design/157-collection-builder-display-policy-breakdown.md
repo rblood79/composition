@@ -41,11 +41,21 @@ Phase 0 완료 조건: 위 6개 경로의 라인/심볼 재확정 + auto-height 
 - rowIndex 절대 index 계약 · Table header 항상 포함 계약 무변.
 - 검증: 신규 6 test + 기존 22 = 28/28 PASS · type-check PASS(Cached 0, no-new). 사용자-가시 동작 변화 0.
 
-### Phase 2 — scene remainder hatch (ListBox 선행 proof)
+### Phase 2 — scene remainder hatch (ListBox 선행 proof) ✅ 배선 delivered 2026-07-20 (`366ee88ab`) · rowHeight 정밀도 R1 residual
 
 - `canvasSceneNode.ts` ListBox 투영: window 미적용 + totalRows > SAMPLE 일 때 remainder 영역 synthetic hatch box(사선 — slotMarkerRenderer 시각 언어) + "+{hiddenRows} more" 라벨 emit. 높이 = hiddenRows × rowHeight(+gap 보정).
 - hit-test: hatch box 는 소유 collection 선택으로 위임 (행 선택 아님).
 - LayerTree 패널: A2 확정 정책("가상화는 캔버스 draw/hit 전용 — LayerTree 는 window 와 분리") 을 샘플 정책에도 동일 승계 — 패널 표시 범위는 본 ADR 무변.
+
+**배선 방식 (구현 확정)**: A2 `CollectionWindowResolution` 에 `mode:"scroll"|"sample"` 추가. `resolveVirtualizedCollectionWindows` 가 `viewportHeight==null`(auto-height) + data-bound ListBox + totalRows>SAMPLE 에서 sample resolution 산출. scene `appendListBoxRowProjection` 이 sample mode 일 때 trailing 을 빈 spacer 대신 `collection-remainder` hatch 노드로 emit → 컨테이너가 rowsGroup(샘플행 + hatch)에 auto-size. overlay `buildCollectionRemainderTargets` + `renderCollectionRemainderMarker`. 명시 height 소유자(scroll=A2 / non-scroll=고정)는 제외.
+
+**live 검증 (2026-07-20, Chrome-MCP `__composition_SKIA_DEBUG__.getSkiaNode` 직접 조회 — 100행 auto-height ListBox 실주입)**:
+
+- ✅ **핵심 배선 작동 확정**: `projection:listbox-remainder:component-listbox` 노드 Skia 레지스트리 등재(y=580 = row9 끝 직후 정확 배치) · sample 정확히 10행(row0~row9 존재, row10 null, 100행 아님) · 컨테이너 rowsGroup auto-size(h=5080 = 580 + 4500).
+- ⚠️ **rowHeight 정밀도 = R1 residual**: remainder rowHeight=50(`itemHeightWithDescription` md = 4×2+20+2+20) 인데 렌더 Skia 행=58 → 8px/행 gap → 컨테이너 5080 vs 이상 5800(≈12% 부족). 원인: §1.55b-2 `calculateContentHeight` 가 padding-box 값(50)을 반환하는데 enrich 가 content-box 로 간주해 padding 재가산(추정). **어느 쪽이 DOM(Preview SSOT)과 정합인지는 Chrome-MCP 탭 rАF-pause(OS 미포커스)로 이번 세션 미확정** — 스크린샷 타임아웃 + 재조회 레지스트리 stale. 이 gap 은 A2 공유 resolver 특성이며 ADR **R1**("hatch 높이 오차 → 아래 형제 배치 drift", MED, A2 동일 후속 트랙 병합)에 정확히 해당. **Gate G1(±1px)은 이 정밀화 전까지 미충족** — G1 실패 대응("rowHeight resolver 정밀화 선행 후 재시도")대로 후속.
+- 프로젝트 복원 완료(주입 items 제거, registry 47 원복).
+
+**후속 (Phase 2 종결 전 또는 R1 트랙)**: DOM(Preview) 행 높이 실측 → 50/58 중 SSOT 확정 → (a) resolver 가 렌더 행 높이(border-box)를 반환하도록 정밀화하거나 (b) §1.55b-2 enrich padding 재가산이 실제 버그면 그 수정(A2 spacer 동반 개선). rАF-pause 미발생 환경(탭 OS 포커스 또는 사용자 confirm)에서 DOM 대조 필요.
 
 ### Phase 3 — layout 배치 진실성 (Layer D)
 
