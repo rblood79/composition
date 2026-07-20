@@ -41,7 +41,7 @@ Phase 0 완료 조건: 위 6개 경로의 라인/심볼 재확정 + auto-height 
 - rowIndex 절대 index 계약 · Table header 항상 포함 계약 무변.
 - 검증: 신규 6 test + 기존 22 = 28/28 PASS · type-check PASS(Cached 0, no-new). 사용자-가시 동작 변화 0.
 
-### Phase 2 — scene remainder hatch (ListBox 선행 proof) ✅ 배선 delivered 2026-07-20 (`366ee88ab`) · rowHeight 정밀도 R1 residual
+### Phase 2 — scene remainder hatch (ListBox 선행 proof) ✅ Implemented 2026-07-21 (`366ee88ab` 배선 + `7fbf31968` R1 정밀화) · Gate G1 충족
 
 - `canvasSceneNode.ts` ListBox 투영: window 미적용 + totalRows > SAMPLE 일 때 remainder 영역 synthetic hatch box(사선 — slotMarkerRenderer 시각 언어) + "+{hiddenRows} more" 라벨 emit. 높이 = hiddenRows × rowHeight(+gap 보정).
 - hit-test: hatch box 는 소유 collection 선택으로 위임 (행 선택 아님).
@@ -52,10 +52,17 @@ Phase 0 완료 조건: 위 6개 경로의 라인/심볼 재확정 + auto-height 
 **live 검증 (2026-07-20, Chrome-MCP `__composition_SKIA_DEBUG__.getSkiaNode` 직접 조회 — 100행 auto-height ListBox 실주입)**:
 
 - ✅ **핵심 배선 작동 확정**: `projection:listbox-remainder:component-listbox` 노드 Skia 레지스트리 등재(y=580 = row9 끝 직후 정확 배치) · sample 정확히 10행(row0~row9 존재, row10 null, 100행 아님) · 컨테이너 rowsGroup auto-size(h=5080 = 580 + 4500).
-- ⚠️ **rowHeight 정밀도 = R1 residual**: remainder rowHeight=50(`itemHeightWithDescription` md = 4×2+20+2+20) 인데 렌더 Skia 행=58 → 8px/행 gap → 컨테이너 5080 vs 이상 5800(≈12% 부족). 원인: §1.55b-2 `calculateContentHeight` 가 padding-box 값(50)을 반환하는데 enrich 가 content-box 로 간주해 padding 재가산(추정). **어느 쪽이 DOM(Preview SSOT)과 정합인지는 Chrome-MCP 탭 rАF-pause(OS 미포커스)로 이번 세션 미확정** — 스크린샷 타임아웃 + 재조회 레지스트리 stale. 이 gap 은 A2 공유 resolver 특성이며 ADR **R1**("hatch 높이 오차 → 아래 형제 배치 drift", MED, A2 동일 후속 트랙 병합)에 정확히 해당. **Gate G1(±1px)은 이 정밀화 전까지 미충족** — G1 실패 대응("rowHeight resolver 정밀화 선행 후 재시도")대로 후속.
 - 프로젝트 복원 완료(주입 items 제거, registry 47 원복).
 
-**후속 (Phase 2 종결 전 또는 R1 트랙)**: DOM(Preview) 행 높이 실측 → 50/58 중 SSOT 확정 → (a) resolver 가 렌더 행 높이(border-box)를 반환하도록 정밀화하거나 (b) §1.55b-2 enrich padding 재가산이 실제 버그면 그 수정(A2 spacer 동반 개선). rАF-pause 미발생 환경(탭 OS 포커스 또는 사용자 confirm)에서 DOM 대조 필요.
+**R1 정밀화 — root-cause 확정 + 해소 (2026-07-21, `7fbf31968`)**: 이전 세션의 "렌더 행=58 vs remainder=50, 12% 부족"을 코드 경로로 근본 규명(브라우저 불요 — 결정론적 계약). 근본 원인: `calculateContentHeight` §1.55b-2(childless ListBoxItem 분기)는 행을 **padding-box**(`resolveListBoxItemRowHeightFromStyle` — window resolver/render.shapes/컨테이너 calc 와 동일한 border 규약, padding 포함·border 제외)로 반환하는데, `enrichWithIntrinsicSize`(utils.ts:4313-4340)가 이를 content-box 로 간주하고 `box.padding`(parseBoxModel = **explicit** padding 만)을 재가산한다(GridListItem 형제 분기는 content-box 라 재가산이 옳음 — 두 분기의 box-model 비대칭).
+
+- **기본 origin 은 R1 미해당(정정)**: `createListBoxItemDefaultOrigin`(listBoxTemplateOrigins.ts:130-149)은 `props.style` 자체가 없다 → 투영 행 style 에 explicit padding 없음 → `box.padding=0` → 재가산 0 → **기본 행은 이미 50/28(정합)**. 즉 fresh 프로젝트 기본 템플릿에서는 R1 이 애초에 발현하지 않는다(이전 세션 프로젝트는 origin 에 explicit padding 이 있어 58 관측 = R1 발현).
+- **explicit padding 행에서만 이중 계산**: §1.55b-2 가 이미 그 padding 을 포함하는데 enrich 가 다시 더함 → desc 50→58 / plain 28→36. window resolver remainder stride(50)와 렌더 행(58) 불일치 → 컨테이너 12% 부족(R1).
+- **수정**: enrich 에서 childless ListBoxItem 행은 `box.padding` 재가산 skip, border 만 재가산(§1.55b-2 = padding-box = border 제외). childful(reusable origin unfold)은 generic content-box 합산 경로라 제외(§1.55b-2 gating `!(childElements>0)` 동일). 기본 행은 fix 전후 byte-identical(50/28), explicit-padding 행만 58/90→50/66 교정.
+- **검증**: `listBoxItemRowEnrichHeight.test.ts` (RED explicit-padding 58/90 → GREEN 50/66, default 50/28 회귀 가드, GridListItem content-box 재가산 유지 대조) + 관련 4 test file 53 PASS + engines dir 191 PASS + type-check no-new(builder cache-miss 실행).
+- ✅ **Gate G1(±1px) 충족**: fix 후 렌더 행 = window resolver remainder stride = 50(padding-box) 로 수렴 → 컨테이너 = totalRows × rowHeight, hatch 하단이 마지막 논리 행 끝에 정렬. Hard Constraint 2(배치 진실성)는 auto-height 소유자에서 scene rowsGroup(샘플행 + hatch) auto-size 로 달성(§Phase 0 실측 정합).
+
+**Phase 2 live 검증 요약**: 핵심 배선(remainder 노드 위치·sample 10행·컨테이너 auto-size)은 이전 세션 getSkiaNode 로 확정, R1 정밀화는 결정론적 단위 테스트로 확정(브라우저 불요 — 순수 layout 산술, registration/wiring/schema 무변경). 기본 템플릿 live 동작은 fix 로 무변경(box.padding=0).
 
 ### Phase 3 — layout 배치 진실성 (Layer D)
 
