@@ -350,6 +350,59 @@ export function resolveEditContract(
     }
   }
 
+  // (A″) semantic — 비-registry ref instance 의 origin type 계약 fallback (2026-07-20).
+  //   template origin ref(ListBox/GridList/Menu 계열 — `component-listbox` 등)와 사용자
+  //   생성 컴포넌트 instance 는 (A′) catalog reusable 미등록·propsSchema 미선언 + (A)
+  //   node.type="ref" 로 양쪽 모두 탈락해 편집 계약이 비었다(items-manager 소실 —
+  //   instance 에서 리스트 편집 불가). origin 문서 노드의 type 이 primitive catalog entry
+  //   를 가지면 그 accepts 로 계약을 파생한다. write target 은 (A′) 와 동일하게
+  //   node.props[key] — instance root props override(resolve 시 origin props 위에 merge).
+  //   registry reusable(Toolbar/Form — propsSchema 의도적 미선언, ADR-148 Phase 2 결정
+  //   "기존 동작 유지: semantic 필드 없음")은 제외 — (A′) propsSchema 경로 전용.
+  const refId = (node as { ref?: unknown }).ref;
+  if (
+    !reusable &&
+    !accepts &&
+    typeof refId === "string" &&
+    refId.length > 0 &&
+    doc &&
+    !getReusableEntries().some(
+      (catalogEntry) => catalogEntry.reusableId === refId,
+    )
+  ) {
+    const origin = findDocumentNodeById(doc.children, refId);
+    const originEntry = origin ? getCatalogEntry(origin.type) : undefined;
+    const originAccepts =
+      originEntry?.kind === "primitive"
+        ? originEntry.binding.props.accepts
+        : undefined;
+    if (origin && originAccepts) {
+      const originProps = readProps(origin);
+      const originRule = resolveComponentRule(origin.type, doc);
+      for (const [key, contract] of Object.entries(originAccepts)) {
+        const isOverridden = Object.hasOwn(props, key);
+        const baseValue = Object.hasOwn(originProps, key)
+          ? originProps[key]
+          : contract.default;
+        fields.push({
+          key,
+          kind: contract.kind,
+          label: contract.label ?? key,
+          section: contract.section ?? "content",
+          origin: "semantic",
+          isOverridden,
+          baseValue,
+          currentValue: isOverridden ? props[key] : baseValue,
+          min: contract.min,
+          max: contract.max,
+          step: contract.step,
+          options: deriveOptions(contract, originRule, origin, key),
+          itemsManager: contract.itemsManager,
+        });
+      }
+    }
+  }
+
   // (B) universal style — UNIVERSAL_STYLE_CONTRACTS. base = theme rule(ComponentRuleSize). origin:"style".
   const { base } = resolveMergedStyle(node as CanonicalNode, doc);
   for (const [key, contract] of Object.entries(UNIVERSAL_STYLE_CONTRACTS)) {

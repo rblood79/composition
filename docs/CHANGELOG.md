@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Reusable instance 편집 계약 복원 — ref fallback] - 2026-07-20
+
+### Bug Fixes
+
+- **일반 페이지의 ListBox instance 에서 리스트(items) 편집 불가** (Properties 패널 편집 계약 공백):
+  - 팔레트로 추가한 ListBox 는 Components 페이지 origin 을 참조하는 `type:"ref"` instance 로 생성되는데, 편집 계약 resolve 가 (A′) catalog reusable 미등록 + `propsSchema` 미선언, (A) `getCatalogEntry("ref")` 부재로 **양쪽 모두 탈락** → 패널이 "편집 계약이 비어 있습니다" EmptyState 만 표시. items 추가/삭제·Variant·Size·Selection Mode 편집이 instance 에서 전부 불가능했다 (origin 에서만 가능).
+  - **Why**: ADR-146 이 instance 를 bare ref 로 전환할 때 Inspector 편집 계약이 ref 노드의 raw type("ref") 기준으로만 resolve 되어, origin type(ListBox)의 primitive 계약(items-manager 포함)으로 이어지는 경로가 없었다.
+  - 수정: `resolveEditContract` 에 (A″) fallback — 비-registry ref instance 는 origin 문서 노드의 type 이 primitive catalog entry 를 가지면 그 `accepts` 로 계약을 파생 (base = origin props, write = instance root props override). registry reusable(Toolbar/Form — propsSchema 의도적 미선언)은 ADR-148 Phase 2 결정대로 제외.
+  - 적용 범위: ListBox 뿐 아니라 GridList/Menu 등 template-origin ref instance 전반 + 사용자 생성 컴포넌트 instance (origin root type 이 primitive 인 경우).
+  - 위치: `packages/shared/src/catalog/resolvers/resolveEditContract.ts` (+ `resolveEditContract.test.ts` 4 케이스)
+
 ## [Builder Skia 상호작용 상태 시각(hover/pressed/focus) 철회 — ADR-150 Phase A1 재판정] - 2026-07-20
 
 ### Architecture

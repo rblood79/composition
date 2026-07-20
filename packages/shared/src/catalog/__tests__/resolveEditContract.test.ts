@@ -340,4 +340,97 @@ describe("resolveEditContract — semantic ∪ universal style (ADR-912 1A-(4))"
       expect(value?.currentValue).toBe("b");
     });
   });
+
+  // ── (A″) 비-registry ref instance 의 origin type 계약 fallback (2026-07-20) ──
+  // Why: template origin ref(component-listbox 등)는 catalog reusable 미등록 +
+  //   propsSchema 미선언이라 (A′)/(A) 모두 탈락 → 편집 계약 0 → instance 에서
+  //   items 편집 불가(라이브 재현: "'ListBox' 컴포넌트의 편집 계약이 비어 있습니다").
+  //   origin type 의 primitive accepts 로 파생해 복원한다.
+  describe("(A″) ref instance fallback — origin type 계약 파생", () => {
+    const LISTBOX_ORIGIN_ID = "component-listbox";
+    const originListBox: CanonicalNode = {
+      id: LISTBOX_ORIGIN_ID,
+      type: "ListBox" as CanonicalNode["type"],
+      reusable: true,
+      props: { orientation: "vertical", selectionMode: "single", items: [] },
+    };
+    const makeDoc = (children: CanonicalNode[]) =>
+      ({ version: "composition-1.0", children }) as Parameters<
+        typeof resolveEditContract
+      >[1];
+
+    const refInstance = (props: Record<string, unknown>): CanonicalNode =>
+      ({
+        id: "inst1",
+        type: "ref",
+        ref: LISTBOX_ORIGIN_ID,
+        props,
+      }) as unknown as CanonicalNode;
+
+    it("ref instance 가 origin(ListBox) accepts 로 semantic 계약을 얻는다 (items-manager 포함)", () => {
+      const doc = makeDoc([originListBox]);
+      const { fields } = resolveEditContract(refInstance({}), doc);
+      const items = fields.find(
+        (f) => f.key === "items" && f.origin === "semantic",
+      );
+      expect(items?.kind).toBe("items-manager");
+      expect(items?.itemsManager?.itemsKey).toBe("items");
+      // variant/size options 도 origin type rule 에서 파생.
+      const size = fields.find(
+        (f) => f.key === "size" && f.origin === "semantic",
+      );
+      expect(size?.options?.length ?? 0).toBeGreaterThan(0);
+    });
+
+    it("instance 가 fork 한 items 는 isOverridden + currentValue = instance 값", () => {
+      const forked = [{ id: "i1", label: "Aardvark", value: "aardvark" }];
+      const doc = makeDoc([originListBox]);
+      const items = resolveEditContract(
+        refInstance({ items: forked }),
+        doc,
+      ).fields.find((f) => f.key === "items");
+      expect(items?.isOverridden).toBe(true);
+      expect(items?.currentValue).toEqual(forked);
+      // 미 fork 키(selectionMode)는 origin props 가 base.
+      const mode = resolveEditContract(
+        refInstance({ items: forked }),
+        doc,
+      ).fields.find((f) => f.key === "selectionMode");
+      expect(mode?.isOverridden).toBe(false);
+      expect(mode?.currentValue).toBe("single");
+    });
+
+    it("registry reusable ref(Toolbar — propsSchema 미선언)는 기존 동작 유지 (semantic 0)", () => {
+      // ADR-148 Phase 2 결정: 미선언 registry reusable 은 semantic 필드 없음.
+      const originToolbar: CanonicalNode = {
+        id: "component-toolbar",
+        type: "Toolbar" as CanonicalNode["type"],
+        reusable: true,
+        props: {},
+      };
+      const toolbarRef = {
+        id: "inst2",
+        type: "ref",
+        ref: "component-toolbar",
+        props: {},
+      } as unknown as CanonicalNode;
+      const doc = makeDoc([originToolbar]);
+      const semantic = resolveEditContract(toolbarRef, doc).fields.filter(
+        (f) => f.origin === "semantic",
+      );
+      expect(semantic.length).toBe(0);
+    });
+
+    it("doc 미제공 또는 origin 미존재 ref 는 semantic 0 (graceful)", () => {
+      const semanticNoDoc = resolveEditContract(refInstance({})).fields.filter(
+        (f) => f.origin === "semantic",
+      );
+      expect(semanticNoDoc.length).toBe(0);
+      const semanticNoOrigin = resolveEditContract(
+        refInstance({}),
+        makeDoc([]),
+      ).fields.filter((f) => f.origin === "semantic");
+      expect(semanticNoOrigin.length).toBe(0);
+    });
+  });
 });
