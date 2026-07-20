@@ -32,6 +32,8 @@ interface InteractionRule {
 - write 진입점: `updateEventsRootCollection` (ADR-149 2a wrapper) 시그니처를 `InteractionRule[]` 로 갱신 — 단일 진입점 유지.
 - 기존 `EventHandler` 데이터: 마이그레이션 없이 drop (본문 §Decision — BC 수식화: 소비 런타임 0 → 사용자 영향 0%).
 - `condition` / `debounce` / `throttle` / 다중 `actions[]` / 템플릿: 스키마에서 원천 제거.
+- **읽기 경로 (리뷰 round 1 정정)**: 신규 `useInteractionRules` 는 canonical `events` root collection 을 **직접 read** — 구 패널의 legacy projection (`selectedElement.events`, EventsPanel.tsx 헤더 주석 "canonical-synced legacy projection") 비의존. ADR-149 가 후속 이관했던 "builder-side reader canonical 전환" 을 신규 패널은 처음부터 canonical read 로 달성.
+- **ADR-149 adapter 처리 방침 (리뷰 round 1 정정)**: 역방향 adapter `migrateRootCollectionToLegacy` (`apps/builder/src/adapters/canonical/rootCollectionMigration.ts`) 와 legacy `element.events` mirror 파생 (`rootCollectionEventsWrite.ts`) 은 **구 EventHandler 스키마 전용** — Phase 1 에서 신규 스키마 대상 mirror 파생을 중단하고, Phase 4 에서 구 registry 와 동반 은퇴. `element.events` mirror 소멸 시 publish `ElementRenderer.tsx:76-90` 의 legacy 소비는 `events === undefined → return {}` no-op 으로 안전 (실측 2026-07-20).
 
 ## §3. Capability Registry — 단일 파일 SSOT
 
@@ -131,17 +133,17 @@ useInteractionBindings.ts — 요소 렌더 시 trigger callback 주입
 | 10  | `types.ts`               | InteractionRule re-export + 패널 로컬 타입                     |
 
 - 인라인 편집 필드 3개 이내 (trigger / action / target·param) — 조건·타이밍·고급 섹션 없음.
-- 패널 등록: PanelContainer 의 기존 Events 슬롯 교체 (`<Activity mode="hidden">` gating 은 ADR-155 그대로).
+- 패널 등록 (리뷰 round 1 정정): `panels/core/panelConfigs.ts` 의 `id: "events"` config 항목 교체 (`component: EventsPanel → InteractionsPanel`, 현행 panelConfigs.ts:195-207). `<Activity mode="hidden">` gating 은 `layout/PanelContainer.tsx` (ADR-155) 그대로.
 
 ## §6. Phase 분해
 
-| Phase | 내용                                                                                                          | 완료 기준                                                            |
-| ----- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| **0** | Inventory freeze — panels/events 92파일 목록 / registry 어휘 대조표 / Preview controlled·uncontrolled 실태 표 | breakdown 에 표 3개 커밋                                             |
-| **1** | `CAPABILITY_REGISTRY` + `InteractionRule` 스키마 + `updateEventsRootCollection` 시그니처 갱신                 | type-check PASS + registry unit test (G1 정적 가드 포함)             |
-| **2** | InteractionsPanel UI 10파일 + PanelContainer 교체                                                             | builder 에서 규칙 CRUD 동작 (수동 confirm)                           |
-| **3** | Preview dispatcher + bindings + messaging 연결                                                                | **G2**: navigate/toast/hide·show/modal open 4종 Chrome MCP 발화 확증 |
-| **4** | 구 시스템 은퇴 — panels/events 92파일 + registry 구 어휘 삭제                                                 | **G3**: G2 PASS + 사용자 명시 삭제 승인 후. type-check + grep 잔존 0 |
+| Phase | 내용                                                                                                          | 완료 기준                                                                                                                                |
+| ----- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **0** | Inventory freeze — panels/events 92파일 목록 / registry 어휘 대조표 / Preview controlled·uncontrolled 실태 표 | breakdown 에 표 3개 커밋                                                                                                                 |
+| **1** | `CAPABILITY_REGISTRY` + `InteractionRule` 스키마 + `updateEventsRootCollection` 시그니처 갱신                 | type-check PASS + registry unit test (G1 정적 가드 포함)                                                                                 |
+| **2** | InteractionsPanel UI 10파일 + PanelContainer 교체                                                             | builder 에서 규칙 CRUD 동작 (수동 confirm)                                                                                               |
+| **3** | Preview dispatcher + bindings + messaging 연결                                                                | **G2**: navigate/toast/hide·show/modal open 4종 Chrome MCP 발화 확증                                                                     |
+| **4** | 구 시스템 은퇴 — panels/events 92파일 + registry 구 어휘 + ADR-149 legacy adapter 삭제                        | **G3**: G2 PASS + 사용자 명시 삭제 승인 후. type-check + grep 잔존 0 + publish `ElementRenderer` legacy `element.events` 소비 no-op 확인 |
 
 - Phase 간 커밋 분리 (phase 당 1+ 커밋, main 직접 push).
 - Phase 4 의 파일 삭제는 CLAUDE.md 마이그레이션 원칙 — "ok/진행해" 는 삭제 승인 아님, 별도 확인 질문 필수.
