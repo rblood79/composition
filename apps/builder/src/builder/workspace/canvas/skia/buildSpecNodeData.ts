@@ -25,15 +25,12 @@ import {
   getSkiaPrimitiveMode,
   normalizeBreadcrumbRspSizeKey,
   racStateAttrs,
-  type RacStateInput,
   type BorderStyleValue,
   type ComponentState,
   type ComponentSpec,
   type PropagationRule,
   type Shape,
   type SizeSpec,
-  lightColors,
-  darkColors,
 } from "@composition/specs";
 import {
   isCatalogCutover,
@@ -108,26 +105,11 @@ interface SpecBuildInput {
     maxScrollTop: number;
     maxScrollLeft: number;
   } | null;
-  /**
-   * ADR-150 A1 — RAC 상호작용 상태(hover/pressed/focusVisible) 입력.
-   * scene 빌드(StoreRenderBridge)는 미주입 → default 유지(변경 0). overlay 재렌더가
-   * hovered/pressed leaf 노드에만 `{ isHovered: true }` 등을 주입해 상태 fill 을 방출한다.
-   * racStateAttrs 우선순위: disabled > pressed > hover > focusVisible.
-   */
-  racStateInput?: RacStateInput;
 }
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-
-// ADR-150 A1 S4 — focus ring(RAC data-focus-visible 정합). CSS `outline: 2px solid
-// var(--focus-ring); outline-offset: 2px` 동형(Checkbox/GridList/ColorPicker.css 실측).
-// 색상은 하드코딩 금지 — theme accent(lightColors/darkColors.accent, tint 반영)로 해소해
-// DOM --focus-ring(preview tint 파생)과 대칭 + dark mode/커스텀 tint 대응(cross-check §3.5
-// "focusVisible = var(--accent)"). nodeRendererBorders 가 box.outline* 를 offset stroke 로 렌더.
-const FOCUS_RING_WIDTH = 2;
-const FOCUS_RING_OFFSET = 2;
 
 const CONTAINER_DIMENSION_TAGS = new Set([
   "Tag",
@@ -1517,11 +1499,7 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
         specProps.disabled ||
         breadcrumbCtx?._parentIsDisabled,
       );
-  // racStateInput(overlay 재렌더 주입) 을 먼저 펼치고 isDisabled 를 나중에 명시 —
-  //   scene 판정 isDisabled(breadcrumb 예외/부모 전파 포함)가 항상 우선하고, overlay 는
-  //   hover/pressed/focusVisible 만 덮어쓴다(isDisabled undefined 로 덮이는 사고 방지).
   const componentState: ComponentState = racStateAttrs({
-    ...input.racStateInput,
     isDisabled: isNodeDisabled,
   });
 
@@ -1739,27 +1717,8 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     }
   }
 
-  // ---------- Focus ring (ADR-150 A1 S4) ----------
-  // componentState="focusVisible" 일 때 focus ring outline 활성화(912 잔여 3종 중 마지막).
-  // racStateInput.isFocusVisible → racStateAttrs → "focusVisible" → 여기서 box.outline* 주입.
-  // 링은 overlay 채널 재렌더(computeHoverStateNodes, isFocusVisible)로 focused 노드에 도달.
-  if (componentState === "focusVisible") {
-    if (!specNode.box) {
-      specNode.box = {
-        fillColor: Float32Array.of(0, 0, 0, 0),
-        borderRadius: 0,
-      };
-    }
-    // theme accent(=CSS --accent, tint 파생) 해소 — withAccentOverride 스코프 밖이라
-    // 전역 theme accent(preview --focus-ring 과 동일 tint 계열). fallback blue-500.
-    const accentHex = cssColorToHex(
-      (theme === "dark" ? darkColors : lightColors).accent,
-      0x3b82f6,
-    );
-    specNode.box.outlineColor = colorIntToFloat32(accentHex, 1);
-    specNode.box.outlineWidth = FOCUS_RING_WIDTH;
-    specNode.box.outlineOffset = FOCUS_RING_OFFSET;
-  }
+  // Focus ring: componentState가 focusVisible/focused를 지원하게 되면 활성화
+  // 현재 componentState는 "default" | "disabled"만 가능
 
   // ---------- Text style overrides (ADR-057 Phase A/B: style → child.text) ----------
   // 기존 whiteSpace-only override를 13개 필드로 일반화.

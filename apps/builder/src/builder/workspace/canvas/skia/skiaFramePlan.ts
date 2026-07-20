@@ -8,7 +8,6 @@
 import type { CanvasKit, FontMgr, Canvas } from "canvaskit-wasm";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { BoundingBox } from "../selection/types";
-import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { RendererInvalidationPacket } from "../renderers";
 import type {
   AIEffectNodeBounds,
@@ -101,14 +100,6 @@ export interface BuildFrameRenderPlanInput {
   dpr: number;
   prevEdgeGeometryCache: CachedEdgeGeometry[];
   prevEdgeGeometryCacheKey: string;
-  /**
-   * ADR-150 A1 — hover/pressed 상태 fill overlay 노드 빌더 콜백.
-   * treeBoundsMap(절대좌표) 확정 후 호출되어 hovered leaf 노드를 상태 fill 로 재빌드한다.
-   * 미지정(hover 미지원 경로)이면 빈 배열 취급.
-   */
-  buildHoverStateNodes?: (
-    treeBoundsMap: Map<string, BoundingBox>,
-  ) => SkiaNodeData[];
 }
 
 export function buildFrameRenderPlan(
@@ -161,14 +152,10 @@ export function buildFrameRenderPlan(
       })
     : null;
 
-  const hoverStateNodes =
-    input.buildHoverStateNodes?.(sharedScene.treeBoundsMap) ?? [];
-
   const overlayNode = buildOverlayNode({
     ck,
     fontMgr,
     treeBoundsMap: sharedScene.treeBoundsMap,
-    hoverStateNodes,
     cameraX: snapshot.cameraX,
     cameraY: snapshot.cameraY,
     cameraZoom: snapshot.cameraZoom,
