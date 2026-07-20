@@ -2402,6 +2402,26 @@ export function calculateContentHeight(
       layout: layout === "grid" ? "grid" : "stack",
       columns: Number(props?.columns ?? 2) || 2,
     });
+
+    // ADR-157 Phase 4 (배치 진실성 — GridList 확산): §1.55c 는 props.items 만 순회한다 —
+    //   dataBinding/collections 미접근이라 순수 dataBinding 소유자는 4-item fallback 을 반환하고,
+    //   scene 은 sample(N행) + hatch(remainder) 를 visualRows 전체 높이로 투영한다 → owner clip.
+    //   scene(appendGridListRowProjection)이 sample mode owner 에 주입한 `_projectedRowsContentHeight`
+    //   (= ceil(totalRows/columns) × rowHeight, window resolver stride = samples/hatch 와 동일)를
+    //   소비해 padding + 전체 높이 + border 를 반환한다(§1.55b ListBox 선례 동형). GridList 는
+    //   SPEC_SHAPES_INPUT 이 아니라 enrich 가 padding 을 재가산하므로, enrich 쪽에 `isInjected
+    //   GridListOwner` 가드를 두어 border-box 반환값을 그대로 최종값으로 쓴다(§enrichWithIntrinsicSize).
+    const projectedRowsContentHeight = parseNumericValue(
+      props?._projectedRowsContentHeight,
+    );
+    if (projectedRowsContentHeight !== undefined) {
+      return (
+        metric.paddingTop +
+        metric.paddingBottom +
+        projectedRowsContentHeight +
+        metric.borderWidth * 2
+      );
+    }
     const {
       rowGap: gap,
       paddingTop,
@@ -4333,7 +4353,21 @@ export function enrichWithIntrinsicSize(
     let injectHeight = childResolvedHeight;
     // ComboBox/Select: calculateContentHeight가 전체 시각적 높이(label+input/trigger)를 반환
     // spec shapes가 내부 padding 없이 렌더링하므로 추가 padding/border 불필요
-    const isSpecShapesInput = SPEC_SHAPES_INPUT_TAGS.has(type);
+    // ADR-157 Phase 4: `_projectedRowsContentHeight` 를 주입받은 auto-height data-bound GridList
+    //   소유자는 §1.55c 가 이미 border-box(metric.padding + 전체 높이 + metric.border)를 반환한다.
+    //   GridList 는 SPEC_SHAPES_INPUT 집합에 없어(items-based no-children 경로 회귀 방지) 아래
+    //   `!isSpecShapesInput` 분기가 box.padding 을 재가산하면 explicit padding 소유자에서 이중
+    //   계산(292→pad10 시 312→332)이 된다. 주입 소유자에 한해 spec-shapes 동급으로 취급해
+    //   §1.55c 반환값을 그대로 최종값으로 쓴다(ListBox=SPEC_SHAPES_INPUT 선례 동형). 미주입
+    //   GridList(items-based)는 영향 없음.
+    const isInjectedGridListOwner =
+      type === "gridlist" &&
+      parseNumericValue(
+        (element.props as Record<string, unknown> | undefined)
+          ?._projectedRowsContentHeight,
+      ) !== undefined;
+    const isSpecShapesInput =
+      SPEC_SHAPES_INPUT_TAGS.has(type) || isInjectedGridListOwner;
     // ADR-157 R1: childless ListBoxItem 행은 §1.55b-2(resolveListBoxItemRowHeightFromStyle)가
     //   이미 **padding-box**(padding 포함, border 제외)를 반환한다 — window resolver/render.shapes/
     //   컨테이너 calc 와 동일한 border 규약(GridListItem content-box 형제와 대비). 따라서 여기서

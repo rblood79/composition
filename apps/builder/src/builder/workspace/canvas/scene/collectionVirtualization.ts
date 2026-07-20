@@ -354,27 +354,52 @@ export function resolveVirtualizedCollectionWindows(
             maxScrollTop,
           });
         }
-      } else if (family === "listbox" && viewportHeight == null) {
-        // ADR-157 Phase 2 (ListBox 선행 proof): auto-height/unbounded(명시 height 없음)
-        //   data-bound ListBox — 앞부분 샘플 N행만 투영하고 나머지는 계산된 높이의 hatch
-        //   placeholder 로 표시한다. 명시 bounded height 소유자(scroll=A2 / non-scroll=고정
-        //   높이)는 컨테이너 높이가 이미 고정이라 제외 — auto-height(컨테이너가 content 에
-        //   auto-size)만 sample 대상. 자식 직접 구성 ListBox 는 totalRows 0 → 무영향.
+      } else if (viewportHeight == null) {
+        // ADR-157 sample 정책 (Phase 2 ListBox 선행 → Phase 4 GridList/Table 확산):
+        //   auto-height/unbounded(명시 height 없음) data-bound collection 소유자 — 앞부분 샘플
+        //   N행만 투영하고 나머지는 계산된 높이의 hatch placeholder 로 표시한다. 명시 bounded
+        //   height 소유자(scroll=A2 / non-scroll=고정 높이)는 컨테이너 높이가 이미 고정이라 제외
+        //   — auto-height(컨테이너가 content 에 auto-size)만 sample 대상. 자식 직접 구성 소유자는
+        //   totalRows 0 → 무영향. family 별 총 행 수/stride/열 수 산출은 scroll 분기와 동일 dispatch.
         const dataBinding = getElementDataBinding(node);
         const props = node.props as Record<string, unknown> | undefined;
-        const sample = resolveCollectionItems(
-          { collections: input.collections, dataBinding, props },
-          { startIndex: 0, endIndex: 1 },
-        );
-        const totalRows = sample.totalRows;
-        if (totalRows > COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT) {
-          const rowHeight =
-            input.rowHeight ??
-            resolveListBoxRowHeight(
+
+        let totalRows = 0;
+        let rowHeight = 0;
+        let columns = 1;
+        if (family === "table") {
+          const { totalDataRows } = getTableProjectionRows(
+            { collections: input.collections, dataBinding, props },
+            { startIndex: 0, endIndex: 1 },
+          );
+          totalRows = totalDataRows;
+          rowHeight = input.rowHeight ?? resolveTableRowHeight(props);
+        } else {
+          const sample = resolveCollectionItems(
+            { collections: input.collections, dataBinding, props },
+            { startIndex: 0, endIndex: 1 },
+          );
+          totalRows = sample.totalRows;
+          if (input.rowHeight != null) {
+            rowHeight = input.rowHeight;
+          } else if (family === "gridlist") {
+            const stride = resolveGridListRowStride(
               node,
               sample.rows[0]?.description,
               getDocNodes,
             );
+            rowHeight = stride.rowHeight;
+            columns = stride.columns;
+          } else {
+            rowHeight = resolveListBoxRowHeight(
+              node,
+              sample.rows[0]?.description,
+              getDocNodes,
+            );
+          }
+        }
+
+        if (totalRows > COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT) {
           result.set(node.id, {
             window: {
               startIndex: 0,
@@ -382,7 +407,7 @@ export function resolveVirtualizedCollectionWindows(
             },
             rowHeight,
             totalRows,
-            columns: 1,
+            columns,
             mode: "sample",
           });
         }

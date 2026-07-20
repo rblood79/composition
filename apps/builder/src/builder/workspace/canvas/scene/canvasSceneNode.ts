@@ -1171,6 +1171,24 @@ function appendGridListRowProjection(
     (gridListSceneNode.props as Record<string, unknown>)._slots =
       slotComposition;
   }
+  // ADR-157 Phase 4 (배치 진실성 — GridList 확산): sample mode(auto-height data-bound) owner 는
+  //   layout §1.55c 가 props.items 만 순회해 순수 dataBinding 소유자에서 4-item fallback 으로
+  //   clip 된다. scene 이 visualRows 전체 높이(= ceil(totalRows/columns) × rowHeight — samples +
+  //   hatch 와 동일 window resolver stride)를 owner props 에 주입해 §1.55c 가 이를 소비하도록
+  //   한다(layout = scene 정합). ListBox(§1.55b) 선례 동형이나 열 수(grid numCols)를 반영해
+  //   visual row 공간으로 환산한다. scroll mode(explicit height)/legacy(window null)는 무주입.
+  const gridOwnerWindow = projection.windowResolution;
+  if (
+    gridOwnerWindow?.mode === "sample" &&
+    gridOwnerWindow.totalRows > 0 &&
+    gridOwnerWindow.rowHeight > 0
+  ) {
+    const cols = Math.max(1, gridOwnerWindow.columns ?? 1);
+    const visualRows = Math.ceil(gridOwnerWindow.totalRows / cols);
+    (
+      gridListSceneNode.props as Record<string, unknown>
+    )._projectedRowsContentHeight = visualRows * gridOwnerWindow.rowHeight;
+  }
 
   const rowsGroupId = toCollectionRowsGroupProjectionId(
     "gridlist",
@@ -1279,20 +1297,39 @@ function appendGridListRowProjection(
     );
   }
 
+  // ADR-157 Phase 4: sample mode 는 trailing 을 빈 spacer 대신 hatch placeholder 로 emit
+  //   (ListBox 동형) — 나머지 hiddenRows(시각 행) 영역을 계산된 높이로 채워 컨테이너가 visualRows
+  //   전체 높이에 auto-size 되게 하고(배치 진실성), overlay 가 사선 + "+N more" 를 그린다.
+  //   scroll mode(A2)는 종전대로 빈 trailing spacer(스크롤 content height 보존).
   if (spacerRows.trail > 0 && rowHeight > 0) {
-    addSceneNode(
-      createCollectionSpacerNode({
-        family: "gridlist",
-        kind: "gridlist-spacer",
-        ownerId: gridListSceneNode.id,
-        rowsGroupId,
-        position: "trail",
-        height: spacerRows.trail * rowHeight,
-        scope,
-        sourceNode,
-      }),
-      graph,
-    );
+    if (windowResolution?.mode === "sample") {
+      addSceneNode(
+        createCollectionRemainderNode({
+          family: "gridlist",
+          ownerId: gridListSceneNode.id,
+          rowsGroupId,
+          height: spacerRows.trail * rowHeight,
+          hiddenRows: spacerRows.trail,
+          scope,
+          sourceNode,
+        }),
+        graph,
+      );
+    } else {
+      addSceneNode(
+        createCollectionSpacerNode({
+          family: "gridlist",
+          kind: "gridlist-spacer",
+          ownerId: gridListSceneNode.id,
+          rowsGroupId,
+          position: "trail",
+          height: spacerRows.trail * rowHeight,
+          scope,
+          sourceNode,
+        }),
+        graph,
+      );
+    }
   }
 }
 
@@ -1548,21 +1585,39 @@ function appendTableRowProjection(
     position: "lead" | "trail",
     visualRows: number,
   ): void => {
-    if (visualRows > 0 && rowHeight > 0) {
+    if (visualRows <= 0 || rowHeight <= 0) return;
+    // ADR-157 Phase 4: sample mode 는 trailing data 행 영역을 빈 spacer 대신 hatch placeholder 로
+    //   emit(ListBox/GridList 동형). Table owner 높이는 child-sum(header + 샘플 data 행 + hatch)이라
+    //   §1.55c 류 layout 주입 불필요 — hatch 노드의 명시 height 가 child-sum 에 그대로 합산된다.
+    //   lead 는 항상 spacer(sample 모드에서 startIndex 0 이라 lead=0). scroll mode(A2)는 종전 spacer.
+    if (position === "trail" && windowResolution?.mode === "sample") {
       addSceneNode(
-        createCollectionSpacerNode({
+        createCollectionRemainderNode({
           family: "table",
-          kind: "table-spacer",
           ownerId: tableSceneNode.id,
           rowsGroupId,
-          position,
           height: visualRows * rowHeight,
+          hiddenRows: visualRows,
           scope,
           sourceNode,
         }),
         graph,
       );
+      return;
     }
+    addSceneNode(
+      createCollectionSpacerNode({
+        family: "table",
+        kind: "table-spacer",
+        ownerId: tableSceneNode.id,
+        rowsGroupId,
+        position,
+        height: visualRows * rowHeight,
+        scope,
+        sourceNode,
+      }),
+      graph,
+    );
   };
   let dataStarted = false;
   for (const row of rows) {

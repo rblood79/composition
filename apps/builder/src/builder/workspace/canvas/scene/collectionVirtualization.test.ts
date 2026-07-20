@@ -514,13 +514,17 @@ describe("resolveVirtualizedCollectionWindows — GridList 확산", () => {
     expect(entry?.totalRows).toBe(500);
   });
 
-  it("bounded height 없음 → 제외", () => {
+  it("bounded height 없음 → A2 scroll 제외, ADR-157 sample resolution (mode:'sample', maxScroll 없음)", () => {
+    // Phase 4 이전 계약(auto-height GridList 전량 제외)에서 전환: auto-height >10 은 A2 scroll
+    //   window(viewportHeight/maxScrollTop)는 아니지만 샘플 정책 대상이다(mode:'sample').
     const map = resolveVirtualizedCollectionWindows({
       doc: gridListDoc({ itemCount: 1000, style: { overflowY: "auto" } }),
       collections: [],
       scrollTops: new Map(),
     });
-    expect(map.has("gridlist-1")).toBe(false);
+    const entry = map.get("gridlist-1");
+    expect(entry?.mode).toBe("sample");
+    expect(entry?.maxScrollTop).toBeUndefined(); // A2 scroll window 아님
   });
 });
 
@@ -841,5 +845,178 @@ describe("resolveVirtualizedCollectionWindows — maxScrollTop (스크롤 입력
     // rowHeight 44, data 10000 + header 1 = 10001 → contentHeight 440044, maxScrollTop 439644.
     expect(entry?.contentHeight).toBe(10001 * 44);
     expect(entry?.maxScrollTop).toBe(10001 * 44 - 400);
+  });
+});
+
+// ── ADR-157 Phase 4: GridList / Table auto-height 샘플 resolution + hatch 확산 ──────
+
+describe("resolveVirtualizedCollectionWindows — ADR-157 Phase 4 sample (GridList/Table)", () => {
+  it("GridList stack auto-height >10 → mode:'sample' window [0,10] columns 1 stride 56", () => {
+    const map = resolveVirtualizedCollectionWindows({
+      doc: gridListDoc({
+        itemCount: 1000,
+        style: { overflowY: "auto" },
+        layout: "stack",
+      }),
+      collections: [],
+      scrollTops: new Map(),
+    });
+    const entry = map.get("gridlist-1");
+    expect(entry?.mode).toBe("sample");
+    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 10 });
+    expect(entry?.totalRows).toBe(1000);
+    expect(entry?.rowHeight).toBe(56);
+    expect(entry?.columns).toBe(1);
+    // sample 은 스크롤 아님 → viewport/maxScroll 미설정.
+    expect(entry?.maxScrollTop).toBeUndefined();
+  });
+
+  it("GridList grid(columns 2) auto-height >10 → mode:'sample' columns 2 (item window [0,10])", () => {
+    const map = resolveVirtualizedCollectionWindows({
+      doc: gridListDoc({
+        itemCount: 1000,
+        style: { overflowY: "auto" },
+        layout: "grid",
+        columns: 2,
+      }),
+      collections: [],
+      scrollTops: new Map(),
+    });
+    const entry = map.get("gridlist-1");
+    expect(entry?.mode).toBe("sample");
+    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 10 });
+    expect(entry?.columns).toBe(2);
+    expect(entry?.rowHeight).toBe(56);
+  });
+
+  it("GridList auto-height ≤10 → 전량 투영(sample resolution 없음)", () => {
+    const map = resolveVirtualizedCollectionWindows({
+      doc: gridListDoc({ itemCount: 6, style: { overflowY: "auto" } }),
+      collections: [],
+      scrollTops: new Map(),
+    });
+    expect(map.has("gridlist-1")).toBe(false);
+  });
+
+  it("Table auto-height >10 → mode:'sample' window [0,10] rowHeight 44(md) columns 1", () => {
+    const map = resolveVirtualizedCollectionWindows({
+      doc: tableDoc({
+        rowCount: 1000,
+        style: { overflowY: "auto" },
+        size: "md",
+      }),
+      collections: [],
+      scrollTops: new Map(),
+    });
+    const entry = map.get("table-1");
+    expect(entry?.mode).toBe("sample");
+    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 10 });
+    expect(entry?.totalRows).toBe(1000);
+    expect(entry?.rowHeight).toBe(44);
+    expect(entry?.columns).toBe(1);
+    expect(entry?.maxScrollTop).toBeUndefined();
+  });
+
+  it("Table auto-height ≤10 → 전량 투영(sample resolution 없음)", () => {
+    const map = resolveVirtualizedCollectionWindows({
+      doc: tableDoc({ rowCount: 9, style: { overflowY: "auto" } }),
+      collections: [],
+      scrollTops: new Map(),
+    });
+    expect(map.has("table-1")).toBe(false);
+  });
+});
+
+describe("ADR-157 Phase 4 — GridList/Table 샘플 + hatch remainder (scene emit)", () => {
+  it("GridList grid(cols 2) sample → 10 카드 + hatch 1개 + owner 주입 visualRows×stride", () => {
+    const doc = gridListDoc({
+      itemCount: 1000,
+      style: { overflowY: "auto" },
+      layout: "grid",
+      columns: 2,
+    });
+    const collectionWindows = resolveVirtualizedCollectionWindows({
+      doc,
+      collections: [],
+      scrollTops: new Map(),
+    });
+    const model = buildCanonicalSceneModel(doc, {
+      collections: [],
+      collectionWindows,
+    });
+    expect(
+      model.sceneNodes.filter((n) => n.projection?.kind === "gridlist-row"),
+    ).toHaveLength(10);
+    const remainder = model.sceneNodes.filter(
+      (n) => n.projection?.kind === "collection-remainder",
+    );
+    expect(remainder).toHaveLength(1);
+    // trailing 은 hatch 이지 빈 spacer 아님 (sample mode).
+    expect(
+      model.sceneNodes.filter((n) => n.projection?.kind === "gridlist-spacer"),
+    ).toHaveLength(0);
+    expect(remainder[0]?.id.startsWith("projection:")).toBe(true);
+    // hatch height = trail 시각 행 × stride. totalVisualRows=500, endVisual=ceil(10/2)=5 → trail 495.
+    const style = remainder[0]?.props?.style as { height?: number } | undefined;
+    expect(style?.height).toBe(495 * 56);
+    expect(
+      (remainder[0]?.projection as { hiddenRows?: number } | undefined)
+        ?.hiddenRows,
+    ).toBe(495);
+    // owner 주입 = ceil(totalRows/columns) × rowHeight = 500 × 56 (§1.55c 소비, 배치 진실성).
+    const owner = model.sceneNodes.find(
+      (n) => (n.type ?? "").toLowerCase() === "gridlist",
+    );
+    expect(
+      (owner?.props as { _projectedRowsContentHeight?: number } | undefined)
+        ?._projectedRowsContentHeight,
+    ).toBe(500 * 56);
+  });
+
+  it("Table sample → header + 10 data 행 + hatch 1개, owner 주입 없음(child-sum)", () => {
+    const doc = tableDoc({
+      rowCount: 1000,
+      style: { overflowY: "auto" },
+      size: "md",
+    });
+    const collectionWindows = resolveVirtualizedCollectionWindows({
+      doc,
+      collections: [],
+      scrollTops: new Map(),
+    });
+    const model = buildCanonicalSceneModel(doc, {
+      collections: [],
+      collectionWindows,
+    });
+    // data 행만 10 (header 는 kind:'table-row' isHeader — 별도 계수).
+    const dataRows = model.sceneNodes.filter(
+      (n) =>
+        n.projection?.kind === "table-row" &&
+        !(n.projection as { isHeader?: boolean }).isHeader,
+    );
+    expect(dataRows).toHaveLength(10);
+    const remainder = model.sceneNodes.filter(
+      (n) => n.projection?.kind === "collection-remainder",
+    );
+    expect(remainder).toHaveLength(1);
+    // trailing 은 hatch 이지 빈 table-spacer 아님.
+    expect(
+      model.sceneNodes.filter((n) => n.projection?.kind === "table-spacer"),
+    ).toHaveLength(0);
+    // hatch height = trail(990) × 44. hiddenRows 990.
+    const style = remainder[0]?.props?.style as { height?: number } | undefined;
+    expect(style?.height).toBe(990 * 44);
+    expect(
+      (remainder[0]?.projection as { hiddenRows?: number } | undefined)
+        ?.hiddenRows,
+    ).toBe(990);
+    // Table 은 child-sum 경로 → owner 높이 주입 없음(_projectedRowsContentHeight 미설정).
+    const owner = model.sceneNodes.find(
+      (n) => (n.type ?? "").toLowerCase() === "table",
+    );
+    expect(
+      (owner?.props as { _projectedRowsContentHeight?: number } | undefined)
+        ?._projectedRowsContentHeight,
+    ).toBeUndefined();
   });
 });
