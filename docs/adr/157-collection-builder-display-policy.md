@@ -9,7 +9,7 @@ Proposed — 2026-07-20
 data-bound collection(ListBox/GridList/Table)의 **빌더(Skia) 표시 범위** 결정. 현재는 두 겹으로 표시된다:
 
 1. **legacy 정적 cap**: 데이터가 몇천 행이어도 최대 100행(`COLLECTION_ROW_PROJECTION_WINDOW_LIMIT`, `packages/shared/src/collections/resolveCollectionItems.ts`)까지 scene 에 투영.
-2. **ADR-150 A2 가상화 (Implemented)**: 높이 고정 + overflow scroll/auto 소유자는 스크롤 가시 window + overscan 6행만 투영 (`collectionVirtualization.ts`).
+2. **ADR-150 A2 가상화 (delivered · 시각 최종 확인 대기 — ADR-150 Status Accepted)**: 높이 고정 + overflow scroll/auto 소유자는 스크롤 가시 window + overscan 6행만 투영 (`collectionVirtualization.ts`).
 
 남은 문제: **A2 미적용 소유자(auto-height / unbounded)** 는 여전히 cap 100 전체를 투영한다. 인스턴스 50개 × 100행이면 scene/layout/command 노드 5,000+ — 편집당 비용이 노드 수에 비례하는 구조(`BuilderCanvas.projectionContentSignature` 의 stableSerialize 가 buildScene 비용의 사실상 전부)라 대규모 페이지 목표와 충돌한다.
 
@@ -62,7 +62,7 @@ data-bound collection(ListBox/GridList/Table)의 **빌더(Skia) 표시 범위** 
 - 설명: 실데이터 앞부분 N행(기본 10)만 투영 + 나머지 영역을 `hiddenRows × rowHeight` 높이의 사선 hatch + "+N more" 라벨로 표시. A2 window 소유자는 현행 유지.
 - 근거: Pencil 의 정의 단계(hatch) + 사용 단계(샘플 실노드) 두 관행의 합성. composition 은 데이터를 실제로 알므로 hatch 높이를 Pencil 의 고정 fallback 보다 정확히(totalRows 기반) 계산 가능.
 - 위험:
-  - 기술: M — rowHeight 추정 정밀도: per-template 커스텀 행 높이 미반영 시 hatch 높이 오차 (A2 proof 단순화 — catalog 균일 rowHeight, 2026-07-19 사용자 승인 — 와 동일 한계 공유)
+  - 기술: M — rowHeight 추정 정밀도: A2 는 template style + description 을 반영하는 측정 행 높이 resolver(`resolveListBoxItemRowHeightFromStyle`, layout `calculateContentHeight` 와 동일 심볼 — ADR-150 A2 delivered 기록)를 이미 사용하므로 이를 공유. 잔존 한계는 그 밖의 **임의 자식 구성 콘텐츠 높이** 미반영 — 해당 케이스에서 hatch 높이 오차
   - 성능: L — 소유자당 노드 O(N)+1
   - 유지보수: M — scene hatch 높이 / layout `calculateContentHeight` 의 동일 resolver 공유 의무 (ADR-907 Layer D 계약)
   - 마이그레이션: L — 데이터 무변, 표시만 변화
@@ -108,12 +108,12 @@ data-bound collection(ListBox/GridList/Table)의 **빌더(Skia) 표시 범위** 
 
 ## Risks
 
-| ID  | 위험                                                                                           | 심각도 | 대응                                                                                                                        |
-| --- | ---------------------------------------------------------------------------------------------- | :----: | --------------------------------------------------------------------------------------------------------------------------- |
-| R1  | per-template 커스텀 행 높이 미반영 → hatch 높이 오차 → auto-height 소유자 아래 형제 배치 drift |  MED   | A2 와 동일 rowHeight resolver 공유 + 기본 행높이 케이스 live 실측(Gate G1). per-template 정밀화는 A2 와 동일 후속 트랙 병합 |
-| R2  | scene hatch 높이 ↔ layout `calculateContentHeight` 불일치 (Layer D 3경로 drift)                |  MED   | 동일 resolver 심볼 공유 의무 + spacing 테스트로 계약 확증 (ADR-907 패턴)                                                    |
-| R3  | A2 window 소유자와 정책 충돌 (이중 적용)                                                       |  LOW   | window 해석 우선 gating 유지 — 샘플 정책은 window 미적용 소유자에만                                                         |
-| R4  | Preview 와 다른 캔버스 표시에 대한 사용자 혼란                                                 |  LOW   | hatch + "+N more" 라벨 — Pencil 관행과 동형인 기존 시각 어휘(`slotMarkerRenderer`) 재사용                                   |
+| ID  | 위험                                                                                               | 심각도 | 대응                                                                                                                                                                         |
+| --- | -------------------------------------------------------------------------------------------------- | :----: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | 임의 자식 구성 콘텐츠의 행 높이 미반영 → hatch 높이 오차 → auto-height 소유자 아래 형제 배치 drift |  MED   | A2 의 측정 행 높이 resolver(template style+description, `resolveListBoxItemRowHeightFromStyle`) 공유 + live 실측(Gate G1). 임의 자식 높이 정밀화는 A2 와 동일 후속 트랙 병합 |
+| R2  | scene hatch 높이 ↔ layout `calculateContentHeight` 불일치 (Layer D 3경로 drift)                    |  MED   | 동일 resolver 심볼 공유 의무 + spacing 테스트로 계약 확증 (ADR-907 패턴)                                                                                                     |
+| R3  | A2 window 소유자와 정책 충돌 (이중 적용)                                                           |  LOW   | window 해석 우선 gating 유지 — 샘플 정책은 window 미적용 소유자에만                                                                                                          |
+| R4  | Preview 와 다른 캔버스 표시에 대한 사용자 혼란                                                     |  LOW   | hatch + "+N more" 라벨 — Pencil 관행과 동형인 기존 시각 어휘(`slotMarkerRenderer`) 재사용                                                                                    |
 
 잔존 HIGH 위험 없음.
 
@@ -138,5 +138,5 @@ data-bound collection(ListBox/GridList/Table)의 **빌더(Skia) 표시 범위** 
 ### Negative
 
 - 캔버스에서 11행 이후 데이터를 직접 볼 수 없음 — 확인은 Preview 몫 (빌더 목표 밖으로 명시 이관).
-- rowHeight 추정 한계(R1)가 hatch 높이에도 확장 적용 — per-template 정밀화 후속 부채가 A2 와 공유.
+- rowHeight 추정 한계(R1 — 임의 자식 구성 콘텐츠 높이)가 hatch 높이에도 확장 적용 — 정밀화 후속 부채가 A2 와 공유.
 - `resolveCollectionItems` 슬라이스 소비처 3곳(ListBox/GridList/Table 투영) + layout 분기에 remainder 개념 추가 — Layer D 동기화 표면 증가.
