@@ -6,9 +6,11 @@
  * 결과 map 은 `buildCanvasSceneGraph(options.collectionWindows)` 의 단일 소스로 주입되어
  * draw/hit tree 가 **동일 window** 를 공유한다(R2). 미포함 owner 는 legacy 정적 cap 투영(BC).
  *
- * **proof 단순화 (2026-07-19, 사용자 승인)**: rowHeight 는 catalog ListBoxItem 기본값(균일)을
- * 쓴다 — per-template height override(사용자 커스텀 행 높이)는 후속 정밀화. 총 content height =
- * totalRows × rowHeight 가 실제 렌더(기본 행)와 일치하는 범위에서 유효.
+ * **행 높이 측정 (ADR-150 A2 delivered `34c56ea70`)**: rowHeight 는 template row style(origin ◁
+ * anchor override) + description 유무를 layout `calculateContentHeight` 와 **동일 심볼**
+ * (`resolveListBoxItemRowHeightFromStyle`, `resolveListBoxRowHeight` 경유)로 산출한다 — spacer /
+ * 총 content height(스크롤바)가 실제 렌더 행 높이와 정합. 잔존 한계는 template style/description
+ * 밖의 **임의 자식 구성 콘텐츠 높이** 미반영 (ADR-157 R1 과 동일 후속 트랙에서 정밀화).
  *
  * **비-데이터 ListBox 무영향**: totalRows 0(자식 ListBoxItem 직접 구성)이면 map 에 미포함 →
  * projection 자체가 없어 window 도 무의미. scene 빌더가 data-bound 여부로 실제 투영을 gating 한다.

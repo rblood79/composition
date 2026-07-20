@@ -28,6 +28,15 @@
 export const COLLECTION_ROW_PROJECTION_WINDOW_LIMIT = 100;
 
 /**
+ * ADR-157: 빌더 표시 정책 — A2 가상화 window 미적용(auto-height/unbounded) data-bound 소유자의
+ * 캔버스 샘플 투영 상한. 실데이터 앞부분 N행만 scene 에 투영하고 나머지는 계산된 높이의 hatch
+ * placeholder + "+N more" 라벨로 표시한다 (Pencil 동형 표시 범위 — 정의 단계 hatch + 사용 단계
+ * 샘플 행의 합성). A2 window 소유자(bounded height + scroll)는 종전대로 scrollOffset window 를 쓴다.
+ * N=10 근거: Pencil heroui 샘플 7행 + A2 overscan 6 관행 범위 (사용자 설정화는 후속).
+ */
+export const COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT = 10;
+
+/**
  * ADR-150 A2: 가상화 window 의 viewport 상/하 여유 행 수(overscan).
  * 스크롤 시 window 경계 바로 밖 행을 미리 투영해 빈 영역 노출을 방지한다.
  */
@@ -378,6 +387,32 @@ export function resolveCollectionItems(
     sourceKind,
     totalRows,
   };
+}
+
+/**
+ * ADR-157: 샘플 투영 밖 나머지 행 메타 — hatch placeholder 높이 산출용.
+ *
+ * `hiddenRows` = `totalRows − projectedRows` (음수 클램프), `hiddenHeight` = `hiddenRows × rowHeight`.
+ * `rowHeight` 는 **caller 주입** — shared 층은 template style 측정 행 높이를 모른다(Layer D resolver
+ * `resolveListBoxItemRowHeightFromStyle` 는 builder/specs 소재). scene projector 와 layout
+ * `calculateContentHeight` 가 동일 rowHeight resolver 산출값을 주입해야 hatch 높이 ↔ 컨테이너 높이가
+ * 정합한다(ADR-907 Layer D 계약, R2). `hiddenRows ≤ 0`(전량 투영 / 비-데이터 collection) → `null`.
+ */
+export interface CollectionRemainder {
+  /** 샘플 window 밖 숨은 행 수 (>0). */
+  hiddenRows: number;
+  /** 숨은 행 영역의 픽셀 높이 = `hiddenRows × rowHeight` (>=0). */
+  hiddenHeight: number;
+}
+
+export function resolveCollectionRemainder(
+  totalRows: number,
+  projectedRows: number,
+  rowHeight: number,
+): CollectionRemainder | null {
+  const hiddenRows = Math.max(0, totalRows - Math.max(0, projectedRows));
+  if (hiddenRows <= 0) return null;
+  return { hiddenRows, hiddenHeight: hiddenRows * Math.max(0, rowHeight) };
 }
 
 // ── 2D collection (Table) — ADR-912 단계 4 C1 ──────────────────────────────

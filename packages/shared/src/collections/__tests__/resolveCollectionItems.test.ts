@@ -9,9 +9,11 @@ import { describe, it, expect } from "vitest";
 import {
   resolveCollectionItems,
   resolveCollectionWindow,
+  resolveCollectionRemainder,
   getFlatProjectionRows,
   readDataBindingRows,
   COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
+  COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT,
   DEFAULT_COLLECTION_OVERSCAN,
   type CollectionDataSource,
 } from "../resolveCollectionItems";
@@ -298,5 +300,56 @@ describe("resolveCollectionItems — totalRows(window 전 원본 수) 노출", (
     const result = resolveCollectionItems({ props: { items } });
     expect(result.rows).toHaveLength(100);
     expect(result.totalRows).toBe(150);
+  });
+});
+
+describe("ADR-157 — 샘플 상수 + remainder 메타", () => {
+  const items = Array.from({ length: 100 }, (_, i) => ({
+    id: String(i),
+    label: `Item ${i}`,
+  }));
+
+  it("SAMPLE_LIMIT 상수는 10 (Pencil heroui 7행 + overscan 6 범위)", () => {
+    expect(COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT).toBe(10);
+  });
+
+  it("getFlatProjectionRows(input, SAMPLE_LIMIT) → 앞부분 10행, rowIndex 절대 보존", () => {
+    const rows = getFlatProjectionRows(
+      { props: { items } },
+      COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT,
+    );
+    expect(rows).toHaveLength(10);
+    expect(rows[0].rowIndex).toBe(0);
+    expect(rows[9].rowIndex).toBe(9);
+  });
+
+  it("resolveCollectionRemainder — hiddenRows = total − projected, hiddenHeight = hiddenRows × rowHeight", () => {
+    const remainder = resolveCollectionRemainder(100, 10, 28);
+    expect(remainder).toEqual({ hiddenRows: 90, hiddenHeight: 90 * 28 });
+  });
+
+  it("resolveCollectionRemainder — 전량 투영(total ≤ projected) → null", () => {
+    expect(resolveCollectionRemainder(10, 10, 28)).toBeNull();
+    expect(resolveCollectionRemainder(7, 10, 28)).toBeNull();
+    expect(resolveCollectionRemainder(0, 0, 28)).toBeNull();
+  });
+
+  it("resolveCollectionRemainder — 음수/0 rowHeight 클램프 (hiddenHeight >= 0)", () => {
+    expect(resolveCollectionRemainder(50, 10, 0)).toEqual({
+      hiddenRows: 40,
+      hiddenHeight: 0,
+    });
+    expect(resolveCollectionRemainder(50, 10, -5)).toEqual({
+      hiddenRows: 40,
+      hiddenHeight: 0,
+    });
+  });
+
+  it("BC — 기본 window 는 여전히 legacy cap(100), 기존 소비처 동작 무변", () => {
+    // Phase 1 은 순수 추가 — default 는 WINDOW_LIMIT 유지 (scene 소비처가 Phase 2 에서
+    // SAMPLE_LIMIT 를 명시 전달하며 hatch 와 함께 land).
+    const rows = getFlatProjectionRows({ props: { items } });
+    expect(rows).toHaveLength(Math.min(COLLECTION_ROW_PROJECTION_WINDOW_LIMIT, 100));
+    expect(rows).toHaveLength(100);
   });
 });

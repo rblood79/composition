@@ -25,6 +25,13 @@
 
 Phase 0 완료 조건: 위 6개 경로의 라인/심볼 재확정 + auto-height data-bound 소유자의 현행 layout 높이가 "투영 행 수 기준"인지 "totalRows 기준"인지 실측 (M3 원칙 — gap 발견 시 본 ADR 안 inventory 보강으로 흡수).
 
+**Phase 0 실측 결과 (2026-07-20 착수, M3 inventory 보강):**
+
+1. **stale 주석 정정 완료**: `collectionVirtualization.ts` 헤더 "proof 단순화 — catalog 기본값 균일" → 실제 코드는 `resolveListBoxRowHeight`(line 230-251)가 `resolveListBoxItemRowHeightFromStyle`(측정 resolver, layout 동일 심볼)을 이미 호출. 주석을 실코드 정합으로 교체 (리뷰 MED m1 후속).
+2. **scene 투영 (window null = auto-height 소유자)**: `appendListBoxRowProjection`(canvasSceneNode.ts:888-906)은 `windowResolution` null 이면 spacer 미삽입 → 캔버스 높이 = 투영 행 수(`getListBoxProjectionRows` default cap 100) × rowHeight. **rowHeight 자체가 scene 에 없다** (windowResolution 이 rowHeight 공급원인데 null). → Phase 2 는 auto-height 소유자용 rowHeight 를 별도 산출해야 함 (`resolveListBoxRowHeight` 재사용 — collectionVirtualization 의 helper 를 scene 에서 공유).
+3. **layout `calculateContentHeight`(§1.55b, utils.ts:2247-2315)**: `props.items` 만 순회 — **dataBinding/collections 미접근** (시그니처에 collections 없음, line 2088-2094). ⇒ static-items 소유자는 전체 items 합산(=totalRows 정확), **순수 dataBinding 소유자는 3-item 기본값 fallback**(line 2256-2263). auto-height data-bound 소유자에서 layout ≠ scene (layout=3 or props.items수 / scene=min(100,total)) — **현행 조용한 mismatch**. Hard Constraint 2(배치 진실성)의 실제 작업 = Phase 3 가 layout 을 totalRows-aware 로 만드는 것.
+4. **결론**: 현행 layout 높이 기준 = "props.items 순회(static)" 또는 "3-item fallback(dataBinding)" — **totalRows 도 투영 행 수도 아님**. Phase 3 은 data-bound 소유자에 totalRows 유입 경로 필요 (collections 입력 채널 신설 또는 upstream items 주입 — Phase 3 착수 시 최소 침습 방식 판정, calculateContentHeight 호출부 ~15곳 회귀 주의).
+
 ## 3. Phases
 
 ### Phase 1 — 샘플 상수 + remainder 메타 (shared)
