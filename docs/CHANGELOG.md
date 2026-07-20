@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Builder Skia 상호작용 상태 시각(hover/pressed/focus) 철회 — ADR-150 Phase A1 재판정] - 2026-07-20
+
+### Architecture
+
+- **Builder Skia 캔버스의 pointer 연동 hover/pressed/focus 상태 시각 철회** (ADR-150 Phase A1 재판정, revert `5e635ebbc`):
+  - 2026-07-19 도입했던 "Builder 캔버스(Skia)가 hover 시 hover fill / pointerdown 시 pressed fill / keyboard focus 시 focus ring 을 실시간 표시"를 **전량 철회**. 되돌린 커밋 4건: `d2b7a1b2f`(hover) · `99947f241`(pressed) · `e98ab8887`+`433ba3a6c`(focus ring).
+  - **Why**: Skia 화면은 **빌더(화면 정의·구성 surface, Pencil app 동형)이지 프론트엔드가 아니다.** hover/pressed/focus 를 pointer 이동에 연동해 실시간 재현하는 것은 **Preview(CSS/DOM)의 역할**(D1 — RAC 가 `:hover`/`data-*` 를 자동 소유)이며, 빌더가 이를 시뮬레이션한 A1 은 D1(DOM/접근성)을 D3(시각) 소비 경로로 끌어온 **경계 오판**이었다. 빌더가 표시할 상태는 노드가 선언적으로 나타내는 state variant(selected/disabled)이지, 마우스 hover 재현이 아니다.
+  - **보존** (철회 대상 아님): 편집 보조 hover **outline**(`buildHoverHighlightTargets` — A1 이전부터 존재하는 선택/편집 보조) + 선언적 상태 시각(`racStateAttrs` disabled 분기 + catalog `FillStateTokens`) + ADR-154 render-visual(독립 영역).
+  - 제거된 파일: `hoverStateOverlay.ts`(+test) · `useElementPressInteraction.ts` · `useFocusVisibleModality.ts`. 수정 원복: `StoreRenderBridge.ts`(buildInteractionStateNode) · `buildSpecNodeData.ts`(racStateInput·focus ring) · `SkiaCanvas.tsx` · `skiaFramePlan.ts` · `skiaOverlayBuilder.ts`.
+  - 검증: type-check PASS(baseline 63 유지) · overlay 테스트 16 pass · 삭제 심볼 dangling 참조 0.
+  - 문서 재판정: ADR-150 A1 Implemented→철회(Status 진행 로그·Context·R1·G-A1·HC#3) · ADR-911 R-4 HIGH→MED / G-state 를 **선언적 상태(selected/disabled) parity** 로 재정의. ADR-150 A2(가상화)/A3(drill-in)은 상호작용 시뮬레이션이 아니라 빌더의 대용량 표시·깊은 편집이라 유효 — 유지.
+
 ## [Skia Image 대체텍스트 placeholder 크래시 수정] - 2026-07-20
 
 ### Bug Fixes
@@ -68,6 +80,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why (Option A 재정의)**: Phase 3 recon 에서 원 전제(런타임이 canonical 소비하도록 EventHandlerFactory 전환)가 거짓 판명 — 패널 이벤트를 올바로 소비하는 런타임 0개(Preview 미발화 + publish `element.events` mismatch). 실제 런타임 발화 bridge + Wave 2 convention + true 방향 역전 + cross-event reuse 는 **별도 ADR 이관**(사용자 confirm)
 
 ## [Builder Skia 상호작용 상태 시각(hover/pressed/focus) — ADR-150 Phase A1] - 2026-07-19
+
+> **⚠️ 철회됨 (2026-07-20 재판정)** — 아래 A1 도입 기록은 이력으로 보존한다. 빌더가 pointer 연동 hover/pressed/focus 를 실시간 표시하는 것은 D1/D3 경계 오판이라 전량 revert 됐다. 실제 상태는 최상단 [철회 엔트리(2026-07-20)](#builder-skia-상호작용-상태-시각hoverpressedfocus-철회--adr-150-phase-a1-재판정---2026-07-20) 참조.
 
 ### Features
 
