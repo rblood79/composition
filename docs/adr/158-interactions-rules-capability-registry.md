@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-07-20
+Accepted — 2026-07-20 (리뷰 승인 round 1: 이슈 3건(MED 1/LOW 2) 전건 fixed, HIGH/CRITICAL 0, 전제 확정 종결 계약 성립 — [reviews/158.md](reviews/158.md))
 
 ## Context
 
