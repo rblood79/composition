@@ -34,10 +34,12 @@ Phase 0 완료 조건: 위 6개 경로의 라인/심볼 재확정 + auto-height 
 
 ## 3. Phases
 
-### Phase 1 — 샘플 상수 + remainder 메타 (shared)
+### Phase 1 — 샘플 상수 + remainder 메타 (shared) ✅ Implemented 2026-07-20 (`3656aaef6`)
 
-- `resolveCollectionItems.ts`: `COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT = 10` 도입, legacy `WINDOW_LIMIT(100)` 소비처를 샘플 상수로 대체. 슬라이스 결과에 `remainder: { hiddenRows: number; hiddenHeight: number } | null` 메타 동반 (rowHeight 는 caller 주입).
+- `resolveCollectionItems.ts`: `COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT = 10` 도입 + `resolveCollectionRemainder(totalRows, projectedRows, rowHeight) → { hiddenRows, hiddenHeight } | null` helper (rowHeight 는 caller 주입 — Layer D resolver 는 builder/specs 소재).
+- **default window 는 legacy cap(100) 유지** — Phase 0 실측(중간 상태 배치 진실성 보존)에 따라 소비처 전환은 Phase 2 로 이연. scene 소비처가 SAMPLE_LIMIT 를 명시 전달하며 hatch 와 함께 land.
 - rowIndex 절대 index 계약 · Table header 항상 포함 계약 무변.
+- 검증: 신규 6 test + 기존 22 = 28/28 PASS · type-check PASS(Cached 0, no-new). 사용자-가시 동작 변화 0.
 
 ### Phase 2 — scene remainder hatch (ListBox 선행 proof)
 
