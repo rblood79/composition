@@ -1,4 +1,8 @@
-import type { CanonicalNode, CompositionDocument } from "@composition/shared";
+import type {
+  BreakpointName,
+  CanonicalNode,
+  CompositionDocument,
+} from "@composition/shared";
 
 import { canonicalDocumentToFrameElementScopes } from "../../../../adapters/canonical/frameElementScope";
 import { resolveCanonicalRefTree } from "../../../utils/canonicalRefResolution";
@@ -64,6 +68,11 @@ type BuildCanonicalSceneModelOptions = {
    * 미제공 owner 는 legacy 정적 cap 투영(BC).
    */
   collectionWindows?: ReadonlyMap<string, CollectionWindowResolution>;
+  /**
+   * ADR-154 Bug3: collection projection 이 owner responsive override 를 resolve 할
+   * 기준 breakpoint. BuilderCanvas 가 store activeBreakpoint 를 주입(useMemo dep).
+   */
+  activeBreakpoint?: BreakpointName;
 };
 
 function buildSceneParentById(
@@ -173,6 +182,7 @@ export function buildCanonicalSceneModel(
     buildCanvasSceneGraph(doc, {
       collections: options.collections,
       collectionWindows: options.collectionWindows,
+      activeBreakpoint: options.activeBreakpoint,
       includeReusableFrames: true,
     }),
   );

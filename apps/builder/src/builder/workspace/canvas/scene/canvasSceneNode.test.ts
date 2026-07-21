@@ -510,6 +510,69 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
     });
   });
 
+  it("resolves owner responsive rowGap onto the projected rowsGroup at the active breakpoint (ADR-154 Bug3)", () => {
+    // mobile/tablet 편집은 owner.responsive.styles 로 저장된다. scene collection projection 이
+    //   raw(desktop) style 만 읽으면 projected row gap 이 desktop 값으로 떨어진다(Skia 만 미반영,
+    //   Preview 는 @media 로 반영 → D3 비대칭). activeBreakpoint 를 주입해 layout/render 경로와
+    //   동일 merge 로 override 를 흡수하는지 검증.
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "listbox-1",
+                  type: "ListBox",
+                  props: { items: [{ id: "aardvark", label: "Aardvark" }] },
+                  // base(desktop) rowGap 없음 — mobile override 만 존재.
+                  responsive: { styles: { rowGap: { mobile: 12 } } },
+                  children: [
+                    {
+                      id: "template-anchor",
+                      type: "ref",
+                      ref: "component-listbox-item-default",
+                      props: {},
+                      metadata: {
+                        type: "legacy-element-props",
+                        templateRole: "listbox-item-template-anchor",
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const rowGapAt = (bp?: "desktop" | "tablet" | "mobile") => {
+      const graph = buildCanvasSceneGraph(
+        doc,
+        bp ? { activeBreakpoint: bp } : {},
+      );
+      const rowsGroup = graph.nodesMap.get(
+        toListBoxRowsGroupProjectionId("listbox-1"),
+      );
+      return (rowsGroup?.props.style as Record<string, unknown> | undefined)
+        ?.rowGap;
+    };
+
+    // mobile: responsive override(12)가 rowsGroup rowGap 에 반영.
+    expect(rowGapAt("mobile")).toBe(12);
+    // desktop / 미지정: responsive 미적용 → catalog 기본값(≠12, base rowGap 부재).
+    expect(rowGapAt("desktop")).not.toBe(12);
+    expect(rowGapAt()).not.toBe(12);
+  });
+
   it("suppresses the template anchor from the visible scene when data-bound (ADR-147 이중 렌더 방지)", () => {
     const doc: CompositionDocument = {
       version: "composition-1.0",

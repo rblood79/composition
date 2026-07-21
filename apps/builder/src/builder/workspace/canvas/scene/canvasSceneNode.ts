@@ -1,4 +1,5 @@
 import type {
+  BreakpointName,
   CanonicalNode,
   CollectionWindow,
   CompositionDocument,
@@ -34,6 +35,10 @@ import { resolveTagListGap } from "../layout/engines/utils";
 //   오고 CSS 가 이를 소비한다. rowsGroup 이 element.props.style 만 읽으면 catalog gap 을 놓쳐
 //   Skia 만 gap 미적용(D3 asymmetry) → 소유자 layout 이 쓰는 동일 resolver 로 catalog gap 흡수.
 import { resolveContainerStylesFallback } from "../layout/engines/implicitStyles";
+// ADR-154 Bug3(2026-07-21): scene collection projection 은 layout/render 경로와 달리
+//   owner responsive override 를 activeBreakpoint 로 resolve 하지 않아 mobile/tablet 편집
+//   시 projected row gap/padding 이 raw(desktop) 값으로 떨어졌다 → 동일 merge SSOT 로 흡수.
+import { resolveResponsiveStyleMap } from "../layout/resolveResponsive";
 import {
   getTableProjectionRows,
   type TableColumnDef,
@@ -335,6 +340,12 @@ interface BuildCanvasSceneGraphOptions {
    * ListBox 만 등재(BuilderCanvas 판정). 미등재 owner 는 legacy `[0, cap)` 투영(BC).
    */
   collectionWindows?: ReadonlyMap<string, CollectionWindowResolution>;
+  /**
+   * ADR-154 Bug3: collection projection 이 owner responsive override 를 resolve 할
+   * 기준 breakpoint. 미지정/`"desktop"` 이면 base(raw) style 그대로(무비용). scene
+   * 재빌드는 BuilderCanvas useMemo 가 activeBreakpoint 를 dep 으로 물어 트리거한다.
+   */
+  activeBreakpoint?: BreakpointName;
 }
 
 export interface CanvasSceneGraph {
@@ -854,6 +865,7 @@ function appendListBoxRowProjection(
     parentById: Map<string, string>;
   },
   getDocumentNodesById: () => Map<string, CanonicalNode>,
+  activeBreakpoint: BreakpointName,
 ): void {
   const props = listBoxSceneNode.props;
   const { rows, templateAnchor, sourceNode } = projection;
@@ -916,8 +928,15 @@ function appendListBoxRowProjection(
   //   rowsGroup rowGap + injection/hatch 공식에 반영한다. style longhand(rowGap) 우선 + shorthand
   //   fallback(style-ssot 정책) + props.gap(GridList 규약) 커버. 기본 0 (RAC ListBox 행 인접).
   const listBoxOwnerProps = listBoxSceneNode.props as Record<string, unknown>;
-  const listBoxOwnerStyle =
-    (listBoxOwnerProps?.style as Record<string, unknown> | undefined) ?? {};
+  // ADR-154 Bug3: mobile/tablet 편집은 owner.responsive.styles 로 저장된다. layout/render
+  //   경로는 resolveResponsiveLayoutNode 로 반영하지만 scene projection 은 raw style 을 읽어
+  //   projected row gap/padding 이 desktop 값으로 떨어졌다 → 동일 merge 로 activeBreakpoint
+  //   override 를 흡수(desktop 또는 responsive 부재면 identity, 무비용).
+  const listBoxOwnerStyle = resolveResponsiveStyleMap(
+    (listBoxOwnerProps?.style as Record<string, unknown> | undefined) ?? {},
+    listBoxSceneNode.responsive,
+    activeBreakpoint,
+  );
   // catalog containerStyles.gap(= "{spacing.2xs}" 등, resolveToken 으로 px)을 fallback 으로 —
   //   CSS(생성 CSS)가 소비하는 동일 소스. resolveContainerStylesFallback 은 element/factory 편집을
   //   우선 처리하므로 여기서도 element style 을 앞에 둔다(명시적 우선 + longhand rowGap 대응).
@@ -2431,6 +2450,7 @@ export function buildCanvasSceneGraph(
         nextScope,
         graph,
         getDocumentNodesById,
+        options.activeBreakpoint ?? "desktop",
       );
     }
     if (sceneNode && gridListProjection) {

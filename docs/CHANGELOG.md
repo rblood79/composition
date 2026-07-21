@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Skia collection projection 이 mobile/tablet responsive gap/padding 미반영 수정 — scene 에 activeBreakpoint 주입] - 2026-07-21
+
+### Bug Fixes
+
+- **mobile/tablet breakpoint 에서 ListBox 컨테이너에 설정한 `gap`/`padding` 이 Skia(빌더 캔버스)에만 미반영** (Preview 는 `@media` 로 반영 → D3 Skia↔DOM 비대칭):
+  - Skia layout/render 경로(`useLayoutPublisher`/`StoreRenderBridge`)는 `resolveResponsiveLayoutNode` 로 responsive override 를 activeBreakpoint 기준 반영하지만, **scene collection projection(`canvasSceneNode` — projected row 간 gap/padding)은 owner 의 raw(desktop) `props.style` 만 읽어** mobile/tablet 편집(=`element.responsive.styles` 저장)을 놓쳤다. 컨테이너 box height/min-height 는 layout 경로라 맞고 **행 간 gap 만** 어긋나는 부분 증상.
+  - **Why**: `buildCanonicalSceneModel` useMemo 가 activeBreakpoint 를 dep 으로 물지 않아 breakpoint 전환 시 scene 재빌드 자체가 안 됐고, projection 도 responsive resolve 진입점이 없었다.
+  - 수정: (1) `resolveResponsive.ts` 의 style-merge 를 `resolveResponsiveStyleMap` 헬퍼로 추출(layout node ↔ scene projection 동일 merge SSOT) (2) `BuildCanvasSceneGraphOptions`/`BuildCanonicalSceneModelOptions` 에 `activeBreakpoint` 주입 → ListBox projection 의 owner style 을 breakpoint 로 resolve (3) `BuilderCanvas` scene useMemo 가 store `activeBreakpoint` 를 구독·dep 에 포함 → breakpoint 전환 시 scene 재빌드.
+  - 검증: `canvasSceneNode.test.ts` 에 responsive rowGap 계약 추가(mobile override 12 → rowsGroup rowGap 반영, desktop 은 catalog 기본값) · scene/resolveResponsive/collectionVirtualization 90 PASS · builder type-check PASS · (live wiring 은 사용자 확인 대기 — 대상 프로젝트 in-memory 편집 비영속으로 자동 측정 제약)
+  - 범위: 이번 수정은 **ListBox** 한정. GridList/Table projection 도 동일 raw-style 패턴 — 후속 sweep 대상.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/resolveResponsive.ts` · `scene/canvasSceneNode.ts` · `scene/canonicalSceneModel.ts` · `BuilderCanvas.tsx`
+
 ## [ListBox 컨테이너 responsive override 가 ListBoxItem 으로 전가 수정 — items[] 행 data-element-id 격리] - 2026-07-21
 
 ### Bug Fixes

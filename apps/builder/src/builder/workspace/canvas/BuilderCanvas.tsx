@@ -247,17 +247,27 @@ export function BuilderCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collectionMaxScrollSig]);
 
+  // ADR-154 Bug3: collection projection(gap/padding)이 owner responsive override 를
+  //   activeBreakpoint 로 resolve 하도록 주입. dep 에 포함해 breakpoint 전환 시 scene 재빌드.
+  const sceneActiveBreakpoint = useStore((state) => state.activeBreakpoint);
+
   const canonicalSceneModel = useMemo(() => {
     if (!activeCanonicalDocument) return null;
     return buildCanonicalSceneModel(activeCanonicalDocument, {
       collections,
       collectionWindows,
+      activeBreakpoint: sceneActiveBreakpoint,
     });
     // collectionWindows 는 window 경계 signature(collectionWindowSig)로 게이팅한다 — map
     //   identity 는 scroll 마다 바뀌지만 window 불변 구간은 rebuild 를 억제(pointer/scroll
     //   hot path 무회귀, ADR-136 §9). signature 변경 시 최신 map 을 읽어 재투영.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCanonicalDocument, collections, collectionWindowSig]);
+  }, [
+    activeCanonicalDocument,
+    collections,
+    collectionWindowSig,
+    sceneActiveBreakpoint,
+  ]);
 
   // Store state
   const storeElements = useStore((state) => {

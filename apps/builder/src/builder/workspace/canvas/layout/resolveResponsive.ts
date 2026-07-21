@@ -34,22 +34,23 @@ const SHORTHAND_LONGHANDS: Record<string, string[]> = {
 };
 
 /**
- * activeBreakpoint 기준 responsive override 를 merge 한 노드 반환.
- * override 가 없거나 desktop 이면 원본 노드 identity 그대로 반환
- * (불필요한 재계산/재직렬화 방지).
+ * activeBreakpoint 기준 responsive override 를 base style 에 merge 한 **style map** 반환.
+ * override 가 없거나 desktop 이면 `baseStyle` identity 그대로 반환(무변경 시그널).
+ *
+ * `resolveResponsiveLayoutNode`(layout/render 경로)와 scene collection projection
+ * (`canvasSceneNode` — projected row gap/padding)이 **동일 merge** 를 공유하는 SSOT.
+ * scene projection 은 노드 래핑 없이 owner style map 만 필요하므로 이 진입점을 쓴다.
  */
-export function resolveResponsiveLayoutNode<T extends CanvasLayoutNode>(
-  node: T,
+export function resolveResponsiveStyleMap(
+  baseStyle: StyleMap,
+  responsive: CanvasLayoutNode["responsive"],
   activeBreakpoint: BreakpointName,
-): T {
-  if (activeBreakpoint === "desktop") return node;
-  const responsive = node.responsive;
-  if (!responsive) return node;
+): StyleMap {
+  if (activeBreakpoint === "desktop" || !responsive) return baseStyle;
   const { styles, visibility } = responsive;
-  if (!styles && !visibility) return node;
+  if (!styles && !visibility) return baseStyle;
 
-  const base = (node.props?.style ?? {}) as StyleMap;
-  const merged: StyleMap = { ...base };
+  const merged: StyleMap = { ...baseStyle };
   let changed = false;
 
   if (styles) {
@@ -74,7 +75,7 @@ export function resolveResponsiveLayoutNode<T extends CanvasLayoutNode>(
       }
 
       // 직접 merge (DIRECT + longhand 키 공통)
-      const baseValue = base[key];
+      const baseValue = baseStyle[key];
       const resolved = getResponsiveValueWithCascade(
         respValue,
         activeBreakpoint,
@@ -100,6 +101,24 @@ export function resolveResponsiveLayoutNode<T extends CanvasLayoutNode>(
     }
   }
 
-  if (!changed) return node;
+  return changed ? merged : baseStyle;
+}
+
+/**
+ * activeBreakpoint 기준 responsive override 를 merge 한 노드 반환.
+ * override 가 없거나 desktop 이면 원본 노드 identity 그대로 반환
+ * (불필요한 재계산/재직렬화 방지).
+ */
+export function resolveResponsiveLayoutNode<T extends CanvasLayoutNode>(
+  node: T,
+  activeBreakpoint: BreakpointName,
+): T {
+  if (activeBreakpoint === "desktop") return node;
+  const responsive = node.responsive;
+  if (!responsive) return node;
+
+  const base = (node.props?.style ?? {}) as StyleMap;
+  const merged = resolveResponsiveStyleMap(base, responsive, activeBreakpoint);
+  if (merged === base) return node;
   return { ...node, props: { ...node.props, style: merged } };
 }
