@@ -91,3 +91,61 @@ describe("calculateContentHeight — data-bound ListBox _projectedRowsContentHei
     expect(h).toBe(m.paddingTop + m.paddingBottom + 5000 + m.borderWidth * 2);
   });
 });
+
+/**
+ * ADR-157 owner-height fix (b) — ref-instance(Pencil instance→master) 소유자.
+ *
+ * clean live 검증(2026-07-21)에서 실제 clip 확인: page collection 소유자는 `type: "ref"`
+ * (ref→component-listbox) 라 `calculateContentHeight` 의 `tag1 = element.type.toLowerCase()`
+ * 가 "ref" → §1.55b(`tag1==="listbox"`) 게이트를 못 타 `_projectedRowsContentHeight` 를
+ * 소비하지 못하고 generic 경로로 sample 행만 계산 → 투영된 rowsGroup(samples+hatch) clip.
+ * (owner=300 < rowsGroup=336 실측). 이전 세션의 "artifact" 반증이 틀렸음이 live 로 확정.
+ *
+ * fix: tag1 분기 이전 family-agnostic early-check — injection 이 있으면 tag1 무관하게
+ * generic border-box(padding + injection + border)를 반환. direct-type(listbox/gridlist)은
+ * 기존 family 분기가 처리하므로 early-check 는 그 두 tag 를 제외 (family metric padding 보존).
+ */
+describe("calculateContentHeight — ref-instance owner _projectedRowsContentHeight (ADR-157 fix b)", () => {
+  function makeRefOwner(
+    props: Record<string, unknown>,
+    style?: Record<string, unknown>,
+  ): CanvasLayoutNode {
+    return {
+      id: "ref-1",
+      type: "ref",
+      ref: "component-listbox",
+      componentName: "ListBox",
+      props: style ? { ...props, style } : props,
+    } as CanvasLayoutNode;
+  }
+
+  it("ref 소유자(type='ref')도 injection 을 소비 — padding/border 없으면 injection 그대로", () => {
+    const h = calculateContentHeight(
+      makeRefOwner({ _projectedRowsContentHeight: 336 }),
+    );
+    expect(h).toBe(336);
+  });
+
+  it("ref 소유자 style padding 반영 (border-box = padding + injection + border)", () => {
+    const h = calculateContentHeight(
+      makeRefOwner(
+        { _projectedRowsContentHeight: 336 },
+        { paddingTop: "10px", paddingBottom: "10px" },
+      ),
+    );
+    expect(h).toBe(10 + 336 + 10);
+  });
+
+  it("injection 없는 ref 소유자는 early-check 미발동 (BC — generic 경로 유지)", () => {
+    const h = calculateContentHeight(makeRefOwner({}));
+    expect(h).not.toBe(336);
+  });
+
+  it("direct-type ListBox 는 early-check 아닌 §1.55b 경로 유지 (family metric padding 보존)", () => {
+    const m = resolveListBoxSpacingMetric({});
+    const h = calculateContentHeight(
+      makeListBox({ _projectedRowsContentHeight: 5000 }),
+    );
+    expect(h).toBe(m.paddingTop + m.paddingBottom + 5000 + m.borderWidth * 2);
+  });
+});

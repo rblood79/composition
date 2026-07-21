@@ -33,6 +33,9 @@ import {
   resolveGridListSpacingMetric,
   isGridListSectionEntry,
   parsePxValue,
+  // ADR-157 owner-height fix (b): ref-instance 소유자용 family-agnostic injection early-check
+  //   에서 소유자 style 의 padding/border 를 generic 해석 (Layer B primitive).
+  resolveContainerSpacing,
   // DateInput intrinsic content width (2026-06-23): segment placeholder displayText 를
   //   escape(datefieldSegments)와 단일 소스로 공유 + fontSize TokenRef→px 변환.
   buildDateInputDisplayText,
@@ -2238,6 +2241,33 @@ export function calculateContentHeight(
       ruleSize?.paddingY ??
       0;
     return textHeight + padTop + padBottom;
+  }
+
+  // ADR-157 owner-height fix (b): ref-instance(Pencil instance→master) collection 소유자는
+  //   element.type="ref" → tag1="ref" 라 아래 §1.55b(listbox)/§1.55c(gridlist) 의 injection
+  //   소비 게이트(tag1==="listbox"/"gridlist")를 못 탄다. scene 이 sample mode 소유자에 주입한
+  //   `_projectedRowsContentHeight`(= 투영 content 전체 높이)를 tag1 무관하게 여기서 소비 —
+  //   generic border-box(padding + injection + border). direct-type(listbox/gridlist)은 아래
+  //   family 분기가 family metric padding 으로 처리하므로 제외한다(중복/회귀 방지).
+  //   Why: clean live 실측(2026-07-21) owner=300 < rowsGroup=336 clip — ref 소유자가 injection
+  //   미소비로 sample 행만 계산. (이전 "artifact" 반증이 틀렸음이 live 로 확정.)
+  if (tag1 !== "listbox" && tag1 !== "gridlist") {
+    const injectedRowsContentHeight = parseNumericValue(
+      (element.props as Record<string, unknown> | undefined)
+        ?._projectedRowsContentHeight,
+    );
+    if (injectedRowsContentHeight !== undefined) {
+      const spacing = resolveContainerSpacing({
+        style: style as Record<string, unknown> | undefined,
+        defaults: {},
+      });
+      return (
+        spacing.paddingTop +
+        spacing.paddingBottom +
+        injectedRowsContentHeight +
+        spacing.borderWidth * 2
+      );
+    }
   }
 
   // 1.55b. ListBox: items SSOT 기반 intrinsic border-box height.
