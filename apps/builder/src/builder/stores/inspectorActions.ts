@@ -1029,6 +1029,32 @@ export const createInspectorActionsSlice: StateCreator<
         savedPrePreview && savedPrePreview.id === element.id
           ? savedPrePreview
           : element;
+
+      // ADR-154: 비-desktop breakpoint 에서는 batch style 편집도 base(props.style) 대신
+      // element.responsive.styles override 로 저장 (단수 updateSelectedStyle 와 대칭).
+      // reset(useResetStyles) 이 이 경로로 responsive override 를 "" 로 clear 한다.
+      const activeBreakpoint = get().activeBreakpoint;
+      if (activeBreakpoint !== "desktop") {
+        let nextResponsive = baseElement.responsive;
+        for (const [property, value] of Object.entries(styles)) {
+          nextResponsive = buildResponsiveStyleOverride(
+            nextResponsive,
+            property,
+            value,
+            activeBreakpoint,
+          );
+        }
+        updateAndSave(
+          element.id,
+          {},
+          { responsive: nextResponsive },
+          savedPrePreview && savedPrePreview.id === element.id
+            ? savedPrePreview
+            : undefined,
+        );
+        return;
+      }
+
       const resolvedBaseElement = getResolvedInspectorElement(
         baseElement,
         getInspectorLookupElements(),

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [reset 버튼/dirty 뱃지가 non-desktop responsive override 미감지 수정 — dirty/reset breakpoint-aware] - 2026-07-21
+
+### Bug Fixes
+
+- **mobile/tablet breakpoint 에서 설정한 responsive override 를 Style 패널 reset 버튼/"modify N" 뱃지가 감지 못 함** (override 가 있어도 reset 버튼 dim, 눌러도 해제 불가):
+  - dirty 판정(`computeDirtyStyleProps`)과 reset write(`updateSelectedStyles`)가 모두 base(`props.style`)만 보는 breakpoint-blind 상태였다. ADR-154 편집은 non-desktop 에서 `element.responsive.styles.{bp}` 로 저장되므로, base 비교로는 override 를 영원히 감지 못 하고(reset 버튼 dim), reset 을 눌러도 base 를 건드려 오염시켰다(단수 `updateSelectedStyle` 만 responsive-aware 였고 reset 이 쓰는 복수 `updateSelectedStyles` 는 아니었음).
+  - **Why**: ADR-154 write 측 중 단수 편집 경로만 breakpoint-aware 로 전환됐고, dirty/reset(감지 + 복수 write)은 뒤따르지 못한 비대칭. 앞선 표시 경로 수정과 같은 계열(write breakpoint-aware ↔ read/reset breakpoint-blind).
+  - 수정 3-part:
+    - `computeDirtyStyleProps` 에 non-desktop 분기 — 해당 breakpoint 에 **명시된** override(`responsive.styles[key][bp]`)만 모은 style map 에 기존 `resolveCurrentStyleValue`(gap→rowGap/columnGap 합성 재사용, count 정합) 를 적용. cascade 상속값은 제외(자기 tier 의 명시 override 만 dirty — reset 은 그 tier 의 override 만 clear).
+    - `useHasDirtyStyles`/`useDirtyStyleProps` 가 `activeBreakpoint` 를 구독·전달(dep 포함) → breakpoint 전환 시 재판정.
+    - `updateSelectedStyles`(복수)를 단수 `updateSelectedStyle` 와 대칭인 responsive-aware 로 전환 → reset 이 non-desktop 에서 `buildResponsiveStyleOverride` 로 해당 breakpoint override 를 "" 로 clear(단일 history entry, base 무변경). `resetStyles` 도 non-desktop 분기에서 override props 만 "" 로 reset.
+  - override/dirty 판정은 여전히 raw `element.responsive` 기준(merged style 로 재판정하지 않음 — `feedback-merged-style-map-kills-override-detection`).
+  - 검증: `useResetStyles.test.tsx` 에 non-desktop 계약 7종 추가(computeDirtyStyleProps mobile override 감지/desktop 무시/다른 tier 제외, useHasDirtyStyles mobile true·desktop false, reset 이 responsive clear·base 무변경) · styles+stores 644 PASS(사전 존재 3 실패 무관) · type-check PASS(신규 위반 0) · **live(Chrome MCP, mobile)**: clean 상태 reset 버튼 0개 → padding override 추가 시 reset 버튼 출현·활성(base 무 padding → 순수 responsive dirty) → 복수 `updateSelectedStyles("")` 로 responsive override clear·base 무변경 실증
+  - 위치: `apps/builder/src/builder/panels/styles/hooks/useResetStyles.ts` · `apps/builder/src/builder/stores/inspectorActions.ts`
+
 ## [비-desktop breakpoint 편집값이 Style 패널 재선택 시 미표시 수정 — 표시 경로 responsive resolve] - 2026-07-21
 
 ### Bug Fixes

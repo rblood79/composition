@@ -15,7 +15,11 @@ vi.mock("../../../../env/supabase.client", () => ({
 import { useStore } from "../../../stores";
 import { useLayoutValues } from "./useLayoutValues";
 import { useTransformValues } from "./useTransformValues";
-import { useHasDirtyStyles, useResetStyles } from "./useResetStyles";
+import {
+  useHasDirtyStyles,
+  useResetStyles,
+  computeDirtyStyleProps,
+} from "./useResetStyles";
 import * as preset from "../utils/specPresetResolver";
 import { getDefaultProps } from "../../../../types/builder/unified.types";
 import type { ComponentElementProps } from "../../../../types/builder/unified.types";
@@ -845,5 +849,121 @@ describe("useResetStyles — fills backgroundColor dirty (M1)", () => {
     selectWithFills([]);
     const { result } = renderHook(() => useHasDirtyStyles(["backgroundColor"]));
     expect(result.current).toBe(false);
+  });
+});
+
+/**
+ * ADR-154: non-desktop breakpoint 에서 편집한 responsive override 는 base(props.style)가
+ * 아니라 element.responsive.styles.{bp} 에 저장된다. dirty 판정/reset 이 base-only 면
+ * 이 override 를 영원히 감지·해제 못 한다(reset 버튼 dim, base 오염). breakpoint tier 의
+ * 명시 override 를 dirty 로 감지하고, reset 은 그 breakpoint 의 override 만 clear 해야 한다.
+ */
+describe("useResetStyles — ADR-154 non-desktop responsive override dirty/reset", () => {
+  const originalState = useStore.getState();
+
+  function makeResponsiveElement(): Element {
+    return {
+      id: "resp-el",
+      type: "Frame",
+      props: { size: "md", style: { display: "block" } },
+      responsive: {
+        styles: { rowGap: { mobile: 33 }, columnGap: { mobile: 33 } },
+      },
+    } as unknown as Element;
+  }
+
+  function selectAt(breakpoint: string): void {
+    const el = makeResponsiveElement();
+    useStore.setState({
+      selectedElementId: "resp-el",
+      selectedElementProps: el.props,
+      currentPageId: null,
+      elements: [el],
+      elementsMap: new Map([["resp-el", el]]),
+      childrenMap: new Map(),
+      dirtyElementIds: new Set(),
+      layoutVersion: 0,
+      activeBreakpoint: breakpoint,
+    } as never);
+  }
+
+  beforeEach(() => {
+    vi.spyOn(preset, "resolveLayoutSpecPreset").mockReturnValue({});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    useStore.setState(originalState, true);
+  });
+
+  it("computeDirtyStyleProps: mobile override 를 dirty 로 감지 (gap/rowGap), 무관 prop 은 제외", () => {
+    const el = makeResponsiveElement();
+    const dirty = computeDirtyStyleProps(
+      el,
+      undefined,
+      ["gap", "rowGap", "padding"],
+      "mobile" as never,
+    );
+    expect(dirty).toContain("gap");
+    expect(dirty).toContain("rowGap");
+    expect(dirty).not.toContain("padding");
+  });
+
+  it("computeDirtyStyleProps: desktop 은 responsive 무시 (base 기준 dirty 아님)", () => {
+    const el = makeResponsiveElement();
+    const dirty = computeDirtyStyleProps(
+      el,
+      undefined,
+      ["gap"],
+      "desktop" as never,
+    );
+    expect(dirty).not.toContain("gap");
+  });
+
+  it("computeDirtyStyleProps: 다른 tier(tablet) override 는 mobile 에서 dirty 아님 (자기 tier 만)", () => {
+    const el = {
+      id: "resp-el",
+      type: "Frame",
+      props: { style: {} },
+      responsive: { styles: { rowGap: { tablet: 10 } } },
+    } as unknown as Element;
+    const dirty = computeDirtyStyleProps(
+      el,
+      undefined,
+      ["gap"],
+      "mobile" as never,
+    );
+    expect(dirty).not.toContain("gap");
+  });
+
+  it("useHasDirtyStyles: mobile 에서 responsive override 있으면 reset 버튼 활성(true)", () => {
+    selectAt("mobile");
+    const { result } = renderHook(() => useHasDirtyStyles(["gap"]));
+    expect(result.current).toBe(true);
+  });
+
+  it("useHasDirtyStyles: desktop 으로 전환하면 base 기준 dirty=false", () => {
+    selectAt("desktop");
+    const { result } = renderHook(() => useHasDirtyStyles(["gap"]));
+    expect(result.current).toBe(false);
+  });
+
+  it("reset: mobile 에서 responsive override 를 clear (base 무변경)", () => {
+    selectAt("mobile");
+    const { result } = renderHook(() => useResetStyles());
+    act(() => {
+      result.current(["gap", "rowGap", "columnGap"]);
+    });
+    const el = useStore.getState().elementsMap.get("resp-el");
+    const styles = (el?.responsive?.styles ?? {}) as Record<
+      string,
+      Record<string, unknown>
+    >;
+    expect(styles.rowGap?.mobile).toBeUndefined();
+    expect(styles.columnGap?.mobile).toBeUndefined();
+    // base props.style 은 무변경 (전가/오염 없음)
+    const baseStyle = el?.props?.style as Record<string, unknown> | undefined;
+    expect(baseStyle?.display).toBe("block");
+    expect(baseStyle?.rowGap).toBeUndefined();
   });
 });

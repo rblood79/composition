@@ -28,7 +28,11 @@ import {
   useCanonicalPropertyElement,
   useCanonicalPropertyElementsMap,
 } from "../../properties/hooks/useCanonicalPropertyRead";
-import type { CompositionDocument } from "@composition/shared";
+import type {
+  BreakpointName,
+  CompositionDocument,
+  ElementResponsiveConfig,
+} from "@composition/shared";
 
 const PX_LIKE_STYLE_PROPS = new Set([
   "width",
@@ -573,6 +577,28 @@ export const PANEL_STYLE_PROPS: readonly string[] = [
 ];
 
 /**
+ * ADR-154: 특정 breakpoint 에 **명시된 responsive override** 만 모은 style map.
+ * `responsive.styles[key][breakpoint]` 이 정의된 key 만 담는다(cascade 상속값은 제외).
+ * dirty/reset 은 "이 breakpoint 에서 사용자가 직접 설정한 override" 를 대상으로 하므로
+ * cascade 결과가 아니라 자기 tier 의 명시값만 본다.
+ */
+function collectBreakpointOverrideStyle(
+  responsive: ElementResponsiveConfig | undefined,
+  breakpoint: BreakpointName,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  const styles = responsive?.styles as
+    | Record<string, Record<string, unknown>>
+    | undefined;
+  if (!styles) return out;
+  for (const [key, byBreakpoint] of Object.entries(styles)) {
+    const value = byBreakpoint?.[breakpoint];
+    if (value !== undefined) out[key] = value;
+  }
+  return out;
+}
+
+/**
  * element(+부모 컨텍스트)의 style 중 baseline(factory default / spec preset / subpart)과 **다른**
  * prop 만 반환하는 순수 함수.
  *
@@ -591,13 +617,35 @@ export function computeDirtyStyleProps(
     type: string;
     props?: Readonly<Record<string, unknown>>;
     fills?: unknown[];
+    responsive?: ElementResponsiveConfig;
   },
   context?: {
     parentType?: string;
     grandParentType?: string;
   },
   properties?: string[],
+  activeBreakpoint: BreakpointName = "desktop",
 ): string[] {
+  // ADR-154: 비-desktop breakpoint 에서는 base(props.style) baseline 비교 대신
+  // 해당 breakpoint 에 명시된 responsive override 존재 여부로 dirty 판정한다.
+  // (base 는 desktop tier — non-desktop 편집은 responsive.styles 에만 반영되므로
+  // base 비교로는 override 를 영원히 감지 못 함.) gap 은 resolveCurrentStyleValue 가
+  // rowGap/columnGap → gap 합성을 해 base 판정과 동일하게 count 정합.
+  if (activeBreakpoint !== "desktop") {
+    const overrideStyle = collectBreakpointOverrideStyle(
+      element.responsive,
+      activeBreakpoint,
+    );
+    const keys = properties ?? Object.keys(overrideStyle);
+    const dirty: string[] = [];
+    for (const prop of keys) {
+      if (resolveCurrentStyleValue(prop, overrideStyle) !== undefined) {
+        dirty.push(prop);
+      }
+    }
+    return dirty;
+  }
+
   const rawStyle = (element.props?.style as Record<string, unknown>) || {};
   // 배경(backgroundColor)은 fills(canonical 1차 SSOT)로 이동했다. dirty 판정은 fills 로 adapt 한
   //   effective style 을 기준으로 해야 "배경만 바꾼" 요소의 Appearance reset 버튼이 뜬다(M1).
@@ -645,6 +693,7 @@ export function useHasDirtyStyles(properties: string[]): boolean {
   const selectedId = useStore((state) => state.selectedElementId);
   const element = useCanonicalPropertyElement(selectedId ?? "");
   const elementsMap = useCanonicalPropertyElementsMap();
+  const activeBreakpoint = useStore((state) => state.activeBreakpoint);
   return useMemo(() => {
     if (!element) return false;
 
@@ -663,9 +712,10 @@ export function useHasDirtyStyles(properties: string[]): boolean {
           grandParentType: grandParent?.type,
         },
         properties,
+        activeBreakpoint,
       ).length > 0
     );
-  }, [element, elementsMap, properties]);
+  }, [element, elementsMap, properties, activeBreakpoint]);
 }
 
 /**
@@ -678,6 +728,7 @@ export function useDirtyStyleProps(): string[] {
   const selectedId = useStore((state) => state.selectedElementId);
   const element = useCanonicalPropertyElement(selectedId ?? "");
   const elementsMap = useCanonicalPropertyElementsMap();
+  const activeBreakpoint = useStore((state) => state.activeBreakpoint);
   return useMemo(() => {
     if (!element) return [];
 
@@ -698,8 +749,9 @@ export function useDirtyStyleProps(): string[] {
         grandParentType: grandParent?.type,
       },
       [...PANEL_STYLE_PROPS],
+      activeBreakpoint,
     );
-  }, [element, elementsMap]);
+  }, [element, elementsMap, activeBreakpoint]);
 }
 
 /**
@@ -732,6 +784,27 @@ export function useResetStyles() {
     const grandParentNode = parentNode?.parent_id
       ? elementsMap.get(parentNode.parent_id)
       : undefined;
+
+    // ADR-154: 비-desktop breakpoint 에서 reset 은 base 가 아니라 해당 breakpoint 의
+    // responsive override 를 clear 한다. dirty 판정(computeDirtyStyleProps)과 동일하게
+    // 이 breakpoint 에 명시된 override 만 대상으로 "" 를 보내면, responsive-aware 로 만든
+    // updateSelectedStyles 가 buildResponsiveStyleOverride 로 해당 breakpoint 키를 제거한다.
+    const activeBreakpoint = state.activeBreakpoint;
+    if (activeBreakpoint !== "desktop") {
+      const overrideStyle = collectBreakpointOverrideStyle(
+        selfNode?.responsive,
+        activeBreakpoint,
+      );
+      const resetObj: Record<string, string> = {};
+      properties.forEach((prop) => {
+        if (resolveCurrentStyleValue(prop, overrideStyle) !== undefined) {
+          resetObj[prop] = "";
+        }
+      });
+      if (Object.keys(resetObj).length === 0) return;
+      state.updateSelectedStyles(resetObj);
+      return;
+    }
 
     const currentStyle =
       (element.props?.style as Record<string, unknown>) || {};
