@@ -7,7 +7,11 @@ import type {
   RefNode,
 } from "@composition/shared";
 // ADR-148 Phase 0 — slotRole 공용 vocabulary (설계도 §2-1, builder-local 상수 re-home).
-import { getSlotRole, resolveSlotComposition } from "@composition/shared";
+import {
+  getSlotRole,
+  resolveComponentRule,
+  resolveSlotComposition,
+} from "@composition/shared";
 // ADR-157 gap 배선 (②): ListBox 소유자 gap 을 px 로 해석 (style longhand/shorthand + props.gap).
 import { parsePxValue } from "@composition/specs";
 
@@ -391,18 +395,40 @@ const COLLECTION_LABEL_WEIGHT_PARENTS = new Set([
 ]);
 
 /**
+ * collection item(parentType)의 label slot 정본 fontWeight 를 **catalog 단일 SSOT** 에서 읽는다.
+ * `resolveComponentRule(type).variants[defaultVariant].textWeight` — instance escape(listbox_item)
+ * 가 소비하는 `visual.textWeight` 와 동일 필드다(gridlist_card 동형). 즉 origin injection·instance
+ * escape 가 같은 catalog 값을 읽어 리터럴 복제가 없다. variant 미지정 시 size fontWeight fallback.
+ * catalog 에 값이 없으면 undefined → 호출측이 주입을 건너뛴다(catalog Text 기본 400 유지).
+ */
+function resolveCollectionSlotLabelWeight(
+  parentType: string,
+): number | undefined {
+  const rule = resolveComponentRule(parentType);
+  if (!rule) return undefined;
+  const variantKey = (rule.defaultVariant as string | undefined) ?? "default";
+  const variantWeight = rule.variants?.[variantKey]?.textWeight;
+  if (typeof variantWeight === "number") return variantWeight;
+  const sizeKey = rule.defaultSize as string | undefined;
+  const sizeWeight = sizeKey ? rule.sizes?.[sizeKey]?.fontWeight : undefined;
+  return typeof sizeWeight === "number" ? sizeWeight : undefined;
+}
+
+/**
  * 2026-07-21: reusable ListBoxItem/GridListItem/MenuItem origin(Components 페이지)의 **label**
  * slot 자식(Text)은 fold 대상이 아니라 독립 leaf scene 노드로 서는데(편집 표면), Skia leaf Text
  * 렌더는 catalog **Text** rule 의 textWeight(400)로 그린다. 그러나 collection item 의 label 은
- * semibold 600 이 정본이다 — catalog `{Item}.variants.default.textWeight = 600` + 수동 CSS
- * `[slot="label"]{font-weight:600}` + instance escape(listbox_item) 의 600 fallback 이 모두 600.
- * 즉 origin 만 400 으로 렌더돼 3경로(origin·instance·CSS)가 불일치한다(사용자 보고).
+ * semibold 이 정본이다 — catalog `{Item}.variants.default.textWeight`(=600) + 수동 CSS
+ * `[slot="label"]{font-weight:600}` + instance escape(listbox_item) 의 `visual.textWeight` 가 모두
+ * 같은 catalog 필드. origin 만 400 으로 렌더돼 3경로(origin·instance·CSS)가 불일치했다(사용자 보고).
  *
- * DOM 의 parent-scoped CSS 처럼 **render-time** 에 label 자식 style 에 fontWeight 600 을 주입해
- * origin leaf 렌더를 600 으로 맞춘다 (Table 셀 `fontWeight: isHeader?600:400` 주입 선례 동형).
- * 템플릿 fontWeight 주입은 `repairOrigin` 이 기존 origin children 을 보존해 기존 프로젝트에
- * 미반영이므로 부적합 — render-time 주입이라야 기존·신규 origin 모두 커버한다. 자식이 명시
- * fontWeight 를 가지면 그 값 우선(사용자 편집 보존). description slot 은 400(catalog Text) 유지.
+ * DOM 의 parent-scoped CSS 처럼 **render-time** 에 label 자식 style 에 fontWeight 를 주입해 origin
+ * leaf 렌더를 catalog weight 로 맞춘다 (Table 셀 `fontWeight` 주입 선례 동형). 주입 위치가 origin
+ * 편집 seam 인 이유: origin 자식은 편집 표면이라 독립 leaf 로 서고, parent(collection item)+child
+ * 컨텍스트가 공존하는 scene build 만이 slot-aware 스타일을 줄 수 있다. **값은 catalog 에서 읽어**
+ * (리터럴 아님) escape·instance·origin 이 단일 SSOT 를 공유 — catalog textWeight 변경 시 3경로 동시
+ * 추종. 템플릿 주입은 `repairOrigin` 이 기존 origin children 을 보존해 미반영이라 부적합. 자식이 명시
+ * fontWeight 를 가지면 그 값 우선(사용자 편집 보존). description slot 은 catalog Text(400) 유지.
  */
 function injectCollectionLabelWeight(
   parent: CanonicalNode,
@@ -413,11 +439,13 @@ function injectCollectionLabelWeight(
   const props = child.props as Record<string, unknown> | undefined;
   const style = isRecord(props?.style) ? props.style : undefined;
   if (style?.fontWeight != null) return child;
+  const catalogWeight = resolveCollectionSlotLabelWeight(parent.type);
+  if (catalogWeight == null) return child;
   return {
     ...child,
     props: {
       ...(props ?? {}),
-      style: { ...(style ?? {}), fontWeight: 600 },
+      style: { ...(style ?? {}), fontWeight: catalogWeight },
     },
   } as CanonicalNode;
 }
