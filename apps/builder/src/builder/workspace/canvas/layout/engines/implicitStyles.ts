@@ -576,6 +576,19 @@ function injectCollectionItemFontStyles(
 ): CanvasLayoutNode[] {
   return children.map((child) => {
     const cs = (child.props?.style as Record<string, unknown>) || {};
+    // props.size 토큰 → catalog fontSize 해소. label/description slot 자식은 텍스트 크기를
+    //   raw style.fontSize 이 아니라 props.size(3xl 등)로 authoring 하므로, size 를 안 읽으면
+    //   fallback 14/12 로 clobber 되어 origin 자식이 자기 size 를 잃는다 (padding 0 등에서
+    //   행 높이 붕괴 — 2026-07-21 사용자 보고, Phase A slot 채널 fold 와 동형).
+    const sizeName = child.props?.size;
+    const sizeFontSize =
+      typeof sizeName === "string"
+        ? specSizeFontSize(child.type.toLowerCase(), sizeName)
+        : undefined;
+    // lineHeight 는 주입하지 않는다 — leaf Text 높이는 CSS line-height 1.5(fontSize*1.5)를
+    //   따르며(DOM 상속·utils.ts leaf 공식 동일), Text 는 catalog per-size lineHeight 가
+    //   없어 typography 값 주입이 무효(dead)다. fontSize 만 size 로 채우면 leaf 공식이
+    //   size 비례 높이를 산출한다(3xl → 45).
     if (child.type === "Text") {
       return {
         ...child,
@@ -583,7 +596,7 @@ function injectCollectionItemFontStyles(
           ...child.props,
           style: {
             ...cs,
-            fontSize: cs.fontSize ?? 14,
+            fontSize: cs.fontSize ?? sizeFontSize ?? 14,
             fontWeight: cs.fontWeight ?? 600,
             width: cs.width ?? "100%",
           },
@@ -597,7 +610,7 @@ function injectCollectionItemFontStyles(
           ...child.props,
           style: {
             ...cs,
-            fontSize: cs.fontSize ?? 12,
+            fontSize: cs.fontSize ?? sizeFontSize ?? 12,
             width: cs.width ?? "100%",
           },
         },

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ListBoxItem 자식 Text 의 props.size 가 layout 에서 14 로 clobber 되던 문제 수정 — 자식 size 미해소로 padding 0 에서 행 높이 붕괴] - 2026-07-21
+
+### Bug Fixes
+
+- **origin ListBoxItem 의 label/description size 를 키워도(3xl/2xl) layout 높이가 반영 안 되고, padding 0 에서 행 높이가 붕괴(자식이 14px 로 축소)**:
+  - 근본 원인: `injectCollectionItemFontStyles`(implicitStyles.ts — ListBoxItem/GridListItem 컨테이너에서 항상 호출)가 자식 Text/Description 에 `fontSize: style.fontSize ?? 14`(Description 12)로 주입한다. label/description slot 자식은 텍스트 크기를 raw `style.fontSize` 이 아니라 **`props.size` 토큰**(3xl 등)으로 authoring 하므로, `style.fontSize` 만 읽으면 **14/12 로 clobber** 되어 자기 size 를 잃는다. leaf Text 높이 = fontSize×1.5 라 14 → 21 로 붕괴(padding 여백이 없는 0 에서 특히 가시).
+  - **Why**: [Phase A slot 채널 fold](#) / [Phase B fills fold](#) 와 동형의 세 번째 사례 — 시각 스타일을 나르는 지점이 `props.style` 만 가정하면 Label/Text 의 size(`props.size`) 축을 놓친다. origin 은 실 자식 Text 노드라 layout child-sum 경로를 타는데, 그 자식 fontSize 가 이 injection 에서 clobber 됐다.
+  - 수정: `injectCollectionItemFontStyles` 가 자식 `props.size` 를 `specSizeFontSize(type, size)`(catalog fontSize) 로 해소해 14/12 fallback 전에 사용 (explicit `style.fontSize` 우선, size 없으면 기존 14/12 BC). lineHeight 는 주입 불필요 — leaf Text 높이가 CSS line-height 1.5(fontSize×1.5, DOM 상속과 동일)를 따르므로 fontSize 만 size 로 채우면 size 비례 높이 산출.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`
+  - 검증: `collectionItemFontSizeImplicitStyles.test.ts` 4종(3xl→30 / label 3xl+desc 2xl 각자 해소 / no-size 14 BC / explicit fontSize 우선) 추가(111 PASS 회귀 0) · type-check PASS · **live(Chrome MCP, mobile, padding 0)**: origin ListBoxItem 계산 높이가 44(자식 20/20 붕괴) → **85**(label 45 / desc 36, size 비례)로 회복, DOM 인스턴스 label(line-height 45px)과 origin 일치 실증(`getSharedLayoutMap` probe)
+
 ## [origin ListBoxItem label/description 의 배경(fills) 편집이 인스턴스 행에 미전파 수정 — slot 채널 fills→backgroundColor fold] - 2026-07-21
 
 ### Bug Fixes
