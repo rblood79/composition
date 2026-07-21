@@ -383,6 +383,45 @@ function withDisplayNoneStyle(
   };
 }
 
+/** collection item label slot 자식의 semibold(600) 대상 부모 type. */
+const COLLECTION_LABEL_WEIGHT_PARENTS = new Set([
+  "ListBoxItem",
+  "GridListItem",
+  "MenuItem",
+]);
+
+/**
+ * 2026-07-21: reusable ListBoxItem/GridListItem/MenuItem origin(Components 페이지)의 **label**
+ * slot 자식(Text)은 fold 대상이 아니라 독립 leaf scene 노드로 서는데(편집 표면), Skia leaf Text
+ * 렌더는 catalog **Text** rule 의 textWeight(400)로 그린다. 그러나 collection item 의 label 은
+ * semibold 600 이 정본이다 — catalog `{Item}.variants.default.textWeight = 600` + 수동 CSS
+ * `[slot="label"]{font-weight:600}` + instance escape(listbox_item) 의 600 fallback 이 모두 600.
+ * 즉 origin 만 400 으로 렌더돼 3경로(origin·instance·CSS)가 불일치한다(사용자 보고).
+ *
+ * DOM 의 parent-scoped CSS 처럼 **render-time** 에 label 자식 style 에 fontWeight 600 을 주입해
+ * origin leaf 렌더를 600 으로 맞춘다 (Table 셀 `fontWeight: isHeader?600:400` 주입 선례 동형).
+ * 템플릿 fontWeight 주입은 `repairOrigin` 이 기존 origin children 을 보존해 기존 프로젝트에
+ * 미반영이므로 부적합 — render-time 주입이라야 기존·신규 origin 모두 커버한다. 자식이 명시
+ * fontWeight 를 가지면 그 값 우선(사용자 편집 보존). description slot 은 400(catalog Text) 유지.
+ */
+function injectCollectionLabelWeight(
+  parent: CanonicalNode,
+  child: CanonicalNode,
+): CanonicalNode {
+  if (!COLLECTION_LABEL_WEIGHT_PARENTS.has(parent.type)) return child;
+  if (getSlotRole(child) !== "label") return child;
+  const props = child.props as Record<string, unknown> | undefined;
+  const style = isRecord(props?.style) ? props.style : undefined;
+  if (style?.fontWeight != null) return child;
+  return {
+    ...child,
+    props: {
+      ...(props ?? {}),
+      style: { ...(style ?? {}), fontWeight: 600 },
+    },
+  } as CanonicalNode;
+}
+
 function readDescendantChildren(override: unknown): CanonicalNode[] {
   if (!override || typeof override !== "object") return [];
   if (isCanonicalNode(override)) return [override];
@@ -2450,7 +2489,10 @@ export function buildCanvasSceneGraph(
         //   gridlist_card escape / DOM emit 이 `_slots` 로 소비 (독립 scene 노드 금지).
         return;
       }
-      visit(child, nextParentId, nextScope);
+      // reusable origin(위 fold 미해당)의 label slot 자식은 catalog Text(400) leaf 렌더 →
+      //   collection item label 정본 600(catalog {Item}.textWeight + CSS [slot=label] + escape)
+      //   과 어긋난다. render-time 에 600 주입해 origin·instance·CSS 정합 (2026-07-21 사용자 보고).
+      visit(injectCollectionLabelWeight(node, child), nextParentId, nextScope);
     });
     getRefDescendantChildren(node).forEach((children) => {
       children.forEach((child) => {

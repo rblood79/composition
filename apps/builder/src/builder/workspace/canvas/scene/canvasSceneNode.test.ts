@@ -329,6 +329,72 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
     expect(normalRow?.fills).toBeUndefined();
   });
 
+  // 2026-07-21: reusable ListBoxItem origin 의 label slot 자식(Text)은 leaf scene 노드로 서는데
+  //   catalog Text(400)로 렌더돼 collection label 정본 600(catalog {Item}.textWeight + CSS
+  //   [slot=label]{600} + instance escape)과 어긋났다(사용자 보고). render-time 에 600 주입해 정합.
+  it("reusable ListBoxItem origin 의 label slot 자식은 fontWeight 600 주입 (description 은 400 유지)", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "origin-lbi",
+                  type: "ListBoxItem",
+                  reusable: true,
+                  props: {},
+                  children: [
+                    {
+                      id: "lbl",
+                      type: "Text",
+                      props: { slot: "label", children: "{label}" },
+                      metadata: { slotRole: "label" },
+                    },
+                    {
+                      id: "desc",
+                      type: "Text",
+                      props: { slot: "description", children: "{description}" },
+                      metadata: { slotRole: "description" },
+                    },
+                    {
+                      id: "lbl-explicit",
+                      type: "Text",
+                      props: {
+                        slot: "label",
+                        style: { fontWeight: 400 },
+                        children: "{label2}",
+                      },
+                      metadata: { slotRole: "label" },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc);
+    const styleOf = (id: string): Record<string, unknown> =>
+      (graph.nodesMap.get(id)?.props?.style ?? {}) as Record<string, unknown>;
+
+    // label(명시 fontWeight 없음) → render-time 600 주입 (origin·instance·CSS 정합).
+    expect(styleOf("lbl").fontWeight).toBe(600);
+    // description slot 은 미주입 (catalog Text 400 유지 = DOM 대칭).
+    expect(styleOf("desc").fontWeight).toBeUndefined();
+    // 자식이 명시 fontWeight 를 가지면 그 값 보존 (사용자 편집 우선).
+    expect(styleOf("lbl-explicit").fontWeight).toBe(400);
+  });
+
   // ADR-912 단계 4 C1: GridList projection (ListBox 동형, origin/anchor 없음).
   it("projects data-bound GridList items as GridListItem scene nodes", () => {
     const doc: CompositionDocument = {
