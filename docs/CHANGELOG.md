@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ListBoxItem 3경로(origin/instance/CSS) 행 높이·label fontWeight 정합 — Text line box + description decouple + render-time 600 주입] - 2026-07-21
+
+### Bug Fixes
+
+- **Skia home instance ListBoxItem 행 높이가 origin(Components)·CSS 와 크게 다름 (label size 를 키우면 특히)**:
+  - 두 원인 복합. **(A) label line box 모델 불일치**: instance projection(escape `listbox_item` + `resolveListBoxItemMetric` + `resolveListBoxItemRowHeightFromStyle`)이 label/description line box 를 `getLabelLineHeight`(typography 토큰, 3xl→36)로 산출 → origin 실 Text 자식·CSS(line-height 1.5, 3xl→**45**)보다 짧게. **(B) description fontSize 가 label 과 결합 (주원인, +28px)**: description slot size 부재 시 `Math.max(11, labelFs-1)` 로 fallback 해, label 3xl(30) 시 description 을 **29** 로 부풀려(line box 44) 행이 원본 대비 +28px (라이브: instance **101** vs origin 72 / CSS 73).
+  - **Why**: label/description 은 **Text** leaf 라 line box = `1.5×fs`(CSS·leaf Text 레이아웃 동일)여야 하고, description 은 CSS `[slot="description"]{ font-size: var(--lb-desc-size, var(--text-xs)) }` 처럼 label 과 무관한 고정 --text-xs(12)여야 한다. 라이브 DOM 실측으로 방향 확정(label 30px/45px/600, desc 12px/16px/400, row 73).
+  - 수정:
+    - `getTextLineHeight`(=`ceil(1.5×fs)`) 헬퍼 신설(`packages/specs/src/primitives/typography.ts`) → ListBoxItem 3경로 label/description line box 를 token 룩업에서 1.5 로 교체. `getLabelLineHeight` 는 standalone Text/Label(specShapeConverter)·gridlist_card 용으로 불변.
+    - description fontSize fallback 을 `labelFs-1` → **12**(--text-xs, label 무관) 로 decouple (resolver + escape). 명시 slot size 우선.
+  - 결과(라이브): instance **101 → 75** — origin 72 / CSS 73 과 3px 이내 정합(28px+ 격차 해소).
+  - 위치: `packages/specs/src/primitives/typography.ts` · `packages/specs/src/renderers/utils/collectionItemMetrics.ts` · `packages/specs/src/renderers/skiaPrimitives.ts`(listbox_item) · `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`
+
+- **origin ListBoxItem 의 label fontWeight 가 instance/CSS 와 다름 (origin 만 얇게)**:
+  - 근본 원인: reusable ListBoxItem origin 의 label slot 자식은 fold 대상이 아니라 독립 leaf scene 노드로 서는데, Skia leaf Text 렌더가 catalog **Text** rule 의 textWeight(400)로 그린다. 그러나 collection label 정본은 **600** — catalog `ListBoxItem.variants.default.textWeight` + 수동 CSS `[slot="label"]{font-weight:600}` + instance escape 600 이 모두 600. origin Skia 만 400.
+  - **Why**: 템플릿 fontWeight 주입은 `repairOrigin` 이 기존 origin children 을 보존해 기존 프로젝트에 미반영이므로 부적합. DOM 의 parent-scoped CSS 처럼 **render-time** 주입이라야 기존·신규 origin 모두 커버.
+  - 수정: scene build 자식 순회(`canvasSceneNode.ts`)에서 collection-item label slot 자식에 render-time fontWeight 600 주입(`injectCollectionLabelWeight`). 자식 명시 fontWeight 우선, description 은 400 유지. (Table 셀 `fontWeight` 주입 선례 동형)
+  - 검증(라이브 DOM): CSS label fontWeight 600 확증. 위치: `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`
+
 ## [배경(fills) 초기화 버튼이 desktop 에서만 뜨던 비대칭 수정 — 전역 fills 를 모든 breakpoint 에서 dirty 로 감지] - 2026-07-21
 
 ### Bug Fixes
