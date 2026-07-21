@@ -8,6 +8,8 @@ import {
   DEFAULT_LISTBOX_ROW_HEIGHT,
 } from "./collectionVirtualization";
 import { buildCanonicalSceneModel } from "./canonicalSceneModel";
+import { parsePxValue } from "@composition/specs";
+import { resolveContainerStylesFallback } from "../layout/engines/implicitStyles";
 
 function listBoxDoc(opts: {
   itemCount: number;
@@ -302,6 +304,11 @@ describe("scene model 통합 — G-A2 핵심: 투영 노드 수 ≤ window+overs
 
 describe("ADR-157 — auto-height ListBox 샘플 + hatch remainder (scene emit)", () => {
   it("sample resolution → 10행 투영 + collection-remainder hatch 1개(hiddenRows/height)", () => {
+    // ② 정정 (2026-07-21): gap 미지정 시 catalog containerStyles.gap fallback 이 반영된다.
+    const catalogGap = parsePxValue(
+      resolveContainerStylesFallback("listbox", {}).gap,
+      0,
+    );
     const doc = listBoxDoc({ itemCount: 1000, style: { overflowY: "auto" } });
     const collectionWindows = resolveVirtualizedCollectionWindows({
       doc,
@@ -325,9 +332,10 @@ describe("ADR-157 — auto-height ListBox 샘플 + hatch remainder (scene emit)"
       (remainder[0]?.projection as { hiddenRows?: number } | undefined)
         ?.hiddenRows,
     ).toBe(990);
-    // hatch box 높이 = hiddenRows(990) × rowHeight(28) → 컨테이너가 totalRows 전체 높이에 auto-size.
+    // hatch box 높이 = hiddenRows(990) × rowHeight(28) + (990-1) × catalogGap → 컨테이너가
+    //   totalRows 전체 높이(gap 포함)에 auto-size.
     const style = remainder[0]?.props?.style as { height?: number } | undefined;
-    expect(style?.height).toBe(990 * 28);
+    expect(style?.height).toBe(990 * 28 + 989 * catalogGap);
     // trailing 은 hatch 이지 빈 spacer 아님 (sample mode).
     expect(
       model.sceneNodes.filter((n) => n.projection?.kind === "listbox-spacer"),
@@ -335,15 +343,15 @@ describe("ADR-157 — auto-height ListBox 샘플 + hatch remainder (scene emit)"
     // remainder projection id 는 canonical 저장 금지 계약(projection: prefix).
     expect(remainder[0]?.id.startsWith("projection:")).toBe(true);
 
-    // ADR-157 Phase 3: owner 에 totalRows 전체 높이(= 1000 × rowHeight 28) 주입 →
-    //   layout §1.55b 가 소비해 3-item fallback clip 방지(배치 진실성).
+    // ADR-157 Phase 3: owner 에 totalRows 전체 높이(= 1000 × 28 + 999 × catalogGap) 주입 →
+    //   layout §1.55b(또는 ref 는 fix b early-check)가 소비해 clip 방지(배치 진실성).
     const owner = model.sceneNodes.find(
       (n) => (n.type ?? "").toLowerCase() === "listbox",
     );
     expect(
       (owner?.props as { _projectedRowsContentHeight?: number } | undefined)
         ?._projectedRowsContentHeight,
-    ).toBe(1000 * 28);
+    ).toBe(1000 * 28 + 999 * catalogGap);
   });
 
   it("데이터 ≤ 샘플 상한(10) → 전량 투영 + remainder 없음 + owner 높이 주입 없음", () => {
@@ -417,7 +425,14 @@ describe("ADR-157 — auto-height ListBox 샘플 + hatch remainder (scene emit)"
     );
   });
 
-  it("gap 미지정 → 기존 동작 불변 (BC: rowGap 0, injection/remainder gap 미반영)", () => {
+  it("element gap 미지정 → catalog containerStyles.gap 을 fallback 으로 소비 (CSS 정합, D3 대칭)", () => {
+    // 정정 (2026-07-21): 이전엔 "gap 미지정 → 0" 을 BC 로 봤으나, 실제 CSS 는 catalog
+    //   containerStyles.gap(theme 토큰 → px)을 적용한다. Skia rowsGroup 도 동일 소스를 써야
+    //   D3 대칭 — element gap 없으면 catalog gap 이 rowsGroup/injection/hatch 에 반영된다.
+    const catalogGap = parsePxValue(
+      resolveContainerStylesFallback("listbox", {}).gap,
+      0,
+    );
     const doc = listBoxDoc({ itemCount: 12, style: { overflowY: "auto" } });
     const collectionWindows = resolveVirtualizedCollectionWindows({
       doc,
@@ -428,18 +443,24 @@ describe("ADR-157 — auto-height ListBox 샘플 + hatch remainder (scene emit)"
       collections: [],
       collectionWindows,
     });
+    const rowsGroup = model.sceneNodes.find(
+      (n) => n.projection?.kind === "listbox-rows",
+    );
+    expect((rowsGroup?.props?.style as { rowGap?: number })?.rowGap).toBe(
+      catalogGap,
+    );
     const owner = model.sceneNodes.find(
       (n) => (n.type ?? "").toLowerCase() === "listbox",
     );
     expect(
       (owner?.props as { _projectedRowsContentHeight?: number })
         ?._projectedRowsContentHeight,
-    ).toBe(12 * 28);
+    ).toBe(12 * 28 + 11 * catalogGap);
     const remainder = model.sceneNodes.find(
       (n) => n.projection?.kind === "collection-remainder",
     );
     expect((remainder?.props?.style as { height?: number })?.height).toBe(
-      2 * 28,
+      2 * 28 + 1 * catalogGap,
     );
   });
 });

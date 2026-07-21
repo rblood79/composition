@@ -30,6 +30,10 @@ import { GRIDLIST_ITEM_DEFAULT_ORIGIN_ID } from "../../../components/gridlist/gr
 // ADR-907 Layer D: chip gap 정본 = TagList catalog rule. projection 배치와 layout
 //   height 계산이 동일 resolver(resolveTagListGap)를 공유해 size 별 gap(lg=6) 을 정합.
 import { resolveTagListGap } from "../layout/engines/utils";
+// ADR-157 gap 배선 (② 정정): ListBox gap 은 catalog containerStyles.gap(theme 토큰 → px)에서
+//   오고 CSS 가 이를 소비한다. rowsGroup 이 element.props.style 만 읽으면 catalog gap 을 놓쳐
+//   Skia 만 gap 미적용(D3 asymmetry) → 소유자 layout 이 쓰는 동일 resolver 로 catalog gap 흡수.
+import { resolveContainerStylesFallback } from "../layout/engines/implicitStyles";
 import {
   getTableProjectionRows,
   type TableColumnDef,
@@ -914,11 +918,19 @@ function appendListBoxRowProjection(
   const listBoxOwnerProps = listBoxSceneNode.props as Record<string, unknown>;
   const listBoxOwnerStyle =
     (listBoxOwnerProps?.style as Record<string, unknown> | undefined) ?? {};
+  // catalog containerStyles.gap(= "{spacing.2xs}" 등, resolveToken 으로 px)을 fallback 으로 —
+  //   CSS(생성 CSS)가 소비하는 동일 소스. resolveContainerStylesFallback 은 element/factory 편집을
+  //   우선 처리하므로 여기서도 element style 을 앞에 둔다(명시적 우선 + longhand rowGap 대응).
+  const listBoxContainerFallback = resolveContainerStylesFallback(
+    "listbox",
+    listBoxOwnerStyle,
+  );
   const rowGapPx = parsePxValue(
     listBoxOwnerStyle.rowGap ??
       listBoxOwnerStyle.columnGap ??
       listBoxOwnerStyle.gap ??
-      listBoxOwnerProps?.gap,
+      listBoxOwnerProps?.gap ??
+      listBoxContainerFallback.gap,
     0,
   );
 
