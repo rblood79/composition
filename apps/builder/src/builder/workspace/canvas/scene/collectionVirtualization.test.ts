@@ -622,18 +622,20 @@ function gridListDoc(opts: {
 }
 
 describe("resolveVirtualizedCollectionWindows — GridList 확산", () => {
-  it("stack 모드: 카드 stride 56(pad24+label20+gap12), columns 1, window", () => {
+  it("stack 모드: 카드 stride 60(pad24+label24+rowGap12), columns 1, window", () => {
     const map = resolveVirtualizedCollectionWindows({
       doc: gridListDoc({ itemCount: 1000, style: SCROLLABLE, layout: "stack" }),
       collections: [],
       scrollTops: new Map(),
     });
     const entry = map.get("gridlist-1");
-    expect(entry?.rowHeight).toBe(56);
+    // 2026-07-22 parity sweep: label = react-aria-Text 16 → getTextLineHeight 24 (과거 14/20),
+    //   descGap 2. no-desc 카드 = pad24 + label24 = 48, + rowGap12 = stride 60.
+    expect(entry?.rowHeight).toBe(60);
     expect(entry?.columns).toBe(1);
     expect(entry?.totalRows).toBe(1000);
-    // viewport 400 / 56 = 8 visible, overscan 6 → end 14.
-    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 14 });
+    // viewport 400 / 60 = ceil 7 visible, overscan 6 → end 13.
+    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 13 });
   });
 
   it("grid 모드(columns 2): numCols 2, window 는 numCols 배수로 정렬", () => {
@@ -648,10 +650,10 @@ describe("resolveVirtualizedCollectionWindows — GridList 확산", () => {
       scrollTops: new Map(),
     });
     const entry = map.get("gridlist-1");
-    expect(entry?.rowHeight).toBe(56);
+    expect(entry?.rowHeight).toBe(60);
     expect(entry?.columns).toBe(2);
-    // 시각 행 window {0,14} × numCols 2 → item {0,28}.
-    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 28 });
+    // 시각 행 window {0,13} × numCols 2 → item {0,26}.
+    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 26 });
   });
 
   it("grid 모드 스크롤: 시각 행 firstVisible±overscan → item index numCols 정렬", () => {
@@ -663,16 +665,16 @@ describe("resolveVirtualizedCollectionWindows — GridList 확산", () => {
         columns: 2,
       }),
       collections: [],
-      scrollTops: new Map([["gridlist-1", 560]]), // 10 시각 행 × 56
+      scrollTops: new Map([["gridlist-1", 560]]), // 시각 행 stride 60
     });
-    // firstVisibleVisualRow = floor(560/56)=10, start 4, end 10+8+6=24 → item {8,48}.
+    // firstVisibleVisualRow = floor(560/60)=9, start 3, end 9+7+6=22 → item {6,44}.
     expect(map.get("gridlist-1")?.window).toEqual({
-      startIndex: 8,
-      endIndex: 48,
+      startIndex: 6,
+      endIndex: 44,
     });
   });
 
-  it("description 카드는 taller stride 76(pad24+label20+desc16+gap4+rowGap12)", () => {
+  it("description 카드는 taller stride 86(pad24+label24+desc24+gap2+rowGap12)", () => {
     const map = resolveVirtualizedCollectionWindows({
       doc: gridListDoc({
         itemCount: 1000,
@@ -683,7 +685,7 @@ describe("resolveVirtualizedCollectionWindows — GridList 확산", () => {
       collections: [],
       scrollTops: new Map(),
     });
-    expect(map.get("gridlist-1")?.rowHeight).toBe(76);
+    expect(map.get("gridlist-1")?.rowHeight).toBe(86);
   });
 
   it("ref 인스턴스 GridService(type:'ref' + name:'GridList')도 가상화 대상", () => {
@@ -741,9 +743,9 @@ describe("scene model 통합 — GridList G-A2: 카드 노드 수 ≤ window (10
     const spacers = model.sceneNodes.filter(
       (n) => n.projection?.kind === "gridlist-spacer",
     );
-    // 시각 window {0,14}(행) × 2 = item {0,28} → 28 카드 (10000 아님).
-    expect(cardNodes).toHaveLength(28);
-    // scrollTop 0 → lead spacer 없음, trailing spacer 1개(시각 행 5000-14=4986 × 56).
+    // 시각 window {0,13}(행) × 2 = item {0,26} → 26 카드 (10000 아님).
+    expect(cardNodes).toHaveLength(26);
+    // scrollTop 0 → lead spacer 없음, trailing spacer 1개(시각 행 5000-13 × 60).
     expect(spacers).toHaveLength(1);
     expect(
       (spacers[0]?.projection as { position?: string } | undefined)?.position,
@@ -773,11 +775,11 @@ describe("scene model 통합 — GridList G-A2: 카드 노드 수 ≤ window (10
         pos: (n.projection as { position?: string } | undefined)?.position,
         h: (n.props?.style as Record<string, unknown> | undefined)?.height,
       }));
-    // window item {8,48} → lead 시각 행 = ceil(8/2)=4 × 56 = 224, trail = (5000-24) × 56.
+    // window item {6,44} → lead 시각 행 = ceil(6/2)=3 × 60 = 180, trail = (5000-22) × 60.
     const lead = spacers.find((s) => s.pos === "lead");
     const trail = spacers.find((s) => s.pos === "trail");
-    expect(lead?.h).toBe(4 * 56);
-    expect(trail?.h).toBe((5000 - 24) * 56);
+    expect(lead?.h).toBe(3 * 60);
+    expect(trail?.h).toBe((5000 - 22) * 60);
   });
 });
 
@@ -1021,9 +1023,9 @@ describe("resolveVirtualizedCollectionWindows — maxScrollTop (스크롤 입력
       collections: [],
       scrollTops: new Map(),
     }).get("gridlist-1");
-    // visualRows ceil(1000/2)=500, rowHeight 56 → contentHeight 28000, maxScrollTop 27600.
-    expect(entry?.contentHeight).toBe(28000);
-    expect(entry?.maxScrollTop).toBe(27600);
+    // visualRows ceil(1000/2)=500, rowHeight 60 → contentHeight 30000, maxScrollTop 29600.
+    expect(entry?.contentHeight).toBe(30000);
+    expect(entry?.maxScrollTop).toBe(29600);
   });
 
   it("Table: header 1행 가산 (visualRows+1)×rowHeight", () => {
@@ -1041,7 +1043,7 @@ describe("resolveVirtualizedCollectionWindows — maxScrollTop (스크롤 입력
 // ── ADR-157 Phase 4: GridList / Table auto-height 샘플 resolution + hatch 확산 ──────
 
 describe("resolveVirtualizedCollectionWindows — ADR-157 Phase 4 sample (GridList/Table)", () => {
-  it("GridList stack auto-height >10 → mode:'sample' window [0,10] columns 1 stride 56", () => {
+  it("GridList stack auto-height >10 → mode:'sample' window [0,10] columns 1 stride 60", () => {
     const map = resolveVirtualizedCollectionWindows({
       doc: gridListDoc({
         itemCount: 1000,
@@ -1055,7 +1057,7 @@ describe("resolveVirtualizedCollectionWindows — ADR-157 Phase 4 sample (GridLi
     expect(entry?.mode).toBe("sample");
     expect(entry?.window).toEqual({ startIndex: 0, endIndex: 10 });
     expect(entry?.totalRows).toBe(1000);
-    expect(entry?.rowHeight).toBe(56);
+    expect(entry?.rowHeight).toBe(60);
     expect(entry?.columns).toBe(1);
     // sample 은 스크롤 아님 → viewport/maxScroll 미설정.
     expect(entry?.maxScrollTop).toBeUndefined();
@@ -1076,7 +1078,7 @@ describe("resolveVirtualizedCollectionWindows — ADR-157 Phase 4 sample (GridLi
     expect(entry?.mode).toBe("sample");
     expect(entry?.window).toEqual({ startIndex: 0, endIndex: 10 });
     expect(entry?.columns).toBe(2);
-    expect(entry?.rowHeight).toBe(56);
+    expect(entry?.rowHeight).toBe(60);
   });
 
   it("GridList auto-height ≤10 → 전량 투영(sample resolution 없음)", () => {
@@ -1148,19 +1150,19 @@ describe("ADR-157 Phase 4 — GridList/Table 샘플 + hatch remainder (scene emi
     expect(remainder[0]?.id.startsWith("projection:")).toBe(true);
     // hatch height = trail 시각 행 × stride. totalVisualRows=500, endVisual=ceil(10/2)=5 → trail 495.
     const style = remainder[0]?.props?.style as { height?: number } | undefined;
-    expect(style?.height).toBe(495 * 56);
+    expect(style?.height).toBe(495 * 60);
     expect(
       (remainder[0]?.projection as { hiddenRows?: number } | undefined)
         ?.hiddenRows,
     ).toBe(495);
-    // owner 주입 = ceil(totalRows/columns) × rowHeight = 500 × 56 (§1.55c 소비, 배치 진실성).
+    // owner 주입 = ceil(totalRows/columns) × rowHeight = 500 × 60 (§1.55c 소비, 배치 진실성).
     const owner = model.sceneNodes.find(
       (n) => (n.type ?? "").toLowerCase() === "gridlist",
     );
     expect(
       (owner?.props as { _projectedRowsContentHeight?: number } | undefined)
         ?._projectedRowsContentHeight,
-    ).toBe(500 * 56);
+    ).toBe(500 * 60);
   });
 
   it("Table sample → header + 10 data 행 + hatch 1개, owner 주입 없음(child-sum)", () => {

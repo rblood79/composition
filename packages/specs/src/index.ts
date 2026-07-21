@@ -381,6 +381,7 @@ export {
 export {
   resolveGridListItemMetric,
   resolveGridListSpacingMetric,
+  COLLECTION_TEXT_DEFAULT_FONT_SIZE,
 } from "./renderers/utils/collectionItemMetrics";
 export type {
   GridListSpacingMetric,

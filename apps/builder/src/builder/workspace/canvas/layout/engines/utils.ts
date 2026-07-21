@@ -31,6 +31,7 @@ import {
   resolveListBoxItemRowHeight,
   isListBoxSectionEntry,
   resolveGridListSpacingMetric,
+  COLLECTION_TEXT_DEFAULT_FONT_SIZE,
   isGridListSectionEntry,
   parsePxValue,
   // ADR-157 owner-height fix (b): ref-instance 소유자용 family-agnostic injection early-check
@@ -40,7 +41,6 @@ import {
   //   escape(datefieldSegments)와 단일 소스로 공유 + fontSize TokenRef→px 변환.
   buildDateInputDisplayText,
   resolveSpecFontSize,
-  getLabelLineHeight,
   getTextLineHeight,
   // ADR-151 후속 (2026-07-17): IllustratedMessage 높이 분기 — escape(skiaPrimitives)/DOM 과
   //   동일 metric SSOT (Layer D 동일 resolver 원칙).
@@ -2409,28 +2409,41 @@ export function calculateContentHeight(
     });
   }
 
-  // 1.55b2. GridListItem (projection row) — ADR-151 B21 (2026-07-16): 전용 분기 부재 시
-  //   generic 경로가 content 24 를 산출해 row 총높이 50 (pad 24 + border 2 + 24) vs DOM 64 로
-  //   내부 발산 (컨테이너 gridlist 분기는 64 로 맞아 총합이 은폐). DOM 계약: label line-height
-  //   + sizes.gap(2) + description line-height = 38 (+ implicitStyles 주입 pad 24/border 2 = 64).
-  //   descFontSize = fontSize - 2 (gridListCard/gridlist 분기 동형).
+  // 1.55b2. GridListItem (projection row) — ADR-151 B21 (2026-07-16) + 2026-07-22 collection-item
+  //   parity sweep (ListBoxItem 동형). 과거엔 label/description line box 를 item `style.fontSize`
+  //   (14) 로만 getLabelLineHeight(typography 토큰) 산출했으나 라이브 실측(getSharedLayoutMap origin
+  //   = 76 / DOM injection = 76)으로 3중 오차 확인: (a) slot label 실제 size 무시 → 큰 label 에서
+  //   instance 행 cramped·텍스트 겹침, (b) label/desc base 가 react-aria-Text 기본 16 이 아니라 14,
+  //   (c) getLabelLineHeight(token) ≠ 실 렌더 1.5×fs. GridList slot 은 `[slot=*]` override 가 없어
+  //   label·description 둘 다 16 → getTextLineHeight(16)=24 (라이브 확인, ListBox 의 desc 12/1.333
+  //   override 와 대조). within-card gap 은 `--spacing-2xs`(2). → content 24+2+24=50 (+ pad 24 +
+  //   border 2 = origin 76). 명시 slot size 는 우선.
   //   ADR-148 후속 (2026-07-17): childful(reusable origin unfold) 이면 metric 분기 skip —
   //   listboxitem 분기와 동일 사유 (일반 컨테이너 자식 합산 경로).
   if (tag1 === "gridlistitem" && !(childElements && childElements.length > 0)) {
     const props = element.props as Record<string, unknown> | undefined;
-    const fontSize = parseNumericValue(style?.fontSize) ?? 14;
     const gap =
       parseNumericValue(style?.rowGap ?? style?.columnGap ?? style?.gap) ?? 2;
     const desc = props?.description;
+    const slotComp = readSlotComposition(props?._slots);
     // ADR-148 Phase 4: description slot 자식이 구성(_slots)에 없으면 1줄
     //   (gridlist_card escape 동일 gating — listbox 분기 동형).
     const hasDesc =
       typeof desc === "string" &&
       desc.length > 0 &&
-      isSlotEnabled(readSlotComposition(props?._slots), "description");
+      isSlotEnabled(slotComp, "description");
+    // label/description size 는 slot 자식 props.size → `_slots` fold(px)로 authoring. 없으면
+    //   react-aria-Text 기본 16 (item style.fontSize 아님 — Text 는 부모 size 미상속).
+    const slotFontOf = (role: "label" | "description"): number | undefined => {
+      const fs = slotComp?.slots[role]?.style?.fontSize;
+      return typeof fs === "number" ? fs : undefined;
+    };
+    const labelFs = slotFontOf("label") ?? COLLECTION_TEXT_DEFAULT_FONT_SIZE;
+    const descFs =
+      slotFontOf("description") ?? COLLECTION_TEXT_DEFAULT_FONT_SIZE;
     return (
-      getLabelLineHeight(fontSize) +
-      (hasDesc ? gap + getLabelLineHeight(fontSize - 2) : 0)
+      getTextLineHeight(labelFs) +
+      (hasDesc ? gap + getTextLineHeight(descFs) : 0)
     );
   }
 
@@ -2490,21 +2503,24 @@ export function calculateContentHeight(
       cardPaddingY,
       descGap,
     } = metric;
-    const descFontSize = fontSize - 2;
+    // 2026-07-22 parity sweep: props.items 카드의 label/description 은 react-aria-Text 기본 16
+    //   (컨테이너 fontSize 미상속), GridList slot 은 line-height override 없어 1.5×fs. label 3xl 시
+    //   description 과팽창하던 fontSize-2 결합 제거.
+    const cardTextFontSize = COLLECTION_TEXT_DEFAULT_FONT_SIZE;
     const HEADER_HEIGHT = Math.round(fontSize * 1.75);
     const SECTION_TOP_PAD = Math.round(fontSize * 0.5);
 
-    // 카드 콘텐츠는 CSS line box 합 (md: label 20 + desc 16 + gap 4 = 40) — fontSize 합산은
-    //   DOM GridListItem 대비 카드당 -10 drift. skiaPrimitives gridListCard 와 동일 공식
-    //   (Layer D — 렌더/레이아웃 동일 메트릭, 2026-07-14 sweep).
+    // 카드 콘텐츠 = label line box + gap + description line box. skiaPrimitives gridListCard 와
+    //   동일 공식 (Layer D — 렌더/레이아웃 동일 메트릭). getTextLineHeight(1.5×fs) = 실 Text leaf·
+    //   CSS line-height 1.5 정합 (라이브 origin 76 확인). descGap = --spacing-2xs(2).
     // ADR-148 Phase 4: description slot 자식이 구성(owner props._slots — projection 주입)에
     //   없으면 카드 1줄 (gridlist_card escape 동일 gating, listbox 분기 동형).
     const gridSlotComposition = readSlotComposition(props?._slots);
     const cardHeight = (item: { description?: string }) =>
       cardPaddingY * 2 +
-      getLabelLineHeight(fontSize) +
+      getTextLineHeight(cardTextFontSize) +
       (item.description && isSlotEnabled(gridSlotComposition, "description")
-        ? getLabelLineHeight(descFontSize) + descGap
+        ? getTextLineHeight(cardTextFontSize) + descGap
         : 0);
 
     const measureGridRows = (

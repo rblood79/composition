@@ -47,12 +47,15 @@ function makeGridList(
 }
 
 // 기본 item card height 공식 — resolveGridListItemMetric(14) 분기 기준
-//   cardPaddingY=12, fontSize=14(line box 20), descFontSize=12(line box 16), descGap=4
-//   cardHeight = 12*2 + 20 + (16 + 4) = 64 (CSS GridListItem 64 정합 — 2026-07-14 line-height 전환)
-const BASELINE_CARD_H = 64;
+//   cardPaddingY=12. label/description 은 react-aria-Text 기본 16 (컨테이너 fontSize 미상속),
+//   GridList slot 은 line-height override 없어 line box = getTextLineHeight(16)=24. descGap=2
+//   (--spacing-2xs). cardHeight = 12*2 + 24 + (24 + 2) = 74 (2026-07-22 collection-item parity
+//   sweep — 라이브 getSharedLayoutMap origin=76 = 74 content+padding + border 2 정합. 과거 64 는
+//   base 14/desc 12·getLabelLineHeight·descGap 4 가정으로 CSS/origin 대비 -10 오차였다).
+const BASELINE_CARD_H = 74;
 
 describe("calculateContentHeight — GridList stack baseline", () => {
-  it("4-item stack / no style → 4*64 + 3*12 = 292", () => {
+  it("4-item stack / no style → 4*74 + 3*12 = 332", () => {
     const h = calculateContentHeight(makeGridList());
     expect(h).toBe(4 * BASELINE_CARD_H + 3 * 12);
   });
@@ -88,12 +91,12 @@ describe("calculateContentHeight — GridList stack baseline", () => {
     expect(edited - base).toBe(4);
   });
 
-  it("style.fontSize=18 → large 카드 분기 (paddingY 16 / descGap 6), height 재계산", () => {
+  it("style.fontSize=18 → large 카드 분기 (paddingY 16), label/desc 는 16 고정 (react-aria-Text)", () => {
     const h = calculateContentHeight(makeGridList({ style: { fontSize: 18 } }));
-    // cardHeight = 16*2 + 28 + (24 + 6) = 90 (line box: 18→28, 16→24)
-    // innerHeight = 4*90 + 3*12 = 396
-    // gap 은 default 12 유지 (style.gap 미지정)
-    expect(h).toBe(4 * 90 + 3 * 12);
+    // label/description 은 컨테이너 fontSize(18) 를 상속하지 않고 react-aria-Text 기본 16 →
+    //   line box 24 (getTextLineHeight(16)). fontSize>14 는 padding(16)·borderRadius 만 키운다.
+    // cardHeight = 16*2 + 24 + (24 + 2) = 82. innerHeight = 4*82 + 3*12 = 364 (gap default 12)
+    expect(h).toBe(4 * 82 + 3 * 12);
   });
 });
 
@@ -102,7 +105,7 @@ describe("calculateContentHeight — GridList grid layout", () => {
     const h = calculateContentHeight(
       makeGridList({ layout: "grid", columns: 2 }),
     );
-    // 2 rows × 64 + 1 gap × 12 = 140
+    // 2 rows × 74 + 1 gap × 12 = 160
     expect(h).toBe(2 * BASELINE_CARD_H + 12);
   });
 
@@ -110,7 +113,7 @@ describe("calculateContentHeight — GridList grid layout", () => {
     const h = calculateContentHeight(
       makeGridList({ layout: "grid", columns: 3 }),
     );
-    // row1: 3 items (max cardH=64), row2: 1 item (64) → 2*64 + 1*12 = 140
+    // row1: 3 items (max cardH=74), row2: 1 item (74) → 2*74 + 1*12 = 160
     expect(h).toBe(2 * BASELINE_CARD_H + 12);
   });
 });
@@ -131,11 +134,11 @@ describe("calculateContentHeight — 3-경로 metric 대칭 (Skia/Layout)", () =
     expect(metric.paddingBottom).toBe(8);
     expect(metric.fontSize).toBe(14);
     expect(metric.cardPaddingY).toBe(12);
-    expect(metric.descGap).toBe(4);
+    expect(metric.descGap).toBe(2);
 
     // calculateContentHeight 결과가 동일 metric 공식 사용 확증
     const h = calculateContentHeight(makeGridList({ style }));
-    // innerHeight = 4*64 + 3*24 = 328, + padding 8*2 = 16 → 344
+    // innerHeight = 4*74 + 3*24 = 368, + padding 8*2 = 16 → 384
     expect(h).toBe(
       4 * BASELINE_CARD_H +
         3 * metric.rowGap +

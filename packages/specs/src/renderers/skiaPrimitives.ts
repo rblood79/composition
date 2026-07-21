@@ -16,11 +16,8 @@
  */
 
 import { parseBorderWidth, parsePxValue, parseShadow } from "../primitives";
-import {
-  fontFamily,
-  getLabelLineHeight,
-  getTextLineHeight,
-} from "../primitives/typography";
+import { fontFamily, getTextLineHeight } from "../primitives/typography";
+import { COLLECTION_TEXT_DEFAULT_FONT_SIZE } from "./utils/collectionItemMetrics";
 import {
   buildDateInputDisplayText,
   buildDatePickerShapes,
@@ -376,10 +373,8 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   //   내용(text)은 자식이 담당하고 본 escape 는 card shell(bg+border)만 그린다.
   //   projection 행은 자식이 없어 미주입 → 기존 flat-props 렌더(BC).
   const contentHidden = props._hasChildren === true;
-  const fontSize = resolveSpecFontSize(
-    (style?.fontSize as string | number | undefined) ?? size.fontSize,
-    14,
-  );
+  // 2026-07-22 parity sweep: 카드 label/description 은 item fontSize 를 안 쓴다 — react-aria-Text
+  //   기본 16(COLLECTION_TEXT_DEFAULT_FONT_SIZE)으로 산출(아래). item fontSize 는 소비처 0.
   // ADR-148 Phase 4 — slot 구성 소비 (listbox_item 동형: projection 이 GridListItem origin
   //   slot 자식에서 파생해 주입한 props._slots — 존재 gating + style overlay + 스택 순서).
   //   _slots 부재 = legacy 문서/비-projection 경로 → 기존 flat-props 동작(BC).
@@ -401,23 +396,26 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     style?.borderRadius,
     typeof size.borderRadius === "number" ? size.borderRadius : 8,
   );
-  // label↔description 수직 간격 (spec descGap 4 = label baseline 아래 description top).
-  const descGap = 4;
-  // slot 자식 style overlay (fontSize) — 부재 시 기존 기본값 (label=fontSize, desc=fontSize-2).
+  // label↔description 수직 간격 = GridListItem flex `gap: var(--spacing-2xs)` = 2
+  //   (2026-07-22 라이브 실측. 과거 4 는 CSS 와 불일치).
+  const descGap = 2;
+  // slot 자식 style overlay (fontSize) — 부재 시 react-aria-Text 기본 16 (label·description 둘 다,
+  //   GridList slot 은 override 없음). 과거 label=fontSize(item)·desc=fontSize-2 는 실 렌더(둘 다 16,
+  //   라이브 확인)와 어긋나 카드가 origin/CSS 대비 짧고 desc 가 label size 에 결합됐다. 명시 slot 우선.
   const labelFontSize =
     labelSlotStyle?.fontSize != null
       ? resolveSpecFontSize(
           labelSlotStyle.fontSize as string | number,
-          fontSize,
+          COLLECTION_TEXT_DEFAULT_FONT_SIZE,
         )
-      : fontSize;
+      : COLLECTION_TEXT_DEFAULT_FONT_SIZE;
   const descFontSize =
     descriptionSlotStyle?.fontSize != null
       ? resolveSpecFontSize(
           descriptionSlotStyle.fontSize as string | number,
-          fontSize - 2,
+          COLLECTION_TEXT_DEFAULT_FONT_SIZE,
         )
-      : fontSize - 2;
+      : COLLECTION_TEXT_DEFAULT_FONT_SIZE;
   const ff = (style?.fontFamily as string) || fontFamily.sans;
   const textColor =
     (style?.color as string | undefined) ??
@@ -472,13 +470,15 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   pushStackEntry("label");
   pushStackEntry("description");
 
-  // CSS 카드 콘텐츠는 line box 합 (md: label 20 + gap 4 + desc 16 = 40) — fontSize 합산
-  //   (14+4+12=30)은 DOM GridListItem(64) 대비 카드당 -10 drift (2026-07-14 sweep).
-  //   getLabelLineHeight = generated CSS line-height 토큰과 동일 소스.
+  // 카드 콘텐츠 = label line box + gap + description line box. 2026-07-22 parity sweep: label/
+  //   description 은 **Text** leaf 라 line box = 1.5×fs(getTextLineHeight) — GridList slot 은
+  //   `[slot=*]` line-height override 가 없어 기본 Text 1.5 로 렌더(라이브 확인, origin 76). 과거
+  //   getLabelLineHeight(typography 토큰) + base 14/desc 12 는 실 렌더(둘 다 16→24) 대비 카드가
+  //   짧았다(-10). label/description 각자 size 로 1.5×fs 산출.
   const entryLineHeight = (entry: "label" | "description"): number =>
     entry === "label"
-      ? getLabelLineHeight(labelFontSize)
-      : getLabelLineHeight(descFontSize);
+      ? getTextLineHeight(labelFontSize)
+      : getTextLineHeight(descFontSize);
   const contentHeight = stackEntries.reduce(
     (sum, entry, index) =>
       sum + entryLineHeight(entry) + (index > 0 ? descGap : 0),

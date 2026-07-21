@@ -30,7 +30,8 @@ import {
 import {
   resolveListBoxItemMetric,
   resolveGridListSpacingMetric,
-  getLabelLineHeight,
+  getTextLineHeight,
+  COLLECTION_TEXT_DEFAULT_FONT_SIZE,
 } from "@composition/specs";
 
 import { getElementDataBinding } from "../../../../adapters/canonical/compositionExtensionFields";
@@ -173,11 +174,19 @@ function resolveGridListRowStride(
     typeof sampleDescription === "string" &&
     sampleDescription.length > 0 &&
     isSlotEnabled(slotComposition, "description");
-  const descFontSize = metric.fontSize - 2;
+  // 2026-07-22 collection-item parity sweep: origin slot 자식(react-aria-Text) 은 label/description
+  //   둘 다 기본 16(GridList slot line-height override 없음), line box = 1.5×fs(getTextLineHeight) —
+  //   metric.fontSize(14) 아님. resolveListBoxRowHeight 가 slotFontOf 를 읽는 것과 동형. 명시 slot 우선.
+  const slotFontOf = (role: "label" | "description"): number | undefined => {
+    const fs = slotComposition?.slots[role]?.style?.fontSize;
+    return typeof fs === "number" ? fs : undefined;
+  };
+  const labelFs = slotFontOf("label") ?? COLLECTION_TEXT_DEFAULT_FONT_SIZE;
+  const descFs = slotFontOf("description") ?? COLLECTION_TEXT_DEFAULT_FONT_SIZE;
   const cardHeight =
     metric.cardPaddingY * 2 +
-    getLabelLineHeight(metric.fontSize) +
-    (hasDescription ? getLabelLineHeight(descFontSize) + metric.descGap : 0);
+    getTextLineHeight(labelFs) +
+    (hasDescription ? getTextLineHeight(descFs) + metric.descGap : 0);
   return { rowHeight: cardHeight + metric.rowGap, columns: metric.numCols };
 }
 

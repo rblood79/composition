@@ -64,10 +64,11 @@ describe("calculateContentHeight — data-bound GridList _projectedRowsContentHe
     expect(injected).toBeGreaterThan(1000);
   });
 
-  it("_projectedRowsContentHeight 없으면 기존 items 경로 유지 (회귀 — 4-item fallback 292)", () => {
+  it("_projectedRowsContentHeight 없으면 기존 items 경로 유지 (회귀 — 4-item fallback 332)", () => {
     const h = calculateContentHeight(makeGridList({}));
-    // 4 카드(desc) × 64 + 3 gap × 12 = 292 (gridListSpacingHeight baseline 정합).
-    expect(h).toBe(4 * 64 + 3 * 12);
+    // 4 카드(desc) × 74 + 3 gap × 12 = 332 (2026-07-22 parity sweep: 카드 = pad24 + label24 +
+    //   gap2 + desc24 = 74, gridListSpacingHeight baseline 정합).
+    expect(h).toBe(4 * 74 + 3 * 12);
   });
 
   it("명시적 style.height 는 여전히 우선 (§1 우선)", () => {

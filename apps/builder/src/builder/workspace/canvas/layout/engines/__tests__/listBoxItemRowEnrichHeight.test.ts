@@ -45,7 +45,9 @@ function enrichedHeight(node: CanvasLayoutNode): number | undefined {
 
 describe("enrichWithIntrinsicSize — ListBoxItem 행 padding-box 이중 가산 방지 (ADR-157 R1)", () => {
   it("기본 행(explicit padding 없음): metric padding 이 §1.55b-2 에 baked → 이미 정합 (회귀 가드)", () => {
-    // box.padding=0 이라 이중 가산이 애초에 없음 — 기본 origin 은 fix 전후 동일(50/28).
+    // box.padding=0 이라 이중 가산이 애초에 없음 — 기본 origin 은 fix 전후 동일(49/29).
+    // 2026-07-21 ListBox parity: line box = getTextLineHeight(1.5×fs) — label 14→21 / desc 12→18,
+    //   pad 4*2. 2줄 8+21+2+18=49, 1줄 8+21=29 (과거 50/28 은 getLabelLineHeight stale 값).
     expect(
       enrichedHeight(
         makeItem("ListBoxItem", {
@@ -53,13 +55,13 @@ describe("enrichWithIntrinsicSize — ListBoxItem 행 padding-box 이중 가산 
           description: "mammal",
         }),
       ),
-    ).toBe(50);
+    ).toBe(49);
     expect(
       enrichedHeight(makeItem("ListBoxItem", { children: "Aardvark" })),
-    ).toBe(28);
+    ).toBe(29);
   });
 
-  it("explicit padding 4/4 행(커스텀/편집 origin): enrich 가 padding 재가산 안 함 (58/36 아니라 50/28)", () => {
+  it("explicit padding 4/4 행(커스텀/편집 origin): enrich 가 padding 재가산 안 함 (58/38 아니라 49/29)", () => {
     const style = { paddingTop: 4, paddingBottom: 4 };
     expect(
       enrichedHeight(
@@ -69,10 +71,10 @@ describe("enrichWithIntrinsicSize — ListBoxItem 행 padding-box 이중 가산 
           style,
         ),
       ),
-    ).toBe(50);
+    ).toBe(49);
     expect(
       enrichedHeight(makeItem("ListBoxItem", { children: "Aardvark" }, style)),
-    ).toBe(28);
+    ).toBe(29);
   });
 
   it("explicit padding 행: enrich 높이 == calculateContentHeight(§1.55b-2 padding-box)", () => {

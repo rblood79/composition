@@ -23,12 +23,13 @@ describe("resolveGridListSpacingMetric — defaults", () => {
     expect(m.borderWidth).toBe(0);
   });
 
-  it("fontSize 14 → resolveGridListItemMetric medium 분기 (paddingX 16, paddingY 12, radius 8, descGap 4)", () => {
+  it("fontSize 14 → resolveGridListItemMetric medium 분기 (paddingX 16, paddingY 12, radius 8, descGap 2)", () => {
     const m = resolveGridListSpacingMetric({});
     expect(m.cardPaddingX).toBe(16);
     expect(m.cardPaddingY).toBe(12);
     expect(m.cardBorderRadius).toBe(8);
-    expect(m.descGap).toBe(4);
+    // descGap = --spacing-2xs = 2 (2026-07-22 parity sweep, 과거 4 는 CSS gap 2 와 불일치)
+    expect(m.descGap).toBe(2);
   });
 });
 
@@ -67,7 +68,8 @@ describe("resolveGridListSpacingMetric — style override", () => {
     expect(m.cardPaddingX).toBe(20);
     expect(m.cardPaddingY).toBe(16);
     expect(m.cardBorderRadius).toBe(12);
-    expect(m.descGap).toBe(6);
+    // descGap 은 size 무관 2 (--spacing-2xs 고정) — large 카드도 2
+    expect(m.descGap).toBe(2);
   });
 
   it("style.borderWidth 명시 → 그대로 반영", () => {
@@ -123,7 +125,8 @@ describe("resolveGridListSpacingMetric — defaults override", () => {
     expect(m.cardPaddingX).toBe(12);
     expect(m.cardPaddingY).toBe(10);
     expect(m.cardBorderRadius).toBe(8);
-    expect(m.descGap).toBe(4);
+    // descGap 은 size 무관 2 (--spacing-2xs 고정)
+    expect(m.descGap).toBe(2);
   });
 });
 

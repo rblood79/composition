@@ -94,13 +94,25 @@ export function resolveListBoxItemRowHeight(input: {
 }
 
 /**
+ * collection item(GridListItem/ListBoxItem)의 label/description slot 자식(react-aria-Text)이
+ * 명시 size 없이 authoring 될 때의 렌더 font-size(px). react-aria-Text 는 부모 font-size 를
+ * 상속하지 않고 이 값으로 고정(라이브 실측: 14px 부모 안에서도 16). GridList 는 `[slot=*]`
+ * line-height/font-size override 가 없어 label·description 둘 다 이 값(→ line box 24). ListBox
+ * 는 description 만 `--lb-desc-size`(--text-xs=12) override 로 12. 명시 slot size 가 있으면 우선.
+ */
+export const COLLECTION_TEXT_DEFAULT_FONT_SIZE = 16;
+
+/**
  * ADR-090 Phase 2: GridListItem card metric 단일 소스 resolver.
  *
  * GridListItem escape(gridlist_card) / 부모 GridList spacing metric(resolveGridListSpacingMetric)이
- * 카드 시각 생성 시 본 resolver 를 소비. fontSize-based 분기(>14: 20/16/12/6, >12: 16/12/8/4,
- * ≤12: 12/10/8/4)를 내부 캡슐화.
+ * 카드 시각 생성 시 본 resolver 를 소비. fontSize-based 분기(>14: 20/16/12, >12: 16/12/8,
+ * ≤12: 12/10/8)를 내부 캡슐화.
  *
- * 기본값(fontSize=14 기준: paddingX 16 / paddingY 12 / borderRadius 8 / descGap 4)은
+ * descGap = label↔description 수직 간격 = GridListItem flex `gap: var(--spacing-2xs)` = **2**
+ * (2026-07-22 라이브 실측). 과거 4/6 은 CSS 와 불일치(카드 +2 drift)라 전 size 2 로 통일 —
+ * --spacing-2xs 는 size 무관 고정값이므로 분기하지 않는다.
+ * 기본값(fontSize=14 기준: paddingX 16 / paddingY 12 / borderRadius 8)은
  * componentRulesTable.GridListItem.sizes.md 와 동일.
  */
 export function resolveGridListItemMetric(fontSize: number): {
@@ -109,30 +121,30 @@ export function resolveGridListItemMetric(fontSize: number): {
   cardBorderRadius: number;
   descGap: number;
 } {
-  // fontSize>14: large 카드 (20/16/12/6)
+  // fontSize>14: large 카드 (20/16/12)
   if (fontSize > 14) {
     return {
       cardPaddingX: 20,
       cardPaddingY: 16,
       cardBorderRadius: 12,
-      descGap: 6,
+      descGap: 2,
     };
   }
-  // fontSize>12: medium 카드 (16/12/8/4) — rule sizes.md 기본값 매칭
+  // fontSize>12: medium 카드 (16/12/8) — rule sizes.md 기본값 매칭
   if (fontSize > 12) {
     return {
       cardPaddingX: 16,
       cardPaddingY: 12,
       cardBorderRadius: 8,
-      descGap: 4,
+      descGap: 2,
     };
   }
-  // fontSize≤12: small 카드 (12/10/8/4)
+  // fontSize≤12: small 카드 (12/10/8)
   return {
     cardPaddingX: 12,
     cardPaddingY: 10,
     cardBorderRadius: 8,
-    descGap: 4,
+    descGap: 2,
   };
 }
 
