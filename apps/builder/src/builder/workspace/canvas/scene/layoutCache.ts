@@ -181,6 +181,15 @@ const LAYOUT_PROP_KEYS = [
   //   본 키가 없으면 owner 레이아웃이 캐시 히트로 stale(이전 행 수 높이) 된다 — height/isExpanded
   //   선례 동형(§1.55b 가 소비, layoutInvalidation 은 scene 파생이라 불필요).
   "_projectedRowsContentHeight",
+  // collection slot 구성(_slots) — projection 이 origin/anchor 의 slot 자식 style(특히 label/
+  //   description fontSize)을 fold 해 ListBox owner(§1.55b) + ListBoxItem/GridListItem row
+  //   (§1.55b-2) scene props 에 주입한다. 행 높이가 이 slot fontSize 로 산출되는데(utils.ts
+  //   resolveListBoxItemRowHeightFromStyle), 본 키가 없으면 origin label/description **size 편집**
+  //   시 fontSize 는 escape 로 live 렌더되지만 행 높이 시그니처는 불변 → 캐시 히트로 높이 stale
+  //   (새로고침 후에만 반영, 2026-07-21 사용자 보고). _projectedRowsContentHeight 선례 동형 —
+  //   layer A(layoutVersion)는 origin 자식 size/style 편집이 이미 bump, _slots 는 scene 파생이라
+  //   layer B(본 시그니처)만 필요. 값이 객체라 serializeLayoutRelevantValue 가 JSON 직렬화(fontSize 포함).
+  "_slots",
 ];
 
 function serializeLayoutRelevantValue(value: unknown): string {

@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { CanvasSceneNode } from "./canvasSceneNode";
-import { buildPageChildrenMap } from "./layoutCache";
+import type { CanvasLayoutNode } from "../layout/layoutNode";
+import { buildPageChildrenMap, createPageLayoutSignature } from "./layoutCache";
 
 describe("layoutCache filtered children republish contract", () => {
   it("republishes cached filtered and synthetic children on page layout cache hit", async () => {
@@ -79,5 +80,35 @@ describe("layoutCache filtered children republish contract", () => {
       first.id,
       second.id,
     ]);
+  });
+
+  // 2026-07-21 사용자 보고: origin ListBoxItem label/description size 편집 시 instance 행
+  //   fontSize 는 escape 로 live 렌더되지만 텍스트 영역 **높이**는 새로고침 후에만 반영됐다.
+  //   근본 원인 = projection 이 주입한 `props._slots`(slot fontSize 보유)로 행 높이를 산출하는데
+  //   (utils.ts resolveListBoxItemRowHeightFromStyle), `_slots` 가 LAYOUT_PROP_KEYS 에 없어 행
+  //   레이아웃 시그니처가 불변 → 캐시 히트로 높이 stale. `_slots` 추가로 시그니처가 fontSize 를
+  //   반영해 캐시 무효화되는지 회귀 가드 (fix 전엔 두 시그니처 동일 → FAIL).
+  it("invalidates layout signature when projected _slots label fontSize changes", () => {
+    const makeRow = (labelFontSize: number): CanvasLayoutNode =>
+      ({
+        id: "listbox__row__a",
+        type: "ListBoxItem",
+        page_id: "page-1",
+        parent_id: "rows",
+        props: {
+          children: "Item A",
+          _slots: {
+            order: ["label"],
+            slots: {
+              label: { role: "label", style: { fontSize: labelFontSize } },
+            },
+          },
+          style: { width: "100%" },
+        },
+      }) as unknown as CanvasLayoutNode;
+
+    const sigSmall = createPageLayoutSignature(null, [makeRow(14)]);
+    const sigLarge = createPageLayoutSignature(null, [makeRow(30)]);
+    expect(sigSmall).not.toBe(sigLarge);
   });
 });
