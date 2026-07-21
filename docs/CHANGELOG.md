@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [border(색/스타일/너비)를 breakpoint 무관 전역 속성으로 통일 — 배경 fills 동형] - 2026-07-22
+
+### Bug Fixes
+
+- **mobile breakpoint 에서 border 를 편집해도 CSS 에 정상 적용되지 않고, desktop 편집만 모든 breakpoint 에 적용되던 비대칭**:
+  - **Why**: border 색/스타일/너비는 `props.style` 축이라 ADR-154 responsive 시스템에 들어가 비-desktop 편집이 `responsive.styles` override 로 저장되는데, 응답형 @media border CSS 렌더가 불안정했다. 배경(fills)은 `node.fills[]` 전역 채널이라 이 문제가 없다 — 사용자 요청대로 border 를 배경처럼 전역 통일.
+  - 수정: `borderColor/borderStyle/borderWidth`(+ 4-way longhand)를 `GLOBAL_STYLE_PROPS` 로 정의해 어느 breakpoint 에서 편집해도 base `props.style` 에 저장(=@media 없는 기본 CSS 로 전 breakpoint 적용). write↔dirty↔reset 5경로 일관 처리 — write 3함수가 전역 속성을 base 로 라우팅 + stale responsive override 정리, `computeDirtyStyleProps`/`resetStyles` 가 non-desktop 에서도 base 비교로 dirty/reset(모바일 reset 버튼 활성). `borderRadius`(형태)는 제외.
+  - 위치: `apps/builder/src/builder/stores/utils/globalStyleProps.ts` · `apps/builder/src/builder/stores/inspectorActions.ts` · `apps/builder/src/builder/panels/styles/hooks/useResetStyles.ts`
+
+## [Components 페이지 스크롤 표시·편집 시 요소 순서 유지·Text 배경 정렬 수정] - 2026-07-21
+
+### Bug Fixes
+
+- **Components 페이지 콘텐츠가 페이지 높이를 넘어도 스크롤바가 안 나오던 문제**:
+  - **Why**: 스크롤 발화(fullTreeLayout GAP4 maxScroll) / 렌더(buildSpecNodeData·buildBoxNodeData scrollbar) / 휠(useScrollWheelInteraction) 4 소비자가 모두 raw `element.props.style.overflow` 를 읽는데, 시스템 페이지 body 가 `props:{}` 로 생성돼 overflow 미설정 → maxScrollTop 이 0 에 머물러 스크롤바 미표시. 일반 페이지는 factory `createDefaultBodyProps` 로 이미 real overflow:auto 를 갖는 비대칭.
+  - 수정: catalog body `containerStyles.overflow:auto`(패널 기본값) + 시스템 페이지 body 에 실제 `props.style.overflow:auto` 부여(신규 생성 + 기존 프로젝트 `repairComponentsPageNode` 1회 보강, 명시값 보존).
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` · `apps/builder/src/builder/pages/systemComponentsPage.ts`
+- **요소의 값/스타일을 편집하면 canonical `children[]` 에서 형제 중 맨 아래로 재배열되던 버그 (Components 페이지 1·2차 요소)**:
+  - **Why**: `upsertElementIntoDocument` 는 `shouldPreserveExistingCanonicalPosition` 이 true 여야 제자리 replace(순서 보존), false 면 remove+append(맨 뒤). ① reusable origin 이 `componentRole` 미러 없이 `reusable:true` 만 있으면 `legacyPositionMatches` 가 저장 role(undefined) vs 재계산 role("master") 불일치로 false. ② seed/template 로 position metadata 없이 저장된 자식은 `previous=null` 로 false.
+  - 수정: previousNode 의 reusable/ref 로 role·masterRef 를 대칭 재계산 + metadata 부재 시 트리 구조(직속 자식 여부)로 위치 판정.
+  - 위치: `apps/builder/src/adapters/canonical/canonicalMutations.ts`
+- **Text 컴포넌트에 배경색을 추가하면 텍스트가 가운데 정렬되던 버그**:
+  - **Why**: `buildCatalogShapes` 의 `isInlineText` box 판정이 사용자 `style.backgroundColor`(fills 채널)를 opaque box 신호로 써서, Text 에 배경을 추가하면 `hasOpaqueBg=true → isInlineText=false` → center/middle 오정렬. DOM `<span>` 에 background 를 줘도 inline flow 라 left/top 을 유지하므로 Skia 도 동일해야 D3 parity.
+  - 수정: `isInlineText` 판정을 사용자 배경색이 아니라 rule 변형 fill(stateBg opaque)·border 기준으로 변경 — Text leaf 는 배경 유무 무관 left/top 유지, box archetype(Button/Badge)은 center/middle 보존.
+  - 위치: `packages/specs/src/renderers/buildCatalogShapes.ts`
+
 ## [ListBoxItem 3경로(origin/instance/CSS) 행 높이·label fontWeight 정합 — Text line box + description decouple + render-time 600 주입] - 2026-07-21
 
 ### Bug Fixes
