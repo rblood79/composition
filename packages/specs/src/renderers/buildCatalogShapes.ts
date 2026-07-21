@@ -343,10 +343,17 @@ export function buildCatalogShapes(
     //   align center/baseline middle drift(spec render.shapes 는 left/top|middle). bgColor 가
     //   transparent 토큰이거나 fill.alpha===0 이면 시각상 배경 없음 → inline 으로 간주.
     //   box 그리기 자체(L141 hasVisibleBg)는 미변경 → transparent 레이아웃 box(컨테이너) 회귀 0.
+    // box archetype 판정은 **rule 기반** 배경(stateBg)/테두리로만 한다 — 사용자가 inline text
+    //   leaf(Text/Heading/Label 등, size.height===0)에 추가한 배경(fills → style.backgroundColor)은
+    //   box archetype 신호가 아니다. DOM `<span>` 에 background 를 줘도 inline flow 라 text-align
+    //   left / vertical top 을 유지하므로 Skia 도 동일해야 parity(2026-07-21 사용자 보고: Text 에
+    //   배경색 추가 시 텍스트가 center/middle 로 오정렬). box archetype(Button/Badge 등)은 rule
+    //   변형 fill 이 opaque(stateBg ≠ transparent)이거나 border 를 가져 그대로 center/middle 로
+    //   가고, height>0 box 는 아래 size.height 조건이 이미 center 로 보낸다. 이전 `bgColor` 기반
+    //   판정은 bgColor 가 style.backgroundColor(user)를 흡수(L182)해 text leaf 를 box 로 오판했다.
     const hasOpaqueBg =
-      style?.backgroundColor != null ||
-      (bgColor != null &&
-        bgColor !== "{color.transparent}" &&
+      (stateBg != null &&
+        stateBg !== "{color.transparent}" &&
         (fill?.alpha ?? 1) !== 0) ||
       !!borderColor;
     const isInlineText = size.height === 0 && !hasOpaqueBg;
