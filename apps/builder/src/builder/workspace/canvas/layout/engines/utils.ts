@@ -360,7 +360,11 @@ export function resolveListBoxItemRowHeightFromStyle(
 ): number {
   const fontSize =
     slotFontSizes?.label ?? parseNumericValue(style?.fontSize) ?? 14;
-  const descFontSize = slotFontSizes?.description ?? Math.max(11, fontSize - 1);
+  // description 은 label size 와 무관한 자체 기본(--text-xs = 12) — CSS [slot="description"]
+  //   { font-size: var(--lb-desc-size, var(--text-xs)) } 정합. 과거 labelFs-1 fallback 은 label 을
+  //   3xl(30)로 키우면 description 을 29 로 부풀려(행 +28px) instance 가 origin/CSS 보다 훨씬 커졌다
+  //   (2026-07-21 사용자 보고 — Skia home instance 만 높이 다름의 주원인). 명시 slot size 우선.
+  const descFontSize = slotFontSizes?.description ?? 12;
   const m = resolveListBoxItemMetric(fontSize);
   return resolveListBoxItemRowHeight({
     // Text leaf line box(1.5×fs) — origin 실 Text 자식·CSS 와 동일 모델 (getLabelLineHeight 는

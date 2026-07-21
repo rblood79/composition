@@ -667,10 +667,10 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
           fontSize,
         )
       : fontSize;
-  const descriptionFontSize = parsePxValue(
-    descriptionSlotStyle?.fontSize,
-    Math.max(11, fontSize - 1),
-  );
+  // description 은 label size 와 무관한 자체 기본(--text-xs = 12) — CSS [slot="description"] 정합.
+  //   과거 fontSize-1 fallback 은 label 3xl 시 description 을 29 로 부풀려 instance 행이 origin/CSS
+  //   보다 훨씬 커졌다(2026-07-21 사용자 보고). 명시 slot size 우선.
+  const descriptionFontSize = parsePxValue(descriptionSlotStyle?.fontSize, 12);
   // lineHeight: getTextLineHeight(= 1.5×fs) — label/description 은 **Text** leaf 라 origin(실 Text
   //   자식, leaf Text 레이아웃 1.5×fs)·CSS(line-height 1.5)와 동일 모델이어야 instance 행 높이가
   //   origin/CSS 와 일치한다. 과거 getLabelLineHeight(typography 토큰: 3xl→36)는 standalone Label

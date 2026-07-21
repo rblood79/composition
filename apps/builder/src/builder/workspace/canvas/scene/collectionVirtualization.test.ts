@@ -283,9 +283,9 @@ describe("resolveVirtualizedCollectionWindows — 가상화 대상 판정 + wind
     expect(entry?.window).toEqual({ startIndex: 0, endIndex: 20 });
   });
 
-  it("description 있는 행은 taller rowHeight(itemHeightWithDescription 51) + 그에 맞는 window", () => {
-    // A(정확 rowHeight): description 행은 label+desc 2줄이라 nominal 29 이 아닌 51
-    //   (pad4*2 + label 21(1.5×14) + gap2 + desc 20(1.5×13)).
+  it("description 있는 행은 taller rowHeight(49) + 그에 맞는 window", () => {
+    // A(정확 rowHeight): description 행은 label+desc 2줄이라 nominal 29 이 아닌 49
+    //   (pad4*2 + label 21(1.5×14) + gap2 + desc 18(1.5×12, --text-xs 기본 — label 무관 decouple)).
     const map = resolveVirtualizedCollectionWindows({
       doc: listBoxDoc({
         itemCount: 1000,
@@ -296,9 +296,9 @@ describe("resolveVirtualizedCollectionWindows — 가상화 대상 판정 + wind
       scrollTops: new Map(),
     });
     const entry = map.get("listbox-1");
-    expect(entry?.rowHeight).toBe(51); // itemHeightWithDescription (fontSize14)
-    // viewport 400 / 51 = 8 visible, overscan 6 → end 14.
-    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 14 });
+    expect(entry?.rowHeight).toBe(49); // label 21(1.5×14) + desc 18(1.5×12) + pad 8 + gap 2
+    // viewport 400 / 49 = 9 visible, overscan 6 → end 15.
+    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 15 });
   });
 
   it("description 없는 기본 행은 rowHeight 29 (itemHeight)", () => {
