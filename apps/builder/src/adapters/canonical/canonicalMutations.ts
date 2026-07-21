@@ -1085,7 +1085,7 @@ function upsertElementIntoDocument(
   const previousNode = findNodeById(doc.children, element.id);
   if (
     previousNode &&
-    shouldPreserveExistingCanonicalPosition(previousNode, element)
+    shouldPreserveExistingCanonicalPosition(doc.children, previousNode, element)
   ) {
     const node = legacyElementToCanonicalNode(element, doc, previousNode);
     const replaced = replaceNodeById(doc.children, element.id, node);
@@ -1200,11 +1200,89 @@ function hasIncomingLegacyPositionMetadata(
   );
 }
 
+// 이전 canonical 노드의 role 을 incoming(`getEffectiveLegacyPositionRole`)과 **대칭으로** 재계산.
+//   저장된 sourceComponentRole 미러가 없어도 노드 자체의 `reusable`/`ref` 로 유도한다.
+//   **Why**: reusable origin 이 `reusable:true` 만 있고 componentRole 미러가 없으면 저장
+//   sourceComponentRole=undefined 인데 incoming 은 reusable→"master" 로 유도 →
+//   `undefined !== "master"` 위치 불일치 → 매 prop 편집마다 remove+append(형제 맨 뒤) 재배열
+//   (2026-07-21 사용자 보고, Components 페이지 1차 요소). prop 편집은 reusable/ref 를 바꾸지
+//   않으므로 양쪽을 같은 방식으로 유도하면 정확히 일치한다.
+function getCanonicalNodeEffectiveRole(
+  node: CanonicalNode,
+  storedRole: unknown,
+): "master" | "instance" | undefined {
+  if (storedRole === "master" || storedRole === "instance") {
+    return storedRole;
+  }
+  if ((node as { reusable?: boolean }).reusable === true) {
+    return "master";
+  }
+  const ref = (node as { ref?: unknown }).ref;
+  return typeof ref === "string" && ref.length > 0 ? "instance" : undefined;
+}
+
+function getCanonicalNodeEffectiveMasterRef(
+  node: CanonicalNode,
+  storedRole: unknown,
+  storedMasterRef: unknown,
+): string | undefined {
+  if (getCanonicalNodeEffectiveRole(node, storedRole) !== "instance") {
+    return undefined;
+  }
+  if (typeof storedMasterRef === "string" && storedMasterRef.length > 0) {
+    return storedMasterRef;
+  }
+  const ref = (node as { ref?: unknown }).ref;
+  return typeof ref === "string" && ref.length > 0 ? ref : undefined;
+}
+
+// previousNode 가 저장 미러에 부모 위치를 기록해 두었는지 (legacyPositionMatches 가 parentId
+//   비교로 위치를 판정할 수 있는지). 미기록이면 트리 구조로 대체 판정한다.
+function hasStoredParentPosition(previousNode: CanonicalNode): boolean {
+  const previous = readLegacyElementPositionMetadata(previousNode.metadata);
+  return previous != null && previous.parentId != null;
+}
+
+// nodes 트리에서 parentId 노드의 **직속 자식**(ref descendants 포함)으로 childId 가 존재하는지.
+function isDirectCanonicalChildOfParent(
+  nodes: CanonicalNode[],
+  parentId: string,
+  childId: string,
+): boolean {
+  const parent = findNodeById(nodes, parentId);
+  if (!parent) return false;
+  if ((parent.children ?? []).some((child) => child.id === childId)) {
+    return true;
+  }
+  if (parent.type === "ref") {
+    for (const childArray of getDescendantChildrenArrays(parent as RefNode)) {
+      if (childArray.some((child) => child.id === childId)) return true;
+    }
+  }
+  return false;
+}
+
 function shouldPreserveExistingCanonicalPosition(
+  nodes: CanonicalNode[],
   previousNode: CanonicalNode,
   element: Element,
 ): boolean {
-  return legacyPositionMatches(previousNode, element);
+  if (legacyPositionMatches(previousNode, element)) return true;
+  // 저장 미러에 부모 위치가 없어 legacyPositionMatches 가 위치를 판정 못 하는 노드
+  //   (seed/template 로 metadata 없이 저장된 reusable origin 자식 등)는 **트리 구조**로 판정:
+  //   element 가 이미 자신의 parent_id 직속 자식이면 위치 미변경 → 제자리 보존(재배열 방지).
+  //   부모가 실제 바뀐 move 는 새 parent_id 아래 아직 없으므로 false → 정상 relocate.
+  //   **Why**: metadata 부재 시 `if (!previous) return false` 가 매 prop 편집을 remove+append
+  //   (형제 맨 뒤) 로 처리하던 2차 요소 재배열 버그 (2026-07-21 사용자 보고, Components 페이지).
+  //   metadata 에 parentId 가 있는 노드는 기존 비교 경로 유지(move 판정 정밀도 보존).
+  if (
+    element.parent_id != null &&
+    !hasStoredParentPosition(previousNode) &&
+    isDirectCanonicalChildOfParent(nodes, element.parent_id, element.id)
+  ) {
+    return true;
+  }
+  return false;
 }
 
 function legacyPositionMatches(
@@ -1240,13 +1318,24 @@ function legacyPositionMatches(
     element,
     legacy,
   );
+  // role/masterRef 는 저장 미러 원값이 아니라 previousNode 의 reusable/ref 로 재계산해
+  //   incoming 유도값과 대칭 비교 (미러 부재 reusable origin 의 위치 오판 차단).
+  const previousRole = getCanonicalNodeEffectiveRole(
+    previousNode,
+    previous.role,
+  );
+  const previousMasterRef = getCanonicalNodeEffectiveMasterRef(
+    previousNode,
+    previous.role,
+    previous.masterRef,
+  );
   return (
     (!hasPositionMetadata ||
       sameLegacyValue(previous.parentId, element.parent_id)) &&
     (!hasPositionMetadata ||
       sameLegacyValue(previous.slotName, legacy.slot_name)) &&
-    sameLegacyValue(previous.role, effectiveRole) &&
-    sameLegacyValue(previous.masterRef, effectiveMasterRef) &&
+    sameLegacyValue(previousRole, effectiveRole) &&
+    sameLegacyValue(previousMasterRef, effectiveMasterRef) &&
     sameLegacyValue(previous.elementType, element.type)
   );
 }
