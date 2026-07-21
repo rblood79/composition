@@ -6090,9 +6090,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.xs}",
         // height 0 = content-fit (행 시각 = label(+description) + padding).
         height: 0,
-        // virtual/short 콘텐츠 시 축소 하한 (spec.sizes.md.minHeight 20 — line-box 최소).
-        //   generate-css virtual 이 `min-height: 20px` emit (ADR-912 collection item leaf cutover).
-        minHeight: 20,
+        // minHeight 미정의 (2026-07-22): CSS `min-height: 20px` 는 flex column collection item 의
+        //   자동 min-content(= min-height:auto) 보호를 덮어써, 컨테이너 고정 높이일 때 각 item 이 내용
+        //   (label+description) 아래로 축소·겹치고 scrollHeight 가 clientHeight 를 못 넘겨 스크롤이 안 생김.
+        //   Skia resolveListBoxItemRowHeight 는 element style.minHeight ?? 20 을 읽어(catalog 미참조)
+        //   무회귀. min-content(≥ line-height 20)가 이미 하한 역할이라 명시 floor 불필요.
         // label 두께 (spec.sizes.md.fontWeight 600 — semibold). generate-css virtual 이
         //   `font-weight: 600` emit (기존 generated childSpec block 동형 복원). 수동 ListBox.css
         //   `[slot="label"] { font-weight: 600 }` 와 중복이나 description slot 상속분까지 보장.
