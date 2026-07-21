@@ -41,6 +41,7 @@ import {
   buildDateInputDisplayText,
   resolveSpecFontSize,
   getLabelLineHeight,
+  getTextLineHeight,
   // ADR-151 후속 (2026-07-17): IllustratedMessage 높이 분기 — escape(skiaPrimitives)/DOM 과
   //   동일 metric SSOT (Layer D 동일 resolver 원칙).
   resolveIllustratedMessageMetric,
@@ -362,8 +363,10 @@ export function resolveListBoxItemRowHeightFromStyle(
   const descFontSize = slotFontSizes?.description ?? Math.max(11, fontSize - 1);
   const m = resolveListBoxItemMetric(fontSize);
   return resolveListBoxItemRowHeight({
-    lineHeight: getLabelLineHeight(fontSize),
-    descriptionLineHeight: getLabelLineHeight(descFontSize),
+    // Text leaf line box(1.5×fs) — origin 실 Text 자식·CSS 와 동일 모델 (getLabelLineHeight 는
+    //   standalone Label 용 typography 토큰이라 collection Text label 에 쓰면 3경로 불일치).
+    lineHeight: getTextLineHeight(fontSize),
+    descriptionLineHeight: getTextLineHeight(descFontSize),
     rowGap:
       parseNumericValue(style?.rowGap ?? style?.columnGap ?? style?.gap) ??
       m.gap,

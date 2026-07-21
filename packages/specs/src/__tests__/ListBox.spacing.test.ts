@@ -26,9 +26,12 @@ describe("resolveListBoxSpacingMetric — defaults", () => {
     expect(m.borderWidth).toBe(1);
   });
 
-  it("fontSize 14 → itemMetric sm 분기 (paddingY=4, lineHeight=20 → itemHeight=28)", () => {
+  it("fontSize 14 → itemMetric sm 분기 (paddingY=4, Text line box 1.5×14=21 → itemHeight=29)", () => {
     const m = resolveListBoxSpacingMetric({});
-    expect(m.itemHeight).toBe(28); // ListBoxItemSpec.sizes.md.paddingY(4) * 2 + lineHeight(20)
+    // 2026-07-21: label/description Text leaf line box = getTextLineHeight(1.5×fs) →
+    //   14 → 21(origin 실 Text 자식·CSS line-height 1.5 동일). 과거 getLabelLineHeight(14)=20
+    //   (typography 토큰)으로 28 이던 것을 origin/CSS 정합상 29 로 정정.
+    expect(m.itemHeight).toBe(29); // paddingY(4) * 2 + lineHeight(21)
     expect(m.itemPaddingX).toBe(12); // ListBoxItemSpec.sizes.md.paddingX
   });
 
@@ -124,9 +127,9 @@ describe("resolveListBoxSpacingMetric — padding style override", () => {
 });
 
 describe("resolveListBoxSpacingMetric — fontSize 분기", () => {
-  it("fontSize 12 → itemMetric xs (lineHeight 16, itemHeight 24)", () => {
+  it("fontSize 12 → Text line box 1.5×12=18, itemHeight 26", () => {
     const m = resolveListBoxSpacingMetric({ defaultFontSize: 12 });
-    expect(m.itemHeight).toBe(24); // sz.paddingY(4) * 2 + lineHeight(16)
+    expect(m.itemHeight).toBe(26); // paddingY(4) * 2 + lineHeight(18=1.5×12)
   });
 
   it("fontSize 16 → itemMetric base (lineHeight 24, itemHeight 32)", () => {
@@ -134,9 +137,10 @@ describe("resolveListBoxSpacingMetric — fontSize 분기", () => {
     expect(m.itemHeight).toBe(32);
   });
 
-  it("fontSize 18 → itemMetric lg (lineHeight 28, itemHeight 36)", () => {
+  it("fontSize 18 → Text line box 1.5×18=27, itemHeight 35", () => {
     const m = resolveListBoxSpacingMetric({ defaultFontSize: 18 });
-    expect(m.itemHeight).toBe(36);
+    // 과거 getLabelLineHeight(18)=28(text-lg 토큰)으로 36 이던 것을 origin/CSS(1.5×18=27) 정합상 35.
+    expect(m.itemHeight).toBe(35);
   });
 
   it("style.fontSize 18 → fontSize 18 + 비례 header metric", () => {
@@ -150,10 +154,11 @@ describe("resolveListBoxSpacingMetric — fontSize 분기", () => {
 describe("resolveListBoxSpacingMetric — description-aware item height (ADR-147)", () => {
   // render.shapes description 행 높이 = paddingY*2 + lineHeight + gap + lineHeight.
   //   ListBox 컨테이너가 description 항목을 잘리지 않게 수용하려면 동일 공식 필요.
-  it("fontSize 14 → itemHeightWithDescription = 4*2 + 20 + 2 + 20 = 50", () => {
+  it("fontSize 14 → itemHeightWithDescription = 4*2 + 21 + 2 + 21 = 52", () => {
     const m = resolveListBoxSpacingMetric({});
-    expect(m.itemHeightWithDescription).toBe(50);
-    expect(m.itemHeight).toBe(28); // label-only (회귀 확인)
+    // resolveListBoxItemMetric 은 label/description 동일 fontSize(14→21) → 8+21+2+21=52.
+    expect(m.itemHeightWithDescription).toBe(52);
+    expect(m.itemHeight).toBe(29); // label-only (회귀 확인)
   });
 
   it("fontSize 16 → itemHeightWithDescription = 4*2 + 24 + 2 + 24 = 58", () => {

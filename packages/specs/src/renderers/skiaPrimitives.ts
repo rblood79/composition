@@ -16,7 +16,11 @@
  */
 
 import { parseBorderWidth, parsePxValue, parseShadow } from "../primitives";
-import { fontFamily, getLabelLineHeight } from "../primitives/typography";
+import {
+  fontFamily,
+  getLabelLineHeight,
+  getTextLineHeight,
+} from "../primitives/typography";
 import {
   buildDateInputDisplayText,
   buildDatePickerShapes,
@@ -667,12 +671,13 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     descriptionSlotStyle?.fontSize,
     Math.max(11, fontSize - 1),
   );
-  // lineHeight: getLabelLineHeight 단일 소스 (standalone Text/Label = LABEL_SIZE_STYLE 동형,
-  //   gridlist_card escape 동일 패턴). 과거 계단 매핑(>16 → 28 cap)은 label size 를 xl/2xl/3xl 로
-  //   키워도 행 높이가 안 커졌다(2026-07-21 사용자 보고). 표준 사이즈(≤18)는 값 동일, 2xl+ 만
-  //   size 비례로 커진다. label/description 각자 size 로 line box 산출 → 행 높이/스택 정합.
-  const labelLineHeight = getLabelLineHeight(labelFontSize);
-  const descriptionLineHeight = getLabelLineHeight(descriptionFontSize);
+  // lineHeight: getTextLineHeight(= 1.5×fs) — label/description 은 **Text** leaf 라 origin(실 Text
+  //   자식, leaf Text 레이아웃 1.5×fs)·CSS(line-height 1.5)와 동일 모델이어야 instance 행 높이가
+  //   origin/CSS 와 일치한다. 과거 getLabelLineHeight(typography 토큰: 3xl→36)는 standalone Label
+  //   (LABEL_SIZE_STYLE)용이라 collection Text label 에 쓰면 instance 만 짧게(3xl 36 vs origin/CSS
+  //   45) 렌더돼 3경로 불일치했다(2026-07-21 사용자 보고). label/description 각자 size 로 line box.
+  const labelLineHeight = getTextLineHeight(labelFontSize);
+  const descriptionLineHeight = getTextLineHeight(descriptionFontSize);
   const entryLineHeight = (entry: "label" | "description"): number =>
     entry === "label" ? labelLineHeight : descriptionLineHeight;
 

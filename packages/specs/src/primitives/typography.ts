@@ -101,5 +101,20 @@ export function getLabelLineHeight(fontSize: number): number {
   return FONT_SIZE_TO_LINE_HEIGHT[fontSize] ?? Math.ceil(fontSize * 1.5);
 }
 
+/**
+ * Text leaf line box 높이 = `1.5 × fontSize` (CSS line-height 1.5 · DOM 상속 · leaf Text 레이아웃
+ * 공식 utils.ts 동일). collection item(ListBoxItem 등)의 label/description 은 **Text** leaf 로
+ * authoring 되는데 Text 는 catalog per-size lineHeight 가 없어 이 1.5 모델을 따른다.
+ *
+ * **`getLabelLineHeight` 와 구분 (2026-07-21 사용자 보고)**: `getLabelLineHeight` 는 typography
+ * 토큰 룩업(20→28 / 30→36 등, standalone Label = LABEL_SIZE_STYLE 용)이라 collection **Text**
+ * label 에 쓰면 origin(실 Text 자식, 1.5)·CSS(line-height 1.5)와 어긋난다 — instance escape 만
+ * 짧게(3xl 36 vs origin/CSS 45) 렌더돼 행 높이가 3경로 불일치. collection item Text line box 는
+ * 반드시 이 헬퍼로 산출한다.
+ */
+export function getTextLineHeight(fontSize: number): number {
+  return Math.ceil(fontSize * 1.5);
+}
+
 // ADR-058 Phase 4: `getTextPresetFontSize` 제거 — `buildTextNodeData` 폐지로 호출처 0건.
 // Text/Heading/Paragraph/Kbd/Code는 각 spec의 `sizes` 정의를 직접 소비 (Spec-First SSOT).

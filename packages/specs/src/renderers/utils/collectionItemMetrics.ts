@@ -16,18 +16,20 @@
  */
 
 import { resolveContainerSpacing } from "../../primitives/containerSpacing";
-import { getLabelLineHeight } from "../../primitives/typography";
+import { getTextLineHeight } from "../../primitives/typography";
 
 /**
  * ADR-078 Phase 3: ListBox/ListBoxItem metric 단일 소스 resolver.
  *
  * ListBoxItem escape(listbox_item) / layout `calculateContentHeight` ListBox 분기 /
  * 부모 ListBox spacing metric 이 동일 공식을 사용하도록 공급. fontSize → lineHeight 는
- * `getLabelLineHeight`(typography FONT_SIZE_TO_LINE_HEIGHT 룩업 + `ceil(fontSize*1.5)` fallback)
- * 단일 소스 — standalone Text/Label(LABEL_SIZE_STYLE)과 동일. **Why (2026-07-21 사용자 보고)**:
- * 과거 계단 매핑(≤12→16 / ≤14→20 / ≤16→24 / >16→**28 cap**)은 xl(20)/2xl(24)/3xl(30) 이상을
- * 전부 28 로 눌러 label size 를 키워도 행 높이가 안 커졌다. getLabelLineHeight 는 표준 사이즈
- * (≤18)에서 계단 매핑과 값이 동일하고 2xl 이상만 size 비례로 커진다(BC 유지 + 버그 구간 해소).
+ * `getTextLineHeight`(= `ceil(fontSize*1.5)`) 단일 소스 — label/description 은 **Text** leaf 로
+ * authoring 되므로 origin(실 Text 자식, leaf Text 레이아웃 = 1.5×fs)·CSS(line-height 1.5)와 동일
+ * 모델이어야 한다. **Why (2026-07-21 사용자 보고 2건)**: (1) 과거 계단 매핑(>16→28 cap)은 2xl+
+ * 를 전부 28 로 눌러 size 를 키워도 행 높이가 안 커졌다. (2) 그 후 `getLabelLineHeight`(typography
+ * 토큰: 3xl→36)로 바꿨으나 이는 standalone **Label**(LABEL_SIZE_STYLE)용이라 collection **Text**
+ * label 에는 여전히 origin/CSS(3xl→45)와 어긋나 instance 행만 짧게 렌더됐다. Text line box =
+ * 1.5×fs 로 3경로(origin·instance·CSS) 통일.
  *
  * 기본값(paddingX 12 / paddingY 4 / gap 2)은 componentRulesTable.ListBoxItem.sizes.md 와 동일.
  */
@@ -49,7 +51,9 @@ export function resolveListBoxItemMetric(fontSize: number): {
   const paddingX = 12;
   const paddingY = 4;
   const gap = 2;
-  const lineHeight = getLabelLineHeight(fontSize);
+  // Text leaf line box(1.5×fontSize) — origin 실 Text 자식·CSS(line-height 1.5)와 동일 모델.
+  //   getLabelLineHeight(typography 토큰: 3xl→36)를 쓰면 instance 만 짧게 렌더돼 3경로 불일치.
+  const lineHeight = getTextLineHeight(fontSize);
   return {
     paddingX,
     paddingY,

@@ -142,8 +142,11 @@ function listBoxDocWithSizedOrigin(opts: {
 const SCROLLABLE = { width: "100%", height: 400, overflowY: "auto" };
 
 describe("resolveVirtualizedCollectionWindows — 가상화 대상 판정 + window", () => {
-  it("기본 행 높이는 catalog ListBoxItem md(fontSize14) = 28", () => {
-    expect(DEFAULT_LISTBOX_ROW_HEIGHT).toBe(28);
+  it("기본 행 높이는 catalog ListBoxItem md(fontSize14) = 29 (Text line box 1.5×14=21)", () => {
+    // 2026-07-21: label/description Text leaf line box = getTextLineHeight(1.5×fs). fontSize14 →
+    //   21(origin/CSS line-height 1.5 동일) → itemHeight pad4*2+21=29. 과거 getLabelLineHeight(14)
+    //   =20(typography 토큰)으로 28 이던 것을 origin/CSS 정합상 29 로 정정.
+    expect(DEFAULT_LISTBOX_ROW_HEIGHT).toBe(29);
   });
 
   it("bounded height + overflow auto + data source → window 등재 (top)", () => {
@@ -154,22 +157,22 @@ describe("resolveVirtualizedCollectionWindows — 가상화 대상 판정 + wind
     });
     const entry = map.get("listbox-1");
     expect(entry).toBeDefined();
-    expect(entry?.rowHeight).toBe(28);
+    expect(entry?.rowHeight).toBe(29);
     expect(entry?.totalRows).toBe(1000);
-    // scrollTop 0, viewport 400, rowHeight 28 → visibleCount ceil(400/28)=15, overscan 6.
-    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 21 });
+    // scrollTop 0, viewport 400, rowHeight 29 → visibleCount ceil(400/29)=14, overscan 6.
+    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 20 });
   });
 
   it("스크롤 시 window 가 firstVisible ± overscan 로 이동", () => {
     const map = resolveVirtualizedCollectionWindows({
       doc: listBoxDoc({ itemCount: 1000, style: SCROLLABLE }),
       collections: [],
-      scrollTops: new Map([["listbox-1", 2800]]), // 100행 * 28
+      scrollTops: new Map([["listbox-1", 2800]]),
     });
-    // firstVisible = floor(2800/28)=100, start=94, end=100+15+6=121.
+    // rowHeight 29: firstVisible = floor(2800/29)=96, start=90, end=96+14+6=116.
     expect(map.get("listbox-1")?.window).toEqual({
-      startIndex: 94,
-      endIndex: 121,
+      startIndex: 90,
+      endIndex: 116,
     });
   });
 
@@ -186,7 +189,7 @@ describe("resolveVirtualizedCollectionWindows — 가상화 대상 판정 + wind
     expect(entry?.mode).toBe("sample");
     expect(entry?.window).toEqual({ startIndex: 0, endIndex: 10 });
     expect(entry?.totalRows).toBe(1000);
-    expect(entry?.rowHeight).toBe(28);
+    expect(entry?.rowHeight).toBe(29);
     // sample 은 스크롤 아님 → viewportHeight/maxScrollTop 미설정.
     expect(entry?.maxScrollTop).toBeUndefined();
   });
@@ -277,11 +280,12 @@ describe("resolveVirtualizedCollectionWindows — 가상화 대상 판정 + wind
     const entry = map.get("listbox-instance-1");
     expect(entry).toBeDefined();
     expect(entry?.totalRows).toBe(60);
-    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 21 });
+    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 20 });
   });
 
-  it("description 있는 행은 taller rowHeight(itemHeightWithDescription 50) + 그에 맞는 window", () => {
-    // A(정확 rowHeight): description 행은 label+desc 2줄이라 nominal 28 이 아닌 50.
+  it("description 있는 행은 taller rowHeight(itemHeightWithDescription 51) + 그에 맞는 window", () => {
+    // A(정확 rowHeight): description 행은 label+desc 2줄이라 nominal 29 이 아닌 51
+    //   (pad4*2 + label 21(1.5×14) + gap2 + desc 20(1.5×13)).
     const map = resolveVirtualizedCollectionWindows({
       doc: listBoxDoc({
         itemCount: 1000,
@@ -292,24 +296,23 @@ describe("resolveVirtualizedCollectionWindows — 가상화 대상 판정 + wind
       scrollTops: new Map(),
     });
     const entry = map.get("listbox-1");
-    expect(entry?.rowHeight).toBe(50); // itemHeightWithDescription (fontSize14)
-    // viewport 400 / 50 = 8 visible, overscan 6 → end 14.
+    expect(entry?.rowHeight).toBe(51); // itemHeightWithDescription (fontSize14)
+    // viewport 400 / 51 = 8 visible, overscan 6 → end 14.
     expect(entry?.window).toEqual({ startIndex: 0, endIndex: 14 });
   });
 
-  it("description 없는 기본 행은 rowHeight 28 (itemHeight)", () => {
+  it("description 없는 기본 행은 rowHeight 29 (itemHeight)", () => {
     const map = resolveVirtualizedCollectionWindows({
       doc: listBoxDoc({ itemCount: 1000, style: SCROLLABLE }),
       collections: [],
       scrollTops: new Map(),
     });
-    expect(map.get("listbox-1")?.rowHeight).toBe(28);
+    expect(map.get("listbox-1")?.rowHeight).toBe(29);
   });
 
-  // 2026-07-21 (Issue 2): origin label/description slot size 가 instance 행 높이에 반영.
-  //   과거엔 ListBoxItem 자체 fontSize(14→lineHeight 20)만 읽어 label 을 3xl 로 키워도 행이
-  //   28/50 로 고정 → 텍스트 overflow/겹침. label 30(→36) + description 24(→32) →
-  //   pad 4*2 + 36 + gap 2 + 32 = 78.
+  // 2026-07-21: origin label/description slot size 가 instance 행 높이에 반영 + origin/CSS 와
+  //   line box 일치. label/description 은 Text leaf → getTextLineHeight(1.5×fs). label 30(→45)
+  //   + description 24(→36) → pad 4*2 + 45 + gap 2 + 36 = 91 (origin 실 Text 자식·CSS 동일).
   it("origin label(3xl)/description(2xl) slot size → 행 높이가 size 비례로 커진다", () => {
     const map = resolveVirtualizedCollectionWindows({
       doc: listBoxDocWithSizedOrigin({
@@ -321,7 +324,7 @@ describe("resolveVirtualizedCollectionWindows — 가상화 대상 판정 + wind
       collections: [],
       scrollTops: new Map(),
     });
-    expect(map.get("listbox-1")?.rowHeight).toBe(78);
+    expect(map.get("listbox-1")?.rowHeight).toBe(91);
   });
 
   it('height "400px" 문자열도 bounded 로 인식', () => {
@@ -384,8 +387,8 @@ describe("scene model 통합 — G-A2 핵심: 투영 노드 수 ≤ window+overs
     const rowNodes = model.sceneNodes.filter(
       (n) => n.projection?.kind === "listbox-row",
     );
-    // scrollTop 0 → window {0,21} → 21 행만 투영 (10000 아님).
-    expect(rowNodes).toHaveLength(21);
+    // scrollTop 0 → window {0,20}(rowHeight 29) → 20 행만 투영 (10000 아님).
+    expect(rowNodes).toHaveLength(20);
     // 전체 scene 노드도 10k 수준이 아님 (page/body/listbox/rowsGroup/21행/trailing spacer 등).
     expect(model.sceneNodes.length).toBeLessThan(100);
   });
@@ -430,10 +433,10 @@ describe("ADR-157 — auto-height ListBox 샘플 + hatch remainder (scene emit)"
       (remainder[0]?.projection as { hiddenRows?: number } | undefined)
         ?.hiddenRows,
     ).toBe(990);
-    // hatch box 높이 = hiddenRows(990) × rowHeight(28) + (990-1) × catalogGap → 컨테이너가
+    // hatch box 높이 = hiddenRows(990) × rowHeight(29) + (990-1) × catalogGap → 컨테이너가
     //   totalRows 전체 높이(gap 포함)에 auto-size.
     const style = remainder[0]?.props?.style as { height?: number } | undefined;
-    expect(style?.height).toBe(990 * 28 + 989 * catalogGap);
+    expect(style?.height).toBe(990 * 29 + 989 * catalogGap);
     // trailing 은 hatch 이지 빈 spacer 아님 (sample mode).
     expect(
       model.sceneNodes.filter((n) => n.projection?.kind === "listbox-spacer"),
@@ -449,7 +452,7 @@ describe("ADR-157 — auto-height ListBox 샘플 + hatch remainder (scene emit)"
     expect(
       (owner?.props as { _projectedRowsContentHeight?: number } | undefined)
         ?._projectedRowsContentHeight,
-    ).toBe(1000 * 28 + 999 * catalogGap);
+    ).toBe(1000 * 29 + 999 * catalogGap);
   });
 
   it("데이터 ≤ 샘플 상한(10) → 전량 투영 + remainder 없음 + owner 높이 주입 없음", () => {
@@ -513,13 +516,13 @@ describe("ADR-157 — auto-height ListBox 샘플 + hatch remainder (scene emit)"
     expect(
       (owner?.props as { _projectedRowsContentHeight?: number })
         ?._projectedRowsContentHeight,
-    ).toBe(12 * 28 + 11 * 8);
+    ).toBe(12 * 29 + 11 * 8);
 
     const remainder = model.sceneNodes.find(
       (n) => n.projection?.kind === "collection-remainder",
     );
     expect((remainder?.props?.style as { height?: number })?.height).toBe(
-      2 * 28 + 1 * 8,
+      2 * 29 + 1 * 8,
     );
   });
 
@@ -553,12 +556,12 @@ describe("ADR-157 — auto-height ListBox 샘플 + hatch remainder (scene emit)"
     expect(
       (owner?.props as { _projectedRowsContentHeight?: number })
         ?._projectedRowsContentHeight,
-    ).toBe(12 * 28 + 11 * catalogGap);
+    ).toBe(12 * 29 + 11 * catalogGap);
     const remainder = model.sceneNodes.find(
       (n) => n.projection?.kind === "collection-remainder",
     );
     expect((remainder?.props?.style as { height?: number })?.height).toBe(
-      2 * 28 + 1 * catalogGap,
+      2 * 29 + 1 * catalogGap,
     );
   });
 });
@@ -974,10 +977,10 @@ describe("resolveVirtualizedCollectionWindows — maxScrollTop (스크롤 입력
       collections: [],
       scrollTops: new Map(),
     }).get("listbox-1");
-    // rowHeight 28, viewport 400 → contentHeight 28000, maxScrollTop 27600.
+    // rowHeight 29, viewport 400 → contentHeight 29000, maxScrollTop 28600.
     expect(entry?.viewportHeight).toBe(400);
-    expect(entry?.contentHeight).toBe(28000);
-    expect(entry?.maxScrollTop).toBe(27600);
+    expect(entry?.contentHeight).toBe(29000);
+    expect(entry?.maxScrollTop).toBe(28600);
   });
 
   it("content 가 viewport 안에 들어가면 maxScrollTop 0 (스크롤 불가)", () => {
@@ -986,8 +989,8 @@ describe("resolveVirtualizedCollectionWindows — maxScrollTop (스크롤 입력
       collections: [],
       scrollTops: new Map(),
     }).get("listbox-1");
-    // contentHeight 10×28=280 < viewport 400 → max(0, 280−400)=0.
-    expect(entry?.contentHeight).toBe(280);
+    // contentHeight 10×29=290 < viewport 400 → max(0, 290−400)=0.
+    expect(entry?.contentHeight).toBe(290);
     expect(entry?.maxScrollTop).toBe(0);
   });
 
@@ -1003,8 +1006,8 @@ describe("resolveVirtualizedCollectionWindows — maxScrollTop (스크롤 입력
       collections: [],
       scrollTops: new Map([["listbox-1", 2800]]),
     }).get("listbox-1")?.maxScrollTop;
-    expect(at0).toBe(27600);
-    expect(at2800).toBe(27600);
+    expect(at0).toBe(28600);
+    expect(at2800).toBe(28600);
   });
 
   it("GridList grid(cols 2): 시각 행 수 ceil(totalRows/columns)×rowHeight 기반", () => {

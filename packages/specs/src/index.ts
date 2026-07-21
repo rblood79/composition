@@ -162,6 +162,7 @@ export {
   lineHeight,
   getTypographyToken,
   getLabelLineHeight,
+  getTextLineHeight,
   // Radius
   radius,
   getRadiusToken,
