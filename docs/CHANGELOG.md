@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [GridList 카드 높이 metric을 실 렌더에 정합 — ListBox 유사 패턴 sweep] - 2026-07-22
+
+### Bug Fixes
+
+- **GridList 카드(인스턴스/projection/sample) 높이가 실제 렌더(origin·CSS)보다 짧게 계산되던 문제**:
+  - **Why**: GridList card metric 이 slot-based 렌더로 전환된 뒤에도 옛 공식을 유지해 실 렌더와 다중 값이 어긋났다. (1) label/description line box 를 `getLabelLineHeight`(typography 토큰) 로 산출 — GridList slot 은 `[slot=*]` line-height override 가 없어 실제로는 기본 Text 의 1.5×fs 로 렌더된다(ListBox 의 desc 1.333 override 와 대조, 라이브 확인). (2) base font-size 를 item fontSize(14) 로 가정 — 그러나 `react-aria-Text` 는 부모 size 를 상속하지 않고 16 으로 고정 렌더되므로 label·description 둘 다 16→line box 24 여야 한다. (3) description 을 `fontSize-2` 로 label 에 결합 — GridList 는 description font-size override 가 없어 고정 16 이어야 하며, label 을 키우면 description 이 과팽창했다. (4) within-card gap 을 `descGap 4/6` 으로 계산 — 실제 GridListItem flex `gap` 은 `--spacing-2xs`=2. 결과적으로 default 카드가 64 로 계산돼 라이브 origin 76 / DOM 76 / large-label 97 보다 짧아, 큰 label 에서 instance 행이 cramped 되고 텍스트가 겹칠 수 있었다.
+  - 수정: label/description line box = `getTextLineHeight`(1.5×fs), base = `COLLECTION_TEXT_DEFAULT_FONT_SIZE`(16, react-aria-Text 기본), description 고정 16 decouple, within-card gap = 2. slot 자식 명시 size 는 우선(큰 label 은 slot fold 값 사용). default 카드 64 → 74(+ border 2 = origin 76).
+  - **4 소비 경로 동시 수정 (Layer D 대칭)**: `calculateContentHeight` gridlistitem projection 분기 + gridlist container 분기(`utils.ts`), `gridlist_card` escape(`skiaPrimitives.ts`), `resolveGridListRowStride`(ADR-157 sample/hatch stride, `collectionVirtualization.ts`), `resolveGridListItemMetric.descGap`(`collectionItemMetrics.ts`).
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` · `apps/builder/src/builder/workspace/canvas/scene/collectionVirtualization.ts` · `packages/specs/src/renderers/skiaPrimitives.ts` · `packages/specs/src/renderers/utils/collectionItemMetrics.ts`
+  - 검증: type-check PASS(baseline 61 무동) · 관련 유닛 98 PASS. 라이브 CSS oracle(DOM injection GridListItem 카드 76/97) + 라이브 origin(`getSharedLayoutMap` 76) 실측이 fix target 이며 metric 이 이제 정확히 산출. GridList 컨테이너 인스턴스는 대상 프로젝트에 부재(reusable origin 만 — child-sum 경로라 metric 미사용)이므로 시각 회귀 없는 preventive 정합.
+
 ## [ListBox 아이템 CSS↔Skia 높이 정합 — min-height 축소·스크롤 미생성 수정] - 2026-07-22
 
 ### Bug Fixes
