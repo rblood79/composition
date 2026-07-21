@@ -225,3 +225,78 @@ describe("listbox_item row-bg — origin style override 층 (2026-07-20)", () =>
     expect(rowBg(shapes)).toBeUndefined();
   });
 });
+
+// 2026-07-21 — 행 appearance 전반 렌더 (background 특정이 아니라 Style 패널 appearance 전체):
+//   origin ListBoxItem 의 border / box-shadow style 이 projected 행에 반영되어야 한다
+//   (사용자 보고: origin 에 border 변경 → 인스턴스 행 미반영). row-bg 를 target 으로 stroke/shadow.
+describe("listbox_item 행 appearance — border / box-shadow (2026-07-21)", () => {
+  type BorderLike = {
+    type?: string;
+    target?: string;
+    borderWidth?: number;
+    color?: string;
+    style?: string;
+    offsetX?: number;
+    offsetY?: number;
+    blur?: number;
+    id?: string;
+    fill?: string;
+  };
+  const all = (shapes: Shape[] | null): BorderLike[] =>
+    (shapes ?? []) as BorderLike[];
+  const borderShape = (shapes: Shape[] | null) =>
+    all(shapes).find((s) => s.type === "border");
+  const shadowShapes = (shapes: Shape[] | null) =>
+    all(shapes).filter((s) => s.type === "shadow");
+  const rowBg = (shapes: Shape[] | null) =>
+    all(shapes).find((s) => s.id === "row-bg");
+
+  it("style.borderWidth>0 → border shape 가 row-bg 를 target 으로 렌더 (borderStyle 부재 시 solid)", () => {
+    const shapes = drawWith(
+      { ...flatProps },
+      { borderWidth: 1, borderColor: "#E31414" },
+    );
+    const border = borderShape(shapes);
+    expect(border).toBeDefined();
+    expect(border?.target).toBe("row-bg");
+    expect(border?.borderWidth).toBe(1);
+    expect(border?.color).toBe("#E31414");
+    expect(border?.style).toBe("solid");
+    // 배경 없어도 border target 노드 보장 — row-bg 를 transparent 로 생성
+    expect(rowBg(shapes)?.fill).toBe("{color.transparent}");
+  });
+
+  it("borderStyle 명시 시 그대로 반영 (dashed)", () => {
+    const shapes = drawWith(
+      { ...flatProps },
+      { borderWidth: 2, borderColor: "#000", borderStyle: "dashed" },
+    );
+    expect(borderShape(shapes)?.style).toBe("dashed");
+  });
+
+  it("borderWidth 0/부재 → border shape 미생성 (BC)", () => {
+    expect(borderShape(drawWith({ ...flatProps }))).toBeUndefined();
+  });
+
+  it("style.boxShadow → shadow shape 로 분해 (offset/blur, target row-bg)", () => {
+    const shapes = drawWith(
+      { ...flatProps },
+      { boxShadow: "0 2px 4px rgba(0,0,0,0.2)" },
+    );
+    const shadows = shadowShapes(shapes);
+    expect(shadows).toHaveLength(1);
+    expect(shadows[0]?.target).toBe("row-bg");
+    expect(shadows[0]?.offsetX).toBe(0);
+    expect(shadows[0]?.offsetY).toBe(2);
+    expect(shadows[0]?.blur).toBe(4);
+  });
+
+  it("border + background 동시 → row-bg fill 은 배경색, border 는 별도 stroke", () => {
+    const shapes = drawWith(
+      { ...flatProps },
+      { backgroundColor: "#eee", borderWidth: 1, borderColor: "#f00" },
+    );
+    expect(rowBg(shapes)?.fill).toBe("#eee");
+    expect(borderShape(shapes)?.color).toBe("#f00");
+  });
+});

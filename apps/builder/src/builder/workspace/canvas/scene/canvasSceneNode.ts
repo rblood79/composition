@@ -882,11 +882,22 @@ function appendListBoxRowProjection(
   const templateOriginNode = templateOriginId
     ? getDocumentNodesById().get(templateOriginId)
     : undefined;
-  const originStyle =
+  // ADR-154 후속 (2026-07-21) — origin/anchor 의 responsive override 를 활성 breakpoint 로
+  //   해석해 행-root style 에 반영. resolveResponsiveStyleMap 은 style map 전체를 병합하므로
+  //   border 뿐 아니라 background/padding/radius/typography 등 **모든 style 속성**이 함께 흐른다
+  //   (border 특정이 아님). owner style(§아래 resolveResponsiveStyleMap) 과 동일 계약 — origin
+  //   ListBoxItem 을 mobile breakpoint 에서 편집하면 그 override 가 mobile 뷰 인스턴스 행에 반영.
+  const originStyle = resolveResponsiveStyleMap(
     (templateOriginNode?.props?.style as Record<string, unknown> | undefined) ??
-    {};
-  const anchorStyle =
-    (templateAnchor?.props?.style as Record<string, unknown> | undefined) ?? {};
+      {},
+    templateOriginNode?.responsive,
+    activeBreakpoint,
+  );
+  const anchorStyle = resolveResponsiveStyleMap(
+    (templateAnchor?.props?.style as Record<string, unknown> | undefined) ?? {},
+    templateAnchor?.responsive,
+    activeBreakpoint,
+  );
   const templateAnchorStyle = { ...originStyle, ...anchorStyle };
   // 2026-07-20 (사용자 승인 "variant 배선") — selected 행은 slot 등록의 Selected variant
   //   origin(ListBoxItem/Selected) props.style 을 default origin style 위에 overlay 한다.
@@ -896,9 +907,12 @@ function appendListBoxRowProjection(
     getDocumentNodesById,
   );
   const selectedOriginNode = getDocumentNodesById().get(selectedOriginId);
-  const selectedOriginStyle =
+  const selectedOriginStyle = resolveResponsiveStyleMap(
     (selectedOriginNode?.props?.style as Record<string, unknown> | undefined) ??
-    {};
+      {},
+    selectedOriginNode?.responsive,
+    activeBreakpoint,
+  );
   // Style 패널 Background 편집은 props.style 이 아니라 canonical `fills` 채널에 기록된다
   //   (커밋 시 sanitize 가 style.backgroundColor 를 비움 — buildSpecNodeData 계약과 동일).
   //   행 scene node 에 origin fills 를 실으면 buildSpecNodeData 의 fills→hex6 변환이

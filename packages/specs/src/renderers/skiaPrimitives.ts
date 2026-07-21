@@ -15,7 +15,7 @@
  * 설계: docs/adr/design/142-starter-spec-component-system-cutover-breakdown.md §3 (`skiaPrimitive`)
  */
 
-import { parseBorderWidth, parsePxValue } from "../primitives";
+import { parseBorderWidth, parsePxValue, parseShadow } from "../primitives";
 import { fontFamily, getLabelLineHeight } from "../primitives/typography";
 import {
   buildDateInputDisplayText,
@@ -23,7 +23,7 @@ import {
   buildDatePlaceholder,
   DATE_PICKER_SIZES,
 } from "./datePickerShapes";
-import type { Shape, SizeSpec, TokenRef } from "../types";
+import type { BorderStyleValue, Shape, SizeSpec, TokenRef } from "../types";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 import { resolveIllustratedMessageMetric } from "./utils/illustratedMessageMetrics";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
@@ -744,18 +744,32 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
 
   const shapes: Shape[] = [];
 
-  // row-bg — style.backgroundColor(origin style override 층, 2026-07-20) 우선.
-  //   selected 행: projection 이 Selected variant origin style 을 merge 주입 → 그 backgroundColor
-  //   가 catalog fill(selected accent-subtle) 을 override. origin 스타일 부재 시 기존 시각 유지.
-  //   비선택 행: Default origin 이 배경을 지정한 경우만 그린다 (기본: 투명 — 기존 동작).
+  // 행-root appearance — background / border / box-shadow / radius 를 origin style override
+  //   층(ADR-154 responsive 해석 포함)에서 렌더한다. background 특정이 아니라 Style 패널
+  //   appearance 전반: 행이 일반 box 처럼 border·box-shadow 도 그린다 (2026-07-21).
+  //   selected 행: projection 이 Selected variant origin style 을 merge 주입 → 그 값이 우선.
   //   hover/pressed 는 빌더 정적 캔버스 미발생.
+  const rowRadius = parsePxValue(
+    style?.borderRadius,
+    typeof size.borderRadius === "number" ? size.borderRadius : 4,
+  );
   const rowBgFill =
     (style?.backgroundColor as string | undefined) ??
     (props.isSelected
       ? (visual?.fill?.default.selected ??
         ("{color.accent-subtle}" as TokenRef))
       : undefined);
-  if (rowBgFill) {
+  const rowBorderWidth = parseBorderWidth(style?.borderWidth, 0);
+  const rowBorderColor = style?.borderColor as string | undefined;
+  const rowBoxShadows =
+    typeof style?.boxShadow === "string" && style.boxShadow !== "none"
+      ? parseShadow(style.boxShadow)
+      : [];
+  // border/box-shadow 는 row-bg 를 target 으로 참조하므로, 배경 fill 이 없어도 target 노드가
+  //   존재해야 한다 — 이 경우 transparent fill 로 노드만 보장(시각 무변).
+  const needsRowRect =
+    Boolean(rowBgFill) || rowBorderWidth > 0 || rowBoxShadows.length > 0;
+  if (needsRowRect) {
     shapes.push({
       id: "row-bg",
       type: "roundRect",
@@ -763,11 +777,35 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
       y: 0,
       width: "auto",
       height: "auto" as unknown as number,
-      radius: parsePxValue(
-        style?.borderRadius,
-        typeof size.borderRadius === "number" ? size.borderRadius : 4,
-      ),
-      fill: rowBgFill,
+      radius: rowRadius,
+      fill: rowBgFill ?? ("{color.transparent}" as TokenRef),
+    });
+  }
+  // box-shadow — CSS 문자열 parseShadow 로 분해해 target row-bg 뒤에 렌더 (다중 shadow 지원).
+  for (const sh of rowBoxShadows) {
+    shapes.push({
+      type: "shadow",
+      target: "row-bg",
+      offsetX: sh.offsetX,
+      offsetY: sh.offsetY,
+      blur: sh.blur,
+      spread: sh.spread,
+      color: sh.color,
+      alpha: sh.alpha,
+      inset: sh.inset,
+      radius: rowRadius,
+    });
+  }
+  // border — borderWidth>0 시 target row-bg 에 stroke. borderStyle 부재 시 solid (origin
+  //   responsive override 가 width+color 만 담기도 함 → DOM/standalone 렌더 parity).
+  if (rowBorderWidth > 0) {
+    shapes.push({
+      type: "border",
+      target: "row-bg",
+      borderWidth: rowBorderWidth,
+      color: rowBorderColor ?? ("{color.border}" as TokenRef),
+      style: (style?.borderStyle as BorderStyleValue | undefined) ?? "solid",
+      radius: rowRadius,
     });
   }
 

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [origin ListBoxItem style(border/box-shadow 등) 편집이 인스턴스 행에 미전파 수정 — 행-root responsive 해석 + Skia appearance 렌더] - 2026-07-21
+
+### Bug Fixes
+
+- **Components 페이지 origin ListBoxItem 의 style(border / box-shadow 등) 변경이 인스턴스 행에 반영 안 됨 (특히 mobile breakpoint 편집)**:
+  - 두 gap 복합: **(A) 행-root 전파가 responsive 를 무시** — Skia `appendListBoxRowProjection` 의 `templateAnchorStyle` 이 origin/anchor/selected-origin 의 raw `props.style` 만 읽고 `responsive.styles` 를 활성 breakpoint 로 해석하지 않아, mobile breakpoint 에서 편집한 override(예: border 는 `responsive.styles.mobile` 로 저장)가 행에 도달 못 함. **(B) Skia escape 가 border/box-shadow 를 안 그림** — `listbox_item` 이 row-bg(background+radius)만 렌더하고 border stroke·box-shadow 를 아예 방출하지 않음.
+  - **Why**: ADR-154 는 편집 write 만 breakpoint-aware 로 만들었고 origin 행-root 전파는 read-blind (owner style 은 fadd46ba2 에서 해석했으나 origin 행-root 는 누락 — 같은 write-aware/read-blind 비대칭). escape 는 background 특정 렌더라 appearance 패널의 border/shadow 미커버.
+  - 수정 (Skia, **generic — border 특정이 아니라 style 전체**):
+    - **행-root responsive 해석**: `appendListBoxRowProjection` 이 origin/anchor/selected-origin style 을 `resolveResponsiveStyleMap(..., activeBreakpoint)` 로 병합 → border 뿐 아니라 background/padding/radius/typography 등 **모든 style 속성**이 활성 breakpoint 로 함께 흐름.
+    - **escape appearance 렌더 확장**: `listbox_item` 이 row style 에서 border(`type:"border"` stroke, borderStyle 부재 시 solid) + box-shadow(`parseShadow` → `type:"shadow"`) 를 row-bg target 으로 렌더. 배경 없어도 border/shadow target 위해 transparent row-bg 생성.
+  - 검증: `skiaPrimitives.listBoxItemSlots.test.ts` 에 border/shadow 렌더 5종 추가(borderWidth>0→border shape·borderStyle 반영·BC·boxShadow 분해·border+bg 공존, 18 PASS) · type-check PASS · **live(Chrome MCP, mobile)**: origin ListBoxItem 에 mobile border(1px #E31414) 설정 → Home data-bound 인스턴스 각 행에 red border 렌더 실증(캔버스 zoom 확인)
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts` · `packages/specs/src/renderers/skiaPrimitives.ts`
+  - 참고: Preview/Publish DOM 의 **responsive** origin style→인스턴스 행 반영은 @media(width 기반, `data-element-id` 타겟) 메커니즘이라 synthetic 행에 미도달 — 별도 후속. desktop base style 은 DOM 도 기존 inline(`rootStyleOf`) 경로로 반영됨.
+
 ## [origin ListBoxItem/Default label 텍스트 size 편집이 인스턴스 행/CSS 에 미전파 수정 — slot 구성 채널 size→fontSize fold] - 2026-07-21
 
 ### Bug Fixes
