@@ -637,8 +637,21 @@ export function computeDirtyStyleProps(
       activeBreakpoint,
     );
     const keys = properties ?? Object.keys(overrideStyle);
+    // 배경(fills)은 breakpoint 무관 **전역** 채널(node.fills)이라 responsive override map
+    //   에 절대 담기지 않는다. 그런데 write(updateSelectedFills)는 breakpoint 를 안 보고
+    //   전역 fills 를 저장하고, reset(AppearanceSection.handleReset)도 전역 updateSelectedFills([])
+    //   로 비운다 — write·reset 이 이미 전역인데 dirty 판정만 desktop 분기에서만 fills 를
+    //   adapt 해서, non-desktop tier 에서 "배경은 바뀌어 보이는데 reset 버튼이 죽는" 비대칭이
+    //   생긴다(사용자 보고 2026-07-21). 전역 fills 가 존재하면 모든 breakpoint 에서
+    //   backgroundColor 를 dirty 로 surface 해 전역 write ↔ 전역 reset 대칭을 복원한다.
+    const hasFillsGlobal =
+      Array.isArray(element.fills) && element.fills.length > 0;
     const dirty: string[] = [];
     for (const prop of keys) {
+      if (prop === "backgroundColor" && hasFillsGlobal) {
+        dirty.push(prop);
+        continue;
+      }
       if (resolveCurrentStyleValue(prop, overrideStyle) !== undefined) {
         dirty.push(prop);
       }

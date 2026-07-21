@@ -966,4 +966,78 @@ describe("useResetStyles — ADR-154 non-desktop responsive override dirty/reset
     expect(baseStyle?.display).toBe("block");
     expect(baseStyle?.rowGap).toBeUndefined();
   });
+
+  // 배경(fills)은 breakpoint 무관 **전역** 채널(node.fills) — write(updateSelectedFills)·
+  //   reset(AppearanceSection.handleReset → updateSelectedFills([]))이 모두 전역인데 과거엔
+  //   dirty 판정만 desktop 분기에서만 fills 를 adapt 해, non-desktop tier 에서 "배경은 바뀌어
+  //   보이는데 reset 버튼이 죽는" 비대칭이 있었다(사용자 보고 2026-07-21). 전역 fills 가 있으면
+  //   모든 breakpoint 에서 backgroundColor 를 dirty 로 surface 해 전역 write ↔ 전역 reset 대칭 복원.
+  it("computeDirtyStyleProps: mobile 에서도 전역 fills 는 backgroundColor dirty (전역 채널)", () => {
+    const el = {
+      id: "resp-fills",
+      type: "Frame",
+      props: { style: {} },
+      fills: [{ type: "color", enabled: true, color: "#123456FF" }],
+    } as unknown as Element;
+    const dirty = computeDirtyStyleProps(
+      el,
+      undefined,
+      ["backgroundColor"],
+      "mobile" as never,
+    );
+    expect(dirty).toContain("backgroundColor");
+  });
+
+  it("computeDirtyStyleProps: tablet 에서도 전역 fills 는 backgroundColor dirty", () => {
+    const el = {
+      id: "resp-fills",
+      type: "Frame",
+      props: { style: {} },
+      fills: [{ type: "color", enabled: true, color: "#abcdefFF" }],
+    } as unknown as Element;
+    const dirty = computeDirtyStyleProps(
+      el,
+      undefined,
+      ["backgroundColor"],
+      "tablet" as never,
+    );
+    expect(dirty).toContain("backgroundColor");
+  });
+
+  it("computeDirtyStyleProps: fills 없으면 mobile 에서 backgroundColor dirty 아님 (BC)", () => {
+    const el = {
+      id: "resp-nofill",
+      type: "Frame",
+      props: { style: {} },
+    } as unknown as Element;
+    const dirty = computeDirtyStyleProps(
+      el,
+      undefined,
+      ["backgroundColor"],
+      "mobile" as never,
+    );
+    expect(dirty).not.toContain("backgroundColor");
+  });
+
+  it("useHasDirtyStyles: mobile + 전역 fills 면 Appearance reset 버튼 활성(true)", () => {
+    const el = {
+      id: "resp-fills",
+      type: "Frame",
+      props: { size: "md", style: {} },
+      fills: [{ type: "color", enabled: true, color: "#123456FF" }],
+    } as unknown as Element;
+    useStore.setState({
+      selectedElementId: "resp-fills",
+      selectedElementProps: el.props,
+      currentPageId: null,
+      elements: [el],
+      elementsMap: new Map([["resp-fills", el]]),
+      childrenMap: new Map(),
+      dirtyElementIds: new Set(),
+      layoutVersion: 0,
+      activeBreakpoint: "mobile",
+    } as never);
+    const { result } = renderHook(() => useHasDirtyStyles(["backgroundColor"]));
+    expect(result.current).toBe(true);
+  });
 });

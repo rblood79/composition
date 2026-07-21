@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [배경(fills) 초기화 버튼이 desktop 에서만 뜨던 비대칭 수정 — 전역 fills 를 모든 breakpoint 에서 dirty 로 감지] - 2026-07-21
+
+### Bug Fixes
+
+- **Style 패널 Appearance 섹션의 배경 초기화 버튼이 desktop breakpoint 에서만 활성화됨 (배경은 breakpoint 무관 전역 공유인데 tablet/mobile 에서는 되돌릴 수 없음)**:
+  - 근본 원인: 배경은 breakpoint 무관 **전역** 채널(`node.fills`)로 authoring 되고, write(`updateSelectedFills`)·reset(`AppearanceSection.handleReset → updateSelectedFills([])`)이 모두 breakpoint 를 안 보고 전역 fills 를 다룬다. 그런데 dirty 판정 `computeDirtyStyleProps`(useResetStyles.ts)의 non-desktop 분기가 `responsive.styles`(style-prop 맵)만 읽고 조기 return — fills 는 그 맵에 절대 안 담겨 tablet/mobile 에서 `backgroundColor` 가 dirty 로 안 잡힘 → `hasDirty=false` → `onReset` undefined → 리셋 버튼 미표시.
+  - **Why**: write·reset 은 이미 전역인데 dirty 판정만 desktop 분기에서만 fills 를 adapt 하던 **write-global / detect-desktop-only 비대칭**. "자기 tier override 만 reset" 논리는 per-breakpoint prop 에만 맞고, 전역 속성인 배경엔 안 맞는다 (사용자 지적: 전역 공유면 reset 도 전역이어야 함).
+  - 수정: `computeDirtyStyleProps` non-desktop 분기가 전역 `element.fills` 존재 시 `backgroundColor` 를 모든 breakpoint 에서 dirty 로 surface — 전역 write ↔ 전역 reset 대칭 복원. reset 동작(`handleReset` 의 `updateSelectedFills([])`)은 기존부터 전역이라 무변경, 버튼 표시(`hasDirty`)만 정합.
+  - 위치: `apps/builder/src/builder/panels/styles/hooks/useResetStyles.ts`
+  - 검증: `useResetStyles.test.tsx` ADR-154 블록에 4종 추가(mobile/tablet 전역 fills→`backgroundColor` dirty · fills 없으면 non-dirty BC · `useHasDirtyStyles` mobile+fills→true = 실 hook 게이트) — 66 PASS 회귀 0 · type-check PASS · **live(Chrome MCP)**: PropertySection 이 `onReset` truthy 시 `.section-actions` 에 "Reset section" 버튼 렌더(Transform 섹션 dirty 상태로 실제 표시 확인) — 버튼 배선 확증, 게이트 hook 은 실 hook unit test 로 검증
+
 ## [ListBoxItem 자식 Text 의 props.size 가 layout 에서 14 로 clobber 되던 문제 수정 — 자식 size 미해소로 padding 0 에서 행 높이 붕괴] - 2026-07-21
 
 ### Bug Fixes
