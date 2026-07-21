@@ -103,6 +103,46 @@ describe("ADR-146 ListBox Preview ref template rendering", () => {
     expect(description?.props.children).toBe("Burrowing mammal");
   });
 
+  it("Path 2(items[]) 행은 컨테이너 element.id 를 data-element-id 로 갖지 않는다 (ADR-154 responsive @media 전가 방지)", () => {
+    // buildResponsiveElementCss 는 `@media { [data-element-id="{owner}"] { ...!important } }` 를
+    //   emit 한다. items[] 행이 owner element.id 를 data-element-id 로 물려받으면, 컨테이너의
+    //   responsive override(min-height/gap 등)가 모든 행에 매치되어 자식으로 전가된다.
+    //   행은 owner id 를 갖지 않아야 하고, 클릭 매핑은 closest([data-element-id]) 가 상위
+    //   ListBox 루트(owner)를 찾아 보존된다.
+    const listBox: PreviewElement = {
+      id: "listbox-owner",
+      type: "ListBox",
+      props: {
+        items: [
+          { id: "row-1", label: "Aardvark" },
+          { id: "row-2", label: "Bee" },
+        ],
+      },
+    };
+    // 템플릿 자식/ dataBinding 없음 → hasValidTemplate=false → Path 2(items[]).
+    const context: RenderContext = {
+      elements: [listBox],
+      elementsById: new Map([[listBox.id, listBox]]),
+      childrenByParent: new Map(),
+      updateElementProps: () => {},
+      batchUpdateElementProps: () => {},
+      setElements: () => {},
+      renderElement: () => null,
+    };
+
+    const rendered = renderListBox(listBox, context);
+    const children = (rendered as { props: { children?: unknown } }).props
+      .children;
+    const rows = (Array.isArray(children) ? children : [children]).filter(
+      isValidElement,
+    ) as Array<{ props: Record<string, unknown> }>;
+
+    expect(rows.length).toBe(2);
+    for (const row of rows) {
+      expect(row.props["data-element-id"]).not.toBe("listbox-owner");
+    }
+  });
+
   it("passes the template anchor layout style to each ListBoxItem (ADR-147 layout edit)", () => {
     const listBox: PreviewElement = {
       id: "listbox",

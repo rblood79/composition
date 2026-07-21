@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ListBox 컨테이너 responsive override 가 ListBoxItem 으로 전가 수정 — items[] 행 data-element-id 격리] - 2026-07-21
+
+### Bug Fixes
+
+- **비-desktop breakpoint(mobile/tablet)에서 ListBox 컨테이너에 설정한 `min-height`/`gap` 등이 Preview 에서 각 ListBoxItem(자식 행)에도 전가됨**:
+  - ADR-154 responsive override 는 `buildResponsiveElementCss` 가 `@media { [data-element-id="{owner}"] { prop: value !important } }` 로 emit 한다. `items[]`(Path 2) 행이 owner ListBox 의 `element.id` 를 `data-element-id` 로 물려받고 있어, 컨테이너용 responsive 규칙이 모든 행에도 매치되어 min-height/row-gap/column-gap 이 행으로 새어나갔다 (mobile 뷰포트에서 행 min-height:200/gap:10 실측).
+  - **Why**: `renderListBoxLeaf` 가 2026-04-21 부터 행에 `data-element-id={element.id}`(owner)를 부여 — `data-element-id` 는 canonical element 1개를 고유 식별해야 하는데 행이 컨테이너 id 를 공유해 per-element `@media` 규칙과 충돌. (Path 1 템플릿 행은 `template.id` 를 써 owner 와 충돌하지 않아 무증상)
+  - 수정: `renderListBoxLeaf`(items[] 경로)에서 행의 `data-element-id={element.id}` 제거. 클릭→선택 매핑은 preview 의 `closest([data-element-id])` 가 상위 ListBox 루트(owner)를 찾아 보존.
+  - 검증: `listBoxAdr146Template.test.tsx` 에 Path 2 행 owner-id 격리 계약 추가(RED→GREEN) · shared renderers 68 PASS · type-check PASS · live(Chrome MCP, mobile 390px): 행 min-height 200→20px·row-gap 10→2px(기본값 복귀), 컨테이너는 min-height:200/gap:10 responsive override 유지
+  - 위치: `packages/shared/src/renderers/SelectionRenderers.tsx`
+
 ## [Compare 모드 줌 fit/축소 시 캔버스 전체 소실 수정 — viewport containerSize 좌표계] - 2026-07-20
 
 ### Bug Fixes

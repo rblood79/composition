@@ -528,7 +528,13 @@ export const renderListBox = (
     <ListBoxItem
       key={item.id}
       id={item.id}
-      data-element-id={element.id}
+      // ADR-154 responsive @media 전가 방지: buildResponsiveElementCss 는 컨테이너의
+      //   responsive override 를 `@media { [data-element-id="{owner}"] { ...!important } }` 로
+      //   emit 한다. items[] 행이 owner element.id 를 data-element-id 로 물려받으면 그 규칙이
+      //   모든 행에 매치되어 min-height/gap 등이 자식으로 전가된다(2026-07-21). 행은 owner id 를
+      //   갖지 않는다 — 클릭 매핑은 preview App 의 closest([data-element-id]) 가 상위 ListBox
+      //   루트(data-element-id={owner})를 찾아 보존된다. (Path 1 템플릿 행은 template.id 를
+      //   써 owner 와 충돌하지 않으므로 별도 유지.)
       textValue={item.textValue ?? item.label}
       isDisabled={Boolean(item.isDisabled)}
       // ADR-148: icon slot 크기 채널(--lb-icon-size) — Path 1 과 동일 주입.
