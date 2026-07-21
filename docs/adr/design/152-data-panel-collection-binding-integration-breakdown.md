@@ -50,11 +50,14 @@ export interface PropertyDataBinding {
   collectionId?: string;
   /** v1 잔존 — collectionId 부재 시에만 fallback resolve. 저장 시 v2 로 upgrade */
   name: string;
-  /** v2: 역할별 컬럼 매핑 — 미지정 시 기존 휴리스틱 fallback */
+  /** v2: 역할별 컬럼 매핑 — 미지정 시 기존 휴리스틱 fallback.
+   *  개정 2026-07-21 (ADR-159 경계 재획정): label/description 텍스트 표시는
+   *  ADR-159 {field} 템플릿이 정본 — 신규 오소링 UI 는 아래 두 텍스트 필드를
+   *  노출하지 않는다 (legacy 판독 호환만). fieldMap 은 비텍스트 역할 한정. */
   fieldMap?: {
-    label?: string; // item 표시 텍스트 컬럼
+    label?: string; // (159 이관 — legacy 판독만, 신규 오소링 미노출)
     value?: string; // item value/key 컬럼
-    description?: string; // 보조 텍스트 컬럼
+    description?: string; // (159 이관 — legacy 판독만, 신규 오소링 미노출)
     icon?: string; // 아이콘 컬럼
   };
   path?: string; // 고급 (free-text) — 유지
@@ -93,7 +96,9 @@ resolve 규칙 (단일 헬퍼 `resolveBoundCollection(binding, collections)` 신
 
 ### Phase 2 — Inspector column mapping UI
 
-- [ ] `PropertyDataBinding.tsx` — source=dataTable 선택 시 해당 DataTable schema 를 읽어 fieldMap(label/value/description/icon) Select 노출 (`PropertyDataBinding` 기존 Select 패턴 위 신규 구성 — ColumnSelector 는 목적 상이, 참고만)
+> 개정 2026-07-21 (ADR-159 경계 재획정): 텍스트 표시(label/description) 매핑 UI 는 ADR-159 오소링(slot Text ComboBox 피커+`{field}` 입력)으로 이관. 본 Phase 의 fieldMap UI 는 **비텍스트 역할(icon/value) 한정**. 또한 159 P4b(SOURCE_OPTIONS → dataTable 단일)가 선행하면 본 Phase 는 축소된 표면 위에서 진행.
+
+- [ ] `PropertyDataBinding.tsx` — dataTable 선택 시 해당 DataTable schema 를 읽어 fieldMap(**value/icon 한정** — label/description 은 159 이관) Select 노출 (`PropertyDataBinding` 기존 Select 패턴 위 신규 구성 — ColumnSelector 는 목적 상이, 참고만)
 - [ ] `path` free-text 는 "고급" 접힘 영역으로 격하
 - [ ] Data 패널 쪽 진입 동선: DataTableEditor 에 "이 테이블을 사용하는 요소" 역참조 표시는 **범위 외** (후속 UX 과제로 기록만)
 
@@ -122,7 +127,7 @@ resolve 규칙 (단일 헬퍼 `resolveBoundCollection(binding, collections)` 신
 - [ ] 프로젝트 publish 시 data snapshot 직렬화: `collections`(schema+mockData, `runtimeData` 제외) + `api_endpoints` 정의를 publish payload 에 포함
 - [ ] `apps/publish` 에 read-only collections provider + 동일 `resolveCollectionItems` 소비 (shared 계약 재사용 — 신규 로직 최소화)
 - [ ] live 게이트 G3: publish 된 프로젝트에서 dataTable 바인딩 ListBox/Table 이 snapshot 데이터 렌더 확인
-- [ ] API source 는 publish 런타임에서 직접 fetch (proxy 경로 재사용 판정 — Phase 0 인벤토리 결과 반영)
+- [ ] ~~API source 는 publish 런타임에서 직접 fetch~~ → 개정 2026-07-21: ADR-159 dataTable 단일 방향 — api/variable/route 오소링 제거(159 P4c, G4 소비처 0 확증 게이트) 확정 시 본 항목 소멸, publish 는 collections snapshot 만 소비. 159 G4 실패(잔존 소비처 발견) 시에만 본 항목 원안 복귀 판정
 
 ### Phase 7 — closure
 
