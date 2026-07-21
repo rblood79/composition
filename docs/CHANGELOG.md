@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [비-desktop breakpoint 편집값이 Style 패널 재선택 시 미표시 수정 — 표시 경로 responsive resolve] - 2026-07-21
+
+### Bug Fixes
+
+- **mobile/tablet breakpoint 에서 Style 패널로 편집한 값(gap/padding/width 등)이 다른 요소 선택 후 재선택 시 사라짐** (편집 직후에는 보이나 재선택하면 base 값으로 되돌아 보임):
+  - ADR-154 에서 편집 write 경로(`inspectorActions.updateSelectedStyle`)는 `activeBreakpoint !== "desktop"` 이면 `element.responsive.styles[breakpoint]` 로 저장하도록 breakpoint-aware 로 만들었으나, **Style 패널 표시 read 경로(`useElementStyleContext`)는 `element.props.style`(desktop base)만 읽고 `responsive.styles` 를 병합하지 않아** 재선택 시 편집값을 놓쳤다. 편집 직후에는 `PropertyUnitInput` 의 로컬 입력 state 가 값을 들고 있어 보이지만, 요소 전환 후 재선택하면 입력이 `value` prop(=base)으로 재초기화되어 값이 소실. gap 뿐 아니라 non-desktop 에서 편집한 **모든 style 필드**(Layout/Transform/Appearance/Typography 4 섹션)가 동일 증상.
+  - **Why**: ADR-154 write 측은 breakpoint-aware 로 전환됐는데 Style 패널 read/표시 측이 breakpoint-blind 로 남은 비대칭. 패널은 `activeBreakpoint` 를 헤더 라벨 표시에만 쓰고 실제 값 resolve 엔 미사용이었다.
+  - 수정: `useElementStyleContext` 가 `activeBreakpoint` 를 구독하고, 비-desktop + `element.responsive` 존재 시 canvas render 와 **동일한 `resolveResponsiveStyleMap` SSOT** 로 responsive override 를 base 에 merge 한 style 을 반환 → 6개 display 값 hook(useLayoutValues/useTransformValues/useAppearanceValues/useTypographyValues/useLayoutAuxiliary/useFillValues) 전체에 자동 반영. 패널 표시 ↔ 캔버스 렌더 대칭 확보.
+  - override/dirty(reset 버튼) 판정은 raw `element`+`element.responsive` 를 읽는 별도 경로(`useResetStyles`)라 무영향 — merged style 로 override 존재를 재판정하지 않음(`feedback-merged-style-map-kills-override-detection`).
+  - 검증: `useLayoutValues.test.tsx` 에 responsive 표시 계약 추가(mobile override 33→"33" 표시 / desktop 은 spec fallback, RED→GREEN) · `styleReadCanonical.static.test.ts` guard 를 blanket `useStore` ban → element-read 정밀 차단 + `state.activeBreakpoint` 허용으로 정정 · styles hooks + resolveResponsive 158 PASS · builder type-check PASS · **live(Chrome MCP, mobile)**: body gap:33 편집 → responsive.styles.mobile 저장(base 무전가) → 패널 Gap 입력 "33" 표시 → 다른 요소 선택 후 재선택 시 "33" 유지 실증(정확한 repro 재현·해소)
+  - 위치: `apps/builder/src/builder/panels/styles/hooks/useElementStyleContext.ts`
+  - 참고: reset 버튼/dirty 뱃지의 non-desktop responsive override 감지는 별도 read 경로(base 기준)라 이번 수정 범위 밖 — 후속 판정 대상.
+
 ## [Laptop breakpoint 토글 제거 — 아트보드 preset 을 3-tier(desktop/tablet/mobile)로 정리] - 2026-07-21
 
 ### Bug Fixes

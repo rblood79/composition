@@ -221,6 +221,53 @@ describe("useLayoutValues — ADR-082 P1-2 padding/margin shorthand 4-way unifor
   });
 });
 
+// ADR-154 Bug: 비-desktop breakpoint 에서 편집한 style 이 재선택 시 Panel 에 미표시.
+//   write 경로(updateSelectedStyle)는 activeBreakpoint !== "desktop" 이면
+//   element.responsive.styles 로 저장하는데, 표시 경로(useElementStyleContext)는
+//   props.style(base) 만 읽어 responsive override 를 놓쳤다. 표시값도 activeBreakpoint
+//   기준 responsive 를 merge 해야 재선택 시 편집값이 보인다 (canvas render 와 동일 SSOT).
+describe("useLayoutValues — ADR-154 responsive override 표시", () => {
+  function makeResponsiveElement(id: string, responsive: unknown): Element {
+    return {
+      id,
+      type: "Frame",
+      props: { size: "md", style: {} },
+      responsive,
+    } as unknown as Element;
+  }
+
+  beforeEach(() => {
+    // gap:20 을 mobile 에서 편집한 실제 저장 shape (longhand 분배 + 숫자 변환)
+    setTestElements([
+      makeResponsiveElement("el-resp", {
+        styles: {
+          rowGap: { mobile: 20 },
+          columnGap: { mobile: 20 },
+        },
+      }),
+    ]);
+    vi.spyOn(preset, "resolveLayoutSpecPreset").mockReturnValue({ gap: 4 });
+  });
+
+  afterEach(() => {
+    useStore.setState({ activeBreakpoint: "desktop" } as never);
+    vi.restoreAllMocks();
+  });
+
+  it("mobile breakpoint 에서 responsive rowGap override 를 gap 으로 표시", () => {
+    useStore.setState({ activeBreakpoint: "mobile" } as never);
+    const { result } = renderHook(() => useLayoutValues("el-resp"));
+    // firstDefined 가 String(20) → "20" (responsive override, base 없음·spec "4px" 아님)
+    expect(result.current?.gap).toBe("20");
+  });
+
+  it("desktop breakpoint 에서는 responsive 를 무시하고 base/spec 표시", () => {
+    useStore.setState({ activeBreakpoint: "desktop" } as never);
+    const { result } = renderHook(() => useLayoutValues("el-resp"));
+    expect(result.current?.gap).toBe("4px"); // spec fallback (responsive 미적용)
+  });
+});
+
 describe("useLayoutValues — ADR-108 P3 variant-aware Panel fallback", () => {
   afterEach(() => vi.restoreAllMocks());
 

@@ -1,5 +1,8 @@
+import { useMemo } from "react";
 import { resolveComponentRule } from "@composition/shared";
 import { getSpecForTag } from "../../../workspace/canvas/sprites/tagSpecMap";
+import { resolveResponsiveStyleMap } from "../../../workspace/canvas/layout/resolveResponsive";
+import { useStore } from "../../../stores";
 import type { PanelNode } from "../../panelNode";
 import { useCanonicalPropertyElementsMap } from "../../properties/hooks/useCanonicalPropertyRead";
 
@@ -72,10 +75,30 @@ function resolveStyleSpecType(
  */
 export function useElementStyleContext(id: string | null): ElementStyleContext {
   const elementsMap = useCanonicalPropertyElementsMap();
+  const activeBreakpoint = useStore((state) => state.activeBreakpoint);
   const element = id ? elementsMap.get(id) : undefined;
   const props = element?.props as Readonly<Record<string, unknown>> | undefined;
   const type = resolveStyleSpecType(element, elementsMap);
-  const style = props?.style as Record<string, unknown> | undefined;
+  const baseStyle = props?.style as Record<string, unknown> | undefined;
+  const responsive = element?.responsive;
+
+  // ADR-154: 비-desktop breakpoint 편집은 `element.responsive.styles` 로 저장되므로
+  // (updateSelectedStyle), 표시값도 activeBreakpoint 기준 responsive override 를 merge
+  // 해야 재선택 시 편집값이 보인다. canvas render 와 **동일한 resolveResponsiveStyleMap**
+  // SSOT 를 공유해 Panel 표시 ↔ 캔버스 렌더 대칭을 유지한다.
+  //
+  // 주의(feedback-merged-style-map-kills-override-detection): 여기서 만든 merged style
+  // 로 "override/dirty 존재" 를 재판정하지 않는다 — dirty/reset 판정(useResetStyles)은
+  // raw `element` + `element.responsive` 를 읽는 별도 경로다.
+  const style = useMemo<Record<string, unknown> | undefined>(() => {
+    if (activeBreakpoint === "desktop" || !responsive) return baseStyle;
+    return resolveResponsiveStyleMap(
+      baseStyle ?? {},
+      responsive,
+      activeBreakpoint,
+    );
+  }, [baseStyle, responsive, activeBreakpoint]);
+
   const size = props?.size as string | undefined;
   const fills = (element as { fills?: unknown[] } | undefined)?.fills;
   return { style, type, size, fills, props };

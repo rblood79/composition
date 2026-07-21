@@ -11,7 +11,12 @@ describe("style hooks canonical read contract", () => {
 
     expect(source).toContain("useCanonicalPropertyElementsMap");
     expect(source).toContain("elementsMap.get(id)");
-    expect(source).not.toContain("useStore");
+    // activeBreakpoint(스칼라 UI 세션 상태)는 canonical 문서에 없어 store 가 SSOT —
+    // useStore 로 읽는다 (ADR-154 responsive 표시, StylesPanel/BuilderCanvas 와 동일).
+    // 계약의 금지 대상은 "요소(elements)를 store 로 읽어 canonical read hook 을 우회"
+    // 하는 것이므로, blanket useStore ban 대신 element-read 경로만 정밀 차단한다.
+    expect(source).toContain("state.activeBreakpoint");
+    expect(source).not.toContain("state.elements");
     expect(source).not.toContain("useCanonicalElements");
     expect(source).not.toContain("canonicalElements?.find(");
     expect(source).not.toContain("s.elementsMap.get(id)?.props");
