@@ -22,6 +22,7 @@ import {
   resolveTypographySpecPreset,
 } from "../utils/specPresetResolver";
 import { numToPx, uniform4Way } from "../utils/styleValueHelpers";
+import { isGlobalStyleProp } from "../../../stores/utils/globalStyleProps";
 import { LAYOUT_PRESETS } from "../../properties/editors/LayoutPresetSelector/presetDefinitions";
 import { normalizeFramePresetContainerStyle } from "../../properties/editors/LayoutPresetSelector/presetStyle";
 import {
@@ -646,8 +647,13 @@ export function computeDirtyStyleProps(
     //   backgroundColor 를 dirty 로 surface 해 전역 write ↔ 전역 reset 대칭을 복원한다.
     const hasFillsGlobal =
       Array.isArray(element.fills) && element.fills.length > 0;
+    // border(색/스타일/너비)도 전역 속성(base props.style)이라 responsive override 에 안 담긴다.
+    //   fills 와 동형 — base 비교로 dirty 를 surface 해 non-desktop 에서도 reset 버튼이 산다
+    //   (2026-07-22 사용자 보고). globalStyleProps.ts 참조.
+    const globalKeys = keys.filter(isGlobalStyleProp);
     const dirty: string[] = [];
     for (const prop of keys) {
+      if (isGlobalStyleProp(prop)) continue; // 아래 base 비교로 처리
       if (prop === "backgroundColor" && hasFillsGlobal) {
         dirty.push(prop);
         continue;
@@ -656,9 +662,32 @@ export function computeDirtyStyleProps(
         dirty.push(prop);
       }
     }
+    if (globalKeys.length > 0) {
+      dirty.push(...computeBaseDirtyStyleProps(element, context, globalKeys));
+    }
     return dirty;
   }
 
+  return computeBaseDirtyStyleProps(element, context, properties);
+}
+
+// base props.style 을 reset baseline(spec/legacy/subpart)과 비교해 dirty 속성을 판정.
+//   computeDirtyStyleProps 의 desktop 경로 + non-desktop 전역 속성(border) 경로 공용.
+function computeBaseDirtyStyleProps(
+  element: {
+    type: string;
+    props?: Readonly<Record<string, unknown>>;
+    fills?: unknown[];
+    responsive?: ElementResponsiveConfig;
+  },
+  context:
+    | {
+        parentType?: string;
+        grandParentType?: string;
+      }
+    | undefined,
+  properties: string[] | undefined,
+): string[] {
   const rawStyle = (element.props?.style as Record<string, unknown>) || {};
   // 배경(backgroundColor)은 fills(canonical 1차 SSOT)로 이동했다. dirty 판정은 fills 로 adapt 한
   //   effective style 을 기준으로 해야 "배경만 바꾼" 요소의 Appearance reset 버튼이 뜬다(M1).
@@ -696,6 +725,43 @@ export function computeDirtyStyleProps(
     if (currentValue !== resetValue) dirty.push(prop);
   }
   return dirty;
+}
+
+// base props.style 기준 reset 값 map 을 계산 (변경 필요한 속성만). resetStyles 의 desktop
+//   경로 + non-desktop 전역 속성(border) 경로 공용. updateSelectedStyles 가 breakpoint 별
+//   저장소(base vs responsive)로 라우팅한다.
+function computeBaseResetObj(
+  element: { type: string; props?: Readonly<Record<string, unknown>> },
+  context: { parentType?: string; grandParentType?: string } | undefined,
+  properties: string[],
+): Record<string, string> {
+  const currentStyle = (element.props?.style as Record<string, unknown>) || {};
+  const { legacyStyle, specStyle, subpartStyle } = resolveResetBaseline(
+    element,
+    context,
+  );
+  const resetObj: Record<string, string> = {};
+  properties.forEach((prop) => {
+    const currentValue = resolveCurrentStyleValue(prop, currentStyle);
+    if (currentValue === undefined) return;
+    const targetValue = resolveTargetValue(
+      prop,
+      specStyle,
+      legacyStyle,
+      subpartStyle,
+    );
+    const subpartReset = normalizeStyleValue(prop, subpartStyle[prop]);
+    const resetValue =
+      subpartReset !== undefined
+        ? subpartReset
+        : specStyle[prop] !== undefined
+          ? ""
+          : (normalizeStyleValue(prop, legacyStyle[prop]) ?? "");
+    if (currentValue !== targetValue) {
+      resetObj[prop] = resetValue;
+    }
+  });
+  return resetObj;
 }
 
 /**
@@ -802,6 +868,10 @@ export function useResetStyles() {
     // responsive override 를 clear 한다. dirty 판정(computeDirtyStyleProps)과 동일하게
     // 이 breakpoint 에 명시된 override 만 대상으로 "" 를 보내면, responsive-aware 로 만든
     // updateSelectedStyles 가 buildResponsiveStyleOverride 로 해당 breakpoint 키를 제거한다.
+    const context = {
+      parentType: parentNode?.type,
+      grandParentType: grandParentNode?.type,
+    };
     const activeBreakpoint = state.activeBreakpoint;
     if (activeBreakpoint !== "desktop") {
       const overrideStyle = collectBreakpointOverrideStyle(
@@ -809,51 +879,31 @@ export function useResetStyles() {
         activeBreakpoint,
       );
       const resetObj: Record<string, string> = {};
+      const globalProps: string[] = [];
       properties.forEach((prop) => {
+        // 전역 속성(border)은 base 에 저장되므로 responsive override 대신 base 비교로 reset.
+        if (isGlobalStyleProp(prop)) {
+          globalProps.push(prop);
+          return;
+        }
         if (resolveCurrentStyleValue(prop, overrideStyle) !== undefined) {
           resetObj[prop] = "";
         }
       });
+      if (globalProps.length > 0) {
+        // updateSelectedStyles 가 전역 속성을 base 로 라우팅 → base reset 값 계산.
+        Object.assign(
+          resetObj,
+          computeBaseResetObj(element, context, globalProps),
+        );
+      }
       if (Object.keys(resetObj).length === 0) return;
       state.updateSelectedStyles(resetObj);
       return;
     }
 
-    const currentStyle =
-      (element.props?.style as Record<string, unknown>) || {};
-    const { legacyStyle, specStyle, subpartStyle } = resolveResetBaseline(
-      element,
-      {
-        parentType: parentNode?.type,
-        grandParentType: grandParentNode?.type,
-      },
-    );
-
     // 실제로 변경이 필요한 속성만 포함 (dirty check)
-    const resetObj: Record<string, string> = {};
-    properties.forEach((prop) => {
-      const currentValue = resolveCurrentStyleValue(prop, currentStyle);
-      if (currentValue === undefined) return;
-      const targetValue = resolveTargetValue(
-        prop,
-        specStyle,
-        legacyStyle,
-        subpartStyle,
-      );
-      // reset 값 우선순위: subpart 명시 키는 그 값을 store 에 명시 기록 (specStyle 처럼 ""로 지우면
-      //   specStyle 값으로 되돌아가 부모 컨텍스트 정본이 깨짐). 그 외엔 기존 동작(specStyle 있으면
-      //   "" 삭제 → specStyle fallback, 없으면 legacyStyle 값).
-      const subpartReset = normalizeStyleValue(prop, subpartStyle[prop]);
-      const resetValue =
-        subpartReset !== undefined
-          ? subpartReset
-          : specStyle[prop] !== undefined
-            ? ""
-            : (normalizeStyleValue(prop, legacyStyle[prop]) ?? "");
-      if (currentValue !== targetValue) {
-        resetObj[prop] = resetValue;
-      }
-    });
+    const resetObj = computeBaseResetObj(element, context, properties);
 
     // 변경할 속성이 없으면 히스토리 기록 없이 조기 반환
     if (Object.keys(resetObj).length === 0) return;

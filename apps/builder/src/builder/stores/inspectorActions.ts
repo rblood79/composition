@@ -61,6 +61,10 @@ import {
   LAYOUT_AFFECTING_PROP_KEYS,
 } from "./utils/layoutInvalidation";
 import { applyBorderCompanionDefaults } from "./utils/borderCompanionDefaults";
+import {
+  clearGlobalStyleResponsiveOverrides,
+  isGlobalStyleProp,
+} from "./utils/globalStyleProps";
 import { mergePropsWithStyleDeep } from "../../adapters/canonical/instanceResolver";
 
 // CSS shorthand → longhand 분배 매핑 (inspectorActions 공용).
@@ -93,6 +97,44 @@ function distributeShorthand(
     if (value === undefined) delete style[lh];
     else style[lh] = value;
   }
+}
+
+// base props.style 에 style 항목 하나를 반영 (숫자 변환 + shorthand 분배 + border companion).
+//   updateSelectedStyle / updateSelectedStyles 의 base 쓰기 로직과 동일 규약.
+const BASE_NUMERIC_STYLE_PROPS: ReadonlySet<string> = new Set([
+  "fontSize",
+  "fontWeight",
+  "lineHeight",
+  "letterSpacing",
+  "opacity",
+  "padding",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "gap",
+  "rowGap",
+  "columnGap",
+  "borderWidth",
+  "borderRadius",
+]);
+
+function applyBaseStyleEntry(
+  style: Record<string, unknown>,
+  property: string,
+  value: string,
+): void {
+  const isClearing = value === "" || value === null || value === undefined;
+  if (isClearing) {
+    delete style[property];
+  } else if (BASE_NUMERIC_STYLE_PROPS.has(property)) {
+    const num = parseFloat(value);
+    style[property] = Number.isNaN(num) ? value : num;
+  } else {
+    style[property] = value;
+  }
+  distributeShorthand(style, property);
+  if (!isClearing) applyBorderCompanionDefaults(style, property);
 }
 
 // ADR-154: 반응형 override 저장 시 숫자 변환 대상 (Canvas spec shapes 는 숫자 기대)
@@ -779,8 +821,10 @@ export const createInspectorActionsSlice: StateCreator<
 
       // ADR-154: 비-desktop breakpoint 편집은 base(props.style) 대신
       // element.responsive.styles override 로 저장 (desktop = base, 기존 동작 유지).
+      // 단, 전역 속성(border 색/스타일/너비)은 breakpoint 무관하게 base 에 저장한다
+      // (배경 fills 동일 취급 — globalStyleProps.ts).
       const activeBreakpoint = get().activeBreakpoint;
-      if (activeBreakpoint !== "desktop") {
+      if (activeBreakpoint !== "desktop" && !isGlobalStyleProp(property)) {
         const nextResponsive = buildResponsiveStyleOverride(
           baseElement.responsive,
           property,
@@ -848,10 +892,16 @@ export const createInspectorActionsSlice: StateCreator<
         );
       }
 
+      // 전역 속성(border)을 base 에 쓸 때, stale responsive override 가 남아 특정
+      // breakpoint 에서 base 를 shadow 하지 않도록 responsive.styles 의 border 키를 정리.
+      const clearedResponsive = isGlobalStyleProp(property)
+        ? clearGlobalStyleResponsiveOverrides(baseElement.responsive)
+        : null;
+
       updateAndSave(
         element.id,
         { style: currentStyle },
-        undefined,
+        clearedResponsive ? { responsive: clearedResponsive } : undefined,
         savedPrePreview && savedPrePreview.id === element.id
           ? savedPrePreview
           : undefined,
@@ -876,14 +926,15 @@ export const createInspectorActionsSlice: StateCreator<
 
       let updatedElement: Element;
 
-      if (activeBreakpoint !== "desktop") {
+      if (activeBreakpoint !== "desktop" && !isGlobalStyleProp(property)) {
         // ADR-154: 비-desktop 은 base(props.style) 대신 responsive override 를 preview
         // 로 반영한다. elementsMap 만 갱신(히스토리/DB 없음)하고 base 는 무변경이라
         // base 오염이 없다. commit 경로(updateSelectedStyle)가 동일
         // buildResponsiveStyleOverride 로 최종 override 를 기록하며,
         // resolveResponsiveLayoutNode 가 activeBreakpoint 기준으로 이 preview override
         // 를 merge → 드래그/타이핑 중 캔버스 즉시 반영. (숫자/shorthand 변환은
-        // buildResponsiveStyleOverride 내부에서 처리.)
+        // buildResponsiveStyleOverride 내부에서 처리.) 전역 속성(border)은 아래 base
+        // preview 로 반영 (breakpoint 무관).
         const nextResponsive = buildResponsiveStyleOverride(
           element.responsive,
           property,
@@ -949,7 +1000,16 @@ export const createInspectorActionsSlice: StateCreator<
           ...getInspectorWritableProps(element),
           style: currentStyle,
         };
-        updatedElement = buildInspectorUpdatedElement(element, newProps);
+        // 전역 속성(border) preview 는 stale responsive override 를 정리해 base 값이
+        // 모든 breakpoint preview 에 그대로 반영되게 한다.
+        const clearedResponsive = isGlobalStyleProp(property)
+          ? clearGlobalStyleResponsiveOverrides(element.responsive)
+          : null;
+        updatedElement = buildInspectorUpdatedElement(
+          element,
+          newProps,
+          clearedResponsive ? { responsive: clearedResponsive } : undefined,
+        );
       }
 
       // 공통 tail — elementsMap 만 업데이트 (캔버스 렌더링용)
@@ -1033,10 +1093,20 @@ export const createInspectorActionsSlice: StateCreator<
       // ADR-154: 비-desktop breakpoint 에서는 batch style 편집도 base(props.style) 대신
       // element.responsive.styles override 로 저장 (단수 updateSelectedStyle 와 대칭).
       // reset(useResetStyles) 이 이 경로로 responsive override 를 "" 로 clear 한다.
+      // 단, 전역 속성(border 색/스타일/너비)은 breakpoint 무관하게 base 에 반영한다 —
+      // 한 batch 에 전역+응답형이 섞이면 축을 분리해 각각의 저장소에 기록.
       const activeBreakpoint = get().activeBreakpoint;
       if (activeBreakpoint !== "desktop") {
+        const entries = Object.entries(styles);
+        const globalEntries = entries.filter(([property]) =>
+          isGlobalStyleProp(property),
+        );
+        const responsiveEntries = entries.filter(
+          ([property]) => !isGlobalStyleProp(property),
+        );
+
         let nextResponsive = baseElement.responsive;
-        for (const [property, value] of Object.entries(styles)) {
+        for (const [property, value] of responsiveEntries) {
           nextResponsive = buildResponsiveStyleOverride(
             nextResponsive,
             property,
@@ -1044,10 +1114,39 @@ export const createInspectorActionsSlice: StateCreator<
             activeBreakpoint,
           );
         }
+
+        // 전역 속성이 없으면 기존 responsive-only 경로 유지
+        if (globalEntries.length === 0) {
+          updateAndSave(
+            element.id,
+            {},
+            { responsive: nextResponsive },
+            savedPrePreview && savedPrePreview.id === element.id
+              ? savedPrePreview
+              : undefined,
+          );
+          return;
+        }
+
+        // 전역 속성은 base 에 반영 + responsive.styles 의 border 키 정리(stale shadow 방지)
+        const resolvedBaseElement = getResolvedInspectorElement(
+          baseElement,
+          getInspectorLookupElements(),
+        );
+        const baseStyle = {
+          ...((resolvedBaseElement.props?.style as Record<string, unknown>) ||
+            {}),
+        };
+        for (const [property, value] of globalEntries) {
+          applyBaseStyleEntry(baseStyle, property, value);
+        }
+        const finalResponsive =
+          clearGlobalStyleResponsiveOverrides(nextResponsive) ?? nextResponsive;
+
         updateAndSave(
           element.id,
-          {},
-          { responsive: nextResponsive },
+          { style: baseStyle },
+          { responsive: finalResponsive },
           savedPrePreview && savedPrePreview.id === element.id
             ? savedPrePreview
             : undefined,

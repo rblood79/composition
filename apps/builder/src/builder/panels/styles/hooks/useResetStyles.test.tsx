@@ -1040,4 +1040,51 @@ describe("useResetStyles — ADR-154 non-desktop responsive override dirty/reset
     const { result } = renderHook(() => useHasDirtyStyles(["backgroundColor"]));
     expect(result.current).toBe(true);
   });
+
+  // border(색/스타일/너비)는 전역(base) 속성 — fills 와 동형으로 non-desktop 에서도
+  //   base 비교로 dirty 를 surface 해야 reset 버튼이 산다 (2026-07-22).
+  it("computeDirtyStyleProps: mobile 에서 base border 는 dirty (전역 속성)", () => {
+    vi.spyOn(preset, "resolveAppearanceSpecPreset").mockReturnValue(
+      {} as never,
+    );
+    const el = {
+      id: "resp-border",
+      type: "Frame",
+      props: {
+        style: {
+          borderColor: "#ff0000",
+          borderStyle: "dashed",
+          borderWidth: 2,
+        },
+      },
+    } as unknown as Element;
+    const dirty = computeDirtyStyleProps(
+      el,
+      undefined,
+      ["borderColor", "borderStyle", "borderWidth"],
+      "mobile" as never,
+    );
+    expect(dirty).toContain("borderColor");
+    expect(dirty).toContain("borderStyle");
+    expect(dirty).toContain("borderWidth");
+  });
+
+  it("computeDirtyStyleProps: base border 없으면 mobile 에서 dirty 아님", () => {
+    vi.spyOn(preset, "resolveAppearanceSpecPreset").mockReturnValue(
+      {} as never,
+    );
+    const el = {
+      id: "resp-noborder",
+      type: "Frame",
+      props: { style: {} },
+    } as unknown as Element;
+    const dirty = computeDirtyStyleProps(
+      el,
+      undefined,
+      ["borderColor", "borderWidth"],
+      "mobile" as never,
+    );
+    expect(dirty).not.toContain("borderColor");
+    expect(dirty).not.toContain("borderWidth");
+  });
 });

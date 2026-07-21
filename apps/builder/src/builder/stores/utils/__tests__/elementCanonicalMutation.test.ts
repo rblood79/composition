@@ -1594,4 +1594,124 @@ describe("element mutations keep canonical document primary", () => {
       "page-card-b",
     ]);
   });
+
+  // border(색/스타일/너비)는 전역 속성 — 어느 breakpoint 에서 편집해도 base props.style 에
+  //   저장되어 모든 breakpoint 에 적용된다 (2026-07-22 사용자 보고, 배경 fills 동형).
+  function setupBorderGlobalCase(
+    buttonPatch: Partial<Element> & Record<string, unknown> = {},
+  ): { state: MockState; button: Element } {
+    const body = makeElement("body", "body", { page_id: "page-1" });
+    const button = makeElement("btn", "Button", {
+      parent_id: "body",
+      page_id: "page-1",
+      props: { label: "A" },
+      ...buttonPatch,
+    });
+    const state = makeState([body, button]);
+    state.currentPageId = "page-1";
+    state.pages = [makePage("page-1")];
+    state.selectedElementId = "btn";
+    state.selectedElementIds = ["btn"];
+    state.selectedElementIdsSet = new Set(["btn"]);
+    state.selectedElementProps = button.props as Record<string, unknown>;
+    state.activeBreakpoint = "mobile";
+    registerCanonicalActions(state, []);
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          name: "Page 1",
+          metadata: { type: "legacy-page", pageId: "page-1", parent_id: null },
+          children: [
+            {
+              ...makeCanonicalElementNode(body),
+              children: [makeCanonicalElementNode(button)],
+            },
+          ],
+        } satisfies FrameNode,
+      ],
+    });
+    return { state, button };
+  }
+
+  function readButtonNode(): CanonicalNode | undefined {
+    const page = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1")
+      ?.children.find((node) => node.id === "page-1") as FrameNode | undefined;
+    const body = page?.children?.find((node) => node.id === "body");
+    return body?.children?.find((node) => node.id === "btn");
+  }
+
+  it("mobile 에서 border 편집은 base props.style 에 저장(전역), responsive override 아님", () => {
+    const { state } = setupBorderGlobalCase();
+    const inspectorActions = createInspectorActionsSlice(
+      createSetMock(state) as never,
+      () => state as never,
+      {} as never,
+    );
+
+    inspectorActions.updateSelectedStyle("borderColor", "#ff0000");
+
+    const btn = readButtonNode();
+    expect((btn?.props?.style as Record<string, unknown>)?.borderColor).toBe(
+      "#ff0000",
+    );
+    const responsive = (btn as { responsive?: { styles?: unknown } })
+      ?.responsive;
+    expect(
+      (responsive?.styles as Record<string, unknown> | undefined)?.borderColor,
+    ).toBeUndefined();
+  });
+
+  it("mobile 에서 border 편집 시 기존 responsive border override 를 정리(base 우선)", () => {
+    const { state } = setupBorderGlobalCase({
+      responsive: {
+        styles: { borderColor: { mobile: "#00ff00", tablet: "#0000ff" } },
+      },
+    } as never);
+    const inspectorActions = createInspectorActionsSlice(
+      createSetMock(state) as never,
+      () => state as never,
+      {} as never,
+    );
+
+    inspectorActions.updateSelectedStyle("borderColor", "#ff0000");
+
+    const btn = readButtonNode();
+    expect((btn?.props?.style as Record<string, unknown>)?.borderColor).toBe(
+      "#ff0000",
+    );
+    const responsive = (btn as { responsive?: { styles?: unknown } })
+      ?.responsive;
+    expect(
+      (responsive?.styles as Record<string, unknown> | undefined)?.borderColor,
+    ).toBeUndefined();
+  });
+
+  it("mobile 에서 비-전역 속성(padding)은 기존대로 responsive override 에 저장", () => {
+    const { state } = setupBorderGlobalCase();
+    const inspectorActions = createInspectorActionsSlice(
+      createSetMock(state) as never,
+      () => state as never,
+      {} as never,
+    );
+
+    inspectorActions.updateSelectedStyle("paddingTop", "24");
+
+    const btn = readButtonNode();
+    const responsive = (btn as { responsive?: { styles?: unknown } })
+      ?.responsive;
+    expect(
+      (responsive?.styles as Record<string, Record<string, unknown>>)
+        ?.paddingTop?.mobile,
+    ).toBe(24);
+    // base props.style 에는 paddingTop 미기록 (responsive 전용)
+    expect(
+      (btn?.props?.style as Record<string, unknown>)?.paddingTop,
+    ).toBeUndefined();
+  });
 });
