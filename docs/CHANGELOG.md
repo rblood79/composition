@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ListBoxItem 인스턴스 행 높이가 label/description slot size 에 미반응 수정 — getLabelLineHeight 단일 소스 + slot font 반영] - 2026-07-21
+
+### Bug Fixes
+
+- **origin ListBoxItem 의 label/description size 를 키워도(예: label 3xl) 인스턴스 행 높이가 안 커져 텍스트가 겹침 (padding 0 일 때 standalone Text 는 size 에 맞춰 커지는데 collection 행은 안 커짐)**:
+  - 두 원인 복합: **(A) line-height cap** — `resolveListBoxItemMetric` 과 Skia `listbox_item` escape 가 `fontSize → lineHeight` 를 `>16 → 28` 로 눌러 xl(20)/2xl(24)/3xl(30) 이상을 전부 28 로 고정(GridListItem escape 는 이미 `getLabelLineHeight` 사용, ListBoxItem 만 방치). **(B) 행 높이가 slot size 를 안 읽음** — projected 행 노드의 intrinsic 높이(`calculateContentHeight` listboxitem 분기)와 가상화 window(`resolveListBoxRowHeight`)가 ListBoxItem 자체 `style.fontSize`(없음→14)만 읽고 label/description slot 자식의 folded fontSize(3xl/2xl)를 무시.
+  - **Why**: label/description 은 텍스트 크기를 `props.size` 토큰(→ `_slots` fold)으로 authoring 하는데 행 높이 resolver 가 그 축을 안 봤다. line-height cap 은 표준 사이즈(≤18)만 상정한 계단 매핑이라 2xl+ 를 눌렀다. origin 은 실 자식 노드라 layout child-sum 으로 정상 → instance projection 경로 한정 버그.
+  - 수정 (Skia, **generic — border 아닌 size 축 전반**):
+    - **line-height 단일 소스**: `resolveListBoxItemMetric.lineHeight` + escape 를 `getLabelLineHeight`(typography 룩업 + `ceil(fontSize*1.5)` fallback, standalone Text/Label = LABEL_SIZE_STYLE 동형)로 교체. 표준 사이즈(≤18)는 값 동일(BC), 2xl+ 만 size 비례로 커짐.
+    - **slot font 반영**: `resolveListBoxItemRowHeight` 에 `descriptionLineHeight`(label≠description size 지원) 추가, `resolveListBoxItemRowHeightFromStyle` 에 slot font size 파라미터 추가, `calculateContentHeight` listboxitem 분기 + `resolveListBoxRowHeight` 가 `_slots` 에서 label/description fontSize 를 추출해 전달. escape 도 per-slot `entryLineHeight` 로 스택 배치.
+  - 위치: `packages/specs/src/renderers/utils/collectionItemMetrics.ts` · `packages/specs/src/renderers/skiaPrimitives.ts`(listbox_item) · `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` · `apps/builder/src/builder/workspace/canvas/scene/collectionVirtualization.ts`
+  - 검증: escape geometry 3종(label만 3xl→y22 / label 3xl+desc 2xl→y22·58 스택 / BC 14→y14) + virtualization 1종(3xl+2xl 행 높이 78) 추가(70 PASS) · type-check PASS · **live(Chrome MCP, mobile)**: Home data-bound 인스턴스 projected 행 계산 높이 = Aardvark/Cat(label 3xl+desc 2xl) **72** / New Item(label 3xl) **40** 로 size 반영 + y 0/74/148 겹침 0 실증(`getSharedLayoutMap` window-probe)
+
 ## [origin ListBoxItem style(border/box-shadow 등) 편집이 인스턴스 행에 미전파 수정 — 행-root responsive 해석 + Skia appearance 렌더] - 2026-07-21
 
 ### Bug Fixes

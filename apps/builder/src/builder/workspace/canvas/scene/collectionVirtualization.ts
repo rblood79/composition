@@ -250,7 +250,17 @@ function resolveListBoxRowHeight(
     typeof sampleDescription === "string" &&
     sampleDescription.length > 0 &&
     isSlotEnabled(slotComposition, "description");
-  return resolveListBoxItemRowHeightFromStyle(rowStyle, hasDescription);
+  // label/description size 는 slot 자식 props.size → `_slots` fold(px number)로 authoring.
+  //   ListBoxItem 자체 style.fontSize 가 아니라 slot fontSize 를 행 높이에 반영해야 origin
+  //   label size(3xl 등) 변경이 instance 행 높이로 전파된다(2026-07-21 사용자 보고).
+  const slotFontOf = (role: "label" | "description"): number | undefined => {
+    const fs = slotComposition?.slots[role]?.style?.fontSize;
+    return typeof fs === "number" ? fs : undefined;
+  };
+  return resolveListBoxItemRowHeightFromStyle(rowStyle, hasDescription, {
+    label: slotFontOf("label"),
+    description: slotFontOf("description"),
+  });
 }
 
 /**

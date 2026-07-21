@@ -59,6 +59,86 @@ function listBoxDoc(opts: {
   } as unknown as CompositionDocument;
 }
 
+/**
+ * origin(`component-listbox-item-default`)을 label/description slot 자식과 함께 실제로
+ * 정의한 doc — instance 행 높이가 slot size 를 반영하는지(Issue 2) 검증용. slot 자식은
+ * explicit `style.fontSize`(catalog 미의존) 로 size 를 authoring.
+ */
+function listBoxDocWithSizedOrigin(opts: {
+  itemCount: number;
+  style?: Record<string, unknown>;
+  labelFontSize: number;
+  descriptionFontSize: number;
+}): CompositionDocument {
+  const items = Array.from({ length: opts.itemCount }, (_, i) => ({
+    id: `k${i}`,
+    label: `Item ${i}`,
+    description: `desc ${i}`,
+  }));
+  const slotChild = (
+    role: "label" | "description",
+    fontSize: number,
+  ): unknown => ({
+    id: `component-listbox-item-default__${role}`,
+    type: "Text",
+    props: { slot: role, style: { fontSize } },
+    metadata: { slotRole: role },
+  });
+  return {
+    version: "composition-1.0",
+    children: [
+      {
+        id: "page-components",
+        type: "frame",
+        metadata: { type: "legacy-page", pageId: "page-components" },
+        children: [
+          {
+            id: "component-listbox-item-default",
+            type: "ListBoxItem",
+            reusable: true,
+            props: {},
+            children: [
+              slotChild("label", opts.labelFontSize),
+              slotChild("description", opts.descriptionFontSize),
+            ],
+          },
+        ],
+      },
+      {
+        id: "page-1",
+        type: "frame",
+        metadata: { type: "legacy-page", pageId: "page-1" },
+        children: [
+          {
+            id: "body-1",
+            type: "Body",
+            props: {},
+            children: [
+              {
+                id: "listbox-1",
+                type: "ListBox",
+                props: { items, style: opts.style },
+                children: [
+                  {
+                    id: "template-anchor",
+                    type: "ref",
+                    ref: "component-listbox-item-default",
+                    props: {},
+                    metadata: {
+                      type: "legacy-element-props",
+                      templateRole: "listbox-item-template-anchor",
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  } as unknown as CompositionDocument;
+}
+
 const SCROLLABLE = { width: "100%", height: 400, overflowY: "auto" };
 
 describe("resolveVirtualizedCollectionWindows — 가상화 대상 판정 + window", () => {
@@ -224,6 +304,24 @@ describe("resolveVirtualizedCollectionWindows — 가상화 대상 판정 + wind
       scrollTops: new Map(),
     });
     expect(map.get("listbox-1")?.rowHeight).toBe(28);
+  });
+
+  // 2026-07-21 (Issue 2): origin label/description slot size 가 instance 행 높이에 반영.
+  //   과거엔 ListBoxItem 자체 fontSize(14→lineHeight 20)만 읽어 label 을 3xl 로 키워도 행이
+  //   28/50 로 고정 → 텍스트 overflow/겹침. label 30(→36) + description 24(→32) →
+  //   pad 4*2 + 36 + gap 2 + 32 = 78.
+  it("origin label(3xl)/description(2xl) slot size → 행 높이가 size 비례로 커진다", () => {
+    const map = resolveVirtualizedCollectionWindows({
+      doc: listBoxDocWithSizedOrigin({
+        itemCount: 1000,
+        style: SCROLLABLE,
+        labelFontSize: 30,
+        descriptionFontSize: 24,
+      }),
+      collections: [],
+      scrollTops: new Map(),
+    });
+    expect(map.get("listbox-1")?.rowHeight).toBe(78);
   });
 
   it('height "400px" 문자열도 bounded 로 인식', () => {

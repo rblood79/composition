@@ -300,3 +300,44 @@ describe("listbox_item 행 appearance — border / box-shadow (2026-07-21)", () 
     expect(borderShape(shapes)?.color).toBe("#f00");
   });
 });
+
+// 2026-07-21 (Issue 2) — 행 높이/스택이 label/description slot size 에 반응:
+//   과거 lineHeight 계단 매핑(>16 → 28 cap)은 3xl(30) label 을 28 로 눌러 텍스트 겹침.
+//   getLabelLineHeight 로 label/description 각자 line box 산출 → y 좌표가 size 비례로 이동.
+describe("listbox_item 행 높이 — label/description size 반응 (2026-07-21)", () => {
+  const textY = (shapes: Shape[] | null, text: string): number | undefined =>
+    (shapes as AnyShape[] | null)?.find(
+      (s) => s.type === "text" && s.text === text,
+    )?.y;
+
+  it("label 만(3xl=30) → 단일 줄 세로 중앙 y = rowHeight/2 (pad4*2 + lh36 = 44 → 22)", () => {
+    // label 30 → getLabelLineHeight(30)=36. description slot 제외.
+    const shapes = drawWith({
+      ...flatProps,
+      _slots: composition(["label"], { label: { fontSize: 30 } }),
+    });
+    expect(textY(shapes, "Aardvark")).toBe(22);
+  });
+
+  it("label(3xl=30) + description(2xl=24) → 2줄 스택이 각자 line box 로 배치", () => {
+    // label lh 36, description lh 32(getLabelLineHeight(24)). pad 4.
+    //   label y = 4 + 36/2 = 22, description y = 4 + 36 + gap2 + 32/2 = 58.
+    const shapes = drawWith({
+      ...flatProps,
+      _slots: composition(["label", "description"], {
+        label: { fontSize: 30 },
+        description: { fontSize: 24 },
+      }),
+    });
+    expect(textY(shapes, "Aardvark")).toBe(22);
+    expect(textY(shapes, "A large burrowing mammal")).toBe(58);
+  });
+
+  it("BC: 표준 사이즈(14) 단일 줄 y=14 유지 (계단 매핑과 동일 값)", () => {
+    const shapes = drawWith({
+      ...flatProps,
+      _slots: composition(["label"]),
+    });
+    expect(textY(shapes, "Aardvark")).toBe(14);
+  });
+});

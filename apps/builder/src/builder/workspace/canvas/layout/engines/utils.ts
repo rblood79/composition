@@ -349,11 +349,21 @@ function parseNumericValue(value: unknown): number | undefined {
 export function resolveListBoxItemRowHeightFromStyle(
   style: Record<string, unknown> | undefined,
   hasDescription: boolean,
+  /**
+   * label/description slot 자식의 fontSize(px) — projection 행은 label size 를 ListBoxItem
+   * 자체 style.fontSize 가 아니라 **slot 자식 props.size**(→ `_slots` fold)로 authoring 하므로,
+   * caller(resolveListBoxRowHeight)가 slot 구성에서 추출해 전달한다. 미지정 시 style.fontSize
+   * (childless ListBoxItem / 컨테이너 경로 = flat props).
+   */
+  slotFontSizes?: { label?: number; description?: number },
 ): number {
-  const fontSize = parseNumericValue(style?.fontSize) ?? 14;
+  const fontSize =
+    slotFontSizes?.label ?? parseNumericValue(style?.fontSize) ?? 14;
+  const descFontSize = slotFontSizes?.description ?? Math.max(11, fontSize - 1);
   const m = resolveListBoxItemMetric(fontSize);
   return resolveListBoxItemRowHeight({
-    lineHeight: m.lineHeight,
+    lineHeight: getLabelLineHeight(fontSize),
+    descriptionLineHeight: getLabelLineHeight(descFontSize),
     rowGap:
       parseNumericValue(style?.rowGap ?? style?.columnGap ?? style?.gap) ??
       m.gap,
@@ -2372,13 +2382,24 @@ export function calculateContentHeight(
   if (tag1 === "listboxitem" && !(childElements && childElements.length > 0)) {
     const props = element.props as Record<string, unknown> | undefined;
     const desc = props?.description;
+    const slotComp = readSlotComposition(props?._slots);
     // ADR-148 Phase 0: description slot 자식이 구성(_slots)에 없으면 1줄 (escape 동일 gating).
     const hasDescription =
       typeof desc === "string" &&
       desc.length > 0 &&
-      isSlotEnabled(readSlotComposition(props?._slots), "description");
+      isSlotEnabled(slotComp, "description");
+    // label/description size 는 slot 자식 props.size → `_slots` fold(px)로 authoring — 행 노드
+    //   intrinsic 높이가 origin label size(3xl 등)를 반영해야 escape 텍스트가 겹치지 않는다
+    //   (2026-07-21). ListBoxItem 자체 style.fontSize 만 읽으면 14 고정 → cramped.
+    const slotFontOf = (role: "label" | "description"): number | undefined => {
+      const fs = slotComp?.slots[role]?.style?.fontSize;
+      return typeof fs === "number" ? fs : undefined;
+    };
     // §2.6 Layer D: render.shapes / 가상화 window 와 동일 resolver 로 row height 산출.
-    return resolveListBoxItemRowHeightFromStyle(style, hasDescription);
+    return resolveListBoxItemRowHeightFromStyle(style, hasDescription, {
+      label: slotFontOf("label"),
+      description: slotFontOf("description"),
+    });
   }
 
   // 1.55b2. GridListItem (projection row) — ADR-151 B21 (2026-07-16): 전용 분기 부재 시

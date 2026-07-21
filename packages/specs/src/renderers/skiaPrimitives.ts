@@ -655,7 +655,7 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     style?.rowGap ?? style?.columnGap ?? style?.gap,
     typeof size.gap === "number" ? size.gap : 2,
   );
-  // label fontSize: slot 자식 style overlay 우선 (lineHeight 매핑도 이 값 기준).
+  // label/description fontSize: slot 자식 style overlay(props.size fold 포함) 우선.
   const labelFontSize =
     labelSlotStyle?.fontSize != null
       ? resolveSpecFontSize(
@@ -663,15 +663,18 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
           fontSize,
         )
       : fontSize;
-  // lineHeight: fontSize 기반 매핑 (resolveListBoxItemMetric 동형).
-  const lineHeight =
-    labelFontSize <= 12
-      ? 16
-      : labelFontSize <= 14
-        ? 20
-        : labelFontSize <= 16
-          ? 24
-          : 28;
+  const descriptionFontSize = parsePxValue(
+    descriptionSlotStyle?.fontSize,
+    Math.max(11, fontSize - 1),
+  );
+  // lineHeight: getLabelLineHeight 단일 소스 (standalone Text/Label = LABEL_SIZE_STYLE 동형,
+  //   gridlist_card escape 동일 패턴). 과거 계단 매핑(>16 → 28 cap)은 label size 를 xl/2xl/3xl 로
+  //   키워도 행 높이가 안 커졌다(2026-07-21 사용자 보고). 표준 사이즈(≤18)는 값 동일, 2xl+ 만
+  //   size 비례로 커진다. label/description 각자 size 로 line box 산출 → 행 높이/스택 정합.
+  const labelLineHeight = getLabelLineHeight(labelFontSize);
+  const descriptionLineHeight = getLabelLineHeight(descriptionFontSize);
+  const entryLineHeight = (entry: "label" | "description"): number =>
+    entry === "label" ? labelLineHeight : descriptionLineHeight;
 
   // template placeholder 처리 (Item spec readText 동형).
   const labelRaw = props.children ?? props.textValue ?? props.value;
@@ -709,7 +712,13 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
 
   const minHeight = parsePxValue(style?.minHeight, 20);
   const contentHeight =
-    stackEntries.length === 2 ? lineHeight + rowGap + lineHeight : lineHeight;
+    stackEntries.length === 2
+      ? entryLineHeight(stackEntries[0]!) +
+        rowGap +
+        entryLineHeight(stackEntries[1]!)
+      : stackEntries.length === 1
+        ? entryLineHeight(stackEntries[0]!)
+        : labelLineHeight;
   const rowHeight = parsePxValue(
     style?.height,
     Math.max(paddingTop + paddingBottom + contentHeight, minHeight),
@@ -826,11 +835,8 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   }
 
   // label + (optional) description 수직 스택 — slot 자식 순서/스타일 소비 (ADR-148 Phase 0).
-  //   단일 줄이면 rowHeight/2 세로 중앙, 2줄이면 paddingTop 기준 스택 (기존 기하 유지).
-  const descriptionFontSize = parsePxValue(
-    descriptionSlotStyle?.fontSize,
-    Math.max(11, fontSize - 1),
-  );
+  //   단일 줄이면 rowHeight/2 세로 중앙, 2줄이면 paddingTop 기준 스택 (label/description
+  //   각자 line box 높이로 배치 — size 비대칭 정합). descriptionFontSize/line height 는 상단 정의.
   const labelFill = props.isDisabled
     ? textColor
     : ((labelSlotStyle?.color as string | undefined) ?? textColor);
@@ -876,14 +882,11 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   // shell 모드: label/description 스택은 실 자식 노드가 렌더 (이중 렌더 차단).
   if (!contentHidden) {
     if (stackEntries.length === 2) {
+      const lh0 = entryLineHeight(stackEntries[0]!);
+      const lh1 = entryLineHeight(stackEntries[1]!);
+      shapes.push(stackTextShape(stackEntries[0]!, paddingTop + lh0 / 2));
       shapes.push(
-        stackTextShape(stackEntries[0]!, paddingTop + lineHeight / 2),
-      );
-      shapes.push(
-        stackTextShape(
-          stackEntries[1]!,
-          paddingTop + lineHeight + rowGap + lineHeight / 2,
-        ),
+        stackTextShape(stackEntries[1]!, paddingTop + lh0 + rowGap + lh1 / 2),
       );
     } else if (stackEntries.length === 1) {
       shapes.push(stackTextShape(stackEntries[0]!, rowHeight / 2));

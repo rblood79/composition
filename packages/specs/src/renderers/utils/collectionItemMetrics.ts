@@ -16,13 +16,18 @@
  */
 
 import { resolveContainerSpacing } from "../../primitives/containerSpacing";
+import { getLabelLineHeight } from "../../primitives/typography";
 
 /**
  * ADR-078 Phase 3: ListBox/ListBoxItem metric 단일 소스 resolver.
  *
  * ListBoxItem escape(listbox_item) / layout `calculateContentHeight` ListBox 분기 /
- * 부모 ListBox spacing metric 이 동일 공식을 사용하도록 공급. fontSize → lineHeight 매핑
- * (CSS `var(--text-{size}--line-height)` 기본값): xs(≤12)→16 / sm(≤14)→20 / base(≤16)→24 / lg(>16)→28.
+ * 부모 ListBox spacing metric 이 동일 공식을 사용하도록 공급. fontSize → lineHeight 는
+ * `getLabelLineHeight`(typography FONT_SIZE_TO_LINE_HEIGHT 룩업 + `ceil(fontSize*1.5)` fallback)
+ * 단일 소스 — standalone Text/Label(LABEL_SIZE_STYLE)과 동일. **Why (2026-07-21 사용자 보고)**:
+ * 과거 계단 매핑(≤12→16 / ≤14→20 / ≤16→24 / >16→**28 cap**)은 xl(20)/2xl(24)/3xl(30) 이상을
+ * 전부 28 로 눌러 label size 를 키워도 행 높이가 안 커졌다. getLabelLineHeight 는 표준 사이즈
+ * (≤18)에서 계단 매핑과 값이 동일하고 2xl 이상만 size 비례로 커진다(BC 유지 + 버그 구간 해소).
  *
  * 기본값(paddingX 12 / paddingY 4 / gap 2)은 componentRulesTable.ListBoxItem.sizes.md 와 동일.
  */
@@ -44,8 +49,7 @@ export function resolveListBoxItemMetric(fontSize: number): {
   const paddingX = 12;
   const paddingY = 4;
   const gap = 2;
-  const lineHeight =
-    fontSize <= 12 ? 16 : fontSize <= 14 ? 20 : fontSize <= 16 ? 24 : 28;
+  const lineHeight = getLabelLineHeight(fontSize);
   return {
     paddingX,
     paddingY,
@@ -64,14 +68,20 @@ export function resolveListBoxItemMetric(fontSize: number): {
  */
 export function resolveListBoxItemRowHeight(input: {
   lineHeight: number;
+  /**
+   * description 줄의 line-height — label 과 다른 size(예: label 3xl / description 2xl)를
+   * 지원. 미지정 시 `lineHeight`(label) 과 동일(BC — description 이 label 과 같은 size 인 경우).
+   */
+  descriptionLineHeight?: number;
   rowGap: number;
   paddingTop: number;
   paddingBottom: number;
   hasDescription: boolean;
   minHeight?: number;
 }): number {
+  const descriptionLineHeight = input.descriptionLineHeight ?? input.lineHeight;
   const contentHeight = input.hasDescription
-    ? input.lineHeight + input.rowGap + input.lineHeight
+    ? input.lineHeight + input.rowGap + descriptionLineHeight
     : input.lineHeight;
   return Math.max(
     input.paddingTop + input.paddingBottom + contentHeight,
