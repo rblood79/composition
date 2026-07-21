@@ -341,3 +341,73 @@ describe("listbox_item 행 높이 — label/description size 반응 (2026-07-21)
     expect(textY(shapes, "Aardvark")).toBe(14);
   });
 });
+
+// 2026-07-21 (Issue 1) — slot 자식 배경(fills → backgroundColor fold)이 행 label/description
+//   뒤 밴드로 렌더. origin 은 실 자식이 fills→box 배경을 그리지만 projection 행은 escape 가
+//   flat 렌더하므로 slot backgroundColor 를 escape 가 재현해야 한다.
+describe("listbox_item slot 배경 밴드 — label/description backgroundColor (2026-07-21)", () => {
+  type BgShape = {
+    type?: string;
+    id?: string;
+    fill?: string;
+    x?: number;
+    width?: number;
+    height?: number;
+    y?: number;
+  };
+  const bandOf = (shapes: Shape[] | null, id: string): BgShape | undefined =>
+    (shapes as BgShape[] | null)?.find(
+      (s) => s.type === "roundRect" && s.id === id,
+    );
+
+  it("label slot backgroundColor → label-bg roundRect 가 텍스트 뒤(먼저) 렌더", () => {
+    const shapes = drawWith({
+      ...flatProps,
+      _slots: composition(["label", "description"], {
+        label: { backgroundColor: "#2CAB3F" },
+      }),
+    });
+    const band = bandOf(shapes, "label-bg");
+    expect(band).toBeDefined();
+    expect(band?.fill).toBe("#2CAB3F");
+    // 텍스트 x 와 동일 위치에서 시작 (label cell)
+    expect(band?.x).toBe(12);
+    // band 는 대응 label 텍스트보다 shapes 배열에서 먼저 (뒤에 깔림)
+    const arr = shapes as BgShape[];
+    const bandIdx = arr.findIndex((s) => s.id === "label-bg");
+    const labelTextIdx = arr.findIndex(
+      (s) => (s as { text?: string }).text === "Aardvark",
+    );
+    expect(bandIdx).toBeLessThan(labelTextIdx);
+  });
+
+  it("description slot backgroundColor → description-bg roundRect 렌더", () => {
+    const shapes = drawWith({
+      ...flatProps,
+      _slots: composition(["label", "description"], {
+        description: { backgroundColor: "#00aa00" },
+      }),
+    });
+    expect(bandOf(shapes, "description-bg")?.fill).toBe("#00aa00");
+  });
+
+  it("backgroundColor 부재/transparent → 배경 밴드 미생성 (BC)", () => {
+    expect(
+      bandOf(
+        drawWith({ ...flatProps, _slots: composition(["label"]) }),
+        "label-bg",
+      ),
+    ).toBeUndefined();
+    expect(
+      bandOf(
+        drawWith({
+          ...flatProps,
+          _slots: composition(["label"], {
+            label: { backgroundColor: "transparent" },
+          }),
+        }),
+        "label-bg",
+      ),
+    ).toBeUndefined();
+  });
+});

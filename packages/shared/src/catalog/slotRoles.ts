@@ -126,6 +126,35 @@ function resolveSlotChildSizeFontSize(child: unknown): number | undefined {
 }
 
 /**
+ * slot 자식의 `fills` 배열(디자인 채널)에서 대표 단색 배경을 추출한다 — CSS `backgroundColor`
+ * 로 fold.
+ *
+ * **Why (2026-07-21 사용자 보고)**: Text/Label slot 자식의 "배경"은 Style 패널이 raw
+ * `style.backgroundColor` 이 아니라 노드 `fills` 배열(`{type:"color", color:"#RRGGBBAA",
+ * enabled}`)로 authoring 한다 (origin 은 실 자식이라 scene builder 가 `fills → box.fillColor`
+ * 로 렌더). `resolveSlotComposition` 이 `props.style` 만 추출하면 label 배경 편집이 slot
+ * 채널을 못 타 instance 행(Skia escape / DOM emit)에 미전파된다 — size 축([[resolveSlotChildSizeFontSize]])
+ * 과 동형의 fills 판. `fillsToBackgroundColor`(builder) 와 동일 규약: 마지막 활성 color fill
+ * 의 색을 hex6(alpha drop)로. specs ← shared 경계상 builder 헬퍼를 못 써 inline.
+ */
+function resolveSlotChildFillBackground(child: unknown): string | undefined {
+  if (!isRecord(child)) return undefined;
+  const fills = child.fills;
+  if (!Array.isArray(fills)) return undefined;
+  for (let i = fills.length - 1; i >= 0; i--) {
+    const fill = fills[i];
+    if (!isRecord(fill)) continue;
+    if (fill.enabled === false) continue;
+    if (fill.type !== "color") continue;
+    const color = fill.color;
+    if (typeof color === "string" && color.length >= 4) {
+      return color.slice(0, 7);
+    }
+  }
+  return undefined;
+}
+
+/**
  * 자식 배열에서 slot 구성을 추출한다. slot 자식이 하나도 없으면 **null** — consumer 는
  * 이를 "구성 정보 없음(legacy/비배선 문서)" 신호로 받아 기존 flat-props 동작으로
  * fallback 한다 (BC). 같은 role 중복 시 첫 자식이 이긴다.
@@ -161,6 +190,17 @@ export function resolveSlotComposition(
         const sizeFontSize = resolveSlotChildSizeFontSize(child);
         if (sizeFontSize != null) {
           config.style = { ...(config.style ?? {}), fontSize: sizeFontSize };
+        }
+      }
+      // fills(디자인 배경 채널) → backgroundColor fold (explicit style.backgroundColor 우선).
+      //   Label/Text slot 자식의 배경 편집 전파 채널 (resolveSlotChildFillBackground 주석 참조).
+      const explicitBg = isRecord(config.style)
+        ? config.style.backgroundColor
+        : undefined;
+      if (explicitBg == null) {
+        const fillBg = resolveSlotChildFillBackground(child);
+        if (fillBg != null) {
+          config.style = { ...(config.style ?? {}), backgroundColor: fillBg };
         }
       }
     }

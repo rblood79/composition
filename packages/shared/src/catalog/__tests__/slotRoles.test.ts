@@ -157,6 +157,86 @@ describe("resolveSlotComposition", () => {
   });
 });
 
+describe("resolveSlotComposition — fills → backgroundColor fold (2026-07-21)", () => {
+  it("slot 자식 fills 의 활성 color fill 을 backgroundColor(hex6)로 fold", () => {
+    const composition = resolveSlotComposition([
+      {
+        type: "Text",
+        props: { slot: "label", children: "{label}" },
+        fills: [
+          {
+            id: "f1",
+            type: "color",
+            color: "#2CAB3FFF",
+            enabled: true,
+          },
+        ],
+        metadata: { slotRole: "label" },
+      },
+    ]);
+
+    // #2CAB3FFF → hex6 #2CAB3F (fillsToBackgroundColor 규약 = alpha drop)
+    expect(composition?.slots.label?.style?.backgroundColor).toBe("#2CAB3F");
+  });
+
+  it("마지막 활성 color fill 이 이긴다 (topmost 시각)", () => {
+    const composition = resolveSlotComposition([
+      {
+        type: "Text",
+        props: { slot: "label" },
+        fills: [
+          { id: "f1", type: "color", color: "#111111FF", enabled: true },
+          { id: "f2", type: "color", color: "#222222FF", enabled: true },
+        ],
+        metadata: { slotRole: "label" },
+      },
+    ]);
+
+    expect(composition?.slots.label?.style?.backgroundColor).toBe("#222222");
+  });
+
+  it("enabled:false fill 은 건너뛴다", () => {
+    const composition = resolveSlotComposition([
+      {
+        type: "Text",
+        props: { slot: "label" },
+        fills: [
+          { id: "f1", type: "color", color: "#111111FF", enabled: true },
+          { id: "f2", type: "color", color: "#222222FF", enabled: false },
+        ],
+        metadata: { slotRole: "label" },
+      },
+    ]);
+
+    expect(composition?.slots.label?.style?.backgroundColor).toBe("#111111");
+  });
+
+  it("explicit style.backgroundColor 가 fills 보다 우선", () => {
+    const composition = resolveSlotComposition([
+      {
+        type: "Text",
+        props: { slot: "label", style: { backgroundColor: "#abcdef" } },
+        fills: [{ id: "f1", type: "color", color: "#2CAB3FFF", enabled: true }],
+        metadata: { slotRole: "label" },
+      },
+    ]);
+
+    expect(composition?.slots.label?.style?.backgroundColor).toBe("#abcdef");
+  });
+
+  it("fills 없으면 backgroundColor 미주입 (BC)", () => {
+    const composition = resolveSlotComposition([
+      {
+        type: "Text",
+        props: { slot: "label" },
+        metadata: { slotRole: "label" },
+      },
+    ]);
+
+    expect(composition?.slots.label?.style?.backgroundColor).toBeUndefined();
+  });
+});
+
 describe("isSlotEnabled", () => {
   it("구성이 null(legacy)이면 모든 slot 이 enabled (BC fallback)", () => {
     expect(isSlotEnabled(null, "description")).toBe(true);

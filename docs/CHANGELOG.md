@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [origin ListBoxItem label/description 의 배경(fills) 편집이 인스턴스 행에 미전파 수정 — slot 채널 fills→backgroundColor fold] - 2026-07-21
+
+### Bug Fixes
+
+- **Components 페이지 origin ListBoxItem 의 label(또는 description)에 배경색을 줘도 인스턴스 행에 반영 안 됨 (Skia·DOM 양쪽)**:
+  - 근본 원인: Text/Label slot 자식의 "배경"은 Style 패널이 raw `style.backgroundColor` 이 아니라 노드 **`fills` 배열**(`{type:"color", color:"#RRGGBBAA", enabled}`)로 authoring 한다 (origin 은 실 자식이라 scene builder 가 `fills → box.fillColor` 렌더). slot 전파 단일 채널 `resolveSlotComposition`(packages/shared slotRoles.ts)이 `props.style` 만 추출하고 **`fills` 축을 통째로 버려** 두 consumer(Skia `listbox_item` escape / DOM emit `SelectionRenderers` `slotStyleOf`)에 배경이 도달 못 함.
+  - **Why**: [size 축 미전파 fix](#) 와 동형의 fills 판 — slot 채널이 "시각 스타일"을 나를 때 `props.style` 만 가정하면 Label/Text 의 size(`props.size`)·배경(`fills`) 같은 별도 축을 놓친다.
+  - 수정 (단일 지점 — 채널 fold 로 Skia + DOM 동시 해소):
+    - **채널**: `resolveSlotComposition` 이 slot 자식 `fills` 의 마지막 활성 color fill 을 `style.backgroundColor`(hex6, `fillsToBackgroundColor` 규약 = alpha drop)로 fold (explicit `style.backgroundColor` 우선). specs ← shared 경계상 builder 헬퍼 못 써 inline.
+    - **Skia escape**: `listbox_item` 이 label/description slot backgroundColor 를 각 텍스트 line box 뒤 배경 밴드(roundRect)로 렌더 (텍스트보다 먼저 push).
+    - **DOM**: `SelectionRenderers.slotStyleOf("label")` 가 이미 slot style 전체를 inline spread → 채널 fold 로 자동 parity.
+  - 위치: `packages/shared/src/catalog/slotRoles.ts` · `packages/specs/src/renderers/skiaPrimitives.ts`(listbox_item)
+  - 검증: slotRoles fills fold 5종(hex6 fold·topmost·enabled:false skip·explicit 우선·BC) + escape 밴드 3종(label-bg·description-bg·부재/transparent BC) 추가(45 PASS) · type-check PASS · **live(Chrome MCP, mobile)**: origin label 에 녹색 fill(#2CAB3F) → Home 인스턴스 3행 label DOM computed `rgb(44,171,63)` + Skia 캔버스 각 행 label 녹색 밴드 렌더 실증(description 은 배경 없음 = origin 일치)
+
 ## [ListBoxItem 인스턴스 행 높이가 label/description slot size 에 미반응 수정 — getLabelLineHeight 단일 소스 + slot font 반영] - 2026-07-21
 
 ### Bug Fixes

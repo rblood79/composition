@@ -848,6 +848,19 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     labelFontWeight;
   const descriptionWeight =
     (descriptionSlotStyle?.fontWeight as string | number | undefined) ?? 400;
+  // slot 자식 배경(fills → backgroundColor fold, slotRoles.ts) — 해당 slot 텍스트 line box
+  //   뒤에 밴드로 렌더. origin 은 실 자식 Text 노드가 fills→box 배경을 그리지만, projection
+  //   행은 escape 가 flat 렌더하므로 여기서 재현 (2026-07-21 사용자 보고).
+  const slotBgOf = (
+    slotStyle: Record<string, unknown> | undefined,
+  ): { fill: string; radius: number } | null => {
+    const bg = slotStyle?.backgroundColor;
+    if (typeof bg !== "string" || bg === "" || bg === "transparent")
+      return null;
+    return { fill: bg, radius: parsePxValue(slotStyle?.borderRadius, 0) };
+  };
+  const labelSlotBg = slotBgOf(labelSlotStyle);
+  const descriptionSlotBg = slotBgOf(descriptionSlotStyle);
   const stackTextShape = (entry: "label" | "description", y: number): Shape =>
     entry === "label"
       ? {
@@ -880,17 +893,38 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
         };
 
   // shell 모드: label/description 스택은 실 자식 노드가 렌더 (이중 렌더 차단).
-  if (!contentHidden) {
-    if (stackEntries.length === 2) {
-      const lh0 = entryLineHeight(stackEntries[0]!);
-      const lh1 = entryLineHeight(stackEntries[1]!);
-      shapes.push(stackTextShape(stackEntries[0]!, paddingTop + lh0 / 2));
-      shapes.push(
-        stackTextShape(stackEntries[1]!, paddingTop + lh0 + rowGap + lh1 / 2),
-      );
-    } else if (stackEntries.length === 1) {
-      shapes.push(stackTextShape(stackEntries[0]!, rowHeight / 2));
-    }
+  if (!contentHidden && stackEntries.length > 0) {
+    // 각 entry 세로 중앙 y — 단일 줄은 rowHeight/2, 2줄은 paddingTop 기준 스택.
+    const centerYs: number[] =
+      stackEntries.length === 2
+        ? [
+            paddingTop + entryLineHeight(stackEntries[0]!) / 2,
+            paddingTop +
+              entryLineHeight(stackEntries[0]!) +
+              rowGap +
+              entryLineHeight(stackEntries[1]!) / 2,
+          ]
+        : [rowHeight / 2];
+    // slot 배경 밴드 먼저 (텍스트 뒤). label/description line box 를 채운다.
+    stackEntries.forEach((entry, i) => {
+      const bg = entry === "label" ? labelSlotBg : descriptionSlotBg;
+      if (!bg) return;
+      const lh = entryLineHeight(entry);
+      shapes.push({
+        id: `${entry}-bg`,
+        type: "roundRect",
+        x: textX,
+        y: centerYs[i]! - lh / 2,
+        width: maxWidth,
+        height: lh,
+        radius: bg.radius,
+        fill: bg.fill,
+      });
+    });
+    // 텍스트
+    stackEntries.forEach((entry, i) => {
+      shapes.push(stackTextShape(entry, centerYs[i]!));
+    });
   }
 
   // selection-indicator (우측 체크마크)
