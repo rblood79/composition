@@ -1,5 +1,6 @@
 import type { ColumnMapping } from "../../types/builder/unified.types";
 import type { EventHandler } from "../panels/events/types/eventTypes";
+import type { DataBinding as SharedDataBinding } from "@composition/shared";
 
 /**
  * WebGL Layout 시스템에서 계산된 실제 픽셀 크기
@@ -67,7 +68,9 @@ export type DataBindingType = "collection" | "value";
 /**
  * 데이터 바인딩
  */
-export type DataBinding = CollectionBinding | ValueBinding;
+// Element/Builder runtime와 동일한 shared DataBinding SSOT를 사용한다.
+// Inspector 전용 축소 타입을 별도로 두면 getElementDataBinding() 반환값과 불일치한다.
+export type DataBinding = SharedDataBinding;
 
 /**
  * Collection 바인딩 (Table, ListBox, GridList 등)

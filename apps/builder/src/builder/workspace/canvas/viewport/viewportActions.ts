@@ -1,5 +1,8 @@
 import { useViewportSyncStore } from "../stores";
-import { getViewportController, type ViewportState } from "./ViewportController";
+import {
+  getViewportController,
+  type ViewportState,
+} from "./ViewportController";
 
 export interface ViewportCanvasSize {
   height: number;
@@ -26,6 +29,13 @@ export interface ComputeFitViewportOptions {
 export interface ComputeFillViewportOptions {
   canvasSize: ViewportCanvasSize;
   containerSize: ViewportContainerSize;
+}
+
+export interface ResolveBreakpointViewportOptions {
+  canvasSize: ViewportCanvasSize;
+  containerSize: ViewportContainerSize;
+  zoom: number;
+  savedViewport?: ViewportState;
 }
 
 export function clampViewportZoom(zoom: number): number {
@@ -73,6 +83,24 @@ export function computeFillViewport({
     containerSize,
     zoom,
   });
+}
+
+/**
+ * Breakpoint 전환 시 viewport 정책.
+ *
+ * 처음 방문하는 breakpoint는 사용자가 현재 선택한 zoom을 유지하고 새 아트보드만
+ * 중앙 정렬한다. 이미 방문한 breakpoint는 해당 breakpoint에서 마지막으로 보던
+ * zoom/pan snapshot을 복원한다.
+ */
+export function resolveBreakpointViewport({
+  canvasSize,
+  containerSize,
+  zoom,
+  savedViewport,
+}: ResolveBreakpointViewportOptions): ViewportState {
+  if (savedViewport) return savedViewport;
+
+  return computeCenteredViewport({ canvasSize, containerSize, zoom });
 }
 
 export function offsetViewportStateX(

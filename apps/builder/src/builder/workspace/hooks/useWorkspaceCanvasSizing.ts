@@ -5,6 +5,7 @@ import {
   applyViewportState,
   computeCenteredViewport,
   computeFitViewport,
+  resolveBreakpointViewport,
 } from "../canvas/viewport/viewportActions";
 import type { Breakpoint } from "../types";
 import { subscribeToPanelLayoutChanges } from "../utils/panelLayoutRuntime";
@@ -108,11 +109,14 @@ export function useWorkspaceCanvasSizing({
     useViewportSyncStore.getState().setCanvasSize(canvasSize);
   }, [canvasSize]);
 
-  const lastCenteredKeyRef = useRef<string | null>(null);
   const centerCanvasRef = useRef<() => boolean>(() => false);
   const centerCanvasAt100Ref = useRef<() => boolean>(() => false);
   const isFitModeRef = useRef(false);
   const isPanelResizingRef = useRef(false);
+  const activeBreakpointIdRef = useRef<string | null>(null);
+  const breakpointViewportsRef = useRef(
+    new Map<string, { x: number; y: number; scale: number }>(),
+  );
 
   const centerCanvas = useCallback(() => {
     const containerSize = containerSizeRef.current;
@@ -160,18 +164,39 @@ export function useWorkspaceCanvasSizing({
   const lastCompareModeRef = useRef(compareMode);
 
   useEffect(() => {
-    const breakpointKey = selectedBreakpoint
-      ? `${selectedBreakpoint.id}:${selectedBreakpoint.max_width}x${selectedBreakpoint.max_height}`
-      : null;
-
-    if (lastCenteredKeyRef.current === breakpointKey) {
+    const breakpointId = selectedBreakpoint?.id ?? null;
+    const previousBreakpointId = activeBreakpointIdRef.current;
+    if (previousBreakpointId === breakpointId) {
       return;
     }
 
-    if (centerCanvas()) {
-      lastCenteredKeyRef.current = breakpointKey;
+    const currentViewport = useViewportSyncStore.getState();
+    if (previousBreakpointId) {
+      breakpointViewportsRef.current.set(previousBreakpointId, {
+        x: currentViewport.panOffset.x,
+        y: currentViewport.panOffset.y,
+        scale: currentViewport.zoom,
+      });
     }
-  }, [canvasSize.height, canvasSize.width, centerCanvas, selectedBreakpoint]);
+
+    activeBreakpointIdRef.current = breakpointId;
+
+    if (!breakpointId) return;
+
+    const containerSize = containerSizeRef.current;
+    if (containerSize.width <= 0 || containerSize.height <= 0) {
+      return;
+    }
+
+    applyViewportState(
+      resolveBreakpointViewport({
+        canvasSize,
+        containerSize,
+        zoom: currentViewport.zoom,
+        savedViewport: breakpointViewportsRef.current.get(breakpointId),
+      }),
+    );
+  }, [canvasSize, selectedBreakpoint]);
 
   // Compare mode 토글 시 viewport 재센터링
   useEffect(() => {
