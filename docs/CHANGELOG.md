@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Laptop breakpoint 토글 제거 — 아트보드 preset 을 3-tier(desktop/tablet/mobile)로 정리] - 2026-07-21
+
+### Bug Fixes
+
+- **상단 breakpoint 토글의 Laptop 버튼이 별도 override tier 로 오인되게 함** (실제로는 desktop tier 로 resolve — `toResponsiveBreakpoint`):
+  - ADR-154 스타일 override tier 는 `BreakpointName = desktop|tablet|mobile` 3개뿐이고, Laptop(1440) 은 아트보드 크기 preset 전용이라 편집 시 desktop tier 에 저장된다. 반면 Tablet 은 자기 tier 를 가져, "Tablet 은 개별인데 Laptop 은 왜 공유?" 라는 혼란을 유발했다.
+  - 수정: `BuilderCore` 아트보드 preset 목록에서 `laptop` 제거(desktop/tablet/mobile 3개) + `BuilderHeader` 의 Laptop 아이콘 렌더/import 제거. 스타일 데이터 모델(`BreakpointName`/cascade/`responsiveCss`)은 laptop 을 애초에 tier 로 갖지 않아 무변경 — 마이그레이션 없음.
+  - 구 localStorage 정합화: laptop 제거 이전 `builder-breakpoint="laptop"` 이 저장돼 있으면 무효 id 이므로 `VALID_BREAKPOINT_IDS` 가드로 desktop 복원(토글에 없는 key 선택 방지).
+  - 검증: builder type-check PASS · live(Chrome MCP): 토글 = Desktop/Tablet/Mobile 3개(Laptop 부재), 구 `laptop` localStorage 리로드 시 Desktop selected 로 정합화 실증
+  - 위치: `apps/builder/src/builder/main/BuilderCore.tsx` · `BuilderHeader.tsx`
+  - 참고: tablet tier 유지(3-tier). desktop/mobile 2-tier 수렴은 tablet override 실사용 빈도 확인 후 별도 결정(ADR-154 개정 대상).
+
 ## [Skia collection projection 이 mobile/tablet responsive gap/padding 미반영 수정 — scene 에 activeBreakpoint 주입] - 2026-07-21
 
 ### Bug Fixes

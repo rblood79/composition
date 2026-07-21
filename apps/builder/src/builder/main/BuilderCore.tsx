@@ -9,8 +9,11 @@ import type { BreakpointName } from "@composition/shared";
 
 /**
  * ADR-154: BuilderHeader breakpoint preset(id) → 반응형 BreakpointName 매핑.
- * laptop 은 아트보드 크기 preset 전용(override tier 없음) → desktop tier 로 resolve.
+ * tablet/mobile 만 override tier 를 가지며 그 외(desktop, 구 localStorage 의 laptop 등)는
+ * desktop tier 로 resolve. 아트보드 토글은 desktop/tablet/mobile 3개 (laptop 제거 2026-07-21).
  */
+const VALID_BREAKPOINT_IDS = new Set<string>(["desktop", "tablet", "mobile"]);
+
 function toResponsiveBreakpoint(value: string): BreakpointName {
   return value === "tablet" || value === "mobile" ? value : "desktop";
 }
@@ -398,22 +401,18 @@ export const BuilderCore: React.FC = () => {
 
   // Local 상태
   const [breakpoint, setBreakpoint] = useState<Set<Key>>(() => {
-    // 로컬 스토리지에서 저장된 breakpoint 복원
+    // 로컬 스토리지에서 저장된 breakpoint 복원.
+    // laptop 토글 제거(2026-07-21) 이전에 "laptop" 이 저장돼 있으면 무효 id 이므로
+    // desktop 으로 정합화 (토글에 없는 key 선택 방지).
     const savedBreakpoint = localStorage.getItem("builder-breakpoint");
-    if (savedBreakpoint) {
-      try {
-        return new Set<Key>([savedBreakpoint]);
-      } catch (error) {
-        console.warn("Failed to parse saved breakpoint:", error);
-        return new Set<Key>(["desktop"]);
-      }
+    if (savedBreakpoint && VALID_BREAKPOINT_IDS.has(savedBreakpoint)) {
+      return new Set<Key>([savedBreakpoint]);
     }
     return new Set<Key>(["desktop"]);
   });
 
   const [breakpoints] = useState<Breakpoint[]>([
     { id: "desktop", label: "Desktop", max_width: 1920, max_height: 1080 },
-    { id: "laptop", label: "Laptop", max_width: 1440, max_height: 900 },
     { id: "tablet", label: "Tablet", max_width: 768, max_height: 1024 },
     { id: "mobile", label: "Mobile", max_width: 390, max_height: 844 },
   ]);
@@ -425,7 +424,7 @@ export const BuilderCore: React.FC = () => {
       setBreakpoint(newBreakpoint);
       localStorage.setItem("builder-breakpoint", String(value));
       // ADR-154: 반응형 override resolve SSOT 동기화 + 전역 재레이아웃.
-      // desktop/laptop → desktop tier, tablet/mobile → 동명 tier.
+      // desktop → desktop tier, tablet/mobile → 동명 tier.
       setActiveBreakpoint(toResponsiveBreakpoint(String(value)));
       invalidateLayout();
     },

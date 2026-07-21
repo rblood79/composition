@@ -5,7 +5,6 @@ import {
   Redo,
   Play,
   Monitor,
-  Laptop,
   Tablet,
   Smartphone,
   GitBranch,
@@ -176,13 +175,6 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
             <ToggleButton id={bp.id} key={bp.id} aria-label={bp.label}>
               {bp.id === "desktop" && (
                 <Monitor
-                  color={iconProps.color}
-                  strokeWidth={iconProps.strokeWidth}
-                  size={iconProps.size}
-                />
-              )}
-              {bp.id === "laptop" && (
-                <Laptop
                   color={iconProps.color}
                   strokeWidth={iconProps.strokeWidth}
                   size={iconProps.size}
