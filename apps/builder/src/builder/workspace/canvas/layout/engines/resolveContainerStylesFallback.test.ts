@@ -434,5 +434,19 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         padding: 8,
       });
     });
+
+    it("body 페이지 기본 overflow=auto 를 catalog rule fallback 으로 공급 (2026-07-21)", () => {
+      // 시스템 페이지(Components / fallback Home)는 systemComponentsPage.ts 가 props:{} 로 생성해
+      //   factory createDefaultBodyProps(overflow:auto)를 우회 → catalog body.containerStyles.overflow
+      //   가 단일 기본값 source 여야 한다. 미설정 시 CSS 기본 visible 로 떨어지던 회귀 가드
+      //   (사용자 보고: Components 페이지 overflow=visible → auto).
+      expect(resolveContainerStylesFallback("body", {})).toMatchObject({
+        overflow: "auto",
+      });
+      // 사용자/factory 명시 overflow 는 fallback 보다 우선 — 명시 시 fallback 이 주입 안 함.
+      expect(
+        resolveContainerStylesFallback("body", { overflow: "hidden" }),
+      ).not.toHaveProperty("overflow");
+    });
   });
 });
