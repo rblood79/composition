@@ -7,6 +7,8 @@ import type {
 } from "@composition/shared";
 // ADR-148 Phase 0 — slotRole 공용 vocabulary (설계도 §2-1, builder-local 상수 re-home).
 import { getSlotRole, resolveSlotComposition } from "@composition/shared";
+// ADR-157 gap 배선 (②): ListBox 소유자 gap 을 px 로 해석 (style longhand/shorthand + props.gap).
+import { parsePxValue } from "@composition/specs";
 
 import { readLegacyMetadataCustomId } from "../../../../adapters/canonical/legacyMetadata";
 import type { FillItem } from "../../../../types/builder/fill.types";
@@ -905,10 +907,26 @@ function appendListBoxRowProjection(
     (listBoxSceneNode.props as Record<string, unknown>)._slots =
       slotComposition;
   }
+  // ADR-157 gap 배선 (②, 2026-07-21): rowsGroup 이 gap:0 하드코딩이라 ListBox 의 gap 스타일이
+  //   무시됐다(GridList 는 rowGap:gap 적용 — 패밀리 비대칭, 사용자 보고). 소유자 gap 을 해석해
+  //   rowsGroup rowGap + injection/hatch 공식에 반영한다. style longhand(rowGap) 우선 + shorthand
+  //   fallback(style-ssot 정책) + props.gap(GridList 규약) 커버. 기본 0 (RAC ListBox 행 인접).
+  const listBoxOwnerProps = listBoxSceneNode.props as Record<string, unknown>;
+  const listBoxOwnerStyle =
+    (listBoxOwnerProps?.style as Record<string, unknown> | undefined) ?? {};
+  const rowGapPx = parsePxValue(
+    listBoxOwnerStyle.rowGap ??
+      listBoxOwnerStyle.columnGap ??
+      listBoxOwnerStyle.gap ??
+      listBoxOwnerProps?.gap,
+    0,
+  );
+
   // ADR-157 Phase 3 (배치 진실성): sample mode(auto-height data-bound) owner 는 layout §1.55b 가
   //   props.items 만 순회해 순수 dataBinding 소유자에서 3-item fallback 으로 clip 된다. scene 이
-  //   totalRows 전체 높이(= totalRows × rowHeight — samples + hatch 와 동일 window resolver
-  //   rowHeight)를 owner props 에 주입해 §1.55b 가 이를 소비하도록 한다(layout = scene 정합).
+  //   totalRows 전체 높이를 owner props 에 주입해 §1.55b(또는 ref 소유자는 fix b early-check)가
+  //   이를 소비하도록 한다(layout = scene 정합). gap 있으면 inter-row gap 포함:
+  //   totalRows × rowHeight + (totalRows-1) × rowGap (= rowsGroup flex 산출 높이).
   //   scroll mode 는 explicit height(§1 우선)라 무시되고, legacy(window null)는 기존 items 경로.
   const ownerWindow = projection.windowResolution;
   if (
@@ -916,10 +934,9 @@ function appendListBoxRowProjection(
     ownerWindow.totalRows > 0 &&
     ownerWindow.rowHeight > 0
   ) {
-    (
-      listBoxSceneNode.props as Record<string, unknown>
-    )._projectedRowsContentHeight =
-      ownerWindow.totalRows * ownerWindow.rowHeight;
+    listBoxOwnerProps._projectedRowsContentHeight =
+      ownerWindow.totalRows * ownerWindow.rowHeight +
+      Math.max(0, ownerWindow.totalRows - 1) * rowGapPx;
   }
   const rowsGroupId = toListBoxRowsGroupProjectionId(listBoxSceneNode.id);
   const rowsGroup: CanvasSceneNode = {
@@ -929,7 +946,9 @@ function appendListBoxRowProjection(
       style: {
         display: "flex",
         flexDirection: "column",
-        gap: 0,
+        // ADR-157 gap 배선 (②): 소유자 gap 을 행간 간격으로 소비 (기존 하드코딩 0 제거).
+        //   gap 0 이면 종전과 동일(BC). injection/hatch 공식이 같은 rowGapPx 로 정합.
+        rowGap: rowGapPx,
         width: "100%",
       },
     },
@@ -1049,7 +1068,12 @@ function appendListBoxRowProjection(
           family: "listbox",
           ownerId: listBoxSceneNode.id,
           rowsGroupId,
-          height: spacerRows.trail * rowHeight,
+          // ADR-157 gap 배선 (②): hatch = hidden 행 영역 + 그 내부 gap. rowsGroup rowGap 이
+          //   samples/hatch 사이에 이미 gap 을 넣으므로, hatch 자체는 hidden 행 사이 gap
+          //   (trail-1)개만 포함 → 합산 시 owner injection(totalRows-1 gap)과 정확 정합.
+          height:
+            spacerRows.trail * rowHeight +
+            Math.max(0, spacerRows.trail - 1) * rowGapPx,
           hiddenRows: spacerRows.trail,
           scope,
           sourceNode: templateAnchor ?? sourceNode,

@@ -374,6 +374,74 @@ describe("ADR-157 — auto-height ListBox 샘플 + hatch remainder (scene emit)"
         ?._projectedRowsContentHeight,
     ).toBeUndefined();
   });
+
+  // ADR-157 gap 배선 (②, 2026-07-21): rowsGroup 이 gap:0 하드코딩이라 ListBox 의 gap 스타일이
+  //   무시됐다(GridList 는 rowGap:gap 적용 — 패밀리 비대칭). rowsGroup 이 소유자 gap 을 소비하고,
+  //   injection/hatch 공식이 gap 을 반영해야 owner auto-size + 배치 진실성이 유지된다.
+  it("소유자 gap → rowsGroup rowGap 소비 + injection/remainder 가 gap 반영", () => {
+    // itemCount 12, rowHeight 28, gap 8 → sample 10 + hidden 2.
+    //   injection = 12×28 + (12-1)×8 = 336 + 88 = 424 (owner content 전체 높이)
+    //   remainder = 2×28 + (2-1)×8 = 56 + 8 = 64 (hidden 영역, gap 포함)
+    const doc = listBoxDoc({
+      itemCount: 12,
+      style: { overflowY: "auto", rowGap: 8 },
+    });
+    const collectionWindows = resolveVirtualizedCollectionWindows({
+      doc,
+      collections: [],
+      scrollTops: new Map(),
+    });
+    const model = buildCanonicalSceneModel(doc, {
+      collections: [],
+      collectionWindows,
+    });
+
+    const rowsGroup = model.sceneNodes.find(
+      (n) => n.projection?.kind === "listbox-rows",
+    );
+    expect((rowsGroup?.props?.style as { rowGap?: number })?.rowGap).toBe(8);
+
+    const owner = model.sceneNodes.find(
+      (n) => (n.type ?? "").toLowerCase() === "listbox",
+    );
+    expect(
+      (owner?.props as { _projectedRowsContentHeight?: number })
+        ?._projectedRowsContentHeight,
+    ).toBe(12 * 28 + 11 * 8);
+
+    const remainder = model.sceneNodes.find(
+      (n) => n.projection?.kind === "collection-remainder",
+    );
+    expect((remainder?.props?.style as { height?: number })?.height).toBe(
+      2 * 28 + 1 * 8,
+    );
+  });
+
+  it("gap 미지정 → 기존 동작 불변 (BC: rowGap 0, injection/remainder gap 미반영)", () => {
+    const doc = listBoxDoc({ itemCount: 12, style: { overflowY: "auto" } });
+    const collectionWindows = resolveVirtualizedCollectionWindows({
+      doc,
+      collections: [],
+      scrollTops: new Map(),
+    });
+    const model = buildCanonicalSceneModel(doc, {
+      collections: [],
+      collectionWindows,
+    });
+    const owner = model.sceneNodes.find(
+      (n) => (n.type ?? "").toLowerCase() === "listbox",
+    );
+    expect(
+      (owner?.props as { _projectedRowsContentHeight?: number })
+        ?._projectedRowsContentHeight,
+    ).toBe(12 * 28);
+    const remainder = model.sceneNodes.find(
+      (n) => n.projection?.kind === "collection-remainder",
+    );
+    expect((remainder?.props?.style as { height?: number })?.height).toBe(
+      2 * 28,
+    );
+  });
 });
 
 // ── ADR-150 A2 GridList 확산 (stack + grid numCols) ────────────────────────
