@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ListBox 아이템 CSS↔Skia 높이 정합 — min-height 축소·스크롤 미생성 수정] - 2026-07-22
+
+### Bug Fixes
+
+- **ListBox 아이템 수가 늘어날수록 CSS 에서 각 ListBoxItem 이 축소·겹치고 스크롤바가 안 생기던 문제 (Skia 는 정상)**:
+  - **Why**: catalog `ListBoxItem.sizes.md.minHeight=20` 이 generated CSS 에 `min-height: 20px` 로 emit 되어, flex column collection item 의 자동 min-content(= `min-height: auto`) 보호를 덮어썼다. 컨테이너가 고정 높이일 때 flex 자식이 내용(label+description) 아래로 축소되고, 그 결과 `scrollHeight` 가 `clientHeight` 를 넘지 못해 `overflow: auto` 가 스크롤을 만들지 못했다. Skia 는 layout 엔진이 overflow≠visible 컨테이너의 flex 자식에 `flexShrink: 0` 을 주입(fullTreeLayout Step 5.7)해 내용 높이를 유지 → 두 렌더 경로 비대칭.
+  - 수정: catalog 에서 `minHeight` 제거 후 `pnpm generate:css` 재생성(`min-height` 미emit → `auto`). Skia `resolveListBoxItemRowHeight` 는 element `style.minHeight ?? 20` 을 읽어 catalog 를 참조하지 않으므로 무회귀 (`max(content, 20)` 에서 content 항상 우세). 라이브 검증: item 22.7/20px→50/32px, scrollHeight 264>clientHeight 146 스크롤 생성.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (ListBoxItem sizes.md) · `packages/shared/src/components/styles/generated/ListBoxItem.css`
+
 ## [border(색/스타일/너비)를 breakpoint 무관 전역 속성으로 통일 — 배경 fills 동형] - 2026-07-22
 
 ### Bug Fixes
