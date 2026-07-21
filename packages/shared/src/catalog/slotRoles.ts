@@ -18,6 +18,10 @@
  * canonical 문서에 저장하지 않는다.
  */
 
+import { resolveToken } from "@composition/specs";
+
+import { COMPONENT_RULES_TABLE } from "./generated/componentRulesTable";
+
 /** slot 이름 공용 vocabulary — additive string union (확장 비용 상수 1줄, ADR-148 R5). */
 export const SLOT_ROLES = [
   // P2 collection item (ADR-147 가동분 + Phase 4 MenuItem)
@@ -88,6 +92,40 @@ export interface SlotComposition {
 }
 
 /**
+ * slot 자식의 `props.size` 토큰을 catalog `{type}.sizes[size].fontSize` → px 로 해소한다.
+ *
+ * **Why (2026-07-21 사용자 보고)**: Label/Text slot 자식은 텍스트 크기를 raw `style.fontSize` 이
+ * 아니라 `props.size`(size 토큰, catalog `COMPONENT_RULES_TABLE[type].sizes[size].fontSize` 로
+ * fontSize 매핑)로 authoring 한다. `resolveSlotComposition` 이 `props.style` 만 추출하면 size
+ * 편집이 slot 구성 채널을 못 타 origin(ListBoxItem/Default) label size 변경이 instance 행에
+ * 전파되지 않는다 (Skia escape `slots.label.style.fontSize` / DOM emit `slotStyleOf("label")`
+ * 둘 다 미반영). px **숫자**로 해소하면 두 consumer 가 동일 소비 (Skia `resolveSpecFontSize`
+ * number 분기 / DOM inline `fontSize:number`) — TokenRef 를 실으면 DOM inline 이 무효 CSS.
+ * 타이포 토큰은 theme 무관(dark 반전 없음)이라 eager px 해소가 안전하다.
+ */
+function resolveSlotChildSizeFontSize(child: unknown): number | undefined {
+  if (!isRecord(child)) return undefined;
+  const type = child.type;
+  const props = child.props;
+  if (typeof type !== "string" || !isRecord(props)) return undefined;
+  const size = props.size;
+  if (typeof size !== "string") return undefined;
+  const rule =
+    COMPONENT_RULES_TABLE[type as keyof typeof COMPONENT_RULES_TABLE];
+  const sizes = isRecord(rule) ? rule.sizes : undefined;
+  const sizeEntry = isRecord(sizes) ? sizes[size] : undefined;
+  const fontSize = isRecord(sizeEntry) ? sizeEntry.fontSize : undefined;
+  if (typeof fontSize === "number") return fontSize;
+  if (typeof fontSize === "string" && fontSize.startsWith("{")) {
+    const resolved = resolveToken(
+      fontSize as Parameters<typeof resolveToken>[0],
+    );
+    if (typeof resolved === "number") return resolved;
+  }
+  return undefined;
+}
+
+/**
  * 자식 배열에서 slot 구성을 추출한다. slot 자식이 하나도 없으면 **null** — consumer 는
  * 이를 "구성 정보 없음(legacy/비배선 문서)" 신호로 받아 기존 flat-props 동작으로
  * fallback 한다 (BC). 같은 role 중복 시 첫 자식이 이긴다.
@@ -113,6 +151,17 @@ export function resolveSlotComposition(
       const props = child.props;
       if (isRecord(props) && isRecord(props.style)) {
         config.style = props.style as Record<string, unknown>;
+      }
+      // props.size 토큰 → fontSize(px) fold (explicit style.fontSize 우선). Label/Text
+      //   slot 자식의 size 편집 전파 채널 (resolveSlotChildSizeFontSize 주석 참조).
+      const explicitFontSize = isRecord(config.style)
+        ? config.style.fontSize
+        : undefined;
+      if (explicitFontSize == null) {
+        const sizeFontSize = resolveSlotChildSizeFontSize(child);
+        if (sizeFontSize != null) {
+          config.style = { ...(config.style ?? {}), fontSize: sizeFontSize };
+        }
       }
     }
     order.push(role);

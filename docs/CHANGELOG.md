@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [origin ListBoxItem/Default label 텍스트 size 편집이 인스턴스 행/CSS 에 미전파 수정 — slot 구성 채널 size→fontSize fold] - 2026-07-21
+
+### Bug Fixes
+
+- **Components 페이지 origin ListBoxItem/Default 의 label(Text) 텍스트 size 변경이 해당 ListBox 를 사용한 인스턴스 행에도, Preview/CSS 에도 반영 안 됨**:
+  - Label/Text slot 자식은 텍스트 크기를 raw `style.fontSize` 이 아니라 `props.size` 토큰(catalog `Text.sizes[size].fontSize` → typography 매핑)으로 authoring 한다. 그런데 origin slot 구성을 인스턴스 행으로 전파하는 채널 `resolveSlotComposition`(`packages/shared/src/catalog/slotRoles.ts`)이 **slot 자식의 `props.style` 만 추출**하고 `props.size` 는 버려, `_slots.slots.label.style.fontSize` 가 비어 두 consumer(Skia `listbox_item` escape / DOM emit `SelectionRenderers`)가 모두 기본 크기로 렌더했다.
+  - **Why**: slot 구성 채널이 "시각 스타일"을 `props.style` 로만 정의한다고 가정했으나, Label/Text 의 크기 SSOT 는 `props.size`(size delegation)다. 채널이 size prop 을 무시하면 origin 크기 편집이 slot 구성 SSOT(ADR-148 Decision 3, "origin 스타일 변경 → instance 행 추종")에 도달하지 못한다.
+  - 수정: `resolveSlotComposition` 이 slot 자식의 `props.size` 를 catalog `COMPONENT_RULES_TABLE[type].sizes[size].fontSize` → `resolveToken` 으로 **px 숫자**로 해소해 `config.style.fontSize` 로 fold(explicit `style.fontSize` 우선). px 숫자라 Skia(`resolveSpecFontSize` number 분기)·DOM(inline `fontSize:number`) 두 consumer 가 동일 소비 — TokenRef 를 실으면 DOM inline 이 무효 CSS. 타이포 토큰은 theme 무관이라 eager 해소 안전. 모든 경로(Skia projection `appendListBoxRowProjection` / DOM provider / SelectionRenderers fallback)가 이 함수 경유 → 단일 지점 수정으로 ListBox/GridList/Menu 공통 반영.
+  - 검증: `slotRoles.test.ts` 에 size fold 계약 4종 추가(3xl→30 / explicit fontSize 우선 / size 없으면 미주입 / description slot 동일) · slot·origin 관련 33 PASS(slotRoles / skiaPrimitives listbox slots / gridlist·menu template origins) · type-check PASS(shared→specs `resolveToken` import, 신규 위반 0) · **live(Chrome MCP)**: origin label size:3xl 상태에서 Home data-bound 인스턴스 행 label — DOM preview `slot="label"` computed fontSize **30px** 측정 + Skia 캔버스 label 30px급 렌더(description 14px 대비) 실증
+  - 위치: `packages/shared/src/catalog/slotRoles.ts`
+
 ## [reset 버튼/dirty 뱃지가 non-desktop responsive override 미감지 수정 — dirty/reset breakpoint-aware] - 2026-07-21
 
 ### Bug Fixes

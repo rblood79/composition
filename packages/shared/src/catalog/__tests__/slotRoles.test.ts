@@ -106,6 +106,55 @@ describe("resolveSlotComposition", () => {
     expect(composition?.order).toEqual(["label"]);
     expect(composition?.slots.label?.style).toEqual({ fontWeight: 700 });
   });
+
+  // 2026-07-21 — Label/Text slot 자식은 텍스트 크기를 `props.size` 토큰으로 authoring 한다
+  //   (raw style.fontSize 아님). resolveSlotComposition 이 catalog {type}.sizes[size].fontSize
+  //   를 px 로 해소해 config.style.fontSize 로 접어넣지 않으면 consumer(Skia escape / DOM emit)
+  //   가 `slots[role].style.fontSize` 만 읽어 origin label size 편집이 instance 행에 전파되지
+  //   않는다 (사용자 보고: origin ListBoxItem/Default label size 변경 → home 인스턴스 미반영).
+  it("Label/Text slot 자식의 props.size 를 catalog fontSize(px)로 해소해 style.fontSize 로 접어넣는다", () => {
+    const composition = resolveSlotComposition([
+      {
+        type: "Text",
+        props: { slot: "label", children: "{label}", size: "3xl" },
+        metadata: { slotRole: "label" },
+      },
+    ]);
+
+    // Text.sizes["3xl"].fontSize = {typography.text-3xl} = 30
+    expect(composition?.slots.label?.style?.fontSize).toBe(30);
+  });
+
+  it("explicit style.fontSize 가 있으면 size 해소값이 덮어쓰지 않는다", () => {
+    const composition = resolveSlotComposition([
+      {
+        type: "Text",
+        props: { slot: "label", size: "3xl", style: { fontSize: 12 } },
+        metadata: { slotRole: "label" },
+      },
+    ]);
+
+    expect(composition?.slots.label?.style?.fontSize).toBe(12);
+  });
+
+  it("size 없는 slot 자식은 fontSize 를 주입하지 않는다 (BC)", () => {
+    const composition = resolveSlotComposition([descriptionChild]);
+
+    expect(composition?.slots.description?.style?.fontSize).toBeUndefined();
+  });
+
+  it("size 해소는 description slot 에도 동일 적용된다 (typography slot 일반)", () => {
+    const composition = resolveSlotComposition([
+      {
+        type: "Text",
+        props: { slot: "description", children: "{d}", size: "sm" },
+        metadata: { slotRole: "description" },
+      },
+    ]);
+
+    // Text.sizes["sm"].fontSize = {typography.text-sm} = 14
+    expect(composition?.slots.description?.style?.fontSize).toBe(14);
+  });
 });
 
 describe("isSlotEnabled", () => {
