@@ -101,7 +101,7 @@ data-bound collection(ListBox/GridList/Table 등)의 행 텍스트는 현재 **�
 | R2  | 기존 휴리스틱 의존 문서 회귀 (토큰 없는 문서의 표시 변화)                                                 |  MED   | BC fallback 계약 vitest (G3)                                                                                                                                                              |
 | R3  | columnMapping/Field-children 기존 경로와 이중 SSOT (`ListBox.tsx:442`, `CollectionRenderers.tsx:245-268`) |  HIGH  | Phase 0 소비처 판정 → 신규 오소링은 템플릿 단일, columnMapping 은 P5 컴포넌트 셀 계보로만 수렴 (G2). ADR-152 fieldMap 은 비텍스트 역할(icon/value) 한정으로 축소 (경계 재획정 2026-07-21) |
 | R4  | api/variable/route 물리 제거 시 잔존 소비처 파손 (`useCollectionData.tsx` dispatch, `services/api/*`)     |  MED   | 소비처 0 grep 확증 후에만 제거 (G4), 실패 시 대안 D 상태 보류                                                                                                                             |
-| R5  | projection hot path 성능 저하 (행별 재compile)                                                            |  MED   | compile 행 루프 밖 1회 계약 — P2 리뷰에서 위치 확인                                                                                                                                       |
+| R5  | projection hot path 성능 저하 (행별 재compile + scene rebuild 별 재compile)                               |  MED   | compile 행 루프 밖 1회 계약 — P2 리뷰에서 위치 확인. rebuild 반복 compile 은 template string 키 캐시(WeakMap/Map by text)로 흡수 — 대형 scroll window(A2 가상화) 대비                     |
 | R6  | P5 array/object placeholder projection 범위 확대 (Skia 셀 컴포넌트 시각)                                  |  MED   | Skia 는 정적 배치+샘플값만 (동작 없음 — D1 소관 분리), P5 진입 전 사용자 우선순위 confirm                                                                                                 |
 
 ## Gates

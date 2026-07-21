@@ -41,6 +41,19 @@
 - `readSlotComposition` 방어 판독에 동일 필드 통과.
 - 소비처(BC): 기존 소비처는 `text` 를 몰라도 동작 불변 (optional 필드).
 
+### 2-3-1. 템플릿 소스 precedence + 커버리지 (P1 리뷰 발견 — 명세 lock-in)
+
+라이브 seed 실측: 하나의 origin ListBoxItem 이 **item 자체 `props.children`**(예 `{name}`) + **slot 자식 Text `props.text`**(label=`{num}` / description=`{email}`)를 **동시 보유**한다. "어느 소스가 label 텍스트인가"를 확정하지 않으면 소스 분열 버그(`feedback-merged-style-map-kills-override-detection` 유형) 재발한다.
+
+**precedence 계약 (P2 구현 준수)**:
+
+1. slot 구성(`_slots`)이 존재하고 해당 role(label/description)에 slot 자식 `text` 가 있으면 → 그 slot 자식 text 가 **template 정본**. item 자체 `props.children`/`textValue` 는 **superseded**(무시).
+   - 근거: 사용자가 slot Text 에 `{num}` 을 넣은 의도가 정본. item 자체 children 은 seed 기본값(레거시 축).
+2. slot 구성이 없거나(null) 해당 role slot 자식이 없으면 → **item 자체 `props.children`/`textValue`** 를 template 소스로 사용(flat/legacy 저작 커버). 여기에도 토큰이 없으면 → §2-1 BC fallback(휴리스틱).
+3. **커버리지 명시**: 보간은 (1) slot-child text + (2) item-level children/textValue **양쪽** 을 대상으로 한다. slot 경유만 배선하면 flat item(`props.children:"{num}"`, slot 없음)이 보간 누락된다 — 이 케이스 P2 vitest 에 포함.
+
+precedence 판정은 shared 헬퍼 1곳(`resolveRowTemplateSource(slotComposition, role, itemProps)`)에 집약 — Skia projection 과 DOM 렌더가 동일 판정 공유(G2 대칭).
+
 ### 2-4. BindingNode 재귀 모델 (목표 모델 — P5+/후속 ADR 수용 형태)
 
 ```
@@ -69,7 +82,8 @@ Phase 1~4 는 이 모델의 text-leaf 부분만 구현하되, 문법·자료구�
 - [ ] `packages/shared/src/collections/fieldTemplate.ts` 신규 (compile/interpolate + 이스케이프/미지 필드)
 - [ ] `resolveCollectionItems.ts` 통합점: `toItemProjectionRow` 는 불변(휴리스틱 유지) — 보간은 소비 측 오버레이 (row.item 보존됨)
 - [ ] vitest: 문법 표 전 케이스 + BC fallback (토큰 없음 → 휴리스틱 동일) + 이스케이프 + 미지 필드
-- Gate: G2 (단일 심볼), G3 (BC)
+- [ ] **slot 단위 독립 fallback** vitest (LOW 발견): label 슬롯 template 없음 → children=휴리스틱, description 슬롯 template 있음 → description=보간 — **혼합 상태**가 role 별 독립으로 판정되는지 (한 slot 의 template 유무가 다른 slot 판정에 영향 없음)
+- Gate: G2 (단일 심볼), G3 (BC — slot 단위 독립 포함)
 
 ### Phase 2 — Skia projection 배선 (커밋 1)
 
