@@ -14,7 +14,7 @@
 
 ## §2. 현재 측정 지점 인벤토리 (Phase 0 freeze 대상)
 
-동일한 "행 텍스트 높이"를 계산하는 지점이 현재 **3곳**에 분산되어 있다. 이 중복이 근본 원인이다.
+동일한 "행 텍스트 높이"를 계산하는 측정 소스가 현재 **2개**(layout-util 함수 ↔ escape 별도 함수)로 갈라져 있다. M1/M2 는 이미 layout-util 함수 하나를 공유하며, escape(M3)만 패키지 경계로 별도 함수를 쓴다.
 
 | #   | 지점                | 파일                                                                                                        | 현재 측정 방식                                               | 소비 대상                               |
 | --- | ------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------- |
@@ -22,37 +22,39 @@
 | M2  | 가상화 stride       | `apps/builder/.../scene/collectionVirtualization.ts` `resolveListBoxRowHeight` / `resolveGridListRowStride` | 단일 줄(getTextLineHeight) — **의도적**(ADR-157 표시 정책)   | spacer/scroll content height            |
 | M3  | escape paint 스택   | `packages/specs/.../skiaPrimitives.ts` `listBoxItem` / `gridListCard`                                       | `measureSpecWrappedTextHeight`(주입 측정기, 2026-07-22 추가) | 그리기 좌표(stackY)·카드 높이·배경 밴드 |
 
-- **M1 ↔ M3 중복이 핵심**: 둘 다 wrap 높이를 각자 측정(measureWrappedTextHeight ↔ measureSpecWrappedTextHeight). 폰트 fallback·weight·lineHeight·maxWidth 산출을 각각 재현 → 미세 어긋남이 곧 parity 버그.
-- **M2 는 이원화 유지 대상**: 가상화 stride 는 단일 줄 균일이 ADR-157 표시 정책. 본 ADR 의 SSOT 단일화 범위에서 **제외**(경계).
+- **M1/M2 는 이미 layout-util 함수 공유**: `resolveListBoxItemRowHeightFromStyle`(utils.ts:351) 단일 정의를 §1.55b-2(utils.ts:2475)와 가상화 stride(collectionVirtualization.ts:274)가 함께 호출. M1 은 wrapContext 로 wrap, M2 는 wrapContext 미전달 = 단일 줄(ADR-157 표시 정책).
+- **layout-util(M1/M2) ↔ escape(M3) 이중화가 핵심**: escape 는 패키지 경계(specs ← shared ← builder)로 layout-util 을 import 할 수 없어 `measureSpecWrappedTextHeight`(packages/specs)로 **재측정**. 폰트 fallback·weight·lineHeight·maxWidth 산출을 layout-util 과 별도로 재현 → 미세 어긋남이 곧 parity 버그.
+- **M2(가상화 stride)는 이원화 유지 대상**: 단일 줄 균일이 ADR-157 표시 정책. 본 ADR 의 SSOT 단일화 범위에서 **제외**(경계). 본 ADR 은 **렌더 행(M1)과 escape(M3)의 측정 소스 통일**만 다룬다.
 
 ## §3. Decision(D+C) 구현 — Phase 분해
 
 ### Phase 0 — 인벤토리 freeze + 계약 테스트 baseline
 
-- §2 표를 코드 실측으로 확정(심볼·라인 고정). M1/M3 이 각자 호출하는 측정 함수 인자(fontSize/weight/family/maxWidth/lineHeight) 대조표 작성.
+- §2 표를 코드 실측으로 확정(심볼·라인 고정). layout-util(M1/M2)과 escape(M3)가 각자 호출하는 측정 함수 인자(fontSize/weight/family/maxWidth/lineHeight) 대조표 작성.
 - 현재 라이브 실측값(70da5ae3 ListBox 인스턴스 ba6a3aec) 을 baseline 으로 기록 — Phase 3 후 무변경(BC) 대조 기준.
 
-### Phase 1 — layout 측정 SSOT 확립 (M1 확장)
+### Phase 1 — layout-util 측정 함수 metric 객체화 (측정 로직 SSOT 유지)
 
-- `resolveListBoxItemRowHeightFromStyle`(utils.ts)가 현재 **행 높이(number)만** 반환한다. 이를 **행 metric 객체**로 확장:
+- `resolveListBoxItemRowHeightFromStyle`(utils.ts:351)가 현재 **행 높이(number)만** 반환한다. 이를 **행 metric 객체**로 확장:
   ```
   { rowHeight, slotBlocks: { label: {height, y}, description?: {height, y} }, contentTop }
   ```
   (`y` = 행 좌표계 내 각 slot 텍스트 top; escape 스택 offset SSOT)
 - GridList §1.55b2 인라인 공식도 동일 metric 반환 헬퍼로 추출(현재 인라인 → 공용 함수).
-- **측정 1회**: 폰트 fallback/weight/lineHeight/maxWidth 산출을 이 함수 안으로 집약. M3 는 재산출하지 않는다.
+- 측정 로직 SSOT 는 이 함수 하나(폰트 fallback/weight/lineHeight/maxWidth 산출 집약). **주의**: 측정 로직은 이미 M1/M2 가 공유 중이며, 본 Phase 는 반환 형태만 metric 객체로 넓힌다 — 새 SSOT 를 만드는 게 아니다.
 
-### Phase 2 — projection 행 props 주입 (배선)
+### Phase 2 — buildSpecNodeData 산출 + projection 행 props 주입 (측정 주체 확정)
 
-- `appendListBoxRowProjection` / `appendGridListRowProjection`(canvasSceneNode.ts)이 Phase 1 metric 을 계산해 행 props `_slotMetrics` 로 주입.
-- 기존 `_slots` / `_projectedRowsContentHeight` 주입 선례와 동일 경로 — 주입 타이밍(scene 빌드)·소비 타이밍(buildSpecNodeData → escape) 보장.
-- 카드 폭(maxWidth) 은 buildSpecNodeData width injection(layout `w` → style.width)과 동일 값 사용 — 측정 폭 정합.
+- **측정 주체 = `buildSpecNodeData`**(layout 이후, escape 직전). scene projection 시점(layout 前)엔 `style.width` 가 `%`/`calc` 라 정확한 wrap 폭(px)을 모른다 — 반면 `buildSpecNodeData` 는 width injection(layout `w` → `style.width`, `buildSpecNodeData.ts:1514`)이 **이미 실제 카드 폭을 확정한 시점**이다.
+- 따라서 `buildSpecNodeData` 가 확정된 `style.width` 로 Phase 1 layout-util metric 함수를 호출해 `_slotMetrics` 를 산출하고 escape props 에 주입한다. `_slots` / `_projectedRowsContentHeight` 주입 선례와 동일 props 경로, 단 **주입 시점은 scene 이 아니라 buildSpecNodeData**(폭 확정 보장).
+- **주의(측정 주체 재검토 사항)**: `appendListBoxRowProjection`(canvasSceneNode, scene 시점)에서 주입하는 대안은 폭 미정으로 배제. Phase 0 에서 buildSpecNodeData 시점에 카드 폭·slot 구성·텍스트가 모두 확정돼 있는지 실측 확인 후 진입.
 
-### Phase 3 — escape 소비 (M3 재측정 제거)
+### Phase 3 — M1·escape 소비 전환 (재측정 제거)
 
-- `listBoxItem` / `gridListCard`(skiaPrimitives.ts)가 `props._slotMetrics` 존재 시 **자체 `measureSpecWrappedTextHeight` 호출을 skip** 하고 주입값(slotBlocks.height / y)으로 stackY·카드 높이·배경 밴드를 그린다.
-- `_slotMetrics` 부재(legacy/비-projection) → 기존 자체 측정 fallback(BC — 주입 측정기 경로 유지).
-- 결과: 측정 SSOT = M1(layout), M3 = 소비자.
+- escape(`listBoxItem` / `gridListCard`, skiaPrimitives.ts)가 `props._slotMetrics` 존재 시 **자체 `measureSpecWrappedTextHeight` 호출을 skip** 하고 주입값(slotBlocks.height / y)으로 stackY·카드 높이·배경 밴드를 그린다.
+- layout 렌더 행(M1 §1.55b-2, utils.ts:2475)도 `_slotMetrics` 존재 시 이를 소비하도록 전환 — **렌더 행당 측정 1회**(buildSpecNodeData 산출) 수렴 성립. 미전환 시 scene 신규 측정 + M1 자체 측정 = 2회 유지(성능 개선 무효).
+- `_slotMetrics` 부재(legacy/비-projection) → escape 자체 측정 fallback(BC — 주입 측정기 경로 유지, escape 에 `measureSpecWrappedTextHeight` 잔존).
+- 결과: 측정 산출 주체 = `buildSpecNodeData`, M1·escape = 소비자.
 
 ### Phase 4 — differential 계약 테스트 (C)
 
@@ -67,21 +69,23 @@
 
 ## §4. 파일 변경 예상
 
-| 파일                                        | Phase | 변경                                                                              |
-| ------------------------------------------- | ----- | --------------------------------------------------------------------------------- |
-| `apps/builder/.../layout/engines/utils.ts`  | 1     | `resolveListBoxItemRowHeightFromStyle` metric 객체 반환 + GridList 공용 헬퍼 추출 |
-| `apps/builder/.../scene/canvasSceneNode.ts` | 2     | `appendListBoxRowProjection`/`appendGridListRowProjection` `_slotMetrics` 주입    |
-| `packages/specs/.../skiaPrimitives.ts`      | 3     | `listBoxItem`/`gridListCard` `_slotMetrics` 소비 + 재측정 skip                    |
-| `apps/builder/.../__tests__/*`              | 4     | differential 계약 테스트 신규                                                     |
-| (회귀 테스트)                               | 5     | 기존 5건 재현 가드 유지                                                           |
+| 파일                                         | Phase | 변경                                                                                  |
+| -------------------------------------------- | ----- | ------------------------------------------------------------------------------------- |
+| `apps/builder/.../layout/engines/utils.ts`   | 1     | `resolveListBoxItemRowHeightFromStyle` metric 객체 반환 + GridList 공용 헬퍼 추출     |
+| `apps/builder/.../skia/buildSpecNodeData.ts` | 2     | 확정 `style.width` 로 metric 산출 → `_slotMetrics` 주입 (측정 주체, 폭 확정 시점)     |
+| `packages/specs/.../skiaPrimitives.ts`       | 3     | `listBoxItem`/`gridListCard` `_slotMetrics` 소비 + 재측정 skip (fallback 분기만 잔존) |
+| `apps/builder/.../layout/engines/utils.ts`   | 3     | §1.55b-2 가 `_slotMetrics` 소비 전환 (측정 1회 수렴 — 미전환 시 2회 유지)             |
+| `apps/builder/.../__tests__/*`               | 4     | differential 계약 테스트 신규                                                         |
+| (회귀 테스트)                                | 5     | 기존 5건 재현 가드 유지                                                               |
 
 ## §5. 체크리스트
 
-- [ ] Phase 0: M1/M3 측정 인자 대조표 + baseline 라이브값 기록
-- [ ] Phase 1: layout metric 객체 반환 + GridList 헬퍼 추출, 단위 테스트
-- [ ] Phase 2: projection `_slotMetrics` 주입, 주입 타이밍 테스트
-- [ ] Phase 3: escape 소비 + 재측정 skip, `_slotMetrics` 부재 fallback(BC) 테스트
+- [ ] Phase 0: layout-util(M1/M2) ↔ escape(M3) 측정 인자 대조표 + baseline 라이브값 기록 + buildSpecNodeData 시점 폭·slot·텍스트 확정 여부 실측
+- [ ] Phase 1: layout-util metric 객체 반환 + GridList 헬퍼 추출, 단위 테스트
+- [ ] Phase 2: buildSpecNodeData 가 확정 `style.width` 로 metric 산출 → `_slotMetrics` 주입, 폭 정확성 테스트
+- [ ] Phase 3: escape 소비 + 재측정 skip(fallback 분기만 잔존) + M1 §1.55b-2 소비 전환, `_slotMetrics` 부재 fallback(BC) 테스트
 - [ ] Phase 4: differential 계약 테스트(layout==escape==CSS)
 - [ ] Phase 5: 5건 회귀 재현 안 됨 라이브 + type-check baseline + cross-check
-- [ ] ADR-157 표시 정책(가상화 stride 단일 줄) 무변경 확인
-- [ ] BC: Phase 0 baseline 대비 렌더값 무변경(측정 SSOT 경유만, 값 동일)
+- [ ] ADR-157 표시 정책(가상화 stride M2 단일 줄) 무변경 확인
+- [ ] 측정 1회 수렴 확인 (buildSpecNodeData 산출, M1·escape 소비 — 2회 유지 아님)
+- [ ] BC: Phase 0 baseline 대비 렌더값 무변경(측정 경로만 통일, 값 동일)

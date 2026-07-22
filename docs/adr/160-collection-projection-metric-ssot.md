@@ -2,19 +2,18 @@
 
 ## Status
 
-Proposed — 2026-07-22
+Accepted — 2026-07-22 (리뷰 승인: reviews/160.md round 2 — round 1 이슈 3건 전부 fixed, HIGH/CRITICAL 0)
 
 ## Context
 
-data-bound collection(ListBox / GridList)의 projection 행은 텍스트(label / description)를 **실제 자식 Text 노드가 아니라 `props`로 들고 다니고**, escape(`listBoxItem` / `gridListCard`)가 그것을 flat 하게 그린다. 이 구조 때문에 행의 크기·좌표를 레이아웃 엔진이 "자식 실측 합"으로 계산하지 못하고, **동일한 행 텍스트 높이를 세 지점이 각자 재현(reimplement)** 한다:
+data-bound collection(ListBox / GridList)의 projection 행은 텍스트(label / description)를 **실제 자식 Text 노드가 아니라 `props`로 들고 다니고**, escape(`listBoxItem` / `gridListCard`)가 그것을 flat 하게 그린다. 이 구조 때문에 행의 크기·좌표를 레이아웃 엔진이 "자식 실측 합"으로 계산하지 못하고, 동일한 행 텍스트 높이를 **두 개의 측정 소스**가 갈라서 산출한다:
 
-1. **M1 — layout 렌더 행 공식** (`utils.ts` §1.55b-2 / §1.55b2): 행 intrinsic height
-2. **M2 — 가상화 stride** (`collectionVirtualization.ts`): spacer/scroll content height (단일 줄 균일 — ADR-157 표시 정책)
-3. **M3 — escape paint 스택** (`skiaPrimitives.ts`): 그리기 좌표(stackY)·카드 높이·배경 밴드
+1. **layout-util 함수** — `resolveListBoxItemRowHeightFromStyle`(`utils.ts:351`)이 **단일 정의**이며, **M1(layout 렌더 행 §1.55b-2, `utils.ts:2475`)과 M2(가상화 stride, `collectionVirtualization.ts:274`)가 이 함수를 공유**한다. M1 은 wrapContext 로 wrap 을 측정하고, M2 는 wrapContext 미전달 = 단일 줄 균일(ADR-157 표시 정책). 즉 M1/M2 는 이미 동일 함수 소스다.
+2. **escape 별도 함수** — **M3(escape paint 스택, `skiaPrimitives.ts:515`)**은 `measureSpecWrappedTextHeight`(packages/specs)로 **재측정**해 그리기 좌표(stackY)·카드 높이·배경 밴드를 잡는다. escape 가 layout-util 함수를 재사용하지 못하는 이유는 **패키지 경계**(`specs ← shared ← builder`)로 apps/builder 의 측정 함수를 import 할 수 없기 때문이다.
 
-이 셋 중 하나라도 서로 또는 CSS(DOM)와 어긋나면 그게 곧 Skia↔CSS parity 버그다. 2026-07-22 하루에만 동일 근원에서 **5건**이 연쇄 발생했다: width 하드코딩(`1506f237b`) / gap origin fallback 부재(`fc69a3c1e`) / 행 높이 단일 줄 공식(`bc2c0ebd2`) / 컨테이너 enrich 동결(`0821da280`) / escape 스택 겹침(`a52a91905`), 그리고 GridList 에 동형 복제(`cb04c922c`). 각각은 개별 증상을 막았을 뿐, **"세 지점이 텍스트를 각자 측정한다"는 통로 자체는 열려 있다** — 새 parity 축(RTL / letter-spacing / 새 slot)이 추가되면 다시 세 곳에 반영해야 하고, 한 곳 누락이 곧 회귀다.
+이 두 소스(layout-util ↔ escape) 중 하나라도 서로 또는 CSS(DOM)와 어긋나면 그게 곧 Skia↔CSS parity 버그다. 2026-07-22 하루에만 동일 근원에서 **5건**이 연쇄 발생했다: width 하드코딩(`1506f237b`) / gap origin fallback 부재(`fc69a3c1e`) / 행 높이 단일 줄 공식(`bc2c0ebd2`) / 컨테이너 enrich 동결(`0821da280`) / escape 스택 겹침(`a52a91905`), 그리고 GridList 에 동형 복제(`cb04c922c`). 각각은 개별 증상을 막았을 뿐, **"escape 가 layout-util 과 별개로 텍스트를 재측정한다"는 통로 자체는 열려 있다** — 새 parity 축(RTL / letter-spacing / 새 slot)이 추가되면 layout-util 과 escape 두 소스에 반영해야 하고, 한 곳 누락이 곧 회귀다.
 
-이 문제는 레이아웃 엔진(composition-engine, ADR-916)이나 Skia 렌더 엔진(ADR-900)의 코어 결함이 **아니다**. 엔진은 텍스트를 측정하지 않는다 — 노드 height 는 JS 가 계산해 주입하고, 엔진은 배치만 한다. 근본 원인은 **flat-props projection 이라는 설계 선택**(대용량 collection 성능을 위해 실제 노드 unfold 를 피한 것)의 본질적 취약점이며, 텍스트 측정이 M1/M3 에 이중화되어 있다는 점이다.
+이 문제는 레이아웃 엔진(composition-engine, ADR-916)이나 Skia 렌더 엔진(ADR-900)의 코어 결함이 **아니다**. 엔진은 텍스트를 측정하지 않는다 — 노드 height 는 JS 가 계산해 주입하고, 엔진은 배치만 한다. 근본 원인은 **flat-props projection 이라는 설계 선택**(대용량 collection 성능을 위해 실제 노드 unfold 를 피한 것)의 본질적 취약점이며, **escape(M3)가 패키지 경계로 layout-util 측정 함수를 재사용하지 못해 별도 재측정한다는 점**이다.
 
 **3-Domain 귀속**: 본 ADR 은 [D3(시각 스타일)](../../.claude/rules/ssot-hierarchy.md) 내부의 구현 방식 결정이다. Skia(escape) ↔ CSS(DOM) symmetric consumer 의 **시각 결과 동일성**을 측정 SSOT 단일화로 보장한다. D1(DOM 구조)·D2(props/API) 무변경.
 
@@ -62,15 +61,15 @@ data-bound collection(ListBox / GridList)의 projection 행은 텍스트(label /
   - 유지보수: LOW — 단, **근본(재측정 이중화)을 제거하지 않아** 발산을 사후 검출할 뿐 통로는 열려 있다.
   - 마이그레이션: LOW.
 
-### 대안 D: 측정 SSOT 를 layout 으로 단일화 + escape 는 소비
+### 대안 D: escape 재측정 제거 — layout-util 함수로 산출한 metric 을 escape 가 소비
 
-- 설명: layout(M1)이 행 metric(rowHeight + slot 블록 높이 + 스택 offset)을 계산해 **projection 행 props 로 주입**하고, escape(M3)는 **재측정 없이** 그 값으로 그린다. 측정은 layout 한 곳에서만.
-- 근거: escape 는 이미 buildSpecNodeData injection 으로 layout 이 정한 `w`/`h`를 style 로 받는다(`_slots`/`_projectedRowsContentHeight` 주입 선례 존재). 여기에 slot metric 을 추가 주입하면 배선이 성립한다. "측정 1회, 나머지는 소비"로 M1↔M3 이중화를 구조적으로 제거.
+- 설명: 측정 로직 SSOT(`resolveListBoxItemRowHeightFromStyle`)는 이미 존재하나 escape(packages/specs)가 패키지 경계로 재사용하지 못해 별도 재측정 중이다. D 는 이 재측정을 제거한다 — **`buildSpecNodeData`(layout 이후, escape 직전 — 실제 카드 폭이 `style.width` 로 확정된 시점)가 layout-util 함수로 행 metric(rowHeight + slot 블록 높이 + 스택 offset)을 산출해 escape props `_slotMetrics` 로 주입**하고, escape(M3)는 **재측정 없이** 소비한다. layout 렌더 행(M1 §1.55b-2)도 동일 `_slotMetrics` 를 소비하도록 전환해 렌더 행당 측정을 1회로 수렴한다.
+- 근거: escape 는 이미 `buildSpecNodeData` injection 으로 layout 이 정한 `w`/`h`를 style 로 받는다(`buildSpecNodeData.ts:1514`, `_slots`/`_projectedRowsContentHeight` 주입 선례 존재). 여기에 slot metric 을 추가 주입하면 배선이 성립한다. **측정 주체를 `buildSpecNodeData` 로 두는 이유** = 정확한 wrap 폭(px)이 그 시점에만 확정된다(scene projection 시점엔 `style.width` 가 `%`/`calc` 라 미정). "측정 1회, 나머지는 소비"로 layout-util↔escape 이중화를 구조적으로 제거.
 - 위험:
-  - 기술: MEDIUM — layout→escape 측정 결과 주입 배선 신설(선례 경로 재사용).
-  - 성능: LOW — 측정 호출이 2회(M1+M3)에서 1회(M1)로 감소.
-  - 유지보수: LOW — 단일 진입점. 새 축은 layout 1곳만 반영.
-  - 마이그레이션: LOW — BC 유지(측정값 동일, 경로만 SSOT 경유). `_slotMetrics` 부재 시 기존 자체 측정 fallback.
+  - 기술: MEDIUM — buildSpecNodeData→escape metric 주입 배선 신설 + M1 §1.55b-2 소비 전환(선례 경로 재사용).
+  - 성능: LOW — 렌더 행당 측정 호출이 2회(M1 `measureWrappedTextHeight` + M3 `measureSpecWrappedTextHeight`)에서 1회(buildSpecNodeData 산출, M1·escape 소비)로 감소.
+  - 유지보수: LOW — 단일 진입점. 새 축은 buildSpecNodeData/layout-util 1곳만 반영.
+  - 마이그레이션: LOW — BC 유지(측정값 동일, 경로만 SSOT 경유). `_slotMetrics` 부재 시 escape 자체 측정 fallback.
 
 ### Risk Threshold Check
 
@@ -85,16 +84,16 @@ data-bound collection(ListBox / GridList)의 projection 행은 텍스트(label /
 
 ## Decision
 
-**대안 D(측정 SSOT 를 layout 으로 단일화 + escape 소비) + 대안 C(differential 계약 테스트)** 를 조합 채택한다.
+**대안 D(escape 재측정 제거 — layout-util metric 을 escape 가 소비) + 대안 C(differential 계약 테스트)** 를 조합 채택한다.
 
-- **D**: layout(`resolveListBoxItemRowHeightFromStyle` / GridList §1.55b2 공용 헬퍼)이 행 metric(rowHeight + slot 블록 높이 + 스택 offset)을 단일 산출한다. `appendListBoxRowProjection` / `appendGridListRowProjection` 이 이를 행 props `_slotMetrics` 로 주입하고, escape(`listBoxItem` / `gridListCard`)는 재측정 없이 소비한다. 측정 SSOT = layout, escape = 소비자.
+- **D**: 측정 로직 SSOT(`resolveListBoxItemRowHeightFromStyle`, `utils.ts:351`)는 이미 존재하며 M1(§1.55b-2)·M2(가상화 stride)가 공유한다. escape(M3)만 패키지 경계로 이 함수를 재사용하지 못해 `measureSpecWrappedTextHeight` 로 별도 재측정 중이다. D 는 이 재측정을 제거한다 — `buildSpecNodeData`(layout 이후, 실제 카드 폭 확정 시점)가 layout-util 함수로 행 metric(rowHeight + slot 블록 높이 + 스택 offset)을 산출해 `appendListBoxRowProjection` / `appendGridListRowProjection` 이 형성한 projection 행 props 에 `_slotMetrics` 로 주입하고, escape(`listBoxItem` / `gridListCard`)와 layout 렌더 행(M1 §1.55b-2)이 모두 이를 **소비**한다.
 - **C**: `layout 행 height == escape height == CSS DOM height` 3자 일치를 differential 계약 테스트로 CI 에 고정한다(ADR-156 선례). 가상화 stride(M2)는 검증 대상 제외(단일 줄 유지가 정상 계약).
 
 선택 근거(위험 수용):
 
 1. D 의 잔존 위험은 전부 MEDIUM 이하다. 최대 위험(R1 배선 stale)은 C(계약 테스트)가 CI 에서 검출하므로 수용 가능하다.
-2. 성능 Hard Constraint 를 보존한다 — flat-props 를 유지하고 측정 호출을 오히려 2회→1회로 줄인다.
-3. ADR-907 Layer D("동일 resolver 심볼 공유")가 확립한 원칙을 텍스트 측정 축으로 자연 확장하며, 907 의 의존 방향을 승계한다.
+2. 성능 Hard Constraint 를 보존한다 — flat-props 를 유지하고, 렌더 행당 측정 호출을 현재 2회(M1 `measureWrappedTextHeight` + M3 `measureSpecWrappedTextHeight`)에서 1회(`buildSpecNodeData` 산출 → M1·escape 소비)로 줄인다.
+3. ADR-907 Layer D("동일 resolver 심볼 공유")가 M1/M2 에서 확립한 원칙을 escape(M3)까지 확장한다 — escape 가 패키지 경계로 함수를 직접 못 쓰는 제약을 props 주입 소비로 우회. 907 의 의존 방향을 승계한다.
 
 기각 사유:
 
@@ -106,32 +105,32 @@ data-bound collection(ListBox / GridList)의 projection 행은 텍스트(label /
 
 ## Risks
 
-| ID  | 위험                                                                                          | 심각도 | 대응                                                                                                              |
-| --- | --------------------------------------------------------------------------------------------- | :----: | ----------------------------------------------------------------------------------------------------------------- |
-| R1  | layout→escape `_slotMetrics` 주입 배선 누락/stale → escape 가 옛 값으로 그림                  |  MED   | C(differential 계약 테스트)가 layout==escape 불일치를 CI 에서 검출. `_slotMetrics` 부재 시 자체 측정 fallback(BC) |
-| R2  | 가상화 stride(M2, 단일 줄)와 렌더 행(M1/M3, wrap)의 이원화 유지 필요 — ADR-157 표시 정책 경계 |  MED   | stride 는 명시적으로 단일 줄 유지(157 불변), 계약 테스트는 **렌더 행만** 검증하고 stride 를 제외한다              |
-| R3  | escape 가 layout 측정 결과를 받는 시점 보장 — buildSpecNodeData injection 이후 소비 순서      |  MED   | 기존 `_slots`/`_projectedRowsContentHeight` 주입 선례와 동일 경로·타이밍 재사용. Phase 2 주입 타이밍 테스트       |
+| ID  | 위험                                                                                                 | 심각도 | 대응                                                                                                                                                                                                   |
+| --- | ---------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R1  | `buildSpecNodeData`→escape `_slotMetrics` 주입 배선 누락/stale → escape 가 옛 값으로 그림            |  MED   | C(differential 계약 테스트)가 layout==escape 불일치를 CI 에서 검출. `_slotMetrics` 부재 시 escape 자체 측정 fallback(BC)                                                                               |
+| R2  | 가상화 stride(M2, 단일 줄)와 렌더 행(M1/M3, wrap)의 이원화 유지 필요 — ADR-157 표시 정책 경계        |  MED   | stride 는 명시적으로 단일 줄 유지(157 불변), 계약 테스트는 **렌더 행만** 검증하고 stride 를 제외한다                                                                                                   |
+| R3  | 측정 주체를 어느 시점에 두는가 — scene projection 시점엔 `style.width` 가 `%`/`calc` 라 wrap 폭 미정 |  MED   | 측정 주체를 `buildSpecNodeData`(layout 이후, `style.width` 가 실제 px 로 확정된 시점 — `buildSpecNodeData.ts:1514`)로 확정. scene projection 이 아니라 buildSpecNodeData 가 산출·주입해 폭 정확성 보장 |
 
 잔존 HIGH 위험 없음.
 
 ## Gates
 
-| Gate | 시점             | 통과 조건                                                                                 | 실패 시 대안                                          |
-| ---- | ---------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| G1   | Phase 3 완료     | escape 자체 측정 호출 0건(grep) + `_slotMetrics` 소비 + 부재 시 fallback 단위 테스트 PASS | escape 재측정 잔존 시 Phase 3 미완결 — 소비 경로 보강 |
-| G2   | Phase 4 완료     | differential 계약 테스트(layout==escape==CSS DOM) PASS, 가상화 stride 제외 명시           | 3자 불일치 시 M1 metric 산출 정정 후 재검             |
-| G3   | Phase 5(closure) | 2026-07-22 5건 회귀 재현 안 됨 라이브(ListBox + GridList 각 1회) + BC baseline diff 0     | 회귀 재현 시 해당 Phase 롤백                          |
+| Gate | 시점             | 통과 조건                                                                                                                                                                                                        | 실패 시 대안                                                        |
+| ---- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| G1   | Phase 3 완료     | escape 가 `_slotMetrics` 존재 시 자체 측정 skip (`measureSpecWrappedTextHeight` 호출이 **fallback 분기에만** 잔존 — grep 으로 소비 분기와 fallback 분기 확인) + `_slotMetrics` 부재 시 fallback 단위 테스트 PASS | escape 가 소비 분기에서도 재측정 시 Phase 3 미완결 — 소비 경로 보강 |
+| G2   | Phase 4 완료     | differential 계약 테스트(layout==escape==CSS DOM) PASS, 가상화 stride 제외 명시                                                                                                                                  | 3자 불일치 시 M1 metric 산출 정정 후 재검                           |
+| G3   | Phase 5(closure) | 2026-07-22 5건 회귀 재현 안 됨 라이브(ListBox + GridList 각 1회) + BC baseline diff 0                                                                                                                            | 회귀 재현 시 해당 Phase 롤백                                        |
 
 ## Consequences
 
 ### Positive
 
-- 반복 parity 버그의 통로 봉쇄: 텍스트 측정이 layout 1곳으로 수렴해 M1↔M3 이중화가 제거된다. 새 축(RTL/letter-spacing/새 slot)은 layout 1곳만 반영.
-- 측정 호출 2회→1회 감소(성능 소폭 개선).
-- ADR-907 Layer D 원칙의 텍스트 측정 축 확장으로 SSOT 체인 일관성 강화.
+- 반복 parity 버그의 통로 봉쇄: 텍스트 측정이 `buildSpecNodeData` 산출 1곳으로 수렴해 layout-util↔escape 이중화가 제거된다(escape 는 소비만). 새 축(RTL/letter-spacing/새 slot)은 layout-util 함수 1곳만 반영.
+- 렌더 행당 측정 호출 2회→1회 감소(`buildSpecNodeData` 단일 산출, M1·escape 는 `_slotMetrics` 소비 — 성능 소폭 개선).
+- ADR-907 Layer D 원칙(M1/M2 공유)을 escape(M3)까지 확장해 SSOT 체인 일관성 강화.
 - differential 계약 테스트가 CI 에 남아 향후 회귀를 조기 검출.
 
 ### Negative
 
-- layout→escape `_slotMetrics` 주입 배선이 신설된다(`canvasSceneNode.ts` projection append 2곳 + `skiaPrimitives.ts` escape 2곳 + `utils.ts` metric 반환 확장).
+- `buildSpecNodeData`→escape `_slotMetrics` 주입 배선이 신설된다(`buildSpecNodeData.ts` metric 산출·주입 + `skiaPrimitives.ts` escape 2곳 소비 전환 + `utils.ts` metric 반환 확장 + `utils.ts` §1.55b-2 소비 전환).
 - 가상화 stride(M2)의 이원화(단일 줄)는 유지된다 — ADR-157 표시 정책 경계라 의도적이나, "측정이 완전히 1곳"은 아니고 "렌더 행 측정이 1곳"이다. 이 경계를 문서로 명시 유지해야 한다.
