@@ -22,6 +22,7 @@ import {
   parseZIndex,
   createsStackingContext,
 } from "../layout/engines/cssStackingContext";
+import { resolveEffectiveOverflow } from "../layout/engines/implicitStyles";
 import {
   fillsToSkiaFillColor,
   fillsToSkiaFillStyle,
@@ -164,8 +165,9 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
   const zIndex = parseZIndex(style.zIndex as string | number | undefined);
   const isStackingCtx = createsStackingContext(style);
 
-  // Overflow
-  const overflow = style.overflow as string | undefined;
+  // Overflow — catalog containerStyles 에만 overflow 를 둔 컨테이너도 clip/scroll 발화하도록
+  //   catalog fallback 포괄(raw props.style 우선). box 경로 element 는 resolved scene tag(element.type).
+  const overflow = resolveEffectiveOverflow(element.type, style);
   const clipChildren =
     overflow === "hidden" ||
     overflow === "clip" ||

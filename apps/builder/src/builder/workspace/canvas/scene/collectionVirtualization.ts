@@ -295,6 +295,10 @@ export function resolveVirtualizedCollectionWindows(
   const visit = (node: CanonicalNode): void => {
     const family = resolveCollectionOwnerKind(node);
     if (family) {
+      // collection 가상화는 raw props.style 만 읽는다(ADR-157 표시 정책 보존): catalog maxHeight
+      //   fallback 을 여기서 병합하면 bare ListBox 가 auto-height sample/hatch 대신 bounded 300 으로
+      //   바뀌어 ADR-157 정책을 변경한다. ListBox 의 bounded-scroll 기본값은 factory/hydration
+      //   materialize(instance 실 props.style, ADR-listbox-scroll)가 담당 — 가상화 정책은 불변.
       const style =
         (node.props?.style as Record<string, unknown> | undefined) ?? {};
       const viewportHeight = readBoundedHeightPx(style);

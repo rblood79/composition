@@ -45,6 +45,7 @@ import { parseGridTemplate } from "./TaffyGridEngine";
 import {
   applyImplicitStyles,
   resolveContainerStylesFallback,
+  resolveEffectiveOverflow,
 } from "./implicitStyles";
 import { resolvePropagatedProps } from "../../../../utils/propagationEngine";
 import {
@@ -2881,7 +2882,16 @@ export function calculateFullTreeLayout(
     for (const [elementId, layout] of result) {
       const el = elementsMap.get(elementId);
       const elStyle = (el?.props?.style ?? {}) as Record<string, unknown>;
-      const overflow = elStyle?.overflow as string | undefined;
+      // overflow 가 catalog containerStyles 에만 있는 컨테이너(ListBox/Tree/body 등)도 스크롤이
+      //   발화하도록 catalog fallback 포괄. ref instance 는 resolved type(componentName). raw 우선.
+      const elWithNameForOverflow = el as
+        | { componentName?: unknown }
+        | undefined;
+      const overflowType =
+        (typeof elWithNameForOverflow?.componentName === "string"
+          ? elWithNameForOverflow.componentName
+          : undefined) ?? (el?.type as string | undefined);
+      const overflow = resolveEffectiveOverflow(overflowType, elStyle);
       if (overflow === "scroll" || overflow === "auto") {
         const scrollChildIds = childrenMap.get(elementId) ?? [];
         // ADR-150 A2: data-bound 가상화 collection(자식 0개)은 projection-height 기반

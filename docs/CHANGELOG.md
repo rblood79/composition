@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [catalog-only overflow 컨테이너의 Skia 스크롤/클립 미발화 — systematic consumer-side 해소] - 2026-07-22
+
+### Bug Fixes
+
+- **overflow 를 catalog `containerStyles` 에만 둔 컨테이너가 Skia 빌더에서 스크롤/클립이 발화하지 않던 구조적 문제** (사용자 지적: "overflow 가능한 모든 Skia 부분에서 동일 문제"):
+  - **Why**: Skia 스크롤/클립 4 소비자 — 일반 컨테이너 maxScroll(`fullTreeLayout` GAP4) / 휠(`useScrollWheelInteraction`) / clip·scrollbar shape(`buildSpecNodeData`·`buildBoxNodeData`) — 가 전부 raw `element.props.style.overflow` 만 읽었다. overflow 를 catalog rule 에만 둔 컨테이너(ListBox/Tree/body 의 `auto` · Card/DisclosureGroup 의 `hidden`)는 factory 가 real props.style 에 overflow 를 안 materialize 하면 4 소비자에 도달하지 못해 스크롤 미발화·자식 미클립(캔버스에서 넘쳐 보임). 시스템 페이지 body(20ac5e60d)·ListBox(66d653642) 를 개별 materialize 로 우회해 왔으나 근본은 소비자가 catalog fallback 을 안 읽는 것.
+  - 수정: 공용 resolver `resolveEffectiveOverflow(type, rawStyle)` 도입 — raw overflow 우선(사용자/factory 편집), 없으면 catalog root overflow 를 3 위치(top-level `containerStyles` · `structure.containerStyles`(Card) · `structure.composition.containerStyles`(DisclosureGroup))에서 조회(type→overflow 메모이즈, hot path short-circuit). 4 소비자를 이 resolver 경유로 전환 → catalog-only overflow 컨테이너도 스크롤/클립 발화.
+  - **범위 경계**: `.bar` 등 staticSelectors 의 sub-part overflow(ProgressBar/Meter)는 root clip 이 아니므로 제외(spec shapes 렌더 담당). ComboBox/Select 의 popover 내부 listbox overflow 는 builder 에 trigger 만 렌더되어 무관. **collection 가상화(collectionVirtualization)는 raw 유지** — catalog maxHeight fallback 병합 시 bare ListBox 가 ADR-157 auto-height sample/hatch 대신 bounded 로 바뀌어 정책 변경이 되므로, ListBox bounded-scroll 은 factory/hydration materialize(instance 실 style)가 계속 담당.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`(resolver) · `fullTreeLayout.ts`(GAP4) · `hooks/useScrollWheelInteraction.ts` · `skia/buildSpecNodeData.ts` · `skia/buildBoxNodeData.ts`
+  - 검증: type-check PASS(baseline 61 무동) · 회귀 테스트 +7(resolveEffectiveOverflow 3 위치 포괄/sub-part 제외/raw 우선 + Card clip catalog 기본값 갱신) · layout engines 277 유닛 PASS. **라이브 검증**: Card `getSkiaNode().clipChildren=true`(catalog structure.containerStyles), ListBox origin(catalog-only overflow:auto) `clipChildren=true`, ListBox 인스턴스 scrollbar/scrollOffset + 300 clamp, DOM iframe scrollable — Components 페이지 전체 무회귀.
+
 ## [ListBox overflow:auto 인데 스크롤 안 되고 넘쳐 보이던 문제 — bounded-scroll 기본값을 real props.style 로 materialize] - 2026-07-22
 
 ### Bug Fixes

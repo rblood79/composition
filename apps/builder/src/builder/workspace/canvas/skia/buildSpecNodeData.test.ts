@@ -614,9 +614,12 @@ describe("buildSpecNodeData", () => {
   //   설정하지 않아 overflow:hidden 컨테이너의 요소 자식이 캔버스에서 넘쳐 보였다. box 경로
   //   (buildBoxNodeData:169-173)와 동일 계약으로 overflow hidden/clip/scroll/auto 에서 clipChildren=true.
   describe("overflow → node.clipChildren (컨테이너 자식 클리핑)", () => {
-    function clipChildrenFor(overflow?: string): boolean | undefined {
-      const el = makeElement("card", {
-        type: "Card",
+    function clipChildrenFor(
+      overflow?: string,
+      type = "Card",
+    ): boolean | undefined {
+      const el = makeElement(type.toLowerCase(), {
+        type,
         props: {
           ...(overflow ? { style: { overflow } } : {}),
         },
@@ -631,18 +634,24 @@ describe("buildSpecNodeData", () => {
     }
 
     it.each(["hidden", "clip", "scroll", "auto"])(
-      "overflow:%s → clipChildren=true",
+      "raw overflow:%s → clipChildren=true",
       (overflow) => {
         expect(clipChildrenFor(overflow)).toBe(true);
       },
     );
 
-    it("overflow:visible → clipChildren 미설정", () => {
+    it("raw overflow:visible → clipChildren 미설정(raw 우선, catalog 무시)", () => {
       expect(clipChildrenFor("visible")).not.toBe(true);
     });
 
-    it("overflow 미지정 → clipChildren 미설정", () => {
-      expect(clipChildrenFor()).not.toBe(true);
+    // 2026-07-22 systematic fix: overflow 를 catalog containerStyles 에만 둔 컨테이너도
+    //   raw 미지정 시 catalog 기본값으로 clip. Card 는 structure.containerStyles.overflow:hidden.
+    it("raw 미지정 + catalog overflow 있는 type(Card) → catalog 기본값(hidden)으로 clip", () => {
+      expect(clipChildrenFor(undefined, "Card")).toBe(true);
+    });
+
+    it("raw 미지정 + catalog overflow 없는 type(Group) → clipChildren 미설정", () => {
+      expect(clipChildrenFor(undefined, "Group")).not.toBe(true);
     });
   });
 

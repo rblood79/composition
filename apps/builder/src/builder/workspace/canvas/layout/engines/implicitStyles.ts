@@ -330,6 +330,64 @@ export function resolveContainerStylesFallback(
 }
 
 /**
+ * catalog `containerStyles.overflow` 를 포괄한 effective overflow (shorthand).
+ *
+ * scroll/clip 소비자 4곳(fullTreeLayout GAP4 maxScroll / collectionVirtualization /
+ * useScrollWheelInteraction / buildSpecNodeData·buildBoxNodeData clip·scrollbar)이 그동안 raw
+ * `props.style.overflow` 만 읽어, overflow 를 catalog `containerStyles` 에만 둔 컴포넌트
+ * (ListBox/Menu/Select/Tree/ComboBox 의 auto · Card/DisclosureGroup/Meter/ProgressBar/NumberField/
+ * FileTrigger 의 hidden)는 Skia 에서 스크롤/클립이 발화하지 않았다(사용자 보고 2026-07-22).
+ * raw 우선(사용자/factory 편집), 없으면 catalog 기본값. ref instance 는 resolved type(componentName).
+ *
+ * hot path(GAP4/wheel 은 요소별 호출)를 위해 raw overflow 가 있으면 catalog 조회를 skip 하고,
+ * type→catalog overflow 는 메모이즈한다(catalog 는 런타임 불변).
+ */
+const catalogOverflowByType = new Map<string, string | undefined>();
+
+/**
+ * catalog rule 에서 **root element** 의 overflow 를 조회. root overflow 는 3 위치 중 하나에
+ * 선언된다: top-level `containerStyles`(body/ListBox/Tree) · `structure.containerStyles`(Card 등)
+ * · `structure.composition.containerStyles`(DisclosureGroup). staticSelectors(`.bar` 등)의
+ * sub-part overflow 는 root clip 이 아니므로 제외한다(spec shapes 렌더가 별도 담당).
+ */
+function catalogRootOverflow(lowerType: string): string | undefined {
+  const pascal = LOWERCASE_TO_PASCAL_RULE_KEY.get(lowerType);
+  if (!pascal) return undefined;
+  const rule = resolveComponentRule(pascal) as
+    | {
+        containerStyles?: Record<string, unknown>;
+        structure?: {
+          containerStyles?: Record<string, unknown>;
+          composition?: { containerStyles?: Record<string, unknown> };
+        };
+      }
+    | undefined;
+  if (!rule) return undefined;
+  return (rule.containerStyles?.overflow ??
+    rule.structure?.containerStyles?.overflow ??
+    rule.structure?.composition?.containerStyles?.overflow) as
+    | string
+    | undefined;
+}
+
+export function resolveEffectiveOverflow(
+  type: string | undefined,
+  rawStyle: Record<string, unknown> | undefined,
+): string | undefined {
+  const style = rawStyle ?? {};
+  const raw = (style.overflow ?? style.overflowY ?? style.overflowX) as
+    | string
+    | undefined;
+  if (raw != null) return raw;
+  if (!type) return undefined;
+  const key = type.toLowerCase();
+  if (catalogOverflowByType.has(key)) return catalogOverflowByType.get(key);
+  const ov = catalogRootOverflow(key);
+  catalogOverflowByType.set(key, ov);
+  return ov;
+}
+
+/**
  * `resolveContainerStylesFallback` 의 catalog 보강 대상 layout primitive 키.
  * specs `CONTAINER_STYLES_FALLBACK_KEYS` 와 동일 집합 (camelCase) — spec ↔ catalog rule
  * containerStyles 양쪽이 같은 키를 쓰므로 보강이 1:1.

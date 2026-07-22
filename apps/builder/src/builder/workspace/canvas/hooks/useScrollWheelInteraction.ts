@@ -22,6 +22,7 @@ import { useScrollState } from "../../../stores/scrollState";
 import { notifyLayoutChange } from "../skia/useSkiaNode";
 import type { BoundingBox } from "../selection/types";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
+import { resolveEffectiveOverflow } from "../layout/engines/implicitStyles";
 
 // ============================================
 // Types
@@ -87,13 +88,20 @@ export function useScrollWheelInteraction({
           continue;
         }
 
-        // overflow:scroll/auto인 요소인지 확인
+        // overflow:scroll/auto인 요소인지 확인 (catalog containerStyles 기본값 포괄 —
+        //   overflow 를 catalog 에만 둔 컨테이너도 휠 스크롤 대상. ref instance 는 componentName).
         const element = elementsMap.get(elementId);
         if (!element) continue;
 
-        const overflow = (
-          element.props?.style as Record<string, unknown> | undefined
-        )?.overflow as string | undefined;
+        const elWithName = element as { componentName?: unknown };
+        const overflowType =
+          (typeof elWithName.componentName === "string"
+            ? elWithName.componentName
+            : undefined) ?? (element.type as string | undefined);
+        const overflow = resolveEffectiveOverflow(
+          overflowType,
+          element.props?.style as Record<string, unknown> | undefined,
+        );
         if (overflow !== "scroll" && overflow !== "auto") continue;
 
         // 스크롤 가능한 요소이면 후보로 등록 (가장 나중에 발견된 것 = 더 안쪽 요소)

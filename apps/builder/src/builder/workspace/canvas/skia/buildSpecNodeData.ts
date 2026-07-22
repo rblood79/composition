@@ -59,7 +59,10 @@ import {
   getPropagationRules,
 } from "../../../utils/propagationRegistry";
 import { getNecessityIndicatorSuffix } from "@composition/shared/components";
-import { formatProgressValue } from "../layout/engines/implicitStyles";
+import {
+  formatProgressValue,
+  resolveEffectiveOverflow,
+} from "../layout/engines/implicitStyles";
 import {
   PHANTOM_INDICATOR_CONFIGS,
   parseLineHeight,
@@ -1677,7 +1680,10 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   // 요소 자식 클리핑에는 이 node-level clipChildren 이 별도로 필요하다 (그동안 spec 경로에
   // 미설정이라 overflow:hidden 컨테이너의 자식이 캔버스에서 넘쳐 보였다).
   {
-    const overflow = style.overflow as string | undefined;
+    // overflow 를 catalog containerStyles 에만 둔 컨테이너(Card/DisclosureGroup/Meter/
+    //   ProgressBar 의 hidden · ListBox/Menu/Select/Tree 의 auto)도 clip/scrollbar 가 발화하도록
+    //   catalog fallback 포괄. raw props.style 우선. type 은 이미 resolved scene tag.
+    const overflow = resolveEffectiveOverflow(type, style);
     if (
       overflow === "hidden" ||
       overflow === "clip" ||

@@ -11,7 +11,10 @@
 
 import { describe, expect, it } from "vitest";
 import { resolveToken } from "@composition/specs";
-import { resolveContainerStylesFallback } from "./implicitStyles";
+import {
+  resolveContainerStylesFallback,
+  resolveEffectiveOverflow,
+} from "./implicitStyles";
 
 describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => {
   describe("listbox — ListBoxSpec.containerStyles SSOT", () => {
@@ -448,5 +451,44 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         resolveContainerStylesFallback("body", { overflow: "hidden" }),
       ).not.toHaveProperty("overflow");
     });
+  });
+});
+
+// 2026-07-22: overflow 가 catalog containerStyles 에만 있고 raw props.style 에 없는 컨테이너의
+//   스크롤/클립이 Skia 4 소비자(GAP4 maxScroll / 가상화 / 휠 / clip·scrollbar)에서 발화하도록
+//   catalog fallback 을 포괄하는 공용 resolver. (구조적 근본 원인 — 사용자 보고)
+describe("resolveEffectiveOverflow — catalog containerStyles overflow 포괄", () => {
+  it("raw props.style.overflow 가 있으면 그대로(catalog 조회 skip)", () => {
+    expect(resolveEffectiveOverflow("listbox", { overflow: "visible" })).toBe(
+      "visible",
+    );
+    expect(resolveEffectiveOverflow("card", { overflowY: "scroll" })).toBe(
+      "scroll",
+    );
+  });
+
+  it("raw 부재 시 root overflow — 3 위치(top-level/structure/structure.composition) 포괄", () => {
+    // top-level containerStyles.overflow
+    expect(resolveEffectiveOverflow("listbox", {})).toBe("auto");
+    expect(resolveEffectiveOverflow("tree", {})).toBe("auto");
+    // structure.containerStyles.overflow (Card root clip)
+    expect(resolveEffectiveOverflow("card", {})).toBe("hidden");
+    // structure.composition.containerStyles.overflow (DisclosureGroup)
+    expect(resolveEffectiveOverflow("disclosuregroup", {})).toBe("hidden");
+  });
+
+  it("sub-part(.bar staticSelectors)의 overflow 는 root clip 이 아니므로 제외 — ProgressBar/Meter undefined", () => {
+    // ProgressBar/Meter 의 overflow:hidden 은 `.bar` 셀렉터(sub-part)라 root clipChildren 대상 아님.
+    expect(resolveEffectiveOverflow("progressbar", {})).toBeUndefined();
+    expect(resolveEffectiveOverflow("meter", {})).toBeUndefined();
+  });
+
+  it("catalog overflow 없는 type(GridList) 또는 type 미지정 → undefined", () => {
+    expect(resolveEffectiveOverflow("gridlist", {})).toBeUndefined();
+    expect(resolveEffectiveOverflow(undefined, {})).toBeUndefined();
+  });
+
+  it("ref instance resolved type(PascalCase componentName)도 lowercasing 으로 해석", () => {
+    expect(resolveEffectiveOverflow("ListBox", {})).toBe("auto");
   });
 });
