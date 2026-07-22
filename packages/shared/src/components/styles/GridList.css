@@ -92,17 +92,18 @@
       opacity: 0.6;
     }
 
-    /* 카드 내부 라벨 */
-    .gridlist-item-label {
-      font-size: var(--text-sm);
+    /* 카드 내부 라벨 — RAC `<Text slot="label">` (react-aria-Text 기본 16 → line box 24).
+       origin(reusable template 실 Text 자식)·ListBoxItem 과 동일 구조. font-size 미지정으로
+       기본 16 유지 → Skia gridlist_card metric(label 16/24) 및 DOM origin 과 정합(카드 76). */
+    [slot="label"] {
       font-weight: 600;
-      line-height: var(--text-sm--line-height);
+      color: inherit;
     }
 
-    /* 카드 내부 설명 */
-    .gridlist-item-description {
-      font-size: var(--text-xs);
-      line-height: var(--text-xs--line-height);
+    /* 카드 내부 설명 — muted 만. ListBox `[slot=description]` 는 `--lb-desc-size`(--text-xs 12)로
+       축소하지만 GridList slot 은 line-height override 가 없어 Skia 가 desc 를 16/24(1.5×)로 계산
+       → DOM 도 font-size 축소 없이 16 유지해야 76 정합(과거 --text-xs 12 는 인스턴스 64 로 발산). */
+    [slot="description"] {
       color: var(--fg-muted);
     }
 

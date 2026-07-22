@@ -168,19 +168,21 @@ function renderGridListItemSlotContent(opts: {
   const slotStyleOf = (role: SlotRole): React.CSSProperties | undefined =>
     slotComposition?.slots[role]?.style as React.CSSProperties | undefined;
 
+  // ADR-148 후속 (2026-07-22): label/description 은 RAC `<Text slot=...>` (react-aria-Text) —
+  //   origin(reusable template 실 Text 자식) 및 ListBoxItem 과 동일 구조. 과거 `.gridlist-item-*`
+  //   레거시 클래스(label --text-sm 14 / desc --text-xs 12)는 slot 기반 origin(둘 다 16 → line box
+  //   24)·Skia gridlist_card metric(76)과 발산(인스턴스 DOM 64 vs Skia 76)했다. slot 전환으로
+  //   DOM = origin = Skia = 76 정합. bold label / muted desc 는 GridList.css `[slot=*]` 로 유지.
   const labelNode = isSlotEnabled(slotComposition, "label") ? (
-    <span className="gridlist-item-label" style={slotStyleOf("label")}>
+    <AriaText slot="label" style={slotStyleOf("label")}>
       {label}
-    </span>
+    </AriaText>
   ) : null;
   const descriptionNode =
     isSlotEnabled(slotComposition, "description") && description ? (
-      <span
-        className="gridlist-item-description"
-        style={slotStyleOf("description")}
-      >
+      <AriaText slot="description" style={slotStyleOf("description")}>
         {description}
-      </span>
+      </AriaText>
     ) : null;
 
   const descriptionFirst =
@@ -1002,10 +1004,8 @@ export const renderGridListItem = (
     const description = element.props.description as string | undefined;
     return (
       <>
-        <span className="gridlist-item-label">{label}</span>
-        {description && (
-          <span className="gridlist-item-description">{description}</span>
-        )}
+        <AriaText slot="label">{label}</AriaText>
+        {description && <AriaText slot="description">{description}</AriaText>}
       </>
     );
   };

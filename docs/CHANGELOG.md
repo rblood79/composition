@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [data-bound GridList 인스턴스 DOM을 slot 기반으로 전환 — 레거시 클래스 렌더로 인한 Skia↔DOM 12px 발산 해소] - 2026-07-22
+
+### Bug Fixes
+
+- **data-bound GridList 인스턴스가 Preview/Publish DOM 에서 카드 높이 64 로 렌더돼 Skia 빌더 캔버스(76)·origin(76)과 12px 어긋나던 문제**:
+  - **Why**: data-bound GridList 인스턴스의 label/description 을 `<span className="gridlist-item-label/description">` **레거시 클래스**로 렌더했다 (label `--text-sm` 14 / weight 600, desc `--text-xs` 12 / muted → 카드 64). 그러나 GridList **origin**(reusable template 실 Text 자식)과 **ListBoxItem** 은 `<Text slot="label/description">`(react-aria-Text 16, slot) 을 쓴다 — origin·ListBox 는 slot, GridList 인스턴스만 레거시 클래스라 **비대칭**. Skia `gridlist_card` metric 은 slot 기준 76(label 16/24 + desc 16/24)으로 계산하므로 인스턴스 DOM(64)과 Skia(76)가 12px 발산했다 (2026-07-22 라이브 스크래치 인스턴스 검증에서 발견 — 이전 검증은 synthetic slot 노드를 써서 이 차이를 놓침).
+  - 수정: GridList 인스턴스 렌더(3 경로)를 `<Text slot="label">`/`<Text slot="description">` 로 전환(origin·ListBoxItem 통일). GridList.css 는 `.gridlist-item-*` 레거시 클래스 규칙을 `[slot="label"] { font-weight: 600 }` / `[slot="description"] { color: var(--fg-muted) }` 로 대체 — **font-size 축소 없이 react-aria-Text 기본 16 유지**(ListBox 는 `--lb-desc-size` 12 로 축소하지만 GridList slot 은 line-height override 가 없어 Skia 가 desc 16/24 로 계산). 결과 인스턴스 DOM = origin = Skia = 76(label 16/24 bold + desc 16/24 muted).
+  - **3 렌더 경로 동시 전환**: `renderGridListItemSlotContent`(projection 행) + GridListItem fallback(`SelectionRenderers.tsx`), `GridList.tsx` 컴포넌트(Text import 추가).
+  - 위치: `packages/shared/src/renderers/SelectionRenderers.tsx` · `packages/shared/src/components/GridList.tsx` · `packages/shared/src/components/styles/GridList.css`
+  - 검증: type-check PASS(baseline 61 무동). **라이브 검증**: iframe 실 CSS(레거시 클래스 규칙 제거 + `[slot=*]` 규칙 존재)에 방출 구조(react-aria-Text slot) 주입 = 카드 76(label 16/24 fw600 · desc 16/24 fg-muted), Skia projection `getSharedLayoutMap` = [76,76,76]. 스크래치 GridList 인스턴스 생성·측정·`removeElement` 로 라이브 프로젝트 원복.
+
 ## [ListBox 아이템 행 높이 metric을 실 렌더에 정합 — data-bound 인스턴스 label base 14→16 + description line-height] - 2026-07-22
 
 ### Bug Fixes

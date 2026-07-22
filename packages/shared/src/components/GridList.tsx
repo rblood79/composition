@@ -12,6 +12,7 @@ import {
   GridListItem as AriaGridListItem,
   GridListItemProps,
   GridListProps,
+  Text,
 } from "react-aria-components";
 import { MyCheckbox } from "./Checkbox";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
@@ -377,11 +378,11 @@ export function GridList<T extends object>({
                     selectionBehavior === "toggle" && (
                       <MyCheckbox slot="selection" />
                     )}
-                  <span className="gridlist-item-label">{item.label}</span>
+                  <Text slot="label">{item.label}</Text>
                   {(item as Record<string, unknown>).description && (
-                    <span className="gridlist-item-description">
+                    <Text slot="description">
                       {String((item as Record<string, unknown>).description)}
-                    </span>
+                    </Text>
                   )}
                 </>
               )}
