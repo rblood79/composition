@@ -45,9 +45,10 @@ function enrichedHeight(node: CanvasLayoutNode): number | undefined {
 
 describe("enrichWithIntrinsicSize — ListBoxItem 행 padding-box 이중 가산 방지 (ADR-157 R1)", () => {
   it("기본 행(explicit padding 없음): metric padding 이 §1.55b-2 에 baked → 이미 정합 (회귀 가드)", () => {
-    // box.padding=0 이라 이중 가산이 애초에 없음 — 기본 origin 은 fix 전후 동일(49/29).
-    // 2026-07-21 ListBox parity: line box = getTextLineHeight(1.5×fs) — label 14→21 / desc 12→18,
-    //   pad 4*2. 2줄 8+21+2+18=49, 1줄 8+21=29 (과거 50/28 은 getLabelLineHeight stale 값).
+    // box.padding=0 이라 이중 가산이 애초에 없음 — 기본 origin 은 fix 전후 동일(50/32).
+    // 2026-07-22 ListBox parity (라이브 실측): label 은 react-aria-Text 기본 16 → getTextLineHeight
+    //   (16)=24 (item fontSize 미상속). description 은 CSS [slot=desc] line-height 1.333× → 12→16.
+    //   pad 4*2. 2줄 8+24+2+16=50, 1줄 8+24=32 (과거 49/29 는 label 14·desc 1.5× stale 값).
     expect(
       enrichedHeight(
         makeItem("ListBoxItem", {
@@ -55,13 +56,13 @@ describe("enrichWithIntrinsicSize — ListBoxItem 행 padding-box 이중 가산 
           description: "mammal",
         }),
       ),
-    ).toBe(49);
+    ).toBe(50);
     expect(
       enrichedHeight(makeItem("ListBoxItem", { children: "Aardvark" })),
-    ).toBe(29);
+    ).toBe(32);
   });
 
-  it("explicit padding 4/4 행(커스텀/편집 origin): enrich 가 padding 재가산 안 함 (58/38 아니라 49/29)", () => {
+  it("explicit padding 4/4 행(커스텀/편집 origin): enrich 가 padding 재가산 안 함 (58/40 아니라 50/32)", () => {
     const style = { paddingTop: 4, paddingBottom: 4 };
     expect(
       enrichedHeight(
@@ -71,10 +72,10 @@ describe("enrichWithIntrinsicSize — ListBoxItem 행 padding-box 이중 가산 
           style,
         ),
       ),
-    ).toBe(49);
+    ).toBe(50);
     expect(
       enrichedHeight(makeItem("ListBoxItem", { children: "Aardvark" }, style)),
-    ).toBe(29);
+    ).toBe(32);
   });
 
   it("explicit padding 행: enrich 높이 == calculateContentHeight(§1.55b-2 padding-box)", () => {

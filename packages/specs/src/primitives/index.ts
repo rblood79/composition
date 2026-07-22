@@ -31,6 +31,7 @@ export {
   getTypographyToken,
   getLabelLineHeight,
   getTextLineHeight,
+  getDescriptionLineHeight,
 } from "./typography";
 
 // Radius

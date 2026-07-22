@@ -16,7 +16,10 @@
  */
 
 import { resolveContainerSpacing } from "../../primitives/containerSpacing";
-import { getTextLineHeight } from "../../primitives/typography";
+import {
+  getTextLineHeight,
+  getDescriptionLineHeight,
+} from "../../primitives/typography";
 
 /**
  * ADR-078 Phase 3: ListBox/ListBoxItem metric 단일 소스 resolver.
@@ -32,17 +35,26 @@ import { getTextLineHeight } from "../../primitives/typography";
  * 1.5×fs 로 3경로(origin·instance·CSS) 통일.
  *
  * 기본값(paddingX 12 / paddingY 4 / gap 2)은 componentRulesTable.ListBoxItem.sizes.md 와 동일.
+ *
+ * **2026-07-22 라이브 실측 정합**: label 은 react-aria-Text 기본 16 (item/container fontSize
+ * 미상속 — preview iframe 실측: item fontSize 14 여도 label 16/24) → getTextLineHeight(16)=24.
+ * description 은 CSS `[slot=description]` line-height 1.333× (getDescriptionLineHeight) 로 12→16
+ * (label 1.5× 와 대조). 따라서 itemHeight = 4*2 + 24 = 32, itemHeightWithDescription =
+ * 4*2 + 24 + 2 + 16 = 50. 이는 row resolver(`resolveListBoxItemRowHeightFromStyle`)의 기본값과
+ * 동일 — ADR-147 계약(standalone ListBoxItem 높이 = container per-item 할당)이 성립해야 잘림이
+ * 없다. `fontSize` 인자는 container fontSize 로 label/desc line box 를 결정하지 않으므로(비상속)
+ * item height 산출에 미사용 — 명시 slot label size 는 row resolver 가 per-item 반영한다.
  */
-export function resolveListBoxItemMetric(fontSize: number): {
+export function resolveListBoxItemMetric(_fontSize: number): {
   paddingX: number;
   paddingY: number;
   lineHeight: number;
   /** label↔description 수직 간격. escape rowGap 기본값. */
   gap: number;
-  /** `paddingY * 2 + lineHeight` — Skia/layout 양쪽이 동일 공식으로 소비하는 item height. */
+  /** `paddingY * 2 + label line box` — Skia/layout 양쪽이 동일 공식으로 소비하는 item height. */
   itemHeight: number;
   /**
-   * `paddingY * 2 + lineHeight + gap + lineHeight` — description(label+desc) 행 높이.
+   * `paddingY * 2 + label(24) + gap + desc(16)` — description(label+desc) 행 높이.
    * ListBox 컨테이너가 description 항목을 잘리지 않게 수용하는 단일 공식.
    */
   itemHeightWithDescription: number;
@@ -51,16 +63,18 @@ export function resolveListBoxItemMetric(fontSize: number): {
   const paddingX = 12;
   const paddingY = 4;
   const gap = 2;
-  // Text leaf line box(1.5×fontSize) — origin 실 Text 자식·CSS(line-height 1.5)와 동일 모델.
-  //   getLabelLineHeight(typography 토큰: 3xl→36)를 쓰면 instance 만 짧게 렌더돼 3경로 불일치.
-  const lineHeight = getTextLineHeight(fontSize);
+  // label: react-aria-Text 기본 16 → getTextLineHeight(16)=24 (1.5×, slot CSS override 없음).
+  const labelLineHeight = getTextLineHeight(COLLECTION_TEXT_DEFAULT_FONT_SIZE);
+  // description: CSS [slot=description] line-height 1.333× → 12→16 (label 1.5× 와 별도 비율).
+  const descriptionLineHeight = getDescriptionLineHeight(12);
   return {
     paddingX,
     paddingY,
-    lineHeight,
+    lineHeight: labelLineHeight,
     gap,
-    itemHeight: paddingY * 2 + lineHeight,
-    itemHeightWithDescription: paddingY * 2 + lineHeight + gap + lineHeight,
+    itemHeight: paddingY * 2 + labelLineHeight,
+    itemHeightWithDescription:
+      paddingY * 2 + labelLineHeight + gap + descriptionLineHeight,
   };
 }
 

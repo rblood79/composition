@@ -16,7 +16,11 @@
  */
 
 import { parseBorderWidth, parsePxValue, parseShadow } from "../primitives";
-import { fontFamily, getTextLineHeight } from "../primitives/typography";
+import {
+  fontFamily,
+  getTextLineHeight,
+  getDescriptionLineHeight,
+} from "../primitives/typography";
 import { COLLECTION_TEXT_DEFAULT_FONT_SIZE } from "./utils/collectionItemMetrics";
 import {
   buildDateInputDisplayText,
@@ -625,10 +629,6 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   //   자식이 담당하고 본 escape 는 shell(selection row-bg + check)만 그린다.
   //   projection 행은 자식이 없어 미주입 → 기존 flat-props 렌더(BC).
   const contentHidden = props._hasChildren === true;
-  const fontSize = resolveSpecFontSize(
-    (style?.fontSize as string | number | undefined) ?? size.fontSize,
-    14,
-  );
   // ADR-148 Phase 0 — slot 구성 소비 (존재 gating + style overlay + 스택 순서).
   const slotComposition = readInjectedSlotComposition(props._slots);
   const slotEnabled = (role: string): boolean =>
@@ -660,24 +660,24 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     typeof size.gap === "number" ? size.gap : 2,
   );
   // label/description fontSize: slot 자식 style overlay(props.size fold 포함) 우선.
+  //   미지정 label 은 react-aria-Text 기본 16 (부모/item fontSize 미상속 — 라이브 실측 2026-07-22).
+  //   과거 fallback `fontSize`(=item 14)는 default instance label 을 -3px 짧게(21 vs 실 렌더 24) 그렸다.
   const labelFontSize =
     labelSlotStyle?.fontSize != null
       ? resolveSpecFontSize(
           labelSlotStyle.fontSize as string | number,
-          fontSize,
+          COLLECTION_TEXT_DEFAULT_FONT_SIZE,
         )
-      : fontSize;
+      : COLLECTION_TEXT_DEFAULT_FONT_SIZE;
   // description 은 label size 와 무관한 자체 기본(--text-xs = 12) — CSS [slot="description"] 정합.
-  //   과거 fontSize-1 fallback 은 label 3xl 시 description 을 29 로 부풀려 instance 행이 origin/CSS
-  //   보다 훨씬 커졌다(2026-07-21 사용자 보고). 명시 slot size 우선.
+  //   명시 slot size 우선.
   const descriptionFontSize = parsePxValue(descriptionSlotStyle?.fontSize, 12);
-  // lineHeight: getTextLineHeight(= 1.5×fs) — label/description 은 **Text** leaf 라 origin(실 Text
-  //   자식, leaf Text 레이아웃 1.5×fs)·CSS(line-height 1.5)와 동일 모델이어야 instance 행 높이가
-  //   origin/CSS 와 일치한다. 과거 getLabelLineHeight(typography 토큰: 3xl→36)는 standalone Label
-  //   (LABEL_SIZE_STYLE)용이라 collection Text label 에 쓰면 instance 만 짧게(3xl 36 vs origin/CSS
-  //   45) 렌더돼 3경로 불일치했다(2026-07-21 사용자 보고). label/description 각자 size 로 line box.
+  // lineHeight: label 은 slot CSS override 없어 1.5×fs (getTextLineHeight) — react-aria-Text 기본·
+  //   origin 실 Text 자식·CSS 동일 모델. description 은 CSS [slot=description] line-height 토큰으로
+  //   1.333×fs (getDescriptionLineHeight) — label 1.5× 와 대조 (라이브 실측 2026-07-22: desc 12→16,
+  //   14→18.67). 과거 desc 에 getTextLineHeight(1.5×) 적용 시 12→18 로 +2 과대해 DOM(16) 과 발산.
   const labelLineHeight = getTextLineHeight(labelFontSize);
-  const descriptionLineHeight = getTextLineHeight(descriptionFontSize);
+  const descriptionLineHeight = getDescriptionLineHeight(descriptionFontSize);
   const entryLineHeight = (entry: "label" | "description"): number =>
     entry === "label" ? labelLineHeight : descriptionLineHeight;
 

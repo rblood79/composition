@@ -42,6 +42,7 @@ import {
   buildDateInputDisplayText,
   resolveSpecFontSize,
   getTextLineHeight,
+  getDescriptionLineHeight,
   // ADR-151 후속 (2026-07-17): IllustratedMessage 높이 분기 — escape(skiaPrimitives)/DOM 과
   //   동일 metric SSOT (Layer D 동일 resolver 원칙).
   resolveIllustratedMessageMetric,
@@ -358,19 +359,23 @@ export function resolveListBoxItemRowHeightFromStyle(
    */
   slotFontSizes?: { label?: number; description?: number },
 ): number {
+  // label: react-aria-Text 기본 16 (부모 fontSize 미상속 — 라이브 실측 2026-07-22: item
+  //   fontSize 14 여도 label 은 16/24 렌더). 명시 slot label size 우선. 과거 `?? 14` fallback 은
+  //   default 크기 instance 행을 -3px 짧게 그렸다 (label 21 vs 실 렌더 24).
   const fontSize =
-    slotFontSizes?.label ?? parseNumericValue(style?.fontSize) ?? 14;
+    slotFontSizes?.label ??
+    parseNumericValue(style?.fontSize) ??
+    COLLECTION_TEXT_DEFAULT_FONT_SIZE;
   // description 은 label size 와 무관한 자체 기본(--text-xs = 12) — CSS [slot="description"]
-  //   { font-size: var(--lb-desc-size, var(--text-xs)) } 정합. 과거 labelFs-1 fallback 은 label 을
-  //   3xl(30)로 키우면 description 을 29 로 부풀려(행 +28px) instance 가 origin/CSS 보다 훨씬 커졌다
-  //   (2026-07-21 사용자 보고 — Skia home instance 만 높이 다름의 주원인). 명시 slot size 우선.
+  //   { font-size: var(--lb-desc-size, var(--text-xs)) } 정합. 명시 slot size 우선.
   const descFontSize = slotFontSizes?.description ?? 12;
   const m = resolveListBoxItemMetric(fontSize);
   return resolveListBoxItemRowHeight({
-    // Text leaf line box(1.5×fs) — origin 실 Text 자식·CSS 와 동일 모델 (getLabelLineHeight 는
-    //   standalone Label 용 typography 토큰이라 collection Text label 에 쓰면 3경로 불일치).
+    // label line box = 1.5×fs (react-aria-Text 기본, slot CSS override 없음) → getTextLineHeight.
     lineHeight: getTextLineHeight(fontSize),
-    descriptionLineHeight: getTextLineHeight(descFontSize),
+    // description line box = 1.333×fs (CSS [slot=description] line-height 토큰, label 1.5× 와 대조).
+    //   라이브 실측 2026-07-22: desc 12→16 / 14→18.67. getTextLineHeight(1.5×)는 12→18 로 +2 과대.
+    descriptionLineHeight: getDescriptionLineHeight(descFontSize),
     rowGap:
       parseNumericValue(style?.rowGap ?? style?.columnGap ?? style?.gap) ??
       m.gap,

@@ -26,12 +26,11 @@ describe("resolveListBoxSpacingMetric — defaults", () => {
     expect(m.borderWidth).toBe(1);
   });
 
-  it("fontSize 14 → itemMetric sm 분기 (paddingY=4, Text line box 1.5×14=21 → itemHeight=29)", () => {
+  it("container fontSize 14 → itemHeight 32 (label react-aria-Text 16 → line box 24)", () => {
     const m = resolveListBoxSpacingMetric({});
-    // 2026-07-21: label/description Text leaf line box = getTextLineHeight(1.5×fs) →
-    //   14 → 21(origin 실 Text 자식·CSS line-height 1.5 동일). 과거 getLabelLineHeight(14)=20
-    //   (typography 토큰)으로 28 이던 것을 origin/CSS 정합상 29 로 정정.
-    expect(m.itemHeight).toBe(29); // paddingY(4) * 2 + lineHeight(21)
+    // 2026-07-22 라이브 실측: label 은 container/item fontSize 미상속 (react-aria-Text 기본 16) →
+    //   getTextLineHeight(16)=24 → itemHeight pad4*2+24=32 (과거 29 는 label 14 기준 stale).
+    expect(m.itemHeight).toBe(32); // paddingY(4) * 2 + label line box(24)
     expect(m.itemPaddingX).toBe(12); // ListBoxItemSpec.sizes.md.paddingX
   });
 
@@ -127,20 +126,23 @@ describe("resolveListBoxSpacingMetric — padding style override", () => {
 });
 
 describe("resolveListBoxSpacingMetric — fontSize 분기", () => {
-  it("fontSize 12 → Text line box 1.5×12=18, itemHeight 26", () => {
+  it("container fontSize 12 이어도 itemHeight 32 (label 미상속, react-aria-Text 16)", () => {
     const m = resolveListBoxSpacingMetric({ defaultFontSize: 12 });
-    expect(m.itemHeight).toBe(26); // paddingY(4) * 2 + lineHeight(18=1.5×12)
+    // label 은 container fontSize 미상속 → 항상 react-aria-Text 16 → line box 24 → itemHeight 32.
+    expect(m.itemHeight).toBe(32); // paddingY(4) * 2 + label line box(24)
   });
 
-  it("fontSize 16 → itemMetric base (lineHeight 24, itemHeight 32)", () => {
+  it("container fontSize 16 → itemHeight 32 (label react-aria-Text 16 = container 우연 일치)", () => {
     const m = resolveListBoxSpacingMetric({ defaultFontSize: 16 });
     expect(m.itemHeight).toBe(32);
   });
 
-  it("fontSize 18 → Text line box 1.5×18=27, itemHeight 35", () => {
+  it("container fontSize 무관 — itemHeight 32 (label react-aria-Text 16 고정)", () => {
     const m = resolveListBoxSpacingMetric({ defaultFontSize: 18 });
-    // 과거 getLabelLineHeight(18)=28(text-lg 토큰)으로 36 이던 것을 origin/CSS(1.5×18=27) 정합상 35.
-    expect(m.itemHeight).toBe(35);
+    // label 은 container/item fontSize 미상속 (react-aria-Text 기본 16 — 라이브 실측 2026-07-22) →
+    //   getTextLineHeight(16)=24 → itemHeight pad4*2+24=32. container fontSize 18 이어도 불변.
+    //   명시 slot label size 는 row resolver 가 per-item 반영 (aggregate 는 기본 크기 컨테이너용).
+    expect(m.itemHeight).toBe(32);
   });
 
   it("style.fontSize 18 → fontSize 18 + 비례 header metric", () => {
@@ -152,18 +154,18 @@ describe("resolveListBoxSpacingMetric — fontSize 분기", () => {
 });
 
 describe("resolveListBoxSpacingMetric — description-aware item height (ADR-147)", () => {
-  // render.shapes description 행 높이 = paddingY*2 + lineHeight + gap + lineHeight.
-  //   ListBox 컨테이너가 description 항목을 잘리지 않게 수용하려면 동일 공식 필요.
-  it("fontSize 14 → itemHeightWithDescription = 4*2 + 21 + 2 + 21 = 52", () => {
+  // description 행 = paddingY*2 + label(24) + gap + desc(16). label 은 react-aria-Text 16(1.5×),
+  //   description 은 CSS [slot=desc] line-height 1.333× → 12→16 (라이브 실측 2026-07-22).
+  //   row resolver(resolveListBoxItemRowHeightFromStyle) 기본값과 동일 — ADR-147 계약 성립.
+  it("itemHeightWithDescription = 4*2 + 24 + 2 + 16 = 50 (label 16 / desc 12)", () => {
     const m = resolveListBoxSpacingMetric({});
-    // resolveListBoxItemMetric 은 label/description 동일 fontSize(14→21) → 8+21+2+21=52.
-    expect(m.itemHeightWithDescription).toBe(52);
-    expect(m.itemHeight).toBe(29); // label-only (회귀 확인)
+    expect(m.itemHeightWithDescription).toBe(50);
+    expect(m.itemHeight).toBe(32); // label-only (회귀 확인)
   });
 
-  it("fontSize 16 → itemHeightWithDescription = 4*2 + 24 + 2 + 24 = 58", () => {
+  it("container fontSize 16 이어도 itemHeightWithDescription 50 불변 (label 미상속)", () => {
     const m = resolveListBoxSpacingMetric({ defaultFontSize: 16 });
-    expect(m.itemHeightWithDescription).toBe(58);
+    expect(m.itemHeightWithDescription).toBe(50);
   });
 });
 

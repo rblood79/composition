@@ -112,9 +112,9 @@ describe("listbox_item slot 구성 소비 (ADR-148 Phase 0 배선)", () => {
     const texts = textShapes(shapes);
     expect(texts).toHaveLength(1);
     expect(texts[0]?.text).toBe("Aardvark");
-    // 단일 줄 → rowHeight/2 세로 중앙 (paddingY 4*2 + getTextLineHeight(14)=21 = 29 → y 14.5).
-    //   Text leaf 1.5×14=21 (origin/CSS 동일) — 과거 getLabelLineHeight(14)=20(토큰)에서 정정.
-    expect(texts[0]?.y).toBe(14.5);
+    // 단일 줄 → rowHeight/2 세로 중앙. label 은 react-aria-Text 기본 16 (item fontSize 미상속 —
+    //   라이브 실측 2026-07-22) → getTextLineHeight(16)=24 → rowHeight pad4*2+24=32 → y 16.
+    expect(texts[0]?.y).toBe(16);
   });
 
   it("label slot 자식이 구성에 없으면 label 미렌더 (description 만 잔존)", () => {
@@ -302,11 +302,12 @@ describe("listbox_item 행 appearance — border / box-shadow (2026-07-21)", () 
   });
 });
 
-// 2026-07-21 — 행 높이/스택이 label/description slot size 에 반응 + origin/CSS 와 line box 일치:
-//   line box = getTextLineHeight(1.5×fs) — label/description 은 Text leaf 라 origin(실 Text 자식,
-//   leaf 레이아웃 1.5×fs)·CSS(line-height 1.5)와 동일 모델. 과거 getLabelLineHeight(typography
-//   토큰: 3xl→36)는 instance 만 짧게 렌더돼 3경로 불일치했다(사용자 보고).
-describe("listbox_item 행 높이 — label/description size 반응 (2026-07-21)", () => {
+// 2026-07-22 — 행 높이/스택이 label/description slot size 에 반응 + origin/CSS/DOM line box 일치:
+//   label line box = getTextLineHeight(1.5×fs) (react-aria-Text 기본, slot CSS override 없음).
+//   description line box = getDescriptionLineHeight(1.333×fs) (CSS [slot=desc] line-height 토큰 —
+//   label 1.5× 와 별도 비율). 미지정 label 은 react-aria-Text 기본 16 (item fontSize 미상속).
+//   라이브 실측(preview iframe DOM 주입): label 16→24/30→45, desc 12→16/24→32.
+describe("listbox_item 행 높이 — label/description size 반응 (2026-07-22)", () => {
   const textY = (shapes: Shape[] | null, text: string): number | undefined =>
     (shapes as AnyShape[] | null)?.find(
       (s) => s.type === "text" && s.text === text,
@@ -322,8 +323,9 @@ describe("listbox_item 행 높이 — label/description size 반응 (2026-07-21)
   });
 
   it("label(3xl=30) + description(2xl=24) → 2줄 스택이 각자 line box 로 배치", () => {
-    // label lh 45(1.5×30), description lh 36(1.5×24). pad 4.
-    //   label y = 4 + 45/2 = 26.5, description y = 4 + 45 + gap2 + 36/2 = 69.
+    // label lh 45(1.5×30, react-aria-Text). description lh 32(1.333×24, CSS [slot=desc] 토큰
+    //   — label 1.5× 와 별도 비율, 라이브 실측 2026-07-22). pad 4.
+    //   label y = 4 + 45/2 = 26.5, description y = 4 + 45 + gap2 + 32/2 = 67 (과거 desc 1.5×→69).
     const shapes = drawWith({
       ...flatProps,
       _slots: composition(["label", "description"], {
@@ -332,17 +334,17 @@ describe("listbox_item 행 높이 — label/description size 반응 (2026-07-21)
       }),
     });
     expect(textY(shapes, "Aardvark")).toBe(26.5);
-    expect(textY(shapes, "A large burrowing mammal")).toBe(69);
+    expect(textY(shapes, "A large burrowing mammal")).toBe(67);
   });
 
-  it("BC: 표준 사이즈(14) 단일 줄 y=14.5 (getTextLineHeight(14)=21=1.5×14, origin/CSS 동일)", () => {
-    // 과거 getLabelLineHeight(14)=20(typography 토큰)이라 y=14 였으나, origin 실 Text 자식·CSS 는
-    //   1.5×14=21 → instance 도 21 로 정합(rowHeight pad4*2+21=29 → 14.5).
+  it("BC: 미지정 label → react-aria-Text 기본 16 단일 줄 y=16 (item fontSize 미상속)", () => {
+    // label slot size 미지정 → react-aria-Text 기본 16 (item fontSize 14 미상속, 라이브 실측
+    //   2026-07-22) → getTextLineHeight(16)=24 → rowHeight pad4*2+24=32 → y 16 (과거 label 14→14.5).
     const shapes = drawWith({
       ...flatProps,
       _slots: composition(["label"]),
     });
-    expect(textY(shapes, "Aardvark")).toBe(14.5);
+    expect(textY(shapes, "Aardvark")).toBe(16);
   });
 });
 

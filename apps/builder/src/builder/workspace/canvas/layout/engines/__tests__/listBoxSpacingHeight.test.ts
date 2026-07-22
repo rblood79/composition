@@ -1,11 +1,12 @@
 /**
  * ADR-147 (RAC 표준 ListBoxItem) — calculateContentHeight ListBox/ListBoxItem 높이 정합.
  *
- * render.shapes 가 description 행을 paddingY*2 + lineHeight + gap + lineHeight (=50) 로 그리는데,
- * ListBox 컨테이너가 label-only itemHeight(=28) 로만 행을 할당하면 description 행이 잘린다.
+ * render.shapes 가 description 행을 paddingY*2 + label(24) + gap + desc(16) (=50) 로 그리는데,
+ * ListBox 컨테이너가 label-only itemHeight(=32) 로만 행을 할당하면 description 행이 잘린다.
+ * (label=react-aria-Text 16→24 / desc=CSS [slot] 1.333×→16, 라이브 실측 2026-07-22).
  * 본 테스트는:
  *  (a) description 항목 → 컨테이너가 itemHeightWithDescription(=50) 로 수용 (잘림 해소)
- *  (b) label-only 항목 → 기존 itemHeight(=28) 유지 (회귀)
+ *  (b) label-only 항목 → itemHeight(=32) 유지 (회귀)
  *  (c) standalone ListBoxItem element → render.shapes 와 동일 intrinsic height
  */
 

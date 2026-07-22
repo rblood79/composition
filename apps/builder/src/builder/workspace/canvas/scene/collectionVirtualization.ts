@@ -28,7 +28,6 @@ import {
   type CollectionWindow,
 } from "@composition/shared";
 import {
-  resolveListBoxItemMetric,
   resolveGridListSpacingMetric,
   getTextLineHeight,
   COLLECTION_TEXT_DEFAULT_FONT_SIZE,
@@ -44,9 +43,15 @@ import {
 } from "./canvasSceneNode";
 import { flattenCanonicalDocumentNodes } from "./canonicalSceneModel";
 
-/** catalog ListBoxItem 기본 행 높이(fontSize 14: paddingY*2 + lineHeight = 28). */
-export const DEFAULT_LISTBOX_ROW_HEIGHT =
-  resolveListBoxItemMetric(14).itemHeight;
+/**
+ * catalog ListBoxItem 기본 행 높이(description 없음) = paddingY*2 + label line box = 4*2 + 24 = 32.
+ * label 은 react-aria-Text 기본 16 → getTextLineHeight(16)=24 (라이브 실측 2026-07-22). row resolver
+ * 와 동일 심볼(resolveListBoxItemRowHeightFromStyle)로 산출해 fallback 상수와 실 stride 를 정합.
+ */
+export const DEFAULT_LISTBOX_ROW_HEIGHT = resolveListBoxItemRowHeightFromStyle(
+  undefined,
+  false,
+);
 
 /** style 에서 numeric px 높이 추출. `400`/`"400"`/`"400px"` → 400, 그 외 null(=unbounded). */
 function readBoundedHeightPx(

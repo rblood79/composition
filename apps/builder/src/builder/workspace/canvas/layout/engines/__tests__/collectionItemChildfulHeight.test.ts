@@ -39,16 +39,16 @@ describe("calculateContentHeight — slot host childful gating (ADR-148 후속)"
     makeTextChild("c-desc", "{description}"),
   ];
 
-  it("ListBoxItem childless → metric 공식 유지 (1줄 = paddingY*2 + lineHeight = 29)", () => {
+  it("ListBoxItem childless → metric 공식 유지 (1줄 = paddingY*2 + label line box = 32)", () => {
     const h = calculateContentHeight(
       makeItem("ListBoxItem", {
         children: "Aardvark",
       }),
     );
-    // 2026-07-21 ListBox parity: line box = getTextLineHeight(14)=21 (1.5×fs), pad 4*2 → 29.
-    //   (과거 28 은 getLabelLineHeight(14)=20 기준 stale 값 — resolveListBoxItemMetric 은 이미
-    //   getTextLineHeight 전환됨. 본 갱신은 그 migration 의 잔여 stale 정정)
-    expect(h).toBe(29);
+    // 2026-07-22 ListBox parity sweep (라이브 실측): label = react-aria-Text 기본 16 →
+    //   getTextLineHeight(16)=24 (item fontSize 미상속), pad 4*2 → 32. description 없어 label 단독.
+    //   (과거 29 는 label 14 기준 stale — getSharedLayoutMap/DOM injection 은 label 16/24).
+    expect(h).toBe(32);
   });
 
   it("GridListItem childless → metric 공식 유지 (1줄 = line box 24)", () => {

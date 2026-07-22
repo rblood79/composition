@@ -116,5 +116,19 @@ export function getTextLineHeight(fontSize: number): number {
   return Math.ceil(fontSize * 1.5);
 }
 
+/**
+ * Collection item **description** slot 의 line box 높이 = `4/3 × fontSize` (≈1.333, xs 비율).
+ *
+ * ListBox `[slot="description"]` CSS 는 `line-height: var(--lb-desc-line-height, var(--text-xs))`
+ * 로 desc 를 **1.333× 고정 비율**로 렌더한다 (label 의 react-aria-Text 기본 1.5× 와 대조).
+ * 라이브 실측 (2026-07-22, preview iframe DOM 주입): fs 12→16 / 14→18.67 / 20→26.67 / 24→32 —
+ * 모두 `fontSize × 4/3`. `getTextLineHeight`(1.5×) 도 `getLabelLineHeight`(typography 토큰,
+ * sm 14→20) 도 이 비율과 어긋나므로 (14 에서 18.67 vs 21 vs 20), description 전용 헬퍼로 분리한다.
+ * label 은 slot CSS override 가 없어 1.5× (`getTextLineHeight`) 유지.
+ */
+export function getDescriptionLineHeight(fontSize: number): number {
+  return Math.ceil((fontSize * 4) / 3);
+}
+
 // ADR-058 Phase 4: `getTextPresetFontSize` 제거 — `buildTextNodeData` 폐지로 호출처 0건.
 // Text/Heading/Paragraph/Kbd/Code는 각 spec의 `sizes` 정의를 직접 소비 (Spec-First SSOT).

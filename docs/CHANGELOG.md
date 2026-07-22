@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ListBox 아이템 행 높이 metric을 실 렌더에 정합 — data-bound 인스턴스 label base 14→16 + description line-height] - 2026-07-22
+
+### Bug Fixes
+
+- **data-bound ListBox 인스턴스 행이 Skia 빌더 캔버스에서 실제 DOM 렌더보다 짧게 계산되던 잠재 문제**:
+  - **Why**: ListBox item metric 이 (1) label base 를 item fontSize(14) 로 가정했으나 `react-aria-Text` 는 부모 size 미상속·16 고정이라 label line box 는 24(=1.5×16) 여야 한다(라이브 실측: item fontSize 14 여도 label 은 16/24 렌더). (2) description line box 를 `getTextLineHeight`(1.5×fs)=18 로 산출했으나, ListBox `[slot=description]` CSS 는 line-height 를 1.333×fs 토큰으로 override 해 12→16 이다(label 의 1.5× 와 별도 비율 — desc 14→18.67, 24→32 실측). 두 오차가 부분 상쇄해 default desc 행이 49(실 50)·plain 29(실 32) 로 -1~-3px 어긋났고, label 만 고치면 desc 행이 52 로 오버슛됐다. 대상 프로젝트는 explicit 3xl label 이라 미발현(2026-07-21 ListBox 정합 세션에서 보류)이었으나 기본 크기 인스턴스에서 상시 -3px.
+  - 수정: label base = `COLLECTION_TEXT_DEFAULT_FONT_SIZE`(16), label line box = `getTextLineHeight`(1.5×), description line box = 신규 `getDescriptionLineHeight`(1.333×fs, xs 토큰 비율) → 12→16. default desc 행 50 / plain 32 로 실 DOM 정합. 명시 slot size 는 우선.
+  - **3 높이 소스 + fallback 상수 동시 수정 (Layer D 대칭, ADR-147 계약)**: row resolver `resolveListBoxItemRowHeightFromStyle`(`utils.ts` §1.55b-2 projection 행 + 가상화 stride), `listbox_item` escape(`skiaPrimitives.ts` Skia 그리기), container aggregate `resolveListBoxItemMetric`(`collectionItemMetrics.ts` static props.items §1.55b — standalone ListBoxItem 높이 = container per-item 할당 계약 유지 위해 동일 32/50), `DEFAULT_LISTBOX_ROW_HEIGHT`(`collectionVirtualization.ts`).
+  - 위치: `packages/specs/src/primitives/typography.ts`(getDescriptionLineHeight 신규) · `packages/specs/src/renderers/utils/collectionItemMetrics.ts` · `packages/specs/src/renderers/skiaPrimitives.ts` · `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` · `apps/builder/src/builder/workspace/canvas/scene/collectionVirtualization.ts`
+  - 검증: type-check PASS(baseline 61 무동) · specs 609 + 빌더 canvas/layout 405 유닛 PASS. **라이브 검증(dev 재시작)**: Skia 빌더 캔버스 projected ListBox 행(`getSharedLayoutMap`)이 `[50,50,50,32,32,32]` — DOM 오라클(desc 50 / plain 32)과 정확 일치.
+
 ## [GridList 카드 높이 metric을 실 렌더에 정합 — ListBox 유사 패턴 sweep] - 2026-07-22
 
 ### Bug Fixes
