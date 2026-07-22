@@ -258,8 +258,20 @@ export function createListBoxDefinition(
         //   Preview CSS = generated/ListBox.css (Generator)
         //   Canvas Skia = implicitStyles.listbox 분기 (layout engine 전용 경로)
         //   factory 는 사용자 커스터마이징 기본값 (width) 만 보유.
+        //
+        //   maxHeight/overflow 는 예외로 real props.style 에 둔다: catalog
+        //   containerStyles(maxHeight:300px/overflow:auto)는 layout(resolveContainerStylesFallback)
+        //   + 패널만 소비하고, 스크롤 발화(collectionVirtualization 가상화 window resolver) /
+        //   휠(useScrollWheelInteraction) / scrollbar·clip shape(buildSpecNodeData)는 전부 raw
+        //   props.style.overflow·maxHeight 를 읽는다. 두 값이 raw style 에 없으면 가상화가
+        //   unbounded(auto-height) 로 판정 → 행이 300px 를 넘어도 clamp/스크롤 없이 넘쳐 보인다
+        //   (사용자 보고 2026-07-22 "overflow:auto 인데 visible 처럼"). 시스템 페이지 body 에
+        //   real overflow:auto 를 부여한 선례(20ac5e60d)와 동일 판단 — real style 1곳이 4 raw
+        //   소비자를 동시 충족(catalog 일반화 대비 blast radius 최소).
         style: {
           width: "100%",
+          maxHeight: "300px",
+          overflow: "auto",
         },
       } as ComponentElementProps,
       parent_id: parentId,

@@ -8,6 +8,7 @@ import { convertPageLayout } from "../slotAndLayoutAdapter";
 import {
   isListBoxTemplateAnchor,
   LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
+  LISTBOX_ORIGIN_ID,
   LISTBOX_TEMPLATE_ANCHOR_ROLE,
 } from "../../../builder/components/listbox/listBoxTemplateOrigins";
 import { migrateLegacyListBoxTemplatesToOrigins } from "../legacyListBoxTemplateMigration";
@@ -259,5 +260,97 @@ describe("Option B — ListBox anchor-less migration", () => {
     const gridList = findNode(doc.children, (node) => node.type === "GridList");
     expect(gridList).toBeDefined();
     expect(gridList!.children ?? []).toHaveLength(0);
+  });
+});
+
+// 2026-07-22 사용자 보고: ListBox overflow:auto 인데 아이템을 늘려도 스크롤 안 되고 넘쳐 보임.
+//   근본 원인 — factory 이전 seed instance 의 props.style 이 { width:"100%" } 뿐이라 스크롤
+//   발화(collectionVirtualization) / 휠 / scrollbar 소비자가 raw props.style 에서 maxHeight/
+//   overflow 를 못 읽어 unbounded 판정. migration 이 순수 default instance 에 bounded scroll
+//   기본값을 real props.style 로 보강한다(커스텀은 보존).
+describe("bounded-scroll style repair — ensureListBoxScrollStyle", () => {
+  function docWithListBoxInstance(
+    style: Record<string, unknown> | undefined,
+  ): CompositionDocument {
+    return {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          name: "Home",
+          metadata: { type: "legacy-page", pageId: "page-1", slug: "/" },
+          children: [
+            {
+              id: "listbox-ref",
+              type: "ref",
+              ref: LISTBOX_ORIGIN_ID,
+              props: style ? { items: [], style } : { items: [] },
+            } as CanonicalNode,
+          ],
+        } as CanonicalNode,
+      ],
+    };
+  }
+
+  function instanceStyle(
+    doc: CompositionDocument,
+  ): Record<string, unknown> | undefined {
+    const node = findNode(doc.children, (n) => n.id === "listbox-ref");
+    return (node?.props as { style?: Record<string, unknown> } | undefined)
+      ?.style;
+  }
+
+  it("adds maxHeight/overflow to a pure-default instance (style = { width })", () => {
+    const migrated = migrateLegacyListBoxTemplatesToOrigins(
+      docWithListBoxInstance({ width: "100%" }),
+    );
+    expect(instanceStyle(migrated)).toMatchObject({
+      width: "100%",
+      maxHeight: "300px",
+      overflow: "auto",
+    });
+  });
+
+  it("preserves an explicit overflow (auto-height 의도) — no maxHeight injection", () => {
+    const migrated = migrateLegacyListBoxTemplatesToOrigins(
+      docWithListBoxInstance({ width: "100%", overflow: "visible" }),
+    );
+    const style = instanceStyle(migrated);
+    expect(style?.overflow).toBe("visible");
+    expect(style?.maxHeight).toBeUndefined();
+  });
+
+  it("preserves an explicit custom height — no override", () => {
+    const migrated = migrateLegacyListBoxTemplatesToOrigins(
+      docWithListBoxInstance({ maxHeight: "500px" }),
+    );
+    const style = instanceStyle(migrated);
+    expect(style?.maxHeight).toBe("500px");
+    expect(style?.overflow).toBeUndefined();
+  });
+
+  it("is idempotent — second run does not re-mutate the repaired instance", () => {
+    const once = migrateLegacyListBoxTemplatesToOrigins(
+      docWithListBoxInstance({ width: "100%" }),
+    );
+    const twice = migrateLegacyListBoxTemplatesToOrigins(once);
+    expect(instanceStyle(twice)).toEqual(instanceStyle(once));
+  });
+
+  it("leaves the system origin (component-listbox) untouched", () => {
+    const migrated = migrateLegacyListBoxTemplatesToOrigins(
+      docWithListBoxInstance({ width: "100%" }),
+    );
+    const origin = findNode(
+      migrated.children,
+      (n) => n.id === LISTBOX_ORIGIN_ID,
+    );
+    expect(origin).toBeDefined();
+    const originStyle = (
+      origin?.props as { style?: Record<string, unknown> } | undefined
+    )?.style;
+    expect(originStyle?.maxHeight).toBeUndefined();
+    expect(originStyle?.overflow).toBeUndefined();
   });
 });

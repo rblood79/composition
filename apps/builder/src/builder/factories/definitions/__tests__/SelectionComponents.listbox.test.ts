@@ -42,6 +42,22 @@ describe("createListBoxDefinition (Option B anchor-less)", () => {
     expect(definition.children).toEqual([]);
   });
 
+  // 2026-07-22 사용자 보고 회귀 방지: 스크롤 발화/휠/scrollbar 4 소비자가 raw props.style.overflow·
+  //   maxHeight 를 읽으므로(catalog fallback 미도달), instance 가 real props.style 로 bounded
+  //   scroll 기본값을 가져야 콘텐츠 초과 시 300px clamp + 스크롤바가 나온다.
+  it("materializes bounded-scroll defaults (maxHeight/overflow) on the instance props.style", () => {
+    const definition = createListBoxDefinition(makeContext());
+    const style = (
+      definition.parent as { props?: { style?: Record<string, unknown> } }
+    ).props?.style;
+
+    expect(style).toMatchObject({
+      width: "100%",
+      maxHeight: "300px",
+      overflow: "auto",
+    });
+  });
+
   it("uses component names for the generated custom id and creates no child elements", () => {
     useStore.setState({ elements: [] });
 

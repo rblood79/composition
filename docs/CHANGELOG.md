@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ListBox overflow:auto 인데 스크롤 안 되고 넘쳐 보이던 문제 — bounded-scroll 기본값을 real props.style 로 materialize] - 2026-07-22
+
+### Bug Fixes
+
+- **ListBox 에 아이템을 늘려도 overflow:auto 가 scroll 처럼 안 되고 visible 처럼 컨테이너가 계속 늘어나던 문제** (사용자 보고 2026-07-22):
+  - **Why**: 스크롤 발화(collectionVirtualization 가상화 window resolver — `readBoundedHeightPx` + `isScrollOverflow`) / 휠(useScrollWheelInteraction) / scrollbar·clip shape(buildSpecNodeData / buildBoxNodeData) **4 소비자가 전부 raw `element.props.style` 의 overflow·maxHeight 를 읽는다.** 그러나 ListBox 의 `maxHeight:300px`+`overflow:auto` 는 catalog `containerStyles` 에만 있고(layout `resolveContainerStylesFallback` + Style 패널만 소비), factory 는 instance props.style 에 `{ width:"100%" }` 만 둔다. 4 소비자가 maxHeight/overflow 를 못 읽어 가상화가 **unbounded(auto-height)** 로 판정 → 행이 300px 를 넘어도 clamp/스크롤 없이 컨테이너가 계속 성장. 시스템 페이지 body 스크롤 미표시(2026-07-21, commit 20ac5e60d)와 **동일한 catalog↔raw-consumer 비대칭**.
+  - 수정: bounded-scroll 기본값(`maxHeight:"300px"`, `overflow:"auto"`)을 ListBox instance 의 **real props.style** 로 materialize — factory 신규 경로(`createListBoxDefinition`) + 기존 instance hydration repair(`ensureListBoxScrollStyle`). real style 1곳이 4 raw 소비자를 동시 충족(catalog fallback 일반화 대비 blast radius 최소, 20ac5e60d 선례와 동일 판단). repair 는 height/overflow 를 **하나도** 명시 안 한 순수 default instance 만 대상 — 커스텀 높이·auto-height(overflow 명시)는 보존, 멱등.
+  - 위치: `apps/builder/src/builder/factories/definitions/SelectionComponents.ts`(factory) · `apps/builder/src/adapters/canonical/legacyListBoxTemplateMigration.ts`(hydration repair)
+  - 검증: type-check PASS(baseline 61 무동) · 회귀 테스트 +6(factory style 1 + migration 보강/보존/멱등/origin 무영향 5). **라이브 검증(사용자 프로젝트 9-item ListBox)**: reload 시 migration 이 instance style 을 `{width:100%, maxHeight:300px, overflow:auto}` 로 보강 → DOM(iframe) `clientHeight 298 < scrollHeight 366` **scrollable true**(scrollTop 0→60 실이동) + Skia `getSharedLayoutMap` 컨테이너 높이 358 성장 → **300 clamp**. 이전엔 양 렌더러 모두 unbounded 성장.
+
 ## [data-bound GridList 인스턴스 DOM을 slot 기반으로 전환 — 레거시 클래스 렌더로 인한 Skia↔DOM 12px 발산 해소] - 2026-07-22
 
 ### Bug Fixes
