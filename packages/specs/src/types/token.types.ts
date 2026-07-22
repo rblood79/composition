@@ -98,6 +98,8 @@ export interface ColorTokens {
 
   // --- Surface / Layer ---
   base: string;
+  /** raised surface (popover/dropdown/collection 컨테이너, ADR-071) → CSS --bg-raised. */
+  raised: string;
   "layer-1": string;
   "layer-2": string;
   elevated: string;

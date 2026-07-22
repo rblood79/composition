@@ -26,6 +26,13 @@ describe("resolveColor — var(--xxx) 시맨틱 변수 역변환", () => {
       resolveToken("{color.accent}", "light"),
     );
   });
+
+  it("{color.raised} Skia 색 해석 (ADR-071 토큰 — lightColors/darkColors 등재)", () => {
+    // 과거 Skia 색맵에 raised 미등재 → undefined → 투명 (collection/popover 컨테이너 배경 소실).
+    //   --bg-raised = gray-50(light) / zinc-850(dark) 로 등재해 catalog·projection 양쪽 배경 복원.
+    expect(resolveColor("{color.raised}", "light")).toBe("#f9fafb");
+    expect(resolveColor("{color.raised}", "dark")).toBe("#202023");
+  });
 });
 
 describe("tokenResolver — surface elevation", () => {

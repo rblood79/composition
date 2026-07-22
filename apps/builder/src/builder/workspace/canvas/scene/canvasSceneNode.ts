@@ -277,6 +277,14 @@ export interface CanvasSceneNode {
    */
   fills?: FillItem[];
   reusable?: true;
+  /**
+   * data-bound collection projection 컨테이너(box 경로)가 catalog "shell variant" 배경
+   * (`{color.raised}` 등)을 그리도록 하는 마커 — catalog 컴포넌트 key("ListBox"/"GridList").
+   * box 경로(buildBoxNodeData)는 catalog shell lookup 을 안 하므로, scene 이 collection 임을
+   * 아는 시점에 마커를 심어 render 단에서 theme-aware 로 배경을 복원한다(사용자 배경 없을 때만).
+   * 투명 컨테이너에서 drop-shadow 가 자식 행 실루엣을 캡처하던 문제 봉쇄(box-shadow = border-box).
+   */
+  collectionShellTag?: string;
   projection?: CanvasProjectionMetadata;
   ref?: string;
   descendants?: Record<string, DescendantOverride>;
@@ -2486,6 +2494,20 @@ export function buildCanvasSceneGraph(
     const tableProjection = sceneNode
       ? resolveDataBoundTableProjection(sceneNode, node, options)
       : null;
+
+    // data-bound collection projection 컨테이너는 box 경로(buildBoxNodeData)로 렌더돼 catalog
+    //   "shell variant" 배경(`{color.raised}`)을 그리지 못한다(catalog 경로만 shell 담당). 사용자
+    //   배경이 없을 때만 collectionShellTag 을 심어 render 단이 theme-aware 로 배경을 복원 —
+    //   투명 컨테이너에서 컨테이너 box-shadow(drop-shadow)가 자식 행 실루엣을 캡처하던 문제 봉쇄.
+    if (sceneNode && !sceneNode.fills?.length) {
+      const inlineBg = (
+        sceneNode.props?.style as Record<string, unknown> | undefined
+      )?.backgroundColor;
+      if (inlineBg == null) {
+        if (listBoxProjection) sceneNode.collectionShellTag = "ListBox";
+        else if (gridListProjection) sceneNode.collectionShellTag = "GridList";
+      }
+    }
 
     // ADR-912 영역 B (A): TagGroup chip projection (owner=TagList scene node, wrap-flow row).
     //   TagList factory children:[] (items propagation) → suppression 불필요, append 만.

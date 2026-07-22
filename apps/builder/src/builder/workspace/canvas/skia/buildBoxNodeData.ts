@@ -5,7 +5,9 @@
  * PixiJS 의존성 없음. element.props + layoutMap에서 구축.
  */
 
-import type { BorderStyleValue } from "@composition/specs";
+import type { BorderStyleValue, TokenRef } from "@composition/specs";
+import { resolveColor } from "@composition/specs";
+import { resolveComponentRule } from "@composition/shared";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
@@ -52,7 +54,14 @@ interface BoxBuildInput {
 // ---------------------------------------------------------------------------
 
 export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
-  const { element, layout, scrollState, isCollectionItem, isCardItem } = input;
+  const {
+    element,
+    layout,
+    scrollState,
+    isCollectionItem,
+    isCardItem,
+    theme = "light",
+  } = input;
 
   // ADR-902 후속: body 는 BodySpec (TAG_SPEC_MAP 등록) 이 담당 → isSpecPath=true
   // → buildSpecNodeData 경로로 진입하여 이 함수에 body 가 도달하지 않는다.
@@ -127,8 +136,35 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
         );
       })();
 
+  // data-bound collection projection 컨테이너(scene 이 collectionShellTag 마커)는 box 경로라
+  //   catalog "shell variant" 배경(ListBox `structure.containerStyles.background = {color.raised}`)을
+  //   건너뛴다 — catalog 경로(buildCatalogShapes)만 shell 을 그리기 때문. 사용자 배경이 없을 때
+  //   (fillV2Color 없음 + fill.alpha 0) catalog 배경 토큰을 theme-aware 해석해 복원. 불투명해지면
+  //   컨테이너 drop-shadow 실루엣 = border-box 로 자동 교정(투명 시 자식 행 실루엣 캡처 문제 봉쇄).
+  const shellBgToken =
+    element.collectionShellTag != null && !fillV2Color && fill.alpha === 0
+      ? (resolveComponentRule(element.collectionShellTag)?.structure
+          ?.containerStyles?.background as TokenRef | undefined)
+      : undefined;
+  const shellBgResolved = shellBgToken
+    ? resolveColor(shellBgToken, theme)
+    : undefined;
+
   if (fillV2Color) {
     fillColor = fillV2Color;
+  } else if (shellBgResolved != null) {
+    const hex =
+      typeof shellBgResolved === "number"
+        ? shellBgResolved
+        : shellBgResolved.startsWith("#")
+          ? parseInt(shellBgResolved.slice(1), 16)
+          : parseInt(shellBgResolved, 16);
+    fillColor = Float32Array.of(
+      ((hex >> 16) & 0xff) / 255,
+      ((hex >> 8) & 0xff) / 255,
+      (hex & 0xff) / 255,
+      1,
+    );
   } else if (isCollectionItem && fill.alpha === 0) {
     fillColor = Float32Array.of(0.98, 0.98, 0.98, 1);
   } else {

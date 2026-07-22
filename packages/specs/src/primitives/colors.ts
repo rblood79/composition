@@ -48,6 +48,7 @@ export const lightColors: ColorTokens = {
 
   // --- Surface / Layer ---
   base: "#ffffff",
+  raised: "#f9fafb", // --bg-raised = --color-gray-50 (popover/dropdown/collection 컨테이너)
   "layer-1": "#fafafa", // neutral-50
   "layer-2": "#fafafa", // neutral-50
   elevated: "#ffffff",
@@ -128,6 +129,7 @@ export const darkColors: ColorTokens = {
 
   // --- Surface / Layer ---
   base: "#171717", // neutral-900
+  raised: "#202023", // --bg-raised = --color-zinc-850 (popover/dropdown/collection 컨테이너)
   "layer-1": "#262626", // neutral-800
   "layer-2": "#262626", // neutral-800
   elevated: "#262626",
