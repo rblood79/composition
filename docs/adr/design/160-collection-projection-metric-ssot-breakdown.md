@@ -113,10 +113,12 @@
 - [x] ~~Phase 2: buildSpecNodeData `_slotMetrics` 주입~~ → **직접 호출로 대체(설계 편차, §2.2)**. escape 는 이미 buildSpecNodeData width injection(`style.width`, :1514)으로 확정 폭을 받으므로 SSOT 함수를 직접 호출 — prop 주입/직접호출 둘 다 count-neutral·동일 통로 봉쇄, 직접호출이 plumbing/미사용 prop 없이 더 간단
 - [x] Phase 3: escape(3a, `6b3ffd978`) + M1(3b, `fe43c833f`) 모두 `resolveCollectionRowMetric` 직접 호출로 전환 — geometry 통로 봉쇄. ListBox M1 = padding-box `.rowHeight`, GridList M1 = content-box `.contentHeight`(계약별 반환). `_slotMetrics` 부재 개념 없음(주입 미도입) → escape 는 항상 SSOT 호출(measureSpecWrappedTextHeight 는 SSOT 내부로 이동, escape 직접 호출 0건 — G1 보다 강함). 검증: 637 specs + 69 collection builder + type-check baseline
 - [x] Phase 4: differential 계약 테스트 `collectionRowMetricDifferential.test.ts` 3건 PASS — M1(layout) rowHeight/contentHeight == escape(paint) 높이(ListBox check y×2 / GridList card-bg height) 직접 대조. CSS DOM oracle 은 현 project flat-props 부재로 보류(§2.1) → 폭-불문 mock 으로 geometry parity 격리 검증
-- [ ] Phase 5: 5건 회귀 재현 안 됨 라이브 + type-check baseline + cross-check
+- [x] Phase 5: 라이브(70da5ae3) type-check baseline + collection layout==skia mismatch 0 확인 (childful 경로) — flat-props 5건 회귀는 재현 불가(unfold), differential 이 oracle
 - [x] ADR-157 표시 정책(가상화 stride M2 단일 줄) 무변경 — `resolveListBoxItemRowHeightFromStyle` wrapContext 미전달(M2) = 텍스트 미전달 → 단일 줄 유지 확인
 - [x] 측정 경로 count-neutral 확인 (M1 + escape = 2 유지; §2.1 발견 2 — "1회 수렴" 아님, divergence 제거가 benefit)
-- [ ] BC: Phase 0 baseline(§2.1) 대비 렌더값 무변경(측정 경로만 통일, 값 동일). unfold 경로(84/76/96)는 gating 불변 — Phase 5 라이브 재확인
+- [x] BC: unfold 경로(84/76/96) gating 불변 — 라이브 layout==skia mismatch 0(46요소·5 collection) + 콘솔 에러 0 재확인
+- [x] 후속 F1(§2.3): `resolveListBoxItemInset` helper + escape 채택 + gridlist descGap SSOT화 + 단위 8. commit `98e8f63f3`
+- [x] 후속 F2(§2.3): M1 icon/check-aware inset(§1.55b-2) + GridList descGap(§1.55b2) + 폭-민감 differential 2. 입력 산출 잔존 (a)(b)(c) 봉쇄. commit `d9a4b402f`
 
 ## §2.2. 설계 편차 — `_slotMetrics` prop 주입 → SSOT 직접 호출 (2026-07-22 execute-adr)
 
@@ -131,4 +133,20 @@ ADR 대안 D 는 `buildSpecNodeData` 가 metric 을 산출해 `_slotMetrics` pro
 
 직접 호출이 동일 목표(측정 SSOT 단일화·divergence 제거)를 더 적은 코드/위험으로 달성. Gate G1("measureSpecWrappedTextHeight fallback 분기에만 잔존")은 **더 강한 형태로 충족** — escape 에서 `measureSpecWrappedTextHeight` 직접 호출 0건(SSOT 함수 내부로 이동). 측정 주체 계약(scene %/calc 아님, 확정 `style.width`)도 escape·M1 양쪽 충족. MED-2(측정 주체 폭 확정)는 escape 가 확정 `style.width` 를 쓰므로 유지.
 
-**잔존(§2.1 발견 1/gap-source 후속, latent)**: geometry 함수는 공유됐으나 **입력 산출** 은 아직 일부 갈린다 — (a) M1 은 icon/check-aware maxWidth 미적용(escape 는 적용) → icon/selected + **실측정** wrap 행에서 폭 residual, (b) GridList M1 `gap = style ?? 2` vs escape `descGap = 2` → style.gap 설정 시 residual, (c) icon slot fontSize override 시 iconSize(M1 16 고정 vs escape slot) residual. 모두 현 project unfold 라 미노출. 완전 폐색은 공유 inset helper + M1 icon/check 배선(후속) — 본 ADR 은 geometry 통로 봉쇄까지.
+## §2.3. 후속 F1/F2 — 입력 산출 잔존 봉쇄 (2026-07-23)
+
+Phase 3 는 geometry 통로(rowHeight/블록 offset/wrap 측정)를 `resolveCollectionRowMetric` 로 봉쇄했으나, 그 함수에 넘기는 **입력**(textX/rightReserve/gap)은 M1·escape 가 독립 산출해 §2.1 발견 1 + gap-source 잔존 (a)(b)(c) 가 남았다. 후속 F1/F2 가 입력 산출도 공유 SSOT 로 봉쇄.
+
+| 잔존                              | 형태                                                                                                                                         | 봉쇄                                                                                                                                                                                                     |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| (a) icon/check-aware maxWidth     | M1 `textX=paddingLeft, rightReserve=0` vs escape `textX=max(padL, slotInset+iconSize+slotGap)`, `rightReserve=showCheck?checkSize+slotGap:0` | 공유 `resolveListBoxItemInset({paddingLeft, slotInset, iconSize, hasIcon, showCheck})` → `{textX, rightReserve}`. escape·M1 공동 호출. M1 §1.55b-2 caller 가 slot 구성 + `isSelected` 에서 컨텍스트 추출 |
+| (b) GridList within-card gap      | M1 `gap = style.gap ?? 2` vs escape `descGap = 2`(리터럴)                                                                                    | 양쪽 `resolveGridListItemMetric(labelFs).descGap`(고정 2, SSOT) 경유 — style.gap 무관                                                                                                                    |
+| (c) icon slot fontSize → iconSize | M1 iconSize 미산출(=(a) 흡수) vs escape `iconSlotStyle.fontSize ?? size.iconSize ?? 16`                                                      | M1 caller 가 `slotComp.slots.icon.style.fontSize ?? 16` 를 inset 컨텍스트 `iconSize` 로 전달                                                                                                             |
+
+**설계**: F1(specs, `98e8f63f3`) — `resolveListBoxItemInset` helper 추가 + escape `listbox_item` 채택(behavior-preserving) + escape `gridlist_card` descGap 을 `resolveGridListItemMetric` 경유로 SSOT화 + 단위 테스트 8. F2(builder, `d9a4b402f`) — M1 `resolveListBoxItemRowHeightFromStyle` 에 `insetContext` 파라미터 추가(미전달 시 icon/check 미예약 BC — 가상화 stride 단일 줄 경로), §1.55b-2 caller 배선, §1.55b2 GridList descGap 전환, **폭-민감** differential 2건.
+
+**oracle**: 현 project 는 childful-unfold 라 flat-props 분기 gating OFF → 라이브 재현 불가. 봉쇄 증명은 **폭-민감 measurer** 를 주입한 differential 테스트(`collectionRowMetricDifferential.test.ts`) — icon+selected 행에서 `M1(inset) === escape` + `inset 미적용(구 M1) < escape`(잔존 실재·봉쇄 회귀 가드). 라이브(70da5ae3)는 childful 경로 무영향(46요소·5 collection layout==skia mismatch 0, 콘솔 에러 0) 확인.
+
+**남은 latent(더 깊은 residual, 후속 판정 대상 아님)**: M1 caller 의 `hasIcon` 은 escape `readCardText(props.icon)` 를 `Boolean(props.icon)` 로 근사(비-string icon descriptor 는 truthy 로 동일 판정, 빈 문자열은 falsy 로 동일). `slotInset`/`iconSize` 기본값(12/16)은 ListBoxItem md catalog 값과 동일 가정 — non-md size 에서 escape `size.paddingX`/`size.iconSize` 와 갈릴 수 있으나 flat-props 미노출 + 값 동일(현 catalog).
+
+**잔존(§2.1 발견 1/gap-source 후속, latent) — ✅ 봉쇄 완료(2026-07-23 후속 F1/F2, §2.3)**: geometry 함수는 Phase 3 에서 공유됐고, **입력 산출**(textX/rightReserve/gap) 잔존 (a)(b)(c) 는 후속 F1/F2 로 봉쇄됐다. 아래 §2.3 참조.

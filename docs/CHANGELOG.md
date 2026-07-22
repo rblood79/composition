@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [collection 행 inset 입력 산출 SSOT 봉쇄 — ADR-160 후속 F1/F2] - 2026-07-23
+
+### Bug Fixes
+
+- **data-bound collection 행 텍스트 wrap 폭 parity (ADR-160 §2.1 발견 1 latent 잔존 봉쇄)**:
+  - ADR-160 은 행 geometry 통로(`resolveCollectionRowMetric`)를 봉쇄했으나 그 함수에 넘기는 **입력**(textX/rightReserve/gap)은 M1(layout)·escape 가 독립 산출해, icon 또는 selected(check) 행에서 wrap maxWidth 가 갈렸다 — data-bound(flat-props) projection 에서 label/description 이 escape 보다 넓게 측정돼 행 높이가 짧게 할당 → 텍스트 잘림 가능
+  - **Why**: escape 는 `textX = max(paddingLeft, slotInset + iconSize + slotGap)` / `rightReserve = showCheck ? checkSize + slotGap : 0` 로 아이콘·check 폭을 예약하는데 M1 은 `textX = paddingLeft, rightReserve = 0` 으로 미예약 → 같은 텍스트가 두 경로에서 다른 폭으로 wrap
+  - 수정: 공유 `resolveListBoxItemInset({paddingLeft, slotInset, iconSize, hasIcon, showCheck}) → {textX, rightReserve}` 를 escape·M1 이 공동 호출(F1 escape 채택 / F2 M1 §1.55b-2 caller 가 slot 구성 + `isSelected` 에서 컨텍스트 추출). GridList within-card gap 은 M1 `style.gap ?? 2` → `resolveGridListItemMetric().descGap`(고정 2) SSOT 로 전환(escape 동일 심볼)
+  - **oracle**: 현 project 는 childful-unfold 라 flat-props 분기 gating OFF → 라이브 미노출. 봉쇄 증명 = **폭-민감 measurer** 주입 differential 테스트(icon+selected 행 `M1(inset)===escape` + `inset 미적용 < escape`). 라이브(70da5ae3)는 childful 경로 무영향(46요소·5 collection layout==skia mismatch 0, 콘솔 에러 0)
+  - 검증: 신규 10(inset 단위 8 + differential 2) + 회귀 190 collection + type-check baseline(61). 커밋 `98e8f63f3`(F1 specs)/`d9a4b402f`(F2 builder)
+  - 위치: `packages/specs/src/renderers/utils/collectionItemMetrics.ts`(`resolveListBoxItemInset`), `packages/specs/src/renderers/skiaPrimitives.ts`(escape), `apps/builder/.../layout/engines/utils.ts`(M1). 상세: ADR-160 design breakdown §2.3
+
 ## [Style 패널 numeric 입력 commit 정책 — 2026-07-22]
 
 ### Performance
@@ -24,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **소비 전환**: escape(`listBoxItem`/`gridListCard`, skiaPrimitives.ts) + layout M1(`resolveListBoxItemRowHeightFromStyle` / GridListItem §1.55b2, utils.ts) 이 모두 이 함수를 **공동 호출** → escape 자체 geometry 재측정 통로 봉쇄. escape 의 `measureSpecWrappedTextHeight` 직접 호출 0건(SSOT 함수 내부로 이동)
   - **설계 편차**: ADR 대안 D 의 `buildSpecNodeData → _slotMetrics` prop 주입은 미채택 — escape 가 이미 buildSpecNodeData width injection(`style.width`, `buildSpecNodeData.ts:1514`)으로 확정 폭을 받으므로 SSOT 함수 직접 호출로 충분(주입/직접호출 둘 다 count-neutral·동일 통로 봉쇄, 직접호출이 plumbing/미사용 prop 없이 더 간단). 상세: design breakdown §2.2
   - **Why**: ADR-907 Layer D("동일 resolver 심볼 공유", M1/M2 확립)를 escape(M3)까지 확장. ADR-157 표시 정책(가상화 stride M2 단일 줄) 경계 불변, canonical schema 무변경, D3 시각(Skia↔CSS 대칭)
-  - **잔존(latent, 후속)**: geometry 통로는 봉쇄됐으나 입력 산출 residual — M1 이 아직 icon/check-aware maxWidth 미적용(escape 는 적용) / GridList M1 `gap = style ?? 2` vs escape `descGap = 2` / icon slot fontSize override 시 iconSize(M1 16 고정). 모두 현 project unfold 라 미노출, 완전 폐색은 공유 inset helper 후속
+  - **잔존(latent) → ✅ 봉쇄(2026-07-23 후속 F1/F2, 위 엔트리)**: geometry 통로 봉쇄 후 남았던 입력 산출 residual(M1 icon/check-aware maxWidth 미적용 / GridList gap-source / icon slot iconSize)은 공유 `resolveListBoxItemInset` helper + `resolveGridListItemMetric().descGap` SSOT 로 봉쇄됨
   - 검증: 신규 13(collectionRowMetric 10 + differential 3) + 회귀 700+(specs 637 / collection builder 69) + type-check baseline(61) + 라이브(builder 무오류·전 collection layout==skia). 커밋 `e5fa15e57`(P0)/`822359006`(P1)/`6b3ffd978`(P3a)/`fe43c833f`(P3b)/`a7f634520`(P4)
   - 위치: `packages/specs/src/renderers/utils/collectionItemMetrics.ts`(SSOT), `packages/specs/src/renderers/skiaPrimitives.ts`(escape 소비), `apps/builder/.../layout/engines/utils.ts`(M1 소비)
 
