@@ -11,7 +11,10 @@
 import { describe, it, expect } from "vitest";
 // ADR-912 단계5 step4 (2026-06-17): resolveListBoxSpacingMetric 이 ListBox.spec → collectionItemMetrics
 //   이관(GridList.spacing.test.ts 선례). ListBox.spec 물리 삭제 대비 직접 경로 전환.
-import { resolveListBoxSpacingMetric } from "../renderers/utils/collectionItemMetrics";
+import {
+  resolveListBoxSpacingMetric,
+  resolveListBoxItemRowHeight,
+} from "../renderers/utils/collectionItemMetrics";
 
 describe("resolveListBoxSpacingMetric — defaults", () => {
   it("style 미지정 → defaults (padding 4, gap 2, fontSize 14, borderWidth 1)", () => {
@@ -183,5 +186,71 @@ describe("resolveListBoxSpacingMetric — borderWidth", () => {
   it("style.borderWidth '3px' 문자열 → 3", () => {
     const m = resolveListBoxSpacingMetric({ style: { borderWidth: "3px" } });
     expect(m.borderWidth).toBe(3);
+  });
+});
+
+// 2026-07-22 (사용자 보고): 긴 label/description 이 CSS 는 자동 줄바꿈으로 행이 늘어나나 Skia 는
+//   단일 줄 공식으로 고정 → 미확장. caller(resolveListBoxItemRowHeightFromStyle)가 실측한 멀티라인
+//   블록 높이를 넘기면 그 값으로 행 높이를 계산하는지 검증(측정 자체는 layout util 실측 경로,
+//   라이브 검증 102==102). 미지정 시 단일 줄(가상화 stride 균일성 보존).
+describe("resolveListBoxItemRowHeight — wrap-aware 블록 높이", () => {
+  const base = {
+    lineHeight: 24,
+    descriptionLineHeight: 16,
+    rowGap: 2,
+    paddingTop: 4,
+    paddingBottom: 4,
+  };
+
+  it("labelBlockHeight 미지정 → 단일 줄(lineHeight) (virtualization stride 균일)", () => {
+    // 8(pad) + 24(label) = 32
+    expect(
+      resolveListBoxItemRowHeight({ ...base, hasDescription: false }),
+    ).toBe(32);
+  });
+
+  it("labelBlockHeight(멀티라인) 지정 → lineHeight 대신 블록 높이 사용", () => {
+    // 8(pad) + 72(label 3줄) = 80
+    expect(
+      resolveListBoxItemRowHeight({
+        ...base,
+        labelBlockHeight: 72,
+        hasDescription: false,
+      }),
+    ).toBe(80);
+  });
+
+  it("description 멀티라인: label 1줄 + gap + descBlock", () => {
+    // 8(pad) + 24(label 1줄) + 2(gap) + 64(desc 4줄) = 98
+    expect(
+      resolveListBoxItemRowHeight({
+        ...base,
+        descriptionBlockHeight: 64,
+        hasDescription: true,
+      }),
+    ).toBe(98);
+  });
+
+  it("label·description 둘 다 멀티라인", () => {
+    // 8 + 48(label 2줄) + 2 + 48(desc 3줄) = 106
+    expect(
+      resolveListBoxItemRowHeight({
+        ...base,
+        labelBlockHeight: 48,
+        descriptionBlockHeight: 48,
+        hasDescription: true,
+      }),
+    ).toBe(106);
+  });
+
+  it("minHeight 하한은 유지", () => {
+    expect(
+      resolveListBoxItemRowHeight({
+        ...base,
+        labelBlockHeight: 4,
+        hasDescription: false,
+        minHeight: 40,
+      }),
+    ).toBe(40);
   });
 });

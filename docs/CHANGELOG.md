@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ListBoxItem 긴 label/description 이 Skia 행에서 안 늘어남 — 행 높이 wrap-aware 화] - 2026-07-22
+
+### Bug Fixes
+
+- **ListBoxItem 의 label/description 텍스트가 길어 CSS 는 자동 줄바꿈으로 행이 늘어나는데 Skia 는 단일 줄 높이로 고정** (내용 잘림·겹침):
+  - projection 행 높이 공식 `resolveListBoxItemRowHeight` 가 `label lineHeight + gap + description lineHeight` 로 **각 1줄 고정** — text wrap(멀티라인) 미측정
+  - **Why**: projected 행은 label/description 을 `props`(자식 scene 노드 아님)로 들고 escape 가 그리므로 행 높이가 공식-기반이다. 공식이 단일 줄이라 CSS 자동 줄바꿈(행 성장)과 발산
+  - 수정: `resolveListBoxItemRowHeightFromStyle` 에 `wrapContext`(label/description 텍스트 + 실제 행 가용 폭) 추가 → 콘텐츠 폭에서 `measureWrappedTextHeight` 로 멀티라인 높이 측정(GridListItem card §3.5 동형). §1.55b layout 분기만 wrapContext 전달, collection 가상화 stride 는 미전달 = 균일 단일 줄(ADR-157 content-height 불변). 라이브 검증: 긴 설명 행 CSS 102 == Skia 102(수정 전 54), 단일 줄 행 무회귀
+  - 위치: `apps/builder/.../layout/engines/utils.ts`, `packages/specs/.../collectionItemMetrics.ts`
+
 ## [ListBoxItem width:50% 가 Skia 에서 100% 로 렌더 — 행 projection 이 origin width 를 존중] - 2026-07-22
 
 ### Bug Fixes

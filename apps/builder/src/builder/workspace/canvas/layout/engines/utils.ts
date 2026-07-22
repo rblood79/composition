@@ -358,6 +358,18 @@ export function resolveListBoxItemRowHeightFromStyle(
    * (childless ListBoxItem / 컨테이너 경로 = flat props).
    */
   slotFontSizes?: { label?: number; description?: number },
+  /**
+   * wrap-aware 행 높이 측정 컨텍스트 (2026-07-22 사용자 보고: 긴 label/description 이 CSS 는
+   * 자동 줄바꿈으로 행이 늘어나나 Skia 는 단일 줄 공식으로 고정 → 미확장). label/description
+   * 텍스트 + 실제 행 가용 폭(availableWidth)을 주면 콘텐츠 폭에서 wrap 을 측정해 멀티라인 높이를
+   * 반영한다(GridListItem card 분기 §3.5 동형). **미지정 시 단일 줄** — collection 가상화 stride
+   * (resolveListBoxRowHeight)는 균일 행 높이를 유지해야 하므로 전달하지 않는다.
+   */
+  wrapContext?: {
+    label?: string;
+    description?: string;
+    availableWidth?: number;
+  },
 ): number {
   // label: react-aria-Text 기본 16 (부모 fontSize 미상속 — 라이브 실측 2026-07-22: item
   //   fontSize 14 여도 label 은 16/24 렌더). 명시 slot label size 우선. 과거 `?? 14` fallback 은
@@ -370,19 +382,66 @@ export function resolveListBoxItemRowHeightFromStyle(
   //   { font-size: var(--lb-desc-size, var(--text-xs)) } 정합. 명시 slot size 우선.
   const descFontSize = slotFontSizes?.description ?? 12;
   const m = resolveListBoxItemMetric(fontSize);
+  const labelLineHeight = getTextLineHeight(fontSize);
+  const descriptionLineHeight = getDescriptionLineHeight(descFontSize);
+  const paddingTop =
+    parseNumericValue(style?.paddingTop ?? style?.padding) ?? m.paddingY;
+  const paddingBottom =
+    parseNumericValue(style?.paddingBottom ?? style?.padding) ?? m.paddingY;
+
+  // wrap-aware: 행 콘텐츠 폭(availableWidth - 좌우 padding)에서 label/description 멀티라인
+  //   높이를 측정한다(Card §3.5 fallback 동형 — measureWrappedTextHeight + specFontFamily.sans).
+  //   label/description 은 flex-column 으로 세로 적층이라 각자 전체 콘텐츠 폭을 쓴다(아이콘 감산 X).
+  let labelBlockHeight: number | undefined;
+  let descriptionBlockHeight: number | undefined;
+  if (wrapContext?.availableWidth != null && wrapContext.availableWidth > 0) {
+    const paddingLeft =
+      parseNumericValue(style?.paddingLeft ?? style?.padding) ?? m.paddingX;
+    const paddingRight =
+      parseNumericValue(style?.paddingRight ?? style?.padding) ?? m.paddingX;
+    const wrapWidth = wrapContext.availableWidth - paddingLeft - paddingRight;
+    if (wrapWidth > 0) {
+      const family = specFontFamily.sans;
+      if (typeof wrapContext.label === "string" && wrapContext.label.length) {
+        labelBlockHeight = measureWrappedTextHeight(
+          wrapContext.label,
+          fontSize,
+          600, // label semibold (catalog textWeight 600)
+          family,
+          wrapWidth,
+          labelLineHeight,
+        );
+      }
+      if (
+        hasDescription &&
+        typeof wrapContext.description === "string" &&
+        wrapContext.description.length
+      ) {
+        descriptionBlockHeight = measureWrappedTextHeight(
+          wrapContext.description,
+          descFontSize,
+          400,
+          family,
+          wrapWidth,
+          descriptionLineHeight,
+        );
+      }
+    }
+  }
+
   return resolveListBoxItemRowHeight({
     // label line box = 1.5×fs (react-aria-Text 기본, slot CSS override 없음) → getTextLineHeight.
-    lineHeight: getTextLineHeight(fontSize),
+    lineHeight: labelLineHeight,
     // description line box = 1.333×fs (CSS [slot=description] line-height 토큰, label 1.5× 와 대조).
     //   라이브 실측 2026-07-22: desc 12→16 / 14→18.67. getTextLineHeight(1.5×)는 12→18 로 +2 과대.
-    descriptionLineHeight: getDescriptionLineHeight(descFontSize),
+    descriptionLineHeight,
+    labelBlockHeight,
+    descriptionBlockHeight,
     rowGap:
       parseNumericValue(style?.rowGap ?? style?.columnGap ?? style?.gap) ??
       m.gap,
-    paddingTop:
-      parseNumericValue(style?.paddingTop ?? style?.padding) ?? m.paddingY,
-    paddingBottom:
-      parseNumericValue(style?.paddingBottom ?? style?.padding) ?? m.paddingY,
+    paddingTop,
+    paddingBottom,
     hasDescription,
     minHeight: parseNumericValue(style?.minHeight) ?? 20,
   });
@@ -2408,10 +2467,24 @@ export function calculateContentHeight(
       return typeof fs === "number" ? fs : undefined;
     };
     // §2.6 Layer D: render.shapes / 가상화 window 와 동일 resolver 로 row height 산출.
-    return resolveListBoxItemRowHeightFromStyle(style, hasDescription, {
-      label: slotFontOf("label"),
-      description: slotFontOf("description"),
-    });
+    //   wrapContext: projection 행 label/description 텍스트(props.children/description) + 실제
+    //   행 가용 폭(availableWidth) 을 넘겨 멀티라인 wrap 을 측정 → CSS 자동 줄바꿈 parity
+    //   (2026-07-22). 가상화 stride 경로(resolveListBoxRowHeight)는 wrapContext 미전달 = 단일 줄.
+    const labelText =
+      typeof props?.children === "string" ? props.children : undefined;
+    return resolveListBoxItemRowHeightFromStyle(
+      style,
+      hasDescription,
+      {
+        label: slotFontOf("label"),
+        description: slotFontOf("description"),
+      },
+      {
+        label: labelText,
+        description: typeof desc === "string" ? desc : undefined,
+        availableWidth,
+      },
+    );
   }
 
   // 1.55b2. GridListItem (projection row) — ADR-151 B21 (2026-07-16) + 2026-07-22 collection-item

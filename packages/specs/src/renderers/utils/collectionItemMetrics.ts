@@ -91,16 +91,27 @@ export function resolveListBoxItemRowHeight(input: {
    * 지원. 미지정 시 `lineHeight`(label) 과 동일(BC — description 이 label 과 같은 size 인 경우).
    */
   descriptionLineHeight?: number;
+  /**
+   * 측정된 멀티라인 label 블록 높이(px). 지정 시 `lineHeight`(1줄) 대신 사용 — caller 가 실제
+   * 콘텐츠 폭에서 text wrap 을 측정해 전달한다(CSS 자동 줄바꿈 parity, 2026-07-22). 미지정 시
+   * 1줄(virtualization stride 는 균일 높이 유지 위해 미지정 = 단일 줄).
+   */
+  labelBlockHeight?: number;
+  /** 측정된 멀티라인 description 블록 높이(px). 지정 시 `descriptionLineHeight`(1줄) 대신 사용. */
+  descriptionBlockHeight?: number;
   rowGap: number;
   paddingTop: number;
   paddingBottom: number;
   hasDescription: boolean;
   minHeight?: number;
 }): number {
+  const labelHeight = input.labelBlockHeight ?? input.lineHeight;
   const descriptionLineHeight = input.descriptionLineHeight ?? input.lineHeight;
+  const descriptionHeight =
+    input.descriptionBlockHeight ?? descriptionLineHeight;
   const contentHeight = input.hasDescription
-    ? input.lineHeight + input.rowGap + descriptionLineHeight
-    : input.lineHeight;
+    ? labelHeight + input.rowGap + descriptionHeight
+    : labelHeight;
   return Math.max(
     input.paddingTop + input.paddingBottom + contentHeight,
     input.minHeight ?? 20,
