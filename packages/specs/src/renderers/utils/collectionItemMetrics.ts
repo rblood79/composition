@@ -275,6 +275,61 @@ export function resolveCollectionRowMetric(
 }
 
 /**
+ * ADR-160 후속(2026-07-23): ListBoxItem 행의 텍스트 좌우 inset(`textX`/`rightReserve`) 단일 공식.
+ *
+ * escape(`listbox_item`)·layout(M1 `resolveListBoxItemRowHeightFromStyle`)가 **동일 심볼**로 icon/
+ * check 예약을 산출 → `resolveCollectionRowMetric` 에 넘기는 wrap maxWidth
+ * (`containerWidth − textX − paddingRight − rightReserve`)가 두 경로에서 일치한다. ADR-160 §2.1
+ * 발견 1(M1 은 `w−padL−padR`, escape 는 `w−textX−padR−rightReserve` 로 icon/check 행 wrap 폭이
+ * 어긋남)의 **입력 산출** 잔존을 봉쇄하는 helper. geometry 통로(rowHeight/블록 offset)는 이미
+ * `resolveCollectionRowMetric` 이 소유하고, 본 helper 는 그 함수의 `textX`/`rightReserve` 입력만
+ * 공유한다.
+ *
+ * 값(`iconSize`/`slotInset`/`hasIcon`/`showCheck`)은 caller 가 각자 컨텍스트에서 산출해 전달한다
+ * (escape=ctx.size + slot style, M1=slot 구성 + isSelected). 공식만 단일 소스.
+ *
+ * - `textX`: icon 있으면 `max(paddingLeft, slotInset + iconSize + slotGap)`(아이콘 glyph 우측 +
+ *   간격), 없으면 `paddingLeft`. `max` 는 큰 좌측 padding 이 아이콘 폭을 넘는 경우의 floor.
+ * - `rightReserve`: selection check 표시 시 `checkSize + slotGap`(우측 예약), 아니면 0.
+ */
+export interface ListBoxItemInsetInput {
+  /** 콘텐츠 좌측 padding(px) — style.paddingLeft ?? size.paddingX. */
+  paddingLeft: number;
+  /** 아이콘 x 배치 기준(px) — size.paddingX(대칭 padding). 보통 paddingLeft 과 동일. */
+  slotInset: number;
+  /** 아이콘 glyph 크기(px) — iconSlotStyle.fontSize ?? size.iconSize ?? 16. */
+  iconSize: number;
+  /** 아이콘 slot 활성 + 아이콘 존재. */
+  hasIcon: boolean;
+  /** selection check 예약 여부(isSelected). */
+  showCheck: boolean;
+  /** check glyph 크기(px). 기본 iconSize(escape 계약). */
+  checkSize?: number;
+  /** icon↔text / text↔check 간격(px). 기본 6(escape slotGap). */
+  slotGap?: number;
+}
+
+export interface CollectionRowInset {
+  /** 텍스트 좌측 origin(px). */
+  textX: number;
+  /** 텍스트 우측 예약(px). */
+  rightReserve: number;
+}
+
+export function resolveListBoxItemInset(
+  input: ListBoxItemInsetInput,
+): CollectionRowInset {
+  const slotGap = input.slotGap ?? 6;
+  const checkSize = input.checkSize ?? input.iconSize;
+  return {
+    textX: input.hasIcon
+      ? Math.max(input.paddingLeft, input.slotInset + input.iconSize + slotGap)
+      : input.paddingLeft,
+    rightReserve: input.showCheck ? checkSize + slotGap : 0,
+  };
+}
+
+/**
  * collection item(GridListItem/ListBoxItem)의 label/description slot 자식(react-aria-Text)이
  * 명시 size 없이 authoring 될 때의 렌더 font-size(px). react-aria-Text 는 부모 font-size 를
  * 상속하지 않고 이 값으로 고정(라이브 실측: 14px 부모 안에서도 16). GridList 는 `[slot=*]`

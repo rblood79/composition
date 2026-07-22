@@ -24,6 +24,8 @@ import {
 import {
   COLLECTION_TEXT_DEFAULT_FONT_SIZE,
   resolveCollectionRowMetric,
+  resolveListBoxItemInset,
+  resolveGridListItemMetric,
 } from "./utils/collectionItemMetrics";
 import {
   buildDateInputDisplayText,
@@ -403,9 +405,6 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     style?.borderRadius,
     typeof size.borderRadius === "number" ? size.borderRadius : 8,
   );
-  // label↔description 수직 간격 = GridListItem flex `gap: var(--spacing-2xs)` = 2
-  //   (2026-07-22 라이브 실측. 과거 4 는 CSS 와 불일치).
-  const descGap = 2;
   // slot 자식 style overlay (fontSize) — 부재 시 react-aria-Text 기본 16 (label·description 둘 다,
   //   GridList slot 은 override 없음). 과거 label=fontSize(item)·desc=fontSize-2 는 실 렌더(둘 다 16,
   //   라이브 확인)와 어긋나 카드가 origin/CSS 대비 짧고 desc 가 label size 에 결합됐다. 명시 slot 우선.
@@ -416,6 +415,10 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
           COLLECTION_TEXT_DEFAULT_FONT_SIZE,
         )
       : COLLECTION_TEXT_DEFAULT_FONT_SIZE;
+  // label↔description 수직 간격 = GridListItem flex `gap: var(--spacing-2xs)` = 2 (2026-07-22 라이브
+  //   실측). ADR-160 후속: 리터럴 대신 `resolveGridListItemMetric` SSOT 경유 — layout(M1 §1.55b2)이
+  //   동일 심볼을 읽어 within-card gap 소스를 단일화(style.gap ?? 2 잔존 봉쇄).
+  const descGap = resolveGridListItemMetric(labelFontSize).descGap;
   const descFontSize =
     descriptionSlotStyle?.fontSize != null
       ? resolveSpecFontSize(
@@ -767,10 +770,17 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   const showCheck = Boolean(props.isSelected);
   const checkSize = iconSize;
   const slotInset = typeof size.paddingX === "number" ? size.paddingX : 12;
-  const textX = iconName
-    ? Math.max(paddingLeft, slotInset + iconSize + slotGap)
-    : paddingLeft;
-  const rightReserve = showCheck ? checkSize + slotGap : 0;
+  // ADR-160 후속: textX/rightReserve 산출을 layout(M1)과 공유 SSOT `resolveListBoxItemInset` 로 위임
+  //   — icon/check wrap 폭 예약 공식을 escape·M1 단일 소스화(§2.1 발견 1 입력 산출 봉쇄).
+  const { textX, rightReserve } = resolveListBoxItemInset({
+    paddingLeft,
+    slotInset,
+    iconSize,
+    hasIcon: Boolean(iconName),
+    showCheck,
+    checkSize,
+    slotGap,
+  });
   const ff = (style?.fontFamily as string) || fontFamily.sans;
   const labelFontWeight =
     (style?.fontWeight as string | number | undefined) ??

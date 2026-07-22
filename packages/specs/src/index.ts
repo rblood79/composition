@@ -328,6 +328,12 @@ export type {
   CollectionRowMetricEntry,
   CollectionRowSlotBlock,
 } from "./renderers/utils/collectionItemMetrics";
+// ADR-160 후속: ListBoxItem 행 텍스트 좌우 inset(textX/rightReserve) 단일 공식. escape·M1 공동 호출.
+export { resolveListBoxItemInset } from "./renderers/utils/collectionItemMetrics";
+export type {
+  ListBoxItemInsetInput,
+  CollectionRowInset,
+} from "./renderers/utils/collectionItemMetrics";
 
 // Header (ADR-099 Phase 3 — section 헤더). ADR-912 단계5 step4 (2026-06-16): Header.spec.ts 삭제 —
 //   시각 SSOT = componentRulesTable.Header + ListBox.spec inline child spec (childSpecs CSS emit).
