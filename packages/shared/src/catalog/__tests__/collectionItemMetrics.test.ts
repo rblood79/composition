@@ -23,13 +23,16 @@ describe("collection item 시각 metric (catalog SSOT)", () => {
       expect(rule).toBeDefined();
     });
 
-    it("sizes.md — paddingX 12 / paddingY 4 / gap 2 / minHeight 20 / fontWeight 600", () => {
+    it("sizes.md — paddingX 12 / paddingY 4 / gap 2 / minHeight 미정의 / fontWeight 600", () => {
       const md = rule?.sizes?.md as Record<string, unknown> | undefined;
       expect(md).toBeDefined();
       expect(md?.paddingX).toBe(12);
       expect(md?.paddingY).toBe(4);
       expect(md?.gap).toBe(2);
-      expect(md?.minHeight).toBe(20);
+      // minHeight 는 9c2142e04("fix(listbox): CSS ListBoxItem min-height 제거 — Skia 렌더 대칭
+      //   복원")에서 catalog 에서 의도적으로 제거됨(min-height:20px 가 flex min-content 를 덮어써
+      //   스크롤 미생성). Skia 는 element style.minHeight ?? 20 을 직접 읽으므로 catalog 불참조.
+      expect(md?.minHeight).toBeUndefined();
       expect(md?.fontWeight).toBe(600);
     });
 
