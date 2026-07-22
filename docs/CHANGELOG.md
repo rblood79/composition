@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Form/field 의 labelPosition·labelAlign DOM 누출 — catalog 투영기가 label-layout hint 를 data-* 로 라우팅] - 2026-07-22
+
+### Bug Fixes
+
+- **`labelPosition`/`labelAlign`/`necessityIndicator` 가 `<form>`/field DOM 요소에 누출** (React `"does not recognize the labelAlign prop"` 경고):
+  - `toRacProps` (catalog canonical→RAC 투영기) 는 `variant`/`size`/`fillStyle` (visual-enum) 만 `data-*` 로 라우팅하고, 그 외 `kind:"enum"` 은 raw React prop 으로 통과시켰다. RSP label-layout hint 3종(`labelPosition`/`labelAlign`/`necessityIndicator`)은 `kind:"enum"` 이라 raw prop 으로 방출됨
+  - **Why**: canonical 렌더 경로(`CanonicalNodeRenderer` cutover)는 `<PrimitiveComponent {...toRacProps()}>` 로 **raw RAC primitive**(`RAC.Form` 등)에 스프레드한다. RAC/DOM 에 이 3 prop 은 존재하지 않아 `<form>` DOM 속성으로 흘러 React 경고 + theme·`Form.css` 의 `[data-label-position]`/`[data-label-align]` selector 미매칭(label 레이아웃 CSS 무반영)의 이중 결함. `labelPosition`(default `top`)/`labelAlign`(default `start`)은 기본값이 있어 항상 누출
+  - 수정: `toRacProps` 에 `DATA_ATTR_ENUM_KEYS`(키 이름 기반 data-\* 라우팅 집합 — `labelPosition`/`labelAlign`/`necessityIndicator`) 추가. visual-enum kind 와 동일 분기로 `data-{kebab}` 만 emit(raw prop 차단). 18개 field/collection binding 이 동일 hint 를 선언하므로 단일 choke point 에서 일괄 교정 — delegating renderer(Slider/ProgressBar/Meter/field 렌더러)는 `toRacProps` 미경유라 무영향
+  - 위치: `packages/shared/src/catalog/outputs/toRacProps.ts`
+
 ## [catalog-only overflow 컨테이너의 Skia 스크롤/클립 미발화 — systematic consumer-side 해소] - 2026-07-22
 
 ### Bug Fixes

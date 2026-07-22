@@ -91,7 +91,10 @@ describe("family ③ selection — toRacProps 변환 계약", () => {
     expect(result.minValue).toBe(0);
     expect(result.maxValue).toBe(100);
     expect(result.step).toBe(10);
-    expect(result.labelPosition).toBe("side");
+    // labelPosition 은 label-layout hint → data-* 라우팅 (raw prop 누출 차단, 2026-07-22).
+    //   Slider 실렌더는 renderSlider(delegating)가 담당하므로 projection 계약만 반영.
+    expect(result["data-label-position"]).toBe("side");
+    expect(result.labelPosition).toBeUndefined();
     expect(result["data-size"]).toBe("md");
   });
 

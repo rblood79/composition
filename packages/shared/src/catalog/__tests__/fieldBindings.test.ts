@@ -39,7 +39,9 @@ describe("family ② fields — catalog 등록 + cutover gate", () => {
       expect(entry, `${type} catalog entry`).toBeDefined();
       expect(entry?.kind).toBe("primitive");
       expect(entry?.family).toBe("fields");
-      expect((entry as { cutover?: string } | undefined)?.cutover).toBe("catalog");
+      expect((entry as { cutover?: string } | undefined)?.cutover).toBe(
+        "catalog",
+      );
     }
   });
 
@@ -89,9 +91,15 @@ describe("family ② fields — toRacProps 변환 계약", () => {
       placeholder: "you@example.com",
       type: "email",
       "data-size": "lg",
-      labelPosition: "side", // enum(visual 아님) → RAC props 로 통과
+      // labelPosition 은 RAC/DOM prop 이 아니라 label-layout hint → data-* 라우팅.
+      //   raw prop 으로 통과하면 RAC primitive 가 `<div>`/`<form>` DOM 에 흘려 React
+      //   "does not recognize the labelPosition prop" 경고 + theme `[data-label-position]`
+      //   selector 미매칭. (2026-07-22 fix)
+      "data-label-position": "side",
       isRequired: true,
     });
+    // raw prop 누출 없음 확인
+    expect(result.labelPosition).toBeUndefined();
   });
 
   it("size 미지정 시 default 'md' → data-size emit (theme 매칭)", () => {
@@ -129,6 +137,38 @@ describe("family ② fields — toRacProps 변환 계약", () => {
     expect(result["data-variant"]).toBe("outlined");
     expect(result.validationBehavior).toBe("aria");
     expect(result["data-size"]).toBe("md");
+  });
+
+  it("Form: labelPosition/labelAlign/necessityIndicator → data-* (raw prop 누출 없음)", () => {
+    const result = toRacProps(
+      {
+        id: "f2",
+        type: "Form",
+        props: {
+          labelPosition: "side",
+          labelAlign: "center",
+          necessityIndicator: "label",
+        },
+      },
+      formBinding,
+    );
+    // label-layout hint 3종은 RAC/DOM prop 이 아님 → data-* 라우팅(theme·Form.css 가 소비).
+    //   raw prop 으로 흘리면 RAC `<Form>` 이 `<form>` DOM 에 그대로 전달 → React 경고.
+    expect(result["data-label-position"]).toBe("side");
+    expect(result["data-label-align"]).toBe("center");
+    expect(result["data-necessity-indicator"]).toBe("label");
+    expect(result.labelPosition).toBeUndefined();
+    expect(result.labelAlign).toBeUndefined();
+    expect(result.necessityIndicator).toBeUndefined();
+  });
+
+  it("Form: labelPosition/labelAlign default('top'/'start') 도 data-* 로 emit (raw 누출 없음)", () => {
+    // 기본값이 있는 두 prop 은 항상 emit → 항상 leak 하던 회귀 지점.
+    const result = toRacProps({ id: "f3", type: "Form" }, formBinding);
+    expect(result["data-label-position"]).toBe("top");
+    expect(result["data-label-align"]).toBe("start");
+    expect(result.labelPosition).toBeUndefined();
+    expect(result.labelAlign).toBeUndefined();
   });
 
   it("DateField/TimeField/SearchField/ColorField: size default emit", () => {

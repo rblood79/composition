@@ -166,7 +166,8 @@ describe("family ④ collections — toRacProps 변환 (dataBinding 통과)", ()
     expect(binding.props.accepts.labelPosition?.label).toBe("Label Position");
     // (2) orientation accepts 제거 — Property 패널에 dead 편집 UI 없음 (D2 위반 해소)
     expect(binding.props.accepts.orientation).toBeUndefined();
-    // (3) toRacProps 는 labelPosition 통과, orientation 은 accepts 미선언이라 drop
+    // (3) toRacProps 는 labelPosition 을 data-* 로 라우팅(label-layout hint, raw 누출 차단,
+    //   2026-07-22), orientation 은 accepts 미선언이라 drop
     const result = toRacProps(
       {
         id: "tg1",
@@ -175,7 +176,8 @@ describe("family ④ collections — toRacProps 변환 (dataBinding 통과)", ()
       },
       binding,
     );
-    expect(result.labelPosition).toBe("side");
+    expect(result["data-label-position"]).toBe("side");
+    expect(result.labelPosition).toBeUndefined();
     expect(result.orientation).toBeUndefined();
   });
 
