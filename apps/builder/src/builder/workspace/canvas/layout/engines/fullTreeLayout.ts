@@ -1050,6 +1050,35 @@ export function shouldClearSideLabelTagGroupHeight(
   );
 }
 
+/**
+ * bounded-scroll collection owner 판정 — height/maxHeight px + overflow(-y) scroll/auto.
+ *
+ * `collectionVirtualization.ts` 의 scroll-mode 판정(readBoundedHeightPx + isScrollOverflow)과
+ * 동일 의미론 (그 둘은 module-private 이라 미러 — scene→layout 역방향 import 순환 회피).
+ *
+ * **Why (2026-07-22, ListBox 인스턴스 maxHeight:300 + 긴 label/desc)**: bounded-scroll owner 가
+ * `onlyProjectionRowsChild` preserve 에 걸리면 enrich 의 1-pass 추정 height(단일 줄 행 합산)가
+ * Taffy 에 동결된다. Step 4.5 2-pass 가 행을 wrap 실측(§1.55b-2 wrapContext)으로 재계산해
+ * rowsGroup 은 커지는데(400) owner 는 동결값(234)에 머물러 CSS(min(content, maxHeight)=300)와
+ * 발산 + 행 clip. bounded-scroll owner 는 preserve 를 제외해 Taffy auto(자식 실측 합) +
+ * max_size(maxHeight) clamp 로 CSS 와 정합시킨다. **sample-mode(auto-height, ADR-157) owner 는
+ * bounded 가 아니므로 본 판정 false → preserve 유지** — 표시 정책 불변.
+ */
+export function isBoundedScrollOwnerStyle(
+  style: Record<string, unknown> | undefined,
+): boolean {
+  if (!style) return false;
+  const overflowY = style.overflowY ?? style.overflow;
+  if (overflowY !== "scroll" && overflowY !== "auto") return false;
+  const raw = style.height ?? style.maxHeight;
+  if (typeof raw === "number") return raw > 0;
+  if (typeof raw === "string") {
+    const match = /^(\d+(?:\.\d+)?)(?:px)?$/.exec(raw.trim());
+    if (match) return Number.parseFloat(match[1]) > 0;
+  }
+  return false;
+}
+
 // ─── DFS post-order 순회 ─────────────────────────────────────────────
 
 /** DFS 전체에서 공유되는 불변 context + mutable 누적기 */
@@ -1897,8 +1926,13 @@ function traversePostOrder(
       );
     });
 
+  // bounded-scroll owner(maxHeight/height + overflow scroll/auto)는 preserve 제외 —
+  //   1-pass 추정(단일 줄 행 합산) 동결이 Step 4.5 행 wrap 실측과 발산(owner 234 vs rows 400,
+  //   CSS min(content,maxHeight)=300). Taffy auto + max_size clamp 가 CSS 와 정합.
+  //   sample-mode(auto-height, ADR-157)는 bounded 아님 → preserve 유지 (표시 정책 불변).
   const preserveEnrichHeight =
-    onlyProjectionRowsChild || sideLabelProjectionContainer;
+    (onlyProjectionRowsChild && !isBoundedScrollOwnerStyle(elementStyle)) ||
+    sideLabelProjectionContainer;
 
   if (hasTaffyChildren && !preserveEnrichHeight) {
     // A. 컨테이너: CSS height:auto → enrichment가 주입한 height를 제거
