@@ -486,19 +486,44 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     entry === "label"
       ? getTextLineHeight(labelFontSize)
       : getTextLineHeight(descFontSize);
+  const labelFontWeight =
+    (style?.fontWeight as string | number | undefined) ??
+    visual?.textWeight ??
+    600;
+  const labelWeight =
+    (labelSlotStyle?.fontWeight as string | number | undefined) ??
+    labelFontWeight;
+  const descriptionWeight =
+    (descriptionSlotStyle?.fontWeight as string | number | undefined) ?? 400;
+  // 실제 카드 폭(px) — buildSpecNodeData width injection 이 layout 폭을 style.width 로 주입
+  //   (projection 행 원본은 "100%"/calc 이라 number 판정 후 fallback 200). 좌우 padding 차감이
+  //   텍스트 wrap 폭.
+  const cardWidth =
+    typeof style?.width === "number" && style.width > 0 ? style.width : 200;
+  const textMaxWidth = Math.max(1, cardWidth - cardPaddingX * 2);
+  // wrap 블록 높이 — 긴 label/description 이 textMaxWidth 에서 줄바꿈되면 단일 줄보다 커진다.
+  //   주입 측정기(builder = paint 동일 CanvasKit 엔진) 실측, 미주입 시 단일 줄 fallback(BC).
+  //   listbox_item 스택 offset 과 동일 계약 — label wrap 시 description 이 겹치지 않도록
+  //   stackY/카드 높이/배경이 이 블록 높이를 소비 (2026-07-22 collection-item parity sweep).
+  const entryBlockHeight = (entry: "label" | "description"): number => {
+    const lh = entryLineHeight(entry);
+    const text = entry === "label" ? label : (description ?? "");
+    if (!text) return lh;
+    const fs = entry === "label" ? labelFontSize : descFontSize;
+    const fw = entry === "label" ? labelWeight : descriptionWeight;
+    return (
+      measureSpecWrappedTextHeight(text, fs, fw, ff, textMaxWidth, lh) ?? lh
+    );
+  };
   const contentHeight = stackEntries.reduce(
     (sum, entry, index) =>
-      sum + entryLineHeight(entry) + (index > 0 ? descGap : 0),
+      sum + entryBlockHeight(entry) + (index > 0 ? descGap : 0),
     0,
   );
   const cardHeight = parsePxValue(
     style?.height,
     cardPaddingY * 2 + contentHeight,
   );
-  const labelFontWeight =
-    (style?.fontWeight as string | number | undefined) ??
-    visual?.textWeight ??
-    600;
 
   const shapes: Shape[] = [];
 
@@ -532,18 +557,14 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   });
 
   // label/description 수직 스택 (top-left) — slot 자식 순서/스타일 소비 (ADR-148 Phase 4).
-  //   entry y = 이전 entry line box 아래 + descGap (CSS line box 스택 동형, 기존 기하 유지).
+  //   entry y = 이전 entry **wrap 블록** 아래 + descGap. 과거 단일 줄 lineHeight 로만 증가시켜
+  //   label 이 wrap(멀티라인)되면 description 이 label 아래 줄 위에 겹쳤다(2026-07-22, listbox_item
+  //   동형). text 는 top-anchored(baseline 미지정) 라 y=블록 top 직접, maxWidth 명시로 measure↔paint
+  //   wrap 폭 정합, lineHeight 명시로 converter strut 정합.
   const labelFill = (labelSlotStyle?.color as string | undefined) ?? textColor;
-  const labelWeight =
-    (labelSlotStyle?.fontWeight as string | number | undefined) ??
-    labelFontWeight;
   const descriptionFill =
     (descriptionSlotStyle?.color as string | undefined) ??
     ("{color.neutral-subdued}" as TokenRef);
-  const descriptionWeight = descriptionSlotStyle?.fontWeight as
-    | string
-    | number
-    | undefined;
   let stackY = cardPaddingY;
   // shell 모드: 내용 스택은 실 자식 노드가 렌더 (이중 렌더 차단).
   for (const entry of contentHidden ? [] : stackEntries) {
@@ -557,6 +578,8 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
         fontFamily: ff,
         fontWeight: labelWeight,
         fill: labelFill,
+        maxWidth: textMaxWidth,
+        lineHeight: entryLineHeight("label"),
       });
     } else {
       shapes.push({
@@ -566,11 +589,13 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
         text: description ?? "",
         fontSize: descFontSize,
         fontFamily: ff,
-        ...(descriptionWeight != null ? { fontWeight: descriptionWeight } : {}),
+        fontWeight: descriptionWeight,
         fill: descriptionFill,
+        maxWidth: textMaxWidth,
+        lineHeight: entryLineHeight("description"),
       });
     }
-    stackY += entryLineHeight(entry) + descGap;
+    stackY += entryBlockHeight(entry) + descGap;
   }
 
   return shapes;

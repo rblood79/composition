@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [GridList 카드도 긴 label/description wrap 미반영 — ListBox 동형 3계층 수정] - 2026-07-22
+
+### Bug Fixes
+
+- **GridList 카드의 label/description 이 길면 CSS 는 카드가 늘어나나 Skia 는 단일 줄로 고정 + description 이 wrap 된 label 위에 겹침** (ListBox item 과 동일 "단일 줄 가정" 문제가 GridList 에 복제):
+  - collection-item parity sweep 에서 ListBox 3계층 수정 후 GridList 를 점검 — gridlist_card escape 와 GridListItem 행 공식이 listbox_item 과 코드 대칭인데 wrap 미측정 상태였다
+  - **계층 1 (layout 행 공식)**: `utils.ts` §1.55b2 GridListItem 행이 `getTextLineHeight(labelFs) + gap + getTextLineHeight(descFs)` 단일 줄 → 카드 콘텐츠 폭(availableWidth − 좌우 padding)에서 `measureWrappedTextHeight` 멀티라인 측정 추가 (ListBox §1.55b-2 동형). 가상화 stride 는 단일 줄 유지(ADR-157 불변)
+  - **계층 2 (컨테이너 enrich 동결)**: bounded-scroll owner preserve 제외(`isBoundedScrollOwnerStyle`)가 collection-agnostic 이라 GridList 도 자동 커버 (별도 수정 불요)
+  - **계층 3 (escape paint 스택)**: `skiaPrimitives.ts` gridlist_card 가 `stackY += entryLineHeight`(단일 줄)로 스택 → label wrap 시 description 겹침. 주입 측정기(`measureSpecWrappedTextHeight`)의 wrap 블록 높이로 스택 offset·카드 높이·배경 계산, text 에 `maxWidth`+`lineHeight` 명시(listbox_item 동형)
+  - **Why**: gridlist_card 와 listbox_item 은 label/description 수직 스택 구조가 대칭이라, ListBox 만 고치면 GridList 에서 동일 증상이 재현된다
+  - 검증: specs 627 + builder 23 PASS(gridlist_card wrap 6 신규 포함), type-check baseline PASS. GridList 컨테이너 인스턴스가 페이지에 없어 라이브 재현은 미실시 — ListBox 동형 메커니즘(라이브 검증됨) + 단위 테스트로 확증. 실제 GridList 배치 시 검증 권장
+  - 위치: `apps/builder/.../layout/engines/utils.ts` §1.55b2, `packages/specs/.../skiaPrimitives.ts` gridListCard
+
 ## [ListBox wrap 행 잔존 2건 — 컨테이너 높이 동결 해소 + escape 스택 겹침 수정] - 2026-07-22
 
 ### Bug Fixes

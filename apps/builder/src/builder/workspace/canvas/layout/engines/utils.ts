@@ -2519,10 +2519,46 @@ export function calculateContentHeight(
     const labelFs = slotFontOf("label") ?? COLLECTION_TEXT_DEFAULT_FONT_SIZE;
     const descFs =
       slotFontOf("description") ?? COLLECTION_TEXT_DEFAULT_FONT_SIZE;
-    return (
-      getTextLineHeight(labelFs) +
-      (hasDesc ? gap + getTextLineHeight(descFs) : 0)
-    );
+    // wrap-aware (2026-07-22 collection-item parity sweep — ListBoxItem §1.55b-2 동형): 긴
+    //   label/description 이 CSS 는 카드가 늘어나나 Skia 는 단일 줄 공식으로 고정 → 미확장.
+    //   카드 콘텐츠 폭(availableWidth − 좌우 padding)에서 멀티라인 높이를 측정(measureWrappedTextHeight
+    //   + specFontFamily.sans, gridlist_card escape 스택과 동일 엔진). 가상화 stride
+    //   (resolveGridListRowStride)는 미측정 = 균일 단일 줄(ADR-157 content-height 불변).
+    let labelBlock = getTextLineHeight(labelFs);
+    let descBlock = getTextLineHeight(descFs);
+    if (availableWidth != null && availableWidth > 0) {
+      const padLeft =
+        parseNumericValue(style?.paddingLeft ?? style?.padding) ?? 16;
+      const padRight =
+        parseNumericValue(style?.paddingRight ?? style?.padding) ?? 16;
+      const wrapWidth = availableWidth - padLeft - padRight;
+      if (wrapWidth > 0) {
+        const family = specFontFamily.sans;
+        const labelText =
+          typeof props?.children === "string" ? props.children : undefined;
+        if (labelText && labelText.length) {
+          labelBlock = measureWrappedTextHeight(
+            labelText,
+            labelFs,
+            600,
+            family,
+            wrapWidth,
+            getTextLineHeight(labelFs),
+          );
+        }
+        if (hasDesc && typeof desc === "string" && desc.length) {
+          descBlock = measureWrappedTextHeight(
+            desc,
+            descFs,
+            400,
+            family,
+            wrapWidth,
+            getTextLineHeight(descFs),
+          );
+        }
+      }
+    }
+    return labelBlock + (hasDesc ? gap + descBlock : 0);
   }
 
   // 1.55c. GridList (ADR-099 Phase 5): items SSOT 기반 intrinsic border-box height.
