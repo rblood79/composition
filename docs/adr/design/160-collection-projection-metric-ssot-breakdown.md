@@ -109,11 +109,26 @@
 ## §5. 체크리스트
 
 - [x] Phase 0: 대조표 + baseline + buildSpecNodeData 시점 실측 완료 → §2.1 freeze (발견 1 icon/check divergence, 발견 2 M1=공동 호출자·count-neutral)
-- [x] Phase 1: SSOT metric 함수 `resolveCollectionRowMetric`(icon/check-aware, `collectionItemMetrics.ts`) — rowHeight + slotBlocks{height,y,lineHeight} + maxWidth 반환, ListBox/GridList 공용(단일 함수가 GridList 인라인 공식도 대체). dormant(소비 배선은 Phase 2/3). 단위 테스트 10건 PASS(escape 74/98/50 정합) + 회귀 79 + type-check baseline
-- [ ] Phase 2: buildSpecNodeData 가 확정 `style.width` 로 metric 산출 → `_slotMetrics` 주입, 폭 정확성 테스트
-- [ ] Phase 3: escape `_slotMetrics` 소비 + 재측정 skip(fallback 분기만 잔존) + M1·GridList 를 SSOT 함수 공동 호출자로 전환, `_slotMetrics` 부재 fallback(BC) 테스트
-- [ ] Phase 4: differential 계약 테스트(layout==escape==CSS)
+- [x] Phase 1: SSOT metric 함수 `resolveCollectionRowMetric`(icon/check-aware, `collectionItemMetrics.ts`) — rowHeight + slotBlocks{height,y,lineHeight} + maxWidth 반환, ListBox/GridList 공용(단일 함수가 GridList 인라인 공식도 대체). dormant(소비 배선은 Phase 3). 단위 테스트 10건 PASS(escape 74/98/50 정합) + 회귀 79 + type-check baseline. commit `822359006`
+- [x] ~~Phase 2: buildSpecNodeData `_slotMetrics` 주입~~ → **직접 호출로 대체(설계 편차, §2.2)**. escape 는 이미 buildSpecNodeData width injection(`style.width`, :1514)으로 확정 폭을 받으므로 SSOT 함수를 직접 호출 — prop 주입/직접호출 둘 다 count-neutral·동일 통로 봉쇄, 직접호출이 plumbing/미사용 prop 없이 더 간단
+- [x] Phase 3: escape(3a, `6b3ffd978`) + M1(3b, `fe43c833f`) 모두 `resolveCollectionRowMetric` 직접 호출로 전환 — geometry 통로 봉쇄. ListBox M1 = padding-box `.rowHeight`, GridList M1 = content-box `.contentHeight`(계약별 반환). `_slotMetrics` 부재 개념 없음(주입 미도입) → escape 는 항상 SSOT 호출(measureSpecWrappedTextHeight 는 SSOT 내부로 이동, escape 직접 호출 0건 — G1 보다 강함). 검증: 637 specs + 69 collection builder + type-check baseline
+- [x] Phase 4: differential 계약 테스트 `collectionRowMetricDifferential.test.ts` 3건 PASS — M1(layout) rowHeight/contentHeight == escape(paint) 높이(ListBox check y×2 / GridList card-bg height) 직접 대조. CSS DOM oracle 은 현 project flat-props 부재로 보류(§2.1) → 폭-불문 mock 으로 geometry parity 격리 검증
 - [ ] Phase 5: 5건 회귀 재현 안 됨 라이브 + type-check baseline + cross-check
-- [ ] ADR-157 표시 정책(가상화 stride M2 단일 줄) 무변경 확인
-- [ ] 측정 경로 count-neutral 확인 (M1 + buildSpecNodeData = 2, escape → 0; §2.1 발견 2 — "1회 수렴" 아님, divergence 제거가 benefit)
-- [ ] BC: Phase 0 baseline(§2.1) 대비 렌더값 무변경(측정 경로만 통일, 값 동일). unfold 경로(84/76/96)는 gating 불변
+- [x] ADR-157 표시 정책(가상화 stride M2 단일 줄) 무변경 — `resolveListBoxItemRowHeightFromStyle` wrapContext 미전달(M2) = 텍스트 미전달 → 단일 줄 유지 확인
+- [x] 측정 경로 count-neutral 확인 (M1 + escape = 2 유지; §2.1 발견 2 — "1회 수렴" 아님, divergence 제거가 benefit)
+- [ ] BC: Phase 0 baseline(§2.1) 대비 렌더값 무변경(측정 경로만 통일, 값 동일). unfold 경로(84/76/96)는 gating 불변 — Phase 5 라이브 재확인
+
+## §2.2. 설계 편차 — `_slotMetrics` prop 주입 → SSOT 직접 호출 (2026-07-22 execute-adr)
+
+ADR 대안 D 는 `buildSpecNodeData` 가 metric 을 산출해 `_slotMetrics` prop 으로 주입하고 escape 가 소비하는 경로를 규정했다(Gate G1). 실행 중 확인: **escape 는 이미 `buildSpecNodeData` width injection(`style.width` = layout `w`, `buildSpecNodeData.ts:1514`)으로 확정 폭을 받는다** → escape 가 SSOT 함수를 **직접 호출** 가능. 두 경로 비교:
+
+| 항목          | prop 주입(ADR 원안)                                                        | 직접 호출(채택)                       |
+| ------------- | -------------------------------------------------------------------------- | ------------------------------------- |
+| 측정 호출 수  | M1 + buildSpecNodeData = 2                                                 | M1 + escape = 2 (동일, count-neutral) |
+| geometry 통로 | 봉쇄(SSOT 공유)                                                            | 봉쇄(SSOT 공유) — 동일                |
+| plumbing      | `_slotMetrics` prop + buildSpecNodeData 산출부 + escape 소비/fallback 분기 | 없음                                  |
+| 미사용 prop   | scene/canonical 오염 방지 필요                                             | 없음                                  |
+
+직접 호출이 동일 목표(측정 SSOT 단일화·divergence 제거)를 더 적은 코드/위험으로 달성. Gate G1("measureSpecWrappedTextHeight fallback 분기에만 잔존")은 **더 강한 형태로 충족** — escape 에서 `measureSpecWrappedTextHeight` 직접 호출 0건(SSOT 함수 내부로 이동). 측정 주체 계약(scene %/calc 아님, 확정 `style.width`)도 escape·M1 양쪽 충족. MED-2(측정 주체 폭 확정)는 escape 가 확정 `style.width` 를 쓰므로 유지.
+
+**잔존(§2.1 발견 1/gap-source 후속, latent)**: geometry 함수는 공유됐으나 **입력 산출** 은 아직 일부 갈린다 — (a) M1 은 icon/check-aware maxWidth 미적용(escape 는 적용) → icon/selected + **실측정** wrap 행에서 폭 residual, (b) GridList M1 `gap = style ?? 2` vs escape `descGap = 2` → style.gap 설정 시 residual, (c) icon slot fontSize override 시 iconSize(M1 16 고정 vs escape slot) residual. 모두 현 project unfold 라 미노출. 완전 폐색은 공유 inset helper + M1 icon/check 배선(후속) — 본 ADR 은 geometry 통로 봉쇄까지.
