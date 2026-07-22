@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ListBox 인스턴스가 origin gap 을 Skia 에서 상속 못 함 — 행 간격 origin fallback] - 2026-07-22
+
+### Bug Fixes
+
+- **origin ListBox 의 gap 을 바꿔도 ref 인스턴스의 Skia 행 간격이 반영 안 됨** (CSS preview 는 origin gap 정상 상속):
+  - 행 projection gap resolver(`appendListBoxRowProjection`)가 인스턴스 scene node 자체 style + catalog fallback 만 읽어, 인스턴스가 자체 gap override 를 안 주면 origin ListBox 의 `rowGap`(예: 10)을 놓치고 catalog default(2)로 떨어졌다
+  - **Why**: CSS(DOM)는 `CanonicalNodeRenderer` 의 ref 해석으로 origin container style(gap)을 상속하나, Skia scene projection 은 origin 해석 없이 인스턴스 style 만 소비 → D3 asymmetry
+  - 수정: `sourceNode` 가 ref 면 origin ListBox style 을 해석해 gap fallback 체인에 삽입 — **인스턴스 자체 gap → origin gap → catalog default** 순. 라이브 검증: 인스턴스(자체 gap 없음) 행 간격 CSS 10 == Skia 10(수정 전 2). 인스턴스 자체 gap 은 계속 우선
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`
+
 ## [ListBoxItem 긴 label/description 이 Skia 행에서 안 늘어남 — 행 높이 wrap-aware 화] - 2026-07-22
 
 ### Bug Fixes

@@ -400,6 +400,84 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
     expect(widthOf(makeDoc(undefined))).toBe("100%");
   });
 
+  // 2026-07-22 (사용자 보고): ref 인스턴스가 자체 gap override 를 안 주면 CSS 는 origin ListBox 의
+  //   gap 을 상속하나 Skia 는 instance scene style + catalog fallback 만 읽어 origin gap(10)을 놓치고
+  //   catalog default(2)로 떨어졌다. instance own → origin → catalog 순 fallback 검증.
+  it("ref 인스턴스 ListBox: 자체 gap 없으면 origin rowGap 상속, 있으면 자체 우선", () => {
+    const makeGapDoc = (instanceRowGap?: number): CompositionDocument => {
+      const items = [
+        { id: "a", label: "A" },
+        { id: "b", label: "B" },
+      ];
+      return {
+        version: "composition-1.0",
+        children: [
+          {
+            id: "page-1",
+            type: "frame",
+            metadata: { type: "legacy-page", pageId: "page-1" },
+            children: [
+              {
+                id: "body-1",
+                type: "Body",
+                props: {},
+                children: [
+                  {
+                    id: "component-listbox-item-default",
+                    type: "ListBoxItem",
+                    reusable: true,
+                    props: {},
+                  },
+                  {
+                    id: "component-listbox",
+                    type: "ListBox",
+                    reusable: true,
+                    slot: ["component-listbox-item-default"],
+                    props: { style: { rowGap: 10 }, items },
+                  },
+                  {
+                    id: "inst-lb",
+                    type: "ref",
+                    ref: "component-listbox",
+                    props:
+                      instanceRowGap != null
+                        ? { style: { rowGap: instanceRowGap }, items }
+                        : { items },
+                    children: [
+                      {
+                        id: "ta",
+                        type: "ref",
+                        ref: "component-listbox-item-default",
+                        props: {},
+                        metadata: {
+                          type: "legacy-element-props",
+                          templateRole: "listbox-item-template-anchor",
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      } as unknown as CompositionDocument;
+    };
+
+    const rowGapOf = (doc: CompositionDocument): unknown => {
+      const graph = buildCanvasSceneGraph(doc);
+      const rowsGroup = graph.nodesMap.get(
+        toListBoxRowsGroupProjectionId("inst-lb"),
+      );
+      return (rowsGroup?.props.style as Record<string, unknown>).rowGap;
+    };
+
+    // 인스턴스 자체 gap 없음 → origin rowGap 10 상속 (Skia↔CSS parity)
+    expect(rowGapOf(makeGapDoc(undefined))).toBe(10);
+    // 인스턴스 자체 gap 5 → 자체 우선(override)
+    expect(rowGapOf(makeGapDoc(5))).toBe(5);
+  });
+
   // 2026-07-21: reusable ListBoxItem origin 의 label slot 자식(Text)은 leaf scene 노드로 서는데
   //   catalog Text(400)로 렌더돼 collection label 정본 600(catalog {Item}.textWeight + CSS
   //   [slot=label]{600} + instance escape)과 어긋났다(사용자 보고). render-time 에 600 주입해 정합.

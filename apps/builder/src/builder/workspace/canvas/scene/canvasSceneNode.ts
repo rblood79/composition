@@ -1018,6 +1018,30 @@ function appendListBoxRowProjection(
     listBoxSceneNode.responsive,
     activeBreakpoint,
   );
+  // 2026-07-22 (사용자 보고): ref 인스턴스가 자체 gap override 를 안 주면 CSS 는 origin ListBox 의
+  //   gap 을 상속(CanonicalNodeRenderer ref 해석)하나 Skia 는 여기서 instance scene style +
+  //   catalog fallback 만 읽어 origin gap(예: 10)을 놓치고 catalog default(2)로 떨어졌다(D3 asymmetry).
+  //   origin ListBox style 을 해석해 instance own → origin → catalog 순 fallback 으로 삽입한다.
+  //   (item template origin 을 templateAnchorStyle 로 상속하는 것과 동형 — 컨테이너 gap 판.)
+  let originGapValue: unknown;
+  if (sourceNode.type === "ref") {
+    const originNode = getDocumentNodesById().get((sourceNode as RefNode).ref);
+    if (originNode) {
+      const originStyle = resolveResponsiveStyleMap(
+        (originNode.props?.style as Record<string, unknown> | undefined) ?? {},
+        originNode.responsive,
+        activeBreakpoint,
+      );
+      const originProps = originNode.props as
+        | Record<string, unknown>
+        | undefined;
+      originGapValue =
+        originStyle.rowGap ??
+        originStyle.columnGap ??
+        originStyle.gap ??
+        originProps?.gap;
+    }
+  }
   // catalog containerStyles.gap(= "{spacing.2xs}" 등, resolveToken 으로 px)을 fallback 으로 —
   //   CSS(생성 CSS)가 소비하는 동일 소스. resolveContainerStylesFallback 은 element/factory 편집을
   //   우선 처리하므로 여기서도 element style 을 앞에 둔다(명시적 우선 + longhand rowGap 대응).
@@ -1030,6 +1054,7 @@ function appendListBoxRowProjection(
       listBoxOwnerStyle.columnGap ??
       listBoxOwnerStyle.gap ??
       listBoxOwnerProps?.gap ??
+      originGapValue ??
       listBoxContainerFallback.gap,
     0,
   );
