@@ -1114,17 +1114,21 @@ function appendListBoxRowProjection(
       row.itemKey,
       row.rowIndex,
     );
+    // ADR-147: anchor layout style overlay. 행 폭 기본 100%(list 행 stretch) — 단, origin
+    //   ListBoxItem 이 명시 width(예: 50%)를 주면 그 값 존중. CSS(DOM)는 origin width 를 각 행에
+    //   적용하므로 Skia 가 100% 를 무조건 강제하면 Skia↔CSS parity 위반(2026-07-22 사용자 보고:
+    //   width:50% 인데 Skia 만 100% 렌더). selected 행은 Selected variant origin style overlay
+    //   (2026-07-20) — 그쪽 width 도 동일 존중.
+    const rowLayoutStyle: Record<string, unknown> = {
+      ...templateAnchorStyle,
+      ...(isRowSelected ? selectedOriginStyle : {}),
+    };
+    if (rowLayoutStyle.width == null) rowLayoutStyle.width = "100%";
     const rowProps: Record<string, unknown> = {
       children: row.label,
       description: row.description ?? "",
       textValue: row.label,
-      // ADR-147: anchor layout style overlay. width 는 항상 100% (list 행 폭 고정).
-      //   selected 행은 Selected variant origin style 을 위에 overlay (2026-07-20).
-      style: {
-        ...templateAnchorStyle,
-        ...(isRowSelected ? selectedOriginStyle : {}),
-        width: "100%",
-      },
+      style: rowLayoutStyle,
       // 보편 selection 축(ADR-142 §3) — listbox_item escape 는 props.isSelected 를 읽는다.
       //   구 주입이 _isSelected 뿐이라 Skia selected row-bg/check 가 죽은 분기였다 (2026-07-20).
       isSelected: isRowSelected,

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ListBoxItem width:50% 가 Skia 에서 100% 로 렌더 — 행 projection 이 origin width 를 존중] - 2026-07-22
+
+### Bug Fixes
+
+- **origin ListBoxItem 에 `width:50%` 를 줘도 Skia 인스턴스 행은 100% 로 렌더** (CSS preview 는 50% 로 정상 → Skia↔CSS parity 위반):
+  - ListBox 행 projection(`appendListBoxRowProjection`)이 각 행 style 에 `width: "100%"` 를 **무조건 하드코딩**하여 origin template 의 `width:50%`(templateAnchorStyle 에 존재)를 덮어썼다
+  - **Why**: 행은 항상 full-width 라는 가정으로 100% 를 강제. 그러나 CSS(DOM)는 origin ListBoxItem 의 `width` 를 각 행 요소에 적용하므로, 사용자가 50% 를 주면 두 consumer 가 갈라진다(D3 symmetric parity 위반)
+  - 수정: 행 style 을 `templateAnchorStyle`(+selected overlay) 병합 결과로 두고, **width 가 없을 때만** `"100%"` 기본값 적용 → origin 명시 width(50% 등) 존중. 라이브 확인: 인스턴스 행 폭 171px(= rows-group 342 × 50%), origin 195px(= 390 × 50%), width 미지정 selected origin 은 390px(100%) 유지
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`
+
 ## [Form/field 의 labelPosition·labelAlign DOM 누출 — catalog 투영기가 label-layout hint 를 data-* 로 라우팅] - 2026-07-22
 
 ### Bug Fixes

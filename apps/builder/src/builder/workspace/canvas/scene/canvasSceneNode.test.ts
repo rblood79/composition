@@ -329,6 +329,77 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
     expect(normalRow?.fills).toBeUndefined();
   });
 
+  // 2026-07-22 (사용자 보고): origin ListBoxItem 에 width:50% 를 주면 CSS(DOM) 행은 50% 로
+  //   렌더되나 Skia 는 행 width 를 무조건 100% 로 강제해 parity 위반. projection 이 origin
+  //   width 를 존중하고, 미지정 시에만 100% 기본값을 쓰는지 검증.
+  it("origin ListBoxItem 의 명시 width(50%)를 projected 행에 존중 (미지정 시 100% 기본)", () => {
+    const makeDoc = (originWidth: string | undefined): CompositionDocument =>
+      ({
+        version: "composition-1.0",
+        children: [
+          {
+            id: "page-1",
+            type: "frame",
+            metadata: { type: "legacy-page", pageId: "page-1" },
+            children: [
+              {
+                id: "body-1",
+                type: "Body",
+                props: {},
+                children: [
+                  {
+                    id: "component-listbox-item-default",
+                    type: "ListBoxItem",
+                    reusable: true,
+                    props:
+                      originWidth == null
+                        ? {}
+                        : { style: { width: originWidth } },
+                  },
+                  {
+                    id: "listbox-1",
+                    type: "ListBox",
+                    slot: ["component-listbox-item-default"],
+                    props: {
+                      items: [
+                        { id: "aardvark", label: "Aardvark" },
+                        { id: "cat", label: "Cat" },
+                      ],
+                    },
+                    children: [
+                      {
+                        id: "template-anchor",
+                        type: "ref",
+                        ref: "component-listbox-item-default",
+                        props: {},
+                        metadata: {
+                          type: "legacy-element-props",
+                          templateRole: "listbox-item-template-anchor",
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }) as unknown as CompositionDocument;
+
+    const widthOf = (doc: CompositionDocument): unknown => {
+      const graph = buildCanvasSceneGraph(doc);
+      const row = graph.nodesMap.get(
+        toListBoxRowProjectionId("listbox-1", "aardvark"),
+      );
+      return (row?.props.style as Record<string, unknown>).width;
+    };
+
+    // origin width:50% → 행이 50% 존중 (Skia↔CSS parity)
+    expect(widthOf(makeDoc("50%"))).toBe("50%");
+    // origin width 미지정 → 기본 100% (기존 stretch 동작 보존)
+    expect(widthOf(makeDoc(undefined))).toBe("100%");
+  });
+
   // 2026-07-21: reusable ListBoxItem origin 의 label slot 자식(Text)은 leaf scene 노드로 서는데
   //   catalog Text(400)로 렌더돼 collection label 정본 600(catalog {Item}.textWeight + CSS
   //   [slot=label]{600} + instance escape)과 어긋났다(사용자 보고). render-time 에 600 주입해 정합.
