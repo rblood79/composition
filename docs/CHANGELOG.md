@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [collection projection 행 텍스트 측정 SSOT 단일화 — ADR-160 Implemented] - 2026-07-22
+
+### Architecture
+
+- **ADR-160 Implemented (Phase 0~5, execute-adr) — collection projection 행 텍스트 측정 SSOT 단일화**:
+  - 반복 parity 버그(2026-07-22 width/gap/wrap/겹침 5건 + GridList 동형 — 위 3계층 수정)의 **근본**: projection 행이 텍스트를 자식 노드 아닌 `props` 로 들어, escape(M3, packages/specs)가 layout-util 측정 함수(M1/M2 공유)를 패키지 경계로 재사용 못 해 **별도 재측정**하는 이중화. 새 parity 축마다 두 소스에 반영해야 하고 한 곳 누락이 곧 회귀였다
+  - **SSOT 도입**: `resolveCollectionRowMetric`(icon/check-aware — `packages/specs/src/renderers/utils/collectionItemMetrics.ts`) 가 행 geometry(블록 wrap 측정 + 스택 offset + rowHeight/contentHeight + maxWidth)를 단일 소유. ListBox/GridList 차이(anchoring / desc lineHeight 1.333× vs 1.5× / icon·check reserve)는 입력으로 흡수
+  - **소비 전환**: escape(`listBoxItem`/`gridListCard`, skiaPrimitives.ts) + layout M1(`resolveListBoxItemRowHeightFromStyle` / GridListItem §1.55b2, utils.ts) 이 모두 이 함수를 **공동 호출** → escape 자체 geometry 재측정 통로 봉쇄. escape 의 `measureSpecWrappedTextHeight` 직접 호출 0건(SSOT 함수 내부로 이동)
+  - **설계 편차**: ADR 대안 D 의 `buildSpecNodeData → _slotMetrics` prop 주입은 미채택 — escape 가 이미 buildSpecNodeData width injection(`style.width`, `buildSpecNodeData.ts:1514`)으로 확정 폭을 받으므로 SSOT 함수 직접 호출로 충분(주입/직접호출 둘 다 count-neutral·동일 통로 봉쇄, 직접호출이 plumbing/미사용 prop 없이 더 간단). 상세: design breakdown §2.2
+  - **Why**: ADR-907 Layer D("동일 resolver 심볼 공유", M1/M2 확립)를 escape(M3)까지 확장. ADR-157 표시 정책(가상화 stride M2 단일 줄) 경계 불변, canonical schema 무변경, D3 시각(Skia↔CSS 대칭)
+  - **잔존(latent, 후속)**: geometry 통로는 봉쇄됐으나 입력 산출 residual — M1 이 아직 icon/check-aware maxWidth 미적용(escape 는 적용) / GridList M1 `gap = style ?? 2` vs escape `descGap = 2` / icon slot fontSize override 시 iconSize(M1 16 고정). 모두 현 project unfold 라 미노출, 완전 폐색은 공유 inset helper 후속
+  - 검증: 신규 13(collectionRowMetric 10 + differential 3) + 회귀 700+(specs 637 / collection builder 69) + type-check baseline(61) + 라이브(builder 무오류·전 collection layout==skia). 커밋 `e5fa15e57`(P0)/`822359006`(P1)/`6b3ffd978`(P3a)/`fe43c833f`(P3b)/`a7f634520`(P4)
+  - 위치: `packages/specs/src/renderers/utils/collectionItemMetrics.ts`(SSOT), `packages/specs/src/renderers/skiaPrimitives.ts`(escape 소비), `apps/builder/.../layout/engines/utils.ts`(M1 소비)
+
 ## [GridList 카드도 긴 label/description wrap 미반영 — ListBox 동형 3계층 수정] - 2026-07-22
 
 ### Bug Fixes

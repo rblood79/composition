@@ -2,7 +2,10 @@
 
 ## Status
 
-Accepted — 2026-07-22 (리뷰 승인: reviews/160.md round 2 — round 1 이슈 3건 전부 fixed, HIGH/CRITICAL 0)
+Implemented — 2026-07-22 (Phase 0~5 완결, execute-adr)
+
+- Accepted — 2026-07-22 (리뷰 승인: reviews/160.md round 2 — round 1 이슈 3건 전부 fixed, HIGH/CRITICAL 0)
+- Implemented — 2026-07-22. Phase 0(인벤토리 freeze + §2.1 실측: icon/check divergence·count-neutral) → Phase 1(SSOT `resolveCollectionRowMetric` dormant, `822359006`) → Phase 3a(escape listBoxItem/gridListCard 위임 `6b3ffd978`) → Phase 3b(M1 layout 위임 `fe43c833f`) → Phase 4(differential 계약 테스트 `a7f634520`). **설계 편차(design §2.2)**: 대안 D 의 `_slotMetrics` prop 주입 대신 escape 직접 호출(확정 `style.width` 이미 수신 → 주입 불필요, count-neutral, G1 을 더 강한 형태로 충족 — escape 의 `measureSpecWrappedTextHeight` 직접 호출 0건). 검증: 신규 13 + 회귀 700+ (specs 637 / collection builder 69) + differential 3 + type-check baseline(61) + 라이브(builder 무오류, 전 collection layout==skia). **잔존(latent, 후속)**: geometry 통로는 봉쇄됐으나 입력 산출 residual(§2.1 발견 1 icon/check maxWidth in M1 / GridList gap-source / iconSize slot override) — 현 project unfold 라 미노출, 완전 폐색은 공유 inset helper 후속.
 
 ## Context
 
@@ -101,7 +104,7 @@ data-bound collection(ListBox / GridList)의 projection 행은 텍스트(label /
 - **대안 B 기각**: 재측정 이중화(M1/M3 각자 호출)를 유지해 본 ADR 의 핵심 문제(통로 봉쇄)를 미해결. 새 parity 축에서 회귀가 재발한다.
 - **대안 C 단독 기각**: 발산을 사후 검출만 하고 근본(측정 이중화)을 제거하지 않는다. D 의 안전망으로 병행할 때만 가치.
 
-> 구현 상세: [160-collection-projection-metric-ssot-breakdown.md](design/160-collection-projection-metric-ssot-breakdown.md)
+> 구현 상세: [160-collection-projection-metric-ssot-breakdown.md](../design/160-collection-projection-metric-ssot-breakdown.md)
 
 ## Risks
 
