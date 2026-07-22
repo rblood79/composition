@@ -21,7 +21,10 @@ import {
   getTextLineHeight,
   getDescriptionLineHeight,
 } from "../primitives/typography";
-import { COLLECTION_TEXT_DEFAULT_FONT_SIZE } from "./utils/collectionItemMetrics";
+import {
+  COLLECTION_TEXT_DEFAULT_FONT_SIZE,
+  resolveCollectionRowMetric,
+} from "./utils/collectionItemMetrics";
 import {
   buildDateInputDisplayText,
   buildDatePickerShapes,
@@ -33,10 +36,7 @@ import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 import { resolveIllustratedMessageMetric } from "./utils/illustratedMessageMetrics";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
 import { resolveTreeIndent } from "./buildCatalogShapes";
-import {
-  measureSpecTextWidth,
-  measureSpecWrappedTextHeight,
-} from "./utils/measureText";
+import { measureSpecTextWidth } from "./utils/measureText";
 import { breadcrumbSeparatorAfterPaddingXPx } from "../primitives/spacing";
 
 /**
@@ -500,30 +500,36 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   //   텍스트 wrap 폭.
   const cardWidth =
     typeof style?.width === "number" && style.width > 0 ? style.width : 200;
-  const textMaxWidth = Math.max(1, cardWidth - cardPaddingX * 2);
-  // wrap 블록 높이 — 긴 label/description 이 textMaxWidth 에서 줄바꿈되면 단일 줄보다 커진다.
-  //   주입 측정기(builder = paint 동일 CanvasKit 엔진) 실측, 미주입 시 단일 줄 fallback(BC).
-  //   listbox_item 스택 offset 과 동일 계약 — label wrap 시 description 이 겹치지 않도록
-  //   stackY/카드 높이/배경이 이 블록 높이를 소비 (2026-07-22 collection-item parity sweep).
-  const entryBlockHeight = (entry: "label" | "description"): number => {
-    const lh = entryLineHeight(entry);
-    const text = entry === "label" ? label : (description ?? "");
-    if (!text) return lh;
-    const fs = entry === "label" ? labelFontSize : descFontSize;
-    const fw = entry === "label" ? labelWeight : descriptionWeight;
-    return (
-      measureSpecWrappedTextHeight(text, fs, fw, ff, textMaxWidth, lh) ?? lh
-    );
-  };
-  const contentHeight = stackEntries.reduce(
-    (sum, entry, index) =>
-      sum + entryBlockHeight(entry) + (index > 0 ? descGap : 0),
-    0,
-  );
-  const cardHeight = parsePxValue(
-    style?.height,
-    cardPaddingY * 2 + contentHeight,
-  );
+  // ADR-160: 카드 geometry(블록 wrap 측정 + top-anchored 스택 + cardHeight)를 layout(M1)·escape
+  //   공유 SSOT `resolveCollectionRowMetric` 로 위임(design §2.1). GridList 계약: singleEntryCentered
+  //   미설정(항상 top) + textX=cardPaddingX(icon/check 예약 없음) + description lineHeight 1.5×.
+  //   `cardWidth`(=style.width)는 buildSpecNodeData width injection 이 확정한 실제 카드 폭.
+  const explicitHeight = parsePxValue(style?.height, undefined);
+  const cardMetric = resolveCollectionRowMetric({
+    containerWidth: cardWidth,
+    paddingTop: cardPaddingY,
+    paddingRight: cardPaddingX,
+    paddingBottom: cardPaddingY,
+    paddingLeft: cardPaddingX,
+    gap: descGap,
+    explicitHeight:
+      typeof explicitHeight === "number" ? explicitHeight : undefined,
+    textX: cardPaddingX,
+    rightReserve: 0,
+    fontFamily: ff,
+    entries: stackEntries.map((entry) => ({
+      role: entry,
+      text: entry === "label" ? label : (description ?? ""),
+      fontSize: entry === "label" ? labelFontSize : descFontSize,
+      fontWeight: entry === "label" ? labelWeight : descriptionWeight,
+      lineHeight: entryLineHeight(entry),
+    })),
+    fallbackLineHeight: 0,
+  });
+  const textMaxWidth = cardMetric.maxWidth;
+  const entryBlockHeight = (entry: "label" | "description"): number =>
+    cardMetric.slotBlocks[entry]?.height ?? entryLineHeight(entry);
+  const cardHeight = cardMetric.rowHeight;
 
   const shapes: Shape[] = [];
 
@@ -765,7 +771,6 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     ? Math.max(paddingLeft, slotInset + iconSize + slotGap)
     : paddingLeft;
   const rightReserve = showCheck ? checkSize + slotGap : 0;
-  const maxWidth = Math.max(1, width - textX - paddingRight - rightReserve);
   const ff = (style?.fontFamily as string) || fontFamily.sans;
   const labelFontWeight =
     (style?.fontWeight as string | number | undefined) ??
@@ -776,44 +781,39 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     labelFontWeight;
   const descriptionWeight =
     (descriptionSlotStyle?.fontWeight as string | number | undefined) ?? 400;
-  // wrap 블록 높이 — 긴 label/description 이 maxWidth 에서 줄바꿈되면 블록이 단일 줄보다
-  //   커진다. 주입 측정기(builder = paint 동일 CanvasKit 엔진) 실측, 미주입 시 단일 줄
-  //   fallback(BC). 스택 offset/행 높이/slot 배경 밴드가 이 블록 높이를 소비해야
-  //   label 3줄 위에 description 이 겹쳐 그려지지 않는다 (2026-07-22 사용자 보고).
-  const labelBlockHeight = label
-    ? (measureSpecWrappedTextHeight(
-        label,
-        labelFontSize,
-        labelWeight,
-        ff,
-        maxWidth,
-        labelLineHeight,
-      ) ?? labelLineHeight)
-    : labelLineHeight;
-  const descriptionBlockHeight = description
-    ? (measureSpecWrappedTextHeight(
-        description,
-        descriptionFontSize,
-        descriptionWeight,
-        ff,
-        maxWidth,
-        descriptionLineHeight,
-      ) ?? descriptionLineHeight)
-    : descriptionLineHeight;
+  // ADR-160: 행 geometry(블록 wrap 측정 + 스택 offset + rowHeight)를 layout(M1)·escape 공유
+  //   SSOT `resolveCollectionRowMetric` 로 위임 — escape 자체 재측정 통로 봉쇄(design §2.1). ListBox
+  //   계약: singleEntryCentered(1줄 세로 중앙) + icon/check-aware maxWidth(textX/rightReserve) +
+  //   description lineHeight 1.333×. `width`(=style.width) 는 buildSpecNodeData width injection 이
+  //   확정한 실제 행 폭 — 측정 주체 계약(scene %/calc 아님) 성립.
+  const explicitHeight = parsePxValue(style?.height, undefined);
+  const rowMetric = resolveCollectionRowMetric({
+    containerWidth: width,
+    paddingTop,
+    paddingRight,
+    paddingBottom,
+    paddingLeft,
+    gap: rowGap,
+    minHeight,
+    explicitHeight:
+      typeof explicitHeight === "number" ? explicitHeight : undefined,
+    textX,
+    rightReserve,
+    fontFamily: ff,
+    entries: stackEntries.map((entry) => ({
+      role: entry,
+      text: entry === "label" ? label : (description ?? ""),
+      fontSize: entry === "label" ? labelFontSize : descriptionFontSize,
+      fontWeight: entry === "label" ? labelWeight : descriptionWeight,
+      lineHeight: entryLineHeight(entry),
+    })),
+    singleEntryCentered: true,
+    fallbackLineHeight: labelLineHeight,
+  });
+  const maxWidth = rowMetric.maxWidth;
   const entryBlockHeight = (entry: "label" | "description"): number =>
-    entry === "label" ? labelBlockHeight : descriptionBlockHeight;
-  const contentHeight =
-    stackEntries.length === 2
-      ? entryBlockHeight(stackEntries[0]!) +
-        rowGap +
-        entryBlockHeight(stackEntries[1]!)
-      : stackEntries.length === 1
-        ? entryBlockHeight(stackEntries[0]!)
-        : labelLineHeight;
-  const rowHeight = parsePxValue(
-    style?.height,
-    Math.max(paddingTop + paddingBottom + contentHeight, minHeight),
-  );
+    rowMetric.slotBlocks[entry]?.height ?? entryLineHeight(entry);
+  const rowHeight = rowMetric.rowHeight;
 
   const shapes: Shape[] = [];
 
@@ -963,19 +963,13 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     //   lineHeight/2** 기준으로 잡되, 두 번째 entry 의 top 은 첫 entry 의 **wrap 블록
     //   높이**(entryBlockHeight) 뒤에 둔다 — 단일 줄 가정 offset 은 label 이 wrap 되면
     //   description 과 겹친다 (2026-07-22). 단일 entry 는 블록 전체를 세로 중앙 배치.
-    const centerYs: number[] =
-      stackEntries.length === 2
-        ? [
-            paddingTop + entryLineHeight(stackEntries[0]!) / 2,
-            paddingTop +
-              entryBlockHeight(stackEntries[0]!) +
-              rowGap +
-              entryLineHeight(stackEntries[1]!) / 2,
-          ]
-        : [
-            (rowHeight - entryBlockHeight(stackEntries[0]!)) / 2 +
-              entryLineHeight(stackEntries[0]!) / 2,
-          ];
+    // ADR-160: 스택 offset(블록 top)은 rowMetric.slotBlocks[entry].y — escape 는 baseline:middle
+    //   이므로 텍스트 y = 블록 top + 단일 줄 lineHeight/2. 2-entry top-anchored / 1-entry 세로 중앙은
+    //   metric 이 소유(singleEntryCentered).
+    const centerYs: number[] = stackEntries.map(
+      (entry) =>
+        (rowMetric.slotBlocks[entry]?.y ?? 0) + entryLineHeight(entry) / 2,
+    );
     // slot 배경 밴드 먼저 (텍스트 뒤). label/description wrap 블록 전체를 채운다.
     stackEntries.forEach((entry, i) => {
       const bg = entry === "label" ? labelSlotBg : descriptionSlotBg;
