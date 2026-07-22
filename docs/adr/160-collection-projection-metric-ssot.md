@@ -67,7 +67,7 @@ data-bound collection(ListBox / GridList)의 projection 행은 텍스트(label /
 - 근거: escape 는 이미 `buildSpecNodeData` injection 으로 layout 이 정한 `w`/`h`를 style 로 받는다(`buildSpecNodeData.ts:1514`, `_slots`/`_projectedRowsContentHeight` 주입 선례 존재). 여기에 slot metric 을 추가 주입하면 배선이 성립한다. **측정 주체를 `buildSpecNodeData` 로 두는 이유** = 정확한 wrap 폭(px)이 그 시점에만 확정된다(scene projection 시점엔 `style.width` 가 `%`/`calc` 라 미정). "측정 1회, 나머지는 소비"로 layout-util↔escape 이중화를 구조적으로 제거.
 - 위험:
   - 기술: MEDIUM — buildSpecNodeData→escape metric 주입 배선 신설 + M1 §1.55b-2 소비 전환(선례 경로 재사용).
-  - 성능: LOW — 렌더 행당 측정 호출이 2회(M1 `measureWrappedTextHeight` + M3 `measureSpecWrappedTextHeight`)에서 1회(buildSpecNodeData 산출, M1·escape 소비)로 감소.
+  - 성능: LOW — 측정 호출 수는 **count-neutral**(파이프라인 순서상 M1 은 layout 단계라 buildSpecNodeData 산출물 이전에 돌아, M1·buildSpecNodeData 가 SSOT 함수의 **공동 호출자** = 2회 유지, escape 는 재측정 0회로 감소). 실 benefit 은 호출 감소가 아니라 **SSOT 단일화 + divergence 제거**(icon/check-aware wrap 폭 불일치 포함 — design §2.1 발견 1/2).
   - 유지보수: LOW — 단일 진입점. 새 축은 buildSpecNodeData/layout-util 1곳만 반영.
   - 마이그레이션: LOW — BC 유지(측정값 동일, 경로만 SSOT 경유). `_slotMetrics` 부재 시 escape 자체 측정 fallback.
 
@@ -92,7 +92,7 @@ data-bound collection(ListBox / GridList)의 projection 행은 텍스트(label /
 선택 근거(위험 수용):
 
 1. D 의 잔존 위험은 전부 MEDIUM 이하다. 최대 위험(R1 배선 stale)은 C(계약 테스트)가 CI 에서 검출하므로 수용 가능하다.
-2. 성능 Hard Constraint 를 보존한다 — flat-props 를 유지하고, 렌더 행당 측정 호출을 현재 2회(M1 `measureWrappedTextHeight` + M3 `measureSpecWrappedTextHeight`)에서 1회(`buildSpecNodeData` 산출 → M1·escape 소비)로 줄인다.
+2. 성능 Hard Constraint 를 보존한다 — flat-props 를 유지한다. 측정 호출 수는 count-neutral(M1 + `buildSpecNodeData` = 2 유지, escape 재측정 → 0)이며, 파이프라인 순서상 M1(layout)은 `buildSpecNodeData` 산출 이전에 돌아 두 지점이 SSOT 함수를 **공동 호출**한다(escape 만 `_slotMetrics` 소비). 개선의 본질은 호출 감소가 아니라 측정 로직 SSOT 단일화로 layout↔escape divergence(icon/check-aware 폭 불일치 포함)를 봉쇄하는 것이다 — design §2.1 실측.
 3. ADR-907 Layer D("동일 resolver 심볼 공유")가 M1/M2 에서 확립한 원칙을 escape(M3)까지 확장한다 — escape 가 패키지 경계로 함수를 직접 못 쓰는 제약을 props 주입 소비로 우회. 907 의 의존 방향을 승계한다.
 
 기각 사유:
@@ -126,7 +126,7 @@ data-bound collection(ListBox / GridList)의 projection 행은 텍스트(label /
 ### Positive
 
 - 반복 parity 버그의 통로 봉쇄: 텍스트 측정이 `buildSpecNodeData` 산출 1곳으로 수렴해 layout-util↔escape 이중화가 제거된다(escape 는 소비만). 새 축(RTL/letter-spacing/새 slot)은 layout-util 함수 1곳만 반영.
-- 렌더 행당 측정 호출 2회→1회 감소(`buildSpecNodeData` 단일 산출, M1·escape 는 `_slotMetrics` 소비 — 성능 소폭 개선).
+- layout↔escape 측정 divergence 제거(icon/check-aware wrap 폭 불일치 포함, design §2.1 발견 1). 측정 호출 수는 count-neutral(M1 + `buildSpecNodeData` = 2; escape 재측정 → 0) — M1·buildSpecNodeData 는 SSOT 함수 공동 호출자, escape 만 `_slotMetrics` 소비.
 - ADR-907 Layer D 원칙(M1/M2 공유)을 escape(M3)까지 확장해 SSOT 체인 일관성 강화.
 - differential 계약 테스트가 CI 에 남아 향후 회귀를 조기 검출.
 

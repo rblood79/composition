@@ -26,6 +26,34 @@
 - **layout-util(M1/M2) ↔ escape(M3) 이중화가 핵심**: escape 는 패키지 경계(specs ← shared ← builder)로 layout-util 을 import 할 수 없어 `measureSpecWrappedTextHeight`(packages/specs)로 **재측정**. 폰트 fallback·weight·lineHeight·maxWidth 산출을 layout-util 과 별도로 재현 → 미세 어긋남이 곧 parity 버그.
 - **M2(가상화 stride)는 이원화 유지 대상**: 단일 줄 균일이 ADR-157 표시 정책. 본 ADR 의 SSOT 단일화 범위에서 **제외**(경계). 본 ADR 은 **렌더 행(M1)과 escape(M3)의 측정 소스 통일**만 다룬다.
 
+## §2.1. Phase 0 실측 freeze (2026-07-22 — execute-adr, ✅ 완료)
+
+라이브(dev 5173) + 코드 실측으로 §2 인벤토리를 확정하고, ADR 본문이 담지 못한 두 가지를 추가로 발견했다. 둘 다 adr-writing.md M3(실측 gap = 절차 보강, 재-fork trigger 아님) 원칙으로 본 ADR 안에서 흡수한다 — 방향(escape 재측정 제거 → SSOT 단일화)은 불변.
+
+**인벤토리 라인 확정(코드 실측)**:
+
+- M1 ListBoxItem: `utils.ts:2453-2488` — `!(childElements.length>0)` gating 안에서 `resolveListBoxItemRowHeightFromStyle(style, hasDescription, slotFonts, wrapContext)` 호출.
+- M1 GridListItem: `utils.ts:2501-2562` — **인라인 공식**(`resolveListBoxItemRowHeightFromStyle` 미사용). `labelBlock + (hasDesc ? gap + descBlock : 0)`. Phase 1 에서 공용 헬퍼로 추출 대상.
+- M2: `collectionVirtualization.ts:38`(import) / `247→274`(`resolveListBoxRowHeight` = wrapContext 미전달) / `163`(`resolveGridListRowStride`). 단일 줄 유지(ADR-157) 확인.
+- **inner metric primitive 는 이미 specs 에 존재** — `packages/specs/src/renderers/utils/collectionItemMetrics.ts`: `resolveListBoxItemMetric`(48) / `resolveListBoxItemRowHeight`(87, number 반환) / `resolveGridListItemMetric`(143) / `COLLECTION_TEXT_DEFAULT_FONT_SIZE`(128). escape(같은 패키지)가 직접 호출 가능. 재사용 불가 대상은 **builder-side wrapper** `resolveListBoxItemRowHeightFromStyle`(utils.ts) 뿐.
+- escape M3: `skiaPrimitives.ts` `listBoxItem`(654) / `gridListCard`(377), `measureSpecWrappedTextHeight` 소비(515/784/794). buildSpecNodeData width injection: `buildSpecNodeData.ts:1514`(`resolvedWidth = existingW(number) ?? (w>0?w:undefined)`).
+
+**발견 1 — icon/check-aware wrap 폭 divergence (latent parity 버그)**: M1 은 `wrapWidth = availableWidth − paddingLeft − paddingRight`(`utils.ts:402`), escape 는 `maxWidth = width − textX − paddingRight − rightReserve`(`skiaPrimitives.ts:768`, `textX`=icon 반영 / `rightReserve`=check 반영). **icon 또는 selected(check) 행에서 M1·escape 가 서로 다른 폭으로 wrap 을 측정** → 줄 수·높이 drift. 현재는 origin 샘플이 unfold 라 미노출이나, data-bound projection + icon/selected 조합에서 재현 가능한 열린 통로. → **SSOT metric 함수는 icon/check-aware maxWidth 를 캡슐화해야 한다**(측정 주체 = buildSpecNodeData 여야 하는 이유: props.icon / props.isSelected / 확정 width 를 그 시점에 모두 안다).
+
+**발견 2 — 파이프라인 순서상 M1 은 소비자 아닌 공동 호출자**: 실행 순서 = scene(`appendListBoxRowProjection`, `_slots` 주입) → **layout(M1 §1.55b-2, availableWidth 로 측정)** → **buildSpecNodeData(확정 style.width 로 측정 → `_slotMetrics` 주입)** → escape(`_slotMetrics` 소비). M1 은 layout 단계라 buildSpecNodeData 산출물보다 **먼저** 돈다 → M1 이 `_slotMetrics` 를 소비하는 것은 순서상 불가. 올바른 설계는 **M1·buildSpecNodeData = SSOT 함수의 공동 호출자**(동일 함수·동일 width → 동일 결과), **escape = `_slotMetrics` 유일 소비자**. 측정 호출 수는 M1(1) + buildSpecNodeData(1) = **2로 불변**(기존 M1 + escape = 2), escape 는 0 으로 감소. → ADR 본문의 "측정 2→1 감소" 는 **count-neutral 로 정정**; 실 benefit 은 **SSOT 단일화 + divergence(발견 1 포함) 제거**. `fullTreeLayout` 이 `element.props` 를 write 하지 않음(grep 0)이 M1→escape 직접 흐름 불가의 근거 — 그래서 buildSpecNodeData 주입 경로가 필요.
+
+**라이브 baseline(BC 대조 기준, 2026-07-22)**: project `70da5ae3` `page-components` 의 collection 은 전부 **childful-unfold**(reusable origin — slot 자식이 실 `systemOwned` scene 노드, `hasSlots:false`, `items:[]`, dataBinding 없음). 따라서 M1·escape **flat-props 분기는 `!(childElements.length>0)` gating 으로 OFF** → 본 refactoring 이 구조적으로 건드리지 못함.
+
+| 노드                              | 렌더 높이(skia==layout)   | 경로                      |
+| --------------------------------- | ------------------------- | ------------------------- |
+| `component-listbox-item-default`  | 84                        | unfold(child-sum)         |
+| `component-listbox-item-selected` | 84                        | unfold                    |
+| `component-gridlist-item-default` | 76                        | unfold                    |
+| `component-menu-item-default`     | 96                        | unfold                    |
+| `component-listbox`(container)    | visible 110 / content 168 | bounded-scroll(0821da280) |
+
+- **flat-props projection 경로(data-bound runtime rows)는 현 project 상태에 부재** → 라이브로 target 경로를 exercise 불가. **BC 1차 oracle = Phase 4 differential 계약 테스트**(layout metric == escape metric == 기대값, 합성 props). unfold 경로(84/76/96)는 gating 으로 불변임을 Phase 5 에서 재확인(회귀 방지 상한).
+
 ## §3. Decision(D+C) 구현 — Phase 분해
 
 ### Phase 0 — 인벤토리 freeze + 계약 테스트 baseline
@@ -80,12 +108,12 @@
 
 ## §5. 체크리스트
 
-- [ ] Phase 0: layout-util(M1/M2) ↔ escape(M3) 측정 인자 대조표 + baseline 라이브값 기록 + buildSpecNodeData 시점 폭·slot·텍스트 확정 여부 실측
-- [ ] Phase 1: layout-util metric 객체 반환 + GridList 헬퍼 추출, 단위 테스트
+- [x] Phase 0: 대조표 + baseline + buildSpecNodeData 시점 실측 완료 → §2.1 freeze (발견 1 icon/check divergence, 발견 2 M1=공동 호출자·count-neutral)
+- [ ] Phase 1: SSOT metric 함수(icon/check-aware, specs) — metric 객체 반환 + GridList 헬퍼 추출, 단위 테스트
 - [ ] Phase 2: buildSpecNodeData 가 확정 `style.width` 로 metric 산출 → `_slotMetrics` 주입, 폭 정확성 테스트
-- [ ] Phase 3: escape 소비 + 재측정 skip(fallback 분기만 잔존) + M1 §1.55b-2 소비 전환, `_slotMetrics` 부재 fallback(BC) 테스트
+- [ ] Phase 3: escape `_slotMetrics` 소비 + 재측정 skip(fallback 분기만 잔존) + M1·GridList 를 SSOT 함수 공동 호출자로 전환, `_slotMetrics` 부재 fallback(BC) 테스트
 - [ ] Phase 4: differential 계약 테스트(layout==escape==CSS)
 - [ ] Phase 5: 5건 회귀 재현 안 됨 라이브 + type-check baseline + cross-check
 - [ ] ADR-157 표시 정책(가상화 stride M2 단일 줄) 무변경 확인
-- [ ] 측정 1회 수렴 확인 (buildSpecNodeData 산출, M1·escape 소비 — 2회 유지 아님)
-- [ ] BC: Phase 0 baseline 대비 렌더값 무변경(측정 경로만 통일, 값 동일)
+- [ ] 측정 경로 count-neutral 확인 (M1 + buildSpecNodeData = 2, escape → 0; §2.1 발견 2 — "1회 수렴" 아님, divergence 제거가 benefit)
+- [ ] BC: Phase 0 baseline(§2.1) 대비 렌더값 무변경(측정 경로만 통일, 값 동일). unfold 경로(84/76/96)는 gating 불변
