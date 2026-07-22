@@ -55,11 +55,6 @@ interface FourWayGridProps {
     direction: "Top" | "Right" | "Bottom" | "Left",
     value: string,
   ) => void;
-  /** 타이핑 중 실시간 캔버스 프리뷰 (RAF-throttled) */
-  onPreview?: (
-    direction: "Top" | "Right" | "Bottom" | "Left",
-    value: string,
-  ) => void;
   allowNegative?: boolean;
 }
 
@@ -67,7 +62,7 @@ function getDisplayValue(value: string): string {
   return value.replace("px", "");
 }
 
-function FourWayGrid({ values, onChange, onPreview }: FourWayGridProps) {
+function FourWayGrid({ values, onChange }: FourWayGridProps) {
   const selectedElementId = useStore((state) => state.selectedElementId);
   // useMemo로 외부 값에서 표시값 파생
   const derivedValues = useMemo(
@@ -83,9 +78,11 @@ function FourWayGrid({ values, onChange, onPreview }: FourWayGridProps) {
   // Local state로 입력값을 관리하여 controlled input 즉시 반영
   const [localValues, setLocalValues] = useState(derivedValues);
   const focusedElementIdRef = useRef<string | null>(null);
+  const justSavedViaEnterRef = useRef(false);
 
   // 선택 요소나 외부 값이 바뀌면 로컬 편집 세션을 새 대상 기준으로 리셋
   useEffect(() => {
+    justSavedViaEnterRef.current = false;
     focusedElementIdRef.current = null;
     queueMicrotask(() => setLocalValues(derivedValues));
   }, [derivedValues, selectedElementId]);
@@ -96,14 +93,6 @@ function FourWayGrid({ values, onChange, onPreview }: FourWayGridProps) {
   ) => {
     const key = direction.toLowerCase() as "top" | "right" | "bottom" | "left";
     setLocalValues((prev) => ({ ...prev, [key]: inputValue }));
-
-    // 타이핑 중 실시간 캔버스 프리뷰
-    if (onPreview) {
-      const numericValue = inputValue.replace(/[^0-9.-]/g, "");
-      if (numericValue !== "" && numericValue !== "-") {
-        onPreview(direction, `${numericValue}px`);
-      }
-    }
   };
 
   const commitValue = (direction: "Top" | "Right" | "Bottom" | "Left") => {
@@ -131,6 +120,7 @@ function FourWayGrid({ values, onChange, onPreview }: FourWayGridProps) {
     if (e.key === "Enter") {
       e.preventDefault();
       commitValue(direction);
+      justSavedViaEnterRef.current = true;
       (e.target as HTMLInputElement).blur();
     }
   };
@@ -150,9 +140,16 @@ function FourWayGrid({ values, onChange, onPreview }: FourWayGridProps) {
             value={localValues[key]}
             onChange={(e) => handleChange(direction, e.target.value)}
             onFocus={() => {
+              justSavedViaEnterRef.current = false;
               focusedElementIdRef.current = selectedElementId ?? null;
             }}
-            onBlur={() => commitValue(direction)}
+            onBlur={() => {
+              if (justSavedViaEnterRef.current) {
+                justSavedViaEnterRef.current = false;
+                return;
+              }
+              commitValue(direction);
+            }}
             onKeyDown={(e) => handleKeyDown(e, direction)}
             placeholder={placeholder}
             aria-label={direction}
@@ -222,21 +219,6 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
     value: string,
   ) => {
     updateStyleImmediate(`margin${direction}`, value);
-  };
-
-  // 타이핑 중 실시간 캔버스 프리뷰 (히스토리/DB 저장 없음)
-  const handlePaddingPreview = (
-    direction: "Top" | "Right" | "Bottom" | "Left",
-    value: string,
-  ) => {
-    updateStylePreview(`padding${direction}`, value);
-  };
-
-  const handleMarginPreview = (
-    direction: "Top" | "Right" | "Bottom" | "Left",
-    value: string,
-  ) => {
-    updateStylePreview(`margin${direction}`, value);
   };
 
   if (!styleValues) return null;
@@ -489,7 +471,6 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
               <FourWayGrid
                 values={paddingValues}
                 onChange={handlePaddingChange}
-                onPreview={handlePaddingPreview}
               />
             </div>
           </fieldset>
@@ -499,7 +480,6 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
               <FourWayGrid
                 values={marginValues}
                 onChange={handleMarginChange}
-                onPreview={handleMarginPreview}
                 allowNegative
               />
             </div>

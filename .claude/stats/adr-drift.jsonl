@@ -41,3 +41,4 @@
 {"sha":"64a54eb0863aa17c195e8edbf3014741019f6f1f","date":"2026-07-19T15:34:01+09:00","promoted_adrs":["docs/adr/149-events-panel-canonical-simplification.md"],"readme_updated":false,"changelog_updated":true,"synced":false}
 {"sha":"40b446e66bee4809ef7b440f5832ec37066ed66b","date":"2026-07-19T15:39:25+09:00","promoted_adrs":["docs/adr/completed/149-events-panel-canonical-simplification.md"],"readme_updated":false,"changelog_updated":false,"synced":false}
 {"sha":"557b1454ac79d87464441887357fcd86f99f7100","date":"2026-07-19T18:44:38+09:00","promoted_adrs":["docs/adr/completed/154-responsive-breakpoint-authoring.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
+{"sha":"2d85b6da45ddb3960aa084b348513180b67de1a0","date":"2026-07-22T23:28:10+09:00","promoted_adrs":["docs/adr/completed/160-collection-projection-metric-ssot.md"],"readme_updated":true,"changelog_updated":true,"synced":true}

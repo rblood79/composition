@@ -139,16 +139,6 @@ export const PropertyUnitInput = memo(
 
     const handleInputChange = (newValue: string) => {
       setInputValue(newValue);
-
-      // 타이핑 중 실시간 캔버스 프리뷰 (Pencil 앱 동작 방식)
-      // onDrag가 있으면 RAF-throttled로 캔버스에 즉시 반영
-      if (onDrag) {
-        const num = parseFloat(newValue);
-        if (!isNaN(num) && num >= min && num <= max) {
-          const effectiveUnit = KEYWORDS.includes(unit) ? "px" : unit;
-          onDrag(`${num}${effectiveUnit}`);
-        }
-      }
     };
 
     // ⭐ ComboBox 컨테이너 ref - 내부 포커스 이동 감지용
@@ -391,10 +381,12 @@ export const PropertyUnitInput = memo(
       if (e.key === "ArrowUp") {
         e.preventDefault();
         newValue = Math.min(newValue + step, max);
+        setInputValue(String(newValue));
         updateFn(`${newValue}${unit}`);
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
         newValue = Math.max(newValue - step, min);
+        setInputValue(String(newValue));
         updateFn(`${newValue}${unit}`);
       }
     };

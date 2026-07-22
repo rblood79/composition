@@ -18,8 +18,8 @@
  * @since 2025-12-20 Phase 1 - Quick Wins
  */
 
-import { useCallback, useTransition, useRef, useEffect } from 'react';
-import { useStore } from '../../../stores';
+import { useCallback, useTransition, useRef, useEffect } from "react";
+import { useStore } from "../../../stores";
 import {
   isFillDerivedStyleProp,
   sanitizeFillDerivedStylePatch,
@@ -42,7 +42,7 @@ interface OptimizedStyleActionsResult {
   /** Idle 기반 지연 업데이트 (타이핑) */
   updateStyleIdle: (property: string, value: string) => void;
 
-  /** RAF 기반 실시간 프리뷰 (히스토리/DB 없이 캔버스만 업데이트) */
+  /** RAF 기반 연속 입력 프리뷰 (히스토리/DB 없이 캔버스만 업데이트) */
   updateStylePreview: (property: string, value: string) => void;
 
   /** 여러 스타일 즉시 업데이트 */
@@ -60,7 +60,7 @@ interface OptimizedStyleActionsResult {
 // ============================================
 
 const requestIdleCallbackPolyfill =
-  typeof requestIdleCallback !== 'undefined'
+  typeof requestIdleCallback !== "undefined"
     ? requestIdleCallback
     : (cb: IdleRequestCallback, options?: IdleRequestOptions): number => {
         const start = Date.now();
@@ -73,7 +73,7 @@ const requestIdleCallbackPolyfill =
       };
 
 const cancelIdleCallbackPolyfill =
-  typeof cancelIdleCallback !== 'undefined'
+  typeof cancelIdleCallback !== "undefined"
     ? cancelIdleCallback
     : (id: number): void => {
         clearTimeout(id);
@@ -90,8 +90,12 @@ export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
   const rafIdRef = useRef<number | null>(null);
   const previewRafIdRef = useRef<number | null>(null);
   const idleIdRef = useRef<number | null>(null);
-  const pendingUpdateRef = useRef<{ property: string; value: string } | null>(null);
-  const pendingPreviewRef = useRef<{ property: string; value: string } | null>(null);
+  const pendingUpdateRef = useRef<{ property: string; value: string } | null>(
+    null,
+  );
+  const pendingPreviewRef = useRef<{ property: string; value: string } | null>(
+    null,
+  );
 
   // 정리
   useEffect(() => {
@@ -141,7 +145,7 @@ export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
       cancelPendingUpdates();
       useStore.getState().updateSelectedStyle(property, value);
     },
-    [cancelPendingUpdates]
+    [cancelPendingUpdates],
   );
 
   /**
@@ -159,7 +163,9 @@ export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
       rafIdRef.current = requestAnimationFrame(() => {
         const pending = pendingUpdateRef.current;
         if (pending) {
-          useStore.getState().updateSelectedStyle(pending.property, pending.value);
+          useStore
+            .getState()
+            .updateSelectedStyle(pending.property, pending.value);
         }
         rafIdRef.current = null;
         pendingUpdateRef.current = null;
@@ -168,7 +174,7 @@ export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
   }, []);
 
   /**
-   * RAF 기반 실시간 프리뷰 (타이핑 중 캔버스 즉시 반영)
+   * RAF 기반 연속 입력 프리뷰 (화살표/드래그 중 캔버스 반영)
    * - 히스토리/DB 저장 없이 캔버스만 업데이트
    * - 프레임당 1회만 실행
    * - 최종 커밋은 blur/Enter 시 updateStyleImmediate로 수행
@@ -183,7 +189,9 @@ export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
       previewRafIdRef.current = requestAnimationFrame(() => {
         const pending = pendingPreviewRef.current;
         if (pending) {
-          useStore.getState().updateSelectedStylePreview(pending.property, pending.value);
+          useStore
+            .getState()
+            .updateSelectedStylePreview(pending.property, pending.value);
         }
         previewRafIdRef.current = null;
         pendingPreviewRef.current = null;
@@ -211,12 +219,14 @@ export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
       () => {
         const pending = pendingUpdateRef.current;
         if (pending) {
-          useStore.getState().updateSelectedStyle(pending.property, pending.value);
+          useStore
+            .getState()
+            .updateSelectedStyle(pending.property, pending.value);
         }
         idleIdRef.current = null;
         pendingUpdateRef.current = null;
       },
-      { timeout: 100 }
+      { timeout: 100 },
     );
   }, []);
 
@@ -228,11 +238,9 @@ export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
       cancelPendingUpdates();
       useStore
         .getState()
-        .updateSelectedStyles(
-          sanitizeFillDerivedStylePatch(styles, true),
-        );
+        .updateSelectedStyles(sanitizeFillDerivedStylePatch(styles, true));
     },
-    [cancelPendingUpdates]
+    [cancelPendingUpdates],
   );
 
   /**
@@ -242,15 +250,12 @@ export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
    */
   const updateStylesTransition = useCallback(
     (styles: Record<string, string>) => {
-      const sanitized = sanitizeFillDerivedStylePatch(
-        styles,
-        true,
-      );
+      const sanitized = sanitizeFillDerivedStylePatch(styles, true);
       startTransition(() => {
         useStore.getState().updateSelectedStyles(sanitized);
       });
     },
-    [startTransition]
+    [startTransition],
   );
 
   return {
@@ -288,21 +293,21 @@ export function useOptimizedStyleInput(property: string) {
     (value: string) => {
       updateStyleIdle(property, value);
     },
-    [property, updateStyleIdle]
+    [property, updateStyleIdle],
   );
 
   const handleDrag = useCallback(
     (value: string) => {
       updateStyleRAF(property, value);
     },
-    [property, updateStyleRAF]
+    [property, updateStyleRAF],
   );
 
   const handleBlur = useCallback(
     (value: string) => {
       updateStyleImmediate(property, value);
     },
-    [property, updateStyleImmediate]
+    [property, updateStyleImmediate],
   );
 
   return {

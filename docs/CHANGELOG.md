@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Style 패널 numeric 입력 commit 정책 — 2026-07-22]
+
+### Performance
+
+- `Layout`, `Transform`, `Appearance`, `Typography`의 numeric `PropertyUnitInput`은 타이핑 중 Canvas/layout preview를 실행하지 않고 `Enter` 또는 `blur` 시 최종값을 commit합니다. `ArrowUp`/`ArrowDown`의 연속 입력 preview는 유지합니다.
+- **Why**: `padding`, `gap`, `width`, `height`, `borderWidth` 등은 입력 자리수마다 layout/render 경로를 갱신할 수 있어 중간값 렌더를 제거했습니다.
+
 ## [collection projection 행 텍스트 측정 SSOT 단일화 — ADR-160 Implemented] - 2026-07-22
 
 ### Architecture
