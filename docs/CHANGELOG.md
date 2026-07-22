@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ListBox wrap 행 잔존 2건 — 컨테이너 높이 동결 해소 + escape 스택 겹침 수정] - 2026-07-22
+
+### Bug Fixes
+
+- **긴 label/description 행이 wrap 으로 커져도 ListBox 컨테이너(maxHeight+overflow:auto)가 안 늘어나고 행이 잘림** (행 높이 wrap-aware 화 이후 잔존 — CSS 는 min(content, maxHeight)=300):
+  - `preserveEnrichHeight`(fullTreeLayout, `onlyProjectionRowsChild`)가 bounded-scroll collection owner 까지 과포괄 — enrich 1-pass 추정(단일 줄 행 합산 234)이 Taffy 에 동결되어, Step 4.5 2-pass 가 행을 wrap 실측으로 키워도(rowsGroup 400) owner 는 234 에 고정
+  - **Why**: preserve 는 TagList flex:1 side-label 발산용이며 주석도 "ListBox top-level 은 height 제거로도 정상" 명시 — 행이 단일 줄이던 시기엔 동결값과 실측이 우연히 일치해 무해했으나 wrap-aware 행 도입 후 발산 표면화
+  - 수정: bounded-scroll owner(`height`/`maxHeight` px + overflow scroll/auto — `isBoundedScrollOwnerStyle`)는 preserve 제외 → Taffy auto(자식 실측 합) + max_size(maxHeight) clamp. sample-mode(auto-height, ADR-157) owner 는 bounded 아님 → preserve 유지(표시 정책 불변). 라이브 검증: owner Skia 234→300 == CSS 300
+  - 위치: `apps/builder/.../layout/engines/fullTreeLayout.ts`
+- **wrap 된 label(3줄) 위에 description 이 겹쳐 그려짐** (escape 스택 offset 단일 줄 가정):
+  - `listbox_item` escape 가 description y 를 `paddingTop + label 1줄 lineHeight + gap` 으로 계산 — label 이 wrap 되면 paint(converter 는 paragraph 를 y 기준 top-start 로 아래로 흘림)와 겹침
+  - **Why**: escape(packages/specs)에 wrap 블록 높이 측정 수단이 없어 단일 줄 가정이 구조적이었다
+  - 수정: specs 에 주입식 측정 hook(`setSpecWrappedTextHeightMeasurer`) 신설 — builder 가 paint 동일 엔진(`measureWrappedTextHeight`, CanvasKit-backed)을 주입, escape 는 label/description **wrap 블록 높이**로 스택 offset·행 높이 fallback·slot 배경 밴드를 계산(미주입 시 단일 줄 fallback = BC). text shape 에 `lineHeight`(px) 명시로 converter strut 도 CSS(desc 1.333×)와 정합. 라이브 검증: label 3줄 + desc 5줄 겹침 없이 CSS 와 동일 렌더
+  - 위치: `packages/specs/.../skiaPrimitives.ts`, `packages/specs/.../utils/measureText.ts`, `apps/builder/.../utils/textMeasure.ts`
+
 ## [ListBox 인스턴스가 origin gap 을 Skia 에서 상속 못 함 — 행 간격 origin fallback] - 2026-07-22
 
 ### Bug Fixes

@@ -417,3 +417,96 @@ describe("listbox_item slot 배경 밴드 — label/description backgroundColor 
     ).toBeUndefined();
   });
 });
+
+// ─── wrap 블록 스택 offset (2026-07-22 사용자 보고: 긴 label 이 description 과 겹침) ───
+//
+// converter(specShapeConverter)는 baseline:"middle" + y>0 을 "paragraph top = y − 단일줄
+// lineHeight/2" 로 해석하고 wrap 은 아래로 흐른다. escape 가 두 번째 entry offset 을 단일 줄
+// lineHeight 로 잡으면 label 이 3줄로 wrap 될 때 description 이 label 블록 위에 겹쳐 그려진다.
+// 주입 측정기(builder = paint 동일 CanvasKit 엔진)의 블록 높이를 offset 에 소비하는지 검증.
+// 미주입(null) 시 단일 줄 fallback = 기존 동작(BC).
+import {
+  setSpecWrappedTextHeightMeasurer,
+  measureSpecWrappedTextHeight,
+} from "../utils/measureText";
+import { afterEach } from "vitest";
+
+describe("listbox_item — wrap 블록 높이 기반 스택 offset", () => {
+  afterEach(() => setSpecWrappedTextHeightMeasurer(null));
+
+  // 기본 metric: labelFontSize 16 → lineHeight 24, descriptionFontSize 12 → lineHeight 16,
+  //   paddingTop 4, rowGap(gap) 2.
+  const LABEL_LH = 24;
+  const DESC_LH = 16;
+
+  it("미주입(fallback) — description y = paddingTop + label 1줄 + gap + desc/2 (BC)", () => {
+    const shapes = textShapes(drawWith(flatProps));
+    expect(shapes[1]?.y).toBe(4 + LABEL_LH + 2 + DESC_LH / 2); // 38
+  });
+
+  it("주입 측정기가 label 3줄(72) 반환 → description y 가 블록 높이 뒤로 이동", () => {
+    setSpecWrappedTextHeightMeasurer((text, _fs, _fw, _ff, _mw, lineHeight) =>
+      text === flatProps.children ? 72 : (lineHeight ?? 16),
+    );
+    const shapes = textShapes(drawWith(flatProps));
+    // label paragraph top 은 여전히 paddingTop (y = paddingTop + 단일줄/2)
+    expect(shapes[0]?.y).toBe(4 + LABEL_LH / 2); // 16
+    // description top = paddingTop + labelBlock(72) + gap → y = top + desc 단일줄/2
+    expect(shapes[1]?.y).toBe(4 + 72 + 2 + DESC_LH / 2); // 86
+  });
+
+  it("style.height 부재 시 행 높이(fallback)가 블록 합산으로 성장", () => {
+    setSpecWrappedTextHeightMeasurer((text, _fs, _fw, _ff, _mw, lineHeight) =>
+      text === flatProps.children ? 72 : (lineHeight ?? 16),
+    );
+    const shapes = drawWith({ ...flatProps, isSelected: true });
+    // check 아이콘 y = rowHeight/2 — rowHeight = pad 8 + 72 + 2 + 16 = 98
+    const check = ((shapes ?? []) as AnyShape[]).find(
+      (s) => s.type === "icon_font" && s.iconName === "check",
+    );
+    expect(check?.y).toBe(98 / 2);
+  });
+
+  it("단일 entry(label-only) wrap 블록은 행 내 세로 중앙 배치", () => {
+    setSpecWrappedTextHeightMeasurer(() => 72);
+    const shapes = textShapes(
+      drawWith(
+        { children: "Long wrapped label", _slots: composition(["label"]) },
+        { height: 100 },
+      ),
+    );
+    // paragraph top = (100 − 72) / 2 = 14 → y = 14 + 24/2 = 26
+    expect(shapes[0]?.y).toBe(26);
+  });
+
+  it("slot 배경 밴드 높이 = wrap 블록 높이 (단일 줄 아님)", () => {
+    setSpecWrappedTextHeightMeasurer((text, _fs, _fw, _ff, _mw, lineHeight) =>
+      text === flatProps.children ? 72 : (lineHeight ?? 16),
+    );
+    const shapes = drawWith({
+      ...flatProps,
+      _slots: composition(["label", "description"], {
+        label: { backgroundColor: "#ff0000" },
+      }),
+    });
+    const band = ((shapes ?? []) as Array<{ id?: string; height?: number }>)
+      .find((s) => s.id === "label-bg");
+    expect(band?.height).toBe(72);
+  });
+
+  it("text shape 가 lineHeight(px) 를 명시 — converter strut 정합 (desc 1.333×)", () => {
+    const shapes = textShapes(drawWith(flatProps)) as Array<{
+      lineHeight?: number;
+    }>;
+    expect(shapes[0]?.lineHeight).toBe(LABEL_LH);
+    expect(shapes[1]?.lineHeight).toBe(DESC_LH);
+  });
+
+  it("measureSpecWrappedTextHeight — 미주입/빈 텍스트/무효 폭 → null", () => {
+    expect(measureSpecWrappedTextHeight("x", 16, 600, "Inter", 100)).toBeNull();
+    setSpecWrappedTextHeightMeasurer(() => 48);
+    expect(measureSpecWrappedTextHeight("", 16, 600, "Inter", 100)).toBeNull();
+    expect(measureSpecWrappedTextHeight("x", 16, 600, "Inter", 0)).toBeNull();
+    expect(measureSpecWrappedTextHeight("x", 16, 600, "Inter", 100)).toBe(48);
+  });
+});

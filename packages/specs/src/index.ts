@@ -142,6 +142,14 @@ export { resolveStateColors } from "./utils/stateEffect";
 export { resolveFillTokens, resolveIndicatorFill } from "./utils/fillTokens";
 // ADR-912 단계 3: RAC data-* → ComponentState derive (Skia state parity)
 export { racStateAttrs, type RacStateInput } from "./utils/racStateAttrs";
+// 2026-07-22: wrap 블록 높이 측정기 주입 hook — builder 가 paint 동일 엔진
+//   (measureWrappedTextHeight, CanvasKit-backed)을 주입해 escape(listbox_item)의
+//   stacked slot offset 이 멀티라인 wrap 과 정합. 미주입 시 단일 줄 fallback(BC).
+export {
+  setSpecWrappedTextHeightMeasurer,
+  measureSpecWrappedTextHeight,
+  type SpecWrappedTextHeightMeasurer,
+} from "./renderers/utils/measureText";
 
 // ─── Primitives ──────────────────────────────────────────────────────────────
 export {

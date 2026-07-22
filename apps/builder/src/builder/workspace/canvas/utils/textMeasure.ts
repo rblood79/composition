@@ -62,6 +62,7 @@ export interface TextMeasurer {
 }
 
 import { buildFontString } from "./canvas2dSegmentCache";
+import { setSpecWrappedTextHeightMeasurer } from "@composition/specs";
 
 // ============================================
 // Canvas 2D Implementation
@@ -514,3 +515,19 @@ export function measureWrappedTextHeight(
   );
   return result.height;
 }
+
+// specs escape(listbox_item 등)의 wrap 블록 높이 측정기 주입 (2026-07-22) —
+//   escape 가 stacked slot(label/description) offset 을 paint 와 동일 엔진으로 측정해야
+//   멀티라인 wrap 시 겹침이 없다. measureWrappedTextHeight 는 활성 measurer 에 동적
+//   위임하므로 모듈 로드 시 1회 주입으로 CanvasKit 초기화 이후에도 자동 최신.
+setSpecWrappedTextHeightMeasurer(
+  (text, fontSize, fontWeight, fontFamily, maxWidth, lineHeight) =>
+    measureWrappedTextHeight(
+      text,
+      fontSize,
+      fontWeight,
+      fontFamily,
+      maxWidth,
+      lineHeight,
+    ),
+);

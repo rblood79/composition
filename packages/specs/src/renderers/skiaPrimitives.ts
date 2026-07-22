@@ -33,7 +33,10 @@ import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 import { resolveIllustratedMessageMetric } from "./utils/illustratedMessageMetrics";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
 import { resolveTreeIndent } from "./buildCatalogShapes";
-import { measureSpecTextWidth } from "./utils/measureText";
+import {
+  measureSpecTextWidth,
+  measureSpecWrappedTextHeight,
+} from "./utils/measureText";
 import { breadcrumbSeparatorAfterPaddingXPx } from "../primitives/spacing";
 
 /**
@@ -716,18 +719,6 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   pushStackEntry("description");
 
   const minHeight = parsePxValue(style?.minHeight, 20);
-  const contentHeight =
-    stackEntries.length === 2
-      ? entryLineHeight(stackEntries[0]!) +
-        rowGap +
-        entryLineHeight(stackEntries[1]!)
-      : stackEntries.length === 1
-        ? entryLineHeight(stackEntries[0]!)
-        : labelLineHeight;
-  const rowHeight = parsePxValue(
-    style?.height,
-    Math.max(paddingTop + paddingBottom + contentHeight, minHeight),
-  );
   const width =
     typeof style?.width === "number" && style.width > 0 ? style.width : 200;
   const textColor = props.isDisabled
@@ -755,6 +746,49 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     (style?.fontWeight as string | number | undefined) ??
     visual?.textWeight ??
     600;
+  const labelWeight =
+    (labelSlotStyle?.fontWeight as string | number | undefined) ??
+    labelFontWeight;
+  const descriptionWeight =
+    (descriptionSlotStyle?.fontWeight as string | number | undefined) ?? 400;
+  // wrap 블록 높이 — 긴 label/description 이 maxWidth 에서 줄바꿈되면 블록이 단일 줄보다
+  //   커진다. 주입 측정기(builder = paint 동일 CanvasKit 엔진) 실측, 미주입 시 단일 줄
+  //   fallback(BC). 스택 offset/행 높이/slot 배경 밴드가 이 블록 높이를 소비해야
+  //   label 3줄 위에 description 이 겹쳐 그려지지 않는다 (2026-07-22 사용자 보고).
+  const labelBlockHeight = label
+    ? (measureSpecWrappedTextHeight(
+        label,
+        labelFontSize,
+        labelWeight,
+        ff,
+        maxWidth,
+        labelLineHeight,
+      ) ?? labelLineHeight)
+    : labelLineHeight;
+  const descriptionBlockHeight = description
+    ? (measureSpecWrappedTextHeight(
+        description,
+        descriptionFontSize,
+        descriptionWeight,
+        ff,
+        maxWidth,
+        descriptionLineHeight,
+      ) ?? descriptionLineHeight)
+    : descriptionLineHeight;
+  const entryBlockHeight = (entry: "label" | "description"): number =>
+    entry === "label" ? labelBlockHeight : descriptionBlockHeight;
+  const contentHeight =
+    stackEntries.length === 2
+      ? entryBlockHeight(stackEntries[0]!) +
+        rowGap +
+        entryBlockHeight(stackEntries[1]!)
+      : stackEntries.length === 1
+        ? entryBlockHeight(stackEntries[0]!)
+        : labelLineHeight;
+  const rowHeight = parsePxValue(
+    style?.height,
+    Math.max(paddingTop + paddingBottom + contentHeight, minHeight),
+  );
 
   const shapes: Shape[] = [];
 
@@ -848,11 +882,6 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   const descriptionFill =
     (descriptionSlotStyle?.color as string | undefined) ??
     ("{color.neutral-subdued}" as TokenRef);
-  const labelWeight =
-    (labelSlotStyle?.fontWeight as string | number | undefined) ??
-    labelFontWeight;
-  const descriptionWeight =
-    (descriptionSlotStyle?.fontWeight as string | number | undefined) ?? 400;
   // slot 자식 배경(fills → backgroundColor fold, slotRoles.ts) — 해당 slot 텍스트 line box
   //   뒤에 밴드로 렌더. origin 은 실 자식 Text 노드가 fills→box 배경을 그리지만, projection
   //   행은 escape 가 flat 렌더하므로 여기서 재현 (2026-07-21 사용자 보고).
@@ -866,6 +895,9 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   };
   const labelSlotBg = slotBgOf(labelSlotStyle);
   const descriptionSlotBg = slotBgOf(descriptionSlotStyle);
+  // lineHeight(px) 명시 — 미지정 시 converter(specShapeConverter)가 getLabelLineHeight
+  //   (1.5×fs) 기본을 쓰는데 description 은 CSS [slot=description] 1.333×fs 라 wrap 시
+  //   줄 간격이 CSS/행 높이 측정과 발산한다. 측정(entryBlockHeight)과 paint 가 동일 strut 사용.
   const stackTextShape = (entry: "label" | "description", y: number): Shape =>
     entry === "label"
       ? {
@@ -881,6 +913,7 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
           baseline: "middle",
           maxWidth,
           overflow: "ellipsis",
+          lineHeight: labelLineHeight,
         }
       : {
           type: "text",
@@ -895,22 +928,30 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
           baseline: "middle",
           maxWidth,
           overflow: "ellipsis",
+          lineHeight: descriptionLineHeight,
         };
 
   // shell 모드: label/description 스택은 실 자식 노드가 렌더 (이중 렌더 차단).
   if (!contentHidden && stackEntries.length > 0) {
-    // 각 entry 세로 중앙 y — 단일 줄은 rowHeight/2, 2줄은 paddingTop 기준 스택.
+    // 각 entry y — converter 는 baseline:"middle" + y>0 을 "paragraph top = y − 단일줄
+    //   lineHeight/2" 로 해석하고 wrap 은 아래로 흐른다. 따라서 y 는 항상 **단일 줄
+    //   lineHeight/2** 기준으로 잡되, 두 번째 entry 의 top 은 첫 entry 의 **wrap 블록
+    //   높이**(entryBlockHeight) 뒤에 둔다 — 단일 줄 가정 offset 은 label 이 wrap 되면
+    //   description 과 겹친다 (2026-07-22). 단일 entry 는 블록 전체를 세로 중앙 배치.
     const centerYs: number[] =
       stackEntries.length === 2
         ? [
             paddingTop + entryLineHeight(stackEntries[0]!) / 2,
             paddingTop +
-              entryLineHeight(stackEntries[0]!) +
+              entryBlockHeight(stackEntries[0]!) +
               rowGap +
               entryLineHeight(stackEntries[1]!) / 2,
           ]
-        : [rowHeight / 2];
-    // slot 배경 밴드 먼저 (텍스트 뒤). label/description line box 를 채운다.
+        : [
+            (rowHeight - entryBlockHeight(stackEntries[0]!)) / 2 +
+              entryLineHeight(stackEntries[0]!) / 2,
+          ];
+    // slot 배경 밴드 먼저 (텍스트 뒤). label/description wrap 블록 전체를 채운다.
     stackEntries.forEach((entry, i) => {
       const bg = entry === "label" ? labelSlotBg : descriptionSlotBg;
       if (!bg) return;
@@ -921,7 +962,7 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
         x: textX,
         y: centerYs[i]! - lh / 2,
         width: maxWidth,
-        height: lh,
+        height: entryBlockHeight(entry),
         radius: bg.radius,
         fill: bg.fill,
       });
