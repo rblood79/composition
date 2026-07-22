@@ -319,6 +319,16 @@ export {
   resolveListBoxItemRowHeight,
 } from "./renderers/utils/collectionItemMetrics";
 
+// ADR-160: collection projection 행 텍스트 측정 SSOT (ListBox/GridList 공용). layout(M1)·
+//   buildSpecNodeData 공동 호출자 + escape 소비자가 동일 심볼로 rowHeight/slot 블록/maxWidth 산출.
+export { resolveCollectionRowMetric } from "./renderers/utils/collectionItemMetrics";
+export type {
+  CollectionRowMetric,
+  CollectionRowMetricInput,
+  CollectionRowMetricEntry,
+  CollectionRowSlotBlock,
+} from "./renderers/utils/collectionItemMetrics";
+
 // Header (ADR-099 Phase 3 — section 헤더). ADR-912 단계5 step4 (2026-06-16): Header.spec.ts 삭제 —
 //   시각 SSOT = componentRulesTable.Header + ListBox.spec inline child spec (childSpecs CSS emit).
 // Slider — ADR-912 단계5 step4 (2026-06-17): Slider.spec.ts 물리 삭제(catalog cutover). export 제거.

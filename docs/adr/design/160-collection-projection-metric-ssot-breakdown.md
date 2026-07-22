@@ -109,7 +109,7 @@
 ## §5. 체크리스트
 
 - [x] Phase 0: 대조표 + baseline + buildSpecNodeData 시점 실측 완료 → §2.1 freeze (발견 1 icon/check divergence, 발견 2 M1=공동 호출자·count-neutral)
-- [ ] Phase 1: SSOT metric 함수(icon/check-aware, specs) — metric 객체 반환 + GridList 헬퍼 추출, 단위 테스트
+- [x] Phase 1: SSOT metric 함수 `resolveCollectionRowMetric`(icon/check-aware, `collectionItemMetrics.ts`) — rowHeight + slotBlocks{height,y,lineHeight} + maxWidth 반환, ListBox/GridList 공용(단일 함수가 GridList 인라인 공식도 대체). dormant(소비 배선은 Phase 2/3). 단위 테스트 10건 PASS(escape 74/98/50 정합) + 회귀 79 + type-check baseline
 - [ ] Phase 2: buildSpecNodeData 가 확정 `style.width` 로 metric 산출 → `_slotMetrics` 주입, 폭 정확성 테스트
 - [ ] Phase 3: escape `_slotMetrics` 소비 + 재측정 skip(fallback 분기만 잔존) + M1·GridList 를 SSOT 함수 공동 호출자로 전환, `_slotMetrics` 부재 fallback(BC) 테스트
 - [ ] Phase 4: differential 계약 테스트(layout==escape==CSS)

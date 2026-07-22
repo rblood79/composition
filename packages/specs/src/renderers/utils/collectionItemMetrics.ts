@@ -20,6 +20,7 @@ import {
   getTextLineHeight,
   getDescriptionLineHeight,
 } from "../../primitives/typography";
+import { measureSpecWrappedTextHeight } from "./measureText";
 
 /**
  * ADR-078 Phase 3: ListBox/ListBoxItem metric 단일 소스 resolver.
@@ -116,6 +117,161 @@ export function resolveListBoxItemRowHeight(input: {
     input.paddingTop + input.paddingBottom + contentHeight,
     input.minHeight ?? 20,
   );
+}
+
+/**
+ * ADR-160: collection projection 행(ListBoxItem / GridListItem) 텍스트 측정 SSOT.
+ *
+ * layout(M1, `utils.ts`)·escape(M3, `skiaPrimitives.ts`)·`buildSpecNodeData` 가 **동일 심볼**로
+ * 행 metric(rowHeight + slot 블록 높이·top offset + wrap maxWidth)을 산출하도록 통일한다. 기존엔
+ * layout-util 함수와 escape 별도 함수가 폰트/폭/lineHeight/anchoring 을 각자 재현해 icon/check 행에서
+ * wrap 폭이 어긋났다(design ADR-160 §2.1 발견 1 — M1 은 `w−padL−padR`, escape 는
+ * `w−textX−padR−rightReserve`). 본 함수가 그 통로를 봉쇄한다.
+ *
+ * **측정 주체 계약**: `containerWidth` 는 확정된 행/카드 폭(px). scene projection 시점의 "100%"/calc
+ * 이 아니라 `buildSpecNodeData` width injection(`style.width`, layout 이후) 또는 layout availableWidth
+ * 가 확정한 값을 넘겨야 wrap 폭이 정확하다(§2.1 발견 2). 순서상 M1(layout)·buildSpecNodeData 는 본
+ * 함수의 **공동 호출자**, escape 는 주입된 결과의 소비자다(측정 호출 수 count-neutral).
+ *
+ * caller 별 차이는 입력으로 흡수한다:
+ *  - **ListBox**: `singleEntryCentered=true`(1줄 세로 중앙), `textX`=paddingLeft+icon 예약,
+ *    `rightReserve`=check, description `lineHeight`=1.333×fs. baseline:middle → 텍스트 y=`block.y+lh/2`.
+ *  - **GridList**: `singleEntryCentered=false`(항상 top), `textX`=cardPaddingX, `rightReserve`=0,
+ *    description `lineHeight`=1.5×fs. top-anchored → 텍스트 y=`block.y`.
+ *
+ * 본 함수는 블록 wrap 측정·스택 offset·rowHeight 공식만 소유한다(폰트/reserve/lineHeight 는 caller 산출).
+ */
+export interface CollectionRowMetricEntry {
+  role: "label" | "description";
+  text: string;
+  fontSize: number;
+  fontWeight: number | string;
+  /** 단일 줄 line box(px) — caller 가 typography 규칙으로 산출(LB desc 1.333× / 그 외 1.5×). */
+  lineHeight: number;
+}
+
+export interface CollectionRowMetricInput {
+  /** 확정 행/카드 폭(px). `buildSpecNodeData` style.width 또는 layout availableWidth. */
+  containerWidth: number;
+  paddingTop: number;
+  paddingRight: number;
+  paddingBottom: number;
+  paddingLeft: number;
+  /** 항목 간 수직 간격(px) — ListBox rowGap / GridList descGap. */
+  gap: number;
+  /** 최소 행 높이(px). ListBox 20, GridList 미지정(0). */
+  minHeight?: number;
+  /** `style.height` 명시 override(px). 지정 시 rowHeight 로 그대로 사용. */
+  explicitHeight?: number;
+  /** 텍스트 좌측 origin(px). ListBox=paddingLeft+icon 예약, GridList=cardPaddingX. */
+  textX: number;
+  /** 우측 예약(px). ListBox check=checkSize+slotGap, GridList 0. */
+  rightReserve?: number;
+  fontFamily: string;
+  /** 표시 순서대로의 slot(존재하는 것만). label / description. */
+  entries: CollectionRowMetricEntry[];
+  /** 단일 entry 를 세로 중앙 배치(ListBox true, GridList false). */
+  singleEntryCentered?: boolean;
+  /** entries 가 비었을 때 contentHeight fallback(보통 label 단일 줄). */
+  fallbackLineHeight: number;
+}
+
+export interface CollectionRowSlotBlock {
+  /** wrap 반영 블록 높이(px). */
+  height: number;
+  /** 행 좌표계 내 블록 top(px). escape 는 baseline:middle 시 `y + lineHeight/2` 를 텍스트 y 로 쓴다. */
+  y: number;
+  /** 해당 블록 단일 줄 line box(px) — escape 텍스트 baseline 계산용. */
+  lineHeight: number;
+}
+
+export interface CollectionRowMetric {
+  rowHeight: number;
+  /** wrap 측정에 쓴 콘텐츠 폭(px). escape maxWidth 와 동일해야 measure↔paint 정합. */
+  maxWidth: number;
+  /** 텍스트 좌측 origin(px). */
+  textX: number;
+  /** 패딩 제외 콘텐츠 높이(px). */
+  contentHeight: number;
+  /** 존재하는 slot 의 블록 geometry. */
+  slotBlocks: Partial<Record<"label" | "description", CollectionRowSlotBlock>>;
+  /** 표시 순서 slot 목록(입력 순서 보존). */
+  order: Array<"label" | "description">;
+}
+
+export function resolveCollectionRowMetric(
+  input: CollectionRowMetricInput,
+): CollectionRowMetric {
+  const rightReserve = input.rightReserve ?? 0;
+  const maxWidth = Math.max(
+    1,
+    input.containerWidth - input.textX - input.paddingRight - rightReserve,
+  );
+
+  // 블록 높이 — wrap 측정(주입 측정기, 미주입/미측정/빈 텍스트 시 단일 줄 fallback = BC).
+  const blockHeights = input.entries.map((entry) => {
+    if (!entry.text) return entry.lineHeight;
+    return (
+      measureSpecWrappedTextHeight(
+        entry.text,
+        entry.fontSize,
+        entry.fontWeight,
+        input.fontFamily,
+        maxWidth,
+        entry.lineHeight,
+      ) ?? entry.lineHeight
+    );
+  });
+
+  const contentHeight =
+    input.entries.length === 0
+      ? input.fallbackLineHeight
+      : blockHeights.reduce(
+          (sum, h, i) => sum + h + (i > 0 ? input.gap : 0),
+          0,
+        );
+
+  const rowHeight =
+    input.explicitHeight ??
+    Math.max(
+      input.paddingTop + input.paddingBottom + contentHeight,
+      input.minHeight ?? 0,
+    );
+
+  const slotBlocks: Partial<
+    Record<"label" | "description", CollectionRowSlotBlock>
+  > = {};
+  const order = input.entries.map((e) => e.role);
+
+  if (input.entries.length === 1 && input.singleEntryCentered) {
+    // 단일 entry 세로 중앙(ListBox 1줄 계약).
+    const e = input.entries[0]!;
+    slotBlocks[e.role] = {
+      height: blockHeights[0]!,
+      y: (rowHeight - blockHeights[0]!) / 2,
+      lineHeight: e.lineHeight,
+    };
+  } else {
+    // top-anchored 스택 — 첫 블록 top = paddingTop, 이후 이전 블록·gap 누적.
+    let y = input.paddingTop;
+    input.entries.forEach((e, i) => {
+      slotBlocks[e.role] = {
+        height: blockHeights[i]!,
+        y,
+        lineHeight: e.lineHeight,
+      };
+      y += blockHeights[i]! + input.gap;
+    });
+  }
+
+  return {
+    rowHeight,
+    maxWidth,
+    textX: input.textX,
+    contentHeight,
+    slotBlocks,
+    order,
+  };
 }
 
 /**
