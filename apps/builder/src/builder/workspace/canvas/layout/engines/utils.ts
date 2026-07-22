@@ -28,7 +28,9 @@ import {
   normalizeBreadcrumbRspSizeKey,
   resolveListBoxSpacingMetric,
   resolveListBoxItemMetric,
-  resolveListBoxItemRowHeight,
+  // ADR-160: layout(M1)·escape 공유 행 측정 SSOT — M1 이 escape 와 동일 geometry 로 산출.
+  //   (resolveListBoxItemRowHeight 는 resolveCollectionRowMetric 로 흡수 — utils.ts 소비 종료)
+  resolveCollectionRowMetric,
   isListBoxSectionEntry,
   resolveGridListSpacingMetric,
   COLLECTION_TEXT_DEFAULT_FONT_SIZE,
@@ -47,7 +49,7 @@ import {
   //   동일 metric SSOT (Layer D 동일 resolver 원칙).
   resolveIllustratedMessageMetric,
 } from "@composition/specs";
-import type { SizeSpec } from "@composition/specs";
+import type { SizeSpec, CollectionRowMetricEntry } from "@composition/specs";
 import {
   // ADR-912 collection catalog 도입 — TabPanelsSpec import 제거 (2026-06-11).
   //   tabPanelPadding 계산을 resolveSkiaRule("TabPanels") 경유로 이관.
@@ -388,63 +390,60 @@ export function resolveListBoxItemRowHeightFromStyle(
     parseNumericValue(style?.paddingTop ?? style?.padding) ?? m.paddingY;
   const paddingBottom =
     parseNumericValue(style?.paddingBottom ?? style?.padding) ?? m.paddingY;
+  const paddingLeft =
+    parseNumericValue(style?.paddingLeft ?? style?.padding) ?? m.paddingX;
+  const paddingRight =
+    parseNumericValue(style?.paddingRight ?? style?.padding) ?? m.paddingX;
+  const rowGap =
+    parseNumericValue(style?.rowGap ?? style?.columnGap ?? style?.gap) ?? m.gap;
+  const minHeight = parseNumericValue(style?.minHeight) ?? 20;
 
-  // wrap-aware: 행 콘텐츠 폭(availableWidth - 좌우 padding)에서 label/description 멀티라인
-  //   높이를 측정한다(Card §3.5 fallback 동형 — measureWrappedTextHeight + specFontFamily.sans).
-  //   label/description 은 flex-column 으로 세로 적층이라 각자 전체 콘텐츠 폭을 쓴다(아이콘 감산 X).
-  let labelBlockHeight: number | undefined;
-  let descriptionBlockHeight: number | undefined;
-  if (wrapContext?.availableWidth != null && wrapContext.availableWidth > 0) {
-    const paddingLeft =
-      parseNumericValue(style?.paddingLeft ?? style?.padding) ?? m.paddingX;
-    const paddingRight =
-      parseNumericValue(style?.paddingRight ?? style?.padding) ?? m.paddingX;
-    const wrapWidth = wrapContext.availableWidth - paddingLeft - paddingRight;
-    if (wrapWidth > 0) {
-      const family = specFontFamily.sans;
-      if (typeof wrapContext.label === "string" && wrapContext.label.length) {
-        labelBlockHeight = measureWrappedTextHeight(
-          wrapContext.label,
-          fontSize,
-          600, // label semibold (catalog textWeight 600)
-          family,
-          wrapWidth,
-          labelLineHeight,
-        );
-      }
-      if (
-        hasDescription &&
-        typeof wrapContext.description === "string" &&
-        wrapContext.description.length
-      ) {
-        descriptionBlockHeight = measureWrappedTextHeight(
-          wrapContext.description,
-          descFontSize,
-          400,
-          family,
-          wrapWidth,
-          descriptionLineHeight,
-        );
-      }
-    }
+  // ADR-160: 행 height 를 escape 와 동일한 SSOT `resolveCollectionRowMetric` 로 산출(M1 = escape
+  //   공동 호출자, geometry 통로 봉쇄). wrapContext.availableWidth 있으면 wrap 측정(M1 렌더 행),
+  //   없으면 텍스트 미전달 = 단일 줄(M2 가상화 stride — ADR-157 표시 정책 불변). 측정기는 specs
+  //   주입기(builder measureWrappedTextHeight, paint 동일 CanvasKit 엔진) 경유. label/description
+  //   은 세로 적층이라 각자 전체 콘텐츠 폭(textX=paddingLeft, rightReserve 0 — icon/check-aware 폭은
+  //   §2.1 발견 1 후속). label semibold 600, description 400. desc lineHeight 1.333×(getDescription-
+  //   LineHeight)는 caller 산출로 전달 → CSS [slot=description] 정합.
+  const wrap =
+    wrapContext?.availableWidth != null && wrapContext.availableWidth > 0;
+  const entries: CollectionRowMetricEntry[] = [
+    {
+      role: "label",
+      text: wrap ? (wrapContext?.label ?? "") : "",
+      fontSize,
+      fontWeight: 600,
+      lineHeight: labelLineHeight,
+    },
+  ];
+  if (hasDescription) {
+    entries.push({
+      role: "description",
+      text: wrap ? (wrapContext?.description ?? "") : "",
+      fontSize: descFontSize,
+      fontWeight: 400,
+      lineHeight: descriptionLineHeight,
+    });
   }
 
-  return resolveListBoxItemRowHeight({
-    // label line box = 1.5×fs (react-aria-Text 기본, slot CSS override 없음) → getTextLineHeight.
-    lineHeight: labelLineHeight,
-    // description line box = 1.333×fs (CSS [slot=description] line-height 토큰, label 1.5× 와 대조).
-    //   라이브 실측 2026-07-22: desc 12→16 / 14→18.67. getTextLineHeight(1.5×)는 12→18 로 +2 과대.
-    descriptionLineHeight,
-    labelBlockHeight,
-    descriptionBlockHeight,
-    rowGap:
-      parseNumericValue(style?.rowGap ?? style?.columnGap ?? style?.gap) ??
-      m.gap,
+  return resolveCollectionRowMetric({
+    // 단일 줄(M2)엔 폭 무관(텍스트 미전달 → 측정 skip). wrap 이면 실제 가용 폭.
+    containerWidth: wrap
+      ? wrapContext!.availableWidth!
+      : paddingLeft + paddingRight + 1,
     paddingTop,
+    paddingRight,
     paddingBottom,
-    hasDescription,
-    minHeight: parseNumericValue(style?.minHeight) ?? 20,
-  });
+    paddingLeft,
+    gap: rowGap,
+    minHeight,
+    textX: paddingLeft,
+    rightReserve: 0,
+    fontFamily: specFontFamily.sans,
+    entries,
+    singleEntryCentered: true,
+    fallbackLineHeight: labelLineHeight,
+  }).rowHeight;
 }
 
 // store 는 gap shorthand 를 rowGap/columnGap longhand 로 분배 저장 —
@@ -2519,46 +2518,50 @@ export function calculateContentHeight(
     const labelFs = slotFontOf("label") ?? COLLECTION_TEXT_DEFAULT_FONT_SIZE;
     const descFs =
       slotFontOf("description") ?? COLLECTION_TEXT_DEFAULT_FONT_SIZE;
-    // wrap-aware (2026-07-22 collection-item parity sweep — ListBoxItem §1.55b-2 동형): 긴
-    //   label/description 이 CSS 는 카드가 늘어나나 Skia 는 단일 줄 공식으로 고정 → 미확장.
-    //   카드 콘텐츠 폭(availableWidth − 좌우 padding)에서 멀티라인 높이를 측정(measureWrappedTextHeight
-    //   + specFontFamily.sans, gridlist_card escape 스택과 동일 엔진). 가상화 stride
-    //   (resolveGridListRowStride)는 미측정 = 균일 단일 줄(ADR-157 content-height 불변).
-    let labelBlock = getTextLineHeight(labelFs);
-    let descBlock = getTextLineHeight(descFs);
-    if (availableWidth != null && availableWidth > 0) {
-      const padLeft =
-        parseNumericValue(style?.paddingLeft ?? style?.padding) ?? 16;
-      const padRight =
-        parseNumericValue(style?.paddingRight ?? style?.padding) ?? 16;
-      const wrapWidth = availableWidth - padLeft - padRight;
-      if (wrapWidth > 0) {
-        const family = specFontFamily.sans;
-        const labelText =
-          typeof props?.children === "string" ? props.children : undefined;
-        if (labelText && labelText.length) {
-          labelBlock = measureWrappedTextHeight(
-            labelText,
-            labelFs,
-            600,
-            family,
-            wrapWidth,
-            getTextLineHeight(labelFs),
-          );
-        }
-        if (hasDesc && typeof desc === "string" && desc.length) {
-          descBlock = measureWrappedTextHeight(
-            desc,
-            descFs,
-            400,
-            family,
-            wrapWidth,
-            getTextLineHeight(descFs),
-          );
-        }
-      }
+    // ADR-160: 카드 content-box 높이를 escape(gridlist_card)와 동일 SSOT `resolveCollectionRowMetric`
+    //   로 산출(M1 = escape 공동 호출자, geometry 통로 봉쇄). wrapContext(availableWidth) 있으면 wrap
+    //   측정, 없으면 텍스트 미전달 = 단일 줄(가상화 stride, ADR-157 content-height 불변). **content-box
+    //   반환**(.contentHeight — caller fullTreeLayout 이 style padding 별도 가산) — gridlistitem 분기
+    //   계약 유지(listboxitem 의 padding-box rowHeight 와 대조). 측정기는 specs 주입(builder
+    //   measureWrappedTextHeight, paint 동일 엔진).
+    const wrap = availableWidth != null && availableWidth > 0;
+    const padLeft =
+      parseNumericValue(style?.paddingLeft ?? style?.padding) ?? 16;
+    const padRight =
+      parseNumericValue(style?.paddingRight ?? style?.padding) ?? 16;
+    const labelText =
+      typeof props?.children === "string" ? props.children : undefined;
+    const entries: CollectionRowMetricEntry[] = [
+      {
+        role: "label",
+        text: wrap ? (labelText ?? "") : "",
+        fontSize: labelFs,
+        fontWeight: 600,
+        lineHeight: getTextLineHeight(labelFs),
+      },
+    ];
+    if (hasDesc) {
+      entries.push({
+        role: "description",
+        text: wrap && typeof desc === "string" ? desc : "",
+        fontSize: descFs,
+        fontWeight: 400,
+        lineHeight: getTextLineHeight(descFs),
+      });
     }
-    return labelBlock + (hasDesc ? gap + descBlock : 0);
+    return resolveCollectionRowMetric({
+      containerWidth: wrap ? availableWidth : padLeft + padRight + 1,
+      paddingTop: 0,
+      paddingRight: padRight,
+      paddingBottom: 0,
+      paddingLeft: padLeft,
+      gap,
+      textX: padLeft,
+      rightReserve: 0,
+      fontFamily: specFontFamily.sans,
+      entries,
+      fallbackLineHeight: getTextLineHeight(labelFs),
+    }).contentHeight;
   }
 
   // 1.55c. GridList (ADR-099 Phase 5): items SSOT 기반 intrinsic border-box height.
