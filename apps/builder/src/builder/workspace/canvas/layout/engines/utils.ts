@@ -31,6 +31,9 @@ import {
   // ADR-160: layout(M1)·escape 공유 행 측정 SSOT — M1 이 escape 와 동일 geometry 로 산출.
   //   (resolveListBoxItemRowHeight 는 resolveCollectionRowMetric 로 흡수 — utils.ts 소비 종료)
   resolveCollectionRowMetric,
+  // ADR-160 후속: ListBoxItem 행 좌우 inset(textX/rightReserve) SSOT + GridList within-card gap SSOT.
+  resolveListBoxItemInset,
+  resolveGridListItemMetric,
   isListBoxSectionEntry,
   resolveGridListSpacingMetric,
   COLLECTION_TEXT_DEFAULT_FONT_SIZE,
@@ -372,6 +375,19 @@ export function resolveListBoxItemRowHeightFromStyle(
     description?: string;
     availableWidth?: number;
   },
+  /**
+   * ADR-160 후속(2026-07-23): icon/check-aware 좌우 inset 컨텍스트. escape(listbox_item)가 아이콘·
+   * selection check 폭을 예약해 텍스트 wrap 폭을 줄이는 것과 동일하게, M1 도 `resolveListBoxItemInset`
+   * 로 textX/rightReserve 를 산출한다(§2.1 발견 1 봉쇄). **미전달 시 icon/check 미예약**(textX=
+   * paddingLeft, rightReserve=0) — 가상화 stride(단일 줄) 경로는 텍스트 미측정이라 maxWidth 무관하므로
+   * 전달하지 않아도 무해(BC). caller(§1.55b-2)는 slot 구성 + isSelected 에서 추출해 전달한다.
+   */
+  insetContext?: {
+    hasIcon: boolean;
+    iconSize: number;
+    showCheck: boolean;
+    slotInset: number;
+  },
 ): number {
   // label: react-aria-Text 기본 16 (부모 fontSize 미상속 — 라이브 실측 2026-07-22: item
   //   fontSize 14 여도 label 은 16/24 렌더). 명시 slot label size 우선. 과거 `?? 14` fallback 은
@@ -426,6 +442,18 @@ export function resolveListBoxItemRowHeightFromStyle(
     });
   }
 
+  // ADR-160 후속: icon/check-aware 좌우 inset — escape 와 동일 SSOT `resolveListBoxItemInset`.
+  //   insetContext 미전달(가상화 stride 등 단일 줄 경로)이면 icon/check 미예약 BC 유지.
+  const inset = insetContext
+    ? resolveListBoxItemInset({
+        paddingLeft,
+        slotInset: insetContext.slotInset,
+        iconSize: insetContext.iconSize,
+        hasIcon: insetContext.hasIcon,
+        showCheck: insetContext.showCheck,
+      })
+    : { textX: paddingLeft, rightReserve: 0 };
+
   return resolveCollectionRowMetric({
     // 단일 줄(M2)엔 폭 무관(텍스트 미전달 → 측정 skip). wrap 이면 실제 가용 폭.
     containerWidth: wrap
@@ -437,8 +465,8 @@ export function resolveListBoxItemRowHeightFromStyle(
     paddingLeft,
     gap: rowGap,
     minHeight,
-    textX: paddingLeft,
-    rightReserve: 0,
+    textX: inset.textX,
+    rightReserve: inset.rightReserve,
     fontFamily: specFontFamily.sans,
     entries,
     singleEntryCentered: true,
@@ -2471,6 +2499,12 @@ export function calculateContentHeight(
     //   (2026-07-22). 가상화 stride 경로(resolveListBoxRowHeight)는 wrapContext 미전달 = 단일 줄.
     const labelText =
       typeof props?.children === "string" ? props.children : undefined;
+    // ADR-160 후속: icon/check-aware 좌우 inset 컨텍스트 — escape(listbox_item)와 동일 조건으로 산출.
+    //   hasIcon = icon slot 활성 + 아이콘 값 존재(escape readCardText 근사), iconSize = icon slot
+    //   fontSize override ?? 16(ListBoxItem md size.iconSize = escape 기본), showCheck = isSelected,
+    //   slotInset = ListBoxItem md paddingX(=escape size.paddingX 기본). 미예약 시 wrap 폭이 escape 와
+    //   어긋나 icon/selected 행에서 M1 이 더 짧게 산출(§2.1 발견 1 봉쇄).
+    const iconSlotFs = slotComp?.slots.icon?.style?.fontSize;
     return resolveListBoxItemRowHeightFromStyle(
       style,
       hasDescription,
@@ -2482,6 +2516,13 @@ export function calculateContentHeight(
         label: labelText,
         description: typeof desc === "string" ? desc : undefined,
         availableWidth,
+      },
+      {
+        hasIcon: isSlotEnabled(slotComp, "icon") && Boolean(props?.icon),
+        iconSize: typeof iconSlotFs === "number" ? iconSlotFs : 16,
+        showCheck: Boolean(props?.isSelected),
+        slotInset: resolveListBoxItemMetric(COLLECTION_TEXT_DEFAULT_FONT_SIZE)
+          .paddingX,
       },
     );
   }
@@ -2499,8 +2540,6 @@ export function calculateContentHeight(
   //   listboxitem 분기와 동일 사유 (일반 컨테이너 자식 합산 경로).
   if (tag1 === "gridlistitem" && !(childElements && childElements.length > 0)) {
     const props = element.props as Record<string, unknown> | undefined;
-    const gap =
-      parseNumericValue(style?.rowGap ?? style?.columnGap ?? style?.gap) ?? 2;
     const desc = props?.description;
     const slotComp = readSlotComposition(props?._slots);
     // ADR-148 Phase 4: description slot 자식이 구성(_slots)에 없으면 1줄
@@ -2518,6 +2557,10 @@ export function calculateContentHeight(
     const labelFs = slotFontOf("label") ?? COLLECTION_TEXT_DEFAULT_FONT_SIZE;
     const descFs =
       slotFontOf("description") ?? COLLECTION_TEXT_DEFAULT_FONT_SIZE;
+    // ADR-160 후속: within-card gap 을 escape(gridlist_card)와 동일 SSOT `resolveGridListItemMetric`
+    //   .descGap 로 산출 — 과거 `style.gap ?? 2` 는 `--spacing-2xs`(고정 2, style 무관)와 어긋날 수
+    //   있는 잔존(§2.1 발견 residual b). escape 도 동일 심볼 경유(고정 2).
+    const gap = resolveGridListItemMetric(labelFs).descGap;
     // ADR-160: 카드 content-box 높이를 escape(gridlist_card)와 동일 SSOT `resolveCollectionRowMetric`
     //   로 산출(M1 = escape 공동 호출자, geometry 통로 봉쇄). wrapContext(availableWidth) 있으면 wrap
     //   측정, 없으면 텍스트 미전달 = 단일 줄(가상화 stride, ADR-157 content-height 불변). **content-box
