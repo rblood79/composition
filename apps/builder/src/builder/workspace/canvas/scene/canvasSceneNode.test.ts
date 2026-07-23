@@ -5,8 +5,10 @@ import type { CompositionDocument } from "@composition/shared";
 import {
   buildCanvasSceneGraph,
   buildCanvasScenePageIndex,
+  resolveGridListTemplateOriginId,
   type CollectionWindowResolution,
 } from "./canvasSceneNode";
+import type { CanonicalNode } from "@composition/shared";
 import {
   toListBoxRowProjectionId,
   toListBoxRowsGroupProjectionId,
@@ -2002,5 +2004,77 @@ describe("buildCanvasSceneGraph — ADR-150 A2 ListBox 가상화 window", () => 
     expect(
       graph.nodesMap.get(toListBoxSpacerProjectionId("listbox-1", "trail")),
     ).toBeUndefined();
+  });
+});
+
+// ADR-161 Phase 3 — GridList 컨테이너 origin master slot[0] 해석 (리터럴 하드코딩 제거).
+describe("resolveGridListTemplateOriginId — 컨테이너 origin slot 소비", () => {
+  const asNode = (n: Record<string, unknown>): CanonicalNode =>
+    n as unknown as CanonicalNode;
+  const docWith = (
+    nodes: Record<string, unknown>[],
+  ): (() => Map<string, CanonicalNode>) => {
+    const map = new Map<string, CanonicalNode>();
+    for (const n of nodes) map.set(n.id as string, asNode(n));
+    return () => map;
+  };
+
+  it("ref 인스턴스 → master(component-gridlist) 의 slot[0] 을 해석한다", () => {
+    const getDoc = docWith([
+      {
+        id: "component-gridlist",
+        type: "GridList",
+        slot: ["component-gridlist-item-default"],
+      },
+    ]);
+    const instance = asNode({
+      id: "gl-1",
+      type: "ref",
+      ref: "component-gridlist",
+    });
+    expect(resolveGridListTemplateOriginId(instance, getDoc)).toBe(
+      "component-gridlist-item-default",
+    );
+  });
+
+  it("커스텀 slot[0] 을 존중한다 (컨테이너 origin authoritative)", () => {
+    const getDoc = docWith([
+      {
+        id: "component-gridlist",
+        type: "GridList",
+        slot: ["custom-gridlist-item"],
+      },
+    ]);
+    const instance = asNode({
+      id: "gl-1",
+      type: "ref",
+      ref: "component-gridlist",
+    });
+    expect(resolveGridListTemplateOriginId(instance, getDoc)).toBe(
+      "custom-gridlist-item",
+    );
+  });
+
+  it("origin GridList 자신(non-ref) → 자신의 slot[0]", () => {
+    const origin = asNode({
+      id: "component-gridlist",
+      type: "GridList",
+      slot: ["component-gridlist-item-default"],
+    });
+    expect(resolveGridListTemplateOriginId(origin, docWith([]))).toBe(
+      "component-gridlist-item-default",
+    );
+  });
+
+  it("slot 미등록(legacy 문서) → 표준 default item origin 상수 fallback", () => {
+    const getDoc = docWith([{ id: "component-gridlist", type: "GridList" }]);
+    const instance = asNode({
+      id: "gl-1",
+      type: "ref",
+      ref: "component-gridlist",
+    });
+    expect(resolveGridListTemplateOriginId(instance, getDoc)).toBe(
+      "component-gridlist-item-default",
+    );
   });
 });

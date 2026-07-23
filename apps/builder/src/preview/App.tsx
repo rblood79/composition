@@ -280,6 +280,16 @@ function CanvasContent() {
       }
       return "component-listbox-item-selected";
     })();
+    // ADR-161 Phase 3 — GridList 컨테이너 origin(component-gridlist) master slot 해석
+    //   (component-listbox :263 동형). ref 인스턴스 → master → slot[0](item origin) → 카드
+    //   템플릿. slot[0] == 리터럴이라 현행 시각 결과 불변이나, 컨테이너 origin 이
+    //   authoritative(Skia resolveGridListTemplateOriginId 와 동일 SSOT). 미등록 = legacy 문서.
+    const gridListMasterSlot = byId.get("component-gridlist")?.slot;
+    const gridListOriginId =
+      Array.isArray(gridListMasterSlot) &&
+      typeof gridListMasterSlot[0] === "string"
+        ? gridListMasterSlot[0]
+        : "component-gridlist-item-default";
     const rootStyleOf = (originId: string): Record<string, unknown> | null => {
       const record = byId.get(originId);
       const props = record?.props as { style?: unknown } | undefined;
@@ -318,7 +328,7 @@ function CanvasContent() {
         base: rootStyleOf(listBoxOriginId),
         selected: rootStyleOf(listBoxSelectedOriginId),
       },
-      gridList: compositionOf("component-gridlist-item-default"),
+      gridList: compositionOf(gridListOriginId),
       menuItem: compositionOf("component-menu-item-default"),
     };
   }, [resolvedCanonicalNodes]);

@@ -740,6 +740,31 @@ export function resolveListBoxSelectedOriginId(
   return LISTBOX_ITEM_SELECTED_ORIGIN_ID;
 }
 
+/**
+ * GridList 행 template origin id 해석 (resolveListBoxTemplateOriginId 대칭, anchor-less).
+ *
+ * GridList 는 in-instance anchor 인프라가 없다(factory children:[]). 우선순위:
+ *   1. ref instance → master(component-gridlist) 의 slot[0].
+ *   2. origin GridList 자신(Components 페이지) → 자신의 slot[0].
+ *   3. 안전망: 표준 default item origin 상수(component-gridlist-item-default).
+ *
+ * **Why (ADR-161 Phase 3)**: 컨테이너 origin(component-gridlist)의 slot 을 실제 소비해
+ *   ref-composite 를 완성한다. 현행은 slot[0] == 리터럴이라 시각 결과 불변이나, 컨테이너
+ *   origin 이 authoritative 가 되어 ListBox(resolveListBoxTemplateOriginId)와 대칭 —
+ *   preview(App.tsx component-gridlist master 해석)와 동일 SSOT 를 동일 방식으로 읽는다.
+ */
+export function resolveGridListTemplateOriginId(
+  sourceNode: CanonicalNode,
+  getDocumentNodesById: () => Map<string, CanonicalNode>,
+): string {
+  const slot =
+    sourceNode.type === "ref"
+      ? getDocumentNodesById().get((sourceNode as RefNode).ref)?.slot
+      : sourceNode.slot;
+  if (Array.isArray(slot) && typeof slot[0] === "string") return slot[0];
+  return GRIDLIST_ITEM_DEFAULT_ORIGIN_ID;
+}
+
 function isListBoxSceneSource(
   listBoxSceneNode: CanvasSceneNode,
   sourceNode: CanonicalNode,
@@ -1327,11 +1352,13 @@ function appendGridListRowProjection(
 
   // ADR-148 Phase 4 — ADR-147 모델 복제 (appendListBoxRowProjection 동형): Components
   //   페이지의 GridListItem 기본 origin 에서 slot 구성(존재·순서·slot 자식 style)과
-  //   origin style 을 해석해 projected 카드에 주입한다. GridList 는 anchor-less 단일
-  //   origin (master slot[] 참조 체계 없음 — 리터럴 id). origin 미존재/slot 자식 없음
+  //   origin style 을 해석해 projected 카드에 주입한다. origin 미존재/slot 자식 없음
   //   = legacy 문서 → 미주입, consumer 는 기존 flat-props 동작(BC).
+  // ADR-161 Phase 3 — 컨테이너 origin(component-gridlist)의 slot[0] 을 소비해 item origin 을
+  //   해석한다(리터럴 하드코딩 제거). resolveGridListTemplateOriginId 는 preview(App.tsx
+  //   component-gridlist master 해석)와 동일 SSOT — ref-composite 컨테이너 origin authoritative.
   const templateOriginNode = getDocumentNodesById().get(
-    GRIDLIST_ITEM_DEFAULT_ORIGIN_ID,
+    resolveGridListTemplateOriginId(sourceNode, getDocumentNodesById),
   );
   const templateOriginId = templateOriginNode ? templateOriginNode.id : null;
   const originStyle =

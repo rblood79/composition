@@ -42,11 +42,16 @@ GridList 를 ListBox 와 동형 ref-composite 로 만들기 위한 참조 구현
 - **BC 위험**: 기존 프로젝트의 standalone GridList 는 Phase 5 migration 이 담당. 신규 add 는 ref.
 - Gate: 팔레트 GridList 추가 → 인스턴스 `type:"ref", ref:"component-gridlist"` 확인 (Chrome MCP store probe).
 
-### Phase 3 — preview projection 배선 (MED)
+### Phase 3 — preview projection 배선 (MED) — Implemented 2026-07-23
 
-- `preview/App.tsx`: `component-gridlist` master slot 해석 추가 (`component-listbox` `:263` 동형). ref 인스턴스 → master → slot[0](item origin) → 카드 템플릿.
-- resolve 헬퍼 재사용/일반화 검토 (`resolveListBoxTemplateOriginId` 류 → collection 공통).
-- Gate: preview 에서 ref GridList 가 카드 렌더 + 크래시 0 (item origin slot 소비).
+**채택 방식 — preview + Skia 대칭 배선 (컨테이너 origin slot 소비, canvas-rendering.md symmetric consumer 규칙)**:
+
+- 원안은 preview 단독 배선이었으나, 리터럴 하드코딩은 preview(`App.tsx:321`)와 Skia(`canvasSceneNode.ts:1333`) **양쪽**에 존재했다. 한쪽만 master 해석으로 전환하면 코드 비대칭(값은 동일하나 SSOT 읽는 방식 상이) — canvas-rendering.md D3 symmetric consumer 위반. 두 소비자를 **동일 SSOT(`component-gridlist`.slot[0])를 동일 방식**으로 읽도록 전환.
+- **Skia**: `resolveGridListTemplateOriginId(sourceNode, getDocNodes)` 신규 export (`resolveListBoxTemplateOriginId` 대칭, anchor-less). ref → master.slot[0] / origin 자신 → 자신.slot[0] / 안전망 → `component-gridlist-item-default` 상수. `appendGridListRowProjection` 이 리터럴 대신 이 helper 경유.
+- **Preview**: `App.tsx` `byId.get("component-gridlist")?.slot[0]` inline 해석(`component-listbox` `:263` 동형) → `compositionOf(gridListOriginId)`.
+- 현행 slot[0] == 리터럴이라 **시각 결과 불변**(BC), 컨테이너 origin 이 authoritative 가 되어 향후 variant 확장 대비 + ListBox 대칭 완성.
+- **live 검증(2026-07-23)**: ref GridList(`4ecd3ae0`, ref→component-gridlist, grid 3-item) — Skia canvas 카드 렌더(Desert Sunset/Hiking Trail/Mountain Sunrise, bg+border+label+description) ≡ CSS preview 동일 카드. Component 패널 Role=Instance. 콘솔 에러 0. type-check(baseline 61) + canvasSceneNode.test 40건(resolveGridListTemplateOriginId 4 신규) PASS.
+- Gate: preview + Skia 에서 ref GridList 카드 렌더 + 크래시 0 (item origin slot 소비). ✅
 
 ### Phase 4 — Skia scene projection 배선 (HIGH)
 
@@ -82,17 +87,18 @@ GridList 를 ListBox 와 동형 ref-composite 로 만들기 위한 참조 구현
 
 ## §3 파일 변경 요약
 
-| 파일                                                    | Phase | 변경                                       |
-| ------------------------------------------------------- | ----- | ------------------------------------------ |
-| `gridListTemplateOrigins.ts`                            | 1     | 컨테이너 origin + 등록                     |
-| `dashboard/createInitialProjectDocument.test.ts`        | 1     | container origin assertion                 |
-| `factories/definitions/SelectionComponents.ts`          | 2     | GridList factory ref 전환                  |
-| `preview/App.tsx`                                       | 3     | master slot 해석                           |
-| `canvas/scene/canvasSceneNode.ts`                       | 4     | ref→master **scene type 근본 해석**(visit) |
-| `adapters/canonical/legacyGridListTemplateMigration.ts` | 5     | 신규 migration                             |
-| `components/slotHostPolicy.ts`                          | 7     | `isGridListHost` + item variant 판정 추가  |
-| `components/__tests__/slotHostPolicy.test.ts`           | 7     | GridList host/candidate 테스트 2건         |
-| `docs/CHANGELOG.md` / `docs/adr/README.md`              | 6     | closure                                    |
+| 파일                                                    | Phase | 변경                                                                                  |
+| ------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------- |
+| `gridListTemplateOrigins.ts`                            | 1     | 컨테이너 origin + 등록                                                                |
+| `dashboard/createInitialProjectDocument.test.ts`        | 1     | container origin assertion                                                            |
+| `factories/definitions/SelectionComponents.ts`          | 2     | GridList factory ref 전환                                                             |
+| `preview/App.tsx`                                       | 3     | `component-gridlist`.slot[0] master 해석                                              |
+| `canvas/scene/canvasSceneNode.ts`                       | 3/4   | `resolveGridListTemplateOriginId`(P3) + ref→master **scene type 근본 해석**(P4 visit) |
+| `canvas/scene/canvasSceneNode.test.ts`                  | 3     | resolveGridListTemplateOriginId 4 테스트                                              |
+| `adapters/canonical/legacyGridListTemplateMigration.ts` | 5     | 신규 migration                                                                        |
+| `components/slotHostPolicy.ts`                          | 7     | `isGridListHost` + item variant 판정 추가                                             |
+| `components/__tests__/slotHostPolicy.test.ts`           | 7     | GridList host/candidate 테스트 2건                                                    |
+| `docs/CHANGELOG.md` / `docs/adr/README.md`              | 6     | closure                                                                               |
 
 ## §4 검증 게이트 매핑 (ADR Gates 대응)
 
