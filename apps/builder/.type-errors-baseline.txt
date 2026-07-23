@@ -36,8 +36,8 @@ src/builder/panels/properties/editors/TagEditor.tsx(242,53): error TS2345: Argum
 src/builder/panels/properties/editors/TreeItemEditor.tsx(75,48): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
 src/builder/panels/properties/generic/ChildItemManager.tsx(59,44): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
 src/builder/stores/elements.ts(450,3): error TS2322: Type 'Element | null' is not assignable to type 'Element | undefined'.
-src/builder/stores/inspectorActions.ts(232,7): error TS2345: Argument of type 'Record<string, unknown>' is not assignable to parameter of type 'Record<string, string>'.
-src/builder/stores/inspectorActions.ts(405,9): error TS2322: Type '{ [x: string]: unknown; }' is not assignable to type 'Record<string, Record<string, unknown>>'.
+src/builder/stores/inspectorActions.ts(178,7): error TS2345: Argument of type 'Record<string, unknown>' is not assignable to parameter of type 'Record<string, string>'.
+src/builder/stores/inspectorActions.ts(351,9): error TS2322: Type '{ [x: string]: unknown; }' is not assignable to type 'Record<string, Record<string, unknown>>'.
 src/builder/stores/utils/instanceActions.ts(269,5): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Element'.
 src/builder/stores/utils/instanceActions.ts(420,13): error TS2345: Argument of type 'Element | { id: string; parent_id: string; page_id: string | null; props: Record<string, unknown>; reusable: undefined; componentRole: undefined; masterId: undefined; overrides: undefined; ... 13 more ...; responsive?: ElementResponsiveConfig | undefined; }' is not assignable to parameter of type 'Element'.
 src/builder/stores/utils/instanceActions.ts(467,7): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Element'.

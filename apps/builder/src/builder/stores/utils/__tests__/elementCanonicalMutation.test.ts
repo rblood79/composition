@@ -124,6 +124,9 @@ function makeCanonicalElementNode(element: Element): CanonicalNode {
     type: element.type,
     props: element.props as Record<string, unknown>,
     metadata: buildLegacyElementMetadata(element),
+    // ADR-154: responsive override 를 canonical 노드에 전파 (getSelectedElement 가 canonical
+    // 을 읽으므로, 미전파 시 shouldWriteBreakpointOverride 가 override 를 못 본다).
+    ...(element.responsive ? { responsive: element.responsive } : {}),
   } as CanonicalNode;
 }
 
@@ -1290,13 +1293,13 @@ describe("element mutations keep canonical document primary", () => {
     ).toBeUndefined();
   });
 
-  it("updateSelectedStylePreview writes responsive override to elementsMap without history at non-desktop (ADR-154)", () => {
+  it("updateSelectedStylePreview 는 non-desktop 토글 OFF 면 base(전역)로 preview + 단위 보존 (ADR-154 개정 1)", () => {
     const body = makeElement("frame-body", "body", {
       layout_id: "frame-1",
       props: { style: { display: "flex", width: "100%" } },
     });
     const state = makeState([body]);
-    state.activeBreakpoint = "mobile"; // 비-desktop 편집 컨텍스트
+    state.activeBreakpoint = "mobile"; // 비-desktop 편집 컨텍스트 (width override 없음 = 토글 OFF)
     state.selectedElementId = "frame-body";
     state.selectedElementIds = ["frame-body"];
     state.selectedElementIdsSet = new Set(["frame-body"]);
@@ -1320,16 +1323,16 @@ describe("element mutations keep canonical document primary", () => {
       {} as never,
     );
 
-    // preview (드래그/타이핑 중) → responsive override 로 elementsMap 즉시 반영
+    // 개정 1: 토글 OFF → base(전역) preview. width 는 dimensional 이라 "80%" 단위 보존.
     inspectorActions.updateSelectedStylePreview("width", "80%");
 
     const el = state.elementsMap.get("frame-body");
-    // 캔버스용 responsive override 반영 (mobile)
-    expect(el?.responsive?.styles?.width?.mobile).toBe(80);
-    // base(props.style.width) 무변경 — desktop base 오염 없음
+    // base 에 전역 preview 반영 + % 단위 보존 (숫자 coerce 안 함)
     expect(
       (el?.props?.style as Record<string, unknown> | undefined)?.width,
-    ).toBe("100%");
+    ).toBe("80%");
+    // responsive override 미생성 (전역 write)
+    expect(el?.responsive?.styles?.width?.mobile).toBeUndefined();
     // preview 는 히스토리 엔트리를 만들지 않는다 (commit 경로만 기록)
     expect(historyManager.addEntry).not.toHaveBeenCalled();
     // 레이아웃 재계산 트리거 (layoutVersion bump)
@@ -1692,8 +1695,32 @@ describe("element mutations keep canonical document primary", () => {
     ).toBeUndefined();
   });
 
-  it("mobile 에서 비-전역 속성(padding)은 기존대로 responsive override 에 저장", () => {
+  it("mobile 에서 eligible 속성(padding)은 토글 OFF 면 base(전역)에 저장 (ADR-154 개정 1)", () => {
+    // 개정 1: 편집 기본은 base(전역). eligible 이라도 해당 tier override(토글 ON) 없으면 base.
     const { state } = setupBorderGlobalCase();
+    const inspectorActions = createInspectorActionsSlice(
+      createSetMock(state) as never,
+      () => state as never,
+      {} as never,
+    );
+
+    inspectorActions.updateSelectedStyle("paddingTop", "24");
+
+    const btn = readButtonNode();
+    // base props.style 에 저장(전역), responsive override 미생성
+    expect((btn?.props?.style as Record<string, unknown>)?.paddingTop).toBe(24);
+    const responsive = (btn as { responsive?: { styles?: unknown } })
+      ?.responsive;
+    expect(
+      (responsive?.styles as Record<string, unknown> | undefined)?.paddingTop,
+    ).toBeUndefined();
+  });
+
+  it("mobile 에서 eligible 속성(padding) 토글 ON(override 존재)이면 responsive tier 에 저장 (ADR-154 개정 1)", () => {
+    // 개정 1: 해당 tier override 가 이미 있으면(토글 ON) 편집이 responsive 로 라우팅.
+    const { state } = setupBorderGlobalCase({
+      responsive: { styles: { paddingTop: { mobile: 10 } } },
+    } as never);
     const inspectorActions = createInspectorActionsSlice(
       createSetMock(state) as never,
       () => state as never,
@@ -1709,9 +1736,5 @@ describe("element mutations keep canonical document primary", () => {
       (responsive?.styles as Record<string, Record<string, unknown>>)
         ?.paddingTop?.mobile,
     ).toBe(24);
-    // base props.style 에는 paddingTop 미기록 (responsive 전용)
-    expect(
-      (btn?.props?.style as Record<string, unknown>)?.paddingTop,
-    ).toBeUndefined();
   });
 });

@@ -10,6 +10,7 @@ import type { ElementResponsiveConfig } from "@composition/shared";
 import {
   hasOwnTierOverride,
   shouldWriteBreakpointOverride,
+  toStyleNumericValue,
 } from "./utils/responsiveWriteRouting";
 
 const withOverride = (
@@ -73,5 +74,27 @@ describe("shouldWriteBreakpointOverride — 개정 write 라우팅", () => {
     expect(shouldWriteBreakpointOverride(rFont, "fontSize", "mobile")).toBe(
       false,
     );
+  });
+});
+
+describe("toStyleNumericValue — 단위 보존 (ADR-154 개정 1 후속 fix)", () => {
+  it("width/height/margin 등 dimensional 축은 %/vw/px 단위를 문자열로 보존 (base parity)", () => {
+    // 회귀: 과거 responsive 경로가 width/height/margin 을 숫자 coerce 해 "50%" → 50 (→50px) 유실
+    expect(toStyleNumericValue("width", "50%")).toBe("50%");
+    expect(toStyleNumericValue("height", "50vw")).toBe("50vw");
+    expect(toStyleNumericValue("width", "300px")).toBe("300px");
+    expect(toStyleNumericValue("marginTop", "10%")).toBe("10%");
+    expect(toStyleNumericValue("width", "auto")).toBe("auto");
+  });
+
+  it("fontSize/padding/gap 등 numeric 속성은 숫자 coerce (base 동일)", () => {
+    expect(toStyleNumericValue("fontSize", "16px")).toBe(16);
+    expect(toStyleNumericValue("paddingTop", "20px")).toBe(20);
+    expect(toStyleNumericValue("rowGap", "8")).toBe(8);
+    expect(toStyleNumericValue("borderRadius", "4px")).toBe(4);
+  });
+
+  it("numeric 속성이라도 parse 불가(키워드)면 원문 유지", () => {
+    expect(toStyleNumericValue("padding", "auto")).toBe("auto");
   });
 });

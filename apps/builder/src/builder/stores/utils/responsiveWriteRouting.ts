@@ -15,6 +15,49 @@ export const SHORTHAND_TO_LONGHAND: Record<string, readonly string[]> = {
 };
 
 /**
+ * style 값을 숫자로 coerce 하는 대상 속성 (Canvas spec shapes 는 숫자 기대). **base·responsive
+ * 저장 경로 단일 SSOT** — base(`applyBaseStyleEntry` / write 3함수)와 responsive override
+ * (`buildResponsiveStyleOverride`)가 동일 집합을 써야 override 토글이 단위 표현을 바꾸지 않는다.
+ *
+ * **width / height / margin / top / left 등 dimensional 축은 제외** — `%` / `vw` / `auto` 같은
+ * 단위·키워드를 보존해야 하므로 문자열 그대로 저장한다(레이아웃 엔진이 문자열을 파싱). 과거
+ * responsive 경로만 width/height/margin/order 를 추가로 coerce 해 `"50%"` → `50`(→ 50px) 로
+ * 단위가 유실되던 비대칭(ADR-154 개정 1 후속 fix, 2026-07-23)을 본 단일화로 제거.
+ */
+export const NUMERIC_COERCE_STYLE_PROPS: ReadonlySet<string> = new Set([
+  "fontSize",
+  "fontWeight",
+  "lineHeight",
+  "letterSpacing",
+  "opacity",
+  "padding",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "gap",
+  "rowGap",
+  "columnGap",
+  "borderWidth",
+  "borderRadius",
+]);
+
+/**
+ * numeric 대상 속성이면 `parseFloat` 로 숫자 변환(NaN 이면 원문 유지), 그 외(width/height 등
+ * dimensional·키워드)는 문자열 그대로. base·responsive 저장 경로 공용.
+ */
+export function toStyleNumericValue(
+  property: string,
+  value: string,
+): string | number {
+  if (NUMERIC_COERCE_STYLE_PROPS.has(property)) {
+    const num = parseFloat(value);
+    if (!Number.isNaN(num)) return num;
+  }
+  return value;
+}
+
+/**
  * ADR-154 개정 1: 해당 breakpoint tier 에 이 속성의 **명시 override 가 존재**하는지
  * (= 토글 ON 상태). shorthand(gap/padding/margin)는 longhand 중 하나라도 존재하면 ON.
  * cascade 상속값은 제외 — 자기 tier 의 명시 override 만 본다.

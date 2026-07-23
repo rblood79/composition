@@ -73,6 +73,7 @@ import {
 import {
   SHORTHAND_TO_LONGHAND,
   shouldWriteBreakpointOverride,
+  toStyleNumericValue,
 } from "./utils/responsiveWriteRouting";
 import { mergePropsWithStyleDeep } from "../../adapters/canonical/instanceResolver";
 
@@ -105,24 +106,6 @@ function distributeShorthand(
 
 // base props.style 에 style 항목 하나를 반영 (숫자 변환 + shorthand 분배 + border companion).
 //   updateSelectedStyle / updateSelectedStyles 의 base 쓰기 로직과 동일 규약.
-const BASE_NUMERIC_STYLE_PROPS: ReadonlySet<string> = new Set([
-  "fontSize",
-  "fontWeight",
-  "lineHeight",
-  "letterSpacing",
-  "opacity",
-  "padding",
-  "paddingTop",
-  "paddingRight",
-  "paddingBottom",
-  "paddingLeft",
-  "gap",
-  "rowGap",
-  "columnGap",
-  "borderWidth",
-  "borderRadius",
-]);
-
 function applyBaseStyleEntry(
   style: Record<string, unknown>,
   property: string,
@@ -131,48 +114,11 @@ function applyBaseStyleEntry(
   const isClearing = value === "" || value === null || value === undefined;
   if (isClearing) {
     delete style[property];
-  } else if (BASE_NUMERIC_STYLE_PROPS.has(property)) {
-    const num = parseFloat(value);
-    style[property] = Number.isNaN(num) ? value : num;
   } else {
-    style[property] = value;
+    style[property] = toStyleNumericValue(property, value);
   }
   distributeShorthand(style, property);
   if (!isClearing) applyBorderCompanionDefaults(style, property);
-}
-
-// ADR-154: 반응형 override 저장 시 숫자 변환 대상 (Canvas spec shapes 는 숫자 기대)
-const RESPONSIVE_NUMERIC_STYLE_PROPS = new Set([
-  "fontSize",
-  "fontWeight",
-  "lineHeight",
-  "letterSpacing",
-  "opacity",
-  "padding",
-  "paddingTop",
-  "paddingRight",
-  "paddingBottom",
-  "paddingLeft",
-  "gap",
-  "rowGap",
-  "columnGap",
-  "borderWidth",
-  "borderRadius",
-  "width",
-  "height",
-  "margin",
-  "order",
-]);
-
-function toResponsiveStyleValue(
-  property: string,
-  value: string,
-): string | number {
-  if (RESPONSIVE_NUMERIC_STYLE_PROPS.has(property)) {
-    const num = parseFloat(value);
-    if (!Number.isNaN(num)) return num;
-  }
-  return value;
 }
 
 /**
@@ -200,7 +146,7 @@ function buildResponsiveStyleOverride(
   const longhands = SHORTHAND_TO_LONGHAND[property] ?? [property];
   const converted = isClearing
     ? undefined
-    : toResponsiveStyleValue(property, value);
+    : toStyleNumericValue(property, value);
 
   for (const key of longhands) {
     if (converted === undefined) {
@@ -869,38 +815,14 @@ export const createInspectorActionsSlice: StateCreator<
         ...((resolvedBaseElement.props?.style as Record<string, string>) || {}),
       };
 
-      const NUMERIC_STYLE_PROPS = new Set([
-        "fontSize",
-        "fontWeight",
-        "lineHeight",
-        "letterSpacing",
-        "opacity",
-        "padding",
-        "paddingTop",
-        "paddingRight",
-        "paddingBottom",
-        "paddingLeft",
-        "gap",
-        "rowGap",
-        "columnGap",
-        "borderWidth",
-        "borderRadius",
-      ]);
-
       const isClearing = value === "" || value === null || value === undefined;
       if (isClearing) {
         delete currentStyle[property];
       } else {
-        // Canvas spec shapes는 fontSize/fontWeight 등을 숫자로 기대
-        // '10px' → 10, '14' → 14 등 순수 숫자 CSS 속성은 숫자로 변환
-        if (NUMERIC_STYLE_PROPS.has(property)) {
-          const num = parseFloat(value);
-          (currentStyle as Record<string, unknown>)[property] = !isNaN(num)
-            ? num
-            : value;
-        } else {
-          currentStyle[property] = value;
-        }
+        // Canvas spec shapes 는 fontSize/padding 등을 숫자로 기대. width/height 등
+        // dimensional 축은 %/vw/auto 단위 보존을 위해 문자열 유지 (toStyleNumericValue SSOT).
+        (currentStyle as Record<string, unknown>)[property] =
+          toStyleNumericValue(property, value);
       }
 
       distributeShorthand(currentStyle as Record<string, unknown>, property);
@@ -986,31 +908,8 @@ export const createInspectorActionsSlice: StateCreator<
         if (isClearing) {
           delete currentStyle[property];
         } else {
-          const NUMERIC_STYLE_PROPS = new Set([
-            "fontSize",
-            "fontWeight",
-            "lineHeight",
-            "letterSpacing",
-            "opacity",
-            "padding",
-            "paddingTop",
-            "paddingRight",
-            "paddingBottom",
-            "paddingLeft",
-            "gap",
-            "rowGap",
-            "columnGap",
-            "borderWidth",
-            "borderRadius",
-          ]);
-          if (NUMERIC_STYLE_PROPS.has(property)) {
-            const num = parseFloat(value);
-            (currentStyle as Record<string, unknown>)[property] = !isNaN(num)
-              ? num
-              : value;
-          } else {
-            currentStyle[property] = value;
-          }
+          (currentStyle as Record<string, unknown>)[property] =
+            toStyleNumericValue(property, value);
         }
 
         distributeShorthand(currentStyle as Record<string, unknown>, property);
@@ -1266,31 +1165,8 @@ export const createInspectorActionsSlice: StateCreator<
         if (isClearing) {
           delete currentStyle[property];
         } else {
-          const NUMERIC_STYLE_PROPS = new Set([
-            "fontSize",
-            "fontWeight",
-            "lineHeight",
-            "letterSpacing",
-            "opacity",
-            "padding",
-            "paddingTop",
-            "paddingRight",
-            "paddingBottom",
-            "paddingLeft",
-            "gap",
-            "rowGap",
-            "columnGap",
-            "borderWidth",
-            "borderRadius",
-          ]);
-          if (NUMERIC_STYLE_PROPS.has(property)) {
-            const num = parseFloat(value);
-            (currentStyle as Record<string, unknown>)[property] = !isNaN(num)
-              ? num
-              : value;
-          } else {
-            currentStyle[property] = value;
-          }
+          (currentStyle as Record<string, unknown>)[property] =
+            toStyleNumericValue(property, value);
         }
         distributeShorthand(currentStyle as Record<string, unknown>, property);
         if (!isClearing) {
