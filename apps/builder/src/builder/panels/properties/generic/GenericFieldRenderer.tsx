@@ -23,6 +23,7 @@ import type { ItemsManagerField } from "@composition/specs";
 
 import {
   PropertyDataBinding,
+  PropertyFieldTemplateInput,
   PropertyIconPicker,
   PropertyInput,
   PropertyNumberInput,
@@ -33,6 +34,10 @@ import {
 } from "../../../components";
 import type { DataBindingValue } from "../../../components/property/PropertyDataBinding";
 import { ItemsManager } from "./ItemsManager";
+import {
+  TEMPLATE_TEXT_KEYS,
+  useOwnerCollectionColumns,
+} from "../hooks/useOwnerCollectionColumns";
 
 /**
  * ResolvedField.itemsManager(catalog self-contained schema) → specs `ItemsManagerField` 투영.
@@ -81,7 +86,12 @@ const GenericField = memo(function GenericField({
   onSemanticUpdate,
   onStyleUpdate,
   elementId,
-}: { field: ResolvedField } & GenericFieldRouting) {
+  ownerColumns,
+}: {
+  field: ResolvedField;
+  /** ADR-159 P4a: 소유 collection 컬럼 (없으면 null — 일반 입력). */
+  ownerColumns?: string[] | null;
+} & GenericFieldRouting) {
   const value = field.currentValue;
   // origin 단일 진실로 write 분기 (semantic → props / style → props.style).
   const update = (v: unknown) => {
@@ -126,6 +136,23 @@ const GenericField = memo(function GenericField({
       );
 
     case "string":
+      // ADR-159 P4a: 템플릿 대상 텍스트 키(semantic) + 소유 collection 컬럼 존재
+      //   → `{field}` 필드 피커 입력. 그 외는 일반 입력 유지.
+      if (
+        field.origin !== "style" &&
+        TEMPLATE_TEXT_KEYS.has(field.key) &&
+        ownerColumns &&
+        ownerColumns.length > 0
+      ) {
+        return (
+          <PropertyFieldTemplateInput
+            label={field.label}
+            value={String(value ?? "")}
+            onChange={(v) => update(v === "" ? undefined : v)}
+            columns={ownerColumns}
+          />
+        );
+      }
       return (
         <PropertyInput
           label={field.label}
@@ -221,6 +248,9 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
   onStyleUpdate,
   elementId,
 }: GenericFieldRendererProps) {
+  // ADR-159 P4a: 조상(또는 master 소비자) collection 소유자의 컬럼 — 필드 피커 소스.
+  const ownerColumns = useOwnerCollectionColumns(elementId);
+
   if (fields.length === 0) return null;
 
   // section 순서 보존 그룹핑 (Map 삽입 순서 = 계약 순서).
@@ -243,6 +273,7 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
               onSemanticUpdate={onSemanticUpdate}
               onStyleUpdate={onStyleUpdate}
               elementId={elementId}
+              ownerColumns={ownerColumns}
             />
           ))}
         </PropertySection>

@@ -36,20 +36,10 @@ export function createDataTableDefinition(
         id: dataTableId,
         name: "New DataTable",
         autoLoad: true,
-        // 기본 dataBinding 설정 (사용자가 Inspector에서 변경)
-        dataBinding: {
-          type: "collection",
-          source: "api",
-          config: {
-            baseUrl: "MOCK_DATA",
-            endpoint: "/users",
-            dataMapping: {
-              resultPath: "data",
-              idField: "id",
-              labelField: "name",
-            },
-          },
-        },
+        // ADR-159 P4b: 기본 dataBinding 없음 — 데이터 소스는 dataTable(collection) 단일이라
+        //   사용자가 Inspector 컬렉션 피커에서 지정한다. 구 기본값(source:"api" + MOCK_DATA)은
+        //   저장 문서에 api 바인딩을 계속 유입시키는 유일 생성원이었다 (Phase 0 inventory §5-1).
+        //   DataTableComponent 는 무바인딩 시 로드 no-op 으로 안전.
       } as ComponentElementProps,
       parent_id: parentId,
     },

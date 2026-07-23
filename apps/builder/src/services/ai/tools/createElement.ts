@@ -72,21 +72,12 @@ export const createElementTool: ToolExecutor = {
         dataBinding: undefined,
       } as Element;
 
-      // dataBinding 처리
+      // ADR-159 P4b: 구 Mock API dataBinding 생성 제거 — 데이터 소스는 dataTable(collection)
+      //   단일. endpoint 인자는 무시하고 경고만 남긴다 (신규 api 바인딩 유입 차단, §5-1).
       if (dataBindingArg?.endpoint) {
-        newElement.dataBinding = {
-          type: "collection",
-          source: "api",
-          config: {
-            baseUrl: "MOCK_DATA",
-            endpoint: dataBindingArg.endpoint,
-            params: {},
-            dataMapping: {
-              idField: "id",
-              labelField: "name",
-            },
-          },
-        };
+        console.warn(
+          `[AI createElement] dataBinding.endpoint("${dataBindingArg.endpoint}") 는 더 이상 지원하지 않음 — collections(dataTable) 바인딩을 사용하세요 (ADR-159 P4b)`,
+        );
       }
 
       await addElement(newElement);

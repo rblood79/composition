@@ -1,0 +1,114 @@
+/**
+ * ADR-159 P4a — `{field}` 템플릿 텍스트 입력 + 컬럼 피커.
+ *
+ * slot Text(및 템플릿 텍스트 prop) 편집용: 자유 입력을 유지하면서, 소유 collection 의
+ * 컬럼 목록에서 선택하면 **커서 위치에 `{key}` 를 삽입**하고 즉시 commit 한다.
+ * 텍스트 자체의 저장 규약은 PropertyInput 과 동일 (blur/Enter commit).
+ */
+import React, { useRef, useState, useEffect } from "react";
+import {
+  Button,
+  Menu,
+  MenuItem,
+  MenuTrigger,
+  Popover,
+} from "react-aria-components";
+import { Braces } from "lucide-react";
+import { iconEditProps } from "../../../utils/ui/uiConstants";
+import { PropertyFieldset } from "./PropertyFieldset";
+import "./PropertyFieldTemplateInput.css";
+
+interface PropertyFieldTemplateInputProps {
+  label?: string;
+  value: string;
+  onChange: (value: string) => void;
+  /** 소유 collection 의 컬럼(필드) 키 목록 — 피커 항목. */
+  columns: string[];
+  placeholder?: string;
+  disabled?: boolean;
+}
+
+export function PropertyFieldTemplateInput({
+  label,
+  value,
+  onChange,
+  columns,
+  placeholder,
+  disabled,
+}: PropertyFieldTemplateInputProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [inputValue, setInputValue] = useState<string>(value ?? "");
+
+  // 외부 값 변경(선택 요소 전환 등) 시 로컬 상태 동기화.
+  useEffect(() => {
+    setInputValue(value ?? "");
+  }, [value]);
+
+  const commit = (next: string) => {
+    if (next !== value) onChange(next);
+  };
+
+  const insertField = (key: string) => {
+    const token = `{${key}}`;
+    const input = inputRef.current;
+    const start = input?.selectionStart ?? inputValue.length;
+    const end = input?.selectionEnd ?? inputValue.length;
+    const next = inputValue.slice(0, start) + token + inputValue.slice(end);
+    setInputValue(next);
+    // 피커 선택은 즉시 commit — 캔버스 행 보간이 바로 반영되도록.
+    commit(next);
+    // 커서를 삽입 토큰 뒤로 복원.
+    requestAnimationFrame(() => {
+      input?.focus();
+      const caret = start + token.length;
+      input?.setSelectionRange(caret, caret);
+    });
+  };
+
+  return (
+    <PropertyFieldset legend={label}>
+      <div className="property-field-template-input">
+        <input
+          ref={inputRef}
+          className="react-aria-Input"
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onBlur={() => commit(inputValue)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commit(inputValue);
+          }}
+          placeholder={placeholder ?? "텍스트 또는 {field}"}
+          disabled={disabled}
+        />
+        <MenuTrigger>
+          <Button
+            className="react-aria-Button field-picker-trigger"
+            aria-label="필드 삽입"
+            isDisabled={disabled || columns.length === 0}
+          >
+            <Braces size={iconEditProps.size} />
+          </Button>
+          <Popover className="react-aria-Popover">
+            <Menu
+              className="react-aria-Menu"
+              aria-label="collection 필드"
+              onAction={(key) => insertField(String(key))}
+            >
+              {columns.map((column) => (
+                <MenuItem
+                  key={column}
+                  id={column}
+                  className="react-aria-MenuItem"
+                  textValue={column}
+                >
+                  {`{${column}}`}
+                </MenuItem>
+              ))}
+            </Menu>
+          </Popover>
+        </MenuTrigger>
+      </div>
+    </PropertyFieldset>
+  );
+}

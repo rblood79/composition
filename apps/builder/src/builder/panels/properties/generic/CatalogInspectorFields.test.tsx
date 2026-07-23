@@ -7,11 +7,10 @@ import {
   type InspectorFieldTheme,
 } from "@composition/shared";
 
-// PropertyDataBinding 은 stores/data 의 collection/api/variable hook 에 의존 — 단위 렌더용 mock.
+// PropertyDataBinding 은 stores/data 의 collection hook 에 의존 — 단위 렌더용 mock.
+//   ADR-159 P4b: 소스 4종 → dataTable 단일 — useCollections 는 실제 hook 계약(배열) 반환.
 vi.mock("../../../stores/data", () => ({
-  useCollections: () => ({}),
-  useApiEndpoints: () => ({}),
-  useVariables: () => ({}),
+  useCollections: () => [{ name: "users", description: "Users collection" }],
 }));
 
 import { CatalogInspectorFields } from "./CatalogInspectorFields";
@@ -74,7 +73,8 @@ describe("CatalogInspectorFields — ADR-142 #8 live 배선", () => {
     // Content 섹션 + dataBinding field(label "Data") 가 렌더되어야 한다.
     expect(text).toContain("Content");
     expect(text).toContain("Data");
-    // PropertyDataBinding 의 소스 선택 placeholder/옵션이 DOM 에 존재 (no-op null 아님).
-    expect(text).toContain("소스 선택");
+    // PropertyDataBinding 의 컬렉션 피커 placeholder 가 DOM 에 존재 (no-op null 아님).
+    //   ADR-159 P4b: 소스 선택 단계 제거 — 컬렉션(테이블명) 선택 단일.
+    expect(text).toContain("컬렉션 선택");
   });
 });

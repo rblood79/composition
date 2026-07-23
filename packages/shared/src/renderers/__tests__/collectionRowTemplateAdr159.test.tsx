@@ -186,7 +186,7 @@ describe("ADR-159 P3 — renderGridList 카드 템플릿", () => {
       dataBinding: {
         source: "dataTable",
         name: "users",
-      } as PreviewElement["dataBinding"],
+      } as unknown as PreviewElement["dataBinding"],
       props: {},
     };
     const template: PreviewElement = {

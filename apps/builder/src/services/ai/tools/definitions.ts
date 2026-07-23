@@ -79,17 +79,6 @@ export const toolDefinitions: ChatCompletionTool[] = [
               type: "object",
             },
           },
-          dataBinding: {
-            type: "object",
-            description: "데이터 바인딩 설정 (Mock API 연동)",
-            properties: {
-              endpoint: {
-                type: "string",
-                description:
-                  "Mock API 엔드포인트 (/countries, /users, /products 등)",
-              },
-            },
-          },
         },
         required: ["type"],
       },

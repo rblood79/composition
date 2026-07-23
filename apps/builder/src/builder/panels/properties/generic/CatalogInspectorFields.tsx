@@ -20,6 +20,7 @@ import type { ItemsManagerField } from "@composition/specs";
 
 import {
   PropertyDataBinding,
+  PropertyFieldTemplateInput,
   PropertyIconPicker,
   PropertyInput,
   PropertyNumberInput,
@@ -31,6 +32,10 @@ import {
 import type { DataBindingValue } from "../../../components/property/PropertyDataBinding";
 import { evaluateVisibility } from "./evaluateVisibility";
 import { ItemsManager } from "./ItemsManager";
+import {
+  TEMPLATE_TEXT_KEYS,
+  useOwnerCollectionColumns,
+} from "../hooks/useOwnerCollectionColumns";
 
 /**
  * catalog `InspectorField.itemsManager`(self-contained schema) → specs `ItemsManagerField`
@@ -76,11 +81,14 @@ const CatalogField = memo(function CatalogField({
   currentProps,
   onUpdate,
   elementId,
+  ownerColumns,
 }: {
   field: InspectorField;
   currentProps: Record<string, unknown>;
   onUpdate: (updated: Record<string, unknown>) => void;
   elementId?: string;
+  /** ADR-159 P4a: 소유 collection 컬럼 (없으면 null — 일반 입력). */
+  ownerColumns?: string[] | null;
 }) {
   const value = currentProps[field.key];
   const update = (v: unknown) => onUpdate({ [field.key]: v });
@@ -122,6 +130,21 @@ const CatalogField = memo(function CatalogField({
       );
 
     case "string":
+      // ADR-159 P4a: 템플릿 대상 텍스트 키 + 소유 collection 컬럼 존재 → 필드 피커 입력.
+      if (
+        TEMPLATE_TEXT_KEYS.has(field.key) &&
+        ownerColumns &&
+        ownerColumns.length > 0
+      ) {
+        return (
+          <PropertyFieldTemplateInput
+            label={field.label}
+            value={String(value ?? "")}
+            onChange={(v) => update(v === "" ? undefined : v)}
+            columns={ownerColumns}
+          />
+        );
+      }
       return (
         <PropertyInput
           label={field.label}
@@ -219,6 +242,8 @@ export const CatalogInspectorFields = memo(function CatalogInspectorFields({
 }: CatalogInspectorFieldsProps) {
   const groups = buildInspectorFields(componentType, contracts, theme);
   const contentIndex = groups.findIndex((g) => g.section === "content");
+  // ADR-159 P4a: 조상 collection 소유자의 컬럼 — 템플릿 텍스트 키 편집 시 필드 피커.
+  const ownerColumns = useOwnerCollectionColumns(elementId);
 
   return (
     <>
@@ -247,6 +272,7 @@ export const CatalogInspectorFields = memo(function CatalogInspectorFields({
                 currentProps={currentProps}
                 onUpdate={onUpdate}
                 elementId={elementId}
+                ownerColumns={ownerColumns}
               />
             ))}
           </PropertySection>

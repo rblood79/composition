@@ -107,12 +107,13 @@ Phase 1~4 는 이 모델의 text-leaf 부분만 구현하되, 문법·자료구�
 - Gate: G1 ✅ (게이트 정의 검증 그대로 — 샘플 행 Skia 보간 텍스트 ↔ DOM 동일 템플릿 산출 시각 대칭 + live 1회), G2 ✅ (ad-hoc 파서 제거 후 grep 0건 — 잔존 유일 히트 `useDataSource.ts:199` 는 API URL `{{param}}` 치환으로 행 텍스트 축 무관, P4c 제거 후보 경로)
 - 잔존 기록: origin 이 slot 자식 없이 item-level 템플릿만 가진 bare-ref 인스턴스는 DOM renderer 가 origin props 에 접근 불가 (provider 는 slot 구성만 주입) — Skia 만 보간. seed origin 은 항상 slot text 보유라 실사용 노출 없음 (P4 오소링 도입 시 재평가)
 
-### Phase 4 — 오소링 UI + dataTable 단일 소스 (커밋 2)
+### Phase 4 — 오소링 UI + dataTable 단일 소스 (커밋 2) — ✅ 4a/4b Implemented 2026-07-24 (4c 보류)
 
-- [ ] **4a 필드 피커**: slot Text 편집 UI 에 ComboBox(자유 입력 + 바인딩된 collection 컬럼 목록 드롭다운). 피커 선택 → 커서 위치 `{key}` 삽입. 컬럼 목록 = owner 의 dataBinding collection 컬럼 (`readTableColumns` 계보)
-- [ ] **4b 소스 단일화**: `PropertyDataBinding.tsx` `SOURCE_OPTIONS`(108-112) → dataTable 단일. 소스 선택 UI 제거, collection(테이블명) ComboBox 만 노출. `DataBindingValue.source` 는 `"dataTable"` 고정 기록
-- [ ] **4c 잔존 경로 정리** (Phase 0 소비처 0 확증 시에만, 별도 커밋): `useCollectionData` api/variable/route 분기 + `ApiEndpointList`/`VariableList` 관리 UI 제거. 확증 실패 시 residual 로 기록 후 보류
-- Gate: G4
+- [x] **4a 필드 피커**: `PropertyFieldTemplateInput`(자유 입력 + Braces 버튼 → collection 컬럼 Menu) 신규 — 피커 선택 시 커서 위치 `{key}` 삽입 + 즉시 commit. 컬럼 목록 = `useOwnerCollectionColumns`(조상 dataBinding/items 소유자 → 없으면 reusable master 조상의 소비자 인스턴스 역추적: direct ref + container-slot 2-hop). **live 경로는 `GenericFieldRenderer`(PropertiesPanel Properties view)** — CatalogInspectorFields 단독 배선으로는 미노출 (회귀 테스트 `GenericFieldRenderer.test.tsx` 4건). 라이브 회귀 1건 수정: master 가 페이지 body 에 중첩되면 체인 최상단 단독 reusable 판정이 실패 → 걷는 중 만난 reusable 조상 전수로 역추적 (`useOwnerCollectionColumns.test.ts` 8건)
+- [x] **4b 소스 단일화**: `PropertyDataBinding.tsx` SOURCE_OPTIONS/소스 Select/route 입력 제거 — 컬렉션 피커 단일, 신규 기록 `source:"dataTable"` 고정 (api/variable/route 는 read 호환 잔존 + legacy 안내문). DataTable factory 기본 api binding 제거, AI create_element 의 api binding 생성 제거
+- [ ] **4c 잔존 경로 정리** — **보류 (G4 미충족)**: 로컬 IndexedDB 는 api/variable/route 저장 문서 0건 확증했으나 Supabase 전체 프로젝트는 RLS 로 전수 실측 불가 (§5-3). `useCollectionData` api/variable/route 분기 + `ApiEndpointList`/`VariableList` 관리 UI 는 residual 로 잔존 — G4 재실측 후 별도 커밋
+- Gate: G4 — 4c 진입 조건 미충족으로 4c 만 보류 (4a/4b 는 G4 무관)
+- live 검증 (2026-07-24): Components 페이지 master GridListItem slot Text(`{role}`) 선택 → 피커 버튼 노출 → Menu 에 Users collection 10 필드 정확 노출 → `{num}` 선택 → `{role}{num}` 삽입+commit → Home 인스턴스 10행 전부 보간 반영 ("시스템 아키텍트1"…"QA 엔지니어10") → 원상 복구. GridList 인스턴스 Data 섹션 = 컬렉션 단일 피커 (소스 4종 UI 소멸). 콘솔 에러 0
 
 ### Phase 5 — 문법 B 확장 (경로 + 포맷 + array/object 컴포넌트 placeholder) (커밋 2+)
 
@@ -128,15 +129,15 @@ Phase 1~4 는 이 모델의 text-leaf 부분만 구현하되, 문법·자료구�
 
 ## §4. 파일 변경 요약
 
-| 파일                                                                   | Phase | 변경                                               |
-| ---------------------------------------------------------------------- | :---: | -------------------------------------------------- |
-| `packages/shared/src/collections/fieldTemplate.ts`                     |  P1   | 신규 — compile/interpolate                         |
-| `packages/shared/src/catalog/slotRoles.ts`                             |  P2   | `SlotChildConfig.text` 추가                        |
-| `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`   |  P2   | projection 행 텍스트 보간 (ListBox/GridList/Table) |
-| `packages/shared/src/components/{ListBox,GridList,Table}.tsx`          |  P3   | DOM 행 렌더 보간                                   |
-| `apps/builder/src/builder/components/property/PropertyDataBinding.tsx` |  P4   | SOURCE_OPTIONS → dataTable 단일                    |
-| slot Text 편집 UI (P0 inventory 로 특정)                               |  P4   | 필드 피커 ComboBox                                 |
-| `packages/shared/src/hooks/useCollectionData.tsx` 외                   |  P4c  | 조건부 — api/variable/route 경로 제거              |
+| 파일                                                                   | Phase | 변경                                                         |
+| ---------------------------------------------------------------------- | :---: | ------------------------------------------------------------ |
+| `packages/shared/src/collections/fieldTemplate.ts`                     |  P1   | 신규 — compile/interpolate                                   |
+| `packages/shared/src/catalog/slotRoles.ts`                             |  P2   | `SlotChildConfig.text` 추가                                  |
+| `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`   |  P2   | projection 행 텍스트 보간 (ListBox/GridList/Table)           |
+| `packages/shared/src/components/{ListBox,GridList,Table}.tsx`          |  P3   | DOM 행 렌더 보간                                             |
+| `apps/builder/src/builder/components/property/PropertyDataBinding.tsx` |  P4   | SOURCE_OPTIONS → dataTable 단일                              |
+| `PropertyFieldTemplateInput.tsx` + `useOwnerCollectionColumns.ts` 신규 |  P4   | 필드 피커 (GenericFieldRenderer/CatalogInspectorFields 배선) |
+| `packages/shared/src/hooks/useCollectionData.tsx` 외                   |  P4c  | 조건부 — api/variable/route 경로 제거                        |
 
 ## §5. Phase 0 inventory 결과 (2026-07-24 실측)
 

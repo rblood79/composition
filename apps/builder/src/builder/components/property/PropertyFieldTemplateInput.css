@@ -1,0 +1,19 @@
+/* ADR-159 P4a — {field} 템플릿 입력 + 컬럼 피커 (input + trigger 1행) */
+.property-field-template-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.property-field-template-input .react-aria-Input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.property-field-template-input .field-picker-trigger {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}

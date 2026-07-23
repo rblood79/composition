@@ -25,23 +25,11 @@ import {
   ListBox,
   ListBoxItem,
 } from "react-aria-components";
-import {
-  ChevronDown,
-  Database,
-  Globe,
-  Variable,
-  Link2,
-  X,
-  RefreshCw,
-} from "lucide-react";
+import { ChevronDown, Link2, X, RefreshCw } from "lucide-react";
 import { iconProps, iconEditProps } from "../../../utils/ui/uiConstants";
 import { PropertyFieldset } from "./PropertyFieldset";
 import { useSelectTriggerFocusRestore } from "./useSelectTriggerFocusRestore";
-import {
-  useCollections,
-  useApiEndpoints,
-  useVariables,
-} from "../../stores/data";
+import { useCollections } from "../../stores/data";
 import "./PropertyDataBinding.css";
 
 // ============================================
@@ -74,7 +62,14 @@ const REFRESH_MODE_OPTIONS = [
 export type RefreshMode = "manual" | "onMount" | "interval";
 
 export interface DataBindingValue {
-  /** 바인딩 소스 타입 */
+  /**
+   * 바인딩 소스 타입.
+   *
+   * **ADR-159 P4b (2026-07-24)**: 오소링(신규 기록)은 `"dataTable"` 단일 — composition 의
+   * 데이터 방향은 모든 동적·정적 데이터를 collection 방식(ADR-132 계보)으로 처리한다.
+   * `"api" | "variable" | "route"` 는 기존 저장 문서 read 호환용 잔존 타입 (runtime
+   * dispatch 는 P4c 에서 소비처 0 확증 후 정리 — G4 게이트).
+   */
   source: "dataTable" | "api" | "variable" | "route";
   /** 소스 이름 */
   name: string;
@@ -102,19 +97,10 @@ interface PropertyDataBindingProps {
 }
 
 // ============================================
-// Constants
-// ============================================
-
-const SOURCE_OPTIONS = [
-  { value: "dataTable", label: "DataTable", icon: Database },
-  { value: "api", label: "API", icon: Globe },
-  { value: "variable", label: "Variable", icon: Variable },
-  { value: "route", label: "Route Param", icon: Link2 },
-] as const;
-
-// ============================================
 // Component
 // ============================================
+// ADR-159 P4b: SOURCE_OPTIONS 4종(dataTable/api/variable/route) 소스 선택 UI 제거 —
+//   데이터 소스는 dataTable(collection) 단일. 피커는 collection(테이블명) 선택만 노출.
 
 export const PropertyDataBinding = memo(function PropertyDataBinding({
   label = "데이터 바인딩",
@@ -123,10 +109,8 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
   className,
   disabled,
 }: PropertyDataBindingProps) {
-  // Data Store에서 소스 목록 가져오기
+  // Data Store에서 collection 목록 가져오기 (dataTable 단일 소스 — ADR-159 P4b)
   const collections = useCollections();
-  const apiEndpoints = useApiEndpoints();
-  const variables = useVariables();
 
   // 직접 prop 값 사용 (fully controlled)
   const source = value?.source || "";
@@ -134,77 +118,47 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
   const path = value?.path || "";
   const refreshMode = value?.refreshMode || "manual";
   const refreshInterval = value?.refreshInterval || 5000;
+  // 기존 저장 문서의 api/variable/route 바인딩 — read 표시만 (신규 기록은 dataTable 고정).
+  const isLegacyNonTableBinding = Boolean(source) && source !== "dataTable";
 
-  // 소스 타입별 이름 옵션 가져오기
-  const getNameOptions = useCallback(() => {
-    switch (source) {
-      case "dataTable":
-        return collections.map((dt) => ({
-          value: dt.name,
-          label: dt.name,
-          description: dt.description,
-        }));
-      case "api":
-        return apiEndpoints.map((api) => ({
-          value: api.name,
-          label: api.name,
-          description: api.description,
-        }));
-      case "variable":
-        return variables.map((v) => ({
-          value: v.name,
-          label: v.name,
-          description: `${v.scope} - ${v.type}`,
-        }));
-      case "route":
-        // Route params는 자유 입력 (동적)
-        return [];
-      default:
-        return [];
-    }
-  }, [source, collections, apiEndpoints, variables]);
+  const nameOptions = collections.map((dt) => ({
+    value: dt.name,
+    label: dt.name,
+    description: dt.description,
+  }));
 
-  // 소스 타입 변경 (fully controlled - onChange 즉시 호출)
-  const handleSourceChange = useCallback(
-    (key: React.Key | null) => {
-      const newSource = key as DataBindingValue["source"] | "";
-      if (newSource) {
-        // 소스 변경 시 name, path 초기화
-        onChange({ source: newSource, name: "", path: "" });
-      } else {
-        onChange(null);
-      }
-    },
-    [onChange],
-  );
-
-  // 소스 이름 변경
+  // collection(테이블명) 선택 — 신규 기록은 source:"dataTable" 고정 (ADR-159 P4b)
   const handleNameChange = useCallback(
     (key: React.Key | null) => {
       const newName = key as string;
-      if (source) {
-        console.log(
-          `🔗 PropertyDataBinding: ${source} 소스에서 "${newName}" 선택됨`,
-        );
-        onChange({
-          source: source as DataBindingValue["source"],
-          name: newName,
-          path,
-          refreshMode: value?.refreshMode,
-          refreshInterval: value?.refreshInterval,
-        });
-      }
+      if (!newName) return;
+      onChange({
+        source: "dataTable",
+        name: newName,
+        // legacy 비-dataTable 바인딩에서 전환 시 path/갱신 설정은 초기화 (의미 소멸).
+        path: isLegacyNonTableBinding ? undefined : path || undefined,
+        refreshMode: isLegacyNonTableBinding ? undefined : value?.refreshMode,
+        refreshInterval: isLegacyNonTableBinding
+          ? undefined
+          : value?.refreshInterval,
+      });
     },
-    [source, path, value?.refreshMode, value?.refreshInterval, onChange],
+    [
+      isLegacyNonTableBinding,
+      path,
+      value?.refreshMode,
+      value?.refreshInterval,
+      onChange,
+    ],
   );
 
-  // 경로 변경 (blur 시 저장)
+  // 경로 변경 (blur 시 저장) — dataTable 바인딩에서만 노출
   const handlePathBlur = useCallback(
     (e: React.FocusEvent<HTMLInputElement>) => {
       const newPath = e.target.value;
-      if (source && name) {
+      if (name) {
         onChange({
-          source: source as DataBindingValue["source"],
+          source: "dataTable",
           name,
           path: newPath || undefined,
           refreshMode: value?.refreshMode,
@@ -212,16 +166,16 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
         });
       }
     },
-    [source, name, value?.refreshMode, value?.refreshInterval, onChange],
+    [name, value?.refreshMode, value?.refreshInterval, onChange],
   );
 
   // 갱신 모드 변경
   const handleRefreshModeChange = useCallback(
     (key: React.Key | null) => {
       const newMode = key as RefreshMode;
-      if (source && name) {
+      if (name) {
         onChange({
-          source: source as DataBindingValue["source"],
+          source: "dataTable",
           name,
           path: value?.path,
           refreshMode: newMode,
@@ -230,16 +184,16 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
         });
       }
     },
-    [source, name, value?.path, value?.refreshInterval, onChange],
+    [name, value?.path, value?.refreshInterval, onChange],
   );
 
   // 갱신 간격 변경
   const handleRefreshIntervalBlur = useCallback(
     (e: React.FocusEvent<HTMLInputElement>) => {
       const newInterval = parseInt(e.target.value, 10);
-      if (source && name && !isNaN(newInterval) && newInterval > 0) {
+      if (name && !isNaN(newInterval) && newInterval > 0) {
         onChange({
-          source: source as DataBindingValue["source"],
+          source: "dataTable",
           name,
           path: value?.path,
           refreshMode: "interval",
@@ -247,7 +201,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
         });
       }
     },
-    [source, name, value?.path, onChange],
+    [name, value?.path, onChange],
   );
 
   // 바인딩 제거
@@ -260,11 +214,8 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
     ? `{{${value.source}.${value.name}${value.path ? "." + value.path : ""}}}`
     : "";
 
-  const nameOptions = getNameOptions();
-
   // popover 닫힘 전환 gap 의 focus ring 깜빡임 방지 (Select 하나당 1개) —
   // 상세 주석은 useSelectTriggerFocusRestore.ts 참조
-  const sourceSelectFocus = useSelectTriggerFocusRestore();
   const nameSelectFocus = useSelectTriggerFocusRestore();
   const refreshSelectFocus = useSelectTriggerFocusRestore();
 
@@ -286,124 +237,64 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
           </div>
         )}
 
-        {/* 소스 타입 선택 */}
+        {/* collection(테이블명) 선택 — 소스 선택 단계 제거, dataTable 단일 (ADR-159 P4b) */}
         <div className="binding-row">
-          <AriaSelect
-            className="react-aria-Select binding-source-select"
-            selectedKey={source || null}
-            onSelectionChange={handleSourceChange}
-            onOpenChange={sourceSelectFocus.restoreFocusOnClose}
-            aria-label="소스 타입"
-            isDisabled={disabled}
-          >
-            <Button
-              className="react-aria-Button"
-              ref={sourceSelectFocus.triggerRef}
+          {nameOptions.length > 0 ? (
+            <AriaSelect
+              className="react-aria-Select binding-name-select"
+              selectedKey={source === "dataTable" ? name || null : null}
+              onSelectionChange={handleNameChange}
+              onOpenChange={nameSelectFocus.restoreFocusOnClose}
+              aria-label="컬렉션"
+              isDisabled={disabled}
             >
-              <SelectValue>{"소스 선택..."}</SelectValue>
-              <span aria-hidden="true" className="select-chevron">
-                <ChevronDown size={iconProps.size} />
-              </span>
-            </Button>
-            <Popover className="react-aria-Popover">
-              <ListBox className="react-aria-ListBox">
-                {SOURCE_OPTIONS.map((option) => (
-                  <ListBoxItem
-                    key={option.value}
-                    id={option.value}
-                    className="react-aria-ListBoxItem"
-                    textValue={option.label}
-                  >
-                    <option.icon size={iconEditProps.size} />
-                    <span>{option.label}</span>
-                  </ListBoxItem>
-                ))}
-              </ListBox>
-            </Popover>
-          </AriaSelect>
+              <Button
+                className="react-aria-Button"
+                ref={nameSelectFocus.triggerRef}
+              >
+                <SelectValue>{"컬렉션 선택..."}</SelectValue>
+                <span aria-hidden="true" className="select-chevron">
+                  <ChevronDown size={iconProps.size} />
+                </span>
+              </Button>
+              <Popover className="react-aria-Popover">
+                <ListBox className="react-aria-ListBox">
+                  {nameOptions.map((option) => (
+                    <ListBoxItem
+                      key={option.value}
+                      id={option.value}
+                      className="react-aria-ListBoxItem"
+                      textValue={option.label}
+                    >
+                      <div className="binding-option">
+                        <span className="binding-option-label">
+                          {option.label}
+                        </span>
+                        {option.description && (
+                          <span className="binding-option-desc">
+                            {option.description}
+                          </span>
+                        )}
+                      </div>
+                    </ListBoxItem>
+                  ))}
+                </ListBox>
+              </Popover>
+            </AriaSelect>
+          ) : (
+            <div className="binding-empty">등록된 Collection 이 없습니다.</div>
+          )}
         </div>
 
-        {/* 소스 이름 선택 (route 제외) */}
-        {source && source !== "route" && (
-          <div className="binding-row">
-            {nameOptions.length > 0 ? (
-              <AriaSelect
-                className="react-aria-Select binding-name-select"
-                selectedKey={name || null}
-                onSelectionChange={handleNameChange}
-                onOpenChange={nameSelectFocus.restoreFocusOnClose}
-                aria-label="소스 이름"
-                isDisabled={disabled}
-              >
-                <Button
-                  className="react-aria-Button"
-                  ref={nameSelectFocus.triggerRef}
-                >
-                  <SelectValue>{"이름 선택..."}</SelectValue>
-                  <span aria-hidden="true" className="select-chevron">
-                    <ChevronDown size={iconProps.size} />
-                  </span>
-                </Button>
-                <Popover className="react-aria-Popover">
-                  <ListBox className="react-aria-ListBox">
-                    {nameOptions.map((option) => (
-                      <ListBoxItem
-                        key={option.value}
-                        id={option.value}
-                        className="react-aria-ListBoxItem"
-                        textValue={option.label}
-                      >
-                        <div className="binding-option">
-                          <span className="binding-option-label">
-                            {option.label}
-                          </span>
-                          {option.description && (
-                            <span className="binding-option-desc">
-                              {option.description}
-                            </span>
-                          )}
-                        </div>
-                      </ListBoxItem>
-                    ))}
-                  </ListBox>
-                </Popover>
-              </AriaSelect>
-            ) : (
-              <div className="binding-empty">
-                등록된{" "}
-                {source === "dataTable"
-                  ? "DataTable"
-                  : source === "api"
-                    ? "API"
-                    : "Variable"}
-                이 없습니다.
-              </div>
-            )}
+        {/* 기존 문서의 비-dataTable 바인딩 안내 (read 호환 — 신규 기록은 dataTable 고정) */}
+        {isLegacyNonTableBinding && (
+          <div className="binding-empty">
+            legacy {source} 바인딩 — 컬렉션 선택 시 dataTable 로 전환됩니다.
           </div>
         )}
 
-        {/* Route Param 직접 입력 */}
-        {source === "route" && (
-          <div className="binding-row">
-            <input
-              className="react-aria-Input"
-              type="text"
-              key={`route-${value?.name || ""}`}
-              defaultValue={name}
-              onBlur={(e) => {
-                const newName = e.target.value;
-                if (newName) {
-                  onChange({ source: "route", name: newName, path });
-                }
-              }}
-              placeholder="파라미터 이름 (예: productId)"
-              disabled={disabled}
-            />
-          </div>
-        )}
-
-        {/* 데이터 경로 입력 */}
-        {source && name && (
+        {/* 데이터 경로 입력 (dataTable 바인딩에서만) */}
+        {source === "dataTable" && name && (
           <div className="binding-row">
             <input
               className="react-aria-Input binding-path-input"
@@ -417,8 +308,8 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
           </div>
         )}
 
-        {/* 갱신 설정 (api, dataTable만 해당) */}
-        {source && name && (source === "api" || source === "dataTable") && (
+        {/* 갱신 설정 (dataTable) */}
+        {source === "dataTable" && name && (
           <>
             <div className="binding-row binding-refresh-row">
               <label className="binding-row-label">
