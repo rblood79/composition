@@ -168,8 +168,16 @@ export function GridList<T extends object>({
     : "react-aria-GridList";
   const gridListStyle = {
     ...props.style,
+    // grid layout 은 display:grid + grid-template-columns(GridList.css [data-layout="grid"])
+    //   로 2열 렌더한다. 저장 style 의 display:flex(+flexWrap) 가 CSS display:grid 를 override
+    //   해 1열로 무너지던 문제 차단 — layout=grid 시 inline display:grid 로 덮는다(flexDirection/
+    //   flexWrap 는 grid 에서 무시되어 무해). stack 은 저장 display:flex column 유지.
     ...(layout === "grid"
-      ? ({ "--gl-columns": columns } as React.CSSProperties)
+      ? ({
+          "--gl-columns": columns,
+          display: "grid",
+          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+        } as React.CSSProperties)
       : {}),
   };
 

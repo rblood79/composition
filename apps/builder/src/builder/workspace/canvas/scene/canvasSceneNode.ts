@@ -1398,14 +1398,28 @@ function appendGridListRowProjection(
     id: rowsGroupId,
     type: "Rows",
     props: {
-      style: {
-        display: "flex",
-        flexDirection: layout === "grid" ? "row" : "column",
-        flexWrap: layout === "grid" ? "wrap" : "nowrap",
-        rowGap: gap,
-        columnGap: gap,
-        width: "100%",
-      },
+      // grid 는 display:grid + gridTemplateColumns(numCols × 1fr track array)로 열을 구성한다
+      //   (DOM GridList.css [data-layout="grid"] 및 GridList.tsx display:grid 와 대칭). 과거
+      //   flex-row + flex-wrap + 카드 calc((100%-gap)/numCols) 는 폭 순환 의존으로 rows-group
+      //   이 1열(169px)로 축소되고 카드 텍스트가 과도 wrap 됐다. grid track 은 순환 없이 열 폭을
+      //   먼저 확정 → 카드가 정확한 열 폭(169)에서 측정되어 wrap 정합. stack 은 flex-column 유지.
+      style:
+        layout === "grid"
+          ? {
+              display: "grid",
+              gridTemplateColumns: Array(numCols).fill("1fr"),
+              rowGap: gap,
+              columnGap: gap,
+              width: "100%",
+            }
+          : {
+              display: "flex",
+              flexDirection: "column",
+              flexWrap: "nowrap",
+              rowGap: gap,
+              columnGap: gap,
+              width: "100%",
+            },
     },
     parentId: gridListSceneNode.id,
     pageId: scope.pageId,
@@ -1447,11 +1461,10 @@ function appendGridListRowProjection(
     );
   }
 
-  // grid 모드 카드 폭: (100% - gap*(numCols-1)) / numCols. stack 은 100%.
-  const cardWidthStyle =
-    layout === "grid" && numCols > 1
-      ? `calc((100% - ${gap * (numCols - 1)}px) / ${numCols})`
-      : "100%";
+  // 카드 폭: 항상 "100%". grid 는 rows-group display:grid 의 track(1fr)이 열 폭을 확정하고 카드는
+  //   track 을 채운다(width:100% = track 폭). 과거 calc((100%-gap)/numCols) 는 display:grid 에서
+  //   100%=grid area(=track 169) 라 (169-gap)/2=78 로 이중 분할돼 텍스트 과도 wrap 됐다. stack 도 100%.
+  const cardWidthStyle = "100%";
 
   for (const row of rows) {
     const projectionId = toCollectionRowProjectionId(

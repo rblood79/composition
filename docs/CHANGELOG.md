@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [GridList grid layout 2열 렌더 + Skia↔DOM 정합] - 2026-07-23
+
+### Bug Fixes
+
+- **GridList `layout:"grid"` 이 DOM 1열 / Skia 2열-과wrap 로 발산**:
+  - grid 레이아웃에서 DOM/preview 는 1열(stack 동일)로, Skia 는 2열이나 카드가 좁은 폭에서 텍스트 과도 wrap(148px, DOM 76px 대비 2배) + rows-group 폭 1열(169px)로 축소돼 카드가 컨테이너를 넘쳐 clip 됐다.
+  - **Why (2겹)**: (1) **DOM**: element 저장 style 의 `display:flex`(+flexWrap) 가 `GridList.css` 의 `display:grid` + `[data-layout="grid"]` grid-template-columns 를 override → flex full-width 1열. (2) **Skia**: OWNER 컨테이너를 `display:grid` 2열(implicitStyles)로 두었는데 자식이 projected rows-group **1개** → rows-group 이 column 1(169px)로 축소 + 그 안 flex-wrap 카드 폭 `calc((100%-gap)/numCols)` 이 순환 의존으로 과도 분할·wrap.
+  - 수정: (1) **DOM** — `GridList.tsx` 가 `layout==="grid"` 시 inline `display:grid` + `grid-template-columns:repeat(cols,minmax(0,1fr))` 로 stale flex 를 덮음. (2) **Skia** — OWNER 를 flex-column(단순 컨테이너)로, projected rows-group 를 `display:grid` + `gridTemplateColumns:[1fr×numCols]` 로 전환(열 폭을 순환 없이 track 으로 확정), 카드 폭 `100%`(track 채움). 사용자 결정(2열 grid 채택).
+  - 검증: live builder — grid GridList Skia 컨테이너 204 ≡ DOM 204(parity), rows-group 350×164(2열), 카드 169×76(2열 배치·wrap 없음, DOM 정합). layout engine + scene 312 테스트 PASS.
+  - 위치: `packages/shared/src/components/GridList.tsx`(DOM display:grid), `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`(OWNER flex-column), `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`(rows-group display:grid + 카드 폭)
+
 ## [GridList stack 컨테이너 높이 Skia↔DOM 정합] - 2026-07-23
 
 ### Bug Fixes
@@ -16,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why (2겹)**: (1) `enrichWithIntrinsicSize` 의 double-pad 가드(`isInjectedGridListOwner`)가 `_projectedRowsContentHeight` 주입 owner(sample mode)만 커버해, explicit padding(catalog containerStyles 20)을 가진 **items-based** GridList owner 에서 컨테이너 padding 이 이중 계산됐다(§1.55c 는 border-box 반환인데 enrich 가 padding 재가산). (2) §1.55c 의 `cardHeight` 공식이 카드 border(catalog GridListItem.sizes.md.borderWidth=1×2)를 누락해 카드당 -2px(3카드 -6) 잔차.
   - 수정: (1) enrich 가드를 `type==="gridlist"` 전체 owner 로 확장(§1.55c injected/items 양 경로 모두 border-box 반환 — padding 재가산 항상 제외). (2) `resolveGridListItemMetric` 에 `cardBorderWidth` 추가 + §1.55c `cardHeight` 에 `cardBorderWidth*2` 가산 → projected 카드(content50+padding24+border2=76)와 정합.
   - 검증: live builder — stack GridList Skia 컨테이너 292 ≡ DOM preview 292(parity), rows-group 252. layout engine + scene 312 테스트 PASS(gridListSpacingHeight / gridListDataBoundContentHeight baseline 74→76 정정).
-  - **알려진 잔존(별도)**: `layout: "grid"` 은 Skia(2열, 좁은 카드 wrap)와 DOM(`display:flex` 가 `gridTemplateColumns` 무시 → 1열)이 레이아웃 자체로 발산 — 높이만이 아닌 grid 열 구성 parity 문제로 별도 설계 결정 대상.
+  - **후속 (해소됨)**: `layout: "grid"` 의 Skia↔DOM 레이아웃 발산(2열 구성)은 위 "GridList grid layout 2열 렌더" 엔트리에서 해소됨.
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`(enrich 가드 + §1.55c), `packages/specs/src/renderers/utils/collectionItemMetrics.ts`(cardBorderWidth)
 
 ## [GridList ref 기반 재사용 composite 전환 — ADR-161] - 2026-07-23

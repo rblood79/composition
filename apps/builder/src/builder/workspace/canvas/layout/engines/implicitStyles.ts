@@ -1091,11 +1091,16 @@ export function applyImplicitStyles(
     const columns = (containerProps?.columns as number) || 2;
     const gap = 12;
 
+    // OWNER 는 단일 자식(projected rows-group)만 보유 — 2열 배치는 rows-group 이 담당한다
+    //   (canvasSceneNode.appendGridListRowProjection: grid → display:grid gridTemplateColumns).
+    //   과거 OWNER 를 display:grid 2열로 두면 자식 rows-group(1개)이 column 1(≈169px)에만 들어가
+    //   rows-group 폭이 1열로 축소되고, 그 안 카드가 좁은 폭에서 텍스트 과도 wrap 됐다(148 vs DOM 76).
+    //   OWNER 는 flex-column(rows-group 전폭)로 두고 열 구성은 rows-group 에 위임한다.
     if (layout === "grid") {
       effectiveParent = withParentStyle(containerEl, {
         ...parentStyle,
-        display: "grid",
-        gridTemplateColumns: Array(columns).fill("1fr"),
+        display: "flex",
+        flexDirection: "column",
         gap: parentStyle.gap ?? gap,
         overflow: parentStyle.overflow ?? "hidden",
       });
