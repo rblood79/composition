@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [GridList stack 컨테이너 높이 Skia↔DOM 정합] - 2026-07-23
+
+### Bug Fixes
+
+- **GridList(stack) 카드 컨테이너가 Skia 에서 34px 더 커 바닥에 빈 공간**:
+  - stack GridList 의 Skia 컨테이너 높이가 326px 로 계산돼 DOM/preview(292px)보다 34px 크고, rows-group(카드 252px) 아래에 34px 빈 공간이 생겼다.
+  - **Why (2겹)**: (1) `enrichWithIntrinsicSize` 의 double-pad 가드(`isInjectedGridListOwner`)가 `_projectedRowsContentHeight` 주입 owner(sample mode)만 커버해, explicit padding(catalog containerStyles 20)을 가진 **items-based** GridList owner 에서 컨테이너 padding 이 이중 계산됐다(§1.55c 는 border-box 반환인데 enrich 가 padding 재가산). (2) §1.55c 의 `cardHeight` 공식이 카드 border(catalog GridListItem.sizes.md.borderWidth=1×2)를 누락해 카드당 -2px(3카드 -6) 잔차.
+  - 수정: (1) enrich 가드를 `type==="gridlist"` 전체 owner 로 확장(§1.55c injected/items 양 경로 모두 border-box 반환 — padding 재가산 항상 제외). (2) `resolveGridListItemMetric` 에 `cardBorderWidth` 추가 + §1.55c `cardHeight` 에 `cardBorderWidth*2` 가산 → projected 카드(content50+padding24+border2=76)와 정합.
+  - 검증: live builder — stack GridList Skia 컨테이너 292 ≡ DOM preview 292(parity), rows-group 252. layout engine + scene 312 테스트 PASS(gridListSpacingHeight / gridListDataBoundContentHeight baseline 74→76 정정).
+  - **알려진 잔존(별도)**: `layout: "grid"` 은 Skia(2열, 좁은 카드 wrap)와 DOM(`display:flex` 가 `gridTemplateColumns` 무시 → 1열)이 레이아웃 자체로 발산 — 높이만이 아닌 grid 열 구성 parity 문제로 별도 설계 결정 대상.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`(enrich 가드 + §1.55c), `packages/specs/src/renderers/utils/collectionItemMetrics.ts`(cardBorderWidth)
+
 ## [GridList ref 기반 재사용 composite 전환 — ADR-161] - 2026-07-23
 
 ### Architecture

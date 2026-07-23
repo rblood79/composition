@@ -2661,6 +2661,7 @@ export function calculateContentHeight(
       fontSize,
       numCols,
       cardPaddingY,
+      cardBorderWidth,
       descGap,
     } = metric;
     // 2026-07-22 parity sweep: props.items 카드의 label/description 은 react-aria-Text 기본 16
@@ -2676,8 +2677,13 @@ export function calculateContentHeight(
     // ADR-148 Phase 4: description slot 자식이 구성(owner props._slots — projection 주입)에
     //   없으면 카드 1줄 (gridlist_card escape 동일 gating, listbox 분기 동형).
     const gridSlotComposition = readSlotComposition(props?._slots);
+    // 카드 border-box 높이 = padding + label line box + (desc: gap + desc line box) + border.
+    //   cardBorderWidth*2 (catalog GridListItem.sizes.md.borderWidth=1, colors.border 렌더)를
+    //   가산해야 projected 카드(content+padding+border=76) 와 정합 — 누락 시 카드당 -2px 로
+    //   컨테이너가 rows-group 보다 짧아진다(stack 3카드 -6 / grid 행 수 비례).
     const cardHeight = (item: { description?: string }) =>
       cardPaddingY * 2 +
+      cardBorderWidth * 2 +
       getTextLineHeight(cardTextFontSize) +
       (item.description && isSlotEnabled(gridSlotComposition, "description")
         ? getTextLineHeight(cardTextFontSize) + descGap
@@ -4594,14 +4600,16 @@ export function enrichWithIntrinsicSize(
     //   계산(292→pad10 시 312→332)이 된다. 주입 소유자에 한해 spec-shapes 동급으로 취급해
     //   §1.55c 반환값을 그대로 최종값으로 쓴다(ListBox=SPEC_SHAPES_INPUT 선례 동형). 미주입
     //   GridList(items-based)는 영향 없음.
-    const isInjectedGridListOwner =
-      type === "gridlist" &&
-      parseNumericValue(
-        (element.props as Record<string, unknown> | undefined)
-          ?._projectedRowsContentHeight,
-      ) !== undefined;
+    // §1.55c 는 injected(`_projectedRowsContentHeight`) / items-based(formula) 양 경로 모두
+    //   border-box(metric.padding + 전체 높이 + metric.border, line 2649·2743)를 반환한다.
+    //   따라서 gridlist owner 는 injected 여부와 무관하게 enrich padding 재가산에서 제외한다.
+    //   과거 가드는 injected 만 커버해, explicit padding 을 가진 items-based owner(catalog
+    //   containerStyles padding 20 등)에서 padding 이 이중 계산되어 컨테이너가 rows-group 보다
+    //   커졌다(292→326, bottom 34px 빈 공간 — stack/grid 공통). __tests__/gridListDataBound
+    //   ContentHeight.test 의 double-pad 회귀 가드는 padding 없는 items-based 만 커버했다.
+    const isGridListOwner = type === "gridlist";
     const isSpecShapesInput =
-      SPEC_SHAPES_INPUT_TAGS.has(type) || isInjectedGridListOwner;
+      SPEC_SHAPES_INPUT_TAGS.has(type) || isGridListOwner;
     // ADR-157 R1: childless ListBoxItem 행은 §1.55b-2(resolveListBoxItemRowHeightFromStyle)가
     //   이미 **padding-box**(padding 포함, border 제외)를 반환한다 — window resolver/render.shapes/
     //   컨테이너 calc 와 동일한 border 규약(GridListItem content-box 형제와 대비). 따라서 여기서

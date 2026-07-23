@@ -355,14 +355,20 @@ export function resolveGridListItemMetric(fontSize: number): {
   cardPaddingX: number;
   cardPaddingY: number;
   cardBorderRadius: number;
+  cardBorderWidth: number;
   descGap: number;
 } {
+  // cardBorderWidth = componentRulesTable.GridListItem.sizes.md.borderWidth(1) — 카드 border-box
+  //   높이 산출용(부모 GridList §1.55c). colors.border 로 실제 렌더되는 1px 테두리를 반영해야
+  //   컨테이너 높이가 projected 카드(content+padding+border) 와 정합한다(누락 시 카드당 -2px).
+  //   border 는 size 무관 고정(catalog 정의 md 단일)이라 분기하지 않는다.
   // fontSize>14: large 카드 (20/16/12)
   if (fontSize > 14) {
     return {
       cardPaddingX: 20,
       cardPaddingY: 16,
       cardBorderRadius: 12,
+      cardBorderWidth: 1,
       descGap: 2,
     };
   }
@@ -372,6 +378,7 @@ export function resolveGridListItemMetric(fontSize: number): {
       cardPaddingX: 16,
       cardPaddingY: 12,
       cardBorderRadius: 8,
+      cardBorderWidth: 1,
       descGap: 2,
     };
   }
@@ -380,6 +387,7 @@ export function resolveGridListItemMetric(fontSize: number): {
     cardPaddingX: 12,
     cardPaddingY: 10,
     cardBorderRadius: 8,
+    cardBorderWidth: 1,
     descGap: 2,
   };
 }
@@ -409,6 +417,7 @@ export interface GridListSpacingMetric {
   cardPaddingX: number;
   cardPaddingY: number;
   cardBorderRadius: number;
+  cardBorderWidth: number;
   descGap: number;
 }
 
@@ -444,6 +453,7 @@ export function resolveGridListSpacingMetric(
     cardPaddingX: itemMetric.cardPaddingX,
     cardPaddingY: itemMetric.cardPaddingY,
     cardBorderRadius: itemMetric.cardBorderRadius,
+    cardBorderWidth: itemMetric.cardBorderWidth,
     descGap: itemMetric.descGap,
   };
 }
