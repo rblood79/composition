@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [GridList 렌더 크래시 수정 + layout prop 노출] - 2026-07-23
+
+### Bug Fixes
+
+- **데이터 바인딩 GridList 가 preview 에서 "Invalid slot 'label'" 크래시**:
+  - GridList 항목을 렌더하면 `Uncaught Error: Invalid slot "label". Valid slot names are "description"` 로 preview 가 크래시했다.
+  - **Why**: RAC(react-aria-components 1.18.0) `GridListItem` 의 TextContext 는 `DEFAULT_SLOT` + `description` 만 제공하고 **label slot 을 제공하지 않는다**(ListBoxItem 은 제공). 커밋 `c51e0d1d2` 가 "ListBoxItem 동형" 으로 GridListItem 안에 `<Text slot="label">` 을 도입하면서 RAC 슬롯 계약을 위반.
+  - 수정: GridListItem 의 label 은 default slot `<Text>` 로 렌더(3 소비 경로: `renderGridListItemSlotContent`/`renderGridListItem` fallback/`GridList.tsx` dynamic). accessible name 은 `GridListItem` 의 `textValue` 담당. bold 시각은 `GridList.css` `.react-aria-Text:not([slot="description"])` 로 유지(react-aria-Text 기본 16 → line box 24 → Skia 카드 76 정합 무변).
+  - 재사용 origin(`component-gridlist-item-default`)의 `__label` slot 자식은 `props.slot:"label"`(ListBox 복제 잔재)를 제거 — slot 구성은 `metadata.slotRole` 이 담당(`getSlotRole` 이 metadata 우선)하므로 redundant + 직접 렌더 시 크래시 유발. `description` slot 은 GridListItem 이 지원하므로 유지.
+  - 위치: `packages/shared/src/renderers/SelectionRenderers.tsx`, `packages/shared/src/components/GridList.tsx`, `packages/shared/src/components/styles/GridList.css`, `apps/builder/src/builder/components/gridlist/gridListTemplateOrigins.ts`
+
+### Features
+
+- **GridList `layout` prop(stack ↔ grid) property 패널 노출**:
+  - RAC 공식 prop `layout`(react-aria.adobe.com/GridList) 이 컴포넌트·factory 에는 이미 소비되고 있었으나(`GridList.tsx` `layout={layout}`, factory 기본 `stack`), catalog binding 의 `accepts` 에 미선언되어 property 패널에서 편집할 수 없었다.
+  - `gridListBinding.props.accepts` 에 `layout` enum(stack/grid, 기본 stack) 추가 — Appearance 섹션에 편집기 노출. RAC 가 `data-layout` 으로 소비하므로 DOM raw attr 누출 없음(selectionMode 동형).
+  - live 검증(project 2333): GridList 추가 → preview 크래시 없이 3 items 렌더(label default slot / fontWeight 600 / description slot) + Layout prop 편집기 노출 + stack↔grid 전환 시 `data-layout` 즉시 반영.
+  - 위치: `packages/shared/src/catalog/bindings/GridList.binding.ts`
+
 ## [반응형 편집 모델 반전 — ADR-154 개정 1: 기본 전역 + 명시적 override] - 2026-07-23
 
 ### Bug Fixes

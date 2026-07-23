@@ -22,7 +22,11 @@ function gridListItemSlotChildren(originId: string): CanonicalNode[] {
       id: `${originId}__label`,
       type: "Text",
       name: "Label",
-      props: { slot: "label", children: "{label}" },
+      // RAC GridListItem 은 label slot 미제공(DEFAULT_SLOT + description 만) — ListBoxItem 과
+      //   달리 `slot:"label"` 을 실으면 이 자식이 GridListItem 맥락에서 직접 렌더될 때
+      //   "Invalid slot" 크래시. slot 구성은 metadata.slotRole 이 담당(getSlotRole 이
+      //   metadata.slotRole 우선)하므로 props.slot 은 불필요 + 유해 → 제거(default slot).
+      props: { children: "{label}" },
       metadata: {
         type: "gridlist-item-slot",
         systemOwned: true,

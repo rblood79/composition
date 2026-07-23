@@ -378,7 +378,12 @@ export function GridList<T extends object>({
                     selectionBehavior === "toggle" && (
                       <MyCheckbox slot="selection" />
                     )}
-                  <Text slot="label">{item.label}</Text>
+                  {/* RAC GridListItem 의 TextContext 는 DEFAULT_SLOT + description 만
+                      제공(label slot 없음) — `slot="label"` 은 "Invalid slot" 크래시.
+                      label 은 default slot Text 로 렌더하고 CSS 로 스타일(GridList.css
+                      `.react-aria-Text:not([slot="description"])`). accessible name 은
+                      AriaGridListItem `textValue` 가 담당. */}
+                  <Text>{item.label}</Text>
                   {(item as Record<string, unknown>).description && (
                     <Text slot="description">
                       {String((item as Record<string, unknown>).description)}

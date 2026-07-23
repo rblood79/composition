@@ -168,15 +168,14 @@ function renderGridListItemSlotContent(opts: {
   const slotStyleOf = (role: SlotRole): React.CSSProperties | undefined =>
     slotComposition?.slots[role]?.style as React.CSSProperties | undefined;
 
-  // ADR-148 후속 (2026-07-22): label/description 은 RAC `<Text slot=...>` (react-aria-Text) —
-  //   origin(reusable template 실 Text 자식) 및 ListBoxItem 과 동일 구조. 과거 `.gridlist-item-*`
-  //   레거시 클래스(label --text-sm 14 / desc --text-xs 12)는 slot 기반 origin(둘 다 16 → line box
-  //   24)·Skia gridlist_card metric(76)과 발산(인스턴스 DOM 64 vs Skia 76)했다. slot 전환으로
-  //   DOM = origin = Skia = 76 정합. bold label / muted desc 는 GridList.css `[slot=*]` 로 유지.
+  // ADR-148 후속 (2026-07-22): label/description 은 RAC `<Text>` (react-aria-Text) — origin
+  //   (reusable template 실 Text 자식) 및 Skia gridlist_card metric(둘 다 16 → line box 24 → 카드
+  //   76)과 정합. 과거 `.gridlist-item-*` 레거시 클래스(label 14 / desc 12)는 64로 발산했다.
+  //   RAC GridListItem 의 TextContext 는 DEFAULT_SLOT + description 만 제공(label slot 없음) →
+  //   `slot="label"` 은 "Invalid slot" 크래시. label 은 default slot Text 로 렌더하고 GridList.css
+  //   `.react-aria-Text:not([slot="description"])` 로 bold 유지. muted desc 는 `[slot="description"]`.
   const labelNode = isSlotEnabled(slotComposition, "label") ? (
-    <AriaText slot="label" style={slotStyleOf("label")}>
-      {label}
-    </AriaText>
+    <AriaText style={slotStyleOf("label")}>{label}</AriaText>
   ) : null;
   const descriptionNode =
     isSlotEnabled(slotComposition, "description") && description ? (
@@ -1004,7 +1003,10 @@ export const renderGridListItem = (
     const description = element.props.description as string | undefined;
     return (
       <>
-        <AriaText slot="label">{label}</AriaText>
+        {/* GridListItem TextContext 는 DEFAULT_SLOT + description 만 제공(label slot 없음) →
+            label 은 default slot Text. GridList.css `.react-aria-Text:not([slot="description"])`
+            로 bold, accessible name 은 아래 GridListItem `textValue` 담당. */}
+        <AriaText>{label}</AriaText>
         {description && <AriaText slot="description">{description}</AriaText>}
       </>
     );

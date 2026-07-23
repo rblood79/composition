@@ -92,10 +92,11 @@
       opacity: 0.6;
     }
 
-    /* 카드 내부 라벨 — RAC `<Text slot="label">` (react-aria-Text 기본 16 → line box 24).
-       origin(reusable template 실 Text 자식)·ListBoxItem 과 동일 구조. font-size 미지정으로
-       기본 16 유지 → Skia gridlist_card metric(label 16/24) 및 DOM origin 과 정합(카드 76). */
-    [slot="label"] {
+    /* 카드 내부 라벨 — RAC GridListItem 은 label slot 미제공(DEFAULT_SLOT + description 만)
+       이라 default slot `<Text>` 로 렌더 → description 이 아닌 Text 로 타깃. react-aria-Text
+       기본 16 → line box 24. font-size 미지정으로 기본 16 유지 → Skia gridlist_card
+       metric(label 16/24) 및 DOM origin 과 정합(카드 76). */
+    .react-aria-Text:not([slot="description"]) {
       font-weight: 600;
       color: inherit;
     }
