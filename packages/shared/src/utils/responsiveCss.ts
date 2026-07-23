@@ -29,6 +29,7 @@ import {
   BREAKPOINTS,
   generateMediaQueryString,
   getResponsiveValueWithCascade,
+  isResponsiveEligibleStyleProp,
   type BreakpointName,
   type ElementResponsiveConfig,
   type ResponsiveValue,
@@ -103,6 +104,9 @@ export function buildResponsiveElementCss(
     if (styles) {
       const styleRecord = styles as Record<string, ResponsiveValue<unknown>>;
       for (const key of Object.keys(styleRecord)) {
+        // ADR-154 개정 1 (R8): eligible(Layout·Transform) 이 아닌 stale override 는
+        // @media 로 emit 하지 않는다 — 전역 속성은 base inline 이 전 breakpoint 담당.
+        if (!isResponsiveEligibleStyleProp(key)) continue;
         const respValue = styleRecord[key];
         if (respValue == null) continue;
         const baseValue = base[key];

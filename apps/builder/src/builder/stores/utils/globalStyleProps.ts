@@ -1,50 +1,34 @@
 import type { ElementResponsiveConfig } from "@composition/shared";
+import { isResponsiveEligibleStyleProp } from "@composition/shared";
 
 /**
- * 전역(breakpoint 무관) 시각 스타일 속성 — 배경(fills, `node.fills[]`)과 동일 취급.
+ * 전역(breakpoint 무관) 시각 스타일 속성 판정 — ADR-154 개정 1 (2026-07-23).
  *
- * border 색/스타일/너비는 ADR-154 responsive breakpoint 시스템의 **예외**로, 어느 breakpoint
- * 에서 편집하든 base `props.style` 에 저장되어 모든 breakpoint 에 적용된다.
+ * responsive-eligible(Layout·Transform 섹션 키, `RESPONSIVE_ELIGIBLE_STYLE_PROPS`) 이
+ * **아닌** 모든 style prop 은 "전역"이다 — 어느 breakpoint 에서 편집하든 base `props.style`
+ * 에 저장되어 전 breakpoint 에 적용된다 (배경 fills·border·radius·typography·overflow 등).
  *
- * **Why (2026-07-22 사용자 보고)**: border 를 per-breakpoint responsive override
- * (`responsive.styles`) 로 저장하면 (a) 비-desktop @media border CSS 가 정상 렌더되지 않고
- * (b) desktop 편집=전역 / mobile 편집=해당 tier 만 이라는 비대칭이 생긴다. 사용자는 배경색처럼
- * 통일을 원했다. border 를 전역으로 두면 base 규칙(=@media 없는 기본 CSS)이 모든 breakpoint 에
- * 적용되어 응답형 border 렌더 이슈를 우회한다.
- *
- * borderRadius(형태 축)는 제외 — 사용자 요청 범위는 color/style/width.
+ * **Why (개정 반전)**: 원안은 border 15키만 전역 예외(blocklist)로 두고 나머지 전 style prop 을
+ * responsive 로 취급했으나, 예외 목록이 계속 자라고(fills→border) 편집 예측이 어려웠다. 개정은
+ * 이를 반전 — Layout·Transform 만 eligible(토글 opt-in override)로 좁히고 나머지는 전역 기본.
+ * `isGlobalStyleProp(p)` ≡ `!isResponsiveEligibleStyleProp(p)` 로 정의해 dirty/reset 의 "전역 →
+ * base 비교" 라우팅에서 재사용한다. eligibility SSOT 는 shared `RESPONSIVE_ELIGIBLE_STYLE_PROPS`.
  */
-export const GLOBAL_STYLE_PROPS: ReadonlySet<string> = new Set([
-  "borderColor",
-  "borderStyle",
-  "borderWidth",
-  "borderTopColor",
-  "borderRightColor",
-  "borderBottomColor",
-  "borderLeftColor",
-  "borderTopStyle",
-  "borderRightStyle",
-  "borderBottomStyle",
-  "borderLeftStyle",
-  "borderTopWidth",
-  "borderRightWidth",
-  "borderBottomWidth",
-  "borderLeftWidth",
-]);
-
 export function isGlobalStyleProp(property: string): boolean {
-  return GLOBAL_STYLE_PROPS.has(property);
+  return !isResponsiveEligibleStyleProp(property);
 }
 
 /**
- * responsive override map 에서 전역 속성(border) 키를 전부 제거한다.
+ * responsive override map 에서 **non-eligible(전역) 속성** 키를 전부 제거한다.
  *
- * border 가 전역으로 전환되면 `responsive.styles` 에 border 키가 남아 base 값을 특정 breakpoint
- * 에서 shadow 하면 안 된다 (기존 프로젝트의 stale override 정리 + base 우선 보장).
+ * 개정 후 non-eligible 속성은 responsive override 에 담기면 안 된다(전역이므로). base 로
+ * 편집을 라우팅할 때 stale override 가 특정 breakpoint 에서 base 를 shadow 하지 않도록 정리한다
+ * (기존 프로젝트의 원안-시대 override 점진 소거 + base 우선 보장, R8). eligible 키(Layout·Transform)
+ * 는 토글 opt-in 의도값이므로 보존.
  *
  * @returns 변경된 config, 또는 제거 대상이 없으면 `null` (불필요한 write 회피).
  */
-export function clearGlobalStyleResponsiveOverrides(
+export function clearNonEligibleResponsiveOverrides(
   existing: ElementResponsiveConfig | undefined,
 ): ElementResponsiveConfig | null {
   const existingStyles = existing?.styles as
@@ -55,7 +39,7 @@ export function clearGlobalStyleResponsiveOverrides(
   let changed = false;
   const styles: Record<string, Record<string, unknown>> = {};
   for (const key of Object.keys(existingStyles)) {
-    if (GLOBAL_STYLE_PROPS.has(key)) {
+    if (!isResponsiveEligibleStyleProp(key)) {
       changed = true;
       continue;
     }

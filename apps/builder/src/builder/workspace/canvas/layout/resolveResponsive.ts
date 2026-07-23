@@ -19,6 +19,7 @@
 
 import {
   getResponsiveValueWithCascade,
+  isResponsiveEligibleStyleProp,
   type BreakpointName,
   type ResponsiveValue,
 } from "@composition/shared";
@@ -56,6 +57,10 @@ export function resolveResponsiveStyleMap(
   if (styles) {
     const styleRecord = styles as Record<string, ResponsiveValue<unknown>>;
     for (const key of Object.keys(styleRecord)) {
+      // ADR-154 개정 1 (R8): eligible(Layout·Transform) 이 아닌 stale override 는
+      // 무력화 — 전역 속성은 base 만 반영한다. 기존 프로젝트의 원안-시대 non-eligible
+      // override(예: 구 border/typography)가 남아도 여기서 skip.
+      if (!isResponsiveEligibleStyleProp(key)) continue;
       const respValue = styleRecord[key];
       if (respValue == null) continue;
 

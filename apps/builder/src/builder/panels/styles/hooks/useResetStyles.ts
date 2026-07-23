@@ -627,37 +627,26 @@ export function computeDirtyStyleProps(
   properties?: string[],
   activeBreakpoint: BreakpointName = "desktop",
 ): string[] {
-  // ADR-154: 비-desktop breakpoint 에서는 base(props.style) baseline 비교 대신
-  // 해당 breakpoint 에 명시된 responsive override 존재 여부로 dirty 판정한다.
-  // (base 는 desktop tier — non-desktop 편집은 responsive.styles 에만 반영되므로
-  // base 비교로는 override 를 영원히 감지 못 함.) gap 은 resolveCurrentStyleValue 가
-  // rowGap/columnGap → gap 합성을 해 base 판정과 동일하게 count 정합.
+  // ADR-154 개정 1: 비-desktop breakpoint 에서 dirty 판정은 두 축으로 갈린다.
+  //   - eligible(Layout·Transform): 해당 breakpoint 의 **명시 override** 존재 여부로 판정
+  //     (base 는 desktop tier — eligible 편집은 토글 ON 시 responsive.styles 에만 반영되므로
+  //     base 비교로는 override 를 못 잡는다). gap 은 resolveCurrentStyleValue 가 rowGap/columnGap
+  //     → gap 합성을 해 count 정합.
+  //   - 전역(non-eligible: 배경 fills·border·radius·typography·overflow 등): breakpoint 무관하게
+  //     base 비교(computeBaseDirtyStyleProps). 전역 속성은 어느 breakpoint 에서든 base 로
+  //     write·reset 되므로 dirty 도 모든 breakpoint 에서 동일하게 잡혀야 대칭이다(전역 write ↔
+  //     전역 reset). fills 특례(backgroundColor)·border 특례가 이 단일 규칙로 흡수됐다 —
+  //     computeBaseDirtyStyleProps 가 adaptStyleWithFills 로 fills 기반 backgroundColor 를 처리.
   if (activeBreakpoint !== "desktop") {
     const overrideStyle = collectBreakpointOverrideStyle(
       element.responsive,
       activeBreakpoint,
     );
     const keys = properties ?? Object.keys(overrideStyle);
-    // 배경(fills)은 breakpoint 무관 **전역** 채널(node.fills)이라 responsive override map
-    //   에 절대 담기지 않는다. 그런데 write(updateSelectedFills)는 breakpoint 를 안 보고
-    //   전역 fills 를 저장하고, reset(AppearanceSection.handleReset)도 전역 updateSelectedFills([])
-    //   로 비운다 — write·reset 이 이미 전역인데 dirty 판정만 desktop 분기에서만 fills 를
-    //   adapt 해서, non-desktop tier 에서 "배경은 바뀌어 보이는데 reset 버튼이 죽는" 비대칭이
-    //   생긴다(사용자 보고 2026-07-21). 전역 fills 가 존재하면 모든 breakpoint 에서
-    //   backgroundColor 를 dirty 로 surface 해 전역 write ↔ 전역 reset 대칭을 복원한다.
-    const hasFillsGlobal =
-      Array.isArray(element.fills) && element.fills.length > 0;
-    // border(색/스타일/너비)도 전역 속성(base props.style)이라 responsive override 에 안 담긴다.
-    //   fills 와 동형 — base 비교로 dirty 를 surface 해 non-desktop 에서도 reset 버튼이 산다
-    //   (2026-07-22 사용자 보고). globalStyleProps.ts 참조.
     const globalKeys = keys.filter(isGlobalStyleProp);
     const dirty: string[] = [];
     for (const prop of keys) {
-      if (isGlobalStyleProp(prop)) continue; // 아래 base 비교로 처리
-      if (prop === "backgroundColor" && hasFillsGlobal) {
-        dirty.push(prop);
-        continue;
-      }
+      if (isGlobalStyleProp(prop)) continue; // 전역 → 아래 base 비교로 처리
       if (resolveCurrentStyleValue(prop, overrideStyle) !== undefined) {
         dirty.push(prop);
       }

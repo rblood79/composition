@@ -12,9 +12,14 @@
  */
 
 import { StateCreator } from "zustand";
+import {
+  getResponsiveValueWithCascade,
+  isResponsiveEligibleStyleProp,
+} from "@composition/shared";
 import type {
   BreakpointName,
   ElementResponsiveConfig,
+  ResponsiveValue,
 } from "@composition/shared";
 import type {
   Element,
@@ -62,20 +67,19 @@ import {
 } from "./utils/layoutInvalidation";
 import { applyBorderCompanionDefaults } from "./utils/borderCompanionDefaults";
 import {
-  clearGlobalStyleResponsiveOverrides,
+  clearNonEligibleResponsiveOverrides,
   isGlobalStyleProp,
 } from "./utils/globalStyleProps";
+import {
+  SHORTHAND_TO_LONGHAND,
+  shouldWriteBreakpointOverride,
+} from "./utils/responsiveWriteRouting";
 import { mergePropsWithStyleDeep } from "../../adapters/canonical/instanceResolver";
 
 // CSS shorthand → longhand 분배 매핑 (inspectorActions 공용).
 // React inline style shorthand+longhand 공존 시 rerender 경고 + Taffy
 // applyCommonTaffyStyle 순서 (gap → rowGap/columnGap) 로 longhand override
 // 발생 → Panel 편집 무시. store 는 longhand only 정책.
-const SHORTHAND_TO_LONGHAND: Record<string, readonly string[]> = {
-  gap: ["rowGap", "columnGap"],
-  padding: ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"],
-  margin: ["marginTop", "marginRight", "marginBottom", "marginLeft"],
-};
 type InspectorElementMap<TElement extends Element = Element> = Map<
   string,
   TElement
@@ -541,6 +545,16 @@ export interface InspectorActionsState {
     breakpoint: BreakpointName,
     visible: boolean,
   ) => void;
+  /**
+   * ADR-154 개정 1: eligible(Layout·Transform) style prop 의 현재 breakpoint override
+   * 토글 on/off. on = 현재 resolve 값을 해당 tier override 로 복사(이후 그 속성 편집이
+   * override 로 라우팅). off = 해당 tier override 키 제거(base 상속 복귀). desktop 은
+   * base 그 자체라 no-op (호출측에서 lock). non-eligible 속성은 no-op.
+   */
+  setResponsiveStyleOverrideEnabled: (
+    property: string,
+    enabled: boolean,
+  ) => void;
   updateSelectedProperty: (key: string, value: unknown) => void;
   updateSelectedProperties: (properties: Record<string, unknown>) => void;
   /** 부모+자식 props를 단일 batch 히스토리로 atomic 업데이트 (Child Composition Pattern) */
@@ -819,12 +833,17 @@ export const createInspectorActionsSlice: StateCreator<
           ? savedPrePreview
           : element;
 
-      // ADR-154: 비-desktop breakpoint 편집은 base(props.style) 대신
-      // element.responsive.styles override 로 저장 (desktop = base, 기존 동작 유지).
-      // 단, 전역 속성(border 색/스타일/너비)은 breakpoint 무관하게 base 에 저장한다
-      // (배경 fills 동일 취급 — globalStyleProps.ts).
+      // ADR-154 개정 1: 편집 기본은 base(props.style) = 전역(전 breakpoint 적용).
+      // eligible(Layout·Transform) 속성이 해당 tier 토글 ON(명시 override 존재)일 때만
+      // responsive override 로 저장한다 (shouldWriteBreakpointOverride 단일 판정, R10).
       const activeBreakpoint = get().activeBreakpoint;
-      if (activeBreakpoint !== "desktop" && !isGlobalStyleProp(property)) {
+      if (
+        shouldWriteBreakpointOverride(
+          baseElement.responsive,
+          property,
+          activeBreakpoint,
+        )
+      ) {
         const nextResponsive = buildResponsiveStyleOverride(
           baseElement.responsive,
           property,
@@ -892,10 +911,10 @@ export const createInspectorActionsSlice: StateCreator<
         );
       }
 
-      // 전역 속성(border)을 base 에 쓸 때, stale responsive override 가 남아 특정
-      // breakpoint 에서 base 를 shadow 하지 않도록 responsive.styles 의 border 키를 정리.
+      // 전역(non-eligible) 속성을 base 에 쓸 때, stale responsive override 가 남아 특정
+      // breakpoint 에서 base 를 shadow 하지 않도록 responsive.styles 의 non-eligible 키 정리 (R8).
       const clearedResponsive = isGlobalStyleProp(property)
-        ? clearGlobalStyleResponsiveOverrides(baseElement.responsive)
+        ? clearNonEligibleResponsiveOverrides(baseElement.responsive)
         : null;
 
       updateAndSave(
@@ -926,15 +945,21 @@ export const createInspectorActionsSlice: StateCreator<
 
       let updatedElement: Element;
 
-      if (activeBreakpoint !== "desktop" && !isGlobalStyleProp(property)) {
-        // ADR-154: 비-desktop 은 base(props.style) 대신 responsive override 를 preview
-        // 로 반영한다. elementsMap 만 갱신(히스토리/DB 없음)하고 base 는 무변경이라
-        // base 오염이 없다. commit 경로(updateSelectedStyle)가 동일
-        // buildResponsiveStyleOverride 로 최종 override 를 기록하며,
-        // resolveResponsiveLayoutNode 가 activeBreakpoint 기준으로 이 preview override
-        // 를 merge → 드래그/타이핑 중 캔버스 즉시 반영. (숫자/shorthand 변환은
-        // buildResponsiveStyleOverride 내부에서 처리.) 전역 속성(border)은 아래 base
-        // preview 로 반영 (breakpoint 무관).
+      if (
+        shouldWriteBreakpointOverride(
+          element.responsive,
+          property,
+          activeBreakpoint,
+        )
+      ) {
+        // ADR-154 개정 1: eligible 속성 토글 ON 일 때만 responsive override 를 preview 로
+        // 반영한다 (commit 경로와 동일 shouldWriteBreakpointOverride 판정). elementsMap 만
+        // 갱신(히스토리/DB 없음)하고 base 는 무변경이라 base 오염이 없다. commit 경로
+        // (updateSelectedStyle)가 동일 buildResponsiveStyleOverride 로 최종 override 를
+        // 기록하며, resolveResponsiveLayoutNode 가 activeBreakpoint 기준으로 이 preview
+        // override 를 merge → 드래그/타이핑 중 캔버스 즉시 반영. (숫자/shorthand 변환은
+        // buildResponsiveStyleOverride 내부에서 처리.) 그 외(전역/토글 OFF)는 아래 base
+        // preview 로 반영 (전 breakpoint 적용).
         const nextResponsive = buildResponsiveStyleOverride(
           element.responsive,
           property,
@@ -1000,10 +1025,10 @@ export const createInspectorActionsSlice: StateCreator<
           ...getInspectorWritableProps(element),
           style: currentStyle,
         };
-        // 전역 속성(border) preview 는 stale responsive override 를 정리해 base 값이
-        // 모든 breakpoint preview 에 그대로 반영되게 한다.
+        // 전역(non-eligible) 속성 preview 는 stale responsive override 를 정리해 base 값이
+        // 모든 breakpoint preview 에 그대로 반영되게 한다 (R8).
         const clearedResponsive = isGlobalStyleProp(property)
-          ? clearGlobalStyleResponsiveOverrides(element.responsive)
+          ? clearNonEligibleResponsiveOverrides(element.responsive)
           : null;
         updatedElement = buildInspectorUpdatedElement(
           element,
@@ -1077,6 +1102,71 @@ export const createInspectorActionsSlice: StateCreator<
       updateAndSave(element.id, {}, { responsive: next });
     },
 
+    setResponsiveStyleOverrideEnabled: (property, enabled) => {
+      const activeBreakpoint = get().activeBreakpoint;
+      // desktop = base 그 자체 (토글 무의미), non-eligible = 항상 전역 → 둘 다 no-op.
+      if (activeBreakpoint === "desktop") return;
+      if (!isResponsiveEligibleStyleProp(property)) return;
+
+      const element = getSelectedElement();
+      if (!element) return;
+
+      const longhands = SHORTHAND_TO_LONGHAND[property] ?? [property];
+
+      if (!enabled) {
+        // OFF: 해당 tier override 키 제거 (buildResponsiveStyleOverride "" clear 규약) →
+        // base 상속 복귀. shorthand 는 longhand 별로 clear.
+        let nextResponsive = element.responsive;
+        for (const key of longhands) {
+          nextResponsive = buildResponsiveStyleOverride(
+            nextResponsive,
+            key,
+            "",
+            activeBreakpoint,
+          );
+        }
+        updateAndSave(element.id, {}, { responsive: nextResponsive });
+        return;
+      }
+
+      // ON: 현재 effective(base ⊕ 상위 tier cascade) 값을 이 tier override 로 복사 →
+      // 토글 순간 시각 변화 0, 이후 이 속성 편집이 override 로 라우팅. 값이 없는 속성은
+      // seed 대상이 없어 no-op (eligible layout/transform 은 factory 기본값 보유가 일반).
+      const resolved = getResolvedInspectorElement(
+        element,
+        getInspectorLookupElements(),
+      );
+      const baseStyle =
+        (resolved.props?.style as Record<string, unknown>) || {};
+      const respStyles = element.responsive?.styles as
+        | Record<string, ResponsiveValue<unknown>>
+        | undefined;
+
+      let nextResponsive = element.responsive;
+      for (const key of longhands) {
+        const respValue = respStyles?.[key];
+        // base longhand 부재 시 shorthand fallback (예: props.style.padding="16px").
+        const baseValue = baseStyle[key] ?? baseStyle[property];
+        const effective =
+          respValue != null
+            ? getResponsiveValueWithCascade(
+                respValue,
+                activeBreakpoint,
+                baseValue,
+              )
+            : baseValue;
+        if (effective === undefined || effective === null || effective === "")
+          continue;
+        nextResponsive = buildResponsiveStyleOverride(
+          nextResponsive,
+          key,
+          String(effective),
+          activeBreakpoint,
+        );
+      }
+      updateAndSave(element.id, {}, { responsive: nextResponsive });
+    },
+
     updateSelectedStyles: (styles) => {
       const element = getSelectedElement();
       if (!element) return;
@@ -1090,23 +1180,31 @@ export const createInspectorActionsSlice: StateCreator<
           ? savedPrePreview
           : element;
 
-      // ADR-154: 비-desktop breakpoint 에서는 batch style 편집도 base(props.style) 대신
-      // element.responsive.styles override 로 저장 (단수 updateSelectedStyle 와 대칭).
-      // reset(useResetStyles) 이 이 경로로 responsive override 를 "" 로 clear 한다.
-      // 단, 전역 속성(border 색/스타일/너비)은 breakpoint 무관하게 base 에 반영한다 —
-      // 한 batch 에 전역+응답형이 섞이면 축을 분리해 각각의 저장소에 기록.
+      // ADR-154 개정 1: batch 편집도 단수 updateSelectedStyle 와 동일 라우팅 —
+      // shouldWriteBreakpointOverride(eligible + 해당 tier 토글 ON)면 override, 아니면 base.
+      // 한 batch 에 override-대상 + base-대상 이 섞이면(reset 이 eligible 토글 clear +
+      // 전역 base reset 을 함께 보냄) 축을 분리해 각각의 저장소에 기록.
       const activeBreakpoint = get().activeBreakpoint;
       if (activeBreakpoint !== "desktop") {
         const entries = Object.entries(styles);
-        const globalEntries = entries.filter(([property]) =>
-          isGlobalStyleProp(property),
+        const overrideEntries = entries.filter(([property]) =>
+          shouldWriteBreakpointOverride(
+            baseElement.responsive,
+            property,
+            activeBreakpoint,
+          ),
         );
-        const responsiveEntries = entries.filter(
-          ([property]) => !isGlobalStyleProp(property),
+        const baseEntries = entries.filter(
+          ([property]) =>
+            !shouldWriteBreakpointOverride(
+              baseElement.responsive,
+              property,
+              activeBreakpoint,
+            ),
         );
 
         let nextResponsive = baseElement.responsive;
-        for (const [property, value] of responsiveEntries) {
+        for (const [property, value] of overrideEntries) {
           nextResponsive = buildResponsiveStyleOverride(
             nextResponsive,
             property,
@@ -1115,8 +1213,8 @@ export const createInspectorActionsSlice: StateCreator<
           );
         }
 
-        // 전역 속성이 없으면 기존 responsive-only 경로 유지
-        if (globalEntries.length === 0) {
+        // base 로 갈 entry 가 없으면 override-only 경로 유지
+        if (baseEntries.length === 0) {
           updateAndSave(
             element.id,
             {},
@@ -1128,7 +1226,7 @@ export const createInspectorActionsSlice: StateCreator<
           return;
         }
 
-        // 전역 속성은 base 에 반영 + responsive.styles 의 border 키 정리(stale shadow 방지)
+        // base-대상 entry 는 base 에 반영 + responsive.styles 의 non-eligible 키 정리 (R8)
         const resolvedBaseElement = getResolvedInspectorElement(
           baseElement,
           getInspectorLookupElements(),
@@ -1137,11 +1235,11 @@ export const createInspectorActionsSlice: StateCreator<
           ...((resolvedBaseElement.props?.style as Record<string, unknown>) ||
             {}),
         };
-        for (const [property, value] of globalEntries) {
+        for (const [property, value] of baseEntries) {
           applyBaseStyleEntry(baseStyle, property, value);
         }
         const finalResponsive =
-          clearGlobalStyleResponsiveOverrides(nextResponsive) ?? nextResponsive;
+          clearNonEligibleResponsiveOverrides(nextResponsive) ?? nextResponsive;
 
         updateAndSave(
           element.id,

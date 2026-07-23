@@ -97,7 +97,86 @@ export type ResponsiveVisibility = ResponsiveValue<boolean>;
 // ============================================
 
 /**
- * Element의 Responsive 스타일 속성
+ * ADR-154 개정 1 (2026-07-23) — responsive-eligible style prop allowlist (SSOT).
+ *
+ * breakpoint 별 override(토글 opt-in)를 허용하는 style prop 집합. **Layout·Transform
+ * 섹션이 편집하는 키 전수**(Style 패널 `LAYOUT_PROPS` ∪ `TRANSFORM_PROPS` 미러).
+ *
+ * ## 개정 모델
+ *
+ * 어느 breakpoint 화면에서 편집하든 기본은 base(`props.style`) 저장 = 전 breakpoint 적용.
+ * eligible 속성만 속성 단위 토글 ON 시 해당 tier override 로 저장한다. eligible 이 **아닌**
+ * 모든 style prop(배경 fills·border·radius·typography·overflow·boxShadow 등)은 "전역"
+ * — 어느 breakpoint 에서든 base 로 저장되어 전 breakpoint 에 적용된다.
+ *
+ * ## Why (개정 계기)
+ *
+ * 원안은 비-desktop 편집을 자동으로 tier override 로 저장(암묵 tier write)했는데, 화면 전환만으로
+ * 편집 적용 범위가 바뀌어 예측이 어려웠다("왜 여기서 이게 이렇게 나오지?"). desktop↔mobile 차이는
+ * 대부분 Layout·Transform(크기/배치) 축이라는 실사용 정신 모델에 맞춰, 그 축만 명시적 opt-in
+ * override 로 좁히고 나머지는 전역으로 통일한다.
+ *
+ * ## 드리프트 가드 (R9)
+ *
+ * `LAYOUT_PROPS`/`TRANSFORM_PROPS`(builder 섹션)와의 합집합 일치를 정적 테스트가 확증한다
+ * (`responsiveEligible.static.test.ts`). 섹션에 편집 필드 추가 시 이 집합도 동반 갱신.
+ *
+ * `ResponsiveStyles` 인터페이스(아래)는 저장 형태 힌트일 뿐 런타임 게이트가 아니다 — eligibility
+ * 판정의 SSOT 는 본 집합. (resolve/CSS 경로는 `Object.keys` 로 generic 처리하므로 여기 담긴 어떤
+ * 키든 처리된다.)
+ */
+export const RESPONSIVE_ELIGIBLE_STYLE_PROPS: ReadonlySet<string> = new Set([
+  // ── Layout 섹션 (LAYOUT_PROPS 미러) ──
+  "display",
+  "flexDirection",
+  "flexWrap",
+  "alignItems",
+  "justifyContent",
+  "gap",
+  "rowGap",
+  "columnGap",
+  "padding",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "margin",
+  "marginTop",
+  "marginRight",
+  "marginBottom",
+  "marginLeft",
+  // ── Transform 섹션 (TRANSFORM_PROPS 미러) ──
+  "width",
+  "height",
+  "top",
+  "left",
+  "flexGrow",
+  "flexShrink",
+  "flexBasis",
+  "alignSelf",
+  "justifySelf",
+  "minWidth",
+  "maxWidth",
+  "minHeight",
+  "maxHeight",
+  "aspectRatio",
+]);
+
+/**
+ * ADR-154 개정 1 — style prop 이 breakpoint 별 override(토글 opt-in) 대상인지 판정.
+ * `false` = 전역 속성(어느 breakpoint 에서든 base 저장). SSOT: {@link RESPONSIVE_ELIGIBLE_STYLE_PROPS}.
+ */
+export function isResponsiveEligibleStyleProp(property: string): boolean {
+  return RESPONSIVE_ELIGIBLE_STYLE_PROPS.has(property);
+}
+
+/**
+ * Element의 Responsive 스타일 속성 (저장 형태 힌트).
+ *
+ * NOTE (ADR-154 개정 1): eligibility 판정의 런타임 SSOT 는 {@link RESPONSIVE_ELIGIBLE_STYLE_PROPS}
+ * 다. 이 인터페이스에 나열된 fontSize/textAlign 등은 개정 후 eligible 이 아니며(전역), 반대로
+ * Transform 축 일부(minWidth 등)는 여기 미선언이지만 eligible 이다 — resolve/CSS 경로가 generic
+ * `Object.keys` 처리라 저장·resolve 는 정상 동작한다. 정확한 게이트는 위 allowlist 를 볼 것.
  */
 export interface ResponsiveStyles {
   /** Flex 방향 */
