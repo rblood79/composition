@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented — 2026-07-19 (Phase 1~3 전체 delivered, execute-adr. Accepted 2026-07-16 — 리뷰 round 1 승인, 이슈 3건 전부 fixed, `docs/adr/reviews/154.md`)
+Implemented — 2026-07-19 (Phase 1~3 전체 delivered, execute-adr. Accepted 2026-07-16 — 리뷰 round 1 승인, 이슈 3건 전부 fixed, `docs/adr/reviews/154.md`) · **개정 1 (write 모델 반전 — 기본 전역 + 명시적 override) Accepted — 2026-07-23, 구현 전** (하단 §개정 1 참조)
 
 > **구현 완료 (execute-adr, 2026-07-16 ~ 07-19)**:
 >
@@ -132,3 +132,88 @@ composition 은 노코드 **웹사이트** 빌더이지만 breakpoint 기반 반
 - canonical schema 필드 1 증가 — mutation wrapper/history/roundtrip/signature 4곳 동시 보수 의무가 영구 추가.
 - full-tree 재계산 트리거 1종 추가 — layoutVersion 계약 관리 표면 확대.
 - ~~render-visual props (`fontSize`/`textAlign` 2/14) Skia glyph 대칭 미완~~ → **해소 (2026-07-19)**: `StoreRenderBridge.buildNodeForElement` 에서 layout 과 동일 `resolveResponsiveLayoutNode` 적용 — glyph 가 activeBreakpoint 기준 override 값으로 렌더 (live: fontSize desktop 14 ↔ mobile 40). layout+render 14/14 Skia↔DOM 대칭.
+
+---
+
+## 개정 1 (2026-07-23) — write 모델 반전: 기본 전역 + 명시적 override
+
+### Status (개정)
+
+Accepted — 2026-07-23 (브레인스토밍 사용자 confirm: write 모델 반전 + override 허용 범위 Layout·Transform 한정. 구현 전)
+
+### Context (개정)
+
+원안의 write 모델은 **암묵 tier-scoped write** 다 — 비-desktop 화면에서 편집하면 자동으로 해당 breakpoint 전용 override 가 생성된다 (Webflow/Framer 관행). Implemented 이후 실사용 (2026-07-19~22) 에서 다음이 확인됐다:
+
+1. **사용자 혼란 (개정 계기)**: 빌더를 사용할 개발자 관점에서 "breakpoint 별로 굳이 왜 나누어야 하는지" — 화면 전환만으로 편집 결과의 적용 범위가 바뀌는 것이 예측 불가 ("왜 여기서 이게 이렇게 나오지?"). desktop↔mobile 차이는 대부분 **Layout·Transform (크기/배치) 축**이고 나머지 시각 속성은 동일하게 가져간다는 것이 실사용 정신 모델 (2026-07-23 사용자 confirm).
+2. **전역 예외 blocklist 증가 추세**: 배경(fills — 애초에 responsive 시스템 밖 node-level 채널)에 이어 border 15키가 사용자 요청으로 전역 전환됨 (`GLOBAL_STYLE_PROPS`, 2026-07-22 `1377d62bb` — @media border 렌더 이슈 우회 겸용). 예외 목록이 자라는 방향 자체가 "모든 style prop 이 responsive" 라는 기본값이 실사용과 어긋난다는 신호.
+3. **특례 분기 누적**: dirty/reset·read 경로가 tier-scoped 판정과 전역 판정을 속성별 특례로 나눠 다루기 시작 (fills 특례 `5baa17a2f`, border 특례 `1377d62bb`) — 모델 단위 정리 없이는 신규 속성마다 재발.
+
+### Alternatives Considered (개정)
+
+#### 개정안 A: 현행 유지 + 가시성 강화
+
+- 설명: write 무변경. per-field override/상속 배지를 전 입력에 확장해 "지금 편집이 어디에 적용되는지" 를 시각화 (Webflow 식).
+- 위험: 기술(L) / 성능(L) / 유지보수(M — 예외 blocklist 증가 추세 지속, border 류 전역화 요청 반복 예상) / 마이그레이션(L). 근본 결함: 암묵 tier write 모델 자체가 혼란원 — 배지는 결과 안내일 뿐 "화면 전환 = 적용 범위 변경" 을 없애지 못함.
+
+#### 개정안 B: 기본 전역 write + 명시적 opt-in override (선택)
+
+- 설명: 어느 breakpoint 화면에서 편집하든 기본은 base(`props.style`) 저장 = 전 breakpoint 적용. breakpoint 전용값은 속성 단위 토글을 명시적으로 켠 경우에만 해당 tier override 로 저장. 토글 상태는 별도 저장 없이 데이터 파생 (`responsive.styles[prop][bp]` 존재 = ON).
+- 위험: 기술(L — 기존 write helper·resolve·@media 재사용, 라우팅 조건만 반전) / 성능(L) / 유지보수(L — 전역 예외 개념 소멸, blocklist → eligible allowlist 단일 규칙) / 마이그레이션(M — 기존 non-eligible override 무력화 필요. 개발 단계라 BC 부담 낮음).
+
+#### 개정안 C: 축 고정 분류 단독 (토글 없음)
+
+- 설명: Layout·Transform 은 현행 암묵 tier write 유지, 나머지 전 속성은 항상 전역. UI 추가 없음.
+- 위험: 기술(L) / 성능(L) / 유지보수(M) / 마이그레이션(M). 근본 결함: Layout 축은 암묵 write 가 남아 혼란 절반 잔존 + "mobile 화면에서 전역 layout 수정" 사례 차단.
+
+#### Risk Threshold Check (개정)
+
+| 개정안 | 기술 | 성능 | 유지보수 | 마이그레이션 | HIGH+ |
+| ------ | ---- | ---- | -------- | ------------ | :---: |
+| A      | L    | L    | M        | L            |   0   |
+| B      | L    | L    | L        | M            |   0   |
+| C      | L    | L    | M        | M            |   0   |
+
+루프 판정: 전 개정안 HIGH 0 — B 가 근본 원인(암묵 write)을 유일하게 해소하고 유지보수 위험 최저. 추가 루프 불필요.
+
+### Decision (개정)
+
+**개정안 B 를 채택하되, override 허용 범위는 개정안 C 의 분류 정신을 결합해 Layout·Transform 섹션 편집 키로 한정한다** (`RESPONSIVE_ELIGIBLE_STYLE_PROPS` allowlist — 사용자 confirm: "desktop-mobile 차이는 대부분 Layout·Transform 에서 두지 나머지는 동일").
+
+- **저장·resolve·출력 계층 무변경**: `responsive.styles` 스키마, cascade resolve (`getResponsiveValueWithCascade`), @media 출력 (Phase 3), Skia resolve (`resolveResponsiveLayoutNode`) 전부 그대로. 반전되는 것은 그 위의 **authoring 정책 계층** (write 라우팅 조건 + 토글 UI + dirty/reset 판정) 뿐이다.
+- **항상 전역**: Appearance(border·radius)·Typography·배경(fills) — 토글 비노출, 어느 breakpoint 에서든 base write. border 전역화(`1377d62bb`)가 우회한 @media border 렌더 이슈는 계속 회피 유지 (수정 불필요). `GLOBAL_STYLE_PROPS` blocklist 는 allowlist 반전으로 대체·소멸.
+- **eligible 확장 경로**: fontSize 모바일 축소 같은 실수요가 확인되면 allowlist 1줄 추가로 확장 (Typography 키 편입) — 지금은 사용자 confirm 범위(Layout·Transform)만.
+- 기각 사유 — 개정안 A: 근본 원인 미해소 (배지가 아무리 명확해도 암묵 write 모델의 예측 불가가 남음). 개정안 C 단독: Layout 축 혼란 잔존 + 전역 layout 편집 불가.
+
+> 구현 상세: [154-responsive-breakpoint-authoring-breakdown.md §9](../design/154-responsive-breakpoint-authoring-breakdown.md)
+
+### Risks (개정)
+
+| ID  | 위험                                                                                                                                                               | 심각도 | 대응                                                                                                                                       |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :----: | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| R7  | cascade shadow — tablet override 존재 시 mobile 화면에서 base 편집이 시각 무반응 (mobile 이 tablet 값 상속)                                                        |  LOW   | input 에 상속 출처 배지 표시 + breakdown 문서화. 토글 모델에서 tablet 단독 override 는 드묾                                                |
+| R8  | 기존 문서의 non-eligible 잔존 override (border 정리 이전 데이터·타이포 등) 가 read 에 계속 반영되면 "항상 전역" 계약 위반                                          |  MED   | read merge 에 eligible 필터 (즉시 무력화) + write 시 정리 (`clearGlobalStyleResponsiveOverrides` 일반화). 개발 단계 — BC 마이그레이션 불요 |
+| R9  | allowlist ↔ LayoutSection/TransformSection 편집 필드 드리프트 — 신규 섹션 필드가 allowlist 미등재 시 토글 없이 조용히 전역 write (silent)                          |  MED   | 정적 테스트: 두 섹션의 편집 style 키 ↔ allowlist 대조 (`LayoutSection.static.test.ts` 패턴)                                                |
+| R10 | write 3함수 (commit `updateSelectedStyle` / preview `updateSelectedStylePreview` / batch `updateSelectedStyles`) 라우팅 조건 불일치 → 드래그 중·release 후 값 점프 |  MED   | 3함수 공통 판정 helper 단일화 (`shouldWriteBreakpointOverride`) + unit. 원안 R4 (longhand 정책) 계약 유지                                  |
+
+### Gates (개정)
+
+| Gate | 시점                     | 통과 조건                                                                                                                                                                                             | 실패 시 대안               |
+| ---- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| G5   | Phase R1 완료 커밋       | unit: 비-desktop & 토글 OFF → base write / 토글 ON → tier write (3함수 공통) + **live**: mobile 화면 padding 편집 → desktop 동시 반영, 토글 ON 후 편집 → mobile 만 반영                               | 라우팅 수정 후 재검증      |
+| G6   | Phase R3 완료 커밋       | dirty/reset: 전역 속성은 모든 breakpoint 에서 감지·해제 (fills 특례 규칙의 일반화) + eligible own-tier override 는 자기 tier 판정 — live 확인                                                         | 판정 helper 수정 후 재검증 |
+| G7   | 개정 Implemented 승격 전 | live 3-exercise (CLAUDE.md 완료 기준): ① mobile 전역 편집 → desktop 반영 ② 토글 override 격리 + Preview @media 대칭 ③ non-eligible 잔존 override 문서 로드 시 무력화·무오류 + `/cross-check` Skia↔DOM | 승격 보류                  |
+
+### Consequences (개정)
+
+#### Positive
+
+- 편집 결과 예측 가능 — "편집 = 전역, breakpoint 분기 = 명시 의도" 가 CSS 정신 모델 (기본 규칙 + @media) 과 일치. "왜 여기서 이렇게 나오지" 소멸.
+- 특례 분기 소멸 — fills 특례(`5baa17a2f`)·border blocklist(`1377d62bb`) 가 "non-eligible = 전역" 단일 일반 규칙로 흡수.
+- `responsive.styles` 에 명시 의도만 남아 문서 diff·override chip 목록의 신호 대 잡음 개선.
+
+#### Negative
+
+- breakpoint 전용값 생성에 토글 1클릭 추가 (의도된 마찰).
+- 기존 문서의 non-eligible override 는 조용히 무시됨 (개발 단계 수용, R8).
+- LayoutSection·TransformSection 행 UI 밀도 소폭 증가 (토글 dot).

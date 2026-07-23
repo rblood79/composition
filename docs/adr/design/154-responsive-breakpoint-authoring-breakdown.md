@@ -1,7 +1,8 @@
 # ADR-154 구현 상세 — 반응형 Breakpoint 저작 배선
 
 > 본문: [154-responsive-breakpoint-authoring.md](../completed/154-responsive-breakpoint-authoring.md)
-> 상태: Accepted (2026-07-16) — 리뷰 round 1 승인, execute-adr 진행
+> 상태: Accepted (2026-07-16) — 리뷰 round 1 승인, execute-adr 진행 → Phase 1~3 Implemented (2026-07-19)
+> **개정 1 (2026-07-23 Accepted, 구현 전)**: write 모델 반전 — §9 참조
 
 ## 1. Scope lock-in
 
@@ -120,3 +121,54 @@ Phase 2 착수 시 라이브 재실측 결과, §2 인벤토리의 아래 2행�
 - 정적 가드: **`LAYOUT_STYLE_KEYS`** responsive 등재 (style 축 — `LAYOUT_PROP_KEYS` 아님) + signature input 등재 (기존 `fullTreeLayout.static.test.ts` 패턴).
 - roundtrip: canonical ↔ .pen ↔ canonical 에서 `responsive` 보존.
 - live: Phase 4 Chrome MCP 3-exercise.
+
+## 9. 개정 1 구현 상세 — write 모델 반전: 기본 전역 + 명시적 override (2026-07-23 Accepted)
+
+> 본문: [§개정 1](../completed/154-responsive-breakpoint-authoring.md). 원안 Phase 1~3 산출물 (canonical schema / cascade resolve / @media 출력 / Skia resolve) **무변경** — 그 위의 authoring 정책 계층 (write 라우팅 + 토글 UI + dirty·reset 판정) 만 교체한다.
+>
+> **write 모델 (개정 후)**: 어느 breakpoint 화면에서 편집하든 기본은 base(`props.style`) 저장 = 전 breakpoint 적용. breakpoint 전용값은 **eligible 속성 (Layout·Transform 섹션 키) 에 한해** 속성 단위 토글 ON 시에만 해당 tier override 로 저장. 토글 상태는 별도 저장 없음 — `responsive.styles[prop][bp]` 존재 = ON (데이터 파생, UI↔데이터 정합 자동).
+
+### Phase R0 — eligible allowlist freeze (실측)
+
+1. `LayoutSection.tsx` / `TransformSection.tsx` 가 편집하는 style 키 전수 실측 (longhand 기준 — ADR-909: rowGap/columnGap, padding·margin 4-way 등) → `RESPONSIVE_ELIGIBLE_STYLE_PROPS` 상수 확정.
+2. 기존 `ResponsiveStyles` 14-prop 화이트리스트 (`responsive.types.ts`) 와 **단일 소스 통합** — 두 목록 병존 금지. fontSize/textAlign (render-visual 2/14) 은 개정 범위상 eligible 제외 (Typography 전역) — 원안의 14/14 Skia↔DOM 대칭 인프라는 유지되므로 후속 편입 시 allowlist 추가만으로 재가동. Transform 키 (translate/rotate/scale 등) 가 기존 14-prop 밖이면 eligible 편입 + resolve 경로 통과 확인.
+3. `globalStyleProps.ts` 개편: `GLOBAL_STYLE_PROPS` blocklist 삭제 → allowlist 반전 (`isResponsiveEligibleStyleProp`). `clearGlobalStyleResponsiveOverrides` 를 "non-eligible 전 키 정리" 로 일반화. (파일명 `responsiveEligibleStyleProps.ts` 개편 검토)
+
+### Phase R1 — write 라우팅 반전
+
+1. `inspectorActions.ts` 3함수 (`updateSelectedStyle` / `updateSelectedStylePreview` / `updateSelectedStyles`) 의 분기 조건을 공통 helper `shouldWriteBreakpointOverride(element, prop, activeBreakpoint)` 로 단일화 (R10): `activeBreakpoint !== "desktop" && isResponsiveEligibleStyleProp(prop) && hasOwnTierOverride(element, prop, bp)`. own-tier 판정은 **raw `element.responsive`** (merged map 재판정 금지 — feedback-merged-style-map-kills-override-detection).
+2. 신규 액션 `setResponsiveStyleOverrideEnabled(prop, enabled)`: ON = 현재 resolve 값 복사로 해당 bp override 생성 (`buildResponsiveStyleOverride` 재사용) / OFF = 해당 bp 키 clear (기존 `""` clear 규약 재사용). canonical 1차 → set → `_rebuildIndexes` → persist 순서 의무 (state-management.md).
+3. batch write (reset 등) 는 eligible/전역 축 분리 유지 (`1377d62bb` 패턴의 일반화).
+4. layoutVersion 계약 접점 무변경 — base write 는 기존 desktop 편집 경로, override write 는 기존 비-desktop 경로와 동일 (조건만 반전). 원안 R1 인프라 그대로.
+
+### Phase R2 — 토글 UI
+
+1. LayoutSection/TransformSection 속성 행에 토글 dot — **비-desktop 화면에서만 노출** (desktop = base 그 자체라 토글 무의미). 상태·배지는 raw `element.responsive` 파생 (`useResponsiveOverrides` 확장).
+2. override ON 행에 배지 + cascade 상속 (tablet override 가 mobile 을 가리는 경우) 출처 배지 (R7 — 편집은 base write 유지, 시각 무반응 사유 안내).
+3. `ResponsiveSection` override chip 목록과 정합 (동일 raw 소스 — chip = 토글 ON 속성 목록).
+
+### Phase R3 — dirty·reset·read 일반화
+
+1. dirty/reset (`useResetStyles.ts` `computeDirtyStyleProps` / `resetStyles`): **eligible + own-tier override → 자기 tier 판정, 그 외 전 속성 → base 판정 breakpoint 무관** — fills 특례 (`5baa17a2f`) + border 특례 (`1377d62bb`) 를 단일 일반 규칙로 흡수 (G6).
+2. read merge 4곳 (`resolveResponsiveStyleMap`/`resolveResponsiveLayoutNode` (builder) · `buildResponsiveElementCss`/`collectResponsiveCssFromElements` (shared)) 에 eligible 필터 — non-eligible 잔존 override 즉시 무력화 (R8).
+3. `ModifiedStylesSection` 필터 뷰 표시 정합 확인.
+
+### Phase R4 — 검증·종결
+
+- unit: 라우팅 3함수 (OFF→base / ON→tier) / 토글 ON·OFF / dirty·reset 일반 규칙 / eligible 필터.
+- 정적: allowlist ↔ 섹션 편집 키 대조 (R9, `LayoutSection.static.test.ts` 패턴) + 기존 정적 가드 회귀.
+- live (G5~G7): ① mobile 화면 padding 편집 → desktop 동시 반영 ② 토글 ON 편집 → mobile 만 + Preview @media 대칭 ③ non-eligible 잔존 override 문서 로드 무력화·무오류. `/cross-check` Skia↔DOM.
+- CHANGELOG: 개정 Implemented 승격 커밋에 반영 (trigger #1 — 사용자-가시 write 동작 변경).
+
+### 파일 변경표 (개정 — R0 실측으로 확정)
+
+| 파일                                                                                   | 변경                                                       |
+| -------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `apps/builder/src/builder/stores/utils/globalStyleProps.ts`                            | blocklist → eligible allowlist 반전 개편                   |
+| `apps/builder/src/builder/stores/inspectorActions.ts`                                  | write 3함수 공통 helper 라우팅 + 토글 액션                 |
+| `apps/builder/src/builder/panels/styles/hooks/useResetStyles.ts`                       | dirty·reset 일반 규칙                                      |
+| `apps/builder/src/builder/panels/styles/sections/{LayoutSection,TransformSection}.tsx` | 토글 dot + 배지 UI                                         |
+| `apps/builder/src/builder/panels/styles/sections/ResponsiveSection.tsx`                | chip ↔ 토글 정합                                           |
+| `apps/builder/src/builder/workspace/canvas/layout/resolveResponsive.ts`                | eligible 필터                                              |
+| `packages/shared/src/utils/responsiveCss.ts`                                           | eligible 필터                                              |
+| `responsive.types.ts` (shared 이동분)                                                  | `ResponsiveStyles` 화이트리스트 ↔ allowlist 단일 소스 통합 |
