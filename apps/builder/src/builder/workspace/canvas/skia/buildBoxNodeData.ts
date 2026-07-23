@@ -6,7 +6,7 @@
  */
 
 import type { BorderStyleValue, TokenRef } from "@composition/specs";
-import { resolveColor } from "@composition/specs";
+import { resolveColor, hexStringToNumber } from "@composition/specs";
 import { resolveComponentRule } from "@composition/shared";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { SkiaNodeData } from "./nodeRendererTypes";
@@ -19,6 +19,7 @@ import {
   applyTransformOrigin,
   parseTransformOrigin,
   cssColorToAlpha,
+  colorIntToFloat32,
 } from "../sprites/styleConverter";
 import {
   parseZIndex,
@@ -153,18 +154,14 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
   if (fillV2Color) {
     fillColor = fillV2Color;
   } else if (shellBgResolved != null) {
+    // resolveColor 는 string | number 반환 — 색 토큰은 항상 hex 문자열이나 타입 계약상
+    //   number 도 수용. hexStringToNumber 는 비-hex(transparent 등)에 0x000000 안전 fallback
+    //   (인라인 parseInt(x,16) 은 NaN → 검정 오염). colorIntToFloat32 로 int→[r,g,b,a] 공용화.
     const hex =
       typeof shellBgResolved === "number"
         ? shellBgResolved
-        : shellBgResolved.startsWith("#")
-          ? parseInt(shellBgResolved.slice(1), 16)
-          : parseInt(shellBgResolved, 16);
-    fillColor = Float32Array.of(
-      ((hex >> 16) & 0xff) / 255,
-      ((hex >> 8) & 0xff) / 255,
-      (hex & 0xff) / 255,
-      1,
-    );
+        : hexStringToNumber(shellBgResolved);
+    fillColor = colorIntToFloat32(hex, 1);
   } else if (isCollectionItem && fill.alpha === 0) {
     fillColor = Float32Array.of(0.98, 0.98, 0.98, 1);
   } else {
