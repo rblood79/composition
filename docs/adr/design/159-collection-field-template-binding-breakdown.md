@@ -78,13 +78,14 @@ Phase 1~4 는 이 모델의 text-leaf 부분만 구현하되, 문법·자료구�
 - [x] 기존 저장 문서의 api/variable/route 사용 실측 (§5-3: 로컬 IndexedDB 0건 확증, Supabase 전체는 RLS 로 G4 재실측 이연)
 - 산출: 본 문서 §5 에 inventory 표 추가 ✅
 
-### Phase 1 — shared resolver + BC 계약 (커밋 1~2)
+### Phase 1 — shared resolver + BC 계약 (커밋 1~2) — ✅ Implemented 2026-07-24
 
-- [ ] `packages/shared/src/collections/fieldTemplate.ts` 신규 (compile/interpolate + 이스케이프/미지 필드)
-- [ ] `resolveCollectionItems.ts` 통합점: `toItemProjectionRow` 는 불변(휴리스틱 유지) — 보간은 소비 측 오버레이 (row.item 보존됨)
-- [ ] vitest: 문법 표 전 케이스 + BC fallback (토큰 없음 → 휴리스틱 동일) + 이스케이프 + 미지 필드
-- [ ] **slot 단위 독립 fallback** vitest (LOW 발견): label 슬롯 template 없음 → children=휴리스틱, description 슬롯 template 있음 → description=보간 — **혼합 상태**가 role 별 독립으로 판정되는지 (한 slot 의 template 유무가 다른 slot 판정에 영향 없음)
-- Gate: G2 (단일 심볼), G3 (BC — slot 단위 독립 포함)
+- [x] `packages/shared/src/collections/fieldTemplate.ts` 신규 (compile/interpolate + 이스케이프/미지 필드 + R5 compile 캐시 Map by text)
+- [x] `resolveCollectionItems.ts` 통합점: `toItemProjectionRow` 는 불변(휴리스틱 유지) — 보간은 소비 측 오버레이 (row.item 보존됨, 변경 0)
+- [x] vitest: 문법 표 전 케이스 + BC fallback (토큰 없음 → 휴리스틱 동일) + 이스케이프 + 미지 필드 (`fieldTemplate.test.ts` 15 케이스)
+- [x] **slot 단위 독립 fallback** vitest (LOW 발견): label/description 혼합 상태 role 별 독립 판정 lock-in
+- Gate: G2 ✅ (단일 심볼 — consumer 자체 brace 파싱 grep 0건), G3 ✅ (BC — slot 단위 독립 포함)
+- 명세 보정 1건: compile null 판정은 "토큰 0 **그리고 이스케이프 0**" — 이스케이프만 있는 `{{num}}` 은 §2-1 예시(`{num}` 표기 의도)대로 non-null 처리 (§2-2 문구와 §2-1 예시의 충돌을 §2-1 우선으로 해소)
 
 ### Phase 2 — Skia projection 배선 (커밋 1)
 

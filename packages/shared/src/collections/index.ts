@@ -7,4 +7,5 @@
  * hook adapter 경유(§2-D).
  */
 
+export * from "./fieldTemplate";
 export * from "./resolveCollectionItems";

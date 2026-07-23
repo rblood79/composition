@@ -7,7 +7,8 @@ Accepted — 2026-07-24 (리뷰 round 1 2026-07-21 / round 2 2026-07-23 승인 �
 ### Phase 진행 로그
 
 - Phase 0 (inventory) — Implemented 2026-07-24: api/variable/route 소비처 12분류 + columnMapping 5분류 전수 grep, 로컬 저장 문서(1+백업 10) dataBinding 0건 확증. Supabase 전체 실측은 RLS 로 G4(P4c 진입 전) 이연. 발견: DataTable factory 기본값이 `source:"api"` 생성(P4b 전환 필수). 상세: breakdown §5
-- (진행 예정) P1 shared resolver → P2 Skia projection → P3 DOM → P4 오소링/소스 단일화 → P5 문법 B → P6 종결
+- Phase 1 (shared resolver + BC 계약) — Implemented 2026-07-24: `fieldTemplate.ts` compile/interpolate + R5 캐시, vitest 15 케이스 (G2 grep 0건 / G3 slot 독립 fallback 포함). 소비처 배선 없음 — live 는 P2 부터
+- (진행 예정) P2 Skia projection → P3 DOM → P4 오소링/소스 단일화 → P5 문법 B → P6 종결
 
 ## Context
 
