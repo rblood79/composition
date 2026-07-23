@@ -2,7 +2,11 @@
 
 ## Status
 
-Proposed — 2026-07-21
+Accepted — 2026-07-24 (리뷰 round 1 2026-07-21 / round 2 2026-07-23 승인 — 전건 fixed, execute-adr 착수 시 승격)
+
+### Phase 진행 로그
+
+- (진행 예정) Phase 0 inventory → P1 shared resolver → P2 Skia projection → P3 DOM → P4 오소링/소스 단일화 → P5 문법 B → P6 종결
 
 ## Context
 
