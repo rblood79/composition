@@ -73,11 +73,16 @@ GridList 를 ListBox 와 동형 ref-composite 로 만들기 위한 참조 구현
 - **live 검증(2026-07-23)**: slotHostPolicy 수정 후 `component-gridlist`(Origin) 프로퍼티에 **Slot 섹션 표시**(`GridListItem/Default`, 1 recommendation, Disable slot) — ListBox(2 recommendation) 대칭. slotHostPolicy.test 4건(GridList 2 신규) + type-check(baseline) PASS.
 - Gate: GridList 인스턴스/origin 선택 → 프로퍼티 패널에 Slot 섹션 표시 (live). ✅
 
-### Phase 5 — 기존 인스턴스 migration (HIGH)
+### Phase 5 — 기존 인스턴스 처리 (LOW — 타입 미변환 ListBox-parity) — Implemented 2026-07-23
 
-- `legacyGridListTemplateMigration.ts` 신규 (`legacyListBoxTemplateMigration.ts` 동형): 기존 standalone `type:"GridList"` 인스턴스 → `type:"ref", ref:GRIDLIST_ORIGIN_ID` + props 이전. hydration 1회.
-- **되돌리기 위험**: migration 오류 시 기존 프로젝트 GridList 데이터 손상. Phase 5 는 idempotent + 원본 props 보존 필수.
-- Gate: 기존 프로젝트(standalone GridList 보유) hydrate → ref 전환 + 카드 무손실 + 새로고침 정합.
+**채택 방식 — 타입 미변환 origin bootstrap (사용자 결정 2026-07-23, ListBox 선례 동형)**:
+
+- 원안은 standalone `type:"GridList"` → `type:"ref"` **타입 변환** migration(`legacyGridListTemplateMigration.ts` 신규)이었으나, 실행 단계에서 ListBox 선례(`legacyListBoxTemplateMigration.ts`)를 확인한 결과 — **ListBox 는 타입을 변환하지 않는다**. `migrateLegacyListBoxTemplatesToOrigins` 는 in-instance template anchor strip + scroll-style 보강만 하고 `type:"ListBox"` 를 유지하며, standalone 은 `isListBoxSceneSource` line 1(`type==="ListBox"`) type gate 로 렌더한다. 신규 인스턴스만 ref(factory).
+- 사용자 결정(AskUserQuestion) — GridList 도 **타입 미변환** ListBox-parity 채택. 타입 변환이 R2(데이터 손실)의 실체였으므로, 미변환으로 R2 HIGH→LOW.
+- **GridList 는 anchor-less** (factory children:[]) — strip 대상 anchor 자체가 없다. **scroll-style 보강 미채택** — ListBox `ensureListBoxScrollStyle`(maxHeight:300px/overflow) 는 2026-07-22 ListBox 특정 overflow 버그 수정이지 ref-composite 모델 일부가 아니다. GridList overflow 는 별도 관심사(ADR-161 scope 밖).
+- **신규 production 코드 0**: 컨테이너 origin bootstrap 은 `ensureGridListTemplateOrigins`(hydration 3곳 — `createInitialProjectDocument`/`adapters/canonical/index.ts:342`/`usePageManager.ts:394` — Phase 1 에서 `repairOrigin(GRIDLIST_ORIGIN_ID)` 추가) 가 이미 담당. 기존 프로젝트는 hydrate 시 `component-gridlist` origin 을 자동 획득(멱등). standalone 은 `isGridListSceneSource` line 1 type gate 로 렌더(Phase 4 root fix 로 ref 도 동일 gate 통과 — 단일 gate 일관).
+- **검증(2026-07-23)**: `gridListTemplateOrigins.test.ts` 컨테이너 origin bootstrap 2건 신규(legacy 문서 → `component-gridlist`(slot→item origin) 추가 + 멱등/사용자편집 보존, 4건 PASS). live — 현 프로젝트 `component-gridlist` origin 존재 probe + ref GridList 카드 렌더(= type gate 통과, skia registry 58 노드). type-check(baseline 61) PASS.
+- Gate G2: `ensureGridListTemplateOrigins` legacy 문서 bootstrap(unit) + standalone type gate 렌더(live). ✅
 
 ### Phase 6 — 종결 검증 (parity sweep)
 
@@ -87,25 +92,26 @@ GridList 를 ListBox 와 동형 ref-composite 로 만들기 위한 참조 구현
 
 ## §3 파일 변경 요약
 
-| 파일                                                    | Phase | 변경                                                                                  |
-| ------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------- |
-| `gridListTemplateOrigins.ts`                            | 1     | 컨테이너 origin + 등록                                                                |
-| `dashboard/createInitialProjectDocument.test.ts`        | 1     | container origin assertion                                                            |
-| `factories/definitions/SelectionComponents.ts`          | 2     | GridList factory ref 전환                                                             |
-| `preview/App.tsx`                                       | 3     | `component-gridlist`.slot[0] master 해석                                              |
-| `canvas/scene/canvasSceneNode.ts`                       | 3/4   | `resolveGridListTemplateOriginId`(P3) + ref→master **scene type 근본 해석**(P4 visit) |
-| `canvas/scene/canvasSceneNode.test.ts`                  | 3     | resolveGridListTemplateOriginId 4 테스트                                              |
-| `adapters/canonical/legacyGridListTemplateMigration.ts` | 5     | 신규 migration                                                                        |
-| `components/slotHostPolicy.ts`                          | 7     | `isGridListHost` + item variant 판정 추가                                             |
-| `components/__tests__/slotHostPolicy.test.ts`           | 7     | GridList host/candidate 테스트 2건                                                    |
-| `docs/CHANGELOG.md` / `docs/adr/README.md`              | 6     | closure                                                                               |
+| 파일                                             | Phase | 변경                                                                                  |
+| ------------------------------------------------ | ----- | ------------------------------------------------------------------------------------- |
+| `gridListTemplateOrigins.ts`                     | 1     | 컨테이너 origin + 등록                                                                |
+| `dashboard/createInitialProjectDocument.test.ts` | 1     | container origin assertion                                                            |
+| `factories/definitions/SelectionComponents.ts`   | 2     | GridList factory ref 전환                                                             |
+| `preview/App.tsx`                                | 3     | `component-gridlist`.slot[0] master 해석                                              |
+| `canvas/scene/canvasSceneNode.ts`                | 3/4   | `resolveGridListTemplateOriginId`(P3) + ref→master **scene type 근본 해석**(P4 visit) |
+| `canvas/scene/canvasSceneNode.test.ts`           | 3     | resolveGridListTemplateOriginId 4 테스트                                              |
+| `gridListTemplateOrigins.test.ts`                | 5     | 컨테이너 origin bootstrap 2 테스트 (타입 미변환 — 신규 migration 파일 없음)           |
+| `components/slotHostPolicy.ts`                   | 7     | `isGridListHost` + item variant 판정 추가                                             |
+| `components/__tests__/slotHostPolicy.test.ts`    | 7     | GridList host/candidate 테스트 2건                                                    |
+| `docs/CHANGELOG.md` / `docs/adr/README.md`       | 6     | closure                                                                               |
 
 ## §4 검증 게이트 매핑 (ADR Gates 대응)
 
-| Phase | Gate                                     | 실패 시                                           |
-| ----- | ---------------------------------------- | ------------------------------------------------- |
-| 1     | container origin 존재 + slot 참조        | rollback (item-only 복귀)                         |
-| 2     | 신규 add = ref                           | standalone 유지 재검토                            |
-| 4     | Skia↔DOM parity (cross-check)            | Phase 4 debugger 위임, non-isomorphic 충돌 재설계 |
-| 5     | 기존 인스턴스 무손실 migration           | migration 보류, 신규만 ref (양립 기간)            |
-| 7     | 프로퍼티 패널 slot 섹션 표시 + 편집 반영 | slotHostPolicy/editor 재검토                      |
+| Phase | Gate                                                                   | 실패 시                                           |
+| ----- | ---------------------------------------------------------------------- | ------------------------------------------------- |
+| 1     | container origin 존재 + slot 참조                                      | rollback (item-only 복귀)                         |
+| 2     | 신규 add = ref                                                         | standalone 유지 재검토                            |
+| 4     | Skia↔DOM parity (cross-check)                                          | Phase 4 debugger 위임, non-isomorphic 충돌 재설계 |
+| 3     | preview+Skia 컨테이너 origin slot 소비                                 | 리터럴 fallback 복원                              |
+| 5     | origin bootstrap(unit) + standalone type gate 렌더(live) — 타입 미변환 | bootstrap-only 복귀                               |
+| 7     | 프로퍼티 패널 slot 섹션 표시 + 편집 반영                               | slotHostPolicy/editor 재검토                      |
