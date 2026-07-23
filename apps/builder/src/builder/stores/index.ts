@@ -364,6 +364,8 @@ export const useUpdateStyles = () =>
   useStore((state) => state.updateSelectedStyles);
 export const useUpdateResponsiveVisibility = () =>
   useStore((state) => state.updateSelectedResponsiveVisibility);
+export const useSetResponsiveStyleOverrideEnabled = () =>
+  useStore((state) => state.setResponsiveStyleOverrideEnabled);
 export const useUpdateProperty = () =>
   useStore((state) => state.updateSelectedProperty);
 export const useUpdateProperties = () =>

@@ -34,7 +34,7 @@ describe("StylesPanel canonical selected data contract", () => {
     expect(source).toContain("<ResponsiveSection />");
   });
 
-  it("ResponsiveSection wires override chips + visibility editor (locked desktop)", async () => {
+  it("ResponsiveSection wires override opt-in picker + chips + visibility editor (locked desktop)", async () => {
     const source = await readFile(
       resolve(__dirname, "sections/ResponsiveSection.tsx"),
       "utf-8",
@@ -46,7 +46,10 @@ describe("StylesPanel canonical selected data contract", () => {
     // desktop=base lock 으로 visibility 편집기 배선
     expect(source).toContain("ResponsiveVisibilityEditor");
     expect(source).toContain('lockedBreakpoints={["desktop"]}');
-    // override 제거는 활성 breakpoint clear 재사용
-    expect(source).toContain('updateSelectedStyle(prop, "")');
+    // ADR-154 개정 1: override 추가/제거는 명시적 opt-in 토글 액션 경유
+    expect(source).toContain("useSetResponsiveStyleOverrideEnabled");
+    expect(source).toContain("setOverrideEnabled(key, true)");
+    expect(source).toContain("setOverrideEnabled(key, false)");
+    expect(source).toContain("responsive-add-override");
   });
 });
