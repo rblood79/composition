@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [GridList ref 기반 재사용 composite 전환 — ADR-161] - 2026-07-23
+
+### Architecture
+
+- **GridList 를 ListBox 동형 ref-composite 로 전환** (ADR-161 Phase 1/2/3/4/5/7 Implemented):
+  - 컨테이너 재사용 origin `component-gridlist`(`slot:[component-gridlist-item-default]`) 신규 등록 — factory 신규 GridList 는 standalone `type:"GridList"` 대신 `type:"ref", ref:"component-gridlist"` 인스턴스로 생성(ListBox `component-listbox` 동형). Component 패널에 Role=Instance / "Go to component" 노출.
+  - **scene node type ref→master 근본 해석** (Phase 4): `toCanvasSceneNode` 가 ref 의 type 을 `"ref"` 로 두어 type-기반 projection gate(`isGridListSceneSource`)가 ref 를 차단하던 근본 원인을, `visit` 단일 지점에서 master type 을 해석해 `sceneNode.type` 에 반영하도록 수정(per-gate patch 대신). 모든 collection gate 가 type 으로 일관 통과.
+  - **preview + Skia 컨테이너 origin slot 대칭 소비** (Phase 3): `resolveGridListTemplateOriginId`(Skia) + `App.tsx` inline master 해석(preview)이 `component-gridlist`.slot[0] 을 읽어 item 템플릿을 해석(리터럴 하드코딩 제거). 두 소비자가 동일 SSOT 를 동일 방식으로 읽음(canvas-rendering.md symmetric consumer).
+  - **프로퍼티 패널 slot authoring parity** (Phase 7): `slotHostPolicy` 에 `isGridListHost`/`isGridListItemTemplateVariant` 추가 → GridList origin 프로퍼티에 Slot 섹션(GridListItem/Default) 표시(ListBox 대칭). per-type 편집기는 `useEditContract`(catalog)로 대체된 dead 코드라 item 편집기 전환 불요.
+  - **기존 인스턴스 = 타입 미변환 ListBox-parity** (Phase 5): ListBox `migrateLegacyListBoxTemplatesToOrigins` 가 standalone 타입을 변환하지 않고 origin bootstrap 만 함을 확인 → GridList 도 타입 미변환 채택(R2 HIGH→LOW). 기존 standalone GridList 는 `ensureGridListTemplateOrigins`(hydration 기배선) 컨테이너 origin bootstrap + `isGridListSceneSource` type gate 로 렌더 유지(데이터 손실 위험 없음).
+  - **시각 결과 불변** (BC): ref-composite 는 authoring/reuse 층 추가일 뿐, GridList 카드(bg+border+label+description) 렌더 결과 무변경. slot[0]==item origin 리터럴이라 전환 후에도 동일 origin 해석.
+  - **잔존**: R5 publish 앱 slot 미소비(ADR-148 R9 동일 알려진 gap, 본 ADR scope 밖 — publish flat-props BC).
+  - 위치: `apps/builder/src/builder/components/gridlist/gridListTemplateOrigins.ts`, `factories/definitions/SelectionComponents.ts`, `workspace/canvas/scene/canvasSceneNode.ts`, `preview/App.tsx`, `builder/components/slotHostPolicy.ts`
+
 ## [GridList 렌더 크래시 수정 + layout prop 노출] - 2026-07-23
 
 ### Bug Fixes
