@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-07-23 (리뷰 round 1 승인 — `docs/adr/reviews/161.md`, HIGH/MED 이슈 0, LOW 3 전부 종결)
+Implemented — 2026-07-23 (전 Phase 반영 — Phase 1/2/3/4/5/7. 리뷰 round 1 승인 `../reviews/161.md`)
 
 ### 진행 로그
 
@@ -13,6 +13,7 @@ Accepted — 2026-07-23 (리뷰 round 1 승인 — `docs/adr/reviews/161.md`, HI
 - 2026-07-23 — **Phase 7 반영 (G5 통과)**: `slotHostPolicy` 에 `isGridListHost`/`isGridListItemTemplateVariant` 추가 → `FrameSlotSection`(`isSlotHostElement` 게이트)이 GridList origin 에 Slot 섹션 표시(`GridListItem/Default`, ListBox 대칭). **task 2(GridListItemEditor 전환)는 moot** — per-type 편집기는 `useEditContract`(catalog)로 대체된 dead 코드, ListBoxItem/GridListItem item 편집기 이미 동일. live 검증 + slotHostPolicy.test 4건 + type-check PASS.
 - 2026-07-23 — **Phase 3 반영 (G3 통과)**: preview + Skia **대칭 배선** — 컨테이너 origin `component-gridlist`.slot[0] 을 소비하도록 전환(리터럴 하드코딩 제거). Skia `resolveGridListTemplateOriginId`(`resolveListBoxTemplateOriginId` 대칭) 신규 export + preview `App.tsx` inline master 해석(`component-listbox` `:263` 동형). slot[0]==리터럴이라 시각 결과 불변(BC), 컨테이너 origin authoritative. live 검증 — ref GridList(grid 3-item) Skia 카드 ≡ CSS preview, Component 패널 Role=Instance, 콘솔 에러 0. canvasSceneNode.test 40건(4 신규) + type-check PASS.
 - 2026-07-23 — **Phase 5 scope 확정 + 반영 (G2 통과)**: 코드 증거상 ListBox `migrateLegacyListBoxTemplatesToOrigins` 는 standalone `type:"ListBox"` 를 ref 로 **변환하지 않고** anchor strip + scroll 보강만 하며 standalone 은 type gate 로 렌더한다. 사용자 결정(AskUserQuestion) — GridList 도 **타입 미변환** ListBox-parity 채택 → R2 HIGH→LOW(데이터 손실 위험 소멸). Phase 5 는 신규 production 코드 0: 컨테이너 origin bootstrap 은 `ensureGridListTemplateOrigins`(hydration 3곳 기배선, Phase 1) 가 이미 담당, standalone 은 `isGridListSceneSource` line 1 type gate 로 렌더(Phase 4 root fix 로 ref 도 동일 gate 통과). 검증 — gridListTemplateOrigins.test 컨테이너 origin bootstrap 2건 신규(legacy 문서 추가 + 멱등/편집보존) + live(현 프로젝트 `component-gridlist` origin 존재 probe + ref GridList 카드 렌더 = type gate 통과). type-check PASS.
+- 2026-07-23 — **Implemented (Phase 6 closure)**: 전 Phase(1/2/3/4/5/7) 반영 완료. parity sweep — GridList 패밀리 102 테스트 PASS(canvasSceneNode/gridListTemplateOrigins/slotHostPolicy/collectionVirtualization/createInitialProjectDocument/SelectionComponents.listbox). live — ref GridList(grid 3-item) Skia 카드 ≡ CSS preview(Phase 3 screenshot), ref GridList + ref ListBox 공존 크래시 0, skia registry 58. stack 분기는 projection `numCols=1`(ADR-912 미변경, grid 검증으로 대칭). **잔존**: R5(publish 앱 slot 미소비) = ADR-148 R9 동일 알려진 gap, 본 ADR scope 밖(publish flat-props BC).
 
 ## Context
 
@@ -95,7 +96,7 @@ GridList 는 collection family 컴포넌트 중 유일하게 **재사용 composi
 - **대안 B 기각**: 크래시는 수정됐으나 ListBox 와의 영구 비대칭 + 부분이식 함정 재발 위험을 남긴다. 사용자가 reuse parity 를 명시 요구(2026-07-23).
 - **대안 C 기각**: factory ref 전환 없는 컨테이너 origin 은 아무도 참조하지 않는 orphan 죽은 데이터로, 유지보수 위험이 오히려 A 보다 높다(HIGH). "부분 진행" 이 가장 나쁜 상태.
 
-> 구현 상세: [161-gridlist-ref-composite-parity-breakdown.md](design/161-gridlist-ref-composite-parity-breakdown.md)
+> 구현 상세: [161-gridlist-ref-composite-parity-breakdown.md](../design/161-gridlist-ref-composite-parity-breakdown.md)
 
 ## Risks
 
