@@ -45,23 +45,38 @@ import {
   type SlotComposition,
   type SlotRole,
 } from "../catalog/slotRoles";
+// ADR-159 P3 — 행 텍스트 `{field}` 템플릿: Skia projection(canvasSceneNode)과 동일한
+//   shared 단일 resolver 소비 (G2). 구 ad-hoc regex(resolveTemplateText)는 slot text 를
+//   못 읽고 토큰 없는 literal 을 그대로 표시해 Skia BC 판정(휴리스틱 fallback)과 발산했다.
+import {
+  compileFieldTemplate,
+  interpolateCollectionRowTemplate as interpolateRowTemplate,
+  resolveRowTemplateSource,
+  type CompiledTemplate,
+  type RowTemplateRole,
+} from "../collections/fieldTemplate";
+import {
+  getItemDescription,
+  getItemIcon,
+  getItemLabel,
+} from "../collections/resolveCollectionItems";
 
-function readCollectionItemLabel(item: Record<string, unknown>): string {
-  return String(item.name || item.title || item.label || item.id || "");
-}
-
-function resolveTemplateText(
-  value: unknown,
-  item: Record<string, unknown>,
-): string | null {
-  if (typeof value === "number") return String(value);
-  if (typeof value !== "string" || value.length === 0) return null;
-  return value.replace(/\{([^}]+)\}/g, (_match, key: string) => {
-    const replacement = item[key.trim()];
-    return replacement === null || replacement === undefined
-      ? ""
-      : String(replacement);
-  });
+/**
+ * ADR-159 P3: 행 role 템플릿 compile — 행 루프 밖 1회 호출 계약 (R5).
+ * 소스 precedence 는 shared `resolveRowTemplateSource`(§2-3-1) 단일 판정:
+ * slot text > template item props(children/textValue | description) > null.
+ */
+function compileRowTemplateFor(
+  slotComposition: SlotComposition | null | undefined,
+  role: RowTemplateRole,
+  templateItemProps: Record<string, unknown> | null | undefined,
+): CompiledTemplate | null {
+  const source = resolveRowTemplateSource(
+    slotComposition,
+    role,
+    templateItemProps ?? null,
+  );
+  return source ? compileFieldTemplate(source) : null;
 }
 
 /**
@@ -384,24 +399,47 @@ export const renderListBox = (
       context.childrenByParent.get(listBoxItemTemplate.id) ?? []
     ).filter((child) => child.type === "Field");
 
+    // ADR-159 P3: 행 템플릿 compile — 행 루프 밖 1회 (R5). slot text > template item
+    //   props 순 precedence (Skia projection 과 동일 shared 판정). 토큰 없는 소스는
+    //   compile null → 휴리스틱 fallback (G3 BC — Skia 와 대칭. 구 resolveTemplateText
+    //   는 literal 을 그대로 표시해 발산했다).
+    const templateItemProps = listBoxItemTemplate.props as Record<
+      string,
+      unknown
+    >;
+    const rowLabelTemplate = compileRowTemplateFor(
+      templateSlotComposition,
+      "label",
+      templateItemProps,
+    );
+    const rowDescriptionTemplate = compileRowTemplateFor(
+      templateSlotComposition,
+      "description",
+      templateItemProps,
+    );
+    // ADR-147 icon 채널: 소스는 template props.icon 단독 (Icon slot 자식은 text 미보유).
+    //   토큰 없는 icon 문자열은 literal icon name 의미 유지 (heuristic 전환 아님).
+    const iconTemplateSource =
+      typeof templateItemProps.icon === "string" &&
+      templateItemProps.icon.length > 0
+        ? templateItemProps.icon
+        : null;
+    const rowIconTemplate = iconTemplateSource
+      ? compileFieldTemplate(iconTemplateSource)
+      : null;
+
     const renderItemFunction = (item: Record<string, unknown>) => {
-      const label = readCollectionItemLabel(item);
-      const templateLabel =
-        resolveTemplateText(
-          listBoxItemTemplate.props.children ??
-            listBoxItemTemplate.props.label ??
-            listBoxItemTemplate.props.textValue,
-          item,
-        ) ?? label;
-      const templateDescription = resolveTemplateText(
-        listBoxItemTemplate.props.description,
-        item,
-      );
-      // ADR-147: icon slot — template binding({icon}) 또는 columnMapping(Phase 4) 결과.
-      const templateIcon = resolveTemplateText(
-        listBoxItemTemplate.props.icon,
-        item,
-      );
+      const label = getItemLabel(item, String(item.id ?? ""), 0);
+      const templateLabel = rowLabelTemplate
+        ? interpolateRowTemplate(rowLabelTemplate, item)
+        : label;
+      const templateDescription = rowDescriptionTemplate
+        ? interpolateRowTemplate(rowDescriptionTemplate, item)
+        : getItemDescription(item);
+      // ADR-147: icon slot — template binding({icon}) 또는 data field(heuristic) 결과.
+      const templateIcon = rowIconTemplate
+        ? interpolateRowTemplate(rowIconTemplate, item)
+        : (iconTemplateSource ?? getItemIcon(item));
 
       const renderFieldChildren = () =>
         fieldChildren.map((field) => {
@@ -525,6 +563,18 @@ export const renderListBox = (
 
   // Path 2: items[] canonical (ADR-076 신설)
   // ADR-099 Phase 3: StoredListBoxEntry discriminated union — section entry 분기
+  // ADR-159 P3: 정적 items 행에도 slot 템플릿 적용 (Skia projection 이 props.items 행에도
+  //   동일 적용하는 것과 대칭). compile 은 행 루프 밖 1회.
+  const staticLabelTemplate = compileRowTemplateFor(
+    templateSlotComposition,
+    "label",
+    (listBoxTemplateChildren[0]?.props as Record<string, unknown>) ?? null,
+  );
+  const staticDescriptionTemplate = compileRowTemplateFor(
+    templateSlotComposition,
+    "description",
+    (listBoxTemplateChildren[0]?.props as Record<string, unknown>) ?? null,
+  );
   const renderListBoxLeaf = (item: StoredListBoxItem): React.ReactNode => (
     <ListBoxItem
       key={item.id}
@@ -548,9 +598,20 @@ export const renderListBox = (
     >
       {({ isSelected }) =>
         // ADR-147: items[] 경로도 label/description/icon slot emit (기존 description 미렌더 버그 수정).
+        // ADR-159 P3: 템플릿 존재 시 stored item 보간 — 없으면 기존 item.label/description (BC).
         renderListBoxItemSlotContent({
-          label: item.label,
-          description: item.description ?? null,
+          label: staticLabelTemplate
+            ? interpolateRowTemplate(
+                staticLabelTemplate,
+                item as unknown as Record<string, unknown>,
+              )
+            : item.label,
+          description: staticDescriptionTemplate
+            ? interpolateRowTemplate(
+                staticDescriptionTemplate,
+                item as unknown as Record<string, unknown>,
+              )
+            : (item.description ?? null),
           iconName: item.icon ?? null,
           isSelected,
           slotComposition: templateSlotComposition,
@@ -616,6 +677,12 @@ export const renderListBox = (
       defaultSelectedKeys={computeDefaultSelectedKeys(storedItems)}
       dataBinding={getElementDataBinding(element) as DataBinding | undefined}
       columnMapping={columnMapping}
+      // ADR-159 P3: 내부 기본 렌더(가상화/resolvedRows 경로 — 전달 children 무시)도
+      //   동일 템플릿을 적용하도록 소스 문자열 전달 (bare-ref data-bound 인스턴스 커버).
+      rowTemplateSources={{
+        label: staticLabelTemplate?.source ?? null,
+        description: staticDescriptionTemplate?.source ?? null,
+      }}
       onSelectionChange={onSelectionChange}
     >
       {renderChildren}
@@ -817,6 +884,21 @@ export const renderGridList = (
   const storedItems = (element.props as { items?: StoredGridListItem[] }).items;
   const hasItemsArray = Array.isArray(storedItems) && storedItems.length > 0;
 
+  // ADR-159 P3: 카드 텍스트 템플릿 compile — 행 루프 밖 1회 (R5). slot text > template
+  //   item props precedence (Skia appendGridListRowProjection 과 동일 shared 판정).
+  const cardTemplateItemProps =
+    (gridListChildren[0]?.props as Record<string, unknown>) ?? null;
+  const cardLabelTemplate = compileRowTemplateFor(
+    templateSlotComposition,
+    "label",
+    cardTemplateItemProps,
+  );
+  const cardDescriptionTemplate = compileRowTemplateFor(
+    templateSlotComposition,
+    "description",
+    cardTemplateItemProps,
+  );
+
   // Path 1: 템플릿 모드 (영구 유지, BC 보수)
   const renderChildren = hasValidTemplate
     ? (item: Record<string, unknown>) => {
@@ -865,11 +947,15 @@ export const renderGridList = (
                     />
                   );
                 })
-              : renderGridListItemSlotContent({
-                  label: String(gridListItemTemplate.props.label || ""),
-                  description: gridListItemTemplate.props.description
-                    ? String(gridListItemTemplate.props.description)
-                    : null,
+              : // ADR-159 P3: 데이터 행 보간 — 구 코드는 template props.label literal 을
+                //   모든 카드에 반복 표시했다 (행 데이터 미소비). 템플릿 없으면 휴리스틱 (BC).
+                renderGridListItemSlotContent({
+                  label: cardLabelTemplate
+                    ? interpolateRowTemplate(cardLabelTemplate, item)
+                    : getItemLabel(item, String(item.id ?? ""), 0),
+                  description: cardDescriptionTemplate
+                    ? interpolateRowTemplate(cardDescriptionTemplate, item)
+                    : getItemDescription(item),
                   slotComposition: templateSlotComposition,
                 })}
           </GridListItem>
@@ -889,9 +975,20 @@ export const renderGridList = (
               textValue={item.textValue ?? item.label}
               isDisabled={Boolean(item.isDisabled)}
             >
+              {/* ADR-159 P3: 정적 items 카드에도 slot 템플릿 적용 (Skia 대칭). */}
               {renderGridListItemSlotContent({
-                label: item.label,
-                description: item.description ?? null,
+                label: cardLabelTemplate
+                  ? interpolateRowTemplate(
+                      cardLabelTemplate,
+                      item as unknown as Record<string, unknown>,
+                    )
+                  : item.label,
+                description: cardDescriptionTemplate
+                  ? interpolateRowTemplate(
+                      cardDescriptionTemplate,
+                      item as unknown as Record<string, unknown>,
+                    )
+                  : (item.description ?? null),
                 slotComposition: templateSlotComposition,
               })}
             </GridListItem>
@@ -947,6 +1044,12 @@ export const renderGridList = (
       }
       dataBinding={getElementDataBinding(element) as DataBinding | undefined}
       columnMapping={columnMapping}
+      // ADR-159 P3: 내부 기본 렌더(dataBinding resolvedRows 경로)도 동일 템플릿 적용
+      //   (bare-ref data-bound 인스턴스 — hasValidTemplate false 로 Path 1 미경유 케이스).
+      rowTemplateSources={{
+        label: cardLabelTemplate?.source ?? null,
+        description: cardDescriptionTemplate?.source ?? null,
+      }}
       onSelectionChange={(selectedKeys) => {
         const updatedProps = {
           ...element.props,

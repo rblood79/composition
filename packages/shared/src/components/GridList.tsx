@@ -18,6 +18,11 @@ import { MyCheckbox } from "./Checkbox";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 
 import { useResolvedCollectionItems } from "../hooks";
+// ADR-159 P3 — 행 텍스트 템플릿: Skia projection 과 동일 shared resolver (G2).
+import {
+  compileFieldTemplate,
+  interpolateCollectionRowTemplate,
+} from "../collections/fieldTemplate";
 
 import "./styles/GridList.css";
 
@@ -60,6 +65,12 @@ interface ExtendedGridListProps<T extends object> extends Omit<
    * @default ['label', 'name', 'title']
    */
   filterFields?: (keyof T)[];
+  /**
+   * ADR-159 P3: 행 텍스트 `{field}` 템플릿 소스 (renderer 가 slot text > template item
+   * props precedence 로 이미 판정한 문자열). 내부 기본 렌더가 shared resolver 로 보간 —
+   * 토큰 없으면 compile null → 기존 label/description (BC).
+   */
+  rowTemplateSources?: { label?: string | null; description?: string | null };
 }
 
 export function GridList<T extends object>({
@@ -73,8 +84,16 @@ export function GridList<T extends object>({
   filter,
   filterText,
   filterFields = ["label", "name", "title"] as (keyof T)[],
+  rowTemplateSources,
   ...props
 }: ExtendedGridListProps<T>) {
+  // ADR-159 P3: 템플릿 compile — 렌더 당 1회 (compileFieldTemplate 은 text 키 캐시).
+  const rowLabelTemplate = rowTemplateSources?.label
+    ? compileFieldTemplate(rowTemplateSources.label)
+    : null;
+  const rowDescriptionTemplate = rowTemplateSources?.description
+    ? compileFieldTemplate(rowTemplateSources.description)
+    : null;
   // ADR-912 영역 B Task 5: flat guard — 정적 items 에 section entry(`type:"section"`)가
   //   섞이면 useResolvedCollectionItems(toItemProjectionRow)는 section 을 모르고 flat item 으로
   //   잘못 펴므로(header 소실), 이번 slice 에서 강제 normalize 하지 않고 정적 children 경로로
@@ -372,35 +391,48 @@ export function GridList<T extends object>({
           style={gridListStyle}
           items={items}
         >
-          {(item) => (
-            <AriaGridListItem
-              key={item.id}
-              id={item.id}
-              textValue={item.label}
-              className="react-aria-GridListItem"
-            >
-              {({ selectionMode, selectionBehavior, allowsDragging }) => (
-                <>
-                  {allowsDragging && <Button slot="drag">≡</Button>}
-                  {selectionMode === "multiple" &&
-                    selectionBehavior === "toggle" && (
-                      <MyCheckbox slot="selection" />
-                    )}
-                  {/* RAC GridListItem 의 TextContext 는 DEFAULT_SLOT + description 만
+          {(item) => {
+            // ADR-159 P3: 템플릿 존재 시 보간 — 없으면 정규화 label/description (BC).
+            const itemRecord = item as Record<string, unknown>;
+            const rowLabel = rowLabelTemplate
+              ? interpolateCollectionRowTemplate(rowLabelTemplate, itemRecord)
+              : item.label;
+            const rowDescription = rowDescriptionTemplate
+              ? interpolateCollectionRowTemplate(
+                  rowDescriptionTemplate,
+                  itemRecord,
+                )
+              : itemRecord.description
+                ? String(itemRecord.description)
+                : "";
+            return (
+              <AriaGridListItem
+                key={item.id}
+                id={item.id}
+                textValue={rowLabel}
+                className="react-aria-GridListItem"
+              >
+                {({ selectionMode, selectionBehavior, allowsDragging }) => (
+                  <>
+                    {allowsDragging && <Button slot="drag">≡</Button>}
+                    {selectionMode === "multiple" &&
+                      selectionBehavior === "toggle" && (
+                        <MyCheckbox slot="selection" />
+                      )}
+                    {/* RAC GridListItem 의 TextContext 는 DEFAULT_SLOT + description 만
                       제공(label slot 없음) — `slot="label"` 은 "Invalid slot" 크래시.
                       label 은 default slot Text 로 렌더하고 CSS 로 스타일(GridList.css
                       `.react-aria-Text:not([slot="description"])`). accessible name 은
                       AriaGridListItem `textValue` 가 담당. */}
-                  <Text>{item.label}</Text>
-                  {(item as Record<string, unknown>).description && (
-                    <Text slot="description">
-                      {String((item as Record<string, unknown>).description)}
-                    </Text>
-                  )}
-                </>
-              )}
-            </AriaGridListItem>
-          )}
+                    <Text>{rowLabel}</Text>
+                    {rowDescription && (
+                      <Text slot="description">{rowDescription}</Text>
+                    )}
+                  </>
+                )}
+              </AriaGridListItem>
+            );
+          }}
         </AriaGridList>
       );
     }

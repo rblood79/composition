@@ -32,6 +32,11 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 
 import { useResolvedCollectionItems } from "../hooks";
+// ADR-159 P3 — 행 텍스트 템플릿: Skia projection 과 동일 shared resolver (G2).
+import {
+  compileFieldTemplate,
+  interpolateCollectionRowTemplate,
+} from "../collections/fieldTemplate";
 import {
   CollectionLoadingState,
   CollectionErrorDisplay,
@@ -88,6 +93,12 @@ interface ExtendedListBoxProps<T extends object> extends Omit<
    * @default 5
    */
   skeletonCount?: number;
+  /**
+   * ADR-159 P3: 행 텍스트 `{field}` 템플릿 소스 (renderer 가 slot text > template item
+   * props precedence 로 이미 판정한 문자열). 내부 기본/가상화 렌더가 shared resolver 로
+   * 보간 — 토큰 없으면 compile null → 기존 label 휴리스틱 (BC).
+   */
+  rowTemplateSources?: { label?: string | null; description?: string | null };
 }
 
 /**
@@ -110,8 +121,19 @@ export function ListBox<T extends object>({
   filterFields = ["label", "name", "title"] as (keyof T)[],
   isLoading: externalLoading,
   skeletonCount = 5,
+  rowTemplateSources,
   ...props
 }: ExtendedListBoxProps<T>) {
+  // ADR-159 P3: label 템플릿 compile — 렌더 당 1회 (compileFieldTemplate 은 text 키
+  //   캐시라 재compile 비용 없음). 토큰 없는 소스는 null → 기존 item.label (BC).
+  //   내부 기본/가상화 렌더는 label 단일 표시 — description 은 renderer slot emit 소관.
+  const rowLabelTemplate = rowTemplateSources?.label
+    ? compileFieldTemplate(rowTemplateSources.label)
+    : null;
+  const resolveRowLabel = (item: Record<string, unknown>): string =>
+    rowLabelTemplate
+      ? interpolateCollectionRowTemplate(rowLabelTemplate, item)
+      : String((item as { label?: unknown }).label ?? "");
   // ================================================================
   // Hooks - 항상 최상단에서 무조건 호출 (Rules of Hooks)
   // ================================================================
@@ -416,12 +438,12 @@ export function ListBox<T extends object>({
                   }
                 }}
               >
-                {/* children이 render function이면 사용, 아니면 기본 label */}
+                {/* children이 render function이면 사용, 아니면 기본 label (ADR-159 템플릿 적용) */}
                 {typeof children === "function"
                   ? (children as (item: T) => React.ReactNode)(
                       item as unknown as T,
                     )
-                  : item.label}
+                  : resolveRowLabel(item as Record<string, unknown>)}
               </div>
             );
           })}
@@ -586,14 +608,18 @@ export function ListBox<T extends object>({
       >
         {(item) => {
           const itemWithLabel = item as T & { id: string; label: string };
+          // ADR-159 P3: 템플릿 존재 시 보간 — 없으면 정규화 label (BC).
+          const rowLabel = resolveRowLabel(
+            itemWithLabel as unknown as Record<string, unknown>,
+          );
           return (
             <AriaListBoxItem
               key={itemWithLabel.id}
               id={itemWithLabel.id}
-              textValue={itemWithLabel.label}
+              textValue={rowLabel}
               className="react-aria-ListBoxItem"
             >
-              {itemWithLabel.label}
+              {rowLabel}
             </AriaListBoxItem>
           );
         }}

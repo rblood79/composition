@@ -97,11 +97,15 @@ Phase 1~4 는 이 모델의 text-leaf 부분만 구현하되, 문법·자료구�
 - [x] live: master(GridListItem/Default) label slot text `{label}` → `#{label}` 편집 → Home GridList 인스턴스 Skia 카드 `#Desert Sunset`/`#Mountain Sunrise` 행별 보간 확인 → undo 원복 (Chrome MCP). CSS/DOM 무# 유지 = P3 전 비대칭 (G1 은 P3 게이트)
 - **명세 보정 2 (가상 필드)**: 보간 record 는 raw `row.item` + projected 산출 4필드(label/description/icon/value) overlay — 시스템 seed slot text 가 이미 `{label}`/`{description}` 이라 raw item 만 보간하면 해당 필드 없는 데이터(num/email/name)에서 seed 행이 빈 문자열로 회귀(R2 위반). 가상 필드는 raw 동일 키 존재 시 휴리스틱이 그 값을 그대로 골라 무손실
 
-### Phase 3 — DOM/Preview 배선 (커밋 1)
+### Phase 3 — DOM/Preview 배선 (커밋 1) — ✅ Implemented 2026-07-24
 
-- [ ] `ListBox.tsx` / `GridList.tsx` / `Table.tsx` 데이터 경로 행 렌더에서 동일 resolver 소비 (slot 텍스트 템플릿 → row.item 보간; 템플릿 없으면 기존 `item.label`)
-- [ ] Preview 실데이터로 확인 (runtime store 경유 — builder store 아님)
-- Gate: G1 — `/cross-check` 샘플 시각 대칭 (Skia 샘플 텍스트 형태 ↔ DOM 동일 템플릿 산출)
+- [x] DOM 소비 지점 실측 정정: 템플릿 소비는 `components/*.tsx` 가 아니라 **renderer 층** (`SelectionRenderers.tsx`) — 기존 ad-hoc `resolveTemplateText` (자체 `{...}` regex, G2 위반 선재) 를 shared resolver 로 **교체**. slot text 미소비/literal 그대로 표시 문제가 이 파서의 결함이었음
+- [x] `renderListBox` Path 1(템플릿 모드)·Path 2(items canonical) + `renderGridList` Path 1(구 literal props.label 반복 표시)·Path 2 — `compileRowTemplateFor`(shared precedence) + `interpolateCollectionRowTemplate`(가상 필드) 소비, compile 행 루프 밖 1회
+- [x] `ListBox.tsx` / `GridList.tsx` 내부 기본·가상화 렌더 — `rowTemplateSources` optional prop (renderer 가 precedence 판정한 소스 전달) 로 bare-ref data-bound 인스턴스 커버. Table 은 P2 판정 동형 (템플릿 소스 부재 — 셀은 col.id 직접 매핑)
+- [x] vitest 5 (`collectionRowTemplateAdr159.test.tsx` — slot precedence / flat item-level / literal→휴리스틱 G3 / seed 가상 필드 BC / GridList 보간)
+- [x] live: builder compare split 양 패널 — master `{label}`→`#{label}` 편집 시 **CSS(DOM) 패널 `#Desert Sunset/#Hiking Trail/#Mountain Sunrise` ↔ Skia Home 패널 동일 `#…` 보간** 동시 확인 후 undo 원복. 새로고침 후 콘솔 에러 0
+- Gate: G1 ✅ (게이트 정의 검증 그대로 — 샘플 행 Skia 보간 텍스트 ↔ DOM 동일 템플릿 산출 시각 대칭 + live 1회), G2 ✅ (ad-hoc 파서 제거 후 grep 0건 — 잔존 유일 히트 `useDataSource.ts:199` 는 API URL `{{param}}` 치환으로 행 텍스트 축 무관, P4c 제거 후보 경로)
+- 잔존 기록: origin 이 slot 자식 없이 item-level 템플릿만 가진 bare-ref 인스턴스는 DOM renderer 가 origin props 에 접근 불가 (provider 는 slot 구성만 주입) — Skia 만 보간. seed origin 은 항상 slot text 보유라 실사용 노출 없음 (P4 오소링 도입 시 재평가)
 
 ### Phase 4 — 오소링 UI + dataTable 단일 소스 (커밋 2)
 

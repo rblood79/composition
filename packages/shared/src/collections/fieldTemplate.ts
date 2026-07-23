@@ -10,6 +10,13 @@
  * API 무변 (ADR-162 소비: string prop 일반 — slot 텍스트 특정 가정 금지, breakdown §1-6).
  */
 
+import {
+  getItemDescription,
+  getItemIcon,
+  getItemLabel,
+  getItemValue,
+} from "./resolveCollectionItems";
+
 export type CompiledTemplatePart =
   | { kind: "literal"; text: string }
   | { kind: "field"; key: string };
@@ -160,6 +167,29 @@ export function buildCollectionRowTemplateItem(row: {
     icon: row.icon ?? "",
     value: row.value ?? "",
   };
+}
+
+/**
+ * 병합 record(원본 필드 + id/label 등이 이미 섞인 행 데이터) 보간 편의 wrapper —
+ * projection row 객체가 없는 DOM 소비자(renderer / ListBox / GridList 내부 렌더)용.
+ * 가상 필드 4종은 shared 휴리스틱으로 직접 산출해 [[buildCollectionRowTemplateItem]] 과
+ * 동일 의미를 보장한다 (Skia ↔ DOM 대칭, G2).
+ */
+export function interpolateCollectionRowTemplate(
+  compiled: CompiledTemplate,
+  item: Record<string, unknown>,
+): string {
+  const itemKey = typeof item.id === "string" ? item.id : String(item.id ?? "");
+  return interpolateFieldTemplate(
+    compiled,
+    buildCollectionRowTemplateItem({
+      item,
+      label: getItemLabel(item, itemKey, 0),
+      description: getItemDescription(item),
+      icon: getItemIcon(item),
+      value: getItemValue(item),
+    }),
+  );
 }
 
 /**
