@@ -50,9 +50,22 @@ GridList 를 ListBox 와 동형 ref-composite 로 만들기 위한 참조 구현
 
 ### Phase 4 — Skia scene projection 배선 (HIGH)
 
-- `canvasSceneNode.ts`: `refNode.ref===GRIDLIST_ORIGIN_ID` anchor-less master 해석 추가 (`LISTBOX_ORIGIN_ID` `:751-752` 동형). **단 GridList 는 ListBox 와 non-isomorphic** (`project-collection-skia-flip-not-listbox-isomorphic`) — `appendGridListRowProjection` 경로가 ListBox 와 다르므로 ref→master 해석이 기존 projection 과 충돌 없는지 정밀 검증.
-- `sceneVersion` signature 에 GridList ref/projection 필드 반영 확인 (ADR-136 projection signature).
-- Gate: `/cross-check` — ref GridList Skia 카드 ≡ DOM 카드 (76 parity), 데이터 소실 0.
+**채택 방식 — 근본 수정(scene type ref→master 해석), per-gate patch 아님 (2026-07-23 사용자 지시)**:
+
+- 원 설계는 `isGridListSceneSource` 에 `refNode.ref===GRIDLIST_ORIGIN_ID` 개별 분기를 ListBox(`:751-752`) 동형으로 복제하는 것이었으나, 근본 원인은 **scene node 생성 시 ref 의 type 이 master 로 해석되지 않는 것**(`toCanvasSceneNode` `type: node.type` → `"ref"` 유지)이다. `isGridListSceneSource` 는 `sourceNode.type==="ref" → false` 로 오히려 ref 를 차단했다.
+- **정본 수정**: `visit`(scene node 생성 직후, 단일 지점)에서 `node.type==="ref" && !isPagePlaceholderNode(node)` 이면 `getDocumentNodesById().get(node.ref)?.type` 로 master type 을 해석해 `sceneNode.type` 에 반영. `.ref` 는 identity 로 보존. 이로써 `isGridListSceneSource` line 1(`type==="GridList"`)이 자동 통과 → **모든 collection gate 가 type 으로 일관 통과**(per-gate 중복 불요, ListBox ref 분기는 redundant·무해).
+- blast radius 실측: `CanvasSceneNode.type==="ref"` 프로덕션 소비자 0 (외부는 전부 canonical `node.type` 소비). 렌더 경로는 componentName/catalog/projection 기반(ListBox ref 가 `type:"ref"` 로도 정상 렌더된 사실이 방증).
+- Gate: `/cross-check` — ref GridList Skia 카드 ≡ DOM 카드 (76 parity), 데이터 소실 0. **live 검증(2026-07-23)**: grid GridList Skia 카드 라벨 정상 렌더 확인. scene 92 + skia 69 + type-check(baseline 61) 무회귀.
+
+### Phase 7 — 프로퍼티 패널 slot authoring parity (MED, 2026-07-23 scope 추가)
+
+> **scope 추가 근거**: 사용자가 GridList 인스턴스 프로퍼티 패널에 slot 표시가 없음을 발견(2026-07-23). 렌더 측(Phase 1/2/4)과 별개인 **authoring 표면** parity gap — slot 편집 UI 가 ListBox 전용으로 구현돼 GridList 로 미이식. breakdown 원안 미포함, 사용자 승인 하 추가.
+
+- **원인**: (a) `slotHostPolicy.ts` 의 `isSlotHostElement`(`:72-78`)가 ListBox host(`type==="listbox"` + reusable/systemOwned)·Frame 타입만 인정 — `isGridListHost` 부재. (b) `GridListItemEditor`(`:36-86`)가 flat-props 편집기(label/value/description/textValue/isDisabled 직접 prop) — ListBox `ListBoxItemEditor` 의 slot 구성 모델(`listBoxItemSlotChildActions`, ADR-147/148) 미적용.
+- **작업**:
+  1. `slotHostPolicy.ts` 일반화 — `isGridListHost` + `isGridListItemTemplateVariant`(`GRIDLIST_ITEM_DEFAULT_ORIGIN_ID` 기반) 추가. ListBox 전용 분기(`isListBoxHost`/`isListBoxItemTemplateVariant`)를 collection 공용 헬퍼로 확장(향후 Table 도 동일).
+  2. `GridListItemEditor` slot-구성 전환 — flat-props → slot 구성 모델(`ListBoxItemEditor` + `listBoxItemSlotChildActions` 동형의 GridList 판). RAC GridListItem 은 label slot 미제공이라 label 은 DEFAULT slot(`metadata.slotRole:"label"`)로 표현 — slot 편집 시 이 규약 준수.
+- Gate: GridList 인스턴스 선택 → 프로퍼티 패널에 slot 섹션 표시 + slot 자식(label/description) 편집이 origin/카드 반영 (live).
 
 ### Phase 5 — 기존 인스턴스 migration (HIGH)
 
@@ -68,21 +81,24 @@ GridList 를 ListBox 와 동형 ref-composite 로 만들기 위한 참조 구현
 
 ## §3 파일 변경 요약
 
-| 파일                                                    | Phase | 변경                       |
-| ------------------------------------------------------- | ----- | -------------------------- |
-| `gridListTemplateOrigins.ts`                            | 1     | 컨테이너 origin + 등록     |
-| `dashboard/createInitialProjectDocument.test.ts`        | 1     | container origin assertion |
-| `factories/definitions/SelectionComponents.ts`          | 2     | GridList factory ref 전환  |
-| `preview/App.tsx`                                       | 3     | master slot 해석           |
-| `canvas/scene/canvasSceneNode.ts`                       | 4     | ref→master anchor-less     |
-| `adapters/canonical/legacyGridListTemplateMigration.ts` | 5     | 신규 migration             |
-| `docs/CHANGELOG.md` / `docs/adr/README.md`              | 6     | closure                    |
+| 파일                                                    | Phase | 변경                                        |
+| ------------------------------------------------------- | ----- | ------------------------------------------- |
+| `gridListTemplateOrigins.ts`                            | 1     | 컨테이너 origin + 등록                      |
+| `dashboard/createInitialProjectDocument.test.ts`        | 1     | container origin assertion                  |
+| `factories/definitions/SelectionComponents.ts`          | 2     | GridList factory ref 전환                   |
+| `preview/App.tsx`                                       | 3     | master slot 해석                            |
+| `canvas/scene/canvasSceneNode.ts`                       | 4     | ref→master **scene type 근본 해석**(visit)  |
+| `adapters/canonical/legacyGridListTemplateMigration.ts` | 5     | 신규 migration                              |
+| `components/slotHostPolicy.ts`                          | 7     | `isGridListHost` + item variant 판정 일반화 |
+| `panels/properties/editors/GridListItemEditor.tsx`      | 7     | flat-props → slot 구성 모델 전환            |
+| `docs/CHANGELOG.md` / `docs/adr/README.md`              | 6     | closure                                     |
 
 ## §4 검증 게이트 매핑 (ADR Gates 대응)
 
-| Phase | Gate                              | 실패 시                                           |
-| ----- | --------------------------------- | ------------------------------------------------- |
-| 1     | container origin 존재 + slot 참조 | rollback (item-only 복귀)                         |
-| 2     | 신규 add = ref                    | standalone 유지 재검토                            |
-| 4     | Skia↔DOM parity (cross-check)     | Phase 4 debugger 위임, non-isomorphic 충돌 재설계 |
-| 5     | 기존 인스턴스 무손실 migration    | migration 보류, 신규만 ref (양립 기간)            |
+| Phase | Gate                                     | 실패 시                                           |
+| ----- | ---------------------------------------- | ------------------------------------------------- |
+| 1     | container origin 존재 + slot 참조        | rollback (item-only 복귀)                         |
+| 2     | 신규 add = ref                           | standalone 유지 재검토                            |
+| 4     | Skia↔DOM parity (cross-check)            | Phase 4 debugger 위임, non-isomorphic 충돌 재설계 |
+| 5     | 기존 인스턴스 무손실 migration           | migration 보류, 신규만 ref (양립 기간)            |
+| 7     | 프로퍼티 패널 slot 섹션 표시 + 편집 반영 | slotHostPolicy/editor 재검토                      |

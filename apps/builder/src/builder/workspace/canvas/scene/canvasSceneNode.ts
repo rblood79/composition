@@ -2461,6 +2461,23 @@ export function buildCanvasSceneGraph(
     const nextParentId = sceneNode?.id ?? parentSceneId;
 
     if (sceneNode) {
+      // ADR-161 (근본 수정): ref 인스턴스의 scene node `type` 을 master origin 의 type 으로
+      //   해석한다. 기존엔 `type:"ref"` 를 유지해(toCanvasSceneNode:592) type 기반 projection
+      //   gate 가 ref 를 인식하지 못했다 — ListBox 만 `isListBoxSceneSource` 에 개별 ref 분기를
+      //   두어 통과했고, GridList `isGridListSceneSource` 는 `sourceNode.type==="ref" → false`
+      //   로 오히려 차단했다(신규 GridList 카드 미 projection). master type 을 단일 지점에서
+      //   해석하면 모든 collection gate 가 `sceneNode.type` 로 일관 통과 → gate 별 ref 분기
+      //   중복이 불요해진다. scene node 는 `.ref` 로 ref-identity 를 계속 보유하며, 외부
+      //   프로덕션 코드는 `CanvasSceneNode.type==="ref"` 를 읽지 않는다(전부 canonical
+      //   node.type 소비). page placeholder ref 는 별도 렌더 경로라 제외(isRenderableRef 대칭).
+      if (node.type === "ref" && !isPagePlaceholderNode(node)) {
+        const masterType = getDocumentNodesById().get(
+          (node as RefNode).ref,
+        )?.type;
+        if (typeof masterType === "string" && masterType !== "ref") {
+          sceneNode.type = masterType;
+        }
+      }
       // ADR-148 Phase 0: ListBoxItem 자체(주로 Components 페이지 origin)의 slot 조합
       //   자식 구성을 자기 scene props 에 주입 — 아래 suppression 으로 자식 노드는 scene
       //   에서 빠지므로, `listbox_item` escape 가 origin 자체 렌더에서도 구성(존재/순서/

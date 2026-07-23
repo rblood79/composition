@@ -1,6 +1,7 @@
 import { ComponentElementProps } from "../../../types/core/store.types";
 import { ComponentDefinition, ComponentCreationContext } from "../types";
 import { LISTBOX_ORIGIN_ID } from "../../components/listbox/listBoxTemplateOrigins";
+import { GRIDLIST_ORIGIN_ID } from "../../components/gridlist/gridListTemplateOrigins";
 import type {
   StoredSelectItem,
   StoredComboBoxItem,
@@ -326,7 +327,12 @@ export function createGridListDefinition(
   return {
     type: "GridList",
     parent: {
-      type: "GridList",
+      // ADR-161 Phase 2: standalone → ref (ListBox :249-250 동형). 기존 inline props
+      //   (layout/columns/selectionMode/items/style)는 ref override 채널로 이전 —
+      //   master(component-gridlist) 기본값을 인스턴스가 상속하되 여기서 override.
+      type: "ref",
+      ref: GRIDLIST_ORIGIN_ID,
+      componentName: "GridList",
       props: {
         layout: "stack",
         columns: 2,
@@ -337,7 +343,14 @@ export function createGridListDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
+    } as ComponentDefinition["parent"] & {
+      componentName: string;
+      ref: string;
     },
+    // Option B (anchor-less): in-tree template anchor 미주입 — panel-add 와 origin
+    //   copy-paste 가 동일 bare ref 구조. data-bound 행 template 은 projection 이
+    //   component 정의 origin slot 에서 해석 (Phase 3/4). 기존 anchor 보유 instance 는
+    //   legacyGridListTemplateMigration(hydration, Phase 5)가 strip 한다.
     children: [],
   };
 }

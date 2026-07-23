@@ -7,6 +7,9 @@ Accepted — 2026-07-23 (리뷰 round 1 승인 — `docs/adr/reviews/161.md`, HI
 ### 진행 로그
 
 - 2026-07-23 — **Accepted**: review-adr round 1 승인 가능(구조 7/7 PASS, 코드 11/11 VERIFIED, 누락 위험 0). execute-adr 착수. Phase 4(Skia projection)·Phase 5(migration)는 HIGH 라 auto 에서도 사용자 surface.
+- 2026-07-23 — **Phase 1 반영**(커밋 `35d84ed87`): 컨테이너 origin `component-gridlist` 등록.
+- 2026-07-23 — **Phase 2 + Phase 4 근본 수정**: factory standalone→ref + scene node type ref→master 해석(per-gate patch 대신 단일 지점 정본 수정, 사용자 지시). live 검증 — 신규 GridList=ref Instance + Skia 카드 projection 발화 + grid 카드 라벨 정상 렌더.
+- 2026-07-23 — **scope 추가 (Phase 7)**: 사용자가 GridList 인스턴스 프로퍼티 패널 slot 표시 부재 발견 → authoring parity(slotHostPolicy 일반화 + GridListItemEditor slot 전환) Phase 7 로 추가, R6/G5 신설. 사용자 승인 하 scope 확장.
 
 ## Context
 
@@ -91,22 +94,24 @@ GridList 는 collection family 컴포넌트 중 유일하게 **재사용 composi
 
 ## Risks
 
-| ID  | 위험                                                                                                                            | 심각도 | 대응                                                                                                                                                                       |
-| --- | ------------------------------------------------------------------------------------------------------------------------------- | :----: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1  | Skia scene ref→master 해석이 GridList non-isomorphic projection(`appendGridListRowProjection`)과 충돌 → 카드 오렌더/데이터 소실 |  HIGH  | Phase 4 Gate: `/cross-check` Skia↔DOM 카드 parity(76) + 데이터 소실 0. 실패 시 debugger 위임, ref 해석과 projection 경로 분리 재설계. `sceneVersion` signature 동반 갱신   |
-| R2  | 기존 standalone GridList 인스턴스 migration 오류 → 기존 프로젝트 카드 손상                                                      |  HIGH  | Phase 5: migration idempotent + 원본 props 보존 + hydration 1회. Gate: 기존 프로젝트 hydrate 후 카드 무손실 + 새로고침 정합. 실패 시 migration 보류, 신규만 ref(양립 기간) |
-| R3  | 전환 중 2모델(standalone+ref) 병존 → 소비자(preview/Skia)가 한쪽만 처리해 렌더 분기 누락                                        |  MED   | Phase 3/4 가 ref 경로 추가 시 standalone fallback 유지(migration 완료 전까지). 소비자별 `ref===GRIDLIST_ORIGIN_ID` 분기 + standalone 경로 양립 검증                        |
-| R4  | ref override props(layout/columns/selectionMode) 이전 시 instance override 채널 누락 → 인스턴스 커스텀 무효                     |  MED   | Phase 2: ListBox ref override props 소비 경로(`resolveCanonicalRefTree` override) 동형 확인. Gate: 인스턴스 layout 편집이 master 무침범 반영                               |
-| R5  | `component-gridlist` origin 이 publish 앱 slot 미소비(ADR-148 잔존 R9)와 동일 gap → publish 출력 불일치                         |  LOW   | ADR-148 R9 와 동일 알려진 gap(publish 는 flat-props BC). 본 ADR scope 밖 — publish slot 소비는 ADR-148 R9 후속으로 분리 명시                                               |
+| ID  | 위험                                                                                                                                                                                   | 심각도 | 대응                                                                                                                                                                       |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | Skia scene ref→master 해석이 GridList non-isomorphic projection(`appendGridListRowProjection`)과 충돌 → 카드 오렌더/데이터 소실                                                        |  HIGH  | Phase 4 Gate: `/cross-check` Skia↔DOM 카드 parity(76) + 데이터 소실 0. 실패 시 debugger 위임, ref 해석과 projection 경로 분리 재설계. `sceneVersion` signature 동반 갱신   |
+| R2  | 기존 standalone GridList 인스턴스 migration 오류 → 기존 프로젝트 카드 손상                                                                                                             |  HIGH  | Phase 5: migration idempotent + 원본 props 보존 + hydration 1회. Gate: 기존 프로젝트 hydrate 후 카드 무손실 + 새로고침 정합. 실패 시 migration 보류, 신규만 ref(양립 기간) |
+| R3  | 전환 중 2모델(standalone+ref) 병존 → 소비자(preview/Skia)가 한쪽만 처리해 렌더 분기 누락                                                                                               |  MED   | Phase 3/4 가 ref 경로 추가 시 standalone fallback 유지(migration 완료 전까지). 소비자별 `ref===GRIDLIST_ORIGIN_ID` 분기 + standalone 경로 양립 검증                        |
+| R4  | ref override props(layout/columns/selectionMode) 이전 시 instance override 채널 누락 → 인스턴스 커스텀 무효                                                                            |  MED   | Phase 2: ListBox ref override props 소비 경로(`resolveCanonicalRefTree` override) 동형 확인. Gate: 인스턴스 layout 편집이 master 무침범 반영                               |
+| R5  | `component-gridlist` origin 이 publish 앱 slot 미소비(ADR-148 잔존 R9)와 동일 gap → publish 출력 불일치                                                                                |  LOW   | ADR-148 R9 와 동일 알려진 gap(publish 는 flat-props BC). 본 ADR scope 밖 — publish slot 소비는 ADR-148 R9 후속으로 분리 명시                                               |
+| R6  | authoring parity — slot 편집 UI 가 ListBox 전용(`slotHostPolicy`/`GridListItemEditor` flat-props)이라 GridList 인스턴스 프로퍼티에 slot 표시 부재 (2026-07-23 사용자 발견, scope 추가) |  MED   | Phase 7: `slotHostPolicy` 일반화(`isGridListHost`) + `GridListItemEditor` slot 구성 전환. Gate G5. 렌더 측(Phase 1/2/4)과 독립 표면이라 회귀 위험 격리                     |
 
 ## Gates
 
-| Gate    | 시점              | 통과 조건                                                                                                  | 실패 시 대안                                                              |
-| ------- | ----------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| G1 (R1) | Phase 4 종료      | `/cross-check` — ref GridList Skia 카드 ≡ DOM 카드 (76 parity), console 에러 0, 데이터 소실 0              | debugger 위임(systematic-debugging), ref 해석↔projection 경로 분리 재설계 |
-| G2 (R2) | Phase 5 종료      | 기존 standalone GridList 보유 프로젝트 hydrate → ref 전환 + 카드 무손실 + 새로고침 정합 (live)             | migration 보류, 신규 add 만 ref (standalone 양립 기간 유지)               |
-| G3 (R3) | Phase 3·4 각 종료 | ref 경로 추가가 standalone fallback 을 제거하지 않음 (migration 완료 전 2모델 병존 정상)                   | fallback 복원 후 재진행                                                   |
-| G4 (R4) | Phase 2 종료      | 팔레트 add → 인스턴스 `type:"ref"` + layout/selectionMode override 편집이 master 무침범 (live store probe) | ref override 채널 재배선                                                  |
+| Gate    | 시점              | 통과 조건                                                                                                           | 실패 시 대안                                                              |
+| ------- | ----------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| G1 (R1) | Phase 4 종료      | `/cross-check` — ref GridList Skia 카드 ≡ DOM 카드 (76 parity), console 에러 0, 데이터 소실 0                       | debugger 위임(systematic-debugging), ref 해석↔projection 경로 분리 재설계 |
+| G2 (R2) | Phase 5 종료      | 기존 standalone GridList 보유 프로젝트 hydrate → ref 전환 + 카드 무손실 + 새로고침 정합 (live)                      | migration 보류, 신규 add 만 ref (standalone 양립 기간 유지)               |
+| G3 (R3) | Phase 3·4 각 종료 | ref 경로 추가가 standalone fallback 을 제거하지 않음 (migration 완료 전 2모델 병존 정상)                            | fallback 복원 후 재진행                                                   |
+| G4 (R4) | Phase 2 종료      | 팔레트 add → 인스턴스 `type:"ref"` + layout/selectionMode override 편집이 master 무침범 (live store probe)          | ref override 채널 재배선                                                  |
+| G5 (R6) | Phase 7 종료      | GridList 인스턴스 선택 → 프로퍼티 패널 slot 섹션 표시 + slot 자식(label/description) 편집이 origin/카드 반영 (live) | slotHostPolicy/GridListItemEditor 재검토                                  |
 
 ## Consequences
 
