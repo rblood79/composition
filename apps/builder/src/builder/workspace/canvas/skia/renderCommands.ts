@@ -35,7 +35,11 @@ import {
   buildClipPath,
   getEditingElementId,
 } from "./nodeRenderers";
-import { beginRenderEffects, endRenderEffects } from "./effects";
+import {
+  beginRenderEffects,
+  endRenderEffects,
+  countEffectLayers,
+} from "./effects";
 import { toSkiaBlendMode } from "./blendModes";
 import { WASM_FLAGS } from "../wasm-bindings/featureFlags";
 import * as spatialIndex from "../wasm-bindings/spatialIndex";
@@ -573,7 +577,11 @@ function visitElement(
   }
 
   // ELEMENT_END
-  const effectCount = skiaData.effects ? skiaData.effects.length : 0;
+  // 실제 saveLayer 를 여는 effect 수만 센다(inner drop-shadow 제외) — beginRenderEffects 와
+  //   동일 predicate. length 를 쓰면 inset 요소에서 over-restore → canvas 스택 붕괴.
+  const effectCount = skiaData.effects
+    ? countEffectLayers(skiaData.effects)
+    : 0;
   commands.push({
     type: CMD_ELEMENT_END,
     hasBlend: !!(skiaData.blendMode && skiaData.blendMode !== "normal"),
@@ -695,7 +703,8 @@ function emitInternalChildDraw(
     }
   }
 
-  const effectCount = node.effects ? node.effects.length : 0;
+  // 실제 saveLayer 를 여는 effect 수만 센다(inner drop-shadow 제외) — beginRenderEffects 정합.
+  const effectCount = node.effects ? countEffectLayers(node.effects) : 0;
   commands.push({
     type: CMD_ELEMENT_END,
     hasBlend: !!(node.blendMode && node.blendMode !== "normal"),

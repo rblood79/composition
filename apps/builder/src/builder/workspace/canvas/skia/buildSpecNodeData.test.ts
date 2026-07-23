@@ -599,6 +599,25 @@ describe("buildSpecNodeData", () => {
       );
     });
 
+    it("inset boxShadow → drop-shadow effect 에 inner:true (renderInnerBoxShadows 입력 계약)", () => {
+      // inset 은 effects.ts 에서 skip 되고 renderBox(renderInnerBoxShadows)가 box RRect
+      //   지오메트리로 직접 그린다. 그 분기 조건인 inner 플래그가 node.effects 에 도달하는지 확증.
+      const node = buildWithStyle({
+        boxShadow: "inset 0 2px 8px 0 rgba(0, 0, 0, 0.16)",
+      });
+      const shadow = node?.effects?.find((e) => e.type === "drop-shadow");
+      expect(shadow).toBeDefined();
+      expect(shadow && "inner" in shadow ? shadow.inner : undefined).toBe(true);
+    });
+
+    it("outer boxShadow → drop-shadow effect 에 inner:false (분리 가드)", () => {
+      const node = buildWithStyle({ boxShadow: "0 2px 8px rgba(0,0,0,0.3)" });
+      const shadow = node?.effects?.find((e) => e.type === "drop-shadow");
+      expect(shadow && "inner" in shadow ? shadow.inner : undefined).toBe(
+        false,
+      );
+    });
+
     it("style.opacity<1 → opacity effect 접붙임", () => {
       const node = buildWithStyle({ opacity: 0.5 });
       expect(node?.effects?.some((e) => e.type === "opacity")).toBe(true);

@@ -4,6 +4,7 @@ import { applyFill } from "./fills";
 import { SkiaDisposable } from "./disposable";
 import { createRoundRectPath } from "./nodeRendererClip";
 import type { SkiaNodeData } from "./nodeRendererTypes";
+import type { DropShadowEffect } from "./types";
 
 type BorderRadius = number | [number, number, number, number];
 type SkiaPaint = Paint;
@@ -369,6 +370,97 @@ function renderBoxShadows(
   }
 }
 
+/**
+ * inset(inner) box-shadow 를 box RRect 지오메트리로 직접 렌더한다.
+ *
+ * effects.ts 의 saveLayer/MakeDropShadow 는 캡처된 콘텐츠(컨테이너 배경 + 자식) 실루엣에서
+ * shadow 를 casting 하므로 컨테이너 inner edge shadow 를 만들 수 없다. inner shadow 는 fill 위
+ * · content 아래에 box 내부로 clip 하여 그린다(CSS inset 대칭 · border 아래 레이어). 기법:
+ * donut(외곽 rect − dx/dy 오프셋 구멍, even-odd)을 blur 해 box 내부로 clip → 오프셋된 solid
+ * 밴드의 침입부만 남아 edge shadow 가 된다. inset 0 +2px → 상단 inner edge (CSS 대칭).
+ *
+ * 입력은 node.effects 의 inner drop-shadow (effects.ts 는 inner 를 skip). box.shadows 경로는
+ * build*NodeData 에서 미populate → 미사용.
+ */
+function renderInnerBoxShadows(
+  ck: CanvasKit,
+  canvas: Canvas,
+  node: SkiaNodeData,
+): void {
+  const inner = (node.effects ?? []).filter(
+    (e): e is DropShadowEffect => e.type === "drop-shadow" && e.inner === true,
+  );
+  if (inner.length === 0) return;
+
+  const w = node.width;
+  const h = node.height;
+  const br = node.box?.borderRadius;
+  const baseRadius =
+    typeof br === "number" ? br : Array.isArray(br) ? (br[0] ?? 0) : 0;
+
+  for (const shadow of inner) {
+    const spread = shadow.spread ?? 0;
+    // 구멍 = box 내부를 spread 만큼 수축 후 dx/dy 오프셋. holeRadius 는 spread 만큼 축소.
+    const holeLeft = spread + shadow.dx;
+    const holeTop = spread + shadow.dy;
+    const holeRight = w - spread + shadow.dx;
+    const holeBottom = h - spread + shadow.dy;
+    const holeRadius = Math.max(0, baseRadius - spread);
+
+    // blur/offset spill 까지 덮는 외곽 rect (donut 의 solid 영역).
+    const pad =
+      Math.max(Math.abs(shadow.dx), Math.abs(shadow.dy)) +
+      Math.max(shadow.sigmaX, shadow.sigmaY) * 3 +
+      2;
+
+    const path = new ck.Path();
+    path.addRect(ck.LTRBRect(-pad, -pad, w + pad, h + pad));
+    if (holeRadius > 0) {
+      path.addRRect(
+        ck.RRectXY(
+          ck.LTRBRect(holeLeft, holeTop, holeRight, holeBottom),
+          holeRadius,
+          holeRadius,
+        ),
+      );
+    } else {
+      path.addRect(ck.LTRBRect(holeLeft, holeTop, holeRight, holeBottom));
+    }
+    path.setFillType(ck.FillType.EvenOdd);
+
+    const paint = new ck.Paint();
+    paint.setAntiAlias(true);
+    paint.setColor(shadow.color);
+    if (shadow.sigmaX > 0 || shadow.sigmaY > 0) {
+      paint.setImageFilter(
+        ck.ImageFilter.MakeBlur(
+          shadow.sigmaX,
+          shadow.sigmaY,
+          ck.TileMode.Decal,
+          null,
+        ),
+      );
+    }
+
+    canvas.save();
+    // box 내부로 clip → 오프셋 donut 의 침입부(=inner edge shadow)만 남는다.
+    if (baseRadius > 0) {
+      canvas.clipRRect(
+        ck.RRectXY(ck.LTRBRect(0, 0, w, h), baseRadius, baseRadius),
+        ck.ClipOp.Intersect,
+        true,
+      );
+    } else {
+      canvas.clipRect(ck.LTRBRect(0, 0, w, h), ck.ClipOp.Intersect, true);
+    }
+    canvas.drawPath(path, paint);
+    canvas.restore();
+
+    path.delete();
+    paint.delete();
+  }
+}
+
 export function renderBox(
   ck: CanvasKit,
   canvas: Canvas,
@@ -417,6 +509,9 @@ export function renderBox(
       paint.setShader(null);
       fillShader.delete();
     }
+
+    // inset(inner) box-shadow: fill 위 · content(자식)/border 아래, box 내부 clip (CSS 대칭).
+    renderInnerBoxShadows(ck, canvas, node);
 
     if (
       node.box.strokeColor &&

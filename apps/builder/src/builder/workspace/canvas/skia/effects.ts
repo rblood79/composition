@@ -12,6 +12,31 @@ import type { EffectStyle } from "./types";
 import { SkiaDisposable } from "./disposable";
 
 /**
+ * 이 이펙트가 beginRenderEffects 에서 saveLayer 를 여는가(=endRenderEffects 가 restore 해야 하는가).
+ *
+ * inset(inner) drop-shadow 는 콘텐츠 실루엣 기반 MakeDropShadow 로 그릴 수 없어 saveLayer 를 열지
+ * 않는다 — box RRect 지오메트리를 아는 renderBox(nodeRendererBorders.renderInnerBoxShadows)가
+ * 직접 그린다. opener(beginRenderEffects)와 counter(countEffectLayers)가 이 단일 predicate 를
+ * 공유해야 restore 횟수가 어긋나지 않는다(어긋나면 over-restore → canvas save 스택 붕괴 →
+ * 이후 요소 transform/clip 오염).
+ */
+export function effectOpensLayer(effect: EffectStyle): boolean {
+  if (effect.type === "drop-shadow" && effect.inner) return false;
+  return true;
+}
+
+/**
+ * beginRenderEffects 가 실제로 열 saveLayer 수. command-stream 경로(renderCommands.ts)는
+ * BEGIN/END 가 분리돼 beginRenderEffects 의 반환값을 END 시점에 쓸 수 없으므로, 빌드 시점에
+ * 이 함수로 동일 규칙의 count 를 계산해 CMD_ELEMENT_END.effectLayerCount 에 싣는다.
+ */
+export function countEffectLayers(effects: EffectStyle[]): number {
+  let n = 0;
+  for (const effect of effects) if (effectOpensLayer(effect)) n++;
+  return n;
+}
+
+/**
  * 이펙트를 시작한다 (saveLayer 스택에 레이어 추가).
  *
  * 각 이펙트는 `canvas.saveLayer()`를 호출하여 오프스크린 레이어를 생성하고,
@@ -36,6 +61,9 @@ export function beginRenderEffects(
 
   try {
     for (const effect of effects) {
+      // inset(inner) drop-shadow 는 saveLayer 를 열지 않는다(renderBox 가 지오메트리로 그림).
+      //   countEffectLayers 와 동일 predicate 공유 → restore 횟수 정합(over-restore 방지).
+      if (!effectOpensLayer(effect)) continue;
       switch (effect.type) {
         case "opacity": {
           const paint = scope.track(new ck.Paint());
@@ -102,10 +130,10 @@ export function beginRenderEffects(
         }
 
         case "drop-shadow": {
-          // Inner/Outer 모두 MakeDropShadow 사용 (소스 콘텐츠 보존).
-          // MakeDropShadowOnly는 소스를 제거하므로 inner shadow에서
-          // 콘텐츠가 사라지는 버그 발생 (I-CR1).
-          // saveLayer 경계가 외부 그림자를 자연스럽게 클리핑한다.
+          // outer drop-shadow 만 도달한다(inner 는 loop 상단 effectOpensLayer 에서 skip →
+          //   renderBox 가 지오메트리로 그림). MakeDropShadow 는 saveLayer 에 캡처된 콘텐츠
+          //   실루엣에서 casting 하므로 inner edge 를 표현 못 한다(I-CR1: MakeDropShadowOnly 는
+          //   소스를 제거해 콘텐츠가 사라짐).
 
           // M-2: spread → dilate/erode filter 체인으로 근사
           let inputFilter: ImageFilter | null = null;
