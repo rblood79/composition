@@ -71,6 +71,7 @@ import {
   isGlobalStyleProp,
 } from "./utils/globalStyleProps";
 import {
+  resolveEligibleSeedDefault,
   SHORTHAND_TO_LONGHAND,
   shouldWriteBreakpointOverride,
   toStyleNumericValue,
@@ -1029,8 +1030,10 @@ export const createInspectorActionsSlice: StateCreator<
       }
 
       // ON: 현재 effective(base ⊕ 상위 tier cascade) 값을 이 tier override 로 복사 →
-      // 토글 순간 시각 변화 0, 이후 이 속성 편집이 override 로 라우팅. 값이 없는 속성은
-      // seed 대상이 없어 no-op (eligible layout/transform 은 factory 기본값 보유가 일반).
+      // 토글 순간 시각 변화 0, 이후 이 속성 편집이 override 로 라우팅. effective 가 없는
+      // 속성(minWidth/flexGrow/alignSelf 등 factory 기본값 부재)은 resolveEligibleSeedDefault
+      // 의 CSS-initial 값(length→auto, spacing→0, enum→유효 기본)으로 seed 해 토글을 고정한다
+      // (기존엔 no-op → data-derived 토글이 즉시 OFF 로 읽혀 override 가 안 걸리던 버그).
       const resolved = getResolvedInspectorElement(
         element,
         getInspectorLookupElements(),
@@ -1054,12 +1057,14 @@ export const createInspectorActionsSlice: StateCreator<
                 baseValue,
               )
             : baseValue;
-        if (effective === undefined || effective === null || effective === "")
-          continue;
+        const seed =
+          effective === undefined || effective === null || effective === ""
+            ? resolveEligibleSeedDefault(key)
+            : String(effective);
         nextResponsive = buildResponsiveStyleOverride(
           nextResponsive,
           key,
-          String(effective),
+          seed,
           activeBreakpoint,
         );
       }

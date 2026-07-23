@@ -6,9 +6,13 @@
  * 3함수(commit/preview/batch)가 공유하므로(R10), 판정 자체를 단독 검증한다.
  */
 import { describe, expect, it } from "vitest";
-import type { ElementResponsiveConfig } from "@composition/shared";
+import {
+  RESPONSIVE_ELIGIBLE_STYLE_PROPS,
+  type ElementResponsiveConfig,
+} from "@composition/shared";
 import {
   hasOwnTierOverride,
+  resolveEligibleSeedDefault,
   shouldWriteBreakpointOverride,
   toStyleNumericValue,
 } from "./utils/responsiveWriteRouting";
@@ -96,5 +100,34 @@ describe("toStyleNumericValue — 단위 보존 (ADR-154 개정 1 후속 fix)", 
 
   it("numeric 속성이라도 parse 불가(키워드)면 원문 유지", () => {
     expect(toStyleNumericValue("padding", "auto")).toBe("auto");
+  });
+});
+
+describe("resolveEligibleSeedDefault — valueless-toggle seed (개정 1 후속)", () => {
+  it("32개 eligible prop 전수가 non-empty seed 를 갖는다 (drift 가드)", () => {
+    for (const prop of RESPONSIVE_ELIGIBLE_STYLE_PROPS) {
+      const seed = resolveEligibleSeedDefault(prop);
+      expect(seed, `eligible prop "${prop}" seed`).toBeTruthy();
+    }
+  });
+
+  it("카테고리별 CSS-initial — length→auto, spacing→0, enum/numeric→유효 기본", () => {
+    // length 축은 auto (override 순간 무변화)
+    expect(resolveEligibleSeedDefault("minWidth")).toBe("auto");
+    expect(resolveEligibleSeedDefault("maxWidth")).toBe("auto");
+    expect(resolveEligibleSeedDefault("width")).toBe("auto");
+    expect(resolveEligibleSeedDefault("flexBasis")).toBe("auto");
+    expect(resolveEligibleSeedDefault("aspectRatio")).toBe("auto");
+    // spacing 은 0
+    expect(resolveEligibleSeedDefault("gap")).toBe("0");
+    expect(resolveEligibleSeedDefault("rowGap")).toBe("0");
+    expect(resolveEligibleSeedDefault("paddingTop")).toBe("0");
+    expect(resolveEligibleSeedDefault("marginLeft")).toBe("0");
+    // enum / numeric
+    expect(resolveEligibleSeedDefault("display")).toBe("flex");
+    expect(resolveEligibleSeedDefault("flexDirection")).toBe("row");
+    expect(resolveEligibleSeedDefault("alignSelf")).toBe("auto");
+    expect(resolveEligibleSeedDefault("flexGrow")).toBe("0");
+    expect(resolveEligibleSeedDefault("flexShrink")).toBe("1");
   });
 });

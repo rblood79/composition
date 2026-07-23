@@ -58,6 +58,58 @@ export function toStyleNumericValue(
 }
 
 /**
+ * ADR-154 개정 1 후속(valueless-toggle): eligible prop 의 CSS-initial seed 값.
+ *
+ * "Add override" 토글 ON 시 현재 effective(base ⊕ cascade) 값을 tier override 로 복사하는데,
+ * factory 기본값이 없는 prop(minWidth/maxWidth/flexGrow/alignSelf/aspectRatio 등)은 복사할 값이
+ * 없어 아무것도 안 써지고 → data-derived 토글이 즉시 OFF 로 읽혀 override 가 안 걸렸다. 그 경우
+ * 이 helper 의 CSS-initial 값으로 seed 해 토글을 고정하고 편집 가능한 필드를 노출한다. 초기값은
+ * 시각 변화 0(예: minWidth:auto, flexGrow:0)이라 토글 순간 화면은 그대로다.
+ *
+ * 카테고리 기반이라 신규 eligible prop 추가 시에도 length→auto fallback 으로 자동 커버되며,
+ * `responsiveWriteRouting.test.ts` 가 32개 eligible prop 전수에 대해 non-empty seed 를 정적 확증.
+ */
+const ENUM_SEED_DEFAULTS: Record<string, string> = {
+  display: "flex",
+  flexDirection: "row",
+  flexWrap: "nowrap",
+  alignItems: "stretch",
+  justifyContent: "flex-start",
+  alignSelf: "auto",
+  justifySelf: "auto",
+};
+
+const NUMERIC_SEED_DEFAULTS: Record<string, string> = {
+  flexGrow: "0",
+  flexShrink: "1",
+};
+
+/** spacing 계열(gap/padding/margin + longhand)은 CSS-initial 이 0. */
+const ZERO_SEED_PROPS: ReadonlySet<string> = new Set([
+  "gap",
+  "rowGap",
+  "columnGap",
+  "padding",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "margin",
+  "marginTop",
+  "marginRight",
+  "marginBottom",
+  "marginLeft",
+]);
+
+export function resolveEligibleSeedDefault(property: string): string {
+  if (property in ENUM_SEED_DEFAULTS) return ENUM_SEED_DEFAULTS[property];
+  if (property in NUMERIC_SEED_DEFAULTS) return NUMERIC_SEED_DEFAULTS[property];
+  if (ZERO_SEED_PROPS.has(property)) return "0";
+  // width/height/min*/max*/top/left/flexBasis/aspectRatio 등 length 축 → auto(무변화).
+  return "auto";
+}
+
+/**
  * ADR-154 개정 1: 해당 breakpoint tier 에 이 속성의 **명시 override 가 존재**하는지
  * (= 토글 ON 상태). shorthand(gap/padding/margin)는 longhand 중 하나라도 존재하면 ON.
  * cascade 상속값은 제외 — 자기 tier 의 명시 override 만 본다.

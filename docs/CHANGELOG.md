@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 숫자 변환을 `NUMERIC_COERCE_STYLE_PROPS` + `toStyleNumericValue` 단일 소스로 통합(width/height/margin/top/left 등 dimensional 축 제외 → `%`/`vw`/`auto` 문자열 보존). base 3경로 + override 경로 공용.
   - 위치: `apps/builder/src/builder/stores/utils/responsiveWriteRouting.ts`, `.../stores/inspectorActions.ts`. (commit: `9877d05ba`)
 
+- **값이 없는 Layout·Transform 속성에 "Add override" 가 안 걸리던 문제 수정** (ADR-154 개정 1 후속):
+  - `minWidth`/`maxWidth`/`flexGrow`/`alignSelf`/`aspectRatio` 처럼 factory 기본값이 없는 eligible 속성은 "Add override" 를 눌러도 seed 할 현재 값이 없어 아무것도 저장되지 않았고, 토글 상태가 데이터에서 파생되는 구조라 즉시 OFF 로 읽혀 override 가 걸리지 않았다.
+  - **Why**: 토글 ON 이 "현재 effective 값 복사" 만 하고 effective 가 없을 때의 fallback 이 없어 no-op → 사용자가 해당 breakpoint 전용 값을 시작할 방법이 없었다.
+  - effective 값이 없으면 `resolveEligibleSeedDefault` 의 CSS-initial 값(length→`auto`, spacing→`0`, enum→유효 기본, flexGrow→`0`/flexShrink→`1`)으로 seed → 토글 고정 + 편집 가능한 필드 노출. 초기값이 시각 무변화라 토글 순간 화면은 그대로.
+  - 32개 eligible 속성 전수가 non-empty seed 를 갖는지 정적 테스트로 확증(drift 가드). 위치: `apps/builder/src/builder/stores/utils/responsiveWriteRouting.ts`, `.../stores/inspectorActions.ts`.
+
 ### Features
 
 - **breakpoint 편집이 기본 전역(전 breakpoint 공통) 으로 반전**:
