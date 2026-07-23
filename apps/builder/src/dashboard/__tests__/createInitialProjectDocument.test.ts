@@ -58,6 +58,18 @@ describe("createInitialProjectDocument", () => {
                     "component-listbox-item-selected",
                   ],
                 }),
+                // ADR-161 Phase 1: GridList 컨테이너 master origin + item origin
+                expect.objectContaining({
+                  id: "component-gridlist-item-default",
+                  type: "GridListItem",
+                  reusable: true,
+                }),
+                expect.objectContaining({
+                  id: "component-gridlist",
+                  type: "GridList",
+                  reusable: true,
+                  slot: ["component-gridlist-item-default"],
+                }),
               ]),
             }),
           ],

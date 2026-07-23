@@ -8,6 +8,13 @@ export const GRIDLIST_ITEM_DEFAULT_ORIGIN_ID =
   "component-gridlist-item-default";
 
 /**
+ * ADR-161 Phase 1: GridList 컨테이너 재사용 origin (ListBox `component-listbox` 동형).
+ * components 페이지에 등록되고, 인스턴스(factory)가 이 master 를 `ref` 로 참조한다(Phase 2).
+ * `slot` 배열이 item origin 을 가리켜 카드 템플릿을 구성한다.
+ */
+export const GRIDLIST_ORIGIN_ID = "component-gridlist";
+
+/**
  * ADR-148 Phase 4: GridListItem reusable origin 의 조합 자식(Text(label) / Text(description)).
  *
  * ADR-147 ListBoxItem 모델 복제 — 템플릿 바인딩 `{label}`/`{description}` 은 row projection
@@ -48,7 +55,10 @@ function gridListItemSlotChildren(originId: string): CanonicalNode[] {
   ];
 }
 
-const GRIDLIST_SYSTEM_ORIGIN_IDS = new Set([GRIDLIST_ITEM_DEFAULT_ORIGIN_ID]);
+const GRIDLIST_SYSTEM_ORIGIN_IDS = new Set([
+  GRIDLIST_ITEM_DEFAULT_ORIGIN_ID,
+  GRIDLIST_ORIGIN_ID,
+]);
 
 function createGridListItemDefaultOrigin(): CanonicalNode {
   return {
@@ -68,6 +78,33 @@ function createGridListItemDefaultOrigin(): CanonicalNode {
       systemOwned: true,
       componentFamily: "GridList",
       variant: "default",
+    },
+  };
+}
+
+/**
+ * ADR-161 Phase 1: GridList 컨테이너 master origin (ListBox `createListBoxOrigin` 동형).
+ * 기본값은 현행 factory 행동 기본값(layout:"stack" / columns:2 / selectionMode:"none")과
+ * 일치시켜 Phase 2 인스턴스 override 부담을 최소화한다 (리뷰 round 1 LOW #1). width:100% 등
+ * layout-context 는 Phase 2 에서 instance override 로 이관.
+ */
+function createGridListOrigin(): CanonicalNode {
+  return {
+    id: GRIDLIST_ORIGIN_ID,
+    type: "GridList",
+    name: "GridList",
+    reusable: true,
+    props: {
+      layout: "stack",
+      columns: 2,
+      selectionMode: "none",
+      items: [],
+    },
+    slot: [GRIDLIST_ITEM_DEFAULT_ORIGIN_ID],
+    metadata: {
+      type: "gridlist-origin",
+      systemOwned: true,
+      componentFamily: "GridList",
     },
   };
 }
@@ -155,6 +192,8 @@ export function ensureGridListTemplateOrigins(
       existingOrigins.get(GRIDLIST_ITEM_DEFAULT_ORIGIN_ID),
       createGridListItemDefaultOrigin,
     ),
+    // ADR-161 Phase 1: 컨테이너 master origin (item 다음, ListBox 순서 동형).
+    repairOrigin(existingOrigins.get(GRIDLIST_ORIGIN_ID), createGridListOrigin),
   ];
 
   const strippedChildren = stripOrigins(withComponentsPage.children);
