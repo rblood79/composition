@@ -75,13 +75,19 @@ export function getSlotRole(node: unknown): SlotRole | null {
   return null;
 }
 
-/** slot 자식 1개의 구성 — 존재(키 자체) + optional 여부 + 시각 스타일. */
+/** slot 자식 1개의 구성 — 존재(키 자체) + optional 여부 + 시각 스타일 + 텍스트. */
 export interface SlotChildConfig {
   role: SlotRole;
   /** `metadata.optional: true` — 데이터 없으면 미렌더 (ADR-147 승계 규약). */
   optional?: boolean;
   /** slot 자식 `props.style` — consumer 가 해당 slot 시각에 overlay 한다. */
   style?: Record<string, unknown>;
+  /**
+   * slot 자식의 텍스트 (`props.text ?? props.children`, string 한정) — ADR-159 P2.
+   * `{field}` 템플릿 정본 소스 (`resolveRowTemplateSource` precedence 1순위).
+   * 토큰 없는 텍스트는 compile null → 소비자 휴리스틱 fallback (BC — 표시 축 무변).
+   */
+  text?: string;
 }
 
 /** origin(또는 resolved anchor) 자식 구성에서 파생한 slot 구성 — 구성·스타일 축의 SSOT 뷰. */
@@ -180,6 +186,13 @@ export function resolveSlotComposition(
       const props = child.props;
       if (isRecord(props) && isRecord(props.style)) {
         config.style = props.style as Record<string, unknown>;
+      }
+      // ADR-159 P2: slot 자식 텍스트 캡처 — `{field}` 템플릿 소스 (string 한정).
+      if (isRecord(props)) {
+        const text = props.text ?? props.children;
+        if (typeof text === "string" && text.length > 0) {
+          config.text = text;
+        }
       }
       // props.size 토큰 → fontSize(px) fold (explicit style.fontSize 우선). Label/Text
       //   slot 자식의 size 편집 전파 채널 (resolveSlotChildSizeFontSize 주석 참조).

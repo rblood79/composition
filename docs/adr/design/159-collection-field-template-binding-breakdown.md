@@ -87,13 +87,15 @@ Phase 1~4 는 이 모델의 text-leaf 부분만 구현하되, 문법·자료구�
 - Gate: G2 ✅ (단일 심볼 — consumer 자체 brace 파싱 grep 0건), G3 ✅ (BC — slot 단위 독립 포함)
 - 명세 보정 1건: compile null 판정은 "토큰 0 **그리고 이스케이프 0**" — 이스케이프만 있는 `{{num}}` 은 §2-1 예시(`{num}` 표기 의도)대로 non-null 처리 (§2-2 문구와 §2-1 예시의 충돌을 §2-1 우선으로 해소)
 
-### Phase 2 — Skia projection 배선 (커밋 1)
+### Phase 2 — Skia projection 배선 (커밋 1) — ✅ Implemented 2026-07-24
 
-- [ ] `resolveSlotComposition` 텍스트 캡처 (§2-3)
-- [ ] `appendListBoxRowProjection` (`canvasSceneNode.ts:987-989`): label/description 슬롯 템플릿 존재 시 `interpolate(compiled, row.item)` 로 `children`/`description`/`textValue` 대체, 없으면 기존 `row.label` — GridList/Table(셀 텍스트) 프로젝터 동일 적용
-- [ ] compile 은 행 루프 밖 1회 (projection 함수 선두)
-- [ ] vitest: projection 산출 rowProps 검증 (템플릿 유/무 × 필드 유/무)
-- live: builder 에서 Users(num/email/name) ListBox 가 `{num}`/`{email}` 표시 — Chrome MCP 확인
+- [x] `resolveSlotComposition` 텍스트 캡처 (§2-3) — `SlotChildConfig.text` (`props.text ?? props.children`, string 한정). `readSlotComposition` 은 config passthrough 라 무변경 통과
+- [x] `appendListBoxRowProjection`: label/description 슬롯 템플릿 존재 시 `interpolate(compiled, templateItem)` 로 `children`/`description`/`textValue` 대체, 없으면 기존 `row.label` — GridList 동일 적용. **Table 은 P2 비적용 판정**: 셀은 `col.id` 직접 필드 매핑이라 템플릿 소스(슬롯/anchor 텍스트) 자체가 부재 — 셀 템플릿은 오소링 표면이 생기는 P4/P5 에서 (§5-2 columnMapping 계보)
+- [x] precedence 헬퍼 `resolveRowTemplateSource` + 보간 record `buildCollectionRowTemplateItem` (shared, §2-3-1)
+- [x] compile 은 행 루프 밖 1회 (projection 함수 선두, R5 캐시 병용)
+- [x] vitest: projection 산출 rowProps 검증 6 케이스 (`canvasSceneNode.test.ts` — slot 템플릿 / literal BC / seed 가상 필드 / flat item-level / 소스 전무 / GridList)
+- [x] live: master(GridListItem/Default) label slot text `{label}` → `#{label}` 편집 → Home GridList 인스턴스 Skia 카드 `#Desert Sunset`/`#Mountain Sunrise` 행별 보간 확인 → undo 원복 (Chrome MCP). CSS/DOM 무# 유지 = P3 전 비대칭 (G1 은 P3 게이트)
+- **명세 보정 2 (가상 필드)**: 보간 record 는 raw `row.item` + projected 산출 4필드(label/description/icon/value) overlay — 시스템 seed slot text 가 이미 `{label}`/`{description}` 이라 raw item 만 보간하면 해당 필드 없는 데이터(num/email/name)에서 seed 행이 빈 문자열로 회귀(R2 위반). 가상 필드는 raw 동일 키 존재 시 휴리스틱이 그 값을 그대로 골라 무손실
 
 ### Phase 3 — DOM/Preview 배선 (커밋 1)
 

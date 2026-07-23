@@ -7,9 +7,14 @@ import type {
   RefNode,
 } from "@composition/shared";
 // ADR-148 Phase 0 — slotRole 공용 vocabulary (설계도 §2-1, builder-local 상수 re-home).
+// ADR-159 P2 — 행 텍스트 `{field}` 템플릿 단일 resolver (G2: consumer 자체 파싱 금지).
 import {
+  buildCollectionRowTemplateItem,
+  compileFieldTemplate,
   getSlotRole,
+  interpolateFieldTemplate,
   resolveComponentRule,
+  resolveRowTemplateSource,
   resolveSlotComposition,
 } from "@composition/shared";
 // ADR-157 gap 배선 (②): ListBox 소유자 gap 을 px 로 해석 (style longhand/shorthand + props.gap).
@@ -1037,6 +1042,24 @@ function appendListBoxRowProjection(
     (listBoxSceneNode.props as Record<string, unknown>)._slots =
       slotComposition;
   }
+  // ADR-159 P2: 행 텍스트 템플릿 compile — 행 루프 밖 1회 (R5). 소스 precedence 는
+  //   shared 단일 헬퍼(§2-3-1): slot text > item children/textValue > null(휴리스틱).
+  //   item-level 은 anchor(인스턴스 override) 우선, origin fallback. compile null(토큰
+  //   없음)이면 기존 row.label/row.description 그대로 (G3 BC — slot(role) 별 독립 판정).
+  const anchorItemProps = isRecord(templateAnchor?.props)
+    ? (templateAnchor.props as Record<string, unknown>)
+    : null;
+  const originItemProps = isRecord(templateOriginNode?.props)
+    ? (templateOriginNode.props as Record<string, unknown>)
+    : null;
+  const compileRowTemplate = (role: "label" | "description") => {
+    const source =
+      resolveRowTemplateSource(slotComposition, role, anchorItemProps) ??
+      resolveRowTemplateSource(null, role, originItemProps);
+    return source ? compileFieldTemplate(source) : null;
+  };
+  const labelTemplate = compileRowTemplate("label");
+  const descriptionTemplate = compileRowTemplate("description");
   // ADR-157 gap 배선 (②, 2026-07-21): rowsGroup 이 gap:0 하드코딩이라 ListBox 의 gap 스타일이
   //   무시됐다(GridList 는 rowGap:gap 적용 — 패밀리 비대칭, 사용자 보고). 소유자 gap 을 해석해
   //   rowsGroup rowGap + injection/hatch 공식에 반영한다. style longhand(rowGap) 우선 + shorthand
@@ -1182,10 +1205,24 @@ function appendListBoxRowProjection(
       ...(isRowSelected ? selectedOriginStyle : {}),
     };
     if (rowLayoutStyle.width == null) rowLayoutStyle.width = "100%";
+    // ADR-159 P2: 템플릿 존재 시 row.item(+가상 필드 label/description/icon/value) 보간.
+    //   없으면 기존 휴리스틱 산출(row.label) 그대로 — 문서/시각 BC.
+    const templateItem =
+      labelTemplate || descriptionTemplate
+        ? buildCollectionRowTemplateItem(row)
+        : null;
+    const rowLabel =
+      labelTemplate && templateItem
+        ? interpolateFieldTemplate(labelTemplate, templateItem)
+        : row.label;
+    const rowDescription =
+      descriptionTemplate && templateItem
+        ? interpolateFieldTemplate(descriptionTemplate, templateItem)
+        : (row.description ?? "");
     const rowProps: Record<string, unknown> = {
-      children: row.label,
-      description: row.description ?? "",
-      textValue: row.label,
+      children: rowLabel,
+      description: rowDescription,
+      textValue: rowLabel,
       style: rowLayoutStyle,
       // 보편 selection 축(ADR-142 §3) — listbox_item escape 는 props.isSelected 를 읽는다.
       //   구 주입이 _isSelected 뿐이라 Skia selected row-bg/check 가 죽은 분기였다 (2026-07-20).
@@ -1371,6 +1408,21 @@ function appendGridListRowProjection(
     (gridListSceneNode.props as Record<string, unknown>)._slots =
       slotComposition;
   }
+  // ADR-159 P2: 카드 텍스트 템플릿 compile — 행 루프 밖 1회 (R5). ListBox 동형이나
+  //   GridList 는 anchor 축이 없어 origin props 단독 fallback (§2-3-1 precedence).
+  const gridOriginItemProps = isRecord(templateOriginNode?.props)
+    ? (templateOriginNode.props as Record<string, unknown>)
+    : null;
+  const compileCardTemplate = (role: "label" | "description") => {
+    const source = resolveRowTemplateSource(
+      slotComposition,
+      role,
+      gridOriginItemProps,
+    );
+    return source ? compileFieldTemplate(source) : null;
+  };
+  const labelTemplate = compileCardTemplate("label");
+  const descriptionTemplate = compileCardTemplate("description");
   // ADR-157 Phase 4 (배치 진실성 — GridList 확산): sample mode(auto-height data-bound) owner 는
   //   layout §1.55c 가 props.items 만 순회해 순수 dataBinding 소유자에서 4-item fallback 으로
   //   clip 된다. scene 이 visualRows 전체 높이(= ceil(totalRows/columns) × rowHeight — samples +
@@ -1472,10 +1524,23 @@ function appendGridListRowProjection(
       gridListSceneNode.id,
       row.itemKey,
     );
+    // ADR-159 P2: 템플릿 존재 시 row.item(+가상 필드) 보간 — ListBox 행 동형.
+    const templateItem =
+      labelTemplate || descriptionTemplate
+        ? buildCollectionRowTemplateItem(row)
+        : null;
+    const rowLabel =
+      labelTemplate && templateItem
+        ? interpolateFieldTemplate(labelTemplate, templateItem)
+        : row.label;
+    const rowDescription =
+      descriptionTemplate && templateItem
+        ? interpolateFieldTemplate(descriptionTemplate, templateItem)
+        : (row.description ?? "");
     const rowProps: Record<string, unknown> = {
-      children: row.label,
-      description: row.description ?? "",
-      textValue: row.label,
+      children: rowLabel,
+      description: rowDescription,
+      textValue: rowLabel,
       // ADR-148 Phase 4: origin style overlay (ListBox templateAnchorStyle 동형).
       //   카드 폭은 layout(stack|grid) 산식이 항상 우선.
       style: { ...originStyle, width: cardWidthStyle },

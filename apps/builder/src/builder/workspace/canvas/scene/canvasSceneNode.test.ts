@@ -2078,3 +2078,187 @@ describe("resolveGridListTemplateOriginId — 컨테이너 origin slot 소비", 
     );
   });
 });
+
+// ADR-159 P2 — 행 텍스트 `{field}` 템플릿 보간 (Skia projection 배선).
+//   소스 precedence(§2-3-1): slot text > item children/textValue > 휴리스틱(compile null).
+describe("buildCanvasSceneGraph — ADR-159 행 텍스트 템플릿 보간", () => {
+  const users = [
+    { id: "u1", num: 7, name: "Kim", email: "kim@x.io" },
+    { id: "u2", num: 8, name: "Lee", email: "lee@x.io" },
+  ];
+
+  function buildListBoxDoc(anchor: Record<string, unknown>): CompositionDocument {
+    return {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "listbox-1",
+                  type: "ListBox",
+                  props: { items: users },
+                  children: [anchor],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+  }
+
+  const slotText = (
+    id: string,
+    role: "label" | "description",
+    text: string,
+  ): Record<string, unknown> => ({
+    id,
+    type: "Text",
+    props: { slot: role, children: text },
+    metadata: { type: "listbox-item-slot", slotRole: role },
+  });
+
+  const anchorWith = (
+    children: Record<string, unknown>[],
+    props: Record<string, unknown> = {},
+  ): Record<string, unknown> => ({
+    id: "template-anchor",
+    type: "ListBoxItem",
+    props,
+    children,
+    metadata: {
+      type: "legacy-element-props",
+      templateRole: "listbox-item-template-anchor",
+    },
+  });
+
+  const rowOf = (graph: ReturnType<typeof buildCanvasSceneGraph>, key: string) =>
+    graph.nodesMap.get(toListBoxRowProjectionId("listbox-1", key));
+
+  it("slot text {num}/{email} → 행 children/description/textValue 보간", () => {
+    const doc = buildListBoxDoc(
+      anchorWith([
+        slotText("t-label", "label", "No.{num}"),
+        slotText("t-desc", "description", "{email}"),
+      ]),
+    );
+    const graph = buildCanvasSceneGraph(doc);
+    expect(rowOf(graph, "u1")?.props).toMatchObject({
+      children: "No.7",
+      description: "kim@x.io",
+      textValue: "No.7",
+    });
+    expect(rowOf(graph, "u2")?.props).toMatchObject({
+      children: "No.8",
+      description: "lee@x.io",
+    });
+  });
+
+  it("토큰 없는 slot text → 휴리스틱 유지 + role 별 독립 판정 (G3 BC)", () => {
+    const doc = buildListBoxDoc(
+      anchorWith([
+        slotText("t-label", "label", "Static Label"),
+        slotText("t-desc", "description", "{email}"),
+      ]),
+    );
+    const graph = buildCanvasSceneGraph(doc);
+    // label: 토큰 없음 → compile null → 기존 휴리스틱 (name) — literal 텍스트로 대체하지 않음.
+    // description: 토큰 있음 → 보간. (role 별 독립)
+    expect(rowOf(graph, "u1")?.props).toMatchObject({
+      children: "Kim",
+      description: "kim@x.io",
+    });
+  });
+
+  it("seed 템플릿 {label}/{description} → 가상 필드로 휴리스틱과 bit-동일 (BC)", () => {
+    const doc = buildListBoxDoc(
+      anchorWith([
+        slotText("t-label", "label", "{label}"),
+        slotText("t-desc", "description", "{description}"),
+      ]),
+    );
+    const graph = buildCanvasSceneGraph(doc);
+    // items 에 label/description 필드가 없어도 가상 필드가 휴리스틱 산출(name / "")을 공급.
+    expect(rowOf(graph, "u1")?.props).toMatchObject({
+      children: "Kim",
+      description: "",
+    });
+  });
+
+  it("slot 자식 없는 flat anchor 의 item-level children 템플릿도 보간 (§2-3-1 커버리지)", () => {
+    const doc = buildListBoxDoc(anchorWith([], { children: "{num} — {name}" }));
+    const graph = buildCanvasSceneGraph(doc);
+    expect(rowOf(graph, "u1")?.props).toMatchObject({
+      children: "7 — Kim",
+      textValue: "7 — Kim",
+    });
+  });
+
+  it("템플릿 소스 전무(anchor 자식/props 없음) → 기존 휴리스틱 (BC)", () => {
+    const doc = buildListBoxDoc(anchorWith([]));
+    const graph = buildCanvasSceneGraph(doc);
+    expect(rowOf(graph, "u1")?.props).toMatchObject({
+      children: "Kim",
+      description: "",
+    });
+  });
+
+  it("GridList origin slot text 템플릿 → 카드 children 보간 (ListBox 동형)", () => {
+    const doc = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "gl-item-template",
+          type: "GridListItem",
+          reusable: true,
+          props: {},
+          children: [
+            {
+              id: "gl-t-label",
+              type: "Text",
+              props: { slot: "label", children: "#{num} {name}" },
+              metadata: { type: "listbox-item-slot", slotRole: "label" },
+            },
+          ],
+        },
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "gridlist-1",
+                  type: "GridList",
+                  slot: ["gl-item-template"],
+                  props: { items: users, layout: "stack" },
+                  children: [],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+    const graph = buildCanvasSceneGraph(doc);
+    const card = graph.nodesMap.get(
+      toCollectionRowProjectionId("gridlist", "gridlist-1", "u1"),
+    );
+    expect(card?.props).toMatchObject({
+      children: "#7 Kim",
+      textValue: "#7 Kim",
+    });
+  });
+});

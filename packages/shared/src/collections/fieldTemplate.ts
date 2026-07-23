@@ -98,6 +98,70 @@ function stringifyFieldValue(value: unknown): string {
   return "";
 }
 
+/** 템플릿 텍스트를 갖는 행 텍스트 role — P2 는 label/description 2종 (icon/value 는 비텍스트). */
+export type RowTemplateRole = "label" | "description";
+
+/**
+ * 템플릿 소스 precedence 판정 단일 헬퍼 (breakdown §2-3-1) — Skia projection 과 DOM
+ * 렌더가 동일 판정을 공유한다 (G2 대칭).
+ *
+ * 1. slot 구성의 해당 role slot 자식 `text` → template 정본 (item 자체 props 는 superseded)
+ * 2. 없으면 item 자체 props — label: `children` ?? `textValue` / description: `description`
+ *    (flat/legacy 저작 커버)
+ * 3. 그것도 없으면 null → 소비자는 휴리스틱 (여기 반환된 소스도 토큰이 없으면 compile
+ *    null → 동일 휴리스틱 — G3 BC)
+ */
+export function resolveRowTemplateSource(
+  slotComposition:
+    | { slots?: Partial<Record<string, { text?: string }>> }
+    | null
+    | undefined,
+  role: RowTemplateRole,
+  itemProps: Record<string, unknown> | null | undefined,
+): string | null {
+  const slotText = slotComposition?.slots?.[role]?.text;
+  if (typeof slotText === "string" && slotText.length > 0) return slotText;
+  if (!itemProps) return null;
+  const keys = role === "label" ? ["children", "textValue"] : ["description"];
+  for (const key of keys) {
+    const value = itemProps[key];
+    if (typeof value === "string" && value.length > 0) return value;
+  }
+  return null;
+}
+
+/**
+ * 보간 대상 record — raw row item + **가상 필드 4종** (projected row 의
+ * label/description/icon/value 휴리스틱 산출값).
+ *
+ * **Why (P2 BC — seed 템플릿)**: 시스템 seed origin(ListBoxItem/Default 등)의 slot
+ * 텍스트가 이미 `{label}`/`{description}` 이다. raw item 만 보간하면 해당 필드가 없는
+ * 데이터(예: num/email/name)에서 seed 행이 빈 문자열로 회귀한다. 가상 필드는 raw
+ * item 에 같은 키가 있으면 휴리스틱이 그 값을 그대로 고르므로 (heuristic 1순위 키)
+ * 항상 무손실 — 없을 때만 휴리스틱 산출값(name 등)으로 채워져 현행 표시와 bit-동일.
+ */
+export function buildCollectionRowTemplateItem(row: {
+  description: string | null;
+  icon: string | null;
+  item: unknown;
+  label: string;
+  value: string | null;
+}): Record<string, unknown> {
+  const base =
+    row.item !== null &&
+    typeof row.item === "object" &&
+    !Array.isArray(row.item)
+      ? (row.item as Record<string, unknown>)
+      : {};
+  return {
+    ...base,
+    label: row.label,
+    description: row.description ?? "",
+    icon: row.icon ?? "",
+    value: row.value ?? "",
+  };
+}
+
 /**
  * 행 데이터 보간. compile 은 slot 당 1회(행 루프 밖), 본 함수는 행별 토큰 수 O(k).
  * rowItem 이 record 가 아니면 모든 토큰이 빈 문자열로 치환된다.
