@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented — 2026-07-19 (Phase 1~3 전체 delivered, execute-adr. Accepted 2026-07-16 — 리뷰 round 1 승인, 이슈 3건 전부 fixed, `docs/adr/reviews/154.md`) · **개정 1 (write 모델 반전 — 기본 전역 + 명시적 override) Accepted — 2026-07-23, 구현 전** (하단 §개정 1 참조)
+Implemented — 2026-07-19 (Phase 1~3 전체 delivered, execute-adr. Accepted 2026-07-16 — 리뷰 round 1 승인, 이슈 3건 전부 fixed, `docs/adr/reviews/154.md`) · **개정 1 (write 모델 반전 — 기본 전역 + 명시적 override) Implemented — 2026-07-23** (Phase R0~R4 delivered, execute-adr. 리뷰 round 2 승인. 하단 §개정 1 참조)
 
 > **구현 완료 (execute-adr, 2026-07-16 ~ 07-19)**:
 >
@@ -139,7 +139,16 @@ composition 은 노코드 **웹사이트** 빌더이지만 breakpoint 기반 반
 
 ### Status (개정)
 
-Accepted — 2026-07-23 (브레인스토밍 사용자 confirm: write 모델 반전 + override 허용 범위 Layout·Transform 한정. 구현 전)
+Implemented — 2026-07-23 (Phase R0~R4 delivered, execute-adr. Accepted 2026-07-23 — 브레인스토밍 사용자 confirm + 리뷰 round 2 승인, `docs/adr/reviews/154.md`)
+
+> **구현 완료 (execute-adr, 2026-07-23)** — authoring 정책 계층만 교체, 저장 스키마/cascade resolve/@media 출력 무변경:
+>
+> - **Phase R0+R1+R3** (`6a9e951f5`): eligible allowlist SSOT (`RESPONSIVE_ELIGIBLE_STYLE_PROPS` = LAYOUT_PROPS(18) ∪ TRANSFORM_PROPS(14) = 32키, shared) + `globalStyleProps.ts` 반전 (`isGlobalStyleProp` ≡ `!eligible`, `clearNonEligibleResponsiveOverrides`) + write 3함수 공통 라우팅 `shouldWriteBreakpointOverride` (utils/responsiveWriteRouting.ts 분리) + `setResponsiveStyleOverrideEnabled` 토글 액션 + dirty/reset fills·border 특례를 단일 규칙로 흡수 + read 필터 (resolveResponsive/responsiveCss non-eligible skip, R8).
+> - **Phase R2** (`f0f273da9`): ResponsiveSection override opt-in UI — "Add override" picker (13 primary eligible) + chip ✕ 전역 복귀 + 안내문 갱신. per-row 토글 dot 대신 중앙집중 (Layout/Transform 입력 이질성 — §Consequences 참조).
+> - **Gate G5** (write 라우팅, live): mobile 에서 eligible 편집(override 없음) → **base 저장**(전역, responsive 미생성) ✓ / 토글 ON → 현재 cascade 값 seed ✓ / override 상태 편집 → responsive tier 반영 + base 격리 ✓ / 토글 OFF → tier clear ✓ / non-eligible(fontSize/border) 편집 → base 전역 + 토글 no-op ✓ (Chrome MCP `__composition_STORE__` 6-exercise).
+> - **Gate G5 (R2 UI, live)**: "Add override" picker 13 옵션 정확 + 선택 시 override seed + chip 표시 ✓. desktop 전역 편집(borderRadius)·eligible base 편집(paddingTop)이 mobile override 미침범 (eligible 격리성) ✓.
+> - **Gate G6/G7**: dirty/reset 일반화 (useResetStyles 68 회귀 PASS) + read 필터 R8 (shared responsiveCss 6 유닛). type-check baseline 61 유지, 신규 20 유닛 (write routing 7 + globalStyleProps 8 + R9 드리프트 가드 1 + responsiveCss R8 6 = 실측 builder 14 + shared 6) + R9 정적 드리프트 가드.
+> - **Known minor**: 토글 ON seed 시 `%` 값이 numeric coercion (width "100%" → 100) — buildResponsiveStyleOverride `RESPONSIVE_NUMERIC_STYLE_PROPS` 기존 동작(개정 무관 pre-existing). eligible 이지만 값 없는 속성은 seed 대상 부재로 토글 no-stick (factory 기본값 보유가 일반이라 실사용 영향 미미).
 
 ### Context (개정)
 

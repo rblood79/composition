@@ -2,7 +2,7 @@
 
 > 본문: [154-responsive-breakpoint-authoring.md](../completed/154-responsive-breakpoint-authoring.md)
 > 상태: Accepted (2026-07-16) — 리뷰 round 1 승인, execute-adr 진행 → Phase 1~3 Implemented (2026-07-19)
-> **개정 1 (2026-07-23 Accepted, 구현 전)**: write 모델 반전 — §9 참조
+> **개정 1 (2026-07-23 Implemented)**: write 모델 반전 — §9 참조 (Phase R0~R4 delivered)
 
 ## 1. Scope lock-in
 

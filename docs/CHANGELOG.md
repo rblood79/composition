@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [반응형 편집 모델 반전 — ADR-154 개정 1: 기본 전역 + 명시적 override] - 2026-07-23
+
+### Features
+
+- **breakpoint 편집이 기본 전역(전 breakpoint 공통) 으로 반전**:
+  - 이전에는 Tablet/Mobile 화면에서 스타일을 편집하면 자동으로 그 breakpoint 전용 override 가 생성됐다. 이제 **어느 breakpoint 에서 편집하든 기본은 전역**(모든 breakpoint 공통) 이다.
+  - **Why**: 화면 전환만으로 편집 적용 범위가 바뀌어 예측이 어려웠다("왜 여기서 이게 이렇게 나오지?"). desktop↔mobile 차이는 대부분 크기/배치(Layout·Transform) 축이라는 실사용 정신 모델에 맞춰, 그 축만 명시적으로 분리하도록 좁혔다.
+  - breakpoint 전용 값은 **Style 패널 Responsive 섹션의 "Add override"** 로 명시적으로 추가한다(현재 값이 seed 되고, 이후 그 속성 편집이 해당 breakpoint 로 라우팅). chip ✕ 로 전역 복귀.
+  - override 대상은 **Layout · Transform 섹션 속성 한정**(width/height/padding/margin/gap/display/flex 등 32키). 배경·border·radius·typography·overflow 등은 어느 breakpoint 에서든 항상 전역.
+  - 위치: `packages/shared/src/types/responsive.types.ts` (`RESPONSIVE_ELIGIBLE_STYLE_PROPS`), `apps/builder/src/builder/stores/utils/responsiveWriteRouting.ts`, `.../stores/inspectorActions.ts`, `.../panels/styles/sections/ResponsiveSection.tsx`.
+
+### Architecture
+
+- **전역/응답형 판정 단일 규칙화 (특례 분기 소멸)**:
+  - 원안이 border 15키만 전역 예외(blocklist)로 두고 나머지 전 속성을 responsive 로 취급하던 것을 반전 — `isGlobalStyleProp(p) ≡ !isResponsiveEligibleStyleProp(p)`. 배경(fills)·border dirty/reset 특례가 "non-eligible → base 비교" 단일 규칙로 흡수됐다.
+  - write 3함수(commit/preview/batch)가 `shouldWriteBreakpointOverride` 단일 판정 공유. read 경로(builder resolve + shared @media CSS)는 non-eligible stale override 를 skip(기존 프로젝트의 원안-시대 override 즉시 무력화).
+  - 저장 스키마(`responsive.styles`)·cascade resolve·@media 출력은 무변경 — authoring 정책 계층만 교체.
+  - ADR-154 개정 1 (Phase R0~R4, `docs/adr/completed/154-responsive-breakpoint-authoring.md` §개정 1). (commit: `6a9e951f5`)
+
 ## [Compare Mode split persistence — 2026-07-23]
 
 ### UX
