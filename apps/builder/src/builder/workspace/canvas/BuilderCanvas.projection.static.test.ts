@@ -13,8 +13,11 @@ describe("BuilderCanvas canonical projection contract", () => {
     expect(source).toContain("buildCanonicalSceneModel");
     expect(source).not.toContain("useCanonicalElements");
     expect(source).not.toContain("canonicalDocumentToElements");
+    // canonical scene model 호출부는 collections 외에 collectionWindows(ADR-150 A2
+    // 가상화) + activeBreakpoint(ADR-154 Bug3 responsive projection) 를 넘기는
+    // 멀티라인 객체로 확장됨 — 첫 인자가 activeCanonicalDocument 인 계약만 고정 검증한다.
     expect(source).toContain(
-      "return buildCanonicalSceneModel(activeCanonicalDocument, { collections });",
+      "return buildCanonicalSceneModel(activeCanonicalDocument, {",
     );
     expect(source).toContain("buildLegacyCanvasSceneGraph");
     expect(source).not.toContain("getSceneModelElementsLegacy");

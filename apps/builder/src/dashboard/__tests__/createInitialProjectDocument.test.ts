@@ -35,7 +35,9 @@ describe("createInitialProjectDocument", () => {
             expect.objectContaining({
               id: "page-components-body",
               type: "body",
-              props: {},
+              // 20ac5e60d: 시스템 페이지 body 에 실제 overflow:auto 부여 (일반 페이지
+              //   createDefaultBodyProps 와 대칭 — Components 스크롤바 미표시 해소).
+              props: { style: { overflow: "auto" } },
               children: expect.arrayContaining([
                 expect.objectContaining({
                   id: "component-listbox-item-default",

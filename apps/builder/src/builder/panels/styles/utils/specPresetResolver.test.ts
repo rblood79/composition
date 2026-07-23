@@ -289,10 +289,11 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
   describe("ADR-082 P3 fix — sizes 경로 TokenRef 해석 (pickNumeric → resolveToNumber)", () => {
     it("Badge.sizes.md.borderRadius = '{radius.full}' → 9999 로 resolve", () => {
       // Badge 는 sizes 전체가 `"{radius.full}"` TokenRef 사용 → 기존 typeof number 필터로
-      //   전부 skip 되던 버그 수정. borderWidth:1(숫자) 는 원래 통과하던 값.
+      //   전부 skip 되던 버그 수정. borderWidth 는 ADR-151 B12 에서 1→0 으로 전환됨
+      //   (전 variant border 색 부재 = DOM border:none 인데 Skia layout 만 +2px 소비하던 dead 값 제거).
       const preset = resolveAppearanceSpecPreset("Badge", "md");
       expect(preset.borderRadius).toBe(9999);
-      expect(preset.borderWidth).toBe(1);
+      expect(preset.borderWidth).toBe(0);
     });
 
     it("InlineAlert.sizes.md.borderRadius = '{radius.lg}' → 8 로 resolve", () => {
@@ -352,8 +353,11 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
         borderWidth: 1,
         backgroundColor: "var(--bg-raised)",
       });
+      // top-level display 는 ADR-151 B7 (2026-07-16 사용자 결정) 에서 목록 panel 메트릭 →
+      // 트리거 박스(inline-flex / fit-content) 로 전환. flexDirection:column 은 fallback
+      // 병합 tier 로 유지되어 그대로 통과.
       expect(resolveLayoutSpecPreset("Menu", undefined)).toMatchObject({
-        display: "flex",
+        display: "inline-flex",
         flexDirection: "column",
       });
     });

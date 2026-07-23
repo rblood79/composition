@@ -420,12 +420,14 @@ describe("canonical import registry", () => {
     expect(previewSource).toContain(
       ".prefetchDocumentImports(canonicalDocument)",
     );
+    // 140b7f1a8 (perf): 문서 변경당 canonical resolve 2회+ → 1회로 축소 (dev 로깅 resolve
+    //   제거 + 렌더 경로 memo). 남은 단일 호출이 여전히 canonicalImportRegistry 를 배선하는지 검증.
     expect(
       (
         previewSource.match(
           /resolveCanonicalDocument\(\s*canonicalDocument,\s*undefined,\s*canonicalImportRegistry,\s*\)/g,
         ) ?? []
       ).length,
-    ).toBe(2);
+    ).toBe(1);
   });
 });

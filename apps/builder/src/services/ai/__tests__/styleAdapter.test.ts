@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { FillType } from "../../../types/builder/fill.types";
-import { adaptPropsForElement, adaptStylePatchWithFills } from "../styleAdapter";
+import {
+  adaptPropsForElement,
+  adaptStylePatchWithFills,
+} from "../styleAdapter";
 
 describe("styleAdapter fill bridge", () => {
   it("create path applies fills and derives background css from fills", () => {
@@ -48,9 +51,11 @@ describe("styleAdapter fill bridge", () => {
       ],
     );
 
+    // fill color `#ABCDEF88` 의 알파(88 = 0.533)를 보존 → 반투명 색은 rgba 로 방출된다
+    //   (17d2f3085 normalizeExternalFillIngress). 불투명(FF) fill 만 hex 로 유지 (위 create path 참조).
     expect(result.style).toMatchObject({
       padding: 12,
-      backgroundColor: "#ABCDEF",
+      backgroundColor: "rgba(171, 205, 239, 0.533)",
     });
     expect(result.style.backgroundImage).toBeUndefined();
   });

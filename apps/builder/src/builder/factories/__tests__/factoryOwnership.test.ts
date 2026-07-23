@@ -229,18 +229,24 @@ describe("P3-D-1: factory ownership 제거", () => {
       });
     });
 
-    it("grid layout props (gridTemplateColumns 등) 는 변환 후에도 보존된다", () => {
+    it("parent inline display:grid 는 ADR-913 에서 제거됨 — longhand gap/width 만 보존", () => {
       // Arrange
       const ctx = makeContext(makeMockParent());
 
       // Act
       const def = createProgressBarDefinition(ctx);
 
-      // Assert — P3-D-1 은 ownerFields 만 제거, layout props 보존 확인
+      // Assert — ADR-913 (2026-07-15): inline display:grid/gridTemplate 제거. inline grid
+      //   (specificity 1-0-0) 가 generated CSS `[data-label-position="side"]` (0-2-0) 를 이겨
+      //   side flex 를 무력화하던 근본 차단. top 모드 grid 는 catalog structure.containerStyles
+      //   + Skia resolveContainerStylesFallback 이 담당. factory 는 longhand gap/width 만 유지하고
+      //   grid 배치(gridArea/line)는 자식 inline 으로 존속.
       const style = def.parent.props.style as Record<string, unknown>;
       expect(style).toBeDefined();
-      expect(style.display).toBe("grid");
-      expect(style.gridTemplateColumns).toBe("1fr auto");
+      expect(style.display).toBeUndefined();
+      expect(style.gridTemplateColumns).toBeUndefined();
+      expect(style.rowGap).toBe(4);
+      expect(style.columnGap).toBe(12);
     });
 
     it("parentElement 있을 때 parent element 의 parent_id 가 반영된다", () => {
