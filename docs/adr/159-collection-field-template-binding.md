@@ -8,13 +8,15 @@ Proposed — 2026-07-21
 
 data-bound collection(ListBox/GridList/Table 등)의 행 텍스트는 현재 **고정 필드 휴리스틱**으로만 채워진다: `getItemLabel` 이 `["label","textValue","children","name","title","value"]` 우선순위로 행에서 첫 일치 필드를 뽑는다 (`packages/shared/src/collections/resolveCollectionItems.ts:263-282`). 사용자가 slot 자식 Text 에 `{num}` `{email}` 을 입력해도 — 보간 기계가 코드베이스에 없어 — DOM/Skia 양쪽 모두 이를 무시하고 `name` 을 렌더한다 (2026-07-21 라이브 실측: Users 테이블 num/email 지정 시도 → name 표시. Skia 발산 아님 — 대칭적 미구현):
 
-- Skia projection 은 slot 텍스트를 버리고 `row.label` 단일 필드로 덮는다 (`apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts:987-989`). `SlotComposition` 은 role/style 만 운반하고 텍스트를 담지 않는다 (`packages/shared/src/catalog/slotRoles.ts:74-123`).
+- Skia projection 은 slot 텍스트를 버리고 `row.label` 단일 필드로 덮는다 (`apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts:1186` ListBox / `:1476` GridList `rowProps children: row.label` — 2026-07-24 리뷰 round 2 재확인, 구 인용 :987-989 는 ADR-154 후속 편집으로 라인 이동). `SlotComposition` 은 role/style 만 운반하고 텍스트를 담지 않는다 (`packages/shared/src/catalog/slotRoles.ts:79-92`).
 - DOM 의 필드 지정 수단인 `columnMapping` + Field 자식 모드 (`packages/shared/src/components/ListBox.tsx:442`) 는 slot 별 **단일 컬럼**만 가능하고(다중 필드·literal 혼합 불가), Skia projection 이 소비하지 않으며, 오소링 UI 배선도 없다.
 - 임의 컬럼(num/email)은 어떤 경로로도 표시 불가 — 휴리스틱 키 목록에 없기 때문.
 
 동시에 컴포넌트 패널의 데이터 소스 피커는 4종(dataTable/api/variable/route — `apps/builder/src/builder/components/property/PropertyDataBinding.tsx:108-112` `SOURCE_OPTIONS`)을 노출하지만, composition 의 데이터 방향은 **모든 동적·정적 데이터를 RAC/RSP 레퍼런스인 collection 방식으로 처리** — dataTable(=canonical `collections`, ADR-132) 단일이다. api/variable/route 는 사용하지 않는 표면이다.
 
 **ADR-152 경계 (2026-07-21 사용자 confirm — 경계 재획정)**: [ADR-152](152-data-panel-collection-binding-integration.md)(바인딩 통합)는 같은 문제 공간의 **계약 인프라 축**(id 참조 계약 v2 / 읽기 경로 일원화 / publish 직렬화 / store 이중화 정리)을 담당하고, 본 ADR 은 **표시 축**(텍스트 슬롯 템플릿 + 오소링 + dataTable 단일 소스)을 담당한다. 152 의 fieldMap 은 비텍스트 역할(icon/value) 한정으로 축소 개정되고(텍스트 label/description 은 본 ADR 템플릿이 정본), 152 의 API source 유지 전제는 본 ADR 방향으로 개정된다 (152 는 scope 변경으로 재리뷰 대상). 상세 경계: breakdown §1-5.
+
+**ADR-162 소비 관계 (2026-07-24 사용자 confirm — "159 base 의존 재획정")**: [ADR-162](162-gridlist-template-subtree-projection.md)(GridList composed 카드)가 본 ADR 을 base 로 소비한다 — P1 resolver 를 실체화된 임의 템플릿 자식의 string prop 보간에, P4 오소링 패턴을 임의 자식 prop 편집면에 확장 적용. 본 ADR 의 계약·범위 무변 (소비 확장 정보 — P1 API 는 slot 텍스트 특정이 아닌 string 일반이어야 함, §2-2 시그니처 그대로 충족).
 
 **3-Domain 판정**: D1(RAC DOM/동작) 무접촉 — 상호작용·write-back 은 본래 Preview/Publish 의 RAC 소관(빌더 Skia 는 레이아웃·배치·시각 구성만, 메모리 `feedback-skia-builder-not-frontend-interaction-belongs-to-preview` 정합). D3 는 "보간된 샘플 텍스트의 시각 대칭"만 관여(스타일 SSOT 무변). 바인딩 스키마는 canonical 문서 모델 영역(ADR-116/131/132 계보)으로 D2 컴포넌트 props 확장이 아니다. Spec/Generator 확장 아님 — Generator 자식 selector emit 질문 해당 없음.
 

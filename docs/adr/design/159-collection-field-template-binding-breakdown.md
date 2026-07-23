@@ -11,6 +11,7 @@
 3. **ADR-148 (slot 구성) 의 확장**: `SlotComposition` 이 운반하는 축을 구성·스타일에서 **+텍스트 템플릿**으로 1필드 확장. 구성 SSOT(=origin 문서 자식) 원칙 불변.
 4. **의존 방향**: 본 ADR 이 base(바인딩 primitive), Table 컴포넌트 셀 write-back/교차 lookup 은 응용(후속 ADR). 역전 없음.
 5. **ADR-152 (바인딩 통합) 와 경계 재획정 — 2026-07-21 사용자 confirm (AskUserQuestion "경계 재획정 — 둘 다 유지")**: 152 = 계약 인프라 축(id 참조 계약 v2 / 읽기 경로 일원화 / publish 직렬화 / store 이중화 정리), 본 ADR = 표시 축(텍스트 슬롯 `{field}` 템플릿 + 오소링 ComboBox + dataTable 단일 소스). 152 의 fieldMap 은 비텍스트 역할(icon/value) 한정으로 축소 개정 — label/description 텍스트 표시는 본 ADR 템플릿이 정본. 152 의 API source 유지 전제(구 Phase 6 publish 직접 fetch)는 본 ADR dataTable 단일 방향으로 개정. 두 ADR 이 `PropertyDataBinding.tsx` 를 공유 수정하므로 본 ADR P4b(소스 단일화)가 선행하면 152 Phase 2 는 그 축소된 표면 위에서 진행.
+6. **ADR-162 (GridList composed 카드) 의 base — 2026-07-24 사용자 confirm ("159 base 의존 재획정")**: 162 가 본 ADR P1 resolver(임의 템플릿 자식 string prop 보간) + P4 오소링 패턴(임의 자식 prop 편집면)을 소비한다. 본 ADR 계약 무변 — P1 구현 시 slot 텍스트 특정 가정을 넣지 말 것 (§2-2 시그니처의 string 일반성 유지). 162 Phase 2 는 본 ADR P1, 162 Phase 5 는 본 ADR P4 Implemented 가 선행 조건.
 
 ## §2. 계약 정의
 
@@ -37,7 +38,7 @@
 
 ### 2-3. SlotComposition 텍스트 운반 (ADR-148 확장)
 
-- `SlotChildConfig` 에 `text?: string` 추가 (`packages/shared/src/catalog/slotRoles.ts:74-81`) — `resolveSlotComposition` 이 slot 자식 `props.text ?? props.children`(string 한정) 캡처.
+- `SlotChildConfig` 에 `text?: string` 추가 (`packages/shared/src/catalog/slotRoles.ts:79-85` — 2026-07-24 라인 재확인) — `resolveSlotComposition` 이 slot 자식 `props.text ?? props.children`(string 한정) 캡처.
 - `readSlotComposition` 방어 판독에 동일 필드 통과.
 - 소비처(BC): 기존 소비처는 `text` 를 몰라도 동작 불변 (optional 필드).
 
