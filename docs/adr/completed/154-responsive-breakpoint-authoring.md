@@ -183,6 +183,7 @@ Accepted — 2026-07-23 (브레인스토밍 사용자 confirm: write 모델 반�
 - **저장·resolve·출력 계층 무변경**: `responsive.styles` 스키마, cascade resolve (`getResponsiveValueWithCascade`), @media 출력 (Phase 3), Skia resolve (`resolveResponsiveLayoutNode`) 전부 그대로. 반전되는 것은 그 위의 **authoring 정책 계층** (write 라우팅 조건 + 토글 UI + dirty/reset 판정) 뿐이다.
 - **항상 전역**: Appearance(border·radius)·Typography·배경(fills) — 토글 비노출, 어느 breakpoint 에서든 base write. border 전역화(`1377d62bb`)가 우회한 @media border 렌더 이슈는 계속 회피 유지 (수정 불필요). `GLOBAL_STYLE_PROPS` blocklist 는 allowlist 반전으로 대체·소멸.
 - **eligible 확장 경로**: fontSize 모바일 축소 같은 실수요가 확인되면 allowlist 1줄 추가로 확장 (Typography 키 편입) — 지금은 사용자 confirm 범위(Layout·Transform)만.
+- **visibility 축은 개정 무관 유지**: breakpoint 별 가시성은 `ElementResponsiveConfig.visibility` — `styles` 와 **별도 필드** (`packages/shared/src/types/responsive.types.ts:171-176`) 이고, `ResponsiveVisibilityEditor` 의 breakpoint 별 eye 토글이 이미 명시적 opt-in 이라 개정 모델과 정합. R8 eligible 필터는 `styles` 맵에만 적용 — visibility 축을 필터·전역화 대상으로 삼지 않는다.
 - 기각 사유 — 개정안 A: 근본 원인 미해소 (배지가 아무리 명확해도 암묵 write 모델의 예측 불가가 남음). 개정안 C 단독: Layout 축 혼란 잔존 + 전역 layout 편집 불가.
 
 > 구현 상세: [154-responsive-breakpoint-authoring-breakdown.md §9](../design/154-responsive-breakpoint-authoring-breakdown.md)

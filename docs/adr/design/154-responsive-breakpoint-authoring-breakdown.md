@@ -131,7 +131,7 @@ Phase 2 착수 시 라이브 재실측 결과, §2 인벤토리의 아래 2행�
 ### Phase R0 — eligible allowlist freeze (실측)
 
 1. `LayoutSection.tsx` / `TransformSection.tsx` 가 편집하는 style 키 전수 실측 (longhand 기준 — ADR-909: rowGap/columnGap, padding·margin 4-way 등) → `RESPONSIVE_ELIGIBLE_STYLE_PROPS` 상수 확정.
-2. 기존 `ResponsiveStyles` 14-prop 화이트리스트 (`responsive.types.ts`) 와 **단일 소스 통합** — 두 목록 병존 금지. fontSize/textAlign (render-visual 2/14) 은 개정 범위상 eligible 제외 (Typography 전역) — 원안의 14/14 Skia↔DOM 대칭 인프라는 유지되므로 후속 편입 시 allowlist 추가만으로 재가동. Transform 키 (translate/rotate/scale 등) 가 기존 14-prop 밖이면 eligible 편입 + resolve 경로 통과 확인.
+2. 기존 `ResponsiveStyles` 화이트리스트 (`packages/shared/src/types/responsive.types.ts:102-166` — 원형 14 prop + ADR-909 longhand 분배 10키 = **현행 24키**) 와 **단일 소스 통합** — 두 목록 병존 금지. fontSize/textAlign (render-visual 축) 은 개정 범위상 eligible 제외 (Typography 전역) — 원안의 Skia↔DOM 대칭 인프라는 유지되므로 후속 편입 시 allowlist 추가만으로 재가동. Transform 키 (translate/rotate/scale 등) 가 현행 24키 밖이면 eligible 편입 + resolve 경로 통과 확인.
 3. `globalStyleProps.ts` 개편: `GLOBAL_STYLE_PROPS` blocklist 삭제 → allowlist 반전 (`isResponsiveEligibleStyleProp`). `clearGlobalStyleResponsiveOverrides` 를 "non-eligible 전 키 정리" 로 일반화. (파일명 `responsiveEligibleStyleProps.ts` 개편 검토)
 
 ### Phase R1 — write 라우팅 반전
@@ -150,7 +150,7 @@ Phase 2 착수 시 라이브 재실측 결과, §2 인벤토리의 아래 2행�
 ### Phase R3 — dirty·reset·read 일반화
 
 1. dirty/reset (`useResetStyles.ts` `computeDirtyStyleProps` / `resetStyles`): **eligible + own-tier override → 자기 tier 판정, 그 외 전 속성 → base 판정 breakpoint 무관** — fills 특례 (`5baa17a2f`) + border 특례 (`1377d62bb`) 를 단일 일반 규칙로 흡수 (G6).
-2. read merge 4곳 (`resolveResponsiveStyleMap`/`resolveResponsiveLayoutNode` (builder) · `buildResponsiveElementCss`/`collectResponsiveCssFromElements` (shared)) 에 eligible 필터 — non-eligible 잔존 override 즉시 무력화 (R8).
+2. read merge 4곳 (`resolveResponsiveStyleMap`/`resolveResponsiveLayoutNode` (builder) · `buildResponsiveElementCss`/`collectResponsiveCssFromElements` (shared)) 에 eligible 필터 — non-eligible 잔존 override 즉시 무력화 (R8). **필터 대상은 `responsive.styles` 맵만** — `ElementResponsiveConfig.visibility` (`responsive.types.ts:171-176`, breakpoint 별 eye 토글) 는 별도 축이라 필터·전역화 대상 아님 (본문 §Decision (개정) visibility 항목).
 3. `ModifiedStylesSection` 필터 뷰 표시 정합 확인.
 
 ### Phase R4 — 검증·종결
