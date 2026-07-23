@@ -101,6 +101,7 @@ Proposed — 2026-07-24
 | R3  | 치환 이중화/충돌 — propsSchema 치환(ADR-148, instance root)과 159 row 보간의 순서·오염, 또는 소비처가 자체 `{...}` 파싱 도입                                                                   |  MED   | 순서 계약 명문화 (breakdown §4): propsSchema 선행(schema 키 한정) → 159 보간 후행. 159 grep gate(2심볼 외 파싱 0건) 준수 + 통합 테스트 1건 |
 | R4  | scene 노드 수 증가 (rows × 서브트리) — 60fps 회귀                                                                                                                                              |  MED   | 가상화 window cap 상한 유지 (composed 도 window 슬라이스만 실체화). Gate G4 성능 확인                                                      |
 | R5  | 선행 의존 지연 — ADR-159 P1/P4 미구현 시 본 ADR Phase 2/5 착수 불가                                                                                                                            |  MED   | 진입 조건 명시 (breakdown §1) — P0/P1(판정 primitive)은 독립 진행 가능. 159 우선순위는 사용자 결정                                         |
+| R6  | 실체화 자식 interaction 누락 — `resolveCanvasInteractionTarget.ts:141-177` projection kind 전수 OR 미등록 시 클릭 무반응 또는 projected ID selection 유입 (render-space 경계 위반)             |  MED   | 신규 kind `gridlist-card-child` + owner-redirect + ProjectionLike union 동시 갱신 (breakdown Phase 2 interaction 계약, 리뷰 round 1 추가)  |
 
 ## Gates
 

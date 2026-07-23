@@ -62,6 +62,7 @@
 - `appendGridListRowProjection`(canvasSceneNode.ts): composed 시 카드 노드를 box shell 컨테이너로 두고, 템플릿 서브트리를 행별 scene 자식으로 실체화 (ID: `${projectionId}::${templateChildId}`), string prop 에 159 보간 적용. slot-only 는 현행 경로 그대로.
 - projected 자식 노드는 기존 traversal/layout 엔진 경로로 측정·렌더 (rows-group 은 이미 엔진 실측 — 신규 자식도 동일).
 - `gridlist_card` escape: composed 카드에는 미적용(카드 = 일반 컨테이너 box), slot-only 에만 replace 유지.
+- **interaction 계약 (리뷰 round 1 MED#2)**: 실체화 자식 scene 노드에 `projection.kind: "gridlist-card-child"`(신규) 부여 + `resolveCanvasInteractionTarget.ts` owner-redirect OR 목록·`ProjectionLike` union **동시 갱신** (:143 주석 계약 — 클릭 시 owner GridList 선택). render-space 경계 준수: projected 자식 ID 는 canonical mutation/영속 유입 금지 (canvas-rendering.md §9). 미등록 시 클릭 무반응(:127 `kind:"none"`) 또는 projected ID selection 유입.
 
 ### Phase 3 — DOM composed 모드 (HIGH) — 선행: 159 P1
 
@@ -70,9 +71,9 @@
 
 ### Phase 4 — 카드 높이/가상화 실측 전환 (HIGH — 최대 위험)
 
-- composed 모드: §1.55c(utils.ts) formula/`resolveCollectionRowMetric`(ADR-160) 대신 **대표 카드(템플릿 서브트리) 실측 높이** 사용. 템플릿 균일 → 행 높이 균일 가정(1차 범위, 행별 가변 높이는 후속).
-- 실측 채널: scene 실체화 후 `_projectedRowsContentHeight` 주입(기존 sample-mode 채널 재사용, ADR-157 P4) — owner 높이 = visualRows × 실측 rowHeight.
-- window stride(ADR-150 A2 `rowHeight`)도 동일 실측값 소비 — 이원화 금지 (단일 resolver).
+- composed 모드: §1.55c(utils.ts) formula/`resolveCollectionRowMetric`(ADR-160) 대신 **대표 카드(템플릿 서브트리) 측정 높이** 사용. 템플릿 균일 → 행 높이 균일 가정(1차 범위, 행별 가변 높이는 후속).
+- **측정 메커니즘 (리뷰 round 1 MED#1 — 타이밍 순환 정정)**: "scene 실체화 후 엔진 실측 주입" 은 불가 — scene build 는 layout **전**이라 엔진 산출이 없다 (현행 주입값도 `windowResolution.rowHeight` = formula, canvasSceneNode.ts:1380-1391). 대신 **단일 순수 측정 resolver `resolveComposedCardMetric(templateChildren)`** 를 신설한다: 엔진 후행 결과에 의존하지 않는 순수 함수(텍스트 측정 + 스택 합산 — `resolveCollectionRowMetric` 의 subtree 일반화)로, scene 주입(`_projectedRowsContentHeight`)·§1.55c·window stride 3소비처가 **공동 호출** (ADR-160 SSOT 원칙 동형). 엔진 실측과의 일치는 산출 후 G3 parity test 가 검증 (resolver 출력 = 엔진 실측 = DOM 실측).
+- window stride(ADR-150 A2 `rowHeight`)도 동일 resolver 산출 소비 — 이원화 금지.
 - spacing test 신설: composed 카드 높이 = 서브트리 엔진 실측 = DOM 실측 (parity oracle).
 
 ### Phase 5 — Content-Data 패널: 임의 자식 prop 오소링 확장 (MED) — 선행: 159 P4
@@ -93,6 +94,8 @@
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----- |
 | composed 판정    | packages/shared/src/catalog/slotRoles.ts(인접 신규 심볼)                                                                       | 1     |
 | Skia projection  | apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts                                                             | 2     |
+| interaction      | apps/builder/src/builder/workspace/canvas/interaction/resolveCanvasInteractionTarget.ts (kind OR + ProjectionLike union)       | 2     |
+| 높이 resolver    | packages/specs/src/renderers/utils/collectionItemMetrics.ts (`resolveComposedCardMetric` 신설)                                 | 4     |
 | Skia escape gate | packages/specs/src/renderers/skiaPrimitives.ts                                                                                 | 2     |
 | DOM renderer     | packages/shared/src/renderers/SelectionRenderers.tsx                                                                           | 3     |
 | preview 채널     | apps/builder/src/preview/App.tsx, types/index.ts                                                                               | 3     |
