@@ -71,12 +71,12 @@ Phase 1~4 는 이 모델의 text-leaf 부분만 구현하되, 문법·자료구�
 
 ## §3. Phase 분해
 
-### Phase 0 — inventory (커밋 1)
+### Phase 0 — inventory (커밋 1) — ✅ Implemented 2026-07-24
 
-- [ ] `dataBinding.source` 값별 소비처 전수 grep: `"api"` / `"variable"` / `"route"` — `useCollectionData.tsx` dispatch, `PropertyDataBinding.tsx`, `ApiEndpointList.tsx`, `VariableList.tsx`, `services/api/*`
-- [ ] `columnMapping` 소비처 전수 grep (`ListBox.tsx:442` Field 모드, `CollectionRenderers.tsx:245-268`, Select/RadioGroup/ToggleButtonGroup) — 본 ADR 과의 관계 판정 기록 (수렴 대상 vs legacy 격하)
-- [ ] 기존 저장 문서의 api/variable/route 사용 실측 (dev stage 예상 0건 — BC 수식화)
-- 산출: 본 문서 §5 에 inventory 표 추가
+- [x] `dataBinding.source` 값별 소비처 전수 grep: `"api"` / `"variable"` / `"route"` — `useCollectionData.tsx` dispatch, `PropertyDataBinding.tsx`, `ApiEndpointList.tsx`, `VariableList.tsx`, `services/api/*` (§5-1)
+- [x] `columnMapping` 소비처 전수 grep (`ListBox.tsx:442` Field 모드, `CollectionRenderers.tsx:245-268`, Select/RadioGroup/ToggleButtonGroup) — 본 ADR 과의 관계 판정 기록 (§5-2: 텍스트 계보 legacy 격하 / P5 컴포넌트 셀 계보 수렴)
+- [x] 기존 저장 문서의 api/variable/route 사용 실측 (§5-3: 로컬 IndexedDB 0건 확증, Supabase 전체는 RLS 로 G4 재실측 이연)
+- 산출: 본 문서 §5 에 inventory 표 추가 ✅
 
 ### Phase 1 — shared resolver + BC 계약 (커밋 1~2)
 
@@ -131,6 +131,40 @@ Phase 1~4 는 이 모델의 text-leaf 부분만 구현하되, 문법·자료구�
 | slot Text 편집 UI (P0 inventory 로 특정)                               |  P4   | 필드 피커 ComboBox                                 |
 | `packages/shared/src/hooks/useCollectionData.tsx` 외                   |  P4c  | 조건부 — api/variable/route 경로 제거              |
 
-## §5. Phase 0 inventory 결과
+## §5. Phase 0 inventory 결과 (2026-07-24 실측)
 
-(Phase 0 실행 시 기록)
+### 5-1. `dataBinding.source` = api/variable/route 소비처 전수
+
+| 분류               | 위치                                                                  | 내용                                                    | 판정                                                                     |
+| ------------------ | --------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------ |
+| 오소링 UI          | `PropertyDataBinding.tsx:78,108-112,147-159,327-421`                  | `SOURCE_OPTIONS` 4종 + source 별 편집 분기              | **P4b 축소 대상**                                                        |
+| runtime (builder)  | `apps/builder/src/builder/hooks/useCollectionData.ts:326,401,421,507` | `source==="api"` dispatch                               | P4c 제거 후보                                                            |
+| runtime (shared)   | `packages/shared/src/hooks/useCollectionData.tsx:331,411,436,522`     | 동일 (shared 이중화 사본)                               | P4c 제거 후보                                                            |
+| preview            | `apps/builder/src/preview/hooks/useDataSource.ts:435-473`             | dataTable/api/variable/route 4-way dispatch             | P4c 제거 후보                                                            |
+| renderer           | `TableRenderer.tsx:96,241` / `DataTableComponent.tsx:28`              | legacy api 판정 분기                                    | P4c 제거 후보                                                            |
+| **factory 기본값** | `apps/builder/src/builder/factories/definitions/DataComponents.ts:42` | DataTable factory 가 `source:"api"` + MOCK_DATA 로 생성 | **P4b 에서 dataTable 기본 전환 필수** (신규 api 기록의 현행 유일 생성원) |
+| AI tool            | `apps/builder/src/services/ai/tools/createElement.ts:79`              | `source:"api"` 생성                                     | P4b 동시 전환                                                            |
+| 관리 UI            | `panels/datatable/components/{ApiEndpointList,VariableList}.tsx`      | api endpoint / variable 목록 관리                       | P4c 제거 후보                                                            |
+| Skia 시각화        | `workspace/canvas/skia/workflowEdges.ts:247,312,330-331`              | binding source 시각화 sourceType                        | P4c 동시 정리                                                            |
+| services/api       | `apps/builder/src/services/api/{ErrorHandler,index,mocks}`            | MOCK_DATA fetch 계층                                    | P4c 판정 (mocks 는 dataTable seed 로 전용 가능)                          |
+| 무관 (동명 축)     | `eventEngine.ts:1074` / `eventTypes.ts:294` / `BuilderCore.tsx:858`   | 이벤트 payload `"response"\|"variable"\|"static"`       | 본 ADR 무관 — 제거 금지                                                  |
+| 무관 (동명 축)     | `inspector/types.ts:80,93` / `element.types.ts:38`                    | inspector/DataSource 별개 타입 축                       | 본 ADR 무관 — 제거 금지                                                  |
+
+### 5-2. `columnMapping` 소비처 전수 — 판정: 텍스트 계보 legacy 격하, P5 컴포넌트 셀 계보로만 수렴
+
+| 분류          | 위치                                                                                                             | 판정                                                   |
+| ------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Field 렌더    | `ListBox.tsx:442,514` / `CollectionRenderers.tsx:245-268,281,287,403`                                            | 텍스트 표시 축은 본 ADR 템플릿이 정본 (신규 배선 금지) |
+| 컴포넌트 통과 | `{GridList,Tabs,Breadcrumbs,ComboBox,Menu,Table,CheckboxGroup,TagGroup,RadioGroup,Select,ToggleButtonGroup}.tsx` | props 통과 — P5 컴포넌트 셀 계보 재사용 후보           |
+| 타입          | `element.types.ts`(FieldType) / `unified.types.ts` / `composition-document.types.ts` / `inspector/types.ts`      | 유지 (P5 스칼라 셀 계보)                               |
+| 오소링        | `ListBoxItemEditor.tsx:35` / `listBoxTemplateOrigins.ts` / `SelectionComponents.ts`                              | legacy 안내 유지 — 신규 오소링은 템플릿 단일 (R3)      |
+| 추론/문서     | `columnTypeInference.ts` / `templateBinding.ts:11` / `Table.binding.ts`                                          | 유지                                                   |
+
+### 5-3. 저장 문서 api/variable/route 사용 실측
+
+| 대상                                                          | 방법                                              | 결과                                                                                       |
+| ------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| 로컬 IndexedDB `documents`(1) + `documents_backup`(10), 278KB | 전 store JSON 스캔 (`"dataBinding"` / `"source"`) | **dataBinding 자체 0건 → api/variable/route 0건 확증**                                     |
+| Supabase 전체 프로젝트                                        | REST anon 조회                                    | RLS 차단 — 세션 credential 추출은 부적절하여 미실측. **G4 (P4c 진입 전) 재실측 의무 유지** |
+
+BC 수식화: 측정 가능 범위 사용 0건 — 단 factory 기본값(5-1)이 `source:"api"` 를 계속 생성하므로 P4b 기본값 전환이 선행돼야 "신규 유입 0" 이 성립.
