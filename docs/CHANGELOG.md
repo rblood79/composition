@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Compare Mode split persistence — 2026-07-23]
+
+### UX
+
+- CSS/Canvas Compare Mode의 `20–80%` pane split을 브라우저 `localStorage`에 저장해 새로고침 후에도 복원합니다. 드래그 중에는 저장하지 않고 `pointerup`/`pointercancel` 시 최신값만 저장합니다.
+
 ## [collection 행 inset 입력 산출 SSOT 봉쇄 — ADR-160 후속 F1/F2] - 2026-07-23
 
 ### Bug Fixes
