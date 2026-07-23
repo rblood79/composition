@@ -9,6 +9,7 @@ import {
   LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
   LISTBOX_ITEM_SELECTED_ORIGIN_ID,
 } from "../listbox/listBoxTemplateOrigins";
+import { GRIDLIST_ITEM_DEFAULT_ORIGIN_ID } from "../gridlist/gridListTemplateOrigins";
 
 describe("ADR-146 shared slot host policy", () => {
   it("keeps frame-compatible shell slot host detection out of property panels", () => {
@@ -45,5 +46,40 @@ describe("ADR-146 shared slot host policy", () => {
     expect(
       filterSlotCandidates(host, [button, selectedItem, defaultItem]),
     ).toEqual([selectedItem, defaultItem]);
+  });
+
+  // ADR-161 Phase 7: GridList slot host parity (ListBox 대칭).
+  it("recognizes reusable GridList origin as a slot host", () => {
+    expect(
+      isSlotHostElement({
+        id: "component-gridlist",
+        type: "GridList",
+        reusable: true,
+      }),
+    ).toBe(true);
+    // 비-reusable/비-systemOwned GridList 는 slot host 아님 (ListBox 규약 동일).
+    expect(isSlotHostElement({ id: "gl", type: "GridList" })).toBe(false);
+  });
+
+  it("limits GridList slot candidates to GridListItem template variants", () => {
+    const host = { id: "component-gridlist", type: "GridList" };
+    const defaultItem = {
+      id: GRIDLIST_ITEM_DEFAULT_ORIGIN_ID,
+      type: "GridListItem",
+      reusable: true,
+    };
+    const genericItem = {
+      id: "local-gridlist-item",
+      type: "GridListItem",
+      reusable: true,
+    };
+    const button = { id: "button-origin", type: "Button", reusable: true };
+
+    expect(isSlotCandidateAllowed(host, defaultItem)).toBe(true);
+    expect(isSlotCandidateAllowed(host, genericItem)).toBe(false);
+    expect(isSlotCandidateAllowed(host, button)).toBe(false);
+    expect(filterSlotCandidates(host, [button, defaultItem])).toEqual([
+      defaultItem,
+    ]);
   });
 });

@@ -62,10 +62,11 @@ GridList 를 ListBox 와 동형 ref-composite 로 만들기 위한 참조 구현
 > **scope 추가 근거**: 사용자가 GridList 인스턴스 프로퍼티 패널에 slot 표시가 없음을 발견(2026-07-23). 렌더 측(Phase 1/2/4)과 별개인 **authoring 표면** parity gap — slot 편집 UI 가 ListBox 전용으로 구현돼 GridList 로 미이식. breakdown 원안 미포함, 사용자 승인 하 추가.
 
 - **원인**: (a) `slotHostPolicy.ts` 의 `isSlotHostElement`(`:72-78`)가 ListBox host(`type==="listbox"` + reusable/systemOwned)·Frame 타입만 인정 — `isGridListHost` 부재. (b) `GridListItemEditor`(`:36-86`)가 flat-props 편집기(label/value/description/textValue/isDisabled 직접 prop) — ListBox `ListBoxItemEditor` 의 slot 구성 모델(`listBoxItemSlotChildActions`, ADR-147/148) 미적용.
-- **작업**:
-  1. `slotHostPolicy.ts` 일반화 — `isGridListHost` + `isGridListItemTemplateVariant`(`GRIDLIST_ITEM_DEFAULT_ORIGIN_ID` 기반) 추가. ListBox 전용 분기(`isListBoxHost`/`isListBoxItemTemplateVariant`)를 collection 공용 헬퍼로 확장(향후 Table 도 동일).
-  2. `GridListItemEditor` slot-구성 전환 — flat-props → slot 구성 모델(`ListBoxItemEditor` + `listBoxItemSlotChildActions` 동형의 GridList 판). RAC GridListItem 은 label slot 미제공이라 label 은 DEFAULT slot(`metadata.slotRole:"label"`)로 표현 — slot 편집 시 이 규약 준수.
-- Gate: GridList 인스턴스 선택 → 프로퍼티 패널에 slot 섹션 표시 + slot 자식(label/description) 편집이 origin/카드 반영 (live).
+- **작업 (실측 반영)**:
+  1. **`slotHostPolicy.ts` 일반화 (실 수정)** — `isGridListHost` + `isGridListPolicyActive` + `isGridListItemTemplateVariant`(`GRIDLIST_ITEM_DEFAULT_ORIGIN_ID` 기반) 추가(ListBox 대칭). `isSlotHostElement`/`isSlotCandidateAllowed` 에 GridList 분기 추가. **이것이 "Slot" 섹션(`FrameSlotSection`, `isSlotHostElement` 게이트) 미표시의 유일 원인**이었다.
+  2. ~~`GridListItemEditor` slot-구성 전환~~ **moot(구현 불요)** — per-type 편집기(`ListBoxItemEditor`/`GridListItemEditor`)는 `useEditContract`(ADR-912 단계2, catalog 기반 단일 진입점)로 대체돼 **barrel 외 렌더 참조 0 = dead**. live 실측: ListBoxItem/Default·GridListItem/Default origin 선택 시 **동일 catalog 편집기**(Content: Label + Appearance: Size)를 표시 — item 레벨은 이미 대칭. 편집기 전환 필요 없음.
+- **live 검증(2026-07-23)**: slotHostPolicy 수정 후 `component-gridlist`(Origin) 프로퍼티에 **Slot 섹션 표시**(`GridListItem/Default`, 1 recommendation, Disable slot) — ListBox(2 recommendation) 대칭. slotHostPolicy.test 4건(GridList 2 신규) + type-check(baseline) PASS.
+- Gate: GridList 인스턴스/origin 선택 → 프로퍼티 패널에 Slot 섹션 표시 (live). ✅
 
 ### Phase 5 — 기존 인스턴스 migration (HIGH)
 
@@ -81,17 +82,17 @@ GridList 를 ListBox 와 동형 ref-composite 로 만들기 위한 참조 구현
 
 ## §3 파일 변경 요약
 
-| 파일                                                    | Phase | 변경                                        |
-| ------------------------------------------------------- | ----- | ------------------------------------------- |
-| `gridListTemplateOrigins.ts`                            | 1     | 컨테이너 origin + 등록                      |
-| `dashboard/createInitialProjectDocument.test.ts`        | 1     | container origin assertion                  |
-| `factories/definitions/SelectionComponents.ts`          | 2     | GridList factory ref 전환                   |
-| `preview/App.tsx`                                       | 3     | master slot 해석                            |
-| `canvas/scene/canvasSceneNode.ts`                       | 4     | ref→master **scene type 근본 해석**(visit)  |
-| `adapters/canonical/legacyGridListTemplateMigration.ts` | 5     | 신규 migration                              |
-| `components/slotHostPolicy.ts`                          | 7     | `isGridListHost` + item variant 판정 일반화 |
-| `panels/properties/editors/GridListItemEditor.tsx`      | 7     | flat-props → slot 구성 모델 전환            |
-| `docs/CHANGELOG.md` / `docs/adr/README.md`              | 6     | closure                                     |
+| 파일                                                    | Phase | 변경                                       |
+| ------------------------------------------------------- | ----- | ------------------------------------------ |
+| `gridListTemplateOrigins.ts`                            | 1     | 컨테이너 origin + 등록                     |
+| `dashboard/createInitialProjectDocument.test.ts`        | 1     | container origin assertion                 |
+| `factories/definitions/SelectionComponents.ts`          | 2     | GridList factory ref 전환                  |
+| `preview/App.tsx`                                       | 3     | master slot 해석                           |
+| `canvas/scene/canvasSceneNode.ts`                       | 4     | ref→master **scene type 근본 해석**(visit) |
+| `adapters/canonical/legacyGridListTemplateMigration.ts` | 5     | 신규 migration                             |
+| `components/slotHostPolicy.ts`                          | 7     | `isGridListHost` + item variant 판정 추가  |
+| `components/__tests__/slotHostPolicy.test.ts`           | 7     | GridList host/candidate 테스트 2건         |
+| `docs/CHANGELOG.md` / `docs/adr/README.md`              | 6     | closure                                    |
 
 ## §4 검증 게이트 매핑 (ADR Gates 대응)
 

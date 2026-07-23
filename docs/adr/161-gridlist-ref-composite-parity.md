@@ -10,6 +10,7 @@ Accepted — 2026-07-23 (리뷰 round 1 승인 — `docs/adr/reviews/161.md`, HI
 - 2026-07-23 — **Phase 1 반영**(커밋 `35d84ed87`): 컨테이너 origin `component-gridlist` 등록.
 - 2026-07-23 — **Phase 2 + Phase 4 근본 수정**: factory standalone→ref + scene node type ref→master 해석(per-gate patch 대신 단일 지점 정본 수정, 사용자 지시). live 검증 — 신규 GridList=ref Instance + Skia 카드 projection 발화 + grid 카드 라벨 정상 렌더.
 - 2026-07-23 — **scope 추가 (Phase 7)**: 사용자가 GridList 인스턴스 프로퍼티 패널 slot 표시 부재 발견 → authoring parity(slotHostPolicy 일반화 + GridListItemEditor slot 전환) Phase 7 로 추가, R6/G5 신설. 사용자 승인 하 scope 확장.
+- 2026-07-23 — **Phase 7 반영 (G5 통과)**: `slotHostPolicy` 에 `isGridListHost`/`isGridListItemTemplateVariant` 추가 → `FrameSlotSection`(`isSlotHostElement` 게이트)이 GridList origin 에 Slot 섹션 표시(`GridListItem/Default`, ListBox 대칭). **task 2(GridListItemEditor 전환)는 moot** — per-type 편집기는 `useEditContract`(catalog)로 대체된 dead 코드, ListBoxItem/GridListItem item 편집기 이미 동일. live 검증 + slotHostPolicy.test 4건 + type-check PASS.
 
 ## Context
 
