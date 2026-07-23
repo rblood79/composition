@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [반응형 편집 모델 반전 — ADR-154 개정 1: 기본 전역 + 명시적 override] - 2026-07-23
 
+### Bug Fixes
+
+- **breakpoint override 의 width/height 등에서 `%`·`vw` 단위 유실 수정** (ADR-154 개정 1 후속):
+  - breakpoint 전용 override 를 저장할 때 `width`/`height`/`margin` 의 `50%` → `50`(→ `50px`) 로 단위가 유실돼, `%`·`vw` 지정이 고정 px 로 잘못 렌더됐다. 토글로 override 를 켤 때(현재 값 seed)도 `100%` → `100px` 로 점프.
+  - **Why**: 스타일 값의 숫자 변환 대상 집합이 base 저장 경로와 responsive override 경로에서 서로 달라(override 만 width/height/margin/order 를 추가로 숫자화), 같은 값이 override 여부에 따라 다르게 저장되던 비대칭.
+  - 숫자 변환을 `NUMERIC_COERCE_STYLE_PROPS` + `toStyleNumericValue` 단일 소스로 통합(width/height/margin/top/left 등 dimensional 축 제외 → `%`/`vw`/`auto` 문자열 보존). base 3경로 + override 경로 공용.
+  - 위치: `apps/builder/src/builder/stores/utils/responsiveWriteRouting.ts`, `.../stores/inspectorActions.ts`. (commit: `9877d05ba`)
+
 ### Features
 
 - **breakpoint 편집이 기본 전역(전 breakpoint 공통) 으로 반전**:

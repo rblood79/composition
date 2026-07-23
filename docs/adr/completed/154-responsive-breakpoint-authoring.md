@@ -148,7 +148,8 @@ Implemented — 2026-07-23 (Phase R0~R4 delivered, execute-adr. Accepted 2026-07
 > - **Gate G5** (write 라우팅, live): mobile 에서 eligible 편집(override 없음) → **base 저장**(전역, responsive 미생성) ✓ / 토글 ON → 현재 cascade 값 seed ✓ / override 상태 편집 → responsive tier 반영 + base 격리 ✓ / 토글 OFF → tier clear ✓ / non-eligible(fontSize/border) 편집 → base 전역 + 토글 no-op ✓ (Chrome MCP `__composition_STORE__` 6-exercise).
 > - **Gate G5 (R2 UI, live)**: "Add override" picker 13 옵션 정확 + 선택 시 override seed + chip 표시 ✓. desktop 전역 편집(borderRadius)·eligible base 편집(paddingTop)이 mobile override 미침범 (eligible 격리성) ✓.
 > - **Gate G6/G7**: dirty/reset 일반화 (useResetStyles 68 회귀 PASS) + read 필터 R8 (shared responsiveCss 6 유닛). type-check baseline 61 유지, 신규 20 유닛 (write routing 7 + globalStyleProps 8 + R9 드리프트 가드 1 + responsiveCss R8 6 = 실측 builder 14 + shared 6) + R9 정적 드리프트 가드.
-> - **Known minor**: 토글 ON seed 시 `%` 값이 numeric coercion (width "100%" → 100) — buildResponsiveStyleOverride `RESPONSIVE_NUMERIC_STYLE_PROPS` 기존 동작(개정 무관 pre-existing). eligible 이지만 값 없는 속성은 seed 대상 부재로 토글 no-stick (factory 기본값 보유가 일반이라 실사용 영향 미미).
+> - **후속 fix (2026-07-23, `9877d05ba`)**: ~~토글 ON seed·override 편집 시 `%`/`vw` 단위 유실 (width "50%" → 50 → 50px)~~ → **해소**: responsive 저장 경로가 base 대비 width/height/margin/order 를 추가 숫자 coerce 하던 비대칭 제거. numeric coercion 을 `NUMERIC_COERCE_STYLE_PROPS` + `toStyleNumericValue` (responsiveWriteRouting.ts) 단일 SSOT 로 통합 (base 3경로 + responsive override 경로 공용, dimensional 축 제외 → `%`/`vw`/`auto` 문자열 보존). live(project 2332): width override "50%" → 저장 "50%" → laid-out 175px = 부모 content 350px 의 50% (저장·resolve·렌더 전 구간 정상). 4벌 중복 numeric 집합 통합으로 드리프트 재발 차단.
+> - **Known minor (잔존)**: eligible 이지만 값 없는 속성은 seed 대상 부재로 토글 no-stick (factory 기본값 보유가 일반이라 실사용 영향 미미 — 필요 시 per-prop 기본값 seed 로 후속 개선).
 
 ### Context (개정)
 
