@@ -8,7 +8,7 @@ GridList 를 ListBox 와 동형 ref-composite 로 만들기 위한 참조 구현
 
 | 축                 | ListBox (완성)                                                                                                                        | GridList (현재)                                           |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| 컨테이너 origin    | `createListBoxOrigin` (`listBoxTemplateOrigins.ts:178`), `LISTBOX_ORIGIN_ID="component-listbox"`, `slot:[item-default,item-selected]` | **없음**                                                  |
+| 컨테이너 origin    | `createListBoxOrigin` (`listBoxTemplateOrigins.ts:179`), `LISTBOX_ORIGIN_ID="component-listbox"`, `slot:[item-default,item-selected]` | **없음**                                                  |
 | 등록 Set           | `LISTBOX_SYSTEM_ORIGIN_IDS` 3개 (`:67-70`)                                                                                            | `GRIDLIST_SYSTEM_ORIGIN_IDS` 1개 (item-default 만, `:51`) |
 | factory 인스턴스   | `type:"ref", ref:LISTBOX_ORIGIN_ID` (`SelectionComponents.ts:249-250`)                                                                | `type:"GridList"` 직접 props (`:327-338`) standalone      |
 | preview projection | `byId.get("component-listbox")?.slot` master 해석 (`preview/App.tsx:263`)                                                             | 없음 (standalone 직접 렌더)                               |

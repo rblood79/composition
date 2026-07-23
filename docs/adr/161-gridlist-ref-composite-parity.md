@@ -2,7 +2,11 @@
 
 ## Status
 
-Proposed — 2026-07-23
+Accepted — 2026-07-23 (리뷰 round 1 승인 — `docs/adr/reviews/161.md`, HIGH/MED 이슈 0, LOW 3 전부 종결)
+
+### 진행 로그
+
+- 2026-07-23 — **Accepted**: review-adr round 1 승인 가능(구조 7/7 PASS, 코드 11/11 VERIFIED, 누락 위험 0). execute-adr 착수. Phase 4(Skia projection)·Phase 5(migration)는 HIGH 라 auto 에서도 사용자 surface.
 
 ## Context
 
