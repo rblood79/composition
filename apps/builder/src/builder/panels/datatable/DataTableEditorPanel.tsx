@@ -298,7 +298,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
   };
 
   return (
-    <div className="datatable-editor-panel">
+    <div className="panel datatable-editor-panel">
       <PanelHeader
         icon={<FileEdit {...iconProps} />}
         title={getHeaderTitle()}
@@ -355,7 +355,7 @@ export function DataTableEditorPanel() {
   // 에디터가 열리지 않은 상태
   if (!mode) {
     return (
-      <div className="datatable-editor-panel">
+      <div className="panel datatable-editor-panel">
         <PanelHeader icon={<FileEdit size={iconProps.size} />} title="Editor" />
         <div className="panel-contents">
           <EmptyState message="편집할 항목을 선택하세요" />

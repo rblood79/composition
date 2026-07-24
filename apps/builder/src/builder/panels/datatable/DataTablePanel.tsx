@@ -116,7 +116,7 @@ export function DataTablePanel({ isActive }: PanelProps) {
   // No project selected
   if (!currentProjectId) {
     return (
-      <div className="datatable-panel">
+      <div className="panel datatable-panel">
         <PanelHeader
           icon={<Database size={iconProps.size} />}
           title="DataTable"
@@ -148,7 +148,7 @@ export function DataTablePanel({ isActive }: PanelProps) {
   };
 
   return (
-    <div className="datatable-panel">
+    <div className="panel datatable-panel">
       <PanelHeader
         icon={<Database size={iconProps.size} />}
         title="DataTable"

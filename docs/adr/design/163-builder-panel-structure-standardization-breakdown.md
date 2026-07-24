@@ -162,10 +162,12 @@ CSS 규모: components/styles/index.css 1,169줄 (잡화 집합), panel-system.c
 
 ## §3. Phase 2 — 추종 패널 정렬 (datatable / datatableEditor)
 
-1. root 를 `.panel` 로 통일. 기존 root 클래스는 **보조 클래스로 병기 유지가 기본** (`.panel.datatable-editor-panel`) — co-located CSS 가 root 클래스를 선택자로 참조 중이기 때문 (실측: `.datatable-editor-panel` 4건 / `.themes-panel` 2건 / `.monitor-panel` 2건 / `.ai-panel` 1건). 클래스 제거는 해당 CSS 선택자 동시 수정과 한 커밋일 때만.
-2. `panel-tabs` 4중 정의 → panel-system.css 1회 정의로 통합, editors/\*.css 의 사본 삭제. 시각 diff 는 G4 (라이브 확인).
-3. 내부 컨텐츠의 Section 도입 범위 판정: 탭 패널 특성상 섹션 없는 flat 리스트가 자연스러운 영역은 유지 — 강제 삽입 금지 (과잉 변경 금지 원칙).
-4. type-check + 해당 패널 라이브 확인 + commit.
+> **실측 정정 (2026-07-25, Phase 2 실행 중)**: ADR Context 의 "`panel-tabs` 4중 정의" 는 **miscount** 였다. 실측 — `.panel-tabs`/`.panel-tab` 는 `DataTablePanel.css:20` 에 **단일 정의**만 있고, 나머지 3개 editor CSS(`ApiEndpointEditor`/`DataTableEditor`/`VariableEditor`)는 주석(`.panel-tabs (DataTablePanel.css에서 스타일 제공)`)으로 참조만 한다 — 삭제할 사본 없음. 또한 `.panel-tabs`/`.panel-tab` className 은 **datatable 전용**(다른 탭 패널은 `.bottom-panel-tabs`/`.nodes-panel-tabs` 별도 클래스). 이 gap 은 Phase 0 inventory 부실(절차 결함)이며 scope 변경 아님 — 본 §3 안에서 흡수(adr-writing.md M3).
+
+1. **[완료]** root 를 `.panel` 병기로 통일 (`.panel datatable-panel` / `.panel datatable-editor-panel`). DataTablePanel.tsx(2 branch) + DataTableEditorPanel.tsx(2 branch) 4개 root div. **diff 0 확증**: `.datatable-panel`/`.datatable-editor-panel` 은 unlayered 라 layered `.panel`(@layer builder-system) 을 이기고, 공유 속성(flex/column/height:100%)이 동일 → Chrome 실측 before==after (display/flexDirection/height/min·maxWidth 불변). 활성화 시 datatable 패널 렌더 정상(G4 — 헤더/탭/empty-state).
+2. **`panel-tabs` 이전/rename → Phase 4-c 로 이연**: 단일 정의 + datatable 전용이라 "4중 통합" 대상 실체 없음. 예약 prefix(`panel-*`) 정합을 위한 panel-system.css 이전은 **unlayered→layered cascade 이동**이라 기계적 dedup 이 아니다. datatable 전용이므로 `.datatable-tabs` rename(다른 탭 패널의 도메인 접두 관례 정합)이 더 정합적 — Phase 4-c 네이밍 판정으로 이연.
+3. **Section 도입 판정 — 미실시(유지)**: datatable 탭 패널은 flat 리스트가 자연스러워 Section 강제 삽입 금지 (과잉 변경 금지 원칙, §3-3 원안 유지).
+4. **[완료]** type-check PASS + datatable 패널 라이브 확인(G4) + commit.
 
 ## §4. Phase 3 — 미완 패널 정렬
 
@@ -208,7 +210,8 @@ CSS 규모: components/styles/index.css 1,169줄 (잡화 집합), panel-system.c
 4. bare modifier (`.add`/`.warning`/`.sm` 등) → data-attr 또는 `--{state}` 접미로 전환 판정 (사용처별 국소 — 전량 강제 아님, 신규 금지가 본질).
 5. `data-panel` id 네이밍 (`datatableEditor` camel, `theme` 단수) — **rename 미실시**. id 는 panelConfigs/persist key 로 쓰여 BC 위험 대비 이득 없음. §1-2 규칙에 "신규 id 는 kebab" 만 명시.
 6. `properties-aria` rename 판정: 참조 26곳 실측 (tsx 25 — test 포함, css 1). **rename 기각 권고** — churn 대비 이득 없음, §1-2 예약어로 의미 고정으로 갈음. 재론 시 별도 ADR.
-7. components/styles/index.css (1,169줄 잡화) 분할은 **본 ADR scope 밖** — 구조 클래스와 무관한 위젯 CSS 정리는 후속 판정.
+7. `.panel-tabs`/`.panel-tab` (datatable 전용, `DataTablePanel.css` 단일 정의 — Phase 2 실측) 판정: 예약 prefix `panel-*` 정합상 두 갈래 — (a) panel-system.css 이전(unlayered→layered cascade 이동이라 G4 필수), (b) `.datatable-tabs` rename(다른 탭 패널 `.bottom-panel-tabs`/`.nodes-panel-tabs` 도메인 접두 관례 정합). datatable 전용이라 (b) 권고. 어느 쪽이든 DataTablePanel.css 전체가 unlayered 인 근본 gap(layered 표준 cascade 미참여)과 함께 판정.
+8. components/styles/index.css (1,169줄 잡화) 분할은 **본 ADR scope 밖** — 구조 클래스와 무관한 위젯 CSS 정리는 후속 판정.
 
 ## §6. 예외 명문화
 
@@ -220,7 +223,7 @@ CSS 규모: components/styles/index.css 1,169줄 (잡화 집합), panel-system.c
 ## §7. 체크리스트
 
 - [x] **Phase 1 (2026-07-25)**: dead 블록(구 360~480행) 전체 삭제 — 선언별 판정 결과 전부 (a) live 중복 또는 (b) 복구 시 현행 변경 → 무매칭 규칙 제거로 diff 0. Chrome 합성 real-DOM cascade 실측 (before==after: `.properties-aria` display=block / `.fieldset-legend` 12px) 로 G1 확증. 정적 가드 `panel-system.static.test.ts` (G2 green) + `.claude/rules/panel-structure.md` (§1 전체) 신설. panel-system.css 529→404행. 커밋: (본 커밋)
-- [ ] Phase 2: datatable 2종 root/panel-tabs 통합 → 라이브 확인 → commit
+- [x] **Phase 2 (2026-07-25)**: datatable/datatableEditor root `.panel` 병기 (4 div, diff 0 — unlayered root 가 layered `.panel` 이김, Chrome 실측 before==after + 활성화 렌더 정상 G4). `panel-tabs` "4중 정의" = miscount 실측 정정(단일 정의 + datatable 전용) → 이전/rename 은 Phase 4-c 이연. Section 도입 미실시(flat 유지). commit: (본 커밋)
 - [ ] Phase 3: 미완 6종 순차 (패널당 commit, events 제외)
 - [ ] Phase 4-a: iconButton/empty-state/control-button/section-divider 통합
 - [ ] Phase 4-b: fieldset-row 정의+5종 래퍼 흡수+패턴 A 전환 (스냅샷 diff + G4)
