@@ -26,8 +26,8 @@ import {
   EllipsisVertical,
   Eclipse,
   Scissors,
-  SquareSlash,
 } from "lucide-react";
+import { SquareOff } from "../../../components/icons";
 import { OVERFLOW_OPTIONS } from "../constants/styleOptions";
 import { shadows } from "@composition/specs";
 import { useStyleActions } from "../hooks/useStyleActions";
@@ -217,7 +217,7 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
             isDisabled={!hasShadow}
             onChange={handleInsetChange}
           >
-            <SquareSlash
+            <SquareOff
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
