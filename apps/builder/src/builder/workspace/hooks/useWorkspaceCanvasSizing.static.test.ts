@@ -39,8 +39,8 @@ describe("useWorkspaceCanvasSizing containerSize 좌표계 계약", () => {
   });
 
   it("compare 토글 시 재관측: ResizeObserver effect deps 에 compareMode 포함", () => {
-    expect(hookSource).toContain(
-      "}, [canvasAreaRef, compareMode, containerRef]);",
+    expect(hookSource).toMatch(
+      /\[canvasAreaRef, compareMode, containerRef, restoreInitialViewport\]/,
     );
   });
 

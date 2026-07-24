@@ -1,6 +1,10 @@
 import type { Key } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useViewportSyncStore } from "../canvas/stores";
+import {
+  isCanvasViewportSnapshotEqual,
+  selectCanvasViewportSnapshot,
+  useViewportSyncStore,
+} from "../canvas/stores";
 import {
   applyViewportState,
   computeCenteredViewport,
@@ -9,6 +13,11 @@ import {
 } from "../canvas/viewport/viewportActions";
 import type { Breakpoint } from "../types";
 import { subscribeToPanelLayoutChanges } from "../utils/panelLayoutRuntime";
+import {
+  loadWorkspaceCanvasViewports,
+  saveWorkspaceCanvasViewports,
+  type WorkspaceCanvasViewport,
+} from "./workspaceCanvasViewportPersistence";
 
 interface UseWorkspaceCanvasSizingOptions {
   breakpoint?: Set<Key>;
@@ -114,9 +123,61 @@ export function useWorkspaceCanvasSizing({
   const isFitModeRef = useRef(false);
   const isPanelResizingRef = useRef(false);
   const activeBreakpointIdRef = useRef<string | null>(null);
-  const breakpointViewportsRef = useRef(
-    new Map<string, { x: number; y: number; scale: number }>(),
+  const validBreakpointIds = useMemo(
+    () => new Set((breakpoints ?? []).map((candidate) => candidate.id)),
+    [breakpoints],
   );
+  const breakpointViewportsRef = useRef<Map<string, WorkspaceCanvasViewport>>(
+    new Map(),
+  );
+  const hasHydratedViewportsRef = useRef(false);
+  if (!hasHydratedViewportsRef.current) {
+    breakpointViewportsRef.current =
+      loadWorkspaceCanvasViewports(validBreakpointIds);
+    hasHydratedViewportsRef.current = true;
+  }
+  const viewportPersistenceTimerRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+
+  const clearViewportPersistenceTimer = useCallback(() => {
+    if (viewportPersistenceTimerRef.current !== null) {
+      clearTimeout(viewportPersistenceTimerRef.current);
+      viewportPersistenceTimerRef.current = null;
+    }
+  }, []);
+
+  const flushViewportPersistence = useCallback(
+    (breakpointId = activeBreakpointIdRef.current) => {
+      if (!breakpointId || !validBreakpointIds.has(breakpointId)) {
+        return;
+      }
+
+      const currentViewport = useViewportSyncStore.getState();
+      breakpointViewportsRef.current.set(breakpointId, {
+        x: currentViewport.panOffset.x,
+        y: currentViewport.panOffset.y,
+        scale: currentViewport.zoom,
+      });
+      saveWorkspaceCanvasViewports(
+        breakpointViewportsRef.current,
+        validBreakpointIds,
+      );
+    },
+    [validBreakpointIds],
+  );
+
+  const scheduleViewportPersistence = useCallback(() => {
+    if (!activeBreakpointIdRef.current) {
+      return;
+    }
+
+    clearViewportPersistenceTimer();
+    viewportPersistenceTimerRef.current = setTimeout(() => {
+      viewportPersistenceTimerRef.current = null;
+      flushViewportPersistence();
+    }, 150);
+  }, [clearViewportPersistenceTimer, flushViewportPersistence]);
 
   const centerCanvas = useCallback(() => {
     const containerSize = containerSizeRef.current;
@@ -145,6 +206,23 @@ export function useWorkspaceCanvasSizing({
     centerCanvasAt100Ref.current = centerCanvasAt100;
   }, [centerCanvas, centerCanvasAt100]);
 
+  const restoreInitialViewport = useCallback(() => {
+    const containerSize = containerSizeRef.current;
+    if (containerSize.width <= 0 || containerSize.height <= 0) {
+      return false;
+    }
+
+    const savedViewport = activeBreakpointIdRef.current
+      ? breakpointViewportsRef.current.get(activeBreakpointIdRef.current)
+      : undefined;
+    if (savedViewport) {
+      applyViewportState(savedViewport);
+      return true;
+    }
+
+    return centerCanvasAt100Ref.current();
+  }, []);
+
   useEffect(() => {
     const unsubscribe = subscribeToPanelLayoutChanges({
       onToggle: () => {
@@ -170,15 +248,12 @@ export function useWorkspaceCanvasSizing({
       return;
     }
 
-    const currentViewport = useViewportSyncStore.getState();
+    clearViewportPersistenceTimer();
     if (previousBreakpointId) {
-      breakpointViewportsRef.current.set(previousBreakpointId, {
-        x: currentViewport.panOffset.x,
-        y: currentViewport.panOffset.y,
-        scale: currentViewport.zoom,
-      });
+      flushViewportPersistence(previousBreakpointId);
     }
 
+    const currentViewport = useViewportSyncStore.getState();
     activeBreakpointIdRef.current = breakpointId;
 
     if (!breakpointId) return;
@@ -196,7 +271,32 @@ export function useWorkspaceCanvasSizing({
         savedViewport: breakpointViewportsRef.current.get(breakpointId),
       }),
     );
-  }, [canvasSize, selectedBreakpoint]);
+  }, [
+    canvasSize,
+    clearViewportPersistenceTimer,
+    flushViewportPersistence,
+    selectedBreakpoint,
+  ]);
+
+  useEffect(() => {
+    const unsubscribe = useViewportSyncStore.subscribe(
+      selectCanvasViewportSnapshot,
+      () => {
+        scheduleViewportPersistence();
+      },
+      { equalityFn: isCanvasViewportSnapshotEqual },
+    );
+
+    return () => {
+      clearViewportPersistenceTimer();
+      flushViewportPersistence();
+      unsubscribe();
+    };
+  }, [
+    clearViewportPersistenceTimer,
+    flushViewportPersistence,
+    scheduleViewportPersistence,
+  ]);
 
   // Compare mode 토글 시 viewport 재센터링
   useEffect(() => {
@@ -258,7 +358,7 @@ export function useWorkspaceCanvasSizing({
         }
 
         if (isInitialLoad) {
-          centerCanvasAt100Ref.current();
+          restoreInitialViewport();
         } else if (isFitModeRef.current) {
           centerCanvasRef.current();
         }
@@ -285,7 +385,7 @@ export function useWorkspaceCanvasSizing({
         });
       }
 
-      centerCanvasAt100Ref.current();
+      restoreInitialViewport();
     }
 
     return () => {
@@ -294,7 +394,7 @@ export function useWorkspaceCanvasSizing({
       }
       resizeObserver.disconnect();
     };
-  }, [canvasAreaRef, compareMode, containerRef]);
+  }, [canvasAreaRef, compareMode, containerRef, restoreInitialViewport]);
 
   return {
     canvasSize,
