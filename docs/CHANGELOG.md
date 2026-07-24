@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [레이아웃 intrinsic sizing 측정 계약 — ADR-165 Implemented] - 2026-07-25
+
+### Architecture
+
+- **min/max-content 스칼라 공급 + 엔진 fit-content 소유** (ADR-165 Phase 0~3, Implemented 승격 — ADR-164 후속 체인 ① 완결):
+  - 텍스트 leaf 의 폭 intrinsic 을 측정 스칼라 2종으로 계약화 — `enrichWithIntrinsicSize` 가 `contentMinWidth`(최장 단어 폭)/`contentMaxWidth`(단일줄 폭, 기존 Canvas 2D 측정 재사용) 를 NodeStyle(49→51필드) 로 공급하고, 엔진이 CSS-SIZING-3 §5 공식을 소유 (`tree.rs::resolve_leaf_intrinsic_width` — fit-content=clamp(min-content, stretch-fit, max-content) / min·max-content 키워드 / auto→max-content 제안. dormant MIN/MAX_CONTENT 센티널 소비 배선)
+  - `flex.rs` §4.5 automatic minimum floor 를 **정확 min-content** 로 정밀화 (`FLEX_FIELD_COUNT` 19→20, off 19 `content_min_main` — absent 시 ADR-164 상한 근사 fallback). **사용자-가시 변화**: shrink 압박 시 다단어 텍스트가 단일줄 폭이 아닌 CSS 와 동일한 최장 단어 폭까지 축소 (명세 정합화 — 현행 실문서 발생 0건 실측, 신규 parity fixture 로 Chrome diff 0 확증)
+  - TEXT_LEAF 폭·minWidth 주입 제거 (구 상한 근사 채널 소멸) — 축소가 노출한 잠복 발산 2건 동반 정정: 명시 `width:"auto"` 스칼라 미공급 + **Label CSS base `width:fit-content` 채널 부재** (catalog Label 은 containerStyles 부재 — 구 폭 주입이 우연히 대신 전달 → `implicitStyles.ts` 에 B22 역방향 선주입 신설)
+  - Step 4.5 (2-pass) 를 **"폭 확정 후 높이 1회 재측정" 계약**으로 축소 — 스칼라 기반 재줄바꿈 불가능 skip (트리거 25/47→23/47, 잔여는 % 추정 기저 오차로 정합 무해·이연 명문화). grid intrinsic track 은 실사용 0건 실측 + 사용자 confirm 으로 의도적 이연 (재개 조건 명문화)
+  - **Why**: ADR-164 §6 이 명문화한 잔존 발산 — injected minWidth = 단일줄 측정폭(ceil) ≥ 실제 min-content → 재줄바꿈 케이스에서 CSS 대비 덜 shrink. 폭 축 intrinsic 은 스칼라 2종으로 명세상 완결되므로 콜백 재설계 없이 dormant 센티널 배선만으로 엔진이 소유 가능
+  - 경계 규칙화: `layout-engine.md` §TS 잔존 계약 표 재작성 (minWidth 채널 행 → 스칼라 계약 흡수, 2-pass 행 → height-for-width 축소 계약) + `canvas-rendering.md` §3 스칼라 경로 (동일 font 체인 의무)
+  - 검증: parity 100 (기존 90 회귀 0 + 신규 `intrinsicSizing.browser.test.ts` 10 — engine 6·pipeline 4, Chrome diff 0) / cargo 321 (신규 leaf 유닛 5) / layout 유닛 299 / bench 회귀 0 + S4·S5 신규 기준치 / live builder exercise (fresh reload 콘솔 0 + layout map 배치 불변)
+  - 위치: `packages/composition-engine/src/{flex,tree}.rs`, `apps/builder/src/builder/workspace/canvas/layout/engines/{utils,fullTreeLayout,implicitStyles}.ts`, `apps/builder/src/builder/workspace/canvas/wasm-bindings/layoutTypes.ts`, `apps/builder/tests/parity/intrinsicSizing.browser.test.ts`
+
 ## [레이아웃 TS 보정 레이어의 엔진 흡수 — ADR-164 Implemented] - 2026-07-25
 
 ### Architecture

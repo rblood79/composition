@@ -120,7 +120,7 @@ TS 보정 레이어 규모: `utils.ts` 5,422 + `fullTreeLayout.ts` 3,034 + `impl
 - Builder(Skia) 레이아웃이 overflow×shrink·min-width:auto 에서 CSS 명세와 동일 의미론으로 동작 — coarse 근사(flexShrink:0 전면 차단)로 인한 잠재 발산 소멸.
 - `fullTreeLayout.ts` Step 5.7 제거 — 부모-overflow 전면 차단 보정과 그 문서 관리 의무(`layout-engine.md` 해당 절) 소멸. `utils.ts` minWidth 동시 주입은 leaf content 제안값 전달 채널로 §6 잔존 계약 편입 (2026-07-25 정정 — ① 이 content 채널을 재설계할 때까지).
 - "TS 잔존 계약" 명문화로 엔진↔TS 경계가 규칙이 됨 — 재침식 차단.
-- **후속 ADR 체인**: ① intrinsic sizing (측정 계약 재설계 — 콜백 vs 선주입 대안 비교) 은 본 ADR 의 content minimum floor 를 소비 지점으로 활용하는 별도 ADR 로 진행. ⑤ hitBoundsMap Rust 이관은 렌더 레이어 + bench 선행의 독립 후보로 남는다.
+- **후속 ADR 체인**: ① intrinsic sizing (측정 계약 재설계 — 콜백 vs 선주입 대안 비교) 은 본 ADR 의 content minimum floor 를 소비 지점으로 활용하는 별도 ADR 로 진행 — **[ADR-165](165-intrinsic-sizing-measure-contract.md) 로 완결 (Implemented 2026-07-25)**: min/max-content 스칼라 공급 + 엔진 fit-content 공식 소유, §6 minWidth 채널은 스칼라 계약으로 흡수, §4.5 floor 는 정확 min-content 로 승격. ⑤ hitBoundsMap Rust 이관은 렌더 레이어 + bench 선행의 독립 후보로 남는다.
 
 ### Negative
 

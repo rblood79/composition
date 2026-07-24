@@ -2,13 +2,13 @@
 
 ## Status
 
-Accepted — 2026-07-25 (리뷰 round 1 승인 — [reviews/165.md](reviews/165.md) 이슈 전건 종결, HIGH/CRITICAL 0. execute-adr 착수 — ADR-164 Consequences "후속 ADR 체인" ①)
+Implemented — 2026-07-25 (Phase 0~3 완결, execute-adr 단일 세션. 리뷰 round 1 승인 — [reviews/165.md](../reviews/165.md) 이슈 전건 종결, HIGH/CRITICAL 0. ADR-164 Consequences "후속 ADR 체인" ① 완결)
 
 ## Context
 
 **Domain 판정**: D3 (시각 스타일) — Builder(Skia) 레이아웃 경로가 CSS consumer 와 동일 시각 결과를 산출하기 위한 정합 메커니즘. D1(DOM)/D2(Props) 비침범. Spec/Generator 확장 아님 (catalog/Generator emit 질문 해당 없음 — 엔진 내부 구현 계층).
 
-[ADR-164](completed/164-engine-ts-compensation-absorption.md)(Implemented 2026-07-25) 가 automatic minimum size 를 엔진에 흡수하면서, intrinsic sizing (fit-content/min-content/max-content + height-for-width 재줄바꿈) 은 측정 계약 재설계가 필요하다는 이유로 후속 ADR 로 분리했다 (대안 B 기각 — 기술/성능/마이그레이션 HIGH 3축). 본 ADR 이 그 후속이다. 현행 구조:
+[ADR-164](164-engine-ts-compensation-absorption.md)(Implemented 2026-07-25) 가 automatic minimum size 를 엔진에 흡수하면서, intrinsic sizing (fit-content/min-content/max-content + height-for-width 재줄바꿈) 은 측정 계약 재설계가 필요하다는 이유로 후속 ADR 로 분리했다 (대안 B 기각 — 기술/성능/마이그레이션 HIGH 3축). 본 ADR 이 그 후속이다. 현행 구조:
 
 1. **사전 enrichment 폭 주입** — `utils.ts:4437` `enrichWithIntrinsicSize`: 텍스트 leaf 폭을 CanvasKit 측정으로 선주입. §4.5 content 하한은 **단일줄 측정폭(ceil) 상한 근사** 라 재줄바꿈 케이스에서 CSS 대비 덜 shrink 하는 발산이 명문화돼 있다 (ADR-164 breakdown §7 0-2 역방향).
 2. **2-pass Step 4.5** — `fullTreeLayout.ts:2466`: 배치 폭이 enrichment 가정 폭과 다르면 재측정 → 재계산 (측정-배치 닭-달걀의 범용 우회 장치).
@@ -86,7 +86,7 @@ Accepted — 2026-07-25 (리뷰 round 1 승인 — [reviews/165.md](reviews/165.
 - **대안 A 기각**: 이중 WASM 경계 재진입은 선례 부재의 구조 전환으로 HIGH 3축 — 폭 축이 스칼라로 해결되는 이상, hot path 왕복을 감수할 필요가 height-for-width 하나뿐인데 그 빈도는 Phase 0 실측 전이며 2-pass 축소 잔존으로 충분히 관리된다.
 - **대안 B 기각**: 후보 폭 산정이 레이아웃 의존이라 닭-달걀 미해소 — granularity 튜닝과 보간 오차를 영구 부채로 도입한다.
 
-> 구현 상세: [165-intrinsic-sizing-measure-contract-breakdown.md](design/165-intrinsic-sizing-measure-contract-breakdown.md)
+> 구현 상세: [165-intrinsic-sizing-measure-contract-breakdown.md](../design/165-intrinsic-sizing-measure-contract-breakdown.md)
 
 ## Risks
 
@@ -125,6 +125,7 @@ Accepted — 2026-07-25 (리뷰 round 1 승인 — [reviews/165.md](reviews/165.
 
 ## 진행 로그
 
+- **2026-07-25 — Phase 3 (문서·규칙 정합) Implemented + ADR 종결**: `layout-engine.md` §automatic minimum size 절 ADR-165 정밀화 반영 (off 19 스칼라 + 측정 스칼라 계약 + CSS base width 채널) + §TS 잔존 계약 표 재작성 (minWidth 채널 행 → 스칼라 계약 흡수, 2-pass 행 → height-for-width 1회 재측정 축소 계약) + 금지 패턴 갱신. `canvas-rendering.md` §3 min/max-content 스칼라 경로 추가 (동일 font 체인 의무) + §7 금지 패턴 갱신. ADR-164 Consequences 후속 체인 ① 완결 기록. closure 5단계 (Status/진행 로그/README/completed 이관/CHANGELOG). R5 (규칙 stale) 종결.
 - **2026-07-25 — Phase 2 (height-for-width 2-pass 계약 축소·명문화) Implemented**: Step 4.5 를 "폭 확정 후 높이 1회 재측정" 계약으로 재정의 (블록 헤더 계약 명문화 — 폭 재보정 확장 재도입 금지 + 대안 A 재개 조건). 스칼라 기반 재줄바꿈 불가능 skip 도입 — `contentMaxWidth ≤ min(가정 폭, 실배치 폭)` 이면 높이 폭-무관 → 재측정 제외 (스칼라는 batch record 에서 읽음 — processed style 미반영 실측 정정). 재계측: 트리거 25/47 → 23/47, 잔여는 B22 width:100% Text 의 `%` 추정 기저 오차 (정합 무해·비용만) + 컨테이너 height-delete 의도 트리거 + 스칼라 채널 밖 합성 leaf — 잔존·이연 사유 breakdown §4 명문화. 검증: type-check PASS / layout 유닛 299 / parity 100 (Chrome diff 0) / R4 대응 완료.
 - **2026-07-25 — Phase 1 (min/max-content 스칼라 계약) Implemented**: 공급·소비·축소 같은 push (HC5). 공급 = enrichment 가 텍스트 leaf 에 `contentMinWidth`(최장 단어)/`contentMaxWidth`(단일줄) 스칼라 주입 (기존 Canvas 2D 측정 함수 재사용 — measurer 신규 API 는 Canvas 2D 지배 경로 실측에 따라 불요 판정) / 프로토콜 = NodeStyle 49→51 + flex off 19 `content_min_main` (`FLEX_FIELD_COUNT` 20) / 소비 = `tree.rs::resolve_leaf_intrinsic_width` (fit/min/max-content + auto→max-content 제안) + cross 축 MIN/MAX_CONTENT→CONTENT 확장 + `flex.rs` §4.5 floor 정확 min-content 교체 / 축소 = TEXT_LEAF 폭·minWidth 주입 제거 (구 상한 근사 채널 소멸). 축소가 노출한 잠복 발산 2건 동반 정정 — 명시 `width:"auto"` 스칼라 미공급 + **Label CSS base `width:fit-content` 채널 부재** (implicitStyles B22 역방향 선주입 신설 — 구 폭 주입이 우연히 대신 전달하던 규칙). grid 조건부 = 사용자 confirm 으로 **의도적 이연** (재개 조건 breakdown §3 명문화). 검증: parity 100 (기존 90 회귀 0 + 신규 10, Chrome diff 0) / cargo 321 / layout 유닛 299 / type-check PASS / bench 회귀 0 + S4·S5 신규 기준치 / G4 live (dAAA fresh reload 콘솔 0 + layout map 전 텍스트 leaf 변경 전 동일 + CSS↔Skia 대칭). R1 실현: shrink 압박 시 floor 가 단일줄 상한이 아닌 정확 min-content — 무압박 배치는 불변.
 - **2026-07-25 — Phase 0 (인벤토리 freeze) Implemented**: breakdown §2 를 실측으로 교체 (G5 충족 — Step 4.5 빈도 / R1 발산 실사용 / grid intrinsic 실사용 전부 freeze). 핵심 실측 5건 — (1) grid intrinsic track (min/max/fit-content) 실사용 **0건** — Decision 조건부 규칙의 "의도적 이연" 조건 부합. 단 auto track 실사용 3건 (Meter/ProgressBar/Slider `"1fr auto"` — 현행 양측 auto=1fr 근사 수용 상태) 존재 → grid.rs 스칼라 소비 포함 여부는 Phase 1 착수 surface 에서 사용자 판정. (2) Step 4.5 트리거 빈도 (임시 비커밋 계측, 원복 완료): fresh load 당 run 2회 — 메인 트리 **25/47 (53%)** + projection 4/6 — `enrichedWidth` 추정의 루트 availableWidth fallback 이 원인, 재줄바꿈 필요와 무관한 과대 트리거 → Phase 2 축소의 정량 근거. (3) R1 발산 조합 실문서 발생 **0건** (다단어 텍스트 leaf 8건 전원 단일줄 배치·shrink 압박 없음) — R1 은 향후 문서 조건 조합에서만 발현, G1 fixture 가 유일 검증 수단. (4) dormant 범위 재정의: MIN/MAX_CONTENT(-3/-4) 센티널은 엔진 소비 0건일 뿐 아니라 **TS→WASM 경계 자체를 넘지 않음** (`utils.ts:5183~5188` drop — 명시 키워드는 TS enrichment 분기 A 가 px 로 선해석). (5) baseline: parity 11 파일/90 PASS + cargo 316 PASS + bench 3 시나리오 ADR-164 기준치 ±10% 정합 + type-check PASS. 코드 무변경 phase — live 실측은 store/layout map window probe + 임시 콘솔 계측으로 수행 (실문서 dAAA).

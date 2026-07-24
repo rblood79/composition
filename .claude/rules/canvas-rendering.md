@@ -137,6 +137,7 @@ ParagraphStyle 변경 시 **3곳 동시 업데이트** 필수: canvaskitTextMeas
 - Paragraph API: 콘텐츠 폭=`getLongestLine()`, max-content=`getMaxIntrinsicWidth()`. `getMaxWidth()` 사용 금지
 - WASM Paragraph 객체 캐싱 금지 (메모리 누수). 결과값 `{width, height}` 만 LRU 캐싱
 - **Layout 보정 금지**: `calculateContentWidth`, `enrichWithIntrinsicSize` 등 layout 경로에서 `+2/+4px` Canvas 2D→CanvasKit 보정 사용 금지. **Why**: Layout = Canvas 2D = CSS 정합이 원칙. Canvas 2D↔CanvasKit sub-pixel 차이는 **렌더링 단**(nodeRendererText.ts)에서 post-layout `getMaxIntrinsicWidth()` 교정으로 처리. layout에 보정 적용 시 CSS와 불일치.
+- **min/max-content 스칼라 경로 (ADR-165)**: 텍스트 leaf 폭 intrinsic 은 `enrichWithIntrinsicSize` 가 `contentMinWidth`(최장 단어 — `calculateMinContentWidth`)/`contentMaxWidth`(단일줄 — `calculateContentWidth`) 스칼라 2종을 측정해 엔진 NodeStyle 로 공급 — 엔진이 fit/min/max-content 공식과 §4.5 floor 를 소유. min-content 측정은 max-content 와 **동일 font 체인** (inline style 우선 fontFamily/fontWeight/fontSize) 필수 — 불일치 시 floor 가 다른 폰트 기준으로 어긋남. Paragraph `getMinIntrinsicWidth()` 는 canvaskit-wasm 타입 존재·현행 미사용 (Canvas 2D 지배 경로 — CanvasKit 동일-Paragraph 2-getter 추출은 후속 최적화 여지).
 - **CanvasKit 오발 줄바꿈 교정**: nodeRendererText.ts에서 `paragraph.layout()` 후 `\n` 없는 단일줄 텍스트가 줄바꿈되면 `getMaxIntrinsicWidth() + 1`로 재layout. **Why**: Canvas 2D↔CanvasKit 엔진 차이로 같은 텍스트가 다른 폭으로 측정됨. CanvasKit 자체 측정 기반 교정이므로 경험적 tolerance 불필요.
 
 ## 4. Spec-CSS 경계
@@ -191,7 +192,7 @@ ParagraphStyle 변경 시 **3곳 동시 업데이트** 필수: canvaskitTextMeas
 - ❌ parentElement를 useMemo 내 직접 참조 (stale closure)
 - ❌ hitElementId를 startMove에 직접 전달 (selectedElementIds 사용)
 - ❌ `calculateContentWidth`에 `isCanvasKitMeasurer() ? 0 : +N` 보정 추가 (CSS 정합 파괴 → nodeRendererText `+1` 마진 사용)
-- ❌ `enrichWithIntrinsicSize`에서 flex 자식 width 주입 시 minWidth 미설정 (§4.5 content 전달 채널 누락 — 엔진 floor 는 width-auto item 한정이라 주입 width 로 definite 가 된 item 은 0px 까지 축소. ADR-164 §6 잔존 계약)
+- ❌ 텍스트 leaf 에 width/minWidth 주입 재도입 (ADR-165 스칼라 계약과 이중 적용 — `contentMinWidth`/`contentMaxWidth` 공급이 정본. 비텍스트 leaf 의 width 주입 시 minWidth 동시 주입은 잔존 계약 유지)
 - ❌ overflow 기준 flexShrink 주입 보정 (구 Step 5.7) TS 재도입 (automatic minimum size 는 엔진 소속 — `flex.rs` §4.5, ADR-164. layout-engine.md §"TS 잔존 계약" 참조)
 
 ## 8. Overflow Scroll 가이드라인 동기화

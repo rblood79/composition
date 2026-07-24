@@ -123,28 +123,27 @@ globs:
 
 **계층 A·B 는 AND** — 하나만 등재하면 무반영이며, 증상이 서로 다르다: A 누락 = 재계산 자체를 안 함 / B 누락 = 재계산은 돌지만 시그니처 동일 → 캐시 히트로 이전 결과 재사용. 새로고침 후에만 반영되면 B 를 의심할 것.
 
-## automatic minimum size (CSS-FLEXBOX-1 §4.5) — 엔진 소속 (ADR-164 Phase 1, 2026-07-25)
+## automatic minimum size (CSS-FLEXBOX-1 §4.5) — 엔진 소속 (ADR-164 Phase 1 / ADR-165 정밀화, 2026-07-25)
 
-flex item 의 automatic minimum size (min-width/height:auto = content 하한) 는 **엔진 구현** (`flex.rs::parse_item` effective min 해석): 조건 `명시 min 부재 ∧ item 주축 overflow visible ∧ 주축 크기 auto` → floor = `content_main` (max clamp 동반). 프로토콜 off 18 = 주축 overflow (0=visible zero-init / 1=clipped — `tree.rs::write_flex_item` 이 기록; flex 배열은 Rust 내부 구성이라 TS 직렬화 무변경).
+flex item 의 automatic minimum size (min-width/height:auto = content 하한) 는 **엔진 구현** (`flex.rs::parse_item` effective min 해석): 조건 `명시 min 부재 ∧ item 주축 overflow visible ∧ 주축 크기 auto` → floor = **정확 min-content** (`content_min_main`, off 19 — 공급 시) 또는 `content_main` (absent fallback — 단일줄 상한 근사), max clamp 동반. 프로토콜: off 18 = 주축 overflow (0=visible zero-init / 1=clipped), off 19 = `content_min_main` (0=absent zero-init) — `tree.rs::write_flex_item` 이 기록, `FLEX_FIELD_COUNT=20`.
 
 - 구 **Step 5.7** (부모 overflow≠visible 기준 flexShrink:0 전면 주입, `fullTreeLayout.ts`) 은 **제거됨** — coarse 근사가 min-content 이상의 정당한 shrink 까지 막아 CSS 와 발산했다. TS 에서 overflow 기준 flexShrink 주입 보정 재도입 금지 (해당 위치 tombstone 주석 참조).
-- **minWidth 동시 주입은 보정이 아니라 채널**: `enrichWithIntrinsicSize` 가 flex 자식에 `width` 주입 시 `minWidth` 를 동일 값으로 동시 설정한다. **Why**: 엔진은 텍스트 측정 부재로 leaf content 를 모른다 (CanvasKit = 측정 oracle) + width 주입으로 definite 가 된 item 은 엔진 floor 대상 밖 → injected `minWidth` 가 §4.5 content 제안값의 **유일 전달 경로** (ADR-164 §6 잔존 계약, 2026-07-25 재분류)
-  - 사용자 명시적 `minWidth` 설정 시 보존 (덮어쓰기 금지)
-  - `isFlexChild` 파라미터가 true 일 때만 적용 — block 자식은 min-width:auto 가 0
-- Chrome 실측 fixture: `apps/builder/tests/parity/autoMin.browser.test.ts` (engine/pipeline 2 leg × 8케이스) — floor 동작 변경 시 여기부터 갱신
+- **측정 스칼라 계약 (ADR-165 — 구 minWidth 채널 흡수)**: 텍스트 leaf 의 intrinsic 은 `enrichWithIntrinsicSize` 가 `contentMinWidth`(최장 단어 폭)/`contentMaxWidth`(단일줄 폭) 스칼라 2종 (content-box, `Math.ceil`) 을 NodeStyle 로 공급하고, 엔진이 CSS-SIZING-3 §5 공식을 소유한다 — `tree.rs::resolve_leaf_intrinsic_width` (auto→max-content 제안 / fit-content→clamp(min-content, stretch-fit, max-content) / min·max-content 키워드) + §4.5 floor 의 정확 min-content. **Why**: 엔진은 텍스트 측정 부재로 leaf content 를 모른다 (CanvasKit/Canvas 2D = 측정 oracle 불변 — 측정 주체는 TS, 소비 알고리즘만 엔진). 구 width(단일줄 ceil)+minWidth(상한 근사) 주입 채널은 텍스트 leaf 에서 제거됨 — 재도입 금지 (스칼라와 이중 적용). INLINE_BLOCK/CIRCLE/IMAGE 합성 leaf 주입과 컨테이너 numeric 선해석은 잔존.
+- **CSS base width 채널**: 텍스트 leaf 의 폭 주입 제거로 generated CSS base 규칙은 별도 채널이 담당 — `width:100%` 계열(text/heading/paragraph/description)은 B22, `width:fit-content`(label)는 ADR-165 신설 선주입 (`implicitStyles.ts` — catalog Label 은 containerStyles 부재라 CSS 실측 근거 직접 주입). 신규 텍스트 leaf 계열 추가 시 CSS base width 규칙의 엔진 채널 존재를 확인할 것.
+- Chrome 실측 fixture: `apps/builder/tests/parity/autoMin.browser.test.ts` (8케이스) + `intrinsicSizing.browser.test.ts` (engine 6 — DOM 원자/스칼라 격리 + pipeline 4 — 실텍스트 end-to-end) — floor/스칼라 동작 변경 시 여기부터 갱신
 
 ## TS 잔존 계약 (ADR-164 Phase 3 — 엔진↔TS 경계 규칙, CRITICAL)
 
 다음은 **의도적으로 TS 에 남는** 것들이다. 엔진 gap 처럼 보여도 아래 사유가 유효한 한 엔진 이관·중복 구현 양쪽 모두 금지 — 변경은 해당 사유를 뒤집는 ADR 로만:
 
-| 잔존                                                               | 사유                                                                                                       |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| 텍스트/leaf 측정값 주입 (enrichWithIntrinsicSize 의 width 주입)    | CanvasKit = 측정 oracle ("Layout = Canvas 2D = CSS 정합"). 엔진 자체 텍스트 측정 도입 금지                 |
-| minWidth 동시 주입 (`utils.ts` enrichWithIntrinsicSize)            | §4.5 leaf content 제안값 전달 채널 (위 절) — intrinsic sizing 후속 ADR 이 content 채널을 재설계하기 전까지 |
-| `implicitStyles.ts` 컴포넌트별 주입 (indicator/collection font 등) | catalog/spec 의미론 (D3 SSOT 파생) — CSS 표준 의미론 아님                                                  |
-| 2-pass Step 4.5 재계산                                             | intrinsic 측정-배치 닭-달걀 우회 — intrinsic sizing 후속 ADR 이 해소하기 전까지                            |
-| f32 `Math.ceil` 보정                                               | 엔진 f32 ↔ JS f64 정밀도 경계 — 흡수 대상 아님                                                             |
-| layoutCache 시그니처/무효화 (5-심볼 2계층)                         | store 결합 — 마샬링 비용 > 계산 비용                                                                       |
+| 잔존                                                                       | 사유                                                                                                                                                                  |
+| -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 측정 스칼라 공급 (`contentMinWidth`/`contentMaxWidth` — 텍스트 leaf)       | CanvasKit/Canvas 2D = 측정 oracle ("Layout = Canvas 2D = CSS 정합"). 엔진 자체 텍스트 측정 도입 금지 — 측정 주체 TS, 소비 알고리즘만 엔진 (ADR-165 스칼라 계약)       |
+| 비텍스트 leaf 폭·height 주입 (INLINE_BLOCK/CIRCLE/IMAGE/SPEC_SHAPES_INPUT) | display 의미론 에뮬레이션 + 합성 leaf content — 스칼라 채널 확대는 후속 판정 (구 텍스트 leaf width/minWidth 주입은 ADR-165 로 스칼라 계약에 흡수 — 재도입 금지)       |
+| `implicitStyles.ts` 컴포넌트별 주입 (indicator/collection font 등)         | catalog/spec 의미론 (D3 SSOT 파생) — CSS 표준 의미론 아님. CSS base width 채널 (B22 100% / label fit-content) 포함                                                    |
+| Step 4.5 — **height-for-width 1회 재측정** (축소 계약, ADR-165 Phase 2)    | 폭 확정 후 높이 재줄바꿈 재측정만 담당 — 폭 재보정 확장 재도입 금지 (폭 축은 엔진 소유). measure callback 이관은 별도 ADR (재개 조건: 2-pass 비용의 프레임 예산 압박) |
+| f32 `Math.ceil` 보정                                                       | 엔진 f32 ↔ JS f64 정밀도 경계 — 흡수 대상 아님 (스칼라 2종도 ceil 대상)                                                                                               |
+| layoutCache 시그니처/무효화 (5-심볼 2계층)                                 | store 결합 — 마샬링 비용 > 계산 비용. 측정 스칼라는 store 키가 아닌 enrichment 파생값 — 체인 등재 불요 (`children`/`text`/`fontSize` 가 이미 등재)                    |
 
 역방향(재침식)도 같은 강도로 금지: **CSS 표준 의미론의 새 gap 을 발견하면 TS 보정이 아니라 엔진 구현이 기본 경로** (ADR-164 Decision — Step 5.7 형 coarse 근사 재생산 금지).
 
@@ -169,8 +168,9 @@ collection/self-render 컨테이너의 `calculateContentHeight()` 분기는 **La
 
 - **style 키를 `LAYOUT_PROP_KEYS` 에 추가 금지** → `LAYOUT_STYLE_KEYS` 가 style 축이다 (`LAYOUT_PROP_KEYS` 는 `props[key]` 만 읽으므로 `style.foo` 를 넣어도 항상 `undefined` = 시그니처 불변 = 무반영)
 - **계층 A(layoutVersion 트리거) 단독 등재 금지** → 계층 B(캐시 시그니처) 동반 필수. 역도 같음 (§"5-심볼 2계층 체인")
-- flex 자식 width 주입 시 minWidth 미설정 금지 → `enrichWithIntrinsicSize`에서 동시 주입 필수 (§4.5 content 전달 채널 — ADR-164 §6 잔존 계약)
-- overflow 기준 flexShrink 주입 보정 (구 Step 5.7) 재도입 금지 → automatic minimum size 는 엔진 소속 (`flex.rs` §4.5, ADR-164)
+- 텍스트 leaf 에 width/minWidth 주입 재도입 금지 → 측정 스칼라 계약 (`contentMinWidth`/`contentMaxWidth`) 이 대체 (ADR-165 — 재도입 시 스칼라와 이중 적용). 비텍스트 leaf (INLINE_BLOCK/CIRCLE) 의 width 주입 시 minWidth 동시 주입은 잔존 계약 유지
+- Step 4.5 를 폭 재보정 용도로 확장 금지 → height-for-width 1회 재측정 계약 (ADR-165 Phase 2 — 폭 축은 엔진 소유)
+- overflow 기준 flexShrink 주입 보정 (구 Step 5.7) 재도입 금지 → automatic minimum size 는 엔진 소속 (`flex.rs` §4.5, ADR-164 + ADR-165 정확 min-content)
 - DFS 조건에 `fontSize == null` 사용 금지 → `lineHeight == null` 필수
 - Label height에 `Math.ceil(fontSize * 1.5)` 금지 → LABEL_SIZE_STYLE 역참조
 - Label lineHeight를 숫자로 전달 금지 → `"20px"` 문자열 필수
