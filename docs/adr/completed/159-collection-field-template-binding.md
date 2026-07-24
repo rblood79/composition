@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-07-24 (리뷰 round 1 2026-07-21 / round 2 2026-07-23 승인 — 전건 fixed, execute-adr 착수 시 승격)
+Implemented — 2026-07-24 (P0~P5 완결, execute-adr 3세션. **P4c residual**: api/variable/route 잔존 경로 물리 제거는 G4 미충족 — Supabase 저장 문서 전수 실측 불가(RLS) — 로 대안 D 상태 보류, 사용자 확정 2026-07-24 "P4c 는 residual 로 두고 P6 진행". 리뷰 round 1 2026-07-21 / round 2 2026-07-23 승인)
 
 ### Phase 진행 로그
 
@@ -12,7 +12,8 @@ Accepted — 2026-07-24 (리뷰 round 1 2026-07-21 / round 2 2026-07-23 승인 �
 - Phase 3 (DOM/Preview 배선) — Implemented 2026-07-24: DOM 소비 지점은 renderer 층 — ad-hoc `resolveTemplateText` (G2 위반 선재) 를 shared resolver 로 교체 + ListBox/GridList 내부 렌더 `rowTemplateSources` 전달. G1 live 확증 (CSS 패널 ↔ Skia 패널 동일 `#{label}` 보간). vitest 5. 상세: breakdown §3 P3
 - Phase 4a/4b (오소링 UI + dataTable 단일 소스) — Implemented 2026-07-24: 4a 필드 피커 `PropertyFieldTemplateInput` + `useOwnerCollectionColumns`(조상 소유자 → reusable master 소비자 역추적, live 경로 `GenericFieldRenderer` 배선) / 4b `PropertyDataBinding` 소스 4종 → 컬렉션 단일 피커 (`source:"dataTable"` 고정 기록, 구소스 read 호환 잔존) + factory/AI tool api binding 생성 제거. live 확증: master slot Text 피커 → `{num}` 삽입 → 인스턴스 10행 보간 반영. vitest 12 (resolver 8 + renderer gate 4). **4c 잔존 경로 정리는 G4 미충족 (Supabase RLS 전수 실측 불가) 으로 보류** — 상세: breakdown §3 P4
 - Phase 5 (문법 B 확장) — Implemented 2026-07-24 (사용자 우선순위 confirm "P5 진행해"): 경로 `{a.b.c}`/`{arr[0].x}` + 포맷 `{d|date}`/`{d|number}` — resolver 내부 확장(소비처 API 무변, flat key 우선 BC, `FIELD_TEMPLATE_FORMATTERS` 확장 지점). array/object Table 셀 → shared `classifyTableCellDisplay` 단일 분류로 array=TagGroup 칩(cap+overflow, Skia projection + DOM RAC 대칭) / object=휴리스틱 label (Select/Toggle placeholder 는 BindingNode component 축 확장 지점으로 이연 — R6 범위 축소). live: `{createdAt|date}` 실데이터 10행 보간 확증 + Table 셀은 노출면 0 실측(프로젝트 Table 0개)으로 vitest 확증(scene 단언+정적 markup). vitest +24 (fieldTemplate 24 / cellValue 8 / DOM 6 / scene 1). 상세: breakdown §3 P5
-- (진행 예정) P4c (G4 재실측 후) → P6 종결
+- Phase 6 (종결) — 2026-07-24: cross-check 최종 — dist FRESH / G2 grep 0건(fieldTemplate 밖 brace 파싱 없음) / CRITICAL·HIGH 0건. live 종합 — fresh reload 콘솔 에러 0 + CSS 패널 ↔ Skia 캔버스 카드 대칭(휴리스틱 G3 경로) + 세션 내 보간 live 증적 2회({num} 삽입 10행 / {createdAt|date} 10행). Status Implemented 승격 + closure 5단계 (README 카운트 170/13, completed/ 이동, CHANGELOG).
+- **P4c residual (사용자 확정 2026-07-24)**: `useCollectionData` api/variable/route 분기 + `ApiEndpointList`/`VariableList` 관리 UI + preview `useDataSource` 4-way dispatch 는 read 호환 잔존 (대안 D 상태 — Decision 기각 사유에 예정된 보류 경로). 재개 조건: G4 재실측 (Supabase 저장 문서 전수 0건 확증) 후 별도 커밋. 오소링 신규 기록은 P4b 로 dataTable 단일 고정이라 잔존 경로의 신규 유입은 0.
 
 ## Context
 
@@ -24,9 +25,9 @@ data-bound collection(ListBox/GridList/Table 등)의 행 텍스트는 현재 **�
 
 동시에 컴포넌트 패널의 데이터 소스 피커는 4종(dataTable/api/variable/route — `apps/builder/src/builder/components/property/PropertyDataBinding.tsx:108-112` `SOURCE_OPTIONS`)을 노출하지만, composition 의 데이터 방향은 **모든 동적·정적 데이터를 RAC/RSP 레퍼런스인 collection 방식으로 처리** — dataTable(=canonical `collections`, ADR-132) 단일이다. api/variable/route 는 사용하지 않는 표면이다.
 
-**ADR-152 경계 (2026-07-21 사용자 confirm — 경계 재획정)**: [ADR-152](152-data-panel-collection-binding-integration.md)(바인딩 통합)는 같은 문제 공간의 **계약 인프라 축**(id 참조 계약 v2 / 읽기 경로 일원화 / publish 직렬화 / store 이중화 정리)을 담당하고, 본 ADR 은 **표시 축**(텍스트 슬롯 템플릿 + 오소링 + dataTable 단일 소스)을 담당한다. 152 의 fieldMap 은 비텍스트 역할(icon/value) 한정으로 축소 개정되고(텍스트 label/description 은 본 ADR 템플릿이 정본), 152 의 API source 유지 전제는 본 ADR 방향으로 개정된다 (152 는 scope 변경으로 재리뷰 대상). 상세 경계: breakdown §1-5.
+**ADR-152 경계 (2026-07-21 사용자 confirm — 경계 재획정)**: [ADR-152](../152-data-panel-collection-binding-integration.md)(바인딩 통합)는 같은 문제 공간의 **계약 인프라 축**(id 참조 계약 v2 / 읽기 경로 일원화 / publish 직렬화 / store 이중화 정리)을 담당하고, 본 ADR 은 **표시 축**(텍스트 슬롯 템플릿 + 오소링 + dataTable 단일 소스)을 담당한다. 152 의 fieldMap 은 비텍스트 역할(icon/value) 한정으로 축소 개정되고(텍스트 label/description 은 본 ADR 템플릿이 정본), 152 의 API source 유지 전제는 본 ADR 방향으로 개정된다 (152 는 scope 변경으로 재리뷰 대상). 상세 경계: breakdown §1-5.
 
-**ADR-162 소비 관계 (2026-07-24 사용자 confirm — "159 base 의존 재획정")**: [ADR-162](162-gridlist-template-subtree-projection.md)(GridList composed 카드)가 본 ADR 을 base 로 소비한다 — P1 resolver 를 실체화된 임의 템플릿 자식의 string prop 보간에, P4 오소링 패턴을 임의 자식 prop 편집면에 확장 적용. 본 ADR 의 계약·범위 무변 (소비 확장 정보 — P1 API 는 slot 텍스트 특정이 아닌 string 일반이어야 함, §2-2 시그니처 그대로 충족).
+**ADR-162 소비 관계 (2026-07-24 사용자 confirm — "159 base 의존 재획정")**: [ADR-162](../162-gridlist-template-subtree-projection.md)(GridList composed 카드)가 본 ADR 을 base 로 소비한다 — P1 resolver 를 실체화된 임의 템플릿 자식의 string prop 보간에, P4 오소링 패턴을 임의 자식 prop 편집면에 확장 적용. 본 ADR 의 계약·범위 무변 (소비 확장 정보 — P1 API 는 slot 텍스트 특정이 아닌 string 일반이어야 함, §2-2 시그니처 그대로 충족).
 
 **3-Domain 판정**: D1(RAC DOM/동작) 무접촉 — 상호작용·write-back 은 본래 Preview/Publish 의 RAC 소관(빌더 Skia 는 레이아웃·배치·시각 구성만, 메모리 `feedback-skia-builder-not-frontend-interaction-belongs-to-preview` 정합). D3 는 "보간된 샘플 텍스트의 시각 대칭"만 관여(스타일 SSOT 무변). 바인딩 스키마는 canonical 문서 모델 영역(ADR-116/131/132 계보)으로 D2 컴포넌트 props 확장이 아니다. Spec/Generator 확장 아님 — Generator 자식 selector emit 질문 해당 없음.
 
@@ -103,7 +104,7 @@ data-bound collection(ListBox/GridList/Table 등)의 행 텍스트는 현재 **�
 - **대안 C 기각**: HIGH 2 (기술/유지보수). write-back 은 빌더 렌더 대칭과 독립된 데이터 mutation 문제 — 본 ADR 에 결합하면 P1~P4 의 경량 증명까지 인질이 된다. 후속 ADR 로 분리.
 - **대안 D 단독 기각**: dead path 영구 잔존은 "인프라 존재 ≠ 가동 경로" 함정(`feedback-infra-exists-vs-wired-consumption-path`)을 늘린다. 단 물리 제거는 소비처 0 확증 게이트(G4) 뒤에만 — 확증 실패 시 D 상태로 보류하고 residual 기록.
 
-> 구현 상세: [159-collection-field-template-binding-breakdown.md](design/159-collection-field-template-binding-breakdown.md)
+> 구현 상세: [159-collection-field-template-binding-breakdown.md](../design/159-collection-field-template-binding-breakdown.md)
 
 ## Risks
 

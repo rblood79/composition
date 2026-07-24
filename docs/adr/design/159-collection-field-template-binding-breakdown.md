@@ -1,6 +1,6 @@
 # ADR-159 구현 상세: Collection 필드 템플릿 바인딩 + dataTable 단일 소스
 
-> 본 문서는 [ADR-159](../159-collection-field-template-binding.md)의 구현 분해다. 결정 근거·대안·위험은 ADR 본문이 정본이며, 여기는 phase·파일 경계·계약만 다룬다.
+> 본 문서는 [ADR-159](../completed/159-collection-field-template-binding.md)의 구현 분해다. 결정 근거·대안·위험은 ADR 본문이 정본이며, 여기는 phase·파일 경계·계약만 다룬다.
 
 ## §1. 전제 lock-in (fork checkpoint 대체 — 신규 주제 ADR)
 
@@ -111,7 +111,7 @@ Phase 1~4 는 이 모델의 text-leaf 부분만 구현하되, 문법·자료구�
 
 - [x] **4a 필드 피커**: `PropertyFieldTemplateInput`(자유 입력 + Braces 버튼 → collection 컬럼 Menu) 신규 — 피커 선택 시 커서 위치 `{key}` 삽입 + 즉시 commit. 컬럼 목록 = `useOwnerCollectionColumns`(조상 dataBinding/items 소유자 → 없으면 reusable master 조상의 소비자 인스턴스 역추적: direct ref + container-slot 2-hop). **live 경로는 `GenericFieldRenderer`(PropertiesPanel Properties view)** — CatalogInspectorFields 단독 배선으로는 미노출 (회귀 테스트 `GenericFieldRenderer.test.tsx` 4건). 라이브 회귀 1건 수정: master 가 페이지 body 에 중첩되면 체인 최상단 단독 reusable 판정이 실패 → 걷는 중 만난 reusable 조상 전수로 역추적 (`useOwnerCollectionColumns.test.ts` 8건)
 - [x] **4b 소스 단일화**: `PropertyDataBinding.tsx` SOURCE_OPTIONS/소스 Select/route 입력 제거 — 컬렉션 피커 단일, 신규 기록 `source:"dataTable"` 고정 (api/variable/route 는 read 호환 잔존 + legacy 안내문). DataTable factory 기본 api binding 제거, AI create_element 의 api binding 생성 제거
-- [ ] **4c 잔존 경로 정리** — **보류 (G4 미충족)**: 로컬 IndexedDB 는 api/variable/route 저장 문서 0건 확증했으나 Supabase 전체 프로젝트는 RLS 로 전수 실측 불가 (§5-3). `useCollectionData` api/variable/route 분기 + `ApiEndpointList`/`VariableList` 관리 UI 는 residual 로 잔존 — G4 재실측 후 별도 커밋
+- [ ] **4c 잔존 경로 정리** — **residual 확정 (사용자 confirm 2026-07-24 "P4c 는 residual 로 두고 P6 진행")**: 로컬 IndexedDB 는 api/variable/route 저장 문서 0건 확증했으나 Supabase 전체 프로젝트는 RLS 로 전수 실측 불가 (§5-3). `useCollectionData` api/variable/route 분기 + `ApiEndpointList`/`VariableList` 관리 UI 는 대안 D 상태로 잔존 (Decision 에 예정된 보류 경로 — 신규 유입은 P4b 로 0). 재개 조건: G4 재실측 후 별도 커밋 — ADR Implemented 와 독립
 - Gate: G4 — 4c 진입 조건 미충족으로 4c 만 보류 (4a/4b 는 G4 무관)
 - live 검증 (2026-07-24): Components 페이지 master GridListItem slot Text(`{role}`) 선택 → 피커 버튼 노출 → Menu 에 Users collection 10 필드 정확 노출 → `{num}` 선택 → `{role}{num}` 삽입+commit → Home 인스턴스 10행 전부 보간 반영 ("시스템 아키텍트1"…"QA 엔지니어10") → 원상 복구. GridList 인스턴스 Data 섹션 = 컬렉션 단일 피커 (소스 4종 UI 소멸). 콘솔 에러 0
 
@@ -124,10 +124,10 @@ Phase 1~4 는 이 모델의 text-leaf 부분만 구현하되, 문법·자료구�
 - 진입 조건 충족 기록: P1~P4(4a/4b) Implemented + 사용자 우선순위 confirm ("P5 진행해", 2026-07-24)
 - live 검증 (2026-07-24): 경로+포맷 — master slot Text `{role}` → `{createdAt|date}` 편집 → Home 인스턴스 10행 전부 실데이터 날짜 `YYYY-MM-DD` 보간 확인 후 원상 복구 (경로/포맷 모두 동일 compile/interpolate live 배선 경유). **Table 셀 placeholder 는 live 노출면 0 실측** — 현 프로젝트 요소 50개 중 Table-typed 0 / array·object 셀 데이터 0 (store 전수 스캔), 팔레트 drop 도 빈 캔버스 거부로 scratch 산출 불가 → 칩/label 시각은 vitest 로 확증 (Skia scene-node 단언 1건 + DOM 정적 markup 6건). **잔존**: live 데이터로 array/object 셀이 생기는 시점(Table 사용 프로젝트 또는 P4c/후속 ADR)에 실화면 1회 재확인 — 미산출 입력 차원 한계 명시 ([[feedback-dual-run-diff-zero-blind-to-uncovered-input-dimension]] 유형)
 
-### Phase 6 — 종결
+### Phase 6 — 종결 — ✅ 2026-07-24
 
-- [ ] `/cross-check` 최종 + live behavior 종합 1회 (ADR-144 게이트)
-- [ ] Status Implemented + closure 5단계 (README/CHANGELOG)
+- [x] `/cross-check` 최종 + live behavior 종합 1회 (ADR-144 게이트): dist FRESH(.spec-rebuild-pending 없음 + dist 존재) / G2 grep 0건 / 컴포넌트 시각값(variants·sizes·토큰) 무변경 ADR 이라 5-레이어 이슈 0. live — fresh reload 콘솔 에러 0, CSS 패널 ↔ Skia 캔버스 카드 렌더 대칭(토큰 없는 텍스트의 G3 휴리스틱 경로), 보간 live 증적은 P4({num} 삽입 → 10행)·P5({createdAt|date} → 10행) 세션 내 2회
+- [x] Status Implemented + closure 5단계 (README 카운트 169→170 / 미구현·진행 14→13, completed/ 이동 + 링크 정합화 5파일, CHANGELOG 엔트리). P4c 는 residual (§3 P4 — ADR Implemented 와 독립, G4 재실측 후 재개)
 
 ## §4. 파일 변경 요약
 

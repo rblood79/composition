@@ -13,7 +13,7 @@ Proposed — 2026-07-24
 
 사용자 요구는 2축: **① 템플릿에 추가한 대로 인스턴스 카드에 반영** (임의 구성), **② GridList 패널 Content-Data 에서 추가된 항목의 prop 에 데이터 컬럼을 동적 매핑**.
 
-**ADR-159 경계 (2026-07-24 사용자 confirm — "159 base 의존 재획정")**: [ADR-159](159-collection-field-template-binding.md)(Proposed)가 같은 문제 공간의 **보간 축**(`{field}` 템플릿 문법·shared resolver `fieldTemplate.ts`·오소링 ComboBox·dataTable 단일 소스)을 담당한다. 본 ADR 은 **구조 축**(템플릿 서브트리 실체화 + 카드 높이 실측 + escape gate)만 소유하며, 보간은 159 P1 의 `compileFieldTemplate`/`interpolateFieldTemplate` 2심볼을 소비한다 (제2 엔진 금지 — 159 grep gate 준수). 요구 ②의 오소링 UI 도 159 P4 패턴을 임의 자식 prop 으로 확장 소비. **선행 의존**: Phase 2 진입 전 159 P1, Phase 5 진입 전 159 P4 Implemented.
+**ADR-159 경계 (2026-07-24 사용자 confirm — "159 base 의존 재획정")**: [ADR-159](completed/159-collection-field-template-binding.md)(Proposed)가 같은 문제 공간의 **보간 축**(`{field}` 템플릿 문법·shared resolver `fieldTemplate.ts`·오소링 ComboBox·dataTable 단일 소스)을 담당한다. 본 ADR 은 **구조 축**(템플릿 서브트리 실체화 + 카드 높이 실측 + escape gate)만 소유하며, 보간은 159 P1 의 `compileFieldTemplate`/`interpolateFieldTemplate` 2심볼을 소비한다 (제2 엔진 금지 — 159 grep gate 준수). 요구 ②의 오소링 UI 도 159 P4 패턴을 임의 자식 prop 으로 확장 소비. **선행 의존**: Phase 2 진입 전 159 P1, Phase 5 진입 전 159 P4 Implemented.
 
 **SSOT 3-domain 분류**: 본 ADR 은 **D3(시각 스타일 — 카드 구성·스타일의 Skia↔DOM 대칭)** 중심. 카드 내부 콘텐츠 구성은 RAC GridListItem 이 허용하는 자식 콘텐츠 범위라 D1 침범 아님 (RAC DOM 구조/ARIA 무변경). 데이터 매핑은 159 의 바인딩 계보(canonical 문서 모델 영역) 소비로 D2 신규 prop 도입 없음.
 

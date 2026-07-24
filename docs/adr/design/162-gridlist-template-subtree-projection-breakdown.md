@@ -4,7 +4,7 @@
 
 ## 1. 전제 lock-in (adr-writing.md fork checkpoint 4 질문)
 
-1. **base/응용 분류**: 본 ADR 은 **응용(구조 축)** — base 는 3개: [ADR-159](../159-collection-field-template-binding.md)(`{field}` 보간 기계·오소링·dataTable 단일화), ADR-148(slot 구성 SSOT = origin 문서), ADR-161(GridList ref-composite). **2026-07-24 사용자 confirm (AskUserQuestion "159 base 의존 재획정")**: 보간·오소링은 159 소관을 소비하고, 본 ADR 은 구조 축(서브트리 실체화 + 카드 높이 실측 + escape gate)만 소유한다. 보간 엔진 제2 구현 금지 (159 grep gate: 소비처는 `compileFieldTemplate`/`interpolateFieldTemplate` 2심볼만 import).
+1. **base/응용 분류**: 본 ADR 은 **응용(구조 축)** — base 는 3개: [ADR-159](../completed/159-collection-field-template-binding.md)(`{field}` 보간 기계·오소링·dataTable 단일화), ADR-148(slot 구성 SSOT = origin 문서), ADR-161(GridList ref-composite). **2026-07-24 사용자 confirm (AskUserQuestion "159 base 의존 재획정")**: 보간·오소링은 159 소관을 소비하고, 본 ADR 은 구조 축(서브트리 실체화 + 카드 높이 실측 + escape gate)만 소유한다. 보간 엔진 제2 구현 금지 (159 grep gate: 소비처는 `compileFieldTemplate`/`interpolateFieldTemplate` 2심볼만 import).
 2. **schema 직교성**: 신규 canonical schema 필드 없음 — composed 판정은 origin 자식 구성에서 파생, 바인딩 표현은 159 의 `{field}` 문법 그대로. 직교 위반 없음.
 3. **선행 ADR 전제 reverse 검증**: ADR-148 Decision 3("구성 SSOT = origin 문서의 자식 구성") 방향 유지 — 반전 아님, 적용 범위 확대. ADR-159 의 consumer 분리(Skia=샘플 정적 배치 / DOM=실데이터+RAC 동작)도 그대로 승계.
 4. **codex 1차 진입 전 위 3 질문 통과** — 본 문서 §1 lock-in 으로 충족.

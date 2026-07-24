@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Collection 필드 템플릿 바인딩 — ADR-159 `{field}` 보간 + dataTable 단일 소스] - 2026-07-24
+
+### Features
+
+- **collection 행 텍스트 `{field}` 템플릿 보간** (ADR-159 P1~P3, Implemented):
+  - slot Text(또는 item props)에 `{num}`, `No.{num} — {email}` 같은 템플릿을 쓰면 data-bound ListBox/GridList 행이 임의 컬럼으로 보간 렌더 — 기존에는 `getItemLabel` 고정 휴리스틱 키(label/name 등)만 표시 가능.
+  - **Why**: 보간 기계 자체가 코드베이스에 없어 Users(num/email) 지정이 DOM/Skia 대칭적으로 무시됐음. shared 단일 resolver(`packages/shared/src/collections/fieldTemplate.ts`)를 Skia projection 과 DOM 렌더 양쪽이 소비 (G2 — consumer 자체 파싱 0건, 선재 ad-hoc 파서 교체 포함).
+  - 문법: 다중 필드+literal 혼합 / `{{`·`}}` 이스케이프 / 미지 필드 빈 문자열 / 토큰 없으면 기존 휴리스틱과 bit-동일 (BC).
+- **문법 B — 경로 + 포맷** (ADR-159 P5):
+  - 경로 접근 `{address.city}` / `{arr[0].x}` (flat key 정확 일치 우선 — 기존 문서 BC), 포맷 `{createdAt|date}`(`YYYY-MM-DD`) / `{num|number}`(천단위) — `FIELD_TEMPLATE_FORMATTERS` registry 가 확장 지점, 실패 시 미포맷 fallback.
+  - array/object Table 셀 → 컴포넌트 placeholder: array 는 read-only TagGroup 칩(cap 3 + `+N`), object 는 휴리스틱 label 텍스트 (구 "[object Object]"/JSON 노출 제거). Skia projection ↔ DOM 이 동일 분류(`classifyTableCellDisplay`) 소비.
+- **오소링 필드 피커** (ADR-159 P4a):
+  - Properties 패널의 템플릿 텍스트 키(children/text/description) 편집 입력에 소유 collection 컬럼 피커(Braces 버튼 → Menu) — 선택 시 커서 위치에 `{key}` 삽입 + 즉시 반영. Components 페이지 master 편집도 소비자 인스턴스 역추적으로 컬럼 제공(`useOwnerCollectionColumns`).
+- **데이터 소스 dataTable 단일화** (ADR-159 P4b):
+  - 컴포넌트 Data 바인딩 피커가 소스 4종(dataTable/api/variable/route) 선택 → 컬렉션(테이블명) 선택 단일로 축소. 신규 기록은 `source:"dataTable"` 고정, 구소스 문서는 read 호환 + legacy 안내. DataTable factory/AI tool 의 api binding 생성 제거 (신규 유입 0).
+  - **P4c residual (사용자 확정)**: api/variable/route 잔존 runtime 경로 물리 제거는 G4(Supabase 저장 문서 전수 실측 — RLS 차단) 재실측 후 별도 진행.
+
+### Architecture
+
+- **ADR-159 Accepted → Implemented** (2026-07-24, execute-adr Phase 0~6):
+  - 바인딩 primitive = 재귀 BindingNode 목표 모델의 text-leaf 구현 (write-back·교차 lookup 은 후속 ADR). `SlotChildConfig.text` 운반 축 +1 (ADR-148 확장).
+  - 검증: vitest 신규 90+ (fieldTemplate 24 / cellValue 8 / scene 47 / DOM 6 / resolver 8 등) + live 보간 2회(피커 `{num}` 삽입 10행, `{createdAt|date}` 실데이터 10행) + cross-check(G1/G2/G3 게이트).
+  - 위치: `packages/shared/src/collections/{fieldTemplate,cellValue}.ts`, `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`, `packages/shared/src/renderers/SelectionRenderers.tsx`, `packages/shared/src/components/{ListBox,GridList,Table}.tsx`, `apps/builder/src/builder/components/property/*`, `apps/builder/src/builder/panels/properties/generic/*`
+
 ## [GridList grid layout 2열 렌더 + Skia↔DOM 정합] - 2026-07-23
 
 ### Bug Fixes
