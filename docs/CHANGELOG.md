@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Data 바인딩 해제 버튼 크기 정합 — 컨트롤 높이 28 고정] - 2026-07-24
+
+### Bug Fixes
+
+- **Content ▸ Data 컬렉션 선택 시 컨트롤 높이가 28→30 으로 튀던 문제**:
+  - 데이터 바인딩 해제(X) 버튼 `.binding-clear` 이 고정 크기 대신 `padding: var(--spacing-xs)` + 아이콘(14px) intrinsic 으로 잡혀 **22×22** 였다. 컬렉션을 선택하면 이 버튼이 추가되는데, Select 트리거(20×20)보다 커서 `align-items:center` 행 높이가 22 로 늘고 `.react-aria-Group` 컨트롤 박스가 28(콘텐츠 20 + padding 4+4)→30 으로 커졌다.
+  - **Why**: 패널의 다른 아이콘-버튼(chevron span / field-picker-icon / Select Button span)은 모두 `var(--text-xl)`(20×20) 고정인데 `.binding-clear` 만 padding 기반이라 혼자 22 로 튀었다.
+  - 수정: `.binding-clear` 를 `width/height: var(--text-xl)` + `padding: 0` + `flex: 0 0 auto` 로 20×20 고정. 바인딩 유무와 무관하게 행 20 / group 28 로 일정.
+  - 검증: live 실측(dev builder) — 실제 `.binding-name-row` 에 합성 해제 버튼 주입 측정(비파괴): 버튼 20×20 / 행 20 / group 28 (수정 전 22 / 22 / 30). property tests 8 PASS.
+  - 위치: `apps/builder/src/builder/components/property/PropertyDataBinding.css`
+
 ## [Text 필드 피커 시각 통일 — width combo 셸 + 팝오버 부모 정렬] - 2026-07-24
 
 ### Features

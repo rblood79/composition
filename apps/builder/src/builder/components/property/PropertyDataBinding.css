@@ -11,11 +11,19 @@
   flex: 1;
 }
 
+/* 해제 버튼은 패널 아이콘-버튼 규약(chevron span / field-picker-icon 과 동일)에 맞춰
+   20×20(var(--text-xl)) 고정 — padding 기반 크기(아이콘 14 + spacing-xs 4+4 = 22px)로
+   두면 바인딩 선택 시 이 버튼이 Select 트리거(20)보다 커져 align-items:center 행이
+   22 로 늘고 group 컨트롤 박스가 28→30 으로 튄다. 고정 20 이면 행이 20 을 유지해
+   바인딩 유무와 무관하게 group 높이가 28 로 일정하다. */
 .binding-clear {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-xs);
+  flex: 0 0 auto;
+  width: var(--text-xl);
+  height: var(--text-xl);
+  padding: 0;
   background: transparent;
   border: none;
   border-radius: var(--radius-sm);
