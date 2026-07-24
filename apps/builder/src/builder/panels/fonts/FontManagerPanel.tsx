@@ -101,7 +101,7 @@ function FontManagerContent() {
   const faceCount = registry.faces.length;
 
   return (
-    <div className="font-manager-panel">
+    <div className="panel font-manager-panel">
       <PanelHeader
         icon={
           <Type

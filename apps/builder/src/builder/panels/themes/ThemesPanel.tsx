@@ -299,7 +299,7 @@ function ThemesContent() {
   );
 
   return (
-    <div className="themes-panel">
+    <div className="panel themes-panel">
       <PanelHeader
         icon={<SwatchBook size={iconProps.size} />}
         title="Theme"

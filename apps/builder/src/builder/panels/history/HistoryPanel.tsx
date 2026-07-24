@@ -121,7 +121,7 @@ function HistoryPanelContent() {
 
   if (displayEntries.length === 0) {
     return (
-      <div className="history-panel">
+      <div className="panel history-panel">
         <PanelHeader
           icon={<History size={iconProps.size} />}
           title="히스토리"
@@ -136,7 +136,7 @@ function HistoryPanelContent() {
   }
 
   return (
-    <div className="history-panel">
+    <div className="panel history-panel">
       <PanelHeader
         icon={<History size={iconProps.size} />}
         title="히스토리"

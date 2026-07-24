@@ -171,20 +171,24 @@ CSS 규모: components/styles/index.css 1,169줄 (잡화 집합), panel-system.c
 
 ## §4. Phase 3 — 미완 패널 정렬
 
-순서 (작은 diff → 큰 diff). **events 는 대상 외** (§6 보류 — 전면 재구성 대기):
+> **실측 정정 (2026-07-25, Phase 3 실행 중)**: design §4 원안 6패널 중 2건이 misclassification 이었다 (실측 — always-mounted `panel-wrapper[data-panel]` 세트 = nodes/components/datatable/datatableEditor/theme/properties/styles/events/ai/fonts/history 11종. settings·monitor 부재).
+>
+> - **settings 는 빌더 패널 아님** — `dashboard/index.tsx:411` 에서 렌더되는 **대시보드 컴포넌트**. `.settings-panel` 은 빌더 좌우 패널 Activity 시스템 밖 → **ADR-163 scope 밖으로 제외**.
+> - **monitor 는 dev tool 예외** — `PanelProps` 패널이나 always-mount 아님, PanelHeader/Section 없이 TabPanel(`monitor-tab-panel`) 구조 → nodes/events 와 동류 예외 확정 (§6 명문화).
+>
+> 이 gap 은 Phase 0 inventory 부실(절차 결함)이며 scope 변경 아님 — 본 §4 안에서 흡수(adr-writing.md M3). 실제 actionable scope = 표준 4패널.
 
-| 순서 | 패널     | 작업                                                                                      | 예상 규모 |
-| :--: | -------- | ----------------------------------------------------------------------------------------- | --------- |
-|  1   | theme    | root `.themes-panel` → `.panel` + `.panel-contents` 래퍼 추가 (PropertySection 이미 사용) | 소        |
-|  2   | settings | root `.panel-settings` → `.panel` + `.panel-contents` (〃)                                | 소        |
-|  3   | history  | `.history-contents` 를 `.panel-contents.history-contents` 병기 확인 + Section 도입 판정   | 소        |
-|  4   | fonts    | Section 도입                                                                              | 중        |
-|  5   | ai       | 대화형 UI — `.panel`+PanelHeader 만 적용, contents 구조는 예외 판정                       | 소        |
-|  6   | monitor  | 예외 확정 여부 판정 (dev tool). 예외 시 §6 에 명문화                                      | 판정만    |
+| 순서 | 패널     | 작업                                                                                             | 규모 | 상태                                                                                           |
+| :--: | -------- | ------------------------------------------------------------------------------------------------ | ---- | ---------------------------------------------------------------------------------------------- |
+|  1   | theme    | root `.themes-panel` → `.panel` 병기 (PropertySection 이미)                                      | 소   | **[완료]** diff 0 — unlayered root, 활성화 렌더 정상(G4: Colors/Appearance/Typography/Preview) |
+|  2   | ai       | root `.ai-panel` → `.panel` 병기 (대화형 — contents 예외)                                        | 소   | **[완료]** diff 0 — unlayered root, computed before==after                                     |
+|  3   | history  | root `.history-panel` → `.panel` 병기 (2 branch). `.panel-contents history-contents` 이미 병기됨 | 소   | **[완료]** diff 0 — @layer 동일값, computed before==after                                      |
+|  4   | fonts    | root `.font-manager-panel` → `.panel` 병기 (Section 이미 사용)                                   | 소   | **[완료]** diff 0 — @layer 동일값, computed before==after                                      |
+|  5   | settings | —                                                                                                | —    | **scope 밖** — 대시보드 컴포넌트(위 실측 정정)                                                 |
+|  6   | monitor  | 예외 확정                                                                                        | 판정 | **[예외]** dev tool, §6 명문화                                                                 |
 
-각 패널: 수정 → type-check + 관련 test → 라이브 확인 (G4) → 개별 commit.
-
-공통 규칙 (§3-1 과 동일): root 클래스 전환은 **`.panel` 병기가 기본** — 기존 root 클래스를 참조하는 co-located CSS 선택자가 있는 한 제거 금지 (제거는 선택자 동시 수정과 한 커밋). G4 기준: 의도된 시각 변화는 커밋 메시지에 항목화, 항목화 안 된 변화 0.
+- **Section 도입 재판정**: fonts 는 이미 Section 사용, history 는 flat 리스트 자연 → 강제 삽입 안 함 (과잉 변경 금지). 원안의 "fonts Section 도입(중)" 은 이미 충족.
+- 공통 규칙 (§3-1 과 동일): root 클래스 전환은 **`.panel` 병기가 기본** — 기존 root 클래스 참조 co-located CSS 있는 한 제거 금지. G4 기준: 의도된 시각 변화는 커밋 메시지 항목화, 항목화 안 된 변화 0 (본 4패널 = 변화 0).
 
 ## §5. Phase 4 — 중복/네이밍 정리
 
@@ -217,14 +221,15 @@ CSS 규모: components/styles/index.css 1,169줄 (잡화 집합), panel-system.c
 
 - **nodes**: 확정 예외 (사용자 지정 2026-07-24). 탭+가상화 트리 구조가 Section 모델과 불일치. 단 `.editing-semantics-dot` 등 시맨틱 토큰은 공유 (builder-system.css `--editing-semantics-*`). 네이밍 규칙 중 "구조 클래스 재정의 금지" 는 적용 (`elementItem*` camelCase 는 존치 허용).
 - **events**: **보류** (사용자 결정 2026-07-24 — "전면 재구성 대기 부분이라 무시"). field 시스템 (`.field/.field-label/...` 26파일 180+ 사용) 포함 events 내부 구조 전체가 대상 외. 재구성 시 본 표준 (§1) 적용이 전제. 예외의 예외: `ExecutionDebugger.tsx` Tailwind 잔존은 Phase 4-c 에 포함 (기존 CRITICAL 규칙 위반의 국소 해소 — 구조 재편 아님).
-- **monitor**: Phase 3-6 에서 판정. 예외 확정 시 본 절에 추가.
+- **monitor**: **확정 예외** (Phase 3 실측 2026-07-25). dev tool — always-mounted `panel-wrapper` 세트 부재, PanelHeader/Section 없이 `TabPanel`(`monitor-tab-panel`) 구조라 Section 모델과 불일치. 네이밍 규칙 중 "구조 클래스 재정의 금지" 는 적용.
+- **settings**: **scope 밖** (Phase 3 실측 2026-07-25). 빌더 좌우 패널이 아니라 `dashboard/index.tsx` 에서 렌더되는 대시보드 컴포넌트. ADR-163(빌더 패널) 대상 아님.
 - 예외/보류 패널도 §1-2 예약표 (구조 클래스 재정의 금지) 는 적용.
 
 ## §7. 체크리스트
 
 - [x] **Phase 1 (2026-07-25)**: dead 블록(구 360~480행) 전체 삭제 — 선언별 판정 결과 전부 (a) live 중복 또는 (b) 복구 시 현행 변경 → 무매칭 규칙 제거로 diff 0. Chrome 합성 real-DOM cascade 실측 (before==after: `.properties-aria` display=block / `.fieldset-legend` 12px) 로 G1 확증. 정적 가드 `panel-system.static.test.ts` (G2 green) + `.claude/rules/panel-structure.md` (§1 전체) 신설. panel-system.css 529→404행. 커밋: (본 커밋)
 - [x] **Phase 2 (2026-07-25)**: datatable/datatableEditor root `.panel` 병기 (4 div, diff 0 — unlayered root 가 layered `.panel` 이김, Chrome 실측 before==after + 활성화 렌더 정상 G4). `panel-tabs` "4중 정의" = miscount 실측 정정(단일 정의 + datatable 전용) → 이전/rename 은 Phase 4-c 이연. Section 도입 미실시(flat 유지). commit: (본 커밋)
-- [ ] Phase 3: 미완 6종 순차 (패널당 commit, events 제외)
+- [x] **Phase 3 (2026-07-25)**: 표준 4패널(themes/ai/history/fonts) root `.panel` 병기 (diff 0 — Chrome computed before==after + themes 활성화 렌더 정상 G4). 실측 정정: settings=대시보드 컴포넌트(scope 밖) / monitor=dev tool 예외(§6). commit: (본 커밋)
 - [ ] Phase 4-a: iconButton/empty-state/control-button/section-divider 통합
 - [ ] Phase 4-b: fieldset-row 정의+5종 래퍼 흡수+패턴 A 전환 (스냅샷 diff + G4)
 - [ ] Phase 4-c: TagEditor fieldset 수정, Tailwind 6파일 제거, tab-\* 오용/bare modifier 정리, rename 기각 기록

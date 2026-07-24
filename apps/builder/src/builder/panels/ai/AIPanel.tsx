@@ -245,7 +245,7 @@ function AIPanelContent() {
   const isDisabled = isStreaming || isAgentRunning;
 
   return (
-    <div className="ai-panel">
+    <div className="panel ai-panel">
       <PanelHeader
         icon={<Bot size={iconProps.size} />}
         title="AI Assistant"
