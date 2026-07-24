@@ -45,10 +45,10 @@
 - **binary protocol**: dormant 인코더 (Rust 디코더 부재) 라 스칼라 비등재 — FIELD_MAP 에 실구현 시 f32 범위 편입 의무 주석 명문화 (silent drop 차단).
 - **검증 실측**: parity 12 파일 / **100 테스트** PASS (기존 90 회귀 0 + 신규 intrinsicSizing 10 — engine 6·pipeline 4, Chrome diff 0. pipeline leg 는 실텍스트로 측정→스칼라→엔진→Step 4.5 height 재측정 전 구간 왕복) / cargo **321** / layout 유닛 299 / type-check PASS / bench 회귀 0 (S1 14.6~16.9µs·S2 72.1~74.8µs·S3 13.6~15.3µs — 기준치 ±10% 이내) + **S4 ~15.1µs / S5 ~15.5µs 신규 기준치**. G4 live: dAAA fresh reload 콘솔 0 + layout map 전 텍스트 leaf 배치 변경 전 동일 (Label 70/88·Button 62/64·Heading 390) + CSS↔Skia 대칭 육안 확인.
 
-## 4. Phase 2 — height-for-width 2-pass 계약 축소·명문화
+## 4. Phase 2 — height-for-width 2-pass 계약 축소·명문화 — ✅ Implemented 2026-07-25
 
-- `fullTreeLayout.ts:2466` Step 4.5 를 "폭 확정 후 높이 1회 재측정" 계약으로 축소·재정의 — 폭 축은 Phase 1 스칼라로 엔진이 소유하므로 2-pass 의 남는 역할은 height-for-width 재줄바꿈뿐임을 코드·주석·규칙에 명문화.
-- **Phase 0 실측 반영**: 현행 트리거 집합이 과대 (fresh load 마다 25/47=53% 트리거 — enrichedWidth 추정의 루트 availableWidth fallback 이 원인). 계약 축소 시 트리거 판정을 "재줄바꿈 가능 텍스트 요소" 로 좁히는 것이 정량 목표 (실측 재계측으로 확증).
+- `fullTreeLayout.ts` Step 4.5 를 "폭 확정 후 높이 1회 재측정" 계약으로 축소·재정의 — 폭 축은 Phase 1 스칼라로 엔진이 소유하므로 2-pass 의 남는 역할은 height-for-width 재줄바꿈뿐임을 코드·주석·규칙에 명문화. **구현**: 블록 헤더 계약 재작성 (폭 재보정 확장 재도입 금지 + 대안 A 재개 조건 명시) + **스칼라 기반 재줄바꿈 불가능 skip** — 텍스트 leaf 의 `contentMaxWidth ≤ min(가정 폭, 실배치 폭)` 이면 어느 폭에서도 단일줄 = 높이 폭-무관 → 재측정 제외. 스칼라는 batch node style record 에서 읽음 (enrichment 주입은 store/processedElementsMap 미반영 — 최초 구현이 processed style 을 읽어 no-op 였던 것을 계측으로 잡아 정정).
+- **재계측 (2026-07-25)**: fresh load 트리거 25/47 → **23/47** — skip 은 스칼라 보유 요소(form Label 2건)에서 정확 발화. 잔여 23건 구성: ① B22 `width:100%` Text 계열 — 트리거 loop 의 `%` 해석이 부모가 아닌 **루트 availableWidth 기준**이라 실배치 폭과 상시 어긋남 (추정 기저 오차 — 재측정 결과가 동일해 정합 무해, 비용만) ② INLINE_BLOCK 합성 leaf (스칼라 채널 밖 — 잔존 주입 경로) ③ 컨테이너 (주입 height 삭제 메커니즘의 의도된 트리거) ④ icon 류 (고정 크기지만 스칼라 없음). **잔존 기록**: `%` 추정 기저를 부모 content 폭으로 정밀화하면 ①이 소거되나, 과소 트리거(높이 재측정 누락) 위험 대비 이득이 작아 이연 — 2-pass 비용이 실측 문제화되면 대안 A 재평가(R4)와 함께 재개.
 - 재줄바꿈 높이의 measure callback 이관(대안 A)은 **본 ADR 범위 밖** — Phase 0/2 실측에서 2-pass 잔존 비용이 문제로 확인될 때만 별도 ADR 로 재평가 (R4).
 
 ## 5. Phase 3 — 문서·규칙 정합

@@ -2465,11 +2465,15 @@ export function calculateFullTreeLayout(
     // ── Step 4: 레이아웃 계산 ─────────────────────────────────────────
     persistentTree.computeLayout(availableWidth, availableHeight);
 
-    // ── Step 4.5: 2-pass height 교정 (width 변동 → 텍스트 줄바꿈 → height 재계산)
-    // 1차 pass의 enrichment는 부모 availableWidth 기준이지만,
-    // 실제 Taffy 할당 width는 grid 1fr, flex-grow/shrink, 부모 제약 등으로 달라질 수 있다.
-    // 자식의 실제 width가 enrichment width와 다르면 → 실제 width로 re-enrich → 재계산.
-    // 부모는 Taffy가 자식 height 합산으로 auto height를 자동 갱신한다.
+    // ── Step 4.5: height-for-width 1회 재측정 (ADR-165 Phase 2 — 축소 계약) ──
+    // **계약**: 폭 축 intrinsic (fit/min/max-content + §4.5 floor) 은 ADR-165 로
+    // 엔진이 소유한다 (측정 스칼라 공급). 2-pass 의 남은 유일한 역할은
+    // **height-for-width** — 1차 pass 의 height 는 부모 availableWidth 가정으로
+    // 측정됐는데 실배치 폭이 다르면 재줄바꿈으로 높이가 달라지므로, 폭 확정 후
+    // 높이만 1회 재측정한다 (엔진은 텍스트 측정 부재 — CanvasKit oracle 불변).
+    // 폭 재보정 용도로의 확장 재도입 금지 — 그건 엔진 소속이다.
+    // measure callback 이관(대안 A)은 본 ADR 범위 밖 (재개 조건: 2-pass 비용이
+    // 프레임 예산 압박 실측 — ADR-165 R4).
     {
       const WIDTH_TOLERANCE = 2;
       let needsSecondPass = false;
@@ -2530,6 +2534,25 @@ export function calculateFullTreeLayout(
           enrichedWidth = (availableWidth * (parseFloat(rawW) || 100)) / 100;
         } else {
           enrichedWidth = availableWidth;
+        }
+
+        // 재줄바꿈 불가능 skip (ADR-165 Phase 2 — 트리거 집합 과대 해소):
+        //   텍스트 leaf 의 max-content(단일줄 폭) 스칼라가 가정 폭·실배치 폭 **양쪽
+        //   이하**면 어느 폭에서도 단일줄 — 높이가 폭에 의존하지 않아 재측정이
+        //   무의미하다. Phase 0 실측: fresh load 트리거 25/47(53%) 의 대부분이
+        //   이 케이스 (가정 폭 fallback 이 페이지 폭이라 실배치 폭과 항상 어긋남).
+        //   스칼라는 **batch node style record** 에서 읽는다 — enrichment 주입은
+        //   store/processedElementsMap 에 반영되지 않고 직렬화 record 에만 있다.
+        //   스칼라 없는 요소(컨테이너/합성 leaf)는 기존 판정 유지 — 컨테이너의
+        //   주입 height 삭제(아래 분기)가 이 트리거에 걸려 있다.
+        const cMax = (node.style as Record<string, unknown> | undefined)
+          ?.contentMaxWidth;
+        if (
+          typeof cMax === "number" &&
+          cMax <= enrichedWidth &&
+          cMax <= layout.width
+        ) {
+          continue;
         }
 
         if (Math.abs(layout.width - enrichedWidth) > WIDTH_TOLERANCE) {
