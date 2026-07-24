@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [slot 해치 오버레이 클립 — 페이지 프레임 밖 렌더 차단] - 2026-07-24
+
+### Bug Fixes
+
+- **ListBox/GridList 등 slot 컴포넌트가 스크롤로 page 프레임을 벗어나도 계속 그려지던 문제**:
+  - slot authoring chrome(사선 해치 + 테두리)과 collection remainder(ADR-157 "+N more") 은 씬이 아니라 **오버레이 패스**에서 그려지는데, 대상 bounds 를 `treeBoundsMap`(= 클립 미적용 **원본 박스**)에서 가져왔다. `renderSlotHatchPattern` 은 자기 bounds 로만 `clipRect` 를 걸어서 조상 클립이 전혀 적용되지 않았다.
+  - **Why**: 오버레이 패스는 씬의 clip save/restore **밖**에서 돈다. 그래서 page body(`overflow:auto`, 390×844)를 스크롤해 프레임 밖으로 나간 ListBox 의 해치가 프레임 상단 경계 **위로 66px** 캔버스 배경 위에 그려졌다. 같은 요소의 히트 영역은 직전 §8.5 수정으로 이미 클립돼 있어서 **"보이는데 클릭은 안 되는"** 비대칭 상태였다.
+  - 수정: `buildSlotMarkerTargets` / `buildCollectionRemainderTargets` 가 `hitBoundsMap`(조상 clip 교차 결과)으로 chrome bounds 를 잘라낸다. 전부 잘린 요소는 맵에 미등재 → chrome 자체를 생성하지 않고, 부분 가시 요소는 보이는 구간에만 그린다. padding inset 은 원본 박스 기준으로 먼저 적용한 뒤 클립한다(순서 역전 시 잘린 박스 기준 inset 으로 어긋남). 교차 수식은 `intersectBoxes()` (`selection/types.ts`) 로 단일화해 렌더 커맨드의 조상 clip 교차와 같은 함수를 쓰게 했다.
+  - 검증: live 실측(dev builder, HMR) — Components 페이지 body 를 스크롤한 상태에서 프레임 상단 경계(y≈456) 위 캔버스 영역이 **수정 전 해치 66px 노출 → 수정 후 완전히 깨끗**, 해치는 프레임 경계에서 정확히 잘림(확대 스크린샷 확인). 신규 회귀 테스트 5(부분 클립/전부 클립 × slot·remainder + 기존 호출 호환) + builder 2636 PASS / type-check PASS.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/skiaOverlayHelpers.ts`, `skia/skiaOverlayBuilder.ts`, `canvas/selection/types.ts`
+  - 규칙: `.claude/rules/canvas-rendering.md` §8.5 (오버레이 chrome 갈림 기준 표 + 금지 패턴 3건 추가)
+
 ## [선택 드래그 의도 판정 — 겹친 요소 클릭 허용 (Figma/Pencil 정합)] - 2026-07-24
 
 ### Bug Fixes

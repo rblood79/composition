@@ -285,6 +285,25 @@ export function boxesIntersect(a: BoundingBox, b: BoundingBox): boolean {
 }
 
 /**
+ * 두 바운딩 박스의 교집합. 겹치지 않으면 null.
+ *
+ * 클립 계열 계산의 단일 소스 — 렌더 커맨드의 조상 clip 교차(`hitBoundsMap` 산출)와
+ * 오버레이 chrome 의 가시 영역 산출이 같은 수식을 써야 그리기·히트·chrome 세 경로가
+ * 어긋나지 않는다 (`.claude/rules/canvas-rendering.md` §8.5).
+ */
+export function intersectBoxes(
+  a: BoundingBox,
+  b: BoundingBox,
+): BoundingBox | null {
+  const left = Math.max(a.x, b.x);
+  const top = Math.max(a.y, b.y);
+  const right = Math.min(a.x + a.width, b.x + b.width);
+  const bottom = Math.min(a.y + a.height, b.y + b.height);
+  if (right <= left || bottom <= top) return null;
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}
+
+/**
  * 점이 바운딩 박스 안에 있는지 확인
  */
 export function pointInBox(

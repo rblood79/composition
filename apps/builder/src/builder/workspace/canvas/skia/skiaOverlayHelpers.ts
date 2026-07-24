@@ -13,7 +13,7 @@ import {
   hasEditingSlotMarker,
   type EditingSemanticsRole,
 } from "../../../utils/editingSemantics";
-import type { BoundingBox } from "../selection/types";
+import { intersectBoxes, type BoundingBox } from "../selection/types";
 import {
   DEFAULT_MINIMAP_CONFIG,
   MINIMAP_CANVAS_RATIO,
@@ -161,10 +161,35 @@ function resolvePageBodyBounds(
   };
 }
 
+/**
+ * slot / remainder chrome 은 "내용이 놓일 자리" 를 나타내는 **콘텐츠성** 오버레이다.
+ * 따라서 선택 박스처럼 원본 박스를 쓰면 안 되고, 조상 clip 을 반영한 가시 영역
+ * (`hitBoundsMap`)으로 잘라야 한다.
+ *
+ * **Why (2026-07-24 실측)**: 오버레이 패스는 씬의 clip save/restore **밖**에서 돌고
+ * `renderSlotHatchPattern` 은 자기 bounds 로만 clipRect 를 건다. 그래서 원본 박스를
+ * 넘기면 조상(page body `overflow:auto` 390x844 등)의 클립을 전혀 받지 않아, body 를
+ * 스크롤해 프레임 밖으로 나간 ListBox/GridList 의 해치가 캔버스 배경 위에 그대로
+ * 그려졌다(프레임 상단 경계 위로 66px 노출). 같은 요소의 히트 영역은 §8.5 로 이미
+ * 클립돼 있어 "보이는데 클릭은 안 되는" 비대칭이 됐다.
+ *
+ * 전부 잘린 요소는 `hitBoundsMap` 에 미등재 → chrome 자체를 생성하지 않는다.
+ */
+function clipChromeBounds(
+  bounds: BoundingBox,
+  id: string,
+  hitBoundsMap: Map<string, BoundingBox>,
+): BoundingBox | null {
+  const visible = hitBoundsMap.get(id);
+  if (!visible) return null;
+  return intersectBoxes(bounds, visible);
+}
+
 export function buildSlotMarkerTargets(
   treeBoundsMap: Map<string, BoundingBox>,
   elementsMap: Map<string, CanvasSceneNode> = new Map(),
   childrenMap: Map<string, CanvasSceneNode[]> = new Map(),
+  hitBoundsMap: Map<string, BoundingBox> = treeBoundsMap,
 ): SlotMarkerTarget[] {
   const targets: SlotMarkerTarget[] = [];
 
@@ -181,8 +206,17 @@ export function buildSlotMarkerTargets(
     const slotMarkerRole = getEditingSlotMarkerRole(element, elementsMap);
     if (!slotMarkerRole) continue;
 
+    // padding inset 은 **원본 박스** 기준(요소 박스에 상대적)이고, 가시 영역 클립은
+    // 그 다음이다. 순서를 바꾸면 잘린 요소의 inset 이 잘린 박스 기준이 돼 어긋난다.
+    const chromeBounds = clipChromeBounds(
+      insetBoundsByPadding(bounds, element),
+      id,
+      hitBoundsMap,
+    );
+    if (!chromeBounds) continue;
+
     targets.push({
-      bounds: insetBoundsByPadding(bounds, element),
+      bounds: chromeBounds,
       showHatch: true,
       slotMarkerRole,
     });
@@ -200,13 +234,16 @@ export function buildSlotMarkerTargets(
 export function buildCollectionRemainderTargets(
   treeBoundsMap: Map<string, BoundingBox>,
   elementsMap: Map<string, CanvasSceneNode> = new Map(),
+  hitBoundsMap: Map<string, BoundingBox> = treeBoundsMap,
 ): CollectionRemainderTarget[] {
   const targets: CollectionRemainderTarget[] = [];
 
   for (const [id, bounds] of treeBoundsMap) {
     const projection = elementsMap.get(id)?.projection;
     if (projection?.kind !== "collection-remainder") continue;
-    targets.push({ bounds, hiddenRows: projection.hiddenRows });
+    const chromeBounds = clipChromeBounds(bounds, id, hitBoundsMap);
+    if (!chromeBounds) continue;
+    targets.push({ bounds: chromeBounds, hiddenRows: projection.hiddenRows });
   }
 
   return targets;

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import {
+  buildCollectionRemainderTargets,
   buildFrameTitleRenderItems,
   buildHoverHighlightTargets,
   buildSlotMarkerTargets,
@@ -635,6 +636,97 @@ describe("buildSlotMarkerTargets", () => {
     expect(targets).toEqual([
       {
         bounds: { x: 10, y: 10, width: 80, height: 20 },
+        showHatch: true,
+        slotMarkerRole: "origin",
+      },
+    ]);
+  });
+});
+
+describe("slot / remainder chrome 은 조상 clip 을 따른다", () => {
+  // 오버레이 패스는 씬 clip save/restore 밖에서 돌고 renderSlotHatchPattern 은 자기
+  // bounds 로만 clipRect 를 건다. 원본 박스를 넘기면 page body(overflow:auto) 를 스크롤해
+  // 프레임 밖으로 나간 ListBox/GridList 해치가 캔버스 배경 위에 그대로 그려진다.
+  const slotElements = new Map([
+    [
+      "slot-header",
+      makeElement("slot-header", { props: { name: "header" }, type: "Slot" }),
+    ],
+  ]);
+
+  function remainderElements() {
+    return new Map([
+      [
+        "remainder",
+        makeElement("remainder", {
+          projection: { kind: "collection-remainder", hiddenRows: 7 },
+          type: "Box",
+        } as Partial<CanvasSceneNode>),
+      ],
+    ]);
+  }
+
+  it("clips slot marker chrome to the visible (hit) bounds", () => {
+    const targets = buildSlotMarkerTargets(
+      new Map([["slot-header", { x: 0, y: 0, width: 100, height: 40 }]]),
+      slotElements,
+      new Map(),
+      // 조상이 아래 15px 를 잘라낸 상태
+      new Map([["slot-header", { x: 0, y: 0, width: 100, height: 25 }]]),
+    );
+
+    expect(targets).toEqual([
+      {
+        bounds: { x: 0, y: 0, width: 100, height: 25 },
+        showHatch: true,
+        slotMarkerRole: "origin",
+      },
+    ]);
+  });
+
+  it("drops slot marker chrome when the element is fully clipped away", () => {
+    expect(
+      buildSlotMarkerTargets(
+        new Map([["slot-header", { x: 0, y: 0, width: 100, height: 40 }]]),
+        slotElements,
+        new Map(),
+        new Map(),
+      ),
+    ).toEqual([]);
+  });
+
+  it("clips collection remainder chrome to the visible (hit) bounds", () => {
+    const targets = buildCollectionRemainderTargets(
+      new Map([["remainder", { x: 10, y: 100, width: 200, height: 80 }]]),
+      remainderElements(),
+      new Map([["remainder", { x: 10, y: 100, width: 200, height: 30 }]]),
+    );
+
+    expect(targets).toEqual([
+      { bounds: { x: 10, y: 100, width: 200, height: 30 }, hiddenRows: 7 },
+    ]);
+  });
+
+  it("drops collection remainder chrome when fully clipped away", () => {
+    expect(
+      buildCollectionRemainderTargets(
+        new Map([["remainder", { x: 10, y: 100, width: 200, height: 80 }]]),
+        remainderElements(),
+        new Map(),
+      ),
+    ).toEqual([]);
+  });
+
+  it("keeps chrome unchanged when no hit bounds map is supplied (기존 호출 호환)", () => {
+    expect(
+      buildSlotMarkerTargets(
+        new Map([["slot-header", { x: 0, y: 0, width: 100, height: 40 }]]),
+        slotElements,
+        new Map(),
+      ),
+    ).toEqual([
+      {
+        bounds: { x: 0, y: 0, width: 100, height: 40 },
         showHatch: true,
         slotMarkerRole: "origin",
       },

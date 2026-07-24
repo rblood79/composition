@@ -205,10 +205,21 @@ ParagraphStyle 변경 시 **3곳 동시 업데이트** 필수: canvaskitTextMeas
 
 포인터 판정(클릭 선택 / 호버 아웃라인 / 휠 스크롤 타깃 / 드롭 타깃)은 **렌더러가 실제로 그린 영역만** 대상으로 해야 한다. `renderCommands.buildRenderCommandStream` 은 이를 위해 **두 맵**을 낸다.
 
-| 맵                                   | 내용                             | 소비자                                                               |
-| ------------------------------------ | -------------------------------- | -------------------------------------------------------------------- |
-| `boundsMap` (`getSceneBounds`)       | 요소 **원본 박스** (클립 미적용) | 선택 오버레이 / TextEditOverlay / AI 이펙트 / overflowInfoMap / 측정 |
-| `hitBoundsMap` (`getSceneHitBounds`) | 원본 박스 ∩ **조상 clip rect**   | SpatialIndex(`syncSpatialIndex`) / 호버 AABB / 휠 스크롤 타깃        |
+| 맵                                   | 내용                             | 소비자                                                                                       |
+| ------------------------------------ | -------------------------------- | -------------------------------------------------------------------------------------------- |
+| `boundsMap` (`getSceneBounds`)       | 요소 **원본 박스** (클립 미적용) | 선택 오버레이 / TextEditOverlay / AI 이펙트 / overflowInfoMap / 측정                         |
+| `hitBoundsMap` (`getSceneHitBounds`) | 원본 박스 ∩ **조상 clip rect**   | SpatialIndex(`syncSpatialIndex`) / 호버 AABB / 휠 스크롤 타깃 / **콘텐츠성 오버레이 chrome** |
+
+**오버레이 chrome 의 갈림 기준 — "요소를 가리키는가" vs "내용 자리를 그리는가"**: 오버레이 패스는 씬의 clip save/restore **밖**에서 돌기 때문에 어떤 맵을 넘기느냐가 곧 클립 여부다.
+
+| chrome                                                                                                                                                | 맵             | 이유                                                                       |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- | -------------------------------------------------------------------------- |
+| 선택 박스 / 리사이즈 핸들 / 프레임 타이틀                                                                                                             | `boundsMap`    | 요소를 **가리키는** 표식 — 일부가 잘려도 전체 범위를 보여야 조작 가능      |
+| slot 해치·테두리 (`buildSlotMarkerTargets`), collection remainder (`buildCollectionRemainderTargets`), 자식 가이드라인 (`buildHoverHighlightTargets`) | `hitBoundsMap` | **내용이 놓일 자리**를 그리는 콘텐츠성 chrome — 실제 내용과 같이 잘려야 함 |
+
+- 클립 교차는 `intersectBoxes()` (`selection/types.ts`) 단일 수식. 렌더 커맨드의 조상 clip 교차와 오버레이 가시 영역 산출이 같은 함수를 쓴다.
+- padding inset 같은 **요소 상대** 변환은 원본 박스 기준으로 먼저 하고, 가시 영역 클립은 **그 다음**이다. 순서를 바꾸면 잘린 요소의 inset 이 잘린 박스 기준이 돼 어긋난다.
+- **Why (2026-07-24 실측)**: `renderSlotHatchPattern` 은 자기 bounds 로만 `clipRect` 를 걸어서 원본 박스를 넘기면 조상 클립을 전혀 받지 않았다. page body(`overflow:auto`, 390x844) 를 스크롤해 프레임 밖으로 나간 ListBox 해치가 프레임 상단 경계 **위로 66px** 캔버스 배경에 그려졌다. 같은 요소의 히트 영역은 이미 클립돼 있어 **"보이는데 클릭은 안 되는"** 비대칭이 됐다.
 
 - clip rect 계약은 렌더러와 **1:1 미러**: `CMD_CHILDREN_BEGIN` 이 `clipChildren` 일 때 `(0,0,clipWidth,clipHeight)` 로 클립하므로, 절대 좌표 clip rect = `(absX, absY, clipWidth, clipHeight)`. **자기 자신은 클립되지 않고 자식만** 클립된다.
 - scroll translate 는 clip **뒤**에 적용되므로 clip rect 원점에는 `scrollOffset` 을 반영하지 않는다 (자식 절대 좌표에는 이미 차감돼 있음).
@@ -219,7 +230,10 @@ ParagraphStyle 변경 시 **3곳 동시 업데이트** 필수: canvaskitTextMeas
 ### 금지 패턴
 
 - ❌ 포인터 판정에 `boundsMap` / `getSceneBounds` 사용 → `hitBoundsMap` / `getSceneHitBounds` 필수
-- ❌ 오버레이 그리기·측정에 `hitBoundsMap` 사용 → 부분 클립 요소의 선택 박스·텍스트 편집 위치가 잘림
+- ❌ **선택 박스·핸들·프레임 타이틀**·측정에 `hitBoundsMap` 사용 → 부분 클립 요소의 선택 박스·텍스트 편집 위치가 잘림
+- ❌ **콘텐츠성 오버레이 chrome**(slot 해치/테두리, collection remainder, 자식 가이드라인)에 `boundsMap` 사용 → 오버레이 패스는 씬 clip 밖이라 프레임·overflow 컨테이너를 뚫고 그려진다
+- ❌ 오버레이 chrome 에서 요소 상대 변환(padding inset 등)을 클립 **뒤**에 적용 → 잘린 박스 기준 inset 으로 어긋남
+- ❌ 클립 교차를 지역 헬퍼로 재구현 → `intersectBoxes()` (`selection/types.ts`) 단일 수식 사용
 - ❌ `visitElement` 에 clip 파라미터를 추가하면서 자식 재귀에 전달 누락 → 조상 clip 이 한 단계에서 끊김
 - ❌ clip 교차 결과가 빈 경우 `null` 로 폴백 (= 클립 해제) → `EMPTY_CLIP` 전파 필수
 

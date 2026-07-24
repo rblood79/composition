@@ -461,6 +461,7 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
         treeBoundsMap,
         elementsMap,
         childrenMap,
+        hitBoundsMap,
       );
       for (const target of slotMarkerTargets) {
         renderSlotHatchPattern(
@@ -477,6 +478,7 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
       const remainderTargets = buildCollectionRemainderTargets(
         treeBoundsMap,
         elementsMap,
+        hitBoundsMap,
       );
       for (const target of remainderTargets) {
         renderCollectionRemainderMarker(
