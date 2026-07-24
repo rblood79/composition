@@ -8,6 +8,7 @@
 - **포함**: ② overflow×flexShrink 보정 → automatic minimum size 로 대체 / ③ min-width:auto 에뮬레이션 → 엔진 소속 / ④ position:absolute 잔여 (containing block 조상 체인 · fixed 처리 방침)
 - **제외 (후속 ADR)**: ① intrinsic sizing (fit-content/min-content **텍스트 자동측정**) — WASM 경계 measure 콜백 아키텍처가 필요한 별도 설계 문제. CanvasKit 이 텍스트 측정 oracle 로 잔존한다는 제약은 본 ADR 전 phase 에 동일 적용.
 - **제외 (렌더 레이어)**: ⑤ hitBoundsMap 산출의 Rust 이관 — 레이아웃이 아니라 렌더/인터랙션 소속 + bench 선행 필요.
+- **제외 (grid intrinsic 계열, round 1 리뷰 반영)**: grid item automatic minimum (CSS-GRID-1 §6.6) · intrinsic track (min/max-content) — grid.rs 미구현 영역으로 ① 후속과 동반. 본 ADR 의 §4.5 floor 는 flex item 한정.
 - ①/⑤ 는 본 ADR Consequences 에 후속 관계만 기록한다.
 
 ## 2. Phase 0 — 인벤토리 freeze (필수 선행)
@@ -34,6 +35,7 @@
 - content minimum 산출은 **definite 입력 기반 재귀 한정**: leaf = 주입된 definite main-size (TS enrichment 가 이미 px 로 확정해 보냄), 컨테이너 = 자식 content minimum 의 합/최대 (flex-direction 축 규칙). **텍스트 재측정 없음** — 재줄바꿈이 필요한 min-content 는 ①(후속 ADR) 영역이며, 그 경우 현행 injected minWidth 값이 상한 근사로 동작함을 §6 계약에 명시.
 - item 자신의 `overflow≠visible` 이면 content-based minimum 을 적용하지 않는다 (명세 §4.5 조건 — automatic minimum 은 `overflow:visible` item 한정).
 - `min_width:0` 명시값은 그대로 존중 (falsy 함정 재발 금지 — `Option` 부재와 `Some("0")` 구분).
+- **바이너리 프로토콜 영향 (round 1 리뷰 반영)**: min 축은 기존 표현으로 충분 — `flex.rs` 프로토콜에 `min_main AUTO=-1` sentinel (offset 9) + `content_main` (offset 13) 이 이미 있어 auto/0 구분·floor 기준값 모두 표현 가능. 단 **item overflow 필드는 부재** (offset 표 0~17 에 없음) — §4.5 의 item-overflow 조건 구현 시 `FLEX_FIELD_COUNT` 18→19 필드 추가 필요, 이때 3 직렬화 경로 동시 갱신 (ADR 본문 Soft Constraint).
 
 ### 3-2. TS 보정 제거 (같은 phase 필수 — dormant/이중 적용 금지)
 
@@ -48,7 +50,7 @@
 
 ### 3-3. 검증
 
-- 신규 parity fixture (ADR-156 harness): (a) scroll 컨테이너 flex 자식 shrink — Chrome 실측 vs 엔진, **raw style 직행** (Step 5.7 제거 후 보정 없는 입력) (b) `flex:1 minWidth:0` 축소 허용 (c) 자식 flexShrink 명시 시 min floor 와의 상호작용 (d) column 축 min-height:auto 대칭.
+- 신규 parity fixture (ADR-156 harness): (a) scroll 컨테이너 flex 자식 shrink — Chrome 실측 vs 엔진, **raw style 직행** (Step 5.7 제거 후 보정 없는 입력) (b) `flex:1 minWidth:0` 축소 허용 (c) 자식 flexShrink 명시 시 min floor 와의 상호작용 (d) column 축 min-height:auto 대칭 (e) **grid 클립 컨테이너 no-op 확증** — Step 5.7 은 `FLEX_GRID_DISPLAYS` 대상(`fullTreeLayout.ts:2159`)이라 제거가 grid 경로 무영향임을 fixture 로 증명 (grid 알고리즘은 `flex_shrink` 미소비. grid item automatic minimum(CSS-GRID-1 §6.6)·intrinsic track 은 본 ADR 범위 밖 — grid.rs 미구현 영역, ① 후속과 동반).
 - 기존 parity/유닛 전체 회귀 + Phase 0 에서 수식화한 발산 조합의 실문서 live 확인.
 
 ## 4. Phase 2 — position:absolute 잔여 (④)
