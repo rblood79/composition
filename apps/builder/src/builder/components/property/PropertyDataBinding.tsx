@@ -25,7 +25,7 @@ import {
   ListBox,
   ListBoxItem,
 } from "react-aria-components";
-import { ChevronDown, Link2, X, RefreshCw } from "lucide-react";
+import { ChevronDown, Link2, X } from "lucide-react";
 import { iconProps, iconEditProps } from "../../../utils/ui/uiConstants";
 import { PropertyFieldset } from "./PropertyFieldset";
 import { useSelectTriggerFocusRestore } from "./useSelectTriggerFocusRestore";
@@ -34,32 +34,23 @@ import { useCollections } from "../../stores/data";
 import "./PropertyDataBinding.css";
 
 // ============================================
-// Constants
-// ============================================
-
-const REFRESH_MODE_OPTIONS = [
-  {
-    value: "manual",
-    label: "수동 갱신",
-    description: "직접 갱신 호출 시에만 새로고침",
-  },
-  {
-    value: "onMount",
-    label: "마운트 시",
-    description: "컴포넌트 마운트 시 1회 갱신",
-  },
-  {
-    value: "interval",
-    label: "주기적",
-    description: "설정된 간격으로 자동 갱신",
-  },
-] as const;
-
-// ============================================
 // Types
 // ============================================
 
-/** 데이터 갱신 모드 */
+/**
+ * 데이터 갱신 모드 — **read 호환 전용 (오소링 UI 제거됨, 2026-07-24)**.
+ *
+ * **Why 제거**: (1) RAC/RSP 어느 collection 레퍼런스에도 "갱신 주기" 개념이 없다
+ * (RAC 비동기 표면은 `useAsyncList` 의 load/loadMore/reload/sort + loadingState/
+ * onLoadMore 뿐) → D2 기준 RSP 미규정 prop. (2) 유일한 소비처인 `useCollectionData`
+ * auto-refresh effect 가 `if (!isApiBinding) return` 로 시작하는데, ADR-159 P4b 로
+ * 오소링이 `source:"dataTable"` 고정이라 신규 바인딩은 항상 발화 0. (3) `"onMount"`
+ * 는 api 바인딩에서조차 소비처 0건 (effect 가 `"interval"` 만 분기).
+ *
+ * 기존 저장 문서의 값은 편집 시에도 보존한다 (`handleNameChange`/`handlePathBlur` 가
+ * `value?.refreshMode` 를 그대로 재기록). 타입·필드·소비 effect 물리 제거는 api
+ * 바인딩 잔존 문서 실측이 필요하므로 ADR-159 P4c 의 G4 게이트와 함께 처리.
+ */
 export type RefreshMode = "manual" | "onMount" | "interval";
 
 export interface DataBindingValue {
@@ -117,8 +108,6 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
   const source = value?.source || "";
   const name = value?.name || "";
   const path = value?.path || "";
-  const refreshMode = value?.refreshMode || "manual";
-  const refreshInterval = value?.refreshInterval || 5000;
   // 기존 저장 문서의 api/variable/route 바인딩 — read 표시만 (신규 기록은 dataTable 고정).
   const isLegacyNonTableBinding = Boolean(source) && source !== "dataTable";
 
@@ -170,40 +159,8 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
     [name, value?.refreshMode, value?.refreshInterval, onChange],
   );
 
-  // 갱신 모드 변경
-  const handleRefreshModeChange = useCallback(
-    (key: React.Key | null) => {
-      const newMode = key as RefreshMode;
-      if (name) {
-        onChange({
-          source: "dataTable",
-          name,
-          path: value?.path,
-          refreshMode: newMode,
-          refreshInterval:
-            newMode === "interval" ? value?.refreshInterval || 5000 : undefined,
-        });
-      }
-    },
-    [name, value?.path, value?.refreshInterval, onChange],
-  );
-
-  // 갱신 간격 변경
-  const handleRefreshIntervalBlur = useCallback(
-    (e: React.FocusEvent<HTMLInputElement>) => {
-      const newInterval = parseInt(e.target.value, 10);
-      if (name && !isNaN(newInterval) && newInterval > 0) {
-        onChange({
-          source: "dataTable",
-          name,
-          path: value?.path,
-          refreshMode: "interval",
-          refreshInterval: newInterval,
-        });
-      }
-    },
-    [name, value?.path, onChange],
-  );
+  // 갱신 모드/간격 오소링 핸들러는 제거됨 (2026-07-24) — 근거는 RefreshMode 주석 참조.
+  // 기존 저장값 보존은 handleNameChange / handlePathBlur 의 재기록이 담당한다.
 
   // 바인딩 제거
   const handleClear = useCallback(() => {
@@ -218,14 +175,11 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
   // popover 닫힘 전환 gap 의 focus ring 깜빡임 방지 (Select 하나당 1개) —
   // 상세 주석은 useSelectTriggerFocusRestore.ts 참조
   const nameSelectFocus = useSelectTriggerFocusRestore();
-  const refreshSelectFocus = useSelectTriggerFocusRestore();
 
   // 컬렉션 피커는 이 fieldset 의 field-level control 이므로, 팝오버를 패널 규약대로
   // control 외곽 박스(`.react-aria-Group`) 폭·좌측에 맞춘다 (PropertySelect /
   // PropertyUnitInput 과 동일 규약). anchor 는 PropertyFieldset 이 렌더하므로
   // controlRef 의 closest 자동 해석에 맡긴다.
-  //   갱신 모드 Select 는 라벨과 한 행을 나눠 쓰는 하위 control 이라 group 정렬 시
-  //   trigger 보다 100px 이상 왼쪽으로 벗어난다 — RAC 기본(trigger 기준) 유지.
   const nameSelectPopover = useControlPopoverMetrics();
 
   return (
@@ -332,80 +286,6 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
               disabled={disabled}
             />
           </div>
-        )}
-
-        {/* 갱신 설정 (dataTable) */}
-        {source === "dataTable" && name && (
-          <>
-            <div className="binding-row binding-refresh-row">
-              <label className="binding-row-label">
-                <RefreshCw size={iconEditProps.size} />
-                <span>갱신 모드</span>
-              </label>
-              <AriaSelect
-                className="react-aria-Select binding-refresh-select"
-                selectedKey={refreshMode}
-                onSelectionChange={handleRefreshModeChange}
-                onOpenChange={refreshSelectFocus.restoreFocusOnClose}
-                aria-label="갱신 모드"
-                isDisabled={disabled}
-              >
-                <Button
-                  className="react-aria-Button"
-                  ref={refreshSelectFocus.triggerRef}
-                >
-                  <SelectValue />
-                  <span aria-hidden="true" className="select-chevron">
-                    <ChevronDown size={iconProps.size} />
-                  </span>
-                </Button>
-                <Popover className="react-aria-Popover">
-                  <ListBox className="react-aria-ListBox">
-                    {REFRESH_MODE_OPTIONS.map((option) => (
-                      <ListBoxItem
-                        key={option.value}
-                        id={option.value}
-                        className="react-aria-ListBoxItem"
-                        textValue={option.label}
-                      >
-                        <div className="binding-option">
-                          <span className="binding-option-label">
-                            {option.label}
-                          </span>
-                          <span className="binding-option-desc">
-                            {option.description}
-                          </span>
-                        </div>
-                      </ListBoxItem>
-                    ))}
-                  </ListBox>
-                </Popover>
-              </AriaSelect>
-            </div>
-
-            {/* 갱신 간격 (interval 모드에서만) */}
-            {refreshMode === "interval" && (
-              <div className="binding-row binding-interval-row">
-                <label className="binding-row-label">
-                  <span>갱신 간격</span>
-                </label>
-                <div className="binding-interval-input">
-                  <input
-                    className="react-aria-Input"
-                    type="number"
-                    min="1000"
-                    step="1000"
-                    key={`interval-${value?.source || ""}-${value?.name || ""}`}
-                    defaultValue={refreshInterval}
-                    onBlur={handleRefreshIntervalBlur}
-                    placeholder="5000"
-                    disabled={disabled}
-                  />
-                  <span className="binding-interval-unit">ms</span>
-                </div>
-              </div>
-            )}
-          </>
         )}
       </div>
     </PropertyFieldset>

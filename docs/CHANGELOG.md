@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [Data 바인딩 피커 정리 — 팝오버 정렬 SSOT + 선택값/preview 행 통합] - 2026-07-24
+## [Data 바인딩 피커 정리 — 팝오버 정렬 SSOT + 선택값/preview 행 통합 + 갱신 모드 제거] - 2026-07-24
+
+### Breaking Changes
+
+- **Data 바인딩의 "갱신 모드 / 갱신 간격" 오소링 UI 제거**:
+  - Content > Data 에서 갱신 모드(수동/마운트 시/주기적) Select 와 갱신 간격 입력이 사라진다. 기존 저장 문서의 `refreshMode` / `refreshInterval` **값 자체는 보존** (컬렉션 선택·경로 편집 시 재기록) — 편집 표면만 제거.
+  - **Why (3중 근거)**: (1) RAC/RSP 어느 collection 레퍼런스에도 "갱신 주기" 개념이 없다 — RAC 의 비동기 표면은 `useAsyncList` 의 `load`/`loadMore`/`reload`/`sort` + `loadingState`/`onLoadMore` 뿐이라 D2(Props/API — RSP 참조) 기준 미규정 prop([ssot-hierarchy.md](../.claude/rules/ssot-hierarchy.md) §6). (2) 유일한 소비처인 `useCollectionData` auto-refresh effect 가 `if (!isApiBinding) return` 으로 시작하는데, ADR-159 P4b 로 오소링이 `source:"dataTable"` 고정이라 **신규 바인딩은 발화 0** — 설정해도 동작하지 않는 UI 였다. (3) `"onMount"` 는 effect 가 `"interval"` 만 분기해 api 바인딩에서조차 소비처 0건.
+  - 타입(`RefreshMode`) / `DataBinding` 필드 / auto-refresh effect 물리 제거는 api 바인딩 잔존 저장 문서 실측이 필요하므로 **ADR-159 P4c 의 G4 게이트와 함께** 처리 (지금 지우면 기존 api+interval 바인딩 회귀).
+  - 검증: 신규 `PropertyDataBinding.test.tsx` 3 케이스(오소링 UI 부재 / 경로 편집 시 값 보존 / 컬렉션 변경 시 값 보존) + live — Data 섹션이 2행(컬렉션 Select, 경로 입력)으로 축소, field 높이 105.7 → 56px.
+  - 위치: `apps/builder/src/builder/components/property/PropertyDataBinding.{tsx,css,test.tsx}`
 
 ### Features
 
