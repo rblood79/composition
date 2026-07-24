@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-07-25 (ADR-164 Consequences "후속 ADR 체인" ① — 사용자 요청으로 작성. **Phase 실행은 사용자 승인 후 시작**)
+Accepted — 2026-07-25 (리뷰 round 1 승인 — [reviews/165.md](reviews/165.md) 이슈 전건 종결, HIGH/CRITICAL 0. execute-adr 착수 — ADR-164 Consequences "후속 ADR 체인" ①)
 
 ## Context
 

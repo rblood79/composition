@@ -2,7 +2,7 @@
 
 > 본문: [../165-intrinsic-sizing-measure-contract.md](../165-intrinsic-sizing-measure-contract.md)
 >
-> **Phase 실행은 사용자 승인 후 시작** (생성까지만 — 2026-07-25).
+> 사용자 `/execute-adr 165` 트리거로 실행 착수 (2026-07-25) — Accepted 승격 동시 반영. Phase 1 은 R1·R2 HIGH 매핑으로 착수 전 사용자 surface 대상.
 
 ## 1. Fork checkpoint 4 질문 lock-in (adr-writing.md)
 
