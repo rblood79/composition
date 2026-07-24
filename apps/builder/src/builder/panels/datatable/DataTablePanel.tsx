@@ -165,11 +165,11 @@ export function DataTablePanel({ isActive }: PanelProps) {
       />
 
       {/* Tab Bar */}
-      <div className="panel-tabs">
+      <div className="datatable-tabs">
         {TABS.map((tab) => (
           <button
             key={tab.id}
-            className={`panel-tab ${activeTab === tab.id ? "active" : ""}`}
+            className={`datatable-tab ${activeTab === tab.id ? "active" : ""}`}
             onClick={() => {
               if (activeTab !== tab.id) {
                 // 탭이 변경되면 에디터 닫기

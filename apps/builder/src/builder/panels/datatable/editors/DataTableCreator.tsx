@@ -201,12 +201,12 @@ export function DataTableCreator({
           /* Preset Selection */
           <>
             {/* Category Tabs */}
-            <div className="section-tabs">
+            <div className="datatable-creator-tabs">
               {PRESET_CATEGORIES.map((cat) => (
                 <button
                   key={cat.id}
                   type="button"
-                  className={`section-tab ${
+                  className={`datatable-creator-tab ${
                     selectedCategory === cat.id ? "active" : ""
                   }`}
                   onClick={() => handleCategoryChange(cat.id)}

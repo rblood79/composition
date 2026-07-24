@@ -223,11 +223,11 @@ function ValidationEditor({
   return (
     <div className="validation-editor">
       <div
-        className="section-header"
+        className="variable-editor-section-toggle"
         onClick={() => onToggleSection("validation")}
       >
         {isExpanded ? <ChevronDown {...iconEditProps} /> : <ChevronRight {...iconEditProps} />}
-        <span className="section-header-title">Validation Rules</span>
+        <span className="variable-editor-section-title">Validation Rules</span>
       </div>
 
       {isExpanded && (

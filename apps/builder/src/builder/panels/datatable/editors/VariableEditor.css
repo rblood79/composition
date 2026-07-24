@@ -3,7 +3,7 @@
  *
  * 표준 구조:
  * .variable-editor
- *   .panel-tabs (DataTablePanel.css에서 스타일 제공)
+ *   .datatable-tabs (DataTablePanel.css에서 스타일 제공)
  *   .section-content
  *
  * 헤더는 부모 DataTableEditorPanel의 PanelHeader에서 처리
@@ -24,15 +24,9 @@
   padding: var(--spacing-sm);
 }
 
-/* Section Header */
-.section-header {
-  
-}
-
-.section-header:hover {
-}
-
-.section-header-title {
+/* Validation 섹션 접기/펼치기 헤더 (ADR-163 Phase 4-c — 구 `.section-header` 예약
+   prefix squat 회수. 구 규칙 2개는 선언이 비어 inert 였으므로 삭제). */
+.variable-editor-section-title {
   flex: 1;
   font-size: var(--text-sm);
   font-weight: 500;

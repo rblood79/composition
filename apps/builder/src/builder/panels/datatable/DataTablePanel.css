@@ -17,7 +17,7 @@
 }
 
 /* Tab Bar */
-.panel-tabs {
+.datatable-tabs {
   display: flex;
   gap: 0;
   padding: var(--spacing-2xs) var(--spacing-sm);
@@ -26,7 +26,7 @@
   height: var(--header-height);
 }
 
-.panel-tab {
+.datatable-tab {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
@@ -40,12 +40,12 @@
   transition: all 150ms ease;
 }
 
-.panel-tab:hover {
+.datatable-tab:hover {
   background: var(--bg-raised);
   color: var(--fg);
 }
 
-.panel-tab.active {
+.datatable-tab.active {
   background: var(--accent);
   color: var(--fg-on-accent);
 }

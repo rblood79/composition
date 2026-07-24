@@ -3,7 +3,7 @@
  *
  * 표준 구조:
  * .api-editor
- *   .panel-tabs (DataTablePanel.css에서 스타일 제공)
+ *   .datatable-tabs (DataTablePanel.css에서 스타일 제공)
  *   .section-content
  *
  * 헤더는 부모 DataTableEditorPanel의 PanelHeader에서 처리

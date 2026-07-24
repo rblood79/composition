@@ -147,12 +147,12 @@ function EditorContent({ mode, close }: EditorContentProps) {
     switch (mode.type) {
       case "table-edit":
         return (
-          <div className="panel-tabs">
+          <div className="datatable-tabs">
             {TABLE_TABS.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
-                className={`panel-tab ${tableTab === tab.id ? "active" : ""}`}
+                className={`datatable-tab ${tableTab === tab.id ? "active" : ""}`}
                 onClick={() => setTableTab(tab.id)}
               >
                 <tab.icon {...iconEditProps} />
@@ -164,12 +164,12 @@ function EditorContent({ mode, close }: EditorContentProps) {
 
       case "api-edit":
         return (
-          <div className="panel-tabs">
+          <div className="datatable-tabs">
             {API_TABS.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
-                className={`panel-tab ${apiTab === tab.id ? "active" : ""}`}
+                className={`datatable-tab ${apiTab === tab.id ? "active" : ""}`}
                 onClick={() => setApiTab(tab.id)}
               >
                 <tab.icon {...iconEditProps} />
@@ -181,12 +181,12 @@ function EditorContent({ mode, close }: EditorContentProps) {
 
       case "variable-edit":
         return (
-          <div className="panel-tabs">
+          <div className="datatable-tabs">
             {VARIABLE_TABS.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
-                className={`panel-tab ${
+                className={`datatable-tab ${
                   variableTab === tab.id ? "active" : ""
                 }`}
                 onClick={() => setVariableTab(tab.id)}
@@ -200,8 +200,8 @@ function EditorContent({ mode, close }: EditorContentProps) {
 
       case "table-create":
         return (
-          <div className="panel-selection">
-            <label className="panel-option">
+          <div className="datatable-creator-modes">
+            <label className="datatable-creator-mode">
               <input
                 type="radio"
                 name="creatorMode"
@@ -210,7 +210,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
               />
               빈 테이블로 시작
             </label>
-            <label className="panel-option">
+            <label className="datatable-creator-mode">
               <input
                 type="radio"
                 name="creatorMode"
