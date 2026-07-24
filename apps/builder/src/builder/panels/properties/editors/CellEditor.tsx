@@ -13,6 +13,7 @@ import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
 import { Type, AlignLeft, Palette, Grid } from "lucide-react";
 import { PROPERTY_LABELS } from "../../../../utils/ui/labels";
 
+import "./styles/propertyEditors.css";
 // interface CellEditorProps {
 //     // element: Element;
 //     // onChange: (updates: Partial<Element>) => void;
@@ -36,7 +37,7 @@ export const CellEditor = memo(function CellEditor({
 
   if (!element || !element.id) {
     return (
-      <div className="p-4 text-center text-gray-500">
+      <div className="editor-empty-state">
         Cell 요소를 선택하세요
       </div>
     );

@@ -13,6 +13,7 @@ import {
 import { Table, Grid } from "lucide-react";
 import { PROPERTY_LABELS } from "../../../../utils/ui/labels";
 
+import "./styles/propertyEditors.css";
 interface TableBodyElementProps {
   variant?: "default" | "striped" | "bordered" | "hover";
   selectable?: boolean;
@@ -37,7 +38,7 @@ export const TableBodyEditor = memo(function TableBodyEditor({
 
   if (!element || !element.id) {
     return (
-      <div className="p-4 text-center text-gray-500">
+      <div className="editor-empty-state">
         TableBody 요소를 선택하세요
       </div>
     );
@@ -130,7 +131,7 @@ export const TableBodyEditor = memo(function TableBodyEditor({
                   <span className="editor-item-title">
                     Row {index + 1} ({rowCells.length} cells)
                   </span>
-                  <span className="text-gray-400 text-xs">
+                  <span className="editor-item-meta">
                     ID: {row.id.slice(0, 8)}...
                   </span>
                 </div>

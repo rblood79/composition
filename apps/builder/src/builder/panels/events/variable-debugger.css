@@ -628,4 +628,35 @@
     flex-shrink: 0;
     font-family: "SF Mono", "Fira Code", monospace;
   }
+
+  /* ==================================
+     ExecutionDebugger 로그 레벨 색 (ADR-163 Phase 4-c item 2)
+     Tailwind 인라인(text-{gray,blue,yellow,red}-500) 대체.
+     `--informative`/`--negative` 는 builder 컨텍스트에서 blue-500/red-500 과
+     동일값이라 diff 0, warn 은 yellow-500 → `--notice`(orange-500) 로 이동.
+     ================================== */
+
+  .log-level--debug {
+    color: var(--fg-muted);
+  }
+
+  .log-level--info {
+    color: var(--informative);
+  }
+
+  .log-level--warn {
+    color: var(--notice);
+  }
+
+  .log-level--error {
+    color: var(--negative);
+  }
+
+  .stat-value--warn {
+    color: var(--notice);
+  }
+
+  .stat-value--error {
+    color: var(--negative);
+  }
 }

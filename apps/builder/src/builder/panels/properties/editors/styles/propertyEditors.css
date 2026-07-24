@@ -1,0 +1,57 @@
+/**
+ * Properties 패널 editor 공용 클래스 (ADR-163 Phase 4-c item 2)
+ *
+ * Tailwind 인라인 유틸(`p-4 text-center text-gray-500` 등) 을 제거하며 도입.
+ * 값은 builder 패널 컨텍스트(`[data-context="builder"]`) 실측 대조로 확정 —
+ * `--fg-muted` ≡ `--color-gray-500`, `--fg-disabled` ≡ `--color-gray-400`,
+ * `--spacing-lg` ≡ 16px(`p-4`), `--spacing-sm` ≡ 8px(`ml-2`) 로 light mode diff 0.
+ * 원시 토큰(`--color-*`) 직접 사용 금지 규칙(css-tokens.md) 정합 + dark mode 적응 확보.
+ */
+
+@layer components {
+  .editor-empty-state {
+    padding: var(--spacing-lg);
+    text-align: center;
+    color: var(--fg-muted);
+  }
+
+  /* 리스트 항목의 보조 정보 (셀 개수, 컬럼 수 등) */
+  .editor-item-meta {
+    color: var(--fg-disabled);
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+  }
+
+  /* 항목 뒤에 덧붙는 짧은 설명 */
+  .editor-item-note {
+    margin-left: var(--spacing-sm);
+    color: var(--fg-muted);
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+  }
+
+  /* 항목 상태 배지 (예: sorted / grouped) */
+  .editor-item-badge {
+    margin-left: var(--spacing-sm);
+    padding: 2px var(--spacing-xs);
+    border-radius: var(--radius-sm);
+    background: var(--bg-muted);
+    color: var(--informative);
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+  }
+
+  /* 항목에 붙는 아이콘 플래그 */
+  .editor-item-flag {
+    color: var(--fg-muted);
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+  }
+
+  /* 세로 스택 리스트 (구 `space-y-2`) */
+  .editor-field-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+}

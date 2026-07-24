@@ -19,6 +19,7 @@ import {
   useCanonicalPropertyElements,
 } from "../hooks/useCanonicalPropertyRead";
 
+import "./styles/propertyEditors.css";
 interface TableHeaderElementProps {
   variant?: "default" | "dark" | "light" | "bordered";
   sticky?: boolean;
@@ -74,7 +75,7 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
 
   if (!element || !element.id) {
     return (
-      <div className="p-4 text-center text-gray-500">
+      <div className="editor-empty-state">
         TableHeader 요소를 선택하세요
       </div>
     );
@@ -256,7 +257,7 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
 
         {/* 컬럼 입력 필드 */}
         {isAddingColumn && (
-          <div className="space-y-2">
+          <div className="editor-field-list">
             <PropertyInput
               label={PROPERTY_LABELS.DATA_KEY}
               value={newColumnKey}
@@ -286,22 +287,22 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
                       {index + 1}.{" "}
                       {(columnProps?.children as string) || "제목 없음"}
                       {columnProps?.key && (
-                        <span className="ml-2 text-gray-500 text-sm">
+                        <span className="editor-item-note">
                           ({columnProps.key})
                         </span>
                       )}
                       {columnProps?.isRowHeader && (
-                        <span className="ml-2 px-1 py-0.5 text-xs bg-blue-100 text-blue-600 rounded">
+                        <span className="editor-item-badge">
                           헤더
                         </span>
                       )}
                     </span>
                     <div className="editor-item-controls">
                       {columnProps?.allowsSorting !== false && (
-                        <span className="text-xs text-gray-500">📊</span>
+                        <span className="editor-item-flag">📊</span>
                       )}
                       {columnProps?.enableResizing !== false && (
-                        <span className="text-xs text-gray-500">↔️</span>
+                        <span className="editor-item-flag">↔️</span>
                       )}
                     </div>
                   </div>

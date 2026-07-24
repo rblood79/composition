@@ -411,7 +411,7 @@ export const TableEditor = memo(
                   updateTableProps({ height: parseInt(height) || 400 })
                 }
                 type="number"
-                className="flex-1"
+                className="table-editor-height-input"
               />
               <PropertySelect
                 icon={Settings}
@@ -692,7 +692,9 @@ export const TableEditor = memo(
         <PropertySection title="Row Management">
           {/* 행 개수 표시 */}
           <div className="editor-overview">
-            <p className="editor-overview-text">Total rows: {rows.length || 0}</p>
+            <p className="editor-overview-text">
+              Total rows: {rows.length || 0}
+            </p>
             <p className="section-overview-help">
               💡 Manage table rows and their cells
             </p>

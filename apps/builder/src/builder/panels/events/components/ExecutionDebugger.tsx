@@ -14,9 +14,13 @@ import {
   FileText,
   ChevronRight,
   ChevronDown,
-} from 'lucide-react';
-import { iconEditProps } from '../../../../utils/ui/uiConstants';
-import type { ExecutionLogger, LogEntry, LogLevel } from "../execution/executionLogger";
+} from "lucide-react";
+import { iconEditProps } from "../../../../utils/ui/uiConstants";
+import type {
+  ExecutionLogger,
+  LogEntry,
+  LogLevel,
+} from "../execution/executionLogger";
 
 export interface ExecutionDebuggerProps {
   logger: ExecutionLogger;
@@ -77,15 +81,15 @@ export function ExecutionDebugger({
   const getLevelColor = (level: LogLevel): string => {
     switch (level) {
       case "debug":
-        return "text-gray-500";
+        return "log-level--debug";
       case "info":
-        return "text-blue-500";
+        return "log-level--info";
       case "warn":
-        return "text-yellow-500";
+        return "log-level--warn";
       case "error":
-        return "text-red-500";
+        return "log-level--error";
       default:
-        return "text-gray-500";
+        return "log-level--debug";
     }
   };
 
@@ -113,8 +117,12 @@ export function ExecutionDebugger({
             className="react-aria-Button sm"
             onPress={() => setIsCollapsed(!isCollapsed)}
           >
-            {isCollapsed ? <ChevronRight size={iconEditProps.size} /> : <ChevronDown size={iconEditProps.size} />}
-            {' '}Execution Debugger
+            {isCollapsed ? (
+              <ChevronRight size={iconEditProps.size} />
+            ) : (
+              <ChevronDown size={iconEditProps.size} />
+            )}{" "}
+            Execution Debugger
           </Button>
           <span className="log-count">({filteredLogs.length} logs)</span>
         </div>
@@ -141,13 +149,13 @@ export function ExecutionDebugger({
             </div>
             <div className="stat-item">
               <span className="stat-label">Errors:</span>
-              <span className="stat-value text-red-500">
+              <span className="stat-value stat-value--error">
                 {stats.byLevel.error}
               </span>
             </div>
             <div className="stat-item">
               <span className="stat-label">Warnings:</span>
-              <span className="stat-value text-yellow-500">
+              <span className="stat-value stat-value--warn">
                 {stats.byLevel.warn}
               </span>
             </div>
@@ -159,7 +167,9 @@ export function ExecutionDebugger({
               <label>Level:</label>
               <select
                 value={filterLevel}
-                onChange={(e) => setFilterLevel(e.target.value as LogLevel | "all")}
+                onChange={(e) =>
+                  setFilterLevel(e.target.value as LogLevel | "all")
+                }
                 className="filter-select"
               >
                 <option value="all">All</option>

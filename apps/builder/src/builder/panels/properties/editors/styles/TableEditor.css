@@ -4,22 +4,22 @@
 
 @layer components {
   .table-editor-empty {
-    padding: var(--spacing-4);
+    padding: var(--spacing-lg);
     text-align: center;
     color: var(--fg-muted);
   }
 
   .table-editor-height-controls {
     display: flex;
-    gap: var(--spacing-2);
+    gap: var(--spacing-sm);
   }
 
-  .table-editor-height-controls .flex-1 {
+  .table-editor-height-input {
     flex: 1;
   }
 
   .table-editor-label-hint {
-    margin-left: var(--spacing-2);
+    margin-left: var(--spacing-sm);
     color: var(--fg-muted);
     font-size: var(--text-sm);
   }

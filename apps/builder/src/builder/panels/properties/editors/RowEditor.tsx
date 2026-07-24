@@ -14,6 +14,7 @@ import {
 import { Ruler, Palette, Grid } from "lucide-react";
 import { PROPERTY_LABELS } from "../../../../utils/ui/labels";
 
+import "./styles/propertyEditors.css";
 interface RowElementProps {
   height?: string;
   backgroundColor?: string;
@@ -38,7 +39,7 @@ export const RowEditor = memo(function RowEditor({
 
   if (!element || !element.id) {
     return (
-      <div className="p-4 text-center text-gray-500">Row 요소를 선택하세요</div>
+      <div className="editor-empty-state">Row 요소를 선택하세요</div>
     );
   }
 
@@ -117,7 +118,7 @@ export const RowEditor = memo(function RowEditor({
                   {((cell.props as CellElementProps)?.children as string) ||
                     "No content"}
                 </span>
-                <span className="text-gray-400 text-xs">
+                <span className="editor-item-meta">
                   ID: {cell.id.slice(0, 8)}...
                 </span>
               </div>

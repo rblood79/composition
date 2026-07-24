@@ -29,8 +29,8 @@ src/builder/panels/properties/ComponentSemanticsSection.tsx(29,37): error TS2345
 src/builder/panels/properties/editors/TableEditor.tsx(129,45): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
 src/builder/panels/properties/editors/TableEditor.tsx(150,48): error TS2345: Argument of type '(PanelNode | TableEditorElementPayload)[]' is not assignable to parameter of type 'Element[]'.
 src/builder/panels/properties/editors/TableEditor.tsx(194,13): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/editors/TableHeaderEditor.tsx(102,46): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/editors/TableHeaderEditor.tsx(144,48): error TS2345: Argument of type '(PanelNode | TableHeaderElementPayload)[]' is not assignable to parameter of type 'Element[]'.
+src/builder/panels/properties/editors/TableHeaderEditor.tsx(103,46): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
+src/builder/panels/properties/editors/TableHeaderEditor.tsx(145,48): error TS2345: Argument of type '(PanelNode | TableHeaderElementPayload)[]' is not assignable to parameter of type 'Element[]'.
 src/builder/panels/properties/editors/TagEditor.tsx(121,21): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
 src/builder/panels/properties/editors/TagEditor.tsx(243,53): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
 src/builder/panels/properties/editors/TreeItemEditor.tsx(75,48): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
