@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-07-24
+Accepted — 2026-07-24 (리뷰 round 1 승인 — [reviews/164.md](reviews/164.md) 이슈 전건 종결, HIGH/CRITICAL 0)
 
 ## Context
 
