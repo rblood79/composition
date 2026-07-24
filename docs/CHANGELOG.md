@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Override Reset 회복 토스트 + globalToast 쿨다운 우회 옵션] - 2026-07-24
+
+### Features
+
+- **인스턴스 Override Reset 시 실행취소 토스트**:
+  - Properties ▸ Component ▸ Overrides 의 Reset 버튼(특히 dataBinding 처럼 무거운 저작물)을 눌러도 확인 다이얼로그로 편집 흐름을 끊지 않되, `'{override} 해제됨'` + **실행취소** 액션 토스트를 띄워 오클릭을 즉시 되돌릴 수 있게 했다.
+  - **Why**: Reset 은 단일 클릭 삭제인데 버튼·행 표기가 `style` 같은 가벼운 override 와 동일해 데이터 바인딩을 실수로 날리기 쉬웠다. 확인 단계(다이얼로그)는 정상 편집을 방해하므로, 즉시 실행 + 회복 경로(undo 토스트) 조합을 택했다.
+  - 위치: `apps/builder/src/builder/panels/properties/ComponentSemanticsSection.tsx`
+
+### Bug Fixes
+
+- **`globalToast` 반복 토스트가 5분 쿨다운에 억제됨**:
+  - 같은 override 를 다시 Reset 하면 동일 메시지라 회복 토스트가 뜨지 않았다 ("나타났다가 다시 하니 안 뜸").
+  - **Why**: `showToast` 의 `type:message` 5분 쿨다운(정보성 알림 스팸 방지)이 undo 같은 **반복돼야 하는** 액션 토스트까지 억제했다. `globalToast.error` 만 `bypassCooldown` 을 강제했고 `info/success/warning` 은 옵션 자체를 못 넘겼다.
+  - 수정: `globalToast.info/success/warning` 시그니처에 `bypassCooldown` 옵션을 노출하고, Reset 회복 토스트에서 `bypassCooldown: true` 전달. 실증 — 실제 앱에서 dataBinding reset → undo → reset 반복 시 토스트 2회 모두 표시.
+  - 위치: `apps/builder/src/builder/stores/toast.ts`
+
 ## [Data 바인딩 피커 정리 — 팝오버 정렬 SSOT + 행 통합 + 죽은 오소링 표면 제거] - 2026-07-24
 
 ### Breaking Changes

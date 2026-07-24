@@ -2,6 +2,7 @@ import { memo, useMemo } from "react";
 import { Component as ComponentIcon } from "lucide-react";
 import { PropertySection } from "../../components";
 import { useStore } from "../../stores";
+import { globalToast } from "../../stores/toast";
 import { requestEditingSemanticsDetachConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
 import { resolveReference } from "../../../utils/component/referenceResolution";
 import {
@@ -68,6 +69,7 @@ export const ComponentSemanticsSection = memo(
     const resetInstanceOverrideField = useStore(
       (state) => state.resetInstanceOverrideField,
     );
+    const undo = useStore((state) => state.undo);
     const role = getEditingSemanticsRole(element);
     const label = getEditingSemanticsLabel(role);
     const originId = getEditingSemanticsOriginId(element);
@@ -131,6 +133,16 @@ export const ComponentSemanticsSection = memo(
 
     const handleResetOverrideField = (item: EditingSemanticsOverrideItem) => {
       resetInstanceOverrideField(elementId, item.fieldKey, item.descendantPath);
+      // (b) 확인 다이얼로그 없이 즉시 실행 — 흐름을 끊지 않되, 실수로 무거운
+      // override (특히 dataBinding) 를 날려도 되돌릴 수 있게 undo 액션 토스트를
+      // 띄운다. reset 은 history entry 1건이므로 undo() 1회로 정확히 복구된다.
+      const isItemsFork = item.fieldKey === "items" && !item.descendantPath;
+      const label = isItemsFork ? "items (forked)" : item.label;
+      globalToast.info(`'${label}' override 해제됨`, {
+        // 같은 필드를 반복해서 reset 해도 매번 회복 안내가 떠야 하므로 쿨다운 무시.
+        bypassCooldown: true,
+        action: { label: "실행취소", onClick: () => undo() },
+      });
     };
 
     return (

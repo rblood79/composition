@@ -45,7 +45,7 @@ interface ToastActions {
       action?: ToastAction;
       /** 쿨다운 무시 (Undo 등 중요한 액션용) */
       bypassCooldown?: boolean;
-    }
+    },
   ) => string | null;
 
   /**
@@ -121,16 +121,27 @@ export const useToastStore = create<ToastState & ToastActions>((set, get) => ({
  * React 컴포넌트 외부에서 사용 가능
  * 예: Zustand store actions에서 호출
  */
+// 반복 표시가 필요한 액션 토스트(undo 등)는 bypassCooldown 을 넘길 수 있어야 한다 —
+// showToast 의 5분 동일-메시지 쿨다운은 정보성 알림 스팸 방지용이라, 사용자가 같은
+// 실수를 반복할 때마다 떠야 하는 회복 안내에는 오히려 방해가 된다 (toast.ts 쿨다운 주석 참조).
+type GlobalToastOptions = {
+  duration?: number;
+  action?: ToastAction;
+  bypassCooldown?: boolean;
+};
+
 export const globalToast = {
-  success: (message: string, options?: { duration?: number; action?: ToastAction }) =>
+  success: (message: string, options?: GlobalToastOptions) =>
     useToastStore.getState().showToast("success", message, options),
 
-  warning: (message: string, options?: { duration?: number; action?: ToastAction }) =>
+  warning: (message: string, options?: GlobalToastOptions) =>
     useToastStore.getState().showToast("warning", message, options),
 
-  error: (message: string, options?: { duration?: number; action?: ToastAction; bypassCooldown?: boolean }) =>
-    useToastStore.getState().showToast("error", message, { bypassCooldown: true, ...options }),
+  error: (message: string, options?: GlobalToastOptions) =>
+    useToastStore
+      .getState()
+      .showToast("error", message, { bypassCooldown: true, ...options }),
 
-  info: (message: string, options?: { duration?: number; action?: ToastAction }) =>
+  info: (message: string, options?: GlobalToastOptions) =>
     useToastStore.getState().showToast("info", message, options),
 };

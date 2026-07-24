@@ -24,8 +24,8 @@ src/builder/panels/nodes/FramesTab/FramesTab.tsx(298,34): error TS2345: Argument
 src/builder/panels/nodes/FramesTab/FramesTab.tsx(309,5): error TS2322: Type '(Element | PanelNode)[]' is not assignable to type 'Element[]'.
 src/builder/panels/nodes/FramesTab/FramesTab.tsx(406,55): error TS2345: Argument of type 'DatabaseAdapter' is not assignable to parameter of type 'string | FrameElementLoaderDb'.
 src/builder/panels/nodes/FramesTab/FramesTab.tsx(523,9): error TS2322: Type 'Set<Key>' is not assignable to type 'ReadonlySet<string>'.
-src/builder/panels/properties/ComponentSemanticsSection.tsx(28,3): error TS2322: Type 'ReferenceResolvable | null' is not assignable to type 'PanelNode | null'.
-src/builder/panels/properties/ComponentSemanticsSection.tsx(28,37): error TS2345: Argument of type 'Iterable<PanelNode>' is not assignable to parameter of type 'Iterable<ReferenceResolvable>'.
+src/builder/panels/properties/ComponentSemanticsSection.tsx(29,3): error TS2322: Type 'ReferenceResolvable | null' is not assignable to type 'PanelNode | null'.
+src/builder/panels/properties/ComponentSemanticsSection.tsx(29,37): error TS2345: Argument of type 'Iterable<PanelNode>' is not assignable to parameter of type 'Iterable<ReferenceResolvable>'.
 src/builder/panels/properties/editors/TableEditor.tsx(129,45): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
 src/builder/panels/properties/editors/TableEditor.tsx(150,48): error TS2345: Argument of type '(PanelNode | TableEditorElementPayload)[]' is not assignable to parameter of type 'Element[]'.
 src/builder/panels/properties/editors/TableEditor.tsx(194,13): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
