@@ -45,3 +45,4 @@
 {"sha":"70e01fdd8155c6f8c576e84805239020308cb9b1","date":"2026-07-23T22:19:53+09:00","promoted_adrs":["docs/adr/completed/161-gridlist-ref-composite-parity.md"],"readme_updated":false,"changelog_updated":false,"synced":false}
 {"sha":"4872c1644fce2193af8950dedd1e03d10c8aeef4","date":"2026-07-24T09:43:08+09:00","promoted_adrs":["docs/adr/completed/159-collection-field-template-binding.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"b54d5332fdf782048f29a9b58acea1c4568e05d4","date":"2026-07-25T01:17:43+09:00","promoted_adrs":["docs/adr/completed/164-engine-ts-compensation-absorption.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
+{"sha":"abaf397f383bdf34f1f354c9268313ca0cbfdb03","date":"2026-07-25T02:58:33+09:00","promoted_adrs":["docs/adr/completed/165-intrinsic-sizing-measure-contract.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
