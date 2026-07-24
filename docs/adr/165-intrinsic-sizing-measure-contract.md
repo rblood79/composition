@@ -122,3 +122,7 @@ Accepted — 2026-07-25 (리뷰 round 1 승인 — [reviews/165.md](reviews/165.
 - R1 조건 조합의 시각 결과가 달라질 수 있다 (명세 정합 방향의 의도된 변화 — G1/G4 로 관리).
 - leaf 당 측정 최대 2회 추가 — LRU 로 상쇄하나 콜드 케이스 비용 존재 (G3 확증).
 - height-for-width 재줄바꿈의 2-pass 는 잔존 — 완전한 단일 pass 는 대안 A 재평가 (별도 ADR, 재개 조건: Phase 0/2 실측에서 2-pass 비용이 프레임 예산을 압박) 의 몫.
+
+## 진행 로그
+
+- **2026-07-25 — Phase 0 (인벤토리 freeze) Implemented**: breakdown §2 를 실측으로 교체 (G5 충족 — Step 4.5 빈도 / R1 발산 실사용 / grid intrinsic 실사용 전부 freeze). 핵심 실측 5건 — (1) grid intrinsic track (min/max/fit-content) 실사용 **0건** — Decision 조건부 규칙의 "의도적 이연" 조건 부합. 단 auto track 실사용 3건 (Meter/ProgressBar/Slider `"1fr auto"` — 현행 양측 auto=1fr 근사 수용 상태) 존재 → grid.rs 스칼라 소비 포함 여부는 Phase 1 착수 surface 에서 사용자 판정. (2) Step 4.5 트리거 빈도 (임시 비커밋 계측, 원복 완료): fresh load 당 run 2회 — 메인 트리 **25/47 (53%)** + projection 4/6 — `enrichedWidth` 추정의 루트 availableWidth fallback 이 원인, 재줄바꿈 필요와 무관한 과대 트리거 → Phase 2 축소의 정량 근거. (3) R1 발산 조합 실문서 발생 **0건** (다단어 텍스트 leaf 8건 전원 단일줄 배치·shrink 압박 없음) — R1 은 향후 문서 조건 조합에서만 발현, G1 fixture 가 유일 검증 수단. (4) dormant 범위 재정의: MIN/MAX_CONTENT(-3/-4) 센티널은 엔진 소비 0건일 뿐 아니라 **TS→WASM 경계 자체를 넘지 않음** (`utils.ts:5183~5188` drop — 명시 키워드는 TS enrichment 분기 A 가 px 로 선해석). (5) baseline: parity 11 파일/90 PASS + cargo 316 PASS + bench 3 시나리오 ADR-164 기준치 ±10% 정합 + type-check PASS. 코드 무변경 phase — live 실측은 store/layout map window probe + 임시 콘솔 계측으로 수행 (실문서 dAAA).
