@@ -159,6 +159,8 @@ export interface OverlayBuildInput {
   ck: CanvasKit;
   fontMgr: FontMgr | undefined;
   treeBoundsMap: Map<string, BoundingBox>;
+  /** 조상 clip 교차 히트 영역 — 자식 hover 가이드라인의 프레임 단위 가시성 판정용 */
+  hitBoundsMap: Map<string, BoundingBox>;
   cameraX: number;
   cameraY: number;
   cameraZoom: number;
@@ -237,6 +239,7 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
     ck,
     fontMgr,
     treeBoundsMap,
+    hitBoundsMap,
     cameraZoom,
     cameraX,
     cameraY,
@@ -510,6 +513,7 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
           isGroupHover,
           elementsMap,
           frames,
+          hitBoundsMap,
         );
         for (const target of hoverTargets) {
           renderHoverHighlight(

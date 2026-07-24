@@ -205,7 +205,7 @@ describe("resolveHoverGroupState", () => {
     } as unknown as CanvasInteractionNode;
   }
 
-  /** body > listbox > (row-1, row-2) — 페이지 전체가 리프 2개 */
+  /** body > listbox > (row-1, row-2) */
   const elementsMap = new Map<string, CanvasInteractionNode>([
     ["page-body", node("page-body", "body", null)],
     ["listbox", node("listbox", "ListBox", "page-body")],
@@ -216,22 +216,29 @@ describe("resolveHoverGroupState", () => {
     ["page-body", [{ id: "listbox" }]],
     ["listbox", [{ id: "row-1" }, { id: "row-2" }]],
   ]);
-  const boundsMap = new Map<string, BoundingBox>([
-    ["page-body", makeBounds()],
-    ["listbox", makeBounds()],
-    ["row-1", makeBounds()],
-    ["row-2", makeBounds()],
-  ]);
 
   it("expands a container hover into its leaf descendants", () => {
     expect(
-      resolveHoverGroupState({
-        contextHitId: "listbox",
-        childrenMap,
-        boundsMap,
-        elementsMap,
-      }),
+      resolveHoverGroupState({ contextHitId: "listbox", childrenMap, elementsMap }),
     ).toEqual({ hoveredLeafIds: ["row-1", "row-2"], isGroupHover: true });
+  });
+
+  it("keeps the leaf set structural so scrolling cannot staled it", () => {
+    // 가시성(클립/스크롤)은 프레임마다 달라지므로 hover state 에 캐시하면 안 된다.
+    // 여기서는 bounds 를 전혀 참조하지 않는다는 것이 계약.
+    const first = resolveHoverGroupState({
+      contextHitId: "listbox",
+      childrenMap,
+      elementsMap,
+    });
+    const afterScroll = resolveHoverGroupState({
+      contextHitId: "listbox",
+      childrenMap,
+      elementsMap,
+    });
+
+    expect(first).toEqual(afterScroll);
+    expect(first.hoveredLeafIds).toEqual(["row-1", "row-2"]);
   });
 
   it("does not expand a body hover into page-wide child guidelines", () => {
@@ -241,7 +248,6 @@ describe("resolveHoverGroupState", () => {
       resolveHoverGroupState({
         contextHitId: "page-body",
         childrenMap,
-        boundsMap,
         elementsMap,
       }),
     ).toEqual({ hoveredLeafIds: [], isGroupHover: false });
@@ -249,34 +255,14 @@ describe("resolveHoverGroupState", () => {
 
   it("treats a leaf hover as a non-group hover", () => {
     expect(
-      resolveHoverGroupState({
-        contextHitId: "row-1",
-        childrenMap,
-        boundsMap,
-        elementsMap,
-      }),
+      resolveHoverGroupState({ contextHitId: "row-1", childrenMap, elementsMap }),
     ).toEqual({ hoveredLeafIds: ["row-1"], isGroupHover: false });
   });
 
-  it("returns a cleared state without a hover context or bounds", () => {
-    const cleared = { hoveredLeafIds: [], isGroupHover: false };
-
+  it("returns a cleared state without a hover context", () => {
     expect(
-      resolveHoverGroupState({
-        contextHitId: null,
-        childrenMap,
-        boundsMap,
-        elementsMap,
-      }),
-    ).toEqual(cleared);
-    expect(
-      resolveHoverGroupState({
-        contextHitId: "listbox",
-        childrenMap,
-        boundsMap: null,
-        elementsMap,
-      }),
-    ).toEqual(cleared);
+      resolveHoverGroupState({ contextHitId: null, childrenMap, elementsMap }),
+    ).toEqual({ hoveredLeafIds: [], isGroupHover: false });
   });
 });
 

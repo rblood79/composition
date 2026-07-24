@@ -82,22 +82,25 @@ interface PageHoverFrame {
 /**
  * 요소의 모든 리프 자손을 재귀 수집한다.
  * 리프 = childrenMap에 자식이 없는 노드.
- * boundsMap에 bounds가 있는 노드만 반환.
+ *
+ * **가시성(클립/스크롤)으로 거르지 않는다 — 구조적 리스트다.** hover state 는
+ * "무엇을 호버 중인가"만 캐시하고, "지금 어디에 그릴 수 있는가"는 프레임마다
+ * `buildHoverHighlightTargets` 가 hit bounds 로 판정한다. 여기서 걸러 캐시하면
+ * 스크롤로 가시 집합이 바뀌어도 hover context 가 그대로라 재계산되지 않아
+ * 최초 가시 집합이 고착된다 (2026-07-24).
  */
 function collectLeafDescendants(
   elementId: string,
   childrenMap: ReadonlyMap<string, ReadonlyArray<{ id: string }>>,
-  boundsMap: ReadonlyMap<string, BoundingBox>,
 ): string[] {
   const children = childrenMap.get(elementId);
   if (!children || children.length === 0) {
-    // 리프 노드: bounds가 있으면 반환
-    return boundsMap.has(elementId) ? [elementId] : [];
+    return [elementId];
   }
 
   const result: string[] = [];
   for (const child of children) {
-    const leafs = collectLeafDescendants(child.id, childrenMap, boundsMap);
+    const leafs = collectLeafDescendants(child.id, childrenMap);
     for (const leaf of leafs) {
       result.push(leaf);
     }
@@ -185,19 +188,20 @@ export function resolvePageBodyHoverTarget({
  * hover context 가 된다. 즉 "요소가 없는 빈 공간" 신호인데, 여기서 리프 자손을 펼치면
  * 페이지 전체 리프의 점선 가이드라인이 한꺼번에 그려진다 (2026-07-24 수정).
  * context 자체의 실선 아웃라인은 유지 — 클릭 시 body 가 선택된다는 affordance.
+ *
+ * **bounds 를 참조하지 않는다.** 결과는 구조적(가시성 무관) 리스트이며, 실제로 그릴
+ * 대상은 프레임마다 `buildHoverHighlightTargets` 가 hit bounds 로 정한다.
  */
 export function resolveHoverGroupState({
-  boundsMap,
   childrenMap,
   contextHitId,
   elementsMap,
 }: {
-  boundsMap: ReadonlyMap<string, BoundingBox> | null;
   childrenMap: ReadonlyMap<string, ReadonlyArray<{ id: string }>>;
   contextHitId: string | null;
   elementsMap: ReadonlyMap<string, CanvasInteractionNode>;
 }): Pick<ElementHoverState, "hoveredLeafIds" | "isGroupHover"> {
-  if (!contextHitId || !boundsMap) {
+  if (!contextHitId) {
     return { hoveredLeafIds: [], isGroupHover: false };
   }
 
@@ -205,7 +209,7 @@ export function resolveHoverGroupState({
     return { hoveredLeafIds: [], isGroupHover: false };
   }
 
-  const leafIds = collectLeafDescendants(contextHitId, childrenMap, boundsMap);
+  const leafIds = collectLeafDescendants(contextHitId, childrenMap);
   const isGroupHover =
     leafIds.length > 1 || (leafIds.length === 1 && leafIds[0] !== contextHitId);
 
@@ -368,7 +372,6 @@ export function useElementHoverInteraction({
 
           // 컨테이너면 모든 리프 자손 수집, 리프면 자신만, body(빈 영역)면 확장 없음
           const groupState = resolveHoverGroupState({
-            boundsMap,
             childrenMap,
             contextHitId,
             elementsMap,

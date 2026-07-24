@@ -83,6 +83,13 @@ export interface PageTitleBounds {
   sceneHeight: number;
 }
 
+/**
+ * @param hitBoundsMap 조상 clip 교차 히트 영역. 자식 점선 가이드라인은 **프레임마다**
+ *   이 맵으로 판정한다 — 잘려서 화면에 없는 리프는 건너뛰고, 부분 가시 리프는 보이는
+ *   구간에만 그린다. `hoveredLeafIds` 는 구조적 리스트라 스크롤로 갱신되지 않으므로,
+ *   가시성 필터를 hover state 에 캐시하면 최초 가시 집합이 고착된다 (2026-07-24).
+ *   미전달 시 `treeBoundsMap` 폴백 (clip 미추적 경로).
+ */
 export function buildHoverHighlightTargets(
   treeBoundsMap: Map<string, BoundingBox>,
   hoveredContextId: string | null,
@@ -90,6 +97,7 @@ export function buildHoverHighlightTargets(
   isGroupHover: boolean,
   elementsMap: Map<string, CanvasSceneNode> = new Map(),
   pageFrames: PageFrame[] = [],
+  hitBoundsMap: Map<string, BoundingBox> = treeBoundsMap,
 ): HoverHighlightTarget[] {
   const targets: HoverHighlightTarget[] = [];
 
@@ -114,7 +122,7 @@ export function buildHoverHighlightTargets(
 
   if (isGroupHover && hoveredLeafIds.length > 0) {
     for (const leafId of hoveredLeafIds) {
-      const leafBounds = treeBoundsMap.get(leafId);
+      const leafBounds = hitBoundsMap.get(leafId);
       if (leafBounds) {
         targets.push({
           bounds: leafBounds,

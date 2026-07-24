@@ -231,10 +231,23 @@ ParagraphStyle 변경 시 **3곳 동시 업데이트** 필수: canvaskitTextMeas
 - 따라서 **body context 는 리프 확장 금지** — `hoveredLeafIds: []`, `isGroupHover: false`. context 자체의 실선 아웃라인은 유지해 "클릭하면 body 선택" affordance 를 남긴다.
 - **Why (2026-07-24)**: 확장 분기가 context 종류를 구분하지 않아, 페이지의 요소 없는 빈 공간에 마우스를 올리면 `collectLeafDescendants(body)` 가 **페이지 전체 리프**를 반환 → `buildHoverHighlightTargets` 가 모든 리프에 점선을 그렸다 (ListBox 2개의 전 행이 동시에 가이드라인 표시).
 
+### 캐시 계층 분리 — "무엇을 호버 중인가" ↔ "지금 어디에 그리는가"
+
+| 계층                                                | 내용                                       | 갱신 시점                           |
+| --------------------------------------------------- | ------------------------------------------ | ----------------------------------- |
+| hover state (`hoveredElementId` / `hoveredLeafIds`) | **구조적** — childrenMap 만으로 산출       | hover context 변경 시 (pointermove) |
+| overlay target (`buildHoverHighlightTargets`)       | **기하** — `hitBoundsMap` 으로 가시성 판정 | 프레임마다                          |
+
+- `collectLeafDescendants` 는 bounds 로 거르지 않는다. 가시성(클립/스크롤)은 프레임마다 달라지는데 hover state 는 context 가 그대로면 재계산되지 않으므로, 여기서 걸러 캐시하면 **최초 가시 집합이 고착**된다.
+- 자식 점선 가이드라인의 가시성 판정은 `buildHoverHighlightTargets` 가 `hitBoundsMap` 조회로 수행 — 전부 잘린 리프는 건너뛰고, 부분 가시 리프는 보이는 구간에만 그린다.
+- **Why (2026-07-24)**: 스크롤 가능한 ListBox 를 호버하면 처음 보이는 행만 가이드라인이 잡히고, 휠 스크롤로 새 행이 들어와도(포인터 미이동 → hover 재계산 없음) 가이드라인이 안 나왔다. 마우스를 뺐다 다시 넣어야 갱신되던 증상.
+
 ### 금지 패턴
 
 - ❌ hover 확장 판정을 훅 내부에 인라인 (테스트 불가 + 조건 누락) → `resolveHoverGroupState()` 경유
 - ❌ 빈 영역 fallback 으로 잡힌 context 를 일반 컨테이너 호버와 동일 취급 → 페이지 전체 가이드라인
+- ❌ `hoveredLeafIds` 를 bounds/가시성으로 필터링해 캐시 → 스크롤 후 stale (재계산 trigger 가 context 변경뿐)
+- ❌ 자식 가이드라인을 `treeBoundsMap`(원본 박스) 으로 조회 → 잘려 안 보이는 리프에도 점선
 
 ## 9. Render-Space Interaction Boundary (ADR-135/136 Implemented 2026-05-14/15)
 

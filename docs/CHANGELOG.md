@@ -28,6 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `apps/builder/src/builder/workspace/canvas/hooks/useElementHoverInteraction.ts`
   - 규칙: `.claude/rules/canvas-rendering.md` §8.6 (body 는 hover 그룹 확장 대상 아님 + 금지 패턴)
 
+- **스크롤 컨테이너에서 자식 가이드라인이 스크롤 후 갱신되지 않던 문제**:
+  - `hoveredLeafIds` 를 `collectLeafDescendants` 가 `hitBoundsMap.has()` 로 **필터링해 hover state 에 캐시**했다. 재계산 trigger 는 hover context 변경(=pointermove) 뿐이라, 포인터를 움직이지 않는 휠 스크롤로는 갱신되지 않았다.
+  - **Why**: 가시성(클립/스크롤)은 프레임마다 달라지는 **기하** 속성인데 이를 "무엇을 호버 중인가"라는 **구조** 캐시에 섞었다. 결과적으로 호버 시점의 가시 집합이 고착돼, 처음 가려져 있던 행은 스크롤로 나타나도 가이드라인이 없고 마우스를 뺐다 다시 넣어야 나왔다.
+  - 수정: 캐시 계층 분리 — `collectLeafDescendants` 는 bounds 를 보지 않는 구조적 리스트를 반환하고, 가시성 판정은 프레임마다 도는 `buildHoverHighlightTargets` 가 `hitBoundsMap` 조회로 수행. 전부 잘린 리프는 건너뛰고 부분 가시 리프는 보이는 구간에만 그린다.
+  - 검증: live 실측(dev builder) — `maxHeight:200 + overflow:auto` ListBox 호버 후 **포인터 고정 상태로** 휠 스크롤 시 새로 들어온 행 3개(이수빈/강수빈/김서연)에 가이드라인 즉시 표시(수정 전 미표시). 신규 회귀 테스트 3(clip 제외/스크롤 복귀/폴백) + builder 2614 PASS.
+  - 위치: `apps/builder/src/builder/workspace/canvas/hooks/useElementHoverInteraction.ts`, `skia/skiaOverlayHelpers.ts`, `skia/skiaOverlayBuilder.ts`, `skia/skiaFramePlan.ts`
+  - 규칙: `.claude/rules/canvas-rendering.md` §8.6 캐시 계층 분리 표
+
 ## [Data 바인딩 해제 버튼 크기 정합 — 컨트롤 높이 28 고정] - 2026-07-24
 
 ### Bug Fixes

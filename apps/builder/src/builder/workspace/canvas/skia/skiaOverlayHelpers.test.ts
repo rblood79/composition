@@ -21,6 +21,88 @@ function makeElement(
   } as CanvasSceneNode;
 }
 
+describe("buildHoverHighlightTargets clip-aware leaf guidelines", () => {
+  /**
+   * 스크롤 컨테이너의 자식 가이드라인은 **프레임마다** hit bounds 로 걸러야 한다.
+   * hover state 의 hoveredLeafIds 는 구조적(불변) 리스트라 스크롤로 갱신되지 않으므로,
+   * 가시성 필터를 hover state 에 캐시하면 스크롤 후에도 이전 가시 집합이 남는다.
+   */
+  const treeBoundsMap = new Map([
+    ["listbox", { x: 0, y: 0, width: 200, height: 100 }],
+    ["row-visible", { x: 0, y: 0, width: 200, height: 50 }],
+    ["row-clipped", { x: 0, y: 120, width: 200, height: 50 }],
+  ]);
+  const elementsMap = new Map([
+    ["listbox", makeElement("listbox", { type: "ListBox" })],
+    ["row-visible", makeElement("row-visible", { parent_id: "listbox" })],
+    ["row-clipped", makeElement("row-clipped", { parent_id: "listbox" })],
+  ]);
+
+  it("skips leaves that the clip removed and draws visible ones at hit bounds", () => {
+    const hitBoundsMap = new Map([
+      ["listbox", { x: 0, y: 0, width: 200, height: 100 }],
+      // row-visible 은 절반만 보임 / row-clipped 은 전부 잘려 키 자체가 없음
+      ["row-visible", { x: 0, y: 0, width: 200, height: 30 }],
+    ]);
+
+    const targets = buildHoverHighlightTargets(
+      treeBoundsMap,
+      "listbox",
+      ["row-visible", "row-clipped"],
+      true,
+      elementsMap,
+      [],
+      hitBoundsMap,
+    );
+
+    expect(targets).toHaveLength(2);
+    expect(targets[1]).toEqual(
+      expect.objectContaining({
+        dashed: true,
+        bounds: { x: 0, y: 0, width: 200, height: 30 },
+      }),
+    );
+  });
+
+  it("reveals a leaf once the scroll brings it back into the hit bounds", () => {
+    // 같은 hoveredLeafIds 로 다음 프레임 — 스크롤로 row-clipped 이 들어옴
+    const scrolledHitBounds = new Map([
+      ["listbox", { x: 0, y: 0, width: 200, height: 100 }],
+      ["row-clipped", { x: 0, y: 20, width: 200, height: 50 }],
+    ]);
+
+    const targets = buildHoverHighlightTargets(
+      treeBoundsMap,
+      "listbox",
+      ["row-visible", "row-clipped"],
+      true,
+      elementsMap,
+      [],
+      scrolledHitBounds,
+    );
+
+    expect(targets).toHaveLength(2);
+    expect(targets[1]).toEqual(
+      expect.objectContaining({
+        dashed: true,
+        bounds: { x: 0, y: 20, width: 200, height: 50 },
+      }),
+    );
+  });
+
+  it("falls back to tree bounds when no hit bounds map is supplied", () => {
+    const targets = buildHoverHighlightTargets(
+      treeBoundsMap,
+      "listbox",
+      ["row-visible", "row-clipped"],
+      true,
+      elementsMap,
+    );
+
+    expect(targets).toHaveLength(3);
+  });
+});
+
 describe("buildHoverHighlightTargets editing semantics", () => {
   it("marks origin and instance hover targets with semantic roles", () => {
     const targets = buildHoverHighlightTargets(

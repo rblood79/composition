@@ -156,6 +156,7 @@ export function buildFrameRenderPlan(
     ck,
     fontMgr,
     treeBoundsMap: sharedScene.treeBoundsMap,
+    hitBoundsMap: sharedScene.hitBoundsMap,
     cameraX: snapshot.cameraX,
     cameraY: snapshot.cameraY,
     cameraZoom: snapshot.cameraZoom,
