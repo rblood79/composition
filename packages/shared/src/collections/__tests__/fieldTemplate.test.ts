@@ -87,8 +87,8 @@ describe("interpolateFieldTemplate — 치환", () => {
     expect(run("{tags}")).toBe("");
   });
 
-  it("경로형 토큰은 P1 에선 flat key 미존재 → 빈 문자열 (P5 에서 경로 해석)", () => {
-    expect(run("{meta.city}")).toBe("");
+  it("경로형 토큰 — P5 부터 경로 해석 (P1 의 빈 문자열에서 가산 변경)", () => {
+    expect(run("{meta.city}")).toBe("Seoul");
   });
 
   it("record 아닌 rowItem → 모든 토큰 빈 문자열", () => {
@@ -102,6 +102,67 @@ describe("interpolateFieldTemplate — 치환", () => {
     const escOnly = compileFieldTemplate("{{num}}");
     expect(escOnly).not.toBeNull();
     expect(interpolateFieldTemplate(escOnly!, row)).toBe("{num}");
+  });
+});
+
+describe("P5 문법 B — 경로 접근 + 포맷", () => {
+  const run = (text: string, item: unknown) => {
+    const c = compileFieldTemplate(text);
+    if (!c) throw new Error(`compile null: ${text}`);
+    return interpolateFieldTemplate(c, item);
+  };
+  const nested = {
+    id: "u1",
+    num: 1234567.5,
+    name: "Kim",
+    createdAt: "2026-07-24T10:30:00Z",
+    address: { city: "Seoul", geo: { lat: 37.5 } },
+    tags: ["alpha", "beta"],
+    orders: [{ sku: "A-1" }, { sku: "B-2" }],
+  };
+
+  it("중첩 객체 경로 {address.city} / {address.geo.lat}", () => {
+    expect(run("{address.city}", nested)).toBe("Seoul");
+    expect(run("{address.geo.lat}", nested)).toBe("37.5");
+  });
+
+  it("배열 인덱스 {tags[0]} + 혼합 경로 {orders[1].sku}", () => {
+    expect(run("{tags[0]}", nested)).toBe("alpha");
+    expect(run("{orders[1].sku}", nested)).toBe("B-2");
+  });
+
+  it("flat key 정확 일치가 경로 해석보다 우선 (P1 BC)", () => {
+    const literalDotted = { "a.b": "flat-win", a: { b: "nested" } };
+    expect(run("{a.b}", literalDotted)).toBe("flat-win");
+  });
+
+  it("경로 중간 miss / 비-container / 배열 아닌 값 인덱스 → 빈 문자열", () => {
+    expect(run("{address.nope.deep}", nested)).toBe("");
+    expect(run("{name.city}", nested)).toBe("");
+    expect(run("{name[0]}", nested)).toBe("");
+  });
+
+  it("포맷 date — ISO datetime 은 TZ 시프트 없이 date part", () => {
+    expect(run("{createdAt|date}", nested)).toBe("2026-07-24");
+  });
+
+  it("포맷 number — en-US 천단위 (locale 비의존 결정론)", () => {
+    expect(run("{num|number}", nested)).toBe("1,234,567.5");
+    expect(run("{num|number}", { num: "9876" })).toBe("9,876");
+  });
+
+  it("포맷 실패/미지 포맷 → 미포맷 문자열 fallback (throw 금지)", () => {
+    expect(run("{name|date}", nested)).toBe("Kim");
+    expect(run("{name|upper}", nested)).toBe("Kim");
+    expect(run("{nope|date}", nested)).toBe("");
+  });
+
+  it("포맷은 경로 토큰에도 적용 — {orders[0].sku|upper} 미지 포맷 fallback", () => {
+    expect(run("{orders[0].sku|upper}", nested)).toBe("A-1");
+  });
+
+  it("`{x|}` 류 불완전 포맷은 토큰 아님 — literal 보존", () => {
+    expect(compileFieldTemplate("{name|}")).toBeNull();
   });
 });
 

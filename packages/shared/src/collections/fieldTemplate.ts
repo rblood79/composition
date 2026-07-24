@@ -4,10 +4,13 @@
  * Skia projection(빌더 샘플 데이터)과 DOM 렌더(Preview/Publish 실데이터)가
  * **이 두 심볼만** 소비한다 (G2) — consumer 자체 `{...}` 파싱 금지.
  *
- * P1 문법 (breakdown §2-1): `{field}` 토큰 + literal 혼합 + `{{`/`}}` 이스케이프
- * + 미지 필드 빈 문자열. 경로(`{a.b.c}`)/포맷(`{d|fmt}`)의 해석은 P5 —
- * 토큰 판정 정규식은 경로 문자를 이미 수용하므로 P5 는 resolver 내부 확장만으로
- * API 무변 (ADR-162 소비: string prop 일반 — slot 텍스트 특정 가정 금지, breakdown §1-6).
+ * 문법 (breakdown §2-1): `{field}` 토큰 + literal 혼합 + `{{`/`}}` 이스케이프
+ * + 미지 필드 빈 문자열 (P1) / 경로 접근 `{a.b.c}`·`{arr[0].x}` + 포맷 `{d|date}`·
+ * `{d|number}` (P5 — resolver 내부 확장, 소비처 API 무변. ADR-162 소비: string prop
+ * 일반 — slot 텍스트 특정 가정 금지, breakdown §1-6).
+ *
+ * P5 BC: 경로 해석 전에 **flat key 정확 일치가 항상 우선** — record 에 `"a.b"` 리터럴
+ * 키가 있으면 P1 과 동일하게 그 값을 쓰고, 없을 때만 경로 traversal (신규 가산).
  */
 
 import {
@@ -19,7 +22,14 @@ import {
 
 export type CompiledTemplatePart =
   | { kind: "literal"; text: string }
-  | { kind: "field"; key: string };
+  | {
+      kind: "field";
+      key: string;
+      /** P5: compile 시 파싱된 경로 세그먼트 — `a.b[0]` → `["a","b",0]`. flat key 는 길이 1. */
+      path: readonly (string | number)[];
+      /** P5: `{field|fmt}` 포맷 이름 — FIELD_TEMPLATE_FORMATTERS 조회 키. */
+      format?: string;
+    };
 
 export interface CompiledTemplate {
   /** 원본 템플릿 텍스트 (캐시 키 겸 디버깅). */
@@ -30,10 +40,74 @@ export interface CompiledTemplate {
 }
 
 /**
- * `{{` / `}}` 이스케이프 + `{식별자}` 토큰. 매칭 실패 조각(`{not a token}` 등)은
- * literal 보존. 식별자에 경로 문자(`.` `[` `]`)를 포함해 P5 경로 문법을 선수용.
+ * `{{` / `}}` 이스케이프 + `{식별자[|포맷]}` 토큰. 매칭 실패 조각(`{not a token}`,
+ * `{x|}` 등)은 literal 보존. 식별자는 경로 문자(`.` `[` `]`) 포함, 포맷은 `|` 뒤
+ * 단순 이름 1개 (P5 최소셋 — 인자 문법은 확장 지점).
  */
-const TOKEN_PATTERN = /\{\{|\}\}|\{([A-Za-z_$][\w$.[\]]*)\}/g;
+const TOKEN_PATTERN =
+  /\{\{|\}\}|\{([A-Za-z_$][\w$.[\]]*)(?:\|([A-Za-z]\w*))?\}/g;
+
+/**
+ * 필드 키 → 경로 세그먼트 (compile 시 1회). `a.b[0].c` → `["a","b",0,"c"]`.
+ * 비숫자 브래킷(`a[b]`)은 관용적으로 dot 세그먼트 취급 (`["a","b"]`).
+ */
+const PATH_SEGMENT_PATTERN = /([^.[\]]+)|\[(\d+)\]/g;
+
+function parseFieldPath(key: string): (string | number)[] {
+  const segments: (string | number)[] = [];
+  for (const match of key.matchAll(PATH_SEGMENT_PATTERN)) {
+    if (match[1] !== undefined) segments.push(match[1]);
+    else segments.push(Number(match[2]));
+  }
+  return segments;
+}
+
+/**
+ * P5 포맷 최소셋 — **확장 지점**: 새 포맷은 이 registry 에 formatter 를 추가한다
+ * (`{field|fmt}` 의 fmt 가 조회 키). formatter 는 적용 불가 시 null 반환 →
+ * 미포맷 문자열 fallback (throw 금지). 인자 있는 포맷(`|date:MM/DD` 류)·locale
+ * 선택은 후속 확장 — 현재 date 는 `YYYY-MM-DD`, number 는 en-US 천단위 고정
+ * (Skia↔DOM 대칭을 위해 런타임 locale 비의존 결정론 출력).
+ */
+const FIELD_TEMPLATE_FORMATTERS: Record<
+  string,
+  (value: unknown) => string | null
+> = {
+  date: formatDateValue,
+  number: formatNumberValue,
+};
+
+function formatDateValue(value: unknown): string | null {
+  if (typeof value === "string") {
+    // ISO date 접두(`2026-07-24` / `2026-07-24T10:30:00Z`)는 TZ 시프트 없이 date part.
+    const isoPrefix = /^(\d{4}-\d{2}-\d{2})([T\s].*)?$/.exec(value);
+    if (isoPrefix) return isoPrefix[1];
+  }
+  const date =
+    value instanceof Date
+      ? value
+      : typeof value === "number" || typeof value === "string"
+        ? new Date(value)
+        : null;
+  if (!date || Number.isNaN(date.getTime())) return null;
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+const NUMBER_FORMATTER = new Intl.NumberFormat("en-US");
+
+function formatNumberValue(value: unknown): string | null {
+  const num =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim() !== ""
+        ? Number(value)
+        : NaN;
+  if (!Number.isFinite(num)) return null;
+  return NUMBER_FORMATTER.format(num);
+}
 
 /**
  * R5: scene rebuild 마다 projection 이 재호출되어도 동일 템플릿 텍스트는 재compile
@@ -71,7 +145,12 @@ export function compileFieldTemplate(text: string): CompiledTemplate | null {
       parts.push({ kind: "literal", text: "}" });
       hasEscape = true;
     } else {
-      parts.push({ kind: "field", key: match[1] });
+      parts.push({
+        kind: "field",
+        key: match[1],
+        path: parseFieldPath(match[1]),
+        ...(match[2] ? { format: match[2] } : {}),
+      });
       tokenCount += 1;
     }
     lastIndex = index + match[0].length;
@@ -193,8 +272,33 @@ export function interpolateCollectionRowTemplate(
 }
 
 /**
+ * P5 경로 해석 — flat key 정확 일치 우선 (P1 BC), miss + 다중 세그먼트일 때만
+ * traversal. 중간 세그먼트 miss/비-container 는 undefined (→ 빈 문자열).
+ */
+function resolveFieldPathValue(
+  record: Record<string, unknown>,
+  part: Extract<CompiledTemplatePart, { kind: "field" }>,
+): unknown {
+  if (part.key in record) return record[part.key];
+  if (part.path.length <= 1) return undefined;
+  let current: unknown = record;
+  for (const segment of part.path) {
+    if (current == null || typeof current !== "object") return undefined;
+    if (typeof segment === "number") {
+      if (!Array.isArray(current)) return undefined;
+      current = current[segment];
+    } else {
+      current = (current as Record<string, unknown>)[segment];
+    }
+  }
+  return current;
+}
+
+/**
  * 행 데이터 보간. compile 은 slot 당 1회(행 루프 밖), 본 함수는 행별 토큰 수 O(k).
  * rowItem 이 record 가 아니면 모든 토큰이 빈 문자열로 치환된다.
+ * P5: 경로 해석(resolveFieldPathValue) + 포맷(FIELD_TEMPLATE_FORMATTERS — 실패 시
+ * 미포맷 fallback) 적용.
  */
 export function interpolateFieldTemplate(
   compiled: CompiledTemplate,
@@ -209,8 +313,15 @@ export function interpolateFieldTemplate(
   for (const part of compiled.parts) {
     if (part.kind === "literal") {
       out += part.text;
-    } else {
-      out += record ? stringifyFieldValue(record[part.key]) : "";
+    } else if (record) {
+      const raw = resolveFieldPathValue(record, part);
+      let text = stringifyFieldValue(raw);
+      if (part.format !== undefined) {
+        const formatter = FIELD_TEMPLATE_FORMATTERS[part.format];
+        const formatted = formatter ? formatter(raw) : null;
+        if (formatted !== null) text = formatted;
+      }
+      out += text;
     }
   }
   return out;
