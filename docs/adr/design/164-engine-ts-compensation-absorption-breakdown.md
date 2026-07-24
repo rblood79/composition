@@ -25,7 +25,9 @@
 
 산출물: 본 문서 §7 인벤토리 표 갱신 커밋 1개. 추정 vs 실측 gap 발견 시 새 ADR 분리 사유가 아니라 본 표 보강으로 흡수한다 (adr-writing M3).
 
-## 3. Phase 1 — automatic minimum size (②+③ 통합, 본체)
+## 3. Phase 1 — automatic minimum size (②+③ 통합, 본체) — ✅ Implemented 2026-07-25
+
+> G3 실측 결과: bench best-of-N median 기준 S1 15.9→16.7µs / S2 69.1→71.1µs (+2.9%, floor 동결 작업 추가 포함) / S3 14.9→15.2µs — 기준치 대비 노이즈 밴드(±10%) 이내, 회귀 0 판정. 코드 반영 경위는 ADR 본문 진행 로그 참조 (병렬 세션 커밋 `3045fd979` 에 동승).
 
 ②와 ③은 같은 명세 조항의 두 증상이다: CSS-FLEXBOX-1 §4.5 automatic minimum size (`min-width:auto` = content-based minimum) 를 엔진이 0 으로 처리 → TS 가 두 갈래로 보정.
 
