@@ -107,7 +107,7 @@ export function PropertyFieldTemplateInput({
             style={pickerPopover.popoverStyle}
           >
             <Menu
-              className="react-aria-Menu"
+              className="react-aria-Menu field-picker-menu"
               aria-label="collection 필드"
               onAction={(key) => insertField(String(key))}
             >

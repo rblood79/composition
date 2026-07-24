@@ -62,3 +62,22 @@
   .field-picker-icon {
   color: var(--fg);
 }
+
+/* 피커 팝오버(Menu)를 collection Select 의 ListBox 팝오버와 시각 일관화.
+   role 은 menu 로 유지(항목=삽입 명령)하되, 항목 밀도·모서리·굵기·컨테이너 곡률만
+   ListBoxItem/ListBox(md) 규약에 맞춘다. 마커 클래스로 이 피커에만 스코프 —
+   generated MenuItem.css(@layer components, DO NOT EDIT, 전역 메뉴 공용)는 건드리지
+   않는다. 언레이어 규칙이라 @layer components 를 이긴다.
+   ListBoxItem(md): height auto / border-radius radius-xs / font-weight 600 / gap 2px.
+   ListBox(md): border-radius radius-lg. (padding·gap·배경은 이미 동일) */
+.react-aria-Menu.field-picker-menu {
+  border-radius: var(--radius-lg);
+}
+
+.react-aria-Menu.field-picker-menu .react-aria-MenuItem {
+  height: auto;
+  padding: 4px 12px;
+  border-radius: var(--radius-xs);
+  font-weight: 600;
+  gap: 2px;
+}

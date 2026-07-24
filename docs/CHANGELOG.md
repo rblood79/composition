@@ -15,7 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Text 템플릿 입력(`PropertyFieldTemplateInput`)이 혼자 다른 flex 레이아웃으로 떠 있던 것을 Transform ▸ width(`PropertyUnitInput`) 와 동일한 시각 규약으로 맞췄다. input 은 배경 투명·테두리 제거로 회색 `react-aria-Group` 셸과 통합하고, 우측 Braces 트리거는 width 의 chevron 자리와 동일한 20×20 흰 정사각(radius-sm) 버튼으로 정렬.
   - **팝오버 부모 정렬**: 필드 삽입 팝오버가 우측 트리거 버튼에 앵커링돼 오른쪽으로 벗어나던 것을, `useControlPopoverMetrics` 의 `controlRef` 를 트리거 버튼에 붙여 `margin-left = group.left − button.left` 로 부모(field 박스) 좌측·폭에 정렬. width/PropertySelect 팝오버와 동일 규약.
   - 상호작용(커서에 `{key}` 삽입, 여러 필드 혼합)과 ARIA(role=textbox + menu button)는 그대로 유지 — RAC ComboBox(role=combobox, 단일 값 선택) 로 바꾸지 않은 이유는 삽입 모델·접근성 시맨틱 보존(D1).
-  - 검증: live 실측(dev builder) — 셸/input/트리거 computed 가 width 와 픽셀 일치(셸 `--bg-muted`/padding 4/radius 6, input transparent+border0+`0 0 0 4px`+12px, 트리거 20×20 흰박스 radius 4) + 팝오버 `x/w` = 부모 group `x/w` (1957/216, 오차 0).
+  - **피커 항목 시각을 ListBox 팝오버와 일관화**: 필드 피커는 `Menu`(role=menu, 항목=삽입 명령)라 generated `MenuItem.css`(md) 가 collection Select 의 `ListBoxItem.css`(md) 와 달라 항목이 더 컸다(height 32px vs auto 28px, border-radius 6px vs 2px, font-weight 400 vs 600, gap 8px vs 2px, 컨테이너 radius 6px vs 8px). role 은 유지하되 `field-picker-menu` 마커 클래스로 이 피커에만 스코프된 언레이어 override 를 걸어 밀도·모서리·굵기·컨테이너 곡률를 ListBoxItem/ListBox(md) 규약에 맞췄다 — generated 스펙 CSS(`@layer components`, 전역 메뉴 공용)는 미편집.
+  - **Why**: MenuItem/ListBoxItem 은 독립 스펙이라 generated CSS 를 고치면 앱 전역 메뉴가 바뀐다. 시각 일관성은 소비 지점(피커) 스코프 override 로 국한해야 D1(RAC role) 침범 없이 달성된다.
+  - 검증: live 실측(dev builder) — 셸/input/트리거 computed 가 width 와 픽셀 일치(셸 `--bg-muted`/padding 4/radius 6, input transparent+border0+`0 0 0 4px`+12px, 트리거 20×20 흰박스 radius 4) + 팝오버 `x/w` = 부모 group `x/w` (1957/216, 오차 0) + 피커 MenuItem computed(height 28 / radius 2 / weight 600 / gap 2, 컨테이너 radius 8) = ListBoxItem/ListBox(md) spec 정확 일치.
   - 위치: `apps/builder/src/builder/components/property/PropertyFieldTemplateInput.{tsx,css}`
 
 ## [Override Reset 회복 토스트 + globalToast 쿨다운 우회 옵션] - 2026-07-24
