@@ -84,7 +84,7 @@ use serde::Deserialize;
 use crate::block;
 use crate::flex;
 use crate::grid;
-use crate::style::{resolve_css_size_value, CssValueContext, FIT_CONTENT};
+use crate::style::{resolve_css_size_value, CssValueContext, FIT_CONTENT, MAX_CONTENT, MIN_CONTENT};
 
 /// indefinite available 센티넬 (음수). `%` 크기는 indefinite containing block 에 대해
 /// `auto` 로 풀린다(CSS §10.2) — `resolve_dimension` 이 음수 ctx 에서 0(=auto) 을 반환하고,
@@ -170,6 +170,15 @@ pub struct NodeStyle {
 
     // Aspect ratio
     pub aspect_ratio: Option<f32>,
+
+    // Intrinsic 측정 스칼라 (ADR-165 측정 계약) — CSS 속성이 아니라 TS 가 공급하는
+    // 텍스트 leaf content 측정값 (content-box, ceil 적용 px). 엔진은 텍스트 측정
+    // 불가(CanvasKit oracle 불변 — ADR-164 HC2)이므로 이 두 스칼라가 폭 축
+    // intrinsic (fit/min/max-content + §4.5 floor) 의 유일한 입력이다.
+    /// min-content 폭 (최장 단어 폭)
+    pub content_min_width: Option<f32>,
+    /// max-content 폭 (단일줄 폭)
+    pub content_max_width: Option<f32>,
 }
 
 /// `NodeStyle` 선언 필드 수 — ADR-156 R7/G6 정적 가드 앵커.
@@ -177,7 +186,7 @@ pub struct NodeStyle {
 /// breakdown §1-3 3축 교차표의 "NodeStyle 49필드" 를 코드로 고정한다. 이 값을
 /// 바꾸면(= 필드 추가/삭제) `nodestyle_field_contract_guard` 의 전수 구조분해가
 /// 먼저 컴파일 RED 이므로, 교차표 갱신 없이 필드만 늘리는 silent drift 가 차단된다.
-pub const NODESTYLE_FIELD_COUNT: usize = 49;
+pub const NODESTYLE_FIELD_COUNT: usize = 51;
 
 /// 「선언 O · 송신 O · 소비 X」 필드 (camelCase = serde 계약명).
 ///
@@ -652,7 +661,10 @@ impl LayoutTree {
         //   컨테이너 크기는 absolute 자식에 영향받지 않으므로(out-of-flow) 그대로 확정한 뒤
         //   absolute 배치만 수행한다.
         if children.is_empty() {
-            let w = explicit_w;
+            // ADR-165: 폭 intrinsic — width auto/센티넬을 공급 스칼라로 해석 (스칼라
+            // 부재 시 explicit_w 그대로 = 기존 동작). 반환 w 는 부모 content 슬롯
+            // (content_main/cross, content_w) 의 제안값이 된다.
+            let w = self.resolve_leaf_intrinsic_width(handle, explicit_w, avail_w);
             let h = explicit_h;
             if let Some(n) = self.get_mut(handle) {
                 n.layout = NodeLayout { x: 0.0, y: 0.0, width: w, height: h };
@@ -1829,6 +1841,59 @@ impl LayoutTree {
         (w, h)
     }
 
+    /// leaf 폭 intrinsic 해석 (ADR-165 — CSS-SIZING-3 §5).
+    ///
+    /// TS 가 공급한 측정 스칼라(`content_min_width`=최장 단어 / `content_max_width`=
+    /// 단일줄, content-box px)로 width 키워드를 해석한다. 스칼라 부재 시 `explicit_w`
+    /// 그대로 (기존 동작 — TS 폭 주입 의존 leaf 무영향). 반환은 border-box.
+    ///
+    /// - `auto`: max-content 를 content 제안값으로 반환 — 부모 content 슬롯
+    ///   (flex basis fallback / block shrink-to-fit) 소비용. block-level stretch·
+    ///   flex 최종 크기는 부모 배치가 소유하므로 이 값이 최종 폭을 강제하지 않는다.
+    /// - `fit-content`: `clamp(min-content, stretch-fit, max-content)` —
+    ///   stretch-fit = avail − margins (avail indefinite 면 max-content).
+    /// - `min-content` / `max-content`: 해당 스칼라.
+    /// - 명시 크기(px/%/…): `explicit_w` 그대로 (기존 경로).
+    fn resolve_leaf_intrinsic_width(&self, handle: usize, explicit_w: f32, avail_w: f32) -> f32 {
+        let Some(node) = self.get(handle) else {
+            return explicit_w;
+        };
+        let s = &node.style;
+        let (min_raw, max_raw) = (s.content_min_width, s.content_max_width);
+        if min_raw.is_none() && max_raw.is_none() {
+            return explicit_w;
+        }
+        // 한쪽만 공급되면 다른 쪽으로 보정 (min ≤ max 불변식 유지).
+        let min_c = min_raw.or(max_raw).unwrap_or(0.0).max(0.0);
+        let max_c = max_raw.or(min_raw).unwrap_or(0.0).max(min_c);
+        let ctx = self.ctx_for(avail_w);
+        let pad_border_h = axis_pad_border(s, &ctx, true);
+        let raw = s.width.as_deref().map(str::trim).unwrap_or("");
+        let sentinel = if raw.is_empty() || raw.eq_ignore_ascii_case("auto") {
+            None
+        } else {
+            resolve_css_size_value(raw, &ctx)
+        };
+        match sentinel {
+            // 명시 크기 — 기존 경로 그대로.
+            Some(n) if n >= 0.0 => explicit_w,
+            Some(n) if n == MIN_CONTENT => min_c + pad_border_h,
+            Some(n) if n == MAX_CONTENT => max_c + pad_border_h,
+            Some(n) if n == FIT_CONTENT => {
+                let m_l = resolve_signed(s.margin_left.as_deref(), &ctx);
+                let m_r = resolve_signed(s.margin_right.as_deref(), &ctx);
+                let stretch_fit = if avail_w > 0.0 {
+                    (avail_w - m_l - m_r - pad_border_h).max(0.0)
+                } else {
+                    max_c // avail indefinite → max-content (CSS-SIZING-3 §5)
+                };
+                stretch_fit.clamp(min_c, max_c) + pad_border_h
+            }
+            // auto (None) / 해석 불가 — content 제안값 = max-content.
+            _ => max_c + pad_border_h,
+        }
+    }
+
     // ── 결과 수집 (taffy_bridge.rs get_layouts_batch 대응) ──
 
     /// 여러 노드의 레이아웃을 flat `[x0,y0,w0,h0, x1,y1,w1,h1, ...]` 로 수집.
@@ -2191,7 +2256,8 @@ fn spec_to_content(v: f32, pad_border: f32) -> f32 {
 /// 2=height(cross), 3-6=margin(top/right/bottom/left, 물리), 7=pad_border_main,
 /// 8=pad_border_cross, 9=min_main, 10=max_main, 11=min_cross, 12=max_cross,
 /// 13=content_main, 14=content_cross, 15=flex_grow, 16=flex_shrink,
-/// 17=align_self, 18=overflow_main(0=visible/1=clipped — ADR-164 §4.5).
+/// 17=align_self, 18=overflow_main(0=visible/1=clipped — ADR-164 §4.5),
+/// 19=content_min_main(0=absent — 정확 min-content, ADR-165 §4.5 floor 정밀화).
 ///
 /// content_main/cross 는 자식 solve 결과(cw/ch)를 direction 으로 매핑. width/height
 /// 명시(>0)면 그 값, 없으면 AUTO(-1) — flex.rs 가 content 로 fallback.
@@ -2298,6 +2364,18 @@ fn write_flex_item(
     data[off + 18] = match main_overflow {
         Some(v) if !v.trim().eq_ignore_ascii_case("visible") => 1.0,
         _ => 0.0,
+    };
+    // §4.5 floor 의 정확 min-content (ADR-165) — 스칼라는 폭 축 측정값이므로 row 에서만
+    // 존재 (column 의 main=height 는 height-for-width 재줄바꿈 영역 → 2-pass 잔존 계약).
+    // content_main(=cw, 자식 solve 반환) 과 같은 공간이 되도록 pad_border_main 가산.
+    // 0 = absent → flex.rs 가 content_main(상한 근사) fallback.
+    data[off + 19] = if is_row {
+        cstyle
+            .content_min_width
+            .map(|v| v.max(0.0) + pad_border_main)
+            .unwrap_or(0.0)
+    } else {
+        0.0
     };
 }
 
@@ -2522,9 +2600,14 @@ fn apply_aspect_to_dims(aspect_ratio: Option<f32>, w: &mut Option<f32>, h: &mut 
 ///
 /// 일반 `resolve_dimension_opt` 은 fit-content(음수 센티넬)를 None(→AUTO)로 붕괴시켜
 /// flex cross 축에서 stretch 로 오처리한다(Calendar width:fit-content 가 부모 폭 전체로
-/// stretch). 본 변형은 fit-content 만 `FIT_CONTENT`(=flex::CONTENT -2) 센티넬로 통과시켜
-/// flex.rs `parse_item` 이 content_cross(shrink-to-fit)로 해소하게 한다. 그 외 intrinsic
-/// 키워드(min/max-content)는 아직 미지원 → None(AUTO) 유지.
+/// stretch). 본 변형은 intrinsic 키워드 3종(fit/min/max-content)을 `CONTENT`(-2) 센티넬로
+/// 통과시켜 flex.rs `parse_item` 이 content_cross(shrink-to-fit)로, block.rs 가
+/// content_w/h 로 해소하게 한다 (ADR-165 — min/max-content 확장).
+///
+/// leaf 는 `resolve_leaf_intrinsic_width` 가 키워드 의미론(min=최장 단어 / max=단일줄 /
+/// fit=clamp)을 이미 자기 content 크기(cw)에 구웠으므로 CONTENT fallback 이 그대로 정확값.
+/// 컨테이너는 content bounding box 로의 shrink-to-fit 근사 (컨테이너 intrinsic 정밀화는
+/// 본 ADR 범위 밖 — stretch 오처리보다 명세에 가깝다).
 fn resolve_cross_dimension_opt(value: Option<&str>, ctx: &CssValueContext) -> Option<f32> {
     let v = value?;
     let trimmed = v.trim();
@@ -2533,8 +2616,10 @@ fn resolve_cross_dimension_opt(value: Option<&str>, ctx: &CssValueContext) -> Op
     }
     match resolve_css_size_value(trimmed, ctx) {
         Some(n) if n >= 0.0 => Some(n),
-        // fit-content: flex cross 축은 content 로 shrink-to-fit (stretch 아님).
-        Some(n) if n == FIT_CONTENT => Some(flex::CONTENT),
+        // intrinsic 키워드: flex cross 축은 content 로 shrink-to-fit (stretch 아님).
+        Some(n) if n == FIT_CONTENT || n == MIN_CONTENT || n == MAX_CONTENT => {
+            Some(flex::CONTENT)
+        }
         _ => None,
     }
 }
@@ -2651,13 +2736,17 @@ mod tests {
             column_gap: _,
             row_gap: _,
             aspect_ratio: _,
+            content_min_width: _,
+            content_max_width: _,
         } = NodeStyle::default();
 
         // (2) 산술 계약 — 소비 + 미소비 = 선언. breakdown §1-3 "49 = 소비 40 + 미소비 9"
         //     가 Phase 2~5 배선으로 "49 = 소비 47 + 미소비 2", 옵션 3-a(2026-07-18)로
         //     "49 = 소비 49 + 미소비 0" 으로 이동했다(justify_self/justify_items 소비 전환:
-        //     solve_grid grid_inline_justify).
-        const CONSUMED_COUNT: usize = 49;
+        //     solve_grid grid_inline_justify). ADR-165 (2026-07-25): 측정 스칼라 2필드
+        //     (content_min_width/content_max_width) 추가 — 소비처는 resolve_leaf_intrinsic_width
+        //     + write_flex_item off 19 → "51 = 소비 51 + 미소비 0".
+        const CONSUMED_COUNT: usize = 51;
         assert_eq!(
             CONSUMED_COUNT + UNCONSUMED_NODESTYLE_FIELDS.len(),
             NODESTYLE_FIELD_COUNT,
@@ -3169,6 +3258,81 @@ mod tests {
             "fit-content 자식 width={} (expect content 60, not stretch 300)",
             child.width
         );
+    }
+
+    // ── ADR-165: intrinsic 측정 스칼라 (content_min/max_width) 소비 ──
+
+    /// auto-width 텍스트 leaf + 스칼라 → basis = max-content (압박 없음 → 그대로).
+    #[test]
+    fn leaf_auto_width_scalars_max_content_basis() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"height":"20px","contentMinWidth":40,"contentMaxWidth":120},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","width":"300px","height":"100px","alignItems":"flex-start"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 300.0, 100.0);
+        let leaf = tree.get_layout(handles[0]);
+        assert_eq!(leaf.width, 120.0, "무압박 auto leaf = max-content 단일줄 폭");
+    }
+
+    /// shrink 압박 시 §4.5 floor = 정확 min-content (ADR-164 상한 근사 120 이 아니라 40).
+    #[test]
+    fn leaf_shrink_floors_at_exact_min_content() {
+        let mut tree = LayoutTree::new();
+        // 컨테이너 30px < min-content 40 → shrink 는 40 에서 정지 (ADR-164 였다면
+        // floor = content_main(120) 이라 120 고정 — 정밀화의 차등 지점).
+        let json = r#"[
+            {"style":{"height":"20px","contentMinWidth":40,"contentMaxWidth":120},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","width":"30px","height":"100px","alignItems":"flex-start"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 300.0, 100.0);
+        let leaf = tree.get_layout(handles[0]);
+        assert_eq!(leaf.width, 40.0, "shrink floor = 정확 min-content(40)");
+    }
+
+    /// width:min-content 키워드 → 최장 단어 폭.
+    #[test]
+    fn leaf_width_min_content_keyword() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"min-content","height":"20px","contentMinWidth":40,"contentMaxWidth":120},"children":[]},
+            {"style":{"display":"block","width":"300px","height":"100px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 300.0, 100.0);
+        let leaf = tree.get_layout(handles[0]);
+        assert_eq!(leaf.width, 40.0, "min-content = 최장 단어 폭");
+    }
+
+    /// width:max-content 키워드 — block 컨텍스트에선 avail 무시 (overflow 허용).
+    #[test]
+    fn leaf_width_max_content_keyword_ignores_avail() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"max-content","height":"20px","contentMinWidth":40,"contentMaxWidth":120},"children":[]},
+            {"style":{"display":"block","width":"100px","height":"100px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 100.0, 100.0);
+        let leaf = tree.get_layout(handles[0]);
+        assert_eq!(leaf.width, 120.0, "max-content 는 avail(100) 무시하고 단일줄 폭");
+    }
+
+    /// width:fit-content 키워드 → clamp(min-content, avail, max-content).
+    #[test]
+    fn leaf_width_fit_content_clamps_to_avail() {
+        let mut tree = LayoutTree::new();
+        // avail 100 ∈ [40, 120] → 100. (avail 300 이면 120, avail 20 이면 40.)
+        let json = r#"[
+            {"style":{"width":"fit-content","height":"20px","contentMinWidth":40,"contentMaxWidth":120},"children":[]},
+            {"style":{"display":"block","width":"100px","height":"100px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 100.0, 100.0);
+        let leaf = tree.get_layout(handles[0]);
+        assert_eq!(leaf.width, 100.0, "fit-content = clamp(40, 100, 120)");
     }
 
     // ── 단위 3-a: block dispatch ──

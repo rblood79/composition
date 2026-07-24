@@ -60,9 +60,9 @@ fn assert_bounds(label: &str, actual: &[f32], expected: &[[f32; 4]]) {
 // ─────────────────────────────────────────────────────────────────────────────
 // flex golden — flex_layout(data, avail_main, avail_cross, dir, justify, align,
 //                            align_content, wrap, gap_main, gap_cross)
-// FLEX_FIELD_COUNT=19 필드/노드. off: [basis,w,h,mt,mr,mb,ml,pb_main,pb_cross,
+// FLEX_FIELD_COUNT=20 필드/노드. off: [basis,w,h,mt,mr,mb,ml,pb_main,pb_cross,
 //   min_main,max_main,min_cross,max_cross,content_main,content_cross,grow,shrink,
-//   align_self,overflow_main]
+//   align_self,overflow_main,content_min_main]
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// 고정 크기 3개 flex item — 두 축 각 100 width, direction=row, gap=10.
@@ -70,7 +70,7 @@ fn assert_bounds(label: &str, actual: &[f32], expected: &[[f32; 4]]) {
 /// 기대: x = 0, 110, 220 (100 + 10 gap 누적), y=0, w=100, h=50.
 /// off 17(align_self)=0=auto → 컨테이너 align_items 상속 (기존 golden 무변경).
 /// off 18(overflow_main)=0=visible — width 가 definite 라 §4.5 floor 미적용 (기대값 불변).
-fn flex_item(basis: f32, cross: f32, grow: f32, shrink: f32) -> [f32; 19] {
+fn flex_item(basis: f32, cross: f32, grow: f32, shrink: f32) -> [f32; 20] {
     [
         basis, // 0 flex_basis
         basis, // 1 width(main)
@@ -82,6 +82,7 @@ fn flex_item(basis: f32, cross: f32, grow: f32, shrink: f32) -> [f32; 19] {
         grow, shrink, // 15-16 grow/shrink
         0.0, // 17 align_self (auto=상속)
         0.0, // 18 overflow_main (visible)
+        0.0, // 19 content_min_main (absent — ADR-165, content_main fallback)
     ]
 }
 
@@ -372,6 +373,6 @@ fn golden_block_negative_margin_collapse() {
 /// (계약 변경 시 golden 이 silent 하게 어긋나지 않도록 가드).
 #[test]
 fn golden_field_contract_guard() {
-    assert_eq!(FLEX_FIELD_COUNT, 19, "flex 필드 계약 변경 — golden 재작성 필요");
+    assert_eq!(FLEX_FIELD_COUNT, 20, "flex 필드 계약 변경 — golden 재작성 필요");
     assert_eq!(BLOCK_FIELDS, 19, "block 필드 계약 변경 — golden 재작성 필요");
 }

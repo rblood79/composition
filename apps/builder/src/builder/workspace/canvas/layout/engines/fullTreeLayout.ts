@@ -748,6 +748,12 @@ function taffyStyleToRecord(style: TaffyStyle): Record<string, unknown> {
     result.aspectRatio = style.aspectRatio;
   }
 
+  // 측정 스칼라 (ADR-165) — 숫자 그대로 (dim() px 변환 대상 아님, NodeStyle Option<f32>)
+  if (style.contentMinWidth !== undefined)
+    result.contentMinWidth = style.contentMinWidth;
+  if (style.contentMaxWidth !== undefined)
+    result.contentMaxWidth = style.contentMaxWidth;
+
   return result;
 }
 
@@ -804,14 +810,10 @@ function buildNodeStyle(
   if (normalized === "flex" || normalized === "inline-flex") {
     const taffyStyle: TaffyStyle = elementToTaffyStyle(enriched, computedStyle);
     const record = taffyStyleToRecord(taffyStyle);
-    // Calendar/RangeCalendar: width:fit-content 를 엔진 FIT_CONTENT(-2) 센티넬로
-    //   통과 (allowlist). parseCSSPropWithContext 는 intrinsic 키워드를 전역 drop
-    //   하고 enrichWithIntrinsicSize 의 numeric 선해석에 의존하지만, Calendar
-    //   컨테이너 intrinsic 은 자식(CalendarGrid) 측정에 의존해 선해석이 불가 →
-    //   drop 시 auto(stretch)로 발산 (CSS fit-content 256 vs Skia 390/768 —
-    //   2026-07-13 parity sweep). 엔진은 block 자식 intake(tree_golden N8) +
-    //   flex cross 축(a359d513a)에서 shrink-to-fit 을 지원한다. 전역 passthrough
-    //   는 2-pass 재계산과의 상호작용 미검증이라 allowlist 로 한정.
+    // Calendar/RangeCalendar width:fit-content 센티넬 통과 — ADR-165 로
+    //   applyCommonTaffyStyle 이 intrinsic 키워드를 일반 통과시키므로 본 allowlist 는
+    //   보통 no-op 이지만, enriched 경로가 키워드를 못 실은 케이스의 안전망으로 유지
+    //   (구 배경: 2026-07-13 parity sweep — drop 시 auto(stretch) 발산 256 vs 390).
     if (
       (type === "calendar" || type === "rangecalendar") &&
       mergedStyle.width === "fit-content" &&

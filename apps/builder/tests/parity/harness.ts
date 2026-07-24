@@ -32,6 +32,17 @@ export interface CaseNode {
   label: string;
   style: StyleRecord;
   children?: number[];
+  /** 텍스트 콘텐츠 (ADR-165) — DOM leg 은 textContent, pipeline leg 은 props.children 로 전달. */
+  text?: string;
+  /** pipeline leg 의 element type (기본 "box") — 텍스트 leaf 케이스는 "Text" 등 TEXT_LEAF_TAGS. */
+  elementType?: string;
+  /**
+   * DOM leg 전용 intrinsic 원자 (ADR-165 engine-leg 케이스) — inline-block 폭 px 목록.
+   * 컨테이너 fontSize:0 으로 공백 폭을 0 으로 만들어 min-content = max(원자),
+   * max-content = Σ원자 가 **정확 정수**가 되게 한다. 엔진 leg 는 대응 스칼라를
+   * style.contentMinWidth/contentMaxWidth 로 직접 받는다 (engine 소비 격리 검증).
+   */
+  domAtoms?: number[];
 }
 
 export interface ParityCase {
@@ -64,8 +75,19 @@ export function domLeg(nodes: CaseNode[], availW: number): Bounds[] {
     el.style.boxSizing = "border-box";
     for (const [k, v] of Object.entries(node.style)) {
       // 엔진 track 배열(["1fr","1fr"]) → CSS 문자열("1fr 1fr")
+      // contentMin/MaxWidth (ADR-165 측정 스칼라) 는 CSS 속성이 아니라 무시됨(무해).
       const cssVal = Array.isArray(v) ? v.join(" ") : String(v);
       (el.style as unknown as Record<string, string>)[k] = cssVal;
+    }
+    if (node.text !== undefined) el.textContent = node.text;
+    if (node.domAtoms) {
+      el.style.fontSize = "0px"; // 공백 폭 0 → max-content = Σ원자 (정확 정수)
+      node.domAtoms.forEach((w, ai) => {
+        if (ai > 0) el.appendChild(document.createTextNode(" "));
+        const atom = document.createElement("span");
+        atom.style.cssText = `display:inline-block;width:${w}px;height:10px;`;
+        el.appendChild(atom);
+      });
     }
     (node.children ?? []).forEach((ci) => el.appendChild(els[ci]));
   });
@@ -221,9 +243,10 @@ export function pipelineLeg(
     childrenMap.set(ids[i], childIds);
     elementsMap.set(ids[i], {
       id: ids[i],
-      type: "box",
+      type: node.elementType ?? "box",
       page_id: i === rootIdx ? pageId : null,
-      props: { style },
+      props:
+        node.text !== undefined ? { children: node.text, style } : { style },
     } as unknown as CanvasLayoutNode);
   });
 

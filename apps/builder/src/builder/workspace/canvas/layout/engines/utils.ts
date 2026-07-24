@@ -4496,9 +4496,14 @@ export function enrichWithIntrinsicSize(
     //   아래 조건(문자열 키워드 한정)에 안 걸린다 — width 미주입 시 layout 0 → 명시 분기 필요.
     (CIRCLE_LEAF_TAGS.has(type) &&
       (!rawWidth || INTRINSIC_SIZE_KEYWORDS.has(rawWidth as string))) ||
+    // "auto" 명시 포함 (ADR-165): inline width:auto 는 CSS 에서 generated base
+    //   width:100%(B22) 를 이기고 intrinsic sizing 으로 돌아간다 — 스칼라 공급이
+    //   없으면 엔진 leaf w=0 붕괴 (미공급 시 기존에도 동일 붕괴 경로).
     (isFlexChild &&
       TEXT_LEAF_TAGS.has(type) &&
-      (!rawWidth || INTRINSIC_SIZE_KEYWORDS.has(rawWidth as string))) ||
+      (!rawWidth ||
+        rawWidth === "auto" ||
+        INTRINSIC_SIZE_KEYWORDS.has(rawWidth as string))) ||
     (IMAGE_INTRINSIC_TAGS.has(type) &&
       typeof rawWidth === "string" &&
       INTRINSIC_SIZE_KEYWORDS.has(rawWidth));
@@ -4680,7 +4685,57 @@ export function enrichWithIntrinsicSize(
           )
         : box.contentWidth;
   const baseContentWidth = resolvedIntrinsicWidth ?? childResolvedWidth;
-  if (needsWidth && baseContentWidth > 0) {
+  // ADR-165: 순수 텍스트 leaf 는 폭 주입 대신 **측정 스칼라 2종**(content-box, ceil)을
+  //   공급한다 — 엔진이 CSS-SIZING-3 §5 공식(fit/min/max-content clamp)과 §4.5 floor 의
+  //   정확 min-content 를 소유 (tree.rs resolve_leaf_intrinsic_width / flex.rs off 19).
+  //   구 width(단일줄 ceil)+minWidth(상한 근사) 주입 채널은 이 분기에서 제거 — 남기면
+  //   스칼라와 이중 적용 (G2). width 키워드는 applyCommonTaffyStyle 이 센티넬로 통과.
+  //   INLINE_BLOCK/CIRCLE/IMAGE 주입과 컨테이너 선해석은 잔존 (display 의미론·컨테이너
+  //   intrinsic 은 본 ADR 범위 밖 — breakdown §3).
+  const suppliesIntrinsicScalars = TEXT_LEAF_TAGS.has(type);
+  if (suppliesIntrinsicScalars && needsWidth && baseContentWidth > 0) {
+    const props = element.props as Record<string, unknown> | undefined;
+    const textContent = String(
+      props?.children ?? props?.text ?? props?.label ?? props?.title ?? "",
+    );
+    const styleRecord = style as Record<string, unknown> | undefined;
+    const fontSize =
+      typeof styleRecord?.fontSize === "number"
+        ? styleRecord.fontSize
+        : (_computedStyle?.fontSize ?? 16);
+    // min-content(최장 단어) 측정은 max-content(childResolvedWidth) 와 같은 font
+    // 체인으로 — inline style 우선, 부재 시 calculateMinContentWidth 기본값(sans/400)
+    // 이 일반 텍스트 분기 fallback 과 일치.
+    const scalarFontFamily =
+      typeof styleRecord?.fontFamily === "string"
+        ? styleRecord.fontFamily
+        : (_computedStyle?.fontFamily ?? specFontFamily.sans);
+    const scalarFontWeight =
+      (styleRecord?.fontWeight as number | string | undefined) ??
+      _computedStyle?.fontWeight ??
+      400;
+    // max-content = 단일줄 측정폭 (childResolvedWidth — resolvedIntrinsicWidth 는
+    // min-content 키워드일 때 최장 단어 폭이라 max 스칼라로 쓰면 안 됨).
+    // Math.ceil: 엔진 f32 ↔ JS f64 정밀도 경계 (layout-engine.md 기타 규칙).
+    const maxC = Math.ceil(
+      childResolvedWidth > 0 ? childResolvedWidth : baseContentWidth,
+    );
+    const minC = textContent
+      ? Math.min(
+          Math.ceil(
+            calculateMinContentWidth(
+              textContent,
+              fontSize,
+              scalarFontFamily,
+              scalarFontWeight,
+            ),
+          ),
+          maxC,
+        )
+      : maxC;
+    injectedStyle.contentMinWidth = minC;
+    injectedStyle.contentMaxWidth = maxC;
+  } else if (needsWidth && baseContentWidth > 0) {
     let injectWidth = baseContentWidth;
     injectWidth += box.padding.left + box.padding.right;
     injectWidth += box.border.left + box.border.right;
@@ -4703,12 +4758,9 @@ export function enrichWithIntrinsicSize(
     if (!growsInFlex) {
       injectedStyle.width = ceiledWidth;
     }
-    // leaf content 제안값 전달 채널 (ADR-164 §6 잔존 계약 — 보정 아님):
-    //   엔진은 텍스트 측정이 없어 leaf 의 §4.5 content-based minimum 을 스스로 모른다
-    //   (tree.rs width-auto leaf 는 content 0). 측정된 콘텐츠 폭을 명시 minWidth 로
-    //   전달해 엔진 shrink floor 의 content 제안값 역할을 한다 — ① intrinsic sizing
-    //   후속 ADR 이 content 채널을 재설계할 때까지 존속. width-auto 컨테이너 item 의
-    //   floor 는 엔진이 자체 계산 (flex.rs §4.5 — 재귀 solve content_main).
+    // leaf content 제안값 전달 채널 — 비텍스트 leaf(INLINE_BLOCK/CIRCLE 등) 잔존분:
+    //   엔진은 이들 합성 leaf 의 content 를 스스로 모른다. 텍스트 leaf 는 ADR-165 로
+    //   스칼라 채널(contentMin/MaxWidth)로 이관됨 — 위 분기.
     // 사용자가 명시적 minWidth를 설정한 경우는 보존 —
     //   `!style?.minWidth` 는 **minWidth:0 을 미설정으로 오판**한다(falsy 함정). 0 은 "콘텐츠
     //   밑으로 축소 허용"이라는 명시 값이므로 덮어쓰면 안 된다 (DateInput/SelectValue 가
@@ -4721,10 +4773,13 @@ export function enrichWithIntrinsicSize(
   // 변경이 없으면 원본 반환.
   //   minWidth 도 비교 대상 — growsInFlex 경로는 width 를 주입하지 않으므로(위) minWidth 만
   //   바뀔 수 있고, width/height 만 보면 그 주입이 조용히 버려진다.
+  //   contentMin/MaxWidth (ADR-165 스칼라) 도 동일 사유로 비교 대상.
   if (
     injectedStyle.height === undefined &&
     injectedStyle.width === style?.width &&
-    injectedStyle.minWidth === style?.minWidth
+    injectedStyle.minWidth === style?.minWidth &&
+    injectedStyle.contentMinWidth === style?.contentMinWidth &&
+    injectedStyle.contentMaxWidth === style?.contentMaxWidth
   ) {
     return element;
   }
@@ -5175,11 +5230,11 @@ export function parseCSSPropWithContext(
   if (typeof value === "string") {
     // % 값은 Taffy가 네이티브로 처리
     if (value.endsWith("%")) return value;
-    // intrinsic sizing 키워드는 batch 직렬화에서 drop — enrichWithIntrinsicSize 가
-    //   numeric 으로 선해석하는 것이 전제. 전역 passthrough 는 2-pass(Step 4.5)
-    //   재계산과 충돌해 relayout 루프를 유발한다 (2026-07-13 실측 — 엔진 자체는
-    //   FIT_CONTENT(-2) 지원, tree_golden N8). fit-content 컨테이너의 개별 정합은
-    //   applyImplicitStyles 분기의 numeric 주입으로 처리 (Calendar 선례).
+    // intrinsic sizing 키워드는 본 파서에선 undefined — 숫자 파서 계약 유지.
+    //   ADR-165: 키워드의 엔진 통과는 applyCommonTaffyStyle 의 문자열 복원 분기가
+    //   담당한다 (텍스트 leaf 는 enrichment 가 스칼라 contentMin/MaxWidth 동반 공급,
+    //   컨테이너는 enrichment numeric 선해석이 잔존해 키워드가 남는 경우만 통과).
+    //   구 전역 drop 사유(2-pass 상호작용, 2026-07-13)는 스칼라 계약 도입으로 해소.
     if (
       value === "fit-content" ||
       value === "min-content" ||
@@ -5215,6 +5270,29 @@ export function applyCommonTaffyStyle(
   const heightVal = parseCSSPropWithContext(style.height, ctx);
   if (widthVal !== undefined) result.width = widthVal;
   if (heightVal !== undefined) result.height = heightVal;
+
+  // ADR-165: 폭 intrinsic 키워드(fit/min/max-content)는 엔진 센티넬로 통과.
+  //   parseCSSPropWithContext 는 키워드를 drop 하므로(선해석 전제 시절 계약) 여기서
+  //   문자열 그대로 복원 — 엔진이 스칼라(contentMin/MaxWidth) + CSS-SIZING-3 §5
+  //   공식으로 해석한다. 컨테이너는 enrichment 가 px 로 선해석해 키워드가 남지
+  //   않으므로(잔존 경로) 실제 통과 대상은 텍스트 leaf + 미해석 컨테이너뿐.
+  if (
+    widthVal === undefined &&
+    typeof style.width === "string" &&
+    (style.width === "fit-content" ||
+      style.width === "min-content" ||
+      style.width === "max-content")
+  ) {
+    result.width = style.width;
+  }
+
+  // ADR-165: 측정 스칼라 공급 채널 (enrichWithIntrinsicSize 가 텍스트 leaf 에 주입).
+  if (typeof style.contentMinWidth === "number") {
+    result.contentMinWidth = style.contentMinWidth;
+  }
+  if (typeof style.contentMaxWidth === "number") {
+    result.contentMaxWidth = style.contentMaxWidth;
+  }
 
   // Min/Max size
   const minW = parseCSSPropWithContext(style.minWidth, ctx);

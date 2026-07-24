@@ -958,6 +958,28 @@ export function applyImplicitStyles(
     }
   }
 
+  // ── CSS base width:fit-content 채널 선주입 (ADR-165) ──────────────────
+  // `.react-aria-Label` 은 CSS base 가 width:fit-content — B22(width:100%) 의
+  // 역방향 base. 구 enrichment 폭 주입(단일줄 numeric 하드닝)이 이 규칙을 우연히
+  // 대신 전달했으나, 스칼라 계약 전환(폭 주입 축소)으로 채널이 사라지면 flex
+  // cross-axis 에서 stretch 발산한다 (FormField column 의 Label — Skia 390 vs
+  // CSS 64, 2026-07-25 live 실측). catalog Label 은 containerStyles 자체가 없어
+  // B22 의 catalog read 경로를 못 타므로 CSS 실측 근거로 직접 주입 (Separator
+  // 분기 선례 동형). 엔진은 fit-content 센티넬 + 측정 스칼라 clamp 로 해소.
+  // 사용자/factory 명시 width 는 항상 우선.
+  if (containerTag === "label") {
+    const curStyle = (effectiveParent.props?.style ?? {}) as Record<
+      string,
+      unknown
+    >;
+    if (curStyle.width == null) {
+      effectiveParent = withParentStyle(effectiveParent, {
+        ...curStyle,
+        width: "fit-content",
+      });
+    }
+  }
+
   // ── Separator ──────────────────────────────────────────────────────
   // 수동 Separator.css 계약: horizontal(`:not(.vertical)`) → `width:100%` (ADR-151 B22).
   // vertical 은 width:1px + height:100% 별도 축 — orientation 조건부라 catalog

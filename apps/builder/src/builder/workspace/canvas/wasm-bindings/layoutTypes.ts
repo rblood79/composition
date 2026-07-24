@@ -160,6 +160,13 @@ export interface TaffyStyle {
 
   // Aspect ratio
   aspectRatio?: number;
+
+  // Intrinsic 측정 스칼라 (ADR-165) — CSS 속성이 아니라 TS 측정 공급 채널.
+  // 텍스트 leaf 의 min-content(최장 단어)/max-content(단일줄) content-box px (ceil).
+  // 엔진 NodeStyle.content_min_width/content_max_width 대응 — width intrinsic
+  // 키워드(fit/min/max-content)와 §4.5 automatic minimum floor 의 입력.
+  contentMinWidth?: number;
+  contentMaxWidth?: number;
 }
 
 /** Opaque handle to a layout node. (구 TaffyNodeHandle — 자체 엔진 handle 과 동일 규약) */

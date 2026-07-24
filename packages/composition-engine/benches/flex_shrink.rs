@@ -111,4 +111,25 @@ fn main() {
         write_item(&mut d3, i, 0.0, -1.0, -1.0, -1.0, 50.0, 24.0, 1.0, 1.0);
     }
     bench_case("grow_nowrap_1000", &d3, 500_000.0, flex::WRAP_NOWRAP);
+
+    // S4 (ADR-165): S1 동형 + width AUTO + content_min_main(off 19) 공급 —
+    //     §4.5 floor 가 정확 min-content 를 소비하는 경로. shrink 목표(100)가
+    //     floor(40) 위라 min violation 동결 없이 분배 종료 (floor 읽기 비용 측정).
+    let n4 = 1000;
+    let mut d4 = vec![0.0f32; n4 * FLEX_FIELD_COUNT];
+    for i in 0..n4 {
+        write_item(&mut d4, i, -1.0, -1.0, -1.0, -1.0, 200.0, 24.0, 0.0, 1.0);
+        d4[i * FLEX_FIELD_COUNT + 19] = 40.0; // content_min_main
+    }
+    bench_case("shrink_minfloor_1000", &d4, 100_000.0, flex::WRAP_NOWRAP);
+
+    // S5 (ADR-165): S4 변형 — 컨테이너가 min-content 합보다 좁아 전원 floor 동결
+    //     (min violation 동결 경로 hot). 정확 min-content(120)가 결과 폭.
+    let n5 = 1000;
+    let mut d5 = vec![0.0f32; n5 * FLEX_FIELD_COUNT];
+    for i in 0..n5 {
+        write_item(&mut d5, i, -1.0, -1.0, -1.0, -1.0, 200.0, 24.0, 0.0, 1.0);
+        d5[i * FLEX_FIELD_COUNT + 19] = 120.0;
+    }
+    bench_case("shrink_minfloor_freeze_1000", &d5, 100_000.0, flex::WRAP_NOWRAP);
 }

@@ -78,14 +78,19 @@ const FIELD_MAP: Record<string, number> = {
   gridColumnEnd: 42,
   gridRowStart: 43,
   gridRowEnd: 44,
+  // ⚠ ADR-165 측정 스칼라(contentMinWidth/contentMaxWidth)는 **비등재** — 본 인코더의
+  // 타입 범위(enum 0~12 / f32 13~15 / dim 16~22 / LPA 23~30 / LP 31~40 / grid 41~44)에
+  // 신규 f32 범위 확장이 필요해, Rust 디코더 부재(hasBinaryProtocol=false) 상태에선
+  // dead 확장이다. binary protocol 을 실구현하는 시점에 f32 범위로 반드시 편입할 것 —
+  // 누락 시 스칼라가 silent drop 되어 intrinsic sizing 이 회귀한다 (JSON 경로는 무관).
 };
 
 /** JSON 사이드밴드로 처리하는 Grid 배열 필드 집합 */
 const GRID_SIDEBAND_KEYS = new Set([
-  'gridTemplateColumns',
-  'gridTemplateRows',
-  'gridAutoColumns',
-  'gridAutoRows',
+  "gridTemplateColumns",
+  "gridTemplateRows",
+  "gridAutoColumns",
+  "gridAutoRows",
 ]);
 
 // ─── 필드 범위 상수 ───────────────────────────────────────────────────
@@ -176,35 +181,35 @@ const OVERFLOW_MAP: Record<string, number> = {
 const FLEX_DIRECTION_MAP: Record<string, number> = {
   row: 0,
   column: 1,
-  'row-reverse': 2,
-  'column-reverse': 3,
+  "row-reverse": 2,
+  "column-reverse": 3,
 };
 
 /** flexWrap 값 → u8 */
 const FLEX_WRAP_MAP: Record<string, number> = {
   nowrap: 0,
   wrap: 1,
-  'wrap-reverse': 2,
+  "wrap-reverse": 2,
 };
 
 /** justifyContent 값 → u8 */
 const JUSTIFY_CONTENT_MAP: Record<string, number> = {
-  'flex-start': 0,
+  "flex-start": 0,
   start: 0,
-  'flex-end': 1,
+  "flex-end": 1,
   end: 1,
   center: 2,
-  'space-between': 3,
-  'space-around': 4,
-  'space-evenly': 5,
+  "space-between": 3,
+  "space-around": 4,
+  "space-evenly": 5,
   stretch: 6,
 };
 
 /** justifyItems 값 → u8 */
 const JUSTIFY_ITEMS_MAP: Record<string, number> = {
-  'flex-start': 0,
+  "flex-start": 0,
   start: 0,
-  'flex-end': 1,
+  "flex-end": 1,
   end: 1,
   center: 2,
   stretch: 3,
@@ -216,23 +221,23 @@ const ALIGN_ITEMS_MAP: Record<string, number> = JUSTIFY_ITEMS_MAP;
 
 /** alignContent 값 → u8 */
 const ALIGN_CONTENT_MAP: Record<string, number> = {
-  'flex-start': 0,
+  "flex-start": 0,
   start: 0,
-  'flex-end': 1,
+  "flex-end": 1,
   end: 1,
   center: 2,
   stretch: 3,
-  'space-between': 4,
-  'space-around': 5,
-  'space-evenly': 6,
+  "space-between": 4,
+  "space-around": 5,
+  "space-evenly": 6,
 };
 
 /** alignSelf 값 → u8 */
 const ALIGN_SELF_MAP: Record<string, number> = {
   auto: 0,
-  'flex-start': 1,
+  "flex-start": 1,
   start: 1,
-  'flex-end': 2,
+  "flex-end": 2,
   end: 2,
   center: 3,
   stretch: 4,
@@ -246,10 +251,10 @@ const JUSTIFY_SELF_MAP: Record<string, number> = ALIGN_SELF_MAP;
 const GRID_AUTO_FLOW_MAP: Record<string, number> = {
   row: 0,
   column: 1,
-  'row-dense': 2,
-  'row dense': 2,
-  'column-dense': 3,
-  'column dense': 3,
+  "row-dense": 2,
+  "row dense": 2,
+  "column-dense": 3,
+  "column dense": 3,
 };
 
 /**
@@ -258,20 +263,34 @@ const GRID_AUTO_FLOW_MAP: Record<string, number> = {
  */
 function getEnumMap(bit: number): Record<string, number> | null {
   switch (bit) {
-    case 0:  return DISPLAY_MAP;
-    case 1:  return POSITION_MAP;
-    case 2:  return OVERFLOW_MAP;
-    case 3:  return OVERFLOW_MAP;
-    case 4:  return FLEX_DIRECTION_MAP;
-    case 5:  return FLEX_WRAP_MAP;
-    case 6:  return JUSTIFY_CONTENT_MAP;
-    case 7:  return JUSTIFY_ITEMS_MAP;
-    case 8:  return ALIGN_ITEMS_MAP;
-    case 9:  return ALIGN_CONTENT_MAP;
-    case 10: return ALIGN_SELF_MAP;
-    case 11: return JUSTIFY_SELF_MAP;
-    case 12: return GRID_AUTO_FLOW_MAP;
-    default: return null;
+    case 0:
+      return DISPLAY_MAP;
+    case 1:
+      return POSITION_MAP;
+    case 2:
+      return OVERFLOW_MAP;
+    case 3:
+      return OVERFLOW_MAP;
+    case 4:
+      return FLEX_DIRECTION_MAP;
+    case 5:
+      return FLEX_WRAP_MAP;
+    case 6:
+      return JUSTIFY_CONTENT_MAP;
+    case 7:
+      return JUSTIFY_ITEMS_MAP;
+    case 8:
+      return ALIGN_ITEMS_MAP;
+    case 9:
+      return ALIGN_CONTENT_MAP;
+    case 10:
+      return ALIGN_SELF_MAP;
+    case 11:
+      return JUSTIFY_SELF_MAP;
+    case 12:
+      return GRID_AUTO_FLOW_MAP;
+    default:
+      return null;
   }
 }
 
@@ -289,21 +308,21 @@ function getEnumMap(bit: number): Record<string, number> | null {
  * CRITICAL: percent는 반드시 /100 처리 (Rust 측 Dimension::percent(0.5) 와 매칭)
  */
 function parseDimensionValue(value: unknown): { type: number; value: number } {
-  if (typeof value === 'number') {
+  if (typeof value === "number") {
     return { type: TAG_LENGTH, value };
   }
-  if (typeof value !== 'string') {
+  if (typeof value !== "string") {
     return { type: TAG_AUTO, value: 0.0 };
   }
   const s = value.trim();
-  if (s === 'auto') {
+  if (s === "auto") {
     return { type: TAG_AUTO, value: 0.0 };
   }
-  if (s.endsWith('px')) {
+  if (s.endsWith("px")) {
     const num = parseFloat(s.slice(0, -2));
     return { type: TAG_LENGTH, value: isNaN(num) ? 0.0 : num };
   }
-  if (s.endsWith('%')) {
+  if (s.endsWith("%")) {
     const num = parseFloat(s.slice(0, -1));
     // CRITICAL: percent는 /100 처리
     return { type: TAG_PERCENT, value: isNaN(num) ? 0.0 : num / 100.0 };
@@ -324,11 +343,11 @@ function parseDimensionValue(value: unknown): { type: number; value: number } {
  * - "N"      → type=1, value=N  (line number)
  */
 function parseGridPlacement(value: unknown): { type: number; value: number } {
-  const s = typeof value === 'string' ? value.trim() : String(value).trim();
-  if (s === 'auto') {
+  const s = typeof value === "string" ? value.trim() : String(value).trim();
+  if (s === "auto") {
     return { type: GP_AUTO, value: 0 };
   }
-  if (s.startsWith('span ')) {
+  if (s.startsWith("span ")) {
     const num = parseInt(s.slice(5).trim(), 10);
     return { type: GP_SPAN, value: isNaN(num) ? 1 : num };
   }
@@ -414,9 +433,9 @@ function planNode(node: BinaryBatchInput): NodePlan {
 
     // 비트맵 설정 (u64를 low/high 두 u32로 표현)
     if (bit < 32) {
-      bitmapLow |= (1 << bit);
+      bitmapLow |= 1 << bit;
     } else {
-      bitmapHigh |= (1 << (bit - 32));
+      bitmapHigh |= 1 << (bit - 32);
     }
     presentBits.push(bit);
   }
@@ -455,7 +474,7 @@ function writeEnumField(
     view.setUint8(offset, 0);
     return;
   }
-  const str = typeof value === 'string' ? value : String(value);
+  const str = typeof value === "string" ? value : String(value);
   const encoded = map[str] ?? 0;
   view.setUint8(offset, encoded);
 }
@@ -464,7 +483,7 @@ function writeEnumField(
  * f32 direct 필드를 DataView에 f32 LE로 쓴다.
  */
 function writeF32Field(view: DataView, offset: number, value: unknown): void {
-  const num = typeof value === 'number' ? value : parseFloat(String(value));
+  const num = typeof value === "number" ? value : parseFloat(String(value));
   view.setFloat32(offset, isNaN(num) ? 0.0 : num, true);
 }
 
@@ -574,7 +593,7 @@ export function encodeBatchBinary(batch: BinaryBatchInput[]): Uint8Array {
   let totalSize =
     4 + // magic "TAFF"
     1 + // version u8
-    4;  // nodeCount u32 LE
+    4; // nodeCount u32 LE
 
   for (let i = 0; i < nodeCount; i++) {
     const plan = planNode(batch[i]);

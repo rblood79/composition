@@ -45,7 +45,7 @@
 //! `flex-wrap: nowrap` 이면 전 아이템이 단일 라인. `wrap` 이면 아이템 outer main-size
 //! 누적이 available_main 을 초과하기 직전에 새 라인 시작 (각 라인은 최소 1개 아이템).
 //!
-//! ## 필드 계약 (`FLEX_FIELD_COUNT` = 19, 노드당)
+//! ## 필드 계약 (`FLEX_FIELD_COUNT` = 20, 노드당)
 //!
 //! | off | 필드              | 센티넬                          |
 //! | --- | ----------------- | ------------------------------- |
@@ -68,20 +68,27 @@
 //! | 16  | flex_shrink       | ≥0 (default 1)                  |
 //! | 17  | align_self        | 0=auto(상속) 1=stretch 2=start 3=center 4=end (E1/ADR-156 P2) |
 //! | 18  | overflow_main     | 0=visible(zero-init) 1=clipped — item 자신의 주축 overflow (ADR-164 §4.5) |
+//! | 19  | content_min_main  | 0=absent(zero-init) — 정확 min-content (main, ADR-165 §4.5 floor 정밀화) |
 //!
 //! off 17(`align_self`)은 **0=auto 가 zero-init 기본값 겸 CSS 기본값**이라, 값을 안 쓰는
 //! 입력 배열(기존 golden/테스트)은 자동으로 컨테이너 `align_items` 를 상속한다.
 //! off 18(`overflow_main`)도 동일 원칙 — **0=visible 이 zero-init 겸 CSS 기본값**.
+//! off 19(`content_min_main`)도 동일 원칙 — **0=absent 가 zero-init 겸 fallback**
+//! (`content_main` 으로 대체 — ADR-164 상한 근사 동작 유지). min-content 0 은 floor 0
+//! = floor 부재와 등가라 absent 와 구분이 필요 없다.
 //!
-//! ## §4.5 automatic minimum size (ADR-164)
+//! ## §4.5 automatic minimum size (ADR-164 도입 / ADR-165 정밀화)
 //!
 //! `min_main == AUTO` ∧ `overflow_main == visible` ∧ `width == AUTO` 인 item 은
-//! content-based minimum(= `content_main`, `max_main` clamp)을 used min 으로 쓴다 —
-//! shrink 가 content 밑으로 내려가지 않는다. **width-auto 한정**인 이유: explicit
+//! content-based minimum 을 used min 으로 쓴다 — shrink 가 그 밑으로 내려가지 않는다.
+//! floor 기준값(ADR-165): `content_min_main`(off 19, 정확 min-content = 최장 단어 폭)
+//! 이 공급되면 그 값, absent(0)면 `content_main`(단일줄 상한 근사 — ADR-164 동작) —
+//! 양쪽 다 `max_main` clamp 동반. **width-auto 한정**인 이유: explicit
 //! 노드의 content 슬롯은 tree.rs 가 border-box 를 저장해 content 제안값으로 신뢰
 //! 불가하고, width-definite 의 §4.5 floor 는 min(content 제안, specified 제안)이라
 //! content 제안값 없이는 과대 floor(Chrome 발산)가 된다. 텍스트 leaf 의 content
-//! 제안값은 상류 TS 가 명시 `minWidth`(→ min_main) 채널로 전달한다 (ADR-164 §6).
+//! 제안값은 상류 TS 가 `contentMinWidth`/`contentMaxWidth` 스칼라(NodeStyle)로
+//! 공급한다 (ADR-165 측정 계약 — 구 minWidth 채널은 스칼라 계약으로 흡수).
 //!
 //! main/cross 축은 컨테이너 `flex_direction` 에 따라 물리축(x/y)에 매핑된다.
 //! 아이템 필드는 이미 논리축(main/cross) 기준으로 상류에서 변환되어 들어온다.
@@ -89,7 +96,7 @@
 use wasm_bindgen::prelude::*;
 
 /// 노드당 입력 필드 수.
-pub const FLEX_FIELD_COUNT: usize = 19;
+pub const FLEX_FIELD_COUNT: usize = 20;
 
 /// 출력 필드 수 (x, y, width, height).
 const OUT_FIELDS: usize = 4;
@@ -273,13 +280,18 @@ fn parse_item(data: &[f32], i: usize, direction: u8) -> FlexItem {
         if v > 0.0 { v as u8 } else { ALIGN_SELF_AUTO }
     };
     // §4.5 automatic minimum size (ADR-164): min 미명시(auto) + item 주축 overflow
-    // visible + width auto → content-based minimum(= content_main, max_main clamp)을
-    // used min 으로 해석. 이후 §9.7 clamp/violation 동결 기계가 floor 를 자연 집행한다.
-    // width-auto 한정·leaf minWidth 채널 사유는 모듈 doc §4.5 절 참조. min:0 명시는
-    // AUTO 센티넬(-1)과 구분되어 그대로 존중된다 (falsy 함정 없음).
+    // visible + width auto → content-based minimum 을 used min 으로 해석. 이후 §9.7
+    // clamp/violation 동결 기계가 floor 를 자연 집행한다. width-auto 한정·스칼라
+    // 공급 채널 사유는 모듈 doc §4.5 절 참조. min:0 명시는 AUTO 센티넬(-1)과
+    // 구분되어 그대로 존중된다 (falsy 함정 없음).
+    //
+    // ADR-165: floor 기준값은 정확 min-content(`content_min_main`, off 19) 우선 —
+    // absent(0)면 `content_main`(단일줄 상한 근사, ADR-164 동작) fallback.
     let overflow_clipped = data[off + 18] != 0.0;
+    let content_min_main = data[off + 19];
     let min_main = if min_main == AUTO && !overflow_clipped && width == AUTO {
-        let floor = content_main.max(0.0);
+        let suggestion = if content_min_main > 0.0 { content_min_main } else { content_main };
+        let floor = suggestion.max(0.0);
         if max_main != AUTO { floor.min(max_main) } else { floor }
     } else {
         min_main
