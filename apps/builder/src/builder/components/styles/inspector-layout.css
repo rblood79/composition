@@ -8,13 +8,17 @@
     }
   }
   .section {
+    /* 인스펙터 3열 row 템플릿 SSOT (ADR-163 Phase 4-b — 구 9회 재선언 단일화).
+       각 섹션 wrapper 는 이 토큰 + 고유 grid-template-areas 조합으로 배치. */
+    --inspector-row-columns: 1fr 1fr var(--inspector-control-size);
+
     /* Styles Panel - Section-specific layouts */
     &[data-section-id="layout"] .section-content {
       display: grid;
 
       .layout-direction {
         display: grid;
-        grid-template-columns: 1fr 1fr var(--inspector-control-size);
+        grid-template-columns: var(--inspector-row-columns);
         grid-template-rows: auto auto auto;
         grid-template-areas:
           "flex-direction flex-alignment icon"
@@ -127,7 +131,7 @@
 
       .layout-container {
         display: grid;
-        grid-template-columns: 1fr 1fr var(--inspector-control-size);
+        grid-template-columns: var(--inspector-row-columns);
         grid-template-rows: auto;
         gap: var(--spacing-sm);
         grid-template-areas: "padding margin actions-spacing";
@@ -239,7 +243,7 @@
       /* Size Mode + Width/Height + Position 행: 3열 grid */
       .transform-row {
         display: grid;
-        grid-template-columns: 1fr 1fr var(--inspector-control-size);
+        grid-template-columns: var(--inspector-row-columns);
         gap: var(--spacing-sm);
 
         > * {
@@ -269,7 +273,7 @@
       /* Constraints 블록: 조건부 렌더링 — 숨겨진 상태에서 gap 차지 방지 */
       .transform-constraints {
         display: grid;
-        grid-template-columns: 1fr 1fr var(--inspector-control-size);
+        grid-template-columns: var(--inspector-row-columns);
         grid-template-rows: auto;
         gap: var(--spacing-sm);
         grid-template-areas:
@@ -372,7 +376,7 @@
 
       .style-background {
         display: grid;
-        grid-template-columns: 1fr 1fr var(--inspector-control-size);
+        grid-template-columns: var(--inspector-row-columns);
         grid-template-rows: auto;
         gap: var(--spacing-sm);
         grid-template-areas: "background-color background-color icon";
@@ -394,7 +398,7 @@
 
       .style-border {
         display: grid;
-        grid-template-columns: 1fr 1fr var(--inspector-control-size);
+        grid-template-columns: var(--inspector-row-columns);
         grid-template-rows: auto;
         gap: var(--spacing-sm);
         grid-template-areas:
@@ -428,7 +432,7 @@
 
       .style-shadow {
         display: grid;
-        grid-template-columns: 1fr 1fr var(--inspector-control-size);
+        grid-template-columns: var(--inspector-row-columns);
         grid-template-rows: auto;
         gap: var(--spacing-sm);
         grid-template-areas: "box-shadow box-shadow icon";
@@ -444,7 +448,7 @@
 
       .style-overflow {
         display: grid;
-        grid-template-columns: 1fr 1fr var(--inspector-control-size);
+        grid-template-columns: var(--inspector-row-columns);
         grid-template-rows: auto;
         gap: var(--spacing-sm);
         grid-template-areas: "overflow overflow .";
@@ -461,7 +465,7 @@
 
     &[data-section-id="typography"] .section-content {
       display: grid;
-      grid-template-columns: 1fr 1fr var(--inspector-control-size);
+      grid-template-columns: var(--inspector-row-columns);
       grid-template-rows: auto;
       gap: var(--spacing-sm);
       grid-template-areas:

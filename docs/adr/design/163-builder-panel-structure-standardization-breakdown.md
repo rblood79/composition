@@ -63,8 +63,8 @@
 
 부수 실측:
 
-- 인스펙터 표준 3열 템플릿 `grid-template-columns: 1fr 1fr var(--inspector-control-size)` 가 `inspector-layout.css` **9회 재선언** (17/130/242/272/375/397/431/447/464행).
-- row 래퍼 이름 5종 난립: `.transform-row` / `.layout-container` / `.layout-direction` / `.style-background` / `.direction-alignment-grid`.
+- 인스펙터 표준 3열 템플릿 `grid-template-columns: 1fr 1fr var(--inspector-control-size)` 가 `inspector-layout.css` **9회 재선언** (17/130/242/272/375/397/431/447/464행). **[정확 — Phase 4-b 실측 확증]**
+- row 래퍼 이름 ~~5종~~ → **실측 8개 래퍼 + 1 pattern-A** (2026-07-25 Phase 4-b 재실측 정정): `.layout-direction`(17)/`.layout-container`(130)/`.transform-row`(242)/`.transform-constraints`(272)/`.style-background`(375)/`.style-border`(397)/`.style-shadow`(431)/`.style-overflow`(447) 8개 + typography `.section-content` 직접(464, 패턴 A). 구 §0 목록의 `.direction-alignment-grid` 은 **row 래퍼 아님**(3×3 정렬 피커 그리드, `.flex-alignment` 내부 — inspector-layout.css 정의 없는 TSX className) → 오포함. `.transform-constraints`/`.style-border`/`.style-shadow`/`.style-overflow` 는 구 목록 **누락**. 각 site 는 고유 `grid-template-areas` 보유(보존 필수).
 - `.transform-row` 내부에서 `.fieldset-actions { grid-area: auto }` 로 panel-system.css 값을 되돌림 (`inspector-layout.css:249` 주석 실증).
 - `.layout-direction` 은 panel-system.css:392(dead) + inspector-layout.css:15(live) 이중 존재.
 
@@ -207,12 +207,16 @@ CSS 규모: components/styles/index.css 1,169줄 (잡화 집합), panel-system.c
 
 **추가 발견 (4-c 로 routing)**: 예약 prefix squat 전수 결과 datatable editor 계열 추가 다수 — `VariableEditor.css:28` `.section-header`(+:hover), `DataTableCreator.css` `.panel-selection`/`.panel-option`/`.section-tabs`/`.section-tab`. styled 클래스라 per-file G4 필요 → 4-c 네이밍/prefix 회수 패스로 이관 (§5-4c item 9). 예약 prefix 정적 가드도 4-c 에서 (squat 회수 후 최소 allowlist 로 작성 가능). 시스템 인프라 파일(`panel-container.css`/`panel-nav.css`/`inspector-layout.css`/`form-controls.css`/`panel-btn.css`)의 `panel-*`/`section-*`/`fieldset-*` 정의는 정당(구조 정의처) — squat 아님.
 
-### 4-b. `.fieldset-row` 통합 (row 래퍼 단일화)
+### 4-b. 인스펙터 3열 템플릿 single-source [완료 2026-07-25 — A방식 채택]
 
-1. panel-system.css 에 `.fieldset-row` 1회 정의 (기본형 = 3열 `1fr 1fr var(--inspector-control-size)` + gap). **첫 소비자 전환과 같은 커밋** (dormant 금지).
-2. 기존 래퍼 5종 (`.transform-row`/`.layout-container`/`.layout-direction`/`.style-background`/`.direction-alignment-grid`) 을 `.fieldset-row.{기존클래스}` 병기로 흡수 — 섹션별 `grid-template-areas` 는 고유 클래스에 남김. 3열 템플릿 9회 재선언 제거.
-3. 패턴 A(typography — section-content 직접 grid) → 패턴 B 로 전환: row 래퍼 삽입. DOM 변경이므로 **G1 방식 computed 스냅샷 diff 재사용** + G4 라이브 확인 (본문 R5).
-4. `.fieldset-actions { grid-area: auto }` 리셋 (`inspector-layout.css:249`) 등 오버라이드 체인 소멸 확인.
+> **방식 결정 (사용자 confirm 2026-07-25, 결정지점 ④ — 승인 scope 형태 변경 + R5 위험)**: 재실측에서 §0 "row 래퍼 5종" 이 부정확(실제 8개+pattern-A, `.direction-alignment-grid` 오포함)함이 드러났고, 원안(B: `.fieldset-row` 공유 클래스 병기 + 패턴 A→B DOM 전환)은 중첩 cascade/DOM 변경으로 R5 시각 회귀 위험이 실재. 핵심 목표(3열 템플릿 9회 반복 제거)를 **diff 0 으로 달성하는 A방식(CSS 변수 single-source)** 을 사용자가 선택. B의 추가 이득(구조 클래스 소급 통일 + 패턴 A→B)은 과잉 변경(8 래퍼 소급 retrofit + typography DOM 변경)이라 미실시.
+
+1. **[완료]** inspector-layout.css `.section` 에 `--inspector-row-columns: 1fr 1fr var(--inspector-control-size)` 토큰 1개 정의 (3열 컬럼 SSOT).
+2. **[완료]** 9개 site (17/130/242/272/375/397/431/447/464 → 8 래퍼 + typography pattern-A) 의 리터럴 `grid-template-columns: 1fr 1fr var(--inspector-control-size)` 를 `grid-template-columns: var(--inspector-row-columns)` 로 치환. 각 섹션 고유 `grid-template-areas`/`grid-template-rows`/gap 은 그대로 보존. **diff 0** — 순수 변수 치환, G4 라이브 합성요소 computed `1fr 1fr 28px` (토큰 resolve == literal, `match:true`) + type-check PASS + 직접 literal 사용 site 0 grep 확증.
+3. **패턴 A(typography) DOM 유지**: A방식은 DOM 무변경 — typography 는 section-content 직접 grid 그대로, 컬럼만 토큰 참조. 패턴 A→B 전환은 미실시(R5 회피, 과잉 변경 금지).
+4. **`.fieldset-actions { grid-area: auto }` 리셋(inspector-layout.css) 은 존치**: A방식은 기존 wrapper 구조를 안 건드리므로 오버라이드 체인도 그대로 (전환하지 않은 이상 정상 동작). rule §3 에 "리터럴 3열 재선언 금지 + 토큰 사용" 명문화로 재발 차단.
+
+**`.fieldset-row` 위상**: §1-4 / §4 상관관계 계약의 **신규 패널용 forward-standard** 로 유지(문서 정의). 기존 인스펙터 8 래퍼는 소급 전환 안 함. `.fieldset-row` 를 실제 CSS 로 도입하는 시점은 첫 신규-패널 소비자와 함께 (dormant 금지 원칙 — 지금 빈 정의 추가 안 함). 그 정의도 `--inspector-row-columns` 토큰 사용.
 
 ### 4-c. 네이밍/규칙 위반 정리
 
@@ -240,6 +244,6 @@ CSS 규모: components/styles/index.css 1,169줄 (잡화 집합), panel-system.c
 - [x] **Phase 2 (2026-07-25)**: datatable/datatableEditor root `.panel` 병기 (4 div, diff 0 — unlayered root 가 layered `.panel` 이김, Chrome 실측 before==after + 활성화 렌더 정상 G4). `panel-tabs` "4중 정의" = miscount 실측 정정(단일 정의 + datatable 전용) → 이전/rename 은 Phase 4-c 이연. Section 도입 미실시(flat 유지). commit: (본 커밋)
 - [x] **Phase 3 (2026-07-25)**: 표준 4패널(themes/ai/history/fonts) root `.panel` 병기 (diff 0 — Chrome computed before==after + themes 활성화 렌더 정상 G4). 실측 정정: settings=대시보드 컴포넌트(scope 밖) / monitor=dev tool 예외(§6). commit: (본 커밋)
 - [x] **Phase 4-a (2026-07-25)**: `.section-divider` 예약 prefix 회수 (ApiEndpointEditor.css → panel-system.css `@layer builder-system`, diff 0 — G4 라이브 합성요소 computed 확인 + 규칙 1개 확증). iconButton(base 0+5 context override)/empty-state(EmptyState 컴포넌트 단일소스)/control-button(정의 부재) 3건 = §0 census miscount 실측 정정. datatable editor 계열 추가 squat(VariableEditor `.section-header`, DataTableCreator `.panel-selection`/`.section-tabs`) → 4-c routing(item 9). commit: (본 커밋)
-- [ ] Phase 4-b: fieldset-row 정의+5종 래퍼 흡수+패턴 A 전환 (스냅샷 diff + G4)
+- [x] **Phase 4-b (2026-07-25, A방식)**: 인스펙터 3열 템플릿 `--inspector-row-columns` 토큰 single-source (9회 재선언 → 토큰 1개 + var() 9곳, diff 0 — G4 라이브 `match:true` computed `1fr 1fr 28px` + type-check + literal site 0). 재실측 정정: row 래퍼 5종→8개+pattern-A(`.direction-alignment-grid` 오포함). 원안 B(클래스 병기+패턴 A→B DOM)는 R5 위험으로 사용자가 A방식 선택(결정지점 ④). `.fieldset-row` 는 신규 패널 forward-standard 로 문서 유지(소급 전환 안 함). rule §3 정정. commit: (본 커밋)
 - [ ] Phase 4-c: TagEditor fieldset 수정, Tailwind 6파일 제거, tab-\* 오용/bare modifier 정리, rename 기각 기록
 - [ ] CHANGELOG Architecture 반영 + ADR Implemented 승격 시 README 동시 갱신

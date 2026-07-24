@@ -67,7 +67,7 @@ globs:
 
 - **구조 정본**: panel-system.css 가 구조 클래스의 유일 정의처. **top-level 선택자만** — `.section` 블록 내부에 `.panel-wrapper` 중첩 금지 (조상-자손 순서가 실제 DOM 과 반대라 영구 무매칭 dead 블록이 된다. 정적 가드 `panel-system.static.test.ts` 로 차단).
 - **패널 전용 CSS**: 해당 패널 디렉터리에 co-locate. 단 구조 클래스 재정의 금지, 고유 클래스만. 패널 밖 CSS(`Workspace.css` 등) 차용 금지.
-- **섹션별 grid 배치**: inspector-layout.css 의 `.section { &[data-section-id="…"] .section-content {…} }` 패턴 (조상 `.section` 먼저 → live). 인스펙터 3열 템플릿은 `.fieldset-row` 로 통합하고 섹션별 차이는 `grid-template-areas` 로만.
+- **섹션별 grid 배치**: inspector-layout.css 의 `.section { &[data-section-id="…"] .section-content {…} }` 패턴 (조상 `.section` 먼저 → live). 인스펙터 3열 컬럼 템플릿 SSOT 는 `--inspector-row-columns` 토큰 (`.section` 정의, ADR-163 Phase 4-b — 구 9회 재선언 단일화). 각 섹션 wrapper 는 `grid-template-columns: var(--inspector-row-columns)` + 고유 `grid-template-areas` 조합. 리터럴 `1fr 1fr var(--inspector-control-size)` 신규 재선언 금지. `.fieldset-row`(신규 패널 표준, §4)도 이 토큰 사용.
 - 공용 위젯(`.iconButton`, `.empty-state`, `.panel-tabs`)은 단일 파일 1회 정의로 통합.
 
 ## 4. 상관관계 계약 (클래스 간 필수 쌍/위치)
