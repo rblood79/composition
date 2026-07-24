@@ -16,6 +16,7 @@ import {
 import { Braces } from "lucide-react";
 import { iconEditProps } from "../../../utils/ui/uiConstants";
 import { PropertyFieldset } from "./PropertyFieldset";
+import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
 import "./PropertyFieldTemplateInput.css";
 
 interface PropertyFieldTemplateInputProps {
@@ -38,6 +39,12 @@ export function PropertyFieldTemplateInput({
 }: PropertyFieldTemplateInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState<string>(value ?? "");
+
+  // 필드 삽입 팝오버를 패널 표준 규약(PropertySelect / PropertyUnitInput 과 동일)에
+  // 맞춰 control 외곽 박스(`.react-aria-Group`) 폭·좌측에 정렬한다. controlRef 는
+  // input+trigger 컨테이너에 붙이고, anchor(group)는 PropertyFieldset 이 렌더하므로
+  // closest 자동 해석에 맡긴다.
+  const pickerPopover = useControlPopoverMetrics();
 
   // 외부 값 변경(선택 요소 전환 등) 시 로컬 상태 동기화.
   useEffect(() => {
@@ -86,10 +93,19 @@ export function PropertyFieldTemplateInput({
             className="react-aria-Button field-picker-trigger"
             aria-label="필드 삽입"
             isDisabled={disabled || columns.length === 0}
+            // 팝오버를 필드 박스(부모 react-aria-Group) 좌측·폭에 정렬하려면 offset 을
+            // 트리거 버튼 기준으로 계산해야 한다 — controlRef 를 우측 버튼에 붙이면
+            // margin-left = group.left − button.left 로 팝오버가 부모 시작점에 맞춰진다.
+            ref={pickerPopover.controlRef}
           >
-            <Braces size={iconEditProps.size} />
+            <span aria-hidden="true" className="field-picker-icon">
+              <Braces size={iconEditProps.size} />
+            </span>
           </Button>
-          <Popover className="react-aria-Popover">
+          <Popover
+            className="react-aria-Popover property-select-popover"
+            style={pickerPopover.popoverStyle}
+          >
             <Menu
               className="react-aria-Menu"
               aria-label="collection 필드"

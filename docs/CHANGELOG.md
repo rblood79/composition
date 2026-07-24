@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Text 필드 피커 시각 통일 — width combo 셸 + 팝오버 부모 정렬] - 2026-07-24
+
+### Features
+
+- **ListBoxItem Content ▸ Text 의 `{field}` 컬럼 피커를 패널 표준 셸로 통일**:
+  - Text 템플릿 입력(`PropertyFieldTemplateInput`)이 혼자 다른 flex 레이아웃으로 떠 있던 것을 Transform ▸ width(`PropertyUnitInput`) 와 동일한 시각 규약으로 맞췄다. input 은 배경 투명·테두리 제거로 회색 `react-aria-Group` 셸과 통합하고, 우측 Braces 트리거는 width 의 chevron 자리와 동일한 20×20 흰 정사각(radius-sm) 버튼으로 정렬.
+  - **팝오버 부모 정렬**: 필드 삽입 팝오버가 우측 트리거 버튼에 앵커링돼 오른쪽으로 벗어나던 것을, `useControlPopoverMetrics` 의 `controlRef` 를 트리거 버튼에 붙여 `margin-left = group.left − button.left` 로 부모(field 박스) 좌측·폭에 정렬. width/PropertySelect 팝오버와 동일 규약.
+  - 상호작용(커서에 `{key}` 삽입, 여러 필드 혼합)과 ARIA(role=textbox + menu button)는 그대로 유지 — RAC ComboBox(role=combobox, 단일 값 선택) 로 바꾸지 않은 이유는 삽입 모델·접근성 시맨틱 보존(D1).
+  - 검증: live 실측(dev builder) — 셸/input/트리거 computed 가 width 와 픽셀 일치(셸 `--bg-muted`/padding 4/radius 6, input transparent+border0+`0 0 0 4px`+12px, 트리거 20×20 흰박스 radius 4) + 팝오버 `x/w` = 부모 group `x/w` (1957/216, 오차 0).
+  - 위치: `apps/builder/src/builder/components/property/PropertyFieldTemplateInput.{tsx,css}`
+
 ## [Override Reset 회복 토스트 + globalToast 쿨다운 우회 옵션] - 2026-07-24
 
 ### Features

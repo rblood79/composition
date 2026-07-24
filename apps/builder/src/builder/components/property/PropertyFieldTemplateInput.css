@@ -1,19 +1,64 @@
-/* ADR-159 P4a — {field} 템플릿 입력 + 컬럼 피커 (input + trigger 1행) */
+/* ADR-159 P4a — {field} 템플릿 입력 + 컬럼 피커 (input + trigger 1행).
+   2026-07-24: 시각 셸을 width(PropertyUnitInput) 규약에 통일 — 회색 react-aria-Group
+   박스(PropertyFieldset 제공) 안에서 input 은 배경 투명·테두리 제거로 셸과 매끄럽게
+   통합하고, 우측 트리거는 chevron 자리와 동일한 20×20 흰 정사각 버튼으로 맞춘다.
+   상호작용(커서에 {key} 삽입)과 role(textbox + menu button)은 유지. */
 .property-field-template-input {
   display: flex;
   align-items: center;
-  gap: 4px;
-}
-
-.property-field-template-input .react-aria-Input {
-  flex: 1 1 auto;
+  width: 100%;
   min-width: 0;
 }
 
+/* input: 셸과 통합 (width 의 combobox-container 규약) */
+.property-field-template-input .react-aria-Input {
+  flex: 1 1 auto;
+  min-width: 0;
+  background-color: transparent;
+  border: none;
+  outline: none;
+  padding: 0 0 0 var(--spacing-xs);
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
+  color: var(--fg);
+}
+
+.property-field-template-input .react-aria-Input::placeholder {
+  color: var(--fg-muted);
+}
+
+/* 트리거: width 의 chevron span(20×20 흰 정사각, radius-sm)과 동일 셸 */
 .property-field-template-input .field-picker-trigger {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
+  width: var(--text-xl);
+  height: var(--text-xl);
+  padding: 0;
+  border: none;
+  background-color: transparent;
+}
+
+.property-field-template-input .field-picker-trigger[data-focus-visible],
+.property-field-template-input .field-picker-trigger[data-pressed],
+.property-field-template-input .field-picker-trigger[data-focused] {
+  outline: none;
+}
+
+.property-field-template-input .field-picker-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--text-xl);
+  height: var(--text-xl);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-white);
+  color: var(--fg-muted);
+}
+
+.property-field-template-input
+  .field-picker-trigger:not([data-disabled]):hover
+  .field-picker-icon {
+  color: var(--fg);
 }
