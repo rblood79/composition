@@ -11,7 +11,7 @@
 - **제외 (grid intrinsic 계열, round 1 리뷰 반영)**: grid item automatic minimum (CSS-GRID-1 §6.6) · intrinsic track (min/max-content) — grid.rs 미구현 영역으로 ① 후속과 동반. 본 ADR 의 §4.5 floor 는 flex item 한정.
 - ①/⑤ 는 본 ADR Consequences 에 후속 관계만 기록한다.
 
-## 2. Phase 0 — 인벤토리 freeze (필수 선행)
+## 2. Phase 0 — 인벤토리 freeze (필수 선행) — ✅ Implemented 2026-07-24
 
 압축 전 분석이 stale 메모리를 승계해 ④ 를 "엔진 미지원" 으로 잘못 분류했던 전례가 본 ADR 의 직접 계기 중 하나다. 착수 시점에 아래를 재실측해 freeze 한다.
 
@@ -52,6 +52,7 @@
 
 - 신규 parity fixture (ADR-156 harness): (a) scroll 컨테이너 flex 자식 shrink — Chrome 실측 vs 엔진, **raw style 직행** (Step 5.7 제거 후 보정 없는 입력) (b) `flex:1 minWidth:0` 축소 허용 (c) 자식 flexShrink 명시 시 min floor 와의 상호작용 (d) column 축 min-height:auto 대칭 (e) **grid 클립 컨테이너 no-op 확증** — Step 5.7 은 `FLEX_GRID_DISPLAYS` 대상(`fullTreeLayout.ts:2159`)이라 제거가 grid 경로 무영향임을 fixture 로 증명 (grid 알고리즘은 `flex_shrink` 미소비. grid item automatic minimum(CSS-GRID-1 §6.6)·intrinsic track 은 본 ADR 범위 밖 — grid.rs 미구현 영역, ① 후속과 동반).
 - 기존 parity/유닛 전체 회귀 + Phase 0 에서 수식화한 발산 조합의 실문서 live 확인.
+- **G3 bench (Phase 0 실측 반영)**: 전용 bench harness 부재가 확정됐으므로 Phase 1 에서 flex shrink 케이스 criterion micro-bench 를 신설하고, **floor 도입 직전 커밋에서 기준치를 측정**한 뒤 on/off 비교로 회귀 0 을 판정한다.
 
 ## 4. Phase 2 — position:absolute 잔여 (④)
 
@@ -61,6 +62,8 @@
 | -------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | containing block 조상 체인 (nearest positioned ancestor) | 직계 부모 고정   | 실사용 0건 → "의도적 미지원" 을 `tree.rs` doc comment + `layout-engine.md` 에 명문화하고 종결 / 실사용 있음 → `tree.rs` 조상 탐색 구현 + fixture |
 | `position:fixed` viewport 기준                           | absolute 로 근사 | 동일 규칙 (캔버스 환경에서 viewport = page frame 인지의 판정 포함)                                                                               |
+
+> **Phase 0-3 실측 결과 (2026-07-24, §7)**: 두 잔여 모두 실사용 **0건** → Decision 조건부 규칙상 "의도적 미지원 명문화" 경로. G5 근거 확보.
 
 ## 5. Phase 3 — 문서·규칙 정합 + 경계 계약 명문화
 
@@ -79,18 +82,22 @@
 | f32 `Math.ceil` 보정                                                                              | 엔진 f32 ↔ JS f64 정밀도 경계 — 흡수 대상 아님                                                                                                           |
 | layoutCache 시그니처/무효화 (5-심볼 2계층)                                                        | store 결합 — 마샬링 비용 > 계산 비용                                                                                                                     |
 
-## 7. 인벤토리 표 (Phase 0 산출물 — 착수 시 갱신)
+## 7. 인벤토리 표 (Phase 0 산출물 — 2026-07-24 freeze)
 
-> Phase 0 완료 전까지는 2026-07-24 사전 조사 값. freeze 시 실측으로 교체.
+> Phase 0 실측 완료 (execute-adr). 사전 조사 값과의 gap 은 본 표 보강으로 흡수했다 (adr-writing M3).
 
-| 항목                    | 사전 조사 값 (2026-07-24)                                                                                                             |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| TS 레이어 규모          | `utils.ts` 5,422 / `fullTreeLayout.ts` 3,034 / `implicitStyles.ts` 2,774 (합 11,230줄 — 이 중 본 ADR 제거 대상은 §3-2 표의 보정 지점) |
-| Step 5.7 소재           | `fullTreeLayout.ts:2156` (단일 소재 — 문서의 TaffyFlexEngine 이중화 서술은 stale)                                                     |
-| minWidth 동시 주입 소재 | `utils.ts:4712`                                                                                                                       |
-| 엔진 automatic minimum  | 부재 (`flex.rs` §9.7 분배는 `flex_shrink`/명시 `min_width` 만 소비)                                                                   |
-| 엔진 absolute           | 구현됨 (`tree.rs:609~790`, `resolve_abs_axis` 2414~) — 잔여는 §4 표 2건                                                               |
-| parity harness          | `apps/builder/tests/parity/*.browser.test.ts` + `vitest.browser.config.ts` (ADR-156)                                                  |
+| 항목                                          | 실측 값 (2026-07-24 freeze)                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TS 레이어 규모                                | `utils.ts` 5,422 / `fullTreeLayout.ts` 3,034 / `implicitStyles.ts` 2,774 (합 11,230줄 — wc 재검 일치). 본 ADR 제거 대상은 §3-2 표의 보정 지점 한정                                                                                                                                                                                                                                                                                                                                                   |
+| Step 5.7 소재·조건 (0-1)                      | `fullTreeLayout.ts:2156~2179` **단일 소재** (TaffyFlexEngine 이중화 서술은 stale — 0-4). 조건 실측: `FLEX_GRID_DISPLAYS` 컨테이너 ∧ 주축 방향 overflow≠visible(`overflow` 단축 fallback, row→overflowX / column→overflowY) → flexShrink 미명시 자식 **전원** `flexShrink=0`. grid 컨테이너도 주입 대상이나 grid 알고리즘은 flex_shrink 미소비 → no-op (fixture (e) 확증 대상)                                                                                                                        |
+| minWidth 동시 주입 소재 (0-1)                 | `utils.ts:4712~4713` (`isFlexChild && style?.minWidth == null` → `injectedStyle.minWidth = ceiledWidth`). growsInFlex 분기 `4703~4705` — width 주입은 non-grow 한정이며 **width 주입 자체는 유지 대상** (측정값 전달 채널, ① 영역)                                                                                                                                                                                                                                                                   |
+| 기타 flexShrink/minWidth 소재 전수 판정 (0-1) | 제거 대상 아님 4군: ⓐ `implicitStyles.ts` 28건 — catalog/컴포넌트 의미론 (예: Label 공통 `flexShrink:0` 주입 `2710~2721`) → §6 잔존 ⓑ `taffyDisplayAdapter.ts:247` INLINE_BLOCK_LEAF `flexShrink:0` — inline-block 비축소 에뮬레이션 (display 의미론) ⓒ flex shorthand 파싱 3곳 (`fullTreeLayout.ts:579~587` / `TaffyFlexEngine.ts:184~219` / `utils.ts:5310~5321`) — §3-2 명시 제외 ⓓ `utils.ts:2031` (catalog sizeConfig read) · `4150` (style 파싱) · `5220` (NodeStyle passthrough) — 주입 아님  |
+| 발산 조합 수식화 (0-2)                        | Step 5.7 발산 = {주축 overflow≠visible flex 컨테이너} ∧ {자식 flexShrink 미명시} ∧ {Σ 자식 hypothetical size > 배치폭}. 현행 = shrink 전면 금지 → CSS 대비 과대 폭·오버플로. 명세 전환 시 **이 조합만** §4.5 floor 까지 shrink 재개 (R1 조합 = G4 live 확인 대상). 역방향: injected minWidth = 단일줄 측정폭(ceil) ≥ 실제 min-content → 재줄바꿈 케이스에서 CSS 대비 덜 shrink — ① 영역, §6 "상한 근사" 계약과 일치                                                                                  |
+| ④ 실사용 (0-3)                                | **0건**: factory absolute/fixed 기본값 0건 (`position:"relative"` 1건 — `GroupComponents.ts:32`) + Inspector position 편집 UI 미노출 (panels grep 0건). TS fixed→absolute 강제 변환 지점: `fullTreeLayout.ts:597·861~868` / `TaffyBlockEngine.ts:138·187` / `TaffyFlexEngine.ts:121~124·266` (엔진은 absolute 만 수신). 렌더 층에 별도 sticky/fixed 좌표 보정 경로 존속 (`renderCommands.ts:499~`, ADR-151 B19 카메라 역보정 미활성 — 보류 항목). → Phase 2 는 "의도적 미지원 명문화" 경로 (G5 근거) |
+| 엔진 automatic minimum                        | 부재 재확인 — `flex.rs` §9.7 분배는 `flex_shrink`(off 16) / 명시 `min_main`(off 9, AUTO=-1) 만 소비. floor 기준값은 `content_main`(off 13) 재사용 가능, **item overflow 필드 부재** (§3-1 — `FLEX_FIELD_COUNT` 18→19 시 3 직렬화 경로 동시 갱신)                                                                                                                                                                                                                                                     |
+| 엔진 absolute                                 | 구현됨 (`tree.rs:609~790`, `resolve_abs_axis` 2414~) — 잔여는 §4 표 2건                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| stale 문서 목록 (0-4)                         | `layout-engine.md:121` `_runTaffyPassRaw` (코드 심볼 grep 0건 — 문서·ADR 역사 기록만 잔존) / 동 §"Overflow Scroll + Flex Shrink 보정" 폐기 대상 / 동 §"CSS min-width:auto 에뮬레이션" 교체 대상 / `canvas-rendering.md` §7 금지 패턴 2행 (flex 자식 minWidth 미설정 · overflow flexShrink 보정) 갱신 대상 — Phase 3                                                                                                                                                                                  |
+| parity/bench baseline (0-5)                   | parity **10 파일 / 74 테스트 PASS** (tests 827ms, `pnpm --filter builder test:parity`) / cargo **309 PASS** (lib 282 + 통합 15·11·1) / type-check baseline PASS. **전용 bench harness 부재** (benches/ 없음 · criterion 미의존 · bench script 0건) → G3 판정 수단: Phase 1 에서 flex shrink 케이스 criterion micro-bench 신설, floor 도입 직전 기준치 측정 후 on/off 비교 (§3-3, M3 — 실측 gap 의 Phase 0 보강 흡수)                                                                                 |
 
 ## 8. 커밋 단위
 

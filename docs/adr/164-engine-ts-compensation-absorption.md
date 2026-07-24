@@ -123,3 +123,7 @@ TS 보정 레이어 규모: `utils.ts` 5,422 + `fullTreeLayout.ts` 3,034 + `impl
 - 기존 문서 중 R1 조건 조합의 시각 결과가 달라질 수 있다 (명세 정합 방향의 의도된 변화 — G1/G4 로 관리).
 - `packages/composition-engine` 에 min-content 재귀 코드가 추가되어 flex 알고리즘 복잡도 증가 (§4.5 명세 1:1 이라 근거는 자명).
 - ① 이 후속으로 남는 동안 enrichWithIntrinsicSize 의 width 주입·2-pass Step 4.5 는 존속 — TS 레이어 축소 폭은 보정 지점 한정 (수천 줄 소멸은 ① 의 몫).
+
+## 진행 로그
+
+- **2026-07-24 — Phase 0 (인벤토리 freeze) Implemented**: breakdown §7 을 실측으로 교체. 핵심 실측 3건 — (1) ④ 실사용 **0건** (factory absolute/fixed 0건 + Inspector position 편집 UI 미노출) → Phase 2 는 Decision 조건부 규칙상 "의도적 미지원 명문화" 경로, G5 근거 확보. (2) 전용 bench harness **부재** → G3 판정 수단을 Phase 1 criterion micro-bench 신설 + floor 도입 직전 기준치 측정으로 구체화 (breakdown §3-3). (3) baseline: parity 74 PASS / cargo 309 PASS / type-check PASS. 코드 무변경 phase 라 G4 live exercise 는 해당 없음 (Phase 1 부터 적용).
