@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [선택 드래그 의도 판정 — 겹친 요소 클릭 허용 (Figma/Pencil 정합)] - 2026-07-24
+
+### Bug Fixes
+
+- **선택된 요소의 박스에 겹쳐 있을 뿐인 다른 요소를 클릭하면 선택이 바뀌지 않던 문제**:
+  - pointerdown 을 "현재 선택을 잡아 끄는 동작(드래그 의도)" 으로 볼지의 판정이 **선택 박스(bbox) 안인가** 단독이었다. 그래서 커서 아래에 다른 요소가 있어도 이전 선택 박스 안이기만 하면 클릭이 삼켜졌다.
+  - **Why**: 선택 박스는 드래그 핸들일 뿐 히트 영역이 아니다. 깊이 진입은 이미 더블클릭 + `editingContext`(`resolveClickTarget`)가 전담하고 있어서, 이 판정까지 깊이/포함관계를 겸하면 겹친 형제 클릭이 사라진다. body 선택 시 페이지 전체가 삼켜지던 것을 호출부 특수 분기로 막아둔 것도 같은 결함의 국소 우회였다.
+  - 수정: 판정을 `resolveSelectionDragIntent()` 로 분리하고 기준을 **계층 정규화된 클릭 타깃**으로 교체 — 커서 아래 요소를 현재 editingContext 깊이로 정규화한 결과가 선택 요소면 드래그, 아니면 그 요소를 새로 선택. body 예외와 "히트 없음 → 드래그 유지"(기존 동작 보존)를 함수 내부로 흡수해 호출부 특수 분기를 제거. `inSelectionBounds` 는 이 판정과 AND 로만 쓰인다.
+  - 외부 도구 대조: Figma 는 실제 객체 지오메트리로 판정해 클릭한 객체를 선택(공식 문서). Pencil 도 동일 — **실측 확인**(Pencil 앱 MCP): 파랑 프레임 선택 → 파랑 bbox 안의 주황 프레임 클릭 → 주황 선택. 깊이 진입은 두 도구 모두 더블클릭이라 composition 과 이미 일치했고 발산 지점은 이 판정 하나였다(중첩 3단 검정 클릭 → 초록 선택으로 실측).
+  - 검증: live 실측(dev builder) — 실제 Components 페이지 문서 트리(50 요소)에 판정 로직 직접 실행: (a) `component-gridlist` 선택 + `component-form__field-1-input` 클릭 → 드래그 의도 false(=선택 전환, 40클릭 트레이스에서 잡혔던 잔존 1건), (b) 자기 자신 클릭 true, (c) 자손(`__label`) 클릭 true, (d) body 선택 + 자식 클릭 false, (e) 히트 없음 true. 신규 회귀 테스트 8 + builder 2631 PASS / type-check PASS. **미검증**: 브라우저 탭이 백그라운드(Skia RAF 정지)라 포인터 이벤트 경유 실클릭은 확인하지 못함.
+  - 위치: `apps/builder/src/builder/workspace/canvas/interaction/selectionModel.ts`, `interaction/index.ts`, `hooks/useCentralCanvasPointerHandlers.ts`, `utils/hierarchicalSelection.ts`(읽기 전용 `ReadonlyMap` 확장)
+  - 규칙: `.claude/rules/canvas-rendering.md` §8.8 (드래그 의도 = 계층 정규화 타깃 + 금지 패턴)
+
 ## [Breakpoint별 Canvas viewport 복원] - 2026-07-24
 
 ### Features

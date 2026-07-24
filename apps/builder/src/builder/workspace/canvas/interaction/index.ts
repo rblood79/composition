@@ -2,6 +2,7 @@ export {
   computeSelectionBounds,
   resolveBodySelection,
   resolveSelectedElementsForPage,
+  resolveSelectionDragIntent,
   resolveSelectionHit,
   resolveTopmostHitElementId,
 } from "./selectionModel";

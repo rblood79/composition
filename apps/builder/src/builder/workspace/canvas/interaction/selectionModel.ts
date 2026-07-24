@@ -21,6 +21,7 @@ import {
 } from "../selection/selectionHitTest";
 import { getViewportController } from "../viewport/ViewportController";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
+import { resolveClickTarget } from "../../../utils/hierarchicalSelection";
 import type { CanvasInteractionNode } from "./interactionNode";
 
 interface ResolveSelectedElementsForPageInput {
@@ -178,6 +179,64 @@ export function computeSelectionBounds({
   }
 
   return calculateCombinedBounds(boxes);
+}
+
+interface ResolveSelectionDragIntentInput {
+  editingContextId: string | null;
+  elementsMap: ReadonlyMap<string, CanvasInteractionNode>;
+  hitElementId: string | null;
+  selectedIds: readonly string[];
+}
+
+/**
+ * pointerdown 을 "현재 선택을 잡아 끄는 동작" 으로 볼지 판정한다.
+ *
+ * 판정 기준은 선택 박스(bbox) 가 아니라 **클릭 타깃의 계층 정규화 결과**다. 커서 아래
+ * 요소를 현재 editingContext 깊이로 정규화(`resolveClickTarget`)한 결과가 지금 선택된
+ * 요소면 드래그, 아니면 그 요소를 새로 선택하도록 흘려보낸다.
+ *
+ * **Why**: bbox 로 판정하면 선택 요소의 박스에 겹쳐 있을 뿐인 **다른 요소** 를 클릭해도
+ * 드래그 의도로 먹혀서 선택이 통째로 무시된다 (2026-07-24 실측: `component-gridlist`
+ * 선택 상태에서 그 박스 안으로 들어온 `component-form` 입력 클릭이 무반응). Figma /
+ * Pencil 은 둘 다 실제 객체 지오메트리로 판정해 그 객체를 선택한다 (Pencil 실측 확인:
+ * 파랑 선택 → 파랑 bbox 안의 주황 클릭 → 주황 선택). 깊이 진입은 더블클릭 +
+ * editingContext 가 이미 전담하므로 이 판정이 깊이 모델을 대신할 이유가 없다.
+ *
+ * 예외 2가지는 기존 동작을 그대로 보존한다:
+ * - body 선택: 선택 박스가 페이지 전체를 덮어 모든 클릭이 삼켜지므로 드래그 의도 아님
+ *   (body 는 하위 로직에서도 드래그 대상 제외).
+ * - 히트 없음(`hitElementId === null`): 빈 영역이라도 선택 박스 안이면 드래그 핸들로 둔다.
+ */
+export function resolveSelectionDragIntent({
+  editingContextId,
+  elementsMap,
+  hitElementId,
+  selectedIds,
+}: ResolveSelectionDragIntentInput): boolean {
+  if (selectedIds.length === 0) {
+    return false;
+  }
+
+  const singleSelected =
+    selectedIds.length === 1 ? elementsMap.get(selectedIds[0]) : null;
+  if (singleSelected?.type.toLowerCase() === "body") {
+    return false;
+  }
+
+  if (hitElementId === null) {
+    return true;
+  }
+
+  if (selectedIds.includes(hitElementId)) {
+    return true;
+  }
+
+  const resolved = resolveClickTarget(
+    hitElementId,
+    editingContextId,
+    elementsMap,
+  );
+  return resolved !== null && selectedIds.includes(resolved);
 }
 
 export function resolveSelectionHit(

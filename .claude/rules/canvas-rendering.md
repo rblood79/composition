@@ -263,6 +263,29 @@ ParagraphStyle 변경 시 **3곳 동시 업데이트** 필수: canvaskitTextMeas
 - ❌ 한 bounds 계산 함수 안에서 body 분기와 요소 분기가 다른 좌표계 사용
 - ❌ 선택이 "가끔" 안 되는 증상을 히트 테스트 문제로 단정 — `inSelectionBounds` 가드가 먼저 삼키는지 확인 (히트는 성공하고 그 뒤 단계에서 버려질 수 있다)
 
+## 8.8 드래그 의도 판정 — bbox 아닌 계층 정규화 타깃 (2026-07-24)
+
+pointerdown 을 "현재 선택을 잡아 끄는 동작" 으로 볼지의 판정은 **선택 박스 안인가**가 아니라 **커서 아래 요소를 현재 editingContext 깊이로 정규화한 결과가 지금 선택된 요소인가**로 한다. 단일 진입점은 `resolveSelectionDragIntent()` (`interaction/selectionModel.ts`).
+
+| 클릭 대상                                  | 드래그 의도 | 결과                                                   |
+| ------------------------------------------ | :---------: | ------------------------------------------------------ |
+| 선택 요소 자신                             |     ✅      | 선택 유지 + `pendingDrag`                              |
+| 선택 요소의 자손 (정규화 결과가 선택 요소) |     ✅      | 선택 유지 + `pendingDrag`                              |
+| **선택 박스에 겹쳤을 뿐인 다른 요소**      |     ❌      | **그 요소를 새로 선택**                                |
+| body 선택 상태                             |     ❌      | 자식 클릭이 정상 선택                                  |
+| 히트 없음 (`hitElementId === null`)        |     ✅      | 기존 동작 보존 — 빈 영역이어도 박스 안이면 드래그 핸들 |
+
+- 깊이 진입은 **더블클릭 + `editingContext`** (`resolveClickTarget` / `handleElementDoubleClick`) 가 전담한다. 드래그 의도 판정이 깊이 모델을 겸하면 안 된다 — 두 축이 섞이면 겹친 형제 클릭이 삼켜진다.
+- body 예외를 판정 함수 **바깥**에 특수 분기로 두지 않는다. body 선택 박스는 페이지 전체를 덮어 bbox 판정이면 모든 클릭이 무시되므로, 같은 결함의 국소 우회가 재발한다.
+- **Why (2026-07-24 실측 + 외부 도구 대조)**: 판정이 bbox 였을 때 `component-gridlist` 선택 상태에서 그 박스(`20,374 350x340`) 안으로 들어온 `component-form__field-1-input` 클릭이 무반응이었다. Figma 는 실제 객체 지오메트리로 판정해 그 객체를 선택하고(공식 문서), Pencil 도 동일 — 실측 확인: 파랑 프레임 선택 → 파랑 bbox 안의 주황 프레임 클릭 → **주황 선택**. 깊이 진입은 두 도구 모두 더블클릭이라 composition 과 이미 일치했고, 발산 지점은 이 판정 하나였다.
+
+### 금지 패턴
+
+- ❌ `hitTestSelectionBounds` 결과(`inSelectionBounds`) 단독으로 드래그 의도 판정 — `resolveSelectionDragIntent()` 와 **AND** 로만 사용
+- ❌ 드래그 의도를 "선택 요소의 자손인가" 로 판정 — body 는 모든 요소의 조상이라 body 선택 시 전 클릭이 삼켜진다 (정규화 결과 비교여야 함)
+- ❌ body 선택 특수 분기를 호출부에 재도입 (`resolveSelectionDragIntent` 내부가 유일한 거처)
+- ❌ 깊이 진입 규칙을 드래그 의도 판정에 얹기 (더블클릭 + editingContext 가 전담)
+
 ## 9. Render-Space Interaction Boundary (ADR-135/136 Implemented 2026-05-14/15)
 
 > Page Frame projection 도입 후, hit-test/그리기 ID 공간과 canonical document ID 공간을 분리. 위반 시 데이터 corruption 또는 split-brain 인터랙션 발생.

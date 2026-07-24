@@ -13,6 +13,7 @@ import {
   resolveBodySelection,
   resolveDoubleClickTargetId,
   resolveCanvasInteractionTarget,
+  resolveSelectionDragIntent,
   resolveSelectionHit,
 } from "../interaction";
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
@@ -262,16 +263,23 @@ export function useCentralCanvasPointerHandlers({
       const hitTargetPageId =
         interactionTarget.kind === "select" ? interactionTarget.pageId : null;
 
-      // body가 선택된 상태에서는 inSelectionBounds를 무시한다.
-      // body의 selectionBounds가 전체 페이지를 커버하므로,
-      // 내부 요소 클릭 시 inSelectionBounds=true가 되어 클릭이 무시되는 버그 방지.
       const selectedElement =
         selectedIds.length === 1 ? hitElementsMap.get(selectedIds[0]) : null;
-      const isBodySelected = selectedElement?.type.toLowerCase() === "body";
 
-      const { inSelectionBounds } = isBodySelected
-        ? { inSelectionBounds: false }
-        : resolveSelectionHit(canvasPos, selectionBounds, zoom);
+      // 드래그 의도 판정은 선택 박스(bbox)가 아니라 **계층 정규화된 클릭 타깃** 기준이다.
+      // bbox 기준이면 선택 박스에 겹쳐 있을 뿐인 다른 요소 클릭까지 삼켜서 선택이 무시된다.
+      // body 선택 / 히트 없음 예외는 resolveSelectionDragIntent 내부에 흡수됨.
+      // 상세: .claude/rules/canvas-rendering.md §8.8
+      const isSelectionDragIntent = resolveSelectionDragIntent({
+        editingContextId: state.editingContextId,
+        elementsMap: hitElementsMap,
+        hitElementId,
+        selectedIds,
+      });
+
+      const { inSelectionBounds } = isSelectionDragIntent
+        ? resolveSelectionHit(canvasPos, selectionBounds, zoom)
+        : { inSelectionBounds: false };
 
       if (!inSelectionBounds && hitElementId) {
         if (

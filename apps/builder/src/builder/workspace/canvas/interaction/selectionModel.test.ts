@@ -4,7 +4,9 @@ import type { Element } from "../../../../types/core/store.types";
 import {
   computeSelectionBounds,
   resolveSelectedElementsForPage,
+  resolveSelectionDragIntent,
 } from "./selectionModel";
+import type { CanvasInteractionNode } from "./interactionNode";
 
 function makeBody(id: string, frameId: string): Element {
   return withFrameElementMirrorId(
@@ -94,5 +96,84 @@ describe("selectionModel frame body selection", () => {
         selectedElements: [body],
       }),
     ).toEqual({ x: 120, y: 80, width: 640, height: 480 });
+  });
+});
+
+describe("resolveSelectionDragIntent", () => {
+  // body
+  //  ├─ listbox ─ listbox-row
+  //  └─ form    ─ form-input
+  //
+  // listbox 와 form 은 형제이고, listbox 의 선택 박스가 form 위에 겹칠 수 있다
+  // (2026-07-24 실측: component-gridlist 박스 안에 component-form 입력이 들어옴).
+  function node(
+    id: string,
+    type: string,
+    parentId: string | null,
+  ): CanvasInteractionNode {
+    return { id, type, parent_id: parentId, props: {} };
+  }
+
+  const elementsMap: ReadonlyMap<string, CanvasInteractionNode> = new Map([
+    ["body-1", node("body-1", "body", null)],
+    ["listbox", node("listbox", "ListBox", "body-1")],
+    ["listbox-row", node("listbox-row", "ListBoxItem", "listbox")],
+    ["form", node("form", "Form", "body-1")],
+    ["form-input", node("form-input", "TextField", "form")],
+  ]);
+
+  function intent(
+    selectedIds: string[],
+    hitElementId: string | null,
+    editingContextId: string | null = null,
+  ): boolean {
+    return resolveSelectionDragIntent({
+      editingContextId,
+      elementsMap,
+      hitElementId,
+      selectedIds,
+    });
+  }
+
+  it("treats a press on the selected element itself as drag intent", () => {
+    expect(intent(["listbox"], "listbox")).toBe(true);
+  });
+
+  it("treats a press on a descendant of the selection as drag intent", () => {
+    // 계층 정규화(resolveClickTarget)가 자손을 선택 요소로 되돌린다.
+    expect(intent(["listbox"], "listbox-row")).toBe(true);
+  });
+
+  it("does NOT swallow a press on a different element that merely overlaps the selection box", () => {
+    // 회귀: bbox 로 판정하면 여기가 true 가 되어 클릭이 통째로 무시됐다.
+    // Figma / Pencil 실측 — 겹친 다른 객체를 클릭하면 그 객체가 선택된다.
+    expect(intent(["listbox"], "form-input")).toBe(false);
+    expect(intent(["listbox"], "form")).toBe(false);
+  });
+
+  it("does not swallow child presses while body is selected", () => {
+    // body 선택 박스는 페이지 전체를 덮으므로 bbox 판정이면 모든 클릭이 무시된다.
+    expect(intent(["body-1"], "form-input")).toBe(false);
+    expect(intent(["body-1"], "listbox")).toBe(false);
+  });
+
+  it("keeps drag intent when the press hits nothing (기존 동작 보존)", () => {
+    expect(intent(["listbox"], null)).toBe(true);
+  });
+
+  it("returns false when there is no selection", () => {
+    expect(intent([], "listbox")).toBe(false);
+    expect(intent([], null)).toBe(false);
+  });
+
+  it("supports multi-selection", () => {
+    expect(intent(["listbox", "form"], "form-input")).toBe(true);
+    expect(intent(["listbox", "form"], "listbox-row")).toBe(true);
+  });
+
+  it("normalizes against the active editing context", () => {
+    // listbox 안으로 진입한 상태에서는 row 가 선택 단위가 된다.
+    expect(intent(["listbox-row"], "listbox-row", "listbox")).toBe(true);
+    expect(intent(["listbox-row"], "form-input", "listbox")).toBe(false);
   });
 });

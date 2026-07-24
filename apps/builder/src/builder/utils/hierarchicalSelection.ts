@@ -26,7 +26,7 @@ interface MinimalElement {
 export function resolveClickTarget(
   clickedElementId: string,
   editingContextId: string | null,
-  elementsMap: Map<string, MinimalElement>,
+  elementsMap: ReadonlyMap<string, MinimalElement>,
 ): string | null {
   let current: string | undefined = clickedElementId;
 
@@ -117,7 +117,7 @@ export function resolveModifierClickTarget(
 
 function isRootSelectableElement(
   element: MinimalElement,
-  elementsMap: Map<string, MinimalElement>,
+  elementsMap: ReadonlyMap<string, MinimalElement>,
 ): boolean {
   let parentId = element.parent_id;
   const visited = new Set<string>();
