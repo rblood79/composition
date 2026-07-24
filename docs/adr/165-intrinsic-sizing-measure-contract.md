@@ -12,7 +12,8 @@ Proposed — 2026-07-25 (ADR-164 Consequences "후속 ADR 체인" ① — 사용
 
 1. **사전 enrichment 폭 주입** — `utils.ts:4437` `enrichWithIntrinsicSize`: 텍스트 leaf 폭을 CanvasKit 측정으로 선주입. §4.5 content 하한은 **단일줄 측정폭(ceil) 상한 근사** 라 재줄바꿈 케이스에서 CSS 대비 덜 shrink 하는 발산이 명문화돼 있다 (ADR-164 breakdown §7 0-2 역방향).
 2. **2-pass Step 4.5** — `fullTreeLayout.ts:2466`: 배치 폭이 enrichment 가정 폭과 다르면 재측정 → 재계산 (측정-배치 닭-달걀의 범용 우회 장치).
-3. **엔진 센티널 dormant gap** — `packages/composition-engine/src/style.rs:26~30/299~301` 이 `FIT_CONTENT(-2)/MIN_CONTENT(-3)/MAX_CONTENT(-4)` 를 파싱하나, `tree.rs:2339~2364` 는 FIT_CONTENT 를 block 경로에서 부분 통과시킬 뿐 MIN/MAX_CONTENT 소비는 **0건** — 키워드가 파싱되고 소비되지 않는다.
+3. **엔진 센티널 dormant gap** — `packages/composition-engine/src/style.rs:26~30/299~301` 이 `FIT_CONTENT(-2)/MIN_CONTENT(-3)/MAX_CONTENT(-4)` 를 파싱하나, `tree.rs:2339~2364` 는 FIT_CONTENT 를 block 경로에서 부분 통과시킬 뿐 MIN/MAX_CONTENT 소비는 **0건** (tree/flex/block/grid.rs 전수 grep) — 키워드가 파싱되고 소비되지 않는다.
+4. **grid intrinsic 계열 위임** — ADR-164 breakdown §2/§3 이 grid item automatic minimum (CSS-GRID-1 §6.6)·intrinsic track (min/max-content — `grid.rs` 미구현, 현행 0 폴백) 을 "① 후속과 동반" 으로 본 ADR 에 위임했다. 본 ADR 의 스칼라 공급이 곧 grid track sizing 이 요구하는 입력이다 (처분은 Decision 조건부 규칙).
 
 **Hard Constraints**:
 
@@ -78,6 +79,7 @@ Proposed — 2026-07-25 (ADR-164 Consequences "후속 ADR 체인" ① — 사용
 1. **위험 수용 근거** — 잔존 위험의 실질은 재줄바꿈 결과 변화(R1)와 측정 2회 비용(R3)인데, 전자는 "상한 근사 → 명세 정합화" 라는 본 ADR 의 목적 그 자체이고 (Phase 0 수식화 + Chrome oracle fixture + phase revert 로 관리), 후자는 LRU + bench 게이트로 확증한다.
 2. 폭 축 intrinsic 은 스칼라 2종으로 명세상 완결되므로, 콜백 재설계(A) 없이 dormant 센티널 소비 배선만으로 fit/min/max-content 를 엔진이 소유할 수 있다 — ADR-164 가 만든 content 소비 지점(floor)의 정밀화이기도 하다.
 3. height-for-width 는 2-pass 축소 계약으로 명문화해 잔존 — 그 비용이 실측으로 문제가 될 때만 대안 A 를 별도 ADR 로 재평가한다 (재개 조건 기록, R4).
+4. **grid intrinsic 계열 (ADR-164 위임분) 은 조건부 규칙로 닫는다**: Phase 0 실측에서 grid 컨테이너의 min/max-content track·auto track intrinsic 실사용이 0건이면 "의도적 이연" 을 breakdown 에 명문화하고 flex/leaf 축만 진행, 실사용이 있으면 Phase 1 에 `grid.rs` track sizing 의 스칼라 소비를 포함한다 (ADR-164 ④ absolute 잔여와 동형 패턴 — 어느 쪽이든 위임이 본 ADR 안에서 종결된다).
 
 기각 사유:
 
@@ -98,13 +100,13 @@ Proposed — 2026-07-25 (ADR-164 Consequences "후속 ADR 체인" ① — 사용
 
 ## Gates
 
-| Gate | 시점          | 통과 조건                                                                                                                                              | 실패 시 대안                                                           |
-| ---- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
-| G1   | Phase 1 완료  | 신규 parity fixture (재줄바꿈 shrink 정확 하한 / fit-content leaf / max-content — engine+pipeline 2 leg) Chrome 실측 diff 0 + 기존 parity 90 회귀 0    | 해당 케이스 엔진 수정 후 재실행. 명세 해석 쟁점이면 Chrome 실측이 우선 |
-| G2   | Phase 1 완료  | 공급·소비·축소 동시 반영 grep — enrichment 텍스트 leaf 폭 주입 축소 지점과 엔진 센티널 소비 배선이 같은 push. 이중 적용 0건 + type-check baseline 유지 | 해당 push revert 후 재구성 (부분 반영 잔류 금지)                       |
-| G3   | Phase 1 완료  | bench 회귀 0 (flex_shrink 3 시나리오 + 신규 intrinsic 시나리오, best-of-N median ±10% 이내) + 측정 호출 수 증가분 실측 기록                            | LRU 키 정밀화/lazy 측정 후 재측정                                      |
-| G4   | 각 phase 완료 | live builder 1회 exercise (R1 영향 조합 실문서 포함) + 무엇을 exercise 했는지 완료 보고 명시                                                           | 발견 이슈 수정 전 phase 종결 금지                                      |
-| G5   | Phase 0 완료  | Step 4.5 트리거 빈도 + 상한 근사 발산 실사용 케이스 실측 freeze — Phase 2 계약 축소와 R1 수식화의 판정 근거                                            | 실측 없이 Phase 1 착수 금지                                            |
+| Gate | 시점          | 통과 조건                                                                                                                                                                            | 실패 시 대안                                                           |
+| ---- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| G1   | Phase 1 완료  | 신규 parity fixture (재줄바꿈 shrink 정확 하한 / fit-content leaf / max-content — engine+pipeline 2 leg) Chrome 실측 diff 0 + 기존 parity 90 회귀 0                                  | 해당 케이스 엔진 수정 후 재실행. 명세 해석 쟁점이면 Chrome 실측이 우선 |
+| G2   | Phase 1 완료  | 공급·소비·축소 동시 반영 grep — enrichment 텍스트 leaf 폭 주입 축소 지점과 엔진 센티널 소비 배선이 같은 push. 이중 적용 0건 + type-check baseline 유지                               | 해당 push revert 후 재구성 (부분 반영 잔류 금지)                       |
+| G3   | Phase 1 완료  | bench 회귀 0 (flex_shrink 3 시나리오 + 신규 intrinsic 시나리오, best-of-N median ±10% 이내) + 측정 호출 수 증가분 실측 기록                                                          | LRU 키 정밀화/lazy 측정 후 재측정                                      |
+| G4   | 각 phase 완료 | live builder 1회 exercise (R1 영향 조합 실문서 포함) + 무엇을 exercise 했는지 완료 보고 명시                                                                                         | 발견 이슈 수정 전 phase 종결 금지                                      |
+| G5   | Phase 0 완료  | Step 4.5 트리거 빈도 + 상한 근사 발산 실사용 케이스 + grid intrinsic track/auto track 실사용 실측 freeze — Phase 2 계약 축소·R1 수식화·Decision 조건부 규칙(선택 근거 4)의 판정 근거 | 실측 없이 Phase 1 착수 금지                                            |
 
 ## Consequences
 

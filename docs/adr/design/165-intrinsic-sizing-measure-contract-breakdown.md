@@ -21,14 +21,15 @@
 | 엔진 센티널 소비 현황   | `style.rs:26~30/299~301` FIT(-2)/MIN(-3)/MAX_CONTENT(-4) 파싱 존재. `tree.rs:2339~2364` block 경로 FIT_CONTENT 부분 통과만 — MIN/MAX_CONTENT 소비 grep 0건 (dormant 센티널) 재확인                                                                    |
 | 측정 API·캐시           | `canvaskitTextMeasurer.ts:130~` 캐시 구조 + Paragraph `getMaxIntrinsicWidth()`(max-content) / `getMinIntrinsicWidth()`(min-content) 가용성 — Paragraph 객체 캐싱 금지 규칙 하에서 스칼라 2종 추가 측정 비용 산정                                      |
 | bench baseline          | `benches/flex_shrink.rs` 현행 3 시나리오 기준치 (ADR-164 도입 후: S1 16.7µs / S2 71.1µs / S3 15.2µs) + 신규 intrinsic 시나리오 설계                                                                                                                   |
+| grid intrinsic 실사용   | grid 컨테이너의 min/max-content track·auto track intrinsic 실사용 실측 (`grid.rs` 현행 0 폴백, ADR-164 위임분) — Decision 조건부 규칙(선택 근거 4)의 판정 근거 (G5). 0건 = 의도적 이연 명문화 / 있음 = Phase 1 에 grid.rs 스칼라 소비 포함            |
 
 ## 3. Phase 1 — min/max-content 스칼라 계약 (공급 + 소비 + 축소, 같은 phase — HC5)
 
 > 공급(TS 측정)·프로토콜 필드·엔진 소비·enrichment 축소를 **같은 phase 의 같은 push** 로 반영한다 — 공급만 먼저 커밋되면 dormant, 축소만 먼저면 회귀 (ADR-164 HC4 승계 + [[feedback-no-dormant-foundation-ahead-of-flip]]).
 
-- **TS 측정 공급**: `canvaskitTextMeasurer` 에 min-content(최장 단어 폭)/max-content(단일줄 폭) 스칼라 2종 산출 경로 추가 — 결과 `{width,height}` 계열 LRU 재사용, Paragraph 객체 비캐시 규칙 유지.
+- **TS 측정 공급**: `canvaskitTextMeasurer` 에 min-content(최장 단어 폭, Paragraph `getMinIntrinsicWidth()`)/max-content(단일줄 폭, `getMaxIntrinsicWidth()`) 스칼라 2종 산출 경로 추가 — 결과 `{width,height}` 계열 LRU 재사용, Paragraph 객체 비캐시 규칙 유지. 스칼라 2종도 엔진 f32 경계의 `Math.ceil` 보정 대상 (layout-engine.md 기타 규칙 — f32/f64 정밀도 차이로 인한 불필요 wrap 방지).
 - **프로토콜**: leaf content 필드 확장 — 기존 `content_main`(off 13, 단일 값) 을 min/max 2종으로 정밀화하는 필드 신설. ADR-164 선례대로 flex 배열이 Rust 내부 구성(`tree.rs::solve_flex`)이면 TS 직렬화 무변경 범위를 우선 검토, NodeStyle 확장이 필요하면 layout-engine.md 5-심볼 2계층 체인 점검 동반.
-- **엔진 소비**: (a) §4.5 floor 의 `content_main` 상한 근사 → 정확 `min_content` 로 교체 (ADR-164 floor 정밀화). (b) width `fit-content`/`min-content`/`max-content` 센티널 실소비 — CSS-SIZING-3 §5 공식 `fit-content = clamp(min-content, stretch-fit, max-content)`.
+- **엔진 소비**: (a) §4.5 floor 의 `content_main` 상한 근사 → 정확 `min_content` 로 교체 (ADR-164 floor 정밀화). (b) width `fit-content`/`min-content`/`max-content` 센티널 실소비 — CSS-SIZING-3 §5 공식 `fit-content = clamp(min-content, stretch-fit, max-content)`. (c) **조건부**: Phase 0 실측에서 grid intrinsic 실사용 존재 시 `grid.rs` track sizing 의 스칼라 소비 동반 (Decision 선택 근거 4 — 0건이면 의도적 이연 명문화로 종결).
 - **TS enrichment 축소**: 텍스트 leaf 의 폭 주입을 스칼라 공급으로 대체 가능한 분기 한정 축소 — 측정 **주체** 는 TS 잔존 (경계는 Phase 0 freeze 로 확정).
 - **검증**: 신규 parity fixture (재줄바꿈 shrink 정확 하한 / fit-content leaf / max-content, engine+pipeline 2 leg) Chrome diff 0 (G1) + 이중 적용 grep 0 (G2) + bench (G3) + live exercise (G4).
 
