@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Collection 목록 boot 초기화 — DataStore editMode 게이트 제거] - 2026-07-24
+
+### Bug Fixes
+
+- **컴포넌트 Data 바인딩의 collection 목록이 DataTable 패널을 한 번 열기 전까지 비어 보임**:
+  - ListBox 등 Properties > Content > Data 의 컬렉션 피커가 collection 이 실제 등록돼 있어도 "등록된 Collection 이 없습니다." 로 표시되고, DataTable 패널을 1회 열면 그때부터 정상 표시됐다.
+  - **Why**: DataStore 초기화(`initializeForProject` — variables/collections/apiEndpoints)가 `if (editMode === "layout")` 블록 안에 갇혀 있었다. 이 게이트는 frame(layout) 요소 로드 블록의 잔재로 (본문은 2026-05-02 canonical 전환 `ae79affc0` 에서 제거됨), `editMode` 기본값이 `"page"` 라 일반 페이지 편집 boot 에서 초기화가 통째로 skip 됐다. 이후 `DataTablePanel` 마운트 effect 의 `fetchCollections` 가 store 를 채우던 것이 "패널을 열면 나타난다" 증상의 정체.
+  - 수정: 게이트 제거 — DataStore 초기화를 edit mode 무관하게 boot 경로에서 항상 실행. 소비처가 사라진 `useEditModeStore` import 도 함께 제거.
+  - 영향 범위: 컬렉션 피커뿐 아니라 `useCollectionData` 경유 행 데이터(ListBox/GridList/Table)도 패널 개방 없이 boot 시점에 로드된다.
+  - 검증: `BuilderCore.static.test.ts` 정적 가드 추가(게이트 재도입 차단, RED→GREEN) + live — page 모드 새로고침(DataTable 패널 닫힌 상태)에서 `[DataStore] Initialized: 0 variables, 1 tables` 부팅 로그 확인 + ListBox Content>Data 피커 드롭다운에 `Users` 노출 확인.
+  - 위치: `apps/builder/src/builder/main/BuilderCore.tsx`, `apps/builder/src/builder/main/BuilderCore.static.test.ts`
+
 ## [Collection 필드 템플릿 바인딩 — ADR-159 `{field}` 보간 + dataTable 단일 소스] - 2026-07-24
 
 ### Features

@@ -43,3 +43,4 @@
 {"sha":"557b1454ac79d87464441887357fcd86f99f7100","date":"2026-07-19T18:44:38+09:00","promoted_adrs":["docs/adr/completed/154-responsive-breakpoint-authoring.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"2d85b6da45ddb3960aa084b348513180b67de1a0","date":"2026-07-22T23:28:10+09:00","promoted_adrs":["docs/adr/completed/160-collection-projection-metric-ssot.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"70e01fdd8155c6f8c576e84805239020308cb9b1","date":"2026-07-23T22:19:53+09:00","promoted_adrs":["docs/adr/completed/161-gridlist-ref-composite-parity.md"],"readme_updated":false,"changelog_updated":false,"synced":false}
+{"sha":"4872c1644fce2193af8950dedd1e03d10c8aeef4","date":"2026-07-24T09:43:08+09:00","promoted_adrs":["docs/adr/completed/159-collection-field-template-binding.md"],"readme_updated":true,"changelog_updated":true,"synced":true}

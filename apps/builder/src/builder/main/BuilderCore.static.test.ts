@@ -13,7 +13,6 @@ describe("BuilderCore canonical document direct cutover contract", () => {
       'from "@/adapters/canonical/frameElementLoader";',
     );
     expect(source).not.toContain("isLegacyFrameElementForFrame");
-    expect(source).toMatch(/if \(editMode === "layout"\) \{/);
     expect(source).not.toContain("loadFrameElements");
     expect(source).not.toMatch(/elements: await loadFrameElements/);
     expect(source).not.toMatch(
@@ -73,6 +72,23 @@ describe("BuilderCore canonical document direct cutover contract", () => {
     expect(source).not.toContain("canonicalElements ?? state.elements ?? []");
     expect(source).not.toContain(
       ["Array.from(state.", "elements", "Map.values())"].join(""),
+    );
+  });
+
+  it("initializes the data store on boot regardless of edit mode", async () => {
+    const source = await readFile(
+      resolve(__dirname, "BuilderCore.tsx"),
+      "utf-8",
+    );
+
+    // editMode 기본값은 "page" (stores/editMode.ts) 이므로 DataStore 초기화를
+    // layout 게이트 안에 두면 일반 페이지 편집 boot 에서 통째로 skip 된다 →
+    // collections 가 비어 PropertyDataBinding 컬렉션 피커가 "등록된 Collection 이
+    // 없습니다." 로 표시되고, DataTable 패널을 한 번 열어야 채워진다.
+    expect(source).not.toMatch(/if \(editMode === "layout"\) \{/);
+    expect(source).not.toContain("useEditModeStore.getState().mode");
+    expect(source).toContain(
+      "useDataStore.getState().initializeForProject(projectId)",
     );
   });
 

@@ -74,7 +74,6 @@ import {
 import type { TintPreset } from "../../utils/theme/tintToSkiaColors";
 import { useUiStore } from "../../stores/uiStore";
 import { getDB } from "../../lib/db";
-import { useEditModeStore } from "../stores/editMode";
 import { getCanonicalReusableFrameLayouts } from "../stores/canonical/canonicalFrameStore";
 import { useDataTableStore } from "../stores/datatable";
 import { useDataStore } from "../stores/data";
@@ -492,17 +491,17 @@ export const BuilderCore: React.FC = () => {
         return;
       }
 
-      // frame edit mode entry still initializes data surfaces; frame elements
-      // are derived from the active CompositionDocument.
-      const editMode = useEditModeStore.getState().mode;
-
-      if (editMode === "layout") {
-        try {
-          // ⭐ DataStore 초기화 (Variables, DataTables, ApiEndpoints)
-          await useDataStore.getState().initializeForProject(projectId);
-        } catch (error) {
-          console.error("[BuilderCore] DataStore 초기화 실패:", error);
-        }
+      // ⭐ DataStore 초기화 (Variables, Collections, ApiEndpoints) — edit mode 무관.
+      // Why: collections/variables 는 project 스코프이고 page 모드에서도 소비된다
+      //   (PropertyDataBinding 컬렉션 피커 / useCollectionData 행 데이터).
+      //   과거 `editMode === "layout"` 게이트는 frame element 로드 블록의 잔재로
+      //   (본문은 2026-05-02 canonical 전환에서 제거됨), 기본값인 page 모드 boot 에서
+      //   초기화가 통째로 skip 되어 DataTable 패널을 한 번 열기 전까지 컬렉션 목록이
+      //   비어 보였다.
+      try {
+        await useDataStore.getState().initializeForProject(projectId);
+      } catch (error) {
+        console.error("[BuilderCore] DataStore 초기화 실패:", error);
       }
 
       setIsLoading(false);
