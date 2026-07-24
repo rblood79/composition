@@ -231,23 +231,18 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
   return (
     <PropertyFieldset legend={label} icon={Link2} className={className}>
       <div className="property-data-binding">
-        {/* 바인딩 표현식 프리뷰 */}
-        {bindingExpression && (
-          <div className="binding-preview">
-            <code className="binding-expression">{bindingExpression}</code>
-            <button
-              className="binding-clear"
-              onClick={handleClear}
-              type="button"
-              aria-label="바인딩 제거"
-            >
-              <X size={iconEditProps.size} />
-            </button>
-          </div>
-        )}
-
-        {/* collection(테이블명) 선택 — 소스 선택 단계 제거, dataTable 단일 (ADR-159 P4b) */}
-        <div className="binding-row">
+        {/* collection(테이블명) 선택 — 소스 선택 단계 제거, dataTable 단일 (ADR-159 P4b).
+            선택된 값은 Select 자신이 표시하고 해제 버튼만 옆에 둔다 — 별도 바인딩
+            표현식 preview 행은 제거했다.
+            **Why**: SelectValue 가 `"컬렉션 선택..."` 문자열 하드코딩이라 선택값을
+            표시하지 못했고, 그 공백을 메우려고 preview 행이 선택 상태를 중복 표기하던
+            구조였다. SelectValue 를 render prop 으로 되돌리면 표준 Select 동작
+            (선택값 표시 / 미선택 시 placeholder) 만으로 한 행에 담긴다.
+            전체 표현식(`{{dataTable.Users}}`)은 행 title 로 보존. */}
+        <div
+          className="binding-row binding-name-row"
+          title={bindingExpression || undefined}
+        >
           {nameOptions.length > 0 ? (
             <AriaSelect
               className="react-aria-Select binding-name-select"
@@ -262,7 +257,11 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
                 className="react-aria-Button"
                 ref={nameSelectFocus.triggerRef}
               >
-                <SelectValue>{"컬렉션 선택..."}</SelectValue>
+                <SelectValue>
+                  {({ isPlaceholder, selectedText }) =>
+                    isPlaceholder ? "컬렉션 선택..." : selectedText
+                  }
+                </SelectValue>
                 <span aria-hidden="true" className="select-chevron">
                   <ChevronDown size={iconProps.size} />
                 </span>
@@ -296,6 +295,20 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
             </AriaSelect>
           ) : (
             <div className="binding-empty">등록된 Collection 이 없습니다.</div>
+          )}
+
+          {/* 해제 버튼은 Select 렌더 여부와 무관하게 노출 — collection 이 0개인
+              상태에서도 기존(legacy 포함) 바인딩을 제거할 수 있어야 한다. */}
+          {value && (
+            <button
+              className="binding-clear"
+              onClick={handleClear}
+              type="button"
+              aria-label="바인딩 제거"
+              disabled={disabled}
+            >
+              <X size={iconEditProps.size} />
+            </button>
           )}
         </div>
 

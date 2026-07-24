@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [프로퍼티 패널 팝오버 정렬 SSOT — 컬렉션 피커 폭·위치 교정] - 2026-07-24
+## [Data 바인딩 피커 정리 — 팝오버 정렬 SSOT + 선택값/preview 행 통합] - 2026-07-24
+
+### Features
+
+- **Content > Data 바인딩 피커를 한 행으로 통합**:
+  - 기존에는 바인딩 표현식 preview 행(`{{dataTable.Users}}` + 해제 X)과 컬렉션 Select 행이 **선택 상태를 중복 표기**했다. 이제 Select 가 표준 동작대로 선택값(`Users`)을 직접 표시하고, 해제 버튼만 같은 행 우측에 남는다 (field 높이 136 → 106px).
+  - **Why**: `<SelectValue>{"컬렉션 선택..."}</SelectValue>` 로 placeholder 문자열이 **하드코딩**돼 있어 Select 가 선택값을 표시할 수 없었고, 그 공백을 메우려고 preview 행이 붙어 있던 구조였다. `SelectValue` 를 render prop(`isPlaceholder ? "컬렉션 선택..." : selectedText`)으로 되돌리면 중복 자체가 소멸한다.
+  - 전체 표현식은 행 `title` 로 보존. 해제 버튼은 Select 렌더 여부와 무관하게 노출 — collection 0개 상태에서도 기존(legacy 포함) 바인딩을 제거할 수 있어야 하기 때문.
+  - 위치: `apps/builder/src/builder/components/property/PropertyDataBinding.{tsx,css}`
 
 ### Bug Fixes
 
