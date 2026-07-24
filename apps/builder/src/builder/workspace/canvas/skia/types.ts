@@ -377,6 +377,14 @@ export interface FrameRenderPlan {
 export interface SharedSceneDerivedData {
   /** element → bounding box (content 빌드에서 생성, 모든 overlay가 재사용) */
   treeBoundsMap: Map<string, import("../selection/types").BoundingBox>;
+  /**
+   * element → **히트** bounding box. `treeBoundsMap` 을 조상 clip rect 로 교차한 결과.
+   *
+   * 조상이 overflow hidden/clip/scroll/auto 로 잘라낸 영역은 화면에 없으므로 포인터
+   * 판정(호버/스크롤 타깃)에서 제외돼야 한다. 전부 잘린 요소는 키 자체가 없다.
+   * 오버레이 그리기/측정은 `treeBoundsMap`(원본 박스)을 계속 쓴다.
+   */
+  hitBoundsMap: Map<string, import("../selection/types").BoundingBox>;
   /** 실제 렌더 트리의 parent → children 맵. page-frame 합성/filtered layout 기준 */
   childrenMap: Map<string, CanvasSceneNode[]>;
   /** overflow 컨테이너 → 자식 bounds 정보 (ADR-050 Phase 3) */

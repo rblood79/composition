@@ -220,7 +220,12 @@ export function SkiaCanvas({
     isGroupHover: false,
   });
   const lastEditingContextRef = useRef<string | null>(null);
-  const treeBoundsMapRef = useRef<Map<string, BoundingBox>>(new Map());
+  /**
+   * 포인터 판정용 히트 영역 (조상 clip rect 교차 완료).
+   * 호버/휠 스크롤 타깃은 화면에 실제로 그려진 영역만 잡아야 하므로
+   * 원본 박스(treeBoundsMap)가 아니라 hitBoundsMap 을 쓴다.
+   */
+  const hitBoundsMapRef = useRef<Map<string, BoundingBox>>(new Map());
 
   // Workflow
   const workflowHoverStateRef = useRef<WorkflowHoverState>({
@@ -341,13 +346,13 @@ export function SkiaCanvas({
     getHoverChildrenMap: () => rendererInputRef.current.interactionChildrenMap,
     hoverStateRef: elementHoverStateRef,
     overlayVersionRef,
-    treeBoundsMapRef,
+    hitBoundsMapRef,
   });
 
   useScrollWheelInteraction({
     containerEl,
     getScrollElementsMap: () => rendererInputRef.current.interactionNodesMap,
-    treeBoundsMapRef,
+    hitBoundsMapRef,
   });
 
   // ---------- WASM + Font 초기화 ----------
@@ -718,7 +723,7 @@ export function SkiaCanvas({
         }),
       );
 
-      treeBoundsMapRef.current = framePlan.sharedScene.treeBoundsMap;
+      hitBoundsMapRef.current = framePlan.sharedScene.hitBoundsMap;
       renderer.setContentNode(framePlan.contentNode);
       renderer.setOverlayNode(framePlan.overlayNode);
       renderer.setScreenOverlayNode(framePlan.screenOverlayNode);

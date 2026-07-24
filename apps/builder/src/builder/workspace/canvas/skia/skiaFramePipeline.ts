@@ -105,6 +105,7 @@ export function buildSkiaFrameContent(
     aiState.generatingNodes.size > 0 || aiState.flashAnimations.size > 0;
 
   let treeBoundsMap: Map<string, BoundingBox>;
+  let hitBoundsMap: Map<string, BoundingBox>;
   let nodeBoundsMap: Map<string, AIEffectNodeBounds> | null;
   let contentNode: SkiaRenderable;
   let renderChildrenMap: Map<string, CanvasSceneNode[]> =
@@ -123,6 +124,7 @@ export function buildSkiaFrameContent(
     );
     if (!result) return null;
     treeBoundsMap = result.treeBoundsMap;
+    hitBoundsMap = result.hitBoundsMap;
     renderChildrenMap = result.childrenMap ?? renderChildrenMap;
     nodeBoundsMap = result.nodeBoundsMap;
     contentNode = result.contentNode;
@@ -141,6 +143,7 @@ export function buildSkiaFrameContent(
     );
     if (!result) return null;
     treeBoundsMap = result.treeBoundsMap;
+    hitBoundsMap = result.hitBoundsMap;
     nodeBoundsMap = result.nodeBoundsMap;
     contentNode = result.contentNode;
   }
@@ -155,6 +158,7 @@ export function buildSkiaFrameContent(
       cameraX,
       cameraY,
       cameraZoom,
+      hitBoundsMap,
     ),
     nodeBoundsMap,
     workflowElementBoundsMap: null, // workflow 단계에서 필요 시 빌드
@@ -176,9 +180,12 @@ export function buildSharedSceneDerivedData(
   cameraX: number,
   cameraY: number,
   cameraZoom: number,
+  /** 조상 clip 교차 히트 영역. 미전달 시 treeBoundsMap 동일 (clip 미추적 경로) */
+  hitBoundsMap: Map<string, BoundingBox> = treeBoundsMap,
 ): SharedSceneDerivedData {
   return {
     treeBoundsMap,
+    hitBoundsMap,
     childrenMap,
     overflowInfoMap: getCachedOverflowInfoMap(
       treeBoundsMap,
@@ -213,6 +220,8 @@ export function buildWorkflowElementBounds(
 
 interface InternalBuildResult {
   treeBoundsMap: Map<string, BoundingBox>;
+  /** 조상 clip 교차 히트 영역. tree 경로는 clip 추적이 없어 treeBoundsMap 과 동일. */
+  hitBoundsMap: Map<string, BoundingBox>;
   childrenMap?: Map<string, CanvasSceneNode[]>;
   nodeBoundsMap: Map<string, AIEffectNodeBounds> | null;
   contentNode: SkiaRenderable;
@@ -314,6 +323,7 @@ function buildViaCommandStream(
 
   return {
     treeBoundsMap,
+    hitBoundsMap: stream.hitBoundsMap,
     childrenMap: commandChildrenMap,
     nodeBoundsMap,
     contentNode,
@@ -388,5 +398,11 @@ function buildViaTree(
     },
   };
 
-  return { treeBoundsMap, nodeBoundsMap, contentNode };
+  // tree 경로(legacy fallback)는 clip 추적이 없어 히트 영역 = 원본 박스.
+  return {
+    treeBoundsMap,
+    hitBoundsMap: treeBoundsMap,
+    nodeBoundsMap,
+    contentNode,
+  };
 }

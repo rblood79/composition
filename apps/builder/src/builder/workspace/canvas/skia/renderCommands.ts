@@ -112,6 +112,44 @@ type RenderCommand =
 export interface RenderCommandStream {
   commands: RenderCommand[];
   boundsMap: Map<string, BoundingBox>;
+  /**
+   * 클립 인지 히트 영역 — `boundsMap` 을 조상 clip rect 로 교차한 결과.
+   *
+   * `boundsMap` 은 요소 원본 박스(오버레이/텍스트 편집/측정 기준)라 조상이
+   * overflow hidden/clip/scroll/auto 로 잘라낸 영역까지 포함한다. 포인터 판정에
+   * 그대로 쓰면 **화면에 없는 영역이 히트**된다 (ListBox maxHeight:300 + 내용 350
+   * 에서 y=310 클릭 시 body 대신 ListBox 선택). 히트 계열 소비자는 본 맵을 쓴다.
+   * 교차 결과가 비면 아예 등재하지 않는다 = 히트 불가.
+   */
+  hitBoundsMap: Map<string, BoundingBox>;
+}
+
+/** 씬 절대 좌표 clip rect (조상 누적 교차 결과). null = 클립 없음 */
+type ClipRect = { x: number; y: number; width: number; height: number } | null;
+
+/** 교차 영역 0 — 서브트리 전체가 잘림. 크기 0 이라 모든 교차가 null 이 된다. */
+const EMPTY_CLIP: ClipRect = { x: 0, y: 0, width: 0, height: 0 };
+
+/**
+ * bounds 를 clip rect 로 교차한다. 교차 영역이 없으면 null.
+ *
+ * 렌더러(`executeRenderCommands` CMD_CHILDREN_BEGIN)가 적용하는 clip 과 동일 계약:
+ * clip rect 는 클리핑 조상의 절대 박스이며, 요소 자신의 clipChildren 은 자식에만 적용된다.
+ */
+function intersectBounds(
+  bounds: BoundingBox,
+  clip: ClipRect,
+): BoundingBox | null {
+  if (!clip) return bounds;
+
+  const left = Math.max(bounds.x, clip.x);
+  const top = Math.max(bounds.y, clip.y);
+  const right = Math.min(bounds.x + bounds.width, clip.x + clip.width);
+  const bottom = Math.min(bounds.y + bounds.height, clip.y + clip.height);
+
+  if (right <= left || bottom <= top) return null;
+
+  return { x: left, y: top, width: right - left, height: bottom - top };
 }
 
 interface DeferredDragRootVisit {
@@ -130,9 +168,22 @@ interface VisitOptions {
 /** 최신 boundsMap 캐시 (씬 좌표 — TextEditOverlay 위치 계산용) */
 let _lastBoundsMap: Map<string, BoundingBox> = new Map();
 
+/** 최신 hitBoundsMap 캐시 (씬 좌표 — 조상 clip 교차 완료) */
+let _lastHitBoundsMap: Map<string, BoundingBox> = new Map();
+
 /** 씬 좌표 기반 요소 bounds 조회 (카메라 변환 미포함) */
 export function getSceneBounds(elementId: string): BoundingBox | undefined {
   return _lastBoundsMap.get(elementId);
+}
+
+/**
+ * 씬 좌표 기반 요소 **히트** bounds 조회 — 조상 clip rect 교차 결과.
+ *
+ * 조상이 잘라낸 영역은 포함되지 않으며, 전부 잘린 요소는 undefined.
+ * 포인터 판정(클릭/호버/드롭)은 `getSceneBounds` 대신 본 함수를 쓴다.
+ */
+export function getSceneHitBounds(elementId: string): BoundingBox | undefined {
+  return _lastHitBoundsMap.get(elementId);
 }
 
 // ── Bounds 구독 (TextEditOverlay 이벤트 기반 위치 추적) ──────────────
@@ -288,6 +339,7 @@ export function buildRenderCommandStream(
 ): RenderCommandStream {
   const commands: RenderCommand[] = [];
   const boundsMap = new Map<string, BoundingBox>();
+  const hitBoundsMap = new Map<string, BoundingBox>();
   const dragRootId = getDragVisualOffset()?.elementId ?? null;
   const deferredDragRoot = { current: null as DeferredDragRootVisit | null };
   const visitOptions: VisitOptions = {
@@ -306,6 +358,8 @@ export function buildRenderCommandStream(
       offsetY,
       commands,
       boundsMap,
+      hitBoundsMap,
+      null,
       childrenMap,
       layoutMap,
       offsetX,
@@ -317,12 +371,15 @@ export function buildRenderCommandStream(
 
   if (deferredDragRoot.current) {
     const deferred = deferredDragRoot.current;
+    // top-layer 재방문은 조상의 clip save/restore 밖에서 그려진다 → clip 미적용
     visitElement(
       deferred.elementId,
       deferred.parentAbsX,
       deferred.parentAbsY,
       commands,
       boundsMap,
+      hitBoundsMap,
+      null,
       childrenMap,
       layoutMap,
       0,
@@ -332,16 +389,17 @@ export function buildRenderCommandStream(
     );
   }
 
-  // SpatialIndex 동기화: boundsMap에 최신 씬 좌표를 반영
+  // SpatialIndex 동기화: 클립 인지 히트 영역을 반영 (화면에 없는 영역은 히트 불가)
   if (WASM_FLAGS.SPATIAL_INDEX) {
-    syncSpatialIndex(boundsMap);
+    syncSpatialIndex(hitBoundsMap);
   }
 
   // 최신 boundsMap 캐시 (TextEditOverlay 등 외부 접근용)
   _lastBoundsMap = boundsMap;
+  _lastHitBoundsMap = hitBoundsMap;
   _notifyBoundsListeners(boundsMap);
 
-  return { commands, boundsMap };
+  return { commands, boundsMap, hitBoundsMap };
 }
 
 /**
@@ -386,6 +444,8 @@ function visitElement(
   parentAbsY: number,
   commands: RenderCommand[],
   boundsMap: Map<string, BoundingBox>,
+  hitBoundsMap: Map<string, BoundingBox>,
+  clipRect: ClipRect,
   childrenMap: Map<string, CanvasSceneNode[]>,
   layoutMap: Map<string, ComputedLayout>,
   cmdOffsetX: number = 0,
@@ -426,8 +486,15 @@ function visitElement(
   const absX = parentAbsX + relX;
   const absY = parentAbsY + relY;
 
-  // boundsMap에 절대 좌표 기록
-  boundsMap.set(elementId, { x: absX, y: absY, width, height });
+  // boundsMap에 절대 좌표 기록 (원본 박스 — 오버레이/측정 기준)
+  const elementBounds = { x: absX, y: absY, width, height };
+  boundsMap.set(elementId, elementBounds);
+
+  // hitBoundsMap: 조상 clip rect 와 교차한 히트 영역. 전부 잘렸으면 미등재.
+  const hitBounds = intersectBounds(elementBounds, clipRect);
+  if (hitBounds) {
+    hitBoundsMap.set(elementId, hitBounds);
+  }
 
   // position: sticky/fixed — 렌더 좌표 보정
   // layoutMap의 y/x는 정적 레이아웃 기준이므로 스크롤 후 post-layout 보정 필요
@@ -547,6 +614,18 @@ function visitElement(
     const scrollY = skiaData.scrollOffset?.scrollTop ?? 0;
     const childVisitOptions = options.renderAsTopLayer ? {} : options;
 
+    // 자식 clip rect: 렌더러의 CMD_CHILDREN_BEGIN clipRect(0,0,clipWidth,clipHeight)를
+    // 절대 좌표로 옮긴 것. scroll translate 는 clip 적용 **뒤** 라 clip 원점은 스크롤 미반영.
+    const childClipRect: ClipRect =
+      skiaData.clipChildren && clipWidth > 0 && clipHeight > 0
+        ? // 조상 clip 과 교차가 비면 EMPTY_CLIP — null(=클립 없음)로 되돌리면
+          //   전부 잘린 서브트리가 오히려 무제한 히트 가능해진다.
+          (intersectBounds(
+            { x: absX, y: absY, width: clipWidth, height: clipHeight },
+            clipRect,
+          ) ?? EMPTY_CLIP)
+        : clipRect;
+
     for (const child of sortedChildren) {
       visitElement(
         child.id,
@@ -554,6 +633,8 @@ function visitElement(
         absY - scrollY,
         commands,
         boundsMap,
+        hitBoundsMap,
+        childClipRect,
         childrenMap,
         layoutMap,
         0,

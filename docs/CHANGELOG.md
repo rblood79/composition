@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Skia 히트 테스트 클립 인지 — 잘려 안 보이는 영역 선택 차단] - 2026-07-24
+
+### Bug Fixes
+
+- **overflow 컨테이너에서 잘려 화면에 없는 영역이 선택/호버되던 문제** (Skia 렌더 공통):
+  - `renderCommands.visitElement` 이 각 요소의 **원본 박스**를 `boundsMap` 에 기록하고 그대로 `syncSpatialIndex()` 로 WASM SpatialIndex 에 넣었다. 렌더러는 `CMD_CHILDREN_BEGIN` 에서 `clipChildren` 일 때만 `canvas.clipRect` 로 자식을 잘라내므로, **그리기 기하와 히트 기하가 발산**했다.
+  - **Why**: 조상이 `overflow: hidden/clip/scroll/auto` 로 잘라낸 자손이 히트 인덱스에는 잘리기 전 크기로 남아, 화면에 아무것도 없는 좌표가 그 자손을 히트시켰다. collection 계열은 row projection 이 `projection.listBoxId` 로 owner redirect 하므로 **owner 컴포넌트가 선택**되는 형태로 드러났다.
+  - 실측 증상: ListBox 인스턴스(`maxHeight:300` + `overflow:auto`, 내용 300 초과)에서 owner 아래 10px(local y=310) 클릭 시 body 대신 ListBox 선택 / page body(`overflow:auto`, 844) 아래로 밀려난 형제가 페이지 프레임 밖 빈 캔버스에서 선택.
+  - 수정: `buildRenderCommandStream` 이 조상 clip rect 를 누적 교차한 `hitBoundsMap` 을 함께 산출하고, SpatialIndex·호버 AABB·휠 스크롤 타깃이 이 맵을 쓴다. 교차가 비면 미등재 = 히트 불가. 오버레이/TextEditOverlay/AI 이펙트/측정은 원본 `boundsMap` 유지. drag top-layer 재방문은 clip save/restore 밖에서 그려지므로 clip 면제.
+  - 검증: live 실측(dev builder) — maxHeight:300 ListBox 기준 (a) local y=310 클릭 → `body` 선택 (수정 전 ListBox), (b) 보이는 영역 클릭 → ListBox 유지, (c) 휠 스크롤 동작 유지 + 스크롤로 들어온 행 클릭 → ListBox 유지, (d) 프레임 밖으로 밀려난 `Form` 클릭 → 선택 해제 (수정 전 Form 선택). 신규 회귀 테스트 6 + builder 2606 PASS.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts`, `skia/skiaFramePipeline.ts`, `skia/types.ts`, `skia/SkiaCanvas.tsx`, `hooks/useElementHoverInteraction.ts`, `hooks/useScrollWheelInteraction.ts`
+  - 규칙: `.claude/rules/canvas-rendering.md` §8.5 (원본 박스 ↔ 히트 영역 분리 계약 + 금지 패턴)
+
 ## [Data 바인딩 해제 버튼 크기 정합 — 컨트롤 높이 28 고정] - 2026-07-24
 
 ### Bug Fixes

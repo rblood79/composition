@@ -201,6 +201,28 @@ ParagraphStyle 변경 시 **3곳 동시 업데이트** 필수: canvaskitTextMeas
 - `executeRenderCommands` AABB 컬링 (`translateStack`): `CMD_CHILDREN_BEGIN` 의 scroll translate 를 컬링 절대좌표 스택에도 반영 필수 (`scrollDeltaStack` push → `CMD_CHILDREN_END` 복원). **Why**: 미반영 시 스크롤로 뷰포트에 들어온 자식이 스크롤 전 좌표로 판정되어 오컬링 — hover outline (boundsMap 경로) 만 보이고 본체 미렌더 (2026-07-16 수정)
 - `scrollState.scrollVersion`: 스크롤 변경 시 `getCachedTreeBoundsMap` 캐시 무효화용 카운터. **Why**: `registryVersion`/`pagePosVersion`만으로는 스크롤 변경 미감지
 
+## 8.5 Clip-Aware Hit Bounds — 원본 박스 ↔ 히트 영역 분리 (2026-07-24)
+
+포인터 판정(클릭 선택 / 호버 아웃라인 / 휠 스크롤 타깃 / 드롭 타깃)은 **렌더러가 실제로 그린 영역만** 대상으로 해야 한다. `renderCommands.buildRenderCommandStream` 은 이를 위해 **두 맵**을 낸다.
+
+| 맵                                   | 내용                             | 소비자                                                               |
+| ------------------------------------ | -------------------------------- | -------------------------------------------------------------------- |
+| `boundsMap` (`getSceneBounds`)       | 요소 **원본 박스** (클립 미적용) | 선택 오버레이 / TextEditOverlay / AI 이펙트 / overflowInfoMap / 측정 |
+| `hitBoundsMap` (`getSceneHitBounds`) | 원본 박스 ∩ **조상 clip rect**   | SpatialIndex(`syncSpatialIndex`) / 호버 AABB / 휠 스크롤 타깃        |
+
+- clip rect 계약은 렌더러와 **1:1 미러**: `CMD_CHILDREN_BEGIN` 이 `clipChildren` 일 때 `(0,0,clipWidth,clipHeight)` 로 클립하므로, 절대 좌표 clip rect = `(absX, absY, clipWidth, clipHeight)`. **자기 자신은 클립되지 않고 자식만** 클립된다.
+- scroll translate 는 clip **뒤**에 적용되므로 clip rect 원점에는 `scrollOffset` 을 반영하지 않는다 (자식 절대 좌표에는 이미 차감돼 있음).
+- 교차 결과가 비면 `hitBoundsMap` 에 **미등재** = 히트 불가. 조상 clip 이 완전히 비면 서브트리에 `EMPTY_CLIP`(크기 0)을 전파한다 — `null`(=클립 없음)로 되돌리면 전부 잘린 서브트리가 오히려 무제한 히트 가능해진다.
+- drag top-layer 재방문(`renderAsTopLayer`)은 clip save/restore **밖**에서 그려지므로 clip 미적용(`clipRect = null`)으로 재방문한다.
+- **Why (2026-07-24)**: `boundsMap` 만으로 SpatialIndex 를 채우면 화면에 없는 영역이 히트된다. 실측 — ListBox 인스턴스 `maxHeight:300 + overflow:auto` 에서 owner 아래 10px(local y=310) 클릭 시 body 대신 ListBox 가 선택 (row projection → `projection.listBoxId` owner redirect). page body(`overflow:auto`, 844) 아래로 밀려난 형제도 프레임 밖 빈 캔버스에서 선택됨. 컨테이너 전반 공통 결함이라 컴포넌트별 우회가 아니라 bounds 생성 지점에서 차단.
+
+### 금지 패턴
+
+- ❌ 포인터 판정에 `boundsMap` / `getSceneBounds` 사용 → `hitBoundsMap` / `getSceneHitBounds` 필수
+- ❌ 오버레이 그리기·측정에 `hitBoundsMap` 사용 → 부분 클립 요소의 선택 박스·텍스트 편집 위치가 잘림
+- ❌ `visitElement` 에 clip 파라미터를 추가하면서 자식 재귀에 전달 누락 → 조상 clip 이 한 단계에서 끊김
+- ❌ clip 교차 결과가 빈 경우 `null` 로 폴백 (= 클립 해제) → `EMPTY_CLIP` 전파 필수
+
 ## 9. Render-Space Interaction Boundary (ADR-135/136 Implemented 2026-05-14/15)
 
 > Page Frame projection 도입 후, hit-test/그리기 ID 공간과 canonical document ID 공간을 분리. 위반 시 데이터 corruption 또는 split-brain 인터랙션 발생.

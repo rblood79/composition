@@ -50,8 +50,13 @@ interface UseElementHoverInteractionOptions {
   hoverStateRef: MutableRefObject<ElementHoverState>;
   /** overlayVersion ref (리렌더 트리거) */
   overlayVersionRef: MutableRefObject<number>;
-  /** treeBoundsMap ref (Skia 트리 기반 씬-로컬 절대 바운드) */
-  treeBoundsMapRef: RefObject<Map<string, BoundingBox>>;
+  /**
+   * hitBoundsMap ref — 씬-로컬 절대 바운드를 **조상 clip rect 로 교차**한 히트 영역.
+   *
+   * 원본 박스(treeBoundsMap)를 쓰면 overflow hidden/clip/scroll/auto 로 잘려서
+   * 화면에 없는 영역이 호버로 잡힌다. 전부 잘린 요소는 키 자체가 없다.
+   */
+  hitBoundsMapRef: RefObject<Map<string, BoundingBox>>;
 }
 
 interface FrameHoverArea {
@@ -199,7 +204,7 @@ export function useElementHoverInteraction({
   getHoverChildrenMap,
   hoverStateRef,
   overlayVersionRef,
-  treeBoundsMapRef,
+  hitBoundsMapRef,
 }: UseElementHoverInteractionOptions): void {
   const rafRef = useRef<number | null>(null);
   const lastMouseRef = useRef({ x: 0, y: 0 });
@@ -277,7 +282,7 @@ export function useElementHoverInteraction({
         }
 
         // Context 레벨 AABB 히트 테스트 (역순 = z-order 높은 것 우선)
-        const boundsMap = treeBoundsMapRef.current;
+        const boundsMap = hitBoundsMapRef.current;
         let contextHitId: string | null = null;
 
         if (boundsMap && boundsMap.size > 0) {
@@ -355,7 +360,7 @@ export function useElementHoverInteraction({
       getHoverElementsMap,
       hoverStateRef,
       overlayVersionRef,
-      treeBoundsMapRef,
+      hitBoundsMapRef,
     ],
   );
 

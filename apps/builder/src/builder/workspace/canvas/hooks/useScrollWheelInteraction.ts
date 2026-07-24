@@ -33,8 +33,13 @@ interface UseScrollWheelInteractionOptions {
   containerEl: HTMLDivElement | null;
   /** Active Skia renderer input 에서 파생한 scroll element map */
   getScrollElementsMap: () => ReadonlyMap<string, CanvasInteractionNode>;
-  /** treeBoundsMap ref (Skia 트리 기반 씬-로컬 절대 바운드) */
-  treeBoundsMapRef: MutableRefObject<Map<string, BoundingBox>>;
+  /**
+   * hitBoundsMap ref — 씬-로컬 절대 바운드를 **조상 clip rect 로 교차**한 히트 영역.
+   *
+   * 원본 박스(treeBoundsMap)를 쓰면 조상이 잘라내 화면에 없는 영역에서도
+   * 휠 스크롤 타깃이 잡힌다. 전부 잘린 요소는 키 자체가 없다.
+   */
+  hitBoundsMapRef: MutableRefObject<Map<string, BoundingBox>>;
 }
 
 // ============================================
@@ -44,7 +49,7 @@ interface UseScrollWheelInteractionOptions {
 export function useScrollWheelInteraction({
   containerEl,
   getScrollElementsMap,
-  treeBoundsMapRef,
+  hitBoundsMapRef,
 }: UseScrollWheelInteractionOptions): void {
   const handleWheel = useCallback(
     (e: WheelEvent) => {
@@ -69,7 +74,7 @@ export function useScrollWheelInteraction({
       const sceneX = (mouseX - rect.left - panOffset.x) / zoom;
       const sceneY = (mouseY - rect.top - panOffset.y) / zoom;
 
-      const boundsMap = treeBoundsMapRef.current;
+      const boundsMap = hitBoundsMapRef.current;
       if (!boundsMap || boundsMap.size === 0) return;
 
       const elementsMap = getScrollElementsMap();
@@ -163,7 +168,7 @@ export function useScrollWheelInteraction({
         e.preventDefault();
       }
     },
-    [containerEl, getScrollElementsMap, treeBoundsMapRef],
+    [containerEl, getScrollElementsMap, hitBoundsMapRef],
   );
 
   useEffect(() => {
