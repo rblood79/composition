@@ -494,7 +494,9 @@ describe("ComponentSemanticsSection", () => {
     useStore.getState()._rebuildIndexes();
 
     render(<ComponentSemanticsSection elementId="instance" />);
-    expect(screen.getByLabelText("Overrides")).toBeTruthy();
+    // fieldset(role=group) + legend 가 접근 이름을 제공 — panel 전역 properties-aria
+    // 패턴과 동일. getByLabelText 는 legend 라벨링을 인식하지 않으므로 role 쿼리 사용.
+    expect(screen.getByRole("group", { name: "Overrides" })).toBeTruthy();
     fireEvent.click(
       screen.getByRole("button", { name: "Reset label override" }),
     );

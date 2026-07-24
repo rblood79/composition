@@ -170,11 +170,11 @@
     }
 
     .component-semantics-badge--origin::before {
-      background: #d480ff;
+      background: var(--editing-semantics-origin);
     }
 
     .component-semantics-badge--instance::before {
-      background: #9580ff;
+      background: var(--editing-semantics-instance);
     }
 
     .component-semantics-badge--standard::before {
@@ -210,10 +210,15 @@
       cursor: not-allowed;
     }
 
+    /* fieldset(.properties-aria) 이지만 레이아웃은 여기서 직접 준다 — 아래
+       `.section > .panel-wrapper[...] .section-content` 블록의 `.properties-aria`
+       규칙은 선택자 순서가 실제 DOM(panel-wrapper > … > section > section-content)
+       과 반대라 매칭되지 않는다. min-width 는 fieldset 의 min-content 기본값 해제. */
     .component-semantics-overrides {
       display: flex;
       flex-direction: column;
       gap: var(--spacing-xs);
+      min-width: 0;
       width: 100%;
     }
 
@@ -247,7 +252,7 @@
     }
 
     .component-semantics-field-dot {
-      background: #9580ff;
+      background: var(--editing-semantics-instance);
       border-radius: 999px;
       height: 6px;
       width: 6px;

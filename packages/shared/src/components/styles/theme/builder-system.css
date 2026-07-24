@@ -91,6 +91,14 @@
     --fg-on-notice: var(--color-orange-700);
     --positive: var(--color-green-500);
     --positive-subtle: var(--color-green-50);
+
+    /* ===== Editing Semantics 마커 (ADR-112) =====
+     * origin(원본) / instance(인스턴스) 역할 배지·dot 색.
+     * Pencil 의 component 마커(origin=magenta / instance=violet) 와 시각을
+     * 맞춘 고정값이라 팔레트 토큰 파생이 아니며, dark mode 에서도 재정의하지
+     * 않는다 — 두 도구를 오가는 사용자에게 같은 색이어야 같은 의미로 읽힌다. */
+    --editing-semantics-origin: #d480ff;
+    --editing-semantics-instance: #9580ff;
   }
 
   /* ==================== Builder Dark Mode (ADR-028) ==================== */

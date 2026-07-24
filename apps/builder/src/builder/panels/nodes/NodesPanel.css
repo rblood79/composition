@@ -97,11 +97,11 @@
 }
 
 .editing-semantics-dot--origin {
-  background: #d480ff;
+  background: var(--editing-semantics-origin);
 }
 
 .editing-semantics-dot--instance {
-  background: #9580ff;
+  background: var(--editing-semantics-instance);
 }
 
 .layer-context-menu {

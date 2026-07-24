@@ -206,12 +206,9 @@ export const ComponentSemanticsSection = memo(
               </button>
             )}
             {overrideItems.length > 0 && (
-              <div
-                aria-label="Overrides"
-                className="component-semantics-overrides"
-              >
-                <span className="component-semantics-name">Overrides</span>
-                <div className="component-semantics-field-list">
+              <fieldset className="properties-aria component-semantics-overrides">
+                <legend className="fieldset-legend">Overrides</legend>
+                <div className="react-aria-Group component-semantics-field-list">
                   {overrideItems.map((item) => {
                     // ADR-138 A-3: instance 가 props.items 를 override 하면
                     // origin 과 shallow fork — origin items 변경이 더 이상
@@ -250,7 +247,7 @@ export const ComponentSemanticsSection = memo(
                     );
                   })}
                 </div>
-              </div>
+              </fieldset>
             )}
           </>
         )}
