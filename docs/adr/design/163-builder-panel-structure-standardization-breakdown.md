@@ -219,7 +219,7 @@ CSS 규모: components/styles/index.css 1,169줄 (잡화 집합), panel-system.c
 
 ## §7. 체크리스트
 
-- [ ] Phase 1: 스냅샷 → 판정표 → 블록 이동 → 정적 가드 → rules/panel-structure.md (§1 전체) → diff 0 → commit
+- [x] **Phase 1 (2026-07-25)**: dead 블록(구 360~480행) 전체 삭제 — 선언별 판정 결과 전부 (a) live 중복 또는 (b) 복구 시 현행 변경 → 무매칭 규칙 제거로 diff 0. Chrome 합성 real-DOM cascade 실측 (before==after: `.properties-aria` display=block / `.fieldset-legend` 12px) 로 G1 확증. 정적 가드 `panel-system.static.test.ts` (G2 green) + `.claude/rules/panel-structure.md` (§1 전체) 신설. panel-system.css 529→404행. 커밋: (본 커밋)
 - [ ] Phase 2: datatable 2종 root/panel-tabs 통합 → 라이브 확인 → commit
 - [ ] Phase 3: 미완 6종 순차 (패널당 commit, events 제외)
 - [ ] Phase 4-a: iconButton/empty-state/control-button/section-divider 통합

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [빌더 패널 표준 CSS 정본 복구 — ADR-163 Phase 1] - 2026-07-25
+
+### Architecture
+
+- **panel-system.css dead 블록 제거 + 표준 구조 규칙 명문화** (ADR-163 Phase 1, Accepted):
+  - `.section` 블록 안에 중첩돼 있던 `.panel-wrapper[data-panel="styles"|"properties"] .section-content` 규칙(구 360~480행)을 삭제. CSS 네이티브 중첩상 `.section .panel-wrapper[…] .section-content` 로 컴파일되는데 실제 DOM 은 `.panel-wrapper` 가 `.section` 의 **조상**이라 조상-자손 순서가 반대 → 영구 무매칭 dead 블록이었다 (한 번도 적용된 적 없음)
+  - **현행 시각 유지 (diff 0)**: 삭제 대상 선언은 전부 (a) 다른 live 규칙과 중복 (`.layout-direction`/정렬 3x3/`.justify-control` → inspector-layout.css 섹션 스코프 / `.page-layout-*` → index.css / base padding·bg·gap → 기존 `.section .section-content` + properties top-level 규칙) 이거나 (b) live 정의가 없어 복구 시 현행 변경 (`.properties-aria`/`.component-fieldset`/`.fieldset-legend` — 현재 브라우저 기본값 렌더). 무매칭 규칙 제거는 렌더 불변 — Chrome 실측으로 삭제 전후 동일 확증 (`.properties-aria` display=block / `.fieldset-legend` 12px 불변)
+  - 정적 가드 `panel-system.static.test.ts` 신설 — `.section` 블록 내 `.panel-wrapper` 중첩 선택자 0건 단언 (dead 패턴 재발 차단, 주석 제외)
+  - `.claude/rules/panel-structure.md` 신설 (glob-scoped) — 표준 DOM 트리 / 클래스 네이밍 예약표 / CSS 모듈화 / 상관관계 계약 명문화. Properties/Styles 레퍼런스, Nodes/Events 예외
+  - **Why**: dead 블록이 "표준 필드 그룹 스타일" 주석을 달고 있어 "중복이니 삭제" 오판을 유발 (2026-07-24 실제 회귀 1회). 현행 시각은 top-level live 규칙 + inspector-layout.css + 브라우저 기본값의 조합이라 dead 정본을 강제 live 화하면 회귀. 규칙 파일 + 정적 가드로 정본 위치 고정
+  - 위치: `apps/builder/src/builder/components/styles/panel-system.css` (529→404행) · `panel-system.static.test.ts` · `.claude/rules/panel-structure.md`
+
 ## [레이아웃 intrinsic sizing 측정 계약 — ADR-165 Implemented] - 2026-07-25
 
 ### Architecture
