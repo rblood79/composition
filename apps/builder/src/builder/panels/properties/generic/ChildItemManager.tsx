@@ -87,15 +87,15 @@ export const ChildItemManager = memo(function ChildItemManager({
 
   return (
     <div className="children-manager">
-      <div className="tab-overview">
-        <p className="tab-overview-text">Total: {filteredChildren.length}</p>
+      <div className="editor-overview">
+        <p className="editor-overview-text">Total: {filteredChildren.length}</p>
       </div>
 
       {filteredChildren.length > 0 && (
         <div className="tabs-list">
           {filteredChildren.map((child, index) => (
-            <div key={child.id} className="tab-list-item">
-              <span className="tab-title">
+            <div key={child.id} className="editor-list-item">
+              <span className="editor-item-title">
                 {String(
                   (child.props as Record<string, unknown>)[labelProp] ||
                     `${childTag} ${index + 1}`,
@@ -103,13 +103,13 @@ export const ChildItemManager = memo(function ChildItemManager({
               </span>
               <div style={{ display: "flex", gap: "4px" }}>
                 <button
-                  className="tab-edit-button"
+                  className="editor-item-action"
                   onClick={() => handleSelect(child.id)}
                 >
                   Edit
                 </button>
                 <button
-                  className="tab-edit-button"
+                  className="editor-item-action"
                   onClick={() => handleDelete(child.id)}
                 >
                   <Trash2 size={12} />
@@ -120,7 +120,7 @@ export const ChildItemManager = memo(function ChildItemManager({
         </div>
       )}
 
-      <div className="tab-actions">
+      <div className="editor-actions">
         <button className="control-button add" onClick={handleAdd}>
           <Plus size={14} />
           Add {childTag}

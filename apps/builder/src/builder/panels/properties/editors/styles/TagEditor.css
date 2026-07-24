@@ -1,0 +1,16 @@
+/**
+ * TagEditor Component Styles
+ *
+ * ADR-163 Phase 4-c: `<div className="properties-aria">` + `<legend>` (invalid HTML)
+ * 을 `<fieldset>` 으로 교정하면서, fieldset 기본값 `min-inline-size: min-content`
+ * 를 해제해 이전 div 렌더와 동일한 폭 거동을 유지한다.
+ * (panel-system.css `.component-semantics-overrides` 와 동일 패턴 —
+ *  `.properties-aria` 자체에는 live 규칙이 없고 고유 클래스가 레이아웃을 공급)
+ */
+
+@layer components {
+  .tag-field-management,
+  .tag-dynamic-convert {
+    min-width: 0;
+  }
+}

@@ -68,7 +68,7 @@ export const ColumnEditor = memo(function ColumnEditor({
           icon={Key}
         />
 
-        <div className="tab-overview">
+        <div className="editor-overview">
           <span className="help-text">
             💡 Must match exactly with the field name from API or data source
           </span>
@@ -115,7 +115,7 @@ export const ColumnEditor = memo(function ColumnEditor({
           icon={Move}
         />
 
-        <div className="tab-overview">
+        <div className="editor-overview">
           <span className="help-text">
             💡 Users can drag column header to adjust width
           </span>

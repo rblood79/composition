@@ -199,8 +199,8 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
         />
 
         {/* Header Info */}
-        <div className="tab-overview">
-          <p className="tab-overview-text">
+        <div className="editor-overview">
+          <p className="editor-overview-text">
             Total columns: {columns.length || 0}
           </p>
           <p className="section-overview-help">
@@ -245,8 +245,8 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
 
       <PropertySection title={PROPERTY_LABELS.COLUMN_MANAGEMENT}>
         {/* 컬럼 개수 표시 */}
-        <div className="tab-overview">
-          <p className="tab-overview-text">
+        <div className="editor-overview">
+          <p className="editor-overview-text">
             Total columns: {columns.length || 0}
           </p>
           <p className="section-overview-help">
@@ -280,9 +280,9 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
             {columns.map((column, index) => {
               const columnProps = column.props as ColumnElementProps;
               return (
-                <div key={column.id} className="tab-list-item">
-                  <div className="tab-content">
-                    <span className="tab-title">
+                <div key={column.id} className="editor-list-item">
+                  <div className="editor-item-content">
+                    <span className="editor-item-title">
                       {index + 1}.{" "}
                       {(columnProps?.children as string) || "제목 없음"}
                       {columnProps?.key && (
@@ -296,7 +296,7 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
                         </span>
                       )}
                     </span>
-                    <div className="tab-controls">
+                    <div className="editor-item-controls">
                       {columnProps?.allowsSorting !== false && (
                         <span className="text-xs text-gray-500">📊</span>
                       )}
@@ -322,7 +322,7 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
         )}
 
         {/* 컬럼 관리 버튼들 */}
-        <div className="tab-actions">
+        <div className="editor-actions">
           {isAddingColumn ? (
             <>
               <button className="control-button add" onClick={addColumn}>

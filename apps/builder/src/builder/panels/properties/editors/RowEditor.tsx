@@ -63,8 +63,8 @@ export const RowEditor = memo(function RowEditor({
         />
 
         {/* Row Info */}
-        <div className="tab-overview">
-          <p className="tab-overview-text">Cells: {rowCells.length || 0}</p>
+        <div className="editor-overview">
+          <p className="editor-overview-text">Cells: {rowCells.length || 0}</p>
           <p className="section-overview-help">
             💡 Configure row appearance and dimensions
           </p>
@@ -111,8 +111,8 @@ export const RowEditor = memo(function RowEditor({
         {rowCells.length > 0 && (
           <div className="tabs-list">
             {rowCells.map((cell, index) => (
-              <div key={cell.id} className="tab-list-item">
-                <span className="tab-title">
+              <div key={cell.id} className="editor-list-item">
+                <span className="editor-item-title">
                   Cell {index + 1}:{" "}
                   {((cell.props as CellElementProps)?.children as string) ||
                     "No content"}
@@ -126,7 +126,7 @@ export const RowEditor = memo(function RowEditor({
         )}
 
         {rowCells.length === 0 && (
-          <div className="tab-overview">
+          <div className="editor-overview">
             <p className="section-overview-help">
               셀이 없습니다. Table 편집기에서 컬럼을 추가하세요.
             </p>

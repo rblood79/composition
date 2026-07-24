@@ -74,15 +74,15 @@ const ItemRow = memo(function ItemRow({
     <div className="items-manager-row">
       <div className="items-manager-row-header">
         <button
-          className="tab-edit-button items-manager-expand"
+          className="editor-item-action items-manager-expand"
           aria-label={expanded ? "Collapse" : "Expand"}
           onClick={() => setExpanded((prev) => !prev)}
         >
           {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
         </button>
-        <span className="tab-title">{label}</span>
+        <span className="editor-item-title">{label}</span>
         <button
-          className="tab-edit-button"
+          className="editor-item-action"
           aria-label="Remove item"
           onClick={onRemove}
         >
@@ -179,11 +179,11 @@ const SeparatorRow = memo(function SeparatorRow({
     <div className="items-manager-row items-manager-separator-row">
       <div className="items-manager-row-header">
         <Minus size={12} className="items-manager-separator-icon" />
-        <span className="tab-title items-manager-separator-label">
+        <span className="editor-item-title items-manager-separator-label">
           Separator
         </span>
         <button
-          className="tab-edit-button"
+          className="editor-item-action"
           aria-label="Remove separator"
           onClick={onRemove}
         >
@@ -234,15 +234,15 @@ const SectionRow = memo(function SectionRow({
     <div className="items-manager-section-row">
       <div className="items-manager-row-header items-manager-section-header">
         <button
-          className="tab-edit-button items-manager-expand"
+          className="editor-item-action items-manager-expand"
           aria-label={expanded ? "Collapse section" : "Expand section"}
           onClick={() => setExpanded((prev) => !prev)}
         >
           {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
         </button>
-        <span className="tab-title items-manager-section-title">{header}</span>
+        <span className="editor-item-title items-manager-section-title">{header}</span>
         <button
-          className="tab-edit-button"
+          className="editor-item-action"
           aria-label="Remove section"
           onClick={onRemoveSection}
         >
@@ -313,7 +313,7 @@ const SectionRow = memo(function SectionRow({
             </div>
           )}
 
-          <div className="tab-actions items-manager-section-actions">
+          <div className="editor-actions items-manager-section-actions">
             <button className="control-button add" onClick={onAddItem}>
               <Plus size={12} />
               Add {itemTypeName}
@@ -424,8 +424,8 @@ export const ItemsManager = memo(function ItemsManager({
 
   return (
     <div className="children-manager">
-      <div className="tab-overview">
-        <p className="tab-overview-text">Total: {totalCount}</p>
+      <div className="editor-overview">
+        <p className="editor-overview-text">Total: {totalCount}</p>
       </div>
 
       {rawItems.length > 0 && (
@@ -485,7 +485,7 @@ export const ItemsManager = memo(function ItemsManager({
         </div>
       )}
 
-      <div className="tab-actions">
+      <div className="editor-actions">
         <button className="control-button add" onClick={handleAdd}>
           <Plus size={14} />
           Add {field.itemTypeName}

@@ -18,6 +18,7 @@ import { ElementUtils } from "../../../../utils/element/elementUtils";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import { generateCustomId } from "../../../utils/idGeneration";
 import type { PropertyEditorElementPayload } from "./propertyEditorNode";
+import "./styles/TagEditor.css";
 
 export const TagEditor = memo(function TagEditor({
   elementId,
@@ -53,13 +54,13 @@ export const TagEditor = memo(function TagEditor({
   if (hasFieldChildren) {
     return (
       <>
-        <div className="properties-aria">
+        <fieldset className="properties-aria tag-field-management">
           <legend className="fieldset-legend">
             <Database size={iconProps.size} /> Field Management
           </legend>
 
-          <div className="tab-overview">
-            <p className="tab-overview-text">
+          <div className="editor-overview">
+            <p className="editor-overview-text">
               Total fields: {fieldChildren.length}
             </p>
             <p className="section-overview-help">
@@ -74,7 +75,7 @@ export const TagEditor = memo(function TagEditor({
                 const fieldProps = field.props as Record<string, unknown>;
                 return (
                   <div key={field.id} className="react-aria-ListBoxItem">
-                    <span className="tab-title">
+                    <span className="editor-item-title">
                       {String(
                         fieldProps.fieldKey ||
                           fieldProps.key ||
@@ -83,7 +84,7 @@ export const TagEditor = memo(function TagEditor({
                       {fieldProps.type ? ` (${fieldProps.type})` : ""}
                     </span>
                     <button
-                      className="tab-edit-button"
+                      className="editor-item-action"
                       onClick={() => {
                         setSelectedElement(
                           field.id,
@@ -101,7 +102,7 @@ export const TagEditor = memo(function TagEditor({
           )}
 
           {/* Add Field */}
-          <div className="tab-actions">
+          <div className="editor-actions">
             <button
               className="control-button add"
               onClick={async () => {
@@ -153,7 +154,7 @@ export const TagEditor = memo(function TagEditor({
               Add Field
             </button>
           </div>
-        </div>
+        </fieldset>
 
         <p
           style={{
@@ -214,18 +215,18 @@ export const TagEditor = memo(function TagEditor({
       </PropertySection>
 
       {/* Add Field Option */}
-      <div className="properties-aria">
+      <fieldset className="properties-aria tag-dynamic-convert">
         <legend className="fieldset-legend">
           <Database size={iconProps.size} /> Convert to Dynamic Item
         </legend>
 
-        <div className="tab-overview">
+        <div className="editor-overview">
           <p className="section-overview-help">
             💡 Add Field elements to display dynamic data from DataTable
           </p>
         </div>
 
-        <div className="tab-actions">
+        <div className="editor-actions">
           <button
             className="control-button add"
             onClick={async () => {
@@ -272,7 +273,7 @@ export const TagEditor = memo(function TagEditor({
             Add First Field
           </button>
         </div>
-      </div>
+      </fieldset>
 
       <p
         style={{ fontSize: "12px", color: "var(--fg-muted)", marginTop: "8px" }}

@@ -72,8 +72,8 @@ export const TableBodyEditor = memo(function TableBodyEditor({
         />
 
         {/* Body Info */}
-        <div className="tab-overview">
-          <p className="tab-overview-text">
+        <div className="editor-overview">
+          <p className="editor-overview-text">
             Total rows: {rows.length || 0} | Total cells: {totalCells || 0}
           </p>
           <p className="section-overview-help">
@@ -126,8 +126,8 @@ export const TableBodyEditor = memo(function TableBodyEditor({
               );
 
               return (
-                <div key={row.id} className="tab-list-item">
-                  <span className="tab-title">
+                <div key={row.id} className="editor-list-item">
+                  <span className="editor-item-title">
                     Row {index + 1} ({rowCells.length} cells)
                   </span>
                   <span className="text-gray-400 text-xs">
@@ -140,7 +140,7 @@ export const TableBodyEditor = memo(function TableBodyEditor({
         )}
 
         {rows.length === 0 && (
-          <div className="tab-overview">
+          <div className="editor-overview">
             <p className="section-overview-help">
               No rows found. Add rows from the Table editor.
             </p>

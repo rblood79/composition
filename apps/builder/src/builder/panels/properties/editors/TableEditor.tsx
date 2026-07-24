@@ -348,7 +348,7 @@ export const TableEditor = memo(
             }
           />
 
-          <div className="tab-overview">
+          <div className="editor-overview">
             <span className="help-text">
               {currentProps?.paginationMode === "pagination"
                 ? "Traditional navigation with page numbers"
@@ -499,7 +499,7 @@ export const TableEditor = memo(
             {PROPERTY_LABELS.SORTING_SETTINGS}
           </legend>
 
-          <div className="tab-overview">
+          <div className="editor-overview">
             <span className="help-text">
               💡 Set default sorting or maintain API order. Users can change
               sorting by clicking headers.
@@ -542,8 +542,8 @@ export const TableEditor = memo(
 
         <PropertySection title={PROPERTY_LABELS.COLUMN_MANAGEMENT}>
           {/* 컬럼 개수 표시 */}
-          <div className="tab-overview">
-            <p className="tab-overview-text">
+          <div className="editor-overview">
+            <p className="editor-overview-text">
               Total columns: {actualColumns.length || 0}
             </p>
             <p className="section-overview-help">
@@ -557,9 +557,9 @@ export const TableEditor = memo(
               {actualColumns.map((column, index) => {
                 const columnProps = column.props as Record<string, unknown>;
                 return (
-                  <div key={column.id} className="tab-list-item">
-                    <div className="tab-content">
-                      <span className="tab-title">
+                  <div key={column.id} className="editor-list-item">
+                    <div className="editor-item-content">
+                      <span className="editor-item-title">
                         {index + 1}.{" "}
                         {(columnProps?.children as string) || "제목 없음"}
                         {columnProps?.key != null && (
@@ -568,7 +568,7 @@ export const TableEditor = memo(
                           </span>
                         )}
                       </span>
-                      <div className="tab-controls">
+                      <div className="editor-item-controls">
                         {columnProps?.allowsSorting !== false && (
                           <span
                             className="table-editor-hint-text"
@@ -594,7 +594,7 @@ export const TableEditor = memo(
           )}
 
           {actualColumns.length === 0 && (
-            <div className="tab-overview">
+            <div className="editor-overview">
               <p className="section-overview-help">
                 ⚠️ 컬럼이 없습니다. <strong>Layers</strong>에서{" "}
                 <strong>TableHeader</strong>를 선택하고 컬럼을 추가하세요.
@@ -606,8 +606,8 @@ export const TableEditor = memo(
         {/* Column Group Management */}
         <PropertySection title="Column Group Management">
           {/* Column Group 개수 표시 */}
-          <div className="tab-overview">
-            <p className="tab-overview-text">
+          <div className="editor-overview">
+            <p className="editor-overview-text">
               Total groups: {actualColumnGroups.length || 0}
             </p>
             <p className="section-overview-help">
@@ -622,15 +622,15 @@ export const TableEditor = memo(
               {actualColumnGroups.map((group, index) => {
                 const groupProps = group.props as Record<string, unknown>;
                 return (
-                  <div key={group.id} className="tab-list-item">
-                    <div className="tab-content">
-                      <span className="tab-title">
+                  <div key={group.id} className="editor-list-item">
+                    <div className="editor-item-content">
+                      <span className="editor-item-title">
                         {index + 1}. {(groupProps?.label as string) || "Group"}
                         <span className="table-editor-label-hint">
                           (span: {(groupProps?.span as number) || 2})
                         </span>
                       </span>
-                      <div className="tab-controls">
+                      <div className="editor-item-controls">
                         <span
                           className="table-editor-hint-text"
                           title="Column Group"
@@ -656,7 +656,7 @@ export const TableEditor = memo(
           )}
 
           {actualColumnGroups.length === 0 && (
-            <div className="tab-overview">
+            <div className="editor-overview">
               <p className="section-overview-help">
                 📋 Column Group이 없습니다. 아래 버튼을 클릭하여 그룹을
                 추가하세요.
@@ -665,7 +665,7 @@ export const TableEditor = memo(
           )}
 
           {/* Column Group 추가 버튼 */}
-          <div className="tab-actions">
+          <div className="editor-actions">
             <button className="control-button add" onClick={addColumnGroup}>
               <Layers
                 color={iconProps.color}
@@ -677,7 +677,7 @@ export const TableEditor = memo(
           </div>
 
           {/* Column Group 사용법 안내 */}
-          <div className="tab-overview">
+          <div className="editor-overview">
             <p className="section-overview-help">
               <strong>💡 Column Group 사용법:</strong>
               <br />
@@ -691,8 +691,8 @@ export const TableEditor = memo(
 
         <PropertySection title="Row Management">
           {/* 행 개수 표시 */}
-          <div className="tab-overview">
-            <p className="tab-overview-text">Total rows: {rows.length || 0}</p>
+          <div className="editor-overview">
+            <p className="editor-overview-text">Total rows: {rows.length || 0}</p>
             <p className="section-overview-help">
               💡 Manage table rows and their cells
             </p>
@@ -707,8 +707,8 @@ export const TableEditor = memo(
                 );
 
                 return (
-                  <div key={row.id} className="tab-list-item">
-                    <span className="tab-title">
+                  <div key={row.id} className="editor-list-item">
+                    <span className="editor-item-title">
                       Row {index + 1} ({rowCells.length} cells)
                     </span>
                     <button
@@ -728,7 +728,7 @@ export const TableEditor = memo(
           )}
 
           {/* 행 추가 버튼 */}
-          <div className="tab-actions">
+          <div className="editor-actions">
             <button className="control-button add" onClick={addRow}>
               <SquarePlus
                 color={iconProps.color}
