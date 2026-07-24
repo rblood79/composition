@@ -1,6 +1,6 @@
 # ADR-164 Design Breakdown: 레이아웃 TS 보정 레이어의 엔진 흡수
 
-> 본문: [../164-engine-ts-compensation-absorption.md](../164-engine-ts-compensation-absorption.md)
+> 본문: [../completed/164-engine-ts-compensation-absorption.md](../completed/164-engine-ts-compensation-absorption.md)
 > 결정·대안·위험 평가는 ADR 본문 소관 — 이 문서는 구현 상세만 담는다.
 
 ## 1. Scope lock-in (사용자 confirm 2026-07-24)

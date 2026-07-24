@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [레이아웃 TS 보정 레이어의 엔진 흡수 — ADR-164 Implemented] - 2026-07-25
+
+### Architecture
+
+- **automatic minimum size (CSS-FLEXBOX-1 §4.5) 엔진 소속화** (ADR-164 Phase 0~3, Implemented 승격):
+  - composition-engine `flex.rs` 에 content-based minimum floor 구현 — 조건 `명시 min 부재 ∧ item 주축 overflow visible ∧ 주축 크기 auto` → floor = `content_main` (max clamp 동반). 프로토콜 `FLEX_FIELD_COUNT` 18→19 (off 18 = 주축 overflow, `tree.rs::write_flex_item` 기록 — flex 배열은 Rust 내부 구성이라 TS 직렬화 무변경)
+  - `fullTreeLayout.ts` Step 5.7 (부모 overflow≠visible 기준 flexShrink:0 전면 주입) 동시 제거. **사용자-가시 변화**: overflow≠visible flex 컨테이너의 자식이 이제 CSS 와 동일하게 content floor 까지 shrink — 의도된 명세 정합화 (신규 parity fixture 로 Chrome 실측 diff 0 확증)
+  - **Why**: ADR-916 의 성공 기준이 Taffy 동등성이라 Taffy 시대 TS 보정이 엔진 교체 후에도 상류에 잔존 — dual-run diff 0 방법론은 상류 보정이 가로챈 입력 차원에 구조적으로 blind
+  - G2 재정의 (사용자 confirm): `utils.ts` minWidth 동시 주입은 보정이 아니라 **leaf content 제안값 전달 채널**로 재분류·잔존 (엔진은 텍스트 측정 부재로 leaf content 무지 — CanvasKit 측정 oracle 불변)
+  - position:absolute 잔여 2건 (containing block 조상 체인 / fixed viewport) 은 실사용 0건 실측 → "의도적 미지원" 명문화 종결 (`tree.rs` doc comment + `layout-engine.md` 신설 절)
+  - 경계 규칙화: `layout-engine.md` §"automatic minimum size — 엔진 소속" 교체 + §"TS 잔존 계약" 신설 (엔진 gap 을 TS 보정으로 재차 메우는 침식 차단), `canvas-rendering.md` 금지 패턴 동기 갱신
+  - 검증: cargo 316 (신규 floor 유닛 7) / parity 90/90 (신규 `autoMin.browser.test.ts` 8케이스 × engine·pipeline 2 leg) / layout 유닛 299 / bench 회귀 0 / live builder exercise
+  - 위치: `packages/composition-engine/src/{flex,tree}.rs`, `packages/composition-engine/benches/flex_shrink.rs`, `apps/builder/src/builder/workspace/canvas/layout/engines/{fullTreeLayout,utils}.ts`, `apps/builder/tests/parity/autoMin.browser.test.ts`
+
 ## [스타일 패널 Box Shadow inset 토글] - 2026-07-25
 
 ### Features

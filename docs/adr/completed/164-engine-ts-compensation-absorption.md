@@ -2,7 +2,11 @@
 
 ## Status
 
-Accepted — 2026-07-24 (리뷰 round 1 승인 — [reviews/164.md](reviews/164.md) 이슈 전건 종결, HIGH/CRITICAL 0)
+Implemented — 2026-07-25
+
+- Proposed — 2026-07-24
+- Accepted — 2026-07-24 (리뷰 round 1 승인 — [reviews/164.md](../reviews/164.md) 이슈 전건 종결, HIGH/CRITICAL 0)
+- Implemented — 2026-07-25 (Phase 0/1/2/3 전체 반영 — 하단 진행 로그 참조. G1~G5 전 게이트 통과)
 
 ## Context
 
@@ -87,7 +91,7 @@ TS 보정 레이어 규모: `utils.ts` 5,422 + `fullTreeLayout.ts` 3,034 + `impl
 - **대안 B 기각**: 측정 계약 재설계(콜백 vs 선주입 테이블)는 그 자체가 독립된 위험 평가와 대안 비교를 받아야 할 설계 문제다. 본 ADR 에 섞으면 HIGH 3축을 짊어진 채 리뷰가 길어지고 (reviews/912 = 16 라운드 전례), ②③④ 의 확실한 이득까지 인질이 된다. ① 은 후속 ADR 로 분리하되 본 ADR 의 §4.5 floor 구현이 그 선행 기반(content minimum 소비 지점)이 된다 — Consequences 에 체인 기록.
 - **대안 C 기각**: Step 5.7 은 이미 CSS 와 발산한 근사이고, 보정 레이어 존치는 문서-코드 drift 와 재보정 비용을 구조적으로 재생산한다. "동작 중" 은 정합의 증거가 아니다 (dual-run blind 실증).
 
-> 구현 상세: [164-engine-ts-compensation-absorption-breakdown.md](design/164-engine-ts-compensation-absorption-breakdown.md)
+> 구현 상세: [164-engine-ts-compensation-absorption-breakdown.md](../design/164-engine-ts-compensation-absorption-breakdown.md)
 
 ## Risks
 
@@ -130,3 +134,4 @@ TS 보정 레이어 규모: `utils.ts` 5,422 + `fullTreeLayout.ts` 3,034 + `impl
 - **2026-07-25 — Phase 1 착수 중 G2 재정의 (사용자 confirm)**: 구현 설계 실측에서 엔진이 leaf content 를 알 수 없음을 확정 (`tree.rs:654~664` — width auto leaf 는 0 반환 / explicit 노드 content 슬롯은 border-box 저장이라 신뢰 불가). 텍스트 leaf 의 §4.5 content 제안값은 TS `minWidth` 주입이 유일 전달 채널 → 전부 제거 시 measured leaf 가 tight 컨테이너에서 0 까지 축소되는 회귀. 이에 `minWidth` 동시 주입을 "보정 (제거 대상)" 에서 "**leaf content 제안값 전달 채널 (§6 잔존 계약)**" 로 재분류하고 G2 grep 을 Step 5.7 축으로 축소. 엔진 §4.5 floor 는 **width auto item 한정 content_main** (신뢰 가능한 유일 케이스) + item overflow 조건으로 구현. Step 5.7 제거는 원안 유지 — ADR 의 경계 원칙 (엔진이 §4.5 의미론 소유, TS 는 측정값 공급) 불변.
 - **2026-07-25 — Phase 1 (automatic minimum size ②+③) Implemented**: `flex.rs` §4.5 content-based minimum floor (`FLEX_FIELD_COUNT` 18→19, off 18 `overflow_main`; `parse_item` effective min — width-auto item 한정 `content_main` + max clamp) + `tree.rs` `write_flex_item` 주축 overflow 기록 + Step 5.7 제거 + `utils.ts` minWidth 주입 주석 재분류. **검증**: cargo 316 (신규 floor 유닛 7 — 명시 min:0 존중 / clipped 무floor / max clamp / column 대칭 포함) · parity **90/90** (신규 fixture 8케이스 × engine/pipeline 2 leg — d2/d3 content floor 는 Chrome 실측과 diff 0, a/a2 가 R1 본체, e 가 grid no-op 확증) · layout 유닛 299 · type-check PASS. **G1 ✓ G2 ✓** (Step 5.7 flexShrink 주입 grep 0건) **G3 ✓** (bench best-of-N median: S1 15.9→16.7µs / S2 69.1→71.1µs / S3 14.9→15.2µs — 노이즈 밴드 ±10% 이내, S2 는 floor 동결 작업이 추가되고도 +2.9%) **G4 ✓** (live: fresh reload 콘솔 에러 0 + CSS 프리뷰 ↔ Skia 캔버스 ListBox 시각 대칭 + 클릭 선택 박스 330×194·행 가이드라인 bounds 정합 exercise). **반영 경위 특이사항**: 엔진+TS 코드 변경분은 같은 worktree 에서 병렬로 돌던 다른 세션의 커밋 `3045fd979` (panel inset 토글) 가 광범위 add 로 휩쓸어 먼저 push 함 — 해당 커밋 메시지에 ADR-164 서술이 없으므로 본 진행 로그가 정본 추적 기록이다 (병렬 세션은 worktree 격리 권장 — CLAUDE.local.md).
 - **2026-07-25 — Phase 2 (④ position:absolute 잔여) Implemented — "의도적 미지원 명문화" 경로**: Decision 조건부 규칙 + Phase 0-3 실측 (실사용 0건, G5 근거) 에 따라 구현 없이 종결. `tree.rs::place_absolute_children` doc comment 를 실 구현 (E11 stretch/margin-auto/음수 inset) 반영으로 정정하고 의도적 미지원 2건 (containing block 조상 체인 / fixed viewport) + 실측 근거 + 재개 조건을 명문화. `layout-engine.md` 에 §"position:absolute / fixed — 엔진 소속 + 의도적 미지원 경계" 신설 (TS 배치 보정 재도입 금지 포함). 검증: cargo check 0 error (doc/문서만 — 동작 무변경, G4 live 해당 없음).
+- **2026-07-25 — Phase 3 (문서·규칙 정합 + 경계 계약 명문화) Implemented + ADR closure**: `layout-engine.md` §"Overflow Scroll + Flex Shrink 보정" 폐기 → §"automatic minimum size (CSS-FLEXBOX-1 §4.5) — 엔진 소속" 으로 교체 (`_runTaffyPassRaw` stale 서술 동반 소멸) + §"CSS min-width:auto 에뮬레이션" 을 leaf content 전달 채널 계약으로 흡수 + **§"TS 잔존 계약" 신설** (breakdown §6 표 규칙화 — R4 재침식 차단, 역방향 "새 gap 은 엔진 구현이 기본 경로" 규칙 포함) + 금지 패턴 2행 갱신. `canvas-rendering.md` §7 금지 패턴 2행 동기 갱신. ADR-916 완료 본문에 후속 관계 기록 (dual-run diff 0 blind → 본 ADR 흡수 체인). 검증: rules/skills grep sweep — `_runTaffyPassRaw`·폐기 구절 잔존 0건. 문서 전용 phase (코드 무변경) 라 G4 live exercise 해당 없음. R4/R5 대응 종결 → 잔존 pending Risk 0. closure 5단계: Status Implemented + 본 진행 로그 + README 갱신 + `completed/` 이동 + CHANGELOG Architecture 엔트리.

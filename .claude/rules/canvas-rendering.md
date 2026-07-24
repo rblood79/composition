@@ -191,8 +191,8 @@ ParagraphStyle 변경 시 **3곳 동시 업데이트** 필수: canvaskitTextMeas
 - ❌ parentElement를 useMemo 내 직접 참조 (stale closure)
 - ❌ hitElementId를 startMove에 직접 전달 (selectedElementIds 사용)
 - ❌ `calculateContentWidth`에 `isCanvasKitMeasurer() ? 0 : +N` 보정 추가 (CSS 정합 파괴 → nodeRendererText `+1` 마진 사용)
-- ❌ `enrichWithIntrinsicSize`에서 flex 자식 width 주입 시 minWidth 미설정 (CSS min-width:auto 누락 → 자식 0px 축소)
-- ❌ overflow flexShrink 보정에서 `scroll/auto`만 체크 (`hidden/clip` 누락 → `!== "visible"` 필수)
+- ❌ `enrichWithIntrinsicSize`에서 flex 자식 width 주입 시 minWidth 미설정 (§4.5 content 전달 채널 누락 — 엔진 floor 는 width-auto item 한정이라 주입 width 로 definite 가 된 item 은 0px 까지 축소. ADR-164 §6 잔존 계약)
+- ❌ overflow 기준 flexShrink 주입 보정 (구 Step 5.7) TS 재도입 (automatic minimum size 는 엔진 소속 — `flex.rs` §4.5, ADR-164. layout-engine.md §"TS 잔존 계약" 참조)
 
 ## 8. Overflow Scroll 가이드라인 동기화
 

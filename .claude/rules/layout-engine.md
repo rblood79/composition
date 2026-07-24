@@ -123,17 +123,30 @@ globs:
 
 **계층 A·B 는 AND** — 하나만 등재하면 무반영이며, 증상이 서로 다르다: A 누락 = 재계산 자체를 안 함 / B 누락 = 재계산은 돌지만 시그니처 동일 → 캐시 히트로 이전 결과 재사용. 새로고침 후에만 반영되면 B 를 의심할 것.
 
-## Overflow Scroll + Flex Shrink 보정
+## automatic minimum size (CSS-FLEXBOX-1 §4.5) — 엔진 소속 (ADR-164 Phase 1, 2026-07-25)
 
-- `overflow !== "visible"` 부모(hidden/clip/scroll/auto)의 flex 자식에 명시적 `flexShrink`가 없으면 `flexShrink: 0` 자동 주입. **Why**: CSS에서 overflow clipped 컨테이너의 자식은 shrink하지 않고 overflow 허용하지만, 엔진은 이 상호작용 미지원 → 기본 `flexShrink: 1`로 자식이 축소됨
-- 보정 위치: `fullTreeLayout.ts` DFS post-order (Step 5.7) + `TaffyFlexEngine.ts` `_runTaffyPassRaw`. **Why**: 주 경로는 fullTreeLayout, 레거시 경로는 TaffyFlexEngine — 양쪽 모두 필요
-- flex-direction과 overflow 축 매칭 필수: `row` → `overflowX`, `column` → `overflowY`. **Why**: 교차축 overflow는 shrink와 무관
+flex item 의 automatic minimum size (min-width/height:auto = content 하한) 는 **엔진 구현** (`flex.rs::parse_item` effective min 해석): 조건 `명시 min 부재 ∧ item 주축 overflow visible ∧ 주축 크기 auto` → floor = `content_main` (max clamp 동반). 프로토콜 off 18 = 주축 overflow (0=visible zero-init / 1=clipped — `tree.rs::write_flex_item` 이 기록; flex 배열은 Rust 내부 구성이라 TS 직렬화 무변경).
 
-## CSS min-width:auto 에뮬레이션 (CRITICAL)
+- 구 **Step 5.7** (부모 overflow≠visible 기준 flexShrink:0 전면 주입, `fullTreeLayout.ts`) 은 **제거됨** — coarse 근사가 min-content 이상의 정당한 shrink 까지 막아 CSS 와 발산했다. TS 에서 overflow 기준 flexShrink 주입 보정 재도입 금지 (해당 위치 tombstone 주석 참조).
+- **minWidth 동시 주입은 보정이 아니라 채널**: `enrichWithIntrinsicSize` 가 flex 자식에 `width` 주입 시 `minWidth` 를 동일 값으로 동시 설정한다. **Why**: 엔진은 텍스트 측정 부재로 leaf content 를 모른다 (CanvasKit = 측정 oracle) + width 주입으로 definite 가 된 item 은 엔진 floor 대상 밖 → injected `minWidth` 가 §4.5 content 제안값의 **유일 전달 경로** (ADR-164 §6 잔존 계약, 2026-07-25 재분류)
+  - 사용자 명시적 `minWidth` 설정 시 보존 (덮어쓰기 금지)
+  - `isFlexChild` 파라미터가 true 일 때만 적용 — block 자식은 min-width:auto 가 0
+- Chrome 실측 fixture: `apps/builder/tests/parity/autoMin.browser.test.ts` (engine/pipeline 2 leg × 8케이스) — floor 동작 변경 시 여기부터 갱신
 
-- `enrichWithIntrinsicSize`에서 flex 자식에 `width` 주입 시 `minWidth`도 동일 값으로 동시 설정. **Why**: CSS flex item의 기본 `min-width: auto` = min-content 크기. 엔진은 이를 0으로 처리 → 자식이 0px까지 축소 가능. `overflow: visible`에서도 Preview와 동일하게 자연 너비 유지 필요
-- 사용자 명시적 `minWidth` 설정 시 보존 (덮어쓰기 금지)
-- `isFlexChild` 파라미터가 true일 때만 적용. **Why**: block 자식은 min-width:auto가 0이므로 주입 불필요
+## TS 잔존 계약 (ADR-164 Phase 3 — 엔진↔TS 경계 규칙, CRITICAL)
+
+다음은 **의도적으로 TS 에 남는** 것들이다. 엔진 gap 처럼 보여도 아래 사유가 유효한 한 엔진 이관·중복 구현 양쪽 모두 금지 — 변경은 해당 사유를 뒤집는 ADR 로만:
+
+| 잔존                                                               | 사유                                                                                                       |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| 텍스트/leaf 측정값 주입 (enrichWithIntrinsicSize 의 width 주입)    | CanvasKit = 측정 oracle ("Layout = Canvas 2D = CSS 정합"). 엔진 자체 텍스트 측정 도입 금지                 |
+| minWidth 동시 주입 (`utils.ts` enrichWithIntrinsicSize)            | §4.5 leaf content 제안값 전달 채널 (위 절) — intrinsic sizing 후속 ADR 이 content 채널을 재설계하기 전까지 |
+| `implicitStyles.ts` 컴포넌트별 주입 (indicator/collection font 등) | catalog/spec 의미론 (D3 SSOT 파생) — CSS 표준 의미론 아님                                                  |
+| 2-pass Step 4.5 재계산                                             | intrinsic 측정-배치 닭-달걀 우회 — intrinsic sizing 후속 ADR 이 해소하기 전까지                            |
+| f32 `Math.ceil` 보정                                               | 엔진 f32 ↔ JS f64 정밀도 경계 — 흡수 대상 아님                                                             |
+| layoutCache 시그니처/무효화 (5-심볼 2계층)                         | store 결합 — 마샬링 비용 > 계산 비용                                                                       |
+
+역방향(재침식)도 같은 강도로 금지: **CSS 표준 의미론의 새 gap 을 발견하면 TS 보정이 아니라 엔진 구현이 기본 경로** (ADR-164 Decision — Step 5.7 형 coarse 근사 재생산 금지).
 
 ## Container style pipeline 연계 (ADR-907 Implemented)
 
@@ -156,8 +169,8 @@ collection/self-render 컨테이너의 `calculateContentHeight()` 분기는 **La
 
 - **style 키를 `LAYOUT_PROP_KEYS` 에 추가 금지** → `LAYOUT_STYLE_KEYS` 가 style 축이다 (`LAYOUT_PROP_KEYS` 는 `props[key]` 만 읽으므로 `style.foo` 를 넣어도 항상 `undefined` = 시그니처 불변 = 무반영)
 - **계층 A(layoutVersion 트리거) 단독 등재 금지** → 계층 B(캐시 시그니처) 동반 필수. 역도 같음 (§"5-심볼 2계층 체인")
-- flex 자식 width 주입 시 minWidth 미설정 금지 → `enrichWithIntrinsicSize`에서 동시 주입 필수
-- overflow flexShrink 보정에서 `scroll/auto`만 체크 금지 → `!== "visible"` 필수
+- flex 자식 width 주입 시 minWidth 미설정 금지 → `enrichWithIntrinsicSize`에서 동시 주입 필수 (§4.5 content 전달 채널 — ADR-164 §6 잔존 계약)
+- overflow 기준 flexShrink 주입 보정 (구 Step 5.7) 재도입 금지 → automatic minimum size 는 엔진 소속 (`flex.rs` §4.5, ADR-164)
 - DFS 조건에 `fontSize == null` 사용 금지 → `lineHeight == null` 필수
 - Label height에 `Math.ceil(fontSize * 1.5)` 금지 → LABEL_SIZE_STYLE 역참조
 - Label lineHeight를 숫자로 전달 금지 → `"20px"` 문자열 필수
