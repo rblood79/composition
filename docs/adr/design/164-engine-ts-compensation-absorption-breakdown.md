@@ -29,23 +29,23 @@
 
 ②와 ③은 같은 명세 조항의 두 증상이다: CSS-FLEXBOX-1 §4.5 automatic minimum size (`min-width:auto` = content-based minimum) 를 엔진이 0 으로 처리 → TS 가 두 갈래로 보정.
 
-### 3-1. 엔진 구현 (`packages/composition-engine/src/`)
+### 3-1. 엔진 구현 (`packages/composition-engine/src/`) — 2026-07-25 착수 실측 정정 (사용자 confirm)
 
-- `flex.rs` shrink 분배(§9.7 알고리즘, 현 `flex_shrink` data[off+16] 소비부)에 **content-based minimum floor** 추가: `min_width/min_height` 미명시(auto)인 flex item 은 shrink 결과를 content minimum 밑으로 내리지 않는다.
-- content minimum 산출은 **definite 입력 기반 재귀 한정**: leaf = 주입된 definite main-size (TS enrichment 가 이미 px 로 확정해 보냄), 컨테이너 = 자식 content minimum 의 합/최대 (flex-direction 축 규칙). **텍스트 재측정 없음** — 재줄바꿈이 필요한 min-content 는 ①(후속 ADR) 영역이며, 그 경우 현행 injected minWidth 값이 상한 근사로 동작함을 §6 계약에 명시.
-- item 자신의 `overflow≠visible` 이면 content-based minimum 을 적용하지 않는다 (명세 §4.5 조건 — automatic minimum 은 `overflow:visible` item 한정).
+- `flex.rs` shrink 분배(§9.7 알고리즘, 현 `flex_shrink` data[off+16] 소비부)에 **content-based minimum floor** 추가: `parse_item` 에서 effective `min_main` 으로 해석 — 이후 §9.7 clamp/violation 동결 기계가 자연 처리.
+- **floor 적용 조건 (실측 정정)**: `min_main == AUTO` ∧ item 주축 overflow visible ∧ **`width == AUTO`** — floor = `content_main` (max_main clamp). width-auto item 만인 이유: explicit 노드의 content 슬롯은 border-box 저장이라 신뢰 불가 (`tree.rs:592~598` 주석), 그리고 **엔진 leaf 는 자기 content 를 모른다** (`tree.rs:654~664` — width auto leaf 는 0 반환, 텍스트 측정 부재). width-definite item 에 width 를 floor 로 쓰면 명세(min(content 제안, specified 제안))보다 과대해 Chrome parity 가 깨진다 (빈 div width:200 은 Chrome 에서 0 까지 shrink).
+- **텍스트 leaf 의 content 제안값은 TS `minWidth` 주입이 명시 min 채널로 전달** (§6 잔존 계약 — 재분류). 컨테이너 item(width auto)은 재귀 solve 결과 `content_main` 이 진짜 content 라 엔진 floor 대상.
 - `min_width:0` 명시값은 그대로 존중 (falsy 함정 재발 금지 — `Option` 부재와 `Some("0")` 구분).
-- **바이너리 프로토콜 영향 (round 1 리뷰 반영)**: min 축은 기존 표현으로 충분 — `flex.rs` 프로토콜에 `min_main AUTO=-1` sentinel (offset 9) + `content_main` (offset 13) 이 이미 있어 auto/0 구분·floor 기준값 모두 표현 가능. 단 **item overflow 필드는 부재** (offset 표 0~17 에 없음) — §4.5 의 item-overflow 조건 구현 시 `FLEX_FIELD_COUNT` 18→19 필드 추가 필요, 이때 3 직렬화 경로 동시 갱신 (ADR 본문 Soft Constraint).
+- **바이너리 프로토콜 (실측 정정)**: `FLEX_FIELD_COUNT` 18→19 — off 18 = item 주축 overflow (0=visible, zero-init = CSS 기본값 정합 / 1=clipped). flex 데이터 배열은 `tree.rs::solve_flex` 가 **Rust 내부에서 구성** (`write_flex_item`) 하므로 TS 직렬화 무변경 — NodeStyle 은 `overflow_x/overflow_y` 를 이미 수신 (`tree.rs:108~109`). "3 직렬화 경로 동시 갱신" Soft Constraint 는 TS→WASM JSON style 필드 추가 시에만 해당 (이번엔 미해당).
 
-### 3-2. TS 보정 제거 (같은 phase 필수 — dormant/이중 적용 금지)
+### 3-2. TS 보정 제거·재분류 (같은 phase 필수 — dormant/이중 적용 금지)
 
-| 제거 대상                                                                                | 위치                          | 대체                                                            |
-| ---------------------------------------------------------------------------------------- | ----------------------------- | --------------------------------------------------------------- |
-| Step 5.7 부모-overflow 기준 flexShrink:0 강제 주입                                       | `fullTreeLayout.ts` 2156~2180 | 엔진 §4.5 floor (부모가 아니라 **item 기준** — 명세 정합화)     |
-| enrichWithIntrinsicSize 의 minWidth 동시 주입 (`isFlexChild && style?.minWidth == null`) | `utils.ts` 4703~4714          | 엔진이 injected width 를 content minimum 으로 소비              |
-| growsInFlex 분기의 "minWidth 만 주입" 경로                                               | `utils.ts` 동일 함수          | 동일 — 단 **width 주입 자체는 유지** (측정값 전달 채널, ① 영역) |
+| 대상                                                                                     | 위치                          | 처분 (2026-07-25 정정)                                                                                            |
+| ---------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Step 5.7 부모-overflow 기준 flexShrink:0 강제 주입                                       | `fullTreeLayout.ts` 2156~2179 | **제거 (원안 유지)** — 엔진 §4.5 floor 가 대체 (부모가 아니라 **item 기준** — 명세 정합화)                        |
+| enrichWithIntrinsicSize 의 minWidth 동시 주입 (`isFlexChild && style?.minWidth == null`) | `utils.ts` 4703~4714          | **잔존 재분류 (G2 재정의, 사용자 confirm)** — leaf content 제안값 전달 채널 (width 주입과 동일 범주, ① 까지 존속) |
+| growsInFlex 분기의 "minWidth 만 주입" 경로                                               | `utils.ts` 동일 함수          | **잔존 재분류 (동일)** — grow leaf 는 width 미주입이라 minWidth 가 유일 content 채널                              |
 
-- 제거 후 grep gate: `flexShrink: 0` 신규 주입 0건 (shorthand 파서 `flex: none` 해석 제외), `minWidth = ceiledWidth` 0건.
+- 제거 후 grep gate (G2 재정의): Step 5.7 의 `flexShrink: 0` 강제 주입 0건 (shorthand 파서 `flex: none` 해석 제외). minWidth 축 grep 은 §6 재분류로 대체 — 주입 코드의 주석을 "leaf content 제안값 전달 채널 (ADR-164 §6)" 로 갱신해 보정 오인 재발 차단.
 - `TaffyFlexEngine.ts` / `utils.ts:5307~5334` 의 flex shorthand 파서 중복은 본 phase 범위 아님 (보정이 아니라 파싱 — 정리하려면 별도 리팩터).
 
 ### 3-3. 검증
@@ -74,13 +74,14 @@
 
 ## 6. TS 잔존 계약 (경계 — 본 ADR 이후에도 TS 에 남는 것)
 
-| 잔존                                                                                              | 이유                                                                                                                                                     |
-| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 텍스트/leaf 측정값 주입 (enrichWithIntrinsicSize 의 width 주입 자체)                              | CanvasKit 이 측정 oracle — "Layout = Canvas 2D = CSS 정합" 규칙. 엔진 자체 측정 도입 금지. ① 후속 ADR 에서도 측정 주체는 불변(소비 알고리즘만 이관 검토) |
-| `implicitStyles.ts` 컴포넌트별 주입 (indicator 크기, collection item font, synthetic children 등) | catalog/spec 의미론 (D3 SSOT 파생) — CSS 표준 의미론이 아니라 composition 디자인 규칙                                                                    |
-| 2-pass Step 4.5 재계산                                                                            | intrinsic 측정-배치 닭-달걀의 우회 장치 — ① 이 해소하기 전까지 유지                                                                                      |
-| f32 `Math.ceil` 보정                                                                              | 엔진 f32 ↔ JS f64 정밀도 경계 — 흡수 대상 아님                                                                                                           |
-| layoutCache 시그니처/무효화 (5-심볼 2계층)                                                        | store 결합 — 마샬링 비용 > 계산 비용                                                                                                                     |
+| 잔존                                                                                              | 이유                                                                                                                                                                                             |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 텍스트/leaf 측정값 주입 (enrichWithIntrinsicSize 의 width 주입 자체)                              | CanvasKit 이 측정 oracle — "Layout = Canvas 2D = CSS 정합" 규칙. 엔진 자체 측정 도입 금지. ① 후속 ADR 에서도 측정 주체는 불변(소비 알고리즘만 이관 검토)                                         |
+| `implicitStyles.ts` 컴포넌트별 주입 (indicator 크기, collection item font, synthetic children 등) | catalog/spec 의미론 (D3 SSOT 파생) — CSS 표준 의미론이 아니라 composition 디자인 규칙                                                                                                            |
+| 2-pass Step 4.5 재계산                                                                            | intrinsic 측정-배치 닭-달걀의 우회 장치 — ① 이 해소하기 전까지 유지                                                                                                                              |
+| enrichWithIntrinsicSize 의 minWidth 동시 주입 (growsInFlex 포함, `utils.ts:4712`)                 | **텍스트 leaf 의 §4.5 content 제안값 전달 채널** (2026-07-25 재분류, 사용자 confirm) — 엔진은 텍스트 측정 부재로 leaf content 무지 (`tree.rs:654~664`). ① 이 content 채널을 재설계할 때까지 잔존 |
+| f32 `Math.ceil` 보정                                                                              | 엔진 f32 ↔ JS f64 정밀도 경계 — 흡수 대상 아님                                                                                                                                                   |
+| layoutCache 시그니처/무효화 (5-심볼 2계층)                                                        | store 결합 — 마샬링 비용 > 계산 비용                                                                                                                                                             |
 
 ## 7. 인벤토리 표 (Phase 0 산출물 — 2026-07-24 freeze)
 

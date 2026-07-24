@@ -101,20 +101,20 @@ TS 보정 레이어 규모: `utils.ts` 5,422 + `fullTreeLayout.ts` 3,034 + `impl
 
 ## Gates
 
-| Gate | 시점                | 통과 조건                                                                                                                                                                                         | 실패 시 대안                                                           |
-| ---- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| G1   | Phase 1 완료        | 신규 parity fixture (ADR-156 harness, **raw style 직행** — 보정 제거 후 입력): scroll 컨테이너 shrink / `flex:1 minWidth:0` / flexShrink 명시 상호작용 / column 축 대칭 — Chrome 실측 대비 diff 0 | 해당 케이스 엔진 수정 후 재실행. 명세 해석 쟁점이면 Chrome 실측이 우선 |
-| G2   | Phase 1 완료        | TS 보정 제거 grep 0건 (Step 5.7 주입 / `minWidth = ceiledWidth`) + 기존 parity·유닛 전체 PASS + type-check baseline 유지                                                                          | 제거 커밋 revert 후 엔진 구현 보강 (제거 단독 잔류 금지)               |
-| G3   | Phase 1 완료        | 엔진 bench 기준치 회귀 0 (Phase 0 기록치 대비)                                                                                                                                                    | 캐시/패스 통합 최적화 후 재측정. 미달 지속 시 floor 계산 lazy 화       |
-| G4   | 각 phase 완료       | live builder 1회 exercise (실문서 — R1 영향 조합 포함) + 무엇을 exercise 했는지 완료 보고 명시                                                                                                    | 발견 이슈 수정 전 phase 종결 금지                                      |
-| G5   | Phase 2 (④) 진입 전 | Phase 0-3 실측 기록 존재 (containing block 조상 체인·fixed 실사용 유무) — Decision 조건부 규칙의 판정 근거                                                                                        | 실측 없이 구현 착수 금지 (stale 분류 재발 방지)                        |
+| Gate | 시점                | 통과 조건                                                                                                                                                                                                                                                                                  | 실패 시 대안                                                           |
+| ---- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| G1   | Phase 1 완료        | 신규 parity fixture (ADR-156 harness, **raw style 직행** — 보정 제거 후 입력): scroll 컨테이너 shrink / `flex:1 minWidth:0` / flexShrink 명시 상호작용 / column 축 대칭 — Chrome 실측 대비 diff 0                                                                                          | 해당 케이스 엔진 수정 후 재실행. 명세 해석 쟁점이면 Chrome 실측이 우선 |
+| G2   | Phase 1 완료        | TS 보정 제거 grep 0건 (Step 5.7 flexShrink 주입) + 기존 parity·유닛 전체 PASS + type-check baseline 유지. `minWidth = ceiledWidth` 주입은 **leaf content 제안값 전달 채널로 §6 재분류·잔존** (2026-07-25 정정, 사용자 confirm — Phase 1 실측: 엔진은 텍스트 측정 부재로 leaf content 무지) | 제거 커밋 revert 후 엔진 구현 보강 (제거 단독 잔류 금지)               |
+| G3   | Phase 1 완료        | 엔진 bench 기준치 회귀 0 (Phase 0 기록치 대비)                                                                                                                                                                                                                                             | 캐시/패스 통합 최적화 후 재측정. 미달 지속 시 floor 계산 lazy 화       |
+| G4   | 각 phase 완료       | live builder 1회 exercise (실문서 — R1 영향 조합 포함) + 무엇을 exercise 했는지 완료 보고 명시                                                                                                                                                                                             | 발견 이슈 수정 전 phase 종결 금지                                      |
+| G5   | Phase 2 (④) 진입 전 | Phase 0-3 실측 기록 존재 (containing block 조상 체인·fixed 실사용 유무) — Decision 조건부 규칙의 판정 근거                                                                                                                                                                                 | 실측 없이 구현 착수 금지 (stale 분류 재발 방지)                        |
 
 ## Consequences
 
 ### Positive
 
 - Builder(Skia) 레이아웃이 overflow×shrink·min-width:auto 에서 CSS 명세와 동일 의미론으로 동작 — coarse 근사(flexShrink:0 전면 차단)로 인한 잠재 발산 소멸.
-- `fullTreeLayout.ts` Step 5.7 / `utils.ts` minWidth 동시 주입 제거 — 보정 지점과 그 문서 관리 의무(`layout-engine.md` 해당 절) 소멸.
+- `fullTreeLayout.ts` Step 5.7 제거 — 부모-overflow 전면 차단 보정과 그 문서 관리 의무(`layout-engine.md` 해당 절) 소멸. `utils.ts` minWidth 동시 주입은 leaf content 제안값 전달 채널로 §6 잔존 계약 편입 (2026-07-25 정정 — ① 이 content 채널을 재설계할 때까지).
 - "TS 잔존 계약" 명문화로 엔진↔TS 경계가 규칙이 됨 — 재침식 차단.
 - **후속 ADR 체인**: ① intrinsic sizing (측정 계약 재설계 — 콜백 vs 선주입 대안 비교) 은 본 ADR 의 content minimum floor 를 소비 지점으로 활용하는 별도 ADR 로 진행. ⑤ hitBoundsMap Rust 이관은 렌더 레이어 + bench 선행의 독립 후보로 남는다.
 
@@ -127,3 +127,4 @@ TS 보정 레이어 규모: `utils.ts` 5,422 + `fullTreeLayout.ts` 3,034 + `impl
 ## 진행 로그
 
 - **2026-07-24 — Phase 0 (인벤토리 freeze) Implemented**: breakdown §7 을 실측으로 교체. 핵심 실측 3건 — (1) ④ 실사용 **0건** (factory absolute/fixed 0건 + Inspector position 편집 UI 미노출) → Phase 2 는 Decision 조건부 규칙상 "의도적 미지원 명문화" 경로, G5 근거 확보. (2) 전용 bench harness **부재** → G3 판정 수단을 Phase 1 criterion micro-bench 신설 + floor 도입 직전 기준치 측정으로 구체화 (breakdown §3-3). (3) baseline: parity 74 PASS / cargo 309 PASS / type-check PASS. 코드 무변경 phase 라 G4 live exercise 는 해당 없음 (Phase 1 부터 적용).
+- **2026-07-25 — Phase 1 착수 중 G2 재정의 (사용자 confirm)**: 구현 설계 실측에서 엔진이 leaf content 를 알 수 없음을 확정 (`tree.rs:654~664` — width auto leaf 는 0 반환 / explicit 노드 content 슬롯은 border-box 저장이라 신뢰 불가). 텍스트 leaf 의 §4.5 content 제안값은 TS `minWidth` 주입이 유일 전달 채널 → 전부 제거 시 measured leaf 가 tight 컨테이너에서 0 까지 축소되는 회귀. 이에 `minWidth` 동시 주입을 "보정 (제거 대상)" 에서 "**leaf content 제안값 전달 채널 (§6 잔존 계약)**" 로 재분류하고 G2 grep 을 Step 5.7 축으로 축소. 엔진 §4.5 floor 는 **width auto item 한정 content_main** (신뢰 가능한 유일 케이스) + item overflow 조건으로 구현. Step 5.7 제거는 원안 유지 — ADR 의 경계 원칙 (엔진이 §4.5 의미론 소유, TS 는 측정값 공급) 불변.
