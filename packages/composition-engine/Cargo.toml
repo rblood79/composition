@@ -21,6 +21,11 @@ serde_json = "1"
 wasm-bindgen-test = "0.3"
 serde_json = "1"
 
+# ADR-164 G3 — zero-dep micro-bench (criterion 상당, 외부 의존 없이 Instant 중앙값)
+[[bench]]
+name = "flex_shrink"
+harness = false
+
 [profile.release]
 panic = "abort"
 opt-level = "s"

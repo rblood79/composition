@@ -52,7 +52,7 @@
 
 - 신규 parity fixture (ADR-156 harness): (a) scroll 컨테이너 flex 자식 shrink — Chrome 실측 vs 엔진, **raw style 직행** (Step 5.7 제거 후 보정 없는 입력) (b) `flex:1 minWidth:0` 축소 허용 (c) 자식 flexShrink 명시 시 min floor 와의 상호작용 (d) column 축 min-height:auto 대칭 (e) **grid 클립 컨테이너 no-op 확증** — Step 5.7 은 `FLEX_GRID_DISPLAYS` 대상(`fullTreeLayout.ts:2159`)이라 제거가 grid 경로 무영향임을 fixture 로 증명 (grid 알고리즘은 `flex_shrink` 미소비. grid item automatic minimum(CSS-GRID-1 §6.6)·intrinsic track 은 본 ADR 범위 밖 — grid.rs 미구현 영역, ① 후속과 동반).
 - 기존 parity/유닛 전체 회귀 + Phase 0 에서 수식화한 발산 조합의 실문서 live 확인.
-- **G3 bench (Phase 0 실측 반영)**: 전용 bench harness 부재가 확정됐으므로 Phase 1 에서 flex shrink 케이스 criterion micro-bench 를 신설하고, **floor 도입 직전 커밋에서 기준치를 측정**한 뒤 on/off 비교로 회귀 0 을 판정한다.
+- **G3 bench (Phase 0 실측 반영 → 2026-07-25 신설 완료)**: 전용 bench harness 부재가 확정됐으므로 Phase 1 에서 flex shrink 케이스 **zero-dep micro-bench** (`benches/flex_shrink.rs`, `harness=false` + `Instant` 중앙값 — criterion 상당, `panic=abort` 프로필·의존 최소화 기조로 외부 crate 미도입) 를 신설했고, **floor 도입 직전 기준치 (best-of-N median)**: `shrink_nowrap_1000` ≈ 15.9µs / `shrink_wrap_auto_1200` ≈ 69.1µs / `grow_nowrap_1000` ≈ 14.9µs. 도입 후 동일 시나리오 on/off 비교로 회귀 0 을 판정한다 (런 간 노이즈 ±10% 관측 — 판정은 best-of-N 끼리 비교).
 
 ## 4. Phase 2 — position:absolute 잔여 (④)
 
