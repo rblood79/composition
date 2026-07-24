@@ -47,7 +47,7 @@ import "./PropertyDataBinding.css";
  * 오소링이 `source:"dataTable"` 고정이라 신규 바인딩은 항상 발화 0. (3) `"onMount"`
  * 는 api 바인딩에서조차 소비처 0건 (effect 가 `"interval"` 만 분기).
  *
- * 기존 저장 문서의 값은 편집 시에도 보존한다 (`handleNameChange`/`handlePathBlur` 가
+ * 기존 저장 문서의 값은 편집 시에도 보존한다 (`handleNameChange` 가
  * `value?.refreshMode` 를 그대로 재기록). 타입·필드·소비 effect 물리 제거는 api
  * 바인딩 잔존 문서 실측이 필요하므로 ADR-159 P4c 의 G4 게이트와 함께 처리.
  */
@@ -65,7 +65,21 @@ export interface DataBindingValue {
   source: "dataTable" | "api" | "variable" | "route";
   /** 소스 이름 */
   name: string;
-  /** 데이터 경로 (예: "items[0].name", "user.email") */
+  /**
+   * 데이터 경로 — **read 호환 전용 (오소링 UI 제거됨, 2026-07-24)**.
+   *
+   * **Why 제거**: 실제 해석기는 `preview/hooks/useDataSource.ts` 의 `useDataBinding`
+   * 하나뿐인데 그 모듈이 import 0건(dead)이다. 살아있는 소비처는
+   * `useCollectionDataCache.createCacheKey` 의 캐시 키 문자열뿐 — 값을 바꿔도 캐시만
+   * 무효화되고 로드 데이터는 불변. 실제 행 read 경로(`readDataBindingRows`, Skia
+   * projection + DOM 공통)와 `useCollectionData` 는 `source`/`name` 만 읽는다.
+   *
+   * 계약상으로도 어긋난다: `kind:"binding"` 은 collection 컴포넌트 전용이라 결과가
+   * 항상 **행 배열**인데 `items[0].name` 은 단일 값 드릴다운 문법이다. 행 안에서
+   * 필드를 고르는 일은 ADR-159 `{field}` 템플릿(경로 접근 + 포맷)이 담당한다.
+   *
+   * 필드는 캐시 키 호환을 위해 유지하고, 기존 값은 컬렉션 변경 시에도 보존한다.
+   */
   path?: string;
   /** 기본값 */
   defaultValue?: unknown;
@@ -142,25 +156,9 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
     ],
   );
 
-  // 경로 변경 (blur 시 저장) — dataTable 바인딩에서만 노출
-  const handlePathBlur = useCallback(
-    (e: React.FocusEvent<HTMLInputElement>) => {
-      const newPath = e.target.value;
-      if (name) {
-        onChange({
-          source: "dataTable",
-          name,
-          path: newPath || undefined,
-          refreshMode: value?.refreshMode,
-          refreshInterval: value?.refreshInterval,
-        });
-      }
-    },
-    [name, value?.refreshMode, value?.refreshInterval, onChange],
-  );
-
-  // 갱신 모드/간격 오소링 핸들러는 제거됨 (2026-07-24) — 근거는 RefreshMode 주석 참조.
-  // 기존 저장값 보존은 handleNameChange / handlePathBlur 의 재기록이 담당한다.
+  // 데이터 경로 / 갱신 모드 / 갱신 간격 오소링 핸들러는 제거됨 (2026-07-24) —
+  // 근거는 DataBindingValue.path / RefreshMode 주석 참조. 기존 저장값 보존은
+  // handleNameChange 의 재기록이 담당한다 (컬렉션을 바꿔도 값이 유실되지 않음).
 
   // 바인딩 제거
   const handleClear = useCallback(() => {
@@ -270,21 +268,6 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
         {isLegacyNonTableBinding && (
           <div className="binding-empty">
             legacy {source} 바인딩 — 컬렉션 선택 시 dataTable 로 전환됩니다.
-          </div>
-        )}
-
-        {/* 데이터 경로 입력 (dataTable 바인딩에서만) */}
-        {source === "dataTable" && name && (
-          <div className="binding-row">
-            <input
-              className="react-aria-Input binding-path-input"
-              type="text"
-              key={`path-${value?.source || ""}-${value?.name || ""}`}
-              defaultValue={path}
-              onBlur={handlePathBlur}
-              placeholder="데이터 경로 (예: items[0].name)"
-              disabled={disabled}
-            />
           </div>
         )}
       </div>

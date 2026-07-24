@@ -75,17 +75,6 @@
   color: var(--fg-muted);
 }
 
-/* 경로 입력 */
-.binding-path-input {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-}
-
-.binding-path-input::placeholder {
-  font-family: var(--font-sans);
-  font-style: italic;
-}
-
 /* 빈 상태 */
 .binding-empty {
   padding: var(--spacing-sm);
