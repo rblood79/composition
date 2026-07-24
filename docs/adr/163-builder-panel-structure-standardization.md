@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed — 2026-07-24
+Accepted — 2026-07-25
+
+> Proposed — 2026-07-24 · 리뷰 round 2 승인 가능 (이슈 0 / pending 0) → Accepted 승격 후 execute-adr 착수 (2026-07-25).
 
 ## Context
 
