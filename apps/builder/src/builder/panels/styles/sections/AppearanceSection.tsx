@@ -13,8 +13,10 @@ import {
   PropertyColor,
   PropertySelect,
 } from "../../../components";
-import { SwatchIconButton } from "../../../components/ui";
-import { ToggleButton } from "@composition/shared/components";
+import {
+  SwatchIconButton,
+  SwatchIconToggleButton,
+} from "../../../components/ui";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
   Square,
@@ -209,7 +211,7 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
         />
         <fieldset className="properties-aria fieldset-actions actions-icon">
           <legend className="fieldset-legend">inset</legend>
-          <ToggleButton
+          <SwatchIconToggleButton
             aria-label="Inset shadow"
             isSelected={insetActive}
             isDisabled={!hasShadow}
@@ -220,7 +222,7 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
             />
-          </ToggleButton>
+          </SwatchIconToggleButton>
         </fieldset>
       </div>
 

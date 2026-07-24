@@ -7,7 +7,9 @@ export {
 
 export {
   SwatchIconButton,
+  SwatchIconToggleButton,
   type SwatchIconButtonProps,
+  type SwatchIconToggleButtonProps,
 } from "./SwatchIconButton";
 
 export {

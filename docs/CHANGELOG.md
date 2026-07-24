@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Features
 
 - **Appearance 섹션 Box Shadow — 프리셋(sm~xl) × inset 직교 2축 모델**:
-  - `.style-shadow` grid 를 `"box-shadow box-shadow icon"` 3열로 확장 — icon 영역에 `fieldset-actions actions-icon` 항목 (legend "inset" + ToggleButton) 배치
+  - `.style-shadow` grid 를 `"box-shadow box-shadow icon"` 3열로 확장 — icon 영역에 `fieldset-actions actions-icon` 항목 (legend "inset" + `SwatchIconToggleButton`) 배치. 토글은 다른 fieldset-actions 버튼과 동일한 `swatch-icon-button` 시각 패턴 (SwatchIconButton 의 toggle 변형 신설, selected 시 inner accent-subtle)
   - inset 은 프리셋이 아니라 out shadow 의 modifier — Select 프리셋 목록에서 `inset` 항목 제거, 토글이 전담. "xl 선택 + inset 토글" 상태에서 Select 는 custom 이 아니라 **xl 을 유지** (프리셋 키 판정을 inset-stripped 값 기준으로 수행)
   - 토글 on/off 시 boxShadow 전 레이어의 `inset` prefix 일괄 추가/제거 (rgba 내부 쉼표 무시하는 layer split — `parseShadow` 와 동일 regex). 프리셋 전환 시 inset 상태 유지, off 시 원 프리셋 문자열 복원
   - 그림자 없음(`none`/미설정) 상태에서는 토글 비활성
