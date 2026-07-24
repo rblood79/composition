@@ -2153,30 +2153,10 @@ function traversePostOrder(
     }
   }
 
-  // 5.7. overflow: non-visible 부모의 flex 자식 shrink 방지
-  // CSS에서 overflow clipped 컨테이너(hidden/clip/scroll/auto)의 flex 자식은
-  // shrink하지 않고 overflow 허용. Taffy는 이 상호작용 미지원 → flexShrink: 0 주입
-  if (FLEX_GRID_DISPLAYS.has(effectiveDisplay)) {
-    const ov = (elementStyle.overflow as string) ?? "visible";
-    const ovX = (elementStyle.overflowX as string) ?? ov;
-    const ovY = (elementStyle.overflowY as string) ?? ov;
-    const isClippedX = ovX !== "visible";
-    const isClippedY = ovY !== "visible";
-    const isRow =
-      !styleRecord.flexDirection ||
-      styleRecord.flexDirection === "row" ||
-      styleRecord.flexDirection === "row-reverse";
-    if ((isRow && isClippedX) || (!isRow && isClippedY)) {
-      for (const childId of sortedChildIds) {
-        const childBatchIdx = indexMap.get(childId);
-        if (childBatchIdx === undefined) continue;
-        const childBatch = batch[childBatchIdx];
-        if (childBatch.style.flexShrink === undefined) {
-          childBatch.style.flexShrink = 0;
-        }
-      }
-    }
-  }
+  // 5.7. (제거됨 — ADR-164 Phase 1) overflow 부모 기준 flexShrink:0 강제 주입은
+  // 엔진 §4.5 automatic minimum size (flex.rs — **item 자신의** overflow 조건 +
+  // content-based minimum floor) 로 대체됐다. TS 에서 flexShrink 를 다시 주입하는
+  // 보정 재도입 금지 — layout-engine.md "TS 잔존 계약" 참조.
 
   // 6. 자식 batch 인덱스 목록 구성 (filteredChildren 기반)
   // CSS order 정렬 순서를 유지하기 위해 sortedChildIds 사용.

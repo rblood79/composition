@@ -123,6 +123,13 @@
           width: var(--inspector-control-size);
           box-shadow: var(--shadow-xs);
         }
+
+        /* 크기만 통일 — 색상은 ToggleButton 자체 selected/hover 스타일 유지 */
+        .react-aria-ToggleButton {
+          padding: var(--spacing);
+          height: var(--inspector-control-size);
+          width: var(--inspector-control-size);
+        }
       }
     }
 

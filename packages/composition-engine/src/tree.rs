@@ -2181,10 +2181,11 @@ fn spec_to_content(v: f32, pad_border: f32) -> f32 {
 
 /// 자식 스타일 + solve 된 content 크기 → flex.rs flat f32 (논리축 main/cross).
 ///
-/// flex.rs 필드 계약(FLEX_FIELD_COUNT=17): 0=flex_basis, 1=width(main),
+/// flex.rs 필드 계약(FLEX_FIELD_COUNT=19): 0=flex_basis, 1=width(main),
 /// 2=height(cross), 3-6=margin(top/right/bottom/left, 물리), 7=pad_border_main,
 /// 8=pad_border_cross, 9=min_main, 10=max_main, 11=min_cross, 12=max_cross,
-/// 13=content_main, 14=content_cross, 15=flex_grow, 16=flex_shrink.
+/// 13=content_main, 14=content_cross, 15=flex_grow, 16=flex_shrink,
+/// 17=align_self, 18=overflow_main(0=visible/1=clipped — ADR-164 §4.5).
 ///
 /// content_main/cross 는 자식 solve 결과(cw/ch)를 direction 으로 매핑. width/height
 /// 명시(>0)면 그 값, 없으면 AUTO(-1) — flex.rs 가 content 로 fallback.
@@ -2281,6 +2282,17 @@ fn write_flex_item(
     // align_self (E1) — 0=auto(컨테이너 align-items 상속)/1~4 명시. flex item 은
     // justify_self 무효(grid 전용)라 여기선 align_self 만 소비.
     data[off + 17] = parse_align_self(cstyle.align_self.as_deref());
+    // §4.5 automatic minimum (ADR-164) — **item 자신의** 주축 overflow (부모 아님).
+    // row → overflowX / column → overflowY. 미지정 = visible = 0 (zero-init 계약).
+    let main_overflow = if is_row {
+        cstyle.overflow_x.as_deref()
+    } else {
+        cstyle.overflow_y.as_deref()
+    };
+    data[off + 18] = match main_overflow {
+        Some(v) if !v.trim().eq_ignore_ascii_case("visible") => 1.0,
+        _ => 0.0,
+    };
 }
 
 /// 자식 스타일 + solve 된 content 크기 → block.rs flat f32 (19필드, 물리축).

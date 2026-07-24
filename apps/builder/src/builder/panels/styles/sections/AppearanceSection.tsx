@@ -14,6 +14,7 @@ import {
   PropertySelect,
 } from "../../../components";
 import { SwatchIconButton } from "../../../components/ui";
+import { ToggleButton } from "@composition/shared/components";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
   Square,
@@ -23,6 +24,7 @@ import {
   EllipsisVertical,
   Eclipse,
   Scissors,
+  SquareDot,
 } from "lucide-react";
 import { OVERFLOW_OPTIONS } from "../constants/styleOptions";
 import { shadows } from "@composition/specs";
@@ -72,6 +74,22 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
   const shadowOptions = SHADOW_PRESET_OPTIONS.some((o) => o.value === shadowKey)
     ? SHADOW_PRESET_OPTIONS
     : [...SHADOW_PRESET_OPTIONS, { value: shadowKey, label: "custom" }];
+
+  // Inset 토글: boxShadow 전 레이어의 inset prefix 를 일괄 on/off.
+  //   쉼표 split 은 rgba(...) 내부 쉼표를 건너뛰어야 함 (parseShadow 와 동일 regex).
+  const hasShadow = !!styleValues.boxShadow && styleValues.boxShadow !== "none";
+  const insetActive = hasShadow && styleValues.boxShadow.includes("inset");
+  const handleInsetChange = (isSelected: boolean) => {
+    if (!hasShadow) return;
+    const next = styleValues.boxShadow
+      .split(/,(?![^(]*\))/)
+      .map((part) => {
+        const bare = part.trim().replace(/^inset\s+/, "");
+        return isSelected ? `inset ${bare}` : bare;
+      })
+      .join(", ");
+    updateStyle("boxShadow", next);
+  };
 
   return (
     <>
@@ -164,6 +182,21 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
             }
           }}
         />
+        <fieldset className="properties-aria fieldset-actions actions-icon">
+          <legend className="fieldset-legend">inset</legend>
+          <ToggleButton
+            aria-label="Inset shadow"
+            isSelected={insetActive}
+            isDisabled={!hasShadow}
+            onChange={handleInsetChange}
+          >
+            <SquareDot
+              color={iconProps.color}
+              size={iconProps.size}
+              strokeWidth={iconProps.strokeWidth}
+            />
+          </ToggleButton>
+        </fieldset>
       </div>
 
       {/* Overflow */}

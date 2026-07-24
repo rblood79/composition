@@ -45,7 +45,7 @@
 //! `flex-wrap: nowrap` 이면 전 아이템이 단일 라인. `wrap` 이면 아이템 outer main-size
 //! 누적이 available_main 을 초과하기 직전에 새 라인 시작 (각 라인은 최소 1개 아이템).
 //!
-//! ## 필드 계약 (`FLEX_FIELD_COUNT` = 18, 노드당)
+//! ## 필드 계약 (`FLEX_FIELD_COUNT` = 19, 노드당)
 //!
 //! | off | 필드              | 센티넬                          |
 //! | --- | ----------------- | ------------------------------- |
@@ -67,9 +67,21 @@
 //! | 15  | flex_grow         | ≥0 (default 0)                  |
 //! | 16  | flex_shrink       | ≥0 (default 1)                  |
 //! | 17  | align_self        | 0=auto(상속) 1=stretch 2=start 3=center 4=end (E1/ADR-156 P2) |
+//! | 18  | overflow_main     | 0=visible(zero-init) 1=clipped — item 자신의 주축 overflow (ADR-164 §4.5) |
 //!
 //! off 17(`align_self`)은 **0=auto 가 zero-init 기본값 겸 CSS 기본값**이라, 값을 안 쓰는
 //! 입력 배열(기존 golden/테스트)은 자동으로 컨테이너 `align_items` 를 상속한다.
+//! off 18(`overflow_main`)도 동일 원칙 — **0=visible 이 zero-init 겸 CSS 기본값**.
+//!
+//! ## §4.5 automatic minimum size (ADR-164)
+//!
+//! `min_main == AUTO` ∧ `overflow_main == visible` ∧ `width == AUTO` 인 item 은
+//! content-based minimum(= `content_main`, `max_main` clamp)을 used min 으로 쓴다 —
+//! shrink 가 content 밑으로 내려가지 않는다. **width-auto 한정**인 이유: explicit
+//! 노드의 content 슬롯은 tree.rs 가 border-box 를 저장해 content 제안값으로 신뢰
+//! 불가하고, width-definite 의 §4.5 floor 는 min(content 제안, specified 제안)이라
+//! content 제안값 없이는 과대 floor(Chrome 발산)가 된다. 텍스트 leaf 의 content
+//! 제안값은 상류 TS 가 명시 `minWidth`(→ min_main) 채널로 전달한다 (ADR-164 §6).
 //!
 //! main/cross 축은 컨테이너 `flex_direction` 에 따라 물리축(x/y)에 매핑된다.
 //! 아이템 필드는 이미 논리축(main/cross) 기준으로 상류에서 변환되어 들어온다.
@@ -77,7 +89,7 @@
 use wasm_bindgen::prelude::*;
 
 /// 노드당 입력 필드 수.
-pub const FLEX_FIELD_COUNT: usize = 18;
+pub const FLEX_FIELD_COUNT: usize = 19;
 
 /// 출력 필드 수 (x, y, width, height).
 const OUT_FIELDS: usize = 4;
@@ -259,6 +271,18 @@ fn parse_item(data: &[f32], i: usize, direction: u8) -> FlexItem {
     let align_self = {
         let v = data[off + 17];
         if v > 0.0 { v as u8 } else { ALIGN_SELF_AUTO }
+    };
+    // §4.5 automatic minimum size (ADR-164): min 미명시(auto) + item 주축 overflow
+    // visible + width auto → content-based minimum(= content_main, max_main clamp)을
+    // used min 으로 해석. 이후 §9.7 clamp/violation 동결 기계가 floor 를 자연 집행한다.
+    // width-auto 한정·leaf minWidth 채널 사유는 모듈 doc §4.5 절 참조. min:0 명시는
+    // AUTO 센티넬(-1)과 구분되어 그대로 존중된다 (falsy 함정 없음).
+    let overflow_clipped = data[off + 18] != 0.0;
+    let min_main = if min_main == AUTO && !overflow_clipped && width == AUTO {
+        let floor = content_main.max(0.0);
+        if max_main != AUTO { floor.min(max_main) } else { floor }
+    } else {
+        min_main
     };
 
     // flex-basis 해석 우선순위: flex_basis(명시) → width(논리 main) → content.
@@ -1412,5 +1436,103 @@ mod tests {
             ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0, true,
         );
         assert!((out[1] - 40.0).abs() < 0.01, "y={} (expect 40, definite 중앙정렬)", out[1]);
+    }
+
+    // ── §4.5 automatic minimum size (ADR-164) ──
+
+    /// width AUTO + content_main 기반 아이템 (§4.5 floor 대상 형태).
+    fn item_auto(content_main: f32, cross: f32) -> [f32; FLEX_FIELD_COUNT] {
+        let mut f = item(AUTO, cross);
+        f[13] = content_main;
+        f
+    }
+
+    #[test]
+    fn auto_min_floors_shrink_at_content() {
+        // width AUTO + content 150 + shrink 1, available 100 → §4.5 floor 가 150 유지.
+        // (floor 이전에는 100 으로 shrink — min AUTO 가 0 취급이었다)
+        let data = flatten(&[item_auto(150.0, 20.0)]);
+        let out = flex_layout(
+            &data, 100.0, 50.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
+            ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0, true,
+        );
+        assert!((out[2] - 150.0).abs() < 0.01, "w={} (expect 150 — content floor)", out[2]);
+    }
+
+    #[test]
+    fn auto_min_floor_distributes_among_siblings() {
+        // [auto content 80] + [width 200 shrink 1], available 200.
+        // hypothetical 80+200=280 → 부족 80. auto 아이템은 floor 80 에서 동결(min violation),
+        // 나머지 부족은 definite 아이템이 전부 흡수 → 200-80=120.
+        let data = flatten(&[item_auto(80.0, 20.0), with_flex(item(200.0, 20.0), 0.0, 1.0)]);
+        let out = flex_layout(
+            &data, 200.0, 50.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
+            ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0, true,
+        );
+        assert!((out[2] - 80.0).abs() < 0.01, "auto w={} (expect 80 floor)", out[2]);
+        assert!((out[6] - 120.0).abs() < 0.01, "definite w={} (expect 120)", out[6]);
+    }
+
+    #[test]
+    fn explicit_min_zero_allows_shrink_below_content() {
+        // min_main 0 명시 (`minWidth:0` — falsy 함정 가드): floor 미적용 → 100 까지 shrink.
+        let mut f = item_auto(150.0, 20.0);
+        f[9] = 0.0; // 명시 min 0
+        let data = flatten(&[f]);
+        let out = flex_layout(
+            &data, 100.0, 50.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
+            ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0, true,
+        );
+        assert!((out[2] - 100.0).abs() < 0.01, "w={} (expect 100 — min:0 존중)", out[2]);
+    }
+
+    #[test]
+    fn clipped_item_has_no_auto_min_floor() {
+        // item 자신의 주축 overflow ≠ visible (off 18 = 1) → §4.5 floor 미적용 (scroll
+        // container item 은 content 밑으로 자유 shrink — 명세 조건).
+        let mut f = item_auto(150.0, 20.0);
+        f[18] = 1.0; // overflow_main clipped
+        let data = flatten(&[f]);
+        let out = flex_layout(
+            &data, 100.0, 50.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
+            ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0, true,
+        );
+        assert!((out[2] - 100.0).abs() < 0.01, "w={} (expect 100 — clipped 무floor)", out[2]);
+    }
+
+    #[test]
+    fn auto_min_floor_clamped_by_max_main() {
+        // content 150 + max_main 120 → floor = min(150,120) = 120 (§4.5 max clamp).
+        let mut f = item_auto(150.0, 20.0);
+        f[10] = 120.0; // max_main
+        let data = flatten(&[f]);
+        let out = flex_layout(
+            &data, 100.0, 50.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
+            ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0, true,
+        );
+        assert!((out[2] - 120.0).abs() < 0.01, "w={} (expect 120 — max clamp floor)", out[2]);
+    }
+
+    #[test]
+    fn width_definite_item_keeps_free_shrink() {
+        // width definite 200 (content 슬롯 신뢰 불가 케이스) → floor 미적용, 100 shrink.
+        // §4.5 의 min(content 제안, specified 제안)에서 content 제안 부재 시 과대 floor 방지.
+        let data = flatten(&[with_flex(item(200.0, 20.0), 0.0, 1.0)]);
+        let out = flex_layout(
+            &data, 100.0, 50.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
+            ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0, true,
+        );
+        assert!((out[2] - 100.0).abs() < 0.01, "w={} (expect 100 — definite 자유 shrink)", out[2]);
+    }
+
+    #[test]
+    fn column_axis_auto_min_floor_symmetric() {
+        // column: main=height. height AUTO + content_main 150, available 100 → 150 유지.
+        let data = flatten(&[item_auto(150.0, 40.0)]);
+        let out = flex_layout(
+            &data, 100.0, 300.0, DIR_COLUMN, JUSTIFY_START, ALIGN_START,
+            ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0, true,
+        );
+        assert!((out[3] - 150.0).abs() < 0.01, "h={} (expect 150 — column floor 대칭)", out[3]);
     }
 }

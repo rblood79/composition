@@ -431,7 +431,7 @@
         grid-template-columns: 1fr 1fr var(--inspector-control-size);
         grid-template-rows: auto;
         gap: var(--spacing-sm);
-        grid-template-areas: "box-shadow box-shadow .";
+        grid-template-areas: "box-shadow box-shadow icon";
 
         > * {
           min-width: 0;

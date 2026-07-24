@@ -4703,8 +4703,12 @@ export function enrichWithIntrinsicSize(
     if (!growsInFlex) {
       injectedStyle.width = ceiledWidth;
     }
-    // CSS min-width:auto 에뮬레이션: flex item의 기본 min-width는 콘텐츠 크기
-    // width를 주입하면 Taffy가 flex-shrink로 축소할 수 있으므로 minWidth도 동시 설정
+    // leaf content 제안값 전달 채널 (ADR-164 §6 잔존 계약 — 보정 아님):
+    //   엔진은 텍스트 측정이 없어 leaf 의 §4.5 content-based minimum 을 스스로 모른다
+    //   (tree.rs width-auto leaf 는 content 0). 측정된 콘텐츠 폭을 명시 minWidth 로
+    //   전달해 엔진 shrink floor 의 content 제안값 역할을 한다 — ① intrinsic sizing
+    //   후속 ADR 이 content 채널을 재설계할 때까지 존속. width-auto 컨테이너 item 의
+    //   floor 는 엔진이 자체 계산 (flex.rs §4.5 — 재귀 solve content_main).
     // 사용자가 명시적 minWidth를 설정한 경우는 보존 —
     //   `!style?.minWidth` 는 **minWidth:0 을 미설정으로 오판**한다(falsy 함정). 0 은 "콘텐츠
     //   밑으로 축소 허용"이라는 명시 값이므로 덮어쓰면 안 된다 (DateInput/SelectValue 가
