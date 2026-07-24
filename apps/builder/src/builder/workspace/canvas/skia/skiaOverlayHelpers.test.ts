@@ -102,6 +102,64 @@ describe("buildHoverHighlightTargets clip-aware leaf guidelines", () => {
 
     expect(targets).toHaveLength(3);
   });
+
+  it("clips the context outline itself to the visible bounds", () => {
+    // 호버한 채로 스크롤해 컨테이너가 프레임 밖으로 밀리면, 실선 아웃라인도
+    // 잘려야 한다. 원본 박스를 쓰면 프레임 밖 캔버스에 아웃라인이 남는다.
+    const targets = buildHoverHighlightTargets(
+      treeBoundsMap,
+      "listbox",
+      [],
+      false,
+      elementsMap,
+      [],
+      new Map([["listbox", { x: 0, y: 0, width: 200, height: 40 }]]),
+    );
+
+    expect(targets).toEqual([
+      expect.objectContaining({
+        dashed: false,
+        bounds: { x: 0, y: 0, width: 200, height: 40 },
+      }),
+    ]);
+  });
+
+  it("drops the context outline when the context is fully clipped away", () => {
+    expect(
+      buildHoverHighlightTargets(
+        treeBoundsMap,
+        "listbox",
+        [],
+        false,
+        elementsMap,
+        [],
+        new Map(),
+      ),
+    ).toEqual([]);
+  });
+
+  it("keeps the page body fallback outline (body 는 hit 맵에 없어도 프레임 경계 사용)", () => {
+    const bodyElements = new Map([
+      ["page-body", makeElement("page-body", { type: "body" })],
+    ]);
+
+    expect(
+      buildHoverHighlightTargets(
+        new Map(),
+        "page-body",
+        [],
+        false,
+        bodyElements,
+        [{ id: "page-1", x: 10, y: 20, width: 390, height: 844 }],
+        new Map(),
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        dashed: false,
+        bounds: { x: 10, y: 20, width: 390, height: 844 },
+      }),
+    ]);
+  });
 });
 
 describe("buildHoverHighlightTargets editing semantics", () => {

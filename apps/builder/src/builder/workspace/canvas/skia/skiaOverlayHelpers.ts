@@ -102,8 +102,13 @@ export function buildHoverHighlightTargets(
   const targets: HoverHighlightTarget[] = [];
 
   if (hoveredContextId) {
+    // 실선 context 아웃라인도 **가시 영역** 기준이다. 원본 박스를 쓰면 호버한 채로
+    // 스크롤해 컨테이너가 프레임 밖으로 밀렸을 때 아웃라인만 캔버스 배경에 남는다
+    // (2026-07-24 사용자 보고). 전부 잘리면 아웃라인 자체를 그리지 않는다.
+    //   body 는 조상이 없어 clip 대상이 아니고, page body 는 두 맵 모두에 없을 수
+    //   있어 `resolvePageBodyBounds` 폴백(프레임 경계)이 그대로 유지된다.
     const contextBounds =
-      treeBoundsMap.get(hoveredContextId) ??
+      hitBoundsMap.get(hoveredContextId) ??
       resolvePageBodyBounds(hoveredContextId, elementsMap, pageFrames);
     if (contextBounds) {
       targets.push({

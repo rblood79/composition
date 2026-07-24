@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `apps/builder/src/builder/workspace/canvas/skia/skiaOverlayHelpers.ts`, `skia/skiaOverlayBuilder.ts`, `canvas/selection/types.ts`
   - 규칙: `.claude/rules/canvas-rendering.md` §8.5 (오버레이 chrome 갈림 기준 표 + 금지 패턴 3건 추가)
 
+- **slot 컴포넌트를 호버한 채 스크롤하면 실선 아웃라인만 프레임 밖에 남던 문제**:
+  - `buildHoverHighlightTargets` 에서 자식 점선 가이드라인은 `hitBoundsMap` 을 쓰는데 **context 실선 아웃라인 분기만 `treeBoundsMap`**(원본 박스)이었다. 호버한 채로 page body 를 스크롤해 컨테이너가 프레임 밖으로 밀리면 점선은 사라지는데 실선 아웃라인은 캔버스 배경에 그대로 남았다.
+  - **Why**: 호버 아웃라인은 조작 대상이 없는 순간 피드백이라 **선택 박스와 성격이 다르다**. 선택 박스는 핸들을 잡아야 해서 부분 클립돼도 원본 박스를 유지해야 하지만, 호버 아웃라인은 실제 보이는 영역만 따라가야 한다.
+  - 수정: context 분기도 `hitBoundsMap` 기준으로 전환. 전부 잘리면 아웃라인 자체를 생성하지 않는다. page body 는 조상이 없어 clip 대상이 아니고 두 맵 모두에 없을 수 있으므로 `resolvePageBodyBounds` 프레임 경계 폴백을 그대로 유지(회귀 테스트로 고정).
+  - 검증: live 실측(dev builder, HMR) — 상단 slot 해치에 마우스를 올린 채 page body 를 스크롤 → 해치·아웃라인 모두 프레임 상단 경계에서 정확히 잘리고 경계 위 캔버스는 깨끗(확대 확인). 신규 회귀 테스트 3(부분 클립/전부 클립/body 폴백) + builder 2639 PASS / type-check PASS.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/skiaOverlayHelpers.ts`
+  - 규칙: `.claude/rules/canvas-rendering.md` §8.5 (호버 chrome 전체가 `hitBoundsMap` — 선택 박스와의 차이 명시)
+
 ## [선택 드래그 의도 판정 — 겹친 요소 클릭 허용 (Figma/Pencil 정합)] - 2026-07-24
 
 ### Bug Fixes
