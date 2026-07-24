@@ -6,7 +6,7 @@
  * Background 편집은 FillBackgroundInline 단일 경로를 사용한다.
  */
 
-import { memo, lazy, Suspense } from "react";
+import { memo, lazy, Suspense, useRef } from "react";
 import {
   PropertySection,
   PropertyUnitInput,
@@ -38,7 +38,7 @@ const LazyFillBackgroundInline = lazy(() =>
   import("./FillSection").then((m) => ({ default: m.FillBackgroundInline })),
 );
 
-/** Shadow 프리셋 옵션 */
+/** Shadow 프리셋 옵션 — inset 은 프리셋이 아니라 직교 토글 축 (sm~xl × inset) */
 const SHADOW_PRESET_OPTIONS = [
   { value: "reset", label: "Reset" },
   { value: "none", label: "none" },
@@ -46,7 +46,6 @@ const SHADOW_PRESET_OPTIONS = [
   { value: "md", label: "md" },
   { value: "lg", label: "lg" },
   { value: "xl", label: "xl" },
-  { value: "inset", label: "inset" },
 ];
 
 /** CSS box-shadow 값 → 프리셋 키 역매핑 */
@@ -59,6 +58,22 @@ function boxShadowToPresetKey(cssValue: string): string {
   return cssToPresetMap.get(cssValue) ?? cssValue;
 }
 
+// boxShadow 레이어 단위 변환 — 쉼표 split 은 rgba(...) 내부 쉼표를 건너뜀
+//   (parseShadow 와 동일 regex). 프리셋 문자열의 ", " join 을 재현해 strip → 원 프리셋 복원.
+function mapShadowLayers(
+  cssValue: string,
+  fn: (bareLayer: string) => string,
+): string {
+  return cssValue
+    .split(/,(?![^(]*\))/)
+    .map((part) => fn(part.trim().replace(/^inset\s+/, "")))
+    .join(", ");
+}
+
+const stripInset = (cssValue: string) => mapShadowLayers(cssValue, (b) => b);
+const applyInset = (cssValue: string) =>
+  mapShadowLayers(cssValue, (b) => `inset ${b}`);
+
 const AppearanceSectionContent = memo(function AppearanceSectionContent() {
   const { updateStyle } = useStyleActions();
   const { updateStyleImmediate, updateStylePreview } =
@@ -68,27 +83,33 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
 
   if (!styleValues) return null;
 
-  // Box Shadow: 현재 값이 알려진 프리셋이 아니면(import/paste 된 임의 CSS) 동적 "custom" 항목을
+  // Box Shadow 2축 모델: Select = out shadow 프리셋 (sm~xl), inset 토글 = 직교 modifier.
+  //   프리셋 키 판정은 inset-stripped 값 기준 — "xl + inset 토글" 상태에서도 Select 는
+  //   custom 이 아니라 "xl" 을 유지한다.
+  const hasShadow = !!styleValues.boxShadow && styleValues.boxShadow !== "none";
+  const insetActive = hasShadow && styleValues.boxShadow.includes("inset");
+  // PropertySelect 의 memo 커스텀 비교는 onChange 참조 변경을 무시한다 — inset 토글만
+  //   바뀌면 value/options 가 그대로라 재렌더가 스킵되어 onChange closure 의 insetActive
+  //   가 stale (xl 전환 시 inset 소실 실측). ref 미러로 commit 시점 최신값을 읽는다.
+  const insetActiveRef = useRef(insetActive);
+  insetActiveRef.current = insetActive;
+  const shadowKey = boxShadowToPresetKey(
+    insetActive ? stripInset(styleValues.boxShadow) : styleValues.boxShadow,
+  );
+  // stripped 값도 알려진 프리셋이 아니면(import/paste 된 임의 CSS) 동적 "custom" 항목을
   //   추가해 RAC Select 가 빈 선택으로 표시되지 않게 한다(M4). 알려진 프리셋이면 안정 참조 유지.
-  const shadowKey = boxShadowToPresetKey(styleValues.boxShadow);
   const shadowOptions = SHADOW_PRESET_OPTIONS.some((o) => o.value === shadowKey)
     ? SHADOW_PRESET_OPTIONS
     : [...SHADOW_PRESET_OPTIONS, { value: shadowKey, label: "custom" }];
 
-  // Inset 토글: boxShadow 전 레이어의 inset prefix 를 일괄 on/off.
-  //   쉼표 split 은 rgba(...) 내부 쉼표를 건너뛰어야 함 (parseShadow 와 동일 regex).
-  const hasShadow = !!styleValues.boxShadow && styleValues.boxShadow !== "none";
-  const insetActive = hasShadow && styleValues.boxShadow.includes("inset");
   const handleInsetChange = (isSelected: boolean) => {
     if (!hasShadow) return;
-    const next = styleValues.boxShadow
-      .split(/,(?![^(]*\))/)
-      .map((part) => {
-        const bare = part.trim().replace(/^inset\s+/, "");
-        return isSelected ? `inset ${bare}` : bare;
-      })
-      .join(", ");
-    updateStyle("boxShadow", next);
+    updateStyle(
+      "boxShadow",
+      isSelected
+        ? applyInset(styleValues.boxShadow)
+        : stripInset(styleValues.boxShadow),
+    );
   };
 
   return (
@@ -177,8 +198,12 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
             } else if (value === "none") {
               updateStyle("boxShadow", "none");
             } else {
-              const cssValue = shadows[value as keyof typeof shadows];
-              updateStyle("boxShadow", cssValue ?? value);
+              const cssValue = shadows[value as keyof typeof shadows] ?? value;
+              // 프리셋 전환 시 inset 토글 상태 유지 (sm~xl × inset 직교 축)
+              updateStyle(
+                "boxShadow",
+                insetActiveRef.current ? applyInset(cssValue) : cssValue,
+              );
             }
           }}
         />
