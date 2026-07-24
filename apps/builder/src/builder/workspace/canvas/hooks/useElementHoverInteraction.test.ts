@@ -7,9 +7,11 @@ import type { BoundingBox } from "../selection/types";
 import {
   clearElementHoverState,
   resolveFrameBodyHoverTarget,
+  resolveHoverGroupState,
   resolvePageBodyHoverTarget,
   type ElementHoverState,
 } from "./useElementHoverInteraction";
+import type { CanvasInteractionNode } from "../interaction/interactionNode";
 
 type BodyFixtureOptions = Partial<Element> & {
   frameId?: string | null;
@@ -184,6 +186,97 @@ describe("resolvePageBodyHoverTarget", () => {
     });
 
     expect(result).toBeNull();
+  });
+});
+
+describe("resolveHoverGroupState", () => {
+  function node(
+    id: string,
+    type: string,
+    parentId: string | null,
+  ): CanvasInteractionNode {
+    return {
+      id,
+      type,
+      parent_id: parentId,
+      page_id: "page-1",
+      order_num: 0,
+      props: {},
+    } as unknown as CanvasInteractionNode;
+  }
+
+  /** body > listbox > (row-1, row-2) — 페이지 전체가 리프 2개 */
+  const elementsMap = new Map<string, CanvasInteractionNode>([
+    ["page-body", node("page-body", "body", null)],
+    ["listbox", node("listbox", "ListBox", "page-body")],
+    ["row-1", node("row-1", "ListBoxItem", "listbox")],
+    ["row-2", node("row-2", "ListBoxItem", "listbox")],
+  ]);
+  const childrenMap = new Map<string, ReadonlyArray<{ id: string }>>([
+    ["page-body", [{ id: "listbox" }]],
+    ["listbox", [{ id: "row-1" }, { id: "row-2" }]],
+  ]);
+  const boundsMap = new Map<string, BoundingBox>([
+    ["page-body", makeBounds()],
+    ["listbox", makeBounds()],
+    ["row-1", makeBounds()],
+    ["row-2", makeBounds()],
+  ]);
+
+  it("expands a container hover into its leaf descendants", () => {
+    expect(
+      resolveHoverGroupState({
+        contextHitId: "listbox",
+        childrenMap,
+        boundsMap,
+        elementsMap,
+      }),
+    ).toEqual({ hoveredLeafIds: ["row-1", "row-2"], isGroupHover: true });
+  });
+
+  it("does not expand a body hover into page-wide child guidelines", () => {
+    // 빈 영역 fallback 으로만 body 가 context 가 된다 — 여기서 리프를 펼치면
+    // 요소 없는 빈 공간 호버에 페이지 전체 점선 가이드라인이 그려진다.
+    expect(
+      resolveHoverGroupState({
+        contextHitId: "page-body",
+        childrenMap,
+        boundsMap,
+        elementsMap,
+      }),
+    ).toEqual({ hoveredLeafIds: [], isGroupHover: false });
+  });
+
+  it("treats a leaf hover as a non-group hover", () => {
+    expect(
+      resolveHoverGroupState({
+        contextHitId: "row-1",
+        childrenMap,
+        boundsMap,
+        elementsMap,
+      }),
+    ).toEqual({ hoveredLeafIds: ["row-1"], isGroupHover: false });
+  });
+
+  it("returns a cleared state without a hover context or bounds", () => {
+    const cleared = { hoveredLeafIds: [], isGroupHover: false };
+
+    expect(
+      resolveHoverGroupState({
+        contextHitId: null,
+        childrenMap,
+        boundsMap,
+        elementsMap,
+      }),
+    ).toEqual(cleared);
+    expect(
+      resolveHoverGroupState({
+        contextHitId: "listbox",
+        childrenMap,
+        boundsMap: null,
+        elementsMap,
+      }),
+    ).toEqual(cleared);
   });
 });
 

@@ -177,6 +177,41 @@ export function resolvePageBodyHoverTarget({
   return null;
 }
 
+/**
+ * hover context 의 그룹 하이라이트 상태(점선 자식 가이드라인)를 계산한다.
+ *
+ * **body 는 그룹 하이라이트 대상이 아니다.** body 는 후보 목록(body 직계 자식)에 없고
+ * 빈 영역 fallback (`resolvePageBodyHoverTarget` / `resolveFrameBodyHoverTarget`) 으로만
+ * hover context 가 된다. 즉 "요소가 없는 빈 공간" 신호인데, 여기서 리프 자손을 펼치면
+ * 페이지 전체 리프의 점선 가이드라인이 한꺼번에 그려진다 (2026-07-24 수정).
+ * context 자체의 실선 아웃라인은 유지 — 클릭 시 body 가 선택된다는 affordance.
+ */
+export function resolveHoverGroupState({
+  boundsMap,
+  childrenMap,
+  contextHitId,
+  elementsMap,
+}: {
+  boundsMap: ReadonlyMap<string, BoundingBox> | null;
+  childrenMap: ReadonlyMap<string, ReadonlyArray<{ id: string }>>;
+  contextHitId: string | null;
+  elementsMap: ReadonlyMap<string, CanvasInteractionNode>;
+}): Pick<ElementHoverState, "hoveredLeafIds" | "isGroupHover"> {
+  if (!contextHitId || !boundsMap) {
+    return { hoveredLeafIds: [], isGroupHover: false };
+  }
+
+  if (elementsMap.get(contextHitId)?.type.toLowerCase() === "body") {
+    return { hoveredLeafIds: [], isGroupHover: false };
+  }
+
+  const leafIds = collectLeafDescendants(contextHitId, childrenMap, boundsMap);
+  const isGroupHover =
+    leafIds.length > 1 || (leafIds.length === 1 && leafIds[0] !== contextHitId);
+
+  return { hoveredLeafIds: leafIds, isGroupHover };
+}
+
 export function clearElementHoverState(state: ElementHoverState): boolean {
   if (
     state.hoveredElementId === null &&
@@ -331,22 +366,15 @@ export function useElementHoverInteraction({
         if (contextHitId !== hoverStateRef.current.hoveredElementId) {
           hoverStateRef.current.hoveredElementId = contextHitId;
 
-          if (contextHitId && boundsMap) {
-            // 컨테이너면 모든 리프 자손 수집, 리프면 자신만
-            const leafIds = collectLeafDescendants(
-              contextHitId,
-              childrenMap,
-              boundsMap,
-            );
-            const isGroup =
-              leafIds.length > 1 ||
-              (leafIds.length === 1 && leafIds[0] !== contextHitId);
-            hoverStateRef.current.hoveredLeafIds = leafIds;
-            hoverStateRef.current.isGroupHover = isGroup;
-          } else {
-            hoverStateRef.current.hoveredLeafIds = [];
-            hoverStateRef.current.isGroupHover = false;
-          }
+          // 컨테이너면 모든 리프 자손 수집, 리프면 자신만, body(빈 영역)면 확장 없음
+          const groupState = resolveHoverGroupState({
+            boundsMap,
+            childrenMap,
+            contextHitId,
+            elementsMap,
+          });
+          hoverStateRef.current.hoveredLeafIds = groupState.hoveredLeafIds;
+          hoverStateRef.current.isGroupHover = groupState.isGroupHover;
 
           overlayVersionRef.current++;
         }

@@ -223,6 +223,19 @@ ParagraphStyle 변경 시 **3곳 동시 업데이트** 필수: canvaskitTextMeas
 - ❌ `visitElement` 에 clip 파라미터를 추가하면서 자식 재귀에 전달 누락 → 조상 clip 이 한 단계에서 끊김
 - ❌ clip 교차 결과가 빈 경우 `null` 로 폴백 (= 클립 해제) → `EMPTY_CLIP` 전파 필수
 
+## 8.6 Hover 그룹 하이라이트 — body 는 확장 대상 아님 (2026-07-24)
+
+`useElementHoverInteraction` 은 컨테이너를 호버하면 리프 자손을 모아 점선 자식 가이드라인을 그린다 (Pencil deep-hover 패턴). 확장 판정은 `resolveHoverGroupState()` **단일 진입점**.
+
+- 호버 후보(`candidates`)는 **editingContext 직계 자식 또는 body 직계 자식**이라 body 자신은 AABB 히트로 context 가 되지 않는다. body 가 context 가 되는 경로는 빈 영역 fallback (`resolvePageBodyHoverTarget` / `resolveFrameBodyHoverTarget`) **뿐**이며, 이는 "여기엔 요소가 없다" 신호다.
+- 따라서 **body context 는 리프 확장 금지** — `hoveredLeafIds: []`, `isGroupHover: false`. context 자체의 실선 아웃라인은 유지해 "클릭하면 body 선택" affordance 를 남긴다.
+- **Why (2026-07-24)**: 확장 분기가 context 종류를 구분하지 않아, 페이지의 요소 없는 빈 공간에 마우스를 올리면 `collectLeafDescendants(body)` 가 **페이지 전체 리프**를 반환 → `buildHoverHighlightTargets` 가 모든 리프에 점선을 그렸다 (ListBox 2개의 전 행이 동시에 가이드라인 표시).
+
+### 금지 패턴
+
+- ❌ hover 확장 판정을 훅 내부에 인라인 (테스트 불가 + 조건 누락) → `resolveHoverGroupState()` 경유
+- ❌ 빈 영역 fallback 으로 잡힌 context 를 일반 컨테이너 호버와 동일 취급 → 페이지 전체 가이드라인
+
 ## 9. Render-Space Interaction Boundary (ADR-135/136 Implemented 2026-05-14/15)
 
 > Page Frame projection 도입 후, hit-test/그리기 ID 공간과 canonical document ID 공간을 분리. 위반 시 데이터 corruption 또는 split-brain 인터랙션 발생.

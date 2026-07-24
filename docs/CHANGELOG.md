@@ -20,6 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts`, `skia/skiaFramePipeline.ts`, `skia/types.ts`, `skia/SkiaCanvas.tsx`, `hooks/useElementHoverInteraction.ts`, `hooks/useScrollWheelInteraction.ts`
   - 규칙: `.claude/rules/canvas-rendering.md` §8.5 (원본 박스 ↔ 히트 영역 분리 계약 + 금지 패턴)
 
+- **요소가 없는 빈 공간 호버 시 페이지 전체 자식 가이드라인이 그려지던 문제**:
+  - `useElementHoverInteraction` 의 그룹 하이라이트 확장 분기가 hover context 종류를 구분하지 않아, 빈 영역 fallback (`resolvePageBodyHoverTarget` / `resolveFrameBodyHoverTarget`) 으로 잡힌 **body** 도 컨테이너처럼 취급했다. `collectLeafDescendants(body)` 가 페이지 전체 리프를 반환 → 모든 리프에 점선 가이드라인.
+  - **Why**: 호버 후보는 editingContext/body 의 **직계 자식**이라 body 는 AABB 히트로 context 가 될 수 없다. body context = "여기엔 요소가 없다" 신호인데 확장 분기가 이를 컨테이너 deep-hover 와 동일 취급했다.
+  - 수정: 확장 판정을 `resolveHoverGroupState()` 단일 진입점으로 분리하고 body context 는 확장 제외 (`hoveredLeafIds: []`, `isGroupHover: false`). context 실선 아웃라인은 유지 — 클릭 시 body 선택 affordance 보존.
+  - 검증: live 실측(dev builder) — ListBox 2개가 있는 페이지의 빈 영역 호버 시 (a) body 실선 아웃라인만 표시, 행 점선 0개 (수정 전 두 ListBox 전 행에 점선), (b) ListBox 호버 시 해당 ListBox 행에만 점선 유지(다른 ListBox 미영향). 신규 회귀 테스트 4 + builder 2610 PASS.
+  - 위치: `apps/builder/src/builder/workspace/canvas/hooks/useElementHoverInteraction.ts`
+  - 규칙: `.claude/rules/canvas-rendering.md` §8.6 (body 는 hover 그룹 확장 대상 아님 + 금지 패턴)
+
 ## [Data 바인딩 해제 버튼 크기 정합 — 컨트롤 높이 28 고정] - 2026-07-24
 
 ### Bug Fixes
