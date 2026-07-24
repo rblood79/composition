@@ -18,6 +18,7 @@ import {
 import { ElementUtils } from "../../../../utils/element/elementUtils";
 import { generateCustomId } from "../../../utils/idGeneration";
 
+import "./styles/propertyEditors.css";
 export const TreeItemEditor = memo(function TreeItemEditor({
   elementId,
   currentProps,
@@ -157,7 +158,7 @@ export const TreeItemEditor = memo(function TreeItemEditor({
 
         <div className="tree-item-actions">
           <button
-            className="control-button add"
+            className="control-button control-button--add"
             onClick={addNewChildTreeItem}
             disabled={!localPageId}
           >

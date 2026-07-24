@@ -9,6 +9,7 @@ import {
   useCanonicalPropertyElements,
 } from "../hooks/useCanonicalPropertyRead";
 
+import "../editors/styles/propertyEditors.css";
 interface ChildItemManagerProps {
   elementId: string;
   field: ChildrenManagerField;
@@ -121,7 +122,7 @@ export const ChildItemManager = memo(function ChildItemManager({
       )}
 
       <div className="editor-actions">
-        <button className="control-button add" onClick={handleAdd}>
+        <button className="control-button control-button--add" onClick={handleAdd}>
           <Plus size={14} />
           Add {childTag}
         </button>

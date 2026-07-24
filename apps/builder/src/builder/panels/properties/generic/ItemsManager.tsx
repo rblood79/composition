@@ -21,6 +21,7 @@ import {
 } from "../../../components";
 import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
 
+import "../editors/styles/propertyEditors.css";
 // ADR-055: EVENT_REGISTRY에서 select 옵션 파생
 const EVENT_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: "", label: "— none —" },
@@ -314,7 +315,7 @@ const SectionRow = memo(function SectionRow({
           )}
 
           <div className="editor-actions items-manager-section-actions">
-            <button className="control-button add" onClick={onAddItem}>
+            <button className="control-button control-button--add" onClick={onAddItem}>
               <Plus size={12} />
               Add {itemTypeName}
             </button>
@@ -486,18 +487,18 @@ export const ItemsManager = memo(function ItemsManager({
       )}
 
       <div className="editor-actions">
-        <button className="control-button add" onClick={handleAdd}>
+        <button className="control-button control-button--add" onClick={handleAdd}>
           <Plus size={14} />
           Add {field.itemTypeName}
         </button>
         {allowSections && (
-          <button className="control-button add" onClick={handleAddSection}>
+          <button className="control-button control-button--add" onClick={handleAddSection}>
             <FolderPlus size={14} />
             Add Section
           </button>
         )}
         {allowSeparators && (
-          <button className="control-button add" onClick={handleAddSeparator}>
+          <button className="control-button control-button--add" onClick={handleAddSeparator}>
             <Minus size={14} />
             Add Separator
           </button>

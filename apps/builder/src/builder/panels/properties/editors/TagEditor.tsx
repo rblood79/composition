@@ -20,6 +20,7 @@ import { generateCustomId } from "../../../utils/idGeneration";
 import type { PropertyEditorElementPayload } from "./propertyEditorNode";
 import "./styles/TagEditor.css";
 
+import "./styles/propertyEditors.css";
 export const TagEditor = memo(function TagEditor({
   elementId,
   currentProps,
@@ -104,7 +105,7 @@ export const TagEditor = memo(function TagEditor({
           {/* Add Field */}
           <div className="editor-actions">
             <button
-              className="control-button add"
+              className="control-button control-button--add"
               onClick={async () => {
                 const pageIdToUse = currentPageId;
                 if (!pageIdToUse) {
@@ -228,7 +229,7 @@ export const TagEditor = memo(function TagEditor({
 
         <div className="editor-actions">
           <button
-            className="control-button add"
+            className="control-button control-button--add"
             onClick={async () => {
               const pageIdToUse = currentPageId;
               if (!pageIdToUse) {

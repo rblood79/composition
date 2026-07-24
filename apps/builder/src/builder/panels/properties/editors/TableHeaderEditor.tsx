@@ -307,7 +307,7 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
                     </div>
                   </div>
                   <button
-                    className="control-button delete"
+                    className="control-button control-button--delete"
                     onClick={() => deleteColumn(column.id)}
                   >
                     <Trash
@@ -326,7 +326,7 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
         <div className="editor-actions">
           {isAddingColumn ? (
             <>
-              <button className="control-button add" onClick={addColumn}>
+              <button className="control-button control-button--add" onClick={addColumn}>
                 <SquarePlus
                   color={iconProps.color}
                   strokeWidth={iconProps.strokeWidth}
@@ -335,7 +335,7 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
                 Add Column
               </button>
               <button
-                className="control-button secondary"
+                className="control-button control-button--secondary"
                 onClick={() => {
                   setIsAddingColumn(false);
                   setNewColumnLabel("");
@@ -347,7 +347,7 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
             </>
           ) : (
             <button
-              className="control-button add"
+              className="control-button control-button--add"
               onClick={() => setIsAddingColumn(true)}
             >
               <SquarePlus

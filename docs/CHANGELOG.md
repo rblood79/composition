@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [빌더 패널 표준 구조화 — ADR-163 Implemented] - 2026-07-25
 
+### Bug Fixes
+
+- **인스펙터 액션 버튼이 스타일 없이 렌더되던 문제** (ADR-163 후속):
+  - `className="control-button add|secondary|delete"` 18곳(6파일)에서 owner 클래스와 modifier 모두 CSS 정의가 0건이었다. live 5곳(ItemsManager 4 + ChildItemManager 1)의 버튼이 **순수 `<button>` 과 계산값이 완전 동일** — 배경·테두리·패딩 없음, `cursor: default`, 본문 16px(패널 표준 12px 대비). GridList 인스펙터의 "Add GridListItem" 이 대표 사례
+  - **Why**: 소실이 아니라 처음부터 실질 정의가 없던 관성 네이밍. git 이력상 `.control-button` 은 구 inspector CSS 의 `width: 100%` 한 줄이 전부였고 그 파일이 대규모 리팩터에서 사라진 뒤 재정의된 적이 없다. `.add`/`.secondary`/`.delete` modifier 는 정의된 적 자체가 없다
+  - 수정: `propertyEditors.css` 에 `.control-button` 기본형 + `:hover:not(:disabled)` / `:disabled` / `:focus-visible` + `--add`(전폭 dashed 어포던스) / `--secondary`(중립 solid) / `--delete`(destructive) modifier + `.editor-actions` 컨테이너(flex column) 정의. 시각 기준은 코드베이스에 이미 있는 add 버튼 house style(`.add-kv-btn` / `.add-action-button` / `.add-field-btn`)에서 도출 — 원시 토큰 없이 시맨틱 토큰만 사용
+  - bare modifier 는 ADR-163 §2 규칙대로 `control-button--{state}` 로 동반 전환 (18곳), CSS import 를 미연결 6파일에 배선
+  - **결과** (live 실측): `Add GridListItem` 버튼이 dashed 1px / radius 4px / padding 4·8px / 12px / `cursor: pointer` / 전폭 216px, 높이 38→26px. 클릭 동작 불변(항목 0→1, undo 원복)
+  - 위치: `apps/builder/src/builder/panels/properties/editors/styles/propertyEditors.css` · `panels/properties/{editors,generic}/**`
+
 ### Architecture
 
 - **패널 6종 root `.panel` 통일 + 예약 prefix 정본 회수 + 정적 가드 2개** (ADR-163 Phase 2~4-c, Implemented 승격):

@@ -36,6 +36,7 @@ import {
 } from "../hooks/useCanonicalPropertyRead";
 import "./styles/TableEditor.css";
 
+import "./styles/propertyEditors.css";
 // interface TableEditorProps {
 //     // element: Element;
 //     // onChange: (updates: Partial<Element>) => void;
@@ -640,7 +641,7 @@ export const TableEditor = memo(
                       </div>
                     </div>
                     <button
-                      className="control-button delete"
+                      className="control-button control-button--delete"
                       onClick={() => removeColumnGroup(group.id)}
                     >
                       <Trash
@@ -666,7 +667,7 @@ export const TableEditor = memo(
 
           {/* Column Group 추가 버튼 */}
           <div className="editor-actions">
-            <button className="control-button add" onClick={addColumnGroup}>
+            <button className="control-button control-button--add" onClick={addColumnGroup}>
               <Layers
                 color={iconProps.color}
                 strokeWidth={iconProps.strokeWidth}
@@ -714,7 +715,7 @@ export const TableEditor = memo(
                       Row {index + 1} ({rowCells.length} cells)
                     </span>
                     <button
-                      className="control-button delete"
+                      className="control-button control-button--delete"
                       onClick={() => removeRow(row.id)}
                     >
                       <Trash
@@ -731,7 +732,7 @@ export const TableEditor = memo(
 
           {/* 행 추가 버튼 */}
           <div className="editor-actions">
-            <button className="control-button add" onClick={addRow}>
+            <button className="control-button control-button--add" onClick={addRow}>
               <SquarePlus
                 color={iconProps.color}
                 strokeWidth={iconProps.strokeWidth}

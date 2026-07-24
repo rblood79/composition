@@ -30,6 +30,7 @@ import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
 import { useDataTableStore } from "../../../stores/datatable";
 import { iconEditProps } from "../../../../utils/ui/uiConstants";
 
+import "./styles/propertyEditors.css";
 export const DataTableEditor = memo(function DataTableEditor({
   elementId,
   currentProps,
@@ -210,7 +211,7 @@ export const DataTableEditor = memo(function DataTableEditor({
 
         <div className="datatable-actions">
           <button
-            className="control-button secondary"
+            className="control-button control-button--secondary"
             onClick={handleLoad}
             disabled={!dataTableId || dataTableState?.status === "loading"}
           >
@@ -219,7 +220,7 @@ export const DataTableEditor = memo(function DataTableEditor({
           </button>
 
           <button
-            className="control-button secondary"
+            className="control-button control-button--secondary"
             onClick={handleRefresh}
             disabled={!dataTableId || dataTableState?.status === "loading"}
           >

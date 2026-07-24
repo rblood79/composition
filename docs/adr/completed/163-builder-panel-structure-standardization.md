@@ -137,6 +137,6 @@ Implemented — 2026-07-25
 
 ### 후속 (본 ADR scope 밖)
 
-- **`.control-button` 정의 부재**: `className="control-button add|secondary|delete"` 18곳(6파일)에서 `.control-button` 과 modifier 모두 CSS 정의 0건 — live 실측상 GridList 인스펙터 "Add GridListItem" 버튼이 **순수 `<button>` 과 계산값 완전 동일**(bg transparent / padding 0 / cursor default). 18곳 중 5곳이 live(ItemsManager 4 + ChildItemManager 1). 네이밍 위반이 아니라 **스타일 정의 부재**라 "네이밍/규칙 위반 정리"인 Phase 4-c 밖 — 별도 판정 필요.
+- ~~**`.control-button` 정의 부재**~~ → **해소 (2026-07-25, 사용자 지시로 후속 진행)**: `className="control-button add|secondary|delete"` 18곳(6파일)에서 owner·modifier 모두 CSS 정의 0건이라 live 5곳(ItemsManager 4 + ChildItemManager 1)이 **순수 `<button>` 과 계산값 완전 동일**했다(bg transparent / padding 0 / cursor default / 16px). git 이력 확인 결과 소실이 아니라 **처음부터 실질 정의가 없던 관성 네이밍** — 구 inspector CSS 의 `width: 100%` 한 줄이 대규모 리팩터에서 사라진 뒤 재정의된 적 없음. `propertyEditors.css` 에 `.control-button` + `--add`/`--secondary`/`--delete` + `.editor-actions` 정의(시각 기준 = 코드베이스 기존 add 버튼 house style `.add-kv-btn`/`.add-action-button`/`.add-field-btn`, 시맨틱 토큰만). bare modifier 는 §2 규칙대로 `control-button--{state}` 로 동반 전환.
 - **`properties/editors/` dead chain**: 배럴 소비처 0 (live 경로는 `useEditContract` + GenericFieldRenderer). Phase 4-c 가 교정한 파일 다수가 렌더 경로 없음 — 삭제는 사용자 승인 사안이라 미실시, 기록만.
 - `components/styles/index.css`(1,169줄 잡화) 분할 — 구조 클래스 무관.
