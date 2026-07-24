@@ -249,6 +249,20 @@ ParagraphStyle 변경 시 **3곳 동시 업데이트** 필수: canvaskitTextMeas
 - ❌ `hoveredLeafIds` 를 bounds/가시성으로 필터링해 캐시 → 스크롤 후 stale (재계산 trigger 가 context 변경뿐)
 - ❌ 자식 가이드라인을 `treeBoundsMap`(원본 박스) 으로 조회 → 잘려 안 보이는 리프에도 점선
 
+## 8.7 선택 박스 좌표계 — scene 단일계 (2026-07-24)
+
+포인터 판정에 쓰이는 값은 **전부 scene 좌표**다. 클릭 좌표(`screenToCanvasPoint` 결과), 히트 bounds(`getSceneHitBounds`), 선택 박스(`computeSelectionBounds`) 셋이 같은 계여야 한다.
+
+- `getElementBoundsSimple` / `getSceneBounds` 는 **이미 scene 좌표**를 반환한다. 여기에 `panOffset` 을 빼거나 `zoom` 으로 나누는 보정을 **추가하지 않는다** — PixiJS `getBounds()` 가 screen 좌표를 주던 시절의 잔재다.
+- `computeSelectionBounds` 의 body 분기는 raw 페이지 좌표를 쓴다. 요소 분기도 동일해야 하며, 한 함수 안에서 두 좌표계가 섞이면 안 된다.
+- **Why (2026-07-24, 40클릭 실측)**: 요소 분기만 `(bounds - panOffset) / zoom` 보정을 하고 있었다. zoom=1 에서도 선택 박스가 `panOffset` 만큼 통째로 이동 — 실측 `component-listbox` scene `20,188 350x110` → 계산값 `-195,-40 350x110`. 그 유령 박스에 걸린 클릭이 `inSelectionBounds` 로 판정돼 **선택이 통째로 무시**됐다(실패 10/40, 그 중 9건이 `inSelectionBounds=true`). 유령 박스 위치가 pan 과 선택 요소 위치의 조합에 좌우돼 **컴포넌트와 무관하게 불특정**하게 재현됐다. 노드 트리 선택은 이 경로를 안 거쳐 항상 정상 — 비대칭이 진단 단서였다.
+
+### 금지 패턴
+
+- ❌ scene 좌표 bounds 에 `panOffset` 감산 / `zoom` 제산 추가 (`computeSelectionBounds` 에서 `panOffset` 파라미터는 삭제됨 — 재도입 시 컴파일 에러)
+- ❌ 한 bounds 계산 함수 안에서 body 분기와 요소 분기가 다른 좌표계 사용
+- ❌ 선택이 "가끔" 안 되는 증상을 히트 테스트 문제로 단정 — `inSelectionBounds` 가드가 먼저 삼키는지 확인 (히트는 성공하고 그 뒤 단계에서 버려질 수 있다)
+
 ## 9. Render-Space Interaction Boundary (ADR-135/136 Implemented 2026-05-14/15)
 
 > Page Frame projection 도입 후, hit-test/그리기 ID 공간과 canonical document ID 공간을 분리. 위반 시 데이터 corruption 또는 split-brain 인터랙션 발생.

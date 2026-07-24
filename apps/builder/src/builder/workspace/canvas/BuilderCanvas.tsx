@@ -885,11 +885,10 @@ export function BuilderCanvas({
       pageHeight,
       pagePositions,
       pageWidth,
-      panOffset,
       selectedElements,
       zoom,
     });
-  }, [frameAreas, pageWidth, pageHeight, zoom, panOffset, pagePositions]);
+  }, [frameAreas, pageWidth, pageHeight, zoom, pagePositions]);
 
   // selectionBounds를 프레임마다 갱신하지 않고, pointerdown 시점에 계산
   // (RAF 지연 없이 즉시)

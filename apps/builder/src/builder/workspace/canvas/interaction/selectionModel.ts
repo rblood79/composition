@@ -37,7 +37,6 @@ interface ComputeSelectionBoundsOptions {
   pageHeight: number;
   pagePositions?: Record<string, { x: number; y: number } | undefined>;
   pageWidth: number;
-  panOffset?: { x: number; y: number };
   selectedElements: CanvasInteractionNode[];
   zoom?: number;
 }
@@ -117,7 +116,6 @@ export function computeSelectionBounds({
   pageHeight,
   pagePositions,
   pageWidth,
-  panOffset = { x: 0, y: 0 },
   selectedElements,
   zoom = 1,
 }: ComputeSelectionBoundsOptions): BoundingBox | null {
@@ -164,12 +162,15 @@ export function computeSelectionBounds({
 
     const bounds = getBounds?.(element.id);
     if (bounds) {
-      boxes.push({
-        x: (bounds.x - panOffset.x) / currentZoom,
-        y: (bounds.y - panOffset.y) / currentZoom,
-        width: bounds.width / currentZoom,
-        height: bounds.height / currentZoom,
-      });
+      // scene 좌표 그대로 사용 — pan/zoom 보정 금지.
+      //   `getBounds`(=getElementBoundsSimple)는 이미 scene 좌표를 반환하고, 히트 판정
+      //   상대인 canvasPos 도 screenToCanvasPoint 결과라 같은 좌표계다. 여기서 panOffset 을
+      //   빼거나 zoom 으로 나누면 선택 박스가 유령 위치로 이동해, 엉뚱한 좌표의 클릭이
+      //   `inSelectionBounds` 로 판정돼 선택이 통째로 무시된다 (2026-07-24 실측: scene
+      //   20,104 350x84 → -195,-124 로 panOffset(215,228) 만큼 이탈). 바로 위 body 분기가
+      //   raw scene 좌표를 쓰는 것과도 일치한다. PixiJS `getBounds()`가 screen 좌표를
+      //   반환하던 시절의 잔재였다.
+      boxes.push(bounds);
       continue;
     }
 

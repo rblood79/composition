@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Breakpoint별 Canvas viewport 복원] - 2026-07-24
+
+### Features
+
+- `desktop`/`tablet`/`mobile` breakpoint별 Canvas 전체 pan 위치와 zoom을
+  `builder.workspace.breakpoint-viewports.v1`에 저장하고 새로고침 후 복원.
+- 기존 선택 breakpoint(`builder-breakpoint`)와 Compare Mode split
+  (`builder.workspace.compare-split.v1`) 저장 계약은 유지.
+
 ## [Skia 히트 테스트 클립 인지 — 잘려 안 보이는 영역 선택 차단] - 2026-07-24
 
 ### Bug Fixes
@@ -35,6 +44,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 검증: live 실측(dev builder) — `maxHeight:200 + overflow:auto` ListBox 호버 후 **포인터 고정 상태로** 휠 스크롤 시 새로 들어온 행 3개(이수빈/강수빈/김서연)에 가이드라인 즉시 표시(수정 전 미표시). 신규 회귀 테스트 3(clip 제외/스크롤 복귀/폴백) + builder 2614 PASS.
   - 위치: `apps/builder/src/builder/workspace/canvas/hooks/useElementHoverInteraction.ts`, `skia/skiaOverlayHelpers.ts`, `skia/skiaOverlayBuilder.ts`, `skia/skiaFramePlan.ts`
   - 규칙: `.claude/rules/canvas-rendering.md` §8.6 캐시 계층 분리 표
+
+- **캔버스에서 컴포넌트 선택이 불특정하게 무시되던 문제** (노드 트리 선택은 정상):
+  - `computeSelectionBounds` 의 요소 분기가 **이미 scene 좌표**인 bounds 에 `(bounds - panOffset) / zoom` 보정을 한 번 더 적용했다. 비교 대상인 클릭 좌표는 `screenToCanvasPoint` 결과라 scene 좌표 — 좌표계가 어긋난 유령 선택 박스가 만들어졌다.
+  - **Why**: 유령 박스에 걸린 클릭이 `inSelectionBounds` 로 판정돼 "이미 선택된 요소 안 클릭 = 드래그 의도" 분기로 빠지면서 **선택이 통째로 무시**됐다. 유령 박스 위치가 pan 과 선택 요소 위치의 조합에 좌우돼 특정 컴포넌트와 무관하게 불특정하게 재현됐다. 같은 함수의 body 분기는 raw scene 좌표를 써서 한 함수 안에 두 좌표계가 공존했다 — PixiJS `getBounds()` 가 screen 좌표를 반환하던 시절의 잔재.
+  - 수정: 요소 분기도 scene 좌표를 그대로 사용(`boxes.push(bounds)`). 결함의 입력이던 `panOffset` 파라미터는 인터페이스·호출부에서 제거해 재도입 시 컴파일 에러가 나게 했다.
+  - 검증: live 실측(dev builder) — 임시 dev 트레이스로 40클릭 계측. **수정 전** 실패 10건 중 9건이 `inSelectionBounds=true`, 계산 박스가 scene 박스와 `panOffset(215,228)` 만큼 이탈(`20,188 350x110` → `-195,-40 350x110`). **수정 후** 비교 가능 37건 전부 일치(불일치 0, zoom 1·0.5 양쪽), 좌표 이탈로 인한 실패 0건. 트레이스는 검증 후 제거. 신규 회귀 테스트 2 + builder 2623 PASS.
+  - 위치: `apps/builder/src/builder/workspace/canvas/interaction/selectionModel.ts`, `canvas/BuilderCanvas.tsx`
+  - 규칙: `.claude/rules/canvas-rendering.md` §8.7 (선택 박스 좌표계 = scene 단일계 + 금지 패턴)
 
 ## [Data 바인딩 해제 버튼 크기 정합 — 컨트롤 높이 28 고정] - 2026-07-24
 
