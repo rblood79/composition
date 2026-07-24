@@ -739,14 +739,20 @@ impl LayoutTree {
     /// 좌표계: 형제 in-flow 자식과 동일하게 **부모 border-box 원점 기준 상대 좌표**를
     /// 기록한다(`solve_flex/block/grid` 의 `x + off_x` 와 같은 공간).
     ///
-    /// 해석 규칙 (CSS 근사):
-    /// - `left` 지정 → x = pad_border_start + left. `right` 만 지정 → x = (cb_right - right - w).
-    /// - 둘 다 auto → static 위치 근사로 pad_border_start (0 오프셋).
-    /// - `margin_left/top` 은 최종 좌표에 **가산** (음수 허용 — `translate(-50%)` 에뮬레이션).
-    /// - `width/height` auto → 자식 solve 결과(content) 사용.
+    /// 해석 규칙 (E11/ADR-156 P4.5 — `resolve_abs_axis`):
+    /// - 양측 inset + 크기 auto → **stretch** / 양측 inset + definite + margin auto →
+    ///   잉여 분배(센터링). 한쪽 inset → 그 기준 배치 (음수 inset·margin 허용).
+    /// - 양측 auto → static 위치 유지. `width/height` auto → 자식 solve 결과(content).
     ///
-    /// 미지원(의도적): `inset` % 는 containing block 기준으로 해석되며, margin auto 센터링,
-    /// 조상 체인 탐색(가장 가까운 positioned ancestor), `fixed` 의 viewport 기준은 미구현.
+    /// **의도적 미지원 (ADR-164 Phase 2 확정, 2026-07-25)** — Phase 0 실측
+    /// (docs/adr/design/164-...-breakdown.md §7 0-3, 실사용 0건) 근거로 종결:
+    /// - **containing block 조상 체인** (nearest positioned ancestor 탐색): 직계 부모
+    ///   고정. factory absolute/fixed 기본값 0건 + Inspector position 편집 UI 미노출.
+    ///   재개 조건 = positioned ancestor 2단 이상 실사용 등장.
+    /// - **`fixed` 의 viewport 기준**: absolute 로 근사 — 상류 TS 도 fixed→absolute
+    ///   로 강제 변환해 송신한다 (fullTreeLayout.ts patch 경로. 렌더 층의 sticky/fixed
+    ///   좌표 보정은 별도 경로 — renderCommands.ts). 재개 조건 = 캔버스 viewport
+    ///   (=page frame) 기준 fixed 실사용 등장.
     fn place_absolute_children(
         &mut self,
         handle: usize,

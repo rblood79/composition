@@ -56,7 +56,7 @@
 - 기존 parity/유닛 전체 회귀 + Phase 0 에서 수식화한 발산 조합의 실문서 live 확인.
 - **G3 bench (Phase 0 실측 반영 → 2026-07-25 신설 완료)**: 전용 bench harness 부재가 확정됐으므로 Phase 1 에서 flex shrink 케이스 **zero-dep micro-bench** (`benches/flex_shrink.rs`, `harness=false` + `Instant` 중앙값 — criterion 상당, `panic=abort` 프로필·의존 최소화 기조로 외부 crate 미도입) 를 신설했고, **floor 도입 직전 기준치 (best-of-N median)**: `shrink_nowrap_1000` ≈ 15.9µs / `shrink_wrap_auto_1200` ≈ 69.1µs / `grow_nowrap_1000` ≈ 14.9µs. 도입 후 동일 시나리오 on/off 비교로 회귀 0 을 판정한다 (런 간 노이즈 ±10% 관측 — 판정은 best-of-N 끼리 비교).
 
-## 4. Phase 2 — position:absolute 잔여 (④)
+## 4. Phase 2 — position:absolute 잔여 (④) — ✅ Implemented 2026-07-25 (의도적 미지원 명문화 경로)
 
 엔진은 2026-07-14 `67ddfe899` 로 out-of-flow 배치를 이미 구현했다 (`tree.rs::solve_node` in-flow/out-of-flow 분리 + `place_absolute_children` + `resolve_abs_axis` — 양측 inset stretch / margin-auto 센터링 / 음수 inset·margin). 잔여 2건의 처리 방침은 ADR 본문 Decision 의 조건부 규칙을 따른다:
 
