@@ -70,16 +70,20 @@
 
 ### 중복 정의 / 오버라이드 실측
 
-| 클래스                          | 정의 파일 수 | 위치                                                                                                    |
-| ------------------------------- | :----------: | ------------------------------------------------------------------------------------------------------- |
-| `.panel-tabs` / `.panel-tab`    |      4       | datatable/DataTablePanel.css + editors/{ApiEndpointEditor,VariableEditor,DataTableEditor}.css           |
-| `.iconButton`                   |      5       | panel-system.css, list-group.css, NodesPanel.css, events/block-editor.css, layout/canvas.css            |
-| `.empty-state`/`.empty-message` |      2       | components/styles/index.css, panel-system.css                                                           |
-| 패널 root 클래스                |   6종 이탈   | `.themes-panel`/`.ai-panel`/`.monitor-panel`/`.nodes-panel`/`.datatable-editor-panel`/`.panel-settings` |
+> **실측 정정 (2026-07-25, Phase 4-a 실행 중)**: 아래 구 census "정의 파일 수" 중 다수가 **base 정의 개수가 아니라 등장 파일 수** 였다 (Phase 0 census grep 이 contextual descendant 선택자까지 카운트). Phase 4-a 정밀 실측 결과는 정정열 참조. panel-tabs(§3)·settings/monitor(§4) 와 동일한 inventory 부실(절차 결함) — scope 변경 아님, adr-writing.md M3 로 각 phase 안 흡수.
+
+| 클래스                          | 구 census | 실측 정정 (2026-07-25)                                                                                                                                                                                                                                 |
+| ------------------------------- | :-------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `.panel-tabs` / `.panel-tab`    |     4     | **단일 정의** (DataTablePanel.css) + 3 주석 참조 — datatable 전용 (§3 실측)                                                                                                                                                                            |
+| `.iconButton`                   |     5     | **base 0** + 5개 **서로 다른** context override (`.list-item-actions`/`.section-header`/`.panel-header`/`.actions-header`/`.elementItemActions` — padding·border 각기 상이). 통합할 base 없음, 각 규칙은 정당한 context-scoped                         |
+| `.empty-state`/`.empty-message` |     2     | `EmptyState` 컴포넌트(`components/feedback/EmptyState.tsx`)가 **단일 소스**. index.css 2개는 `.smart-selection`/`.selection-memory` contextual override, `.empty-message` 는 별개 child 클래스 — 중복 아님                                             |
+| `.control-button`               | 18회/차용 | **base 정의 자체 없음** — `.zoom-control-button`(Workspace.css, zoom 전용)/`.action-control-button`(shared ActionList) 는 별개 클래스. 패널 차용 경계 위반 아님 (styled 소스는 `.add`/`.secondary` bare modifier — 4-c 판정)                           |
+| 패널 root 클래스                | 6종 이탈  | Phase 2/3 에서 `.panel` 병기 완료 (datatableEditor/themes/ai/history/fonts). nodes/monitor 예외, settings scope 밖                                                                                                                                     |
+| `.section-divider`              |     —     | ApiEndpointEditor.css:34 단일 정의 → **Phase 4-a 로 panel-system.css 회수** (예약 section-\* prefix 정본화). datatable editor 계열 추가 squat: `VariableEditor` `.section-header`, `DataTableCreator` `.panel-selection`/`.section-tabs` → 4-c routing |
 
 경쟁 시스템 (같은 역할, 다른 클래스 체계):
 
-- **버튼 3계열**: `.iconButton`(44회 사용, 5중 정의, camelCase) / `.control-button`(18회 — 정의처가 `workspace/Workspace.css`, 패널이 워크스페이스 CSS 를 차용하는 경계 침범) / `ActionIconButton` 컴포넌트.
+- **버튼 계열** (구 "3계열 경쟁" — 4-a 실측 정정): `.iconButton`(44회 사용, **base 정의 0** — 5개 context override 만, camelCase) / `.control-button`(7 tsx 사용, **CSS 정의 부재** — `.add`/`.secondary` bare modifier 에만 의존, `workspace/Workspace.css` 차용 아님) / `ActionIconButton` 컴포넌트. 실체는 "경쟁 3계열" 이 아니라 **정의 부재 + 국소 context override** 혼재.
 - **탭 3계열**: `.panel-tabs`(4중 정의) / `.tabs-list`+`.tab-list-item`+`.tab-title`+`.tab-actions` / `.monitor-tab`.
 - **events 필드 시스템**: `.field > .field-label + .field-input/.field-textarea + .field-hint` (+`.field-group`/`.field-row`) — action editor 26개 파일, 180+ 사용 (`EventsPanel.css:258~`). properties-aria 와 병렬인 제2의 필드 표기법 — **대상 외 확정** (§6, 사용자 결정 2026-07-24: 전면 재구성 대기).
 
@@ -192,12 +196,16 @@ CSS 규모: components/styles/index.css 1,169줄 (잡화 집합), panel-system.c
 
 ## §5. Phase 4 — 중복/네이밍 정리
 
-### 4-a. 공용 위젯 중복 통합
+### 4-a. 공용 위젯 중복 통합 [완료 2026-07-25]
 
-1. `.iconButton` 5중 정의 → 단일 정의 (panel-system.css) + 나머지 삭제. 삭제 전 각 정의 diff 대조 — 값이 다르면 해당 파일은 오버라이드 의도인지 판정 (memory: feedback-audit-high-can-be-intended-house-style). camelCase → kebab rename 여부도 이 시점 판정 (참조 44곳 — rename 시 한 커밋).
-2. `.empty-state`/`.empty-message` 2중 정의 → 1회 정의.
-3. `.control-button` 판정: 정의처가 `workspace/Workspace.css` (패널 밖 차용) — panel-system.css 이관 또는 `ActionIconButton`/`.iconButton` 통합 중 택일.
-4. `.section-divider` 로컬 정의 (`ApiEndpointEditor.css:34`) → 구조 예약 prefix 회수 (panel-system.css 이동 또는 고유 클래스 rename).
+> **실측 정정 (2026-07-25)**: 4개 항목 중 3개가 §0 census miscount (§0 중복 정의 정정표 참조). 실제 actionable = `.section-divider` 예약 prefix 회수 1건. "위젯 중복 통합" 이라는 phase 명칭보다 실제 산출은 "예약 prefix 정본 1건 회수 + inventory 정정" 이었다. 나머지 3건은 통합 대상 실체 없음 → 무리한 통합은 context-scoped 규칙 파손 (과잉 변경 금지).
+
+1. **[miscount]** `.iconButton` 5중 정의 → 실측 base 0 + 5개 **서로 다른** context override (padding sm/xs, border 0/none 등). 통합할 base 없음, 각 규칙은 정당한 context-scoped. camelCase→kebab rename 은 44 참조 churn 대비 이득 없어 **기각** (§1-2 예약어로 의미 고정, 재론 시 별도 ADR).
+2. **[miscount]** `.empty-state`/`.empty-message` → `EmptyState` 컴포넌트(`components/feedback/EmptyState.tsx`)가 이미 단일 소스. index.css 2개는 contextual override. 조치 불요.
+3. **[miscount]** `.control-button` "Workspace.css 차용" → 그런 base 정의 자체 없음 (`.zoom-`/`.action-` 은 별개 목적). 차용 경계 위반 없음. undefined-but-used(styled 소스가 bare modifier) 상태는 4-c bare modifier 판정으로 이관.
+4. **[완료]** `.section-divider` (`ApiEndpointEditor.css:34`, 단일 정의, 3패널 5곳 사용 — events ActionEditor 포함) → panel-system.css `@layer builder-system` top-level 로 승격 (§1-2 예약 section-\* divider 정본화). **diff 0** — 값 동일 + 경쟁 규칙 0, G4 라이브 확인(합성 요소 computed height:1px/bg-muted oklch/margin 12px, `.section-divider` 규칙 정확히 1개·builder-system 레이어). ApiEndpointEditor.css 는 breadcrumb 주석만 잔존.
+
+**추가 발견 (4-c 로 routing)**: 예약 prefix squat 전수 결과 datatable editor 계열 추가 다수 — `VariableEditor.css:28` `.section-header`(+:hover), `DataTableCreator.css` `.panel-selection`/`.panel-option`/`.section-tabs`/`.section-tab`. styled 클래스라 per-file G4 필요 → 4-c 네이밍/prefix 회수 패스로 이관 (§5-4c item 9). 예약 prefix 정적 가드도 4-c 에서 (squat 회수 후 최소 allowlist 로 작성 가능). 시스템 인프라 파일(`panel-container.css`/`panel-nav.css`/`inspector-layout.css`/`form-controls.css`/`panel-btn.css`)의 `panel-*`/`section-*`/`fieldset-*` 정의는 정당(구조 정의처) — squat 아님.
 
 ### 4-b. `.fieldset-row` 통합 (row 래퍼 단일화)
 
@@ -216,6 +224,7 @@ CSS 규모: components/styles/index.css 1,169줄 (잡화 집합), panel-system.c
 6. `properties-aria` rename 판정: 참조 26곳 실측 (tsx 25 — test 포함, css 1). **rename 기각 권고** — churn 대비 이득 없음, §1-2 예약어로 의미 고정으로 갈음. 재론 시 별도 ADR.
 7. `.panel-tabs`/`.panel-tab` (datatable 전용, `DataTablePanel.css` 단일 정의 — Phase 2 실측) 판정: 예약 prefix `panel-*` 정합상 두 갈래 — (a) panel-system.css 이전(unlayered→layered cascade 이동이라 G4 필수), (b) `.datatable-tabs` rename(다른 탭 패널 `.bottom-panel-tabs`/`.nodes-panel-tabs` 도메인 접두 관례 정합). datatable 전용이라 (b) 권고. 어느 쪽이든 DataTablePanel.css 전체가 unlayered 인 근본 gap(layered 표준 cascade 미참여)과 함께 판정.
 8. components/styles/index.css (1,169줄 잡화) 분할은 **본 ADR scope 밖** — 구조 클래스와 무관한 위젯 CSS 정리는 후속 판정.
+9. **예약 prefix squat 회수 (4-a 실측 발견분)**: datatable editor 계열이 예약 `section-*`/`panel-*` 를 로컬 정의 — `VariableEditor.css:28` `.section-header`(+:hover), `DataTableCreator.css` `.panel-selection`/`.panel-option`/`.section-tabs`/`.section-tab`. `.section-divider`(4-a 회수)와 달리 styled 클래스라 도메인 접두 rename(예: `.datatable-creator-tabs`) + per-file G4 필요. panel-tabs(item 7)와 같은 datatable 네이밍 패스로 묶어 처리. 회수 완료 후 **예약 prefix 정적 가드**(panel-local CSS 에서 `^\.(panel|section|fieldset|tab)-* {` base 정의 0건 단언, 시스템 인프라 파일 allowlist) 작성 — Phase 1 dead-block 가드 패턴.
 
 ## §6. 예외 명문화
 
@@ -230,7 +239,7 @@ CSS 규모: components/styles/index.css 1,169줄 (잡화 집합), panel-system.c
 - [x] **Phase 1 (2026-07-25)**: dead 블록(구 360~480행) 전체 삭제 — 선언별 판정 결과 전부 (a) live 중복 또는 (b) 복구 시 현행 변경 → 무매칭 규칙 제거로 diff 0. Chrome 합성 real-DOM cascade 실측 (before==after: `.properties-aria` display=block / `.fieldset-legend` 12px) 로 G1 확증. 정적 가드 `panel-system.static.test.ts` (G2 green) + `.claude/rules/panel-structure.md` (§1 전체) 신설. panel-system.css 529→404행. 커밋: (본 커밋)
 - [x] **Phase 2 (2026-07-25)**: datatable/datatableEditor root `.panel` 병기 (4 div, diff 0 — unlayered root 가 layered `.panel` 이김, Chrome 실측 before==after + 활성화 렌더 정상 G4). `panel-tabs` "4중 정의" = miscount 실측 정정(단일 정의 + datatable 전용) → 이전/rename 은 Phase 4-c 이연. Section 도입 미실시(flat 유지). commit: (본 커밋)
 - [x] **Phase 3 (2026-07-25)**: 표준 4패널(themes/ai/history/fonts) root `.panel` 병기 (diff 0 — Chrome computed before==after + themes 활성화 렌더 정상 G4). 실측 정정: settings=대시보드 컴포넌트(scope 밖) / monitor=dev tool 예외(§6). commit: (본 커밋)
-- [ ] Phase 4-a: iconButton/empty-state/control-button/section-divider 통합
+- [x] **Phase 4-a (2026-07-25)**: `.section-divider` 예약 prefix 회수 (ApiEndpointEditor.css → panel-system.css `@layer builder-system`, diff 0 — G4 라이브 합성요소 computed 확인 + 규칙 1개 확증). iconButton(base 0+5 context override)/empty-state(EmptyState 컴포넌트 단일소스)/control-button(정의 부재) 3건 = §0 census miscount 실측 정정. datatable editor 계열 추가 squat(VariableEditor `.section-header`, DataTableCreator `.panel-selection`/`.section-tabs`) → 4-c routing(item 9). commit: (본 커밋)
 - [ ] Phase 4-b: fieldset-row 정의+5종 래퍼 흡수+패턴 A 전환 (스냅샷 diff + G4)
 - [ ] Phase 4-c: TagEditor fieldset 수정, Tailwind 6파일 제거, tab-\* 오용/bare modifier 정리, rename 기각 기록
 - [ ] CHANGELOG Architecture 반영 + ADR Implemented 승격 시 README 동시 갱신

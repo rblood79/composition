@@ -36,6 +36,14 @@
     overflow-y: auto;
   }
 
+  /* Section Divider — 폼 하위 그룹 구분선 (§1-2 예약 section-* 계열).
+     ADR-163 Phase 4-a 로 datatable/editors/ApiEndpointEditor.css 에서 정본 회수. */
+  .section-divider {
+    height: 1px;
+    background: var(--bg-muted);
+    margin: var(--spacing-md) 0;
+  }
+
   .section {
     display: flex;
     flex-direction: column;

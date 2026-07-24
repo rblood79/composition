@@ -31,11 +31,7 @@
   gap: var(--spacing-md);
 }
 
-.section-divider {
-  height: 1px;
-  background: var(--bg-muted);
-  margin: var(--spacing-md) 0;
-}
+/* .section-divider 정의는 panel-system.css 로 회수됨 (ADR-163 Phase 4-a — 예약 section-* prefix 정본화) */
 
 /* Query Params Editor */
 .query-params-editor {
