@@ -6,13 +6,13 @@ Proposed — 2026-07-24
 
 ## Context
 
-빌더 좌우 패널 13종의 UI 구조가 패널마다 상이하다. 사용자 지정 위계 (2026-07-24): **Properties/Styles 패널이 레퍼런스**, Components/DataTable/DataTableEditor 는 추종 대상, **Nodes 는 예외**, 나머지는 미완으로 레퍼런스를 따라간다.
+빌더 좌우 패널 13종의 UI 구조가 패널마다 상이하다. 사용자 지정 위계 (2026-07-24): **Properties/Styles 패널이 레퍼런스**, Components/DataTable/DataTableEditor 는 추종 대상, **Nodes 는 예외**, 나머지는 미완으로 레퍼런스를 따라간다. **Events 패널 내부는 보류** (사용자 결정 2026-07-24: 전면 재구성 대기 — field 시스템 포함 대상 외, design §6).
 
 실측 결과 (상세 현황표: design §0) 세 층위의 문제가 확인됐다:
 
 1. **표준 시각 정본이 dead**: `apps/builder/src/builder/components/styles/panel-system.css` 360~480행 — "styles/properties 패널 전용" 주석이 달린 블록이 `.section`(39행) 안에 `.panel-wrapper[data-panel=…]` 를 중첩해, 계산 선택자의 조상-자손 순서가 실제 DOM 과 반대가 되어 **영구 무매칭**. `.properties-aria`/`.fieldset-legend`/`.component-fieldset`/`.layout-direction` 등 표준 필드 그룹 스타일 전량이 한 번도 적용된 적 없고, 현행 시각은 top-level live 규칙(27행) + `inspector-layout.css` + 브라우저 기본값의 우연 조합이다. 이 간극은 "중복이니 삭제" 오판을 유발한다 (2026-07-24 실제 회귀 1회 발생 후 복원).
-2. **중복 class 정의**: `.panel-tabs` 4개 파일, `.iconButton` 5개 파일, `.empty-state` 2개 파일에서 반복 정의. 패널 root 클래스 6종 이탈 (`.themes-panel`/`.panel-settings` 어순 역전 포함). 중복 정의는 특이성 동률 + import 순서 의존 오버라이드 체인을 만든다 (`inspector-layout.css:249` "panel-system.css의 .fieldset-actions 리셋" 주석이 실증).
-3. **표준의 명문화 부재**: 공용 부품(`Section`/`PanelHeader`)은 존재하나 어느 패널이 무엇을 따라야 하는지 규칙 파일이 없어, 신규 패널마다 독자 구조가 재생산된다 (Monitor/AI/Events 등).
+2. **중복 class 정의 + 경쟁 체계**: `.panel-tabs` 4개 파일, `.iconButton` 5개 파일, `.empty-state` 2개 파일에서 반복 정의. 패널 root 클래스 6종 이탈 (`.themes-panel`/`.panel-settings` 어순 역전 포함). 같은 역할에 다른 클래스 체계가 병존 — 버튼 3계열 (`.iconButton`/`.control-button` — 정의처가 패널 밖 `Workspace.css`/`ActionIconButton`), 탭 3계열, 섹션 내 row 배치 3패턴 (래퍼 이름 5종 + 인스펙터 3열 grid 템플릿 9회 재선언, design §0). 중복 정의는 특이성 동률 + import 순서 의존 오버라이드 체인을 만든다 (`inspector-layout.css:249` "panel-system.css의 .fieldset-actions 리셋" 주석이 실증).
+3. **표준의 명문화 부재**: 공용 부품(`Section`/`PanelHeader`)은 존재하나 어느 패널이 무엇을 따라야 하는지 규칙 파일이 없어, 신규 패널마다 독자 구조가 재생산된다 (Monitor/AI/Events 등). 네이밍/상관관계도 미규정 — camelCase 이탈, 접두 없는 bare modifier, `properties-aria` 를 `<div>`+`<legend>` 로 쓴 invalid HTML (`TagEditor.tsx:56,217`), Tailwind 인라인 잔존 6파일 (기존 CRITICAL 규칙 위반) 이 방치돼 있다 (design §0 census: 패널 영역 고유 클래스 970종).
 
 **SSOT 3-domain 판정**: 본 ADR 은 빌더 시스템 UI (builder-system layer) 대상 — 사용자 캔버스 컴포넌트의 D1/D2/D3 SSOT 체인 비관여. catalog/spec/Generator 확장 없음 (Generator 자식 selector emit 질문 해당 없음).
 
@@ -94,7 +94,8 @@ Proposed — 2026-07-24
 | R1  | dead CSS 복구 시 "현행 시각 유지" 판정 누락 선언이 시각 변화 유발                 |  MED   | Phase 1 을 스냅샷 → 선언별 판정표 → 복구 → 재스냅샷 diff 0 순서로 고정 (G1). Styles 패널은 Activity hidden 이라 **패널을 열어** 실측 |
 | R2  | phase 중단 시 표준/비표준 패널 이중 공존 장기화                                   |  MED   | phase 당 독립 커밋 + design §7 체크리스트로 잔여 추적. 공존 자체는 기능 무해 (구조 클래스는 additive)                                |
 | R3  | `.section` 중첩 dead 패턴 재발 (신규 CSS 작성 시)                                 |  MED   | `panel-system.static.test.ts` 정적 가드 (G2) + `.claude/rules/panel-structure.md` glob 자동 로드                                     |
-| R4  | 중복 class 통합(`.iconButton` 5중) 시 파일별 값 차이가 의도된 오버라이드일 가능성 |  LOW   | 통합 전 정의별 diff 대조 — 값 상이 시 의도 판정 후 병합 (design §5-1)                                                                |
+| R4  | 중복 class 통합(`.iconButton` 5중) 시 파일별 값 차이가 의도된 오버라이드일 가능성 |  LOW   | 통합 전 정의별 diff 대조 — 값 상이 시 의도 판정 후 병합 (design §5 4-a)                                                              |
+| R5  | `.fieldset-row` 통합 (패턴 A→B 전환 포함) 시 grid 재배치로 시각 회귀              |  MED   | Phase 4-b 를 G1 방식 computed 스냅샷 diff 재사용 + G4 라이브 확인으로 게이트 (design §5 4-b)                                         |
 
 잔존 HIGH 위험 없음.
 
@@ -113,7 +114,8 @@ Proposed — 2026-07-24
 
 - 표준 구조가 코드(`panel-system.css` top-level)와 규칙(`.claude/rules/panel-structure.md`)의 이중 정본으로 실체화 — "쓰여 있으나 적용 안 되는 CSS" 간극 소멸.
 - 신규 패널 작성 비용 감소: `Section`/`PanelHeader` + 예약 구조 클래스 조합으로 시작.
-- 중복 정의 축소 (`.panel-tabs` 4→1, `.iconButton` 5→1, `.empty-state` 2→1) — 오버라이드 체인/import 순서 의존 제거.
+- 중복 정의 축소 (`.panel-tabs` 4→1, `.iconButton` 5→1, `.empty-state` 2→1, 인스펙터 3열 grid 템플릿 9→1, row 래퍼 5종→`.fieldset-row` 단일 계층) — 오버라이드 체인/import 순서 의존 제거.
+- 네이밍/상관관계 계약 명문화 (prefix 예약표 + fieldset/legend 필수 쌍 + state 는 data-attr 우선) — invalid HTML/Tailwind 잔존 등 기존 규칙 위반 6+2 파일 해소.
 - Themes 등 fieldset+legend 를 이미 쓰는 패널이 표준 스타일을 실제로 받게 됨.
 
 ### Negative
