@@ -702,3 +702,9 @@
     }
   }
 }
+
+/* ADR-159 P5: array 셀 TagGroup placeholder — 셀 한 줄 유지 (칩 수는 cap + "+N" 로 제한) */
+.react-aria-Cell .table-cell-tag-group .react-aria-TagList {
+  flex-wrap: nowrap;
+  gap: 4px;
+}

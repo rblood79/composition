@@ -10,6 +10,7 @@ import type {
 // ADR-159 P2 — 행 텍스트 `{field}` 템플릿 단일 resolver (G2: consumer 자체 파싱 금지).
 import {
   buildCollectionRowTemplateItem,
+  classifyTableCellDisplay,
   compileFieldTemplate,
   getSlotRole,
   interpolateFieldTemplate,
@@ -1795,13 +1796,99 @@ function appendTableRowProjection(
     );
 
     for (const col of columns) {
-      const cellText = isHeader ? col.label : (row.cells[col.id] ?? "");
+      // ADR-159 P5: array 셀 → TagGroup placeholder / object 셀 → 휴리스틱 label 텍스트.
+      //   header 는 항상 텍스트(col.label). 분류는 shared 단일 소스(classifyTableCellDisplay)
+      //   — DOM Table 셀 렌더와 동일 판정 (G2 대칭).
+      const display = isHeader
+        ? { kind: "text" as const, text: col.label }
+        : classifyTableCellDisplay(row.rawCells[col.id]);
       const cellId = toCollectionCellProjectionId(
         "table",
         tableSceneNode.id,
         row.rowKey,
         col.id,
       );
+      if (display.kind === "tags") {
+        // 칩 placeholder 셀: cell 은 flex row 컨테이너(텍스트 없음), Tag 자식이 칩 시각.
+        //   paddingX 는 catalog TableCell sizes(sm 8/md 12/lg 16) 와 정렬 — 텍스트 셀의
+        //   catalog padding 은 시각 전용이라 자식 layout 에 미적용되므로 명시 주입.
+        const cellPaddingX = size === "sm" ? 8 : size === "lg" ? 16 : 12;
+        addSceneNode(
+          {
+            id: cellId,
+            type: "TableCell",
+            props: {
+              size,
+              style: {
+                width: col.width,
+                flexGrow: 0,
+                flexShrink: 0,
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                columnGap: 4,
+                paddingLeft: cellPaddingX,
+                paddingRight: cellPaddingX,
+              },
+            },
+            parentId: rowId,
+            pageId: scope.pageId,
+            layoutId: scope.layoutId,
+            parent_id: rowId,
+            page_id: scope.pageId,
+            projection: {
+              kind: "table-cell",
+              listBoxId: tableSceneNode.id,
+              itemKey: row.rowKey,
+              rowIndex: row.rowIndex,
+              columnId: col.id,
+              isHeader,
+              templateAnchorId: null,
+              templateOriginId: null,
+            },
+            sourceNode,
+          },
+          graph,
+        );
+        const chipLabels =
+          display.overflow > 0
+            ? [...display.items, `+${display.overflow}`]
+            : display.items;
+        chipLabels.forEach((chipLabel, chipIndex) => {
+          addSceneNode(
+            {
+              id: `${cellId}::tag-${chipIndex}`,
+              type: "Tag",
+              props: {
+                children: chipLabel,
+                size,
+                // appendTagRowProjection 동형: chip 폭 = 라벨 + padding (fit-content).
+                style: { width: "fit-content" },
+              },
+              parentId: cellId,
+              pageId: scope.pageId,
+              layoutId: scope.layoutId,
+              parent_id: cellId,
+              page_id: scope.pageId,
+              // cell 과 동일 메타 — deep hit 시 cell 과 같은 라우팅(owner select redirect).
+              projection: {
+                kind: "table-cell",
+                listBoxId: tableSceneNode.id,
+                itemKey: row.rowKey,
+                rowIndex: row.rowIndex,
+                columnId: col.id,
+                isHeader,
+                templateAnchorId: null,
+                templateOriginId: null,
+              },
+              sourceNode,
+            },
+            graph,
+          );
+        });
+        continue;
+      }
+      const cellText = display.text;
       addSceneNode(
         {
           id: cellId,

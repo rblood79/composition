@@ -438,6 +438,12 @@ export type TableProjectionRow = {
   kind: "header" | "data";
   /** columnId → 셀 텍스트. header 행은 빈 객체(컬럼 label 은 column.label 에서). */
   cells: Record<string, string>;
+  /**
+   * columnId → 셀 raw 값 (ADR-159 P5). array/object 필드의 컴포넌트 placeholder
+   * 판정(classifyTableCellDisplay) 소스 — `cells` 문자열 축은 BC 로 불변 유지.
+   * header 행은 빈 객체.
+   */
+  rawCells: Record<string, unknown>;
   isSelected: boolean;
   rowIndex: number;
   rowKey: string;
@@ -485,16 +491,18 @@ export function readTableColumns(
 function readRowCells(
   item: unknown,
   columns: readonly TableColumnDef[],
-): Record<string, string> {
+): { cells: Record<string, string>; rawCells: Record<string, unknown> } {
   const record = isRecord(item) ? item : {};
   const cellsSource = isRecord(record.cells) ? record.cells : record;
   const cells: Record<string, string> = {};
+  const rawCells: Record<string, unknown> = {};
   for (const col of columns) {
     const value = cellsSource[col.id];
     cells[col.id] =
       value == null ? "" : typeof value === "string" ? value : String(value);
+    rawCells[col.id] = value;
   }
-  return cells;
+  return { cells, rawCells };
 }
 
 /**
@@ -535,6 +543,7 @@ export function getTableProjectionRows(
   const headerRow: TableProjectionRow = {
     kind: "header",
     cells: {},
+    rawCells: {},
     isSelected: false,
     rowIndex: -1,
     rowKey: "__header__",
@@ -547,9 +556,11 @@ export function getTableProjectionRows(
       const rowIndex = start + i;
       const record = isRecord(item) ? item : {};
       const rowKey = getItemKey(item, rowIndex);
+      const { cells, rawCells } = readRowCells(item, columns);
       return {
         kind: "data",
-        cells: readRowCells(item, columns),
+        cells,
+        rawCells,
         isSelected: record.isSelected === true,
         rowIndex,
         rowKey,

@@ -11,7 +11,8 @@ Accepted — 2026-07-24 (리뷰 round 1 2026-07-21 / round 2 2026-07-23 승인 �
 - Phase 2 (Skia projection 배선) — Implemented 2026-07-24: SlotChildConfig.text 캡처 + resolveRowTemplateSource/buildCollectionRowTemplateItem(가상 필드 — seed `{label}` BC) + ListBox/GridList 행 보간 (compile 루프 밖 1회). Table 은 템플릿 소스 부재로 비적용 판정 (P4/P5). vitest 6 + live `#{label}` 편집 보간 확인. 상세: breakdown §3 P2
 - Phase 3 (DOM/Preview 배선) — Implemented 2026-07-24: DOM 소비 지점은 renderer 층 — ad-hoc `resolveTemplateText` (G2 위반 선재) 를 shared resolver 로 교체 + ListBox/GridList 내부 렌더 `rowTemplateSources` 전달. G1 live 확증 (CSS 패널 ↔ Skia 패널 동일 `#{label}` 보간). vitest 5. 상세: breakdown §3 P3
 - Phase 4a/4b (오소링 UI + dataTable 단일 소스) — Implemented 2026-07-24: 4a 필드 피커 `PropertyFieldTemplateInput` + `useOwnerCollectionColumns`(조상 소유자 → reusable master 소비자 역추적, live 경로 `GenericFieldRenderer` 배선) / 4b `PropertyDataBinding` 소스 4종 → 컬렉션 단일 피커 (`source:"dataTable"` 고정 기록, 구소스 read 호환 잔존) + factory/AI tool api binding 생성 제거. live 확증: master slot Text 피커 → `{num}` 삽입 → 인스턴스 10행 보간 반영. vitest 12 (resolver 8 + renderer gate 4). **4c 잔존 경로 정리는 G4 미충족 (Supabase RLS 전수 실측 불가) 으로 보류** — 상세: breakdown §3 P4
-- (진행 예정) P4c (G4 재실측 후) → P5 문법 B → P6 종결
+- Phase 5 (문법 B 확장) — Implemented 2026-07-24 (사용자 우선순위 confirm "P5 진행해"): 경로 `{a.b.c}`/`{arr[0].x}` + 포맷 `{d|date}`/`{d|number}` — resolver 내부 확장(소비처 API 무변, flat key 우선 BC, `FIELD_TEMPLATE_FORMATTERS` 확장 지점). array/object Table 셀 → shared `classifyTableCellDisplay` 단일 분류로 array=TagGroup 칩(cap+overflow, Skia projection + DOM RAC 대칭) / object=휴리스틱 label (Select/Toggle placeholder 는 BindingNode component 축 확장 지점으로 이연 — R6 범위 축소). live: `{createdAt|date}` 실데이터 10행 보간 확증 + Table 셀은 노출면 0 실측(프로젝트 Table 0개)으로 vitest 확증(scene 단언+정적 markup). vitest +24 (fieldTemplate 24 / cellValue 8 / DOM 6 / scene 1). 상세: breakdown §3 P5
+- (진행 예정) P4c (G4 재실측 후) → P6 종결
 
 ## Context
 

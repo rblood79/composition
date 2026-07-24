@@ -1554,6 +1554,88 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
     expect(dataRoleCell?.ref).toBeUndefined();
   });
 
+  it("array 셀 → Tag 칩 placeholder (cap+overflow) / object 셀 → 휴리스틱 label (ADR-159 P5)", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "table-1",
+                  type: "Table",
+                  props: {
+                    columns: [
+                      { id: "skills", label: "Skills", width: 160 },
+                      { id: "owner", label: "Owner", width: 120 },
+                    ],
+                    rows: [
+                      {
+                        id: "r1",
+                        cells: {
+                          skills: ["ts", "rust", "go", "sql"],
+                          owner: { name: "Kim", city: "Seoul" },
+                        },
+                      },
+                    ],
+                  },
+                  children: [],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc);
+
+    // array 셀: TableCell 은 flex 컨테이너(텍스트 없음) + Tag 자식 칩 (cap 3 + "+1").
+    const skillsCellId = toCollectionCellProjectionId(
+      "table",
+      "table-1",
+      "r1",
+      "skills",
+    );
+    const skillsCell = graph.nodesMap.get(skillsCellId);
+    expect(skillsCell).toMatchObject({
+      type: "TableCell",
+      props: { style: { width: 160, display: "flex" } },
+      projection: { kind: "table-cell", columnId: "skills", itemKey: "r1" },
+    });
+    expect(skillsCell?.props.children).toBeUndefined();
+    expect(graph.nodesMap.get(`${skillsCellId}::tag-0`)).toMatchObject({
+      type: "Tag",
+      parentId: skillsCellId,
+      props: { children: "ts" },
+      projection: { kind: "table-cell", columnId: "skills" },
+    });
+    expect(graph.nodesMap.get(`${skillsCellId}::tag-2`)).toMatchObject({
+      props: { children: "go" },
+    });
+    // cap(3) 초과분은 "+N" 칩 1개로 축약, 그 뒤 칩 없음.
+    expect(graph.nodesMap.get(`${skillsCellId}::tag-3`)).toMatchObject({
+      props: { children: "+1" },
+    });
+    expect(graph.nodesMap.get(`${skillsCellId}::tag-4`)).toBeUndefined();
+
+    // object 셀: 휴리스틱 label 텍스트 (구 "[object Object]" 개선).
+    const ownerCell = graph.nodesMap.get(
+      toCollectionCellProjectionId("table", "table-1", "r1", "owner"),
+    );
+    expect(ownerCell).toMatchObject({
+      type: "TableCell",
+      props: { children: "Kim" },
+    });
+  });
+
   it("windows large data-bound Table data rows (100 limit, header 별도, ADR-912 C1)", () => {
     const doc: CompositionDocument = {
       version: "composition-1.0",
@@ -2087,7 +2169,9 @@ describe("buildCanvasSceneGraph — ADR-159 행 텍스트 템플릿 보간", () 
     { id: "u2", num: 8, name: "Lee", email: "lee@x.io" },
   ];
 
-  function buildListBoxDoc(anchor: Record<string, unknown>): CompositionDocument {
+  function buildListBoxDoc(
+    anchor: Record<string, unknown>,
+  ): CompositionDocument {
     return {
       version: "composition-1.0",
       children: [
@@ -2140,8 +2224,10 @@ describe("buildCanvasSceneGraph — ADR-159 행 텍스트 템플릿 보간", () 
     },
   });
 
-  const rowOf = (graph: ReturnType<typeof buildCanvasSceneGraph>, key: string) =>
-    graph.nodesMap.get(toListBoxRowProjectionId("listbox-1", key));
+  const rowOf = (
+    graph: ReturnType<typeof buildCanvasSceneGraph>,
+    key: string,
+  ) => graph.nodesMap.get(toListBoxRowProjectionId("listbox-1", key));
 
   it("slot text {num}/{email} → 행 children/description/textValue 보간", () => {
     const doc = buildListBoxDoc(

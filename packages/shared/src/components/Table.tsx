@@ -11,6 +11,15 @@ import {
   createColumnHelper,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
+// ADR-159 P5: array/object 셀 컴포넌트 placeholder — 분류는 shared 단일 소스(G2 대칭),
+//   칩 시각은 RAC TagGroup(read-only) + TagGroup.css.
+import {
+  Tag,
+  TagGroup as AriaTagGroup,
+  TagList as AriaTagList,
+} from "react-aria-components";
+import { classifyTableCellDisplay } from "../collections/cellValue";
+import "./styles/TagGroup.css";
 import { Button, Select, SelectItem } from "./list";
 import type {
   ComponentSize,
@@ -44,6 +53,46 @@ export type ApiFetcher<T> = (
  * apiFetcher prop으로 전달하거나, 이 타입의 객체를 컨텍스트로 제공
  */
 export type ApiConfig = Record<string, ApiFetcher<unknown>>;
+
+/**
+ * ADR-159 P5: 셀 값 렌더 — array → read-only TagGroup 칩 placeholder(cap + `+N`),
+ * object(record) → 휴리스틱 label 텍스트(구 JSON.stringify 개선). scalar/React element 는
+ * 기존 동작 그대로 통과 (BC). 분류는 shared classifyTableCellDisplay 단일 소스 —
+ * Skia projection(appendTableRowProjection)과 동일 판정 (G2 대칭).
+ */
+export function renderTableCellValue(value: unknown): React.ReactNode {
+  if (React.isValidElement(value)) return value;
+  if (value !== null && typeof value === "object") {
+    const display = classifyTableCellDisplay(value);
+    if (display.kind === "tags") {
+      const chips =
+        display.overflow > 0
+          ? [...display.items, `+${display.overflow}`]
+          : display.items;
+      return (
+        <AriaTagGroup
+          aria-label="컬렉션 값"
+          className="react-aria-TagGroup table-cell-tag-group"
+        >
+          <AriaTagList className="react-aria-TagList">
+            {chips.map((chip, index) => (
+              <Tag
+                key={`${chip}-${index}`}
+                id={`${chip}-${index}`}
+                className="react-aria-Tag"
+                textValue={chip || `tag-${index + 1}`}
+              >
+                {chip}
+              </Tag>
+            ))}
+          </AriaTagList>
+        </AriaTagGroup>
+      );
+    }
+    return display.text;
+  }
+  return value as React.ReactNode;
+}
 
 /**
  * 🚀 Phase 4: data-* 패턴 전환
@@ -443,18 +492,9 @@ export default React.memo(function Table<T extends { id: string | number }>(
             maxSize: c.maxWidth,
             enableSorting: c.allowsSorting ?? true,
             enableResizing: c.enableResizing ?? true,
-            cell: (info: { getValue: () => unknown }) => {
-              const value = info.getValue();
-              // 중첩 객체는 JSON 문자열로 변환
-              if (
-                value &&
-                typeof value === "object" &&
-                !React.isValidElement(value)
-              ) {
-                return JSON.stringify(value);
-              }
-              return value as React.ReactNode;
-            },
+            // ADR-159 P5: array/object 셀 → 컴포넌트 placeholder/휴리스틱 label (shared 분류).
+            cell: (info: { getValue: () => unknown }) =>
+              renderTableCellValue(info.getValue()),
           },
         ),
       );
@@ -503,18 +543,9 @@ export default React.memo(function Table<T extends { id: string | number }>(
               maxSize: c.maxWidth,
               enableSorting: c.allowsSorting ?? true,
               enableResizing: c.enableResizing ?? true,
-              cell: (info: { getValue: () => unknown }) => {
-                const value = info.getValue();
-                // 중첩 객체는 JSON 문자열로 변환
-                if (
-                  value &&
-                  typeof value === "object" &&
-                  !React.isValidElement(value)
-                ) {
-                  return JSON.stringify(value);
-                }
-                return value as React.ReactNode;
-              },
+              // ADR-159 P5: array/object 셀 → 컴포넌트 placeholder/휴리스틱 label (shared 분류).
+              cell: (info: { getValue: () => unknown }) =>
+                renderTableCellValue(info.getValue()),
             },
           ),
         );
@@ -580,18 +611,9 @@ export default React.memo(function Table<T extends { id: string | number }>(
               maxSize: c.maxWidth,
               enableSorting: c.allowsSorting ?? true,
               enableResizing: c.enableResizing ?? true,
-              cell: (info: { getValue: () => unknown }) => {
-                const value = info.getValue();
-                // 중첩 객체는 JSON 문자열로 변환
-                if (
-                  value &&
-                  typeof value === "object" &&
-                  !React.isValidElement(value)
-                ) {
-                  return JSON.stringify(value);
-                }
-                return value as React.ReactNode;
-              },
+              // ADR-159 P5: array/object 셀 → 컴포넌트 placeholder/휴리스틱 label (shared 분류).
+              cell: (info: { getValue: () => unknown }) =>
+                renderTableCellValue(info.getValue()),
             },
           ),
         );

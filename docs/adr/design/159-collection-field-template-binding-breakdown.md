@@ -115,12 +115,14 @@ Phase 1~4 는 이 모델의 text-leaf 부분만 구현하되, 문법·자료구�
 - Gate: G4 — 4c 진입 조건 미충족으로 4c 만 보류 (4a/4b 는 G4 무관)
 - live 검증 (2026-07-24): Components 페이지 master GridListItem slot Text(`{role}`) 선택 → 피커 버튼 노출 → Menu 에 Users collection 10 필드 정확 노출 → `{num}` 선택 → `{role}{num}` 삽입+commit → Home 인스턴스 10행 전부 보간 반영 ("시스템 아키텍트1"…"QA 엔지니어10") → 원상 복구. GridList 인스턴스 Data 섹션 = 컬렉션 단일 피커 (소스 4종 UI 소멸). 콘솔 에러 0
 
-### Phase 5 — 문법 B 확장 (경로 + 포맷 + array/object 컴포넌트 placeholder) (커밋 2+)
+### Phase 5 — 문법 B 확장 (경로 + 포맷 + array/object 컴포넌트 placeholder) (커밋 2) — ✅ Implemented 2026-07-24
 
-- [ ] `{a.b.c}` / `{arr[0]}` 경로 해석 (resolver 내부만 — 소비처 무변)
-- [ ] 포맷 최소셋 (`date`/`number`) — 확장 지점 명시
-- [ ] array/object 필드 → Table 셀 컴포넌트 placeholder: Skia = 정적 컴포넌트 시각 + 샘플값 배치만, DOM = 기존 RAC (Select/Toggle/TagGroup) + columnMapping 계보 재사용. **write-back/교차 lookup 은 본 phase 도 범위 밖** (후속 ADR)
-- 진입 조건: Phase 1~4 Implemented + 사용자 우선순위 확인
+- [x] `{a.b.c}` / `{arr[0].x}` 경로 해석 — resolver 내부만 (`fieldTemplate.ts` compile 시 `parseFieldPath` 1회 + interpolate traversal), 소비처 API 무변. **BC: flat key 정확 일치 항상 우선** — record 에 리터럴 dotted key 존재 시 P1 semantics 그대로, miss 일 때만 traversal (신규 가산). 가상 필드(label 등) 충돌 없음
+- [x] 포맷 최소셋 `{field|date}`(ISO 접두는 TZ 시프트 없이 date part, 그 외 Date parse → `YYYY-MM-DD`) / `{field|number}`(en-US 천단위 — Skia↔DOM 대칭 위해 런타임 locale 비의존). **확장 지점 명시**: `FIELD_TEMPLATE_FORMATTERS` registry — formatter null 반환 = 미포맷 fallback (throw 금지), 미지 포맷 이름도 fallback. `{x|}` 불완전 포맷은 토큰 아님(literal 보존). vitest 9건 추가 (fieldTemplate 24)
+- [x] array/object 필드 → Table 셀 컴포넌트 placeholder: 분류 단일 소스 `cellValue.ts::classifyTableCellDisplay` (G2 대칭) — **array → TagGroup 칩** (cap 3 + `+N` overflow; Skia = `appendTableRowProjection` 이 cell 을 flex 컨테이너로 emit + Tag 자식 노드(appendTagRowProjection 선례 동형, projection 메타는 cell 과 동일 table-cell) / DOM = `Table.tsx::renderTableCellValue` 가 read-only RAC TagGroup 렌더, JSON.stringify 3중복 셀 콜백 단일화), **object → 휴리스틱 label 텍스트** (구 "[object Object]"/JSON 노출 제거). `TableProjectionRow.rawCells` 추가(string `cells` 축은 BC 불변). **Select/Toggle placeholder 는 구현 축소 — §2-4 BindingNode component 축 확장 지점으로 이연** (read-only 빌더에서 object 의 정직한 최소 placeholder = label 텍스트; write-back 후속 ADR 과 함께 재평가). scalar 경로는 양쪽 다 기존과 bit-동일 (DOM boolean 미문자열화 passthrough 포함)
+- write-back/교차 lookup 은 범위 밖 유지 (후속 ADR)
+- 진입 조건 충족 기록: P1~P4(4a/4b) Implemented + 사용자 우선순위 confirm ("P5 진행해", 2026-07-24)
+- live 검증 (2026-07-24): 경로+포맷 — master slot Text `{role}` → `{createdAt|date}` 편집 → Home 인스턴스 10행 전부 실데이터 날짜 `YYYY-MM-DD` 보간 확인 후 원상 복구 (경로/포맷 모두 동일 compile/interpolate live 배선 경유). **Table 셀 placeholder 는 live 노출면 0 실측** — 현 프로젝트 요소 50개 중 Table-typed 0 / array·object 셀 데이터 0 (store 전수 스캔), 팔레트 drop 도 빈 캔버스 거부로 scratch 산출 불가 → 칩/label 시각은 vitest 로 확증 (Skia scene-node 단언 1건 + DOM 정적 markup 6건). **잔존**: live 데이터로 array/object 셀이 생기는 시점(Table 사용 프로젝트 또는 P4c/후속 ADR)에 실화면 1회 재확인 — 미산출 입력 차원 한계 명시 ([[feedback-dual-run-diff-zero-blind-to-uncovered-input-dimension]] 유형)
 
 ### Phase 6 — 종결
 
