@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [프로퍼티 패널 팝오버 정렬 SSOT — 컬렉션 피커 폭·위치 교정] - 2026-07-24
+
+### Bug Fixes
+
+- **Content > Data 컬렉션 피커 팝오버만 다른 Select 와 폭·좌측 정렬이 어긋남**:
+  - 프로퍼티/스타일 패널의 Select·ComboBox 팝오버는 control 외곽 박스(`.react-aria-Group`, 회색 field) 폭·좌측에 맞춰 뜨는데, 컬렉션 피커만 RAC 기본(trigger 기준)으로 떠서 field 박스보다 좁고(249 vs 277px) 24px 안쪽으로 들어가 보였다.
+  - **Why**: 이 정렬은 CSS 가 아니라 `group ↔ control` 실측 rect 로 `width / min-width / margin-left` 를 계산하는 JS 로직인데, `PropertySelect` 와 `PropertyUnitInput` 에 **각각 복제**돼 있었다. 나중에 추가된 `PropertyDataBinding` 이 복제를 빠뜨려 패널 규약에서 이탈. field 에 `control-label` 아이콘 컬럼이 있으면 trigger 가 group 보다 24px 안쪽이라 이탈이 두드러진다.
+  - 수정: 계산을 `useControlPopoverMetrics` 훅으로 추출해 **단일 소스화**하고 3개 소비자(`PropertySelect` / `PropertyUnitInput` / `PropertyDataBinding`)가 공유. anchor 를 못 넘기는 경우(group 을 `PropertyFieldset` 이 렌더) `closest(".react-aria-Group")` 자동 해석 + 조건부 마운트되는 control 도 잡도록 callback ref 기반으로 전환.
+  - 갱신 모드 Select 는 라벨과 한 행을 나눠 쓰는 하위 control 이라 group 정렬 시 trigger 보다 100px 이상 벗어난다 — RAC 기본(trigger 기준) 유지.
+  - 검증: live 실측 — 컬렉션 피커 `min-width: 216px(=group 폭) / margin-left: -24px` 적용 확인, 기존 2개 소비자 회귀 없음(`PropertySelect` Variant `min-width: 277px / margin-left: -4px` 리팩터 전후 동일, `PropertyUnitInput` 단위 팝오버 `min-width: 86px / margin-left: -24px`).
+  - 위치: `apps/builder/src/builder/components/property/useControlPopoverMetrics.ts`(신규), `PropertySelect.tsx`, `PropertyUnitInput.tsx`, `PropertyDataBinding.tsx`
+
 ## [Collection 목록 boot 초기화 — DataStore editMode 게이트 제거] - 2026-07-24
 
 ### Bug Fixes

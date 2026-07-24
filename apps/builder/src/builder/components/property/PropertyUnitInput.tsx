@@ -10,6 +10,7 @@ import {
 import { ChevronDown } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useStore } from "../../stores";
+import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
 
 interface PropertyUnitInputProps {
   label?: string;
@@ -143,68 +144,12 @@ export const PropertyUnitInput = memo(
 
     // ⭐ ComboBox 컨테이너 ref - 내부 포커스 이동 감지용
     const comboBoxContainerRef = useRef<HTMLDivElement>(null);
-    const comboBoxRef = useRef<HTMLDivElement>(null);
-    const groupRef = useRef<HTMLDivElement>(null);
-    const [popoverMetrics, setPopoverMetrics] = useState({
-      width: 0,
-      offset: 0,
-    });
-
-    useEffect(() => {
-      const updatePopoverMetrics = () => {
-        const groupElement = groupRef.current;
-        const comboBoxElement = comboBoxRef.current;
-
-        if (!groupElement || !comboBoxElement) return;
-
-        const groupRect = groupElement.getBoundingClientRect();
-        const comboBoxRect = comboBoxElement.getBoundingClientRect();
-        const nextMetrics = {
-          width: Math.round(groupRect.width),
-          offset: Math.round(groupRect.left - comboBoxRect.left),
-        };
-
-        setPopoverMetrics((prev) => {
-          if (
-            prev.width === nextMetrics.width &&
-            prev.offset === nextMetrics.offset
-          ) {
-            return prev;
-          }
-
-          return nextMetrics;
-        });
-      };
-
-      updatePopoverMetrics();
-
-      if (typeof ResizeObserver === "undefined") {
-        window.addEventListener("resize", updatePopoverMetrics);
-
-        return () => {
-          window.removeEventListener("resize", updatePopoverMetrics);
-        };
-      }
-
-      const resizeObserver = new ResizeObserver(() => {
-        updatePopoverMetrics();
-      });
-
-      if (groupRef.current) {
-        resizeObserver.observe(groupRef.current);
-      }
-
-      if (comboBoxRef.current) {
-        resizeObserver.observe(comboBoxRef.current);
-      }
-
-      window.addEventListener("resize", updatePopoverMetrics);
-
-      return () => {
-        resizeObserver.disconnect();
-        window.removeEventListener("resize", updatePopoverMetrics);
-      };
-    }, []);
+    // 팝오버 폭·좌측 정렬 계산은 useControlPopoverMetrics 단일 소스 (패널 공통 규약)
+    const {
+      anchorRef: groupRef,
+      controlRef: comboBoxRef,
+      popoverStyle,
+    } = useControlPopoverMetrics({ widthMode: "fit-content" });
 
     const handleInputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
       // ⭐ Skip save if we just saved via Enter key (useRef는 즉시 반영됨!)
@@ -444,17 +389,7 @@ export const PropertyUnitInput = memo(
             </div>
             <Popover
               className="react-aria-Popover property-unit-input-popover"
-              style={{
-                width: "max-content",
-                minWidth:
-                  popoverMetrics.width > 0
-                    ? `${popoverMetrics.width}px`
-                    : undefined,
-                marginLeft:
-                  popoverMetrics.offset !== 0
-                    ? `${popoverMetrics.offset}px`
-                    : undefined,
-              }}
+              style={popoverStyle}
             >
               <ListBox className="react-aria-ListBox">
                 {units.map((u) => (

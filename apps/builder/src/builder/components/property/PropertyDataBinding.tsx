@@ -29,6 +29,7 @@ import { ChevronDown, Link2, X, RefreshCw } from "lucide-react";
 import { iconProps, iconEditProps } from "../../../utils/ui/uiConstants";
 import { PropertyFieldset } from "./PropertyFieldset";
 import { useSelectTriggerFocusRestore } from "./useSelectTriggerFocusRestore";
+import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
 import { useCollections } from "../../stores/data";
 import "./PropertyDataBinding.css";
 
@@ -219,6 +220,14 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
   const nameSelectFocus = useSelectTriggerFocusRestore();
   const refreshSelectFocus = useSelectTriggerFocusRestore();
 
+  // 컬렉션 피커는 이 fieldset 의 field-level control 이므로, 팝오버를 패널 규약대로
+  // control 외곽 박스(`.react-aria-Group`) 폭·좌측에 맞춘다 (PropertySelect /
+  // PropertyUnitInput 과 동일 규약). anchor 는 PropertyFieldset 이 렌더하므로
+  // controlRef 의 closest 자동 해석에 맡긴다.
+  //   갱신 모드 Select 는 라벨과 한 행을 나눠 쓰는 하위 control 이라 group 정렬 시
+  //   trigger 보다 100px 이상 왼쪽으로 벗어난다 — RAC 기본(trigger 기준) 유지.
+  const nameSelectPopover = useControlPopoverMetrics();
+
   return (
     <PropertyFieldset legend={label} icon={Link2} className={className}>
       <div className="property-data-binding">
@@ -242,6 +251,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
           {nameOptions.length > 0 ? (
             <AriaSelect
               className="react-aria-Select binding-name-select"
+              ref={nameSelectPopover.controlRef}
               selectedKey={source === "dataTable" ? name || null : null}
               onSelectionChange={handleNameChange}
               onOpenChange={nameSelectFocus.restoreFocusOnClose}
@@ -257,7 +267,10 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
                   <ChevronDown size={iconProps.size} />
                 </span>
               </Button>
-              <Popover className="react-aria-Popover">
+              <Popover
+                className="react-aria-Popover property-select-popover"
+                style={nameSelectPopover.popoverStyle}
+              >
                 <ListBox className="react-aria-ListBox">
                   {nameOptions.map((option) => (
                     <ListBoxItem

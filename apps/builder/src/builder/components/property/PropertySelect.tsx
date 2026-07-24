@@ -1,4 +1,4 @@
-import React, { memo, useState, useCallback, useEffect, useRef } from "react";
+import React, { memo, useState, useCallback } from "react";
 import {
   Select as AriaSelect,
   Button,
@@ -10,6 +10,10 @@ import {
 import { ChevronDown } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useSelectTriggerFocusRestore } from "./useSelectTriggerFocusRestore";
+import {
+  useControlPopoverMetrics,
+  type PopoverWidthMode,
+} from "./useControlPopoverMetrics";
 
 interface PropertySelectProps {
   label: string;
@@ -23,7 +27,7 @@ interface PropertySelectProps {
   }>;
   className?: string;
   description?: string; // Optional description (not displayed)
-  popoverWidthMode?: "width" | "min-width" | "fit-content";
+  popoverWidthMode?: PopoverWidthMode;
 }
 
 // 🚀 Phase 21: memo + 커스텀 비교 함수 적용
@@ -41,8 +45,10 @@ export const PropertySelect = memo(
     // React Aria의 controlled Select에서 onSelectionChange 내 onChange("") 호출이
     // 상태 변경을 유발하여 팝업 자동 닫힘을 방해하는 문제 해결
     const [isOpen, setIsOpen] = useState(false);
-    const groupRef = useRef<HTMLDivElement>(null);
-    const selectRef = useRef<HTMLDivElement>(null);
+    // 팝오버 폭·좌측 정렬 계산은 useControlPopoverMetrics 단일 소스 (패널 공통 규약)
+    const { anchorRef, controlRef, popoverStyle } = useControlPopoverMetrics({
+      widthMode: popoverWidthMode,
+    });
     // 🚀 Fix: popover 닫힘 전환 gap 의 focus ring 깜빡임 방지 —
     // 상세 주석은 useSelectTriggerFocusRestore.ts 참조
     const { triggerRef, restoreFocusOnClose } = useSelectTriggerFocusRestore();
@@ -53,67 +59,6 @@ export const PropertySelect = memo(
       },
       [restoreFocusOnClose],
     );
-    const [popoverMetrics, setPopoverMetrics] = useState({
-      width: 0,
-      offset: 0,
-    });
-
-    useEffect(() => {
-      const updatePopoverMetrics = () => {
-        const groupElement = groupRef.current;
-        const selectElement = selectRef.current;
-
-        if (!groupElement || !selectElement) return;
-
-        const groupRect = groupElement.getBoundingClientRect();
-        const selectRect = selectElement.getBoundingClientRect();
-        const nextMetrics = {
-          width: Math.round(groupRect.width),
-          offset: Math.round(groupRect.left - selectRect.left),
-        };
-
-        setPopoverMetrics((prev) => {
-          if (
-            prev.width === nextMetrics.width &&
-            prev.offset === nextMetrics.offset
-          ) {
-            return prev;
-          }
-
-          return nextMetrics;
-        });
-      };
-
-      updatePopoverMetrics();
-
-      if (typeof ResizeObserver === "undefined") {
-        window.addEventListener("resize", updatePopoverMetrics);
-
-        return () => {
-          window.removeEventListener("resize", updatePopoverMetrics);
-        };
-      }
-
-      const resizeObserver = new ResizeObserver(() => {
-        updatePopoverMetrics();
-      });
-
-      if (groupRef.current) {
-        resizeObserver.observe(groupRef.current);
-      }
-
-      if (selectRef.current) {
-        resizeObserver.observe(selectRef.current);
-      }
-
-      window.addEventListener("resize", updatePopoverMetrics);
-
-      return () => {
-        resizeObserver.disconnect();
-        window.removeEventListener("resize", updatePopoverMetrics);
-      };
-    }, []);
-
     const handleChange = useCallback(
       (key: React.Key | null) => {
         const selectedValue = key as string;
@@ -130,10 +75,10 @@ export const PropertySelect = memo(
     return (
       <fieldset className={`properties-aria ${className || ""}`}>
         <legend className="fieldset-legend">{label}</legend>
-        <div className="react-aria-control react-aria-Group" ref={groupRef}>
+        <div className="react-aria-control react-aria-Group" ref={anchorRef}>
           <AriaSelect
             className="react-aria-Select"
-            ref={selectRef}
+            ref={controlRef}
             isOpen={isOpen}
             onOpenChange={handleOpenChange}
             selectedKey={
@@ -163,25 +108,7 @@ export const PropertySelect = memo(
             </Button>
             <Popover
               className="react-aria-Popover property-select-popover"
-              style={{
-                width:
-                  popoverWidthMode === "width" && popoverMetrics.width > 0
-                    ? `${popoverMetrics.width}px`
-                    : popoverWidthMode === "fit-content"
-                      ? "max-content"
-                      : undefined,
-                minWidth:
-                  popoverWidthMode === "fit-content" && popoverMetrics.width > 0
-                    ? `${popoverMetrics.width}px`
-                    : popoverWidthMode === "min-width" &&
-                        popoverMetrics.width > 0
-                      ? `${popoverMetrics.width}px`
-                      : undefined,
-                marginLeft:
-                  popoverMetrics.offset !== 0
-                    ? `${popoverMetrics.offset}px`
-                    : undefined,
-              }}
+              style={popoverStyle}
             >
               <ListBox className="react-aria-ListBox">
                 {options.map((option) => (
