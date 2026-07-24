@@ -15,7 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Content > Data 에서 경로 입력(`items[0].name` 류)이 사라진다. 기존 저장 문서의 `path` **값은 보존** (컬렉션 변경 시 재기록) — 편집 표면만 제거. 결과적으로 Data 섹션은 **컬렉션 Select 1행**만 남는다 (field 높이 56 → 30px).
   - **Why**: `path` 를 실제로 해석하는 코드는 `preview/hooks/useDataSource.ts` 의 `useDataBinding`(`path.split(/[.[\]]+/)` 드릴다운) 하나뿐인데, 그 모듈은 배럴 재수출만 있고 **import 0건인 dead module** 이다. 살아있는 유일한 소비처는 `useCollectionDataCache.createCacheKey` 의 캐시 키 문자열(`prop:${source}:${name}:${path}`) — 값을 바꿔도 **캐시만 무효화되고 로드 데이터는 불변**. 실제 행 read 경로인 `readDataBindingRows`(Skia projection + DOM 공통)와 `useCollectionData` 는 `source`/`name` 만 읽는다.
   - 계약상으로도 어긋났다: `kind:"binding"` 은 collection 컴포넌트 전용이라 결과가 항상 **행 배열**인데 `items[0].name` 은 단일 값 드릴다운 문법이다. 행 안에서 필드를 고르는 일은 같은 날 반영된 ADR-159 `{field}` 템플릿(경로 접근 `{address.city}` + 포맷 `|date`)이 담당한다 — `path` 는 그 기능의 죽은 선행 버전.
-  - 필드/타입은 캐시 키 호환 때문에 유지. 물리 제거는 dead module 정리와 함께 후속 판단.
+  - 필드/타입은 캐시 키 호환 때문에 유지. 물리 제거는 후속 판단.
+  - **후속 처리 (같은 날, 사용자 승인)**: 위 dead module 인 `apps/builder/src/preview/hooks/`(`useDataSource.ts` + 배럴 `index.ts`) 삭제. export 8종(`useDataSource`/`useVariable`/`useRouteParams`/`useDataBinding` + 타입 4종) 소비처 각 0건 / 배럴 importer 0건 / 별칭 import 0건 실측. ADR-159 P4c residual 목록에서 이 항목은 **G4 게이트 대상이 아님**으로 정정 (소비처 0 ⇒ 저장 문서가 의존 불가 ⇒ read 호환 리스크 없음). 검증: type-check 61 baseline 유지 + `tsc -b` 에 module resolution 에러 0건 + builder vitest 347 files / 2600 tests PASS.
   - 위치: `apps/builder/src/builder/components/property/PropertyDataBinding.{tsx,css,test.tsx}`
 
 - **Data 바인딩의 "갱신 모드 / 갱신 간격" 오소링 UI 제거**:
