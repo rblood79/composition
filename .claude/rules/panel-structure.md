@@ -13,7 +13,7 @@ globs:
 >
 > **레퍼런스**: Properties/Styles 패널이 표준 정본. Components/DataTable/DataTableEditor 는 추종, **Nodes/Events 는 예외**(§예외), 나머지 미완 패널은 레퍼런스를 따라간다.
 >
-> **공식 결정**: [ADR-163](../../docs/adr/163-builder-panel-structure-standardization.md) · 구현 상세: [design breakdown](../../docs/adr/design/163-builder-panel-structure-standardization-breakdown.md)
+> **공식 결정**: [ADR-163](../../docs/adr/completed/163-builder-panel-structure-standardization.md) · 구현 상세: [design breakdown](../../docs/adr/design/163-builder-panel-structure-standardization-breakdown.md)
 
 ## 표준 구조 정본 (DOM 계층)
 
@@ -58,15 +58,20 @@ globs:
 | `react-aria-*`                                                           | RAC 네임스페이스 — 자작 클래스 신규 부여 금지 (기존 관례만 유지) | —                                  |
 | `iconButton`, `empty-state`, `tab(s)-*`                                  | 공용 위젯 — 단일 정의로 통합 (Phase 4-a)                         | panel-system.css                   |
 
-- 패널 고유 클래스는 `{도메인}-{역할}` kebab-case (`component-semantics-row` 형태). camelCase 금지 (기존 `.iconButton`/`elementItem*` 는 Phase 4 판정 대상).
-- **state 표현은 data-attribute 우선** (`data-active`/`data-status`/`data-drag-over` — RAC 관례 정합). 접두 없는 bare modifier 클래스 (`.add`/`.warning`/`.sm`) 신규 금지 — modifier 필요 시 `{고유클래스}--{state}` 또는 data-attr.
+**base 정의 vs 인스턴스 override** — 예약 prefix 금지는 **base 정의**(조상 스코프 없이 예약 클래스 단독 선언)에만 걸린다. 같은 compound 에 고유 클래스·속성이 덧붙은 형태(`.section.block-view`, `.section[data-section-id="x"]`)나 조상 스코프 안의 규칙(`.nodes-panel-content .section .section-content`)은 **인스턴스 한정 override** 라 허용 — 구조 정본을 대체하는 두 번째 소스가 아니라 특정 인스턴스만 조정하기 때문. 판정은 `reservedPrefix.static.test.ts` 가 기계 집행한다.
+
+- 패널 고유 클래스는 `{도메인}-{역할}` kebab-case (`component-semantics-row`, `datatable-creator-tabs` 형태). camelCase 금지 (기존 `.iconButton`/`elementItem*` 는 rename 기각 — 참조 churn 대비 이득 없음, 예약어로 의미 고정).
+- **state 표현은 data-attribute 우선** (`data-active`/`data-status`/`data-drag-over` — RAC 관례 정합). 접두 없는 bare modifier 클래스 (`.add`/`.warning`/`.sm`) 신규 금지 — modifier 필요 시 `{고유클래스}--{state}` 또는 data-attr. **기존 compound**(`.list-item.selected` 등 20종, base 정의 0건)는 owner 종속 state 패턴이라 존치 — 소급 전환 안 함(ADR-163 Phase 4-c 판정).
 - 신규 `data-panel` id 는 kebab-case (기존 id 는 persist key 라 rename 안 함).
+- `properties-aria` 는 이름이 부정확해도 **rename 기각 확정** — 참조 26곳 churn 대비 이득 없음. 본 예약표의 의미 고정으로 갈음(재론 시 별도 ADR).
 - 테스트 쿼리는 role 우선 (`getByRole("group", { name })` — getByLabelText 는 fieldset/legend 미인식, @testing-library/dom 10.4.1).
 
 ## 3. CSS 모듈화 규칙
 
 - **구조 정본**: panel-system.css 가 구조 클래스의 유일 정의처. **top-level 선택자만** — `.section` 블록 내부에 `.panel-wrapper` 중첩 금지 (조상-자손 순서가 실제 DOM 과 반대라 영구 무매칭 dead 블록이 된다. 정적 가드 `panel-system.static.test.ts` 로 차단).
-- **패널 전용 CSS**: 해당 패널 디렉터리에 co-locate. 단 구조 클래스 재정의 금지, 고유 클래스만. 패널 밖 CSS(`Workspace.css` 등) 차용 금지.
+- **패널 전용 CSS**: 해당 패널 디렉터리에 co-locate. 단 구조 클래스 **base 정의** 금지, 고유 클래스만 (정적 가드 `reservedPrefix.static.test.ts` — 인프라 allowlist 밖 CSS 에서 `panel-*`/`section-*`/`fieldset-*`/`tab-*` base 정의 0건 단언). 패널 밖 CSS(`Workspace.css` 등) 차용 금지.
+- **구조 클래스가 정말 공용이면 rename 이 아니라 승격**: 여러 패널이 같은 역할로 쓰면 panel-system.css top-level 로 올린다 (`.section-divider` 사례). 한 패널 전용이면 도메인 접두로 rename 한다 (`.panel-tabs` → `.datatable-tabs` 사례).
+- **Tailwind 유틸 인라인 금지** (기존 CRITICAL 규칙): 시맨틱 클래스 + 토큰으로 대체. builder 패널 컨텍스트에서 `--fg-muted`≡`--color-gray-500`, `--fg-disabled`≡`--color-gray-400`, `--negative`≡`--color-red-500`, `--informative`≡`--color-blue-500`, `--spacing-lg`≡16px(`p-4`), `--spacing-sm`≡8px(`ml-2`) 이므로 light mode diff 0 로 치환 가능하다. **`--spacing-{1..6}` / `--text-md` 는 미정의 토큰** — 쓰면 선언 자체가 무효가 된다 (구 `TableEditor.css` 의 `padding: var(--spacing-4)` 가 0 으로 죽어 있던 사례). 실존 스케일은 `xs/sm/md/lg/xl/2xl`.
 - **섹션별 grid 배치**: inspector-layout.css 의 `.section { &[data-section-id="…"] .section-content {…} }` 패턴 (조상 `.section` 먼저 → live). 인스펙터 3열 컬럼 템플릿 SSOT 는 `--inspector-row-columns` 토큰 (`.section` 정의, ADR-163 Phase 4-b — 구 9회 재선언 단일화). 각 섹션 wrapper 는 `grid-template-columns: var(--inspector-row-columns)` + 고유 `grid-template-areas` 조합. 리터럴 `1fr 1fr var(--inspector-control-size)` 신규 재선언 금지. `.fieldset-row`(신규 패널 표준, §4)도 이 토큰 사용.
 - 공용 위젯(`.iconButton`, `.empty-state`, `.panel-tabs`)은 단일 파일 1회 정의로 통합.
 
@@ -93,15 +98,17 @@ globs:
 - ❌ 패널별 root 클래스 신설 (`.themes-panel` 류를 단독 root 로 — `.panel` 병기가 기본)
 - ❌ `.section` 직접 마크업 (Section 컴포넌트 경유)
 - ❌ `.section-content` 자체를 grid 로 (가로 배치는 `.fieldset-row` 한 겹)
-- ❌ `properties-aria` 를 `<div>`+`<legend>` 로 (invalid HTML)
-- ❌ 구조 예약 prefix (`panel-*`/`section-*`/`fieldset-*`/`tab-*`) 를 패널 로컬 CSS 에서 재정의
+- ❌ `properties-aria` 를 `<div>`+`<legend>` 로 (invalid HTML). `<fieldset>` 전환 시 `min-inline-size: min-content` 기본값을 고유 클래스 `min-width: 0` 으로 해제하지 않으면 폭 거동이 달라진다
+- ❌ 구조 예약 prefix (`panel-*`/`section-*`/`fieldset-*`/`tab-*`) 를 패널 로컬 CSS 에서 **base 정의** (`reservedPrefix.static.test.ts` FAIL). 인스턴스 한정 override 는 허용
+- ❌ `tab-*` 를 탭 아닌 리스트/오버뷰에 사용 (properties editor 계열은 `editor-*` 사용)
 - ❌ 접두 없는 bare modifier 클래스 신규 (`.add`/`.warning`/`.sm`)
 - ❌ camelCase 고유 클래스 신규 (`{도메인}-{역할}` kebab-case)
 - ❌ Tailwind 인라인 클래스 (기존 CRITICAL 규칙 — style-no-inline-tailwind)
+- ❌ 미정의 토큰 사용 (`--spacing-{1..6}`, `--text-md`) — 선언이 통째로 무효화된다
 
 ## 관련
 
 - ADR-163 본문 / design breakdown
-- 정적 가드: `apps/builder/src/builder/components/styles/panel-system.static.test.ts`
+- 정적 가드: `apps/builder/src/builder/components/styles/{panel-system,reservedPrefix}.static.test.ts`
 - 공용 부품: `apps/builder/src/builder/components/panel/{Section,PanelHeader}.tsx`
 - memory: feedback-panel-field-group-fieldset-legend-pattern · project-properties-aria-nested-selector-dead

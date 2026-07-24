@@ -7,11 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [빌더 패널 표준 CSS 정본 복구 — ADR-163 Phase 1] - 2026-07-25
+## [빌더 패널 표준 구조화 — ADR-163 Implemented] - 2026-07-25
 
 ### Architecture
 
-- **panel-system.css dead 블록 제거 + 표준 구조 규칙 명문화** (ADR-163 Phase 1, Accepted):
+- **패널 6종 root `.panel` 통일 + 예약 prefix 정본 회수 + 정적 가드 2개** (ADR-163 Phase 2~4-c, Implemented 승격):
+  - **root 클래스 통일 (Phase 2~3)**: datatable / datatableEditor / theme / ai / history / fonts 6패널의 root 에 `.panel` 병기 (기존 고유 root 클래스는 co-located CSS 참조가 살아 있어 제거하지 않고 병기). unlayered 고유 root 가 layered `.panel`(@layer builder-system) 을 이기고 공유 속성(flex/column/height:100%)이 동일해 **Chrome computed before==after (diff 0)**
+  - **예약 prefix 정본 회수 (Phase 4-a·4-c)**: `.section-divider` 를 ApiEndpointEditor.css → panel-system.css `@layer builder-system` top-level 로 승격(3패널 5곳 공용이므로 rename 이 아니라 승격). datatable 전용 정의는 도메인 접두로 rename — `.panel-tabs`/`.panel-tab` → `.datatable-tab{s}`, `.panel-selection`/`.panel-option` → `.datatable-creator-mode{s}`, `.section-tabs`/`.section-tab` → `.datatable-creator-tab{s}`, `.section-header-title` → `.variable-editor-section-title`(빈 `.section-header{}` 2규칙은 inert → 삭제). properties editor 계열이 탭 아닌 리스트/오버뷰에 쓰던 `tab-*` 8종 70곳(8파일) → `editor-*`
+  - **인스펙터 3열 grid 템플릿 single-source (Phase 4-b)**: `grid-template-columns: 1fr 1fr var(--inspector-control-size)` 9회 재선언 → `.section` 의 `--inspector-row-columns` 토큰 1개 + `var()` 참조 9곳. DOM 무변경 A방식(사용자 confirm) — 원안 B(`.fieldset-row` 클래스 병기 + 패턴 A→B DOM 전환)는 R5 시각 회귀 위험으로 미채택, `.fieldset-row` 는 신규 패널용 forward-standard 로 문서 유지
+  - **invalid HTML + Tailwind 인라인 해소 (Phase 4-c)**: TagEditor 의 `<div className="properties-aria">` + `<legend>` 2곳 → `<fieldset>` (legend 는 fieldset 전용). fieldset 기본값 `min-inline-size: min-content` 는 고유 클래스 `min-width: 0` 으로 해제해 이전 div 폭 거동 유지. Tailwind 유틸 인라인 7파일 제거 → 시맨틱 클래스(`propertyEditors.css` 신설 + `variable-debugger.css` 로그레벨 6클래스) — **패널 영역 Tailwind grep 0 도달**
+  - **재발 차단 — 정적 가드 2개**: `panel-system.static.test.ts`(dead 중첩) + `reservedPrefix.static.test.ts` 신설 — 인프라 allowlist 9파일 밖에서 `panel-*`/`section-*`/`fieldset-*`/`tab-*` **base 정의** 0건 단언. 인스턴스 한정 override(`.section.block-view`, `.section[data-section-id="x"]`)는 비대상(구조 정본을 대체하지 않고 특정 인스턴스만 조정)
+  - **Why**: 구조 클래스가 패널마다 재정의되면 특이성 동률 + import 순서 의존 오버라이드 체인이 생겨 "어느 규칙이 이기는지" 를 읽을 수 없다 (`inspector-layout.css:249` 의 "panel-system.css 의 `.fieldset-actions` 리셋" 주석이 실증). 규칙 문서만으로는 재생산을 막지 못해 정적 가드로 기계 집행
+  - **실측 정정 5건** (전부 Phase 0 census miscount — grep 이 contextual descendant 선택자까지 카운트): `.panel-tabs` 4중 정의 → **단일 정의** / `.iconButton` 5중 정의 → **base 0 + 서로 다른 context override 5**(통합할 base 없음, camelCase rename 도 44 참조 churn 대비 이득 없어 기각) / `.empty-state` 2중 → `EmptyState` 컴포넌트가 이미 단일 소스 / settings=대시보드 컴포넌트(scope 밖)·monitor=dev tool(예외) / row 래퍼 5종 → 8개 + pattern-A. 그 결과 원안의 "중복 정의 통합" 은 실체가 작았고 실제 산출은 **예약 prefix 회수 + 토큰 single-source + 정적 가드**
+  - **검증 (실제 exercise)**: GridList 인스펙터 ItemsManager 의 "Add GridListItem" 클릭 → `.editor-item-title` 0→1 / `.editor-overview-text` "Total: 0→1"(undo 원복) · datatable 탭 Tables→APIs 전환 → `.datatable-tab.active` 배경 `--accent` ↔ transparent 토글 · 정적 가드 negative control(임시 squat 추가 → FAIL 검출 → 원복 green) · Chrome computed diff 0 · type-check + 정적 가드 4 tests PASS
+  - **후속 이관**: `.control-button` 정의 부재 — `className="control-button add|secondary|delete"` 18곳에서 `.control-button` 과 modifier 모두 CSS 정의 0건이라 live 5곳(ItemsManager 4 + ChildItemManager 1)이 **순수 `<button>` 과 계산값 완전 동일**. 네이밍 위반이 아니라 스타일 정의 부재라 별도 판정
+  - 위치: `apps/builder/src/builder/panels/{datatable,properties,events}/**`, `apps/builder/src/builder/components/styles/{panel-system.css,inspector-layout.css,reservedPrefix.static.test.ts}`, `.claude/rules/panel-structure.md`
+
+- **panel-system.css dead 블록 제거 + 표준 구조 규칙 명문화** (ADR-163 Phase 1):
   - `.section` 블록 안에 중첩돼 있던 `.panel-wrapper[data-panel="styles"|"properties"] .section-content` 규칙(구 360~480행)을 삭제. CSS 네이티브 중첩상 `.section .panel-wrapper[…] .section-content` 로 컴파일되는데 실제 DOM 은 `.panel-wrapper` 가 `.section` 의 **조상**이라 조상-자손 순서가 반대 → 영구 무매칭 dead 블록이었다 (한 번도 적용된 적 없음)
   - **현행 시각 유지 (diff 0)**: 삭제 대상 선언은 전부 (a) 다른 live 규칙과 중복 (`.layout-direction`/정렬 3x3/`.justify-control` → inspector-layout.css 섹션 스코프 / `.page-layout-*` → index.css / base padding·bg·gap → 기존 `.section .section-content` + properties top-level 규칙) 이거나 (b) live 정의가 없어 복구 시 현행 변경 (`.properties-aria`/`.component-fieldset`/`.fieldset-legend` — 현재 브라우저 기본값 렌더). 무매칭 규칙 제거는 렌더 불변 — Chrome 실측으로 삭제 전후 동일 확증 (`.properties-aria` display=block / `.fieldset-legend` 12px 불변)
   - 정적 가드 `panel-system.static.test.ts` 신설 — `.section` 블록 내 `.panel-wrapper` 중첩 선택자 0건 단언 (dead 패턴 재발 차단, 주석 제외)

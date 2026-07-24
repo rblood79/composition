@@ -2,9 +2,13 @@
 
 ## Status
 
-Accepted — 2026-07-25
+Implemented — 2026-07-25
 
 > Proposed — 2026-07-24 · 리뷰 round 2 승인 가능 (이슈 0 / pending 0) → Accepted 승격 후 execute-adr 착수 (2026-07-25).
+>
+> **Implemented — 2026-07-25**: Phase 1~4-c 전 phase 완결 (execute-adr, 같은 날). Phase 1 dead 블록 제거 + `panel-system.static.test.ts` + `.claude/rules/panel-structure.md` 신설 / Phase 2~3 root `.panel` 병기 6패널 (diff 0) / Phase 4-a `.section-divider` 예약 prefix 회수 / Phase 4-b `--inspector-row-columns` 토큰 single-source (9회 재선언 → 1) / Phase 4-c `tab-*` 8종 70곳 회수 + TagEditor invalid HTML 교정 + Tailwind 인라인 전량 제거 + datatable squat 전량 회수 + `reservedPrefix.static.test.ts`.
+>
+> **실측 정정 5건** (전부 §0 census miscount — Phase 0 inventory 부실이며 scope 변경 아님, adr-writing.md M3 로 각 phase 안 흡수): `panel-tabs` 4중 정의 → 단일 정의 / `.iconButton` 5중 정의 → base 0 + context override 5 / `.empty-state` 2중 → `EmptyState` 컴포넌트 단일 소스 / settings·monitor → scope 밖·예외 / row 래퍼 5종 → 8개 + pattern-A. 그 결과 "중복 정의 통합" 은 Consequences 원안보다 작고, 실제 산출은 **예약 prefix 정본 회수 + 토큰 single-source + 정적 가드 2개** 다 (§Consequences 정정 참조).
 
 ## Context
 
@@ -87,7 +91,7 @@ Accepted — 2026-07-25
 - **대안 A 기각**: 유지보수 H — 표준 부재가 문제의 근원인데 그것을 존치. 중복 5중 정의와 신규 패널 독자 구조 재생산이 계속된다.
 - **대안 C 기각**: 마이그레이션 CRITICAL — 빅뱅 전환의 롤백 단위가 전체. 단계 전환(B)이 동일 종착지를 위험 분산으로 도달한다.
 
-> 구현 상세: [163-builder-panel-structure-standardization-breakdown.md](design/163-builder-panel-structure-standardization-breakdown.md)
+> 구현 상세: [163-builder-panel-structure-standardization-breakdown.md](../design/163-builder-panel-structure-standardization-breakdown.md)
 
 ## Risks
 
@@ -114,14 +118,25 @@ Accepted — 2026-07-25
 
 ### Positive
 
+> **실측 정정 (2026-07-25 종결 시점)**: 아래 3번 항목의 "중복 정의 축소" 는 §0 census miscount 에 근거했다. 실측 결과 `.panel-tabs`(단일 정의) / `.iconButton`(base 0 + 정당한 context override 5) / `.empty-state`(`EmptyState` 컴포넌트가 이미 단일 소스) 는 **통합 대상 실체가 없었고**, row 래퍼도 5종이 아니라 8개 + pattern-A 였다. 실제 달성분은 정정본으로 대체한다.
+
 - 표준 구조가 코드(`panel-system.css` top-level)와 규칙(`.claude/rules/panel-structure.md`)의 이중 정본으로 실체화 — "쓰여 있으나 적용 안 되는 CSS" 간극 소멸.
 - 신규 패널 작성 비용 감소: `Section`/`PanelHeader` + 예약 구조 클래스 조합으로 시작.
-- 중복 정의 축소 (`.panel-tabs` 4→1, `.iconButton` 5→1, `.empty-state` 2→1, 인스펙터 3열 grid 템플릿 9→1, row 래퍼 5종→`.fieldset-row` 단일 계층) — 오버라이드 체인/import 순서 의존 제거.
-- 네이밍/상관관계 계약 명문화 (prefix 예약표 + fieldset/legend 필수 쌍 + state 는 data-attr 우선) — invalid HTML/Tailwind 잔존 등 기존 규칙 위반 6+2 파일 해소.
+- **예약 prefix 정본 회수**: `.section-divider`(→ panel-system.css 승격) / `.panel-tabs`·`.panel-tab`·`.panel-selection`·`.panel-option`·`.section-tabs`·`.section-tab`·`.section-header*`(→ 도메인 접두 rename) / `tab-*` 8종 70곳(→ `editor-*`). 구조 클래스와 경쟁하던 로컬 정의 소멸.
+- **인스펙터 3열 grid 템플릿 9회 재선언 → `--inspector-row-columns` 토큰 1개** (Phase 4-b, diff 0).
+- **정적 가드 2개로 재발 기계 차단**: `panel-system.static.test.ts`(dead 중첩) + `reservedPrefix.static.test.ts`(예약 prefix base 정의 — negative control 확증).
+- 네이밍/상관관계 계약 명문화 (prefix 예약표 + fieldset/legend 필수 쌍 + state 는 data-attr 우선) — invalid HTML 2곳 + Tailwind 잔존 7파일 해소(패널 영역 grep 0 도달).
 - Themes 등 fieldset+legend 를 이미 쓰는 패널이 표준 스타일을 실제로 받게 됨.
 
 ### Negative
 
-- 마이그레이션 기간 중 표준/비표준 공존 — design §0 현황표가 추적 기준.
-- 정적 가드 테스트 1개 추가 유지 비용.
-- `properties-aria` 등 일부 부정확한 네이밍을 예약어로 고정 (rename 기각, design §5-4) — 의미는 규칙 문서로만 보정.
+- 마이그레이션 기간 중 표준/비표준 공존 — design §0 현황표가 추적 기준. **종결 시점 잔여**: nodes(확정 예외) / events(보류, 전면 재구성 대기) / monitor(dev tool 예외) / settings(scope 밖).
+- 정적 가드 테스트 ~~1개~~ **2개** 추가 유지 비용 (`panel-system` + `reservedPrefix`).
+- `properties-aria` 등 일부 부정확한 네이밍을 예약어로 고정 (rename 기각, design §5-4) — 의미는 규칙 문서로만 보정. `data-panel` id camel/단수 혼재도 동일(persist key BC).
+- 인스펙터 8개 row 래퍼는 `.fieldset-row` 로 **소급 통일하지 않았다** (Phase 4-b A방식, 사용자 confirm). `.fieldset-row` 는 신규 패널용 forward-standard 로 문서에만 존재하며, 실제 CSS 정의는 첫 신규-패널 소비자와 함께 도입한다(dormant 금지).
+
+### 후속 (본 ADR scope 밖)
+
+- **`.control-button` 정의 부재**: `className="control-button add|secondary|delete"` 18곳(6파일)에서 `.control-button` 과 modifier 모두 CSS 정의 0건 — live 실측상 GridList 인스펙터 "Add GridListItem" 버튼이 **순수 `<button>` 과 계산값 완전 동일**(bg transparent / padding 0 / cursor default). 18곳 중 5곳이 live(ItemsManager 4 + ChildItemManager 1). 네이밍 위반이 아니라 **스타일 정의 부재**라 "네이밍/규칙 위반 정리"인 Phase 4-c 밖 — 별도 판정 필요.
+- **`properties/editors/` dead chain**: 배럴 소비처 0 (live 경로는 `useEditContract` + GenericFieldRenderer). Phase 4-c 가 교정한 파일 다수가 렌더 경로 없음 — 삭제는 사용자 승인 사안이라 미실시, 기록만.
+- `components/styles/index.css`(1,169줄 잡화) 분할 — 구조 클래스 무관.

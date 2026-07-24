@@ -1,6 +1,6 @@
 # ADR-163 Design Breakdown: 빌더 패널 표준 구조화
 
-> 본문: [163-builder-panel-structure-standardization.md](../163-builder-panel-structure-standardization.md)
+> 본문: [163-builder-panel-structure-standardization.md](../completed/163-builder-panel-structure-standardization.md)
 > 본 문서는 구현 상세 전용 — 결정/위험/게이트는 ADR 본문이 정본.
 
 ## §0. Phase 0 Inventory — 패널 현황 실측 (2026-07-24)
@@ -218,17 +218,36 @@ CSS 규모: components/styles/index.css 1,169줄 (잡화 집합), panel-system.c
 
 **`.fieldset-row` 위상**: §1-4 / §4 상관관계 계약의 **신규 패널용 forward-standard** 로 유지(문서 정의). 기존 인스펙터 8 래퍼는 소급 전환 안 함. `.fieldset-row` 를 실제 CSS 로 도입하는 시점은 첫 신규-패널 소비자와 함께 (dormant 금지 원칙 — 지금 빈 정의 추가 안 함). 그 정의도 `--inspector-row-columns` 토큰 사용.
 
-### 4-c. 네이밍/규칙 위반 정리
+### 4-c. 네이밍/규칙 위반 정리 [완료 2026-07-25 — 4 commit 분할]
 
-1. **TagEditor invalid HTML 수정**: `div.properties-aria`+`legend` 2곳 → `fieldset`+`legend` (§1-4 계약).
-2. **Tailwind 인라인 제거** (사용자 승인 2026-07-24): `properties/editors/{Cell,TableBody,TableHeader,Row,Column}Editor.tsx` + `events/ExecutionDebugger.tsx` 6파일 — 시맨틱 클래스로 대체. events 파일도 규칙 위반 해소 차원에서 포함 (구조 재편은 §6 보류와 무관한 국소 수정).
-3. `.tab-overview`/`.tab-actions` 탭 외 사용 (TagEditor) → 고유 클래스로 대체.
-4. bare modifier (`.add`/`.warning`/`.sm` 등) → data-attr 또는 `--{state}` 접미로 전환 판정 (사용처별 국소 — 전량 강제 아님, 신규 금지가 본질).
-5. `data-panel` id 네이밍 (`datatableEditor` camel, `theme` 단수) — **rename 미실시**. id 는 panelConfigs/persist key 로 쓰여 BC 위험 대비 이득 없음. §1-2 규칙에 "신규 id 는 kebab" 만 명시.
-6. `properties-aria` rename 판정: 참조 26곳 실측 (tsx 25 — test 포함, css 1). **rename 기각 권고** — churn 대비 이득 없음, §1-2 예약어로 의미 고정으로 갈음. 재론 시 별도 ADR.
-7. `.panel-tabs`/`.panel-tab` (datatable 전용, `DataTablePanel.css` 단일 정의 — Phase 2 실측) 판정: 예약 prefix `panel-*` 정합상 두 갈래 — (a) panel-system.css 이전(unlayered→layered cascade 이동이라 G4 필수), (b) `.datatable-tabs` rename(다른 탭 패널 `.bottom-panel-tabs`/`.nodes-panel-tabs` 도메인 접두 관례 정합). datatable 전용이라 (b) 권고. 어느 쪽이든 DataTablePanel.css 전체가 unlayered 인 근본 gap(layered 표준 cascade 미참여)과 함께 판정.
-8. components/styles/index.css (1,169줄 잡화) 분할은 **본 ADR scope 밖** — 구조 클래스와 무관한 위젯 CSS 정리는 후속 판정.
-9. **예약 prefix squat 회수 (4-a 실측 발견분)**: datatable editor 계열이 예약 `section-*`/`panel-*` 를 로컬 정의 — `VariableEditor.css:28` `.section-header`(+:hover), `DataTableCreator.css` `.panel-selection`/`.panel-option`/`.section-tabs`/`.section-tab`. `.section-divider`(4-a 회수)와 달리 styled 클래스라 도메인 접두 rename(예: `.datatable-creator-tabs`) + per-file G4 필요. panel-tabs(item 7)와 같은 datatable 네이밍 패스로 묶어 처리. 회수 완료 후 **예약 prefix 정적 가드**(panel-local CSS 에서 `^\.(panel|section|fieldset|tab)-* {` base 정의 0건 단언, 시스템 인프라 파일 allowlist) 작성 — Phase 1 dead-block 가드 패턴.
+> **실측 정정 (2026-07-25 실행 중, adr-writing.md M3 로 본 phase 안 흡수)**: 3건.
+>
+> - **item 3 범위**: "TagEditor 2곳" → 실측 **8파일 70곳 / 클래스 8종**. 전부 CSS 정의 0건(src·dist 모두)이라 rename diff 0.
+> - **live 경로**: `properties/editors/` 배럴은 **소비처 0 = dead chain** (live 는 `useEditContract` + GenericFieldRenderer). 4-c 대상 파일 대부분이 소스 교정만 되고 렌더 경로가 없다 — 삭제는 scope 밖(사용자 승인 사안), 기록만.
+> - **datatable Section 유무**: §3 표의 datatable "Section ✗" 는 부정확 — live 에 `.section[data-section-id="datatable-list"]`(Section 컴포넌트 경유) 존재. 그 결과 datatable TSX 의 `.section-title`/`.section-content` 7곳은 **정당한 구조 사용**이라 rename 대상 아님(했다면 시각 회귀).
+
+|  #  | 항목                       | 결과                                                                                                                                                                                                                                |
+| :-: | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|  1  | TagEditor invalid HTML     | **[완료 4-c-1]** `div.properties-aria`+`legend` 2곳 → `fieldset`. fieldset 기본값 `min-inline-size:min-content` 는 고유 클래스(`min-width:0`)로 해제 — `.component-semantics-overrides` 와 동일 패턴                                |
+|  2  | Tailwind 인라인 제거       | **[완료 4-c-2]** 원안 6파일 → **실측 7파일**(`TableEditor.tsx` `flex-1` 누락, ExecutionDebugger 경로는 `events/components/`). 패널 영역 Tailwind grep 0 도달. 신설 `propertyEditors.css` + `variable-debugger.css` 로그레벨 6클래스 |
+|  3  | `tab-*` 탭 외 사용         | **[완료 4-c-1]** 8종 70곳 → `editor-*` rename (diff 0 — 규칙 0건 확증)                                                                                                                                                              |
+|  4  | bare modifier              | **[판정: 전환 미실시]** 아래 별항                                                                                                                                                                                                   |
+|  5  | `data-panel` id 네이밍     | **[기각 확정]** persist key BC 위험 대비 이득 없음. §2 규칙에 "신규 id 는 kebab" 만 존치                                                                                                                                            |
+|  6  | `properties-aria` rename   | **[기각 확정]** 참조 26곳 churn 대비 이득 없음. §2 예약어로 의미 고정으로 갈음. 재론 시 별도 ADR                                                                                                                                    |
+|  7  | `.panel-tabs`/`.panel-tab` | **[완료 4-c-3 — (b) 채택]** → `.datatable-tab{s}`. (a) panel-system 이전은 unlayered→layered cascade 이동이라 미채택, 도메인 접두 관례((b)) 정합                                                                                    |
+|  8  | `index.css` 분할           | **[scope 밖 확정]** 구조 클래스 무관 위젯 CSS — 후속 판정                                                                                                                                                                           |
+|  9  | 예약 prefix squat 회수     | **[완료 4-c-3]** 아래 별항                                                                                                                                                                                                          |
+
+**item 4 — bare modifier 판정 (전환 미실시, 실측 근거)**
+
+- **base 정의 0건**: `.add`/`.warning`/`.sm`/`.active`/`.selected` 등은 CSS 에 **단독 base 규칙이 하나도 없고** 전부 compound(`.list-item.selected`/`.elementItem.active`/`.debugger-log.warning` 등 20종)로만 존재. owner 클래스에 종속된 정당한 state 패턴이며 §2 의 금지 대상("접두 없는 bare modifier **신규** 금지")이 겨냥한 전역 오염이 아니다. design 원안대로 **전량 강제 전환 안 함** — 신규 금지가 본질.
+- **분리 발견 — `.control-button` 정의 부재 (4-c scope 밖, 후속)**: `className="control-button add|secondary|delete"` 18곳(6파일)에서 `.control-button` 과 modifier 모두 **CSS 정의 0건**. live 실측 — GridList 인스펙터의 "Add GridListItem" 버튼 computed 가 **순수 `<button>` 과 완전 동일**(bg transparent / padding 0 / cursor default / radius 0). 18곳 중 **5곳이 live**(ItemsManager 4 + ChildItemManager 1). 이는 네이밍 위반이 아니라 **스타일 정의 부재**라 "네이밍/규칙 위반 정리" 인 본 phase 밖 — 후속 과제로 이관(4-a item 3 의 "undefined-but-used" 판정을 여기서 종결).
+
+**item 9 — 예약 prefix squat 회수 + 정적 가드 (완료)**
+
+- 회수: `DataTablePanel.css` `.panel-tabs`/`.panel-tab`(+hover/.active) → `.datatable-tab{s}` · `DataTableCreator.css` `.panel-selection`/`.panel-option` → `.datatable-creator-mode{s}`, `.section-tabs`/`.section-tab` → `.datatable-creator-tab{s}` · `VariableEditor.css` `.section-header-title` → `.variable-editor-section-title`, 빈 `.section-header{}`/`:hover{}` 2규칙은 inert → 삭제(className 은 `.variable-editor-section-toggle` 로 회수) · editor CSS 3파일 breadcrumb 주석 동반 갱신.
+- 가드: `components/styles/reservedPrefix.static.test.ts` — 패널 로컬 CSS 의 예약 prefix **base 정의** 0건 단언 + 인프라 allowlist 9파일 + allowlist stale 검사. **negative control 확증**(임시 `.panel-squat-probe` 추가 → FAIL 검출 → 원복 green).
+- **판정 정밀화**(가드 1차 실행이 잡은 2건): `.section[data-section-id="schema-preview"]`(DataTableCreator) / `.section.block-view`(events/block-editor) 는 **인스턴스 한정 override** 라 비대상 — 구조 정본을 대체하는 두 번째 소스가 아니라 특정 인스턴스만 조정. 4-a 의 `.iconButton` context override 판정과 동일 기준. 결합자·추가 클래스·속성이 붙은 compound 는 skip, 예약 클래스 단독 선언만 flag.
 
 ## §6. 예외 명문화
 
@@ -245,5 +264,5 @@ CSS 규모: components/styles/index.css 1,169줄 (잡화 집합), panel-system.c
 - [x] **Phase 3 (2026-07-25)**: 표준 4패널(themes/ai/history/fonts) root `.panel` 병기 (diff 0 — Chrome computed before==after + themes 활성화 렌더 정상 G4). 실측 정정: settings=대시보드 컴포넌트(scope 밖) / monitor=dev tool 예외(§6). commit: (본 커밋)
 - [x] **Phase 4-a (2026-07-25)**: `.section-divider` 예약 prefix 회수 (ApiEndpointEditor.css → panel-system.css `@layer builder-system`, diff 0 — G4 라이브 합성요소 computed 확인 + 규칙 1개 확증). iconButton(base 0+5 context override)/empty-state(EmptyState 컴포넌트 단일소스)/control-button(정의 부재) 3건 = §0 census miscount 실측 정정. datatable editor 계열 추가 squat(VariableEditor `.section-header`, DataTableCreator `.panel-selection`/`.section-tabs`) → 4-c routing(item 9). commit: (본 커밋)
 - [x] **Phase 4-b (2026-07-25, A방식)**: 인스펙터 3열 템플릿 `--inspector-row-columns` 토큰 single-source (9회 재선언 → 토큰 1개 + var() 9곳, diff 0 — G4 라이브 `match:true` computed `1fr 1fr 28px` + type-check + literal site 0). 재실측 정정: row 래퍼 5종→8개+pattern-A(`.direction-alignment-grid` 오포함). 원안 B(클래스 병기+패턴 A→B DOM)는 R5 위험으로 사용자가 A방식 선택(결정지점 ④). `.fieldset-row` 는 신규 패널 forward-standard 로 문서 유지(소급 전환 안 함). rule §3 정정. commit: (본 커밋)
-- [ ] Phase 4-c: TagEditor fieldset 수정, Tailwind 6파일 제거, tab-\* 오용/bare modifier 정리, rename 기각 기록
-- [ ] CHANGELOG Architecture 반영 + ADR Implemented 승격 시 README 동시 갱신
+- [x] **Phase 4-c (2026-07-25, 4 commit 분할)**: ① 4-c-1 `tab-*` 8종 70곳 → `editor-*` 회수 + TagEditor `div.properties-aria`+`legend` → `fieldset` (G4 live: GridList ItemsManager "Add GridListItem" 클릭 → `.editor-item-title` 0→1 / `.editor-overview-text` "Total: 0→1", undo 원복. diff 0 = 구·신 이름 매칭 규칙 0건 실측). ② 4-c-2 Tailwind 인라인 전량 제거 → 시맨틱 클래스 (패널 영역 grep 0 도달. `--fg-muted`≡gray-500 / `--negative`≡red-500 / `--informative`≡blue-500 실측 대조로 대부분 DIFF 0, 의도 변화 4건 항목화). ③ 4-c-3 datatable 예약 prefix squat 전량 회수 + `reservedPrefix.static.test.ts` 신설 (G4 live: 탭 전환 `.datatable-tab.active` 배경 토글 정상 + 가드 negative control 확증). ④ 판정 3건 종결: bare modifier 전환 미실시(base 정의 0건), `data-panel` id / `properties-aria` rename 기각 확정. 실측 정정 3건은 §5-4c 상단 인용. 후속 이관: `.control-button` 정의 부재(live 5곳 무스타일). commit: 8c69fb544 / d697e5fee / a6ba2a8e3 / (본 커밋)
+- [x] **종결 (2026-07-25)**: CHANGELOG Architecture 엔트리 + ADR Status `Accepted → Implemented` + README 카운트/row 갱신 + 본문 `completed/` 이동 + `.claude/rules/panel-structure.md` 정합 (closure 5단계)
