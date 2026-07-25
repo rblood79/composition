@@ -262,17 +262,23 @@ useInteractionBindings.ts — 요소 렌더 시 trigger callback 주입
 
 ## §6. Phase 분해
 
-| Phase    | 내용                                                                                                            | 완료 기준                                                                                                                                |
-| -------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **0** ✅ | Inventory freeze — panels/events 92파일 목록 / registry 어휘 대조표 / Preview controlled·uncontrolled 실태 표   | **완료 2026-07-25** — §0 에 표 3개 기록. 정정 2건(LOC·은퇴 scope) + capability 표 정정 5건 도출                                          |
-| **1**    | `CAPABILITY_REGISTRY` + `InteractionRule` 스키마 + `updateEventsRootCollection` 시그니처 갱신                   | type-check PASS + registry unit test (G1 정적 가드 포함). §0 "등재 가능 범위" 를 등재 상한으로 사용                                      |
-| **2**    | InteractionsPanel UI 10파일 + PanelContainer 교체                                                               | builder 에서 규칙 CRUD 동작 (수동 confirm)                                                                                               |
-| **3**    | Preview dispatcher + bindings + messaging 연결                                                                  | **G2**: navigate/toast/hide·show/modal open 4종 Chrome MCP 발화 확증                                                                     |
-| **4**    | 구 시스템 은퇴 — panels/events 92파일 + **utils/events 3파일** + registry 구 어휘 + ADR-149 legacy adapter 삭제 | **G3**: G2 PASS + 사용자 명시 삭제 승인 후. type-check + grep 잔존 0 + publish `ElementRenderer` legacy `element.events` 소비 no-op 확인 |
+| Phase    | 내용                                                                                                            | 완료 기준                                                                                                                                     |
+| -------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **0** ✅ | Inventory freeze — panels/events 92파일 목록 / registry 어휘 대조표 / Preview controlled·uncontrolled 실태 표   | **완료 2026-07-25** — §0 에 표 3개 기록. 정정 2건(LOC·은퇴 scope) + capability 표 정정 5건 도출                                               |
+| **1** ✅ | `CAPABILITY_REGISTRY` + `InteractionRule` 스키마 + `updateEventsRootCollection` 시그니처 갱신                   | **완료 2026-07-25** (`89ab4154b`) — G1 정적 가드 18 케이스 + racRef 전건 RAC 문서 실측 대조. 구 패널은 deprecated node-projection 경로로 분리 |
+| **2** ✅ | InteractionsPanel UI 10파일 + PanelContainer 교체                                                               | **완료 2026-07-25** (`616950cca`) — 11파일. live CRUD 확증 + getSnapshot 무한루프 회귀 수정·테스트 동반                                       |
+| **3**    | Preview dispatcher + bindings + messaging 연결                                                                  | **G2**: navigate/toast/hide·show/modal open 4종 Chrome MCP 발화 확증                                                                          |
+| **4**    | 구 시스템 은퇴 — panels/events 92파일 + **utils/events 3파일** + registry 구 어휘 + ADR-149 legacy adapter 삭제 | **G3**: G2 PASS + 사용자 명시 삭제 승인 후. type-check + grep 잔존 0 + publish `ElementRenderer` legacy `element.events` 소비 no-op 확인      |
 
 - Phase 간 커밋 분리 (phase 당 1+ 커밋, main 직접 push).
 - Phase 4 의 파일 삭제는 CLAUDE.md 마이그레이션 원칙 — "ok/진행해" 는 삭제 승인 아님, 별도 확인 질문 필수.
 - Phase 4 은퇴 총량 (§0 표 ① 정정 반영): **95파일 / 18,622 LOC** (panels/events 92 + utils/events 3). 외부 참조 파손 지점 6곳은 §0 표 ① 하단 표 참조.
+
+### Phase 3 진입 시 선행 확인 (Phase 0~2 에서 확보한 사실)
+
+- **트리거 배선 현황**: `RenderContext.services.createEventHandlerMap` 은 소비 15곳 / **공급 0곳** 인 dead seam 이다. 소비 지점은 Card · Button · Modal · Breadcrumbs · Link · Toast · Pagination (LayoutRenderers) / ListBox · GridList · Select · ComboBox (SelectionRenderers) / DropZone (FormRenderers) **12종뿐** — Tree · TagGroup · Checkbox · ToggleButton · RadioGroup · Slider · Tabs · Disclosure · Form 은 spread 지점 자체가 없다. `useInteractionBindings` (§4) 는 provider 를 채우는 것만으로는 부족하고 **미배선 렌더러에 spread 를 추가**해야 한다.
+- **capability 발화 3분류**: (a) controlled 는 prop patch 즉시 반영, (b) remount 는 patch 후 `key` 변경으로 반영, (c) 는 registry 미노출이라 dispatcher 가 만날 일이 없다. dispatcher 는 (a)/(b) 를 구분할 필요가 없다 — 둘 다 "prop 을 patch" 로 동일하다.
+- **G2 4종 달성 경로**: navigate·toast 는 앱 액션 (dispatcher 직접), hide·show 는 공통 `style.display` patch, modal open 은 `Modal.isOpen` patch → `renderModal` 이 `display:none` 을 해제. 넷 다 보류(c) 분류와 무관하다.
 
 ## §7. 후속 ADR 이관 목록 (본 ADR 범위 밖)
 
