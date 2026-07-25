@@ -40,14 +40,19 @@ const LazyFillBackgroundInline = lazy(() =>
   import("./FillSection").then((m) => ({ default: m.FillBackgroundInline })),
 );
 
-/** Shadow 프리셋 옵션 — inset 은 프리셋이 아니라 직교 토글 축 (sm~xl × inset) */
+/**
+ * Shadow 프리셋 옵션 — inset 은 프리셋이 아니라 직교 토글 축 (sm~lg × inset).
+ *
+ * ADR-166 Phase 1: Adobe Spectrum 2 기반 3단계로 축소 (`xl` 제거 — Spectrum 이 4번째
+ * elevation 을 발행하지 않고 D3 소비처가 0건이었다). 기존 프로젝트가 저장한 xl 값은
+ * 소실되지 않고 아래 동적 "custom" 항목으로 표시된다.
+ */
 const SHADOW_PRESET_OPTIONS = [
   { value: "reset", label: "Reset" },
   { value: "none", label: "none" },
   { value: "sm", label: "sm" },
   { value: "md", label: "md" },
   { value: "lg", label: "lg" },
-  { value: "xl", label: "xl" },
 ];
 
 /** CSS box-shadow 값 → 프리셋 키 역매핑 */
@@ -85,14 +90,14 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
 
   if (!styleValues) return null;
 
-  // Box Shadow 2축 모델: Select = out shadow 프리셋 (sm~xl), inset 토글 = 직교 modifier.
-  //   프리셋 키 판정은 inset-stripped 값 기준 — "xl + inset 토글" 상태에서도 Select 는
-  //   custom 이 아니라 "xl" 을 유지한다.
+  // Box Shadow 2축 모델: Select = out shadow 프리셋 (sm~lg), inset 토글 = 직교 modifier.
+  //   프리셋 키 판정은 inset-stripped 값 기준 — "lg + inset 토글" 상태에서도 Select 는
+  //   custom 이 아니라 "lg" 를 유지한다.
   const hasShadow = !!styleValues.boxShadow && styleValues.boxShadow !== "none";
   const insetActive = hasShadow && styleValues.boxShadow.includes("inset");
   // PropertySelect 의 memo 커스텀 비교는 onChange 참조 변경을 무시한다 — inset 토글만
   //   바뀌면 value/options 가 그대로라 재렌더가 스킵되어 onChange closure 의 insetActive
-  //   가 stale (xl 전환 시 inset 소실 실측). ref 미러로 commit 시점 최신값을 읽는다.
+  //   가 stale (프리셋 전환 시 inset 소실 실측). ref 미러로 commit 시점 최신값을 읽는다.
   const insetActiveRef = useRef(insetActive);
   insetActiveRef.current = insetActive;
   const shadowKey = boxShadowToPresetKey(
@@ -201,7 +206,7 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
               updateStyle("boxShadow", "none");
             } else {
               const cssValue = shadows[value as keyof typeof shadows] ?? value;
-              // 프리셋 전환 시 inset 토글 상태 유지 (sm~xl × inset 직교 축)
+              // 프리셋 전환 시 inset 토글 상태 유지 (sm~lg × inset 직교 축)
               updateStyle(
                 "boxShadow",
                 insetActiveRef.current ? applyInset(cssValue) : cssValue,

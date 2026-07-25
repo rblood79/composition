@@ -225,22 +225,30 @@
     --negative: var(--color-invalid, var(--color-error-400));
     --negative-pressed: var(--color-invalid-pressed, var(--color-error-500));
 
-    /* Shadow System - AI Theme Integration Ready */
-    --shadow-sm: var(--box-shadow-sm, 0 1px 2px 0 rgb(0 0 0 / 0.05));
+    /* Shadow System — Adobe Spectrum 2 역할 토큰 기반 3단계 (ADR-166 Phase 1)
+     *   sm ← drop-shadow-emphasized / md ← drop-shadow-elevated / lg ← drop-shadow-dragged
+     *   각 단계는 Spectrum 3레이어 레시피(ambient + transition + key) 승계.
+     *   TS 정본은 packages/specs/src/primitives/shadows.ts (lightShadows/darkShadows) —
+     *   두 값이 어긋나면 CSS 축과 Skia 축이 발산한다.
+     *   --shadow-xl 은 제거됨 (Spectrum 미발행 + D3 소비처 0건).
+     *   AI Theme Integration: --box-shadow-* 오버라이드 훅 유지. */
+    --shadow-sm: var(
+      --box-shadow-sm,
+      0 2px 8px rgb(0 0 0 / 0.08),
+      0 1px 4px rgb(0 0 0 / 0.04),
+      0 0 1px rgb(0 0 0 / 0.08)
+    );
     --shadow-md: var(
       --box-shadow-md,
-      0 4px 6px -1px rgb(0 0 0 / 0.1),
-      0 2px 4px -2px rgb(0 0 0 / 0.1)
+      0 4px 12px rgb(0 0 0 / 0.08),
+      0 2px 6px rgb(0 0 0 / 0.04),
+      0 0 2px rgb(0 0 0 / 0.12)
     );
     --shadow-lg: var(
       --box-shadow-lg,
-      0 10px 15px -3px rgb(0 0 0 / 0.1),
-      0 4px 6px -4px rgb(0 0 0 / 0.1)
-    );
-    --shadow-xl: var(
-      --box-shadow-xl,
-      0 20px 25px -5px rgb(0 0 0 / 0.1),
-      0 8px 10px -6px rgb(0 0 0 / 0.1)
+      0 12px 16px rgb(0 0 0 / 0.08),
+      0 6px 8px rgb(0 0 0 / 0.04),
+      0 0 6px rgb(0 0 0 / 0.16)
     );
 
     /* Drop shadows (for filter property) */
@@ -342,22 +350,25 @@
     /* Focus (Dark) */
     --focus-ring: var(--color-focus-ring, var(--tint-1000));
 
-    /* Shadow System - Dark mode (increased opacity for visibility) */
-    --shadow-sm: var(--box-shadow-sm, 0 1px 2px 0 rgb(0 0 0 / 0.2));
+    /* Shadow System — Dark mode: light 대비 전 레이어 alpha ×3 (Spectrum 규칙, ADR-166)
+     *   offset·blur 는 light 와 동일. 구 dark 값은 배수가 3~5배로 불균일했다. */
+    --shadow-sm: var(
+      --box-shadow-sm,
+      0 2px 8px rgb(0 0 0 / 0.24),
+      0 1px 4px rgb(0 0 0 / 0.12),
+      0 0 1px rgb(0 0 0 / 0.24)
+    );
     --shadow-md: var(
       --box-shadow-md,
-      0 4px 6px -1px rgb(0 0 0 / 0.3),
-      0 2px 4px -2px rgb(0 0 0 / 0.2)
+      0 4px 12px rgb(0 0 0 / 0.24),
+      0 2px 6px rgb(0 0 0 / 0.12),
+      0 0 2px rgb(0 0 0 / 0.36)
     );
     --shadow-lg: var(
       --box-shadow-lg,
-      0 10px 15px -3px rgb(0 0 0 / 0.4),
-      0 4px 6px -4px rgb(0 0 0 / 0.3)
-    );
-    --shadow-xl: var(
-      --box-shadow-xl,
-      0 20px 25px -5px rgb(0 0 0 / 0.5),
-      0 8px 10px -6px rgb(0 0 0 / 0.4)
+      0 12px 16px rgb(0 0 0 / 0.24),
+      0 6px 8px rgb(0 0 0 / 0.12),
+      0 0 6px rgb(0 0 0 / 0.48)
     );
 
     /* Overlay backgrounds - Dark mode */

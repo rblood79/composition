@@ -13,7 +13,7 @@ import { lightColors, darkColors } from "../../primitives/colors";
 import { spacing } from "../../primitives/spacing";
 import { typography } from "../../primitives/typography";
 import { radius } from "../../primitives/radius";
-import { shadows } from "../../primitives/shadows";
+import { lightShadows, darkShadows } from "../../primitives/shadows";
 
 /**
  * 토큰 참조를 실제 값으로 변환
@@ -42,8 +42,13 @@ export function resolveToken(
       return typography[name as keyof typeof typography];
     case "radius":
       return radius[name as keyof typeof radius];
+    // ADR-166 Phase 1: shadow 도 color 와 동일하게 theme 분기.
+    //   구 flat map 은 CSS 변수(--shadow-* 는 light/dark 값이 다름)와 어긋나
+    //   같은 토큰이 CSS 축과 Skia 축에서 서로 다른 값을 의미했다.
     case "shadow":
-      return shadows[name as keyof typeof shadows];
+      return theme === "dark"
+        ? darkShadows[name as keyof typeof darkShadows]
+        : lightShadows[name as keyof typeof lightShadows];
     default:
       console.warn(`Unknown token category: ${category}`);
       return ref;

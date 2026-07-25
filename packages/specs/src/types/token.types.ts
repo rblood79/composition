@@ -200,25 +200,27 @@ export interface RadiusTokens {
 /**
  * 그림자 토큰
  */
+/**
+ * 그림자 토큰 — Adobe Spectrum 2 역할 토큰 기반 3단계 (ADR-166)
+ *
+ * `xl` / `focus-ring` 은 ADR-166 Phase 1 에서 제거됐다:
+ * - `xl` — Spectrum 이 4번째 elevation 미발행 + D3 소비처 0건
+ * - `focus-ring` — 값에 `var()` 를 담아 Skia 파서 미해석 + 실사용 0건.
+ *   focus ring 은 ADR-061 의 `{focus.ring.*}` 가 소유한다.
+ */
 export interface ShadowTokens {
   /** 그림자 없음 */
   none: string;
 
-  /** 작은 그림자 (elevation 1) */
+  /** 작은 그림자 — Spectrum 2 `drop-shadow-emphasized` */
   sm: string;
 
-  /** 중간 그림자 (elevation 2) */
+  /** 중간 그림자 — Spectrum 2 `drop-shadow-elevated` */
   md: string;
 
-  /** 큰 그림자 (elevation 3) */
+  /** 큰 그림자 — Spectrum 2 `drop-shadow-dragged` */
   lg: string;
 
-  /** 매우 큰 그림자 (elevation 4) */
-  xl: string;
-
-  /** 내부 그림자 (inset) */
+  /** 내부 그림자 (inset) — elevation 아님, 오목 효과 */
   inset: string;
-
-  /** 포커스 링 */
-  "focus-ring": string;
 }
