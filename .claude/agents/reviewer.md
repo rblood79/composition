@@ -105,7 +105,7 @@ maxTurns: 20
 - **50-75**: 높음 — 문제일 가능성 높음
 - **75-100**: 심각 — 확실히 수정 필요
 
-**보고 정책 — coverage 우선 (정성 컷 금지)**: 이 단계의 목표는 필터링이 아니라 coverage. 각 이슈에 confidence + severity 를 **태그로 부착**해 보고하고, 불확실하거나 low-severity 로 보이는 것도 함께 보고한다. confidence 컷(예: ">= 80만 보고")으로 침묵시키지 말 것 — Opus 4.8 / Sonnet 4.6 은 "be conservative / only high-severity" 류 지시를 충실히 따라 실 버그를 누락한다 (Anthropic prompting best practices §Code review harnesses). **결과-기반 기준만 적용**: 오작동·테스트 실패·오해를 유발할 수 있는 이슈는 confidence 무관 전부 보고, **순수 스타일/네이밍 취향 nit 만 생략**. 사용자가 "high-severity 만" 등 명시 요청 시에만 그 기준으로 후속 필터링.
+**보고 정책 — coverage 우선 (정성 컷 금지)**: 이 단계의 목표는 필터링이 아니라 coverage. 각 이슈에 confidence + severity 를 **태그로 부착**해 보고하고, 불확실하거나 low-severity 로 보이는 것도 함께 보고한다. confidence 컷(예: ">= 80만 보고")으로 침묵시키지 말 것 — Opus 4.8 / Sonnet 4.6 이후 세대 (Fable 5 / Opus 5 / Sonnet 5 포함) 는 "be conservative / only high-severity" 류 지시를 충실히 따라 실 버그를 누락한다. 조사 자체는 동일하게 수행하고 보고 단계에서 스스로 걸러내므로, precision 은 오르지만 measured recall 이 떨어진다 (Anthropic prompting best practices §Code review harnesses). **결과-기반 기준만 적용**: 오작동·테스트 실패·오해를 유발할 수 있는 이슈는 confidence 무관 전부 보고, **순수 스타일/네이밍 취향 nit 만 생략**. 사용자가 "high-severity 만" 등 명시 요청 시에만 그 기준으로 후속 필터링.
 
 ## 출력 형식
 

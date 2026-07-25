@@ -2,10 +2,11 @@
 
 ## 개인 설정
 
-- 선호 모델: Opus 4.8 (1M context)
+- 선호 모델: Opus 5 (1M context) — settings `model: "opus[1m]"`. **별칭 저장이라 티어 최신을 자동 추종**한다 (구버전 고정이 필요할 때만 `claude-opus-4-8` 류 전체 ID 명시). `.claude/agents/*.md` 의 `model: sonnet` / `model: opus` 도 같은 이유로 각각 Sonnet 5 / Opus 5 로 해석됨 — 세대 교체 시 수정 불요
 - 응답 언어: 한국어 (코드/기술 용어 영어 유지)
 - Effort: xhigh (코딩·에이전트 기본 권장; max 는 토큰 대비 diminishing returns + overthinking 경향이라 실험용)
-- Thinking: 항상 켬 (settings `alwaysThinkingEnabled=true`) — **effort `xhigh`/`max` 는 thinking 이 켜져 있을 때만 허용**. thinking 을 끈 상태(adaptive)에서 xhigh 를 쓰면 `400 output_config.effort 'xhigh' is not supported when thinking is disabled` 로 턴이 실패한다 (2026-07-13 실측). adaptive 로 되돌리려면 effort 를 `high` 이하로 함께 낮출 것
+- Thinking: Claude 5 세대는 **thinking 이 기본 on** 이라 별도 조작 불요. Opus 5 는 `thinking` 미지정 시 adaptive 로 동작하고 (Opus 4.8/4.7 은 반대로 미지정 = thinking 없음), Fable 5 는 항상 켜져 있어 끄는 것 자체가 400. **끌 수 있는 건 Opus 5 뿐이고 그때도 effort `high` 이하에서만** — `disabled` + `xhigh`/`max` 조합은 요청 단위로 400. 구 주의사항 ("xhigh 는 thinking 이 켜져 있을 때만 허용", 2026-07-13 Opus 4.8 실측) 은 이 규칙으로 대체됨
+- `alwaysThinkingEnabled=true` (글로벌 + 프로젝트 settings): Claude 5 세대에서는 사실상 no-op. Opus 4.8 이하로 되돌린 세션에서만 의미가 있어 제거하지 않고 유지
 
 ## 병렬 세션 패턴
 
@@ -70,6 +71,8 @@ pnpm type-check             # 타입 체크
 | `--max-budget-usd <N>`     | 세션당 예산 상한                      | `-p` 스크립트 실행 시 보호                  |
 | `--bare`                   | 최소 모드 (hooks/MCP/auto-memory OFF) | 빠른 일회성 질문                            |
 | `--chrome` / `--no-chrome` | Chrome 통합 on/off                    | evaluator agent UI 검증 시 on               |
+
+> **fast mode (`/fast`)**: 세션 중 토글. Opus 5 / 4.8 / 4.7 에서만 동작하고 (같은 모델을 더 빠른 출력으로 실행 — 작은 모델로 낮추는 것 아님), Fable 5 에는 적용되지 않는다. 현재 기본값이 Opus 5 라 사용 가능.
 
 ### Prompt Cache 최적화 (lean system prompt 기본화)
 
