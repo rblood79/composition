@@ -13,6 +13,7 @@ import type {
   SerializedEvent,
 } from "@composition/shared";
 import type { Element } from "../../../types/builder/unified.types";
+import type { LegacyRootCollectionDocument } from "../rootCollectionMigration";
 import {
   mergeIntoDocument,
   migrateLegacyElementsToRootCollections,
@@ -170,7 +171,7 @@ describe("ADR-131 Phase 2 — rootCollectionMigration", () => {
   });
 
   describe("mergeIntoDocument", () => {
-    const baseDoc: CompositionDocument = {
+    const baseDoc: LegacyRootCollectionDocument = {
       version: "composition-1.0",
       children: [],
     };
@@ -192,7 +193,7 @@ describe("ADR-131 Phase 2 — rootCollectionMigration", () => {
     });
 
     it("dedupes by id (first wins)", () => {
-      const docWithEvents: CompositionDocument = {
+      const docWithEvents: LegacyRootCollectionDocument = {
         ...baseDoc,
         events: [
           { id: "ev1", type: "event", kind: "onPress", target: "btn-1" },

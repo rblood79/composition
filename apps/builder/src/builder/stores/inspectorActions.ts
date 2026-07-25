@@ -19,6 +19,7 @@ import {
 import type {
   BreakpointName,
   ElementResponsiveConfig,
+  InteractionRule,
   ResponsiveValue,
 } from "@composition/shared";
 import type {
@@ -36,7 +37,7 @@ import { sanitizeFillDerivedStylePatch } from "../panels/styles/utils/fillDerive
 import { saveService } from "../../services/save";
 import { getDB } from "../../lib/db";
 import { getElementDataBinding } from "../../adapters/canonical/compositionExtensionFields";
-import { writeEventsToRootCollection } from "./canonical/rootCollectionEventsWrite";
+import { writeInteractionRulesToRootCollection } from "./canonical/rootCollectionInteractionsWrite";
 import {
   COMPONENT_DESCENDANTS_MIRROR_FIELD,
   COMPONENT_OVERRIDES_MIRROR_FIELD,
@@ -382,9 +383,13 @@ function getSelectedPropsForState(
 }
 
 // ADR-149 Phase 2c (2026-07-19): syncEventsToRootCollection delegate 제거 —
-// `updateEventsRootCollection` 가 `writeEventsToRootCollection`
-// (canonical/rootCollectionEventsWrite.ts) 를 직접 호출. dead selected-* mutation
+// `updateEventsRootCollection` 가 write core 를 직접 호출. dead selected-* mutation
 // 4종 제거로 유일 caller 소멸 → 단일 write 진입점 확정.
+//
+// ADR-158 Phase 1 (2026-07-25): 그 write core 가
+// `canonical/rootCollectionInteractionsWrite.ts` 로 교체됐다 (entry 스키마
+// SerializedEvent → InteractionRule). 구 EventsPanel 은 canonical 에서 분리돼
+// `updateLegacyElementEvents` (deprecated, Phase 4 삭제) 로 node projection 만 쓴다.
 
 // ADR-131 Phase 8 (2026-05-13): syncDataBindingToRootCollection 제거.
 // data SSOT 는 `collections` / `api_endpoints` / `variables`.
@@ -512,11 +517,23 @@ export interface InspectorActionsState {
   updateSelectedCustomId: (customId: string) => void;
   updateSelectedDataBinding: (dataBinding: DataBinding | undefined) => void;
   /**
-   * ADR-149 Phase 2a/2c — canonical events 단일 write 진입점 (elementId 파라미터화).
-   * updateAndSave(node projection + history + persist, R8) + canonical root collection 파생.
-   * Phase 2c: dead selected-* events mutation 4종 제거 (EventsPanel 이 본 진입점만 사용).
+   * ADR-149 Phase 2a/2c → ADR-158 Phase 1 — canonical 규칙 단일 write 진입점.
+   *
+   * entry 스키마가 `EventHandler` 에서 `InteractionRule` 로 교체됐다. canonical
+   * root collection 만 갱신하고 legacy `element.events` mirror 는 파생하지 않는다
+   * (ADR-158 breakdown §2 — Phase 1 mirror 파생 중단).
    */
   updateEventsRootCollection: (
+    elementId: string,
+    rules: readonly InteractionRule[],
+  ) => void;
+  /**
+   * @deprecated ADR-158 Phase 1 — 구 EventsPanel 전용 잔존 경로. node projection
+   *   (`props.events`) 만 갱신하며 canonical root collection 과 무관하다. 구 패널이
+   *   자기 편집을 read-back 하는 데만 쓰이고, 소비 런타임은 0 이다.
+   *   Phase 2 에서 패널이 교체되고 Phase 4 에서 본 action 과 함께 삭제된다.
+   */
+  updateLegacyElementEvents: (
     elementId: string,
     events: readonly EventHandler[],
   ) => void;
@@ -1286,17 +1303,24 @@ export const createInspectorActionsSlice: StateCreator<
     // Event Actions
     // ============================================
 
-    // ADR-149 Phase 2a/2c — canonical events 단일 write 진입점 (elementId 파라미터화).
-    // updateAndSave: node projection(props.events) + history + DB persist (R8, transitional).
-    // writeEventsToRootCollection: canonical root collection(doc.events / doc.actions) 파생
-    // (primary read view). EventsPanel(Phase 2b)의 유일한 events write 경유점.
-    // Phase 2c: dead selected-* mutation 4종 제거 + syncEventsToRootCollection delegate
-    // inline (단일 진입점 확정). true 방향 역전(canonical-first write)은 Phase 3.
-    updateEventsRootCollection: (elementId, events) => {
+    // ADR-158 Phase 1 — canonical 규칙 단일 write 진입점.
+    //
+    // ADR-149 의 dual-write (node projection + root collection) 를 canonical 단일
+    // write 로 좁혔다: `InteractionRule` 은 legacy `element.events` mirror 를
+    // 파생하지 않는다 (breakdown §2). persist 는 canonical document put +
+    // root collection fan-out 을 담당하는 persistActiveCanonicalDocument 경유.
+    updateEventsRootCollection: (elementId, rules) => {
+      writeInteractionRulesToRootCollection(elementId, rules);
+      void persistActiveCanonicalDocument();
+    },
+
+    // @deprecated ADR-158 Phase 1 — 구 EventsPanel 잔존 경로 (Phase 4 삭제).
+    // node projection(props.events) + history + persist 만 수행하며 canonical
+    // root collection 과 무관하다. 구 패널이 자기 편집을 read-back 하는 용도.
+    updateLegacyElementEvents: (elementId, events) => {
       updateAndSave(elementId, {
         events: events as unknown as ElementEvent[],
       });
-      writeEventsToRootCollection(elementId, events);
     },
 
     // ============================================

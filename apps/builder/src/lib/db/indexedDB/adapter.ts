@@ -849,7 +849,8 @@ export class IndexedDBAdapter implements DatabaseAdapter {
         ...existing,
         ...patch,
         id: existing.id,
-        type: "event",
+        // ADR-158 Phase 1 — discriminator 가 "event" → "interaction" 으로 교체됨
+        type: "interaction",
       };
       await this.putToStore("events", updated);
       return updated;

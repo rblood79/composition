@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type {
   CompositionDocument,
   SerializedAction,
-  SerializedEvent,
+  InteractionRule,
 } from "@composition/shared";
 import { useCanonicalDocumentStore } from "../canonicalDocumentStore";
 
@@ -41,11 +41,12 @@ describe("ADR-131 Phase 3 — canonicalDocumentStore root collection mutations",
   describe("events collection", () => {
     it("addEvent appends new event", () => {
       setupActiveDoc();
-      const ev: SerializedEvent = {
+      const ev: InteractionRule = {
         id: "ev1",
-        type: "event",
-        kind: "onPress",
-        target: "btn-1",
+        type: "interaction",
+        elementId: "btn-1",
+        trigger: "onPress",
+        action: { kind: "navigate", params: { path: "/home" } },
       };
       useCanonicalDocumentStore.getState().addEvent(ev);
 
@@ -55,19 +56,20 @@ describe("ADR-131 Phase 3 — canonicalDocumentStore root collection mutations",
 
     it("addEvent skips duplicate id", () => {
       setupActiveDoc();
-      const ev: SerializedEvent = {
+      const ev: InteractionRule = {
         id: "ev1",
-        type: "event",
-        kind: "onPress",
-        target: "btn-1",
+        type: "interaction",
+        elementId: "btn-1",
+        trigger: "onPress",
+        action: { kind: "navigate", params: { path: "/home" } },
       };
       const store = useCanonicalDocumentStore.getState();
       store.addEvent(ev);
-      store.addEvent({ ...ev, kind: "onClick" });
+      store.addEvent({ ...ev, trigger: "onFocus" });
 
       const doc = useCanonicalDocumentStore.getState().getDocument("p")!;
       expect(doc.events).toHaveLength(1);
-      expect(doc.events?.[0].kind).toBe("onPress");
+      expect(doc.events?.[0].trigger).toBe("onPress");
     });
 
     it("updateEvent patches and ignores id/type changes", () => {
@@ -75,23 +77,24 @@ describe("ADR-131 Phase 3 — canonicalDocumentStore root collection mutations",
       const store = useCanonicalDocumentStore.getState();
       store.addEvent({
         id: "ev1",
-        type: "event",
-        kind: "onPress",
-        target: "btn-1",
+        type: "interaction",
+        elementId: "btn-1",
+        trigger: "onPress",
+        action: { kind: "navigate", params: { path: "/home" } },
       });
       store.updateEvent("ev1", {
-        kind: "onClick",
-        actionRef: "a1",
+        trigger: "onFocus",
+        action: { kind: "toast", params: { message: "hi" } },
         // structural invariant — should be ignored
         id: "EVIL",
-        type: "event",
+        type: "interaction",
       });
 
       const doc = useCanonicalDocumentStore.getState().getDocument("p")!;
       expect(doc.events?.[0]).toMatchObject({
         id: "ev1",
-        kind: "onClick",
-        actionRef: "a1",
+        trigger: "onFocus",
+        action: { kind: "toast", params: { message: "hi" } },
       });
     });
 
@@ -99,7 +102,7 @@ describe("ADR-131 Phase 3 — canonicalDocumentStore root collection mutations",
       setupActiveDoc();
       const before = useCanonicalDocumentStore.getState().documentVersion;
       useCanonicalDocumentStore.getState().updateEvent("missing", {
-        kind: "onClick",
+        trigger: "onFocus",
       });
       const after = useCanonicalDocumentStore.getState().documentVersion;
       expect(after).toBe(before);
@@ -110,9 +113,10 @@ describe("ADR-131 Phase 3 — canonicalDocumentStore root collection mutations",
       const store = useCanonicalDocumentStore.getState();
       store.addEvent({
         id: "ev1",
-        type: "event",
-        kind: "onPress",
-        target: "btn-1",
+        type: "interaction",
+        elementId: "btn-1",
+        trigger: "onPress",
+        action: { kind: "navigate", params: { path: "/home" } },
       });
       store.removeEvent("ev1");
 
@@ -123,9 +127,21 @@ describe("ADR-131 Phase 3 — canonicalDocumentStore root collection mutations",
     it("setEvents replaces collection and clears with undefined/[]", () => {
       setupActiveDoc();
       const store = useCanonicalDocumentStore.getState();
-      const evs: SerializedEvent[] = [
-        { id: "ev1", type: "event", kind: "onPress", target: "btn-1" },
-        { id: "ev2", type: "event", kind: "onClick", target: "btn-1" },
+      const evs: InteractionRule[] = [
+        {
+          id: "ev1",
+          type: "interaction",
+          elementId: "btn-1",
+          trigger: "onPress",
+          action: { kind: "navigate", params: { path: "/a" } },
+        },
+        {
+          id: "ev2",
+          type: "interaction",
+          elementId: "btn-1",
+          trigger: "onFocus",
+          action: { kind: "navigate", params: { path: "/b" } },
+        },
       ];
       store.setEvents(evs);
       expect(
@@ -180,13 +196,14 @@ describe("ADR-131 Phase 3 — canonicalDocumentStore root collection mutations",
 
       store.addEvent({
         id: "ev1",
-        type: "event",
-        kind: "onPress",
-        target: "btn-1",
+        type: "interaction",
+        elementId: "btn-1",
+        trigger: "onPress",
+        action: { kind: "navigate", params: { path: "/home" } },
       });
       expect(useCanonicalDocumentStore.getState().documentVersion).toBe(v0 + 1);
 
-      store.updateEvent("ev1", { kind: "onClick" });
+      store.updateEvent("ev1", { trigger: "onFocus" });
       expect(useCanonicalDocumentStore.getState().documentVersion).toBe(v0 + 2);
 
       store.removeEvent("ev1");
@@ -199,7 +216,7 @@ describe("ADR-131 Phase 3 — canonicalDocumentStore root collection mutations",
       const store = useCanonicalDocumentStore.getState();
       // 미존재 id
       store.removeEvent("missing");
-      store.updateEvent("missing", { kind: "x" });
+      store.updateEvent("missing", { trigger: "onFocus" });
       store.removeAction("missing");
       // 빈 set → 이미 undefined 이므로 no-op
       store.setEvents(undefined);
@@ -214,9 +231,10 @@ describe("ADR-131 Phase 3 — canonicalDocumentStore root collection mutations",
       const before = useCanonicalDocumentStore.getState().getDocument("p");
       useCanonicalDocumentStore.getState().addEvent({
         id: "ev1",
-        type: "event",
-        kind: "onPress",
-        target: "btn-1",
+        type: "interaction",
+        elementId: "btn-1",
+        trigger: "onPress",
+        action: { kind: "navigate", params: { path: "/home" } },
       });
       const after = useCanonicalDocumentStore.getState().getDocument("p");
       expect(after).not.toBe(before);

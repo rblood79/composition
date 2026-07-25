@@ -23,13 +23,13 @@
  * - elementsMap legacy store 와 양방향 sync — Phase 2 hot path cutover 와 함께.
  */
 
+import type { InteractionRule } from "../interactions/interactionRule.types";
 import type {
   CanonicalNode,
   CompositionExtension,
   CompositionDocument,
   DescendantOverride,
   SerializedAction,
-  SerializedEvent,
 } from "./composition-document.types";
 
 // ─────────────────────────────────────────────
@@ -210,20 +210,22 @@ export interface CanonicalDocumentActions {
   /**
    * 활성 document 의 `events` root collection 전체를 교체.
    * `undefined` 또는 `[]` 전달 시 events 영역을 제거.
+   *
+   * ADR-158 Phase 1 — entry 타입이 `SerializedEvent` → `InteractionRule`.
    */
-  setEvents(events: SerializedEvent[] | undefined): void;
+  setEvents(events: InteractionRule[] | undefined): void;
 
   /**
    * 활성 document 의 `events[].id === eventId` 인 항목을 부분 patch.
    * 미발견 시 no-op + dev warn. `id` / `type` 변경은 silently 무시.
    */
-  updateEvent(eventId: string, patch: Partial<SerializedEvent>): void;
+  updateEvent(eventId: string, patch: Partial<InteractionRule>): void;
 
   /**
    * 활성 document 의 `events` collection 에 신규 entry append.
    * 동일 `id` 가 이미 존재하면 no-op + dev warn.
    */
-  addEvent(event: SerializedEvent): void;
+  addEvent(event: InteractionRule): void;
 
   /**
    * 활성 document 의 `events[].id === eventId` 항목을 제거.

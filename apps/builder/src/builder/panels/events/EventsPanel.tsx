@@ -81,10 +81,10 @@ function EventsPanelContent({ selectedElement }: EventsPanelContentProps) {
     (componentMeta?.inspector.supportedEvents || []) as EventType[]
   ).filter((event): event is EventType => isImplementedEventType(event));
 
-  // canonical write 단일 진입점 (2a wrapper)
-  const updateEventsRoot = useStore(
-    (state) => state.updateEventsRootCollection,
-  );
+  // ADR-158 Phase 1 — canonical 은 `InteractionRule` 로 교체됐고, 본 패널은
+  //   Phase 2 에서 InteractionsPanel 로 대체된다. 그때까지 구 EventHandler 편집은
+  //   node projection 전용 deprecated 경로만 사용한다 (canonical 비의존).
+  const updateEventsRoot = useStore((state) => state.updateLegacyElementEvents);
 
   const eventsFromElement = (selectedElement?.events || []) as EventHandler[];
   const { handlers, addHandler, updateHandler, removeHandler } =

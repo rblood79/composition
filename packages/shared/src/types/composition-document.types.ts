@@ -33,6 +33,7 @@
  *    채택 대상 아님 (대안 B 기각).
  */
 
+import type { InteractionRule } from "../interactions/interactionRule.types";
 import type { ComponentTag } from "./composition-vocabulary";
 import type { ElementResponsiveConfig } from "./responsive.types";
 
@@ -844,17 +845,21 @@ export interface CompositionDocument {
   children: CanonicalNode[];
 
   /**
-   * 이벤트 선언 root collection — ADR-131 Phase 1.
+   * 인터랙션 규칙 root collection — ADR-131 Phase 1 (메커니즘) + ADR-158 Phase 1 (entry 스키마).
    *
    * Pencil format 에 events 카테고리가 존재하지 않으므로 `x-composition.events`
    * extension namespace 대신 root collection 분리 (ADR-110 themes/variables 패턴 정합).
    *
-   * 각 `SerializedEvent.target` 이 UI node id 를 참조하며,
-   * `useEventsForTarget(nodeId)` 가 filter 한다.
+   * 각 `InteractionRule.elementId` 가 트리거 UI node id 를 참조한다.
+   *
+   * **ADR-158**: entry 형태가 `SerializedEvent`(+`SerializedAction` chain) 에서
+   * `InteractionRule` (한 줄 규칙 — When → Do) 로 교체됐다. root collection
+   * 메커니즘 자체는 무변경. 구 스키마 데이터는 마이그레이션 없이 drop 된다
+   * (소비 런타임 0 실측 → 사용자 영향 0%, ADR-158 §Decision).
    *
    * ADR-116 §3 `x-composition.events` 는 본 필드로 partial supersede 됨.
    */
-  events?: SerializedEvent[];
+  events?: InteractionRule[];
 
   // ADR-131 Phase 8 (2026-05-13): `data` root field 제거.
   // 사용자 framing 정정 — data SSOT 는 이미 `collections` / `api_endpoints` /
@@ -866,8 +871,13 @@ export interface CompositionDocument {
   /**
    * 액션 chain 선언 root collection — ADR-131 Phase 1.
    *
-   * `SerializedAction.next[]` 으로 chain 구성. `SerializedEvent.actionRef` 가
-   * actions[].id 를 참조 (DAG validator Phase 3 진입).
+   * `SerializedAction.next[]` 으로 chain 구성. 구 `SerializedEvent.actionRef` 가
+   * actions[].id 를 참조했다.
+   *
+   * **ADR-158 이후 dormant**: `InteractionRule` 은 action 을 entry 안에 인라인으로
+   * 담으므로 본 collection 을 참조하지 않는다. 필드 선언은 ADR-131 자산으로 보존하되
+   * ADR-158 write 경로는 항상 `undefined` 로 둔다 — cross-event reuse / 조건부 실행이
+   * 실증되면 후속 ADR 이 재사용한다 (ADR-158 breakdown §7).
    *
    * ADR-116 §3 `x-composition.actions` 는 본 필드로 partial supersede 됨.
    */
@@ -1043,6 +1053,10 @@ export interface SerializedDataBinding {
  * 위치가 Pencil import / export 시 자연 drop / sidecar 처리 가능. ADR-116 §3
  * `x-composition.events` 의 namespace extension 결정은 본 type 으로 partial
  * superseded.
+ *
+ * @deprecated ADR-158 Phase 1 — `CompositionDocument.events` 의 entry 는
+ *   `InteractionRule` 로 교체됐다. 본 type 은 ADR-149 legacy adapter
+ *   (`rootCollectionMigration.ts`) 전용으로만 잔존하며 Phase 4 에서 동반 삭제된다.
  */
 export interface SerializedEvent {
   /** stable id — `props.<eventName>` 참조 대상 */

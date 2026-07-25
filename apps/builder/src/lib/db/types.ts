@@ -12,8 +12,8 @@ import type {
 } from "../../types/builder/data.types";
 import type {
   CompositionDocument,
+  InteractionRule,
   SerializedAction,
-  SerializedEvent,
 } from "@composition/shared";
 
 // === Project Types ===
@@ -76,7 +76,8 @@ export interface DocumentPersistOptions {
 // `SerializedData` schema 와 `CompositionDocument.data` root field 는 schema
 // 영역에서 별도 framing 정리 (현 commit scope 외).
 
-export interface SerializedEventRecord extends SerializedEvent {
+/** ADR-158 Phase 1 — entry 타입이 `SerializedEvent` → `InteractionRule` 로 교체됨 */
+export interface SerializedEventRecord extends InteractionRule {
   project_id: string;
 }
 

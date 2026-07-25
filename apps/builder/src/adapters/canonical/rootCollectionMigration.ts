@@ -272,20 +272,37 @@ export function migrateLegacyElementsToRootCollections(
 }
 
 /**
- * `CompositionDocument` 에 root collection 결과를 병합.
+ * legacy 스키마(`SerializedEvent`) 시절의 document 형태.
+ *
+ * ADR-158 Phase 1 에서 `CompositionDocument.events` 의 entry 가 `InteractionRule`
+ * 로 교체되면서, 본 legacy adapter 는 canonical 타입과 분리된 자기완결 형태로
+ * 남는다 (production consumer 0 — Phase 4 에서 모듈째 삭제).
+ */
+export type LegacyRootCollectionDocument = Omit<
+  CompositionDocument,
+  "events"
+> & {
+  events?: SerializedEvent[];
+};
+
+/**
+ * legacy document 에 root collection 결과를 병합.
  *
  * 기존 doc 의 events/actions 이 있으면 append. id 충돌 시 기존 entry 가 우선
  * (dedupe by id, first wins).
  *
  * **ADR-131 Phase 8 (2026-05-13)**: data 영역 제거.
+ *
+ * @deprecated ADR-158 Phase 1 — 신규 스키마는 `writeInteractionRulesToRootCollection`
+ *   이 담당한다. 본 함수는 legacy 어휘 전용이며 Phase 4 에서 삭제된다.
  */
 export function mergeIntoDocument(
-  doc: CompositionDocument,
+  doc: LegacyRootCollectionDocument,
   collections: {
     events?: SerializedEvent[];
     actions?: SerializedAction[];
   },
-): CompositionDocument {
+): LegacyRootCollectionDocument {
   const existingEvents = doc.events ?? [];
   const existingActions = doc.actions ?? [];
 
