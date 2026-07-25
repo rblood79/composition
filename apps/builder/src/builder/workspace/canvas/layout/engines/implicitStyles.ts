@@ -28,8 +28,9 @@ import {
   resolveContainerVariants,
   isValidTokenRef,
   cssVarToTokenRef,
+  getShadowToken,
 } from "@composition/specs";
-import type { SizeSpec, TokenRef } from "@composition/specs";
+import type { SizeSpec, TokenRef, ShadowTokens } from "@composition/specs";
 import { getNecessityIndicatorSuffix } from "@composition/shared/components";
 import {
   getComponentRulesTable,
@@ -385,6 +386,70 @@ export function resolveEffectiveOverflow(
   const ov = catalogRootOverflow(key);
   catalogOverflowByType.set(key, ov);
   return ov;
+}
+
+/**
+ * catalog `containerStyles.boxShadow` 의 **미해석 원문**을 type 별로 메모이즈.
+ *
+ * 해석 결과가 아니라 원문을 캐시하는 것이 핵심이다 — `{shadow.md}` 는 theme 별로 다른 값으로
+ * 풀리므로(ADR-166 Phase 1), 해석 결과를 캐시하면 최초 조회 시점의 theme 이 고착된다.
+ */
+const catalogBoxShadowByType = new Map<string, string | undefined>();
+
+function catalogRootBoxShadow(lowerType: string): string | undefined {
+  const pascal = LOWERCASE_TO_PASCAL_RULE_KEY.get(lowerType);
+  if (!pascal) return undefined;
+  const rule = resolveComponentRule(pascal) as
+    | {
+        containerStyles?: Record<string, unknown>;
+        structure?: {
+          containerStyles?: Record<string, unknown>;
+          composition?: { containerStyles?: Record<string, unknown> };
+        };
+      }
+    | undefined;
+  if (!rule) return undefined;
+  return (rule.containerStyles?.boxShadow ??
+    rule.structure?.containerStyles?.boxShadow ??
+    rule.structure?.composition?.containerStyles?.boxShadow) as
+    | string
+    | undefined;
+}
+
+/**
+ * Skia 가 소비할 box-shadow 를 해석한다 — raw `props.style.boxShadow` 우선, 없으면 catalog
+ * `containerStyles.boxShadow` fallback (`resolveEffectiveOverflow` 동형).
+ *
+ * **Why (ADR-166 Phase 3)**: `buildSkiaEffects` 는 raw `props.style.boxShadow` 만 읽어서,
+ * elevation 을 catalog 에만 둔 overlay(Popover/Tooltip/Modal)는 캔버스에서 그림자가 나오지
+ * 않았다. Popover 만 `popover_shadow` 하드코딩 primitive 가 대신 그리고 있었고 Tooltip/Modal 은
+ * 아예 공백이었다.
+ *
+ * TokenRef(`{shadow.md}`)는 여기서 theme 별 rgba 문자열로 전개해 내보낸다 — 기존
+ * `parseOneShadow` 가 그대로 통과시킬 수 있는 형태라 **파서 수정이 없다**. 반대로 `var(...)` /
+ * `color-mix(...)` 는 그 파서의 색 정규식에 매칭되지 않아 불투명 검정으로 낙하하므로, catalog 에
+ * 그런 값이 남아 있으면 여기서도 구제되지 않는다(값 언어를 TokenRef 로 수렴시킨 Phase 2 가 전제).
+ */
+export function resolveEffectiveBoxShadow(
+  type: string | undefined,
+  rawStyle: Record<string, unknown> | undefined,
+  theme: "light" | "dark" = "light",
+): string | undefined {
+  const raw = (rawStyle ?? {}).boxShadow as string | undefined;
+  if (raw != null) return raw;
+  if (!type) return undefined;
+  const key = type.toLowerCase();
+  let source: string | undefined;
+  if (catalogBoxShadowByType.has(key)) {
+    source = catalogBoxShadowByType.get(key);
+  } else {
+    source = catalogRootBoxShadow(key);
+    catalogBoxShadowByType.set(key, source);
+  }
+  if (source == null) return undefined;
+  return source.startsWith("{shadow.")
+    ? getShadowToken(source.slice(8, -1) as keyof ShadowTokens, theme)
+    : source;
 }
 
 /**

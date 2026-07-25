@@ -10,10 +10,15 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { resolveToken } from "@composition/specs";
+import {
+  resolveToken,
+  lightShadows,
+  darkShadows,
+} from "@composition/specs";
 import {
   resolveContainerStylesFallback,
   resolveEffectiveOverflow,
+  resolveEffectiveBoxShadow,
 } from "./implicitStyles";
 
 describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => {
@@ -490,5 +495,64 @@ describe("resolveEffectiveOverflow — catalog containerStyles overflow 포괄",
 
   it("ref instance resolved type(PascalCase componentName)도 lowercasing 으로 해석", () => {
     expect(resolveEffectiveOverflow("ListBox", {})).toBe("auto");
+  });
+});
+
+// ADR-166 Phase 3: elevation 을 catalog containerStyles 에만 둔 overlay(Popover/Tooltip/Modal)가
+//   Skia 에서 그림자를 얻도록 하는 resolver. overflow 와 동형이되 **theme 분기**가 추가된다 —
+//   `{shadow.md}` 는 light/dark 가 다른 값이므로 해석 시점 theme 이 결과를 바꾼다.
+describe("resolveEffectiveBoxShadow — catalog containerStyles elevation 포괄", () => {
+  it("raw props.style.boxShadow 가 있으면 그대로 (catalog 조회 skip)", () => {
+    expect(
+      resolveEffectiveBoxShadow("popover", { boxShadow: "0 1px 2px red" }),
+    ).toBe("0 1px 2px red");
+    // 사용자가 명시한 "none" 도 raw 다 — catalog 로 되돌아가면 안 된다
+    expect(resolveEffectiveBoxShadow("popover", { boxShadow: "none" })).toBe(
+      "none",
+    );
+  });
+
+  it("raw 부재 시 catalog TokenRef 를 theme 별 rgba 로 전개", () => {
+    expect(resolveEffectiveBoxShadow("popover", {}, "light")).toBe(
+      lightShadows.md,
+    );
+    expect(resolveEffectiveBoxShadow("popover", {}, "dark")).toBe(
+      darkShadows.md,
+    );
+    expect(resolveEffectiveBoxShadow("tooltip", {}, "light")).toBe(
+      lightShadows.sm,
+    );
+    expect(resolveEffectiveBoxShadow("modal", {}, "dark")).toBe(darkShadows.lg);
+  });
+
+  it("theme 기본값은 light", () => {
+    expect(resolveEffectiveBoxShadow("popover", {})).toBe(lightShadows.md);
+  });
+
+  it("전개 결과가 Skia 파서 계약을 만족 — var( / color-mix( 미포함", () => {
+    for (const type of ["popover", "tooltip", "modal"]) {
+      for (const theme of ["light", "dark"] as const) {
+        const v = resolveEffectiveBoxShadow(type, {}, theme);
+        expect(v, `${type}/${theme}`).toBeDefined();
+        expect(v, `${type}/${theme}`).not.toMatch(/var\(|color-mix\(/);
+      }
+    }
+  });
+
+  it("catalog 에 boxShadow 가 없는 타입 / type 부재는 undefined", () => {
+    expect(resolveEffectiveBoxShadow("listbox", {})).toBeUndefined();
+    expect(resolveEffectiveBoxShadow(undefined, {})).toBeUndefined();
+  });
+
+  // 메모이즈가 **해석 결과가 아니라 원문**을 캐시하는지 — 결과를 캐시하면 최초 조회 theme 이
+  //   고착돼 테마 전환이 무반응이 된다.
+  it("메모이즈가 theme 을 고착시키지 않는다 (light 선조회 → dark 정상)", () => {
+    expect(resolveEffectiveBoxShadow("modal", {}, "light")).toBe(
+      lightShadows.lg,
+    );
+    expect(resolveEffectiveBoxShadow("modal", {}, "dark")).toBe(darkShadows.lg);
+    expect(resolveEffectiveBoxShadow("modal", {}, "light")).toBe(
+      lightShadows.lg,
+    );
   });
 });

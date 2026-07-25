@@ -62,6 +62,7 @@ import { getNecessityIndicatorSuffix } from "@composition/shared/components";
 import {
   formatProgressValue,
   resolveEffectiveOverflow,
+  resolveEffectiveBoxShadow,
 } from "../layout/engines/implicitStyles";
 import {
   PHANTOM_INDICATOR_CONFIGS,
@@ -1653,8 +1654,15 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   // 로 소비한다. spec/catalog 경로는 그동안 이 배선이 없어 캔버스에서 boxShadow 등이 무반응이었다.
   // transform 은 transform-origin 보정(box 경로 155-162)이 별도로 필요하고 본 배선의 대상이
   // 아니므로 제외 — effects/blendMode 만 접붙인다.
+  // ADR-166 Phase 3: catalog containerStyles 에만 elevation 을 둔 컴포넌트도 포괄 (box 경로와
+  //   동형 — raw props.style 우선, TokenRef 는 theme 별 rgba 로 전개).
+  const effectiveBoxShadow = resolveEffectiveBoxShadow(type, style, theme);
+  const cssEffectsStyle =
+    style.boxShadow == null && effectiveBoxShadow != null
+      ? { ...style, boxShadow: effectiveBoxShadow }
+      : style;
   const cssEffects = buildSkiaEffects(
-    style as Parameters<typeof buildSkiaEffects>[0],
+    cssEffectsStyle as Parameters<typeof buildSkiaEffects>[0],
   );
   if (cssEffects.effects && cssEffects.effects.length > 0) {
     specNode.effects = [...(specNode.effects ?? []), ...cssEffects.effects];

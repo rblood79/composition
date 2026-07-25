@@ -25,7 +25,10 @@ import {
   parseZIndex,
   createsStackingContext,
 } from "../layout/engines/cssStackingContext";
-import { resolveEffectiveOverflow } from "../layout/engines/implicitStyles";
+import {
+  resolveEffectiveOverflow,
+  resolveEffectiveBoxShadow,
+} from "../layout/engines/implicitStyles";
 import {
   fillsToSkiaFillColor,
   fillsToSkiaFillStyle,
@@ -76,8 +79,21 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
     style.color as string | undefined,
   );
   const { transform, fill, stroke, borderRadius } = converted;
+  // Box shadow — catalog containerStyles 에만 elevation 을 둔 overlay(Popover/Tooltip/Modal)도
+  //   캔버스 그림자가 나오도록 catalog fallback 포괄(raw props.style 우선). TokenRef 는 theme 별
+  //   rgba 로 전개되어 parseOneShadow 를 그대로 통과한다 (ADR-166 Phase 3).
+  //   raw 가 있으면 style 객체를 그대로 넘겨 hot path 할당을 만들지 않는다.
+  const effectiveBoxShadow = resolveEffectiveBoxShadow(
+    element.type,
+    style,
+    theme,
+  );
+  const effectsStyle =
+    style.boxShadow == null && effectiveBoxShadow != null
+      ? { ...style, boxShadow: effectiveBoxShadow }
+      : style;
   const skiaEffects = buildSkiaEffects(
-    style as Parameters<typeof buildSkiaEffects>[0],
+    effectsStyle as Parameters<typeof buildSkiaEffects>[0],
   );
 
   const w = layout?.width ?? transform.width;

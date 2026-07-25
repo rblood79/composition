@@ -647,9 +647,16 @@ export class StoreRenderBridge {
         scrollState,
       });
       if (nodeData) return nodeData;
+      // theme 전달 필수 — buildBoxNodeData 의 catalog 해석(shell 배경 토큰 / ADR-166 boxShadow
+      //   TokenRef)이 theme 인자를 쓴다. 누락 시 기본값 "light" 로 떨어져 dark 캔버스에서
+      //   light 값이 나온다 (아래 box 분기는 이미 ctx.theme 을 넘기고 있었다).
       return (
-        buildBoxNodeData({ element: effectiveElement, layout, scrollState }) ??
-        buildSkiaNodeData(effectiveElement, ctx)
+        buildBoxNodeData({
+          element: effectiveElement,
+          layout,
+          theme: ctx.theme,
+          scrollState,
+        }) ?? buildSkiaNodeData(effectiveElement, ctx)
       );
     }
 
