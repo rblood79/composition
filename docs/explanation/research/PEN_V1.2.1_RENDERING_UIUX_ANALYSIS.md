@@ -341,20 +341,22 @@ renderScreenspace(t,e){ this.resizeHandles.render(t,e); this.guidesGraph.render(
 **렌더링** (§6-1 실측 정정 반영):
 
 1. ~~줌/팬 콘텐츠 캐시 surface + cubic 리샘플 blit~~ — **이미 동형 구현 완료** (§6-1-c). 차용 후보에서 제외, 본 실측은 파라미터 일치 검증으로 역할 전환.
-2. **idle 시 rAF 체인 완전 정지** (`framesRequested` 카운터) — 연속 rAF 의 idle wake 제거. version bump 지점 = requestFrame 지점 등식으로 전환 비용 낮음, hidden 탭 overlay stale 재검증 동반 (§6-1-b).
-3. **배치 드로우 API** (`draw_rect_array`) — CanvasKit 공식 표면에 없어 직접 차용 불가. 호출 왕복이 병목으로 실측되면 SkPicture 녹화 경유 또는 바인딩 자체 빌드 검토의 참조 지점 (§6-1-a).
-4. **worldspace/screenspace 오버레이 패스 명시 분리** — 조건부 (§6-1-g): 1/zoom 역보정 산재가 관측될 때의 승격 선례.
-5. 각도 캐시된 회전 리사이즈 커서 (`-webkit-image-set` DOM 커서) — 저비용 고급 조작감.
+2. ~~**idle 시 rAF 체인 완전 정지** (`framesRequested` 카운터)~~ — **기각 2026-07-26**. [ADR-167](../../adr/completed/167-on-demand-frame-loop.md) 로 설계 후 G0 실측 불통과 (유휴 비용이 코어 1개의 0.67% = 6.7ms/s 로 wake 누락 버그 클래스 도입 대가에 미달). 추가 실측: **유휴 프레임은 Skia draw 호출을 1건도 내지 않는다** (240 + 192 프레임 관측, 인터셉터 유효성 2/2 + 동일 CanvasKit 싱글턴 확인) — 이미 프레임 분류 단계에서 그리기를 건너뛰므로 남는 절감은 루프 자체의 분류 오버헤드뿐. 파생 처리 2건 완료 (`performanceMonitor` 상시 rAF → 버스트 측정 / ADR-153 우선순위 근거 인용).
+3. ~~**배치 드로우 API** (`draw_rect_array`)~~ — **ADR-153 에 흡수 2026-07-26**. CanvasKit 공식 표면에 배치 API 는 없으나, 이 빌드에 `PictureRecorder` / `MakePicture` / `drawPicture` 가 **모두 존재**함을 live 확인 — 즉 등가 이득의 경로는 ADR-153 **Phase 3 (Picture 캐시)** 이며 API 실현 가능성 spike 는 해소됐다. 도입 여부를 가를 draw-call 카운터는 ADR-153 **Phase 1** 의 결번 지표 그 자체 (Context 격차 3). 별도 후보로 유지하지 않음. 자체 바인딩 빌드는 Phase 1 실측이 per-call WASM 왕복 지배를 보일 때만 재론.
+4. **worldspace/screenspace 오버레이 패스 명시 분리** — 조건부 유지 (§6-1-g). 2026-07-26 실측: `1/zoom` 역보정 **147건 / 26 파일** (오버레이 렌더러만 60건 — selection 24 · hover 10 · dropIndicator 7 · slotMarker 6 · overlayBuilder 5 · overlayHelpers 4 · grid 4, 별도 기능 캔버스인 workflow\* 39 제외). 다만 형태가 `const sw = 1 / zoom` **균일 관용구**라 "산재"보다 "관행"에 가깝다 → 패스 분리(§8.7 scene 단일계 원칙 반전이라 ADR 필요) 대신 **공유 헬퍼 1개로 심볼 단일화**가 선행 저비용 수단. 헬퍼조차 오·남용되기 시작하면 그때 Pen 형 2-pass 승격.
+5. ~~각도 캐시된 회전 리사이즈 커서~~ — **완료 2026-07-26** (`selection/resizeCursors.ts`, 1° 양자화 + 180° 대칭 접기, 회전 도입 시 `rotationDeg` 인자만으로 확장).
 
-**UI/UX**:
+**UI/UX** (2026-07-26 코드 실태 확인 결과 반영):
 
-1. **`--canvas-bg` 토큰 공유** (패널-캔버스 시각 통합) + **선택 시에만 나타나는 초경량 속성 패널** (212px, 접힘 시 플로팅 미니 카드).
-2. **auto-layout 자식에서 화살표 키 = 형제 순서 재배치** — flex/grid 컨테이너 내부에서 px 이동이 무의미하다는 점의 UX 승화. composition 레이아웃 컨테이너에 그대로 이식 가능.
-3. **AI tool-call 시제 라벨 테이블** + **선택 컨텍스트 칩** + **캔버스 플래시형 변경 표시** — ADR-134 계열 직접 참조 대상.
-4. **스타일 프리셋 = 토큰 값 세트 + 썸네일** — composition theme/tokens SSOT 위에 얹는 갤러리 설계의 직접 참조 사례.
-5. 단축키 데이터 테이블 SSOT (치트시트·툴팁 공유) — 단축키 도입 시 시작점.
-6. container query 사이드바 탭 (아이콘↔라벨) + 리사이즈 핸들 더블클릭 복원 — 패널 시스템 (ADR-163) 저비용 디테일.
-7. 빈 캔버스 예시 프롬프트 칩 (문서 수정 시 자동 소멸) — 온보딩을 소멸성 캔버스 오버레이로.
+1. ~~**`--canvas-bg` 토큰 공유**~~ — **이미 동형** (`setupThemeWatcher` 가 캔버스 컨테이너의 `--bg` 를 resolved sRGB 로 읽어 렌더러에 공급, `skia/themeWatcher.ts:71`). Pen 식 별도 `--canvas-bg` 신설은 색 출처를 2개로 늘리는 후퇴. / **선택 시에만 나타나는 초경량 속성 패널** (212px, 접힘 시 플로팅 미니 카드) — 기술 장애 없음, **제품 UX 결정** 대상 (ADR-163 패널 표준의 `.panel > .panel-contents > .section` 골격과 공존 가능한지가 유일한 확인 항목).
+2. **auto-layout 자식에서 화살표 키 = 형제 순서 재배치** — **실행 후보 (전제는 다름)**. composition 은 px nudge 가 애초에 없어 "무의미한 기능의 승화"가 아니라 **신규 기능**이다. canonical `children[]` 이 순서 SSOT (ADR-118) 라 mutation 정의는 명확하고 히스토리 통합 경로도 기존. 걸림돌 1건 — `arrowUp`/`arrowDown` 이 이미 category `events` + scope `canvas-focused` 로 점유 중 (`config/keyboardShortcuts.ts:559-577`) → `detectShortcutConflicts` 대상, scope 재정의 선행. 규모 소~중, ADR 불요.
+3. **AI tool-call 시제 라벨 테이블** + **선택 컨텍스트 칩** + **캔버스 플래시형 변경 표시** — [ADR-134](../../adr/134-ai-assistant-llm-infrastructure-unification.md) 계열로 라우팅 (Proposed). 본 문서에서 별도 후보로 추적하지 않음.
+4. **스타일 프리셋 = 토큰 값 세트 + 썸네일** — **부분 존재**: 테마 썸네일은 `panels/themes/MiniThemePreview.tsx`, 스펙 프리셋 해석은 `panels/styles/utils/specPresetResolver.ts` 로 이미 있고 **갤러리 UI 형태만** 미도입. theme/tokens SSOT (ADR-110) 위 확장이라 저비용.
+5. ~~단축키 데이터 테이블 SSOT~~ — **이미 동형이며 더 완비**. `SHORTCUT_DEFINITIONS` + `SHORTCUT_PRIORITY` (8단계) + `scope` + `i18n` 를 갖춘 `config/keyboardShortcuts.ts` 단일 소스에, 소비자로 치트시트 (`components/help/KeyboardShortcutsHelp.tsx`) · 툴팁 (`components/overlay/ShortcutTooltip.tsx`) · 커맨드 팔레트 · 충돌 검출기 (`utils/detectShortcutConflicts.ts`) · 디버거까지 존재. 후보에서 제외.
+6. **container query 사이드바 탭** (아이콘↔라벨) + 리사이즈 핸들 더블클릭 복원 — **미도입 확인** (`@container` / `container-type` 사용 0건). ADR-163 패널 표준 안의 저비용 디테일. §2 예약 prefix 규칙 (`tab-*` 은 탭 UI 전용) 준수 필요.
+7. **빈 캔버스 예시 프롬프트 칩** — 패널 단위 empty-state 는 다수 존재하나 **캔버스 온보딩은 없음**. AI 프롬프트 연계라 3번과 함께 ADR-134 계열에서 다루는 편이 자연스러움.
+
+**종합** — 원 후보 12건 (렌더링 5 + UI/UX 7) 의 처분: **이미 동형 3** (줌 캐시 · canvas-bg · 단축키 SSOT) / **완료 2** (커서 · rAF 파생 정리) / **기각 1** (ADR-167) / **타 ADR 흡수·라우팅 3** (배치 API→153, AI 3종·온보딩 칩→134) / **조건부 유지 1** (2-pass 분리) / **실행 후보 3** (화살표 재배치 · 프리셋 갤러리 · container query 탭) / **제품 결정 1** (초경량 속성 패널).
 
 ---
 

@@ -21,6 +21,11 @@ Proposed — 2026-07-16
 
 이 실측은 위 격차 3(측정 격차) 의 진단도 뒷받침한다 — 순간 6배 지연 샘플에서도 rAF cadence 는 **fps 120.2 를 유지**해, FPS 지표가 실제 렌더 비용과 무관하게 움직인다는 것이 관측됐다 (`gpuProfilerCore.ts:91` 주석의 자인과 일치).
 
+**Phase 0 인벤토리 선행 실측 2건 (2026-07-26, R5 대응 — 착수 시 재확인 대상)**:
+
+- **Picture API 실현 가능성 확보** — live 페이지의 CanvasKit 싱글턴 (`window.__composition_CANVASKIT_INSTANCE__`, `__composition_CANVASKIT_PROMISE__` 와 동일 객체) 에 `PictureRecorder` / `MakePicture` / `_MakePicture` / `Canvas.prototype.drawPicture` 가 **모두 존재**한다. Phase 3 의 "CanvasKit 빌드에 Picture API 가 없을 위험" spike 는 불필요.
+- **유휴 프레임 draw 호출 0건** — `Canvas.prototype` 의 `draw*`/`save*`/`clip*` 전량을 감싸 240 + 192 프레임 관측, 누적 0건. 인터셉터 유효성은 같은 인스턴스의 scratch surface 에서 2/2 가로챔으로 별도 증명 (양성 대조 없이 "0건" 을 결론으로 쓰지 않기 위함). 즉 프레임 분류가 이미 그리기 단계를 건너뛰고 있어, **개선 여지는 전부 content/camera 프레임 안**에 있다. Phase 1 draw-call 카운터의 baseline 은 0 (유휴) 에서 출발한다.
+
 리서치 문서 §5-1 의 본질 통찰은 유지된다: **무엇이 느린지 모르면 캐시 설계 자체가 추측이다** — 측정 보강이 캐시 도입의 선결 단계.
 
 **3-Domain 판정**: 본 ADR 은 D1/D2/D3 SSOT 경계를 변경하지 않는다. D3 consumer(Skia 렌더러) 내부의 렌더링 인프라 최적화이며, **시각 결과 불변** (Builder↔Preview 대칭 유지) 이 hard constraint 다. Spec/Generator 확장 아님 — Generator emit 능력 선언 해당 없음.
