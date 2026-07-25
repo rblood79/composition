@@ -186,6 +186,33 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       expect(preset.paddingBottom).toBe(preset.paddingTop);
     });
 
+    // ── overlay elevation 정본 (2026-07-25) ────────────────────────────
+    //   그림자 정본이 수동 CSS 에만 있던 동안 catalog tier 가 비어 Style Panel 의
+    //   Box Shadow 가 항상 "none" 이었다. catalog 로 이관했으므로 preset 이 실제
+    //   CSS 값을 그대로 돌려줘야 한다 (generated CSS 와 같은 source).
+    it("Popover.containerStyles → Appearance preset boxShadow (overlay elevation)", () => {
+      const preset = resolveAppearanceSpecPreset("Popover", "md");
+      expect(preset.boxShadow).toBe(
+        "0 4px 12px color-mix(in srgb, var(--fg) 15%, transparent)",
+      );
+    });
+
+    it("Tooltip.containerStyles → Appearance preset boxShadow (Popover 보다 약한 elevation)", () => {
+      const preset = resolveAppearanceSpecPreset("Tooltip", "md");
+      expect(preset.boxShadow).toBe(
+        "0 2px 8px color-mix(in srgb, var(--fg) 12%, transparent)",
+      );
+    });
+
+    // Popover 는 containerStyles 가 undefined 였다가 boxShadow 하나로 신설된 케이스 —
+    //   containerStyles 존재가 variant 색상 emit 을 끄지 않는지(=containerHasColors 오탐)
+    //   확인. 색상 필드가 없으므로 background/border preset 은 계속 미공급이어야 한다.
+    it("Popover.containerStyles 신설이 색상 tier 를 오염시키지 않는다", () => {
+      const preset = resolveAppearanceSpecPreset("Popover", "md");
+      expect(preset.backgroundColor).toBeUndefined();
+      expect(preset.borderColor).toBeUndefined();
+    });
+
     it("Menu.containerStyles → Appearance preset", () => {
       // MenuSpec.containerStyles = { borderRadius: "{radius.md}"=6, borderWidth: 1,
       //   background: "{color.raised}", border: "{color.border}" }

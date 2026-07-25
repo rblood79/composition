@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [overlay 그림자 catalog 정본화 — Popover/Tooltip box-shadow D3 SSOT 이관] - 2026-07-25
+
+### Bug Fixes
+
+- **Popover/Tooltip 을 선택하면 스타일 패널이 Box Shadow 를 "none" 으로 표시하던 문제**:
+  - 두 컴포넌트는 DOM 에 실제로 그림자가 걸려 있는데(live 실측 — Popover `0 4px 12px color-mix(--fg 15%)`, Tooltip `0 2px 8px color-mix(--fg 12%)`) 패널은 "none" 이었다
+  - **Why**: 그림자 정본이 **수동 CSS 에만** 있었다 (`Popover.css` / `Tooltip.css`). 패널의 catalog tier(`resolveAppearanceSpecPreset` → `resolveCatalogContainerBase`)가 읽는 `containerStyles` 에 box-shadow 를 선언한 컴포넌트가 **전체 0건**이라, inline 값이 없으면 곧바로 하드코딩 fallback `"none"` 으로 떨어졌다. 수동 CSS 가 catalog 파생이 아닌 독립 정의였다는 점에서 D3 위반이기도 하다
+  - 수정: `ContainerStylesSchema.boxShadow` 신설 + `emitContainerStyles` 가 `box-shadow` emit → catalog `Popover`/`Tooltip` 의 `structure.containerStyles` 에 **수동 CSS 실효값 그대로** 등록 → 수동 CSS 의 중복 선언 제거로 정본 일원화 (generated CSS 가 유일 emit 지점)
+  - **결과** (live 실측): 계산값 완전 불변 — Popover `rgb(23,23,23)/0.15 0 4px 12px`, Tooltip `rgb(23,23,23)/0.12 0 2px 8px` 로 수정 전후 동일. 캔버스에 Tooltip 배치 후 선택 시 Box Shadow 표시가 `none → custom`(프리셋 밖 복합 그림자의 설계된 표기)
+  - generated CSS diff 는 의도한 2줄뿐 (`generated/Popover.css` +1, `generated/Tooltip.css` +1). Popover 는 `containerStyles` 가 `undefined` 였다가 신설된 케이스라 variant 색상 emit 이 꺼지지 않는지(`containerHasColors` 오탐) 회귀 테스트로 고정
+  - 함께 제거: `overlays.css` 의 `.react-aria-Popover { box-shadow: var(--drop-shadow-md) }` — `--drop-shadow-md` 는 `drop-shadow(...)` **filter 함수**라 box-shadow 값으로는 무효(계산값 `none`)이고, index.css 30행이라 뒤 정의에 어차피 덮이던 dead 선언
+  - 위치: `packages/specs/src/types/spec.types.ts` · `packages/specs/src/renderers/CSSGenerator.ts` · `packages/shared/src/catalog/generated/componentRulesTable.ts` · `packages/shared/src/components/styles/{Popover,Tooltip,overlays}.css`
+
+### 알려진 잔존
+
+- `.react-aria-Modal` / `.react-aria-ColorSwatch` 의 `box-shadow: var(--drop-shadow-*)` 도 같은 타입 불일치로 무효다 — 두 컴포넌트는 현재 그림자가 **없다**(패널 "none" 표시가 정확). 고치면 없던 그림자가 새로 생기는 시각 변경이라 값 선택을 포함해 별도 판단 대상
+- `Dialog` 는 Skia `dialog_shadow` primitive 로만 그림자를 그리고 DOM 에는 없다 (Skia↔CSS 비대칭). Skia 는 catalog `containerStyles.boxShadow` 를 읽지 않으므로 이번 이관 대상 밖 — 배선 시 Popover 는 primitive 와 이중 적용이 되므로 함께 정리 필요
+
 ## [스타일 패널 instance 값 동기 — origin(master) style baseline tier 복원] - 2026-07-25
 
 ### Bug Fixes

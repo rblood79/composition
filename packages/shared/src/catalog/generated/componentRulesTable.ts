@@ -7579,7 +7579,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "overlay",
       element: "div",
-      containerStyles: undefined,
+      // 2026-07-25: overlay elevation 정본 이관. 값은 수동 `Popover.css` 의 실효값
+      //   (index.css 로드 순서상 마지막이라 승리하던 선언) 그대로 — 시각 불변.
+      //   **Why**: 그림자 정본이 수동 CSS 에만 있어 catalog 를 읽는 Style Panel 이
+      //   Appearance → Box Shadow 를 "none" 으로 표시했다(D3 위반 — 수동 CSS 독립 정의).
+      //   Skia 는 `popover_shadow` primitive 가 동일 기하(0 4px 12px)를 이미 그린다.
+      containerStyles: {
+        boxShadow: "0 4px 12px color-mix(in srgb, var(--fg) 15%, transparent)",
+      },
       states: {},
     },
   },
@@ -12711,6 +12718,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "inline-flex",
         alignItems: "center",
+        // 2026-07-25: overlay elevation 정본 이관 (Popover 동형). 값은 수동 `Tooltip.css`
+        //   실효값 그대로 — 시각 불변. Popover(15%/4px/12px)보다 한 단계 약한 elevation.
+        boxShadow: "0 2px 8px color-mix(in srgb, var(--fg) 12%, transparent)",
       },
       states: {
         disabled: {

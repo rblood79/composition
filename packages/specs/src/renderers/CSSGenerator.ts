@@ -786,6 +786,8 @@ export function emitContainerStyles(c: ContainerStylesSchema): string[] {
         : c.gap;
     lines.push(`  gap: ${v};`);
   }
+  // 컨테이너 root elevation — CSS 값 그대로 (프리셋 밖 복합 그림자 표현).
+  if (c.boxShadow) lines.push(`  box-shadow: ${c.boxShadow};`);
   if (c.width) lines.push(`  width: ${c.width};`);
   if (c.maxHeight) lines.push(`  max-height: ${c.maxHeight};`);
   if (c.overflow) lines.push(`  overflow: ${c.overflow};`);

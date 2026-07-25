@@ -24,7 +24,8 @@
 
   /* ========== Base Tooltip Styles ========== */
   .react-aria-Tooltip {
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--fg) 12%, transparent);
+    /* box-shadow 는 catalog `Tooltip.structure.containerStyles.boxShadow` 정본 →
+       generated/Tooltip.css 가 emit (2026-07-25). Popover 와 동형. */
     border-radius: var(--radius-sm);
     background: var(--accent);
     color: var(--fg-on-accent);

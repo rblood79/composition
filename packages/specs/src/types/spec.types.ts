@@ -68,6 +68,13 @@ export interface ContainerStylesSchema {
   padding?: TokenRef | string;
   gap?: TokenRef | string;
 
+  // 컨테이너 root elevation (2026-07-25). CSS 값 그대로 — `shadows` 프리셋(none/sm/md/lg/xl)
+  //   에 없는 복합 그림자(overlay 계열의 color-mix 기반)를 표현해야 해서 TokenRef 로 제약하지
+  //   않는다. **Why**: 그림자 정본이 수동 CSS 에만 있어 catalog 를 읽는 Style Panel 이
+  //   Appearance → Box Shadow 를 항상 "none" 으로 표시했다 (D3 SSOT 위반 — 수동 CSS 가
+  //   catalog 파생이 아닌 독립 정의). 값 자체는 수동 CSS 실효값을 그대로 이관해 시각 불변.
+  boxShadow?: string;
+
   // ADR-078: layout primitive — archetype base 를 명시적으로 override.
   //   Spec 이 display/flexDirection 을 "선언적으로" 소유 → style panel / Skia / CSS 모두
   //   동일 소스 참조 (3경로 SSOT). archetype 만으로 간접 파생되던 구조의 대체.

@@ -13,6 +13,7 @@
     box-sizing: border-box;
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--fg) 12%, transparent);
   display: inline-flex;
   align-items: center;
 

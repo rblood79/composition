@@ -25,7 +25,9 @@
   /* ========== Base Popover Styles ========== */
   .react-aria-Popover {
     border: 1px solid var(--border);
-    box-shadow: 0 4px 12px color-mix(in srgb, var(--fg) 15%, transparent);
+    /* box-shadow 는 catalog `Popover.structure.containerStyles.boxShadow` 정본 →
+       generated/Popover.css 가 emit (2026-07-25). 같은 값을 여기 중복 선언하면
+       Style Panel 이 읽는 catalog 와 실제 CSS 가 갈라질 수 있어 제거. */
     border-radius: var(--radius-lg);
     background: var(--bg-raised);
     color: var(--fg);
