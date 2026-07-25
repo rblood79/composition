@@ -3,6 +3,8 @@
 > 분석일: 2026-02-03 (최종 업데이트: 2026-02-14)
 > Pencil: v1.1.10 (Electron + CanvasKit/Skia + PixiJS v8)
 > composition: CanvasKit/Skia WASM + PixiJS v8 + Zustand
+>
+> **⚠️ STALE (2026-07-26)**: 양쪽 모두 이후 PixiJS 를 제거함 — composition 은 ADR-900 (Unified Skia), Pencil(현 **Pen** v1.2.1) 은 자체 WASM 엔진 통합 (PixiJS 렌더러 미가동 실측). "PixiJS Layer 2 오버레이" 서술은 역사 기록으로만 유효. Selection UX 자체 (더블클릭 drill-in / 300ms / 계층 이동) 는 v1.2.1 에서도 유지·보강 확인. 실측 정본: [PEN_V1.2.1_RENDERING_UIUX_ANALYSIS.md](../explanation/research/PEN_V1.2.1_RENDERING_UIUX_ANALYSIS.md)
 
 ---
 

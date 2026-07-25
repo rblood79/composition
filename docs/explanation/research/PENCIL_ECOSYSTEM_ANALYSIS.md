@@ -5,6 +5,8 @@
 **관련 메모리**: [`pencil-component-visual-markers`](../../../.claude/memory), [`feedback-composition-enterprise-target`](../../../.claude/memory), [`feedback-no-fallback-thinking`](../../../.claude/memory)
 **관련 ADR**: ADR-116 (canonical-only-runtime), ADR-122 (canonical SSOT), ADR-130 (frame), ADR-134 (AI 통합), ADR-142 (canonical document component model)
 
+> **⚠️ STALE (2026-07-26)**: 본 문서의 Pencil.app 서술 일부가 v1.2.1 추출본 실측으로 반증됨 — ① 렌더러는 "native Skia (koffi FFI)" 가 아니라 **자체 C++ WASM (`pencil.wasm`, Skia m149 임베드)**, ② ".pen = closed format" 이 아니라 **평문 JSON (스키마 v2.14)**, ③ Helper 4-프로세스는 Electron 표준 구성 (차별점 아님), ④ 앱은 **Pen (pen.dev) 으로 리브랜딩**. 정정 상세: [PEN_V1.2.1_RENDERING_UIUX_ANALYSIS.md](PEN_V1.2.1_RENDERING_UIUX_ANALYSIS.md) §7. openpencil / open-pencil 서술은 유효 유지.
+
 ---
 
 ## 1. 3개 디렉토리의 실제 정체

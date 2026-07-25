@@ -4,6 +4,8 @@
 > **선행 문서**: [PENCIL_ECOSYSTEM_ANALYSIS.md](PENCIL_ECOSYSTEM_ANALYSIS.md) — 3개 디렉토리 정체 / 기술 스택 / 사용자 framing 정정
 > **범위**: 렌더링 파이프라인, 캐시 계층, 측정 인프라, paint pool, viewport 처리만. UX / 데이터 모델 / AI 통합은 선행 문서.
 > **방법**: openpencil + open-pencil 소스 직접 read (각 1,500-3,000 LOC 이내 핵심 파일 read), Pencil.app 은 binary 메타데이터 + node_modules 만 (asar 본체 접근 불가).
+>
+> **⚠️ STALE (2026-07-26)**: Pencil.app 서술 ("native Skia + 4-process 분리까지만 확정") 이 v1.2.1 asar 전개 실측으로 대체됨 — 실체는 **자체 C++ WASM 엔진 (Skia m149 임베드) + JS 레이아웃**이며, 본체도 open-pencil T2 와 같은 계열의 **콘텐츠 캐시 surface + stale blit** 수법을 사용. 실측 정본: [PEN_V1.2.1_RENDERING_UIUX_ANALYSIS.md](PEN_V1.2.1_RENDERING_UIUX_ANALYSIS.md) §3. openpencil / open-pencil 분석은 유효 유지.
 
 ---
 
