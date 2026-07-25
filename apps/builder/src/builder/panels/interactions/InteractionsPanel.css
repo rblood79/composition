@@ -1,0 +1,112 @@
+/**
+ * ADR-158 Phase 2 — Interactions 패널 전용 스타일.
+ *
+ * ADR-163 패널 표준 준수: 구조 예약 prefix (`panel-*` / `section-*` / `fieldset-*`
+ * / `tab-*`) 는 여기서 base 정의하지 않는다 — 고유 클래스(`interaction-*` /
+ * `interactions-*`) 만 선언한다. 색상은 시맨틱 토큰만 사용 (원시 토큰·하드코딩 금지).
+ */
+
+.interactions-empty {
+  margin: 0;
+  padding: var(--spacing-sm) 0;
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.interaction-rule {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-overlay);
+  overflow: hidden;
+}
+
+.interaction-rule[data-expanded] {
+  border-color: var(--accent);
+}
+
+.interaction-rule-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-height: 32px;
+  padding-right: var(--spacing-xs);
+}
+
+.interaction-rule-toggle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.interaction-rule-toggle:hover {
+  color: var(--fg-emphasis);
+}
+
+.interaction-rule-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.interaction-rule-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+
+.interaction-rule-remove:hover {
+  background: var(--bg-muted);
+  color: var(--negative);
+}
+
+/* fieldset 기본 min-inline-size: min-content 해제 — 좁은 패널에서 폭이 밀리지 않도록 */
+.interaction-rule-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  padding: var(--spacing-sm);
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0;
+}
+
+.interactions-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  width: 100%;
+  min-height: 28px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.interactions-add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}

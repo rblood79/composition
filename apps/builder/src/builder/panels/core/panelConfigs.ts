@@ -34,7 +34,7 @@ import { DataTableEditorPanel } from "../datatable/DataTableEditorPanel";
 // Editor panels
 import { PropertiesPanel } from "../properties/PropertiesPanel";
 import { StylesPanel } from "../styles/StylesPanel";
-import { EventsPanel } from "../events/EventsPanel";
+import { InteractionsPanel } from "../interactions/InteractionsPanel";
 import { HistoryPanel } from "../history/HistoryPanel";
 
 // ADR-131 Phase 8 (2026-05-13): DataPanel 제거 — DataTablePanel (기존) 가 data SSOT.
@@ -193,16 +193,18 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     shortcut: "Ctrl+Shift+S",
   },
   {
+    // ADR-158 Phase 2 — EventsPanel → InteractionsPanel 교체.
+    // `id` 는 패널 위치/크기 persist 키라 유지한다 (rename 시 사용자 레이아웃 소실).
     id: "events",
-    name: "이벤트",
-    nameEn: "Events",
+    name: "인터랙션",
+    nameEn: "Interactions",
     icon: SquareMousePointer,
-    component: EventsPanel,
+    component: InteractionsPanel,
     category: "editor",
     defaultPosition: "right",
     minWidth: 233,
     maxWidth: 500,
-    description: "이벤트 핸들러 관리",
+    description: "한 줄 규칙으로 요소 동작 정의",
     shortcut: "Ctrl+Shift+E",
   },
   // ADR-149 Phase 2c (2026-07-19): actions 패널 제거 (HC4) — ADR-131 Phase 5 G3

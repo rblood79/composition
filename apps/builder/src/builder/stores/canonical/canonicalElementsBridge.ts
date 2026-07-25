@@ -152,35 +152,55 @@ export function useDocumentEvents(): readonly InteractionRule[] {
 }
 
 /**
- * 특정 UI node 를 트리거로 가진 규칙만 filter.
+ * element 별 filter 결과 캐시.
  *
- * 빈 결과는 module-level 빈 배열 reference 사용 — useSyncExternalStore 의
- * `getSnapshot must return same value on re-call` 계약 충족.
+ * `useSyncExternalStore` 는 같은 상태에서 `getSnapshot` 이 **동일 reference** 를
+ * 돌려주기를 요구한다 (`getSnapshot should be cached`). `all.filter(...)` 는 호출마다
+ * 새 배열을 만들므로 그대로 반환하면 렌더 → 스냅샷 변경 감지 → 재렌더 무한 루프가 되어
+ * React 가 트리를 통째로 버린다 (화면 백지).
+ *
+ * store 는 mutation 시 `events` 배열을 새 reference 로 publish 하므로, **source 배열
+ * reference 를 유효성 토큰으로 삼아** element 별 결과를 캐시하면 정확히 무효화된다.
+ *
+ * **Why (2026-07-25 실측)**: 규칙 0개일 때는 frozen 빈 배열을 반환해 안전했고, 첫 규칙을
+ * 추가하는 순간(0→1)에만 터졌다. 구 `useEventsForTarget` 도 같은 결함을 갖고 있었으나
+ * production 소비자가 0개라 한 번도 드러나지 않았다.
+ */
+const rulesByElementCache = new Map<
+  string,
+  { source: readonly InteractionRule[]; result: readonly InteractionRule[] }
+>();
+
+function selectRulesForElement(
+  elementId: string | null,
+): readonly InteractionRule[] {
+  if (!elementId) return EMPTY_EVENT_LIST;
+  const all = selectActiveCanonicalDocument()?.events;
+  if (!all || all.length === 0) return EMPTY_EVENT_LIST;
+
+  const cached = rulesByElementCache.get(elementId);
+  if (cached && cached.source === all) return cached.result;
+
+  const filtered = all.filter((r) => r.elementId === elementId);
+  const result = filtered.length === 0 ? EMPTY_EVENT_LIST : filtered;
+  rulesByElementCache.set(elementId, { source: all, result });
+  return result;
+}
+
+/**
+ * 특정 UI node 를 트리거로 가진 규칙만 filter.
  *
  * ADR-158 Phase 1 — filter 키가 구 `SerializedEvent.target` 에서
  * `InteractionRule.elementId` 로 교체됐다. 신규 Interactions 패널의 canonical
  * 직접 read 경로 (breakdown §2 — 구 패널의 legacy projection 비의존).
- *
- * cross-call cache 가 필요해지면 (element 별 stable filter) useMemo + index map 도입.
  */
 export function useInteractionRulesForElement(
   elementId: string | null,
 ): readonly InteractionRule[] {
   return useSyncExternalStore(
     subscribeCanonicalStore,
-    () => {
-      if (!elementId) return EMPTY_EVENT_LIST as InteractionRule[];
-      const all = selectActiveCanonicalDocument()?.events;
-      if (!all || all.length === 0) {
-        return EMPTY_EVENT_LIST as InteractionRule[];
-      }
-      const filtered = all.filter((r) => r.elementId === elementId);
-      if (filtered.length === 0) {
-        return EMPTY_EVENT_LIST as InteractionRule[];
-      }
-      return filtered;
-    },
-    () => EMPTY_EVENT_LIST as InteractionRule[],
+    () => selectRulesForElement(elementId),
+    () => EMPTY_EVENT_LIST,
   );
 }
 
