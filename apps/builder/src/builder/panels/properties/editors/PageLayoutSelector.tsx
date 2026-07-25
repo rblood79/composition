@@ -19,6 +19,7 @@ import {
   getPageFrameBindingId,
 } from "../../../../adapters/canonical/pageFrameBinding";
 
+import "./styles/pageSelectors.css";
 interface PageLayoutSelectorProps {
   pageId: string;
   bindingMode?: "selection" | "explicit";

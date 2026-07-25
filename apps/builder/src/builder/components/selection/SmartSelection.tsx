@@ -12,6 +12,7 @@ import { Sparkles, Users, GitBranch, Box, Tag, Palette, Type } from "lucide-reac
 import { iconProps, iconLarge } from "../../../utils/ui/uiConstants";
 import { getAllSuggestions, type SuggestionResult } from "../../utils/smartSelection";
 
+import "./SmartSelection.css";
 export interface SmartSelectionProps {
   /** Reference element (primary selected element) */
   referenceElement: Element;

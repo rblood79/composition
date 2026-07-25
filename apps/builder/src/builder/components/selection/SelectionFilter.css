@@ -1,0 +1,61 @@
+/**
+ * SelectionFilter
+ *
+ * ADR-163 후속 — components/styles/index.css(잡화 1,169줄) 분할로 co-locate.
+ * cascade 보존을 위해 원본과 동일한 @layer builder-system 을 유지한다.
+ */
+
+@layer builder-system {
+  /* ========================================
+   * Selection Filter
+   * Phase 3: Advanced Selection
+   * ======================================== */
+  .selection-filter {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing);
+    padding: var(--spacing);
+    background: var(--bg-overlay);
+    border: 1px solid var(--border-hover);
+    border-radius: var(--radius-md);
+    margin-top: var(--spacing);
+  }
+
+  .selection-filter.collapsed {
+    padding: 0;
+  }
+
+  .filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: var(--spacing);
+    border-bottom: 1px solid var(--border-hover);
+  }
+
+  .filter-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--fg);
+  }
+
+  .filter-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing);
+  }
+
+  .filter-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding-top: var(--spacing);
+    border-top: 1px solid var(--border-hover);
+  }
+
+  .filter-actions .react-aria-Button {
+    flex: 1;
+  }
+}

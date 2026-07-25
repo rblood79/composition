@@ -1,0 +1,96 @@
+/**
+ * LoadingSpinner / 로딩 상태
+ *
+ * ADR-163 후속 — components/styles/index.css(잡화 1,169줄) 분할로 co-locate.
+ * cascade 보존을 위해 원본과 동일한 @layer builder-system 을 유지한다.
+ */
+
+@layer builder-system {
+  /* ========================================
+   * Loading Spinner
+   * ======================================== */
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing);
+    padding: var(--spacing-4);
+  }
+
+  .spinner {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+  }
+
+  /* 파일 자기완결성 유지 — monitor-panel.css / variable-debugger.css /
+     ScopedErrorBoundary.css 도 각자 동일 정의를 두는 기존 관례. index.css 의
+     `.spin` 유틸 정의에 의존하지 않는다. */
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .spinner-sm {
+    width: 24px;
+    height: 24px;
+  }
+
+  .spinner-md {
+    width: 32px;
+    height: 32px;
+  }
+
+  .spinner-lg {
+    width: 48px;
+    height: 48px;
+  }
+
+  .spinner-svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .spinner-circle {
+    stroke: var(--accent);
+    stroke-linecap: round;
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: 0;
+    animation: dash 1.5s ease-in-out infinite;
+  }
+
+  @keyframes dash {
+    0% {
+      stroke-dasharray: 1, 150;
+      stroke-dashoffset: 0;
+    }
+
+    50% {
+      stroke-dasharray: 90, 150;
+      stroke-dashoffset: -35;
+    }
+
+    100% {
+      stroke-dasharray: 90, 150;
+      stroke-dashoffset: -124;
+    }
+  }
+
+  /* Loading Spinner 전용 - .loading-state 컨텍스트 */
+  .loading-state .loading-message {
+    font-size: var(--text-sm);
+    color: var(--fg);
+    text-align: center;
+  }
+
+  .loading-state .loading-description {
+    font-size: var(--text-xs);
+    color: var(--fg-muted);
+    text-align: center;
+  }
+}

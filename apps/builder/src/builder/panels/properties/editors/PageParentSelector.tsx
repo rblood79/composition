@@ -32,6 +32,7 @@ import {
 import type { Page } from "../../../../types/builder/unified.types";
 import { syncActiveCanonicalPageTreeMetadata } from "../../nodes/tree/PageTree/usePageTreeData";
 
+import "./styles/pageSelectors.css";
 interface PageParentSelectorProps {
   pageId: string;
 }

@@ -12,6 +12,7 @@ import { Filter, X } from "lucide-react";
 import { Button } from "@composition/shared/components";
 import { iconProps } from "../../../utils/ui/uiConstants";
 
+import "./SelectionFilter.css";
 export interface SelectionFilterProps {
   /** 전체 요소 목록 */
   allElements: Element[];

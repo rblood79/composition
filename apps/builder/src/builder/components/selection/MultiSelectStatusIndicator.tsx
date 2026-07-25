@@ -25,6 +25,7 @@ import { iconProps } from "../../../utils/ui/uiConstants";
 import type { AlignmentType } from "../../stores/utils/elementAlignment";
 import type { DistributionType } from "../../stores/utils/elementDistribution";
 
+import "./MultiSelectStatusIndicator.css";
 export interface MultiSelectStatusIndicatorProps {
   /** 선택된 요소 개수 */
   count: number;

@@ -1,0 +1,130 @@
+/**
+ * SmartSelection
+ *
+ * ADR-163 후속 — components/styles/index.css(잡화 1,169줄) 분할로 co-locate.
+ * cascade 보존을 위해 원본과 동일한 @layer builder-system 을 유지한다.
+ */
+
+@layer builder-system {
+  /* ========================================
+   * Smart Selection
+   * Phase 9: Advanced Features
+   * ======================================== */
+  .smart-selection {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing);
+    padding: var(--spacing);
+    background: var(--bg-overlay);
+    border: 1px solid var(--border-hover);
+    border-radius: var(--radius-md);
+    margin-top: var(--spacing);
+  }
+
+  .smart-selection.empty {
+    padding: var(--spacing-lg);
+  }
+
+  .smart-selection-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding-bottom: var(--spacing);
+    border-bottom: 1px solid var(--border-hover);
+  }
+
+  .smart-selection-header h3 {
+    flex: 1;
+    margin: 0;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--fg);
+  }
+
+  .smart-selection-header .suggestion-count {
+    font-size: var(--text-xs);
+    color: var(--fg-muted);
+    background: var(--bg-muted);
+    padding: var(--spacing-2xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+  }
+
+  .suggestions-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2xs);
+  }
+
+  .suggestion-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: transparent;
+    border: 1px solid var(--border-hover);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 150ms;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .suggestion-item:hover {
+    background: var(--bg-muted);
+    border-color: var(--color-primary-500);
+  }
+
+  .suggestion-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-2xs);
+    flex: 1;
+  }
+
+  .suggestion-description {
+    font-size: var(--text-sm);
+    color: var(--fg);
+    font-weight: var(--font-weight-medium);
+  }
+
+  .suggestion-count-badge {
+    font-size: var(--text-xs);
+    color: var(--fg-muted);
+  }
+
+  .smart-selection-footer {
+    padding-top: var(--spacing);
+    border-top: 1px solid var(--border-hover);
+  }
+
+  .footer-hint {
+    margin: 0;
+    font-size: var(--text-xs);
+    color: var(--fg-muted);
+    text-align: center;
+  }
+
+  .smart-selection .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing);
+    padding: var(--spacing-lg);
+  }
+
+  .smart-selection .empty-text {
+    margin: 0;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--fg);
+  }
+
+  .smart-selection .empty-hint {
+    margin: 0;
+    font-size: var(--text-xs);
+    color: var(--fg-muted);
+    text-align: center;
+    max-width: 300px;
+  }
+}

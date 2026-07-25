@@ -27,6 +27,7 @@ import {
 } from "../constants/styleOptions";
 import { isFillDerivedStyleProp } from "../utils/fillDerivedStyleProps";
 
+import "./ModifiedStylesSection.css";
 interface ModifiedStylesSectionProps {
   selectedElement: SelectedElement;
 }

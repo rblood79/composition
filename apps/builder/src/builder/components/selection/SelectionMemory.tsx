@@ -15,6 +15,7 @@ import {
   type SelectionHistoryEntry,
 } from "../../utils/selectionMemory";
 
+import "./SelectionMemory.css";
 export interface SelectionMemoryProps {
   /** Current page ID */
   currentPageId: string | null;

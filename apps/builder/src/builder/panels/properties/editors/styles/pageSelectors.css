@@ -1,0 +1,100 @@
+/**
+ * PageLayoutSelector / PageParentSelector
+ *
+ * ADR-163 후속 — components/styles/index.css(잡화 1,169줄) 분할로 co-locate.
+ * cascade 보존을 위해 원본과 동일한 @layer builder-system 을 유지한다.
+ */
+
+@layer builder-system {
+  /* ========================================
+   * PageParentSelector & PageLayoutSelector
+   * Nested Routes & Slug System
+   * ======================================== */
+  .page-layout-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    background: var(--bg-raised);
+    border-radius: var(--radius-sm);
+  }
+
+  .page-layout-description {
+    margin: 0;
+    font-size: var(--text-xs);
+    color: var(--fg-muted);
+  }
+
+  .page-layout-clear {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-xs);
+    background: transparent;
+    border: 1px solid var(--color-error-300);
+    border-radius: var(--radius-sm);
+    color: var(--color-error-600);
+    font-size: var(--text-xs);
+    cursor: pointer;
+    transition: all 150ms;
+
+    &:hover {
+      background: var(--color-error-50);
+      border-color: var(--color-error-500);
+    }
+  }
+
+  .page-slug-input {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .page-slug-error {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: var(--color-error-50);
+    border-radius: var(--radius-sm);
+    color: var(--color-error-600);
+    font-size: var(--text-xs);
+  }
+
+  .page-slug-generate {
+    padding: var(--spacing-xs);
+    background: var(--bg-raised);
+    border: 1px solid var(--border-hover);
+    border-radius: var(--radius-sm);
+    color: var(--fg);
+    font-size: var(--text-xs);
+    cursor: pointer;
+    transition: all 150ms;
+
+    &:hover {
+      background: var(--bg-overlay);
+      border-color: var(--accent);
+    }
+  }
+
+  .page-url-preview {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm);
+    background: var(--bg-raised);
+    border-radius: var(--radius-sm);
+    margin-top: var(--spacing-sm);
+  }
+
+  .page-url-label {
+    font-size: var(--text-xs);
+    color: var(--fg-muted);
+  }
+
+  .page-url-value {
+    font-size: var(--text-sm);
+    font-family: var(--font-mono);
+    color: var(--accent);
+    word-break: break-all;
+  }
+}

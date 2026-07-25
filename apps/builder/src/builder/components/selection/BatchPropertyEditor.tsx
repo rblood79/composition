@@ -14,6 +14,7 @@ import { iconProps } from "../../../utils/ui/uiConstants";
 import { findCommonProperties, filterPropertiesByCategory, isBatchEditable, getPropertyType } from "../../panels/properties/utils/batchPropertyUtils";
 import type { PropertyValue } from "../../panels/properties/utils/batchPropertyUtils";
 
+import "./BatchPropertyEditor.css";
 export interface BatchPropertyEditorProps {
   /** 선택된 요소 배열 */
   selectedElements: Element[];

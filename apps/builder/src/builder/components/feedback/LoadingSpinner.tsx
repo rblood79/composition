@@ -7,6 +7,7 @@
 
 import type { ReactNode } from "react";
 
+import "./LoadingSpinner.css";
 export interface LoadingSpinnerProps {
   /** 표시할 아이콘 (선택, 기본: 회전 스피너) */
   icon?: ReactNode;
