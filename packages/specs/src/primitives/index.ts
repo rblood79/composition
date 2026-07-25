@@ -39,7 +39,6 @@ export { radius, getRadiusToken } from "./radius";
 
 // Shadows
 export {
-  shadows,
   lightShadows,
   darkShadows,
   getShadowToken,

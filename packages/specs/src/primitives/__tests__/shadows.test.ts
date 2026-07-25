@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import {
-  shadows,
   lightShadows,
   darkShadows,
   getShadowToken,
@@ -18,11 +17,11 @@ import type { ShadowTokens } from "../../types/token.types";
  */
 describe("shadows — inset 프리셋 값 계약", () => {
   it("inset 프리셋 = 'inset 0 2px 8px 0 rgba(0, 0, 0, 0.16)'", () => {
-    expect(shadows.inset).toBe("inset 0 2px 8px 0 rgba(0, 0, 0, 0.16)");
+    expect(lightShadows.inset).toBe("inset 0 2px 8px 0 rgba(0, 0, 0, 0.16)");
   });
 
   it("parseShadow(inset) → inset:true, offsetY 2, blur 8, alpha 0.16", () => {
-    const [s] = parseShadow(shadows.inset);
+    const [s] = parseShadow(lightShadows.inset);
     expect(s.inset).toBe(true);
     expect(s.offsetX).toBe(0);
     expect(s.offsetY).toBe(2);
@@ -31,7 +30,7 @@ describe("shadows — inset 프리셋 값 계약", () => {
   });
 
   it("outer 프리셋(lg)은 inset:false (회귀 가드)", () => {
-    const parsed = parseShadow(shadows.lg);
+    const parsed = parseShadow(lightShadows.lg);
     expect(parsed.every((s) => s.inset === false)).toBe(true);
   });
 });
@@ -109,10 +108,6 @@ describe("shadows — ADR-166 Spectrum 2 스케일 계약", () => {
     expect(getShadowToken("md")).toBe(lightShadows.md);
     expect(getShadowToken("md", "light")).toBe(lightShadows.md);
     expect(getShadowToken("md", "dark")).toBe(darkShadows.md);
-  });
-
-  it("shadows 별칭 = lightShadows (하위 호환)", () => {
-    expect(shadows).toBe(lightShadows);
   });
 
   /**

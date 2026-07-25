@@ -175,9 +175,8 @@ export {
   // Radius
   radius,
   getRadiusToken,
-  // Shadows — `shadows` 는 lightShadows 별칭(하위 호환). theme 별 값이 필요한 소비처는
-  //   light/dark map 또는 `getShadowToken(name, theme)` 사용 (ADR-166 Phase 1)
-  shadows,
+  // Shadows — light 별칭 `shadows` 는 제거됨 (2026-07-25). light 값이 필요하면 `lightShadows`
+  //   를 명시하고, theme 을 따라야 하면 `getShadowToken(name, theme)` 을 쓴다
   lightShadows,
   darkShadows,
   getShadowToken,

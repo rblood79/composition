@@ -83,13 +83,17 @@ export const darkShadows: ShadowTokens = {
   inset: "inset 0 2px 8px 0 rgba(0, 0, 0, 0.48)",
 };
 
-/**
- * 그림자 토큰 (light 별칭 — 하위 호환)
+/*
+ * `shadows` (light 별칭) 는 제거됐다 (2026-07-25).
  *
- * theme 을 의식하지 않는 기존 소비처를 위해 유지한다. 신규 코드는 theme 인자를 받는
+ * ADR-166 Phase 1 이 토큰을 theme 별로 가른 뒤 하위 호환용으로 남겨뒀는데, 이름이 theme 을
+ * 감춰서 **light 를 쓰고 있다는 사실이 호출부에서 안 보인다** — 실제로 스타일 패널이 이 별칭으로
+ * 그림자를 기록해 사용자 선택이 light 에 고착되던 결함의 통로였다(ADR-166 후속에서 해소).
+ *
+ * light 값이 필요하면 `lightShadows` 를 명시적으로 쓰고, theme 을 따라야 하면
  * `getShadowToken(name, theme)` 또는 `resolveToken("{shadow.x}", theme)` 를 쓴다.
+ * 저장된 리터럴을 현재 theme 으로 되돌리는 것은 `shadowNormalize.ts` 가 담당한다.
  */
-export const shadows: ShadowTokens = lightShadows;
 
 /**
  * 그림자 토큰 값 반환

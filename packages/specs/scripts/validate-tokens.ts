@@ -10,7 +10,7 @@ import { lightColors, darkColors } from "../src/primitives/colors";
 import { spacing } from "../src/primitives/spacing";
 import { typography } from "../src/primitives/typography";
 import { radius } from "../src/primitives/radius";
-import { shadows } from "../src/primitives/shadows";
+import { lightShadows } from "../src/primitives/shadows";
 import { resolveToken } from "../src/renderers/utils/tokenResolver";
 import { isValidTokenRef, type TokenRef } from "../src/types/token.types";
 import type { ComponentSpec, VariantSpec, SizeSpec } from "../src/types";
@@ -38,7 +38,8 @@ function collectPrimitiveTokens(): Map<string, Set<string>> {
   tokens.set("spacing", new Set(Object.keys(spacing)));
   tokens.set("typography", new Set(Object.keys(typography)));
   tokens.set("radius", new Set(Object.keys(radius)));
-  tokens.set("shadow", new Set(Object.keys(shadows)));
+  // 키 열거만 하므로 theme 무관 — light/dark 는 같은 키 집합이다 (shadowCssParity 가 잠금).
+  tokens.set("shadow", new Set(Object.keys(lightShadows)));
   return tokens;
 }
 

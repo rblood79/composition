@@ -16,7 +16,7 @@ import {
 import { spacing } from "../../../primitives/spacing";
 import { radius } from "../../../primitives/radius";
 import { typography } from "../../../primitives/typography";
-import { shadows } from "../../../primitives/shadows";
+import { lightShadows } from "../../../primitives/shadows";
 import type { TokenRef } from "../../../types/token.types";
 
 describe("ADR-082 G1 — cssVarToTokenRef 역변환 parser", () => {
@@ -62,7 +62,7 @@ describe("ADR-082 G1 — cssVarToTokenRef 역변환 parser", () => {
     });
 
     it("shadow tokens: 왕복 일치", () => {
-      for (const name of Object.keys(shadows)) {
+      for (const name of Object.keys(lightShadows)) {
         const cssVar = `var(--shadow-${name})`;
         const token = cssVarToTokenRef(cssVar);
         expect(token, `name=${name}`).toBe(`{shadow.${name}}`);
