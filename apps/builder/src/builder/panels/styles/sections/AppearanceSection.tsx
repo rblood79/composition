@@ -29,7 +29,13 @@ import {
 } from "lucide-react";
 import { SquareOff } from "../../../components/icons";
 import { OVERFLOW_OPTIONS } from "../constants/styleOptions";
-import { shadows, lightShadows, darkShadows } from "@composition/specs";
+import {
+  applyShadowInset,
+  getShadowToken,
+  matchShadowPreset,
+  stripShadowInset,
+} from "@composition/specs";
+import type { ShadowPresetKey } from "@composition/specs";
 import { useStyleActions } from "../hooks/useStyleActions";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useAppearanceValues } from "../hooks/useAppearanceValues";
@@ -59,35 +65,20 @@ const SHADOW_PRESET_OPTIONS = [
  * CSS box-shadow 값 → 프리셋 키 역매핑.
  *
  * ADR-166 Phase 2 (R1): light 값만 인덱싱하면 dark 값이 들어왔을 때 프리셋이 "custom" 으로
- * 표시된다 — Phase 1 에서 토큰이 theme 별로 갈라졌기 때문. 양쪽 map 을 모두 인덱싱해
- * canvas theme 과 무관하게 같은 프리셋 키로 수렴시킨다. light 를 먼저 넣어 `none` 처럼
- * 두 theme 이 같은 값을 갖는 키에서 light 항목이 남게 한다(현재는 값이 같아 무해).
+ * 표시된다 — Phase 1 에서 토큰이 theme 별로 갈라졌기 때문. 양쪽 map 을 인덱싱해 canvas theme
+ * 과 무관하게 같은 프리셋 키로 수렴시킨다.
+ *
+ * ADR-166 후속: 역매핑 구현을 specs `matchShadowPreset` 로 옮겨 Skia / DOM 소비자와 **한 벌**을
+ * 쓴다. 세 곳이 각자 map 을 만들면 프리셋 값이 바뀔 때 한 곳만 갱신돼 조용히 어긋난다.
+ * 패널은 표시용이라 inset 토글 여부와 무관하게 원 프리셋 키를 원한다 (`insetApplied` 무시).
  */
-const cssToPresetMap = new Map([
-  ...Object.entries(lightShadows).map(([key, val]) => [val, key] as const),
-  ...Object.entries(darkShadows).map(([key, val]) => [val, key] as const),
-]);
-
 function boxShadowToPresetKey(cssValue: string): string {
   if (!cssValue || cssValue === "none") return "none";
-  return cssToPresetMap.get(cssValue) ?? cssValue;
+  return matchShadowPreset(cssValue)?.key ?? cssValue;
 }
 
-// boxShadow 레이어 단위 변환 — 쉼표 split 은 rgba(...) 내부 쉼표를 건너뜀
-//   (parseShadow 와 동일 regex). 프리셋 문자열의 ", " join 을 재현해 strip → 원 프리셋 복원.
-function mapShadowLayers(
-  cssValue: string,
-  fn: (bareLayer: string) => string,
-): string {
-  return cssValue
-    .split(/,(?![^(]*\))/)
-    .map((part) => fn(part.trim().replace(/^inset\s+/, "")))
-    .join(", ");
-}
-
-const stripInset = (cssValue: string) => mapShadowLayers(cssValue, (b) => b);
-const applyInset = (cssValue: string) =>
-  mapShadowLayers(cssValue, (b) => `inset ${b}`);
+const stripInset = stripShadowInset;
+const applyInset = applyShadowInset;
 
 const AppearanceSectionContent = memo(function AppearanceSectionContent() {
   const { updateStyle } = useStyleActions();
@@ -213,7 +204,15 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
             } else if (value === "none") {
               updateStyle("boxShadow", "none");
             } else {
-              const cssValue = shadows[value as keyof typeof shadows] ?? value;
+              // **light 를 정규형으로 기록한다** (ADR-166 후속). 저장 형식은 리터럴이라
+              //   theme 정보를 담지 못하므로 어느 theme 값을 넣든 한쪽으로 굳는다 — 대신
+              //   읽는 쪽(Skia `normalizeShadowForTheme` / DOM `shadowLiteralToCssVar`)이
+              //   현재 theme 으로 되돌린다. 여기서 canvas theme 값을 기록하면 저장값이
+              //   기록 시점에 따라 갈려 diff 만 지저분해지고 얻는 게 없다.
+              //   `?? value` 는 동적 "custom" 항목용 — 그 옵션의 value 는 프리셋 키가 아니라
+              //   원본 CSS 라 토큰 조회가 undefined 다.
+              const cssValue =
+                getShadowToken(value as ShadowPresetKey, "light") ?? value;
               // 프리셋 전환 시 inset 토글 상태 유지 (sm~lg × inset 직교 축)
               updateStyle(
                 "boxShadow",
