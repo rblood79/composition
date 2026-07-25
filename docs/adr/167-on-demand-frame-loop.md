@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-07-26
+Proposed — 2026-07-26 (리뷰 round 1 반영 완료 — [reviews/167.md](reviews/167.md): 이슈 5건 중 4건 fixed / 1건 deferred, 결론 "승인 가능")
 
 ## Context
 
@@ -10,10 +10,11 @@ builder 캔버스의 rAF 루프 (`apps/builder/src/builder/workspace/canvas/skia
 
 Pen v1.2.1 실측 ([PEN_V1.2.1_RENDERING_UIUX_ANALYSIS.md](../explanation/research/PEN_V1.2.1_RENDERING_UIUX_ANALYSIS.md) §3-1/§6-1-b) 은 `framesRequested` 카운터로 idle 시 rAF 체인 자체를 종료 (`activeRenderLoop=false`) 하고 상태 변경 지점이 `requestFrame()` 으로 재가동한다. Figma 도 "변경 시에만 렌더" on-demand 모델을 공개적으로 채택한 선례.
 
-composition 의 전환 비용이 낮은 구조적 근거 (2026-07-26 실코드 확인):
+composition 의 wake 배선 구조 (2026-07-26 실코드 확인 — **리뷰 round 1 에서 초판 서술을 정정**):
 
-1. 무효화 신호 대부분이 이미 **허브 2개**를 경유 — `recordInvalidation` (`skia/renderInvalidation.ts`, ADR-035 의 7-reason 허브) + `ViewportController.addUpdateListener` (camera 이벤트). wake 배선 = 허브 후킹 2곳 + 잔여 개별 지점.
-2. version 카운터 규율 (`registryVersion`/`overlayVersion`/`themeVersion` 등) 이 이미 지불된 비용 — **version bump 지점 = requestFrame 지점** 등식.
+1. **카메라 축은 단일 허브로 완결** — `viewportState` (프레임이 읽는 뮤터블 카메라) 쓰기가 `ViewportController.notifyUpdateListeners()` **안에서만** 일어나고 (`viewport/ViewportController.ts:276-284`) 같은 함수가 listener 를 발화한다. 호출자 3곳 (`updatePan:149` / `zoomAtPoint:214` / `setPosition:235`) 이 wheel·drag·프로그램적 이동 (`panToPage` → `viewportActions.ts:119`) 전부를 덮으므로, `addUpdateListener` 구독 1곳이 카메라 wake 를 100% 커버한다. (현재 구독자 0건 — 정의만 존재하는 API)
+2. **콘텐츠·오버레이 축은 허브가 아니라 폴링이다** — `recordInvalidation` (`skia/renderInvalidation.ts:85`) 호출 25곳 중 **16곳이 `renderFrameCore` 내부** (`SkiaCanvas.tsx:449-750`) 의 **변경 감지기**다. 프레임이 signature/version 을 ref 와 비교해 차이를 발견한 *결과*로 기록하는 것이라, 루프가 멈춘 상태에서는 실행 자체가 안 된다 — **`recordInvalidation` 후킹은 이 16곳에 대해 순환 (wake 불가)**. 프레임 밖 9곳 (`useSkiaNode.ts:67,83` / `SkiaCanvas.tsx:276,436,773,800,811,843,863`) 만 유효 wake 지점.
+3. 따라서 **wake 는 폴링이 감지하던 상류 mutation 지점에 새로 심어야 한다** — 주요 2 경로가 현재 무기록: ① 콘텐츠 편집은 `StoreRenderBridge` 자체 구독 → `resync` → `registerSkiaNode` (`useSkiaNode.ts:40,46`) 로 `registryVersion` 만 올리고 `recordInvalidation` 을 호출하지 않는다 ② 선택/편집 컨텍스트·AI 는 `invalidationPacket` useMemo (`SkiaCanvas.tsx:173`) → `useEffect [invalidationPacket]` (`:279-281`) 가 ref 만 갱신한다. 이 두 지점이 Phase 1 의 실제 1차 배선 대상 (breakdown §3 갱신).
 
 **인접 ADR 직교성**: [ADR-153](153-render-optimization-measurement-first-adoption.md) (Picture 캐시 + GPU 측정 보강, Proposed) 은 **content 프레임 내부 비용** 축이고, 본 ADR 은 **프레임 실행 여부** 축 — scope 비중첩. 둘 다 측정 우선 게이트 (본 ADR G0 ↔ 153 Phase 1) 라는 방법론만 공유한다.
 
@@ -80,7 +81,7 @@ composition 의 전환 비용이 낮은 구조적 근거 (2026-07-26 실코드 �
 선택 근거:
 
 1. Hard Constraint 3 (idle wake 0/s) 을 충족하면서, B 의 유일 HIGH (wake 누락 = 영구 stale) 를 하트비트로 "최대 1s 지연 + dev 가시 신호" 로 강등 — 잔존 위험이 MED 로 수용 가능.
-2. 배선 비용이 구조적으로 낮음 — 허브 2개 (`recordInvalidation` / `ViewportController.addUpdateListener`) 후킹이 대부분을 커버하고, version bump 규율은 이미 지불된 비용.
+2. 배선 대상이 **열거 가능**하고 규모가 작음 — 카메라 축은 허브 1곳 (`addUpdateListener`) 으로 완결, 나머지는 프레임 밖 `recordInvalidation` 9곳 + 상류 mutation 2 경로 (`StoreRenderBridge.resync` / `invalidationPacket` effect) + 진행형 3종. **단 "허브 후킹만으로 대부분 커버" 는 아니다** (Context 2·3 — 리뷰 정정): 프레임 안 감지기 16곳은 후킹 대상이 아니라 상류 배선으로 대체되어야 하며, 이것이 Phase 1 의 실질 작업량이다.
 3. 롤백이 자명 — `CONTINUOUS_RAF_FALLBACK` 플래그 1줄로 현행 복귀 (breakdown §7).
 
 기각 사유:
@@ -92,23 +93,26 @@ composition 의 전환 비용이 낮은 구조적 근거 (2026-07-26 실코드 �
 
 ## Risks
 
-| ID  | 위험                                                                                                                                                                               | 심각도 | 대응                                                                                                                       |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | -------------------------------------------------------------------------------------------------------------------------- |
-| R1  | wake 소스 누락 → stale (하트비트로 최대 1s 지연 강등). 의심 경로: `overlayVersionRef.current++` 3곳 (SkiaCanvas.tsx) / `SkiaRenderer.cleanupTimer` 만료 / 허브 미경유 version bump |  MED   | Phase 0 인벤토리 grep freeze (breakdown §3) + G1 시나리오 8종 + dev 하트비트 경고                                          |
-| R2  | 신규 무효화 소스 추가 시 wake 등재 누락 (지속 보수 의무)                                                                                                                           |  MED   | `.claude/rules/canvas-rendering.md` 에 등재 의무 규칙 추가 (Phase 4) — 5-심볼 체인과 동급. dev 하트비트 계측이 상시 감지기 |
-| R3  | transition/animation/프로그램적 카메라 애니메이션 (`panToPage`) 이 정지 상태에서 tick 을 못 받음                                                                                   |  MED   | active 동안 프레임 말미 자체 재예약 (Phase 2) + G2. 카메라 애니메이션은 허브 B (updateListener) 로 커버                    |
-| R4  | 하트비트 폴백이 wake 누락 버그를 은폐                                                                                                                                              |  LOW   | dev 모드 console.warn + `heartbeatWakeCount` 계측 (Phase 3) — G4 로 0건 확인                                               |
-| R5  | 재가동 경로 오버헤드로 제스처 첫 프레임 지연                                                                                                                                       |  LOW   | `requestFrame()` 은 카운터 증가 + 조건부 rAF 1회 — 측정 후 G2 60fps 로 확인                                                |
+| ID  | 위험                                                                                                                                                                                                                                                                                                                                                                                           | 심각도 | 대응                                                                                                                                    |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | --------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | wake 소스 누락 → stale (하트비트로 최대 1s 지연 강등). 확정 경로 (리뷰 round 1): **① `StoreRenderBridge.resync` → `registryVersion` bump 무기록** (콘텐츠 편집 주경로) **② `invalidationPacket` useEffect (`SkiaCanvas.tsx:279`) 무기록** (선택/편집/AI) ③ 프레임 안 `overlayVersionRef.current++` **15곳** (초판 "3곳" 오기) 은 폴링 결과라 후킹 대상 아님 ④ `SkiaRenderer.cleanupTimer` 만료 |  MED   | Phase 0 인벤토리 grep freeze (breakdown §3) + G1 시나리오 8종 + dev 하트비트 경고 + **G1a 상류 배선 정적 가드**                         |
+| R1a | 프레임 안 감지기 16곳 (`SkiaCanvas.tsx:449-750`) 을 "허브 A 후킹으로 커버됨" 으로 오판 → 순환 배선 (wake 0) 인데 커버된 것으로 보고. **초판 Context 가 실제로 이 오판을 담고 있었다**                                                                                                                                                                                                          |  MED   | Phase 1 완료 시 `recordInvalidation` 호출 지점을 프레임 내/외로 분류한 정적 가드 (G1a) — 프레임 내 호출을 wake 근거로 계상 금지         |
+| R2  | 신규 무효화 소스 추가 시 wake 등재 누락 (지속 보수 의무)                                                                                                                                                                                                                                                                                                                                       |  MED   | `.claude/rules/canvas-rendering.md` 에 등재 의무 규칙 추가 (Phase 4) — 5-심볼 체인과 동급. dev 하트비트 계측이 상시 감지기              |
+| R3  | transition/animation/프로그램적 카메라 애니메이션 (`panToPage`) 이 정지 상태에서 tick 을 못 받음                                                                                                                                                                                                                                                                                               |  MED   | active 동안 프레임 말미 자체 재예약 (Phase 2) + G2. 카메라 애니메이션은 허브 B (updateListener) 로 커버                                 |
+| R3a | **AI 시각 이펙트가 자체 시간축 진행형** — flash 는 프레임 안에서 `performance.now()` 대비 `progress` 를 계산하고 (`SkiaCanvas.tsx:535-558`) generating 은 매 프레임 회전. `transitionManager`/`animationEngine` 소속이 아니라 R3 대응에 안 걸린다 → 정지 상태에서 이펙트가 첫 프레임에 굳음                                                                                                    |  MED   | Phase 2 진행형 재예약 조건에 `aiState.generatingNodes.size + flashAnimations.size > 0` 추가 + breakdown §5 시나리오에 AI 이펙트 항 추가 |
+| R4  | 하트비트 폴백이 wake 누락 버그를 은폐                                                                                                                                                                                                                                                                                                                                                          |  LOW   | dev 모드 console.warn + `heartbeatWakeCount` 계측 (Phase 3) — G4 로 0건 확인                                                            |
+| R5  | 재가동 경로 오버헤드로 제스처 첫 프레임 지연                                                                                                                                                                                                                                                                                                                                                   |  LOW   | `requestFrame()` 은 카운터 증가 + 조건부 rAF 1회 — 측정 후 G2 60fps 로 확인                                                             |
 
 ## Gates
 
-| Gate | 시점         | 통과 조건                                                               | 실패 시 대안                                                              |
-| ---- | ------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| G0   | Phase 0 종료 | idle wake 비용이 측정 가능한 수준 (프레임당 JS 시간 실측치 기입)        | 대안 A 잔류로 ADR 기각 (사용자 판정 — scope 변경 결정 지점)               |
-| G1   | Phase 4      | breakdown §5 live 시나리오 8종 전수 PASS (stale 0건)                    | 누락 소스 배선 보강 후 재실측; 2회 실패 시 `CONTINUOUS_RAF_FALLBACK` 복귀 |
-| G2   | Phase 4      | 팬/줌 제스처 + transition 재생 중 60fps 유지                            | 재가동 경로 최적화 또는 플래그 복귀                                       |
-| G3   | Phase 4      | 완전 유휴 10s 간 rAF wake 0 (하트비트 1Hz 제외) — Performance 패널 실측 | 잔존 재예약 경로 추적 제거                                                |
-| G4   | Phase 4      | 시나리오 전수 실행 동안 dev 하트비트 경고 0건                           | 경고 발생 소스 개별 배선 후 재실행                                        |
+| Gate | 시점         | 통과 조건                                                                                                                                                                                                           | 실패 시 대안                                                              |
+| ---- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| G0   | Phase 0 종료 | idle wake 비용이 측정 가능한 수준 (프레임당 JS 시간 실측치 기입)                                                                                                                                                    | 대안 A 잔류로 ADR 기각 (사용자 판정 — scope 변경 결정 지점)               |
+| G1   | Phase 4      | breakdown §5 live 시나리오 **9종** 전수 PASS (stale 0건 — AI 이펙트 항 포함)                                                                                                                                        | 누락 소스 배선 보강 후 재실측; 2회 실패 시 `CONTINUOUS_RAF_FALLBACK` 복귀 |
+| G1a  | Phase 1 종료 | `recordInvalidation` 호출 지점의 프레임 내/외 분류 정적 가드 통과 — 프레임 내 호출 (현행 16곳) 이 wake 배선 근거로 계상되지 않음 + 상류 2 경로 (`StoreRenderBridge.resync` / `invalidationPacket` effect) 배선 확증 | 배선 재설계 (허브 후킹 전제 폐기) 후 Phase 1 재수행                       |
+| G2   | Phase 4      | 팬/줌 제스처 + transition 재생 중 60fps 유지                                                                                                                                                                        | 재가동 경로 최적화 또는 플래그 복귀                                       |
+| G3   | Phase 4      | 완전 유휴 10s 간 rAF wake 0 (하트비트 1Hz 제외) — Performance 패널 실측                                                                                                                                             | 잔존 재예약 경로 추적 제거                                                |
+| G4   | Phase 4      | 시나리오 전수 실행 동안 dev 하트비트 경고 0건                                                                                                                                                                       | 경고 발생 소스 개별 배선 후 재실행                                        |
 
 ## Consequences
 
