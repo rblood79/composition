@@ -1,69 +1,24 @@
 /**
- * Properties 패널 editor 공용 클래스 (ADR-163 Phase 4-c item 2)
+ * Properties 패널 editor 공용 클래스
  *
- * Tailwind 인라인 유틸(`p-4 text-center text-gray-500` 등) 을 제거하며 도입.
- * 값은 builder 패널 컨텍스트(`[data-context="builder"]`) 실측 대조로 확정 —
- * `--fg-muted` ≡ `--color-gray-500`, `--fg-disabled` ≡ `--color-gray-400`,
- * `--spacing-lg` ≡ 16px(`p-4`), `--spacing-sm` ≡ 8px(`ml-2`) 로 light mode diff 0.
- * 원시 토큰(`--color-*`) 직접 사용 금지 규칙(css-tokens.md) 정합 + dark mode 적응 확보.
+ * ADR-163 Phase 4-c 에서 Tailwind 인라인 대체용으로 도입한 뒤, dead chain 21파일
+ * 삭제(후속)로 소비자가 ItemsManager / ChildItemManager 2개만 남았다. 그 둘이
+ * 실제로 쓰는 클래스만 존치한다 — 삭제된 editor 전용이던 `.editor-empty-state` /
+ * `-item-meta` / `-item-note` / `-item-badge` / `-item-flag` / `-field-list` 와
+ * `.control-button--secondary` / `--delete` 는 함께 제거(신규 dead 방지).
+ *
+ * 값은 builder 패널 컨텍스트(`[data-context="builder"]`) 실측 대조로 확정.
+ * 원시 토큰(`--color-*`) 직접 사용 금지(css-tokens.md) 정합.
  */
 
 @layer components {
-  .editor-empty-state {
-    padding: var(--spacing-lg);
-    text-align: center;
-    color: var(--fg-muted);
-  }
-
-  /* 리스트 항목의 보조 정보 (셀 개수, 컬럼 수 등) */
-  .editor-item-meta {
-    color: var(--fg-disabled);
-    font-size: var(--text-xs);
-    line-height: var(--text-xs--line-height);
-  }
-
-  /* 항목 뒤에 덧붙는 짧은 설명 */
-  .editor-item-note {
-    margin-left: var(--spacing-sm);
-    color: var(--fg-muted);
-    font-size: var(--text-sm);
-    line-height: var(--text-sm--line-height);
-  }
-
-  /* 항목 상태 배지 (예: sorted / grouped) */
-  .editor-item-badge {
-    margin-left: var(--spacing-sm);
-    padding: 2px var(--spacing-xs);
-    border-radius: var(--radius-sm);
-    background: var(--bg-muted);
-    color: var(--informative);
-    font-size: var(--text-xs);
-    line-height: var(--text-xs--line-height);
-  }
-
-  /* 항목에 붙는 아이콘 플래그 */
-  .editor-item-flag {
-    color: var(--fg-muted);
-    font-size: var(--text-xs);
-    line-height: var(--text-xs--line-height);
-  }
-
-  /* 세로 스택 리스트 (구 `space-y-2`) */
-  .editor-field-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-  }
-
   /* ==========================================================================
-     editor 액션 버튼 (ADR-163 Phase 4-c 후속 — `.control-button` 정의 부재 해소)
-     `.control-button` 은 18곳(6파일)에서 쓰이면서 owner·modifier 모두 CSS 정의가
-     0건이라, live 5곳(ItemsManager 4 + ChildItemManager 1)이 순수 `<button>` 과
-     계산값이 동일했다(배경·패딩·커서 없음, 16px). 구 정의는 대규모 리팩터 이전
-     inspector CSS 의 `width: 100%` 한 줄뿐이었고 이후 재정의된 적이 없다.
-     시각 기준은 코드베이스의 기존 add 버튼 house style(`.add-kv-btn` /
-     `.add-action-button` / `.add-field-btn`) — dashed 어포던스 + 시맨틱 토큰.
-     modifier 는 §2 규칙대로 `--{state}` 접미 (bare `.add`/`.delete` 금지).
+     editor 액션 버튼 (`.control-button` 정의 부재 해소)
+     `.control-button` 은 owner·modifier 모두 CSS 정의가 0건이라 live 소비자가
+     순수 `<button>` 과 계산값이 동일했다(배경·패딩·커서 없음, 16px). 시각 기준은
+     코드베이스의 기존 add 버튼 house style(`.add-kv-btn` / `.add-action-button`
+     / `.add-field-btn`) — dashed 어포던스 + 시맨틱 토큰.
+     modifier 는 panel-structure.md §2 규칙대로 `--{state}` 접미.
      ========================================================================== */
 
   .editor-actions {
@@ -112,28 +67,5 @@
 
   .control-button--add:hover:not(:disabled) {
     color: var(--fg);
-  }
-
-  /* 보조 동작 (Cancel / Load / Refresh) — 중립 solid */
-  .control-button--secondary {
-    background: var(--bg-raised);
-    color: var(--fg-muted);
-  }
-
-  .control-button--secondary:hover:not(:disabled) {
-    color: var(--fg);
-  }
-
-  /* 파괴적 동작 (행/그룹 삭제) — 아이콘 단독 */
-  .control-button--delete {
-    border-color: transparent;
-    color: var(--fg-muted);
-    padding: var(--spacing-xs);
-  }
-
-  .control-button--delete:hover:not(:disabled) {
-    background: transparent;
-    border-color: var(--negative);
-    color: var(--negative);
   }
 }
