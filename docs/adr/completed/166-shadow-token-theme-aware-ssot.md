@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted — 2026-07-25 (리뷰 round 1 승인 — 이슈 5건 전건 fixed, [reviews/166.md](reviews/166.md))
+Implemented — 2026-07-25 (Phase 0~5 완결 · G1~G4 전부 통과)
+
+이전: Accepted — 2026-07-25 (리뷰 round 1 승인 — 이슈 5건 전건 fixed, [reviews/166.md](../reviews/166.md))
 
 ### 진행 로그
 
@@ -53,7 +55,7 @@ Accepted — 2026-07-25 (리뷰 round 1 승인 — 이슈 5건 전건 fixed, [re
 - `--shadow-*` 는 `var(--box-shadow-*, …)` 형태의 AI 테마 오버라이드 훅을 갖는다. TS 토큰 map 은 그 오버라이드를 모른다.
 - 실사용 데이터 부재 — overlay 그림자의 시각 변경을 사용자가 어느 정도 감내하는지에 대한 근거가 없다.
 
-> 실측 baseline 전수(값 언어 5채널 / 파서 2벌 / 토큰 비대칭 / Skia 소비 경로)는 [design breakdown §0](design/166-shadow-token-theme-aware-ssot-breakdown.md) 참조.
+> 실측 baseline 전수(값 언어 5채널 / 파서 2벌 / 토큰 비대칭 / Skia 소비 경로)는 [design breakdown §0](../design/166-shadow-token-theme-aware-ssot-breakdown.md) 참조.
 
 ## Alternatives Considered
 
@@ -149,7 +151,7 @@ dark 는 **전 레이어 alpha ×3** (Spectrum 규칙). overlay 3건은 `Tooltip
 3. **3단계로 줄인 이유**: Spectrum 이 4번째 단계를 발행하지 않는다. 임의 확장보다 축소가 "Spectrum 기반"이라는 결정에 충실하고, D3 `--shadow-xl` 소비처가 0건이라 코드 파손이 없다.
 4. **적용 범위는 D3 뿐**이다. 빌더 chrome(`App.css`)에도 같은 이름의 토큰이 한 단계 어긋난 값으로 존재하지만(design §1-2), builder-system layer 라 D3 SSOT 체인 밖이다.
 
-> 구현 상세: [166-shadow-token-theme-aware-ssot-breakdown.md](design/166-shadow-token-theme-aware-ssot-breakdown.md)
+> 구현 상세: [166-shadow-token-theme-aware-ssot-breakdown.md](../design/166-shadow-token-theme-aware-ssot-breakdown.md)
 
 ## Risks
 

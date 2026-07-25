@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [그림자 D3 SSOT 단일화 — theme-aware 토큰 + Spectrum 2 스케일 재정의 (ADR-166 Implemented)] - 2026-07-25
+
+> 바로 아래 두 엔트리의 "알려진 잔존 (Skia 축 — 보류, 별도 ADR 대상)" 을 **전건 해소**한다. 그 잔존 서술 중 2건은 실측으로 반증됐다 — 아래 "잔존 서술 정정" 참조.
+
+### Breaking Changes
+
+- **그림자 스케일 4단계 → 3단계**: `--shadow-xl` / `shadows.xl` / `{shadow.xl}` 제거. Spectrum 2 가 4번째 elevation 을 발행하지 않고 D3 소비처가 0건이라 임의 확장 대신 축소를 택했다. 스타일 패널 Box Shadow 프리셋도 `sm/md/lg` 3종으로 축소된다.
+  - 빌더 chrome(`App.css`)은 같은 이름의 `--shadow-*` 를 **한 단계 어긋난 값으로 별도 보유**한다(builder-system layer). 이번 변경은 D3 만 건드리므로 `DataTablePresetSelector.css` 등 chrome 소비처는 영향 없다.
+- **`{shadow.focus-ring}` 제거**: 값에 `var(--accent)` 를 담고 있어 Skia 파서가 해석하지 못했고 실사용도 0건이었다. focus ring 은 ADR-061 의 `{focus.ring.*}` + `FOCUS_RING_TOKENS` 가 소유한다.
+- **`sm`/`md`/`lg` 값이 Spectrum 2 역할 토큰으로 교체**: `sm`←`emphasized` / `md`←`elevated` / `lg`←`dragged`. 이름은 크기 축을 유지한다(패널이 크기 축으로 노출 + 소비처 40+곳).
+  - **Why**: 외부 레퍼런스 원본 아티팩트를 실측 대조한 결과 **출처가 혼재**해 있었다 — 스케일 이름·값 체계는 Tailwind 인데 overlay 3건의 값은 Adobe Spectrum 기하와 정확히 일치했다. 게다가 `sm` 은 외부 최하단 대비 3.7배 약했고, dark 배수는 단계마다 3~5배로 불균일했다(Adobe 는 균일 3배).
+  - Tooltip/Popover 의 새 값은 근사가 아니라 **출처 복귀** — 구 값의 기하(`0 2px 8px` / `0 4px 12px`)가 SP2 `emphasized`/`elevated` 최상위 레이어와 정확히 일치한다.
+- **dark = 전 레이어 alpha ×3** 으로 정규화 (구 3~5배 불균일).
+
+### Bug Fixes
+
+- **dark 모드에서 overlay 그림자가 흰 후광으로 반전되던 문제**:
+  - catalog 3건이 `color-mix(in srgb, var(--fg) N%, transparent)` 였는데 `--fg` 는 dark 에서 근-흰색이라 그림자가 밝은 번짐이 됐다. `--shadow-*` 의 정책(검정 유지 + 불투명도 상향)과 **반대 방향**.
+  - live 실측: light `color(srgb 0.09 … / 0.2)` 검정 → dark `color(srgb 0.96 … / 0.2)` 흰색.
+  - 수정: 값 언어를 `{shadow.*}` TokenRef 로 수렴 + `resolveToken` 의 `shadow` 카테고리를 `color` 와 동형으로 theme 분기(flat map → light/dark 이원화).
+- **캔버스에 overlay 그림자가 나오지 않던 문제** (Popover / Tooltip / Modal 전부):
+  - `buildSkiaEffects` 는 `props.style.boxShadow` 만 읽어서, elevation 을 catalog 에만 둔 컴포넌트는 캔버스에서 그림자가 없었다.
+  - 수정: `resolveEffectiveBoxShadow` 신설 — raw 우선 + catalog fallback + TokenRef 를 theme 별 rgba 로 전개 (`resolveEffectiveOverflow` 동형). **파서는 수정하지 않았다** — 전개 결과가 기존 파서를 그대로 통과하는 형태다.
+  - 메모이즈는 **해석 결과가 아니라 catalog 원문**에 건다. 결과를 캐시하면 최초 조회 theme 이 고착된다 — 테마 전환이 리로드 없이 반영되는 것으로 live 확인.
+- **catalog 에 `{shadow.md}` 를 넣으면 CSS 선언이 통째로 무효가 되던 문제**: `emitContainerStyles` 만 토큰 해석(`resolveBoxShadow`)을 우회해 리터럴 `{shadow.md}` 를 emit 하고 있었다. 브라우저는 파싱 실패한 선언을 조용히 버리므로 스냅샷 테스트도 통과한다 — 값이 아니라 **경유 자체**를 정적 가드로 잠갔다.
+- **스타일 패널이 overlay 의 Box Shadow 를 "custom" 으로 표시하던 문제**: 패널 preset resolver 가 catalog 의 TokenRef 를 해석하지 않아 원문과 프리셋 값이 매칭되지 않았다. 해석 경유 추가 + 프리셋 역매핑을 light·dark **양쪽 값**으로 인덱싱. 이제 Tooltip/Popover/Modal 이 각각 `sm`/`md`/`lg` 로 표시된다.
+- **Popover `[data-variant="filled"]` 만 구 그림자가 남던 문제**: `Popover.css` 가 더 높은 명시도로 구 값을 재선언하고 있어 그 variant 만 dark 후광이 잔존했을 경로. base 와 같은 `var(--shadow-md)` 로 정렬.
+- **`StoreRenderBridge` 의 spec 폴백 분기가 `theme` 을 넘기지 않던 문제**: 바로 아래 box 분기는 `ctx.theme` 을 넘기는데 폴백만 누락돼 기본값 `"light"` 로 떨어졌다. 같은 함수의 shell 배경 토큰 해석도 이 결함을 공유하던 상태.
+
+### Architecture
+
+- **그림자가 D3 SSOT 단일 채널로 수렴**: catalog `containerStyles.boxShadow` = `{shadow.*}` TokenRef 하나를 DOM(CSS)·Skia 두 consumer 가 함께 읽는다. `ContainerStylesSchema.boxShadow` 타입도 `string | ShadowTokenRef` 로 확장.
+- **Skia 그림자 primitive 2건 은퇴** (`popover_shadow` / `dialog_shadow`): 인자 무관 하드코딩 상수라 테마를 따르지 않았고 catalog 와 이중 소스였다. Popover 는 `popover_arrow`, Dialog 는 `overlay_backdrop` 만 남아 — **box-shadow 로 표현 불가한 형상만 primitive** 라는 경계가 섰다.
+- **Dialog 는 elevation 을 갖지 않음이 정본**으로 확정: RAC starter `Dialog.css` 그림자 부재 + composition `Dialog.tsx` 주석("should be used within a Modal overlay") 정합. 이제 DOM·Skia 양쪽 모두 그림자 없음.
+- **가드 4종 신설** — 값 언어 회귀를 기계로 차단:
+  - catalog 전수 (`shadowTokenContract.test.ts`): `boxShadow` **키 이름 깊이 탐색**이라 컴포넌트를 열거하지 않는다(향후 신설 중첩 위치 자동 포섭). `var(`/`color-mix(` 0건 · `{shadow.X}` 가 light·dark 양쪽 존재 · overlay 서열 `sm<md<lg` · Dialog elevation 부재. 탐색이 0건이 되면 나머지가 vacuous 통과하므로 traversal 자체도 단언.
+  - **CSS↔토큰 수치 대칭** (`shadowCssParity.test.ts`): `preview-system.css --shadow-*` ↔ `lightShadows`/`darkShadows`. 두 벌은 같은 출처지만 **서로를 참조하지 않는 손-유지 사본**이라 한쪽만 고치면 조용히 발산하는데, 양쪽 다 "그림자가 보여서" 시각 점검으로 안 잡힌다(α .08 ↔ .24 류).
+  - generator 경유 (`cssGenerator.shadow.static.test.ts`) · `resolveToken` theme 분기 (`tokenResolver.test.ts` 증설).
+- **cross-check 8조합 전수 통과**: Preview iframe 에 probe 요소를 붙여 실제 cascade 를 태운 computed 값 ↔ Skia 노드 effects 대조. dark Popover 실측 DOM `α .24/.12/.36 · dy 4/2/0 · blur 12/6/2` ↔ Skia `dy4/σ5.10 · dy2/σ2.55 · dy0/σ0.85` — **σ = blur / 2.355 변환까지 일치**.
+
+### 잔존 서술 정정 (아래 엔트리 대상)
+
+- ❌ "Popover 는 `popover_shadow` primitive(rgba 0.15)로 캔버스 그림자 유지" → **사실이 아니다.** 그 primitive 는 등록만 되어 있고 캔버스에 닿은 적이 없다. `target:"bg"` shadow 는 bg 박스가 root 로 추출되면 `nodeById` 의 **spread 사본**에 effect 가 push 되고, root 조립부는 `bgBox`/`children` 만 읽어 사본을 버린다(border 는 write-through 분기가 있으나 shadow 는 없는 비대칭). 즉 착수 시점 캔버스 그림자는 **Popover 포함 전부 공백**이었다.
+- ❌ "Dialog `dialog_shadow` 단독 제거 시 캔버스에서 모달 elevation 이 통째로 사라진다" → 같은 이유로 사실이 아니며, 애초에 Dialog 는 elevation 소유자가 아니다. primitive 제거는 **시각 변화 0** 의 죽은 코드 정리였다.
+- 이 converter 결함(`target:"bg"` shadow 삼킴) 자체는 ADR-166 이 해당 채널을 쓰지 않는 방향이라 **범위 밖**으로 두었다. 재개 조건 = spec/primitive shadow shape 를 쓰는 신규 컴포넌트 등장.
+
+### 알려진 잔존 (범위 밖 — 재개 조건 명시)
+
+- 그림자 파서 2벌(`parseShadow` ↔ `parseOneShadow`) 통합 — 값 언어 수렴으로 증상이 사라져 독립 리팩터로 분리. 재개 조건 = 임의 CSS 붙여넣기 경로가 실사용에서 문제화.
+- `staticSelectors` 의 `var(--shadow-*)` 8건 — CSS 축 전용 채널(중첩 selector), Skia 대칭 대상 아님.
+- 빌더 chrome `App.css` 의 `--shadow-*` 이름 충돌 — builder-system layer 라 D3 체인 밖. 재개 조건 = 두 계층을 오가는 CSS 등장.
+
 ## [Modal elevation 소유 확정 + ColorSwatch 경계 링 복원 — drop-shadow 토큰 오용 정정] - 2026-07-25
 
 ### Bug Fixes

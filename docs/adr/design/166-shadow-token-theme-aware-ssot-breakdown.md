@@ -1,6 +1,6 @@
 # ADR-166 구현 상세 — 그림자 토큰 theme-aware 승격 + boxShadow 값 언어 통일
 
-> 본 문서는 [ADR-166](../166-shadow-token-theme-aware-ssot.md) 의 구현 상세다. 결정·위험·Gate 는 ADR 본문에 있다.
+> 본 문서는 [ADR-166](../completed/166-shadow-token-theme-aware-ssot.md) 의 구현 상세다. 결정·위험·Gate 는 ADR 본문에 있다.
 
 ## §0. Phase 0 — inventory freeze (실측 baseline)
 
@@ -55,7 +55,7 @@
 
 - `buildSkiaEffects(style)` 는 `element.props.style.boxShadow` 만 읽는다 (`buildBaseNodeProps.ts:73` / `buildSkiaNodeData.ts:90` / `buildBoxNodeData.ts`).
 - catalog `containerStyles.boxShadow` 를 읽는 Skia 소비자는 **0건**. `buildBoxNodeData` 는 같은 객체에서 `background`(:141) 와 `overflow`(:201) 만 catalog fallback 으로 읽는다.
-- 캔버스 overlay 그림자는 하드코딩 primitive 가 그린다: `popover_shadow`(offsetY 4 / blur 12 / alpha 0.15) · `dialog_shadow`(offsetY 8 / blur 24 / alpha 0.2) — `skiaPrimitives.ts:1494-1520`, mode `prepend`.
+- ~~캔버스 overlay 그림자는 하드코딩 primitive 가 그린다: `popover_shadow`(offsetY 4 / blur 12 / alpha 0.15) · `dialog_shadow`(offsetY 8 / blur 24 / alpha 0.2) — `skiaPrimitives.ts:1494-1520`, mode `prepend`.~~ **오기 — Phase 4 실행 중 반증(§4 정정)**. 두 primitive 는 **등록만 되어 있고 캔버스에 닿지 않았다**: `target:"bg"` shadow 는 bg 가 root 로 추출되면 orphan 사본에 push 되어 버려진다. 즉 착수 시점 overlay 캔버스 그림자는 Popover 포함 **전부 공백**이었다 (Phase 3 가 처음으로 공급).
 - Style 패널이 쓰는 값은 `shadows[key]` **전개 문자열**(rgba)이라 Skia 파서를 통과한다 → 사용자 오소링 그림자는 현재 정상.
 
 ### 0-5. 선례 (본 ADR 이 재사용하는 기존 메커니즘)
