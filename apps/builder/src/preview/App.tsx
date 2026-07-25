@@ -19,7 +19,7 @@ import { pickBuilderSyncedProps } from "./messaging/builderPropSync";
 import { useNavigate } from "react-router-dom";
 import { rendererMap } from "@composition/shared/renderers";
 import {
-  adaptElementFillStyle,
+  adaptElementStyle,
   collectResponsiveCss,
   fillsToCssBackgroundStyle,
   getCatalogCutoverTypes,
@@ -98,7 +98,7 @@ const CSS_UNITLESS = new Set([
 ]);
 // ADR-902 후속: BODY_THEME_MAP 하드코딩 제거. createDefaultBodyProps 가 CSS var 리터럴
 // ("var(--bg)" / "var(--fg)") 을 직접 style 에 저장하므로 기본 iteration 경로가 theme-aware
-// 결과를 자연 적용한다. 사용자가 fills 를 커스터마이즈 하면 adaptElementFillStyle 이
+// 결과를 자연 적용한다. 사용자가 fills 를 커스터마이즈 하면 adaptElementStyle 이
 // fills → style.backgroundColor 재주입 → user 색상 반영 (이전 conditional override 불필요).
 
 // ============================================
@@ -386,7 +386,7 @@ function CanvasContent() {
     }
 
     if (bodyElement) {
-      const adaptedBodyElement = adaptElementFillStyle(bodyElement);
+      const adaptedBodyElement = adaptElementStyle(bodyElement);
 
       // 실제 <body> 태그에 data-element-id 설정
       document.body.setAttribute("data-element-id", adaptedBodyElement.id);
@@ -402,7 +402,7 @@ function CanvasContent() {
           const cssKey = camelToKebab(key);
           // ADR-902 후속: createDefaultBodyProps 의 CSS var 리터럴 (var(--bg)/var(--fg))
           // 이 style 에 직접 저장되므로 그대로 전달. 사용자 커스텀 fills 는
-          // adaptElementFillStyle 이 style.backgroundColor 를 재주입해서 여기로 들어옴.
+          // adaptElementStyle 이 style.backgroundColor 를 재주입해서 여기로 들어옴.
           const cssValue =
             typeof value === "number" && !CSS_UNITLESS.has(key)
               ? `${value}px`
@@ -680,7 +680,7 @@ function CanvasContent() {
   // Preview node 렌더링 함수 (내부)
   const renderElementInternal = useCallback(
     (el: PreviewElement, key?: string): React.ReactNode => {
-      const adaptedElement = adaptElementFillStyle(el);
+      const adaptedElement = adaptElementStyle(el);
 
       // ⭐ body 태그는 실제 <body>에서 처리되므로 여기에 도달하면 일반 요소임
       // (body는 renderElementsTree에서 자식만 렌더링하도록 처리됨)
@@ -864,7 +864,7 @@ function CanvasContent() {
       layoutElements: PreviewElement[],
       pageElements: PreviewElement[],
     ): React.ReactNode => {
-      const adaptedElement = adaptElementFillStyle(el);
+      const adaptedElement = adaptElementStyle(el);
 
       // Slot인 경우: Page elements로 교체
       if (adaptedElement.type === "Slot") {
@@ -961,7 +961,7 @@ function CanvasContent() {
       el: PreviewElement,
       allPageElements: PreviewElement[],
     ): React.ReactNode => {
-      const adaptedElement = adaptElementFillStyle(el);
+      const adaptedElement = adaptElementStyle(el);
       const children = allPageElements.filter(
         (child) => child.parent_id === adaptedElement.id,
       );

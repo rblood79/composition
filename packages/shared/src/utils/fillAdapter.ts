@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { shadowLiteralToCssVar } from "@composition/specs";
 
 interface FillGradientStopLike {
   color?: unknown;
@@ -227,16 +228,56 @@ export function adaptStyleWithFills(
   };
 }
 
-export function adaptElementFillStyle<T extends FillAdaptableElement>(
+/**
+ * 저장된 그림자 리터럴을 CSS 변수 참조로 바꾼다 (ADR-166 후속).
+ *
+ * 스타일 패널은 프리셋을 고른 순간의 **리터럴**을 기록하므로 그대로 인라인하면 저장 당시
+ * theme 이 고착된다. `var(--shadow-md)` 로 내보내면 `[data-theme]` 블록이 브라우저 쪽에서
+ * 전환해주므로 이 경로에 theme 을 배선하지 않아도 된다 — preview iframe 과 publish 모두
+ * `theme.css → preview-system.css` 를 로드한다.
+ *
+ * Skia 축은 같은 판정을 `normalizeShadowForTheme` 로 받아 theme 리터럴을 쓴다(대칭).
+ * 정규화 대상이 아닌 값(임의 CSS / none / inset 토글)은 원문 그대로 흐른다.
+ *
+ * **패널 경로에는 적용하지 않는다** — `adaptStyleWithFills` 를 직접 쓰는 `useAppearanceValues` /
+ * `useResetStyles` 는 리터럴을 프리셋 키로 역매핑하므로 var 를 받으면 "custom" 으로 표시된다.
+ */
+function adaptStyleShadow(
+  style: CSSProperties | undefined,
+): CSSProperties | undefined {
+  const raw = style?.boxShadow;
+  if (typeof raw !== "string") return style;
+  const next = shadowLiteralToCssVar(raw);
+  return next === raw ? style : { ...style, boxShadow: next };
+}
+
+/**
+ * DOM 소비자(preview iframe / publish)가 인라인할 `props.style` 을 만든다.
+ *
+ * fills → background 변환과 그림자 리터럴 정규화를 합친 **단일 진입점**. 종전에는 fills 만
+ * 다뤄 `adaptElementFillStyle` 이었는데, 그림자 축이 붙으면서 이름이 실제 역할보다 좁아져
+ * 개명했다. fills 가 없는 요소도 통과해야 하므로 조기 반환은 fills 분기 안으로 옮겼다 —
+ * 종전 위치(`if (!("fills" in element)) return element`)에 그대로 두면 fills 없는 요소가
+ * 그림자 정규화를 통째로 건너뛴다.
+ */
+export function adaptElementStyle<T extends FillAdaptableElement>(
   element: T,
 ): T {
-  if (!("fills" in element)) return element;
+  const hasFills = "fills" in element;
+  const baseStyle = element.props?.style;
+  const withFills = hasFills
+    ? adaptStyleWithFills(baseStyle, element.fills)
+    : baseStyle;
+  const nextStyle = adaptStyleShadow(withFills);
+
+  // fills 없고 그림자도 그대로면 새 객체를 만들지 않는다 (React memo 참조 안정).
+  if (!hasFills && nextStyle === baseStyle) return element;
 
   return {
     ...element,
     props: {
       ...(element.props ?? {}),
-      style: adaptStyleWithFills(element.props?.style, element.fills),
+      style: nextStyle,
     },
   };
 }

@@ -10,7 +10,7 @@
 
 import { useEffect, useRef } from "react";
 import type { Element } from "@composition/shared";
-import { adaptElementFillStyle } from "@composition/shared";
+import { adaptElementStyle } from "@composition/shared";
 
 const CSS_UNITLESS = new Set([
   "opacity",
@@ -61,7 +61,7 @@ export function useBodyElement(elements: Element[]): void {
     if (!bodyElement) return;
 
     // D3: fills 를 무시하고 Spec TokenRef 경로 (style.backgroundColor) 만 적용
-    const adaptedBody = adaptElementFillStyle(bodyElement);
+    const adaptedBody = adaptElementStyle(bodyElement);
 
     // D1: BodySpec className 주입 — `.react-aria-Body { ... }` CSS 규칙 매칭
     const specClassName = "react-aria-Body";

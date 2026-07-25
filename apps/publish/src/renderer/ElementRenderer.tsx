@@ -10,7 +10,7 @@
 
 import { memo, useMemo } from "react";
 import {
-  adaptElementFillStyle,
+  adaptElementStyle,
   resolveBodyArtboardStyle,
   type Element,
 } from "@composition/shared";
@@ -61,7 +61,7 @@ export const ElementRenderer = memo(function ElementRenderer({
   depth = 0,
 }: ElementRendererProps) {
   const adaptedElement = useMemo(
-    () => adaptElementFillStyle(element),
+    () => adaptElementStyle(element),
     [element],
   );
 

@@ -20,7 +20,7 @@ import React from "react";
 import * as RAC from "react-aria-components";
 import { rendererMap } from "@composition/shared/renderers";
 import {
-  adaptElementFillStyle,
+  adaptElementStyle,
   getPrimitiveBinding,
   resolveBodyArtboardStyle,
   toRacProps,
@@ -305,8 +305,8 @@ export function CanonicalNodeRenderer({
     getFrameElementMirrorId(canonicalProps),
   );
 
-  // fills + style 변환 (adaptElementFillStyle)
-  const adaptedEl = adaptElementFillStyle(previewEl);
+  // fills + style 변환 (adaptElementStyle)
+  const adaptedEl = adaptElementStyle(previewEl);
 
   // DOM 마커 props
   const markerProps = {
