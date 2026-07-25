@@ -48,6 +48,19 @@ export {
 
 export type { ParsedShadow } from "./shadows";
 
+// Shadow 리터럴 ↔ 프리셋 역매핑 (ADR-166 후속) — 패널이 기록한 inline 리터럴을
+//   Skia 는 theme 리터럴로, DOM 은 CSS 변수로 되돌린다.
+export {
+  mapShadowLayers,
+  stripShadowInset,
+  applyShadowInset,
+  matchShadowPreset,
+  normalizeShadowForTheme,
+  shadowLiteralToCssVar,
+} from "./shadowNormalize";
+
+export type { ShadowPresetKey } from "./shadowNormalize";
+
 // Font (CSS 표준 상수 — ADR-091 Phase 1)
 export { FONT_STRETCH_KEYWORD_MAP } from "./font";
 

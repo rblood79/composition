@@ -182,6 +182,13 @@ export {
   darkShadows,
   getShadowToken,
   parseShadow,
+  // Shadow 리터럴 ↔ 프리셋 역매핑 (ADR-166 후속) — 패널이 기록한 inline 리터럴의 theme 추종
+  mapShadowLayers,
+  stripShadowInset,
+  applyShadowInset,
+  matchShadowPreset,
+  normalizeShadowForTheme,
+  shadowLiteralToCssVar,
   // Font (CSS 표준 상수 — ADR-091 Phase 1)
   FONT_STRETCH_KEYWORD_MAP,
   // HTML primitive defaults (ADR-096 Phase 2)
@@ -196,7 +203,7 @@ export {
   resolveContainerSpacing,
 } from "./primitives";
 
-export type { ParsedShadow } from "./primitives";
+export type { ParsedShadow, ShadowPresetKey } from "./primitives";
 export type {
   ContainerSpacing,
   ContainerSpacingDefaults,
