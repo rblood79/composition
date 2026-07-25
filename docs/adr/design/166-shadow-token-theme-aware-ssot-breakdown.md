@@ -321,7 +321,13 @@ Preview iframe 에 probe 요소를 붙여 실제 스타일시트 cascade 를 태
 | **빌더 chrome(`App.css`)의 `--shadow-*` 이름 충돌**         | 같은 이름이 D3 와 한 단계 어긋난 값으로 두 벌 존재(§1-2). 빌더 chrome 은 builder-system layer 라 D3 SSOT 체인 밖 — 이름 정리는 별도 판단. 재개 조건 = 두 계층을 오가는 CSS 가 등장해 값이 뒤섞일 때                                                                                                                                                                                                        |
 | **`specShapeConverter` 가 `target:"bg"` shadow 를 삼킴**    | Phase 4 실행 중 발견(§4 정정). bg 가 root 로 추출되면 shadow effect 가 orphan 사본에 push 되어 버려진다 — border 는 write-through 분기가 있으나 shadow 는 없는 **비대칭**. ADR-166 은 이 채널을 쓰지 않는 방향(catalog boxShadow 단일화)이라 수정 없이 종료해도 회귀가 없다. 재개 조건 = spec/primitive shadow shape 를 쓰는 신규 컴포넌트가 등장할 때 (그때는 채널을 살릴지 catalog 로 흡수할지부터 판정) |
 
-> **Phase 2 에서 발견한 잔존 (범위 밖)** — 패널의 **inline 오버라이드는 theme 을 따라가지 않는다**. `AppearanceSection` 의 `onChange` 가 `shadows[value]`(= light 값)를 리터럴 CSS 로 store 에 기록하므로, dark 캔버스에서 프리셋을 고르면 light 그림자가 고정된다. 이는 본 ADR 이 만든 결함이 아니라 **선행 상태**다 — Phase 1 이전에도 TS map 은 flat 이었고 CSS 변수만 theme 별이라, 리터럴을 쓰는 순간 theme 추종이 끊겼다. 근본 해법은 패널이 리터럴 대신 `{shadow.md}` TokenRef 를 기록하는 것이고, 그러려면 **Skia 가 TokenRef 를 읽어야 한다(= Phase 3)**. 따라서 Phase 3 완료 후 재판정 대상으로 남긴다. 판정 결과가 catalog 기본값이 아니라 사용자 inline 값에만 걸리므로 본 Phase 의 G2 범위 밖이다.
+> **Phase 2 에서 발견한 잔존 (범위 밖) — 2026-07-25 재판정 완료, 해소됨** — 패널의 **inline 오버라이드는 theme 을 따라가지 않는다**. `AppearanceSection` 의 `onChange` 가 `shadows[value]`(= light 값)를 리터럴 CSS 로 store 에 기록하므로, dark 캔버스에서 프리셋을 고르면 light 그림자가 고정된다. 이는 본 ADR 이 만든 결함이 아니라 **선행 상태**다 — Phase 1 이전에도 TS map 은 flat 이었고 CSS 변수만 theme 별이라, 리터럴을 쓰는 순간 theme 추종이 끊겼다. 판정 결과가 catalog 기본값이 아니라 사용자 inline 값에만 걸리므로 본 Phase 의 G2 범위 밖이다.
+>
+> **재판정 결과 (ADR-166 종결 후 후속 4 phase, commits `6f3d1da4c` / `25b50aa40` / `01e0fc553` / `d5e06cf98`)**: 위에 적었던 "근본 해법 = 패널이 `{shadow.md}` TokenRef 를 기록" 은 **기각**했다. inline `props.style` 은 두 소비자 모두에게 **원문 CSS 채널**이라, TokenRef 를 넣으면 DOM 은 유효하지 않은 선언으로 버리고 Skia 는 파서가 숫자를 못 찾아 null 로 떨어진다 — 지금보다 나빠진다. `var(--shadow-md)` 저장도 기각: CSS var 치환이 계산값 시점이라 `inset var(--shadow-md)` 가 3레이어 중 첫 레이어에만 inset 을 걸고, dirty/reset baseline 이 리터럴을 내며, 이미 저장된 프로젝트가 구제되지 않는다.
+>
+> 채택안은 **저장 형식 불변 + 읽기 시점 정규화**다. 저장은 light 리터럴을 정규형으로 유지하고, Skia 는 `normalizeShadowForTheme` 로 현재 theme 리터럴을, DOM 은 `shadowLiteralToCssVar` 로 `var(--shadow-*)` 를 받는다(역매핑 SSOT = `packages/specs/src/primitives/shadowNormalize.ts`). 기존 프로젝트가 마이그레이션 없이 함께 회복되고 inset 축도 손대지 않는다. 적용 범위는 elevation 3단계(sm/md/lg)의 inset 미적용 값 한정 — `--shadow-*` CSS 변수가 3개뿐이라 none/inset/inset-토글은 DOM 이 var 로 낼 수단이 없고, Skia 만 theme 을 따르면 두 소비자가 갈라지므로 양쪽 다 통과시킨다(현행 유지 = 회귀 없음). **잔존**: inset 축 theme 추종 — 재개 조건 = `--shadow-inset` 계열 CSS 변수 신설이 필요해질 때.
+>
+> 부수로 `adaptElementFillStyle` → `adaptElementStyle` 개명 + 조기 반환 위치 이동이 필요했다. 종전 `if (!("fills" in element)) return element` 가 fills 없는 요소를 통째로 건너뛰어, 그 자리에 그림자 정규화를 얹으면 대다수 요소에서 무반영이었다.
 
 ---
 

@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [사용자 그림자 오버라이드의 theme 추종 — 저장 리터럴 읽기 시점 정규화 (ADR-166 후속)] - 2026-07-25
+
+> 바로 아래 ADR-166 엔트리가 **catalog 기본값 축**을 닫았고, 본 엔트리는 거기서 "Phase 3 완료 후 재판정 대상" 으로 남겼던 **사용자 inline 값 축**을 닫는다. design breakdown §8 의 해당 잔존 항목은 해소 표시로 갱신됐다.
+
+### Bug Fixes
+
+- **스타일 패널에서 고른 Box Shadow 가 theme 을 따라가지 않던 문제** (ADR-166 후속 Phase 1~4):
+  - 패널은 프리셋을 고른 순간의 **리터럴 CSS** 를 `props.style.boxShadow` 에 기록한다. 리터럴은 theme 정보를 담지 못하므로 dark 캔버스에서 고른 그림자도 light 값으로 굳고, light 에서 고른 뒤 dark 로 바꿔도 따라오지 않았다.
+  - **Why**: ADR-166 이 catalog 축을 `{shadow.*}` TokenRef 로 옮기면서 기본값은 theme 을 따라가게 됐는데, 사용자 편집 축만 리터럴로 남아 **한 화면에서 두 축이 다르게 동작**하는 비대칭이 됐다. 본 ADR 이 만든 결함은 아니고 선행 상태다 — Phase 1 이전에는 TS map 이 flat 이라 애초에 따라갈 값이 없었다.
+  - 수정: 저장 형식은 그대로 두고 **읽는 쪽에서 프리셋으로 되돌린다**. Skia 는 `normalizeShadowForTheme` 로 현재 theme 리터럴을, DOM 은 `shadowLiteralToCssVar` 로 `var(--shadow-*)` 를 받는다. 이미 저장된 프로젝트가 마이그레이션 없이 함께 회복된다.
+  - 저장 형식을 바꾸는 두 안은 기각했다 — `{shadow.md}` 는 inline 이 **원문 CSS 채널**이라 DOM 이 선언을 버리고 Skia 파서도 null 로 떨어져 지금보다 나빠진다. `var(--shadow-md)` 는 CSS var 치환이 계산값 시점이라 `inset var(--shadow-md)` 가 3레이어 중 첫 레이어에만 inset 을 걸고, dirty/reset baseline 이 리터럴을 내며, 기존 데이터가 구제되지 않는다.
+  - **실측** (dev server 에서 서빙 중인 모듈 직접 호출): 저장값 = light `md` 리터럴일 때 `buildBoxNodeData` 가 light `α .08/.04/.12` → dark `α .24/.12/.36` (기하 `dy 4/2/0` 동일). 같은 값의 DOM 축은 preview iframe probe 로 light `rgba(0,0,0,0.08) 0 4px 12px …` → dark `rgba(0,0,0,0.24) …` — **두 소비자 수치 일치**.
+  - 위치: `packages/specs/src/primitives/shadowNormalize.ts` · `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts` · `packages/shared/src/utils/fillAdapter.ts`
+- **fills 없는 요소가 DOM style 어댑터를 통째로 건너뛰던 문제**: `adaptElementFillStyle` 의 조기 반환(`if (!("fills" in element)) return element`)이 style 변환 지점 전체를 스킵했다. fills 분기 안으로 옮겨 style 축이 항상 통과한다. **Why**: 그대로 뒀으면 그림자 정규화가 대다수 요소에서 무반영이었다 — 어댑터가 "fills 전용" 이라는 전제가 style 축 확장과 충돌.
+
+### Architecture
+
+- **그림자 리터럴 ↔ 프리셋 역매핑 SSOT 신설** (`shadowNormalize.ts`): `matchShadowPreset` / `normalizeShadowForTheme` / `shadowLiteralToCssVar` / inset 레이어 헬퍼. 패널이 들고 있던 사본(`cssToPresetMap` + `mapShadowLayers`)을 흡수해 **세 소비자(패널 표시 · Skia · DOM) 한 벌**로 통일. 값이 바뀔 때 한 곳만 갱신돼 조용히 어긋나는 것을 차단.
+- **`adaptElementFillStyle` → `adaptElementStyle` 개명**: fills 전용이 아니게 됐다. 호출부 5곳(preview 3 · publish 2) 갱신.
+- **소비자별 출력이 갈리는 근거 명문화**: Skia 는 렌더 시점에 theme 을 알아 리터럴을, DOM 은 theme 배선 없이 CSS 변수를 받는다. preview iframe(`preview.html`)과 publish 가 둘 다 `theme.css → preview-system.css` 를 로드하고 dark 가 `[data-theme="dark"]` 로 갈리므로 브라우저가 전환한다 — 빌더 chrome 의 `App.css` 는 같은 이름을 Tailwind 스케일의 다른 값으로 재정의하지만 preview iframe 이 그 파일을 로드하지 않아 새지 않는다.
+- **저장 정규형 = light 명시**: `shadows[value]` → `getShadowToken(value, "light")`. 동작은 같지만(별칭이 lightShadows) 의도를 코드에 남긴다. ADR-166 Phase 1 이 legacy 로 표시했던 `shadows` light 별칭의 **마지막 소비처가 소멸**했다.
+- **가드 증설**: `shadowNormalize.test.ts` 13 · `resolveContainerStylesFallback.test.ts` +5 · `fillAdapter.test.ts` +4. 그중 **두 소비자 개입 집합 대칭** 단언이 핵심 — 한쪽만 정규화하면 캔버스와 Preview 가 다른 그림자를 그린다.
+
+### 알려진 잔존 (범위 밖 — 재개 조건 명시)
+
+- **inset 축 theme 추종**: 적용 범위를 elevation 3단계(`sm`/`md`/`lg`)의 inset 미적용 값으로 한정했다. `--shadow-*` CSS 변수가 3개뿐이라 `none`/`inset`/inset-토글 값은 DOM 이 var 로 낼 수단이 없고, Skia 만 theme 을 따르면 두 소비자가 갈라진다. 양쪽 다 통과시켜 현행 동작을 유지 — 회귀 없음. 재개 조건 = `--shadow-inset` 계열 CSS 변수 신설이 필요해질 때.
+- 패널 dirty/reset baseline(`resolveAppearanceSpecPreset`)은 여전히 light 리터럴 고정이다. 프리셋 역매핑이 light·dark 양쪽을 인덱싱하므로 **표시·dirty 판정에는 영향이 없다**. 재개 조건 = baseline 이 theme 별로 갈려야 하는 소비처 등장.
+
 ## [그림자 D3 SSOT 단일화 — theme-aware 토큰 + Spectrum 2 스케일 재정의 (ADR-166 Implemented)] - 2026-07-25
 
 > 바로 아래 두 엔트리의 "알려진 잔존 (Skia 축 — 보류, 별도 ADR 대상)" 을 **전건 해소**한다. 그 잔존 서술 중 2건은 실측으로 반증됐다 — 아래 "잔존 서술 정정" 참조.
