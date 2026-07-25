@@ -6,6 +6,7 @@ import {
 } from "react";
 import { useStore } from "../../../stores";
 import type { BoundingBox, FrameBodySelectionArea } from "../selection";
+import { resolveHandleCursor } from "../selection";
 import {
   commitPointerClick,
   isPointerDoubleClick,
@@ -478,7 +479,7 @@ export function useCentralCanvasPointerHandlers({
           zoom,
         );
         if (hitHandle) {
-          setCursor(hitHandle.cursor);
+          setCursor(resolveHandleCursor(hitHandle));
           return;
         }
       }
@@ -516,7 +517,7 @@ export function useCentralCanvasPointerHandlers({
           zoom,
         );
         if (hitHandle) {
-          setCursor(hitHandle.cursor);
+          setCursor(resolveHandleCursor(hitHandle));
           return;
         }
       }

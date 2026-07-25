@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [각도 파라미터 리사이즈 커서 — Pen v1.2.1 수법 차용] - 2026-07-26
+
+### Features
+
+- **선택 핸들 hover 커서를 커스텀 이미지 커서로 전환**:
+  - OS 기본 resize 커서 키워드 (`nwse-resize` 등) 대신, 핸들 각도로 회전한 양방향 화살표를 오프스크린 캔버스에 1x/2x 로 그려 `-webkit-image-set(...) 12 12, <keyword>` 로 적용. 흰 외곽선 + 검정 본체 (배경 무관 가시성), keyword fallback 동반이라 이미지 커서 미지원 환경은 기존 동작 유지.
+  - **Why**: OS/플랫폼별 커서 테마 편차 제거 + 임의 각도 지원 — 요소 회전 기능 도입 시 `rotationDeg` 인자만으로 그대로 확장 (Pen v1.2.1 실측 분석 `docs/explanation/research/PEN_V1.2.1_RENDERING_UIUX_ANALYSIS.md` §6-2 차용 후보).
+  - 각도는 1° 양자화 + 180° 대칭 접기로 캐시 — 현행 축 정렬 핸들은 0/45/90/135° 4종만 실사용.
+  - live 검증: builder 실행 중 핸들 hover 로 3종 fallback (`ew`/`ns`/`nwse`) 의 image-set 적용 + 24x24/48x48 비트맵 렌더 확인.
+  - 위치: `apps/builder/src/builder/workspace/canvas/selection/resizeCursors.ts` (신규) · `hooks/useCentralCanvasPointerHandlers.ts`
+
 ## [사용자 그림자 오버라이드의 theme 추종 — 저장 리터럴 읽기 시점 정규화 (ADR-166 후속)] - 2026-07-25
 
 > 바로 아래 ADR-166 엔트리가 **catalog 기본값 축**을 닫았고, 본 엔트리는 거기서 "Phase 3 완료 후 재판정 대상" 으로 남겼던 **사용자 inline 값 축**을 닫는다. design breakdown §8 의 해당 잔존 항목은 해소 표시로 갱신됐다.
