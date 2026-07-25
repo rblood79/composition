@@ -99,7 +99,7 @@ tick = () => { ...
 - 오버레이 (선택/핸들/가이드/에이전트 커서) 는 캐시 없이 매 프레임 메인 surface 직접.
 - 타일링 없음 — 단일 패딩 surface 방식.
 
-> 선행 문서 [PENCIL_RENDERING_OPTIMIZATION.md](PENCIL_RENDERING_OPTIMIZATION.md) 가 open-pencil 의 T2 (viewport×3 backing + stale blit) 를 "Pencil.app 은 분석 불가" 전제에서 소개했는데, **본체도 같은 계열 수법을 쓰고 있음이 실측 확인**된 셈.
+> 선행 문서 [PENCIL_RENDERING_OPTIMIZATION.md](PENCIL_RENDERING_OPTIMIZATION.md) 가 open-pencil 의 T2 (viewport×3 backing + stale blit) 를 "Pencil.app 은 분석 불가" 전제에서 소개했는데, **본체도 같은 계열 수법을 쓰고 있음이 실측 확인**된 셈. composition 도 같은 연구를 근거로 `SkiaRenderer` 에 **이미 동형 구현 완료** — 본체와의 파라미터 대조는 §6-1-c.
 
 ### 3-3. 컬링/히트테스트 — JS
 
@@ -244,30 +244,107 @@ renderScreenspace(t,e){ this.resizeHandles.render(t,e); this.guidesGraph.render(
 
 ## 6. composition 관점 비교표
 
-| 축              | **Pen v1.2.1**                                                                                      | **composition**                                                                 |
-| --------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Skia 바인딩     | 자체 C API 385개 (`pencil_*`) + 수제 wrapper — embind 없음, Skia m149 직접 빌드                     | 공식 CanvasKit WASM (embind)                                                    |
-| WASM 책임       | 렌더 + 텍스트 측정/레이아웃 + path + PDF **만**                                                     | CanvasKit = 렌더+측정 / **레이아웃은 별도 자체 Rust WASM** (composition-engine) |
-| 레이아웃        | **JS**, Figma 형 stack auto-layout (hug/fill, 2축 2-pass) — CSS 호환 목표 없음                      | **Rust WASM**, CSS-FLEXBOX/GRID 표준 정합 (§4.5 automatic minimum size 등)      |
-| DOM 렌더 경로   | 없음 — 캔버스 단일 + HTML 은 export 산출물                                                          | **Skia ↔ DOM 대등 2-consumer** (D3 SSOT 대칭) — 근본 차이                       |
-| 프레임 루프     | on-demand rAF (idle 완전 정지) + delta clamp                                                        | on-demand 유사 (dirty/layoutVersion 카운터)                                     |
-| 줌/팬           | **콘텐츠 캐시 surface (화면+512px) + 제스처 중 cubic 리샘플 blit**, 3배 임계/종료 debounce 재래스터 | 캐시 계층 없음 — command stream 재실행 + AABB 컬링                              |
-| 히트테스트      | JS 재귀 + wasm `path_contains`                                                                      | JS renderCommands AABB + `hitBoundsMap` (clip 교차) SpatialIndex                |
-| 텍스트 편집     | DOM overlay (Quill, camera×node CSS matrix) + 폰트 DOM 이중 등록                                    | TextEditOverlay (DOM overlay) — 동일 계열                                       |
-| 오버레이 chrome | 전부 캔버스, worldspace/screenspace **2-pass 분리**                                                 | 캔버스 오버레이 + boundsMap/hitBoundsMap 두 맵 분리                             |
-| 멀티스레드      | 없음 (pthread/SAB 0건)                                                                              | 없음 (동일)                                                                     |
-| 스크립트 확장   | QuickJS WASM 샌드박스 (메모리/스택 제한 + 시드 RNG)                                                 | 해당 없음                                                                       |
-| 컴포넌트 모델   | `reusable` + `slot` + `Ref/descendants` override                                                    | canonical `reusable`/Ref 모델 — **1:1 정합** (ADR-142 계열)                     |
-| AI              | 5계열 에이전트 + spawn_agents + 스트리밍 라이브 렌더 + MCP 생태계 주입                              | Groq tool calling (ADR-134 로 LLM 통합 재설계 제안 중)                          |
+> 렌더링 축의 장단점 상세는 §6-1, 실측 정정 2건 (줌/팬 캐시 · 프레임 루프) 도 §6-1 에 반영.
 
-## 6-1. 차용 후보 (우선순위순)
+| 축              | **Pen v1.2.1**                                                                               | **composition**                                                                             |
+| --------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Skia 바인딩     | 자체 C API 385개 (`pencil_*`) + 수제 wrapper — embind 없음, Skia m149 직접 빌드              | 공식 CanvasKit WASM (embind, `canvaskit-wasm@0.40` 고정)                                    |
+| WASM 책임       | 렌더 + 텍스트 측정/레이아웃 + path + PDF **만**                                              | CanvasKit = 렌더+측정 / **레이아웃은 별도 자체 Rust WASM** (composition-engine)             |
+| 레이아웃        | **JS**, Figma 형 stack auto-layout (hug/fill, 2축 2-pass) — CSS 호환 목표 없음               | **Rust WASM**, CSS-FLEXBOX/GRID 표준 정합 (§4.5 automatic minimum size 등)                  |
+| DOM 렌더 경로   | 없음 — 캔버스 단일 + HTML 은 export 산출물                                                   | **Skia ↔ DOM 대등 2-consumer** (D3 SSOT 대칭) — 근본 차이                                   |
+| 프레임 루프     | **on-demand rAF — idle 시 rAF 체인 완전 정지** (`framesRequested` 카운터) + delta clamp      | **연속 rAF + 5종 frame 분류** — idle 프레임은 GPU 작업 0, rAF wake 자체는 유지 (§6-1-b)     |
+| 줌/팬           | 콘텐츠 캐시 surface (화면+512px) + 제스처 중 cubic 리샘플 blit, 3배 임계/종료 200ms 재래스터 | **동형 구현 완료** — `SkiaRenderer` dual surface, 파라미터까지 본체와 일치 (§6-1-c 대조 표) |
+| 히트테스트      | JS 재귀 + wasm `path_contains` (point-in-path 벡터 정밀)                                     | JS renderCommands AABB + `hitBoundsMap` (조상 clip 교차) SpatialIndex                       |
+| 텍스트 편집     | DOM overlay (Quill, camera×node CSS matrix) + 폰트 DOM 이중 등록                             | TextEditOverlay (DOM overlay) — 동일 계열                                                   |
+| 오버레이 chrome | 전부 캔버스, worldspace/screenspace **2-pass 분리**                                          | 캔버스 오버레이 + boundsMap/hitBoundsMap 두 맵 분리                                         |
+| 멀티스레드      | 없음 (pthread/SAB 0건)                                                                       | 없음 (동일)                                                                                 |
+| 스크립트 확장   | QuickJS WASM 샌드박스 (메모리/스택 제한 + 시드 RNG)                                          | 해당 없음                                                                                   |
+| 컴포넌트 모델   | `reusable` + `slot` + `Ref/descendants` override                                             | canonical `reusable`/Ref 모델 — **1:1 정합** (ADR-142 계열)                                 |
+| AI              | 5계열 에이전트 + spawn_agents + 스트리밍 라이브 렌더 + MCP 생태계 주입                       | Groq tool calling (ADR-134 로 LLM 통합 재설계 제안 중)                                      |
 
-**렌더링**:
+## 6-1. 렌더링 축 상세 비교 — composition 관점 장단점
 
-1. **줌/팬 중 콘텐츠 캐시 surface + cubic 리샘플 blit** — 팬/줌 제스처 한정 2-계층 합성. 재래스터 정책 (3배 임계 + 종료 200ms debounce) 까지 세트로. 복잡한 페이지에서 60fps 여유를 콘텐츠 복잡도와 무관하게 확보.
-2. **worldspace/screenspace 오버레이 패스 명시 분리** — 현행 §8.5 두 맵 분리를 렌더 패스 구조로 승격하는 방향의 선례.
-3. **배치 드로우 API** (`draw_rect_array`) — CanvasKit 호출 왕복이 병목이 될 때의 참조 지점.
-4. 각도 캐시된 회전 리사이즈 커서 (`-webkit-image-set` DOM 커서) — 저비용 고급 조작감.
+> composition 측 근거: `apps/builder/src/builder/workspace/canvas/skia/SkiaRenderer.ts` / `SkiaCanvas.tsx` 실코드 (2026-07-26 재확인) + `.claude/rules/canvas-rendering.md`. 본 절에서 §6 초판 표의 2개 행 (줌/팬 "캐시 계층 없음", 프레임 루프 "on-demand 유사") 을 실측으로 정정한다.
+
+### (a) Skia 바인딩 획득 방식 — 자체 emscripten 빌드 vs 공식 CanvasKit
+
+| 항목      | Pen (자체 pencil.wasm)                            | composition (canvaskit-wasm 0.40)                 |
+| --------- | ------------------------------------------------- | ------------------------------------------------- |
+| Skia 버전 | m149 (2026 초 계열) — 최신 추종                   | 0.40 고정 (2023 릴리스) — 약 2년+ 격차            |
+| 바인딩 층 | 순수 C ABI + 수제 JS wrapper (embind 0건)         | embind 자동 바인딩                                |
+| API 표면  | 필요한 385개만 노출 + 커스텀 진입점 자유          | 공식 표면 고정 — 커스텀 진입점 불가               |
+| 유지보수  | Skia 소스 트리 + emscripten 빌드 인프라 자체 부담 | 업그레이드/버그픽스 upstream 위임, 타입 정의 제공 |
+
+- **Pen 장점**: ① `draw_rect_array` 같은 **배치 드로우 진입점**을 직접 추가해 JS↔wasm 왕복을 구조적으로 절감. ② embind 디스패치 오버헤드 제거. ③ 최신 Skia milestone 의 텍스트/GPU 개선 수혜. ④ SkSL RuntimeEffect·SDF 등 필요한 저수준 기능을 빌드 옵션으로 통제.
+- **composition 장점**: 빌드 인프라 비용 0, 커뮤니티 검증·타입 정의. 렌더 바인딩이 제품 차별화 지점이 아닌 단계에서는 합리적 선택.
+- **composition 단점 (실코드 증거)**: ① `drawImageCubic` 이 타입 정의에 없어 **런타임 존재 가드로 우회** (`SkiaRenderer.ts` blit 경로 — upstream 타입 지연의 실물 사례). ② 배치 API 부재 — 노드당 개별 draw 호출. ③ 0.40 고정으로 이후 milestone 의 Paragraph/GPU 개선 미수혜. 버전 상향은 측정 oracle 정합 재검증 (§d) 을 동반해야 하므로 비용이 낮지 않다.
+
+### (b) 프레임 루프 — idle 시 rAF 완전 정지 vs 연속 rAF + 프레임 분류
+
+- **Pen**: `framesRequested` 카운터가 0 이면 **rAF 체인 자체를 끊는다** (`activeRenderLoop=false`) — idle 시 CPU wake 0. 대가는 invalidation 규율: 모든 상태 변경 지점이 `requestFrame()` 을 호출해야 하며, 누락 = stale 화면 버그.
+- **composition**: `renderFrameCore` 가 **매 프레임 무조건 다음 rAF 를 예약**하고, `classifyFrame` 5종 분류 (idle/present/camera-only/content/full) 로 idle 프레임은 GPU 작업 0 으로 스킵. idle 에도 프레임당 소량 JS (version 비교 + camera 읽기) 는 실행된다.
+- **트레이드 판정**: composition 방식은 "재가동 트리거 누락" 버그 클래스가 원천적으로 없다는 게 장점이고, 단점은 idle wake 비용 (배터리·백그라운드 탭). 단 composition 은 이미 `layoutVersion`/`registryVersion` 카운터 규율을 지불하고 있으므로, **version bump 지점 = requestFrame 지점**이라는 등식이 성립해 Pen 형 완전 정지로의 전환 비용이 낮은 편이다. 전환 시 hidden 탭 rAF pause 로 인한 overlay stale 계열 (메모리 `reference-chrome-mcp-hidden-tab-raf-pause-stale-overlay`) 재검증 필요.
+
+### (c) 줌/팬 콘텐츠 캐시 — **동형 구현 완료** (차용 후보 아님, 파라미터 일치 실측)
+
+§6 초판 표의 "composition 캐시 계층 없음" 은 **틀렸다**. composition `SkiaRenderer` 는 [PENCIL_RENDERING_OPTIMIZATION.md](PENCIL_RENDERING_OPTIMIZATION.md) (open-pencil 연구) 를 근거로 Phase 6 에서 dual surface 캐시를 이미 구현했고, 이번 본체 실측으로 **파라미터까지 일치**함이 검증됐다:
+
+| 파라미터           | Pen v1.2.1 본체           | composition SkiaRenderer                | 일치 |
+| ------------------ | ------------------------- | --------------------------------------- | :--: |
+| 캐시 surface 크기  | 화면 + 패딩 512px         | `contentPaddingCssPx = 512`             |  ✅  |
+| 재래스터 줌 임계   | 캡처 줌 × 3 초과          | `camera.zoom > snapshotCamera.zoom * 3` |  ✅  |
+| 제스처 중 blit     | cubic 리샘플 (`.3/.3`)    | Mitchell-Netravali `{b:1/3, c:1/3}`     |  ✅  |
+| 모션 종료 정리     | 200ms debounce 재래스터   | `scheduleCleanupRender()` 200ms         |  ✅  |
+| 커버리지 이탈 감지 | 카메라가 패딩 bounds 이탈 | `canBlitWithCameraTransform()` 4변 검사 |  ✅  |
+| 줌 동일 시         | Nearest blit              | `drawImage` (비스케일)                  |  ✅  |
+
+- **잔여 미세 차이**: Pen 은 contentSurface MSAA≤4 를 명시 설정 / composition 은 `mainSurface.makeSurface()` 로 동일 백엔드 정책 승계. composition 은 frame 분류가 명시 5종이라 dev 계측 (`idleFrameRatio`/`blitTime`/`contentRendersPerSec`) 이 분류 단위로 가능 — 운영 관측성은 composition 우위.
+- **시사점**: 이 축은 차용 후보가 아니라 **독립 검증 완료 사례** — composition 의 파라미터 선택 (512/3×/cubic/200ms) 이 본체 프로덕션 값과 동일함이 확인되어 튜닝 근거가 강화됐다.
+
+### (d) 텍스트 측정 oracle — 단일 엔진 vs 이중 엔진
+
+- **Pen**: 측정·caret·렌더 전부 wasm Paragraph 단일 엔진 (ICU74 임베드). **측정↔렌더 불일치라는 버그 클래스가 구조적으로 존재하지 않는다.**
+- **composition**: 측정 oracle = Canvas 2D ("Layout = Canvas 2D = CSS 정합" 원칙), 렌더 = CanvasKit — 이중 엔진. sub-pixel 발산 교정 레이어를 상시 유지한다: nodeRendererText 의 post-layout `getMaxIntrinsicWidth()` 교정, 오발 줄바꿈 `+1` 재layout, ParagraphStyle 3곳 동기화 규칙 (canvas-rendering.md §3).
+- **판정**: composition 의 이중 oracle 은 결함이 아니라 **DOM 대칭의 대가**다. Preview DOM 이 대등 consumer 인 이상 측정은 CSS(브라우저) 와 같아야 하고, CanvasKit 단일 측정으로 통일하면 CSS 와 발산한다. Pen 은 CSS 정합 요구 자체가 없어 단일 oracle 이 가능한 것 — **아키텍처 전제가 다르므로 이 단순성은 차용 불가**.
+
+### (e) 레이아웃 소유권 — JS Figma 3모드 vs Rust WASM CSS 표준
+
+- **Pen**: hug/fill/fixed 3모드 × 2축 2-pass 를 JS 로 구현. margin/percent/grid 미지원을 스키마가 명시 — **알고리즘 표면적을 의도적으로 극소화**. 장점: 디버깅 용이, 반복 속도, 마샬링 경계 없음. 단점: HTML export 는 근사 변환 (라운드트립 불가), 웹 표준 표현력 제한.
+- **composition**: CSS-FLEXBOX/GRID 표준 공식을 Rust WASM 이 소유 (§4.5 automatic minimum size, fit-content 공식, grid track sizing — ADR-916/164/165). 장점: DOM 과 **동일 공식** — 시각 대칭 성립의 전제. 단점: 표준 전체 표면적의 자체 구현 부담 + binary protocol 마샬링 + 5-심볼 캐시 무효화 체인·full rebuild 판정 같은 운영 규율 (layout-engine.md).
+- **판정**: 양쪽 다 "제품이 요구하는 표현력" 에 정합한 선택. Pen 의 레이아웃 단순성을 부러워할 이유는 없다 — composition 이 그 모델을 채택하면 노코드 빌더의 산출물 (실제 웹앱 CSS) 을 포기하게 된다.
+
+### (f) 히트테스트/컬링 — 벡터 정밀 vs clip-aware
+
+- **Pen**: 자식 역순 재귀 `pointerHitTest` + wasm `path_contains` — **벡터 외곽선 기준 point-in-path 정밀 히트** (일러스트형 도형에 유리). 컬링은 노드 AABB.
+- **composition**: command stream + AABB 컬링 (`translateStack`/`scrollDeltaStack` 스크롤 반영) + **`hitBoundsMap` = 원본 박스 ∩ 조상 clip rect** (보이는 영역만 히트, canvas-rendering.md §8.5) + SpatialIndex. 박스 모델 중심이라 AABB 근사로 충분하고, overflow 컨테이너에서 잘린 영역의 유령 히트를 구조적으로 차단 — 2026-07-24 실측 버그 일괄 해소의 산물.
+- **판정**: 서로 다른 형상 도메인에 최적화 — Pen 은 자유 벡터 도형, composition 은 CSS 박스 + overflow/clip. composition 에 path 정밀 히트가 필요해지는 시점 (자유 도형 도구 도입) 에 `path_contains` 계열이 참조 지점.
+
+### (g) 오버레이 chrome 좌표계 — 명시 2-pass vs scene 단일계
+
+- **Pen**: `render` (worldspace — 1/zoom 폭 아웃라인·스냅 가이드) / `renderScreenspace` (리사이즈 핸들·눈금·프레임명) 를 **렌더 패스 시그니처로 분리** — 좌표계 혼동을 타입 수준에서 차단.
+- **composition**: overlayNode/screenOverlayNode 모두 카메라 변환 아래 렌더 (scene 단일계 원칙 — canvas-rendering.md §8.7) + screen 고정 시각 요소는 1/zoom 역보정. §8.7 의 "선택 박스 panOffset 이중 보정" 버그처럼 단일계 원칙으로 사고를 단순화한 이력.
+- **판정**: 현행 scene 단일계는 히트/선택 좌표계와 일관돼 유지가 옳다. 다만 순수 screen-space 위젯 (핸들·라벨·눈금) 이 늘어나 1/zoom 역보정이 산재하기 시작하면 Pen 형 명시 분리 패스가 승격 선례.
+
+### (h) 총평 — Pen 렌더링 단순성의 출처는 "DOM 정합 포기"
+
+| 비용 구조         | Pen                                       | composition                                            |
+| ----------------- | ----------------------------------------- | ------------------------------------------------------ |
+| 시각 검증 대상    | 렌더러 1개 — canvas 가 곧 정본            | 대등 2-consumer — cross-check 상수 비용                |
+| 텍스트 oracle     | 단일 (불일치 클래스 부재)                 | 이중 + 교정 레이어 상시 유지                           |
+| 레이아웃 표면적   | 3모드 극소                                | CSS 표준 전체 + 운영 규율                              |
+| 그 대가로 얻는 것 | 단순성·속도 (HTML 은 근사 export 로 격하) | **Preview/Publish = 실제 웹앱** (노코드 빌더의 산출물) |
+
+개별 수법 (줌 캐시 — 이미 동형, 배치 API, 커서, rAF 정지) 은 차용 가능하지만, Pen 의 아키텍처 수준 단순성은 "HTML 을 일방향 산출물로 격하" 한 제품 전제에서 나온다 — composition 이 이를 차용하는 것은 제품 정의 변경이지 렌더링 최적화가 아니다.
+
+## 6-2. 차용 후보 (우선순위순)
+
+**렌더링** (§6-1 실측 정정 반영):
+
+1. ~~줌/팬 콘텐츠 캐시 surface + cubic 리샘플 blit~~ — **이미 동형 구현 완료** (§6-1-c). 차용 후보에서 제외, 본 실측은 파라미터 일치 검증으로 역할 전환.
+2. **idle 시 rAF 체인 완전 정지** (`framesRequested` 카운터) — 연속 rAF 의 idle wake 제거. version bump 지점 = requestFrame 지점 등식으로 전환 비용 낮음, hidden 탭 overlay stale 재검증 동반 (§6-1-b).
+3. **배치 드로우 API** (`draw_rect_array`) — CanvasKit 공식 표면에 없어 직접 차용 불가. 호출 왕복이 병목으로 실측되면 SkPicture 녹화 경유 또는 바인딩 자체 빌드 검토의 참조 지점 (§6-1-a).
+4. **worldspace/screenspace 오버레이 패스 명시 분리** — 조건부 (§6-1-g): 1/zoom 역보정 산재가 관측될 때의 승격 선례.
+5. 각도 캐시된 회전 리사이즈 커서 (`-webkit-image-set` DOM 커서) — 저비용 고급 조작감.
 
 **UI/UX**:
 
