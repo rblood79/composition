@@ -1,14 +1,55 @@
 # ADR-167: on-demand 프레임 루프 — idle 시 rAF 체인 완전 정지
 
+> **Status: Deprecated — 2026-07-26** (G0 게이트 실측 기각 — 후속 ADR 없음)
+>
+> **사유**: 설계 자체의 결함이 아니라 **G0 (idle wake 비용 측정 가능성) 게이트가 실측으로 불통과**했다. 유휴 비용이 **코어 1개의 0.67%** (6.7ms/s) 로, wake 누락 버그 클래스를 새로 도입하는 대가에 미치지 못한다. 상세는 아래 §G0 실측 결과. 리뷰 round 1 ([reviews/167.md](../reviews/167.md)) 은 "승인 가능" 이었으나, 그 리뷰는 배선 전제의 정합성을 본 것이고 **효과 크기는 G0 의 소관**이었다 — 순서대로 게이트가 작동한 사례.
+>
+> **보존 가치 (재개 시 출발점)**: ① wake 소스 인벤토리 실측 확정본 (design breakdown §3 — 프레임 내/외 분류 16/9, 상류 2 경로) ② R1a/G1a 가 포착한 오판 패턴 ("`recordInvalidation` 호출 = 허브 경유" 는 거짓 — 절반 이상이 프레임 내부 폴링) ③ 카메라 축은 `notifyUpdateListeners` 단일 지점으로 완결됨을 확증.
+>
+> **재개 조건**: (a) 저사양 기기 실측에서 유휴 비용이 코어 3% 이상으로 확인, 또는 (b) `performanceMonitor` 무게이트 rAF 루프 해소 후 "wake 0" 이 실제로 달성 가능해져 전력 이득 논거가 성립할 때.
+>
+> **파생 후속 작업 2건** (본 ADR 없이 개별 처리 — 아래 §파생 작업):
+>
+> 1. `performanceMonitor.startFPSMeasurement` 의 rAF 루프에 DEV 게이트 부여 (수 줄, prod 상시 wake 제거)
+> 2. 렌더링 CPU 최적화의 질량은 유휴가 아니라 **상호작용 프레임** — [ADR-153](../153-render-optimization-measurement-first-adoption.md) 우선순위 근거로 본 실측 인용
+
 ## Status
 
-Proposed — 2026-07-26 (리뷰 round 1 반영 완료 — [reviews/167.md](reviews/167.md): 이슈 5건 중 4건 fixed / 1건 deferred, 결론 "승인 가능")
+Deprecated — 2026-07-26 (G0 실측 기각). 이력: Proposed 2026-07-26 → 리뷰 round 1 (이슈 5건 중 4 fixed / 1 deferred, "승인 가능") → G0 실측 불통과 → Deprecated
+
+## G0 실측 결과 (2026-07-26, 기각 근거)
+
+live builder (dev 빌드, 120Hz 디스플레이, DevTools 도킹 상태) 에서 rAF 콜백을 출처별로 귀속 계측. 페이지 내 자체 기록기로 92초간 213 유휴 샘플 수집 (계측자 개입이 결과를 왜곡하지 않도록 수집 중 무개입).
+
+| 구간                | rAF 호출  | `renderFrame` 초당 누적 | 코어 1개 점유 |
+| ------------------- | :-------: | :---------------------: | :-----------: |
+| **유휴** (213 샘플) | 110~120Hz |   **6.7ms/s** (0~29)    |   **0.67%**   |
+| 팬/줌 상호작용 (21) | 62~120Hz  |    최대 **884ms/s**     |    **88%**    |
+
+**판정 근거 3가지**:
+
+1. **효과 크기 미달** — 유휴 0.67% 는 wake 누락 버그 클래스 (R1/R1a) 도입 대가에 미치지 못한다. CPU 4배 감속 환경으로 선형 환산해도 약 2.7% (감속 실측은 DevTools throttle 이 끝까지 적용되지 않아 미확보 — 대신 순간 6배 지연 샘플에서 **fps 120.2 유지**가 관측되어 rAF cadence 는 CPU 속도와 무관하게 유지됨 = 선형 환산 근거).
+2. **HC3 (idle wake 0/s) 이 본 ADR 단독으로 달성 불가** — `performanceMonitor.startFPSMeasurement` 의 rAF 루프가 prod 에서 게이트 없이 상시 가동 (`useAutoRecovery.ts:101` `enabled: true` 기본, `BuilderCore.tsx:378` 미전달). SkiaCanvas 루프만 멈춰도 초당 120회 wake 가 잔존하므로, on-demand 렌더링의 전력 이득 본질 (CPU 깊은 절전 진입) 이 성립하지 않는다.
+3. **비용 질량의 위치가 다르다** — 상호작용 884ms/s vs 유휴 6.7ms/s = **약 130배**. 본 ADR 은 "프레임을 돌릴지" (6.7 쪽), ADR-153 은 "프레임 내부 비용" (884 쪽) 을 다룬다.
+
+**초판 Context 수치 정정**: 초판이 근거로 든 "idle 초당 60회 wake" 는 ① 이 기기가 120Hz 라 실제 120회이고 ② 단발 측정치 21ms/s 는 `performance.now()` 0.1ms 양자화 + 계측 루프 자체의 잔킹이 섞여 **3배 과대**였다 (확정치 6.7ms/s). 또 초판 Consequences 의 "백그라운드 탭 전력 개선" 은 **근거 없음** — 브라우저가 hidden 탭 rAF 를 이미 완전히 중단한다 (메모리 `reference-chrome-mcp-hidden-tab-raf-pause-stale-overlay` 가 그 동작의 실측 기록).
+
+## 파생 작업 (본 ADR 기각과 무관하게 유효)
+
+| #   | 작업                                                                                 | 근거                                 | 규모  |
+| --- | ------------------------------------------------------------------------------------ | ------------------------------------ | ----- |
+| D1  | `performanceMonitor.startFPSMeasurement` rAF 루프에 DEV 게이트 (또는 on-demand 전환) | prod 상시 120회/s wake — 무조건 손실 | 수 줄 |
+| D2  | ADR-153 우선순위 근거에 본 실측 (상호작용 884ms/s = 코어 88%) 인용                   | 렌더 CPU 개선의 질량 위치 확증       | 문서  |
+
+---
+
+> 아래 본문은 **기각 시점 원문 보존** (설계 이력 — 대안 비교 / 리뷰 round 1 정정 내용 포함).
 
 ## Context
 
 builder 캔버스의 rAF 루프 (`apps/builder/src/builder/workspace/canvas/skia/SkiaCanvas.tsx` `renderFrameCore`) 는 마운트 동안 **매 프레임 무조건 다음 rAF 를 재예약**한다. `SkiaRenderer.classifyFrame` 5종 분류 (idle/present/camera-only/content/full) 로 idle 프레임의 GPU 작업은 0 이지만, **idle 에도 초당 60회 JS wake** (camera ref 읽기 / `getRegistryVersion()` / invalidation packet 확인 / 미니맵 가시성 판정) 가 상수 발생한다 — 배터리·CPU 유휴 비용과 백그라운드 전력 소비의 원인.
 
-Pen v1.2.1 실측 ([PEN_V1.2.1_RENDERING_UIUX_ANALYSIS.md](../explanation/research/PEN_V1.2.1_RENDERING_UIUX_ANALYSIS.md) §3-1/§6-1-b) 은 `framesRequested` 카운터로 idle 시 rAF 체인 자체를 종료 (`activeRenderLoop=false`) 하고 상태 변경 지점이 `requestFrame()` 으로 재가동한다. Figma 도 "변경 시에만 렌더" on-demand 모델을 공개적으로 채택한 선례.
+Pen v1.2.1 실측 ([PEN_V1.2.1_RENDERING_UIUX_ANALYSIS.md](../../explanation/research/PEN_V1.2.1_RENDERING_UIUX_ANALYSIS.md) §3-1/§6-1-b) 은 `framesRequested` 카운터로 idle 시 rAF 체인 자체를 종료 (`activeRenderLoop=false`) 하고 상태 변경 지점이 `requestFrame()` 으로 재가동한다. Figma 도 "변경 시에만 렌더" on-demand 모델을 공개적으로 채택한 선례.
 
 composition 의 wake 배선 구조 (2026-07-26 실코드 확인 — **리뷰 round 1 에서 초판 서술을 정정**):
 
@@ -16,7 +57,7 @@ composition 의 wake 배선 구조 (2026-07-26 실코드 확인 — **리뷰 rou
 2. **콘텐츠·오버레이 축은 허브가 아니라 폴링이다** — `recordInvalidation` (`skia/renderInvalidation.ts:85`) 호출 25곳 중 **16곳이 `renderFrameCore` 내부** (`SkiaCanvas.tsx:449-750`) 의 **변경 감지기**다. 프레임이 signature/version 을 ref 와 비교해 차이를 발견한 *결과*로 기록하는 것이라, 루프가 멈춘 상태에서는 실행 자체가 안 된다 — **`recordInvalidation` 후킹은 이 16곳에 대해 순환 (wake 불가)**. 프레임 밖 9곳 (`useSkiaNode.ts:67,83` / `SkiaCanvas.tsx:276,436,773,800,811,843,863`) 만 유효 wake 지점.
 3. 따라서 **wake 는 폴링이 감지하던 상류 mutation 지점에 새로 심어야 한다** — 주요 2 경로가 현재 무기록: ① 콘텐츠 편집은 `StoreRenderBridge` 자체 구독 → `resync` → `registerSkiaNode` (`useSkiaNode.ts:40,46`) 로 `registryVersion` 만 올리고 `recordInvalidation` 을 호출하지 않는다 ② 선택/편집 컨텍스트·AI 는 `invalidationPacket` useMemo (`SkiaCanvas.tsx:173`) → `useEffect [invalidationPacket]` (`:279-281`) 가 ref 만 갱신한다. 이 두 지점이 Phase 1 의 실제 1차 배선 대상 (breakdown §3 갱신).
 
-**인접 ADR 직교성**: [ADR-153](153-render-optimization-measurement-first-adoption.md) (Picture 캐시 + GPU 측정 보강, Proposed) 은 **content 프레임 내부 비용** 축이고, 본 ADR 은 **프레임 실행 여부** 축 — scope 비중첩. 둘 다 측정 우선 게이트 (본 ADR G0 ↔ 153 Phase 1) 라는 방법론만 공유한다.
+**인접 ADR 직교성**: [ADR-153](../153-render-optimization-measurement-first-adoption.md) (Picture 캐시 + GPU 측정 보강, Proposed) 은 **content 프레임 내부 비용** 축이고, 본 ADR 은 **프레임 실행 여부** 축 — scope 비중첩. 둘 다 측정 우선 게이트 (본 ADR G0 ↔ 153 Phase 1) 라는 방법론만 공유한다.
 
 **SSOT 3-domain 판정**: 비대상 — builder 렌더링 인프라 (프레임 스케줄링). 시각 결과 불변이 hard constraint 이므로 D3 대칭에 영향 없음.
 
@@ -89,7 +130,7 @@ composition 의 wake 배선 구조 (2026-07-26 실코드 확인 — **리뷰 rou
 - **대안 A 기각**: idle 60 wake/s 를 영구 수용 — 전환 목적 자체 (Hard Constraint 3) 미달. 단 Phase 0 실측에서 idle wake 비용이 측정 불가 수준으로 나오면 A 잔류가 정답일 수 있어 G0 로 재판정 게이트를 둔다.
 - **대안 B 기각**: wake 누락의 결과가 영구 stale 화면 (기술 HIGH). 본 프로젝트는 hidden 탭 stale overlay 실증 이력이 있어, 안전망 없는 전환은 동종 회귀를 재생산할 개연성이 높다.
 
-> 구현 상세: [167-on-demand-frame-loop-breakdown.md](design/167-on-demand-frame-loop-breakdown.md)
+> 구현 상세: [167-on-demand-frame-loop-breakdown.md](../design/167-on-demand-frame-loop-breakdown.md)
 
 ## Risks
 

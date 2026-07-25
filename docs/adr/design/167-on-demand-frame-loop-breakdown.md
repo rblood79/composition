@@ -1,6 +1,10 @@
 # ADR-167 Design Breakdown: on-demand 프레임 루프 — idle 시 rAF 체인 완전 정지
 
-> 본 문서는 [ADR-167](../167-on-demand-frame-loop.md) 의 구현 상세. 결정 근거/대안/위험은 ADR 본문 참조.
+> **⚠️ ADR-167 은 Deprecated (2026-07-26, G0 실측 기각)** — 본 breakdown 은 **미실행**이다. 기각 근거는 [ADR-167 §G0 실측 결과](../completed/167-on-demand-frame-loop.md) 참조.
+>
+> **다만 §3 (Wake 소스 인벤토리) 은 실측 확정본으로 재개 시 그대로 유효**하다 — 프레임 내/외 분류 (16/9), 상류 2 경로 (`StoreRenderBridge.resync` / `invalidationPacket` effect), 카메라 축 단일 지점 완결. 프레임 루프를 건드리는 향후 작업은 여기서 출발할 것.
+
+> 본 문서는 [ADR-167](../completed/167-on-demand-frame-loop.md) 의 구현 상세. 결정 근거/대안/위험은 ADR 본문 참조.
 
 ## 1. 전제 lock-in
 
