@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [스타일 패널 instance 값 동기 — origin(master) style baseline tier 복원] - 2026-07-25
+
+### Bug Fixes
+
+- **reusable component instance 선택 시 스타일 패널이 origin 값을 표시하지 못하던 문제**:
+  - 사용자 보고: "page 내 요소에는 box shadow 가 적용되어 있는데 선택 후 스타일 패널에는 none". 실측(Home 페이지 ListBox instance) — origin `component-listbox`.props.style = `{ padding*: 10, boxShadow: "inset 0 10px 15px -3px …, inset 0 4px 6px -4px …" }`, instance 자신의 style = `{ width, maxHeight, overflow }`. Preview DOM inline 은 `padding: 10px; box-shadow: … inset …` 로 정상 렌더되는데 패널만 **Box Shadow: none / Padding: 4**
+  - **Why**: 렌더 경로는 `resolveCanonicalRefProps` → `mergePropsWithStyleDeep(master.props, ref.props)` 로 origin 을 깔고 instance override 를 얹는데, 패널의 `useElementStyleContext` 는 origin 을 **type 해석에만** 쓰고 style/props 는 instance 자신의 값만 읽었다. 그래서 값 체인 `inline → catalog preset → 하드코딩` 에서 origin tier 가 통째로 빠진다. boxShadow 가 가장 눈에 띈 이유는 catalog `containerStyles` 에 box-shadow 를 선언한 컴포넌트가 0건이라 곧바로 `"none"` 으로 떨어지기 때문이고, padding 은 catalog 값 4 가 그럴듯하게 표시돼 그동안 안 걸렸다 — boxShadow 전용 결함이 아니다
+  - 수정: `useElementStyleContext` 가 `type: "ref"` 노드에 대해 origin 을 baseline 으로 병합. props 축은 렌더 SSOT 와 **동일 함수**(`mergePropsWithStyleDeep`)를 경유하고, style 축은 responsive override 가 tier 마다 따로 걸리므로 **tier 별로** `resolveResponsiveStyleMap` 해석 후 병합(canvasSceneNode 의 template origin 해석과 동형). node-level `fills` 도 origin fallback 추가
+  - dirty/reset 판정(`useResetStyles`)은 raw instance override 를 읽는 별도 경로라 무영향 — 표시값 merge 가 override 감지를 삼키지 않는다
+  - **결과** (live 실측, 동일 ListBox instance): Box Shadow `none → lg` + inset 토글 활성, Padding `4 → 10`. instance 고유 값(width 100% / overflow auto)과 plain 요소(Badge = md)는 불변
+  - 전 섹션 공유 컨텍스트라 Appearance 뿐 아니라 Layout/Transform/Typography/Fill 의 origin 승계도 함께 해소. `size` 승계로 catalog preset tier 선택도 정합화
+  - 위치: `apps/builder/src/builder/panels/styles/hooks/useElementStyleContext.ts`
+
 ## [빌더 패널 표준 구조화 — ADR-163 Implemented] - 2026-07-25
 
 ### Bug Fixes

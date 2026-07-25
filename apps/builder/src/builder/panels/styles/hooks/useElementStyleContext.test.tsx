@@ -26,6 +26,7 @@ describe("useElementStyleContext", () => {
       elementsMap: new Map(),
       selectedElementId: null,
       selectedElementProps: {},
+      activeBreakpoint: "desktop",
     } as never);
     useCanonicalDocumentStore.setState({
       documents: new Map(),
@@ -97,6 +98,155 @@ describe("useElementStyleContext", () => {
 
     expect(result.current.type).toBe("ListBox");
     expect(result.current.style?.width).toBe("100%");
+  });
+
+  // ── origin(master) style baseline tier (2026-07-25) ─────────────────────
+  //   렌더 SSOT(resolveCanonicalRefProps → mergePropsWithStyleDeep)는 origin props 를
+  //   깔고 instance override 를 얹는다. 패널이 instance own 만 읽으면 origin 이 공급한
+  //   boxShadow/padding/size 가 사라져 catalog preset 또는 하드코딩 fallback 으로 표시된다
+  //   (실측: ListBox origin boxShadow=inset lg / padding=10 → 패널 none / 4).
+  describe("reusable instance origin baseline", () => {
+    function setDoc(children: unknown[]) {
+      useCanonicalDocumentStore.setState({
+        currentProjectId: "project-1",
+        documents: new Map([
+          [
+            "project-1",
+            { version: "composition-1.0", children } as CompositionDocument,
+          ],
+        ]),
+        documentVersion: 1,
+      });
+    }
+
+    it("inherits origin style keys the instance does not override", () => {
+      setDoc([
+        {
+          id: "listbox-origin",
+          type: "ListBox",
+          reusable: true,
+          props: {
+            size: "lg",
+            style: { paddingTop: 10, boxShadow: "inset 0 10px 15px -3px #000" },
+          },
+        },
+        {
+          id: "listbox-ref",
+          type: "ref",
+          ref: "listbox-origin",
+          props: { style: { width: "100%", overflow: "auto" } },
+        },
+      ]);
+
+      const { result } = renderHook(() =>
+        useElementStyleContext("listbox-ref"),
+      );
+
+      expect(result.current.style?.boxShadow).toBe(
+        "inset 0 10px 15px -3px #000",
+      );
+      expect(result.current.style?.paddingTop).toBe(10);
+      // instance 고유 키는 그대로
+      expect(result.current.style?.width).toBe("100%");
+      // props 축도 동일 병합 — size 는 catalog preset tier 선택에 쓰인다
+      expect(result.current.size).toBe("lg");
+    });
+
+    it("keeps the instance override winning over the origin value", () => {
+      setDoc([
+        {
+          id: "listbox-origin",
+          type: "ListBox",
+          reusable: true,
+          props: { size: "lg", style: { boxShadow: "none", paddingTop: 10 } },
+        },
+        {
+          id: "listbox-ref",
+          type: "ref",
+          ref: "listbox-origin",
+          props: { size: "sm", style: { boxShadow: "0 1px 2px 0 #000" } },
+        },
+      ]);
+
+      const { result } = renderHook(() =>
+        useElementStyleContext("listbox-ref"),
+      );
+
+      expect(result.current.style?.boxShadow).toBe("0 1px 2px 0 #000");
+      expect(result.current.style?.paddingTop).toBe(10);
+      expect(result.current.size).toBe("sm");
+    });
+
+    it("resolves each tier's responsive override before merging", () => {
+      useStore.setState({ activeBreakpoint: "mobile" } as never);
+      setDoc([
+        {
+          id: "listbox-origin",
+          type: "ListBox",
+          reusable: true,
+          props: { style: { paddingTop: 10, rowGap: 4 } },
+          responsive: { styles: { paddingTop: { mobile: 2 } } },
+        },
+        {
+          id: "listbox-ref",
+          type: "ref",
+          ref: "listbox-origin",
+          props: { style: { width: "100%" } },
+          responsive: { styles: { width: { mobile: "50%" } } },
+        },
+      ]);
+
+      const { result } = renderHook(() =>
+        useElementStyleContext("listbox-ref"),
+      );
+
+      // origin 의 breakpoint override 가 instance responsive 해석에 덮이지 않는다
+      expect(result.current.style?.paddingTop).toBe(2);
+      expect(result.current.style?.rowGap).toBe(4);
+      expect(result.current.style?.width).toBe("50%");
+    });
+
+    it("falls back to the origin fills when the instance has none", () => {
+      setDoc([
+        {
+          id: "listbox-origin",
+          type: "ListBox",
+          reusable: true,
+          fills: [{ type: "solid", color: "#123456" }],
+          props: { style: {} },
+        },
+        {
+          id: "listbox-ref",
+          type: "ref",
+          ref: "listbox-origin",
+          props: { style: {} },
+        },
+      ]);
+
+      const { result } = renderHook(() =>
+        useElementStyleContext("listbox-ref"),
+      );
+
+      expect(result.current.fills).toEqual([
+        { type: "solid", color: "#123456" },
+      ]);
+    });
+
+    it("leaves a plain (non-ref) element untouched", () => {
+      setDoc([
+        {
+          id: "badge-1",
+          type: "Badge",
+          props: { style: { boxShadow: "0 4px 6px -1px #000" } },
+        },
+      ]);
+
+      const { result } = renderHook(() => useElementStyleContext("badge-1"));
+
+      expect(result.current.style).toEqual({
+        boxShadow: "0 4px 6px -1px #000",
+      });
+    });
   });
 
   it("does not treat arbitrary instance names as component spec types", () => {
