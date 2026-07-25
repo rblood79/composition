@@ -12,7 +12,9 @@ Proposed — 2026-07-25
 
 **결함 1 — Skia 가 값을 해석하지 못한다.** 등록된 값 `color-mix(in srgb, var(--fg) N%, transparent)` 는 그림자 파서의 색 추출 정규식(`rgba?\(…\)` / `hsla?\(…\)` / `#hex`)에 걸리지 않아 기본값 `rgba(0,0,0,1)` 로 떨어진다. 실측: `buildSkiaEffects` 가 `alpha 1.0` 불투명 검정 반환(대조군 `rgba(0,0,0,0.15)` → `0.15` 정상). 파서는 두 벌(`specs/primitives/shadows.ts::parseShadow`, `builder/…/styleConverter.ts::parseOneShadow`)이 있고 둘 다 같은 공백을 갖는다.
 
-**결함 2 — dark 에서 방향이 뒤집힌다.** `--fg` 는 light `--color-neutral-900`(근-검정) / dark `--color-neutral-100`(근-흰색)이다. 따라서 `color-mix(var(--fg) 20%)` 는 dark 에서 20% 흰 번짐 — 그림자가 아니라 glow 다. 같은 프로젝트의 `--shadow-*` 는 정반대 정책(검정 유지 + 불투명도 0.05→0.2 상향)을 이미 쓰고 있다. (정의 기반 도출 — live 확인은 Gate G1)
+**결함 2 — dark 에서 방향이 뒤집힌다.** `--fg` 는 light `--color-neutral-900`(근-검정) / dark `--color-neutral-100`(근-흰색)이다. 따라서 `color-mix(var(--fg) 20%)` 는 dark 에서 20% 흰 번짐 — 그림자가 아니라 glow 다. 같은 프로젝트의 `--shadow-*` 는 정반대 정책(검정 유지 + 불투명도 0.05→0.2 상향)을 이미 쓰고 있다.
+
+> **2026-07-25 live 실측 — Gate G1 통과.** preview 문서에서 `[data-theme="dark"]` 하위 computed `box-shadow` 를 직접 읽었다. light `--fg` = `rgb(23,23,23)` → 그림자 색 `color(srgb 0.09 0.09 0.09 / 0.2)`(검정) / dark `--fg` = `rgb(245,245,245)` → **`color(srgb 0.96 0.96 0.96 / 0.2)`(흰색)**. 같은 조건의 대조군 `--shadow-md` 는 light `rgba(0,0,0,0.1)` → dark `rgba(0,0,0,0.3)` 으로 검정을 유지하며 불투명도만 올린다. 렌더 확인에서도 dark 의 Popover / Modal 은 박스 둘레에 밝은 후광이 보인다. 결함 2 는 도출이 아니라 **확증된 사실**이다.
 
 **결함 3 — 값 언어가 4종 공존한다.** catalog 안에서 `color-mix+var`(3) / raw rgba(1) / TokenRef `{shadow.sm}`(1) / CSS var `var(--shadow-*)`(8, staticSelectors) 이 섞여 있다. 이 중 `containerStyles.boxShadow` 만 토큰 해석을 거치지 않는다 — 형제 필드인 `states.*.boxShadow` 와 `indicatorMode.boxShadow` 는 이미 `CSSGenerator.resolveBoxShadow` 를 경유해 `{shadow.*}` 를 받는다.
 
@@ -120,7 +122,7 @@ Proposed — 2026-07-25
 | --- | ------------------------------------------------------------------------------------------------------------------- | :----: | ----------------------------------------------------------------------------------------------------------------- |
 | R1  | 패널 프리셋 역매핑(`cssToPresetMap`)이 light 값만 인덱싱 → dark 에서 프리셋이 "custom" 으로 표시                    |  MED   | 역매핑을 light + dark 양쪽 값으로 인덱싱. `AppearanceSection` 왕복 테스트에 dark 케이스 추가                      |
 | R2  | `shadows` flat map 을 import 하는 기존 소비처 회귀 (`getShadowToken` / Toast.css / 패널)                            |  MED   | `shadows = lightShadows` 별칭 유지(시그니처 보존) + 소비처 grep 후 명시 전환. 정적 가드로 신규 flat 접근 차단     |
-| R3  | overlay 토큰 값 선정(D1)이 light 시각 변경을 유발 → 2026-07-25 확정 외형과 어긋남                                   |  MED   | Gate G2 에서 before/after 제시 후 진행. 승인 없으면 D1-b(현 light 값 그대로 토큰화)로 폴백                        |
+| R3  | D1-a(스케일 편입) 매핑이 light 시각 변경을 유발 → 2026-07-25 확정 외형과 어긋남                                     |  LOW   | 프로파일 실측으로 최근사 레벨 확정(잉크량 비 0.84~1.20, design §2). G2 는 그 범위 준수만 확인. 이탈 시 D1-b 폴백  |
 | R4  | Skia primitive 제거 순서가 뒤바뀌면 Popover 캔버스 그림자에 공백 구간 발생                                          |  MED   | Phase 순서 고정(3 → live 확인 → 4). Phase 4 는 G4 통과 후에만 진행                                                |
 | R5  | `--shadow-*` 의 AI 테마 오버라이드(`--box-shadow-*`)를 TS 토큰 map 이 모름 → theme studio 로 그림자를 바꾸면 재발산 |  LOW   | 범위 밖 명시. 재개 조건 = theme studio 그림자 커스터마이즈가 실사용에 등장. 그 시점에 오버라이드 조달 경로를 판정 |
 | R6  | Dialog 는 `containerStyles.boxShadow` 미보유라 `dialog_shadow` 제거 시 대체 공급원이 없음                           |  MED   | 2026-07-25 판정(Modal 이 modal elevation 소유, RAC starter `Dialog.css` 근거)을 유지 — Modal 그림자로 대체 검증   |
@@ -129,12 +131,12 @@ Proposed — 2026-07-25
 
 ## Gates
 
-| Gate | 시점                     | 통과 조건                                                                                                    | 실패 시 대안                                                                              |
-| ---- | ------------------------ | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
-| G1   | Phase 0 (착수 전)        | dark 모드 live 에서 Popover/Tooltip/Modal 그림자가 실제로 밝은 번짐으로 나타남을 확인 (결함 2 전제 검증)     | 이미 정상이면 dark 값 정책을 재검토하고 Phase 1 의 dark map 값을 현행 계산값으로 고정     |
-| G2   | Phase 2 종료             | Popover/Tooltip/Modal 의 light computed `box-shadow` 가 2026-07-25 값과 동일 — 또는 diff 제시 후 사용자 승인 | 승인 없으면 D1-b 폴백 (`{shadow.overlay-*}` 신설로 현 light 값 보존)                      |
-| G3   | Phase 3 종료             | 캔버스에서 Popover/Tooltip/Modal 그림자가 light·dark 각각 DOM 과 시각 일치 (`/cross-check` 8조합)            | 불일치 축을 특정해 Phase 3 배선 수정. 파서 수정이 필요하다고 판명되면 대안 A 를 부분 병합 |
-| G4   | Phase 4 (primitive 제거) | `popover_shadow` / `dialog_shadow` 제거 후에도 Popover / Dialog 캔버스 그림자가 유지됨을 live 확인           | primitive 존치 + Phase 3 배선 재점검. 제거는 다음 사이클로 이월                           |
+| Gate | 시점                     | 통과 조건                                                                                                                                                                    | 실패 시 대안                                                                              |
+| ---- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| G1   | Phase 0 (착수 전)        | **✅ 통과 — 2026-07-25 실측.** dark `--fg` = `rgb(245,245,245)` → 그림자 색 `color(srgb 0.96 0.96 0.96 / 0.2)`(흰 후광). 대조군 `--shadow-md` 는 dark 에서 `rgba(0,0,0,0.3)` | (통과 — N/A)                                                                              |
+| G2   | Phase 2 종료             | light 그림자 잉크량(∫alpha·dd)이 현행 대비 0.8~1.2배 이내 + D1-a 매핑(Tooltip→md / Popover→lg / Modal→xl) 유지                                                               | 범위 이탈 시 D1-b 폴백 (`{shadow.overlay-*}` 신설로 현 light 값 보존)                     |
+| G3   | Phase 3 종료             | 캔버스에서 Popover/Tooltip/Modal 그림자가 light·dark 각각 DOM 과 시각 일치 (`/cross-check` 8조합)                                                                            | 불일치 축을 특정해 Phase 3 배선 수정. 파서 수정이 필요하다고 판명되면 대안 A 를 부분 병합 |
+| G4   | Phase 4 (primitive 제거) | `popover_shadow` / `dialog_shadow` 제거 후에도 Popover / Dialog 캔버스 그림자가 유지됨을 live 확인                                                                           | primitive 존치 + Phase 3 배선 재점검. 제거는 다음 사이클로 이월                           |
 
 ## Consequences
 
