@@ -68,12 +68,17 @@ export interface ContainerStylesSchema {
   padding?: TokenRef | string;
   gap?: TokenRef | string;
 
-  // 컨테이너 root elevation (2026-07-25). CSS 값 그대로 — `shadows` 프리셋(none/sm/md/lg/xl)
-  //   에 없는 복합 그림자(overlay 계열의 color-mix 기반)를 표현해야 해서 TokenRef 로 제약하지
-  //   않는다. **Why**: 그림자 정본이 수동 CSS 에만 있어 catalog 를 읽는 Style Panel 이
-  //   Appearance → Box Shadow 를 항상 "none" 으로 표시했다 (D3 SSOT 위반 — 수동 CSS 가
-  //   catalog 파생이 아닌 독립 정의). 값 자체는 수동 CSS 실효값을 그대로 이관해 시각 불변.
-  boxShadow?: string;
+  // 컨테이너 root elevation (2026-07-25). **Why**: 그림자 정본이 수동 CSS 에만 있어 catalog 를
+  //   읽는 Style Panel 이 Appearance → Box Shadow 를 항상 "none" 으로 표시했다 (D3 SSOT 위반 —
+  //   수동 CSS 가 catalog 파생이 아닌 독립 정의).
+  //
+  // ADR-166 Phase 2: `ShadowTokenRef` 를 허용 타입에 추가했다. 구 주석은 "프리셋에 없는 복합
+  //   그림자(color-mix 기반)를 표현해야 해서 TokenRef 로 제약하지 않는다" 였으나, Phase 1 에서
+  //   프리셋이 Spectrum 2 의 3레이어 레시피로 재정의되면서 그 근거가 소멸했다 — overlay 3건이
+  //   전부 프리셋 안에 들어온다. raw CSS 문자열도 계속 통과하지만(사용자 임의 값), **Skia 가
+  //   읽는 값은 TokenRef 여야 한다**: `var()` / `color-mix()` 는 styleConverter 의 색 정규식에
+  //   매칭되지 않아 불투명 검정으로 낙하한다.
+  boxShadow?: string | ShadowTokenRef;
 
   // ADR-078: layout primitive — archetype base 를 명시적으로 override.
   //   Spec 이 display/flexDirection 을 "선언적으로" 소유 → style panel / Skia / CSS 모두

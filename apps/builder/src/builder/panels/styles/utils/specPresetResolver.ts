@@ -434,7 +434,15 @@ function appearanceFromContainerStyles(
   //   camelCase 키만 읽으면 된다. 패널 표시/ dirty baseline 이 하드코딩 solid/none/visible 대신
   //   컴포넌트 catalog 기본값을 반영하게 한다(M5).
   if (typeof cs.borderStyle === "string") out.borderStyle = cs.borderStyle;
-  if (typeof cs.boxShadow === "string") out.boxShadow = cs.boxShadow;
+  // boxShadow 만 TokenRef 해석을 거친다 (ADR-166 Phase 2). catalog 가 `{shadow.md}` 로 바뀌었고,
+  //   패널은 CSS 값을 기대한다 — 그대로 통과시키면 Box Shadow Select 가 `{shadow.md}` 를 "custom"
+  //   항목으로 표시한다. `resolveToken` 은 light 값을 돌려주며, 역매핑(`cssToPresetMap`)이
+  //   light+dark 양쪽을 인덱싱하므로 canvas theme 과 무관하게 프리셋 키가 잡힌다(R1).
+  if (typeof cs.boxShadow === "string") {
+    out.boxShadow = cs.boxShadow.startsWith("{shadow.")
+      ? (resolveToken(cs.boxShadow as TokenRef) as string)
+      : cs.boxShadow;
+  }
   if (typeof cs.overflow === "string") out.overflow = cs.overflow;
   return out;
 }

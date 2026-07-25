@@ -175,8 +175,11 @@ export {
   // Radius
   radius,
   getRadiusToken,
-  // Shadows
+  // Shadows — `shadows` 는 lightShadows 별칭(하위 호환). theme 별 값이 필요한 소비처는
+  //   light/dark map 또는 `getShadowToken(name, theme)` 사용 (ADR-166 Phase 1)
   shadows,
+  lightShadows,
+  darkShadows,
   getShadowToken,
   parseShadow,
   // Font (CSS 표준 상수 — ADR-091 Phase 1)

@@ -175,7 +175,10 @@
   .react-aria-Popover[data-variant="filled"] {
     background: var(--accent-subtle);
     border: none;
-    box-shadow: 0 4px 12px color-mix(in srgb, var(--fg) 15%, transparent);
+    /* base 와 같은 elevation — 값을 재선언할 이유는 없으나 `border: none` 과 한 블록이라
+       존치한다. ADR-166 Phase 2: base 가 `{shadow.md}` 로 바뀌었으므로 여기도 같은 토큰이어야
+       한다. 구 `color-mix(--fg 15%)` 를 남기면 이 variant 만 명시도로 이겨 dark 후광이 잔존한다. */
+    box-shadow: var(--shadow-md);
 
     .react-aria-OverlayArrow svg {
       fill: var(--accent-subtle);

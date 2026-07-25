@@ -6851,11 +6851,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   `Dialog.css` 그림자 부재 — Dialog 는 Modal 안이라 자체 elevation 이 불필요.
       //   기존 `overlays.css` 선언은 `var(--drop-shadow-md)`(= drop-shadow() **filter 함수**)
       //   를 box-shadow 에 쓴 타입 오용이라 계산값이 `none` 으로 죽어 있었다(live 실측).
-      //   geometry/alpha 는 starter 그대로(0 8px 32px / 20%), 색만 Popover(15%)·Tooltip(12%)
-      //   와 같은 `color-mix(--fg N%)` 언어로 통일 — 다크모드 반전 대응 + elevation 서열
-      //   (Tooltip < Popover < Modal) 일관.
+      //   ADR-166 Phase 2: 값 언어를 TokenRef 로 통일. 구 `0 8px 32px color-mix(--fg 20%)` 는
+      //   ① Skia 파서가 `color-mix(` 를 못 읽고 ② dark 에서 `--fg` 가 밝아져 그림자가 흰 후광이
+      //   됐다. `{shadow.lg}` = SP2 `dragged`. **elevation 서열 (Tooltip < Popover < Modal) 은
+      //   sm < md < lg 로 그대로 보존**되나, blur 32 는 Spectrum 이 발행하는 어느 값보다 넓어
+      //   대응이 없다 — Modal 그림자가 눈에 띄게 옅어진다(잉크 ×0.62, Gate G2 제시 대상).
       containerStyles: {
-        boxShadow: "0 8px 32px color-mix(in srgb, var(--fg) 20%, transparent)",
+        boxShadow: "{shadow.lg}",
       },
       states: {},
     },
@@ -7594,8 +7596,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   **Why**: 그림자 정본이 수동 CSS 에만 있어 catalog 를 읽는 Style Panel 이
       //   Appearance → Box Shadow 를 "none" 으로 표시했다(D3 위반 — 수동 CSS 독립 정의).
       //   Skia 는 `popover_shadow` primitive 가 동일 기하(0 4px 12px)를 이미 그린다.
+      //   ADR-166 Phase 2: `{shadow.md}` = SP2 `elevated`. 구 값의 기하(0 4px 12px)가 SP2
+      //   `elevated` 최상위 레이어와 정확히 일치하므로 근사가 아니라 **출처 복귀**다(ADR §9-4).
       containerStyles: {
-        boxShadow: "0 4px 12px color-mix(in srgb, var(--fg) 15%, transparent)",
+        boxShadow: "{shadow.md}",
       },
       states: {},
     },
@@ -12728,9 +12732,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "inline-flex",
         alignItems: "center",
-        // 2026-07-25: overlay elevation 정본 이관 (Popover 동형). 값은 수동 `Tooltip.css`
-        //   실효값 그대로 — 시각 불변. Popover(15%/4px/12px)보다 한 단계 약한 elevation.
-        boxShadow: "0 2px 8px color-mix(in srgb, var(--fg) 12%, transparent)",
+        // 2026-07-25: overlay elevation 정본 이관 (Popover 동형). Popover 보다 한 단계 약한
+        //   elevation. ADR-166 Phase 2: `{shadow.sm}` = SP2 `emphasized`. 구 값의 기하
+        //   (0 2px 8px)가 SP2 `emphasized` 최상위 레이어와 정확히 일치 — 출처 복귀(ADR §9-4).
+        boxShadow: "{shadow.sm}",
       },
       states: {
         disabled: {

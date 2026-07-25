@@ -134,6 +134,29 @@
 - Spectrum 대조: Spectrum 의 textfield 계열은 drop-shadow 를 쓰지 않는다(`drop-shadow-*` 컴포넌트 토큰이 color-handle / color-loupe / FAB 3개뿐 — §9-1 전수). 따라서 **`none` 판정이 다수일 수 있다.**
 - 이 판정 결과가 G2 의 시각 diff 범위를 정한다.
 
+#### 판정 결과 — **8건 전부 `sm` 유지** (2026-07-25 live 실측)
+
+위 "`none` 판정이 다수일 수 있다" 는 예상은 **실측으로 반증됐다**. 두 개의 사실이 예상을 뒤집었다.
+
+| #     | 소비처                                                            | 실체                                      |   판정    | 근거                                                                      |
+| ----- | ----------------------------------------------------------------- | ----------------------------------------- | :-------: | ------------------------------------------------------------------------- |
+| 1     | ComboBox `staticSelectors.bridges`                                | 드롭다운 트리거 버튼 (`--combo-btn-size`) | `sm` 유지 | ①                                                                         |
+| 2     | NumberField `staticSelectors.bridges`                             | 스테퍼 버튼 (`--nf-btn-size`)             | `sm` 유지 | ①                                                                         |
+| 3     | SearchField `staticSelectors.bridges`                             | clear 버튼 (`--sf-btn-size`)              | `sm` 유지 | ①                                                                         |
+| 4     | Select `staticSelectors.bridges`                                  | chevron 박스 (`--select-chevron-size`)    | `sm` 유지 | ①                                                                         |
+| 5     | ToggleButtonGroup `indicatorMode.boxShadow`                       | 선택 세그먼트 인디케이터                  | `sm` 유지 | SP2 `emphasized` 의 의미(강조 표면)와 정확히 일치. 이미 TokenRef — 변경 0 |
+| 6·7·8 | `{ColorWheel,ColorSlider,ColorArea}.css` `.react-aria-ColorThumb` | 16px 원형 썸 + 4px 링 (3파일 동일 선언)   | `sm` 유지 | ②                                                                         |
+
+**근거 ① — design 의 전제가 틀렸다: 이건 "form field" 가 아니라 필드 *내부의 작은 칩*이다.** 4건 모두 필드 컨테이너가 아니라 그 안의 10~28px 어포던스 버튼이고, `background: var(--bg-overlay)` 다. 그런데 **`--bg-overlay` 와 `--bg-inset` 은 같은 토큰으로 해석된다** (light 양쪽 `--color-neutral-50`, dark 양쪽 `--color-neutral-800` — `preview-system.css:166,169` / `:307,310`). 즉 칩과 필드 배경이 **동일 색**이라 그림자가 유일한 분리 수단이다. `none` 은 칩을 완전히 소실시킨다.
+
+live 렌더 비교(18px 칩)에서 **구 `sm`(`0 1px 2px α.05`)과 `none` 이 육안 구별 불가**였다 — 구 값이 이 크기에서 사실상 아무 일도 하지 않았다. 신 `sm` 에서 비로소 칩이 분리돼 보인다. 따라서 이 4건에 대한 `sm` 승계는 회귀가 아니라 **원래 의도(raised chip 어포던스)의 최초 달성**이다.
+
+**근거 ② — Spectrum 의 color-handle 은 "drop-shadow 를 쓴다" 가 아니라 실질 `none` 이고, 그 자리를 테두리가 대신한다.** 실측: `color-handle-drop-shadow-{x,y,blur}` 가 전부 **0** 이고(spread 토큰 없음 → 렌더 결과 없음), 분리는 `color-handle-{inner,outer}-border` 1px × black 42% 2겹이 담당한다. composition 은 대신 `border: 4px solid var(--bg-raised)` 링을 쓰는데, **밝은 배경에서는 이 링이 배경에 묻힌다**(Spectrum 의 black 42% 테두리는 안 묻힌다). live 비교에서 밝은 배경 위 `none` 은 썸 외곽이 풀렸고 신 `sm` 이 소프트 리프트를 복구했다. 링 색 선택의 차이를 그림자가 보상하는 구조라 `sm` 유지가 맞다.
+
+**결과**: 판정에 따른 코드 변경 **0건**. `staticSelectors` 4건은 `var(--shadow-sm)` 그대로(§8 대로 TokenRef 전환은 범위 밖), indicatorMode 는 이미 `{shadow.sm}`, 수동 CSS 3건도 `var(--shadow-sm)` 그대로다. 값 자체는 Phase 1 의 토큰 재정의로 이미 바뀌었다.
+
+> **R8 재평가**: "일괄 승계 금지" 라는 대응은 유효했다(개별 판정을 실제로 수행했다). 다만 위험의 방향은 반대였다 — `sm` 강화는 이 8건에서 **개선**이다. R8 은 해소로 본다.
+
 #### 수정 지점 — generated CSS 를 직접 고치지 않는다 (2026-07-25 리뷰 발견)
 
 10건은 **성격이 3종으로 갈린다**. generated CSS 를 직접 편집하면 `pnpm build:specs` 가 덮어쓴다(헤더에 `AUTO-GENERATED … DO NOT EDIT MANUALLY`).
@@ -273,6 +296,8 @@ box-shadow 를 하단 모서리 아래 거리 `d` 의 알파 프로파일로 환
 | `overlay_backdrop` 오소링 표현 (Dialog 배치 시 프레임 암전) | 성격이 다른 UX 결정. 별도 판정 대상                                                                                                                                                                 |
 | `--drop-shadow-*` / `--inset-shadow-*` 토큰 정리            | 2026-07-25 로 오용 0건 도달. 정의만 남은 상태 유지                                                                                                                                                  |
 | **빌더 chrome(`App.css`)의 `--shadow-*` 이름 충돌**         | 같은 이름이 D3 와 한 단계 어긋난 값으로 두 벌 존재(§1-2). 빌더 chrome 은 builder-system layer 라 D3 SSOT 체인 밖 — 이름 정리는 별도 판단. 재개 조건 = 두 계층을 오가는 CSS 가 등장해 값이 뒤섞일 때 |
+
+> **Phase 2 에서 발견한 잔존 (범위 밖)** — 패널의 **inline 오버라이드는 theme 을 따라가지 않는다**. `AppearanceSection` 의 `onChange` 가 `shadows[value]`(= light 값)를 리터럴 CSS 로 store 에 기록하므로, dark 캔버스에서 프리셋을 고르면 light 그림자가 고정된다. 이는 본 ADR 이 만든 결함이 아니라 **선행 상태**다 — Phase 1 이전에도 TS map 은 flat 이었고 CSS 변수만 theme 별이라, 리터럴을 쓰는 순간 theme 추종이 끊겼다. 근본 해법은 패널이 리터럴 대신 `{shadow.md}` TokenRef 를 기록하는 것이고, 그러려면 **Skia 가 TokenRef 를 읽어야 한다(= Phase 3)**. 따라서 Phase 3 완료 후 재판정 대상으로 남긴다. 판정 결과가 catalog 기본값이 아니라 사용자 inline 값에만 걸리므로 본 Phase 의 G2 범위 밖이다.
 
 ---
 

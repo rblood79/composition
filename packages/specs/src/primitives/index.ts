@@ -38,7 +38,13 @@ export {
 export { radius, getRadiusToken } from "./radius";
 
 // Shadows
-export { shadows, getShadowToken, parseShadow } from "./shadows";
+export {
+  shadows,
+  lightShadows,
+  darkShadows,
+  getShadowToken,
+  parseShadow,
+} from "./shadows";
 
 export type { ParsedShadow } from "./shadows";
 

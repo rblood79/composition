@@ -7,6 +7,7 @@ import {
   resolveTypographySpecPreset,
   clearSpecPresetCache,
 } from "./specPresetResolver";
+import { lightShadows } from "@composition/specs";
 
 describe("resolveSpecPreset", () => {
   beforeEach(() => clearSpecPresetCache());
@@ -190,18 +191,33 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     //   그림자 정본이 수동 CSS 에만 있던 동안 catalog tier 가 비어 Style Panel 의
     //   Box Shadow 가 항상 "none" 이었다. catalog 로 이관했으므로 preset 이 실제
     //   CSS 값을 그대로 돌려줘야 한다 (generated CSS 와 같은 source).
-    it("Popover.containerStyles → Appearance preset boxShadow (overlay elevation)", () => {
+    //
+    //   ADR-166 Phase 2: catalog 값이 `{shadow.md}` TokenRef 로 바뀌었다. preset 은 여전히
+    //   **CSS 값**을 돌려줘야 한다 — TokenRef 를 그대로 흘리면 Box Shadow Select 가
+    //   프리셋 키를 못 찾아 `{shadow.md}` 를 "custom" 항목으로 표시한다.
+    it("Popover.containerStyles → Appearance preset boxShadow (TokenRef 해석 후 CSS 값)", () => {
       const preset = resolveAppearanceSpecPreset("Popover", "md");
-      expect(preset.boxShadow).toBe(
-        "0 4px 12px color-mix(in srgb, var(--fg) 15%, transparent)",
-      );
+      expect(preset.boxShadow).toBe(lightShadows.md);
+      expect(preset.boxShadow).not.toMatch(/^\{shadow\./);
     });
 
     it("Tooltip.containerStyles → Appearance preset boxShadow (Popover 보다 약한 elevation)", () => {
       const preset = resolveAppearanceSpecPreset("Tooltip", "md");
-      expect(preset.boxShadow).toBe(
-        "0 2px 8px color-mix(in srgb, var(--fg) 12%, transparent)",
+      expect(preset.boxShadow).toBe(lightShadows.sm);
+    });
+
+    it("Modal.containerStyles → Appearance preset boxShadow (elevation 서열 최상단)", () => {
+      const preset = resolveAppearanceSpecPreset("Modal", "md");
+      expect(preset.boxShadow).toBe(lightShadows.lg);
+    });
+
+    // elevation 서열 (Tooltip < Popover < Modal) 이 sm < md < lg 로 보존되는지 —
+    //   값 언어가 바뀌어도 서열은 ADR-166 의 불변식이다.
+    it("overlay 3건의 elevation 서열이 sm < md < lg 로 보존된다", () => {
+      const seq = (["Tooltip", "Popover", "Modal"] as const).map(
+        (t) => resolveAppearanceSpecPreset(t, "md").boxShadow,
       );
+      expect(seq).toEqual([lightShadows.sm, lightShadows.md, lightShadows.lg]);
     });
 
     // Popover 는 containerStyles 가 undefined 였다가 boxShadow 하나로 신설된 케이스 —

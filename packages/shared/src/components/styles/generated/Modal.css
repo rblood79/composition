@@ -12,7 +12,7 @@
     box-sizing: border-box;
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  box-shadow: 0 8px 32px color-mix(in srgb, var(--fg) 20%, transparent);
+  box-shadow: var(--shadow-lg);
 
   /* Default variant */
   background: transparent;

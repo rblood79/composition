@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { SquareOff } from "../../../components/icons";
 import { OVERFLOW_OPTIONS } from "../constants/styleOptions";
-import { shadows } from "@composition/specs";
+import { shadows, lightShadows, darkShadows } from "@composition/specs";
 import { useStyleActions } from "../hooks/useStyleActions";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useAppearanceValues } from "../hooks/useAppearanceValues";
@@ -55,10 +55,18 @@ const SHADOW_PRESET_OPTIONS = [
   { value: "lg", label: "lg" },
 ];
 
-/** CSS box-shadow 값 → 프리셋 키 역매핑 */
-const cssToPresetMap = new Map(
-  Object.entries(shadows).map(([key, val]) => [val, key]),
-);
+/**
+ * CSS box-shadow 값 → 프리셋 키 역매핑.
+ *
+ * ADR-166 Phase 2 (R1): light 값만 인덱싱하면 dark 값이 들어왔을 때 프리셋이 "custom" 으로
+ * 표시된다 — Phase 1 에서 토큰이 theme 별로 갈라졌기 때문. 양쪽 map 을 모두 인덱싱해
+ * canvas theme 과 무관하게 같은 프리셋 키로 수렴시킨다. light 를 먼저 넣어 `none` 처럼
+ * 두 theme 이 같은 값을 갖는 키에서 light 항목이 남게 한다(현재는 값이 같아 무해).
+ */
+const cssToPresetMap = new Map([
+  ...Object.entries(lightShadows).map(([key, val]) => [val, key] as const),
+  ...Object.entries(darkShadows).map(([key, val]) => [val, key] as const),
+]);
 
 function boxShadowToPresetKey(cssValue: string): string {
   if (!cssValue || cssValue === "none") return "none";
