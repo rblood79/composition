@@ -2,6 +2,131 @@
 
 > 본문: [ADR-158](../158-interactions-rules-capability-registry.md). 본 문서는 구현 상세 전용 (Phase / 파일 목록 / 스키마 / capability 표).
 
+## §0. Phase 0 Inventory freeze (실측 2026-07-25, HEAD `137c20784`)
+
+Phase 0 완료 기준의 표 3개. 이후 phase 의 판정 근거이자 Phase 4 삭제 경계의 기준선.
+
+### 표 ① — 은퇴 대상 코드 인벤토리
+
+`apps/builder/src/builder/panels/events/` — **92파일 / ts·tsx 14,327 LOC + css 2,876 LOC = 17,203 LOC**
+
+| 디렉터리      | 파일 |   LOC | 성격                                      |
+| ------------- | ---: | ----: | ----------------------------------------- |
+| `.` (루트)    |    7 | 3,207 | EventsPanel + EventsPanel.css(792)        |
+| `actions/`    |   26 | 2,675 | 액션 에디터 25종                          |
+| `data/`       |    4 | 1,676 | actionMetadata(715) / eventTemplates(579) |
+| `components/` |   10 | 1,378 | 공용 UI                                   |
+| `preview/`    |    4 | 1,163 | EventDebugger(541)                        |
+| `editors/`    |    7 | 1,076 | VariableBindingEditor(410) 등             |
+| `execution/`  |    4 |   952 | eventExecutor                             |
+| `hooks/`      |    7 |   952 | —                                         |
+| `utils/`      |    5 |   938 | —                                         |
+| `types/`      |    4 |   932 | eventTypes(397)                           |
+| `blocks/`     |    7 |   935 | block-editor.css(620)                     |
+| `pickers/`    |    3 |   668 | EventTypePicker(367)                      |
+| `state/`      |    4 |   651 | —                                         |
+
+**실측 정정 2건** (본문 §Context 수치 대비):
+
+1. LOC 14,317 → **14,327** (ts·tsx). 92파일은 일치. CSS 2,876 LOC 는 본문 수치에 미포함이었음 — 은퇴 총량은 17,203 LOC.
+2. **은퇴 scope 누락 발견**: `apps/builder/src/utils/events/` **3파일 1,419 LOC** (`eventEngine.ts` 1,267 / `actionHandlerRegistry.ts` 104) 가 ADR 본문·breakdown 어디에도 없다. Preview 런타임 측 잔재이므로 **Phase 4 은퇴 대상에 추가**. 총 은퇴 규모 = **95파일 / 18,622 LOC**.
+
+**외부 → 내부 참조 (삭제 시 파손 지점, 4건)**:
+
+| 참조원                                            | 심볼                  | Phase 4 처리                                  |
+| ------------------------------------------------- | --------------------- | --------------------------------------------- |
+| `builder/panels/core/panelConfigs.ts:37`          | `EventsPanel`         | Phase 2 에서 `InteractionsPanel` 로 교체 완료 |
+| `builder/inspector/types.ts:2,235`                | `EventHandler` (type) | 신규 `InteractionRule` 로 교체                |
+| `types/builder/unified.types.ts:3`                | `ElementEvent`        | 은퇴 (mirror 소멸과 동반)                     |
+| `types/integrations/supabase.types.ts:3`          | `ElementEvent`        | 은퇴 (동상)                                   |
+| `preview/App.tsx:42` · `preview/types/index.ts:3` | `EventEngine`         | **추가분** — utils/events 은퇴와 동반         |
+
+### 표 ② — registry 어휘 대조표 (`types/events/events.registry.ts` 415줄)
+
+**EVENT_REGISTRY 24종** (본문은 혼재만 지적, 전수는 여기서 확정):
+
+| 판정                     | 개수 | 항목                                                                                                                                       |
+| ------------------------ | ---: | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **은퇴 — DOM 별칭**      |   10 | onClick · onDoubleClick · onMouseEnter · onMouseLeave · onMouseDown · onMouseUp · onKeyDown · onKeyUp · onKeyPress · onInput               |
+| **은퇴 — 비RAC·미구현**  |    3 | onScroll · onResize · onLoad (`implemented:false`)                                                                                         |
+| **유지 후보 — RAC 실존** |   11 | onPress · onSelectionChange · onAction · onOpenChange · onChangeEnd · onExpandedChange · onRemove · onChange · onSubmit · onFocus · onBlur |
+
+- 은퇴 10종은 본문 §Decision 목록과 **일치** (검증 완료).
+- 유지 후보 11종은 §3 capability 표의 `events` 축 상한 — 실제 등재는 컴포넌트별로 표 ③ 판정과 교차.
+
+**IMPLEMENTED_ACTION_TYPES 47종** — camelCase 28 + snake_case 별칭 19 (`CAMEL_ACTION_LABELS` 28키 / `SNAKE_TO_CAMEL` 19키로 확증). 본문 수치와 일치. 전량 은퇴 → capability + 앱 액션 2종(navigate/toast)으로 대체.
+
+**When 축 발화 경로 — provider 0건 (dead seam)**:
+
+| 심볼                                           |  소비 |  공급 | 판정                                                                              |
+| ---------------------------------------------- | ----: | ----: | --------------------------------------------------------------------------------- |
+| `RenderContext.services.createEventHandlerMap` |    15 | **0** | 옵셔널 체인 + `?? {}` 폴백 → 항상 빈 맵                                           |
+| `EventEngine.executeEvent`                     | **0** |     1 | 인스턴스는 preview 싱글톤으로 존재·context 주입(App.tsx:653,673)하나 **호출 0건** |
+| preview 의 `element.events` read               | **0** |     — | 0건                                                                               |
+
+→ 본문 "이벤트를 올바로 소비하는 런타임 0개" **재확인**. 정밀화: _인스턴스 0_ 이 아니라 **인스턴스는 있으나 발화 호출 0** (`syncVariables` 만 호출됨 — 변수 동기화 용도, 이벤트와 무관).
+
+### 표 ③ — Preview controlled/uncontrolled 실태 (R1 근거 · G1 입력)
+
+**2분류가 아니라 3분류**다. uncontrolled 라도 `key` 에 해당 상태가 포함되면 prop patch 가 remount 로 반영되므로, generic prop patch dispatcher 관점에서는 발화 가능하다.
+
+| 분류    | 정의                                         | capability 발화                     |
+| ------- | -------------------------------------------- | ----------------------------------- |
+| **(a)** | controlled — 상태 prop 직접 소비             | ✅ 즉시                             |
+| **(b)** | uncontrolled + `key` 에 상태 포함 → remount  | ✅ 단 내부 상태(포커스·스크롤) 소실 |
+| **(c)** | `default*` 만 + `key` 고정, 또는 prop 미배선 | ❌ 무반응                           |
+
+| 컴포넌트                  | Preview 렌더 위치               | 상태 prop                                                 | key                                              | 분류     |
+| ------------------------- | ------------------------------- | --------------------------------------------------------- | ------------------------------------------------ | -------- |
+| Tree                      | CollectionRenderers.tsx:141,151 | `expandedKeys`/`selectedKeys` + on\*Change                | `element.id` (고정)                              | **(a)**  |
+| TagGroup                  | CollectionRenderers.tsx:388     | `selectedKeys`                                            | `element.id`                                     | **(a)**  |
+| Modal                     | LayoutRenderers.tsx:916         | `props.isOpen === false → display:none`                   | `element.id`                                     | **(a′)** |
+| ListBox                   | SelectionRenderers.tsx:645      | `defaultSelectedKeys`                                     | `${id}:${selectionSignature}`                    | **(b)**  |
+| GridList                  | SelectionRenderers.tsx:1017     | `defaultSelectedKeys`                                     | `${id}:${gridSelectionSignature}`                | **(b)**  |
+| Checkbox                  | FormRenderers.tsx:557           | `defaultSelected`                                         | `${id}:${isSelected}:…`                          | **(b)**  |
+| ToggleButton (standalone) | CollectionRenderers.tsx:717     | `defaultSelected` (조건부 spread)                         | `${id}:${isSelected}`                            | **(b)**  |
+| RadioGroup                | FormRenderers.tsx:858           | `defaultValue`                                            | `${id}:${selectedRadioValue}`                    | **(b)**  |
+| Slider                    | SelectionRenderers.tsx:1787     | `defaultValue`                                            | `${id}-${value}-${min}-${max}`                   | **(b)**  |
+| Tabs                      | LayoutRenderers.tsx:140         | `defaultSelectedKey`                                      | `${id}:${defaultSelectedKey}`                    | **(b)**  |
+| Disclosure                | LayoutRenderers.tsx:1653,1668   | `defaultExpanded`                                         | `${id}:${isExpanded}`                            | **(b)**  |
+| Select                    | SelectionRenderers.tsx:1305     | `defaultSelectedKey`                                      | `element.id` (고정)                              | **(c)**  |
+| ComboBox                  | SelectionRenderers.tsx:1580     | `defaultSelectedKey`/`defaultInputValue`                  | `element.id` (고정)                              | **(c)**  |
+| TextField                 | FormRenderers.tsx:168           | `defaultValue`                                            | `element.id` (고정)                              | **(c)**  |
+| NumberField               | FormRenderers.tsx:247           | `defaultValue`                                            | `element.id` (고정)                              | **(c)**  |
+| SearchField               | FormRenderers.tsx:333           | `defaultValue`                                            | `element.id` (고정)                              | **(c)**  |
+| Switch                    | FormRenderers.tsx:926           | `defaultSelected`                                         | `element.id` (고정)                              | **(c)**  |
+| Table                     | TableRenderer.tsx:348           | **selection prop 0건**                                    | `element.id`                                     | **(c)**  |
+| DisclosureGroup           | LayoutRenderers.tsx:1583        | `defaultExpandedKeys`                                     | `${id}:${multiple}` (확장상태 미포함)            | **(c)**  |
+| DatePicker / Calendar     | DateRenderers.tsx:125,196       | `defaultValue`                                            | id+locale+calendarSystem(+isTime) — value 미포함 | **(c)**  |
+| Popover / Tooltip         | LayoutRenderers.tsx:673,585     | **`isOpen`/`onOpenChange` 미배선**                        | `element.id`                                     | **(c)**  |
+| Menu                      | CollectionRenderers.tsx:764     | **`isOpen` 미배선**                                       | —                                                | **(c)**  |
+| Form                      | FormRenderers.tsx:111           | `onSubmit`/`onReset` 미배선 — 특례(ref `requestSubmit()`) | `element.id`                                     | **특례** |
+
+**§3 capability 표에 대한 정정 필요 사항** (Phase 1 에서 반영):
+
+- **Modal 은 RAC `<Modal>`/`<ModalOverlay>` 가 아니다** — `renderModal` 이 `props.isOpen === false → display:none` 인 평범한 `<div>` 를 낸다. 즉 Modal 의 `open`/`close` 는 공통 `show`/`hide` 와 **같은 메커니즘**이며 별도 capability 로 둘 근거가 약하다. RAC `isOpen` racRef 는 `Modal.tsx` 컴포넌트 타입(`ModalOverlayProps`)에만 존재하고 렌더 경로가 쓰지 않는다.
+- **Popover / Tooltip / Menu 의 `open`/`close` 는 G1 미충족** — 렌더러가 `isOpen`/`onOpenChange` 를 아예 전달하지 않는다. controlled 전환 전 등재 금지.
+- **Table 의 `selectItem`/`clearSelection` 은 G1 미충족** — selection prop 자체가 0건 (본문 R1 이 지목한 그 항목).
+- (c) 분류 전량이 G1 게이트에 걸린다: Select · ComboBox · TextField · NumberField · SearchField · Switch · DisclosureGroup · DatePicker · Calendar.
+- **(b) 분류의 G1 판정은 Phase 1 결정 사항** — R1 문언대로 "uncontrolled = 등재 금지" 를 엄격 적용하면 등재 가능 capability 가 (a) 3종으로 축소되어 G2 의 4종 발화 시연조차 불가능해진다. 권고: **(b) 는 등재 허용** (prop patch 가 remount 로 실제 반영됨 — 발화 검증 가능), 단 registry 에 `remount: true` 를 표기해 내부 상태 소실을 명시. (c) 만 보류.
+
+### Phase 1 진입 시 확정된 등재 가능 범위 (권고안 기준)
+
+| 대상                                | 등재 capability                                     |
+| ----------------------------------- | --------------------------------------------------- |
+| 전체 시각 요소                      | `show` / `hide` / `toggle` (공통)                   |
+| Tree                                | selectItem · clearSelection · expand · collapse     |
+| TagGroup                            | selectItem · clearSelection                         |
+| ListBox · GridList                  | selectItem · clearSelection (remount)               |
+| Checkbox · ToggleButton(standalone) | check · uncheck · toggle (remount)                  |
+| RadioGroup · Slider                 | setValue (remount)                                  |
+| Tabs                                | selectTab (remount, prop 명 = `defaultSelectedKey`) |
+| Disclosure                          | expand · collapse (remount)                         |
+| Form                                | submit · reset (특례 — ref)                         |
+| 앱 액션                             | navigate · toast                                    |
+
+보류(G1 미충족, Phase 3 이후 controlled 전환 시 해제): Select · ComboBox · TextField · NumberField · SearchField · Switch · Table · DisclosureGroup · DatePicker · Calendar · Popover · Tooltip · Menu.
+
 ## §1. Fork checkpoint lock-in (adr-writing.md 4 질문)
 
 1. **base/응용 분류**: 본 ADR 은 단일 수직 슬라이스 (어휘 SSOT + UI + 런타임 1경로) — base/응용 분리 없음. publish 발화·cross-event reuse 는 후속 ADR (응용) 로 명시 이관.
@@ -137,16 +262,17 @@ useInteractionBindings.ts — 요소 렌더 시 trigger callback 주입
 
 ## §6. Phase 분해
 
-| Phase | 내용                                                                                                          | 완료 기준                                                                                                                                |
-| ----- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **0** | Inventory freeze — panels/events 92파일 목록 / registry 어휘 대조표 / Preview controlled·uncontrolled 실태 표 | breakdown 에 표 3개 커밋                                                                                                                 |
-| **1** | `CAPABILITY_REGISTRY` + `InteractionRule` 스키마 + `updateEventsRootCollection` 시그니처 갱신                 | type-check PASS + registry unit test (G1 정적 가드 포함)                                                                                 |
-| **2** | InteractionsPanel UI 10파일 + PanelContainer 교체                                                             | builder 에서 규칙 CRUD 동작 (수동 confirm)                                                                                               |
-| **3** | Preview dispatcher + bindings + messaging 연결                                                                | **G2**: navigate/toast/hide·show/modal open 4종 Chrome MCP 발화 확증                                                                     |
-| **4** | 구 시스템 은퇴 — panels/events 92파일 + registry 구 어휘 + ADR-149 legacy adapter 삭제                        | **G3**: G2 PASS + 사용자 명시 삭제 승인 후. type-check + grep 잔존 0 + publish `ElementRenderer` legacy `element.events` 소비 no-op 확인 |
+| Phase    | 내용                                                                                                            | 완료 기준                                                                                                                                |
+| -------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **0** ✅ | Inventory freeze — panels/events 92파일 목록 / registry 어휘 대조표 / Preview controlled·uncontrolled 실태 표   | **완료 2026-07-25** — §0 에 표 3개 기록. 정정 2건(LOC·은퇴 scope) + capability 표 정정 5건 도출                                          |
+| **1**    | `CAPABILITY_REGISTRY` + `InteractionRule` 스키마 + `updateEventsRootCollection` 시그니처 갱신                   | type-check PASS + registry unit test (G1 정적 가드 포함). §0 "등재 가능 범위" 를 등재 상한으로 사용                                      |
+| **2**    | InteractionsPanel UI 10파일 + PanelContainer 교체                                                               | builder 에서 규칙 CRUD 동작 (수동 confirm)                                                                                               |
+| **3**    | Preview dispatcher + bindings + messaging 연결                                                                  | **G2**: navigate/toast/hide·show/modal open 4종 Chrome MCP 발화 확증                                                                     |
+| **4**    | 구 시스템 은퇴 — panels/events 92파일 + **utils/events 3파일** + registry 구 어휘 + ADR-149 legacy adapter 삭제 | **G3**: G2 PASS + 사용자 명시 삭제 승인 후. type-check + grep 잔존 0 + publish `ElementRenderer` legacy `element.events` 소비 no-op 확인 |
 
 - Phase 간 커밋 분리 (phase 당 1+ 커밋, main 직접 push).
 - Phase 4 의 파일 삭제는 CLAUDE.md 마이그레이션 원칙 — "ok/진행해" 는 삭제 승인 아님, 별도 확인 질문 필수.
+- Phase 4 은퇴 총량 (§0 표 ① 정정 반영): **95파일 / 18,622 LOC** (panels/events 92 + utils/events 3). 외부 참조 파손 지점 6곳은 §0 표 ① 하단 표 참조.
 
 ## §7. 후속 ADR 이관 목록 (본 ADR 범위 밖)
 

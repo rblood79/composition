@@ -19,6 +19,8 @@ ADR-149 Wave 1 (Implemented 2026-07-19) 은 EventsPanel 을 2-depth UX 로 재�
 - 동 파일 `IMPLEMENTED_ACTION_TYPES` — camelCase 28종 + snake_case 별칭 19종 이중 등록
 - **이벤트를 올바로 소비하는 런타임 0개** (ADR-149 recon 확정: EventHandlerFactory dead / Preview 미발화 / publish `element.events` mismatch) — 14K LOC 편집기가 작동하지 않는 데이터를 생산 중
 
+> **Phase 0 재실측 정정 (2026-07-25 — breakdown §0)**: 92파일은 일치하나 LOC 는 ts·tsx 14,327 + CSS 2,876 = **17,203**. 추가로 `apps/builder/src/utils/events/` 3파일 1,419 LOC (`EventEngine` 포함) 이 본 실측에서 누락돼 있었다 — 은퇴 총량은 **95파일 / 18,622 LOC**. "소비 런타임 0" 은 재확인되되 정밀화: EventEngine 인스턴스는 preview 싱글톤으로 존재하나 `executeEvent` 호출 0건.
+
 ### Hard constraints
 
 - **어휘 정합**: When 축 = RAC/RSP 레퍼런스 (`.claude/skills/react-aria/references/components/*.md`) 실존 callback 만. Do 축 capability = RAC controlled prop 1:1 근거 필수 (레퍼런스 전수 검증 완료 — breakdown §3 표)
@@ -88,6 +90,8 @@ ADR-149 Wave 1 (Implemented 2026-07-19) 은 EventsPanel 을 2-depth UX 로 재�
 | R5  | publish 발화 미포함 (Preview 만) — Preview·publish 동작 격차 잔존                                         |  MED   | 스키마를 publish 가 그대로 소비 가능한 형태로 설계 (dispatcher 재사용 전제). 후속 ADR 이관 (breakdown §7) |
 
 잔존 HIGH 위험 없음.
+
+> **R1 Phase 0 실현 범위 (2026-07-25 — breakdown §0 표 ③)**: R1 이 상정한 "Table selection" 은 단일 사례가 아니라 **13종**이었다 (Select · ComboBox · TextField · NumberField · SearchField · Switch · Table · DisclosureGroup · DatePicker · Calendar · Popover · Tooltip · Menu — 상태 prop 미배선 또는 `key` 고정으로 patch 무반응). 심각도는 MED 유지 — G1 이 전량 등재 보류로 차단하므로 **깨진 capability 가 사용자에게 노출될 경로는 없고**, G2 시연 4종 (navigate / toast / hide·show / modal open) 은 보류분과 무관하게 전부 달성 가능하다. 실현되는 결과는 파손이 아니라 **1차 등재 범위 축소**다. 또한 실태가 2분류가 아니라 3분류 (controlled / uncontrolled+remount / 무반응) 임이 확인돼, G1 판정 기준을 Phase 1 에서 확정한다 (breakdown §0 권고: remount 분류는 등재 허용 + `remount` 표기).
 
 ## Gates
 
