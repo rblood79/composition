@@ -28,7 +28,10 @@
        max-width 는 min() 복합값이라 ContainerStylesSchema 미수용 → 수동 CSS 전용. */
     border-radius: var(--radius-xl);
     outline: none;
-    box-shadow: var(--drop-shadow-md);
+    /* box-shadow 는 catalog `Modal.structure.containerStyles.boxShadow` 정본 →
+       generated/Modal.css 가 emit (2026-07-25). 여기 있던 `var(--drop-shadow-md)` 는
+       drop-shadow() filter 함수를 box-shadow 에 쓴 타입 오용이라 계산값이 `none` 이었다
+       — 즉 Modal 은 그동안 그림자가 아예 없었다(live 실측). */
     background: var(--bg-overlay);
     color: var(--fg);
     border: 1px solid var(--border-hover);

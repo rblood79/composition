@@ -6846,7 +6846,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "overlay",
       element: "div",
-      containerStyles: undefined,
+      // 2026-07-25 overlay elevation SSOT: **Modal 이 모달 elevation 을 소유**한다.
+      //   근거 = RAC starter `Modal.css` (`box-shadow: 0 8px 32px rgba(0 0 0 / .2)`) +
+      //   `Dialog.css` 그림자 부재 — Dialog 는 Modal 안이라 자체 elevation 이 불필요.
+      //   기존 `overlays.css` 선언은 `var(--drop-shadow-md)`(= drop-shadow() **filter 함수**)
+      //   를 box-shadow 에 쓴 타입 오용이라 계산값이 `none` 으로 죽어 있었다(live 실측).
+      //   geometry/alpha 는 starter 그대로(0 8px 32px / 20%), 색만 Popover(15%)·Tooltip(12%)
+      //   와 같은 `color-mix(--fg N%)` 언어로 통일 — 다크모드 반전 대응 + elevation 서열
+      //   (Tooltip < Popover < Modal) 일관.
+      containerStyles: {
+        boxShadow: "0 8px 32px color-mix(in srgb, var(--fg) 20%, transparent)",
+      },
       states: {},
     },
   },
