@@ -243,13 +243,33 @@ box-shadow 를 하단 모서리 아래 거리 `d` 의 알파 프로파일로 환
 
 ## §5. Phase 5 — 검증·가드
 
-- **cross-check**: Popover / Tooltip / Modal / Dialog × light·dark 8조합. DOM computed `box-shadow` ↔ 캔버스 렌더 대조.
-- **정적 가드** (신규 테스트):
-  - `containerStyles.boxShadow` 가 `color-mix(` 또는 `var(` 를 포함하지 않음 (값 언어 회귀 차단).
-  - `{shadow.*}` 토큰 이름이 `lightShadows` / `darkShadows` **양쪽에 존재** (한쪽 누락 시 theme 축 하나가 undefined).
-  - `emitContainerStyles` 가 `resolveBoxShadow` 를 경유함 (source-order 정적 검사 — `historyActions.static.test.ts` 동형).
-  - **`lightShadows` / `darkShadows` 의 모든 값에 `var(` / `color-mix(` 미포함** — Decision 근거 2("TokenRef 로 수렴하면 파서에 `var` 가 도달하지 않는다")를 기계 집행. 현행 `focus-ring` 이 이 단언의 반례라 §1-0 에서 제거/유지를 확정한 뒤 가드를 건다.
-- **단위 테스트**: `resolveToken("{shadow.md}", "dark") !== resolveToken("{shadow.md}", "light")` + dark alpha 가 light 의 3배.
+**완료 2026-07-25.** 계획된 항목 전부 + 계획에 없던 CSS↔토큰 대칭 가드 1건 추가.
+
+### cross-check — 8조합 전수 통과
+
+Preview iframe 에 probe 요소를 붙여 실제 스타일시트 cascade 를 태운 computed 값 ↔ Skia 노드 effects 대조. RAC overlay 는 열려야 DOM 에 나타나므로 열림 상태 의존 없이 규칙 자체를 측정했다.
+
+| 컴포넌트                           | light DOM | light Skia | dark DOM | dark Skia |
+| ---------------------------------- | --------- | ---------- | -------- | --------- |
+| Popover (+`[data-variant=filled]`) | `md`      | `md`       | `md`     | `md`      |
+| Tooltip                            | `sm`      | `sm`       | `sm`     | `sm`      |
+| Modal                              | `lg`      | `lg`       | `lg`     | `lg`      |
+| Dialog                             | `none`    | effects 0  | `none`   | effects 0 |
+
+- dark Popover 실측: DOM `α .24/.12/.36 · dy 4/2/0 · blur 12/6/2` ↔ Skia `dy4/σ5.10 · dy2/σ2.55 · dy0/σ0.85`, α 동일. **σ = blur / 2.355 변환까지 일치.**
+- `[data-variant="filled"]` 가 base 와 같은 값 — Phase 2 에서 고친 명시도 override 가 live 에서 유지됨을 확인.
+- 테마 전환이 리로드 없이 양 consumer 에 동시 반영.
+
+### 가드 (신규 4파일)
+
+| 가드              | 위치                                                     | 내용                                                                                                                                                                                                                                                                                                              |
+| ----------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| catalog 값 언어   | `shared/…/catalog/__tests__/shadowTokenContract.test.ts` | `boxShadow` **키 이름 깊이 탐색**(컴포넌트 열거 X) → `var(`/`color-mix(` 0건 · `{shadow.X}` 가 light·dark **양쪽** 존재 · overlay 서열 `sm<md<lg` · Dialog elevation 부재. traversal 이 0건이 되면 나머지가 vacuous 통과하므로 **탐색 자체도 단언**                                                               |
+| CSS↔토큰 대칭     | `shared/…/theme/__tests__/shadowCssParity.test.ts`       | **계획 외 추가.** `preview-system.css --shadow-*` ↔ `lightShadows`/`darkShadows` 수치 일치 (색 표기 `rgb(0 0 0 / .08)` ↔ `rgba(0,0,0,.08)` 정규화 후 비교) + `xl` 양쪽 부재. **두 벌이 서로를 참조하지 않는 손-유지 사본**이라 한쪽만 고치면 조용히 발산하는데, 양쪽 다 "그림자가 보여서" 시각 점검으로 안 잡힌다 |
+| generator 경유    | `specs/…/__tests__/cssGenerator.shadow.static.test.ts`   | `emitContainerStyles` 가 `resolveBoxShadow` 경유 (source-order). 우회하면 CSS 에 리터럴 `{shadow.md}` 가 박혀 **선언이 통째로 무효**가 되는데, 브라우저가 조용히 버려 스냅샷도 통과한다 — 값이 아니라 경유를 봐야 잡힌다                                                                                          |
+| resolveToken 분기 | `specs/…/utils/__tests__/tokenResolver.test.ts` (증설)   | 3단계 전부 light≠dark · 기본값 light · 기하 동일 + alpha ×3 · 전개 결과 `var(`/`color-mix(` 미포함                                                                                                                                                                                                                |
+
+`lightShadows`/`darkShadows` map 자체의 값 계약(3단계·×3·`var(` 미포함)은 Phase 1 의 `shadows.test.ts` 가 이미 소유 — 중복 작성하지 않았다.
 
 ---
 
@@ -270,7 +290,7 @@ box-shadow 를 하단 모서리 아래 거리 `d` 의 알파 프로파일로 환
 | `apps/builder/…/skia/buildBoxNodeData.ts` (+`buildSpecNodeData.ts`) |   3   | catalog `boxShadow` fallback + theme resolve                                                                                                                                                                            |
 | `packages/specs/src/renderers/skiaPrimitives.ts`                    |   4   | `popover_shadow` / `dialog_shadow` 제거                                                                                                                                                                                 |
 | `packages/shared/src/catalog/bindings/{Popover,Dialog}.binding.ts`  |   4   | `skiaPrimitive` 항목 제거                                                                                                                                                                                               |
-| 신규 테스트 3종                                                     |   5   | §5 정적 가드 + 단위                                                                                                                                                                                                     |
+| 신규 테스트 **4종**                                                 |   5   | §5 가드 — 계획 3종 + `shadowCssParity.test.ts`(CSS↔토큰 수치 대칭, 계획 외 추가)                                                                                                                                        |
 
 `AppearanceSection.tsx` 의 `cssToPresetMap` 은 R1 대응 시 추가된다 (light+dark 양쪽 값 인덱싱).
 
@@ -283,7 +303,7 @@ box-shadow 를 하단 모서리 아래 거리 `d` 의 알파 프로파일로 환
 - **Phase 2**: D1 확정 기록 · **§1-3 `sm` 소비처 10건 판정표 작성** · 패널 프리셋 3단계 전환 · generated CSS diff 가 의도한 줄 수와 일치 · G2 통과
 - **Phase 3**: 캔버스에 Tooltip / Modal 그림자가 **처음으로** 나타남을 live 확인
 - **Phase 4**: ~~primitive 제거 후 Popover 캔버스 그림자 유지 live 확인 (G4)~~ **완료 2026-07-25** — Popover catalog 3레이어 유지 + arrow 생존, Dialog effects 0 + backdrop 생존 (§4 정정 포함)
-- **Phase 5**: cross-check 8조합 · 정적 가드 3종 PASS · type-check PASS
+- **Phase 5**: ~~cross-check 8조합 · 정적 가드 3종 PASS · type-check PASS~~ **완료 2026-07-25** — 8조합 전수 통과 · 가드 4파일(계획 3 + CSS↔토큰 대칭 1) · specs 662 / shared 749 PASS · type-check PASS
 
 > 각 Phase 는 commit 가능 상태로 종료한다. **test/type-check PASS 단독으로 종결 금지** — Phase 3/4 는 live 확인이 완료 조건이다.
 

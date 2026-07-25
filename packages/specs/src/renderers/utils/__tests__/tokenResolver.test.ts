@@ -102,3 +102,57 @@ describe("tokenResolver — radius xs/2xl primitive (ADR-913 slice 5 — Skia↔
     expect(resolveToken("{radius.xl}")).toBe(12);
   });
 });
+
+// ADR-166 Phase 5 — `{shadow.*}` 는 `{color.*}` 와 동일하게 theme 분기해야 한다. Phase 1 이전에는
+//   flat map 단일 참조라 dark 에서도 light 그림자가 나왔다(빌더 dark 캔버스 = 흰 후광 원인).
+//   `shadows.test.ts` 가 map 자체를 검증하고, 여기서는 **resolveToken 진입점**이 그 분기를
+//   실제로 태우는지를 본다 — consumer 는 전부 이 함수를 거친다.
+describe("resolveToken — {shadow.*} theme 분기 (ADR-166)", () => {
+  const SCALE = ["sm", "md", "lg"] as const;
+
+  it("3단계 전부 light ≠ dark (flat map 회귀 가드)", () => {
+    for (const key of SCALE) {
+      const ref = `{shadow.${key}}` as const;
+      const light = resolveToken(ref, "light");
+      const dark = resolveToken(ref, "dark");
+      expect(typeof light, `${ref} light`).toBe("string");
+      expect(dark, `${ref} dark ≠ light`).not.toBe(light);
+    }
+  });
+
+  it("theme 미지정 기본값 = light", () => {
+    expect(resolveToken("{shadow.md}")).toBe(resolveToken("{shadow.md}", "light"));
+  });
+
+  it("dark 는 기하 동일 + alpha 만 ×3 (Spectrum 규칙)", () => {
+    const alphas = (v: string) =>
+      [...v.matchAll(/rgba\([^)]*?([\d.]+)\)/g)].map((m) => Number(m[1]));
+    const geometry = (v: string) => v.replace(/rgba\([^)]*\)/g, "rgba()");
+
+    for (const key of SCALE) {
+      const ref = `{shadow.${key}}` as const;
+      const light = resolveToken(ref, "light") as string;
+      const dark = resolveToken(ref, "dark") as string;
+      expect(geometry(dark), `${ref} 기하`).toBe(geometry(light));
+
+      const la = alphas(light);
+      const da = alphas(dark);
+      expect(da.length, `${ref} 레이어 수`).toBe(la.length);
+      la.forEach((a, i) => {
+        expect(da[i], `${ref} layer${i} alpha ×3`).toBeCloseTo(a * 3, 5);
+      });
+    }
+  });
+
+  it("해석 결과에 var( / color-mix( 미포함 — Skia parseOneShadow 계약", () => {
+    // styleConverter 의 색 정규식은 rgb/rgba/hex 만 매칭한다. var()/color-mix() 가 섞이면
+    //   불투명 검정으로 낙하하므로 토큰 전개 결과는 항상 리터럴이어야 한다.
+    for (const key of SCALE) {
+      for (const theme of ["light", "dark"] as const) {
+        const v = resolveToken(`{shadow.${key}}` as const, theme) as string;
+        expect(v, `${key}/${theme}`).not.toContain("var(");
+        expect(v, `${key}/${theme}`).not.toContain("color-mix(");
+      }
+    }
+  });
+});
