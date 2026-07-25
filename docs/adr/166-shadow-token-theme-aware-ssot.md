@@ -2,7 +2,18 @@
 
 ## Status
 
-Proposed — 2026-07-25
+Accepted — 2026-07-25 (리뷰 round 1 승인 — 이슈 5건 전건 fixed, [reviews/166.md](reviews/166.md))
+
+### 진행 로그
+
+| Phase                                      | 상태          | 비고                                      |
+| ------------------------------------------ | ------------- | ----------------------------------------- |
+| Phase 0 (inventory + G1)                   | ✅ 2026-07-25 | G1 dark glow live 실측 통과 (design §0-3) |
+| Phase 1 (토큰 theme-aware + 스케일 재정의) | —             |                                           |
+| Phase 2 (값 언어 TokenRef 통일)            | —             |                                           |
+| Phase 3 (Skia 소비 배선)                   | —             |                                           |
+| Phase 4 (primitive 은퇴)                   | —             |                                           |
+| Phase 5 (검증·가드)                        | —             |                                           |
 
 ## Context
 
@@ -109,6 +120,7 @@ Proposed — 2026-07-25
 
 1. **HIGH+ 잔존 0.** 유일하게 4축 모두 MED 이하다. 유일한 MED(마이그레이션)는 `shadows` 를 light map 별칭으로 유지하는 하위 호환 조치로 좁힐 수 있어, 수용 가능한 잔존 위험이다.
 2. **파서를 건드리지 않고 결함 1 이 사라진다.** 값 언어가 TokenRef 로 수렴하면 `color-mix`/`var` 가 애초에 파서에 도달하지 않는다. 파서 2벌이라는 기존 부채를 이번 변경의 전제로 끌어들이지 않는다.
+   - **한정 (2026-07-25 리뷰)**: 이 근거는 "모든 `{shadow.*}` 가 파서를 통과한다"가 아니라 "**본 ADR 이 정의하는 키가** 통과한다"이다. 현행 `shadows["focus-ring"]` 은 값에 `var(--accent)` 를 담고 있어 TokenRef 를 거쳐도 `var()` 가 그대로 나온다(실사용 0건). design §1-0 에서 해당 키의 제거/유지를 확정하고, §5 정적 가드가 "토큰 map 값에 `var(`/`color-mix(` 미포함"을 기계 집행한다.
 3. **결함 2(dark glow)를 정책으로 해소한다.** theme 별 값을 갖는 순간 dark 는 `--shadow-*` 가 이미 쓰고 있는 정책(검정 유지 + 불투명도 상향)을 그대로 따를 수 있다. A·D 는 이 결함을 남긴다.
 4. **이미 채택된 정책을 완성하는 방향이다.** "그림자는 theme 별 값을 갖는다"(CSS 변수) 와 "`{shadow.*}` 는 유효한 표현이다"(형제 필드 2개)는 둘 다 이미 코드에 있다. 본 결정은 새 규칙 도입이 아니라 TS 토큰 층과 `containerStyles` 채널을 그 정책에 합류시키는 것이다.
 
@@ -141,17 +153,18 @@ dark 는 **전 레이어 alpha ×3** (Spectrum 규칙). overlay 3건은 `Tooltip
 
 ## Risks
 
-| ID  | 위험                                                                                                                                            | 심각도 | 대응                                                                                                                                                                |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1  | 패널 프리셋 역매핑(`cssToPresetMap`)이 light 값만 인덱싱 → dark 에서 프리셋이 "custom" 으로 표시. 값이 3레이어가 되어 문자열 비교 대상이 길어짐 |  MED   | 역매핑을 light + dark 양쪽 값으로 인덱싱. `AppearanceSection` 왕복 테스트에 dark 케이스 추가                                                                        |
-| R2  | `shadows` flat map 을 import 하는 기존 소비처 회귀 (`getShadowToken` / Toast.css / 패널)                                                        |  MED   | `shadows = lightShadows` 별칭 유지(시그니처 보존) + 소비처 grep 후 명시 전환. 정적 가드로 신규 flat 접근 차단                                                       |
-| R3  | overlay 매핑의 light 시각 변경 — 특히 **Modal 이 ×0.62 로 눈에 띄게 옅어진다**(blur 32 는 Spectrum 범위 밖이라 대응 없음)                       |  MED   | Spectrum 정규화의 의도된 결과. G2 에서 before/after 제시. Tooltip(×0.89)·Popover(×0.73)는 원출처 복귀라 오차가 작다                                                 |
-| R4  | Skia primitive 제거 순서가 뒤바뀌면 Popover 캔버스 그림자에 공백 구간 발생                                                                      |  MED   | Phase 순서 고정(3 → live 확인 → 4). Phase 4 는 G4 통과 후에만 진행                                                                                                  |
-| R5  | `--shadow-*` 의 AI 테마 오버라이드(`--box-shadow-*`)를 TS 토큰 map 이 모름 → theme studio 로 그림자를 바꾸면 재발산                             |  LOW   | 범위 밖 명시. 재개 조건 = theme studio 그림자 커스터마이즈가 실사용에 등장. 그 시점에 오버라이드 조달 경로를 판정                                                   |
-| R6  | Dialog 는 `containerStyles.boxShadow` 미보유라 `dialog_shadow` 제거 시 대체 공급원이 없음                                                       |  MED   | 2026-07-25 판정(Modal 이 modal elevation 소유, RAC starter `Dialog.css` 근거)을 유지 — Modal 그림자로 대체 검증                                                     |
-| R7  | ~~스케일과 overlay 의 출처 계열 미확정~~ → **해소** (사용자 결정 2026-07-25: Spectrum 2 로 수렴)                                                |   —    | design §9-5 에 결정 기록. 잔존 위험 아님                                                                                                                            |
-| R8  | `sm` 이 ×5.15 로 강해져 D3 소비처 **10파일**에 광범위 시각 변경. 그중 다수가 form field(ComboBox/Select/NumberField/SearchField)                |  MED   | 일괄 승계 금지 — design §1-3 에서 10건을 `sm` 유지 / `none` / 타 단계로 개별 판정. Spectrum 의 textfield 계열은 drop-shadow 미사용이라 `none` 판정이 다수일 수 있음 |
-| R9  | `xl` 제거로 스타일 패널 프리셋이 4→3 개. 기존 프로젝트가 저장한 xl 값이 "custom" 으로 표시됨                                                    |  LOW   | 저장된 값 자체는 보존된다(`AppearanceSection` 동적 custom 항목 경로). D3 `--shadow-xl` 소비처 0건이라 코드 파손 없음                                                |
+| ID  | 위험                                                                                                                                            | 심각도 | 대응                                                                                                                                                                                                                                  |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | 패널 프리셋 역매핑(`cssToPresetMap`)이 light 값만 인덱싱 → dark 에서 프리셋이 "custom" 으로 표시. 값이 3레이어가 되어 문자열 비교 대상이 길어짐 |  MED   | 역매핑을 light + dark 양쪽 값으로 인덱싱. `AppearanceSection` 왕복 테스트에 dark 케이스 추가                                                                                                                                          |
+| R2  | `shadows` flat map 을 import 하는 기존 소비처 회귀 (`getShadowToken` / Toast.css / 패널)                                                        |  MED   | `shadows = lightShadows` 별칭 유지(시그니처 보존) + 소비처 grep 후 명시 전환. 정적 가드로 신규 flat 접근 차단                                                                                                                         |
+| R3  | overlay 매핑의 light 시각 변경 — 특히 **Modal 이 ×0.62 로 눈에 띄게 옅어진다**(blur 32 는 Spectrum 범위 밖이라 대응 없음)                       |  MED   | Spectrum 정규화의 의도된 결과. G2 에서 before/after 제시. Tooltip(×0.89)·Popover(×0.73)는 원출처 복귀라 오차가 작다                                                                                                                   |
+| R4  | Skia primitive 제거 순서가 뒤바뀌면 Popover 캔버스 그림자에 공백 구간 발생                                                                      |  MED   | Phase 순서 고정(3 → live 확인 → 4). Phase 4 는 G4 통과 후에만 진행                                                                                                                                                                    |
+| R5  | `--shadow-*` 의 AI 테마 오버라이드(`--box-shadow-*`)를 TS 토큰 map 이 모름 → theme studio 로 그림자를 바꾸면 재발산                             |  LOW   | 범위 밖 명시. 재개 조건 = theme studio 그림자 커스터마이즈가 실사용에 등장. 그 시점에 오버라이드 조달 경로를 판정                                                                                                                     |
+| R6  | Dialog 는 `containerStyles.boxShadow` 미보유라 `dialog_shadow` 제거 시 대체 공급원이 없음                                                       |  MED   | 2026-07-25 판정(Modal 이 modal elevation 소유, RAC starter `Dialog.css` 근거)을 유지 — Modal 그림자로 대체 검증                                                                                                                       |
+| R7  | ~~스케일과 overlay 의 출처 계열 미확정~~ → **해소** (사용자 결정 2026-07-25: Spectrum 2 로 수렴)                                                |   —    | design §9-5 에 결정 기록. 잔존 위험 아님                                                                                                                                                                                              |
+| R8  | `sm` 이 ×5.15 로 강해져 D3 소비처 **10파일**에 광범위 시각 변경. 그중 다수가 form field(ComboBox/Select/NumberField/SearchField)                |  MED   | 일괄 승계 금지 — design §1-3 에서 **실질 8건**(catalog staticSelectors 4 + indicatorMode 1 + 수동 CSS 3)을 `sm` 유지 / `none` / 타 단계로 개별 판정. Spectrum 의 textfield 계열은 drop-shadow 미사용이라 `none` 판정이 다수일 수 있음 |
+| R10 | 10건 중 5건이 `generated/*.css` — 직접 편집하면 `pnpm build:specs` 가 덮어써 판정이 소실됨                                                      |  MED   | 수정 지점을 catalog(`componentRulesTable.ts` — `generated/` 경로지만 직접 편집 SSOT)와 수동 CSS 3건으로 한정. generated CSS diff 는 판정 결과의 **검증 수단**으로만 사용 (design §1-3)                                                |
+| R9  | `xl` 제거로 스타일 패널 프리셋이 4→3 개. 기존 프로젝트가 저장한 xl 값이 "custom" 으로 표시됨                                                    |  LOW   | 저장된 값 자체는 보존된다(`AppearanceSection` 동적 custom 항목 경로). D3 `--shadow-xl` 소비처 0건이라 코드 파손 없음                                                                                                                  |
 
 잔존 HIGH 위험 없음.
 

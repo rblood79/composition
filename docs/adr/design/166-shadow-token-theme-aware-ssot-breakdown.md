@@ -84,6 +84,17 @@
 | `lg`     | `dragged`    | `0 12px 16px rgba(0,0,0,.08)`, `0 6px 8px rgba(0,0,0,.04)`, `0 0 6px rgba(0,0,0,.16)` | `…rgba(0,0,0,.24)`, `…rgba(0,0,0,.12)`, `…rgba(0,0,0,.48)` | 1.40 (×1.56)     |
 | ~~`xl`~~ | —            | **제거** (Spectrum 미발행 · D3 소비처 0건)                                            | —                                                          | —                |
 
+**`ShadowTokens` 나머지 4키 처리** — 타입은 7키(`none`/`sm`/`md`/`lg`/`xl`/`inset`/`focus-ring`)다(`token.types.ts:ShadowTokens`, `shadows.ts:17-35`). 위 표가 다루지 않는 4키의 방침:
+
+| 키           | 현행 값                             | 처리                                                                                                                                                        |
+| ------------ | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `none`       | `"none"`                            | **유지** — theme 불변. light/dark map 양쪽에 동일 값                                                                                                        |
+| `xl`         | Tailwind 4단계                      | **제거** (위 표)                                                                                                                                            |
+| `inset`      | `inset 0 2px 8px 0 rgba(0,0,0,.16)` | **유지 + dark alpha ×3**(`.16`→`.48`). Spectrum 에 대응 토큰이 없으므로 재정의 대상 아님 — elevation 이 아니라 오목 효과다. 프로덕션 소비처 0건(테스트만)   |
+| `focus-ring` | `0 0 0 2px var(--accent)`           | **제거 검토 대상 — Phase 1 에서 확정.** 실사용 0건이고, focus ring 은 ADR-061 의 `{focus.ring.*}` + `FOCUS_RING_TOKENS` 가 소유한다(`tokenResolver.ts:310`) |
+
+> **`focus-ring` 이 Decision 근거 2 의 반례인 점 (2026-07-25 리뷰 발견)**: 본 ADR 은 "값 언어가 TokenRef 로 수렴하면 `color-mix`/`var` 가 파서에 도달하지 않는다"(ADR Decision 근거 2)를 파서 미수정 근거로 든다. 그런데 `shadows["focus-ring"]` 은 값 자체에 `var(--accent)` 를 담아, `resolveToken("{shadow.focus-ring}")` 결과가 그대로 `var()` 다 — TokenRef 를 거쳐도 파서가 해석하지 못한다. **실사용 0건이라 현재 무해**하지만 근거 2 는 "모든 `{shadow.*}` 가 파서 통과 가능"이 아니라 "**본 ADR 이 쓰는 키가** 통과 가능"으로 한정된다. §5 정적 가드에 "`lightShadows`/`darkShadows` 값에 `var(` / `color-mix(` 미포함" 단언을 추가해 이 한정을 기계 집행한다.
+
 - **dark = 전 레이어 alpha ×3** (Spectrum 규칙, §9-2). 현행의 3~5배 불균일을 정규화한다.
 - SP2 는 `emphasized-hover` 도 발행하지만 **hover 상태 토큰이라 크기 단계로 쓰지 않는다**(`elevated` 와 잉크 0.53/0.55 로 사실상 동일 — 크기 스케일에서 중복).
 - **`xl` 제거**: Spectrum 이 4번째 단계를 발행하지 않고, D3 `--shadow-xl` 소비처가 0건이다. 유일한 `var(--shadow-xl)` 사용처(`DataTablePresetSelector.css`)는 빌더 chrome 이라 `App.css` 별도 정의를 읽으므로 영향받지 않는다(§1-2).
@@ -122,6 +133,20 @@
 - 각 소비처를 `sm` 유지 / `none` / 다른 단계 중 하나로 판정하고 근거를 기록한다.
 - Spectrum 대조: Spectrum 의 textfield 계열은 drop-shadow 를 쓰지 않는다(`drop-shadow-*` 컴포넌트 토큰이 color-handle / color-loupe / FAB 3개뿐 — §9-1 전수). 따라서 **`none` 판정이 다수일 수 있다.**
 - 이 판정 결과가 G2 의 시각 diff 범위를 정한다.
+
+#### 수정 지점 — generated CSS 를 직접 고치지 않는다 (2026-07-25 리뷰 발견)
+
+10건은 **성격이 3종으로 갈린다**. generated CSS 를 직접 편집하면 `pnpm build:specs` 가 덮어쓴다(헤더에 `AUTO-GENERATED … DO NOT EDIT MANUALLY`).
+
+| 소비처                                                                        | 성격                   | 실제 수정 지점                                                                                                                                                 |
+| ----------------------------------------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `generated/{NumberField,ComboBox,SearchField,Select,ToggleButtonGroup}.css` 5 | **생성물 — 편집 금지** | catalog `componentRulesTable.ts` 의 `staticSelectors` `"box-shadow": "var(--shadow-sm)"` (4건) 및 `indicatorMode.boxShadow: "{shadow.sm}"` (ToggleButtonGroup) |
+| `{ColorWheel,ColorSlider,ColorArea}.css` 3                                    | 수동 CSS               | 파일 직접 편집                                                                                                                                                 |
+| `catalog/generated/componentRulesTable.ts` 1                                  | **직접 편집 SSOT**     | 파일 직접 편집 — 경로에 `generated/` 가 있으나 ADR-912 단계5 step3 에서 생성기가 삭제돼 정본으로 승격됨(파일 헤더 참조). 위 5건의 실제 수정 지점이 여기다      |
+| `CSSGenerator.ts` 1                                                           | 코드(emit 로직)        | 판정 대상 아님 — `--shadow-*` 를 emit 하는 쪽                                                                                                                  |
+
+- 즉 **판정 대상은 실질 8건**(catalog staticSelectors 4 + indicatorMode 1 + 수동 CSS 3)이고, 반영은 catalog 와 수동 CSS 두 곳에서만 이뤄진다.
+- 판정 후 `pnpm build:specs` 로 generated CSS 를 재생성해 결과를 확인한다 — generated 파일의 diff 가 판정과 일치하는지가 검증 수단이다.
 
 **주의**: `--shadow-*` 는 `var(--box-shadow-md, …)` 형태로 **AI 테마 오버라이드 훅**을 갖는다. TS map 은 그 오버라이드를 모른다 → R5 (범위 밖, 본문 참조).
 
@@ -197,27 +222,29 @@ box-shadow 를 하단 모서리 아래 거리 `d` 의 알파 프로파일로 환
   - `containerStyles.boxShadow` 가 `color-mix(` 또는 `var(` 를 포함하지 않음 (값 언어 회귀 차단).
   - `{shadow.*}` 토큰 이름이 `lightShadows` / `darkShadows` **양쪽에 존재** (한쪽 누락 시 theme 축 하나가 undefined).
   - `emitContainerStyles` 가 `resolveBoxShadow` 를 경유함 (source-order 정적 검사 — `historyActions.static.test.ts` 동형).
-- **단위 테스트**: `resolveToken("{shadow.md}", "dark") !== resolveToken("{shadow.md}", "light")`.
+  - **`lightShadows` / `darkShadows` 의 모든 값에 `var(` / `color-mix(` 미포함** — Decision 근거 2("TokenRef 로 수렴하면 파서에 `var` 가 도달하지 않는다")를 기계 집행. 현행 `focus-ring` 이 이 단언의 반례라 §1-0 에서 제거/유지를 확정한 뒤 가드를 건다.
+- **단위 테스트**: `resolveToken("{shadow.md}", "dark") !== resolveToken("{shadow.md}", "light")` + dark alpha 가 light 의 3배.
 
 ---
 
 ## §6. 파일 변경 목록
 
-| 파일                                                                 | Phase | 변경                                                                                 |
-| -------------------------------------------------------------------- | :---: | ------------------------------------------------------------------------------------ |
-| `packages/specs/src/primitives/shadows.ts`                           |   1   | light/dark map 분리 + **SP2 값으로 교체 + `xl` 제거** + `shadows` 별칭 + getter 확장 |
-| `packages/specs/src/renderers/utils/tokenResolver.ts`                |   1   | `case "shadow"` theme 분기                                                           |
-| `packages/shared/…/theme/preview-system.css`                         |   1   | `--shadow-sm/md/lg` SP2 값 교체 + `--shadow-xl` 제거 (light/dark 양 블록)            |
-| `packages/shared/src/components/styles/**` `var(--shadow-sm)` 10파일 |   2   | §1-3 개별 판정 결과 반영 (`sm` 유지 / `none` / 타 단계)                              |
-| `apps/builder/…/panels/styles/sections/AppearanceSection.tsx`        |   2   | `SHADOW_PRESET_OPTIONS` 에서 `xl` 제거 (3단계)                                       |
-| `packages/specs/src/types/spec.types.ts`                             |   2   | `boxShadow` 타입 + 주석 근거 갱신                                                    |
-| `packages/specs/src/renderers/CSSGenerator.ts`                       |   2   | `emitContainerStyles` → `resolveBoxShadow` 경유                                      |
-| `packages/shared/src/catalog/generated/componentRulesTable.ts`       |   2   | Popover / Tooltip / Modal 값 TokenRef 화                                             |
-| `packages/shared/src/components/styles/generated/*.css`              |   2   | 재생성 (각 1줄)                                                                      |
-| `apps/builder/…/skia/buildBoxNodeData.ts` (+`buildSpecNodeData.ts`)  |   3   | catalog `boxShadow` fallback + theme resolve                                         |
-| `packages/specs/src/renderers/skiaPrimitives.ts`                     |   4   | `popover_shadow` / `dialog_shadow` 제거                                              |
-| `packages/shared/src/catalog/bindings/{Popover,Dialog}.binding.ts`   |   4   | `skiaPrimitive` 항목 제거                                                            |
-| 신규 테스트 3종                                                      |   5   | §5 정적 가드 + 단위                                                                  |
+| 파일                                                                | Phase | 변경                                                                                                                                                                                                                    |
+| ------------------------------------------------------------------- | :---: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/specs/src/primitives/shadows.ts`                          |   1   | light/dark map 분리 + **SP2 값으로 교체 + `xl` 제거** + `shadows` 별칭 + getter 확장                                                                                                                                    |
+| `packages/specs/src/renderers/utils/tokenResolver.ts`               |   1   | `case "shadow"` theme 분기                                                                                                                                                                                              |
+| `packages/shared/…/theme/preview-system.css`                        |   1   | `--shadow-sm/md/lg` SP2 값 교체 + `--shadow-xl` 제거 (light/dark 양 블록)                                                                                                                                               |
+| `packages/shared/…/styles/{ColorWheel,ColorSlider,ColorArea}.css`   |   2   | §1-3 판정 결과 반영 (수동 CSS 3건)                                                                                                                                                                                      |
+| `packages/specs/src/primitives/__tests__/shadows.test.ts`           |   1   | `shadows.xl` 참조 제거 + 신 3단계 값으로 기대치 갱신 (`shadows.test.ts:26-29`)                                                                                                                                          |
+| `apps/builder/…/panels/styles/sections/AppearanceSection.tsx`       |   2   | `SHADOW_PRESET_OPTIONS` 에서 `xl` 제거 (3단계) + "sm~xl" 주석 2곳 갱신(`:43`,`:88`)                                                                                                                                     |
+| `packages/specs/src/types/spec.types.ts`                            |   2   | `boxShadow` 타입 + 주석 근거 갱신                                                                                                                                                                                       |
+| `packages/specs/src/renderers/CSSGenerator.ts`                      |   2   | `emitContainerStyles` → `resolveBoxShadow` 경유                                                                                                                                                                         |
+| `packages/shared/src/catalog/generated/componentRulesTable.ts`      |   2   | ① Popover / Tooltip / Modal `containerStyles.boxShadow` TokenRef 화 ② §1-3 판정에 따른 `staticSelectors` `"box-shadow"` 4건 + ToggleButtonGroup `indicatorMode.boxShadow` 갱신 (**generated/ 경로지만 직접 편집 SSOT**) |
+| `packages/shared/src/components/styles/generated/*.css`             |   2   | **재생성 결과 확인 전용 — 직접 편집 금지**(`pnpm build:specs` 가 덮어씀). diff 가 §1-3 판정과 일치하는지가 검증 수단                                                                                                    |
+| `apps/builder/…/skia/buildBoxNodeData.ts` (+`buildSpecNodeData.ts`) |   3   | catalog `boxShadow` fallback + theme resolve                                                                                                                                                                            |
+| `packages/specs/src/renderers/skiaPrimitives.ts`                    |   4   | `popover_shadow` / `dialog_shadow` 제거                                                                                                                                                                                 |
+| `packages/shared/src/catalog/bindings/{Popover,Dialog}.binding.ts`  |   4   | `skiaPrimitive` 항목 제거                                                                                                                                                                                               |
+| 신규 테스트 3종                                                     |   5   | §5 정적 가드 + 단위                                                                                                                                                                                                     |
 
 `AppearanceSection.tsx` 의 `cssToPresetMap` 은 R1 대응 시 추가된다 (light+dark 양쪽 값 인덱싱).
 
