@@ -6,11 +6,11 @@
 >
 > **보존 가치 (재개 시 출발점)**: ① wake 소스 인벤토리 실측 확정본 (design breakdown §3 — 프레임 내/외 분류 16/9, 상류 2 경로) ② R1a/G1a 가 포착한 오판 패턴 ("`recordInvalidation` 호출 = 허브 경유" 는 거짓 — 절반 이상이 프레임 내부 폴링) ③ 카메라 축은 `notifyUpdateListeners` 단일 지점으로 완결됨을 확증.
 >
-> **재개 조건**: (a) 저사양 기기 실측에서 유휴 비용이 코어 3% 이상으로 확인, 또는 (b) `performanceMonitor` 무게이트 rAF 루프 해소 후 "wake 0" 이 실제로 달성 가능해져 전력 이득 논거가 성립할 때.
+> **재개 조건**: (a) 저사양 기기 실측에서 유휴 비용이 코어 3% 이상으로 확인. ~~(b) `performanceMonitor` 무게이트 rAF 루프 해소~~ → **2026-07-26 충족** (D1 완료 — prod 잔존 상시 루프는 `renderFrame` 뿐이라 "wake 0" 은 이제 본 ADR 설계만으로 달성 가능). 단 기각의 주축은 (a) 효과 크기이므로 (b) 충족만으로는 재개 사유가 되지 않는다.
 >
 > **파생 후속 작업 2건** (본 ADR 없이 개별 처리 — 아래 §파생 작업):
 >
-> 1. `performanceMonitor.startFPSMeasurement` 의 rAF 루프에 DEV 게이트 부여 (수 줄, prod 상시 wake 제거)
+> 1. `performanceMonitor.startFPSMeasurement` 의 상시 rAF 루프 제거 — **완료 2026-07-26** (DEV 게이트 대신 버스트 측정)
 > 2. 렌더링 CPU 최적화의 질량은 유휴가 아니라 **상호작용 프레임** — [ADR-153](../153-render-optimization-measurement-first-adoption.md) 우선순위 근거로 본 실측 인용
 
 ## Status
@@ -29,17 +29,21 @@ live builder (dev 빌드, 120Hz 디스플레이, DevTools 도킹 상태) 에서 
 **판정 근거 3가지**:
 
 1. **효과 크기 미달** — 유휴 0.67% 는 wake 누락 버그 클래스 (R1/R1a) 도입 대가에 미치지 못한다. CPU 4배 감속 환경으로 선형 환산해도 약 2.7% (감속 실측은 DevTools throttle 이 끝까지 적용되지 않아 미확보 — 대신 순간 6배 지연 샘플에서 **fps 120.2 유지**가 관측되어 rAF cadence 는 CPU 속도와 무관하게 유지됨 = 선형 환산 근거).
-2. **HC3 (idle wake 0/s) 이 본 ADR 단독으로 달성 불가** — `performanceMonitor.startFPSMeasurement` 의 rAF 루프가 prod 에서 게이트 없이 상시 가동 (`useAutoRecovery.ts:101` `enabled: true` 기본, `BuilderCore.tsx:378` 미전달). SkiaCanvas 루프만 멈춰도 초당 120회 wake 가 잔존하므로, on-demand 렌더링의 전력 이득 본질 (CPU 깊은 절전 진입) 이 성립하지 않는다.
+2. **HC3 (idle wake 0/s) 이 본 ADR 단독으로 달성 불가** — `performanceMonitor.startFPSMeasurement` 의 rAF 루프가 prod 에서 게이트 없이 상시 가동 (`useAutoRecovery.ts:101` `enabled: true` 기본, `BuilderCore.tsx:378` 미전달). SkiaCanvas 루프만 멈춰도 초당 120회 wake 가 잔존하므로, on-demand 렌더링의 전력 이득 본질 (CPU 깊은 절전 진입) 이 성립하지 않는다. — **기각 시점 상태. 이 근거는 D1 완료 (2026-07-26) 로 소멸했다** (§파생 작업). 기각을 지탱하는 것은 근거 1·3.
 3. **비용 질량의 위치가 다르다** — 상호작용 884ms/s vs 유휴 6.7ms/s = **약 130배**. 본 ADR 은 "프레임을 돌릴지" (6.7 쪽), ADR-153 은 "프레임 내부 비용" (884 쪽) 을 다룬다.
 
 **초판 Context 수치 정정**: 초판이 근거로 든 "idle 초당 60회 wake" 는 ① 이 기기가 120Hz 라 실제 120회이고 ② 단발 측정치 21ms/s 는 `performance.now()` 0.1ms 양자화 + 계측 루프 자체의 잔킹이 섞여 **3배 과대**였다 (확정치 6.7ms/s). 또 초판 Consequences 의 "백그라운드 탭 전력 개선" 은 **근거 없음** — 브라우저가 hidden 탭 rAF 를 이미 완전히 중단한다 (메모리 `reference-chrome-mcp-hidden-tab-raf-pause-stale-overlay` 가 그 동작의 실측 기록).
 
 ## 파생 작업 (본 ADR 기각과 무관하게 유효)
 
-| #   | 작업                                                                                 | 근거                                 | 규모  |
-| --- | ------------------------------------------------------------------------------------ | ------------------------------------ | ----- |
-| D1  | `performanceMonitor.startFPSMeasurement` rAF 루프에 DEV 게이트 (또는 on-demand 전환) | prod 상시 120회/s wake — 무조건 손실 | 수 줄 |
-| D2  | ADR-153 우선순위 근거에 본 실측 (상호작용 884ms/s = 코어 88%) 인용                   | 렌더 CPU 개선의 질량 위치 확증       | 문서  |
+| #   | 작업                                                                                 | 근거                                 | 규모  | 상태                       |
+| --- | ------------------------------------------------------------------------------------ | ------------------------------------ | ----- | -------------------------- |
+| D1  | `performanceMonitor.startFPSMeasurement` rAF 루프에 DEV 게이트 (또는 on-demand 전환) | prod 상시 120회/s wake — 무조건 손실 | 수 줄 | **완료 2026-07-26** (아래) |
+| D2  | ADR-153 우선순위 근거에 본 실측 (상호작용 884ms/s = 코어 88%) 인용                   | 렌더 CPU 개선의 질량 위치 확증       | 문서  | 미착수                     |
+
+**D1 처리 결과 (2026-07-26)**: DEV 게이트가 아니라 **수집 직전 60 프레임 버스트** (`sampleFPSBurst`) 로 전환했다. 게이트는 prod 에서 `fps` 를 상수 60 (`calculateFPS()` 의 빈 버퍼 fallback) 으로 고정시켜 `healthScore` 의 FPS 축(최대 -20점)과 FPS 경고를 죽이는데, 버스트는 측정 창(60 프레임)을 그대로 두고 duty cycle 만 30초 간격 기준 약 1.7% 로 줄인다. hidden 탭 등으로 버스트가 끝나지 못하면 1초 시한 후 접고 `collect()` 는 진행 (메모리 축 감시 유실 방지), 앞선 버스트 진행 중 tick 도 수집만 그대로 실행.
+
+live 실측 — rAF 자기재예약 루프 **3개 → 2개** (`renderFrame` 120.3/s + gpuProfiler `anon` 121.5/s 만 잔존, 구 `measureFrame` 소멸), 버스트 `step` 은 46.4초 창에서 총 60회 (= 1 burst). 별도 인스턴스 end-to-end: 실측 프레임 델타 `avg 8.35ms` → `collect()` 실행 + `fps` 산출 + `stopAutoCollect` 후 rAF/timer 누수 0. 정적 가드 `performanceMonitor.static.test.ts` 가 상시 루프 부활 (`startFPSMeasurement` 심볼 / `requestAnimationFrame` 3회 이상 등장) 을 차단한다.
 
 ---
 

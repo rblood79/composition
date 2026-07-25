@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [유휴 프레임 wake 정리 — performanceMonitor FPS 버스트 측정] - 2026-07-26
+
+### Performance
+
+- **prod 에서 게이트 없이 상시 가동되던 rAF 루프 1개 제거** (ADR-167 파생 작업 D1):
+  - `performanceMonitor.startAutoCollect()` 이 FPS 산출을 위해 상시 rAF 루프를 돌렸다. 이 루프는 초당 100회 이상 깨어나 `frameTimes` 버퍼(60 프레임 ≈ 120Hz 에서 0.5초)를 갱신했지만, 실제 소비는 30초에 1회 `collect()` 뿐이라 갱신분의 대부분이 그대로 버려졌다.
+  - **Why**: 대조 사례인 `gpuProfilerCore` 는 `import.meta.env.DEV` 게이트를 갖는데 이 루프만 빠져 있어, 개발용 계측이 사용자 빌드에서도 상시 동작했다. ADR-167 (on-demand 프레임 루프) 의 G0 실측 과정에서 발견 — 해당 ADR 자체는 효과 크기 미달로 기각됐으나, 본 항목은 그와 무관하게 유효한 손실이다.
+  - 수정: 측정을 **수집 직전 60 프레임 버스트**로 전환 (`sampleFPSBurst`). 30초 간격 기준 duty cycle 약 1.7%. DEV 게이트 대신 버스트를 택한 이유는 게이트가 prod 에서 `fps` 를 상수 60 으로 고정시켜 `healthScore` 의 FPS 축(최대 -20점)과 FPS 경고를 죽이기 때문 — 버스트는 측정 창(60 프레임)을 그대로 보존하면서 유휴 wake 만 없앤다.
+  - hidden 탭처럼 rAF 가 멈춰 버스트가 끝나지 못하면 1초 시한 후 접고 `collect()` 는 그대로 진행 — 메모리/요소 수 축 감시는 유실되지 않는다.
+  - **실측** (live builder, 유휴 4초): rAF 자기재예약 루프 **3개 → 2개** (약 360 → 240 schedule/s). 버스트는 30초 창에서 60회로 확인.
+  - 위치: `apps/builder/src/builder/utils/performanceMonitor.ts` · 정적 가드 `performanceMonitor.static.test.ts`
+
 ## [각도 파라미터 리사이즈 커서 — Pen v1.2.1 수법 차용] - 2026-07-26
 
 ### Features

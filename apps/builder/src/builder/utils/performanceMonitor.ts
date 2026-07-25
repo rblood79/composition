@@ -92,6 +92,14 @@ export interface PerformanceThresholds {
 
 export type MetricsListener = (metrics: PerformanceMetrics) => void;
 
+/** FPS 버스트 1회당 관측 프레임 수 — 구 상시 루프의 frameTimes 창과 동일 */
+const FPS_BURST_FRAMES = 60;
+/**
+ * 버스트가 끝나지 못할 때(탭 hidden 으로 rAF 정지 등) 중단 시한.
+ * 시한 초과 시 FPS 샘플 없이도 collect 는 그대로 진행한다.
+ */
+const FPS_BURST_TIMEOUT_MS = 1000;
+
 // ============================================
 // Performance Monitor Class
 // ============================================
@@ -124,6 +132,7 @@ export class PerformanceMonitor {
   private listeners: Set<MetricsListener> = new Set();
   private autoCollectInterval: ReturnType<typeof setInterval> | null = null;
   private rafId: number | null = null;
+  private burstTimeout: ReturnType<typeof setTimeout> | null = null;
   private lastFrameTime = 0;
   private enableLogs = false;
 
@@ -238,18 +247,18 @@ export class PerformanceMonitor {
 
   /**
    * 자동 수집 시작
+   *
+   * FPS 는 **수집 직전 짧은 rAF 버스트로만** 측정한다 (상시 루프 금지).
+   * 30s 간격 기준 duty cycle 약 1.7% — 유휴 프레임 wake 를 남기지 않는다.
    */
   startAutoCollect(intervalMs = 5000): void {
     if (this.autoCollectInterval) {
       this.stopAutoCollect();
     }
 
-    // FPS 측정 시작
-    this.startFPSMeasurement();
-
-    // 주기적 메트릭 수집
+    // 주기적 메트릭 수집 — 매 tick 마다 FPS 버스트 측정 후 collect
     this.autoCollectInterval = setInterval(() => {
-      this.collect();
+      this.sampleFPSBurst(() => this.collect());
     }, intervalMs);
 
     if (this.enableLogs) {
@@ -268,7 +277,7 @@ export class PerformanceMonitor {
       this.autoCollectInterval = null;
     }
 
-    this.stopFPSMeasurement();
+    this.cancelFPSBurst();
 
     if (this.enableLogs) {
       console.log("📊 [Monitor] Auto-collect stopped");
@@ -357,26 +366,61 @@ export class PerformanceMonitor {
   // Private Methods
   // ============================================
 
-  private startFPSMeasurement(): void {
-    const measureFrame = (timestamp: number) => {
-      if (this.lastFrameTime > 0) {
-        const delta = timestamp - this.lastFrameTime;
-        this.frameTimes.push(delta);
-        if (this.frameTimes.length > this.maxSamples) {
-          this.frameTimes.shift();
-        }
-      }
-      this.lastFrameTime = timestamp;
-      this.rafId = requestAnimationFrame(measureFrame);
+  /**
+   * FPS 버스트 측정 — `FPS_BURST_FRAMES` 프레임만 관측하고 스스로 종료한다.
+   *
+   * **Why**: 구 구현은 상시 rAF 루프로 유휴 상태에서도 초당 100+ 회 깨어나며
+   * 0.5초 분량 `frameTimes` 버퍼만 갱신했다 (실제 수집은 30초에 1회 —
+   * 즉 버퍼의 99% 가 버려짐). 측정 창(60 프레임)은 그대로 두고 duty cycle 만
+   * 줄인다. 2026-07-26 실측: 유휴 118 wake/s → 약 2 wake/s.
+   *
+   * hidden 탭은 브라우저가 rAF 를 정지시키므로 `FPS_BURST_TIMEOUT_MS` 후
+   * 버스트를 접고 `onComplete` 는 그대로 실행한다 (메모리 축 감시 유실 방지).
+   */
+  private sampleFPSBurst(onComplete: () => void): void {
+    // 앞선 버스트가 아직 진행 중이면 (intervalMs < 버스트 길이) 측정만 건너뛰고
+    // 수집 주기는 유지한다 — 메모리/요소 수 축 감시가 빠지지 않게
+    if (this.rafId !== null || this.burstTimeout !== null) {
+      onComplete();
+      return;
+    }
+
+    this.frameTimes = [];
+    this.lastFrameTime = 0;
+    let remaining = FPS_BURST_FRAMES;
+
+    const finish = (): void => {
+      this.cancelFPSBurst();
+      onComplete();
     };
 
-    this.rafId = requestAnimationFrame(measureFrame);
+    const step = (timestamp: number): void => {
+      this.rafId = null;
+      if (this.lastFrameTime > 0) {
+        this.frameTimes.push(timestamp - this.lastFrameTime);
+      }
+      this.lastFrameTime = timestamp;
+      remaining -= 1;
+
+      if (remaining > 0) {
+        this.rafId = requestAnimationFrame(step);
+        return;
+      }
+      finish();
+    };
+
+    this.burstTimeout = setTimeout(finish, FPS_BURST_TIMEOUT_MS);
+    this.rafId = requestAnimationFrame(step);
   }
 
-  private stopFPSMeasurement(): void {
+  private cancelFPSBurst(): void {
     if (this.rafId !== null) {
       cancelAnimationFrame(this.rafId);
       this.rafId = null;
+    }
+    if (this.burstTimeout !== null) {
+      clearTimeout(this.burstTimeout);
+      this.burstTimeout = null;
     }
     this.lastFrameTime = 0;
   }
