@@ -82,14 +82,16 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
   // Box shadow — catalog containerStyles 에만 elevation 을 둔 overlay(Popover/Tooltip/Modal)도
   //   캔버스 그림자가 나오도록 catalog fallback 포괄(raw props.style 우선). TokenRef 는 theme 별
   //   rgba 로 전개되어 parseOneShadow 를 그대로 통과한다 (ADR-166 Phase 3).
-  //   raw 가 있으면 style 객체를 그대로 넘겨 hot path 할당을 만들지 않는다.
+  //   ADR-166 후속: raw 도 정규화 대상이라(패널이 기록한 프리셋 리터럴 → 현재 theme) 부재
+  //   조건이 아니라 **결과가 달라졌을 때**만 갈아끼운다. 값이 그대로면 style 객체를 그대로
+  //   넘겨 hot path 할당을 만들지 않는다.
   const effectiveBoxShadow = resolveEffectiveBoxShadow(
     element.type,
     style,
     theme,
   );
   const effectsStyle =
-    style.boxShadow == null && effectiveBoxShadow != null
+    effectiveBoxShadow != null && effectiveBoxShadow !== style.boxShadow
       ? { ...style, boxShadow: effectiveBoxShadow }
       : style;
   const skiaEffects = buildSkiaEffects(

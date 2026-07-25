@@ -10,11 +10,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import {
-  resolveToken,
-  lightShadows,
-  darkShadows,
-} from "@composition/specs";
+import { resolveToken, lightShadows, darkShadows } from "@composition/specs";
 import {
   resolveContainerStylesFallback,
   resolveEffectiveOverflow,
@@ -502,7 +498,7 @@ describe("resolveEffectiveOverflow — catalog containerStyles overflow 포괄",
 //   Skia 에서 그림자를 얻도록 하는 resolver. overflow 와 동형이되 **theme 분기**가 추가된다 —
 //   `{shadow.md}` 는 light/dark 가 다른 값이므로 해석 시점 theme 이 결과를 바꾼다.
 describe("resolveEffectiveBoxShadow — catalog containerStyles elevation 포괄", () => {
-  it("raw props.style.boxShadow 가 있으면 그대로 (catalog 조회 skip)", () => {
+  it("raw props.style.boxShadow 가 있으면 catalog 조회를 skip한다", () => {
     expect(
       resolveEffectiveBoxShadow("popover", { boxShadow: "0 1px 2px red" }),
     ).toBe("0 1px 2px red");
@@ -554,5 +550,63 @@ describe("resolveEffectiveBoxShadow — catalog containerStyles elevation 포괄
     expect(resolveEffectiveBoxShadow("modal", {}, "light")).toBe(
       lightShadows.lg,
     );
+  });
+
+  // ADR-166 후속: 스타일 패널이 기록하는 inline 값은 **리터럴**이라 저장 시점 theme 이 굳는다.
+  //   catalog 축은 TokenRef 라 이미 theme 을 따라가는데 사용자 편집 축만 뒤처지던 비대칭 해소.
+  describe("raw inline 리터럴의 theme 추종", () => {
+    it("light 로 저장된 프리셋이 dark 캔버스에서 dark 값이 된다", () => {
+      for (const [key, css] of [
+        ["sm", lightShadows.sm],
+        ["md", lightShadows.md],
+        ["lg", lightShadows.lg],
+      ] as const) {
+        expect(
+          resolveEffectiveBoxShadow("box", { boxShadow: css }, "dark"),
+          key,
+        ).toBe(darkShadows[key]);
+      }
+    });
+
+    it("dark 로 저장된 프리셋도 light 캔버스에서 light 값이 된다 (양방향)", () => {
+      expect(
+        resolveEffectiveBoxShadow(
+          "box",
+          { boxShadow: darkShadows.md },
+          "light",
+        ),
+      ).toBe(lightShadows.md);
+    });
+
+    it("catalog 기본값이 있는 타입도 raw 가 우선한다 (정규화만 거침)", () => {
+      // popover catalog 는 {shadow.md} — raw 로 lg 를 고르면 lg 가 이겨야 한다.
+      expect(
+        resolveEffectiveBoxShadow(
+          "popover",
+          { boxShadow: lightShadows.lg },
+          "dark",
+        ),
+      ).toBe(darkShadows.lg);
+    });
+
+    it("프리셋이 아닌 임의 CSS 는 원문 보존", () => {
+      const custom = "0 1px 2px rgba(255, 0, 0, 0.5)";
+      expect(
+        resolveEffectiveBoxShadow("box", { boxShadow: custom }, "dark"),
+      ).toBe(custom);
+    });
+
+    it("적용 범위 밖(none / inset 토글)은 손대지 않는다 — DOM 이 var 로 낼 수 없어 대칭 유지", () => {
+      const insetToggled = lightShadows.md
+        .split(/,(?![^(]*\))/)
+        .map((layer) => `inset ${layer.trim()}`)
+        .join(", ");
+      expect(
+        resolveEffectiveBoxShadow("box", { boxShadow: "none" }, "dark"),
+      ).toBe("none");
+      expect(
+        resolveEffectiveBoxShadow("box", { boxShadow: insetToggled }, "dark"),
+      ).toBe(insetToggled);
+    });
   });
 });

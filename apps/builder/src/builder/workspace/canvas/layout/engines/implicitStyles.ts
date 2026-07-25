@@ -29,6 +29,7 @@ import {
   isValidTokenRef,
   cssVarToTokenRef,
   getShadowToken,
+  normalizeShadowForTheme,
 } from "@composition/specs";
 import type { SizeSpec, TokenRef, ShadowTokens } from "@composition/specs";
 import { getNecessityIndicatorSuffix } from "@composition/shared/components";
@@ -429,8 +430,15 @@ function catalogRootBoxShadow(lowerType: string): string | undefined {
  *
  * TokenRef(`{shadow.md}`)는 여기서 theme 별 rgba 문자열로 전개해 내보낸다 — 기존
  * `parseOneShadow` 가 그대로 통과시킬 수 있는 형태라 **파서 수정이 없다**. 반대로 `var(...)` /
- * `color-mix(...)` 는 그 파서의 색 정규식에 매칭되지 않아 불투명 검정으로 낙하하므로, catalog 에
- * 그런 값이 남아 있으면 여기서도 구제되지 않는다(값 언어를 TokenRef 로 수렴시킨 Phase 2 가 전제).
+ * `color-mix(...)` 는 그 파서의 색 정규식에 매칭되지 않아 숫자를 못 찾고 null 로 떨어져 그림자가
+ * 사라지므로, catalog 에 그런 값이 남아 있으면 여기서도 구제되지 않는다(값 언어를 TokenRef 로
+ * 수렴시킨 Phase 2 가 전제).
+ *
+ * **raw 도 정규화 대상 (ADR-166 후속)**: 스타일 패널은 프리셋을 고른 순간의 **리터럴**을
+ * 기록하므로 raw 를 그대로 통과시키면 저장 당시 theme 이 고착된다. 알려진 elevation 프리셋
+ * 리터럴이면 현재 theme 값으로 되돌린다 — 저장된 값을 건드리지 않고 읽는 쪽에서만 고치므로
+ * 기존 프로젝트도 마이그레이션 없이 함께 회복된다. 프리셋이 아닌 임의 CSS 는 원문 보존.
+ * DOM 축은 같은 판정을 `shadowLiteralToCssVar` 로 받아 CSS 변수를 emit 한다(대칭).
  */
 export function resolveEffectiveBoxShadow(
   type: string | undefined,
@@ -438,7 +446,7 @@ export function resolveEffectiveBoxShadow(
   theme: "light" | "dark" = "light",
 ): string | undefined {
   const raw = (rawStyle ?? {}).boxShadow as string | undefined;
-  if (raw != null) return raw;
+  if (raw != null) return normalizeShadowForTheme(raw, theme);
   if (!type) return undefined;
   const key = type.toLowerCase();
   let source: string | undefined;

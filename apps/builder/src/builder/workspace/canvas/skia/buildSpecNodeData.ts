@@ -1656,9 +1656,11 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   // 아니므로 제외 — effects/blendMode 만 접붙인다.
   // ADR-166 Phase 3: catalog containerStyles 에만 elevation 을 둔 컴포넌트도 포괄 (box 경로와
   //   동형 — raw props.style 우선, TokenRef 는 theme 별 rgba 로 전개).
+  // ADR-166 후속: raw 도 정규화 대상(패널 프리셋 리터럴 → 현재 theme)이라 부재 조건이 아니라
+  //   결과가 달라졌을 때만 갈아끼운다 (box 경로와 동일 규칙).
   const effectiveBoxShadow = resolveEffectiveBoxShadow(type, style, theme);
   const cssEffectsStyle =
-    style.boxShadow == null && effectiveBoxShadow != null
+    effectiveBoxShadow != null && effectiveBoxShadow !== style.boxShadow
       ? { ...style, boxShadow: effectiveBoxShadow }
       : style;
   const cssEffects = buildSkiaEffects(
