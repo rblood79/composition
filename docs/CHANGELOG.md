@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Modal elevation 소유 확정 + ColorSwatch 경계 링 복원 — drop-shadow 토큰 오용 정정] - 2026-07-25
+
+### Bug Fixes
+
+- **Modal 과 ColorSwatch 의 box-shadow 선언이 통째로 무효였던 문제**:
+  - `--drop-shadow-sm` / `--drop-shadow-md` 는 `preview-system.css` 에 "Drop shadows (for filter property)" 주석과 함께 `drop-shadow(...)` **함수값**으로 정의된 filter 전용 토큰인데, 사용처 2곳(`overlays.css` Modal / `ColorSwatch.css`)이 전부 `box-shadow:` 에 쓰고 있었다 — 정의 목적대로 쓰이는 곳이 **0곳**. 두 선언 모두 계산값이 `none` 으로 죽어 있었다(live 실측)
+  - **Modal**: overlay elevation 정본을 catalog `structure.containerStyles.boxShadow` 로 등록. **Why**: RAC starter `Modal.css`(`0 8px 32px rgba(0 0 0 / .2)`) + `Dialog.css` 의 그림자 부재가 upstream 정본 — **Modal 이 모달 elevation 을 소유**하고 Dialog 는 갖지 않는다. geometry/alpha 는 starter 그대로, 색만 Popover(15%)/Tooltip(12%)와 같은 `color-mix(--fg N%)` 언어로 통일 (다크모드 반전 + elevation 서열 Tooltip < Popover < Modal 일관)
+  - **ColorSwatch**: starter 원본은 `inset 0 0 0 1px rgba(0,0,0,.1)` 즉 **경계 링**이지 elevation 이 아니다. `--drop-shadow-sm` 으로 바뀐 시점에 값의 의미까지 뒤바뀌어 있었다. 링 복원 + 색만 `color-mix` 로 (다크 스와치에서도 보이게). elevation 이 아니므로 catalog 이관 대상 아님 — 수동 CSS 유지
+  - **결과** (live 실측, 전 → 후): Modal `none → rgb(23,23,23)/0.2 0 8px 32px`, ColorSwatch `none → rgb(23,23,23)/0.1 inset 0 0 0 1px`. Popover/Tooltip 불변
+  - generated CSS diff 는 의도한 1줄뿐 (`generated/Modal.css` +1)
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` · `packages/shared/src/components/styles/{overlays,ColorSwatch}.css`
+
+### 알려진 잔존 (Skia 축 — 보류, 별도 ADR 대상)
+
+> 앞선 엔트리의 "Skia 배선 시 Popover primitive 와 이중 적용" 서술은 **문제를 과소평가한 것**이라 아래로 정정한다.
+
+- Skia 그림자 파서(`parseOneShadow`)는 색상 패턴이 `rgb/hsl/#hex` 뿐이라 catalog 값(`color-mix(in srgb, var(--fg) N%, transparent)`)을 해석하지 못한다. 실측 — `rgba(0,0,0,0.15)` → alpha 0.15 정상이지만 `color-mix(… var(--fg) 15% …)` → **alpha 1.0 불투명 검정**. Skia spec 경로에는 CSS var 해석기 자체가 없다 (`specBuildHelpers.ts:254` 가 `var(` 를 만나면 `#6750A4` placeholder 로 대체)
+- 따라서 "Skia 가 catalog boxShadow 를 읽게 배선" 은 단순 배선이 아니라 **theme-aware 그림자 색 해석 도입**이 선행돼야 한다. 캔버스 테마는 `skiaTheme` 로 별도 관리되므로 DOM probe(`getCSSVariable`) 로 우회하면 "빌더 라이트 / 페이지 다크" 조합에서 틀린 색이 나온다
+- Dialog `dialog_shadow` primitive 제거도 여기에 종속 — 단독 제거 시 캔버스에서 모달 elevation 이 통째로 사라진다
+- 현 상태: Popover 는 `popover_shadow` primitive(rgba 0.15)로 캔버스 그림자 유지, Tooltip/Modal 은 캔버스 그림자 없음 (DOM 과 비대칭 잔존)
+- 방향 후보: catalog `boxShadow` 의 색을 TokenRef 로 표현해 Skia 의 기존 theme-aware 토큰 파이프라인에 태우는 설계 — 별도 ADR
+
 ## [overlay 그림자 catalog 정본화 — Popover/Tooltip box-shadow D3 SSOT 이관] - 2026-07-25
 
 ### Bug Fixes
