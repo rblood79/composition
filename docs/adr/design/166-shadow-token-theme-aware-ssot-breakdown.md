@@ -69,18 +69,59 @@
 
 ---
 
-## §1. Phase 1 — `shadow` 토큰 카테고리 theme-aware 승격
+## §1. Phase 1 — `shadow` 토큰 카테고리 theme-aware 승격 + 스케일 Spectrum 재정의
 
-`color` 카테고리와 동일 구조로 맞춘다.
+`color` 카테고리와 동일 구조로 맞추고, **값 자체를 Adobe Spectrum 2 기반으로 재정의**한다 (사용자 결정 2026-07-25 — §9-5 A·C 판정).
+
+### 1-0. 확정 스케일 — SP2 역할 토큰 값, 크기 이름(sm/md/lg) 유지, **3단계**
+
+이름은 크기 축(`sm`/`md`/`lg`)을 유지한다 — 스타일 패널이 크기 축으로 노출하고 있고 소비처 40+곳이 이 이름을 쓴다. **값만** SP2 역할 토큰에서 가져온다.
+
+| 단계     | SP2 출처     | light                                                                                 | dark (alpha ×3)                                            | 잉크 (현행 대비) |
+| -------- | ------------ | ------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ---------------- |
+| `sm`     | `emphasized` | `0 2px 8px rgba(0,0,0,.08)`, `0 1px 4px rgba(0,0,0,.04)`, `0 0 1px rgba(0,0,0,.08)`   | `…rgba(0,0,0,.24)`, `…rgba(0,0,0,.12)`, `…rgba(0,0,0,.24)` | 0.31 (**×5.15**) |
+| `md`     | `elevated`   | `0 4px 12px rgba(0,0,0,.08)`, `0 2px 6px rgba(0,0,0,.04)`, `0 0 2px rgba(0,0,0,.12)`  | `…rgba(0,0,0,.24)`, `…rgba(0,0,0,.12)`, `…rgba(0,0,0,.36)` | 0.55 (×1.32)     |
+| `lg`     | `dragged`    | `0 12px 16px rgba(0,0,0,.08)`, `0 6px 8px rgba(0,0,0,.04)`, `0 0 6px rgba(0,0,0,.16)` | `…rgba(0,0,0,.24)`, `…rgba(0,0,0,.12)`, `…rgba(0,0,0,.48)` | 1.40 (×1.56)     |
+| ~~`xl`~~ | —            | **제거** (Spectrum 미발행 · D3 소비처 0건)                                            | —                                                          | —                |
+
+- **dark = 전 레이어 alpha ×3** (Spectrum 규칙, §9-2). 현행의 3~5배 불균일을 정규화한다.
+- SP2 는 `emphasized-hover` 도 발행하지만 **hover 상태 토큰이라 크기 단계로 쓰지 않는다**(`elevated` 와 잉크 0.53/0.55 로 사실상 동일 — 크기 스케일에서 중복).
+- **`xl` 제거**: Spectrum 이 4번째 단계를 발행하지 않고, D3 `--shadow-xl` 소비처가 0건이다. 유일한 `var(--shadow-xl)` 사용처(`DataTablePresetSelector.css`)는 빌더 chrome 이라 `App.css` 별도 정의를 읽으므로 영향받지 않는다(§1-2).
+  - 사용자 노출 변화: 스타일 패널 Select 가 `none/sm/md/lg/xl` → `none/sm/md/lg`. 기존 프로젝트가 저장한 xl 값은 보존되고 "custom" 으로 표시된다(`AppearanceSection` 의 동적 custom 항목 경로).
+
+### 1-1. 토큰 정의
 
 - `packages/specs/src/primitives/shadows.ts`
-  - `lightShadows` / `darkShadows` 두 map 신설. **dark 배수는 Adobe Spectrum 의 균일 3배를 기준선으로 정규화**한다 (§9-2 — 현행 `preview-system.css` dark 값은 단계마다 3~5배로 불균일하다. 근거 없는 편차이므로 이번에 정리한다. 현행 대비 diff 는 Phase 1 에서 제시). light 값은 `preview-system.css` 선언과 **1:1 동일 문자열**(`rgb(0 0 0 / N)` 표기는 `rgba(…)` 로 정규화해도 무방 — 파서·colord 양쪽 통과 확인 후).
+  - `lightShadows` / `darkShadows` 두 map 신설. 값은 §1-0 표.
   - `export const shadows = lightShadows` 별칭 유지 (하위 호환 — R2).
   - `getShadowToken(name, theme)` 시그니처 확장, 기본값 `"light"`.
 - `packages/specs/src/renderers/utils/tokenResolver.ts`
   - `resolveToken` 의 `case "shadow"` 를 `theme === "dark" ? darkShadows[…] : lightShadows[…]` 로 분기.
   - `resolveBoxShadow(value, theme)` 는 이미 theme 인자를 받고 있으므로 시그니처 변경 없음 — 내부 `resolveToken` 분기만으로 theme 반응.
-- 검증: `{shadow.md}` 를 light/dark 로 resolve 한 값이 각각 `preview-system.css` 의 해당 선언과 일치하는 단위 테스트.
+- `packages/shared/src/components/styles/theme/preview-system.css`
+  - `--shadow-sm/md/lg` 를 §1-0 값으로 교체, `--shadow-xl` 제거. `--box-shadow-*` 오버라이드 훅 형태는 유지.
+- 검증: `{shadow.md}` 를 light/dark 로 resolve 한 값이 각각 `preview-system.css` 의 해당 선언과 일치하는 단위 테스트 + light/dark 가 서로 다름 단언.
+
+### 1-2. 적용 범위 — D3 만. 빌더 chrome 은 손대지 않는다
+
+**같은 토큰 이름이 두 벌 정의돼 있다** (2026-07-25 실측):
+
+| 정의처                     | 계층                   | `--shadow-sm` 값                                                           |
+| -------------------------- | ---------------------- | -------------------------------------------------------------------------- |
+| `theme/preview-system.css` | **D3 (사용자 캔버스)** | `0 1px 2px 0 rgb(0 0 0 / .05)` — Tailwind `shadow-sm`                      |
+| `apps/builder/src/App.css` | 빌더 chrome            | `0 1px 3px 0 #0000001a, 0 1px 2px -1px #0000001a` — Tailwind 기본 `shadow` |
+
+- 두 정의가 **한 단계 어긋나 있다**. D3 쪽 `sm` 이 Tailwind 최하단이라 §9-3 의 이탈(잉크 0.06)이 생겼다.
+- **본 ADR 의 재정의 대상은 D3 (`preview-system.css` + TS `shadows`) 뿐이다.** 빌더 chrome(`App.css`)은 builder-system layer 라 D3 SSOT 체인 밖이다(`panel-structure.md`). 이름 충돌 정리는 별도 판단 대상 → §8.
+- 계층별 소비처(파일 수): `sm` D3 10 / chrome 7 · `md` D3 1 / chrome 9 · `lg` D3 3 / chrome 11 · `xl` D3 **0** / chrome 1.
+
+### 1-3. `sm` 소비처 개별 검토 (Phase 2 선행)
+
+`sm` 이 ×5.15 로 강해지므로 **D3 소비처 10건을 일괄 승계하지 않는다**. SP2 `emphasized` 는 강조 표면용이지 입력 필드용이 아니다 — 현재 `var(--shadow-sm)` 를 쓰는 곳 중 상당수가 form field(`ComboBox`/`Select`/`NumberField`/`SearchField` generated CSS)다.
+
+- 각 소비처를 `sm` 유지 / `none` / 다른 단계 중 하나로 판정하고 근거를 기록한다.
+- Spectrum 대조: Spectrum 의 textfield 계열은 drop-shadow 를 쓰지 않는다(`drop-shadow-*` 컴포넌트 토큰이 color-handle / color-loupe / FAB 3개뿐 — §9-1 전수). 따라서 **`none` 판정이 다수일 수 있다.**
+- 이 판정 결과가 G2 의 시각 diff 범위를 정한다.
 
 **주의**: `--shadow-*` 는 `var(--box-shadow-md, …)` 형태로 **AI 테마 오버라이드 훅**을 갖는다. TS map 은 그 오버라이드를 모른다 → R5 (범위 밖, 본문 참조).
 
@@ -88,29 +129,26 @@
 
 ## §2. Phase 2 — 값 언어 TokenRef 통일
 
-### D1 (sub-decision) — overlay 3건을 어떤 토큰으로 표현하는가
+### D1 (sub-decision) — overlay 3건을 어떤 토큰으로 표현하는가 — **확정**
 
-| 안              | 내용                                                                      | 시각 변경 (light)          | 스케일 수 |
-| --------------- | ------------------------------------------------------------------------- | -------------------------- | :-------: |
-| **D1-a (확정)** | 기존 `sm/md/lg/xl` 스케일에 편입 — Tooltip→`md`, Popover→`lg`, Modal→`xl` | 있음, **잉크량 ±20% 이내** |     1     |
-| D1-b (폴백)     | `{shadow.overlay-sm/md/lg}` 신설 — 현 light 계산값을 그대로 토큰화        | 없음 (byte-identical 유지) |     2     |
+**Tooltip→`sm` / Popover→`md` / Modal→`lg`** (§1-0 의 Spectrum 재정의 스케일 기준).
 
-**D1-a 확정 (사용자 판단 2026-07-25 — "최대근사값에 매칭")** + 프로파일 실측 뒷받침.
+세 overlay 가 3단계에 하나씩 배분된다. Tooltip / Popover 는 원출처로 되돌아가는 매핑이다 — §9-4 대로 두 값의 기하가 SP2 `emphasized` / `elevated` 와 정확히 일치하므로, 각각 `sm` / `md` 는 근사가 아니라 **복귀**다.
 
-#### 최근사 레벨 실측
+| 컴포넌트 | 현재 값           | 잉크 | → 단계   | (SP2 출처)   |         L2 | 잉크비 |
+| -------- | ----------------- | ---: | :------- | :----------- | ---------: | -----: |
+| Tooltip  | `0 2px 8px` α.12  | 0.35 | **`sm`** | `emphasized` | **0.0042** |  ×0.89 |
+| Popover  | `0 4px 12px` α.15 | 0.75 | **`md`** | `elevated`   | **0.0096** |  ×0.73 |
+| Modal    | `0 8px 32px` α.20 | 2.24 | **`lg`** | `dragged`    | **0.0238** |  ×0.62 |
 
-box-shadow 를 하단 모서리 아래 거리 `d` 의 알파 프로파일로 환산해(레이어별 σ=blur/2 가우시안 CDF, 다층은 `1-Π(1-αᵢ)` 합성) `d ∈ [0,48]` 구간 L2 거리와 잉크량 `∫alpha·dd` 를 비교했다.
+- Modal 만 오차가 크다(×0.62). blur 32 는 Spectrum 이 발행하는 어느 값보다 넓어서, Spectrum 범위 안에 대응이 없다(§9-4). **Spectrum 기준으로 정규화하는 방향의 의도된 결과**이며, 시각적으로 Modal 그림자가 눈에 띄게 옅어진다 → G2 에서 제시.
+- 폐기된 대안: `{shadow.overlay-*}` 별도 스케일 신설(구 D1-b) — 스케일을 하나로 수렴시킨다는 본 ADR 목적과 어긋나 채택하지 않는다.
 
-| 컴포넌트 | 현재 값           | 잉크 |  최근사  |         L2 | 잉크비 | 차순위 대비 L2 |
-| -------- | ----------------- | ---: | :------: | ---------: | -----: | -------------: |
-| Tooltip  | `0 2px 8px` α.12  | 0.35 | **`md`** | **0.0075** |  ×1.20 |     2.0배 (sm) |
-| Popover  | `0 4px 12px` α.15 | 0.75 | **`lg`** | **0.0052** |  ×1.20 |     2.8배 (md) |
-| Modal    | `0 8px 32px` α.20 | 2.24 | **`xl`** | **0.0101** |  ×0.84 |     3.4배 (lg) |
+#### 프로파일 지표 정의 (재현 방법)
 
-- 세 컴포넌트 모두 **최근사가 뚜렷한 1등**이고(차순위와 2~3.4배 차) 잉크량 오차가 ±20% 이내다. 근사 매칭이 성립한다.
-- **초안 매핑(Tooltip→`sm`, Popover→`md`)은 한 단계씩 낮았다** — offsetY 만 보고 잡은 값이었다. `sm` 은 Tooltip 대비 잉크 ×0.17(6배 약함)이라 근사가 아니다. 스케일이 2-layer + 음수 spread 구성이라 offsetY 단독 비교가 렌더 결과를 대표하지 못한다.
-- 잔여 차이는 가장자리 선명도다 — 스케일 쪽이 음수 spread 로 약간 또렷하고, 현재 값이 약간 부드럽다. 렌더 대조에서 확인.
-- 재현 방법은 위 문단(σ=blur/2 가우시안 CDF · 다층 `1-Π(1-αᵢ)` 합성 · `d ∈ [0,48]` L2/잉크)에 전부 있다. 계산 스크립트는 일회성이라 커밋하지 않았다 — Phase 0 재측정 시 같은 방식으로 다시 계산한다.
+box-shadow 를 하단 모서리 아래 거리 `d` 의 알파 프로파일로 환산한다 — 레이어별 σ=blur/2 가우시안 CDF, 다층은 `1-Π(1-αᵢ)` 합성. `d ∈ [0,48]` 구간에서 L2 거리와 잉크량 `∫alpha·dd` 를 비교한다. 계산 스크립트는 일회성이라 커밋하지 않았다 — Phase 0 재측정 시 같은 방식으로 다시 계산한다.
+
+> **경과 기록**: 초안은 Tailwind 스케일 유지 + 근사 편입(Tooltip→`md`/Popover→`lg`/Modal→`xl`)이었다. §9 외부 대조에서 overlay 값의 출처가 Spectrum 이고 `sm` 이 외부 최하단 대비 3.7배 약하다는 사실이 나오면서, 사용자 판단으로 **스케일 자체를 Spectrum 기반으로 재정의**하는 방향으로 바뀌었다(2026-07-25). 그 결과 매핑이 한 단계씩 내려가 위 표가 됐다.
 
 - **기본안 D1-a 근거**: Material 3 elevation(레벨 0~5 + 컴포넌트가 레벨 참조) / Tailwind shadow scale 모두 **단일 스케일 + 컴포넌트가 레벨을 참조**하는 구조다. 현재 `--shadow-*` 값 자체가 Tailwind 스케일과 동일 수치이므로, overlay 전용 2번째 스케일을 만드는 것은 같은 축의 중복이다.
 - **폴백 조건**: Gate G2 에서 before/after 시각 diff 를 제시했을 때 사용자가 현 외형 유지를 선택하면 D1-b.
@@ -165,18 +203,21 @@ box-shadow 를 하단 모서리 아래 거리 `d` 의 알파 프로파일로 환
 
 ## §6. 파일 변경 목록
 
-| 파일                                                                | Phase | 변경                                               |
-| ------------------------------------------------------------------- | :---: | -------------------------------------------------- |
-| `packages/specs/src/primitives/shadows.ts`                          |   1   | light/dark map 분리 + `shadows` 별칭 + getter 확장 |
-| `packages/specs/src/renderers/utils/tokenResolver.ts`               |   1   | `case "shadow"` theme 분기                         |
-| `packages/specs/src/types/spec.types.ts`                            |   2   | `boxShadow` 타입 + 주석 근거 갱신                  |
-| `packages/specs/src/renderers/CSSGenerator.ts`                      |   2   | `emitContainerStyles` → `resolveBoxShadow` 경유    |
-| `packages/shared/src/catalog/generated/componentRulesTable.ts`      |   2   | Popover / Tooltip / Modal 값 TokenRef 화           |
-| `packages/shared/src/components/styles/generated/*.css`             |   2   | 재생성 (각 1줄)                                    |
-| `apps/builder/…/skia/buildBoxNodeData.ts` (+`buildSpecNodeData.ts`) |   3   | catalog `boxShadow` fallback + theme resolve       |
-| `packages/specs/src/renderers/skiaPrimitives.ts`                    |   4   | `popover_shadow` / `dialog_shadow` 제거            |
-| `packages/shared/src/catalog/bindings/{Popover,Dialog}.binding.ts`  |   4   | `skiaPrimitive` 항목 제거                          |
-| 신규 테스트 3종                                                     |   5   | §5 정적 가드 + 단위                                |
+| 파일                                                                 | Phase | 변경                                                                                 |
+| -------------------------------------------------------------------- | :---: | ------------------------------------------------------------------------------------ |
+| `packages/specs/src/primitives/shadows.ts`                           |   1   | light/dark map 분리 + **SP2 값으로 교체 + `xl` 제거** + `shadows` 별칭 + getter 확장 |
+| `packages/specs/src/renderers/utils/tokenResolver.ts`                |   1   | `case "shadow"` theme 분기                                                           |
+| `packages/shared/…/theme/preview-system.css`                         |   1   | `--shadow-sm/md/lg` SP2 값 교체 + `--shadow-xl` 제거 (light/dark 양 블록)            |
+| `packages/shared/src/components/styles/**` `var(--shadow-sm)` 10파일 |   2   | §1-3 개별 판정 결과 반영 (`sm` 유지 / `none` / 타 단계)                              |
+| `apps/builder/…/panels/styles/sections/AppearanceSection.tsx`        |   2   | `SHADOW_PRESET_OPTIONS` 에서 `xl` 제거 (3단계)                                       |
+| `packages/specs/src/types/spec.types.ts`                             |   2   | `boxShadow` 타입 + 주석 근거 갱신                                                    |
+| `packages/specs/src/renderers/CSSGenerator.ts`                       |   2   | `emitContainerStyles` → `resolveBoxShadow` 경유                                      |
+| `packages/shared/src/catalog/generated/componentRulesTable.ts`       |   2   | Popover / Tooltip / Modal 값 TokenRef 화                                             |
+| `packages/shared/src/components/styles/generated/*.css`              |   2   | 재생성 (각 1줄)                                                                      |
+| `apps/builder/…/skia/buildBoxNodeData.ts` (+`buildSpecNodeData.ts`)  |   3   | catalog `boxShadow` fallback + theme resolve                                         |
+| `packages/specs/src/renderers/skiaPrimitives.ts`                     |   4   | `popover_shadow` / `dialog_shadow` 제거                                              |
+| `packages/shared/src/catalog/bindings/{Popover,Dialog}.binding.ts`   |   4   | `skiaPrimitive` 항목 제거                                                            |
+| 신규 테스트 3종                                                      |   5   | §5 정적 가드 + 단위                                                                  |
 
 `AppearanceSection.tsx` 의 `cssToPresetMap` 은 R1 대응 시 추가된다 (light+dark 양쪽 값 인덱싱).
 
@@ -185,8 +226,8 @@ box-shadow 를 하단 모서리 아래 거리 `d` 의 알파 프로파일로 환
 ## §7. Phase 별 완료 체크리스트
 
 - **Phase 0**: §0 표 5개 재측정 완료 · ~~G1(dark glow) live 확인~~ **완료 2026-07-25** (§0-3)
-- **Phase 1**: `resolveToken` theme 분기 단위 테스트 PASS · `shadows` 별칭 소비처 grep 0 회귀
-- **Phase 2**: D1 확정 기록 · generated CSS diff 가 의도한 줄 수와 일치 · G2 통과
+- **Phase 1**: `resolveToken` theme 분기 단위 테스트 PASS · `shadows` 별칭 소비처 grep 0 회귀 · **`xl` 제거 후 D3 참조 0건 재확인** · light/dark 잉크비 3배 단언
+- **Phase 2**: D1 확정 기록 · **§1-3 `sm` 소비처 10건 판정표 작성** · 패널 프리셋 3단계 전환 · generated CSS diff 가 의도한 줄 수와 일치 · G2 통과
 - **Phase 3**: 캔버스에 Tooltip / Modal 그림자가 **처음으로** 나타남을 live 확인
 - **Phase 4**: primitive 제거 후 Popover 캔버스 그림자 유지 live 확인 (G4)
 - **Phase 5**: cross-check 8조합 · 정적 가드 3종 PASS · type-check PASS
@@ -197,13 +238,14 @@ box-shadow 를 하단 모서리 아래 거리 `d` 의 알파 프로파일로 환
 
 ## §8. 범위 밖 (명시)
 
-| 항목                                                        | 사유                                                                                                               |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| 그림자 파서 2개 통합 (`parseShadow` ↔ `parseOneShadow`)     | 값 언어 수렴으로 증상이 사라진다. 통합 자체는 독립 리팩터 — 재개 조건 = 임의 CSS 붙여넣기 경로가 실사용에서 문제화 |
-| `staticSelectors` 의 `var(--shadow-*)` 8건                  | CSS 축 전용 채널 (중첩 selector). Skia 대칭 대상이 아님                                                            |
-| `--box-shadow-*` AI 테마 오버라이드의 Skia 반영             | R5 — theme studio 그림자 커스터마이즈가 실사용에 등장하면 재개                                                     |
-| `overlay_backdrop` 오소링 표현 (Dialog 배치 시 프레임 암전) | 성격이 다른 UX 결정. 별도 판정 대상                                                                                |
-| `--drop-shadow-*` / `--inset-shadow-*` 토큰 정리            | 2026-07-25 로 오용 0건 도달. 정의만 남은 상태 유지                                                                 |
+| 항목                                                        | 사유                                                                                                                                                                                                |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 그림자 파서 2개 통합 (`parseShadow` ↔ `parseOneShadow`)     | 값 언어 수렴으로 증상이 사라진다. 통합 자체는 독립 리팩터 — 재개 조건 = 임의 CSS 붙여넣기 경로가 실사용에서 문제화                                                                                  |
+| `staticSelectors` 의 `var(--shadow-*)` 8건                  | CSS 축 전용 채널 (중첩 selector). Skia 대칭 대상이 아님                                                                                                                                             |
+| `--box-shadow-*` AI 테마 오버라이드의 Skia 반영             | R5 — theme studio 그림자 커스터마이즈가 실사용에 등장하면 재개                                                                                                                                      |
+| `overlay_backdrop` 오소링 표현 (Dialog 배치 시 프레임 암전) | 성격이 다른 UX 결정. 별도 판정 대상                                                                                                                                                                 |
+| `--drop-shadow-*` / `--inset-shadow-*` 토큰 정리            | 2026-07-25 로 오용 0건 도달. 정의만 남은 상태 유지                                                                                                                                                  |
+| **빌더 chrome(`App.css`)의 `--shadow-*` 이름 충돌**         | 같은 이름이 D3 와 한 단계 어긋난 값으로 두 벌 존재(§1-2). 빌더 chrome 은 builder-system layer 라 D3 SSOT 체인 밖 — 이름 정리는 별도 판단. 재개 조건 = 두 계층을 오가는 CSS 가 등장해 값이 뒤섞일 때 |
 
 ---
 
@@ -219,13 +261,14 @@ box-shadow 를 하단 모서리 아래 거리 `d` 의 알파 프로파일로 환
 
 ### 9-1. 계층 구조 비교
 
-| 시스템           | 단계 수                                                  | 레이어/단계                    | 명명 축            |
-| ---------------- | -------------------------------------------------------- | ------------------------------ | ------------------ |
-| **composition**  | 4 (`sm`/`md`/`lg`/`xl`)                                  | 1~2                            | **크기**           |
-| Material 3       | 6 (level 0~5)                                            | 2 (key + ambient)              | **고도(dp)**       |
-| Adobe Spectrum 1 | 3 (`100`/`200`/`300`)                                    | 1                              | **숫자 스케일**    |
-| Adobe Spectrum 2 | 4 (`emphasized`/`emphasized-hover`/`elevated`/`dragged`) | 3 (ambient + transition + key) | **역할(semantic)** |
-| Apple HIG        | **없음**                                                 | —                              | —                  |
+| 시스템                      | 단계 수                                                  | 레이어/단계                    | 명명 축             |
+| --------------------------- | -------------------------------------------------------- | ------------------------------ | ------------------- |
+| **composition** (대조 시점) | 4 (`sm`/`md`/`lg`/`xl`)                                  | 1~2                            | **크기**            |
+| **composition** (§1-0 확정) | 3 (`sm`/`md`/`lg`)                                       | 3 (SP2 레시피 승계)            | **크기** (값은 SP2) |
+| Material 3                  | 6 (level 0~5)                                            | 2 (key + ambient)              | **고도(dp)**        |
+| Adobe Spectrum 1            | 3 (`100`/`200`/`300`)                                    | 1                              | **숫자 스케일**     |
+| Adobe Spectrum 2            | 4 (`emphasized`/`emphasized-hover`/`elevated`/`dragged`) | 3 (ambient + transition + key) | **역할(semantic)**  |
+| Apple HIG                   | **없음**                                                 | —                              | —                   |
 
 - **Spectrum 2 는 크기 스케일이 아니라 역할 토큰**이다. "얼마나 큰 그림자"가 아니라 "어떤 상태의 표면"으로 이름 짓는다. composition 의 크기 축(`sm~xl`)과 명명 철학이 다르다.
 - **Apple 은 그림자 계층을 발행하지 않는다** (실측: HIG `/materials` 200 · `/layout` 200 · `/color` 200 인데 `/elevation` 404 · `/shadows` 404. npm 에 Adobe·Material 대응 토큰 패키지는 존재하나 Apple 대응 패키지 없음). 따라서 **대조군에서 제외**한다. Apple 이 그림자 대신 무엇을 쓰는지에 대한 서술은 HIG 본문이 SPA 라 이번 세션에서 원문 확인 실패 — 근거 없이 인용하지 않는다.
@@ -272,12 +315,14 @@ box-shadow 를 하단 모서리 아래 거리 `d` 의 알파 프로파일로 환
 - 즉 현재 저장소에는 **출처가 다른 두 계열이 섞여 있다**: 스케일(`sm~xl`) = Tailwind, overlay 3건 = Spectrum 계열.
 - **D1 에 대한 함의**: D1-a(Tailwind 스케일 편입)는 Adobe 정합이던 값을 Tailwind 쪽으로 옮기는 선택이 된다. 단 **D3(시각 스타일)는 composition 이 자체 결정하는 영역**이고 Adobe 권위는 D1(DOM/ARIA)·D2(Props)에만 걸리므로(`ssot-hierarchy.md`), "Adobe 를 따라야 한다"가 자동 결론은 아니다. 어느 계열을 정본으로 삼든 **하나로 수렴시키는 것**이 본 ADR 의 목적이며, 계열 선택 자체는 사용자 판단 사항이다.
 
-### 9-5. 본 대조에서 파생된 후속 판단 지점
+### 9-5. 본 대조에서 파생된 판단 — **전건 확정 (사용자 결정 2026-07-25)**
 
-| #   | 발견                                       | 선택지                                                           |
-| --- | ------------------------------------------ | ---------------------------------------------------------------- |
-| A   | `sm` 이 외부 최하단 대비 3.7배 약함        | 현행 유지(Tailwind 충실) / SP1 `shadow-100` 수준으로 상향        |
-| B   | dark 배수가 3~5배로 불균일                 | Spectrum 균일 3배로 정규화 (Phase 1 에서 적용 — 기준선으로 채택) |
-| C   | overlay 값이 Adobe 계열, 스케일은 Tailwind | D1-a 유지(Tailwind 로 수렴) / 스케일을 Spectrum 기반으로 재정의  |
+| #   | 발견                                       | 결정                                                                                               |
+| --- | ------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| A   | `sm` 이 외부 최하단 대비 3.7배 약함        | **상향** — SP2 `emphasized`(잉크 0.31, ×5.15). C 에 흡수됨                                         |
+| B   | dark 배수가 3~5배로 불균일                 | **Spectrum 균일 3배로 정규화** (§1-0)                                                              |
+| C   | overlay 값이 Adobe 계열, 스케일은 Tailwind | **스케일을 Spectrum 기반으로 재정의** — SP2 값, 크기 이름(sm/md/lg) 유지, **3단계**(xl 제거). §1-0 |
 
-A·C 는 본 ADR 의 결정(값 언어 TokenRef 통일)과 **직교**한다 — 어느 쪽을 고르든 Phase 1~5 구조는 그대로다. B 만 Phase 1 에 직접 반영된다.
+- **세대 선택 근거 (SP2 vs SP1)**: SP2 가 현행 Spectrum 이고 프로젝트가 이미 S2 정합(ADR-022 / 052 / 053)이다. overlay 매핑 오차도 SP1 보다 작다(잉크비 ×0.89/0.73/0.62 vs ×0.64/0.61/0.64). SP2 의 `emphasized-hover` 는 hover 상태 토큰이라 크기 단계에서 제외했다.
+- **3단계 근거**: Spectrum 이 4번째를 발행하지 않는다. 임의 확장 대신 축소를 택했다 — D3 `--shadow-xl` 소비처가 0건이라 코드 파손이 없고, 없는 근거를 지어내지 않는 쪽이 "Spectrum 기반"이라는 결정에 충실하다.
+- **결정 후 위상 변화**: A·C 는 대조 시점에 본 ADR 결정과 직교했으나, 채택되면서 **Phase 1 의 내용 자체**가 됐다. 그 결과 본 ADR 의 scope 가 "값 언어 통일"에서 "값 언어 통일 + 스케일 재정의"로 확장됐다 — ADR 본문 제목·Context·Risks 에 반영됨.
