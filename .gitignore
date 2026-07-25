@@ -1,5 +1,6 @@
 docs/react-aria-starter
 docs/react-aria
+docs/pencil-extracted
 node_modules
 
 # Kiro / Windsurf — 로컬 스킬 심링크(원본은 .agents/skills). 사용하지 않으면 무시.
