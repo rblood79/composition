@@ -74,7 +74,7 @@
 `color` 카테고리와 동일 구조로 맞춘다.
 
 - `packages/specs/src/primitives/shadows.ts`
-  - `lightShadows` / `darkShadows` 두 map 신설. 값은 `preview-system.css` 의 light/dark 선언과 **1:1 동일 문자열**(`rgb(0 0 0 / N)` 표기는 `rgba(…)` 로 정규화해도 무방 — 파서·colord 양쪽 통과 확인 후).
+  - `lightShadows` / `darkShadows` 두 map 신설. **dark 배수는 Adobe Spectrum 의 균일 3배를 기준선으로 정규화**한다 (§9-2 — 현행 `preview-system.css` dark 값은 단계마다 3~5배로 불균일하다. 근거 없는 편차이므로 이번에 정리한다. 현행 대비 diff 는 Phase 1 에서 제시). light 값은 `preview-system.css` 선언과 **1:1 동일 문자열**(`rgb(0 0 0 / N)` 표기는 `rgba(…)` 로 정규화해도 무방 — 파서·colord 양쪽 통과 확인 후).
   - `export const shadows = lightShadows` 별칭 유지 (하위 호환 — R2).
   - `getShadowToken(name, theme)` 시그니처 확장, 기본값 `"light"`.
 - `packages/specs/src/renderers/utils/tokenResolver.ts`
@@ -204,3 +204,80 @@ box-shadow 를 하단 모서리 아래 거리 `d` 의 알파 프로파일로 환
 | `--box-shadow-*` AI 테마 오버라이드의 Skia 반영             | R5 — theme studio 그림자 커스터마이즈가 실사용에 등장하면 재개                                                     |
 | `overlay_backdrop` 오소링 표현 (Dialog 배치 시 프레임 암전) | 성격이 다른 UX 결정. 별도 판정 대상                                                                                |
 | `--drop-shadow-*` / `--inset-shadow-*` 토큰 정리            | 2026-07-25 로 오용 0건 도달. 정의만 남은 상태 유지                                                                 |
+
+---
+
+## §9. 외부 레퍼런스 대조 (2026-07-25 원본 실측)
+
+현행 `sm/md/lg/xl` 은 Tailwind 스케일 수치를 그대로 쓴다. 같은 계층을 표현한 타 디자인 시스템과 대조해 스케일의 위치를 확인했다. **모두 배포 아티팩트 원본에서 추출** — 2차 자료 인용 아님.
+
+| 시스템            | 출처 (실측 경로)                                                                                           |
+| ----------------- | ---------------------------------------------------------------------------------------------------------- |
+| Material Design 3 | `material-web/elevation/internal/_elevation.scss` · `material-color-utilities/typescript/scheme/scheme.ts` |
+| Adobe Spectrum    | `@adobe/spectrum-tokens@14.15.0` `dist/json/variables.json` (unpkg)                                        |
+| Apple HIG         | `developer.apple.com/design/human-interface-guidelines/*` HTTP 상태 대조 + npm 레지스트리                  |
+
+### 9-1. 계층 구조 비교
+
+| 시스템           | 단계 수                                                  | 레이어/단계                    | 명명 축            |
+| ---------------- | -------------------------------------------------------- | ------------------------------ | ------------------ |
+| **composition**  | 4 (`sm`/`md`/`lg`/`xl`)                                  | 1~2                            | **크기**           |
+| Material 3       | 6 (level 0~5)                                            | 2 (key + ambient)              | **고도(dp)**       |
+| Adobe Spectrum 1 | 3 (`100`/`200`/`300`)                                    | 1                              | **숫자 스케일**    |
+| Adobe Spectrum 2 | 4 (`emphasized`/`emphasized-hover`/`elevated`/`dragged`) | 3 (ambient + transition + key) | **역할(semantic)** |
+| Apple HIG        | **없음**                                                 | —                              | —                  |
+
+- **Spectrum 2 는 크기 스케일이 아니라 역할 토큰**이다. "얼마나 큰 그림자"가 아니라 "어떤 상태의 표면"으로 이름 짓는다. composition 의 크기 축(`sm~xl`)과 명명 철학이 다르다.
+- **Apple 은 그림자 계층을 발행하지 않는다** (실측: HIG `/materials` 200 · `/layout` 200 · `/color` 200 인데 `/elevation` 404 · `/shadows` 404. npm 에 Adobe·Material 대응 토큰 패키지는 존재하나 Apple 대응 패키지 없음). 따라서 **대조군에서 제외**한다. Apple 이 그림자 대신 무엇을 쓰는지에 대한 서술은 HIG 본문이 SPA 라 이번 세션에서 원문 확인 실패 — 근거 없이 인용하지 않는다.
+
+### 9-2. dark 정책 — 세 시스템이 서로 다르다
+
+| 시스템          | dark 처리                 | 배수                                                                                      |
+| --------------- | ------------------------- | ----------------------------------------------------------------------------------------- |
+| **composition** | 검정 유지 + 불투명도 상향 | **3~5배 (들쭉날쭉)** — sm 4× · md 3× · lg 4× · xl 5×                                      |
+| Adobe Spectrum  | 검정 유지 + 불투명도 상향 | **정확히 3배, 전 토큰 일관** (.12→.36 · .16→.48 · .2→.6 · .08→.24 · .04→.12)              |
+| Material 3      | **변화 없음**             | `shadow` 색이 light/dark 모두 `neutral.tone(0)`(검정), 불투명도 key .3 / ambient .15 고정 |
+
+- 우리 dark 방향(불투명도 상향)은 Adobe 와 같다. 다만 **배수가 단계마다 다르다** — 근거 없는 편차다.
+- **Phase 1 적용**: `darkShadows` 값을 정할 때 Spectrum 의 균일 3배를 기준선으로 삼는다. 현행 dark 값과의 diff 는 Phase 1 에서 제시한다.
+- M3 는 dark 에서 그림자를 강화하지 않는다 — 표면 색 자체를 밝혀 고도를 표현하기 때문(surface tint). 우리는 surface tint 를 쓰지 않으므로 M3 정책은 채용 대상이 아니다.
+
+### 9-3. 잉크량 통합 정렬 — 우리 스케일의 위치
+
+§2 와 동일한 프로파일 지표(∫alpha·dd, light 기준). 낮을수록 약한 그림자.
+
+|     잉크 | 토큰                   |     잉크 | 토큰               |
+| -------: | ---------------------- | -------: | ------------------ |
+| **0.06** | **composition sm**     |     0.90 | **composition lg** |
+|     0.22 | SP1 `shadow-100`       |     0.95 | M3 level2          |
+|     0.31 | SP2 `emphasized`       |     1.40 | SP2 `dragged`      |
+|     0.42 | **composition md**     |     1.42 | M3 level3          |
+|     0.46 | SP1 `shadow-200`       |     1.43 | SP1 `shadow-300`   |
+|     0.53 | SP2 `emphasized-hover` | **1.88** | **composition xl** |
+|     0.55 | SP2 `elevated`         |     2.08 | M3 level4          |
+|     0.64 | M3 level1              |     3.18 | M3 level5          |
+
+- `md`(0.42) ≈ SP1 `shadow-200`(0.46) — **L2 0.0039 로 거의 동일**. `lg`·`xl` 도 타 시스템 분포 안에 들어간다.
+- **`sm`(0.06) 만 이탈**한다. 외부 최근사가 SP1 `shadow-100`(0.22)로 **3.7배** 차이 — 어느 시스템의 최하단보다도 한참 아래다. 사실상 "거의 보이지 않는" 단계이며, 그래서 §2 에서 Tooltip 의 근사 후보로 부적합했다(잉크 ×0.17).
+
+### 9-4. overlay 현재값의 출처 — Tailwind 가 아니라 Adobe 계열
+
+| 현재 값                   | 외부 최근사            |     L2 | 기하 일치                                                                       |
+| ------------------------- | ---------------------- | -----: | ------------------------------------------------------------------------------- |
+| Tooltip `0 2px 8px` α.12  | SP2 `emphasized`       | 0.0042 | **정확 일치** — SP2 최상위 레이어 = `0 2px 8px`, SP1 `shadow-200` = `0 2px 8px` |
+| Popover `0 4px 12px` α.15 | (SP2 `elevated` 3순위) | 0.0096 | **정확 일치** — SP2 `elevated`/`emphasized-hover` 최상위 레이어 = `0 4px 12px`  |
+| Modal `0 8px 32px` α.20   | SP1 `shadow-300`       | 0.0229 | 불일치 — blur 32 는 대조군 어느 값보다 넓다                                     |
+
+- Tooltip / Popover 의 offset·blur 가 Spectrum 토큰과 **정확히 같은 수치**다. 우연으로 보기 어렵다 — 이 값들은 Tailwind 스케일이 아니라 **Adobe Spectrum 에서 온 것**으로 보인다.
+- 즉 현재 저장소에는 **출처가 다른 두 계열이 섞여 있다**: 스케일(`sm~xl`) = Tailwind, overlay 3건 = Spectrum 계열.
+- **D1 에 대한 함의**: D1-a(Tailwind 스케일 편입)는 Adobe 정합이던 값을 Tailwind 쪽으로 옮기는 선택이 된다. 단 **D3(시각 스타일)는 composition 이 자체 결정하는 영역**이고 Adobe 권위는 D1(DOM/ARIA)·D2(Props)에만 걸리므로(`ssot-hierarchy.md`), "Adobe 를 따라야 한다"가 자동 결론은 아니다. 어느 계열을 정본으로 삼든 **하나로 수렴시키는 것**이 본 ADR 의 목적이며, 계열 선택 자체는 사용자 판단 사항이다.
+
+### 9-5. 본 대조에서 파생된 후속 판단 지점
+
+| #   | 발견                                       | 선택지                                                           |
+| --- | ------------------------------------------ | ---------------------------------------------------------------- |
+| A   | `sm` 이 외부 최하단 대비 3.7배 약함        | 현행 유지(Tailwind 충실) / SP1 `shadow-100` 수준으로 상향        |
+| B   | dark 배수가 3~5배로 불균일                 | Spectrum 균일 3배로 정규화 (Phase 1 에서 적용 — 기준선으로 채택) |
+| C   | overlay 값이 Adobe 계열, 스케일은 Tailwind | D1-a 유지(Tailwind 로 수렴) / 스케일을 Spectrum 기반으로 재정의  |
+
+A·C 는 본 ADR 의 결정(값 언어 TokenRef 통일)과 **직교**한다 — 어느 쪽을 고르든 Phase 1~5 구조는 그대로다. B 만 Phase 1 에 직접 반영된다.

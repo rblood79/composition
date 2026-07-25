@@ -56,7 +56,7 @@ Proposed — 2026-07-25
 ### 대안 B: `shadow` 토큰 theme-aware 승격 + `containerStyles.boxShadow` TokenRef 통일
 
 - 설명: `shadows` flat map 을 `lightShadows` / `darkShadows` 로 이원화하고 `resolveToken` 의 `shadow` 분기를 `color` 와 같은 구조로 맞춘다. catalog 3건을 `{shadow.*}` TokenRef 로 교체하고, `emitContainerStyles` 가 기존 local `resolveBoxShadow` 를 경유하게 해 형제 필드와 같은 경로로 합류시킨다. Skia 는 `resolveBoxShadow(ref, skiaTheme)` 로 전개된 rgba 문자열을 얻으므로 **기존 파서를 그대로 통과**한다.
-- 근거: 프로젝트 내부 선례 — `color` 카테고리는 이미 `lightColors`/`darkColors` 로 theme 분기하고, `--shadow-*` CSS 변수도 이미 light/dark 값이 다르다. 즉 "그림자는 theme 별 값을 갖는다" 는 정책은 이미 채택돼 있고 TS 층만 따라오지 않은 상태다. 외부적으로 Material 3(elevation 레벨 + 컴포넌트가 레벨 참조)와 Tailwind(shadow scale, 현 `--shadow-*` 수치와 동일)가 모두 단일 스케일 + 컴포넌트 참조 구조를 쓴다.
+- 근거: 프로젝트 내부 선례 — `color` 카테고리는 이미 `lightColors`/`darkColors` 로 theme 분기하고, `--shadow-*` CSS 변수도 이미 light/dark 값이 다르다. 즉 "그림자는 theme 별 값을 갖는다" 는 정책은 이미 채택돼 있고 TS 층만 따라오지 않은 상태다. 외부 대조(2026-07-25 원본 실측 — design §9)에서도 **Material 3**(level 0~5, key+ambient 2레이어)와 **Adobe Spectrum**(SP1 `100/200/300` 3단계 · SP2 `emphasized`/`elevated`/`dragged` 역할 토큰 3레이어)가 모두 단일 토큰 집합 + 컴포넌트 참조 구조를 쓴다. **Adobe Spectrum 은 dark 에서 검정을 유지하며 불투명도를 정확히 3배로 올린다**(.12→.36 · .16→.48 · .2→.6) — 본 결정의 dark 정책과 같은 방향이고, Phase 1 의 `darkShadows` 기준선이 된다. (**Apple 은 그림자 계층을 발행하지 않아** 대조군에서 제외 — HIG `/elevation`·`/shadows` 404, 공개 토큰 패키지 없음.)
 - 위험:
   - 기술: **LOW** — 신규 메커니즘 없음. 기존 두 메커니즘(`resolveToken` theme 분기 + local `resolveBoxShadow`)의 조합이다. 파서 수정 0.
   - 성능: **LOW** — map lookup 1회.
@@ -118,14 +118,15 @@ Proposed — 2026-07-25
 
 ## Risks
 
-| ID  | 위험                                                                                                                | 심각도 | 대응                                                                                                              |
-| --- | ------------------------------------------------------------------------------------------------------------------- | :----: | ----------------------------------------------------------------------------------------------------------------- |
-| R1  | 패널 프리셋 역매핑(`cssToPresetMap`)이 light 값만 인덱싱 → dark 에서 프리셋이 "custom" 으로 표시                    |  MED   | 역매핑을 light + dark 양쪽 값으로 인덱싱. `AppearanceSection` 왕복 테스트에 dark 케이스 추가                      |
-| R2  | `shadows` flat map 을 import 하는 기존 소비처 회귀 (`getShadowToken` / Toast.css / 패널)                            |  MED   | `shadows = lightShadows` 별칭 유지(시그니처 보존) + 소비처 grep 후 명시 전환. 정적 가드로 신규 flat 접근 차단     |
-| R3  | D1-a(스케일 편입) 매핑이 light 시각 변경을 유발 → 2026-07-25 확정 외형과 어긋남                                     |  LOW   | 프로파일 실측으로 최근사 레벨 확정(잉크량 비 0.84~1.20, design §2). G2 는 그 범위 준수만 확인. 이탈 시 D1-b 폴백  |
-| R4  | Skia primitive 제거 순서가 뒤바뀌면 Popover 캔버스 그림자에 공백 구간 발생                                          |  MED   | Phase 순서 고정(3 → live 확인 → 4). Phase 4 는 G4 통과 후에만 진행                                                |
-| R5  | `--shadow-*` 의 AI 테마 오버라이드(`--box-shadow-*`)를 TS 토큰 map 이 모름 → theme studio 로 그림자를 바꾸면 재발산 |  LOW   | 범위 밖 명시. 재개 조건 = theme studio 그림자 커스터마이즈가 실사용에 등장. 그 시점에 오버라이드 조달 경로를 판정 |
-| R6  | Dialog 는 `containerStyles.boxShadow` 미보유라 `dialog_shadow` 제거 시 대체 공급원이 없음                           |  MED   | 2026-07-25 판정(Modal 이 modal elevation 소유, RAC starter `Dialog.css` 근거)을 유지 — Modal 그림자로 대체 검증   |
+| ID  | 위험                                                                                                                      | 심각도 | 대응                                                                                                                                       |
+| --- | ------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| R1  | 패널 프리셋 역매핑(`cssToPresetMap`)이 light 값만 인덱싱 → dark 에서 프리셋이 "custom" 으로 표시                          |  MED   | 역매핑을 light + dark 양쪽 값으로 인덱싱. `AppearanceSection` 왕복 테스트에 dark 케이스 추가                                               |
+| R2  | `shadows` flat map 을 import 하는 기존 소비처 회귀 (`getShadowToken` / Toast.css / 패널)                                  |  MED   | `shadows = lightShadows` 별칭 유지(시그니처 보존) + 소비처 grep 후 명시 전환. 정적 가드로 신규 flat 접근 차단                              |
+| R3  | D1-a(스케일 편입) 매핑이 light 시각 변경을 유발 → 2026-07-25 확정 외형과 어긋남                                           |  LOW   | 프로파일 실측으로 최근사 레벨 확정(잉크량 비 0.84~1.20, design §2). G2 는 그 범위 준수만 확인. 이탈 시 D1-b 폴백                           |
+| R7  | 스케일(Tailwind)과 overlay 현재값(Adobe Spectrum 기하와 정확 일치)의 **출처 계열이 다르다** — 어느 쪽으로 수렴할지 미확정 |  LOW   | design §9-4/§9-5 에 대조 데이터 기록. 계열 선택은 본 ADR 결정(값 언어 통일)과 직교하므로 Phase 구조 불변 — 사용자 판단 후 D1 확정값만 교체 |
+| R4  | Skia primitive 제거 순서가 뒤바뀌면 Popover 캔버스 그림자에 공백 구간 발생                                                |  MED   | Phase 순서 고정(3 → live 확인 → 4). Phase 4 는 G4 통과 후에만 진행                                                                         |
+| R5  | `--shadow-*` 의 AI 테마 오버라이드(`--box-shadow-*`)를 TS 토큰 map 이 모름 → theme studio 로 그림자를 바꾸면 재발산       |  LOW   | 범위 밖 명시. 재개 조건 = theme studio 그림자 커스터마이즈가 실사용에 등장. 그 시점에 오버라이드 조달 경로를 판정                          |
+| R6  | Dialog 는 `containerStyles.boxShadow` 미보유라 `dialog_shadow` 제거 시 대체 공급원이 없음                                 |  MED   | 2026-07-25 판정(Modal 이 modal elevation 소유, RAC starter `Dialog.css` 근거)을 유지 — Modal 그림자로 대체 검증                            |
 
 잔존 HIGH 위험 없음.
 
