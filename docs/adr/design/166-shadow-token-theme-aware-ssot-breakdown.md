@@ -230,6 +230,9 @@ box-shadow 를 하단 모서리 아래 거리 `d` 의 알파 프로파일로 환
 ## §4. Phase 4 — Skia primitive 은퇴
 
 - 순서 고정: **Phase 3 live 확인 → primitive 제거**. 역순 금지 (제거 먼저 하면 Popover 캔버스 그림자가 공백 구간을 갖는다 — R4).
+
+> **실행 결과 정정 (2026-07-25)**: R4 의 전제였던 "`popover_shadow` 가 Popover 캔버스 그림자를 그리고 있다"는 **틀렸다**. `specShapeConverter` 는 `target:"bg"` shadow 를 Pass 2 로 미룬 뒤 `nodeById.get("bg")` 에 effect 를 push 하는데, bg 가 root 로 추출된 경우(`bgExtracted`) 거기 담긴 것은 **spread 사본**이고 root 조립부(`specShapeConverter:206-216`)는 `bgBox`/`children` 만 읽는다 — 사본의 `effects` 는 어디서도 읽히지 않는다. border 는 `targetNode.box === bgBox` write-through 분기(`:637-640`)가 있지만 shadow 에는 없다. 일회성 probe 로 확증(`hasEffects:false`). 따라서 Phase 4 는 **시각 변화 0 의 죽은 코드 제거**이고, Phase 3 이전 Popover 도 Tooltip/Modal 과 똑같이 캔버스 그림자가 없었다. 순서 고정 자체는 그대로 지켰으므로 결과에 영향 없음.
+
 - `packages/specs/src/renderers/skiaPrimitives.ts`
   - `popoverShadow` / `dialogShadow` 정의 + `SKIA_PRIMITIVES` 등록(:3070-3071) + mode 표(:3127-3128) 제거.
 - `packages/shared/src/catalog/bindings/{Popover,Dialog}.binding.ts`
@@ -279,7 +282,7 @@ box-shadow 를 하단 모서리 아래 거리 `d` 의 알파 프로파일로 환
 - **Phase 1**: `resolveToken` theme 분기 단위 테스트 PASS · `shadows` 별칭 소비처 grep 0 회귀 · **`xl` 제거 후 D3 참조 0건 재확인** · light/dark 잉크비 3배 단언
 - **Phase 2**: D1 확정 기록 · **§1-3 `sm` 소비처 10건 판정표 작성** · 패널 프리셋 3단계 전환 · generated CSS diff 가 의도한 줄 수와 일치 · G2 통과
 - **Phase 3**: 캔버스에 Tooltip / Modal 그림자가 **처음으로** 나타남을 live 확인
-- **Phase 4**: primitive 제거 후 Popover 캔버스 그림자 유지 live 확인 (G4)
+- **Phase 4**: ~~primitive 제거 후 Popover 캔버스 그림자 유지 live 확인 (G4)~~ **완료 2026-07-25** — Popover catalog 3레이어 유지 + arrow 생존, Dialog effects 0 + backdrop 생존 (§4 정정 포함)
 - **Phase 5**: cross-check 8조합 · 정적 가드 3종 PASS · type-check PASS
 
 > 각 Phase 는 commit 가능 상태로 종료한다. **test/type-check PASS 단독으로 종결 금지** — Phase 3/4 는 live 확인이 완료 조건이다.
@@ -288,14 +291,15 @@ box-shadow 를 하단 모서리 아래 거리 `d` 의 알파 프로파일로 환
 
 ## §8. 범위 밖 (명시)
 
-| 항목                                                        | 사유                                                                                                                                                                                                |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 그림자 파서 2개 통합 (`parseShadow` ↔ `parseOneShadow`)     | 값 언어 수렴으로 증상이 사라진다. 통합 자체는 독립 리팩터 — 재개 조건 = 임의 CSS 붙여넣기 경로가 실사용에서 문제화                                                                                  |
-| `staticSelectors` 의 `var(--shadow-*)` 8건                  | CSS 축 전용 채널 (중첩 selector). Skia 대칭 대상이 아님                                                                                                                                             |
-| `--box-shadow-*` AI 테마 오버라이드의 Skia 반영             | R5 — theme studio 그림자 커스터마이즈가 실사용에 등장하면 재개                                                                                                                                      |
-| `overlay_backdrop` 오소링 표현 (Dialog 배치 시 프레임 암전) | 성격이 다른 UX 결정. 별도 판정 대상                                                                                                                                                                 |
-| `--drop-shadow-*` / `--inset-shadow-*` 토큰 정리            | 2026-07-25 로 오용 0건 도달. 정의만 남은 상태 유지                                                                                                                                                  |
-| **빌더 chrome(`App.css`)의 `--shadow-*` 이름 충돌**         | 같은 이름이 D3 와 한 단계 어긋난 값으로 두 벌 존재(§1-2). 빌더 chrome 은 builder-system layer 라 D3 SSOT 체인 밖 — 이름 정리는 별도 판단. 재개 조건 = 두 계층을 오가는 CSS 가 등장해 값이 뒤섞일 때 |
+| 항목                                                        | 사유                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 그림자 파서 2개 통합 (`parseShadow` ↔ `parseOneShadow`)     | 값 언어 수렴으로 증상이 사라진다. 통합 자체는 독립 리팩터 — 재개 조건 = 임의 CSS 붙여넣기 경로가 실사용에서 문제화                                                                                                                                                                                                                                                                                         |
+| `staticSelectors` 의 `var(--shadow-*)` 8건                  | CSS 축 전용 채널 (중첩 selector). Skia 대칭 대상이 아님                                                                                                                                                                                                                                                                                                                                                    |
+| `--box-shadow-*` AI 테마 오버라이드의 Skia 반영             | R5 — theme studio 그림자 커스터마이즈가 실사용에 등장하면 재개                                                                                                                                                                                                                                                                                                                                             |
+| `overlay_backdrop` 오소링 표현 (Dialog 배치 시 프레임 암전) | 성격이 다른 UX 결정. 별도 판정 대상                                                                                                                                                                                                                                                                                                                                                                        |
+| `--drop-shadow-*` / `--inset-shadow-*` 토큰 정리            | 2026-07-25 로 오용 0건 도달. 정의만 남은 상태 유지                                                                                                                                                                                                                                                                                                                                                         |
+| **빌더 chrome(`App.css`)의 `--shadow-*` 이름 충돌**         | 같은 이름이 D3 와 한 단계 어긋난 값으로 두 벌 존재(§1-2). 빌더 chrome 은 builder-system layer 라 D3 SSOT 체인 밖 — 이름 정리는 별도 판단. 재개 조건 = 두 계층을 오가는 CSS 가 등장해 값이 뒤섞일 때                                                                                                                                                                                                        |
+| **`specShapeConverter` 가 `target:"bg"` shadow 를 삼킴**    | Phase 4 실행 중 발견(§4 정정). bg 가 root 로 추출되면 shadow effect 가 orphan 사본에 push 되어 버려진다 — border 는 write-through 분기가 있으나 shadow 는 없는 **비대칭**. ADR-166 은 이 채널을 쓰지 않는 방향(catalog boxShadow 단일화)이라 수정 없이 종료해도 회귀가 없다. 재개 조건 = spec/primitive shadow shape 를 쓰는 신규 컴포넌트가 등장할 때 (그때는 채널을 살릴지 catalog 로 흡수할지부터 판정) |
 
 > **Phase 2 에서 발견한 잔존 (범위 밖)** — 패널의 **inline 오버라이드는 theme 을 따라가지 않는다**. `AppearanceSection` 의 `onChange` 가 `shadows[value]`(= light 값)를 리터럴 CSS 로 store 에 기록하므로, dark 캔버스에서 프리셋을 고르면 light 그림자가 고정된다. 이는 본 ADR 이 만든 결함이 아니라 **선행 상태**다 — Phase 1 이전에도 TS map 은 flat 이었고 CSS 변수만 theme 별이라, 리터럴을 쓰는 순간 theme 추종이 끊겼다. 근본 해법은 패널이 리터럴 대신 `{shadow.md}` TokenRef 를 기록하는 것이고, 그러려면 **Skia 가 TokenRef 를 읽어야 한다(= Phase 3)**. 따라서 Phase 3 완료 후 재판정 대상으로 남긴다. 판정 결과가 catalog 기본값이 아니라 사용자 inline 값에만 걸리므로 본 Phase 의 G2 범위 밖이다.
 

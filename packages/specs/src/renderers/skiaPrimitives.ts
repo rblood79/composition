@@ -1490,39 +1490,22 @@ const popoverArrow: SkiaPrimitiveDrawFn = ({ props, visual, style }) => {
   ];
 };
 
-/**
- * `dialog_shadow` — Dialog drop shadow(offsetY:8 blur:24 alpha:0.2). target=bg.
- * 값은 (구) DialogSpec.render.shapes 하드코딩 1:1 이식. 보편 box-shadow 의 elevation 종류.
+/*
+ * ADR-166 Phase 4 (2026-07-25) — `dialog_shadow` / `popover_shadow` 제거됨.
+ *
+ * 두 primitive 는 인자 무관 하드코딩 상수라 테마를 따르지 않았고, catalog
+ * `containerStyles.boxShadow` 와 별개 값이라 D3 SSOT 밖의 두 번째 그림자 소스였다.
+ *
+ * **그리고 실제로는 캔버스에 닿지도 않았다** (2026-07-25 실측). 둘 다 `target: "bg"` shadow
+ * shape 인데, `specShapeConverter` 는 bg box 가 root 로 추출되면(`bgExtracted`) `nodeById` 에
+ * **spread 사본**을 넣는다. shadow 는 그 사본의 `effects` 에 push 되고, root 조립부는 `bgBox` 와
+ * `children` 만 읽으므로 사본은 버려진다. border 는 `targetNode.box === bgBox` 분기로 bgBox 에
+ * 직접 write-through 하지만 shadow 에는 그 분기가 없다. 즉 Popover 는 Phase 3 이전까지 캔버스
+ * 그림자가 **아예 없었고**, Phase 4 는 이중 그리기 해소가 아니라 **죽은 코드 제거**(시각 변화 0)다.
+ *
+ * 재도입 금지 — 그림자는 catalog `containerStyles.boxShadow` = `{shadow.*}` TokenRef 단일 채널.
+ * (`target: "bg"` shadow 가 삼켜지는 위 결함 자체는 ADR-166 범위 밖 — design §8 참조.)
  */
-const dialogShadow: SkiaPrimitiveDrawFn = () => [
-  {
-    type: "shadow",
-    target: "bg",
-    offsetX: 0,
-    offsetY: 8,
-    blur: 24,
-    spread: 0,
-    color: "rgba(0, 0, 0, 0.2)",
-    alpha: 0.2,
-  },
-];
-
-/**
- * `popover_shadow` — Popover drop shadow(offsetY:4 blur:12 alpha:0.15). target=bg.
- * 값은 PopoverSpec.render.shapes 하드코딩 1:1 이식. dialog 보다 약한 elevation.
- */
-const popoverShadow: SkiaPrimitiveDrawFn = () => [
-  {
-    type: "shadow",
-    target: "bg",
-    offsetX: 0,
-    offsetY: 4,
-    blur: 12,
-    spread: 0,
-    color: "rgba(0, 0, 0, 0.15)",
-    alpha: 0.15,
-  },
-];
 
 /**
  * `overlay_backdrop` — Dialog 반투명 backdrop(전체 화면 rect, rgba(0,0,0,0.5)).
@@ -3067,8 +3050,7 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   // ADR-142 Inc3 overlays (append 모드 — SKIA_PRIMITIVE_MODES 참조)
   tooltip_arrow: tooltipArrow,
   popover_arrow: popoverArrow,
-  dialog_shadow: dialogShadow,
-  popover_shadow: popoverShadow,
+  // ADR-166 Phase 4: dialog_shadow / popover_shadow 제거 (catalog boxShadow 단일 채널)
   overlay_backdrop: overlayBackdrop,
   // ADR-912 단계 5 (1b) date escape (replace 모드 — box+text 대체)
   calendar_grid: calendarGrid,
@@ -3102,7 +3084,8 @@ export type SkiaPrimitiveMode = "replace" | "prepend" | "append";
  * draw module 의 합성 모드.
  * - `"replace"`(기본): 출력이 box+text 를 **대체**한다(기존 6 leaf primitive — indicator 만 렌더).
  * - `"prepend"`: 출력이 buildCatalogShapes(box+text) 출력 **앞**(아래 레이어)에 합성된다 —
- *   backdrop(전체화면 rect) / shadow(target=bg). legacy 순서 [backdrop, shadow, bg, ...] 재현.
+ *   backdrop(전체화면 rect). ADR-166 Phase 4 이후 shadow 계열은 이 모드를 쓰지 않는다
+ *   (그림자는 primitive 가 아니라 catalog `boxShadow` → Skia effect 로 나간다).
  * - `"append"`: 출력이 box+text 출력 **뒤**(위 레이어)에 합성된다 — arrow(line).
  *
  * 미등록 키는 `"replace"` 로 간주(기존 호환).
@@ -3124,8 +3107,6 @@ const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   //   전체 자체 생성(buildCatalogShapes box+single-text 로 재현 불가) → replace.
   listbox_item: "replace",
   overlay_backdrop: "prepend",
-  dialog_shadow: "prepend",
-  popover_shadow: "prepend",
   tooltip_arrow: "append",
   popover_arrow: "append",
   // ADR-912 선행-2: value_fill_bar 는 track box 위 막대 → append.

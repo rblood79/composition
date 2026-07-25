@@ -5,9 +5,15 @@
  * Dialog + Heading/dismiss 등을 합성(internal source). overlay 는 portal 렌더라 자식 Heading/
  * Description 은 canonical children 트리(SHELL_ONLY).
  *
- * **Skia generic 발효 (ADR-142 Inc3, 2026-06-01)**: bg 는 buildCatalogShapes(variant fill
- * `{color.layer-1}`), backdrop(반투명 전체화면 rect) + drop shadow 는 skiaPrimitive draw module
- * (`overlay_backdrop` / `dialog_shadow`, 둘 다 prepend=base 앞) 합성. render.shapes 와 parity.
+ * **Skia generic 전환 (ADR-142 Inc3, 2026-06-01)**: bg 는 buildCatalogShapes(variant fill
+ * `{color.layer-1}`), backdrop(반투명 전체화면 rect)은 skiaPrimitive draw module
+ * (`overlay_backdrop`, prepend=base 앞) 합성.
+ *
+ * **Dialog 는 그림자를 갖지 않는다 (ADR-166 Phase 4, 2026-07-25)**: elevation 소유자는 Modal 이다
+ * (`Dialog.tsx` 주석 "should be used within a Modal overlay", generated `Dialog.css` box-shadow 0건).
+ * 구 `dialog_shadow` primitive 는 `target:"bg"` shadow 가 bg 추출 경로에서 삼켜져 캔버스 출력이
+ * 0이었으므로(실측) 제거해도 시각 변화가 없다. Dialog 에 그림자가 필요해지면 primitive 가 아니라
+ * `containerStyles.boxShadow`.
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -44,6 +50,6 @@ export const dialogBinding: PrimitiveBinding = {
     },
     toRacProps: "default",
   },
-  // backdrop + shadow (둘 다 base 앞 prepend). box 는 buildCatalogShapes 가 담당.
-  skiaPrimitive: ["overlay_backdrop", "dialog_shadow"],
+  // backdrop (base 앞 prepend) 만. box 는 buildCatalogShapes 가 담당.
+  skiaPrimitive: ["overlay_backdrop"],
 };

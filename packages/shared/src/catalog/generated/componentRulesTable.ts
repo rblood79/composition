@@ -7595,9 +7595,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   (index.css 로드 순서상 마지막이라 승리하던 선언) 그대로 — 시각 불변.
       //   **Why**: 그림자 정본이 수동 CSS 에만 있어 catalog 를 읽는 Style Panel 이
       //   Appearance → Box Shadow 를 "none" 으로 표시했다(D3 위반 — 수동 CSS 독립 정의).
-      //   Skia 는 `popover_shadow` primitive 가 동일 기하(0 4px 12px)를 이미 그린다.
       //   ADR-166 Phase 2: `{shadow.md}` = SP2 `elevated`. 구 값의 기하(0 4px 12px)가 SP2
       //   `elevated` 최상위 레이어와 정확히 일치하므로 근사가 아니라 **출처 복귀**다(ADR §9-4).
+      //   ADR-166 Phase 4: 구 `popover_shadow` primitive(테마 무관 상수, 실측 결과 캔버스 출력
+      //   0)를 은퇴시켜, 이 값이 DOM·Skia 양쪽의 유일한 그림자 소스가 됐다.
       containerStyles: {
         boxShadow: "{shadow.md}",
       },

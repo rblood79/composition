@@ -422,8 +422,10 @@ function catalogRootBoxShadow(lowerType: string): string | undefined {
  *
  * **Why (ADR-166 Phase 3)**: `buildSkiaEffects` 는 raw `props.style.boxShadow` 만 읽어서,
  * elevation 을 catalog 에만 둔 overlay(Popover/Tooltip/Modal)는 캔버스에서 그림자가 나오지
- * 않았다. Popover 만 `popover_shadow` 하드코딩 primitive 가 대신 그리고 있었고 Tooltip/Modal 은
- * 아예 공백이었다.
+ * 않았다. `popover_shadow` primitive 가 Popover 를 대신 그린다고 알려져 있었으나 2026-07-25
+ * 실측 결과 그 경로는 죽어 있었다(`target:"bg"` shadow 가 bg 추출 시 사본에 push 되어 버려짐)
+ * — Popover 도 Tooltip/Modal 과 똑같이 캔버스 그림자가 공백이었다. 해당 primitive 는 Phase 4 에서
+ * 은퇴했고, 이제 이 함수가 캔버스 그림자의 **유일한** 공급원이다.
  *
  * TokenRef(`{shadow.md}`)는 여기서 theme 별 rgba 문자열로 전개해 내보낸다 — 기존
  * `parseOneShadow` 가 그대로 통과시킬 수 있는 형태라 **파서 수정이 없다**. 반대로 `var(...)` /

@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-// ADR-912 단계5 step4 Dialog 단건 (2026-06-16): DialogSpec import 제거 — spec 삭제. dialog_shadow/
+// ADR-912 단계5 step4 Dialog 단건 (2026-06-16): DialogSpec import 제거 — spec 삭제.
 //   overlay_backdrop parity 는 draw fn 하드코딩 상수 절대값 단언으로 전환(spec oracle 불요).
-// ADR-912 단계5 step4 Popover 단건 (2026-06-16): PopoverSpec import 제거 — spec 삭제. popover_arrow/
-//   popover_shadow parity 는 rule-mirror visual + 결정론적 절대값 단언으로 전환(Tooltip 전환 패턴).
+// ADR-912 단계5 step4 Popover 단건 (2026-06-16): PopoverSpec import 제거 — spec 삭제. popover_arrow
+//   parity 는 rule-mirror visual + 결정론적 절대값 단언으로 전환(Tooltip 전환 패턴).
+// ADR-166 Phase 4 (2026-07-25): shadow primitive 2건 은퇴 → 절대값 단언이 부재 단언으로 바뀜(:370).
 import { getSkiaPrimitive, getSkiaPrimitiveMode } from "../skiaPrimitives";
 import type { ComponentVisualRule, SizeSpec } from "../../types";
 import type { Shape, TokenRef } from "../../types";
@@ -367,67 +368,24 @@ describe("skiaPrimitive 'popover_arrow' — Popover V-arrow (spec-free 절대값
   });
 });
 
-describe("skiaPrimitive 'dialog_shadow' — Dialog shadow parity", () => {
-  const draw = getSkiaPrimitive("dialog_shadow");
+// ADR-166 Phase 4 (2026-07-25): 구 `dialog_shadow` / `popover_shadow` 절대값 단언을 **부재 단언**으로
+//   전환. 두 primitive 는 인자 무관 하드코딩 상수라 테마를 따르지 않았고, `target:"bg"` shadow 가
+//   bg 추출 경로에서 삼켜져 캔버스 출력도 0이었다(실측). 그림자는 catalog `{shadow.*}` TokenRef
+//   단일 채널로만 나간다 — 이 절대값 단언이 "primitive 가 살아 있다"는 인상을 준 것이 설계 문서의
+//   잘못된 전제로 이어졌으므로, 값이 아니라 **registry 부재**를 가드한다.
+describe("skiaPrimitive shadow 계열 은퇴 — 그림자는 catalog boxShadow 단일 채널", () => {
+  it.each(["dialog_shadow", "popover_shadow"])(
+    "'%s' 는 registry 에 없다 (재도입 시 catalog 그림자와 이중 그리기)",
+    (key) => {
+      expect(getSkiaPrimitive(key)).toBeUndefined();
+    },
+  );
 
-  it("registry 에 prepend 모드로 등록되어 있다(shadow=base 앞)", () => {
-    expect(draw).toBeDefined();
-    expect(getSkiaPrimitiveMode("dialog_shadow")).toBe("prepend");
-  });
-
-  // ADR-912 단계5 step4 Dialog 단건 (2026-06-16): Dialog.spec 삭제로 spec oracle 소멸. dialog_shadow
-  //   draw fn 은 인자 무관 하드코딩 상수(`() => [shadow]`) → 결정론적 절대값 단언 (Tooltip 전환 패턴).
-  it("Dialog shadow(offsetY:8 blur:24 alpha:0.2) — 결정론적 절대값", () => {
-    const shapes = draw!({
-      props: {},
-      size: {} as never,
-      visual: undefined,
-      style: undefined,
-    });
-    expect(shapes).toEqual([
-      {
-        type: "shadow",
-        target: "bg",
-        offsetX: 0,
-        offsetY: 8,
-        blur: 24,
-        spread: 0,
-        color: "rgba(0, 0, 0, 0.2)",
-        alpha: 0.2,
-      },
-    ]);
-  });
-});
-
-describe("skiaPrimitive 'popover_shadow' — Popover shadow parity", () => {
-  const draw = getSkiaPrimitive("popover_shadow");
-
-  it("registry 에 prepend 모드로 등록되어 있다(shadow=base 앞)", () => {
-    expect(draw).toBeDefined();
-    expect(getSkiaPrimitiveMode("popover_shadow")).toBe("prepend");
-  });
-
-  // ADR-912 단계5 step4 Popover 단건 (2026-06-16): Popover.spec 삭제로 spec oracle 소멸. popover_shadow
-  //   draw fn 은 인자 무관 하드코딩 상수(`() => [shadow]`) → 결정론적 절대값 단언 (Dialog 전환 패턴).
-  it("Popover shadow(offsetY:4 blur:12 alpha:0.15) — 결정론적 절대값", () => {
-    const shapes = draw!({
-      props: {},
-      size: {} as never,
-      visual: undefined,
-      style: undefined,
-    });
-    expect(shapes).toEqual([
-      {
-        type: "shadow",
-        target: "bg",
-        offsetX: 0,
-        offsetY: 4,
-        blur: 12,
-        spread: 0,
-        color: "rgba(0, 0, 0, 0.15)",
-        alpha: 0.15,
-      },
-    ]);
+  it("생존한 overlay primitive 는 그림자가 아닌 것들뿐이다", () => {
+    // backdrop(전체화면 암전) / arrow(꼬리) 는 box-shadow 로 표현 불가 → primitive 존치가 정당.
+    expect(getSkiaPrimitive("overlay_backdrop")).toBeDefined();
+    expect(getSkiaPrimitive("popover_arrow")).toBeDefined();
+    expect(getSkiaPrimitive("tooltip_arrow")).toBeDefined();
   });
 });
 

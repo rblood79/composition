@@ -943,9 +943,12 @@ const FAMILY_5_ENTRIES: ComponentCatalogEntry[] = [
 const FAMILY_6_CUTOVER: CutoverState = "catalog";
 
 const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
-  // Dialog — Skia generic 발효 (skiaLegacy 제거, ADR-142 Inc3 2026-06-01): bg 는
-  //   buildCatalogShapes(variant fill {color.layer-1}), backdrop + shadow 는 skiaPrimitive
-  //   (overlay_backdrop / dialog_shadow, prepend) 합성. render.shapes 와 parity.
+  // Dialog — Skia generic 전환 (skiaLegacy 제거, ADR-142 Inc3 2026-06-01): bg 는
+  //   buildCatalogShapes(variant fill {color.layer-1}), backdrop 은 skiaPrimitive
+  //   (overlay_backdrop, prepend) 합성.
+  //   ADR-166 Phase 4 (2026-07-25): dialog_shadow 은퇴 — Dialog 는 그림자 없음이 정본
+  //   (elevation 소유자는 Modal, DOM Dialog.css box-shadow 0건). 해당 primitive 는 bg 추출
+  //   경로에서 삼켜져 캔버스 출력이 0이었어서 제거해도 시각 변화 없음.
   primitiveEntry("Dialog", "overlays", FAMILY_6_CUTOVER, {
     category: "overlays",
     label: "dialog",
@@ -959,9 +962,11 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
     label: "modal",
     icon: "InspectionPanel",
   }),
-  // Popover — Skia generic 발효 (skiaLegacy 제거, ADR-142 Inc3 2026-06-01): bg/border 는
-  //   buildCatalogShapes(variant fill {color.layer-2}), drop shadow + V-arrow 는 skiaPrimitive
-  //   (popover_shadow prepend / popover_arrow append) 합성. render.shapes 와 완전 parity.
+  // Popover — Skia generic 전환 (skiaLegacy 제거, ADR-142 Inc3 2026-06-01): bg/border 는
+  //   buildCatalogShapes(variant fill {color.layer-2}), V-arrow 는 skiaPrimitive
+  //   (popover_arrow append) 합성.
+  //   ADR-166 Phase 4 (2026-07-25): popover_shadow 은퇴 — 그림자는 containerStyles.boxShadow
+  //   (`{shadow.md}`) 를 Skia 가 theme-aware 로 소비하는 단일 채널.
   primitiveEntry("Popover", "overlays", FAMILY_6_CUTOVER, {
     category: "overlays",
     label: "popover",

@@ -10,11 +10,15 @@ import { toRacProps } from "../outputs/toRacProps";
  *
  * overlay 는 composition wrapper(OverlayArrow / focus trap / drop 영역 합성, internal source).
  *
- * **ADR-912 단계 5 (1b) + step 1 (2026-06-04) — 5 overlay 전부 Skia generic 발효 (skiaLegacy 0건)**:
- * Popover bg/border buildCatalogShapes + shadow/V-arrow skiaPrimitive(popover_shadow/popover_arrow),
- * Dialog bg + backdrop/shadow(overlay_backdrop/dialog_shadow), Modal transparent shell(primitive 없음),
+ * **ADR-912 단계 5 (1b) + step 1 (2026-06-04) — 5 overlay 전부 Skia generic 전환 (skiaLegacy 0건)**:
+ * Popover bg/border buildCatalogShapes + V-arrow skiaPrimitive(popover_arrow),
+ * Dialog bg + backdrop(overlay_backdrop), Modal transparent shell(primitive 없음),
  * DropZone variant+dashed border 보편 D3 속성, Tooltip bg+text generic + arrow(tooltip_arrow, append).
  * Toast 는 imperative API → 제외.
+ *
+ * **ADR-166 Phase 4 (2026-07-25)**: shadow primitive 2건(`popover_shadow`/`dialog_shadow`) 은퇴.
+ * 그림자는 catalog `containerStyles.boxShadow` = `{shadow.*}` TokenRef 를 Skia 가 theme-aware 로
+ * 소비하는 단일 채널이 담당한다.
  */
 
 const OVERLAY_TYPES = [
@@ -76,14 +80,14 @@ describe("family ⑥ overlays — catalog 등록 + cutover 상태", () => {
         `${type} no skiaPrimitive`,
       ).toBeUndefined();
     }
-    // shadow/arrow/V-arrow 패턴 보유 발효 overlay.
+    // ADR-166 Phase 4 (2026-07-25): shadow primitive 2건 은퇴 — 그림자는 catalog
+    //   `containerStyles.boxShadow` 단일 채널. arrow/backdrop 만 primitive 로 남는다
+    //   (box-shadow 로 표현 불가한 형상이라 존치가 정당).
     expect(getPrimitiveBinding("Popover")?.skiaPrimitive).toEqual([
-      "popover_shadow",
       "popover_arrow",
     ]);
     expect(getPrimitiveBinding("Dialog")?.skiaPrimitive).toEqual([
       "overlay_backdrop",
-      "dialog_shadow",
     ]);
     // Tooltip — V-arrow(showArrow=true 한정) append escape (단계 5 (1b)).
     expect(getPrimitiveBinding("Tooltip")?.skiaPrimitive).toBe("tooltip_arrow");
