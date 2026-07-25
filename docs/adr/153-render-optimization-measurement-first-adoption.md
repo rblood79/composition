@@ -17,6 +17,10 @@ Proposed — 2026-07-16
 3. **측정 격차** — `gpuProfilerCore.ts` 15개 CPU-side 트래커는 있으나 GPU 시간 (`EXT_disjoint_timer_query_webgl2`) / draw-call 카운트 / 캐시 miss **사유** 분류 / 프로파일 export(speedscope) 부재. rAF 기반 FPS 는 모니터 주사율 반영 (gpuProfilerCore.ts:91 주석 자인) 이라 실제 렌더 비용을 대변하지 못함
 4. **Paint 풀·통합 lifecycle 부재** — 풀 심볼 0건, `Paint()` 생성 75건 산재 (hot/cold 미분류)
 
+**2026-07-26 비용 분포 실측 (본 ADR 의 우선순위 근거)**: live builder 에서 rAF 콜백을 출처별로 귀속 계측한 결과, `renderFrame` 의 초당 누적 실행 시간은 **유휴 6.7ms/s (코어 1개의 0.67%, 213 샘플) vs 팬/줌 상호작용 최대 884ms/s (88%, 21 샘플)** — 약 **132배** 차이다. 즉 렌더 CPU 개선의 질량은 "프레임을 **돌릴지**" (유휴 축) 가 아니라 "프레임 **내부 비용**" (상호작용 축) 에 있고, 본 ADR 의 처방 (Picture 캐시 / Paint 풀 / incremental budget) 이 정확히 그 축이다. 유휴 축을 다룬 [ADR-167](completed/167-on-demand-frame-loop.md) (on-demand 프레임 루프) 은 같은 실측으로 G0 기각됐다 — 본 ADR 의 상대 우선순위는 그 판정의 반대편 근거다. 상세 실측 기록: ADR-167 §G0 실측 결과.
+
+이 실측은 위 격차 3(측정 격차) 의 진단도 뒷받침한다 — 순간 6배 지연 샘플에서도 rAF cadence 는 **fps 120.2 를 유지**해, FPS 지표가 실제 렌더 비용과 무관하게 움직인다는 것이 관측됐다 (`gpuProfilerCore.ts:91` 주석의 자인과 일치).
+
 리서치 문서 §5-1 의 본질 통찰은 유지된다: **무엇이 느린지 모르면 캐시 설계 자체가 추측이다** — 측정 보강이 캐시 도입의 선결 단계.
 
 **3-Domain 판정**: 본 ADR 은 D1/D2/D3 SSOT 경계를 변경하지 않는다. D3 consumer(Skia 렌더러) 내부의 렌더링 인프라 최적화이며, **시각 결과 불변** (Builder↔Preview 대칭 유지) 이 hard constraint 다. Spec/Generator 확장 아님 — Generator emit 능력 선언 해당 없음.
@@ -111,6 +115,8 @@ Proposed — 2026-07-16
 | G2   | Phase 3 종료      | `/cross-check` 시각 대칭 PASS (캐시 hit/miss 양 경로) + 요소 1개 편집 시 재기록 범위가 변경 노드+조상 한정 실측 + 편집/undo stale 렌더 0 + 드래그/애니메이션 구간 프레임 타임 Phase 0 baseline 비회귀 (volatile 면제 + 위치-불변 키 검증, R6) | invalidate 키 보강 후 재검증. 2회 실패 시 Picture 캐시 rollback (독립 커밋) |
 | G3   | Phase 3 종료      | WASM heap 증가 상한 준수 + 페이지 전환 반복 leak 0 + image 퇴거 시 참조 Picture 동시 invalidate 실측 (stale image 렌더/crash 0, R2)                                                                                                           | LRU 상한 축소 → 재실측. 해소 불가 시 캐시 대상 축소 (텍스트 노드 한정)      |
 | G4   | Phase 4 진입 판정 | Phase 3 반영 후 `contentRenderTime` p95 > 8ms 실측일 때만 진입                                                                                                                                                                                | 미달 시 Phase 4 미도입 종결 (실패 아님 — 의도된 종결 경로)                  |
+
+> **G1 계측 방법 주의 (2026-07-26 실측 교훈)**: `performance.now()` 는 0.1ms 로 양자화된다. 0.05ms 급 콜백을 프레임 단위 단발 diff 로 재면 최대 3배 과대 계상된다 (ADR-167 초판이 유휴 비용을 21ms/s 로 보고 → 다수 샘플 누적으로 확정치 6.7ms/s). G1 의 "오버헤드 < 0.5ms/frame" 은 양자화 하한과 5배 차이뿐이므로 **다수 프레임 구간을 누적한 뒤 나누어** 판정한다 — 단발 프레임 diff 판정 금지. 또한 계측용 동기 루프를 메인 스레드에서 돌리면 그 자체가 잔킹을 만들어 측정 대상을 오염시킨다 (같은 세션 실측). 유효했던 방식은 **페이지 내 자체 기록기를 심고 수집 중 무개입**.
 
 ## Consequences
 
