@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [grid 셀 안 자식이 컨테이너 폭을 쓰던 문제 — 측정 pass ↔ 증분 캐시] - 2026-07-27
+
+### Bug Fixes
+
+- **grid 슬롯에 넣은 요소의 폭이 슬롯 폭을 넘던 문제** (dashboard 프레임을 적용한 페이지, desktop 에서 보고). `240px 1fr` 의 두 번째 칸(1628)에 놓인 `width: 100%` 요소가 **1888**(= 컨테이너 content 폭)로 잡혔다 — sidebar 240 + gap 20 이 빠지지 않은 값이다.
+
+  | 대상                      | 변경 전 | 변경 후 |
+  | ------------------------- | ------- | ------- |
+  | content 슬롯 (grid 트랙)  | 1628    | 1628    |
+  | 그 안의 `width:100%` 요소 | 1888    | 1628    |
+  - **Why**: `solve_grid` 의 auto row/column **intrinsic 측정 pass** 가 자식 서브트리를 **컨테이너 크기**로 solve 하는데, `solve_*` 는 말미에 `dirty=false` 를 찍는다. 이어지는 "셀 크기로 재귀 solve" 가 `subtree_has_dirty == false` 에 걸려 **증분 skip → stale 캐시**를 돌려줬다. 셀 자신은 직후 `bounds` 로 덮어써지므로 **자손만** 어긋나 눈에 잘 띄지 않았다.
+  - `solve_flex` 는 같은 함정을 이미 알고 `used_main` 재-solve 전에 `mark_subtree_dirty` 로 되살리고 있었다 — grid 쪽에만 없던 대칭 결함이다. 셀 크기가 측정 available 과 같으면 되살리지 않아 증분 재사용은 보존한다.
+  - 검증: Chrome 실측 차등 하니스 5 케이스 추가 (`slotPercentChild.browser.test.ts`) — grid(암묵 auto row / 명시 auto row / 2단 중첩) 3건이 수정 전 FAIL, block 기준선 2건은 전후 PASS. Rust 324 + parity 105 케이스 PASS.
+  - 위치: `packages/composition-engine/src/tree.rs::solve_grid`
+
+- 함께 확인한 **범위 밖 발산 2건** (수정하지 않음, 실측만 기록):
+  - grid item 의 명시 `width` 가 stretch 에 먹힌다 (`240px 1fr` 두 번째 칸 + `width:700px` → DOM 700 / 엔진 1680). ADR-156 옵션 3-b 의 문서화된 residual.
+  - flex 컨테이너에 **자식을 가진 flex item** 이 섞이면 형제가 붕괴한다 (row 1920 에 `[240px, {grow:1, 자식 width:100%}]` → DOM `240 / 1680` vs 엔진 `0 / 1920`). 자식이 없으면 동일 구조가 정상이라 `used_main` 재-solve 뒤 두 번째 `flex_layout` 입력 문제로 보인다.
+
 ## [프레임을 적용한 페이지의 breakpoint 대응 복구 — page-frame 합성] - 2026-07-27
 
 ### Bug Fixes

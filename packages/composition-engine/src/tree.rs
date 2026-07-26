@@ -1618,7 +1618,13 @@ impl LayoutTree {
         //    전달 → row_tracks 0개 → cell_bounds height=100 fallback + row 겹침. 2026-07-06)
         let implicit_rows = template_rows.is_empty() && !children.is_empty();
 
+        // 아래 intrinsic 측정 pass 들은 자식 서브트리를 **컨테이너 크기**로 solve 한다.
+        // solve_* 는 말미에 dirty=false 를 찍으므로, 그 뒤 셀 크기로 다시 부르면 증분 skip
+        // 이 stale 캐시를 돌려준다 — 측정이 돌았는지 기록해 최종 pass 에서 되살린다.
+        let mut measured_with_container = false;
+
         if implicit_rows {
+            measured_with_container = true;
             let col_count = grid::parse_tracks(&template_cols, container_w, col_gap).len().max(1);
             let mut row_heights: Vec<f32> = Vec::new();
             for (i, &c) in children.iter().enumerate() {
@@ -1641,6 +1647,7 @@ impl LayoutTree {
                 .collect::<Vec<_>>()
                 .join(" ");
         } else if has_auto_row && !children.is_empty() {
+            measured_with_container = true;
             // (B) 명시 track 안의 auto row: 자식 gridRowStart 로 row 결정 후 auto row 만 측정.
             // gridRowStart 미명시 자식은 row-major fallback(col_count 기준).
             let col_count = grid::parse_tracks(&template_cols, container_w, col_gap).len().max(1);
@@ -1680,6 +1687,7 @@ impl LayoutTree {
         // 로 치환(1fr/px/% col 보존). placement 없는 자식은 col-major fallback.
         let has_auto_col = template_cols.split_whitespace().any(|t| t == "auto");
         let template_cols = if has_auto_col && !children.is_empty() {
+            measured_with_container = true;
             let col_tokens: Vec<String> =
                 template_cols.split_whitespace().map(String::from).collect();
             // row-major auto-placement: gridColumnStart 미명시 자식 i 의 col = i % col_count.
@@ -1755,6 +1763,24 @@ impl LayoutTree {
             let off = i * 4;
             let (x, y, w, h) = (bounds[off], bounds[off + 1], bounds[off + 2], bounds[off + 3]);
             // 자식을 셀 크기로 재귀 solve → 자식 실제 크기(explicit/content) 회수.
+            //
+            // 측정 pass 가 **컨테이너 크기**로 서브트리를 풀어 clean 으로 만들어 놨으면, 셀
+            // 크기가 다른데도 그대로 부르면 증분 skip 이 stale 캐시를 돌려준다 (solve_flex 의
+            // used_main 재-solve 와 동형 — 거기도 `mark_subtree_dirty` 로 되살린다).
+            //
+            // 증상: `240px 1fr` grid 의 두 번째 칸(1680)에 `width:100%` 자식을 넣으면 자식이
+            // 컨테이너 폭(1920)을 그대로 쓴다 — 셀 자신은 bounds 로 덮어써지므로 **자식만**
+            // 어긋나 눈에 잘 안 띈다. 프레임을 페이지에 적용한 뒤 content 슬롯에 요소를 넣으면
+            // sidebar 폭이 빠지지 않는 형태로 드러났다 (2026-07-27).
+            //
+            // 셀 크기가 측정 available 과 같으면 되살리지 않는다 — 증분 재사용 보존.
+            const CELL_RESOLVE_EPS: f32 = 0.5;
+            if measured_with_container
+                && ((w - container_w).abs() > CELL_RESOLVE_EPS
+                    || (h - container_h).abs() > CELL_RESOLVE_EPS)
+            {
+                self.mark_subtree_dirty(c);
+            }
             let (cw, ch) = self.solve_node(c, w, h);
             // 자식 **명시(definite) 크기** 여부 — auto/미설정/intrinsic 센티넬은 0.
             //   stretch 하 explicit dimension respect 판정에 쓴다(아래 세로축). percentage/
