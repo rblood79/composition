@@ -1012,6 +1012,52 @@ describe("canonical mutation wrappers", () => {
     );
   });
 
+  it("slot 노드도 responsive override 를 canonical 로 옮긴다 (ADR-168)", () => {
+    // slot 분기는 필드를 직접 나열하며 early return 하므로 baseNode 의 1차 필드 스프레드에
+    // 도달하지 않는다. 실측 회귀: Frame preset 이 슬롯에 breakpoint override 를 썼는데
+    // body 만 반영되고 슬롯은 base 값으로 남아, mobile 에서 사이드바가 250px 그대로였다.
+    const setElements = vi.fn();
+    const page = { ...makePage("page-1"), layout_id: "frame-1" } as Page;
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument("project-1", makeDocument());
+    registerCanonicalMutationStoreActions({
+      getCurrentLegacySnapshot: () => ({
+        elements: [],
+        pages: [page],
+        layouts: [makeLayout("frame-1")],
+      }),
+      getCurrentProjectId: () => "project-1",
+    });
+
+    const responsive = {
+      styles: { width: { tablet: "200px", mobile: "100%" } },
+    } as Element["responsive"];
+
+    setElementsCanonicalPrimary([
+      makeElement("frame-body", "body", { layout_id: "frame-1" }),
+      {
+        ...makeElement("slot-sidebar", "Slot", {
+          parent_id: "frame-body",
+          layout_id: "frame-1",
+          props: { name: "sidebar" },
+          slot_name: "sidebar",
+        }),
+        responsive,
+      } as Element,
+    ]);
+
+    const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
+    const slotNode = doc!.children
+      .flatMap((n) => n.children ?? [])
+      .flatMap((n) => n.children ?? [])
+      .find((n) => n.id === "slot-sidebar");
+
+    expect(slotNode?.responsive).toEqual(responsive);
+    expect(setElements).not.toHaveBeenCalled();
+  });
+
   it("setElementsCanonicalPrimary rebuilds canonical shell without legacy projection", () => {
     const setElements = vi.fn();
     const page = {

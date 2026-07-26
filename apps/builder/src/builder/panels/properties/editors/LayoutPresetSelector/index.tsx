@@ -11,7 +11,14 @@
  */
 
 import { memo, useCallback, useMemo, useState } from "react";
-import { Layout, LayoutGrid, Columns2, LayoutDashboard } from "lucide-react";
+import {
+  Columns2,
+  Layout,
+  LayoutDashboard,
+  LayoutGrid,
+  List,
+  Rows3,
+} from "lucide-react";
 import { Button } from "@composition/shared/components";
 import { PresetPreview } from "./PresetPreview";
 import { ExistingSlotDialog } from "./ExistingSlotDialog";
@@ -33,13 +40,19 @@ interface LayoutPresetSelectorProps {
 }
 
 /**
- * 카테고리 아이콘 매핑
+ * 아이콘 이름 → 컴포넌트 조회 (ADR-168 P-5).
+ *
+ * 카테고리별 매핑이 아니라 **이름 조회 맵**이다. 어느 카테고리가 어느 아이콘을 쓰는지는
+ * `PRESET_CATEGORIES[x].icon` 문자열이 단독으로 정한다 — 카테고리를 추가할 때 손댈 곳이
+ * 메타 한 곳으로 줄고, 두 목록이 어긋날 자리가 없어진다.
  */
-const CATEGORY_ICONS: Record<string, typeof Layout> = {
-  basic: Layout,
-  sidebar: Columns2,
-  complex: LayoutGrid,
-  dashboard: LayoutDashboard,
+const ICON_BY_NAME: Record<string, typeof Layout> = {
+  Layout,
+  Columns2,
+  LayoutGrid,
+  LayoutDashboard,
+  List,
+  Rows3,
 };
 
 export const LayoutPresetSelector = memo(function LayoutPresetSelector({
@@ -60,20 +73,21 @@ export const LayoutPresetSelector = memo(function LayoutPresetSelector({
       bodyElementId,
     });
 
-  // 카테고리별 프리셋 그룹화
+  // 카테고리별 프리셋 그룹화.
+  //
+  // 초기값을 `PRESET_CATEGORIES` 에서 만든다 (ADR-168 P-4). 하드코딩이던 시절엔 메타에만
+  // 있는 신규 카테고리의 프리셋이 들어오면 `groups[category]` 가 undefined 라 `.push` 에서
+  // TypeError 로 패널 전체가 죽었다. 이제 카테고리 추가는 메타 한 곳으로 끝난다.
   const presetsByCategory = useMemo(() => {
-    const groups: Record<string, string[]> = {
-      basic: [],
-      sidebar: [],
-      complex: [],
-      dashboard: [],
-    };
+    const groups: Record<string, string[]> = Object.fromEntries(
+      Object.keys(PRESET_CATEGORIES).map((category) => [category, []]),
+    );
 
     PRESET_ORDER.forEach((key) => {
       const preset = LAYOUT_PRESETS[key];
-      if (preset) {
-        groups[preset.category].push(key);
-      }
+      if (!preset) return;
+      // 메타에 없는 카테고리도 흘려보내지 않는다 — 프리셋이 조용히 사라지느니 드러나야 한다
+      (groups[preset.category] ??= []).push(key);
     });
 
     return groups;
@@ -125,7 +139,7 @@ export const LayoutPresetSelector = memo(function LayoutPresetSelector({
         const presetKeys = presetsByCategory[categoryKey];
         if (!presetKeys || presetKeys.length === 0) return null;
 
-        const CategoryIcon = CATEGORY_ICONS[categoryKey] || Layout;
+        const CategoryIcon = ICON_BY_NAME[meta.icon] ?? Layout;
 
         return (
           <div key={categoryKey} className="list-subgroup">

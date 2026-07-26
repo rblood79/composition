@@ -211,7 +211,7 @@ Step 4(body) / Step 5(slot) 를 아래로 바꾼다.
 
 Phase 2 live 실측 (localhost:5173, Frame 1): `vertical-2` → `holy-grail` → `vertical-2` 왕복 후 body `props.style` 의 grid 키 **잔존 0**, `responsive` 는 시종 `null`(반응형 정의가 아직 없으므로 정상 — 빈 config 를 싣지 않는다), 슬롯 2↔5 정상 교체, 콘솔 오류 0.
 
-## 5. Phase 3 — 카탈로그 재구성
+## 5. Phase 3 — 카탈로그 재구성 ✅ Implemented 2026-07-26
 
 **대상**: `presetDefinitions.ts`, `presetDefinitions.static.test.ts`
 
@@ -265,6 +265,16 @@ Phase 2 live 실측 (localhost:5173, Frame 1): `vertical-2` → `holy-grail` →
 > 어떤 프리셋의 어떤 BP override 가 슬롯의 grid placement 키를 포함하면, 같은 BP 의 `responsiveContainerStyle` 이 `gridTemplateColumns` / `gridTemplateRows` / `gridTemplateAreas` 중 최소 1개를 포함해야 한다.
 
 `presetDefinitions.static.test.ts` 가 이를 단언한다(G8). 계약이 부담이 되면 대안은 `GRID_REBUILD_TRIGGER_KEYS` 검사를 item 축까지 확장하는 것이며, 그때는 엔진 rebuild 빈도 증가를 함께 측정한다.
+
+### 5-2b. 실행 중 확정된 사항 (Phase 3 실측)
+
+| 발견 | 대응 |
+| --- | --- |
+| **P-4 는 Phase 4 항목이 아니라 Phase 3 의 선행 조건이다.** `index.tsx:75` 의 `groups[preset.category].push` 가 하드코딩 4키라, 신규 카테고리(`navigation`/`list`/`feed`)를 도입하는 순간 `groups[...]` 가 undefined 로 TypeError → 패널 전체 크래시 | §6-3 의 그룹 파생·아이콘 단일화를 Phase 3 으로 앞당겨 반영. Phase 4 에서는 해당 항목이 이미 완료 |
+| **슬롯의 `responsive` 가 canonical 로 옮겨지지 않았다.** `canonicalMutations.ts` 의 slot 분기(`isLegacySlotTag`)가 필드를 직접 나열하며 early return 해서 `baseNode` 의 1차 필드 스프레드에 도달하지 못한다. 실측: body 는 mobile `flexDirection:column` 이 반영되는데 슬롯만 base 값(사이드바 250px)으로 남음 | `canonicalResponsiveField(element)` 헬퍼로 스프레드를 단일화하고 slot 두 분기에 적용. 회귀 가드는 `canonicalMutations.test.ts` 에 추가. **ADR-154 시절부터 있던 gap** 으로, 슬롯 override 의 첫 writer 가 생기면서 드러났다 |
+| 기존 프레임에는 **소급 적용되지 않는다.** 프리셋 정의는 적용 시점에 `props.style`/`responsive` 로 복사되므로, ADR-168 이전에 적용된 프레임은 반응형 override 가 없다 (실측: 기존 dashboard 프레임이 mobile 에서 content 98px) | 사용자가 프리셋을 다시 누르면 해소된다. dev 단계라 migration 미수행 (memory: `feedback-dev-stage-no-bc-migration`). Phase 4 의 BP 미리보기가 재적용 필요성을 드러내는 표면이 된다 |
+
+Phase 3 live 실측 (localhost:5173, `list-detail` 적용): desktop `list 320 / detail 1560` (row) → tablet `list 260 / detail 468` (row, tablet override) → mobile `list 370 / detail 370` (column 스택). canonical 슬롯 노드에 `responsive.styles.width = {tablet:"260px", mobile:"100%"}` 기록 확인. 이후 `vertical-2` 복원 시 body `responsive` 가 `null` 로 완전 정리 — R1 멱등 live 확증.
 
 ### 5-3. grid 함수 표현 회피 (R4)
 

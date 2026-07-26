@@ -645,6 +645,28 @@ function diffRefPropsAgainstMaster(
   return props;
 }
 
+/**
+ * ADR-154: responsive override 는 canonical 1차 필드 (`CanonicalNode.responsive`).
+ *
+ * 빈 config 는 생략한다 (= 제거). upsert 가 노드를 통째 교체하므로 생략이 곧 제거이며,
+ * `fills` 가 빈 배열을 싣지 않는 것과 같은 규약이다.
+ *
+ * 노드 생성 분기가 여럿이라 (baseNode / slot hoisted / slot) 스프레드를 **한 곳에서**
+ * 만든다 — 분기마다 손으로 복사하면 한 분기만 빠뜨려도 그 종류의 노드에서만 override 가
+ * 조용히 사라진다 (ADR-168 Phase 3 실측 사례).
+ */
+function canonicalResponsiveField(
+  element: Element,
+): Pick<CanonicalNode, "responsive"> | Record<string, never> {
+  const responsive = element.responsive;
+  if (!responsive) return {};
+  const hasStyles =
+    responsive.styles && Object.keys(responsive.styles).length > 0;
+  const hasVisibility =
+    responsive.visibility && Object.keys(responsive.visibility).length > 0;
+  return hasStyles || hasVisibility ? { responsive } : {};
+}
+
 function legacyElementToCanonicalNode(
   element: Element,
   doc: CompositionDocument,
@@ -661,6 +683,11 @@ function legacyElementToCanonicalNode(
 
   if (isLegacySlotTag(element.type)) {
     const legacyElement = asElementWithLegacyMirror(element);
+    // 아래 두 분기는 필드를 직접 나열하며 early return 하므로 baseNode 의 1차 필드
+    // 스프레드에 도달하지 못한다 — responsive 를 여기서 함께 실어야 한다. Frame preset 이
+    // 슬롯에 breakpoint override 를 쓰면서 드러났다 (ADR-168 Phase 3 실측): body 는
+    // 반영되는데 슬롯만 base 값으로 남아 mobile 에서 사이드바가 250px 그대로였다.
+    const responsiveField = canonicalResponsiveField(element);
     const slotName =
       (element.props.name as string | undefined) ??
       legacyElement.slot_name ??
@@ -676,6 +703,7 @@ function legacyElementToCanonicalNode(
           ...((element.props as Record<string, unknown> | undefined) ?? {}),
           name: slotName ?? "content",
         },
+        ...responsiveField,
         metadata: {
           type: "legacy-slot-hoisted",
           slotName: slotName ?? "content",
@@ -689,6 +717,7 @@ function legacyElementToCanonicalNode(
       type: "frame",
       name: element.componentName,
       ...(previousNode?.children ? { children: previousNode.children } : {}),
+      ...responsiveField,
       metadata: {
         type: "legacy-slot",
         slot_name: legacyElement.slot_name,
@@ -720,15 +749,7 @@ function legacyElementToCanonicalNode(
     ...(Array.isArray(element.fills) && element.fills.length > 0
       ? { fills: element.fills }
       : {}),
-    // ADR-154: responsive override 는 canonical 1차 필드 (CanonicalNode.responsive).
-    // 빈 config 는 생략(=제거). fills 선례 동형.
-    ...(element.responsive &&
-    ((element.responsive.styles &&
-      Object.keys(element.responsive.styles).length > 0) ||
-      (element.responsive.visibility &&
-        Object.keys(element.responsive.visibility).length > 0))
-      ? { responsive: element.responsive }
-      : {}),
+    ...canonicalResponsiveField(element),
     ...(previousNode?.children ? { children: previousNode.children } : {}),
     ...getCanonicalSlotDeclaration(element),
     metadata: buildCanonicalMutationMetadata(metadataElement),

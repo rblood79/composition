@@ -13,7 +13,13 @@ import type { CSSProperties } from "react";
  * 컴파일 에러가 된다. 패널의 그룹 목록도 `PRESET_CATEGORIES` 에서 파생하므로, 카테고리
  * 추가 시 손댈 곳은 이 union 과 메타 한 쌍뿐이다.
  */
-export type PresetCategory = "basic" | "sidebar" | "complex" | "dashboard";
+export type PresetCategory =
+  | "basic"
+  | "navigation"
+  | "list"
+  | "feed"
+  | "complex"
+  | "dashboard";
 
 /**
  * breakpoint override 묶음 (ADR-168).
