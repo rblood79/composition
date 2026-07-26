@@ -5,12 +5,18 @@
  * 에 전 mutation call site 가 canonical event 부착으로 전환된 뒤, 기록하는 store action
  * 과 `track*` 을 나란히 부르는 호출부는 **같은 변경을 두 엔트리로** 남기게 됐다. 실측:
  *
- * | 조작              | 수정 전 엔트리 | 원인                                            |
- * | ----------------- | -------------- | ----------------------------------------------- |
- * | 그룹 (Cmd+G)      | 1 ✅           | addElement(skipHistory) + trackGroupCreation    |
- * | 그룹 해제         | 2 ❌           | trackUngroup + removeElement 가 각각 기록        |
- * | 다중 삭제 (2개)   | 4 ❌           | trackMultiDelete N개 + removeElement N개         |
- * | 정렬/분배/배치편집 | 2 (+N) ❌      | trackBatchUpdate + 배치·요소별 update 가 각각 기록 |
+ * | 조작                  | 수정 전 엔트리 | 원인                                             |
+ * | --------------------- | -------------- | ------------------------------------------------ |
+ * | 그룹 (Cmd+G)          | 1 ✅           | addElement(skipHistory) + trackGroupCreation     |
+ * | 그룹 해제             | 2 ❌           | trackUngroup + removeElement 가 각각 기록         |
+ * | 다중 삭제 (2개)       | 4 ❌           | trackMultiDelete N개 + removeElement N개          |
+ * | 정렬·분배 (패널 버튼) | 2 ❌           | trackBatchUpdate + batchUpdateElementProps       |
+ * | 정렬·분배 (단축키)    | 1 + N ❌       | trackBatchUpdate + 요소별 updateElementProps      |
+ * | 배치 편집             | 2 ❌           | trackBatchUpdate + batchUpdateElementProps       |
+ *
+ * 수정 후는 전부 **1** 이며 네 조작 모두 live 실측했다 (정렬·분배는 `left/top/width/
+ * height` 4개가 px 인 요소가 있어야 동작하므로 임시로 조건을 만들어 두 경로 각각 확인 —
+ * 우변 정렬 160 / 수평 분배 가운데 50→100px, 엔트리 1개 + undo 1회 복원).
  *
  * 상태 손상은 없었다 (중복 insert 가 upsert) — 증상은 "아무 것도 안 바뀌는 죽은 undo
  * 단계". 렌더 하네스가 없는 파일이라 소스 계약으로 고정한다.
