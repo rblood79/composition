@@ -432,40 +432,55 @@ export function usePresetApply({
       let needsCanonicalPersist = false;
 
       try {
-        // ── history 트랜잭션 창: 여기서 열고 아래 finally 에서 곧바로 닫는다 ──
-        // 커밋을 `finally` 에 두는 이유: 예외로 중단돼도 그 시점까지 실제로 일어난
-        // mutation 은 되돌릴 수 있어야 한다. 버리면 기록 없는 변경이 남는다.
-        historyManager.beginTransaction({
-          type: "batch",
-          elementId: bodyElementId,
-        });
-        try {
-          if (existingSlotIds.length > 0) {
-            await removeElements(existingSlotIds);
-            // 메모리만 — IDB 영속화는 창 밖(아래 finally)에서
-            needsCanonicalPersist =
-              removeCanonicalPresetSlotsInMemory(existingSlotIds);
-          }
+        // ── history 트랜잭션 창 (동기 블록 — 안에서 await 금지) ─────────────
+        // 창이 열려 있는 동안의 addEntry 는 모두 한 엔트리로 병합된다. 그래서 창 안에서
+        // 양보하면 그 틈의 **무관한** mutation (캔버스 조작 / 다른 패널 편집) 까지 같은
+        // 되돌리기 단위로 빨려 들어간다. 여기서는 store action 을 await 하지 않는다 —
+        // 각 action 은 history 기록과 메모리 반영까지 동기로 도달하고
+        // (mutationHistorySyncContract.test.ts), 남는 비동기 꼬리(IndexedDB 영속화)의
+        // promise 만 창 밖에서 기다린다. 그러면 창 전체가 하나의 동기 블록이 되어 JS
+        // 단일 스레드가 상호배제를 제공한다 — 별도 mutation 큐가 필요 없는 이유다.
+        //
+        // 꼬리를 순서 없이 기다려도 되는 근거: 각 영속화는 호출 시점의 canonical 문서를
+        // **통째로** 쓴다 (마지막 쓰기 승리). 이 시점엔 메모리 변경이 모두 끝났으므로
+        // 어느 것이 먼저 land 해도 같은 최종 문서를 쓴다. 급감 가드는 70% 이상 축소만
+        // 차단하므로 (documentPersistGuard) 슬롯 몇 개 교체는 해당 없다.
+        const pendingWrites = historyManager.runInTransaction(
+          { type: "batch", elementId: bodyElementId },
+          (): Promise<unknown>[] => {
+            const writes: Promise<unknown>[] = [];
 
-          if (bodyWrite) {
-            // props 쓰기와 responsive 쓰기를 분리한 이유: updateElement 는 props 를
-            // 전체 교체하므로 (elementUpdate.ts) 여기서 props 를 함께 보내면 merge
-            // 의미가 사라진다. 최상위 필드만 보내는 경로도 history 에 남는다 —
-            // `updateElement` 가 props 밖 canonical 필드를 replace event 쌍으로 기록.
-            await updateElementProps(bodyElementId, bodyWrite.props);
-            await updateElement(bodyElementId, {
-              responsive: bodyWrite.responsive,
-            });
-          }
+            if (existingSlotIds.length > 0) {
+              writes.push(removeElements(existingSlotIds));
+              // 메모리만 — IDB 영속화는 창 밖(아래 finally)에서
+              needsCanonicalPersist =
+                removeCanonicalPresetSlotsInMemory(existingSlotIds);
+            }
 
-          // addComplexElement 의 childElements 인자는 history grouping 용이다.
-          // 각 Slot 의 parent_id 는 위에서 bodyElementId 로 고정한다.
-          const [firstSlot, ...restSlots] = slotElements;
-          await addComplexElement(firstSlot, restSlots);
-        } finally {
-          historyManager.commitTransaction();
-        }
+            if (bodyWrite) {
+              // props 쓰기와 responsive 쓰기를 분리한 이유: updateElement 는 props 를
+              // 전체 교체하므로 (elementUpdate.ts) 여기서 props 를 함께 보내면 merge
+              // 의미가 사라진다. 최상위 필드만 보내는 경로도 history 에 남는다 —
+              // `updateElement` 가 props 밖 canonical 필드를 replace event 쌍으로 기록.
+              writes.push(updateElementProps(bodyElementId, bodyWrite.props));
+              writes.push(
+                updateElement(bodyElementId, {
+                  responsive: bodyWrite.responsive,
+                }),
+              );
+            }
+
+            // addComplexElement 의 childElements 인자는 history grouping 용이다.
+            // 각 Slot 의 parent_id 는 위에서 bodyElementId 로 고정한다.
+            const [firstSlot, ...restSlots] = slotElements;
+            writes.push(addComplexElement(firstSlot, restSlots));
+
+            return writes;
+          },
+        );
         // ── 창 밖 ──────────────────────────────────────────────────────────
+
+        await Promise.all(pendingWrites);
 
         console.log(
           `[Preset] "${preset.name}" applied — ${slotElements.length} slots, single history entry`,

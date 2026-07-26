@@ -52,13 +52,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 커밋은 `finally` 에 둔다(중단 시 버리지 않음) — 이미 일어난 변경을 기록 없이 남기면 되돌릴 수 없다.
   - 트랜잭션 창은 **store write 만** 감싼다: 슬롯 노드 생성·스타일 병합 같은 순수 계산과 canonical document IndexedDB 영속화를 창 밖으로 뺐다. 창이 열린 동안의 무관한 mutation 은 같은 엔트리로 병합되므로 창이 넓을수록 오염 위험이 커진다. `removeCanonicalPresetSlots` 를 메모리 변경(동기)과 영속화(창 밖)로 분리했다.
   - **실측**: 목록-상세 적용 → **undo 1회로 완전 복원**(`appliedPreset`·`flexDirection`·슬롯·`responsive` 4축), **redo 1회로 완전 재적용**, 재 undo 로 원상 복귀.
+  - 트랜잭션 창을 **동기 블록**으로 마감 — 창 안에서 store action 을 await 하지 않고 promise 만 모아 창 밖에서 기다린다. 창 안의 `await` 는 곧 캔버스 조작 같은 무관한 변경이 같은 되돌리기 단위로 빨려 들어갈 틈인데, 양보 지점이 없으면 JS 단일 스레드가 상호배제를 제공하므로 **mutation 큐 같은 별도 직렬화 장치가 불필요**해진다. 전제로 두 곳의 양보를 제거: 요소 삭제가 history 기록 앞에서 IndexedDB 연결을 기다리던 것(연결 획득을 영속화 직전으로 이동 — 부수 효과로 메모리 반영이 IDB open 을 기다리지 않는다)과, origin 편집 영향 확인 게이트가 대화상자가 필요 없는 경로에서도 `async` 라 microtask 경계를 만들던 것(동기 fast path).
+  - 여닫기를 `runInTransaction(meta, fn)` 한 곳으로 모아 `finally` 누락으로 창이 열린 채 남는 사고를 없앴고, 창이 실제로 양보하면 커밋 시 경고한다(`queueMicrotask` 기반 감지 — 동기 창이면 감지 콜백이 커밋 뒤에 돌아 조용하다).
+  - **실측**: Holy Grail(슬롯 5개 + grid + responsive 3키) 적용 시 **양보 경고 0건** = 실행 시점에 창이 동기였다는 직접 증거. undo/redo 왕복 정상, 새로고침 후 슬롯 5개 유지(구 슬롯 0).
 - **tablet override 가 캐시 히트로 흡수되던 문제** (R5): `LAYOUT_STYLE_KEYS` 에 `gridColumnEnd`·`gridRowEnd`·`gridTemplateAreas` 누락 — `*Start` 와 트랙 템플릿만 등재돼 있어 `End` 만 바뀌는 override 가 무반영이었다.
 
 ### Architecture
 
 - **반응형 eligibility 2분할** — ADR-154 전제 개정:
   - `RESPONSIVE_ELIGIBLE_STYLE_PROPS` = `SECTION_EDITABLE_RESPONSIVE_PROPS`(32키, Style 패널 편집) ∪ `PRESET_AUTHORED_RESPONSIVE_STYLE_PROPS`(grid 7키, 편집 UI 없음).
-  - **Why**: ADR-154 의 "eligible ≡ Style 패널 편집 키" 는 *write 주체가 Style 패널 단일* 이라는 조건부 전제였다. 프리셋이 두 번째 write 주체가 되면서 "편집 UI 유무" 와 "breakpoint 별 가변 필요" 가 분리된다. 확장이 편의가 아니라 **필수**인 이유: `clearNonEligibleResponsiveOverrides` 가 non-eligible 키를 실제로 삭제하므로, 확장 없이는 프리셋이 쓴 grid override 가 다음 스타일 편집에서 조용히 지워진다.
+  - **Why**: ADR-154 의 "eligible ≡ Style 패널 편집 키" 는 _write 주체가 Style 패널 단일_ 이라는 조건부 전제였다. 프리셋이 두 번째 write 주체가 되면서 "편집 UI 유무" 와 "breakpoint 별 가변 필요" 가 분리된다. 확장이 편의가 아니라 **필수**인 이유: `clearNonEligibleResponsiveOverrides` 가 non-eligible 키를 실제로 삭제하므로, 확장 없이는 프리셋이 쓴 grid override 가 다음 스타일 편집에서 조용히 지워진다.
   - `gridArea` shorthand 는 의도적 제외 — 모든 선언이 `!important` 동일 특정도라 emit source order 가 승자를 정하고, 같은 BP 에서 shorthand 와 longhand 를 함께 내면 shorthand 가 longhand 를 리셋한다.
 - **캔버스 프레임 크기 SSOT 신설** (`workspace/canvasBreakpoints.ts`): desktop 1920×1080 / tablet 768×1024 / mobile 390×844. 기존에 `BuilderCore` + 테스트 2벌로 복제돼 있던 값을 단일화하고 썸네일 파생이 3벌째가 되는 것을 차단했다. **미디어 쿼리 경계(1280)와 혼동 금지** — 1280 으로 환산하면 320px 트랙이 25% 로 나오지만 실제 렌더는 16.7% 다.
 - **grid item placement override 는 컨테이너 템플릿 override 를 동반해야 한다** (R8): `GRID_REBUILD_TRIGGER_KEYS` 는 컨테이너 키만 담고 검사가 `isGridDisplay` 게이트 안에 있어, item placement 단독 변경은 `updateStyleRaw` 로 떨어져 grid 배치 캐시 무효화에 실패한다(조용한 무반영). `presetDefinitions.static.test.ts` 가 정적으로 단언한다.

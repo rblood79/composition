@@ -43,7 +43,8 @@ describe("LayoutPresetSelector usePresetApply replace contract", () => {
     expect(source).toContain(
       "const removeElements = useStore((state) => state.removeElements);",
     );
-    expect(source).toContain("await removeElements(existingSlotIds);");
+    // 슬롯 전체를 한 번에 넘기는 batch 호출 (await 는 창 밖에서 — 동기 창 계약)
+    expect(source).toContain("writes.push(removeElements(existingSlotIds));");
     expect(source).toContain(
       "removeCanonicalPresetSlotsInMemory(existingSlotIds);",
     );
@@ -57,8 +58,12 @@ describe("LayoutPresetSelector usePresetApply replace contract", () => {
     expect(source).not.toContain(
       ["useStore.getState()", ["elements", "Map"].join("")].join("."),
     );
-    expect(source).not.toContain("Promise.all(");
+    // 슬롯별 병렬 삭제 금지 — 각 삭제가 오래된 currentState 로 set 하여 앞선 삭제를
+    // 메모리에 되살린다. `Promise.all` 은 창 밖에서 영속화 꼬리를 기다리는 용도 1건만.
+    expect(source).not.toMatch(/Promise\.all\(\s*existingSlots/);
     expect(source).not.toContain("removeElement(slot.elementId)");
+    expect(source.match(/Promise\.all\(/g)).toEqual(["Promise.all("]);
+    expect(source).toContain("await Promise.all(pendingWrites);");
   });
 
   it("does not persist viewport minHeight as a frame body transform override", () => {
@@ -136,7 +141,7 @@ describe("LayoutPresetSelector usePresetApply replace contract", () => {
 });
 
 describe("프리셋 적용 history 단일 엔트리 계약 (ADR-168 후속)", () => {
-  it("applyPreset 을 history 트랜잭션으로 감싸고 finally 에서 커밋한다", async () => {
+  it("applyPreset 을 동기 history 트랜잭션으로 감싼다", async () => {
     const source = await readFile(
       resolve(__dirname, "./usePresetApply.ts"),
       "utf-8",
@@ -144,42 +149,40 @@ describe("프리셋 적용 history 단일 엔트리 계약 (ADR-168 후속)", ()
 
     // 프리셋 적용은 4 갈래 mutation (슬롯 제거 / 슬롯 삽입 / body props / body
     // responsive) 이라, 감싸지 않으면 undo 4회가 필요해진다.
-    expect(source).toContain("historyManager.beginTransaction({");
-    expect(source).toContain("historyManager.commitTransaction();");
+    expect(source).toContain("historyManager.runInTransaction(");
 
-    const beginIndex = source.indexOf("historyManager.beginTransaction({");
-    const tryIndex = source.indexOf("try {", beginIndex);
-    const finallyIndex = source.indexOf("} finally {", tryIndex);
-    const commitIndex = source.indexOf(
-      "historyManager.commitTransaction();",
-      finallyIndex,
-    );
-
-    // begin 은 try **앞**에 (try 안에서 열면 예외 시 열린 채로 남는다)
-    expect(beginIndex).toBeGreaterThan(0);
-    expect(tryIndex).toBeGreaterThan(beginIndex);
-    // commit 은 finally 안에 — 조기 return·예외에도 그 시점까지의 mutation 은 기록돼야 한다
-    expect(finallyIndex).toBeGreaterThan(tryIndex);
-    expect(commitIndex).toBeGreaterThan(finallyIndex);
+    // 여닫기는 runInTransaction 가 담당한다 — 호출부에서 직접 열면 finally 누락으로
+    // 창이 열린 채 남을 수 있다.
+    expect(source).not.toContain("historyManager.beginTransaction(");
+    expect(source).not.toContain("historyManager.commitTransaction(");
 
     // abort 로 버리지 않는다: 이미 일어난 mutation 을 기록 없이 남기면 되돌릴 수 없다
     expect(source).not.toContain("abortTransaction");
+
+    // 비동기 꼬리는 창 밖에서 기다린다
+    const windowStart = source.indexOf("historyManager.runInTransaction(");
+    const awaitTail = source.indexOf("await Promise.all(pendingWrites);");
+    expect(awaitTail).toBeGreaterThan(windowStart);
   });
 
-  it("트랜잭션 창에 IndexedDB 왕복과 순수 계산을 넣지 않는다", async () => {
+  it("트랜잭션 창은 동기 블록이다 — await·IDB 왕복·순수 계산 없음", async () => {
     const source = await readFile(
       resolve(__dirname, "./usePresetApply.ts"),
       "utf-8",
     );
 
-    const begin = source.indexOf("historyManager.beginTransaction({");
-    const commit = source.indexOf("historyManager.commitTransaction();", begin);
+    const begin = source.indexOf("historyManager.runInTransaction(");
+    const end = source.indexOf("return writes;", begin);
     expect(begin).toBeGreaterThan(0);
-    expect(commit).toBeGreaterThan(begin);
-    const window = source.slice(begin, commit);
+    expect(end).toBeGreaterThan(begin);
+    const window = source.slice(begin, end);
 
-    // 창이 열린 동안 일어나는 무관한 mutation 은 같은 엔트리로 병합된다 —
-    // IDB 왕복(`await`)을 창 안에 두면 그만큼 창이 넓어진다.
+    // 창 안의 await 는 곧 양보 지점이고, 그 틈의 무관한 mutation 이 같은 되돌리기
+    // 엔트리로 병합된다. 양보 지점이 없으면 JS 단일 스레드가 상호배제를 제공한다.
+    expect(window).not.toMatch(/\bawait\b/);
+    expect(window).not.toMatch(/\basync\b/);
+
+    // IDB 왕복은 창 밖 (그 자체가 가장 넓은 양보 지점)
     expect(window).not.toContain("getDB(");
     expect(window).not.toContain("persistCanonicalPresetSlotRemoval");
     expect(window).not.toContain("persistActiveCanonicalDocument");

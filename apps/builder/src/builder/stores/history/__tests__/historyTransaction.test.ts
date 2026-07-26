@@ -144,6 +144,124 @@ describe("HistoryManager 트랜잭션", () => {
     expect(manager.getCurrentPageEntries()).toHaveLength(0);
   });
 
+  it("runInTransaction 은 콜백 안의 addEntry 를 병합하고 반환값을 그대로 넘긴다", () => {
+    const manager = makeManager();
+
+    const returned = manager.runInTransaction(
+      { type: "batch", elementId: "body-1" },
+      () => {
+        manager.addEntry({
+          type: "update",
+          elementId: "a",
+          data: { canonicalEvents: [updateEvent("a")] },
+        });
+        manager.addEntry({
+          type: "update",
+          elementId: "b",
+          data: { canonicalEvents: [updateEvent("b")] },
+        });
+        return ["write-a", "write-b"];
+      },
+    );
+
+    expect(returned).toEqual(["write-a", "write-b"]);
+    expect(manager.hasOpenTransaction()).toBe(false);
+    const entries = manager.getCurrentPageEntries();
+    expect(entries).toHaveLength(1);
+    expect(entries[0].data.canonicalEvents).toHaveLength(2);
+  });
+
+  it("runInTransaction 콜백이 throw 해도 창을 닫고 그때까지의 event 를 기록한다", () => {
+    const manager = makeManager();
+
+    expect(() =>
+      manager.runInTransaction({ type: "batch", elementId: "body-1" }, () => {
+        manager.addEntry({
+          type: "update",
+          elementId: "a",
+          data: { canonicalEvents: [updateEvent("a")] },
+        });
+        throw new Error("boom");
+      }),
+    ).toThrow("boom");
+
+    // 이미 일어난 mutation 을 기록 없이 남기면 되돌릴 수 없다
+    expect(manager.hasOpenTransaction()).toBe(false);
+    expect(manager.getCurrentPageEntries()).toHaveLength(1);
+  });
+
+  it("runInTransaction 콜백이 Promise 를 반환하면 경고한다 (창이 동기가 아님)", () => {
+    const manager = makeManager();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    manager.runInTransaction(
+      { type: "batch", elementId: "body-1" },
+      async () => {
+        manager.addEntry({
+          type: "update",
+          elementId: "a",
+          data: { canonicalEvents: [updateEvent("a")] },
+        });
+      },
+    );
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("Promise 를 반환"),
+      "batch",
+      "body-1",
+    );
+  });
+
+  it("창이 이벤트 루프에 양보하면 커밋 시 경고한다 (외부 mutation 병합 가능)", async () => {
+    const manager = makeManager();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    manager.beginTransaction({ type: "batch", elementId: "body-1" });
+    await Promise.resolve(); // microtask 경계 — 감지 콜백이 여기서 돈다
+    manager.addEntry({
+      type: "update",
+      elementId: "a",
+      data: { canonicalEvents: [updateEvent("a")] },
+    });
+    manager.commitTransaction();
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("이벤트 루프에 양보"),
+      "batch",
+      "body-1",
+    );
+    // 경고와 무관하게 엔트리는 만들어진다 — 이미 일어난 변경은 되돌릴 수 있어야 한다
+    expect(manager.getCurrentPageEntries()).toHaveLength(1);
+  });
+
+  it("동기 창은 경고하지 않고, 감지 깃발이 다음 창으로 새지 않는다", async () => {
+    const manager = makeManager();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    // 같은 tick 에 두 창을 여닫는다 — 첫 창의 감지 콜백이 아직 대기 중인 상태
+    for (const id of ["first", "second"]) {
+      manager.runInTransaction({ type: "batch", elementId: id }, () => {
+        manager.addEntry({
+          type: "update",
+          elementId: id,
+          data: { canonicalEvents: [updateEvent(id)] },
+        });
+      });
+    }
+
+    await Promise.resolve(); // 대기 중인 감지 콜백 전부 실행
+    manager.runInTransaction({ type: "batch", elementId: "third" }, () => {
+      manager.addEntry({
+        type: "update",
+        elementId: "third",
+        data: { canonicalEvents: [updateEvent("third")] },
+      });
+    });
+
+    expect(warn).not.toHaveBeenCalled();
+    expect(manager.getCurrentPageEntries()).toHaveLength(3);
+  });
+
   it("트랜잭션 밖 addEntry 는 종전대로 엔트리마다 하나씩 쌓인다", () => {
     const manager = makeManager();
 

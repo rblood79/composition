@@ -389,24 +389,24 @@ const PREVIEW_REFERENCE_WIDTH = {
 
 측정은 `__composition_LAYOUT_DEBUG__.getSharedLayoutMap()` (엔진 산출 bounds) + preview iframe DOM + preview 문서 CSSOM 을 읽어 수행했다. Frame 1 body 를 대상으로 10 프리셋을 순차 적용하고 매 프리셋마다 3 BP 를 왕복했다. **종료 후 최초 상태(수직 2단 / `responsive: null` / grid 잔여 0 / desktop)로 복원**했다.
 
-| Gate | 결과 | 근거 |
-| ---- | ---- | ---- |
-| G1 (30 조합) | ✅ 30/30 | 고정폭 합 > 뷰포트 **0건**, 콘텐츠 슬롯 폭·높이 0 **0건**. mobile 최악값도 content 504(holy-grail) / 584(dashboard-widgets) |
-| G2 (멱등, R1) | ✅ | 목록-상세 → Holy Grail → 목록-상세 스냅샷(`props.style` + `responsive` + 전 슬롯) **문자열 동일**, body grid 잔여키 0. 복원 시 `responsive: null` 회귀도 재확인 |
-| G3 (썸네일 ↔ 실측, R4) | ✅ (편차 명시) | 구조·순서 9/9 일치. 비율 편차 **최대 3.82pp** — 파생 모델이 body padding(20)·slot gap(20×n)을 모르기 때문 (프리셋이 소유하지 않는 값이라 모델에 넣으면 두 번째 소스가 된다). 80×60px 썸네일에서 2.3px |
-| G5 (다크모드) | ✅ | svg 배경 / rect fill / rect stroke / 라벨 fill / 경고 아이콘 5개 값 전부 light↔dark 변화 |
-| G6 (publish CSS, R7) | ✅ | preview 문서에 `@media` 생성. 조건 `(max-width:767px)` / `(min-width:768px) and (max-width:1279px)` 정확. **grid line 4키 전부 unitless** (`grid-column-start=1`, `grid-column-end=3`, `grid-row-start=3`, `grid-row-end=4` — `px` 0건) |
-| G6 (DOM ↔ 엔진) | ✅ | tablet 목록-상세: preview DOM 노드 폭 **260 / 468** = 엔진 bounds 폭과 동일. 높이 차(864 vs 1004)는 iframe 뷰포트 884 vs 캔버스 프레임 1024 의 `100vh` 해석 차이 |
-| R2 (mobile grid 잔존) | ✅ 무해 확인 | emit 된 mobile 규칙에 `grid-template-*` / `grid-column-*` 가 실제로 남지만 같은 규칙에 `display:flex` 가 함께 있어 무효 — ADR 본문 R2 판단대로 |
+| Gate                   | 결과           | 근거                                                                                                                                                                                                                                    |
+| ---------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G1 (30 조합)           | ✅ 30/30       | 고정폭 합 > 뷰포트 **0건**, 콘텐츠 슬롯 폭·높이 0 **0건**. mobile 최악값도 content 504(holy-grail) / 584(dashboard-widgets)                                                                                                             |
+| G2 (멱등, R1)          | ✅             | 목록-상세 → Holy Grail → 목록-상세 스냅샷(`props.style` + `responsive` + 전 슬롯) **문자열 동일**, body grid 잔여키 0. 복원 시 `responsive: null` 회귀도 재확인                                                                         |
+| G3 (썸네일 ↔ 실측, R4) | ✅ (편차 명시) | 구조·순서 9/9 일치. 비율 편차 **최대 3.82pp** — 파생 모델이 body padding(20)·slot gap(20×n)을 모르기 때문 (프리셋이 소유하지 않는 값이라 모델에 넣으면 두 번째 소스가 된다). 80×60px 썸네일에서 2.3px                                   |
+| G5 (다크모드)          | ✅             | svg 배경 / rect fill / rect stroke / 라벨 fill / 경고 아이콘 5개 값 전부 light↔dark 변화                                                                                                                                                |
+| G6 (publish CSS, R7)   | ✅             | preview 문서에 `@media` 생성. 조건 `(max-width:767px)` / `(min-width:768px) and (max-width:1279px)` 정확. **grid line 4키 전부 unitless** (`grid-column-start=1`, `grid-column-end=3`, `grid-row-start=3`, `grid-row-end=4` — `px` 0건) |
+| G6 (DOM ↔ 엔진)        | ✅             | tablet 목록-상세: preview DOM 노드 폭 **260 / 468** = 엔진 bounds 폭과 동일. 높이 차(864 vs 1004)는 iframe 뷰포트 884 vs 캔버스 프레임 1024 의 `100vh` 해석 차이                                                                        |
+| R2 (mobile grid 잔존)  | ✅ 무해 확인   | emit 된 mobile 규칙에 `grid-template-*` / `grid-column-*` 가 실제로 남지만 같은 규칙에 `display:flex` 가 함께 있어 무효 — ADR 본문 R2 판단대로                                                                                          |
 
 BP 별 대표 실측 (body content box = 1900 / 748 / 370):
 
-| 프리셋 | desktop | tablet | mobile |
-| ------ | ------- | ------ | ------ |
-| 목록-상세 | list 320 / detail 1560 | list **260** / detail 468 | 전폭 스택 (list h=120, detail h=684) |
-| 좌측 사이드바 | sidebar 250 / content 1630 | sidebar **200** / content 528 | 전폭 스택 |
-| Holy Grail | 200 / 1460 / 200 | **160** / 388 / **160** | 전폭 5단 스택 (content h=504) |
-| 대시보드 (위젯) | 200 / 1380 / 280 | 200 / 528 + **widgets 하단 전폭 748** | 전폭 4단 스택 |
+| 프리셋          | desktop                    | tablet                                | mobile                               |
+| --------------- | -------------------------- | ------------------------------------- | ------------------------------------ |
+| 목록-상세       | list 320 / detail 1560     | list **260** / detail 468             | 전폭 스택 (list h=120, detail h=684) |
+| 좌측 사이드바   | sidebar 250 / content 1630 | sidebar **200** / content 528         | 전폭 스택                            |
+| Holy Grail      | 200 / 1460 / 200           | **160** / 388 / **160**               | 전폭 5단 스택 (content h=504)        |
+| 대시보드 (위젯) | 200 / 1380 / 280           | 200 / 528 + **widgets 하단 전폭 748** | 전폭 4단 스택                        |
 
 `대시보드 (위젯)` tablet 에서 widgets 가 `y=954, 748×60` 으로 실제 이동한 것이 **R8/G8 계약의 live 확증**이다 — item placement override 와 컨테이너 템플릿 override 를 같은 BP 에 함께 둔 것이 작동했다.
 
@@ -419,7 +419,7 @@ BP 별 대표 실측 (body content box = 1900 / 748 / 370):
 ```ts
 const isLayoutChange = hasStyleChange
   ? isLayoutAffectingUpdate(changedStyle)
-  : Boolean(sanitizedUpdates.props);   // responsive-only → false
+  : Boolean(sanitizedUpdates.props); // responsive-only → false
 ```
 
 Phase 2 가 body 의 `responsive` 를 `updateElement(bodyId, { responsive })` 로 쓰는데 이 호출엔 `props` 가 없어 `isLayoutChange=false` → **layoutVersion bump 없음** → resolve 재계산·preview 재발행 skip. 캔버스가 정상으로 보였던 건 프리셋 적용이 슬롯 element 를 생성·삭제하면서 그 mutation 이 layoutVersion 을 올려준 덕이다 (`responsive` 가 편승).
@@ -461,7 +461,11 @@ Phase 2 §4-5 에서 이연했던 잔존 항목을 해소했다.
 
 ```ts
 historyManager.beginTransaction({ type: "batch", elementId: bodyElementId });
-try { /* 4 갈래 mutation */ } finally { historyManager.commitTransaction(); }
+try {
+  /* 4 갈래 mutation */
+} finally {
+  historyManager.commitTransaction();
+}
 ```
 
 트랜잭션이 열려 있으면 `addEntry` 는 엔트리를 만들지 않고 `canonicalEvents` 만 **시간순으로** 버퍼에 모으고, 최외곽 커밋에서 엔트리 1개로 확정한다.
@@ -477,11 +481,11 @@ try { /* 4 갈래 mutation */ } finally { historyManager.commitTransaction(); }
 
 **트랜잭션 창 최소화 (같은 세션에 후속 적용)**: 창이 열린 동안 일어나는 무관한 mutation 은 같은 엔트리로 병합되므로, 창은 **store write 만** 감싼다. `applyPreset` 을 아래로 재구성했다:
 
-| 구간 | 내용 | 위치 |
-| ---- | ---- | ---- |
-| 준비 | 생성할 슬롯 결정 / 슬롯 노드 배열 생성(`crypto.randomUUID`) / body 스타일 병합(`stripPresetContainerStyle`) / `mergePresetResponsive` | 창 **밖** (앞) |
-| 창 | `removeElements` → canonical 슬롯 제거(메모리) → `updateElementProps` → `updateElement({responsive})` → `addComplexElement` | 창 **안** |
-| 마무리 | canonical document IndexedDB 영속화 | 창 **밖** (뒤, outer `finally`) |
+| 구간   | 내용                                                                                                                                  | 위치                            |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| 준비   | 생성할 슬롯 결정 / 슬롯 노드 배열 생성(`crypto.randomUUID`) / body 스타일 병합(`stripPresetContainerStyle`) / `mergePresetResponsive` | 창 **밖** (앞)                  |
+| 창     | `removeElements` → canonical 슬롯 제거(메모리) → `updateElementProps` → `updateElement({responsive})` → `addComplexElement`           | 창 **안**                       |
+| 마무리 | canonical document IndexedDB 영속화                                                                                                   | 창 **밖** (뒤, outer `finally`) |
 
 핵심은 **IDB 왕복을 창에서 뺀 것**이다. 구 `removeCanonicalPresetSlots` 는 canonical 메모리 변경과 `await getDB()` + `await persistActiveCanonicalDocument()` 를 한 함수에 묶고 있어 창 안에 IDB round-trip 이 들어갔다. `removeCanonicalPresetSlotsInMemory()`(동기, 변경 여부 반환) + `persistCanonicalPresetSlotRemoval()`(창 밖) 로 분리했다. 창에 남은 `await` 는 store mutation 뿐이고, 이들의 IDB 영속화는 각자 `void (async …)()` 로 fire-and-forget 이라 caller 를 붙잡지 않는다.
 
@@ -489,12 +493,57 @@ try { /* 4 갈래 mutation */ } finally { historyManager.commitTransaction(); }
 
 조기 return(`slotsToCreate.length === 0`)도 창을 열기 **전**으로 올려 빈 트랜잭션이 생기지 않게 했다. 이 이동은 동작 불변이다: replace 모드는 `preset.slots` 가 비지 않아 이 분기에 걸리지 않고, merge 모드는 슬롯 제거 자체를 하지 않는다.
 
-**잔존 한계**: 창이 완전히 동기는 아니다 (store mutation 4개의 `await`). `isApplying` 이 프리셋 카드를 비활성화하지만 캔버스 조작을 막지는 않으므로, 그 사이 다른 mutation 이 들어오면 병합된다. 완전 차단은 mutation 큐 수준의 변경이 필요해 하지 않았다.
+**잔존 한계** (§7-5 에서 해소): 창이 완전히 동기는 아니었다 (store mutation 4개의 `await`). `isApplying` 이 프리셋 카드를 비활성화하지만 캔버스 조작을 막지는 않으므로, 그 사이 다른 mutation 이 들어오면 병합된다.
 
 **회귀 가드**: `historyTransaction.test.ts` (병합·event 순서 / 중첩 / 빈 버퍼 no-op / event 없는 entry 경고 / 열린 트랜잭션 없는 커밋 / 트랜잭션 밖 종전 동작 6건) + `usePresetApply.static.test.ts` 2건 — ① begin 이 try 앞 / commit 이 finally 안 / `abortTransaction` 부재 ② **창 안에 `getDB(`·영속화·`crypto.randomUUID()`·`stripPresetContainerStyle`·`mergePresetResponsive` 부재 + 조기 return 이 begin 앞**.
 
 **live 확증**: Holy Grail(슬롯 5개 + grid 컨테이너 + responsive 3키 — 가장 무거운 경로)로 재검증 — **undo 1회로 완전 복원** (`appliedPreset`·`flexDirection`·슬롯·`responsive` 4축 전부 최초값), **redo 1회로 완전 재적용**, 재 undo 로 원상 복귀. 영속화 실측: 적용 → 새로고침 후 `list-detail` 유지. 콘솔 경고 0건.
 
+### 7-5. 후속 해소 — 트랜잭션 창을 동기 블록으로 (mutation 큐 불필요, 2026-07-26)
+
+§7-4 의 잔존 한계 해소. 병합은 "창이 열린 동안의 모든 `addEntry`" 를 대상으로 하므로, 창 안의 `await` 는 곧 **무관한 mutation 이 같은 되돌리기 단위로 빨려 들어갈 틈**이다.
+
+**설계 판단 — mutation 큐를 만들지 않았다.** 후보 3개를 비교했다:
+
+| 후보                                            | 판정 | 사유                                                                                                                                                                              |
+| ----------------------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 소유권 토큰 (외부 entry 를 별도 엔트리로 분리)  | 기각 | 사후 분리는 **순서를 고칠 수 없다**. 창 중간에 낀 외부 mutation 의 엔트리를 앞·뒤 어디에 놓아도 undo 순서가 실제 시간순과 어긋난다 (T1,T2,**F**,T3 → [M,F] 도 [F,M] 도 LIFO 위반) |
+| mutation 큐 (외부 mutation 을 창 종료까지 대기) | 기각 | 정합하지만 전 store action(15+)에 lock 진입점 + 재진입 처리가 필요하다. 아래 대안이 같은 보장을 **장치 없이** 준다                                                                |
+| **창을 동기 블록으로**                          | 채택 | JS 는 단일 스레드다. 창에 양보 지점이 없으면 간섭이 **구조적으로** 불가능하다 — 상호배제를 공짜로 얻는다                                                                          |
+
+**전제 조건 — store action 이 history 기록까지 동기 도달** (`df5573812`). 창 안 4 action 중 2개가 기록 **앞**에서 양보했다:
+
+- `elementRemoval.executeRemoval`: `getDB()` 를 함수 앞머리에서 await 하고 있었다 (335행 `addEntry` 보다 앞). 실제 사용처는 맨 아래 영속화뿐이라 그 자리로 옮겼다. 부수 효과로 메모리 반영이 IndexedDB open 을 기다리지 않는다
+- `elementUpdate.confirmOriginImpactIfNeeded`: `async` 라서 대화상자가 **필요 없는** 경로(대부분의 편집)도 microtask 경계를 만들었다. `boolean | Promise<boolean>` 으로 바꿔 동기 fast path 를 열고, 호출 2곳은 `gate !== true && !(await gate)` 단축 평가로 받는다
+
+`updateElementProps` / `updateElement` 의 영속화는 이미 `void (async …)()` fire-and-forget 이고, `addComplexElement` 는 `addEntry`·`set`·`_rebuildIndexes` 까지 동기였다.
+
+**창 재구성**: store action 을 **await 하지 않고** promise 만 모아 창 밖에서 기다린다.
+
+```ts
+const pendingWrites = historyManager.runInTransaction(
+  { type: "batch", elementId: bodyElementId },
+  (): Promise<unknown>[] => [
+    /* 4 갈래 mutation — 전부 동기 진입 */
+  ],
+);
+await Promise.all(pendingWrites); // 창 밖
+```
+
+꼬리를 **순서 없이** 기다려도 되는 근거: 각 영속화는 호출 시점의 canonical 문서를 **통째로** 쓴다 (마지막 쓰기 승리). 이 시점엔 메모리 변경이 모두 끝났으므로 어느 것이 먼저 land 해도 같은 최종 문서를 쓴다. 급감 가드는 `nextCount < prevCount * 0.3` 즉 **70% 이상 축소만** 차단하므로 (`documentPersistGuard`) 슬롯 몇 개 교체는 해당 없다 — 구 코드가 `await removeElements()` 로 삭제 영속화를 먼저 끝내던 순서 의존이 사라져도 안전하다.
+
+**API 2개 추가**:
+
+- `runInTransaction(meta, fn)` — 여닫기를 한 곳에 모아 `finally` 누락으로 창이 열린 채 남는 사고를 없앤다. `fn` 이 thenable 을 반환하면 경고한다 (async 콜백은 첫 await 에서 창을 닫아 병합 범위가 잘린다)
+- **양보 감지** — `beginTransaction` 이 `queueMicrotask` 로 깃발 콜백을 걸고, 커밋 시 깃발이 서 있으면 경고한다. microtask 는 동기 스택이 비워질 때 도니, 창이 동기라면 콜백은 커밋 **뒤**에 돌아 깃발을 세우지 못한다. 세대 카운터는 필요 없다 — 깃발이 매 최외곽 `begin` 에서 초기화되고, 콜백 시점에 열려 있는 창은 같은 창이거나 tick 경계를 넘긴 창(=진짜 양보)이다
+
+**회귀 가드**: `mutationHistorySyncContract.test.ts` 신규 7건 (await 없이 호출해도 `addEntry` 이미 호출 / store 즉시 갱신 / 정적 순서 — `getDB` 는 기록 뒤, 게이트 비-async·비-await) + `historyTransaction.test.ts` 6→11건 (`runInTransaction` 병합·반환값 / 콜백 throw 시 창 닫힘 / thenable 경고 / 양보 경고 / 깃발 미누출) + `usePresetApply.static.test.ts` — 창 슬라이스에 **`await`·`async` 부재** 단언 추가.
+
+역방향 확인: 제거한 양보 지점 2곳을 임시 복원하면 신규 계약 테스트 4/7 이 FAIL 한다 (공허하지 않음).
+
+**live 확증** (localhost:5173, Frame 1): Holy Grail 적용(슬롯 5개 + grid + responsive 3키) → **양보 경고 0건** — 실행 시점에 창이 실제로 동기였다는 직접 증거다. undo 1회 완전 복원 / redo 1회 완전 재적용 / 재 undo 원상. 서빙 모듈에 `queueMicrotask`·양보 경고·`runInTransaction` 존재를 fetch 로 확인해 "경고 0건이 감지기 부재 탓" 을 배제했다. 삭제 영속화 확증: 재적용 → 새로고침 후 슬롯 5개 유지 + 구 슬롯 0 (62 − 2 + 5 = 65), 다른 프레임 무변. 콘솔 오류 0건.
+
+**잔존**: 트랜잭션은 여전히 사용자 1명(프리셋 적용)뿐이다. 다른 호출부가 생기면 `runInTransaction` 의 동기 콜백 계약을 따라야 하고, 어기면 양보 경고가 뜬다.
 
 ## 8. 파일 변경 인벤토리
 

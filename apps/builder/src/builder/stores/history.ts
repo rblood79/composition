@@ -93,6 +93,14 @@ export interface PageHistory {
   maxSize: number;
 }
 
+function isThenable(value: unknown): boolean {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as { then?: unknown }).then === "function"
+  );
+}
+
 export class HistoryManager {
   private pageHistories: Map<string, PageHistory> = new Map();
   private currentPageId: string | null = null;
@@ -112,6 +120,8 @@ export class HistoryManager {
     type: HistoryEntry["type"];
     elementId: string;
   } | null = null;
+  /** 창이 열린 채 이벤트 루프에 양보했는가 (커밋 시 경고) */
+  private transactionYielded = false;
 
   constructor() {
     // IndexedDB 초기화 (백그라운드)
@@ -242,6 +252,12 @@ export class HistoryManager {
    * 표시용이다.
    *
    * 중첩은 depth 로 흡수한다 — 최외곽 커밋에서만 엔트리가 생긴다.
+   *
+   * **창은 동기여야 한다.** 병합은 "창이 열린 동안의 모든 addEntry" 를 대상으로 하므로,
+   * 창 안에서 `await` 로 양보하면 그 틈에 일어난 무관한 mutation (캔버스 조작 / 다른
+   * 패널 편집) 까지 같은 되돌리기 단위로 빨려 들어간다. 반대로 양보 지점이 없으면 JS
+   * 단일 스레드가 상호배제를 제공하므로 간섭이 구조적으로 불가능하다 — 별도 mutation
+   * 큐가 필요 없는 이유다. 직접 호출보다 {@link runInTransaction} 을 쓰는 것을 권장한다.
    */
   beginTransaction(meta: {
     type: HistoryEntry["type"];
@@ -250,8 +266,55 @@ export class HistoryManager {
     if (this.transactionDepth === 0) {
       this.transactionBuffer = [];
       this.transactionMeta = meta;
+      this.transactionYielded = false;
+
+      // 양보 감지: microtask 는 동기 스택이 비워질 때 실행된다. 창이 begin→commit
+      // 동기라면 이 콜백은 커밋 **뒤**에 돌아 깃발을 세우지 못한다. 콜백 시점에 창이
+      // 아직 열려 있다는 것은 창이 양보했다는 뜻이고, 그 틈의 외부 mutation 이 이미
+      // 병합됐을 수 있다.
+      //
+      // 세대 비교가 필요 없는 이유: 깃발은 매 최외곽 begin 에서 초기화되고, 이 콜백은
+      // 자신이 큐에 들어간 tick 이 끝날 때 돈다. 그때 열려 있는 창은 같은 창이거나
+      // (참 양보) 같은 tick 에 새로 열려 tick 경계를 넘긴 창인데 — 후자도 실제로
+      // 양보한 창이므로 오탐이 아니다.
+      queueMicrotask(() => {
+        if (this.transactionDepth > 0) {
+          this.transactionYielded = true;
+        }
+      });
     }
     this.transactionDepth += 1;
+  }
+
+  /**
+   * 동기 트랜잭션 실행 — `fn` 안에서 일어난 mutation 이 되돌리기 엔트리 1개가 된다.
+   *
+   * 여닫기를 한 곳에 모아 `finally` 누락으로 창이 열린 채 남는 사고를 없앤다. `fn` 은
+   * **동기**여야 한다 (위 {@link beginTransaction} 주석의 근거) — 비동기 꼬리는 `fn` 이
+   * Promise 배열을 반환하고 호출부가 창 **밖**에서 기다리는 형태로 분리한다.
+   */
+  runInTransaction<T>(
+    meta: { type: HistoryEntry["type"]; elementId: string },
+    fn: () => T,
+  ): T {
+    this.beginTransaction(meta);
+    try {
+      const result = fn();
+      if (isThenable(result)) {
+        // async 콜백은 첫 await 에서 창을 닫아버린다 — 뒤쪽 mutation 은 병합되지
+        // 않고, 그 사이 외부 mutation 이 끼어들 수 있다.
+        console.warn(
+          "[History] runInTransaction: 콜백이 Promise 를 반환했다 — 창이 동기가 " +
+            "아니므로 병합 범위가 첫 await 까지로 잘린다. 동기 콜백 + 창 밖 await 로 " +
+            "바꿀 것:",
+          meta.type,
+          meta.elementId,
+        );
+      }
+      return result;
+    } finally {
+      this.commitTransaction();
+    }
   }
 
   /**
@@ -271,8 +334,22 @@ export class HistoryManager {
 
     const events = this.transactionBuffer;
     const meta = this.transactionMeta;
+    const yielded = this.transactionYielded;
     this.transactionBuffer = [];
     this.transactionMeta = null;
+    this.transactionYielded = false;
+
+    if (yielded) {
+      // 창이 양보했으므로 이 엔트리에 무관한 mutation 이 섞여 있을 수 있다. 상태는
+      // 시간순 역연산이라 여전히 정합하지만, 되돌리기 **단위**가 사용자 조작 1회와
+      // 어긋난다. 사후 분리는 불가(어느 event 가 외부 것인지 알 수 없음) — 드러낸다.
+      console.warn(
+        "[History] 트랜잭션 창이 이벤트 루프에 양보했다 — 창 안의 무관한 mutation 이 " +
+          "같은 되돌리기 엔트리로 병합됐을 수 있다. 창 안에서는 await 하지 말 것:",
+        meta?.type,
+        meta?.elementId,
+      );
+    }
 
     if (!events.length || !meta) return;
     this.addEntry({
