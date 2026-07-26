@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [하단 패널 리사이즈 핸들 더블클릭 = 기본 높이 복원 — Pen v1.2.1 수법 차용] - 2026-07-26
+
+### Features
+
+- **하단 패널(Monitor 등) 리사이즈 핸들을 더블클릭하면 기본 높이(200px)로 복원**:
+  - 키보드 등가 경로도 함께 — 핸들 포커스 후 Enter/Space (더블클릭만 두면 마우스 전용 기능이 된다). 기존 ArrowUp/ArrowDown ±20px 조절은 그대로.
+  - 복원 목표는 `DEFAULT_PANEL_LAYOUT.bottomHeight` 역참조 — 별도 상수를 두면 기본값이 바뀔 때 어긋난다.
+  - 핸들에 `title` 추가 — 숨은 제스처의 발견성 확보.
+  - **live 검증**: 실제 드래그로 200→320 변경 후 더블클릭 → 200 복원, 키보드 경로도 ArrowUp→220 후 Enter → 200 복원 확인.
+  - 위치: `apps/builder/src/builder/layout/BottomPanelArea.tsx`
+  - **함께 검토한 container query 사이드바 탭(아이콘↔라벨)은 미도입** — 반응할 트리거가 없다. 사이드바 폭은 registry config(`minWidth || 233`)로 고정이고, 폭을 바꿀 수 있는 `setPanelWidth`/`updateModalPanelSize` 는 **호출자 0건**(타입 선언만)이다. 지금 넣으면 항상 같은 분기만 타는 CSS가 된다 → 패널 폭 리사이즈 기능이 생기는 시점의 후속 작업으로 남긴다.
+
 ## [캔버스 화살표 키 = 형제 순서 재배치 — Pen v1.2.1 수법 차용] - 2026-07-26
 
 ### Features

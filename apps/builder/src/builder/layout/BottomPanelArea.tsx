@@ -3,6 +3,7 @@
  *
  * Monitor 등 하단 패널을 위한 리사이즈 가능한 영역
  * - 드래그로 높이 조절 (150-600px)
+ * - 핸들 더블클릭(또는 Enter/Space)으로 기본 높이 복원
  * - 닫기 버튼
  * - ESC 키로 닫기
  * - CSS transform으로 표시/숨김 애니메이션
@@ -13,9 +14,12 @@ import { X, GripHorizontal } from "lucide-react";
 import { iconProps, iconEditProps } from "../../utils/ui/uiConstants";
 import { usePanelLayout, useKeyboardShortcutsRegistry } from "@/builder/hooks";
 import { PanelRegistry } from "../panels/core/PanelRegistry";
+import { DEFAULT_PANEL_LAYOUT } from "../panels/core/types";
 
 const MIN_HEIGHT = 150;
 const MAX_HEIGHT = 600;
+/** 더블클릭 복원 목표 — 레이아웃 기본값을 역참조 (별도 상수 도입 금지) */
+const DEFAULT_HEIGHT = DEFAULT_PANEL_LAYOUT.bottomHeight;
 
 export const BottomPanelArea = memo(function BottomPanelArea() {
   const { layout, closeBottomPanel, setBottomHeight } = usePanelLayout();
@@ -51,6 +55,12 @@ export const BottomPanelArea = memo(function BottomPanelArea() {
     },
     [bottomHeight],
   );
+
+  // 기본 높이 복원 — 드래그로 벗어난 높이를 한 동작으로 되돌린다.
+  // 마우스는 더블클릭, 키보드는 Enter/Space (더블클릭만 두면 마우스 전용 기능이 된다)
+  const handleResetHeight = useCallback(() => {
+    setBottomHeight(DEFAULT_HEIGHT);
+  }, [setBottomHeight]);
 
   // 마우스 이동 및 업 이벤트
   useEffect(() => {
@@ -96,11 +106,13 @@ export const BottomPanelArea = memo(function BottomPanelArea() {
       <div
         className="bottom-panel-resize-handle"
         onMouseDown={handleMouseDown}
+        onDoubleClick={handleResetHeight}
         role="separator"
         aria-orientation="horizontal"
         aria-valuenow={bottomHeight}
         aria-valuemin={MIN_HEIGHT}
         aria-valuemax={MAX_HEIGHT}
+        title={`드래그로 높이 조절 · 더블클릭으로 기본 높이(${DEFAULT_HEIGHT}px) 복원`}
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === "ArrowUp") {
@@ -109,6 +121,9 @@ export const BottomPanelArea = memo(function BottomPanelArea() {
           } else if (e.key === "ArrowDown") {
             e.preventDefault();
             setBottomHeight(Math.max(MIN_HEIGHT, bottomHeight - 20));
+          } else if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleResetHeight();
           }
         }}
       >
