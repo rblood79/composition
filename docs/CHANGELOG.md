@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [되돌리기 단위 정합 — 한 조작 = undo 1회] - 2026-07-26
+
+### Bug Fixes
+
+- **한 번의 조작을 되돌리려면 undo 를 여러 번 눌러야 했던 문제** (실측 엔트리 수):
+
+  | 조작                        | 전    | 후  |
+  | --------------------------- | ----- | --- |
+  | Button 아이콘 선택 / 지우기 | 3     | 1   |
+  | 그룹 해제 (Cmd+Shift+G)     | 2     | 1   |
+  | 다중 선택 삭제 (요소 2개)   | 4     | 1   |
+  | 정렬 / 분배 / 배치 편집     | 2(+N) | 1   |
+  | 그룹 (Cmd+G)                | 1     | 1   |
+  - **Why**: 원인이 두 갈래다. ① Button 아이콘 조작은 store write 가 3갈래(아이콘 자식 생성 + label 을 Text 자식으로 이관 + Button children 비우기)인데 감싸는 장치가 없었다 → **동기 history 트랜잭션 창**으로 감쌌다. ② 나머지는 `track*` 헬퍼와 store action 이 **같은 변경을 두 번 기록**했다. `track*` 은 mutation 이 스스로 history 를 기록하지 않던 시절의 것인데, 2026-07-15 에 전 mutation 경로가 canonical event 부착으로 전환된 뒤 짝을 맞추지 않은 호출부가 중복이 됐다.
+  - 상태가 깨지지는 않았다(중복 insert 가 upsert) — 증상은 **아무 것도 안 바뀌는 죽은 undo 단계**였다. 그룹 해제는 undo 1회가 "빈 frame 만 복원", 2회에야 자식이 돌아왔다.
+  - 다중 삭제는 요소별 삭제를 병렬로 돌려 **각각이 오래된 상태를 기준으로 저장**하면서 앞선 삭제를 메모리에 되살릴 수 있는 race 도 있었다 → 배치 삭제 1회로 교체.
+  - 정렬/분배/배치 편집이 넘기던 인자는 형태부터 틀렸다 — "모든 요소에 적용할 props 패치" 자리에 `{요소id: 스타일}` 맵을 넘겨 **요소 id 가 prop 이름으로** 기록됐다.
+  - 위치: `panels/properties/{ButtonChildSection,PropertiesPanel,CanvasSelectionShortcuts}.tsx`, `stores/utils/historyHelpers.ts`
+
+### Architecture
+
+- **`historyManager.runInTransaction(meta, fn)`** — 여러 mutation 을 되돌리기 1단위로 묶는 진입점. 여닫기를 한 곳에 모아 `finally` 누락으로 창이 열린 채 남는 사고를 없앤다. `fn` 은 **동기**여야 한다: 창이 열린 동안의 기록은 전부 병합되므로 창 안에서 `await` 로 양보하면 그 틈의 무관한 변경까지 같은 되돌리기 단위로 빨려 들어간다. 양보 지점이 없으면 JS 단일 스레드가 상호배제를 제공한다.
+- **양보 감지** — 창이 실제로 양보하면 커밋 시 경고한다(`queueMicrotask` 기반). 동기 창이면 감지 콜백이 커밋 뒤에 돌아 조용하다.
+- `trackMultiDelete` 제거 — "요소마다 엔트리 1개" 라는 설계 자체가 문제였다. `trackBatchUpdate` 는 `trackInstancePropagation` 의 정당한 사용처가 있어 유지하고, 호출 규약(기록하는 action 과 병용 금지 / 인자 의미)을 문서화했다.
+
 ## [Frame 프리셋 반응형 — desktop/tablet/mobile 3 breakpoint 대응 (ADR-168)] - 2026-07-26
 
 ### Features
