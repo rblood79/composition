@@ -128,17 +128,6 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
       display: "flex",
       minHeight: "100vh",
     },
-    previewAreas: [
-      {
-        name: "content",
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 100,
-        isSlot: true,
-        required: true,
-      },
-    ],
   },
 
   "vertical-2": {
@@ -165,18 +154,6 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
       flexDirection: "column",
       minHeight: "100vh",
     },
-    previewAreas: [
-      { name: "header", x: 0, y: 0, width: 100, height: 15, isSlot: true },
-      {
-        name: "content",
-        x: 0,
-        y: 15,
-        width: 100,
-        height: 85,
-        isSlot: true,
-        required: true,
-      },
-    ],
   },
 
   "vertical-3": {
@@ -209,19 +186,6 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
       flexDirection: "column",
       minHeight: "100vh",
     },
-    previewAreas: [
-      { name: "header", x: 0, y: 0, width: 100, height: 12, isSlot: true },
-      {
-        name: "content",
-        x: 0,
-        y: 12,
-        width: 100,
-        height: 76,
-        isSlot: true,
-        required: true,
-      },
-      { name: "footer", x: 0, y: 88, width: 100, height: 12, isSlot: true },
-    ],
   },
 
   // ========== Navigation ==========
@@ -260,18 +224,6 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
       minHeight: "100vh",
     },
     responsiveContainerStyle: { mobile: { flexDirection: "column" } },
-    previewAreas: [
-      { name: "sidebar", x: 0, y: 0, width: 25, height: 100, isSlot: true },
-      {
-        name: "content",
-        x: 25,
-        y: 0,
-        width: 75,
-        height: 100,
-        isSlot: true,
-        required: true,
-      },
-    ],
   },
 
   "sidebar-right": {
@@ -307,18 +259,6 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
       minHeight: "100vh",
     },
     responsiveContainerStyle: { mobile: { flexDirection: "column" } },
-    previewAreas: [
-      {
-        name: "content",
-        x: 0,
-        y: 0,
-        width: 75,
-        height: 100,
-        isSlot: true,
-        required: true,
-      },
-      { name: "sidebar", x: 75, y: 0, width: 25, height: 100, isSlot: true },
-    ],
   },
 
   // ========== List-Detail ==========
@@ -357,26 +297,6 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
       minHeight: "100vh",
     },
     responsiveContainerStyle: { mobile: { flexDirection: "column" } },
-    previewAreas: [
-      {
-        name: "list",
-        x: 0,
-        y: 0,
-        width: 32,
-        height: 100,
-        isSlot: true,
-        required: true,
-      },
-      {
-        name: "detail",
-        x: 32,
-        y: 0,
-        width: 68,
-        height: 100,
-        isSlot: true,
-        required: true,
-      },
-    ],
   },
 
   // ========== Feed ==========
@@ -417,18 +337,6 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
       flexDirection: "column",
       minHeight: "100vh",
     },
-    previewAreas: [
-      { name: "header", x: 0, y: 0, width: 100, height: 14, isSlot: true },
-      {
-        name: "feed",
-        x: 0,
-        y: 14,
-        width: 100,
-        height: 86,
-        isSlot: true,
-        required: true,
-      },
-    ],
   },
 
   // ========== Complex ==========
@@ -482,21 +390,6 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
       tablet: { gridTemplateColumns: "160px 1fr 160px" },
       ...STACK_ON_MOBILE,
     },
-    previewAreas: [
-      { name: "header", x: 0, y: 0, width: 100, height: 12, isSlot: true },
-      { name: "sidebar", x: 0, y: 12, width: 20, height: 76, isSlot: true },
-      {
-        name: "content",
-        x: 20,
-        y: 12,
-        width: 60,
-        height: 76,
-        isSlot: true,
-        required: true,
-      },
-      { name: "aside", x: 80, y: 12, width: 20, height: 76, isSlot: true },
-      { name: "footer", x: 0, y: 88, width: 100, height: 12, isSlot: true },
-    ],
   },
 
   // ========== Dashboard ==========
@@ -540,26 +433,6 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
       tablet: { gridTemplateColumns: "200px 1fr" },
       ...STACK_ON_MOBILE,
     },
-    previewAreas: [
-      {
-        name: "navigation",
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 10,
-        isSlot: true,
-      },
-      { name: "sidebar", x: 0, y: 10, width: 24, height: 90, isSlot: true },
-      {
-        name: "content",
-        x: 24,
-        y: 10,
-        width: 76,
-        height: 90,
-        isSlot: true,
-        required: true,
-      },
-    ],
   },
 
   "dashboard-widgets": {
@@ -618,20 +491,6 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
       },
       ...STACK_ON_MOBILE,
     },
-    previewAreas: [
-      { name: "header", x: 0, y: 0, width: 100, height: 10, isSlot: true },
-      { name: "sidebar", x: 0, y: 10, width: 20, height: 90, isSlot: true },
-      {
-        name: "content",
-        x: 20,
-        y: 10,
-        width: 52,
-        height: 90,
-        isSlot: true,
-        required: true,
-      },
-      { name: "widgets", x: 72, y: 10, width: 28, height: 90, isSlot: true },
-    ],
   },
 };
 

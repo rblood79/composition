@@ -22,6 +22,7 @@ function toResponsiveBreakpoint(value: string): BreakpointName {
 import "../panels";
 
 import { BuilderHeader, Breakpoint } from "./BuilderHeader";
+import { CANVAS_BREAKPOINTS } from "../workspace/canvasBreakpoints";
 import { CanvasSelectionShortcutsHost } from "../panels/properties/CanvasSelectionShortcuts";
 import { BuilderCanvas } from "./BuilderCanvas";
 
@@ -410,11 +411,9 @@ export const BuilderCore: React.FC = () => {
     return new Set<Key>(["desktop"]);
   });
 
-  const [breakpoints] = useState<Breakpoint[]>([
-    { id: "desktop", label: "Desktop", max_width: 1920, max_height: 1080 },
-    { id: "tablet", label: "Tablet", max_width: 768, max_height: 1024 },
-    { id: "mobile", label: "Mobile", max_width: 390, max_height: 844 },
-  ]);
+  // 프레임 크기는 `canvasBreakpoints` 가 SSOT — 프리셋 썸네일도 같은 값을 기준으로 삼는다
+  // (ADR-168 R4). 여기서 리터럴로 다시 적으면 두 기준이 어긋날 자리가 생긴다.
+  const [breakpoints] = useState<Breakpoint[]>(() => [...CANVAS_BREAKPOINTS]);
 
   // breakpoint 변경 시 로컬 스토리지에 저장
   const handleBreakpointChange = useCallback(

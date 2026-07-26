@@ -268,11 +268,11 @@ Phase 2 live 실측 (localhost:5173, Frame 1): `vertical-2` → `holy-grail` →
 
 ### 5-2b. 실행 중 확정된 사항 (Phase 3 실측)
 
-| 발견 | 대응 |
-| --- | --- |
-| **P-4 는 Phase 4 항목이 아니라 Phase 3 의 선행 조건이다.** `index.tsx:75` 의 `groups[preset.category].push` 가 하드코딩 4키라, 신규 카테고리(`navigation`/`list`/`feed`)를 도입하는 순간 `groups[...]` 가 undefined 로 TypeError → 패널 전체 크래시 | §6-3 의 그룹 파생·아이콘 단일화를 Phase 3 으로 앞당겨 반영. Phase 4 에서는 해당 항목이 이미 완료 |
+| 발견                                                                                                                                                                                                                                                                                                           | 대응                                                                                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **P-4 는 Phase 4 항목이 아니라 Phase 3 의 선행 조건이다.** `index.tsx:75` 의 `groups[preset.category].push` 가 하드코딩 4키라, 신규 카테고리(`navigation`/`list`/`feed`)를 도입하는 순간 `groups[...]` 가 undefined 로 TypeError → 패널 전체 크래시                                                            | §6-3 의 그룹 파생·아이콘 단일화를 Phase 3 으로 앞당겨 반영. Phase 4 에서는 해당 항목이 이미 완료                                                                                                                            |
 | **슬롯의 `responsive` 가 canonical 로 옮겨지지 않았다.** `canonicalMutations.ts` 의 slot 분기(`isLegacySlotTag`)가 필드를 직접 나열하며 early return 해서 `baseNode` 의 1차 필드 스프레드에 도달하지 못한다. 실측: body 는 mobile `flexDirection:column` 이 반영되는데 슬롯만 base 값(사이드바 250px)으로 남음 | `canonicalResponsiveField(element)` 헬퍼로 스프레드를 단일화하고 slot 두 분기에 적용. 회귀 가드는 `canonicalMutations.test.ts` 에 추가. **ADR-154 시절부터 있던 gap** 으로, 슬롯 override 의 첫 writer 가 생기면서 드러났다 |
-| 기존 프레임에는 **소급 적용되지 않는다.** 프리셋 정의는 적용 시점에 `props.style`/`responsive` 로 복사되므로, ADR-168 이전에 적용된 프레임은 반응형 override 가 없다 (실측: 기존 dashboard 프레임이 mobile 에서 content 98px) | 사용자가 프리셋을 다시 누르면 해소된다. dev 단계라 migration 미수행 (memory: `feedback-dev-stage-no-bc-migration`). Phase 4 의 BP 미리보기가 재적용 필요성을 드러내는 표면이 된다 |
+| 기존 프레임에는 **소급 적용되지 않는다.** 프리셋 정의는 적용 시점에 `props.style`/`responsive` 로 복사되므로, ADR-168 이전에 적용된 프레임은 반응형 override 가 없다 (실측: 기존 dashboard 프레임이 mobile 에서 content 98px)                                                                                  | 사용자가 프리셋을 다시 누르면 해소된다. dev 단계라 migration 미수행 (memory: `feedback-dev-stage-no-bc-migration`). Phase 4 의 BP 미리보기가 재적용 필요성을 드러내는 표면이 된다                                           |
 
 Phase 3 live 실측 (localhost:5173, `list-detail` 적용): desktop `list 320 / detail 1560` (row) → tablet `list 260 / detail 468` (row, tablet override) → mobile `list 370 / detail 370` (column 스택). canonical 슬롯 노드에 `responsive.styles.width = {tablet:"260px", mobile:"100%"}` 기록 확인. 이후 `vertical-2` 복원 시 body `responsive` 가 `null` 로 완전 정리 — R1 멱등 live 확증.
 
@@ -284,7 +284,7 @@ Phase 3 live 실측 (localhost:5173, `list-detail` 적용): desktop `list 320 / 
 
 기존 프레임의 body `props.style` 에는 grid 정의가 이미 저장돼 있어 **레이아웃은 그대로 유지**된다. `LAYOUT_PRESETS["complex-3col"]` 부재 → `currentPresetKey` 가 `null` → "적용됨" 배지만 사라진다. 파괴적 변경 아님. dev 단계라 BC migration 미수행 (memory: `feedback-dev-stage-no-bc-migration`).
 
-## 6. Phase 4 — 패널 재설계
+## 6. Phase 4 — 패널 재설계 ✅ Implemented 2026-07-26
 
 **대상**: `PresetPreview.tsx`, `index.tsx`, `styles.css` (+ 신규 `derivePreviewAreas.ts`, `BreakpointPreviewTabs.tsx`)
 
@@ -343,6 +343,32 @@ const PREVIEW_REFERENCE_WIDTH = {
 
 `styles.css:12-14` 의 `.layout-preset-selector .list-group` 제거. 내용이 `list-group.css:15` 기본값과 동일해 시각 영향 0 — 회귀 위험 없음.
 
+### 6-6. Phase 4 실행 발견 (2026-07-26)
+
+**기준 폭이 1280 이 아니라 1920 이었다.** §6-1 의 `PREVIEW_REFERENCE_WIDTH.desktop = 1280` 은 `BREAKPOINTS.desktop.minWidth`(미디어 쿼리 경계)에서 온 값인데, 캔버스가 실제로 그리는 desktop 프레임은 **1920×1080** 이다 (`BuilderCore.tsx` breakpoints 배열 → `useWorkspaceCanvasSizing.ts:113` 이 `max_width` 를 그대로 캔버스 폭으로 사용). 1280 으로 환산하면 320px 트랙이 25% 로 나오지만 실제 렌더는 16.7% 라 R4 가 그대로 실현된다. 그래서 기준을 캔버스 프레임 크기로 바꾸고, 그 값은 이미 `BuilderCore` + `useWorkspaceCanvasSizing.viewportPersistence.test.ts` 두 곳에 복제돼 있었으므로 `workspace/canvasBreakpoints.ts` 를 **SSOT 로 신설**해 BuilderCore 가 소비하게 했다 (썸네일이 세 번째 복제가 되는 것을 차단 — 복제를 grep 테스트로 감시하는 건 "이중 진실을 옮기기만 한 결과" 라 R4 대응이 아니다). 행 축 기준 높이(1080/1024/844)도 같은 배열에서 파생한다.
+
+**격자 슬롯 내부 셀을 그린다 (§6-1 확장).** `feed` 는 breakpoint 별로 **슬롯 자신의** 열 수를 바꾸므로(4→2→1), 슬롯을 한 덩어리로만 그리면 세 썸네일이 완전히 동일해져 P-7 이 보여주려는 것이 화면에 전혀 드러나지 않는다. `display:grid` 슬롯은 안쪽 카드 셀까지 emit 한다 (`isSlot:false` → 이름표 제외, 최대 8셀). 실측 rect 수 desktop 10 / tablet 6 / mobile 4.
+
+**하한(min band) 도입 기각.** 0 크기 사각형 방지용 `MIN_BAND_PERCENT` 를 넣었다가 제거했다 — 실제 레이아웃이 collapse 시키는 밴드를 썸네일에서만 부풀리는 것이 곧 R4 의 발산이다. 0 이 나오면 프리셋 정의가 틀린 것이므로 테스트 불변식(width/height > 0)이 잡는다.
+
+**P-3 토큰 전환이 portal 에서 회귀를 냈다 (실행 중 발견·수정).** `--color-warning-*` → `--notice` 로 바꾼 직후 경고 아이콘이 주황을 잃고 본문 색을 상속했다. 실측: portal 안에서 `--notice` 가 `""`(미정의)인데 `--color-warning-500` 은 정의돼 있었다. 원인은 `builder-system.css:49-51` 의 portal fallback 이 `body:not([data-preview="true"]) > .react-aria-Modal` 인데, RAC 가 Modal 을 `.react-aria-ModalOverlay` 로 한 겹 감싸서 `>` 결합자가 매칭되지 않는 것 (구조: `body > .react-aria-ModalOverlay > .react-aria-Modal`). 같은 선택자의 첫 분기 `[data-context="builder"]` 는 구조 조건이 없으므로 `ExistingSlotDialog` 의 `Modal` 에 이 속성을 부여해 해소했다. 결과로 `--bg-inset`/`--fg-muted` 등 dialog 의 나머지 토큰도 함께 정상화됐다 (전환 전에는 dialog 전체가 light 값 고정이었다). memory `feedback-portaled-popover-loses-builder-context-indicator-black` 과 같은 계열.
+
+> **잔존 (본 ADR scope 밖)**: portal fallback 선택자 자체는 여전히 RAC Modal 에 매칭되지 않는다. `.react-aria-ModalOverlay` 를 포함하도록 고치면 빌더의 모든 portaled modal 이 한 번에 해소되지만 시각 영향 범위가 넓어 별도 작업으로 둔다. 그때까지 신규 builder modal 은 `data-context="builder"` 를 직접 부여해야 한다.
+
+**P-4/P-5 는 Phase 3 에서 선반영** (§5-2b). Phase 4 에는 남은 작업이 없다.
+
+**실측 파생값 (live, `localhost:5173`)** — 단위 테스트 기대치와 일치:
+
+| 프리셋       | desktop            | tablet             | mobile           |
+| ------------ | ------------------ | ------------------ | ---------------- |
+| 목록-상세    | 16.7 / 83.3        | 33.9 / 66.1        | 100 / 100 (스택) |
+| Holy Grail   | 10.4 / 79.2 / 10.4 | 20.8 / 58.3 / 20.8 | 전부 100 (스택)  |
+| 피드 (셀 폭) | 17.5 ×8            | 41.0 ×4            | 88.0 ×2          |
+
+`목록-상세` desktop 16.7% = 320/1920, tablet 33.9% = 260/768 — 기준 폭이 BP 별로 바뀌므로 **tablet 에서 사이드바 비중이 오히려 커진다** (폭이 절반 이하로 줄었는데 사이드바는 320→260 만 줄기 때문). 이것이 의도된 결과다.
+
+**미리보기 세그먼트는 전역을 건드리지 않는다** — 요소 직접 클릭 전후 비교로 확증: 세그먼트 Mobile→Desktop 전환 시 헤더 breakpoint 토글과 `localStorage["builder-breakpoint"]` 는 불변, 썸네일만 `["100%","100%"]` → `["16.67%","83.33%"]` 로 변경.
+
 ## 7. Phase 5 — live 검증
 
 | 항목                                                            | 방법                                              |
@@ -359,28 +385,33 @@ const PREVIEW_REFERENCE_WIDTH = {
 
 ## 8. 파일 변경 인벤토리
 
-| Phase | 파일                                                                 | 변경 |
-| ----- | -------------------------------------------------------------------- | ---- |
-| 1     | `packages/shared/src/types/responsive.types.ts`                      | 수정 |
-| 1     | `apps/builder/.../styles/sections/responsiveEligible.static.test.ts` | 수정 |
-| 1     | `apps/builder/src/builder/stores/responsiveWriteRouting.test.ts`     | 수정 |
-| 1     | `apps/builder/.../canvas/scene/layoutCache.ts`                       | 수정 |
-| 1     | `packages/shared/src/utils/responsiveCss.ts` (R7 — UNITLESS_PROPS)   | 수정 |
-| 1     | `apps/builder/.../styles/sections/responsiveEmit.contract.test.ts`   | 신규 |
-| 2     | `.../LayoutPresetSelector/types.ts`                                  | 수정 |
-| 2     | `.../LayoutPresetSelector/presetResponsive.ts`                       | 신규 |
-| 2     | `.../LayoutPresetSelector/presetStyle.ts`                            | 수정 |
-| 2     | `.../LayoutPresetSelector/usePresetApply.ts`                         | 수정 |
-| 3     | `.../LayoutPresetSelector/presetDefinitions.ts`                      | 수정 |
-| 3     | `.../LayoutPresetSelector/presetDefinitions.static.test.ts`          | 수정 |
-| 4     | `.../LayoutPresetSelector/derivePreviewAreas.ts`                     | 신규 |
-| 4     | `.../LayoutPresetSelector/PresetPreview.tsx`                         | 수정 |
-| 4     | `.../LayoutPresetSelector/BreakpointPreviewTabs.tsx`                 | 신규 |
-| 4     | `.../LayoutPresetSelector/index.tsx`                                 | 수정 |
-| 4     | `.../LayoutPresetSelector/styles.css`                                | 수정 |
-| 5     | `docs/CHANGELOG.md`, ADR 본문 / 본 문서                              | 수정 |
+| Phase | 파일                                                                   | 변경 |
+| ----- | ---------------------------------------------------------------------- | ---- |
+| 1     | `packages/shared/src/types/responsive.types.ts`                        | 수정 |
+| 1     | `apps/builder/.../styles/sections/responsiveEligible.static.test.ts`   | 수정 |
+| 1     | `apps/builder/src/builder/stores/responsiveWriteRouting.test.ts`       | 수정 |
+| 1     | `apps/builder/.../canvas/scene/layoutCache.ts`                         | 수정 |
+| 1     | `packages/shared/src/utils/responsiveCss.ts` (R7 — UNITLESS_PROPS)     | 수정 |
+| 1     | `apps/builder/.../styles/sections/responsiveEmit.contract.test.ts`     | 신규 |
+| 2     | `.../LayoutPresetSelector/types.ts`                                    | 수정 |
+| 2     | `.../LayoutPresetSelector/presetResponsive.ts`                         | 신규 |
+| 2     | `.../LayoutPresetSelector/presetStyle.ts`                              | 수정 |
+| 2     | `.../LayoutPresetSelector/usePresetApply.ts`                           | 수정 |
+| 3     | `.../LayoutPresetSelector/presetDefinitions.ts`                        | 수정 |
+| 3     | `.../LayoutPresetSelector/presetDefinitions.static.test.ts`            | 수정 |
+| 4     | `.../LayoutPresetSelector/derivePreviewAreas.ts`                       | 신규 |
+| 4     | `.../LayoutPresetSelector/derivePreviewAreas.test.ts`                  | 신규 |
+| 4     | `.../LayoutPresetSelector/PresetPreview.tsx`                           | 수정 |
+| 4     | `.../LayoutPresetSelector/BreakpointPreviewTabs.tsx`                   | 신규 |
+| 4     | `.../LayoutPresetSelector/index.tsx`                                   | 수정 |
+| 4     | `.../LayoutPresetSelector/styles.css`                                  | 수정 |
+| 4     | `.../LayoutPresetSelector/presetDefinitions.ts` (previewAreas 폐지)    | 수정 |
+| 4     | `.../LayoutPresetSelector/ExistingSlotDialog.tsx` (portal 토큰 스코프) | 수정 |
+| 4     | `apps/builder/src/builder/workspace/canvasBreakpoints.ts` (기준 SSOT)  | 신규 |
+| 4     | `apps/builder/src/builder/main/BuilderCore.tsx` (기준 SSOT 소비)       | 수정 |
+| 5     | `docs/CHANGELOG.md`, ADR 본문 / 본 문서                                | 수정 |
 
-**추정 18 파일** (신규 4 / 수정 14 — 리뷰 round 1 에서 `responsiveCss.ts`, Phase 1 실행에서 `responsiveEmit.contract.test.ts` 추가). Phase 실행 중 1.5배(24 파일) 초과 시 Phase 0 inventory 보강 커밋으로 흡수 — 새 ADR fork 사유 아님 (adr-writing.md M3).
+**실측 22 파일** (신규 6 / 수정 16). 추정 18 → 실측 22 (1.22배, 1.5배 게이트 미달). 증가분은 전부 Phase 4 이며 사유가 R4 대응 자체다: 썸네일 기준 폭을 캔버스 프레임 크기로 정정하려면 그 값이 SSOT 여야 해서 `canvasBreakpoints.ts` + `BuilderCore.tsx` 가, 수동 배열 폐지로 `presetDefinitions.ts` 가, P-3 토큰 전환의 portal 회귀 해소로 `ExistingSlotDialog.tsx` 가 들어왔다 (§6-6). Phase 0 inventory 는 "패널 재설계" 를 파일 5개로 잡으면서 기준 상수의 소재와 portal 토큰 스코프를 실측하지 않았다 — 절차 결함이며 새 ADR fork 사유가 아니다 (adr-writing.md M3).
 
 ## 9. 미지원 / 이연 경계
 

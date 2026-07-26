@@ -20,15 +20,19 @@ import {
   Rows3,
 } from "lucide-react";
 import { Button } from "@composition/shared/components";
+import type { BreakpointName } from "@composition/shared";
 import { PresetPreview } from "./PresetPreview";
+import { BreakpointPreviewTabs } from "./BreakpointPreviewTabs";
 import { ExistingSlotDialog } from "./ExistingSlotDialog";
 import { usePresetApply } from "./usePresetApply";
+import { derivePreviewAreas } from "./derivePreviewAreas";
 import {
   LAYOUT_PRESETS,
   PRESET_CATEGORIES,
   PRESET_ORDER,
 } from "./presetDefinitions";
 import type { PresetApplyMode } from "./types";
+import { useStore } from "../../../../stores";
 import "./styles.css";
 import { iconEditProps } from "../../../../../utils/ui/uiConstants";
 
@@ -65,6 +69,21 @@ export const LayoutPresetSelector = memo(function LayoutPresetSelector({
   );
   // 다이얼로그 열림 상태
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // 썸네일 미리보기 breakpoint (ADR-168 P-7).
+  //
+  // 캔버스의 활성 breakpoint 로 시작해, 이후에는 이 패널 안에서만 움직인다 — 미리보기 전용이라
+  // 캔버스를 바꾸지 않는다. 캔버스 breakpoint 를 바꾸면 그 값으로 다시 맞춰진다.
+  const activeBreakpoint = useStore((s) => s.activeBreakpoint);
+  const [previewBreakpoint, setPreviewBreakpoint] =
+    useState<BreakpointName>(activeBreakpoint);
+  const [syncedBreakpoint, setSyncedBreakpoint] =
+    useState<BreakpointName>(activeBreakpoint);
+  if (syncedBreakpoint !== activeBreakpoint) {
+    // 렌더 중 파생 상태 조정 (React 권장 패턴) — effect 로 미루면 한 프레임 어긋난다
+    setSyncedBreakpoint(activeBreakpoint);
+    setPreviewBreakpoint(activeBreakpoint);
+  }
 
   // 프리셋 적용 훅
   const { existingSlots, currentPresetKey, applyPreset, isApplying } =
@@ -135,6 +154,11 @@ export const LayoutPresetSelector = memo(function LayoutPresetSelector({
 
   return (
     <>
+      <BreakpointPreviewTabs
+        value={previewBreakpoint}
+        onChange={setPreviewBreakpoint}
+      />
+
       {Object.entries(PRESET_CATEGORIES).map(([categoryKey, meta]) => {
         const presetKeys = presetsByCategory[categoryKey];
         if (!presetKeys || presetKeys.length === 0) return null;
@@ -168,7 +192,7 @@ export const LayoutPresetSelector = memo(function LayoutPresetSelector({
                     isDisabled={isApplying}
                   >
                     <PresetPreview
-                      areas={preset.previewAreas}
+                      areas={derivePreviewAreas(preset, previewBreakpoint)}
                       width={80}
                       height={60}
                     />

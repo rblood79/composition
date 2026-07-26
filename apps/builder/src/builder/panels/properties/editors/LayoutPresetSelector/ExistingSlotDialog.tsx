@@ -55,10 +55,19 @@ export const ExistingSlotDialog = memo(function ExistingSlotDialog({
 
   return (
     <DialogTrigger isOpen={isOpen}>
+      {/*
+        `data-context="builder"` 가 필요하다 — 이 Modal 은 portal 로 `body` 밑에 붙고,
+        RAC 가 `.react-aria-ModalOverlay` 로 한 겹 감싸기 때문에 builder-system.css 의
+        portal fallback (`body > .react-aria-Modal`) 이 매칭되지 않는다. 그러면 semantic
+        토큰(`--notice` 등)이 전부 미정의가 되어 선언이 통째로 무효화된다 (실측: 경고
+        아이콘이 주황을 잃고 본문 색을 상속). 같은 파일의 첫 분기 `[data-context="builder"]`
+        는 구조 조건이 없어 여기에 붙이면 light/dark 토큰 세트가 그대로 적용된다.
+      */}
       <Modal
         isDismissable
         onOpenChange={(open) => !open && onClose()}
         className="react-aria-Modal"
+        data-context="builder"
       >
         <Dialog className="react-aria-Dialog existing-slot-dialog">
           <Heading slot="title" className="dialog-title">

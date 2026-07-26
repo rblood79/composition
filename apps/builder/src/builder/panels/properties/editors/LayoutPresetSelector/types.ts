@@ -57,10 +57,13 @@ export interface SlotDefinition {
 }
 
 /**
- * SVG 미리보기 영역
+ * SVG 미리보기 영역.
+ *
+ * `derivePreviewAreas` 가 프리셋 정의에서 breakpoint 별로 파생한다 (ADR-168 P-1) — 손으로
+ * 적는 배열이 아니다. 수동 배열이던 시절엔 레이아웃을 고쳐도 썸네일이 옛 모양을 계속 보여줬다.
  */
 export interface PreviewArea {
-  /** 영역 이름 */
+  /** 영역 이름 (React key 겸용 — 유일해야 한다) */
   name: string;
   /** X 위치 (%) */
   x: number;
@@ -70,7 +73,12 @@ export interface PreviewArea {
   width: number;
   /** 높이 (%) */
   height: number;
-  /** Slot 여부 */
+  /**
+   * Slot 여부.
+   *
+   * `false` = 슬롯이 아닌 보조 사각형 (격자 슬롯 내부의 카드 셀). 이름표가 붙지 않고 배경도
+   * 가장 안쪽 표면으로 낮춘다.
+   */
   isSlot: boolean;
   /** 필수 여부 */
   required?: boolean;
@@ -100,8 +108,6 @@ export interface LayoutPreset {
    * `display: grid → flex` + `flexDirection: column` 로 세로 스택 전환이다.
    */
   responsiveContainerStyle?: ResponsiveStyleSet;
-  /** SVG 미리보기 영역 */
-  previewAreas: PreviewArea[];
 }
 
 /**

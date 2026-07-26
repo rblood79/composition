@@ -1,18 +1,15 @@
 /**
  * LayoutPresetSelector Styles
  *
- * Phase 6: 레이아웃 프리셋 선택 컴포넌트 스타일
  * 공통 list-group 스타일: ../../../common/list-group.css
+ *
+ * 색상은 전부 시맨틱 토큰이다 (ADR-168 P-3). 원시 `--color-warning-*` 는 dark mode 재정의가
+ * 없어서 다크 테마에서 경고 박스가 흰 배경 + 연노랑으로 떠 있었다.
  */
 
 @import "../../../../components/styles/list-group.css";
 
 @layer components {
-  /* ========== LayoutPreset Grid Override ========== */
-  .layout-preset-selector .list-group {
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  }
-
   /* ========== Preset Card Extensions ========== */
   .list-item.preset-card .list-item-name {
     color: var(--fg);
@@ -22,6 +19,24 @@
   /* ========== Preview SVG ========== */
   .preset-preview-svg {
     flex-shrink: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-overlay);
+  }
+
+  /* ========== Breakpoint 미리보기 세그먼트 (ADR-168 P-7) ========== */
+  /* `tab-*` 예약 prefix 미사용 — 탭이 아니라 미리보기 전환 세그먼트 */
+  .preset-breakpoint-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .preset-breakpoint-label {
+    font-size: var(--text-xs);
+    color: var(--fg-muted);
   }
 
   /* ========== Existing Slot Dialog ========== */
@@ -42,7 +57,7 @@
   }
 
   .existing-slot-dialog .icon-warning {
-    color: var(--color-warning-500);
+    color: var(--notice);
   }
 
   .existing-slot-dialog .dialog-content {
@@ -93,7 +108,7 @@
   .existing-slot-dialog .slot-warning {
     margin-left: var(--spacing-xs);
     font-size: var(--text-xs);
-    color: var(--color-warning-600);
+    color: var(--notice);
   }
 
   .existing-slot-dialog .warning-box {
@@ -101,11 +116,11 @@
     align-items: flex-start;
     gap: var(--spacing-sm);
     padding: var(--spacing-sm);
-    background: var(--color-warning-50);
-    border: 1px solid var(--color-warning-200);
+    background: var(--notice-subtle);
+    border: 1px solid var(--notice);
     border-radius: var(--radius-md);
     font-size: var(--text-sm);
-    color: var(--color-warning-700);
+    color: var(--fg-on-notice);
   }
 
   .existing-slot-dialog .warning-box svg {
