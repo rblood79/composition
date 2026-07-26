@@ -39,6 +39,14 @@ function renderPreset(presetKey: string, breakpoint = "desktop" as const) {
   return { areas, svg, rects: [...svg.querySelectorAll("rect")] };
 }
 
+/** `.preset-preview-svg` 규칙 본문만 잘라낸다 — 파일 끝까지 slice 하면 뒤 규칙이 섞인다. */
+async function readPreviewRule(): Promise<string> {
+  const css = await readFile(resolve(__dirname, "./styles.css"), "utf-8");
+  const start = css.indexOf(".preset-preview-svg {");
+  expect(start).toBeGreaterThan(-1);
+  return css.slice(start, css.indexOf("}", start));
+}
+
 describe("선화 — 컴포넌트 패널 아이콘과 같은 색 패턴", () => {
   it("도형에 채우기가 없다", () => {
     for (const key of ["vertical-3", "feed", "holy-grail", "list-detail"]) {
@@ -60,12 +68,19 @@ describe("선화 — 컴포넌트 패널 아이콘과 같은 색 패턴", () => 
   });
 
   it("CSS 가 inset 표면 + --fg-muted 선 색을 준다 (color 직접 선언 필수)", async () => {
-    const css = await readFile(resolve(__dirname, "./styles.css"), "utf-8");
-    const block = css.slice(css.indexOf(".preset-preview-svg {"));
+    const block = await readPreviewRule();
 
     expect(block).toMatch(/background:\s*var\(--bg-inset\)/);
     // 상속에 맡기면 .list-item.applied 의 --fg-on-accent 가 흘러들어와 선이 사라진다
     expect(block).toMatch(/color:\s*var\(--fg-muted\)/);
+  });
+
+  it("바깥 테두리는 없다 — 슬롯 선과 이중선이 되고 뷰포트를 78×58 로 줄인다", async () => {
+    const block = await readPreviewRule();
+
+    // `border-radius` 는 남긴다 (표면 모서리) — shorthand `border` 만 금지
+    expect(block).not.toMatch(/^\s*border:/m);
+    expect(block).toMatch(/border-radius:\s*var\(--radius-sm\)/);
   });
 });
 

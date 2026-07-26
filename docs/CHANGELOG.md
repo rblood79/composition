@@ -25,7 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 인접 슬롯이 경계를 공유해 각자의 1px 테두리가 같은 선에 겹쳐, 별개 블록이 아니라 **한 덩어리에 칸막이가 있는 모양**으로 읽혔다.
   - 위치: `panels/properties/editors/LayoutPresetSelector/{normalizeThumbnailAreas,PresetPreview,index}.tsx`
 
-- **썸네일 표현이 패널 안에서 겉돌았던 문제** — 채워진 회색 블록이라 이 패널만의 별개 표현이었다. 컴포넌트 패널 항목 아이콘(`.list-item-icon`)도, 바로 위 카테고리 헤더의 lucide 레이아웃 아이콘(`Layout` / `Columns2` / `LayoutGrid` / `Rows3`)도 **inset 표면 + `--border` 테두리 + `--fg-muted` 선화**인데 썸네일만 벗어나 있었다. 같은 색 패턴으로 정렬 — 실제 빌더 계산값이 네 항목(배경·테두리·반경·색) 모두 아이콘 박스와 일치한다.
+- **썸네일 표현이 패널 안에서 겉돌았던 문제** — 채워진 회색 블록이라 이 패널만의 별개 표현이었다. 컴포넌트 패널 항목 아이콘(`.list-item-icon`)도, 바로 위 카테고리 헤더의 lucide 레이아웃 아이콘(`Layout` / `Columns2` / `LayoutGrid` / `Rows3`)도 **inset 표면 + `--fg-muted` 선화**인데 썸네일만 벗어나 있었다. 같은 색 패턴으로 정렬 — 실제 빌더 계산값이 배경·반경·색 모두 아이콘 박스와 일치한다.
+  - **바깥 테두리는 두지 않는다** (2026-07-27). 아이콘 박스는 16px 글리프를 담느라 경계를 그려주지만, 썸네일 도형은 상자를 거의 채우므로 슬롯 선 자체가 이미 경계다 — 한 겹 더 두르면 첫 슬롯 선과 2px 간격으로 나란히 놓여 이중선이 된다. 부수 효과로 좌표 매핑도 정확해졌다: `box-sizing: border-box` 라 1px 테두리가 80×60 뷰포트를 **78×58 로 줄여** viewBox 가 x 0.975 / y 0.967 비균등 축소되고 있었다 (제거 후 실측 80×60, 1:1).
   - 위계는 채우기 대신 **선 두께**로 준다 (슬롯 1.5 / 격자 셀 1). 부수 효과로 채우기 위계에 쓰던 `--accent-subtle` 의존이 사라졌다 (아래 항목 참조).
   - 선 색은 `currentColor` 로 받고 CSS 가 `.preset-preview-svg { color: var(--fg-muted) }` 로 준다 — 아이콘이 컨테이너 `color` 에서 색을 받는 방식과 같다. **이 선언은 필수다**: `.list-item.applied` / `.selected` 가 카드에 `color: var(--fg-on-accent)` 를 걸기 때문에 상속에 맡기면 적용됨 카드에서 흰 선이 밝은 표면 위에 그려져 사라진다.
   - 위치: `panels/properties/editors/LayoutPresetSelector/{PresetPreview.tsx,styles.css}`
