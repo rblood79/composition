@@ -35,7 +35,6 @@ import { distributeElements } from "../../stores/utils/elementDistribution";
 import type { DistributionType } from "../../stores/utils/elementDistribution";
 import { canDetachInstance } from "../../utils/editingSemantics";
 import {
-  trackBatchUpdate,
   trackGroupCreation,
   trackUngroup,
   trackMultiPaste,
@@ -508,8 +507,13 @@ export const CanvasSelectionShortcutsHost = memo(
           }),
         );
 
-        // Delete group element
-        await removeElement(groupIdToDelete);
+        // Delete group element.
+        // skipHistory: trackUngroup 이 이미 group 의 remove event 를 기록한다
+        //   (buildCanonicalUngroupEvents = move 들 + remove). 여기서 또 기록하면 같은
+        //   삭제가 두 엔트리가 되어 undo 1회는 "빈 frame 만 복원", 2회에야 자식이
+        //   돌아오는 죽은 단계가 생긴다 (실측: 그룹 해제 1회 → 엔트리 2개).
+        //   group 생성 쪽 addElement(…, { skipHistory: true }) 와 대칭.
+        await removeElement(groupIdToDelete, { skipHistory: true });
 
         // Select first child
         if (updatedChildren.length > 0) {
@@ -558,27 +562,30 @@ export const CanvasSelectionShortcutsHost = memo(
             return;
           }
 
-          // Collect style updates for history tracking
-          const styleUpdates: Record<string, Record<string, unknown>> = {};
-          updates.forEach((update) => {
-            styleUpdates[update.id] = update.style;
-          });
-
-          // ⭐ Track in history BEFORE applying updates
-          trackBatchUpdate(selectedElementIds, styleUpdates, elementsMap);
-
-          // Apply updates to each element
-          await Promise.all(
-            updates.map((update) => {
+          // 단일 batch 로 적용 = 되돌리기 1회. 요소별 updateElementProps 를 Promise.all
+          //   로 돌리면 각 호출이 자기 entry 를 만들어 undo 가 요소 수만큼 늘어난다.
+          //   trackBatchUpdate 도 제거했다 — batchUpdateElementProps 가 요소별 merged
+          //   props 로 batch entry 1개를 스스로 기록하며, 여기서 넘기던 인자는 형태부터
+          //   틀렸다 (2번째 인자는 "모든 요소에 적용할 props 패치" 인데 `{elementId: style}`
+          //   맵을 넘겨 요소 id 가 prop 이름으로 기록됐다).
+          const batchUpdateElementProps =
+            useStore.getState().batchUpdateElementProps;
+          await batchUpdateElementProps(
+            updates.flatMap((update) => {
               const element = elementsMap.get(update.id);
-              if (element) {
-                const updatedStyle = {
-                  ...((element.props.style as Record<string, unknown>) || {}),
-                  ...update.style,
-                };
-                return updateElementProps(update.id, { style: updatedStyle });
-              }
-              return Promise.resolve();
+              if (!element) return [];
+              return [
+                {
+                  elementId: update.id,
+                  props: {
+                    style: {
+                      ...((element.props.style as Record<string, unknown>) ||
+                        {}),
+                      ...update.style,
+                    },
+                  } as import("../../../types/core/store.types").ComponentElementProps,
+                },
+              ];
             }),
           );
 
@@ -627,27 +634,30 @@ export const CanvasSelectionShortcutsHost = memo(
             return;
           }
 
-          // Collect style updates for history tracking
-          const styleUpdates: Record<string, Record<string, unknown>> = {};
-          updates.forEach((update) => {
-            styleUpdates[update.id] = update.style;
-          });
-
-          // ⭐ Track in history BEFORE applying updates
-          trackBatchUpdate(selectedElementIds, styleUpdates, elementsMap);
-
-          // Apply updates to each element
-          await Promise.all(
-            updates.map((update) => {
+          // 단일 batch 로 적용 = 되돌리기 1회. 요소별 updateElementProps 를 Promise.all
+          //   로 돌리면 각 호출이 자기 entry 를 만들어 undo 가 요소 수만큼 늘어난다.
+          //   trackBatchUpdate 도 제거했다 — batchUpdateElementProps 가 요소별 merged
+          //   props 로 batch entry 1개를 스스로 기록하며, 여기서 넘기던 인자는 형태부터
+          //   틀렸다 (2번째 인자는 "모든 요소에 적용할 props 패치" 인데 `{elementId: style}`
+          //   맵을 넘겨 요소 id 가 prop 이름으로 기록됐다).
+          const batchUpdateElementProps =
+            useStore.getState().batchUpdateElementProps;
+          await batchUpdateElementProps(
+            updates.flatMap((update) => {
               const element = elementsMap.get(update.id);
-              if (element) {
-                const updatedStyle = {
-                  ...((element.props.style as Record<string, unknown>) || {}),
-                  ...update.style,
-                };
-                return updateElementProps(update.id, { style: updatedStyle });
-              }
-              return Promise.resolve();
+              if (!element) return [];
+              return [
+                {
+                  elementId: update.id,
+                  props: {
+                    style: {
+                      ...((element.props.style as Record<string, unknown>) ||
+                        {}),
+                      ...update.style,
+                    },
+                  } as import("../../../types/core/store.types").ComponentElementProps,
+                },
+              ];
             }),
           );
 

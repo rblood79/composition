@@ -15,17 +15,25 @@ import {
   buildCanonicalGroupEvents,
   buildCanonicalInsertEvents,
   buildCanonicalMoveEvents,
-  buildCanonicalRemoveEvents,
   buildCanonicalUngroupEvents,
   buildCanonicalUpdateEvent,
   type CanonicalNodeLocation,
 } from "../history/canonicalHistoryEvents";
 
 /**
- * Track batch property update in history
+ * Track batch property update in history.
+ *
+ * **호출 규약 (2026-07-26)**: 이 헬퍼는 스스로 history 를 기록하지 않는 mutation 경로
+ * 에서만 쓴다. `batchUpdateElementProps` / `updateElementProps` 는 자신의 canonical
+ * update event 를 이미 기록하므로, 그와 나란히 부르면 같은 변경이 두 엔트리가 되어
+ * 죽은 undo 단계가 생긴다 (align/distribute/batch 편집 5 곳에서 그 상태였고 호출을
+ * 제거했다). 현재 유일한 정당한 사용처는 `trackInstancePropagation` 이다.
+ *
+ * `updates` 는 **모든 대상 요소에 공통 적용할 props 패치**다. `{elementId: patch}`
+ * 형태의 맵을 넘기면 요소 id 가 prop 이름으로 기록된다 (제거된 5 곳의 실제 오용).
  *
  * @param elementIds - IDs of elements being updated
- * @param updates - Property updates to apply
+ * @param updates - 모든 요소에 공통 적용할 props 패치
  * @param elementsMap - Map of all elements
  */
 export function trackBatchUpdate<TElement extends Element>(
@@ -126,27 +134,6 @@ export function trackUngroup(
         childIds: childElements.map((el) => el.id),
       },
     },
-  });
-}
-
-/**
- * Track multi-element delete in history
- *
- * @param elements - Elements being deleted
- */
-export function trackMultiDelete(elements: Element[]): void {
-  if (elements.length === 0) return;
-
-  // For multi-delete, we track each element separately
-  // This allows proper undo/redo with parent-child relationships
-  elements.forEach((element) => {
-    historyManager.addEntry({
-      type: "remove",
-      elementId: element.id,
-      data: {
-        canonicalEvents: buildCanonicalRemoveEvents([element]),
-      },
-    });
   });
 }
 

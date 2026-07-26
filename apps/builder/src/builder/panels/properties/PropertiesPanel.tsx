@@ -65,10 +65,8 @@ import type { AlignmentType } from "../../stores/utils/elementAlignment";
 import { distributeElements } from "../../stores/utils/elementDistribution";
 import type { DistributionType } from "../../stores/utils/elementDistribution";
 import {
-  trackBatchUpdate,
   trackGroupCreation,
   trackMultiPaste,
-  trackMultiDelete,
 } from "../../stores/utils/historyHelpers";
 import {
   isCanonicalRefElement,
@@ -419,6 +417,7 @@ const MultiSelectContent = memo(function MultiSelectContent({
 
   // Get actions without subscribing
   const removeElement = useStore.getState().removeElement;
+  const removeElements = useStore.getState().removeElements;
   const addElement = useStore.getState().addElement;
   const updateElement = useStore.getState().updateElement;
   const getElementsMap = useCallback(
@@ -537,10 +536,13 @@ const MultiSelectContent = memo(function MultiSelectContent({
         .map((id: string) => elementsMap.get(id))
         .filter((el): el is NonNullable<typeof el> => el !== undefined);
       if (elementsToDelete.length === 0) return;
-      trackMultiDelete(elementsToDelete);
-      await Promise.all(
-        selectedElementIds.map((id: string) => removeElement(id)),
-      );
+      // 배치 삭제 1회 = 되돌리기 1회. 요소별 removeElement 를 Promise.all 로 돌리면
+      //   (a) 각 삭제가 자기 entry 를 만들어 undo 가 요소 수만큼 늘고, (b) 각각이 오래된
+      //   currentState 를 기준으로 set 해서 마지막 commit 이 앞선 삭제를 메모리에 되살린다.
+      //   removeElements 는 단일 set + 단일 entry 다.
+      // trackMultiDelete 는 제거했다 — executeRemoval 이 canonical remove event 를 이미
+      //   기록하므로 중복이었다 (요소당 1개씩 더해져 실측 2N 엔트리: 2개 삭제 → 4 entry).
+      await removeElements(selectedElementIds);
       console.log(`✅ [DeleteAll] Deleted ${elementsToDelete.length} elements`);
     } catch (error) {
       console.error("❌ [DeleteAll] Failed:", error);
@@ -553,8 +555,9 @@ const MultiSelectContent = memo(function MultiSelectContent({
 
   const handleBatchUpdate = async (updates: Record<string, unknown>) => {
     try {
-      const elementsMap = getLegacyElementsMap();
-      trackBatchUpdate(selectedElementIds, updates, elementsMap);
+      // batchUpdateElementProps 가 canonical update event 를 담은 batch entry 1개를
+      //   스스로 기록한다 (elementUpdate.ts). 여기서 trackBatchUpdate 를 함께 부르면
+      //   같은 변경이 두 엔트리가 되어 죽은 undo 단계가 생긴다 — 호출 제거.
       const batchUpdateElementProps =
         useStore.getState().batchUpdateElementProps;
       await batchUpdateElementProps(
@@ -618,11 +621,10 @@ const MultiSelectContent = memo(function MultiSelectContent({
       const elementsMap = getLegacyElementsMap();
       const updates = alignElements(selectedElementIds, elementsMap, type);
       if (updates.length === 0) return;
-      const styleUpdates: Record<string, Record<string, unknown>> = {};
-      updates.forEach((update) => {
-        styleUpdates[update.id] = update.style;
-      });
-      trackBatchUpdate(selectedElementIds, styleUpdates, elementsMap);
+      // trackBatchUpdate 호출 제거: batchUpdateElementProps 가 요소별 merged props 로
+      //   batch entry 1개를 스스로 기록한다. 게다가 여기서 넘기던 인자는 형태부터
+      //   틀렸다 — trackBatchUpdate 의 2번째 인자는 "모든 요소에 적용할 props 패치"
+      //   인데 `{elementId: style}` 맵을 넘겨, 요소 id 가 prop 이름으로 기록됐다.
       const batchUpdateElementProps =
         useStore.getState().batchUpdateElementProps;
       const batch = updates.flatMap((update) => {
@@ -656,11 +658,10 @@ const MultiSelectContent = memo(function MultiSelectContent({
       const elementsMap = getLegacyElementsMap();
       const updates = distributeElements(selectedElementIds, elementsMap, type);
       if (updates.length === 0) return;
-      const styleUpdates: Record<string, Record<string, unknown>> = {};
-      updates.forEach((update) => {
-        styleUpdates[update.id] = update.style;
-      });
-      trackBatchUpdate(selectedElementIds, styleUpdates, elementsMap);
+      // trackBatchUpdate 호출 제거: batchUpdateElementProps 가 요소별 merged props 로
+      //   batch entry 1개를 스스로 기록한다. 게다가 여기서 넘기던 인자는 형태부터
+      //   틀렸다 — trackBatchUpdate 의 2번째 인자는 "모든 요소에 적용할 props 패치"
+      //   인데 `{elementId: style}` 맵을 넘겨, 요소 id 가 prop 이름으로 기록됐다.
       const batchUpdateElementProps =
         useStore.getState().batchUpdateElementProps;
       const batch = updates.flatMap((update) => {
