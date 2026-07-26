@@ -18,7 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 프리셋 **교체가 멱등**해졌다: 이전 프리셋의 컨테이너 키를 걷어낸 뒤 병합한다. 이전에는 `수직 2단`(flex column) → `Holy Grail`(grid) 전환 시 `flexDirection:"column"` 이 grid 컨테이너에 잔존했다.
   - 위치: `apps/builder/src/builder/panels/properties/editors/LayoutPresetSelector/{presetDefinitions,presetStyle,usePresetApply}.ts`
   - 회귀 가드: `presetDefinitions.static.test.ts` — 모든 슬롯이 주축 크기(flex) 또는 배치 5키(grid)를 선언했는지, grid line 이 트랙 범위 안인지, `gridArea` 가 `gridTemplateAreas` 에 존재하는지 단언. `defaultStyle` 은 optional 이라 누락돼도 컴파일이 통과하므로 타입으로는 못 막는다.
-  - **잔존(엔진 영역)**: grid 프리셋의 header/footer 밴드는 `auto` 행이라 빈 상태에서 여전히 높이 0 이다. 레이아웃 엔진의 grid auto 트랙 산정이 item `min-height` 를 반영하지 않는다(대조 실험: 같은 자리에 `height` 를 주면 60 이 나오고 `minHeight` 는 0). 트랙 쪽 `minmax(60px, auto)` 도 오계산(header 570)이라 프리셋 층에 CSS-정합 우회가 없다. flex 프리셋은 영향 없음.
+  - grid 프리셋의 header/footer/navigation 밴드가 빈 상태에서 높이 0 이던 잔존 결함은 아래 엔진 수정으로 함께 해소됐다.
+
+### Architecture
+
+- **레이아웃 엔진: grid `auto` 트랙이 자식의 `min-height`/`min-width` 를 반영** (CSS-GRID-1 §12.5 minimum contribution):
+  - **Why**: `tree.rs` 가 `auto` 트랙을 자식 측정값(`solve_node`)으로 치환하는데, 그 값에 자식 자신의 min/max clamp 가 빠져 있었다. 자기 min/max 를 적용하는 경로는 flex item(`flex.rs` 가 프로토콜 off 10/12 로 처리)과 root(`fixup_root_self_size`) 둘뿐이라 grid 트랙 측정만 비어 있었다. 그 결과 **콘텐츠가 없고 `min-height` 만 선언한 자식이 0 으로 측정되어 트랙 전체를 무너뜨렸다** — 대시보드 프리셋의 navigation 밴드가 데스크톱에서 `1920x0` 으로 사라지던 원인. 대조 실험으로 확정: 같은 자리에 `height:60` → 60, `minHeight:60` → 0.
+  - 수정: `LayoutTree::track_contribution()` 을 신설해 auto row/column intrinsic 측정 3지점에서 자식의 min/max 로 clamp. `solve_node` 전역은 건드리지 않는다 — 트랙 크기 산정은 CSS 가 기여값을 따로 정의하는 지점이라 국소 적용이 맞고, 전역 변경은 flex/block 경로와 이중 적용될 위험이 있다.
+  - **live 실측(1920×1080)** — 대시보드 navigation `1920x0` → `1920x60`, sidebar/content 가 `y=60` 으로 정상 하향. Holy Grail `header 60 / sidebar·content·aside 880 / footer 60`, 3열 레이아웃 `460/920/460`, 대시보드(위젯) `200/1360/280` 전부 정확.
+  - 위치: `packages/composition-engine/src/tree.rs`
+  - 회귀 테스트 3종: auto row 가 `min-height` 를 반영 / auto column 이 `min-width` 를 반영 / `max-height` 가 기여값 상한으로 걸림(clamp 양방향)
 
 ## [body 편집 계약 공백 — 페이지·프레임 오소링 컨트롤 복구] - 2026-07-26
 

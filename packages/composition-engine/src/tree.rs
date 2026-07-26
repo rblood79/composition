@@ -537,6 +537,50 @@ impl LayoutTree {
         }
     }
 
+    /// 트랙 intrinsic 측정용 자식 기여값 — 자식 **자신의** min/max 로 clamp.
+    ///
+    /// CSS-GRID-1 §12.5: `auto` 트랙 크기는 자식의 content 크기가 아니라 min/max 로 clamp 된
+    /// **기여값(contribution)** 의 최댓값이다. `solve_node` 는 노드 자신의 min/max 를 적용하지
+    /// 않는다 — flex item 은 `flex.rs` 가 프로토콜 off 10/12 로 따로 처리하고, root 는
+    /// `fixup_root_self_size` 가 처리하므로 그 두 경로만 덮여 있었다. 그래서 grid auto 트랙
+    /// 측정에서는 콘텐츠가 없고 `min-height` 만 선언한 자식이 0 으로 측정되어 트랙 전체를
+    /// 무너뜨렸다 — Frame 프리셋의 header/navigation 밴드가 캔버스에서 사라지던 원인
+    /// (2026-07-26 실측: 같은 자리에 `height` 를 주면 60, `minHeight` 는 0).
+    ///
+    /// 여기서만 clamp 하고 `solve_node` 는 건드리지 않는다. 트랙 크기 산정은 CSS 가 기여값을
+    /// 따로 정의하는 지점이라 국소 적용이 맞고, `solve_node` 전역 변경은 flex/block 경로와
+    /// 이중 적용될 위험이 있다.
+    fn track_contribution(
+        &self,
+        child: usize,
+        width: f32,
+        height: f32,
+        avail_w: f32,
+        avail_h: f32,
+    ) -> (f32, f32) {
+        let Some(node) = self.get(child) else {
+            return (width, height);
+        };
+        let ctx_w = self.ctx_for(avail_w);
+        let ctx_h = self.ctx_for(avail_h);
+        let style = &node.style;
+        let mut w = width;
+        let mut h = height;
+        if let Some(mn) = resolve_dimension_opt(style.min_width.as_deref(), &ctx_w) {
+            w = w.max(mn);
+        }
+        if let Some(mx) = resolve_dimension_opt(style.max_width.as_deref(), &ctx_w) {
+            w = w.min(mx);
+        }
+        if let Some(mn) = resolve_dimension_opt(style.min_height.as_deref(), &ctx_h) {
+            h = h.max(mn);
+        }
+        if let Some(mx) = resolve_dimension_opt(style.max_height.as_deref(), &ctx_h) {
+            h = h.min(mx);
+        }
+        (w, h)
+    }
+
     /// 서브트리(`handle` 포함)에 dirty 노드가 하나라도 있으면 true.
     ///
     /// clean 서브트리(전부 false)는 `solve_node` 가 저장된 layout 을 재사용하고
@@ -1584,7 +1628,8 @@ impl LayoutTree {
                     self.get(c).and_then(|n| n.style.grid_row_start.as_deref()),
                     i / col_count,
                 );
-                let (_, ch) = self.solve_node(c, container_w, container_h);
+                let (cw, ch) = self.solve_node(c, container_w, container_h);
+                let (_, ch) = self.track_contribution(c, cw, ch, container_w, container_h);
                 if row >= row_heights.len() {
                     row_heights.resize(row + 1, 0.0);
                 }
@@ -1606,7 +1651,8 @@ impl LayoutTree {
                     self.get(c).and_then(|n| n.style.grid_row_start.as_deref()),
                     i / col_count,
                 );
-                let (_, ch) = self.solve_node(c, container_w, container_h);
+                let (cw, ch) = self.solve_node(c, container_w, container_h);
+                let (_, ch) = self.track_contribution(c, cw, ch, container_w, container_h);
                 if row < row_intrinsic.len() {
                     row_intrinsic[row] = row_intrinsic[row].max(ch);
                 }
@@ -1645,7 +1691,8 @@ impl LayoutTree {
                     self.get(c).and_then(|n| n.style.grid_column_start.as_deref()),
                     i % col_count,
                 );
-                let (cw, _) = self.solve_node(c, container_w, container_h);
+                let (cw, ch) = self.solve_node(c, container_w, container_h);
+                let (cw, _) = self.track_contribution(c, cw, ch, container_w, container_h);
                 if col < col_intrinsic.len() {
                     col_intrinsic[col] = col_intrinsic[col].max(cw);
                 }
@@ -3804,6 +3851,72 @@ mod tests {
         assert_eq!(tree.get_layout(handles[2]).height, 8.0, "row1 track = 8");
         // track y = row0 height 20.
         assert_eq!(tree.get_layout(handles[2]).y, 20.0, "row1 y = row0 20");
+    }
+
+    /// auto 트랙 기여값은 자식 **자신의 min/max** 로 clamp 된다 (CSS-GRID-1 §12.5).
+    ///
+    /// 콘텐츠가 없고 `min-height` 만 선언한 자식은 content 측정이 0 이라, clamp 없이는
+    /// auto row 가 통째로 0 으로 무너진다. 실제로 Frame 프리셋(대시보드/Holy Grail)의
+    /// header·navigation 밴드가 이 경로로 캔버스에서 사라졌다 — 같은 자리에 `height` 를
+    /// 주면 60 이 나오고 `minHeight` 는 0 이던 비대칭(2026-07-26 실측).
+    #[test]
+    fn grid_auto_row_honors_child_min_height() {
+        let mut tree = LayoutTree::new();
+        // rows "auto 1fr": row0 = 빈 자식(min-height 60만) / row1 = 빈 자식.
+        let json = r#"[
+            {"style":{"minHeight":"60px","gridColumnStart":"1","gridColumnEnd":"2","gridRowStart":"1","gridRowEnd":"2"},"children":[]},
+            {"style":{"gridColumnStart":"1","gridColumnEnd":"2","gridRowStart":"2","gridRowEnd":"3"},"children":[]},
+            {"style":{"display":"grid","width":"400px","height":"300px","gridTemplateColumns":["1fr"],"gridTemplateRows":["auto","1fr"]},"children":[0,1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 400.0, 300.0);
+        assert_eq!(
+            tree.get_layout(handles[0]).height,
+            60.0,
+            "빈 자식의 min-height 가 auto row 기여값 — clamp 누락 시 0"
+        );
+        assert_eq!(
+            tree.get_layout(handles[1]).height,
+            240.0,
+            "1fr row = 남은 높이 300 - 60"
+        );
+        assert_eq!(tree.get_layout(handles[1]).y, 60.0, "row1 y = row0 높이");
+    }
+
+    /// auto **column** 도 같은 계약 — 빈 자식의 `min-width` 가 트랙 기여값.
+    #[test]
+    fn grid_auto_column_honors_child_min_width() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"minWidth":"120px","gridColumnStart":"1","gridColumnEnd":"2","gridRowStart":"1","gridRowEnd":"2"},"children":[]},
+            {"style":{"gridColumnStart":"2","gridColumnEnd":"3","gridRowStart":"1","gridRowEnd":"2"},"children":[]},
+            {"style":{"display":"grid","width":"400px","height":"100px","gridTemplateColumns":["auto","1fr"],"gridTemplateRows":["1fr"]},"children":[0,1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 400.0, 100.0);
+        assert_eq!(
+            tree.get_layout(handles[0]).width,
+            120.0,
+            "빈 자식의 min-width 가 auto column 기여값"
+        );
+        assert_eq!(tree.get_layout(handles[1]).x, 120.0, "1fr col x = auto col 폭");
+    }
+
+    /// `max-height` 는 기여값을 **낮추는** 방향으로도 걸린다 (clamp 는 양방향).
+    #[test]
+    fn grid_auto_row_clamps_child_contribution_by_max_height() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"height":"200px","maxHeight":"80px","gridColumnStart":"1","gridColumnEnd":"2","gridRowStart":"1","gridRowEnd":"2"},"children":[]},
+            {"style":{"display":"grid","width":"400px","gridTemplateColumns":["1fr"],"gridTemplateRows":["auto"]},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 400.0, -1.0);
+        assert_eq!(
+            tree.get_layout(handles[1]).height,
+            80.0,
+            "max-height 가 auto row 기여값 상한"
+        );
     }
 
     /// 명시 auto **column** (`gridTemplateColumns:["1fr","auto"]`) → auto col =
