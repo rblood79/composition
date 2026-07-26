@@ -104,6 +104,14 @@ export class HistoryManager {
   private isInitialized = false;
   private initPromise: Promise<void> | null = null;
   private listeners: Set<() => void> = new Set();
+  /** 트랜잭션 중첩 깊이 — 0 이면 트랜잭션 없음 */
+  private transactionDepth = 0;
+  /** 트랜잭션 중 모은 canonical event (시간순) */
+  private transactionBuffer: CanonicalHistoryNodeEvent[] = [];
+  private transactionMeta: {
+    type: HistoryEntry["type"];
+    elementId: string;
+  } | null = null;
 
   constructor() {
     // IndexedDB 초기화 (백그라운드)
@@ -220,7 +228,85 @@ export class HistoryManager {
   /**
    * 히스토리 엔트리 추가 (CommandDataStore 통합)
    */
+  /**
+   * 트랜잭션 시작 — 커밋까지의 모든 `addEntry` 를 **엔트리 1개**로 병합한다.
+   *
+   * 한 번의 사용자 조작이 여러 mutation 으로 나뉘는 경우(프리셋 적용 = 슬롯 제거 +
+   * 슬롯 삽입 + body props + body responsive)에 쓴다. mutation 함수를 고치지 않고
+   * 호출부에서 감싸는 방식이라 어느 조합에도 적용된다.
+   *
+   * 병합이 성립하는 근거: undo/redo 적용부(`applyCanonicalHistoryEventsToDocument`)가
+   * canonicalEvents 를 direction 에 따라 **역순 + 역연산** 으로 처리하므로, 시간순으로
+   * 이어 붙인 event 배열이 그대로 하나의 되돌리기 단위가 된다. `entry.type` 은
+   * canonicalEvents 가 있으면 apply·DB sync 양쪽에서 우회되므로 병합 엔트리의 타입은
+   * 표시용이다.
+   *
+   * 중첩은 depth 로 흡수한다 — 최외곽 커밋에서만 엔트리가 생긴다.
+   */
+  beginTransaction(meta: {
+    type: HistoryEntry["type"];
+    elementId: string;
+  }): void {
+    if (this.transactionDepth === 0) {
+      this.transactionBuffer = [];
+      this.transactionMeta = meta;
+    }
+    this.transactionDepth += 1;
+  }
+
+  /**
+   * 트랜잭션 커밋 — 버퍼가 비어 있으면 아무 엔트리도 만들지 않는다.
+   *
+   * **호출부는 `finally` 에서 부르는 것을 권장한다** (abort 아님): 예외나 조기 return
+   * 으로 중단돼도 그 시점까지 **실제로 일어난** mutation 은 되돌릴 수 있어야 한다.
+   * 버려버리면 기록 없는 변경이 남는다.
+   */
+  commitTransaction(): void {
+    if (this.transactionDepth === 0) {
+      console.warn("[History] commitTransaction: 열린 트랜잭션 없음");
+      return;
+    }
+    this.transactionDepth -= 1;
+    if (this.transactionDepth > 0) return; // 중첩 — 최외곽에서만 확정
+
+    const events = this.transactionBuffer;
+    const meta = this.transactionMeta;
+    this.transactionBuffer = [];
+    this.transactionMeta = null;
+
+    if (!events.length || !meta) return;
+    this.addEntry({
+      type: meta.type,
+      elementId: meta.elementId,
+      data: { canonicalEvents: events },
+    });
+  }
+
+  /** 열린 트랜잭션이 있는가 (테스트/진단용). */
+  hasOpenTransaction(): boolean {
+    return this.transactionDepth > 0;
+  }
+
   addEntry(entry: Omit<HistoryEntry, "id" | "timestamp">): void {
+    // 트랜잭션 중이면 엔트리를 만들지 않고 event 만 모은다.
+    // depth 를 먼저 0 으로 만든 뒤 addEntry 를 부르는 commitTransaction 은 여기에
+    // 걸리지 않는다.
+    if (this.transactionDepth > 0) {
+      const events = entry.data.canonicalEvents;
+      if (events?.length) {
+        this.transactionBuffer.push(...events);
+      } else {
+        // canonicalEvents 없는 entry 는 병합할 수 없다 — 조용히 삼키면 그 변경이
+        // 되돌리기 불가가 되므로 드러낸다.
+        console.warn(
+          "[History] 트랜잭션 중 canonicalEvents 없는 entry — 병합 불가로 누락:",
+          entry.type,
+          entry.elementId,
+        );
+      }
+      return;
+    }
+
     if (!this.currentPageId) {
       console.warn("[History] addEntry skipped: no currentPageId");
       return;

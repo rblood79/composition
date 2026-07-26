@@ -134,3 +134,35 @@ describe("LayoutPresetSelector usePresetApply replace contract", () => {
     ).toEqual(["frame-body", "text-content"]);
   });
 });
+
+describe("프리셋 적용 history 단일 엔트리 계약 (ADR-168 후속)", () => {
+  it("applyPreset 을 history 트랜잭션으로 감싸고 finally 에서 커밋한다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "./usePresetApply.ts"),
+      "utf-8",
+    );
+
+    // 프리셋 적용은 4 갈래 mutation (슬롯 제거 / 슬롯 삽입 / body props / body
+    // responsive) 이라, 감싸지 않으면 undo 4회가 필요해진다.
+    expect(source).toContain("historyManager.beginTransaction({");
+    expect(source).toContain("historyManager.commitTransaction();");
+
+    const beginIndex = source.indexOf("historyManager.beginTransaction({");
+    const tryIndex = source.indexOf("try {", beginIndex);
+    const finallyIndex = source.indexOf("} finally {", tryIndex);
+    const commitIndex = source.indexOf(
+      "historyManager.commitTransaction();",
+      finallyIndex,
+    );
+
+    // begin 은 try **앞**에 (try 안에서 열면 예외 시 열린 채로 남는다)
+    expect(beginIndex).toBeGreaterThan(0);
+    expect(tryIndex).toBeGreaterThan(beginIndex);
+    // commit 은 finally 안에 — 조기 return·예외에도 그 시점까지의 mutation 은 기록돼야 한다
+    expect(finallyIndex).toBeGreaterThan(tryIndex);
+    expect(commitIndex).toBeGreaterThan(finallyIndex);
+
+    // abort 로 버리지 않는다: 이미 일어난 mutation 을 기록 없이 남기면 되돌릴 수 없다
+    expect(source).not.toContain("abortTransaction");
+  });
+});

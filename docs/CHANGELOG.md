@@ -45,7 +45,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Undo 가 breakpoint override 를 되돌리지 않던 문제**:
   - **Why**: `updateElement` 의 history 기록 조건이 `props` 존재 여부였다. `responsive` 는 top-level 필드라 props 없는 write 가 되어 **history entry 가 아예 생기지 않았다**. 기록됐더라도 update event 는 props 만 실어 나르므로(`replaceNodeProps`) `responsive` 는 undo 대상에서 빠진다.
   - props 밖 canonical 필드(`responsive`/`fills`) 변경은 full node 를 담는 replace event 쌍으로 기록한다. 판정은 `canonicalHistoryEvents.hasNonPropsCanonicalHistoryChange` **단일 소스** — 이 규칙이 `inspectorActions` 안에만 인라인으로 있던 탓에 일반 경로가 같은 처리를 못 갖고 있었다.
-  - **실측**: 프리셋 적용 → undo 4회로 최초 상태 완전 복원 (undo2 에서 `responsive` → `null`). 참고로 프리셋 적용 1회는 history entry 4개를 만든다 (슬롯 제거 / 슬롯 삽입 / body props / body responsive).
+  - **실측**: undo 2회 지점에서 `responsive` → `null` 복원.
+- **프리셋 적용을 되돌리려면 undo 를 4번 눌러야 했던 문제**:
+  - **Why**: 프리셋 적용 1회가 네 갈래 mutation(슬롯 제거 / 슬롯 삽입 / body props / body responsive)이라 history entry 도 4개가 쌓였다. 사용자에겐 한 번의 조작인데 되돌리기 단위가 4개였다.
+  - `HistoryManager` 에 트랜잭션을 도입 — 열려 있는 동안 `addEntry` 는 엔트리를 만들지 않고 `canonicalEvents` 를 시간순으로 모으고, 커밋에서 엔트리 1개로 확정한다. mutation 함수는 그대로 두고 호출부에서 감싸는 방식이라 다른 다단계 조작에도 쓸 수 있다.
+  - 커밋은 `finally` 에 둔다(중단 시 버리지 않음) — 이미 일어난 변경을 기록 없이 남기면 되돌릴 수 없다.
+  - **실측**: 목록-상세 적용 → **undo 1회로 완전 복원**(`appliedPreset`·`flexDirection`·슬롯·`responsive` 4축), **redo 1회로 완전 재적용**, 재 undo 로 원상 복귀.
 - **tablet override 가 캐시 히트로 흡수되던 문제** (R5): `LAYOUT_STYLE_KEYS` 에 `gridColumnEnd`·`gridRowEnd`·`gridTemplateAreas` 누락 — `*Start` 와 트랙 템플릿만 등재돼 있어 `End` 만 바뀌는 override 가 무반영이었다.
 
 ### Architecture

@@ -453,7 +453,33 @@ Phase 2 §4-5 에서 이연했던 잔존 항목을 해소했다.
 
 **live 확증**: 목록-상세 적용 → undo 추적 — undo1 슬롯 삽입 취소 / **undo2 에서 `responsive` → `null`** / undo3 `flexDirection` row→column / undo4 원래 슬롯(header·content) 복원. 4회로 최초 상태와 완전 동일.
 
-> **관측 (본 변경과 무관한 선행 사항)**: 프리셋 적용 1회가 history entry **4개**를 만든다. `index.tsx` 헤더 주석의 "프리셋 적용 (History 단일 엔트리)" 는 stale 하다 — 슬롯 제거 / 슬롯 삽입 / body props / body responsive 가 각각 기록된다. 단일 엔트리로 묶으려면 batch/transaction history API 가 필요해 본 수정 범위 밖이다.
+### 7-4. 후속 해소 — 프리셋 적용을 history 단일 엔트리로 (2026-07-26)
+
+§7-3 직후 관측된 사항: 프리셋 적용 1회가 history entry **4개**를 만들어 완전 되돌리기에 undo 4회가 필요했다 (슬롯 제거 / 슬롯 삽입 / body props / body responsive). `index.tsx` 헤더 주석의 "프리셋 적용 (History 단일 엔트리)" 는 stale 했다.
+
+**해결 — `HistoryManager` 트랜잭션.** mutation 함수를 고치지 않고 호출부에서 감싸는 방식이다:
+
+```ts
+historyManager.beginTransaction({ type: "batch", elementId: bodyElementId });
+try { /* 4 갈래 mutation */ } finally { historyManager.commitTransaction(); }
+```
+
+트랜잭션이 열려 있으면 `addEntry` 는 엔트리를 만들지 않고 `canonicalEvents` 만 **시간순으로** 버퍼에 모으고, 최외곽 커밋에서 엔트리 1개로 확정한다.
+
+**병합이 성립하는 근거** (설계 확인 후 착수): `applyCanonicalHistoryEventsToDocument` 가 undo 방향에서 event 를 **역순 + 역연산**으로 처리하므로, 시간순 배열이 그대로 하나의 되돌리기 단위가 된다. 그리고 `entry.type` 은 `canonicalEvents` 가 있으면 apply(`applyHistoryEntry`) 와 DB sync(`syncDatabaseForEntries`) 양쪽에서 **우회되므로** 혼합 연산을 한 타입 아래 묶어도 분기 오류가 없다 — 병합 엔트리의 `type: "batch"` 는 표시용이다.
+
+**설계 판단 2건**:
+
+- **커밋을 `finally` 에 둔다 (abort 아님)**. 조기 return 이나 예외로 중단돼도 그 시점까지 **실제로 일어난** mutation 은 되돌릴 수 있어야 한다. 버리면 기록 없는 변경이 남아 더 나쁘다. 그래서 `abortTransaction` API 자체를 만들지 않았다 (정적 가드가 `abortTransaction` 부재를 단언).
+- **중첩은 depth 로 흡수**. 내부 커밋은 확정하지 않고 최외곽에서만 엔트리를 만든다. meta 는 최외곽 `begin` 것을 쓴다.
+
+**`canonicalEvents` 없는 entry 는 경고**한다. 트랜잭션 중 그런 entry 가 오면 병합할 수 없어 누락되므로 조용히 삼키지 않는다 (현행 mutation 은 전부 event 부착이라 실제 발생은 없다).
+
+**한계**: 트랜잭션이 `await` 를 걸쳐 열려 있는 동안 **무관한 mutation 이 끼어들면** 같은 엔트리에 병합된다. 프리셋 적용 중에는 `isApplying` 이 카드를 비활성화하고 창이 짧아 실사용 위험은 낮으나, 트랜잭션 구간은 최소로 유지해야 한다.
+
+**회귀 가드**: `historyTransaction.test.ts` (병합·event 순서 / 중첩 / 빈 버퍼 no-op / event 없는 entry 경고 / 열린 트랜잭션 없는 커밋 / 트랜잭션 밖 종전 동작 6건) + `usePresetApply.static.test.ts` (begin 이 try 앞 / commit 이 finally 안 / abort 부재).
+
+**live 확증**: 목록-상세 적용 → **undo 1회로 완전 복원** (`appliedPreset`·`flexDirection`·슬롯·`responsive` 4축 전부 최초값), **redo 1회로 완전 재적용**, 재 undo 로 원상 복귀. 콘솔 경고 0건.
 
 
 ## 8. 파일 변경 인벤토리

@@ -12,6 +12,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useStore } from "../../../../stores";
+import { historyManager } from "../../../../stores/history";
 import {
   useCanonicalFrameElementScopes,
   visitCanonicalDocumentElements,
@@ -325,6 +326,17 @@ export function usePresetApply({
 
       setIsApplying(true);
 
+      // 프리셋 적용은 슬롯 제거 + 슬롯 삽입 + body props + body responsive 네 갈래
+      // mutation 이지만 사용자에겐 **한 번의 조작**이다. 트랜잭션으로 감싸 undo 1회로
+      // 되돌아가게 한다 (이전엔 4회 필요).
+      //
+      // 커밋을 `finally` 에 두는 이유: 조기 return 이나 예외로 중단돼도 그 시점까지
+      // 실제로 일어난 mutation 은 되돌릴 수 있어야 한다. 버리면 기록 없는 변경이 남는다.
+      historyManager.beginTransaction({
+        type: "batch",
+        elementId: bodyElementId,
+      });
+
       try {
         // ============================================
         // Step 1: 기존 Slot 처리
@@ -427,7 +439,8 @@ export function usePresetApply({
           //
           // props 쓰기와 분리한 이유: updateElement 는 props 를 전체 교체하므로
           // (elementUpdate.ts) 여기서 props 를 함께 보내면 merge 의미가 사라진다.
-          // 최상위 필드만 보내면 history 기록도 건너뛴다 — 아래 residual 참조.
+          // 최상위 필드만 보내는 경로도 history 에 남는다 — `updateElement` 가
+          // props 밖 canonical 필드를 replace event 쌍으로 기록한다.
           const nextResponsive = mergePresetResponsive(
             body.responsive,
             toResponsiveConfig(preset.responsiveContainerStyle),
@@ -456,6 +469,7 @@ export function usePresetApply({
         console.error("[Preset] Failed to apply preset:", error);
         throw error;
       } finally {
+        historyManager.commitTransaction();
         setIsApplying(false);
       }
     },
