@@ -18,7 +18,7 @@ Frame preset 9개 중 **6개가 mobile(390px)에서 깨진다.** 컨테이너 �
 | dashboard          | `240px 1fr`       | 콘텐츠 150px        |
 | dashboard-widgets  | `200px 1fr 280px` | 고정폭 합 480 > 390 |
 
-정상은 `fullscreen` / `vertical-2` / `vertical-3` 3개뿐이며, 셋 다 flex column 이라 폭에 무관하다. `dashboard-widgets` 는 tablet(768)에서도 콘텐츠가 288px 로 압박된다.
+정상은 `fullscreen` / `vertical-2` / `vertical-3` 3개뿐이다. `vertical-2`/`vertical-3` 는 flex column 이라 폭에 무관하고, `fullscreen` 은 `display:flex` 만 선언(방향 기본 `row`)하되 **슬롯이 1개라 방향과 무관**하다. `dashboard-widgets` 는 tablet(768)에서도 콘텐츠가 288px 로 압박된다.
 
 원인은 단일하다 — `LayoutPreset.containerStyle` 이 **단일 값**이라 breakpoint 개념이 없고, `usePresetApply` 는 base `props.style` 만 쓰고 `node.responsive` 를 건드리지 않는다.
 
@@ -68,12 +68,12 @@ ADR-154 개정 1 은 breakpoint override 대상을 `RESPONSIVE_ELIGIBLE_STYLE_PR
 
 ### 대안 A: grid 유지 + 반응형 eligibility 확장 (채택)
 
-컨테이너를 desktop·tablet 에서 grid 로 두고 트랙만 BP 별로 재정의, mobile 에서만 `display: grid → flex column` 으로 전환. grid 8키를 override 대상에 추가한다.
+컨테이너를 desktop·tablet 에서 grid 로 두고 트랙만 BP 별로 재정의, mobile 에서만 `display: grid → flex column` 으로 전환. grid 7키를 override 대상에 추가한다.
 
 - 위험: 기술(LOW) — `display`/`flexDirection` 은 이미 eligible + 캐시 키 + 엔진 full-rebuild 트리거. grid 키 추가는 집합 확장 1건
 - 위험: 성능(LOW) — BP 전환 시에만 full rebuild. desktop 경로 비용 0 (resolve 가 identity 반환)
 - 위험: 유지보수(LOW) — 프리셋 정의가 3 BP 계약의 단일 소스. 정적 테스트로 계약 확증 가능
-- 위험: 마이그레이션(LOW) — 기존 프레임은 base style 이 그대로 남아 레이아웃 유지. 롤백은 집합에서 8키 제거
+- 위험: 마이그레이션(LOW) — 기존 프레임은 base style 이 그대로 남아 레이아웃 유지. 롤백은 집합에서 7키 제거
 
 ### 대안 B: 전 프리셋을 중첩 flex 로 재작성 (기각)
 
@@ -133,11 +133,13 @@ grid 를 버리고 모든 레이아웃을 중첩 flex 로 표현. `flexDirection
 `RESPONSIVE_ELIGIBLE_STYLE_PROPS` 를 두 집합의 합집합으로 분할한다.
 
 - `SECTION_EDITABLE_RESPONSIVE_PROPS` — Style 패널이 편집하는 32키 (ADR-154 개정 1 의 원래 집합)
-- `PRESET_AUTHORED_RESPONSIVE_STYLE_PROPS` — 프리셋만 authoring 하는 grid 8키 (편집 UI 없음)
+- `PRESET_AUTHORED_RESPONSIVE_STYLE_PROPS` — 프리셋만 authoring 하는 grid **7키** (편집 UI 없음)
+
+`gridArea` 는 집합에서 **제외**한다. 리뷰 round 1(M3)에서 확인된 바 — `responsiveCss.ts:106` 은 `Object.keys` 순서로 emit 하고 모든 선언이 `!important` 동일 특정도라 **source order 가 승자를 정하므로**, 같은 BP 에서 `gridArea` 와 longhand 를 함께 override 하면 뒤에 온 shorthand 가 longhand 를 리셋한다. 대칭·future-proofing 사유로 넣으면 도달 가능한 결함 경로만 여는 셈이라 YAGNI 로 배제한다. shorthand override 가 필요해지면 그때 순서 계약과 함께 도입한다.
 
 드리프트 가드는 **약화되지 않는다.** 단일 단언을 2개로 분리하되(섹션 키 ≡ SECTION_EDITABLE, 차집합 ≡ PRESET_AUTHORED), 논리곱은 원래 단언보다 약하지 않다 — 어떤 키도 명시 선언 없이 eligible 이 될 수 없다.
 
-UI 오염이 없음을 확인했다: `ResponsiveSection` 의 "Add override" picker 는 eligible 집합을 순회하지 않고 자체 목록을 쓴다(`ResponsiveSection.tsx:43-46`). grid 8키는 편집 UI 에 노출되지 않는다.
+UI 오염이 없음을 확인했다: `ResponsiveSection` 의 "Add override" picker 는 eligible 집합을 순회하지 않고 자체 목록을 쓴다(`ResponsiveSection.tsx:43-46`). grid 7키는 편집 UI 에 노출되지 않는다.
 
 ### 기각된 대안의 기각 사유
 
@@ -166,28 +168,31 @@ UI 오염이 없음을 확인했다: `ResponsiveSection` 의 "Add override" pick
 
 ## Risks
 
-| ID  | 위험                                                                                          | 심각도 | 대응                                                                                                               |
-| --- | --------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------ |
-| R1  | 프리셋 교체 시 이전 프리셋의 responsive override 잔존 → 비멱등                                |  HIGH  | `stripPresetContainerStyle` 의 responsive 판 신설. **base·responsive 정리 대상을 같은 상수에서 파생** (G2 로 확증) |
-| R2  | mobile flex 전환 시 슬롯의 grid 배치 속성 잔존                                                |  MED   | flex 가 무시하므로 무해하나 DOM·Skia 양쪽 실측 (G1)                                                                |
-| R3  | 엔진 grid 함수 표현 신뢰도 미확인                                                             |  MED   | `repeat`/`minmax` 미사용, 트랙 명시 나열로 회피 (§Decision)                                                        |
-| R4  | 썸네일 파생 함수가 실제 레이아웃과 어긋남 — 이중 진실을 옮기기만 한 결과                      |  MED   | G3 — 썸네일 비율 ↔ 실측 bounds 비율 대조를 Gate 로 강제                                                            |
-| R5  | `LAYOUT_STYLE_KEYS` 4키 보강 누락 시 tablet override 가 캐시 히트로 흡수 (ADR-156 R6 과 동형) |  MED   | Phase 1 에 포함 + G1 tablet 조합 실측이 검출                                                                       |
-| R6  | `complex-3col` 삭제로 기존 프레임의 "적용됨" 배지 소실                                        |  LOW   | 레이아웃 자체는 유지. dev 단계라 BC migration 미수행                                                               |
+| ID  | 위험                                                                                                                                  | 심각도 | 대응                                                                                                                                                                                                   |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R1  | 프리셋 교체 시 이전 프리셋의 responsive override 잔존 → 비멱등                                                                        |  HIGH  | `stripPresetContainerStyle` 의 responsive 판 신설. **base·responsive 정리 대상을 같은 상수에서 파생** (G2 로 확증)                                                                                     |
+| R2  | mobile flex 전환 시 슬롯의 grid 배치 속성 잔존                                                                                        |  MED   | flex 가 무시하므로 무해하나 DOM·Skia 양쪽 실측 (G1)                                                                                                                                                    |
+| R3  | 엔진 grid 함수 표현 신뢰도 미확인                                                                                                     |  MED   | `repeat`/`minmax` 미사용, 트랙 명시 나열로 회피 (§Decision)                                                                                                                                            |
+| R4  | 썸네일 파생 함수가 실제 레이아웃과 어긋남 — 이중 진실을 옮기기만 한 결과                                                              |  MED   | G3 — 썸네일 비율 ↔ 실측 bounds 비율 대조를 Gate 로 강제                                                                                                                                                |
+| R5  | `LAYOUT_STYLE_KEYS` 4키 보강 누락 시 tablet override 가 캐시 히트로 흡수 (ADR-156 R6 과 동형)                                         |  MED   | Phase 1 에 포함 + G1 tablet 조합 실측이 검출                                                                                                                                                           |
+| R6  | `complex-3col` 삭제로 기존 프레임의 "적용됨" 배지 소실                                                                                |  LOW   | 레이아웃 자체는 유지. dev 단계라 BC migration 미수행                                                                                                                                                   |
+| R7  | publish `@media` 에서 grid line 숫자 값에 `px` 가 붙어 선언 무효화 → DOM 은 auto-placement / Skia 는 정상 배치 = **배포 산출물 발산** |  MED   | `UNITLESS_PROPS`(`responsiveCss.ts:45-56`)에 `gridColumnStart/End`·`gridRowStart/End` 4키 추가 — Phase 1 편입. G6 이 숫자 authoring 도 검증                                                            |
+| R8  | grid **item** placement 단독 변경이 full rebuild 를 발동시키지 못해 조용히 무반영                                                     |  MED   | `GRID_REBUILD_TRIGGER_KEYS` 는 컨테이너 키만 담고 검사가 `isGridDisplay` 게이트 안에 있음. "item placement override 는 컨테이너 템플릿 override 를 동반" 을 breakdown §5-2 계약으로 명시 + 정적 테스트 |
 
-잔존 HIGH 위험 1건(R1) — G2 로 관리한다.
+잔존 HIGH 위험 1건(R1) — G2 로 관리한다. R7·R8 은 리뷰 round 1 에서 발견된 누락 위험이다 (§Gates G6·G8).
 
 ## Gates
 
-| Gate | 시점         | 통과 조건                                                                                | 실패 시 대안                                                             |
-| ---- | ------------ | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| G1   | Phase 5      | 10 프리셋 × 3 BP = **30 조합** 실측: 고정폭 합 > 뷰포트 0건 + 콘텐츠 슬롯 폭·높이 0 없음 | 실패 프리셋의 BP 계약 재산정. 3회 초과 실패 시 해당 프리셋 카탈로그 제외 |
-| G2   | Phase 5 (R1) | 프리셋 A→B→A 교체 후 `style`+`responsive` 가 A 최초 적용 상태와 **정확히 동일**          | 정리 대상 상수 단일화 재점검. 미해소 시 교체를 "전체 재적용" 으로 축소   |
-| G3   | Phase 5 (R4) | `derivePreviewAreas` 산출 비율 ↔ 실측 bounds 비율 일치                                   | 파생 실패 프리셋은 썸네일에 근사 표기 명시                               |
-| G4   | Phase 1      | 드리프트 가드 2단언 통과 + 명시 선언 없는 키가 eligible 될 수 없음 (HC4)                 | 집합 분할 철회, 단일 집합 유지 + 프리셋을 flex 전용으로 축소             |
-| G5   | Phase 4      | 프리셋 썸네일이 light/dark 양쪽에서 테마 추종 (P-2 결함 해소)                            | 시맨틱 토큰 매핑 재선정                                                  |
-| G6   | Phase 5      | publish 산출 CSS 에 `@media` 규칙 생성 (HC5)                                             | 프리셋 반응형을 빌더 전용으로 격하하고 publish 경로 별도 판정            |
-| G7   | 각 Phase     | `pnpm type-check` 0 회귀 + 관련 vitest PASS (HC6)                                        | 해당 Phase 롤백                                                          |
+| Gate | 시점         | 통과 조건                                                                                                                                          | 실패 시 대안                                                             |
+| ---- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| G1   | Phase 5      | 10 프리셋 × 3 BP = **30 조합** 실측: 고정폭 합 > 뷰포트 0건 + 콘텐츠 슬롯 폭·높이 0 없음                                                           | 실패 프리셋의 BP 계약 재산정. 3회 초과 실패 시 해당 프리셋 카탈로그 제외 |
+| G2   | Phase 5 (R1) | 프리셋 A→B→A 교체 후 `style`+`responsive` 가 A 최초 적용 상태와 **정확히 동일**                                                                    | 정리 대상 상수 단일화 재점검. 미해소 시 교체를 "전체 재적용" 으로 축소   |
+| G3   | Phase 5 (R4) | `derivePreviewAreas` 산출 비율 ↔ 실측 bounds 비율 일치                                                                                             | 파생 실패 프리셋은 썸네일에 근사 표기 명시                               |
+| G4   | Phase 1      | 드리프트 가드 2단언 통과 + 명시 선언 없는 키가 eligible 될 수 없음 (HC4)                                                                           | 집합 분할 철회, 단일 집합 유지 + 프리셋을 flex 전용으로 축소             |
+| G5   | Phase 4      | 프리셋 썸네일이 light/dark 양쪽에서 테마 추종 (P-2 결함 해소)                                                                                      | 시맨틱 토큰 매핑 재선정                                                  |
+| G6   | Phase 5 (R7) | publish 산출 CSS 에 `@media` 규칙 생성 (HC5) + **grid line 을 숫자로 authoring 해도 유효 CSS** (`1px` 아님) + 해당 BP 의 DOM 배치 ↔ Skia 배치 일치 | 프리셋 반응형을 빌더 전용으로 격하하고 publish 경로 별도 판정            |
+| G7   | 각 Phase     | `pnpm type-check` 0 회귀 + 관련 vitest PASS (HC6)                                                                                                  | 해당 Phase 롤백                                                          |
+| G8   | Phase 3 (R8) | grid item placement override 를 가진 프리셋이 **컨테이너 템플릿 override 를 동반**함을 정적 테스트가 확증                                          | 계약 대신 `GRID_REBUILD_TRIGGER_KEYS` 검사를 item 축까지 확장            |
 
 ## Consequences
 

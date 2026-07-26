@@ -59,7 +59,7 @@
 | `display` 변경 → 엔진 full rebuild             | `fullTreeLayout.ts:2429`            | ✅ `prevParsed.display !== curDisplay`                     |
 | publish CSS 가 responsive → `@media` 생성      | `responsiveCss.ts:101-121`          | ✅ 단 `isResponsiveEligibleStyleProp` 필터 통과 키만       |
 | ResponsiveSection picker 가 eligible 전수 순회 | `ResponsiveSection.tsx:43-46`       | ✅ **순회 안 함** (자체 목록) → grid 키 추가해도 UI 미노출 |
-| grid 키 eligibility                            | `responsive.types.ts:128-163`       | ❌ 8키 전부 미등재 — Phase 1 대상                          |
+| grid 키 eligibility                            | `responsive.types.ts:128-163`       | ❌ 7키 전부 미등재 — Phase 1 대상                          |
 | body top-level 필드 write 경로                 | `elements.ts:194`                   | ✅ `updateElement(id, Partial<Element>)`                   |
 
 ## 3. Phase 1 — 반응형 eligibility 확장 + guard 2분할
@@ -82,7 +82,6 @@ export const PRESET_AUTHORED_RESPONSIVE_STYLE_PROPS: ReadonlySet<string> = new S
   "gridTemplateColumns",
   "gridTemplateRows",
   "gridTemplateAreas",
-  "gridArea",
   "gridColumnStart",
   "gridColumnEnd",
   "gridRowStart",
@@ -95,7 +94,7 @@ export const RESPONSIVE_ELIGIBLE_STYLE_PROPS: ReadonlySet<string> = new Set([
 ]);
 ```
 
-`gridArea` 는 단독으로는 불필요하나(현행 프리셋의 tablet override 가 areas 이름을 유지) **longhand 4키만 eligible 이고 shorthand 는 아닌 비대칭**이 향후 함정이 되므로 함께 포함한다.
+`gridArea`(shorthand)는 집합에서 **제외**한다 — 리뷰 round 1 M3. `responsiveCss.ts:106` 은 `Object.keys` 순서로 emit 하고 모든 선언이 `!important` 동일 특정도라 **source order 가 승자를 정하므로**, 같은 BP 에서 shorthand 와 longhand 를 함께 override 하면 뒤에 온 shorthand 가 longhand 를 리셋한다. 초안은 “대칭·future-proofing” 사유로 포함했으나 그건 도달 가능한 결함 경로만 여는 선택이라 YAGNI 로 배제한다. shorthand override 가 필요해지면 그때 순서 계약과 함께 도입한다.
 
 ### 3-2. Guard 재구성 (보호 범위 불변)
 
@@ -114,9 +113,15 @@ export const RESPONSIVE_ELIGIBLE_STYLE_PROPS: ReadonlySet<string> = new Set([
 
 ### 3-4. `LAYOUT_STYLE_KEYS` 보강
 
-`layoutCache.ts` 에 4키 추가: `gridColumnEnd`, `gridRowEnd`, `gridTemplateAreas`, `gridArea`.
+`layoutCache.ts` 에 3키 추가: `gridColumnEnd`, `gridRowEnd`, `gridTemplateAreas`.
 
 현행은 Start 계열과 cols/rows 템플릿만 등재돼, tablet override 가 End 만 바꾸는 경우 시그니처 불변 → 캐시 히트로 흡수된다 (ADR-156 R6 과 동형 결함).
+
+### 3-5. `UNITLESS_PROPS` 에 grid line longhand 4키 추가 (R7 — 리뷰 round 1 M1)
+
+`packages/shared/src/utils/responsiveCss.ts:45-56` 의 `UNITLESS_PROPS` 는 `gridColumn`/`gridRow` **shorthand** 만 담고 있다. `formatCssValue`(`:67-71`)가 숫자 값에 `px` 를 부착하므로 `gridColumnStart: 1` 같은 숫자 authoring 이 `grid-column-start:1px !important` 로 emit 되어 **선언이 무효화**된다 → DOM 은 auto-placement / Skia 는 numeric line 으로 정상 배치 → **배포 산출물에서 DOM↔Skia 발산**.
+
+`gridColumnStart` / `gridColumnEnd` / `gridRowStart` / `gridRowEnd` 4키를 `UNITLESS_PROPS` 에 추가한다. `gridSlot()` 이 `String(...)` 으로 문자열화해 현행 authoring 은 우연히 안전하지만, `CSSProperties` 가 `string | number` 를 허용하고 **base inline(React auto-unit)은 숫자도 정상 처리**하므로 base↔override 비대칭을 남기면 안 된다. `overflow`/`overflowX`(ADR-156 R6)와 동형 결함.
 
 ## 4. Phase 2 — 프리셋 정의 구조 전환
 
@@ -232,6 +237,16 @@ Step 4(body) / Step 5(slot) 를 아래로 바꾼다.
 
 **고정폭 합이 BP 폭을 넘는 조합 0건.**
 
+#### 계약 — item placement override 는 컨테이너 템플릿 override 를 동반한다 (R8, 리뷰 round 1 M2)
+
+`GRID_REBUILD_TRIGGER_KEYS`(`fullTreeLayout.ts:503-524`)는 grid **컨테이너** 키 20개만 담고 있고, 그 검사 자체가 `isGridDisplay(curDisplay)` 게이트(`:2437`) 안에 있다. 따라서 grid **item** 의 `gridColumnStart/End`·`gridRowStart/End` 만 바뀌면 item 은 grid 컨테이너가 아니라 게이트를 통과하지 못하고 `updateStyleRaw` 증분으로 처리된다 — 바로 위 주석(`:2433-2436`)이 `updateStyleRaw` 의 grid placement 캐시 무효화 실패를 명시한다. 즉 **조용히 무반영**된다.
+
+현재 item placement 를 바꾸는 유일한 프리셋(`dashboard-widgets` tablet)은 컨테이너 템플릿도 함께 바꿔서 full rebuild 가 걸린다 — **우연한 결합**이다. 이를 계약으로 고정한다:
+
+> 어떤 프리셋의 어떤 BP override 가 슬롯의 grid placement 키를 포함하면, 같은 BP 의 `responsiveContainerStyle` 이 `gridTemplateColumns` / `gridTemplateRows` / `gridTemplateAreas` 중 최소 1개를 포함해야 한다.
+
+`presetDefinitions.static.test.ts` 가 이를 단언한다(G8). 계약이 부담이 되면 대안은 `GRID_REBUILD_TRIGGER_KEYS` 검사를 item 축까지 확장하는 것이며, 그때는 엔진 rebuild 빈도 증가를 함께 측정한다.
+
 ### 5-3. grid 함수 표현 회피 (R4)
 
 `repeat()` / `minmax()` **미사용**. 2026-07-25 실측에서 `minmax(60px, auto)` 가 슬롯 폭 1920 / header 570 같은 비정상값을 냈다. 트랙을 명시 나열한다 (`"1fr 1fr 1fr 1fr"`).
@@ -309,6 +324,9 @@ const PREVIEW_REFERENCE_WIDTH = {
 | 썸네일 비율 ↔ 실제 렌더 비율 일치                               | `derivePreviewAreas` 결과 vs 실측 bounds   |
 | 다크모드 썸네일                                                 | light/dark 양쪽 스크린샷                   |
 | publish CSS `@media` 생성                                       | export 산출물 grep                         |
+| grid line 을 숫자로 authoring 해도 유효 CSS (`1px` 아님, R7)    | 정의를 숫자로 임시 치환 후 export CSS 검사 |
+| 해당 BP 의 DOM 배치 ↔ Skia 배치 일치 (R7)                       | tablet 슬롯 bounds 를 Preview DOM·Skia 대조 |
+| item placement override ⊆ 컨테이너 템플릿 동반 (R8)             | `presetDefinitions.static.test.ts` 정적 단언 (G8) |
 
 ## 8. 파일 변경 인벤토리
 
@@ -318,6 +336,7 @@ const PREVIEW_REFERENCE_WIDTH = {
 | 1     | `apps/builder/.../styles/sections/responsiveEligible.static.test.ts` | 수정 |
 | 1     | `apps/builder/src/builder/stores/responsiveWriteRouting.test.ts`     | 수정 |
 | 1     | `apps/builder/.../canvas/scene/layoutCache.ts`                       | 수정 |
+| 1     | `packages/shared/src/utils/responsiveCss.ts` (R7 — UNITLESS_PROPS)   | 수정 |
 | 2     | `.../LayoutPresetSelector/types.ts`                                  | 수정 |
 | 2     | `.../LayoutPresetSelector/presetResponsive.ts`                       | 신규 |
 | 2     | `.../LayoutPresetSelector/presetStyle.ts`                            | 수정 |
@@ -331,7 +350,7 @@ const PREVIEW_REFERENCE_WIDTH = {
 | 4     | `.../LayoutPresetSelector/styles.css`                                | 수정 |
 | 5     | `docs/CHANGELOG.md`, ADR 본문 / 본 문서                              | 수정 |
 
-**추정 16 파일** (신규 3 / 수정 13). Phase 실행 중 1.5배(24 파일) 초과 시 Phase 0 inventory 보강 커밋으로 흡수 — 새 ADR fork 사유 아님 (adr-writing.md M3).
+**추정 17 파일** (신규 3 / 수정 14 — 리뷰 round 1 에서 `responsiveCss.ts` 추가). Phase 실행 중 1.5배(24 파일) 초과 시 Phase 0 inventory 보강 커밋으로 흡수 — 새 ADR fork 사유 아님 (adr-writing.md M3).
 
 ## 9. 미지원 / 이연 경계
 
@@ -344,6 +363,7 @@ const PREVIEW_REFERENCE_WIDTH = {
 | `repeat()` / `minmax()` 트랙     | 엔진 신뢰도 미확인 (2026-07-25 실측 비정상)                                                                              | 엔진 grid 함수 표현 fixture 통과                |
 | breakpoint 정의 자체 변경        | 3단계(desktop/tablet/mobile)는 ADR-154 확정. M3 5단계 도입은 본 ADR 범위 밖                                              | 사용자 요구 또는 ADR-154 개정                   |
 | `order` eligibility              | 현행 프리셋 전부 DOM 순서 스택으로 충분 (사이드바 위/콘텐츠 아래 = 웹 관례)                                              | 역순 스택이 필요한 프리셋 등장                  |
+| `gridArea` shorthand eligibility | shorthand ↔ longhand 가 같은 BP 에서 override 되면 `!important` 동일 특정도라 emit source order 가 승자를 정한다 (리뷰 round 1 M3) | shorthand override 실사용 필요 + 전치 helper 에 shorthand-먼저 순서 계약 도입 |
 
 ## 10. 참조
 
