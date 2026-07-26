@@ -3,6 +3,7 @@ import { PropertySection } from "../../components";
 import { PropertyIconPicker } from "../../components/property/PropertyIconPicker";
 import { PropertyInput } from "../../components/property/PropertyInput";
 import { useStore } from "../../stores";
+import { historyManager } from "../../stores/history";
 import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
 import { visitCanonicalDocumentElements } from "../../stores/canonical/canonicalElementsView";
 import {
@@ -90,8 +91,11 @@ export function buildButtonChild(
  *     으로 복구(Text element 삭제). plain Button=string 모델 회복.
  *   icon Button 일 때 노출되는 "Text" 입력은 `<Text>` 자식 element 의 children 을 편집한다
  *   (PropertiesPanel 이 GenericFieldRenderer 의 children "Text" 필드를 제외 → 중복 방지).
- *   다중 mutation 은 순차 await — 같은 tick 연속 호출 시 canonical sync stale snapshot
- *   race 로 일부 갱신 누락(state-management.md canonical sync 순서 race).
+ *   다중 mutation(생성 2 + props 비우기 / 복구 1 + 삭제 2)은 **동기 history 트랜잭션
+ *   창**으로 감싼다 — 사용자에겐 셀렉트 1회 조작이라 되돌리기도 1회여야 한다. 창 안에서는
+ *   await 하지 않고(양보 시 무관한 mutation 병합) promise 를 창 밖에서 기다린다. 연속
+ *   호출의 canonical 정합은 세 action 이 모두 canonical 1차 → set 순서라 보장된다
+ *   (state-management.md HC #2).
  *   ADR-142 정합: Button.binding 무수정, iconName prop 복원 0.
  */
 export const ButtonChildSection = memo(function ButtonChildSection({
@@ -133,7 +137,8 @@ export const ButtonChildSection = memo(function ButtonChildSection({
     async (iconName: string) => {
       if (!iconName) return;
 
-      // 아이콘 → 다른 아이콘: 기존 자식 Icon 의 iconName 만 수정.
+      // 아이콘 → 다른 아이콘: 기존 자식 Icon 의 iconName 만 수정 (write 1개 —
+      //   되돌리기 단위가 이미 1개라 트랜잭션 불요).
       if (existingIcon) {
         await updateElementProps(existingIcon.id, { iconName });
         return;
@@ -171,10 +176,10 @@ export const ButtonChildSection = memo(function ButtonChildSection({
             }
           : { iconName, style: { fontSize: iconPx, height: iconPx } },
       );
-      addElement(iconElement);
 
       // string children(label) → Text 자식 element 이관. 이미 Text 자식이 있으면 중복
       //   생성하지 않는다(외부 경로로 만들어진 경우 보존).
+      let textElement: Element | null = null;
       if (buttonChildrenText !== undefined && !existingText) {
         // label <Text> 의 시각 척도(fontSize/lineHeight)는 Button 텍스트 척도(md=text-sm 14/20)를
         //   inline 으로 받는다 — Text 컴포넌트 독립 타이포 척도(text-base 16/24)가 아니라 Button
@@ -185,7 +190,7 @@ export const ButtonChildSection = memo(function ButtonChildSection({
         //   데이터 일관(형제 size 불일치 제거). 시각은 inline fontSize/lineHeight 가 specificity 로
         //   Text.css [data-size] 보다 우선이라 버튼 척도 유지(size prop 추가가 시각 안 바꿈).
         const tm = buttonTextMetrics(buttonSize);
-        const textElement = buildButtonChild(
+        textElement = buildButtonChild(
           "Text",
           elementId,
           currentPageId,
@@ -201,10 +206,27 @@ export const ButtonChildSection = memo(function ButtonChildSection({
                 style: { fontSize: tm.fontSize, lineHeight: tm.lineHeight },
               },
         );
-        addElement(textElement);
-        // Button 의 string children 을 비운다(`<Text>` 자식이 label 을 보유).
-        await updateElementProps(elementId, { children: "" });
       }
+
+      // history 트랜잭션 창 (동기 블록 — 안에서 await 금지). Icon 생성 + label 이관 +
+      //   Button children 비우기는 사용자에겐 셀렉트 1회 선택이므로 되돌리기도 1회여야
+      //   한다. 창 안에서 양보하면 그 틈의 무관한 mutation 이 같은 엔트리로 병합되므로
+      //   (history.ts beginTransaction 주석) store action 을 await 하지 않고 promise 만
+      //   모아 창 밖에서 기다린다 — 각 action 은 history 기록·메모리 반영까지 동기로
+      //   도달한다 (mutationHistorySyncContract.test.ts).
+      const pendingWrites = historyManager.runInTransaction(
+        { type: "batch", elementId },
+        (): Promise<unknown>[] => {
+          const writes: Promise<unknown>[] = [addElement(iconElement)];
+          if (textElement) {
+            writes.push(addElement(textElement));
+            // Button 의 string children 을 비운다(`<Text>` 자식이 label 을 보유).
+            writes.push(updateElementProps(elementId, { children: "" }));
+          }
+          return writes;
+        },
+      );
+      await Promise.all(pendingWrites);
     },
     [
       existingIcon,
@@ -223,12 +245,26 @@ export const ButtonChildSection = memo(function ButtonChildSection({
 
     // Icon 제거 → plain Button(string children) 모델 회복. `<Text>` 자식 element 가 있으면
     //   그 텍스트를 Button string children 으로 되돌리고 Text element 삭제.
-    //   label 복구를 먼저 확정한 뒤 삭제(순차 await — canonical sync race 회피).
-    if (existingText) {
-      await updateElementProps(elementId, { children: textChildValue });
-      await removeElement(existingText.id);
-    }
-    await removeElement(existingIcon.id);
+    //
+    // 순서: label 복구를 먼저 확정한 뒤 삭제. 동기 창 안의 연속 호출이므로 각 write 의
+    //   canonical 갱신이 다음 write 가 읽기 전에 끝난다 (세 action 모두 canonical 1차 →
+    //   set 순서 — state-management.md HC #2). 창 안에서 await 하면 그 틈의 무관한
+    //   mutation 이 같은 되돌리기 엔트리로 병합되므로 promise 는 창 밖에서 기다린다.
+    const pendingWrites = historyManager.runInTransaction(
+      { type: "batch", elementId },
+      (): Promise<unknown>[] => {
+        const writes: Promise<unknown>[] = [];
+        if (existingText) {
+          writes.push(
+            updateElementProps(elementId, { children: textChildValue }),
+          );
+          writes.push(removeElement(existingText.id));
+        }
+        writes.push(removeElement(existingIcon.id));
+        return writes;
+      },
+    );
+    await Promise.all(pendingWrites);
   }, [
     existingIcon,
     existingText,
