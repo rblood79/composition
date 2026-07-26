@@ -22,6 +22,7 @@ import { createInspectorActionsSlice } from "../../inspectorActions";
 import { createRemoveElementsAction } from "../elementRemoval";
 import {
   createBatchUpdateElementPropsAction,
+  createUpdateElementAction,
   createUpdateElementPropsAction,
 } from "../elementUpdate";
 
@@ -1736,5 +1737,63 @@ describe("element mutations keep canonical document primary", () => {
       (responsive?.styles as Record<string, Record<string, unknown>>)
         ?.paddingTop?.mobile,
     ).toBe(24);
+  });
+
+  it("updateElement 의 responsive-only 변경이 undo 가능한 replace event 를 남긴다 (ADR-168)", async () => {
+    // update event 는 props 만 실어 나르므로(`replaceNodeProps`) props 밖 canonical
+    // 필드(`responsive`/`fills`) 변경은 remove+insert 쌍으로 full node 를 기록해야
+    // undo 로 되돌아간다. 프리셋이 body `responsive` 를 이 경로로 쓴다.
+    const prevResponsive = { styles: { flexDirection: { mobile: "column" } } };
+    const body = makeElement("frame-body", "body", {
+      layout_id: "frame-1",
+      props: { style: { display: "flex" } },
+      responsive: prevResponsive,
+    } as never);
+    const state = makeState([body]) as ReturnType<typeof makeState> & {
+      _rebuildIndexes: () => void;
+    };
+    state.currentPageId = "page-1"; // history 기록 조건
+    state._rebuildIndexes = vi.fn(); // updateElement 가 set 이후 호출
+    registerCanonicalActions(state);
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeFrameDocument([
+        {
+          id: "frame-body",
+          type: "body" as CanonicalNode["type"],
+          props: body.props as Record<string, unknown>,
+          responsive: prevResponsive,
+          children: [],
+        } as unknown as CanonicalNode,
+      ]),
+    );
+
+    const nextResponsive = { styles: { width: { tablet: "260px" } } };
+    await createUpdateElementAction(
+      createSetMock(state) as never,
+      () => state as never,
+    )("frame-body", { responsive: nextResponsive } as never);
+
+    expect(historyManager.addEntry).toHaveBeenCalledTimes(1);
+    const entry = vi.mocked(historyManager.addEntry).mock
+      .calls[0][0] as unknown as {
+      data: {
+        canonicalEvents: {
+          type: string;
+          node: { responsive?: unknown };
+        }[];
+      };
+    };
+    const events = entry.data.canonicalEvents;
+
+    // replace 쌍이어야 한다 — update event 면 responsive 가 undo 대상에서 빠진다
+    expect(events.map((e) => e.type)).toEqual(["remove", "insert"]);
+    // undo 대상(remove) = 변경 **전** responsive
+    expect(events[0].node.responsive).toEqual(prevResponsive);
+    // redo 대상(insert) = 변경 **후** responsive
+    expect(events[1].node.responsive).toEqual(nextResponsive);
+
+    // 같은 write 가 layoutVersion 도 올려야 한다 (preview @media 재발행 트리거)
+    expect(state.layoutVersion).toBe(1);
   });
 });

@@ -437,7 +437,23 @@ Style 패널 경로에만 있던 이 처리를 **일반 경로로 올렸다**. �
 
 live 확증: 새로고침 없이 프리셋 교체 → preview 규칙 6개(grid 계열) → 3개(flex/width) 즉시 갱신.
 
-> **잔존 (Phase 2 §4-5 에서 이연한 항목)**: `updateElement` 는 여전히 `props` 없는 write 에 history 를 기록하지 않는다 (`shouldRecordHistory = Boolean(sanitizedUpdates.props)`). 프리셋 적용 자체는 슬롯 mutation 으로 history entry 가 생기므로 undo 로 슬롯은 복원되지만 **body 의 `responsive` 는 되돌아가지 않는다**. `inspectorActions` 는 `buildCanonicalReplaceEvents` 로 이를 처리한다 — 같은 방식을 일반 경로에 올리는 것이 정합하나 canonical event 빌드가 얽혀 별도 작업으로 둔다.
+### 7-3. 후속 해소 — undo 시 body `responsive` 미복원 (2026-07-26)
+
+Phase 2 §4-5 에서 이연했던 잔존 항목을 해소했다.
+
+**증상**: 프리셋을 적용한 뒤 undo 를 눌러도 body 의 `responsive` 가 되돌아가지 않았다. 슬롯은 복원됐다.
+
+**원인**: `createUpdateElementAction` 의 history 기록 조건이 `Boolean(sanitizedUpdates.props)` 였다. `responsive` 는 top-level 필드라 props 없는 write 가 되고, 조건이 거짓이 되어 **history entry 자체가 생기지 않았다**. 설령 기록됐더라도 `buildCanonicalUpdateEvent` 는 props 만 실어 나르므로(`replaceNodeProps`) `responsive` 는 undo 대상에서 빠진다 — full node 를 담는 **replace event 쌍**(`[remove@loc, insert@loc]`)이 필요하다.
+
+**수정**: props 밖 canonical 필드 변경 시 `buildCanonicalReplaceEvents([element], [{…element, …updates}])` 로 기록한다. pre-mutation 시점이라 prev 는 현재 doc 에서(`getCanonicalHistoryNodeSnapshot`), next 는 updated Element 에서(`createCanonicalHistoryNodeFromElement`) 빌드되며 **양쪽 모두 `responsive` 를 싣는다** (후자는 Phase 3 의 `canonicalResponsiveField` 수정 덕에 성립).
+
+**판정을 단일 소스로 올렸다**: `canonicalHistoryEvents.NON_PROPS_CANONICAL_HISTORY_FIELDS` + `hasNonPropsCanonicalHistoryChange()`. 기존에는 이 규칙이 `inspectorActions` 안에 인라인 문자열 검사로만 있었고, 그래서 `updateElement` 일반 경로가 같은 처리를 갖지 못했다. **본 ADR 에서 나온 결함 3건이 모두 "규칙이 한쪽 경로에만 있었다" 라는 같은 형태였다** (slot `responsive` canonical 이관 / `layoutVersion` bump / history 기록) — 그래서 세 번째는 조건을 옮기는 대신 판정 함수를 공용 모듈로 올렸다. 필드를 추가할 땐 상수 한 곳만 고치면 두 경로가 함께 따라온다.
+
+**회귀 가드**: `elementCanonicalMutation.test.ts` — replace 쌍 여부 + remove 노드의 `responsive` 가 변경 **전** 값 + insert 노드가 변경 **후** 값 + 같은 write 가 `layoutVersion` 을 올리는지 단언. fix 를 무력화하면 `addEntry` 호출 0회로 실패함을 확인했다 (공허하지 않음).
+
+**live 확증**: 목록-상세 적용 → undo 추적 — undo1 슬롯 삽입 취소 / **undo2 에서 `responsive` → `null`** / undo3 `flexDirection` row→column / undo4 원래 슬롯(header·content) 복원. 4회로 최초 상태와 완전 동일.
+
+> **관측 (본 변경과 무관한 선행 사항)**: 프리셋 적용 1회가 history entry **4개**를 만든다. `index.tsx` 헤더 주석의 "프리셋 적용 (History 단일 엔트리)" 는 stale 하다 — 슬롯 제거 / 슬롯 삽입 / body props / body responsive 가 각각 기록된다. 단일 엔트리로 묶으려면 batch/transaction history API 가 필요해 본 수정 범위 밖이다.
 
 
 ## 8. 파일 변경 인벤토리

@@ -9,8 +9,10 @@ import { sanitizeFillDerivedStylePatch } from "../../panels/styles/utils/fillDer
 import { historyManager } from "../history";
 import {
   buildCanonicalMoveEvents,
+  buildCanonicalReplaceEvents,
   buildCanonicalUpdateEvent,
   captureCanonicalNodeLocations,
+  hasNonPropsCanonicalHistoryChange,
   type CanonicalHistoryNodeEvent,
 } from "../history/canonicalHistoryEvents";
 import { createCompleteProps } from "./elementHelpers";
@@ -539,30 +541,47 @@ export const createUpdateElementAction =
     if (!element) return;
     if (!(await confirmOriginImpactIfNeeded(currentState, element))) return;
 
+    // props 밖 canonical 필드(`responsive`/`fills`) 변경은 update event 로 undo 되지
+    // 않는다 — `replaceNodeProps` 가 props 만 교체하므로 full node 를 실어야 한다.
+    // `inspectorActions` 의 Style 패널 경로와 동일 판정 (단일 소스: 아래 helper).
+    const hasNonPropsCanonicalChange =
+      hasNonPropsCanonicalHistoryChange(sanitizedUpdates);
     const shouldRecordHistory =
-      Boolean(currentState.currentPageId) && Boolean(sanitizedUpdates.props);
+      Boolean(currentState.currentPageId) &&
+      (Boolean(sanitizedUpdates.props) || hasNonPropsCanonicalChange);
     const prevPropsClone = shouldRecordHistory
       ? cloneForHistory(element.props)
       : null;
     // updateElement 는 `{...element, ...sanitizedUpdates}` 로 props 를 전체
     // 교체하므로 sanitizedUpdates.props 자체가 full next props 다.
-    const newPropsClone = shouldRecordHistory
-      ? cloneForHistory(sanitizedUpdates.props)
-      : null;
+    const newPropsClone =
+      shouldRecordHistory && sanitizedUpdates.props
+        ? cloneForHistory(sanitizedUpdates.props)
+        : null;
 
     // 🚀 Phase 1: Immer → 함수형 업데이트
     // 1. 히스토리 추가 (상태 변경 전에 기록)
-    if (
-      currentState.currentPageId &&
-      sanitizedUpdates.props &&
-      prevPropsClone &&
-      newPropsClone
-    ) {
-      recordUpdateHistoryEntry(
-        elementId,
-        prevPropsClone as Record<string, unknown>,
-        newPropsClone as Record<string, unknown>,
-      );
+    //    canonical mutation 은 아래 `set` 안에서 일어나므로 여기는 pre-mutation 시점
+    //    (`buildCanonicalReplaceEvents` 의 prevCaptures 미전달 모드).
+    if (shouldRecordHistory) {
+      if (hasNonPropsCanonicalChange) {
+        historyManager.addEntry({
+          type: "update",
+          elementId,
+          data: {
+            canonicalEvents: buildCanonicalReplaceEvents(
+              [element],
+              [{ ...element, ...sanitizedUpdates }],
+            ),
+          },
+        });
+      } else if (prevPropsClone && newPropsClone) {
+        recordUpdateHistoryEntry(
+          elementId,
+          prevPropsClone as Record<string, unknown>,
+          newPropsClone as Record<string, unknown>,
+        );
+      }
     }
 
     // ADR-006 P3-1: props.style 변경 시 dirty tracking

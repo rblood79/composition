@@ -602,6 +602,30 @@ export function captureCanonicalReplaceSources(
  * 대상은 일반 트리 노드 전용 (ref node 자신 포함) — ref override **내부**
  * 노드 금지. override 내부 props 변경은 update event 가 커버.
  */
+/**
+ * canonical 이 `props` **밖**에 보관하는 Element top-level 필드.
+ *
+ * update event 는 props 만 실어 나르므로(`replaceNodeProps`) 이 필드들의 변경은
+ * update event 로 undo 되지 않는다 — replace event 쌍으로 full node 를 기록해야 한다.
+ *
+ * 판정을 이 한 곳에 둔다: 예전엔 `inspectorActions` 안에만 인라인으로 있어서
+ * `updateElement` 일반 경로가 같은 규칙을 갖지 못했고, 프리셋이 body `responsive` 를
+ * 그 경로로 쓰면서 **undo 로 되돌아가지 않는** 결함이 생겼다 (ADR-168 잔존 항목).
+ * 필드를 추가할 땐 여기만 고치면 두 경로가 함께 따라온다.
+ */
+export const NON_PROPS_CANONICAL_HISTORY_FIELDS = [
+  "fills",
+  "responsive",
+] as const;
+
+/** 변경 patch 에 props 밖 canonical 필드가 있는가 (→ replace event 필요). */
+export function hasNonPropsCanonicalHistoryChange(
+  updates: Partial<Element> | undefined,
+): boolean {
+  if (!updates) return false;
+  return NON_PROPS_CANONICAL_HISTORY_FIELDS.some((field) => field in updates);
+}
+
 export function buildCanonicalReplaceEvents(
   prevElements: Element[],
   nextElements: Element[],

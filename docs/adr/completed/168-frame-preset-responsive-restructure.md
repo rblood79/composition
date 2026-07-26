@@ -21,7 +21,7 @@ Gate 결과: G1 30/30 · G2 ✅ · G3 ✅(비율 편차 ≤3.82pp 명시) · G4 
 1. **슬롯 `responsive` 가 canonical 로 이관되지 않음** — `canonicalMutations.ts` 의 `isLegacySlotTag` 분기가 필드를 나열하며 early return 해 `baseNode` 의 `responsive` 스프레드에 도달하지 못했다. ADR-154 시절부터 있던 gap 이며 슬롯 레벨 override 의 첫 writer 가 생기면서 드러났다 (Phase 3).
 2. **`responsive`-only write 가 `layoutVersion` 을 올리지 않음** — `updateElement` 의 `isLayoutChange` 가 props 축만 봐서 preview `@media` 가 새로고침 전까지 stale. `inspectorActions` 는 ADR-154 때 이미 같은 처리를 했으나 Style 패널 경로 한정이었다 (Phase 5).
 
-**잔존**: `updateElement` 는 props 없는 write 에 history 미기록 → undo 시 body `responsive` 미복원 (슬롯은 복원). breakdown §7-2 참조.
+**후속 해소 (2026-07-26)**: 위 2건에 이어 `updateElement` 의 history 누락도 해소했다 — props 밖 canonical 필드(`responsive`/`fills`) 변경은 replace event 쌍으로 기록한다. 판정을 `canonicalHistoryEvents.hasNonPropsCanonicalHistoryChange` 단일 소스로 올려 `inspectorActions` 와 `updateElement` 두 경로가 갈라지지 않게 했다 (이 규칙이 한쪽에만 있던 것이 세 결함의 공통 원인이었다). live 확증: 프리셋 적용 후 undo 2회 지점에서 body `responsive` 가 `null` 로 복원. breakdown §7-3 참조.
 
 ## Context
 

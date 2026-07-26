@@ -57,6 +57,7 @@ import { historyManager } from "./history";
 import {
   buildCanonicalReplaceEvents,
   buildCanonicalUpdateEvent,
+  hasNonPropsCanonicalHistoryChange,
 } from "./history/canonicalHistoryEvents";
 import { useCanonicalDocumentStore } from "./canonical/canonicalDocumentStore";
 import { visitCanonicalDocumentElements } from "./canonical/canonicalElementsView";
@@ -653,9 +654,10 @@ export const createInspectorActionsSlice: StateCreator<
     //   (replaceNodeProps 가 props 만 교체) replace event 로 full node 를 기록해야 undo 로
     //   배경이 복원된다(M2b). buildCanonicalReplaceEvents 는 prev/next 노드에 fills 를 포함.
     // 일반 요소: full merged props 의 update event
+    // 판정은 `canonicalHistoryEvents` 단일 소스 — 이 규칙이 여기에만 인라인으로
+    // 있던 탓에 `updateElement` 일반 경로가 같은 처리를 못 갖고 있었다 (ADR-168 잔존).
     const hasNonPropsCanonicalChange =
-      additionalUpdates !== undefined &&
-      ("fills" in additionalUpdates || "responsive" in additionalUpdates);
+      hasNonPropsCanonicalHistoryChange(additionalUpdates);
     if (
       currentPageId &&
       (Object.keys(propsUpdate).length > 0 || hasNonPropsCanonicalChange)
