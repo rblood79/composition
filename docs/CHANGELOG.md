@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [캔버스 화살표 키 = 형제 순서 재배치 — Pen v1.2.1 수법 차용] - 2026-07-26
+
+### Features
+
+- **캔버스 포커스 상태에서 화살표 키로 선택 요소의 형제 순서를 한 칸 이동**:
+  - ↑/← = 이전 형제, ↓/→ = 다음 형제. **컨테이너 방향과 무관하게 4방향 모두 순서 축에 매핑** — flex row/column 마다 키 의미가 갈리면 예측성이 떨어진다.
+  - **Why**: composition 은 flow 자식의 x/y 를 레이아웃 엔진이 소유하므로 자식에게 "이동" 이 뜻할 수 있는 것은 canonical `children[]` 순서뿐이다 (순서 SSOT, ADR-118). 그런데 화살표 키에는 핸들러가 없어 사용자가 가장 먼저 시도할 키가 죽은 affordance 로 남아 있었고, 순서 변경 수단은 마우스(캔버스 드래그 / 노드 트리 드래그)뿐이었다.
+  - 이동은 기존 canonical 진입점 재사용 — `moveElementCanonicalPrimary` + `trackCanonicalMove`(undo) + `layoutVersion` 증가 + IndexedDB persist. 드래그 재배치와 같은 경로라 히스토리 표현도 동일한 move event.
+  - 경계·제외: 첫 형제의 이전 / 마지막 형제의 다음은 no-op, projected render id 와 ref override(`descendants`) 내부 노드도 제외 (후자는 move event 재적용이 불안전 — undo 훼손 방지). 다중 선택은 1차 범위 제외.
+  - 텍스트 편집 중에는 발화하지 않는다 — `useActiveScope` 가 `text-editing` 을 `canvas-focused` 보다 먼저 판정한다.
+  - **live 검증** (실제 builder, 형제 11개 컨테이너): 4개 키를 개별로 눌러 store 순서와 **Skia 노드 좌표 양쪽** 변화 확인 (GridList y 400→324 / GridListItem 324→664), `layoutVersion` 이동마다 증가, 선택 유지, 마지막 요소의 "다음" 은 no-op, 왕복 후 원본 순서·좌표 정확 복원.
+  - 위치: `apps/builder/src/builder/stores/utils/siblingReorder.ts` (신규 순수 로직) · `stores/elements.ts` (`reorderElementWithinParent`) · `config/keyboardShortcuts.ts` · `hooks/useGlobalKeyboardShortcuts.ts`
+
+### Infrastructure
+
+- **단축키 충돌 정적 가드 추가** (`utils/detectShortcutConflicts.test.ts`): 현행 정의의 충돌 0건을 단언. 구 `arrowUp`/`arrowDown` 이 `["canvas-focused", "panel:events"]` scope 로 선언돼 있어(핸들러 0건) 캔버스 재배치와 겹칠 수 있었고, events 패널 표기는 `eventsNavUp`/`eventsNavDown`(`panel:events`)으로 분리해 해소했다. events 패널의 실제 처리는 원래부터 자체 훅의 raw key 분기라 동작 변화 없음.
+
 ## [유휴 프레임 wake 정리 — performanceMonitor FPS 버스트 측정] - 2026-07-26
 
 ### Performance

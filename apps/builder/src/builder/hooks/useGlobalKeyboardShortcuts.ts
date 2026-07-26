@@ -316,6 +316,36 @@ export function useGlobalKeyboardShortcuts() {
   }, []);
 
   /**
+   * 형제 순서 재배치 — 캔버스 포커스 상태의 화살표 키.
+   *
+   * flow 자식의 x/y 는 레이아웃 엔진 소유라 화살표가 뜻할 수 있는 "이동" 은
+   * canonical children[] 순서 변경뿐이다 (ADR-118). 다중 선택은 1차 범위 제외 —
+   * 여러 요소를 한 칸씩 옮기면 상대 순서가 뒤엉켜 별도 규칙이 필요하다.
+   */
+  const handleReorderSibling = useCallback((direction: -1 | 1) => {
+    const {
+      selectedElementIds,
+      selectedElementId,
+      reorderElementWithinParent,
+    } = useStore.getState();
+    if (selectedElementIds.length > 1) return;
+
+    const targetId = selectedElementId ?? selectedElementIds[0] ?? null;
+    if (!targetId) return;
+
+    reorderElementWithinParent(targetId, direction);
+  }, []);
+
+  const handleReorderSiblingPrev = useCallback(
+    () => handleReorderSibling(-1),
+    [handleReorderSibling],
+  );
+  const handleReorderSiblingNext = useCallback(
+    () => handleReorderSibling(1),
+    [handleReorderSibling],
+  );
+
+  /**
    * Events Panel Copy - 선택된 액션들 복사
    * (현재는 placeholder - Events panel에서 구체적 구현 필요)
    */
@@ -410,6 +440,11 @@ export function useGlobalKeyboardShortcuts() {
       toggleComponentOrigin: handleToggleComponentOrigin,
       detachInstance: handleDetachInstance,
       escape: handleEscape,
+      // 형제 순서 재배치 — 4방향 모두 축 무관 이전/다음 매핑
+      arrowUp: handleReorderSiblingPrev,
+      arrowLeft: handleReorderSiblingPrev,
+      arrowDown: handleReorderSiblingNext,
+      arrowRight: handleReorderSiblingNext,
     }),
     [
       handleUndo,
@@ -431,6 +466,8 @@ export function useGlobalKeyboardShortcuts() {
       handleEventsPaste,
       handleEventsDelete,
       handleEscape,
+      handleReorderSiblingPrev,
+      handleReorderSiblingNext,
     ],
   );
 
@@ -460,6 +497,11 @@ export function useGlobalKeyboardShortcuts() {
       "delete",
       "deleteAlt",
       "escape",
+      // 형제 순서 재배치 (canvas-focused)
+      "arrowUp",
+      "arrowDown",
+      "arrowLeft",
+      "arrowRight",
     ];
 
     return bindHandlersToDefinitions(shortcutIds, handlers);

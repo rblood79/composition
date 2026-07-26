@@ -14,6 +14,12 @@ import { historyManager } from "./history";
 import { captureCanonicalNodeLocations } from "./history/canonicalHistoryEvents";
 import { trackCanonicalMove } from "./utils/historyHelpers";
 import {
+  resolveSiblingReorderTarget,
+  type SiblingReorderDirection,
+} from "./utils/siblingReorder";
+import { isRenderProjectionId } from "../projection/renderProjectionIds";
+import { getDB } from "../../lib/db";
+import {
   createCompleteProps,
   findElementById,
   computeCanvasElementStyle,
@@ -55,7 +61,10 @@ import {
 } from "../utils/scheduleTask";
 import { normalizeElementTags } from "./utils/elementTagNormalizer";
 import { normalizeExternalFillIngress } from "../panels/styles/utils/fillExternalIngress";
-import { useCanonicalDocumentStore } from "./canonical/canonicalDocumentStore";
+import {
+  selectActiveCanonicalDocument,
+  useCanonicalDocumentStore,
+} from "./canonical/canonicalDocumentStore";
 import { visitCanonicalDocumentElements } from "./canonical/canonicalElementsView";
 import {
   type PageElementIndex,
@@ -78,6 +87,24 @@ import {
 
 function pageLayoutId(page: Page): string | null {
   return getNullablePageFrameBindingId(page);
+}
+
+/**
+ * canonical document 를 IndexedDB 에 저장.
+ *
+ * `elementCreation.ts` / `elementRemoval.ts` / `useDragBridge.ts` /
+ * `usePresetApply.ts` 의 동명 로컬 헬퍼와 같은 5줄 — 공용 심볼 추출은 호출부
+ * 4곳을 함께 손대야 하므로 별도 정리 대상으로 남긴다 (현행 관례 준수).
+ */
+async function persistActiveCanonicalDocument(
+  db: Awaited<ReturnType<typeof getDB>>,
+): Promise<void> {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId) return;
+  const doc = canonical.documents.get(projectId);
+  if (!doc) return;
+  await db.documents.put(projectId, doc);
 }
 
 function shouldInvalidatePagesLayout(
@@ -223,6 +250,16 @@ export interface ElementsState {
     newParentId: string,
     insertionIndex: number,
   ) => void;
+  /**
+   * 같은 부모 안에서 형제 순서를 한 칸 이동한다 (키보드 화살표 재배치).
+   *
+   * @returns 실제로 이동했으면 true. 경계(첫/마지막 형제)·projected id·
+   *   ref override 내부 노드는 false (no-op)
+   */
+  reorderElementWithinParent: (
+    elementId: string,
+    direction: SiblingReorderDirection,
+  ) => boolean;
 
   // 다중 선택 관련 액션
   toggleElementInSelection: (elementId: string) => void;
@@ -1500,6 +1537,58 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         ...nextIndexes,
         layoutVersion: state.layoutVersion + 1,
       }));
+    },
+
+    // 같은 부모 안에서 형제 순서를 한 칸 이동 (키보드 화살표 재배치).
+    //
+    // **Why 별도 액션**: `moveElementToContainer` 는 `oldParentId === newParentId`
+    // 에서 early-return 하므로 같은 부모 재배치에 쓸 수 없다. flow 자식의 x/y 는
+    // 레이아웃 엔진이 소유하므로 "이동" = canonical children[] 순서 변경 (ADR-118).
+    reorderElementWithinParent: (elementId, direction) => {
+      if (isRenderProjectionId(elementId)) return false;
+      if (!areCanonicalMutationStoreActionsRegistered()) return false;
+
+      const doc = selectActiveCanonicalDocument();
+      if (!doc) return false;
+
+      const target = resolveSiblingReorderTarget(doc, elementId, direction);
+      // 경계(첫/마지막) 또는 ref override 내부 노드 → no-op
+      if (!target) return false;
+
+      // from-location 은 canonical mutation **전에** 캡처 (move event 용)
+      const fromLocations = captureCanonicalNodeLocations([elementId]);
+      const result = moveElementCanonicalPrimary(
+        elementId,
+        target.parentId,
+        target.insertionIndex,
+      );
+      if (!result.changed) return false;
+
+      trackCanonicalMove(elementId, fromLocations.get(elementId));
+
+      // canonical(SSOT) 갱신 후 store mirror 도 canonical derive 로 함께 갱신.
+      // `_rebuildIndexes()` 만으로는 부족하다 — 인덱스만 바꾸고 `elements` 배열은
+      // stale 로 남아 연속 이동의 두 번째 호출이 옛 순서를 읽는다
+      // (moveElementToContainer 의 2026-06-29 회귀와 같은 함정).
+      const nextElements = getCanonicalOrStoreElements(get());
+      set((state) => ({
+        elements: nextElements,
+        ...buildIndexes(nextElements),
+        layoutVersion: state.layoutVersion + 1,
+      }));
+
+      queueMicrotask(() => {
+        void (async () => {
+          try {
+            const db = await getDB();
+            await persistActiveCanonicalDocument(db);
+          } catch (error) {
+            console.error("[reorderElementWithinParent] DB persist:", error);
+          }
+        })();
+      });
+
+      return true;
     },
 
     // 🚀 Phase 1: Immer → 함수형 업데이트 (High Risk)

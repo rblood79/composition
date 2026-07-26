@@ -553,24 +553,77 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinitions = {
   },
 
   // ==========================================
-  // Events Panel (priority: 50)
+  // Canvas — 형제 순서 재배치 (priority: 70)
+  //
+  // composition 은 flow 자식의 x/y 를 레이아웃 엔진이 소유하므로 화살표가
+  // 뜻할 수 있는 "이동" 은 canonical children[] 순서 변경뿐이다 (ADR-118).
+  // 4방향 모두 축과 무관하게 이전/다음 형제로 매핑한다 — 컨테이너 방향에 따라
+  // 키 의미가 달라지면 예측성이 떨어진다.
   // ==========================================
 
   arrowUp: {
     key: "ArrowUp",
     modifier: "none",
-    category: "events",
-    scope: ["canvas-focused", "panel:events"],
-    priority: SHORTCUT_PRIORITY.EVENTS,
-    description: "Navigate Up",
-    i18n: { ko: "위로 이동" },
+    category: "canvas",
+    scope: "canvas-focused",
+    priority: SHORTCUT_PRIORITY.CANVAS,
+    description: "Move Before Sibling",
+    i18n: { ko: "이전 형제로 이동" },
   },
 
   arrowDown: {
     key: "ArrowDown",
     modifier: "none",
+    category: "canvas",
+    scope: "canvas-focused",
+    priority: SHORTCUT_PRIORITY.CANVAS,
+    description: "Move After Sibling",
+    i18n: { ko: "다음 형제로 이동" },
+  },
+
+  arrowLeft: {
+    key: "ArrowLeft",
+    modifier: "none",
+    category: "canvas",
+    scope: "canvas-focused",
+    priority: SHORTCUT_PRIORITY.CANVAS,
+    description: "Move Before Sibling",
+    i18n: { ko: "이전 형제로 이동" },
+  },
+
+  arrowRight: {
+    key: "ArrowRight",
+    modifier: "none",
+    category: "canvas",
+    scope: "canvas-focused",
+    priority: SHORTCUT_PRIORITY.CANVAS,
+    description: "Move After Sibling",
+    i18n: { ko: "다음 형제로 이동" },
+  },
+
+  // ==========================================
+  // Events Panel (priority: 50)
+  //
+  // 실제 처리는 패널 자체 훅(`useBlockKeyboard`)의 raw key 분기 — 아래 정의는
+  // 치트시트/툴팁 표기용이다 (구 `arrowUp`/`arrowDown` 의 `panel:events` scope
+  // 를 캔버스 재배치와 분리하면서 표기만 이관).
+  // ==========================================
+
+  eventsNavUp: {
+    key: "ArrowUp",
+    modifier: "none",
     category: "events",
-    scope: ["canvas-focused", "panel:events"],
+    scope: "panel:events",
+    priority: SHORTCUT_PRIORITY.EVENTS,
+    description: "Navigate Up",
+    i18n: { ko: "위로 이동" },
+  },
+
+  eventsNavDown: {
+    key: "ArrowDown",
+    modifier: "none",
+    category: "events",
+    scope: "panel:events",
     priority: SHORTCUT_PRIORITY.EVENTS,
     description: "Navigate Down",
     i18n: { ko: "아래로 이동" },
