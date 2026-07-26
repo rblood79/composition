@@ -189,11 +189,20 @@ async function persistActiveCanonicalDocument(
   await db.documents.put(projectId, doc);
 }
 
-async function removeCanonicalPresetSlots(slotIds: string[]): Promise<void> {
-  if (slotIds.length === 0) return;
+/**
+ * canonical 에서 preset slot 제거 — **메모리만**, 동기.
+ *
+ * IndexedDB 영속화를 여기서 떼어낸 이유: 이 함수는 history 트랜잭션 안에서 호출되고,
+ * 트랜잭션이 열려 있는 동안 일어나는 무관한 mutation 은 같은 엔트리로 병합된다. IDB
+ * 왕복(`await`)을 창 안에 두면 그만큼 창이 넓어진다. 영속화는 호출부가 커밋 뒤에 한다.
+ *
+ * @returns canonical 이 실제로 바뀌었는가 (영속화 필요 여부)
+ */
+function removeCanonicalPresetSlotsInMemory(slotIds: string[]): boolean {
+  if (slotIds.length === 0) return false;
 
   const doc = getActiveCanonicalDocument();
-  if (!doc) return;
+  if (!doc) return false;
 
   const slotIdSet = new Set(slotIds);
   const sourceElements = collectPresetSourceElements(doc);
@@ -202,10 +211,14 @@ async function removeCanonicalPresetSlots(slotIds: string[]): Promise<void> {
     slotIdSet,
   );
 
-  if (filteredElements.length === sourceElements.length) return;
+  if (filteredElements.length === sourceElements.length) return false;
 
   setElementsCanonicalPrimary(filteredElements);
+  return true;
+}
 
+/** canonical document 영속화 — 트랜잭션 **밖**에서 호출한다 (위 함수 주석 참조). */
+async function persistCanonicalPresetSlotRemoval(): Promise<void> {
   try {
     const db = await getDB();
     await persistActiveCanonicalDocument(db);
@@ -326,150 +339,142 @@ export function usePresetApply({
 
       setIsApplying(true);
 
-      // 프리셋 적용은 슬롯 제거 + 슬롯 삽입 + body props + body responsive 네 갈래
-      // mutation 이지만 사용자에겐 **한 번의 조작**이다. 트랜잭션으로 감싸 undo 1회로
-      // 되돌아가게 한다 (이전엔 4회 필요).
-      //
-      // 커밋을 `finally` 에 두는 이유: 조기 return 이나 예외로 중단돼도 그 시점까지
-      // 실제로 일어난 mutation 은 되돌릴 수 있어야 한다. 버리면 기록 없는 변경이 남는다.
-      historyManager.beginTransaction({
-        type: "batch",
-        elementId: bodyElementId,
-      });
+      // ── 준비 (트랜잭션 밖) ──────────────────────────────────────────────
+      // 트랜잭션이 열려 있는 동안 일어나는 무관한 mutation 은 같은 history 엔트리로
+      // 병합된다. 그래서 창은 **실제로 history 를 만드는 store write** 만 감싸고,
+      // 순수 계산과 IndexedDB 왕복은 밖에 둔다.
+
+      // 생성할 슬롯 결정 — mutation 전 `existingSlots` 만 읽으므로 슬롯 제거보다
+      // 앞에 와도 결과가 같다. replace 모드는 `preset.slots` 가 비지 않아 아래 조기
+      // return 에 걸리지 않고, merge 모드는 슬롯 제거 자체를 하지 않는다.
+      const existingSlotNames = new Set(existingSlots.map((s) => s.slotName));
+      const slotsToCreate: SlotDefinition[] =
+        mode === "merge"
+          ? preset.slots.filter((s) => !existingSlotNames.has(s.name))
+          : preset.slots;
+
+      if (slotsToCreate.length === 0) {
+        console.log("[Preset] No new slots to create (all already exist)");
+        setIsApplying(false);
+        return; // 트랜잭션을 아예 열지 않는다
+      }
+
+      const slotElements: PresetSlotElement[] = slotsToCreate.map(
+        (slotDef): PresetSlotElement => {
+          // `responsive` 는 props 가 아니라 노드 최상위 canonical 필드다 (ADR-154).
+          // 빈 config 는 아예 싣지 않는다 — canonical 이 생략과 동일 취급하므로,
+          // 넣어두면 "override 있음" 으로 보이는 빈 노드가 생긴다.
+          const responsive = toResponsiveConfig(slotDef.responsiveStyle);
+          return withFrameElementMirrorId(
+            {
+              id: crypto.randomUUID(),
+              type: "Slot",
+              props: {
+                name: slotDef.name,
+                required: slotDef.required,
+                description: slotDef.description,
+                style: slotDef.defaultStyle,
+              },
+              ...(responsive ? { responsive } : {}),
+              parent_id: bodyElementId,
+              page_id: null,
+            },
+            layoutId,
+          );
+        },
+      );
+
+      // body 에 쓸 값도 미리 만든다 — 창 안에는 write 만 남는다.
+      const body = elementsById.get(bodyElementId) ?? bodyElement;
+      const bodyWrite = body
+        ? (() => {
+            const currentStyle =
+              ((body.props as { style?: Record<string, unknown> })
+                ?.style as Record<string, unknown>) || {};
+
+            // containerStyle이 있으면 병합, 없으면 기존 스타일 유지.
+            // 병합 전 이전 프리셋이 심은 컨테이너 키를 걷어낸다 — 안 그러면 flex
+            // 프리셋의 `flexDirection` 이 grid 프리셋 위에 남는 식으로 섞인다
+            // (교체 비멱등).
+            const presetContainerStyle = normalizeFramePresetContainerStyle(
+              preset.containerStyle,
+            );
+            const mergedStyle =
+              Object.keys(presetContainerStyle).length > 0
+                ? {
+                    ...stripPresetContainerStyle(currentStyle),
+                    ...presetContainerStyle,
+                  }
+                : currentStyle;
+
+            // breakpoint override 는 props 가 아니라 노드 최상위 `responsive` 필드다.
+            // 이전 프리셋이 심은 키를 걷어낸 뒤 새 값을 얹어야 교체가 멱등해진다 (R1)
+            // — base 쪽 stripPresetContainerStyle 과 **같은 상수에서 파생된** 키
+            // 집합을 쓴다.
+            return {
+              props: { style: mergedStyle, appliedPreset: presetKey },
+              responsive: mergePresetResponsive(
+                body.responsive,
+                toResponsiveConfig(preset.responsiveContainerStyle),
+              ),
+            };
+          })()
+        : null;
+
+      // 병렬 removeElement 는 각 삭제가 오래된 currentState 를 기준으로 set 할 수
+      // 있어, 마지막 commit 이 앞선 삭제를 메모리에 되살린다. replace 는 동일 부모의
+      // slot 집합을 한 번에 제거해야 한다.
+      const existingSlotIds =
+        mode === "replace" && existingSlots.length > 0
+          ? existingSlots.map((slot) => slot.elementId)
+          : [];
+
+      let needsCanonicalPersist = false;
 
       try {
-        // ============================================
-        // Step 1: 기존 Slot 처리
-        // ============================================
-        if (mode === "replace" && existingSlots.length > 0) {
-          console.log(
-            `[Preset] Removing ${existingSlots.length} existing slots...`,
-          );
+        // ── history 트랜잭션 창: 여기서 열고 아래 finally 에서 곧바로 닫는다 ──
+        // 커밋을 `finally` 에 두는 이유: 예외로 중단돼도 그 시점까지 실제로 일어난
+        // mutation 은 되돌릴 수 있어야 한다. 버리면 기록 없는 변경이 남는다.
+        historyManager.beginTransaction({
+          type: "batch",
+          elementId: bodyElementId,
+        });
+        try {
+          if (existingSlotIds.length > 0) {
+            await removeElements(existingSlotIds);
+            // 메모리만 — IDB 영속화는 창 밖(아래 finally)에서
+            needsCanonicalPersist =
+              removeCanonicalPresetSlotsInMemory(existingSlotIds);
+          }
 
-          // 병렬 removeElement 는 각 삭제가 오래된 currentState 를 기준으로
-          // set 할 수 있어, 마지막 commit 이 앞선 삭제를 메모리에 되살린다.
-          // replace 는 동일 부모의 slot 집합을 한 번에 제거해야 한다.
-          const existingSlotIds = existingSlots.map((slot) => slot.elementId);
+          if (bodyWrite) {
+            // props 쓰기와 responsive 쓰기를 분리한 이유: updateElement 는 props 를
+            // 전체 교체하므로 (elementUpdate.ts) 여기서 props 를 함께 보내면 merge
+            // 의미가 사라진다. 최상위 필드만 보내는 경로도 history 에 남는다 —
+            // `updateElement` 가 props 밖 canonical 필드를 replace event 쌍으로 기록.
+            await updateElementProps(bodyElementId, bodyWrite.props);
+            await updateElement(bodyElementId, {
+              responsive: bodyWrite.responsive,
+            });
+          }
 
-          await removeElements(existingSlotIds);
-          await removeCanonicalPresetSlots(existingSlotIds);
-
-          console.log(
-            `[Preset] Removed ${existingSlots.length} existing slots`,
-          );
-        }
-
-        // ============================================
-        // Step 2: 새 Slot 생성 준비
-        // ============================================
-        const existingSlotNames = new Set(existingSlots.map((s) => s.slotName));
-        const slotsToCreate: SlotDefinition[] =
-          mode === "merge"
-            ? preset.slots.filter((s) => !existingSlotNames.has(s.name))
-            : preset.slots;
-
-        if (slotsToCreate.length === 0) {
-          console.log("[Preset] No new slots to create (all already exist)");
-          setIsApplying(false);
-          return;
-        }
-
-        console.log(`[Preset] Creating ${slotsToCreate.length} new slots...`);
-
-        // ============================================
-        // Step 3: Slot node 배열 생성
-        // ============================================
-        const slotElements: PresetSlotElement[] = slotsToCreate.map(
-          (slotDef): PresetSlotElement => {
-            // `responsive` 는 props 가 아니라 노드 최상위 canonical 필드다 (ADR-154).
-            // 빈 config 는 아예 싣지 않는다 — canonical 이 생략과 동일 취급하므로,
-            // 넣어두면 "override 있음" 으로 보이는 빈 노드가 생긴다.
-            const responsive = toResponsiveConfig(slotDef.responsiveStyle);
-            return withFrameElementMirrorId(
-              {
-                id: crypto.randomUUID(),
-                type: "Slot",
-                props: {
-                  name: slotDef.name,
-                  required: slotDef.required,
-                  description: slotDef.description,
-                  style: slotDef.defaultStyle,
-                },
-                ...(responsive ? { responsive } : {}),
-                parent_id: bodyElementId,
-                page_id: null,
-              },
-              layoutId,
-            );
-          },
-        );
-
-        // ============================================
-        // Step 4: Body에 containerStyle 및 appliedPreset 저장
-        // ============================================
-        const body = elementsById.get(bodyElementId) ?? bodyElement;
-        if (body) {
-          const currentStyle =
-            ((body.props as { style?: Record<string, unknown> })
-              ?.style as Record<string, unknown>) || {};
-
-          // containerStyle이 있으면 병합, 없으면 기존 스타일 유지.
-          // 병합 전 이전 프리셋이 심은 컨테이너 키를 걷어낸다 — 안 그러면 flex 프리셋의
-          // `flexDirection` 이 grid 프리셋 위에 남는 식으로 섞인다 (교체 비멱등).
-          const presetContainerStyle = normalizeFramePresetContainerStyle(
-            preset.containerStyle,
-          );
-          const mergedStyle =
-            Object.keys(presetContainerStyle).length > 0
-              ? {
-                  ...stripPresetContainerStyle(currentStyle),
-                  ...presetContainerStyle,
-                }
-              : currentStyle;
-
-          // ⭐ appliedPreset 키 저장 (동일 프리셋 감지용)
-          await updateElementProps(bodyElementId, {
-            style: mergedStyle,
-            appliedPreset: presetKey,
-          });
-
-          // breakpoint override 는 props 가 아니라 노드 최상위 `responsive` 필드다.
-          // 이전 프리셋이 심은 키를 걷어낸 뒤 새 값을 얹어야 교체가 멱등해진다 (R1) —
-          // base 쪽 stripPresetContainerStyle 과 **같은 상수에서 파생된** 키 집합을 쓴다.
-          //
-          // props 쓰기와 분리한 이유: updateElement 는 props 를 전체 교체하므로
-          // (elementUpdate.ts) 여기서 props 를 함께 보내면 merge 의미가 사라진다.
-          // 최상위 필드만 보내는 경로도 history 에 남는다 — `updateElement` 가
-          // props 밖 canonical 필드를 replace event 쌍으로 기록한다.
-          const nextResponsive = mergePresetResponsive(
-            body.responsive,
-            toResponsiveConfig(preset.responsiveContainerStyle),
-          );
-          await updateElement(bodyElementId, { responsive: nextResponsive });
-
-          console.log(`[Preset] Saved appliedPreset="${presetKey}" to body`);
-        }
-
-        // ============================================
-        // Step 5: Slot 일괄 생성 (단일 History 엔트리)
-        // ============================================
-        if (slotElements.length > 0) {
           // addComplexElement 의 childElements 인자는 history grouping 용이다.
           // 각 Slot 의 parent_id 는 위에서 bodyElementId 로 고정한다.
           const [firstSlot, ...restSlots] = slotElements;
           await addComplexElement(firstSlot, restSlots);
-
-          console.log(
-            `[Preset] Created ${slotElements.length} slots with single history entry`,
-          );
+        } finally {
+          historyManager.commitTransaction();
         }
+        // ── 창 밖 ──────────────────────────────────────────────────────────
 
-        console.log(`[Preset] "${preset.name}" applied successfully`);
+        console.log(
+          `[Preset] "${preset.name}" applied — ${slotElements.length} slots, single history entry`,
+        );
       } catch (error) {
         console.error("[Preset] Failed to apply preset:", error);
         throw error;
       } finally {
-        historyManager.commitTransaction();
+        if (needsCanonicalPersist) await persistCanonicalPresetSlotRemoval();
         setIsApplying(false);
       }
     },

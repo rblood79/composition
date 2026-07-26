@@ -45,7 +45,7 @@ describe("LayoutPresetSelector usePresetApply replace contract", () => {
     );
     expect(source).toContain("await removeElements(existingSlotIds);");
     expect(source).toContain(
-      "await removeCanonicalPresetSlots(existingSlotIds);",
+      "removeCanonicalPresetSlotsInMemory(existingSlotIds);",
     );
     expect(source).toContain("useCanonicalPropertyElements");
     expect(source).toContain("useCanonicalPropertyElementsMap");
@@ -164,5 +164,34 @@ describe("프리셋 적용 history 단일 엔트리 계약 (ADR-168 후속)", ()
 
     // abort 로 버리지 않는다: 이미 일어난 mutation 을 기록 없이 남기면 되돌릴 수 없다
     expect(source).not.toContain("abortTransaction");
+  });
+
+  it("트랜잭션 창에 IndexedDB 왕복과 순수 계산을 넣지 않는다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "./usePresetApply.ts"),
+      "utf-8",
+    );
+
+    const begin = source.indexOf("historyManager.beginTransaction({");
+    const commit = source.indexOf("historyManager.commitTransaction();", begin);
+    expect(begin).toBeGreaterThan(0);
+    expect(commit).toBeGreaterThan(begin);
+    const window = source.slice(begin, commit);
+
+    // 창이 열린 동안 일어나는 무관한 mutation 은 같은 엔트리로 병합된다 —
+    // IDB 왕복(`await`)을 창 안에 두면 그만큼 창이 넓어진다.
+    expect(window).not.toContain("getDB(");
+    expect(window).not.toContain("persistCanonicalPresetSlotRemoval");
+    expect(window).not.toContain("persistActiveCanonicalDocument");
+
+    // 슬롯 노드 생성·스타일 병합 같은 순수 계산도 창 밖에서 끝낸다
+    expect(window).not.toContain("crypto.randomUUID()");
+    expect(window).not.toContain("stripPresetContainerStyle");
+    expect(window).not.toContain("mergePresetResponsive");
+
+    // 조기 return 은 창을 열기 전에 — 빈 트랜잭션을 만들지 않는다
+    const earlyReturn = source.indexOf("No new slots to create");
+    expect(earlyReturn).toBeGreaterThan(0);
+    expect(earlyReturn).toBeLessThan(begin);
   });
 });

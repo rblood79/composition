@@ -475,11 +475,25 @@ try { /* 4 갈래 mutation */ } finally { historyManager.commitTransaction(); }
 
 **`canonicalEvents` 없는 entry 는 경고**한다. 트랜잭션 중 그런 entry 가 오면 병합할 수 없어 누락되므로 조용히 삼키지 않는다 (현행 mutation 은 전부 event 부착이라 실제 발생은 없다).
 
-**한계**: 트랜잭션이 `await` 를 걸쳐 열려 있는 동안 **무관한 mutation 이 끼어들면** 같은 엔트리에 병합된다. 프리셋 적용 중에는 `isApplying` 이 카드를 비활성화하고 창이 짧아 실사용 위험은 낮으나, 트랜잭션 구간은 최소로 유지해야 한다.
+**트랜잭션 창 최소화 (같은 세션에 후속 적용)**: 창이 열린 동안 일어나는 무관한 mutation 은 같은 엔트리로 병합되므로, 창은 **store write 만** 감싼다. `applyPreset` 을 아래로 재구성했다:
 
-**회귀 가드**: `historyTransaction.test.ts` (병합·event 순서 / 중첩 / 빈 버퍼 no-op / event 없는 entry 경고 / 열린 트랜잭션 없는 커밋 / 트랜잭션 밖 종전 동작 6건) + `usePresetApply.static.test.ts` (begin 이 try 앞 / commit 이 finally 안 / abort 부재).
+| 구간 | 내용 | 위치 |
+| ---- | ---- | ---- |
+| 준비 | 생성할 슬롯 결정 / 슬롯 노드 배열 생성(`crypto.randomUUID`) / body 스타일 병합(`stripPresetContainerStyle`) / `mergePresetResponsive` | 창 **밖** (앞) |
+| 창 | `removeElements` → canonical 슬롯 제거(메모리) → `updateElementProps` → `updateElement({responsive})` → `addComplexElement` | 창 **안** |
+| 마무리 | canonical document IndexedDB 영속화 | 창 **밖** (뒤, outer `finally`) |
 
-**live 확증**: 목록-상세 적용 → **undo 1회로 완전 복원** (`appliedPreset`·`flexDirection`·슬롯·`responsive` 4축 전부 최초값), **redo 1회로 완전 재적용**, 재 undo 로 원상 복귀. 콘솔 경고 0건.
+핵심은 **IDB 왕복을 창에서 뺀 것**이다. 구 `removeCanonicalPresetSlots` 는 canonical 메모리 변경과 `await getDB()` + `await persistActiveCanonicalDocument()` 를 한 함수에 묶고 있어 창 안에 IDB round-trip 이 들어갔다. `removeCanonicalPresetSlotsInMemory()`(동기, 변경 여부 반환) + `persistCanonicalPresetSlotRemoval()`(창 밖) 로 분리했다. 창에 남은 `await` 는 store mutation 뿐이고, 이들의 IDB 영속화는 각자 `void (async …)()` 로 fire-and-forget 이라 caller 를 붙잡지 않는다.
+
+영속화를 outer `finally` 에 둔 이유: 예외로 중단돼도 이미 메모리에서 제거된 canonical 은 디스크에 반영돼야 한다 — 안 그러면 새로고침 시 슬롯이 되살아난다. 실측으로 확인했다 (프리셋 적용 → 새로고침 → `list-detail` 유지).
+
+조기 return(`slotsToCreate.length === 0`)도 창을 열기 **전**으로 올려 빈 트랜잭션이 생기지 않게 했다. 이 이동은 동작 불변이다: replace 모드는 `preset.slots` 가 비지 않아 이 분기에 걸리지 않고, merge 모드는 슬롯 제거 자체를 하지 않는다.
+
+**잔존 한계**: 창이 완전히 동기는 아니다 (store mutation 4개의 `await`). `isApplying` 이 프리셋 카드를 비활성화하지만 캔버스 조작을 막지는 않으므로, 그 사이 다른 mutation 이 들어오면 병합된다. 완전 차단은 mutation 큐 수준의 변경이 필요해 하지 않았다.
+
+**회귀 가드**: `historyTransaction.test.ts` (병합·event 순서 / 중첩 / 빈 버퍼 no-op / event 없는 entry 경고 / 열린 트랜잭션 없는 커밋 / 트랜잭션 밖 종전 동작 6건) + `usePresetApply.static.test.ts` 2건 — ① begin 이 try 앞 / commit 이 finally 안 / `abortTransaction` 부재 ② **창 안에 `getDB(`·영속화·`crypto.randomUUID()`·`stripPresetContainerStyle`·`mergePresetResponsive` 부재 + 조기 return 이 begin 앞**.
+
+**live 확증**: Holy Grail(슬롯 5개 + grid 컨테이너 + responsive 3키 — 가장 무거운 경로)로 재검증 — **undo 1회로 완전 복원** (`appliedPreset`·`flexDirection`·슬롯·`responsive` 4축 전부 최초값), **redo 1회로 완전 재적용**, 재 undo 로 원상 복귀. 영속화 실측: 적용 → 새로고침 후 `list-detail` 유지. 콘솔 경고 0건.
 
 
 ## 8. 파일 변경 인벤토리

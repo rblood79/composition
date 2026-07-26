@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: 프리셋 적용 1회가 네 갈래 mutation(슬롯 제거 / 슬롯 삽입 / body props / body responsive)이라 history entry 도 4개가 쌓였다. 사용자에겐 한 번의 조작인데 되돌리기 단위가 4개였다.
   - `HistoryManager` 에 트랜잭션을 도입 — 열려 있는 동안 `addEntry` 는 엔트리를 만들지 않고 `canonicalEvents` 를 시간순으로 모으고, 커밋에서 엔트리 1개로 확정한다. mutation 함수는 그대로 두고 호출부에서 감싸는 방식이라 다른 다단계 조작에도 쓸 수 있다.
   - 커밋은 `finally` 에 둔다(중단 시 버리지 않음) — 이미 일어난 변경을 기록 없이 남기면 되돌릴 수 없다.
+  - 트랜잭션 창은 **store write 만** 감싼다: 슬롯 노드 생성·스타일 병합 같은 순수 계산과 canonical document IndexedDB 영속화를 창 밖으로 뺐다. 창이 열린 동안의 무관한 mutation 은 같은 엔트리로 병합되므로 창이 넓을수록 오염 위험이 커진다. `removeCanonicalPresetSlots` 를 메모리 변경(동기)과 영속화(창 밖)로 분리했다.
   - **실측**: 목록-상세 적용 → **undo 1회로 완전 복원**(`appliedPreset`·`flexDirection`·슬롯·`responsive` 4축), **redo 1회로 완전 재적용**, 재 undo 로 원상 복귀.
 - **tablet override 가 캐시 히트로 흡수되던 문제** (R5): `LAYOUT_STYLE_KEYS` 에 `gridColumnEnd`·`gridRowEnd`·`gridTemplateAreas` 누락 — `*Start` 와 트랙 템플릿만 등재돼 있어 `End` 만 바뀌는 override 가 무반영이었다.
 
