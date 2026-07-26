@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Frame 프리셋 적용 — 슬롯이 캔버스에 안 그려지던 문제] - 2026-07-26
+
+### Bug Fixes
+
+- **Frame 프리셋을 눌러도 프레임이 빈 채로 보이던 문제** — 슬롯이 자기 배치를 선언하도록 수정:
+  - **Why**: 프리셋은 `containerStyle` 을 body 에만 적용하고 슬롯에는 크기·배치를 주지 않았다. 빈 Slot 은 콘텐츠 크기가 0 이고, 생성 CSS(`.react-aria-Slot` = `inline-flex` + `height:60px`)에도 catalog(`Slot.sizes` = height 만)에도 주축 크기가 없어 레이아웃 엔진이 0 을 산출했다. **실측**: `전체화면` 적용 후 content 슬롯이 `0,0 0x844`, `수직 2단` 은 header/content 모두 `390x0`. 데이터(레이어 트리·"적용됨" 표시)는 정상이라 적용된 것처럼 보이는데 캔버스만 비어 있었다.
+  - flex 프리셋 5종: content 계열에 `flex:1`, header/footer 밴드에 `minHeight`, 고정 사이드바에 `flexShrink:0` 을 부여. **실측 결과** — 전체화면 `390x844` / 수직 2단 `60 + 784` / 수직 3단 `60 + 724 + 60` / 좌·우 사이드바 `250 + 140`.
+  - grid 프리셋 4종: 슬롯에 배치 자체가 없어 auto-placement 로 **겹쳤다**(Holy Grail 에서 content 와 aside 가 같은 자리). `gridArea` 이름 + `gridColumn/RowStart/End` **숫자 line 병기**로 수정 — 이름만으로는 엔진이 배치를 해석하지 못한다(`rules/layout-engine.md` §"Grid area 이름 해석"). **실측(1920 폭)** — Holy Grail `200 / 1520 / 200`, 대시보드(위젯) `200 / 1440 / 280` 으로 정확 배치.
+  - 프리셋 **교체가 멱등**해졌다: 이전 프리셋의 컨테이너 키를 걷어낸 뒤 병합한다. 이전에는 `수직 2단`(flex column) → `Holy Grail`(grid) 전환 시 `flexDirection:"column"` 이 grid 컨테이너에 잔존했다.
+  - 위치: `apps/builder/src/builder/panels/properties/editors/LayoutPresetSelector/{presetDefinitions,presetStyle,usePresetApply}.ts`
+  - 회귀 가드: `presetDefinitions.static.test.ts` — 모든 슬롯이 주축 크기(flex) 또는 배치 5키(grid)를 선언했는지, grid line 이 트랙 범위 안인지, `gridArea` 가 `gridTemplateAreas` 에 존재하는지 단언. `defaultStyle` 은 optional 이라 누락돼도 컴파일이 통과하므로 타입으로는 못 막는다.
+  - **잔존(엔진 영역)**: grid 프리셋의 header/footer 밴드는 `auto` 행이라 빈 상태에서 여전히 높이 0 이다. 레이아웃 엔진의 grid auto 트랙 산정이 item `min-height` 를 반영하지 않는다(대조 실험: 같은 자리에 `height` 를 주면 60 이 나오고 `minHeight` 는 0). 트랙 쪽 `minmax(60px, auto)` 도 오계산(header 570)이라 프리셋 층에 CSS-정합 우회가 없다. flex 프리셋은 영향 없음.
+
 ## [body 편집 계약 공백 — 페이지·프레임 오소링 컨트롤 복구] - 2026-07-26
 
 ### Bug Fixes

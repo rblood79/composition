@@ -25,7 +25,10 @@ import {
 import { getActiveCanonicalDocument } from "../../../../stores/canonical/canonicalElementsBridge";
 import { useCanonicalDocumentStore } from "../../../../stores/canonical/canonicalDocumentStore";
 import { LAYOUT_PRESETS } from "./presetDefinitions";
-import { normalizeFramePresetContainerStyle } from "./presetStyle";
+import {
+  normalizeFramePresetContainerStyle,
+  stripPresetContainerStyle,
+} from "./presetStyle";
 import type {
   PresetApplyMode,
   ExistingSlotInfo,
@@ -387,13 +390,18 @@ export function usePresetApply({
             ((body.props as { style?: Record<string, unknown> })
               ?.style as Record<string, unknown>) || {};
 
-          // containerStyle이 있으면 병합, 없으면 기존 스타일 유지
+          // containerStyle이 있으면 병합, 없으면 기존 스타일 유지.
+          // 병합 전 이전 프리셋이 심은 컨테이너 키를 걷어낸다 — 안 그러면 flex 프리셋의
+          // `flexDirection` 이 grid 프리셋 위에 남는 식으로 섞인다 (교체 비멱등).
           const presetContainerStyle = normalizeFramePresetContainerStyle(
             preset.containerStyle,
           );
           const mergedStyle =
             Object.keys(presetContainerStyle).length > 0
-              ? { ...currentStyle, ...presetContainerStyle }
+              ? {
+                  ...stripPresetContainerStyle(currentStyle),
+                  ...presetContainerStyle,
+                }
               : currentStyle;
 
           // ⭐ appliedPreset 키 저장 (동일 프리셋 감지용)
