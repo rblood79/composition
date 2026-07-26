@@ -328,10 +328,23 @@ function nowMs(): number {
   return globalThis.performance?.now?.() ?? Date.now();
 }
 
-async function confirmOriginImpactIfNeeded(
+/**
+ * origin 편집 영향 confirm 게이트 — 대화상자가 필요 없으면 **동기로** `true`.
+ *
+ * 반환형이 `boolean | Promise<boolean>` 인 이유: 이 게이트는 mutation 이 아니라 선행
+ * 조건 검사이고, 대화상자를 띄우지 않는 경로(=대부분의 편집)에서는 계산이 전부 동기다.
+ * `async` 로 두면 그 경로에도 await 지점이 생기는데, `await` 는 값이 이미 준비돼 있어도
+ * microtask 경계를 만든다. history 트랜잭션 창(프리셋 적용 — usePresetApply) 안에서는
+ * 그 경계가 곧 외부 mutation 이 같은 되돌리기 엔트리로 병합될 틈이 되므로, 양보 지점
+ * 자체를 없애는 것이 유일한 구조적 차단이다.
+ *
+ * 호출부는 `gate !== true && !(await gate)` 형태로 받는다 — 동기 `true` 는 await 없이
+ * 통과하고, 대화상자 경로만 실제로 양보한다.
+ */
+function confirmOriginImpactIfNeeded(
   state: ElementsState,
   element: Element,
-): Promise<boolean> {
+): boolean | Promise<boolean> {
   if (getEditingSemanticsRole(element) !== "origin") return true;
 
   const startedAt = nowMs();
@@ -348,24 +361,25 @@ async function confirmOriginImpactIfNeeded(
   }
 
   const instanceCount = impactedInstanceIds.length;
-  if (instanceCount === 0) return Promise.resolve(true);
+  if (instanceCount === 0) return true;
 
   const confirmationKey = `${element.id}:${instanceCount}`;
   if (confirmedOriginImpactKeys.has(confirmationKey)) {
-    return Promise.resolve(true);
+    return true;
   }
 
-  const confirmed = await requestEditingSemanticsImpactConfirmation({
+  return requestEditingSemanticsImpactConfirmation({
     countDurationMs,
     impactedInstanceIds,
     instanceCount,
     originId: element.id,
     originLabel: element.componentName ?? element.customId ?? element.type,
+  }).then((confirmed) => {
+    if (confirmed) {
+      confirmedOriginImpactKeys.add(confirmationKey);
+    }
+    return confirmed;
   });
-  if (confirmed) {
-    confirmedOriginImpactKeys.add(confirmationKey);
-  }
-  return confirmed;
 }
 
 /**
@@ -402,7 +416,9 @@ export const createUpdateElementPropsAction =
       !hasShallowPatchChanges(element.props as Record<string, unknown>, patch)
     )
       return;
-    if (!(await confirmOriginImpactIfNeeded(currentState, element))) return;
+    // 동기 통과(대화상자 불필요) 경로는 await 하지 않는다 — 게이트 주석 참조.
+    const originGate = confirmOriginImpactIfNeeded(currentState, element);
+    if (originGate !== true && !(await originGate)) return;
 
     const shouldRecordHistory = Boolean(currentState.currentPageId);
     const prevPropsClone = shouldRecordHistory
@@ -539,7 +555,9 @@ export const createUpdateElementAction =
     const sourceElements = getElementUpdateSourceElements(currentState);
     const element = findElementForUpdate(sourceElements, elementId);
     if (!element) return;
-    if (!(await confirmOriginImpactIfNeeded(currentState, element))) return;
+    // 동기 통과(대화상자 불필요) 경로는 await 하지 않는다 — 게이트 주석 참조.
+    const originGate = confirmOriginImpactIfNeeded(currentState, element);
+    if (originGate !== true && !(await originGate)) return;
 
     // props 밖 canonical 필드(`responsive`/`fills`) 변경은 update event 로 undo 되지
     // 않는다 — `replaceNodeProps` 가 props 만 교체하므로 full node 를 실어야 한다.

@@ -236,16 +236,11 @@ async function executeRemoval(
     removeSet,
   );
 
-  let db: BuilderDb | null = null;
-
-  // Canonical document 저장 준비
-  if (typeof indexedDB !== "undefined") {
-    try {
-      db = await getDB();
-    } catch (error) {
-      console.error("❌ [IndexedDB] 연결 중 오류:", error);
-    }
-  }
+  // DB 연결은 실제로 쓰는 지점(맨 아래 영속화)에서 얻는다. 여기서 미리 await 하면
+  // history 기록과 메모리 반영이 IndexedDB open 이 끝날 때까지 밀리고, 그 사이 다른
+  // mutation 이 끼어들 수 있다. 특히 history 트랜잭션 창 안에서 호출될 때 (프리셋
+  // 적용 — usePresetApply) 창이 그만큼 넓어져 무관한 변경이 같은 되돌리기 엔트리로
+  // 병합된다. 이 함수는 `set()` 까지 **동기 도달**해야 한다.
 
   // 요소 필터링
   const detachPreviousIds = new Set(
@@ -379,14 +374,24 @@ async function executeRemoval(
     }),
   }));
 
-  if (db) {
+  // Canonical document 영속화 (연결 획득 포함) — 위 `set()` 이후이므로 이 지점부터
+  // 비동기다. 연결 실패와 저장 실패는 진단이 다르므로 로그를 나눠 유지한다.
+  if (typeof indexedDB !== "undefined") {
+    let db: BuilderDb | null = null;
     try {
-      await persistActiveCanonicalDocument(db);
+      db = await getDB();
     } catch (error) {
-      console.warn(
-        "⚠️ [IndexedDB] canonical document 삭제 반영 중 오류 (메모리는 정상):",
-        error,
-      );
+      console.error("❌ [IndexedDB] 연결 중 오류:", error);
+    }
+    if (db) {
+      try {
+        await persistActiveCanonicalDocument(db);
+      } catch (error) {
+        console.warn(
+          "⚠️ [IndexedDB] canonical document 삭제 반영 중 오류 (메모리는 정상):",
+          error,
+        );
+      }
     }
   }
 
