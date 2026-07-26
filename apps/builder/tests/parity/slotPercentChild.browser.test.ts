@@ -23,10 +23,26 @@ import { type ParityCase, runParityCase } from "./harness";
  *   item → DOM 700 / 엔진 1680. ADR-156 옵션 3-b 의 **문서화된 residual** (justify 축은
  *   stretch 유지 — JS DFS 가 grid 자식 폭을 트랙 폭으로 강제하는 것과의 이중 적용 회피).
  *   자식의 `100%` 는 양쪽 다 700 이라 이 케이스에서 자식은 일치한다.
- * - **flex 컨테이너에 "자식을 가진 flex item" 이 섞이면 형제가 붕괴한다**: row 1920 에
- *   `[width:240px, {flexGrow:1, 자식 width:100%}]` → DOM `240 / 1680` vs 엔진 `0 / 1920`.
- *   자식이 없으면(F1/F2 형태) 동일 구조가 정상이라, flex 의 `used_main` 재-solve 뒤 두 번째
- *   `flex_layout` 입력이 형제 쪽에서 어긋나는 것으로 보인다. 별도 조사 대상.
+ * - **컨테이너 flex item 의 intrinsic 부재** (2026-07-27 조사 완료 — ADR-165 후속 대상):
+ *   `solve_flex` 1단계는 각 item 을 **컨테이너 available 로 solve** 해 그 결과를
+ *   `content_main`(off 13) 에 넣는다. 그래서 *스스로 폭을 갖지 않고 늘어나기만 하는* 내용
+ *   (auto/`%` 폭 자식) 이 고유 폭으로 오인된다. 그 값이 ① flex base size ② §4.5 floor 의
+ *   `content_min_main` absent fallback **양쪽**에 들어가, **상한 근사가 하한으로 쓰인다**.
+ *   leaf 는 ADR-165 스칼라로 이미 정확 — **컨테이너만** 비어 있다.
+ *
+ *   실측 (row 1920, sidebar 250px + content flexGrow:1, DOM/engine/pipeline 3-leg):
+ *   | 형태                                   | DOM         | 엔진·파이프라인 |
+ *   | -------------------------------------- | ----------- | --------------- |
+ *   | content 자식 auto·`%` + sidebar shrink:0 | 250 / 1670  | 250 / **1920**  ← 프리셋 실형태, 우측 250 초과
+ *   | 〃 sidebar shrink 기본                   | 250 / 1670  | **0** / 1920    |
+ *   | content 자식 고정 3000px                 | 0 / 3000    | 0 / 3000 ✅     ← 진짜 과폭은 정상
+ *   | 텍스트 leaf 가 **item 자신**             | 205.7/1714.3| 동일 ✅          |
+ *   | 텍스트 leaf 가 **컨테이너 item 안**      | 205.7/1714.3| **0** / 1920    |
+ *
+ *   `sidebar-left` / `sidebar-right` / `list-detail` 프리셋이 이 형태다 (`flexShrink:0` 이
+ *   붙어 있어 붕괴 대신 **초과**로 나타난다). 부분 수정은 금지 — max-content 만 고치면
+ *   floor 가 함께 커져 긴 텍스트가 더 크게 넘친다. min/max-content 를 leaf→컨테이너로
+ *   **bottom-up 전파**(O(n), 추가 solve 없음)해 off 13/19 을 동시에 채우는 것이 정본 방향.
  */
 const ROOT_W = 1920;
 
