@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [body 편집 계약 공백 — 페이지·프레임 오소링 컨트롤 복구] - 2026-07-26
+
+### Bug Fixes
+
+- **body 를 선택하면 Properties 패널이 "편집 계약이 비어 있습니다" 만 띄우던 문제** — 오소링 컨트롤 5종 복구:
+  - 복구 항목: 페이지 ↔ 재사용 Frame 연결·해제 / 부모 페이지 지정(nested route + slug) / body customId / body className / Frame body 프리셋(Slot 자동 생성).
+  - **Why**: 2026-06-03 `5b89e707e`(ADR-912 단계 2)가 per-type dispatch(`getEditor(type, ctx)`)를 `resolveEditContract` 단일 진입점으로 교체할 때, `registry.ts` 의 body 전용 분기(`editMode === "layout" ? LayoutBodyEditor : PageBodyEditor`)가 대체 없이 사라졌다. catalog `binding.props.accepts` 는 **element props 계약**이라 페이지·프레임 오소링 축을 표현할 수 없어 `bodyBinding.props.accepts` 는 `{}` 이고, 그 결과 semantic 필드 0개 → EmptyState 로 빠졌다. 두 에디터 파일과 그 테스트는 그대로 남아 type-check·vitest 어디에서도 잡히지 않았다.
+  - **영향 범위**: `applyPageFrameBindingExplicit` / `…FromSelection` 의 소비자가 0건이 되어 **페이지에 Frame 을 새로 걸거나 해제할 수단이 UI 에 전혀 없었다**. 읽기 경로(`getPageFrameBindingId` → LayerTree)는 살아 있어 이미 걸린 Frame 은 렌더됐다 — "보이는데 바꿀 수 없는" 비대칭.
+  - 복구 형태: `PageBodySection` 을 `ComponentSemanticsSection` / `FrameSlotSection` 과 같은 계층의 섹션으로 추가. catalog `accepts` 확장이나 새 `InspectorFieldKind` 도입이 아니다 — element props 계약을 오소링 축으로 오염시키지 않는다. `CatalogEditContractEditor` 는 `DEDICATED_SECTION_TYPES`(현재 `body`)에서 EmptyState 를 생략한다(실제 컨트롤과 함께 뜨면 모순된 안내가 된다).
+  - **live 검증** (실제 builder): body 선택 → Nested Routes(Parent Page / Slug / Preview URL) + Layout(ID / Class Name) 섹션 렌더, EmptyState 미표시. Class Name 실입력 → canonical 문서와 legacy 배열 양쪽 반영 확인 후 원복, 새로고침 후 원복 상태 유지, console 에러 0. Frame 섹션은 현 프로젝트에 reusable frame 이 0개라 설계대로 미표시(`reusableFrames.length === 0` → null). layout 모드 분기는 단위 테스트로만 검증.
+  - 회귀 가드: `PageBodySection.static.test.ts` 가 패널의 마운트 지점과 EmptyState 억제 분기를 소스로 단언한다 — 이 결함의 실패 모드가 "컴포넌트는 남고 소비 지점만 사라짐" 이었으므로 파일 존재가 아니라 배선을 검사한다.
+  - 위치: `apps/builder/src/builder/panels/properties/PageBodySection.tsx` (신규) · `panels/properties/PropertiesPanel.tsx`
+
 ## [하단 패널 리사이즈 핸들 더블클릭 = 기본 높이 복원 — Pen v1.2.1 수법 차용] - 2026-07-26
 
 ### Features

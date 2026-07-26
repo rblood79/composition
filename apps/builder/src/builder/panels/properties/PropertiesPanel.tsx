@@ -29,6 +29,7 @@ import { ComponentSemanticsSection } from "./ComponentSemanticsSection";
 import { ComponentSlotFillSection } from "./ComponentSlotFillSection";
 import { FrameSlotSection } from "./FrameSlotSection";
 import { ButtonChildSection } from "./ButtonChildSection";
+import { PageBodySection, DEDICATED_SECTION_TYPES } from "./PageBodySection";
 import { ActionIconButton } from "../../components/ui";
 import { Copy, ClipboardPaste, Settings2 } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
@@ -254,6 +255,10 @@ const CatalogEditContractEditor = memo(
     }, []);
 
     if (semanticFields.length === 0) {
+      // 비-catalog 오소링 섹션이 편집 축을 전담하는 타입(body)은 EmptyState 를 띄우지
+      // 않는다 — 계약이 빈 게 결함이 아니라 축이 다른 것이고, 실제 컨트롤은
+      // PageBodySection 이 공급하므로 함께 뜨면 모순된 안내가 된다.
+      if (DEDICATED_SECTION_TYPES.has(selectedElement.type)) return null;
       return (
         <EmptyState
           message="편집 가능한 속성이 없습니다"
@@ -868,6 +873,9 @@ function PropertiesPanelContent() {
         />
 
         <ComponentSemanticsSection elementId={selectedElement.id} />
+
+        {/* body 의 페이지·프레임 오소링 축 (catalog accepts 로 표현 불가 — PageBodySection 주석) */}
+        <PageBodySection elementId={selectedElement.id} />
 
         <FrameSlotSection elementId={selectedElement.id} />
 
