@@ -1325,3 +1325,153 @@ describe("ADR-111 P3-θ resolvePageWithFrame", () => {
     expect(ids.has(toPageFrameElementId("page-1", "slot-content"))).toBe(true);
   });
 });
+
+/**
+ * 프레임을 페이지에 적용하면 breakpoint override 가 통째로 사라지던 결함 (2026-07-27).
+ *
+ * 프리셋은 컨테이너 override(트랙 교체 / mobile 세로 스택)와 슬롯 override(배치 line 이동)를
+ * **쌍으로** 낸다 (ADR-168 G8). 슬롯 쪽은 노드 스프레드로 살아남았는데 컨테이너 쪽은
+ * `responsive` 가 최상위 canonical 필드라 page body 스프레드에 실리지 않아 유실됐다 —
+ * 한쪽만 살아남는 바람에 dashboard-widgets 는 tablet 에서 widgets 가 sidebar 와 겹쳤다.
+ */
+describe("page-frame 합성 — frame body 의 breakpoint override 계승", () => {
+  const FRAME_ID = "frame-dashboard";
+
+  const makeGridFrameBody = (
+    responsive?: CanvasSceneNode["responsive"],
+  ): CanvasSceneNode =>
+    makeEl({
+      id: "frame-body",
+      type: "body",
+      frameId: FRAME_ID,
+      page_id: null,
+      props: {
+        style: {
+          display: "grid",
+          gridTemplateColumns: "240px 1fr",
+          gridTemplateRows: "auto 1fr",
+        },
+      },
+      ...(responsive ? { responsive } : {}),
+    });
+
+  const PRESET_RESPONSIVE: CanvasSceneNode["responsive"] = {
+    styles: {
+      gridTemplateColumns: { tablet: "200px 1fr" },
+      display: { mobile: "flex" },
+      flexDirection: { mobile: "column" },
+    },
+  } as CanvasSceneNode["responsive"];
+
+  const resolve = (
+    frameBody: CanvasSceneNode,
+    pageBody: CanvasSceneNode,
+    extra: CanvasSceneNode[] = [],
+  ) =>
+    resolvePageWithFrame({
+      page: makeFramePage(FRAME_ID, { id: "page-1" }),
+      pageElements: [pageBody],
+      elementsMap: buildElementsMap([frameBody, pageBody, ...extra]),
+    });
+
+  it("frame body 의 responsive 가 합성된 page body 로 옮겨진다", () => {
+    const result = resolve(
+      makeGridFrameBody(PRESET_RESPONSIVE),
+      makeEl({ id: "page-body", type: "body", page_id: "page-1" }),
+    );
+
+    // 유실되면 여기가 undefined — 컨테이너가 전 breakpoint 에서 desktop 트랙에 묶인다
+    expect(result.bodyElement?.responsive?.styles).toEqual({
+      gridTemplateColumns: { tablet: "200px 1fr" },
+      display: { mobile: "flex" },
+      flexDirection: { mobile: "column" },
+    });
+  });
+
+  it("page 가 선언한 viewport 키는 page override 가 이긴다 (base style 정책과 동일)", () => {
+    const result = resolve(
+      makeGridFrameBody({
+        styles: {
+          width: { mobile: 999 },
+          gridTemplateColumns: { tablet: "200px 1fr" },
+        },
+      } as CanvasSceneNode["responsive"]),
+      makeEl({
+        id: "page-body",
+        type: "body",
+        page_id: "page-1",
+        responsive: {
+          styles: { width: { mobile: 390 } },
+        } as CanvasSceneNode["responsive"],
+      }),
+    );
+
+    const styles = result.bodyElement?.responsive?.styles as Record<
+      string,
+      unknown
+    >;
+    expect(styles.width).toEqual({ mobile: 390 });
+    expect(styles.gridTemplateColumns).toEqual({ tablet: "200px 1fr" });
+  });
+
+  it("visibility 는 page 것만 쓴다 — frame body 를 숨기면 page 콘텐츠까지 사라진다", () => {
+    const result = resolve(
+      makeGridFrameBody({
+        styles: { gridTemplateColumns: { tablet: "200px 1fr" } },
+        visibility: { mobile: false },
+      } as CanvasSceneNode["responsive"]),
+      makeEl({ id: "page-body", type: "body", page_id: "page-1" }),
+    );
+
+    expect(result.bodyElement?.responsive?.visibility).toBeUndefined();
+  });
+
+  it("frame body 에 override 가 없으면 page body 자기 것을 유지한다", () => {
+    const pageResponsive = {
+      styles: { paddingTop: { mobile: 8 } },
+    } as CanvasSceneNode["responsive"];
+    const result = resolve(
+      makeGridFrameBody(),
+      makeEl({
+        id: "page-body",
+        type: "body",
+        page_id: "page-1",
+        responsive: pageResponsive,
+      }),
+    );
+
+    expect(result.bodyElement?.responsive).toEqual(pageResponsive);
+  });
+
+  it("grid 슬롯에 크기를 주입하지 않는다 — auto 행이 페이지 높이로 부푼다", () => {
+    const slot = makeEl({
+      id: "slot-navigation",
+      type: "Slot",
+      frameId: FRAME_ID,
+      page_id: null,
+      parent_id: "frame-body",
+      props: {
+        name: "navigation",
+        style: { gridColumnStart: "1", gridColumnEnd: "3", minHeight: 60 },
+      },
+    });
+    const result = resolve(
+      makeGridFrameBody(),
+      makeEl({ id: "page-body", type: "body", page_id: "page-1" }),
+      [slot],
+    );
+
+    const style = result.pageElements.find(
+      (el) => el.id === toPageFrameElementId("page-1", "slot-navigation"),
+    )?.props?.style as Record<string, unknown>;
+
+    // 배치 fallback 은 유지 (placement 없는 legacy 슬롯용)
+    expect(style.gridArea).toBe("navigation");
+    // grid item 은 기본 stretch — 크기 주입은 `auto` 행을 컨테이너 높이로 부풀린다
+    expect(style.width).toBeUndefined();
+    expect(style.height).toBeUndefined();
+    // 슬롯이 스스로 선언한 배치·하한은 그대로
+    expect(style.gridColumnStart).toBe("1");
+    expect(style.minHeight).toBe(60);
+  });
+});

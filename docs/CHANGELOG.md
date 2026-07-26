@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [프레임을 적용한 페이지의 breakpoint 대응 복구 — page-frame 합성] - 2026-07-27
+
+### Bug Fixes
+
+- **프레임을 페이지에 적용하면 슬롯이 breakpoint 를 따라가지 않던 문제** (dashboard 2종에서 보고). 같은 프리셋이 프레임 편집 화면에서는 정상이고 페이지에서만 어긋났다 — 실측 (dashboard, mobile 390):
+
+  | 맥락                  | 결과                                           |
+  | --------------------- | ---------------------------------------------- |
+  | 프레임 편집 (기준)    | 358 폭 세로 스택 — 60 / 60 / 652 (페이지 높이) |
+  | 페이지 적용 (변경 전) | 2열 grid 유지 — sidebar 240 / **content 98**   |
+  | 페이지 적용 (변경 후) | 358 폭 세로 스택 — 60 / 60 / 652 (기준과 동일) |
+  - **Why**: `mergePageBodyWithFrameLayout` 이 frame body 의 `props.style` 만 합쳤다. breakpoint override 는 `responsive` — **최상위 canonical 필드**라 `{...pageBody}` 스프레드가 page body 것만 실어 왔고, page body 는 자기 override 가 없는 게 보통이다 (실측: 프레임 바인딩된 3개 페이지 전부 `responsive: null`). 그래서 프리셋이 심은 컨테이너 override(트랙 교체 / mobile 세로 스택)가 통째로 사라졌다.
+  - 슬롯 쪽 override 는 노드 스프레드(`asPageResolvedSlot`)로 **살아남아 있었다.** 한쪽만 살아남은 탓에 `Widget Panel` 은 tablet 에서 widgets 가 `(0,1024) 488×1024` 로 이동해 **sidebar 와 겹쳤다** — item 은 옮겨졌는데 컨테이너의 3행 트랙이 안 왔기 때문. ADR-168 G8("item placement override 는 컨테이너 template override 를 동반한다")이 프리셋 정의에서는 지켜졌는데 이 합성 경로에서 반쪽만 통과했다. 변경 후 `(0,964) 768×60` 하단 전폭 행.
+  - 병합 정책은 base style 과 동일하다 — frame 이 이기되 page 가 선언한 viewport 키(width/height/min·max/background\*)는 page 가 되찾는다. `visibility` 는 page 것만 쓴다: 합쳐진 노드가 page body 라, frame body 를 mobile 에서 숨기라는 선언을 그대로 적용하면 page 소유 콘텐츠까지 사라진다.
+  - 위치: `workspace/canvas/scene/resolvePageWithFrame.ts`
+
+- **grid 프레임을 적용한 페이지에서 슬롯 행마다 페이지 한 장 높이가 되던 문제** — desktop dashboard 실측: navigation 이 `60` 이어야 하는데 `1048` 이 되고 두 번째 행이 `y=1084` 로 **페이지 밖**에 놓였다 (총 높이가 페이지의 2배).
+  - **Why**: `getPageResolvedSlotStyle` 의 grid 분기가 `height: 100%` 를 주입했다. CSS 에서 grid item 의 백분율 높이는 자기 **grid area** 기준이고 `auto` 행은 불확정이라 auto 로 접히는데, 레이아웃 엔진은 컨테이너 높이로 해석해 `auto` 행이 페이지 전체로 부풀었다.
+  - grid item 은 기본 stretch 라 주입 자체가 불필요하다 — 같은 슬롯이 프레임 편집 맥락에서는 주입 없이 자기 area 를 정확히 채운다 (실측 desktop: sidebar 240×968 / content 1628×968). ADR-168(슬롯이 자기 배치·크기를 스스로 선언) 이전의 fallback 이었다. 배치 fallback(`gridArea ??= slotName`)만 남긴다.
+  - 위치: `workspace/canvas/scene/resolvePageWithFrame.ts`
+
+- 검증: 프레임 편집 맥락을 기준으로 **dashboard 2종 × 3 breakpoint 전수 대조** — 6조합 모두 좌표·크기가 기준과 일치. flex 계열(`3-Row`) 회귀 없음. 회귀 테스트 5건 추가 (`resolvePageWithFrame.test.ts`), 그중 3건은 수정 전 FAIL 확인.
+
 ## [Frame Preset 미리보기 식별성 — 썸네일 가독성 정규화] - 2026-07-26
 
 ### Bug Fixes
@@ -31,8 +54,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위계는 표면에서 멀어지는 **elevation 3단**이다 — 표면 `--bg-inset` / 슬롯·판 `--bg-muted` / required 슬롯·격자 카드 `--bg-emphasis`. 실측 lightness: light `0.985 / 0.928 / 0.872`, dark `0.210 / 0.370 / 0.442` (방향은 뒤집히지만 두 테마 모두 단조롭게 멀어진다).
   - 격자 셀을 품은 슬롯은 required 여도 판 단계로 내린다 — 카드와 같은 색이면 카드 8개가 통째로 사라진다. 그 슬롯의 required 는 카드가 대신 표시한다.
   - `currentColor` 소비자가 사라져 `.preset-preview-svg` 의 `color` 선언도 제거했다 (죽은 선언). 선을 다시 도입하면 그 선언이 다시 필요하다 — `.list-item.applied` 가 카드에 거는 `--fg-on-accent` 가 상속되기 때문이며, 그 사유는 CSS 주석에 남겼다.
-  - 위계는 채우기 대신 **선 두께**로 준다 (슬롯 1.5 / 격자 셀 1). 부수 효과로 채우기 위계에 쓰던 `--accent-subtle` 의존이 사라졌다 (아래 항목 참조).
-  - 선 색은 `currentColor` 로 받고 CSS 가 `.preset-preview-svg { color: var(--fg-muted) }` 로 준다 — 아이콘이 컨테이너 `color` 에서 색을 받는 방식과 같다. **이 선언은 필수다**: `.list-item.applied` / `.selected` 가 카드에 `color: var(--fg-on-accent)` 를 걸기 때문에 상속에 맡기면 적용됨 카드에서 흰 선이 밝은 표면 위에 그려져 사라진다.
   - 위치: `panels/properties/editors/LayoutPresetSelector/{PresetPreview.tsx,styles.css}`
 
 - **required 슬롯 강조가 거꾸로 작동했던 문제** — required 슬롯을 `--accent-subtle` 배경으로 강조하려 했는데 오히려 뒤로 물러나 보였다.
