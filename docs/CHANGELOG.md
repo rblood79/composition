@@ -25,10 +25,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 인접 슬롯이 경계를 공유해 각자의 1px 테두리가 같은 선에 겹쳐, 별개 블록이 아니라 **한 덩어리에 칸막이가 있는 모양**으로 읽혔다.
   - 위치: `panels/properties/editors/LayoutPresetSelector/{normalizeThumbnailAreas,PresetPreview,index}.tsx`
 
+- **썸네일 표현이 패널 안에서 겉돌았던 문제** — 채워진 회색 블록이라 이 패널만의 별개 표현이었다. 컴포넌트 패널 항목 아이콘(`.list-item-icon`)도, 바로 위 카테고리 헤더의 lucide 레이아웃 아이콘(`Layout` / `Columns2` / `LayoutGrid` / `Rows3`)도 **inset 표면 + `--border` 테두리 + `--fg-muted` 선화**인데 썸네일만 벗어나 있었다. 같은 색 패턴으로 정렬 — 실제 빌더 계산값이 네 항목(배경·테두리·반경·색) 모두 아이콘 박스와 일치한다.
+  - 위계는 채우기 대신 **선 두께**로 준다 (슬롯 1.5 / 격자 셀 1). 부수 효과로 채우기 위계에 쓰던 `--accent-subtle` 의존이 사라졌다 (아래 항목 참조).
+  - 선 색은 `currentColor` 로 받고 CSS 가 `.preset-preview-svg { color: var(--fg-muted) }` 로 준다 — 아이콘이 컨테이너 `color` 에서 색을 받는 방식과 같다. **이 선언은 필수다**: `.list-item.applied` / `.selected` 가 카드에 `color: var(--fg-on-accent)` 를 걸기 때문에 상속에 맡기면 적용됨 카드에서 흰 선이 밝은 표면 위에 그려져 사라진다.
+  - 위치: `panels/properties/editors/LayoutPresetSelector/{PresetPreview.tsx,styles.css}`
+
 - **required 슬롯 강조가 거꾸로 작동했던 문제** — required 슬롯을 `--accent-subtle` 배경으로 강조하려 했는데 오히려 뒤로 물러나 보였다.
   - **Why**: builder 테마의 `--accent-subtle` 은 이름과 달리 **회색 wash** 다 (light `rgba(107,114,128,.15)` / dark `rgba(161,161,170,.2)`). `--bg-overlay` 위에 얹으면 일반 슬롯의 `--bg-muted`(gray-200) **보다 밝다** — 강조 색이 아니라 후퇴 색으로 작동했다.
-  - 강조를 배경에서 **테두리**로 옮겼다 (`--accent`). builder 의 `--accent` 는 유채색이 아니라 `--color-gray-700`(dark 는 `--color-zinc-200`) 이지만, 그래서 두 테마 모두 표면과 명도 대비가 확실하다 — 무채색 패널 chrome 에서 강조는 채도가 아니라 명도로 준다. 실측 lightness: light 테마 required 0.373 vs 일반 0.928, dark 테마 required 0.920 vs 일반 0.370 (관계가 뒤집히며 양쪽 다 성립).
-  - 배경 wash 는 그대로 뒀다 — 강조 역할은 내려놓고 "큰 밝은 면 = 콘텐츠" 라는 위계 신호만 담당한다.
+  - 강조를 배경에서 **선 색**으로 옮겼다 (`--accent`). builder 의 `--accent` 는 유채색이 아니라 `--color-gray-700`(dark 는 `--color-zinc-200`) 이지만, 그래서 두 테마 모두 표면과 명도 대비가 확실하다 — 무채색 패널 chrome 에서 강조는 채도가 아니라 명도로 준다. 실측 lightness: light 테마 required 0.373 vs 일반 0.551(`--fg-muted`), dark 테마는 required 0.920 vs 일반 0.705 로 관계가 뒤집히며 양쪽 다 성립한다.
+  - 선화 전환(위 항목)으로 채우기 자체가 사라져 `--accent-subtle` 의존이 완전히 없어졌다.
+  - 같은 함정을 CSS 규칙으로 못 박았다 — `.claude/rules/css-tokens.md` §"builder 테마의 accent 는 무채색".
   - 위치: `panels/properties/editors/LayoutPresetSelector/PresetPreview.tsx`
 
 ### Architecture

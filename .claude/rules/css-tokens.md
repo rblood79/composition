@@ -88,6 +88,19 @@ Dark: `bg(zinc-900) → raised(zinc-850) → overlay(zinc-800) → muted(zinc-70
 | `border-color: var(--fg-on-accent)`        | Select checkmark      | CSS border로 체크 아이콘 렌더링      |
 | `background: var(--fg-muted)` (source dot) | `.source-dot.default` | 상태 표시 색상 indicator             |
 
+### builder 테마의 accent 는 무채색 — `--accent-subtle` 로 강조 금지 (CRITICAL, 2026-07-26)
+
+`[data-context="builder"]` 스코프에서 accent 계열은 **둘 다 회색**이다 (`packages/shared/src/components/styles/theme/builder-system.css`). 이름만 보고 유채색 강조를 기대하면 어긋난다.
+
+| 토큰              | light                        | dark                         |
+| ----------------- | ---------------------------- | ---------------------------- |
+| `--accent-subtle` | `rgba(107,114,128,.15)`      | `rgba(161,161,170,.2)`       |
+| `--accent`        | `--color-gray-700` (L 0.373) | `--color-zinc-200` (L 0.920) |
+
+- ❌ **`--accent-subtle` 을 강조 배경으로 사용** — `--bg-overlay` 위에 얹으면 `--bg-muted`(gray-200, L 0.928) **보다 밝아서** 강조하려던 대상이 오히려 뒤로 물러난다 (Frame Preset 썸네일에서 required 슬롯 강조가 이렇게 뒤집혔다). "아주 연한 중립 wash" 로만 기대할 것.
+- ✅ 강조는 **`--accent` 테두리** 또는 `background: var(--accent)` + `color: var(--fg-on-accent)` (`.list-item.applied` 가 이 어법). 무채색 chrome 이라 강조는 채도가 아니라 **명도**로 준다 — 테마에 따라 대비 방향이 뒤집히며 양쪽 다 성립한다.
+- 카드 내부 도형/아이콘에 `currentColor` 를 쓰려면 **그 요소에 `color` 를 직접 선언**해야 한다. `.list-item.applied` / `.selected` 가 카드에 `color: var(--fg-on-accent)` 를 걸기 때문에, 상속에 맡기면 흰 선이 밝은 표면 위에 그려져 사라진다.
+
 ## 금지된 M3 토큰
 
 ```

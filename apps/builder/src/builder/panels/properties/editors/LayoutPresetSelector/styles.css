@@ -16,12 +16,22 @@
     word-break: keep-all;
   }
 
-  /* ========== Preview SVG ========== */
+  /* ========== Preview SVG ==========
+   *
+   * 컴포넌트 패널의 `.list-item-icon` 과 **같은 색 패턴**이다 (2026-07-26): inset 표면 +
+   * `--border` 테두리 + `--radius-sm` + `--fg-muted` 선화. 그 패널의 항목 아이콘도, 바로 위
+   * 카테고리 헤더의 lucide 레이아웃 아이콘(`Layout` / `Columns2` / `LayoutGrid` / `Rows3`)도
+   * 모두 이 언어라 — "레이아웃을 그린 도형" 의 표현이 패널 안에서 하나로 모인다.
+   *
+   * `color` 를 **여기서 직접** 선언하는 것이 중요하다. `.list-item.applied` / `.selected` 가
+   * 카드에 `color: var(--fg-on-accent)` 를 걸기 때문에, 상속에 맡기면 흰 선이 밝은 표면 위에
+   * 그려져 사라진다. 도형은 이 `color` 를 `currentColor` 로 받는다. */
   .preset-preview-svg {
     flex-shrink: 0;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    background: var(--bg-overlay);
+    background: var(--bg-inset);
+    color: var(--fg-muted);
   }
 
   /* ========== Existing Slot Dialog ========== */
