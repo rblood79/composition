@@ -113,14 +113,14 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
   // 폭에 무관하다 — fullscreen 은 슬롯이 1개라 방향과 상관없고, vertical-* 는 이미 세로다.
   fullscreen: {
     id: "fullscreen",
-    name: "전체화면",
-    description: "단일 전체 화면 콘텐츠",
+    name: "Fullscreen",
+    description: "Single full-screen content",
     category: "basic",
     slots: [
       {
         name: "content",
         required: true,
-        description: "전체 화면 콘텐츠",
+        description: "Full-screen content",
         defaultStyle: FLEXIBLE_SLOT,
       },
     ],
@@ -132,20 +132,20 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
 
   "vertical-2": {
     id: "vertical-2",
-    name: "수직 2단",
+    name: "2-Row",
     description: "Header + Content",
     category: "basic",
     slots: [
       {
         name: "header",
         required: false,
-        description: "상단 헤더 영역",
+        description: "Top header band",
         defaultStyle: BAND_SLOT,
       },
       {
         name: "content",
         required: true,
-        description: "메인 콘텐츠 영역",
+        description: "Main content area",
         defaultStyle: FLEXIBLE_SLOT,
       },
     ],
@@ -158,26 +158,26 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
 
   "vertical-3": {
     id: "vertical-3",
-    name: "수직 3단",
+    name: "3-Row",
     description: "Header + Content + Footer",
     category: "basic",
     slots: [
       {
         name: "header",
         required: false,
-        description: "상단 헤더 영역",
+        description: "Top header band",
         defaultStyle: BAND_SLOT,
       },
       {
         name: "content",
         required: true,
-        description: "메인 콘텐츠 영역",
+        description: "Main content area",
         defaultStyle: FLEXIBLE_SLOT,
       },
       {
         name: "footer",
         required: false,
-        description: "하단 푸터 영역",
+        description: "Bottom footer band",
         defaultStyle: BAND_SLOT,
       },
     ],
@@ -193,14 +193,14 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
   // tablet 은 사이드바를 좁히고, mobile 은 세로 스택 + 전폭으로 형태를 바꾼다.
   "sidebar-left": {
     id: "sidebar-left",
-    name: "좌측 사이드바",
+    name: "Left Sidebar",
     description: "Sidebar + Content",
     category: "navigation",
     slots: [
       {
         name: "sidebar",
         required: false,
-        description: "좌측 사이드바",
+        description: "Left sidebar",
         defaultStyle: {
           width: "250px",
           flexShrink: 0,
@@ -214,7 +214,7 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
       {
         name: "content",
         required: true,
-        description: "메인 콘텐츠",
+        description: "Main content",
         defaultStyle: FLEXIBLE_SLOT,
       },
     ],
@@ -228,20 +228,20 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
 
   "sidebar-right": {
     id: "sidebar-right",
-    name: "우측 사이드바",
+    name: "Right Sidebar",
     description: "Content + Sidebar",
     category: "navigation",
     slots: [
       {
         name: "content",
         required: true,
-        description: "메인 콘텐츠",
+        description: "Main content",
         defaultStyle: FLEXIBLE_SLOT,
       },
       {
         name: "sidebar",
         required: false,
-        description: "우측 사이드바",
+        description: "Right sidebar",
         defaultStyle: {
           width: "250px",
           flexShrink: 0,
@@ -266,14 +266,14 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
   // (M3 는 compact 에서 pane 을 전환하지만 그건 런타임 상태라 정적 빌더의 등가물은 스택이다.)
   "list-detail": {
     id: "list-detail",
-    name: "목록-상세",
+    name: "List-Detail",
     description: "List + Detail (M3 canonical)",
     category: "list",
     slots: [
       {
         name: "list",
         required: true,
-        description: "목록 pane (고정폭)",
+        description: "List pane (fixed width)",
         defaultStyle: {
           width: "320px",
           flexShrink: 0,
@@ -287,7 +287,7 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
       {
         name: "detail",
         required: true,
-        description: "상세 pane (유동)",
+        description: "Detail pane (flexible)",
         defaultStyle: FLEXIBLE_SLOT,
       },
     ],
@@ -304,20 +304,20 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
   // 열 수를 바꾸는 건 **슬롯 자신의** 트랙이다 — feed 슬롯이 곧 grid 컨테이너다.
   feed: {
     id: "feed",
-    name: "피드",
+    name: "Feed",
     description: "Header + Card Grid (M3 canonical)",
     category: "feed",
     slots: [
       {
         name: "header",
         required: false,
-        description: "상단 헤더 영역",
+        description: "Top header band",
         defaultStyle: BAND_SLOT,
       },
       {
         name: "feed",
         required: true,
-        description: "카드 격자",
+        description: "Card grid",
         defaultStyle: {
           display: "grid",
           gridTemplateColumns: "1fr 1fr 1fr 1fr",
@@ -395,7 +395,7 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
   // ========== Dashboard ==========
   dashboard: {
     id: "dashboard",
-    name: "대시보드",
+    name: "Dashboard",
     description: "Navigation + Sidebar + Main Content",
     category: "dashboard",
     // cols: 240px 1fr (line 1~3) / rows: auto 1fr (line 1~3)
@@ -403,19 +403,19 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
       {
         name: "navigation",
         required: false,
-        description: "상단 네비게이션",
+        description: "Top navigation",
         defaultStyle: gridSlot("navigation", [1, 3], [1, 2], BAND_SLOT),
       },
       {
         name: "sidebar",
         required: false,
-        description: "좌측 메뉴",
+        description: "Left menu",
         defaultStyle: gridSlot("sidebar", [1, 2], [2, 3], BAND_SLOT),
       },
       {
         name: "content",
         required: true,
-        description: "대시보드 콘텐츠",
+        description: "Dashboard content",
         defaultStyle: gridSlot("content", [2, 3], [2, 3], FLEXIBLE_SLOT),
       },
     ],
@@ -437,7 +437,7 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
 
   "dashboard-widgets": {
     id: "dashboard-widgets",
-    name: "대시보드 (위젯)",
+    name: "Widget Panel",
     description: "Header + Sidebar + Main + Widgets Panel",
     category: "dashboard",
     // cols: 200px 1fr 280px (line 1~4) / rows: auto 1fr (line 1~3)
@@ -502,12 +502,12 @@ export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
  * 곳은 union 과 이 맵 한 쌍뿐이다.
  */
 export const PRESET_CATEGORIES: Record<PresetCategory, PresetCategoryMeta> = {
-  basic: { label: "기본", icon: "Layout" },
-  navigation: { label: "네비게이션", icon: "Columns2" },
-  list: { label: "목록-상세", icon: "List" },
-  feed: { label: "피드", icon: "Rows3" },
-  complex: { label: "복합", icon: "LayoutGrid" },
-  dashboard: { label: "대시보드", icon: "LayoutDashboard" },
+  basic: { label: "Basic", icon: "Layout" },
+  navigation: { label: "Navigation", icon: "Columns2" },
+  list: { label: "List", icon: "List" },
+  feed: { label: "Feed", icon: "Rows3" },
+  complex: { label: "Complex", icon: "LayoutGrid" },
+  dashboard: { label: "Dashboard", icon: "LayoutDashboard" },
 };
 
 /**
