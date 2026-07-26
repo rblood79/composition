@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-07-26
+Accepted — 2026-07-26 (리뷰 round 1 승인 — `docs/adr/reviews/168.md`, 이슈 4건 전부 `fixed`)
 
 ## Context
 

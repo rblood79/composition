@@ -97,10 +97,14 @@ export type ResponsiveVisibility = ResponsiveValue<boolean>;
 // ============================================
 
 /**
- * ADR-154 개정 1 (2026-07-23) — responsive-eligible style prop allowlist (SSOT).
+ * ADR-154 개정 1 (2026-07-23) — Style 패널이 편집하는 responsive-eligible 키.
  *
- * breakpoint 별 override(토글 opt-in)를 허용하는 style prop 집합. **Layout·Transform
- * 섹션이 편집하는 키 전수**(Style 패널 `LAYOUT_PROPS` ∪ `TRANSFORM_PROPS` 미러).
+ * breakpoint 별 override(토글 opt-in)를 허용하는 style prop 중 **사용자가 직접 편집하는 축**.
+ * Layout·Transform 섹션이 편집하는 키 전수(Style 패널 `LAYOUT_PROPS` ∪ `TRANSFORM_PROPS` 미러).
+ *
+ * eligibility 판정의 SSOT 는 이 집합이 아니라 {@link RESPONSIVE_ELIGIBLE_STYLE_PROPS} 다 —
+ * ADR-168 이 프리셋 authoring 축({@link PRESET_AUTHORED_RESPONSIVE_STYLE_PROPS})을 두 번째
+ * write 주체로 추가하면서 "편집 UI 가 있는가" 와 "eligible 인가" 가 분리됐다.
  *
  * ## 개정 모델
  *
@@ -122,10 +126,10 @@ export type ResponsiveVisibility = ResponsiveValue<boolean>;
  * (`responsiveEligible.static.test.ts`). 섹션에 편집 필드 추가 시 이 집합도 동반 갱신.
  *
  * `ResponsiveStyles` 인터페이스(아래)는 저장 형태 힌트일 뿐 런타임 게이트가 아니다 — eligibility
- * 판정의 SSOT 는 본 집합. (resolve/CSS 경로는 `Object.keys` 로 generic 처리하므로 여기 담긴 어떤
- * 키든 처리된다.)
+ * 판정의 SSOT 는 {@link RESPONSIVE_ELIGIBLE_STYLE_PROPS}. (resolve/CSS 경로는 `Object.keys` 로
+ * generic 처리하므로 여기 담긴 어떤 키든 처리된다.)
  */
-export const RESPONSIVE_ELIGIBLE_STYLE_PROPS: ReadonlySet<string> = new Set([
+export const SECTION_EDITABLE_RESPONSIVE_PROPS: ReadonlySet<string> = new Set([
   // ── Layout 섹션 (LAYOUT_PROPS 미러) ──
   "display",
   "flexDirection",
@@ -163,6 +167,54 @@ export const RESPONSIVE_ELIGIBLE_STYLE_PROPS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * ADR-168 — 프리셋만 authoring 하는 breakpoint-가변 키. **편집 UI 없음.**
+ *
+ * ## Why (ADR-154 개정 1 의 전제 개정)
+ *
+ * ADR-154 는 eligible 집합을 "Style 패널이 편집하는 키 전수" 와 정확히 일치시켰다. 이는
+ * breakpoint override 의 **write 주체가 Style 패널 하나뿐** 이라는 당시 조건의 부산물이다.
+ * Frame preset 이 두 번째 write 주체가 되면서 "편집 UI 가 있는가" 와 "breakpoint 별로
+ * 달라져야 하는가" 가 분리됐다 — grid 트랙은 편집 UI 가 없지만 mobile 에서 반드시 달라져야
+ * 한다(사이드바 250px 고정이 390px 뷰포트에서 콘텐츠를 140px 로 만든다).
+ *
+ * 이 집합의 키는 `ResponsiveSection` 의 "Add override" picker 에 노출되지 않는다 — picker 는
+ * eligible 집합을 순회하지 않고 자체 목록을 쓴다(`ResponsiveSection.tsx`). 즉 사용자가 이
+ * 키들을 직접 토글할 수는 없고, 프리셋 정의가 유일한 write 주체다.
+ *
+ * ## gridArea shorthand 제외 (리뷰 round 1 M3)
+ *
+ * `responsiveCss` 는 `Object.keys` 순서로 emit 하고 모든 선언이 `!important` 동일 특정도라
+ * **source order 가 승자를 정한다.** 같은 breakpoint 에서 shorthand 와 longhand 를 함께
+ * override 하면 뒤에 온 shorthand 가 longhand 를 리셋한다. 대칭 목적으로 넣으면 도달 가능한
+ * 결함 경로만 여는 셈이라 배제한다 — 필요해지면 emit 순서 계약과 함께 도입한다.
+ */
+export const PRESET_AUTHORED_RESPONSIVE_STYLE_PROPS: ReadonlySet<string> =
+  new Set([
+    // 컨테이너 트랙 정의
+    "gridTemplateColumns",
+    "gridTemplateRows",
+    "gridTemplateAreas",
+    // 슬롯 배치 line (숫자 line 병기 — layout-engine.md §"Grid area 이름 해석")
+    "gridColumnStart",
+    "gridColumnEnd",
+    "gridRowStart",
+    "gridRowEnd",
+  ]);
+
+/**
+ * breakpoint 별 override 가 허용되는 style prop 전수 (판정 SSOT).
+ *
+ * 두 write 주체의 합집합이다 — {@link SECTION_EDITABLE_RESPONSIVE_PROPS}(Style 패널 편집) ∪
+ * {@link PRESET_AUTHORED_RESPONSIVE_STYLE_PROPS}(프리셋 authoring). 어느 키도 두 집합 중
+ * 하나에 **명시 선언되지 않고는** eligible 이 될 수 없으며, 정적 테스트가 이를 확증한다
+ * (`responsiveEligible.static.test.ts` — 섹션 일치 + 차집합 일치 2단언).
+ */
+export const RESPONSIVE_ELIGIBLE_STYLE_PROPS: ReadonlySet<string> = new Set([
+  ...SECTION_EDITABLE_RESPONSIVE_PROPS,
+  ...PRESET_AUTHORED_RESPONSIVE_STYLE_PROPS,
+]);
+
+/**
  * ADR-154 개정 1 — style prop 이 breakpoint 별 override(토글 opt-in) 대상인지 판정.
  * `false` = 전역 속성(어느 breakpoint 에서든 base 저장). SSOT: {@link RESPONSIVE_ELIGIBLE_STYLE_PROPS}.
  */
@@ -187,6 +239,18 @@ export interface ResponsiveStyles {
   gridTemplateColumns?: ResponsiveStyleValue;
   /** Grid 템플릿 로우 */
   gridTemplateRows?: ResponsiveStyleValue;
+  /**
+   * Grid 템플릿 영역 + 슬롯 배치 line (ADR-168 — 프리셋 authoring 축).
+   *
+   * 편집 UI 는 없고 Frame preset 정의가 유일한 write 주체다
+   * ({@link PRESET_AUTHORED_RESPONSIVE_STYLE_PROPS}). line 은 length 가 아니라 번호라
+   * publish `@media` emit 시 px 가 붙으면 안 된다 (`responsiveCss.ts` UNITLESS_PROPS).
+   */
+  gridTemplateAreas?: ResponsiveStyleValue;
+  gridColumnStart?: ResponsiveStyleValue;
+  gridColumnEnd?: ResponsiveStyleValue;
+  gridRowStart?: ResponsiveStyleValue;
+  gridRowEnd?: ResponsiveStyleValue;
   /** Gap (shorthand) */
   gap?: ResponsiveStyleValue;
   /**

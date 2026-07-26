@@ -101,6 +101,13 @@ const LAYOUT_STYLE_KEYS = [
   "gridColumnStart",
   "gridRow",
   "gridRowStart",
+  // ADR-168 — 프리셋이 breakpoint 별로 트랙/배치를 override 하면서 End 계열과
+  // gridTemplateAreas 가 실제 변경 축이 됐다. Start 만 등재된 상태에서는 tablet override
+  // 가 End 만 바꾸는 경우(예: widgets 를 하단 전폭으로) 시그니처가 불변이라 캐시 히트로
+  // 흡수돼 조용히 무반영된다 (ADR-156 R6 과 동형 결함).
+  "gridColumnEnd",
+  "gridRowEnd",
+  "gridTemplateAreas",
   "overflow",
   // ADR-156 P4 (R6): 파이프라인은 overflowX/overflowY longhand 를 송신하고(utils.ts),
   //   엔진은 overflow≠visible 로 BFC 를 판정해 부모-자식 마진 상쇄를 차단한다(E17).

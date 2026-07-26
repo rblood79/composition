@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from "vitest";
 import {
-  RESPONSIVE_ELIGIBLE_STYLE_PROPS,
+  SECTION_EDITABLE_RESPONSIVE_PROPS,
   type ElementResponsiveConfig,
 } from "@composition/shared";
 import {
@@ -104,8 +104,12 @@ describe("toStyleNumericValue — 단위 보존 (ADR-154 개정 1 후속 fix)", 
 });
 
 describe("resolveEligibleSeedDefault — valueless-toggle seed (개정 1 후속)", () => {
-  it("32개 eligible prop 전수가 non-empty seed 를 갖는다 (drift 가드)", () => {
-    for (const prop of RESPONSIVE_ELIGIBLE_STYLE_PROPS) {
+  // ADR-168: 순회 대상은 **섹션 편집 키**로 좁힌다. seed 는 ResponsiveSection 의
+  // "Add override" 토글이 값 없이 override 를 켤 때 쓰는 초기값이라, 편집 UI 가 없는
+  // preset-authored 키(grid 트랙/line)는 seed 가 성립하지 않는다. 보호 축소가 아니라
+  // 원래 목적과의 정렬 — 토글 대상 전수는 여전히 빠짐없이 검사된다.
+  it("섹션 편집 eligible prop 전수가 non-empty seed 를 갖는다 (drift 가드)", () => {
+    for (const prop of SECTION_EDITABLE_RESPONSIVE_PROPS) {
       const seed = resolveEligibleSeedDefault(prop);
       expect(seed, `eligible prop "${prop}" seed`).toBeTruthy();
     }

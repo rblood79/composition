@@ -54,6 +54,14 @@ const UNITLESS_PROPS: ReadonlySet<string> = new Set([
   "flexShrink",
   "gridColumn",
   "gridRow",
+  // ADR-168 R7 — grid line 은 length 가 아니라 line 번호다. px 가 붙으면 선언 자체가
+  // 무효화되어 DOM 은 auto-placement 로 흐르고 Skia 는 numeric line 으로 정상 배치 →
+  // 배포 산출물에서 DOM↔Skia 발산. shorthand 만 등재돼 있던 것이 결함
+  // (`overflow` ↔ `overflowX/Y` 와 동형 — ADR-156 R6).
+  "gridColumnStart",
+  "gridColumnEnd",
+  "gridRowStart",
+  "gridRowEnd",
 ]);
 
 function camelToKebab(prop: string): string {

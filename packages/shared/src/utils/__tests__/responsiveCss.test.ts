@@ -123,6 +123,46 @@ describe("buildResponsiveElementCss", () => {
     );
   });
 
+  it("grid line longhand 숫자는 unitless emit — px 부착 금지 (ADR-168 R7)", () => {
+    // formatCssValue 는 숫자에 px 를 붙인다. grid line 은 length 가 아니라 line 번호라
+    // `grid-column-start:1px` 이 되면 **선언 자체가 무효** → DOM 은 auto-placement 로
+    // 흐르고 Skia 는 numeric line 으로 정상 배치 → 배포 산출물에서 DOM↔Skia 발산.
+    // 프리셋이 문자열로 authoring 해 현행은 우연히 안전하지만, CSSProperties 는
+    // string|number 를 허용하고 base inline(React auto-unit)은 숫자를 정상 처리하므로
+    // base↔override 비대칭을 남기면 안 된다.
+    const responsive: ElementResponsiveConfig = {
+      styles: {
+        gridColumnStart: { tablet: 1 },
+        gridColumnEnd: { tablet: 3 },
+        gridRowStart: { tablet: 2 },
+        gridRowEnd: { tablet: 4 },
+      },
+    };
+    const css = buildResponsiveElementCss("g", {}, responsive);
+    expect(css).toContain("grid-column-start:1 !important");
+    expect(css).toContain("grid-column-end:3 !important");
+    expect(css).toContain("grid-row-start:2 !important");
+    expect(css).toContain("grid-row-end:4 !important");
+    // 선언 블록에 px 가 없어야 한다 (미디어 쿼리 조건절의 px 는 대상 아님)
+    const decls = [
+      ...css!.matchAll(/\{\[data-element-id="g"\]\{([^}]*)\}/g),
+    ].map((m) => m[1]);
+    expect(decls.length).toBeGreaterThan(0);
+    for (const d of decls) expect(d).not.toContain("px");
+  });
+
+  it("grid 트랙 템플릿 override 가 @media 로 emit (ADR-168 프리셋 authoring 축)", () => {
+    const responsive: ElementResponsiveConfig = {
+      styles: { gridTemplateColumns: { tablet: "160px 1fr 160px" } },
+    };
+    const css = buildResponsiveElementCss(
+      "t",
+      { gridTemplateColumns: "200px 1fr 200px" },
+      responsive,
+    );
+    expect(css).toContain("grid-template-columns:160px 1fr 160px !important");
+  });
+
   it("base 에 없던 프로퍼티도 override emit (undefined base cascade)", () => {
     const responsive: ElementResponsiveConfig = {
       styles: { flexDirection: { tablet: "column" } },

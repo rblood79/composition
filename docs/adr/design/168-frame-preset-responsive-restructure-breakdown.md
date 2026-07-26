@@ -62,7 +62,7 @@
 | grid 키 eligibility                            | `responsive.types.ts:128-163`       | ❌ 7키 전부 미등재 — Phase 1 대상                          |
 | body top-level 필드 write 경로                 | `elements.ts:194`                   | ✅ `updateElement(id, Partial<Element>)`                   |
 
-## 3. Phase 1 — 반응형 eligibility 확장 + guard 2분할
+## 3. Phase 1 — 반응형 eligibility 확장 + guard 2분할 ✅ Implemented 2026-07-26
 
 **대상**: `packages/shared/src/types/responsive.types.ts`, `apps/builder/.../responsiveEligible.static.test.ts`, `apps/builder/src/builder/stores/responsiveWriteRouting.test.ts`, `layoutCache.ts`
 
@@ -122,6 +122,15 @@ export const RESPONSIVE_ELIGIBLE_STYLE_PROPS: ReadonlySet<string> = new Set([
 `packages/shared/src/utils/responsiveCss.ts:45-56` 의 `UNITLESS_PROPS` 는 `gridColumn`/`gridRow` **shorthand** 만 담고 있다. `formatCssValue`(`:67-71`)가 숫자 값에 `px` 를 부착하므로 `gridColumnStart: 1` 같은 숫자 authoring 이 `grid-column-start:1px !important` 로 emit 되어 **선언이 무효화**된다 → DOM 은 auto-placement / Skia 는 numeric line 으로 정상 배치 → **배포 산출물에서 DOM↔Skia 발산**.
 
 `gridColumnStart` / `gridColumnEnd` / `gridRowStart` / `gridRowEnd` 4키를 `UNITLESS_PROPS` 에 추가한다. `gridSlot()` 이 `String(...)` 으로 문자열화해 현행 authoring 은 우연히 안전하지만, `CSSProperties` 가 `string | number` 를 허용하고 **base inline(React auto-unit)은 숫자도 정상 처리**하므로 base↔override 비대칭을 남기면 안 된다. `overflow`/`overflowX`(ADR-156 R6)와 동형 결함.
+
+### 3-6. 실행 중 확인된 사항 (Phase 1 실측)
+
+| 발견                                                                                                                                                                                                                                 | 대응                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `clearNonEligibleResponsiveOverrides`(`stores/utils/globalStyleProps.ts:31`)가 **non-eligible 키를 responsive override 에서 삭제**한다. eligibility 확장 전이었다면 프리셋이 쓴 grid override 가 이후 스타일 편집 때 조용히 지워졌다 | 확장이 필수 전제임이 확증됨 — 대안 C(프리셋 밖 별도 반응형 시스템)가 이 경로와 충돌한다는 추가 근거                                                |
+| `ResponsiveStyles` 인터페이스에 grid 7키 미선언 → 저장 형태 리터럴이 TS 거부                                                                                                                                                         | 인터페이스에 `gridTemplateAreas`/`gridColumnStart`/`End`/`gridRowStart`/`End` 선언 추가 (`gridArea` 는 의도적 미선언 — M3)                         |
+| **`@composition/shared#test` 가 실행 불가** — 해당 패키지에 vitest 미설치로 `turbo run test` 에서 MODULE_NOT_FOUND. `packages/shared/src/**` 의 테스트가 전부 미실행                                                                 | R7 가드가 죽지 않도록 builder 스위트에 동등 계약 파일 신설(`responsiveEmit.contract.test.ts`). shared 러너 복구는 ADR-168 범위 밖 — 별도 판단 대상 |
+| `__tests__/responsiveCss.test.ts` 의 "unitless (order)" 테스트가 **선행 실패** (HEAD 에서도 동일). ADR-154 개정 1 이 `order` 를 eligible 에서 제외했으나 테스트가 남음                                                               | ADR-168 이 유발한 회귀 아님(`git show HEAD` 로 확증). ADR-154 debt 이라 본 ADR 에서 손대지 않음 — §9 의 `order` 이연 항목과 같은 사유              |
 
 ## 4. Phase 2 — 프리셋 정의 구조 전환
 
@@ -316,16 +325,16 @@ const PREVIEW_REFERENCE_WIDTH = {
 
 ## 7. Phase 5 — live 검증
 
-| 항목                                                            | 방법                                       |
-| --------------------------------------------------------------- | ------------------------------------------ |
-| 10 프리셋 × 3 BP = **30 조합** 실측                             | Chrome MCP — 슬롯 bounds 수집 후 계약 대조 |
-| 고정폭 합 > 뷰포트 0건 / 콘텐츠 슬롯 폭·높이 0 없음             | 30 조합 전수                               |
-| 프리셋 A→B→A 교체 후 `style`+`responsive` 가 A 최초 상태와 동일 | 멱등 실측 (R1)                             |
-| 썸네일 비율 ↔ 실제 렌더 비율 일치                               | `derivePreviewAreas` 결과 vs 실측 bounds   |
-| 다크모드 썸네일                                                 | light/dark 양쪽 스크린샷                   |
-| publish CSS `@media` 생성                                       | export 산출물 grep                         |
-| grid line 을 숫자로 authoring 해도 유효 CSS (`1px` 아님, R7)    | 정의를 숫자로 임시 치환 후 export CSS 검사 |
-| 해당 BP 의 DOM 배치 ↔ Skia 배치 일치 (R7)                       | tablet 슬롯 bounds 를 Preview DOM·Skia 대조 |
+| 항목                                                            | 방법                                              |
+| --------------------------------------------------------------- | ------------------------------------------------- |
+| 10 프리셋 × 3 BP = **30 조합** 실측                             | Chrome MCP — 슬롯 bounds 수집 후 계약 대조        |
+| 고정폭 합 > 뷰포트 0건 / 콘텐츠 슬롯 폭·높이 0 없음             | 30 조합 전수                                      |
+| 프리셋 A→B→A 교체 후 `style`+`responsive` 가 A 최초 상태와 동일 | 멱등 실측 (R1)                                    |
+| 썸네일 비율 ↔ 실제 렌더 비율 일치                               | `derivePreviewAreas` 결과 vs 실측 bounds          |
+| 다크모드 썸네일                                                 | light/dark 양쪽 스크린샷                          |
+| publish CSS `@media` 생성                                       | export 산출물 grep                                |
+| grid line 을 숫자로 authoring 해도 유효 CSS (`1px` 아님, R7)    | 정의를 숫자로 임시 치환 후 export CSS 검사        |
+| 해당 BP 의 DOM 배치 ↔ Skia 배치 일치 (R7)                       | tablet 슬롯 bounds 를 Preview DOM·Skia 대조       |
 | item placement override ⊆ 컨테이너 템플릿 동반 (R8)             | `presetDefinitions.static.test.ts` 정적 단언 (G8) |
 
 ## 8. 파일 변경 인벤토리
@@ -337,6 +346,7 @@ const PREVIEW_REFERENCE_WIDTH = {
 | 1     | `apps/builder/src/builder/stores/responsiveWriteRouting.test.ts`     | 수정 |
 | 1     | `apps/builder/.../canvas/scene/layoutCache.ts`                       | 수정 |
 | 1     | `packages/shared/src/utils/responsiveCss.ts` (R7 — UNITLESS_PROPS)   | 수정 |
+| 1     | `apps/builder/.../styles/sections/responsiveEmit.contract.test.ts`   | 신규 |
 | 2     | `.../LayoutPresetSelector/types.ts`                                  | 수정 |
 | 2     | `.../LayoutPresetSelector/presetResponsive.ts`                       | 신규 |
 | 2     | `.../LayoutPresetSelector/presetStyle.ts`                            | 수정 |
@@ -350,19 +360,19 @@ const PREVIEW_REFERENCE_WIDTH = {
 | 4     | `.../LayoutPresetSelector/styles.css`                                | 수정 |
 | 5     | `docs/CHANGELOG.md`, ADR 본문 / 본 문서                              | 수정 |
 
-**추정 17 파일** (신규 3 / 수정 14 — 리뷰 round 1 에서 `responsiveCss.ts` 추가). Phase 실행 중 1.5배(24 파일) 초과 시 Phase 0 inventory 보강 커밋으로 흡수 — 새 ADR fork 사유 아님 (adr-writing.md M3).
+**추정 18 파일** (신규 4 / 수정 14 — 리뷰 round 1 에서 `responsiveCss.ts`, Phase 1 실행에서 `responsiveEmit.contract.test.ts` 추가). Phase 실행 중 1.5배(24 파일) 초과 시 Phase 0 inventory 보강 커밋으로 흡수 — 새 ADR fork 사유 아님 (adr-writing.md M3).
 
 ## 9. 미지원 / 이연 경계
 
 착수 시점에 **의도적으로 하지 않는 것**을 명시한다. 재개 조건이 없으면 다시 논의 대상이 아니다.
 
-| 항목                             | 사유                                                                                                                     | 재개 조건                                       |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
-| Style 패널 grid 편집 UI          | 본 ADR 은 프리셋 authoring 축만 연다. grid 편집 UI 는 독립 기능이며 eligibility 확장과 결합 불필요                       | 사용자가 grid 직접 편집 요구                    |
-| list-detail 의 "한 번에 한 pane" | M3 는 compact 에서 pane 전환(런타임 상태)을 쓰지만 정적 레이아웃 빌더의 등가물은 세로 스택. 런타임 상태 도입은 별도 영역 | Interactions(ADR-158) 로 pane 전환 표현 가능 시 |
-| `repeat()` / `minmax()` 트랙     | 엔진 신뢰도 미확인 (2026-07-25 실측 비정상)                                                                              | 엔진 grid 함수 표현 fixture 통과                |
-| breakpoint 정의 자체 변경        | 3단계(desktop/tablet/mobile)는 ADR-154 확정. M3 5단계 도입은 본 ADR 범위 밖                                              | 사용자 요구 또는 ADR-154 개정                   |
-| `order` eligibility              | 현행 프리셋 전부 DOM 순서 스택으로 충분 (사이드바 위/콘텐츠 아래 = 웹 관례)                                              | 역순 스택이 필요한 프리셋 등장                  |
+| 항목                             | 사유                                                                                                                               | 재개 조건                                                                     |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Style 패널 grid 편집 UI          | 본 ADR 은 프리셋 authoring 축만 연다. grid 편집 UI 는 독립 기능이며 eligibility 확장과 결합 불필요                                 | 사용자가 grid 직접 편집 요구                                                  |
+| list-detail 의 "한 번에 한 pane" | M3 는 compact 에서 pane 전환(런타임 상태)을 쓰지만 정적 레이아웃 빌더의 등가물은 세로 스택. 런타임 상태 도입은 별도 영역           | Interactions(ADR-158) 로 pane 전환 표현 가능 시                               |
+| `repeat()` / `minmax()` 트랙     | 엔진 신뢰도 미확인 (2026-07-25 실측 비정상)                                                                                        | 엔진 grid 함수 표현 fixture 통과                                              |
+| breakpoint 정의 자체 변경        | 3단계(desktop/tablet/mobile)는 ADR-154 확정. M3 5단계 도입은 본 ADR 범위 밖                                                        | 사용자 요구 또는 ADR-154 개정                                                 |
+| `order` eligibility              | 현행 프리셋 전부 DOM 순서 스택으로 충분 (사이드바 위/콘텐츠 아래 = 웹 관례)                                                        | 역순 스택이 필요한 프리셋 등장                                                |
 | `gridArea` shorthand eligibility | shorthand ↔ longhand 가 같은 BP 에서 override 되면 `!important` 동일 특정도라 emit source order 가 승자를 정한다 (리뷰 round 1 M3) | shorthand override 실사용 필요 + 전치 helper 에 shorthand-먼저 순서 계약 도입 |
 
 ## 10. 참조
