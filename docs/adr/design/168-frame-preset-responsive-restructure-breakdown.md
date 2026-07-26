@@ -132,7 +132,7 @@ export const RESPONSIVE_ELIGIBLE_STYLE_PROPS: ReadonlySet<string> = new Set([
 | **`@composition/shared#test` 가 실행 불가** — 해당 패키지에 vitest 미설치로 `turbo run test` 에서 MODULE_NOT_FOUND. `packages/shared/src/**` 의 테스트가 전부 미실행                                                                 | R7 가드가 죽지 않도록 builder 스위트에 동등 계약 파일 신설(`responsiveEmit.contract.test.ts`). shared 러너 복구는 ADR-168 범위 밖 — 별도 판단 대상 |
 | `__tests__/responsiveCss.test.ts` 의 "unitless (order)" 테스트가 **선행 실패** (HEAD 에서도 동일). ADR-154 개정 1 이 `order` 를 eligible 에서 제외했으나 테스트가 남음                                                               | ADR-168 이 유발한 회귀 아님(`git show HEAD` 로 확증). ADR-154 debt 이라 본 ADR 에서 손대지 않음 — §9 의 `order` 이연 항목과 같은 사유              |
 
-## 4. Phase 2 — 프리셋 정의 구조 전환
+## 4. Phase 2 — 프리셋 정의 구조 전환 ✅ Implemented 2026-07-26
 
 **대상**: `LayoutPresetSelector/types.ts`, `presetDefinitions.ts`, `presetStyle.ts`, `usePresetApply.ts` (+ 신규 `presetResponsive.ts`, `derivePreviewAreas.ts`)
 
@@ -200,6 +200,16 @@ Step 4(body) / Step 5(slot) 를 아래로 바꾼다.
 | slot | 노드에 `props.style` 만                            | 노드에 `responsive` 필드 동반 (canonicalMutations 가 보존 — Phase 0 확인)     |
 
 `PresetSlotElement` 타입에 `responsive?: ElementResponsiveConfig` 추가.
+
+### 4-5. 실행 중 확정된 사항 (Phase 2 실측)
+
+| 항목                                                                                                                                                                                                      | 결정                                                                                                                                                                                                                          |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| body write 를 `updateElement` **단일 호출**로 통합하려 했으나, `updateElement` 는 props 를 **전체 교체**한다 (`elementUpdate.ts:547-548` 주석 명시)                                                       | props 는 `updateElementProps`(merge + history) 유지, `responsive` 만 `updateElement` 로 분리 송신. 두 호출은 순차 await (memory: `feedback-canonical-multi-mutation-await-sequential`)                                        |
+| `PRESET_RESPONSIVE_OWNED_KEYS` 에 base 컨테이너 키를 그대로 합치면 `gridAutoFlow`/`gridAutoColumns`/`gridAutoRows` 가 포함되는데 **셋 다 eligible 이 아니다**                                             | base 키를 `isResponsiveEligibleStyleProp` 로 걸러 합집합. eligible 이 아니면 responsive 에 저장될 수 없으니 정리 대상도 아니다 — 테스트가 이 불일치를 잡았다                                                                  |
+| **residual — undo 비대칭**: `updateElement` 는 `sanitizedUpdates.props` 가 있을 때만 history 를 기록한다(`elementUpdate.ts:542-543`). 최상위 `responsive` 만 보내는 호출은 history entry 를 남기지 않는다 | 프리셋 적용은 이미 다중 entry(슬롯 batch + props)라 undo 가 단일 원자가 아니다. props undo 후 responsive 가 남는 경우가 생기는데, Phase 5 에서 실측 후 필요하면 `recordUpdateHistoryEntry` 확장 여부를 판정한다 (본 ADR 범위) |
+
+Phase 2 live 실측 (localhost:5173, Frame 1): `vertical-2` → `holy-grail` → `vertical-2` 왕복 후 body `props.style` 의 grid 키 **잔존 0**, `responsive` 는 시종 `null`(반응형 정의가 아직 없으므로 정상 — 빈 config 를 싣지 않는다), 슬롯 2↔5 정상 교체, 콘솔 오류 0.
 
 ## 5. Phase 3 — 카탈로그 재구성
 

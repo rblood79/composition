@@ -7,6 +7,28 @@
 import type { CSSProperties } from "react";
 
 /**
+ * 프리셋 카테고리 (ADR-168).
+ *
+ * `PRESET_CATEGORIES` 가 `Record<PresetCategory, …>` 라 여기 추가하면 메타 선언 누락이
+ * 컴파일 에러가 된다. 패널의 그룹 목록도 `PRESET_CATEGORIES` 에서 파생하므로, 카테고리
+ * 추가 시 손댈 곳은 이 union 과 메타 한 쌍뿐이다.
+ */
+export type PresetCategory = "basic" | "sidebar" | "complex" | "dashboard";
+
+/**
+ * breakpoint override 묶음 (ADR-168).
+ *
+ * desktop 은 base(`defaultStyle`/`containerStyle`)가 담당하므로 여기엔 없다 — 저장 형식이
+ * desktop-first cascade 라 base 가 곧 desktop 값이고, 중복 선언은 두 소스를 만든다.
+ * 작성 편의를 위해 **BP → 스타일** 형태로 쓰고, 저장 시 `toResponsiveConfig` 가
+ * **키 → BP** (`ResponsiveValue`) 로 전치한다.
+ */
+export type ResponsiveStyleSet = {
+  tablet?: CSSProperties;
+  mobile?: CSSProperties;
+};
+
+/**
  * Slot 정의
  */
 export interface SlotDefinition {
@@ -16,8 +38,16 @@ export interface SlotDefinition {
   required: boolean;
   /** 설명 */
   description?: string;
-  /** 기본 스타일 */
+  /** 기본 스타일 (= desktop) */
   defaultStyle?: CSSProperties;
+  /**
+   * breakpoint 별 override (ADR-168).
+   *
+   * 슬롯은 grid 배치와 flex 크기를 **병기**한다 — grid 모드에서 `flex` 는 무시되고 flex
+   * 모드에서 grid line 이 무시되므로, mobile 재배치가 대부분 컨테이너 `display` 한 줄로
+   * 끝나고 슬롯 트리는 평면으로 유지된다.
+   */
+  responsiveStyle?: ResponsiveStyleSet;
 }
 
 /**
@@ -51,11 +81,19 @@ export interface LayoutPreset {
   /** 설명 */
   description: string;
   /** 카테고리 */
-  category: "basic" | "sidebar" | "complex" | "dashboard";
+  category: PresetCategory;
   /** Slot 정의 목록 */
   slots: SlotDefinition[];
-  /** 컨테이너 스타일 (CSS Grid/Flexbox) */
+  /** 컨테이너 스타일 (CSS Grid/Flexbox) = desktop */
   containerStyle?: CSSProperties;
+  /**
+   * 컨테이너의 breakpoint 별 override (ADR-168).
+   *
+   * 좁은 폭에서 사이드바를 **줄이는 게 아니라 형태를 바꾸는** 것이 레퍼런스 공통 원칙이라
+   * (M3 canonical / Apple HIG split view / column drop), mobile 은 대개
+   * `display: grid → flex` + `flexDirection: column` 로 세로 스택 전환이다.
+   */
+  responsiveContainerStyle?: ResponsiveStyleSet;
   /** SVG 미리보기 영역 */
   previewAreas: PreviewArea[];
 }

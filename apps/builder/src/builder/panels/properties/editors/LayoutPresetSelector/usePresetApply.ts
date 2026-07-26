@@ -29,11 +29,13 @@ import {
   normalizeFramePresetContainerStyle,
   stripPresetContainerStyle,
 } from "./presetStyle";
+import { mergePresetResponsive, toResponsiveConfig } from "./presetResponsive";
 import type {
   PresetApplyMode,
   ExistingSlotInfo,
   SlotDefinition,
 } from "./types";
+import type { ElementResponsiveConfig } from "@composition/shared";
 import { isLegacyFrameElementForFrame } from "../../../../../adapters/canonical/frameElementLoader";
 import type { CanonicalFrameElementScope } from "../../../../../adapters/canonical/frameElementScope";
 import { withFrameElementMirrorId } from "../../../../../adapters/canonical/frameMirror";
@@ -50,6 +52,8 @@ interface PresetElementNode {
   parent_id?: string | null;
   page_id?: string | null;
   deleted?: boolean;
+  /** ADR-154 canonical 1차 필드 — props 안이 아니라 노드 최상위다 (ADR-168 이 프리셋에서 write) */
+  responsive?: ElementResponsiveConfig;
 }
 
 interface PresetSlotElement extends PresetElementNode {
@@ -248,6 +252,7 @@ export function usePresetApply({
   const addComplexElement = useStore((state) => state.addComplexElement);
   const removeElements = useStore((state) => state.removeElements);
   const updateElementProps = useStore((state) => state.updateElementProps);
+  const updateElement = useStore((state) => state.updateElement);
 
   // 현재 Layout의 기존 Slot 목록.
   //
@@ -363,8 +368,12 @@ export function usePresetApply({
         // Step 3: Slot node 배열 생성
         // ============================================
         const slotElements: PresetSlotElement[] = slotsToCreate.map(
-          (slotDef): PresetSlotElement =>
-            withFrameElementMirrorId(
+          (slotDef): PresetSlotElement => {
+            // `responsive` 는 props 가 아니라 노드 최상위 canonical 필드다 (ADR-154).
+            // 빈 config 는 아예 싣지 않는다 — canonical 이 생략과 동일 취급하므로,
+            // 넣어두면 "override 있음" 으로 보이는 빈 노드가 생긴다.
+            const responsive = toResponsiveConfig(slotDef.responsiveStyle);
+            return withFrameElementMirrorId(
               {
                 id: crypto.randomUUID(),
                 type: "Slot",
@@ -374,11 +383,13 @@ export function usePresetApply({
                   description: slotDef.description,
                   style: slotDef.defaultStyle,
                 },
+                ...(responsive ? { responsive } : {}),
                 parent_id: bodyElementId,
                 page_id: null,
               },
               layoutId,
-            ),
+            );
+          },
         );
 
         // ============================================
@@ -409,6 +420,20 @@ export function usePresetApply({
             style: mergedStyle,
             appliedPreset: presetKey,
           });
+
+          // breakpoint override 는 props 가 아니라 노드 최상위 `responsive` 필드다.
+          // 이전 프리셋이 심은 키를 걷어낸 뒤 새 값을 얹어야 교체가 멱등해진다 (R1) —
+          // base 쪽 stripPresetContainerStyle 과 **같은 상수에서 파생된** 키 집합을 쓴다.
+          //
+          // props 쓰기와 분리한 이유: updateElement 는 props 를 전체 교체하므로
+          // (elementUpdate.ts) 여기서 props 를 함께 보내면 merge 의미가 사라진다.
+          // 최상위 필드만 보내면 history 기록도 건너뛴다 — 아래 residual 참조.
+          const nextResponsive = mergePresetResponsive(
+            body.responsive,
+            toResponsiveConfig(preset.responsiveContainerStyle),
+          );
+          await updateElement(bodyElementId, { responsive: nextResponsive });
+
           console.log(`[Preset] Saved appliedPreset="${presetKey}" to body`);
         }
 
@@ -443,6 +468,7 @@ export function usePresetApply({
       addComplexElement,
       removeElements,
       updateElementProps,
+      updateElement,
     ],
   );
 
