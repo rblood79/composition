@@ -571,9 +571,18 @@ export const createUpdateElementAction =
       unknown
     >;
     const hasStyleChange = Object.keys(changedStyle).length > 0;
-    const isLayoutChange = hasStyleChange
-      ? isLayoutAffectingUpdate(changedStyle)
-      : Boolean(sanitizedUpdates.props); // props 변경이 있으면 레이아웃 영향으로 간주
+    // ADR-154/168: `responsive` 는 props 축이 아니라 top-level 필드로 온다. props 키 검사만
+    // 하면 responsive-only write 가 layout 무영향으로 판정돼 layoutVersion 이 오르지 않고,
+    // resolve 재계산·preview 재발행이 전부 건너뛰어진다 (실측: 프리셋 적용 후 preview 의
+    // `@media` CSS 가 새로고침 전까지 이전 프리셋 규칙 그대로였다). `inspectorActions.ts`
+    // 의 Style 패널 경로는 같은 이유로 이미 bump 을 강제하고 있다 — 그 규칙은 호출자
+    // 속성이 아니라 **필드 자체의 성질**이므로 일반 경로에도 있어야 한다.
+    const hasResponsiveChange = "responsive" in sanitizedUpdates;
+    const isLayoutChange =
+      hasResponsiveChange ||
+      (hasStyleChange
+        ? isLayoutAffectingUpdate(changedStyle)
+        : Boolean(sanitizedUpdates.props)); // props 변경이 있으면 레이아웃 영향으로 간주
 
     // Atomic derive — set callback 안에서 latest `state` 기반으로 elements 재계산.
     // Why: concurrent 호출 (예: Promise.all 로 여러 updateElement) 시 모든 호출이

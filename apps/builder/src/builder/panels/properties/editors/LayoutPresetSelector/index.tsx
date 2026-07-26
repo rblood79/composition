@@ -20,9 +20,7 @@ import {
   Rows3,
 } from "lucide-react";
 import { Button } from "@composition/shared/components";
-import type { BreakpointName } from "@composition/shared";
 import { PresetPreview } from "./PresetPreview";
-import { BreakpointPreviewTabs } from "./BreakpointPreviewTabs";
 import { ExistingSlotDialog } from "./ExistingSlotDialog";
 import { usePresetApply } from "./usePresetApply";
 import { derivePreviewAreas } from "./derivePreviewAreas";
@@ -70,20 +68,12 @@ export const LayoutPresetSelector = memo(function LayoutPresetSelector({
   // 다이얼로그 열림 상태
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // 썸네일 미리보기 breakpoint (ADR-168 P-7).
+  // 썸네일 기준 breakpoint — 헤더의 캔버스 breakpoint 토글을 그대로 따른다 (ADR-168 P-7 정정).
   //
-  // 캔버스의 활성 breakpoint 로 시작해, 이후에는 이 패널 안에서만 움직인다 — 미리보기 전용이라
-  // 캔버스를 바꾸지 않는다. 캔버스 breakpoint 를 바꾸면 그 값으로 다시 맞춰진다.
+  // 패널 안에 별도 세그먼트를 뒀다가 제거했다: 헤더에 이미 같은 개념의 컨트롤이 있어 중복이고,
+  // 두 컨트롤이 어긋나면 "썸네일은 mobile, 캔버스는 desktop" 같은 상태가 만들어진다.
+  // 컨트롤은 하나, 의미도 하나다.
   const activeBreakpoint = useStore((s) => s.activeBreakpoint);
-  const [previewBreakpoint, setPreviewBreakpoint] =
-    useState<BreakpointName>(activeBreakpoint);
-  const [syncedBreakpoint, setSyncedBreakpoint] =
-    useState<BreakpointName>(activeBreakpoint);
-  if (syncedBreakpoint !== activeBreakpoint) {
-    // 렌더 중 파생 상태 조정 (React 권장 패턴) — effect 로 미루면 한 프레임 어긋난다
-    setSyncedBreakpoint(activeBreakpoint);
-    setPreviewBreakpoint(activeBreakpoint);
-  }
 
   // 프리셋 적용 훅
   const { existingSlots, currentPresetKey, applyPreset, isApplying } =
@@ -154,11 +144,6 @@ export const LayoutPresetSelector = memo(function LayoutPresetSelector({
 
   return (
     <>
-      <BreakpointPreviewTabs
-        value={previewBreakpoint}
-        onChange={setPreviewBreakpoint}
-      />
-
       {Object.entries(PRESET_CATEGORIES).map(([categoryKey, meta]) => {
         const presetKeys = presetsByCategory[categoryKey];
         if (!presetKeys || presetKeys.length === 0) return null;
@@ -192,7 +177,7 @@ export const LayoutPresetSelector = memo(function LayoutPresetSelector({
                     isDisabled={isApplying}
                   >
                     <PresetPreview
-                      areas={derivePreviewAreas(preset, previewBreakpoint)}
+                      areas={derivePreviewAreas(preset, activeBreakpoint)}
                       width={80}
                       height={60}
                     />

@@ -119,3 +119,40 @@ describe("elementUpdate canonical read fallback contract", () => {
     expect(batchElementsSyncIndex).toBeLessThan(batchElementsStoreIndex);
   });
 });
+
+describe("elementUpdate responsive layout-invalidation contract (ADR-168)", () => {
+  it("treats a responsive-only update as layout-affecting", async () => {
+    const source = await readFile(
+      resolve(__dirname, "../elementUpdate.ts"),
+      "utf-8",
+    );
+
+    // `responsive` 는 props 축이 아니라 top-level 필드다. props 키 검사만 하면
+    // responsive-only write 가 layout 무영향으로 판정돼 layoutVersion 이 오르지 않고,
+    // resolve 재계산·preview `@media` 재발행이 건너뛰어진다 (프리셋 적용 후 preview 가
+    // 새로고침 전까지 이전 프리셋 규칙을 보여준 실측 결함).
+    expect(source).toContain(
+      'const hasResponsiveChange = "responsive" in sanitizedUpdates;',
+    );
+
+    const actionIndex = source.indexOf(
+      "export const createUpdateElementAction",
+    );
+    const layoutChangeIndex = source.indexOf(
+      "const isLayoutChange =",
+      actionIndex,
+    );
+    expect(layoutChangeIndex).toBeGreaterThan(actionIndex);
+
+    // isLayoutChange 가 responsive 항을 **먼저** 포함해야 한다 (props 부재 시 short-circuit)
+    const expr = source.slice(layoutChangeIndex, layoutChangeIndex + 240);
+    expect(expr).toContain("hasResponsiveChange ||");
+
+    // layoutVersion bump 이 isLayoutChange 분기 안에 있음을 확인 (bump 누락 회귀 차단)
+    const bumpIndex = source.indexOf(
+      "layoutVersion: state.layoutVersion + 1",
+      layoutChangeIndex,
+    );
+    expect(bumpIndex).toBeGreaterThan(layoutChangeIndex);
+  });
+});

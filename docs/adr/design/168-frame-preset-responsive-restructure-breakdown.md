@@ -286,7 +286,7 @@ Phase 3 live 실측 (localhost:5173, `list-detail` 적용): desktop `list 320 / 
 
 ## 6. Phase 4 — 패널 재설계 ✅ Implemented 2026-07-26
 
-**대상**: `PresetPreview.tsx`, `index.tsx`, `styles.css` (+ 신규 `derivePreviewAreas.ts`, `BreakpointPreviewTabs.tsx`)
+**대상**: `PresetPreview.tsx`, `index.tsx`, `styles.css` (+ 신규 `derivePreviewAreas.ts`)
 
 ### 6-1. 썸네일 파생 (P-1)
 
@@ -333,11 +333,13 @@ const PREVIEW_REFERENCE_WIDTH = {
 - `presetsByCategory` 초기값을 `Object.keys(PRESET_CATEGORIES)` 에서 생성 → 신규 카테고리 자동 반영, undefined 접근 소멸
 - 아이콘 SSOT 를 `PRESET_CATEGORIES[x].icon`(문자열) 로 단일화하고 `index.tsx CATEGORY_ICONS` 는 문자열 → 컴포넌트 조회 맵으로 축소. 카테고리 추가 시 수정 지점 1곳
 
-### 6-4. breakpoint 미리보기 UI (P-7, 신규)
+### 6-4. breakpoint 미리보기 기준 (P-7 — 정정 2026-07-26)
 
-프리셋 카드 상단에 `desktop / tablet / mobile` 세그먼트를 두고, 선택된 BP 기준으로 `derivePreviewAreas` 결과를 그린다. 적용 전에 3 BP 결과를 볼 수 있게 한다.
+썸네일은 **헤더의 캔버스 breakpoint 토글을 그대로 따른다**. 별도 컨트롤을 두지 않는다.
 
-구조는 `panel-structure.md` 표준 준수: `.section-content` 는 1열 세로 스택 유지, 세그먼트는 고유 클래스(`preset-breakpoint-tabs`). **`tab-*` 예약 prefix 사용 금지** — 탭 UI 가 아니라 미리보기 전환 세그먼트다.
+> **정정 경위 (사용자 지적)**: 최초 구현은 이 절의 원안대로 패널 안에 `desktop / tablet / mobile` 세그먼트(`BreakpointPreviewTabs.tsx`, `preset-breakpoint-tabs`)를 신설했다. 사용자 지적 — "상단에 breakPoint 가 있는데 우측에 미리보기로 중복해서 왜 다시 만들었지?" — 으로 철회하고 파일을 삭제했다. 원안의 근거는 "캔버스를 바꾸지 않고 3 BP 를 비교" 였지만, 헤더에 이미 같은 개념의 단일 컨트롤이 있는 상태에서 두 번째 컨트롤은 **어긋날 수 있는 상태를 새로 만든다** ("썸네일은 mobile, 캔버스는 desktop"). 구현 중에 같은 위험을 스스로 식별했음에도 설계 문구를 우선한 것이 판단 착오다.
+>
+> 결과적으로 잃은 것은 없다: 헤더 토글을 누르면 캔버스와 썸네일이 **함께** 바뀌므로 3 BP 비교는 그대로 가능하고, 컨트롤은 하나로 유지된다. 관련 CSS(`.preset-breakpoint-bar` / `.preset-breakpoint-label`)도 같이 제거했다.
 
 ### 6-5. dead CSS 정리 (P-6)
 
@@ -369,7 +371,7 @@ const PREVIEW_REFERENCE_WIDTH = {
 
 **미리보기 세그먼트는 전역을 건드리지 않는다** — 요소 직접 클릭 전후 비교로 확증: 세그먼트 Mobile→Desktop 전환 시 헤더 breakpoint 토글과 `localStorage["builder-breakpoint"]` 는 불변, 썸네일만 `["100%","100%"]` → `["16.67%","83.33%"]` 로 변경.
 
-## 7. Phase 5 — live 검증
+## 7. Phase 5 — live 검증 ✅ Implemented 2026-07-26
 
 | 항목                                                            | 방법                                              |
 | --------------------------------------------------------------- | ------------------------------------------------- |
@@ -382,6 +384,61 @@ const PREVIEW_REFERENCE_WIDTH = {
 | grid line 을 숫자로 authoring 해도 유효 CSS (`1px` 아님, R7)    | 정의를 숫자로 임시 치환 후 export CSS 검사        |
 | 해당 BP 의 DOM 배치 ↔ Skia 배치 일치 (R7)                       | tablet 슬롯 bounds 를 Preview DOM·Skia 대조       |
 | item placement override ⊆ 컨테이너 템플릿 동반 (R8)             | `presetDefinitions.static.test.ts` 정적 단언 (G8) |
+
+### 7-1. 실측 결과 (localhost:5173, 2026-07-26)
+
+측정은 `__composition_LAYOUT_DEBUG__.getSharedLayoutMap()` (엔진 산출 bounds) + preview iframe DOM + preview 문서 CSSOM 을 읽어 수행했다. Frame 1 body 를 대상으로 10 프리셋을 순차 적용하고 매 프리셋마다 3 BP 를 왕복했다. **종료 후 최초 상태(수직 2단 / `responsive: null` / grid 잔여 0 / desktop)로 복원**했다.
+
+| Gate | 결과 | 근거 |
+| ---- | ---- | ---- |
+| G1 (30 조합) | ✅ 30/30 | 고정폭 합 > 뷰포트 **0건**, 콘텐츠 슬롯 폭·높이 0 **0건**. mobile 최악값도 content 504(holy-grail) / 584(dashboard-widgets) |
+| G2 (멱등, R1) | ✅ | 목록-상세 → Holy Grail → 목록-상세 스냅샷(`props.style` + `responsive` + 전 슬롯) **문자열 동일**, body grid 잔여키 0. 복원 시 `responsive: null` 회귀도 재확인 |
+| G3 (썸네일 ↔ 실측, R4) | ✅ (편차 명시) | 구조·순서 9/9 일치. 비율 편차 **최대 3.82pp** — 파생 모델이 body padding(20)·slot gap(20×n)을 모르기 때문 (프리셋이 소유하지 않는 값이라 모델에 넣으면 두 번째 소스가 된다). 80×60px 썸네일에서 2.3px |
+| G5 (다크모드) | ✅ | svg 배경 / rect fill / rect stroke / 라벨 fill / 경고 아이콘 5개 값 전부 light↔dark 변화 |
+| G6 (publish CSS, R7) | ✅ | preview 문서에 `@media` 생성. 조건 `(max-width:767px)` / `(min-width:768px) and (max-width:1279px)` 정확. **grid line 4키 전부 unitless** (`grid-column-start=1`, `grid-column-end=3`, `grid-row-start=3`, `grid-row-end=4` — `px` 0건) |
+| G6 (DOM ↔ 엔진) | ✅ | tablet 목록-상세: preview DOM 노드 폭 **260 / 468** = 엔진 bounds 폭과 동일. 높이 차(864 vs 1004)는 iframe 뷰포트 884 vs 캔버스 프레임 1024 의 `100vh` 해석 차이 |
+| R2 (mobile grid 잔존) | ✅ 무해 확인 | emit 된 mobile 규칙에 `grid-template-*` / `grid-column-*` 가 실제로 남지만 같은 규칙에 `display:flex` 가 함께 있어 무효 — ADR 본문 R2 판단대로 |
+
+BP 별 대표 실측 (body content box = 1900 / 748 / 370):
+
+| 프리셋 | desktop | tablet | mobile |
+| ------ | ------- | ------ | ------ |
+| 목록-상세 | list 320 / detail 1560 | list **260** / detail 468 | 전폭 스택 (list h=120, detail h=684) |
+| 좌측 사이드바 | sidebar 250 / content 1630 | sidebar **200** / content 528 | 전폭 스택 |
+| Holy Grail | 200 / 1460 / 200 | **160** / 388 / **160** | 전폭 5단 스택 (content h=504) |
+| 대시보드 (위젯) | 200 / 1380 / 280 | 200 / 528 + **widgets 하단 전폭 748** | 전폭 4단 스택 |
+
+`대시보드 (위젯)` tablet 에서 widgets 가 `y=954, 748×60` 으로 실제 이동한 것이 **R8/G8 계약의 live 확증**이다 — item placement override 와 컨테이너 템플릿 override 를 같은 BP 에 함께 둔 것이 작동했다.
+
+### 7-2. Phase 5 에서 발견·수정한 결함 — responsive-only write 가 layoutVersion 을 올리지 않음
+
+**증상**: 프리셋을 적용해도 preview 의 `@media` CSS 가 **새로고침 전까지 이전 프리셋 규칙 그대로**였다. store 와 canonical 은 정확했고(새로고침 후 정상 emit), preview 만 stale.
+
+**원인**: `createUpdateElementAction` (`elementUpdate.ts`) 의 `isLayoutChange` 가 `props` 축만 본다:
+
+```ts
+const isLayoutChange = hasStyleChange
+  ? isLayoutAffectingUpdate(changedStyle)
+  : Boolean(sanitizedUpdates.props);   // responsive-only → false
+```
+
+Phase 2 가 body 의 `responsive` 를 `updateElement(bodyId, { responsive })` 로 쓰는데 이 호출엔 `props` 가 없어 `isLayoutChange=false` → **layoutVersion bump 없음** → resolve 재계산·preview 재발행 skip. 캔버스가 정상으로 보였던 건 프리셋 적용이 슬롯 element 를 생성·삭제하면서 그 mutation 이 layoutVersion 을 올려준 덕이다 (`responsive` 가 편승).
+
+**같은 문제를 ADR-154 가 이미 해결해 뒀다** — `inspectorActions.ts:697-706`:
+
+```ts
+// ADR-154: responsive override 는 props 축이 아니라 top-level 필드로 오므로
+// propsUpdate 키 검사에 걸리지 않는다 — layoutVersion bump 을 강제.
+const hasResponsiveChange = additionalUpdates !== undefined && "responsive" in additionalUpdates;
+const hasLayoutChange = hasResponsiveChange || …;
+```
+
+Style 패널 경로에만 있던 이 처리를 **일반 경로로 올렸다**. 이 규칙은 호출자 속성이 아니라 필드 자체의 성질이므로 `updateElement` 가 알아야 한다 (호출자마다 복제하면 다음 writer 가 같은 함정을 다시 밟는다). 정적 가드: `elementUpdate.static.test.ts` §"responsive layout-invalidation contract".
+
+live 확증: 새로고침 없이 프리셋 교체 → preview 규칙 6개(grid 계열) → 3개(flex/width) 즉시 갱신.
+
+> **잔존 (Phase 2 §4-5 에서 이연한 항목)**: `updateElement` 는 여전히 `props` 없는 write 에 history 를 기록하지 않는다 (`shouldRecordHistory = Boolean(sanitizedUpdates.props)`). 프리셋 적용 자체는 슬롯 mutation 으로 history entry 가 생기므로 undo 로 슬롯은 복원되지만 **body 의 `responsive` 는 되돌아가지 않는다**. `inspectorActions` 는 `buildCanonicalReplaceEvents` 로 이를 처리한다 — 같은 방식을 일반 경로에 올리는 것이 정합하나 canonical event 빌드가 얽혀 별도 작업으로 둔다.
+
 
 ## 8. 파일 변경 인벤토리
 
@@ -402,7 +459,6 @@ const PREVIEW_REFERENCE_WIDTH = {
 | 4     | `.../LayoutPresetSelector/derivePreviewAreas.ts`                       | 신규 |
 | 4     | `.../LayoutPresetSelector/derivePreviewAreas.test.ts`                  | 신규 |
 | 4     | `.../LayoutPresetSelector/PresetPreview.tsx`                           | 수정 |
-| 4     | `.../LayoutPresetSelector/BreakpointPreviewTabs.tsx`                   | 신규 |
 | 4     | `.../LayoutPresetSelector/index.tsx`                                   | 수정 |
 | 4     | `.../LayoutPresetSelector/styles.css`                                  | 수정 |
 | 4     | `.../LayoutPresetSelector/presetDefinitions.ts` (previewAreas 폐지)    | 수정 |
@@ -411,7 +467,7 @@ const PREVIEW_REFERENCE_WIDTH = {
 | 4     | `apps/builder/src/builder/main/BuilderCore.tsx` (기준 SSOT 소비)       | 수정 |
 | 5     | `docs/CHANGELOG.md`, ADR 본문 / 본 문서                                | 수정 |
 
-**실측 22 파일** (신규 6 / 수정 16). 추정 18 → 실측 22 (1.22배, 1.5배 게이트 미달). 증가분은 전부 Phase 4 이며 사유가 R4 대응 자체다: 썸네일 기준 폭을 캔버스 프레임 크기로 정정하려면 그 값이 SSOT 여야 해서 `canvasBreakpoints.ts` + `BuilderCore.tsx` 가, 수동 배열 폐지로 `presetDefinitions.ts` 가, P-3 토큰 전환의 portal 회귀 해소로 `ExistingSlotDialog.tsx` 가 들어왔다 (§6-6). Phase 0 inventory 는 "패널 재설계" 를 파일 5개로 잡으면서 기준 상수의 소재와 portal 토큰 스코프를 실측하지 않았다 — 절차 결함이며 새 ADR fork 사유가 아니다 (adr-writing.md M3).
+**실측 21 파일** (신규 5 / 수정 16 — `BreakpointPreviewTabs.tsx` 는 §6-4 정정으로 철회). 추정 18 → 실측 22 (1.22배, 1.5배 게이트 미달). 증가분은 전부 Phase 4 이며 사유가 R4 대응 자체다: 썸네일 기준 폭을 캔버스 프레임 크기로 정정하려면 그 값이 SSOT 여야 해서 `canvasBreakpoints.ts` + `BuilderCore.tsx` 가, 수동 배열 폐지로 `presetDefinitions.ts` 가, P-3 토큰 전환의 portal 회귀 해소로 `ExistingSlotDialog.tsx` 가 들어왔다 (§6-6). Phase 0 inventory 는 "패널 재설계" 를 파일 5개로 잡으면서 기준 상수의 소재와 portal 토큰 스코프를 실측하지 않았다 — 절차 결함이며 새 ADR fork 사유가 아니다 (adr-writing.md M3).
 
 ## 9. 미지원 / 이연 경계
 
