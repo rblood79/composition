@@ -50,19 +50,18 @@ async function readPreviewRule(): Promise<string> {
   return css.slice(start, css.indexOf("}", start));
 }
 
-describe("슬롯은 면, 격자 셀은 선", () => {
-  it("슬롯은 채움 + 테두리 없음", () => {
-    for (const key of ["vertical-3", "holy-grail", "list-detail"]) {
-      const { areas, rects } = renderPreset(key);
-      rects.forEach((rect, index) => {
-        if (!areas[index].isSlot) return;
+describe("모든 도형이 면 — 선은 남기지 않는다", () => {
+  it("어떤 도형에도 stroke 를 두지 않는다", () => {
+    for (const key of ["vertical-3", "feed", "holy-grail", "list-detail"]) {
+      const { rects } = renderPreset(key);
+      for (const rect of rects) {
+        expect(rect.getAttribute("stroke"), key).toBeNull();
         expect(rect.getAttribute("fill"), key).toMatch(/^var\(--bg-/);
-        expect(rect.getAttribute("stroke"), key).toBe("transparent");
-      });
+      }
     }
   });
 
-  it("격자 셀은 채움 없음 + currentColor 윤곽 (feed 4열 × 2행)", () => {
+  it("표면 → 판 → 카드 3단 — 격자 셀은 카드(--bg-emphasis) (feed 4열 × 2행)", () => {
     const { areas, rects } = renderPreset("feed");
     const cellIndexes = areas
       .map((area, index) => (area.isSlot ? -1 : index))
@@ -70,21 +69,19 @@ describe("슬롯은 면, 격자 셀은 선", () => {
 
     expect(cellIndexes).toHaveLength(8);
     for (const index of cellIndexes) {
-      expect(rects[index].getAttribute("fill")).toBe("none");
-      // 색은 CSS 의 color 를 따른다 — 아이콘이 컨테이너 color 를 받는 방식과 동일
-      expect(rects[index].getAttribute("stroke")).toBe("currentColor");
+      expect(rects[index].getAttribute("fill")).toBe("var(--bg-emphasis)");
     }
   });
 
-  it("CSS 가 inset 표면 + --fg-muted 선 색을 준다 (color 직접 선언 필수)", async () => {
+  it("CSS 표면은 --bg-inset — 도형 색은 CSS 가 아니라 fillOf 가 정한다", async () => {
     const block = await readPreviewRule();
 
     expect(block).toMatch(/background:\s*var\(--bg-inset\)/);
-    // 상속에 맡기면 .list-item.applied 의 --fg-on-accent 가 흘러들어와 셀 윤곽이 사라진다
-    expect(block).toMatch(/color:\s*var\(--fg-muted\)/);
+    // currentColor 소비자가 없으므로 `color` 는 두지 않는다 (죽은 선언 방지)
+    expect(block).not.toMatch(/^\s*color:/m);
   });
 
-  it("바깥 테두리는 없다 — 슬롯 면과 이중선이 되고 뷰포트를 78×58 로 줄인다", async () => {
+  it("바깥 테두리는 없다 — 첫 도형과 이중선이 되고 뷰포트를 78×58 로 줄인다", async () => {
     const block = await readPreviewRule();
 
     // `border-radius` 는 남긴다 (표면 모서리) — shorthand `border` 만 금지
@@ -113,6 +110,17 @@ describe("required 강조는 면 색이 담당한다", () => {
     for (const rect of rects) {
       expect(rect.getAttribute("fill")).toBe("var(--bg-emphasis)");
     }
+  });
+
+  it("격자 셀을 품은 슬롯은 required 여도 판 단계 — 카드가 사라지지 않게", () => {
+    const { areas, rects } = renderPreset("feed");
+    const feedIndex = areas.findIndex(
+      (area) => area.isSlot && area.name === "feed",
+    );
+
+    expect(areas[feedIndex].required).toBe(true);
+    // required 지만 카드와 같은 색이 되면 8개 셀이 통째로 사라진다
+    expect(rects[feedIndex].getAttribute("fill")).toBe("var(--bg-muted)");
   });
 
   it("강조는 표면 대비가 커지는 방향 — --accent-subtle 재도입 금지", () => {

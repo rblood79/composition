@@ -18,28 +18,28 @@
 
   /* ========== Preview SVG ==========
    *
-   * 표면·색은 컴포넌트 패널의 `.list-item-icon` 과 **같은 패턴**이다 (2026-07-26): inset 표면 +
-   * `--radius-sm` + `color: var(--fg-muted)`. 그 패널의 항목 아이콘도, 바로 위 카테고리 헤더의
-   * lucide 레이아웃 아이콘(`Layout` / `Columns2` / `LayoutGrid` / `Rows3`)도 이 언어다.
+   * 표면은 컴포넌트 패널의 `.list-item-icon` 과 **같은 패턴**이다 (2026-07-26): inset 표면 +
+   * `--radius-sm`. 그 패널의 항목 아이콘도, 바로 위 카테고리 헤더의 lucide 레이아웃 아이콘
+   * (`Layout` / `Columns2` / `LayoutGrid` / `Rows3`)도 이 표면 위에 놓인다.
    *
    * 다만 **도형 채널은 갈린다** (2026-07-27 사용자 지정): 아이콘은 전부 `fill: none` 선화지만
-   * 여기 슬롯은 면(`--bg-muted`)으로 그린다 — 슬롯은 배치를 읽는 단위라 덩어리로 보이는 편이
-   * 낫다는 판단이다. 격자 셀만 선으로 남아 이 `color` 를 `currentColor` 로 받는다.
+   * 여기는 슬롯도 격자 카드도 면으로 그린다 — 배치를 읽는 단위라 덩어리로 보이는 편이 낫다는
+   * 판단이다. 색은 도형마다 elevation 토큰을 직접 지정하므로(`PresetPreview.fillOf`) 여기서
+   * `color` 를 줄 필요가 없다.
+   *
+   * 선을 다시 도입한다면 `color` 를 **여기서 직접** 선언해야 한다. `.list-item.applied` /
+   * `.selected` 가 카드에 `color: var(--fg-on-accent)` 를 걸기 때문에, `currentColor` 를
+   * 상속에 맡기면 흰 선이 밝은 표면 위에 그려져 사라진다.
    *
    * **바깥 테두리는 두지 않는다** (2026-07-27). 아이콘 박스는 16px 글리프를 담느라 경계를
-   * 그려줘야 하지만, 여기 도형은 상자를 거의 채우므로 슬롯 선 자체가 이미 경계다 — 한 겹 더
-   * 두르면 바깥 테두리와 첫 슬롯 선이 2px 간격으로 나란히 놓여 이중선이 된다. 부수 효과로
+   * 그려줘야 하지만, 여기 도형은 상자를 거의 채우므로 도형 자체가 이미 경계다 — 한 겹 더
+   * 두르면 첫 도형과 2px 간격으로 나란히 놓여 이중선이 된다. 부수 효과로
    * `box-sizing: border-box` 탓에 80×60 뷰포트가 78×58 로 줄며 생기던 미세한 비균등 축소
-   * (x 0.975 / y 0.967) 도 사라져 viewBox 가 1:1 로 매핑된다.
-   *
-   * `color` 를 **여기서 직접** 선언하는 것이 중요하다. `.list-item.applied` / `.selected` 가
-   * 카드에 `color: var(--fg-on-accent)` 를 걸기 때문에, 상속에 맡기면 흰 선이 밝은 표면 위에
-   * 그려져 사라진다. 도형은 이 `color` 를 `currentColor` 로 받는다. */
+   * (x 0.975 / y 0.967) 도 사라져 viewBox 가 1:1 로 매핑된다. */
   .preset-preview-svg {
     flex-shrink: 0;
     border-radius: var(--radius-sm);
     background: var(--bg-inset);
-    color: var(--fg-muted);
   }
 
   /* ========== Existing Slot Dialog ========== */

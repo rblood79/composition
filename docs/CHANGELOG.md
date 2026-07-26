@@ -27,7 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **썸네일 표현이 패널 안에서 겉돌았던 문제** — 채워진 회색 블록이라 이 패널만의 별개 표현이었다. 컴포넌트 패널 항목 아이콘(`.list-item-icon`)도, 바로 위 카테고리 헤더의 lucide 레이아웃 아이콘(`Layout` / `Columns2` / `LayoutGrid` / `Rows3`)도 **inset 표면 + `--fg-muted` 선화**인데 썸네일만 벗어나 있었다. 같은 색 패턴으로 정렬 — 실제 빌더 계산값이 배경·반경·색 모두 아이콘 박스와 일치한다.
   - **바깥 테두리는 두지 않는다** (2026-07-27). 아이콘 박스는 16px 글리프를 담느라 경계를 그려주지만, 썸네일 도형은 상자를 거의 채우므로 도형 자체가 이미 경계다 — 한 겹 더 두르면 첫 도형과 2px 간격으로 나란히 놓여 이중선이 된다. 부수 효과로 좌표 매핑도 정확해졌다: `box-sizing: border-box` 라 1px 테두리가 80×60 뷰포트를 **78×58 로 줄여** viewBox 가 x 0.975 / y 0.967 비균등 축소되고 있었다 (제거 후 실측 80×60, 1:1).
-  - **슬롯은 면, 격자 셀은 선** (2026-07-27). 표면·색은 아이콘 패턴을 유지하되 도형 채널만 갈린다 — 슬롯은 배치를 읽는 단위라 덩어리로 보이는 편이 낫고, 셀은 "슬롯 안에 놓일 자리" 라 윤곽만 남긴다. 슬롯 채움은 `--bg-muted`: 지시된 `--border` 와 light(gray-200)·dark(zinc-700) 모두 **값이 완전히 같아** 픽셀 차이가 0 이면서 "테두리 변수를 배경·채우기에 사용 금지" (`rules/css-tokens.md`) 를 지킨다.
+  - **모든 도형이 면이다** (2026-07-27). 표면은 아이콘 패턴을 유지하되 도형 채널만 갈린다 — 배치를 읽는 단위라 덩어리로 보이는 편이 낫다는 판단. 채움은 `--bg-muted`: 지시된 `--border` 와 light(gray-200)·dark(zinc-700) 모두 **값이 완전히 같아** 픽셀 차이가 0 이면서 "테두리 변수를 배경·채우기에 사용 금지" (`rules/css-tokens.md`) 를 지킨다.
+  - 위계는 표면에서 멀어지는 **elevation 3단**이다 — 표면 `--bg-inset` / 슬롯·판 `--bg-muted` / required 슬롯·격자 카드 `--bg-emphasis`. 실측 lightness: light `0.985 / 0.928 / 0.872`, dark `0.210 / 0.370 / 0.442` (방향은 뒤집히지만 두 테마 모두 단조롭게 멀어진다).
+  - 격자 셀을 품은 슬롯은 required 여도 판 단계로 내린다 — 카드와 같은 색이면 카드 8개가 통째로 사라진다. 그 슬롯의 required 는 카드가 대신 표시한다.
+  - `currentColor` 소비자가 사라져 `.preset-preview-svg` 의 `color` 선언도 제거했다 (죽은 선언). 선을 다시 도입하면 그 선언이 다시 필요하다 — `.list-item.applied` 가 카드에 거는 `--fg-on-accent` 가 상속되기 때문이며, 그 사유는 CSS 주석에 남겼다.
   - 위계는 채우기 대신 **선 두께**로 준다 (슬롯 1.5 / 격자 셀 1). 부수 효과로 채우기 위계에 쓰던 `--accent-subtle` 의존이 사라졌다 (아래 항목 참조).
   - 선 색은 `currentColor` 로 받고 CSS 가 `.preset-preview-svg { color: var(--fg-muted) }` 로 준다 — 아이콘이 컨테이너 `color` 에서 색을 받는 방식과 같다. **이 선언은 필수다**: `.list-item.applied` / `.selected` 가 카드에 `color: var(--fg-on-accent)` 를 걸기 때문에 상속에 맡기면 적용됨 카드에서 흰 선이 밝은 표면 위에 그려져 사라진다.
   - 위치: `panels/properties/editors/LayoutPresetSelector/{PresetPreview.tsx,styles.css}`
@@ -38,6 +41,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `--accent-subtle` 의존은 완전히 없어졌다. 재도입은 렌더 계약 테스트가 막는다.
   - 같은 함정을 CSS 규칙으로 못 박았다 — `.claude/rules/css-tokens.md` §"builder 테마의 accent 는 무채색".
   - 위치: `panels/properties/editors/LayoutPresetSelector/PresetPreview.tsx`
+
+### Features
+
+- **Frame Preset 표시명을 영문 정식 명칭으로** (2026-07-27). 카테고리와 프리셋 제목이 한국어였다.
+  - 카테고리: 기본 → `Basic` / 네비게이션 → `Navigation` / 목록-상세 → `List` / 피드 → `Feed` / 복합 → `Complex` / 대시보드 → `Dashboard` (각 label 이 `PresetCategory` union key 와 맞춰진다)
+  - 프리셋: 전체화면 → `Fullscreen` / 수직 2단 → `2-Row` / 수직 3단 → `3-Row` / 좌측·우측 사이드바 → `Left Sidebar`·`Right Sidebar` / 목록-상세 → `List-Detail` / 피드 → `Feed` / 대시보드 → `Dashboard` / 대시보드 (위젯) → `Widget Panel`. `Holy Grail` 은 원래 영문
+  - `List-Detail` 과 `Feed` 는 M3 canonical layout 의 공식 명칭 그대로다. `Widget Panel` 은 `Dashboard` 그룹 안에서 이 프리셋이 더하는 것(위젯 열)을 가리킨다 — "Dashboard + Widgets" 는 카드 폭을 넘겨 잘린다
+  - 카드 이름은 `nowrap` + ellipsis 라 길이가 제약이다. 전 10종 실측 결과 최대 폭 75px(`Right Sidebar`) 로 **잘림 0건** (사용 가능 폭 88px)
+  - 슬롯 `description` 도 함께 영문화했다 — 이 값은 생성되는 Slot 요소 props 로 **저장**되므로, 기존 문서의 슬롯은 이전 한국어 설명을 유지한다
 
 ### Architecture
 
