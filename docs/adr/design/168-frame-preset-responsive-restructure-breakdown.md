@@ -1,6 +1,6 @@
 # ADR-168 구현 상세 — Frame Preset 반응형 재구성
 
-> 본 문서는 [ADR-168](../168-frame-preset-responsive-restructure.md) 의 구현 상세다. 결정·위험·Gate 는 ADR 본문에 있고, 여기에는 Phase 분해 / 파일 경계 / 계약 정의만 둔다.
+> 본 문서는 [ADR-168](../completed/168-frame-preset-responsive-restructure.md) 의 구현 상세다. 결정·위험·Gate 는 ADR 본문에 있고, 여기에는 Phase 분해 / 파일 경계 / 계약 정의만 둔다.
 
 ## 1. Fork checkpoint lock-in (adr-writing.md 4질문)
 
@@ -484,7 +484,7 @@ live 확증: 새로고침 없이 프리셋 교체 → preview 규칙 6개(grid �
 
 ## 10. 참조
 
-- [ADR-168 본문](../168-frame-preset-responsive-restructure.md)
+- [ADR-168 본문](../completed/168-frame-preset-responsive-restructure.md)
 - [ADR-154](../completed/154-responsive-breakpoint-authoring.md) — 반응형 인프라 (base, 본 ADR 이 개정)
 - [ADR-156](../completed/156-engine-css-parity-alignment-margin.md) — `LAYOUT_STYLE_KEYS` 미등재 결함 선례 (R6)
 - [ADR-163](../completed/163-builder-panel-structure-standardization.md) — 빌더 패널 표준 구조

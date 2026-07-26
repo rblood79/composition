@@ -2,7 +2,26 @@
 
 ## Status
 
-Accepted — 2026-07-26 (리뷰 round 1 승인 — `docs/adr/reviews/168.md`, 이슈 4건 전부 `fixed`)
+Implemented — 2026-07-26 (Accepted 2026-07-26, 리뷰 round 1 승인 — `docs/adr/reviews/168.md`, 이슈 4건 전부 `fixed`)
+
+### 진행 로그
+
+| Phase | 내용                                                           | commit      | 완료       |
+| ----- | -------------------------------------------------------------- | ----------- | ---------- |
+| 1     | 반응형 eligibility 2분할 + grid authoring 축 개통 (R5·R7 포함) | `db013632d` | 2026-07-26 |
+| 2     | 프리셋 반응형 정의 구조 + 교체 멱등 계약 (R1)                  | `8c1da7eb3` | 2026-07-26 |
+| 3     | 카탈로그 9→10 재구성 + 슬롯 `responsive` canonical 유실 수정   | `0e91873ba` | 2026-07-26 |
+| 4     | 썸네일 breakpoint 파생 + 시맨틱 토큰 전환 (P-1~P-7)            | `3b2953814` | 2026-07-26 |
+| 5     | live 검증 30조합 + `responsive`-only write layoutVersion 수정  | `c109d8114` | 2026-07-26 |
+
+Gate 결과: G1 30/30 · G2 ✅ · G3 ✅(비율 편차 ≤3.82pp 명시) · G4 ✅ · G5 ✅ · G6 ✅ · G7 ✅ · G8 ✅. 실측 상세는 [design breakdown §7-1](../design/168-frame-preset-responsive-restructure-breakdown.md).
+
+**구현 중 발견한 2건의 선행 결함** (본 ADR 이 첫 노출 경로였다):
+
+1. **슬롯 `responsive` 가 canonical 로 이관되지 않음** — `canonicalMutations.ts` 의 `isLegacySlotTag` 분기가 필드를 나열하며 early return 해 `baseNode` 의 `responsive` 스프레드에 도달하지 못했다. ADR-154 시절부터 있던 gap 이며 슬롯 레벨 override 의 첫 writer 가 생기면서 드러났다 (Phase 3).
+2. **`responsive`-only write 가 `layoutVersion` 을 올리지 않음** — `updateElement` 의 `isLayoutChange` 가 props 축만 봐서 preview `@media` 가 새로고침 전까지 stale. `inspectorActions` 는 ADR-154 때 이미 같은 처리를 했으나 Style 패널 경로 한정이었다 (Phase 5).
+
+**잔존**: `updateElement` 는 props 없는 write 에 history 미기록 → undo 시 body `responsive` 미복원 (슬롯은 복원). breakdown §7-2 참조.
 
 ## Context
 
@@ -119,7 +138,7 @@ grid 를 버리고 모든 레이아웃을 중첩 flex 로 표현. `flexDirection
 
 **대안 A 채택** — grid 를 유지한 채 반응형 eligibility 를 프리셋 authoring 축까지 확장하고, mobile 에서만 flex column 으로 전환한다. 카탈로그를 레퍼런스 기반으로 재구성하고, 프리셋 패널을 전면 재설계한다.
 
-> 구현 상세: [168-frame-preset-responsive-restructure-breakdown.md](design/168-frame-preset-responsive-restructure-breakdown.md)
+> 구현 상세: [168-frame-preset-responsive-restructure-breakdown.md](../design/168-frame-preset-responsive-restructure-breakdown.md)
 
 ### 채택 근거
 

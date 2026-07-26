@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Frame 프리셋 반응형 — desktop/tablet/mobile 3 breakpoint 대응 (ADR-168)] - 2026-07-26
+
+### Features
+
+- **프리셋이 breakpoint 별로 형태를 바꾼다** (ADR-168 Phase 1~5):
+  - 좁은 폭에서 사이드바를 **줄이는 게 아니라 세로로 스택**한다. 레퍼런스 4출처(M3 canonical layout / Apple HIG split view / Wroblewski column drop / Framer·Webflow 템플릿)가 같은 결론으로 수렴한다.
+  - **실측** — 목록-상세: list `320`(desktop) → `260`(tablet) → **전폭 스택**(mobile, list 높이 120 / detail 684). Holy Grail: `200·1fr·200` → `160·1fr·160` → 5단 세로 스택(content 504). 좌·우 사이드바: `250` → `200` → 전폭 스택.
+  - 전환은 컨테이너 `display: grid → flex` + `flexDirection: column` **한 줄**로 끝난다 — 슬롯이 grid 배치와 flex 크기를 병기하므로 grid 모드에선 flex 가, flex 모드에선 grid line 이 무시된다. 덕분에 슬롯 트리가 평면으로 유지되고 이름 없는 wrapper 노드가 생기지 않는다.
+  - 10 프리셋 × 3 BP = **30 조합 전수 실측**: 고정폭 합이 뷰포트를 넘는 경우 0건, 콘텐츠 슬롯 폭·높이 0 인 경우 0건.
+- **프리셋 카탈로그 9 → 10 재구성**:
+  - 신규 `목록-상세`(M3 canonical list-detail), `피드`(카드 격자 — 폭에 따라 열 수 4→2→1).
+  - `complex-3col` 삭제 — Holy Grail 과 컬럼 폭만 다른 동일 구조라 흡수. 기존 프레임의 레이아웃 자체는 유지되고 "적용됨" 배지만 사라진다.
+  - 카테고리 4 → 6(`목록-상세`/`피드` 추가). 카테고리 추가 시 손댈 곳이 union + 메타 한 쌍으로 줄었다.
+- **프리셋 썸네일이 현재 breakpoint 를 반영한다**:
+  - 손으로 적던 좌표 배열 10벌을 폐지하고 프리셋 정의에서 파생한다. 헤더의 breakpoint 토글을 바꾸면 캔버스와 썸네일이 함께 바뀐다.
+  - 격자 슬롯은 내부 카드 셀까지 그린다 — `피드`의 열 수 변화(4→2→1)가 썸네일에 드러난다.
+
+### Bug Fixes
+
+- **프리셋 썸네일·경고 다이얼로그가 다크모드를 따르지 않던 문제**:
+  - **Why**: 원시 토큰(`--color-gray-*` / `--color-white` / `--color-warning-*`)은 dark 재정의가 없다. 다크 테마에서 흰 배경 위에 연회색 사각형이 그려지고 이름표가 배경에 묻혔다.
+  - 시맨틱 토큰으로 전환(`--bg-overlay` / `--bg-muted` / `--bg-inset` / `--border` / `--fg-muted` / `--accent` / `--notice`). 실측: svg 배경·rect fill·stroke·라벨·경고 아이콘 5개 값 전부 light↔dark 반응.
+- **portal 로 열리는 다이얼로그가 builder 토큰을 못 받던 문제**:
+  - **Why**: `builder-system.css` 의 portal fallback 이 `body > .react-aria-Modal` 인데 RAC 는 Modal 을 `.react-aria-ModalOverlay` 로 한 겹 감싼다 → `>` 결합자 미매칭 → `--notice` 등 semantic 토큰이 전부 미정의가 되어 선언이 통째로 무효화. 경고 아이콘이 주황을 잃고 본문 색을 상속했다.
+  - `ExistingSlotDialog` 의 Modal 에 `data-context="builder"` 부여. 경고 색뿐 아니라 `--bg-inset` 등 다이얼로그 전체 토큰이 테마별로 정상화됐다.
+  - **잔존**: fallback 선택자 자체는 여전히 RAC Modal 에 매칭되지 않는다. 신규 builder modal 은 `data-context="builder"` 를 직접 부여해야 한다.
+- **프리셋 적용 후 Preview 의 `@media` CSS 가 새로고침 전까지 갱신되지 않던 문제**:
+  - **Why**: `updateElement` 의 layout 영향 판정이 `props` 축만 봤다. `responsive` 는 top-level 필드라 `responsive`-only write 가 layout 무영향으로 판정되어 `layoutVersion` 이 오르지 않고 resolve 재계산·preview 재발행이 건너뛰어졌다. 캔버스가 정상으로 보인 건 슬롯 생성·삭제 mutation 이 `layoutVersion` 을 올려준 덕에 편승했기 때문.
+  - `inspectorActions`(Style 패널 경로)에만 있던 처리를 일반 경로로 승격 — 이 규칙은 호출자 속성이 아니라 필드 자체의 성질이다.
+  - 위치: `apps/builder/src/builder/stores/utils/elementUpdate.ts`. 가드: `elementUpdate.static.test.ts`.
+- **슬롯의 breakpoint override 가 canonical 문서로 옮겨지지 않던 문제** (ADR-154 시절 gap):
+  - **Why**: `canonicalMutations.ts` 의 슬롯 분기가 필드를 직접 나열하며 early return 해 `baseNode` 의 `responsive` 스프레드에 도달하지 못했다. 슬롯 레벨 override 의 첫 writer 가 생기면서 드러났다 — mobile 에서 body 는 세로로 쌓이는데 사이드바만 250px 그대로였다.
+- **publish CSS 에서 grid line 숫자에 `px` 가 붙어 선언이 무효화되던 문제** (R7):
+  - **Why**: `formatCssValue` 가 숫자에 `px` 를 붙이는데 `UNITLESS_PROPS` 에 `gridColumnStart/End`·`gridRowStart/End` 가 없었다. `grid-column-start:1px` 는 무효라 DOM 은 auto-placement, Skia 는 숫자 line 배치 → **배포 산출물 발산**.
+  - 실측 확인: 4키 전부 unitless emit (`grid-column-start=1`, `grid-column-end=3`, `grid-row-start=3`, `grid-row-end=4`).
+- **tablet override 가 캐시 히트로 흡수되던 문제** (R5): `LAYOUT_STYLE_KEYS` 에 `gridColumnEnd`·`gridRowEnd`·`gridTemplateAreas` 누락 — `*Start` 와 트랙 템플릿만 등재돼 있어 `End` 만 바뀌는 override 가 무반영이었다.
+
+### Architecture
+
+- **반응형 eligibility 2분할** — ADR-154 전제 개정:
+  - `RESPONSIVE_ELIGIBLE_STYLE_PROPS` = `SECTION_EDITABLE_RESPONSIVE_PROPS`(32키, Style 패널 편집) ∪ `PRESET_AUTHORED_RESPONSIVE_STYLE_PROPS`(grid 7키, 편집 UI 없음).
+  - **Why**: ADR-154 의 "eligible ≡ Style 패널 편집 키" 는 *write 주체가 Style 패널 단일* 이라는 조건부 전제였다. 프리셋이 두 번째 write 주체가 되면서 "편집 UI 유무" 와 "breakpoint 별 가변 필요" 가 분리된다. 확장이 편의가 아니라 **필수**인 이유: `clearNonEligibleResponsiveOverrides` 가 non-eligible 키를 실제로 삭제하므로, 확장 없이는 프리셋이 쓴 grid override 가 다음 스타일 편집에서 조용히 지워진다.
+  - `gridArea` shorthand 는 의도적 제외 — 모든 선언이 `!important` 동일 특정도라 emit source order 가 승자를 정하고, 같은 BP 에서 shorthand 와 longhand 를 함께 내면 shorthand 가 longhand 를 리셋한다.
+- **캔버스 프레임 크기 SSOT 신설** (`workspace/canvasBreakpoints.ts`): desktop 1920×1080 / tablet 768×1024 / mobile 390×844. 기존에 `BuilderCore` + 테스트 2벌로 복제돼 있던 값을 단일화하고 썸네일 파생이 3벌째가 되는 것을 차단했다. **미디어 쿼리 경계(1280)와 혼동 금지** — 1280 으로 환산하면 320px 트랙이 25% 로 나오지만 실제 렌더는 16.7% 다.
+- **grid item placement override 는 컨테이너 템플릿 override 를 동반해야 한다** (R8): `GRID_REBUILD_TRIGGER_KEYS` 는 컨테이너 키만 담고 검사가 `isGridDisplay` 게이트 안에 있어, item placement 단독 변경은 `updateStyleRaw` 로 떨어져 grid 배치 캐시 무효화에 실패한다(조용한 무반영). `presetDefinitions.static.test.ts` 가 정적으로 단언한다.
+
+### Documentation
+
+- `.claude/rules/` 갱신 없음 — 본 변경은 프리셋 카탈로그와 반응형 계약이라 기존 `layout-engine.md` §"Grid area 이름 해석" / `panel-structure.md` 예약 prefix 규칙을 그대로 따른다.
+- ADR-168 → `docs/adr/completed/`, 실측 상세는 design breakdown §7-1.
+
 ## [Frame 프리셋 적용 — 슬롯이 캔버스에 안 그려지던 문제] - 2026-07-26
 
 ### Bug Fixes
