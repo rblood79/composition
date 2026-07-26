@@ -1,14 +1,17 @@
 /**
- * PresetPreview 렌더 계약 (2026-07-26).
+ * PresetPreview 렌더 계약 (2026-07-27).
  *
  * 이 컴포넌트의 결함은 매번 **조용했다** — 그려지긴 하는데 아무 정보도 전달하지 않는 형태였다.
  * 그래서 "무엇이 어떤 시각 채널을 담당하는가" 를 렌더 결과로 고정한다:
  *
- * - 표현 = **선화**. 컴포넌트 패널 `.list-item-icon` 과 같은 색 패턴이다 (inset 표면 +
- *   `--fg-muted` 선). 채우기로 강조하려던 시도는 `--accent-subtle` 이 회색 wash 라 실패했다.
- * - required 강조 = **선 색** (`--accent`), 위계 = **선 두께** (슬롯 1.5 / 셀 1).
+ * - 슬롯 = **면** (`--bg-muted`), 격자 셀 = **선** (`currentColor`). 슬롯은 배치를 읽는 단위,
+ *   셀은 그 안에 놓일 자리다.
+ * - required 강조 = **면 색 한 단계** (`--bg-emphasis`). 표면 대비가 커지는 방향으로만 준다 —
+ *   `--accent-subtle` 은 `--bg-muted` 보다 밝아 강조가 뒤집혔던 전례가 있다.
+ * - 표면·색은 컴포넌트 패널 `.list-item-icon` 패턴 (`--bg-inset` + `color: --fg-muted`,
+ *   바깥 테두리 없음).
  * - 이름표 = **없음**. 12px 밴드에 들어가는 폰트가 없다. 슬롯 구성은 `<title>` 이 담당한다.
- * - 좌표계 = **px**. `viewBox` 정사각 + `preserveAspectRatio="none"` 조합은 선·모서리·글리프를
+ * - 좌표계 = **px**. `viewBox` 정사각 + `preserveAspectRatio="none"` 조합은 도형·글리프를
  *   비균등 왜곡시킨다.
  */
 
@@ -24,7 +27,7 @@ import { PresetPreview } from "./PresetPreview";
 const WIDTH = 80;
 const HEIGHT = 60;
 
-/** {@link RECT_INSET} 과 같은 값 — 선 두께(1.5)를 넘어야 마주보는 두 선이 붙지 않는다. */
+/** {@link RECT_INSET} 과 같은 값 — 마주보는 두 변이 각자 물러나 실제 틈은 2배다. */
 const INSET = 1.5;
 
 function renderPreset(presetKey: string, breakpoint = "desktop" as const) {
@@ -47,23 +50,29 @@ async function readPreviewRule(): Promise<string> {
   return css.slice(start, css.indexOf("}", start));
 }
 
-describe("선화 — 컴포넌트 패널 아이콘과 같은 색 패턴", () => {
-  it("도형에 채우기가 없다", () => {
-    for (const key of ["vertical-3", "feed", "holy-grail", "list-detail"]) {
-      const { rects } = renderPreset(key);
-      for (const rect of rects) {
-        expect(rect.getAttribute("fill"), key).toBe("none");
-      }
+describe("슬롯은 면, 격자 셀은 선", () => {
+  it("슬롯은 채움 + 테두리 없음", () => {
+    for (const key of ["vertical-3", "holy-grail", "list-detail"]) {
+      const { areas, rects } = renderPreset(key);
+      rects.forEach((rect, index) => {
+        if (!areas[index].isSlot) return;
+        expect(rect.getAttribute("fill"), key).toMatch(/^var\(--bg-/);
+        expect(rect.getAttribute("stroke"), key).toBe("transparent");
+      });
     }
   });
 
-  it("기본 선 색은 currentColor — CSS 의 color 를 따른다", () => {
-    const { rects, areas } = renderPreset("vertical-3");
-    const notRequired = rects.filter((_, index) => !areas[index].required);
+  it("격자 셀은 채움 없음 + currentColor 윤곽 (feed 4열 × 2행)", () => {
+    const { areas, rects } = renderPreset("feed");
+    const cellIndexes = areas
+      .map((area, index) => (area.isSlot ? -1 : index))
+      .filter((index) => index >= 0);
 
-    expect(notRequired).toHaveLength(2); // header / footer
-    for (const rect of notRequired) {
-      expect(rect.getAttribute("stroke")).toBe("currentColor");
+    expect(cellIndexes).toHaveLength(8);
+    for (const index of cellIndexes) {
+      expect(rects[index].getAttribute("fill")).toBe("none");
+      // 색은 CSS 의 color 를 따른다 — 아이콘이 컨테이너 color 를 받는 방식과 동일
+      expect(rects[index].getAttribute("stroke")).toBe("currentColor");
     }
   });
 
@@ -71,11 +80,11 @@ describe("선화 — 컴포넌트 패널 아이콘과 같은 색 패턴", () => 
     const block = await readPreviewRule();
 
     expect(block).toMatch(/background:\s*var\(--bg-inset\)/);
-    // 상속에 맡기면 .list-item.applied 의 --fg-on-accent 가 흘러들어와 선이 사라진다
+    // 상속에 맡기면 .list-item.applied 의 --fg-on-accent 가 흘러들어와 셀 윤곽이 사라진다
     expect(block).toMatch(/color:\s*var\(--fg-muted\)/);
   });
 
-  it("바깥 테두리는 없다 — 슬롯 선과 이중선이 되고 뷰포트를 78×58 로 줄인다", async () => {
+  it("바깥 테두리는 없다 — 슬롯 면과 이중선이 되고 뷰포트를 78×58 로 줄인다", async () => {
     const block = await readPreviewRule();
 
     // `border-radius` 는 남긴다 (표면 모서리) — shorthand `border` 만 금지
@@ -84,16 +93,16 @@ describe("선화 — 컴포넌트 패널 아이콘과 같은 색 패턴", () => 
   });
 });
 
-describe("required 강조는 선 색이 담당한다", () => {
-  it("required 슬롯만 --accent (나머지 currentColor)", () => {
+describe("required 강조는 면 색이 담당한다", () => {
+  it("required 슬롯만 --bg-emphasis (나머지 --bg-muted)", () => {
     const { areas, rects } = renderPreset("vertical-3");
 
     // header(false) / content(true) / footer(false) — 파생 순서 그대로
     expect(areas.map((area) => area.required)).toEqual([false, true, false]);
-    expect(rects.map((rect) => rect.getAttribute("stroke"))).toEqual([
-      "currentColor",
-      "var(--accent)",
-      "currentColor",
+    expect(rects.map((rect) => rect.getAttribute("fill"))).toEqual([
+      "var(--bg-muted)",
+      "var(--bg-emphasis)",
+      "var(--bg-muted)",
     ]);
   });
 
@@ -102,30 +111,18 @@ describe("required 강조는 선 색이 담당한다", () => {
 
     expect(areas.every((area) => area.required)).toBe(true);
     for (const rect of rects) {
-      expect(rect.getAttribute("stroke")).toBe("var(--accent)");
+      expect(rect.getAttribute("fill")).toBe("var(--bg-emphasis)");
     }
   });
 
-  it("격자 셀은 강조 대상이 아니다 — 얇은 선 + 기본 색 (feed)", () => {
-    const { areas, rects } = renderPreset("feed");
-    const cellIndexes = areas
-      .map((area, index) => (area.isSlot ? -1 : index))
-      .filter((index) => index >= 0);
-
-    expect(cellIndexes).toHaveLength(8); // desktop 4열 × 2행
-    for (const index of cellIndexes) {
-      expect(rects[index].getAttribute("stroke")).toBe("currentColor");
-      expect(rects[index].getAttribute("stroke-width")).toBe("1");
+  it("강조는 표면 대비가 커지는 방향 — --accent-subtle 재도입 금지", () => {
+    // `--accent-subtle` 은 builder 에서 회색 wash 라 `--bg-muted` 보다 밝다 → 강조가 뒤집힌다
+    for (const key of ["vertical-3", "feed", "holy-grail", "dashboard"]) {
+      const { rects } = renderPreset(key);
+      for (const rect of rects) {
+        expect(rect.getAttribute("fill"), key).not.toBe("var(--accent-subtle)");
+      }
     }
-  });
-
-  it("위계는 선 두께 — 슬롯 1.5 / 셀 1 (채우기가 없으므로)", () => {
-    const { areas, rects } = renderPreset("feed");
-    rects.forEach((rect, index) => {
-      expect(rect.getAttribute("stroke-width")).toBe(
-        areas[index].isSlot ? "1.5" : "1",
-      );
-    });
   });
 });
 
@@ -172,7 +169,6 @@ describe("px 좌표계 + 블록 분리", () => {
         const w = Number(rect.getAttribute("width"));
         const h = Number(rect.getAttribute("height"));
 
-        // 선이 경로 중심에 그려지므로 경계에 붙으면 절반이 잘린다
         expect(x, key).toBeGreaterThanOrEqual(INSET);
         expect(y, key).toBeGreaterThanOrEqual(INSET);
         expect(x + w, key).toBeLessThanOrEqual(WIDTH - INSET + 1e-6);

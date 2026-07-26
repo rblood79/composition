@@ -8,14 +8,13 @@
  * dark mode 재정의가 없어서, 다크 테마에서 흰 배경 위에 연회색 사각형이 그려지고 이름표가
  * 배경에 묻혔다.
  *
- * **선화다 — 컴포넌트 패널 `.list-item-icon` 과 같은 색 패턴** (2026-07-26). 채워진 회색 블록
- * 이었을 때는 이 패널 안에서만 쓰는 별개 표현이었다: 컴포넌트 패널 항목 아이콘도, 바로 위
- * 카테고리 헤더의 lucide 레이아웃 아이콘(`Layout` / `Columns2` / `LayoutGrid` / `Rows3`)도
- * `fill: none` + `--fg-muted` 선 + inset 표면이라 "레이아웃을 그린 도형" 의 어법이 하나 있는데,
- * 썸네일만 벗어나 있었다. 부수 효과로 채우기 위계에 쓰던 `--accent-subtle` 의존이 사라졌다
- * ({@link strokeOf} 참조 — 그 토큰은 강조로 쓸 수 없었다).
+ * **슬롯은 면, 격자 셀은 선** (2026-07-27 사용자 지정). 표면·색은 컴포넌트 패널
+ * `.list-item-icon` 과 같은 패턴을 유지하지만(`--bg-inset` 표면 + `color: --fg-muted` +
+ * 바깥 테두리 없음), 도형 채널은 그 패널의 `fill: none` 선화와 갈린다 — 슬롯은 배치를 읽는
+ * 단위라 덩어리로 보이는 편이 낫다는 판단이다. 셀만 윤곽으로 남아 "슬롯 안에 놓일 자리" 를
+ * 나타낸다.
  *
- * 선 색은 `currentColor` 로 받는다. CSS 가 `.preset-preview-svg { color: … }` 로 주므로,
+ * 셀의 선 색은 `currentColor` 로 받는다. CSS 가 `.preset-preview-svg { color: … }` 로 주므로,
  * 아이콘이 컨테이너 `color` 에서 색을 받는 방식과 같다.
  *
  * 단 **바깥 테두리는 두지 않는다** (2026-07-27). 아이콘 박스는 16px 글리프를 담느라 경계를
@@ -57,8 +56,8 @@ interface PresetPreviewProps {
  * 모양**으로 읽힌다. 안쪽으로 물러나면 사이에 틈이 생겨 별개 블록으로 보인다. 선이 경로
  * 중심에 그려지는 SVG 특성상 뷰포트 경계에서 절반이 잘리는 것도 같이 해결된다.
  *
- * 값이 선 두께를 넘어야 한다 — 1.5px 선을 1px 여백으로 띄우면 두 선 사이가 0.5px 로 붙어
- * 다시 한 줄로 보인다. 1.5 면 마주보는 두 선이 3px 간격이라 1.5px 빈틈이 남는다.
+ * 마주보는 두 변이 각자 물러나므로 실제 틈은 이 값의 2배(3px)다. 표면(`--bg-inset`)이 그
+ * 틈으로 비쳐 슬롯 면이 서로 분리돼 보인다.
  */
 const RECT_INSET = 1.5;
 
@@ -66,33 +65,34 @@ const RECT_INSET = 1.5;
 const RECT_RADIUS = 2;
 
 /**
- * 영역 테두리 — 선화의 색.
+ * 영역 채우기.
  *
- * 기본은 `currentColor` — CSS 가 `.preset-preview-svg { color: var(--fg-muted) }` 로 준다
- * (컴포넌트 패널 `.list-item-icon` 이 항목 아이콘에 색을 주는 방식과 동일). required 슬롯만
- * 한 단계 진한 `--accent` 로 올려 "이 프리셋의 본체" 를 표시한다.
+ * **슬롯은 면, 격자 셀은 선** (2026-07-27 사용자 지정). 슬롯은 배치를 읽는 단위라 덩어리로
+ * 보이는 편이 낫고, 셀은 그 안에 놓일 자리라 윤곽만 남긴다.
  *
- * **채우기로 강조하려던 시도는 실패했다** (2026-07-26 실측). builder 테마의 `--accent-subtle`
- * 은 이름과 달리 회색 wash 라(light `rgba(107,114,128,.15)` / dark `rgba(161,161,170,.2)`)
- * 일반 슬롯의 `--bg-muted` 보다 밝아, 강조하려던 슬롯이 오히려 뒤로 물러나 보였다. 지금은
- * 채우기 자체가 없다.
+ * required 는 표면에서 한 단계 더 떨어진 `--bg-emphasis` — 두 테마 모두 대비가 커지는
+ * 방향이다 (light: 표면 L 0.985 / 일반 0.928 / required 0.872, dark: 0.210 / 0.370 / 0.440).
  *
- * `--accent` 는 builder 에서 유채색이 아니라 `--color-gray-700`(dark 는 `--color-zinc-200`)
- * 이지만, 그래서 두 테마 모두에서 표면과 명도 대비가 확실하다 — 패널 chrome 이 무채색인
- * 이 빌더에서 강조는 채도가 아니라 명도로 준다.
+ * `--border` 대신 `--bg-muted` 를 쓴다. 두 토큰은 light(gray-200)·dark(zinc-700) 모두 **값이
+ * 완전히 같아** 픽셀 차이가 0 이면서, "테두리 변수를 배경·채우기에 사용 금지" (rules/css-tokens.md)
+ * 를 지킨다. 과거 `--accent-subtle` 로 강조하려던 시도는 그 토큰이 회색 wash 라
+ * (`--bg-muted` 보다 밝음) 강조가 뒤집혀 실패했다 — 채우기 강조는 반드시 표면 대비가 커지는
+ * 방향으로만 준다.
  */
-function strokeOf(area: PreviewArea): string {
-  return area.required ? "var(--accent)" : "currentColor";
+function fillOf(area: PreviewArea): string {
+  if (!area.isSlot) return "none";
+  return area.required ? "var(--bg-emphasis)" : "var(--bg-muted)";
 }
 
 /**
- * 선 두께(px).
+ * 영역 테두리.
  *
- * 슬롯은 컴포넌트 패널 아이콘과 같은 1.5, 격자 슬롯 내부의 카드 셀은 한 단계 얇은 1 —
- * 채우기가 없으니 위계는 두께로 준다.
+ * 슬롯은 면으로 그리므로 테두리를 두지 않는다 (`transparent`). 격자 셀만 `currentColor` 로
+ * 윤곽을 남기고, 그 색은 CSS 가 `.preset-preview-svg { color: var(--fg-muted) }` 로 준다
+ * (컴포넌트 패널 `.list-item-icon` 이 항목 아이콘에 색을 주는 방식과 동일).
  */
-function strokeWidthOf(area: PreviewArea): number {
-  return area.isSlot ? 1.5 : 1;
+function strokeOf(area: PreviewArea): string {
+  return area.isSlot ? "transparent" : "currentColor";
 }
 
 export const PresetPreview = memo(function PresetPreview({
@@ -127,9 +127,9 @@ export const PresetPreview = memo(function PresetPreview({
             y={y}
             width={rectWidth}
             height={rectHeight}
-            fill="none"
+            fill={fillOf(area)}
             stroke={strokeOf(area)}
-            strokeWidth={strokeWidthOf(area)}
+            strokeWidth={1}
             rx={RECT_RADIUS}
           />
         );

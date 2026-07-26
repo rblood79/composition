@@ -26,15 +26,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `panels/properties/editors/LayoutPresetSelector/{normalizeThumbnailAreas,PresetPreview,index}.tsx`
 
 - **썸네일 표현이 패널 안에서 겉돌았던 문제** — 채워진 회색 블록이라 이 패널만의 별개 표현이었다. 컴포넌트 패널 항목 아이콘(`.list-item-icon`)도, 바로 위 카테고리 헤더의 lucide 레이아웃 아이콘(`Layout` / `Columns2` / `LayoutGrid` / `Rows3`)도 **inset 표면 + `--fg-muted` 선화**인데 썸네일만 벗어나 있었다. 같은 색 패턴으로 정렬 — 실제 빌더 계산값이 배경·반경·색 모두 아이콘 박스와 일치한다.
-  - **바깥 테두리는 두지 않는다** (2026-07-27). 아이콘 박스는 16px 글리프를 담느라 경계를 그려주지만, 썸네일 도형은 상자를 거의 채우므로 슬롯 선 자체가 이미 경계다 — 한 겹 더 두르면 첫 슬롯 선과 2px 간격으로 나란히 놓여 이중선이 된다. 부수 효과로 좌표 매핑도 정확해졌다: `box-sizing: border-box` 라 1px 테두리가 80×60 뷰포트를 **78×58 로 줄여** viewBox 가 x 0.975 / y 0.967 비균등 축소되고 있었다 (제거 후 실측 80×60, 1:1).
+  - **바깥 테두리는 두지 않는다** (2026-07-27). 아이콘 박스는 16px 글리프를 담느라 경계를 그려주지만, 썸네일 도형은 상자를 거의 채우므로 도형 자체가 이미 경계다 — 한 겹 더 두르면 첫 도형과 2px 간격으로 나란히 놓여 이중선이 된다. 부수 효과로 좌표 매핑도 정확해졌다: `box-sizing: border-box` 라 1px 테두리가 80×60 뷰포트를 **78×58 로 줄여** viewBox 가 x 0.975 / y 0.967 비균등 축소되고 있었다 (제거 후 실측 80×60, 1:1).
+  - **슬롯은 면, 격자 셀은 선** (2026-07-27). 표면·색은 아이콘 패턴을 유지하되 도형 채널만 갈린다 — 슬롯은 배치를 읽는 단위라 덩어리로 보이는 편이 낫고, 셀은 "슬롯 안에 놓일 자리" 라 윤곽만 남긴다. 슬롯 채움은 `--bg-muted`: 지시된 `--border` 와 light(gray-200)·dark(zinc-700) 모두 **값이 완전히 같아** 픽셀 차이가 0 이면서 "테두리 변수를 배경·채우기에 사용 금지" (`rules/css-tokens.md`) 를 지킨다.
   - 위계는 채우기 대신 **선 두께**로 준다 (슬롯 1.5 / 격자 셀 1). 부수 효과로 채우기 위계에 쓰던 `--accent-subtle` 의존이 사라졌다 (아래 항목 참조).
   - 선 색은 `currentColor` 로 받고 CSS 가 `.preset-preview-svg { color: var(--fg-muted) }` 로 준다 — 아이콘이 컨테이너 `color` 에서 색을 받는 방식과 같다. **이 선언은 필수다**: `.list-item.applied` / `.selected` 가 카드에 `color: var(--fg-on-accent)` 를 걸기 때문에 상속에 맡기면 적용됨 카드에서 흰 선이 밝은 표면 위에 그려져 사라진다.
   - 위치: `panels/properties/editors/LayoutPresetSelector/{PresetPreview.tsx,styles.css}`
 
 - **required 슬롯 강조가 거꾸로 작동했던 문제** — required 슬롯을 `--accent-subtle` 배경으로 강조하려 했는데 오히려 뒤로 물러나 보였다.
   - **Why**: builder 테마의 `--accent-subtle` 은 이름과 달리 **회색 wash** 다 (light `rgba(107,114,128,.15)` / dark `rgba(161,161,170,.2)`). `--bg-overlay` 위에 얹으면 일반 슬롯의 `--bg-muted`(gray-200) **보다 밝다** — 강조 색이 아니라 후퇴 색으로 작동했다.
-  - 강조를 배경에서 **선 색**으로 옮겼다 (`--accent`). builder 의 `--accent` 는 유채색이 아니라 `--color-gray-700`(dark 는 `--color-zinc-200`) 이지만, 그래서 두 테마 모두 표면과 명도 대비가 확실하다 — 무채색 패널 chrome 에서 강조는 채도가 아니라 명도로 준다. 실측 lightness: light 테마 required 0.373 vs 일반 0.551(`--fg-muted`), dark 테마는 required 0.920 vs 일반 0.705 로 관계가 뒤집히며 양쪽 다 성립한다.
-  - 선화 전환(위 항목)으로 채우기 자체가 사라져 `--accent-subtle` 의존이 완전히 없어졌다.
+  - 강조는 **표면 대비가 커지는 방향**으로만 준다. 최종 형태는 required 슬롯의 면을 한 단계 올린 `--bg-emphasis` — 실측 lightness (표면 / 일반 / required): light `0.985 / 0.928 / 0.872`, dark `0.210 / 0.370 / 0.442`. 두 테마 모두 required 의 표면 대비가 약 2배다 (대비 방향은 뒤집히지만 관계는 유지).
+  - `--accent-subtle` 의존은 완전히 없어졌다. 재도입은 렌더 계약 테스트가 막는다.
   - 같은 함정을 CSS 규칙으로 못 박았다 — `.claude/rules/css-tokens.md` §"builder 테마의 accent 는 무채색".
   - 위치: `panels/properties/editors/LayoutPresetSelector/PresetPreview.tsx`
 
