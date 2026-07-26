@@ -29,7 +29,7 @@ import {
   PRESET_CATEGORIES,
   PRESET_ORDER,
 } from "./presetDefinitions";
-import type { PresetApplyMode } from "./types";
+import type { PresetApplyMode, PreviewArea } from "./types";
 import { useStore } from "../../../../stores";
 import "./styles.css";
 import { iconEditProps } from "../../../../../utils/ui/uiConstants";
@@ -101,6 +101,17 @@ export const LayoutPresetSelector = memo(function LayoutPresetSelector({
 
     return groups;
   }, []);
+
+  // 썸네일 사각형은 breakpoint 가 바뀔 때만 다시 파생한다. 프리셋 10개 × 파생을 매 렌더마다
+  // 돌리면 `PresetPreview` 의 `memo` 도 무력해진다 (areas 배열 identity 가 매번 새로 생김).
+  const areasByPreset = useMemo(() => {
+    const derived: Record<string, PreviewArea[]> = {};
+    PRESET_ORDER.forEach((key) => {
+      const preset = LAYOUT_PRESETS[key];
+      if (preset) derived[key] = derivePreviewAreas(preset, activeBreakpoint);
+    });
+    return derived;
+  }, [activeBreakpoint]);
 
   // 프리셋 클릭 핸들러
   const handlePresetClick = useCallback(
@@ -177,7 +188,7 @@ export const LayoutPresetSelector = memo(function LayoutPresetSelector({
                     isDisabled={isApplying}
                   >
                     <PresetPreview
-                      areas={derivePreviewAreas(preset, activeBreakpoint)}
+                      areas={areasByPreset[presetKey] ?? []}
                       width={80}
                       height={60}
                     />

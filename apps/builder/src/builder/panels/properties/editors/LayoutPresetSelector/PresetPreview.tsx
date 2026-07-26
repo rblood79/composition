@@ -1,106 +1,119 @@
 /**
  * PresetPreview - SVG 기반 레이아웃 썸네일
  *
- * 영역 배열은 `derivePreviewAreas` 가 breakpoint 별로 파생한다 (ADR-168 P-1) — 이 컴포넌트는
- * 그리기만 담당한다.
+ * 영역 배열은 `derivePreviewAreas` 가 breakpoint 별로 파생하고(ADR-168 P-1),
+ * `normalizeThumbnailAreas` 가 식별 가능한 비율로 재배분한다 — 이 컴포넌트는 그리기만 담당한다.
  *
  * 색상은 전부 시맨틱 토큰이다 (ADR-168 P-2). 원시 토큰(`--color-gray-*` / `--color-white`)은
  * dark mode 재정의가 없어서, 다크 테마에서 흰 배경 위에 연회색 사각형이 그려지고 이름표가
  * 배경에 묻혔다.
+ *
+ * **좌표는 px 다 (2026-07-26)**. 이전에는 `viewBox="0 0 100 100"` + `preserveAspectRatio="none"`
+ * 으로 정사각 좌표계를 80×60 에 눌러 담았다. 그러면 x·y 배율이 0.8 / 0.6 로 갈려 모든 것이
+ * 비균등 왜곡된다 — `strokeWidth={1}` 이 가로 0.8px / 세로 0.6px, `rx={2}` 가 1.6×1.2 타원,
+ * `fontSize={8}` 이 **높이 4.8px + 가로 75% 압축**이었다. 슬롯 이름표가 "너무 작아서 안 보인다"
+ * 던 것의 절반은 이 왜곡이다.
+ *
+ * **이름표는 없다**. 밴드 슬롯은 최소 두께가 12px 이고 5슬롯 프리셋(holy-grail)에서는 그보다
+ * 얇아지므로, 어떤 폰트 크기로도 5개 슬롯 이름을 이 안에 읽히게 넣을 수 없다. 슬롯 구성은
+ * `<title>` 로 옮겼다 — 호버 툴팁 + 스크린 리더 양쪽에 걸리고 레이아웃 비용이 0 이다.
+ * 프리셋 식별은 카드의 이름 텍스트와 **모양** 이 담당한다.
  */
 
 import { memo, useMemo } from "react";
+
+import { normalizeThumbnailAreas } from "./normalizeThumbnailAreas";
 import type { PreviewArea } from "./types";
 
 interface PresetPreviewProps {
-  /** 미리보기 영역 배열 */
+  /** 미리보기 영역 배열 (`derivePreviewAreas` 결과) */
   areas: PreviewArea[];
   /** SVG 너비 */
   width?: number;
   /** SVG 높이 */
   height?: number;
-  /** 선택된 Slot 이름 */
-  selectedSlot?: string;
 }
+
+/**
+ * 사각형 안쪽 여백(px).
+ *
+ * 인접 슬롯은 경계를 공유하므로 각자의 1px 테두리가 같은 선에 겹쳐 **한 덩어리에 칸막이가 있는
+ * 모양**으로 읽힌다. 안쪽으로 물러나면 사이에 2px 틈이 생겨 별개 블록으로 보인다. 테두리가
+ * 경로 중심에 그려지는 SVG 특성상 뷰포트 경계에서 절반이 잘리는 것도 같이 해결된다.
+ */
+const RECT_INSET = 1;
+
+/** 사각형 모서리 반경(px). */
+const RECT_RADIUS = 2;
 
 /**
  * 영역 배경.
  *
- * 선택·required 는 둘 다 accent 계열이고, 선택은 테두리(굵기 2 + `--accent`)로 구분한다.
- * 슬롯이 아닌 영역(격자 슬롯 내부의 카드 셀)은 가장 안쪽 표면으로 낮춰 "슬롯 안에 놓일
- * 자리" 로 읽히게 한다.
+ * required 슬롯은 accent 계열로 "이 프리셋의 본체" 를 표시한다. 슬롯이 아닌 영역(격자 슬롯
+ * 내부의 카드 셀)은 부모 표면보다 한 단계 진하게 둬 "슬롯 안에 놓일 자리" 로 읽히게 한다.
  */
-function fillOf(area: PreviewArea, isSelected: boolean): string {
-  if (isSelected || area.required) return "var(--accent-subtle)";
-  return area.isSlot ? "var(--bg-muted)" : "var(--bg-inset)";
+function fillOf(area: PreviewArea): string {
+  if (area.required) return "var(--accent-subtle)";
+  return area.isSlot ? "var(--bg-muted)" : "var(--bg-emphasis)";
 }
 
 export const PresetPreview = memo(function PresetPreview({
   areas,
-  width = 120,
-  height = 80,
-  selectedSlot,
+  width = 80,
+  height = 60,
 }: PresetPreviewProps) {
-  // SVG rect 요소 캐싱
-  const rectElements = useMemo(() => {
-    return areas.map((area) => {
-      const isSelected = selectedSlot === area.name;
+  const normalized = useMemo(
+    () => normalizeThumbnailAreas(areas, { width, height }),
+    [areas, width, height],
+  );
 
-      // 이름표는 **슬롯에만** 붙인다 — 카드 셀에 이름을 찍으면 `feed#0` 같은 내부 id 가
-      // 그대로 노출되고, 좁은 셀에서 글자가 서로 겹친다.
-      const showLabel = area.isSlot && area.width >= 20 && area.height >= 15;
+  const rectElements = useMemo(
+    () =>
+      normalized.map((area) => {
+        const x = (area.x * width) / 100 + RECT_INSET;
+        const y = (area.y * height) / 100 + RECT_INSET;
+        // 두 변에서 물러나므로 inset 의 2배를 뺀다. 최소 1px 은 남겨 사라지지 않게 한다.
+        const rectWidth = Math.max(
+          1,
+          (area.width * width) / 100 - RECT_INSET * 2,
+        );
+        const rectHeight = Math.max(
+          1,
+          (area.height * height) / 100 - RECT_INSET * 2,
+        );
 
-      return (
-        <g key={area.name}>
+        return (
           <rect
-            x={`${area.x}%`}
-            y={`${area.y}%`}
-            width={`${area.width}%`}
-            height={`${area.height}%`}
-            fill={fillOf(area, isSelected)}
-            stroke={isSelected ? "var(--accent)" : "var(--border)"}
-            strokeWidth={isSelected ? 2 : 1}
-            rx={2}
+            key={area.name}
+            x={x}
+            y={y}
+            width={rectWidth}
+            height={rectHeight}
+            fill={fillOf(area)}
+            stroke="var(--border)"
+            strokeWidth={1}
+            rx={RECT_RADIUS}
           />
-          {showLabel && (
-            <text
-              x={`${area.x + area.width / 2}%`}
-              y={`${area.y + area.height / 2}%`}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fill="var(--fg-muted)"
-              fontSize="8"
-              fontFamily="var(--font-sans)"
-            >
-              {area.name}
-            </text>
-          )}
-          {/* Required 표시 */}
-          {area.required && area.isSlot && area.width >= 15 && (
-            <text
-              x={`${area.x + area.width - 2}%`}
-              y={`${area.y + 4}%`}
-              textAnchor="end"
-              fill="var(--accent)"
-              fontSize="8"
-              fontWeight="bold"
-            >
-              *
-            </text>
-          )}
-        </g>
-      );
-    });
-  }, [areas, selectedSlot]);
+        );
+      }),
+    [normalized, width, height],
+  );
+
+  // 슬롯 구성 — 셀은 내부 id(`feed#0`)라 제외한다
+  const slotNames = normalized
+    .filter((area) => area.isSlot)
+    .map((area) => area.name)
+    .join(" · ");
 
   return (
     <svg
       width={width}
       height={height}
-      viewBox="0 0 100 100"
-      preserveAspectRatio="none"
+      viewBox={`0 0 ${width} ${height}`}
+      role="img"
       className="preset-preview-svg"
     >
+      <title>{slotNames}</title>
       {rectElements}
     </svg>
   );
