@@ -14,9 +14,13 @@
  * | 정렬·분배 (단축키)    | 1 + N ❌       | trackBatchUpdate + 요소별 updateElementProps      |
  * | 배치 편집             | 2 ❌           | trackBatchUpdate + batchUpdateElementProps       |
  *
- * 수정 후는 전부 **1** 이며 네 조작 모두 live 실측했다 (정렬·분배는 `left/top/width/
- * height` 4개가 px 인 요소가 있어야 동작하므로 임시로 조건을 만들어 두 경로 각각 확인 —
- * 우변 정렬 160 / 수평 분배 가운데 50→100px, 엔트리 1개 + undo 1회 복원).
+ * 수정 후는 전부 **1** 이며 표의 모든 조작을 live 실측했다:
+ * - 정렬·분배는 `left/top/width/height` 4개가 px 인 요소가 있어야 동작하므로 임시로 조건을
+ *   만들어 패널 버튼·단축키 두 경로 각각 확인 (우변 정렬 160 / 수평 분배 가운데 50→100px).
+ * - 배치 편집은 필드 변경이 대기 상태로 모이고 "모두 적용" 에서 반영되는 구조다
+ *   (`BatchPropertyEditor.handleApplyAll` → `onBatchUpdate`) — 스위치 토글만으로는
+ *   store 가 안 바뀌므로 적용 버튼까지 눌러야 측정된다.
+ * - 전부 엔트리 1개 + undo 1회 복원 + 요소 id 가 prop 이름으로 새는 현상 0건.
  *
  * 상태 손상은 없었다 (중복 insert 가 upsert) — 증상은 "아무 것도 안 바뀌는 죽은 undo
  * 단계". 렌더 하네스가 없는 파일이라 소스 계약으로 고정한다.
