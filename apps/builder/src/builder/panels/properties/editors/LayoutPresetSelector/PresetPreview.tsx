@@ -49,12 +49,32 @@ const RECT_RADIUS = 2;
 /**
  * 영역 배경.
  *
- * required 슬롯은 accent 계열로 "이 프리셋의 본체" 를 표시한다. 슬롯이 아닌 영역(격자 슬롯
- * 내부의 카드 셀)은 부모 표면보다 한 단계 진하게 둬 "슬롯 안에 놓일 자리" 로 읽히게 한다.
+ * required 슬롯은 연한 wash 로 "이 프리셋의 본체" 를 옅게 구분한다 — 밴드(`--bg-muted`)보다
+ * 밝아서 "큰 밝은 면 = 콘텐츠" 로 읽힌다. **강조 자체는 배경이 아니라 테두리가 담당한다**
+ * ({@link strokeOf} 참조).
+ *
+ * 슬롯이 아닌 영역(격자 슬롯 내부의 카드 셀)은 부모 표면보다 한 단계 진하게 둬 "슬롯 안에
+ * 놓일 자리" 로 읽히게 한다.
  */
 function fillOf(area: PreviewArea): string {
   if (area.required) return "var(--accent-subtle)";
   return area.isSlot ? "var(--bg-muted)" : "var(--bg-emphasis)";
+}
+
+/**
+ * 영역 테두리 — required 강조의 실제 담당.
+ *
+ * **`--accent-subtle` 배경만으로는 강조가 성립하지 않는다** (2026-07-26 실측). builder 테마의
+ * `--accent-subtle` 은 이름과 달리 회색 wash 라(light `rgba(107,114,128,.15)` / dark
+ * `rgba(161,161,170,.2)`) `--bg-overlay` 위에서 `--bg-muted`(gray-200) **보다 밝다**. 강조하려던
+ * required 슬롯이 오히려 뒤로 물러나 보였다.
+ *
+ * `--accent` 는 builder 에서 유채색이 아니라 `--color-gray-700`(dark 는 `--color-zinc-200`)
+ * 이지만, 그래서 두 테마 모두에서 표면과 명도 대비가 확실하다 — 패널 chrome 이 무채색인
+ * 이 빌더에서 강조는 채도가 아니라 명도로 준다.
+ */
+function strokeOf(area: PreviewArea): string {
+  return area.required ? "var(--accent)" : "var(--border)";
 }
 
 export const PresetPreview = memo(function PresetPreview({
@@ -90,7 +110,7 @@ export const PresetPreview = memo(function PresetPreview({
             width={rectWidth}
             height={rectHeight}
             fill={fillOf(area)}
-            stroke="var(--border)"
+            stroke={strokeOf(area)}
             strokeWidth={1}
             rx={RECT_RADIUS}
           />

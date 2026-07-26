@@ -25,12 +25,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 인접 슬롯이 경계를 공유해 각자의 1px 테두리가 같은 선에 겹쳐, 별개 블록이 아니라 **한 덩어리에 칸막이가 있는 모양**으로 읽혔다.
   - 위치: `panels/properties/editors/LayoutPresetSelector/{normalizeThumbnailAreas,PresetPreview,index}.tsx`
 
+- **required 슬롯 강조가 거꾸로 작동했던 문제** — required 슬롯을 `--accent-subtle` 배경으로 강조하려 했는데 오히려 뒤로 물러나 보였다.
+  - **Why**: builder 테마의 `--accent-subtle` 은 이름과 달리 **회색 wash** 다 (light `rgba(107,114,128,.15)` / dark `rgba(161,161,170,.2)`). `--bg-overlay` 위에 얹으면 일반 슬롯의 `--bg-muted`(gray-200) **보다 밝다** — 강조 색이 아니라 후퇴 색으로 작동했다.
+  - 강조를 배경에서 **테두리**로 옮겼다 (`--accent`). builder 의 `--accent` 는 유채색이 아니라 `--color-gray-700`(dark 는 `--color-zinc-200`) 이지만, 그래서 두 테마 모두 표면과 명도 대비가 확실하다 — 무채색 패널 chrome 에서 강조는 채도가 아니라 명도로 준다. 실측 lightness: light 테마 required 0.373 vs 일반 0.928, dark 테마 required 0.920 vs 일반 0.370 (관계가 뒤집히며 양쪽 다 성립).
+  - 배경 wash 는 그대로 뒀다 — 강조 역할은 내려놓고 "큰 밝은 면 = 콘텐츠" 라는 위계 신호만 담당한다.
+  - 위치: `panels/properties/editors/LayoutPresetSelector/PresetPreview.tsx`
+
 ### Architecture
 
 - **`normalizeThumbnailAreas`** — 썸네일 가독성 정규화 레이어 신설. 파생(`derivePreviewAreas`)의 비율 계약(ADR-168 G3 — 썸네일 비율 = 실제 렌더 비율)은 그대로 두고, **표시 직전**에 통과시키는 순수 변환이다. 축별로 슬롯 경계가 만드는 구간에 최소 두께(12px)를 보장하고 늘린 만큼은 최소치를 넘는 구간에서만 여유에 비례해 회수한다 — piecewise-linear 좌표 remap 이라 인접·포함·순서가 보존되고 `content` 가 밴드보다 크다는 위계도 남는다. 격자 셀은 슬롯 경계를 만들지 않고 같은 사상을 통과하므로 부모 슬롯 안에 그대로 머문다.
   - 전체 합으로 재정규화하는 방식을 먼저 썼다가 테스트가 반증했다 — `수직 3단` 밴드가 12px 목표에서 9.3px 로 복귀. 최소치를 `100 / 구간 수` 로 낮추는 보정이 회수 가능성을 산술적으로 보장한다(`slack 합 − excess = 100 − 구간 수 × 최소치 ≥ 0`).
   - 위상 보존은 정적 계약으로 고정했다 (프리셋 10종 × breakpoint 3종 전수): 슬롯 이름·개수 동일, 두 축 0~100 덮음, 순서 불변, 셀 포함 관계 유지, 단조성.
 - 슬롯 이름표를 SVG `<title>` 로 옮겼다 — 호버 툴팁과 스크린 리더 양쪽에 걸리고 레이아웃 비용이 0 이다. 카드 접근 이름도 `"content*전체화면"` → `"header · content 전체화면"` 으로 정상화됐다.
+- `PresetPreview.test.tsx` 신설 (9 케이스) — 이 컴포넌트의 결함은 두 번 모두 **그려지긴 하는데 정보를 전달하지 않는** 형태였다. 그래서 "무엇이 어떤 시각 채널을 담당하는가" 를 렌더 결과로 고정한다: required 강조 = 테두리 / 이름표 = 없음 (`<title>` 이 담당) / 좌표계 = px / 사각형은 inset 만큼 물러남. 테두리 채널을 되돌리면 3 케이스가 FAIL 하는 것까지 확인했다.
 - 프리셋 10개의 썸네일 파생을 매 렌더마다 돌려 `PresetPreview` 의 `memo` 가 무력했던 것도 함께 해소 (breakpoint 기준 `useMemo`).
 
 ## [되돌리기 단위 정합 — 한 조작 = undo 1회] - 2026-07-26
