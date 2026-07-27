@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [암묵 그리드 행이 `grid-auto-rows` 를 무시하던 문제] - 2026-07-28
+
+### Bug Fixes
+
+- **`gridTemplateRows` 미명시 그리드에서 `grid-auto-rows` 가 통째로 무시되던 문제**:
+  - 암묵 행을 자식 intrinsic 으로만 재서 `{n}px` 로 박았고, 명시한 `grid-auto-rows` 는 `grid_layout` 에 넘어가도 이미 치환된 뒤라 읽히지 않았다 (실측 `gridAutoRows:["30px"]` → DOM 30 / 엔진 20)
+  - 명시 트랙과 **같은 해소기**(CSS-GRID-1 §12.5 content 기여)를 태우도록 통일 — 측정값이 그 트랙의 기여이므로 `30px` / `min-content` / `minmax(auto,60px)` 가 한 규칙으로 처리되고, 값이 여러 개면 순환한다. 고정 크기면 `auto` 가 아니라 §12.8 stretch 대상에서도 자동으로 빠진다
+  - 위치: `packages/composition-engine/src/tree.rs` (`solve_grid` 의 implicit rows 분기)
+  - 검증: `gridAutoTrackStretch.browser.test.ts` 잔존 스냅샷 → 정합 케이스 5종으로 승격 / parity 721건 green / Rust 344건 green / type-check PASS. 민감도 — 해소기를 빼면 4 red
+  - 라이브 확인: 실행 중인 빌더의 WASM 직접 호출 6형태(미지정 auto·`30px`·`60px`·`min-content`·`minmax(auto,60px)`·순환)가 Chrome 실측과 일치
+
 ## [grid item 의 크기 키워드가 셀 폭으로 늘어나던 문제] - 2026-07-28
 
 ### Bug Fixes

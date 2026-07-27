@@ -308,7 +308,7 @@ grid item 의 크기·위치는 **자식 자신의 상자 모델**이 정하고,
 - **암묵 트랙**(`gridTemplateRows` 미명시)도 대상이다 — 크기를 정하는 건 `grid-auto-rows`(기본 `auto`)이므로, 고정 크기를 지정했으면 제외한다.
 - Chrome 실측 fixture: `gridAutoTrackStretch.browser.test.ts` (61 정합 + 규칙 요약 + 잔존 2). 민감도 — stretch 무력화 35 red / distribution 게이트 제거 31 red / definite 게이트를 상속 available 로 완화 5 red.
 - 라이브 영향: 카탈로그 grid 4곳(ProgressBar/Slider)이 전부 `1fr auto` 라 free==0 → no-op, 행은 암묵 auto 지만 컨테이너 높이가 auto 라 게이트에 걸린다.
-- **잔존**: 암묵 트랙이 `grid-auto-rows` 를 무시하고 자식 intrinsic 으로만 측정됨 (본 변경 이전부터). §12.6 미구현은 2026-07-28 해소 — 아래 §minmax.
+- **암묵 트랙의 크기는 `grid-auto-rows` 가 정한다** (기본 `auto`, 값이 여러 개면 순환). 종전엔 암묵 행을 자식 intrinsic 으로만 재서 px 로 박아 `gridAutoRows` 가 통째로 무시됐다 (실측 `30px` → DOM 30 / 엔진 20). 지금은 명시 트랙과 **같은 해소기**(§12.5 기여)를 태워 `30px` / `min-content` / `minmax(auto,60px)` 가 한 규칙으로 처리되고, 고정 크기면 `auto` 가 아니라 §12.8 stretch 대상에서도 빠진다. 민감도 — 해소기를 빼고 측정값을 그대로 박으면 4 red.
 
 ### 금지 패턴
 

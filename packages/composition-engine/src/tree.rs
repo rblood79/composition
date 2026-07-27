@@ -1978,20 +1978,34 @@ impl LayoutTree {
                 }
                 row_heights[row] = row_heights[row].max(ch);
             }
-            // 암묵 트랙의 크기는 `grid-auto-rows`(기본 `auto`) 가 정한다 — 고정 크기를
-            // 지정했으면 auto 가 아니므로 §12.8 대상이 아니다 (실측: `gridAutoRows:30px`
-            // + height 200 에서 행이 늘지 않고 30 유지).
-            let auto_rows_are_auto = style
+            // 암묵 트랙의 크기는 **`grid-auto-rows` 가 정한다** (기본 `auto`, 값이 여러 개면
+            // 순환). 종전엔 자식 intrinsic 을 그대로 px 로 박아 `gridAutoRows:30px` 가 무시됐다
+            // (실측 DOM 30 / 엔진 20). 명시 트랙과 같은 해소기를 태워 `30px` / `minmax(auto,60px)`
+            // / `min-content` 를 모두 같은 규칙으로 처리한다 — 측정값이 content 기여다.
+            let auto_row_tokens: Vec<String> = style
                 .grid_auto_rows
                 .as_deref()
-                .map(|v| v.iter().all(|t| t.trim().eq_ignore_ascii_case("auto")))
-                .unwrap_or(true);
-            if auto_rows_are_auto {
-                row_auto_idx = (0..row_heights.len()).collect();
-            }
+                .map(|v| v.iter().map(|t| t.trim().to_string()).collect())
+                .filter(|v: &Vec<String>| !v.is_empty())
+                .unwrap_or_else(|| vec!["auto".to_string()]);
+            let auto_row_token = |r: usize| &auto_row_tokens[r % auto_row_tokens.len()];
+            row_auto_idx = (0..row_heights.len())
+                .filter(|&r| track_max_sizing_is_auto(auto_row_token(r)))
+                .collect();
             template_rows = row_heights
                 .iter()
-                .map(|h| format!("{h}px"))
+                .enumerate()
+                .map(|(r, &h)| {
+                    let tok = auto_row_token(r);
+                    // §6.6 — 고정 max 트랙만 span 하는 auto-height 아이템의 최소 기여 clamp.
+                    //   행 단위라 아이템별 판정을 못 하지만, 암묵 행은 그 행 자식들의 max 를
+                    //   이미 합쳐 둔 뒤라 여기서 한 번 거는 것이 최선의 근사다.
+                    let mn = match track_fixed_max(tok, container_h) {
+                        Some(limit) => h.min(limit),
+                        None => h,
+                    };
+                    resolve_track_with_contribution(tok, mn, h)
+                })
                 .collect::<Vec<_>>()
                 .join(" ");
         } else if has_intrinsic_row && !children.is_empty() {

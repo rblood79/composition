@@ -290,29 +290,36 @@ describe("grid auto 트랙 stretch — CSS 대조", () => {
   });
 
   /**
-   * 잔존 — 암묵 트랙의 크기에 `grid-auto-rows` 가 반영되지 않는다.
+   * 암묵 트랙의 크기는 **`grid-auto-rows` 가 정한다** (기본 `auto`, 값이 여러 개면 순환).
    *
-   * 암묵 행은 자식 intrinsic 으로만 측정된다(`solve_grid` 의 implicit 분기) — 명시한
-   * `grid-auto-rows` 는 `grid_layout` 에 넘어가지만 그 행들은 이미 px 로 치환된 뒤라
-   * 읽히지 않는다. 이것도 §12.8 이전 문제이며 본 변경 전과 같은 값이다.
+   * 종전엔 암묵 행을 자식 intrinsic 으로만 재서 px 로 박았고 `grid-auto-rows` 가 통째로
+   * 무시됐다. 지금은 명시 트랙과 **같은 해소기**를 태우므로 `30px` / `minmax(auto,60px)` /
+   * `min-content` 가 한 규칙으로 처리된다 — 측정값이 그 트랙의 content 기여다.
    *
-   * 다만 **stretch 가드는 여기서 검증된다** — `grid-auto-rows` 가 고정 크기면 auto 가
-   * 아니므로 §12.8 대상이 아니고, 엔진도 행을 늘리지 않는다(여유 130 을 나눠 넣었다면
-   * `c1.y` 가 85 였을 것이다).
+   * 고정 크기를 지정하면 `auto` 가 아니므로 §12.8 stretch 대상에서도 빠진다(여유 130 을
+   * 나눠 넣었다면 `c1.y` 가 85 였을 것).
    */
-  it("잔존 — 암묵 트랙이 grid-auto-rows 를 무시 (실측 스냅샷)", () => {
+  it.each([
+    [["30px"]],
+    [["60px"]],
+    [["min-content"]],
+    [["minmax(auto,60px)"]],
+    [["30px", "60px"]], // 값이 여러 개면 순환
+  ] as const)("암묵 행 크기 = grid-auto-rows %s", (autoRows) => {
     const c = colCase(
-      "암묵 행 + gridAutoRows:30px",
+      `암묵 행 + gridAutoRows:${autoRows.join(" ")}`,
       {
         gridTemplateColumns: ["1fr"],
         height: "200px",
-        gridAutoRows: ["30px"],
+        gridAutoRows: [...autoRows],
       },
       [{ height: "20px" }, { height: "40px" }],
     );
-    const dom = domLeg(c.nodes, c.availW);
-    const eng = engineLeg(c.nodes, c.availW, c.availH);
-    expect(dom[1].y).toBe(30); // 행 = grid-auto-rows 30
-    expect(eng[1].y).toBe(20); // 행 = 자식 intrinsic 20 (stretch 는 안 함 — 85 아님)
+    const bad = diffCase(
+      c.nodes,
+      domLeg(c.nodes, c.availW),
+      engineLeg(c.nodes, c.availW, c.availH),
+    );
+    expect(bad, bad.join("\n")).toEqual([]);
   });
 });
