@@ -172,8 +172,18 @@ single-line(`flex-wrap:nowrap`) + definite cross 컨테이너에서 flex 라인�
 - `align-items` 에는 분배값이 없어 `place_line_cross_axis` 의 `cross_free` 는 클램프 없이 쓴다.
 - Chrome 실측 기준값 — 컨테이너 100 / 아이템 300: `center` −100, `flex-end` −200. 컨테이너 cross 60 / 두 줄 합 100: `align-content:center` 줄 y = −20·30, `flex-end` = −40·10.
 - Chrome 실측 fixture 2종 — **역할이 다르니 둘 다 갱신할 것**:
-  - `crossAxisOverflow.browser.test.ts` — 규칙별 **기대 좌표를 명시**로 잠근다 (교차축 13 · main 6 · align-content 6 × engine·pipeline 2 leg). "무엇이 몇으로 틀렸나" 를 읽는 쪽.
+  - `crossAxisOverflow.browser.test.ts` — 규칙별 **기대 좌표를 명시**로 잠근다 (교차축 13 · main 6 · align-content 6 · 미결정 main 6 × engine·pipeline 2 leg). "무엇이 몇으로 틀렸나" 를 읽는 쪽.
   - `flexSweep.browser.test.ts` — 파라미터 격자를 **넓게** 훑는다 (1152 조합). "어딘가 틀렸다" 를 잡는 쪽. 음수 여유 조합의 민감도 실측: 라인 cross 승격을 `max` 로 되돌리면 교차축 48/576 red, 정렬 클램프를 되살리면 교차축 80/576 + main 32/576 red.
+
+### 여유가 **없는 것**과 음수인 것은 다르다 — 미결정 main 센티넬 (2026-07-27)
+
+여유 공간은 **definite main size 에서만** 산출된다 (CSS §9.7). `flex-direction:column` + `height:auto` 처럼 main 축 크기가 미결정이면 컨테이너가 내용으로 축소되므로 여유라는 개념 자체가 없고, `justify-content` 6종은 **전부 no-op** 이다. 위의 "음수 여유" 규칙과 **다른 상황**이다.
+
+- 엔진은 미결정 main 을 **음수 센티넬**(`INDEFINITE_AVAIL = -1`)로 받는다. 그대로 빼면 `-1 − 내용합` 이라는 **가짜 음수 여유**가 생겨 위치 정렬이 자식을 컨테이너 **위로** 밀어내고, auto height 는 밀려난 만큼 줄어든다.
+- 센티넬 가드는 main 축 소비 지점 **전부**에 있어야 한다: `resolve_flexible_lengths` / `collect_lines` / `place_line_main_axis` / main 축 auto margin 흡수(`tree.rs`). 셋은 원래 있었고 `place_line_main_axis` 만 없었는데, 분배값의 `.max(0.0)` 이 **결과적으로** 가려주고 있었다 — 위치 정렬에서 클램프를 걷어내자 드러났다.
+- **실측(ListBoxItem origin)**: catalog `containerStyles.justifyContent:center` + `height:auto` 행에서 자식이 `(−1 − 76)/2 = −38.5` 만큼 위로 밀려 아이콘/라벨/설명이 행 밖으로 나가고 높이가 84 → 45.5 로 축소. `justifyContent` 가 없는 GridListItem 은 무증상이라 **비대칭**으로 나타났다.
+- **`flexSweep` 는 이 축을 못 잡는다** — 컨테이너 main 을 항상 확정으로 주기 때문에 결함이 있어도 1152 조합 전부 green (실측). 미결정 main 은 `crossAxisOverflow.browser.test.ts` 의 `INDEFINITE_MAIN_CASES` 가 유일한 감시자다(되돌리면 center/end × 2 leg = 4 red).
+- cross 축에는 같은 함정이 없다 — `place_line_cross_axis` 가 받는 `this_line_cross` 는 definite 면 컨테이너 cross, 아니면 라인 내용 max 라 **항상 실값**이다. `align_content` 는 `cross_is_definite` 로 이미 분기한다.
 
 ### 금지 패턴
 
@@ -182,6 +192,8 @@ single-line(`flex-wrap:nowrap`) + definite cross 컨테이너에서 flex 라인�
 - ❌ 위치 정렬(center/end)에 클램프된 여유(`.max(0.0)`) 사용 → overflow 에서 조용히 start 로 무너진다
 - ❌ 분배 정렬·`align-content:stretch` 에 클램프 없는 여유 사용 → 음수 분배로 역방향 겹침
 - ❌ 두 계열을 한 변수로 통일 (`free_main`/`free_main_raw`, `cross_free`/`cross_free_raw` 쌍이 정본)
+- ❌ main 축 available 을 **센티넬 가드 없이** 소비 (`available_main - total` 직접 사용) → 미결정 main 에서 가짜 음수 여유
+- ❌ 미결정 main 결함을 `flexSweep` 로 검증했다고 판단 — 그 격자는 main 을 항상 확정으로 준다
 
 ## TS 잔존 계약 (ADR-164 Phase 3 — 엔진↔TS 경계 규칙, CRITICAL)
 

@@ -223,34 +223,102 @@ const ALIGN_CONTENT_CASES: ParityCase[] = [
   "space-around",
 ].map(alignContentOverflowCase);
 
+/**
+ * main 축 크기가 **미결정**일 때 — `flex-direction:column` + `height:auto`
+ *
+ * 여유 공간은 definite main size 에서만 산출된다 (CSS §9.7). 컨테이너가 내용으로 축소되는
+ * 형태에서는 여유가 없으므로 `justify-content` 6종 전부 **no-op** 이고 컨테이너 높이는
+ * 내용 합 그대로다. 위 MAIN_CASES(확정 100 안에 300)와 짝을 이룬다 — 그쪽은 "여유가
+ * 음수", 이쪽은 "여유라는 개념이 없음" 이라 규칙이 다르다.
+ *
+ * **Why (2026-07-27, ListBoxItem origin)**: 엔진은 미결정 main 을 **음수 센티넬**로 받는데
+ * 위치 정렬이 그걸 실제 여유로 오해해 `센티넬 - 내용합` 의 절반만큼 자식을 컨테이너
+ * **위로** 밀어냈다. catalog `containerStyles.justifyContent:center` 를 가진 ListBoxItem
+ * 마스터에서 아이콘/라벨/설명이 행 위로 삐져나가고 auto height 가 84 → 45.5 로 줄었다.
+ */
+function indefiniteMainCase(justify: string): ParityCase {
+  const row = (i: number): CaseNode => ({
+    label: `row${i}`,
+    style: { height: "24px", width: "100%", flexShrink: 0 },
+  });
+  return {
+    name: `column/height-auto justify-${justify}`,
+    availW: 400,
+    availH: 500,
+    nodes: [
+      row(0),
+      row(1),
+      row(2),
+      {
+        label: "container",
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          flexWrap: "nowrap",
+          alignItems: "flex-start",
+          justifyContent: justify,
+          rowGap: "2px",
+          columnGap: "2px",
+          paddingTop: "4px",
+          paddingBottom: "4px",
+          paddingLeft: "12px",
+          paddingRight: "12px",
+          width: "390px",
+          // height 미지정 = auto → main(세로) 축 미결정
+        },
+        children: [0, 1, 2],
+      },
+      {
+        label: "root",
+        style: { display: "block", width: "400px", height: "500px" },
+        children: [3],
+      },
+    ],
+  };
+}
+
+const INDEFINITE_MAIN_CASES: ParityCase[] = [
+  "flex-start",
+  "center",
+  "flex-end",
+  "space-between",
+  "space-around",
+  "space-evenly",
+].map(indefiniteMainCase);
+
+const ALL_CASES = [
+  ...CASES,
+  ...MAIN_CASES,
+  ...ALIGN_CONTENT_CASES,
+  ...INDEFINITE_MAIN_CASES,
+];
+
 describe("flex 교차축 overflow — CSS 대조", () => {
   beforeAll(async () => {
     await initCompositionEngineWasm();
   });
 
-  it.each(
-    [...CASES, ...MAIN_CASES, ...ALIGN_CONTENT_CASES].map(
-      (c) => [c.name, c] as const,
-    ),
-  )("engine leg — %s", (_name, c) => {
-    const bad = diffCase(
-      c.nodes,
-      domLeg(c.nodes, c.availW),
-      engineLeg(c.nodes, c.availW, c.availH),
-    );
-    expect(bad, bad.join("\n")).toEqual([]);
-  });
+  it.each(ALL_CASES.map((c) => [c.name, c] as const))(
+    "engine leg — %s",
+    (_name, c) => {
+      const bad = diffCase(
+        c.nodes,
+        domLeg(c.nodes, c.availW),
+        engineLeg(c.nodes, c.availW, c.availH),
+      );
+      expect(bad, bad.join("\n")).toEqual([]);
+    },
+  );
 
-  it.each(
-    [...CASES, ...MAIN_CASES, ...ALIGN_CONTENT_CASES].map(
-      (c) => [c.name, c] as const,
-    ),
-  )("pipeline leg — %s", (_name, c) => {
-    const bad = diffCase(
-      c.nodes,
-      domLeg(c.nodes, c.availW),
-      pipelineLeg(c.nodes, c.availW, c.availH),
-    );
-    expect(bad, bad.join("\n")).toEqual([]);
-  });
+  it.each(ALL_CASES.map((c) => [c.name, c] as const))(
+    "pipeline leg — %s",
+    (_name, c) => {
+      const bad = diffCase(
+        c.nodes,
+        domLeg(c.nodes, c.availW),
+        pipelineLeg(c.nodes, c.availW, c.availH),
+      );
+      expect(bad, bad.join("\n")).toEqual([]);
+    },
+  );
 });

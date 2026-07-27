@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [높이 auto 인 flex 세로 컨테이너에서 자식이 위로 삐져나가던 문제] - 2026-07-27
+
+### Bug Fixes
+
+- **Components 페이지의 ListBoxItem 마스터 높이가 의도치 않게 줄고 내용이 행 위로 삐져나가던 문제**. 사용자 보고: "components 에 listboxItem Origin 의 높이가 의도하지 않게 변형되어 있다".
+  - **Why**: 여유 공간은 **확정된 main 크기**에서만 산출된다(CSS §9.7). `flex-direction:column` + `height:auto` 는 컨테이너가 내용으로 축소되므로 여유라는 개념 자체가 없고, `justify-content` 는 아무 일도 하지 않아야 한다. 엔진은 이 "미결정" 상태를 **음수 센티넬**(−1)로 전달하는데, 위치 정렬이 그걸 실제 여유로 오해해 `−1 − 내용합` 의 절반만큼 자식을 컨테이너 **위로** 밀어냈다. auto 높이는 밀려난 만큼 함께 줄었다.
+  - 실측: ListBoxItem 마스터가 `(−1 − 76)/2 = −38.5` 만큼 위로 밀려 아이콘/라벨/설명이 프레임 상단 밖으로 나가고 높이가 **84 → 45.5**. catalog `containerStyles.justifyContent:center` 를 가진 형태만 해당해, `justifyContent` 가 없는 GridListItem 마스터(76)는 멀쩡한 **비대칭**으로 나타났다.
+  - 센티넬 가드는 원래 `resolve_flexible_lengths` / `collect_lines` / main 축 auto margin 흡수에 있었고 `place_line_main_axis` 에만 없었다. 분배 정렬의 `.max(0.0)` 클램프가 **결과적으로** 가려주고 있다가, 직전 커밋에서 위치 정렬의 클램프를 걷어내며(넘침 정렬 정정) 드러났다.
+  - 검증: 라이브(사용자 보고 문서) — ListBoxItem 마스터 2개 모두 높이 `45.5 → 84`, 자식 `y=4 / 30 / 56` 으로 행 안에 수렴, 형제 GridListItem 76 무변동. Rust 314 PASS(신규 1 — justify 6종 × 미결정 main), parity 189 PASS(신규 12 — Chrome DOM 대조 6 케이스 × 2 leg), 빌더 3002 PASS.
+  - **`flexSweep`(1152 조합)는 이 축을 못 잡는다** — 컨테이너 main 을 항상 확정으로 주기 때문에 결함이 있어도 전부 green(실측). 미결정 main 은 `crossAxisOverflow` fixture 의 `INDEFINITE_MAIN_CASES` 가 유일한 감시자다(엔진을 되돌리면 center/end × 2 leg = 4 red).
+  - 위치: `packages/composition-engine/src/flex.rs`, `apps/builder/tests/parity/crossAxisOverflow.browser.test.ts`, 규칙 `.claude/rules/layout-engine.md`
+
 ## [프레임을 적용한 페이지가 preview 에 렌더되지 않던 문제] - 2026-07-27
 
 ### Bug Fixes

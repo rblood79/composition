@@ -790,7 +790,18 @@ fn place_line_main_axis(
     //   Chrome 실측(2026-07-27, 컨테이너 100 / 아이템 300): center -100, flex-end -200,
     //   space-between·around·evenly 는 셋 다 0. 즉 분배값의 클램프는 결함이 아니라 정답이라
     //   두 계열을 분리한다 — 한쪽 값만 쓰면 반대쪽이 깨진다.
-    let free_main_raw = available_main - total_main;
+    //
+    // 단 main 축 크기가 **미결정**(sentinel 음수 — `flex-direction:column` + `height:auto`
+    //   등)이면 컨테이너가 내용으로 축소되므로 분배할 여유 공간이 **애초에 없다**(CSS §9.7:
+    //   free space 는 definite main size 에서만 산출). 센티넬을 그대로 빼면 `-1 - total`
+    //   이라는 가짜 음수 여유가 생겨 center/end 가 아이템을 컨테이너 **위로** 밀어내고,
+    //   auto height 는 그만큼 줄어든다. `resolve_flexible_lengths`/`collect_lines`/
+    //   main 축 auto margin 흡수(tree.rs)와 **동일 가드**.
+    let free_main_raw = if available_main < 0.0 {
+        0.0
+    } else {
+        available_main - total_main
+    };
     let free_main = free_main_raw.max(0.0);
 
     let (start_offset, between_extra) = match justify_content {
@@ -1440,6 +1451,45 @@ mod tests {
             ALIGN_CONTENT_SPACE_AROUND,
         ] {
             assert_eq!((at(ac).0.round(), at(ac).1.round()), (0.0, 50.0), "ac={ac}");
+        }
+    }
+
+    #[test]
+    fn indefinite_main_makes_justify_content_a_no_op() {
+        // `flex-direction:column` + `height:auto` 는 main 축 크기가 미결정이라
+        //   `available_main` 이 센티넬(-1)로 들어온다. 컨테이너가 내용으로 축소되므로
+        //   분배할 여유 공간이 없다 = justify-content 6종 전부 no-op 이어야 한다.
+        //
+        // **회귀 실측(2026-07-27, ListBoxItem origin)**: 센티넬을 여유로 오해해
+        //   `-1 - 76` 의 절반(-38.5)만큼 자식을 위로 밀어냈다 — 아이콘/라벨/설명이 행
+        //   위로 삐져나가고 auto height 가 84 → 45.5 로 줄었다. catalog containerStyles
+        //   의 `justify-content:center` 를 가진 column + auto height 컨테이너 전반이 대상.
+        let mut f = item(24.0, 100.0); // 논리 main(=height) 24
+        f[16] = 0.0; // flex_shrink=0
+        let data = flatten(&[f, f, f]);
+        for justify in [
+            JUSTIFY_START,
+            JUSTIFY_CENTER,
+            JUSTIFY_END,
+            JUSTIFY_SPACE_BETWEEN,
+            JUSTIFY_SPACE_AROUND,
+            JUSTIFY_SPACE_EVENLY,
+        ] {
+            let out = flex_layout(
+                &data,
+                -1.0, // available_main 센티넬 (height:auto)
+                366.0,
+                DIR_COLUMN,
+                justify,
+                ALIGN_START,
+                ALIGN_CONTENT_STRETCH,
+                WRAP_NOWRAP,
+                2.0, // gap
+                0.0,
+                false, // cross indefinite
+            );
+            let ys = [out[1], out[5], out[9]];
+            assert_eq!(ys, [0.0, 26.0, 52.0], "justify={justify} ys={ys:?}");
         }
     }
 
