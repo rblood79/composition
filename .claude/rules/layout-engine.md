@@ -185,6 +185,12 @@ single-line(`flex-wrap:nowrap`) + definite cross 컨테이너에서 flex 라인�
 - **`flexSweep` 는 이 축을 못 잡는다** — 컨테이너 main 을 항상 확정으로 주기 때문에 결함이 있어도 1152 조합 전부 green (실측). 미결정 main 은 `crossAxisOverflow.browser.test.ts` 의 `INDEFINITE_MAIN_CASES` 가 유일한 감시자다(되돌리면 center/end × 2 leg = 4 red).
 - cross 축에는 같은 함정이 없다 — `place_line_cross_axis` 가 받는 `this_line_cross` 는 definite 면 컨테이너 cross, 아니면 라인 내용 max 라 **항상 실값**이다. `align_content` 는 `cross_is_definite` 로 이미 분기한다.
 
+**grid 도 같은 규칙이되 표현이 다르다** — `solve_grid` 는 `height:auto` 일 때 트랙 sizing 을 위해 **상속 available 을 `container_h` 로 대입**한다(센티넬이 아니다). 그래서 `align-content` 여유를 `container_h − 트랙합` 으로 잡으면 없는 공간을 나눠 넣는다. 판정 기준은 `explicit_h > 0.0`(자기 height 가 definite) 이고, 그렇지 않으면 `align_content` 를 빈 문자열로 눌러 전달한다.
+
+- **실측(2026-07-27)**: `height:auto` + `align-content:center` 그리드에서 트랙이 `(600−70)/2 = 265` 아래로 밀리고 컨테이너 높이가 `70 → 335`. `space-between` 은 `560 / 600`.
+- 인라인 축(`justify-content`)은 대상 아님 — block 레벨 stretch 로 폭이 늘 definite 이다. shrink-to-fit 그리드가 생기면 그때 같은 판정을 붙인다.
+- **잔존**: definite 높이 + auto 행에서 `align-content: normal`(= grid 에선 `stretch`)의 **auto 트랙 균등 분배**는 미구현. 실측 차이는 `gridAlignContent.browser.test.ts` 의 스냅샷(DOM 95 / engine 30)이 고정한다.
+
 ### 금지 패턴
 
 - ❌ 라인 cross 승격을 `this_line_cross.max(available_cross)` 로 재도입 (§9.4 step 8 은 대입)
@@ -193,7 +199,26 @@ single-line(`flex-wrap:nowrap`) + definite cross 컨테이너에서 flex 라인�
 - ❌ 분배 정렬·`align-content:stretch` 에 클램프 없는 여유 사용 → 음수 분배로 역방향 겹침
 - ❌ 두 계열을 한 변수로 통일 (`free_main`/`free_main_raw`, `cross_free`/`cross_free_raw` 쌍이 정본)
 - ❌ main 축 available 을 **센티넬 가드 없이** 소비 (`available_main - total` 직접 사용) → 미결정 main 에서 가짜 음수 여유
+- ❌ grid `align-content` 여유를 `container_h` 로 산출 (`height:auto` 면 상속값이라 가짜 여유) → `explicit_h > 0.0` 판정 필수
 - ❌ 미결정 main 결함을 `flexSweep` 로 검증했다고 판단 — 그 격자는 main 을 항상 확정으로 준다
+
+## 배치 직렬화 계약 — 숫자 하나가 페이지 레이아웃을 끈다 (CRITICAL)
+
+엔진 `NodeStyle` 의 길이 필드는 전부 `Option<String>` 이라 숫자가 들어오면 `build_tree_batch` 가 **배치 전체**를 거부한다 (`invalid type: integer, expected a string`) → `calculateFullTreeLayout` 이 `null` → **그 페이지 레이아웃이 통째로 사라진다**. 요소 하나의 값 하나가 페이지 전체를 끄는 구조다.
+
+- 정규화 진입점은 `taffyStyleToRecord` 내부 `dim()` 하나가 아니다. **`dim()` 을 우회하거나 그 뒤에 값을 덧쓰는 경로**는 `normalizeDimFields`(`fullTreeLayout.ts`)를 직접 불러야 한다:
+  - grid branch — `applyCommonTaffyStyle` 결과를 partial 로 직접 반환 (dim 미경유)
+  - block branch 의 flex item 주입 — `taffyStyleToRecord` **뒤에** `applyFlexItemProperties` 가 덧쓴다
+- `parseCSSPropWithContext` 는 **절대 길이를 숫자로** 돌려준다 (`"0px"` → `0`). 백분율·`auto` 는 문자열로 남으므로 **절대 길이만** 터진다 — 그래서 증상이 드물고 늦게 발견된다.
+- 타입별 계약: 길이 = 문자열 / `flexGrow`·`flexShrink`·`aspectRatio`·측정 스칼라 = 숫자(f32) / grid track = 배열. `order` 는 `NodeStyle` 미선언이라 무시된다(파이프라인이 TS 에서 자식을 재정렬해 보정 — 엔진 직접 호출자는 `order` 를 못 얻는다).
+- **전례 2건**: `rowGap: 4` + `display:grid`(2026-07-06, ProgressBar/Meter/Slider) · `flexBasis:"0px"` block 자식(2026-07-27). 같은 병인인데 처방이 한쪽 branch 에만 있었다.
+- 감시: `flexItemDimContract.browser.test.ts` (정규화를 빼면 pipeline leg 가 좌표 비교 전에 throw).
+
+### 금지 패턴
+
+- ❌ `taffyStyleToRecord` 뒤에 style 을 덧쓰고 정규화 생략 → 절대 길이에서 배치 파싱 실패
+- ❌ 새 dim 성 필드를 `DIM_FIELDS` 미등재로 추가 → 같은 크래시가 새 축으로 재발
+- ❌ 엔진에 길이를 숫자로 전달 (`flexBasis: 0`) — 숫자→문자열 변환은 **파이프라인 책임**
 
 ## TS 잔존 계약 (ADR-164 Phase 3 — 엔진↔TS 경계 규칙, CRITICAL)
 

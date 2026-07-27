@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [CSS 정합 탐색 sweep — 배치 파싱 크래시 + grid align-content] - 2026-07-27
+
+### Bug Fixes
+
+- **flex 부모의 block 자식이 절대 길이 `flex-basis` 를 가지면 그 페이지 레이아웃이 통째로 사라지던 문제**.
+  - **Why**: 엔진 `NodeStyle` 의 길이 필드는 전부 문자열이라 숫자가 들어오면 `build_tree_batch` 가 **배치 전체**를 거부한다 → `calculateFullTreeLayout` null → 페이지 레이아웃 소멸. `buildNodeStyle` block branch 는 정규화(`dim()`) **뒤에** `applyFlexItemProperties` 로 flex item 속성을 덧쓰는데, 그 안의 `parseCSSPropWithContext` 가 절대 길이를 숫자로 돌려준다(`"0px"` → `0`). grid branch 는 같은 이유로 이미 정규화하고 있었고 **block branch 만 비대칭**이었다 (2026-07-06 ProgressBar `rowGap:4` 사건과 동일 병인 — 한쪽만 처방됨).
+  - 백분율(`0%`)·`auto` 는 문자열로 남아 무증상이라, 절대 길이 `flex-basis` 를 싣는 import/preset 에서만 드러난다 (편집 UI 는 `flexBasis` 미노출).
+  - 두 branch 공용이 되어 헬퍼 이름에서 grid 한정 어감 제거 (`normalizeGridDimFields` → `normalizeDimFields`).
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`
+- **`height:auto` 그리드가 `align-content` 로 밀려나고 높이가 부풀던 문제**.
+  - **Why**: 여유 공간은 definite block size 에서만 생긴다(CSS-ALIGN-3 §4.4). `solve_grid` 는 `height:auto` 일 때 트랙 sizing 을 위해 **상속 available** 을 컨테이너 높이로 대입하는데, 그 값을 그대로 여유로 봐서 **없는 공간**을 트랙 사이에 나눠 넣었다. 직전 항목의 flex 미결정 main 센티넬과 **같은 병인의 grid 판**.
+  - 실측: `align-content:center` → 트랙이 `(600−70)/2 = 265` 아래로 밀리고 컨테이너 높이 `70 → 335`. `space-between` 은 `560 / 600`.
+  - 판정은 `explicit_h > 0.0`. 인라인 축(`justify-content`)은 block 레벨 stretch 로 폭이 늘 definite 이라 대상 아님. catalog·factory 에 `alignContent` authoring 이 **0건**이라 현행 컴포넌트에는 무영향 — import/preset 경로의 잠복 결함만 닫는다.
+  - 위치: `packages/composition-engine/src/tree.rs`
+
+### Infrastructure
+
+- **CSS 정합 탐색 sweep — 14개 축을 Chrome DOM 대조로 훑어 발산 목록화**. padding/border · min·max clamp · margin(고정/auto) · 백분율 · align-self · reverse 방향 · order · flex-basis · 마진 상쇄 · 중첩 flex · grid · overflow/inline display · box-sizing · aspect-ratio.
+  - 정합 확인(발산 0): min/max clamp · align-self · reverse(row-reverse/column-reverse/wrap-reverse) · 마진 상쇄 · 중첩 flex · overflow/inline display · aspect-ratio · 컨테이너 자신의 min/max.
+  - 위 2건 수정 후 남은 **기록된 발산**: 교차축 `margin:auto` 미구현 · `height:auto` flex 부모에서 백분율 height 가 상속 available 로 해소됨 · `flex-basis:content` 미측정 · `box-sizing:content-box` 미지원(엔진은 항상 border-box) · grid item 의 명시 width 가 트랙 폭으로 stretch(ADR-156 §Residual) · definite 높이 grid 의 auto 트랙 stretch 분배 미구현.
+  - 신규 fixture 2종: `flexItemDimContract.browser.test.ts`(11) · `gridAlignContent.browser.test.ts`(23, 잔존 stretch 차이 스냅샷 포함). parity 총 223 PASS.
+  - 위치: `apps/builder/tests/parity/`, 규칙 `.claude/rules/layout-engine.md`
+
 ## [높이 auto 인 flex 세로 컨테이너에서 자식이 위로 삐져나가던 문제] - 2026-07-27
 
 ### Bug Fixes

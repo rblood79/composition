@@ -1990,7 +1990,22 @@ impl LayoutTree {
         // grid_layout — 셀 bounds flat [x,y,w,h,...].
         // justify-content/align-content (E12) — 고정 트랙이 컨테이너보다 작을 때 트랙셋 정렬.
         let justify_content = style.justify_content.as_deref().unwrap_or("");
-        let align_content = style.align_content.as_deref().unwrap_or("");
+        // `align-content` 는 **block 축이 definite** 일 때만 여유를 분배한다 — 여유 공간은
+        //   definite size 에서만 생긴다(CSS-ALIGN-3 §4.4 / CSS-GRID-1 §10.5). `height:auto`
+        //   그리드는 트랙 sizing 을 위해 **상속 available** 을 `container_h` 로 쓰는데, 그걸
+        //   그대로 여유로 보면 **없는 공간**을 트랙 사이에 나눠 넣는다.
+        //
+        // **Why (2026-07-27 CSS 정합 sweep)**: `height:auto` + `align-content:center` 그리드에서
+        //   상속 600 을 기준으로 (600-70)/2 = 265 만큼 트랙이 아래로 밀리고 컨테이너 높이가
+        //   70 → 335 로 폭주했다 (`space-between` 은 560/600). flex 의 미결정 main 센티넬
+        //   (`place_line_main_axis`) 과 **같은 병인**이다. 인라인 축(`justify-content`)은
+        //   block 레벨 stretch 로 폭이 늘 definite 이라 대상 아님 — shrink-to-fit 그리드가
+        //   생기면 그때 같은 판정을 붙인다.
+        let align_content = if explicit_h > 0.0 {
+            style.align_content.as_deref().unwrap_or("")
+        } else {
+            ""
+        };
         // grid-auto-flow/columns/rows (E14). auto_columns/rows 는 track array → space-join.
         let auto_flow = style.grid_auto_flow.as_deref().unwrap_or("");
         let auto_columns = join_tracks(style.grid_auto_columns.as_deref());
@@ -3877,6 +3892,52 @@ mod tests {
         // child2 (0,1): y = 50 + 20 gap = 70.
         let c2 = tree.get_layout(handles[2]);
         assert_eq!(c2.y, 70.0, "c2.y = 50 + row_gap 20");
+    }
+
+    /// `height:auto` 그리드는 `align-content` 로 밀리지 않는다 — 여유 공간은 definite
+    /// block size 에서만 생긴다(CSS-ALIGN-3 §4.4). 상속 available 을 여유로 오해하면
+    /// 트랙이 아래로 밀리고 컨테이너 높이가 폭주한다 (2026-07-27 실측: 70 → 335).
+    #[test]
+    fn grid_auto_height_ignores_align_content() {
+        for ac in ["center", "end", "space-between", "space-around"] {
+            let mut tree = LayoutTree::new();
+            let json = format!(
+                r#"[
+                {{"style":{{"height":"20px"}},"children":[]}},
+                {{"style":{{"height":"30px"}},"children":[]}},
+                {{"style":{{"height":"40px"}},"children":[]}},
+                {{"style":{{"display":"grid","width":"300px","gridTemplateColumns":["1fr","1fr"],"alignContent":"{ac}"}},"children":[0,1,2]}},
+                {{"style":{{"display":"block","width":"400px","height":"600px"}},"children":[3]}}
+            ]"#
+            );
+            let handles = tree.build_tree_batch(&json).unwrap();
+            tree.compute_layout(handles[4], 400.0, 600.0);
+
+            // 1행 = max(20,30) = 30, 2행 = 40 → 컨테이너 70, 3번째 자식 y = 30.
+            let grid = tree.get_layout(handles[3]);
+            assert_eq!(grid.height, 70.0, "align-content={ac} 컨테이너 높이");
+            let c2 = tree.get_layout(handles[2]);
+            assert_eq!(c2.y, 30.0, "align-content={ac} 2행 y");
+        }
+    }
+
+    /// 반대편 회귀 방지 — definite 높이에서는 `align-content` 가 정상 동작한다.
+    #[test]
+    fn grid_definite_height_applies_align_content() {
+        let mut tree = LayoutTree::new();
+        // 행 합 70(30+40), 컨테이너 200 → 여유 130. center → 트랙셋 65 아래로.
+        let json = r#"[
+            {"style":{"height":"20px"},"children":[]},
+            {"style":{"height":"30px"},"children":[]},
+            {"style":{"height":"40px"},"children":[]},
+            {"style":{"display":"grid","width":"300px","height":"200px","gridTemplateColumns":["1fr","1fr"],"alignContent":"center"},"children":[0,1,2]},
+            {"style":{"display":"block","width":"400px","height":"600px"},"children":[3]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[4], 400.0, 600.0);
+
+        let c0 = tree.get_layout(handles[0]);
+        assert_eq!(c0.y, 65.0, "center → (200-70)/2");
     }
 
     /// E2 옵션 3-a: justify-items:end — explicit-width 자식이 셀 우측 배치 + 폭 respect.
