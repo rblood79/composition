@@ -51,13 +51,33 @@
 
 ## 3. Phase 분해
 
-| Phase | 내용                                                                                                         | 산출물                                    | Gate               |
-| ----- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------- | ------------------ |
-| **0** | fixture 고정 — §2-2 발산 7형태 + **R8 masking 케이스**(`width:fit-content` 컨테이너 item) 를 parity 케이스로 | `containerIntrinsic.browser.test.ts`      | red 재현 + R8 판정 |
-| **1** | available 3-값 확장 + 노드별 측정 캐시                                                                       | `tree.rs` 센티넬 2종 + `IntrinsicCache`   | G1, G4             |
-| **2** | flex 소비 배선 — off 13 = max-content, off 19 = min-content                                                  | `tree.rs::solve_flex` / `write_flex_item` | G2, G3             |
-| **3** | grid/block 축 조건부 판정 (실사용 실측 → 포함 또는 이연 명문화)                                              | 실측 기록 + (해당 시) `grid.rs`           | G5                 |
-| **4** | bench 게이트 + 문서·규칙 정합                                                                                | bench 수치 + `layout-engine.md` 갱신      | G4, G6             |
+| Phase | 내용                                                            | 산출물                                    | Gate               |
+| ----- | --------------------------------------------------------------- | ----------------------------------------- | ------------------ |
+| **0** | ✅ **Implemented 2026-07-27** — fixture 고정 (§3-0)             | `containerIntrinsic.browser.test.ts`      | red 재현 + R8 판정 |
+| **1** | available 3-값 확장 + 노드별 측정 캐시                          | `tree.rs` 센티넬 2종 + `IntrinsicCache`   | G1, G4             |
+| **2** | flex 소비 배선 — off 13 = max-content, off 19 = min-content     | `tree.rs::solve_flex` / `write_flex_item` | G2, G3             |
+| **3** | grid/block 축 조건부 판정 (실사용 실측 → 포함 또는 이연 명문화) | 실측 기록 + (해당 시) `grid.rs`           | G5                 |
+| **4** | bench 게이트 + 문서·규칙 정합                                   | bench 수치 + `layout-engine.md` 갱신      | G4, G6             |
+
+### Phase 0 결과 (2026-07-27) — fixture 확정
+
+`apps/builder/tests/parity/containerIntrinsic.browser.test.ts` 12 케이스. 정합 3 은 `it`(회귀 가드), 발산 4 는 `it.fails`(Phase 2 목표 — 통과하면 red 가 되어 `.fails` 제거를 강제). 프리셋 실형태(G)는 파이프라인 leg 로도 걸어 **엔진만 고치고 TS 선계산이 되돌리는 상태**를 차단한다.
+
+| 케이스                             | DOM(sidebar/content) | engine     | 판정 |
+| ---------------------------------- | -------------------- | ---------- | ---- |
+| A. 자식 고정 50px                  | 240 / 1680           | 동일       | 정합 |
+| B. 자식 고정 3000px                | 0 / 3000             | 동일       | 정합 |
+| C. 텍스트 leaf 가 item 자신        | 240 / 1680           | 동일       | 정합 |
+| D. 자식 `width:100%`               | 240 / 1680           | 0 / 1920   | 발산 |
+| E. 자식 auto 폭 블록               | 240 / 1680           | 0 / 1920   | 발산 |
+| F. 텍스트 leaf 가 컨테이너 안      | 240 / 1680           | 0 / 1920   | 발산 |
+| G. 프리셋 (sidebar `flexShrink:0`) | 250 / 1670           | 250 / 1920 | 발산 |
+
+§2-2 의 7형태와 일치한다. 텍스트 leaf 케이스(C/F)는 `domAtoms`(DOM) ↔ `contentMin/MaxWidth` 스칼라(engine) 로 정확 정수화했고, F 의 leaf 에는 `height` 를 명시해 **폭 축만 격리**했다 (미명시 시 engine leg 가 leaf height 를 0 으로 내 무관한 h 발산이 섞인다).
+
+**R8 판정 — masking 실재**. 판별 케이스(`width:fit-content` + stretch 자식)에서 engine leg 0/1920 vs pipeline leg 236.7/1683.3 으로 **두 leg 가 다르다**. `growsInFlex` 가 `width` 채널을 막으므로 작동 채널은 `minWidth` 주입 하나이고, `min_main != AUTO` 가 되어 §4.5 분기 자체가 실행되지 않는다 — Phase 2 가 off 19 을 정확히 채워도 이 형태에는 도달하지 못한다. 대조군(고정폭 자식)은 두 leg 모두 정합이라, masking 은 **발산 조건이 성립할 때만** 관측된다. 존치·축소 결론은 Phase 2 (G2).
+
+**착수 시점 baseline 재확인**: parity 14 files / 117 (112 passed + 5 expected fail) — 신설 12 케이스 반영 전은 13 files / 105.
 
 ### Phase 1 상세 — available 3-값 + 캐시
 
@@ -87,8 +107,8 @@
 
 ## 5. 검증 체크리스트
 
-- [ ] Phase 0 fixture 7형태가 착수 전 red, Phase 2 후 green
-- [ ] **R8** — `width:fit-content` 컨테이너에서 TS `minWidth` 주입(`utils.ts:4767-4769`)이 §4.5 auto-min 을 무력화하는지 판정, 존치·축소 결론 기록
+- [x] Phase 0 fixture 발산 4형태 red 재현 + 정합 3형태 green (2026-07-27) — Phase 2 후 `.fails` 제거로 green 확정
+- [x] **R8** — masking **실재 확인** (engine 0/1920 vs pipeline 236.7/1683.3, §Phase 0 결과). 존치·축소 결론은 Phase 2 (G2)
 - [ ] Rust 단위 전수 PASS (착수 시점 324)
 - [ ] parity 전 suite PASS (착수 시점 13 files / 105 tests)
 - [ ] `apps/builder` workspace/canvas PASS (착수 시점 867)
