@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [프레임을 적용한 페이지가 내용이 넘쳐도 스크롤되지 않던 문제] - 2026-07-27
+
+### Bug Fixes
+
+- **프레임을 적용한 페이지에서 슬롯 안 콘텐츠가 페이지 높이를 넘겨도 스크롤바가 생기지 않던 문제**. 사용자 보고: `basic 2-Row` 를 Home 에 적용하고 슬롯에 Card 5개를 넣었으나 "home page 의 overflow 는 auto 인데 scrollbar 가 생성되지 않는다".
+  - **Why**: 스크롤 가능 영역을 **직계 자식만** 훑어 산출했다 (`fullTreeLayout.ts` GAP 4). 프레임 적용 페이지는 `body(overflow:auto) > Slot(overflow:visible) > 실제 콘텐츠` 구조인데, 슬롯이 페이지 높이에 정확히 맞으므로 body 가 "넘치는 게 없다" 고 판정했다. CSS 는 자손의 넘침이 `overflow:visible` 조상을 **통과해** 스크롤 컨테이너까지 올라온다 (CSS-OVERFLOW-3 §3).
+  - ADR-050 이 "각 컨테이너가 자기 직계 자식의 union" 을 위험 **낮음**으로 적어둔 단순화였는데, 프레임 프로젝션(ADR-135/136)이 body 와 콘텐츠 사이에 슬롯 계층을 **필수로** 끼워 넣으면서 그 전제가 깨졌다.
+  - 이제 `overflow:visible` 자손을 따라 내려가며 넘침을 모은다 (부모 상대 좌표라 offset 누적). 자기 스크롤/클립 컨테이너인 자손에서는 멈춘다 — 그쪽이 자기 스크롤로 흡수하므로.
+  - 검증: 같은 문서 실측 — 프레임 적용 Home `maxScrollTop 0 → 674`, 프레임 없는 페이지는 `399` 로 무변동. **Chrome ground truth 와 정확히 일치**(동일 트리 `scrollHeight − clientHeight = 674`, content 슬롯 높이 916 도 일치). 라이브: 스크롤바 썸 렌더 + 휠 스크롤 동작 + 콘텐츠 이동 확인. 회귀 6건 — 종전 "직계만" 동작을 기준선으로 함께 고정.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts` (`computeScrollExtent` 로 분리), 테스트 `.../__tests__/scrollExtentDescendants.test.ts`
+  - **알려진 잔존**: 슬롯 자체의 높이는 커지지 않는다 — `flex:1` 슬롯이 확정 높이 컨테이너에서 남는 공간만 받는 것은 **CSS 동작과 동일**(Chrome 실측 916 일치)이므로 의도된 결과다. 별개로 `buildOverflowInfoMap`(overflow 해칭 chrome)은 아직 직계 자식만 본다.
+
 ## [프레임 프리셋 슬롯이 손대지 않아도 "수정됨" 으로 읽히던 문제] - 2026-07-27
 
 ### Bug Fixes

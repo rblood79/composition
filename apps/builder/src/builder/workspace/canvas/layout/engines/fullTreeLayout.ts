@@ -130,6 +130,82 @@ const LABEL_WRAPPER_TAGS = new Set(["Checkbox", "Radio"]);
 //   않도록, childrenMap 이 빈 경우 GAP 4 에서 skip 한다(자식 있는 static collection 은 GAP 4 유지).
 const A2_WINDOWED_COLLECTION_TAGS = new Set(["ListBox", "GridList", "Table"]);
 
+/**
+ * 스크롤 가능 영역 산출 시 자손을 따라 내려가는 최대 깊이 (GAP 4).
+ *
+ * CSS 는 깊이 제한이 없지만, 여기서는 레이아웃 결과 맵을 순회하므로 손상된 트리(순환 참조 등)
+ * 에서 무한 루프가 되지 않도록 상한을 둔다. 실제 문서 깊이는 이보다 훨씬 얕다.
+ */
+const SCROLL_EXTENT_MAX_DEPTH = 32;
+
+/** `computeScrollExtent` 가 읽는 레이아웃 최소 형태 (부모 상대 좌표). */
+interface ScrollExtentBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  margin?: { right?: number; bottom?: number };
+}
+
+/**
+ * 스크롤 가능 영역 = 직계 자식이 아니라 **자손 전체**의 넘침 (CSS-OVERFLOW-3 §3).
+ *
+ * 직계만 세면 `overflow: visible` 인 중간 노드가 자손의 넘침을 삼킨다. **프레임을 적용한
+ * 페이지가 정확히 그 형태다** — body(overflow:auto) > Slot(visible) > 실제 콘텐츠. 슬롯은
+ * 페이지 높이에 딱 맞으므로 body 는 "넘치는 게 없다" 고 판정해 스크롤이 아예 안 켜졌다.
+ * 실측(2026-07-27, 같은 문서): 프레임 적용 Home `maxScrollTop=0` ↔ 프레임 없는 Components
+ * `579`. Chrome ground truth 는 동일 트리에서 `scrollHeight 1698 − client 844 = 854`.
+ *
+ * ADR-050 이 "각 컨테이너가 자기 직계 자식의 union" 을 위험 **낮음**으로 적어둔 단순화인데,
+ * 프레임 프로젝션(ADR-135/136)이 body 와 콘텐츠 사이에 슬롯 계층을 **필수로** 끼워 넣으면서
+ * 그 전제가 깨졌다.
+ *
+ * 자기 스크롤/클립 컨테이너인 자손에서는 멈춘다 — 그 안의 넘침은 그쪽이 스크롤로 흡수하므로
+ * 바깥 컨테이너의 스크롤 영역에 기여하지 않는다.
+ *
+ * @param scrollChildIds 스크롤 컨테이너의 직계 자식
+ * @param layoutOf       id → 레이아웃 박스 (**부모 상대** 좌표 — 내려갈 때 offset 누적)
+ * @param childrenOf     id → 자식 id 목록
+ * @param isScrollContainer id 가 자기 스크롤/클립 컨테이너인가 (여기서 하강 중단)
+ */
+export function computeScrollExtent(
+  scrollChildIds: readonly string[],
+  layoutOf: (id: string) => ScrollExtentBox | undefined,
+  childrenOf: (id: string) => readonly string[],
+  isScrollContainer: (id: string) => boolean,
+): { maxRight: number; maxBottom: number } {
+  let maxRight = 0;
+  let maxBottom = 0;
+  const stack = scrollChildIds.map((id) => ({
+    id,
+    offX: 0,
+    offY: 0,
+    depth: 0,
+  }));
+  const seen = new Set<string>();
+
+  while (stack.length > 0) {
+    const { id, offX, offY, depth } = stack.pop()!;
+    if (seen.has(id)) continue; // 순환 방어 (깊이 상한과 별개)
+    seen.add(id);
+
+    const box = layoutOf(id);
+    if (!box) continue;
+    const x = offX + box.x;
+    const y = offY + box.y;
+    maxRight = Math.max(maxRight, x + box.width + (box.margin?.right ?? 0));
+    maxBottom = Math.max(maxBottom, y + box.height + (box.margin?.bottom ?? 0));
+
+    if (depth >= SCROLL_EXTENT_MAX_DEPTH) continue;
+    if (isScrollContainer(id)) continue;
+    for (const childId of childrenOf(id)) {
+      stack.push({ id: childId, offX: x, offY: y, depth: depth + 1 });
+    }
+  }
+
+  return { maxRight, maxBottom };
+}
+
 // ─── NaN/Infinity sanitize 유틸 (ADR-006 P0-2) ───────────────────────
 
 const sanitizeStats = { count: 0 };
@@ -2945,21 +3021,26 @@ export function calculateFullTreeLayout(
         if (scrollChildIds.length === 0 && isWindowedCollection) {
           continue;
         }
-        let maxRight = 0;
-        let maxBottom = 0;
-        for (const cid of scrollChildIds) {
-          const cl = result.get(cid);
-          if (cl) {
-            maxRight = Math.max(
-              maxRight,
-              cl.x + cl.width + (cl.margin?.right ?? 0),
+        const { maxRight, maxBottom } = computeScrollExtent(
+          scrollChildIds,
+          (id) => result.get(id),
+          (id) => childrenMap.get(id) ?? [],
+          (id) => {
+            const childEl = elementsMap.get(id);
+            const childNamed = childEl as
+              | { componentName?: unknown }
+              | undefined;
+            const childType =
+              (typeof childNamed?.componentName === "string"
+                ? childNamed.componentName
+                : undefined) ?? (childEl?.type as string | undefined);
+            const childOverflow = resolveEffectiveOverflow(
+              childType,
+              (childEl?.props?.style ?? {}) as Record<string, unknown>,
             );
-            maxBottom = Math.max(
-              maxBottom,
-              cl.y + cl.height + (cl.margin?.bottom ?? 0),
-            );
-          }
-        }
+            return childOverflow != null && childOverflow !== "visible";
+          },
+        );
         // queueMicrotask: 렌더링 중 setState 방지 (React strict mode)
         const scrollTop = Math.max(0, maxBottom - layout.height);
         const scrollLeft = Math.max(0, maxRight - layout.width);
