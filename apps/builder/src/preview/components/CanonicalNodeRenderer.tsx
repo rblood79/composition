@@ -92,6 +92,12 @@ interface CanonicalNodeRendererProps {
    * family cutover(Phase 6) 가 type 을 catalog 로 옮기면 caller 가 이 집합에 추가한다.
    */
   cutoverPrimitives?: ReadonlySet<string>;
+  /**
+   * 가장 가까운 collection 조상 type(소문자). 비어 있으면 collection item 이 **컬렉션 밖**
+   * 이라는 뜻이라 최소 호스트를 씌운다 (§ORPHAN_ITEM_HOST). 재귀 지점 **전부**에서 전달해야
+   * 한 단계에서 끊기지 않는다.
+   */
+  collectionAncestor?: string;
 }
 
 /**
@@ -178,6 +184,54 @@ export const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> =
  */
 export const DELEGATING_RAC_RENDERERS: ReadonlySet<string> =
   deriveDelegatingRacRenderers();
+
+/**
+ * collection item type → **호스트 collection type** (orphan item 크래시 차단).
+ *
+ * RAC 는 collection item 을 자기 collection 안에서만 렌더할 수 있다 (D1 계약) — 밖에서 그리면
+ * `"<X> cannot be rendered outside a collection"` 로 **preview 전체가 죽는다**. 그런데 컴포넌트
+ * 쇼케이스 페이지는 item variant 를 **body 직계에 단독 배치**한다 (실측 `page-components`:
+ * ListBoxItem ×2 / GridListItem / MenuItem). Skia 는 RAC 를 안 쓰므로 그대로 그리고 DOM 만
+ * 죽어서, **D3 대칭이 "한쪽은 그림 / 한쪽은 크래시" 로 깨진다.**
+ *
+ * 그래서 orphan item 을 만나면 **최소 RAC collection 을 즉석에서 씌워** D1 계약을 만족시킨다.
+ * 호스트는 RAC raw 를 쓴다 — composition wrapper 는 `useCollectionData` 로 데이터를 채우므로
+ * 호스트 용도에 부적합하다. `display: contents` 라 박스를 만들지 않아, Skia 가 그리는 단독
+ * item 과 시각 결과가 같다. **문서(데이터)는 건드리지 않는다** — 단독 배치는 쇼케이스 의도다.
+ */
+const ORPHAN_ITEM_HOST: Readonly<Record<string, string>> = {
+  listboxitem: "ListBox",
+  gridlistitem: "GridList",
+  menuitem: "Menu",
+  tag: "TagGroup",
+  treeitem: "Tree",
+};
+
+/** 호스트가 될 수 있는 collection type(소문자) — 자손 item 은 이미 collection 안이다. */
+const COLLECTION_HOST_TYPES: ReadonlySet<string> = new Set(
+  Object.values(ORPHAN_ITEM_HOST).map((v) => v.toLowerCase()),
+);
+
+/**
+ * orphan collection item 이면 최소 RAC collection 으로 감싼다. 아니면 그대로 통과.
+ * `collectionAncestor` 가 **호스트 type 과 일치**할 때만 "안에 있다" 로 본다 — ListBox 안의
+ * GridListItem 처럼 어긋난 조합은 여전히 RAC 가 거부하므로 감싸는 편이 맞다.
+ */
+function hostOrphanCollectionItem(
+  type: string,
+  collectionAncestor: string | undefined,
+  rendered: React.ReactElement,
+): React.ReactElement {
+  const host = ORPHAN_ITEM_HOST[type.toLowerCase()];
+  if (!host || collectionAncestor === host.toLowerCase()) return rendered;
+  const Host = (RAC as unknown as Record<string, React.ElementType>)[host];
+  if (!Host) return rendered;
+  return (
+    <Host aria-label={`${type} sample`} style={{ display: "contents" }}>
+      {rendered}
+    </Host>
+  );
+}
 
 /**
  * ResolvedNode 의 복원 type 추출 (CanonicalNodeRenderer 본문 type 복원과 동일 규칙).
@@ -270,6 +324,7 @@ export function CanonicalNodeRenderer({
   renderContext,
   parentPath = "",
   cutoverPrimitives,
+  collectionAncestor,
 }: CanonicalNodeRendererProps): React.ReactElement | null {
   const currentPath = parentPath ? `${parentPath}/${node.id}` : node.id;
 
@@ -289,6 +344,11 @@ export function CanonicalNodeRenderer({
       | string
       | undefined) ??
     String(node.type);
+
+  // 자식에게 물려줄 collection 조상 — 자기 자신이 collection 이면 자기 type 으로 갱신.
+  const nextCollectionAncestor = COLLECTION_HOST_TYPES.has(type.toLowerCase())
+    ? type.toLowerCase()
+    : collectionAncestor;
 
   // ── PreviewElement 재구성 (rendererMap 시그니처 맞춤) ────────────────────
   const elementId = node.id;
@@ -365,6 +425,7 @@ export function CanonicalNodeRenderer({
                 renderContext={renderContext}
                 parentPath={currentPath}
                 cutoverPrimitives={cutoverPrimitives}
+                collectionAncestor={nextCollectionAncestor}
               />
             );
           }
@@ -434,6 +495,7 @@ export function CanonicalNodeRenderer({
                   renderContext={renderContext}
                   parentPath={currentPath}
                   cutoverPrimitives={cutoverPrimitives}
+                  collectionAncestor={nextCollectionAncestor}
                 />
               ))
             : (racChildren as React.ReactNode)}
@@ -449,9 +511,13 @@ export function CanonicalNodeRenderer({
     // 여기서는 rendererMap 에 그대로 위임. DOM 마커는 wrapper div 로 감쌈.
     return (
       <div key={node.id} {...markerProps} style={{ display: "contents" }}>
-        {renderer(
-          adaptedEl as unknown as SharedPreviewElement,
-          renderContext as unknown as SharedRenderContext,
+        {hostOrphanCollectionItem(
+          type,
+          collectionAncestor,
+          renderer(
+            adaptedEl as unknown as SharedPreviewElement,
+            renderContext as unknown as SharedRenderContext,
+          ) as React.ReactElement,
         )}
       </div>
     );
@@ -519,6 +585,7 @@ export function CanonicalNodeRenderer({
             renderContext={renderContext}
             parentPath={currentPath}
             cutoverPrimitives={cutoverPrimitives}
+            collectionAncestor={nextCollectionAncestor}
           />
         ))
       : (adaptedEl.props?.children as React.ReactNode),

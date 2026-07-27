@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [컬렉션 밖 항목이 preview 를 통째로 죽이던 문제] - 2026-07-27
+
+### Bug Fixes
+
+- **프레임을 적용한 Components 페이지에서 preview 가 빈 화면이 되던 문제**. 콘솔에 `Uncaught Error: ListBoxItem cannot be rendered outside a collection.` 이 뜨고 그 위 트리가 통째로 언마운트됐다.
+  - **Why**: React Aria 는 collection 항목(`ListBoxItem` 등)을 **자기 collection 안에서만** 렌더할 수 있다. 그런데 컴포넌트 쇼케이스 페이지는 항목 variant 를 **body 직계에 단독 배치**한다 — 실측 `page-components` body 직계에 `ListBoxItem` 2개 · `GridListItem` · `MenuItem` 4건. Skia 캔버스는 React Aria 를 쓰지 않아 그대로 그렸고 **DOM preview 만 죽어서**, 빌더와 미리보기가 "한쪽은 그림 / 한쪽은 크래시" 로 갈렸다.
+  - 이제 `CanonicalNodeRenderer` 가 조상에 맞는 collection 이 없는 항목을 만나면 **최소 React Aria collection 을 즉석에서 씌운다**. 호스트는 `display: contents` 라 박스를 만들지 않아 Skia 가 그리는 단독 항목과 시각 결과가 같고, 이미 collection 안에 있는 항목은 덧씌우지 않는다. **문서(데이터)는 바꾸지 않는다** — 단독 배치는 쇼케이스 의도다.
+  - 검증: 실제 문서의 Components 페이지(프레임 적용 상태)에서 요소 **57개 전부 렌더**(수정 전 0), 호스트 4개 생성(`display: contents`), 실제 컬렉션 2개는 이중 래핑 없음. 회귀 테스트 11건은 수정을 끄면 사용자가 본 그 오류로 9건이 red 가 된다.
+  - 위치: `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`, 테스트 `apps/builder/src/preview/components/__tests__/CanonicalNodeRenderer.orphanCollectionItem.test.tsx`
+
 ## [컨테이너가 자기 고유 폭을 갖게 됨 — 사이드바 레이아웃 초과/붕괴 해소 (ADR-169)] - 2026-07-27
 
 ### Bug Fixes
