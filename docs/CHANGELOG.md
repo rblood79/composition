@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [flex sweep 이 음수 free space 조합을 훑도록 확장 — 672 → 1152] - 2026-07-27
+
+### Infrastructure
+
+- **`flexSweep` 파라메트릭 sweep 에 "내용이 컨테이너를 넘기는" 조합을 추가**. 교차축 384 → 576, main 축 288 → 576 (합 672 → 1152).
+  - **Why**: 종전 sweep 은 컨테이너 cross 를 줄 합보다 **크게**만 잡아 양수 여유 조합만 훑었다. 바로 앞 두 항목의 정렬 결함 3건이 전부 그 사각지대에 있었고, 672 조합을 통과하면서도 하나도 못 잡았다.
+  - 교차축은 `CROSS_SIZE` 에 세 번째 값 `definite-overflow` 를 더했다 — 직교 차원이 아니라 값 추가인 이유는 `auto` 컨테이너가 내용으로 자라 음수 여유가 성립하지 않기 때문이다(직교로 두면 절반이 중복). 최대 자식 cross 와 줄 합 **둘 다보다 작은** 값이라 `align-items`(라인 안)와 `align-content`(라인 간) 양쪽에서 음수가 된다.
+  - main 축은 `MAIN_SPACE` 축을 더했다. `shrink=1` 조합은 자식이 줄어들어 실제로는 여유 0 이 되지만 그 자체가 shrink 계약 검증이라 유지한다.
+  - **확장분이 실제로 그 경로를 훑는지 엔진을 되돌려 확인**: 라인 cross 승격을 `max` 로 되돌리면 교차축 **48/576** red, 정렬 여유 클램프를 되살리면 교차축 **80/576** + main **32/576** red. 인위적 조합이 아니라는 근거이자 이 축을 지웠을 때 잃는 커버리지의 크기다.
+  - 1152 조합 실행 시간 66ms — 기존 대비 체감 없음.
+  - `crossAxisOverflow` fixture 는 그대로 둔다. sweep 은 격자를 **넓게**("어딘가 틀렸다"), fixture 는 규칙별 **기대 좌표를 명시**로("무엇이 몇으로 틀렸다") 잠그는 서로 다른 역할이다.
+  - 위치: `apps/builder/tests/parity/flexSweep.browser.test.ts`, 규칙 `.claude/rules/layout-engine.md`
+
 ## [넘칠 때 center/flex-end 정렬이 조용히 flex-start 로 무너지던 문제 — flex 3축] - 2026-07-27
 
 ### Bug Fixes

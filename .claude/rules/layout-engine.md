@@ -156,7 +156,7 @@ single-line(`flex-wrap:nowrap`) + definite cross 컨테이너에서 flex 라인�
 
 - `max` 로 라인을 아이템에 맞춰 키우면 `align-items:stretch` 가 그 커진 라인을 채워 **auto-cross 아이템이 내용까지 자란다**. CSS 는 컨테이너에서 자르고 내용이 라인 밖으로 흘러넘친다. 실측: 확정 높이 100 밴드 + `height:auto` 자식 + 내용 300 → DOM 100 / 구 엔진 300 (row·column 동형, 파이프라인까지 전파).
 - `align-items:flex-start` 는 아이템이 자기 크기를 유지하므로 **종전에도 정합**이었다 — 증상이 stretch 에서만 나오는 이유. 확정 밴드 + auto 자식은 프리셋 row 레이아웃의 기본 형태라 라이브 도달 가능.
-- **sweep 사각지대**: `flexSweep` 는 definite cross 를 줄 합보다 **크게** 잡는다 — 양수 free space 조합만 훑는다. 그래서 "라인 cross > 컨테이너 cross" 형태가 384+288 조합에 한 번도 안 걸렸다. 교차축 회귀를 볼 때 sweep 통과를 커버리지로 읽지 말 것 — 초과 영역은 `crossAxisOverflow.browser.test.ts` 소관.
+- **사각지대였다가 닫혔다**: `flexSweep` 가 오래 definite cross 를 줄 합보다 **크게**만 잡아 양수 free space 조합만 훑었고, 정렬 결함 3건이 전부 거기 있었다. 2026-07-27 에 음수 free space 축을 더해 1152 조합(교차축 576 + main 576)으로 확장했다 — `CROSS_SIZE`에 `definite-overflow`, main 축에 `MAIN_SPACE`.
 
 ## 넘칠 때의 정렬 — 위치 정렬은 음수 offset, 분배 정렬은 fallback (CSS-ALIGN-3 §4.2/§4.4, 2026-07-27)
 
@@ -171,7 +171,9 @@ single-line(`flex-wrap:nowrap`) + definite cross 컨테이너에서 flex 라인�
 - 분배값의 `.max(0.0)` 은 **결함이 아니라 정답**이다 — Chrome 실측에서 `space-between/around/evenly` 는 음수 여유에서 셋 다 start(0). 지우면 라인/아이템이 역방향으로 겹친다.
 - `align-items` 에는 분배값이 없어 `place_line_cross_axis` 의 `cross_free` 는 클램프 없이 쓴다.
 - Chrome 실측 기준값 — 컨테이너 100 / 아이템 300: `center` −100, `flex-end` −200. 컨테이너 cross 60 / 두 줄 합 100: `align-content:center` 줄 y = −20·30, `flex-end` = −40·10.
-- Chrome 실측 fixture: `apps/builder/tests/parity/crossAxisOverflow.browser.test.ts` (교차축 stretch/start/center/end × row·column, main 축 justify 6종, align-content 6종 — 각 engine leg + pipeline leg)
+- Chrome 실측 fixture 2종 — **역할이 다르니 둘 다 갱신할 것**:
+  - `crossAxisOverflow.browser.test.ts` — 규칙별 **기대 좌표를 명시**로 잠근다 (교차축 13 · main 6 · align-content 6 × engine·pipeline 2 leg). "무엇이 몇으로 틀렸나" 를 읽는 쪽.
+  - `flexSweep.browser.test.ts` — 파라미터 격자를 **넓게** 훑는다 (1152 조합). "어딘가 틀렸다" 를 잡는 쪽. 음수 여유 조합의 민감도 실측: 라인 cross 승격을 `max` 로 되돌리면 교차축 48/576 red, 정렬 클램프를 되살리면 교차축 80/576 + main 32/576 red.
 
 ### 금지 패턴
 

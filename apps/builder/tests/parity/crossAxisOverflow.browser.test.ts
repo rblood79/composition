@@ -14,9 +14,14 @@ import {
 /**
  * flex 교차축 — **내용이 컨테이너 cross 를 넘길 때** (CSS-FLEXBOX §9.4 step 8 + §8.3)
  *
- * `flexSweep` 는 이 영역을 의도적으로 비켜간다 (definite cross 를 줄 합보다 크게 잡음 —
- * 음수 free space 는 정합 region 밖이라 명시). 그래서 "라인 cross 가 컨테이너 cross 를
- * 넘는" 형태가 sweep 에 한 번도 안 걸렸다.
+ * `flexSweep` 는 이 영역을 오래 비켜가 있었다 (definite cross 를 줄 합보다 크게 잡음) —
+ * 그래서 "라인 cross 가 컨테이너 cross 를 넘는" 형태가 한 번도 안 걸렸고, 정렬 결함 3건이
+ * 그 사각지대에 있었다. 2026-07-27 에 sweep 도 음수 free space 조합을 훑도록 확장했다.
+ *
+ * **두 파일의 역할 분담**: sweep 은 파라미터 격자를 넓게(1152 조합), 이 파일은 각 규칙의
+ * **기대 좌표를 명시적으로** 잠근다 (Chrome 실측값이 케이스 이름·주석에 박혀 있어 회귀 시
+ * "무엇이 몇으로 바뀌었나" 가 바로 읽힌다). sweep 은 "어딘가 틀렸다"를, 여기는 "무엇이
+ * 틀렸다"를 알려준다.
  *
  * §9.4 step 8 은 **대입**이다 — "If the flex container is single-line and has a definite
  * cross size, the outer cross size of the flex line **is** the flex container's inner cross
@@ -223,27 +228,29 @@ describe("flex 교차축 overflow — CSS 대조", () => {
     await initCompositionEngineWasm();
   });
 
-  it.each([...CASES, ...MAIN_CASES, ...ALIGN_CONTENT_CASES].map((c) => [c.name, c] as const))(
-    "engine leg — %s",
-    (_name, c) => {
-      const bad = diffCase(
-        c.nodes,
-        domLeg(c.nodes, c.availW),
-        engineLeg(c.nodes, c.availW, c.availH),
-      );
-      expect(bad, bad.join("\n")).toEqual([]);
-    },
-  );
+  it.each(
+    [...CASES, ...MAIN_CASES, ...ALIGN_CONTENT_CASES].map(
+      (c) => [c.name, c] as const,
+    ),
+  )("engine leg — %s", (_name, c) => {
+    const bad = diffCase(
+      c.nodes,
+      domLeg(c.nodes, c.availW),
+      engineLeg(c.nodes, c.availW, c.availH),
+    );
+    expect(bad, bad.join("\n")).toEqual([]);
+  });
 
-  it.each([...CASES, ...MAIN_CASES, ...ALIGN_CONTENT_CASES].map((c) => [c.name, c] as const))(
-    "pipeline leg — %s",
-    (_name, c) => {
-      const bad = diffCase(
-        c.nodes,
-        domLeg(c.nodes, c.availW),
-        pipelineLeg(c.nodes, c.availW, c.availH),
-      );
-      expect(bad, bad.join("\n")).toEqual([]);
-    },
-  );
+  it.each(
+    [...CASES, ...MAIN_CASES, ...ALIGN_CONTENT_CASES].map(
+      (c) => [c.name, c] as const,
+    ),
+  )("pipeline leg — %s", (_name, c) => {
+    const bad = diffCase(
+      c.nodes,
+      domLeg(c.nodes, c.availW),
+      pipelineLeg(c.nodes, c.availW, c.availH),
+    );
+    expect(bad, bad.join("\n")).toEqual([]);
+  });
 });
