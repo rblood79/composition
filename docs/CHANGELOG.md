@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [`*-reverse` flex 에서 아이템 margin 이 반대쪽에 붙던 문제] - 2026-07-27
+
+### Bug Fixes
+
+- **reverse 축의 margin start/end 역할 정정** (`flex-direction: *-reverse` / `flex-wrap: wrap-reverse`):
+  - 증상: 어긋남이 **정확히 margin 값**만큼 반대편으로 — `row-reverse` + `marginLeft:20px` 가 x=240 (CSS 260), `column-reverse` + `marginTop:20px` 가 y=140 (CSS 160), `wrap-reverse` + `marginTop:20px` 가 240 (CSS 260)
+  - **Why**: 엔진은 reverse 를 **정방향 배치 + 기하 반사**로 구현하는데 (`tree.rs` 3.9 — 커널은 reverse 를 모른다), 반사는 좌표를 뒤집을 뿐 margin 이 아이템의 **어느 쪽에 붙는지**는 바꾸지 못한다. `row-reverse` 의 main-start 는 오른쪽이라 main-start margin = physical `margin-right` 인데 커널은 `margin-left` 를 main-start 로 쓰고 있었다
+  - 수정: `write_flex_item` 이 반전 축의 물리 margin 쌍을 맞바꿔 커널에 정방향 논리로 전달 (`MarginAxisReverse` — 값과 auto 마스크 동시). 컨테이너 수준 정렬·padding 은 종전에도 정합이라 반사 자체는 무변경
+  - auto margin 과 **무관한 별개 결함** (고정 margin 에서도 재현) — 위 auto margin sweep 중 발견
+  - 위치: `packages/composition-engine/src/tree.rs`
+  - 검증: 신규 `apps/builder/tests/parity/reverseMargin.browser.test.ts` 44건 (고정 12 · cross 대조 2 · auto×reverse 4 · wrap-reverse 6 · 대조군 2, 2 leg) + Rust `reverse_axis_swaps_margin_start_end`. 민감도 — 스왑 되돌리면 18/44 red (autoMargin 79 은 green 유지 = 두 결함 분리 확증). 라이브 빌더 WASM 직접 호출로 260/200 · 260/0 · 160/100 확인
+
 ## [`margin: auto` 가 캔버스에서 여유 공간을 흡수하지 않던 문제] - 2026-07-27
 
 ### Bug Fixes

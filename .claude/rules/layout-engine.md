@@ -249,6 +249,21 @@ auto margin 은 해당 축의 양의 여유를 흡수하고, 그 결과 그 축�
 - ❌ cross auto margin 을 넣으면서 stretch·align-self 억제를 빼기 (§9.4 step 11 / §9.6 step 14 는 같은 묶음)
 - ❌ 음수 여유에서 auto margin 에 음수 분배 → 0 흡수 = 아이템이 라인 시작에 붙고 넘치는 것이 정답
 
+## `*-reverse` 는 위치만 뒤집는다 — margin 의 축 역할은 별도로 바꿔야 한다 (2026-07-27)
+
+엔진은 `flex-direction: *-reverse` / `flex-wrap: wrap-reverse` 를 **정방향 배치 + 기하 반사**로 구현한다 (`tree.rs` 3.9 — 커널은 reverse 를 모른다). 반사는 좌표를 뒤집지만 **margin 이 아이템의 어느 쪽에 붙는지**는 못 바꾼다.
+
+- `row-reverse` 의 main-start 는 **오른쪽**이므로 main-start margin = physical `margin-right` 다. 물리 margin 을 그대로 커널에 넘기면 커널이 `margin-left` 를 main-start 로 써서, 반사 후 margin 이 반대편에 남는다.
+- 그래서 `write_flex_item` 이 **반전 축의 물리 margin 쌍을 맞바꿔** 커널에 정방향 논리로 넘긴다 (`MarginAxisReverse::vertical/horizontal` — 논리축↔물리축 매핑이 `is_row` 에 달려 있어 호출부가 직접 계산하지 않는다). **값과 auto 마스크를 같이** 뒤집어야 흡수 쪽도 맞는다.
+- **auto margin 과 무관한 결함**이다 — 고정 margin 에서도 재현되고, 어긋남이 **정확히 margin 값**이라 진단이 쉽다. 실측: `row-reverse`+`marginLeft:20px` DOM 260/구 엔진 240 · `column-reverse`+`marginTop:20px` 160/140 · `wrap-reverse`+`marginTop:20px` 260/240.
+- 컨테이너 수준 정렬(`justify-content`)과 비대칭 padding 은 **종전에도 정합**이었다 — 반사 자체는 정상이고 어긋난 것은 아이템별 margin 의 축 역할 하나다. 두 대조군이 `reverseMargin.browser.test.ts` 에 들어 있는 이유다(민감도: 스왑을 되돌리면 18/44 red, `autoMargin` 은 전부 green 유지).
+
+### 금지 패턴
+
+- ❌ reverse 를 커널에 알려 커널이 직접 배치 방향을 바꾸게 하기 → 반사(3.9)와 이중 적용
+- ❌ margin 값만 스왑하고 auto 마스크는 그대로 → 흡수가 반대편에서 일어난다
+- ❌ 스왑 축을 `is_row` 없이 판정 → column 계열에서 main/cross 가 뒤바뀐다 (`flex-direction:column-reverse` 는 **세로** 쌍, `wrap-reverse` 는 **가로** 쌍)
+
 ## 배치 직렬화 계약 — 숫자 하나가 페이지 레이아웃을 끈다 (CRITICAL)
 
 엔진 `NodeStyle` 의 길이 필드는 전부 `Option<String>` 이라 숫자가 들어오면 `build_tree_batch` 가 **배치 전체**를 거부한다 (`invalid type: integer, expected a string`) → `calculateFullTreeLayout` 이 `null` → **그 페이지 레이아웃이 통째로 사라진다**. 요소 하나의 값 하나가 페이지 전체를 끄는 구조다.

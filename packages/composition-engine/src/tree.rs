@@ -1324,7 +1324,19 @@ impl LayoutTree {
             let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
             let (cw, ch) = child_sizes[i];
             write_flex_item(
-                &mut data, i, &cstyle, cw, ch, is_row, &ctx, &main_ctx, &cross_ctx,
+                &mut data,
+                i,
+                &cstyle,
+                cw,
+                ch,
+                is_row,
+                &ctx,
+                &main_ctx,
+                &cross_ctx,
+                MarginAxisReverse {
+                    main: flex_direction_is_reverse(style.flex_direction.as_deref()),
+                    cross: flex_wrap_is_reverse(style.flex_wrap.as_deref()),
+                },
             );
         }
 
@@ -2615,6 +2627,7 @@ fn spec_to_content(v: f32, pad_border: f32) -> f32 {
 /// `ctx` 는 cross 축(=자식 % 의 inline containing block) 기준, `main_ctx` 는 main 축
 /// 기준이다. `flex-basis` 의 `%` 는 **main 축** 컨테이너 크기를 기준으로 해소해야 하므로
 /// (column 이면 height) 별도 ctx 를 받는다.
+#[allow(clippy::too_many_arguments)]
 fn write_flex_item(
     data: &mut [f32],
     i: usize,
@@ -2625,6 +2638,7 @@ fn write_flex_item(
     ctx: &CssValueContext,
     main_ctx: &CssValueContext,
     cross_ctx: &CssValueContext,
+    reverse: MarginAxisReverse,
 ) {
     let off = i * flex::FLEX_FIELD_COUNT;
 
@@ -2678,10 +2692,27 @@ fn write_flex_item(
     // margin 은 **부호 있는** 해석(E7/ADR-156 P4) — `resolve_signed` 는 음수를 보존한다.
     // `resolve_dimension` 은 `n >= 0.0` 필터로 음수를 0 으로 뭉개, `marginLeft:-20px` 형제
     // 당김(flex main cursor)·auto-width 확장(=avail - m)이 소실됐다 (BM-1/E7-flex).
-    data[off + 3] = resolve_signed(cstyle.margin_top.as_deref(), ctx);
-    data[off + 4] = resolve_signed(cstyle.margin_right.as_deref(), ctx);
-    data[off + 5] = resolve_signed(cstyle.margin_bottom.as_deref(), ctx);
-    data[off + 6] = resolve_signed(cstyle.margin_left.as_deref(), ctx);
+    //
+    // reverse 축은 여기서 **양쪽 margin 을 맞바꿔** 커널에 정방향 논리로 넘긴다.
+    // 커널은 reverse 를 모르고(3.9 반사가 tree.rs 소관), 반사는 **위치만** 뒤집지
+    // margin 이 아이템의 어느 쪽에 붙는지는 못 바꾼다. 예: `row-reverse` 의 main-start
+    // 는 오른쪽이라 main-start margin = physical margin-right 인데, 그대로 넘기면
+    // 커널이 margin-left 를 main-start 로 써서 반사 후 margin 이 반대편에 남는다
+    // (실측 2026-07-27: row-reverse + marginLeft:20px → 240, CSS 260 — 정확히 margin
+    // 만큼 반대쪽). auto margin 마스크도 같이 뒤집어야 흡수 쪽이 맞는다.
+    let (m_top, m_right, m_bottom, m_left) = {
+        let t = resolve_signed(cstyle.margin_top.as_deref(), ctx);
+        let r = resolve_signed(cstyle.margin_right.as_deref(), ctx);
+        let b = resolve_signed(cstyle.margin_bottom.as_deref(), ctx);
+        let l = resolve_signed(cstyle.margin_left.as_deref(), ctx);
+        let (t, b) = if reverse.vertical(is_row) { (b, t) } else { (t, b) };
+        let (l, r) = if reverse.horizontal(is_row) { (r, l) } else { (l, r) };
+        (t, r, b, l)
+    };
+    data[off + 3] = m_top;
+    data[off + 4] = m_right;
+    data[off + 5] = m_bottom;
+    data[off + 6] = m_left;
     data[off + 7] = pad_border_main;
     data[off + 8] = pad_border_cross;
     // min/max 도 축별 ctx (E6) — main(column=minHeight/maxHeight)은 main_ctx, cross(row=
@@ -2726,17 +2757,26 @@ fn write_flex_item(
     };
     // §8.1 auto margin 마스크 — 값 자체는 `resolve_signed` 가 0 으로 주므로, "0 인가"
     // 로는 `margin: 0` 과 구분되지 않는다. 흡수/정렬 무효화 판정을 위해 별도 채널.
+    let (a_top, a_right, a_bottom, a_left) = {
+        let t = is_auto_margin(cstyle.margin_top.as_deref());
+        let r = is_auto_margin(cstyle.margin_right.as_deref());
+        let b = is_auto_margin(cstyle.margin_bottom.as_deref());
+        let l = is_auto_margin(cstyle.margin_left.as_deref());
+        let (t, b) = if reverse.vertical(is_row) { (b, t) } else { (t, b) };
+        let (l, r) = if reverse.horizontal(is_row) { (r, l) } else { (l, r) };
+        (t, r, b, l)
+    };
     let mut auto_mask = 0u32;
-    if is_auto_margin(cstyle.margin_top.as_deref()) {
+    if a_top {
         auto_mask |= flex::MARGIN_AUTO_TOP;
     }
-    if is_auto_margin(cstyle.margin_right.as_deref()) {
+    if a_right {
         auto_mask |= flex::MARGIN_AUTO_RIGHT;
     }
-    if is_auto_margin(cstyle.margin_bottom.as_deref()) {
+    if a_bottom {
         auto_mask |= flex::MARGIN_AUTO_BOTTOM;
     }
-    if is_auto_margin(cstyle.margin_left.as_deref()) {
+    if a_left {
         auto_mask |= flex::MARGIN_AUTO_LEFT;
     }
     data[off + 20] = auto_mask as f32;
@@ -2745,7 +2785,33 @@ fn write_flex_item(
 /// margin 값이 `auto` 인가 — 흡수 대상 판정(§8.1 / §10.3.3 / abspos §10.3.7).
 #[inline]
 fn is_auto_margin(v: Option<&str>) -> bool {
-    v.map(|s| s.trim().eq_ignore_ascii_case("auto")).unwrap_or(false)
+    v.map(|s| s.trim().eq_ignore_ascii_case("auto"))
+        .unwrap_or(false)
+}
+
+/// flex 컨테이너의 축 반전 (`*-reverse`) — 어느 **물리** margin 쌍을 맞바꿀지 결정한다.
+///
+/// 논리축(main/cross) → 물리축(가로/세로) 매핑이 `is_row` 에 달려 있어, 호출부가
+/// 직접 물리축을 계산하지 않도록 여기서 변환한다.
+#[derive(Clone, Copy)]
+struct MarginAxisReverse {
+    /// `flex-direction: *-reverse` — main 축 반전.
+    main: bool,
+    /// `flex-wrap: wrap-reverse` — cross 축 반전.
+    cross: bool,
+}
+
+impl MarginAxisReverse {
+    /// 세로 쌍(top↔bottom)을 맞바꿔야 하는가 — row 면 cross 축, column 이면 main 축.
+    #[inline]
+    fn vertical(self, is_row: bool) -> bool {
+        if is_row { self.cross } else { self.main }
+    }
+    /// 가로 쌍(left↔right)을 맞바꿔야 하는가 — row 면 main 축, column 이면 cross 축.
+    #[inline]
+    fn horizontal(self, is_row: bool) -> bool {
+        if is_row { self.main } else { self.cross }
+    }
 }
 
 /// 자식 스타일 + solve 된 content 크기 → block.rs flat f32 (19필드, 물리축).
@@ -3376,6 +3442,40 @@ mod tests {
         let handles = tree.build_tree_batch(json).unwrap();
         tree.compute_layout(handles[1], 300.0, -1.0);
         assert_eq!(tree.get_layout(handles[0]).x, 160.0, "auto margin free space 흡수");
+    }
+
+    /// reverse 축의 margin start/end 역할 — 반사는 **위치만** 뒤집는다.
+    ///
+    /// `row-reverse` 의 main-start 는 오른쪽이므로 main-start margin = physical
+    /// margin-right 다. 물리 margin 을 그대로 커널에 넘기면 margin 이 반사 후 반대편에
+    /// 남는다 (Chrome 실측 260 vs 구 엔진 240 — 정확히 margin 만큼). auto 무관하게
+    /// **고정 margin 에서도** 재현되는 별개 결함이라 여기서 함께 잠근다.
+    #[test]
+    fn reverse_axis_swaps_margin_start_end() {
+        // row-reverse(width 300) > k0(40, marginLeft 20) + k1(40).
+        // CSS: 아이템은 오른쪽부터 — k0 은 오른쪽 끝 260, marginLeft 20 은 k0 의 왼쪽에
+        //      들어가 k1 을 200 으로 민다.
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"40px","height":"20px","marginLeft":"20px"},"children":[]},
+            {"style":{"width":"40px","height":"20px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row-reverse","width":"300px","height":"50px"},"children":[0,1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 400.0, -1.0);
+        assert_eq!(tree.get_layout(handles[0]).x, 260.0, "row-reverse: margin-left 는 main-end");
+        assert_eq!(tree.get_layout(handles[1]).x, 200.0, "형제는 margin 만큼 더 밀린다");
+
+        // column-reverse 동형 (세로 쌍 top↔bottom).
+        let mut col = LayoutTree::new();
+        let json_col = r#"[
+            {"style":{"width":"40px","height":"40px","marginTop":"20px"},"children":[]},
+            {"style":{"width":"40px","height":"40px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"column-reverse","width":"300px","height":"200px"},"children":[0,1]}
+        ]"#;
+        let h_col = col.build_tree_batch(json_col).unwrap();
+        col.compute_layout(h_col[2], 400.0, -1.0);
+        assert_eq!(col.get_layout(h_col[0]).y, 160.0, "column-reverse: margin-top 은 main-end");
     }
 
     /// E15: aspect-ratio — 한 축 명시 + ratio 로 다른 축 파생.
