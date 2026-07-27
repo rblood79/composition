@@ -14,6 +14,7 @@
 
 import type { CanvasKit, Image as SkImage } from "canvaskit-wasm";
 import { isCanvasKitInitialized, getCanvasKit } from "./initCanvasKit";
+import { registerSkiaCacheDestroy } from "./disposable";
 
 // ============================================
 // 재렌더 트리거 콜백 레지스트리
@@ -70,10 +71,8 @@ const dimensionsCache: Map<string, ImageNaturalDimensions> =
     string,
     ImageNaturalDimensions
   >) ??
-  ((globalThis as Record<string, unknown>).__composition_imageDimsCache = new Map<
-    string,
-    ImageNaturalDimensions
-  >());
+  ((globalThis as Record<string, unknown>).__composition_imageDimsCache =
+    new Map<string, ImageNaturalDimensions>());
 
 /**
  * 이미지의 자연 치수를 동기적으로 조회한다.
@@ -218,6 +217,9 @@ export function clearImageCache(): void {
 export function getImageCacheSize(): number {
   return cache.size;
 }
+
+// 통합 해제 경로 등록 (ADR-153 Phase 2) — 캔버스 teardown 시 SkImage 전량 명시 해제
+registerSkiaCacheDestroy("imageCache", clearImageCache);
 
 // ============================================
 // Internal

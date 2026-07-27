@@ -43,6 +43,7 @@ import {
 import { toSkiaBlendMode } from "./blendModes";
 import { getCacheMetrics } from "./cacheMetrics";
 import { addCommandCount, incrementDrawCall } from "./drawStats";
+import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import { WASM_FLAGS } from "../wasm-bindings/featureFlags";
 import * as spatialIndex from "../wasm-bindings/spatialIndex";
 import { resolveStickyY, resolveStickyX } from "../layout/stickyResolver";
@@ -968,10 +969,10 @@ export function executeRenderCommands(
 
         // A-8: 드래그 중인 요소 반투명 처리
         if (hasDragOffset) {
-          const alphaPaint = new ck.Paint();
+          const alphaPaint = acquirePooledPaint(ck);
           alphaPaint.setAlphaf(DRAG_ELEMENT_ALPHA);
           canvas.saveLayer(alphaPaint);
-          alphaPaint.delete();
+          releasePooledPaint(alphaPaint);
           dragAlphaStack.push(true);
         } else {
           dragAlphaStack.push(false);
@@ -990,14 +991,14 @@ export function executeRenderCommands(
         }
 
         if (cmd.blendMode && cmd.blendMode !== "normal") {
-          const blendPaint = new ck.Paint();
+          const blendPaint = acquirePooledPaint(ck);
           blendPaint.setBlendMode(
             toSkiaBlendMode(ck, cmd.blendMode) as Parameters<
               typeof blendPaint.setBlendMode
             >[0],
           );
           canvas.saveLayer(blendPaint);
-          blendPaint.delete();
+          releasePooledPaint(blendPaint);
         }
 
         if (cmd.effects) {

@@ -9,24 +9,25 @@
  * @see docs/WASM_DOC_IMPACT_ANALYSIS.md §G.3
  */
 
-import type { CanvasKit, Canvas } from 'canvaskit-wasm';
+import type { CanvasKit, Canvas } from "canvaskit-wasm";
 import type {
   GeneratingEffectState,
   FlashAnimationState,
   AIEffectNodeBounds,
-} from './types';
-import { SkiaDisposable } from './disposable';
-import type { SkiaNodeData } from './nodeRenderers';
-import type { AIVisualFeedbackState } from '../../../stores/aiVisualFeedback';
+} from "./types";
+import { SkiaDisposable } from "./disposable";
+import { acquireScopedPaint } from "./paints";
+import type { SkiaNodeData } from "./nodeRenderers";
+import type { AIVisualFeedbackState } from "../../../stores/aiVisualFeedback";
 
 // ============================================
 // Constants
 // ============================================
 
-const PARTICLE_ORBIT_RADIUS = 20;    // 파티클 공전 반경 (px)
-const PARTICLE_DOT_RADIUS = 3;       // 각 파티클 점 반경 (px)
-const SCANLINE_SPEED = 200;          // 스캔라인 이동 속도 (px/s)
-const SCANLINE_HEIGHT = 4;           // 스캔라인 높이 (px)
+const PARTICLE_ORBIT_RADIUS = 20; // 파티클 공전 반경 (px)
+const PARTICLE_DOT_RADIUS = 3; // 각 파티클 점 반경 (px)
+const SCANLINE_SPEED = 200; // 스캔라인 이동 속도 (px/s)
+const SCANLINE_HEIGHT = 4; // 스캔라인 높이 (px)
 
 // ============================================
 // Node Bounds Extraction
@@ -52,7 +53,11 @@ export function buildNodeBoundsMap(
 
   // 계층 트리 순회 — 부모 오프셋을 누적하여 씬-로컬 절대 좌표를 복원한다.
   // (Skia 트리가 계층적이므로 node.x/y는 부모 기준 상대 좌표)
-  function traverse(node: SkiaNodeData, parentX: number, parentY: number): void {
+  function traverse(
+    node: SkiaNodeData,
+    parentX: number,
+    parentY: number,
+  ): void {
     const absX = parentX + node.x;
     const absY = parentY + node.y;
 
@@ -63,7 +68,9 @@ export function buildNodeBoundsMap(
         y: absY,
         width: node.width,
         height: node.height,
-        borderRadius: Array.isArray(node.box?.borderRadius) ? node.box.borderRadius[0] : (node.box?.borderRadius ?? 0),
+        borderRadius: Array.isArray(node.box?.borderRadius)
+          ? node.box.borderRadius[0]
+          : (node.box?.borderRadius ?? 0),
       });
     }
     if (node.children) {
@@ -119,17 +126,21 @@ export function renderGeneratingEffects(
           null,
         ),
       );
-      const blurPaint = scope.track(new ck.Paint());
+      const blurPaint = acquireScopedPaint(scope, ck);
       blurPaint.setImageFilter(blurFilter);
       blurPaint.setAlphaf(0.6);
 
       // 반투명 오버레이 배경
-      const overlayPaint = scope.track(new ck.Paint());
+      const overlayPaint = acquireScopedPaint(scope, ck);
       overlayPaint.setColor(ck.Color4f(0.95, 0.95, 0.97, 0.5));
 
       canvas.saveLayer(blurPaint);
       if (bounds.borderRadius > 0) {
-        const rrect = ck.RRectXY(rect, bounds.borderRadius, bounds.borderRadius);
+        const rrect = ck.RRectXY(
+          rect,
+          bounds.borderRadius,
+          bounds.borderRadius,
+        );
         canvas.drawRRect(rrect, overlayPaint);
       } else {
         canvas.drawRect(rect, overlayPaint);
@@ -142,7 +153,7 @@ export function renderGeneratingEffects(
       const centerX = bounds.x + bounds.width / 2;
       const centerY = bounds.y + bounds.height / 2;
 
-      const particlePaint = scope.track(new ck.Paint());
+      const particlePaint = acquireScopedPaint(scope, ck);
       particlePaint.setAntiAlias(true);
       particlePaint.setColor(state.particleColor);
 
@@ -199,7 +210,7 @@ export function renderFlashes(
       );
 
       // 1. 스트로크 RRect
-      const strokePaint = scope.track(new ck.Paint());
+      const strokePaint = acquireScopedPaint(scope, ck);
       strokePaint.setAntiAlias(true);
       strokePaint.setStyle(ck.PaintStyle.Stroke);
       strokePaint.setStrokeWidth(state.config.strokeWidth);
@@ -213,7 +224,11 @@ export function renderFlashes(
       );
 
       if (bounds.borderRadius > 0) {
-        const rrect = ck.RRectXY(rect, bounds.borderRadius, bounds.borderRadius);
+        const rrect = ck.RRectXY(
+          rect,
+          bounds.borderRadius,
+          bounds.borderRadius,
+        );
         canvas.drawRRect(rrect, strokePaint);
       } else {
         canvas.drawRect(rect, strokePaint);
@@ -221,7 +236,8 @@ export function renderFlashes(
 
       // 2. 스캔라인 그라디언트 (선택적)
       if (state.config.scanLine) {
-        const scanY = bounds.y + ((elapsed * SCANLINE_SPEED) / 1000) % bounds.height;
+        const scanY =
+          bounds.y + (((elapsed * SCANLINE_SPEED) / 1000) % bounds.height);
 
         canvas.save();
         canvas.clipRect(rect, ck.ClipOp.Intersect, false);
@@ -232,7 +248,7 @@ export function renderFlashes(
           bounds.x + bounds.width,
           scanY + SCANLINE_HEIGHT,
         );
-        const scanPaint = scope.track(new ck.Paint());
+        const scanPaint = acquireScopedPaint(scope, ck);
         scanPaint.setColor(
           ck.Color4f(
             state.config.color[0],

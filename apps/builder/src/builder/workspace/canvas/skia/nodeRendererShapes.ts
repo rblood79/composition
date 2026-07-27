@@ -1,5 +1,6 @@
 import type { CanvasKit, Canvas } from "canvaskit-wasm";
 import type { SkiaNodeData } from "./nodeRendererTypes";
+import { acquirePooledPaint, releasePooledPaint } from "./paints";
 
 export function renderLine(
   ck: CanvasKit,
@@ -9,7 +10,7 @@ export function renderLine(
   if (!node.line) return;
   // Skip fully transparent strokes — Skia paint doesn't always respect alpha=0
   if (node.line.strokeColor[3] <= 0) return;
-  const paint = new ck.Paint();
+  const paint = acquirePooledPaint(ck);
   paint.setAntiAlias(true);
   paint.setStyle(ck.PaintStyle.Stroke);
   paint.setStrokeWidth(node.line.strokeWidth);
@@ -41,7 +42,7 @@ export function renderLine(
     paint.setPathEffect(null);
     dashEffect.delete();
   }
-  paint.delete();
+  releasePooledPaint(paint);
 }
 
 export function renderArc(
@@ -61,7 +62,7 @@ export function renderArc(
     strokeCap,
   } = node.arc;
 
-  const paint = new ck.Paint();
+  const paint = acquirePooledPaint(ck);
   paint.setAntiAlias(true);
   paint.setStyle(ck.PaintStyle.Stroke);
   paint.setStrokeWidth(strokeWidth);
@@ -82,7 +83,7 @@ export function renderArc(
   canvas.drawPath(path, paint);
 
   path.delete();
-  paint.delete();
+  releasePooledPaint(paint);
 }
 
 export function renderPartialBorder(
@@ -103,7 +104,7 @@ export function renderPartialBorder(
   const rBR = Math.min(Math.max(0, rawBR), maxR);
   const rBL = Math.min(Math.max(0, rawBL), maxR);
 
-  const paint = new ck.Paint();
+  const paint = acquirePooledPaint(ck);
   paint.setAntiAlias(true);
   paint.setStyle(ck.PaintStyle.Stroke);
   paint.setStrokeWidth(strokeWidth);
@@ -194,7 +195,7 @@ export function renderPartialBorder(
     paint.setPathEffect(null);
     dashEffect.delete();
   }
-  paint.delete();
+  releasePooledPaint(paint);
 }
 
 export function renderIconPath(
@@ -207,7 +208,7 @@ export function renderIconPath(
     node.iconPath;
   const scale = size / 24;
 
-  const paint = new ck.Paint();
+  const paint = acquirePooledPaint(ck);
   paint.setAntiAlias(true);
   paint.setStyle(ck.PaintStyle.Stroke);
   paint.setStrokeWidth(strokeWidth);
@@ -233,7 +234,7 @@ export function renderIconPath(
     }
   }
 
-  paint.delete();
+  releasePooledPaint(paint);
   canvas.restore();
 }
 
@@ -250,7 +251,7 @@ export function renderScrollbar(
   const TRACK_COLOR = Float32Array.of(0, 0, 0, 0.08);
   const THUMB_COLOR = Float32Array.of(0, 0, 0, 0.25);
 
-  const paint = new ck.Paint();
+  const paint = acquirePooledPaint(ck);
   paint.setAntiAlias(true);
 
   if (node.scrollbar.vertical) {
@@ -299,5 +300,5 @@ export function renderScrollbar(
     canvas.drawRRect(thumbRRect, paint);
   }
 
-  paint.delete();
+  releasePooledPaint(paint);
 }

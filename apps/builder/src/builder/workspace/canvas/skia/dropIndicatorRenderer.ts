@@ -9,6 +9,7 @@
 
 import type { CanvasKit, Canvas } from "canvaskit-wasm";
 import type { BoundingBox } from "../selection/types";
+import { acquirePooledPaint, releasePooledPaint } from "./paints";
 
 // blue-500 (#3b82f6) — same-parent reorder
 const DROP_R = 0x3b / 255;
@@ -57,7 +58,7 @@ export function renderDropIndicator(
   const sw = 2 / zoom;
   if (state.isReparent) {
     // C-1: 컨테이너 반투명 배경 오버레이
-    const bgPaint = new ck.Paint();
+    const bgPaint = acquirePooledPaint(ck);
     bgPaint.setColor(ck.Color4f(R, G, B, 0.06));
     bgPaint.setAntiAlias(true);
     bgPaint.setStyle(ck.PaintStyle.Fill);
@@ -68,10 +69,10 @@ export function renderDropIndicator(
       targetBounds.y + targetBounds.height,
       bgPaint,
     );
-    bgPaint.delete();
+    releasePooledPaint(bgPaint);
 
     // C-2: 타겟 컨테이너 아웃라인 (2/zoom, alpha 0.8)
-    const outlinePaint = new ck.Paint();
+    const outlinePaint = acquirePooledPaint(ck);
     outlinePaint.setColor(ck.Color4f(R, G, B, 0.8));
     outlinePaint.setAntiAlias(true);
     outlinePaint.setStyle(ck.PaintStyle.Stroke);
@@ -83,7 +84,7 @@ export function renderDropIndicator(
       targetBounds.y + targetBounds.height + sw / 2,
       outlinePaint,
     );
-    outlinePaint.delete();
+    releasePooledPaint(outlinePaint);
   }
 
   // C-3: 삽입 라인 (solid, round cap, 양끝 원)
@@ -114,7 +115,7 @@ export function renderDropIndicator(
 
     if (state.placeholderBounds) {
       const placeholder = state.placeholderBounds;
-      const placeholderFill = new ck.Paint();
+      const placeholderFill = acquirePooledPaint(ck);
       placeholderFill.setColor(ck.Color4f(R, G, B, 0.08));
       placeholderFill.setAntiAlias(true);
       placeholderFill.setStyle(ck.PaintStyle.Fill);
@@ -125,9 +126,9 @@ export function renderDropIndicator(
         placeholder.y + placeholder.height,
         placeholderFill,
       );
-      placeholderFill.delete();
+      releasePooledPaint(placeholderFill);
 
-      const placeholderStroke = new ck.Paint();
+      const placeholderStroke = acquirePooledPaint(ck);
       placeholderStroke.setColor(ck.Color4f(R, G, B, 0.55));
       placeholderStroke.setAntiAlias(true);
       placeholderStroke.setStyle(ck.PaintStyle.Stroke);
@@ -139,10 +140,10 @@ export function renderDropIndicator(
         placeholder.y + placeholder.height,
         placeholderStroke,
       );
-      placeholderStroke.delete();
+      releasePooledPaint(placeholderStroke);
     }
 
-    const linePaint = new ck.Paint();
+    const linePaint = acquirePooledPaint(ck);
     linePaint.setColor(ck.Color4f(R, G, B, 1));
     linePaint.setAntiAlias(true);
     linePaint.setStyle(ck.PaintStyle.Stroke);
@@ -166,11 +167,11 @@ export function renderDropIndicator(
         linePaint,
       );
     }
-    linePaint.delete();
+    releasePooledPaint(linePaint);
 
     // 양끝 원
     const circleR = 3 / zoom;
-    const circlePaint = new ck.Paint();
+    const circlePaint = acquirePooledPaint(ck);
     circlePaint.setColor(ck.Color4f(R, G, B, 1));
     circlePaint.setAntiAlias(true);
     circlePaint.setStyle(ck.PaintStyle.Fill);
@@ -194,6 +195,6 @@ export function renderDropIndicator(
         circlePaint,
       );
     }
-    circlePaint.delete();
+    releasePooledPaint(circlePaint);
   }
 }

@@ -12,6 +12,7 @@ import type { CanvasKit, Canvas } from "canvaskit-wasm";
 import type { FillStyle } from "./types";
 import { maybeAmplifyOklab } from "./oklabInterpolation";
 import { flattenColors } from "./fills";
+import { acquirePooledPaint, releasePooledPaint } from "./paints";
 
 // ============================================
 // SkSL Shader Source
@@ -236,7 +237,7 @@ export function applyMaskImage(
 
   let contentShader: { delete(): void } | null = null;
   let resultShader: { delete(): void } | null = null;
-  const paint = new ck.Paint();
+  const paint = acquirePooledPaint(ck);
 
   try {
     contentShader = (
@@ -270,7 +271,7 @@ export function applyMaskImage(
     paint.setShader(resultShader as Parameters<typeof paint.setShader>[0]);
     canvas.drawRect(ck.LTRBRect(0, 0, width, height), paint);
   } finally {
-    paint.delete();
+    releasePooledPaint(paint);
     resultShader?.delete();
     contentShader?.delete();
     (snapshot as { delete(): void }).delete();
@@ -306,13 +307,13 @@ export function applyMaskLayerGradient(
   height: number,
   maskShader: { delete(): void },
 ): void {
-  const paint = new ck.Paint();
+  const paint = acquirePooledPaint(ck);
   try {
     paint.setBlendMode(ck.BlendMode.DstIn);
     paint.setShader(maskShader as Parameters<typeof paint.setShader>[0]);
     canvas.drawRect(ck.LTRBRect(0, 0, width, height), paint);
   } finally {
-    paint.delete();
+    releasePooledPaint(paint);
   }
 }
 

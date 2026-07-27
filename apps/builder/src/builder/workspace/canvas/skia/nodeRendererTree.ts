@@ -1,6 +1,7 @@
 import type { CanvasKit, Canvas, FontMgr } from "canvaskit-wasm";
 import { beginRenderEffects, endRenderEffects } from "./effects";
 import { toSkiaBlendMode } from "./blendModes";
+import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import { renderBox } from "./nodeRendererBorders";
 import { buildClipPath, sortByStackingOrder } from "./nodeRendererClip";
 import { renderImage } from "./nodeRendererImage";
@@ -29,7 +30,10 @@ interface DragVisualOffsetData {
 
 const G = globalThis as unknown as {
   __composition_dragVisualOffset?: DragVisualOffsetData | null;
-  __composition_dragSiblingOffsets?: Map<string, { dx: number; dy: number }> | null;
+  __composition_dragSiblingOffsets?: Map<
+    string,
+    { dx: number; dy: number }
+  > | null;
 };
 
 function _get(): DragVisualOffsetData | null {
@@ -155,14 +159,14 @@ function renderNodeInternal(
 
   let hasBlendLayer = false;
   if (node.blendMode && node.blendMode !== "normal") {
-    const blendPaint = new ck.Paint();
+    const blendPaint = acquirePooledPaint(ck);
     blendPaint.setBlendMode(
       toSkiaBlendMode(ck, node.blendMode) as Parameters<
         typeof blendPaint.setBlendMode
       >[0],
     );
     canvas.saveLayer(blendPaint);
-    blendPaint.delete();
+    releasePooledPaint(blendPaint);
     hasBlendLayer = true;
   }
 

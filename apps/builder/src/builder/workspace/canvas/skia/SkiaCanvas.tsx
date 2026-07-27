@@ -21,6 +21,7 @@ import {
   syncCustomFontsWithSkia,
 } from "../../../fonts/loadCustomFontsToSkia";
 import { registerImageLoadCallback } from "./imageCache";
+import { destroyAllSkiaCaches } from "./disposable";
 import {
   createOverlayInvalidationPacket,
   type RendererInvalidationPacket,
@@ -786,6 +787,11 @@ export function SkiaCanvas({
       rendererRef.current = null;
     };
   }, [ready, containerEl, dropIndicatorSnapshotRef, pageTitleBoundsMapRef]);
+
+  // 캔버스 unmount 시 모듈 캐시 통합 해제 (ADR-153 Phase 2 — R2 WASM 누수 차단).
+  // render-loop effect 의 cleanup 은 deps 변경마다 재실행되므로 여기(unmount 한정)서만
+  // 파괴한다 — paint 풀/imageCache 는 remount 시 lazy 재구축된다.
+  useEffect(() => () => destroyAllSkiaCaches(), []);
 
   // 페이지 전환 시 오버레이 갱신
   const prevPageIdRef = useRef(

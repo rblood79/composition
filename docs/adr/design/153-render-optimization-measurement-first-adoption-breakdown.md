@@ -77,14 +77,25 @@
   - [x] 계측 자체 오버헤드 < 0.5ms/frame (다수 프레임 누적 판정) — G1 ✅ 2026-07-27: 줌 오실레이션 구동 중 `render.frame` mean 0.23ms (n=1000) — 계측 포함 전체 프레임 비용이 이미 기준 미만
   - [x] Chrome MCP 로 HUD 에 draw-call/GPU time/miss 사유 표시 실동작 확인 (live behavior 게이트) — G1 ✅ 2026-07-27: HUD `GPU 2.02ms` / `Cmds 6 / Draws 2` / `commandStream miss: forced 279, registry 6` / `contentSurface miss: invalidate 281, registry 6` 표시 + 분해 라벨 3종 142 표본 + speedscope 직렬화 stack-valid/단조 검증 (다운로드 낙하만 CDP 자동화 세션의 Chrome 다운로드 억제로 미확인 — 앱 결함 아님, 수동 세션에서 클릭 시 정상 경로)
 
-### Phase 2 — Paint/자원 lifecycle 감사 + 풀링
+### Phase 2 — Paint/자원 lifecycle 감사 + 풀링 — **Implemented 2026-07-27**
+
+> 감사 결과 77건 (재계수 — disposable.ts 1건은 주석 예시) 3분류: (a) frame-hot
+> per-draw = node 렌더러 + renderCommands + effects + overlay 렌더러 / (b)
+> event-hot = dropIndicator·slotMarker·aiEffects·workflow 계열 (뷰/상호작용
+> 활성 시에만) / (c) cold = `LRUTextureCache` (인스턴스 0건 휴면 — 조치 불요).
+> **(a)/(b) 전량 (77건) 을 free-list 풀로 전환** — purpose-named singleton 대신
+> 명시 acquire/release 를 택한 이유: workflowRenderer 가 4~9개 paint 를 함수
+> 스코프에서 동시 보유 + 루프 재사용하는 형태라 ring 재활용과 충돌한다.
+> scope 사이트는 `acquireScopedPaint(scope, ck)` shim 으로 `SkiaDisposable`
+> 계약 유지. 재발 방지: `paintPool.static.test.ts` 가 skia/ 소스의 직접
+> `new ck.Paint()` 0건을 정적 강제.
 
 - `Paint()` 전수 grep (2026-07-27 기준 77건, 착수 시 재계수) → 3분류: (a) frame-hot (매 프레임 생성) / (b) event-hot (상호작용 시 생성) / (c) cold (init 1회 — 조치 불요)
 - (a)/(b) 를 singleton paint 모듈로 풀링 (open-pencil `paints.ts` 35+ singleton 패턴) — `setColor`/`setAlphaf` reuse, 명시적 `.delete()` 단일 경로
 - 기존 캐시들 (`imageCache.ts` / `gpuTextureCache.ts` / paragraph 측정 LRU / 신설 paint 풀) 의 해제 경로를 단일 destroy 심볼로 정합 (open-pencil `lifecycle.ts` 9-캐시 통합 해제 패턴, 기존 `disposable.ts` 확장)
 - 체크리스트:
-  - [ ] frame-hot 분류 paint 의 per-frame 생성 0건 (grep + dev 카운터)
-  - [ ] destroy 경로 단일화 — 페이지 전환/캔버스 재생성 반복 시 WASM heap 증가 없음 실측
+  - [x] frame-hot 분류 paint 의 per-frame 생성 0건 (grep + dev 카운터) ✅ 2026-07-27: 정적 — `paintPool.static.test.ts` 가 skia/ 직접 생성 0건 강제. live — 줌 오실레이션 150틱 후 paintPool hits 9,742 / 생성(grow) 2 / 풀 크기 2 (종전엔 9,742회 전부 WASM malloc+free)
+  - [x] destroy 경로 단일화 — 페이지 전환/캔버스 재생성 반복 시 WASM heap 증가 없음 실측 ✅ 2026-07-27: `registerSkiaCacheDestroy`/`destroyAllSkiaCaches` (disposable.ts) 에 paintPool + imageCache 등록, SkiaCanvas unmount 한정 발화. live — dashboard 이탈(unmount) 후 재진입 시 grow 2→4 (파괴→재구축 증명) + size 2 재안정 + 미반환 경고 0 + 시각 무결. `clearImageCache` 는 종전 호출자 0건이던 휴면 함수를 실배선
 
 ### Phase 3 — node/subtree Picture 캐시 (open-pencil T3 + textPicture 등가)
 

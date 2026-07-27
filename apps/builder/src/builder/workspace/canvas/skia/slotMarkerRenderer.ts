@@ -2,6 +2,7 @@ import type { CanvasKit, Canvas, FontMgr } from "canvaskit-wasm";
 import type { EditingSemanticsRole } from "../../../utils/editingSemantics";
 import type { BoundingBox } from "../selection/types";
 import { SkiaDisposable } from "./disposable";
+import { acquireScopedPaint } from "./paints";
 import { getSemanticOverlayColor } from "./semanticOverlayColors";
 
 const SLOT_HATCH_ALPHA = 0.42;
@@ -32,7 +33,7 @@ export function renderSlotHatchPattern(
       canvas.save();
       canvas.clipRect(rect, ck.ClipOp.Intersect, true);
 
-      const paint = scope.track(new ck.Paint());
+      const paint = acquireScopedPaint(scope, ck);
       paint.setAntiAlias(true);
       paint.setStyle(ck.PaintStyle.Stroke);
       paint.setStrokeWidth(1.5 / zoom);
@@ -59,7 +60,7 @@ export function renderSlotHatchPattern(
       canvas.restore();
     }
 
-    const borderPaint = scope.track(new ck.Paint());
+    const borderPaint = acquireScopedPaint(scope, ck);
     borderPaint.setAntiAlias(true);
     borderPaint.setStyle(ck.PaintStyle.Stroke);
     borderPaint.setStrokeWidth(1.5 / zoom);
@@ -111,7 +112,7 @@ export function renderCollectionRemainderMarker(
     const font = scope.track(new ck.Font(typeface, REMAINDER_LABEL_FONT_SIZE));
     font.setSubpixel(true);
 
-    const paint = scope.track(new ck.Paint());
+    const paint = acquireScopedPaint(scope, ck);
     paint.setAntiAlias(true);
     paint.setStyle(ck.PaintStyle.Fill);
     paint.setColor(getSemanticOverlayColor(ck, null, REMAINDER_LABEL_ALPHA));

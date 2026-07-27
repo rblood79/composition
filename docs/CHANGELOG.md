@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Paint 풀 + 캐시 해제 단일화 — ADR-153 Phase 2] - 2026-07-27
+
+### Architecture
+
+- **Paint free-list 풀 도입** (ADR-153 Phase 2 — 신규 `skia/paints.ts`):
+  - `Paint()` 직접 생성 77건 전수 감사 (frame-hot/event-hot/cold 3분류) 후 (a)/(b) 전량을 `acquirePooledPaint`/`releasePooledPaint`/`acquireScopedPaint` 로 전환 — 14개 렌더러 파일. fresh 기본 상태 리셋 (사이트가 쓰는 setter 12종 전수) 로 사이트 구성 코드 무변경
+  - **Why**: 상호작용 프레임마다 그리기 항목 수만큼 WASM malloc/free 반복 (open-pencil `paints.ts` singleton 등가 — R2 누수 위험 + heap churn). 실측: 줌 구동 중 재사용 9,742회 / 신규 생성 2회 (풀 크기 2 로 안정)
+  - 재발 방지: `paintPool.static.test.ts` — skia/ 소스의 직접 `new ck.Paint()` 0건 정적 강제
+- **Skia 캐시 해제 경로 단일화** (`disposable.ts` — open-pencil lifecycle 패턴):
+  - `registerSkiaCacheDestroy`/`destroyAllSkiaCaches` 레지스트리 — paintPool + imageCache self-register, SkiaCanvas unmount 한정 발화. 호출자 0건이던 `clearImageCache` 실배선 (캔버스 teardown 시 SkImage 잔존 해소)
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{paints,disposable,imageCache,SkiaCanvas}` + 렌더러 14파일
+
 ## [렌더 계측 보강 — ADR-153 Phase 1] - 2026-07-27
 
 ### Infrastructure

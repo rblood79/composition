@@ -8,10 +8,11 @@
  * (순수 함수 + SkiaDisposable).
  */
 
-import type { CanvasKit, Canvas } from 'canvaskit-wasm';
-import { SkiaDisposable } from './disposable';
-import type { PageFrame } from './workflowRenderer';
-import type { WorkflowEdge } from './workflowEdges';
+import type { CanvasKit, Canvas } from "canvaskit-wasm";
+import { SkiaDisposable } from "./disposable";
+import { acquireScopedPaint } from "./paints";
+import type { PageFrame } from "./workflowRenderer";
+import type { WorkflowEdge } from "./workflowEdges";
 
 // ============================================
 // Types
@@ -65,7 +66,7 @@ export const DEFAULT_MINIMAP_CONFIG: MinimapConfig = {
 };
 
 /** 캔버스 대비 미니맵 비율 (10%) */
-export const MINIMAP_CANVAS_RATIO = 0.10;
+export const MINIMAP_CANVAS_RATIO = 0.1;
 /** 미니맵 최소/최대 크기 (px) */
 export const MINIMAP_MIN_WIDTH = 80;
 export const MINIMAP_MAX_WIDTH = 200;
@@ -216,7 +217,7 @@ export function renderWorkflowMinimap(
     const bgRect = ck.XYWHRect(mmSceneX, mmSceneY, mmSceneW, mmSceneH);
     const bgRRect = ck.RRectXY(bgRect, borderRadius, borderRadius);
 
-    const bgPaint = scope.track(new ck.Paint());
+    const bgPaint = acquireScopedPaint(scope, ck);
     bgPaint.setAntiAlias(true);
     bgPaint.setStyle(ck.PaintStyle.Fill);
     bgPaint.setColor(
@@ -230,7 +231,7 @@ export function renderWorkflowMinimap(
     canvas.drawRRect(bgRRect, bgPaint);
 
     // ── 보더 ──
-    const borderPaint = scope.track(new ck.Paint());
+    const borderPaint = acquireScopedPaint(scope, ck);
     borderPaint.setAntiAlias(true);
     borderPaint.setStyle(ck.PaintStyle.Stroke);
     borderPaint.setStrokeWidth(1 / zoom);
@@ -249,27 +250,45 @@ export function renderWorkflowMinimap(
     canvas.clipRRect(bgRRect, ck.ClipOp.Intersect, true);
 
     // ── 미니맵 변환 계산 ──
-    const transform = computeMinimapTransform(data.pageFrames, mmSceneW, mmSceneH);
+    const transform = computeMinimapTransform(
+      data.pageFrames,
+      mmSceneW,
+      mmSceneH,
+    );
 
     // 씬 좌표를 미니맵 내부 좌표로 변환하는 헬퍼
     const toMmX = (sx: number) =>
-      mmSceneX + transform.offsetX + (sx - transform.sceneMinX) * transform.scale;
+      mmSceneX +
+      transform.offsetX +
+      (sx - transform.sceneMinX) * transform.scale;
     const toMmY = (sy: number) =>
-      mmSceneY + transform.offsetY + (sy - transform.sceneMinY) * transform.scale;
+      mmSceneY +
+      transform.offsetY +
+      (sy - transform.sceneMinY) * transform.scale;
 
     // ── 페이지 프레임 렌더링 ──
-    const defaultPagePaint = scope.track(new ck.Paint());
+    const defaultPagePaint = acquireScopedPaint(scope, ck);
     defaultPagePaint.setAntiAlias(true);
     defaultPagePaint.setStyle(ck.PaintStyle.Fill);
     defaultPagePaint.setColor(
-      ck.Color4f(PAGE_DEFAULT_COLOR[0], PAGE_DEFAULT_COLOR[1], PAGE_DEFAULT_COLOR[2], 1),
+      ck.Color4f(
+        PAGE_DEFAULT_COLOR[0],
+        PAGE_DEFAULT_COLOR[1],
+        PAGE_DEFAULT_COLOR[2],
+        1,
+      ),
     );
 
-    const focusedPagePaint = scope.track(new ck.Paint());
+    const focusedPagePaint = acquireScopedPaint(scope, ck);
     focusedPagePaint.setAntiAlias(true);
     focusedPagePaint.setStyle(ck.PaintStyle.Fill);
     focusedPagePaint.setColor(
-      ck.Color4f(PAGE_FOCUSED_COLOR[0], PAGE_FOCUSED_COLOR[1], PAGE_FOCUSED_COLOR[2], 1),
+      ck.Color4f(
+        PAGE_FOCUSED_COLOR[0],
+        PAGE_FOCUSED_COLOR[1],
+        PAGE_FOCUSED_COLOR[2],
+        1,
+      ),
     );
 
     for (const [pageId, frame] of data.pageFrames) {
@@ -278,20 +297,26 @@ export function renderWorkflowMinimap(
       const rw = frame.width * transform.scale;
       const rh = frame.height * transform.scale;
 
-      const paint = pageId === data.focusedPageId ? focusedPagePaint : defaultPagePaint;
+      const paint =
+        pageId === data.focusedPageId ? focusedPagePaint : defaultPagePaint;
       canvas.drawRect(ck.XYWHRect(rx, ry, rw, rh), paint);
     }
 
     // ── 엣지 렌더링 (직선) ──
-    const navEdgePaint = scope.track(new ck.Paint());
+    const navEdgePaint = acquireScopedPaint(scope, ck);
     navEdgePaint.setAntiAlias(true);
     navEdgePaint.setStyle(ck.PaintStyle.Stroke);
     navEdgePaint.setStrokeWidth(1 / zoom);
     navEdgePaint.setColor(
-      ck.Color4f(NAVIGATION_COLOR[0], NAVIGATION_COLOR[1], NAVIGATION_COLOR[2], 1),
+      ck.Color4f(
+        NAVIGATION_COLOR[0],
+        NAVIGATION_COLOR[1],
+        NAVIGATION_COLOR[2],
+        1,
+      ),
     );
 
-    const eventEdgePaint = scope.track(new ck.Paint());
+    const eventEdgePaint = acquireScopedPaint(scope, ck);
     eventEdgePaint.setAntiAlias(true);
     eventEdgePaint.setStyle(ck.PaintStyle.Stroke);
     eventEdgePaint.setStrokeWidth(1 / zoom);
@@ -310,7 +335,8 @@ export function renderWorkflowMinimap(
       const ex = toMmX(targetFrame.x + targetFrame.width / 2);
       const ey = toMmY(targetFrame.y + targetFrame.height / 2);
 
-      const paint = edge.type === 'event-navigation' ? eventEdgePaint : navEdgePaint;
+      const paint =
+        edge.type === "event-navigation" ? eventEdgePaint : navEdgePaint;
       canvas.drawLine(sx, sy, ex, ey, paint);
     }
 
@@ -322,29 +348,43 @@ export function renderWorkflowMinimap(
     const vpH = vb.height * transform.scale;
 
     // 뷰포트 밖 영역 어둡게 (dim mask) — 현재 보이는 영역을 명확히 표시
-    const dimPaint = scope.track(new ck.Paint());
+    const dimPaint = acquireScopedPaint(scope, ck);
     dimPaint.setAntiAlias(true);
     dimPaint.setStyle(ck.PaintStyle.Fill);
     dimPaint.setColor(ck.Color4f(0, 0, 0, 0.45));
 
     // 상단 (미니맵 상단 ~ 뷰포트 상단)
-    canvas.drawRect(ck.XYWHRect(mmSceneX, mmSceneY, mmSceneW, vpY - mmSceneY), dimPaint);
+    canvas.drawRect(
+      ck.XYWHRect(mmSceneX, mmSceneY, mmSceneW, vpY - mmSceneY),
+      dimPaint,
+    );
     // 하단 (뷰포트 하단 ~ 미니맵 하단)
     const vpBottom = vpY + vpH;
-    canvas.drawRect(ck.XYWHRect(mmSceneX, vpBottom, mmSceneW, mmSceneY + mmSceneH - vpBottom), dimPaint);
+    canvas.drawRect(
+      ck.XYWHRect(mmSceneX, vpBottom, mmSceneW, mmSceneY + mmSceneH - vpBottom),
+      dimPaint,
+    );
     // 좌측 (뷰포트 좌측 왼쪽, 뷰포트 높이 범위)
     canvas.drawRect(ck.XYWHRect(mmSceneX, vpY, vpX - mmSceneX, vpH), dimPaint);
     // 우측 (뷰포트 우측 오른쪽, 뷰포트 높이 범위)
     const vpRight = vpX + vpW;
-    canvas.drawRect(ck.XYWHRect(vpRight, vpY, mmSceneX + mmSceneW - vpRight, vpH), dimPaint);
+    canvas.drawRect(
+      ck.XYWHRect(vpRight, vpY, mmSceneX + mmSceneW - vpRight, vpH),
+      dimPaint,
+    );
 
     // 뷰포트 테두리
-    const vpStrokePaint = scope.track(new ck.Paint());
+    const vpStrokePaint = acquireScopedPaint(scope, ck);
     vpStrokePaint.setAntiAlias(true);
     vpStrokePaint.setStyle(ck.PaintStyle.Stroke);
     vpStrokePaint.setStrokeWidth(1.5 / zoom);
     vpStrokePaint.setColor(
-      ck.Color4f(PAGE_FOCUSED_COLOR[0], PAGE_FOCUSED_COLOR[1], PAGE_FOCUSED_COLOR[2], 1),
+      ck.Color4f(
+        PAGE_FOCUSED_COLOR[0],
+        PAGE_FOCUSED_COLOR[1],
+        PAGE_FOCUSED_COLOR[2],
+        1,
+      ),
     );
     canvas.drawRect(ck.XYWHRect(vpX, vpY, vpW, vpH), vpStrokePaint);
 
@@ -404,8 +444,10 @@ export function minimapScreenToWorld(
   const localY = screenY - mmTop;
 
   // 오프셋/스케일 역변환 → 씬 좌표
-  const worldX = transform.sceneMinX + (localX - transform.offsetX) / transform.scale;
-  const worldY = transform.sceneMinY + (localY - transform.offsetY) / transform.scale;
+  const worldX =
+    transform.sceneMinX + (localX - transform.offsetX) / transform.scale;
+  const worldY =
+    transform.sceneMinY + (localY - transform.offsetY) / transform.scale;
 
   return { worldX, worldY };
 }

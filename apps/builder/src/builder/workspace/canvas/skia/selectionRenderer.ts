@@ -12,6 +12,7 @@
 
 import type { CanvasKit, Canvas, FontMgr } from "canvaskit-wasm";
 import { SkiaDisposable } from "./disposable";
+import { acquireScopedPaint } from "./paints";
 import type { BoundingBox } from "../selection/types";
 import { HANDLE_SIZE, HANDLE_CONFIGS } from "../selection/types";
 import type { EditingSemanticsRole } from "../../../utils/editingSemantics";
@@ -124,7 +125,7 @@ export function renderSelectionBox(
   let dashEffect: ReturnType<typeof ck.PathEffect.MakeDash> | null = null;
   try {
     const sw = 1 / zoom;
-    const paint = scope.track(new ck.Paint());
+    const paint = acquireScopedPaint(scope, ck);
     paint.setAntiAlias(true);
     paint.setStyle(ck.PaintStyle.Stroke);
     paint.setStrokeWidth(sw);
@@ -172,13 +173,13 @@ export function renderTransformHandles(
     const halfHandle = handleSize / 2;
 
     // Fill paint (흰색)
-    const fillPaint = scope.track(new ck.Paint());
+    const fillPaint = acquireScopedPaint(scope, ck);
     fillPaint.setAntiAlias(true);
     fillPaint.setStyle(ck.PaintStyle.Fill);
     fillPaint.setColor(ck.Color4f(1, 1, 1, 1));
 
     // Stroke paint (파란색)
-    const strokePaint = scope.track(new ck.Paint());
+    const strokePaint = acquireScopedPaint(scope, ck);
     strokePaint.setAntiAlias(true);
     strokePaint.setStyle(ck.PaintStyle.Stroke);
     strokePaint.setStrokeWidth(sw);
@@ -248,7 +249,7 @@ export function renderDimensionLabels(
       const labelX = bounds.x + bounds.width / 2 - labelWidth / 2;
       const labelY = bounds.y + bounds.height + offsetY;
 
-      const bgPaint = scope.track(new ck.Paint());
+      const bgPaint = acquireScopedPaint(scope, ck);
       bgPaint.setAntiAlias(true);
       bgPaint.setStyle(ck.PaintStyle.Fill);
       setDimensionLabelBackgroundColor(ck, bgPaint, semanticRole);
@@ -305,7 +306,7 @@ export function renderDimensionLabels(
     const labelY = bounds.y + bounds.height + offsetY;
 
     // 배경 RRect (둥근 모서리 사각형)
-    const bgPaint = scope.track(new ck.Paint());
+    const bgPaint = acquireScopedPaint(scope, ck);
     bgPaint.setAntiAlias(true);
     bgPaint.setStyle(ck.PaintStyle.Fill);
     setDimensionLabelBackgroundColor(ck, bgPaint, semanticRole);
@@ -318,7 +319,7 @@ export function renderDimensionLabels(
     canvas.drawRRect(rrect, bgPaint);
 
     // 텍스트 Paint (흰색)
-    const textPaint = scope.track(new ck.Paint());
+    const textPaint = acquireScopedPaint(scope, ck);
     textPaint.setAntiAlias(true);
     textPaint.setStyle(ck.PaintStyle.Fill);
     textPaint.setColor(ck.Color4f(1, 1, 1, 1));
@@ -365,7 +366,7 @@ export function renderLasso(
     );
 
     // Fill (반투명)
-    const fillPaint = scope.track(new ck.Paint());
+    const fillPaint = acquireScopedPaint(scope, ck);
     fillPaint.setAntiAlias(true);
     fillPaint.setStyle(ck.PaintStyle.Fill);
     fillPaint.setColor(
@@ -374,7 +375,7 @@ export function renderLasso(
     canvas.drawRect(rect, fillPaint);
 
     // Stroke
-    const strokePaint = scope.track(new ck.Paint());
+    const strokePaint = acquireScopedPaint(scope, ck);
     strokePaint.setAntiAlias(true);
     strokePaint.setStyle(ck.PaintStyle.Stroke);
     strokePaint.setStrokeWidth(sw);
@@ -425,7 +426,7 @@ export function renderPageTitle(
     font.setSubpixel(true);
 
     // 활성 페이지: selection 색상, 비활성: slate-500
-    const textPaint = scope.track(new ck.Paint());
+    const textPaint = acquireScopedPaint(scope, ck);
     textPaint.setAntiAlias(true);
     textPaint.setStyle(ck.PaintStyle.Fill);
     if (isActive) {

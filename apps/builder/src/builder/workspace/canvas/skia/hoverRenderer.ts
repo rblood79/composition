@@ -8,6 +8,7 @@
 
 import type { CanvasKit, Canvas } from "canvaskit-wasm";
 import { SkiaDisposable } from "./disposable";
+import { acquireScopedPaint } from "./paints";
 import type { BoundingBox } from "../selection/types";
 import type { EditingSemanticsRole } from "../../../utils/editingSemantics";
 import type {
@@ -61,7 +62,7 @@ export function renderHoverHighlight(
   let dashEffect: ReturnType<typeof ck.PathEffect.MakeDash> | null = null;
   try {
     const sw = dashed ? 1 / zoom : 2 / zoom;
-    const paint = scope.track(new ck.Paint());
+    const paint = acquireScopedPaint(scope, ck);
     paint.setAntiAlias(true);
     paint.setStyle(ck.PaintStyle.Stroke);
     paint.setStrokeWidth(sw);
@@ -111,7 +112,7 @@ export function renderOverflowContent(
     const clipRect = ck.LTRBRect(c.x, c.y, c.x + c.width, c.y + c.height);
     canvas.clipRect(clipRect, ck.ClipOp.Difference, true);
 
-    const fillPaint = scope.track(new ck.Paint());
+    const fillPaint = acquireScopedPaint(scope, ck);
     fillPaint.setAntiAlias(true);
     fillPaint.setStyle(ck.PaintStyle.Fill);
     fillPaint.setColor(
@@ -123,7 +124,7 @@ export function renderOverflowContent(
       ),
     );
 
-    const strokePaint = scope.track(new ck.Paint());
+    const strokePaint = acquireScopedPaint(scope, ck);
     strokePaint.setAntiAlias(true);
     strokePaint.setStyle(ck.PaintStyle.Stroke);
     strokePaint.setStrokeWidth(1 / zoom);
@@ -186,7 +187,7 @@ export function renderOverflowHatching(
     canvas.clipRect(childRect, ck.ClipOp.Intersect, true);
 
     // 대각선 45도 해칭 라인
-    const paint = scope.track(new ck.Paint());
+    const paint = acquireScopedPaint(scope, ck);
     paint.setAntiAlias(true);
     paint.setStyle(ck.PaintStyle.Stroke);
     paint.setStrokeWidth(1.5 / zoom);
@@ -250,7 +251,7 @@ export function renderEditingContextBorder(
   let dashEffect: ReturnType<typeof ck.PathEffect.MakeDash> | null = null;
   try {
     const sw = 1 / zoom;
-    const paint = scope.track(new ck.Paint());
+    const paint = acquireScopedPaint(scope, ck);
     paint.setAntiAlias(true);
     paint.setStyle(ck.PaintStyle.Stroke);
     paint.setStrokeWidth(sw);

@@ -2,6 +2,11 @@ import type { CanvasKit, Canvas, Paint } from "canvaskit-wasm";
 import { colord } from "colord";
 import { applyFill } from "./fills";
 import { SkiaDisposable } from "./disposable";
+import {
+  acquirePooledPaint,
+  acquireScopedPaint,
+  releasePooledPaint,
+} from "./paints";
 import { createRoundRectPath } from "./nodeRendererClip";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { DropShadowEffect } from "./types";
@@ -336,7 +341,7 @@ function renderBoxShadows(
       node.height + spread,
     );
 
-    const paint = new ck.Paint();
+    const paint = acquirePooledPaint(ck);
     paint.setAntiAlias(true);
     paint.setColor(shadow.color);
 
@@ -365,7 +370,7 @@ function renderBoxShadows(
       canvas.drawRect(shadowRect, paint);
     }
 
-    paint.delete();
+    releasePooledPaint(paint);
     canvas.restore();
   }
 }
@@ -428,7 +433,7 @@ function renderInnerBoxShadows(
     }
     path.setFillType(ck.FillType.EvenOdd);
 
-    const paint = new ck.Paint();
+    const paint = acquirePooledPaint(ck);
     paint.setAntiAlias(true);
     paint.setColor(shadow.color);
     if (shadow.sigmaX > 0 || shadow.sigmaY > 0) {
@@ -457,7 +462,7 @@ function renderInnerBoxShadows(
     canvas.restore();
 
     path.delete();
-    paint.delete();
+    releasePooledPaint(paint);
   }
 }
 
@@ -473,7 +478,7 @@ export function renderBox(
     // G1+G2: box-shadow는 fill 아래에 렌더 (CSS 스펙: shadow → background → border)
     renderBoxShadows(ck, canvas, node);
 
-    const paint = scope.track(new ck.Paint());
+    const paint = acquireScopedPaint(scope, ck);
     paint.setAntiAlias(true);
     paint.setStyle(ck.PaintStyle.Fill);
 
@@ -586,7 +591,7 @@ export function renderBox(
       const ow2 = node.width + expansion * 2;
       const oh2 = node.height + expansion * 2;
 
-      const outlinePaint = scope.track(new ck.Paint());
+      const outlinePaint = acquireScopedPaint(scope, ck);
       outlinePaint.setAntiAlias(true);
       outlinePaint.setStyle(ck.PaintStyle.Stroke);
       outlinePaint.setStrokeWidth(ow);
@@ -624,7 +629,7 @@ export function renderBox(
     }
 
     if (node.arc && node.arc.strokeColor[3] > 0) {
-      const arcPaint = new ck.Paint();
+      const arcPaint = acquirePooledPaint(ck);
       arcPaint.setAntiAlias(true);
       arcPaint.setStyle(ck.PaintStyle.Stroke);
       arcPaint.setStrokeWidth(node.arc.strokeWidth);
@@ -650,7 +655,7 @@ export function renderBox(
       canvas.drawPath(arcPath, arcPaint);
 
       arcPath.delete();
-      arcPaint.delete();
+      releasePooledPaint(arcPaint);
     }
   } finally {
     scope.dispose();

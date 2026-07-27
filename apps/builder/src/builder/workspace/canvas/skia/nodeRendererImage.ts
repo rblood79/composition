@@ -1,5 +1,6 @@
 import type { CanvasKit, Canvas, FontMgr } from "canvaskit-wasm";
 import { SkiaDisposable } from "./disposable";
+import { acquireScopedPaint } from "./paints";
 import { createRoundRectPath } from "./nodeRendererClip";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import { DEFAULT_FONT_FEATURES } from "../layout/engines/cssResolver";
@@ -44,7 +45,7 @@ export function renderImage(
 
     if (!node.image?.skImage) {
       if (node.box) {
-        const placeholderPaint = scope.track(new ck.Paint());
+        const placeholderPaint = acquireScopedPaint(scope, ck);
         placeholderPaint.setAntiAlias(true);
         placeholderPaint.setStyle(ck.PaintStyle.Fill);
         placeholderPaint.setColor(node.box.fillColor);
@@ -57,7 +58,7 @@ export function renderImage(
         const iconSize = Math.min(node.width, node.height) * 0.3;
         const iconX = (node.width - iconSize) / 2;
         const iconY = (node.height - iconSize) / 2;
-        const iconPaint = scope.track(new ck.Paint());
+        const iconPaint = acquireScopedPaint(scope, ck);
         iconPaint.setAntiAlias(true);
         iconPaint.setStyle(ck.PaintStyle.Fill);
         iconPaint.setColor(ck.Color(156, 163, 175, 1)); // gray-400
@@ -127,7 +128,7 @@ export function renderImage(
       );
     }
 
-    const paint = scope.track(new ck.Paint());
+    const paint = acquireScopedPaint(scope, ck);
     paint.setAntiAlias(true);
 
     const srcRect = ck.LTRBRect(

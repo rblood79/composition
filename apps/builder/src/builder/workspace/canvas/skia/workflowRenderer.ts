@@ -9,6 +9,7 @@
 
 import type { CanvasKit, Canvas, FontMgr } from "canvaskit-wasm";
 import { SkiaDisposable } from "./disposable";
+import { acquireScopedPaint } from "./paints";
 import type {
   WorkflowEdge,
   DataSourceEdge,
@@ -309,20 +310,20 @@ export function renderWorkflowEdges(
         highlightState.focusedPageId != null);
 
     // 공유 Paint 객체 (엣지 루프 밖에서 1회 생성, 속성만 업데이트)
-    const strokePaint = scope.track(new ck.Paint());
+    const strokePaint = acquireScopedPaint(scope, ck);
     strokePaint.setAntiAlias(true);
     strokePaint.setStyle(ck.PaintStyle.Stroke);
 
-    const arrowPaint = scope.track(new ck.Paint());
+    const arrowPaint = acquireScopedPaint(scope, ck);
     arrowPaint.setAntiAlias(true);
     arrowPaint.setStyle(ck.PaintStyle.Fill);
 
-    const srcFillPaint = scope.track(new ck.Paint());
+    const srcFillPaint = acquireScopedPaint(scope, ck);
     srcFillPaint.setAntiAlias(true);
     srcFillPaint.setStyle(ck.PaintStyle.Fill);
     srcFillPaint.setColor(ck.Color4f(1, 1, 1, 1));
 
-    const srcStrokePaint = scope.track(new ck.Paint());
+    const srcStrokePaint = acquireScopedPaint(scope, ck);
     srcStrokePaint.setAntiAlias(true);
     srcStrokePaint.setStyle(ck.PaintStyle.Stroke);
     srcStrokePaint.setStrokeWidth(1.2 / zoom);
@@ -585,15 +586,15 @@ export function renderDataSourceEdges(
     const lineStrokeWidth = 1 / zoom;
 
     // 공유 Paint 객체 (데이터소스 루프 밖에서 1회 생성)
-    const circlePaint = scope.track(new ck.Paint());
+    const circlePaint = acquireScopedPaint(scope, ck);
     circlePaint.setAntiAlias(true);
     circlePaint.setStyle(ck.PaintStyle.Fill);
 
-    const labelPaint = scope.track(new ck.Paint());
+    const labelPaint = acquireScopedPaint(scope, ck);
     labelPaint.setAntiAlias(true);
     labelPaint.setStyle(ck.PaintStyle.Fill);
 
-    const linePaint = scope.track(new ck.Paint());
+    const linePaint = acquireScopedPaint(scope, ck);
     linePaint.setAntiAlias(true);
     linePaint.setStyle(ck.PaintStyle.Stroke);
     linePaint.setStrokeWidth(lineStrokeWidth);
@@ -698,7 +699,7 @@ export function renderLayoutGroups(
     const fontSize = LAYOUT_LABEL_FONT_SIZE / zoom;
 
     // 스트로크 Paint (dashed)
-    const strokePaint = scope.track(new ck.Paint());
+    const strokePaint = acquireScopedPaint(scope, ck);
     strokePaint.setAntiAlias(true);
     strokePaint.setStyle(ck.PaintStyle.Stroke);
     strokePaint.setStrokeWidth(strokeWidth);
@@ -716,7 +717,7 @@ export function renderLayoutGroups(
     strokePaint.setPathEffect(dashEffect);
 
     // 배경 Fill Paint
-    const fillPaint = scope.track(new ck.Paint());
+    const fillPaint = acquireScopedPaint(scope, ck);
     fillPaint.setAntiAlias(true);
     fillPaint.setStyle(ck.PaintStyle.Fill);
     fillPaint.setColor(
@@ -729,7 +730,7 @@ export function renderLayoutGroups(
     );
 
     // 라벨 Paint
-    const labelPaint = scope.track(new ck.Paint());
+    const labelPaint = acquireScopedPaint(scope, ck);
     labelPaint.setAntiAlias(true);
     labelPaint.setStyle(ck.PaintStyle.Fill);
     labelPaint.setColor(
@@ -818,7 +819,7 @@ export function renderFrameAreaBorder(
     const safeZoom = Math.max(zoom, 0.001);
     const strokeWidth = FRAME_AREA_BORDER_STROKE_WIDTH / safeZoom;
 
-    const borderPaint = scope.track(new ck.Paint());
+    const borderPaint = acquireScopedPaint(scope, ck);
     borderPaint.setAntiAlias(true);
     borderPaint.setStyle(ck.PaintStyle.Stroke);
     borderPaint.setStrokeWidth(strokeWidth);
@@ -861,14 +862,14 @@ export function renderPageFrameHighlight(
     const strokeWidth = 2 / zoom;
 
     // 테두리 Paint
-    const borderPaint = scope.track(new ck.Paint());
+    const borderPaint = acquireScopedPaint(scope, ck);
     borderPaint.setAntiAlias(true);
     borderPaint.setStyle(ck.PaintStyle.Stroke);
     borderPaint.setStrokeWidth(strokeWidth);
     borderPaint.setColor(ck.Color4f(color[0], color[1], color[2], opacity));
 
     // 반투명 배경 Fill Paint
-    const fillPaint = scope.track(new ck.Paint());
+    const fillPaint = acquireScopedPaint(scope, ck);
     fillPaint.setAntiAlias(true);
     fillPaint.setStyle(ck.PaintStyle.Fill);
     fillPaint.setColor(ck.Color4f(color[0], color[1], color[2], opacity * 0.1));

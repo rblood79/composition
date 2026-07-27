@@ -25,6 +25,7 @@ import {
   type TextMeasureStyle,
 } from "../utils/textMeasure";
 import { SkiaDisposable } from "./disposable";
+import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import { skiaFontManager } from "./fontManager";
 import {
   getLastParagraphFontMgr,
@@ -235,10 +236,10 @@ export function renderText(
           ck.TileMode.Decal,
           null,
         );
-        const blurPaint = new ck.Paint();
+        const blurPaint = acquirePooledPaint(ck);
         blurPaint.setImageFilter(blurFilter);
         canvas.saveLayer(blurPaint);
-        blurPaint.delete();
+        releasePooledPaint(blurPaint);
         blurFilter.delete();
         blurLayerAdded = true;
       }
@@ -252,7 +253,7 @@ export function renderText(
       const sg = shadow.color[1];
       const sb = shadow.color[2];
       const sa = shadow.color[3];
-      const shadowPaint = new ck.Paint();
+      const shadowPaint = acquirePooledPaint(ck);
       shadowPaint.setColorFilter(
         ck.ColorFilter.MakeMatrix([
           0,
@@ -278,7 +279,7 @@ export function renderText(
         ]),
       );
       canvas.saveLayer(shadowPaint);
-      shadowPaint.delete();
+      releasePooledPaint(shadowPaint);
 
       canvas.drawParagraph(paragraph, drawX, drawY);
 

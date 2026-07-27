@@ -22,8 +22,9 @@ interface Deletable {
  * ```ts
  * const scope = new SkiaDisposable();
  * try {
- *   const paint = scope.track(new ck.Paint());
- *   // ... paint 사용
+ *   const path = scope.track(new ck.Path());
+ *   // ... path 사용. Paint 는 직접 생성하지 말고
+ *   // paints.ts 의 acquireScopedPaint(scope, ck) 사용 (ADR-153 Phase 2)
  * } finally {
  *   scope.dispose();
  * }
@@ -54,3 +55,34 @@ export class SkiaDisposable {
   }
 }
 
+// ============================================================
+// 통합 캐시 해제 레지스트리 (ADR-153 Phase 2 — open-pencil lifecycle 패턴)
+// ============================================================
+
+/**
+ * Skia 관련 모듈 캐시 (paint 풀 / imageCache 등) 의 해제 경로 단일화.
+ *
+ * 각 캐시 모듈이 자기 해제 콜백을 self-register 하고, 캔버스 teardown
+ * (SkiaCanvas unmount) 이 `destroyAllSkiaCaches()` 단일 심볼만 호출한다.
+ * Why: 해제 경로가 모듈별로 분산되면 신규 캐시 추가 시 teardown 누락이
+ * 구조적으로 재발한다 (R2 — WASM 객체 누수).
+ */
+const cacheDestroyRegistry = new Map<string, () => void>();
+
+export function registerSkiaCacheDestroy(
+  name: string,
+  destroy: () => void,
+): void {
+  cacheDestroyRegistry.set(name, destroy);
+}
+
+/** 등록된 모든 Skia 캐시를 해제한다 — 캔버스 teardown 의 단일 진입점. */
+export function destroyAllSkiaCaches(): void {
+  for (const destroy of cacheDestroyRegistry.values()) {
+    try {
+      destroy();
+    } catch {
+      // 개별 캐시 해제 실패가 나머지 해제를 막지 않도록 격리
+    }
+  }
+}

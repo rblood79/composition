@@ -13,7 +13,8 @@
  * @see GridLayer.tsx (원본 PixiJS 구현)
  */
 
-import type { CanvasKit, Canvas } from 'canvaskit-wasm';
+import type { CanvasKit, Canvas } from "canvaskit-wasm";
+import { acquirePooledPaint, releasePooledPaint } from "./paints";
 
 // ============================================
 // Types
@@ -101,66 +102,153 @@ export function renderGrid(
 
   // 가시 영역의 시작/끝 (그리드 간격으로 정렬)
   const startX = Math.floor(cullingBounds.x / gridInterval) * gridInterval;
-  const endX = Math.ceil((cullingBounds.x + cullingBounds.width) / gridInterval) * gridInterval;
+  const endX =
+    Math.ceil((cullingBounds.x + cullingBounds.width) / gridInterval) *
+    gridInterval;
   const startY = Math.floor(cullingBounds.y / gridInterval) * gridInterval;
-  const endY = Math.ceil((cullingBounds.y + cullingBounds.height) / gridInterval) * gridInterval;
+  const endY =
+    Math.ceil((cullingBounds.y + cullingBounds.height) / gridInterval) *
+    gridInterval;
 
-  const paint = new ck.Paint();
+  const paint = acquirePooledPaint(ck);
   paint.setAntiAlias(false);
   paint.setStyle(ck.PaintStyle.Fill);
 
   // === 일반 그리드 ===
-  paint.setColor(ck.Color4f(GRID_COLOR[0], GRID_COLOR[1], GRID_COLOR[2], GRID_ALPHA));
+  paint.setColor(
+    ck.Color4f(GRID_COLOR[0], GRID_COLOR[1], GRID_COLOR[2], GRID_ALPHA),
+  );
 
   // 수직선
   for (let x = startX; x <= endX; x += gridInterval) {
     if (x % majorGridInterval === 0) continue;
-    canvas.drawRect(ck.XYWHRect(x - halfLine, cullingBounds.y, lineWidth, cullingBounds.height), paint);
+    canvas.drawRect(
+      ck.XYWHRect(
+        x - halfLine,
+        cullingBounds.y,
+        lineWidth,
+        cullingBounds.height,
+      ),
+      paint,
+    );
   }
   // 수평선
   for (let y = startY; y <= endY; y += gridInterval) {
     if (y % majorGridInterval === 0) continue;
-    canvas.drawRect(ck.XYWHRect(cullingBounds.x, y - halfLine, cullingBounds.width, lineWidth), paint);
+    canvas.drawRect(
+      ck.XYWHRect(
+        cullingBounds.x,
+        y - halfLine,
+        cullingBounds.width,
+        lineWidth,
+      ),
+      paint,
+    );
   }
 
   // === 메이저 그리드 (5배 간격, 더 진한 색상) ===
-  paint.setColor(ck.Color4f(MAJOR_GRID_COLOR[0], MAJOR_GRID_COLOR[1], MAJOR_GRID_COLOR[2], MAJOR_GRID_ALPHA));
+  paint.setColor(
+    ck.Color4f(
+      MAJOR_GRID_COLOR[0],
+      MAJOR_GRID_COLOR[1],
+      MAJOR_GRID_COLOR[2],
+      MAJOR_GRID_ALPHA,
+    ),
+  );
 
-  const majorStartX = Math.floor(cullingBounds.x / majorGridInterval) * majorGridInterval;
-  const majorEndX = Math.ceil((cullingBounds.x + cullingBounds.width) / majorGridInterval) * majorGridInterval;
-  const majorStartY = Math.floor(cullingBounds.y / majorGridInterval) * majorGridInterval;
-  const majorEndY = Math.ceil((cullingBounds.y + cullingBounds.height) / majorGridInterval) * majorGridInterval;
+  const majorStartX =
+    Math.floor(cullingBounds.x / majorGridInterval) * majorGridInterval;
+  const majorEndX =
+    Math.ceil((cullingBounds.x + cullingBounds.width) / majorGridInterval) *
+    majorGridInterval;
+  const majorStartY =
+    Math.floor(cullingBounds.y / majorGridInterval) * majorGridInterval;
+  const majorEndY =
+    Math.ceil((cullingBounds.y + cullingBounds.height) / majorGridInterval) *
+    majorGridInterval;
 
   for (let x = majorStartX; x <= majorEndX; x += majorGridInterval) {
-    canvas.drawRect(ck.XYWHRect(x - halfLine, cullingBounds.y, lineWidth, cullingBounds.height), paint);
+    canvas.drawRect(
+      ck.XYWHRect(
+        x - halfLine,
+        cullingBounds.y,
+        lineWidth,
+        cullingBounds.height,
+      ),
+      paint,
+    );
   }
   for (let y = majorStartY; y <= majorEndY; y += majorGridInterval) {
-    canvas.drawRect(ck.XYWHRect(cullingBounds.x, y - halfLine, cullingBounds.width, lineWidth), paint);
+    canvas.drawRect(
+      ck.XYWHRect(
+        cullingBounds.x,
+        y - halfLine,
+        cullingBounds.width,
+        lineWidth,
+      ),
+      paint,
+    );
   }
 
   // === 원점 중앙선 (씬 원점 0, 0) ===
   const centerLineWidth = CENTER_LINE_WIDTH / zoom;
   const halfCenter = centerLineWidth / 2;
-  paint.setColor(ck.Color4f(CENTER_LINE_COLOR[0], CENTER_LINE_COLOR[1], CENTER_LINE_COLOR[2], CENTER_LINE_ALPHA));
+  paint.setColor(
+    ck.Color4f(
+      CENTER_LINE_COLOR[0],
+      CENTER_LINE_COLOR[1],
+      CENTER_LINE_COLOR[2],
+      CENTER_LINE_ALPHA,
+    ),
+  );
 
   // Y축 (x=0) — 가시 영역에 포함될 때만 렌더링
   if (cullingBounds.x <= 0 && cullingBounds.x + cullingBounds.width >= 0) {
-    canvas.drawRect(ck.XYWHRect(-halfCenter, cullingBounds.y, centerLineWidth, cullingBounds.height), paint);
+    canvas.drawRect(
+      ck.XYWHRect(
+        -halfCenter,
+        cullingBounds.y,
+        centerLineWidth,
+        cullingBounds.height,
+      ),
+      paint,
+    );
   }
   // X축 (y=0)
   if (cullingBounds.y <= 0 && cullingBounds.y + cullingBounds.height >= 0) {
-    canvas.drawRect(ck.XYWHRect(cullingBounds.x, -halfCenter, cullingBounds.width, centerLineWidth), paint);
+    canvas.drawRect(
+      ck.XYWHRect(
+        cullingBounds.x,
+        -halfCenter,
+        cullingBounds.width,
+        centerLineWidth,
+      ),
+      paint,
+    );
   }
 
   // === 스냅 그리드 (선택적) ===
-  if (options.showSnapGrid && options.snapSize && options.snapSize !== gridInterval) {
-    paint.setColor(ck.Color4f(SNAP_GRID_COLOR[0], SNAP_GRID_COLOR[1], SNAP_GRID_COLOR[2], SNAP_GRID_ALPHA));
+  if (
+    options.showSnapGrid &&
+    options.snapSize &&
+    options.snapSize !== gridInterval
+  ) {
+    paint.setColor(
+      ck.Color4f(
+        SNAP_GRID_COLOR[0],
+        SNAP_GRID_COLOR[1],
+        SNAP_GRID_COLOR[2],
+        SNAP_GRID_ALPHA,
+      ),
+    );
 
     const snapSize = options.snapSize;
     const snapStartX = Math.floor(cullingBounds.x / snapSize) * snapSize;
-    const snapEndX = Math.ceil((cullingBounds.x + cullingBounds.width) / snapSize) * snapSize;
+    const snapEndX =
+      Math.ceil((cullingBounds.x + cullingBounds.width) / snapSize) * snapSize;
     const snapStartY = Math.floor(cullingBounds.y / snapSize) * snapSize;
-    const snapEndY = Math.ceil((cullingBounds.y + cullingBounds.height) / snapSize) * snapSize;
+    const snapEndY =
+      Math.ceil((cullingBounds.y + cullingBounds.height) / snapSize) * snapSize;
     const dotRadius = 1 / zoom;
 
     for (let x = snapStartX; x <= snapEndX; x += snapSize) {
@@ -170,5 +258,5 @@ export function renderGrid(
     }
   }
 
-  paint.delete();
+  releasePooledPaint(paint);
 }

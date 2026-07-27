@@ -10,6 +10,7 @@
 import type { CanvasKit, Canvas, ImageFilter } from "canvaskit-wasm";
 import type { EffectStyle } from "./types";
 import { SkiaDisposable } from "./disposable";
+import { acquireScopedPaint } from "./paints";
 
 /**
  * 이 이펙트가 beginRenderEffects 에서 saveLayer 를 여는가(=endRenderEffects 가 restore 해야 하는가).
@@ -66,7 +67,7 @@ export function beginRenderEffects(
       if (!effectOpensLayer(effect)) continue;
       switch (effect.type) {
         case "opacity": {
-          const paint = scope.track(new ck.Paint());
+          const paint = acquireScopedPaint(scope, ck);
           paint.setAlphaf(effect.value);
           canvas.saveLayer(paint);
           layerCount++;
@@ -82,7 +83,7 @@ export function beginRenderEffects(
               null,
             ),
           );
-          const paint = scope.track(new ck.Paint());
+          const paint = acquireScopedPaint(scope, ck);
           paint.setImageFilter(filter);
           canvas.saveLayer(paint);
           layerCount++;
@@ -90,7 +91,7 @@ export function beginRenderEffects(
         }
 
         case "backdrop-filter": {
-          const paint = scope.track(new ck.Paint());
+          const paint = acquireScopedPaint(scope, ck);
           if (effect.sigma > 0) {
             const filter = scope.track(
               ck.ImageFilter.MakeBlur(
@@ -122,7 +123,7 @@ export function beginRenderEffects(
               null,
             ),
           );
-          const paint = scope.track(new ck.Paint());
+          const paint = acquireScopedPaint(scope, ck);
           paint.setImageFilter(filter);
           canvas.saveLayer(paint);
           layerCount++;
@@ -178,7 +179,7 @@ export function beginRenderEffects(
               inputFilter,
             ),
           );
-          const paint = scope.track(new ck.Paint());
+          const paint = acquireScopedPaint(scope, ck);
           paint.setImageFilter(filter);
           canvas.saveLayer(paint);
           layerCount++;
@@ -191,7 +192,7 @@ export function beginRenderEffects(
           const colorFilter = scope.track(
             ck.ColorFilter.MakeMatrix(effect.matrix),
           );
-          const paint = scope.track(new ck.Paint());
+          const paint = acquireScopedPaint(scope, ck);
           paint.setColorFilter(colorFilter);
           canvas.saveLayer(paint);
           layerCount++;
