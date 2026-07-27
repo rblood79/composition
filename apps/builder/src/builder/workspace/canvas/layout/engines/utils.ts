@@ -4765,7 +4765,16 @@ export function enrichWithIntrinsicSize(
     //   `!style?.minWidth` 는 **minWidth:0 을 미설정으로 오판**한다(falsy 함정). 0 은 "콘텐츠
     //   밑으로 축소 허용"이라는 명시 값이므로 덮어쓰면 안 된다 (DateInput/SelectValue 가
     //   implicitStyles 에서 `minWidth: 0` 을 받는다) → `== null` 로 판정.
-    if (isFlexChild && style?.minWidth == null) {
+    //
+    // **컨테이너는 제외 (ADR-169 Phase 2)**: 엔진이 컨테이너의 정확한 min-content 를
+    //   스스로 산출하게 됐다(`tree.rs::measure_intrinsic_width`). 여기서 명시 minWidth 를
+    //   주입하면 `min_main != AUTO` 가 되어 §4.5 auto-min 분기 자체가 실행되지 않고,
+    //   TS 의 **단일줄 측정**이 하한으로 굳는다 — 텍스트를 품은 `width:fit-content`
+    //   컨테이너가 최장 단어까지 접히지 못하고 80 에서 멈췄다 (DOM 40, R8-d fixture).
+    //   leaf 는 그대로 유지 — 비텍스트 합성 leaf(INLINE_BLOCK/CIRCLE/IMAGE)의 content 는
+    //   엔진이 여전히 모르므로 이 채널이 유일한 하한 공급원이다 (layout-engine.md §TS 잔존 계약).
+    const isContainerElement = (childElements?.length ?? 0) > 0;
+    if (isFlexChild && !isContainerElement && style?.minWidth == null) {
       injectedStyle.minWidth = ceiledWidth;
     }
   }

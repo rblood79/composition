@@ -147,8 +147,9 @@ Accepted — 2026-07-27 (리뷰 round 1 승인 — `docs/adr/reviews/169.md`, �
 | ----- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0     | Implemented 2026-07-27 | `containerIntrinsic.browser.test.ts` 신설 — 정합 3 (`it`, 회귀 가드) + 발산 4 (`it.fails`, Phase 2 목표) + 파이프라인 leg 1 + R8 판별/대조 4. **R8 masking 실재 확인** (아래 §R8 판정) |
 | 1     | Implemented 2026-07-27 | `tree.rs` — `MIN_CONTENT_AVAIL`/`MAX_CONTENT_AVAIL` 센티넬 + `IntrinsicMode` + mutation-generation 측정 캐시 + 스냅샷 복구. **G1 동작 무변경** (Rust 330 / parity 117 / builder 2925 전건 green), **G4 baseline 기록** (`benches/tree_solve.rs`, 깊이 스케일링 상한 포함) |
+| 2     | Implemented 2026-07-27 | `solve_flex` 2-b — 컨테이너 item 의 off 13(max-content)/off 19(min-content) 동시 배선. **G2** 발산 7형태 green + **R8 결론 = 축소**(컨테이너 한정 TS `minWidth` 주입 제거, 대조 실험으로 원인 확정), **G3** 단일 커밋 + Rust floor 계약 테스트. 잔존 1건: 파이프라인 중첩 텍스트 1.5px |
 
-### R8 판정 (Phase 0, 2026-07-27) — masking 실재
+### R8 판정 — Phase 0 관측 → Phase 2 확정 (2026-07-27)
 
 `width:fit-content` 컨테이너 item 에 stretch 자식을 넣은 판별 케이스에서 **engine leg 와 pipeline leg 의 결과가 다르다**:
 
@@ -159,4 +160,8 @@ Accepted — 2026-07-27 (리뷰 round 1 승인 — `docs/adr/reviews/169.md`, �
 
 `growsInFlex`(`utils.ts:4758`)가 `width` 채널을 막으므로 해당 형태에서 작동하는 채널은 `minWidth` 주입(`utils.ts:4767-4769`) 하나다. 즉 `min_main != AUTO` 가 되어 **§4.5 auto-min 분기가 실행되지 않으며, Phase 2 가 off 19 을 정확히 채워도 이 형태에는 도달하지 못한다.** 잔존 3.3px 발산이 그 증거다.
 
-대조군(고정폭 자식)은 두 leg 모두 정합이다 — masking 은 **발산 조건(stretch)이 성립할 때만** 관측된다. 존치·축소 결론은 Phase 2 에서 내린다 (G2 통과 조건).
+대조군(고정폭 자식)은 두 leg 모두 정합이다 — masking 은 **발산 조건(stretch)이 성립할 때만** 관측된다.
+
+**Phase 2 확정 — 결론은 축소.** 위 두 형태는 Phase 2 의 base size 채널 수정만으로 정합이 되어 masking 을 가리지 못했다(둘 다 `[]`). 하한이 결과를 정하는 형태를 새로 만들어(실텍스트 + `fit-content` + `flexShrink:0` 300 압박) 재보니 **dom 40 / eng 80** 으로 갈렸고, TS `minWidth` 주입을 일시 차단하자 그대로 정합됐다 — **원인이 주입임이 대조로 확정**됐다. Phase 0 이 지목한 메커니즘은 맞았으나 그 근거는 코드 읽기였고, 여기서 실험으로 대체됐다.
+
+주입의 원래 목적은 이제 엔진이 정확 min-content 로 소유하므로 **컨테이너에 한해 제거**했다. leaf 는 존치 — 비텍스트 합성 leaf 의 content 를 엔진은 여전히 모른다 (`layout-engine.md` §TS 잔존 계약).

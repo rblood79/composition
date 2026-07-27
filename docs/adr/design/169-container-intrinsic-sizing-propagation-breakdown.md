@@ -55,7 +55,7 @@
 | ----- | --------------------------------------------------------------- | ----------------------------------------- | ------------------ |
 | **0** | ✅ **Implemented 2026-07-27** — fixture 고정 (§3-0)             | `containerIntrinsic.browser.test.ts`      | red 재현 + R8 판정 |
 | **1** | ✅ **Implemented 2026-07-27** — 센티넬 + 측정 캐시 (§Phase 1 결과) | `tree.rs` 센티넬 2종 + `mutation_gen` 캐시 | G1 ✅, G4 baseline ✅ |
-| **2** | flex 소비 배선 — off 13 = max-content, off 19 = min-content     | `tree.rs::solve_flex` / `write_flex_item` | G2, G3             |
+| **2** | ✅ **Implemented 2026-07-27** — flex 소비 배선 (§Phase 2 결과)   | `tree.rs::solve_flex` + `utils.ts` R8 축소 | G2 ✅, G3 ✅        |
 | **3** | grid/block 축 조건부 판정 (실사용 실측 → 포함 또는 이연 명문화) | 실측 기록 + (해당 시) `grid.rs`           | G5                 |
 | **4** | bench 게이트 + 문서·규칙 정합                                   | bench 수치 + `layout-engine.md` 갱신      | G4, G6             |
 
@@ -113,6 +113,24 @@
 **깊이 스케일링 상한 (R1 지수화 감지 — 이쪽이 본질)**: `median(depth=12) / median(depth=1)` 이 **≤ 3.0** 을 유지해야 한다 (baseline 1.93). 절대 수치는 머신에 따라 흔들리지만 이 비율은 알고리즘 차수를 직접 반영하므로, 캐시가 무력화되면 여기서 먼저 터진다. 증분 경로 상한이 별도인 이유도 같다 — 변경이 없을 때 측정이 돌면 안 된다.
 
 > 벤치 자체의 함정: `mark_dirty(root)` 는 **조상 방향** 전파라 root 한 노드만 dirty 가 되고 clean 자식은 skip 된다. 초기 측정에서 depth 1~12 가 전부 같은 수치(≈3.5 µs)로 나온 원인이 이것이다. available 을 번갈아 바꿔 `last_compute` 를 어긋나게 하는 방식으로 전면 재계산을 강제한다.
+
+### Phase 2 결과 (2026-07-27) — 발산 7형태 해소 + R8 축소
+
+**G2 — 발산 전 형태 green.** Phase 0 의 `it.fails` 4건이 전부 "실패해야 하는데 통과" 로 뒤집혀 `.fails` 를 제거했고, 프리셋 실형태의 파이프라인 leg 도 함께 green 이다. 배선은 `solve_flex` 2-b 단계 한 곳 — `is_row` ∧ 자식 보유 ∧ main auto 인 item 에 대해 `measure_intrinsic_width` 결과로 off 13(base size = max-content)과 off 19(§4.5 floor = min-content)을 **함께** 덮는다.
+
+`0 = absent` 규약 때문에 **min-content 가 정확히 0 인 경우는 off 19 으로 표현할 수 없다** (그대로 쓰면 `content_main` fallback = 상한이 하한). 사용자가 min 을 명시하지 않았을 때만 같은 뜻을 **명시 `min_main` 0** 으로 적어 그 모호성을 피한다 — §4.5 의 적용 조건을 `tree.rs` 가 재구현하지 않으면서 결과는 동일하다. 프로토콜 슬롯은 손대지 않았다 (HC4).
+
+**R8 판정 결론 = 축소.** Phase 0 의 R8-a/b 는 base size 채널로 해소돼 masking 을 가리지 못했다. 하한이 결과를 정하는 형태를 새로 만들어(R8-d: 실텍스트 + `fit-content` + `flexShrink:0` 300 압박) 재보니 **dom 40 / eng 80** 으로 갈렸고, TS `minWidth` 주입을 일시 차단하자 그대로 정합(`[]`)이 됐다 — **원인이 주입임이 대조로 확정**됐다. 주입의 원래 목적("grow item 의 intrinsic 폭을 min-width:auto 상당 하한으로 남긴다")은 이제 엔진이 정확 min-content 로 소유하므로, ADR-164 Decision 의 "엔진이 규칙을 가지면 TS 보정은 남기지 않는다" 에 따라 **컨테이너에 한해 제거**했다 (`utils.ts`). leaf 는 존치 — 비텍스트 합성 leaf(INLINE_BLOCK/CIRCLE/IMAGE)의 content 를 엔진은 여전히 모르고, 그 채널이 유일한 하한 공급원이다 (`layout-engine.md` §TS 잔존 계약과 정합).
+
+**G3 — 부분 반영 금지.** 두 채널을 한 커밋에 묶어 중간 상태 자체를 없앴다(G3 의 명시 대안). 더해 off 19 채널이 **실제로 구속함**을 Rust 단위로 고정했다 — `container_item_floors_at_exact_min_content`: root 340 = [content(grow, 스칼라 42/118), sidebar 300 shrink:0] 에서 leftover 40 임에도 min-content 42 에서 정지한다. off 19 을 끄면 40 으로 눌리거나 max-content 118 에서 멈추므로, 어느 쪽이든 이 테스트가 red 다.
+
+**잔존 발산 1건 (실측 기록, Phase 3 이후 판정)**: 같은 형태를 **파이프라인**으로 태운 H 케이스가 `dom 41.5 / eng 40` 로 1.5px 어긋난다. 엔진 측 floor 채널은 위 Rust 테스트가 42 정지를 확증하므로 **엔진 오배선이 아니라 파이프라인이 중첩 텍스트에 다른 하한을 공급**하는 문제다. 두 층을 분리 감시하도록 Rust 테스트(엔진)와 인라인 스냅샷(파이프라인)을 각각 남겼다 — 엔진이 깨지면 Rust 쪽이 먼저 red 가 된다.
+
+**live 검증 (2026-07-27)**: 실행 중인 빌더(`localhost:5173`)의 **실제 진입점** `calculateFullTreeLayout` 을 페이지 모듈 그래프에서 직접 불러 재빌드된 WASM 으로 3형태를 exercise 했다 — 프리셋 실형태 `sidebar 250 / content 1670` (수정 전 250 / **1920**, 프레임 250 초과), `width:100%` 자식 `240 / 1680` (수정 전 **0** / 1920), auto 폭 블록 자식 `240 / 1680` (수정 전 **0** / 1920). 대조군인 고정 3000px 자식은 `0 / 3000` 으로 **그대로** — DOM 도 동일하게 형제를 붕괴시키는 정상 동작이다.
+
+> 프리셋 UI 클릭으로 확인하려 했으나 "기존 Slot 을 덮어쓰기/병합" 확인 대화가 떠 **사용자 문서를 훼손**하므로 취소하고, 문서를 전혀 변경하지 않는 위 경로로 대체했다. 검증 대상(엔진 → 실 진입점 → 좌표)은 동일하다.
+
+**검증**: Rust 331 (Phase 1 330 + floor 계약 1) · parity 14 files / 121 · builder 2925 passed / 0 failed · type-check 0 new violation. (루트 `pnpm test` 의 specs/shared 2건은 해당 패키지에 vitest 가 설치돼 있지 않은 **환경 이슈**로, 본 변경과 무관하다.)
 
 ### Phase 2 상세 — flex 소비 배선
 

@@ -20,10 +20,9 @@ import {
  *
  * ## 이 파일의 계약
  *
- * - `it` = 현재 정합 → **회귀 가드**. Phase 1(동작 무변경)·Phase 2 이후에도 green 유지.
- * - `it.fails` = 현재 발산 → **Phase 2 목표**. 안쪽 단언은 목표 상태(`toEqual([])`)이므로,
- *   Phase 2 가 성공하면 이 테스트가 "실패해야 하는데 통과" 로 **red 가 된다**. `.fails` 제거가
- *   곧 green 판정이다 (부분 반영 상태로 조용히 통과하는 경로가 없다 — R2/G3).
+ * 전 케이스 green (Phase 2 완료). 착수 시점에는 발산 4형태가 `it.fails` 였고, Phase 2 가
+ * 성공하는 순간 "실패해야 하는데 통과" 로 red 가 되어 `.fails` 제거를 강제하도록 걸어 뒀다 —
+ * 부분 반영 상태가 조용히 green 으로 넘어가는 경로를 없애기 위해서다 (R2/G3).
  *
  * ## 실측 (2026-07-27, Phase 0 착수 시점)
  *
@@ -240,6 +239,28 @@ const R8_CASES: ParityCase[] = [
     ],
   },
   {
+    // **floor 구속 케이스** — sidebar 를 1800 `flexShrink:0` 으로 키워 content 가
+    // available 훨씬 아래(120)로 눌리게 만든다. 여기서는 base size 가 아니라 **하한**이
+    // 결과를 정한다. TS 가 주입한 `minWidth` 가 참 min-content(0)보다 크면 그 값이
+    // 하한이 되어 눌리지 못한다 — masking 이 결과로 드러나는 유일한 형태다.
+    name: "R8-c. floor 구속 (sidebar 1800 flexShrink:0)",
+    availW: ROOT_W,
+    availH: -1,
+    nodes: [
+      { label: "r8c-inner", style: { width: "100%", height: "40px" } },
+      {
+        label: "r8c-content",
+        style: { width: "fit-content", flexGrow: 1, height: "100px" },
+        children: [0],
+      },
+      {
+        label: "r8c-sidebar",
+        style: { width: "1800px", flexShrink: 0, height: "100px" },
+      },
+      row([1, 2]),
+    ],
+  },
+  {
     // 대조군 — 자식이 스스로 폭을 가지면 발산 자체가 없다.
     name: "R8-b. width:fit-content 컨테이너 + 고정폭 자식 (대조군)",
     availW: ROOT_W,
@@ -257,6 +278,109 @@ const R8_CASES: ParityCase[] = [
   },
 ];
 
+/**
+ * R8-d — **결정적 masking 판별** (pipeline 전용).
+ *
+ * R8-a/b/c 는 컨테이너 자식이 stretch 이거나 고정폭이라, TS 의 `baseContentWidth` 가
+ * 0 이거나 참 min-content 와 같아져 주입이 과대해질 수 없다. 주입이 참 하한보다
+ * **커지려면** 컨테이너 콘텐츠가 "펼치면 넓지만 접으면 좁은" 것이어야 한다 — 실텍스트다.
+ * TS 는 단일줄 폭을, CSS 는 최장 단어를 하한으로 본다.
+ *
+ * 형태: 접히지 않으면 안 되는 압박(sidebar 300 `flexShrink:0`, root 340)에 텍스트를
+ * 품은 `width:fit-content` 컨테이너. 주입된 minWidth 가 하한이 되면 컨테이너가 단일줄
+ * 폭에서 멈춰 DOM(최장 단어까지 접힘)과 갈린다.
+ *
+ * engine leg 는 태우지 않는다 — 실텍스트 스칼라를 손으로 넣으면 Chrome font metric 과
+ * 어긋나 판별이 아니라 측정 오차를 재게 된다 (`intrinsicSizing` PIPELINE_CASES 와 동일 이유).
+ */
+const R8D_TEXT_STYLE = {
+  width: "auto",
+  fontSize: 16,
+  fontFamily: "Arial",
+  fontWeight: 400,
+  lineHeight: "20px",
+} as const;
+
+const R8D_FLOOR_BINDING_TEXT: ParityCase = {
+  name: "R8-d. 실텍스트 + fit-content 컨테이너, floor 구속",
+  availW: 340,
+  availH: -1,
+  nodes: [
+    {
+      label: "r8d-text",
+      elementType: "Text",
+      text: "Hello World Wide",
+      style: { ...R8D_TEXT_STYLE },
+    },
+    {
+      label: "r8d-content",
+      style: { width: "fit-content", flexGrow: 1, overflowX: "hidden" },
+      children: [0],
+    },
+    {
+      label: "r8d-sidebar",
+      style: { width: "300px", flexShrink: 0, height: "40px" },
+    },
+    {
+      label: "r8d-root",
+      style: {
+        display: "flex",
+        flexDirection: "row",
+        width: "340px",
+        height: "80px",
+        alignItems: "flex-start",
+      },
+      children: [1, 2],
+    },
+  ],
+};
+
+/**
+ * H — **§4.5 floor 채널(off 19) 전용 판별** (pipeline, 실텍스트).
+ *
+ * R8-d 는 `overflow:hidden` 이라 §4.5 가 애초에 적용되지 않아 floor 채널을 태우지 않는다.
+ * 이 케이스는 컨테이너를 overflow visible / width auto 로 두어 §4.5 조건을 만족시키고,
+ * leftover(40)가 min-content 보다 작아 **하한이 결과를 정하게** 한다.
+ *
+ * off 13 만 고치고 off 19 을 두면 `0 = absent` 계약 때문에 floor 가 `content_main`
+ * = **max-content(단일줄 폭)** 으로 잡힌다 — 컨테이너가 최장 단어까지 접히지 못하고
+ * 단일줄 폭에서 멈춘다. 이것이 "부분 반영 금지"(G3)의 실증 형태다.
+ */
+const H_FLOOR_CHANNEL_TEXT: ParityCase = {
+  name: "H. §4.5 floor 채널 — 실텍스트 컨테이너가 최장 단어까지 접힌다",
+  availW: 340,
+  availH: -1,
+  nodes: [
+    {
+      label: "h-text",
+      elementType: "Text",
+      text: "Hello World Wide",
+      style: { ...R8D_TEXT_STYLE },
+    },
+    {
+      // overflow 미선언(visible) + width auto → §4.5 auto-min 적용 조건 성립.
+      label: "h-content",
+      style: { flexGrow: 1 },
+      children: [0],
+    },
+    {
+      label: "h-sidebar",
+      style: { width: "300px", flexShrink: 0, height: "40px" },
+    },
+    {
+      label: "h-root",
+      style: {
+        display: "flex",
+        flexDirection: "row",
+        width: "340px",
+        height: "80px",
+        alignItems: "flex-start",
+      },
+      children: [1, 2],
+    },
+  ],
+};
+
 describe("컨테이너 flex item intrinsic ↔ CSS 대조 (ADR-169)", () => {
   beforeAll(async () => {
     await initCompositionEngineWasm();
@@ -270,18 +394,37 @@ describe("컨테이너 flex item intrinsic ↔ CSS 대조 (ADR-169)", () => {
     }
   });
 
-  describe("발산 — Phase 2 목표 (통과하면 red → .fails 제거)", () => {
+  describe("발산이었던 형태 — Phase 2 로 해소 (2026-07-27)", () => {
     for (const c of DIVERGENT) {
-      it.fails(c.name, () => {
+      it(c.name, () => {
         expect(runParityCase(c)).toEqual([]);
       });
     }
   });
 
+  // **잔존 발산 (Phase 2 미해소, 실측 기록)**. 엔진 측 floor 채널은 정확하다 —
+  // Rust `container_item_floors_at_exact_min_content` 가 동일 형태에서 스칼라 42 를
+  // 집계해 42 에서 정지함을 확증한다. 여기서 40 이 나오는 것은 **파이프라인 층**이
+  // 중첩 텍스트에 대해 다른 하한을 공급한다는 뜻이고, 원인 지목은 Phase 3 이후로 넘긴다
+  // (엔진 오배선이면 위 Rust 테스트가 먼저 red 가 된다 — 두 층이 분리 감시된다).
+  describe("§4.5 floor 채널 — 잔존 발산 1.5px", () => {
+    it(H_FLOOR_CHANNEL_TEXT.name, () => {
+      expect(
+        runPipelineParityCase(H_FLOOR_CHANNEL_TEXT),
+      ).toMatchInlineSnapshot(`
+        [
+          "h-text.w: dom=41.5 eng=40.0 (Δ1.5)",
+          "h-content.w: dom=41.5 eng=40.0 (Δ1.5)",
+          "h-sidebar.x: dom=41.5 eng=40.0 (Δ1.5)",
+        ]
+      `);
+    });
+  });
+
   // 프리셋 실형태(G)는 빌더 실 진입점으로도 건다 — 엔진만 고치고 TS 선계산이 되돌리는
   // 상태를 막는다. Phase 2 후 이 단언이 통과하면 red 가 되어 `.fails` 제거를 강제한다.
   describe("파이프라인 leg — TS 선계산 상쇄 없음 확인", () => {
-    it.fails("G. 프리셋 실형태 (calculateFullTreeLayout 경유)", () => {
+    it("G. 프리셋 실형태 (calculateFullTreeLayout 경유)", () => {
       expect(runPipelineParityCase(DIVERGENT[3])).toEqual([]);
     });
   });
@@ -289,33 +432,33 @@ describe("컨테이너 flex item intrinsic ↔ CSS 대조 (ADR-169)", () => {
   // 인라인 스냅샷은 **호출 지점당 1개**라 루프로 묶으면 기록에 실패한다 — 펼쳐 둔다.
   describe("R8 — TS minWidth 주입의 masking 판정", () => {
     it("R8-a 판별 — engine leg (TS 선계산 미경유)", () => {
-      expect(runParityCase(R8_CASES[0])).toMatchInlineSnapshot(`
-        [
-          "r8a-inner.w: dom=1680.0 eng=1920.0 (Δ240.0)",
-          "r8a-content.w: dom=1680.0 eng=1920.0 (Δ240.0)",
-          "r8a-sidebar.x: dom=1680.0 eng=1920.0 (Δ240.0)",
-          "r8a-sidebar.w: dom=240.0 eng=0.0 (Δ240.0)",
-        ]
-      `);
+      expect(runParityCase(R8_CASES[0])).toMatchInlineSnapshot(`[]`);
     });
 
     it("R8-a 판별 — pipeline leg (TS minWidth 주입 경유)", () => {
-      expect(runPipelineParityCase(R8_CASES[0])).toMatchInlineSnapshot(`
-        [
-          "r8a-inner.w: dom=1680.0 eng=1706.7 (Δ26.7)",
-          "r8a-content.w: dom=1680.0 eng=1683.3 (Δ3.3)",
-          "r8a-sidebar.x: dom=1680.0 eng=1683.3 (Δ3.3)",
-          "r8a-sidebar.w: dom=240.0 eng=236.7 (Δ3.3)",
-        ]
-      `);
+      expect(runPipelineParityCase(R8_CASES[0])).toMatchInlineSnapshot(`[]`);
     });
 
-    it("R8-b 대조군 — engine leg", () => {
+    it("R8-c floor 구속 — engine leg", () => {
       expect(runParityCase(R8_CASES[1])).toMatchInlineSnapshot(`[]`);
     });
 
-    it("R8-b 대조군 — pipeline leg", () => {
+    it("R8-c floor 구속 — pipeline leg (masking 여부가 여기서 드러난다)", () => {
       expect(runPipelineParityCase(R8_CASES[1])).toMatchInlineSnapshot(`[]`);
+    });
+
+    it("R8-d 결정적 판별 — pipeline leg (실텍스트, floor 구속)", () => {
+      expect(
+        runPipelineParityCase(R8D_FLOOR_BINDING_TEXT),
+      ).toMatchInlineSnapshot(`[]`);
+    });
+
+    it("R8-b 대조군 — engine leg", () => {
+      expect(runParityCase(R8_CASES[2])).toMatchInlineSnapshot(`[]`);
+    });
+
+    it("R8-b 대조군 — pipeline leg", () => {
+      expect(runPipelineParityCase(R8_CASES[2])).toMatchInlineSnapshot(`[]`);
     });
   });
 });

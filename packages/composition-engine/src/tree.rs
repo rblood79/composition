@@ -1209,6 +1209,48 @@ impl LayoutTree {
             );
         }
 
+        // 2-b) **컨테이너 item 의 intrinsic 을 실측으로 교체** (ADR-169 Phase 2).
+        //
+        // 위 루프까지의 `content_main` 은 1) 단계가 **컨테이너 available 로 solve** 한
+        // 결과다. 스스로 폭을 갖지 않고 늘어나기만 하는 내용(auto 폭 블록, `width:100%`)
+        // 은 그 값이 곧 available 이라, 상한 근사가 base size 와 §4.5 floor 양쪽에
+        // 들어간다. 여기서 두 채널을 **함께** 정확한 값으로 덮는다 — 한쪽만 고치면
+        // floor 가 같이 커져 긴 텍스트 초과가 악화된다(G3, 부분 반영 금지).
+        //
+        // 적용 범위:
+        // - `is_row` 한정. 측정 스칼라는 폭 축이고 column main(=height)은 height-for-width
+        //   재줄바꿈이 얽힌 별도 축이다 (R6 — Phase 3 판정).
+        // - **자식을 가진 item** 만. leaf 는 ADR-165 스칼라로 이미 정확하고, 그 채널을
+        //   덮으면 폰트 측정 결과를 구조 집계로 갈아치우게 된다.
+        // - main 이 `auto` 인 item 만. 명시 폭 item 은 `content_main` 을 소비하지 않는다.
+        if is_row {
+            for (i, &c) in children.iter().enumerate() {
+                let off = i * flex::FLEX_FIELD_COUNT;
+                if data[off + 1] != -1.0 {
+                    continue; // main 명시 — content 슬롯 미소비
+                }
+                let is_container_item = self
+                    .get(c)
+                    .map(|n| !n.children.is_empty() && n.style.content_min_width.is_none())
+                    .unwrap_or(false);
+                if !is_container_item {
+                    continue;
+                }
+                let (min_w, max_w) = self.measure_intrinsic_width(c);
+                data[off + 13] = max_w; // flex base size = max-content
+                if min_w > 0.0 {
+                    data[off + 19] = min_w; // §4.5 floor = 정확 min-content
+                } else if data[off + 9] == -1.0 {
+                    // min-content 가 **0** 인 경우. off 19 는 `0.0 = absent` 계약이라
+                    // 그대로 쓰면 `content_main` fallback 으로 되돌아간다(= 상한이 하한).
+                    // 사용자가 min 을 명시하지 않았을 때만, 같은 뜻을 **명시 min 0** 으로
+                    // 적어 그 모호성을 피한다 — §4.5 의 조건을 tree.rs 가 재구현하지
+                    // 않으면서 결과는 동일하다 (floor 0).
+                    data[off + 9] = 0.0;
+                }
+            }
+        }
+
         // 3) main/cross available.
         //
         // column main(=height)은 컨테이너 자신의 height 가 explicit 일 때만 definite.
@@ -5155,6 +5197,49 @@ mod tests {
             tree.measure_intrinsic_width(root),
             (50.0, 80.0),
             "자식 변경이 조상 캐시를 무효화하지 못함"
+        );
+    }
+    /// **ADR-169 Phase 2 핵심 계약** — 컨테이너 item 의 §4.5 floor 가 *정확 min-content*
+    /// 에서 멈춘다. off 19 을 안 채우면 `0 = absent` 규약 탓에 `content_main`(= max-content)
+    /// 이 하한이 되어 컨테이너가 단일줄 폭에서 멈춘다 (G3 — 부분 반영 금지의 실체).
+    ///
+    /// 형태: root 340 = [content(grow, block > 스칼라 leaf 42/118), sidebar 300 shrink:0].
+    /// leftover 는 40 이지만 min-content 가 42 라 42 에서 정지하고 2px 초과한다 — CSS 동작.
+    #[test]
+    fn container_item_floors_at_exact_min_content() {
+        let mut tree = LayoutTree::new();
+        let leaf = tree.create_node(scalar_leaf(42.0, 118.0));
+        let content = tree.create_node(NodeStyle {
+            flex_grow: Some(1.0),
+            ..NodeStyle::default()
+        });
+        tree.set_children(content, vec![leaf]);
+        let sidebar = tree.create_node(NodeStyle {
+            width: Some("300px".into()),
+            flex_shrink: Some(0.0),
+            height: Some("40px".into()),
+            ..NodeStyle::default()
+        });
+        let root = tree.create_node(NodeStyle {
+            display: Some("flex".into()),
+            flex_direction: Some("row".into()),
+            width: Some("340px".into()),
+            height: Some("80px".into()),
+            align_items: Some("flex-start".into()),
+            ..NodeStyle::default()
+        });
+        tree.set_children(root, vec![content, sidebar]);
+
+        assert_eq!(
+            tree.measure_intrinsic_width(content),
+            (42.0, 118.0),
+            "컨테이너 intrinsic 이 자식 스칼라를 집계하지 못함"
+        );
+        tree.compute_layout(root, 340.0, 80.0);
+        assert_eq!(
+            tree.get_layout(content).width,
+            42.0,
+            "leftover(40) 아래로 눌리거나 max-content(118) 에서 멈춤 — floor 채널 오배선"
         );
     }
 }
