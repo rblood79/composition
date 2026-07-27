@@ -46,6 +46,18 @@ export interface PersistentBatchNode {
   children: number[];
   /** handleMap 구성 및 레이아웃 결과 역매핑에 사용 */
   elementId: string;
+  /**
+   * 이 노드를 `enrichWithIntrinsicSize` 에 넘길 때 쓴 available width.
+   *
+   * Step 4.5(height-for-width 재측정)는 "enrichment 가 어떤 폭을 가정했는가" 와 실배치
+   * 폭을 비교해 재측정 여부를 정한다. 그 가정 폭을 style 로부터 **역추정**하면 grid
+   * 자식에서 어긋난다 — grid 는 부모 폭이 아니라 **트랙 추정폭**을 넘기기 때문이다.
+   * 어긋나면 "어느 폭에서도 단일줄" skip 이 잘못 발동해, 좁은 추정폭에서 계산된 2줄
+   * 높이가 그대로 굳는다 (실측 `1fr auto`/400: DOM 20 / 엔진 40).
+   *
+   * WASM payload 는 `{style, children}` 만 뽑아 보내므로 이 필드는 직렬화되지 않는다.
+   */
+  enrichAvailWidth?: number;
 }
 
 // ─── 클래스 ───────────────────────────────────────────────────────────

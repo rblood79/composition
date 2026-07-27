@@ -222,35 +222,86 @@ const TEXT_STYLE = {
   lineHeight: "20px",
 } as const;
 
-function textColCase(name: string, cols: string[], containerW: number) {
+function textColCase(
+  name: string,
+  cols: string[],
+  containerW: number,
+  text = "Hello World",
+  gridHeight: string | undefined = "100px",
+) {
+  const gridStyle: StyleRecord = {
+    display: "grid",
+    width: `${containerW}px`,
+    alignItems: "start",
+    gridTemplateColumns: cols,
+  };
+  if (gridHeight) gridStyle.height = gridHeight;
   return {
     name,
-    availW: 400,
+    availW: 600,
     availH: 600,
     nodes: [
       box("txt", { ...TEXT_STYLE }, undefined, {
         elementType: "Text",
-        text: "Hello World",
+        text,
       }),
       box("pad", { width: "60px", height: "20px" }),
-      box(
-        "grid",
-        {
-          display: "grid",
-          width: `${containerW}px`,
-          height: "100px",
-          alignItems: "start",
-          gridTemplateColumns: cols,
-        },
-        [0, 1],
-      ),
-      box("root", { display: "block", width: "400px", height: "600px" }, [2]),
+      box("grid", gridStyle, [0, 1]),
+      box("root", { display: "block", width: "600px", height: "600px" }, [2]),
     ],
   } satisfies ParityCase;
 }
 
-/** 트랙이 content 와 무관한 대조군 — 텍스트 측정 없이도 자리가 정해진다. */
+/**
+ * height-for-width 재측정(Step 4.5)이 **비균등 트랙**에서도 도는지.
+ *
+ * DFS 는 자식 available 을 `컨테이너/트랙수` 로 균등 추정한다 — `1fr 100px` 처럼
+ * 트랙이 균등하지 않으면 그 추정(200)과 실배치(300)가 어긋나고, 좁은 추정폭에서 잰
+ * 줄바꿈 높이가 그대로 굳는다. 재측정 트리거가 "가정 폭" 을 style 로부터 역추정하면
+ * grid 자식에서 이 어긋남을 못 본다 (부모 폭이 아니라 트랙 추정폭을 넘겼으므로).
+ *
+ * `height` 를 주지 않아 그리드가 auto 높이 — 자식 줄 수가 컨테이너 높이로 드러난다.
+ */
+const LONG_TEXT = "The quick brown fox jumps over the lazy dog";
+const REWRAP_CASES: ParityCase[] = (
+  [
+    [["1fr", "auto"], 400],
+    [["1fr", "100px"], 400],
+    [["1fr", "1fr"], 400],
+    [["3fr", "1fr"], 400],
+    [["auto", "1fr"], 400],
+    [["1fr", "auto"], 200],
+    [["2fr", "1fr"], 300],
+  ] as const
+).map(([cols, w]) =>
+  textColCase(
+    `rewrap: ${cols.join(" ")} @${w}`,
+    [...cols],
+    w,
+    LONG_TEXT,
+    undefined,
+  ),
+);
+
 const PIPELINE_CASES: ParityCase[] = [
+  // content 기반 트랙 — 텍스트 기여가 TS 층에서 엔진까지 도달해야 자리가 정해진다.
+  textColCase(
+    "pipeline: min-content 트랙 = 최장 단어",
+    ["min-content", "1fr"],
+    300,
+  ),
+  textColCase(
+    "pipeline: max-content 트랙 = 단일줄",
+    ["max-content", "1fr"],
+    300,
+  ),
+  textColCase("pipeline: auto 트랙", ["auto", "1fr"], 300),
+  textColCase(
+    "pipeline: fit-content(60px) 트랙",
+    ["fit-content(60px)", "1fr"],
+    300,
+  ),
+  // 대조군 — 트랙이 content 와 무관하면 텍스트 측정 없이도 자리가 정해진다.
   textColCase("pipeline: 1fr 트랙 (content 무관)", ["1fr", "1fr"], 300),
   textColCase("pipeline: px 트랙 (content 무관)", ["100px", "1fr"], 300),
 ];
@@ -298,7 +349,7 @@ describe("grid 트랙 content 기여 — end-to-end (pipeline leg)", () => {
     await initCompositionEngineWasm();
   });
 
-  for (const c of PIPELINE_CASES) {
+  for (const c of [...PIPELINE_CASES, ...REWRAP_CASES]) {
     it(c.name, () => {
       const bad = runPipelineParityCase(c);
       expect(bad, bad.join("\n")).toEqual([]);
@@ -306,26 +357,81 @@ describe("grid 트랙 content 기여 — end-to-end (pipeline leg)", () => {
   }
 
   /**
-   * 잔존 — content 기반 트랙 안의 **텍스트 leaf** 가 폭 0 으로 무너진다.
+   * 이 그룹이 지키는 것은 **스칼라 공급 경로**다 — `enrichWithIntrinsicSize` 의 텍스트
+   * leaf 스칼라 주입이 flex 자식으로만 한정되면 grid 자식은 스칼라를 못 받고, 엔진은
+   * 텍스트 크기를 알 길이 없어 `width:auto` leaf 가 **0** 으로 무너진다.
    *
-   * 엔진은 기여를 소비할 준비가 됐지만(위 engine 그룹 전부 green), TS 층이 그 기여를
-   * **공급하지 않는다**: `enrichWithIntrinsicSize` 의 측정 스칼라 주입 조건이
-   * `isFlexChild && TEXT_LEAF_TAGS.has(type)` 라 grid 자식은 빠진다. 스칼라가 없으면
-   * 엔진은 텍스트 크기를 알 길이 없어 `width:auto` leaf 가 0 이 된다.
-   *
-   * 트랙이 content 와 무관하면(`1fr`/`px`, 위 대조군) 자식이 트랙으로 stretch 되어
-   * 우연히 맞는다 — 그래서 이 결함이 `auto`/`min-content`/`max-content` 트랙에서만
-   * 드러난다. 본 변경(엔진) 이전에도 동일했다 (baseline 실측 확인).
+   * 대조군(`1fr`/`px`)이 함께 있어야 조건이 보인다: 트랙이 content 와 무관하면 자식이
+   * 트랙으로 stretch 되어 스칼라 없이도 맞는다. 그래서 이 결함은 content 기반 트랙에서만
+   * 드러났고, catalog 컴포넌트는 값 자식이 `fit-content` 를 달고 있어 우회하고 있었다.
    */
-  it("잔존 — content 트랙 안 텍스트 leaf 가 pipeline 에서 0 (실측 스냅샷)", () => {
-    for (const cols of [
-      ["auto", "1fr"],
-      ["min-content", "1fr"],
-      ["max-content", "1fr"],
-    ]) {
-      const c = textColCase(`residual ${cols[0]}`, cols, 300);
-      expect(domLeg(c.nodes, c.availW)[0].w).toBeGreaterThan(0);
-      expect(pipelineLeg(c.nodes, c.availW, c.availH)[0].w).toBe(0);
+  /**
+   * 잔존 — grid item 의 **intrinsic width 키워드**가 무시된다 (본 변경 이전부터).
+   *
+   * `width: fit-content` / `min-content` / `max-content` 를 단 텍스트 leaf 가 grid
+   * 자식이면 트랙 폭으로 stretch 된다 (DOM 은 키워드대로 316.6 / 43.6 / 316.6).
+   * `width:auto` 는 정상(트랙 폭)이라 이 잔존은 **키워드 축** 하나다.
+   *
+   * 높이는 본 변경으로 정정됐다 — 좁은 트랙 추정폭에서 잰 6줄(180)이 굳던 것이
+   * 재측정으로 1줄(20)이 된다. 즉 남은 것은 폭 축뿐.
+   */
+  it("잔존 — grid item 의 width 키워드 미반영 (실측 스냅샷)", () => {
+    const mk = (w: string) =>
+      ({
+        availW: 600,
+        availH: 600,
+        nodes: [
+          box("txt", { ...TEXT_STYLE, width: w }, undefined, {
+            elementType: "Text",
+            text: LONG_TEXT,
+          }),
+          box("pad", { width: "60px", height: "20px" }),
+          box(
+            "g",
+            {
+              display: "grid",
+              width: "400px",
+              alignItems: "start",
+              gridTemplateColumns: ["1fr", "auto"],
+            },
+            [0, 1],
+          ),
+          box(
+            "root",
+            { display: "block", width: "600px", height: "600px" },
+            [2],
+          ),
+        ],
+      }) satisfies Omit<ParityCase, "name">;
+
+    for (const [w, domW] of [
+      ["fit-content", 316.6],
+      ["max-content", 316.6],
+    ] as const) {
+      const c = mk(w);
+      expect(domLeg(c.nodes, c.availW)[0].w).toBeCloseTo(domW, 0);
+      const pipe = pipelineLeg(c.nodes, c.availW, c.availH)[0];
+      expect(pipe.w).toBe(340); // 트랙 폭으로 stretch (키워드 무시)
+      expect(pipe.h).toBe(20); // 높이는 재측정으로 정정됨 (구 180)
     }
+
+    // `auto` 는 정상 — 이 잔존이 키워드 축 하나임을 가른다.
+    const auto = mk("auto");
+    expect(domLeg(auto.nodes, auto.availW)[0].w).toBe(340);
+    expect(pipelineLeg(auto.nodes, auto.availW, auto.availH)[0].w).toBe(340);
+  });
+
+  it("공급이 끊기면 어디서 드러나는가 — content 트랙에서만", () => {
+    // 대조군은 텍스트 폭과 무관하게 트랙 폭을 따른다.
+    const fixed = textColCase("fixed", ["100px", "1fr"], 300);
+    expect(pipelineLeg(fixed.nodes, fixed.availW, fixed.availH)[0].w).toBe(100);
+
+    // content 트랙은 텍스트 기여가 그대로 트랙 폭이 된다 — DOM 과 같은 값이어야 한다.
+    const auto = textColCase("auto", ["auto", "1fr"], 300);
+    const domW = domLeg(auto.nodes, auto.availW)[0].w;
+    expect(domW).toBeGreaterThan(0);
+    expect(
+      Math.abs(pipelineLeg(auto.nodes, auto.availW, auto.availH)[0].w - domW),
+    ).toBeLessThanOrEqual(1);
   });
 });

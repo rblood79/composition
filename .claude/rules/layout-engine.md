@@ -361,7 +361,7 @@ grid item 의 크기·위치는 **자식 자신의 상자 모델**이 정하고,
 - 토큰화는 tree.rs 도 `grid::tokenize_template` 을 쓴다 — `split_whitespace` 는 `minmax(50px, 80px)` 처럼 **내부에 공백이 있는** 토큰을 쪼갠다.
 - Chrome 실측 fixture: `gridTrackContribution.browser.test.ts` (engine 38 + row 7 + 규칙 요약 2 + pipeline 대조 2 + 잔존 1). 민감도 — min/max 기여를 한 값으로 합치면 14 red / §6.6 clamp 무력화 2 red / clamp 의 auto-min 게이트 제거 1 red / `minmax` % 해석 제거 1 red.
 - 라이브 영향: catalog 의 content 기반 트랙은 `1fr auto` 4곳(ProgressBar/Meter/Slider)뿐이고, `auto` 열은 §12.6 이 max-content 까지 키워 종전과 같은 값에 수렴한다(실측 `1fr auto`/320 → 180·120).
-- **잔존** — content 기반 트랙 안의 **텍스트 leaf** 가 pipeline 에서 폭 0. 엔진은 기여를 소비할 준비가 됐지만 TS 층이 공급하지 않는다 (아래 §측정 스칼라 공급).
+- TS 층의 공급 결함 3건은 아래 §grid 자식의 TS 공급 3결함 참조 — 엔진이 준비돼도 그쪽이 끊기면 텍스트 leaf 가 0 으로 무너진다.
 
 ### 금지 패턴
 
@@ -371,18 +371,30 @@ grid item 의 크기·위치는 **자식 자신의 상자 모델**이 정하고,
 - ❌ content 함수 해소를 grid.rs 로 이동 → grid.rs 는 자식을 모른다 (측정 주체는 tree.rs)
 - ❌ tree.rs 에서 트랙 문자열을 `split_whitespace` 로 분해 → 괄호 안 공백에서 깨진다
 
-## 측정 스칼라 공급이 flex 자식으로 한정돼 있다 (미해소, 2026-07-28)
+## grid 자식의 TS 공급 3결함 — 스칼라 / 트랙 수 / 가정 폭 (2026-07-28)
 
-`enrichWithIntrinsicSize` 의 텍스트 leaf 스칼라 주입(`contentMinWidth`/`contentMaxWidth`) 조건이 `isFlexChild && TEXT_LEAF_TAGS.has(type)` 다. block 자식은 stretch 되어 스칼라가 없어도 되지만, **grid 자식은 트랙이 content 로 정해질 수 있어** 스칼라 없이는 엔진이 텍스트 크기를 알 길이 없다 → `width:auto` 텍스트 leaf 가 **0** 으로 무너진다.
+엔진이 트랙 content 기여를 소비할 준비가 돼도(§트랙 크기는 자식의 content 기여) TS 층이 셋을 잘못 넘기고 있었다. 셋 다 **grid 자식에서만** 드러나며, 증상이 서로 달라 따로 봐야 한다.
 
-- 증상이 **content 기반 트랙에서만** 드러난다. `1fr`/`px` 트랙은 자식이 트랙으로 stretch 되어 우연히 맞는다 — 실측 `1fr auto`/320 에서 값 텍스트가 0(트랙 0, 1fr 이 312 독식) vs `1fr 1fr` 156·156 정상.
-- catalog 컴포넌트가 멀쩡했던 것은 값 자식이 `fit-content` 를 달고 있어 `hasExplicitIntrinsicWidthKeyword` 로 우회했기 때문이다(실측 `width:fit-content` → 트랙 91 정상). 즉 정상 동작이 **우연**이었다.
-- 게이트를 넓힐 때 `isFlexChild` 자체를 grid 로 확장하면 안 된다 — 같은 플래그가 `growsInFlex`(flex-grow 억제)와 non-container `minWidth` 주입에도 쓰여 무관한 동작이 딸려온다. 스칼라 조건에만 별도 신호를 쓴다.
+| 결함                         | 거처                                | 증상                                                      |
+| ---------------------------- | ----------------------------------- | --------------------------------------------------------- |
+| 측정 스칼라 미공급           | `utils.ts` `needsWidth` 절          | content 트랙 안 텍스트 leaf 폭 **0**                      |
+| 트랙 수를 **문자 수**로 셈   | `fullTreeLayout.ts` DFS grid 추정   | 자식 available 이 1/N 로 쪼그라들어 줄바꿈 높이 과대      |
+| Step 4.5 가 가정 폭을 역추정 | `fullTreeLayout.ts` Step 4.5 트리거 | 비균등 트랙에서 재측정 자체가 안 돌아 좁은 폭 높이가 굳음 |
+
+- **스칼라**: 주입 조건이 `isFlexChild && TEXT_LEAF_TAGS.has(type)` 였다. block 자식은 stretch 되어 스칼라가 없어도 되지만 grid 는 트랙이 content 로 정해질 수 있다. `isFlexChild` **자체를 넓히면 안 된다** — 같은 플래그가 `growsInFlex`(flex-grow 억제)와 non-container `minWidth` 주입에도 쓰인다. 스칼라 조건에만 `isGridChild` 를 별도로 쓴다.
+- **트랙 수**: catalog 는 `gridTemplateColumns: "1fr auto"` 처럼 **문자열**로 저장한다. 그대로 `.length` 를 세면 8(문자 수)이 나온다 — `coerceGridTrack` 으로 배열 정규화 후 센다. gap 도 `columnGap` 을 먼저 읽어야 한다 (store 는 longhand 만 — style-ssot.md).
+- **가정 폭**: Step 4.5 는 "enrichment 가 가정한 폭" 과 실배치 폭을 비교해 재측정 여부를 정하는데, 그 가정 폭을 style 로부터 역추정하면 grid 에서 어긋난다(부모 폭이 아니라 **트랙 추정폭**을 넘겼으므로). DFS 가 `enrichAvailWidth` 로 실제 사용값을 batch 노드에 남기고 트리거가 그것을 읽는다. WASM payload 는 `{style, children}` 만 뽑으므로 직렬화되지 않는다.
+- 셋이 겹쳐 있어 **한 결함의 fixture 가 다른 결함을 가린다** — 실측: 가정 폭을 고치면 트랙 수 결함이 재측정으로 흡수되어 parity 가 전부 green 이 된다. 그래도 트랙 수는 고쳐 둔다(재측정이 못 도는 경로의 1-pass 정확도).
+- catalog 컴포넌트가 멀쩡했던 것은 값 자식이 `fit-content` 를 달고 있어 `hasExplicitIntrinsicWidthKeyword` 로 우회했기 때문이다 — 정상 동작이 **우연**이었다.
+- Chrome 실측 fixture: `gridTrackContribution.browser.test.ts` pipeline 그룹 (content 트랙 4 + 대조군 2 + 비균등 재측정 7 + 잔존 2). 민감도 — 스칼라 게이트 5 red / 가정 폭 2 red.
+- **잔존** — grid item 의 **width 키워드**(`fit-content`/`min-content`/`max-content`)가 무시되고 트랙 폭으로 stretch 된다 (DOM 316.6·43.6·316.6 vs 340). `width:auto` 는 정상이라 키워드 축 하나다. 높이는 본 변경으로 정정(구 180 → 20).
 
 ### 금지 패턴
 
 - ❌ `isFlexChild` 를 grid 포함으로 재정의 → flex-grow 억제·minWidth 주입까지 grid 자식에 번진다
 - ❌ 텍스트 leaf 에 width 를 다시 주입해 우회 → ADR-165 스칼라 계약과 이중 적용 (§TS 잔존 계약)
+- ❌ `gridTemplateColumns` 를 정규화 없이 `.length` 로 세기 → 문자열 저장 형태에서 문자 수가 나온다
+- ❌ Step 4.5 의 가정 폭을 style 로부터 역추정 → grid 자식에서 트랙 추정폭과 어긋난다
 
 ## 배치 직렬화 계약 — 숫자 하나가 페이지 레이아웃을 끈다 (CRITICAL)
 

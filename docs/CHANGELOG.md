@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [그리드 자식의 측정값이 엔진까지 도달하지 않던 문제 — 3결함] - 2026-07-28
+
+### Bug Fixes
+
+- **content 기반 트랙 안의 텍스트가 폭 0 으로 무너지던 문제**:
+  - `enrichWithIntrinsicSize` 의 측정 스칼라(`contentMinWidth`/`contentMaxWidth`) 주입 조건이 `isFlexChild && TEXT_LEAF_TAGS` 라 grid 자식이 빠져 있었다. block 자식은 stretch 되어 스칼라가 없어도 되지만 grid 는 트랙이 content 로 정해질 수 있어(`auto`/`min-content`/`max-content`/`fit-content()`) 스칼라 없이는 엔진이 텍스트 크기를 알 길이 없다
+  - 증상이 **content 기반 트랙에서만** 드러난다 — `1fr`/`px` 트랙은 자식이 트랙으로 stretch 되어 우연히 맞는다(실측 `1fr auto`/320 값 텍스트 0 vs `1fr 1fr` 156·156 정상). catalog 컴포넌트가 멀쩡했던 것은 값 자식이 `fit-content` 를 달고 있어 우회했기 때문 — 정상 동작이 **우연**이었다
+  - `isFlexChild` 자체를 넓히지 않고 별도 신호(`isGridChild`)를 쓴다. 같은 플래그가 flex-grow 억제와 non-container `minWidth` 주입에도 쓰여 무관한 동작이 딸려온다
+- **grid 트랙 수를 문자 수로 세던 문제**:
+  - catalog 는 `gridTemplateColumns: "1fr auto"` 처럼 **문자열**로 저장하는데 DFS 가 그대로 `.length` 를 세어 트랙 8개로 봤다. 자식 available 이 1/8 로 쪼그라들어 텍스트가 실제보다 훨씬 좁은 폭에서 줄바꿈 측정됐다(실측 6줄 180 → 정정 후 1줄 20). `coerceGridTrack` 정규화 후 계산. gap 도 store longhand(`columnGap`)를 먼저 읽도록 정정 — `gap` 만 읽으면 항상 0
+- **비균등 트랙에서 height-for-width 재측정이 돌지 않던 문제**:
+  - Step 4.5 는 "enrichment 가 가정한 폭" 과 실배치 폭을 비교해 재측정 여부를 정하는데, 그 가정 폭을 style 로부터 **역추정**했다. grid 는 부모 폭이 아니라 **트랙 추정폭**을 넘기므로 어긋나고, "어느 폭에서도 단일줄" skip 이 잘못 발동해 좁은 추정폭에서 잰 높이가 굳었다 (실측 `1fr auto`/400: DOM 20 / 엔진 40)
+  - DFS 가 실제 사용값을 `enrichAvailWidth` 로 batch 노드에 남기고 트리거가 그것을 읽는다. WASM payload 는 `{style, children}` 만 뽑으므로 직렬화 영향 없음
+  - **Why**: 셋이 겹쳐 있어 한 결함의 fixture 가 다른 결함을 가린다 — 가정 폭을 고치면 트랙 수 결함이 재측정으로 흡수된다. 그래도 트랙 수는 고쳐 둔다(재측정이 못 도는 경로의 1-pass 정확도)
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/{utils,fullTreeLayout,persistentTaffyTree}.ts`
+  - 검증: `gridTrackContribution.browser.test.ts` pipeline 그룹 확장(content 트랙 4 + 대조군 2 + 비균등 재측정 7 + 잔존 2) / parity 705건 green / builder unit 3012건 green / type-check PASS. 민감도 — 스칼라 게이트 5 red, 가정 폭 2 red
+  - 라이브 확인: 실행 중인 빌더에서 catalog 문자열 형태(`"1fr auto"`)와 배열 형태가 같은 결과로 수렴(`1fr 1fr 1fr` → 133x60, Chrome 실측 일치)
+  - 잔존: grid item 의 **width 키워드**(`fit-content`/`min-content`/`max-content`)가 무시되고 트랙 폭으로 stretch 된다(DOM 316.6 vs 340). `width:auto` 는 정상이라 키워드 축 하나이며, 본 변경 이전부터 동일
+
 ## [그리드 트랙이 자식의 content 기여를 반영하지 않던 문제] - 2026-07-28
 
 ### Bug Fixes

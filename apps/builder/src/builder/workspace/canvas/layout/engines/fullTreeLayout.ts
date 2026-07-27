@@ -1647,13 +1647,21 @@ function traversePostOrder(
   // CSS에서 1fr 트랙은 컨테이너 폭을 균등 분배하므로, DFS에서 미리 계산하여
   // enrichWithIntrinsicSize가 올바른 width 기준으로 height를 계산하도록 한다.
   if (effectiveDisplay === "grid" || effectiveDisplay === "inline-grid") {
-    const gridCols = elementStyle.gridTemplateColumns as string[] | undefined;
+    // **track 배열로 정규화한 뒤 센다.** catalog 는 `gridTemplateColumns: "1fr auto"`
+    //   처럼 CSS **문자열**로 저장하는데, 그대로 `.length` 를 세면 트랙 수가 아니라
+    //   **문자 수**(8)가 나온다 — 자식 availableWidth 가 1/8 로 쪼그라들어 텍스트가
+    //   실제보다 훨씬 좁은 폭에서 줄바꿈 측정된다(높이 과대).
+    const gridCols = coerceGridTrack(elementStyle.gridTemplateColumns) as
+      | string[]
+      | undefined;
     if (gridCols && gridCols.length > 0) {
       const numCols = gridCols.length;
+      // store 는 longhand 만 저장한다 (style-ssot.md) — `gap` 만 읽으면 항상 0.
+      const rawGap = elementStyle.columnGap ?? elementStyle.gap;
       const gapVal =
-        typeof elementStyle.gap === "number"
-          ? elementStyle.gap
-          : parseFloat(String(elementStyle.gap ?? "0")) || 0;
+        typeof rawGap === "number"
+          ? rawGap
+          : parseFloat(String(rawGap ?? "0")) || 0;
       const totalGap = gapVal * (numCols - 1);
       const trackWidth = Math.max(0, (childAvail.width - totalGap) / numCols);
       childAvail = { ...childAvail, width: trackWidth };
@@ -1782,6 +1790,7 @@ function traversePostOrder(
       style: synthRecord,
       children: synthChildIndices,
       elementId: synthChild.id,
+      enrichAvailWidth: childAvail.width,
     });
     indexMap.set(synthChild.id, batch.length - 1);
     registerSyntheticElement(synthChild);
@@ -1899,6 +1908,10 @@ function traversePostOrder(
   //   B. 리프 (Taffy 자식 없음) → intrinsic height 주입 (텍스트 측정 / spec shapes)
   const isFlexChild =
     parentDisplay === "flex" || parentDisplay === "inline-flex";
+  // grid 자식은 flex 자식과 **스칼라 공급 조건만** 공유한다 (`isFlexChild` 를 넓히면
+  //   flex-grow 억제 / non-container minWidth 주입까지 딸려온다 — utils.ts 주석 참조).
+  const isGridChild =
+    parentDisplay === "grid" || parentDisplay === "inline-grid";
   // hasTaffyChildren: 실제 Taffy 노드로 처리된 자식이 있는지 확인
   // synthetic children도 이제 indexMap에 포함되므로 정상적으로 true 반환
   const hasTaffyChildren = childIds.some((id) => indexMap.has(id));
@@ -1979,6 +1992,7 @@ function traversePostOrder(
     enrichChildren,
     effectiveGetChildElements,
     isFlexChild,
+    isGridChild,
   );
 
   // projection-only 컨테이너(TagList 등): 유일한 Taffy 자식이 projection RowsGroup("Rows")
@@ -2290,6 +2304,8 @@ function traversePostOrder(
     style: styleRecord,
     children: childIndices,
     elementId,
+    // Step 4.5 가 "가정 폭" 을 역추정하지 않도록 실제 사용값을 그대로 남긴다.
+    enrichAvailWidth: availableWidth,
   });
   indexMap.set(elementId, currentIndex);
 
@@ -2627,7 +2643,9 @@ export function calculateFullTreeLayout(
         } else if (typeof rawW === "string" && rawW.endsWith("%")) {
           enrichedWidth = (availableWidth * (parseFloat(rawW) || 100)) / 100;
         } else {
-          enrichedWidth = availableWidth;
+          // **DFS 가 기록한 실제 값**을 쓴다 — 여기서 부모 폭으로 역추정하면 grid
+          //   자식이 어긋난다(트랙 추정폭을 넘겼으므로). 기록이 없으면 종전 폴백.
+          enrichedWidth = node.enrichAvailWidth ?? availableWidth;
         }
 
         // 재줄바꿈 불가능 skip (ADR-165 Phase 2 — 트리거 집합 과대 해소):

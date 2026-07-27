@@ -4442,6 +4442,7 @@ export function enrichWithIntrinsicSize(
   childElements?: CanvasLayoutNode[],
   getChildElements?: (id: string) => CanvasLayoutNode[],
   isFlexChild?: boolean,
+  isGridChild?: boolean,
 ): CanvasLayoutNode {
   const style = element.props?.style as Record<string, unknown> | undefined;
   const type = (element.type ?? "").toLowerCase();
@@ -4499,7 +4500,15 @@ export function enrichWithIntrinsicSize(
     // "auto" 명시 포함 (ADR-165): inline width:auto 는 CSS 에서 generated base
     //   width:100%(B22) 를 이기고 intrinsic sizing 으로 돌아간다 — 스칼라 공급이
     //   없으면 엔진 leaf w=0 붕괴 (미공급 시 기존에도 동일 붕괴 경로).
-    (isFlexChild &&
+    // **grid 자식도 대상** (2026-07-28): block 자식은 stretch 되어 스칼라가 없어도
+    //   되지만, grid 는 트랙이 content 로 정해질 수 있어(`auto`/`min-content`/
+    //   `max-content`/`fit-content()`) 스칼라 없이는 엔진이 텍스트 크기를 알 길이 없다
+    //   → 폭 0 붕괴. 실측 `1fr auto`/320 에서 값 텍스트 0 (트랙 0, 1fr 이 312 독식) vs
+    //   `1fr 1fr` 156·156 정상. catalog 컴포넌트가 멀쩡했던 것은 값 자식이 `fit-content`
+    //   를 달고 있어 위 `hasExplicitIntrinsicWidthKeyword` 로 우회했기 때문 — **우연**이다.
+    //   `isFlexChild` 자체를 넓히지 않는 이유: 같은 플래그가 growsInFlex(flex-grow 억제)와
+    //   non-container minWidth 주입에도 쓰여 무관한 동작이 딸려온다.
+    ((isFlexChild || isGridChild) &&
       TEXT_LEAF_TAGS.has(type) &&
       (!rawWidth ||
         rawWidth === "auto" ||
