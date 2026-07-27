@@ -405,17 +405,14 @@ function resolveResetBaseline(
     type: string;
     props?: Readonly<Record<string, unknown>>;
   },
-  context?: {
-    parentType?: string;
-    grandParentType?: string;
-  },
+  context?: ResetBaselineContext,
 ): {
   legacyStyle: Record<string, unknown>;
   specStyle: Record<string, string | undefined>;
   subpartStyle: Record<string, unknown>;
 } {
   const defaultProps = getDefaultProps(element.type);
-  const presetStyle = resolveAppliedPresetBaselineStyle(element);
+  const presetStyle = resolveAppliedPresetBaselineStyle(element, context);
   const subpartStyle = resolveSubpartContextDefaultStyle(
     element.type,
     context?.parentType,
@@ -437,31 +434,117 @@ function resolveResetBaseline(
   };
 }
 
-function resolveAppliedPresetBaselineStyle(element: {
-  type: string;
-  props?: Readonly<Record<string, unknown>>;
-}): Record<string, unknown> {
-  if (element.type.toLowerCase() !== "body") {
-    return {};
+/**
+ * dirty/reset baseline 을 계산할 때 필요한 **주변 컨텍스트**.
+ *
+ * `parentAppliedPreset` 이 여기 있는 이유: 프리셋이 만든 Slot 은 자기 노드만 봐서는
+ * "이 값이 프리셋이 심은 것인지 사용자가 고친 것인지" 를 알 수 없다. 프리셋 식별자는
+ * 부모(body)의 `props.appliedPreset` 에만 있기 때문이다.
+ */
+type ResetBaselineContext = {
+  parentType?: string;
+  grandParentType?: string;
+  /** 부모(frame body)에 적용된 프리셋 키 — Slot baseline 조회용 */
+  parentAppliedPreset?: string;
+};
+
+function readAppliedPreset(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function findPresetSlotDefinition(
+  element: { props?: Readonly<Record<string, unknown>> },
+  presetKey: string | undefined,
+) {
+  if (!presetKey) return undefined;
+  const preset = LAYOUT_PRESETS[presetKey];
+  if (!preset) return undefined;
+  const slotName = element.props?.name;
+  if (typeof slotName !== "string") return undefined;
+  return preset.slots.find((slot) => slot.name === slotName);
+}
+
+/**
+ * 프리셋이 **authoring 한** style 을 baseline 으로 되돌려준다 (base = desktop tier).
+ *
+ * body → `containerStyle`, Slot → 그 슬롯의 `defaultStyle`.
+ *
+ * **Why**: 프리셋 적용은 사용자의 편집이 아니라 "이 레이아웃의 기본 형태"를 심는 일이다.
+ * 그런데 심는 자리는 `props.style` inline 이라, baseline 이 이를 모르면 갓 적용한 슬롯이
+ * 전부 "수정됨" 으로 읽힌다 — 실측(2026-07-27): 프리셋 26 슬롯 **전부** Transform dirty
+ * (모두 `minHeight`, 고정폭 슬롯은 `width`/`flexShrink` 추가) → 리셋 버튼 상시 활성.
+ * body 쪽은 이미 이 baseline 을 갖고 있었고 Slot 만 빠져 있었다.
+ */
+function resolveAppliedPresetBaselineStyle(
+  element: {
+    type: string;
+    props?: Readonly<Record<string, unknown>>;
+  },
+  context?: ResetBaselineContext,
+): Record<string, unknown> {
+  const type = element.type.toLowerCase();
+
+  if (type === "body") {
+    const preset =
+      LAYOUT_PRESETS[readAppliedPreset(element.props?.appliedPreset) ?? ""];
+    if (!preset) return {};
+    return normalizeFramePresetContainerStyle(preset.containerStyle) as Record<
+      string,
+      unknown
+    >;
   }
 
-  const appliedPreset =
-    typeof element.props?.appliedPreset === "string"
-      ? element.props.appliedPreset
-      : undefined;
-  if (!appliedPreset) {
-    return {};
+  if (type === "slot") {
+    const slotDef = findPresetSlotDefinition(
+      element,
+      context?.parentAppliedPreset,
+    );
+    return (slotDef?.defaultStyle ?? {}) as Record<string, unknown>;
   }
 
-  const preset = LAYOUT_PRESETS[appliedPreset];
-  if (!preset) {
-    return {};
+  return {};
+}
+
+/**
+ * 프리셋이 authoring 한 **breakpoint override** baseline.
+ *
+ * base 축과 같은 이유로 필요하다 — 프리셋은 `responsiveStyle`(슬롯) /
+ * `responsiveContainerStyle`(body)을 노드의 `responsive` 에 심는데, 비-desktop dirty 판정은
+ * "이 breakpoint 에 override 가 **존재하면** dirty" 였다. 그래서 tablet 에서 sidebar 슬롯의
+ * width(=프리셋이 심은 200px)가 손대지 않아도 수정됨으로 잡혔다 (라이브 실측 2026-07-27).
+ */
+function resolvePresetResponsiveBaselineStyle(
+  element: {
+    type: string;
+    props?: Readonly<Record<string, unknown>>;
+  },
+  context: ResetBaselineContext | undefined,
+  breakpoint: BreakpointName,
+): Record<string, unknown> {
+  if (breakpoint === "desktop") return {};
+  const type = element.type.toLowerCase();
+
+  if (type === "body") {
+    const preset =
+      LAYOUT_PRESETS[readAppliedPreset(element.props?.appliedPreset) ?? ""];
+    return (preset?.responsiveContainerStyle?.[breakpoint] ?? {}) as Record<
+      string,
+      unknown
+    >;
   }
 
-  return normalizeFramePresetContainerStyle(preset.containerStyle) as Record<
-    string,
-    unknown
-  >;
+  if (type === "slot") {
+    const slotDef = findPresetSlotDefinition(
+      element,
+      context?.parentAppliedPreset,
+    );
+    return (slotDef?.responsiveStyle?.[breakpoint] ?? {}) as Record<
+      string,
+      unknown
+    >;
+  }
+
+  return {};
 }
 
 function resolveTargetValue(
@@ -620,10 +703,7 @@ export function computeDirtyStyleProps(
     fills?: unknown[];
     responsive?: ElementResponsiveConfig;
   },
-  context?: {
-    parentType?: string;
-    grandParentType?: string;
-  },
+  context?: ResetBaselineContext,
   properties?: string[],
   activeBreakpoint: BreakpointName = "desktop",
 ): string[] {
@@ -642,12 +722,23 @@ export function computeDirtyStyleProps(
       element.responsive,
       activeBreakpoint,
     );
+    // 프리셋이 이 breakpoint 에 심은 값은 사용자 편집이 아니다 — 존재 여부가 아니라 **값**으로
+    //   비교해야 갓 적용한 슬롯의 tablet/mobile override 가 dirty 로 잡히지 않는다.
+    const presetOverrideStyle = resolvePresetResponsiveBaselineStyle(
+      element,
+      context,
+      activeBreakpoint,
+    );
     const keys = properties ?? Object.keys(overrideStyle);
     const globalKeys = keys.filter(isGlobalStyleProp);
     const dirty: string[] = [];
     for (const prop of keys) {
       if (isGlobalStyleProp(prop)) continue; // 전역 → 아래 base 비교로 처리
-      if (resolveCurrentStyleValue(prop, overrideStyle) !== undefined) {
+      const currentValue = resolveCurrentStyleValue(prop, overrideStyle);
+      if (currentValue === undefined) continue;
+      if (
+        currentValue !== resolveCurrentStyleValue(prop, presetOverrideStyle)
+      ) {
         dirty.push(prop);
       }
     }
@@ -669,12 +760,7 @@ function computeBaseDirtyStyleProps(
     fills?: unknown[];
     responsive?: ElementResponsiveConfig;
   },
-  context:
-    | {
-        parentType?: string;
-        grandParentType?: string;
-      }
-    | undefined,
+  context: ResetBaselineContext | undefined,
   properties: string[] | undefined,
 ): string[] {
   const rawStyle = (element.props?.style as Record<string, unknown>) || {};
@@ -721,7 +807,7 @@ function computeBaseDirtyStyleProps(
 //   저장소(base vs responsive)로 라우팅한다.
 function computeBaseResetObj(
   element: { type: string; props?: Readonly<Record<string, unknown>> },
-  context: { parentType?: string; grandParentType?: string } | undefined,
+  context: ResetBaselineContext | undefined,
   properties: string[],
 ): Record<string, string> {
   const currentStyle = (element.props?.style as Record<string, unknown>) || {};
@@ -778,6 +864,7 @@ export function useHasDirtyStyles(properties: string[]): boolean {
         {
           parentType: parent?.type,
           grandParentType: grandParent?.type,
+          parentAppliedPreset: readAppliedPreset(parent?.props?.appliedPreset),
         },
         properties,
         activeBreakpoint,
@@ -815,6 +902,7 @@ export function useDirtyStyleProps(): string[] {
       {
         parentType: parent?.type,
         grandParentType: grandParent?.type,
+        parentAppliedPreset: readAppliedPreset(parent?.props?.appliedPreset),
       },
       [...PANEL_STYLE_PROPS],
       activeBreakpoint,
@@ -857,14 +945,22 @@ export function useResetStyles() {
     // responsive override 를 clear 한다. dirty 판정(computeDirtyStyleProps)과 동일하게
     // 이 breakpoint 에 명시된 override 만 대상으로 "" 를 보내면, responsive-aware 로 만든
     // updateSelectedStyles 가 buildResponsiveStyleOverride 로 해당 breakpoint 키를 제거한다.
-    const context = {
+    const context: ResetBaselineContext = {
       parentType: parentNode?.type,
       grandParentType: grandParentNode?.type,
+      parentAppliedPreset: readAppliedPreset(parentNode?.props?.appliedPreset),
     };
     const activeBreakpoint = state.activeBreakpoint;
     if (activeBreakpoint !== "desktop") {
       const overrideStyle = collectBreakpointOverrideStyle(
         selfNode?.responsive,
+        activeBreakpoint,
+      );
+      // 프리셋이 이 breakpoint 에 심은 값이 있으면 **그 값으로** 되돌린다. override 를 지우면
+      //   desktop cascade 값(sidebar 250px)으로 떨어져 프리셋이 의도한 형태가 무너진다.
+      const presetOverrideStyle = resolvePresetResponsiveBaselineStyle(
+        element,
+        context,
         activeBreakpoint,
       );
       const resetObj: Record<string, string> = {};
@@ -875,9 +971,11 @@ export function useResetStyles() {
           globalProps.push(prop);
           return;
         }
-        if (resolveCurrentStyleValue(prop, overrideStyle) !== undefined) {
-          resetObj[prop] = "";
-        }
+        const currentValue = resolveCurrentStyleValue(prop, overrideStyle);
+        if (currentValue === undefined) return;
+        const presetValue = resolveCurrentStyleValue(prop, presetOverrideStyle);
+        if (currentValue === presetValue) return; // 프리셋 원본 그대로 → 되돌릴 것 없음
+        resetObj[prop] = presetValue ?? "";
       });
       if (globalProps.length > 0) {
         // updateSelectedStyles 가 전역 속성을 base 로 라우팅 → base reset 값 계산.

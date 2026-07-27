@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [프레임 프리셋 슬롯이 손대지 않아도 "수정됨" 으로 읽히던 문제] - 2026-07-27
+
+### Bug Fixes
+
+- **프레임 프리셋을 적용한 뒤 슬롯을 선택하면 Transform 리셋 버튼이 항상 켜져 있던 문제**. 사용자 보고: "초기값인데도 수정값이 들어가서 모두 Transform 의 리셋 버튼이 활성화되어있다".
+  - **Why**: 프리셋 적용은 사용자의 편집이 아니라 "이 레이아웃의 기본 형태" 를 심는 일인데, 심는 자리가 슬롯의 `props.style`(base) 과 `responsive`(breakpoint override) **inline** 이다. dirty/reset baseline 은 프리셋 컨테이너(body)만 알고 **슬롯은 몰랐다** — 그래서 프리셋이 심은 값이 전부 사용자 편집으로 읽혔다. 실측: 프리셋 **26 슬롯 전부** Transform dirty (모두 `minHeight`, 고정폭 슬롯은 `width`/`flexShrink` 추가). 비-desktop 은 한술 더 떠 "override 가 **존재하면** dirty" 라, 프리셋이 심은 tablet width 까지 수정됨으로 잡혔다.
+  - 이제 baseline 이 부모 프레임의 `appliedPreset` + 슬롯 이름으로 그 슬롯의 `defaultStyle`/`responsiveStyle` 을 찾아 기준값으로 쓴다. 비-desktop 도 존재 여부가 아니라 **값** 비교로 바뀌었다.
+  - 리셋의 목적지도 함께 정정 — 비-desktop 리셋이 override 를 **지우면** desktop cascade 값(sidebar 250px)으로 떨어져 프리셋이 의도한 형태가 무너진다. 프리셋이 그 breakpoint 에 심은 값이 있으면 **그 값으로** 복원한다.
+  - 위치: `apps/builder/src/builder/panels/styles/hooks/useResetStyles.ts`
+- **같은 슬롯의 Transform Height 가 실제 크기와 무관하게 `60px` 로 표시되던 문제**.
+  - **Why**: Slot 은 고유 높이가 없는 배치 자리(flex/grid 가 크기를 정함)인데 catalog `Slot.sizes.*.height` 가 40/60/80 을 들고 있었고, 패널은 inline height 가 없으면 catalog 로 fallback 한다. 그 값은 **렌더·레이아웃 소비자가 0건**이라 화면에는 영향이 없었고 — 그래서 캔버스는 맞는데 **패널만 거짓말하는** 비대칭이었다 (라이브 실측: 실제 박스 `200 × 1024`, 패널 표시 `60`).
+  - catalog Slot 의 height 를 `0`(= 고유 높이 없음)으로 정정 — 같은 composition-native 레이아웃 컨테이너인 `body`/`frame` 과 동일한 표기다. 빈 슬롯이 보이게 하는 하한은 종전대로 프리셋 `minHeight` 소관.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`
+- 검증: 회귀 테스트 35건 — 프리셋 정의를 직접 순회해 **전 프리셋 × 전 슬롯 × 3 breakpoint** 에서 dirty 0 을 단언하므로 프리셋을 새로 추가해도 baseline 누락이 자동으로 잡힌다. baseline 을 되돌리면 27건 red. 라이브: 리셋 버튼 소멸 / Height `auto` + Min H `60` / 실제로 width 를 240 으로 고치면 리셋 버튼 재등장 → 리셋 시 문서가 **바이트 단위로 원상 복구**(tablet 200px).
+
 ## [컴포넌트 라이브러리의 ListBox/GridList 마스터가 빈 채로 생성되던 문제] - 2026-07-27
 
 ### Bug Fixes
@@ -34,13 +49,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **사이드바형 프리셋에서 콘텐츠가 프레임을 넘치거나 사이드바가 사라지던 문제** (`sidebar-left` / `sidebar-right` / `list-detail`).
 
-  | 형태                                     | 변경 전         | 변경 후    | DOM(정답)  |
-  | ---------------------------------------- | --------------- | ---------- | ---------- |
-  | 프리셋 실형태 (사이드바 `flexShrink:0`)  | 250 / **1920**  | 250 / 1670 | 250 / 1670 |
-  | 사이드바에 `flexShrink:0` 이 없는 형태   | **0** / 1920    | 240 / 1680 | 240 / 1680 |
-  | 자식이 실제로 넓은 경우 (고정 3000px)    | 0 / 3000        | 0 / 3000   | 0 / 3000   |
-
-  - **Why**: 레이아웃 엔진이 flex item 을 **컨테이너의 가용 폭으로 한 번 풀어 보고 그 결과를 그 item 의 고유 폭으로 삼았다.** 그래서 *스스로 폭을 갖지 않고 늘어나기만 하는 내용*(`width:100%`, auto 폭 블록)이 "이 item 은 1920 이 필요하다" 로 오인됐다. 게다가 그 한 값이 flex 기준 크기와 **최소 크기(CSS-FLEXBOX-1 §4.5)** 양쪽에 쓰여, **상한 근사가 하한으로** 작동했다 — 그래서 item 이 available 밑으로 못 내려가고 형제가 부족분을 뒤집어썼다. 세 번째 행처럼 자식이 진짜로 넓으면 DOM 도 똑같이 형제를 붕괴시키므로, 이는 정상 동작이라 건드리지 않았다.
+  | 형태                                    | 변경 전        | 변경 후    | DOM(정답)  |
+  | --------------------------------------- | -------------- | ---------- | ---------- |
+  | 프리셋 실형태 (사이드바 `flexShrink:0`) | 250 / **1920** | 250 / 1670 | 250 / 1670 |
+  | 사이드바에 `flexShrink:0` 이 없는 형태  | **0** / 1920   | 240 / 1680 | 240 / 1680 |
+  | 자식이 실제로 넓은 경우 (고정 3000px)   | 0 / 3000       | 0 / 3000   | 0 / 3000   |
+  - **Why**: 레이아웃 엔진이 flex item 을 **컨테이너의 가용 폭으로 한 번 풀어 보고 그 결과를 그 item 의 고유 폭으로 삼았다.** 그래서 _스스로 폭을 갖지 않고 늘어나기만 하는 내용_(`width:100%`, auto 폭 블록)이 "이 item 은 1920 이 필요하다" 로 오인됐다. 게다가 그 한 값이 flex 기준 크기와 **최소 크기(CSS-FLEXBOX-1 §4.5)** 양쪽에 쓰여, **상한 근사가 하한으로** 작동했다 — 그래서 item 이 available 밑으로 못 내려가고 형제가 부족분을 뒤집어썼다. 세 번째 행처럼 자식이 진짜로 넓으면 DOM 도 똑같이 형제를 붕괴시키므로, 이는 정상 동작이라 건드리지 않았다.
   - 이제 컨테이너 item 은 **엔진이 자기 알고리즘을 측정 모드로 재실행**해 min/max-content 를 산출한다 (Taffy `AvailableSpace::{MinContent,MaxContent}` / Blink `ComputeMinMaxSizes` 와 같은 형태). 텍스트 leaf 는 기존대로 TS 폰트 측정 스칼라를 쓴다 — 경계는 **"폰트 측정은 TS / 구조 집계는 엔진"**.
   - **grid 는 의도적으로 이연**한다. 측정 모드에서 grid 의 `fr`·`auto` 트랙이 0 으로 풀려 grid item 이 통째로 사라지므로(실측 1920 → 0), 측정 자체를 포기하고 이전 경로를 남겼다. 재개 조건은 CSS-GRID-1 §12 track sizing 선행 — `.claude/rules/layout-engine.md` §컨테이너 intrinsic 에 기록.
   - 위치: `packages/composition-engine/src/tree.rs` (`measure_intrinsic_width` / `solve_flex` / `solve_block`), `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`

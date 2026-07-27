@@ -35,8 +35,12 @@ import type {
  * 빈 Slot 의 오소링 최소 크기(px).
  *
  * 주축이 auto 인 자리(flex column 의 header/footer 밴드, grid 의 `auto` row)에서 빈 슬롯은
- * 0 이 된다. catalog `COMPONENT_RULES_TABLE.Slot.sizes.md.height` 와 같은 값으로 하한을 둬,
- * 자식이 들어오면 그만큼 자라되 빈 상태에서도 보이고 drop 대상으로 잡히게 한다.
+ * 0 이 된다. 하한을 둬 자식이 들어오면 그만큼 자라되, 빈 상태에서도 보이고 drop 대상으로
+ * 잡히게 한다.
+ *
+ * 이 하한의 거처는 **프리셋**이다 — catalog `Slot.sizes.*.height` 가 아니다. Slot 은 고유
+ * 높이가 없는 배치 자리라 catalog 쪽은 `height: 0`(body/frame 과 동일 표기)이고, 거기에
+ * 값을 두면 Style 패널 Transform 이 그것을 슬롯의 높이로 표시한다 (2026-07-27 정정).
  */
 const EMPTY_SLOT_MIN_HEIGHT = 60;
 

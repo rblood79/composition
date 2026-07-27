@@ -10044,6 +10044,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // Slot 은 고유 높이가 없다 — 프레임 안에서 flex/grid 가 크기를 정하는 배치 자리다.
+  //   그래서 `height: 0` (= 고유 높이 없음) 으로 둔다. 같은 composition-native 레이아웃
+  //   컨테이너인 `body`/`frame` 과 동일한 표기다.
+  //   **Why (2026-07-27 실측)**: 구 값 40/60/80 은 렌더·레이아웃 소비자가 **0건**인데
+  //   (Skia box 는 layout 결과를, 레이아웃 분기는 type 별 명시 분기만 읽는다) Style 패널의
+  //   Transform Height 가 inline 부재 시 catalog 로 fallback 하면서 **실제 1024px 인 슬롯을
+  //   60px 로 표시**했다. 빈 슬롯이 보이게 하는 하한은 프리셋의 `minHeight` 가 담당한다.
   Slot: {
     defaultSize: "md",
     variants: {},
@@ -10051,17 +10058,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       sm: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.md}",
-        height: 40,
+        height: 0,
       },
       md: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
-        height: 60,
+        height: 0,
       },
       lg: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
-        height: 80,
+        height: 0,
       },
     },
   },
