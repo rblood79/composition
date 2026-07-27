@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [grid item 의 크기 키워드가 셀 폭으로 늘어나던 문제] - 2026-07-28
+
+### Bug Fixes
+
+- **`fit-content`/`min-content`/`max-content` 를 단 grid 자식이 트랙 폭으로 stretch 되던 문제** (CSS-ALIGN-3 §4.1):
+  - stretch 는 "아이템의 그 축 크기가 **`auto`**" 일 때만 적용된다. 키워드는 auto 가 아니므로 대상이 아닌데, `place_grid_axis` 의 `explicit` 판정이 `resolve_self_size` 결과(`> 0.0`) 하나였다 — 그 함수는 키워드를 길이로 풀 수 없어 **0** 을 돌려주므로 미설정과 구분되지 않았다
+  - 실측(트랙 150, 자식 min-content 40 / max-content 120): `fit-content` DOM 120 / 엔진 150, `min-content` 40 / 150, `max-content` 120 / 150. **`auto` 는 종전에도 정합**(150)이라 어긋난 것은 키워드 축 하나
+  - **Why**: 같은 자식이 flex 부모에서는 120·40 으로 정상이었다 — 이 비대칭이 진단 신호였다. 명시 px(`width:40px`)는 이미 존중받고 있었으니 "확정 크기" 개념이 px 에만 걸려 있었던 셈
+  - 위치: `packages/composition-engine/src/tree.rs` (`size_is_intrinsic_keyword` 신규 + `solve_grid` 의 `explicit` 판정)
+  - 검증: `gridTrackContribution.browser.test.ts` I 그룹 신설(키워드 4 × 부모 3 = 12) / parity 717건 green / Rust 344건 green / type-check PASS. 민감도 — 키워드 OR 제거 시 7 red
+  - 라이브 확인: 실행 중인 빌더의 WASM 직접 호출 12형태가 Chrome 실측과 일치
+
 ## [그리드 자식의 측정값이 엔진까지 도달하지 않던 문제 — 3결함] - 2026-07-28
 
 ### Bug Fixes

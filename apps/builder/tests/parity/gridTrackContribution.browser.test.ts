@@ -165,6 +165,51 @@ const ENGINE_CASES: ParityCase[] = [
   colCase(["auto", "auto"], 300, 4),
 ];
 
+// ── I. grid item 의 width 키워드 — stretch 는 크기가 `auto` 일 때만 (CSS-ALIGN-3 §4.1) ──
+//
+// flex 부모 대조군이 함께 있어야 이것이 **grid 축 하나**의 비대칭임이 보인다.
+// 종전엔 명시 px 는 존중받는데 키워드만 셀 폭으로 늘어났다 (`resolve_self_size` 가
+// 키워드를 길이로 못 풀어 0=미설정과 구분되지 않았다).
+
+function itemWidthCase(
+  itemWidth: string,
+  cols: string[],
+  display = "grid",
+): ParityCase {
+  const kids = [0, 1].map((i) => {
+    const k = kid(i);
+    return { ...k, style: { ...k.style, width: itemWidth } } as CaseNode;
+  });
+  const host: StyleRecord = {
+    display,
+    width: "300px",
+    height: "100px",
+    alignItems: "start",
+  };
+  if (display === "grid") host.gridTemplateColumns = cols;
+  return {
+    name: `item width:${itemWidth} in ${display} ${cols.join(" ")}`,
+    availW: 400,
+    availH: 600,
+    nodes: [
+      ...kids,
+      box("host", host, [0, 1]),
+      box("root", { display: "block", width: "400px", height: "600px" }, [2]),
+    ],
+  };
+}
+
+const ITEM_WIDTH_CASES: ParityCase[] = [
+  "fit-content",
+  "min-content",
+  "max-content",
+  "auto",
+].flatMap((w) => [
+  itemWidthCase(w, ["1fr", "1fr"]),
+  itemWidthCase(w, ["200px", "100px"]),
+  itemWidthCase(w, [], "flex"), // 대조군 — flex 는 종전에도 정합이었다
+]);
+
 // ── R. row 축 — `(h, h)` 공급이라 달라지는 것은 minmax base 뿐 ──
 
 function rowCase(rows: string[], containerH: number, kidHeights: number[]) {
@@ -311,7 +356,7 @@ describe("grid 트랙 content 기여 — CSS 대조 (engine leg)", () => {
     await initCompositionEngineWasm();
   });
 
-  for (const c of [...ENGINE_CASES, ...ROW_CASES]) {
+  for (const c of [...ENGINE_CASES, ...ITEM_WIDTH_CASES, ...ROW_CASES]) {
     it(c.name, () => {
       const bad = runParityCase(c);
       expect(bad, bad.join("\n")).toEqual([]);
@@ -366,16 +411,13 @@ describe("grid 트랙 content 기여 — end-to-end (pipeline leg)", () => {
    * 드러났고, catalog 컴포넌트는 값 자식이 `fit-content` 를 달고 있어 우회하고 있었다.
    */
   /**
-   * 잔존 — grid item 의 **intrinsic width 키워드**가 무시된다 (본 변경 이전부터).
+   * grid item 의 **intrinsic width 키워드**도 stretch 대상이 아니다.
    *
-   * `width: fit-content` / `min-content` / `max-content` 를 단 텍스트 leaf 가 grid
-   * 자식이면 트랙 폭으로 stretch 된다 (DOM 은 키워드대로 316.6 / 43.6 / 316.6).
-   * `width:auto` 는 정상(트랙 폭)이라 이 잔존은 **키워드 축** 하나다.
-   *
-   * 높이는 본 변경으로 정정됐다 — 좁은 트랙 추정폭에서 잰 6줄(180)이 굳던 것이
-   * 재측정으로 1줄(20)이 된다. 즉 남은 것은 폭 축뿐.
+   * CSS-ALIGN-3 §4.1 은 stretch 를 "the item's size in that axis is `auto`" 로 한정한다.
+   * `fit-content`/`min-content`/`max-content` 는 auto 가 아니므로 셀 폭으로 늘어나지
+   * 않는다. `width:auto` 대조군이 함께 있어야 조건이 보인다 — 그것만 트랙 폭이다.
    */
-  it("잔존 — grid item 의 width 키워드 미반영 (실측 스냅샷)", () => {
+  it("grid item 의 width 키워드가 셀 폭을 이긴다", () => {
     const mk = (w: string) =>
       ({
         availW: 600,
@@ -404,18 +446,17 @@ describe("grid 트랙 content 기여 — end-to-end (pipeline leg)", () => {
         ],
       }) satisfies Omit<ParityCase, "name">;
 
-    for (const [w, domW] of [
-      ["fit-content", 316.6],
-      ["max-content", 316.6],
-    ] as const) {
+    for (const w of ["fit-content", "max-content", "min-content"]) {
       const c = mk(w);
-      expect(domLeg(c.nodes, c.availW)[0].w).toBeCloseTo(domW, 0);
+      const dom = domLeg(c.nodes, c.availW)[0];
       const pipe = pipelineLeg(c.nodes, c.availW, c.availH)[0];
-      expect(pipe.w).toBe(340); // 트랙 폭으로 stretch (키워드 무시)
-      expect(pipe.h).toBe(20); // 높이는 재측정으로 정정됨 (구 180)
+      expect(
+        Math.abs(pipe.w - dom.w),
+        `${w}: dom=${dom.w} pipe=${pipe.w}`,
+      ).toBeLessThanOrEqual(1);
     }
 
-    // `auto` 는 정상 — 이 잔존이 키워드 축 하나임을 가른다.
+    // 대조군 — `auto` 만 트랙 폭(340)으로 늘어난다.
     const auto = mk("auto");
     expect(domLeg(auto.nodes, auto.availW)[0].w).toBe(340);
     expect(pipelineLeg(auto.nodes, auto.availW, auto.availH)[0].w).toBe(340);

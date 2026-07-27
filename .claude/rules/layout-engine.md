@@ -387,7 +387,7 @@ grid item 의 크기·위치는 **자식 자신의 상자 모델**이 정하고,
 - 셋이 겹쳐 있어 **한 결함의 fixture 가 다른 결함을 가린다** — 실측: 가정 폭을 고치면 트랙 수 결함이 재측정으로 흡수되어 parity 가 전부 green 이 된다. 그래도 트랙 수는 고쳐 둔다(재측정이 못 도는 경로의 1-pass 정확도).
 - catalog 컴포넌트가 멀쩡했던 것은 값 자식이 `fit-content` 를 달고 있어 `hasExplicitIntrinsicWidthKeyword` 로 우회했기 때문이다 — 정상 동작이 **우연**이었다.
 - Chrome 실측 fixture: `gridTrackContribution.browser.test.ts` pipeline 그룹 (content 트랙 4 + 대조군 2 + 비균등 재측정 7 + 잔존 2). 민감도 — 스칼라 게이트 5 red / 가정 폭 2 red.
-- **잔존** — grid item 의 **width 키워드**(`fit-content`/`min-content`/`max-content`)가 무시되고 트랙 폭으로 stretch 된다 (DOM 316.6·43.6·316.6 vs 340). `width:auto` 는 정상이라 키워드 축 하나다. 높이는 본 변경으로 정정(구 180 → 20).
+- grid item 의 **width 키워드**도 stretch 대상이 아니다 — 아래 §grid item 의 크기 키워드.
 
 ### 금지 패턴
 
@@ -395,6 +395,21 @@ grid item 의 크기·위치는 **자식 자신의 상자 모델**이 정하고,
 - ❌ 텍스트 leaf 에 width 를 다시 주입해 우회 → ADR-165 스칼라 계약과 이중 적용 (§TS 잔존 계약)
 - ❌ `gridTemplateColumns` 를 정규화 없이 `.length` 로 세기 → 문자열 저장 형태에서 문자 수가 나온다
 - ❌ Step 4.5 의 가정 폭을 style 로부터 역추정 → grid 자식에서 트랙 추정폭과 어긋난다
+
+## grid item 의 크기 키워드도 stretch 를 이긴다 (CSS-ALIGN-3 §4.1, 2026-07-28)
+
+`justify-self`/`align-self` 의 stretch 는 "the item's size in that axis is **`auto`**" 일 때만 적용된다. `fit-content` / `min-content` / `max-content` 는 auto 가 아니므로 셀 폭으로 늘어나지 않는다.
+
+- 판정 신호가 **크기 값 하나**면 안 된다. `place_grid_axis` 의 `explicit` 은 `resolve_self_size` 결과(`child_ew > 0.0`)로 정해지는데, 그 함수는 키워드를 길이로 풀 수 없어 **0** 을 돌려준다 — 미설정과 구분되지 않아 키워드가 stretch 로 떨어졌다. `size_is_intrinsic_keyword` 를 OR 로 더한다.
+- 실측(트랙 150, 자식 min-content 40 / max-content 120): `fit-content` DOM 120 / 구 엔진 150 · `min-content` 40 / 150 · `max-content` 120 / 150. **`auto` 는 종전에도 정합**(150 = 트랙 폭)이라 어긋난 것은 키워드 축 하나다.
+- 같은 자식이 **flex 부모에서는 120·40 으로 정상**이었다 — 이 비대칭이 진단 신호이자 fixture 의 대조군이다.
+- 명시 px(`width:40px`)는 이미 존중받고 있었다 (§그리드 영역은 containing block). 즉 "확정 크기" 개념이 px 에만 걸려 있었던 것.
+- Chrome 실측 fixture: `gridTrackContribution.browser.test.ts` I 그룹 (키워드 4 × 부모 3 = 12). 민감도 — 키워드 OR 를 빼면 7 red.
+
+### 금지 패턴
+
+- ❌ stretch 대상 판정을 해소된 길이 값(`> 0.0`)만으로 하기 → 키워드가 미설정과 같아진다
+- ❌ 키워드를 미리 길이로 치환해 우회 → 셀 크기가 정해지기 전이라 값이 없다 (판정은 style 문자열, 크기는 `solve_node` 결과)
 
 ## 배치 직렬화 계약 — 숫자 하나가 페이지 레이아웃을 끈다 (CRITICAL)
 

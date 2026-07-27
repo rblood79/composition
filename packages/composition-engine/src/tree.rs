@@ -2198,6 +2198,16 @@ impl LayoutTree {
             //   calc 는 셀(w,h) 기준 resolve → definite 로 취급(CSS grid area 는 definite).
             let (child_ew, child_eh) = self.resolve_self_size(c, w, h);
             let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
+            // **intrinsic 키워드도 "크기가 auto 가 아니다"** — CSS-ALIGN-3 §4.1 은 stretch 를
+            //   "the item's size in that axis is `auto`" 일 때로 한정한다. `fit-content` /
+            //   `min-content` / `max-content` 는 auto 가 아니므로 stretch 대상이 아닌데,
+            //   `resolve_self_size` 는 이들을 길이로 풀 수 없어 0(=미설정)을 돌려준다.
+            //   그래서 명시 px 는 존중받는데 키워드만 셀 폭으로 늘어났다 — 실측(트랙 150,
+            //   내용 min 40 / max 120): `fit-content` DOM 120 / 엔진 150, `min-content`
+            //   DOM 40 / 엔진 150. 같은 자식이 flex 부모에서는 120·40 으로 정상이라
+            //   **grid 축 하나**의 비대칭이었다.
+            let ew_is_keyword = size_is_intrinsic_keyword(cstyle.width.as_deref());
+            let eh_is_keyword = size_is_intrinsic_keyword(cstyle.height.as_deref());
             let align = grid_block_align(cstyle.align_self.as_deref(), grid_align_items);
             // 세로(block) 배치 코드 결정 (ADR-156 옵션 3-a 세로축 — §Residual "align:stretch
             //   explicit-height" 해소):
@@ -2219,7 +2229,7 @@ impl LayoutTree {
                 cell_pos: y,
                 cell_size: h,
                 real_size: ch,
-                explicit: child_eh > 0.0,
+                explicit: child_eh > 0.0 || eh_is_keyword,
                 align,
                 m_start: margin.top,
                 m_end: margin.bottom,
@@ -2245,7 +2255,7 @@ impl LayoutTree {
                 cell_pos: x,
                 cell_size: w,
                 real_size: cw,
-                explicit: child_ew > 0.0,
+                explicit: child_ew > 0.0 || ew_is_keyword,
                 align: justify,
                 m_start: margin.left,
                 m_end: margin.right,
@@ -3298,6 +3308,20 @@ fn place_grid_axis(i: GridAxisInput) -> (f32, f32) {
         }
     };
     (i.cell_pos + i.m_start + lead, size)
+}
+
+/// 크기가 intrinsic **키워드**인가 (`fit-content` / `min-content` / `max-content`).
+///
+/// CSS 상 "auto 가 아닌 크기" 라 `justify-self`/`align-self` 의 stretch 대상에서 빠진다.
+/// `resolve_self_size` 는 이들을 길이로 풀 수 없어 0 을 돌려주므로, 그 값만으로는
+/// 미설정과 구분되지 않는다.
+fn size_is_intrinsic_keyword(v: Option<&str>) -> bool {
+    let Some(t) = v.map(str::trim) else {
+        return false;
+    };
+    t.eq_ignore_ascii_case("min-content")
+        || t.eq_ignore_ascii_case("max-content")
+        || t.eq_ignore_ascii_case("fit-content")
 }
 
 /// margin 값이 `auto` 인가 — 흡수 대상 판정(§8.1 / §10.3.3 / abspos §10.3.7).
