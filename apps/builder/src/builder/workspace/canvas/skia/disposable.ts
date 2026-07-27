@@ -76,6 +76,15 @@ export function registerSkiaCacheDestroy(
   cacheDestroyRegistry.set(name, destroy);
 }
 
+/**
+ * 등록된 캐시 이름 목록.
+ * 신규 캐시 모듈의 **등록 누락**을 정적 가드가 잡을 수 있게 레지스트리 자체를
+ * 노출한다 (소스 문자열 검사로는 "아직 없는 파일"을 검사할 수 없다).
+ */
+export function getRegisteredSkiaCacheNames(): string[] {
+  return [...cacheDestroyRegistry.keys()];
+}
+
 /** 등록된 모든 Skia 캐시를 해제한다 — 캔버스 teardown 의 단일 진입점. */
 export function destroyAllSkiaCaches(): void {
   for (const destroy of cacheDestroyRegistry.values()) {

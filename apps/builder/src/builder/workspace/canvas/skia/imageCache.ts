@@ -68,11 +68,16 @@ export function registerImageEvictionListener(
   };
 }
 
-/** image.delete() 직전 반드시 경유 — 모든 퇴거 경로 공통 */
-function notifyImageEviction(image: SkImage): void {
+/**
+ * 캐시된 SkImage 해제의 **단일 경로**.
+ * 리스너 통지가 `.delete()` 보다 먼저라는 순서를 함수 경계로 보장한다 —
+ * 호출 규율로 두면 새 퇴거 경로가 추가될 때 조용히 깨진다 (R2).
+ */
+function destroyCachedImage(image: SkImage): void {
   for (const cb of evictionListeners) {
-    cb(image);
+    cb(image); // 해제 순서: Picture → Image
   }
+  image.delete();
 }
 
 /** GPU 메모리 보호를 위한 캐시 상한 (엔트리 수) */
@@ -227,8 +232,7 @@ export function releaseSkImage(url: string): void {
 
   entry.refCount--;
   if (entry.refCount <= 0) {
-    notifyImageEviction(entry.image);
-    entry.image.delete();
+    destroyCachedImage(entry.image);
     cache.delete(url);
   }
 }
@@ -237,8 +241,7 @@ export function releaseSkImage(url: string): void {
 export function clearImageCache(): void {
   cacheGeneration++; // in-flight fetch 결과를 무효화 (I-H5)
   for (const entry of cache.values()) {
-    notifyImageEviction(entry.image);
-    entry.image.delete();
+    destroyCachedImage(entry.image);
   }
   cache.clear();
   pending.clear();
@@ -279,8 +282,7 @@ function evictLRU(): void {
 
   const target = oldestUnref ?? oldest;
   if (target) {
-    notifyImageEviction(target.entry.image);
-    target.entry.image.delete();
+    destroyCachedImage(target.entry.image);
     cache.delete(target.url);
   }
 }

@@ -328,17 +328,21 @@ export class SkiaRenderer {
   private initContentSurface(): void {
     this.disposeContentSurface();
 
-    const width = this.mainSurface.width() + this.contentPaddingDevicePx * 2;
-    const height = this.mainSurface.height() + this.contentPaddingDevicePx * 2;
-
-    const baseInfo = this.mainSurface.imageInfo();
-    this.contentSurface = this.mainSurface.makeSurface({
-      ...baseInfo,
-      width,
-      height,
-    });
+    this.contentSurface = this.createContentSizedSurface();
     this.contentCanvas = this.contentSurface.getCanvas();
     this.contentDirty = true;
+  }
+
+  /**
+   * content 규격(main + padding×2) 오프스크린 표면 생성.
+   * ping-pong 이후 content/standby 는 교대하는 peer 이므로 규격 결정은 한 곳에 둔다.
+   */
+  private createContentSizedSurface(): Surface {
+    return this.mainSurface.makeSurface({
+      ...this.mainSurface.imageInfo(),
+      width: this.mainSurface.width() + this.contentPaddingDevicePx * 2,
+      height: this.mainSurface.height() + this.contentPaddingDevicePx * 2,
+    });
   }
 
   /** 스냅샷 정책 해석 — dev 는 window 전역으로 실측 전환 가능 (production 은 default 고정) */
@@ -354,15 +358,8 @@ export class SkiaRenderer {
   /** ping-pong 대기 표면 lazy 생성 (contentSurface 와 동일 규격/백엔드) */
   private ensureStandbySurface(): void {
     if (this.standbySurface || !this.contentSurface) return;
-    const width = this.mainSurface.width() + this.contentPaddingDevicePx * 2;
-    const height = this.mainSurface.height() + this.contentPaddingDevicePx * 2;
-    const baseInfo = this.mainSurface.imageInfo();
-    this.standbySurface = this.mainSurface.makeSurface({
-      ...baseInfo,
-      width,
-      height,
-    });
-    this.standbyCanvas = this.standbySurface?.getCanvas() ?? null;
+    this.standbySurface = this.createContentSizedSurface();
+    this.standbyCanvas = this.standbySurface.getCanvas();
   }
 
   /**
@@ -385,21 +382,18 @@ export class SkiaRenderer {
 
     // 스냅샷 정책 (ADR-153 Phase 3 — R7): CoW 복사 회피
     const policy = this.resolveSnapshotPolicy();
-    let targetSurface = this.contentSurface;
-    let targetCanvas = this.contentCanvas;
-    if (policy === "ping-pong") {
-      this.ensureStandbySurface();
-      if (this.standbySurface && this.standbyCanvas) {
-        targetSurface = this.standbySurface;
-        targetCanvas = this.standbyCanvas;
-      } else if (this.contentSnapshot) {
-        // 대기 표면 생성 실패 → single(early-release) 로 강등
-        this.contentSnapshot.delete();
-        this.contentSnapshot = null;
-      }
-    } else if (this.contentSnapshot) {
-      // single(early-release): 스냅샷이 살아 있는 채로 같은 표면에 그리면
-      // Ganesh 가 텍스처 전체를 copy-on-write 복사한다 — 그리기 전에 해제.
+    if (policy === "ping-pong") this.ensureStandbySurface();
+    // 대기 표면이 없으면(single 정책 또는 생성 실패) content 표면에 직접 그린다
+    const standby =
+      policy === "ping-pong" && this.standbySurface && this.standbyCanvas
+        ? { surface: this.standbySurface, canvas: this.standbyCanvas }
+        : null;
+    const targetSurface = standby ? standby.surface : this.contentSurface;
+    const targetCanvas = standby ? standby.canvas : this.contentCanvas;
+
+    if (targetSurface === this.contentSurface && this.contentSnapshot) {
+      // early-release: 스냅샷이 살아 있는 채로 그 표면에 그리면 Ganesh 가
+      // 텍스처 전체를 copy-on-write 복사한다 — 그리기 전에 해제한다.
       this.contentSnapshot.delete();
       this.contentSnapshot = null;
     }
@@ -445,13 +439,15 @@ export class SkiaRenderer {
     }
 
     // ping-pong swap — "스냅샷은 항상 this.contentSurface 를 참조" 불변식 유지
-    if (policy === "ping-pong" && targetSurface === this.standbySurface) {
-      const prevSurface = this.contentSurface;
-      const prevCanvas = this.contentCanvas;
-      this.contentSurface = this.standbySurface;
-      this.contentCanvas = this.standbyCanvas;
-      this.standbySurface = prevSurface;
-      this.standbyCanvas = prevCanvas;
+    if (standby) {
+      [this.contentSurface, this.standbySurface] = [
+        this.standbySurface,
+        this.contentSurface,
+      ];
+      [this.contentCanvas, this.standbyCanvas] = [
+        this.standbyCanvas,
+        this.contentCanvas,
+      ];
     }
 
     this.snapshotCamera.zoom = camera.zoom; // camera-only blit 델타 기준점 갱신
@@ -625,7 +621,7 @@ export class SkiaRenderer {
     }
     // 노드 Picture 캐시 volatile 면제 (ADR-153 Phase 3): tick 이 skiaData 를
     // in-place mutate 하는 노드는 identity 키가 변경을 못 보므로 캐시에서 제외.
-    setVolatileNodeIds(allDirty.size > 0 ? allDirty : null);
+    setVolatileNodeIds(allDirty); // 빈 집합 → null 정규화는 setter 가 수행
     if (allDirty.size === 0) return false;
 
     // transition(낮은 우선순위) → animation(높은 우선순위) 순으로 적용

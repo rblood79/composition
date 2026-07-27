@@ -10,6 +10,11 @@ import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+// side-effect import — 각 캐시 모듈이 self-register 하도록 로드한다
+import "./paints";
+import "./imageCache";
+import "./nodePictureCache";
+import { getRegisteredSkiaCacheNames } from "./disposable";
 
 const skiaDir = dirname(fileURLToPath(import.meta.url));
 
@@ -38,19 +43,16 @@ describe("paint pool 규약 (ADR-153 Phase 2)", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("paints.ts 는 통합 해제 레지스트리에 등록되어 있다 (R2 lifecycle)", () => {
-    const src = readFileSync(join(skiaDir, "paints.ts"), "utf8");
-    expect(src).toContain('registerSkiaCacheDestroy("paintPool"');
+  it("skia 캐시 모듈은 통합 해제 레지스트리에 self-register 한다 (R2 lifecycle)", () => {
+    // 레지스트리 자체를 단언한다 — 소스 문자열 검사는 "등록을 지운 경우"만 잡고
+    // 정작 막으려는 재발(등록 없이 추가된 새 캐시)은 통과시킨다.
+    expect(new Set(getRegisteredSkiaCacheNames())).toEqual(
+      new Set(["paintPool", "imageCache", "nodePictureCache"]),
+    );
   });
 
-  it("imageCache 는 통합 해제 레지스트리에 등록되어 있다 (R2 lifecycle)", () => {
-    const src = readFileSync(join(skiaDir, "imageCache.ts"), "utf8");
-    expect(src).toContain('registerSkiaCacheDestroy("imageCache"');
-  });
-
-  it("nodePictureCache 는 통합 해제 레지스트리 + image 퇴거 역참조에 등록되어 있다 (ADR-153 Phase 3 R2)", () => {
+  it("nodePictureCache 는 image 퇴거 역참조를 구독한다 (ADR-153 Phase 3 R2 — 해제 순서 Picture→Image)", () => {
     const src = readFileSync(join(skiaDir, "nodePictureCache.ts"), "utf8");
-    expect(src).toContain('registerSkiaCacheDestroy("nodePictureCache"');
     expect(src).toContain(
       "registerImageEvictionListener(invalidateNodePicturesByImage)",
     );

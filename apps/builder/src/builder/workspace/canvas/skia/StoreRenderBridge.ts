@@ -21,6 +21,7 @@ import {
   isComponentInstanceMirrorElement as isInstanceElement,
 } from "../../../../adapters/canonical/componentSemanticsMirror";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
+import type { SkiaNodeData } from "./nodeRendererTypes";
 import { buildSkiaNodeData, type BuildContext } from "./buildSkiaNodeData";
 import { buildBoxNodeData } from "./buildBoxNodeData";
 import { buildImageNodeData } from "./buildImageNodeData";
@@ -104,13 +105,6 @@ const COLLECTION_ITEM_TAGS = new Set(["GridListItem", "ListBoxItem"]);
 const EMPTY_LAYOUT_MAP = new Map<string, ComputedLayout>();
 
 /**
- * SkiaNodeData 구조 동등성 (ADR-153 Phase 3 — registerBuiltNode 전용).
- *
- * plain object / 배열 / TypedArray 만 구조 비교하고, 그 외 객체(SkImage 등
- * WASM 핸들)는 identity 비교. false negative(내용 같은데 불일치 판정)는
- * 재기록 1회 낭비일 뿐이라 안전 방향이다 — stale 위험이 없다.
- */
-/**
  * 루트 x/y(요소 위치)를 제외한 SkiaNodeData 동등성.
  *
  * 이동/드래그는 위치만 바꾸므로 노드 identity 를 보존해야 노드 Picture 캐시의
@@ -118,20 +112,28 @@ const EMPTY_LAYOUT_MAP = new Map<string, ComputedLayout>();
  * (self-draw 내용)라 비교에 포함된다.
  */
 function skiaNodeContentEqualsIgnoringPosition(
-  a: import("./nodeRendererTypes").SkiaNodeData,
-  b: import("./nodeRendererTypes").SkiaNodeData,
+  a: SkiaNodeData,
+  b: SkiaNodeData,
 ): boolean {
   const ra = a as unknown as Record<string, unknown>;
   const rb = b as unknown as Record<string, unknown>;
-  const keysA = Object.keys(ra).filter((k) => k !== "x" && k !== "y");
-  const keysB = Object.keys(rb).filter((k) => k !== "x" && k !== "y");
-  if (keysA.length !== keysB.length) return false;
+  const keysA = Object.keys(ra);
+  // x/y 는 SkiaNodeData 필수 필드라 양쪽 다 존재 — 개수 보정 없이 비교에서만 제외
+  if (keysA.length !== Object.keys(rb).length) return false;
   for (const k of keysA) {
+    if (k === "x" || k === "y") continue;
     if (!skiaNodeContentEquals(ra[k], rb[k])) return false;
   }
   return true;
 }
 
+/**
+ * SkiaNodeData 구조 동등성 (ADR-153 Phase 3 — registerBuiltNode 전용).
+ *
+ * plain object / 배열 / TypedArray 만 구조 비교하고, 그 외 객체(SkImage 등
+ * WASM 핸들)는 identity 비교. false negative(내용 같은데 불일치 판정)는
+ * 재기록 1회 낭비일 뿐이라 안전 방향이다 — stale 위험이 없다.
+ */
 function skiaNodeContentEquals(a: unknown, b: unknown): boolean {
   if (a === b) return true;
   if (
@@ -231,12 +233,21 @@ export class StoreRenderBridge {
   private prevProjectionVersion: number | null = null;
   /** 이전 theme (변경 감지 → fullRebuild 강제) */
   private prevTheme: "light" | "dark" = "light";
-  // ── no-op 가드 입력 스냅샷 (ADR-153 Phase 3) — 전부 동일하면 rebuild 생략 ──
-  private prevLayoutMapRef: Map<string, ComputedLayout> | null = null;
-  private prevScrollMapRef: unknown = null;
-  private prevSyntheticMapRef: unknown = null;
-  private prevBreakpoint: unknown = undefined;
-  private prevThemeVersion: number | null = null;
+  /**
+   * no-op 가드 입력 스냅샷 (ADR-153 Phase 3) — 전부 동일하면 rebuild 생략.
+   *
+   * **보수 의무**: `buildSkiaNodeFromElement` 가 읽는 전역 입력이 늘어나면 이
+   * 목록도 같이 늘려야 한다. 빠뜨리면 그 입력만 바뀐 편집이 조용히 무시되고
+   * (다음 팬/줌 전까지 화면에 안 나타남) 증상이 다른 결함처럼 보인다 —
+   * layoutVersion 5-심볼 체인 / sceneVersion signature 와 동급 보수 대상.
+   */
+  private prevSyncInputs: {
+    layoutMap: Map<string, ComputedLayout> | null;
+    scrollMap: unknown;
+    syntheticMap: unknown;
+    breakpoint: unknown;
+    themeVersion: number;
+  } | null = null;
   /** ref 비교 밖 입력 변경 (bridge 자체 이미지 로드 등) — 다음 sync 가드 1회 해제 */
   private externalDirty = false;
   /** CSS transition 애니메이션 매니저 (선택 연결) */
@@ -350,25 +361,29 @@ export class StoreRenderBridge {
     const syntheticMapRef = getSyntheticElementsMap();
     const breakpoint = useStore.getState().activeBreakpoint;
     const themeVersion = useThemeConfigStore.getState().themeVersion;
+    const prevInputs = this.prevSyncInputs;
     if (
       !this.externalDirty &&
       !themeChanged &&
       !projectionChanged &&
       this.prevElementsMap === elementsMap &&
-      this.prevLayoutMapRef === layoutMap &&
-      this.prevScrollMapRef === scrollMapRef &&
-      this.prevSyntheticMapRef === syntheticMapRef &&
-      this.prevBreakpoint === breakpoint &&
-      this.prevThemeVersion === themeVersion
+      prevInputs !== null &&
+      prevInputs.layoutMap === layoutMap &&
+      prevInputs.scrollMap === scrollMapRef &&
+      prevInputs.syntheticMap === syntheticMapRef &&
+      prevInputs.breakpoint === breakpoint &&
+      prevInputs.themeVersion === themeVersion
     ) {
       return;
     }
     this.externalDirty = false;
-    this.prevLayoutMapRef = layoutMap;
-    this.prevScrollMapRef = scrollMapRef;
-    this.prevSyntheticMapRef = syntheticMapRef;
-    this.prevBreakpoint = breakpoint;
-    this.prevThemeVersion = themeVersion;
+    this.prevSyncInputs = {
+      layoutMap,
+      scrollMap: scrollMapRef,
+      syntheticMap: syntheticMapRef,
+      breakpoint,
+      themeVersion,
+    };
 
     const changedIds =
       forceFullRebuild || themeChanged || projectionChanged
@@ -536,17 +551,14 @@ export class StoreRenderBridge {
    * 전량 흔들려 편집 1회가 전 노드 re-record 로 번진다. identity 유지 시
    * registerSkiaNode 의 동일-참조 skip 이 registryVersion 증가도 막는다.
    */
-  private registerBuiltNode(
-    id: string,
-    nodeData: import("./nodeRendererTypes").SkiaNodeData,
-  ): void {
+  private registerBuiltNode(id: string, nodeData: SkiaNodeData): void {
     const prev = getSkiaNode(id);
     if (prev && skiaNodeContentEqualsIgnoringPosition(prev, nodeData)) {
       // 루트 x/y(위치)만 다른 경우: 이동은 self-draw 내용을 바꾸지 않는다
       // (Picture 키도 위치 제외 — r1 M1). 기존 객체를 유지하되 layout 부재 시
       // fallback 으로 읽히는 좌표만 동기화한다.
-      if (prev.x !== nodeData.x) prev.x = nodeData.x;
-      if (prev.y !== nodeData.y) prev.y = nodeData.y;
+      prev.x = nodeData.x;
+      prev.y = nodeData.y;
       return;
     }
     registerSkiaNode(id, nodeData);
@@ -641,7 +653,7 @@ export class StoreRenderBridge {
     ctx: BuildContext,
     elementsMap: Map<string, CanvasSceneNode>,
     childrenMap: Map<string, CanvasSceneNode[]> | null,
-  ): import("./nodeRendererTypes").SkiaNodeData | null {
+  ): SkiaNodeData | null {
     // ADR-903 P2 D-C: instance → resolved (master props 머지)
     // master/instance 시스템에서 instance.props 는 createInstance 시 빈 객체로
     // 시작하므로, 본 진입부에서 origin props 와 instance override mirror 를 머지하지
@@ -918,11 +930,7 @@ export class StoreRenderBridge {
     this.prevElementsMap = null;
     this.prevProjectionVersion = null;
     // no-op 가드 스냅샷 리셋 — 재연결 직후 sync 가 skip 되지 않도록
-    this.prevLayoutMapRef = null;
-    this.prevScrollMapRef = null;
-    this.prevSyntheticMapRef = null;
-    this.prevBreakpoint = undefined;
-    this.prevThemeVersion = null;
+    this.prevSyncInputs = null;
     this.externalDirty = false;
 
     for (const id of this.registeredIds) {

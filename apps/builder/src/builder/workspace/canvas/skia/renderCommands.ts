@@ -1191,7 +1191,7 @@ function executeCommandRange(
         // 노드 Picture 캐시 (ADR-153 Phase 3): BEGIN 상태(translate/alpha/transform/
         // clip/blend/effects/mask)가 모두 적용된 뒤이므로, self-draw 구간을 record 된
         // Picture 재생으로 대체할 수 있다. 성공 시 구간을 건너뛴다.
-        if (selfSpans && cmd.elementId) {
+        if (selfSpans) {
           const span = selfSpans.get(cmd.elementId);
           if (
             span &&
@@ -1335,6 +1335,22 @@ const RECORD_BOUNDS = {
 } as DOMRect;
 
 /**
+ * `RECORD_BOUNDS` 의 CanvasKit 표현. 상수값이라 한 번만 만든다 —
+ * 캐시 전량 폐기 직후 프레임은 전 요소가 record 를 타므로 그 버스트에서
+ * 같은 Float32Array 를 요소 수만큼 재할당하게 된다.
+ */
+let recordRect: ReturnType<CanvasKit["LTRBRect"]> | null = null;
+function getRecordRect(ck: CanvasKit): ReturnType<CanvasKit["LTRBRect"]> {
+  recordRect ??= ck.LTRBRect(
+    -RECORD_CULL_EXTENT,
+    -RECORD_CULL_EXTENT,
+    RECORD_CULL_EXTENT,
+    RECORD_CULL_EXTENT,
+  );
+  return recordRect;
+}
+
+/**
  * self-draw 구간을 Picture 재생으로 대체 시도한다.
  *
  * @returns true = replay 수행(구간 skip 가능) / false = direct 경로로 폴백
@@ -1351,7 +1367,7 @@ function drawSelfSpanViaPicture(
   const elementId = cmd.elementId;
 
   // 텍스트 편집 중 숨김은 direct 경로 전용 로직 — 캐시 우회 (record 도 안 함)
-  if (editingId && editingId === elementId) return false;
+  if (editingId === elementId) return false;
 
   // transition/animation tick 이 skiaData 를 in-place mutate 하는 구간 —
   // identity 키가 변경을 못 보므로 캐시 우회 + 기존 항목 폐기 (r1 M1 volatile 면제)
@@ -1365,7 +1381,7 @@ function drawSelfSpanViaPicture(
 
   let picture = getCachedNodePicture(elementId, dataRef, cmd.width, cmd.height);
   if (!picture) {
-    picture = recordSelfSpan(ck, commands, span, cmd, fontMgr);
+    picture = recordSelfSpan(ck, commands, span, elementId, fontMgr);
     if (!picture) return false; // record 실패 → direct draw 폴백
     storeNodePicture(
       elementId,
@@ -1389,19 +1405,12 @@ function recordSelfSpan(
   ck: CanvasKit,
   commands: RenderCommand[],
   span: SelfSpan,
-  cmd: ElementBeginCmd,
+  elementId: string,
   fontMgr: FontMgr | undefined,
 ): SkPicture | null {
   const recorder = new ck.PictureRecorder();
   try {
-    const recCanvas = recorder.beginRecording(
-      ck.LTRBRect(
-        -RECORD_CULL_EXTENT,
-        -RECORD_CULL_EXTENT,
-        RECORD_CULL_EXTENT,
-        RECORD_CULL_EXTENT,
-      ),
-    );
+    const recCanvas = recorder.beginRecording(getRecordRect(ck));
     // spans=undefined → record 중 중첩 캐시 없음 (구간 안은 내부 자식 wrapper 뿐)
     executeCommandRange(
       ck,
@@ -1418,7 +1427,7 @@ function recordSelfSpan(
     if (process.env.NODE_ENV === "development") {
       console.warn(
         "[nodePictureCache] record 실패 — direct draw 폴백:",
-        cmd.elementId,
+        elementId,
         e,
       );
     }

@@ -40,13 +40,22 @@ interface NodePictureEntry {
   picture: SkPicture;
   /** record 시점에 span 이 참조한 SkImage 들 — 퇴거 역참조용 */
   imageRefs: SkImage[] | null;
+  /**
+   * LRU 스탬프. hit 경로가 Map 을 재삽입하는 대신 이 필드만 갱신한다 —
+   * hit 은 프레임마다 요소 수만큼 발생하므로 해시 테이블 구조 변경
+   * (delete + set = tombstone 누적 → 주기적 rehash) 을 피한다.
+   */
+  lastUsed: number;
 }
 
 /** GPU/WASM 메모리 보호 상한 (요소당 1 entry — LRU 퇴거) */
 const MAX_NODE_PICTURES = 1024;
 
-/** elementId → entry. Map 삽입 순서를 LRU 로 사용 (hit 시 재삽입) */
+/** elementId → entry. LRU 순서는 `entry.lastUsed` 스탬프가 보유한다. */
 const cache = new Map<string, NodePictureEntry>();
+
+/** 단조 증가 사용 시각 — LRU 비교 전용 */
+let useClock = 0;
 
 /** SkImage → 그 이미지를 참조하는 elementId 집합 (퇴거 시 동시 invalidate) */
 const imageIndex = new Map<SkImage, Set<string>>();
@@ -82,32 +91,19 @@ export function getCachedNodePicture(
   width: number,
   height: number,
 ): SkPicture | null {
-  const entry = cache.get(elementId);
-  if (!entry) {
-    if (process.env.NODE_ENV === "development") {
-      getCacheMetrics("nodePicture").recordMiss("cold");
-    }
+  const dev = process.env.NODE_ENV === "development";
+  const miss = (reason: string): null => {
+    if (dev) getCacheMetrics("nodePicture").recordMiss(reason);
     return null;
-  }
-  if (entry.dataRef !== dataRef) {
-    if (process.env.NODE_ENV === "development") {
-      getCacheMetrics("nodePicture").recordMiss("data");
-    }
-    return null;
-  }
-  if (entry.width !== width || entry.height !== height) {
-    if (process.env.NODE_ENV === "development") {
-      getCacheMetrics("nodePicture").recordMiss("size");
-    }
-    return null;
-  }
+  };
 
-  // LRU touch — 재삽입으로 최신화
-  cache.delete(elementId);
-  cache.set(elementId, entry);
-  if (process.env.NODE_ENV === "development") {
-    getCacheMetrics("nodePicture").recordHit();
-  }
+  const entry = cache.get(elementId);
+  if (!entry) return miss("cold");
+  if (entry.dataRef !== dataRef) return miss("data");
+  if (entry.width !== width || entry.height !== height) return miss("size");
+
+  entry.lastUsed = ++useClock; // LRU touch (필드 쓰기 — Map 구조 무변경)
+  if (dev) getCacheMetrics("nodePicture").recordHit();
   return entry.picture;
 }
 
@@ -120,13 +116,16 @@ export function storeNodePicture(
   picture: SkPicture,
   imageRefs: SkImage[] | null,
 ): void {
-  const existing = cache.get(elementId);
-  if (existing) {
-    disposeEntry(elementId, existing);
-    cache.delete(elementId);
-  }
+  invalidateNodePicture(elementId); // 기존 entry 가 있으면 Picture 해제 + 역참조 정리
 
-  cache.set(elementId, { dataRef, width, height, picture, imageRefs });
+  cache.set(elementId, {
+    dataRef,
+    width,
+    height,
+    picture,
+    imageRefs,
+    lastUsed: ++useClock,
+  });
   if (imageRefs) {
     for (const img of imageRefs) {
       let ids = imageIndex.get(img);
@@ -138,12 +137,8 @@ export function storeNodePicture(
     }
   }
 
-  if (cache.size > MAX_NODE_PICTURES) {
-    const oldestKey = cache.keys().next().value as string | undefined;
-    if (oldestKey !== undefined) {
-      invalidateNodePicture(oldestKey);
-    }
-  }
+  if (cache.size > MAX_NODE_PICTURES) evictLeastRecentlyUsed();
+  syncMetricsSize();
 }
 
 /** 단일 노드 entry 폐기 (Picture 해제 + image 역참조 정리) */
@@ -152,6 +147,7 @@ export function invalidateNodePicture(elementId: string): void {
   if (!entry) return;
   disposeEntry(elementId, entry);
   cache.delete(elementId);
+  syncMetricsSize();
 }
 
 /**
@@ -174,6 +170,7 @@ export function clearNodePictureCache(): void {
   }
   cache.clear();
   imageIndex.clear();
+  syncMetricsSize();
 }
 
 /**
@@ -209,6 +206,33 @@ export function getNodePictureCacheSize(): number {
 }
 
 // ── Internal ──────────────────────────────────────────────────────────
+
+/**
+ * 상한 초과 시 `lastUsed` 최소 entry 퇴거.
+ * 상한(1024) 도달은 드물어, 선형 스캔 비용이 매 hit 의 Map 재삽입보다 싸다.
+ */
+function evictLeastRecentlyUsed(): void {
+  let oldestKey: string | undefined;
+  let oldestUse = Infinity;
+  for (const [id, entry] of cache) {
+    if (entry.lastUsed < oldestUse) {
+      oldestUse = entry.lastUsed;
+      oldestKey = id;
+    }
+  }
+  if (oldestKey === undefined) return;
+  invalidateNodePicture(oldestKey);
+  if (process.env.NODE_ENV === "development") {
+    getCacheMetrics("nodePicture").recordEviction();
+  }
+}
+
+/** dev 계측 채널에 현재 크기 반영 — `__composition_CACHE_METRICS__` 스냅샷용 */
+function syncMetricsSize(): void {
+  if (process.env.NODE_ENV === "development") {
+    getCacheMetrics("nodePicture").setSize(cache.size);
+  }
+}
 
 function disposeEntry(elementId: string, entry: NodePictureEntry): void {
   entry.picture.delete();
