@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [확정 높이 밴드 안의 auto 자식이 내용만큼 자라던 문제 — flex 교차축] - 2026-07-27
+
+### Bug Fixes
+
+- **`align-items: stretch` 인 flex 컨테이너에서 높이(폭)가 `auto` 인 자식이 컨테이너를 넘어 내용 크기까지 자라던 문제**. 확정 높이 밴드 안에 auto-height 자식을 두는 형태 — 프리셋 row 레이아웃의 기본 구성이라 실제로 닿는다.
+  - **Why**: CSS-FLEXBOX §9.4 step 8 은 "single-line + definite cross 컨테이너의 flex 라인 outer cross size **는** 컨테이너의 inner cross size" 라는 **대입**인데, 엔진이 `max` 로 두고 있었다. 라인이 아이템에 맞춰 커지면 `stretch` 가 그 커진 라인을 채우므로 자식이 내용까지 자란다. CSS 는 컨테이너에서 자르고 내용이 라인 밖으로 흘러넘친다.
+  - Chrome 실측: 확정 높이 100 + `height:auto` 자식 + 내용 300 → **DOM 100 / 엔진 300**. row(높이)·column(폭) 동형이고 빌더 실 파이프라인까지 그대로 전파됐다.
+  - `align-items: flex-start` 는 아이템이 자기 크기를 유지하므로 **종전에도 정합**이었다 — 증상이 stretch 에서만 나오던 이유다.
+  - **왜 sweep 에 안 걸렸나**: `flexSweep`(384+288 조합)는 definite cross 를 줄 합보다 **크게** 잡는다 — 음수 free space 는 align-content 정합 영역 밖이라 의도적으로 비켜 간 구성이다. 그래서 "라인 cross > 컨테이너 cross" 형태가 한 번도 안 들어갔다. 이 영역은 이제 별도 fixture 소관.
+  - 검증: 신규 Chrome 대조 fixture 14건(row/column × stretch·flex-start × 내용 초과/미달 + 컨테이너 auto, engine leg + pipeline leg) — 수정 전 4건 red. 기존 브라우저 parity 141건 / Rust 336건(신규 2건 포함) / 빌더 2992건 전부 PASS. 라이브: 실행 중인 빌더의 WASM 이 같은 트리에서 CSS 값(100)을 내는 것과, 사용자 문서의 현재 요소 중 이 분기에 닿는 것이 0건(= 기존 화면 무변동)임을 함께 확인.
+  - 위치: `packages/composition-engine/src/flex.rs`, fixture `apps/builder/tests/parity/crossAxisOverflow.browser.test.ts`, 규칙 `.claude/rules/layout-engine.md`
+
 ## [넘침 표시 chrome 이 프레임 슬롯 너머를 못 보던 문제] - 2026-07-27
 
 ### Bug Fixes

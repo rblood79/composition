@@ -150,18 +150,32 @@ flex item 의 automatic minimum size (min-width/height:auto = content 하한) �
 - ❌ 측정 후 `mark_subtree_dirty` 로 복구 갈음 → 자손 캐시까지 날아가 중첩 깊이에 지수적
 - ❌ 측정 배선을 `is_row` 밖으로 확장 → 세로 축은 결함 부재이며, 확장 시 height-for-width 2-pass 계약(ADR-165)과 충돌
 
+## 교차축 라인 cross 는 컨테이너 cross **대입** (CSS-FLEXBOX §9.4 step 8, 2026-07-27)
+
+single-line(`flex-wrap:nowrap`) + definite cross 컨테이너에서 flex 라인의 outer cross size 는 컨테이너의 inner cross size **그 자체**다 — "**is** the flex container's inner cross size". `flex.rs::flex_layout` 의 라인 승격은 `max` 가 아니라 대입이어야 한다.
+
+- `max` 로 라인을 아이템에 맞춰 키우면 `align-items:stretch` 가 그 커진 라인을 채워 **auto-cross 아이템이 내용까지 자란다**. CSS 는 컨테이너에서 자르고 내용이 라인 밖으로 흘러넘친다. 실측: 확정 높이 100 밴드 + `height:auto` 자식 + 내용 300 → DOM 100 / 구 엔진 300 (row·column 동형, 파이프라인까지 전파).
+- `align-items:flex-start` 는 아이템이 자기 크기를 유지하므로 **종전에도 정합**이었다 — 증상이 stretch 에서만 나오는 이유. 확정 밴드 + auto 자식은 프리셋 row 레이아웃의 기본 형태라 라이브 도달 가능.
+- **sweep 사각지대**: `flexSweep` 는 definite cross 를 줄 합보다 **크게** 잡는다 (음수 free space 는 align-content 정합 region 밖이라 의도적 회피). 그래서 "라인 cross > 컨테이너 cross" 형태가 384+288 조합에 한 번도 안 걸렸다. 교차축 회귀를 볼 때 sweep 통과를 커버리지로 읽지 말 것 — 초과 영역은 `crossAxisOverflow.browser.test.ts` 소관.
+- Chrome 실측 fixture: `apps/builder/tests/parity/crossAxisOverflow.browser.test.ts` (row/column × stretch·flex-start × 내용 초과/미달 + 컨테이너 auto)
+
+### 금지 패턴
+
+- ❌ 라인 cross 승격을 `this_line_cross.max(available_cross)` 로 재도입 (§9.4 step 8 은 대입)
+- ❌ 넘치는 아이템을 라인/컨테이너 크기로 **자르는** 보정 — 넘침은 흘러넘치는 것이 정상이고, 자르는 것은 `overflow` 소관
+
 ## TS 잔존 계약 (ADR-164 Phase 3 — 엔진↔TS 경계 규칙, CRITICAL)
 
 다음은 **의도적으로 TS 에 남는** 것들이다. 엔진 gap 처럼 보여도 아래 사유가 유효한 한 엔진 이관·중복 구현 양쪽 모두 금지 — 변경은 해당 사유를 뒤집는 ADR 로만:
 
-| 잔존                                                                       | 사유                                                                                                                                                                  |
-| -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 잔존                                                                          | 사유                                                                                                                                                                                                                                                                                                 |
+| ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 측정 스칼라 공급 (`contentMinWidth`/`contentMaxWidth` — **텍스트 leaf 한정**) | CanvasKit/Canvas 2D = 측정 oracle ("Layout = Canvas 2D = CSS 정합"). 엔진 자체 텍스트 측정 도입 금지. **경계 = 폰트 측정은 TS / 구조 집계는 엔진** (ADR-169) — 컨테이너 intrinsic 은 자식 값의 집계·재실행이라 TS 가 공급하면 레이아웃 재구현이 된다. TS 에서 컨테이너 intrinsic 을 계산해 주입 금지 |
-| 비텍스트 leaf 폭·height 주입 (INLINE_BLOCK/CIRCLE/IMAGE/SPEC_SHAPES_INPUT) | display 의미론 에뮬레이션 + 합성 leaf content — 스칼라 채널 확대는 후속 판정 (구 텍스트 leaf width/minWidth 주입은 ADR-165 로 스칼라 계약에 흡수 — 재도입 금지)       |
-| `implicitStyles.ts` 컴포넌트별 주입 (indicator/collection font 등)         | catalog/spec 의미론 (D3 SSOT 파생) — CSS 표준 의미론 아님. CSS base width 채널 (B22 100% / label fit-content) 포함                                                    |
-| Step 4.5 — **height-for-width 1회 재측정** (축소 계약, ADR-165 Phase 2)    | 폭 확정 후 높이 재줄바꿈 재측정만 담당 — 폭 재보정 확장 재도입 금지 (폭 축은 엔진 소유). measure callback 이관은 별도 ADR (재개 조건: 2-pass 비용의 프레임 예산 압박) |
-| f32 `Math.ceil` 보정                                                       | 엔진 f32 ↔ JS f64 정밀도 경계 — 흡수 대상 아님 (스칼라 2종도 ceil 대상)                                                                                               |
-| layoutCache 시그니처/무효화 (5-심볼 2계층)                                 | store 결합 — 마샬링 비용 > 계산 비용. 측정 스칼라는 store 키가 아닌 enrichment 파생값 — 체인 등재 불요 (`children`/`text`/`fontSize` 가 이미 등재)                    |
+| 비텍스트 leaf 폭·height 주입 (INLINE_BLOCK/CIRCLE/IMAGE/SPEC_SHAPES_INPUT)    | display 의미론 에뮬레이션 + 합성 leaf content — 스칼라 채널 확대는 후속 판정 (구 텍스트 leaf width/minWidth 주입은 ADR-165 로 스칼라 계약에 흡수 — 재도입 금지)                                                                                                                                      |
+| `implicitStyles.ts` 컴포넌트별 주입 (indicator/collection font 등)            | catalog/spec 의미론 (D3 SSOT 파생) — CSS 표준 의미론 아님. CSS base width 채널 (B22 100% / label fit-content) 포함                                                                                                                                                                                   |
+| Step 4.5 — **height-for-width 1회 재측정** (축소 계약, ADR-165 Phase 2)       | 폭 확정 후 높이 재줄바꿈 재측정만 담당 — 폭 재보정 확장 재도입 금지 (폭 축은 엔진 소유). measure callback 이관은 별도 ADR (재개 조건: 2-pass 비용의 프레임 예산 압박)                                                                                                                                |
+| f32 `Math.ceil` 보정                                                          | 엔진 f32 ↔ JS f64 정밀도 경계 — 흡수 대상 아님 (스칼라 2종도 ceil 대상)                                                                                                                                                                                                                              |
+| layoutCache 시그니처/무효화 (5-심볼 2계층)                                    | store 결합 — 마샬링 비용 > 계산 비용. 측정 스칼라는 store 키가 아닌 enrichment 파생값 — 체인 등재 불요 (`children`/`text`/`fontSize` 가 이미 등재)                                                                                                                                                   |
 
 역방향(재침식)도 같은 강도로 금지: **CSS 표준 의미론의 새 gap 을 발견하면 TS 보정이 아니라 엔진 구현이 기본 경로** (ADR-164 Decision — Step 5.7 형 coarse 근사 재생산 금지).
 

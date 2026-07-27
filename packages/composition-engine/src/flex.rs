@@ -671,8 +671,20 @@ pub fn flex_layout(
         //   (INLINE_BLOCK_PARENT_CONFIG = wrap + align-items:center + align-content:flex-start)
         //   을 타는데, 라인이 페이지 높이로 승격되며 align-items:center 가 Button 을 세로 중앙에
         //   배치 → CSS(좌상단)와 Skia(좌중앙) 비대칭. wrap 이면 승격하지 않아야 상단에 쌓인다.
+        //
+        // **Why `max` 가 아니라 대입인가 (2026-07-27)**: §9.4 step 8 은 "**is** the flex
+        //   container's inner cross size" — 라인이 컨테이너보다 커도 라인 cross 는 컨테이너
+        //   cross 이고, 넘치는 아이템이 라인 **밖으로** 흘러넘친다. `max` 로 라인을 아이템에
+        //   맞춰 키우면 `align-items:stretch` 가 그 커진 라인을 채워 **auto-cross 아이템이
+        //   내용까지 자란다**(CSS 는 컨테이너에서 자름). 실측: 확정 높이 100 밴드 안의
+        //   height:auto 자식이 내용 300 일 때 DOM 100 / 엔진 300 (row·column 동형).
+        //   `align-items:flex-start` 는 아이템이 자기 크기를 유지하므로 종전에도 정합이었고,
+        //   그래서 `flexSweep`(definite cross 를 줄 합보다 크게 잡는 구성)에 안 걸렸다.
+        //
+        // 한편 아이템이 넘치더라도 **라인 cross 를 컨테이너로 확정**해야 center/end 정렬의
+        //   기준면이 컨테이너가 된다(§8.3 — 넘침은 양방향으로 균등).
         if wrap == WRAP_NOWRAP && cross_is_definite {
-            this_line_cross = this_line_cross.max(available_cross);
+            this_line_cross = available_cross;
         }
 
         place_line_main_axis(
@@ -1291,6 +1303,41 @@ mod tests {
             &data, 300.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_STRETCH, 0.0,
         );
         assert!((out[3] - 100.0).abs() < 0.01, "cross height={} (expect stretch 100)", out[3]);
+    }
+
+    #[test]
+    fn stretch_clamps_auto_cross_to_definite_container() {
+        // §9.4 step 8 은 대입 — single-line + definite cross 면 라인 cross = 컨테이너 cross.
+        // 내용이 컨테이너보다 커도(content_cross=300 vs 컨테이너 100) stretch 는 컨테이너에서
+        // 자른다. 라인을 아이템에 맞춰 키우면(구 `max`) 아이템이 내용까지 자랐다.
+        // Chrome 실측 대조: crossAxisOverflow.browser.test.ts "row/stretch 내용>컨테이너".
+        let mut f = item(50.0, AUTO);
+        f[2] = AUTO; // cross auto → stretch 대상
+        f[14] = 300.0; // content_cross = 내용이 컨테이너(100) 초과
+        let data = flatten(&[f]);
+        let out = flex_layout_single_line(
+            &data, 300.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_STRETCH, 0.0,
+        );
+        assert!(
+            (out[3] - 100.0).abs() < 0.01,
+            "cross height={} (expect clamp 100, not content 300)",
+            out[3]
+        );
+    }
+
+    #[test]
+    fn overflowing_item_keeps_size_and_line_origin_when_not_stretched() {
+        // 회귀 방지: 같은 초과 상황에서 stretch 가 아니면(START) 아이템은 자기 크기를
+        // 유지하고 라인 원점에 놓인다 — 넘침은 라인 밖으로 흘러야 한다(자르지 않음).
+        let mut f = item(50.0, AUTO);
+        f[2] = AUTO;
+        f[14] = 300.0;
+        let data = flatten(&[f]);
+        let out = flex_layout_single_line(
+            &data, 300.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_START, 0.0,
+        );
+        assert!((out[3] - 300.0).abs() < 0.01, "cross height={} (expect 300)", out[3]);
+        assert!((out[1] - 0.0).abs() < 0.01, "cross y={} (expect 0)", out[1]);
     }
 
     #[test]
