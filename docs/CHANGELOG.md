@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [`minmax()` 그리드 트랙이 상한까지 자라지 않고, fr 분배가 컨테이너를 넘던 문제] - 2026-07-28
+
+### Bug Fixes
+
+- **`minmax(_, px)` 트랙이 base(=min)에 멈춰 있던 문제** (CSS-GRID-1 §12.6 "Maximize Tracks"):
+  - 남는 공간이 있으면 각 트랙의 base 를 growth limit 까지 키워야 하는데 그 단계가 통째로 없었다. `minmax(50px,80px)` 이 50 에 굳었고, `fr` 트랙이 함께 있을 때만 우연히 상한에 닿았다
+  - **부작용 — 트랙 합이 컨테이너를 넘었다**: fr 여유를 `컨테이너 − Σmin` 으로 잡아 minmax 의 성장분을 빼지 않았다. `minmax(100px,150px) 1fr` / 400 에서 150 + 300 = **450**. §12.6 을 넣으면서 fr 분배식도 `컨테이너 − Σ확정크기` 로 정정
+  - 분배는 균등 + 상한 도달 시 freeze + 남은 몫 재분배. 전원이 상한에 닿으면 남는 공간은 그대로 남는다 (`auto` 트랙이 없으면 §12.8 대상도 없음)
+  - **정렬과 무관하게 항상 돈다** — `justify-content:start` 여도 트랙은 상한까지 자란 뒤 트랙셋이 정렬된다. `auto` 트랙 stretch(§12.8)가 `normal`/`stretch` 에서만 도는 것과 다른 점
+  - `minmax(auto, 80px)` 이 0 으로 붕괴하던 것도 해소 (base 0 → 상한까지 성장)
+  - 위치: `packages/composition-engine/src/grid.rs` (`maximize_tracks` 신규 + `resolve_grid_tracks` 단계 재정렬)
+  - 검증: Chrome 대조 fixture 신설 `apps/builder/tests/parity/gridMinmaxTracks.browser.test.ts` (46 정합 + 합-초과 회귀 + 잔존 1) / parity 전체 648건 green / Rust 344건 green. 민감도 — §12.6 무력화 43 red
+  - 라이브 확인: 실행 중인 빌더의 WASM 직접 호출로 9개 형태(상한 성장·내용 초과·균등·freeze 재분배·3트랙·`jc:start`·gap·합-초과 회귀)가 Chrome 실측과 일치. catalog 및 앱 소스에 `minmax(` 사용 0건이라 기존 문서 영향 없음
+  - 잔존: 트랙의 **content 기여** 미측정 — `minmax(auto, px)` 의 base 가 0 이라 내용이 상한을 넘으면 어긋난다(내용 120 → DOM 120 / 엔진 80). `min-content`/`max-content`/`fit-content()` 트랙 키워드도 같은 뿌리로 미지원(→ `auto` 폴백). ADR-169 grid intrinsic 이연의 재개 조건과 동일 축
+
 ## [`auto` 그리드 트랙이 남는 공간을 나눠 갖지 않던 문제] - 2026-07-28
 
 ### Bug Fixes

@@ -259,22 +259,25 @@ fn resolve_grid_tracks(tracks: &mut [GridTrack], container_size: f32, gap: f32) 
     }
 
     let total_gap = gap * (tracks.len() as f32 - 1.0);
-    let mut fixed_size = 0.0f32;
     let mut fr_total = 0.0f32;
 
-    // 1단계: 고정 크기 합산 (% 해결 포함) + fr 총량.
+    // 1단계: base size 확정 (% 해결 포함) + fr 총량 집계.
     for track in tracks.iter_mut() {
         match track.unit {
-            TrackUnit::Px => fixed_size += track.size,
+            TrackUnit::Px => {} // size 이미 확정
             TrackUnit::Percent => {
-                let px = (track.fr_value / 100.0) * container_size;
-                track.size = px;
-                fixed_size += px;
+                track.size = (track.fr_value / 100.0) * container_size;
             }
-            TrackUnit::Fr => fr_total += track.fr_value, // fr_value 는 파싱 시 ≥1 보장
-            TrackUnit::Auto => fr_total += 1.0, // auto = 1fr 근사
+            TrackUnit::Fr => {
+                fr_total += track.fr_value; // fr_value 는 파싱 시 ≥1 보장
+                track.size = UNRESOLVED;
+            }
+            TrackUnit::Auto => {
+                fr_total += 1.0; // auto = 1fr 근사
+                track.size = UNRESOLVED;
+            }
             TrackUnit::Minmax => {
-                fixed_size += track.min;
+                track.size = track.min; // base size = min
                 if track.max < 0.0 {
                     fr_total += track.max.abs();
                 }
@@ -282,8 +285,12 @@ fn resolve_grid_tracks(tracks: &mut [GridTrack], container_size: f32, gap: f32) 
         }
     }
 
-    // 2단계: 남은 공간을 fr 풀에 분배.
-    let remaining = (container_size - fixed_size - total_gap).max(0.0);
+    // 1.5단계: §12.6 Maximize Tracks — base 를 growth limit 까지 키운다.
+    maximize_tracks(tracks, container_size, total_gap);
+
+    // 2단계: §12.7 — 남은 공간을 fr 풀에 분배.
+    let used: f32 = tracks.iter().map(|t| t.size).sum();
+    let remaining = (container_size - used - total_gap).max(0.0);
     let fr_size = if fr_total > 0.0 {
         remaining / fr_total
     } else {
@@ -295,18 +302,66 @@ fn resolve_grid_tracks(tracks: &mut [GridTrack], container_size: f32, gap: f32) 
             // fr_value 는 파싱 시 unwrap_or(1.0) 로 최소 1 보장됨 → 그대로 분배.
             TrackUnit::Fr => track.size = fr_size * track.fr_value,
             TrackUnit::Auto => track.size = fr_size,
-            TrackUnit::Minmax => {
+            // max 가 fr 인 minmax: min 보장 + fr 분배. (max 가 px 인 것은 1.5단계에서 확정)
+            TrackUnit::Minmax if track.max < 0.0 => {
                 let min_val = track.min;
-                if track.max < 0.0 {
-                    // max 가 fr: min 보장 + fr 분배.
-                    let fr_val = track.max.abs();
-                    track.size = min_val.max(min_val + fr_size * fr_val);
-                } else {
-                    // max 가 px: min 과 max 사이 clamp.
-                    track.size = track.max.min(min_val.max(min_val + fr_size));
-                }
+                let fr_val = track.max.abs();
+                track.size = min_val.max(min_val + fr_size * fr_val);
             }
-            _ => {} // px, % 이미 확정
+            _ => {} // px, %, minmax(_, px) 이미 확정
+        }
+    }
+}
+
+/// CSS-GRID-1 §12.6 "Maximize Tracks" — 남는 공간으로 base size 를 growth limit 까지 키운다.
+///
+/// 대상은 **definite growth limit** 를 가진 트랙, 즉 `minmax(_, px)` 뿐이다. `fr`/`auto` 는
+/// growth limit 가 유한하지 않아 §12.7 소관이며, 여기서 함께 키우면 fr 분배와 이중 적용된다.
+/// px/% 트랙은 base == limit 이라 성장 여지가 없다.
+///
+/// 분배는 **균등**이고, 상한에 닿은 트랙은 freeze 한 뒤 남은 여유를 나머지에 재분배한다
+/// (실측: `minmax(0,200) minmax(0,50)` / 300 → 200·50 — 두 번째가 50 에서 멈추고 남은 몫이
+/// 첫 번째로, 거기서도 상한 200 에 걸려 50 은 미분배로 남는다).
+///
+/// **content-distribution 과 무관하게 항상 돈다** — `justify-content:start` 여도 트랙은
+/// 상한까지 자란다(실측 `minmax(50,80) 100px` → 80·100 후 좌측 정렬). auto 트랙 stretch
+/// (§12.8, tree.rs `stretch_auto_tracks`)가 `normal`/`stretch` 에서만 도는 것과 다르다.
+fn maximize_tracks(tracks: &mut [GridTrack], container_size: f32, total_gap: f32) {
+    /// f32 누산 오차로 무한 루프가 되지 않게 하는 하한.
+    const FREE_EPS: f32 = 0.01;
+
+    let base_sum: f32 = tracks.iter().map(|t| t.size).sum();
+    let mut free = container_size - base_sum - total_gap;
+    if free <= FREE_EPS {
+        return;
+    }
+
+    let mut unfrozen: Vec<usize> = tracks
+        .iter()
+        .enumerate()
+        .filter(|(_, t)| t.unit == TrackUnit::Minmax && t.max >= 0.0 && t.max > t.size)
+        .map(|(i, _)| i)
+        .collect();
+
+    while free > FREE_EPS && !unfrozen.is_empty() {
+        let share = free / unfrozen.len() as f32;
+        let mut froze_any = false;
+        let mut next = Vec::with_capacity(unfrozen.len());
+        for &i in &unfrozen {
+            let room = tracks[i].max - tracks[i].size;
+            if room <= share {
+                tracks[i].size = tracks[i].max; // 상한 도달 → freeze
+                free -= room;
+                froze_any = true;
+            } else {
+                tracks[i].size += share;
+                free -= share;
+                next.push(i);
+            }
+        }
+        unfrozen = next;
+        if !froze_any {
+            break; // 전원이 share 를 흡수 → free 소진
         }
     }
 }
@@ -1181,13 +1236,16 @@ mod tests {
 
     #[test]
     fn test_minmax_px_max_clamp() {
-        // minmax(100px, 150px) 1fr at 400. minmax fixed min=100, 1fr pool.
-        // fixed=100, remaining=300, 1fr(minmax는 max px라 fr풀 미참여, 1fr만) → fr_size=300
-        // minmax = min(150, max(100, 100+300)) = min(150, 400) = 150; 1fr = 300
+        // minmax(100px, 150px) 1fr at 400.
+        // §12.6: base=100, free=300 → growth limit 150 까지 성장(50 소비) → 150 확정.
+        // §12.7: 남은 400-150 = 250 이 1fr 로.
+        // (구 기대값은 [150, 300] 이었는데 합이 450 으로 컨테이너 400 을 넘었다 —
+        //  fr 분배가 minmax 의 성장분을 빼지 않은 탓. Chrome 실측 트랙0 = 150.)
         let result = parse_tracks("minmax(100px, 150px) 1fr", 400.0, 0.0);
         assert_eq!(result.len(), 2);
         assert!(approx_eq(result[0], 150.0));
-        assert!(approx_eq(result[1], 300.0));
+        assert!(approx_eq(result[1], 250.0));
+        assert!(approx_eq(result[0] + result[1], 400.0), "트랙 합 = 컨테이너");
     }
 
     #[test]

@@ -273,26 +273,24 @@ describe("grid auto 트랙 stretch — CSS 대조", () => {
   });
 
   /**
-   * 잔존 ① — `minmax(px, px)` 트랙이 growth limit 까지 자라지 않는다 (CSS-GRID-1 §12.6
-   * "Maximize Tracks"). 엔진은 base size(=min)에서 멈춘다.
+   * §12.6 → §12.8 순서 — minmax 가 상한까지 먼저 먹고, 남은 것을 auto 가 가져간다.
    *
-   * §12.8 과 **별개 규칙**이고 순서상 먼저다 — minmax 가 50 에 머무는 바람에 여유가
-   * 30 더 잡히고, 그 30 이 auto 트랙으로 흘러간다. 본 변경 전에도 어긋나 있었다
-   * (당시 eng=40 — auto 가 아예 안 자람). 고칠 때는 §12.6 을 먼저 넣고 이 스냅샷을
-   * 정합 케이스로 올린다.
+   * (2026-07-28 §12.6 구현 전에는 minmax 가 base 50 에 머물러 auto 가 30 을 더 먹었다.
+   * 두 단계가 같은 여유를 두고 순서대로 도는지 확인하는 자리다 — §12.6 전수 대조는
+   * `gridMinmaxTracks.browser.test.ts`.)
    */
-  it("잔존 ① — minmax(px,px) growth limit 미도달 (실측 스냅샷)", () => {
+  it("§12.6 이 먼저 — minmax 상한 80, auto 는 나머지", () => {
     const c = colCase("auto minmax(50px,80px)", {
       gridTemplateColumns: ["auto", "minmax(50px,80px)"],
     });
     const dom = domLeg(c.nodes, c.availW);
     const eng = engineLeg(c.nodes, c.availW, c.availH);
     expect(dom[1].x).toBe(220); // minmax 가 80 까지 자라 → auto 220
-    expect(eng[1].x).toBe(250); // minmax 50 에 멈춤 → auto 가 30 더 먹음
+    expect(eng[1].x).toBe(220);
   });
 
   /**
-   * 잔존 ② — 암묵 트랙의 크기에 `grid-auto-rows` 가 반영되지 않는다.
+   * 잔존 — 암묵 트랙의 크기에 `grid-auto-rows` 가 반영되지 않는다.
    *
    * 암묵 행은 자식 intrinsic 으로만 측정된다(`solve_grid` 의 implicit 분기) — 명시한
    * `grid-auto-rows` 는 `grid_layout` 에 넘어가지만 그 행들은 이미 px 로 치환된 뒤라
@@ -302,7 +300,7 @@ describe("grid auto 트랙 stretch — CSS 대조", () => {
    * 아니므로 §12.8 대상이 아니고, 엔진도 행을 늘리지 않는다(여유 130 을 나눠 넣었다면
    * `c1.y` 가 85 였을 것이다).
    */
-  it("잔존 ② — 암묵 트랙이 grid-auto-rows 를 무시 (실측 스냅샷)", () => {
+  it("잔존 — 암묵 트랙이 grid-auto-rows 를 무시 (실측 스냅샷)", () => {
     const c = colCase(
       "암묵 행 + gridAutoRows:30px",
       {

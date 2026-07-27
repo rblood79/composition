@@ -308,7 +308,7 @@ grid item 의 크기·위치는 **자식 자신의 상자 모델**이 정하고,
 - **암묵 트랙**(`gridTemplateRows` 미명시)도 대상이다 — 크기를 정하는 건 `grid-auto-rows`(기본 `auto`)이므로, 고정 크기를 지정했으면 제외한다.
 - Chrome 실측 fixture: `gridAutoTrackStretch.browser.test.ts` (61 정합 + 규칙 요약 + 잔존 2). 민감도 — stretch 무력화 35 red / distribution 게이트 제거 31 red / definite 게이트를 상속 available 로 완화 5 red.
 - 라이브 영향: 카탈로그 grid 4곳(ProgressBar/Slider)이 전부 `1fr auto` 라 free==0 → no-op, 행은 암묵 auto 지만 컨테이너 높이가 auto 라 게이트에 걸린다.
-- **잔존 2건** (같은 fixture 스냅샷): ① `minmax(px,px)` 가 growth limit 까지 자라지 않음 (§12.6 Maximize Tracks — §12.8 보다 **앞** 단계라 이걸 먼저 고쳐야 여유 계산이 맞다) ② 암묵 트랙이 `grid-auto-rows` 를 무시하고 자식 intrinsic 으로만 측정됨. 둘 다 본 변경 이전부터 어긋나 있었다.
+- **잔존**: 암묵 트랙이 `grid-auto-rows` 를 무시하고 자식 intrinsic 으로만 측정됨 (본 변경 이전부터). §12.6 미구현은 2026-07-28 해소 — 아래 §minmax.
 
 ### 금지 패턴
 
@@ -317,6 +317,32 @@ grid item 의 크기·위치는 **자식 자신의 상자 모델**이 정하고,
 - ❌ definite 판정을 `container_*`(상속 available)로 완화 → `height:auto`/flex item 그리드가 없는 공간을 나눠 갖는다
 - ❌ 여유가 음수일 때 트랙 축소 → §12.8 은 **확대만** 한다 (넘침은 넘치는 게 정상)
 - ❌ distribution 게이트 생략 → `start`/`center`/`end` 에서 트랙이 자라 정렬이 무의미해진다
+
+## `minmax()` 트랙은 상한까지 자란다 — 트랙 sizing 은 3단계다 (CSS-GRID-1 §12.6, 2026-07-28)
+
+트랙 크기는 base size 에서 끝나지 않는다. 남는 공간이 있으면 **세 단계**가 순서대로 돈다:
+
+| 단계  | 대상                 | content-distribution 게이트 | 거처                                 |
+| ----- | -------------------- | --------------------------- | ------------------------------------ |
+| §12.6 | `minmax(_, px)`      | **없음** — 항상 돈다        | `grid.rs::maximize_tracks`           |
+| §12.7 | `fr`                 | 없음                        | `grid.rs::resolve_grid_tracks` 2단계 |
+| §12.8 | max sizing 이 `auto` | `normal`/`stretch` 에서만   | `tree.rs::stretch_auto_tracks`       |
+
+- **§12.6 은 정렬과 무관하다** — `justify-content:start` 여도 `minmax(50px,80px)` 는 80 까지 자란 뒤 트랙셋이 좌측 정렬된다(실측). §12.8 만 게이트가 있다. 셋을 "여유 분배" 한 덩어리로 묶어 생각하면 이 차이를 놓친다.
+- 분배는 **균등 + freeze + 재분배**다. 상한에 닿은 트랙은 얼리고 남은 몫을 나머지에 다시 나눈다 (실측 `minmax(0,200) minmax(0,50)` / 300 → 200·50, 남는 50 은 §12.8 대상이 없어 **미분배로 남는다**).
+- 대상은 **definite growth limit**, 즉 `minmax(_, px)` 뿐이다. `fr`/`auto` 는 상한이 유한하지 않아 §12.7/§12.8 소관이고, 여기서 같이 키우면 이중 적용된다. px/% 는 base == limit 이라 여지가 없다.
+- **부작용이 컸던 곳은 fr 쪽이었다**: 구 코드는 minmax 를 base(=min)에 둔 채 fr 여유를 `container - min` 으로 잡아, 트랙 합이 컨테이너를 넘었다 (`minmax(100px,150px) 1fr` / 400 → 150+300 = **450**). 그래서 §12.6 을 넣으면 fr 분배식도 같이 맞아 떨어진다 — 성장분을 뺀 `container - Σsize` 가 정본.
+- Chrome 실측 fixture: `gridMinmaxTracks.browser.test.ts` (46 정합 + 합-초과 회귀 + 잔존 1). 민감도 — §12.6 무력화 43 red.
+- 라이브 영향 없음: catalog 및 앱 소스에 `minmax(` 사용 0건 (실측 grep).
+- **잔존** — 트랙의 **content 기여** 미측정: `minmax(auto, 80px)` 의 base 는 그 트랙 아이템의 min-content 여야 하는데 grid.rs 는 0 으로 둔다. 내용이 상한보다 작으면 §12.6 이 상한까지 키워 우연히 맞고, 넘으면 어긋난다(실측 내용 120 → DOM 120 / 엔진 80). 같은 뿌리로 `min-content`/`max-content`/`fit-content()` 트랙 키워드도 전부 `auto` 폴백이라 미지원 — 셋 다 **트랙별 content 기여 산출**을 요구하며, 그것이 ADR-169 grid intrinsic 이연의 재개 조건이다.
+
+### 금지 패턴
+
+- ❌ `fr`/`auto` 를 §12.6 대상에 포함 → §12.7/§12.8 과 이중 적용
+- ❌ §12.6 에 content-distribution 게이트 부착 → `start`/`center` 에서 minmax 가 안 자란다 (§12.8 과 혼동)
+- ❌ fr 여유를 `container - Σmin` 으로 산출 → 성장분 미반영으로 트랙 합이 컨테이너를 넘는다
+- ❌ freeze 없이 한 번만 균등 분배 → 상한 초과분이 다른 트랙으로 흘러가지 않는다
+- ❌ 트랙 폭 assertion 을 자식 폭으로 확인 → 트랙 근거는 **형제의 x 좌표** (§그리드 영역은 containing block)
 
 ## 배치 직렬화 계약 — 숫자 하나가 페이지 레이아웃을 끈다 (CRITICAL)
 
