@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [프레임을 적용한 페이지가 preview 에 렌더되지 않던 문제] - 2026-07-27
+
+### Bug Fixes
+
+- **페이지에 프레임을 적용하면 CSS preview 가 빈 화면이 되던 문제**. 사용자 보고: "page 에 frame 적용 후 css preview 에 렌더링되지 않는다".
+  - **Why**: `resolveCanonicalDocument` 는 ref 를 열 때 master 자식과 instance 자식을 **이어 붙인다**(`[...origin, ...instance]`). 일반 컴포넌트 ref 에는 맞지만 페이지↔프레임에는 틀리다 — 프레임의 body(빈 슬롯 보유)와 페이지의 body(콘텐츠 보유)가 **형제로 나란히** 놓인다. 실측: preview 루트가 `390×844` 가 아니라 **`390×1688`** 이 되어, 빈 슬롯이 뷰포트를 정확히 채우고 콘텐츠는 `y=844` 부터 시작 — 화면에는 빈 프레임만 보였다.
+  - ADR-903 의 `slot` 계약은 추천 목록 **검증**(비차단 warn)일 뿐 배치 기제가 아니라, resolver 안에서 풀리는 문제가 아니다. 캔버스(Skia)는 `resolvePageWithFrame` 이라는 별도 합성 층을 갖고 있어 정상이었고 — 그래서 증상이 **캔버스는 맞는데 preview 만 틀린** 비대칭으로 나타났다. canonical 렌더 경로(ADR-116) 전환 때 이 합성이 DOM 축으로 이식되지 않은 것이 근본 원인이다(preview 의 legacy element 분기에는 슬롯 치환이 있으나, canonical 분기가 먼저 return 해 프레임 페이지에서는 죽은 코드).
+  - DOM 축 합성 `projectPageFrameNode` 를 추가했다 — page body 를 하나로 합치고(프레임 레이아웃 병합), 프레임 슬롯을 그 자식으로 투영하고, 페이지 콘텐츠를 슬롯 이름으로 라우팅한다. 슬롯 id 는 캔버스와 같은 `{pageId}::page-frame::{slotId}`.
+  - **정책은 한 곳으로 모았다** — body style/responsive 병합과 슬롯 style 보완 규칙을 `pageFrameProjection.ts` 로 추출해 두 축이 공유한다. 순회만 축별로 다르다(flat + `parent_id` ↔ 중첩 트리). 규칙이 두 벌이면 그 순간 시각 발산이 시작된다.
+  - 검증: 회귀 10건 — 종전 "형제 두 body" 를 기준선으로 함께 고정. 슬롯 라우팅 / 미매칭 콘텐츠 소실 금지 / 채워진 슬롯의 기본 자식 감춤 / 뷰포트 키 page 우선 / 프레임 미참조·일반 컴포넌트 ref 무변경 포함. 기존 `resolvePageWithFrame` 28건 무변동. 라이브(사용자 보고 문서): preview 루트 `1688 → 844`, 슬롯 `390×60 @0,0` + `390×784 @0,60`, ListBox 3행이 content 슬롯 안에 렌더 — **캔버스 좌표와 정확히 일치**. 프레임 미적용 페이지 무영향 확인.
+  - 위치: `apps/builder/src/adapters/canonical/{projectPageFrameTree,pageFrameProjection}.ts`, `apps/builder/src/preview/App.tsx`, 규칙 `.claude/rules/canvas-rendering.md` §9.5
+
 ## [flex sweep 이 음수 free space 조합을 훑도록 확장 — 672 → 1152] - 2026-07-27
 
 ### Infrastructure

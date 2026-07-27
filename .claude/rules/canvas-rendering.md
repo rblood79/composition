@@ -316,6 +316,26 @@ pointerdown 을 "현재 선택을 잡아 끄는 동작" 으로 볼지의 판정�
 - **sceneVersion signature (ADR-136)**: `sceneVersion` = layoutVersion + pagePositionsVersion + **projection content signature** (node id/type/parent/page/layout id, ref·reusable·deleted state, stable props, ADR-135 projection metadata). signature 계산은 `buildSceneStructureSnapshot()` 시점만 (pointer hot path 금지)
 - **projection-relevant field 추가 규칙**: frame metadata / projection prop / ref state / 신규 canonical schema field 추가 시 signature input 목록 **동시 갱신** — `layoutVersion` 5-심볼 2계층 체인 (layout-engine.md) 과 동급 보수 의무. 누락 시 same-count phantom change 미감지 (signature false negative)
 
+## 9.5 Page↔Frame 합성은 **두 축 모두** 배선해야 한다 (2026-07-27)
+
+프레임을 페이지에 적용하는 합성은 **resolver 가 해주지 않는다**. `resolveCanonicalDocument` 는 ref 를 열 때 master 자식과 instance 자식을 단순히 이어 붙이고(`[...origin, ...instance]`), ADR-903 의 `slot` 계약은 추천 목록 **검증**(비차단 warn)일 뿐 배치 기제가 아니다. 그래서 소비자 축마다 합성 층이 따로 있다:
+
+| 축                   | 합성 진입점                                              | 표현                                 |
+| -------------------- | -------------------------------------------------------- | ------------------------------------ |
+| Skia (canvas)        | `resolvePageWithFrame` (`buildPageDataMap` 에서 호출)    | flat `CanvasSceneNode` + `parent_id` |
+| Preview/Publish(DOM) | `projectPageFrameNode` (`preview/App.tsx` 캐노니컬 분기) | canonical resolved 트리              |
+
+- **정책은 한 곳** — `adapters/canonical/pageFrameProjection.ts` (body style/responsive 병합, 슬롯 style 보완). 두 축은 **순회만** 각자 한다. 정책을 축에 복제하면 그 순간 시각 발산이 시작된다 (D3 symmetric consumer).
+- 한 축만 배선하면 증상이 **비대칭**으로 나온다: 캔버스는 정상인데 preview 만 깨진다(또는 반대). 실측 — 캔버스 `page body 390×844 > 슬롯 60/784 > 콘텐츠` vs preview `page 390×**1688** > [프레임 body 844(빈 슬롯), page body 844]` → 빈 슬롯이 뷰포트를 채우고 콘텐츠는 화면 밖. 사용자에게는 "프레임 적용 후 preview 가 안 나온다" 로 보인다.
+- 합성 결과의 슬롯 id 는 두 축 모두 `toPageFrameElementId(pageId, slotId)` (= `{pageId}::page-frame::{slotId}`). 한쪽만 원본 id 를 쓰면 선택 동기화가 어긋난다.
+- **preview 의 legacy element 분기에도 슬롯 치환이 있다** (`renderLayoutElement`). canonical 분기가 먼저 return 하므로 프레임 페이지에서는 죽은 코드다 — 프레임 동작을 고칠 때 그쪽을 고치고 있지 않은지 확인할 것.
+
+### 금지 패턴
+
+- ❌ 한 축만 고치고 종결 — 프레임 합성 변경은 `resolvePageWithFrame` + `projectPageFrameNode` **양쪽** 확인
+- ❌ 병합/슬롯 style 규칙을 축 안에 인라인 재구현 → `pageFrameProjection.ts` 경유
+- ❌ `resolveCanonicalDocument` 에 페이지 전용 슬롯 배치 주입 → Skia 축은 이미 자기 합성을 하므로 이중 적용
+
 ## 상세 레퍼런스
 
 - [Canvas 렌더링 구현 상세](../skills/composition-patterns/reference/canvas-details.md)

@@ -28,6 +28,13 @@ import {
   getNullablePageFrameBindingId,
 } from "../../../../adapters/canonical/frameMirror";
 import { getSlotMirrorName } from "../../../../adapters/canonical/slotMirror";
+import {
+  mergePageBodyResponsive,
+  mergePageBodyStyle,
+  resolvePageSlotStyle,
+  type ResponsiveBag,
+  type StyleMap,
+} from "../../../../adapters/canonical/pageFrameProjection";
 
 export interface ResolvePageWithFrameInput {
   /** 현재 page (frame binding 이 set 되어 있으면 frame 합성) */
@@ -106,98 +113,26 @@ function asPageResolvedSlot(
   };
 }
 
-const PAGE_BODY_STYLE_PRESERVE_KEYS = [
-  "width",
-  "height",
-  "minWidth",
-  "minHeight",
-  "maxWidth",
-  "maxHeight",
-  "background",
-  "backgroundColor",
-  "backgroundImage",
-] as const;
-
-type ResponsiveStyleMap = Record<string, unknown>;
-
 /**
- * frame body 의 breakpoint override 를 page body 로 옮긴다 (2026-07-27).
- *
- * base style 은 `mergePageBodyWithFrameLayout` 이 이미 합치는데 `responsive` 는 최상위
- * canonical 필드라 `{...pageBody}` 스프레드가 **page body 것만** 실어 왔다. page body 는
- * 자기 override 가 없는 게 보통이라(실측: 3개 페이지 전부 `responsive: null`) 프리셋이 심은
- * 컨테이너 override 가 통째로 사라졌다 — 프레임을 페이지에 적용하면 breakpoint 를 바꿔도
- * 트랙과 `display` 가 desktop 값 그대로였다.
- *
- * 실측(2026-07-27, dashboard 프레임 바인딩된 페이지):
- *
- * | 맥락        | mobile 결과                                       |
- * | ----------- | ------------------------------------------------- |
- * | 프레임 편집 | 358 폭 세로 스택 60 / 60 / 652 (= 페이지 높이)    |
- * | 페이지 적용 | 2열 grid 유지 — sidebar 240 / **content 98**      |
- *
- * 슬롯 쪽 override 는 `asPageResolvedSlot` 의 스프레드가 노드를 통째로 옮겨 이미 살아 있었다.
- * 그래서 dashboard-widgets 는 tablet 에서 **item 만 이동하고 컨테이너 트랙은 그대로**가 되어
- * widgets 가 sidebar 와 겹쳤다 — ADR-168 G8("item placement override 는 컨테이너 template
- * override 를 동반한다")이 정의에서는 지켜졌는데 이 경로에서 한쪽만 살아남아 깨졌다.
- *
- * 병합 규칙은 base style 과 **같은 정책**이다: frame 이 이기되, page 가 선언한 viewport 키
- * ({@link PAGE_BODY_STYLE_PRESERVE_KEYS})는 page 가 되찾는다. `visibility` 는 page 것만
- * 쓴다 — 합쳐진 노드는 page body 이고, frame body 를 mobile 에서 숨기라는 선언을 그대로
- * 적용하면 page 소유 콘텐츠까지 함께 사라진다.
+ * page body ← frame body 병합. 정책은 {@link mergePageBodyStyle} /
+ * {@link mergePageBodyResponsive} 가 소유한다 (Preview 축과 공유 — 규칙이 두 벌이 되면
+ * 그 순간 시각 발산이 시작된다).
  */
-function mergePageBodyResponsive(
-  pageBody: CanvasSceneNode,
-  frameBody: CanvasSceneNode,
-): CanvasSceneNode["responsive"] {
-  const frameStyles = frameBody.responsive?.styles as
-    | ResponsiveStyleMap
-    | undefined;
-  if (!frameStyles || Object.keys(frameStyles).length === 0) {
-    return pageBody.responsive;
-  }
-
-  const pageStyles = (pageBody.responsive?.styles ?? {}) as ResponsiveStyleMap;
-  const styles: ResponsiveStyleMap = { ...pageStyles, ...frameStyles };
-
-  for (const key of PAGE_BODY_STYLE_PRESERVE_KEYS) {
-    if (pageStyles[key] !== undefined) {
-      styles[key] = pageStyles[key];
-    }
-  }
-
-  const next: NonNullable<CanvasSceneNode["responsive"]> = {
-    styles: styles as NonNullable<CanvasSceneNode["responsive"]>["styles"],
-  };
-  if (pageBody.responsive?.visibility) {
-    next.visibility = pageBody.responsive.visibility;
-  }
-  return next;
-}
-
 function mergePageBodyWithFrameLayout(
   pageBody: CanvasSceneNode,
   frameBody: CanvasSceneNode,
 ): CanvasSceneNode {
   const pageProps = (pageBody.props ?? {}) as Record<string, unknown>;
   const frameProps = (frameBody.props ?? {}) as Record<string, unknown>;
-  const pageStyle = (pageProps.style ?? {}) as Record<string, unknown>;
-  const frameStyle = (frameProps.style ?? {}) as Record<string, unknown>;
 
-  const mergedStyle: Record<string, unknown> = {
-    ...pageStyle,
-    ...frameStyle,
-  };
-
-  // Page binding must keep the Page as the viewport authority. Frame body
-  // contributes layout grammar, but page dimensions/background stay page-owned.
-  for (const key of PAGE_BODY_STYLE_PRESERVE_KEYS) {
-    if (pageStyle[key] !== undefined) {
-      mergedStyle[key] = pageStyle[key];
-    }
-  }
-
-  const responsive = mergePageBodyResponsive(pageBody, frameBody);
+  const mergedStyle = mergePageBodyStyle(
+    pageProps.style as StyleMap | undefined,
+    frameProps.style as StyleMap | undefined,
+  );
+  const responsive = mergePageBodyResponsive(
+    pageBody.responsive as ResponsiveBag | null | undefined,
+    frameBody.responsive as ResponsiveBag | null | undefined,
+  ) as CanvasSceneNode["responsive"];
 
   return {
     ...pageBody,
@@ -214,58 +149,12 @@ function getPageResolvedSlotStyle(
   frameBody: CanvasSceneNode,
 ): Record<string, unknown> {
   const slotProps = (slot.props ?? {}) as Record<string, unknown>;
-  const slotStyle = (slotProps.style ?? {}) as Record<string, unknown>;
-  const frameStyle =
-    ((frameBody.props ?? {}) as { style?: Record<string, unknown> }).style ??
-    {};
-  const display = String(frameStyle.display ?? "").toLowerCase();
-  const flexDirection = String(frameStyle.flexDirection ?? "row").toLowerCase();
-  const slotName = readSlotElementName(slot);
-  const nextStyle: Record<string, unknown> = { ...slotStyle };
-
-  if (display === "flex" || display === "inline-flex") {
-    if (flexDirection === "column" || flexDirection === "column-reverse") {
-      nextStyle.width ??= "100%";
-      if (
-        slotName === "content" &&
-        nextStyle.height == null &&
-        nextStyle.flex == null
-      ) {
-        nextStyle.flex = "1 1 auto";
-        nextStyle.minHeight ??= 0;
-      } else {
-        nextStyle.flexShrink ??= 0;
-      }
-    } else {
-      nextStyle.height ??= "100%";
-      if (
-        slotName === "content" &&
-        nextStyle.width == null &&
-        nextStyle.flex == null
-      ) {
-        nextStyle.flex = "1 1 auto";
-        nextStyle.minWidth ??= 0;
-      } else {
-        nextStyle.flexShrink ??= 0;
-      }
-    }
-  }
-
-  if (display === "grid" || display === "inline-grid") {
-    // 배치만 보완한다. **크기는 주입하지 않는다** (2026-07-27) — grid item 은 기본 stretch 라
-    // 자기 area 를 이미 채운다. 같은 슬롯이 프레임 편집 맥락에서는 주입 없이 정확히 채운다
-    // (실측 desktop dashboard: sidebar 240×968 / content 1628×968).
-    //
-    // `height: 100%` 를 주입하면 `auto` 행이 컨테이너 높이로 부풀어 **행마다 페이지 한 장**이
-    // 된다 (실측: navigation 60 → 1048, 두 번째 행이 y=1084 로 페이지 밖). CSS 에서 grid item
-    // 의 백분율 높이는 자기 **grid area** 기준이고 `auto` 행은 불확정이라 auto 로 접히는데,
-    // 엔진은 컨테이너 높이로 해석해 발산한다. 주입이 없으면 이 발산 경로 자체가 사라진다.
-    //
-    // 이 주입은 ADR-168(슬롯이 자기 배치·크기를 스스로 선언) 이전의 fallback 이었다.
-    nextStyle.gridArea ??= slotName;
-  }
-
-  return nextStyle;
+  const frameProps = (frameBody.props ?? {}) as Record<string, unknown>;
+  return resolvePageSlotStyle({
+    slotStyle: slotProps.style as StyleMap | undefined,
+    slotName: readSlotElementName(slot),
+    frameBodyStyle: frameProps.style as StyleMap | undefined,
+  });
 }
 
 function asPageResolvedRootSlot(

@@ -52,6 +52,7 @@ import { resolveCanonicalRefTree } from "../builder/utils/canonicalRefResolution
 import { isLegacyFrameElementForFrame } from "../adapters/canonical/frameElementLoader";
 import { hasFrameElementMirrorId } from "../adapters/canonical/frameMirror";
 import { getSlotMirrorName } from "../adapters/canonical/slotMirror";
+import { projectPageFrameNodes } from "../adapters/canonical/projectPageFrameTree";
 
 /**
  * ADR-142 — catalog generic 렌더로 cutover 된 primitive type 집합 (componentCatalog 파생).
@@ -1064,7 +1065,7 @@ function CanvasContent() {
         // 현재 page 에 해당하는 top-level 노드 필터링.
         // page 식별은 runtime audience helper를 사용한다.
         // currentPageId 없으면 (layout-edit 모드) 모든 page 노드 통과.
-        const pageNodes = resolvedCanonicalNodes.filter((node) => {
+        const matchedPageNodes = resolvedCanonicalNodes.filter((node) => {
           if (!isRuntimePageNode(node)) return false;
           const meta = node.metadata as Record<string, unknown> | undefined;
           if (!currentPageId) return true;
@@ -1075,6 +1076,14 @@ function CanvasContent() {
               : node.id;
           return resolvedPageId === currentPageId;
         });
+
+        // 프레임을 참조하는 페이지는 슬롯 투영이 필요하다. resolver 는 master(프레임 body)와
+        // instance(page body) 자식을 **이어 붙이므로**, 그대로 렌더하면 빈 슬롯이 뷰포트를
+        // 채우고 페이지 콘텐츠가 그 아래로 밀려난다 (Skia 축은 `resolvePageWithFrame` 이
+        // 같은 합성을 수행 — 정책은 `pageFrameProjection` 에서 공유).
+        const pageNodes = canonicalDocument
+          ? projectPageFrameNodes(matchedPageNodes, canonicalDocument)
+          : matchedPageNodes;
 
         if (pageNodes.length === 0) {
           // canonical 결과 없음 → legacy fallback (안전망)
