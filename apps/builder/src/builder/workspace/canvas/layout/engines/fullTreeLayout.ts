@@ -517,19 +517,28 @@ function coerceGridTrack(val: unknown): unknown {
 }
 
 /** dimension 값(number|string)을 WASM 이 기대하는 px string 으로 정규화.
- *  `taffyStyleToRecord` 내부 `dim()` 과 동일 계약이나, **grid branch** 는
- *  `applyCommonTaffyStyle`(숫자 그대로 반환) 결과를 partial 로 직접 반환하여
- *  `taffyStyleToRecord.dim()` 정규화를 우회한다. 이 buildFull 경로는
- *  `normalizeStyle.dimToString()` 후처리도 거치지 않으므로(그 후처리는
- *  persistentTaffyTree createNode/updateStyle 경로 전용), grid branch 가
- *  직접 본 헬퍼로 gap/padding/border/dimension 을 px string 화해야 한다.
+ *  `taffyStyleToRecord` 내부 `dim()` 과 동일 계약이지만, **`dim()` 을 우회하거나
+ *  그 뒤에 값을 덧쓰는 경로**가 직접 호출해야 한다:
+ *
+ *  - **grid branch** — `applyCommonTaffyStyle`(숫자 그대로 반환) 결과를 partial 로
+ *    직접 반환해 `dim()` 을 안 거친다.
+ *  - **block branch 의 flex item 주입** — `taffyStyleToRecord` **뒤에**
+ *    `applyFlexItemProperties` 가 `parseCSSPropWithContext` 결과(절대 길이 → 숫자)를
+ *    덧쓴다.
+ *
+ *  이 buildFull 경로는 `normalizeStyle.dimToString()` 후처리도 거치지 않는다
+ *  (그 후처리는 persistentTaffyTree createNode/updateStyle 경로 전용).
  *
  *  **Why (2026-07-06 전수조사)**: ProgressBar/Meter/Slider 는 factory 가
  *  `rowGap: 4`(숫자) + `display: grid` 로 저장 → grid branch 가 숫자 rowGap 을
  *  그대로 batch 에 넣어 `build_tree_batch: invalid type integer 4, expected
  *  string` parse error → calculateFullTreeLayout null → persistentTree 리셋
- *  무한 재시도 → 레이아웃 전면 실패. grid branch 만의 정규화 공백. */
-const GRID_DIM_FIELDS = [
+ *  무한 재시도 → 레이아웃 전면 실패.
+ *
+ *  **Why 2 (2026-07-27 CSS 정합 sweep)**: 같은 병인이 block branch 에 남아 있었다 —
+ *  flex 부모의 block 자식이 `flexBasis: "0px"` 같은 **절대 길이**를 가지면 숫자 `0`
+ *  이 batch 로 나가 동일 parse error. 백분율(`0%`)·`auto` 는 문자열이라 무증상이었다. */
+const DIM_FIELDS = [
   "rowGap",
   "columnGap",
   "paddingTop",
@@ -560,8 +569,8 @@ const GRID_DIM_FIELDS = [
   "flexBasis",
 ] as const;
 
-function normalizeGridDimFields(partial: Record<string, unknown>): void {
-  for (const key of GRID_DIM_FIELDS) {
+function normalizeDimFields(partial: Record<string, unknown>): void {
+  for (const key of DIM_FIELDS) {
     const v = partial[key];
     if (typeof v === "number") partial[key] = `${v}px`;
   }
@@ -971,7 +980,7 @@ function buildNodeStyle(
     // grid branch 는 partial 직접 반환이라 taffyStyleToRecord.dim() /
     // normalizeStyle.dimToString() 을 우회 → 숫자가 그대로 build_tree_batch 로 가면
     // WASM parse error("expected string"). flex 경로(taffyStyleToRecord)와 대칭 확보.
-    normalizeGridDimFields(partial);
+    normalizeDimFields(partial);
 
     return partial;
   }
@@ -1001,6 +1010,15 @@ function buildNodeStyle(
   //   다른 fallback 키(display/flexDirection 등)는 applyFlexItemProperties 가 무시.
   if (FLEX_GRID_DISPLAYS.has(parentDisplay)) {
     applyFlexItemProperties(record, mergedStyle);
+    // `applyFlexItemProperties` 는 `taffyStyleToRecord`(=dim() 정규화) **뒤에** 쓴다 —
+    //   `parseCSSPropWithContext` 가 절대 길이를 **숫자**로 돌려주므로
+    //   (`flexBasis:"0px"` → `0`) 여기서 정규화하지 않으면 숫자가 그대로
+    //   `build_tree_batch` 로 가서 `invalid type: integer, expected a string` →
+    //   `calculateFullTreeLayout` null → **그 페이지 레이아웃 전체가 사라진다**.
+    //   grid branch(위 974행)는 같은 이유로 이미 정규화하고 있었고 block branch 만
+    //   비대칭이었다. 백분율(`0%`)·`auto` 는 문자열로 남아 종전에도 무증상이라
+    //   절대 길이 flex-basis 를 authoring 하는 import/preset 에서만 드러난다.
+    normalizeDimFields(record);
   }
 
   return record;
