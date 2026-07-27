@@ -54,7 +54,7 @@
 | Phase | 내용                                                            | 산출물                                    | Gate               |
 | ----- | --------------------------------------------------------------- | ----------------------------------------- | ------------------ |
 | **0** | ✅ **Implemented 2026-07-27** — fixture 고정 (§3-0)             | `containerIntrinsic.browser.test.ts`      | red 재현 + R8 판정 |
-| **1** | available 3-값 확장 + 노드별 측정 캐시                          | `tree.rs` 센티넬 2종 + `IntrinsicCache`   | G1, G4             |
+| **1** | ✅ **Implemented 2026-07-27** — 센티넬 + 측정 캐시 (§Phase 1 결과) | `tree.rs` 센티넬 2종 + `mutation_gen` 캐시 | G1 ✅, G4 baseline ✅ |
 | **2** | flex 소비 배선 — off 13 = max-content, off 19 = min-content     | `tree.rs::solve_flex` / `write_flex_item` | G2, G3             |
 | **3** | grid/block 축 조건부 판정 (실사용 실측 → 포함 또는 이연 명문화) | 실측 기록 + (해당 시) `grid.rs`           | G5                 |
 | **4** | bench 게이트 + 문서·규칙 정합                                   | bench 수치 + `layout-engine.md` 갱신      | G4, G6             |
@@ -85,6 +85,34 @@
 - **분기 지점**: `resolve_self_size` / `axis_pad_border` / `ctx_for` 등 available 을 읽는 모든 지점이 음수를 이미 "indefinite" 로 취급하므로, 신규 센티넬은 **측정 모드 판정에만** 소비되고 나머지는 기존 indefinite 경로를 그대로 탄다.
 - **캐시**: 노드당 `Option<(f32 /*min*/, f32 /*max*/)>`. 무효화는 기존 `dirty` 플래그에 종속 — `mark_subtree_dirty`(`tree.rs:621`)가 캐시도 함께 비운다. **캐시 없이는 중첩 깊이에 지수적**이므로 Phase 1 의 필수 구성요소다 (Gate G4).
 - **leaf 경로 재사용**: `resolve_leaf_intrinsic_width`(`tree.rs:1930`) 가 이미 min/max-content 키워드를 처리하므로 leaf 는 신규 코드 없이 센티넬을 소비한다.
+
+### Phase 1 결과 (2026-07-27) — 설계 대비 3건 정정
+
+센티넬·모드 판정·leaf 경로 재사용은 설계 그대로다. 구현 중 **설계가 틀린 지점 3건**을 실측으로 잡아 정정했다.
+
+**① 캐시 무효화를 `dirty` 가 아니라 트리 mutation generation 에 건다.** 설계는 "`mark_subtree_dirty` 가 캐시도 비운다" 였지만, `propagate_dirty` 는 **이미 dirty 인 조상을 만나면 조기 종료**한다(중복 전파 비용 절감). 측정은 dirty 인 노드에도 캐시를 남기므로 "dirty ⟹ 캐시 없음" 불변식이 성립하지 않고, 자식 변경이 조상 캐시를 무효화하지 못한다 — 단위 테스트가 이를 red 로 잡았다. `LayoutTree.mutation_gen` 과 대조하는 방식은 그 구멍이 원천적으로 없고 판정이 O(1) 이다. mutation 은 layout pass **사이**에 일어나므로 한 pass 안에서는 캐시가 온전히 유효하다 — 지수 폭발이 실제로 발생하는 구간이 거기다.
+
+**② 측정 패스는 스냅샷 복구로 부작용을 0 으로 만든다.** `mark_subtree_dirty` 로 갈음하면 **자손 측정 캐시까지 함께 날아가** 캐시 도입 목적 자체가 무너진다. `snapshot_subtree`/`restore_subtree` 가 `(dirty, layout)` 를 원상 복구하며, 이는 "측정 pass 가 서브트리를 clean 으로 남겨 이후 solve 가 증분 skip" 하는 선행 오염(grid 측정 pass 사례)도 함께 차단한다.
+
+**③ block 컨테이너 측정 배선 추가 (설계 미기재).** 설계는 "컨테이너는 기존 집계 경로 그대로" 로 봤으나, `block.rs` 의 auto 폭은 `available - margin` **stretch** 라 측정 available(음수 센티넬)에서 폭이 음수가 되고 컨테이너 intrinsic 이 0 으로 붕괴한다. CSS 상 intrinsic 기여는 stretch 가 아니라 content 이므로, 측정 모드에서 auto 폭 block-level 자식을 `FIT_CONTENT`(= `content_w` 슬롯 소비)로 읽도록 `solve_block` 에 한 줄 분기를 뒀다. flex 축은 설계대로 무변경으로 통과했다.
+
+**미해결 (Phase 2 fixture 로 판정)**: inline formatting 의 line box 줄바꿈(`block.rs:185` `current_x + total_width > available_width`)은 측정 available 이 음수라 두 번째 inline 항목부터 무조건 줄바꿈한다 — max-content 측정에서 과소가 된다. 현재 파이프라인이 inline 경로를 태우는지 Phase 2 fixture 로 먼저 확인하고, 도달하면 그때 대응한다.
+
+**검증 (G1 — 동작 무변경)**: Rust 330 (착수 324 + 신규 6) · parity 14 files / 117 · builder 전 suite 2925 passed / 4 skipped / 14 todo · type-check 0 new violation. 신규 센티넬은 **산술로 만들어지지 않는다** — 음수 available 은 전 경로에서 감산 없이 그대로 전달되고(`else { avail_w }`) 유일한 음수 원천이 `INDEFINITE_AVAIL = -1.0` 이므로, 프로덕션 경로가 `-2.0`/`-3.0` 에 도달할 수 없다. 이것이 "동작 무변경" 의 근거다.
+
+**G4 baseline + 회귀 상한** (`cargo bench --bench tree_solve`, Darwin 25.5.0 / release):
+
+| 시나리오                   | baseline median | 회귀 상한 (Phase 4 판정) |
+| -------------------------- | --------------- | ------------------------ |
+| nested depth=1 full solve  | 24.3 µs         | ≤ 60.8 µs (2.5×)         |
+| nested depth=4 full solve  | 31.4 µs         | ≤ 78.4 µs (2.5×)         |
+| nested depth=8 full solve  | 41.0 µs         | ≤ 102.5 µs (2.5×)        |
+| nested depth=12 full solve | 47.0 µs         | ≤ 117.6 µs (2.5×)        |
+| nested depth=8 incremental | 0.46 µs         | ≤ 0.69 µs (1.5×)         |
+
+**깊이 스케일링 상한 (R1 지수화 감지 — 이쪽이 본질)**: `median(depth=12) / median(depth=1)` 이 **≤ 3.0** 을 유지해야 한다 (baseline 1.93). 절대 수치는 머신에 따라 흔들리지만 이 비율은 알고리즘 차수를 직접 반영하므로, 캐시가 무력화되면 여기서 먼저 터진다. 증분 경로 상한이 별도인 이유도 같다 — 변경이 없을 때 측정이 돌면 안 된다.
+
+> 벤치 자체의 함정: `mark_dirty(root)` 는 **조상 방향** 전파라 root 한 노드만 dirty 가 되고 clean 자식은 skip 된다. 초기 측정에서 depth 1~12 가 전부 같은 수치(≈3.5 µs)로 나온 원인이 이것이다. available 을 번갈아 바꿔 `last_compute` 를 어긋나게 하는 방식으로 전면 재계산을 강제한다.
 
 ### Phase 2 상세 — flex 소비 배선
 

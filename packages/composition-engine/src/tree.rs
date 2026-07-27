@@ -91,6 +91,38 @@ use crate::style::{resolve_css_size_value, CssValueContext, FIT_CONTENT, MAX_CON
 /// `solve_flex/block` 의 `avail >= 0.0` 가드가 감산을 건너뛴다.
 const INDEFINITE_AVAIL: f32 = -1.0;
 
+/// intrinsic 측정 모드 센티넬 (ADR-169 Phase 1).
+///
+/// `INDEFINITE_AVAIL` 의 음수 도메인을 **확장**한다 — Taffy `AvailableSpace::{MinContent,
+/// MaxContent}` / Yoga `MeasureMode` / Blink `ComputeMinMaxSizes` 와 같은 "동일 알고리즘을
+/// 특수 모드로 재실행" 표현이되, `solve_node(handle, avail_w, avail_h)` 시그니처를 그대로
+/// 두므로 호출부 전수 변경이 없다.
+///
+/// **성립 근거**: available 소비 지점의 가드가 전부 `avail >= 0.0` 형태고 `INDEFINITE_AVAIL`
+/// 과의 **등가 비교가 0건**이다. 따라서 새 음수 값은 기존 indefinite 경로를 그대로 타고,
+/// 모드 판정이 필요한 지점(leaf intrinsic 해석)에서만 추가로 읽힌다.
+const MIN_CONTENT_AVAIL: f32 = -2.0;
+const MAX_CONTENT_AVAIL: f32 = -3.0;
+
+/// available 센티넬이 지시하는 intrinsic 측정 모드. 평범한 indefinite/definite 는 `None`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum IntrinsicMode {
+    Min,
+    Max,
+}
+
+/// available 값 → 측정 모드. 센티넬은 정확값 비교 — 산술로 만들어지지 않는 상수라
+/// 부동소수 오차가 끼어들 여지가 없다 (감산 경로는 `avail >= 0.0` 가드가 차단).
+fn intrinsic_mode(avail: f32) -> Option<IntrinsicMode> {
+    if avail == MIN_CONTENT_AVAIL {
+        Some(IntrinsicMode::Min)
+    } else if avail == MAX_CONTENT_AVAIL {
+        Some(IntrinsicMode::Max)
+    } else {
+        None
+    }
+}
+
 /// 트리 노드의 스타일 표현 (taffy_bridge.rs `StyleInput` 대응).
 ///
 /// 모든 필드 optional — 미설정 필드는 CSS 초기값. camelCase JSON 계약은
@@ -248,6 +280,18 @@ struct TreeNode {
     /// margin 과 collapse 하여 상쇄 chain 을 잇는다. 비-block solve(flex/grid/leaf)는 0.
     escaped_mt: f32,
     escaped_mb: f32,
+    /// 폭 축 intrinsic 측정 캐시 `(mutation_gen, min_content, max_content)` — border-box
+    /// (ADR-169 Phase 1).
+    ///
+    /// **Why 캐시**: 측정은 서브트리 재귀라, 캐시 없이 중첩 컨테이너마다 두 번씩 재실행하면
+    /// **깊이에 지수적**이다 (R1/G4).
+    ///
+    /// **Why generation**: 무효화를 `dirty` 마킹에 얹으면 `propagate_dirty` 의 조기 종료
+    /// (이미 dirty 인 조상에서 break) 때문에 조상 캐시가 살아남는다. 트리 단위 mutation
+    /// 카운터와 대조하면 그 구멍이 원천적으로 없고 판정도 O(1) 이다. mutation 은 layout
+    /// pass 사이에 일어나므로, 한 pass 안에서는 캐시가 온전히 유효하다 — 지수 폭발이
+    /// 실제로 발생하는 구간이 거기다.
+    intrinsic_w: Option<(u64, f32, f32)>,
 }
 
 /// 자체 레이아웃 트리 엔진 (taffy_bridge.rs `TaffyLayoutEngine` 대응).
@@ -268,6 +312,9 @@ pub struct LayoutTree {
     /// 재계산)한다. taffy 는 layout cache 의 available-space 키로 처리하지만
     /// 자체 트리는 캐시가 없어 root-level available 비교로 갈음한다.
     last_compute: Option<(usize, f32, f32)>,
+    /// 트리 mutation 카운터 — intrinsic 측정 캐시 유효성 판정 (ADR-169 Phase 1).
+    /// 노드 생성/스타일·자식 변경/제거/clear 마다 증가.
+    mutation_gen: u64,
 }
 
 impl LayoutTree {
@@ -280,6 +327,7 @@ impl LayoutTree {
 
     /// 노드를 저장하고 handle 을 발급 (free_list 우선 재활용).
     fn alloc_handle(&mut self, node: TreeNode) -> usize {
+        self.mutation_gen += 1; // 측정 캐시 무효화 (ADR-169)
         if let Some(idx) = self.free_list.pop() {
             self.nodes[idx] = Some(node);
             idx
@@ -312,6 +360,7 @@ impl LayoutTree {
             parent: None,
             escaped_mt: 0.0,
             escaped_mb: 0.0,
+            intrinsic_w: None,
         })
     }
 
@@ -353,6 +402,7 @@ impl LayoutTree {
     /// taffy 의 "dirty 를 조상까지 자동 전파" 계약(taffy_bridge.rs:890-893) 이식.
     /// 순환(비정상 트리)에서도 무한 루프를 막기 위해 방문 노드 수를 노드 총수로 상한.
     fn propagate_dirty(&mut self, handle: usize) {
+        self.mutation_gen += 1; // 측정 캐시 무효화 (ADR-169)
         let mut cur = Some(handle);
         let mut guard = self.nodes.len() + 1;
         while let Some(h) = cur {
@@ -379,6 +429,7 @@ impl LayoutTree {
     /// 다른 노드가 되면 handle 기반 skip 판정이 오염되므로.)
     pub fn remove_node(&mut self, handle: usize) {
         if handle < self.nodes.len() && self.nodes[handle].is_some() {
+            self.mutation_gen += 1; // 측정 캐시 무효화 (ADR-169)
             self.nodes[handle] = None;
             self.free_list.push(handle);
             self.last_compute = None;
@@ -387,6 +438,7 @@ impl LayoutTree {
 
     /// 전체 트리 초기화.
     pub fn clear(&mut self) {
+        self.mutation_gen += 1; // 측정 캐시 무효화 (ADR-169)
         self.nodes.clear();
         self.free_list.clear();
         // handle 이 0 부터 재발급되므로 stale skip 방지 위해 무효화.
@@ -434,6 +486,7 @@ impl LayoutTree {
                 parent: None,
                 escaped_mt: 0.0,
                 escaped_mb: 0.0,
+                intrinsic_w: None,
             });
             // 자식들의 parent 를 이 노드로 배선 (조상 dirty 전파 경로 확보).
             for &ch in &child_handles {
@@ -632,6 +685,65 @@ impl LayoutTree {
         for c in children {
             self.mark_subtree_dirty(c);
         }
+    }
+
+    // ── intrinsic 측정 패스 (ADR-169 Phase 1) ──
+
+    /// 서브트리의 `(dirty, layout)` 를 수집 — 측정 패스 전후 원상 복구용.
+    fn snapshot_subtree(&self, handle: usize, out: &mut Vec<(usize, bool, NodeLayout)>) {
+        let Some(node) = self.get(handle) else { return };
+        out.push((handle, node.dirty, node.layout));
+        for c in node.children.clone() {
+            self.snapshot_subtree(c, &mut *out);
+        }
+    }
+
+    /// `snapshot_subtree` 결과를 되돌린다.
+    fn restore_subtree(&mut self, snap: &[(usize, bool, NodeLayout)]) {
+        for &(h, dirty, layout) in snap {
+            if let Some(node) = self.get_mut(h) {
+                node.dirty = dirty;
+                node.layout = layout;
+            }
+        }
+    }
+
+    /// 노드의 폭 축 intrinsic `(min_content, max_content)` 측정 (border-box).
+    ///
+    /// 동일 `solve_node` 를 **측정 모드 available 로 재실행**한다 — Taffy/Yoga/Blink 가
+    /// 공유하는 형태다. 컨테이너는 기존 집계 경로를 그대로 쓰고, 모드 분기는
+    /// `resolve_leaf_intrinsic_width` 한 곳에만 있다.
+    ///
+    /// **부작용 없음이 계약**: solve 는 서브트리의 `layout`/`dirty` 를 건드리므로
+    /// 측정 전 스냅샷을 떠 끝나면 원상 복구한다. 복구하지 않고 `mark_subtree_dirty` 로
+    /// 갈음하면 **자손 측정 캐시까지 함께 날아가** 중첩 깊이에 지수적이 된다 (R1/G4).
+    /// 측정 pass 가 서브트리를 clean 으로 남겨 이후 solve 가 증분 skip 하는 오염
+    /// (grid 측정 pass 선례) 도 이 복구로 함께 차단된다.
+    #[allow(dead_code)] // Phase 2 에서 solve_flex 가 소비 — Phase 1 은 기전 + 단위 테스트만
+    fn measure_intrinsic_width(&mut self, handle: usize) -> (f32, f32) {
+        let gen = self.mutation_gen;
+        if let Some((g, min_w, max_w)) = self.get(handle).and_then(|n| n.intrinsic_w) {
+            if g == gen {
+                return (min_w, max_w);
+            }
+        }
+        let mut snap = Vec::new();
+        self.snapshot_subtree(handle, &mut snap);
+
+        // 측정 전 dirty 강제 — clean 서브트리면 `solve_node` 가 저장된 layout 을
+        // 그대로 돌려줘 측정이 아니라 **직전 배치 결과**를 읽게 된다.
+        self.mark_subtree_dirty(handle);
+        let (min_w, _) = self.solve_node(handle, MIN_CONTENT_AVAIL, INDEFINITE_AVAIL);
+        self.mark_subtree_dirty(handle);
+        let (max_w, _) = self.solve_node(handle, MAX_CONTENT_AVAIL, INDEFINITE_AVAIL);
+
+        self.restore_subtree(&snap);
+        // min ≤ max 불변식 — 집계 근사라 역전이 원리상 가능하다(§9.9.3 미구현, R4).
+        let result = (min_w.min(max_w), max_w);
+        if let Some(node) = self.get_mut(handle) {
+            node.intrinsic_w = Some((gen, result.0, result.1));
+        }
+        result
     }
 
     /// 노드 하나를 solve — 자식을 먼저 재귀 solve 한 뒤 display 별로 배치.
@@ -1451,12 +1563,21 @@ impl LayoutTree {
         let can_collapse_bottom = !block_is_bfc && bottom_barrier == 0.0;
 
         // 2) 자식 → block flat f32 (19필드, 물리축).
+        let measuring = intrinsic_mode(avail_w).is_some();
         let mut data = vec![0.0f32; children.len() * block::FIELD_COUNT];
         for (i, &c) in children.iter().enumerate() {
             let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
             let (cw, ch) = child_sizes[i];
             write_block_item(&mut data, i, &cstyle, cw, ch, &ctx, &height_ctx);
             let off = i * block::FIELD_COUNT;
+            // intrinsic 측정 패스에서는 auto 폭 block-level 자식을 **fit-content 로 읽는다**
+            // (ADR-169 Phase 1). block.rs 의 auto 는 `available - margin` stretch 인데,
+            // 측정 available 은 음수 센티넬이라 그대로 두면 폭이 음수 → 컨테이너 intrinsic
+            // 이 0 으로 붕괴한다. CSS 상 intrinsic 기여는 stretch 가 아니라 content 이므로
+            // FIT_CONTENT(=content_w 슬롯 소비) 가 정의에 맞는 해석이다.
+            if measuring && data[off + 1] == -1.0 {
+                data[off + 1] = flex::CONTENT;
+            }
             // 자식이 자기 자식 상쇄로 hoisted margin 을 보유하면 자기 style margin 과 collapse
             //   해 상쇄 chain 을 잇는다 (E3 전파). 자식이 BFC 확립 시 형제 관통 상쇄 차단 flag.
             let (ch_esc_mt, ch_esc_mb, ch_bfc) = self
@@ -1958,11 +2079,21 @@ impl LayoutTree {
                 let stretch_fit = if avail_w > 0.0 {
                     (avail_w - m_l - m_r - pad_border_h).max(0.0)
                 } else {
-                    max_c // avail indefinite → max-content (CSS-SIZING-3 §5)
+                    // avail indefinite → max-content (CSS-SIZING-3 §5).
+                    // 측정 모드에서는 그 모드의 값이 stretch-fit 자리를 대신한다
+                    // (min-content 측정 중인 `fit-content` 상자는 min-content 로 접힌다).
+                    match intrinsic_mode(avail_w) {
+                        Some(IntrinsicMode::Min) => min_c,
+                        _ => max_c,
+                    }
                 };
                 stretch_fit.clamp(min_c, max_c) + pad_border_h
             }
             // auto (None) / 해석 불가 — content 제안값 = max-content.
+            //   단 min-content 측정 패스에서는 min-content 를 낸다 (ADR-169 Phase 1).
+            //   컨테이너는 이 leaf 값을 기존 집계 경로 그대로 합/최대로 모으므로,
+            //   모드 분기는 **leaf 한 곳**에만 있으면 서브트리 전체에 전파된다.
+            _ if intrinsic_mode(avail_w) == Some(IntrinsicMode::Min) => min_c + pad_border_h,
             _ => max_c + pad_border_h,
         }
     }
@@ -4918,5 +5049,112 @@ mod tests {
             "clear 후 stale skip 없이 새 크기 반영"
         );
     }
-}
 
+    // ── ADR-169 Phase 1 — intrinsic 측정 패스 ──
+
+    /// TS 측정 스칼라를 가진 텍스트 leaf (ADR-165 채널).
+    fn scalar_leaf(min_c: f32, max_c: f32) -> NodeStyle {
+        NodeStyle {
+            height: Some("40px".into()),
+            content_min_width: Some(min_c),
+            content_max_width: Some(max_c),
+            ..NodeStyle::default()
+        }
+    }
+
+    fn flex_row_auto() -> NodeStyle {
+        NodeStyle {
+            display: Some("flex".into()),
+            flex_direction: Some("row".into()),
+            ..NodeStyle::default()
+        }
+    }
+
+    /// leaf 는 스칼라를 그대로 낸다 — 모드 분기가 leaf 에서 갈리는지 확인.
+    #[test]
+    fn intrinsic_leaf_reports_scalars() {
+        let mut tree = LayoutTree::new();
+        let leaf = tree.create_node(scalar_leaf(300.0, 500.0));
+        assert_eq!(tree.measure_intrinsic_width(leaf), (300.0, 500.0));
+    }
+
+    /// block 컨테이너 = 자식들의 **최대** (세로 적층).
+    #[test]
+    fn intrinsic_block_container_takes_max_of_children() {
+        let mut tree = LayoutTree::new();
+        let a = tree.create_node(scalar_leaf(300.0, 500.0));
+        let b = tree.create_node(scalar_leaf(100.0, 700.0));
+        let root = tree.create_node(NodeStyle::default()); // display 미지정 → block
+        tree.set_children(root, vec![a, b]);
+        assert_eq!(tree.measure_intrinsic_width(root), (300.0, 700.0));
+    }
+
+    /// flex row 컨테이너 = 자식들의 **합** (가로 나열, nowrap).
+    #[test]
+    fn intrinsic_flex_row_container_sums_children() {
+        let mut tree = LayoutTree::new();
+        let a = tree.create_node(scalar_leaf(300.0, 500.0));
+        let b = tree.create_node(scalar_leaf(100.0, 200.0));
+        let root = tree.create_node(flex_row_auto());
+        tree.set_children(root, vec![a, b]);
+        assert_eq!(tree.measure_intrinsic_width(root), (400.0, 700.0));
+    }
+
+    /// **본 ADR 의 핵심** — stretch 로만 늘어나는 자식은 컨테이너 intrinsic 에
+    /// 기여하지 않는다. 현행 `solve_flex` 1단계는 이 형태에서 컨테이너 available 을
+    /// 그대로 고유 폭으로 오인한다 (parity fixture D/E).
+    #[test]
+    fn intrinsic_ignores_stretch_only_children() {
+        let mut tree = LayoutTree::new();
+        // width:100% 자식 — indefinite containing block 에서 auto 로 풀린다.
+        let pct = tree.create_node(NodeStyle {
+            width: Some("100%".into()),
+            height: Some("40px".into()),
+            ..NodeStyle::default()
+        });
+        let container = tree.create_node(NodeStyle::default());
+        tree.set_children(container, vec![pct]);
+        assert_eq!(
+            tree.measure_intrinsic_width(container),
+            (0.0, 0.0),
+            "stretch 자식은 고유 폭이 없다"
+        );
+    }
+
+    /// 측정은 **부작용이 없어야** 한다 (G1) — layout / dirty / 후속 compute 전부 불변.
+    #[test]
+    fn intrinsic_measure_has_no_side_effects() {
+        let mut tree = LayoutTree::new();
+        let leaf = tree.create_node(scalar_leaf(300.0, 500.0));
+        let root = tree.create_node(flex_row_fixed(1000.0, 100.0));
+        tree.set_children(root, vec![leaf]);
+        tree.compute_layout(root, 1000.0, 100.0);
+        let before_leaf = tree.get_layout(leaf);
+        let before_root = tree.get_layout(root);
+
+        tree.measure_intrinsic_width(root);
+
+        assert_eq!(tree.get_layout(leaf).width, before_leaf.width, "leaf layout 오염");
+        assert_eq!(tree.get_layout(root).width, before_root.width, "root layout 오염");
+        // 측정이 서브트리를 clean 으로 남겨 이후 solve 가 증분 skip 하는 오염도 없어야 한다.
+        tree.compute_layout(root, 1000.0, 100.0);
+        assert_eq!(tree.get_layout(leaf).width, before_leaf.width, "재계산 결과 발산");
+    }
+
+    /// 캐시는 dirty 와 함께 무효화된다 — style 변경 후 새 값이 나와야 한다.
+    #[test]
+    fn intrinsic_cache_invalidated_by_style_change() {
+        let mut tree = LayoutTree::new();
+        let leaf = tree.create_node(scalar_leaf(300.0, 500.0));
+        let root = tree.create_node(flex_row_auto());
+        tree.set_children(root, vec![leaf]);
+        assert_eq!(tree.measure_intrinsic_width(root), (300.0, 500.0));
+
+        tree.update_style(leaf, scalar_leaf(50.0, 80.0));
+        assert_eq!(
+            tree.measure_intrinsic_width(root),
+            (50.0, 80.0),
+            "자식 변경이 조상 캐시를 무효화하지 못함"
+        );
+    }
+}

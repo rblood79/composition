@@ -26,6 +26,11 @@ serde_json = "1"
 name = "flex_shrink"
 harness = false
 
+# ADR-169 G4 — 트리 solve 패스 회귀 게이트 (측정 패스 비용 상시 감시)
+[[bench]]
+name = "tree_solve"
+harness = false
+
 [profile.release]
 panic = "abort"
 opt-level = "s"

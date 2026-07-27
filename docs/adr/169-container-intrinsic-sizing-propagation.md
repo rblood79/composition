@@ -146,6 +146,7 @@ Accepted — 2026-07-27 (리뷰 round 1 승인 — `docs/adr/reviews/169.md`, �
 | Phase | 상태                   | 내용                                                                                                                                                                                   |
 | ----- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0     | Implemented 2026-07-27 | `containerIntrinsic.browser.test.ts` 신설 — 정합 3 (`it`, 회귀 가드) + 발산 4 (`it.fails`, Phase 2 목표) + 파이프라인 leg 1 + R8 판별/대조 4. **R8 masking 실재 확인** (아래 §R8 판정) |
+| 1     | Implemented 2026-07-27 | `tree.rs` — `MIN_CONTENT_AVAIL`/`MAX_CONTENT_AVAIL` 센티넬 + `IntrinsicMode` + mutation-generation 측정 캐시 + 스냅샷 복구. **G1 동작 무변경** (Rust 330 / parity 117 / builder 2925 전건 green), **G4 baseline 기록** (`benches/tree_solve.rs`, 깊이 스케일링 상한 포함) |
 
 ### R8 판정 (Phase 0, 2026-07-27) — masking 실재
 
