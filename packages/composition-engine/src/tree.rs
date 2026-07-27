@@ -773,6 +773,38 @@ impl LayoutTree {
         node.children.iter().any(|&c| self.subtree_has_grid(c))
     }
 
+    /// 측정 모드에서 **자식**을 푸는 진입점 (ADR-169 Phase 4 / G4).
+    ///
+    /// 컨테이너 자식은 서브트리를 다시 풀지 않고 **캐시된 intrinsic 을 소비**한다.
+    /// 값은 `solve_node(c, 센티넬, ...)` 와 동일하다 — `measure_intrinsic_width` 가
+    /// 바로 그 호출의 결과를 캐시하기 때문이다. 다른 것은 **횟수**뿐이다:
+    /// 재귀 solve 면 노드마다 서브트리를 훑어 깊이에 겹치지만, 캐시 소비면 노드당
+    /// 1회로 끝난다 (Taffy `compute_intrinsic` / Blink `ComputeMinMaxSizes` 형태).
+    ///
+    /// cross 는 `0.0` 으로 둔다 — 측정 모드의 반환값 중 **폭만** 소비되고, nowrap
+    /// 컨테이너에서 cross 는 주축 결과에 영향을 주지 않는다. wrap 컨테이너는 라인
+    /// 분할이 cross 에 걸리므로 호출부에서 이 경로를 쓰지 않는다.
+    ///
+    /// grid 자식은 `measure_intrinsic_width` 가 `None` 이라 자동으로 기존 재귀
+    /// 경로로 떨어진다 (§컨테이너 intrinsic 이연).
+    fn solve_child_intrinsic_aware(&mut self, c: usize, sw: f32, sh: f32) -> (f32, f32) {
+        if let Some(mode) = intrinsic_mode(sw) {
+            let is_container = self.get(c).map(|n| !n.children.is_empty()).unwrap_or(false);
+            if is_container {
+                if let Some((min_w, max_w)) = self.measure_intrinsic_width(c) {
+                    return (
+                        match mode {
+                            IntrinsicMode::Min => min_w,
+                            IntrinsicMode::Max => max_w,
+                        },
+                        0.0,
+                    );
+                }
+            }
+        }
+        self.solve_node(c, sw, sh)
+    }
+
     /// 노드 하나를 solve — 자식을 먼저 재귀 solve 한 뒤 display 별로 배치.
     /// 반환: (content_width, content_height) — 부모 intrinsic 도출용.
     fn solve_node(&mut self, handle: usize, avail_w: f32, avail_h: f32) -> (f32, f32) {
@@ -1207,9 +1239,47 @@ impl LayoutTree {
         };
         let child_solves: Vec<(f32, f32)> = children.iter().map(|&c| child_cross_solve(c)).collect();
         let mut child_sizes: Vec<(f32, f32)> = Vec::with_capacity(children.len());
+        let wraps = matches!(style.flex_wrap.as_deref(), Some("wrap") | Some("wrap-reverse"));
+
+        // **step 1 중복 제거** (ADR-169 Phase 4 / G4). 아래 2-b 가 intrinsic 으로 덮어쓸
+        // item 은 여기서 available 로 푸는 solve 의 **주축 결과가 버려진다**. 그런데도 풀면
+        // 3.5 가 used size 로 한 번 더 풀어 레벨당 solve 가 2회 — 중첩 깊이에 2^d 다
+        // (실측: depth 12 가 47 µs → 36.5 ms). 그 item 은 여기서 건너뛰고 3.5 의 단일
+        // solve 에 맡긴다. 판정식은 2-b 와 동일해야 한다 — `data[off+1] == AUTO` 는
+        // `resolve_dimension_opt(main_raw, main_ctx).is_none()` 과 같고, row 에서
+        // `main_ctx == ctx` 다 (아래 main_ctx 정의).
+        let mut deferred_to_resolve = vec![false; children.len()];
         for (i, &c) in children.iter().enumerate() {
+            if !is_row || wraps {
+                break; // column 은 2-b 대상이 아니고, wrap 은 라인 분할이 cross 에 걸린다
+            }
+            let Some(n) = self.get(c) else { continue };
+            if n.children.is_empty() || n.style.content_min_width.is_some() {
+                continue;
+            }
+            if resolve_dimension_opt(n.style.width.as_deref(), &ctx).is_some() {
+                continue; // main 명시 — content 슬롯 미소비
+            }
+            if self.subtree_has_grid(c) {
+                continue; // 측정 불가 → 기존 경로 유지 (§컨테이너 intrinsic 이연)
+            }
+            deferred_to_resolve[i] = true;
+        }
+
+        for (i, &c) in children.iter().enumerate() {
+            if deferred_to_resolve[i] {
+                // 주축은 2-b 가, cross 는 3.5 가 채운다 (3.5 는 아래에서 강제 발화).
+                child_sizes.push((0.0, 0.0));
+                continue;
+            }
             let (sw, sh) = child_solves[i];
-            let cs = self.solve_node(c, sw, sh);
+            // wrap 컨테이너는 라인 분할이 cross 에 걸려 cross 를 0 으로 둘 수 없다 —
+            // 그 경우만 기존 재귀 solve 를 유지한다.
+            let cs = if wraps {
+                self.solve_node(c, sw, sh)
+            } else {
+                self.solve_child_intrinsic_aware(c, sw, sh)
+            };
             child_sizes.push(cs);
         }
 
@@ -1355,7 +1425,9 @@ impl LayoutTree {
                 // main 축 `%` 는 main_ctx (E6) — column 이면 height 기준.
                 let laid_out_main = resolve_dimension_opt(main_raw, &main_ctx)
                     .unwrap_or(if is_row { child_avail_w } else { child_avail_h });
-                if (used_main - laid_out_main).abs() <= RESOLVE_EPS {
+                // step 1 을 건너뛴 item 은 **아직 한 번도 배치되지 않았다** — 비교 없이
+                // 무조건 여기서 푼다 (이게 그 item 의 유일한 실 solve 다).
+                if !deferred_to_resolve[i] && (used_main - laid_out_main).abs() <= RESOLVE_EPS {
                     continue; // 분배로 안 바뀜 — 재배치 불필요
                 }
 
@@ -1609,7 +1681,7 @@ impl LayoutTree {
         //    자식 percent height 가 auto 로 해소되게 한다 (위 게이트와 동일 근거).
         let mut child_sizes: Vec<(f32, f32)> = Vec::with_capacity(children.len());
         for &c in children {
-            let cs = self.solve_node(c, child_avail_w, child_containing_h);
+            let cs = self.solve_child_intrinsic_aware(c, child_avail_w, child_containing_h);
             child_sizes.push(cs);
         }
 

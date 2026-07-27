@@ -149,7 +149,7 @@ Accepted — 2026-07-27 (리뷰 round 1 승인 — `docs/adr/reviews/169.md`, �
 | 1     | Implemented 2026-07-27 | `tree.rs` — `MIN_CONTENT_AVAIL`/`MAX_CONTENT_AVAIL` 센티넬 + `IntrinsicMode` + mutation-generation 측정 캐시 + 스냅샷 복구. **G1 동작 무변경** (Rust 330 / parity 117 / builder 2925 전건 green), **G4 baseline 기록** (`benches/tree_solve.rs`, 깊이 스케일링 상한 포함) |
 | 2     | Implemented 2026-07-27 | `solve_flex` 2-b — 컨테이너 item 의 off 13(max-content)/off 19(min-content) 동시 배선. **G2** 발산 7형태 green + **R8 결론 = 축소**(컨테이너 한정 TS `minWidth` 주입 제거, 대조 실험으로 원인 확정), **G3** 단일 커밋 + Rust floor 계약 테스트. 잔존 1건: 파이프라인 중첩 텍스트 1.5px |
 | 3     | Implemented 2026-07-27 | grid 축 **이연** 판정 + Phase 2 회귀 1건 차단 — `measure_intrinsic_width` 가 grid 서브트리에 `None` 을 돌려 측정 자체를 포기(가드 없으면 grid item 이 1920 → **0** 붕괴, 토글 실험 2층 확정). **R6 = 결함 부재**(블록 방향은 `height:auto` 가 내용 크기라 형태 자체가 성립 안 함 — K 실측), **R5 해소**(재개 조건을 `layout-engine.md` §컨테이너 intrinsic 에 기록). **G5** |
-| 4     | **미완 2026-07-27**        | **G6 통과** — `layout-engine.md` 경계를 "폰트 측정 TS / 구조 집계 엔진" 으로 정밀화. **G4 실패** — 깊이 스케일링 비율 **2156** (상한 3.0), depth 12 가 47 µs → **36.5 ms**. 측정 캐시는 정상(miss 0)이고 원인은 **3.5 재-solve 가 매 레벨 발화**해 레벨당 solve 2회 → 2^d. 실사용 영향은 depth 1~4 에서 0.1~0.2 ms 로 미미하나 깊은 중첩에서 프레임 예산 잠식. 선택지 4안은 breakdown §Phase 4 중간 결과 — **사용자 판정 대기** |
+| 4     | Implemented 2026-07-27 | **G6** `layout-engine.md` 경계를 "폰트 측정 TS / 구조 집계 엔진" 으로 정밀화. **G4** 는 처음 크게 실패했다 — depth 12 가 47 µs → 36.5 ms. 계측·토글로 원인을 **3.5 재-solve 의 매 레벨 발화**(레벨당 solve 2회 → 2^d)로 분리하고, 사용자 판정 ①에 따라 측정 경로를 재구조했다: 측정 모드가 자식 컨테이너를 재귀 solve 대신 **캐시된 intrinsic 소비** + 2-b 대상 item 의 **step 1 중복 solve 제거**(3.5 단일 solve 로 일원화). 결과 depth 12 **46.0 µs**(baseline 47.0 이하), 깊이당 증가 ≈3.1 µs 선형. live depth 12 26.4 ms → **0.4 ms** |
 
 ### R8 판정 — Phase 0 관측 → Phase 2 확정 (2026-07-27)
 

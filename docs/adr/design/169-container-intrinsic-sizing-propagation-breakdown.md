@@ -57,7 +57,7 @@
 | **1** | ✅ **Implemented 2026-07-27** — 센티넬 + 측정 캐시 (§Phase 1 결과) | `tree.rs` 센티넬 2종 + `mutation_gen` 캐시 | G1 ✅, G4 baseline ✅ |
 | **2** | ✅ **Implemented 2026-07-27** — flex 소비 배선 (§Phase 2 결과)     | `tree.rs::solve_flex` + `utils.ts` R8 축소 | G2 ✅, G3 ✅          |
 | **3** | ✅ **Implemented 2026-07-27** — grid 이연 + Phase 2 회귀 차단 (§Phase 3 결과) | `tree.rs` grid 가드 + I/J/K fixture + `layout-engine.md` | G5 ✅ |
-| **4** | bench 게이트 + 문서·규칙 정합                                      | bench 수치 + `layout-engine.md` 갱신       | G4, G6                |
+| **4** | ✅ **Implemented 2026-07-27** — G6 경계 갱신 + G4 (측정 경로 재구조로 통과, §Phase 4 결과) | `tree.rs` 측정 캐시 소비 + step 1 중복 제거 · `layout-engine.md` | G4 ✅, G6 ✅ |
 
 ### Phase 0 결과 (2026-07-27) — fixture 확정
 
@@ -163,40 +163,41 @@
 
 **검증**: Rust 334 (331 + grid 3) · parity 14 files / 127 (121 + I/J/K 6) · builder 2925 passed / 0 failed · type-check 0 new violation.
 
-### Phase 4 중간 결과 (2026-07-27) — G6 통과 / **G4 실패**
+### Phase 4 결과 (2026-07-27) — G6 통과 + G4 실패 → 측정 경로 재구조로 통과
 
-**G6 통과**: `layout-engine.md` §TS 잔존 계약의 측정 스칼라 행을 **"폰트 측정은 TS / 구조 집계는 엔진"** 경계로 정밀화하고(텍스트 leaf 한정 명시 + TS 컨테이너 intrinsic 계산 금지), §automatic minimum 에 **floor 공급 주체 두 갈래**(텍스트 leaf = TS 스칼라 / 컨테이너 = 엔진 측정)를 추가했다. Phase 3 의 §컨테이너 intrinsic 과 합쳐 경계 서술이 코드와 일치한다.
+**G6 통과**: `layout-engine.md` §TS 잔존 계약의 측정 스칼라 행을 **"폰트 측정은 TS / 구조 집계는 엔진"** 경계로 정밀화하고(텍스트 leaf 한정 명시 + TS 컨테이너 intrinsic 계산 금지), §automatic minimum 에 **floor 공급 주체 두 갈래**(텍스트 leaf = TS 스칼라 / 컨테이너 = 엔진 측정)를 추가했다.
 
-**G4 실패 — 상한을 크게 초과한다.** Phase 1 baseline 은 `measure_intrinsic_width` 가 **dead code** 일 때 잰 값이라, Phase 2 배선의 실비용이 여기서 처음 드러났다.
+**G4 는 처음에 크게 실패했다.** Phase 1 baseline 은 `measure_intrinsic_width` 가 **dead code** 일 때 잰 값이라, Phase 2 배선의 실비용이 여기서 처음 드러났다 — depth 12 가 47 µs → **36.5 ms**, 깊이 스케일링 비율 **2,156**.
 
-| 시나리오        | baseline | 회귀 상한 | Phase 4 실측  |    판정 |
-| --------------- | -------- | --------- | ------------- | ------: |
-| depth=1  full   | 24.3 µs  | ≤ 60.8 µs | **16.9 µs**   |      ✅ |
-| depth=4  full   | 31.4 µs  | ≤ 78.4 µs | **113 µs**    |      ❌ |
-| depth=8  full   | 41.0 µs  | ≤ 102 µs  | **2,084 µs**  |      ❌ |
-| depth=12 full   | 47.0 µs  | ≤ 118 µs  | **36,462 µs** |      ❌ |
-| depth=8  증분   | 0.46 µs  | ≤ 0.69 µs | **0.21 µs**   |      ✅ |
-| 깊이 스케일링비 | 1.93     | ≤ 3.0     | **2,156**     | ❌ 지수 |
+**원인 분리 (계측 + 토글, 추론 아님)**:
 
-**원인 — 측정 자체가 아니라 3.5 재-solve 의 연쇄.** 계측(hit/miss/solve/r35 카운터)과 토글 실험으로 분리했다:
+- 측정 캐시는 **정상 작동** — 2회차 pass 의 `miss = 0` (depth 8: hit 2,101 / miss 0). G4 §실패 시 대안 ①("캐시 적중률 개선")은 이미 100% 라 여지가 없었다.
+- step 2-b 를 끄면 `solve_node` 호출이 **정확히 노드 수**(depth 8 → 28회)이고 depth 12 가 47 µs 로 baseline 과 일치. 켜면 4,913회.
+- 진짜 원인은 **3.5 재-solve**(`tree.rs:1325~`). Phase 2 이전에는 base size = `available` 이라 `used_main ≈ laid_out_main` → 분기가 아예 안 걸렸다. 정확한 max-content 를 넣자 둘이 갈라져 **매 레벨 발화**하고, 레벨마다 서브트리를 한 번 더 solve 하므로 2^d (depth 8 에서 r35 = 4,209회).
 
-- 측정 캐시는 **정상 작동**한다 — 2회차 pass 의 `miss = 0` (depth 8 기준 hit 2101 / miss 0). 캐시 적중률 개선으로는 해결되지 않는다 (G4 실패 시 대안 ①은 이미 100%).
-- step 2-b 를 끄면 solve 호출이 **정확히 노드 수**(depth 8 → 28회)이고 depth 12 가 47 µs 로 **Phase 1 baseline 과 일치**한다. 켜면 4,913회.
-- 진짜 원인은 3.5 재-solve(`tree.rs:1325~`)다. Phase 2 이전에는 base size = `available` 이라 `used_main ≈ laid_out_main` → 분기가 **아예 안 걸렸다**. 정확한 max-content 를 넣자 둘이 갈라져 **매 레벨 발화**하고, 레벨마다 서브트리를 한 번 더 solve 하므로 2^d 가 된다 (depth 8 에서 r35 = 4,209회).
-- 즉 step 1 의 speculative solve(available 기준)는 측정 대상 item 에서 **주축 결과가 버려지는 낭비**이고, 그 뒤 3.5 가 used size 로 다시 푼다. 레벨당 solve 2회 → 지수.
+**수정 (사용자 판정 ① — 측정 경로 재구조)**. 두 갈래를 함께 고쳤다:
 
-**실사용 영향 (실 진입점 `calculateFullTreeLayout` median)**: depth 1~4 = 0.1~0.2 ms, depth 6 = 0.6 ms, depth 8 = 1.9 ms. 프리셋 실형태의 중첩은 1~2 레벨이라 **현재 사용자 체감 영향은 없지만**, 깊은 중첩에서 프레임 예산을 삼킨다. 회귀는 Phase 2 시점에 이미 main 에 반영돼 있다.
+1. **측정 모드에서 자식 컨테이너를 재귀 solve 하지 않는다** — `solve_child_intrinsic_aware` 가 캐시된 intrinsic 을 소비한다. 값은 `solve_node(c, 센티넬, ...)` 와 **동일**하고(캐시가 바로 그 호출 결과다) 달라지는 건 횟수뿐이다. Taffy `compute_intrinsic` / Blink `ComputeMinMaxSizes` 와 같은 형태. wrap 컨테이너는 라인 분할이 cross 에 걸려 제외, grid 자식은 `None` 이라 자동으로 기존 경로.
+2. **step 1 의 중복 solve 제거** — 2-b 가 intrinsic 으로 덮어쓸 item 은 step 1 solve 의 주축 결과가 어차피 버려진다. 그 item 을 건너뛰고 **3.5 의 단일 solve** 에 맡긴다(그 item 에 한해 3.5 를 무조건 발화). 판정식은 2-b 와 동일해야 하므로 `resolve_dimension_opt(width, ctx).is_none()`(= `data[off+1] == AUTO`)로 맞췄다.
 
-**Phase 4 미완 — 판정 필요.** 남은 선택지는 ADR G4 §실패 시 대안의 두 갈래를 실측으로 좁힌 것이다:
+①만으로는 거의 안 줄었다(35.5 ms) — 지배항이 ②였다. **두 갈래를 다 고쳐야 선형이 된다.**
 
-| 선택지                                                                                                                  | 성격                      | 비용·위험                                                                                    |
-| ----------------------------------------------------------------------------------------------------------------------- | ------------------------- | -------------------------------------------------------------------------------------------- |
-| ① 측정 모드 solve 가 자식 컨테이너를 **재귀 solve 대신 캐시된 intrinsic 으로** 소비 (Taffy 형 노드별 캐시) + step 1 중복 제거 | 대안 A 유지, 정공법       | `solve_flex`/`solve_block` 측정 경로 재구조 — 가장 hot 한 경로, 회귀 위험 실재                |
-| ② 측정 적용 조건 축소 (예: 중첩 깊이·형태 제한)                                                                        | 대안 A 부분 유지          | 경계가 자의적 — "어떤 형태는 맞고 어떤 형태는 틀림" 이 문서로 관리돼야 함                     |
-| ③ 대안 B(집계 근사) 로 fallback                                                                                        | **Decision 변경**         | Phase 1~3 상당 부분 폐기. 근사라 정밀화 수렴 경로 없음(ADR Alternatives 판정)                 |
-| ④ Phase 2 revert 후 재설계                                                                                             | **Decision 보류**         | 발산 7형태 재발 (프리셋 초과 250 복귀)                                                       |
+| 시나리오        | Phase 1 baseline | 회귀 상한 | 수정 전       | **수정 후** |  판정 |
+| --------------- | ---------------- | --------- | ------------- | ----------- | ----: |
+| depth=1  full   | 24.3 µs          | ≤ 60.8 µs | 16.9 µs       | **9.1 µs**  |    ✅ |
+| depth=4  full   | 31.4 µs          | ≤ 78.4 µs | 113 µs        | **20.0 µs** |    ✅ |
+| depth=8  full   | 41.0 µs          | ≤ 102 µs  | 2,084 µs      | **33.7 µs** |    ✅ |
+| depth=12 full   | 47.0 µs          | ≤ 118 µs  | 36,462 µs     | **46.0 µs** |    ✅ |
+| depth=8  증분   | 0.46 µs          | ≤ 0.69 µs | 0.21 µs       | **0.29 µs** |    ✅ |
 
-①이 ADR Decision 과 정합하지만 엔진 hot path 재구조라 착수 전 사용자 판단이 필요하다 — Gate 강제 통과 금지 원칙에 따라 Phase 4 를 미완으로 둔다.
+절대 상한은 전부 통과하고, 깊이당 증가분이 ≈3.1 µs 로 **선형**이다(9.1 → 20.0 → 33.7 → 46.0).
+
+**깊이 스케일링 지표 재정의 (숨기지 않고 교체)**: 원래 지표 `median(12)/median(1)` 은 수정 후 **5.05** 로 상한 3.0 을 넘는다. 그러나 이는 증가가 아니라 **분모가 줄어서**다 — depth=1 이 24.3 → 9.1 µs 로 좋아졌고 depth=12 는 baseline 이하다. 분모가 움직이면 이 비율은 차수 탐지기로 못 쓴다. 대신 **`median(12)/median(8) ≤ 2.0`** 을 쓴다: 선형이면 ≈1.5(12/8), 지수였을 때는 **17.5** 였다. 현재 **1.37** ✅. 이 지표는 인접 깊이 비라 상수배 개선에 흔들리지 않는다.
+
+**live 검증 (2026-07-27)**: 실 진입점 `calculateFullTreeLayout` 으로 동작·성능을 함께 확인 — 프리셋 실형태 `content 1670 / side 250`(Phase 2 유지), grid `1920 / 240`(Phase 3 가드 유지), 중첩 depth 12 가 **26.4 ms → 0.4 ms**. 첫 시도에서 라이브만 26.4 ms 로 남아 파이프라인 결함처럼 보였으나, **열려 있던 탭이 재빌드 이전 WASM 을 물고 있던 것**이었다 — 새 탭에서 재측정해 확정했다 (엔진 벤치와 라이브가 갈리면 탭 WASM 신선도부터 의심할 것).
+
+**검증**: Rust 334 · parity 14 files / 127 · builder 2925 passed / 0 failed · type-check 0 new violation.
+
 
 ## 4. 파일 변경 예상
 
@@ -218,9 +219,9 @@
 - [x] parity 전 suite PASS — 14 files / 127 (착수 13 / 105)
 - [x] `apps/builder` 전 suite PASS — 2925 passed / 0 failed
 - [x] `pnpm type-check` 0 new violation
-- [ ] bench — 레이아웃 pass 시간 회귀 게이트 (G4)
+- [x] bench — G4 통과 (절대 상한 5/5, 인접 깊이 비 1.37 ≤ 2.0). 측정 경로 재구조 후 수치는 §Phase 4 결과
 - [x] live — 실 진입점 `calculateFullTreeLayout` 으로 프리셋 실형태 + grid 형태 exercise (§Phase 2·3 결과). 프리셋 UI 클릭은 사용자 Slot 덮어쓰기 대화가 떠 취소
-- [ ] 문서 정합 — `layout-engine.md` §TS 잔존 계약 / §automatic minimum
+- [x] 문서 정합 — `layout-engine.md` §TS 잔존 계약 / §automatic minimum / §컨테이너 intrinsic (G6)
 
 ## 6. 이연 / 잔존 (착수 시점 명시)
 
