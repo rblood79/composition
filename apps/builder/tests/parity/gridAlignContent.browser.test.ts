@@ -24,12 +24,12 @@ import {
  * 실측(2026-07-27): `height:auto` + `align-content:center` → 트랙이 `(600−70)/2 = 265`
  * 아래로 밀리고 컨테이너 높이 `70 → 335`. `space-between` 은 `560 / 600`.
  *
- * ## 잔존 발산 — `align-content: normal` 의 auto 트랙 stretch (미구현)
+ * ## `normal` 은 no-op 이 아니다 — auto 트랙 stretch (CSS-GRID-1 §12.8, 2026-07-28)
  *
- * definite 높이 + auto 행에서 CSS 는 남는 공간을 **auto 트랙에 균등 분배**한다
- * (`normal` = grid 에서 `stretch`). 엔진은 트랙을 내용 크기로 두고 위에 쌓는다.
- * 아래 `STRETCH_GAP_SNAPSHOT` 이 그 차이를 **실측값으로 고정**한다 — 구현되면 이
- * 스냅샷이 먼저 red 가 되어 알려준다.
+ * 여유가 **있을 때**(definite 높이) `normal`(= grid 에선 `stretch`)은 남는 공간을 auto
+ * 트랙에 균등 분배한다. 그래서 이 파일의 `normal` 케이스는 두 축을 동시에 잠근다 —
+ * `height:auto` 면 아무것도 하지 않고, definite 면 트랙을 늘린다. 트랙 stretch 규칙
+ * 자체의 전수 대조는 `gridAutoTrackStretch.browser.test.ts` 가 맡는다.
  */
 
 const rows = (): CaseNode[] =>
@@ -78,12 +78,10 @@ const ALIGN_CONTENT = [
 ] as const;
 
 // height:auto — 전부 no-op 이어야 한다 (여유 자체가 없음).
-// height:definite — `normal`(=stretch) 만 미구현이라 제외하고 전부 정합.
+// height:definite — `normal` 은 auto 트랙 stretch, 나머지는 트랙셋 정렬.
 const CASES: ParityCase[] = [
   ...ALIGN_CONTENT.map((ac) => gridCase(ac, "auto")),
-  ...ALIGN_CONTENT.filter((ac) => ac !== "normal").map((ac) =>
-    gridCase(ac, "definite"),
-  ),
+  ...ALIGN_CONTENT.map((ac) => gridCase(ac, "definite")),
 ];
 
 describe("grid align-content — CSS 대조", () => {
@@ -115,16 +113,16 @@ describe("grid align-content — CSS 대조", () => {
     },
   );
 
-  it("잔존 — definite 높이의 auto 트랙 stretch 미구현 (실측 스냅샷)", () => {
+  it("normal + definite 높이 — 여유가 auto 행에 균등 분배된다", () => {
     const c = gridCase("normal", "definite");
     const dom = domLeg(c.nodes, c.availW);
     const eng = engineLeg(c.nodes, c.availW, c.availH);
 
-    // CSS: 행 합 70, 여유 130 을 auto 행 2개에 65 씩 → 1행 95, 2행 105.
+    // 행 합 70(=max(20,30) + 40), 여유 130 을 auto 행 2개에 65 씩 → 1행 95, 2행 105.
+    // 이 구조는 `gridTemplateRows` 미명시라 **암묵 트랙** 경로다 (명시 auto 행은
+    // `gridAutoTrackStretch.browser.test.ts` 가 별도로 잠근다).
     expect(dom[2].y).toBe(95);
-    // 엔진: 내용 크기 그대로 쌓임 → 2행이 30 에서 시작.
-    expect(eng[2].y).toBe(30);
-    // 컨테이너 높이는 명시값이라 양쪽 동일 — 어긋나는 건 트랙 분배뿐이다.
+    expect(eng[2].y).toBe(95);
     expect(dom[3].h).toBe(200);
     expect(eng[3].h).toBe(200);
   });

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [`auto` 그리드 트랙이 남는 공간을 나눠 갖지 않던 문제] - 2026-07-28
+
+### Bug Fixes
+
+- **`auto` 트랙이 내용 크기에서 멈춰 컨테이너의 남는 공간을 비워 두던 문제** (CSS-GRID-1 §12.8 "Stretch auto Tracks"):
+  - 축의 정렬이 `normal`/`stretch`(기본값)이면 남는 여유가 `auto` 트랙들에 균등 분배되어야 하는데, 엔진은 트랙을 자식 내용 크기로 측정한 뒤 그대로 뒀다. 컨테이너가 300 이어도 `auto auto` 트랙이 40·40 에 머물러 자식들이 왼쪽에 몰렸다 (CSS 는 150·150)
+  - **Why**: `auto` 트랙 측정이 "내용 크기 = 최종 크기" 로 끝나 있었다. CSS 에서 내용 크기는 **하한**이고, 남는 공간이 있으면 거기서 더 자란다. 세로축도 같은 뿌리 — 높이 200 그리드의 20·40 행이 그대로 쌓여 아래 130 이 빈 채로 남았다 (CSS 는 95·105)
+  - 정렬을 `start`/`center`/`end`/`space-*` 로 지정하면 종전대로 트랙은 내용 크기를 유지하고 트랙셋 전체가 정렬된다. `fr` 트랙이 함께 있으면 `fr` 이 여유를 먼저 가져가므로 `auto` 는 내용 크기 그대로다. 넘칠 때는 아무것도 하지 않는다
+  - **적용 범위를 좁힌 지점**: 컨테이너 축이 **명시 크기**일 때만 적용한다. block-level `width:auto` 그리드는 CSS 상 크기가 확정이지만 엔진이 shrink-to-fit 과 구분하지 못하며, 같은 자리에서 `1fr` 이 이미 어긋나 있다(flex 안 auto-width 그리드에서 DOM 80 vs 엔진 400) — `auto` 와 무관한 별개 축이라 함께 고치지 않고 스냅샷으로 분리해 고정
+  - 위치: `packages/composition-engine/src/tree.rs` (`stretch_auto_tracks` + `solve_grid` 측정 직후 배선)
+  - 검증: Chrome 대조 fixture 신설 `apps/builder/tests/parity/gridAutoTrackStretch.browser.test.ts` (61 정합 + 규칙 요약 + 잔존 2) / 기존 grid 잔존 스냅샷 2건이 정합 케이스로 승격 (`gridItemBox` `gridAlignContent`) / parity 전체 600건 green / Rust 344건 green. 민감도 — stretch 무력화 35 red, 정렬 게이트 제거 31 red, 확정-크기 게이트 완화 5 red
+  - 라이브 확인: 실행 중인 빌더가 로드한 WASM 을 직접 호출해 10개 형태(기본·start·center·`auto 100px`·`auto 1fr`·넘침·gap·세로 3종)가 Chrome 실측과 일치함을 확인. 현재 문서는 grid 컨테이너 0개이고 카탈로그 grid 4곳(ProgressBar/Slider)이 전부 `1fr auto` + 높이 auto 라 no-op — ProgressBar 내부 기하 수정 전후 동일
+  - 잔존 2건 (같은 fixture 스냅샷, 둘 다 본 변경 이전부터): `minmax(px,px)` 가 growth limit 까지 자라지 않음(§12.6 — §12.8 보다 앞 단계) / 암묵 트랙이 `grid-auto-rows` 를 무시하고 자식 내용으로만 측정됨
+
 ## [노드 Picture 캐시 + 스냅샷 ping-pong — ADR-153 Phase 3 + ADR 종결] - 2026-07-28
 
 ### Architecture

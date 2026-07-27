@@ -1884,6 +1884,11 @@ impl LayoutTree {
         // 이 stale 캐시를 돌려준다 — 측정이 돌았는지 기록해 최종 pass 에서 되살린다.
         let mut measured_with_container = false;
 
+        // §12.8 stretch 대상 인덱스 — 측정으로 `{n}px` 가 되기 **전에** 어느 트랙이 auto
+        // 였는지 기록해 둔다. 치환 후에는 토큰만으로 구분할 수 없다.
+        let mut row_auto_idx: Vec<usize> = Vec::new();
+        let mut col_auto_idx: Vec<usize> = Vec::new();
+
         if implicit_rows {
             measured_with_container = true;
             let col_count = grid::parse_tracks(&template_cols, container_w, col_gap).len().max(1);
@@ -1901,6 +1906,17 @@ impl LayoutTree {
                     row_heights.resize(row + 1, 0.0);
                 }
                 row_heights[row] = row_heights[row].max(ch);
+            }
+            // 암묵 트랙의 크기는 `grid-auto-rows`(기본 `auto`) 가 정한다 — 고정 크기를
+            // 지정했으면 auto 가 아니므로 §12.8 대상이 아니다 (실측: `gridAutoRows:30px`
+            // + height 200 에서 행이 늘지 않고 30 유지).
+            let auto_rows_are_auto = style
+                .grid_auto_rows
+                .as_deref()
+                .map(|v| v.iter().all(|t| t.trim().eq_ignore_ascii_case("auto")))
+                .unwrap_or(true);
+            if auto_rows_are_auto {
+                row_auto_idx = (0..row_heights.len()).collect();
             }
             template_rows = row_heights
                 .iter()
@@ -1925,6 +1941,12 @@ impl LayoutTree {
                     row_intrinsic[row] = row_intrinsic[row].max(ch);
                 }
             }
+            row_auto_idx = row_tokens
+                .iter()
+                .enumerate()
+                .filter(|(_, t)| **t == "auto")
+                .map(|(r, _)| r)
+                .collect();
             // auto 토큰만 측정값으로 치환, px/fr/% 는 원본 유지.
             template_rows = row_tokens
                 .iter()
@@ -1966,6 +1988,12 @@ impl LayoutTree {
                     col_intrinsic[col] = col_intrinsic[col].max(cw);
                 }
             }
+            col_auto_idx = col_tokens
+                .iter()
+                .enumerate()
+                .filter(|(_, t)| *t == "auto")
+                .map(|(c, _)| c)
+                .collect();
             col_tokens
                 .iter()
                 .enumerate()
@@ -1981,6 +2009,35 @@ impl LayoutTree {
         } else {
             template_cols
         };
+
+        // CSS-GRID-1 §12.8 "Stretch auto Tracks" — 남는 여유를 auto 트랙에 균등 분배.
+        //
+        // **definite 판정은 `explicit_*` 하나**로 아래 `align_content` 게이트와 같은 근거다:
+        // 여유는 definite size 에서만 생기고(CSS-ALIGN-3 §4.4), 상속 available 을 여유로
+        // 보면 없는 공간을 나눠 넣는다. 실측 확인 — `height:auto` 그리드는 stretch 없음,
+        // flex row 안의 `width:auto` 그리드도 없음(shrink-to-fit, DOM 80).
+        //
+        // **가로축을 `explicit_w > 0.0` 으로 좁힌 이유**: block-level `width:auto` 그리드는
+        // CSS 상 stretch-fit 이라 인라인 크기가 definite 인데, 엔진에는 그걸 구분하는 신호가
+        // 없다. 같은 자리에서 `1fr` 이 이미 그 구분 없이 상속 available 로 해소되어 DOM 80
+        // vs 엔진 400 으로 어긋나 있다 — **`auto` 와 무관한 별개 축**이라 여기서 같이 풀지
+        // 않는다. 좁힌 게이트는 그 축을 건드리지 않고, `auto` 트랙이 우연히 맞던 경우
+        // (flex item 그리드)를 깨지도 않는다. `gridItemBox.browser.test.ts` 의 스냅샷이 고정.
+        let mut row_tracks: Vec<String> =
+            template_rows.split_whitespace().map(String::from).collect();
+        if explicit_h > 0.0 && distribution_allows_stretch(style.align_content.as_deref()) {
+            stretch_auto_tracks(&mut row_tracks, &row_auto_idx, container_h, row_gap);
+            template_rows = row_tracks.join(" ");
+        }
+        let mut col_tracks: Vec<String> =
+            template_cols.split_whitespace().map(String::from).collect();
+        let template_cols =
+            if explicit_w > 0.0 && distribution_allows_stretch(style.justify_content.as_deref()) {
+                stretch_auto_tracks(&mut col_tracks, &col_auto_idx, container_w, col_gap);
+                col_tracks.join(" ")
+            } else {
+                template_cols
+            };
 
         // grid_layout — 셀 bounds flat [x,y,w,h,...].
         // justify-content/align-content (E12) — 고정 트랙이 컨테이너보다 작을 때 트랙셋 정렬.
@@ -2473,6 +2530,48 @@ fn parse_flex_wrap(v: Option<&str>) -> u8 {
 /// gap 값 해결 (px/%/calc…). 미설정/auto/음수는 0.
 fn resolve_gap(v: Option<&str>, ctx: &CssValueContext) -> f32 {
     resolve_dimension(v, ctx).max(0.0)
+}
+
+/// 축의 content-distribution 이 auto 트랙 stretch 를 허용하는가 (CSS-GRID-1 §12.8).
+///
+/// `normal`/`stretch`(및 미설정) 만 여유를 트랙에 넣는다. `start`/`center`/`end`/
+/// `space-*` 는 트랙을 내용 크기로 두고 **트랙셋 전체**를 정렬한다 — Chrome 실측:
+/// `auto auto` / 컨테이너 300 에서 기본은 트랙 150·150, `start` 는 40·40 후 좌측 정렬.
+fn distribution_allows_stretch(v: Option<&str>) -> bool {
+    matches!(v.unwrap_or("").trim(), "" | "normal" | "stretch")
+}
+
+/// CSS-GRID-1 §12.8 "Stretch auto Tracks" — 남는 **definite** 여유를 auto 트랙에 균등 분배.
+///
+/// `tracks` 는 intrinsic 측정이 끝난 토큰 배열(`auto` → `{측정값}px` 치환 후), `auto_idx`
+/// 는 그 중 **원래 `auto` 였던** 인덱스다. 치환 후에는 토큰만 봐서 auto 였는지 알 수 없어
+/// 인덱스를 따로 넘긴다.
+///
+/// 참여 조건은 "max 트랙 sizing 이 `auto`" 하나다 — px/%/`minmax(_,px)` 는 제외된다
+/// (실측: `auto minmax(50px,80px)` 300 → auto 220 / minmax 80). `fr` 이 하나라도 있으면
+/// 그것이 여유를 전부 흡수해 `free == 0` 이 되므로 **자동으로** no-op 이다 (실측:
+/// `auto 1fr` → auto 는 content 40 유지). 넘칠 때(여유 음수)도 no-op — 트랙을 줄이지 않는다.
+fn stretch_auto_tracks(tracks: &mut [String], auto_idx: &[usize], container: f32, gap: f32) {
+    /// f32 누산 오차가 가짜 stretch 를 만들지 않게 하는 하한.
+    const FREE_EPS: f32 = 0.01;
+
+    if auto_idx.is_empty() || tracks.is_empty() || container <= 0.0 {
+        return;
+    }
+    let resolved = grid::parse_tracks(&tracks.join(" "), container, gap);
+    // `repeat(...)` 전개로 개수가 달라지면 auto_idx 대응이 깨진다 — 그때는 적용 보류.
+    if resolved.len() != tracks.len() {
+        return;
+    }
+    let used: f32 = resolved.iter().sum::<f32>() + gap * (tracks.len() as f32 - 1.0);
+    let free = container - used;
+    if free <= FREE_EPS {
+        return;
+    }
+    let share = free / auto_idx.len() as f32;
+    for &i in auto_idx {
+        tracks[i] = format!("{}px", resolved[i] + share);
+    }
 }
 
 /// track array(`["1fr", "auto"]`) → space-join 문자열(`"1fr auto"`).
@@ -4644,7 +4743,9 @@ mod tests {
         assert_eq!(tree.get_layout(handles[0]).width, 40.0, "c0 → col0 = 40");
         assert_eq!(tree.get_layout(handles[1]).width, 60.0, "c1 → col1 = 60");
         assert_eq!(tree.get_layout(handles[0]).x, 0.0, "c0 col0 x=0");
-        assert_eq!(tree.get_layout(handles[1]).x, 40.0, "c1 col1 x = col0 width 40");
+        // col0 폭 = 내용 40 + §12.8 여유 분배 100 = 140 (Chrome 실측: c1.x=140).
+        // **트랙 폭 ≠ 자식 폭** — 자식은 40/60 그대로고, 열 분리는 이 x 가 증명한다.
+        assert_eq!(tree.get_layout(handles[1]).x, 140.0, "c1 col1 x = col0 트랙 140");
     }
 
     /// 명시 auto row 혼합: px row 는 고정 유지, auto row 만 intrinsic 측정.

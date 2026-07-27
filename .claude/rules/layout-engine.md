@@ -280,7 +280,7 @@ grid item 의 크기·위치는 **자식 자신의 상자 모델**이 정하고,
 - **넘치는 아이템은 자르지 않는다**. 구 `.min(cell)` 클램프는 `min-width` 가 셀을 넘기는 경우까지 삼켰다. 위치 정렬(center/end)이 음수 offset 인 것도 flex 축과 같은 규칙(§4.2 `unsafe`).
 - **트랙 폭 ≠ 자식 폭**. 이 혼동이 Rust golden 2건에 그대로 굳어 있었다 (`grid_mixed_px_and_auto_columns_preserve_px` / `grid_progressbar_realstruct_row_and_col_auto` — 자식 폭에 트랙 폭을 기대). 트랙 폭의 근거는 **형제의 x 좌표**가 대신 증명한다.
 - 민감도 (`gridItemBox.browser.test.ts` 113건 기준): explicit 규칙 104 red / margin 14 / min·max 10 / 넘침 6.
-- **잔존 3건** (같은 fixture 의 스냅샷이 고정): ① 내용 없는 auto-width 자식의 shrink-to-fit (엔진은 0 붕괴 방지로 셀을 채운다 — 측정 협업 영역) ② `auto` 트랙의 여유 균등 분배 미구현 (세로축 잔존과 같은 뿌리 — `gridAlignContent.browser.test.ts`) ③ **block-level** 박스의 `justify-self` 미지원 (CSS-ALIGN §5.1 은 block 에도 적용 — 별개 코드 경로).
+- **잔존 3건** (같은 fixture 의 스냅샷이 고정): ① 내용 없는 auto-width 자식의 shrink-to-fit (엔진은 0 붕괴 방지로 셀을 채운다 — 측정 협업 영역) ② **stretch-fit 인라인 크기의 definite 판정 부재** (block-level `width:auto` 는 CSS 상 definite 인데 엔진은 미구분 — `1fr` 이 이미 같은 축에서 어긋나 있다, 아래 §auto 트랙 stretch) ③ **block-level** 박스의 `justify-self` 미지원 (CSS-ALIGN §5.1 은 block 에도 적용 — 별개 코드 경로).
 
 ### 금지 패턴
 
@@ -289,6 +289,34 @@ grid item 의 크기·위치는 **자식 자신의 상자 모델**이 정하고,
 - ❌ grid 에서 자식 min/max 생략 — 커널이 안 해준다 (block/flex 와 다르다)
 - ❌ `real_size <= 0` 폴백 제거 → 빈 컨테이너가 캔버스에서 사라진다 (0 붕괴 방지, 의도된 잔존)
 - ❌ 자식 폭 assertion 에 트랙 폭 기대 → 트랙 근거는 형제 x 좌표로
+
+## `auto` 트랙은 내용 크기가 **하한**일 뿐 — 남는 여유를 나눠 갖는다 (CSS-GRID-1 §12.8, 2026-07-28)
+
+축의 content-distribution 이 `normal`/`stretch` 일 때, 남는 **definite** 여유는 max 트랙 sizing 이 `auto` 인 트랙들에 **균등 분배**된다. 엔진은 auto 트랙을 자식 intrinsic 으로 측정한 뒤 거기서 멈춰 있었다 — 컨테이너가 트랙 합보다 커도 트랙이 자라지 않았다.
+
+| 조건                                     | 결과                                     |
+| ---------------------------------------- | ---------------------------------------- |
+| distribution = `normal`/`stretch`/미설정 | auto 트랙에 여유 균등 분배               |
+| `start`/`center`/`end`/`space-*`         | 트랙은 내용 크기 유지, **트랙셋**을 정렬 |
+| `fr` 트랙 공존                           | fr 이 여유를 먼저 흡수 → auto 는 내용    |
+| 여유 음수(넘침) / 축이 indefinite        | no-op — 트랙을 줄이지도 않는다           |
+
+- **거처는 `solve_grid` 의 측정 직후** (`stretch_auto_tracks`, tree.rs). 측정이 `auto` 토큰을 `{n}px` 로 치환해 버리므로 **어느 트랙이 auto 였는지 인덱스로 따로 들고 가야 한다** (`row_auto_idx`/`col_auto_idx`). 치환 후 토큰만 보면 px 트랙과 구분이 안 된다.
+- 참여 자격은 **max 트랙 sizing 이 `auto`** 하나다. `px`/`%`/`minmax(_, px)` 는 빠진다 — 실측 `auto minmax(50px,80px)` / 300 에서 minmax 는 80, auto 가 220. `fr` 은 별도 조건이 필요 없다: fr 이 여유를 전부 흡수해 `free == 0` 이 되므로 **자동으로** no-op 이다.
+- **definite 판정은 `explicit_*` 하나** — `align-content` 게이트와 같은 근거이자 같은 신호다 (여유는 definite size 에서만 생긴다). `height:auto` 그리드, flex item 그리드 모두 stretch 없음.
+- **가로축을 `explicit_w > 0.0` 으로 좁힌 이유**: block-level `width:auto` 그리드는 CSS 상 stretch-fit 이라 인라인 크기가 **definite** 인데, 엔진에는 그걸 shrink-to-fit 과 가르는 신호가 없다. 같은 자리에서 **`1fr` 이 이미 어긋나 있다** — flex row 안의 auto-width 그리드에서 DOM 80 vs 엔진 400. `auto` 와 무관한 별개 축이라 같이 풀지 않았고, 좁힌 게이트 덕에 `auto` 트랙이 우연히 맞던 경우도 안 깨진다. 여는 순서는 **그 축이 먼저** — 열면 이 게이트도 같이 넓힌다.
+- **암묵 트랙**(`gridTemplateRows` 미명시)도 대상이다 — 크기를 정하는 건 `grid-auto-rows`(기본 `auto`)이므로, 고정 크기를 지정했으면 제외한다.
+- Chrome 실측 fixture: `gridAutoTrackStretch.browser.test.ts` (61 정합 + 규칙 요약 + 잔존 2). 민감도 — stretch 무력화 35 red / distribution 게이트 제거 31 red / definite 게이트를 상속 available 로 완화 5 red.
+- 라이브 영향: 카탈로그 grid 4곳(ProgressBar/Slider)이 전부 `1fr auto` 라 free==0 → no-op, 행은 암묵 auto 지만 컨테이너 높이가 auto 라 게이트에 걸린다.
+- **잔존 2건** (같은 fixture 스냅샷): ① `minmax(px,px)` 가 growth limit 까지 자라지 않음 (§12.6 Maximize Tracks — §12.8 보다 **앞** 단계라 이걸 먼저 고쳐야 여유 계산이 맞다) ② 암묵 트랙이 `grid-auto-rows` 를 무시하고 자식 intrinsic 으로만 측정됨. 둘 다 본 변경 이전부터 어긋나 있었다.
+
+### 금지 패턴
+
+- ❌ 측정으로 px 치환된 뒤 토큰 문자열로 auto 여부 판정 → 인덱스(`*_auto_idx`)가 유일한 근거
+- ❌ `fr` 을 stretch 대상에서 명시적으로 제외하는 분기 추가 → free==0 으로 이미 no-op, 중복 조건은 규칙만 흐린다
+- ❌ definite 판정을 `container_*`(상속 available)로 완화 → `height:auto`/flex item 그리드가 없는 공간을 나눠 갖는다
+- ❌ 여유가 음수일 때 트랙 축소 → §12.8 은 **확대만** 한다 (넘침은 넘치는 게 정상)
+- ❌ distribution 게이트 생략 → `start`/`center`/`end` 에서 트랙이 자라 정렬이 무의미해진다
 
 ## 배치 직렬화 계약 — 숫자 하나가 페이지 레이아웃을 끈다 (CRITICAL)
 
