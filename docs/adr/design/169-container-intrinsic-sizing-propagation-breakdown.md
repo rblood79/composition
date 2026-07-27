@@ -51,13 +51,13 @@
 
 ## 3. Phase 분해
 
-| Phase | 내용                                                             | 산출물                                    | Gate     |
-| ----- | ---------------------------------------------------------------- | ----------------------------------------- | -------- |
-| **0** | fixture 고정 — §2-2 발산 7형태를 parity 케이스로 (red 상태 확인) | `containerIntrinsic.browser.test.ts`      | red 재현 |
-| **1** | available 3-값 확장 + 노드별 측정 캐시                           | `tree.rs` 센티넬 2종 + `IntrinsicCache`   | G1, G4   |
-| **2** | flex 소비 배선 — off 13 = max-content, off 19 = min-content      | `tree.rs::solve_flex` / `write_flex_item` | G2, G3   |
-| **3** | grid/block 축 조건부 판정 (실사용 실측 → 포함 또는 이연 명문화)  | 실측 기록 + (해당 시) `grid.rs`           | G5       |
-| **4** | bench 게이트 + 문서·규칙 정합                                    | bench 수치 + `layout-engine.md` 갱신      | G4, G6   |
+| Phase | 내용                                                                                                         | 산출물                                    | Gate               |
+| ----- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------- | ------------------ |
+| **0** | fixture 고정 — §2-2 발산 7형태 + **R8 masking 케이스**(`width:fit-content` 컨테이너 item) 를 parity 케이스로 | `containerIntrinsic.browser.test.ts`      | red 재현 + R8 판정 |
+| **1** | available 3-값 확장 + 노드별 측정 캐시                                                                       | `tree.rs` 센티넬 2종 + `IntrinsicCache`   | G1, G4             |
+| **2** | flex 소비 배선 — off 13 = max-content, off 19 = min-content                                                  | `tree.rs::solve_flex` / `write_flex_item` | G2, G3             |
+| **3** | grid/block 축 조건부 판정 (실사용 실측 → 포함 또는 이연 명문화)                                              | 실측 기록 + (해당 시) `grid.rs`           | G5                 |
+| **4** | bench 게이트 + 문서·규칙 정합                                                                                | bench 수치 + `layout-engine.md` 갱신      | G4, G6             |
 
 ### Phase 1 상세 — available 3-값 + 캐시
 
@@ -88,6 +88,7 @@
 ## 5. 검증 체크리스트
 
 - [ ] Phase 0 fixture 7형태가 착수 전 red, Phase 2 후 green
+- [ ] **R8** — `width:fit-content` 컨테이너에서 TS `minWidth` 주입(`utils.ts:4767-4769`)이 §4.5 auto-min 을 무력화하는지 판정, 존치·축소 결론 기록
 - [ ] Rust 단위 전수 PASS (착수 시점 324)
 - [ ] parity 전 suite PASS (착수 시점 13 files / 105 tests)
 - [ ] `apps/builder` workspace/canvas PASS (착수 시점 867)
