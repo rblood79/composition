@@ -132,6 +132,23 @@ flex item 의 automatic minimum size (min-width/height:auto = content 하한) �
 - **CSS base width 채널**: 텍스트 leaf 의 폭 주입 제거로 generated CSS base 규칙은 별도 채널이 담당 — `width:100%` 계열(text/heading/paragraph/description)은 B22, `width:fit-content`(label)는 ADR-165 신설 선주입 (`implicitStyles.ts` — catalog Label 은 containerStyles 부재라 CSS 실측 근거 직접 주입). 신규 텍스트 leaf 계열 추가 시 CSS base width 규칙의 엔진 채널 존재를 확인할 것.
 - Chrome 실측 fixture: `apps/builder/tests/parity/autoMin.browser.test.ts` (8케이스) + `intrinsicSizing.browser.test.ts` (engine 6 — DOM 원자/스칼라 격리 + pipeline 4 — 실텍스트 end-to-end) — floor/스칼라 동작 변경 시 여기부터 갱신
 
+## 컨테이너 intrinsic — 측정 모드 센티넬 + grid 이연 (ADR-169, 2026-07-27)
+
+컨테이너 flex item 의 intrinsic 은 **엔진이 자기 알고리즘을 측정 모드로 재실행**해 얻는다 (Taffy `AvailableSpace::{MinContent,MaxContent}` / Yoga `MeasureMode` / Blink `ComputeMinMaxSizes` 와 같은 형태). `INDEFINITE_AVAIL(-1)` 옆에 `MIN_CONTENT_AVAIL(-2)` / `MAX_CONTENT_AVAIL(-3)` 센티넬을 두어 `solve_node` 시그니처는 그대로다.
+
+- **소비 지점**: `solve_flex` 의 `is_row` 분기가 **auto-main + 자식 보유 + 스칼라 미공급** item 에 대해 `measure_intrinsic_width` 를 호출해 off 13(`content_main` = max-content)과 off 19(`content_min_main` = 정확 min-content)를 **함께** 채운다. 한쪽만 채우면 긴 텍스트 초과가 악화된다 (ADR-169 G3).
+- **캐시**: 노드당 `(mutation_gen, min, max)`. 무효화 기준은 `dirty` 가 아니라 **트리 단위 세대 카운터**다 — `propagate_dirty` 는 이미 dirty 인 조상에서 조기 종료하므로 "dirty ⟹ 캐시 없음" 이 성립하지 않는다. 측정 전후로 서브트리 `layout`/`dirty` 를 스냅샷·복구해 부작용 0 을 유지한다.
+- **grid 는 이연** — `measure_intrinsic_width` 가 grid 서브트리(자기 또는 자손)에 `None` 을 돌려 **측정 자체를 하지 않는다**. `grid.rs::resolve_grid_tracks` 2단계가 `remaining = (container - fixed - gap).max(0.0)` 이라 음수 available 에서 `fr_size = 0` → fr·auto 트랙이 전부 0 이 되고, 그 0 을 `content_main` 으로 소비하면 grid item 이 **통째로 붕괴**한다 (실측: 직접·중첩 형태 모두 1920 → 0). 이연 상태의 잔존 발산은 `containerIntrinsic.browser.test.ts` I/J 스냅샷 (DOM 400 / engine 1920).
+  - **재개 조건**: grid 축 intrinsic 을 열려면 CSS-GRID-1 §12 track sizing 의 min/max-content 기여 산출이 먼저다 (fr 트랙의 §12.7.1 포함). 그 전에 `subtree_has_grid` 가드만 풀면 붕괴가 되살아난다 — 가드 제거는 `grid_flex_item_does_not_collapse` (Rust) + I/J 스냅샷이 동시에 green 인 상태에서만.
+- **height 축(column main)은 결함 부재** — 빈도가 아니라 **구조상**이다. 인라인 방향은 블록 박스의 초기 동작이 stretch 라 auto 폭 자식이 available 을 채우지만, 블록 방향은 `height:auto` 가 내용 크기다. "늘어나기만 하는 내용을 고유 크기로 오인" 하는 형태가 세로에서는 성립하지 않는다 (K 케이스 실측 — 컨테이너·형제 정합). K 에 남는 `height:100%` 발산은 flex 분배 후 백분율 재해소 부재로, 별개 영역이다.
+
+### 금지 패턴
+
+- ❌ `measure_intrinsic_width` 의 `None` 을 `0` 이나 `unwrap_or_default()` 로 흡수 — grid item 붕괴가 그대로 재발한다 (측정 불가를 값으로 위장 금지)
+- ❌ 캐시 무효화를 `dirty` 플래그에 종속 → `propagate_dirty` 조기 종료로 구멍이 생긴다 (`mutation_gen` 비교가 정본)
+- ❌ 측정 후 `mark_subtree_dirty` 로 복구 갈음 → 자손 캐시까지 날아가 중첩 깊이에 지수적
+- ❌ 측정 배선을 `is_row` 밖으로 확장 → 세로 축은 결함 부재이며, 확장 시 height-for-width 2-pass 계약(ADR-165)과 충돌
+
 ## TS 잔존 계약 (ADR-164 Phase 3 — 엔진↔TS 경계 규칙, CRITICAL)
 
 다음은 **의도적으로 TS 에 남는** 것들이다. 엔진 gap 처럼 보여도 아래 사유가 유효한 한 엔진 이관·중복 구현 양쪽 모두 금지 — 변경은 해당 사유를 뒤집는 ADR 로만:

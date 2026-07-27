@@ -51,13 +51,13 @@
 
 ## 3. Phase 분해
 
-| Phase | 내용                                                            | 산출물                                    | Gate               |
-| ----- | --------------------------------------------------------------- | ----------------------------------------- | ------------------ |
-| **0** | ✅ **Implemented 2026-07-27** — fixture 고정 (§3-0)             | `containerIntrinsic.browser.test.ts`      | red 재현 + R8 판정 |
+| Phase | 내용                                                               | 산출물                                     | Gate                  |
+| ----- | ------------------------------------------------------------------ | ------------------------------------------ | --------------------- |
+| **0** | ✅ **Implemented 2026-07-27** — fixture 고정 (§3-0)                | `containerIntrinsic.browser.test.ts`       | red 재현 + R8 판정    |
 | **1** | ✅ **Implemented 2026-07-27** — 센티넬 + 측정 캐시 (§Phase 1 결과) | `tree.rs` 센티넬 2종 + `mutation_gen` 캐시 | G1 ✅, G4 baseline ✅ |
-| **2** | ✅ **Implemented 2026-07-27** — flex 소비 배선 (§Phase 2 결과)   | `tree.rs::solve_flex` + `utils.ts` R8 축소 | G2 ✅, G3 ✅        |
-| **3** | grid/block 축 조건부 판정 (실사용 실측 → 포함 또는 이연 명문화) | 실측 기록 + (해당 시) `grid.rs`           | G5                 |
-| **4** | bench 게이트 + 문서·규칙 정합                                   | bench 수치 + `layout-engine.md` 갱신      | G4, G6             |
+| **2** | ✅ **Implemented 2026-07-27** — flex 소비 배선 (§Phase 2 결과)     | `tree.rs::solve_flex` + `utils.ts` R8 축소 | G2 ✅, G3 ✅          |
+| **3** | ✅ **Implemented 2026-07-27** — grid 이연 + Phase 2 회귀 차단 (§Phase 3 결과) | `tree.rs` grid 가드 + I/J/K fixture + `layout-engine.md` | G5 ✅ |
+| **4** | bench 게이트 + 문서·규칙 정합                                      | bench 수치 + `layout-engine.md` 갱신       | G4, G6                |
 
 ### Phase 0 결과 (2026-07-27) — fixture 확정
 
@@ -139,13 +139,37 @@
 - 3.5 재-solve(`tree.rs:1147~`)의 `laid_out_main` 비교 기준을 측정 모드에 맞게 갱신 — 측정이 available 이 아닌 intrinsic 으로 바뀌므로 "분배로 안 바뀜" 판정식이 그대로면 재-solve 가 부당 skip 된다.
 - leaf 는 **무변경** — off 19 스칼라 공급 경로(ADR-165)를 건드리지 않는다.
 
+### Phase 3 결과 (2026-07-27) — grid 이연 + Phase 2 회귀 1건 차단
+
+**착수 즉시 드러난 것은 "이연할까" 가 아니라 Phase 2 가 만든 회귀였다.** Phase 2 의 2-b 단계는 `is_row` ∧ 자식 보유 ∧ auto-main 이면 display 를 가리지 않고 측정한다 — grid 컨테이너도 포함된다. 그런데 `grid.rs::resolve_grid_tracks` 2단계는 `remaining = (container - fixed - gap).max(0.0)` 이라 **음수 available 에서 `fr_size = 0`** 이 되어 fr·auto 트랙이 전부 0 이 된다. 그 0 이 `content_main` 으로 들어가면 grid item 이 통째로 사라진다.
+
+귀속은 코드 읽기가 아니라 **토글 실험**으로 확정했다 (2회, 층을 나눠):
+
+| 형태                          | 측정 배선 OFF | 측정 배선 ON | 가드 후 |
+| ----------------------------- | ------------- | ------------ | ------- |
+| grid 가 직접 flex item (Rust) | 1000          | **0**        | 1000    |
+| `flex-row > block > grid`     | 1000          | **0**        | 1000    |
+| 같은 형태 파이프라인 (I/J)    | —             | **0**        | 1920    |
+
+**판정 = 이연.** `measure_intrinsic_width` 가 grid 서브트리(자기 또는 자손)에 `None` 을 돌려 **측정 자체를 하지 않는다**. 0 을 값으로 위장하지 않고 "이 노드는 intrinsic 을 낼 수 없다" 를 타입으로 신고해, 소비자가 ADR-169 이전 경로(컨테이너 available 로 solve)를 그대로 쓰게 한다. 가드는 서브트리 DFS 라 과잉 차단이 쉬워, grid 형제만 제외되는지 확인하는 테스트를 함께 뒀다.
+
+포함(구현)을 택하지 않은 이유: grid 의 min/max-content 기여는 CSS-GRID-1 §12 track sizing 을 fr 트랙(§12.7.1)까지 따라가야 하고, 그 절반만 구현하면 본 ADR 이 R4 에서 경계한 "근사를 정확으로 오인" 패턴을 grid 축에 그대로 재생산한다. **재개 조건**: §12 기여 산출이 선행. 가드만 먼저 풀면 붕괴가 되살아난다 — 해제는 `grid_flex_item_does_not_collapse`(Rust) + I/J 스냅샷이 동시에 green 인 상태에서만.
+
+**R6 (height 축) 판정 = 결함 부재 — 빈도가 아니라 구조.** 폭 축 발산 형태(G)를 90° 돌린 K 케이스에서 컨테이너·형제 높이는 DOM 과 정합이다. 인라인 방향은 블록 박스의 초기 동작이 **stretch** 라 auto 폭 자식이 available 을 채우지만, 블록 방향은 `height:auto` 가 **내용 크기**다 — "늘어나기만 하는 내용을 고유 크기로 오인" 하는 형태가 세로에서는 성립하지 않는다. `is_row` 한정은 범위 축소가 아니라 **결함의 실제 경계**다. K 에 남는 `k-inner.h`(dom 40 / eng 0)는 flex 분배로 부모 높이가 확정된 뒤 `height:100%` 를 재해소하는 경로 부재 — 별개 영역이라 스냅샷으로 기록만 남겼다.
+
+**R5 해소**: 이연 사실·재개 조건·붕괴 기전을 `layout-engine.md` §"컨테이너 intrinsic" 에 기록했다 (금지 패턴 4개 포함). ADR-164 ④ absolute 잔여와 동형.
+
+**live 검증 (2026-07-27)**: 실행 중인 빌더의 실 진입점 `calculateFullTreeLayout` 으로 두 형태를 같은 탭에서 exercise — grid-in-flex-row `grid 1920 / side 240`(붕괴 아님), 프리셋 실형태 `content 1670 / side 250`(Phase 2 유지). 두 수치가 같이 나온다는 것이 곧 "현재 WASM 에 Phase 2 와 Phase 3 이 모두 살아 있다" 는 증거다 (Phase 2 만이면 grid 가 0, Phase 3 만이면 프리셋이 1920). 사용자 문서 무변경.
+
+**검증**: Rust 334 (331 + grid 3) · parity 14 files / 127 (121 + I/J/K 6) · builder 2925 passed / 0 failed · type-check 0 new violation.
+
 ## 4. 파일 변경 예상
 
 | 파일                                                           | 변경                                          |
 | -------------------------------------------------------------- | --------------------------------------------- |
 | `packages/composition-engine/src/tree.rs`                      | 센티넬 2종, 측정 캐시, `solve_*` 모드 분기    |
 | `packages/composition-engine/src/flex.rs`                      | (필요 시) floor 주석 갱신 — 로직 무변경 예상  |
-| `packages/composition-engine/src/grid.rs`                      | Phase 3 판정 결과에 따름                      |
+| `packages/composition-engine/src/grid.rs` | **무변경** — Phase 3 판정 = 이연 (가드는 `tree.rs`) |
 | `packages/composition-engine/tests/`                           | 단위 + golden 계약 가드                       |
 | `apps/builder/tests/parity/containerIntrinsic.browser.test.ts` | 신규 fixture (§2-2 7형태)                     |
 | `apps/builder/tests/parity/slotPercentChild.browser.test.ts`   | 헤더 §범위 밖 발산 항목 해소 반영             |
@@ -155,12 +179,12 @@
 
 - [x] Phase 0 fixture 발산 4형태 red 재현 + 정합 3형태 green (2026-07-27) — Phase 2 후 `.fails` 제거로 green 확정
 - [x] **R8** — masking **실재 확인** (engine 0/1920 vs pipeline 236.7/1683.3, §Phase 0 결과). 존치·축소 결론은 Phase 2 (G2)
-- [ ] Rust 단위 전수 PASS (착수 시점 324)
-- [ ] parity 전 suite PASS (착수 시점 13 files / 105 tests)
-- [ ] `apps/builder` workspace/canvas PASS (착수 시점 867)
-- [ ] `pnpm type-check` 0 error
+- [x] Rust 단위 전수 PASS — 334 (착수 324)
+- [x] parity 전 suite PASS — 14 files / 127 (착수 13 / 105)
+- [x] `apps/builder` 전 suite PASS — 2925 passed / 0 failed
+- [x] `pnpm type-check` 0 new violation
 - [ ] bench — 레이아웃 pass 시간 회귀 게이트 (G4)
-- [ ] live — 프리셋 3종(`sidebar-left`/`sidebar-right`/`list-detail`) × 3 breakpoint 실 빌더 확인
+- [x] live — 실 진입점 `calculateFullTreeLayout` 으로 프리셋 실형태 + grid 형태 exercise (§Phase 2·3 결과). 프리셋 UI 클릭은 사용자 Slot 덮어쓰기 대화가 떠 취소
 - [ ] 문서 정합 — `layout-engine.md` §TS 잔존 계약 / §automatic minimum
 
 ## 6. 이연 / 잔존 (착수 시점 명시)

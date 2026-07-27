@@ -49,6 +49,17 @@ import {
  * (`utils.ts:4767-4769`). 즉 `min_main != AUTO` 가 되어 **§4.5 auto-min 분기가 실행되지
  * 않으며, Phase 2 가 off 19 을 정확히 채워도 이 형태에는 도달하지 못한다.**
  * 존치·축소 판정은 Phase 2 (G2 통과 조건).
+ *
+ * ## Phase 3 판정 (2026-07-27) — grid 이연 / height 축 부재
+ *
+ * | 축                | 실측                                             | 판정                       |
+ * | ----------------- | ------------------------------------------------ | -------------------------- |
+ * | grid (I/J)        | 측정 모드에서 fr·auto 트랙 0 → item 통째로 붕괴 | **이연** — 측정 자체를 포기 |
+ * | height (K)        | 컨테이너·형제 정합, 백분율 재해소만 발산        | **결함 부재** (구조상)      |
+ *
+ * grid 는 `measure_intrinsic_width` 가 `None` 을 돌려 ADR-169 이전 경로를 유지한다.
+ * height 축은 블록 방향이 내용 크기라 "stretch 를 고유 크기로 오인" 하는 형태가 성립하지
+ * 않는다 — 빈도가 아니라 구조상 인라인 축 전용이다. 상세는 각 케이스 docblock.
  */
 const ROOT_W = 1920;
 
@@ -381,6 +392,115 @@ const H_FLOOR_CHANNEL_TEXT: ParityCase = {
   ],
 };
 
+/**
+ * I/J — **grid 축 이연의 실측 근거** (ADR-169 Phase 3 / G5).
+ *
+ * `solve_grid` 는 available 이 음수(측정 센티넬 / indefinite)면 fr·auto 트랙을 0 으로
+ * 해소한다 (`grid.rs::resolve_grid_tracks` 2단계 `remaining.max(0.0)`). 그래서 측정
+ * 모드에서 grid 는 intrinsic 이 (0,0) 으로 나오고, 그 0 을 `content_main` 으로 소비하면
+ * grid item 이 **통째로 붕괴**한다 — 토글 실측으로 직접·중첩 형태 모두 1000 → 0 을 확인했다.
+ *
+ * Phase 3 판정은 **이연**이다. `measure_intrinsic_width` 가 grid 서브트리에 `None` 을
+ * 돌려 측정 채널을 열지 않고, ADR-169 이전 경로(컨테이너 available 로 solve)를 그대로 둔다.
+ * 아래 스냅샷이 그 상태의 **잔존 발산**이다 — 0 붕괴가 아니라 "DOM 보다 넓게 남는" 형태이며,
+ * ADR-169 착수 이전과 동일하다. 재개 조건은 `layout-engine.md` §"컨테이너 intrinsic".
+ */
+const GRID_DEFERRED: ParityCase[] = [
+  {
+    name: "I. grid 컨테이너가 직접 flex item",
+    availW: ROOT_W,
+    availH: -1,
+    nodes: [
+      { label: "i-g1", style: { width: "200px", height: "40px" } },
+      { label: "i-g2", style: { width: "200px", height: "40px" } },
+      {
+        label: "i-grid",
+        style: {
+          display: "grid",
+          gridTemplateColumns: ["1fr", "1fr"],
+          height: "100px",
+        },
+        children: [0, 1],
+      },
+      {
+        label: "i-sidebar",
+        style: { width: "240px", flexShrink: 0, height: "100px" },
+      },
+      row([2, 3]),
+    ],
+  },
+  {
+    name: "J. grid 가 flex item 의 자손 (중첩)",
+    availW: ROOT_W,
+    availH: -1,
+    nodes: [
+      { label: "j-g1", style: { width: "200px", height: "40px" } },
+      { label: "j-g2", style: { width: "200px", height: "40px" } },
+      {
+        label: "j-grid",
+        style: {
+          display: "grid",
+          gridTemplateColumns: ["1fr", "1fr"],
+          height: "40px",
+        },
+        children: [0, 1],
+      },
+      { label: "j-content", style: { height: "100px" }, children: [2] },
+      {
+        label: "j-sidebar",
+        style: { width: "240px", flexShrink: 0, height: "100px" },
+      },
+      row([3, 4]),
+    ],
+  },
+];
+
+/**
+ * K — **height 축(column main) 실측** (ADR-169 R6 / Phase 3 판정 근거).
+ *
+ * Phase 2 의 측정 배선은 `is_row` 한정이다. 같은 결함이 세로로도 있는지 보려면 폭 축
+ * 발산 형태(G — 고정 형제 `flexShrink:0` + stretch 내용)를 그대로 90° 돌리면 된다.
+ * 컨테이너 높이 100 에 footer 60(`flexShrink:0`), content 는 `flexGrow:1` + 자식이
+ * `height:100%`.
+ *
+ * **실측 결과 — 컨테이너 결함은 세로에 없다.** `k-content`/`k-footer` 는 DOM 과 정합이고
+ * 발산은 `k-inner.h` 한 줄뿐이다. 이유가 원리적이다: 인라인 방향은 블록 박스의 초기
+ * 동작이 **stretch** 라 auto 폭 자식이 available 을 채우지만, 블록 방향은 `height:auto`
+ * 가 **내용 크기**다. "늘어나기만 하는 내용을 고유 크기로 오인" 하는 형태 자체가
+ * 세로에서는 성립하지 않는다 — 실사용 빈도가 아니라 **구조상** 인라인 축 전용이다.
+ *
+ * 남는 `k-inner.h`(dom 40 / eng 0)는 **다른 결함**이다 — flex 분배로 부모 높이가 확정된
+ * 뒤 `height:100%` 를 재해소하는 경로가 엔진에 없다. 컨테이너 intrinsic 과 무관하므로
+ * ADR-169 범위 밖으로 기록만 남긴다 (해소되면 이 스냅샷이 red 로 알린다).
+ */
+const K_COLUMN_MAIN: ParityCase = {
+  name: "K. column main(height) — 컨테이너 결함 부재 + 백분율 잔존",
+  availW: 300,
+  availH: 100,
+  nodes: [
+    { label: "k-inner", style: { width: "40px", height: "100%" } },
+    {
+      label: "k-content",
+      style: { flexGrow: 1, width: "100px" },
+      children: [0],
+    },
+    {
+      label: "k-footer",
+      style: { height: "60px", flexShrink: 0, width: "100px" },
+    },
+    {
+      label: "root",
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        width: "300px",
+        height: "100px",
+      },
+      children: [1, 2],
+    },
+  ],
+};
+
 describe("컨테이너 flex item intrinsic ↔ CSS 대조 (ADR-169)", () => {
   beforeAll(async () => {
     await initCompositionEngineWasm();
@@ -409,9 +529,8 @@ describe("컨테이너 flex item intrinsic ↔ CSS 대조 (ADR-169)", () => {
   // (엔진 오배선이면 위 Rust 테스트가 먼저 red 가 된다 — 두 층이 분리 감시된다).
   describe("§4.5 floor 채널 — 잔존 발산 1.5px", () => {
     it(H_FLOOR_CHANNEL_TEXT.name, () => {
-      expect(
-        runPipelineParityCase(H_FLOOR_CHANNEL_TEXT),
-      ).toMatchInlineSnapshot(`
+      expect(runPipelineParityCase(H_FLOOR_CHANNEL_TEXT))
+        .toMatchInlineSnapshot(`
         [
           "h-text.w: dom=41.5 eng=40.0 (Δ1.5)",
           "h-content.w: dom=41.5 eng=40.0 (Δ1.5)",
@@ -459,6 +578,76 @@ describe("컨테이너 flex item intrinsic ↔ CSS 대조 (ADR-169)", () => {
 
     it("R8-b 대조군 — pipeline leg", () => {
       expect(runPipelineParityCase(R8_CASES[2])).toMatchInlineSnapshot(`[]`);
+    });
+  });
+
+  // grid 축 이연 — 값이 "옳아서" 가 아니라 **이연된 상태를 고정**해 두는 스냅샷이다.
+  // 0 붕괴가 재발하면 여기가 먼저 깨진다 (Rust `grid_flex_item_does_not_collapse` 와 이중).
+  describe("grid 축 — 이연 상태 고정 (Phase 3 / G5)", () => {
+    it("I. grid 직접 flex item — engine leg", () => {
+      expect(runParityCase(GRID_DEFERRED[0])).toMatchInlineSnapshot(`
+        [
+          "i-g1.w: dom=200.0 eng=960.0 (Δ760.0)",
+          "i-g2.x: dom=200.0 eng=960.0 (Δ760.0)",
+          "i-g2.w: dom=200.0 eng=960.0 (Δ760.0)",
+          "i-grid.w: dom=400.0 eng=1920.0 (Δ1520.0)",
+          "i-sidebar.x: dom=400.0 eng=1920.0 (Δ1520.0)",
+        ]
+      `);
+    });
+
+    it("I. grid 직접 flex item — pipeline leg", () => {
+      expect(runPipelineParityCase(GRID_DEFERRED[0])).toMatchInlineSnapshot(`
+        [
+          "i-g1.w: dom=200.0 eng=960.0 (Δ760.0)",
+          "i-g2.x: dom=200.0 eng=960.0 (Δ760.0)",
+          "i-g2.w: dom=200.0 eng=960.0 (Δ760.0)",
+          "i-grid.w: dom=400.0 eng=1920.0 (Δ1520.0)",
+          "i-sidebar.x: dom=400.0 eng=1920.0 (Δ1520.0)",
+        ]
+      `);
+    });
+
+    it("J. grid 중첩 — engine leg", () => {
+      expect(runParityCase(GRID_DEFERRED[1])).toMatchInlineSnapshot(`
+        [
+          "j-g1.w: dom=200.0 eng=960.0 (Δ760.0)",
+          "j-g2.x: dom=200.0 eng=960.0 (Δ760.0)",
+          "j-g2.w: dom=200.0 eng=960.0 (Δ760.0)",
+          "j-grid.w: dom=400.0 eng=1920.0 (Δ1520.0)",
+          "j-content.w: dom=400.0 eng=1920.0 (Δ1520.0)",
+          "j-sidebar.x: dom=400.0 eng=1920.0 (Δ1520.0)",
+        ]
+      `);
+    });
+
+    it("K. height 축(column main) — engine leg", () => {
+      expect(runParityCase(K_COLUMN_MAIN)).toMatchInlineSnapshot(`
+        [
+          "k-inner.h: dom=40.0 eng=0.0 (Δ40.0)",
+        ]
+      `);
+    });
+
+    it("K. height 축(column main) — pipeline leg", () => {
+      expect(runPipelineParityCase(K_COLUMN_MAIN)).toMatchInlineSnapshot(`
+        [
+          "k-inner.h: dom=40.0 eng=0.0 (Δ40.0)",
+        ]
+      `);
+    });
+
+    it("J. grid 중첩 — pipeline leg", () => {
+      expect(runPipelineParityCase(GRID_DEFERRED[1])).toMatchInlineSnapshot(`
+        [
+          "j-g1.w: dom=200.0 eng=960.0 (Δ760.0)",
+          "j-g2.x: dom=200.0 eng=960.0 (Δ760.0)",
+          "j-g2.w: dom=200.0 eng=960.0 (Δ760.0)",
+          "j-grid.w: dom=400.0 eng=1920.0 (Δ1520.0)",
+          "j-content.w: dom=400.0 eng=1920.0 (Δ1520.0)",
+          "j-sidebar.x: dom=400.0 eng=1920.0 (Δ1520.0)",
+        ]
+      `);
     });
   });
 });

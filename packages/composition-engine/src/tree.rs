@@ -719,12 +719,23 @@ impl LayoutTree {
     /// 갈음하면 **자손 측정 캐시까지 함께 날아가** 중첩 깊이에 지수적이 된다 (R1/G4).
     /// 측정 pass 가 서브트리를 clean 으로 남겨 이후 solve 가 증분 skip 하는 오염
     /// (grid 측정 pass 선례) 도 이 복구로 함께 차단된다.
-    #[allow(dead_code)] // Phase 2 에서 solve_flex 가 소비 — Phase 1 은 기전 + 단위 테스트만
-    fn measure_intrinsic_width(&mut self, handle: usize) -> (f32, f32) {
+    ///
+    /// **grid 서브트리는 `None`** — 측정 불가를 값으로 위장하지 않는다 (ADR-169 Phase 3, G5).
+    /// `grid.rs::resolve_grid_tracks` 2단계는 `remaining = (container - fixed - gap).max(0.0)`
+    /// 이라 available 이 음수(측정 센티넬 / indefinite)면 `fr_size = 0` → fr·auto 트랙이
+    /// 전부 0 이 된다. 그 0 을 `content_main` 으로 소비하면 grid item 이 **통째로 붕괴**한다
+    /// (실측: 직접 flex item 1000 → 0, `flex-row > block > grid` 도 1000 → 0).
+    /// grid 축 intrinsic(CSS-GRID-1 §12 track sizing)은 본 ADR 범위 밖이므로, 측정을
+    /// 포기해 **ADR-169 이전 경로(컨테이너 available 로 solve)** 를 그대로 남긴다.
+    /// 재개 조건은 `.claude/rules/layout-engine.md` §"컨테이너 intrinsic" 참조.
+    fn measure_intrinsic_width(&mut self, handle: usize) -> Option<(f32, f32)> {
+        if self.subtree_has_grid(handle) {
+            return None;
+        }
         let gen = self.mutation_gen;
         if let Some((g, min_w, max_w)) = self.get(handle).and_then(|n| n.intrinsic_w) {
             if g == gen {
-                return (min_w, max_w);
+                return Some((min_w, max_w));
             }
         }
         let mut snap = Vec::new();
@@ -743,7 +754,23 @@ impl LayoutTree {
         if let Some(node) = self.get_mut(handle) {
             node.intrinsic_w = Some((gen, result.0, result.1));
         }
-        result
+        Some(result)
+    }
+
+    /// 서브트리(자기 포함)에 grid 컨테이너가 있는지. 측정 가드 전용 — solve 를 돌리지
+    /// 않는 순수 DFS 라 측정 2회보다 싸고, 걸리면 그 2회를 아예 생략한다.
+    ///
+    /// **전 grid 를 보수적으로 배제**한다. px 트랙만 쓰는 grid 는 음수 available 에서도
+    /// 정상이지만, 그 예외를 여기서 판정하면 track 파싱을 이 가드가 재구현하게 된다 —
+    /// grid 축을 여는 시점에 함께 정밀화할 영역이다.
+    fn subtree_has_grid(&self, handle: usize) -> bool {
+        let Some(node) = self.get(handle) else {
+            return false;
+        };
+        if matches!(node.style.display.as_deref(), Some("grid") | Some("inline-grid")) {
+            return true;
+        }
+        node.children.iter().any(|&c| self.subtree_has_grid(c))
     }
 
     /// 노드 하나를 solve — 자식을 먼저 재귀 solve 한 뒤 display 별로 배치.
@@ -1236,7 +1263,11 @@ impl LayoutTree {
                 if !is_container_item {
                     continue;
                 }
-                let (min_w, max_w) = self.measure_intrinsic_width(c);
+                // grid 서브트리는 `None` — 측정 채널을 열지 않고 ADR-169 이전 경로를
+                // 그대로 둔다 (Phase 3 / G5). 0 으로 붕괴시키는 것보다 낫다.
+                let Some((min_w, max_w)) = self.measure_intrinsic_width(c) else {
+                    continue;
+                };
                 data[off + 13] = max_w; // flex base size = max-content
                 if min_w > 0.0 {
                     data[off + 19] = min_w; // §4.5 floor = 정확 min-content
@@ -5117,7 +5148,7 @@ mod tests {
     fn intrinsic_leaf_reports_scalars() {
         let mut tree = LayoutTree::new();
         let leaf = tree.create_node(scalar_leaf(300.0, 500.0));
-        assert_eq!(tree.measure_intrinsic_width(leaf), (300.0, 500.0));
+        assert_eq!(tree.measure_intrinsic_width(leaf), Some((300.0, 500.0)));
     }
 
     /// block 컨테이너 = 자식들의 **최대** (세로 적층).
@@ -5128,7 +5159,7 @@ mod tests {
         let b = tree.create_node(scalar_leaf(100.0, 700.0));
         let root = tree.create_node(NodeStyle::default()); // display 미지정 → block
         tree.set_children(root, vec![a, b]);
-        assert_eq!(tree.measure_intrinsic_width(root), (300.0, 700.0));
+        assert_eq!(tree.measure_intrinsic_width(root), Some((300.0, 700.0)));
     }
 
     /// flex row 컨테이너 = 자식들의 **합** (가로 나열, nowrap).
@@ -5139,7 +5170,7 @@ mod tests {
         let b = tree.create_node(scalar_leaf(100.0, 200.0));
         let root = tree.create_node(flex_row_auto());
         tree.set_children(root, vec![a, b]);
-        assert_eq!(tree.measure_intrinsic_width(root), (400.0, 700.0));
+        assert_eq!(tree.measure_intrinsic_width(root), Some((400.0, 700.0)));
     }
 
     /// **본 ADR 의 핵심** — stretch 로만 늘어나는 자식은 컨테이너 intrinsic 에
@@ -5158,7 +5189,7 @@ mod tests {
         tree.set_children(container, vec![pct]);
         assert_eq!(
             tree.measure_intrinsic_width(container),
-            (0.0, 0.0),
+            Some((0.0, 0.0)),
             "stretch 자식은 고유 폭이 없다"
         );
     }
@@ -5190,12 +5221,12 @@ mod tests {
         let leaf = tree.create_node(scalar_leaf(300.0, 500.0));
         let root = tree.create_node(flex_row_auto());
         tree.set_children(root, vec![leaf]);
-        assert_eq!(tree.measure_intrinsic_width(root), (300.0, 500.0));
+        assert_eq!(tree.measure_intrinsic_width(root), Some((300.0, 500.0)));
 
         tree.update_style(leaf, scalar_leaf(50.0, 80.0));
         assert_eq!(
             tree.measure_intrinsic_width(root),
-            (50.0, 80.0),
+            Some((50.0, 80.0)),
             "자식 변경이 조상 캐시를 무효화하지 못함"
         );
     }
@@ -5232,7 +5263,7 @@ mod tests {
 
         assert_eq!(
             tree.measure_intrinsic_width(content),
-            (42.0, 118.0),
+            Some((42.0, 118.0)),
             "컨테이너 intrinsic 이 자식 스칼라를 집계하지 못함"
         );
         tree.compute_layout(root, 340.0, 80.0);
@@ -5241,5 +5272,83 @@ mod tests {
             42.0,
             "leftover(40) 아래로 눌리거나 max-content(118) 에서 멈춤 — floor 채널 오배선"
         );
+    }
+
+    /// grid 스타일 헬퍼 — 트랙이 `1fr 1fr` 이라 음수 available 에서 0 으로 무너지는 형태.
+    fn grid_two_fr() -> NodeStyle {
+        serde_json::from_str(r#"{"display":"grid","gridTemplateColumns":["1fr","1fr"]}"#).unwrap()
+    }
+
+    /// **ADR-169 Phase 3 / G5** — grid 서브트리는 측정 대상에서 제외된다.
+    ///
+    /// `solve_grid` 는 available 이 음수면 fr·auto 트랙을 0 으로 해소하므로 (`grid.rs`
+    /// `resolve_grid_tracks` 2단계 `remaining.max(0.0)`), 측정 결과가 (0,0) 이 된다.
+    /// 그 0 을 `content_main` 으로 소비하면 grid item 이 통째로 사라진다 — 측정 불가를
+    /// **값으로 위장하지 않고** `None` 으로 신고해 이전 경로를 유지하는 것이 계약이다.
+    #[test]
+    fn grid_subtree_is_not_measured() {
+        let mut tree = LayoutTree::new();
+        let a = tree.create_node(scalar_leaf(100.0, 200.0));
+        let b = tree.create_node(scalar_leaf(100.0, 200.0));
+        let grid = tree.create_node(grid_two_fr());
+        tree.set_children(grid, vec![a, b]);
+        assert_eq!(tree.measure_intrinsic_width(grid), None, "grid 자신");
+
+        // 조상도 마찬가지 — grid 를 품은 서브트리 전체가 측정 불가다.
+        let content = tree.create_node(NodeStyle::default());
+        tree.set_children(content, vec![grid]);
+        assert_eq!(tree.measure_intrinsic_width(content), None, "grid 를 품은 조상");
+    }
+
+    /// grid 를 품은 flex item 이 **붕괴하지 않는다** (Phase 2 회귀 차단).
+    ///
+    /// 토글 실험 실측 — 가드 없이는 직접 형태·중첩 형태 모두 1000 → **0**.
+    /// 가드 후에는 ADR-169 이전과 동일하게 available 을 채운다. 이 1000 은 "옳은 값"
+    /// 이 아니라 **이연된 상태의 값**이다 (DOM 은 트랙 기여 합인 400 을 준다).
+    #[test]
+    fn grid_flex_item_does_not_collapse() {
+        for nested in [false, true] {
+            let mut tree = LayoutTree::new();
+            let a = tree.create_node(scalar_leaf(100.0, 200.0));
+            let b = tree.create_node(scalar_leaf(100.0, 200.0));
+            let grid = tree.create_node(grid_two_fr());
+            tree.set_children(grid, vec![a, b]);
+            let item = if nested {
+                let content = tree.create_node(NodeStyle::default());
+                tree.set_children(content, vec![grid]);
+                content
+            } else {
+                grid
+            };
+            let side = tree.create_node(NodeStyle {
+                width: Some("300px".into()),
+                flex_shrink: Some(0.0),
+                height: Some("40px".into()),
+                ..NodeStyle::default()
+            });
+            let root = tree.create_node(flex_row_fixed(1000.0, 100.0));
+            tree.set_children(root, vec![item, side]);
+            tree.compute_layout(root, 1000.0, 100.0);
+            assert_eq!(
+                tree.get_layout(item).width,
+                1000.0,
+                "grid item 붕괴 (nested={nested})"
+            );
+        }
+    }
+
+    /// grid 가드가 **비-grid 형태의 측정까지 막지는 않는다** — 가드를 서브트리 스캔으로
+    /// 두었기 때문에 과잉 차단이 쉽다. 같은 트리에서 grid 형제만 제외되는지 확인.
+    #[test]
+    fn grid_guard_does_not_block_sibling_measurement() {
+        let mut tree = LayoutTree::new();
+        let leaf = tree.create_node(scalar_leaf(42.0, 118.0));
+        let plain = tree.create_node(NodeStyle::default());
+        tree.set_children(plain, vec![leaf]);
+        let g_leaf = tree.create_node(scalar_leaf(100.0, 200.0));
+        let grid = tree.create_node(grid_two_fr());
+        tree.set_children(grid, vec![g_leaf]);
+        assert_eq!(tree.measure_intrinsic_width(plain), Some((42.0, 118.0)));
+        assert_eq!(tree.measure_intrinsic_width(grid), None);
     }
 }

@@ -148,6 +148,7 @@ Accepted — 2026-07-27 (리뷰 round 1 승인 — `docs/adr/reviews/169.md`, �
 | 0     | Implemented 2026-07-27 | `containerIntrinsic.browser.test.ts` 신설 — 정합 3 (`it`, 회귀 가드) + 발산 4 (`it.fails`, Phase 2 목표) + 파이프라인 leg 1 + R8 판별/대조 4. **R8 masking 실재 확인** (아래 §R8 판정) |
 | 1     | Implemented 2026-07-27 | `tree.rs` — `MIN_CONTENT_AVAIL`/`MAX_CONTENT_AVAIL` 센티넬 + `IntrinsicMode` + mutation-generation 측정 캐시 + 스냅샷 복구. **G1 동작 무변경** (Rust 330 / parity 117 / builder 2925 전건 green), **G4 baseline 기록** (`benches/tree_solve.rs`, 깊이 스케일링 상한 포함) |
 | 2     | Implemented 2026-07-27 | `solve_flex` 2-b — 컨테이너 item 의 off 13(max-content)/off 19(min-content) 동시 배선. **G2** 발산 7형태 green + **R8 결론 = 축소**(컨테이너 한정 TS `minWidth` 주입 제거, 대조 실험으로 원인 확정), **G3** 단일 커밋 + Rust floor 계약 테스트. 잔존 1건: 파이프라인 중첩 텍스트 1.5px |
+| 3     | Implemented 2026-07-27 | grid 축 **이연** 판정 + Phase 2 회귀 1건 차단 — `measure_intrinsic_width` 가 grid 서브트리에 `None` 을 돌려 측정 자체를 포기(가드 없으면 grid item 이 1920 → **0** 붕괴, 토글 실험 2층 확정). **R6 = 결함 부재**(블록 방향은 `height:auto` 가 내용 크기라 형태 자체가 성립 안 함 — K 실측), **R5 해소**(재개 조건을 `layout-engine.md` §컨테이너 intrinsic 에 기록). **G5** |
 
 ### R8 판정 — Phase 0 관측 → Phase 2 확정 (2026-07-27)
 
