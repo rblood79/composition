@@ -1522,53 +1522,14 @@ impl LayoutTree {
             }
         }
 
-        // 3.8) **main 축 margin:auto** (E4/ADR-156 P5). CSS §8.1: auto margin 은 justify-content
-        //   보다 우선해 잉여 공간을 흡수한다. flex.rs 는 auto 를 0 으로 받으므로(resolve_signed)
-        //   tree.rs 후처리로 main 축 위치를 재배치한다. **단일 라인(nowrap) 근사** — multi-line 은
-        //   §Residual. definite main 축에서만 (indefinite 면 잉여 공간 개념 없음).
-        let is_nowrap = !matches!(style.flex_wrap.as_deref(), Some("wrap") | Some("wrap-reverse"));
-        if is_nowrap && avail_main >= 0.0 {
-            let (pos_i, size_i) = if is_row { (0usize, 2usize) } else { (1usize, 3usize) };
-            let auto_flags: Vec<(bool, bool)> = children
-                .iter()
-                .map(|&c| {
-                    let cs = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
-                    if is_row {
-                        (
-                            cs.margin_left.as_deref() == Some("auto"),
-                            cs.margin_right.as_deref() == Some("auto"),
-                        )
-                    } else {
-                        (
-                            cs.margin_top.as_deref() == Some("auto"),
-                            cs.margin_bottom.as_deref() == Some("auto"),
-                        )
-                    }
-                })
-                .collect();
-            let auto_count: usize = auto_flags.iter().map(|&(s, e)| s as usize + e as usize).sum();
-            if auto_count > 0 {
-                let mut used = 0.0;
-                for i in 0..children.len() {
-                    used += out[i * 4 + size_i];
-                }
-                used += gap_main * children.len().saturating_sub(1) as f32;
-                let share = (avail_main - used).max(0.0) / auto_count as f32;
-                let mut cursor = 0.0;
-                for i in 0..children.len() {
-                    let (ms, me) = auto_flags[i];
-                    if ms {
-                        cursor += share;
-                    }
-                    out[i * 4 + pos_i] = cursor;
-                    cursor += out[i * 4 + size_i];
-                    if me {
-                        cursor += share;
-                    }
-                    cursor += gap_main;
-                }
-            }
-        }
+        // 3.8) ~~main 축 margin:auto 후처리~~ — **flex 커널로 이관** (2026-07-27).
+        //   구 구현은 tree.rs 가 flex_layout 출력 좌표를 통째로 다시 깔던 **단일 라인
+        //   근사**라, wrap 컨테이너에서는 흡수 자체가 일어나지 않았다(실측: 250 폭 2줄
+        //   에서 `marginLeft:auto` 아이템 x = 100, CSS 는 150). 흡수는 라인의 여유를
+        //   알아야 하므로 라인을 소유한 `flex.rs::place_line_main_axis` 가 제자리다.
+        //   cross 축 auto margin(§9.6 step 13/14)도 같은 이유로 커널이 소유한다 —
+        //   두 축을 다른 층에 두면 정렬 무효화 규칙이 한쪽에만 걸린다.
+        //   ⚠️ 여기에 auto margin 후처리를 재도입하지 말 것 (커널 흡수와 이중 적용).
 
         // 3.9) **reverse 반사** (E8/ADR-156 P4). row/column-reverse 는 main 축, wrap-reverse
         //   는 cross 축을 반사한다. CSS 의 reverse 는 해당 축의 start/end 를 뒤집는 것이라
@@ -2763,6 +2724,28 @@ fn write_flex_item(
     } else {
         0.0
     };
+    // §8.1 auto margin 마스크 — 값 자체는 `resolve_signed` 가 0 으로 주므로, "0 인가"
+    // 로는 `margin: 0` 과 구분되지 않는다. 흡수/정렬 무효화 판정을 위해 별도 채널.
+    let mut auto_mask = 0u32;
+    if is_auto_margin(cstyle.margin_top.as_deref()) {
+        auto_mask |= flex::MARGIN_AUTO_TOP;
+    }
+    if is_auto_margin(cstyle.margin_right.as_deref()) {
+        auto_mask |= flex::MARGIN_AUTO_RIGHT;
+    }
+    if is_auto_margin(cstyle.margin_bottom.as_deref()) {
+        auto_mask |= flex::MARGIN_AUTO_BOTTOM;
+    }
+    if is_auto_margin(cstyle.margin_left.as_deref()) {
+        auto_mask |= flex::MARGIN_AUTO_LEFT;
+    }
+    data[off + 20] = auto_mask as f32;
+}
+
+/// margin 값이 `auto` 인가 — 흡수 대상 판정(§8.1 / §10.3.3 / abspos §10.3.7).
+#[inline]
+fn is_auto_margin(v: Option<&str>) -> bool {
+    v.map(|s| s.trim().eq_ignore_ascii_case("auto")).unwrap_or(false)
 }
 
 /// 자식 스타일 + solve 된 content 크기 → block.rs flat f32 (19필드, 물리축).

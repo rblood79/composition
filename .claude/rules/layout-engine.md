@@ -223,6 +223,32 @@ single-line(`flex-wrap:nowrap`) + definite cross 컨테이너에서 flex 라인�
 - ❌ `%` ctx 만 막고 자식 재귀 available 은 그대로 전달 (또는 그 반대) → 한 경로로 새어 나간다
 - ❌ 폭 축에서 `avail_w >= 0` 제거 → stretch 부모의 `width:100%` 수축 회귀
 
+## `margin: auto` 는 정렬보다 먼저 여유를 가져간다 — 흡수 단위는 **라인** (CSS-FLEXBOX-1 §8.1, 2026-07-27)
+
+auto margin 은 해당 축의 양의 여유를 흡수하고, 그 결과 그 축의 정렬 속성은 **무효**가 된다. 세 규칙이 한 묶음이라 하나만 넣으면 나머지가 어긋난다:
+
+| 규칙         | 내용                                                                      |
+| ------------ | ------------------------------------------------------------------------- |
+| §9.6 step 13 | cross auto margin 이 **라인** cross 여유를 균등 흡수 (음수 여유면 0)      |
+| §9.6 step 14 | cross margin 중 하나라도 auto 면 `align-self` 무효                        |
+| §9.4 step 11 | `stretch` 는 cross margin 이 **둘 다 auto 가 아닐 때만** 적용 (크기 유지) |
+| §8.1 (main)  | main auto margin 흡수 시 `justify-content` 무효                           |
+
+- **거처는 flex 커널** (`flex.rs::place_line_main_axis` / `place_line_cross_axis`) — 흡수량이 그 라인의 여유와 라인 cross 에 달려 있어 라인을 소유한 층이 아니면 계산할 수 없다. 구 구현은 tree.rs 후처리(step 3.8)로 main 축만, 그것도 **단일 라인 근사**여서 (a) cross 축은 통째로 미구현, (b) wrap 컨테이너는 main 축 흡수조차 없었다. tree.rs 에 auto margin 후처리를 재도입하면 커널 흡수와 **이중 적용**된다.
+- **채널이 따로 있어야 한다**: `resolve_signed` 가 `auto` 를 0 으로 주므로 값만으로는 `margin: 0` 과 구분되지 않는다. flex 입력 off 20 `margin_auto_mask`(물리 4비트, 0=없음 zero-init)가 그 채널이고, 기록(`tree.rs::write_flex_item`)과 해석(`parse_item`)이 **같은 상수**(`flex::MARGIN_AUTO_*`)를 쓴다.
+- 크기 계산(라인 cross, outer main 합)은 auto 를 **0 으로 본 값이 정답**이다 — 흡수는 배치 단계에서만 일어난다.
+- **실측(2026-07-27)**: `align-items` 무엇이든 `marginTop:auto` 아이템이 y=0 (DOM 160) / `height:auto`+cross auto margin 이 라인 높이로 stretch (DOM 은 내용 0) / wrap 2줄에서 `marginLeft:auto` x=100 (DOM 150). 민감도 — cross 분기 무력화 38 red, main 흡수 무력화 20 red (`autoMargin.browser.test.ts` 79건 기준).
+- **패널에서는 아직 authoring 불가**: Inspector margin 입력(`FourWayGrid.commitValue`)이 `replace(/[^0-9.-]/g, "")` 로 숫자만 남겨 `auto` 가 빈 값이 된다. catalog `containerStyles` 에도 auto margin 0건 — 그래서 이 발산이 오래 안 보였다. 반대로 preview/publish DOM 쪽 CSS 는 `margin-left:auto` 를 4곳(GridList/Tree/Toast/ChatMessage) 쓰고 있어, 그 offset 은 Skia 축에 대응물이 없다(D3 비대칭, 본 변경과 별개).
+- **잔존**: grid item 의 auto margin 미구현. 단 그 케이스는 **선행 결함에 가려져 있다** — 명시 width 를 가진 grid item 이 트랙 폭으로 stretch 되는 ADR-156 §Residual 이 먼저 걸린다. 두 결함의 선후는 `autoMargin.browser.test.ts` 의 스냅샷이 고정한다.
+
+### 금지 패턴
+
+- ❌ tree.rs 후처리로 auto margin 재도입 → 커널 흡수와 이중 적용
+- ❌ auto 판정을 margin **값이 0 인가**로 대체 → `margin: 0` 과 구분 불가
+- ❌ 흡수량을 컨테이너 여유로 산출 → multi-line 에서 라인마다 여유가 다르다
+- ❌ cross auto margin 을 넣으면서 stretch·align-self 억제를 빼기 (§9.4 step 11 / §9.6 step 14 는 같은 묶음)
+- ❌ 음수 여유에서 auto margin 에 음수 분배 → 0 흡수 = 아이템이 라인 시작에 붙고 넘치는 것이 정답
+
 ## 배치 직렬화 계약 — 숫자 하나가 페이지 레이아웃을 끈다 (CRITICAL)
 
 엔진 `NodeStyle` 의 길이 필드는 전부 `Option<String>` 이라 숫자가 들어오면 `build_tree_batch` 가 **배치 전체**를 거부한다 (`invalid type: integer, expected a string`) → `calculateFullTreeLayout` 이 `null` → **그 페이지 레이아웃이 통째로 사라진다**. 요소 하나의 값 하나가 페이지 전체를 끄는 구조다.

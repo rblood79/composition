@@ -45,7 +45,7 @@
 //! `flex-wrap: nowrap` 이면 전 아이템이 단일 라인. `wrap` 이면 아이템 outer main-size
 //! 누적이 available_main 을 초과하기 직전에 새 라인 시작 (각 라인은 최소 1개 아이템).
 //!
-//! ## 필드 계약 (`FLEX_FIELD_COUNT` = 20, 노드당)
+//! ## 필드 계약 (`FLEX_FIELD_COUNT` = 21, 노드당)
 //!
 //! | off | 필드              | 센티넬                          |
 //! | --- | ----------------- | ------------------------------- |
@@ -69,6 +69,7 @@
 //! | 17  | align_self        | 0=auto(상속) 1=stretch 2=start 3=center 4=end (E1/ADR-156 P2) |
 //! | 18  | overflow_main     | 0=visible(zero-init) 1=clipped — item 자신의 주축 overflow (ADR-164 §4.5) |
 //! | 19  | content_min_main  | 0=absent(zero-init) — 정확 min-content (main, ADR-165 §4.5 floor 정밀화) |
+//! | 20  | margin_auto_mask  | 0=없음(zero-init) — 물리 margin `auto` 비트마스크 (1=top 2=right 4=bottom 8=left) |
 //!
 //! off 17(`align_self`)은 **0=auto 가 zero-init 기본값 겸 CSS 기본값**이라, 값을 안 쓰는
 //! 입력 배열(기존 golden/테스트)은 자동으로 컨테이너 `align_items` 를 상속한다.
@@ -76,6 +77,24 @@
 //! off 19(`content_min_main`)도 동일 원칙 — **0=absent 가 zero-init 겸 fallback**
 //! (`content_main` 으로 대체 — ADR-164 상한 근사 동작 유지). min-content 0 은 floor 0
 //! = floor 부재와 등가라 absent 와 구분이 필요 없다.
+//! off 20(`margin_auto_mask`)도 동일 — **0=auto 없음이 zero-init 겸 기본값**.
+//!
+//! ## §8.1 auto margin — 정렬보다 **먼저** 여유를 가져간다
+//!
+//! `margin: auto` 는 해당 축의 양의 여유 공간을 흡수하고, 그 결과 정렬 속성
+//! (`justify-content` / `align-items` / `align-self`)은 그 축에서 **무효**가 된다
+//! ("the margins will have stolen all the free space"). 흡수는 **라인 단위**다 —
+//! main 축은 그 라인의 여유, cross 축은 그 라인의 cross 크기 기준.
+//!
+//! 세 규칙이 한 묶음이다 (하나만 넣으면 나머지가 어긋난다):
+//! - §9.6 step 13 — cross auto margin 이 라인 cross 여유를 균등 흡수. 여유가 음수면
+//!   auto margin 은 0 (= 아이템이 라인 시작에 붙고 넘친다).
+//! - §9.6 step 14 — cross margin 중 하나라도 auto 면 `align-self` 를 적용하지 않는다.
+//! - §9.4 step 11 — `stretch` 는 cross margin 이 **둘 다 auto 가 아닐 때만** 적용된다
+//!   (auto margin 이 있으면 아이템은 자기 content 크기를 유지).
+//!
+//! 흡수 대상 margin 은 상류에서 0 으로 들어오므로(`resolve_signed`), 크기 계산
+//! (라인 cross, outer main 합)은 auto 를 0 으로 본 값이 그대로 맞다.
 //!
 //! ## §4.5 automatic minimum size (ADR-164 도입 / ADR-165 정밀화)
 //!
@@ -96,7 +115,14 @@
 use wasm_bindgen::prelude::*;
 
 /// 노드당 입력 필드 수.
-pub const FLEX_FIELD_COUNT: usize = 20;
+pub const FLEX_FIELD_COUNT: usize = 21;
+
+/// off 20 `margin_auto_mask` 비트 — 물리 margin 이 `auto` 인지 (§8.1 흡수 대상).
+/// 기록(`tree.rs::write_flex_item`)과 해석(`parse_item`)이 **같은 상수**를 쓴다.
+pub const MARGIN_AUTO_TOP: u32 = 1;
+pub const MARGIN_AUTO_RIGHT: u32 = 2;
+pub const MARGIN_AUTO_BOTTOM: u32 = 4;
+pub const MARGIN_AUTO_LEFT: u32 = 8;
 
 /// 출력 필드 수 (x, y, width, height).
 const OUT_FIELDS: usize = 4;
@@ -227,6 +253,12 @@ struct FlexItem {
     margin_main_end: f32,
     margin_cross_start: f32,
     margin_cross_end: f32,
+    /// margin 이 `auto` 인가 (§8.1) — 해당 margin 값은 0 으로 들어오고, 배치 시
+    /// 라인 여유를 흡수한다. cross 쪽 auto 는 stretch·align-self 도 무효화한다.
+    margin_main_start_auto: bool,
+    margin_main_end_auto: bool,
+    margin_cross_start_auto: bool,
+    margin_cross_end_auto: bool,
     min_main: f32,
     max_main: f32,
     min_cross: f32,
@@ -330,6 +362,23 @@ fn parse_item(data: &[f32], i: usize, direction: u8) -> FlexItem {
     } else {
         (m_top, m_bottom, m_left, m_right)
     };
+    // auto 플래그도 동일 매핑 (§8.1). 값 자체는 0 으로 들어오므로 위 크기 계산은 무영향.
+    let auto_mask = data[off + 20] as u32;
+    let (mm_start_auto, mm_end_auto, mc_start_auto, mc_end_auto) = if direction == DIR_ROW {
+        (
+            auto_mask & MARGIN_AUTO_LEFT != 0,
+            auto_mask & MARGIN_AUTO_RIGHT != 0,
+            auto_mask & MARGIN_AUTO_TOP != 0,
+            auto_mask & MARGIN_AUTO_BOTTOM != 0,
+        )
+    } else {
+        (
+            auto_mask & MARGIN_AUTO_TOP != 0,
+            auto_mask & MARGIN_AUTO_BOTTOM != 0,
+            auto_mask & MARGIN_AUTO_LEFT != 0,
+            auto_mask & MARGIN_AUTO_RIGHT != 0,
+        )
+    };
 
     FlexItem {
         index: i,
@@ -343,6 +392,10 @@ fn parse_item(data: &[f32], i: usize, direction: u8) -> FlexItem {
         margin_main_end: mm_end,
         margin_cross_start: mc_start,
         margin_cross_end: mc_end,
+        margin_main_start_auto: mm_start_auto,
+        margin_main_end_auto: mm_end_auto,
+        margin_cross_start_auto: mc_start_auto,
+        margin_cross_end_auto: mc_end_auto,
         min_main,
         max_main,
         min_cross,
@@ -804,7 +857,23 @@ fn place_line_main_axis(
     };
     let free_main = free_main_raw.max(0.0);
 
-    let (start_offset, between_extra) = match justify_content {
+    // §8.1 — auto margin 이 있으면 그것이 여유를 **먼저** 가져가고 justify-content 는
+    //   무효가 된다. 흡수는 이 라인의 여유 기준 (multi-line 에서 라인마다 다르다).
+    //   음수 여유는 흡수 없음 — `free_main` 이 0 하한이라 share 도 0 이 된다.
+    let main_auto_count: usize = line
+        .iter()
+        .map(|it| it.margin_main_start_auto as usize + it.margin_main_end_auto as usize)
+        .sum();
+    let main_auto_share = if main_auto_count > 0 {
+        free_main / main_auto_count as f32
+    } else {
+        0.0
+    };
+
+    let (start_offset, between_extra) = if main_auto_count > 0 {
+        (0.0, 0.0)
+    } else {
+        match justify_content {
         JUSTIFY_CENTER => (free_main_raw / 2.0, 0.0),
         JUSTIFY_END => (free_main_raw, 0.0),
         JUSTIFY_SPACE_BETWEEN => {
@@ -824,11 +893,15 @@ fn place_line_main_axis(
         }
         // JUSTIFY_START (default)
         _ => (0.0, 0.0),
+        }
     };
 
     let mut cursor = start_offset;
     for (i, it) in line.iter().enumerate() {
         cursor += it.margin_main_start;
+        if it.margin_main_start_auto {
+            cursor += main_auto_share;
+        }
         // main 좌표는 direction 에 따라 out[off] (row=x) 또는 out[off+1] (column=y)
         // 여기서는 임시로 out[off] 에 main_pos, out[off+2] 에 main_size 저장 후
         // cross 배치에서 physical 로 최종 변환하지 않고, place_line_cross_axis 가
@@ -839,6 +912,9 @@ fn place_line_main_axis(
         out[out_off] = cursor; // main_pos (임시)
         out[out_off + 2] = it.border_main(it.main_content); // main_size (임시)
         cursor += it.border_main(it.main_content) + it.margin_main_end;
+        if it.margin_main_end_auto {
+            cursor += main_auto_share;
+        }
         if i + 1 < n {
             cursor += gap_main + between_extra;
         }
@@ -870,6 +946,29 @@ fn place_line_cross_axis(
         // Chrome 실측(crossAxisOverflow.browser.test.ts): 라인 100 + 아이템 300 →
         //   center y=-100 / end y=-200 (구 엔진은 둘 다 0).
         let cross_free = cross_avail - item_cross_border;
+
+        // §9.6 step 13/14 + §9.4 step 11 — cross margin 이 하나라도 `auto` 면 그 margin 이
+        //   라인 cross 여유를 흡수하고, **align-self·stretch 는 무효**가 된다. 세 규칙이
+        //   한 묶음이라 여기서 함께 처리한다 (align 분기보다 먼저).
+        // 여유가 음수면 auto margin 은 0 — 아이템이 라인 시작에 붙고 넘친다(§9.6 step 13
+        //   후단). `cross_free.max(0.0)` 이 그 동작이다.
+        let cross_auto_count =
+            it.margin_cross_start_auto as usize + it.margin_cross_end_auto as usize;
+        if cross_auto_count > 0 {
+            let share = cross_free.max(0.0) / cross_auto_count as f32;
+            let lead = if it.margin_cross_start_auto { share } else { 0.0 };
+            let cross_pos = line_cross_start + it.margin_cross_start + lead;
+            write_physical(
+                out,
+                out_off,
+                direction,
+                main_pos,
+                cross_pos,
+                main_size,
+                item_cross_border,
+            );
+            continue;
+        }
 
         // per-item align_self 가 컨테이너 align_items 를 override (E1). auto → 상속.
         let effective_align = resolve_self_align(it.align_self, align_items);

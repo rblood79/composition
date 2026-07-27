@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [`margin: auto` 가 캔버스에서 여유 공간을 흡수하지 않던 문제] - 2026-07-27
+
+### Bug Fixes
+
+- **flex 아이템의 `margin: auto` 흡수를 커널이 라인 단위로 소유** (CSS-FLEXBOX-1 §8.1 / §9.4 step 11 / §9.6 step 13·14):
+  - 증상 3종 — (a) cross 축(`marginTop:auto` 등)은 통째로 미구현이라 `align-items` 값이 그대로 이겼다 (실측 y=0, CSS 160). (b) cross auto margin 이 있어도 `stretch` 가 아이템을 라인 높이로 늘렸다 (CSS 는 내용 크기 유지). (c) `flex-wrap:wrap` 컨테이너는 main 축 흡수조차 일어나지 않았다 (실측 x=100, CSS 150)
+  - **Why**: 흡수량은 **그 라인의** 여유와 라인 cross 에 달려 있는데, 구 구현은 라인을 모르는 tree.rs 후처리(step 3.8)가 main 축만 **단일 라인 근사**로 처리했다. 라인을 소유한 flex 커널로 이관하니 세 증상이 한 번에 닫힌다 — 정렬 무효화 규칙(§9.6 step 14 / §8.1)도 축마다 따로 걸 필요가 없어진다
+  - `resolve_signed` 가 `auto` 를 0 으로 주어 `margin: 0` 과 구분되지 않으므로, flex 입력에 `margin_auto_mask`(off 20, 물리 4비트) 채널 신설 — 기록·해석이 같은 상수(`flex::MARGIN_AUTO_*`)를 공유
+  - 위치: `packages/composition-engine/src/flex.rs` (`place_line_main_axis` / `place_line_cross_axis` / `parse_item`), `src/tree.rs` (`write_flex_item` off 20 + step 3.8 제거)
+  - 검증: 신규 `apps/builder/tests/parity/autoMargin.browser.test.ts` 79건 (Chrome 실측 대조, engine·pipeline 2 leg) — 민감도 cross 분기 38 red / main 흡수 20 red. 라이브 빌더의 로드된 WASM 직접 호출로 cross 160 · main 260 확인, Components 페이지 56 노드 좌표 무변동
+  - 잔존: grid item 의 auto margin 미구현 — 명시 width 가 트랙 폭으로 stretch 되는 ADR-156 §Residual 이 **먼저** 걸리는 순서까지 같은 fixture 의 스냅샷이 고정
+
 ## [Paint 풀 + 캐시 해제 단일화 — ADR-153 Phase 2] - 2026-07-27
 
 ### Architecture
