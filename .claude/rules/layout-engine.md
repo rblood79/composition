@@ -264,6 +264,32 @@ auto margin 은 해당 축의 양의 여유를 흡수하고, 그 결과 그 축�
 - ❌ margin 값만 스왑하고 auto 마스크는 그대로 → 흡수가 반대편에서 일어난다
 - ❌ 스왑 축을 `is_row` 없이 판정 → column 계열에서 main/cross 가 뒤바뀐다 (`flex-direction:column-reverse` 는 **세로** 쌍, `wrap-reverse` 는 **가로** 쌍)
 
+## 그리드 영역은 containing block 일 뿐 — 자식 크기를 강제하지 않는다 (2026-07-28)
+
+grid item 의 크기·위치는 **자식 자신의 상자 모델**이 정하고, 영역(셀)은 그 기준면일 뿐이다 (CSS-GRID §10.1/§10.2 + CSS-ALIGN-3 §4.1/§4.2). 종전 엔진은 네 갈래로 어긋나 있었고, 넷 다 `solve_grid` 의 자식 배치 블록 한 곳에 있었다:
+
+| 결함                              | 실측 (트랙 150)                             | CSS             |
+| --------------------------------- | ------------------------------------------- | --------------- |
+| 명시 크기 무시 → 트랙 폭 stretch  | `width:40px` → **150**                      | 40              |
+| margin 미소비 (양축)              | `marginLeft:20px` → x=**0**                 | x=20            |
+| auto margin 미흡수                | `marginLeft:auto` → x=**0**                 | x=110           |
+| 자식 min/max 미적용 + 넘침을 자름 | `maxWidth:60` → **150** / `width:300` → 150 | 60 / 300 (넘침) |
+
+- **거처는 `place_grid_axis` 하나** — 가로/세로가 완전 대칭이라 한 함수로 둔다. 축마다 따로 두면 한쪽에만 규칙이 붙는데, **실제로 그랬다**: 세로축은 "explicit 크기가 stretch 를 이긴다"(ADR-156 옵션 3-a)를 받았고 가로축은 못 받았다.
+- **min/max 는 grid 만 빠져 있었다** — block·flex 부모에서는 각 커널이 이미 적용한다. 부모 3종 대조가 진단 도구다 (실측: block·flex 10/10 정합 vs grid 5/5 발산 — 같은 자식 스타일).
+- **넘치는 아이템은 자르지 않는다**. 구 `.min(cell)` 클램프는 `min-width` 가 셀을 넘기는 경우까지 삼켰다. 위치 정렬(center/end)이 음수 offset 인 것도 flex 축과 같은 규칙(§4.2 `unsafe`).
+- **트랙 폭 ≠ 자식 폭**. 이 혼동이 Rust golden 2건에 그대로 굳어 있었다 (`grid_mixed_px_and_auto_columns_preserve_px` / `grid_progressbar_realstruct_row_and_col_auto` — 자식 폭에 트랙 폭을 기대). 트랙 폭의 근거는 **형제의 x 좌표**가 대신 증명한다.
+- 민감도 (`gridItemBox.browser.test.ts` 113건 기준): explicit 규칙 104 red / margin 14 / min·max 10 / 넘침 6.
+- **잔존 3건** (같은 fixture 의 스냅샷이 고정): ① 내용 없는 auto-width 자식의 shrink-to-fit (엔진은 0 붕괴 방지로 셀을 채운다 — 측정 협업 영역) ② `auto` 트랙의 여유 균등 분배 미구현 (세로축 잔존과 같은 뿌리 — `gridAlignContent.browser.test.ts`) ③ **block-level** 박스의 `justify-self` 미지원 (CSS-ALIGN §5.1 은 block 에도 적용 — 별개 코드 경로).
+
+### 금지 패턴
+
+- ❌ 가로/세로 배치를 각각 인라인으로 재구현 → `place_grid_axis` 단일 함수 (비대칭이 이 결함의 원인이었다)
+- ❌ 자식 크기를 셀 크기로 클램프 → 넘침이 정상 (`overflow` 소관)
+- ❌ grid 에서 자식 min/max 생략 — 커널이 안 해준다 (block/flex 와 다르다)
+- ❌ `real_size <= 0` 폴백 제거 → 빈 컨테이너가 캔버스에서 사라진다 (0 붕괴 방지, 의도된 잔존)
+- ❌ 자식 폭 assertion 에 트랙 폭 기대 → 트랙 근거는 형제 x 좌표로
+
 ## 배치 직렬화 계약 — 숫자 하나가 페이지 레이아웃을 끈다 (CRITICAL)
 
 엔진 `NodeStyle` 의 길이 필드는 전부 `Option<String>` 이라 숫자가 들어오면 `build_tree_batch` 가 **배치 전체**를 거부한다 (`invalid type: integer, expected a string`) → `calculateFullTreeLayout` 이 `null` → **그 페이지 레이아웃이 통째로 사라진다**. 요소 하나의 값 하나가 페이지 전체를 끄는 구조다.

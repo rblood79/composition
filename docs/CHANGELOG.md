@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [grid item 이 트랙 폭으로 늘어나고 margin·min/max 가 무시되던 문제] - 2026-07-28
+
+### Bug Fixes
+
+- **grid item 박스 모델 정정 — 그리드 영역은 containing block 일 뿐** (CSS-GRID §10.1/§10.2 + CSS-ALIGN-3 §4.1/§4.2). 네 갈래 결함이 `solve_grid` 자식 배치 한 블록에 있었다 (트랙 150 기준 실측):
+  - **명시 크기 무시 → 트랙 폭 stretch**: `width:40px` 자식이 150. **Why**: 세로축은 "explicit 크기가 stretch 를 이긴다"(ADR-156 옵션 3-a)를 받았는데 **가로축만 못 받은 비대칭**이었다. `%`/min-max 도 같이 삼켜졌다
+  - **margin 미소비** (양축): `marginLeft:20px` 가 x 에 반영 안 되고, stretch 폭도 영역에서 margin 을 빼지 않음
+  - **auto margin 미흡수** (§10.2): flex §8.1 과 동형 규칙이 grid 에는 없었다
+  - **자식 min/max 미적용 + 넘침을 자름**: `maxWidth:60` → 150, `width:300` → 150(CSS 는 300 으로 넘침). block·flex 부모에서는 각 커널이 이미 적용하는데 grid 만 빠져 있었다 (부모 3종 대조 실측: block·flex 10/10 정합 vs grid 5/5 발산)
+  - 수정: 두 축 대칭 단일 함수 `place_grid_axis` 로 통합 — 축마다 따로 두면 한쪽에만 규칙이 붙는다(이번 결함의 원인). 넘칠 때 위치 정렬이 음수 offset 인 것도 flex 축과 동일 규칙으로 정렬
+  - **영향**: ProgressBar/Meter/Slider 계열 grid 컴포넌트의 라벨/값이 트랙 폭으로 늘어나던 것이 CSS 대로 자기 폭을 유지한다 (Preview DOM 과의 D3 대칭 회복)
+  - 부수 정정: Rust golden 2건이 **자식 폭에 트랙 폭을 기대**하고 있어 결함을 고정하고 있었다 (`grid_mixed_px_and_auto_columns_preserve_px` / `grid_progressbar_realstruct_row_and_col_auto`) — Chrome 실측 근거와 함께 정정. 트랙 폭의 근거는 형제 x 좌표가 대신 증명
+  - 위치: `packages/composition-engine/src/tree.rs`
+  - 검증: 신규 `apps/builder/tests/parity/gridItemBox.browser.test.ts` 113건 (Chrome 실측 대조 2 leg). 민감도 — explicit 104 red / margin 14 / min·max 10 / 넘침 6. 라이브 빌더 WASM 직접 호출로 6 케이스 + ProgressBar 실구조(60/30/320) 확인
+  - 잔존 3건 (같은 fixture 스냅샷 고정): 내용 없는 auto-width 자식의 shrink-to-fit · `auto` 트랙 여유 균등 분배 · **block-level** `justify-self` 미지원
+  - 파생: `containerIntrinsic.browser.test.ts` I/J 스냅샷에서 자식 폭 항목이 빠졌다 (grid item 이 명시 width 를 유지하게 되어 해소) — 남은 항목은 전부 트랙/컨테이너 폭이라 ADR-169 grid 이연 그 자체
+
 ## [`*-reverse` flex 에서 아이템 margin 이 반대쪽에 붙던 문제] - 2026-07-27
 
 ### Bug Fixes

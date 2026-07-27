@@ -2061,7 +2061,7 @@ impl LayoutTree {
             // 자식 **명시(definite) 크기** 여부 — auto/미설정/intrinsic 센티넬은 0.
             //   stretch 하 explicit dimension respect 판정에 쓴다(아래 세로축). percentage/
             //   calc 는 셀(w,h) 기준 resolve → definite 로 취급(CSS grid area 는 definite).
-            let (_child_ew, child_eh) = self.resolve_self_size(c, w, h);
+            let (child_ew, child_eh) = self.resolve_self_size(c, w, h);
             let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
             let align = grid_block_align(cstyle.align_self.as_deref(), grid_align_items);
             // 세로(block) 배치 코드 결정 (ADR-156 옵션 3-a 세로축 — §Residual "align:stretch
@@ -2073,44 +2073,52 @@ impl LayoutTree {
             //   live grid(ProgressBar/Meter/Slider)는 각 auto row 를 자식 intrinsic 으로 sizing
             //   → 자식 explicit height == 셀 height → free=0 → 무회귀. row 안에 키 큰 형제가 있어
             //   짧은 explicit 자식이 셀보다 작을 때만 top 정렬로 갈린다(CSS 정합).
-            let block_align = if align != 0 {
-                align
-            } else if child_eh > 0.0 {
-                1 // stretch + explicit height → start(top), explicit 유지
-            } else {
-                0 // stretch fill (auto height)
-            };
-            let (fy, fh) = if block_align != 0 {
-                let real_h = ch.max(0.0).min(h);
-                let free = (h - real_h).max(0.0);
-                let dy = match block_align {
-                    2 => free / 2.0, // center
-                    3 => free,       // end
-                    _ => 0.0,        // start(1)
-                };
-                (y + dy, real_h)
-            } else {
-                (y, h) // stretch fill (기본 — auto-height 자식)
-            };
+            //
+            // margin 은 **양축 모두** 그리드 영역 안에서 소비된다 (CSS-GRID §10.1 — 영역이
+            //   containing block, §10.2 — auto margin 이 정렬보다 먼저 여유를 흡수). `%` 는
+            //   양축 다 영역의 **인라인** 크기 기준(CSS §8.3)이라 ctx 는 셀 폭 하나다.
+            let mctx = self.ctx_for(w);
+            let hctx = self.ctx_for(h);
+            let margin = GridItemMargin::resolve(&cstyle, &mctx);
+            let (fy, fh) = place_grid_axis(GridAxisInput {
+                cell_pos: y,
+                cell_size: h,
+                real_size: ch,
+                explicit: child_eh > 0.0,
+                align,
+                m_start: margin.top,
+                m_end: margin.bottom,
+                m_start_auto: margin.top_auto,
+                m_end_auto: margin.bottom_auto,
+                min: resolve_dimension_opt(cstyle.min_height.as_deref(), &hctx),
+                max: resolve_dimension_opt(cstyle.max_height.as_deref(), &hctx),
+            });
             // E2 justify(가로) — grid_block_align(세로) 대칭 (ADR-156 옵션 3-a). justify≠stretch
             //   이고 자식이 실제 width(cw>0, explicit/content)를 가지면 셀 안 start/center/end 로
             //   배치. `cw>0` 가드: auto-width 자식(cw=0, 콘텐츠 폭 미지정)은 stretch 로 셀을 채워
             //   0 붕괴 방지(intrinsic shrink-to-fit justify 는 JS 협업 필요 — §Residual). 기본
             //   stretch 는 셀 폭 채움 유지. **컨테이너 auto-width(max_right)는 셀 우변 x+w 기준
             //   유지** — 트랙 extent 이 컨테이너 폭이지 자식 배치가 아님(CSS grid 계약).
+            //
+            // **가로축도 explicit dimension 이 stretch 를 이긴다** (세로축 `block_align` 과
+            //   동형 — CSS-ALIGN-3 §4.1 "stretch … only if the item's size in that axis is
+            //   auto"). 종전엔 `justify == 0`(기본 stretch/normal) 이면 명시 width 를 무시하고
+            //   셀 폭을 그대로 썼다 — `width:40px` grid item 이 150 트랙에서 150 이 되는 식.
+            //   `%`/min-max clamp 도 같이 삼켜졌다(50% → 150, maxWidth:60 → 150).
             let justify = grid_inline_justify(cstyle.justify_self.as_deref(), grid_justify_items);
-            let (fx, fw) = if justify != 0 && cw > 0.0 {
-                let real_w = cw.min(w);
-                let free = (w - real_w).max(0.0);
-                let dx = match justify {
-                    2 => free / 2.0, // center
-                    3 => free,       // end
-                    _ => 0.0,        // start(1)
-                };
-                (x + dx, real_w)
-            } else {
-                (x, w) // stretch fill (기본 또는 auto-width 자식)
-            };
+            let (fx, fw) = place_grid_axis(GridAxisInput {
+                cell_pos: x,
+                cell_size: w,
+                real_size: cw,
+                explicit: child_ew > 0.0,
+                align: justify,
+                m_start: margin.left,
+                m_end: margin.right,
+                m_start_auto: margin.left_auto,
+                m_end_auto: margin.right_auto,
+                min: resolve_dimension_opt(cstyle.min_width.as_deref(), &mctx),
+                max: resolve_dimension_opt(cstyle.max_width.as_deref(), &mctx),
+            });
             max_right = max_right.max(x + w);
             max_bottom = max_bottom.max(fy + fh);
             if let Some(n) = self.get_mut(c) {
@@ -2780,6 +2788,110 @@ fn write_flex_item(
         auto_mask |= flex::MARGIN_AUTO_LEFT;
     }
     data[off + 20] = auto_mask as f32;
+}
+
+/// grid item 의 4방향 margin — 값 + `auto` 여부.
+struct GridItemMargin {
+    top: f32,
+    right: f32,
+    bottom: f32,
+    left: f32,
+    top_auto: bool,
+    right_auto: bool,
+    bottom_auto: bool,
+    left_auto: bool,
+}
+
+impl GridItemMargin {
+    fn resolve(cstyle: &NodeStyle, ctx: &CssValueContext) -> Self {
+        Self {
+            top: resolve_signed(cstyle.margin_top.as_deref(), ctx),
+            right: resolve_signed(cstyle.margin_right.as_deref(), ctx),
+            bottom: resolve_signed(cstyle.margin_bottom.as_deref(), ctx),
+            left: resolve_signed(cstyle.margin_left.as_deref(), ctx),
+            top_auto: is_auto_margin(cstyle.margin_top.as_deref()),
+            right_auto: is_auto_margin(cstyle.margin_right.as_deref()),
+            bottom_auto: is_auto_margin(cstyle.margin_bottom.as_deref()),
+            left_auto: is_auto_margin(cstyle.margin_left.as_deref()),
+        }
+    }
+}
+
+/// `place_grid_axis` 입력 — 필드가 많아 구조체로 (clippy too_many_arguments).
+struct GridAxisInput {
+    /// 그리드 영역(셀)의 시작 좌표.
+    cell_pos: f32,
+    /// 그리드 영역의 크기.
+    cell_size: f32,
+    /// 자식 solve 결과 크기.
+    real_size: f32,
+    /// 자식이 이 축에 **명시(definite) 크기**를 갖는가 — stretch 를 무효화한다.
+    explicit: bool,
+    /// 0=stretch(기본) 1=start 2=center 3=end.
+    align: u8,
+    m_start: f32,
+    m_end: f32,
+    m_start_auto: bool,
+    m_end_auto: bool,
+    /// 자식 자신의 min/max — grid 는 이 축 제약을 아무도 적용해 주지 않는다.
+    min: Option<f32>,
+    max: Option<f32>,
+}
+
+/// grid item 한 축의 배치 — 그리드 영역 안에서 margin / 정렬 / auto margin 해소.
+///
+/// **두 축이 완전 대칭이라 한 함수로 둔다.** 축마다 따로 두면 한쪽에만 규칙이 붙는다 —
+/// 실제로 그랬다: 세로축은 "explicit 크기가 stretch 를 이긴다"(ADR-156 옵션 3-a)를
+/// 받았는데 가로축은 못 받아, `width:40px` grid item 이 150 트랙에서 **150** 이 됐다
+/// (Chrome 40). `%`/min-max clamp 도 같이 삼켜졌다(50% → 150, maxWidth:60 → 150).
+/// margin 은 양축 다 아예 소비되지 않았다.
+///
+/// 규칙 (CSS-GRID §10.1/§10.2 + CSS-ALIGN-3 §4.1):
+/// 1. 영역에서 margin 을 뺀 것이 가용 공간 — stretch 는 그 크기를 채운다.
+/// 2. stretch 는 **크기가 auto 일 때만** 적용된다 (명시 크기가 이긴다).
+/// 3. auto margin 이 있으면 stretch 하지 않고, auto margin 이 여유를 균등 흡수하며
+///    정렬 속성은 그 축에서 무효가 된다 (flex §8.1 과 동형).
+fn place_grid_axis(i: GridAxisInput) -> (f32, f32) {
+    let avail = (i.cell_size - i.m_start - i.m_end).max(0.0);
+    let auto_count = i.m_start_auto as usize + i.m_end_auto as usize;
+
+    // `real_size <= 0` = auto 크기 자식의 intrinsic 이 0 (콘텐츠 폭 미지정). CSS 는
+    //   shrink-to-fit 으로 0 이지만, 엔진은 **0 붕괴 방지**로 셀을 채운다 — intrinsic
+    //   shrink-to-fit 은 JS 협업이 필요한 별도 영역(ADR-156 §Residual). 이 폴백을
+    //   빼면 빈 컨테이너가 캔버스에서 사라진다.
+    let stretch = (i.align == 0 && !i.explicit && auto_count == 0) || i.real_size <= 0.0;
+    // 자식 자신의 min/max clamp — **stretch 든 아니든** 적용된다 (CSS §10.1: 그리드
+    //   영역은 containing block 일 뿐, 자식의 min/max 를 무효화하지 않는다). block/flex
+    //   부모에서는 각 커널이 이미 적용하는데 grid 만 통째로 빠져 있었다 (실측: block·flex
+    //   10/10 정합, grid 5/5 발산 — `maxWidth:60` 자식이 트랙 150 을 그대로 먹는 식).
+    let clamp = |v: f32| {
+        let v = if let Some(mx) = i.max { v.min(mx) } else { v };
+        if let Some(mn) = i.min { v.max(mn) } else { v }
+    };
+    if stretch {
+        return (i.cell_pos + i.m_start, clamp(avail));
+    }
+
+    // **셀보다 큰 아이템은 넘친다** — 자르지 않는다 (Chrome 실측: 150 트랙 안의
+    //   `width:300px` 는 300). 구 `.min(avail)` 클램프는 `min-width` 가 셀을 넘기는
+    //   경우까지 삼켰다.
+    let size = clamp(i.real_size);
+    // 위치 정렬(center/end)은 **음수 여유를 그대로** 쓴다 (CSS-ALIGN-3 §4.2 기본 `unsafe`)
+    //   — flex 축과 동일 규칙. auto margin 흡수는 음수에서 0 (흡수할 여유가 없다).
+    //   Chrome 실측(셀 150 / 아이템 300): center x=-75, end x=-150.
+    let free_raw = avail - size;
+    let free = free_raw.max(0.0);
+    let lead = if auto_count > 0 {
+        let share = free / auto_count as f32;
+        if i.m_start_auto { share } else { 0.0 }
+    } else {
+        match i.align {
+            2 => free_raw / 2.0, // center
+            3 => free_raw,       // end
+            _ => 0.0,            // start(1) / stretch+explicit
+        }
+    };
+    (i.cell_pos + i.m_start + lead, size)
 }
 
 /// margin 값이 `auto` 인가 — 흡수 대상 판정(§8.1 / §10.3.3 / abspos §10.3.7).
@@ -4427,11 +4539,15 @@ mod tests {
         ]"#;
         let handles = tree.build_tree_batch(json).unwrap();
         tree.compute_layout(handles[2], 320.0, -1.0);
-        // col0 = 100px 고정(자식 60 무관), col1 auto = 자식 40.
-        assert_eq!(tree.get_layout(handles[0]).width, 100.0, "px col 100 고정(자식 60 무관)");
+        // **트랙 폭 ≠ 자식 폭** (2026-07-27 정정): col0 은 100px 고정이지만, 그 안의
+        //   자식은 `width:60px` 명시라 stretch 되지 않고 60 을 유지한다 (CSS-ALIGN-3
+        //   §4.1 — stretch 는 크기가 auto 일 때만). 구 assertion 은 자식 폭에 트랙 폭
+        //   100 을 기대해 결함을 고정하고 있었다. Chrome 실측: c0=(0,0,**60**,20).
+        //   트랙이 100 인 근거는 형제 x=100 이 그대로 증명한다.
+        assert_eq!(tree.get_layout(handles[0]).width, 60.0, "자식 명시 60 유지(트랙 100 아님)");
         assert_eq!(tree.get_layout(handles[1]).width, 40.0, "auto col = 자식 intrinsic 40");
-        // col1 x = 100(col0) + 0(gap 없음) = 100.
-        assert_eq!(tree.get_layout(handles[1]).x, 100.0, "col1 x = col0 width 100");
+        // col1 x = 100(col0) + 0(gap 없음) = 100 — 트랙 폭 100 의 증거.
+        assert_eq!(tree.get_layout(handles[1]).x, 100.0, "col1 x = col0 트랙 폭 100");
     }
 
     /// **implicit auto row (gridTemplateRows 미명시) + placement 명시** — Slider 실구조.
@@ -4499,7 +4615,10 @@ mod tests {
         // column: auto col1(value) = 30, 1fr col0(label) = 290.
         assert_eq!(tree.get_layout(handles[1]).width, 30.0, "value auto col = intrinsic 30");
         assert_eq!(tree.get_layout(handles[1]).x, 290.0, "value 우측 (1fr 흡수 후)");
-        assert_eq!(tree.get_layout(handles[0]).width, 290.0, "label 1fr = 290");
+        // **트랙 폭 ≠ 자식 폭** (2026-07-27 정정) — label 은 `width:60px` 명시라 1fr
+        //   트랙(290)으로 늘어나지 않는다. Chrome 실측: label=(0,0,**60**,20).
+        //   트랙이 290 인 근거는 형제 value.x=290 이 증명한다.
+        assert_eq!(tree.get_layout(handles[0]).width, 60.0, "label 명시 60 유지(1fr 290 아님)");
         // row: row0=20 (label/value), row1=8 (track), track y=20.
         assert_eq!(tree.get_layout(handles[0]).height, 20.0, "row0 label = 20");
         assert_eq!(tree.get_layout(handles[2]).height, 8.0, "row1 track = 8");

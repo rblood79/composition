@@ -583,13 +583,16 @@ describe("컨테이너 flex item intrinsic ↔ CSS 대조 (ADR-169)", () => {
 
   // grid 축 이연 — 값이 "옳아서" 가 아니라 **이연된 상태를 고정**해 두는 스냅샷이다.
   // 0 붕괴가 재발하면 여기가 먼저 깨진다 (Rust `grid_flex_item_does_not_collapse` 와 이중).
+  //
+  // 2026-07-28 축소: 자식 항목(`*-g1.w` / `*-g2.w`)이 빠졌다 — grid item 이 **명시
+  // width 를 유지**하게 되면서(gridItemBox.browser.test.ts) 트랙 폭으로 늘어나던
+  // 발산이 사라졌다. 남은 항목은 전부 **트랙/컨테이너 폭**(960·1920 vs 400)이라
+  // 이연 대상인 컨테이너 intrinsic 그 자체다 — 자식 상자 모델과 무관.
   describe("grid 축 — 이연 상태 고정 (Phase 3 / G5)", () => {
     it("I. grid 직접 flex item — engine leg", () => {
       expect(runParityCase(GRID_DEFERRED[0])).toMatchInlineSnapshot(`
         [
-          "i-g1.w: dom=200.0 eng=960.0 (Δ760.0)",
           "i-g2.x: dom=200.0 eng=960.0 (Δ760.0)",
-          "i-g2.w: dom=200.0 eng=960.0 (Δ760.0)",
           "i-grid.w: dom=400.0 eng=1920.0 (Δ1520.0)",
           "i-sidebar.x: dom=400.0 eng=1920.0 (Δ1520.0)",
         ]
@@ -599,9 +602,7 @@ describe("컨테이너 flex item intrinsic ↔ CSS 대조 (ADR-169)", () => {
     it("I. grid 직접 flex item — pipeline leg", () => {
       expect(runPipelineParityCase(GRID_DEFERRED[0])).toMatchInlineSnapshot(`
         [
-          "i-g1.w: dom=200.0 eng=960.0 (Δ760.0)",
           "i-g2.x: dom=200.0 eng=960.0 (Δ760.0)",
-          "i-g2.w: dom=200.0 eng=960.0 (Δ760.0)",
           "i-grid.w: dom=400.0 eng=1920.0 (Δ1520.0)",
           "i-sidebar.x: dom=400.0 eng=1920.0 (Δ1520.0)",
         ]
@@ -611,9 +612,7 @@ describe("컨테이너 flex item intrinsic ↔ CSS 대조 (ADR-169)", () => {
     it("J. grid 중첩 — engine leg", () => {
       expect(runParityCase(GRID_DEFERRED[1])).toMatchInlineSnapshot(`
         [
-          "j-g1.w: dom=200.0 eng=960.0 (Δ760.0)",
           "j-g2.x: dom=200.0 eng=960.0 (Δ760.0)",
-          "j-g2.w: dom=200.0 eng=960.0 (Δ760.0)",
           "j-grid.w: dom=400.0 eng=1920.0 (Δ1520.0)",
           "j-content.w: dom=400.0 eng=1920.0 (Δ1520.0)",
           "j-sidebar.x: dom=400.0 eng=1920.0 (Δ1520.0)",
@@ -640,9 +639,7 @@ describe("컨테이너 flex item intrinsic ↔ CSS 대조 (ADR-169)", () => {
     it("J. grid 중첩 — pipeline leg", () => {
       expect(runPipelineParityCase(GRID_DEFERRED[1])).toMatchInlineSnapshot(`
         [
-          "j-g1.w: dom=200.0 eng=960.0 (Δ760.0)",
           "j-g2.x: dom=200.0 eng=960.0 (Δ760.0)",
-          "j-g2.w: dom=200.0 eng=960.0 (Δ760.0)",
           "j-grid.w: dom=400.0 eng=1920.0 (Δ1520.0)",
           "j-content.w: dom=400.0 eng=1920.0 (Δ1520.0)",
           "j-sidebar.x: dom=400.0 eng=1920.0 (Δ1520.0)",

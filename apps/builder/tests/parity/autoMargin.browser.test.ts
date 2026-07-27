@@ -376,14 +376,16 @@ describe("auto margin — CSS 대조", () => {
   );
 
   /**
-   * 잔존 — grid item 의 auto margin 미구현 (실측 스냅샷).
+   * grid item 의 auto margin — **해소됨** (2026-07-28).
    *
-   * grid 는 별도 track sizing 경로라 flex 커널의 §8.1 흡수를 타지 않는다. 다만 이
-   * 케이스는 **선행 결함에 가려져 있다** — 명시 width 를 가진 grid item 이 트랙 폭으로
-   * stretch 되는 ADR-156 §Residual 이 먼저 걸리므로(40 → 150), auto margin 만 고쳐도
-   * 좌표가 맞지 않는다. 두 결함의 선후 관계를 여기 고정해 둔다.
+   * 이 케이스는 원래 "grid 는 §8.1 흡수를 타지 않는다" 는 잔존 스냅샷이었고, 그때도
+   * **선행 결함에 가려져** 있었다 — 명시 width 를 가진 grid item 이 트랙 폭으로
+   * stretch 되는 문제(40 → 150)가 먼저 걸려서 auto margin 만 고쳐도 좌표가 맞지
+   * 않았다. 선행 결함(grid item 박스 모델)을 닫으면서 함께 정합해졌다.
+   * 상세 계약은 `gridItemBox.browser.test.ts` — 여기서는 flex ↔ grid 두 축이 같은
+   * §8.1 규칙을 따른다는 **교차 확인**만 남긴다.
    */
-  it("잔존 — grid item auto margin 미구현 (실측 스냅샷)", () => {
+  it("grid item auto margin — flex 와 같은 §8.1 규칙", () => {
     const c: ParityCase = {
       name: "grid item auto margin",
       availW: 400,
@@ -406,15 +408,11 @@ describe("auto margin — CSS 대조", () => {
       ],
     };
     const dom = domLeg(c.nodes, c.availW);
-    const eng = engineLeg(c.nodes, c.availW, c.availH);
-
-    // CSS: 명시 width 40 유지 + auto margin 이 트랙 여유를 흡수 → 우하단 정렬.
+    const bad = diffCase(c.nodes, dom, engineLeg(c.nodes, c.availW, c.availH));
+    expect(bad, bad.join("\n")).toEqual([]);
+    // CSS: 명시 width 40 유지 + auto margin 이 영역 여유를 흡수 → 우하단 정렬.
     expect(dom[0].w).toBe(40);
     expect(dom[0].x).toBe(110);
     expect(dom[0].y).toBe(60);
-    // 엔진: ① 명시 width 가 트랙 폭으로 stretch (선행 결함) ② auto margin 흡수 없음.
-    expect(eng[0].w).toBe(150);
-    expect(eng[0].x).toBe(0);
-    expect(eng[0].y).toBe(0);
   });
 });
