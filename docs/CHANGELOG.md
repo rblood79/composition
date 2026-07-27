@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [컴포넌트 라이브러리의 ListBox/GridList 마스터가 빈 채로 생성되던 문제] - 2026-07-27
+
+### Bug Fixes
+
+- **새 프로젝트의 Components 페이지에서 ListBox·GridList 마스터가 아무 행도 보여주지 못하던 문제**.
+  - **Why**: 행 템플릿(`component-listbox-item-*` / `component-gridlist-item-default`)은 `{icon}`/`{label}`/`{description}` 을 보간하는데 origin seed 의 `props.items` 가 `[]` 였다. 보간할 데이터가 없으니 authoring 판정이 **static + 정적 자식 0개**로 떨어져 컬렉션이 통째로 비었다 — 컴포넌트 라이브러리 마스터가 자기 모습을 못 보여주는 상태.
+  - 시드에 중립적인 대표 행 3개를 기본값으로 실었다 (ListBox: Inbox / Starred / Archive + lucide 아이콘, GridList: Documents / Images / Downloads). 이제 authoring 판정이 `data-bound / items` 로 넘어가 행이 실제로 렌더된다.
+  - **기존 문서는 그대로 유지된다** — `repairOrigin` 이 기존 `props` 를 보존하므로 재시드가 사용자가 편집(또는 비운) items 를 덮어쓰지 않는다.
+  - 검증: 회귀 테스트 5건 — 기본 items 존재 + 템플릿이 보간하는 키 구비 + authoring 판정 `data-bound` + **실제로 행 3개가 렌더**(로딩 해소 후) + 사용자가 비운 items 를 되살리지 않음. 시드를 되돌리면 3건이 red.
+  - 위치: `apps/builder/src/builder/components/{listbox/listBoxTemplateOrigins.ts,gridlist/gridListTemplateOrigins.ts}`
+
 ## [컬렉션 밖 항목이 preview 를 통째로 죽이던 문제] - 2026-07-27
 
 ### Bug Fixes

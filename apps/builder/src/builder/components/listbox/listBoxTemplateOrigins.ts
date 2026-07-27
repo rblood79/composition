@@ -176,6 +176,38 @@ function createListBoxItemSelectedOrigin(): CanonicalNode {
   };
 }
 
+/**
+ * ListBox origin 의 **기본 행 데이터**.
+ *
+ * 행 템플릿(`component-listbox-item-*`)은 `{icon}`/`{label}`/`{description}` 을 보간하므로
+ * items 가 비면 보간할 대상이 없어 **컬렉션이 통째로 빈 채로 남는다** — 컴포넌트 라이브러리
+ * 마스터가 자기 모습을 못 보여준다. 그래서 시드가 대표 행 3개를 기본값으로 싣는다.
+ *
+ * 내용은 특정 도메인에 매이지 않는 중립 예시다 (아이콘은 lucide 이름). 사용자가 items 를
+ * 편집하면 `repairOrigin` 이 기존 props 를 보존하므로 **이 기본값이 덮어쓰지 않는다** —
+ * 기존 문서도 그대로 유지된다.
+ */
+const LISTBOX_DEFAULT_ITEMS: ReadonlyArray<Record<string, string>> = [
+  {
+    id: "inbox",
+    icon: "inbox",
+    label: "Inbox",
+    description: "Unread messages",
+  },
+  {
+    id: "starred",
+    icon: "star",
+    label: "Starred",
+    description: "Marked as important",
+  },
+  {
+    id: "archive",
+    icon: "archive",
+    label: "Archive",
+    description: "Stored for later",
+  },
+];
+
 function createListBoxOrigin(): CanonicalNode {
   return {
     id: LISTBOX_ORIGIN_ID,
@@ -185,7 +217,7 @@ function createListBoxOrigin(): CanonicalNode {
     props: {
       orientation: "vertical",
       selectionMode: "single",
-      items: [],
+      items: [...LISTBOX_DEFAULT_ITEMS],
     },
     slot: [LISTBOX_ITEM_DEFAULT_ORIGIN_ID, LISTBOX_ITEM_SELECTED_ORIGIN_ID],
     metadata: {

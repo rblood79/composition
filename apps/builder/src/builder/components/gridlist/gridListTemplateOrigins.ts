@@ -88,6 +88,20 @@ function createGridListItemDefaultOrigin(): CanonicalNode {
  * 일치시켜 Phase 2 인스턴스 override 부담을 최소화한다 (리뷰 round 1 LOW #1). width:100% 등
  * layout-context 는 Phase 2 에서 instance override 로 이관.
  */
+/**
+ * GridList origin 의 **기본 행 데이터**.
+ *
+ * 행 템플릿(`component-gridlist-item-default`)이 `{label}`/`{description}` 을 보간하므로
+ * items 가 비면 카드가 하나도 생기지 않는다 (ListBox 동형 — `listBoxTemplateOrigins` 참조).
+ * GridList item slot 에는 icon 이 없어 2필드만 싣는다. `repairOrigin` 이 기존 props 를
+ * 보존하므로 사용자가 편집한 items 나 기존 문서를 덮어쓰지 않는다.
+ */
+const GRIDLIST_DEFAULT_ITEMS: ReadonlyArray<Record<string, string>> = [
+  { id: "documents", label: "Documents", description: "12 files" },
+  { id: "images", label: "Images", description: "48 files" },
+  { id: "downloads", label: "Downloads", description: "5 files" },
+];
+
 function createGridListOrigin(): CanonicalNode {
   return {
     id: GRIDLIST_ORIGIN_ID,
@@ -98,7 +112,7 @@ function createGridListOrigin(): CanonicalNode {
       layout: "stack",
       columns: 2,
       selectionMode: "none",
-      items: [],
+      items: [...GRIDLIST_DEFAULT_ITEMS],
     },
     slot: [GRIDLIST_ITEM_DEFAULT_ORIGIN_ID],
     metadata: {
