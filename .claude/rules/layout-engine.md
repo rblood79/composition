@@ -156,13 +156,30 @@ single-line(`flex-wrap:nowrap`) + definite cross 컨테이너에서 flex 라인�
 
 - `max` 로 라인을 아이템에 맞춰 키우면 `align-items:stretch` 가 그 커진 라인을 채워 **auto-cross 아이템이 내용까지 자란다**. CSS 는 컨테이너에서 자르고 내용이 라인 밖으로 흘러넘친다. 실측: 확정 높이 100 밴드 + `height:auto` 자식 + 내용 300 → DOM 100 / 구 엔진 300 (row·column 동형, 파이프라인까지 전파).
 - `align-items:flex-start` 는 아이템이 자기 크기를 유지하므로 **종전에도 정합**이었다 — 증상이 stretch 에서만 나오는 이유. 확정 밴드 + auto 자식은 프리셋 row 레이아웃의 기본 형태라 라이브 도달 가능.
-- **sweep 사각지대**: `flexSweep` 는 definite cross 를 줄 합보다 **크게** 잡는다 (음수 free space 는 align-content 정합 region 밖이라 의도적 회피). 그래서 "라인 cross > 컨테이너 cross" 형태가 384+288 조합에 한 번도 안 걸렸다. 교차축 회귀를 볼 때 sweep 통과를 커버리지로 읽지 말 것 — 초과 영역은 `crossAxisOverflow.browser.test.ts` 소관.
-- Chrome 실측 fixture: `apps/builder/tests/parity/crossAxisOverflow.browser.test.ts` (row/column × stretch·flex-start × 내용 초과/미달 + 컨테이너 auto)
+- **sweep 사각지대**: `flexSweep` 는 definite cross 를 줄 합보다 **크게** 잡는다 — 양수 free space 조합만 훑는다. 그래서 "라인 cross > 컨테이너 cross" 형태가 384+288 조합에 한 번도 안 걸렸다. 교차축 회귀를 볼 때 sweep 통과를 커버리지로 읽지 말 것 — 초과 영역은 `crossAxisOverflow.browser.test.ts` 소관.
+
+## 넘칠 때의 정렬 — 위치 정렬은 음수 offset, 분배 정렬은 fallback (CSS-ALIGN-3 §4.2/§4.4, 2026-07-27)
+
+여유 공간이 **음수**(내용이 컨테이너보다 큼)일 때 정렬은 두 계열로 갈린다. 3축(`justify-content` / `align-items` / `align-content`) 모두 동형이고, 한 계열의 값만으로 처리하면 반대쪽이 깨진다.
+
+| 계열                                     | 음수 여유에서                      | 엔진 표현                                   |
+| ---------------------------------------- | ---------------------------------- | ------------------------------------------- |
+| **위치** (`center` / `flex-end`)         | 그대로 음수 offset (기본 `unsafe`) | `*_raw` (클램프 없는 값)                    |
+| **분배** (`space-between/around/evenly`) | fallback → start 처럼 배치         | `*_free` (`.max(0.0)` 유지)                 |
+| **`align-content: stretch`**             | 라인 부풀리기 없음                 | `.max(0.0)` 유지 (`stretch_extra > 0` 조건) |
+
+- 분배값의 `.max(0.0)` 은 **결함이 아니라 정답**이다 — Chrome 실측에서 `space-between/around/evenly` 는 음수 여유에서 셋 다 start(0). 지우면 라인/아이템이 역방향으로 겹친다.
+- `align-items` 에는 분배값이 없어 `place_line_cross_axis` 의 `cross_free` 는 클램프 없이 쓴다.
+- Chrome 실측 기준값 — 컨테이너 100 / 아이템 300: `center` −100, `flex-end` −200. 컨테이너 cross 60 / 두 줄 합 100: `align-content:center` 줄 y = −20·30, `flex-end` = −40·10.
+- Chrome 실측 fixture: `apps/builder/tests/parity/crossAxisOverflow.browser.test.ts` (교차축 stretch/start/center/end × row·column, main 축 justify 6종, align-content 6종 — 각 engine leg + pipeline leg)
 
 ### 금지 패턴
 
 - ❌ 라인 cross 승격을 `this_line_cross.max(available_cross)` 로 재도입 (§9.4 step 8 은 대입)
 - ❌ 넘치는 아이템을 라인/컨테이너 크기로 **자르는** 보정 — 넘침은 흘러넘치는 것이 정상이고, 자르는 것은 `overflow` 소관
+- ❌ 위치 정렬(center/end)에 클램프된 여유(`.max(0.0)`) 사용 → overflow 에서 조용히 start 로 무너진다
+- ❌ 분배 정렬·`align-content:stretch` 에 클램프 없는 여유 사용 → 음수 분배로 역방향 겹침
+- ❌ 두 계열을 한 변수로 통일 (`free_main`/`free_main_raw`, `cross_free`/`cross_free_raw` 쌍이 정본)
 
 ## TS 잔존 계약 (ADR-164 Phase 3 — 엔진↔TS 경계 규칙, CRITICAL)
 

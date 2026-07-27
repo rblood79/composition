@@ -632,14 +632,19 @@ pub fn flex_layout(
     //   가 분배 → 둘째 줄이 y=202 로 밀리고 컨테이너 height 가 232 로 폭주.
     //   단일 라인 경로는 `cross_is_definite` 로 이미 보호돼 있었으나(ToggleButtonGroup
     //   397→30), multi-line 경로는 미보호였다.
-    let cross_free = if cross_is_definite {
-        (available_cross - total_line_cross).max(0.0)
+    // 위치 정렬(center/end)은 음수 여유를 그대로 쓰고(§4.2 기본 `unsafe`), 분배·stretch 는
+    //   음수에서 fallback 으로 떨어져 start 처럼 배치된다 — main 축 `justify-content` 와 동형.
+    //   Chrome 실측(2026-07-27, 컨테이너 60 / 두 줄 합 100): center 줄 y=-20·30,
+    //   flex-end -40·10, flex-start·stretch·space-between·space-around 는 전부 0·50.
+    let cross_free_raw = if cross_is_definite {
+        available_cross - total_line_cross
     } else {
         0.0
     };
+    let cross_free = cross_free_raw.max(0.0);
 
     let (mut cross_start_offset, mut cross_between_extra, stretch_extra) =
-        align_content_offsets(align_content, cross_free, line_count, wrap);
+        align_content_offsets(align_content, cross_free, cross_free_raw, line_count, wrap);
     if wrap == WRAP_NOWRAP {
         // align-content 정렬(center/end/space-*) offset 은 **single-line 컨테이너**에 무효
         //   (CSS §8.4: "no effect on a single-line flex container (i.e. one with flex-wrap:nowrap)").
@@ -710,9 +715,13 @@ pub fn flex_layout(
 }
 
 /// align-content offset 계산 → (start_offset, between_extra, per-line stretch_extra).
+///
+/// `cross_free` = 0 하한 여유 (분배·stretch 용 — 음수면 fallback 으로 start 처럼 배치),
+/// `cross_free_raw` = 음수 허용 여유 (위치 정렬 center/end 용 — CSS-ALIGN-3 §4.2 `unsafe`).
 fn align_content_offsets(
     align_content: u8,
     cross_free: f32,
+    cross_free_raw: f32,
     line_count: usize,
     wrap: u8,
 ) -> (f32, f32, f32) {
@@ -735,8 +744,8 @@ fn align_content_offsets(
                 (0.0, 0.0, per_line)
             }
         }
-        ALIGN_CONTENT_CENTER => (cross_free / 2.0, 0.0, 0.0),
-        ALIGN_CONTENT_END => (cross_free, 0.0, 0.0),
+        ALIGN_CONTENT_CENTER => (cross_free_raw / 2.0, 0.0, 0.0),
+        ALIGN_CONTENT_END => (cross_free_raw, 0.0, 0.0),
         ALIGN_CONTENT_SPACE_BETWEEN => {
             if line_count > 1 {
                 (0.0, cross_free / (line_count as f32 - 1.0), 0.0)
@@ -775,11 +784,18 @@ fn place_line_main_axis(
         .map(|it| it.border_main(it.main_content) + it.margin_main_start + it.margin_main_end)
         .sum::<f32>()
         + total_gap;
-    let free_main = (available_main - total_main).max(0.0);
+    // 위치 정렬(center/end)은 **음수 여유를 그대로** 쓴다 (CSS-ALIGN-3 §4.2 기본 `unsafe`) —
+    //   아이템이 컨테이너보다 크면 center 는 양쪽으로, end 는 시작 쪽으로 넘친다.
+    // 분배 정렬(space-*)은 음수에서 fallback 으로 떨어져 **start 처럼** 배치된다.
+    //   Chrome 실측(2026-07-27, 컨테이너 100 / 아이템 300): center -100, flex-end -200,
+    //   space-between·around·evenly 는 셋 다 0. 즉 분배값의 클램프는 결함이 아니라 정답이라
+    //   두 계열을 분리한다 — 한쪽 값만 쓰면 반대쪽이 깨진다.
+    let free_main_raw = available_main - total_main;
+    let free_main = free_main_raw.max(0.0);
 
     let (start_offset, between_extra) = match justify_content {
-        JUSTIFY_CENTER => (free_main / 2.0, 0.0),
-        JUSTIFY_END => (free_main, 0.0),
+        JUSTIFY_CENTER => (free_main_raw / 2.0, 0.0),
+        JUSTIFY_END => (free_main_raw, 0.0),
         JUSTIFY_SPACE_BETWEEN => {
             if n > 1 {
                 (0.0, free_main / (n as f32 - 1.0))
@@ -835,7 +851,14 @@ fn place_line_cross_axis(
 
         let item_cross_border = it.cross_content + it.pad_border_cross;
         let cross_avail = line_cross_size - it.margin_cross_start - it.margin_cross_end;
-        let cross_free = (cross_avail - item_cross_border).max(0.0);
+        // **음수 free space 를 0 으로 클램프하지 않는다** (CSS-ALIGN-3 §4.2 — 기본 정렬은
+        //   `unsafe`). 아이템이 라인보다 크면 center 는 양쪽으로 균등하게, end 는 시작 쪽으로
+        //   넘쳐야 한다 (CSS-FLEXBOX §8.3 "it will overflow equally in both directions").
+        //   클램프하면 두 정렬이 overflow 상황에서 조용히 start 로 무너진다 — `safe` 키워드를
+        //   쓴 것과 같은 동작이고, composition 은 그 키워드를 소비하지 않는다.
+        // Chrome 실측(crossAxisOverflow.browser.test.ts): 라인 100 + 아이템 300 →
+        //   center y=-100 / end y=-200 (구 엔진은 둘 다 0).
+        let cross_free = cross_avail - item_cross_border;
 
         // per-item align_self 가 컨테이너 align_items 를 override (E1). auto → 상속.
         let effective_align = resolve_self_align(it.align_self, align_items);
@@ -1338,6 +1361,103 @@ mod tests {
         );
         assert!((out[3] - 300.0).abs() < 0.01, "cross height={} (expect 300)", out[3]);
         assert!((out[1] - 0.0).abs() < 0.01, "cross y={} (expect 0)", out[1]);
+    }
+
+    #[test]
+    fn center_and_end_overflow_cross_axis_unsafely() {
+        // CSS-ALIGN-3 §4.2 기본 정렬은 `unsafe` — 아이템이 라인보다 크면 center 는 양쪽으로
+        // 균등하게, end 는 시작 쪽으로 넘친다. 음수 free space 를 0 으로 클램프하면 두 정렬이
+        // overflow 에서 start 로 무너진다.
+        // Chrome 실측 대조: crossAxisOverflow.browser.test.ts "row/center·flex-end 내용>컨테이너".
+        let mut f = item(50.0, 300.0); // cross(height)=300 명시 > 라인 100
+        f[2] = 300.0;
+        let data = flatten(&[f]);
+
+        let centered = flex_layout_single_line(
+            &data, 300.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_CENTER, 0.0,
+        );
+        assert!(
+            (centered[1] - (-100.0)).abs() < 0.01,
+            "center cross y={} (expect -100)",
+            centered[1]
+        );
+
+        let ended = flex_layout_single_line(
+            &data, 300.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_END, 0.0,
+        );
+        assert!(
+            (ended[1] - (-200.0)).abs() < 0.01,
+            "end cross y={} (expect -200)",
+            ended[1]
+        );
+    }
+
+    #[test]
+    fn justify_center_end_overflow_unsafely_but_distributed_falls_back() {
+        // main 축도 같은 규칙 — 단 분배 정렬은 음수에서 fallback(start) 이다.
+        // Chrome 실측(컨테이너 100 / 아이템 300): center -100 / end -200 /
+        //   space-between·around·evenly 0. 분배값의 0 클램프는 정답이므로 유지한다.
+        let mut f = item(300.0, 40.0); // main(width)=300 > 컨테이너 100
+        f[16] = 0.0; // flex_shrink=0 — 줄어들지 않게
+        let data = flatten(&[f]);
+        let at = |justify: u8| {
+            flex_layout_single_line(&data, 100.0, 200.0, DIR_ROW, justify, ALIGN_START, 0.0)[0]
+        };
+        assert!((at(JUSTIFY_CENTER) - (-100.0)).abs() < 0.01, "center x={}", at(JUSTIFY_CENTER));
+        assert!((at(JUSTIFY_END) - (-200.0)).abs() < 0.01, "end x={}", at(JUSTIFY_END));
+        for j in [JUSTIFY_SPACE_BETWEEN, JUSTIFY_SPACE_AROUND, JUSTIFY_SPACE_EVENLY] {
+            assert!((at(j) - 0.0).abs() < 0.01, "distributed({}) x={} (expect 0)", j, at(j));
+        }
+    }
+
+    #[test]
+    fn align_content_center_end_overflow_unsafely_but_distributed_falls_back() {
+        // 라인 간 배치(multi-line)도 같은 규칙. Chrome 실측(컨테이너 cross 60 / 두 줄 합 100):
+        //   center 줄 y = -20·30, flex-end = -40·10, 나머지(start/stretch/space-*) = 0·50.
+        let mut f = item(80.0, 50.0);
+        f[16] = 0.0; // flex_shrink=0
+        let data = flatten(&[f, f]);
+        // main 100 에 80 짜리 둘 → wrap 으로 2 라인, 라인 합 100 > 컨테이너 cross 60
+        let at = |ac: u8| {
+            let out = flex_layout(
+                &data, 100.0, 60.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ac, WRAP_WRAP, 0.0, 0.0,
+                true,
+            );
+            (out[1], out[5])
+        };
+        assert_eq!(
+            (at(ALIGN_CONTENT_CENTER).0.round(), at(ALIGN_CONTENT_CENTER).1.round()),
+            (-20.0, 30.0)
+        );
+        assert_eq!(
+            (at(ALIGN_CONTENT_END).0.round(), at(ALIGN_CONTENT_END).1.round()),
+            (-40.0, 10.0)
+        );
+        for ac in [
+            ALIGN_CONTENT_START,
+            ALIGN_CONTENT_STRETCH,
+            ALIGN_CONTENT_SPACE_BETWEEN,
+            ALIGN_CONTENT_SPACE_AROUND,
+        ] {
+            assert_eq!((at(ac).0.round(), at(ac).1.round()), (0.0, 50.0), "ac={ac}");
+        }
+    }
+
+    #[test]
+    fn center_and_end_unchanged_when_item_fits() {
+        // 회귀 방지: 여유가 양수면 종전 그대로 (클램프 제거가 정상 경로를 안 건드린다).
+        let f = item(50.0, 40.0);
+        let data = flatten(&[f]);
+
+        let centered = flex_layout_single_line(
+            &data, 300.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_CENTER, 0.0,
+        );
+        assert!((centered[1] - 30.0).abs() < 0.01, "center y={} (expect 30)", centered[1]);
+
+        let ended = flex_layout_single_line(
+            &data, 300.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_END, 0.0,
+        );
+        assert!((ended[1] - 60.0).abs() < 0.01, "end y={} (expect 60)", ended[1]);
     }
 
     #[test]

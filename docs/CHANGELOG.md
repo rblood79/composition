@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [넘칠 때 center/flex-end 정렬이 조용히 flex-start 로 무너지던 문제 — flex 3축] - 2026-07-27
+
+### Bug Fixes
+
+- **내용이 컨테이너보다 클 때 `center` / `flex-end` 정렬이 무시되고 시작 쪽에 붙던 문제**. `align-items`(교차축), `justify-content`(main 축), `align-content`(라인 간) **3축 모두** 같은 결함이었다.
+  - **Why**: 세 곳 모두 여유 공간을 `.max(0.0)` 으로 클램프하고 있었다. 여유가 음수면 0 이 되어 offset 이 0 — 즉 `flex-start` 와 같은 배치다. CSS-ALIGN-3 §4.2 의 기본 정렬은 **`unsafe`** 라 넘쳐도 진짜로 정렬한다 (`center` 는 양쪽으로 균등, `flex-end` 는 시작 쪽으로). 클램프는 `safe` 키워드를 쓴 것과 같은 동작인데 composition 은 그 키워드를 소비하지 않는다.
+  - Chrome 실측 — 컨테이너 100 / 아이템 300: `center` **−100**, `flex-end` **−200** (엔진은 둘 다 0). 컨테이너 cross 60 / 두 줄 합 100: `align-content:center` 줄 y **−20·30**, `flex-end` **−40·10** (엔진은 0·50).
+  - **분배 정렬(`space-between/around/evenly`)과 `align-content:stretch` 의 클램프는 그대로 뒀다 — 그쪽은 결함이 아니라 정답이다**. Chrome 실측에서 세 분배값 모두 음수 여유에서 start(0) 로 떨어진다 (CSS-ALIGN-3 §4.4 fallback). 한 계열의 규칙을 양쪽에 적용하면 반대쪽이 깨지므로 `free_main`/`free_main_raw`, `cross_free`/`cross_free_raw` 두 값을 분리했다.
+  - 검증: Chrome 대조 fixture 를 교차축 13 · main 축 6 · align-content 6 케이스로 확장(각 engine leg + pipeline leg, 총 50) — 수정 전 교차축 4 / main 4 / align-content 4 red. Rust 339건(신규 4 포함) / 브라우저 parity 177 / 빌더 2992 PASS + type-check 회귀 0. 라이브: 실행 중 빌더의 WASM 이 3축 모두 CSS 값(−100 / −200 / −20)을 내는 것, 사용자 문서에서 이 분기에 닿는 컨테이너 0건(기존 화면 무변동) 확인.
+  - `flexSweep` 의 종전 주석이 이 영역을 "엔진 0 클램프로 발산" 이라 적어 뒀는데 이제 사실이 아니라 정정했다 — 여전히 sweep 밖(양수 여유만 훑음)이라는 사실만 유효하다.
+  - 위치: `packages/composition-engine/src/flex.rs`, fixture `apps/builder/tests/parity/crossAxisOverflow.browser.test.ts`, 규칙 `.claude/rules/layout-engine.md`
+
 ## [확정 높이 밴드 안의 auto 자식이 내용만큼 자라던 문제 — flex 교차축] - 2026-07-27
 
 ### Bug Fixes

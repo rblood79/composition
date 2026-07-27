@@ -111,9 +111,13 @@ function crossAxisCase(
   //   **Why 100%**: column 의 bare width:auto 는 block-level flex 컨테이너를 CSS 는
   //   부모 채움(200)하나 엔진은 shrink-to-fit(70) 한다 — latent 발산(비-라이브, catalog
   //   가 항상 width 주입). builder-정확 패턴인 width:100% 는 N10 계약대로 양쪽 채움.
-  // definite cross 는 2줄 cross 합보다 커야 한다 (row 줄합≈70, column 줄합≈125) —
-  // 작으면 음수 free space(overflow)로 align-content 가 CSS 는 음수 offset·엔진은
-  // 0 클램프로 갈려 정합 region 을 벗어난다.
+  // definite cross 는 2줄 cross 합보다 크게 잡는다 (row 줄합≈70, column 줄합≈125) —
+  // 이 sweep 은 **양수 free space** 조합만 훑는다. 음수 free space(= 내용이 컨테이너를
+  // 넘김)는 정렬값마다 규칙이 갈리므로(위치 정렬은 음수 offset, 분배는 fallback)
+  // `crossAxisOverflow.browser.test.ts` 가 전담한다.
+  // **주의**: 종전 주석은 이 영역을 "엔진이 0 클램프해서 발산" 이라 적어 뒀으나 2026-07-27
+  // 에 해소됐다 — 여전히 sweep 밖이라는 사실만 유효하다. sweep 통과를 overflow 커버리지로
+  // 읽지 말 것.
   if (crossSize === "definite") {
     containerStyle[crossProp] = isRow ? "100px" : "160px";
   } else if (!isRow) {

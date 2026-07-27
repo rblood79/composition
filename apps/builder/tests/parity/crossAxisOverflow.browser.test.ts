@@ -82,6 +82,10 @@ const CASES: ParityCase[] = [
     300,
     "100px",
   ),
+  overflowCase("row/center 내용>컨테이너", "row", "center", 300, "100px"),
+  overflowCase("row/flex-end 내용>컨테이너", "row", "flex-end", 300, "100px"),
+  overflowCase("row/center 내용<컨테이너", "row", "center", 40, "100px"),
+  overflowCase("row/flex-end 내용<컨테이너", "row", "flex-end", 40, "100px"),
   overflowCase("row/stretch 컨테이너 auto", "row", "stretch", 300, "auto"),
   // ── column: cross = width ──
   overflowCase(
@@ -105,14 +109,121 @@ const CASES: ParityCase[] = [
     300,
     "150px",
   ),
+  overflowCase("column/center 내용>컨테이너", "column", "center", 300, "150px"),
+  overflowCase(
+    "column/flex-end 내용>컨테이너",
+    "column",
+    "flex-end",
+    300,
+    "150px",
+  ),
 ];
+
+/**
+ * main 축 overflow — `justify-content` (CSS-ALIGN-3 §4.2 / §4.4)
+ *
+ * 교차축과 같은 규칙이되 **분배 정렬은 다르다**: 여유가 음수면 `space-*` 는 fallback 으로
+ * 떨어져 start 처럼 배치된다. Chrome 실측(컨테이너 100 / 아이템 300) — center −100,
+ * flex-end −200, space-between·around·evenly 는 셋 다 0. 즉 분배값의 0 클램프는 결함이
+ * 아니라 정답이라, 두 계열을 같은 값으로 처리하면 반대쪽이 깨진다. 여기서 그 경계를 잠근다.
+ */
+function mainOverflowCase(justify: string): ParityCase {
+  return {
+    name: `row/justify-${justify} 아이템>컨테이너`,
+    availW: 400,
+    availH: 500,
+    nodes: [
+      {
+        label: "item",
+        // flexShrink:0 — 줄어들면 넘침 자체가 사라져 케이스가 무의미해진다.
+        style: { width: "300px", height: "40px", flexShrink: 0 },
+      },
+      {
+        label: "container",
+        style: {
+          display: "flex",
+          flexDirection: "row",
+          flexWrap: "nowrap",
+          justifyContent: justify,
+          width: "100px",
+          height: "200px",
+        },
+        children: [0],
+      },
+      {
+        label: "root",
+        style: { display: "block", width: "400px", height: "500px" },
+        children: [1],
+      },
+    ],
+  };
+}
+
+const MAIN_CASES: ParityCase[] = [
+  "flex-start",
+  "center",
+  "flex-end",
+  "space-between",
+  "space-around",
+  "space-evenly",
+].map(mainOverflowCase);
+
+/**
+ * 라인 간 배치 overflow — `align-content` (multi-line wrap)
+ *
+ * 줄 합이 컨테이너 cross 를 넘길 때. `justify-content` 와 같은 갈림 — 위치 정렬은 음수
+ * offset, 분배·stretch 는 fallback. `flexSweep` 가 "definite cross 를 줄 합보다 크게"
+ * 잡아 비켜 간 바로 그 영역이라 여기서만 검증된다.
+ */
+function alignContentOverflowCase(alignContent: string): ParityCase {
+  const child = (i: number): CaseNode => ({
+    label: `line${i}`,
+    style: { width: "80px", height: "50px", flexShrink: 0 },
+  });
+  return {
+    name: `wrap/align-content-${alignContent} 줄합>컨테이너`,
+    availW: 400,
+    availH: 500,
+    nodes: [
+      child(0),
+      child(1),
+      {
+        label: "container",
+        style: {
+          display: "flex",
+          flexDirection: "row",
+          flexWrap: "wrap",
+          alignItems: "flex-start",
+          alignContent,
+          width: "100px", // 80 짜리 둘 → 2 라인
+          height: "60px", // 줄 합 100 > 60 → 음수 여유
+        },
+        children: [0, 1],
+      },
+      {
+        label: "root",
+        style: { display: "block", width: "400px", height: "500px" },
+        children: [2],
+      },
+    ],
+  };
+}
+
+const ALIGN_CONTENT_CASES: ParityCase[] = [
+  "flex-start",
+  "center",
+  "flex-end",
+  "stretch",
+  "space-between",
+  "space-around",
+].map(alignContentOverflowCase);
 
 describe("flex 교차축 overflow — CSS 대조", () => {
   beforeAll(async () => {
     await initCompositionEngineWasm();
   });
 
-  it.each(CASES.map((c) => [c.name, c] as const))(
+  it.each([...CASES, ...MAIN_CASES, ...ALIGN_CONTENT_CASES].map((c) => [c.name, c] as const))(
     "engine leg — %s",
     (_name, c) => {
       const bad = diffCase(
@@ -124,7 +235,7 @@ describe("flex 교차축 overflow — CSS 대조", () => {
     },
   );
 
-  it.each(CASES.map((c) => [c.name, c] as const))(
+  it.each([...CASES, ...MAIN_CASES, ...ALIGN_CONTENT_CASES].map((c) => [c.name, c] as const))(
     "pipeline leg — %s",
     (_name, c) => {
       const bad = diffCase(
