@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [넘침 표시 chrome 이 프레임 슬롯 너머를 못 보던 문제] - 2026-07-27
+
+### Bug Fixes
+
+- **프레임을 적용한 페이지에서 넘친 콘텐츠를 알려주는 표시가 전혀 나오지 않던 문제**. 컨테이너를 가리켰을 때 밖으로 나간 부분을 반투명으로 보여주는 오버레이도, 밖으로 나간 요소를 선택했을 때의 사선 해칭도 나오지 않았다.
+  - **Why**: 바로 앞 스크롤 문제와 **같은 전제**다 — `buildOverflowInfoMap` 이 넘침을 컨테이너의 **직계 자식**에서만 찾았다. 프레임 적용 페이지는 `body(overflow:auto) > Slot(overflow:visible) > 콘텐츠` 구조이고 슬롯이 페이지 높이에 딱 맞으므로 "넘침 0" 이 되어 맵에 항목 자체가 안 생겼다.
+  - 이제 `overflow:visible` 자손을 따라 내려간다. 하강은 두 지점에서 멈춘다 — **자기 클립을 가진 자손**(그쪽이 자기 경계로 흡수)과 **이미 밖으로 나간 자손**(그 사각형이 넘침을 대표하므로, 더 내려가면 같은 영역에 반투명 fill 이 겹쳐 쌓인다). 그 결과 각 노드는 가장 가까운 클립 조상 하나에만 귀속되어 순회 비용은 O(N) 이고 선택 해칭의 id→컨테이너 매핑도 모호해지지 않는다.
+- **catalog 에만 `overflow` 가 있는 컨테이너가 chrome 대상에서 빠져 있던 문제**. `ListBox`/`Tree`(auto), `Card`/`DisclosureGroup`(hidden) 처럼 overflow 를 `props.style` 이 아니라 catalog `containerStyles` 에 둔 컴포넌트가 해당된다.
+  - **Why**: 2026-07-22 에 스크롤/클립 소비자들을 `resolveEffectiveOverflow` 로 모을 때 이 chrome 경로가 빠져 raw `props.style.overflow` 를 계속 읽고 있었다. Skia 씬은 이미 그 컨테이너들을 클립하는데 chrome 만 "넘치는 게 없다" 고 말하는 어긋남이었다.
+  - sub-pixel 초과(엔진 f32 잔차)는 넘침으로 치지 않는다 — chrome 이 초과분에 1px stroke 를 그리므로 잔차까지 잡으면 hover 마다 파란 선이 따라붙는다.
+- **스크롤한 뒤 오버레이가 스크롤 전 좌표에 남던 문제**. `getCachedOverflowInfoMap` 이 `registryVersion`/`pagePosVersion` 만 캐시 키로 봤는데, 스크롤은 그 둘을 올리지 않고 좌표만 이동한 새 `treeBoundsMap` 을 낸다. 상류 캐시 키를 여기서 다시 나열해 맞추는 대신 **결과 맵의 참조**를 키로 삼아 상류가 키를 늘려도 어긋나지 않게 했다.
+  - 검증: 회귀 테스트 10건 — 종전 "직계만" 동작을 기준선으로 함께 고정. 라이브 실측(사용자가 보고한 그 문서): 프레임 밖으로 나간 5번째 Card 를 선택하면 사선 해칭이 그려지고, 프레임 body 를 가리키면 위로 넘어간 Card 가 반투명으로 표시된다 — 커서를 빼면 사라진다. `slot` 은 자체 overflow 가 없으므로(`resolveEffectiveOverflow("slot") === undefined`) 이 표시는 **body 가 슬롯을 거쳐 자손까지 본** 결과로만 성립한다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/skiaFrameHelpers.ts`, 테스트 `.../skia/__tests__/overflowInfoDescendants.test.ts`
+
 ## [프레임을 적용한 페이지가 내용이 넘쳐도 스크롤되지 않던 문제] - 2026-07-27
 
 ### Bug Fixes
@@ -17,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 이제 `overflow:visible` 자손을 따라 내려가며 넘침을 모은다 (부모 상대 좌표라 offset 누적). 자기 스크롤/클립 컨테이너인 자손에서는 멈춘다 — 그쪽이 자기 스크롤로 흡수하므로.
   - 검증: 같은 문서 실측 — 프레임 적용 Home `maxScrollTop 0 → 674`, 프레임 없는 페이지는 `399` 로 무변동. **Chrome ground truth 와 정확히 일치**(동일 트리 `scrollHeight − clientHeight = 674`, content 슬롯 높이 916 도 일치). 라이브: 스크롤바 썸 렌더 + 휠 스크롤 동작 + 콘텐츠 이동 확인. 회귀 6건 — 종전 "직계만" 동작을 기준선으로 함께 고정.
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts` (`computeScrollExtent` 로 분리), 테스트 `.../__tests__/scrollExtentDescendants.test.ts`
-  - **알려진 잔존**: 슬롯 자체의 높이는 커지지 않는다 — `flex:1` 슬롯이 확정 높이 컨테이너에서 남는 공간만 받는 것은 **CSS 동작과 동일**(Chrome 실측 916 일치)이므로 의도된 결과다. 별개로 `buildOverflowInfoMap`(overflow 해칭 chrome)은 아직 직계 자식만 본다.
+  - **알려진 잔존**: 슬롯 자체의 높이는 커지지 않는다 — `flex:1` 슬롯이 확정 높이 컨테이너에서 남는 공간만 받는 것은 **CSS 동작과 동일**(Chrome 실측 916 일치)이므로 의도된 결과다. 별개로 `buildOverflowInfoMap`(overflow chrome)이 아직 직계 자식만 보던 것은 아래 항목에서 해소.
 
 ## [프레임 프리셋 슬롯이 손대지 않아도 "수정됨" 으로 읽히던 문제] - 2026-07-27
 
