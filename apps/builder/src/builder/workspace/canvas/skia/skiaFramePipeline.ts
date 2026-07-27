@@ -317,7 +317,15 @@ function buildViaCommandStream(
 
   const contentNode: SkiaRenderable = {
     renderSkia(canvas, bounds) {
-      executeRenderCommands(ck, canvas, stream.commands, bounds, fontMgr);
+      // selfSpans 전달 = 노드 Picture 캐시 활성 (ADR-153 Phase 3 — command stream 경로 한정)
+      executeRenderCommands(
+        ck,
+        canvas,
+        stream.commands,
+        bounds,
+        fontMgr,
+        stream.selfSpans,
+      );
     },
   };
 

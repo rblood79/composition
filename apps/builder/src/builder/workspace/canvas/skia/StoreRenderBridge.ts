@@ -28,9 +28,14 @@ import {
   buildSpecNodeData,
   SYNTHETIC_CHILD_PROP_MERGE_TAGS,
 } from "./buildSpecNodeData";
-import { registerSkiaNode, unregisterSkiaNode } from "./useSkiaNode";
+import {
+  getSkiaNode,
+  registerSkiaNode,
+  unregisterSkiaNode,
+} from "./useSkiaNode";
 import { useScrollState } from "../../../stores/scrollState";
 import { useStore } from "../../../stores";
+import { useThemeConfigStore } from "../../../../stores/themeConfigStore";
 import { resolveResponsiveLayoutNode } from "../layout/resolveResponsive";
 import { getSkImage, loadSkImage, releaseSkImage } from "./imageCache";
 import { getSpecForTag, IMAGE_TAGS } from "../sprites/tagSpecMap";
@@ -98,6 +103,76 @@ const COLLECTION_ITEM_TAGS = new Set(["GridListItem", "ListBoxItem"]);
 
 const EMPTY_LAYOUT_MAP = new Map<string, ComputedLayout>();
 
+/**
+ * SkiaNodeData 구조 동등성 (ADR-153 Phase 3 — registerBuiltNode 전용).
+ *
+ * plain object / 배열 / TypedArray 만 구조 비교하고, 그 외 객체(SkImage 등
+ * WASM 핸들)는 identity 비교. false negative(내용 같은데 불일치 판정)는
+ * 재기록 1회 낭비일 뿐이라 안전 방향이다 — stale 위험이 없다.
+ */
+/**
+ * 루트 x/y(요소 위치)를 제외한 SkiaNodeData 동등성.
+ *
+ * 이동/드래그는 위치만 바꾸므로 노드 identity 를 보존해야 노드 Picture 캐시의
+ * 위치-불변 키(r1 M1)가 실효한다. children 내부 x/y 는 spec shape 상대 좌표
+ * (self-draw 내용)라 비교에 포함된다.
+ */
+function skiaNodeContentEqualsIgnoringPosition(
+  a: import("./nodeRendererTypes").SkiaNodeData,
+  b: import("./nodeRendererTypes").SkiaNodeData,
+): boolean {
+  const ra = a as unknown as Record<string, unknown>;
+  const rb = b as unknown as Record<string, unknown>;
+  const keysA = Object.keys(ra).filter((k) => k !== "x" && k !== "y");
+  const keysB = Object.keys(rb).filter((k) => k !== "x" && k !== "y");
+  if (keysA.length !== keysB.length) return false;
+  for (const k of keysA) {
+    if (!skiaNodeContentEquals(ra[k], rb[k])) return false;
+  }
+  return true;
+}
+
+function skiaNodeContentEquals(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (
+    typeof a !== "object" ||
+    typeof b !== "object" ||
+    a === null ||
+    b === null
+  ) {
+    return false;
+  }
+  const protoA = Object.getPrototypeOf(a);
+  if (protoA !== Object.getPrototypeOf(b)) return false;
+  if (ArrayBuffer.isView(a)) {
+    const ta = a as unknown as ArrayLike<number>;
+    const tb = b as unknown as ArrayLike<number>;
+    if (ta.length !== tb.length) return false;
+    for (let i = 0; i < ta.length; i++) {
+      if (ta[i] !== tb[i]) return false;
+    }
+    return true;
+  }
+  if (Array.isArray(a)) {
+    const ba = b as unknown[];
+    if (a.length !== ba.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (!skiaNodeContentEquals(a[i], ba[i])) return false;
+    }
+    return true;
+  }
+  // class instance (WASM 핸들 등) 는 identity 만 신뢰
+  if (protoA !== Object.prototype && protoA !== null) return false;
+  const ra = a as Record<string, unknown>;
+  const rb = b as Record<string, unknown>;
+  const keysA = Object.keys(ra);
+  if (keysA.length !== Object.keys(rb).length) return false;
+  for (const k of keysA) {
+    if (!skiaNodeContentEquals(ra[k], rb[k])) return false;
+  }
+  return true;
+}
+
 // ---------------------------------------------------------------------------
 // CSS Transition 헬퍼
 // ---------------------------------------------------------------------------
@@ -156,6 +231,14 @@ export class StoreRenderBridge {
   private prevProjectionVersion: number | null = null;
   /** 이전 theme (변경 감지 → fullRebuild 강제) */
   private prevTheme: "light" | "dark" = "light";
+  // ── no-op 가드 입력 스냅샷 (ADR-153 Phase 3) — 전부 동일하면 rebuild 생략 ──
+  private prevLayoutMapRef: Map<string, ComputedLayout> | null = null;
+  private prevScrollMapRef: unknown = null;
+  private prevSyntheticMapRef: unknown = null;
+  private prevBreakpoint: unknown = undefined;
+  private prevThemeVersion: number | null = null;
+  /** ref 비교 밖 입력 변경 (bridge 자체 이미지 로드 등) — 다음 sync 가드 1회 해제 */
+  private externalDirty = false;
   /** CSS transition 애니메이션 매니저 (선택 연결) */
   public transitionManager: TransitionManager | null = null;
 
@@ -254,6 +337,38 @@ export class StoreRenderBridge {
     const projectionChanged =
       this.prevProjectionVersion !== null &&
       this.prevProjectionVersion !== projectionVersion;
+
+    // ADR-153 Phase 3: 렌더 입력 무변경 no-op 가드.
+    // rendererInput effect / store 구독은 카메라 이동(줌/팬)·선택 변경 같은
+    // 프레임 노이즈에도 발화하지만, node 빌드가 읽는 입력(요소/레이아웃/테마
+    // 토큰/브레이크포인트/스크롤/synthetic)이 전부 동일하면 rebuild 는 내용
+    // 동일한 새 객체만 만든다 — 노드 identity 를 흔들어 노드 Picture 캐시를
+    // 전량 무효화하는 순수 낭비이므로 건너뛴다. (레이아웃/synthetic 맵은
+    // 버전 캐시 기반이라 ref 비교 = 버전 비교, 이미지 로드는 invalidateLayout
+    // 경유 새 layoutMap ref 또는 externalDirty 로 가드를 해제한다.)
+    const scrollMapRef = useScrollState.getState().scrollMap;
+    const syntheticMapRef = getSyntheticElementsMap();
+    const breakpoint = useStore.getState().activeBreakpoint;
+    const themeVersion = useThemeConfigStore.getState().themeVersion;
+    if (
+      !this.externalDirty &&
+      !themeChanged &&
+      !projectionChanged &&
+      this.prevElementsMap === elementsMap &&
+      this.prevLayoutMapRef === layoutMap &&
+      this.prevScrollMapRef === scrollMapRef &&
+      this.prevSyntheticMapRef === syntheticMapRef &&
+      this.prevBreakpoint === breakpoint &&
+      this.prevThemeVersion === themeVersion
+    ) {
+      return;
+    }
+    this.externalDirty = false;
+    this.prevLayoutMapRef = layoutMap;
+    this.prevScrollMapRef = scrollMapRef;
+    this.prevSyntheticMapRef = syntheticMapRef;
+    this.prevBreakpoint = breakpoint;
+    this.prevThemeVersion = themeVersion;
 
     const changedIds =
       forceFullRebuild || themeChanged || projectionChanged
@@ -409,9 +524,32 @@ export class StoreRenderBridge {
         childrenMap,
       );
       if (nodeData) {
-        registerSkiaNode(id, nodeData);
+        this.registerBuiltNode(id, nodeData);
       }
     }
+  }
+
+  /**
+   * build 결과 등록 — 내용이 기존 등록 객체와 동일하면 기존 객체를 유지한다
+   * (ADR-153 Phase 3). fullRebuild 는 요소 1개 편집에도 전체 노드를 재생성하는데,
+   * 무변경 노드까지 새 객체로 갈아끼우면 노드 identity(= 노드 Picture 캐시 키)가
+   * 전량 흔들려 편집 1회가 전 노드 re-record 로 번진다. identity 유지 시
+   * registerSkiaNode 의 동일-참조 skip 이 registryVersion 증가도 막는다.
+   */
+  private registerBuiltNode(
+    id: string,
+    nodeData: import("./nodeRendererTypes").SkiaNodeData,
+  ): void {
+    const prev = getSkiaNode(id);
+    if (prev && skiaNodeContentEqualsIgnoringPosition(prev, nodeData)) {
+      // 루트 x/y(위치)만 다른 경우: 이동은 self-draw 내용을 바꾸지 않는다
+      // (Picture 키도 위치 제외 — r1 M1). 기존 객체를 유지하되 layout 부재 시
+      // fallback 으로 읽히는 좌표만 동기화한다.
+      if (prev.x !== nodeData.x) prev.x = nodeData.x;
+      if (prev.y !== nodeData.y) prev.y = nodeData.y;
+      return;
+    }
+    registerSkiaNode(id, nodeData);
   }
 
   /**
@@ -460,7 +598,7 @@ export class StoreRenderBridge {
       );
 
       if (nodeData) {
-        registerSkiaNode(id, nodeData);
+        this.registerBuiltNode(id, nodeData);
       }
 
       // 이미지 추적
@@ -754,6 +892,8 @@ export class StoreRenderBridge {
         releaseSkImage(src);
         return;
       }
+      // 이미지 로드 완료는 ref 비교 대상 밖 입력 변경 — no-op 가드 1회 해제
+      this.externalDirty = true;
       this.pendingResync?.();
     });
   }
@@ -777,6 +917,13 @@ export class StoreRenderBridge {
     this.pendingResync = null;
     this.prevElementsMap = null;
     this.prevProjectionVersion = null;
+    // no-op 가드 스냅샷 리셋 — 재연결 직후 sync 가 skip 되지 않도록
+    this.prevLayoutMapRef = null;
+    this.prevScrollMapRef = null;
+    this.prevSyntheticMapRef = null;
+    this.prevBreakpoint = undefined;
+    this.prevThemeVersion = null;
+    this.externalDirty = false;
 
     for (const id of this.registeredIds) {
       unregisterSkiaNode(id);

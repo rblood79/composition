@@ -30,6 +30,7 @@ import { markBegin, markEnd, PERF_LABEL } from "../../../utils/perfMarks";
 import type { TransitionManager } from "./transitionManager";
 import type { AnimationEngine } from "./animationEngine";
 import { getSkiaNode } from "./useSkiaNode";
+import { setVolatileNodeIds } from "./nodePictureCache";
 
 /** classifyFrame 판정 결과 — content/full 프레임은 승격 사유를 동반한다 (ADR-153 Phase 1-a) */
 interface FrameClassification {
@@ -37,6 +38,25 @@ interface FrameClassification {
   /** content/full 프레임의 재렌더 사유 — contentSurface 캐시 miss 사유로 기록 */
   reason: string | null;
 }
+
+/**
+ * content 스냅샷 정책 (ADR-153 Phase 3 — R7 격차 5)
+ *
+ * 스냅샷(Image)이 살아 있는 채로 backing surface 에 다시 그리면 Ganesh 가
+ * copy-on-write 로 텍스처 전체를 복사한다 — flush.content 스파이크의 원인 구조.
+ * - "single": 그리기 전에 이전 스냅샷을 해제 (early-release — 추가 메모리 0)
+ * - "ping-pong": 표면 2장 교대 — "그리는 표면 ≠ 스냅샷 표면" 구조 보장
+ *   (content surface 1장분 GPU 메모리 추가 — G3 상한에 포함)
+ *
+ * 2026-07-28 live 실측 (zoom 오실레이션 150틱, flush.content):
+ *   single(early-release) mean 0.43 / p95 1.6 / p99 5.4 / max 7.2ms
+ *   ping-pong             mean 0.16 / p95 0.3 / p99 0.3 / max 0.4ms
+ * → tail(p99/max) 13~18배 차이로 ping-pong 확정. early-release 만으로는 이전
+ * 프레임 blit 이 읽는 동일 텍스처 재기록 대기(stall)가 잔존한다.
+ * dev 는 `window.__composition_SNAPSHOT_POLICY__` 로 전환 가능.
+ */
+type SnapshotPolicy = "single" | "ping-pong";
+const DEFAULT_SNAPSHOT_POLICY: SnapshotPolicy = "ping-pong";
 
 export class SkiaRenderer {
   private ck: CanvasKit;
@@ -73,6 +93,9 @@ export class SkiaRenderer {
   private contentSurface: Surface | null = null;
   private contentCanvas: Canvas | null = null;
   private contentSnapshot: Image | null = null;
+  /** ping-pong 정책 전용 대기 표면 (lazy 생성) — 그리는 표면 ≠ 스냅샷 표면 보장 */
+  private standbySurface: Surface | null = null;
+  private standbyCanvas: Canvas | null = null;
   private contentDirty = true;
   private lastRegistryVersion = -1;
   private lastOverlayVersion = -1;
@@ -318,6 +341,30 @@ export class SkiaRenderer {
     this.contentDirty = true;
   }
 
+  /** 스냅샷 정책 해석 — dev 는 window 전역으로 실측 전환 가능 (production 은 default 고정) */
+  private resolveSnapshotPolicy(): SnapshotPolicy {
+    if (process.env.NODE_ENV === "development") {
+      const override = (window as unknown as Record<string, unknown>)
+        .__composition_SNAPSHOT_POLICY__;
+      if (override === "single" || override === "ping-pong") return override;
+    }
+    return DEFAULT_SNAPSHOT_POLICY;
+  }
+
+  /** ping-pong 대기 표면 lazy 생성 (contentSurface 와 동일 규격/백엔드) */
+  private ensureStandbySurface(): void {
+    if (this.standbySurface || !this.contentSurface) return;
+    const width = this.mainSurface.width() + this.contentPaddingDevicePx * 2;
+    const height = this.mainSurface.height() + this.contentPaddingDevicePx * 2;
+    const baseInfo = this.mainSurface.imageInfo();
+    this.standbySurface = this.mainSurface.makeSurface({
+      ...baseInfo,
+      width,
+      height,
+    });
+    this.standbyCanvas = this.standbySurface?.getCanvas() ?? null;
+  }
+
   /**
    * Content Surface에 씬을 렌더링한다.
    */
@@ -336,6 +383,27 @@ export class SkiaRenderer {
     const isDev = process.env.NODE_ENV === "development";
     const start = performance.now();
 
+    // 스냅샷 정책 (ADR-153 Phase 3 — R7): CoW 복사 회피
+    const policy = this.resolveSnapshotPolicy();
+    let targetSurface = this.contentSurface;
+    let targetCanvas = this.contentCanvas;
+    if (policy === "ping-pong") {
+      this.ensureStandbySurface();
+      if (this.standbySurface && this.standbyCanvas) {
+        targetSurface = this.standbySurface;
+        targetCanvas = this.standbyCanvas;
+      } else if (this.contentSnapshot) {
+        // 대기 표면 생성 실패 → single(early-release) 로 강등
+        this.contentSnapshot.delete();
+        this.contentSnapshot = null;
+      }
+    } else if (this.contentSnapshot) {
+      // single(early-release): 스냅샷이 살아 있는 채로 같은 표면에 그리면
+      // Ganesh 가 텍스처 전체를 copy-on-write 복사한다 — 그리기 전에 해제.
+      this.contentSnapshot.delete();
+      this.contentSnapshot = null;
+    }
+
     // 전체 콘텐츠 렌더링 (Pencil 방식: content invalidation은 full rerender)
     const padCss = this.contentPaddingDevicePx / this.dpr;
     const padScene = padCss / Math.max(camera.zoom, 0.001);
@@ -348,15 +416,15 @@ export class SkiaRenderer {
 
     // 투명 배경으로 클리어 — 그리드가 콘텐츠 아래(main canvas)에서 보이도록
     // 배경색은 present()에서 main canvas에 적용한다.
-    this.contentCanvas.clear(this.ck.Color4f(0, 0, 0, 0));
-    this.contentCanvas.save();
-    this.contentCanvas.scale(this.dpr, this.dpr);
-    this.contentCanvas.translate(padCss, padCss);
-    this.contentCanvas.translate(camera.panX, camera.panY);
-    this.contentCanvas.scale(camera.zoom, camera.zoom);
+    targetCanvas.clear(this.ck.Color4f(0, 0, 0, 0));
+    targetCanvas.save();
+    targetCanvas.scale(this.dpr, this.dpr);
+    targetCanvas.translate(padCss, padCss);
+    targetCanvas.translate(camera.panX, camera.panY);
+    targetCanvas.scale(camera.zoom, camera.zoom);
     // ADR-153 Phase 1-e: 씬 재기록 (WASM CPU) 구간 분해 라벨
     const recordBegin = isDev ? markBegin() : 0;
-    this.contentNode.renderSkia(this.contentCanvas, paddedBounds);
+    this.contentNode.renderSkia(targetCanvas, paddedBounds);
     if (isDev) {
       markEnd(PERF_LABEL.RENDER_SKIA_RECORD_CONTENT, recordBegin);
       // ADR-153 Phase 1-b: 이번 content 렌더의 커맨드/드로콜 수 회수
@@ -364,17 +432,28 @@ export class SkiaRenderer {
       recordWasmMetric("commandCount", stats.commands);
       recordWasmMetric("drawCallCount", stats.draws);
     }
-    this.contentCanvas.restore();
+    targetCanvas.restore();
 
-    // 콘텐츠 스냅샷 생성 (이전 스냅샷 해제)
+    // 콘텐츠 스냅샷 생성
     // ADR-153 Phase 1-e: Ganesh op 실행 + snapshot 구간 분해 라벨 (격차 5 감시 지표)
     const flushBegin = isDev ? markBegin() : 0;
-    this.contentSnapshot?.delete();
-    this.contentSurface.flush();
-    this.contentSnapshot = this.contentSurface.makeImageSnapshot();
+    this.contentSnapshot?.delete(); // ping-pong: 반대 표면의 이전 스냅샷 해제
+    targetSurface.flush();
+    this.contentSnapshot = targetSurface.makeImageSnapshot();
     if (isDev) {
       markEnd(PERF_LABEL.RENDER_SKIA_FLUSH_CONTENT, flushBegin);
     }
+
+    // ping-pong swap — "스냅샷은 항상 this.contentSurface 를 참조" 불변식 유지
+    if (policy === "ping-pong" && targetSurface === this.standbySurface) {
+      const prevSurface = this.contentSurface;
+      const prevCanvas = this.contentCanvas;
+      this.contentSurface = this.standbySurface;
+      this.contentCanvas = this.standbyCanvas;
+      this.standbySurface = prevSurface;
+      this.standbyCanvas = prevCanvas;
+    }
+
     this.snapshotCamera.zoom = camera.zoom; // camera-only blit 델타 기준점 갱신
     this.snapshotCamera.panX = camera.panX;
     this.snapshotCamera.panY = camera.panY;
@@ -524,7 +603,10 @@ export class SkiaRenderer {
     // Early exit: transition/animation 모두 비활성이면 Set 할당 없이 반환
     const tmActive = this.transitionManager?.isActive() ?? false;
     const aeActive = this.animationEngine?.isActive() ?? false;
-    if (!tmActive && !aeActive) return false;
+    if (!tmActive && !aeActive) {
+      setVolatileNodeIds(null);
+      return false;
+    }
 
     const dirtyTransition = tmActive
       ? this.transitionManager!.tick(now)
@@ -541,6 +623,9 @@ export class SkiaRenderer {
     } else {
       allDirty = dirtyTransition ?? dirtyAnimation ?? new Set<string>();
     }
+    // 노드 Picture 캐시 volatile 면제 (ADR-153 Phase 3): tick 이 skiaData 를
+    // in-place mutate 하는 노드는 identity 키가 변경을 못 보므로 캐시에서 제외.
+    setVolatileNodeIds(allDirty.size > 0 ? allDirty : null);
     if (allDirty.size === 0) return false;
 
     // transition(낮은 우선순위) → animation(높은 우선순위) 순으로 적용
@@ -805,6 +890,9 @@ export class SkiaRenderer {
     this.contentSurface?.delete();
     this.contentSurface = null;
     this.contentCanvas = null;
+    this.standbySurface?.delete();
+    this.standbySurface = null;
+    this.standbyCanvas = null;
   }
 
   /** 내부 Canvas 인스턴스 (직접 그리기용) */

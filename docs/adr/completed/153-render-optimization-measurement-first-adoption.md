@@ -2,13 +2,22 @@
 
 ## Status
 
-Accepted — 2026-07-27 (Proposed 2026-07-16)
+Implemented — 2026-07-28 (Accepted 2026-07-27, Proposed 2026-07-16)
 
-> **착수 승인 (2026-07-27)**: 사용자 `/execute-adr 153` 호출로 구 "착수 금지 (생성까지만, 2026-07-16)" 지시 해제. 리뷰 round 2 (2026-07-27, 이슈 전건 fixed — [reviews/153.md](reviews/153.md)) 승인 기록으로 전제 확정 (CLAUDE.md §전제·관점 종결 계약).
+> **착수 승인 (2026-07-27)**: 사용자 `/execute-adr 153` 호출로 구 "착수 금지 (생성까지만, 2026-07-16)" 지시 해제. 리뷰 round 2 (2026-07-27, 이슈 전건 fixed — [reviews/153.md](../reviews/153.md)) 승인 기록으로 전제 확정 (CLAUDE.md §전제·관점 종결 계약).
+
+### 진행 로그
+
+| Phase                              | 결과                                                                                                                                                                                                                                                             |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1 측정 보강                       | **Implemented 2026-07-27** — miss 사유 분류 / draw-call / GPU 시간 / speedscope export. G1 (번들 무증가 + 오버헤드 0.23ms) 통과                                                                                                                                  |
+| P2 Paint 풀·lifecycle              | **Implemented 2026-07-27** — 77건 3분류 → free-list 풀 + `registerSkiaCacheDestroy` 통합 해제. live: hits 9,742 / grow 2 / unmount destroy 증명                                                                                                                  |
+| P3 node Picture 캐시 + 스냅샷 정책 | **Implemented 2026-07-28** — self-draw 블록 Picture (identity+크기 키, 위치 제외) + bridge no-op 가드/content-equal 재사용 + ping-pong 스냅샷. live: 오실 150틱 replay 99.89% (재기록 5/4,592), record.content mean 2.98→0.21ms, 227ms 스파이크 소멸. G2/G3 통과 |
+| P4 incremental budget (조건부)     | **G4 미달 → 미도입 종결 2026-07-28** — Phase 3 후 render.frame p95 1.5ms / record+flush p95 합 ~0.9ms ≪ 8ms (의도된 종결 경로 — Gates 표)                                                                                                                        |
 
 ## Context
 
-유사 빌더 3종 (Pencil.app / openpencil / open-pencil) 심층 분석 문서 2건 — [PENCIL_ECOSYSTEM_ANALYSIS.md](../explanation/research/PENCIL_ECOSYSTEM_ANALYSIS.md) (2026-05-27), [PENCIL_RENDERING_OPTIMIZATION.md](../explanation/research/PENCIL_RENDERING_OPTIMIZATION.md) (2026-05-28) — 이 open-pencil 의 production-grade 렌더링 패턴 (3-tier retained backing / phase profiler / paint pool / RBush) 을 composition 의 격차로 판정하고 처방 후보 7건을 제시했다.
+유사 빌더 3종 (Pencil.app / openpencil / open-pencil) 심층 분석 문서 2건 — [PENCIL_ECOSYSTEM_ANALYSIS.md](../../explanation/research/PENCIL_ECOSYSTEM_ANALYSIS.md) (2026-05-27), [PENCIL_RENDERING_OPTIMIZATION.md](../../explanation/research/PENCIL_RENDERING_OPTIMIZATION.md) (2026-05-28) — 이 open-pencil 의 production-grade 렌더링 패턴 (3-tier retained backing / phase profiler / paint pool / RBush) 을 composition 의 격차로 판정하고 처방 후보 7건을 제시했다.
 
 **2026-07-16 코드 실측 재판정**: 문서 작성(5월 말) 이후 코드가 진화하여 (ADR-916 자체 Rust 엔진 등) 처방 후보의 절반은 이미 해소됐다 — RBush 는 Rust WASM `SpatialIndex` (`wasm-bindings/spatialIndex.ts`) 로, RenderLayer 분리와 T2 backing 은 `SkiaRenderer.ts` 의 dual-surface + 프레임 분류 (idle/present/camera-only/content/full) + camera-only blit 으로 이미 존재한다. **잔존 실제 격차는 4건**:
 
@@ -17,7 +26,7 @@ Accepted — 2026-07-27 (Proposed 2026-07-16)
 3. **측정 격차** — `gpuProfilerCore.ts` 15개 CPU-side 트래커는 있으나 GPU 시간 (`EXT_disjoint_timer_query_webgl2`) / draw-call 카운트 / 캐시 miss **사유** 분류 / 프로파일 export(speedscope) 부재. rAF 기반 FPS 는 모니터 주사율 반영 (gpuProfilerCore.ts:91 주석 자인) 이라 실제 렌더 비용을 대변하지 못함
 4. **Paint 풀·통합 lifecycle 부재** — 풀 심볼 0건, `Paint()` 생성 77건 산재 (2026-07-27 재계수, hot/cold 미분류)
 
-**2026-07-26 비용 분포 실측 (본 ADR 의 우선순위 근거)**: live builder 에서 rAF 콜백을 출처별로 귀속 계측한 결과, `renderFrame` 의 초당 누적 실행 시간은 **유휴 6.7ms/s (코어 1개의 0.67%, 213 샘플) vs 팬/줌 상호작용 최대 884ms/s (88%, 21 샘플)** — 약 **132배** 차이다. 즉 렌더 CPU 개선의 질량은 "프레임을 **돌릴지**" (유휴 축) 가 아니라 "프레임 **내부 비용**" (상호작용 축) 에 있고, 본 ADR 의 처방 (Picture 캐시 / Paint 풀 / incremental budget) 이 정확히 그 축이다. 유휴 축을 다룬 [ADR-167](completed/167-on-demand-frame-loop.md) (on-demand 프레임 루프) 은 같은 실측으로 G0 기각됐다 — 본 ADR 의 상대 우선순위는 그 판정의 반대편 근거다. 상세 실측 기록: ADR-167 §G0 실측 결과.
+**2026-07-26 비용 분포 실측 (본 ADR 의 우선순위 근거)**: live builder 에서 rAF 콜백을 출처별로 귀속 계측한 결과, `renderFrame` 의 초당 누적 실행 시간은 **유휴 6.7ms/s (코어 1개의 0.67%, 213 샘플) vs 팬/줌 상호작용 최대 884ms/s (88%, 21 샘플)** — 약 **132배** 차이다. 즉 렌더 CPU 개선의 질량은 "프레임을 **돌릴지**" (유휴 축) 가 아니라 "프레임 **내부 비용**" (상호작용 축) 에 있고, 본 ADR 의 처방 (Picture 캐시 / Paint 풀 / incremental budget) 이 정확히 그 축이다. 유휴 축을 다룬 [ADR-167](167-on-demand-frame-loop.md) (on-demand 프레임 루프) 은 같은 실측으로 G0 기각됐다 — 본 ADR 의 상대 우선순위는 그 판정의 반대편 근거다. 상세 실측 기록: ADR-167 §G0 실측 결과.
 
 이 실측은 위 격차 3(측정 격차) 의 진단도 뒷받침한다 — 순간 6배 지연 샘플에서도 rAF cadence 는 **fps 120.2 를 유지**해, FPS 지표가 실제 렌더 비용과 무관하게 움직인다는 것이 관측됐다 (`gpuProfilerCore.ts:91` 주석의 자인과 일치).
 
@@ -107,7 +116,7 @@ Accepted — 2026-07-27 (Proposed 2026-07-16)
 - **대안 C 기각**: 위험은 최소지만 enterprise target 의 본질 격차 (편집 응답성) 미해소. 단, C 의 내용물 (Phase 1/2) 은 B 의 선행 phase 로 전부 포함됨
 - **부수 기각 (문서 처방 중)**: RBush 도입 — Rust `SpatialIndex` 로 이미 해소 (stale). Pencil.app native koffi Skia — web 환경 불가. Paper.js fallback — fallback 회피 원칙 위반. P2P 협업/Kiwi override — scope 밖. AI dual embed — ADR-134 영역. Worker process 분리 — 본 ADR 과 직교, 향후 별도 ADR 제안 영역
 
-> 구현 상세: [153-render-optimization-measurement-first-adoption-breakdown.md](design/153-render-optimization-measurement-first-adoption-breakdown.md)
+> 구현 상세: [153-render-optimization-measurement-first-adoption-breakdown.md](../design/153-render-optimization-measurement-first-adoption-breakdown.md)
 
 ## Risks
 

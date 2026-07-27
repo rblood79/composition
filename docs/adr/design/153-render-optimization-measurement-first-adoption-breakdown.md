@@ -97,7 +97,13 @@
   - [x] frame-hot 분류 paint 의 per-frame 생성 0건 (grep + dev 카운터) ✅ 2026-07-27: 정적 — `paintPool.static.test.ts` 가 skia/ 직접 생성 0건 강제. live — 줌 오실레이션 150틱 후 paintPool hits 9,742 / 생성(grow) 2 / 풀 크기 2 (종전엔 9,742회 전부 WASM malloc+free)
   - [x] destroy 경로 단일화 — 페이지 전환/캔버스 재생성 반복 시 WASM heap 증가 없음 실측 ✅ 2026-07-27: `registerSkiaCacheDestroy`/`destroyAllSkiaCaches` (disposable.ts) 에 paintPool + imageCache 등록, SkiaCanvas unmount 한정 발화. live — dashboard 이탈(unmount) 후 재진입 시 grow 2→4 (파괴→재구축 증명) + size 2 재안정 + 미반환 경고 0 + 시각 무결. `clearImageCache` 는 종전 호출자 0건이던 휴면 함수를 실배선
 
-### Phase 3 — node/subtree Picture 캐시 (open-pencil T3 + textPicture 등가)
+### Phase 3 — node/subtree Picture 캐시 (open-pencil T3 + textPicture 등가) — **Implemented 2026-07-28**
+
+> **구현 요약 (2026-07-28)**: record 단위 = **요소 self-draw 블록** (ELEMENT_BEGIN 직후 ~ CHILDREN_BEGIN 직전 — 자기 shapes/text, 자식 요소 재귀 제외). 서브트리 통짜 Picture 는 자식 변경 감지에 깊은 시그니처가 필요해 R1(stale) 위험이 커서 채택하지 않음 — 비용 지배 축(글리프/shape 발행)은 self 블록에 있고 실측이 충분성을 입증 (record.content mean 2.98→0.21ms). 키 = **registry 노드 객체 identity + width/height** (위치 제외 — r1 M1), 신규 전역 카운터 0 (identity 가 ADR-136 registry 채널의 파생). 텍스트 Picture 는 renderText 내부 이중 캐시 대신 self 블록에 흡수 (r1 L1 이중 구현 회피 — tree fallback 경로는 selfSpans 미전달로 자연 비활성).
+>
+> **identity 키의 전제 배선 (StoreRenderBridge — "invalidate 연동" 의 실체)**: 실측 결과 카메라 틱마다 bridge 가 전 노드를 내용 동일한 새 객체로 재등록해 (rendererInput effect 의 forceFullRebuild + `changedIds.size===0` 전체 rebuild 경로) identity 키가 무효였다 (150틱 오실 hits 0 / cold 3,732). 처방 2겹 — ① **sync no-op 가드**: 빌드 입력 (elementsMap/layoutMap/theme/themeVersion/breakpoint/scrollMap/syntheticMap ref — 전부 버전-충실 ref) 무변경 시 rebuild 생략, 이미지 로드는 `externalDirty` 1회 해제 ② **registerBuiltNode content-equal 재사용**: rebuild 가 돌아도 내용 동일 (루트 x/y 제외 — 이동 보존) 이면 기존 객체 유지. 적용 후 동일 오실 **hits 4,587 / 재기록 5 (99.89%)**.
+>
+> **스냅샷 정책 (R7) 실측 확정 = (b) ping-pong**: 150틱 오실 flush.content — single(early-release) mean 0.43/p95 1.6/p99 5.4/max 7.2ms vs **ping-pong mean 0.16/p95 0.3/p99 0.3/max 0.4ms**. early-release 만으로는 직전 blit 이 읽는 동일 텍스처 재기록 stall 이 잔존. 비용 = content surface 1장 추가 (GPU 텍스처 — R7 명시 수용 위험). (a) 모션 품질 강등은 기각. dev 전환: `window.__composition_SNAPSHOT_POLICY__`.
 
 - 신규 `nodePictureCache.ts`: 노드(우선순위: 텍스트 노드 → 컨테이너 서브트리)별 `Picture` 를 record/보관, content 재빌드 시 미변경 노드는 `drawPicture` 재사용
 - **적용 경로 한정 (리뷰 r1 L1)**: 서브트리 분해 대상은 command stream 경로 (`buildViaCommandStream`) **한정**. `buildViaTree` (skiaFramePipeline.ts:337) 는 sharedLayoutMap 부재 시 fallback (`publishLayoutMap(null, …)` — engines/fullTreeLayout.ts:245,254 로 런타임 도달 가능) 으로 잔존하나 이중 구현 회피를 위해 분해 미적용 — 텍스트 노드 Picture 는 `nodeRendererText.ts` 공유 지점이라 양 경로에 동일 적용
@@ -110,16 +116,18 @@
   - (b) **content surface ping-pong** — surface 2장을 교대로 사용해 "그리는 표면 ≠ 스냅샷 표면" 을 보장, CoW 복사 제거. 위험: WASM/GPU 메모리 1장분 추가 (G3 heap 상한에 포함)
 - **캐시 키 2차 확장 — reusable master 공유 (1차 invalidation 캐시 G2/G3 통과 후에만)**: `master id + override signature` 를 Picture 캐시 키로 쓰면 오버라이드 없는 동일 master 인스턴스 N 개가 기록 1회 + 재생 N 회가 된다 (canonicalRefResolution 이 인스턴스마다 master 서브트리를 전개하므로 현행은 인스턴스마다 전량 재기록). 실사용에서 인스턴스별 override (items fork / 텍스트 차이) 가 흔해 공유율이 제한될 수 있으므로 **선행 조건: Phase 1 miss 사유 분류에 "master 공유 가능이었으나 override 로 미공유" 카운트를 넣어 이득 실측 후 도입 판정**
 - 대상 파일: 신규 `nodePictureCache.ts`, `renderCommands.ts` (command 실행을 노드 단위 record 로 분해), `nodeRendererText.ts`, `skiaFramePipeline.ts`, `imageCache.ts` (퇴거 훅), `skia/StoreRenderBridge.ts` (invalidate 연동), `SkiaRenderer.ts` (스냅샷 정책)
-- 체크리스트:
-  - [ ] `/cross-check` 시각 대칭 PASS (편집 전/후 + 캐시 hit/miss 양 경로) — G2
-  - [ ] 요소 1개 편집 시나리오에서 재기록 노드 수가 변경 노드 + 조상 한정임을 dev 카운터로 실측 — G2
-  - [ ] 드래그/애니메이션 구간 프레임 타임 Phase 0 baseline 대비 비회귀 + 이동 중 re-record 0건 (volatile 면제 + 위치-불변 키 검증) — G2
-  - [ ] image 퇴거 → 참조 Picture 동시 invalidate 실측 (stale image 렌더/crash 0) — G3
-  - [ ] WASM heap 증가 상한 준수 + 페이지 전환 반복 leak 0 — G3
-  - [ ] Chrome MCP 실빌더에서 텍스트 편집/이동/undo 시 stale 렌더 0 exercise (live behavior 게이트) — G2
-  - [ ] 스냅샷 정책 적용 시 flush.content (flush+makeImageSnapshot) 누적 감소 + 모션 종료 프레임 시각 무결성 실측 — G2 (R7)
+- 체크리스트 (전건 2026-07-28 live 실측, Chrome MCP 격리 5199):
+  - [x] 시각 대칭 PASS (캐시 hit/miss 양 경로) — G2 ✅ 동일 카메라에서 캐시 OFF ↔ ON(record 경유 + replay 경유 각 1회) 3-스크린샷 픽셀 정합. dev 토글 `__composition_NODE_PICTURE_CACHE__` 로 A/B. CSS↔Skia cross-check 은 시각 결과 불변 리팩토링이라 캐시 on/off 등가성 실측으로 갈음 (Phase 2 와 동일 논리)
+  - [x] 요소 1개 편집 재기록 한정 — G2 ✅ GridList gap 0→4 편집: **재기록 1 / 재사용 55** (조상 재기록 0 — self 블록 단위라 상한 요건 초과 달성). undo: 재기록 2 / 재사용 54 + 시각 원복
+  - [x] 프레임 타임 비회귀 + 이동 중 re-record 0 — G2 ✅ 150틱 오실 render.frame mean 0.83/p95 1.5ms (개입 전 동일 하니스 mean 2.13/max 227 — 227ms 스파이크 소멸). 이동 축: 위치-불변 키 unit test ("위치만 바뀐 재빌드는 재기록하지 않는다") + registerBuiltNode 루트 x/y 제외 + 오실 재기록 5/4,587. 드래그 시각 오프셋(dragVisualOffset/siblingOffset)은 BEGIN 레벨 (span 밖) 이라 구조적으로 re-record 무발
+  - [x] image 퇴거 → 참조 Picture 동시 invalidate — G3 ✅ Image 요소 삽입→삭제 실측 crash/stale/콘솔 0. 해제 순서 = unregister 훅의 Picture invalidate 가 bridge `releaseSkImage` 보다 선행 (StoreRenderBridge 소스 순서) + imageCache eviction listener 역참조 (`paintPool.static.test.ts` 정적 강제)
+  - [x] WASM heap 상한 + 전환 leak 0 — G3 ✅ unmount(dashboard 이탈) 시 picSize 56→0 (destroyAllSkiaCaches) → 재진입 재구축 56. LRU 상한 1024, evictions 0, 미반환/에러 콘솔 0
+  - [x] 실빌더 편집/undo stale 0 exercise — G2 ✅ gap 편집 + undo live 시각 무결 (1920×252→236→252). 인라인 텍스트 편집 중 숨김·우회는 unit test ("텍스트 편집 중인 요소는 record/replay 모두 우회") + editingId direct 경로 유지로 잠금 — 커밋 후 재등록 identity 키가 재기록 보장
+  - [x] 스냅샷 정책 flush.content 감소 + 시각 무결 — G2 (R7) ✅ ping-pong 확정 (위 실측 표 — p99 5.4→0.3/max 7.2→0.4ms). 모션 종료 cleanup 프레임 시각 무결 스크린샷 확인
 
-### Phase 4 (조건부) — incremental content build budget
+### Phase 4 (조건부) — incremental content build budget — **G4 미달 → 미도입 종결 (2026-07-28)**
+
+> **G4 판정 (2026-07-28 실측)**: Phase 3 반영 후 150틱 줌 오실레이션 — record.content p95 0.4ms + flush.content p95 0.5ms, render.frame p95 1.5ms ≪ 8ms. 진입 조건 (`contentRenderTime` p95 > 8ms) **미달** → 본 phase 는 도입하지 않고 종결 (Gates 표 명시: "실패 아님 — 의도된 종결 경로"). 재개 조건 = 대형 페이지 실사용에서 content 프레임 p95 > 8ms 재실측.
 
 - **진입 게이트 G4**: Phase 0/1 실측에서 `contentRenderTime` p95 > 8ms (Phase 3 반영 후 기준) 일 때만 진입. 미달 시 본 phase 는 도입하지 않고 종결 — 복잡도 추가 회피
 - 내용: content 재빌드를 6ms cursor 로 프레임 분할 (open-pencil `stepSceneBackingBuild` 패턴), 진행 중에는 기존 `contentSnapshot` blit 유지 (camera-only blit 메커니즘 재사용 — stale 잠시 → crisp 복원 UX)
@@ -132,12 +140,12 @@
 
 ## 2. 파일 변경표 (예상 전수)
 
-| Phase | 신규                                                          | 수정                                                                                                                                                                                                                       |
-| ----- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | `canvas/skia/gpuTimer.ts`, `canvas/utils/speedscopeExport.ts` | `cacheMetrics.ts`, `renderCommands.ts`, `SkiaRenderer.ts`, `nodeRenderers.ts`, `gpuProfilerCore.ts`, `createSurface.ts`, `GPUDebugOverlay.tsx`, `stores/canvasMetrics.ts`, `builder/utils/perfMarks.ts` (1-e, prefix 예외) |
-| 2     | `canvas/skia/paints.ts` (풀)                                  | `Paint()` 사용처 hot 분류분 (감사 결과 확정), `disposable.ts`                                                                                                                                                              |
-| 3     | `canvas/skia/nodePictureCache.ts`                             | `renderCommands.ts`, `nodeRendererText.ts`, `skiaFramePipeline.ts`, `imageCache.ts` (퇴거 훅), `skia/StoreRenderBridge.ts` 연동부                                                                                          |
-| 4     | —                                                             | `SkiaRenderer.ts`, `skiaFramePipeline.ts`                                                                                                                                                                                  |
+| Phase | 신규                                                          | 수정                                                                                                                                                                                                                                                                                                                             |
+| ----- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | `canvas/skia/gpuTimer.ts`, `canvas/utils/speedscopeExport.ts` | `cacheMetrics.ts`, `renderCommands.ts`, `SkiaRenderer.ts`, `nodeRenderers.ts`, `gpuProfilerCore.ts`, `createSurface.ts`, `GPUDebugOverlay.tsx`, `stores/canvasMetrics.ts`, `builder/utils/perfMarks.ts` (1-e, prefix 예외)                                                                                                       |
+| 2     | `canvas/skia/paints.ts` (풀)                                  | `Paint()` 사용처 hot 분류분 (감사 결과 확정), `disposable.ts`                                                                                                                                                                                                                                                                    |
+| 3     | `canvas/skia/nodePictureCache.ts`                             | `renderCommands.ts`, `skiaFramePipeline.ts`, `imageCache.ts` (퇴거 리스너), `useSkiaNode.ts` (invalidate 훅), `SkiaRenderer.ts` (volatile 공급 + 스냅샷 정책), `StoreRenderBridge.ts` (no-op 가드 + content-equal 재사용). `nodeRendererText.ts` 는 계획과 달리 무수정 — 텍스트 Picture 를 self 블록에 흡수 (§Phase 3 구현 요약) |
+| 4     | —                                                             | `SkiaRenderer.ts`, `skiaFramePipeline.ts`                                                                                                                                                                                                                                                                                        |
 
 > 경로 prefix: `apps/builder/src/builder/workspace/canvas/`
 

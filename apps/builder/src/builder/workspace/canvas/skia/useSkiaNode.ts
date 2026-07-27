@@ -19,6 +19,10 @@
 import { useLayoutEffect } from "react";
 import type { SkiaNodeData } from "./nodeRenderers";
 import { recordInvalidation } from "./renderInvalidation";
+import {
+  clearNodePictureCache,
+  invalidateNodePicture,
+} from "./nodePictureCache";
 
 // ============================================
 // 전역 레지스트리
@@ -38,12 +42,16 @@ export function registerSkiaNode(elementId: string, data: SkiaNodeData): void {
 
   skiaNodeRegistry.set(elementId, data);
   registryVersion++;
+  // 내용 교체 = record 된 self-draw Picture stale — 즉시 해제 (ADR-153 Phase 3).
+  // 키(identity) 불일치로도 재생은 차단되지만, 즉시 해제가 WASM 메모리를 먼저 돌려준다.
+  invalidateNodePicture(elementId);
 }
 
 /** 레지스트리에서 Skia 렌더 데이터 해제 */
 export function unregisterSkiaNode(elementId: string): void {
   skiaNodeRegistry.delete(elementId);
   registryVersion++;
+  invalidateNodePicture(elementId);
 }
 
 /** 레지스트리에서 Skia 렌더 데이터 조회 */
@@ -64,6 +72,7 @@ export function getSkiaRegistrySize(): number {
 export function clearSkiaRegistry(): void {
   skiaNodeRegistry.clear();
   registryVersion++;
+  clearNodePictureCache();
   recordInvalidation("content", "clearSkiaRegistry");
 }
 

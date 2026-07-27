@@ -45,6 +45,36 @@ function notifyImageLoaded(): void {
   }
 }
 
+// ============================================
+// 퇴거 리스너 (ADR-153 Phase 3 — R2 해제 순서)
+// ============================================
+
+/**
+ * 캐시된 SkImage 가 `.delete()` 되기 **직전** 호출되는 리스너.
+ * record 된 SkPicture 가 이미지를 내부 ref 하므로, 참조 Picture 를 먼저
+ * 해제해야 한다 (해제 순서: Picture → Image). nodePictureCache 가 구독한다.
+ */
+type ImageEvictionListener = (image: SkImage) => void;
+
+const evictionListeners = new Set<ImageEvictionListener>();
+
+/** SkImage 퇴거 리스너를 등록한다. @returns 등록 해제 함수 */
+export function registerImageEvictionListener(
+  cb: ImageEvictionListener,
+): () => void {
+  evictionListeners.add(cb);
+  return () => {
+    evictionListeners.delete(cb);
+  };
+}
+
+/** image.delete() 직전 반드시 경유 — 모든 퇴거 경로 공통 */
+function notifyImageEviction(image: SkImage): void {
+  for (const cb of evictionListeners) {
+    cb(image);
+  }
+}
+
 /** GPU 메모리 보호를 위한 캐시 상한 (엔트리 수) */
 const MAX_CACHE_SIZE = 100;
 
@@ -197,6 +227,7 @@ export function releaseSkImage(url: string): void {
 
   entry.refCount--;
   if (entry.refCount <= 0) {
+    notifyImageEviction(entry.image);
     entry.image.delete();
     cache.delete(url);
   }
@@ -206,6 +237,7 @@ export function releaseSkImage(url: string): void {
 export function clearImageCache(): void {
   cacheGeneration++; // in-flight fetch 결과를 무효화 (I-H5)
   for (const entry of cache.values()) {
+    notifyImageEviction(entry.image);
     entry.image.delete();
   }
   cache.clear();
@@ -247,6 +279,7 @@ function evictLRU(): void {
 
   const target = oldestUnref ?? oldest;
   if (target) {
+    notifyImageEviction(target.entry.image);
     target.entry.image.delete();
     cache.delete(target.url);
   }

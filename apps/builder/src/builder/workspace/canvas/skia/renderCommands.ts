@@ -8,7 +8,13 @@
  * @since 2026-02-28
  */
 
-import type { CanvasKit, Canvas, FontMgr } from "canvaskit-wasm";
+import type {
+  CanvasKit,
+  Canvas,
+  FontMgr,
+  SkPicture,
+  Image as SkImage,
+} from "canvaskit-wasm";
 import type { SkiaNodeData } from "./nodeRenderers";
 import type { ClipPathShape } from "../sprites/styleConverter";
 import type { EffectStyle, MaskImageStyle } from "./types";
@@ -44,6 +50,14 @@ import { toSkiaBlendMode } from "./blendModes";
 import { getCacheMetrics } from "./cacheMetrics";
 import { addCommandCount, incrementDrawCall } from "./drawStats";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
+import {
+  ensureNodePictureFontGeneration,
+  getCachedNodePicture,
+  invalidateNodePicture,
+  isNodePictureCacheEnabled,
+  isVolatileNode,
+  storeNodePicture,
+} from "./nodePictureCache";
 import { WASM_FLAGS } from "../wasm-bindings/featureFlags";
 import * as spatialIndex from "../wasm-bindings/spatialIndex";
 import { resolveStickyY, resolveStickyX } from "../layout/stickyResolver";
@@ -112,8 +126,23 @@ type RenderCommand =
   | ChildrenEndCmd
   | ElementEndCmd;
 
+/**
+ * 요소의 self-draw 블록 커맨드 구간 — [start, end).
+ *
+ * ELEMENT_BEGIN 직후부터 CHILDREN_BEGIN(또는 ELEMENT_END) 직전까지의
+ * DRAW + 내부 자식(spec shapes) wrapper 커맨드만 포함한다. 자식 요소 재귀는
+ * 구간 밖이므로, 이 구간은 해당 요소의 skiaData + width/height 만의 함수다 —
+ * 노드 Picture 캐시(ADR-153 Phase 3)의 record 단위.
+ */
+export interface SelfSpan {
+  start: number;
+  end: number;
+}
+
 export interface RenderCommandStream {
   commands: RenderCommand[];
+  /** elementId → self-draw 커맨드 구간 (노드 Picture 캐시 record/replay 단위) */
+  selfSpans: Map<string, SelfSpan>;
   boundsMap: Map<string, BoundingBox>;
   /**
    * 클립 인지 히트 영역 — `boundsMap` 을 조상 clip rect 로 교차한 결과.
@@ -381,6 +410,7 @@ export function buildRenderCommandStream(
   pagePositions: Record<string, { x: number; y: number }>,
 ): RenderCommandStream {
   const commands: RenderCommand[] = [];
+  const selfSpans = new Map<string, SelfSpan>();
   const boundsMap = new Map<string, BoundingBox>();
   const hitBoundsMap = new Map<string, BoundingBox>();
   const dragRootId = getDragVisualOffset()?.elementId ?? null;
@@ -400,6 +430,7 @@ export function buildRenderCommandStream(
       offsetX,
       offsetY,
       commands,
+      selfSpans,
       boundsMap,
       hitBoundsMap,
       null,
@@ -420,6 +451,7 @@ export function buildRenderCommandStream(
       deferred.parentAbsX,
       deferred.parentAbsY,
       commands,
+      selfSpans,
       boundsMap,
       hitBoundsMap,
       null,
@@ -442,7 +474,7 @@ export function buildRenderCommandStream(
   _lastHitBoundsMap = hitBoundsMap;
   _notifyBoundsListeners(boundsMap);
 
-  return { commands, boundsMap, hitBoundsMap };
+  return { commands, selfSpans, boundsMap, hitBoundsMap };
 }
 
 /**
@@ -486,6 +518,7 @@ function visitElement(
   parentAbsX: number,
   parentAbsY: number,
   commands: RenderCommand[],
+  selfSpans: Map<string, SelfSpan>,
   boundsMap: Map<string, BoundingBox>,
   hitBoundsMap: Map<string, BoundingBox>,
   clipRect: ClipRect,
@@ -624,7 +657,13 @@ function visitElement(
     width,
     height,
   );
+  // self-draw 블록 구간 기록 — ELEMENT_BEGIN 직후 ~ CHILDREN_BEGIN 직전.
+  // 이 구간은 skiaData + width/height 만의 함수라 노드 Picture record 단위가 된다.
+  const selfSpanStart = commands.length;
   emitDrawCommands(skiaData, updatedInternalChildren, width, height, commands);
+  if (commands.length > selfSpanStart) {
+    selfSpans.set(elementId, { start: selfSpanStart, end: commands.length });
+  }
 
   // 외부 자식 (element children) → CHILDREN_BEGIN/END + 재귀
   const childElements = childrenMap.get(elementId);
@@ -675,6 +714,7 @@ function visitElement(
         absX - scrollX,
         absY - scrollY,
         commands,
+        selfSpans,
         boundsMap,
         hitBoundsMap,
         childClipRect,
@@ -840,6 +880,10 @@ function emitInternalChildDraw(
 
 /**
  * RenderCommand[] 플랫 배열을 선형 for 루프로 실행하여 CanvasKit 드로콜 발행.
+ *
+ * `selfSpans` 전달 시 (command stream 경로) 노드 Picture 캐시가 활성화된다 —
+ * 내용이 바뀌지 않은 요소의 self-draw 블록은 record 된 SkPicture 재생으로 대체
+ * (ADR-153 Phase 3). tree fallback 경로는 selfSpans 가 없어 종전과 동일하다.
  */
 export function executeRenderCommands(
   ck: CanvasKit,
@@ -847,6 +891,44 @@ export function executeRenderCommands(
   commands: RenderCommand[],
   cullingBounds: DOMRect,
   fontMgr?: FontMgr,
+  selfSpans?: ReadonlyMap<string, SelfSpan>,
+): void {
+  if (process.env.NODE_ENV === "development") {
+    addCommandCount(commands.length);
+  }
+  const spans =
+    selfSpans && selfSpans.size > 0 && isNodePictureCacheEnabled()
+      ? selfSpans
+      : undefined;
+  // 폰트 로딩으로 fontMgr 교체 시 record 글리프 stale — 전량 폐기 후 진행
+  if (spans) ensureNodePictureFontGeneration(fontMgr ?? null);
+  executeCommandRange(
+    ck,
+    canvas,
+    commands,
+    0,
+    commands.length,
+    cullingBounds,
+    fontMgr,
+    spans,
+  );
+}
+
+/**
+ * 커맨드 배열의 [start, end) 구간을 실행한다.
+ *
+ * record 재진입: 노드 Picture miss 시 self-draw 구간을 PictureRecorder canvas 로
+ * 본 함수 재호출해 기록한다 (spans=undefined → 중첩 캐시 없음, 무컬링 bounds).
+ */
+function executeCommandRange(
+  ck: CanvasKit,
+  canvas: Canvas,
+  commands: RenderCommand[],
+  start: number,
+  end: number,
+  cullingBounds: DOMRect,
+  fontMgr?: FontMgr,
+  selfSpans?: ReadonlyMap<string, SelfSpan>,
 ): void {
   const cullLeft = cullingBounds.x;
   const cullTop = cullingBounds.y;
@@ -882,11 +964,7 @@ export function executeRenderCommands(
   }
   const maskLayerStack: Array<MaskLayerEntry | null> = [];
 
-  const len = commands.length;
-  if (process.env.NODE_ENV === "development") {
-    addCommandCount(len);
-  }
-  for (let i = 0; i < len; i++) {
+  for (let i = start; i < end; i++) {
     const cmd = commands[i];
 
     // 비가시 요소 스킵
@@ -1109,6 +1187,27 @@ export function executeRenderCommands(
         } else {
           maskLayerStack.push(null);
         }
+
+        // 노드 Picture 캐시 (ADR-153 Phase 3): BEGIN 상태(translate/alpha/transform/
+        // clip/blend/effects/mask)가 모두 적용된 뒤이므로, self-draw 구간을 record 된
+        // Picture 재생으로 대체할 수 있다. 성공 시 구간을 건너뛴다.
+        if (selfSpans && cmd.elementId) {
+          const span = selfSpans.get(cmd.elementId);
+          if (
+            span &&
+            drawSelfSpanViaPicture(
+              ck,
+              canvas,
+              commands,
+              span,
+              cmd,
+              fontMgr,
+              editingId,
+            )
+          ) {
+            i = span.end - 1; // 루프 i++ 로 구간 종료 지점에 도달
+          }
+        }
         break;
       }
 
@@ -1219,6 +1318,129 @@ export function executeRenderCommands(
       }
     }
   }
+}
+
+// ── 노드 Picture 캐시 record/replay (ADR-153 Phase 3) ─────────────────
+
+/**
+ * record 는 무컬링 — cullRect/뷰포트 밖 op 이 유실되면 카메라 이동 후 replay 에서
+ * 콘텐츠가 비므로, 충분히 큰 경계를 쓴다.
+ */
+const RECORD_CULL_EXTENT = 1_000_000;
+const RECORD_BOUNDS = {
+  x: -RECORD_CULL_EXTENT,
+  y: -RECORD_CULL_EXTENT,
+  width: RECORD_CULL_EXTENT * 2,
+  height: RECORD_CULL_EXTENT * 2,
+} as DOMRect;
+
+/**
+ * self-draw 구간을 Picture 재생으로 대체 시도한다.
+ *
+ * @returns true = replay 수행(구간 skip 가능) / false = direct 경로로 폴백
+ */
+function drawSelfSpanViaPicture(
+  ck: CanvasKit,
+  canvas: Canvas,
+  commands: RenderCommand[],
+  span: SelfSpan,
+  cmd: ElementBeginCmd,
+  fontMgr: FontMgr | undefined,
+  editingId: string | null,
+): boolean {
+  const elementId = cmd.elementId;
+
+  // 텍스트 편집 중 숨김은 direct 경로 전용 로직 — 캐시 우회 (record 도 안 함)
+  if (editingId && editingId === elementId) return false;
+
+  // transition/animation tick 이 skiaData 를 in-place mutate 하는 구간 —
+  // identity 키가 변경을 못 보므로 캐시 우회 + 기존 항목 폐기 (r1 M1 volatile 면제)
+  if (isVolatileNode(elementId)) {
+    invalidateNodePicture(elementId);
+    return false;
+  }
+
+  const dataRef = getSkiaNode(elementId);
+  if (!dataRef) return false;
+
+  let picture = getCachedNodePicture(elementId, dataRef, cmd.width, cmd.height);
+  if (!picture) {
+    picture = recordSelfSpan(ck, commands, span, cmd, fontMgr);
+    if (!picture) return false; // record 실패 → direct draw 폴백
+    storeNodePicture(
+      elementId,
+      dataRef,
+      cmd.width,
+      cmd.height,
+      picture,
+      collectSpanImageRefs(commands, span),
+    );
+  }
+
+  canvas.drawPicture(picture);
+  if (process.env.NODE_ENV === "development") {
+    incrementDrawCall();
+  }
+  return true;
+}
+
+/** self-draw 구간을 노드-로컬 좌표로 record 한다. 실패 시 null (direct 폴백). */
+function recordSelfSpan(
+  ck: CanvasKit,
+  commands: RenderCommand[],
+  span: SelfSpan,
+  cmd: ElementBeginCmd,
+  fontMgr: FontMgr | undefined,
+): SkPicture | null {
+  const recorder = new ck.PictureRecorder();
+  try {
+    const recCanvas = recorder.beginRecording(
+      ck.LTRBRect(
+        -RECORD_CULL_EXTENT,
+        -RECORD_CULL_EXTENT,
+        RECORD_CULL_EXTENT,
+        RECORD_CULL_EXTENT,
+      ),
+    );
+    // spans=undefined → record 중 중첩 캐시 없음 (구간 안은 내부 자식 wrapper 뿐)
+    executeCommandRange(
+      ck,
+      recCanvas,
+      commands,
+      span.start,
+      span.end,
+      RECORD_BOUNDS,
+      fontMgr,
+      undefined,
+    );
+    return recorder.finishRecordingAsPicture() ?? null;
+  } catch (e) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "[nodePictureCache] record 실패 — direct draw 폴백:",
+        cmd.elementId,
+        e,
+      );
+    }
+    return null;
+  } finally {
+    recorder.delete();
+  }
+}
+
+/** 구간이 참조하는 SkImage 수집 — imageCache 퇴거 역참조 인덱스용 (R2) */
+function collectSpanImageRefs(
+  commands: RenderCommand[],
+  span: SelfSpan,
+): SkImage[] | null {
+  let refs: SkImage[] | null = null;
+  for (let i = span.start; i < span.end; i++) {
+    const c = commands[i];
+    if (c.type !== CMD_DRAW) continue;
+    const img = c.skiaData.image?.skImage;
+    if (img) (refs ??= []).push(img);
+  }
+  return refs;
 }
 
 /**

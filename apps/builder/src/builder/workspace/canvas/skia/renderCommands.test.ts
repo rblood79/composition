@@ -3,6 +3,11 @@ import type { Canvas, CanvasKit } from "canvaskit-wasm";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import { clearSkiaRegistry, registerSkiaNode } from "./useSkiaNode";
 import { setDragVisualOffset } from "./nodeRendererTree";
+import { setEditingElementId } from "./nodeRendererState";
+import {
+  getNodePictureCacheSize,
+  setVolatileNodeIds,
+} from "./nodePictureCache";
 import {
   buildRenderCommandStream,
   executeRenderCommands,
@@ -325,5 +330,263 @@ describe("buildRenderCommandStream clip-aware hit bounds", () => {
       width: 100,
       height: 100,
     });
+  });
+});
+
+describe("executeRenderCommands 노드 Picture 캐시 (ADR-153 Phase 3)", () => {
+  afterEach(() => {
+    setEditingElementId(null);
+    setVolatileNodeIds(null);
+    clearSkiaRegistry(); // clearNodePictureCache 포함
+  });
+
+  function makePictureStubCk() {
+    let recordCount = 0;
+    class StubPictureRecorder {
+      constructor() {
+        recordCount++;
+      }
+      beginRecording(): Canvas {
+        return {
+          save() {},
+          restore() {},
+          saveLayer() {},
+          concat() {},
+          clipRect() {},
+          clipPath() {},
+          translate() {},
+        } as unknown as Canvas;
+      }
+      finishRecordingAsPicture(): unknown {
+        return { __stubPicture: true, delete() {} };
+      }
+      delete() {}
+    }
+    const ck = {
+      LTRBRect: () => ({}),
+      ClipOp: { Intersect: 0 },
+      PictureRecorder: StubPictureRecorder,
+    } as unknown as CanvasKit;
+    return { ck, recordCount: () => recordCount };
+  }
+
+  function makePictureCanvas() {
+    const drawnPictures: unknown[] = [];
+    const canvas = {
+      save() {},
+      restore() {},
+      saveLayer() {},
+      concat() {},
+      clipRect() {},
+      clipPath() {},
+      translate() {},
+      drawPicture(p: unknown) {
+        drawnPictures.push(p);
+      },
+    } as unknown as Canvas;
+    return { canvas, drawnPictures };
+  }
+
+  const viewport = { x: 0, y: 0, width: 800, height: 600 } as DOMRect;
+
+  /** body(container) + leaf(box 타입, box 데이터 없음 → renderBox no-op) 최소 씬 */
+  function buildLeafStream() {
+    const body = makeElement("pic-body", { type: "body" });
+    const leaf = makeElement("pic-leaf", { parent_id: body.id });
+
+    registerNode(body.id, { width: 800, height: 600 });
+    registerNode(leaf.id, { type: "box", width: 100, height: 100 });
+
+    return buildRenderCommandStream(
+      [body.id],
+      new Map([[body.id, [leaf]]]),
+      new Map([
+        [leaf.id, { x: 10, y: 20, width: 100, height: 100 } as ComputedLayout],
+      ]),
+      { [body.id]: { x: 0, y: 0 } },
+    );
+  }
+
+  it("self-draw 블록이 있는 요소만 selfSpans 에 등재된다", () => {
+    const stream = buildLeafStream();
+    expect(stream.selfSpans.has("pic-leaf")).toBe(true);
+    // container 는 DRAW 커맨드가 없어 record 단위가 아니다
+    expect(stream.selfSpans.has("pic-body")).toBe(false);
+  });
+
+  it("miss → record 1회, 이후 동일 내용 재실행은 replay (재기록 0)", () => {
+    const stream = buildLeafStream();
+    const { ck, recordCount } = makePictureStubCk();
+
+    const first = makePictureCanvas();
+    executeRenderCommands(
+      ck,
+      first.canvas,
+      stream.commands,
+      viewport,
+      undefined,
+      stream.selfSpans,
+    );
+    expect(recordCount()).toBe(1);
+    expect(first.drawnPictures).toHaveLength(1);
+
+    const second = makePictureCanvas();
+    executeRenderCommands(
+      ck,
+      second.canvas,
+      stream.commands,
+      viewport,
+      undefined,
+      stream.selfSpans,
+    );
+    expect(recordCount()).toBe(1); // 재기록 없음
+    expect(second.drawnPictures).toHaveLength(1); // replay
+  });
+
+  it("노드 재등록(내용 변경) 시에만 해당 노드가 재기록된다", () => {
+    const stream = buildLeafStream();
+    const { ck, recordCount } = makePictureStubCk();
+
+    executeRenderCommands(
+      ck,
+      makePictureCanvas().canvas,
+      stream.commands,
+      viewport,
+      undefined,
+      stream.selfSpans,
+    );
+    expect(recordCount()).toBe(1);
+
+    // 내용 변경 = 새 데이터 객체 등록 → 스트림 재빌드 (production 흐름과 동일)
+    registerNode("pic-leaf", { type: "box", width: 100, height: 100 });
+    const leaf = makeElement("pic-leaf", { parent_id: "pic-body" });
+    const rebuilt = buildRenderCommandStream(
+      ["pic-body"],
+      new Map([["pic-body", [leaf]]]),
+      new Map([
+        [leaf.id, { x: 10, y: 20, width: 100, height: 100 } as ComputedLayout],
+      ]),
+      { "pic-body": { x: 0, y: 0 } },
+    );
+
+    executeRenderCommands(
+      ck,
+      makePictureCanvas().canvas,
+      rebuilt.commands,
+      viewport,
+      undefined,
+      rebuilt.selfSpans,
+    );
+    expect(recordCount()).toBe(2); // 재기록 1회 (변경 노드 한정)
+  });
+
+  it("위치만 바뀐 재빌드는 재기록하지 않는다 (위치-불변 키)", () => {
+    const stream = buildLeafStream();
+    const { ck, recordCount } = makePictureStubCk();
+
+    executeRenderCommands(
+      ck,
+      makePictureCanvas().canvas,
+      stream.commands,
+      viewport,
+      undefined,
+      stream.selfSpans,
+    );
+    expect(recordCount()).toBe(1);
+
+    // 같은 노드 데이터, 위치만 이동한 스트림 (드래그/이동 시나리오)
+    const leaf = makeElement("pic-leaf", { parent_id: "pic-body" });
+    const moved = buildRenderCommandStream(
+      ["pic-body"],
+      new Map([["pic-body", [leaf]]]),
+      new Map([
+        [
+          leaf.id,
+          { x: 300, y: 240, width: 100, height: 100 } as ComputedLayout,
+        ],
+      ]),
+      { "pic-body": { x: 0, y: 0 } },
+    );
+
+    const replay = makePictureCanvas();
+    executeRenderCommands(
+      ck,
+      replay.canvas,
+      moved.commands,
+      viewport,
+      undefined,
+      moved.selfSpans,
+    );
+    expect(recordCount()).toBe(1); // 이동만으로는 re-record 0건
+    expect(replay.drawnPictures).toHaveLength(1);
+  });
+
+  it("volatile 노드는 캐시 우회 + 기존 항목 폐기, 해제 후 재기록된다", () => {
+    const stream = buildLeafStream();
+    const { ck, recordCount } = makePictureStubCk();
+
+    executeRenderCommands(
+      ck,
+      makePictureCanvas().canvas,
+      stream.commands,
+      viewport,
+      undefined,
+      stream.selfSpans,
+    );
+    expect(recordCount()).toBe(1);
+    expect(getNodePictureCacheSize()).toBe(1);
+
+    setVolatileNodeIds(new Set(["pic-leaf"]));
+    const during = makePictureCanvas();
+    executeRenderCommands(
+      ck,
+      during.canvas,
+      stream.commands,
+      viewport,
+      undefined,
+      stream.selfSpans,
+    );
+    expect(during.drawnPictures).toHaveLength(0); // direct draw (replay 아님)
+    expect(recordCount()).toBe(1); // record 도 안 함
+    expect(getNodePictureCacheSize()).toBe(0); // 기존 항목 폐기
+
+    setVolatileNodeIds(null);
+    executeRenderCommands(
+      ck,
+      makePictureCanvas().canvas,
+      stream.commands,
+      viewport,
+      undefined,
+      stream.selfSpans,
+    );
+    expect(recordCount()).toBe(2); // 최종 상태로 재기록
+  });
+
+  it("텍스트 편집 중인 요소는 record/replay 모두 우회한다", () => {
+    const stream = buildLeafStream();
+    const { ck, recordCount } = makePictureStubCk();
+
+    setEditingElementId("pic-leaf");
+    const editing = makePictureCanvas();
+    executeRenderCommands(
+      ck,
+      editing.canvas,
+      stream.commands,
+      viewport,
+      undefined,
+      stream.selfSpans,
+    );
+    expect(editing.drawnPictures).toHaveLength(0);
+    expect(recordCount()).toBe(0);
+  });
+
+  it("selfSpans 미전달(tree fallback 경로) 시 캐시가 개입하지 않는다", () => {
+    const stream = buildLeafStream();
+    const { ck, recordCount } = makePictureStubCk();
+
+    const direct = makePictureCanvas();
+    executeRenderCommands(ck, direct.canvas, stream.commands, viewport);
+    expect(direct.drawnPictures).toHaveLength(0);
+    expect(recordCount()).toBe(0);
   });
 });

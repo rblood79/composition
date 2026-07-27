@@ -47,4 +47,12 @@ describe("paint pool 규약 (ADR-153 Phase 2)", () => {
     const src = readFileSync(join(skiaDir, "imageCache.ts"), "utf8");
     expect(src).toContain('registerSkiaCacheDestroy("imageCache"');
   });
+
+  it("nodePictureCache 는 통합 해제 레지스트리 + image 퇴거 역참조에 등록되어 있다 (ADR-153 Phase 3 R2)", () => {
+    const src = readFileSync(join(skiaDir, "nodePictureCache.ts"), "utf8");
+    expect(src).toContain('registerSkiaCacheDestroy("nodePictureCache"');
+    expect(src).toContain(
+      "registerImageEvictionListener(invalidateNodePicturesByImage)",
+    );
+  });
 });

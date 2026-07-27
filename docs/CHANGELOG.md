@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [노드 Picture 캐시 + 스냅샷 ping-pong — ADR-153 Phase 3 + ADR 종결] - 2026-07-28
+
+### Architecture
+
+- **노드 Picture 캐시 도입 — content 재렌더가 미변경 요소를 재생(replay)** (ADR-153 Phase 3, Implemented 승격 — P4 incremental budget 은 G4 미달로 미도입 종결):
+  - 요소별 self-draw 블록(자기 shapes/text — 자식 요소 제외)을 SkPicture 로 record, 내용 불변이면 `drawPicture` 재생. 키 = registry 노드 identity + width/height (**위치 제외** — 드래그/이동은 재기록 없음). 활성 transition/animation 노드는 volatile 면제(직접 draw), 텍스트 편집 중 요소는 캐시 우회
+  - **Why**: content 변경/카메라 보정 재렌더가 매번 전체 씬을 CanvasKit 에 재발행 — 상호작용 프레임의 지배 축 (record 40-51%). 실측 (줌 오실 150틱): replay 99.89% (재기록 5/4,592), record.content mean 2.98→0.21ms, render.frame max 227→41ms (p95 1.5ms)
+  - **StoreRenderBridge 무변경 재빌드 차단**: 카메라 틱마다 전 노드가 내용 동일한 새 객체로 재등록되어 identity 캐시를 무효화하던 경로를 2겹으로 차단 — sync no-op 가드 (빌드 입력 ref 전량 동일 시 생략) + build 결과 content-equal 재사용 (루트 x/y 제외). 편집 1회 = 재기록 1 노드 한정 실측
+  - **content 스냅샷 ping-pong** (R7 — 격차 5): 표면 2장 교대로 "그리는 표면 ≠ 스냅샷 표면" 보장, Ganesh copy-on-write/stall 제거 — flush.content p99 5.4→0.3ms / max 7.2→0.4ms 실측 확정 (비용: content surface 1장 GPU 텍스처 추가, 수용 위험 명시)
+  - **R2 lifecycle**: SkImage 퇴거 리스너 → 참조 Picture 선행 해제 (해제 순서 Picture→Image), unmount 통합 destroy (56→0 실측), LRU 상한 1024, `paintPool.static.test.ts` 정적 강제 + 신규 Picture 캐시 unit test 7건
+  - 위치: 신규 `apps/builder/src/builder/workspace/canvas/skia/nodePictureCache.ts`, `renderCommands.ts`(selfSpans + record/replay), `StoreRenderBridge.ts`(가드+재사용), `SkiaRenderer.ts`(ping-pong+volatile 공급), `imageCache.ts`/`useSkiaNode.ts`(invalidate 배선)
+
 ## [grid item 이 트랙 폭으로 늘어나고 margin·min/max 가 무시되던 문제] - 2026-07-28
 
 ### Bug Fixes
