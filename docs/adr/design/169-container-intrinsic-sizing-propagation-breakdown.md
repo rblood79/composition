@@ -1,6 +1,6 @@
 # ADR-169 구현 상세 — 컨테이너 intrinsic 크기 산출
 
-> 본문: [169-container-intrinsic-sizing-propagation.md](../169-container-intrinsic-sizing-propagation.md)
+> 본문: [169-container-intrinsic-sizing-propagation.md](../completed/169-container-intrinsic-sizing-propagation.md)
 
 ## 1. Fork checkpoint 4 질문 lock-in
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-07-27 (리뷰 round 1 승인 — `docs/adr/reviews/169.md`, 이슈 3건 전건 fixed)
+Implemented — 2026-07-27 (Phase 0~4 완결 — 리뷰 round 1 승인 `docs/adr/reviews/169.md`, 이슈 3건 전건 fixed)
 
 ## Context
 
@@ -99,7 +99,7 @@ Accepted — 2026-07-27 (리뷰 round 1 승인 — `docs/adr/reviews/169.md`, �
 - **대안 C 기각**: 같은 원인의 절반만 닫아 20~30px 발산이 잔존하고, 동일 비용의 재조사가 예약된다. 변경 범위가 좁다는 이점이 그 부채를 상쇄하지 못한다.
 - **대안 D 기각**: TS 가 레이아웃을 재구현해야 하는 이중 구현. ADR-164 가 금지한 TS 재보정의 최대 형태로 유지보수 CRITICAL.
 
-> 구현 상세: [169-container-intrinsic-sizing-propagation-breakdown.md](design/169-container-intrinsic-sizing-propagation-breakdown.md)
+> 구현 상세: [169-container-intrinsic-sizing-propagation-breakdown.md](../design/169-container-intrinsic-sizing-propagation-breakdown.md)
 
 ## Risks
 
