@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [그리드 트랙이 자식의 content 기여를 반영하지 않던 문제] - 2026-07-28
+
+### Bug Fixes
+
+- **`min-content`/`max-content`/`fit-content()` 트랙 키워드가 통째로 `auto` 폴백(=1fr 근사)이던 문제** (CSS-GRID-1 §12.5 "Resolve Intrinsic Track Sizes"):
+  - `<track-size>` 는 언제나 min·max 두 개의 sizing function 인데 엔진은 `auto` 토큰 하나만 알았다. `tree.rs` 가 그 토큰을 "컨테이너 폭으로 solve 한 결과" **한 값**으로 치환했고, 나머지 키워드는 `grid.rs` 파서에서 `auto` 로 떨어져 여유를 나눠 가졌다. 실측 컨테이너 300 기준 — `min-content` DOM 40 / 엔진 200, `max-content` 120 / 200, `fit-content(60px)` 60 / 200
+  - **한 값으로는 맞출 수 없다**: 자식 min 40 / max 120, 두 열에서 컨테이너를 바꾸면 CSS 는 150→75·75, 300→150·150, 500→250·250 으로 간다. base(min-content) ↔ 상한(max-content) 사이를 §12.6 이 움직이고 상한을 넘는 여유만 §12.8 이 가져가기 때문. 트랙 모델에 base·growth limit 를 분리하고 자식 기여를 공급해 세 점이 동시에 맞는다
+  - **`minmax(auto, px)` 의 base 가 0 이던 문제**도 해소 — 내용 120 인 트랙이 상한 80 에서 멈추던 것이 §12.4 대로 120 이 된다
+  - **§6.6 자동 최소 크기 clamp** 신규: "고정 max 트랙만 span 하는" 아이템의 content-based minimum 은 그 상한으로 잘린다. 단 **아이템의 선호 크기가 `auto` 처럼 동작할 때만** — 실측(트랙 `minmax(auto,20px)`, 내용 min 40) `width:auto`→20 / `width:90px`→90 / `min-width:70px`→70 / `width:50%`→20. 트랙 쪽도 min sizing 이 `auto` 일 때만이다(`minmax(min-content,20px)`→40)
+  - **`minmax()` 안의 `%`** 가 `1fr` 로 떨어지던 문제: `minmax(auto,10%)` 가 여유를 전부 먹었다 (DOM 30 / 엔진 200)
+  - **Why**: 자식을 아는 층은 `tree.rs` 이고 `grid.rs` 는 확정된 트랙만 sizing 한다. 그래서 content 함수 해소를 tree 층에 두고 `grid_layout` 의 wasm 시그니처는 그대로 뒀다. 인라인 축 기여는 ADR-169 의 `measure_intrinsic_width` 를 그대로 재사용하고, 블록 축은 높이가 내용 크기 하나뿐이라 `(h, h)` 를 공급해 종전 동작을 보존한다
+  - 위치: `packages/composition-engine/src/tree.rs` (`SizingFn`/`split_track_sizing`/`resolve_track_with_contribution`/`clamp_auto_min_contribution`/`col_contribution` 신규 + `solve_grid` 측정 블록 재작성), `packages/composition-engine/src/grid.rs` (`parse_minmax` % 해석, `tokenize_template` 공개)
+  - 검증: Chrome 대조 fixture 신설 `apps/builder/tests/parity/gridTrackContribution.browser.test.ts` (engine 38 + row 7 + 규칙 요약 2 + pipeline 대조 2 + 잔존 1) / parity 전체 693건 green / Rust 344건 green / type-check PASS. 민감도 — min·max 기여를 한 값으로 합치면 14 red, §6.6 clamp 무력화 2 red, clamp 의 auto-min 게이트 제거 1 red, `minmax` % 해석 제거 1 red
+  - 라이브 확인: 실행 중인 빌더의 WASM 직접 호출로 11개 형태(키워드 3종·§6.6 clamp 비대칭 3종·`%` 상한·여유 3구간·catalog `1fr auto`)가 Chrome 실측과 일치. catalog 의 content 기반 트랙은 `1fr auto` 4곳(ProgressBar/Meter/Slider)뿐이고 종전과 같은 값에 수렴(`1fr auto`/320 → 180·120)
+  - 잔존: content 기반 트랙 안의 **텍스트 leaf** 가 빌더 파이프라인에서 폭 0. 엔진은 기여를 소비할 준비가 됐지만 `enrichWithIntrinsicSize` 의 스칼라 주입이 flex 자식으로 한정돼 grid 자식에 공급되지 않는다 (본 변경 이전부터 동일 — baseline 실측 확인)
+
 ## [`minmax()` 그리드 트랙이 상한까지 자라지 않고, fr 분배가 컨테이너를 넘던 문제] - 2026-07-28
 
 ### Bug Fixes

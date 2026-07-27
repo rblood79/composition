@@ -334,7 +334,7 @@ grid item 의 크기·위치는 **자식 자신의 상자 모델**이 정하고,
 - **부작용이 컸던 곳은 fr 쪽이었다**: 구 코드는 minmax 를 base(=min)에 둔 채 fr 여유를 `container - min` 으로 잡아, 트랙 합이 컨테이너를 넘었다 (`minmax(100px,150px) 1fr` / 400 → 150+300 = **450**). 그래서 §12.6 을 넣으면 fr 분배식도 같이 맞아 떨어진다 — 성장분을 뺀 `container - Σsize` 가 정본.
 - Chrome 실측 fixture: `gridMinmaxTracks.browser.test.ts` (46 정합 + 합-초과 회귀 + 잔존 1). 민감도 — §12.6 무력화 43 red.
 - 라이브 영향 없음: catalog 및 앱 소스에 `minmax(` 사용 0건 (실측 grep).
-- **잔존** — 트랙의 **content 기여** 미측정: `minmax(auto, 80px)` 의 base 는 그 트랙 아이템의 min-content 여야 하는데 grid.rs 는 0 으로 둔다. 내용이 상한보다 작으면 §12.6 이 상한까지 키워 우연히 맞고, 넘으면 어긋난다(실측 내용 120 → DOM 120 / 엔진 80). 같은 뿌리로 `min-content`/`max-content`/`fit-content()` 트랙 키워드도 전부 `auto` 폴백이라 미지원 — 셋 다 **트랙별 content 기여 산출**을 요구하며, 그것이 ADR-169 grid intrinsic 이연의 재개 조건이다.
+- base size 를 자식 content 로 채우는 앞 단계(§12.5)는 아래 §"트랙 크기는 자식의 content 기여에서 나온다" 소관이다.
 
 ### 금지 패턴
 
@@ -343,6 +343,46 @@ grid item 의 크기·위치는 **자식 자신의 상자 모델**이 정하고,
 - ❌ fr 여유를 `container - Σmin` 으로 산출 → 성장분 미반영으로 트랙 합이 컨테이너를 넘는다
 - ❌ freeze 없이 한 번만 균등 분배 → 상한 초과분이 다른 트랙으로 흘러가지 않는다
 - ❌ 트랙 폭 assertion 을 자식 폭으로 확인 → 트랙 근거는 **형제의 x 좌표** (§그리드 영역은 containing block)
+
+## 트랙 크기는 자식의 **content 기여**에서 나온다 (CSS-GRID-1 §12.5, 2026-07-28)
+
+`<track-size>` 는 언제나 min·max **두 개**의 sizing function 이고, 단일 값은 CSS 가 펼쳐 준다: `auto` = `minmax(auto, auto)` · `1fr` = `minmax(auto, 1fr)` · `min-content` = `minmax(min-content, min-content)` · `fit-content(L)` = `minmax(auto, fit-content(L))`. 그리고 **자리에 따라 `auto` 의 뜻이 다르다** — min 자리는 자동 최소 크기(=min-content 기여), max 자리는 max-content 기여.
+
+| 자리 | `auto`           | `min-content` | `max-content` | `fit-content(L)`           |
+| ---- | ---------------- | ------------- | ------------- | -------------------------- |
+| base | min-content 기여 | min-content   | max-content   | (min 자리에 올 수 없음)    |
+| 상한 | max-content 기여 | min-content   | max-content   | clamp(min-content, L, max) |
+
+- **거처는 tree.rs** (`resolve_track_with_contribution`) — 자식을 아는 층이 content 함수를 px 로 풀어 `grid.rs` 에 넘기고, grid.rs 는 **확정된 트랙만** sizing 한다. 모듈 헤더의 "자식 intrinsic → 트랙 크기 도출은 트리 레벨 책임" 계약과 같은 방향이며, 그래서 `grid_layout` 의 wasm 시그니처가 그대로다.
+- **인라인 축은 두 값이 갈려야 한다.** 자식 min 40 / max 120, 두 열에서 컨테이너를 바꾸면 한 측정값으로는 못 맞춘다 — 150 → 75·75(§12.6 균등, 상한 미도달) / 300 → 150·150(§12.6 이 120 에서 freeze 후 §12.8 이 60 분배) / 500 → 250·250. 구현은 `measure_intrinsic_width`(ADR-169) 를 그대로 재사용한다.
+- **블록 축은 `(h, h)`** — 높이는 폭이 정해진 뒤의 내용 크기 하나라 두 값이 갈리지 않는다. `auto` row 는 종전대로 측정값에 고정되고, 달라지는 것은 `minmax(auto, px)` row 의 base 뿐이다.
+- **§6.6 자동 최소 크기 clamp 는 아이템 단위**다. "고정 max 트랙만 span 하는" 아이템의 content-based minimum 은 그 상한으로 잘리지만, **아이템의 선호 크기가 `auto` 처럼 동작할 때만**이다. 트랙 토큰만 보고 판정하면 틀린다 — 실측(트랙 `minmax(auto,20px)`, 내용 min 40): `width:auto`→**20** · `width:90px`→**90** · `min-width:70px`→**70** · `width:50%`→20 · `width:fit-content`→20. 트랙 쪽 조건도 좁다: min sizing 이 **`auto` 일 때만** 이고(`minmax(min-content,20px)`→40), max 는 **고정 길이**여야 한다(`%` 포함 — `minmax(auto,10%)`→30 / `1fr`·`fit-content()` 는 clamp 없음).
+- `minmax()` 안의 `%` 는 grid.rs 가 **파싱 시점에** container 로 푼다. 종전엔 `%` max 가 `-1`(=1fr)로 떨어져 `minmax(auto,10%)` 가 여유를 전부 먹었다(DOM 30 / 엔진 200).
+- 토큰화는 tree.rs 도 `grid::tokenize_template` 을 쓴다 — `split_whitespace` 는 `minmax(50px, 80px)` 처럼 **내부에 공백이 있는** 토큰을 쪼갠다.
+- Chrome 실측 fixture: `gridTrackContribution.browser.test.ts` (engine 38 + row 7 + 규칙 요약 2 + pipeline 대조 2 + 잔존 1). 민감도 — min/max 기여를 한 값으로 합치면 14 red / §6.6 clamp 무력화 2 red / clamp 의 auto-min 게이트 제거 1 red / `minmax` % 해석 제거 1 red.
+- 라이브 영향: catalog 의 content 기반 트랙은 `1fr auto` 4곳(ProgressBar/Meter/Slider)뿐이고, `auto` 열은 §12.6 이 max-content 까지 키워 종전과 같은 값에 수렴한다(실측 `1fr auto`/320 → 180·120).
+- **잔존** — content 기반 트랙 안의 **텍스트 leaf** 가 pipeline 에서 폭 0. 엔진은 기여를 소비할 준비가 됐지만 TS 층이 공급하지 않는다 (아래 §측정 스칼라 공급).
+
+### 금지 패턴
+
+- ❌ 트랙 토큰만 보고 §6.6 clamp 판정 → 아이템의 선호 크기(`auto`/%/`fit-content` 여부)가 조건의 절반이다
+- ❌ min sizing 이 `min-content`/`max-content` **명시**인데 clamp 적용 → §6.6 은 _자동_ 최소 크기 규정이다
+- ❌ 인라인 축 기여를 단일 값으로 축약 → 여유 구간에 따라 트랙이 base↔상한 사이에서 움직이지 못한다
+- ❌ content 함수 해소를 grid.rs 로 이동 → grid.rs 는 자식을 모른다 (측정 주체는 tree.rs)
+- ❌ tree.rs 에서 트랙 문자열을 `split_whitespace` 로 분해 → 괄호 안 공백에서 깨진다
+
+## 측정 스칼라 공급이 flex 자식으로 한정돼 있다 (미해소, 2026-07-28)
+
+`enrichWithIntrinsicSize` 의 텍스트 leaf 스칼라 주입(`contentMinWidth`/`contentMaxWidth`) 조건이 `isFlexChild && TEXT_LEAF_TAGS.has(type)` 다. block 자식은 stretch 되어 스칼라가 없어도 되지만, **grid 자식은 트랙이 content 로 정해질 수 있어** 스칼라 없이는 엔진이 텍스트 크기를 알 길이 없다 → `width:auto` 텍스트 leaf 가 **0** 으로 무너진다.
+
+- 증상이 **content 기반 트랙에서만** 드러난다. `1fr`/`px` 트랙은 자식이 트랙으로 stretch 되어 우연히 맞는다 — 실측 `1fr auto`/320 에서 값 텍스트가 0(트랙 0, 1fr 이 312 독식) vs `1fr 1fr` 156·156 정상.
+- catalog 컴포넌트가 멀쩡했던 것은 값 자식이 `fit-content` 를 달고 있어 `hasExplicitIntrinsicWidthKeyword` 로 우회했기 때문이다(실측 `width:fit-content` → 트랙 91 정상). 즉 정상 동작이 **우연**이었다.
+- 게이트를 넓힐 때 `isFlexChild` 자체를 grid 로 확장하면 안 된다 — 같은 플래그가 `growsInFlex`(flex-grow 억제)와 non-container `minWidth` 주입에도 쓰여 무관한 동작이 딸려온다. 스칼라 조건에만 별도 신호를 쓴다.
+
+### 금지 패턴
+
+- ❌ `isFlexChild` 를 grid 포함으로 재정의 → flex-grow 억제·minWidth 주입까지 grid 자식에 번진다
+- ❌ 텍스트 leaf 에 width 를 다시 주입해 우회 → ADR-165 스칼라 계약과 이중 적용 (§TS 잔존 계약)
 
 ## 배치 직렬화 계약 — 숫자 하나가 페이지 레이아웃을 끈다 (CRITICAL)
 

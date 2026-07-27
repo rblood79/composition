@@ -74,7 +74,10 @@ impl GridTrack {
 /// CSS grid-template 문자열을 최상위 토큰으로 분리. 괄호 depth 기반이라
 /// `repeat(auto-fill, minmax(200px, 1fr))` 같은 중첩을 하나의 토큰으로 유지.
 /// (GridLayout.utils.ts tokenizeTemplate / TaffyGridEngine.parseGridTemplate 동일)
-fn tokenize_template(template: &str) -> Vec<String> {
+///
+/// `tree.rs` 도 같은 분해를 써야 한다 — `split_whitespace` 로 자르면
+/// `minmax(50px, 80px)` 처럼 **내부에 공백이 있는** 토큰이 두 조각으로 쪼개진다.
+pub(crate) fn tokenize_template(template: &str) -> Vec<String> {
     let mut tokens: Vec<String> = Vec::new();
     let mut depth: i32 = 0;
     let mut current = String::new();
@@ -137,7 +140,16 @@ fn parse_single_track_value(value: &str) -> GridTrack {
 
 /// `minmax(min, max)` 파싱. max 가 fr 이면 음수(-fr) 로 저장하여 resolve 에서 fr 풀 참여.
 /// (GridLayout.utils.ts parseMinmax 동일)
-fn parse_minmax(expr: &str) -> GridTrack {
+///
+/// `%` 는 **파싱 시점에** container 기준으로 풀어 px 로 저장한다 — `resolve_grid_tracks` 가
+/// 쓰는 것과 같은 container 값이라 결과가 같고, minmax 는 min/max 두 슬롯이 하나의
+/// `GridTrack` 에 들어가 `%` 를 미해결로 들고 갈 자리가 없다. 종전엔 `%` max 가
+/// `-1`(=1fr) 로 떨어져 `minmax(auto,10%)` 가 여유를 전부 먹었다 (실측 DOM 30 / 엔진 200).
+///
+/// content 키워드(`auto`/`min-content`/`max-content`)는 여기 오기 전에 `tree.rs` 가
+/// 측정값으로 해소한다. 여기 남는 것은 그 해소가 없는 경로(`parse_tracks` 직접 호출)뿐이라
+/// 종전 폴백(min→0 / max→1fr)을 유지한다.
+fn parse_minmax(expr: &str, container_size: f32) -> GridTrack {
     let open = expr.find('(').map(|i| i + 1).unwrap_or(0);
     let close = expr.rfind(')').unwrap_or(expr.len());
     let inner = if open <= close { &expr[open..close] } else { "" };
@@ -145,18 +157,22 @@ fn parse_minmax(expr: &str) -> GridTrack {
     let min_str = parts.next().unwrap_or("0px").trim();
     let max_str = parts.next().unwrap_or("1fr").trim();
 
-    // min: px 만 실값, 컨텐츠 기반(auto/min-content/max-content)은 0 폴백.
+    // min: px/% 만 실값, 컨텐츠 기반(auto/min-content/max-content)은 0 폴백.
     let min_val = if let Some(px) = min_str.strip_suffix("px") {
         px.trim().parse::<f32>().unwrap_or(0.0)
+    } else if let Some(pct) = min_str.strip_suffix('%') {
+        pct.trim().parse::<f32>().unwrap_or(0.0) / 100.0 * container_size
     } else {
         0.0
     };
 
-    // max: fr → 음수(-fr), px → 양수, auto/max-content → -1 (1fr 동작).
+    // max: fr → 음수(-fr), px/% → 양수, auto/max-content → -1 (1fr 동작).
     let max_val = if let Some(fr) = max_str.strip_suffix("fr") {
         -(fr.trim().parse::<f32>().unwrap_or(1.0))
     } else if let Some(px) = max_str.strip_suffix("px") {
         px.trim().parse::<f32>().unwrap_or(0.0)
+    } else if let Some(pct) = max_str.strip_suffix('%') {
+        pct.trim().parse::<f32>().unwrap_or(0.0) / 100.0 * container_size
     } else {
         -1.0
     };
@@ -206,7 +222,7 @@ fn expand_repeat(expr: &str, container_size: f32, gap: f32) -> (Vec<GridTrack>, 
         .iter()
         .map(|token| {
             if token.starts_with("minmax(") {
-                parse_minmax(token)
+                parse_minmax(token, container_size)
             } else {
                 parse_single_track_value(token)
             }
@@ -402,7 +418,7 @@ fn parse_template_to_tracks(template: &str, container_size: f32, gap: f32) -> Ve
             let (expanded, _is_auto_fit) = expand_repeat(token, container_size, gap);
             tracks.extend(expanded);
         } else if token.starts_with("minmax(") {
-            tracks.push(parse_minmax(token));
+            tracks.push(parse_minmax(token, container_size));
         } else {
             tracks.push(parse_single_track_value(token));
         }

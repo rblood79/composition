@@ -34,6 +34,9 @@ import {
  *
  * 분배는 균등이고 상한에 닿은 트랙은 freeze 한 뒤 남은 몫을 나머지에 재분배한다.
  * 전원이 상한에 닿으면 남는 공간은 **그대로 남는다**(§12.8 대상이 없으면 미분배).
+ *
+ * base size 를 자식 content 로 채우는 앞 단계(§12.5)는
+ * `gridTrackContribution.browser.test.ts` 소관이다. 여기서는 두 단계의 **순서**만 잠근다.
  */
 
 const box = (
@@ -211,32 +214,28 @@ describe("grid minmax 트랙 — CSS 대조", () => {
   });
 
   /**
-   * 잔존 — 트랙의 **content 기여**가 측정되지 않는다.
-   *
-   * `minmax(auto, 80px)` 의 base 는 그 트랙 아이템들의 min-content 인데, 엔진은 grid.rs
-   * 에서 0 으로 둔다. 내용이 상한보다 작으면 §12.6 이 상한까지 키워 결과가 우연히 맞고
-   * (위 케이스 7), 내용이 상한을 넘으면 어긋난다 — CSS 는 base 가 growth limit 를
-   * 밀어올린다.
-   *
-   * 같은 뿌리로 `min-content`/`max-content`/`fit-content()` 트랙 키워드도 미지원이다
-   * (전부 `auto` 로 폴백). 셋 다 **트랙별 content 기여 산출**을 요구하며, 그것이
-   * ADR-169 가 이연한 grid intrinsic 축의 재개 조건이다.
+   * 트랙의 **content 기여**는 §12.5 소관이고, 이 파일의 §12.6 은 그 base 를 상한까지
+   * 키우는 다음 단계다. 둘의 순서가 보이는 지점만 여기서 잠그고, 기여 산출 자체의
+   * 규칙표·케이스는 `gridTrackContribution.browser.test.ts` 가 소유한다.
    */
-  it("잔존 — 트랙 content 기여 미측정 (실측 스냅샷)", () => {
+  it("§12.5 base 가 상한을 밀어올리면 §12.6 은 더 키우지 않는다", () => {
+    // `minmax(auto,80px)` 인데 내용이 120 → base 120 이 growth limit 를 끌어올린다(§12.4).
+    // 구 엔진은 base 를 0 으로 둬서 상한 80 에서 멈췄다.
     const over = gridCase(
       "minmax(auto,80px) — 내용 120",
       ["minmax(auto,80px)", "auto"],
       [120, 10],
     );
-    expect(domLeg(over.nodes, 400)[1].x).toBe(120); // base=min-content 120 이 상한을 밀어올림
-    expect(engineLeg(over.nodes, 400, 600)[1].x).toBe(80); // 엔진: base 0 → 상한 80 에서 멈춤
+    expect(domLeg(over.nodes, 400)[1].x).toBe(120);
+    expect(engineLeg(over.nodes, 400, 600)[1].x).toBe(120);
 
+    // content 키워드 트랙은 §12.6 대상이 아니다 — 상한이 base 와 같아 여지가 없다.
     const minC = gridCase("min-content 트랙", ["min-content", "auto"]);
-    expect(domLeg(minC.nodes, 400)[1].x).toBe(10); // 내용 크기 10
-    expect(engineLeg(minC.nodes, 400, 600)[1].x).toBe(290); // 엔진: auto 폴백 → 1fr 근사
+    expect(domLeg(minC.nodes, 400)[1].x).toBe(10);
+    expect(engineLeg(minC.nodes, 400, 600)[1].x).toBe(10);
 
     const maxC = gridCase("max-content 트랙", ["max-content", "100px"]);
     expect(domLeg(maxC.nodes, 400)[1].x).toBe(10);
-    expect(engineLeg(maxC.nodes, 400, 600)[1].x).toBe(200);
+    expect(engineLeg(maxC.nodes, 400, 600)[1].x).toBe(10);
   });
 });

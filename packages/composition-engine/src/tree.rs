@@ -634,6 +634,75 @@ impl LayoutTree {
         (w, h)
     }
 
+    /// 아이템의 **최소 기여**에 CSS-GRID-1 §6.6 자동 최소 크기 clamp 를 적용한다.
+    ///
+    /// §12.5 의 minimum contribution 정의가 두 갈래다:
+    /// - 선호 크기가 **확정**(`width:90px`) → 최소 기여 = min-content 기여 = 그 크기. clamp 없음.
+    /// - 선호 크기가 **`auto` 처럼 동작**(auto / % / fit-content 등) → 최소 기여 = *used
+    ///   minimum size*. 명시 `min-*` 이 있으면 그 값이고, 없으면 자동 최소 크기이며 이때만
+    ///   §6.6 이 "고정 max 트랙만 span 하면 그 상한으로 clamp" 를 건다.
+    ///
+    /// Chrome 실측(트랙 `minmax(auto,20px)`, 내용 min 40)이 네 줄로 갈라 준다:
+    /// `width:auto`→20 · `width:90px`→**90** · `min-width:70px`→**70** · `width:50%`→20.
+    /// 세로도 같다 — `minmax(auto,40px)` 행에서 `height:60px` 자식은 **60**.
+    /// 명시 `min-*` 은 뒤이어 도는 `track_contribution` 의 `max(min)` 이 되살리므로,
+    /// 여기서는 clamp 를 걸어도 결과가 같다 (실측 70 = max(clamp 20, min-width 70)).
+    fn clamp_auto_min_contribution(
+        &self,
+        child: usize,
+        raw_min: f32,
+        fixed_max: Option<f32>,
+        horizontal: bool,
+    ) -> f32 {
+        let Some(limit) = fixed_max else {
+            return raw_min;
+        };
+        let Some(node) = self.get(child) else {
+            return raw_min;
+        };
+        let pref = if horizontal {
+            node.style.width.as_deref()
+        } else {
+            node.style.height.as_deref()
+        };
+        if preferred_size_behaves_as_auto(pref) {
+            raw_min.min(limit)
+        } else {
+            raw_min
+        }
+    }
+
+    /// 자식의 **인라인 축** content 기여 `(min-content, max-content, 컨테이너로_solve함)`.
+    ///
+    /// CSS-GRID-1 §12.5 의 트랙 기여값이다. 두 값이 갈려야 `auto` 트랙이 base(min-content)
+    /// ↔ 상한(max-content) 사이에서 움직인다 — 실측 `auto auto` / 컨테이너 150 에서
+    /// 트랙이 75·75 가 되는 것은 base 40 에 여유 35 씩이 §12.6 으로 붙기 때문이다.
+    ///
+    /// grid 서브트리는 `measure_intrinsic_width` 가 `None` 이라(ADR-169 이연) 기존
+    /// "컨테이너 크기로 solve" 근사로 떨어지고, 그때는 min·max 를 같은 값으로 둔다 —
+    /// `(v, v)` 는 base == 상한이라 종전 동작(측정값에 고정)과 정확히 같다.
+    ///
+    /// 세 번째 반환값은 "서브트리를 컨테이너 크기로 solve 했다" 는 신고다. 그 경우
+    /// 자식이 clean 으로 남아 셀 크기 재solve 가 증분 skip 되므로 호출부가 되살려야 한다
+    /// (`measure_intrinsic_width` 경로는 스냅샷 복구가 있어 오염이 없다).
+    fn col_contribution(
+        &mut self,
+        c: usize,
+        container_w: f32,
+        container_h: f32,
+        fixed_max: Option<f32>,
+    ) -> (f32, f32, bool) {
+        if let Some((mn, mx)) = self.measure_intrinsic_width(c) {
+            let mn = self.clamp_auto_min_contribution(c, mn, fixed_max, true);
+            let (mn, _) = self.track_contribution(c, mn, 0.0, container_w, container_h);
+            let (mx, _) = self.track_contribution(c, mx, 0.0, container_w, container_h);
+            return (mn.min(mx), mx, false);
+        }
+        let (cw, ch) = self.solve_node(c, container_w, container_h);
+        let (cw, _) = self.track_contribution(c, cw, ch, container_w, container_h);
+        (cw, cw, true)
+    }
+
     /// 서브트리(`handle` 포함)에 dirty 노드가 하나라도 있으면 true.
     ///
     /// clean 서브트리(전부 false)는 `solve_node` 가 저장된 layout 을 재사용하고
@@ -1867,8 +1936,10 @@ impl LayoutTree {
         // grid.rs 는 auto 를 1fr 로 근사(available 분배)하므로, 측정 없이는 height:auto
         // 컨테이너에서 auto row 가 availH 를 나눠 가져 폭발(availH>0) 또는 0 붕괴(availH<0).
         // ProgressBar/Meter 실구조(1fr auto / auto auto + placement)가 (B) 케이스.
-        let row_tokens: Vec<&str> = template_rows.split_whitespace().collect();
-        let has_auto_row = row_tokens.iter().any(|t| *t == "auto");
+        // 토큰화는 grid.rs 와 **같은 함수**를 쓴다 — `split_whitespace` 는 `minmax(50px, 80px)`
+        // 처럼 내부에 공백이 있는 토큰을 두 조각으로 쪼갠다.
+        let row_tokens: Vec<String> = grid::tokenize_template(&template_rows);
+        let has_intrinsic_row = row_tokens.iter().any(|t| track_needs_contribution(t));
         // (A) implicit auto row: `gridTemplateRows` 미명시. placement 유무 **무관**:
         //   - placement 없음 → row-major (자식 i → row = i / col_count).
         //   - placement 있음 (Slider: gridRowStart 로 label=row1, track=row2 명시) →
@@ -1923,10 +1994,15 @@ impl LayoutTree {
                 .map(|h| format!("{h}px"))
                 .collect::<Vec<_>>()
                 .join(" ");
-        } else if has_auto_row && !children.is_empty() {
+        } else if has_intrinsic_row && !children.is_empty() {
             measured_with_container = true;
-            // (B) 명시 track 안의 auto row: 자식 gridRowStart 로 row 결정 후 auto row 만 측정.
+            // (B) 명시 track 안의 content 기반 row: 자식 gridRowStart 로 row 결정 후 측정.
             // gridRowStart 미명시 자식은 row-major fallback(col_count 기준).
+            //
+            // **블록 축은 min-content == max-content** 로 둔다 — 높이는 폭이 정해진 뒤의
+            // 내용 크기 하나뿐이라 두 값이 갈리지 않는다. `(h, h)` 를 넣으면 `auto` row 는
+            // base == 상한이 되어 종전과 같이 측정값에 고정되고, `minmax(auto, 80px)` row 는
+            // base 가 0 대신 실측 높이가 된다.
             let col_count = grid::parse_tracks(&template_cols, container_w, col_gap).len().max(1);
             let mut row_intrinsic: Vec<f32> = vec![0.0; row_tokens.len()];
             for (i, &c) in children.iter().enumerate() {
@@ -1936,6 +2012,10 @@ impl LayoutTree {
                     i / col_count,
                 );
                 let (cw, ch) = self.solve_node(c, container_w, container_h);
+                let fixed_max = row_tokens
+                    .get(row)
+                    .and_then(|t| track_fixed_max(t, container_h));
+                let ch = self.clamp_auto_min_contribution(c, ch, fixed_max, false);
                 let (_, ch) = self.track_contribution(c, cw, ch, container_w, container_h);
                 if row < row_intrinsic.len() {
                     row_intrinsic[row] = row_intrinsic[row].max(ch);
@@ -1944,19 +2024,16 @@ impl LayoutTree {
             row_auto_idx = row_tokens
                 .iter()
                 .enumerate()
-                .filter(|(_, t)| **t == "auto")
+                .filter(|(_, t)| track_max_sizing_is_auto(t))
                 .map(|(r, _)| r)
                 .collect();
-            // auto 토큰만 측정값으로 치환, px/fr/% 는 원본 유지.
+            // content 기반 토큰만 측정값으로 해소, px/fr/% 는 원본 유지.
             template_rows = row_tokens
                 .iter()
                 .enumerate()
                 .map(|(r, tok)| {
-                    if *tok == "auto" {
-                        format!("{}px", row_intrinsic.get(r).copied().unwrap_or(0.0))
-                    } else {
-                        (*tok).to_string()
-                    }
+                    let h = row_intrinsic.get(r).copied().unwrap_or(0.0);
+                    resolve_track_with_contribution(tok, h, h)
                 })
                 .collect::<Vec<_>>()
                 .join(" ");
@@ -1968,41 +2045,44 @@ impl LayoutTree {
         // content 보다 크게(ProgressBar value: CSS 29 vs 근사 168) → col 폭 발산 + 배치 밀림.
         // 자식 gridColumnStart(1-based line)로 col 결정, auto 토큰 col 만 max intrinsic width
         // 로 치환(1fr/px/% col 보존). placement 없는 자식은 col-major fallback.
-        let has_auto_col = template_cols.split_whitespace().any(|t| t == "auto");
-        let template_cols = if has_auto_col && !children.is_empty() {
-            measured_with_container = true;
-            let col_tokens: Vec<String> =
-                template_cols.split_whitespace().map(String::from).collect();
+        let col_tokens: Vec<String> = grid::tokenize_template(&template_cols);
+        let has_intrinsic_col = col_tokens.iter().any(|t| track_needs_contribution(t));
+        let template_cols = if has_intrinsic_col && !children.is_empty() {
             // row-major auto-placement: gridColumnStart 미명시 자식 i 의 col = i % col_count.
             let col_count = col_tokens.len().max(1);
-            let mut col_intrinsic: Vec<f32> = vec![0.0; col_tokens.len()];
+            // 트랙별 (min-content, max-content) 기여 — 그 열 자식들의 최댓값.
+            let mut col_min: Vec<f32> = vec![0.0; col_tokens.len()];
+            let mut col_max: Vec<f32> = vec![0.0; col_tokens.len()];
             for (i, &c) in children.iter().enumerate() {
                 // gridColumnStart 1-based line → col index (미명시면 col-major i%col_count).
                 let col = grid_line_to_track_index(
                     self.get(c).and_then(|n| n.style.grid_column_start.as_deref()),
                     i % col_count,
                 );
-                let (cw, ch) = self.solve_node(c, container_w, container_h);
-                let (cw, _) = self.track_contribution(c, cw, ch, container_w, container_h);
-                if col < col_intrinsic.len() {
-                    col_intrinsic[col] = col_intrinsic[col].max(cw);
+                let fixed_max = col_tokens
+                    .get(col)
+                    .and_then(|t| track_fixed_max(t, container_w));
+                let (mn, mx, solved_with_container) =
+                    self.col_contribution(c, container_w, container_h, fixed_max);
+                measured_with_container |= solved_with_container;
+                if col < col_min.len() {
+                    col_min[col] = col_min[col].max(mn);
+                    col_max[col] = col_max[col].max(mx);
                 }
             }
             col_auto_idx = col_tokens
                 .iter()
                 .enumerate()
-                .filter(|(_, t)| *t == "auto")
+                .filter(|(_, t)| track_max_sizing_is_auto(t))
                 .map(|(c, _)| c)
                 .collect();
             col_tokens
                 .iter()
                 .enumerate()
                 .map(|(cidx, tok)| {
-                    if tok == "auto" {
-                        format!("{}px", col_intrinsic.get(cidx).copied().unwrap_or(0.0))
-                    } else {
-                        tok.clone()
-                    }
+                    let mn = col_min.get(cidx).copied().unwrap_or(0.0);
+                    let mx = col_max.get(cidx).copied().unwrap_or(0.0);
+                    resolve_track_with_contribution(tok, mn, mx)
                 })
                 .collect::<Vec<_>>()
                 .join(" ")
@@ -2023,14 +2103,12 @@ impl LayoutTree {
         // vs 엔진 400 으로 어긋나 있다 — **`auto` 와 무관한 별개 축**이라 여기서 같이 풀지
         // 않는다. 좁힌 게이트는 그 축을 건드리지 않고, `auto` 트랙이 우연히 맞던 경우
         // (flex item 그리드)를 깨지도 않는다. `gridItemBox.browser.test.ts` 의 스냅샷이 고정.
-        let mut row_tracks: Vec<String> =
-            template_rows.split_whitespace().map(String::from).collect();
+        let mut row_tracks: Vec<String> = grid::tokenize_template(&template_rows);
         if explicit_h > 0.0 && distribution_allows_stretch(style.align_content.as_deref()) {
             stretch_auto_tracks(&mut row_tracks, &row_auto_idx, container_h, row_gap);
             template_rows = row_tracks.join(" ");
         }
-        let mut col_tracks: Vec<String> =
-            template_cols.split_whitespace().map(String::from).collect();
+        let mut col_tracks: Vec<String> = grid::tokenize_template(&template_cols);
         let template_cols =
             if explicit_w > 0.0 && distribution_allows_stretch(style.justify_content.as_deref()) {
                 stretch_auto_tracks(&mut col_tracks, &col_auto_idx, container_w, col_gap);
@@ -2572,6 +2650,235 @@ fn stretch_auto_tracks(tracks: &mut [String], auto_idx: &[usize], container: f32
     for &i in auto_idx {
         tracks[i] = format!("{}px", resolved[i] + share);
     }
+}
+
+// ── 트랙 sizing function ↔ content 기여 (CSS-GRID-1 §12.5) ──
+
+/// 한 축의 트랙 sizing function. `<track-size>` 는 min·max 두 개로 분해된다
+/// (`auto` = `minmax(auto, auto)`, `1fr` = `minmax(auto, 1fr)` 형태).
+///
+/// **`Definite` 는 원문 문자열을 그대로 들고 간다** — px/%/fr 의 해석은 grid.rs 가
+/// 컨테이너 크기를 알고 하는 일이고, 여기서 미리 풀면 `%` 가 두 번 해석된다.
+#[derive(Debug, Clone, PartialEq)]
+enum SizingFn {
+    /// px / % / fr — grid.rs 가 그대로 해석 (원문 보존).
+    Definite(String),
+    /// `auto`. **min 자리에서는 min-content, max 자리에서는 max-content** 다
+    /// (CSS-GRID-1 §12.5 — 자동 최소 크기 / 최대 content 크기).
+    Auto,
+    MinContent,
+    MaxContent,
+    /// `fit-content(<len>)` — `minmax(auto, max-content)` 이되 상한을 인자로 clamp.
+    FitContent(String),
+}
+
+impl SizingFn {
+    fn parse(v: &str) -> SizingFn {
+        let t = v.trim();
+        if t.eq_ignore_ascii_case("auto") {
+            SizingFn::Auto
+        } else if t.eq_ignore_ascii_case("min-content") {
+            SizingFn::MinContent
+        } else if t.eq_ignore_ascii_case("max-content") {
+            SizingFn::MaxContent
+        } else if let Some(rest) = strip_fn_call(t, "fit-content") {
+            SizingFn::FitContent(rest.trim().to_string())
+        } else {
+            SizingFn::Definite(t.to_string())
+        }
+    }
+
+    /// content 기여를 소비하는가 — 아니면 측정 자체가 불필요하다.
+    fn needs_contribution(&self) -> bool {
+        !matches!(self, SizingFn::Definite(_))
+    }
+}
+
+/// `name(...)` 형태면 괄호 안을 돌려준다. 아니면 `None`.
+fn strip_fn_call<'a>(v: &'a str, name: &str) -> Option<&'a str> {
+    let t = v.trim();
+    let (head, rest) = t.split_at(t.find('(')?);
+    if !head.trim().eq_ignore_ascii_case(name) {
+        return None;
+    }
+    rest.strip_prefix('(')?.strip_suffix(')')
+}
+
+/// 트랙 토큰 → (min sizing, max sizing).
+///
+/// `minmax(a, b)` 는 그대로 분해하고, 단일 값 `x` 는 CSS 정의대로 펼친다:
+/// `auto` → (auto, auto) / `1fr` → (auto, 1fr) / `min-content` → (min-content, min-content) /
+/// `100px` → (100px, 100px) / `fit-content(L)` → (auto, fit-content(L)).
+///
+/// **`fr` 의 min 이 `auto`** 라는 점이 중요하다 — `1fr` 트랙은 자기 content 아래로
+/// 줄지 않는다. 다만 본 엔진의 fr 분배(§12.7)는 그 하한을 아직 적용하지 않아,
+/// 여기서도 `Definite` 로 넘겨 기존 동작을 보존한다 (§Residual).
+fn split_track_sizing(token: &str) -> (SizingFn, SizingFn) {
+    let t = token.trim();
+    if let Some(inner) = strip_fn_call(t, "minmax") {
+        let mut parts = split_top_level_comma(inner);
+        let max = parts.pop().unwrap_or_else(|| "auto".to_string());
+        let min = parts.pop().unwrap_or_else(|| "auto".to_string());
+        return (SizingFn::parse(&min), SizingFn::parse(&max));
+    }
+    match SizingFn::parse(t) {
+        // 단일 content 키워드는 min·max 양쪽에 같은 함수가 온다 → 트랙이 그 크기에 고정.
+        SizingFn::MinContent => (SizingFn::MinContent, SizingFn::MinContent),
+        SizingFn::MaxContent => (SizingFn::MaxContent, SizingFn::MaxContent),
+        SizingFn::Auto => (SizingFn::Auto, SizingFn::Auto),
+        f @ SizingFn::FitContent(_) => (SizingFn::Auto, f),
+        // px/%/fr — fr 의 CSS 상 min 은 auto 지만 §12.7 미적용이라 원문 유지.
+        d @ SizingFn::Definite(_) => (d.clone(), d),
+    }
+}
+
+/// 괄호 depth 를 고려한 최상위 콤마 분리.
+fn split_top_level_comma(v: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut depth = 0i32;
+    let mut cur = String::new();
+    for ch in v.chars() {
+        match ch {
+            '(' => {
+                depth += 1;
+                cur.push(ch);
+            }
+            ')' => {
+                depth -= 1;
+                cur.push(ch);
+            }
+            ',' if depth == 0 => out.push(std::mem::take(&mut cur)),
+            _ => cur.push(ch),
+        }
+    }
+    out.push(cur);
+    out
+}
+
+/// 트랙이 content 측정을 요구하는가 (`auto`/`min-content`/`max-content`/`fit-content()`).
+fn track_needs_contribution(token: &str) -> bool {
+    let (mn, mx) = split_track_sizing(token);
+    mn.needs_contribution() || mx.needs_contribution()
+}
+
+/// max 트랙 sizing 이 `auto` 인가 — CSS-GRID-1 §12.8 stretch 참여 조건.
+///
+/// `min-content`/`max-content`/`fit-content()`/`px`/`fr` 은 제외다. 실측:
+/// `min-content min-content` / 컨테이너 500 → 40·40 그대로 (stretch 없음),
+/// `fit-content(60px)` → 60 에서 멈춤.
+fn track_max_sizing_is_auto(token: &str) -> bool {
+    matches!(split_track_sizing(token).1, SizingFn::Auto)
+}
+
+/// content 기여 `(min_content, max_content)` 를 받아 트랙 토큰을 **definite 토큰**으로 해소.
+///
+/// 이 함수가 tree ↔ grid 층의 경계다 — 자식을 아는 tree 가 content 함수를 px 로 풀고,
+/// grid.rs 는 확정된 트랙만 sizing 한다 (모듈 헤더의 "자식 intrinsic → 트랙 크기 도출은
+/// 트리 레벨 책임" 계약과 같은 방향).
+///
+/// CSS-GRID-1 §12.4 "if the growth limit is less than the base size, increase the growth
+/// limit to match" — 상한이 base 보다 작으면 base 로 끌어올린다. 그래서 `minmax(auto,80px)`
+/// 은 내용이 120 이면 120 이 된다(실측 DOM 120, 상한이 밀려 올라감).
+///
+/// `mn` 은 이미 §6.6 자동 최소 크기 clamp 가 **아이템 단위로** 적용된 값이다
+/// (`clamp_auto_min_contribution`) — 그 clamp 는 아이템의 선호 크기가 `auto` 처럼 동작할
+/// 때만 걸려서, 트랙 토큰만 보고는 판정할 수 없다.
+fn resolve_track_with_contribution(token: &str, mn: f32, mx: f32) -> String {
+    let (min_fn, max_fn) = split_track_sizing(token);
+    if !min_fn.needs_contribution() && !max_fn.needs_contribution() {
+        return token.trim().to_string();
+    }
+
+    let base = match &min_fn {
+        // min 자리의 `auto` = automatic minimum size (아이템 단위 clamp 반영 완료).
+        SizingFn::Auto => Some(mn),
+        SizingFn::MinContent => Some(mn),
+        SizingFn::MaxContent => Some(mx),
+        // `fit-content()` 는 min 자리에 올 수 없다(문법). 방어적으로 min-content 취급.
+        SizingFn::FitContent(_) => Some(mn),
+        SizingFn::Definite(_) => None,
+    };
+
+    let limit = match &max_fn {
+        // max 자리의 `auto` = max-content (§12.8 stretch 는 그 뒤 별도 단계).
+        SizingFn::Auto | SizingFn::MaxContent => Some(mx),
+        SizingFn::MinContent => Some(mn),
+        // clamp(min-content, L, max-content) — 실측 `fit-content(60)`→60 / `fit-content(200)`→120.
+        SizingFn::FitContent(arg) => Some(parse_px(arg).map_or(mx, |l| l.clamp(mn.min(mx), mx))),
+        SizingFn::Definite(_) => None,
+    };
+
+    match (base, limit) {
+        (Some(b), Some(l)) => {
+            let l = l.max(b); // §12.4 growth limit ≥ base
+            if (l - b).abs() < 0.01 {
+                format!("{b}px")
+            } else {
+                format!("minmax({b}px,{l}px)")
+            }
+        }
+        // 한쪽만 content 기반 — 반대편은 원문(px/%/fr) 보존.
+        (Some(b), None) => match &max_fn {
+            SizingFn::Definite(d) => format!("minmax({b}px,{d})"),
+            _ => format!("{b}px"),
+        },
+        (None, Some(l)) => match &min_fn {
+            SizingFn::Definite(d) => format!("minmax({d},{l}px)"),
+            _ => format!("{l}px"),
+        },
+        (None, None) => token.trim().to_string(),
+    }
+}
+
+/// `"80px"` → `Some(80.0)`. px 이외(%/calc)는 `None` — 호출부가 폴백을 정한다.
+fn parse_px(v: &str) -> Option<f32> {
+    v.trim().strip_suffix("px")?.trim().parse::<f32>().ok()
+}
+
+/// **고정 길이**(px/%) 트랙 값 → px. `fr`/`auto`/`calc()` 등은 `None`.
+///
+/// CSS-GRID-1 이 말하는 "fixed track sizing function" 판정이자 그 값이다 —
+/// §6.6 의 자동 최소 크기 clamp 대상을 가른다.
+fn definite_track_len(v: &str, container: f32) -> Option<f32> {
+    let t = v.trim();
+    if let Some(px) = parse_px(t) {
+        return Some(px);
+    }
+    let pct = t.strip_suffix('%')?.trim().parse::<f32>().ok()?;
+    Some(pct / 100.0 * container)
+}
+
+/// §6.6 clamp 상한 — **min sizing 이 `auto`** 이고 max sizing 이 고정 길이일 때만.
+///
+/// §6.6 은 *자동* 최소 크기(=`min-width:auto` 해소)에 대한 규정이라, min 자리에 `min-content`
+/// 를 **명시**하면 대상이 아니다. 실측이 갈라 준다 — 같은 상한 20px 에서
+/// `minmax(auto,20px)` → 20 이지만 `minmax(min-content,20px)` → 40.
+fn track_fixed_max(token: &str, container: f32) -> Option<f32> {
+    let (min_fn, max_fn) = split_track_sizing(token);
+    if min_fn != SizingFn::Auto {
+        return None;
+    }
+    match max_fn {
+        SizingFn::Definite(d) => definite_track_len(&d, container),
+        _ => None,
+    }
+}
+
+/// 아이템의 선호 크기가 CSS 상 "`auto` 처럼 동작"하는가.
+///
+/// 미설정 / `auto` / **백분율**(containing block 의존) / intrinsic 키워드가 해당한다.
+/// 확정 길이(`90px`)면 최소 기여가 그 크기라 §6.6 clamp 대상이 아니다.
+fn preferred_size_behaves_as_auto(v: Option<&str>) -> bool {
+    let Some(t) = v.map(str::trim) else {
+        return true;
+    };
+    if t.is_empty() || t.eq_ignore_ascii_case("auto") || t.ends_with('%') {
+        return true;
+    }
+    matches!(
+        SizingFn::parse(t),
+        SizingFn::MinContent | SizingFn::MaxContent | SizingFn::FitContent(_)
+    )
 }
 
 /// track array(`["1fr", "auto"]`) → space-join 문자열(`"1fr auto"`).
