@@ -1143,6 +1143,17 @@ impl LayoutTree {
         } else {
             avail_h
         };
+        // 자식이 percent **height** 를 해소하는 containing block 높이 — 컨테이너 height 가
+        //   **명시 definite** 일 때만 실축, auto 면 INDEFINITE (CSS §10.5). `child_avail_h` 는
+        //   부모가 내려준 available 이라 auto 여도 양수라, 자식 재귀 solve 에 그대로 내리면
+        //   자식이 `height:50%` 를 **상속 available** 로 해소한다. `solve_block` 의 동명
+        //   게이트와 같은 규칙이고 flex 에만 빠져 있었다 (2026-07-27).
+        //   축 무관 — 블록 축에는 stretch 가 없어 row/column 어느 쪽 cross 든 동일하다.
+        let child_containing_h = if explicit_h > 0.0 {
+            child_avail_h
+        } else {
+            INDEFINITE_AVAIL
+        };
         // 자식 write / gap 해석 ctx 는 content 폭 기준 (자식 % 의 containing block).
         let ctx = self.ctx_for(child_avail_w);
         let gap_row = resolve_gap(style.row_gap.as_deref(), &ctx);
@@ -1175,8 +1186,19 @@ impl LayoutTree {
         // main 축(`ctx`/`main_ctx`) 과 padding/margin/gap 은 **기존 그대로** available 기준 —
         //   available 자체를 죽이면 shrink-to-fit 의 상한과 main 축 배치가 무너진다
         //   (초기 시도에서 SelectValue width 0 회귀). 바뀌는 건 **cross 축 `%` 해석뿐**.
+        //
+        // **(b) 는 인라인 축 전용이다 (2026-07-27)**: 위 DatePicker 근거는 전부 **폭** 이야기다
+        //   — block 레벨 stretch 는 인라인 축에만 적용된다. 블록 축에서 `height:auto` 는
+        //   "내용 크기" 라, 부모가 definite available 을 내려줘도 **높이는 확정되지 않는다**
+        //   (CSS §10.5: percentage height 는 containing block 높이가 definite 일 때만 해소).
+        //   `solve_block` 의 `child_containing_h` 게이트(`explicit_h > 0.0`)와 같은 규칙이고,
+        //   flex cross 축에만 빠져 있었다.
+        //
+        //   실측(2026-07-27 CSS 정합 sweep): `flex(row, width:300, height 미지정)` 안의
+        //   `height:50%` 자식이 상속 available 600 의 절반인 **300** 으로 해소 (DOM 은 0 —
+        //   `%` → auto → 내용 없음). 컨테이너도 그만큼 부풀었다.
         let cross_definite_self = if is_row {
-            explicit_h > 0.0 || avail_h >= 0.0
+            explicit_h > 0.0
         } else {
             explicit_w > 0.0 || avail_w >= 0.0
         };
@@ -1212,7 +1234,7 @@ impl LayoutTree {
         let stretches_children_cross = align_items == 0;
         let child_cross_solve = |c: usize| -> (f32, f32) {
             if stretches_children_cross {
-                return (child_avail_w, child_avail_h);
+                return (child_avail_w, child_containing_h);
             }
             // 자식이 cross 를 **명시**했으면 align-items 와 무관하게 확정 → available 유지.
             let cross_raw = self.get(c).and_then(|n| {
@@ -1230,11 +1252,11 @@ impl LayoutTree {
                 })
                 .unwrap_or(false);
             if child_cross_explicit {
-                (child_avail_w, child_avail_h)
+                (child_avail_w, child_containing_h)
             } else if is_row {
                 (child_avail_w, INDEFINITE_AVAIL) // row → cross = height
             } else {
-                (INDEFINITE_AVAIL, child_avail_h) // column → cross = width
+                (INDEFINITE_AVAIL, child_containing_h) // column → cross = width
             }
         };
         let child_solves: Vec<(f32, f32)> = children.iter().map(|&c| child_cross_solve(c)).collect();

@@ -21,6 +21,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - G1 통과: production 번들 계측 모듈 유입 0 (grep 검증) + 오버헤드 render.frame mean 0.23ms/frame + Chrome MCP live HUD 실동작
   - 위치: `apps/builder/src/builder/workspace/canvas/skia/{cacheMetrics,drawStats,gpuTimer,renderCommands,SkiaRenderer}.ts`, `canvas/utils/{gpuProfilerCore,speedscopeExport,GPUDebugOverlay}`, `builder/utils/perfMarks.ts`
 
+## [높이 auto 인 flex 부모에서 백분율 height 가 잘못 해소되던 문제] - 2026-07-27
+
+### Bug Fixes
+
+- **`height:auto` flex 컨테이너 안의 `height:%` 자식이 상속 available 로 해소되던 문제**.
+  - **Why**: `%` 는 containing block 의 해당 축이 definite 일 때만 해소된다. 그런데 **두 축의 성립 조건이 다르다** — 인라인 축(width)은 부모가 available 을 내려주면 확정이지만(block 레벨 stretch), 블록 축(height)은 `height:auto` 가 곧 내용 크기라 **확정되지 않는다**(CSS §10.5). 엔진은 flex cross 축 판정에서 두 축을 한 규칙(`explicit || avail >= 0`)으로 묶고 있었다 — 폭 쪽 근거(DatePicker `width:100%`)를 높이에 그대로 적용한 것이다.
+  - 실측: `flex(row, width:300, height 미지정)` 안의 `height:50%` 자식이 상속 600 의 절반인 **300** 으로 해소(DOM 은 0 — `%` → auto → 내용 없음). 컨테이너도 그만큼 부풀었다.
+  - **게이트가 두 경로에 필요했다** — `%` 를 푸는 ctx 와 **자식 재귀 solve 에 내려주는 available** 양쪽. 한쪽만 막으면 자식이 자기 solve 에서 상속값으로 다시 해소한다(`solve_block` 은 원래 두 곳 다 있었고 `solve_flex` 는 둘 다 없었다). 민감도: ctx 만 되돌리면 8 red, 재귀 available 만 되돌리면 16 red.
+  - 폭 축의 조항은 유지 — 지우면 stretch 부모 안의 `width:100%` 손자가 다시 수축한다(2026-07-14 DatePicker). 신규 fixture 가 stretch/shrink-wrap 양쪽을 같이 잠근다.
+  - 검증: 신규 parity fixture 76건(block/flex-row/flex-column × 부모높이 definite·auto × 50%·100% × width·height·both + shrink-wrap 회귀 2 × 2 leg). Rust 316 PASS, parity 299 PASS, 빌더 3002 PASS, type-check 신규 위반 0. 라이브 재확인: Components 페이지 56 노드 좌표 무변동(ListBoxItem 84 / ListBox 행 50 / GridListItem 76).
+  - 위치: `packages/composition-engine/src/tree.rs`, `apps/builder/tests/parity/percentSize.browser.test.ts`
+
 ## [CSS 정합 탐색 sweep — 배치 파싱 크래시 + grid align-content] - 2026-07-27
 
 ### Bug Fixes

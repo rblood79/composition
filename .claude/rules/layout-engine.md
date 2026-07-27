@@ -202,6 +202,27 @@ single-line(`flex-wrap:nowrap`) + definite cross 컨테이너에서 flex 라인�
 - ❌ grid `align-content` 여유를 `container_h` 로 산출 (`height:auto` 면 상속값이라 가짜 여유) → `explicit_h > 0.0` 판정 필수
 - ❌ 미결정 main 결함을 `flexSweep` 로 검증했다고 판단 — 그 격자는 main 을 항상 확정으로 준다
 
+## 백분율 크기 — 두 축의 "definite" 조건이 다르다 (2026-07-27)
+
+`%` 크기는 containing block 의 해당 축이 definite 일 때만 해소되고, 아니면 `auto` 다. **성립 조건이 축마다 다르다**:
+
+| 축             | 부모가 definite available 을 내려주면 | 근거                                           |
+| -------------- | ------------------------------------- | ---------------------------------------------- |
+| 인라인 (width) | **확정**                              | block 레벨 자식은 부모 폭으로 stretch          |
+| 블록 (height)  | **미확정**                            | `height:auto` 는 내용 크기 — 세로 stretch 없음 |
+
+- 판정은 `explicit_h > 0.0` **하나**다. 상속 available(`avail_h >= 0`)은 높이를 확정하지 않는다 (CSS §10.5).
+- **게이트는 두 경로에 다 있어야 한다** — `%` 를 푸는 ctx (`cross_ctx`/`main_ctx`) 와 **자식 재귀 solve 에 내려주는 available** (`child_containing_h`). 한쪽만 막으면 자식이 자기 `solve_node` 에서 상속 available 로 다시 해소한다. `solve_block` 은 원래 두 곳 다 있었고 `solve_flex` 는 둘 다 없었다.
+  - 민감도 실측: ctx 게이트만 되돌리면 8 red(row 만), 재귀 available 게이트만 되돌리면 16 red(row+column).
+- 폭 축의 `avail_w >= 0` 조항은 **유지**한다 — 지우면 stretch 부모 안의 `width:100%` 손자가 다시 수축한다 (DatePicker 2026-07-14). `percentSize.browser.test.ts` 의 `SHRINK_WRAP_CASES` 가 양쪽(stretch/shrink-wrap)을 같이 잠근다.
+- **실측(2026-07-27)**: `flex(row, width:300, height 미지정)` 안의 `height:50%` 자식이 상속 600 의 절반인 300 (DOM 0). 컨테이너도 그만큼 부풀었다.
+
+### 금지 패턴
+
+- ❌ 두 축을 한 규칙으로 묶어 `explicit || avail >= 0` 판정 → 블록 축에서 가짜 확정
+- ❌ `%` ctx 만 막고 자식 재귀 available 은 그대로 전달 (또는 그 반대) → 한 경로로 새어 나간다
+- ❌ 폭 축에서 `avail_w >= 0` 제거 → stretch 부모의 `width:100%` 수축 회귀
+
 ## 배치 직렬화 계약 — 숫자 하나가 페이지 레이아웃을 끈다 (CRITICAL)
 
 엔진 `NodeStyle` 의 길이 필드는 전부 `Option<String>` 이라 숫자가 들어오면 `build_tree_batch` 가 **배치 전체**를 거부한다 (`invalid type: integer, expected a string`) → `calculateFullTreeLayout` 이 `null` → **그 페이지 레이아웃이 통째로 사라진다**. 요소 하나의 값 하나가 페이지 전체를 끄는 구조다.
