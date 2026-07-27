@@ -58,7 +58,7 @@ function doc(pageChildren: CanonicalNode[]): CompositionDocument {
               slot("slot-header", "header", { minHeight: 60 }),
               slot("slot-content", "content", { minHeight: 60 }),
             ],
-          } as CanonicalNode,
+          } as unknown as CanonicalNode,
         ],
       } as CanonicalNode,
       {
@@ -94,14 +94,14 @@ const pageBody = (children: CanonicalNode[] = []): CanonicalNode =>
     type: "body",
     props: { style: { overflow: "auto", width: "390px" } },
     ...(children.length ? { children } : {}),
-  }) as CanonicalNode;
+  }) as unknown as CanonicalNode;
 
 const content = (id: string, slotName?: string): CanonicalNode =>
   ({
     id,
     type: "Frame",
     ...(slotName ? { props: { slot_name: slotName } } : {}),
-  }) as CanonicalNode;
+  }) as unknown as CanonicalNode;
 
 describe("projectPageFrameNode", () => {
   it("body 를 하나로 합치고 슬롯을 그 자식으로 투영한다", () => {
@@ -121,10 +121,14 @@ describe("projectPageFrameNode", () => {
     const d = doc([pageBody([content("listbox")])]);
     const before = resolvedPage(d);
     // 수정 전 렌더 입력: 프레임 body + page body 가 형제 → 뷰포트 두 배
-    expect(before.children!.filter((c) => c.type === "body")).toHaveLength(2);
+    expect(
+      before.children!.filter((c) => (c.type as string) === "body"),
+    ).toHaveLength(2);
 
     const out = projectPageFrameNode(before, d);
-    expect(out.children!.filter((c) => c.type === "body")).toHaveLength(1);
+    expect(
+      out.children!.filter((c) => (c.type as string) === "body"),
+    ).toHaveLength(1);
   });
 
   it("슬롯 미지정 콘텐츠는 content 슬롯으로 들어간다", () => {
@@ -173,7 +177,7 @@ describe("projectPageFrameNode", () => {
                 slot("slot-header", "header", {}, [content("frame-logo")]),
                 slot("slot-content", "content", {}, [content("placeholder")]),
               ],
-            } as CanonicalNode,
+            } as unknown as CanonicalNode,
           ],
         } as CanonicalNode,
         {
@@ -243,7 +247,7 @@ describe("projectPageFrameNode", () => {
           type: "Frame",
           reusable: true,
           children: [content("origin-child")],
-        } as CanonicalNode,
+        } as unknown as CanonicalNode,
         {
           id: "instance-x",
           type: "ref",
@@ -254,7 +258,7 @@ describe("projectPageFrameNode", () => {
     } as CompositionDocument;
     const node: ResolvedNode = {
       ...(d.children[1] as ResolvedNode),
-      type: "Frame",
+      type: "Frame" as ResolvedNode["type"],
       children: [
         content("origin-child") as ResolvedNode,
         content("instance-child") as ResolvedNode,
