@@ -48,3 +48,4 @@
 {"sha":"abaf397f383bdf34f1f354c9268313ca0cbfdb03","date":"2026-07-25T02:58:33+09:00","promoted_adrs":["docs/adr/completed/165-intrinsic-sizing-measure-contract.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"ff06c141509187610c002d9201d61b0e27df0372","date":"2026-07-25T05:15:55+09:00","promoted_adrs":["docs/adr/completed/163-builder-panel-structure-standardization.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"27cb9821b363599cd357bb9ee2c282810cb54497","date":"2026-07-25T22:19:31+09:00","promoted_adrs":["docs/adr/completed/166-shadow-token-theme-aware-ssot.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
+{"sha":"00ccfefcb7f67cac944d68782b6b7acdfdcafb47","date":"2026-07-26T16:44:26+09:00","promoted_adrs":["docs/adr/completed/168-frame-preset-responsive-restructure.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
