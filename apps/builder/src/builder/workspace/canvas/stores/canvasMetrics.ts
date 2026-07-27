@@ -30,6 +30,9 @@ const initialGPUMetrics: GPUMetrics = {
   skiaTreeBuildTimeMs: 0,
   selectionBuildTimeMs: 0,
   aiBoundsBuildTimeMs: 0,
+  commandCountAvg: 0,
+  drawCallCountAvg: 0,
+  gpuFrameTimeMs: 0,
 };
 
 export const useCanvasMetricsStore = create<CanvasMetricsState>()(

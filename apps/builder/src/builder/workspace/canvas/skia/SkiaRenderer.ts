@@ -23,9 +23,20 @@ import type {
 } from "./types";
 import { createGPUSurface } from "./createSurface";
 import { recordWasmMetric, flushWasmMetrics } from "../utils/gpuProfilerCore";
+import { getCacheMetrics } from "./cacheMetrics";
+import { takeDrawStats } from "./drawStats";
+import { GpuTimer } from "./gpuTimer";
+import { markBegin, markEnd, PERF_LABEL } from "../../../utils/perfMarks";
 import type { TransitionManager } from "./transitionManager";
 import type { AnimationEngine } from "./animationEngine";
 import { getSkiaNode } from "./useSkiaNode";
+
+/** classifyFrame 판정 결과 — content/full 프레임은 승격 사유를 동반한다 (ADR-153 Phase 1-a) */
+interface FrameClassification {
+  type: FrameType;
+  /** content/full 프레임의 재렌더 사유 — contentSurface 캐시 miss 사유로 기록 */
+  reason: string | null;
+}
 
 export class SkiaRenderer {
   private ck: CanvasKit;
@@ -93,6 +104,9 @@ export class SkiaRenderer {
   public transitionManager: TransitionManager | null = null;
   public animationEngine: AnimationEngine | null = null;
 
+  /** GPU 프레임 시간 측정 (dev 전용 — production 은 null 유지, ADR-153 Phase 1-c) */
+  private gpuTimer: GpuTimer | null = null;
+
   constructor(ck: CanvasKit, htmlCanvas: HTMLCanvasElement, dpr?: number) {
     this.ck = ck;
     this.dpr = dpr ?? (window.devicePixelRatio || 1);
@@ -105,6 +119,9 @@ export class SkiaRenderer {
     if (process.env.NODE_ENV === "development") {
       this.devContentRenderWindowStartMs = performance.now();
       this.devFrameWindowStartMs = this.devContentRenderWindowStartMs;
+      // CanvasKit 이 획득한 동일 canvas 의 webgl2 컨텍스트를 재사용한다.
+      // webgl1 폴백/SW surface 면 supported=false 로 전체 no-op.
+      this.gpuTimer = new GpuTimer(htmlCanvas);
     }
   }
 
@@ -151,13 +168,14 @@ export class SkiaRenderer {
     camera: CameraState,
     overlayVersion: number,
     screenOverlayVersion: number,
-  ): FrameType {
-    if (this.contentDirty) return "full";
+  ): FrameClassification {
+    // reason 문자열은 contentSurface 캐시 miss 사유 분류 (ADR-153 Phase 1-a).
+    if (this.contentDirty) return { type: "full", reason: "invalidate" };
 
     // Cleanup render — 모션 종료 후 200ms 디바운스 full quality 재렌더링
     if (this.needsCleanupRender) {
       this.needsCleanupRender = false;
-      return "full";
+      return { type: "full", reason: "cleanup" };
     }
 
     const registryChanged = registryVersion !== this.lastRegistryVersion;
@@ -170,11 +188,11 @@ export class SkiaRenderer {
       camera.panY !== this.lastCamera.panY;
 
     if (registryChanged) {
-      return "content";
+      return { type: "content", reason: "registry" };
     }
     if (cameraChanged) {
       if (!this.contentSnapshot) {
-        return "content";
+        return { type: "content", reason: "no-snapshot" };
       }
 
       // Pencil 모델: 팬/줌 중에는 snapshot blit(camera-only)으로 즉시 응답한다.
@@ -185,20 +203,22 @@ export class SkiaRenderer {
       // 1) zoom in이 스냅샷 캡처 시점 대비 너무 커짐 → 리샘플링 blur/디테일 손실
       // 2) 스냅샷(패딩 포함)이 현재 뷰포트를 완전히 덮지 못함 → 빈 영역/가장자리 아티팩트
       const zoomTooLarge = camera.zoom > this.snapshotCamera.zoom * 3;
-      const outOfCoverage = !this.canBlitWithCameraTransform(camera);
-      if (zoomTooLarge || outOfCoverage) {
-        return "content";
+      if (zoomTooLarge) {
+        return { type: "content", reason: "zoom-refresh" };
+      }
+      if (!this.canBlitWithCameraTransform(camera)) {
+        return { type: "content", reason: "coverage-refresh" };
       }
 
       // 모션 종료 후 200ms에 1회 full render로 최종 품질을 정리한다.
       // (zoom mismatch 보간, 서브픽셀 이동에 대한 cleanup)
       this.scheduleCleanupRender();
-      return "camera-only";
+      return { type: "camera-only", reason: null };
     }
     if (overlayChanged || screenOverlayChanged) {
-      return "present";
+      return { type: "present", reason: null };
     }
-    return "idle";
+    return { type: "idle", reason: null };
   }
 
   private tickDevMetrics(nowMs: number): void {
@@ -313,6 +333,7 @@ export class SkiaRenderer {
     // (카메라 모션 도중 스타일 변경 등이 겹쳤을 때, 모션 종료 후 불필요한 추가 full render 방지)
     this.cancelCleanupRender();
 
+    const isDev = process.env.NODE_ENV === "development";
     const start = performance.now();
 
     // 전체 콘텐츠 렌더링 (Pencil 방식: content invalidation은 full rerender)
@@ -333,19 +354,33 @@ export class SkiaRenderer {
     this.contentCanvas.translate(padCss, padCss);
     this.contentCanvas.translate(camera.panX, camera.panY);
     this.contentCanvas.scale(camera.zoom, camera.zoom);
+    // ADR-153 Phase 1-e: 씬 재기록 (WASM CPU) 구간 분해 라벨
+    const recordBegin = isDev ? markBegin() : 0;
     this.contentNode.renderSkia(this.contentCanvas, paddedBounds);
+    if (isDev) {
+      markEnd(PERF_LABEL.RENDER_SKIA_RECORD_CONTENT, recordBegin);
+      // ADR-153 Phase 1-b: 이번 content 렌더의 커맨드/드로콜 수 회수
+      const stats = takeDrawStats();
+      recordWasmMetric("commandCount", stats.commands);
+      recordWasmMetric("drawCallCount", stats.draws);
+    }
     this.contentCanvas.restore();
 
     // 콘텐츠 스냅샷 생성 (이전 스냅샷 해제)
+    // ADR-153 Phase 1-e: Ganesh op 실행 + snapshot 구간 분해 라벨 (격차 5 감시 지표)
+    const flushBegin = isDev ? markBegin() : 0;
     this.contentSnapshot?.delete();
     this.contentSurface.flush();
     this.contentSnapshot = this.contentSurface.makeImageSnapshot();
+    if (isDev) {
+      markEnd(PERF_LABEL.RENDER_SKIA_FLUSH_CONTENT, flushBegin);
+    }
     this.snapshotCamera.zoom = camera.zoom; // camera-only blit 델타 기준점 갱신
     this.snapshotCamera.panX = camera.panX;
     this.snapshotCamera.panY = camera.panY;
     this.contentDirty = false;
 
-    if (process.env.NODE_ENV === "development") {
+    if (isDev) {
       recordWasmMetric("contentRenderTime", performance.now() - start);
     }
   }
@@ -469,7 +504,12 @@ export class SkiaRenderer {
       recordWasmMetric("blitTime", performance.now() - blitStart);
     }
     this.renderOverlay(cullingBounds, camera);
+    // ADR-153 Phase 1-e: 화면 surface 제출 구간 분해 라벨
+    const flushMainBegin = isDev ? markBegin() : 0;
     this.mainSurface.flush();
+    if (isDev) {
+      markEnd(PERF_LABEL.RENDER_SKIA_FLUSH_MAIN, flushMainBegin);
+    }
   }
 
   /**
@@ -592,18 +632,38 @@ export class SkiaRenderer {
     }
 
     const frameStart = now;
-    let frameType = this.classifyFrame(
+    const classification = this.classifyFrame(
       registryVersion,
       camera,
       overlayVersion,
       screenOverlayVersion,
     );
+    let frameType = classification.type;
+    let frameReason = classification.reason;
 
     // transition/animation 보간값을 SkiaNodeData에 override.
     // dirty 노드가 있으면 idle을 content로 승격하여 매 프레임 재렌더링.
     const hasAnimationChanges = this.applyAnimationOverrides(now);
     if (frameType === "idle" && hasAnimationChanges) {
       frameType = "content";
+      frameReason = "animation";
+    }
+
+    // ADR-153 Phase 1-a: contentSurface 캐시 hit(스냅샷 재사용) / miss(재렌더 + 사유)
+    if (process.env.NODE_ENV === "development") {
+      if (frameType === "content" || frameType === "full") {
+        getCacheMetrics("contentSurface").recordMiss(frameReason ?? "unknown");
+      } else if (frameType === "present" || frameType === "camera-only") {
+        getCacheMetrics("contentSurface").recordHit();
+      }
+    }
+
+    // ADR-153 Phase 1-c: GPU 프레임 시간 — 직전 in-flight 결과 poll 후 이번 프레임 측정
+    // (gpuTimer 는 dev 에서만 생성되므로 production 은 이 블록 전체가 no-op)
+    if (frameType !== "idle" && this.gpuTimer) {
+      const gpuMs = this.gpuTimer.poll();
+      if (gpuMs !== null) recordWasmMetric("gpuFrameTime", gpuMs);
+      this.gpuTimer.frameBegin();
     }
 
     switch (frameType) {
@@ -623,6 +683,10 @@ export class SkiaRenderer {
         this.renderContent(cullingBounds, camera);
         this.present(cullingBounds, camera);
         break;
+    }
+
+    if (frameType !== "idle") {
+      this.gpuTimer?.frameEnd();
     }
 
     if (process.env.NODE_ENV === "development" && frameType !== "idle") {
@@ -761,6 +825,8 @@ export class SkiaRenderer {
       clearTimeout(this.cleanupTimer);
       this.cleanupTimer = null;
     }
+    this.gpuTimer?.dispose();
+    this.gpuTimer = null;
     this.disposeContentSurface();
     this.mainSurface.delete();
   }

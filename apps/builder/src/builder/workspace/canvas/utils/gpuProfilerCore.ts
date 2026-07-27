@@ -197,6 +197,10 @@ const wasmTrackers = {
   skiaTreeBuildTime: new MetricTracker(),
   selectionBuildTime: new MetricTracker(),
   aiBoundsBuildTime: new MetricTracker(),
+  // ADR-153 Phase 1: content 렌더당 커맨드 수 / 드로콜 수 (1-b), GPU 프레임 시간 (1-c)
+  commandCount: new MetricTracker(),
+  drawCallCount: new MetricTracker(),
+  gpuFrameTime: new MetricTracker(),
 } as const;
 
 export function recordWasmMetric(
@@ -238,6 +242,9 @@ export function flushWasmMetrics(): void {
     skiaTreeBuildTimeMs: wasmTrackers.skiaTreeBuildTime.getAverage(),
     selectionBuildTimeMs: wasmTrackers.selectionBuildTime.getAverage(),
     aiBoundsBuildTimeMs: wasmTrackers.aiBoundsBuildTime.getAverage(),
+    commandCountAvg: wasmTrackers.commandCount.getAverage(),
+    drawCallCountAvg: wasmTrackers.drawCallCount.getAverage(),
+    gpuFrameTimeMs: wasmTrackers.gpuFrameTime.getAverage(),
   });
 }
 

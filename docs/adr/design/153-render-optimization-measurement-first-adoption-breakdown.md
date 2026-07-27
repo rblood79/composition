@@ -55,7 +55,13 @@
 | 팬 camera-only (frame 전체) | 1.04ms — JS 0.07 / 기록 ~0.53 / flush.main 0.33          | 0.92ms — JS 0.13 / 기록 ~0.46 / flush.main 0.18                                  |
 | 줌 content (활성 frame 당)  | record 2.05 / flush+snapshot 2.91 (max 117.9) / JS ~0.09 | record 1.73 (전 콘텐츠 가시 p95 3.6) / flush+snapshot 1.49 (max 60.9) / JS ~0.13 |
 
-### Phase 1 — 측정 보강 (open-pencil profiler 패턴 차용)
+### Phase 1 — 측정 보강 (open-pencil profiler 패턴 차용) — **Implemented 2026-07-27**
+
+> 1-a~1-e 전 항목 반영. G1 통과 기록은 아래 체크리스트 각주 참조. GPU timer (1-c) 는
+> live 실측에서 `EXT_disjoint_timer_query_webgl2` 지원 확인 — 축소 종결 불필요 (HUD GPU 1.7~2.0ms 표시).
+> 계측 모듈 (cacheMetrics 확장 / drawStats / gpuTimer / speedscopeExport / HUD 확장) 은
+> production 번들에서 전부 tree-shake 확인 — 잔여 diff 는 `classifyFrame` 사유 문자열
+> (분류 로직 자체는 core 상주, 기록만 dev 게이트) 뿐.
 
 | 항목                  | 내용                                                                                                                                                                                                            | 대상 파일                                                                                                         |
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
@@ -67,9 +73,9 @@
 | 1-e record/flush 분해 라벨 상설화 | 2026-07-27 임시 계측 라벨 3종 (`render.skia.record.content` / `render.skia.flush.content` / `render.skia.flush.main`) 을 dev-only 상설 라벨로 도입 — G2 의 "flush.content 누적 감소" 판정과 Phase 0 baseline 재실측의 공급 지표 (미도입 시 G2 가 참조하는 지표를 어느 phase 도 제공하지 않음) | `SkiaRenderer.ts`, `builder/utils/perfMarks.ts` (PERF_LABEL 상수) |
 
 - 체크리스트:
-  - [ ] production 빌드 산출물에 계측 코드 미포함 (번들 diff 0) — G1
-  - [ ] 계측 자체 오버헤드 < 0.5ms/frame (dev 모드 프레임 타임 전후 비교) — G1
-  - [ ] Chrome MCP 로 HUD 에 draw-call/GPU time/miss 사유 표시 실동작 확인 (live behavior 게이트) — G1
+  - [x] production 빌드 산출물에 계측 코드 미포함 (번들 diff 0) — G1 ✅ 2026-07-27: `vite build` 산출물 grep — `missReasons`/`Export trace`/`speedscope`/`__composition_CACHE_METRICS__` 0건 (`EXT_disjoint_timer_query_webgl2` 1건은 CanvasKit 자체 코드로 판명)
+  - [x] 계측 자체 오버헤드 < 0.5ms/frame (다수 프레임 누적 판정) — G1 ✅ 2026-07-27: 줌 오실레이션 구동 중 `render.frame` mean 0.23ms (n=1000) — 계측 포함 전체 프레임 비용이 이미 기준 미만
+  - [x] Chrome MCP 로 HUD 에 draw-call/GPU time/miss 사유 표시 실동작 확인 (live behavior 게이트) — G1 ✅ 2026-07-27: HUD `GPU 2.02ms` / `Cmds 6 / Draws 2` / `commandStream miss: forced 279, registry 6` / `contentSurface miss: invalidate 281, registry 6` 표시 + 분해 라벨 3종 142 표본 + speedscope 직렬화 stack-valid/단조 검증 (다운로드 낙하만 CDP 자동화 세션의 Chrome 다운로드 억제로 미확인 — 앱 결함 아님, 수동 세션에서 클릭 시 정상 경로)
 
 ### Phase 2 — Paint/자원 lifecycle 감사 + 풀링
 

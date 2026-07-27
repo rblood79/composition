@@ -42,6 +42,15 @@ export const PERF_LABEL = {
   RENDER_CONTENT_BUILD: "render.content.build",
   RENDER_PLAN_BUILD: "render.plan.build",
   RENDER_SKIA_DRAW: "render.skia.draw",
+  /**
+   * ADR-153 Phase 1-e: 상호작용 프레임 내부 분해 라벨 (호출부는 dev-only 게이트).
+   * record = 씬 재기록 (CanvasKit WASM CPU), flush.content = Ganesh op 실행 +
+   * makeImageSnapshot, flush.main = 화면 surface 제출. 2026-07-27 분해 실측의
+   * 임시 라벨 3종을 상설화 — G1 오버헤드 판정과 Phase 0 baseline 재실측의 공급 지표.
+   */
+  RENDER_SKIA_RECORD_CONTENT: "render.skia.record.content",
+  RENDER_SKIA_FLUSH_CONTENT: "render.skia.flush.content",
+  RENDER_SKIA_FLUSH_MAIN: "render.skia.flush.main",
 } as const;
 
 // Long-task classification: observe() label prefix → longtask bucket.
@@ -86,7 +95,7 @@ interface LabelBuffer {
   attributions?: Map<string, number>;
 }
 
-interface MeasurementTrace {
+export interface MeasurementTrace {
   label: string;
   start: number;
   end: number;
@@ -265,6 +274,14 @@ export function getAllLongTaskSnapshots(): PerfSnapshot[] {
   return LONGTASK_LABELS.map((label) => getSnapshot(label)).filter(
     (s): s is PerfSnapshot => s !== null,
   );
+}
+
+/**
+ * 최근 measurement trace ring (최대 256개 / ~5초 창) 읽기 전용 노출.
+ * ADR-153 Phase 1-d — speedscope export 의 직렬화 입력.
+ */
+export function getMeasurementTraces(): readonly MeasurementTrace[] {
+  return measurementTraces;
 }
 
 export function resetPerfMarks(label?: string): void {

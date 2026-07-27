@@ -41,6 +41,8 @@ import {
   countEffectLayers,
 } from "./effects";
 import { toSkiaBlendMode } from "./blendModes";
+import { getCacheMetrics } from "./cacheMetrics";
+import { addCommandCount, incrementDrawCall } from "./drawStats";
 import { WASM_FLAGS } from "../wasm-bindings/featureFlags";
 import * as spatialIndex from "../wasm-bindings/spatialIndex";
 import { resolveStickyY, resolveStickyX } from "../layout/stickyResolver";
@@ -270,6 +272,29 @@ let _cachePagePosVersion = -1;
 let _cacheFramePosVersion = -1;
 let _cacheLayoutVersion = -1;
 let _cacheRootSignature = "";
+/** 직전 miss 가 명시적 invalidateCommandStreamCache() 호출로 인한 것인지 구분 */
+let _explicitInvalidate = false;
+
+/**
+ * ADR-153 Phase 1-a: command stream 캐시 miss 사유 분류 (dev-only 호출).
+ * 5중 키 중 어떤 성분이 어긋났는지 판정한다 — 복합 mismatch 는 "+" 로 연결.
+ */
+function classifyCommandStreamMiss(
+  registryVersion: number,
+  pagePosVersion: number,
+  framePosVersion: number,
+  layoutVersion: number,
+  rootSignature: string,
+): string {
+  if (!_cachedStream) return _explicitInvalidate ? "forced" : "cold";
+  const reasons: string[] = [];
+  if (registryVersion !== _cacheRegVersion) reasons.push("registry");
+  if (layoutVersion !== _cacheLayoutVersion) reasons.push("layout");
+  if (pagePosVersion !== _cachePagePosVersion) reasons.push("page-pos");
+  if (framePosVersion !== _cacheFramePosVersion) reasons.push("frame-pos");
+  if (rootSignature !== _cacheRootSignature) reasons.push("root-signature");
+  return reasons.length > 0 ? reasons.join("+") : "unknown";
+}
 
 /**
  * 캐시 기반 커맨드 스트림 획득.
@@ -297,7 +322,22 @@ export function getCachedCommandStream(
     layoutVersion === _cacheLayoutVersion &&
     rootSignature === _cacheRootSignature
   ) {
+    if (process.env.NODE_ENV === "development") {
+      getCacheMetrics("commandStream").recordHit();
+    }
     return _cachedStream;
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    getCacheMetrics("commandStream").recordMiss(
+      classifyCommandStreamMiss(
+        registryVersion,
+        pagePosVersion,
+        framePosVersion,
+        layoutVersion,
+        rootSignature,
+      ),
+    );
   }
 
   const stream = buildRenderCommandStream(
@@ -313,6 +353,7 @@ export function getCachedCommandStream(
   _cacheFramePosVersion = framePosVersion;
   _cacheLayoutVersion = layoutVersion;
   _cacheRootSignature = rootSignature;
+  _explicitInvalidate = false;
 
   return stream;
 }
@@ -323,6 +364,7 @@ export function getCachedCommandStream(
 export function invalidateCommandStreamCache(): void {
   _cachedStream = null;
   _cacheRootSignature = "";
+  _explicitInvalidate = true;
 }
 
 /**
@@ -840,6 +882,9 @@ export function executeRenderCommands(
   const maskLayerStack: Array<MaskLayerEntry | null> = [];
 
   const len = commands.length;
+  if (process.env.NODE_ENV === "development") {
+    addCommandCount(len);
+  }
   for (let i = 0; i < len; i++) {
     const cmd = commands[i];
 
@@ -1067,6 +1112,9 @@ export function executeRenderCommands(
       }
 
       case CMD_DRAW: {
+        if (process.env.NODE_ENV === "development") {
+          incrementDrawCall();
+        }
         // 타입별 렌더링 디스패치
         switch (cmd.nodeType) {
           case "box":

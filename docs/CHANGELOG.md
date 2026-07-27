@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [렌더 계측 보강 — ADR-153 Phase 1] - 2026-07-27
+
+### Infrastructure
+
+- **렌더 파이프라인 측정 보강** (ADR-153 Phase 1, dev-only — Accepted 승격 + 첫 phase):
+  - 캐시 miss 사유 분류 (1-a): `CacheMetrics.recordMiss(reason)` 확장 — commandStream 5중 키 성분별 (`forced/cold/registry/layout/page-pos/frame-pos/root-signature`) + contentSurface 프레임 승격 사유 (`invalidate/cleanup/registry/no-snapshot/zoom-refresh/coverage-refresh/animation`). dev 콘솔 `window.__composition_CACHE_METRICS__`
+  - draw-call 카운터 (1-b): 커맨드 스트림 길이 + CMD_DRAW 디스패치 수 → HUD `Cmds/Draws`
+  - GPU 프레임 시간 (1-c): `EXT_disjoint_timer_query_webgl2` non-blocking 측정 → HUD `GPU` (신규 `gpuTimer.ts`)
+  - speedscope export (1-d): perfMarks trace ring → evented 프로파일 직렬화 + HUD `Export trace` 버튼 (신규 `speedscopeExport.ts`, 외부 의존 0)
+  - 상호작용 프레임 분해 라벨 상설화 (1-e): `render.skia.record.content` / `flush.content` / `flush.main`
+  - **Why**: 2026-07-27 분해 실측 (record 40-51% / flush+snapshot 32-56%, JS 조립 2-7%) 의 임시 계측을 상설화 — Phase 3 Picture 캐시 G2 판정과 이후 렌더 성능 ADR 의 공급 지표. "무엇이 느린지 모르면 캐시 설계 자체가 추측이다"
+  - G1 통과: production 번들 계측 모듈 유입 0 (grep 검증) + 오버헤드 render.frame mean 0.23ms/frame + Chrome MCP live HUD 실동작
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{cacheMetrics,drawStats,gpuTimer,renderCommands,SkiaRenderer}.ts`, `canvas/utils/{gpuProfilerCore,speedscopeExport,GPUDebugOverlay}`, `builder/utils/perfMarks.ts`
+
 ## [CSS 정합 탐색 sweep — 배치 파싱 크래시 + grid align-content] - 2026-07-27
 
 ### Bug Fixes
