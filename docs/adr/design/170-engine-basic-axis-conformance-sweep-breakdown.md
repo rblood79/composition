@@ -193,12 +193,12 @@ expect(keys).toEqual(KNOWN_DIVERGENCES); // 정확 일치 (superset/subset 모�
 - [x] 기존 parity 전체 회귀 0 (29→32파일 / 911→918 it 전건 PASS) + 실행 시간 상한 내 (§3.7 실측)
 - [x] **G2**: 격자 green + 인벤토리 보고 완료
 
-### Phase 2 — 군집별 수정 wave
+### Phase 2 — 군집별 수정 wave — 완료 2026-07-28 (wave 1~7, 727 → 0)
 
-- [ ] 군집당: 원인 확정 (스펙 조문 병기) → 엔진(`tree.rs`/`flex.rs`/`grid.rs`) 또는 TS(`fullTreeLayout.ts`/`utils.ts`) 수정 → 해당 키를 ratchet 목록에서 제거 → 민감도 (수정 되돌리면 red N건) → 커밋 1개
-- [ ] 이연 판정 군집: 사유 필수 (실사용 0건 / 미지원 표면 편입 등) + 목록 유지 + §4 사각 목록 편입
-- [ ] cargo 유닛 + layout 유닛 회귀 0 유지 + **엔진 마이크로벤치 회귀 0** (ADR-164 G3 벤치 — `packages/composition-engine/benches/{flex_shrink,tree_solve}.rs`. 수정 wave 는 재진입 pass 추가 등 perf-relevant — ADR-164/165 관행 승계)
-- [ ] **G3**: ratchet 잔여 전건이 "명시 이연 + 사유" 상태
+- [x] 군집당: 원인 확정 (스펙 조문 병기) → 엔진(`tree.rs`/`flex.rs`/`grid.rs`) 또는 TS(`fullTreeLayout.ts`/`utils.ts`) 수정 → 해당 키를 ratchet 목록에서 제거 → 민감도 (수정 되돌리면 red N건) → 커밋 1개
+- [x] 이연 판정 군집: **0건** — 9군집 전부 해소 (이연 불요)
+- [x] cargo 유닛 + layout 유닛 회귀 0 유지 + **엔진 마이크로벤치 회귀 0** (ADR-164 G3 벤치 — `packages/composition-engine/benches/{flex_shrink,tree_solve}.rs`. 수정 wave 는 재진입 pass 추가 등 perf-relevant — ADR-164/165 관행 승계)
+- [x] **G3**: ratchet 잔여 **0건** (전 목록 빈 배열 — 이연 없이 전건 해소, 조건 자동 충족)
 - 군집 수·수정 규모는 Phase 1 실측이 확정 — 비대 시 군집 단위로 커밋 분할 (phase 분할 원칙), wave 자체의 별도 ADR 분리는 하지 않는다 (결정 지점 아님)
 
 #### Wave 진행 로그
@@ -233,6 +233,8 @@ expect(keys).toEqual(KNOWN_DIVERGENCES); // 정확 일치 (superset/subset 모�
 ## §7. 발산 인벤토리 (Phase 1 산출 — 2026-07-28 실측)
 
 **총계: 2,702 조합 중 727 발산 (26.9%)** — 격자 1 644/1,890 · 격자 2 53/740 · 격자 3 **0**/72.
+
+> **Phase 2 종결 (2026-07-28)**: wave 1~7 로 **727 → 0** — 전 격자·pipeline·aspect 전건 정합, ratchet 전 목록 빈 배열. 군집별 해소 내역은 아래 표의 판정 열과 §5 Wave 진행 로그.
 
 격자 3 (중첩 전파) 이 engine·pipeline 양쪽 **전건 정합**이라는 것이 이번 인벤토리의 가장 큰 결과다. 발산은 전부 **한 노드가 자기 크기를 정하는 단계**에 있고, 정해진 크기가 아래로 전파되는 경로는 이미 닫혀 있다.
 
