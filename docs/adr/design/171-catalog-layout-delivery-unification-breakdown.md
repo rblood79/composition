@@ -15,17 +15,80 @@
 
 사용자 explicit confirm: 2026-07-28 세션 — 실측 4회(정적 격차 / 실효 computed / import 여부 / 라이브 주입) 후 "adr 작성해".
 
-## 2. Phase 0 인벤토리 (착수 전 필수 — 실측으로 목록 확정)
+## 2. Phase 0 인벤토리 — **완료 2026-07-29**
 
-ADR 본문 Context 의 수치는 2026-07-28 실측이다. 아래 3건은 **목록 크기**만 바꾸고 방향은 바꾸지 않는다 (`adr-writing.md` M3 — 추정↔실측 gap 은 Phase 0 흡수).
+ADR 본문 Context 의 수치는 2026-07-28 실측이다. 아래 3건은 **목록 크기**만 바꾸고 방향은 바꾸지 않는다 (`adr-writing.md` M3 — 추정↔실측 gap 은 Phase 0 흡수). 결과가 Decision 을 뒤집으면 그때만 ADR 재검토 — **뒤집지 않았다** (전달이 끊겼다는 진단·처방 모두 유지).
 
-| I   | 인벤토리                                 | 방법                                                                                                              | 산출물                           |
-| --- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| I1  | 미import 30종의 실제 스타일 공급원       | grep 불가(composite factory 가 자식 생성) → 각 컴포넌트를 빈 페이지에 배치 후 store `props.style` + Skia box 실측 | 30종 × {인라인 보유 / 미도달} 표 |
-| I2  | 비대칭 21종의 팔레트 등록·도달 범위      | `entryUniverse.ts` + 팔레트 등록 목록 대조                                                                        | 실사용 도달 가능 부분집합        |
-| I3  | 수기 배선 18종의 값 ↔ 실효 CSS 일치 여부 | `applyImplicitStyles` 분기별 값 ↔ §4 실효 computed 대조                                                           | 일원화 대상 편입 여부            |
+### 2-0. 가장 중요한 발견 — 차단이 한 겹이 아니라 **세 겹**이다
 
-I1~I3 결과로 Phase 2·3 의 대상 목록을 확정한다. **결과가 Decision 을 뒤집으면 그때만 ADR 재검토** (그 외에는 목록만 갱신).
+ADR 본문은 전달 실패를 "경로 3갈래" 로 서술했다. Phase 0 실측 결과 그것은 **어느 경로로 들어오는가**의 분류이고, 값이 실제로 막히는 지점은 **직렬로 놓인 세 층**이다. 한 층만 열면 나머지 두 층이 그대로 막는다.
+
+| 층     | 차단 지점                                                                         | 막히는 것                                                                              | 근거                                                                                                 |
+| ------ | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **L1** | `structure.composition` 게이트 (`implicitStyles.ts:321`)                          | `structure.containerStyles` 를 가진 **48종**이 통째로 반환 안 됨                       | catalog 스캔 — A 24 / B 도달 25 / **B 게이트 차단 48** / 미보유 26                                   |
+| **L2** | `CONTAINER_STYLES_FALLBACK_KEYS` allowlist 17키 (`containerStylesFallback.ts:27`) | `height` · `rowGap`/`columnGap` · `padding{Top,Right,Bottom,Left}` 이 **allowlist 밖** | L1 을 열어도 이 키들은 필터에서 탈락                                                                 |
+| **L3** | resolver 가 읽는 **소스 축**이 `containerStyles` 뿐                               | `sizes[size]` 의 `height`/`paddingX`/`paddingY`/`gap` 은 **읽지 않음**                 | catalog `MenuItem.structure.containerStyles` = `display`+`alignItems` **2키뿐**, 나머지는 `sizes.md` |
+
+**MenuItem 으로 본 세 층** (실효 DOM 6키, iframe `getComputedStyle` 라이브 실측 2026-07-29):
+
+| 실효 키                    | 값            | catalog 위치                 | 현행 도달 여부        |
+| -------------------------- | ------------- | ---------------------------- | --------------------- |
+| `display`                  | `inline-flex` | `structure.containerStyles`  | ❌ L1 차단            |
+| `alignItems`               | `center`      | `structure.containerStyles`  | ❌ L1 차단            |
+| `paddingTop`/`paddingLeft` | `4px`/`12px`  | `sizes.md.paddingY/paddingX` | ❌ L3 (+ L2 longhand) |
+| `rowGap`/`columnGap`       | `8px`         | `sizes.md.gap`               | ❌ L3 + L2            |
+| `height`                   | `32px`        | `sizes.md.height`            | ❌ L3 + L2            |
+
+ADR 본문 Hard Constraint 1 의 `height:32 · inline-flex · padding 4/12 · gap 8` 과 정확히 일치한다. **게이트만 제거하면 6키 중 2키만 도달한다** — Hard Constraint 5 의 "catalog 8키 주입 → `280×32`" 재현이 성립하려면 L2·L3 도 함께 열려야 한다. 이것이 Phase 3 의 실제 작업 범위다 (design §3 Phase 3 갱신 — 게이트 제거 단독이 아니다).
+
+### 2-1. I1 — 미import 32종의 실제 스타일 공급원 (**라이브 실측**)
+
+방법: Vite dev 에서 `styles/index.css?inline` 로 **해소된 번들 407,951자**를 받아 iframe 에 주입 → `.react-aria-{X}` 빈 div 의 `getComputedStyle` 측정 (ADR §4 실효 computed 와 동일 방법).
+
+| 공급원                            | 수     | 컴포넌트                                                                                                                                                                                                                                                                         |
+| --------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **DOM 채널 있음** (수동 CSS)      | 2      | GridListItem (`flex column · gap 2 · pad 12/16`) · Input (`pad 4`)                                                                                                                                                                                                               |
+| **DOM 채널 없음** (브라우저 기본) | **30** | 나머지 전부 — `display:block` · padding 0                                                                                                                                                                                                                                        |
+| 그중 factory parent 인라인 보유   | 7      | AvatarGroup · ButtonGroup · CardView · IllustratedMessage · Nav · StatusLight · Toast                                                                                                                                                                                            |
+| 그중 **어느 채널도 없음**         | **23** | Avatar · Body · Breadcrumb · CalendarHeader · Card{Content,Footer,Header,Preview} · DialogFooter · DisclosureHeader · DropZone · FieldError · FileTrigger · FormField · Image · Meter{Track,Value} · ProgressBar{Track,Value} · ProgressCircle · Section · Skeleton · TailSwatch |
+
+- 구 추정 "미import 32 중 layout 값 보유 30" → **32종 전부** core layout 선언 보유 (방향 불변, 수치만 정정).
+- `Skeleton.css`/`Toast.css` 는 존재하지만 `.react-aria-{X}` 루트에 layout 을 걸지 않는다 — 파일 존재를 채널 보유로 세면 안 된다.
+- **23종은 "값이 두 소비자 모두에 도달하지 않는" 상태**다. 비대칭이 아니라 **양쪽 미도달** — Phase 2 판정 표의 "어느 채널도 없음 → import 추가" 행이 여기에 해당한다.
+
+### 2-2. I2 — 팔레트 도달 범위 (`paletteItems.ts` 등록 61 type 대조)
+
+| 모집단        | 직접 배치 가능                                                                                                                                                                  | 자식·조합으로만 등장                                                                            |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 비대칭 19종   | 10 — Badge · Card · Checkbox · Dialog · Icon · Modal · Popover · Slot · Switch · Tooltip                                                                                        | 9 — Code · ColorSwatch · Header · Kbd · **MenuItem** · Radio · SliderOutput · SliderTrack · Tab |
+| 미import 32종 | 14 — Avatar · AvatarGroup · ButtonGroup · CardView · DropZone · FileTrigger · IllustratedMessage · Image · Nav · ProgressCircle · Section · Skeleton · StatusLight · TailSwatch | 18                                                                                              |
+
+**팔레트 미등록 ≠ 도달 불가**. 조합 컴포넌트의 자식으로 생성되므로 실사용 경로에 그대로 등장한다 (MenuItem 이 그 증거 — 팔레트에 없지만 ADR 의 대표 실측 대상). **Phase 3 대상에서 제외하지 않는다** — 다만 Phase 5 fixture 는 직접 배치 가능한 종부터 덮는다.
+
+### 2-3. I3 — 수기 배선 18종의 정체
+
+`applyImplicitStyles` 의 `containerTag === "..."` 분기는 총 39개이고, 그중 **컨테이너 자기 layout 을 주입하는 것이 정확히 18개** (ADR 수치 확증). 나머지 21개는 자식 스타일 주입·필터 전용이라 본 ADR 대상 밖이다.
+
+| 구분                     | 수  | 태그                                                                                                                                                |
+| ------------------------ | --- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| prop 의존 (런타임 분기)  | 12  | breadcrumbs · checkboxgroup · datefield · gridlist · inlinealert · separator · table · tabs · textarea · togglebutton · togglebuttongroup · toolbar |
+| 정적 (catalog 대체 후보) | 6   | gridlistitem · listboxitem · tablist · tabpanels · taggroup · taglist                                                                               |
+
+**핵심**: 이 18분기는 **L3 의 우회**다. `toolbar` 분기의 `gap = sizeName === "sm" ? 4 : "lg" ? 10 : 8` 은 catalog `Toolbar.sizes[size].gap` 을 손으로 옮겨 적은 SSOT 사본이고, `implicitStyles.ts` 에는 catalog `sizes` 조회가 **0건**이다 (같은 조회가 `utils.ts` 에는 컴포넌트별로 20곳 넘게 흩어져 있다). 즉 대안 C 가 진단한 실패 모드가 이미 코드에 들어와 있다.
+
+→ **L3 를 열면 prop 의존 12종도 상당수 대체 가능**하다 (`sizes[size]` 조회가 곧 size 분기이므로). 대체 불가는 `containerProps` 의 **비-size** prop 에 의존하는 것뿐 (table `heightMode` · gridlist `layout` · toolbar/togglebuttongroup `orientation`). R6 의 "size 의존 padding 은 catalog 표현 불가" 전제는 **L3 를 여는 순간 무효**가 된다 — R6 은 완화 방향으로 재평가 대상.
+
+### 2-4. Phase 2·3 대상 목록 확정
+
+| 목록                           | 확정 수 | 비고                                                                        |
+| ------------------------------ | ------- | --------------------------------------------------------------------------- |
+| 비대칭 (import 됨·엔진 미도달) | **19**  | 구 21 — 정적 경로 분류 기준. 17종이 L1 차단, 2종(Slot/Tab)만 catalog 미보유 |
+| 양쪽 미도달                    | **23**  | Phase 2 의 import 추가 판정 대상                                            |
+| DOM 채널만 보유                | 2       | GridListItem · Input — 수동 CSS 실효값을 catalog 로 정정                    |
+| factory 인라인 유일 공급원     | 7       | Phase 4 제거 대상                                                           |
+| 수기 배선                      | 18      | 정적 6 즉시 대체 · prop 의존 12 중 size 축은 L3 개방 후 대체                |
+
+산출 데이터: `adr171-{gencss,catalog-paths,matrix,factory}.json` (세션 스크래치패드 — 재현 스크립트는 본 문서 §4 방법 그대로).
 
 ## 3. Phase 분해
 
@@ -61,12 +124,21 @@ I1~I3 결과로 Phase 2·3 의 대상 목록을 확정한다. **결과가 Decisi
 
 - **판정 없이 일괄 import 금지** — 수동 CSS 와 충돌하면 DOM 시각이 바뀐다.
 
-### Phase 3 — 전달 경로 일원화 (21종 + I2·I3 편입분)
+### Phase 3 — 전달 경로 일원화 (비대칭 19 + 양쪽 미도달 23 + I3 편입분)
 
-- `resolveContainerStylesFallback`(`implicitStyles.ts`)의 경로 A/B 2분기를 **단일 판정**으로 통합: catalog 의 top-level `containerStyles` 와 `structure.containerStyles` 를 같은 우선순위 체인에서 읽는다.
-- 경로 B 의 `structure.composition` 게이트 제거는 **Phase 1 완료 후에만** 허용 (게이트가 지금 잘못된 값의 유출을 막고 있다).
-- `CONTAINER_STYLES_FALLBACK_KEYS` 확장 필요 여부는 I2·I3 결과로 판정.
-- 수기 배선(`containerTag === "..."` 18분기) 중 catalog 로 대체 가능한 것은 제거 — 대체 불가(size 의존 padding 등)는 사유를 주석으로 남긴다.
+**Phase 0 이 확정한 작업 범위 — 세 층을 모두 연다** (§2-0). 한 층만 열면 MenuItem 실효 6키 중 2키만 도달한다.
+
+| 층  | 작업                                                                                                       | 대상                                           |
+| --- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| L1  | 경로 A/B 2분기를 **단일 판정**으로 통합 + `structure.composition` 게이트 제거                              | `structure.containerStyles` 보유 48종          |
+| L2  | `CONTAINER_STYLES_FALLBACK_KEYS` 확장 — `height` · `rowGap`/`columnGap` · `padding{Top,Right,Bottom,Left}` | 현행 17키 → 실효 키 집합                       |
+| L3  | resolver 가 **`sizes[size]` 축도 읽는다** — `height`/`paddingX`/`paddingY`/`gap` → longhand 정규화         | 전 종 (수기 배선 18분기가 우회하던 바로 그 축) |
+
+- L1 게이트 제거는 **Phase 1 완료 후에만** 허용 (게이트가 지금 잘못된 값의 유출을 막고 있다).
+- L2 확장 시 store longhand 정책 준수 — `padding` shorthand 가 아니라 4-way longhand 로 낸다 (`style-ssot.md`).
+- L3 는 `sizes` 를 읽되 **`parentStyle` 우선 규칙은 그대로**다 (사용자·factory 편집이 항상 이긴다).
+- 수기 배선 18분기 중 **정적 6종**(gridlistitem · listboxitem · tablist · tabpanels · taggroup · taglist)은 L1+L2 만으로 대체. **prop 의존 12종** 중 size 축 의존분은 L3 개방으로 대체되고, 비-size prop 의존(table `heightMode` · gridlist `layout` · toolbar/togglebuttongroup `orientation`)만 존치 — 사유를 주석으로 남긴다.
+- **R6 재평가**: "size 의존 padding 은 catalog 표현 불가" 전제는 L3 를 여는 순간 성립하지 않는다 (§2-3). 존치 사유는 size 축이 아니라 비-size prop 의존으로 좁힌다.
 - **기존 계약 테스트가 필연적으로 RED 가 된다** (R8): `resolveContainerStylesFallback.test.ts` 는 47 케이스가 `toEqual` 로 반환값을 통째로 고정한다(ADR-080 G1). 특히 `listboxitem`/`gridlistitem` → `{}` lock(102~110행)은 Phase 3 이 바꾸려는 동작 그 자체다. 케이스별로 **새 기대값이 실효 CSS 와 일치함**을 근거로 갱신한다 — 통째 삭제·`skip` 금지.
 
 ### Phase 4 — factory 인라인 제거
@@ -114,10 +186,10 @@ I1~I3 결과로 Phase 2·3 의 대상 목록을 확정한다. **결과가 Decisi
 
 ## 6. 체크리스트
 
-- [ ] Phase 0 — I1/I2/I3 인벤토리 확정
+- [x] **Phase 0 — I1/I2/I3 인벤토리 확정 (2026-07-29)** — 차단 3층(L1 게이트 / L2 키 allowlist / L3 `sizes` 축) 발견, 대상 목록 확정 (§2)
 - [ ] Phase 1 — 9종 catalog 정정 + 재빌드 + 실효값 불변 재측정 (G1)
-- [ ] Phase 2 — 미import 30종 판정 표 확정 + 처리
-- [ ] Phase 3 — resolver 단일 판정 통합 + 수기 배선 정리 + `resolveContainerStylesFallback.test.ts` 47 케이스 갱신 (G2)
+- [ ] Phase 2 — 양쪽 미도달 23종 + DOM 채널만 보유 2종 판정 표 확정 + 처리
+- [ ] Phase 3 — L1·L2·L3 3층 개방 + 수기 배선 정리 + `resolveContainerStylesFallback.test.ts` 47 케이스 갱신 (G2)
 - [ ] Phase 5 — parity fixture 신설 (**Phase 4 앞**) + Phase 3 일시 되돌림으로 RED 확인 (G3)
 - [ ] Phase 4 — factory 인라인 제거 + `useResetStyles` baseline 동시 정리 (fixture GREEN + 패널 live 확인, G4)
 - [ ] Phase 6 — origin 재저작 + components 페이지 live 확인 (G5)
