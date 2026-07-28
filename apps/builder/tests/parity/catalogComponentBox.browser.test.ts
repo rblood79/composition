@@ -169,10 +169,19 @@ const CASES: CatalogCase[] = [
   { type: "Tooltip", children: KIDS_1, availW: 320 },
   { type: "InlineAlert", children: KIDS_2, availW: 320 },
   { type: "DisclosureGroup", children: KIDS_2, availW: 320 },
+  // ADR-171 Phase 3-b (2026-07-29) 로 승격 — size 축 게이트가 생성기 규칙을 미러하면서
+  //   해소됐다. Toolbar/Form 은 `composition` 보유라 sizes padding 이 **빠졌고**(과잉
+  //   도달 해소), TabPanel 은 `composition` 부재라 sizes padding 이 **들어왔다**(미도달
+  //   해소). ListBox 는 catalog top-level 에 `borderWidth: 1` 을 되살려 Δ2 가 닫혔다.
+  { type: "Toolbar", children: KIDS_2, availW: 320 },
+  { type: "Form", children: KIDS_2, availW: 320 },
+  { type: "TabPanel", children: KIDS_2, availW: 320 },
+  { type: "ListBox", children: KIDS_2, availW: 320 },
 ];
 
 /**
- * **잔존 — Phase 3 의 size 축 게이트가 생성기 규칙과 갈리는 6종.**
+ * **Phase 3-b 로 해소된 축의 기록** — 위 CASES 의 Toolbar/Form/TabPanel/ListBox 가
+ * 어떤 결함을 감시하는지.
  *
  * Phase 3 은 "top-level `containerStyles` 를 가지면 `sizes` 는 하위 부품 크기" 라는
  * 휴리스틱으로 size 축 적용 여부를 갈랐다(Tree 36=행 / TagGroup 12=태그 / Slider 8=트랙
@@ -180,47 +189,23 @@ const CASES: CatalogCase[] = [
  * 잡아냈다. 생성기(`CSSGenerator.ts`)는 이렇게 판정한다:
  *   - `ownsContainerBox` = `structure.composition` 이 layout/containerStyles/
  *     containerVariants 중 하나라도 가짐 → **sizes 의 height·padding emit skip**
- *   - `skipPadding` = ownsContainerBox ∨ 병합된 `containerStyles.padding` 존재
- *   - `skipGap` = 병합된 `containerStyles.gap` 존재
+ *   - `skipPadding` = ownsContainerBox ∨ `containerStyles.padding` 존재
+ *   - `skipGap` = `containerStyles.gap` 존재
  *
- * 실측 발산과 그 원인:
- *   - Toolbar(pad 12) · Form(pad 20) · CheckboxGroup/RadioGroup(padY 12) — 넷 다
- *     `composition` 보유라 생성 CSS 는 sizes padding 을 **안 낸다**. 캔버스만 넣는다.
- *   - TabPanel(pad 12 미도달) — `composition` 부재라 생성 CSS 는 **낸다**. 그런데
- *     top-level `containerStyles` 를 가져 휴리스틱이 size 축을 막았다.
- *   - ListBox(h Δ2) — `borderWidth: 1` 이 `structure.containerStyles` 에 있는데
- *     top-level 대체 규칙이 structure 층을 통째로 건너뛴다.
+ * 이 셋의 입력은 전부 `structure` 다 — 생성기의 virtual spec 은 `buildVirtualSpecs` 가
+ * `structure.{archetype,containerStyles,composition}` 로 만들고 **top-level
+ * `rule.containerStyles` 는 넣지 않는다**. Phase 3 휴리스틱이 갈렸던 지점이 정확히 여기다.
  *
- * 해소는 **Phase 3-b** 로 분리한다 — size 축 게이트를 생성기 규칙 미러로 교체하고
- * (`archetype` 보유 = 생성 CSS 존재, 실측 118/123 일치), Menu 트리거 박스(B7)만
- * 명시 예외로 남긴다. 아래는 그때까지의 발산을 **고정**해 조용한 변화를 막는다.
+ * 되돌림 민감도(2026-07-29 실측): `catalogSizeAxisSkip` 을 무력화하면 Toolbar/Form 이
+ * 각각 padding 12/20 과잉으로 RED, TabPanel 이 padding 12 미도달로 RED. catalog 의
+ * ListBox `borderWidth: 1` 을 지우면 ListBox 가 h Δ2 로 RED.
+ *
+ * **CheckboxGroup/RadioGroup 은 여기서 빠졌다** — Phase 5 초안이 "sizes paddingY/gap
+ * 과잉" 으로 적었으나 오진이었다. 두 종의 `sizes.md` 에는 padding 이 아예 없고(gap 12
+ * 뿐), 실측 Δ12 는 `applyImplicitStyles` 가 넣는 **synthetic items wrapper** 때문이다
+ * (자식이 Checkbox/Radio 가 아니면 wrapper 가 빈 채로 남아 gap 한 칸을 더 만든다).
+ * 아래 제외 목록의 합성 indicator 군과 같은 축이라 그쪽으로 옮겼다.
  */
-const RESIDUAL_SIZE_AXIS: Array<{ c: CatalogCase; why: string }> = [
-  {
-    c: { type: "ListBox", children: KIDS_2, availW: 320 },
-    why: "structure.containerStyles.borderWidth 미도달 (top-level 대체 규칙)",
-  },
-  {
-    c: { type: "TabPanel", children: KIDS_2, availW: 320 },
-    why: "sizes padding 12 미도달 (composition 부재라 생성 CSS 는 emit)",
-  },
-  {
-    c: { type: "Toolbar", children: KIDS_2, availW: 320 },
-    why: "sizes paddingX 12 과잉 도달 (composition 보유 → 생성 CSS 는 skip)",
-  },
-  {
-    c: { type: "Form", children: KIDS_2, availW: 320 },
-    why: "sizes paddingX 20 과잉 도달 (동일)",
-  },
-  {
-    c: { type: "CheckboxGroup", children: KIDS_2, availW: 320 },
-    why: "sizes paddingY/gap 과잉 도달 (동일)",
-  },
-  {
-    c: { type: "RadioGroup", children: KIDS_2, availW: 320 },
-    why: "sizes paddingY/gap 과잉 도달 (동일)",
-  },
-];
 
 /**
  * 대상에서 제외한 종과 사유 — **fixture 가 못 재는 축이지 정합이라는 뜻이 아니다.**
@@ -233,6 +218,10 @@ const RESIDUAL_SIZE_AXIS: Array<{ c: CatalogCase; why: string }> = [
  * - `Checkbox`/`Radio`/`Switch` — `applyImplicitStyles` 가 **합성 indicator** 를
  *   자식으로 주입한다(캔버스가 체크박스 사각형을 직접 그린다). DOM 은 그 자리를
  *   `::before` 로 그리므로 자식 좌표가 구조적으로 다르다.
+ * - `CheckboxGroup`/`RadioGroup` — 같은 축의 컨테이너 판. `applyImplicitStyles` 가
+ *   **synthetic items wrapper**(`{id}__items`)를 합성해 CSS 2단 구조를 복원하는데,
+ *   자식이 실제 `Checkbox`/`Radio` 가 아니면 wrapper 가 빈 채로 남아 gap 한 칸(12)이
+ *   더 생긴다(실측 Δ12). 이 fixture 의 generic box 자식으로는 잴 수 없는 형태다.
  * - `Menu`/`TabPanels` — `applyImplicitStyles` 가 자식을 레이아웃에서 제외한다
  *   (Menu 는 트리거만 그리고 목록은 popover). 자식 좌표가 존재하지 않는다.
  * - `CardHeader`/`CardContent` 류 — Phase 2 가 판정한 **dead selector**. DOM 이
@@ -255,18 +244,6 @@ describe("ADR-171 Phase 5 — catalog 전달 축 parity (G3)", () => {
     (_type, c) => {
       const bad = runCatalogCase(c);
       expect(bad, `${c.type} 발산:\n  ${bad.join("\n  ")}`).toEqual([]);
-    },
-  );
-});
-
-describe("ADR-171 [잔존] size 축 게이트 ↔ 생성기 규칙 불일치 (Phase 3-b)", () => {
-  it.each(RESIDUAL_SIZE_AXIS.map((r) => [r.c.type, r] as const))(
-    "%s — 아직 발산한다",
-    (_type, r) => {
-      const bad = runCatalogCase(r.c);
-      // 발산이 **사라지면** Phase 3-b 가 반영된 것이다 — 이 스냅샷을 지우고
-      //   해당 종을 위 CASES 로 승격할 것.
-      expect(bad.length, `${r.c.type} — ${r.why}`).toBeGreaterThan(0);
     },
   );
 });

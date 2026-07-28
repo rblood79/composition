@@ -255,22 +255,71 @@ resolver 출력 ↔ `getComputedStyle`(번들 CSS iframe) 를 12키(display/flex
 
 **엔진의 inline flow 미지원**은 ADR-170 §사각 표에 기재된 별개 표면이고, leaf box parity 는 `calculateFullTreeLayout` 자식 배치와 다른 축이다. 이 둘을 catalog 전달 실패로 세면 오라클이 거짓말을 한다.
 
-#### 잔존 — Phase 3 의 size 축 게이트가 생성기 규칙과 갈린다 (→ Phase 3-b)
+#### 발견 — Phase 3 의 size 축 게이트가 생성기 규칙과 갈린다 (→ Phase 3-b)
 
 걸러낸 뒤에도 6종이 남았고, **이건 진짜 발견**이다. Phase 3 은 "top-level `containerStyles` 를 가지면 `sizes` 는 하위 부품 크기" 라는 휴리스틱으로 size 축을 갈랐는데, 생성기(`CSSGenerator.ts`)의 실제 규칙은 다르다:
 
 - `ownsContainerBox` = `structure.composition` 이 layout/containerStyles/containerVariants 중 하나 보유 → **sizes 의 height·padding emit skip**
-- `skipPadding` = ownsContainerBox ∨ 병합된 `containerStyles.padding` 존재 / `skipGap` = 병합된 `containerStyles.gap` 존재
+- `skipPadding` = ownsContainerBox ∨ `containerStyles.padding` 존재 / `skipGap` = `containerStyles.gap` 존재
 
 | 종                                   | 발산                        | 원인                                                               |
 | ------------------------------------ | --------------------------- | ------------------------------------------------------------------ |
-| Toolbar · Form · Checkbox/RadioGroup | sizes padding **과잉 도달** | 넷 다 `composition` 보유 → 생성 CSS 는 skip, 캔버스만 넣는다       |
+| Toolbar · Form                       | sizes padding **과잉 도달** | `composition` 보유 → 생성 CSS 는 skip, 캔버스만 넣는다             |
 | TabPanel                             | sizes padding **미도달**    | `composition` 부재 → 생성 CSS 는 emit. top-level 이 있어 막혔다    |
 | ListBox                              | 높이 Δ2                     | `structure.containerStyles.borderWidth` 를 top-level 대체가 건너뜀 |
+| CheckboxGroup · RadioGroup           | 자식 y Δ12                  | **오진** — 아래 Phase 3-b 참조                                     |
 
-**Phase 3-b 방향**: size 축 게이트를 생성기 규칙 미러로 교체한다. 생성 CSS 존재 여부는 `structure.archetype` 보유로 판정 가능하다 — 실측 **118/123 일치**(불일치 5 = spec 기반 Image/Input/Label/Slot + 페이지 루트 body). Tree/TagGroup 은 archetype 이 없어 자동 제외되고(그래서 행 높이 36 · 태그 padding 12 가 새지 않는다), Menu 트리거 박스(ADR-151 B7)만 명시 예외로 남는다.
+### Phase 3-b — size 축 게이트를 생성기 규칙 미러로 교체 — **완료 2026-07-29 (G2 재확인)**
 
-fixture 는 이 6종을 `[잔존]` 그룹에서 **발산이 있음**으로 고정한다 — 조용히 바뀌면 red 가 된다.
+Phase 5 가 잡아낸 갈림을 해소한다. 처방은 **게이트를 생성기와 같은 입력으로 다시 세우는 것**이다.
+
+#### 왜 `structure` 인가 — 생성기가 보는 축이 거기다
+
+생성기의 virtual spec 은 `buildVirtualSpecs`(`packages/specs/scripts/generate-css.ts`)가 `containerStyles = structure.containerStyles` / `composition = structure.composition` / `archetype = structure.archetype` 로 만든다. **top-level `rule.containerStyles` 는 virtual spec 에 들어가지 않는다** — 생성기는 그 필드를 아예 읽지 않는다. Phase 3 이 그 필드로 size 축을 판정한 순간 두 소비자가 서로 다른 입력을 보게 됐고, 그게 갈림의 전부다.
+
+같은 근거로 `structure` 보유 = **생성 CSS 존재**다 (`buildVirtualSpecs` 의 emit 멤버십 기준 — 타입 주석이 "CSS emit 멤버십은 `structure` 보유 여부가 결정한다" 로 명시). 실측 불일치는 4종뿐이고(Image/Input/Label/Slot — 삭제 전 spec 에서 생성된 CSS 가 남은 경우) 전부 `structure` 미보유 쪽이다.
+
+#### 구현 — 하이브리드 게이트
+
+`catalogSizeAxisSkip(structure)` 가 생성기의 세 플래그를 그대로 낸다. 그리고:
+
+- `structure` **보유** → 필드별 skip 미러 (height/padding/gap 각각)
+- `structure` **부재** → 생성 CSS 가 없으니 생성기 규칙으로 판정할 수 없다. 그 type 의 실효값은 **수동 CSS** 가 정하므로 Phase 3 게이트(top-level 보유 시 하위 부품)를 그대로 둔다
+
+두 번째 갈래가 중요하다. "생성 CSS 없으면 sizes 도 없다" 로 단순화하면 Tag/TreeItem/TableCell/Field/Input 같은 수동 CSS 컴포넌트 17종에서 값이 통째로 사라진다 — 생성기 미러는 **생성 채널만** 아는 규칙이지 DOM 실효값의 전체가 아니다.
+
+Phase 3 휴리스틱이 맞혔던 케이스는 새 규칙에서도 걸러진다: Tree(행 36) · TagGroup(태그 12) 은 `structure` 가 없어 두 번째 갈래로 가고, Slider(트랙 8)는 `isTrackOwningGridContainer` 가 막는다. Menu 는 별도 예외가 **필요 없었다** — `structure.containerStyles` 가 padding/gap 을 가져 skip 되고 `sizes.height` 는 `auto` 라 애초에 주입 대상이 아니다.
+
+#### 함께 정리한 것
+
+- **catalog ListBox top-level 에 `borderWidth: "1px"` 복원** — top-level 은 structure 에서 시각 키(background/text/border/borderRadius)만 뺀 layout subset 인데 borderWidth 를 같이 뺐다. borderWidth 는 시각이 아니라 box-model 키고, allowlist 에 있는 이유가 ADR-151 B1/B2 의 border-box 2px 보정 채널이다. 같은 슬립을 Calendar/RangeCalendar 는 B1/B2 때 이미 고쳤다.
+- **수기 배선 2분기 축소** — `toolbar` 의 `sizeName === "sm" ? 4 : "lg" ? 10 : 8` 과 `inlinealert` 의 padding 4-way + gap 은 catalog `sizes` 사본이라 L3 와 중복이다. 특히 둘 다 shorthand `gap` 을 써서 L3 longhand `rowGap` 과 **공존**을 만들고 있었다(style-ssot.md 금지 — Phase 3 의 gridlistitem 선례와 동형). orientation(비-size prop)과 InlineAlert borderWidth·자식 font 는 잔존.
+
+#### CheckboxGroup/RadioGroup 은 오진이었다
+
+Phase 5 는 두 종을 "sizes paddingY/gap 과잉" 으로 적었으나 **`sizes.md` 에 padding 이 아예 없다**(gap 12 뿐). 실측 Δ12 의 정체는 `applyImplicitStyles` 가 합성하는 **synthetic items wrapper** 다 — 자식이 실제 Checkbox/Radio 가 아니면 wrapper 가 빈 채 남아 gap 한 칸이 더 생긴다. fixture 의 generic box 자식으로는 잴 수 없는 형태라 제외 목록의 합성 indicator 군으로 옮겼다. **fixture 가 잡은 발산의 원인을 fixture 밖에서 확인하지 않으면 이런 오진이 그대로 처방이 된다.**
+
+#### A/B — 게이트 교체의 실제 영향 (29종 전수, 2026-07-29)
+
+`catalogSizeAxisSkip` 을 무력화한 baseline 과 대조했다. **회귀 0**:
+
+| 결과       | 수  | 종                                                                                        |
+| ---------- | --- | ----------------------------------------------------------------------------------------- |
+| 발산 해소  | 3   | Form · TabPanel · Toolbar                                                                 |
+| 발산 감소  | 4   | ColorField(5→1) · FileTrigger(w Δ64→32) · Meter(h Δ20→4) · ProgressBar(h Δ20→4)          |
+| 불변       | 13  | Button/InlineAlert(GREEN 유지) · Calendar · RangeCalendar · Slider · TabList · 트랙 4종 등 |
+| 측정 불가  | 9   | 필드류(ComboBox/DateField/Select/TextField/…) — 수기 배선의 합성 자식이 fixture 를 throw  |
+| **새 발산** | **0** | —                                                                                       |
+
+#### G2 재확인 — 라이브 실 builder (components 페이지)
+
+- **Toolbar 263×29 → 215×29**. 실효 DOM 은 **padding 0**(iframe `getComputedStyle` 실측 — `.react-aria-Toolbar` padding `0px` 4-way, gap `8px`, width 217.4) 이므로 좁아진 쪽이 맞다. 캔버스 자식 x = 0/70/142/151 → 간격 8 유지, 좌측 padding 소멸.
+- **회귀 0**: MenuItem 32(Phase 3 headline 보존) · ListBoxItem 76 · GridListItem 68 · InlineAlert 90 · Card 322 — 전부 Phase 3 기록치와 동일.
+
+#### 잔존
+
+- **필드류 9종은 이 fixture 로 못 잰다** — 수기 배선이 합성 자식을 만들면서 `calculateFullTreeLayout` 이 `p0 결과 누락` 으로 throw 한다. 이들의 height/padding 제거가 옳은지는 Phase 4 이후 별도 확인이 필요하다.
+- Calendar/RangeCalendar(w Δ18) · TabList · ProgressCircle · 트랙 4종의 잔존 발산은 **본 phase 이전부터 있던 것**이고 게이트 교체로 변하지 않았다 (A/B 불변 열).
 
 ### Phase 6 — origin 재저작 + components 페이지 재구축
 
@@ -307,6 +356,6 @@ fixture 는 이 6종을 `[잔존]` 그룹에서 **발산이 있음**으로 고�
 - [x] **Phase 2 — 판정 표 확정 + 처리 (2026-07-29)** — 미import 32종은 selector 가 DOM 에 없는 dead CSS 라 **import 추가 0건**. GridListItem `justifyContent` 정정 1건 · Input 은 부모 custom property 문맥 탓 Phase 5 재측정 보류 · TextArea 클래스 역할 충돌 기록
 - [x] **Phase 3 — L1·L2·L3 3층 개방 + 수기 배선 2분기 제거 + 계약 테스트 갱신 (G2 PASS, 2026-07-29)** — 실효 DOM 대조 17/20 일치, 잔존 3은 overlay `position:fixed`(의도적). MenuItem h 96→32 라이브 확증
 - [x] **Phase 5 — parity fixture 신설 (G3 PASS, 2026-07-29)** — `catalogComponentBox.browser.test.ts` 15 케이스(전체 918→933). Phase 3 되돌림 시 6종 중 5종 RED. 잔존 6종은 Phase 3-b(생성기 규칙 미러)로 분리
-- [ ] Phase 3-b — size 축 게이트를 생성기 `ownsContainerBox` 규칙 미러로 교체 (Toolbar/Form/Checkbox·RadioGroup 과잉 · TabPanel 미도달 · ListBox borderWidth)
+- [x] **Phase 3-b — size 축 게이트를 생성기 규칙 미러로 교체 (2026-07-29)** — `structure` 보유 시 `ownsContainerBox`/`skipPadding`/`skipGap` 미러, 부재 시 Phase 3 게이트 유지(수동 CSS 축). Toolbar/Form 과잉 · TabPanel 미도달 · ListBox borderWidth 해소, A/B 29종 회귀 0. Checkbox/RadioGroup 은 오진(synthetic wrapper)으로 판정
 - [ ] Phase 4 — factory 인라인 제거 + `useResetStyles` baseline 동시 정리 (fixture GREEN + 패널 live 확인, G4)
 - [ ] Phase 6 — origin 재저작 + components 페이지 live 확인 (G5)

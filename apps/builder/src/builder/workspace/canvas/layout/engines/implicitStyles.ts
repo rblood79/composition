@@ -39,7 +39,10 @@ import {
   resolveCatalogContainerVariants,
   resolveComponentRule,
 } from "@composition/shared";
-import type { ComponentRuleSize } from "@composition/shared";
+import type {
+  ComponentRuleSize,
+  ComponentRuleStructure,
+} from "@composition/shared";
 import { findAncestorByTag } from "../../skia/ancestorLookup";
 import { resolveSkiaRule } from "../../skia/resolveSkiaVisualRule";
 import { LOWERCASE_TAG_SPEC_MAP } from "./tagSpecLookup";
@@ -180,6 +183,50 @@ function kebabToCamel(key: string): string {
   return key.replace(/-([a-z])/g, (_m, ch: string) => ch.toUpperCase());
 }
 
+/**
+ * ADR-171 Phase 3-b (2026-07-29): CSS 생성기의 `sizes` emit skip 규칙 미러.
+ *
+ * 생성기는 `sizes[size]` 의 height/padding/gap 을 무조건 emit 하지 않는다 —
+ * composition 이 컨테이너 박스를 소유하거나(ADR-141 `compositionOwnsContainerBox`)
+ * `containerStyles` 가 같은 키를 이미 선언하면 skip 한다(ADR-071). 캔버스가 그 규칙을
+ * 모르면 DOM 이 안 내는 값을 넣거나(Toolbar/Form/Checkbox·RadioGroup padding 과잉)
+ * DOM 이 내는 값을 빼먹는다(TabPanel padding 미도달).
+ *
+ * **입력은 `structure` 다.** 생성기의 virtual spec 은 `buildVirtualSpecs`
+ * (`packages/specs/scripts/generate-css.ts`) 가 `containerStyles = structure.containerStyles` /
+ * `composition = structure.composition` / `archetype = structure.archetype` 로 만든다 —
+ * **top-level `rule.containerStyles` 는 virtual spec 에 들어가지 않는다**. Phase 3 의
+ * "top-level 보유 → `sizes` 는 하위 부품" 휴리스틱이 생성기와 갈렸던 지점이 정확히 여기다.
+ *
+ * `structure` 부재 = 생성 CSS 부재 (`buildVirtualSpecs` 의 emit 멤버십 기준). 그 type 의
+ * 실효 DOM 값은 수동 CSS 가 정하므로 생성기 규칙으로 판정할 수 없다 → `undefined` 를
+ * 반환하고 호출부가 Phase 3 게이트를 유지한다.
+ */
+function catalogSizeAxisSkip(
+  structure: ComponentRuleStructure | undefined,
+): { height: boolean; padding: boolean; gap: boolean } | undefined {
+  if (!structure) return undefined;
+  const composition = structure.composition;
+  const ownsContainerBox =
+    !!composition &&
+    (!!composition.layout ||
+      !!composition.containerStyles ||
+      !!composition.containerVariants);
+  const containerStyles = structure.containerStyles;
+  // progress/slider grid 컨테이너의 `sizes.height` 는 컨테이너 전체가 아니라 트랙 행
+  //   높이다 (`isTrackOwningGridContainer`). 단 트랙 leaf(SliderTrack — gridTemplateAreas
+  //   미보유)는 그 height 가 실제 트랙 높이라 emit 대상이다.
+  const trackOwningGrid =
+    structure.archetype === "progress" ||
+    (structure.archetype === "slider" &&
+      containerStyles?.gridTemplateAreas != null);
+  return {
+    height: ownsContainerBox || trackOwningGrid,
+    padding: ownsContainerBox || containerStyles?.padding != null,
+    gap: containerStyles?.gap != null,
+  };
+}
+
 function ruleSizeRecord(
   type: string,
   sizeName: string,
@@ -297,7 +344,8 @@ export function resolveContainerStylesFallback(
   //   목록 패널)다. 캔버스의 Menu 는 트리거를 그리므로 두 층을 merge 하면 패널 메트릭이
   //   새어 들어와 B7 결정이 뒤집힌다. 즉 top-level 은 override 가 아니라 **대체**다.
   //   (CSS 생성기는 merge 쪽 의미를 쓴다 — DOM Menu root 는 popover 라 그게 맞다.)
-  const topLevelBox = resolveComponentRule(pascalKey)?.containerStyles as
+  const rule = resolveComponentRule(pascalKey);
+  const topLevelBox = rule?.containerStyles as
     | Record<string, string | number>
     | undefined;
   for (const [rawKey, rawValue] of Object.entries(
@@ -311,16 +359,20 @@ export function resolveContainerStylesFallback(
   //   둘을 합쳐 emit 하는데 resolver 는 앞쪽만 읽고 있었다 — MenuItem 실효 6키 중 4키가 여기
   //   있었고, `implicitStyles` 의 수기 배선 18분기가 그 공백을 손으로 메우고 있었다.
   //   `padding`/`gap` shorthand 가 아니라 longhand 로 낸다 (store longhand 정책 — style-ssot.md).
-  //   **top-level containerStyles 보유 type 은 대상이 아니다.** 그 경우 box 축이 거기서
-  //   완결되고 `sizes` 는 하위 부품 크기를 뜻한다 — Tree `sizes.height 36` 은 행 높이,
-  //   TagGroup `paddingX 12` 는 태그 padding, Slider `height 8` 은 트랙 높이다. 실제로
-  //   Tree/TagGroup 은 생성 CSS 자체가 없고(수동 CSS 컴포넌트), Slider 의 생성 root 에는
-  //   height 선언이 없다. 반대로 top-level 이 없는 type 은 `sizes` 가 유일한 크기 소스이고
-  //   생성 CSS root 가 그 값을 그대로 emit 한다 (MenuItem `height:32 · padding:4px 12px ·
-  //   gap:8px` / SliderTrack `height:8px`).
-  const sizeRecord = topLevelBox
-    ? undefined
-    : ruleSizeRecord(type, sizeName ?? "");
+  //
+  //   **어느 필드를 실을지는 생성기 규칙을 미러한다** (Phase 3-b, `catalogSizeAxisSkip`).
+  //   Phase 3 은 "top-level containerStyles 보유 → `sizes` 는 하위 부품" 휴리스틱을 썼는데,
+  //   그건 생성기가 보는 축(= `structure`)이 아니라 캔버스 전용 축을 보는 것이라 6종에서
+  //   갈렸다 — Toolbar/Form/Checkbox·RadioGroup 은 `composition` 이 박스를 소유해 생성 CSS 가
+  //   padding 을 안 내는데 캔버스만 넣었고(과잉), TabPanel 은 생성 CSS 가 내는 padding 을
+  //   top-level 존재 때문에 못 받았다(미도달). 휴리스틱이 맞혔던 케이스(Tree 행 높이 36 ·
+  //   TagGroup 태그 padding 12)는 그 type 들에 `structure` 가 없어 새 규칙에서도 걸러진다.
+  //
+  //   `structure` 부재 type(생성 CSS 없음 = 수동 CSS 가 실효값)만 Phase 3 게이트를 유지한다.
+  const sizeAxisSkip = catalogSizeAxisSkip(rule?.structure);
+  const sizeRecord =
+    (sizeAxisSkip ? true : !topLevelBox) &&
+    ruleSizeRecord(type, sizeName ?? "");
   if (sizeRecord) {
     // shorthand 가 이미 공급됐으면 longhand 를 얹지 않는다. 둘이 공존하면 React
     //   rerender 경고 + 엔진 어댑터 적용 순서 경합이 생긴다 (style-ssot.md). 값이 이미
@@ -329,10 +381,14 @@ export function resolveContainerStylesFallback(
       parentStyle[k] !== undefined || out[k] !== undefined;
 
     // height 0 = content-fit 관례(생성 CSS 가 `height: auto` 로 emit) → 주입하지 않는다.
-    if (typeof sizeRecord.height === "number" && sizeRecord.height > 0) {
+    if (
+      !sizeAxisSkip?.height &&
+      typeof sizeRecord.height === "number" &&
+      sizeRecord.height > 0
+    ) {
       assign("height", sizeRecord.height);
     }
-    if (!has("padding")) {
+    if (!sizeAxisSkip?.padding && !has("padding")) {
       if (typeof sizeRecord.paddingY === "number") {
         assign("paddingTop", sizeRecord.paddingY);
         assign("paddingBottom", sizeRecord.paddingY);
@@ -344,7 +400,7 @@ export function resolveContainerStylesFallback(
     }
     // `gap` 은 row 축이고 `columnGap` 은 column 축 override 다 (ComponentRuleSize 계약 —
     //   생성 CSS 도 `gap: {gap}px; column-gap: {columnGap}px` 로 emit).
-    if (!has("gap")) {
+    if (!sizeAxisSkip?.gap && !has("gap")) {
       const columnGap = sizeRecord.columnGap ?? sizeRecord.gap;
       if (typeof sizeRecord.gap === "number") assign("rowGap", sizeRecord.gap);
       if (typeof columnGap === "number") assign("columnGap", columnGap);
@@ -1344,16 +1400,18 @@ export function applyImplicitStyles(
   // ADR-087 SP1: display/alignItems/width:fit-content 는 Toolbar.spec containerStyles
   //   로 리프팅됨. flexDirection (orientation) + gap (size-based) + child flexShrink/
   //   whiteSpace 은 runtime 결정 → 잔존.
+  // ADR-171 Phase 3-b (2026-07-29): size-based gap 계산 제거. `sizeName === "sm" ? 4 :
+  //   "lg" ? 10 : 8` 은 catalog `Toolbar.sizes[size].gap` 을 손으로 옮겨 적은 사본이었고
+  //   L3 가 같은 값을 longhand(rowGap/columnGap)로 공급한다. 남겨 두면 shorthand `gap` 과
+  //   longhand 가 **공존**한다(style-ssot.md 금지 — Phase 3 의 gridlistitem 선례와 동형).
+  //   orientation 은 비-size prop 이라 잔존한다.
   if (containerTag === "toolbar") {
     const orientation = containerProps?.orientation as string | undefined;
-    const sizeName = (containerProps?.size as string) ?? "md";
-    const gap = sizeName === "sm" ? 4 : sizeName === "lg" ? 10 : 8;
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
       flexDirection:
         parentStyle.flexDirection ??
         (orientation === "vertical" ? "column" : "row"),
-      gap: parentStyle.gap ?? gap,
     });
     // 자식 Button/ToggleButton: 축소 방지 + 텍스트 줄바꿈 방지
     filteredChildren = filteredChildren.map((child) => {
@@ -2699,7 +2757,7 @@ export function applyImplicitStyles(
     }
   }
 
-  // ── InlineAlert: spec size → padding/gap/자식 font 주입 (Taffy는 CSS 못 읽음) ──
+  // ── InlineAlert: 자식 font 주입 + borderWidth (Taffy는 CSS 못 읽음) ──
   if (containerTag === "inlinealert") {
     const sizeName = (containerProps?.size as string) ?? "md";
     // ADR-912 단계5 step4 (2026-06-17): InlineAlertSpec.sizes 직독 → resolveSkiaRule read-through.
@@ -2709,23 +2767,19 @@ export function applyImplicitStyles(
       inlineAlertRule?.sizes[inlineAlertRule.defaultSize ?? "md"] ??
       {}) as unknown as Record<string, unknown>;
     const s = {
-      px: (specSize.paddingX as number) ?? 16,
-      py: (specSize.paddingY as number) ?? 16,
-      gap: (specSize.gap as number) ?? 12,
       headingFontSize: (specSize.headingFontSize as number) ?? 16,
       headingFontWeight: (specSize.headingFontWeight as number) ?? 700,
       descFontSize: (specSize.descFontSize as number) ?? 14,
       descFontWeight: (specSize.descFontWeight as number) ?? 400,
     };
     // ADR-087 SP5: display/flexDirection/width 는 InlineAlert.spec containerStyles
-    //   (ADR-083 Phase 1) 로 이미 리프팅됨. padding/gap 은 size-indexed runtime 잔존.
+    //   (ADR-083 Phase 1) 로 이미 리프팅됨.
+    // ADR-171 Phase 3-b (2026-07-29): padding 4-way + gap 주입 제거 — L3 가 같은
+    //   catalog `sizes[size]`(paddingX/paddingY/gap)를 longhand 로 공급한다. 특히
+    //   `gap: parentStyle.gap ?? s.gap` 은 L3 의 `rowGap` 과 **공존**을 만들었다
+    //   (style-ssot.md 금지). borderWidth 는 catalog `sizes` 에 없어 잔존.
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
-      paddingTop: parentStyle.paddingTop ?? s.py,
-      paddingBottom: parentStyle.paddingBottom ?? s.py,
-      paddingLeft: parentStyle.paddingLeft ?? s.px,
-      paddingRight: parentStyle.paddingRight ?? s.px,
-      gap: parentStyle.gap ?? s.gap,
       // generated CSS variant emit `border: 1px solid ...` (전 variant 공통) — layout
       //   미반영 시 border-box 2px 수축 (2026-07-14 sweep)
       borderWidth: parentStyle.borderWidth ?? 1,

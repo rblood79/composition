@@ -33,6 +33,11 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         maxHeight: "300px",
         overflow: "auto",
         outline: "none",
+        // ADR-171 Phase 3-b (2026-07-29): catalog top-level 에 borderWidth 복원.
+        //   생성 CSS `border: 1px solid` 를 캔버스가 못 받아 h Δ2 였다 (실측 DOM 52 /
+        //   캔버스 50, `catalogComponentBox.browser.test.ts`). Calendar/RangeCalendar 는
+        //   같은 슬립을 ADR-151 B1/B2 에서 이미 고쳤고 ListBox 만 남아 있었다.
+        borderWidth: "1px",
       });
     });
 
@@ -49,6 +54,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         maxHeight: "300px",
         overflow: "auto",
         outline: "none",
+        borderWidth: "1px",
       });
     });
 
@@ -66,10 +72,11 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         maxHeight: "300px",
         overflow: "auto",
         outline: "none",
+        borderWidth: "1px",
       });
     });
 
-    it("parentStyle 8속성 모두 명시 → 빈 객체 반환 (ListBoxSpec 선언 필드 전부 override)", () => {
+    it("parentStyle 9속성 모두 명시 → 빈 객체 반환 (catalog 선언 필드 전부 override)", () => {
       const fb = resolveContainerStylesFallback("listbox", {
         display: "block",
         flexDirection: "row",
@@ -79,6 +86,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         maxHeight: "100px",
         overflow: "hidden",
         outline: "1px solid red",
+        borderWidth: 2,
       });
       expect(fb).toEqual({});
     });
@@ -147,12 +155,21 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
   //   structure.containerStyles 에만 있으면 경로 A(top-level rule.containerStyles)·경로
   //   B(structure.composition) 둘 다 미도달 → {} 반환 → getElementDisplay block 라우팅 → 자식
   //   flex 속성 유실(DOM=flex-column 비대칭). top-level rule.containerStyles 승격으로 경로 A 도달.
+  // ADR-171 Phase 3-b (2026-07-29): padding 4-way 12 추가. TabPanel 은 `structure.composition`
+  //   부재라 생성기가 sizes padding 을 **emit 한다**(`.react-aria-TabPanel[data-size="md"]
+  //   { padding: 12px 12px }`). Phase 3 의 size 축 게이트가 "top-level containerStyles 보유"
+  //   를 기준으로 삼아 그 값을 막고 있었다 — 실측 DOM 대비 자식 x/y 각 12, 컨테이너 24 발산
+  //   (`catalogComponentBox.browser.test.ts`, 지금은 CASES 로 승격돼 GREEN).
   describe("tabpanel — top-level containerStyles 승격 (자식 flex-column layout Skia 도달)", () => {
-    it("empty parentStyle → top-level rule.containerStyles 의 display/flexDirection 반환", () => {
+    it("empty parentStyle → top-level containerStyles + sizes padding 반환", () => {
       const fb = resolveContainerStylesFallback("tabpanel", {});
       expect(fb).toEqual({
         display: "flex",
         flexDirection: "column",
+        paddingTop: 12,
+        paddingRight: 12,
+        paddingBottom: 12,
+        paddingLeft: 12,
       });
     });
 
@@ -161,7 +178,13 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         display: "grid",
       });
       expect(fb).not.toHaveProperty("display");
-      expect(fb).toEqual({ flexDirection: "column" });
+      expect(fb).toEqual({
+        flexDirection: "column",
+        paddingTop: 12,
+        paddingRight: 12,
+        paddingBottom: 12,
+        paddingLeft: 12,
+      });
     });
   });
 
@@ -178,11 +201,21 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       const fb = resolveContainerStylesFallback("calendar", {});
       // ADR-151 B1 (2026-07-16): borderWidth "1px" 추가 — generated CSS border 1px 의
       //   layout 미반영 2px 발산 보정 (fallback allowlist 에 borderWidth 편입).
+      // ADR-171 Phase 3-b (2026-07-29): sizes padding 8 + gap 6 추가 — 생성 CSS
+      //   `.react-aria-Calendar[data-size="md"] { padding: 8px 8px; gap: 6px }` 실측 정합
+      //   (`composition` 부재라 생성기가 emit 한다). store longhand 정책상 4-way + rowGap/
+      //   columnGap 으로 낸다.
       expect(fb).toEqual({
         display: "flex",
         flexDirection: "column",
         width: "fit-content",
         borderWidth: "1px",
+        paddingTop: 8,
+        paddingRight: 8,
+        paddingBottom: 8,
+        paddingLeft: 8,
+        rowGap: 6,
+        columnGap: 6,
       });
     });
 
@@ -195,18 +228,30 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         display: "flex",
         flexDirection: "column",
         borderWidth: "1px",
+        paddingTop: 8,
+        paddingRight: 8,
+        paddingBottom: 8,
+        paddingLeft: 8,
+        rowGap: 6,
+        columnGap: 6,
       });
     });
   });
 
   describe("rangecalendar — top-level containerStyles 승격 (Calendar 동형)", () => {
-    it("empty parentStyle → display/flexDirection/width:fit-content/borderWidth 반환", () => {
+    it("empty parentStyle → display/flexDirection/width:fit-content/borderWidth + sizes 반환", () => {
       const fb = resolveContainerStylesFallback("rangecalendar", {});
       expect(fb).toEqual({
         display: "flex",
         flexDirection: "column",
         width: "fit-content",
         borderWidth: "1px",
+        paddingTop: 8,
+        paddingRight: 8,
+        paddingBottom: 8,
+        paddingLeft: 8,
+        rowGap: 6,
+        columnGap: 6,
       });
     });
   });
@@ -328,6 +373,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         maxHeight: "300px",
         overflow: "auto",
         outline: "none",
+        borderWidth: "1px", // ADR-171 Phase 3-b — 위 listbox describe 참조
       });
     });
   });
@@ -343,12 +389,22 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
   //   leak 위험이 있으나, map 조회만 역매핑으로 대체(resolveCatalogContainerBase 흡수 아님)하므로
   //   top-level containerStyles({display/alignItems/width}, flexDirection 의도적 생략)가 그대로 유지됨.
   describe("경로 A 7 type byte-lock — map 삭제 후 산출값 불변 (Phase 3-A-3c)", () => {
-    it("inlinealert → top-level containerStyles 4필드 (camelCase, TokenRef 없음)", () => {
+    // ADR-171 Phase 3-b (2026-07-29): sizes padding 16 + gap 12 추가. `composition` 부재라
+    //   생성기가 emit 하는 값이고, 그동안은 `implicitStyles` 의 `inlinealert` 수기 분기가
+    //   같은 값을 손으로 넣고 있었다(그 분기의 padding/gap 은 본 phase 에서 제거 — 남기면
+    //   shorthand `gap` 과 L3 longhand `rowGap` 이 공존한다, style-ssot.md).
+    it("inlinealert → top-level containerStyles 4필드 + sizes padding/gap", () => {
       expect(resolveContainerStylesFallback("inlinealert", {})).toEqual({
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-start",
         width: "100%",
+        paddingTop: 16,
+        paddingRight: 16,
+        paddingBottom: 16,
+        paddingLeft: 16,
+        rowGap: 12,
+        columnGap: 12,
       });
     });
 
@@ -412,11 +468,17 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       }
     });
 
-    it("slider → display:grid + gridTemplateAreas/Columns (grid 경로)", () => {
+    // ADR-171 Phase 3-b (2026-07-29): sizes gap 4 / columnGap 16 추가. Slider 는
+    //   `composition` 보유(ownsContainerBox) 라 height 는 여전히 skip 되지만, gap 은
+    //   `structure.containerStyles.gap` 이 없어 생성기가 emit 한다 — 생성 CSS
+    //   `.react-aria-Slider[data-size="md"] { gap: 4px; column-gap: 16px }` 정합.
+    it("slider → display:grid + gridTemplateAreas/Columns + sizes gap (grid 경로)", () => {
       expect(resolveContainerStylesFallback("slider", {})).toEqual({
         display: "grid",
         gridTemplateAreas: '"label output" "track track"',
         gridTemplateColumns: "1fr auto",
+        rowGap: 4,
+        columnGap: 16,
       });
     });
 

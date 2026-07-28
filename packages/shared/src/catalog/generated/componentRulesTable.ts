@@ -6027,6 +6027,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   resolveContainerStylesFallback("listbox") 가 {} 반환 → column-flex 붕괴(DOM 정상=비대칭 회귀).
     //   색상(background/border)은 fallback KEYS 비대상 → Skia render shell variant 가 담당. gap 은
     //   spec `{spacing.2xs}`(=2), padding 은 `{spacing.xs}`(=4) 동일.
+    // ADR-171 Phase 3-b (2026-07-29): `borderWidth: 1` 추가. top-level 은 structure 에서
+    //   **시각 키(background/text/border/borderRadius)만** 뺀 layout subset 인데 borderWidth 를
+    //   같이 뺐다 — borderWidth 는 시각이 아니라 box-model 키다(fallback allowlist 에 있는 이유가
+    //   ADR-151 B1/B2 의 "generated CSS `border: 1px solid` 를 layout 이 미반영하는 border-box 2px
+    //   발산 보정 채널"). 같은 슬립을 Calendar/RangeCalendar 는 B1/B2 때 이미 고쳤고 ListBox 만
+    //   남아 있었다 — 실측 DOM h=52 / 캔버스 50 (Δ2, `catalogComponentBox.browser.test.ts`).
+    //   생성기는 top-level 을 읽지 않고(`buildVirtualSpecs`) `resolveCatalogContainerBase` 는
+    //   structure 에서 이미 같은 값을 받으므로, 변화는 캔버스 대체 경로 하나뿐이다.
     containerStyles: {
       display: "flex",
       flexDirection: "column",
@@ -6036,6 +6044,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       maxHeight: "300px",
       overflow: "auto",
       outline: "none",
+      // top-level `containerStyles` 는 `Record<string, string>` 이라 Calendar/RangeCalendar
+      //   선례대로 `"1px"` 문자열로 둔다 (structure 층은 number 1 — 두 타입이 다르다).
+      borderWidth: "1px",
     },
     sizes: {
       md: {

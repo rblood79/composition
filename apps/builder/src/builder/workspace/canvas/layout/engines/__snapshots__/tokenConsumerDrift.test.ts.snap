@@ -104,6 +104,7 @@ exports[`ADR-081 G2 — token consumer drift cross-reference > C2 — resolveTok
 
 exports[`ADR-081 G2 — token consumer drift cross-reference > C3 — resolveContainerStylesFallback 값 drift (Layout engine, ADR-080) > listbox empty parentStyle → resolved 4속성 snapshot 1`] = `
 {
+  "borderWidth": "1px",
   "display": "flex",
   "flexDirection": "column",
   "gap": 2,
