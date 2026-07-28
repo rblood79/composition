@@ -201,6 +201,12 @@ expect(keys).toEqual(KNOWN_DIVERGENCES); // 정확 일치 (superset/subset 모�
 - [ ] **G3**: ratchet 잔여 전건이 "명시 이연 + 사유" 상태
 - 군집 수·수정 규모는 Phase 1 실측이 확정 — 비대 시 군집 단위로 커밋 분할 (phase 분할 원칙), wave 자체의 별도 ADR 분리는 하지 않는다 (결정 지점 아님)
 
+#### Wave 진행 로그
+
+| wave | 군집 | 수정                                                                                                                                                                       | ratchet 제거 | 비고                                                                                                                                                                             |
+| ---- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -----------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | B    | `tree.rs::solve_node` — 컨테이너 intrinsic 키워드 폭을 `measure_intrinsic_width` 로 해소 (CSS-SIZING-3 §5). 측정 패스 안에서는 키워드가 요구하는 모드로 센티넬 고정 (§5.2) |  격자 1 −109 | grid 는 §12.5 트랙 경로가 자체 처리라 제외 (fr freeze 계약 충돌). grid 갈래는 애초 정합 실측 — B 표기 잔여는 A/C 복합 원인. plain/flex-row 키워드 13키도 동일 원인으로 함께 해소 |
+
 ### Phase 3 — 종결
 
 - [ ] layout-engine.md: 사각 목록 절 + 수정 wave 에서 나온 신규 규칙 절 (기존 문서 관행대로 조문·실측·민감도 병기)
@@ -226,17 +232,17 @@ expect(keys).toEqual(KNOWN_DIVERGENCES); // 정확 일치 (superset/subset 모�
 
 ### 군집 표
 
-| #   | 군집                                         | 대표 케이스                                                    | Chrome |    엔진 | 추정 거처 (Phase 2 확정 대상)                                                                     | 케이스 |   판정 |
-| --- | -------------------------------------------- | -------------------------------------------------------------- | -----: | ------: | ------------------------------------------------------------------------------------------------- | -----: | -----: |
-| A   | **인라인 축 clamp 후 재분배 부재**           | `scalar\|definite\|block\|w=120px\|h=auto\|minW200` (자식 폭)  |    200 | **120** | layout-engine.md §"clamp 뒤 값" 이 flex main/cross + grid block 3축만 — **인라인 축 미포함**      |    339 |   수정 |
-| B   | **컨테이너 intrinsic 이 스칼라 기여 미소비** | `scalar\|definite\|block\|w=min-content\|h=auto\|none` (box.w) |     50 | **300** | ADR-169 `measure_intrinsic_width` ↔ ADR-165 스칼라 채널 접점. plain leaf 는 정합                  |    157 |   수정 |
-| C   | **`%` 높이가 auto 부모에서 순환 해소**       | `plain\|shrink\|block\|w=auto\|h=50%\|none` (box.h)            |     50 |  **25** | 블록 축 definite 판정 (`explicit_h > 0.0`) 누수 — 자기 content 높이를 base 로 씀                  |    108 |   수정 |
-| D   | **`1fr` 트랙이 auto 최소를 안 잡음**         | `plain\|definite\|grid-1fr\|w=120px\|h=auto\|none` (leafB.x)   |     90 |  **60** | CSS-GRID §12.7.1 — `1fr` = `minmax(auto, 1fr)` 의 base(min-content 기여) 미반영                   |     29 |   수정 |
-| E   | **flex 교차축 stretch 가 스칼라에 짐**       | `scalar\|definite\|flex-col\|w=auto\|h=auto\|none` (leafA.w)   |    300 |  **90** | `resolve_leaf_intrinsic_width`(auto→max-content) 가 §9.4 step 11 stretch 를 이김                  |     16 |   수정 |
-| F   | **aspect-ratio: stretch 폭에서 미적용**      | `aspect\|block\|none-given\|none` (box.h)                      |    150 |  **50** | `apply_aspect_to_dims` 가 명시 크기에만 걸림 — stretch 로 정해진 폭은 입력이 안 됨                |      5 |   수정 |
-| G   | **aspect-ratio: clamp 전 폭으로 파생**       | `aspect\|block\|w-given\|maxW60` (box.h)                       |     50 |  **60** | 군집 A 의 aspect 갈래 + CSS-SIZING-4 자동 최소 크기 (내용 50 이 하한)                             |      5 |   수정 |
-| H   | **grid auto 트랙 stretch 가 margin 누락**    | `grid-auto\|w=auto\|h=auto\|ml-10px\|none` (subject.w)         |    165 | **160** | CSS-GRID §12.8 여유 산출이 item **outer** 크기(margin 포함)를 안 씀 — Δ = margin/2                |     45 |   수정 |
-| I   | **TS 선해석이 엔진 값을 근사로 덮음**        | `pipe\|scalar\|block\|w=min-content` (leafA.w)                 |     50 |  **80** | `calculateContentWidth` 컨테이너 키워드 근사 (layout-engine.md §TS 잔존 계약 "flex/block 선해석") |     23 | 재판정 |
+| #   | 군집                                         | 대표 케이스                                                    | Chrome |    엔진 | 추정 거처 (Phase 2 확정 대상)                                                                     | 케이스 |                                                            판정 |
+| --- | -------------------------------------------- | -------------------------------------------------------------- | -----: | ------: | ------------------------------------------------------------------------------------------------- | -----: | --------------------------------------------------------------: |
+| A   | **인라인 축 clamp 후 재분배 부재**           | `scalar\|definite\|block\|w=120px\|h=auto\|minW200` (자식 폭)  |    200 | **120** | layout-engine.md §"clamp 뒤 값" 이 flex main/cross + grid block 3축만 — **인라인 축 미포함**      |    339 |                                                            수정 |
+| B   | **컨테이너 intrinsic 이 스칼라 기여 미소비** | `scalar\|definite\|block\|w=min-content\|h=auto\|none` (box.w) |     50 | **300** | ADR-169 `measure_intrinsic_width` ↔ ADR-165 스칼라 채널 접점. plain leaf 는 정합                  |    157 | **해소** (2026-07-28 wave 1 — 109키 제거, 잔여는 A/C 복합 원인) |
+| C   | **`%` 높이가 auto 부모에서 순환 해소**       | `plain\|shrink\|block\|w=auto\|h=50%\|none` (box.h)            |     50 |  **25** | 블록 축 definite 판정 (`explicit_h > 0.0`) 누수 — 자기 content 높이를 base 로 씀                  |    108 |                                                            수정 |
+| D   | **`1fr` 트랙이 auto 최소를 안 잡음**         | `plain\|definite\|grid-1fr\|w=120px\|h=auto\|none` (leafB.x)   |     90 |  **60** | CSS-GRID §12.7.1 — `1fr` = `minmax(auto, 1fr)` 의 base(min-content 기여) 미반영                   |     29 |                                                            수정 |
+| E   | **flex 교차축 stretch 가 스칼라에 짐**       | `scalar\|definite\|flex-col\|w=auto\|h=auto\|none` (leafA.w)   |    300 |  **90** | `resolve_leaf_intrinsic_width`(auto→max-content) 가 §9.4 step 11 stretch 를 이김                  |     16 |                                                            수정 |
+| F   | **aspect-ratio: stretch 폭에서 미적용**      | `aspect\|block\|none-given\|none` (box.h)                      |    150 |  **50** | `apply_aspect_to_dims` 가 명시 크기에만 걸림 — stretch 로 정해진 폭은 입력이 안 됨                |      5 |                                                            수정 |
+| G   | **aspect-ratio: clamp 전 폭으로 파생**       | `aspect\|block\|w-given\|maxW60` (box.h)                       |     50 |  **60** | 군집 A 의 aspect 갈래 + CSS-SIZING-4 자동 최소 크기 (내용 50 이 하한)                             |      5 |                                                            수정 |
+| H   | **grid auto 트랙 stretch 가 margin 누락**    | `grid-auto\|w=auto\|h=auto\|ml-10px\|none` (subject.w)         |    165 | **160** | CSS-GRID §12.8 여유 산출이 item **outer** 크기(margin 포함)를 안 씀 — Δ = margin/2                |     45 |                                                            수정 |
+| I   | **TS 선해석이 엔진 값을 근사로 덮음**        | `pipe\|scalar\|block\|w=min-content` (leafA.w)                 |     50 |  **80** | `calculateContentWidth` 컨테이너 키워드 근사 (layout-engine.md §TS 잔존 계약 "flex/block 선해석") |     23 |                                                          재판정 |
 
 - 케이스 수 합 = 339+157+108+29+16+5+5+45+23 = **727** ✓ (군집 C = 격자 1 의 102 + definite 부모 6 / 군집 D = grid 트랙 24 + aspect 소블록의 트랙 갈래 5 / 군집 I = pipeline leg 15+8).
 - **군집 I 만 판정이 다르다** — 여기서 엔진을 고치면 TS 선해석이 여전히 덮으므로, Phase 2 는 **엔진 수정(B) 이 선행**하고 그 다음 TS 선해석 제거 가능 여부를 판정한다. 선해석은 layout-engine.md 가 명시한 잔존 계약이라 제거는 그 문서의 갱신을 동반한다.

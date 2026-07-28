@@ -932,6 +932,70 @@ impl LayoutTree {
 
         // 명시 크기(있으면) — auto 는 아래에서 content 로 채움.
         let (mut explicit_w, mut explicit_h) = self.resolve_self_size(handle, avail_w, avail_h);
+
+        // 컨테이너 자신의 intrinsic 키워드 폭 해소 (CSS-SIZING-3 §5 — ADR-170 군집 B).
+        //
+        // 종전엔 키워드가 부모 intake 의 `CONTENT` 센티넬로만 처리되어, 소비되는 값이
+        // **일반 solve 의 content bounding box** (auto 자식 stretch 포함) 였다. 자식이
+        // 확정 폭이면 우연히 min==max==bbox 라 정합이었지만, 측정 스칼라 leaf 는
+        // stretch 된 폭이 bbox 를 밀어 올려 `width:min-content` 가 부모 폭 전체가 됐다
+        // (실측 dom 50 / eng 300). 올바른 값은 측정 모드 재실행이 내는 min/max-content 다.
+        //
+        // - leaf 는 `resolve_leaf_intrinsic_width` 가 스칼라로 자체 해소 — 여기는 컨테이너만.
+        // - grid 는 `solve_grid` 의 `inline_intrinsic` 이 §12.5 트랙 경로로 자체 처리한다.
+        //   여기서 선해소해 definite 로 넘기면 `fr` 이 확정 폭을 재분배해 §12.7.1 의
+        //   freeze 계약이 무너진다 (`1fr 1fr`/min-content 40·30 → 35·35) — grid 제외.
+        // - 측정 패스 안에서는 measure 재진입 대신 **키워드가 요구하는 모드로 센티넬을
+        //   고정**한다 (§5.2 — `width:min-content` 상자의 max-content 기여도 min-content).
+        //   fit-content 는 측정 컨텍스트에서 현재 모드 값과 같으므로 무변경.
+        let mut avail_w = avail_w;
+        if explicit_w <= 0.0
+            && !children.is_empty()
+            && display != ContainerDisplay::Grid
+        {
+            if let Some(kw) = self.width_intrinsic_keyword(handle, avail_w) {
+                match intrinsic_mode(avail_w) {
+                    None => {
+                        if let Some((mn, mx)) = self.measure_intrinsic_width(handle) {
+                            let resolved = if kw == MIN_CONTENT {
+                                mn
+                            } else if kw == MAX_CONTENT {
+                                mx
+                            } else if avail_w >= 0.0 {
+                                // fit-content = clamp(min-content, stretch-fit, max-content).
+                                // stretch-fit = available − margin (mn/mx 와 같은 border-box 산술).
+                                let ctx = self.ctx_for(avail_w);
+                                let s = self.get(handle).map(|n| n.style.clone()).unwrap_or_default();
+                                let m = resolve_signed(s.margin_left.as_deref(), &ctx)
+                                    + resolve_signed(s.margin_right.as_deref(), &ctx);
+                                (avail_w - m).clamp(mn, mx)
+                            } else {
+                                // avail indefinite → max-content (CSS-SIZING-3 §5).
+                                mx
+                            };
+                            if resolved > 0.0 {
+                                explicit_w = resolved;
+                            }
+                        }
+                    }
+                    Some(mode) => {
+                        let want = if kw == MIN_CONTENT {
+                            IntrinsicMode::Min
+                        } else if kw == MAX_CONTENT {
+                            IntrinsicMode::Max
+                        } else {
+                            mode
+                        };
+                        if want != mode {
+                            avail_w = match want {
+                                IntrinsicMode::Min => MIN_CONTENT_AVAIL,
+                                IntrinsicMode::Max => MAX_CONTENT_AVAIL,
+                            };
+                        }
+                    }
+                }
+            }
+        }
         // E15: aspect-ratio — 한 축만 명시되고 다른 축이 auto 면 ratio 로 파생 (CSS §4).
         //   ratio = width / height → height = width/ratio, width = height*ratio.
         if let Some(ratio) = self.get(handle).and_then(|n| n.style.aspect_ratio) {
@@ -2770,6 +2834,20 @@ impl LayoutTree {
         let w = resolve_dimension(node.style.width.as_deref(), &ctx_w);
         let h = resolve_dimension(node.style.height.as_deref(), &ctx_h);
         (w, h)
+    }
+
+    /// 노드의 `width` 가 intrinsic 키워드(min/max/fit-content)면 해당 센티넬 반환.
+    ///
+    /// 컨테이너 키워드 폭 해소 (solve_node — ADR-170 군집 B) 의 판정 전용. 명시
+    /// px/% 나 auto/미설정은 `None`.
+    fn width_intrinsic_keyword(&self, handle: usize, avail_w: f32) -> Option<f32> {
+        let node = self.get(handle)?;
+        let raw = node.style.width.as_deref().map(str::trim).filter(|s| !s.is_empty())?;
+        if raw.eq_ignore_ascii_case("auto") {
+            return None;
+        }
+        let v = resolve_css_size_value(raw, &self.ctx_for(avail_w))?;
+        (v == MIN_CONTENT || v == MAX_CONTENT || v == FIT_CONTENT).then_some(v)
     }
 
     /// leaf 폭 intrinsic 해석 (ADR-165 — CSS-SIZING-3 §5).
