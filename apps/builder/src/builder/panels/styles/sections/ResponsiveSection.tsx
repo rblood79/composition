@@ -168,18 +168,8 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
     ...visibility,
   };
 
-  const badge = (
-    <span className="responsive-badge" data-breakpoint={activeBreakpoint}>
-      <BadgeIcon size={12} />
-      <span>{BP_LABEL[activeBreakpoint]}</span>
-      {activeOverrideCount > 0 && (
-        <span className="responsive-badge-count">{activeOverrideCount}</span>
-      )}
-    </span>
-  );
-
   return (
-    <PropertySection title="Responsive" icon={BadgeIcon} badge={badge}>
+    <PropertySection title="Responsive" icon={BadgeIcon}>
       <div className="responsive-section">
         {isBase ? (
           <p className="responsive-hint">

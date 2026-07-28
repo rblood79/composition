@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Style Panel breakpoint 중복 배지 제거] - 2026-07-29
+
+### Changed
+
+- Style Panel 상단의 `styles-breakpoint-badge`와 Responsive section 제목의 `responsive-badge`를 제거해, 현재 breakpoint 정보가 Responsive visibility 컨트롤에서만 한 번 표시되도록 정리
+- badge 전용 렌더링 helper와 CSS를 함께 제거하되 Responsive override picker·chip·visibility 동작은 유지
+
+## [Transform 크기 모드를 Fixed · Fill · Hug로 정리] - 2026-07-29
+
+### Changed
+
+- **W/H Sizing을 `Fixed / Fill / Hug` 계약으로 정리**:
+  - 사용자 노출 명칭 `Fit`을 `Hug`로 바꾸되 저장 key `fit`과 CSS `fit-content`는 기존 문서 하위호환을 위해 유지
+  - `Fixed` 전환 시 현재 렌더 크기를 `px` fallback으로 사용하고, 한 축의 전환이 다른 축의 `Fill` 속성까지 지우지 않도록 flex/grid 축 소유권을 분리
+  - active breakpoint 및 Spec 기본 크기를 반영해 현재 W/H mode를 판정
+- **Transform 기본 단위 목록 축소**: Width는 `px / % / vw`, Height는 `px / % / vh`만 노출하고 기존 CSS unit 파싱·저장 지원은 유지
+- **`Self Align` 컨트롤 제거**: 중복 정렬 UI만 제거하며, `Fill`과 기존 문서 렌더링에 필요한 `alignSelf`/`justifySelf` CSS 지원은 유지
+
 ## [증분 skip 이 요소 크기를 매 편집마다 부풀리던 문제] - 2026-07-28
 
 ### Bug Fixes

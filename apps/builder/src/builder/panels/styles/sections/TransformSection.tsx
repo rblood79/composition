@@ -38,7 +38,6 @@ import {
   useHeightSizeMode,
   useParentDisplay,
   useParentFlexDirection,
-  useSelfAlignmentKeys,
 } from "../hooks/useTransformAuxiliary";
 import { useStore } from "../../../stores";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
@@ -67,25 +66,10 @@ const ASPECT_RATIO_OPTIONS = [
   { value: "3 / 4", label: "3:4 Portrait" },
 ];
 
-const SELF_ALIGN_POSITION_MAP: Record<
-  string,
-  { horizontal: string; vertical: string }
-> = {
-  leftTop: { horizontal: "start", vertical: "start" },
-  centerTop: { horizontal: "center", vertical: "start" },
-  rightTop: { horizontal: "end", vertical: "start" },
-  leftCenter: { horizontal: "start", vertical: "center" },
-  centerCenter: { horizontal: "center", vertical: "center" },
-  rightCenter: { horizontal: "end", vertical: "center" },
-  leftBottom: { horizontal: "start", vertical: "end" },
-  centerBottom: { horizontal: "center", vertical: "end" },
-  rightBottom: { horizontal: "end", vertical: "end" },
-};
-
 /**
  * Size Mode 세그먼트 컨트롤 (ADR-026)
- * Fixed / Fill / Fit 3버튼 토글
- * Phase 4: fillDisabled prop으로 Fill 버튼 비활성화 + 툴팁
+ * Fixed / Fill / Hug 3버튼 토글 (내부 mode 값은 하위호환을 위해 "fit" 유지)
+ * Phase 4: fillDisabled prop으로 Fill 버튼 비활성화 + 사유를 accessible label에 노출
  */
 const SizeModeToggle = memo(function SizeModeToggle({
   axis,
@@ -134,7 +118,7 @@ const SizeModeToggle = memo(function SizeModeToggle({
           style={axis === "height" ? { transform: "rotate(90deg)" } : undefined}
         />
       </ToggleButton>
-      <ToggleButton id="fit" aria-label="Fit">
+      <ToggleButton id="fit" aria-label="Hug">
         <Shrink size={ICON_SIZE} strokeWidth={ICON_STROKE} />
       </ToggleButton>
     </ToggleButtonGroup>
@@ -197,18 +181,24 @@ const TransformSectionContent = memo(function TransformSectionContent() {
   const heightMode = useHeightSizeMode(selectedId);
   const parentDisplay = useParentDisplay(selectedId);
   const parentFlexDirection = useParentFlexDirection(selectedId);
-  const selfAlignmentKeys = useSelfAlignmentKeys(selectedId);
 
   const handleSizeModeChange = useCallback(
     (axis: "width" | "height", mode: SizeMode) => {
       const currentValue =
         axis === "width" ? styleValues?.width : styleValues?.height;
+      const effectiveSize =
+        axis === "width" ? bundle?.width.effective : bundle?.height.effective;
+      const fixedFallbackValue =
+        effectiveSize !== undefined && Number.isFinite(effectiveSize)
+          ? `${Math.max(0, Math.round(effectiveSize))}px`
+          : undefined;
       const css = resolveSizeMode(
         mode,
         axis,
         parentDisplay,
         parentFlexDirection,
         currentValue,
+        fixedFallbackValue,
       );
       const updates = sizeModeToStyleUpdates(css);
       updateStylesImmediate(updates);
@@ -218,6 +208,8 @@ const TransformSectionContent = memo(function TransformSectionContent() {
       parentFlexDirection,
       styleValues?.width,
       styleValues?.height,
+      bundle?.width.effective,
+      bundle?.height.effective,
       updateStylesImmediate,
     ],
   );
@@ -230,24 +222,6 @@ const TransformSectionContent = memo(function TransformSectionContent() {
   const handleHeightModeChange = useCallback(
     (mode: SizeMode) => handleSizeModeChange("height", mode),
     [handleSizeModeChange],
-  );
-
-  const handleSelfAlignment = useCallback(
-    (keys: Set<Key>) => {
-      const value = Array.from(keys)[0] as string | undefined;
-      if (!value) {
-        updateStylesImmediate({ alignSelf: "", justifySelf: "" });
-        return;
-      }
-      const pos = SELF_ALIGN_POSITION_MAP[value];
-      if (pos) {
-        updateStylesImmediate({
-          alignSelf: pos.vertical,
-          justifySelf: pos.horizontal,
-        });
-      }
-    },
-    [updateStylesImmediate],
   );
 
   const handleAspectRatioLock = useCallback(() => {
@@ -290,14 +264,6 @@ const TransformSectionContent = memo(function TransformSectionContent() {
   // Body 요소에서는 Size Mode 비표시
   const showSizeMode = !styleValues.isBody;
 
-  // Self-alignment: 부모가 flex/grid일 때만 표시
-  const isFlexOrGridParent =
-    parentDisplay === "flex" ||
-    parentDisplay === "inline-flex" ||
-    parentDisplay === "grid" ||
-    parentDisplay === "inline-grid";
-  const showSelfAlignment = !styleValues.isBody && isFlexOrGridParent;
-
   // ADR-026 Phase 4: Fill 비활성화 힌트
   // Block 부모: Height Fill 불가 (Block은 높이 채우기 미지원)
   const isBlockParent =
@@ -338,7 +304,7 @@ const TransformSectionContent = memo(function TransformSectionContent() {
           label="Width"
           className="width"
           value={displayWidth}
-          units={["reset", "fit-content", "px", "%", "vh", "vw"]}
+          units={["reset", "px", "%", "vw"]}
           onChange={(value) => updateStyleImmediate("width", value)}
           onDrag={(value) => updateStylePreview("width", value)}
           min={0}
@@ -349,7 +315,7 @@ const TransformSectionContent = memo(function TransformSectionContent() {
           label="Height"
           className="height"
           value={displayHeight}
-          units={["reset", "fit-content", "px", "%", "vh", "vw"]}
+          units={["reset", "px", "%", "vh"]}
           onChange={(value) => updateStyleImmediate("height", value)}
           onDrag={(value) => updateStylePreview("height", value)}
           min={0}
@@ -448,47 +414,6 @@ const TransformSectionContent = memo(function TransformSectionContent() {
               )}
             </SwatchIconButton>
           </div>
-        </div>
-      )}
-
-      {showSelfAlignment && (
-        <div className="direction-alignment-grid self-alignment">
-          <legend className="fieldset-legend">Self Align</legend>
-          <ToggleButtonGroup
-            aria-label="Self alignment"
-            indicator
-            selectionMode="single"
-            selectedKeys={selfAlignmentKeys}
-            onSelectionChange={handleSelfAlignment}
-          >
-            <ToggleButton id="leftTop">
-              <span className="alignment-dot" />
-            </ToggleButton>
-            <ToggleButton id="centerTop">
-              <span className="alignment-dot" />
-            </ToggleButton>
-            <ToggleButton id="rightTop">
-              <span className="alignment-dot" />
-            </ToggleButton>
-            <ToggleButton id="leftCenter">
-              <span className="alignment-dot" />
-            </ToggleButton>
-            <ToggleButton id="centerCenter">
-              <span className="alignment-dot" />
-            </ToggleButton>
-            <ToggleButton id="rightCenter">
-              <span className="alignment-dot" />
-            </ToggleButton>
-            <ToggleButton id="leftBottom">
-              <span className="alignment-dot" />
-            </ToggleButton>
-            <ToggleButton id="centerBottom">
-              <span className="alignment-dot" />
-            </ToggleButton>
-            <ToggleButton id="rightBottom">
-              <span className="alignment-dot" />
-            </ToggleButton>
-          </ToggleButtonGroup>
         </div>
       )}
 

@@ -1,7 +1,8 @@
 /**
  * Size Mode Resolver — ADR-026 Phase 1
  *
- * Size Mode(Fixed/Fill/Fit) ↔ CSS 속성 양방향 변환.
+ * Size Mode(Fixed/Fill/Hug) ↔ CSS 속성 양방향 변환.
+ * 내부 mode key `"fit"` 과 CSS `fit-content` 는 저장 하위호환을 위해 유지한다.
  * 부모 display 컨텍스트에 따라 다른 CSS를 생성하며,
  * 기존 CSS 값에서 모드를 역추론하여 UI에 표시.
  */
@@ -54,7 +55,7 @@ export function inferSizeMode(
     return "fill";
   }
 
-  // Fit 판별: auto, fit-content, 빈 값
+  // Hug 판별: auto, fit-content, 빈 값
   if (isFitCSS(strValue)) {
     return "fit";
   }
@@ -151,10 +152,17 @@ export function resolveSizeMode(
   parentDisplay: string,
   parentFlexDirection?: string,
   currentValue?: string,
+  fixedFallbackValue?: string,
 ): SizeModeCSS {
   switch (mode) {
     case "fixed":
-      return resolveFixed(axis, currentValue);
+      return resolveFixed(
+        axis,
+        parentDisplay,
+        parentFlexDirection,
+        currentValue,
+        fixedFallbackValue,
+      );
     case "fill":
       return resolveFill(axis, parentDisplay, parentFlexDirection);
     case "fit":
@@ -166,36 +174,47 @@ export function resolveSizeMode(
 
 function resolveFixed(
   axis: "width" | "height",
+  parentDisplay: string,
+  parentFlexDirection?: string,
   currentValue?: string,
+  fixedFallbackValue?: string,
 ): SizeModeCSS {
-  // Fixed 전환 시 현재 값 유지, 없으면 기본값 설정
-  const value =
-    currentValue &&
-    currentValue !== "auto" &&
-    currentValue !== "fit-content" &&
-    currentValue !== "100%"
-      ? currentValue
+  const isReusableFixedValue = (value: string | undefined): value is string =>
+    !!value && value !== "auto" && value !== "fit-content" && value !== "100%";
+  const value = isReusableFixedValue(currentValue)
+    ? currentValue
+    : isReusableFixedValue(fixedFallbackValue)
+      ? fixedFallbackValue
       : axis === "width"
-        ? "200"
-        : "100";
-
-  const remove: string[] = [];
-  if (axis === "width") {
-    remove.push(
-      "flexGrow",
-      "flexShrink",
-      "flexBasis",
-      "justifySelf",
-      "alignSelf",
-    );
-  } else {
-    remove.push("flexGrow", "flexShrink", "flexBasis", "alignSelf");
-  }
+        ? "200px"
+        : "100px";
 
   return {
     set: { [axis]: value },
-    remove,
+    remove: resolveAxisFillProps(axis, parentDisplay, parentFlexDirection),
   };
+}
+
+function resolveAxisFillProps(
+  axis: "width" | "height",
+  parentDisplay: string,
+  parentFlexDirection?: string,
+): string[] {
+  const isFlexParent =
+    parentDisplay === "flex" || parentDisplay === "inline-flex";
+  const isGridParent =
+    parentDisplay === "grid" || parentDisplay === "inline-grid";
+  const isMainAxis =
+    (axis === "width" && parentFlexDirection !== "column") ||
+    (axis === "height" && parentFlexDirection === "column");
+
+  if (isFlexParent) {
+    return isMainAxis ? ["flexGrow", "flexShrink", "flexBasis"] : ["alignSelf"];
+  }
+  if (isGridParent) {
+    return axis === "width" ? ["justifySelf"] : ["alignSelf"];
+  }
+  return [];
 }
 
 function resolveFill(
@@ -259,33 +278,9 @@ function resolveFit(
   parentDisplay: string,
   parentFlexDirection?: string,
 ): SizeModeCSS {
-  const isFlexParent =
-    parentDisplay === "flex" || parentDisplay === "inline-flex";
-  const isMainAxis =
-    (axis === "width" && parentFlexDirection !== "column") ||
-    (axis === "height" && parentFlexDirection === "column");
-
-  const remove: string[] = [];
-
-  // Flex main axis에서 Fit 전환 시 flex-grow 정리
-  if (isFlexParent && isMainAxis) {
-    remove.push("flexGrow", "flexShrink", "flexBasis");
-  }
-
-  // Cross axis fill 관련 속성 정리
-  if (isFlexParent && !isMainAxis) {
-    remove.push("alignSelf");
-  }
-
-  if (axis === "width") {
-    remove.push("justifySelf");
-  } else {
-    remove.push("alignSelf");
-  }
-
   return {
     set: { [axis]: "fit-content" },
-    remove,
+    remove: resolveAxisFillProps(axis, parentDisplay, parentFlexDirection),
   };
 }
 

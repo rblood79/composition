@@ -5,16 +5,7 @@
 import { useState, useMemo, useCallback, memo } from "react";
 import { useStore, useDebouncedSelectedElementData } from "../../stores";
 import { ActionIconButton, ActionIconToggleButton } from "../../components/ui";
-import {
-  Copy,
-  ClipboardPaste,
-  PencilRuler,
-  Palette,
-  Monitor,
-  Tablet,
-  Smartphone,
-} from "lucide-react";
-import type { BreakpointName } from "@composition/shared";
+import { Copy, ClipboardPaste, PencilRuler, Palette } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { EmptyState } from "../../components";
 import {
@@ -40,39 +31,6 @@ const ModifiedSectionsWrapper = memo(function ModifiedSectionsWrapper() {
   const selectedElement = useDebouncedSelectedElementData();
   if (!selectedElement) return null;
   return <ModifiedStylesSection selectedElement={selectedElement} />;
-});
-
-const BP_HEADER_ICON: Record<BreakpointName, typeof Monitor> = {
-  desktop: Monitor,
-  tablet: Tablet,
-  mobile: Smartphone,
-};
-
-const BP_HEADER_LABEL: Record<BreakpointName, string> = {
-  desktop: "Desktop",
-  tablet: "Tablet",
-  mobile: "Mobile",
-};
-
-/**
- * ADR-154: 현재 편집 중인 breakpoint 를 항상 표시하는 헤더 배지. desktop=base 는
- * 중립, tablet/mobile 은 override 편집 상태를 강조 (data-breakpoint 로 색상 분기).
- */
-const BreakpointHeaderBadge = memo(function BreakpointHeaderBadge() {
-  const activeBreakpoint = useStore((s) => s.activeBreakpoint);
-  const Icon = BP_HEADER_ICON[activeBreakpoint];
-  return (
-    <span
-      className="styles-breakpoint-badge"
-      data-breakpoint={activeBreakpoint}
-      title={`편집 대상 breakpoint: ${BP_HEADER_LABEL[activeBreakpoint]}${
-        activeBreakpoint === "desktop" ? " (base)" : " (override)"
-      }`}
-    >
-      <Icon size={12} />
-      <span>{BP_HEADER_LABEL[activeBreakpoint]}</span>
-    </span>
-  );
 });
 
 const AllSections = memo(function AllSections() {
@@ -192,7 +150,6 @@ function StylesPanelContent() {
             {modifiedCount > 0 && `modify ${modifiedCount}`}
           </ActionIconToggleButton>
         </div>
-        <BreakpointHeaderBadge />
         <div className="panel-actions">
           <ActionIconButton
             onPress={handleCopyStyles}

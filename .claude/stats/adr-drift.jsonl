@@ -51,3 +51,4 @@
 {"sha":"00ccfefcb7f67cac944d68782b6b7acdfdcafb47","date":"2026-07-26T16:44:26+09:00","promoted_adrs":["docs/adr/completed/168-frame-preset-responsive-restructure.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"2c319820a0d3d926191397d91ecda9de3f588d9c","date":"2026-07-27T13:19:52+09:00","promoted_adrs":["docs/adr/completed/169-container-intrinsic-sizing-propagation.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"7724d06d3b09ff98b5eed837be07f439136b52b7","date":"2026-07-28T00:47:50+09:00","promoted_adrs":["docs/adr/completed/153-render-optimization-measurement-first-adoption.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
+{"sha":"733cd1e7877dea764d25c4f4255ba76f0f78183c","date":"2026-07-28T20:02:43+09:00","promoted_adrs":["docs/adr/completed/170-engine-basic-axis-conformance-sweep.md"],"readme_updated":true,"changelog_updated":true,"synced":true}

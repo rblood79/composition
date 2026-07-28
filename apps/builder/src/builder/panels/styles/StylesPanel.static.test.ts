@@ -21,15 +21,12 @@ describe("StylesPanel canonical selected data contract", () => {
     expect(source).not.toContain("s.elementsMap");
   });
 
-  it("wires ADR-154 breakpoint 배지 + ResponsiveSection", async () => {
+  it("wires ADR-154 ResponsiveSection", async () => {
     const source = await readFile(
       resolve(__dirname, "StylesPanel.tsx"),
       "utf-8",
     );
 
-    // 활성 breakpoint 를 항상 표시하는 헤더 배지
-    expect(source).toContain("BreakpointHeaderBadge");
-    expect(source).toContain("s.activeBreakpoint");
     // override 요약/편집 섹션이 AllSections 에 포함
     expect(source).toContain("<ResponsiveSection />");
   });

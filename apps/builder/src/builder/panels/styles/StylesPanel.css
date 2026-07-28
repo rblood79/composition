@@ -12,47 +12,8 @@
 }
 
 /* ============================================
-   ADR-154: 반응형 breakpoint 배지 + override 섹션
+   ADR-154: 반응형 override 섹션
    ============================================ */
-
-/* 헤더 배지 — 항상 표시(편집 대상 breakpoint) */
-.styles-breakpoint-badge,
-.responsive-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--bg-raised);
-  color: var(--fg-muted);
-  font-size: var(--text-2xs);
-  line-height: 1;
-  white-space: nowrap;
-}
-
-/* tablet/mobile 편집 중 = override 컨텍스트 강조 */
-.styles-breakpoint-badge[data-breakpoint="tablet"],
-.styles-breakpoint-badge[data-breakpoint="mobile"],
-.responsive-badge[data-breakpoint="tablet"],
-.responsive-badge[data-breakpoint="mobile"] {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.responsive-badge-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 14px;
-  height: 14px;
-  padding: 0 3px;
-  border-radius: 7px;
-  background: var(--accent);
-  color: var(--fg-on-accent);
-  font-size: var(--text-2xs);
-  font-weight: 600;
-}
 
 .responsive-section {
   display: flex;
