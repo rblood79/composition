@@ -303,12 +303,32 @@ flex item 의 automatic minimum size (min-width/height:auto = content 하한) �
 - 회귀 감시: `tree.rs::reparent_invalidates_child_skip` (한 root 아래 두 부모 사이 이동 — root 를 바꾸면 `last_compute` 가 가려 RED 가 안 뜬다).
 - 비용: 동일-머신 A/B 로 flex 마이크로벤치 3종 **+8%** (`grow_nowrap` 17.6→19.0µs 등), `tree_solve` 는 depth 12 까지 평탄. 증가분은 **종전에 잘못 skip 되던 재계산이 실제로 도는 몫**이다.
 
+### 돌려주는 값은 `layout` 이 아니라 **직전 반환값**이다 (2026-07-28)
+
+키를 맞춰도, skip 이 **무엇을 돌려주는가**가 따로 틀려 있었다. `solve_*` 는 auto 축에서 **content-box** 를 반환하는데, 그 뒤 배치 단계에서 **부모가 같은 노드의 `layout` 을 border-box 로 덮어쓴다**. skip 이 `node.layout` 을 돌려주면 부모가 `pad+border` 를 **다시** 더한다.
+
+| 상태                      | GridListItem origin (pad 12·border 1) | ListBoxItem (pad 4) | Form (pad 0) |
+| ------------------------- | ------------------------------------: | ------------------: | -----------: |
+| 정상 (내용 42)            |                                    68 |                  76 |          168 |
+| 다른 요소 1회 편집        |                              120→ 146 |                  92 |          168 |
+| 2회                       |                                   198 |                 108 |          168 |
+| 증가분 = `2×(pad+border)` |                               **+52** |             **+16** |       **+0** |
+
+- 거처는 `TreeNode::last_solved` — `solve_node` 의 **반환값**을 따로 저장하고 skip 은 그것을 돌려준다. 두 return 지점(leaf early return · dispatch tail) 모두에서 기록한다.
+- **증상이 "편집한 요소가 아니라 다른 요소가 자란다"** 로 나타난다 — 편집 대상은 dirty 라 skip 되지 않고, 그 **형제/무관 요소**가 skip 대상이기 때문이다. 그래서 원인 요소를 찾을 때 편집한 쪽을 보면 안 된다.
+- **패딩 0 인 요소는 무증상**이다(Form). padding/border 를 가진 auto-크기 컨테이너에서만 드러나 컴포넌트별 결함처럼 보인다.
+- 빌더는 편집당 `computeLayout` 을 2회 돌리므로(1-pass + Step 4.5) 화면 증가분은 `2×(pad+border)` 다. 엔진 단위 테스트는 1회라 `1×` 로 잡힌다.
+- 회귀 감시: `tree.rs::incremental_skip_is_idempotent_for_padded_auto_container` (형제만 3회 바꾸고 skip 대상 높이 불변 단언 — 되돌리면 회당 +26 으로 RED).
+- 이 결함은 **기준값도 오염시킨다**: 최초 로드 직후 이미 1회 skip 이 섞여 GridListItem 94(정답 68) / iconButton 40(정답 30) 이었다. "누적" 만 고쳐졌는지 보지 말고 **첫 값이 CSS 계산과 맞는지** 같이 확인할 것.
+
 ### 금지 패턴
 
 - ❌ 증분 skip 게이트를 dirty 단독으로 판정 → 재부모화·부모 리사이즈에서 stale 크기 반환
+- ❌ skip 이 `node.layout` 을 반환 → 부모가 배치 때 border-box 로 덮어쓴 값이라 `pad+border` 가 매번 재가산된다 (`last_solved` 가 정본)
 - ❌ 재부모화를 `set_children` 에서 자식 subtree dirty 마킹으로만 해결 → available 이 바뀌는 다른 경로(부모 리사이즈)는 여전히 샌다
-- ❌ 측정 패스 복구에서 `last_avail` 누락 → 센티넬 available 이 키에 남아 이후 solve 판정이 오염된다
-- ❌ 이 증상을 store/canonical 문제로 진단 → 새로고침으로 정상값이 돌아오면 **레이아웃 캐시**다 (데이터는 멀쩡)
+- ❌ 측정 패스 복구에서 `last_avail`·`last_solved` 누락 → 센티넬 available 과 측정 반환값이 키·값에 남아 이후 solve 판정이 오염된다
+- ❌ 이 증상을 store/canonical 문제로 진단 → 새로고침으로 정상값이 돌아오면 **레이아웃 캐시**다 (데이터는 멀쩡 — store·canonical 스냅샷 diff 로 1분 안에 배제된다)
+- ❌ 자라는 요소를 컴포넌트 결함으로 진단 → padding 유무로 갈릴 뿐이라 "컬렉션 item 만 이상하다" 로 잘못 귀속된다
 
 ## 컨테이너의 `width: min/max/fit-content` 는 엔진이 **측정으로** 해소한다 (CSS-SIZING-3 §5, 2026-07-28)
 

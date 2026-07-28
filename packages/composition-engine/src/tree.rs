@@ -301,8 +301,8 @@ impl NodeLayout {
     const ZERO: NodeLayout = NodeLayout { x: 0.0, y: 0.0, width: 0.0, height: 0.0 };
 }
 
-/// 측정 패스 전후 복구 단위 — `(handle, dirty, layout, last_avail)`.
-type SubtreeSnap = (usize, bool, NodeLayout, Option<(f32, f32)>);
+/// 측정 패스 전후 복구 단위 — `(handle, dirty, layout, last_avail, last_solved)`.
+type SubtreeSnap = (usize, bool, NodeLayout, Option<(f32, f32)>, Option<(f32, f32)>);
 
 /// 트리 노드 (style + 자식 handle + 계산 결과).
 #[derive(Debug, Clone)]
@@ -346,6 +346,14 @@ struct TreeNode {
     /// 다르다. 트리 단위 `last_compute` 는 root·available 이 같으면 통과시키므로
     /// 이 축을 노드마다 따로 들고 있어야 한다.
     last_avail: Option<(f32, f32)>,
+    /// 직전 `solve_node` 가 **반환**한 `(w, h)`.
+    ///
+    /// 증분 skip 이 돌려줄 값은 `layout` 이 아니라 이것이다. `layout` 은 배치 단계에서
+    /// **부모가 border-box 로 덮어쓴다** — auto 축의 반환 계약(content-box)과 다른
+    /// 값이 되므로, skip 이 `layout` 을 돌려주면 부모가 pad+border 를 다시 더해
+    /// skip 마다 그만큼 부풀어 오른다 (라이브: 다른 요소를 편집할 때마다 컬렉션
+    /// item origin 높이가 `2×(padding+border)` 씩 누적 — 새로고침하면 원상복귀).
+    last_solved: Option<(f32, f32)>,
 }
 
 /// 자체 레이아웃 트리 엔진 (taffy_bridge.rs `TaffyLayoutEngine` 대응).
@@ -416,6 +424,7 @@ impl LayoutTree {
             escaped_mb: 0.0,
             intrinsic_w: None,
             last_avail: None,
+            last_solved: None,
         })
     }
 
@@ -543,6 +552,7 @@ impl LayoutTree {
                 escaped_mb: 0.0,
                 intrinsic_w: None,
                 last_avail: None,
+                last_solved: None,
             });
             // 자식들의 parent 를 이 노드로 배선 (조상 dirty 전파 경로 확보).
             for &ch in &child_handles {
@@ -839,7 +849,7 @@ impl LayoutTree {
     /// 서브트리의 `(dirty, layout, last_avail)` 를 수집 — 측정 패스 전후 원상 복구용.
     fn snapshot_subtree(&self, handle: usize, out: &mut Vec<SubtreeSnap>) {
         let Some(node) = self.get(handle) else { return };
-        out.push((handle, node.dirty, node.layout, node.last_avail));
+        out.push((handle, node.dirty, node.layout, node.last_avail, node.last_solved));
         for c in node.children.clone() {
             self.snapshot_subtree(c, &mut *out);
         }
@@ -851,11 +861,12 @@ impl LayoutTree {
     /// 그 값이 남으면 skip 게이트의 키가 측정값으로 오염된다 (복구 대상은
     /// layout·dirty·available 3종이 한 묶음).
     fn restore_subtree(&mut self, snap: &[SubtreeSnap]) {
-        for &(h, dirty, layout, last_avail) in snap {
+        for &(h, dirty, layout, last_avail, last_solved) in snap {
             if let Some(node) = self.get_mut(h) {
                 node.dirty = dirty;
                 node.layout = layout;
                 node.last_avail = last_avail;
+                node.last_solved = last_solved;
             }
         }
     }
@@ -941,14 +952,12 @@ impl LayoutTree {
             return (0.0, 0.0);
         };
 
-        // 증분 skip: 서브트리가 전부 clean 이면 저장된 layout 을 재사용.
-        // (저장된 layout.width/height 는 explicit 노드면 border-box, auto 노드면
-        //  content 크기 — solve_flex/block/grid 는 explicit 이면 그 값을, auto 면
-        //  자식 bounding box(content) 를 컨테이너 layout 에 저장하고 동일 값을
-        //  반환한다. 부모 write_*_item 의 content 슬롯(content_main/cross, content_w/h)
-        //  은 자식이 auto(명시 없음) 일 때만 fallback 소비하므로, explicit 자식의
-        //  border-box 반환은 그 슬롯에 아예 안 읽혀 무해 — write_flex_item/
-        //  write_block_item 이 명시값을 우선하고 content 는 AUTO 분기에서만 쓴다.)
+        // 증분 skip: 서브트리가 전부 clean 이면 **직전 반환값**(`last_solved`)을 재사용.
+        //
+        // **`layout` 을 돌려주면 안 된다** (2026-07-28): `solve_*` 가 저장한 값은 배치
+        // 단계에서 **부모가 border-box 로 덮어쓴다**. auto 축의 반환 계약은 content-box
+        // 이므로 skip 이 `layout` 을 돌려주면 부모가 pad+border 를 다시 더해 skip 마다
+        // 그만큼 부풀어 오른다. 반환값을 따로 들고 있어야 skip 이 멱등이다.
         //
         // **available 도 키다** (2026-07-28): 저장된 layout 은 *그때 받은 available*
         // 에서만 유효하다. 노드가 **재부모화**되면 자기 style/children 은 그대로라
@@ -956,9 +965,10 @@ impl LayoutTree {
         // dirty 만 보면 직전 부모 밑에서 계산된 크기를 그대로 돌려준다 (라이브:
         // 레이어 이동/undo 뒤 크기가 이전 부모 기준으로 눌러앉음). root-level
         // `last_compute` 비교로는 못 잡는다 — 같은 root·같은 available 이기 때문.
-        if !self.subtree_has_dirty(handle) && node.last_avail == Some((avail_w, avail_h)) {
-            let l = node.layout;
-            return (l.width, l.height);
+        if let Some(prev) = node.last_solved {
+            if !self.subtree_has_dirty(handle) && node.last_avail == Some((avail_w, avail_h)) {
+                return prev;
+            }
         }
 
         let children = node.children.clone();
@@ -1210,6 +1220,9 @@ impl LayoutTree {
             if !abs_children.is_empty() {
                 self.place_absolute_children(handle, &abs_children, w, h, avail_w);
             }
+            if let Some(n) = self.get_mut(handle) {
+                n.last_solved = Some((w, h));
+            }
             return (w, h);
         }
 
@@ -1246,6 +1259,9 @@ impl LayoutTree {
         // out-of-flow 자식 배치 — 컨테이너 크기 확정 후 (containing block 이 필요).
         if !abs_children.is_empty() {
             self.place_absolute_children(handle, &abs_children, cw, ch, avail_w);
+        }
+        if let Some(n) = self.get_mut(handle) {
+            n.last_solved = Some((cw, ch));
         }
         (cw, ch)
     }
@@ -6793,6 +6809,57 @@ mod tests {
             40.0,
             "재부모화 후에는 새 부모의 available 로 재계산 (stale 200 재사용 금지)"
         );
+    }
+
+    /// 증분 skip 은 **멱등**이어야 한다 — 형제만 바뀌는 재계산이 반복돼도 skip 되는
+    /// 노드의 크기가 자라면 안 된다.
+    ///
+    /// 회귀: skip 이 `layout`(배치 단계에서 부모가 border-box 로 덮어쓴 값)을 돌려줘
+    /// 부모가 pad+border 를 다시 더했다 — 재계산마다 `2×(padding+border)` 누적.
+    /// padding/border 를 가진 auto-height 컨테이너에서만 드러나므로 둘 다 준다.
+    #[test]
+    fn incremental_skip_is_idempotent_for_padded_auto_container() {
+        let mut tree = LayoutTree::new();
+        let leaf = tree.create_node(px_leaf(40.0, 20.0));
+        // padding 12 + border 1 → 자라면 회당 +26 (2 pass 면 +52).
+        let subject = tree.create_node(
+            serde_json::from_str(
+                r#"{"display":"flex","flexDirection":"column","paddingTop":"12px","paddingBottom":"12px","paddingLeft":"12px","paddingRight":"12px","borderTop":"1px","borderBottom":"1px","borderLeft":"1px","borderRight":"1px"}"#,
+            )
+            .unwrap(),
+        );
+        tree.set_children(subject, vec![leaf]);
+
+        // 같은 root 아래 형제 — 이쪽만 dirty 로 만들어 subject 는 skip 되게 한다.
+        let sibling = tree.create_node(
+            serde_json::from_str(r#"{"display":"block","width":"50px","height":"10px"}"#).unwrap(),
+        );
+        let root = tree.create_node(
+            serde_json::from_str(r#"{"display":"block","width":"200px","height":"300px"}"#).unwrap(),
+        );
+        tree.set_children(root, vec![subject, sibling]);
+
+        tree.compute_layout(root, 200.0, 300.0);
+        let first = tree.get_layout(subject).height;
+        assert_eq!(first, 46.0, "content 20 + padding 24 + border 2");
+
+        for round in 0..3 {
+            tree.update_style(
+                sibling,
+                serde_json::from_str(&format!(
+                    r#"{{"display":"block","width":"50px","height":"{}px"}}"#,
+                    10 + round
+                ))
+                .unwrap(),
+            );
+            tree.compute_layout(root, 200.0, 300.0);
+            assert_eq!(
+                tree.get_layout(subject).height,
+                first,
+                "형제만 바뀐 {}번째 재계산에서 skip 대상이 자랐다",
+                round + 1
+            );
+        }
     }
 
     /// 동일 available 재호출 + 변경 없음 → 결과 불변 (skip 이 값을 깨지 않음).

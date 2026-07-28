@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [증분 skip 이 요소 크기를 매 편집마다 부풀리던 문제] - 2026-07-28
+
+### Bug Fixes
+
+- **다른 요소를 편집할 때마다 무관한 요소의 높이가 누적으로 커지던 문제** (사용자 보고 2026-07-28):
+  - Toolbar 의 gap 을 바꾸면 components 페이지의 GridListItem origin 이 **68 → 120 → 172 …** 로 회당 **+52**, ListBoxItem 이 **+16** 씩 자랐다. 새로고침하면 원래 값으로 돌아왔다
+  - **Why**: 엔진의 증분 skip(`solve_node`)이 저장된 `node.layout` 을 반환했는데, 그 값은 배치 단계에서 **부모가 border-box 로 덮어쓴** 것이다. auto 축의 반환 계약은 content-box 라 부모가 `padding+border` 를 **다시** 더했다 — skip 될 때마다 그만큼 부풀고, 빌더는 편집당 `computeLayout` 을 2회 돌려 `2×(padding+border)` 가 누적됐다
+  - 증상이 **편집한 요소가 아니라 형제/무관 요소**에 나타나고(편집 대상은 dirty 라 skip 되지 않음), padding 이 0 인 요소는 무증상(Form 168 고정)이라 컬렉션 컴포넌트 고유 결함처럼 보였다
+  - 함께 정정: 최초 로드 값에도 이미 1회분이 섞여 있었다 — GridListItem `94 → 68`, iconButton `40 → 30` (둘 다 CSS 계산값과 일치)
+  - 수정: `TreeNode::last_solved` 에 **반환값**을 따로 저장하고 skip 이 그것을 돌려준다. 측정 패스 snapshot/restore 도 3종 → 4종으로 확장
+  - 위치: `packages/composition-engine/src/tree.rs` · 회귀 감시 `incremental_skip_is_idempotent_for_padded_auto_container`
+
 ## [엔진 기본 축 전수 정합 — ADR-170 격자 2,702 조합 발산 0] - 2026-07-28
 
 레이아웃 엔진의 Chrome 발산을 "증상 발견 → 수정" 이 아니라 **직교 격자 전수 대조**로 닫았다. display × width × height × min/max × leaf 종류 × 부모 컨텍스트를 곱한 2,702 조합에서 도입 시점 **727 발산 (26.9%)** 이 나왔고, 9개 군집으로 나눠 wave 1~7 로 전건 해소했다 (이연 0건).
