@@ -13,7 +13,7 @@
  * Phase 2 수정 wave 가 군집 단위로 항목을 지워 간다.
  */
 
-/** 부분 격자 1 — leaf×부모×display×width×height×min/max (1800 중 204) */
+/** 부분 격자 1 — leaf×부모×display×width×height×min/max (1800 중 180) */
 export const KNOWN_CONTAINER_SIZE: readonly string[] = [
   "plain|definite|grid-1fr|w=120px|h=50%|maxH40",
   "plain|definite|grid-1fr|w=120px|h=50%|maxW60",
@@ -60,12 +60,6 @@ export const KNOWN_CONTAINER_SIZE: readonly string[] = [
   "plain|definite|grid-auto|w=min-content|h=50%|minW200",
   "plain|definite|grid-auto|w=min-content|h=80px|minW200",
   "plain|definite|grid-auto|w=min-content|h=auto|minW200",
-  "plain|shrink|block|w=120px|h=50%|maxH40",
-  "plain|shrink|block|w=50%|h=50%|maxH40",
-  "plain|shrink|block|w=auto|h=50%|maxH40",
-  "plain|shrink|block|w=fit-content|h=50%|maxH40",
-  "plain|shrink|block|w=max-content|h=50%|maxH40",
-  "plain|shrink|block|w=min-content|h=50%|maxH40",
   "plain|shrink|grid-1fr|w=120px|h=50%|maxH40",
   "plain|shrink|grid-1fr|w=120px|h=50%|maxW60",
   "plain|shrink|grid-1fr|w=120px|h=50%|minH120",
@@ -114,18 +108,6 @@ export const KNOWN_CONTAINER_SIZE: readonly string[] = [
   "plain|shrink|grid-auto|w=min-content|h=50%|minW200",
   "plain|shrink|grid-auto|w=min-content|h=80px|minW200",
   "plain|shrink|grid-auto|w=min-content|h=auto|minW200",
-  "scalar|definite|flex-col|w=auto|h=50%|maxH40",
-  "scalar|definite|flex-col|w=auto|h=50%|minH120",
-  "scalar|definite|flex-col|w=auto|h=50%|minW200",
-  "scalar|definite|flex-col|w=auto|h=50%|none",
-  "scalar|definite|flex-col|w=auto|h=80px|maxH40",
-  "scalar|definite|flex-col|w=auto|h=80px|minH120",
-  "scalar|definite|flex-col|w=auto|h=80px|minW200",
-  "scalar|definite|flex-col|w=auto|h=80px|none",
-  "scalar|definite|flex-col|w=auto|h=auto|maxH40",
-  "scalar|definite|flex-col|w=auto|h=auto|minH120",
-  "scalar|definite|flex-col|w=auto|h=auto|minW200",
-  "scalar|definite|flex-col|w=auto|h=auto|none",
   "scalar|definite|grid-1fr|w=120px|h=50%|maxW60",
   "scalar|definite|grid-1fr|w=120px|h=80px|maxW60",
   "scalar|definite|grid-1fr|w=120px|h=auto|maxW60",
@@ -165,12 +147,6 @@ export const KNOWN_CONTAINER_SIZE: readonly string[] = [
   "scalar|definite|grid-auto|w=min-content|h=50%|minW200",
   "scalar|definite|grid-auto|w=min-content|h=80px|minW200",
   "scalar|definite|grid-auto|w=min-content|h=auto|minW200",
-  "scalar|shrink|block|w=120px|h=50%|maxH40",
-  "scalar|shrink|block|w=50%|h=50%|maxH40",
-  "scalar|shrink|block|w=auto|h=50%|maxH40",
-  "scalar|shrink|block|w=fit-content|h=50%|maxH40",
-  "scalar|shrink|block|w=max-content|h=50%|maxH40",
-  "scalar|shrink|block|w=min-content|h=50%|maxH40",
   "scalar|shrink|grid-1fr|w=120px|h=50%|maxW60",
   "scalar|shrink|grid-1fr|w=120px|h=80px|maxW60",
   "scalar|shrink|grid-1fr|w=120px|h=auto|maxW60",
@@ -235,7 +211,7 @@ export const KNOWN_ASPECT: readonly string[] = [
   "aspect|grid-auto|none-given|none",
 ];
 
-/** 부분 격자 1 파이프라인 leg (60 중 15) */
+/** 부분 격자 1 파이프라인 leg (60 중 14) */
 export const KNOWN_CONTAINER_PIPELINE: readonly string[] = [
   "pipe|plain|block|w=fit-content",
   "pipe|plain|block|w=max-content",
@@ -245,7 +221,6 @@ export const KNOWN_CONTAINER_PIPELINE: readonly string[] = [
   "pipe|scalar|block|w=fit-content",
   "pipe|scalar|block|w=max-content",
   "pipe|scalar|block|w=min-content",
-  "pipe|scalar|flex-col|w=auto",
   "pipe|scalar|flex-col|w=fit-content",
   "pipe|scalar|flex-col|w=max-content",
   "pipe|scalar|flex-col|w=min-content",

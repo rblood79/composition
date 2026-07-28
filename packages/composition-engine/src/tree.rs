@@ -1652,7 +1652,13 @@ impl LayoutTree {
             (main_h, child_avail_w)
         };
 
-        let mut cross_definite = if is_row { explicit_h > 0.0 } else { explicit_w > 0.0 };
+        // cross definite 판정 = `cross_definite_self` 와 동일 (ADR-170 군집 E).
+        // column 의 cross(=width)는 명시가 없어도 **block-level stretch 로 확정**된다
+        // (`avail_w >= 0` — §백분율 크기의 (b) 인라인 축 규칙). 종전엔 explicit 만 봐서
+        // 정합 available 을 받은 auto 폭 컨테이너의 라인 cross 가 content 로 떨어졌고,
+        // §9.4 step 11 stretch 가 auto-cross 스칼라 leaf 를 라인(=content 90)까지만
+        // 늘렸다 (실측 dom 300 / eng 90). row 의 cross(=height)는 블록 축이라 명시만 확정.
+        let mut cross_definite = cross_definite_self;
         let mut avail_cross = avail_cross;
         let mut out = flex::flex_layout(
             &data,
@@ -1742,7 +1748,18 @@ impl LayoutTree {
                 //   explicit main 자식은 `solve_node` 가 자기 스타일의 명시값을 우선하므로
                 //   available 만 바꿔선 안 된다 — 명시 main 을 **used 값으로 덮어써** 재-solve
                 //   한 뒤 원복한다(스타일 원본 보존).
-                let overridden = resolve_dimension_opt(main_raw, &main_ctx).is_some();
+                //
+                //   override 대상은 auto 가 아닌 **모든** main 스타일이다 (ADR-170 군집 C
+                //   잔여). "해소된 값" 만 대상이면 main_ctx 에서 못 푼 `%` 가 남고, 그
+                //   `%` 는 재-solve 의 상속 available(=used_main) 에 다시 풀린다 — 실측
+                //   `h=50%+maxH40`: 컨테이너가 clamp 한 used 40 에 50% 가 풀려 20 으로
+                //   붕괴 (CSS 는 % → auto → content 50 → clamp 40).
+                let overridden = main_raw
+                    .map(|v| {
+                        let t = v.trim();
+                        !t.is_empty() && !t.eq_ignore_ascii_case("auto")
+                    })
+                    .unwrap_or(false);
                 let saved_main = if is_row {
                     cstyle.width.clone()
                 } else {
