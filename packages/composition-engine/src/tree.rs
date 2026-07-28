@@ -301,6 +301,9 @@ impl NodeLayout {
     const ZERO: NodeLayout = NodeLayout { x: 0.0, y: 0.0, width: 0.0, height: 0.0 };
 }
 
+/// 측정 패스 전후 복구 단위 — `(handle, dirty, layout, last_avail)`.
+type SubtreeSnap = (usize, bool, NodeLayout, Option<(f32, f32)>);
+
 /// 트리 노드 (style + 자식 handle + 계산 결과).
 #[derive(Debug, Clone)]
 struct TreeNode {
@@ -336,6 +339,13 @@ struct TreeNode {
     /// pass 사이에 일어나므로, 한 pass 안에서는 캐시가 온전히 유효하다 — 지수 폭발이
     /// 실제로 발생하는 구간이 거기다.
     intrinsic_w: Option<(u64, f32, f32)>,
+    /// 저장된 `layout` 이 계산될 때 받은 available `(avail_w, avail_h)`.
+    ///
+    /// 증분 skip 의 **두 번째 키**다. dirty 만으로는 재부모화를 못 잡는다 — 옮겨온
+    /// 노드는 자기 style/children 이 안 바뀌어 clean 인데 새 부모가 주는 available 은
+    /// 다르다. 트리 단위 `last_compute` 는 root·available 이 같으면 통과시키므로
+    /// 이 축을 노드마다 따로 들고 있어야 한다.
+    last_avail: Option<(f32, f32)>,
 }
 
 /// 자체 레이아웃 트리 엔진 (taffy_bridge.rs `TaffyLayoutEngine` 대응).
@@ -405,6 +415,7 @@ impl LayoutTree {
             escaped_mt: 0.0,
             escaped_mb: 0.0,
             intrinsic_w: None,
+            last_avail: None,
         })
     }
 
@@ -531,6 +542,7 @@ impl LayoutTree {
                 escaped_mt: 0.0,
                 escaped_mb: 0.0,
                 intrinsic_w: None,
+                last_avail: None,
             });
             // 자식들의 parent 를 이 노드로 배선 (조상 dirty 전파 경로 확보).
             for &ch in &child_handles {
@@ -824,21 +836,26 @@ impl LayoutTree {
 
     // ── intrinsic 측정 패스 (ADR-169 Phase 1) ──
 
-    /// 서브트리의 `(dirty, layout)` 를 수집 — 측정 패스 전후 원상 복구용.
-    fn snapshot_subtree(&self, handle: usize, out: &mut Vec<(usize, bool, NodeLayout)>) {
+    /// 서브트리의 `(dirty, layout, last_avail)` 를 수집 — 측정 패스 전후 원상 복구용.
+    fn snapshot_subtree(&self, handle: usize, out: &mut Vec<SubtreeSnap>) {
         let Some(node) = self.get(handle) else { return };
-        out.push((handle, node.dirty, node.layout));
+        out.push((handle, node.dirty, node.layout, node.last_avail));
         for c in node.children.clone() {
             self.snapshot_subtree(c, &mut *out);
         }
     }
 
     /// `snapshot_subtree` 결과를 되돌린다.
-    fn restore_subtree(&mut self, snap: &[(usize, bool, NodeLayout)]) {
-        for &(h, dirty, layout) in snap {
+    ///
+    /// `last_avail` 도 함께 되돌린다 — 측정 pass 는 센티넬 available 로 돌므로
+    /// 그 값이 남으면 skip 게이트의 키가 측정값으로 오염된다 (복구 대상은
+    /// layout·dirty·available 3종이 한 묶음).
+    fn restore_subtree(&mut self, snap: &[SubtreeSnap]) {
+        for &(h, dirty, layout, last_avail) in snap {
             if let Some(node) = self.get_mut(h) {
                 node.dirty = dirty;
                 node.layout = layout;
+                node.last_avail = last_avail;
             }
         }
     }
@@ -932,13 +949,25 @@ impl LayoutTree {
         //  은 자식이 auto(명시 없음) 일 때만 fallback 소비하므로, explicit 자식의
         //  border-box 반환은 그 슬롯에 아예 안 읽혀 무해 — write_flex_item/
         //  write_block_item 이 명시값을 우선하고 content 는 AUTO 분기에서만 쓴다.)
-        if !self.subtree_has_dirty(handle) {
+        //
+        // **available 도 키다** (2026-07-28): 저장된 layout 은 *그때 받은 available*
+        // 에서만 유효하다. 노드가 **재부모화**되면 자기 style/children 은 그대로라
+        // 서브트리가 clean 인데 부모가 주는 available 은 달라진다 — 게이트가
+        // dirty 만 보면 직전 부모 밑에서 계산된 크기를 그대로 돌려준다 (라이브:
+        // 레이어 이동/undo 뒤 크기가 이전 부모 기준으로 눌러앉음). root-level
+        // `last_compute` 비교로는 못 잡는다 — 같은 root·같은 available 이기 때문.
+        if !self.subtree_has_dirty(handle) && node.last_avail == Some((avail_w, avail_h)) {
             let l = node.layout;
             return (l.width, l.height);
         }
 
         let children = node.children.clone();
         let display = classify_container_display(node.style.display.as_deref());
+        // 이 solve 가 쓰는 available 을 기록 — 위 게이트의 두 번째 키. 첫 borrow 가
+        // 끝난 지점에서 한 번만 쓴다 (재-borrow 추가 없이).
+        if let Some(n) = self.get_mut(handle) {
+            n.last_avail = Some((avail_w, avail_h));
+        }
         // display:none 자식은 layout 비참여 (CSS: 박스 미생성 — 크기/흐름/gap 전부 제외).
         // zero layout 을 기록해 get_layouts_batch 완전성은 유지한다 (tree_golden N9).
         //
@@ -6710,6 +6739,59 @@ mod tests {
             tree.get_layout(child).width,
             400.0,
             "available 800 → 50% = 400 (clean 노드도 재계산)"
+        );
+    }
+
+    /// **재부모화된 노드는 새 부모의 available 로 다시 풀린다** (stale 크기 재사용 금지).
+    ///
+    /// `set_children` 은 새 부모와 그 조상만 dirty 로 만든다 — 옮겨온 자식 자신의
+    /// 서브트리는 style/children 이 안 바뀌었으니 clean 이다. 그래서 skip 게이트가
+    /// **직전 부모 밑에서 계산된 크기**를 그대로 돌려줬다. 크기가 부모에 의존하는
+    /// 형태(shrink-to-fit ↔ stretch)에서 이동 뒤 크기가 눌러앉는다.
+    #[test]
+    fn reparent_invalidates_child_skip() {
+        let mut tree = LayoutTree::new();
+        // auto 폭 컨테이너 — stretch 부모면 부모 폭, shrink-to-fit 부모면 내용(40).
+        let leaf = tree.create_node(px_leaf(40.0, 20.0));
+        let subject = tree
+            .create_node(serde_json::from_str(r#"{"display":"block","height":"20px"}"#).unwrap());
+        tree.set_children(subject, vec![leaf]);
+
+        // 두 후보 부모를 **한 root** 아래 둔다 — root/available 이 바뀌면
+        // `last_compute` 가 전체 재계산으로 갈음해 이 결함이 가려진다 (실제 빌더는
+        // page body 가 고정 root 라 항상 같은 root·같은 available 이다).
+        let wide = tree.create_node(
+            serde_json::from_str(r#"{"display":"block","width":"200px","height":"60px"}"#).unwrap(),
+        );
+        let narrow = tree.create_node(
+            serde_json::from_str(
+                r#"{"display":"flex","flexDirection":"column","alignItems":"flex-start","width":"200px","height":"60px"}"#,
+            )
+            .unwrap(),
+        );
+        let root = tree.create_node(
+            serde_json::from_str(r#"{"display":"block","width":"200px","height":"200px"}"#).unwrap(),
+        );
+
+        // ① block 부모 — block 자식은 stretch → 200.
+        tree.set_children(wide, vec![subject]);
+        tree.set_children(root, vec![wide, narrow]);
+        tree.compute_layout(root, 200.0, 200.0);
+        assert_eq!(
+            tree.get_layout(subject).width,
+            200.0,
+            "block 부모에서는 stretch"
+        );
+
+        // ② flex column + align-items:flex-start 로 이동 → shrink-to-fit → 내용 40.
+        tree.set_children(wide, vec![]);
+        tree.set_children(narrow, vec![subject]);
+        tree.compute_layout(root, 200.0, 200.0);
+
+        assert_eq!(
+            tree.get_layout(subject).width,
+            40.0,
+            "재부모화 후에는 새 부모의 available 로 재계산 (stale 200 재사용 금지)"
         );
     }
 

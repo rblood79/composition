@@ -284,6 +284,32 @@ flex item 의 automatic minimum size (min-width/height:auto = content 하한) �
 - ❌ 측정 후 `mark_subtree_dirty` 로 복구 갈음 → 자손 캐시까지 날아가 중첩 깊이에 지수적
 - ❌ 측정 배선을 `is_row` 밖으로 확장 → 세로 축은 결함 부재이며, 확장 시 height-for-width 2-pass 계약(ADR-165)과 충돌
 
+## 증분 skip 의 키는 dirty **와 available** 둘이다 — 재부모화 (2026-07-28)
+
+`solve_node` 는 서브트리가 전부 clean 이면 저장된 layout 을 그대로 돌려준다. 그 값은 **그때 받은 available 에서만** 유효한데, 키가 dirty 하나뿐이면 노드를 **다른 부모로 옮겼을 때** 그 사실이 게이트에 안 잡힌다 — 옮겨온 노드는 자기 style/children 이 그대로라 clean 이기 때문이다.
+
+| 상태             | 부모                                   | 결과                               |
+| ---------------- | -------------------------------------- | ---------------------------------- |
+| 최초             | flex column + `align-items:flex-start` | 24 (shrink-to-fit)                 |
+| GridList 로 이동 | GridList(34)                           | 34 (stretch)                       |
+| **undo** (복귀)  | 원래 부모                              | **34** ← 이전 부모 기준이 눌러앉음 |
+| 새로고침         | 원래 부모                              | 24 (전체 재빌드라 정상)            |
+
+- 거처는 `TreeNode::last_avail` — 저장된 layout 이 계산될 때 받은 `(avail_w, avail_h)`. 게이트는 `!subtree_has_dirty && last_avail == Some((avail_w, avail_h))`.
+- **트리 단위 `last_compute` 로는 못 잡는다** — 그건 root·available 이 바뀔 때만 전체를 무효화한다. 빌더는 page body 가 고정 root 이고 available 도 그대로라 항상 통과한다. 그래서 증상이 "새로고침하면 고쳐지는" 형태로 나타난다.
+- `set_children` 은 새 부모와 그 **조상**만 dirty 로 만든다 (`propagate_dirty`). 옮겨온 자식을 dirty 로 만드는 방법도 있지만, available 키가 더 넓게 정확하다 — 부모가 리사이즈돼 자식의 available 만 달라지는 경우도 같이 덮는다.
+- **측정 패스 복구 3종 묶음**: `snapshot_subtree`/`restore_subtree` 가 `dirty`·`layout`·`last_avail` 을 같이 되돌린다. 측정은 센티넬 available 로 돌기 때문에 `last_avail` 을 안 되돌리면 키가 측정값으로 오염된다.
+- **stretch 자식에서는 안 보인다** — 부모가 자식 폭을 덮어쓰므로 stale 반환값이 소비되지 않는다. 크기를 자식이 정하는 형태(shrink-to-fit / `align-items` non-stretch / auto 폭)에서만 드러난다.
+- 회귀 감시: `tree.rs::reparent_invalidates_child_skip` (한 root 아래 두 부모 사이 이동 — root 를 바꾸면 `last_compute` 가 가려 RED 가 안 뜬다).
+- 비용: 동일-머신 A/B 로 flex 마이크로벤치 3종 **+8%** (`grow_nowrap` 17.6→19.0µs 등), `tree_solve` 는 depth 12 까지 평탄. 증가분은 **종전에 잘못 skip 되던 재계산이 실제로 도는 몫**이다.
+
+### 금지 패턴
+
+- ❌ 증분 skip 게이트를 dirty 단독으로 판정 → 재부모화·부모 리사이즈에서 stale 크기 반환
+- ❌ 재부모화를 `set_children` 에서 자식 subtree dirty 마킹으로만 해결 → available 이 바뀌는 다른 경로(부모 리사이즈)는 여전히 샌다
+- ❌ 측정 패스 복구에서 `last_avail` 누락 → 센티넬 available 이 키에 남아 이후 solve 판정이 오염된다
+- ❌ 이 증상을 store/canonical 문제로 진단 → 새로고침으로 정상값이 돌아오면 **레이아웃 캐시**다 (데이터는 멀쩡)
+
 ## 컨테이너의 `width: min/max/fit-content` 는 엔진이 **측정으로** 해소한다 (CSS-SIZING-3 §5, 2026-07-28)
 
 키워드 폭은 "부모가 주는 available" 이 아니라 **자기 내용의 min/max-content** 다. 종전 엔진은 이 값을 부모 intake 의 `CONTENT` 센티넬로만 처리해서, 실제 소비된 값이 일반 solve 의 **content bounding box** (auto 자식이 stretch 된 폭까지 포함) 였다.
