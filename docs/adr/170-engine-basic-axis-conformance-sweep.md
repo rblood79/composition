@@ -18,8 +18,8 @@ composition-engine (ADR-916) 의 Chrome/CSS 발산은 **반응형 발견** 사�
 
 1. **Chrome = differential oracle** — 격자 기대값은 손으로 쓰지 않고 DOM leg 실측 (`harness.ts` `domLeg`/`diffCase` 재사용). ADR-156 이후 확립된 정책.
 2. **기존 회귀 0** — parity 911+ 케이스, cargo 유닛 (344), layout/canonical 유닛 (647) green 유지. 저장 스키마/BC 변경 0% (테스트 + 엔진 내부 수정만).
-3. **실행 시간 상한** — 신규 격자 3파일 합산 로컬 단일 실행이 기존 parity 스위트 전체와 동급 (수 분대) 이내. flexSweep 1152 조합이 이미 수용된 규모 클래스.
-4. **스위트 상시 green** — 격자 도입 시점의 발산은 known-divergence 스냅샷 (발산 수치 자체를 단언) 으로 잠근다. red 방치 금지 — 수정 wave 가 스냅샷을 parity 단언으로 교체해 가는 형태.
+3. **실행 시간 상한** — 신규 격자 3파일 합산 단일 실행 **≤ 30초** wall, 신규 포함 parity 전체 **≤ 60초** wall. 기준은 2026-07-28 실측 — 기존 parity 전체 (29파일 / 911 it / 실 조합 ≈ 2,061) 가 **4.8초** wall, 조합당 ≈0.7ms (Phase 0 freeze, breakdown §3.7).
+4. **스위트 상시 green** — 격자 도입 시점의 발산은 known-divergence 목록으로 잠근다 (형식은 breakdown §3.5 — 양방향 ratchet). red 방치 금지 — 수정 wave 가 목록에서 항목을 지워 가는 형태.
 
 **Soft Constraints**:
 
@@ -127,6 +127,6 @@ composition-engine (ADR-916) 의 Chrome/CSS 발산은 **반응형 발견** 사�
 
 ### Negative
 
-- parity 스위트 실행 시간 증가 (~1,650 케이스 추가 — HC3 상한 내).
-- known-divergence 스냅샷 유지 비용 — 이연 군집이 남는 한 스냅샷 수치가 엔진 변경마다 갱신 대상.
+- parity 스위트 실행 시간 증가 (1,686 조합 추가 — HC3 상한 내, 선형 외삽 +1.2초).
+- known-divergence 목록 유지 비용 — 이연 군집이 남는 한 목록이 엔진 변경마다 검토 대상 (수치는 breakdown §7 인벤토리에 두어 테스트 파일 갱신 빈도는 낮췄다).
 - 격자 사각 (텍스트 실측정 / absolute / 중첩 2단+ 등) 은 여전히 반응형 발견에 의존 — 본 ADR 이 제거하는 것은 "기본 축" 의 미지 규모이지 모든 미지가 아니다.
