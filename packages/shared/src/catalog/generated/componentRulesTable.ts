@@ -1312,6 +1312,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         flexDirection: "column",
         width: "100%",
         overflow: "hidden",
+        // ADR-171 Phase 3 (2026-07-29): archetype base 가 생성 CSS 에만 emit 하던 값이라
+        //   catalog 를 읽는 Skia 에는 안 갔다 (G2 잔존). 실효 DOM 값 그대로 이관 — 값 불변.
+        alignItems: "center",
+        justifyContent: "center",
       },
     },
   },
@@ -5285,6 +5289,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         position: "sticky",
         background: "{color.raised}",
         text: "{color.neutral-subdued}",
+        // ADR-171 Phase 3 (2026-07-29): archetype base 가 생성 CSS 에만 emit 하던 값이라
+        //   catalog 를 읽는 Skia 에는 안 갔다 (G2 잔존). 실효 DOM 값 그대로 이관 — 값 불변.
+        display: "inline-flex",
+        alignItems: "center",
       },
       states: {},
     },
@@ -10515,6 +10523,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   ::before / SelectionIndicator 앵커라 relative 가 필수다.
       containerStyles: {
         position: "relative",
+        // ADR-171 Phase 3 (2026-07-29): archetype base 가 생성 CSS 에만 emit 하던 값이라
+        //   catalog 를 읽는 Skia 에는 안 갔다 (G2 잔존). 실효 DOM 값 그대로 이관 — 값 불변.
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
       },
       states: {
         disabled: {

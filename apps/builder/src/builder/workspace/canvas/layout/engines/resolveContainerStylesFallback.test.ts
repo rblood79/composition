@@ -94,20 +94,50 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
   });
 
   // ADR-912 collection sub-part cutover (2026-06-14): ListBoxItem/GridListItem.spec 물리 삭제됨.
-  //   spec 미선언 태그 → resolveContainerStylesFallback 이 `{}` 반환(선주입 layer 영향 없음).
-  //   layout(display:flex/column)은 이제 spec.containerStyles 가 아니라:
-  //     - Skia: listbox_item / gridlist_card escape(replace 모드)가 row/card 전체 자체 paint
-  //     - DOM: virtual ListBoxItem.css(generate-css TEXT_LEAF) + 수동 GridList.css 가 emit
-  //   가 담당 → fallback `{}` 이 정답(회귀 없음, layout 축 escape/CSS 로 이전 완료).
-  describe("listboxitem — ADR-912 cutover (spec 삭제 → escape/CSS 가 layout 담당)", () => {
-    it("empty parentStyle → spec 삭제로 {} 반환 (layout 은 listbox_item escape + virtual CSS)", () => {
-      expect(resolveContainerStylesFallback("listboxitem", {})).toEqual({});
+  //   당시엔 `{}` 가 정답이었다 — 경로 A(top-level rule.containerStyles)·경로 B
+  //   (`structure.composition` 게이트) 둘 다 미도달이라 catalog 값이 나올 길이 없었고,
+  //   layout 은 Skia escape + DOM 수동 CSS 가 각자 담당했다.
+  //
+  // **ADR-171 Phase 3 (2026-07-29) — 이 lock 이 바로 바꾸려던 동작이다** (R8).
+  //   catalog 는 두 type 의 layout 을 이미 `structure.containerStyles` + `sizes[size]` 에
+  //   갖고 있었는데 L1 게이트(composition 부재)와 L3(sizes 축 미조회)에 막혀 있었다.
+  //   Phase 3 이 세 층을 열면서 값이 도달한다. 새 기대값은 **실효 DOM 과 대조해 확정**했다
+  //   (번들 CSS iframe 주입 후 getComputedStyle, 2026-07-29):
+  //     listboxitem  DOM = flex column · flex-start · center · gap 2 · pad 4/12 · relative
+  //     gridlistitem DOM = flex column · center · gap 2 · pad 12/16 (align-items 는 normal)
+  //   즉 `{}` → 아래 값은 비대칭 해소이지 회귀가 아니다. Skia escape 는 이 값을 받은
+  //   컨테이너 안에서 그대로 그린다.
+  describe("listboxitem — ADR-171 Phase 3 (catalog 3층 개방 → 실효 DOM 값 도달)", () => {
+    it("empty parentStyle → structure.containerStyles + sizes 축 반환 (실효 DOM 정합)", () => {
+      expect(resolveContainerStylesFallback("listboxitem", {})).toEqual({
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        justifyContent: "center",
+        position: "relative",
+        paddingTop: 4,
+        paddingBottom: 4,
+        paddingLeft: 12,
+        paddingRight: 12,
+        rowGap: 2,
+        columnGap: 2,
+      });
     });
   });
 
-  describe("gridlistitem — ADR-912 cutover (spec 삭제 → escape/CSS 가 layout 담당)", () => {
-    it("empty parentStyle → spec 삭제로 {} 반환 (layout 은 gridlist_card escape + 수동 CSS)", () => {
-      expect(resolveContainerStylesFallback("gridlistitem", {})).toEqual({});
+  describe("gridlistitem — ADR-171 Phase 3 (catalog 3층 개방 → 실효 DOM 값 도달)", () => {
+    it("empty parentStyle → structure.containerStyles + sizes 축 반환 (실효 DOM 정합)", () => {
+      expect(resolveContainerStylesFallback("gridlistitem", {})).toEqual({
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        paddingTop: 12,
+        paddingBottom: 12,
+        paddingLeft: 16,
+        paddingRight: 16,
+        rowGap: 2,
+        columnGap: 2,
+      });
     });
   });
 

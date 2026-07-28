@@ -18,6 +18,9 @@
     font-family: var(--font-sans);
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
 
   /* Default variant */

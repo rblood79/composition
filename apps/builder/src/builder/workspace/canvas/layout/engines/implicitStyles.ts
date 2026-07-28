@@ -21,7 +21,6 @@ import {
   //   분기를 resolveSkiaRule("InlineAlert").sizes read-through 로 이관(spec 삭제 선행, rule fallback).
   // ADR-912 단계5 step4 (2026-06-16): BreadcrumbsSpec import 제거 — breadcrumbs height 분기를
   //   specSizeField("breadcrumbs", ...) read-through 로 이관(spec 삭제 선행, rule fallback).
-  resolveGridListItemMetric,
   normalizeBreadcrumbRspSizeKey,
   resolveToken,
   resolveContainerStylesFallback as _resolveContainerStylesFallback,
@@ -38,7 +37,6 @@ import {
   isDisclosureExpandedInContext,
   resolveCatalogContainerBase,
   resolveCatalogContainerVariants,
-  resolveCatalogStructure,
   resolveComponentRule,
 } from "@composition/shared";
 import type { ComponentRuleSize } from "@composition/shared";
@@ -182,28 +180,6 @@ function kebabToCamel(key: string): string {
   return key.replace(/-([a-z])/g, (_m, ch: string) => ch.toUpperCase());
 }
 
-/**
- * ADR-912 Phase 3-A-3b: collection-item(GridListItem/ListBoxItem) base-axis 단일 source 조회.
- *
- * field류 wrapper 경로 B 는 `structure.composition` guard 라 collection(composition 부재,
- * base-axis 는 `structure.containerStyles` 에 land)을 통과시키지 못한다. collection 분기에서
- * `resolveCatalogContainerBase` 를 직접 호출(casing lowercase→PascalCase)하여 base-axis 만 도달.
- * collection catalog containerStyles 는 이미 camelCase(display/flexDirection/alignItems/
- * justifyContent/minWidth) + numeric → kebab→camel/gap 정규화 불필요. size-value(padding/gap/
- * borderWidth)는 sizes.md 경유라 본 출력에 미포함(분기에서 별도 인라인 유지).
- *
- * **Why collection 전용 helper**: wrapper guard 를 `composition OR structure.containerStyles` 로
- *   완화하면 43 type(Avatar/Badge/Button/Checkbox 등 leaf 포함)이 새로 경로 B 진입 → 회귀 표면
- *   과다. collection 2곳만 직접 호출이 surface-minimal.
- */
-function resolveCatalogCollectionBase(
-  lowercaseTag: string,
-): Record<string, string | number> {
-  const pascalKey = LOWERCASE_TO_PASCAL_RULE_KEY.get(lowercaseTag);
-  if (!pascalKey) return {};
-  return resolveCatalogContainerBase(pascalKey);
-}
-
 function ruleSizeRecord(
   type: string,
   sizeName: string,
@@ -267,6 +243,12 @@ function specSizeLineHeight(
 export function resolveContainerStylesFallback(
   type: string,
   parentStyle: Record<string, unknown>,
+  /**
+   * ADR-171 Phase 3 L3 (2026-07-29): catalog `sizes[size]` 축 조회용 size 이름.
+   * 미전달 시 `rule.defaultSize` fallback (`ruleSizeRecord` 내부) — 기존 2-arg
+   * 호출부는 default size 기준으로 동작한다.
+   */
+  sizeName?: string,
 ): Record<string, unknown> {
   const specOut = _resolveContainerStylesFallback(
     type,
@@ -282,51 +264,91 @@ export function resolveContainerStylesFallback(
   //   직접 조회로 대체(map 은 lowercase→top-level containerStyles 조회 캐시일 뿐이라 byte 불변 대체
   //   가능). 경로 B(resolveCatalogContainerBase) 흡수는 structure.composition base 가 leaf 44 type 에
   //   신규 진입(surface-minimization 위반)이라 채택 불가 — 경로 A 로직 보존 + map 조회만 교체.
-  const pascalKeyA = LOWERCASE_TO_PASCAL_RULE_KEY.get(type);
-  const cs = pascalKeyA
-    ? resolveComponentRule(pascalKeyA)?.containerStyles
-    : undefined;
-  if (cs) {
-    // 경로 A — top-level rule.containerStyles 보유 (ListBox/Menu/Tree/TagGroup 등). 기존 경로 유지
-    //   (ADR-080 G1 byte-lock test 가 본 출력을 고정). 값은 이미 camelCase + TokenRef 형태.
-    const out: Record<string, unknown> = { ...specOut };
-    for (const key of CONTAINER_STYLES_FALLBACK_KEYS) {
-      if (parentStyle[key] !== undefined) continue; // 사용자/factory 편집 우선
-      if (out[key] !== undefined) continue; // spec fallback 우선
-      const value = cs[key];
-      if (value === undefined) continue;
-      out[key] =
-        typeof value === "string" && isValidTokenRef(value)
-          ? resolveToken(value as TokenRef)
-          : value;
-    }
-    return out;
-  }
-  // 경로 B (ADR-912 Phase 3-A-3a) — top-level containerStyles 부재 type 의 base layout 을
-  //   catalog `structure.composition` 단일 source 에서 도달. field류(TextField/SearchField/
-  //   NumberField/DateField/TimeField/DatePicker/DateRangePicker/ComboBox/Select 등) 는
-  //   `structure.composition.layout='flex-column'` + `gap='var(--spacing-xs)'` 를 보유하나
-  //   기존 경로(top-level cs)로는 미도달 → field 분기 인라인 `?? "flex"/"column"/4` 가 active
-  //   였다. resolveCatalogContainerBase 가 layout token base + structure/composition.containerStyles
-  //   + gap 흡수를 단일 merge 로 산출 → 인라인 fallback 을 redundant 화.
-  //   변환 책임은 builder(본 wrapper): (1) lowercase→PascalCase 역매핑 (2) kebab→camel
-  //   (3) CSS-var gap → 숫자 정규화. spec 존재 type 은 specOut 이 이미 채워져 본 경로가 no-op.
+  // ADR-171 Phase 3 (2026-07-29): 경로 A/B 2분기를 **단일 판정**으로 통합했다.
   //
-  //   **guard — `structure.composition` 보유 type 한정 (field류)**: ListBoxItem/GridListItem/
-  //   TableRow 같은 collection-item 은 `structure.composition` 부재(layout 은 escape/CSS 담당) →
-  //   본 경로 미적용, `{}` 반환이 정답(resolveContainerStylesFallback.test.ts listboxitem/
-  //   gridlistitem `{}` lock). composition 부재 base 보강은 3-A-3b 별도 영역.
+  //   구 구조는 top-level `rule.containerStyles` 보유 여부로 갈라져(A) 먼저 return 하고,
+  //   나머지는 `structure.composition` 게이트(B) 뒤에서만 `resolveCatalogContainerBase` 를
+  //   읽었다. 그 결과 `structure.containerStyles` 만 가진 48 type(MenuItem/Card/Checkbox…)이
+  //   통째로 막혔고(L1), A 로 들어온 type 은 layout token base 와 structure 층을 못 봤다.
+  //   precedence 는 이미 `resolveCatalogContainerBase` 가 단일 거처로 소유한다
+  //   (layout token → structure.containerStyles → composition.containerStyles → top-level).
+  //   여기서 다시 갈래를 두면 그 precedence 가 두 벌이 된다.
+  //
+  //   ADR-912 3-A-3c 가 게이트를 남긴 사유("leaf 44 type 신규 진입 = surface-minimization
+  //   위반")는 **값이 옳다는 보장이 없어서**였다. ADR-171 Phase 1 이 실효값↔catalog 정합을
+  //   먼저 세워(G1) 그 전제를 채웠다.
   const pascalKey = LOWERCASE_TO_PASCAL_RULE_KEY.get(type);
   if (!pascalKey) return specOut;
-  if (!resolveCatalogStructure(pascalKey)?.composition) return specOut;
-  const catalogBase = resolveCatalogContainerBase(pascalKey);
   const out: Record<string, unknown> = { ...specOut };
-  for (const [rawKey, rawValue] of Object.entries(catalogBase)) {
+  const assign = (rawKey: string, rawValue: string | number): void => {
     const key = kebabToCamel(rawKey);
-    if (!CONTAINER_STYLES_FALLBACK_KEYS.includes(key as never)) continue;
-    if (parentStyle[key] !== undefined) continue; // 사용자/factory 편집 우선
-    if (out[key] !== undefined) continue; // spec fallback 우선
+    if (!CONTAINER_STYLES_FALLBACK_KEYS.includes(key as never)) return;
+    if (parentStyle[key] !== undefined) return; // 사용자/factory 편집 우선
+    if (out[key] !== undefined) return; // spec fallback / 선행 주입 우선
     out[key] = resolveCatalogLayoutValue(rawValue);
+  };
+
+  // L1 — box 축. **top-level `rule.containerStyles` 가 있으면 그것이 캔버스 박스 선언**이고,
+  //   없으면 catalog 4층 merge(`resolveCatalogContainerBase`)가 base 를 준다.
+  //
+  //   이 갈래는 legacy 잔재가 아니라 의미 구분이다. Menu 가 그 증거 — top-level 은
+  //   `inline-flex / center / fit-content`(트리거 박스, ADR-151 B7 사용자 결정)이고
+  //   `structure.containerStyles` 는 `flex column / maxHeight 300 / overflow auto`(popover
+  //   목록 패널)다. 캔버스의 Menu 는 트리거를 그리므로 두 층을 merge 하면 패널 메트릭이
+  //   새어 들어와 B7 결정이 뒤집힌다. 즉 top-level 은 override 가 아니라 **대체**다.
+  //   (CSS 생성기는 merge 쪽 의미를 쓴다 — DOM Menu root 는 popover 라 그게 맞다.)
+  const topLevelBox = resolveComponentRule(pascalKey)?.containerStyles as
+    | Record<string, string | number>
+    | undefined;
+  for (const [rawKey, rawValue] of Object.entries(
+    topLevelBox ?? resolveCatalogContainerBase(pascalKey),
+  )) {
+    assign(rawKey, rawValue);
+  }
+
+  // L3 — size 축: catalog 는 layout 을 두 곳에 나눠 갖는다. box 축(display/alignItems…)은
+  //   `containerStyles`, size 축(height/paddingX/paddingY/gap)은 `sizes[size]` 다. 생성 CSS 는
+  //   둘을 합쳐 emit 하는데 resolver 는 앞쪽만 읽고 있었다 — MenuItem 실효 6키 중 4키가 여기
+  //   있었고, `implicitStyles` 의 수기 배선 18분기가 그 공백을 손으로 메우고 있었다.
+  //   `padding`/`gap` shorthand 가 아니라 longhand 로 낸다 (store longhand 정책 — style-ssot.md).
+  //   **top-level containerStyles 보유 type 은 대상이 아니다.** 그 경우 box 축이 거기서
+  //   완결되고 `sizes` 는 하위 부품 크기를 뜻한다 — Tree `sizes.height 36` 은 행 높이,
+  //   TagGroup `paddingX 12` 는 태그 padding, Slider `height 8` 은 트랙 높이다. 실제로
+  //   Tree/TagGroup 은 생성 CSS 자체가 없고(수동 CSS 컴포넌트), Slider 의 생성 root 에는
+  //   height 선언이 없다. 반대로 top-level 이 없는 type 은 `sizes` 가 유일한 크기 소스이고
+  //   생성 CSS root 가 그 값을 그대로 emit 한다 (MenuItem `height:32 · padding:4px 12px ·
+  //   gap:8px` / SliderTrack `height:8px`).
+  const sizeRecord = topLevelBox
+    ? undefined
+    : ruleSizeRecord(type, sizeName ?? "");
+  if (sizeRecord) {
+    // shorthand 가 이미 공급됐으면 longhand 를 얹지 않는다. 둘이 공존하면 React
+    //   rerender 경고 + 엔진 어댑터 적용 순서 경합이 생긴다 (style-ssot.md). 값이 이미
+    //   있다는 뜻이기도 해서 주입 자체가 불필요하다.
+    const has = (k: string): boolean =>
+      parentStyle[k] !== undefined || out[k] !== undefined;
+
+    // height 0 = content-fit 관례(생성 CSS 가 `height: auto` 로 emit) → 주입하지 않는다.
+    if (typeof sizeRecord.height === "number" && sizeRecord.height > 0) {
+      assign("height", sizeRecord.height);
+    }
+    if (!has("padding")) {
+      if (typeof sizeRecord.paddingY === "number") {
+        assign("paddingTop", sizeRecord.paddingY);
+        assign("paddingBottom", sizeRecord.paddingY);
+      }
+      if (typeof sizeRecord.paddingX === "number") {
+        assign("paddingLeft", sizeRecord.paddingX);
+        assign("paddingRight", sizeRecord.paddingX);
+      }
+    }
+    // `gap` 은 row 축이고 `columnGap` 은 column 축 override 다 (ComponentRuleSize 계약 —
+    //   생성 CSS 도 `gap: {gap}px; column-gap: {columnGap}px` 로 emit).
+    if (!has("gap")) {
+      const columnGap = sizeRecord.columnGap ?? sizeRecord.gap;
+      if (typeof sizeRecord.gap === "number") assign("rowGap", sizeRecord.gap);
+      if (typeof columnGap === "number") assign("columnGap", columnGap);
+    }
   }
   return out;
 }
@@ -487,6 +509,17 @@ const CONTAINER_STYLES_FALLBACK_KEYS = [
   // ADR-151 B1/B2 (2026-07-16): generated CSS `border: 1px solid` 를 layout 이 미반영하는
   //   컴포넌트(Calendar/RangeCalendar)의 border-box 2px 발산 보정 채널. specs 측과 동일 집합.
   "borderWidth",
+  // ADR-171 Phase 3 L2 (2026-07-29): catalog 가 값을 갖고 있어도 이 allowlist 에 없으면
+  //   필터에서 탈락한다 — L1 게이트를 열어도 MenuItem 실효 6키 중 height/gap/padding 4키가
+  //   여기서 막혔다. store longhand 정책(style-ssot.md)에 맞춰 shorthand 가 아닌 longhand 를
+  //   낸다 — `padding` shorthand 는 기존 spec 경로 호환으로 남겨 두고 신규 주입은 longhand.
+  "height",
+  "rowGap",
+  "columnGap",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
 ] as const;
 
 /**
@@ -959,9 +992,14 @@ export function applyImplicitStyles(
     string,
     unknown
   >;
+  // ADR-171 Phase 3 L3 (2026-07-29): size 축(height/padding/gap)이 catalog `sizes[size]`
+  //   에 있으므로 요소의 size prop 을 함께 넘긴다. 미지정이면 rule.defaultSize fallback.
   const specFallback = resolveContainerStylesFallback(
     containerTag,
     rawParentStyle,
+    typeof containerEl.props?.size === "string"
+      ? containerEl.props.size
+      : undefined,
   );
   const parentStyle: Record<string, unknown> = {
     ...specFallback,
@@ -1219,18 +1257,16 @@ export function applyImplicitStyles(
   // ADR-912 Phase 3-A-3b (2026-06-20): base-axis(display/flexDirection/minWidth)를 catalog
   //   structure.containerStyles 단일 source(resolveCatalogContainerBase)로 도달 — 인라인 자족화
   //   제거. size-value(gap/padding/borderWidth)는 sizes.md 경유(structure.composition 아님)라 유지.
+  // ADR-171 Phase 3 (2026-07-29): base-axis(`resolveCatalogCollectionBase`) + gap/padding
+  //   인라인 제거. 세 층이 열리면서 `resolveContainerStylesFallback` 이 같은 값을 이미
+  //   parentStyle 에 넣는다 — display/flexDirection/minWidth/justifyContent 는 L1,
+  //   padding 12/16 과 gap 2 는 L3(`sizes.md`)에서 온다.
+  //   특히 `gap: parentStyle.gap ?? 2` 는 **해로웠다**: L3 가 longhand(rowGap/columnGap)로
+  //   넣는데 이 줄이 shorthand `gap` 을 덧씌워 둘이 공존했다 (style-ssot.md 금지 패턴).
+  //   `borderWidth` 는 catalog sizes 에 없어 유지한다.
   if (containerTag === "gridlistitem") {
-    const m = resolveGridListItemMetric(14);
-    const catalogBase = resolveCatalogCollectionBase("gridlistitem");
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
-      ...catalogBase, // display/flexDirection/minWidth (catalog structure.containerStyles)
-      ...parentStyle, // 사용자/factory 편집 우선 (catalog base override)
-      gap: parentStyle.gap ?? 2,
-      paddingTop: parentStyle.paddingTop ?? m.cardPaddingY,
-      paddingBottom: parentStyle.paddingBottom ?? m.cardPaddingY,
-      paddingLeft: parentStyle.paddingLeft ?? m.cardPaddingX,
-      paddingRight: parentStyle.paddingRight ?? m.cardPaddingX,
       borderWidth: parentStyle.borderWidth ?? 1,
     });
     filteredChildren = injectCollectionItemFontStyles(filteredChildren);
@@ -1243,18 +1279,11 @@ export function applyImplicitStyles(
   // ADR-912 Phase 3-A-3b (2026-06-20): base-axis(display/flexDirection/alignItems/justifyContent)를
   //   catalog structure.containerStyles 단일 source 로 도달 — 인라인 자족화 제거. padding/gap 은
   //   sizes.md 정합값(4/12, gap 2)이라 유지.
+  // ADR-171 Phase 3 (2026-07-29): 분기 전체가 redundant 가 됐다 — base-axis 는 L1,
+  //   padding 4/12 · gap 2 는 L3(`sizes.md`)가 공급한다. gridlistitem 과 같은 이유로
+  //   `gap` shorthand 덧씌우기도 함께 사라진다. ADR-145 의 `display:none` marker 보존은
+  //   resolver 의 `parentStyle[key] !== undefined` 우선 규칙이 그대로 담당한다.
   if (containerTag === "listboxitem") {
-    const catalogBase = resolveCatalogCollectionBase("listboxitem");
-    effectiveParent = withParentStyle(containerEl, {
-      ...parentStyle,
-      ...catalogBase, // display/flexDirection/alignItems/justifyContent (catalog structure.containerStyles)
-      ...parentStyle, // 사용자/factory 편집 우선 (ADR-145 template display:none marker 보존)
-      gap: parentStyle.gap ?? 2,
-      paddingTop: parentStyle.paddingTop ?? 4,
-      paddingBottom: parentStyle.paddingBottom ?? 4,
-      paddingLeft: parentStyle.paddingLeft ?? 12,
-      paddingRight: parentStyle.paddingRight ?? 12,
-    });
     filteredChildren = injectCollectionItemFontStyles(filteredChildren);
   }
 

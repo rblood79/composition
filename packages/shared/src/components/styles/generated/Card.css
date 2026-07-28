@@ -22,6 +22,8 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
 
   /* Default variant */
   background: var(--bg-inset);

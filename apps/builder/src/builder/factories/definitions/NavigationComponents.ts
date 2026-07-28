@@ -144,7 +144,11 @@ export function createPaginationDefinition(
           display: "flex",
           flexDirection: "row",
           alignItems: "center",
-          gap: 6,
+          // ADR-171 Phase 3 (2026-07-29): `gap: 6` 제거. 실효 DOM 은 `Table.css` 의
+          //   `.react-aria-Pagination { gap: var(--spacing-sm) }` = 8px 인데 인라인 6 이
+          //   catalog 를 가려 Skia 만 6 이었다(인라인 우선 규칙). Phase 1 이 그 8 을
+          //   catalog 로 이관했고 Phase 3 이 전달을 열었으므로 인라인은 틀린 사본이다.
+          //   나머지 layout 인라인 일괄 제거는 Phase 5 fixture 도입 후 Phase 4 에서 한다.
         },
       } as ComponentElementProps,
       parent_id: parentId,

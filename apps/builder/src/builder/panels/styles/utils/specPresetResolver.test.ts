@@ -291,7 +291,13 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       expect(preset.flexDirection).toBe("column");
     });
 
-    it("Pagination catalog cutover (ADR-912 R7 G1-c) → TAG_SPEC_MAP 미등록 → layout preset undefined", () => {
+    // ADR-171 Phase 1 (2026-07-29): Pagination 의 실효 layout 은 수동 `Table.css` 에만
+    //   있었다 (`display:flex · justify-content:space-between · gap:var(--spacing-sm)`).
+    //   catalog 가 그 값을 몰라 Style Panel 이 layout preset 을 "없음" 으로 표시했는데,
+    //   Phase 1 이 실효값을 catalog 로 이관해 이제 panel 이 실제 값을 읽는다.
+    //   아래 기대값 전환은 그 개선이다 — `undefined` 는 "spec 이 삭제됐다" 는 사실을
+    //   반영했을 뿐 사용자에게 보이는 값과는 무관했다.
+    it("Pagination — 실효 DOM 값이 catalog 로 이관되어 layout preset 이 공급된다 (ADR-171 Phase 1)", () => {
       // Pagination 은 catalog cutover 로 spec 삭제(2026-06-15) → TAG_SPEC_MAP["Pagination"]=undefined →
       //   resolver 가 composition.containerStyles 를 공급하지 않음. 구 spec 의
       //   composition.containerStyles.flex-direction:column 은 factory props.style.flexDirection:row 가
@@ -303,7 +309,9 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       //   kebab→camel 정규화 자체는 resolver 내부 로직(specPresetResolver.ts:381/405)으로 보존되며,
       //   다른 layout 키 공급 spec 이 생기면 E2E 으로 재검증(line 250-252 동일 철학).
       const preset = resolveLayoutSpecPreset("Pagination", undefined);
-      expect(preset.display).toBeUndefined();
+      expect(preset.display).toBe("flex");
+      expect(preset.justifyContent).toBe("space-between");
+      // flexDirection 은 catalog 에 없다 — 실효 DOM 도 row(초기값)라 선언이 불필요하다.
       expect(preset.flexDirection).toBeUndefined();
     });
 

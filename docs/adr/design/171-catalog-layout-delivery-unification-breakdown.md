@@ -172,7 +172,7 @@ ADR 본문 Hard Constraint 2 의 "9종" 은 생성 CSS root 파싱 결함에서 
 
 - **판정 없이 일괄 import 금지** 원칙은 유지된다. 이번 판정의 결론이 "추가할 대상 0건" 이었을 뿐이다.
 
-### Phase 3 — 전달 경로 일원화 (비대칭 19 + 양쪽 미도달 23 + I3 편입분)
+### Phase 3 — 전달 경로 일원화 — **완료 2026-07-29 (G2 PASS)**
 
 **Phase 0 이 확정한 작업 범위 — 세 층을 모두 연다** (§2-0). 한 층만 열면 MenuItem 실효 6키 중 2키만 도달한다.
 
@@ -188,6 +188,37 @@ ADR 본문 Hard Constraint 2 의 "9종" 은 생성 CSS root 파싱 결함에서 
 - 수기 배선 18분기 중 **정적 6종**(gridlistitem · listboxitem · tablist · tabpanels · taggroup · taglist)은 L1+L2 만으로 대체. **prop 의존 12종** 중 size 축 의존분은 L3 개방으로 대체되고, 비-size prop 의존(table `heightMode` · gridlist `layout` · toolbar/togglebuttongroup `orientation`)만 존치 — 사유를 주석으로 남긴다.
 - **R6 재평가**: "size 의존 padding 은 catalog 표현 불가" 전제는 L3 를 여는 순간 성립하지 않는다 (§2-3). 존치 사유는 size 축이 아니라 비-size prop 의존으로 좁힌다.
 - **기존 계약 테스트가 필연적으로 RED 가 된다** (R8): `resolveContainerStylesFallback.test.ts` 는 47 케이스가 `toEqual` 로 반환값을 통째로 고정한다(ADR-080 G1). 특히 `listboxitem`/`gridlistitem` → `{}` lock(102~110행)은 Phase 3 이 바꾸려는 동작 그 자체다. 케이스별로 **새 기대값이 실효 CSS 와 일치함**을 근거로 갱신한다 — 통째 삭제·`skip` 금지.
+
+#### 실행 결과 — L1 은 "merge" 가 아니라 "top-level 이 있으면 대체" 였다
+
+L1 을 문자 그대로 단일 merge(`resolveCatalogContainerBase`)로 구현하자 55 케이스 중 22 가 RED 였고, 그중 **`menu` 가 결정적 반례**였다. Menu 의 top-level `containerStyles` 는 `inline-flex / center / fit-content`(트리거 박스, ADR-151 B7 **사용자 결정**)인데 `structure.containerStyles` 는 `flex column / maxHeight 300 / overflow auto`(popover 목록 패널)다. merge 하면 top-level 에 없는 키(maxHeight/overflow/padding/gap/flexDirection)가 새어 들어와 B7 결정이 뒤집힌다.
+
+→ **top-level `rule.containerStyles` 는 override 가 아니라 캔버스 박스의 *대체* 선언**이다. CSS 생성기는 merge 의미를 쓰는 게 맞다(DOM Menu root 는 popover 니까). 두 소비자의 의미가 갈리는 지점이고, 이건 legacy 갈래가 아니라 실재하는 구분이다. 판정은 한 줄(`topLevelBox ?? resolveCatalogContainerBase(...)`)로 유지해 precedence 가 두 벌이 되지 않게 했다.
+
+같은 이유로 **L3 도 top-level 보유 type 에는 적용하지 않는다**. 그 경우 `sizes` 는 하위 부품 크기를 뜻한다 — Tree `height 36`(행) · TagGroup `paddingX 12`(태그) · Slider `height 8`(트랙). 실제로 Tree/TagGroup 은 생성 CSS 자체가 없고 Slider 의 생성 root 에는 height 선언이 없다. 반대로 top-level 이 없는 type 은 `sizes` 가 유일한 크기 소스이고 생성 root 가 그 값을 그대로 emit 한다(MenuItem `height:32 · padding:4px 12px · gap:8px` / SliderTrack `height:8px`). 이 게이트를 넣자 RED 22 → 2 가 됐고, 남은 2 가 정확히 R8 이 지목한 `listboxitem`/`gridlistitem` lock 이었다.
+
+부수 정정 2건: `gap` 은 row 축이고 `columnGap` 이 column 축 override 다(Slider 가 `gap 4` + `columnGap 16` 을 함께 갖는다) — 단일 `gap` 만 읽으면 columnGap 이 4 로 틀어진다. 그리고 shorthand(`padding`/`gap`)가 이미 공급된 type 에는 longhand 를 얹지 않는다(공존 금지, `style-ssot.md`).
+
+#### 수기 배선 정리 — 2분기 제거
+
+`gridlistitem`/`listboxitem` 분기의 base-axis·gap·padding 인라인이 전부 redundant 가 되어 제거했다. 특히 `gap: parentStyle.gap ?? 2` 는 **해로웠다** — L3 가 longhand 로 넣는데 이 줄이 shorthand 를 덧씌워 둘이 공존했다. `listboxitem` 분기는 자식 font 주입만 남았고, `gridlistitem` 은 catalog `sizes` 에 없는 `borderWidth` 만 남겼다. 제거 전후 라이브 box 가 완전히 동일해(아래) redundancy 가 실측으로 확인됐다.
+
+나머지 16분기는 이번 phase 에서 건드리지 않았다 — prop 의존분의 대체 판정은 Phase 5 fixture 가 생긴 뒤가 안전하다.
+
+#### G2 — 실효 DOM 대조 (20종, 2026-07-29 라이브)
+
+resolver 출력 ↔ `getComputedStyle`(번들 CSS iframe) 를 12키(display/flexDirection/alignItems/justifyContent/rowGap/columnGap/padding 4-way/position/overflow)로 대조:
+
+- **17/20 전건 일치** — Badge · Card · Checkbox · Code · ColorSwatch · Header · Icon · Kbd · **MenuItem** · Radio · SliderOutput · SliderTrack · Switch · Tab · Tooltip · ListBoxItem · GridListItem
+- **잔존 3**: Dialog · Modal · Popover 의 `position: fixed` **미도달** — 아래 참조
+
+대조 과정에서 **4번째 채널**이 드러났다: 생성 CSS 의 `/* Base styles — archetype: X */` 블록. catalog 에 없고 생성기만 아는 값이라 Skia 에 갈 길이 없다. Card `alignItems/justifyContent` · Header `display/alignItems` · Tab `display/alignItems/justifyContent` 3종은 Phase 1 패턴대로 catalog 로 이관해 해소했다(값 불변).
+
+**`position: fixed` 3종은 의도적 잔존**이다. 캔버스의 Dialog/Modal/Popover 는 저작 대상 in-flow 요소이고, `fixed` 를 받으면 out-of-flow 로 빠져 배치가 무너진다 — Menu 트리거 박스(B7)와 같은 종류의 **의도된 소비자별 차이**다. 나머지 archetype 파생값은 전부 도달한다.
+
+#### 라이브 확증 (실 builder, components 페이지)
+
+`MenuItem` **h=96 → h=32**. ADR 본문 Hard Constraint 1 이 지목한 바로 그 수치이고, 실효 DOM `height:32px` 와 일치한다. 함께 측정한 값: ListBoxItem 76 · GridListItem 68 · Toolbar 263×29 · InlineAlert 90 · Card 322. 수기 배선 2분기 제거 전후 이 값들이 **완전히 동일**했다.
 
 ### Phase 4 — factory 인라인 제거
 
@@ -237,7 +268,7 @@ ADR 본문 Hard Constraint 2 의 "9종" 은 생성 CSS root 파싱 결함에서 
 - [x] **Phase 0 — I1/I2/I3 인벤토리 확정 (2026-07-29)** — 차단 3층(L1 게이트 / L2 키 allowlist / L3 `sizes` 축) 발견, 대상 목록 확정 (§2)
 - [x] **Phase 1 — catalog 정정 6종 + 재빌드 + 실효값 불변 재측정 (G1 PASS, 2026-07-29)** — 대상이 9종이 아니라 7종(생성 CSS 파싱 결함 정정)이고 TextArea 는 클래스 역할 충돌로 Phase 2 이관
 - [x] **Phase 2 — 판정 표 확정 + 처리 (2026-07-29)** — 미import 32종은 selector 가 DOM 에 없는 dead CSS 라 **import 추가 0건**. GridListItem `justifyContent` 정정 1건 · Input 은 부모 custom property 문맥 탓 Phase 5 재측정 보류 · TextArea 클래스 역할 충돌 기록
-- [ ] Phase 3 — L1·L2·L3 3층 개방 + 수기 배선 정리 + `resolveContainerStylesFallback.test.ts` 47 케이스 갱신 (G2)
+- [x] **Phase 3 — L1·L2·L3 3층 개방 + 수기 배선 2분기 제거 + 계약 테스트 갱신 (G2 PASS, 2026-07-29)** — 실효 DOM 대조 17/20 일치, 잔존 3은 overlay `position:fixed`(의도적). MenuItem h 96→32 라이브 확증
 - [ ] Phase 5 — parity fixture 신설 (**Phase 4 앞**) + Phase 3 일시 되돌림으로 RED 확인 (G3)
 - [ ] Phase 4 — factory 인라인 제거 + `useResetStyles` baseline 동시 정리 (fixture GREEN + 패널 live 확인, G4)
 - [ ] Phase 6 — origin 재저작 + components 페이지 live 확인 (G5)
