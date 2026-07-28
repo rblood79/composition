@@ -1445,7 +1445,8 @@ impl LayoutTree {
             (main_h, child_avail_w)
         };
 
-        let cross_definite = if is_row { explicit_h > 0.0 } else { explicit_w > 0.0 };
+        let mut cross_definite = if is_row { explicit_h > 0.0 } else { explicit_w > 0.0 };
+        let mut avail_cross = avail_cross;
         let mut out = flex::flex_layout(
             &data,
             avail_main,
@@ -1639,6 +1640,68 @@ impl LayoutTree {
                 }
                 if (used - base_main).abs() > 0.5 {
                     avail_main = used;
+                    out = flex::flex_layout(
+                        &data,
+                        avail_main,
+                        avail_cross,
+                        direction,
+                        justify,
+                        align_items,
+                        align_content,
+                        wrap,
+                        gap_main,
+                        gap_cross,
+                        cross_definite,
+                    );
+                }
+            }
+        }
+
+        // 3.7) **교차축도 같다** — min/max clamp 가 cross 를 확정으로 만든다 (§9.4 step 8).
+        //
+        // 라인의 outer cross size 는 컨테이너의 inner cross size **그 자체**이고(step 8),
+        // `align-items:stretch` 는 그 라인을 채운다. 그런데 "컨테이너 cross 가 확정인가" 를
+        // `explicit_*` 만으로 판정하면 `min-height` 로 확정된 컨테이너가 미확정으로 남아,
+        // 자식이 **내용 크기(0)** 로 접힌다.
+        //
+        // 실측(2026-07-28): `row + minHeight:400` 안의 높이 미지정 자식이 Chrome 400 / 구
+        // 엔진 **0**. 프레임 row 페이지의 슬롯이 정확히 이 형태다.
+        //
+        // **`height:%` 자식은 여기서 살아나지 않는다** — 해소 불가 백분율은 Chrome 도 0 이고
+        // (실측), 그건 `%` 해석 컨텍스트(`cross_ctx`) 소관이라 건드리지 않는다. 여기서 바뀌는
+        // 것은 **cross 를 명시하지 않은** 자식의 stretch 대상 크기뿐이다.
+        if !cross_definite && !children.is_empty() {
+            let ctx_cross_size = self.ctx_for(if is_row { avail_h } else { avail_w });
+            let (min_raw, max_raw) = if is_row {
+                (style.min_height.as_deref(), style.max_height.as_deref())
+            } else {
+                (style.min_width.as_deref(), style.max_width.as_deref())
+            };
+            let min_cross = resolve_dimension_opt(min_raw, &ctx_cross_size);
+            let max_cross = resolve_dimension_opt(max_raw, &ctx_cross_size);
+            if min_cross.is_some() || max_cross.is_some() {
+                let own_pb_cross = if is_row { own_pb_v } else { own_pb_h };
+                let mut content_cross: f32 = 0.0;
+                for i in 0..children.len() {
+                    let off = i * 4;
+                    let e = if is_row {
+                        out[off + 1] + out[off + 3]
+                    } else {
+                        out[off] + out[off + 2]
+                    };
+                    content_cross = content_cross.max(e);
+                }
+                let mut used = content_cross;
+                if let Some(mn) = min_cross {
+                    used = used.max(spec_to_content(mn, own_pb_cross));
+                }
+                if let Some(mx) = max_cross {
+                    used = used.min(spec_to_content(mx, own_pb_cross));
+                }
+                let used = used.max(0.0);
+                if (used - content_cross).abs() > 0.5 {
+                    avail_cross = used;
+                    cross_definite = true;
                     out = flex::flex_layout(
                         &data,
                         avail_main,
@@ -2455,6 +2518,49 @@ impl LayoutTree {
         } else {
             row_extent.unwrap_or(0.0)
         };
+
+        // **블록 축도 min/max clamp 뒤가 used size** (flex 3.6/3.7 과 같은 규칙).
+        //
+        // grid 는 트랙 sizing 자체가 definite 여부에 매달려 있다 — `1fr` 행, `align-content`,
+        // §12.8 auto 트랙 stretch 셋 다 `explicit_h > 0.0` 게이트다. 그래서 clamp 된 크기로
+        // **한 번 다시 푸는** 것이 유일하게 온전한 반영이고, 그때는 게이트가 자연히 열린다.
+        //
+        // 실측(2026-07-28): `minHeight:400` + `rows: 60px 1fr` 이 Chrome 60/340 / 구 엔진
+        // 60/60. `height` 를 주던 시절엔 우연히 맞았지만, body 를 `min-height` 로 옮기면
+        // 그 우연이 사라진다.
+        //
+        // 재진입은 1회로 끝난다 — 두 번째 호출은 `explicit_h > 0.0` 이라 이 분기를 건너뛴다.
+        // 재진입 전 자식 subtree 를 dirty 로 되돌린다: 1차 pass 가 자식을 clean 으로 만들어
+        // (`solve_*` 말미 `dirty=false`) 그대로 부르면 증분 skip 이 stale 캐시를 돌려준다.
+        if explicit_h <= 0.0 {
+            let ctx_h = self.ctx_for(avail_h);
+            let min_h = resolve_dimension_opt(style.min_height.as_deref(), &ctx_h);
+            let max_h = resolve_dimension_opt(style.max_height.as_deref(), &ctx_h);
+            if min_h.is_some() || max_h.is_some() {
+                let mut used = final_h;
+                if let Some(mn) = min_h {
+                    used = used.max(spec_to_content(mn, own_pb_v));
+                }
+                if let Some(mx) = max_h {
+                    used = used.min(spec_to_content(mx, own_pb_v));
+                }
+                let used = used.max(0.0);
+                if (used - final_h).abs() > 0.5 {
+                    for &c in children {
+                        self.mark_subtree_dirty(c);
+                    }
+                    return self.solve_grid(
+                        handle,
+                        children,
+                        explicit_w,
+                        used + own_pb_v,
+                        avail_w,
+                        avail_h,
+                    );
+                }
+            }
+        }
+
         if let Some(n) = self.get_mut(handle) {
             n.layout = NodeLayout { x: 0.0, y: 0.0, width: final_w, height: final_h };
             n.dirty = false;

@@ -85,7 +85,8 @@ export function mergePageBodyResponsive(
 /**
  * 슬롯이 page 맥락에서 가질 style — frame body 의 배치 문법에 맞춘 **보완**만 한다.
  *
- * flex: 교차축을 채우고, `content` 슬롯이 주축 여유를 먹는다(나머지는 shrink 금지).
+ * flex: 교차축은 **인라인 축일 때만** `100%` 를 보완하고(블록 축은 `stretch` 에 맡긴다 —
+ * 아래 참조), `content` 슬롯이 주축 여유를 먹는다(나머지는 shrink 금지).
  *
  * grid: **배치만** 보완하고 **크기는 주입하지 않는다** (2026-07-27). grid item 은 기본
  * stretch 라 자기 area 를 이미 채운다 — 같은 슬롯이 프레임 편집 맥락에서는 주입 없이
@@ -113,7 +114,16 @@ export function resolvePageSlotStyle(input: {
     const mainKey = isColumn ? "height" : "width";
     const minMainKey = isColumn ? "minHeight" : "minWidth";
 
-    nextStyle[crossKey] ??= "100%";
+    // **교차축 크기는 블록 축에 주입하지 않는다** (2026-07-28). 인라인 축(`width`)은
+    // 부모 폭이 확정이라 `100%` 가 풀리지만, 블록 축(`height`)은 body 가 `min-height` 로
+    // 서는 순간 미결정이라 `100%` 가 **해소되지 않는다** — 그런데 크기를 *명시*한 것은
+    // 맞아서 `align-items:stretch` 까지 꺼진다. 결과가 0 이다(Chrome 실측 동일).
+    // 주입을 빼면 `stretch` 가 슬롯을 라인 cross(=컨테이너 inner cross)로 채운다
+    // (실측 80x400 / 310x400, DOM 동형). grid 분기가 "크기는 주입하지 않는다" 로 이미
+    // 같은 결론에 와 있다.
+    if (crossKey === "width") {
+      nextStyle[crossKey] ??= "100%";
+    }
     if (
       slotName === "content" &&
       nextStyle[mainKey] == null &&

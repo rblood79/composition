@@ -58,7 +58,11 @@ function domViewportBodyLeg(
   body.style.cssText =
     "margin:0;padding:0;border:0;box-sizing:border-box;overflow:auto;";
   for (const [k, v] of Object.entries(bodyStyle)) {
-    (body.style as unknown as Record<string, string>)[k] = String(v);
+    // 엔진 track 배열(["60px","1fr"]) → CSS 문자열. `String(v)` 는 콤마로 이어 붙여
+    // 선언 전체가 무효가 된다 (harness.domLeg 와 같은 계약).
+    (body.style as unknown as Record<string, string>)[k] = Array.isArray(v)
+      ? v.join(" ")
+      : String(v);
   }
   // 빌더 주입 대응 — 폭은 확정, 블록 축은 하한만 (Chrome body 의 `min-height:100vh`).
   body.style.width = `${PAGE_W}px`;
@@ -68,7 +72,9 @@ function domViewportBodyLeg(
     const el = document.createElement("div");
     el.style.cssText = "margin:0;padding:0;border:0;box-sizing:border-box;";
     for (const [k, v] of Object.entries(style)) {
-      (el.style as unknown as Record<string, string>)[k] = String(v);
+      (el.style as unknown as Record<string, string>)[k] = Array.isArray(v)
+        ? v.join(" ")
+        : String(v);
     }
     body.appendChild(el);
     return el;
@@ -288,49 +294,71 @@ describe("body 뷰포트 상자 ↔ 내용 배치 분리", () => {
       expect(Math.round(g900.children[0].h)).toBe(900);
     });
 
-    it("세로 flex body 의 `height:%` 자식은 해소되지 않는다 (Chrome 동형)", () => {
+    it("`height:%` 자식은 어느 배치 문법에서도 해소되지 않는다 (Chrome 동형)", () => {
       // `min-height` 는 블록 축을 definite 로 만들지 않는다 — Chrome 도 0 (실측).
-      const dom = domViewportBodyLeg(COLUMN_FLEX, [{ height: "50%" }]);
-      const pipe = pipelineBodyLeg(COLUMN_FLEX, [{ height: "50%" }]);
-      expect(Math.round(dom.children[0].h)).toBe(0);
-      expect(diffChildren("", dom.children, pipe.children)).toEqual([]);
-    });
-
-    it("[잔존] block body 는 `height:%` 자식을 해소한다 — Chrome 은 0", () => {
       // Step 1.5 주석이 들던 근거("자식의 height:100% 가 페이지 크기 기준")는 **Chrome 에
-      // 없는 의미**다. body 가 `min-height:100vh` 인 실제 페이지에서 백분율 높이는 풀리지
-      // 않는다. 세로 flex 축에서는 이번에 사라졌고 block 축에만 남아 있다.
-      //
-      // 실사용 0건이라 이번 수정 범위에서 제외 — catalog 의 `height:"100%"` 2건은
-      // ProgressBar/Meter `.fill` 이고 부모가 확정 높이 트랙이라 무관하다. 이 스냅샷이
-      // 그 발산을 고정한다(고치려면 block 축 주입까지 min-height 로 옮겨야 하고, 그러면
-      // 상자 크기가 내용으로 바뀌어 별도 판정이 필요하다).
-      const dom = domViewportBodyLeg({ overflow: "auto" }, [{ height: "50%" }]);
-      const pipe = pipelineBodyLeg({ overflow: "auto" }, [{ height: "50%" }]);
-      expect(Math.round(dom.children[0].h)).toBe(0);
-      expect(Math.round(pipe.children[0].h)).toBe(200); // = PAGE_H * 0.5
+      // 없는 의미**였다. catalog 의 `height:"100%"` 2건은 ProgressBar/Meter `.fill` 이고
+      // 부모가 확정 높이 트랙이라 무관하다.
+      for (const body of [COLUMN_FLEX, { overflow: "auto" }] as StyleRecord[]) {
+        for (const pct of ["50%", "100%"]) {
+          const dom = domViewportBodyLeg(body, [{ height: pct }]);
+          const pipe = pipelineBodyLeg(body, [{ height: pct }]);
+          expect(Math.round(dom.children[0].h)).toBe(0);
+          expect(diffChildren("", dom.children, pipe.children)).toEqual([]);
+        }
+      }
     });
   });
 
-  describe("대조군 — 세로 flex 가 아닌 body 는 종전 그대로", () => {
-    // 주입 축을 넓히면 여기가 깨진다: block/grid 는 확정 높이가 상자 크기로 필요하고,
-    // row flex 는 프레임 슬롯의 `height:100%`(`resolvePageSlotStyle`)가 그 확정성에
-    // 의존한다 — `min-height` 로 바꾸면 Chrome 도 0 으로 접는다(실측).
+  describe("다른 배치 문법의 body 도 같은 규칙 (주입은 축을 가리지 않는다)", () => {
+    // 주입을 세로 flex 로 좁히면 나머지 축이 각자 Chrome 과 어긋난 채 남는다 —
+    // block/row flex 는 `height:%` 자식이 페이지 기준으로 해소되고(Chrome 0),
+    // 프레임 슬롯 정책도 축마다 갈린다. 대신 엔진이 clamp 뒤 값으로 재분배해야 한다.
     it("block body: 자식은 자연 높이, 상자는 페이지", () => {
-      const pipe = pipelineBodyLeg({ overflow: "auto" }, [
-        { height: "400px" },
-        { height: "400px" },
-      ]);
-      expect(pipe.children.map((c) => Math.round(c.y))).toEqual([0, 400]);
-      expect(pipe.children.map((c) => Math.round(c.h))).toEqual([400, 400]);
+      const body: StyleRecord = { overflow: "auto" };
+      const kids: StyleRecord[] = [{ height: "400px" }, { height: "400px" }];
+      const dom = domViewportBodyLeg(body, kids);
+      const pipe = pipelineBodyLeg(body, kids);
+      expect(diffChildren("", dom.children, pipe.children)).toEqual([]);
       expect(pipe.body.h).toBeCloseTo(PAGE_H, 1);
     });
 
-    it("row flex body: 자식 height:100% 가 페이지 높이로 해소된다", () => {
-      const pipe = pipelineBodyLeg({ display: "flex", flexDirection: "row" }, [
-        { width: "80px", height: "100%" },
-      ]);
-      expect(pipe.children[0].h).toBeCloseTo(PAGE_H, 1);
+    it("row flex body: 크기 미지정 슬롯이 stretch 로 페이지를 채운다", () => {
+      // 프레임 row 페이지 형태. `resolvePageSlotStyle` 이 블록 축에 `height:100%` 를
+      // 주입하지 않게 된 근거 — 주입하면 "크기를 명시" 한 것이라 stretch 가 꺼지고,
+      // 그 백분율은 해소되지 않아 0 이 된다(Chrome 동일).
+      const body: StyleRecord = { display: "flex", flexDirection: "row" };
+      const kids: StyleRecord[] = [{ width: "80px" }, { flexGrow: 1 }];
+      const dom = domViewportBodyLeg(body, kids);
+      const pipe = pipelineBodyLeg(body, kids);
+      expect(Math.round(dom.children[0].h)).toBe(PAGE_H);
+      expect(diffChildren("", dom.children, pipe.children)).toEqual([]);
+    });
+
+    it("grid body: `1fr` 행이 페이지 여유를 먹는다", () => {
+      // `min-height` 로 확정된 블록 축이라 `solve_grid` 재진입이 없으면 60/60 이 된다.
+      const body: StyleRecord = {
+        display: "grid",
+        gridTemplateRows: ["60px", "1fr"],
+      };
+      const kids: StyleRecord[] = [{}, {}];
+      const dom = domViewportBodyLeg(body, kids);
+      const pipe = pipelineBodyLeg(body, kids);
+      expect(dom.children.map((c) => Math.round(c.h))).toEqual([60, 340]);
+      expect(pipe.children.map((c) => Math.round(c.h))).toEqual([60, 340]);
+    });
+
+    it("grid body: 넘치는 행은 넘친다", () => {
+      const body: StyleRecord = {
+        display: "grid",
+        gridTemplateRows: ["60px", "1fr"],
+      };
+      const kids: StyleRecord[] = [{}, { height: "600px" }];
+      const dom = domViewportBodyLeg(body, kids);
+      const pipe = pipelineBodyLeg(body, kids);
+      expect(dom.children.map((c) => Math.round(c.h))).toEqual([60, 600]);
+      expect(pipe.children.map((c) => Math.round(c.h))).toEqual([60, 600]);
+      expect(pipe.body.h).toBeCloseTo(PAGE_H, 1);
     });
   });
 });

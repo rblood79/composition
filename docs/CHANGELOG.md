@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [body 뷰포트 분리를 전 배치 문법으로 — Chrome 기준 정렬] - 2026-07-28
+
+### Bug Fixes
+
+- **`min-height`/`max-height` 로 크기가 바뀐 컨테이너의 내부 배치가 clamp 이전 값으로 굳던 문제 — cross 축·grid 로 확대**:
+  - `row + minHeight:400` 안의 크기 미지정 자식이 Chrome 400 / 엔진 **0** (라인 cross 가 컨테이너 inner cross 로 안 잡혀 `stretch` 가 죽음)
+  - `minHeight:400` + `gridTemplateRows: 60px 1fr` 이 Chrome 60/340 / 엔진 **60/60** (`1fr` 행·`align-content`·§12.8 stretch 가 전부 `explicit_h` 게이트)
+  - **Why**: 앞선 커밋이 flex **main** 축만 고쳤는데, body 주입을 전 배치 문법으로 넓히려면 나머지 두 축도 같은 규칙이어야 한다. grid 는 트랙 sizing 자체가 definite 여부에 매달려 있어 clamp 된 높이로 `solve_grid` 를 **재진입**한다(2회로 종료, 재진입 전 자식 subtree dirty 복구)
+  - 위치: `packages/composition-engine/src/tree.rs::solve_flex` (3.7) / `::solve_grid`
+
+- **body 뷰포트 주입을 배치 문법과 무관한 한 규칙으로**:
+  - 직전 커밋은 세로 flex body 만 `min-height` 로 바꿨다. block/row flex/grid 는 확정 높이가 남아 `height:50%` 자식이 페이지 높이의 절반으로 **해소**됐다 — Chrome 은 0 (body 가 `min-height:100vh` 라 백분율 높이가 안 풀린다)
+  - **Why**: 주입 축을 갈래로 두면 갈래마다 Chrome 발산이 따로 남고 프레임 슬롯 정책도 축마다 달라진다. 이제 폭은 `width = pageW`, 블록 축은 `min-height = pageH` 하나이고 상자 크기만 Step 5 가 뷰포트로 환원한다
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`
+
+- **프레임 슬롯의 블록 축 크기 주입 제거**:
+  - `resolvePageSlotStyle` 이 flex row 프레임의 슬롯에 `height:100%` 를 주입했는데, body 가 `min-height` 로 서면 그 백분율은 해소되지 않으면서 "크기를 명시" 한 것이라 `align-items:stretch` 까지 꺼져 슬롯이 **0** 이 된다 (Chrome 실측 동일)
+  - 주입을 빼면 stretch 가 슬롯을 라인 cross 로 채운다(실측 80x400 / 310x400, DOM 동형). 인라인 축(`width:100%`)은 부모 폭이 확정이라 유지. grid 분기는 2026-07-27 에 같은 결론에 먼저 도달해 있었다
+  - 위치: `apps/builder/src/adapters/canonical/pageFrameProjection.ts`
+
+### Documentation
+
+- **`.claude/rules/layout-engine.md`**: §"컨테이너의 used size 는 min/max clamp 뒤의 값이다 — 세 축 모두" 로 확장(축별 거처 표 + grid 재진입 계약), §"body 는 뷰포트가 아니다" 를 단일 규칙으로 갱신 + 잔존 1건 기록(명시 `height:%` cross 자식이 Chrome 0 / 엔진 stretch — 본 변경 이전에도 동일, 실사용 경로 없음)
+
+### Infrastructure
+
+- **fixture 보강**: `bodyViewportBox.browser.test.ts` 14건 (block/row flex/grid body 를 각각 Chrome 대조), `apps/builder/src/adapters/canonical/__tests__/pageSlotStyle.test.ts` 5건 신규 — 슬롯 정책이 무방비였다(복원해도 0 red). 민감도 — flex cross 1 red / grid 1 red / 슬롯 주입 복원 2 red
+
 ## [body 는 뷰포트가 아니다 — 세로 flex 페이지의 자식 압축] - 2026-07-28
 
 ### Bug Fixes

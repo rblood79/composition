@@ -123,24 +123,30 @@ globs:
 
 **계층 A·B 는 AND** — 하나만 등재하면 무반영이며, 증상이 서로 다르다: A 누락 = 재계산 자체를 안 함 / B 누락 = 재계산은 돌지만 시그니처 동일 → 캐시 히트로 이전 결과 재사용. 새로고침 후에만 반영되면 B 를 의심할 것.
 
-## 컨테이너의 used main size 는 min/max clamp **뒤**의 값이다 (CSS-FLEXBOX-1 §9.4→§9.7, 2026-07-28)
+## 컨테이너의 used size 는 min/max clamp **뒤**의 값이다 — 세 축 모두 (2026-07-28)
 
-flexible length 는 컨테이너의 **used** main size 에 대해 풀린다. used main size = (명시 크기 또는 내용 크기) 를 자기 `min-*`/`max-*` 로 clamp 한 값이다. 엔진은 clamp 를 **배치 뒤에만** 걸고 있었다 — root 는 `fixup_root_self_size`, flex item 은 `flex.rs` off 10·12, grid 트랙은 `track_contribution`. 셋 다 "이미 배치된 결과의 상자"만 늘리고 줄이므로 안쪽 분배는 clamp 이전 값 기준으로 굳는다.
+컨테이너의 **used** size = (명시 크기 또는 내용 크기) 를 자기 `min-*`/`max-*` 로 clamp 한 값이고, 내부 배치 알고리즘은 **그 값**에 대해 돌아야 한다 (CSS-FLEXBOX-1 §9.4→§9.7, CSS-GRID-1 §11.1). 엔진은 clamp 를 **배치 뒤에만** 걸고 있었다 — root 는 `fixup_root_self_size`, flex item 은 `flex.rs` off 10·12, grid 트랙은 `track_contribution`. 셋 다 "이미 배치된 결과의 상자"만 늘리고 줄이므로 안쪽 분배는 clamp 이전 값 기준으로 굳는다.
 
-| 형태                                            | Chrome |   구 엔진 |
-| ----------------------------------------------- | -----: | --------: |
-| `column + minHeight:400` 안의 `flexGrow:1`      |    340 |     **0** |
-| `column + maxHeight:200` 안의 `height:100px` ×3 |   67씩 | **100씩** |
+| 축         | 형태                                            | Chrome |   구 엔진 | 거처                 |
+| ---------- | ----------------------------------------------- | -----: | --------: | -------------------- |
+| flex main  | `column + minHeight:400` 안의 `flexGrow:1`      |    340 |     **0** | `solve_flex` **3.6** |
+| flex main  | `column + maxHeight:200` 안의 `height:100px` ×3 |   67씩 | **100씩** | 〃                   |
+| flex cross | `row + minHeight:400` 안의 크기 미지정 자식     |    400 |     **0** | `solve_flex` **3.7** |
+| grid block | `minHeight:400` + `rows: 60px 1fr`              | 60/340 | **60/60** | `solve_grid` 재진입  |
 
-- 거처는 `solve_flex` 의 **3.6** — 1차 배치 뒤 used main 을 산출해 clamp 하고, 값이 바뀌었으면 `flex_layout` 을 그 값으로 **한 번 더** 돌린다. 미결정 main 은 배치 결과의 extent 가 기준이고, 확정 main 은 그 값이 기준이다.
-- 컨테이너 상자도 같은 값이어야 한다 — `clamped_auto_main` 이 4) 의 bounding box 를 대신한다. 분배는 400 에 대해 돌리고 상자는 내용 60 으로 보고하면 부모가 그 60 을 다시 쓴다.
+- **flex** 는 `flex_layout` 을 clamp 된 값으로 한 번 더 돌린다. main 은 미결정이면 배치 extent, 확정이면 그 값이 기준이고, cross 는 `cross_definite` 를 **켜서** 다시 돈다 — §9.4 step 8 이 라인 cross 를 컨테이너 inner cross 로 잡아야 `stretch` 가 산다.
+- **grid** 는 트랙 sizing 자체가 definite 여부에 매달려 있어(`1fr` 행 · `align-content` · §12.8 stretch 셋 다 `explicit_h > 0.0` 게이트) `solve_grid` 를 clamp 된 높이로 **재진입**한다. 두 번째 호출은 `explicit_h > 0.0` 이라 1회로 끝난다. 재진입 전 자식 subtree 를 `mark_subtree_dirty` — 1차 pass 가 자식을 clean 으로 만들어 그대로 부르면 증분 skip 이 stale 캐시를 돌려준다.
+- 컨테이너 상자도 같은 값이어야 한다 — flex 는 `clamped_auto_main` 이 4) 의 bounding box 를 대신한다. 분배는 400 에 대해 돌리고 상자는 내용 60 으로 보고하면 부모가 그 60 을 다시 쓴다.
 - **auto-main item 은 이 재분배로 찌그러지지 않는다** — §4.5 automatic minimum size 가 min-content floor 를 건다. ListBox 형태(`maxHeight:300` + auto 높이 행)는 clamp 후에도 행이 100 을 유지하고 넘쳐서 스크롤한다(실측 DOM·엔진 동형). 압축되는 것은 **주축 크기를 명시한** item 뿐이고 그게 CSS 결과다.
-- Chrome 실측 fixture: `bodyViewportBox.browser.test.ts` (재분배 없으면 2 red — `justify-content 보존` / `flexGrow 자식`).
+- **cross 축 재분배가 `height:%` 자식을 살리지는 않는다** — 해소 불가 백분율은 Chrome 도 0 이다(실측). `%` 해석은 `cross_ctx` 소관이고 여기서 바뀌는 것은 **cross 를 명시하지 않은** 자식의 stretch 대상 크기뿐이다.
+- Chrome 실측 fixture: `bodyViewportBox.browser.test.ts` — 각 축을 무력화하면 flex main 2 red / flex cross 1 red / grid 1 red.
 
 ### 금지 패턴
 
 - ❌ clamp 후 재분배 생략 → `min-height` 로 커진 컨테이너에서 `flex-grow` 가 안 자라고, `max-height` 로 줄어든 컨테이너에서 shrink 가 안 돈다
+- ❌ 한 축만 넣기 → 세 축이 같은 규칙이고, body 주입처럼 한 규칙을 전 축에 적용하는 소비자가 나머지 축에서 무너진다
 - ❌ 재분배는 하고 컨테이너 상자는 bounding box 로 보고 → 분배 기준과 상자가 갈린다
+- ❌ grid 재진입 전 `mark_subtree_dirty` 생략 → 증분 skip 이 stale 캐시를 돌려준다
 - ❌ auto-main item 이 찌그러지는 것을 이 변경 탓으로 진단 → §4.5 floor 가 막는다 (명시 주축 크기 item 만 압축)
 
 ## body 는 뷰포트가 아니다 — 상자는 뷰포트, 배치는 내용 (2026-07-28)
@@ -154,16 +160,19 @@ Chrome 은 페이지를 **두 노드**로 처리한다.
 
 `fullTreeLayout` **Step 1.5** 는 뷰포트 노드가 없어 body 에 `height = pageH` 를 주입해 두 역할을 겸하게 했다. `display:block` 에서는 충돌하지 않지만, body 가 **세로 flex 컨테이너**가 되는 순간 "뷰포트 크기"가 "main-size 예산"으로 재해석되어 자식을 압축한다 — 실측(components 페이지 390×844): 자식 합 1423 이 정확히 844 로 눌리고(ListBox 162→35.6 / GridList 164→29.4 / Card 322→85.6) 카드 **내용 305 가 85.6 상자를 넘어 다음 형제 위로 겹쳤다**.
 
-- **주입 축은 배치 문법으로 갈린다**: 세로 flex(`isColumnFlexBatchStyle`)면 `min-height`, 그 외(block / row flex / grid)는 종전대로 `height`. 블록 축이 **예산**이 되는 것은 세로 flex 뿐이고, 나머지에서는 확정 높이가 오히려 필요하다 — grid 는 `1fr` 행과 `align-content` 가 그 확정성에 매달려 있고, row flex 는 프레임 슬롯의 `height:100%`(`resolvePageSlotStyle`)가 그렇다(`min-height` 로 바꾸면 **Chrome 도 0 으로 접는다** — 실측).
+- **주입은 배치 문법을 가리지 않는다**: 폭은 `width = pageW`(확정), 블록 축은 `min-height = pageH` **하나**다. Chrome 의 body 가 block/flex/grid 어느 쪽이든 `min-height:100vh` 인 것과 같다. 축별로 갈래를 두면 나머지 축이 각자 어긋난 채 남는다 — block/row flex 는 `height:%` 자식이 페이지 기준으로 **해소되어 버리고**(Chrome 0), 프레임 슬롯 정책도 축마다 달라진다. 대신 **엔진이 세 축 모두 clamp 뒤 값으로 재분배**해야 한다(위 절) — 그게 없으면 row flex 슬롯이 0 으로 접히고 grid `1fr` 행이 안 자란다.
 - **보고 높이는 뷰포트 상자로 되돌린다** (Step 5). 이 값이 clip 높이이자 `maxScrollTop = 내용 extent − 이 높이` 의 기준이다. 내용 높이를 그대로 보고하면 스크롤이 0 이 되고 넘친 내용이 프레임 밖 캔버스로 흘러나온다 — **도달 수단이 없다**. 프레임 높이는 `input.pageHeight` 고정이라(`buildSceneSnapshot.ts`) 내용 따라 자라지 않는다.
-- 짧은 내용에서는 `min-height` 가 body 를 페이지 높이로 채워 `justify-content` 가 종전대로 산다. 단 그러려면 위 §9.4→§9.7 재분배가 **먼저** 있어야 한다.
+- 짧은 내용에서는 `min-height` 가 body 를 페이지 높이로 채워 `justify-content`/`flex-grow` 가 종전대로 산다. 단 그러려면 위 재분배가 **먼저** 있어야 한다.
+- **프레임 슬롯의 블록 축 크기 주입도 같이 빠진다** (`resolvePageSlotStyle`): body 가 `min-height` 로 서면 슬롯의 `height:100%` 는 해소되지 않는데, "크기를 명시" 한 것은 맞아 `stretch` 까지 꺼져 **0** 이 된다(Chrome 동일). 주입을 빼면 stretch 가 슬롯을 라인 cross 로 채운다(실측 80x400 / 310x400). 인라인 축(`width:100%`)은 부모 폭이 확정이라 그대로 둔다. 가드: `pageSlotStyle.test.ts`.
 - **breakpoint height 가 아직 정하는 것 / 더는 정하지 않는 것**: ① 뷰포트 상자(clip + `maxScrollTop` 기준) ② 내용이 짧을 때의 **하한** — `justify-content`/`flex-grow` 여유가 여기서 나온다(실측 pageH 400→900: center 자식 y 150→400, grow 자식 400→900) ③ 아트보드 사각형. 잃은 것은 하나 — **내용이 넘칠 때 자식 크기를 정하는 힘**(실측: pageH 400 ↔ 900 이 자식 배치를 전혀 바꾸지 않는다). 그게 이번 분리의 목적이다.
-- 주입 주석이 들던 근거("자식의 `height:100%` 가 페이지 크기 기준")는 **Chrome 에 없는 의미**다 — body 가 `min-height:100vh` 인 실제 페이지에서 백분율 높이는 풀리지 않는다(실측 DOM 0). 세로 flex 축에서는 이번에 사라졌고(Chrome 동형), **block 축에는 잔존**한다(`height:50%` 자식이 pageH 의 절반으로 해소 — DOM 0 / 엔진 200). 실사용 0건이라 범위 밖에 뒀다 — catalog 의 `height:"100%"` 2건은 ProgressBar/Meter `.fill` 이고 부모가 `height: var(--spacing-sm)` 로 확정된 트랙 내부다. 고치려면 block 축 주입까지 `min-height` 로 옮겨야 하고 그러면 상자 크기가 내용으로 바뀌어 별도 판정이 필요하다 — fixture 스냅샷이 그 발산을 고정한다.
-- Chrome 실측 fixture: `bodyViewportBox.browser.test.ts` — 자식 좌표는 `viewport(확정) > body(min-height:100%)` DOM 오라클과 대조하고, body 상자 높이는 오라클 대응물이 없어 **빌더 계약**으로 따로 단언한다. 주입 축을 되돌리면 3 red.
+- 주입 주석이 들던 근거("자식의 `height:100%` 가 페이지 크기 기준")는 **Chrome 에 없는 의미**였다 — body 가 `min-height:100vh` 인 실제 페이지에서 백분율 높이는 풀리지 않는다(실측 DOM 0). 이제 어느 배치 문법에서도 해소되지 않는다. 실사용도 0건이다 — catalog 의 `height:"100%"` 2건은 ProgressBar/Meter `.fill` 이고 부모가 `height: var(--spacing-sm)` 로 확정된 트랙 내부다.
+- Chrome 실측 fixture: `bodyViewportBox.browser.test.ts` — 자식 좌표는 `viewport(확정) > body(min-height:100%)` DOM 오라클과 대조하고, body 상자 높이는 오라클 대응물이 없어 **빌더 계약**으로 따로 단언한다. 주입을 `height` 로 되돌리면 3 red.
+- **잔존**: `height:%` 를 **명시한** cross 자식이 Chrome 은 0 인데 엔진은 stretch 로 채운다(실측 row 슬롯 dom 0x0 / 엔진 80x400). "해소 불가여도 _명시_ 했으면 stretch 를 끈다"는 규칙이 커널에 없어서인데, 커널은 해소된 값(AUTO)만 보고 style 문자열을 모른다. 본 변경 **이전에도 동일**했고 프레임 슬롯 주입이 사라져 실사용 경로도 없다.
 
 ### 금지 패턴
 
-- ❌ 주입 축을 세로 flex 밖으로 넓히기 → grid `1fr` 행·`align-content` 붕괴 + 프레임 row 슬롯 `height:100%` 0 붕괴
+- ❌ 주입을 배치 문법별로 갈래 두기 (`display` 를 보고 `height` ↔ `min-height` 선택) → 갈래마다 Chrome 발산이 따로 남는다. 한 규칙 + 엔진 재분배가 정본
+- ❌ 엔진 재분배(위 절) 없이 주입만 `min-height` 로 바꾸기 → row flex 슬롯 0 붕괴 + grid `1fr` 행 미성장
 - ❌ body 보고 높이를 엔진 결과 그대로 두기 → 스크롤 0 + 프레임 밖 유출
 - ❌ 프레임 높이를 내용 따라 키워 회피 → 아트보드는 breakpoint 크기이고, 그러면 뷰포트 개념 자체가 사라진다
 - ❌ TS 에서 내용 높이를 미리 재서 `height` 로 주입 (2-pass 자작) → 폭·높이 축 모두 엔진 소유 (§TS 잔존 계약)
