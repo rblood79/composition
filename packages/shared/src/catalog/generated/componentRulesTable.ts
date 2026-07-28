@@ -4263,7 +4263,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "overlay",
       element: "div",
-      containerStyles: undefined,
+      // ADR-171 Phase 1 (2026-07-29): 수동 `overlays.css` 의 실효값을 catalog 로 이관.
+      //   generated CSS root 는 overflow 미선언이었고 실효는 `auto` 였다 — 값 자체는 불변.
+      containerStyles: {
+        overflow: "auto",
+      },
       states: {},
     },
   },
@@ -6116,6 +6120,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         flexDirection: "column",
         alignItems: "flex-start",
         justifyContent: "center",
+        // ADR-171 Phase 1 (2026-07-29): 수동 `ListBox.css` 의 실효값 이관 (값 불변).
+        position: "relative",
       },
       states: {
         hover: {
@@ -7389,7 +7395,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "default",
       element: "nav",
-      containerStyles: undefined,
+      // ADR-171 Phase 1 (2026-07-29): 수동 `Table.css` 의 Pagination 규칙 실효값 이관.
+      //   archetype "default" base 가 emit 하던 inline-flex / center 는 실효가 아니었다 (값 불변).
+      containerStyles: {
+        display: "flex",
+        justifyContent: "space-between",
+        gap: "var(--spacing-sm)",
+      },
       states: {
         disabled: {
           opacity: 0.38,
@@ -7601,6 +7613,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   0)를 은퇴시켜, 이 값이 DOM·Skia 양쪽의 유일한 그림자 소스가 됐다.
       containerStyles: {
         boxShadow: "{shadow.md}",
+        // ADR-171 Phase 1 (2026-07-29): 수동 `Popover.css` 의 실효값 이관 (값 불변).
+        display: "flex",
+        flexDirection: "column",
       },
       states: {},
     },
@@ -10384,12 +10399,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): Switch.spec 삭제 대비 gap/paddingX/
       //   paddingY 보강. generate-css virtual 이 size 별 `gap`/`padding: 0px 0px` 를 emit (Switch.css
       //   정합). indicator(trackWidth/thumbSize)는 generated CSS 미emit(수동/React) → rule 불요.
+      // ADR-171 Phase 1 (2026-07-29): paddingY 0 → 4. 수동 `Switch.css` 의
+      //   `padding: var(--spacing) 0` 실효값 이관 — size 무관 상수 (값 불변).
       sm: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
         height: 0,
         paddingX: 0,
-        paddingY: 0,
+        paddingY: 4,
         gap: 8,
       },
       md: {
@@ -10397,7 +10414,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.full}",
         height: 0,
         paddingX: 0,
-        paddingY: 0,
+        paddingY: 4,
         gap: 10,
       },
       lg: {
@@ -10405,7 +10422,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.full}",
         height: 0,
         paddingX: 0,
-        paddingY: 0,
+        paddingY: 4,
         gap: 12,
       },
       xl: {
@@ -10413,7 +10430,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.full}",
         height: 0,
         paddingX: 0,
-        paddingY: 0,
+        paddingY: 4,
         gap: 14,
       },
     },
@@ -10423,6 +10440,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "inline-flex",
         alignItems: "center",
+        // ADR-171 Phase 1 (2026-07-29): 수동 `Switch.css` 의 실효값 이관 (값 불변).
+        position: "relative",
       },
       states: {
         hover: {},
@@ -10487,6 +10506,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "default",
       element: "button",
+      // ADR-171 Phase 1 (2026-07-29): 수동 `TabsIndicator.css` 의 실효값 이관 (값 불변).
+      //   ::before / SelectionIndicator 앵커라 relative 가 필수다.
+      containerStyles: {
+        position: "relative",
+      },
       states: {
         disabled: {
           opacity: 0.38,

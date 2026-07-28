@@ -17,6 +17,7 @@
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   display: inline-flex;
   align-items: center;
+  position: relative;
 
   /* Default variant */
   background: transparent;
@@ -25,7 +26,7 @@
 
   /* Default size */
   height: auto;
-  padding: 0px 0px;
+  padding: 4px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-full);
   gap: 10px;
@@ -59,7 +60,7 @@
 
 .react-aria-Switch[data-size="sm"] {
   height: auto;
-  padding: 0px 0px;
+  padding: 4px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-full);
   gap: 8px;
@@ -67,7 +68,7 @@
 
 .react-aria-Switch[data-size="md"] {
   height: auto;
-  padding: 0px 0px;
+  padding: 4px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-full);
   gap: 10px;
@@ -75,7 +76,7 @@
 
 .react-aria-Switch[data-size="lg"] {
   height: auto;
-  padding: 0px 0px;
+  padding: 4px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-full);
   gap: 12px;
@@ -83,7 +84,7 @@
 
 .react-aria-Switch[data-size="xl"] {
   height: auto;
-  padding: 0px 0px;
+  padding: 4px 0px;
   font-size: var(--text-lg);
   border-radius: var(--radius-full);
   gap: 14px;

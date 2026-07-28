@@ -20,6 +20,11 @@
     --btn-font-size: var(--text-base);
     --btn-transition: background-color 200ms, opacity 200ms;
 
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  gap: var(--spacing-sm);
+  display: flex;
+  justify-content: space-between;
+
   /* Default size */
   font-size: var(--text-base);
   border-radius: var(--radius-md);

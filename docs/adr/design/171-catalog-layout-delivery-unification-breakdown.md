@@ -92,25 +92,54 @@ ADR 본문 Hard Constraint 1 의 `height:32 · inline-flex · padding 4/12 · ga
 
 ## 3. Phase 분해
 
-### Phase 1 — 실효값 ↔ catalog 정합화 (9종)
+### Phase 1 — 실효값 ↔ catalog 정합화 — **완료 2026-07-29 (6종)**
 
-생성 CSS root 선언이 수동 CSS 에 덮이는 9종. **실효 computed 값이 정본**이고 catalog 를 그 값으로 정정한다.
+생성 CSS root 선언이 수동 CSS 에 덮이는 종. **실효 computed 값이 정본**이고 catalog 를 그 값으로 정정한다.
 
-| 컴포넌트    | 생성 CSS root                             | 실효 computed (정본)                                             |
-| ----------- | ----------------------------------------- | ---------------------------------------------------------------- |
-| Slider      | `position:absolute` · `alignItems:center` | `display:grid` · `position:static` · `alignItems:normal`         |
-| Pagination  | `inline-flex` · `justifyContent:center`   | `flex` · `justifyContent:space-between` · `gap:8px`              |
-| Meter       | gap 토큰 3종 혼재                         | `display:grid` · gap `4px`                                       |
-| ProgressBar | 〃                                        | `display:grid` · gap `4px`                                       |
-| Popover     | `position:fixed` · pad 16 · gap 12        | + `display:flex` · `flexDirection:column`                        |
-| TabPanel    | pad 12                                    | + `display:flex` · `flexDirection:column`                        |
-| TableView   | `justifyContent:center`                   | + `display:flex` · `flexDirection:column` · `alignItems:stretch` |
-| Dialog      | `position:fixed` · pad 40 · gap 12        | + `overflow:auto`                                                |
-| Tab         | pad 4/12 · inline-flex · center           | + `position:relative`                                            |
+#### 대상 재산출 — 9종이 아니라 7종, 그중 6종만 정정 대상
 
-- 정합화 방향은 **catalog → 실효값**이다. 반대(수동 CSS 를 catalog 에 맞춤)는 DOM 시각을 바꾸므로 금지.
-- 정정 후 생성 CSS 를 재빌드하고, 실효 computed 가 **변하지 않았는지** 재측정한다(수동 CSS override 가 여전히 이기면 정정이 무의미).
-- 산출물: catalog 9종 + `pnpm build:specs` 재생성 CSS.
+ADR 본문 Hard Constraint 2 의 "9종" 은 생성 CSS root 파싱 결함에서 나왔다. 생성 CSS 는 **CSS 중첩**을 쓰고 root 블록 안에 `/* Base styles — archetype: X */` 주석이 있는데, 순진한 선언 정규식이 ① 중첩 규칙 본문을 root 선언으로 읽고 ② `/* … archetype: overlay */` 를 `archetype: …` 선언으로 매칭해 **그 뒤의 첫 실제 선언을 삼켰다**. 그래서 Slider 가 `position:absolute`(실은 중첩 `.slider-track-bg` 의 값)로, Popover 가 `position:fixed` 누락으로 잡혔다.
+
+주석·중첩을 제거하고 다시 판정하면 — 그리고 판정을 정규식 비교가 아니라 **브라우저에 맡기면**(root 선언을 그대로 인라인으로 넣은 대조 div 와 클래스를 붙인 div 의 `getComputedStyle` 비교) — 불일치는 **7종**이다.
+
+| 컴포넌트    | 구 판정    | 실측 판정 | 내용                                                        |
+| ----------- | ---------- | --------- | ----------------------------------------------------------- |
+| Slider      | 불일치     | **일치**  | root 가 이미 `display:grid` — 구 판정은 중첩 규칙 잘못 읽음 |
+| Meter       | 불일치     | **일치**  | `gap:4px` 가 마지막 선언이라 실효와 동일                    |
+| ProgressBar | 불일치     | **일치**  | 〃                                                          |
+| TabPanel    | 불일치     | **일치**  | root `flex column pad 12` = 실효                            |
+| TableView   | 불일치     | **일치**  | root `flex column stretch center` = 실효                    |
+| Pagination  | 불일치     | 불일치    | root `inline-flex center` → 실효 `flex space-between gap 8` |
+| Popover     | 불일치     | 불일치    | root 에 `display` 없음 → 실효 `flex column`                 |
+| Dialog      | 불일치     | 불일치    | root 에 `overflow` 없음 → 실효 `auto`                       |
+| Tab         | 불일치     | 불일치    | root `position:static` → 실효 `relative`                    |
+| ListBoxItem | **미발견** | 불일치    | root `position:static` → 실효 `relative`                    |
+| Switch      | **미발견** | 불일치    | root `padding 0` → 실효 `4px 0` · `position` → `relative`   |
+| TextArea    | **미발견** | 불일치    | **정정 제외** — 아래 클래스 역할 충돌                       |
+
+#### 적용한 정정 (6종)
+
+| 컴포넌트    | catalog 변경                                                           | 실효값 출처 (수동 CSS) |
+| ----------- | ---------------------------------------------------------------------- | ---------------------- |
+| Dialog      | `structure.containerStyles` 신설 — `overflow: "auto"`                  | `overlays.css:49`      |
+| ListBoxItem | `position: "relative"` 추가                                            | `ListBox.css:75`       |
+| Pagination  | `containerStyles` 신설 — `display` / `justifyContent` / `gap`          | `Table.css`            |
+| Popover     | `display: "flex"` · `flexDirection: "column"` 추가                     | `Popover.css:35`       |
+| Switch      | `position: "relative"` 추가 + `sizes.{sm,md,lg,xl}.paddingY` `0` → `4` | `Switch.css:30`        |
+| Tab         | `structure.containerStyles` 신설 — `position: "relative"`              | `TabsIndicator.css`    |
+
+#### TextArea 제외 사유 — 값 결함이 아니라 **클래스 역할 충돌**
+
+`.react-aria-TextArea` 가 두 DOM 역할에 동시에 쓰인다: 생성 CSS 는 이것을 **field wrapper**(`flex column · gap 6`)로 보고, `base.css:4` 는 `.react-aria-Input` 과 묶어 **실제 `<textarea>` 요소**(`padding: var(--input-padding)`)로 본다. 실효 padding 4px 는 후자에서 온다. 이걸 "실효값" 이라며 catalog wrapper 에 옮기면 **wrapper 에 input padding 을 박는 것**이다. 값 축이 아니라 이름 축 문제라 Phase 2 판정 항목으로 넘긴다 (동일 충돌: `Input` — 생성 CSS 미import 라 표면화만 안 됐다).
+
+#### G1 — 실효 computed 불변 확증
+
+- 재빌드 결과 변경된 생성 CSS 파일은 **정확히 6개**이고 diff 는 의도한 선언뿐이다 (나머지 87개 byte 불변 → 실효가 바뀔 수 없다).
+- 변경 6종의 실효 computed 를 정정 전후로 대조 — **전건 불변**. Dialog `overflow:auto` · Popover `flex column pad16 gap12 fixed` · Pagination `flex space-between gap8` · Tab `inline-flex center pad4/12 relative h29` · Switch `inline-flex center gap10 padY4 relative h8` · ListBoxItem `flex column flex-start center gap2 pad4/12 relative`.
+- 정정 후 root↔실효 불일치: **7종 → 1종**(TextArea, 위 사유로 의도적 잔존).
+- 라이브: 실행 중인 dev 서버의 모듈 그래프에서 `COMPONENT_RULES_TABLE` 을 직접 import 해 6종 정정값 반영 확인.
+
+**Why 값이 안 바뀌는데 고치는가**: 이 정정이 옮기는 것은 값이 아니라 **소유권**이다. 실효값이 수동 CSS 에만 있으면 catalog 를 읽는 소비자(Style Panel · Skia · Phase 3 이후의 resolver)가 그 값을 **모른다**. Popover 의 `boxShadow` 가 같은 이유로 2026-07-25 에 이관됐고(`Popover.css:27` 주석), Phase 1 은 같은 작업을 layout 축으로 넓힌 것이다.
 
 ### Phase 2 — 미import 30종 판정 (I1 결과 소비)
 
@@ -187,8 +216,8 @@ ADR 본문 Hard Constraint 1 의 `height:32 · inline-flex · padding 4/12 · ga
 ## 6. 체크리스트
 
 - [x] **Phase 0 — I1/I2/I3 인벤토리 확정 (2026-07-29)** — 차단 3층(L1 게이트 / L2 키 allowlist / L3 `sizes` 축) 발견, 대상 목록 확정 (§2)
-- [ ] Phase 1 — 9종 catalog 정정 + 재빌드 + 실효값 불변 재측정 (G1)
-- [ ] Phase 2 — 양쪽 미도달 23종 + DOM 채널만 보유 2종 판정 표 확정 + 처리
+- [x] **Phase 1 — catalog 정정 6종 + 재빌드 + 실효값 불변 재측정 (G1 PASS, 2026-07-29)** — 대상이 9종이 아니라 7종(생성 CSS 파싱 결함 정정)이고 TextArea 는 클래스 역할 충돌로 Phase 2 이관
+- [ ] Phase 2 — 양쪽 미도달 23종 + DOM 채널만 보유 2종 판정 표 확정 + 처리 (+ `TextArea`/`Input` 클래스 역할 충돌 판정)
 - [ ] Phase 3 — L1·L2·L3 3층 개방 + 수기 배선 정리 + `resolveContainerStylesFallback.test.ts` 47 케이스 갱신 (G2)
 - [ ] Phase 5 — parity fixture 신설 (**Phase 4 앞**) + Phase 3 일시 되돌림으로 RED 확인 (G3)
 - [ ] Phase 4 — factory 인라인 제거 + `useResetStyles` baseline 동시 정리 (fixture GREEN + 패널 live 확인, G4)

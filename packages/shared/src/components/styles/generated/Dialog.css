@@ -11,6 +11,9 @@
     position: fixed;
     box-sizing: border-box;
 
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  overflow: auto;
+
   /* Default variant */
   background: var(--bg-overlay);
   color: var(--fg);

@@ -166,12 +166,16 @@ describe("resolveCatalogContainerBase — collection-item base-axis (3-A-3b 재�
     });
   });
 
-  it("ListBoxItem → structure.containerStyles 4개 camelCase (composition 부재)", () => {
+  // ADR-171 Phase 1 (2026-07-29): `position: "relative"` 추가 — 수동 `ListBox.css` 가
+  //   갖고 있던 실효값의 catalog 이관이다. 실효 computed 는 정정 전후 불변(G1) 이고,
+  //   바뀐 것은 "그 값을 어디가 소유하는가" 뿐이다.
+  it("ListBoxItem → structure.containerStyles 5개 camelCase (composition 부재)", () => {
     expect(resolveCatalogContainerBase("ListBoxItem")).toEqual({
       display: "flex",
       flexDirection: "column",
       alignItems: "flex-start",
       justifyContent: "center",
+      position: "relative",
     });
   });
 });

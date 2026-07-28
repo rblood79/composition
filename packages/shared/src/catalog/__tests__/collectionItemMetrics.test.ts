@@ -36,12 +36,15 @@ describe("collection item 시각 metric (catalog SSOT)", () => {
       expect(md?.fontWeight).toBe(600);
     });
 
-    it("containerStyles — flex column, 좌측 정렬 + 수직 중앙", () => {
+    // ADR-171 Phase 1 (2026-07-29): `position: "relative"` 는 수동 `ListBox.css` 에만
+    //   있던 실효값을 catalog 로 옮긴 것이다 (실효 computed 불변 — G1).
+    it("containerStyles — flex column, 좌측 정렬 + 수직 중앙 + relative", () => {
       expect(rule?.structure?.containerStyles).toEqual({
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-start",
         justifyContent: "center",
+        position: "relative",
       });
     });
   });

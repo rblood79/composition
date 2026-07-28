@@ -13,6 +13,8 @@
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
 
   /* Default variant */
   background: var(--bg-inset);
