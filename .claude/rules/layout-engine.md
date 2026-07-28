@@ -193,10 +193,11 @@ Chrome 은 페이지를 **두 노드**로 처리한다.
 - **Direction 미지정 + Container Align 은 row 가 된다** — 패널이 `flexDirection` 기본값 `row` 로 쓰므로 페이지 전 자식이 한 줄에 들어가 크게 shrink 한다. 그건 **CSS 대로**이고 본 결함과 무관하다. 세로 스택을 의도했다면 Direction 을 먼저 column 으로.
 - Chrome 실측 fixture: `containerAlign.browser.test.ts` (engine block 4 · engine flex 3 · pipeline 3 · 잔존 1). 민감도 — 엔진 확대 되돌림 3 red / TS 게이트 되돌림 2 red.
 
-### 잔존 2건
+### 잔존 1건
 
-- **`%` 는 확정된 컨테이너 크기로 재해소되지 않는다**: Chrome 은 shrink-to-fit 크기를 정한 뒤 자식 `%` 를 그 값으로 다시 푼다(`width:50%` → DOM 60 / 엔진 120). 컨테이너 크기는 맞고 자식 크기만 다르다 — 고치려면 컨테이너 확정 후 자식 재-solve(flex 3.5 형태의 확장)가 필요하다.
 - **projection collection 행은 owner 폭에 의존**: 투영된 행(`projection:gridlist-row:*`)은 레이아웃 자식이 없어 shrink-to-fit 에서 폭을 못 만든다(실측 GridList 34). 별개 축이다 — memory `feedback-projection-width-dependent-fold-belongs-in-render-not-projection`.
+
+구 잔존 ①(`%` 가 확정 크기로 재해소되지 않음)은 2026-07-28 해소 — 아래 §shrink-to-fit 은 크기를 정한 **뒤** 한 번 더 돈다.
 
 ### 금지 패턴
 
@@ -204,6 +205,33 @@ Chrome 은 페이지를 **두 노드**로 처리한다.
 - ❌ 스칼라 공급 게이트를 키워드/`auto` 로만 판정 → `width:%` 텍스트 leaf 가 shrink-to-fit 부모에서 0 으로 접힌다
 - ❌ 이 붕괴를 `align-items` 구현 문제로 진단 → `align-items` 자체는 정합이고(합성 도형 6케이스 전부 Chrome 일치) 무너지는 것은 **크기 공급** 쪽이다
 - ❌ Container Align 이 row 로 붙어 생긴 shrink 를 결함으로 판정 → Direction 기본값이 `row` 이고 그 결과는 CSS 대로다
+
+## shrink-to-fit 은 크기를 정한 **뒤** 한 번 더 돈다 (CSS-SIZING-3 §5.1, 2026-07-28)
+
+인라인 available 이 미결정이면 컨테이너 크기가 **자식으로부터** 나온다. 그 pass 에서 자식의 `%` 는 참조할 확정 크기가 없어 `auto` 로 풀리고(순환 백분율), auto 폭 블록 자식은 stretch 대신 fit-content 가 된다. 둘 다 **intrinsic 기여를 구하는 동안만** 맞는 해석이고, CSS 는 크기가 정해진 뒤 그 크기를 containing block 으로 삼아 자식을 정상 배치한다. 엔진은 1차 pass 에서 멈춰 있었다.
+
+| 자식 (상자 폭 120 확정) |        Chrome |     구 엔진 |
+| ----------------------- | ------------: | ----------: |
+| `width:50%`             |            60 |     **120** |
+| `width:150%`            |    180 (넘침) |     **120** |
+| `marginLeft:10%`        | x=147 / w=108 | x=135 / 120 |
+| auto 폭 **짧은** 형제   | 120 (stretch) |      **40** |
+
+- 거처는 `shrink_to_fit_settled` + 세 `solve_*` 말미의 **재진입** 한 형태다. 확정 폭을 `explicit_w` 로 넘겨 다시 부르므로 2차 pass 에서 게이트가 닫혀 1회로 끝난다 (flex 3.6/3.7, grid 블록 축 clamp 와 같은 모양).
+- **컨테이너 상자는 1차 pass 값을 유지한다** — intrinsic 크기는 `%` 를 `auto` 로 본 값이고, 재해소로 자식이 더 커지면 CSS 도 넘치게 둔다. 그래서 재진입 뒤 `layout.width` 를 1차 값으로 되돌리고 그 값을 반환한다(auto 축 반환은 **content-box** 계약).
+- **게이트가 축마다 다르다**: block/flex 는 상속 available 이 미결정(`INDEFINITE_AVAIL`)일 때, grid 는 `inline_intrinsic` — `width: max-content` 처럼 **키워드**로 shrink-to-fit 이면 상속 available 은 definite 라 앞의 조건으로는 안 잡힌다.
+- **측정 모드 센티넬(`-2`/`-3`)은 대상이 아니다** — 거기서는 `%` 가 `auto` 인 것이 최종 답이다. 그래서 게이트가 `INDEFINITE_AVAIL` **등가 비교**이고 `avail < 0` 이 아니다.
+- **grid 는 트랙을 얼려서 넘긴다**. 재진입의 목적은 셀 안쪽 자식에게 확정 containing block 을 주는 것이지 트랙을 다시 재는 것이 아니다. 원본 토큰으로 다시 세우면 `fr` 이 확정 폭을 나눠 갖는데 CSS 는 intrinsic pass 결과를 그대로 쓴다(실측 `1fr 1fr` / min-content → Chrome 40·30, 재분배하면 35·35). 이미 px 로 확정된 `template_cols` 를 2차 pass 의 style 로 임시 주입하고 원복한다. **행은 얼리지 않는다** — 폭이 바뀌면 높이는 다시 재는 것이 맞다(height-for-width).
+- **명시 열이 없는 grid 도 열이 있다**: `grid-template-columns` 미지정이면 auto-placement 가 만든 암묵 열을 `grid-auto-columns`(기본 `auto`)가 정한다. 종전엔 intrinsic 경로가 "명시 토큰 없음" 으로 그냥 빠져나가 `container_w` 가 **미결정 센티넬(-1) 그대로** 폭으로 보고됐다 — 라이브 실측: `align-items:center` 아래 Toolbar 를 `display:grid` 로 바꾸면 폭 **-1** (수정 후 64). 행 축의 암묵 트랙 생성과 같은 규칙이다.
+- Chrome 실측 fixture: `shrinkToFitInline.browser.test.ts` (§1 재해소 39 + 중첩 1 + grid 키워드 2 + §2 암묵 열 5 + 잔존 2). 민감도 — 재진입 무력화 19 red / grid 트랙 freeze 제거 10 red / 암묵 열 합성 무력화 6 red.
+
+### 금지 패턴
+
+- ❌ 재진입 뒤 컨테이너 상자를 2차 pass 결과로 갱신 → 넘치는 자식을 따라 상자가 커진다 (CSS 는 intrinsic 크기 유지)
+- ❌ 재진입에 넘기는 확정 폭을 content-box 로 전달 → `explicit_w` 는 border-box 계약이라 padding 만큼 어긋난다
+- ❌ 게이트를 `avail_w < 0` 로 넓히기 → 측정 패스(`-2`/`-3`)까지 재진입해 intrinsic 기여가 오염된다
+- ❌ grid 재진입에서 트랙을 원본 토큰으로 다시 세우기 → `fr` 이 재분배된다
+- ❌ 명시 열이 없다고 intrinsic 경로를 건너뛰기 → 컨테이너 폭이 음수 센티넬로 보고된다
 
 ## automatic minimum size (CSS-FLEXBOX-1 §4.5) — 엔진 소속 (ADR-164 Phase 1 / ADR-165 정밀화, 2026-07-25)
 
@@ -214,6 +242,7 @@ flex item 의 automatic minimum size (min-width/height:auto = content 하한) �
 - **측정 스칼라 계약 (ADR-165 — 구 minWidth 채널 흡수)**: 텍스트 leaf 의 intrinsic 은 `enrichWithIntrinsicSize` 가 `contentMinWidth`(최장 단어 폭)/`contentMaxWidth`(단일줄 폭) 스칼라 2종 (content-box, `Math.ceil`) 을 NodeStyle 로 공급하고, 엔진이 CSS-SIZING-3 §5 공식을 소유한다 — `tree.rs::resolve_leaf_intrinsic_width` (auto→max-content 제안 / fit-content→clamp(min-content, stretch-fit, max-content) / min·max-content 키워드) + §4.5 floor 의 정확 min-content. **Why**: 엔진은 텍스트 측정 부재로 leaf content 를 모른다 (CanvasKit/Canvas 2D = 측정 oracle 불변 — 측정 주체는 TS, 소비 알고리즘만 엔진). 구 width(단일줄 ceil)+minWidth(상한 근사) 주입 채널은 텍스트 leaf 에서 제거됨 — 재도입 금지 (스칼라와 이중 적용). INLINE_BLOCK/CIRCLE/IMAGE 합성 leaf 주입과 컨테이너 numeric 선해석은 잔존.
 - **CSS base width 채널**: 텍스트 leaf 의 폭 주입 제거로 generated CSS base 규칙은 별도 채널이 담당 — `width:100%` 계열(text/heading/paragraph/description)은 B22, `width:fit-content`(label)는 ADR-165 신설 선주입 (`implicitStyles.ts` — catalog Label 은 containerStyles 부재라 CSS 실측 근거 직접 주입). 신규 텍스트 leaf 계열 추가 시 CSS base width 규칙의 엔진 채널 존재를 확인할 것.
 - Chrome 실측 fixture: `apps/builder/tests/parity/autoMin.browser.test.ts` (8케이스) + `intrinsicSizing.browser.test.ts` (engine 6 — DOM 원자/스칼라 격리 + pipeline 4 — 실텍스트 end-to-end) — floor/스칼라 동작 변경 시 여기부터 갱신
+- **잔존 — 스칼라 leaf 의 padding 이중 계산**: `resolve_leaf_intrinsic_width` 는 **border-box** 를 반환하는데(`+ pad_border_h`) 부모 커널의 content 슬롯은 **content-box** 를 기대한다 (`flex.rs::border_main` 이 `pad_border_main` 을 더한다). 그래서 padding 을 가진 스칼라 leaf 가 flex **주축** 에서 padding 만큼 커진다 (실측 `paddingLeft:12px` + 내용 120 → DOM 132 / 엔진 144). shrink-to-fit 과 무관하며 definite 부모에서도 같다. block 부모에서는 자식이 stretch 되어 content 슬롯을 안 읽어 드러나지 않는다. 반환값이 leaf 자신의 최종 layout(=border-box) 과 부모 슬롯(=content-box) 두 소비처를 겸하는 것이 원인이라, 고치려면 두 소비처를 분리해야 한다. 스냅샷: `shrinkToFitInline.browser.test.ts` §잔존.
 
 ## 컨테이너 intrinsic — 측정 모드 센티넬 (ADR-169, 2026-07-27 / grid 축 2026-07-28)
 
@@ -260,7 +289,7 @@ flex item 의 automatic minimum size (min-width/height:auto = content 하한) �
 - **인라인 축은 stretch-fit 도 definite** 다 — block-level `width:auto` 는 containing block 을 채우므로(§10.3.3) §12.8 stretch 대상이다. 그 구분을 `inline_intrinsic` 이 준다(`Some` = shrink-to-fit). **블록 축은 아니다** — `height:auto` 는 내용 크기라 진짜 미결정 (§여유가 없는 것과 음수인 것은 다르다).
 - **TS 는 grid 컨테이너의 intrinsic 키워드를 선해석하지 않는다** — `calculateContentWidth` 는 트랙을 몰라 자식 폭 합 근사를 낸다 (실측 자식 120·60 / `auto auto` → DOM 180, 주입값 80). flex/block 컨테이너의 선해석은 잔존.
 - Chrome 실측 fixture: `gridContainerIntrinsic.browser.test.ts` (engine 키워드 47 + flex item 11 + 규칙 2 + 잔존 1, pipeline 6). 민감도 — intrinsic 경로 차단 5 red / §12.7.1 제거 25 red / 트랙 extent → 셀 bbox 4 red / stretch-fit 게이트 축소 1 red / TS 선해석 복원 6 red.
-- **잔존**: `%` 트랙의 **내부 배분**. 컨테이너 크기는 맞지만 CSS 는 크기 확정 후 `%` 를 다시 풀어 남은 공간을 재분배한다 (`50% auto` / max-content → DOM 90·90, 엔진 120·60). 고치려면 컨테이너 확정 후 트랙 sizing 2-pass 가 필요하다. catalog·앱 소스에 `%` grid 트랙 0건.
+- **잔존**: `%` 트랙의 **내부 배분**. 컨테이너 크기는 맞지만 CSS 는 크기 확정 후 `%` 를 다시 풀어 남은 공간을 재분배한다 (`50% auto` / max-content → DOM 90·90, 엔진 120·60). 2026-07-28 에 shrink-to-fit 재진입이 생겼지만 그 경로는 **트랙을 통째로 얼려** 넘긴다 — 얼리지 않으면 `fr` 이 재분배되어 `1fr 1fr` / min-content 가 40·30 대신 35·35 가 되기 때문이다. 즉 올바른 해소는 "`fr` 만 얼리고 `%`·`auto` 는 다시 푼다" 인데, `auto` 재측정이 확정 셀 폭으로 도는 순환과 혼합 `50% 1fr` 의 합 초과를 같이 풀어야 해 트랙 sizing 2-pass 의 재설계다. catalog·앱 소스에 `%` grid 트랙 0건이라 이연.
 
 ### 금지 패턴
 

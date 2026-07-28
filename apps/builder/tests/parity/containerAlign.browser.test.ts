@@ -187,18 +187,17 @@ describe("Container Align — 교차축 shrink-to-fit", () => {
     });
   });
 
-  describe("[잔존] `%` 는 확정된 컨테이너 크기로 재해소되지 않는다", () => {
-    // Chrome 은 shrink-to-fit 컨테이너 크기를 정한 **뒤** 자식의 `%` 를 그 값으로 다시
-    // 푼다. 엔진은 `auto` 로 본 자리에서 멈춘다 — 컨테이너 크기는 맞고 자식 크기만 다르다.
-    // 고치려면 컨테이너 확정 후 자식 재-solve 가 필요하다(flex 3.5 와 같은 형태의 확장).
-    it("width:50% leaf — 컨테이너는 맞고 자식이 다르다", () => {
+  describe("`%` 는 확정된 컨테이너 크기로 재해소된다 (2026-07-28 해소)", () => {
+    // 구 잔존: 엔진이 `%` 를 `auto` 로 본 자리에서 멈춰 자식이 120 이었다. shrink-to-fit
+    // 확정 뒤 재-solve 로 해소 — 전수 격자는 `shrinkToFitPercent.browser.test.ts`.
+    it("width:50% leaf — 컨테이너와 자식 둘 다 일치", () => {
       const c = wrap("t", "center", ROW, [atom({ width: "50%" })]);
       const dom = domLeg(c.nodes, c.availW);
       const eng = engineLeg(c.nodes, c.availW, c.availH);
       const boxIdx = c.nodes.findIndex((n) => n.label === "box");
       expect(Math.round(eng[boxIdx].w)).toBe(Math.round(dom[boxIdx].w)); // 120
       expect(Math.round(dom[0].w)).toBe(60); // 120 의 50%
-      expect(Math.round(eng[0].w)).toBe(120); // 엔진은 auto 에서 멈춘다
+      expect(Math.round(eng[0].w)).toBe(60);
     });
   });
 });

@@ -123,6 +123,39 @@ fn intrinsic_mode(avail: f32) -> Option<IntrinsicMode> {
     }
 }
 
+/// **shrink-to-fit 인라인 축이 확정된 뒤 자식을 다시 풀 border-box 폭** (CSS-SIZING-3 §5.1).
+///
+/// 인라인 available 이 미결정이면 컨테이너 크기가 **자식으로부터** 나온다. 그 pass 에서
+/// 자식의 `%` 는 참조할 확정 크기가 없어 `auto` 로 풀리고(순환 백분율), auto 폭 블록 자식은
+/// stretch 대신 fit-content 가 된다 — 둘 다 **intrinsic 기여를 구하는 동안만** 맞는 해석이다.
+/// CSS 는 크기가 정해진 **뒤** 그 크기를 containing block 으로 삼아 자식을 정상 배치한다.
+///
+/// 그래서 확정값으로 **한 번 더** 푼다. 재진입은 확정 폭을 `explicit_w` 로 넘기므로 2차 pass
+/// 에서 이 게이트가 닫혀 1회로 끝난다 (flex 3.6/3.7, grid 블록 축 clamp 와 같은 형태).
+///
+/// **컨테이너 상자는 1차 pass 값을 유지한다** — intrinsic 크기는 `%` 를 `auto` 로 본 값이고,
+/// 재해소로 자식이 더 커지면 CSS 도 넘치게 둔다 (실측 `width:150%` → 상자 120 / 자식 180).
+///
+/// 측정 모드 센티넬(`-2`/`-3`)은 대상이 아니다 — 거기서는 `%` 가 `auto` 인 것이 최종 답이다.
+/// 호출부가 `inline_shrink_to_fit` 에 그 판정을 담아 넘긴다 (block/flex 는 상속 available 이
+/// 미결정일 때, grid 는 `inline_intrinsic` — `width: max-content` 같은 키워드까지 포함).
+fn shrink_to_fit_settled(
+    inline_shrink_to_fit: bool,
+    content_w: f32,
+    own_pb_h: f32,
+) -> Option<f32> {
+    if !inline_shrink_to_fit {
+        return None;
+    }
+    let settled = content_w + own_pb_h;
+    // 0 이하면 2차 pass 도 `explicit_w <= 0` 이라 게이트가 안 닫힌다 — 재진입 자체를 막는다.
+    if settled > 0.0 {
+        Some(settled)
+    } else {
+        None
+    }
+}
+
 /// 트리 노드의 스타일 표현 (taffy_bridge.rs `StyleInput` 대응).
 ///
 /// 모든 필드 optional — 미설정 필드는 CSS 초기값. camelCase JSON 계약은
@@ -1806,6 +1839,26 @@ impl LayoutTree {
         } else {
             auto_main_h.unwrap_or(max_bottom)
         };
+
+        // 5) **shrink-to-fit 확정 뒤 재-solve** (block 과 동일 규칙 — `shrink_to_fit_settled`).
+        //   row 는 확정 main 이 생겨 grow/shrink 가 비로소 돌고(§4.5 floor 가 과압축을 막는다),
+        //   column 은 cross 가 확정이라 자식 `%` 폭이 해소된다. 실측(2026-07-28): `align-items`
+        //   non-stretch 아래 `width:50%` 자식이 Chrome 60 / 구 엔진 120.
+        let inline_shrink_to_fit =
+            explicit_w <= 0.0 && avail_w == INDEFINITE_AVAIL && !children.is_empty();
+        if let Some(settled) =
+            shrink_to_fit_settled(inline_shrink_to_fit, container_w, own_pb_h)
+        {
+            for &c in children {
+                self.mark_subtree_dirty(c);
+            }
+            let (_, h2) = self.solve_flex(handle, children, settled, explicit_h, avail_w, avail_h);
+            if let Some(n) = self.get_mut(handle) {
+                n.layout.width = container_w; // auto 축 반환은 content-box 계약
+            }
+            return (container_w, h2);
+        }
+
         if let Some(n) = self.get_mut(handle) {
             n.layout = NodeLayout { x: 0.0, y: 0.0, width: container_w, height: container_h };
             n.dirty = false;
@@ -1991,6 +2044,25 @@ impl LayoutTree {
         // 컨테이너 크기: 명시 있으면 명시, 없으면 자식 bounding box(탈출 margin 제외됨).
         let container_w = if explicit_w > 0.0 { explicit_w } else { max_right };
         let container_h = if explicit_h > 0.0 { explicit_h } else { max_bottom };
+
+        // 5) **shrink-to-fit 확정 뒤 재-solve** — `%` 재해소 + auto 폭 자식 stretch 복원.
+        //   실측(2026-07-28): 폭 120 으로 확정된 shrink-to-fit block 안에서 `width:50%` 자식이
+        //   Chrome 60 / 구 엔진 120, `marginLeft:10%` 자식이 x=147/w=108 vs x=135/w=120.
+        let inline_shrink_to_fit =
+            explicit_w <= 0.0 && avail_w == INDEFINITE_AVAIL && !children.is_empty();
+        if let Some(settled) =
+            shrink_to_fit_settled(inline_shrink_to_fit, container_w, own_pb_h)
+        {
+            for &c in children {
+                self.mark_subtree_dirty(c);
+            }
+            let (_, h2) = self.solve_block(handle, children, settled, explicit_h, avail_w, avail_h);
+            if let Some(n) = self.get_mut(handle) {
+                n.layout.width = container_w; // auto 축 반환은 content-box 계약
+            }
+            return (container_w, h2);
+        }
+
         if let Some(n) = self.get_mut(handle) {
             n.layout = NodeLayout { x: 0.0, y: 0.0, width: container_w, height: container_h };
             n.escaped_mt = escaped_top;
@@ -2114,7 +2186,29 @@ impl LayoutTree {
         });
 
         if let Some(mode) = inline_intrinsic {
-            let toks: Vec<String> = grid::tokenize_template(&template_cols);
+            // **명시 열이 없어도 암묵 열은 있다** — `grid-template-columns` 미지정이면
+            // auto-placement 가 만든 암묵 열을 `grid-auto-columns`(기본 `auto`)가 정한다.
+            // 종전엔 여기서 그냥 빠져나가 `container_w` 가 미결정 센티넬(`-1`) 그대로 남았고,
+            // 그 값이 컨테이너 폭으로 보고됐다 — 실측: `align-items:center` 아래 template
+            // 없는 grid 의 폭이 **-1** (DOM 120). 행 축의 암묵 트랙 생성과 같은 규칙이다.
+            let toks: Vec<String> = {
+                let explicit = grid::tokenize_template(&template_cols);
+                if !explicit.is_empty() {
+                    explicit
+                } else {
+                    let cols = placed_cells.iter().map(|p| p.1).max().map_or(1, |m| m + 1);
+                    let auto_toks =
+                        grid::tokenize_template(&join_tracks(style.grid_auto_columns.as_deref()));
+                    (0..cols)
+                        .map(|i| {
+                            auto_toks
+                                .get(i % auto_toks.len().max(1))
+                                .cloned()
+                                .unwrap_or_else(|| "auto".to_string())
+                        })
+                        .collect()
+                }
+            };
             if !toks.is_empty() {
                 let col_count = toks.len();
                 let mut col_min = vec![0.0f32; col_count];
@@ -2512,7 +2606,9 @@ impl LayoutTree {
         let final_w = if explicit_w > 0.0 {
             explicit_w
         } else if inline_intrinsic.is_some() {
-            container_w + own_pb_h
+            // auto 축 반환은 **content-box** — 부모 커널이 자식의 pad_border 를 더한다.
+            // 여기서 더하면 이중 계산이다 (실측 padding 10 grid: DOM 140 / 구 엔진 160).
+            container_w
         } else {
             max_right
         };
@@ -2526,6 +2622,44 @@ impl LayoutTree {
         } else {
             row_extent.unwrap_or(0.0)
         };
+
+        // **인라인 축도 shrink-to-fit 확정 뒤 재-solve** (block/flex 와 동일 — CSS-SIZING-3 §5.1).
+        //
+        // 판정은 `inline_intrinsic` 이다 — `width: max-content` 처럼 **키워드**로 shrink-to-fit
+        // 인 경우 상속 available 은 definite 라 block/flex 의 게이트로는 안 잡힌다.
+        // 블록 축 clamp 재진입보다 **먼저** 둔다 (CSS 도 인라인 축이 먼저 확정된다).
+        //
+        // **트랙은 얼려서 넘긴다** — 재진입의 목적은 자식(셀 안쪽)에게 확정 containing block 을
+        // 주는 것이지 트랙을 다시 재는 것이 아니다. 트랙을 원본 토큰으로 다시 세우면 `fr` 이
+        // 확정 폭을 나눠 갖는데, CSS 는 intrinsic pass 의 결과를 그대로 쓴다 (§12.7.1 "base 를
+        // 밑도는 fr 은 inflexible 로 재시작" 과 같은 결과) — 실측 `1fr 1fr` / min-content 가
+        // Chrome 40·30, 재분배하면 35·35. 위에서 이미 px 로 확정한 `template_cols` 를 2차 pass
+        // 의 style 로 임시 주입하고 원복한다 (flex 3.5 의 main 축 override 와 같은 형태).
+        //
+        // 행은 얼리지 않는다 — 폭이 바뀌면 높이는 다시 재는 것이 맞다(height-for-width).
+        let inline_shrink_to_fit = explicit_w <= 0.0
+            && inline_intrinsic.is_some()
+            && intrinsic_mode(avail_w).is_none()
+            && !children.is_empty();
+        if let Some(settled) = shrink_to_fit_settled(inline_shrink_to_fit, final_w, own_pb_h) {
+            let frozen_cols: Vec<String> =
+                template_cols.split_whitespace().map(String::from).collect();
+            let saved_cols = style.grid_template_columns.clone();
+            if !frozen_cols.is_empty() {
+                if let Some(n) = self.get_mut(handle) {
+                    n.style.grid_template_columns = Some(frozen_cols);
+                }
+            }
+            for &c in children {
+                self.mark_subtree_dirty(c);
+            }
+            let (_, h2) = self.solve_grid(handle, children, settled, explicit_h, avail_w, avail_h);
+            if let Some(n) = self.get_mut(handle) {
+                n.style.grid_template_columns = saved_cols;
+                n.layout.width = final_w;
+            }
+            return (final_w, h2);
+        }
 
         // **블록 축도 min/max clamp 뒤가 used size** (flex 3.6/3.7 과 같은 규칙).
         //

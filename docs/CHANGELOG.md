@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [shrink-to-fit 컨테이너 — 크기 확정 뒤 자식 재배치] - 2026-07-28
+
+### Bug Fixes
+
+- **shrink-to-fit 컨테이너 안에서 `%` 크기와 auto 폭 자식이 잘못 배치되던 문제**:
+  - 인라인 available 이 미결정이면 컨테이너 크기가 자식으로부터 나오는데, 그 pass 에서 자식의 `%` 는 기준이 없어 `auto` 로 풀리고 auto 폭 블록 자식은 stretch 대신 fit-content 가 된다. 엔진이 거기서 멈춰 있었다
+  - **Why**: 그 해석은 **intrinsic 기여를 구하는 동안만** 맞다 (CSS-SIZING-3 §5.1 순환 백분율). CSS 는 크기가 정해진 **뒤** 그 크기를 containing block 으로 삼아 자식을 정상 배치한다
+  - 실측 발산 (상자 폭 120 확정): `width:50%` → Chrome 60 / 구 엔진 120 · `width:150%` → 180(넘침) / 120 · `marginLeft:10%` → x=147·w=108 / x=135·w=120 · auto 폭 짧은 형제 → 120(stretch) / 40
+  - 수정: `solve_block` / `solve_flex` / `solve_grid` 말미에 확정 폭으로 **1회 재진입**. 컨테이너 상자는 1차 pass 의 intrinsic 크기를 유지한다 (자식이 더 커지면 CSS 도 넘치게 둔다)
+  - grid 는 트랙을 **얼려서** 넘긴다 — 원본 토큰으로 다시 세우면 `fr` 이 확정 폭을 나눠 가져 `1fr 1fr`/min-content 가 Chrome 40·30 대신 35·35 가 된다
+  - 위치: `packages/composition-engine/src/tree.rs`
+- **명시 열이 없는 grid 의 폭이 미결정 센티넬(-1) 로 보고되던 문제**:
+  - `grid-template-columns` 미지정이면 auto-placement 가 암묵 열을 만들고 그 크기는 `grid-auto-columns`(기본 `auto`)가 정하는데, intrinsic 경로가 "명시 토큰 없음" 으로 그냥 빠져나갔다
+  - **Why**: `container_w` 가 미결정 센티넬 그대로 남아 그 값이 컨테이너 폭이 됐다. 행 축은 암묵 트랙을 만들고 있었으므로 열 축만 빠져 있던 비대칭
+  - 라이브 실측: `align-items:center` 아래 Toolbar 를 `display:grid` 로 바꾸면 폭 **-1** → 수정 후 **64** (자식 4개가 암묵 1열에 정상 배치)
+  - 위치: `packages/composition-engine/src/tree.rs::solve_grid`
+
+### Architecture
+
+- **grid auto 크기 반환이 content-box 계약으로 정정**: intrinsic 경로가 `container_w + own_pb_h` 를 반환해 부모 커널의 pad_border 가산과 **이중 계산**됐다 (실측 padding 10 grid: DOM 140 / 구 엔진 160). auto 축 반환은 content-box 라는 기존 계약에 맞췄다
+- **회귀 감시**: `apps/builder/tests/parity/shrinkToFitInline.browser.test.ts` 신규 (49 케이스 — 재해소 39 / 중첩 1 / grid 키워드 2 / 암묵 열 5 / 잔존 2). 민감도 — 재진입 무력화 19 red, grid 트랙 freeze 제거 10 red, 암묵 열 합성 무력화 6 red
+
 ## [Container Align — 비-stretch 교차축에서 컴포넌트가 접히던 문제] - 2026-07-28
 
 ### Bug Fixes
