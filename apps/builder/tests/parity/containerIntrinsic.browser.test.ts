@@ -581,43 +581,24 @@ describe("컨테이너 flex item intrinsic ↔ CSS 대조 (ADR-169)", () => {
     });
   });
 
-  // grid 축 이연 — 값이 "옳아서" 가 아니라 **이연된 상태를 고정**해 두는 스냅샷이다.
-  // 0 붕괴가 재발하면 여기가 먼저 깨진다 (Rust `grid_flex_item_does_not_collapse` 와 이중).
+  // grid 축 — **2026-07-28 이연 해소**. `solve_grid` 가 측정 센티넬을 받으면 트랙을
+  // available 분배 대신 자식 기여로 세운다(§12.5–§12.7.1) — fr 은 §12.7.1 used flex
+  // fraction 으로 편다. 종전 스냅샷은 컨테이너 폭 1920(=available 채움) vs DOM 400
+  // 이었고, 지금은 4 leg 전부 발산 0 이다.
   //
-  // 2026-07-28 축소: 자식 항목(`*-g1.w` / `*-g2.w`)이 빠졌다 — grid item 이 **명시
-  // width 를 유지**하게 되면서(gridItemBox.browser.test.ts) 트랙 폭으로 늘어나던
-  // 발산이 사라졌다. 남은 항목은 전부 **트랙/컨테이너 폭**(960·1920 vs 400)이라
-  // 이연 대상인 컨테이너 intrinsic 그 자체다 — 자식 상자 모델과 무관.
-  describe("grid 축 — 이연 상태 고정 (Phase 3 / G5)", () => {
+  // 0 붕괴 재발 감시는 Rust `grid_flex_item_uses_track_contribution` 와 이중이다 —
+  // 그쪽은 값(400)을, 여기는 DOM 대조를 잠근다.
+  describe("grid 축 — 트랙 기여 기반 intrinsic", () => {
     it("I. grid 직접 flex item — engine leg", () => {
-      expect(runParityCase(GRID_DEFERRED[0])).toMatchInlineSnapshot(`
-        [
-          "i-g2.x: dom=200.0 eng=960.0 (Δ760.0)",
-          "i-grid.w: dom=400.0 eng=1920.0 (Δ1520.0)",
-          "i-sidebar.x: dom=400.0 eng=1920.0 (Δ1520.0)",
-        ]
-      `);
+      expect(runParityCase(GRID_DEFERRED[0])).toMatchInlineSnapshot(`[]`);
     });
 
     it("I. grid 직접 flex item — pipeline leg", () => {
-      expect(runPipelineParityCase(GRID_DEFERRED[0])).toMatchInlineSnapshot(`
-        [
-          "i-g2.x: dom=200.0 eng=960.0 (Δ760.0)",
-          "i-grid.w: dom=400.0 eng=1920.0 (Δ1520.0)",
-          "i-sidebar.x: dom=400.0 eng=1920.0 (Δ1520.0)",
-        ]
-      `);
+      expect(runPipelineParityCase(GRID_DEFERRED[0])).toMatchInlineSnapshot(`[]`);
     });
 
     it("J. grid 중첩 — engine leg", () => {
-      expect(runParityCase(GRID_DEFERRED[1])).toMatchInlineSnapshot(`
-        [
-          "j-g2.x: dom=200.0 eng=960.0 (Δ760.0)",
-          "j-grid.w: dom=400.0 eng=1920.0 (Δ1520.0)",
-          "j-content.w: dom=400.0 eng=1920.0 (Δ1520.0)",
-          "j-sidebar.x: dom=400.0 eng=1920.0 (Δ1520.0)",
-        ]
-      `);
+      expect(runParityCase(GRID_DEFERRED[1])).toMatchInlineSnapshot(`[]`);
     });
 
     it("K. height 축(column main) — engine leg", () => {
@@ -637,14 +618,7 @@ describe("컨테이너 flex item intrinsic ↔ CSS 대조 (ADR-169)", () => {
     });
 
     it("J. grid 중첩 — pipeline leg", () => {
-      expect(runPipelineParityCase(GRID_DEFERRED[1])).toMatchInlineSnapshot(`
-        [
-          "j-g2.x: dom=200.0 eng=960.0 (Δ760.0)",
-          "j-grid.w: dom=400.0 eng=1920.0 (Δ1520.0)",
-          "j-content.w: dom=400.0 eng=1920.0 (Δ1520.0)",
-          "j-sidebar.x: dom=400.0 eng=1920.0 (Δ1520.0)",
-        ]
-      `);
+      expect(runPipelineParityCase(GRID_DEFERRED[1])).toMatchInlineSnapshot(`[]`);
     });
   });
 });

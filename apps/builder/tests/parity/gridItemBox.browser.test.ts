@@ -367,21 +367,25 @@ describe("grid item 박스 모델 — CSS 대조", () => {
   });
 
   /**
-   * 잔존 ② — **stretch-fit 인라인 크기의 definite 여부**를 엔진이 구분하지 못한다.
+   * **인라인 축은 stretch-fit 도 definite** 다 (CSS §10.3.3).
    *
-   * CSS 는 block-level `width:auto` 박스의 used 인라인 크기를 containing block 으로
-   * 채운다(stretch-fit) — 그래서 **definite** 다. flex item 의 `width:auto` 는
-   * shrink-to-fit 이라 **indefinite** 다. 엔진에는 이 둘을 가르는 신호가 없고, 트랙
-   * sizing 은 양쪽 다 상속 available 을 쓴다.
+   * block-level `width:auto` 박스는 containing block 을 채우므로 트랙에 나눠 줄 여유가
+   * 있고, flex item 의 `width:auto` 는 shrink-to-fit 이라 여유가 없다. 네 조합이 함께
+   * 있어야 두 축(부모 종류 × 트랙 종류)이 갈린다 — 종전엔 `explicit_w > 0.0` 하나로
+   * 판정해 block 부모의 `auto` 트랙이 내용 크기(40)에 멈췄고, flex 부모의 `1fr` 은
+   * 반대로 상속 available(200)로 부풀었다.
    *
-   * **`auto` 트랙과 무관한 축**이라는 것이 아래 `1fr` 대조로 드러난다 — 같은 자리에서
-   * `1fr` 이 이미 어긋나 있다. 그래서 §12.8 stretch(2026-07-28)는 엔진이 이미 쓰는
-   * definite 신호(`explicit_*`)로 게이트했고, 이 축은 건드리지 않았다. 여는 순서는
-   * 이쪽이 먼저다 — 이 축을 고치면 `auto` 트랙 stretch 게이트도 같이 넓혀야 한다.
+   * 지금은 shrink-to-fit 쪽이 intrinsic 경로(§12.5–§12.7.1)를 타고, 그 판정 결과가
+   * 그대로 §12.8 stretch 게이트가 된다.
    */
-  it("잔존 ② — stretch-fit 폭의 definite 판정 부재 (실측 스냅샷)", () => {
-    const grid = (cols: string[], parent: StyleRecord): ParityCase => ({
-      name: `cols=${cols.join(" ")}`,
+  it.each([
+    ["block", "auto auto", ["auto", "auto"], { display: "block", width: "400px" }],
+    ["block", "1fr 1fr", ["1fr", "1fr"], { display: "block", width: "400px" }],
+    ["flex", "auto auto", ["auto", "auto"], { display: "flex", width: "400px" }],
+    ["flex", "1fr 1fr", ["1fr", "1fr"], { display: "flex", width: "400px" }],
+  ] as const)("%s 부모 / %s — 트랙 여유 판정", (_p, _c, cols, parent) => {
+    const c: ParityCase = {
+      name: `${_p}/${_c}`,
       availW: 400,
       availH: 600,
       nodes: [
@@ -389,35 +393,19 @@ describe("grid item 박스 모델 — CSS 대조", () => {
         box("c1", { width: "40px", height: "40px" }),
         box(
           "grid",
-          { display: "grid", gridTemplateColumns: cols, height: "100px" },
+          { display: "grid", gridTemplateColumns: [...cols], height: "100px" },
           [0, 1],
         ),
-        box("p", parent, [2]),
+        box("p", { ...parent }, [2]),
         box("root", { display: "block", width: "400px", height: "600px" }, [3]),
       ],
-    });
-    const BLOCK: StyleRecord = { display: "block", width: "400px" };
-    const FLEX: StyleRecord = { display: "flex", width: "400px" };
-
-    // block 부모 + width:auto → CSS 는 definite(400) → 트랙이 stretch. 엔진은 미구분.
-    const bAuto = grid(["auto", "auto"], BLOCK);
-    expect(domLeg(bAuto.nodes, 400)[1].x).toBe(200);
-    expect(engineLeg(bAuto.nodes, 400, 600)[1].x).toBe(40);
-
-    // 같은 자리의 `1fr` — 이미 어긋나 있다(엔진이 상속 available 로 해소). 두 줄이
-    // "이건 auto 트랙 문제가 아니다" 를 증명한다.
-    const bFr = grid(["1fr", "1fr"], BLOCK);
-    expect(domLeg(bFr.nodes, 400)[1].x).toBe(200);
-    expect(engineLeg(bFr.nodes, 400, 600)[1].x).toBe(200); // 우연히 일치
-
-    const fFr = grid(["1fr", "1fr"], FLEX);
-    expect(domLeg(fFr.nodes, 400)[1].x).toBe(40); // shrink-to-fit → 트랙 40
-    expect(engineLeg(fFr.nodes, 400, 600)[1].x).toBe(200); // 엔진: 400 기준
-
-    // flex item 의 auto 트랙은 게이트(`explicit_w`) 덕에 정합 유지 — 회귀 감시.
-    const fAuto = grid(["auto", "auto"], FLEX);
-    expect(domLeg(fAuto.nodes, 400)[1].x).toBe(40);
-    expect(engineLeg(fAuto.nodes, 400, 600)[1].x).toBe(40);
+    };
+    const bad = diffCase(
+      c.nodes,
+      domLeg(c.nodes, c.availW),
+      engineLeg(c.nodes, c.availW, c.availH),
+    );
+    expect(bad, bad.join("\n")).toEqual([]);
   });
 
   /**

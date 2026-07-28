@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [그리드 컨테이너의 min/max-content 산출 — ADR-169 grid 이연 해소] - 2026-07-28
+
+### Bug Fixes
+
+- **그리드가 자기 intrinsic 크기를 구하지 못하던 문제** (CSS-GRID-1 §12.5 + §12.6 + §12.7.1):
+  - 인라인 축이 미결정이면 나눠 줄 여유가 없는데, `resolve_grid_tracks` 2단계가 `remaining = (container - fixed - gap).max(0.0)` 이라 음수 available 에서 `fr_size = 0` → **fr·auto 트랙이 통째로 붕괴**했다. ADR-169 는 이 때문에 grid 서브트리를 측정에서 아예 제외했고(`subtree_has_grid` 가드), 그 이연이 `containerIntrinsic` I/J 스냅샷(DOM 400 / 엔진 1920)으로 고정돼 있었다
+  - `solve_grid` 가 미결정 인라인 축을 감지해 트랙을 **자식 기여**로 세우도록 했다. 세 진입이 한 경로로 모인다 — 측정 모드 센티넬(flex item shrink-to-fit) / `width` 가 intrinsic 키워드 / 상속 available 이 indefinite
+  - `fr` 은 §12.7.1 used flex fraction 으로 편다: 후보는 (a) 각 flexible 트랙의 base ÷ factor(factor ≤ 1 이면 base), (b) 그 트랙 아이템의 max-content 기여 ÷ Σfactor(Σ < 1 이면 1). 실측 `3fr 1fr` → uff 60 → 180·60, `0.5fr 0.5fr` → uff 120 → 60·60. **min-content 모드에서는 펴지 않는다**(base 그대로 — `3fr 1fr` → 70)
+  - **`%` 트랙은 `auto` 처럼 동작한다** — 백분율의 기준이 지금 구하려는 크기 자신이라 해소할 수 없다
+  - **컨테이너 폭은 트랙 extent** 로 정정 — 셀 bounding box 는 자식이 점유한 칸까지라 빈 트랙이 빠졌다(실측 `1fr 1fr` + 자식 1개 → DOM 240, 점유 셀 기준 120)
+  - **인라인 축의 stretch-fit 도 definite** 로 판정 — block-level `width:auto` 그리드가 §12.8 stretch 대상이 된다(`gridItemBox` 구 잔존 ② 해소). 블록 축은 그대로 — `height:auto` 는 진짜 미결정
+  - **TS 선해석 제거** — `enrichWithIntrinsicSize` 가 grid 컨테이너의 intrinsic 키워드를 `calculateContentWidth` 로 미리 풀어 주입하고 있었다. 그 함수는 트랙을 몰라 자식 폭 합 근사를 낸다(실측 자식 120·60 / `auto auto` → DOM 180, 주입값 80)
+  - **Why**: 재개 조건이 "§12 track sizing 의 min/max-content 기여 산출(§12.7.1 포함)" 로 문서화돼 있었고, 그 선행 단계가 같은 날의 §12.5/§12.6 작업으로 섰다. 가드와 `subtree_has_grid` 헬퍼는 삭제
+  - 위치: `packages/composition-engine/src/tree.rs` (`grid_intrinsic_track_sizes` 신규 + `solve_grid` 의 `inline_intrinsic` 분기 + `measure_intrinsic_width` 가드 제거), `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`
+  - 검증: Chrome 대조 fixture 신설 `gridContainerIntrinsic.browser.test.ts` (engine 키워드 47 + flex item 11 + 규칙 2 + 잔존 1, pipeline 6) / `containerIntrinsic` I·J 4 leg 이 이연 스냅샷 → **발산 0** 승격 / `gridItemBox` 잔존 ② → 정합 4종 승격 / parity 790건 green / Rust 344건 green / builder unit 3012건 green / type-check PASS. 민감도 — intrinsic 경로 차단 5 red, §12.7.1 제거 25 red, 트랙 extent → 셀 bbox 4 red, stretch-fit 게이트 축소 1 red, TS 선해석 복원 6 red
+  - 라이브 확인: 실행 중인 빌더의 WASM 직접 호출 12형태(키워드 max/min × fr·auto·minmax·gap·빈 트랙, flex item 3종)가 Chrome 실측과 일치
+  - 잔존: `%` 트랙의 **내부 배분** — 컨테이너 크기는 맞지만 CSS 는 크기 확정 후 `%` 를 다시 풀어 남은 공간을 재분배한다(`50% auto` / max-content → DOM 90·90, 엔진 120·60). 2-pass 트랙 sizing 이 필요. catalog·앱 소스에 `%` grid 트랙 0건
+
 ## [암묵 그리드 행이 `grid-auto-rows` 를 무시하던 문제] - 2026-07-28
 
 ### Bug Fixes

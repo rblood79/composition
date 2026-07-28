@@ -4764,7 +4764,16 @@ export function enrichWithIntrinsicSize(
     //   버리는 게 아니라 **min-width:auto 상당의 하한**으로만 남긴다 — free space 가 없으면
     //   콘텐츠 폭을 지키고, 있으면 그 위로 grow 한다. minWidth 를 사용자가 명시했으면 그게 우선
     //   (`flex:1 minWidth:0` 은 "콘텐츠 밑으로도 줄어도 된다"는 명시적 의사표시 → 하한 0 유지).
-    if (!growsInFlex) {
+    // **grid 컨테이너의 intrinsic 키워드는 엔진 소유** (2026-07-28): `calculateContentWidth`
+    //   는 트랙을 모른다 — 자식 폭을 합치는 근사라 `width:max-content` 그리드가 실제
+    //   트랙 합과 어긋난다(실측 자식 120·60 / `auto auto` → DOM 180, 주입값 80). 엔진은
+    //   §12.5–§12.7.1 로 이 크기를 스스로 산출하므로(`solve_grid` intrinsic 경로) 키워드를
+    //   그대로 넘긴다. flex/block 컨테이너의 선해석은 잔존 — 그쪽은 별도 판정이다.
+    const isIntrinsicGrid =
+      hasExplicitIntrinsicWidthKeyword &&
+      typeof style?.display === "string" &&
+      (style.display === "grid" || style.display === "inline-grid");
+    if (!growsInFlex && !isIntrinsicGrid) {
       injectedStyle.width = ceiledWidth;
     }
     // leaf content 제안값 전달 채널 — 비텍스트 leaf(INLINE_BLOCK/CIRCLE 등) 잔존분:

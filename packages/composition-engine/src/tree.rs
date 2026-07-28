@@ -789,18 +789,11 @@ impl LayoutTree {
     /// 측정 pass 가 서브트리를 clean 으로 남겨 이후 solve 가 증분 skip 하는 오염
     /// (grid 측정 pass 선례) 도 이 복구로 함께 차단된다.
     ///
-    /// **grid 서브트리는 `None`** — 측정 불가를 값으로 위장하지 않는다 (ADR-169 Phase 3, G5).
-    /// `grid.rs::resolve_grid_tracks` 2단계는 `remaining = (container - fixed - gap).max(0.0)`
-    /// 이라 available 이 음수(측정 센티넬 / indefinite)면 `fr_size = 0` → fr·auto 트랙이
-    /// 전부 0 이 된다. 그 0 을 `content_main` 으로 소비하면 grid item 이 **통째로 붕괴**한다
-    /// (실측: 직접 flex item 1000 → 0, `flex-row > block > grid` 도 1000 → 0).
-    /// grid 축 intrinsic(CSS-GRID-1 §12 track sizing)은 본 ADR 범위 밖이므로, 측정을
-    /// 포기해 **ADR-169 이전 경로(컨테이너 available 로 solve)** 를 그대로 남긴다.
-    /// 재개 조건은 `.claude/rules/layout-engine.md` §"컨테이너 intrinsic" 참조.
+    /// **grid 서브트리도 대상**이다 (2026-07-28 — ADR-169 이 이연했던 축). `solve_grid` 가
+    /// 측정 센티넬을 받으면 트랙을 available 분배 대신 **자식 기여**로 세우므로
+    /// (§12.5–§12.7.1), 음수 available 에서 `fr_size = 0` 으로 붕괴하던 경로가 없다.
+    /// 반환이 `None` 인 경우는 이제 없다 — 시그니처는 호출부 폴백 계약 때문에 유지한다.
     fn measure_intrinsic_width(&mut self, handle: usize) -> Option<(f32, f32)> {
-        if self.subtree_has_grid(handle) {
-            return None;
-        }
         let gen = self.mutation_gen;
         if let Some((g, min_w, max_w)) = self.get(handle).and_then(|n| n.intrinsic_w) {
             if g == gen {
@@ -824,22 +817,6 @@ impl LayoutTree {
             node.intrinsic_w = Some((gen, result.0, result.1));
         }
         Some(result)
-    }
-
-    /// 서브트리(자기 포함)에 grid 컨테이너가 있는지. 측정 가드 전용 — solve 를 돌리지
-    /// 않는 순수 DFS 라 측정 2회보다 싸고, 걸리면 그 2회를 아예 생략한다.
-    ///
-    /// **전 grid 를 보수적으로 배제**한다. px 트랙만 쓰는 grid 는 음수 available 에서도
-    /// 정상이지만, 그 예외를 여기서 판정하면 track 파싱을 이 가드가 재구현하게 된다 —
-    /// grid 축을 여는 시점에 함께 정밀화할 영역이다.
-    fn subtree_has_grid(&self, handle: usize) -> bool {
-        let Some(node) = self.get(handle) else {
-            return false;
-        };
-        if matches!(node.style.display.as_deref(), Some("grid") | Some("inline-grid")) {
-            return true;
-        }
-        node.children.iter().any(|&c| self.subtree_has_grid(c))
     }
 
     /// 측정 모드에서 **자식**을 푸는 진입점 (ADR-169 Phase 4 / G4).
@@ -1350,9 +1327,6 @@ impl LayoutTree {
             }
             if resolve_dimension_opt(n.style.width.as_deref(), &ctx).is_some() {
                 continue; // main 명시 — content 슬롯 미소비
-            }
-            if self.subtree_has_grid(c) {
-                continue; // 측정 불가 → 기존 경로 유지 (§컨테이너 intrinsic 이연)
             }
             deferred_to_resolve[i] = true;
         }
@@ -1900,7 +1874,7 @@ impl LayoutTree {
         let off_y = pad_border_start(&style, &parent_ctx, false);
 
         // 트랙 available = content box (explicit=border-box 감산 / 상속도 감산).
-        let container_w = if explicit_w > 0.0 {
+        let mut container_w = if explicit_w > 0.0 {
             spec_to_content(explicit_w, own_pb_h)
         } else if avail_w >= 0.0 {
             (avail_w - own_pb_h).max(0.0)
@@ -1921,11 +1895,83 @@ impl LayoutTree {
         let row_gap = resolve_gap(style.row_gap.as_deref(), &ctx_w);
 
         // (1) track array → space-join 문자열.
-        let template_cols = join_tracks(style.grid_template_columns.as_deref());
+        let mut template_cols = join_tracks(style.grid_template_columns.as_deref());
         let mut template_rows = join_tracks(style.grid_template_rows.as_deref());
 
         // (2)+(3) 자식 placement 직렬화 (area_name|grid_column|grid_row 개행 구분).
         let placement_spec = self.build_grid_placement_spec(children);
+
+        // 아래 intrinsic 측정 pass 들은 자식 서브트리를 **컨테이너 크기**로 solve 한다.
+        // solve_* 는 말미에 dirty=false 를 찍으므로, 그 뒤 셀 크기로 다시 부르면 증분 skip
+        // 이 stale 캐시를 돌려준다 — 측정이 돌았는지 기록해 최종 pass 에서 되살린다.
+        let mut measured_with_container = false;
+
+        // ── 인라인 축이 미결정이면 트랙을 **기여로 세운다** (CSS-GRID-1 §12.5–§12.7.1) ──
+        //
+        // 세 진입이 같은 상태다: 측정 모드 센티넬(`measure_intrinsic_width` 재실행) /
+        // `width` 가 intrinsic 키워드 / 상속 available 자체가 indefinite. 어느 쪽이든
+        // "나눠 줄 여유" 가 없으므로 available 을 분배하는 평소 경로가 성립하지 않는다 —
+        // `resolve_grid_tracks` 2단계가 음수 available 에서 `fr_size = 0` 을 내 **fr·auto
+        // 트랙이 통째로 붕괴**하던 자리다 (ADR-169 이 grid 축을 이연한 사유).
+        //
+        // 여기서 트랙을 px 로 확정하고 `container_w` 를 그 합으로 세우면, 아래 경로는
+        // definite 컨테이너를 받은 것과 똑같이 돈다 — §12.8 stretch 도 auto 토큰이 남지
+        // 않아 자연히 no-op 이다(여유가 없으니 정답).
+        let inline_intrinsic = intrinsic_mode(avail_w).or_else(|| {
+            match style.width.as_deref().map(str::trim) {
+                Some(w) if w.eq_ignore_ascii_case("min-content") => Some(IntrinsicMode::Min),
+                Some(w) if w.eq_ignore_ascii_case("max-content") => Some(IntrinsicMode::Max),
+                // `fit-content` = clamp(min, stretch-fit, max) — 상한 쪽부터 구하고
+                //   아래에서 available 로 clamp 한다.
+                Some(w) if w.eq_ignore_ascii_case("fit-content") => Some(IntrinsicMode::Max),
+                _ => {
+                    // 상속 available 도 미결정 → shrink-to-fit = max-content.
+                    if explicit_w > 0.0 || avail_w >= 0.0 { None } else { Some(IntrinsicMode::Max) }
+                }
+            }
+        });
+
+        if let Some(mode) = inline_intrinsic {
+            let toks: Vec<String> = grid::tokenize_template(&template_cols);
+            if !toks.is_empty() {
+                let col_count = toks.len();
+                let mut col_min = vec![0.0f32; col_count];
+                let mut col_max = vec![0.0f32; col_count];
+                for (i, &c) in children.iter().enumerate() {
+                    let col = grid_line_to_track_index(
+                        self.get(c).and_then(|n| n.style.grid_column_start.as_deref()),
+                        i % col_count,
+                    );
+                    let fixed_max = toks.get(col).and_then(|t| track_fixed_max(t, 0.0));
+                    let (mn, mx, solved_with_container) =
+                        self.col_contribution(c, container_w, container_h, fixed_max);
+                    measured_with_container |= solved_with_container;
+                    if col < col_count {
+                        col_min[col] = col_min[col].max(mn);
+                        col_max[col] = col_max[col].max(mx);
+                    }
+                }
+                let sizes = grid_intrinsic_track_sizes(&toks, &col_min, &col_max, mode);
+                let sum: f32 = sizes.iter().sum::<f32>()
+                    + col_gap * (col_count as f32 - 1.0).max(0.0);
+                // `fit-content` 는 stretch-fit(=상속 available)으로 한 번 더 clamp 한다.
+                let is_fit_content = style
+                    .width
+                    .as_deref()
+                    .map(|w| w.trim().eq_ignore_ascii_case("fit-content"))
+                    .unwrap_or(false);
+                container_w = if is_fit_content && avail_w >= 0.0 {
+                    sum.min((avail_w - own_pb_h).max(0.0))
+                } else {
+                    sum
+                };
+                template_cols = sizes
+                    .iter()
+                    .map(|s| format!("{s}px"))
+                    .collect::<Vec<_>>()
+                    .join(" ");
+            }
+        }
 
         // auto row intrinsic 측정. 두 케이스를 통합 처리한다:
         //  (A) implicit auto row (gridTemplateRows 미명시) + 전부 auto-placement:
@@ -1949,11 +1995,6 @@ impl LayoutTree {
         //    placement 명시인 케이스가 미측정 → template_rows 빈 문자열 그대로 grid.rs
         //    전달 → row_tracks 0개 → cell_bounds height=100 fallback + row 겹침. 2026-07-06)
         let implicit_rows = template_rows.is_empty() && !children.is_empty();
-
-        // 아래 intrinsic 측정 pass 들은 자식 서브트리를 **컨테이너 크기**로 solve 한다.
-        // solve_* 는 말미에 dirty=false 를 찍으므로, 그 뒤 셀 크기로 다시 부르면 증분 skip
-        // 이 stale 캐시를 돌려준다 — 측정이 돌았는지 기록해 최종 pass 에서 되살린다.
-        let mut measured_with_container = false;
 
         // §12.8 stretch 대상 인덱스 — 측정으로 `{n}px` 가 되기 **전에** 어느 트랙이 auto
         // 였는지 기록해 둔다. 치환 후에는 토큰만으로 구분할 수 없다.
@@ -2122,9 +2163,16 @@ impl LayoutTree {
             stretch_auto_tracks(&mut row_tracks, &row_auto_idx, container_h, row_gap);
             template_rows = row_tracks.join(" ");
         }
+        // **인라인 축은 stretch-fit 도 definite** 다 — block-level `width:auto` 박스는 CSS 상
+        //   containing block 을 채우므로(§10.3.3) 나눠 줄 여유가 있다. 그 구분은 이제 위
+        //   `inline_intrinsic` 이 준다: shrink-to-fit(flex item / 측정 모드 / 키워드)이면
+        //   `Some`, 그 외에 상속 available 이 확정이면 stretch-fit 이다.
+        //   블록 축(`align_content`)에는 이 완화를 주지 않는다 — `height:auto` 는 내용 크기라
+        //   진짜 미결정이다 (§여유가 없는 것과 음수인 것은 다르다).
+        let inline_definite = explicit_w > 0.0 || (inline_intrinsic.is_none() && avail_w >= 0.0);
         let mut col_tracks: Vec<String> = grid::tokenize_template(&template_cols);
         let template_cols =
-            if explicit_w > 0.0 && distribution_allows_stretch(style.justify_content.as_deref()) {
+            if inline_definite && distribution_allows_stretch(style.justify_content.as_deref()) {
                 stretch_auto_tracks(&mut col_tracks, &col_auto_idx, container_w, col_gap);
                 col_tracks.join(" ")
             } else {
@@ -2286,7 +2334,18 @@ impl LayoutTree {
         }
 
         // 컨테이너 크기: 명시 있으면 명시, 없으면 셀 bounding box.
-        let final_w = if explicit_w > 0.0 { explicit_w } else { max_right };
+        //
+        // **intrinsic 경로는 트랙 extent** 를 쓴다 — 셀 bounding box 는 자식이 **점유한**
+        // 칸까지만이라 빈 트랙이 빠진다. CSS 는 빈 트랙도 자리를 차지한다 (실측
+        // `1fr 1fr` + 자식 1개 / max-content → DOM 240, 점유 셀 기준이면 120).
+        // definite 경로의 `max_right` 는 기존 계약 그대로 둔다.
+        let final_w = if explicit_w > 0.0 {
+            explicit_w
+        } else if inline_intrinsic.is_some() {
+            container_w + own_pb_h
+        } else {
+            max_right
+        };
         let final_h = if explicit_h > 0.0 { explicit_h } else { max_bottom };
         if let Some(n) = self.get_mut(handle) {
             n.layout = NodeLayout { x: 0.0, y: 0.0, width: final_w, height: final_h };
@@ -2852,6 +2911,95 @@ fn resolve_track_with_contribution(token: &str, mn: f32, mx: f32) -> String {
         },
         (None, None) => token.trim().to_string(),
     }
+}
+
+/// `"2fr"` → `Some(2.0)`. fr 이 아니면 `None`.
+fn parse_fr(v: &str) -> Option<f32> {
+    let n = v.trim().strip_suffix("fr")?.trim();
+    let f = if n.is_empty() { 1.0 } else { n.parse::<f32>().ok()? };
+    Some(if f == 0.0 { 1.0 } else { f })
+}
+
+/// intrinsic 제약 아래의 트랙 크기 (CSS-GRID-1 §12.5 + §12.6 + §12.7.1).
+///
+/// 컨테이너 인라인 크기가 아직 없는 상태 — `width: min-content` 류 키워드, 측정 모드
+/// 센티넬, flex shrink-to-fit — 에서는 **나눠 줄 여유가 없다**. 각 트랙을 자식 기여로
+/// 세우고, `fr` 은 여유를 못 받으므로 §12.7.1 "Find the Size of an fr" 로 편다.
+///
+/// | 트랙          | min-content 모드 | max-content 모드              |
+/// | ------------- | ---------------- | ----------------------------- |
+/// | `px`          | 그 값            | 그 값                         |
+/// | `%`           | min-content 기여 | max-content 기여 (auto 동형)  |
+/// | `auto`        | min-content 기여 | max-content 기여              |
+/// | `min-content` | min-content      | min-content                   |
+/// | `max-content` | max-content      | max-content                   |
+/// | `fit-content` | min-content      | clamp(min, L, max)            |
+/// | `minmax(a,b)` | a 의 base        | b 의 상한 (b 가 fr 이면 §12.7.1) |
+/// | `fr`          | min-content 기여 | flex factor × used fraction   |
+///
+/// **`%` 는 auto 처럼 동작한다** — 백분율의 기준이 지금 구하려는 그 크기라 해소 불가
+/// (실측 `50% auto` / max-content → 180 = 120+60, min-content → 70 = 40+30).
+/// **min-content 모드에서 fr 은 펴지 않는다** — base 그대로다 (실측 `3fr 1fr` → 70).
+fn grid_intrinsic_track_sizes(
+    tokens: &[String],
+    col_min: &[f32],
+    col_max: &[f32],
+    mode: IntrinsicMode,
+) -> Vec<f32> {
+    let mn = |i: usize| col_min.get(i).copied().unwrap_or(0.0);
+    let mx = |i: usize| col_max.get(i).copied().unwrap_or(0.0);
+
+    let mut base: Vec<f32> = Vec::with_capacity(tokens.len());
+    let mut limit: Vec<f32> = Vec::with_capacity(tokens.len());
+    let mut flex: Vec<Option<f32>> = Vec::with_capacity(tokens.len());
+
+    for (i, tok) in tokens.iter().enumerate() {
+        let (min_fn, max_fn) = split_track_sizing(tok);
+        let b = match &min_fn {
+            SizingFn::MaxContent => mx(i),
+            // `auto`/`min-content`/`fit-content` + 해소 불가한 길이(%/fr) 는 전부 min-content.
+            SizingFn::Definite(d) => parse_px(d).unwrap_or_else(|| mn(i)),
+            _ => mn(i),
+        };
+        let (l, f) = match &max_fn {
+            SizingFn::MinContent => (mn(i), None),
+            SizingFn::Auto | SizingFn::MaxContent => (mx(i), None),
+            SizingFn::FitContent(arg) => (
+                parse_px(arg).map_or(mx(i), |lim| lim.clamp(mn(i).min(mx(i)), mx(i))),
+                None,
+            ),
+            SizingFn::Definite(d) => match parse_fr(d) {
+                // flexible — 상한은 무한. §12.7.1 이 뒤에서 정한다.
+                Some(fr) => (f32::INFINITY, Some(fr)),
+                None => (parse_px(d).unwrap_or_else(|| mx(i)), None),
+            },
+        };
+        base.push(b);
+        limit.push(l.max(b)); // §12.4 — 상한은 base 아래로 못 내려간다
+        flex.push(f);
+    }
+
+    if mode == IntrinsicMode::Min {
+        return base;
+    }
+
+    // §12.7.1 "Find the Size of an fr" — 여유가 미결정일 때의 used flex fraction.
+    //   후보 둘: (a) 각 flexible 트랙의 base ÷ flex factor (factor ≤ 1 이면 base 그대로),
+    //   (b) 그 트랙을 지나는 아이템의 max-content 기여 ÷ Σfactor (Σ < 1 이면 1 로 본다).
+    //   실측: `3fr 1fr`(기여 120·60) → uff 60 → 180·60 / `0.5fr 0.5fr` → uff 120 → 60·60.
+    let mut uff: f32 = 0.0;
+    for (i, f) in flex.iter().enumerate() {
+        let Some(fr) = *f else { continue };
+        uff = uff.max(if fr > 1.0 { base[i] / fr } else { base[i] });
+        uff = uff.max(mx(i) / fr.max(1.0));
+    }
+
+    (0..tokens.len())
+        .map(|i| match flex[i] {
+            Some(fr) => base[i].max(fr * uff),
+            None => limit[i],
+        })
+        .collect()
 }
 
 /// `"80px"` → `Some(80.0)`. px 이외(%/calc)는 `None` — 호출부가 폴백을 정한다.
@@ -6082,34 +6230,35 @@ mod tests {
         serde_json::from_str(r#"{"display":"grid","gridTemplateColumns":["1fr","1fr"]}"#).unwrap()
     }
 
-    /// **ADR-169 Phase 3 / G5** — grid 서브트리는 측정 대상에서 제외된다.
+    /// grid 서브트리도 **측정된다** (2026-07-28 — ADR-169 이연 해소).
     ///
-    /// `solve_grid` 는 available 이 음수면 fr·auto 트랙을 0 으로 해소하므로 (`grid.rs`
-    /// `resolve_grid_tracks` 2단계 `remaining.max(0.0)`), 측정 결과가 (0,0) 이 된다.
-    /// 그 0 을 `content_main` 으로 소비하면 grid item 이 통째로 사라진다 — 측정 불가를
-    /// **값으로 위장하지 않고** `None` 으로 신고해 이전 경로를 유지하는 것이 계약이다.
+    /// `1fr 1fr` + 자식 둘(min 100 / max 200): min-content 는 fr 을 펴지 않아 base 합
+    /// 200, max-content 는 §12.7.1 used flex fraction 200 으로 트랙 둘이 200 씩 → 400.
+    /// 조상도 같은 값이 올라온다.
     #[test]
-    fn grid_subtree_is_not_measured() {
+    fn grid_subtree_is_measured() {
         let mut tree = LayoutTree::new();
         let a = tree.create_node(scalar_leaf(100.0, 200.0));
         let b = tree.create_node(scalar_leaf(100.0, 200.0));
         let grid = tree.create_node(grid_two_fr());
         tree.set_children(grid, vec![a, b]);
-        assert_eq!(tree.measure_intrinsic_width(grid), None, "grid 자신");
+        assert_eq!(tree.measure_intrinsic_width(grid), Some((200.0, 400.0)), "grid 자신");
 
-        // 조상도 마찬가지 — grid 를 품은 서브트리 전체가 측정 불가다.
         let content = tree.create_node(NodeStyle::default());
         tree.set_children(content, vec![grid]);
-        assert_eq!(tree.measure_intrinsic_width(content), None, "grid 를 품은 조상");
+        assert_eq!(
+            tree.measure_intrinsic_width(content),
+            Some((200.0, 400.0)),
+            "grid 를 품은 조상"
+        );
     }
 
-    /// grid 를 품은 flex item 이 **붕괴하지 않는다** (Phase 2 회귀 차단).
+    /// grid 를 품은 flex item 은 **트랙 기여 합**이 된다 (available 채움이 아니라).
     ///
-    /// 토글 실험 실측 — 가드 없이는 직접 형태·중첩 형태 모두 1000 → **0**.
-    /// 가드 후에는 ADR-169 이전과 동일하게 available 을 채운다. 이 1000 은 "옳은 값"
-    /// 이 아니라 **이연된 상태의 값**이다 (DOM 은 트랙 기여 합인 400 을 준다).
+    /// 이연 상태에서는 1000(=컨테이너 폭)이었다 — "옳은 값" 이 아니라 측정을 포기한
+    /// 결과였다. 지금은 DOM 과 같은 400 이다 (트랙 200 + 200).
     #[test]
-    fn grid_flex_item_does_not_collapse() {
+    fn grid_flex_item_uses_track_contribution() {
         for nested in [false, true] {
             let mut tree = LayoutTree::new();
             let a = tree.create_node(scalar_leaf(100.0, 200.0));
@@ -6134,16 +6283,16 @@ mod tests {
             tree.compute_layout(root, 1000.0, 100.0);
             assert_eq!(
                 tree.get_layout(item).width,
-                1000.0,
-                "grid item 붕괴 (nested={nested})"
+                400.0,
+                "grid item 이 트랙 기여 합이 아님 (nested={nested})"
             );
         }
     }
 
-    /// grid 가드가 **비-grid 형태의 측정까지 막지는 않는다** — 가드를 서브트리 스캔으로
-    /// 두었기 때문에 과잉 차단이 쉽다. 같은 트리에서 grid 형제만 제외되는지 확인.
+    /// grid 측정이 **형제의 측정을 오염시키지 않는다** — 트리 단위 세대 캐시라 서로의
+    /// 스냅샷/복구가 섞이면 값이 새어 나온다.
     #[test]
-    fn grid_guard_does_not_block_sibling_measurement() {
+    fn grid_measurement_does_not_disturb_sibling() {
         let mut tree = LayoutTree::new();
         let leaf = tree.create_node(scalar_leaf(42.0, 118.0));
         let plain = tree.create_node(NodeStyle::default());
@@ -6152,6 +6301,12 @@ mod tests {
         let grid = tree.create_node(grid_two_fr());
         tree.set_children(grid, vec![g_leaf]);
         assert_eq!(tree.measure_intrinsic_width(plain), Some((42.0, 118.0)));
-        assert_eq!(tree.measure_intrinsic_width(grid), None);
+        // 자식 하나 + 트랙 둘 — 빈 트랙도 자리를 차지한다(max 200 → 트랙 200·200).
+        assert_eq!(tree.measure_intrinsic_width(grid), Some((100.0, 400.0)));
+        assert_eq!(
+            tree.measure_intrinsic_width(plain),
+            Some((42.0, 118.0)),
+            "grid 측정 후 형제 값이 흔들림"
+        );
     }
 }

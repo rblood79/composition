@@ -133,22 +133,60 @@ flex item 의 automatic minimum size (min-width/height:auto = content 하한) �
 - **CSS base width 채널**: 텍스트 leaf 의 폭 주입 제거로 generated CSS base 규칙은 별도 채널이 담당 — `width:100%` 계열(text/heading/paragraph/description)은 B22, `width:fit-content`(label)는 ADR-165 신설 선주입 (`implicitStyles.ts` — catalog Label 은 containerStyles 부재라 CSS 실측 근거 직접 주입). 신규 텍스트 leaf 계열 추가 시 CSS base width 규칙의 엔진 채널 존재를 확인할 것.
 - Chrome 실측 fixture: `apps/builder/tests/parity/autoMin.browser.test.ts` (8케이스) + `intrinsicSizing.browser.test.ts` (engine 6 — DOM 원자/스칼라 격리 + pipeline 4 — 실텍스트 end-to-end) — floor/스칼라 동작 변경 시 여기부터 갱신
 
-## 컨테이너 intrinsic — 측정 모드 센티넬 + grid 이연 (ADR-169, 2026-07-27)
+## 컨테이너 intrinsic — 측정 모드 센티넬 (ADR-169, 2026-07-27 / grid 축 2026-07-28)
 
 컨테이너 flex item 의 intrinsic 은 **엔진이 자기 알고리즘을 측정 모드로 재실행**해 얻는다 (Taffy `AvailableSpace::{MinContent,MaxContent}` / Yoga `MeasureMode` / Blink `ComputeMinMaxSizes` 와 같은 형태). `INDEFINITE_AVAIL(-1)` 옆에 `MIN_CONTENT_AVAIL(-2)` / `MAX_CONTENT_AVAIL(-3)` 센티넬을 두어 `solve_node` 시그니처는 그대로다.
 
 - **소비 지점**: `solve_flex` 의 `is_row` 분기가 **auto-main + 자식 보유 + 스칼라 미공급** item 에 대해 `measure_intrinsic_width` 를 호출해 off 13(`content_main` = max-content)과 off 19(`content_min_main` = 정확 min-content)를 **함께** 채운다. 한쪽만 채우면 긴 텍스트 초과가 악화된다 (ADR-169 G3).
 - **캐시**: 노드당 `(mutation_gen, min, max)`. 무효화 기준은 `dirty` 가 아니라 **트리 단위 세대 카운터**다 — `propagate_dirty` 는 이미 dirty 인 조상에서 조기 종료하므로 "dirty ⟹ 캐시 없음" 이 성립하지 않는다. 측정 전후로 서브트리 `layout`/`dirty` 를 스냅샷·복구해 부작용 0 을 유지한다.
-- **grid 는 이연** — `measure_intrinsic_width` 가 grid 서브트리(자기 또는 자손)에 `None` 을 돌려 **측정 자체를 하지 않는다**. `grid.rs::resolve_grid_tracks` 2단계가 `remaining = (container - fixed - gap).max(0.0)` 이라 음수 available 에서 `fr_size = 0` → fr·auto 트랙이 전부 0 이 되고, 그 0 을 `content_main` 으로 소비하면 grid item 이 **통째로 붕괴**한다 (실측: 직접·중첩 형태 모두 1920 → 0). 이연 상태의 잔존 발산은 `containerIntrinsic.browser.test.ts` I/J 스냅샷 (DOM 400 / engine 1920).
-  - **재개 조건**: grid 축 intrinsic 을 열려면 CSS-GRID-1 §12 track sizing 의 min/max-content 기여 산출이 먼저다 (fr 트랙의 §12.7.1 포함). 그 전에 `subtree_has_grid` 가드만 풀면 붕괴가 되살아난다 — 가드 제거는 `grid_flex_item_does_not_collapse` (Rust) + I/J 스냅샷이 동시에 green 인 상태에서만.
+- **grid 축도 열렸다 (2026-07-28)** — 종전엔 `subtree_has_grid` 가드로 grid 서브트리를 측정에서 제외했다. `resolve_grid_tracks` 2단계가 음수 available 에서 `fr_size = 0` 을 내 fr·auto 트랙이 붕괴했기 때문이다. 지금은 `solve_grid` 가 미결정 인라인 축을 감지해 트랙을 **자식 기여**로 세우므로(아래 §그리드 자신의 min/max-content) 붕괴 경로가 없고, 가드와 `subtree_has_grid` 헬퍼는 삭제됐다. `containerIntrinsic.browser.test.ts` I/J 는 이연 스냅샷에서 **발산 0** 으로 승격.
 - **height 축(column main)은 결함 부재** — 빈도가 아니라 **구조상**이다. 인라인 방향은 블록 박스의 초기 동작이 stretch 라 auto 폭 자식이 available 을 채우지만, 블록 방향은 `height:auto` 가 내용 크기다. "늘어나기만 하는 내용을 고유 크기로 오인" 하는 형태가 세로에서는 성립하지 않는다 (K 케이스 실측 — 컨테이너·형제 정합). K 에 남는 `height:100%` 발산은 flex 분배 후 백분율 재해소 부재로, 별개 영역이다.
 
 ### 금지 패턴
 
-- ❌ `measure_intrinsic_width` 의 `None` 을 `0` 이나 `unwrap_or_default()` 로 흡수 — grid item 붕괴가 그대로 재발한다 (측정 불가를 값으로 위장 금지)
 - ❌ 캐시 무효화를 `dirty` 플래그에 종속 → `propagate_dirty` 조기 종료로 구멍이 생긴다 (`mutation_gen` 비교가 정본)
 - ❌ 측정 후 `mark_subtree_dirty` 로 복구 갈음 → 자손 캐시까지 날아가 중첩 깊이에 지수적
 - ❌ 측정 배선을 `is_row` 밖으로 확장 → 세로 축은 결함 부재이며, 확장 시 height-for-width 2-pass 계약(ADR-165)과 충돌
+
+## 그리드 자신의 min/max-content — 여유가 없을 때의 트랙 sizing (CSS-GRID-1 §12.5–§12.7.1, 2026-07-28)
+
+인라인 축이 미결정이면 **나눠 줄 여유가 없다**. 세 진입이 같은 상태이고 한 경로로 모인다:
+
+| 진입                         | 예                                   |
+| ---------------------------- | ------------------------------------ |
+| 측정 모드 센티넬             | flex item 의 shrink-to-fit base size |
+| `width` 가 intrinsic 키워드  | `width: max-content` 인 그리드       |
+| 상속 available 이 indefinite | 미결정 폭 컨테이너 안의 그리드       |
+
+판정은 `solve_grid` 의 `inline_intrinsic` 한 곳. `Some(mode)` 면 트랙을 자식 기여로 세워 **px 로 확정**하고 `container_w` 를 그 합으로 둔다 — 이후 경로는 definite 컨테이너를 받은 것과 똑같이 돈다.
+
+| 트랙             | min-content 모드 | max-content 모드                 |
+| ---------------- | ---------------- | -------------------------------- |
+| `px`             | 그 값            | 그 값                            |
+| `%`              | min-content 기여 | max-content 기여 (`auto` 동형)   |
+| `auto`           | min-content 기여 | max-content 기여                 |
+| `min-content`    | min-content      | min-content                      |
+| `max-content`    | max-content      | max-content                      |
+| `fit-content(L)` | min-content      | clamp(min, L, max)               |
+| `minmax(a,b)`    | a 의 base        | b 의 상한 (b 가 fr 이면 §12.7.1) |
+| `fr`             | min-content 기여 | flex factor × used fraction      |
+
+- **`%` 는 `auto` 처럼 동작한다** — 백분율의 기준이 지금 구하려는 크기 자신이라 해소할 수 없다 (실측 `50% auto` / max-content → 180 = `auto auto` 와 동일).
+- **min-content 모드에서 `fr` 은 펴지 않는다** — base 그대로다 (실측 `3fr 1fr` → 70). §12.7.1 의 used flex fraction 은 max-content 모드에서만 돈다: 후보는 (a) 각 flexible 트랙의 base ÷ factor(factor ≤ 1 이면 base 그대로), (b) 그 트랙 아이템의 max-content 기여 ÷ Σfactor(Σ < 1 이면 1 로 본다). 실측 — `3fr 1fr` uff 60 → 180·60 / `0.5fr 0.5fr` uff 120 → 60·60.
+- **fr 은 얼리는 것이 맞다.** 컨테이너 확정 후 fr 을 다시 분배하면 `1fr 1fr` / min-content 가 35·35 가 되지만 CSS 는 40·30 이다 (§12.7.1 의 "base 를 밑도는 fr 은 inflexible 로 재시작" 과 같은 결과).
+- **컨테이너 폭은 트랙 extent** 다 — 셀 bounding box(`max_right`)는 자식이 **점유한** 칸까지라 빈 트랙이 빠진다 (실측 `1fr 1fr` + 자식 1개 / max-content → DOM 240, 점유 셀 기준이면 120). definite 경로의 `max_right` 는 기존 계약 유지.
+- **인라인 축은 stretch-fit 도 definite** 다 — block-level `width:auto` 는 containing block 을 채우므로(§10.3.3) §12.8 stretch 대상이다. 그 구분을 `inline_intrinsic` 이 준다(`Some` = shrink-to-fit). **블록 축은 아니다** — `height:auto` 는 내용 크기라 진짜 미결정 (§여유가 없는 것과 음수인 것은 다르다).
+- **TS 는 grid 컨테이너의 intrinsic 키워드를 선해석하지 않는다** — `calculateContentWidth` 는 트랙을 몰라 자식 폭 합 근사를 낸다 (실측 자식 120·60 / `auto auto` → DOM 180, 주입값 80). flex/block 컨테이너의 선해석은 잔존.
+- Chrome 실측 fixture: `gridContainerIntrinsic.browser.test.ts` (engine 키워드 47 + flex item 11 + 규칙 2 + 잔존 1, pipeline 6). 민감도 — intrinsic 경로 차단 5 red / §12.7.1 제거 25 red / 트랙 extent → 셀 bbox 4 red / stretch-fit 게이트 축소 1 red / TS 선해석 복원 6 red.
+- **잔존**: `%` 트랙의 **내부 배분**. 컨테이너 크기는 맞지만 CSS 는 크기 확정 후 `%` 를 다시 풀어 남은 공간을 재분배한다 (`50% auto` / max-content → DOM 90·90, 엔진 120·60). 고치려면 컨테이너 확정 후 트랙 sizing 2-pass 가 필요하다. catalog·앱 소스에 `%` grid 트랙 0건.
+
+### 금지 패턴
+
+- ❌ 미결정 available 을 그대로 `resolve_grid_tracks` 에 넘기기 → `remaining.max(0.0)` 이 0 을 내 fr·auto 트랙이 붕괴한다 (ADR-169 이 grid 를 이연했던 바로 그 경로)
+- ❌ 컨테이너 확정 후 `fr` 을 다시 분배 → min-content 모드에서 35·35 (CSS 는 40·30)
+- ❌ intrinsic 컨테이너 폭을 셀 bounding box 로 산출 → 빈 트랙이 빠진다
+- ❌ 블록 축(`align_content`)에 stretch-fit definite 완화를 적용 → `height:auto` 는 진짜 미결정이다
+- ❌ TS 에서 grid 컨테이너의 `min-content`/`max-content`/`fit-content` 를 px 로 선해석해 주입 → 트랙을 모르는 근사가 엔진 결과를 덮는다
 
 ## 교차축 라인 cross 는 컨테이너 cross **대입** (CSS-FLEXBOX §9.4 step 8, 2026-07-27)
 
@@ -280,7 +318,7 @@ grid item 의 크기·위치는 **자식 자신의 상자 모델**이 정하고,
 - **넘치는 아이템은 자르지 않는다**. 구 `.min(cell)` 클램프는 `min-width` 가 셀을 넘기는 경우까지 삼켰다. 위치 정렬(center/end)이 음수 offset 인 것도 flex 축과 같은 규칙(§4.2 `unsafe`).
 - **트랙 폭 ≠ 자식 폭**. 이 혼동이 Rust golden 2건에 그대로 굳어 있었다 (`grid_mixed_px_and_auto_columns_preserve_px` / `grid_progressbar_realstruct_row_and_col_auto` — 자식 폭에 트랙 폭을 기대). 트랙 폭의 근거는 **형제의 x 좌표**가 대신 증명한다.
 - 민감도 (`gridItemBox.browser.test.ts` 113건 기준): explicit 규칙 104 red / margin 14 / min·max 10 / 넘침 6.
-- **잔존 3건** (같은 fixture 의 스냅샷이 고정): ① 내용 없는 auto-width 자식의 shrink-to-fit (엔진은 0 붕괴 방지로 셀을 채운다 — 측정 협업 영역) ② **stretch-fit 인라인 크기의 definite 판정 부재** (block-level `width:auto` 는 CSS 상 definite 인데 엔진은 미구분 — `1fr` 이 이미 같은 축에서 어긋나 있다, 아래 §auto 트랙 stretch) ③ **block-level** 박스의 `justify-self` 미지원 (CSS-ALIGN §5.1 은 block 에도 적용 — 별개 코드 경로).
+- **잔존 2건** (같은 fixture 가 고정): ① 내용 없는 auto-width 자식의 shrink-to-fit (엔진은 0 붕괴 방지로 셀을 채운다 — 측정 협업 영역) ② **block-level** 박스의 `justify-self` 미지원 (CSS-ALIGN §5.1 은 block 에도 적용 — 별개 코드 경로). 구 잔존 ②(stretch-fit definite 판정)는 2026-07-28 해소 — §그리드 자신의 min/max-content.
 
 ### 금지 패턴
 
@@ -304,7 +342,7 @@ grid item 의 크기·위치는 **자식 자신의 상자 모델**이 정하고,
 - **거처는 `solve_grid` 의 측정 직후** (`stretch_auto_tracks`, tree.rs). 측정이 `auto` 토큰을 `{n}px` 로 치환해 버리므로 **어느 트랙이 auto 였는지 인덱스로 따로 들고 가야 한다** (`row_auto_idx`/`col_auto_idx`). 치환 후 토큰만 보면 px 트랙과 구분이 안 된다.
 - 참여 자격은 **max 트랙 sizing 이 `auto`** 하나다. `px`/`%`/`minmax(_, px)` 는 빠진다 — 실측 `auto minmax(50px,80px)` / 300 에서 minmax 는 80, auto 가 220. `fr` 은 별도 조건이 필요 없다: fr 이 여유를 전부 흡수해 `free == 0` 이 되므로 **자동으로** no-op 이다.
 - **definite 판정은 `explicit_*` 하나** — `align-content` 게이트와 같은 근거이자 같은 신호다 (여유는 definite size 에서만 생긴다). `height:auto` 그리드, flex item 그리드 모두 stretch 없음.
-- **가로축을 `explicit_w > 0.0` 으로 좁힌 이유**: block-level `width:auto` 그리드는 CSS 상 stretch-fit 이라 인라인 크기가 **definite** 인데, 엔진에는 그걸 shrink-to-fit 과 가르는 신호가 없다. 같은 자리에서 **`1fr` 이 이미 어긋나 있다** — flex row 안의 auto-width 그리드에서 DOM 80 vs 엔진 400. `auto` 와 무관한 별개 축이라 같이 풀지 않았고, 좁힌 게이트 덕에 `auto` 트랙이 우연히 맞던 경우도 안 깨진다. 여는 순서는 **그 축이 먼저** — 열면 이 게이트도 같이 넓힌다.
+- **가로축 게이트는 2026-07-28 에 넓어졌다**: 종전엔 `explicit_w > 0.0` 하나였다 — block-level `width:auto` 그리드는 CSS 상 stretch-fit 이라 definite 인데 엔진에 그 신호가 없었기 때문이다. 지금은 `inline_intrinsic`(§그리드 자신의 min/max-content)이 shrink-to-fit 여부를 주므로 `explicit_w > 0.0 || (inline_intrinsic.is_none() && avail_w >= 0.0)` 로 판정한다. 세로축은 그대로 — `height:auto` 는 진짜 미결정이다.
 - **암묵 트랙**(`gridTemplateRows` 미명시)도 대상이다 — 크기를 정하는 건 `grid-auto-rows`(기본 `auto`)이므로, 고정 크기를 지정했으면 제외한다.
 - Chrome 실측 fixture: `gridAutoTrackStretch.browser.test.ts` (61 정합 + 규칙 요약 + 잔존 2). 민감도 — stretch 무력화 35 red / distribution 게이트 제거 31 red / definite 게이트를 상속 available 로 완화 5 red.
 - 라이브 영향: 카탈로그 grid 4곳(ProgressBar/Slider)이 전부 `1fr auto` 라 free==0 → no-op, 행은 암묵 auto 지만 컨테이너 높이가 auto 라 게이트에 걸린다.
