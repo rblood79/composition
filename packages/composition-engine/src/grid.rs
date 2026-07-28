@@ -304,28 +304,86 @@ fn resolve_grid_tracks(tracks: &mut [GridTrack], container_size: f32, gap: f32) 
     // 1.5단계: §12.6 Maximize Tracks — base 를 growth limit 까지 키운다.
     maximize_tracks(tracks, container_size, total_gap);
 
-    // 2단계: §12.7 — 남은 공간을 fr 풀에 분배.
-    let used: f32 = tracks.iter().map(|t| t.size).sum();
-    let remaining = (container_size - used - total_gap).max(0.0);
-    let fr_size = if fr_total > 0.0 {
-        remaining / fr_total
-    } else {
-        0.0
-    };
-
-    for track in tracks.iter_mut() {
-        match track.unit {
-            // fr_value 는 파싱 시 unwrap_or(1.0) 로 최소 1 보장됨 → 그대로 분배.
-            TrackUnit::Fr => track.size = fr_size * track.fr_value,
-            TrackUnit::Auto => track.size = fr_size,
-            // max 가 fr 인 minmax: min 보장 + fr 분배. (max 가 px 인 것은 1.5단계에서 확정)
-            TrackUnit::Minmax if track.max < 0.0 => {
-                let min_val = track.min;
-                let fr_val = track.max.abs();
-                track.size = min_val.max(min_val + fr_size * fr_val);
-            }
-            _ => {} // px, %, minmax(_, px) 이미 확정
+    // 2단계: §12.7.1 "Find the Size of an fr" — freeze-restart.
+    //
+    // flexible 풀 = fr / auto(1fr 근사) / minmax(_, fr). hf = leftover ÷ Σ(unfrozen
+    // factor, 하한 1 — §12.7.1 "Σ < 1 이면 1 로 본다"), candidate = hf × factor.
+    // candidate 가 base 를 밑도는 트랙은 **base 로 freeze 하고 재시작** — 그 base 는
+    // leftover 에서 빠진다. 종전 "min 보장 + share 가산"(min + fr_size·fr) 근사는
+    // base 를 남은 공간 계산에 이중 반영해 트랙 합이 컨테이너를 넘거나(§12.6 fixture
+    // 의 합-초과 회귀와 동형), base 가 없는 fr 을 균등 분배로만 풀어 §12.7.1 의
+    // freeze 결과(`1fr 1fr`/120 · 기여 90/30 → 90/30, 균등이면 60/60)와 어긋났다
+    // (ADR-170 군집 D). 단독 fr 의 base 는 tree.rs 가 `minmax({기여}px, fr)` 로
+    // 공급한다 (§7.2.4 — fr = minmax(auto, fr)).
+    let _ = fr_total;
+    let is_flex = |t: &GridTrack| -> Option<(f32, f32)> {
+        // (factor, base)
+        match t.unit {
+            TrackUnit::Fr => Some((t.fr_value, 0.0)),
+            TrackUnit::Auto => Some((1.0, 0.0)),
+            TrackUnit::Minmax if t.max < 0.0 => Some((t.max.abs(), t.min)),
+            _ => None,
         }
+    };
+    let non_flex_used: f32 = tracks
+        .iter()
+        .filter(|t| is_flex(t).is_none())
+        .map(|t| t.size)
+        .sum();
+    let flex_info: Vec<Option<(f32, f32)>> = tracks.iter().map(&is_flex).collect();
+    if flex_info.iter().all(|f| f.is_none()) {
+        return;
+    }
+    let mut frozen: Vec<Option<f32>> = vec![None; tracks.len()];
+    loop {
+        let frozen_sum: f32 = frozen.iter().flatten().sum();
+        let leftover =
+            (container_size - total_gap - non_flex_used - frozen_sum).max(0.0);
+        let factors: f32 = flex_info
+            .iter()
+            .enumerate()
+            .filter_map(|(i, f)| {
+                if frozen[i].is_none() {
+                    f.map(|(factor, _)| factor)
+                } else {
+                    None
+                }
+            })
+            .sum();
+        if factors <= 0.0 {
+            // 전부 freeze — base 를 그대로 확정.
+            for (i, f) in flex_info.iter().enumerate() {
+                if f.is_some() {
+                    if let Some(b) = frozen[i] {
+                        tracks[i].size = b;
+                    }
+                }
+            }
+            break;
+        }
+        let hf = leftover / factors.max(1.0);
+        let mut violated = false;
+        for (i, f) in flex_info.iter().enumerate() {
+            let Some((factor, base)) = *f else { continue };
+            if frozen[i].is_some() {
+                continue;
+            }
+            if hf * factor < base - 0.01 {
+                frozen[i] = Some(base);
+                violated = true;
+            }
+        }
+        if violated {
+            continue;
+        }
+        for (i, f) in flex_info.iter().enumerate() {
+            let Some((factor, base)) = *f else { continue };
+            tracks[i].size = match frozen[i] {
+                Some(b) => b,
+                None => base.max(hf * factor),
+            };
+        }
+        break;
     }
 }
 

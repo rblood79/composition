@@ -231,20 +231,17 @@ describe("그리드 컨테이너 intrinsic — CSS 대조 (engine leg)", () => {
   });
 
   /**
-   * 잔존 — `%` 트랙의 **내부 배분**이 최종 컨테이너 기준으로 재해소되지 않는다.
+   * `%` 트랙의 **내부 배분** — 2026-07-28 (ADR-170 wave 5) 해소.
    *
-   * 컨테이너 크기는 맞다(위 케이스). 다만 CSS 는 크기가 정해진 뒤 `%` 를 그 크기에
-   * 대해 다시 풀고 남은 공간을 다른 트랙에 준다 — `50% auto` / max-content 는 컨테이너
-   * 180 에서 90·90 이 된다. 엔진은 기여 단계의 값(120·60)을 그대로 얼린다.
-   *
-   * **`fr` 은 얼리는 것이 맞다** — `1fr 1fr` / min-content 가 35·35 가 아니라 40·30 인
-   * 것이 그 근거다(CSS-GRID-1 §12.7.1 의 "base 를 밑도는 fr 은 inflexible 로 재시작"
-   * 조항과 같은 결과). 그래서 이 잔존은 `%` 축 하나이며, 고치려면 컨테이너 확정 후
-   * 트랙 sizing 을 한 번 더 도는 2-pass 가 필요하다.
-   *
-   * 라이브 영향 없음 — catalog·앱 소스에 `%` grid 트랙 사용 0건.
+   * CSS 는 컨테이너 크기가 정해진 뒤 `%` 를 그 크기에 대해 다시 풀고 남은 공간을 다른
+   * 트랙에 준다 — `50% auto` / max-content 는 컨테이너 180 에서 90·90. 구 엔진은 기여
+   * 단계의 값(120·60)을 **얼려서** 재진입에 넘겼는데, 그 freeze 는 `fr` 이 확정 폭을
+   * 재분배하던 결함(§12.7.1 base 부재)의 우회였다. 단독 `fr` 이 `minmax({기여}px, fr)`
+   * 로 공급된 뒤에는 원본 토큰 재진입이 정답을 낸다 — `fr` 은 freeze-restart 가
+   * 알고리즘으로 같은 값을 내고(`1fr 1fr`/min-content → 40·30), `%`·`auto` 는 확정
+   * 폭 기준으로 재해소된다.
    */
-  it("잔존 — `%` 트랙 내부 배분 (실측 스냅샷)", () => {
+  it("`%` 트랙 내부 배분 — 확정 폭 재해소 (구 잔존 해소)", () => {
     const t0 = (kw: string, cols: string[]) => {
       const c = keywordCase(cols, kw);
       return {
@@ -252,12 +249,17 @@ describe("그리드 컨테이너 intrinsic — CSS 대조 (engine leg)", () => {
         eng: engineLeg(c.nodes, 600, 600)[1].x,
       };
     };
-    expect(t0("max-content", ["50%", "auto"])).toEqual({ dom: 90, eng: 120 });
-    expect(t0("min-content", ["50%", "auto"])).toEqual({ dom: 35, eng: 40 });
-    expect(t0("max-content", ["30%", "70%"])).toEqual({ dom: 54, eng: 120 });
-    // 대조 — fr 은 얼리는 것이 정답이라 정합이다.
-    expect(t0("min-content", ["1fr", "1fr"])).toEqual({ dom: 40, eng: 40 });
-    expect(t0("max-content", ["2fr", "1fr"])).toEqual({ dom: 120, eng: 120 });
+    for (const [kw, cols] of [
+      ["max-content", ["50%", "auto"]],
+      ["min-content", ["50%", "auto"]],
+      ["max-content", ["30%", "70%"]],
+      // fr 은 freeze-restart 가 같은 값을 알고리즘으로 낸다 (§12.7.1).
+      ["min-content", ["1fr", "1fr"]],
+      ["max-content", ["2fr", "1fr"]],
+    ] as const) {
+      const r = t0(kw, [...cols]);
+      expect(r.eng, `${kw} ${cols.join(" ")}`).toBeCloseTo(r.dom, 0);
+    }
   });
 });
 

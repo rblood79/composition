@@ -736,15 +736,37 @@ impl LayoutTree {
         container_h: f32,
         fixed_max: Option<f32>,
     ) -> (f32, f32, bool) {
+        // §12.5 의 기여는 **outer size(margin-box)** 다 (ADR-170 군집 H). border-box
+        // 측정값에 가로 margin 을 더한다 — item min/max clamp(track_contribution) 는
+        // border-box 대상이라 margin 은 clamp **뒤**에 더한다. 실측 `auto auto`/300 +
+        // `marginLeft:10px` 자식: Chrome 트랙 175(기여 80 + §12.8 95) / 종전 엔진 170
+        // (기여 70) — Δ = margin/2 이 §12.8 균등 분배로 두 트랙에 갈라져 나타난다.
+        let m_h = {
+            let ctx = self.ctx_for(container_w.max(0.0));
+            let resolve_margin = |v: Option<&str>| -> f32 {
+                match v.map(str::trim) {
+                    // `%` margin 은 intrinsic 기여에서 0 — 기준이 지금 구하는 크기
+                    // 자신이라 순환이다 (§5.1 순환 백분율과 같은 규칙). auto 도 0.
+                    Some(t) if t.ends_with('%') => 0.0,
+                    _ => resolve_signed(v, &ctx),
+                }
+            };
+            self.get(c)
+                .map(|n| {
+                    resolve_margin(n.style.margin_left.as_deref())
+                        + resolve_margin(n.style.margin_right.as_deref())
+                })
+                .unwrap_or(0.0)
+        };
         if let Some((mn, mx)) = self.measure_intrinsic_width(c) {
             let mn = self.clamp_auto_min_contribution(c, mn, fixed_max, true);
             let (mn, _) = self.track_contribution(c, mn, 0.0, container_w, container_h);
             let (mx, _) = self.track_contribution(c, mx, 0.0, container_w, container_h);
-            return (mn.min(mx), mx, false);
+            return ((mn + m_h).min(mx + m_h), mx + m_h, false);
         }
         let (cw, ch) = self.solve_node(c, container_w, container_h);
         let (cw, _) = self.track_contribution(c, cw, ch, container_w, container_h);
-        (cw, cw, true)
+        (cw + m_h, cw + m_h, true)
     }
 
     /// 서브트리(`handle` 포함)에 dirty 노드가 하나라도 있으면 true.
@@ -2402,6 +2424,12 @@ impl LayoutTree {
         // definite 컨테이너를 받은 것과 똑같이 돈다 — §12.8 stretch 도 auto 토큰이 남지
         // 않아 자연히 no-op 이다(여유가 없으니 정답).
         let inline_intrinsic = intrinsic_mode(avail_w).or_else(|| {
+            // **explicit 폭이 있으면 definite 경로다** — 키워드여도 재진입 2차 pass 는
+            //   settled(확정) 폭을 받으므로 intrinsic 재측정이 그 폭을 덮으면 안 된다
+            //   (ADR-170 — 재진입이 원본 토큰으로 §12.5→§12.6→§12.7.1→§12.8 을 다시 돈다).
+            if explicit_w > 0.0 {
+                return None;
+            }
             match style.width.as_deref().map(str::trim) {
                 Some(w) if w.eq_ignore_ascii_case("min-content") => Some(IntrinsicMode::Min),
                 Some(w) if w.eq_ignore_ascii_case("max-content") => Some(IntrinsicMode::Max),
@@ -2410,7 +2438,7 @@ impl LayoutTree {
                 Some(w) if w.eq_ignore_ascii_case("fit-content") => Some(IntrinsicMode::Max),
                 _ => {
                     // 상속 available 도 미결정 → shrink-to-fit = max-content.
-                    if explicit_w > 0.0 || avail_w >= 0.0 { None } else { Some(IntrinsicMode::Max) }
+                    if avail_w >= 0.0 { None } else { Some(IntrinsicMode::Max) }
                 }
             }
         });
@@ -2859,12 +2887,14 @@ impl LayoutTree {
         // 인 경우 상속 available 은 definite 라 block/flex 의 게이트로는 안 잡힌다.
         // 블록 축 clamp 재진입보다 **먼저** 둔다 (CSS 도 인라인 축이 먼저 확정된다).
         //
-        // **트랙은 얼려서 넘긴다** — 재진입의 목적은 자식(셀 안쪽)에게 확정 containing block 을
-        // 주는 것이지 트랙을 다시 재는 것이 아니다. 트랙을 원본 토큰으로 다시 세우면 `fr` 이
-        // 확정 폭을 나눠 갖는데, CSS 는 intrinsic pass 의 결과를 그대로 쓴다 (§12.7.1 "base 를
-        // 밑도는 fr 은 inflexible 로 재시작" 과 같은 결과) — 실측 `1fr 1fr` / min-content 가
-        // Chrome 40·30, 재분배하면 35·35. 위에서 이미 px 로 확정한 `template_cols` 를 2차 pass
-        // 의 style 로 임시 주입하고 원복한다 (flex 3.5 의 main 축 override 와 같은 형태).
+        // **재진입은 원본 토큰으로 §12.5→§12.6→§12.7.1→§12.8 을 다시 돈다** (2026-07-28 —
+        // 구 freeze 제거). 종전엔 px 로 확정한 트랙을 얼려 넘겼는데, 그건 `fr` 이 확정 폭을
+        // 재분배하던 결함(§12.7.1 base 부재)의 우회였다. 이제 단독 `fr` 이 `minmax({기여}px,
+        // fr)` 로 공급되어 freeze-restart 가 같은 결과를 **알고리즘으로** 낸다 (`1fr 1fr`/
+        // min-content 70 → hf 35 → base 40 freeze → 40·30). freeze 를 걷어내면 clamp 로
+        // 커진 컨테이너의 §12.8 auto 트랙 stretch 와 줄어든 컨테이너의 min-content floor 재계산이
+        // 함께 살아난다 (실측 `w=min-content+minW200`: Chrome 트랙 130/70 / freeze 는 90/30).
+        // 2차 pass 는 `explicit_w > 0` 이라 `inline_intrinsic` 게이트가 닫혀 1회로 끝난다.
         //
         // 행은 얼리지 않는다 — 폭이 바뀌면 높이는 다시 재는 것이 맞다(height-for-width).
         let inline_shrink_to_fit = explicit_w <= 0.0
@@ -2878,12 +2908,22 @@ impl LayoutTree {
             resolve_dimension_opt(style.min_width.as_deref(), &parent_ctx),
             resolve_dimension_opt(style.max_width.as_deref(), &parent_ctx),
         ) {
-            let frozen_cols: Vec<String> =
-                template_cols.split_whitespace().map(String::from).collect();
+            // **암묵 열(명시 template 없음)만 예외로 1차 pass 의 합성 px 트랙을 얹는다** —
+            // 재-run 할 원본 토큰 자체가 없어 definite 경로가 grid.rs 기본 트랙(100)으로
+            // 떨어진다. 명시 토큰이 있으면 그대로 재-run (위 주석의 §12.5~§12.8 재계산).
+            let implicit_cols = style
+                .grid_template_columns
+                .as_deref()
+                .map(|v| v.is_empty())
+                .unwrap_or(true);
             let saved_cols = style.grid_template_columns.clone();
-            if !frozen_cols.is_empty() {
-                if let Some(n) = self.get_mut(handle) {
-                    n.style.grid_template_columns = Some(frozen_cols);
+            if implicit_cols {
+                let synthesized: Vec<String> =
+                    template_cols.split_whitespace().map(String::from).collect();
+                if !synthesized.is_empty() {
+                    if let Some(n) = self.get_mut(handle) {
+                        n.style.grid_template_columns = Some(synthesized);
+                    }
                 }
             }
             for &c in children {
@@ -2897,7 +2937,9 @@ impl LayoutTree {
                 final_w
             };
             if let Some(n) = self.get_mut(handle) {
-                n.style.grid_template_columns = saved_cols;
+                if implicit_cols {
+                    n.style.grid_template_columns = saved_cols;
+                }
                 n.layout.width = report_w;
             }
             return (report_w, h2);
@@ -3422,8 +3464,19 @@ fn split_track_sizing(token: &str) -> (SizingFn, SizingFn) {
         SizingFn::MaxContent => (SizingFn::MaxContent, SizingFn::MaxContent),
         SizingFn::Auto => (SizingFn::Auto, SizingFn::Auto),
         f @ SizingFn::FitContent(_) => (SizingFn::Auto, f),
-        // px/%/fr — fr 의 CSS 상 min 은 auto 지만 §12.7 미적용이라 원문 유지.
-        d @ SizingFn::Definite(_) => (d.clone(), d),
+        d @ SizingFn::Definite(_) => {
+            // 단독 `fr` = `minmax(auto, fr)` (CSS-GRID-1 §7.2.4) — min 자리는 자동
+            // 최소(=min-content 기여)다 (ADR-170 군집 D). 종전엔 원문 유지라 기여
+            // machinery 가 안 돌아 base 없는 순수 분배가 됐다 — `1fr 1fr`/120 에
+            // 기여 90/30 이면 CSS 60→freeze 90 재시작으로 90/30 인데 엔진은 60/60.
+            if let SizingFn::Definite(v) = &d {
+                if parse_fr(v).is_some() {
+                    return (SizingFn::Auto, d.clone());
+                }
+            }
+            // px/% — 원문 유지.
+            (d.clone(), d)
+        }
     }
 }
 
