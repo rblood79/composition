@@ -1052,37 +1052,44 @@ impl LayoutTree {
         } else if !children.is_empty()
             && intrinsic_mode(avail_w).is_none()
             && avail_w >= 0.0
-            && (own_min_w.is_some() || own_max_w.is_some())
         {
-            // auto 폭 + block-level stretch 문맥: 잠정 used = avail − margins. clamp 가
-            // 실제로 **바인딩할 때만** definite 로 승격한다 — 비바인딩이면 기존 auto 경로
+            // auto 폭 + block-level stretch 문맥: 잠정 used = avail − margins. definite
+            // 승격 조건 둘 — ① clamp 가 실제로 **바인딩** (군집 A) ② aspect 의 w→h 전송이
+            // stretch 폭을 입력으로 요구 (군집 F — §5 preferred size 가 stretch 로 정해지고
+            // 그 값이 전송 입력이다. 실측 `ratio 2` + 양축 auto: Chrome h=150=300/2, 종전
+            // 엔진은 전송 자체가 안 돌아 h=content 50). 비바인딩·비aspect 면 기존 auto 경로
             // 유지 (flex item main 등 stretch 가 아닌 문맥에서 폭을 강제하지 않기 위함).
             // 부모가 block 일 때만 — flex/grid item 의 used 크기는 그 커널 소관이다.
             // aspect 의 h→w 전송이 예정된 상자는 제외 (전송값이 stretch 를 이긴다 — §5).
-            let parent_is_block = self
-                .get(handle)
-                .and_then(|n| n.parent)
-                .and_then(|p| self.get(p))
-                .map(|p| {
-                    classify_container_display(p.style.display.as_deref())
-                        == ContainerDisplay::Block
-                })
-                .unwrap_or(false);
-            let aspect_transfers_w =
-                own_style.aspect_ratio.map(|r| r > 0.0).unwrap_or(false) && explicit_h > 0.0;
-            if parent_is_block && !aspect_transfers_w {
-                let m = resolve_signed(own_style.margin_left.as_deref(), &ctx_w_own)
-                    + resolve_signed(own_style.margin_right.as_deref(), &ctx_w_own);
-                let tentative = avail_w - m;
-                let mut clamped = tentative;
-                if let Some(mx) = own_max_w {
-                    clamped = clamped.min(mx);
-                }
-                if let Some(mn) = own_min_w {
-                    clamped = clamped.max(mn);
-                }
-                if clamped != tentative && clamped > 0.0 {
-                    explicit_w = clamped;
+            let aspect_needs_w =
+                own_style.aspect_ratio.map(|r| r > 0.0).unwrap_or(false) && explicit_h <= 0.0;
+            if own_min_w.is_some() || own_max_w.is_some() || aspect_needs_w {
+                let parent_is_block = self
+                    .get(handle)
+                    .and_then(|n| n.parent)
+                    .and_then(|p| self.get(p))
+                    .map(|p| {
+                        classify_container_display(p.style.display.as_deref())
+                            == ContainerDisplay::Block
+                    })
+                    .unwrap_or(false);
+                let aspect_transfers_w =
+                    own_style.aspect_ratio.map(|r| r > 0.0).unwrap_or(false)
+                        && explicit_h > 0.0;
+                if parent_is_block && !aspect_transfers_w {
+                    let m = resolve_signed(own_style.margin_left.as_deref(), &ctx_w_own)
+                        + resolve_signed(own_style.margin_right.as_deref(), &ctx_w_own);
+                    let tentative = avail_w - m;
+                    let mut clamped = tentative;
+                    if let Some(mx) = own_max_w {
+                        clamped = clamped.min(mx);
+                    }
+                    if let Some(mn) = own_min_w {
+                        clamped = clamped.max(mn);
+                    }
+                    if (clamped != tentative || aspect_needs_w) && clamped > 0.0 {
+                        explicit_w = clamped;
+                    }
                 }
             }
         }

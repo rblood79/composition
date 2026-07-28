@@ -16,14 +16,8 @@
 /** 부분 격자 1 — leaf×부모×display×width×height×min/max (1800 중 0) */
 export const KNOWN_CONTAINER_SIZE: readonly string[] = [];
 
-/** 부분 격자 1 aspect-ratio 소블록 (30 중 5) */
-export const KNOWN_ASPECT: readonly string[] = [
-  "aspect|block|none-given|none",
-  "aspect|flex-col|none-given|none",
-  "aspect|flex-row|none-given|none",
-  "aspect|grid-1fr|none-given|none",
-  "aspect|grid-auto|none-given|none",
-];
+/** 부분 격자 1 aspect-ratio 소블록 (30 중 0) */
+export const KNOWN_ASPECT: readonly string[] = [];
 
 /** 부분 격자 1 파이프라인 leg (60 중 12) */
 export const KNOWN_CONTAINER_PIPELINE: readonly string[] = [
