@@ -17,7 +17,7 @@ Proposed — 2026-07-28
 1. **비대칭 21종** — 생성 CSS 가 `index.css` 에 import 되어 DOM 은 값을 받지만, `resolveContainerStylesFallback()` 은 해당 layout 키를 반환하지 않는다. 대표 실측: MenuItem 을 캔버스에 배치하면 Skia `390×96`(세로 스택), CSS 실효값은 `height:32 · inline-flex · padding 4/12 · gap 8`.
 2. **그중 9종은 생성 CSS root 선언 ≠ 실효 computed 값** — 수동 CSS 가 덮는다. Slider `position:absolute → static`(실효 `display:grid`), Pagination `justifyContent:center → space-between`. **생성 CSS root 를 그대로 엔진에 실으면 9종이 틀린 값을 받는다.**
 3. **생성 CSS 94개 중 62개만 import** — 나머지 32개(layout 값 보유 30종)는 DOM 도 받지 못한다. 이들의 현재 시각은 factory 인라인이 만든다.
-4. **catalog 전달 경로가 3갈래** — 경로 A(top-level `containerStyles`) 24종 · 경로 B(`structure.composition` 게이트 뒤 `resolveCatalogContainerBase`) 25종 · 나머지 72종은 어느 쪽도 아님. 여기에 `implicitStyles` 수기 배선 18종이 별도로 얹혀 있다.
+4. **catalog 전달 경로가 3갈래** — `COMPONENT_RULES_TABLE` 123 키(PascalCase 121 + `body`/`frame`) 중 경로 A(top-level `containerStyles`) 24종 · 경로 B(`structure.composition` 게이트 뒤 `resolveCatalogContainerBase`) 25종 · **나머지 74종은 어느 쪽도 아님**. 경로 A 가 먼저 return 하므로 두 조건을 모두 만족하는 종(Slider/ToggleButtonGroup 등)은 A 로 집계했다. 여기에 `implicitStyles` 수기 배선 18종이 별도로 얹혀 있다.
 5. **엔진 결함은 없다** — MenuItem 에 catalog 8키를 주입하자 `280×32`, 자식 x=`12/44/121/199` 로 CSS 값을 정확히 재현했다. 전달만 끊겨 있다.
 6. **검증 오라클 부재** — parity 918 케이스는 전부 generic `box` + 인라인 style 이다(`harness.ts`: "노드 type 은 특수 분기(catalog/spec) 없는 generic block 컨테이너 `box`"). catalog 전달 축 fixture 는 **0건**이라 이 비대칭이 회귀해도 아무 테스트도 red 가 되지 않는다.
 7. **인라인 우선 규칙이 catalog 를 항상 이긴다** — `resolveContainerStylesFallback` 은 `parentStyle[key] !== undefined` 면 catalog 를 건너뛴다. factory 가 catalog 값을 인라인으로 복제해 둔 컴포넌트(Card 계열)는 정상으로 보이지만 SSOT 를 우회한 상태다.
@@ -112,26 +112,30 @@ Proposed — 2026-07-28
 
 ## Risks
 
-| ID  | 위험                                                                          | 심각도 | 대응                                                                              |
-| --- | ----------------------------------------------------------------------------- | :----: | --------------------------------------------------------------------------------- |
-| R1  | 9종 catalog 정정이 DOM 실효값을 바꿔 Preview/Publish 시각이 변한다            |  MED   | Phase 1 종료 시 실효 computed 재측정 — 정정 전후 불변이어야 통과 (Gate G1)        |
-| R2  | factory 인라인 제거가 기존 문서의 시각을 바꾼다                               |  MED   | Phase 5 fixture 도입 뒤에만 제거. 제거 전후 Skia box 불변 확증 (Gate G3)          |
-| R3  | Phase 0 인벤토리(I1~I3) 결과로 대상 목록이 크게 늘어 scope 가 팽창한다        |  MED   | 목록 확장은 Phase 진행, **방향 변경 시에만** ADR 재검토. `adr-writing.md` M3 정합 |
-| R4  | 미import 30종을 일괄 import 하면 수동 CSS 와 충돌해 DOM 이 바뀐다             |  MED   | Phase 2 는 판정 표를 먼저 확정 — 일괄 import 금지                                 |
-| R5  | 신설 fixture 가 느려 CI 시간이 늘어난다                                       |  LOW   | 기존 parity browser 러너 재사용, 컴포넌트당 1 케이스                              |
-| R6  | 수기 배선 18종 제거 시 size 의존 값(padding 등)이 catalog 로 표현 불가해 회귀 |  MED   | I3 에서 사전 판정 — 대체 불가 분기는 존치 + 사유 주석                             |
+| ID  | 위험                                                                                                                                                                                                                                                                                                                                                                                  | 심각도 | 대응                                                                                                                                                                  |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | 9종 catalog 정정이 DOM 실효값을 바꿔 Preview/Publish 시각이 변한다                                                                                                                                                                                                                                                                                                                    |  MED   | Phase 1 종료 시 실효 computed 재측정 — 정정 전후 불변이어야 통과 (Gate G1)                                                                                            |
+| R2  | factory 인라인 제거가 기존 문서의 시각을 바꾼다                                                                                                                                                                                                                                                                                                                                       |  MED   | Phase 5 fixture 도입 뒤에만 제거. 제거 전후 Skia box 불변 확증 (Gate G4)                                                                                              |
+| R3  | Phase 0 인벤토리(I1~I3) 결과로 대상 목록이 크게 늘어 scope 가 팽창한다                                                                                                                                                                                                                                                                                                                |  MED   | 목록 확장은 Phase 진행, **방향 변경 시에만** ADR 재검토. `adr-writing.md` M3 정합                                                                                     |
+| R4  | 미import 30종을 일괄 import 하면 수동 CSS 와 충돌해 DOM 이 바뀐다                                                                                                                                                                                                                                                                                                                     |  MED   | Phase 2 는 판정 표를 먼저 확정 — 일괄 import 금지                                                                                                                     |
+| R5  | 신설 fixture 가 느려 CI 시간이 늘어난다                                                                                                                                                                                                                                                                                                                                               |  LOW   | 기존 parity browser 러너 재사용, 컴포넌트당 1 케이스                                                                                                                  |
+| R6  | 수기 배선 18종 제거 시 size 의존 값(padding 등)이 catalog 로 표현 불가해 회귀                                                                                                                                                                                                                                                                                                         |  MED   | I3 에서 사전 판정 — 대체 불가 분기는 존치 + 사유 주석                                                                                                                 |
+| R7  | **인라인 제거가 Inspector 의 dirty/reset baseline 과 어긋난다** — `useResetStyles.ts` 는 factory 인라인을 손으로 미러한 baseline 테이블을 갖고 있고(`StylesPanel.tsx:96` "factory 가 주입한 layout default 는 제외"), 과거 인라인만 넣고 baseline 을 빠뜨린 회귀가 있었다(`useResetStyles.ts:292`). 인라인이 사라지면 그 항목들이 stale 이 되고 "수정 N" 뱃지·reset 목적지가 어긋난다 |  MED   | Phase 4 를 Skia box 불변만으로 종결하지 않는다 — 같은 phase 에서 baseline 테이블의 대응 항목을 동시 정리하고, 패널 표시값·dirty 판정을 live 로 1회 exercise (Gate G4) |
+| R8  | Phase 3 의 resolver 통합이 기존 계약 테스트 47 케이스(`resolveContainerStylesFallback.test.ts`, ADR-080 G1)를 필연적으로 RED 로 만든다 — 특히 `listboxitem`/`gridlistitem` → `{}` lock(102~110행)은 Phase 3 이 바꾸려는 바로 그 동작이다                                                                                                                                              |  MED   | 해당 테스트를 **의도된 변경 대상**으로 미리 선언하고(design §5), 케이스별로 "새 기대값이 실효 CSS 와 일치" 를 근거로 갱신 — 통째 삭제·skip 금지                       |
 
 잔존 HIGH 위험 없음.
 
 ## Gates
 
-| Gate | 시점         | 통과 조건                                                               | 실패 시 대안                                         |
-| ---- | ------------ | ----------------------------------------------------------------------- | ---------------------------------------------------- |
-| G1   | Phase 1 종료 | 9종 catalog 정정 후 실효 computed 값이 정정 전과 **불변**               | 해당 종은 정정 보류 + 수동 CSS 를 SSOT 로 명문화     |
-| G2   | Phase 3 종료 | 비대칭 21종의 Skia box 가 실효 DOM 값과 일치 (MenuItem `280×32` 등)     | 경로 B 게이트 복원 후 개별 진단                      |
-| G3   | Phase 4 종료 | factory 인라인 제거 전후 Skia box **불변** (fixture GREEN 유지)         | 해당 컴포넌트 인라인 존치 + catalog 미도달 사유 기록 |
-| G4   | Phase 5 도입 | 신설 fixture 가 **Phase 3 이전 상태에서 RED** 임을 확인                 | 오라클이 결함을 못 잡음 → fixture 재설계             |
-| G5   | Phase 6 종료 | components 페이지를 catalog 만으로 재저작해 live builder 에서 시각 정상 | 잔여 인라인 목록화 후 후속 판정                      |
+아래는 **실행 순서**대로다 (Phase 1 → 2 → 3 → 5 → 4 → 6 — fixture 가 인라인 제거보다 앞선다).
+
+| Gate | 시점                          | 통과 조건                                                                                                                                              | 실패 시 대안                                         |
+| ---- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| G1   | Phase 1 종료                  | 9종 catalog 정정 후 실효 computed 값이 정정 전과 **불변**                                                                                              | 해당 종은 정정 보류 + 수동 CSS 를 SSOT 로 명문화     |
+| G2   | Phase 3 종료                  | 비대칭 21종의 Skia box 가 실효 DOM 값과 일치 (MenuItem `280×32` 등). 기존 `resolveContainerStylesFallback.test.ts` 47 케이스는 갱신 후 GREEN (R8)      | 경로 B 게이트 복원 후 개별 진단                      |
+| G3   | Phase 5 도입 (**Phase 4 앞**) | 신설 fixture 를 Phase 3 을 일시 되돌린 상태에서 돌려 **RED** 임을 확인                                                                                 | 오라클이 결함을 못 잡음 → fixture 재설계             |
+| G4   | Phase 4 종료                  | factory 인라인 제거 전후 Skia box **불변**(fixture GREEN 유지) **＋** Inspector 의 표시값·"수정 N" 뱃지·reset 결과가 제거 전과 동등 (R7 live exercise) | 해당 컴포넌트 인라인 존치 + catalog 미도달 사유 기록 |
+| G5   | Phase 6 종료                  | components 페이지를 catalog 만으로 재저작해 live builder 에서 시각 정상                                                                                | 잔여 인라인 목록화 후 후속 판정                      |
 
 ## Consequences
 
