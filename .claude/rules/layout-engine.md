@@ -123,31 +123,52 @@ globs:
 
 **계층 A·B 는 AND** — 하나만 등재하면 무반영이며, 증상이 서로 다르다: A 누락 = 재계산 자체를 안 함 / B 누락 = 재계산은 돌지만 시그니처 동일 → 캐시 히트로 이전 결과 재사용. 새로고침 후에만 반영되면 B 를 의심할 것.
 
-## 컨테이너의 used size 는 min/max clamp **뒤**의 값이다 — 세 축 모두 (2026-07-28)
+## 컨테이너의 used size 는 min/max clamp **뒤**의 값이다 — 네 축 모두 (2026-07-28)
 
-컨테이너의 **used** size = (명시 크기 또는 내용 크기) 를 자기 `min-*`/`max-*` 로 clamp 한 값이고, 내부 배치 알고리즘은 **그 값**에 대해 돌아야 한다 (CSS-FLEXBOX-1 §9.4→§9.7, CSS-GRID-1 §11.1). 엔진은 clamp 를 **배치 뒤에만** 걸고 있었다 — root 는 `fixup_root_self_size`, flex item 은 `flex.rs` off 10·12, grid 트랙은 `track_contribution`. 셋 다 "이미 배치된 결과의 상자"만 늘리고 줄이므로 안쪽 분배는 clamp 이전 값 기준으로 굳는다.
+컨테이너의 **used** size = (명시 크기 또는 내용 크기) 를 자기 `min-*`/`max-*` 로 clamp 한 값이고, 내부 배치 알고리즘은 **그 값**에 대해 돌아야 한다 (CSS-SIZING-3 §5.1, CSS-FLEXBOX-1 §9.4→§9.7, CSS-GRID-1 §11.1). 엔진은 clamp 를 **배치 뒤에만** 걸고 있었다 — root 는 `fixup_root_self_size`, flex item 은 `flex.rs` off 10·12, grid 트랙은 `track_contribution`, 인라인 축은 부모 intake (`block.rs::clamp_size`). 넷 다 "이미 배치된 결과의 상자"만 늘리고 줄이므로 안쪽 분배는 clamp 이전 값 기준으로 굳는다.
 
-| 축         | 형태                                            | Chrome |   구 엔진 | 거처                 |
-| ---------- | ----------------------------------------------- | -----: | --------: | -------------------- |
-| flex main  | `column + minHeight:400` 안의 `flexGrow:1`      |    340 |     **0** | `solve_flex` **3.6** |
-| flex main  | `column + maxHeight:200` 안의 `height:100px` ×3 |   67씩 | **100씩** | 〃                   |
-| flex cross | `row + minHeight:400` 안의 크기 미지정 자식     |    400 |     **0** | `solve_flex` **3.7** |
-| grid block | `minHeight:400` + `rows: 60px 1fr`              | 60/340 | **60/60** | `solve_grid` 재진입  |
+| 축         | 형태                                            | Chrome |   구 엔진 | 거처                           |
+| ---------- | ----------------------------------------------- | -----: | --------: | ------------------------------ |
+| flex main  | `column + minHeight:400` 안의 `flexGrow:1`      |    340 |     **0** | `solve_flex` **3.6**           |
+| flex main  | `column + maxHeight:200` 안의 `height:100px` ×3 |   67씩 | **100씩** | 〃                             |
+| flex cross | `row + minHeight:400` 안의 크기 미지정 자식     |    400 |     **0** | `solve_flex` **3.7**           |
+| grid block | `minHeight:400` + `rows: 60px 1fr`              | 60/340 | **60/60** | `solve_grid` 재진입            |
+| **인라인** | `width:120px + minWidth:200` 안의 자식          |    200 |   **120** | `solve_node` — dispatch **전** |
+| 〃         | `width:auto + maxWidth:60` (block 부모) 의 자식 |     60 |   **300** | 〃                             |
 
 - **flex** 는 `flex_layout` 을 clamp 된 값으로 한 번 더 돌린다. main 은 미결정이면 배치 extent, 확정이면 그 값이 기준이고, cross 는 `cross_definite` 를 **켜서** 다시 돈다 — §9.4 step 8 이 라인 cross 를 컨테이너 inner cross 로 잡아야 `stretch` 가 산다.
 - **grid** 는 트랙 sizing 자체가 definite 여부에 매달려 있어(`1fr` 행 · `align-content` · §12.8 stretch 셋 다 `explicit_h > 0.0` 게이트) `solve_grid` 를 clamp 된 높이로 **재진입**한다. 두 번째 호출은 `explicit_h > 0.0` 이라 1회로 끝난다. 재진입 전 자식 subtree 를 `mark_subtree_dirty` — 1차 pass 가 자식을 clean 으로 만들어 그대로 부르면 증분 skip 이 stale 캐시를 돌려준다.
 - 컨테이너 상자도 같은 값이어야 한다 — flex 는 `clamped_auto_main` 이 4) 의 bounding box 를 대신한다. 분배는 400 에 대해 돌리고 상자는 내용 60 으로 보고하면 부모가 그 60 을 다시 쓴다.
 - **auto-main item 은 이 재분배로 찌그러지지 않는다** — §4.5 automatic minimum size 가 min-content floor 를 건다. ListBox 형태(`maxHeight:300` + auto 높이 행)는 clamp 후에도 행이 100 을 유지하고 넘쳐서 스크롤한다(실측 DOM·엔진 동형). 압축되는 것은 **주축 크기를 명시한** item 뿐이고 그게 CSS 결과다.
 - **cross 축 재분배가 `height:%` 자식을 살리지는 않는다** — 해소 불가 백분율은 Chrome 도 0 이다(실측). `%` 해석은 `cross_ctx` 소관이고 여기서 바뀌는 것은 **cross 를 명시하지 않은** 자식의 stretch 대상 크기뿐이다.
-- Chrome 실측 fixture: `bodyViewportBox.browser.test.ts` — 각 축을 무력화하면 flex main 2 red / flex cross 1 red / grid 1 red.
+- **인라인 축은 dispatch 전에 `solve_node` 가 clamp 한다** (ADR-170 군집 A). 명시 폭(키워드 해소값 포함)은 max→min 순으로 clamp 하고, **auto 폭은 조건부 definite 승격**이다 — 부모가 block(=stretch 문맥) + available 확정 + clamp 가 실제로 **바인딩**할 때만. 비바인딩이면 auto 로 두어 flex/grid item 문맥의 used 크기를 커널에 남긴다 (그쪽은 이미 자기 clamp 를 갖는다). shrink-to-fit 경로도 같은 값을 써야 해서 `shrink_to_fit_settled` 가 min/max 를 인자로 받는다.
+- 블록 축의 명시 높이 clamp 도 여기서 돈다 — 자식 `%` base(`child_containing_h`) · grid definite 게이트 · flex main 이 **clamp 뒤 값**을 소비해야 하기 때문이고, flex 3.6 의 재-clamp 는 멱등이라 중복이 아니다.
+- Chrome 실측 fixture: `bodyViewportBox.browser.test.ts` — 각 축을 무력화하면 flex main 2 red / flex cross 1 red / grid 1 red. 인라인 축은 `basicAxisContainerSize.browser.test.ts` (ADR-170 격자 1) — 되돌리면 ratchet 138키 재발산.
+
+### aspect-ratio 는 이 clamp **뒤**에서 파생하고, content 를 하한으로 갖는다
+
+`aspect-ratio` 의 축 전송은 **used size** 를 입력으로 한다 (CSS-SIZING-4 §5) — 그래서 파생이 clamp 뒤에 있어야 하고, clamp 로 정해진 폭도 stretch 로 정해진 폭도 똑같이 입력이 된다.
+
+| 형태 (`ratio 2`, 내용 50)  | Chrome | 구 엔진 | 원인                      |
+| -------------------------- | -----: | ------: | ------------------------- |
+| `w:120px + maxW60`         |     50 |  **60** | clamp 전 폭으로 파생      |
+| 양축 auto (block 부모 300) |    150 |  **50** | stretch 폭이 입력이 안 됨 |
+
+- **w→h 전송은 §5.2.2 자동 최소의 대상**이다 — ratio 의존 축의 min-size = content (조건: `min-height` 미지정 + `overflow-y: visible`). 그래서 자식을 가진 상자는 전송값을 `explicit_h` 로 굳히지 않고 **dispatch 뒤 content 와 max** 한다 (`aspect_h_floor`). 굳히면 하한이 죽어 내용이 넘친다.
+- 양축 auto 상자를 살리는 것은 위 auto 폭 승격의 두 번째 조건(`aspect_needs_w`) 이다 — clamp 가 없어도 aspect 가 폭을 요구하면 승격한다. 반대로 `h→w` 전송이 예정된 상자(높이 명시)는 제외 — 전송값이 stretch 를 이긴다.
+- 부모 intake(`block.rs`)의 w→h 파생은 **제거**됐다. 자식이 `solve_node` 에서 낸 값이 정본이고, intake 가 `explicit` 로 덮으면 위 content 하한이 죽는다.
+- fixture: `basicAxisContainerSize.browser.test.ts` aspect 소블록 30 조합 — 되돌리면 clamp 갈래 5 red / stretch 갈래 5 red.
 
 ### 금지 패턴
 
 - ❌ clamp 후 재분배 생략 → `min-height` 로 커진 컨테이너에서 `flex-grow` 가 안 자라고, `max-height` 로 줄어든 컨테이너에서 shrink 가 안 돈다
-- ❌ 한 축만 넣기 → 세 축이 같은 규칙이고, body 주입처럼 한 규칙을 전 축에 적용하는 소비자가 나머지 축에서 무너진다
+- ❌ 한 축만 넣기 → 네 축이 같은 규칙이고, body 주입처럼 한 규칙을 전 축에 적용하는 소비자가 나머지 축에서 무너진다
 - ❌ 재분배는 하고 컨테이너 상자는 bounding box 로 보고 → 분배 기준과 상자가 갈린다
 - ❌ grid 재진입 전 `mark_subtree_dirty` 생략 → 증분 skip 이 stale 캐시를 돌려준다
 - ❌ auto-main item 이 찌그러지는 것을 이 변경 탓으로 진단 → §4.5 floor 가 막는다 (명시 주축 크기 item 만 압축)
+- ❌ auto 폭을 clamp 바인딩과 무관하게 definite 승격 → flex/grid item 의 used 크기를 커널에서 뺏는다 (부모 block 한정이 정본)
+- ❌ aspect 전송값을 `explicit_h` 로 굳히기 → §5.2.2 content 하한이 죽어 내용이 상자를 넘긴다
+- ❌ 부모 intake 에서 자식의 w→h 를 다시 파생 → 자식이 이미 낸 값을 덮어 하한이 사라진다
 
 ## body 는 뷰포트가 아니다 — 상자는 뷰포트, 배치는 내용 (2026-07-28)
 
@@ -221,16 +242,20 @@ Chrome 은 페이지를 **두 노드**로 처리한다.
 - **컨테이너 상자는 1차 pass 값을 유지한다** — intrinsic 크기는 `%` 를 `auto` 로 본 값이고, 재해소로 자식이 더 커지면 CSS 도 넘치게 둔다. 그래서 재진입 뒤 `layout.width` 를 1차 값으로 되돌리고 그 값을 반환한다(auto 축 반환은 **content-box** 계약).
 - **게이트가 축마다 다르다**: block/flex 는 상속 available 이 미결정(`INDEFINITE_AVAIL`)일 때, grid 는 `inline_intrinsic` — `width: max-content` 처럼 **키워드**로 shrink-to-fit 이면 상속 available 은 definite 라 앞의 조건으로는 안 잡힌다.
 - **측정 모드 센티넬(`-2`/`-3`)은 대상이 아니다** — 거기서는 `%` 가 `auto` 인 것이 최종 답이다. 그래서 게이트가 `INDEFINITE_AVAIL` **등가 비교**이고 `avail < 0` 이 아니다.
-- **grid 는 트랙을 얼려서 넘긴다**. 재진입의 목적은 셀 안쪽 자식에게 확정 containing block 을 주는 것이지 트랙을 다시 재는 것이 아니다. 원본 토큰으로 다시 세우면 `fr` 이 확정 폭을 나눠 갖는데 CSS 는 intrinsic pass 결과를 그대로 쓴다(실측 `1fr 1fr` / min-content → Chrome 40·30, 재분배하면 35·35). 이미 px 로 확정된 `template_cols` 를 2차 pass 의 style 로 임시 주입하고 원복한다. **행은 얼리지 않는다** — 폭이 바뀌면 높이는 다시 재는 것이 맞다(height-for-width).
+- **grid 는 원본 토큰으로 다시 세운다** (2026-07-28 정정 — 구 "트랙을 얼려서 넘긴다" 는 폐기). 한때 확정 px 트랙을 2차 pass 에 주입했는데, 그 freeze 는 **§12.7.1 base 부재의 우회**였다 — `fr` 이 base 없이 균등 분배되니 재계산하면 값이 달라졌던 것이다. 단독 `fr` 이 `minmax(auto, fr)` 로 base 를 받은 뒤로는(아래 §단독 `fr`) 원본 토큰 재계산이 **같은 값을 알고리즘으로 낸다**(`1fr 1fr` / min-content → freeze-restart 가 40·30 재현). 얼리지 않아야 clamp 로 커진 컨테이너의 §12.8 stretch 와 `%` 트랙 재해소가 2차 pass 에서 살아난다.
+- **암묵 열만 예외**: 원본 template 이 비어 있으면(`grid-template-columns` 미지정) 1차 pass 가 합성한 px 열을 2차 pass 에 주입한다 — 토큰이 없어 재계산이 `grid.rs` 기본 트랙으로 떨어지기 때문이다. 이 예외를 빼면 `shrinkToFitInline` 7 red (wave 5 실측, `eng=100` 기본 트랙).
+- **`inline_intrinsic` 에 definite 게이트**: `explicit_w > 0.0` 이면 즉시 `None`. 2차 pass 는 settled 폭을 받은 definite 컨테이너라 intrinsic 경로로 재진입하면 안 된다 (무한 왕복).
 - **명시 열이 없는 grid 도 열이 있다**: `grid-template-columns` 미지정이면 auto-placement 가 만든 암묵 열을 `grid-auto-columns`(기본 `auto`)가 정한다. 종전엔 intrinsic 경로가 "명시 토큰 없음" 으로 그냥 빠져나가 `container_w` 가 **미결정 센티넬(-1) 그대로** 폭으로 보고됐다 — 라이브 실측: `align-items:center` 아래 Toolbar 를 `display:grid` 로 바꾸면 폭 **-1** (수정 후 64). 행 축의 암묵 트랙 생성과 같은 규칙이다.
-- Chrome 실측 fixture: `shrinkToFitInline.browser.test.ts` (§1 재해소 39 + 중첩 1 + grid 키워드 2 + §2 암묵 열 5 + 잔존 2). 민감도 — 재진입 무력화 19 red / grid 트랙 freeze 제거 10 red / 암묵 열 합성 무력화 6 red.
+- Chrome 실측 fixture: `shrinkToFitInline.browser.test.ts` (§1 재해소 39 + 중첩 1 + grid 키워드 2 + §2 암묵 열 5 + 잔존 2). 민감도 — 재진입 무력화 19 red / 암묵 열 freeze 해제 7 red / 암묵 열 합성 무력화 6 red.
 
 ### 금지 패턴
 
 - ❌ 재진입 뒤 컨테이너 상자를 2차 pass 결과로 갱신 → 넘치는 자식을 따라 상자가 커진다 (CSS 는 intrinsic 크기 유지)
 - ❌ 재진입에 넘기는 확정 폭을 content-box 로 전달 → `explicit_w` 는 border-box 계약이라 padding 만큼 어긋난다
 - ❌ 게이트를 `avail_w < 0` 로 넓히기 → 측정 패스(`-2`/`-3`)까지 재진입해 intrinsic 기여가 오염된다
-- ❌ grid 재진입에서 트랙을 원본 토큰으로 다시 세우기 → `fr` 이 재분배된다
+- ❌ grid 재진입에서 확정 px 트랙을 다시 얼리기 → §12.8 stretch 와 `%` 재해소가 2차 pass 에서 죽는다 (base 공급 전의 우회였다)
+- ❌ 암묵 열까지 원본 토큰(=빈 template)으로 재계산 → `grid.rs` 기본 트랙으로 떨어진다
+- ❌ `inline_intrinsic` 의 definite 게이트 제거 → 2차 pass 가 intrinsic 경로로 되돌아간다
 - ❌ 명시 열이 없다고 intrinsic 경로를 건너뛰기 → 컨테이너 폭이 음수 센티넬로 보고된다
 
 ## automatic minimum size (CSS-FLEXBOX-1 §4.5) — 엔진 소속 (ADR-164 Phase 1 / ADR-165 정밀화, 2026-07-25)
@@ -259,6 +284,31 @@ flex item 의 automatic minimum size (min-width/height:auto = content 하한) �
 - ❌ 측정 후 `mark_subtree_dirty` 로 복구 갈음 → 자손 캐시까지 날아가 중첩 깊이에 지수적
 - ❌ 측정 배선을 `is_row` 밖으로 확장 → 세로 축은 결함 부재이며, 확장 시 height-for-width 2-pass 계약(ADR-165)과 충돌
 
+## 컨테이너의 `width: min/max/fit-content` 는 엔진이 **측정으로** 해소한다 (CSS-SIZING-3 §5, 2026-07-28)
+
+키워드 폭은 "부모가 주는 available" 이 아니라 **자기 내용의 min/max-content** 다. 종전 엔진은 이 값을 부모 intake 의 `CONTENT` 센티넬로만 처리해서, 실제 소비된 값이 일반 solve 의 **content bounding box** (auto 자식이 stretch 된 폭까지 포함) 였다.
+
+| 자식 종류        | `width:min-content` 의 소비값    | Chrome | 구 엔진 |
+| ---------------- | -------------------------------- | -----: | ------: |
+| 확정 폭 자식     | min==max==bbox — **우연히** 일치 |     90 |      90 |
+| 측정 스칼라 leaf | stretch 폭이 bbox 를 밀어 올린다 |     50 | **300** |
+
+두 줄이 갈린다는 것이 진단의 핵심이었다 — 확정 폭 대조군이 없으면 "엔진이 키워드를 무시한다" 로 **잘못 귀속**된다 (실제로는 처리하되 스칼라 기여를 못 읽는다).
+
+- 거처는 `solve_node` — `resolve_self_size` 직후, clamp **앞**. `width_intrinsic_keyword` 가 키워드를 알아보면 `measure_intrinsic_width` 로 해소해 `explicit_w` 로 굳힌다. `fit-content` 는 `clamp(min-content, stretch-fit, max-content)` (available 미결정이면 max-content).
+- **측정 패스 안에서는 재진입하지 않는다** — 키워드가 요구하는 모드로 상속 센티넬을 **갈아끼운다** (§5.2: min-content 상자의 max-content 기여도 min-content 다). 측정 안에서 측정을 부르면 캐시 계약이 깨진다.
+- **grid 는 제외** — §12.5 트랙 경로가 자체로 처리한다(아래 §그리드 자신의 min/max-content). 여기서 선해소하면 확정 폭을 `fr` 이 재분배해 §12.7.1 계약과 충돌한다 (probe 실측으로 grid 갈래는 이미 정합).
+- **TS 선해석은 제거됐다**: `enrichWithIntrinsicSize` 의 폭 주입 통과 게이트가 grid 한정(`isIntrinsicGrid`)에서 **자식 보유 컨테이너 전체**(`isIntrinsicContainer`)로 넓어졌다. `calculateContentWidth` 근사가 엔진의 정확값을 덮고 있었다 (실측 손자 70px 를 품은 block 의 `fit-content`: DOM 70 / 주입값 80). **합성 leaf(INLINE_BLOCK/CIRCLE — 자식 0)는 주입 잔존** — 엔진이 그 content 를 모른다.
+- fixture: `basicAxisContainerSize.browser.test.ts` (ADR-170 격자 1). 민감도 — 엔진 해소를 되돌리면 109키 재발산 / TS 선해석을 되살리면 pipeline 20키 재발산.
+
+### 금지 패턴
+
+- ❌ 키워드 폭을 부모 intake 의 `CONTENT` 센티넬로만 처리 → 소비값이 stretch 포함 bbox 가 된다
+- ❌ 측정 패스 안에서 `measure_intrinsic_width` 재진입 → 센티넬 교체가 정본
+- ❌ grid 컨테이너의 키워드를 `solve_node` 에서 선해소 → `fr` 재분배로 §12.7.1 붕괴
+- ❌ TS 에서 컨테이너 키워드를 px 로 주입 → 근사가 엔진 정확값을 덮는다 (합성 leaf 만 예외)
+- ❌ 키워드 발산을 확정 폭 자식만으로 진단 → 그 갈래는 우연히 정합이라 결함이 안 보인다
+
 ## 그리드 자신의 min/max-content — 여유가 없을 때의 트랙 sizing (CSS-GRID-1 §12.5–§12.7.1, 2026-07-28)
 
 인라인 축이 미결정이면 **나눠 줄 여유가 없다**. 세 진입이 같은 상태이고 한 경로로 모인다:
@@ -284,20 +334,20 @@ flex item 의 automatic minimum size (min-width/height:auto = content 하한) �
 
 - **`%` 는 `auto` 처럼 동작한다** — 백분율의 기준이 지금 구하려는 크기 자신이라 해소할 수 없다 (실측 `50% auto` / max-content → 180 = `auto auto` 와 동일).
 - **min-content 모드에서 `fr` 은 펴지 않는다** — base 그대로다 (실측 `3fr 1fr` → 70). §12.7.1 의 used flex fraction 은 max-content 모드에서만 돈다: 후보는 (a) 각 flexible 트랙의 base ÷ factor(factor ≤ 1 이면 base 그대로), (b) 그 트랙 아이템의 max-content 기여 ÷ Σfactor(Σ < 1 이면 1 로 본다). 실측 — `3fr 1fr` uff 60 → 180·60 / `0.5fr 0.5fr` uff 120 → 60·60.
-- **fr 은 얼리는 것이 맞다.** 컨테이너 확정 후 fr 을 다시 분배하면 `1fr 1fr` / min-content 가 35·35 가 되지만 CSS 는 40·30 이다 (§12.7.1 의 "base 를 밑도는 fr 은 inflexible 로 재시작" 과 같은 결과).
+- **재계산해도 값이 안 변해야 한다** (2026-07-28 정정 — 구 "fr 은 얼리는 것이 맞다" 는 폐기). 컨테이너 확정 후 트랙을 다시 세우면 `1fr 1fr` / min-content 가 35·35 로 갈라졌는데, 그건 fr 분배가 §12.7.1 의 "base 를 밑도는 fr 은 inflexible 로 freeze 후 재시작" 을 안 돌던 탓이다. 지금은 재계산이 40·30 을 그대로 재현하므로 **얼릴 이유가 없다** (§shrink-to-fit 의 재진입).
 - **컨테이너 폭은 트랙 extent** 다 — 셀 bounding box(`max_right`)는 자식이 **점유한** 칸까지라 빈 트랙이 빠진다 (실측 `1fr 1fr` + 자식 1개 / max-content → DOM 240, 점유 셀 기준이면 120). definite 경로의 `max_right` 는 기존 계약 유지.
 - **인라인 축은 stretch-fit 도 definite** 다 — block-level `width:auto` 는 containing block 을 채우므로(§10.3.3) §12.8 stretch 대상이다. 그 구분을 `inline_intrinsic` 이 준다(`Some` = shrink-to-fit). **블록 축은 아니다** — `height:auto` 는 내용 크기라 진짜 미결정 (§여유가 없는 것과 음수인 것은 다르다).
-- **TS 는 grid 컨테이너의 intrinsic 키워드를 선해석하지 않는다** — `calculateContentWidth` 는 트랙을 몰라 자식 폭 합 근사를 낸다 (실측 자식 120·60 / `auto auto` → DOM 180, 주입값 80). flex/block 컨테이너의 선해석은 잔존.
-- Chrome 실측 fixture: `gridContainerIntrinsic.browser.test.ts` (engine 키워드 47 + flex item 11 + 규칙 2 + 잔존 1, pipeline 6). 민감도 — intrinsic 경로 차단 5 red / §12.7.1 제거 25 red / 트랙 extent → 셀 bbox 4 red / stretch-fit 게이트 축소 1 red / TS 선해석 복원 6 red.
-- **잔존**: `%` 트랙의 **내부 배분**. 컨테이너 크기는 맞지만 CSS 는 크기 확정 후 `%` 를 다시 풀어 남은 공간을 재분배한다 (`50% auto` / max-content → DOM 90·90, 엔진 120·60). 2026-07-28 에 shrink-to-fit 재진입이 생겼지만 그 경로는 **트랙을 통째로 얼려** 넘긴다 — 얼리지 않으면 `fr` 이 재분배되어 `1fr 1fr` / min-content 가 40·30 대신 35·35 가 되기 때문이다. 즉 올바른 해소는 "`fr` 만 얼리고 `%`·`auto` 는 다시 푼다" 인데, `auto` 재측정이 확정 셀 폭으로 도는 순환과 혼합 `50% 1fr` 의 합 초과를 같이 풀어야 해 트랙 sizing 2-pass 의 재설계다. catalog·앱 소스에 `%` grid 트랙 0건이라 이연.
+- **TS 는 컨테이너의 intrinsic 키워드를 선해석하지 않는다** — grid 는 트랙을 몰라 자식 폭 합 근사를 냈고(실측 자식 120·60 / `auto auto` → DOM 180, 주입값 80), 2026-07-28 부터 **자식을 가진 컨테이너 전체**가 같은 판정이다 (§컨테이너의 `width: min/max/fit-content`).
+- Chrome 실측 fixture: `gridContainerIntrinsic.browser.test.ts` (engine 키워드 47 + flex item 11 + 규칙 2 + `%` 트랙 내부 배분 5, pipeline 6). 민감도 — intrinsic 경로 차단 5 red / §12.7.1 제거 25 red / 트랙 extent → 셀 bbox 4 red / stretch-fit 게이트 축소 1 red / TS 선해석 복원 6 red.
+- **구 잔존 해소 (2026-07-28)**: `%` 트랙의 **내부 배분**은 재진입 freeze 제거로 함께 풀렸다 (`50% auto` / max-content → DOM 90·90 = 엔진). 확정 폭으로 재진입하면 `%` 가 그 폭에 해소되고 `fr` 은 §12.7.1 이 같은 값을 재현하므로, "트랙 sizing 2-pass 재설계" 로 봤던 것이 실은 base 공급 하나였다. 스냅샷이던 5케이스는 정합 단언으로 승격됐다.
 
 ### 금지 패턴
 
 - ❌ 미결정 available 을 그대로 `resolve_grid_tracks` 에 넘기기 → `remaining.max(0.0)` 이 0 을 내 fr·auto 트랙이 붕괴한다 (ADR-169 이 grid 를 이연했던 바로 그 경로)
-- ❌ 컨테이너 확정 후 `fr` 을 다시 분배 → min-content 모드에서 35·35 (CSS 는 40·30)
+- ❌ `fr` 분배에서 §12.7.1 freeze-restart 생략 → base 를 밑도는 트랙이 균등 분배로 눌려 재계산마다 값이 갈린다 (35·35 vs 40·30)
 - ❌ intrinsic 컨테이너 폭을 셀 bounding box 로 산출 → 빈 트랙이 빠진다
 - ❌ 블록 축(`align_content`)에 stretch-fit definite 완화를 적용 → `height:auto` 는 진짜 미결정이다
-- ❌ TS 에서 grid 컨테이너의 `min-content`/`max-content`/`fit-content` 를 px 로 선해석해 주입 → 트랙을 모르는 근사가 엔진 결과를 덮는다
+- ❌ TS 에서 컨테이너의 `min-content`/`max-content`/`fit-content` 를 px 로 선해석해 주입 → 근사가 엔진 결과를 덮는다 (grid 는 트랙을, flex/block 은 자식 stretch 를 모른다)
 
 ## 그리드 컨테이너의 블록 크기는 **행 트랙 extent** 다 (CSS-GRID-1 §11.1, 2026-07-28)
 
@@ -401,6 +451,28 @@ single-line(`flex-wrap:nowrap`) + definite cross 컨테이너에서 flex 라인�
 - ❌ 두 축을 한 규칙으로 묶어 `explicit || avail >= 0` 판정 → 블록 축에서 가짜 확정
 - ❌ `%` ctx 만 막고 자식 재귀 available 은 그대로 전달 (또는 그 반대) → 한 경로로 새어 나간다
 - ❌ 폭 축에서 `avail_w >= 0` 제거 → stretch 부모의 `width:100%` 수축 회귀
+
+## flex item 재-solve 는 **자기가 푼 available** 을 기준으로 한다 — `%` 의 세 번째 누수 경로 (2026-07-28)
+
+`solve_flex` 3.5 는 item 의 used main 이 1차 solve 때 쓴 available 과 다르면 그 item 을 다시 푼다. 이 재-solve 는 `used_main` 을 **상속 available 로 내려주므로**, 발화 조건이나 override 범위가 틀리면 위 §백분율 규칙의 두 게이트를 **우회한다** — 게이트가 있어도 `%` 가 컨테이너의 content 크기에 풀린다.
+
+| 결함                            | 형태                                  | Chrome | 구 엔진 |
+| ------------------------------- | ------------------------------------- | -----: | ------: |
+| fallback 이 음수 센티넬         | `column(h:auto)` 안의 `h=50%`         |     50 |  **25** |
+| override 가 "해소된 값" 만      | `h=50% + maxH40`                      |     40 |  **20** |
+| 커널 `cross_definite` 가 명시만 | `column(w:auto)` 안 auto-cross 스칼라 |    300 |  **90** |
+
+- **fallback = 자식이 실제로 solve 된 main available**, 그것이 미결정이었으면 **content 크기**. 종전엔 음수 센티넬을 기준으로 잡아 auto 컨테이너에서 **항상** 재-solve 가 발화했고, 그 재-solve 가 위 누수를 열었다. 고치면 `used == content` 라 불필요 재-solve 자체가 사라진다 — 게이트 우회 경로가 소멸하는 형태다.
+- **override 는 auto 가 아닌 모든 main 스타일**에 건다. "해소된 값" 만 override 하면 `main_ctx` 에서 못 푼 `%` 가 style 에 남아 재-solve 의 상속 available(=clamp 된 used 40)에 다시 풀린다 (`h=50%+maxH40` → 20. CSS 는 `%` → auto → content 50 → clamp 40).
+- **커널 `cross_definite` 는 `cross_definite_self` 와 같아야 한다.** column 컨테이너의 cross(=width)는 명시가 없어도 block-level stretch 로 확정이다(§백분율 (b) 인라인 축). 커널 플래그만 `explicit_w` 를 보면 라인 cross 가 content 로 떨어지고, §9.4 step 11 stretch 가 auto-cross leaf 를 거기까지만 늘린다. **row cross(=height)는 블록 축이라 명시만 확정** — 축 비대칭은 유지된다.
+- fixture: `basicAxisContainerSize.browser.test.ts` (ADR-170 격자 1). 민감도 — fallback 되돌리면 198키 / override 축소 12키 / `cross_definite` 되돌리면 12키 재발산.
+
+### 금지 패턴
+
+- ❌ 재-solve 발화 판정을 자식이 **받은** available 이 아니라 부모가 계산한 센티넬로 → auto 컨테이너에서 상시 발화
+- ❌ 재-solve override 를 "해소된 값" 으로 한정 → 미해소 `%` 가 상속 available 에 다시 풀린다
+- ❌ 커널 cross definite 판정을 `explicit_w` 단독으로 → column 의 stretch 확정 폭을 놓친다
+- ❌ 이 누수를 §백분율 게이트 결함으로 진단 → 게이트는 정상이고 우회 경로가 문제다
 
 ## `margin: auto` 는 정렬보다 먼저 여유를 가져간다 — 흡수 단위는 **라인** (CSS-FLEXBOX-1 §8.1, 2026-07-27)
 
@@ -550,6 +622,28 @@ grid item 의 크기·위치는 **자식 자신의 상자 모델**이 정하고,
 - ❌ content 함수 해소를 grid.rs 로 이동 → grid.rs 는 자식을 모른다 (측정 주체는 tree.rs)
 - ❌ tree.rs 에서 트랙 문자열을 `split_whitespace` 로 분해 → 괄호 안 공백에서 깨진다
 
+## 단독 `fr` 도 base 를 갖는다 — §12.7.1 freeze-restart (CSS-GRID-1 §7.2.4/§12.7.1, 2026-07-28)
+
+위 §12.5 표가 적어 둔 `1fr` = `minmax(auto, 1fr)` 이 **파서에는 없었다**. `split_track_sizing` 이 단독 `fr` 을 min 자리 없는 flexible 로만 갈라, 기여 machinery 가 base 를 채울 자리가 없었다. 그래서 `fr` 트랙이 자식 내용보다 작아졌고, 2단계 분배도 base 를 모르는 근사("min 보장 + share 가산")였다.
+
+| 형태                                 |   CSS |   구 엔진 |
+| ------------------------------------ | ----: | --------: |
+| `1fr 1fr` / 컨테이너 120, 기여 90·30 | 90·30 | **60·60** |
+| `1fr 1fr` / min-content 모드 (합 70) | 40·30 | **35·35** |
+| `grid-auto` + 자식 `marginLeft:10px` |   165 |   **160** |
+
+- **파싱**: 단독 `fr` → `(Auto, Definite(fr))`. min 자리가 `Auto` 라 §12.5 기여 경로가 base(min-content 기여)를 공급한다.
+- **2단계는 freeze-restart**: `hf = leftover / Σfactor` (Σ < 1 이면 1 로 본다) → `hf × factor` 가 base 를 밑도는 트랙은 **base 로 freeze** 하고 남은 여유로 재시작. 전부 frozen 이면 base 를 그대로 쓴다. 이 알고리즘이 있어야 **재계산이 같은 값을 재현**한다 — §shrink-to-fit 재진입에서 트랙을 얼리지 않아도 되는 근거가 이것이다.
+- **기여는 margin-box** (§12.5): `col_contribution` 이 가로 margin 을 min·max 양쪽에 더한다. `%` margin 은 지금 구하려는 크기가 기준이라 순환 — **0 으로 본다**. 종전엔 누락된 margin 이 §12.8 균등 분배로 갈라져 정확히 절반씩 어긋났다.
+- fixture: `basicAxisContainerSize/ChildSize.browser.test.ts` — 되돌리면 232키 재발산 (D+H 합산). `gridContainerIntrinsic.browser.test.ts` 의 "§12.7.1 제거 25 red" 도 같은 알고리즘을 잠근다.
+
+### 금지 패턴
+
+- ❌ 단독 `fr` 을 min 자리 없이 파싱 → 기여 base 가 공급될 자리가 없다
+- ❌ 2단계를 "min 보장 + share 가산" 으로 근사 → base 이중 반영 또는 base 없는 균등 분배
+- ❌ 트랙 기여를 content-box 로 산출 → margin 이 §12.8 여유로 흘러 절반씩 갈라진다
+- ❌ 기여 계산에서 `%` margin 을 해소 시도 → 순환 (0 이 정본)
+
 ## grid 자식의 TS 공급 3결함 — 스칼라 / 트랙 수 / 가정 폭 (2026-07-28)
 
 엔진이 트랙 content 기여를 소비할 준비가 돼도(§트랙 크기는 자식의 content 기여) TS 층이 셋을 잘못 넘기고 있었다. 셋 다 **grid 자식에서만** 드러나며, 증상이 서로 달라 따로 봐야 한다.
@@ -608,6 +702,29 @@ grid item 의 크기·위치는 **자식 자신의 상자 모델**이 정하고,
 - ❌ 새 dim 성 필드를 `DIM_FIELDS` 미등재로 추가 → 같은 크래시가 새 축으로 재발
 - ❌ 엔진에 길이를 숫자로 전달 (`flexBasis: 0`) — 숫자→문자열 변환은 **파이프라인 책임**
 
+## 기본 축은 격자가 잠갔다 — 그 격자가 **못 여는 축** (ADR-170, 2026-07-28)
+
+`basicAxis{ContainerSize,ChildSize,Nesting}.browser.test.ts` 가 display × width × height × min/max × leaf 종류 × 부모 컨텍스트를 **직교**로 훑는다 — 2,702 조합, 도입 시점 727 발산이 wave 1~7 로 **0**. 기본 축의 "미지 규모" 는 여기서 닫혔고, 반응형 발견 사이클은 이 축에 한해 종료다.
+
+닫힌 것은 **열거한 축뿐**이다. 아래는 격자가 못 여는 축이고, 여기서 나온 발산에 격자 green 을 반증으로 들이대면 안 된다:
+
+| 사각                                                 | 담당 / 사유                                                                                                               |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 텍스트 실측정 sub-pixel                              | 격자는 스칼라 leaf 로 대체 — CanvasKit↔DOM 폰트 차이는 렌더 층 교정 경로. `intrinsicSizing` pipeline leg 이 실텍스트 담당 |
+| `position:absolute` 조상 체인 / `fixed`              | 기본형은 `phase4_5` E11. ADR-164 Phase 0 의 **의도적 미지원 2건** 만 사각 — 재개 조건 기정의 (§position:absolute)         |
+| overflow / scroll 상호작용                           | 렌더·히트 축 (canvas-rendering.md §8) — 레이아웃 격자 대상 아님                                                           |
+| flex wrap 다중 라인                                  | `flexSweep` (WRAPS × LINE_COUNTS) — 격자는 nowrap 고정                                                                    |
+| 정렬 속성 (`justify-*`/`align-*`)                    | `flexSweep` + `crossAxisOverflow` + `gridAlignContent` — 격자는 부모 컨텍스트 신호로만 사용                               |
+| 중첩 2단 이상                                        | 격자 3 은 1단 전파만 — 조합 폭발. 1단 정합이면 귀납 가정                                                                  |
+| `writing-mode` / `direction` / `float` / inline flow | 엔진 미지원 표면 (`NodeStyle` 부재)                                                                                       |
+| grid `auto-flow: column` 의 행 extent                | 기존 명시 잔존 (`shrinkToFitInline` `[잔존]`) — 격자는 row-flow 고정                                                      |
+| `gap` / `padding` / `border` 조합                    | 기본 축 밖 — 격자는 0 리셋 고정 (`gridTrackContribution`/`gridMinmaxTracks` 가 부분 커버)                                 |
+| 내용 leaf 의 `height:auto`                           | **오라클 쪽 사각** — engine leg 에 높이 스칼라 채널이 없다 (아래)                                                         |
+
+- **격자 green ≠ 종결** 의 실증: `flexSweep` 1152 조합은 컨테이너 main 을 항상 확정으로 줘서 미결정 main 센티넬 결함을 **전부 green 으로 통과**시켰다 — 유일 감시자가 `crossAxisOverflow` 의 `INDEFINITE_MAIN_CASES` 였다.
+- **사각은 오라클 쪽에도 생긴다**: ADR-165 스칼라 계약이 폭만이라 engine leg 은 내용을 가진 leaf 의 `height:auto` 를 잴 수 없다(DOM 은 원자 높이, 엔진은 0). 격자 2 초안 발산 165건 중 **135건이 이 산출물**이었고, 확정 폭 대조군이 없었으면 엔진 결함으로 **잘못 귀속**될 뻔했다. 높이 축 정합은 `pipelineLeg` 담당이다.
+- 신규 발산을 만나면 이 표부터 본다 — 표 안이면 담당 fixture 로, 표 밖이면 격자 축에 편입한다.
+
 ## TS 잔존 계약 (ADR-164 Phase 3 — 엔진↔TS 경계 규칙, CRITICAL)
 
 다음은 **의도적으로 TS 에 남는** 것들이다. 엔진 gap 처럼 보여도 아래 사유가 유효한 한 엔진 이관·중복 구현 양쪽 모두 금지 — 변경은 해당 사유를 뒤집는 ADR 로만:
@@ -622,6 +739,8 @@ grid item 의 크기·위치는 **자식 자신의 상자 모델**이 정하고,
 | layoutCache 시그니처/무효화 (5-심볼 2계층)                                    | store 결합 — 마샬링 비용 > 계산 비용. 측정 스칼라는 store 키가 아닌 enrichment 파생값 — 체인 등재 불요 (`children`/`text`/`fontSize` 가 이미 등재)                                                                                                                                                   |
 
 역방향(재침식)도 같은 강도로 금지: **CSS 표준 의미론의 새 gap 을 발견하면 TS 보정이 아니라 엔진 구현이 기본 경로** (ADR-164 Decision — Step 5.7 형 coarse 근사 재생산 금지).
+
+**2026-07-28 제거 (ADR-170)**: 컨테이너의 **intrinsic 키워드** 선해석은 잔존 목록에서 빠졌다 — 엔진이 측정으로 정확값을 소유한다 (§컨테이너의 `width: min/max/fit-content`). 자식 없는 합성 leaf 주입과 컨테이너의 **numeric** 폭 선해석은 잔존.
 
 ## Container style pipeline 연계 (ADR-907 Implemented)
 
@@ -645,6 +764,8 @@ collection/self-render 컨테이너의 `calculateContentHeight()` 분기는 **La
 - **style 키를 `LAYOUT_PROP_KEYS` 에 추가 금지** → `LAYOUT_STYLE_KEYS` 가 style 축이다 (`LAYOUT_PROP_KEYS` 는 `props[key]` 만 읽으므로 `style.foo` 를 넣어도 항상 `undefined` = 시그니처 불변 = 무반영)
 - **계층 A(layoutVersion 트리거) 단독 등재 금지** → 계층 B(캐시 시그니처) 동반 필수. 역도 같음 (§"5-심볼 2계층 체인")
 - 텍스트 leaf 에 width/minWidth 주입 재도입 금지 → 측정 스칼라 계약 (`contentMinWidth`/`contentMaxWidth`) 이 대체 (ADR-165 — 재도입 시 스칼라와 이중 적용). 비텍스트 leaf (INLINE_BLOCK/CIRCLE) 의 width 주입 시 minWidth 동시 주입은 잔존 계약 유지
+- 자식 보유 컨테이너의 intrinsic 키워드(`min/max/fit-content`) 를 TS 에서 선해석해 주입 금지 → 엔진 소유 (ADR-170 — `measure_intrinsic_width` + `solve_node` 키워드 해소). 자식 없는 합성 leaf 만 예외
+- used size clamp 를 부모 intake 에만 걸기 금지 → 인라인 축도 `solve_node` 가 dispatch 전에 clamp (ADR-170 — 상자만 clamp 되고 자식은 clamp 이전 폭으로 배치됨)
 - Step 4.5 를 폭 재보정 용도로 확장 금지 → height-for-width 1회 재측정 계약 (ADR-165 Phase 2 — 폭 축은 엔진 소유)
 - overflow 기준 flexShrink 주입 보정 (구 Step 5.7) 재도입 금지 → automatic minimum size 는 엔진 소속 (`flex.rs` §4.5, ADR-164 + ADR-165 정확 min-content)
 - DFS 조건에 `fontSize == null` 사용 금지 → `lineHeight == null` 필수
