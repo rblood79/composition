@@ -1708,8 +1708,26 @@ impl LayoutTree {
                     cstyle.height.as_deref()
                 };
                 // main 축 `%` 는 main_ctx (E6) — column 이면 height 기준.
-                let laid_out_main = resolve_dimension_opt(main_raw, &main_ctx)
-                    .unwrap_or(if is_row { child_avail_w } else { child_avail_h });
+                //
+                // auto-main fallback 은 **자식이 실제로 solve 된 main available** 이다
+                // (ADR-170 군집 C). 그 available 이 indefinite 였으면 자식은 content
+                // 크기로 배치된 것 — 기준을 `child_avail_h`(음수 센티넬) 로 잡으면
+                // used(=content) 와 항상 달라 불필요한 재-solve 가 발화하고, 그 재-solve
+                // 가 used_main 을 **상속 available 로** 내려 자식의 `%` main 이 컨테이너
+                // content 크기에 풀린다 (CSS §10.5 위반 — 실측 `column height:auto` 안
+                // `h=50%` 상자가 content 50 의 절반 25 로 붕괴, 내부까지 25 기준 재배치).
+                let laid_out_main =
+                    resolve_dimension_opt(main_raw, &main_ctx).unwrap_or_else(|| {
+                        let (cs_w, cs_h) = child_solves[i];
+                        let solved_avail = if is_row { cs_w } else { cs_h };
+                        if solved_avail >= 0.0 {
+                            solved_avail
+                        } else if is_row {
+                            child_sizes[i].0
+                        } else {
+                            child_sizes[i].1
+                        }
+                    });
                 // step 1 을 건너뛴 item 은 **아직 한 번도 배치되지 않았다** — 비교 없이
                 // 무조건 여기서 푼다 (이게 그 item 의 유일한 실 solve 다).
                 if !deferred_to_resolve[i] && (used_main - laid_out_main).abs() <= RESOLVE_EPS {
