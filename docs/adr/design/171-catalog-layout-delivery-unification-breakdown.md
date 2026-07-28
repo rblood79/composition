@@ -227,13 +227,50 @@ resolver 출력 ↔ `getComputedStyle`(번들 CSS iframe) 를 12키(display/flex
 - **Inspector baseline 을 같은 phase 에서 함께 정리한다** (R7): `useResetStyles.ts` 는 factory 인라인을 손으로 미러한 dirty/reset baseline 을 갖고 있다(`StylesPanel.tsx:96` — "factory 가 주입한 layout default 는 제외"). 인라인만 빼고 baseline 을 두면 "수정 N" 뱃지와 reset 목적지가 어긋난다 — 반대 방향(인라인만 넣고 baseline 누락)의 회귀 이력이 이미 있다(`useResetStyles.ts:292`). 종료 조건은 Skia box 불변 **＋** 패널 표시값·dirty·reset live 확인.
 - `width`/`height` 같은 layout-context 인라인은 대상 아님(요소별 저작 값).
 
-### Phase 5 — end-to-end parity 오라클 신설
+### Phase 5 — end-to-end parity 오라클 신설 — **완료 2026-07-29 (G3 PASS)**
 
-현행 `apps/builder/tests/parity/**` 918 케이스는 전부 generic `box` + 인라인 style 이다(`harness.ts` — "노드 type 은 특수 분기(catalog/spec) 없는 generic block 컨테이너 `box`"). catalog 전달 축 fixture 는 **0건**.
+현행 `apps/builder/tests/parity/**` 918 케이스는 전부 generic `box` + 인라인 style 이다(`harness.ts` — "노드 type 은 특수 분기(catalog/spec) 없는 generic block 컨테이너 `box`"). catalog 전달 축 fixture 는 **0건**이었다.
 
-- 신규 fixture: 컴포넌트를 **생성 CSS 로 렌더한 DOM** ↔ **같은 컴포넌트의 Skia/엔진 box** 대조.
-- DOM leg 은 `packages/shared/src/components/styles/index.css` 번들을 iframe 에 주입하고 `getComputedStyle`/`getBoundingClientRect` 로 측정(본 ADR 실측에 쓴 방법과 동일).
+산출물: `apps/builder/tests/parity/catalogComponentBox.browser.test.ts` (15 케이스). 전체 parity **918 → 933**.
+
+- leg 1 = `.react-aria-{Type}` 클래스 + **실 번들 CSS**(`index.css?inline`, 생성 CSS + 수동 CSS 캐스케이드 결과)의 `getBoundingClientRect`. leg 3 = 같은 트리를 `elementType: "{Type}"` 으로 `calculateFullTreeLayout` 에 태운 결과.
+- **두 leg 사이에 인라인 style 이 없다** — 컨테이너는 catalog 에서만 스타일을 받는다. 인라인을 주는 순간 `parentStyle[key] !== undefined` 규칙이 catalog 를 건너뛰어 fixture 가 자기 자신을 검증하게 된다.
 - **Phase 4 보다 뒤에 둘 수 없다** — 인라인이 살아 있으면 전부 GREEN 이 나와 아무것도 증명하지 못한다. 순서는 Phase 3 → 5(도입) → 4(인라인 제거, fixture 가 감시).
+
+#### G3 — 민감도 실측
+
+`resolveContainerStylesFallback` 의 catalog 보강을 통째로 되돌리면(`return specOut` 조기 반환) **6종 중 5종이 RED** 가 된다: MenuItem · ListBoxItem · GridListItem · Tooltip · InlineAlert. `DisclosureGroup` 만 GREEN 을 유지하는데, 그 종은 값이 spec fallback(`specOut`)에서 오므로 **catalog 채널의 감시자가 아니다** — fixture 가 catalog 전달을 검증했다고 말할 때 근거로 쓰면 안 된다.
+
+#### 설계에서 걸러낸 것 — 무엇을 못 재는지가 fixture 의 절반이다
+
+초안은 15종을 넣었다가 **13종이 RED** 였는데, 대부분 fixture 자체의 결함이었다:
+
+| 걸러낸 축                                          | 증상                                                          | 처리                                              |
+| -------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------- |
+| inline formatting context                          | `inline-flex` 컨테이너가 DOM 은 shrink-to-fit, 엔진은 부모 폭 | root 를 flex row 로 — 양쪽 다 flex item           |
+| leaf primitive (Badge/Kbd/Code/Icon/ColorSwatch/…) | host w 가 padding 무관하게 64 고정                            | 제외 — 캔버스는 `buildCatalogShapes` 로 직접 그림 |
+| 합성 indicator (Checkbox/Radio/Switch)             | 자식 x 가 28/46 씩 밀림                                       | 제외 — DOM 은 `::before`, 캔버스는 자식 주입      |
+| 자식 제외 컨테이너 (Menu/TabPanels)                | 자식 layout 결과 자체가 없음                                  | 제외                                              |
+| dead selector (CardHeader/CardContent…)            | ground truth 가 브라우저 기본값                               | 제외 (Phase 2 판정)                               |
+
+**엔진의 inline flow 미지원**은 ADR-170 §사각 표에 기재된 별개 표면이고, leaf box parity 는 `calculateFullTreeLayout` 자식 배치와 다른 축이다. 이 둘을 catalog 전달 실패로 세면 오라클이 거짓말을 한다.
+
+#### 잔존 — Phase 3 의 size 축 게이트가 생성기 규칙과 갈린다 (→ Phase 3-b)
+
+걸러낸 뒤에도 6종이 남았고, **이건 진짜 발견**이다. Phase 3 은 "top-level `containerStyles` 를 가지면 `sizes` 는 하위 부품 크기" 라는 휴리스틱으로 size 축을 갈랐는데, 생성기(`CSSGenerator.ts`)의 실제 규칙은 다르다:
+
+- `ownsContainerBox` = `structure.composition` 이 layout/containerStyles/containerVariants 중 하나 보유 → **sizes 의 height·padding emit skip**
+- `skipPadding` = ownsContainerBox ∨ 병합된 `containerStyles.padding` 존재 / `skipGap` = 병합된 `containerStyles.gap` 존재
+
+| 종                                   | 발산                        | 원인                                                               |
+| ------------------------------------ | --------------------------- | ------------------------------------------------------------------ |
+| Toolbar · Form · Checkbox/RadioGroup | sizes padding **과잉 도달** | 넷 다 `composition` 보유 → 생성 CSS 는 skip, 캔버스만 넣는다       |
+| TabPanel                             | sizes padding **미도달**    | `composition` 부재 → 생성 CSS 는 emit. top-level 이 있어 막혔다    |
+| ListBox                              | 높이 Δ2                     | `structure.containerStyles.borderWidth` 를 top-level 대체가 건너뜀 |
+
+**Phase 3-b 방향**: size 축 게이트를 생성기 규칙 미러로 교체한다. 생성 CSS 존재 여부는 `structure.archetype` 보유로 판정 가능하다 — 실측 **118/123 일치**(불일치 5 = spec 기반 Image/Input/Label/Slot + 페이지 루트 body). Tree/TagGroup 은 archetype 이 없어 자동 제외되고(그래서 행 높이 36 · 태그 padding 12 가 새지 않는다), Menu 트리거 박스(ADR-151 B7)만 명시 예외로 남는다.
+
+fixture 는 이 6종을 `[잔존]` 그룹에서 **발산이 있음**으로 고정한다 — 조용히 바뀌면 red 가 된다.
 
 ### Phase 6 — origin 재저작 + components 페이지 재구축
 
@@ -269,6 +306,7 @@ resolver 출력 ↔ `getComputedStyle`(번들 CSS iframe) 를 12키(display/flex
 - [x] **Phase 1 — catalog 정정 6종 + 재빌드 + 실효값 불변 재측정 (G1 PASS, 2026-07-29)** — 대상이 9종이 아니라 7종(생성 CSS 파싱 결함 정정)이고 TextArea 는 클래스 역할 충돌로 Phase 2 이관
 - [x] **Phase 2 — 판정 표 확정 + 처리 (2026-07-29)** — 미import 32종은 selector 가 DOM 에 없는 dead CSS 라 **import 추가 0건**. GridListItem `justifyContent` 정정 1건 · Input 은 부모 custom property 문맥 탓 Phase 5 재측정 보류 · TextArea 클래스 역할 충돌 기록
 - [x] **Phase 3 — L1·L2·L3 3층 개방 + 수기 배선 2분기 제거 + 계약 테스트 갱신 (G2 PASS, 2026-07-29)** — 실효 DOM 대조 17/20 일치, 잔존 3은 overlay `position:fixed`(의도적). MenuItem h 96→32 라이브 확증
-- [ ] Phase 5 — parity fixture 신설 (**Phase 4 앞**) + Phase 3 일시 되돌림으로 RED 확인 (G3)
+- [x] **Phase 5 — parity fixture 신설 (G3 PASS, 2026-07-29)** — `catalogComponentBox.browser.test.ts` 15 케이스(전체 918→933). Phase 3 되돌림 시 6종 중 5종 RED. 잔존 6종은 Phase 3-b(생성기 규칙 미러)로 분리
+- [ ] Phase 3-b — size 축 게이트를 생성기 `ownsContainerBox` 규칙 미러로 교체 (Toolbar/Form/Checkbox·RadioGroup 과잉 · TabPanel 미도달 · ListBox borderWidth)
 - [ ] Phase 4 — factory 인라인 제거 + `useResetStyles` baseline 동시 정리 (fixture GREEN + 패널 live 확인, G4)
 - [ ] Phase 6 — origin 재저작 + components 페이지 live 확인 (G5)
