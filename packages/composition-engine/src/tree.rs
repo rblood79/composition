@@ -143,11 +143,22 @@ fn shrink_to_fit_settled(
     inline_shrink_to_fit: bool,
     content_w: f32,
     own_pb_h: f32,
+    own_min_w: Option<f32>,
+    own_max_w: Option<f32>,
 ) -> Option<f32> {
     if !inline_shrink_to_fit {
         return None;
     }
-    let settled = content_w + own_pb_h;
+    // shrink-to-fit 의 used size 도 자기 min/max clamp **뒤**의 값이다 (CSS-SIZING-3
+    // §5.1 / ADR-170 군집 A). clamp 가 바인딩하면 재진입 폭이자 상자 폭이 된다 —
+    // 호출부가 (settled − pb) ≠ 1차 content 비교로 바인딩 여부를 판정한다.
+    let mut settled = content_w + own_pb_h;
+    if let Some(mx) = own_max_w {
+        settled = settled.min(mx);
+    }
+    if let Some(mn) = own_min_w {
+        settled = settled.max(mn);
+    }
     // 0 이하면 2차 pass 도 `explicit_w <= 0` 이라 게이트가 안 닫힌다 — 재진입 자체를 막는다.
     if settled > 0.0 {
         Some(settled)
@@ -996,12 +1007,100 @@ impl LayoutTree {
                 }
             }
         }
+        // ── used size = clamp(명시/stretch, min-*, max-*) — ADR-170 군집 A ──
+        //
+        // CSS-SIZING-3 §5.1: used size 는 min/max clamp **뒤**의 값이고 내부 배치·파생의
+        // 입력이다. 기존 규칙 (layout-engine.md §"컨테이너의 used size 는 clamp 뒤의 값")
+        // 은 flex main/cross + grid block 3축만 덮었다 — 인라인 축은 clamp 가 부모 intake
+        // (block.rs `clamp_size` / flex.rs off 10·12) 에만 걸려, **상자만 clamp 되고
+        // 자식들은 clamp 이전 폭 기준으로 배치**됐다 (실측 `w=120px+minW200`: 상자 200 /
+        // 자식 120 · `w=auto+maxW60`: 상자 60 / 자식 300).
+        let own_style = self.get(handle).map(|n| n.style.clone()).unwrap_or_default();
+        let ctx_w_own = self.ctx_for(avail_w);
+        let own_min_w = resolve_dimension_opt(own_style.min_width.as_deref(), &ctx_w_own);
+        let own_max_w = resolve_dimension_opt(own_style.max_width.as_deref(), &ctx_w_own);
+        if explicit_w > 0.0 {
+            // 명시 폭 (키워드 해소값 포함) — max 먼저, min 이 이긴다 (CSS §5.1).
+            if let Some(mx) = own_max_w {
+                explicit_w = explicit_w.min(mx);
+            }
+            if let Some(mn) = own_min_w {
+                explicit_w = explicit_w.max(mn);
+            }
+        } else if !children.is_empty()
+            && intrinsic_mode(avail_w).is_none()
+            && avail_w >= 0.0
+            && (own_min_w.is_some() || own_max_w.is_some())
+        {
+            // auto 폭 + block-level stretch 문맥: 잠정 used = avail − margins. clamp 가
+            // 실제로 **바인딩할 때만** definite 로 승격한다 — 비바인딩이면 기존 auto 경로
+            // 유지 (flex item main 등 stretch 가 아닌 문맥에서 폭을 강제하지 않기 위함).
+            // 부모가 block 일 때만 — flex/grid item 의 used 크기는 그 커널 소관이다.
+            // aspect 의 h→w 전송이 예정된 상자는 제외 (전송값이 stretch 를 이긴다 — §5).
+            let parent_is_block = self
+                .get(handle)
+                .and_then(|n| n.parent)
+                .and_then(|p| self.get(p))
+                .map(|p| {
+                    classify_container_display(p.style.display.as_deref())
+                        == ContainerDisplay::Block
+                })
+                .unwrap_or(false);
+            let aspect_transfers_w =
+                own_style.aspect_ratio.map(|r| r > 0.0).unwrap_or(false) && explicit_h > 0.0;
+            if parent_is_block && !aspect_transfers_w {
+                let m = resolve_signed(own_style.margin_left.as_deref(), &ctx_w_own)
+                    + resolve_signed(own_style.margin_right.as_deref(), &ctx_w_own);
+                let tentative = avail_w - m;
+                let mut clamped = tentative;
+                if let Some(mx) = own_max_w {
+                    clamped = clamped.min(mx);
+                }
+                if let Some(mn) = own_min_w {
+                    clamped = clamped.max(mn);
+                }
+                if clamped != tentative && clamped > 0.0 {
+                    explicit_w = clamped;
+                }
+            }
+        }
+        // 블록 축 — 명시 높이의 clamp. 자식 `%` base (`child_containing_h`) / grid definite
+        // 게이트 / flex main 이 이 값을 소비한다 (flex 3.6 재-clamp 는 멱등).
+        if explicit_h > 0.0 {
+            let ctx_h_own = self.ctx_for(avail_h);
+            if let Some(mx) = resolve_dimension_opt(own_style.max_height.as_deref(), &ctx_h_own) {
+                explicit_h = explicit_h.min(mx);
+            }
+            if let Some(mn) = resolve_dimension_opt(own_style.min_height.as_deref(), &ctx_h_own) {
+                explicit_h = explicit_h.max(mn);
+            }
+        }
+
         // E15: aspect-ratio — 한 축만 명시되고 다른 축이 auto 면 ratio 로 파생 (CSS §4).
         //   ratio = width / height → height = width/ratio, width = height*ratio.
+        //   군집 A clamp **뒤**에 돈다 — 파생 입력은 used size 다 (군집 G).
+        //
+        //   w→h 전송은 CSS-SIZING-4 §5.2.2 자동 최소의 대상이다: ratio-의존 축의
+        //   min-size = content (min-height 미지정 + overflow visible). 그래서 자식 보유
+        //   상자는 전송값을 explicit 로 굳히지 않고 dispatch 뒤 content 와 max 한다
+        //   (실측 `w:120px + maxW60 + ratio 2`: 전송 30 < 내용 50 → Chrome 50).
+        let mut aspect_h_floor: Option<f32> = None;
         if let Some(ratio) = self.get(handle).and_then(|n| n.style.aspect_ratio) {
             if ratio > 0.0 {
                 if explicit_w > 0.0 && explicit_h <= 0.0 {
-                    explicit_h = explicit_w / ratio;
+                    let transferred = explicit_w / ratio;
+                    let floor_applies = !children.is_empty()
+                        && own_style.min_height.is_none()
+                        && own_style
+                            .overflow_y
+                            .as_deref()
+                            .map(|o| o.eq_ignore_ascii_case("visible"))
+                            .unwrap_or(true);
+                    if floor_applies {
+                        aspect_h_floor = Some(transferred);
+                    } else {
+                        explicit_h = transferred;
+                    }
                 } else if explicit_h > 0.0 && explicit_w <= 0.0 {
                     explicit_w = explicit_h * ratio;
                 }
@@ -1035,7 +1134,7 @@ impl LayoutTree {
         }
 
         // display 별 dispatch — 자식을 먼저 solve → flat f32 → 커널 → 위치 배치.
-        let (cw, ch) = match display {
+        let (cw, mut ch) = match display {
             ContainerDisplay::Flex => {
                 self.solve_flex(handle, &children, explicit_w, explicit_h, avail_w, avail_h)
             }
@@ -1046,6 +1145,17 @@ impl LayoutTree {
                 self.solve_grid(handle, &children, explicit_w, explicit_h, avail_w, avail_h)
             }
         };
+
+        // aspect w→h 전송의 content 하한 (§5.2.2 — 위 파생 블록 참조): used h =
+        // max(전송값, content). dispatch 는 h=auto 로 돌아 ch = content extent 다.
+        if let Some(t) = aspect_h_floor {
+            if t > ch {
+                ch = t;
+                if let Some(n) = self.get_mut(handle) {
+                    n.layout.height = ch;
+                }
+            }
+        }
 
         // E10: position:relative 자식은 in-flow 배치 후 자기 box 만 inset 만큼 시각 이동.
         //   형제 위치·컨테이너 크기(cw/ch)에는 영향 없음(CSS §9.4.3 relative 계약) — 이미
@@ -1910,17 +2020,28 @@ impl LayoutTree {
         //   non-stretch 아래 `width:50%` 자식이 Chrome 60 / 구 엔진 120.
         let inline_shrink_to_fit =
             explicit_w <= 0.0 && avail_w == INDEFINITE_AVAIL && !children.is_empty();
-        if let Some(settled) =
-            shrink_to_fit_settled(inline_shrink_to_fit, container_w, own_pb_h)
-        {
+        if let Some(settled) = shrink_to_fit_settled(
+            inline_shrink_to_fit,
+            container_w,
+            own_pb_h,
+            resolve_dimension_opt(style.min_width.as_deref(), &parent_ctx),
+            resolve_dimension_opt(style.max_width.as_deref(), &parent_ctx),
+        ) {
             for &c in children {
                 self.mark_subtree_dirty(c);
             }
             let (_, h2) = self.solve_flex(handle, children, settled, explicit_h, avail_w, avail_h);
+            // auto 축 반환은 content-box 계약 — 단 min/max clamp 가 바인딩했으면 used
+            // size 는 clamp 뒤 값이다 (군집 A — 1차 content 유지 계약은 `%` 재해소 한정).
+            let report_w = if (settled - own_pb_h - container_w).abs() > f32::EPSILON {
+                settled - own_pb_h
+            } else {
+                container_w
+            };
             if let Some(n) = self.get_mut(handle) {
-                n.layout.width = container_w; // auto 축 반환은 content-box 계약
+                n.layout.width = report_w;
             }
-            return (container_w, h2);
+            return (report_w, h2);
         }
 
         if let Some(n) = self.get_mut(handle) {
@@ -2114,17 +2235,27 @@ impl LayoutTree {
         //   Chrome 60 / 구 엔진 120, `marginLeft:10%` 자식이 x=147/w=108 vs x=135/w=120.
         let inline_shrink_to_fit =
             explicit_w <= 0.0 && avail_w == INDEFINITE_AVAIL && !children.is_empty();
-        if let Some(settled) =
-            shrink_to_fit_settled(inline_shrink_to_fit, container_w, own_pb_h)
-        {
+        if let Some(settled) = shrink_to_fit_settled(
+            inline_shrink_to_fit,
+            container_w,
+            own_pb_h,
+            resolve_dimension_opt(style.min_width.as_deref(), &parent_ctx),
+            resolve_dimension_opt(style.max_width.as_deref(), &parent_ctx),
+        ) {
             for &c in children {
                 self.mark_subtree_dirty(c);
             }
             let (_, h2) = self.solve_block(handle, children, settled, explicit_h, avail_w, avail_h);
+            // auto 축 반환은 content-box 계약 — min/max clamp 바인딩 시 used = clamp 뒤 값.
+            let report_w = if (settled - own_pb_h - container_w).abs() > f32::EPSILON {
+                settled - own_pb_h
+            } else {
+                container_w
+            };
             if let Some(n) = self.get_mut(handle) {
-                n.layout.width = container_w; // auto 축 반환은 content-box 계약
+                n.layout.width = report_w;
             }
-            return (container_w, h2);
+            return (report_w, h2);
         }
 
         if let Some(n) = self.get_mut(handle) {
@@ -2705,7 +2836,13 @@ impl LayoutTree {
             && inline_intrinsic.is_some()
             && intrinsic_mode(avail_w).is_none()
             && !children.is_empty();
-        if let Some(settled) = shrink_to_fit_settled(inline_shrink_to_fit, final_w, own_pb_h) {
+        if let Some(settled) = shrink_to_fit_settled(
+            inline_shrink_to_fit,
+            final_w,
+            own_pb_h,
+            resolve_dimension_opt(style.min_width.as_deref(), &parent_ctx),
+            resolve_dimension_opt(style.max_width.as_deref(), &parent_ctx),
+        ) {
             let frozen_cols: Vec<String> =
                 template_cols.split_whitespace().map(String::from).collect();
             let saved_cols = style.grid_template_columns.clone();
@@ -2718,11 +2855,17 @@ impl LayoutTree {
                 self.mark_subtree_dirty(c);
             }
             let (_, h2) = self.solve_grid(handle, children, settled, explicit_h, avail_w, avail_h);
+            // min/max clamp 바인딩 시 used = clamp 뒤 값 (군집 A — content-box 계약 유지).
+            let report_w = if (settled - own_pb_h - final_w).abs() > f32::EPSILON {
+                settled - own_pb_h
+            } else {
+                final_w
+            };
             if let Some(n) = self.get_mut(handle) {
                 n.style.grid_template_columns = saved_cols;
-                n.layout.width = final_w;
+                n.layout.width = report_w;
             }
-            return (final_w, h2);
+            return (report_w, h2);
         }
 
         // **블록 축도 min/max clamp 뒤가 used size** (flex 3.6/3.7 과 같은 규칙).
@@ -3979,9 +4122,15 @@ fn write_block_item(
     // 폭의 50% 로 잘못 해소된다(BP-1/2). width 는 그대로 ctx(폭).
     let mut expl_w = resolve_cross_dimension_opt(cstyle.width.as_deref(), ctx);
     let mut expl_h = resolve_cross_dimension_opt(cstyle.height.as_deref(), height_ctx);
-    // E15: aspect-ratio 파생 (ADR-156 Phase 5) — 한 축 명시 + 다른 축 auto 면 ratio 로 파생하고
-    //   **definite** 로 표기해 부모 block 이 stretch 하지 않게 한다 (auto -1 이면 컨테이너 폭으로 팽창).
-    apply_aspect_to_dims(cstyle.aspect_ratio, &mut expl_w, &mut expl_h);
+    // E15: aspect-ratio 파생 (ADR-156 Phase 5) — **h→w 방향만**. 폭이 auto 면 파생 폭을
+    //   definite 로 표기해 부모 block 이 stretch 하지 않게 한다 (auto -1 이면 컨테이너
+    //   폭으로 팽창). w→h 방향은 여기서 파생하지 않는다 — 자식 solve 가 §5.2.2 자동
+    //   최소(content 하한)를 반영한 높이를 content_h 슬롯으로 공급하고, height auto 는
+    //   block.rs 가 content_h 로 해소한다 (ADR-170 군집 G — intake 파생이 그 값을
+    //   explicit 로 덮으면 하한이 죽는다).
+    if expl_w.is_none() {
+        apply_aspect_to_dims(cstyle.aspect_ratio, &mut expl_w, &mut expl_h);
+    }
 
     let pad_border_v = axis_pad_border(cstyle, ctx, false);
     let pad_border_h = axis_pad_border(cstyle, ctx, true);
