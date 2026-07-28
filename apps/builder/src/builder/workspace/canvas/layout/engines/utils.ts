@@ -4508,10 +4508,20 @@ export function enrichWithIntrinsicSize(
     //   를 달고 있어 위 `hasExplicitIntrinsicWidthKeyword` 로 우회했기 때문 — **우연**이다.
     //   `isFlexChild` 자체를 넓히지 않는 이유: 같은 플래그가 growsInFlex(flex-grow 억제)와
     //   non-container minWidth 주입에도 쓰여 무관한 동작이 딸려온다.
+    // **백분율 폭도 대상** (2026-07-28): `%` 는 containing block 이 미결정이면 `auto` 처럼
+    //   동작한다 (CSS-SIZING-3 §5.1 순환 백분율). 그런데 스칼라가 없으면 엔진은 그때
+    //   fallback 할 content 크기를 모른다 → 폭 0 붕괴. 부모의 `align-items` 가 non-stretch
+    //   면 auto-cross 자식이 shrink-to-fit 이라 정확히 그 상태가 된다.
+    //   실측(2026-07-28): `column + align-items:center` 안의 행에서 B22 `width:100%` 텍스트가
+    //   0 (DOM 171) → 행 전체가 아이콘 폭(24)으로 접힘. 라이브 Container Align 증상이 이것.
+    //   **stretch 부모에서는 무해**하다 — `%` 가 해소되면 엔진이 그 값을 그대로 쓰고
+    //   (`resolve_leaf_intrinsic_width` 의 `Some(n) if n >= 0.0 => explicit_w`) 스칼라는
+    //   소비되지 않는다.
     ((isFlexChild || isGridChild) &&
       TEXT_LEAF_TAGS.has(type) &&
       (!rawWidth ||
         rawWidth === "auto" ||
+        (typeof rawWidth === "string" && rawWidth.trim().endsWith("%")) ||
         INTRINSIC_SIZE_KEYWORDS.has(rawWidth as string))) ||
     (IMAGE_INTRINSIC_TAGS.has(type) &&
       typeof rawWidth === "string" &&

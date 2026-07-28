@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Container Align — 비-stretch 교차축에서 컴포넌트가 접히던 문제] - 2026-07-28
+
+### Bug Fixes
+
+- **스타일 패널의 Container Align 을 선택하면 등록된 컴포넌트가 아이콘 폭만 남기고 접히던 문제**:
+  - 라이브 실측(components 페이지): GridList **12px** / MenuItem **24px** / ListBoxItem **48px** — 폭을 가진 아이콘만 남고 텍스트가 0 이었다. 수정 후 MenuItem 91 / ListBoxItem 115 / GridListItem 125
+  - **Why**: Container Align 9칸은 전부 non-stretch `align-items` 라 auto-cross 자식이 **shrink-to-fit** 이 되어 `INDEFINITE_AVAIL(-1)` 을 받는데, 그 상태에서 크기를 만들어 내는 경로 **둘 다** 비어 있었다 — ① 엔진 `solve_block` 이 auto 폭 자식을 센티넬로 stretch 해 폭이 `-1` ② TS `enrichWithIntrinsicSize` 가 `width:%` 텍스트 leaf 에 측정 스칼라를 공급하지 않아 폭 0. 근거는 한 규칙이다: 늘어날 available 이 없으면 intrinsic 기여는 stretch 가 아니라 **content** 이고(CSS-SIZING-3 §5), containing block 이 미결정이면 `%` 는 `auto` 처럼 동작한다(§5.1 순환 백분율)
+  - **통로는 ADR-151 B22** — catalog `Text.containerStyles.width = "100%"` 선주입이 키워드도 `auto` 도 아니라 스칼라 게이트에서 탈락했다. stretch 부모에서는 `%` 가 해소되어 스칼라가 소비되지 않으므로 게이트를 넓혀도 기존 경로는 불변
+  - ADR-169 Phase 1 이 **같은 처방**을 측정 패스(`-2`/`-3`)에만 걸어 둔 상태였다 — `INDEFINITE_AVAIL(-1)` 로 확대
+  - 위치: `packages/composition-engine/src/tree.rs::solve_block` / `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` (`needsWidth`)
+  - **주의**: Direction 미지정 상태에서 Container Align 을 누르면 `flexDirection` 기본값 `row` 가 함께 쓰여 전 자식이 한 줄로 shrink 한다 — 그건 CSS 대로이고 본 결함과 무관하다
+
+### Documentation
+
+- **`.claude/rules/layout-engine.md`**: §"늘어날 available 이 없으면 기여는 content 다 — Container Align 교차축" 추가 (두 경로 표 · B22 통로 · 잔존 2건 · 금지 패턴)
+
+### Infrastructure
+
+- **Chrome 실측 fixture 신규**: `apps/builder/tests/parity/containerAlign.browser.test.ts` (engine block 4 · engine flex 3 · pipeline 3 · 잔존 1). DOM leg 은 실제 Preview 와 같게 텍스트에 `width:100%` 를 준다 — 빼면 오라클이 실물과 달라져 가짜 발산이 난다. 민감도 — 엔진 확대 되돌림 3 red / TS 게이트 되돌림 2 red
+
 ## [body 뷰포트 분리를 전 배치 문법으로 — Chrome 기준 정렬] - 2026-07-28
 
 ### Bug Fixes

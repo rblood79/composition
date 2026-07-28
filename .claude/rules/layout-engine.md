@@ -177,6 +177,34 @@ Chrome 은 페이지를 **두 노드**로 처리한다.
 - ❌ 프레임 높이를 내용 따라 키워 회피 → 아트보드는 breakpoint 크기이고, 그러면 뷰포트 개념 자체가 사라진다
 - ❌ TS 에서 내용 높이를 미리 재서 `height` 로 주입 (2-pass 자작) → 폭·높이 축 모두 엔진 소유 (§TS 잔존 계약)
 
+## 늘어날 available 이 없으면 기여는 **content** 다 — Container Align 교차축 (2026-07-28)
+
+`align-items` 가 non-stretch 면 auto-cross 자식은 **shrink-to-fit** 이라 `INDEFINITE_AVAIL(-1)` 을 받는다. 그 상태에서 크기를 만들어 내는 경로가 둘 다 비어 있었다.
+
+| 경로                         | 증상                                              | 수정                                   |
+| ---------------------------- | ------------------------------------------------- | -------------------------------------- |
+| 엔진 `solve_block`           | auto 폭 자식을 **센티넬로 stretch** → 폭 `-1`     | 측정 패스 전용 fit-content 대체를 확대 |
+| TS `enrichWithIntrinsicSize` | `width:%` 텍스트 leaf 에 스칼라 미공급 → 폭 **0** | 백분율도 스칼라 공급 대상              |
+
+- 근거는 한 규칙이다 — 늘어날 available 이 없으면 intrinsic 기여는 stretch 가 아니라 **content** 이고(CSS-SIZING-3 §5), containing block 이 미결정이면 `%` 는 **`auto` 처럼** 동작한다(§5.1 순환 백분율).
+- **ADR-169 Phase 1 이 같은 처방을 이미 갖고 있었다** — 측정 패스(`-2`/`-3`)에만 걸려 있었을 뿐이다. `INDEFINITE_AVAIL(-1)` 도 "available 이 없다" 는 같은 상태다.
+- **stretch 부모에서는 무해**하다: `%` 가 해소되면 엔진이 그 값을 쓰고(`resolve_leaf_intrinsic_width` 의 `Some(n) if n >= 0.0 => explicit_w`) 스칼라는 소비되지 않는다. 그래서 스칼라 공급을 넓혀도 stretch 경로 결과가 바뀌지 않는다.
+- **B22 가 이 결함의 통로였다**: catalog `Text.containerStyles.width = "100%"` 를 `applyImplicitStyles` 가 선주입하는데, `100%` 는 키워드도 `auto` 도 아니라 스칼라 게이트에서 탈락했다. 라이브 실측 — `align-items` 지정 시 GridList **12px** / MenuItem **24px** / ListBoxItem **48px** (폭을 가진 아이콘만 남고 텍스트가 0). 수정 후 MenuItem 91 / ListBoxItem 115 / GridListItem 125.
+- **Direction 미지정 + Container Align 은 row 가 된다** — 패널이 `flexDirection` 기본값 `row` 로 쓰므로 페이지 전 자식이 한 줄에 들어가 크게 shrink 한다. 그건 **CSS 대로**이고 본 결함과 무관하다. 세로 스택을 의도했다면 Direction 을 먼저 column 으로.
+- Chrome 실측 fixture: `containerAlign.browser.test.ts` (engine block 4 · engine flex 3 · pipeline 3 · 잔존 1). 민감도 — 엔진 확대 되돌림 3 red / TS 게이트 되돌림 2 red.
+
+### 잔존 2건
+
+- **`%` 는 확정된 컨테이너 크기로 재해소되지 않는다**: Chrome 은 shrink-to-fit 크기를 정한 뒤 자식 `%` 를 그 값으로 다시 푼다(`width:50%` → DOM 60 / 엔진 120). 컨테이너 크기는 맞고 자식 크기만 다르다 — 고치려면 컨테이너 확정 후 자식 재-solve(flex 3.5 형태의 확장)가 필요하다.
+- **projection collection 행은 owner 폭에 의존**: 투영된 행(`projection:gridlist-row:*`)은 레이아웃 자식이 없어 shrink-to-fit 에서 폭을 못 만든다(실측 GridList 34). 별개 축이다 — memory `feedback-projection-width-dependent-fold-belongs-in-render-not-projection`.
+
+### 금지 패턴
+
+- ❌ 미결정 available 을 그대로 stretch 폭으로 사용 → 폭이 음수 센티넬이 된다
+- ❌ 스칼라 공급 게이트를 키워드/`auto` 로만 판정 → `width:%` 텍스트 leaf 가 shrink-to-fit 부모에서 0 으로 접힌다
+- ❌ 이 붕괴를 `align-items` 구현 문제로 진단 → `align-items` 자체는 정합이고(합성 도형 6케이스 전부 Chrome 일치) 무너지는 것은 **크기 공급** 쪽이다
+- ❌ Container Align 이 row 로 붙어 생긴 shrink 를 결함으로 판정 → Direction 기본값이 `row` 이고 그 결과는 CSS 대로다
+
 ## automatic minimum size (CSS-FLEXBOX-1 §4.5) — 엔진 소속 (ADR-164 Phase 1 / ADR-165 정밀화, 2026-07-25)
 
 flex item 의 automatic minimum size (min-width/height:auto = content 하한) 는 **엔진 구현** (`flex.rs::parse_item` effective min 해석): 조건 `명시 min 부재 ∧ item 주축 overflow visible ∧ 주축 크기 auto` → floor = **정확 min-content** (`content_min_main`, off 19 — 공급 시) 또는 `content_main` (absent fallback — 단일줄 상한 근사), max clamp 동반. 프로토콜: off 18 = 주축 overflow (0=visible zero-init / 1=clipped), off 19 = `content_min_main` (0=absent zero-init) — `tree.rs::write_flex_item` 이 기록, `FLEX_FIELD_COUNT=20`.

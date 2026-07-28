@@ -1908,12 +1908,20 @@ impl LayoutTree {
             let (cw, ch) = child_sizes[i];
             write_block_item(&mut data, i, &cstyle, cw, ch, &ctx, &height_ctx);
             let off = i * block::FIELD_COUNT;
-            // intrinsic 측정 패스에서는 auto 폭 block-level 자식을 **fit-content 로 읽는다**
-            // (ADR-169 Phase 1). block.rs 의 auto 는 `available - margin` stretch 인데,
-            // 측정 available 은 음수 센티넬이라 그대로 두면 폭이 음수 → 컨테이너 intrinsic
-            // 이 0 으로 붕괴한다. CSS 상 intrinsic 기여는 stretch 가 아니라 content 이므로
-            // FIT_CONTENT(=content_w 슬롯 소비) 가 정의에 맞는 해석이다.
-            if measuring && data[off + 1] == -1.0 {
+            // **인라인 available 이 미결정이면 auto 폭 block-level 자식은 fit-content 다.**
+            //
+            // block.rs 의 auto 는 `available - margin` stretch 인데, available 이 음수 센티넬
+            // 이면 폭이 음수가 되어 컨테이너가 0 으로 붕괴한다. CSS 상 "늘어날 available 이
+            // 없는" 상태의 기여는 stretch 가 아니라 content 이므로 FIT_CONTENT(=content_w
+            // 슬롯 소비)가 정의에 맞는 해석이다.
+            //
+            // ADR-169 Phase 1 이 **측정 패스**(`-2`/`-3`)에만 걸어 뒀는데, `INDEFINITE_AVAIL`
+            // (`-1`)도 같은 상태다 — flex 컨테이너의 `align-items` 가 non-stretch 면 auto-cross
+            // 자식이 shrink-to-fit 이라 그 센티넬을 받는다(§Container Align). 실측(2026-07-28):
+            // `column + align-items:center` 안의 block 컨테이너에서 `width:100%` 자식이 폭
+            // **-1**, 컨테이너 **0** (DOM 은 둘 다 120). 라이브에서는 catalog 의 `width:100%`
+            // 계열(B22 Text 등)을 품은 컴포넌트가 12~48px 로 접혔다.
+            if (measuring || child_avail_w < 0.0) && data[off + 1] == -1.0 {
                 data[off + 1] = flex::CONTENT;
             }
             // 자식이 자기 자식 상쇄로 hoisted margin 을 보유하면 자기 style margin 과 collapse
