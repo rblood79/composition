@@ -89,8 +89,11 @@
 | height        | auto / `80px` / `50%`                                                            |   3 |
 | min/max       | 없음 / `minWidth:200px` / `maxWidth:60px` / `minHeight:120px` / `maxHeight:40px` |   5 |
 | 부모 컨텍스트 | definite / shrink-to-fit                                                         |   2 |
+| **leaf 종류** | **`scalar` (측정 스칼라 = 텍스트 leaf 대역) / `plain` (확정 폭)**                |   2 |
 
-자식은 스칼라 leaf 2개 고정 (`contentMinWidth:40`/`contentMaxWidth:90` + `height:30px`, `domAtoms:[40,50]`) — 컨테이너 크기가 자식 content 로부터 나오는 경로 (`min-content`/`fit-content`/auto) 를 관측 가능하게 한다. **5×6×3×5×2 = 900**.
+**5×6×3×5×2×2 = 1,800**.
+
+**leaf 축은 Phase 1 대조 probe 실측으로 추가됐다** (Phase 0 freeze 대비 유일한 축 변경). 같은 조합에서 자식이 확정 폭이면 정합인데 측정 스칼라면 발산하는 형태가 다수였다 — 예 `block + width:min-content` 는 plain 90/90 정합 vs 스칼라 dom 50 / eng 300. leaf 축이 없으면 "엔진이 컨테이너 intrinsic 키워드를 무시한다" 는 **틀린 귀속**이 인벤토리에 굳는다 (실제로는 키워드를 처리하되 스칼라 기여를 못 읽는다). 두 종류를 같이 돌려야 원인이 컨테이너 알고리즘인지 leaf 기여 공급인지 갈린다. 이 정밀화는 adr-writing.md M3 (추정↔실측 gap 은 Phase 0 inventory 보강으로 흡수) 대상이다.
 
 **aspect-ratio 소블록** (같은 파일, 별도 describe): display 5 × 명시 축 3 (`width:120px` / `height:60px` / 둘 다 auto) × clamp 2 (없음 / `maxWidth:60px`) = **30**. 축으로 곱하지 않고 소블록으로 분리 — 엔진 지원은 확인됐고 (`tree.rs::apply_aspect_to_dims`) 기존 커버가 2케이스뿐이라 (`phase5` E15) 얇은 축을 닫는 것이 목적이다.
 
@@ -104,7 +107,9 @@
 | 자식 margin  | 0 / `marginLeft:10px` / `marginLeft:10%` / `marginLeft:auto` |   4 |
 | 자식 min/max | 없음 / `minWidth:100px` / `maxWidth:40px`                    |   3 |
 
-부모는 `{ width:"300px", height:"150px" }` definite 고정 (미결정 부모는 부분 격자 1·3 담당). 자식 2개 중 첫째만 축을 받고 둘째는 고정 스칼라 leaf — 형제 좌표가 첫째의 크기·margin 을 증명한다. **4×5×3×4×3 = 720**.
+부모는 `{ width:"300px", height:"150px" }` definite 고정 (미결정 부모는 부분 격자 1·3 담당). 자식 2개 중 첫째(subject)만 축을 받고 둘째는 고정 크기 형제 — **형제의 x/y 좌표**가 첫째의 크기·margin 을 증명한다. **4×5×3×4×3 = 720**.
+
+**subject 는 스칼라 leaf 가 아니라 "고정 크기 손자 하나를 가진 작은 컨테이너"** (`70×25`) 다 — Phase 1 실측 정정. 스칼라 leaf 로 두면 `height:auto` 축이 측정 불가다: ADR-165 측정 스칼라 계약은 **폭 채널만** 있어 (`contentMin/MaxWidth`) 엔진이 내용 높이를 모른다. DOM 은 `domAtoms` 원자 높이로 10 을 내고 엔진은 0 을 내, 발산 165건 중 **135건이 이 하니스 산출물**이었다. 손자가 크기를 확정하면 `fit-content`/`max-content` 는 손자 폭에서, `height:auto` 는 손자 높이에서 나와 두 leg 가 같은 근거를 갖는다. 정정 후 발산 165 → **45** (전건 단일 원인).
 
 ### 부분 격자 3 — 중첩 전파 (`basicAxisNesting`)
 
@@ -133,18 +138,18 @@ expect(keys).toEqual(KNOWN_DIVERGENCES); // 정확 일치 (superset/subset 모�
 
 ### §3.6 leg 배정
 
-| leg           | 범위                                                                                                                |
-| ------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `engineLeg`   | 전 조합 (1,686) — TS 공급층과 격리된 엔진 자체 정합                                                                 |
-| `pipelineLeg` | 부분 격자 1·2 의 **대표 부분집합** (display × width 직교, min/max·margin 은 대표 1값) ≈ 30+20 = 50 — TS 마스킹 감시 |
+| leg           | 범위                                                                                                  |
+| ------------- | ----------------------------------------------------------------------------------------------------- |
+| `engineLeg`   | 전 조합 (2,586) — TS 공급층과 격리된 엔진 자체 정합                                                   |
+| `pipelineLeg` | 부분 격자 1·2 의 **대표 부분집합** (leaf × display × width) + 격자 3 전건 = 116 조합 — TS 마스킹 감시 |
 
 ### §3.7 총량과 상한
 
-- 확정 총 **1,686 조합** (900 + 30 + 720 + 36). 기존 실 조합 ≈ 2,061 대비 0.8배.
+- 확정 총 **2,702 조합** — 격자 1: 1,800 + aspect 30 + pipeline 60 / 격자 2: 720 + pipeline 20 / 격자 3: 36 + pipeline 36. 기존 실 조합 ≈ 2,061 대비 1.3배.
 - **실행 시간 상한 (HC3 절대 수치)** — 2026-07-28 실측: 기존 parity 전체 (29파일 / 911 it / ≈2,061 조합) 가 **4.8초** wall (warm cache, `vitest run --config vitest.browser.config.ts`, 조합당 ≈0.7ms). 이에 근거해 상한을 고정한다:
   - 신규 격자 3파일 합산 단일 실행 **≤ 30초** wall
   - 신규 포함 parity 전체 **≤ 60초** wall
-  - 선형 외삽 예상치는 +1.2초 (1,686 × 0.7ms) 라 약 20배 여유. 초과 시 축 축소가 케이스 삭제보다 우선하고, 축소 내역은 §4 사각 목록에 편입 (침묵 축소 금지).
+- **Phase 1 실측 (2026-07-28)**: 신규 3파일 **1.61초** wall (test 198ms), 신규 포함 전체 **3.99초** wall (32파일 / 918 it). 상한 대비 각각 19배 / 15배 여유 — 축 축소 불요.
 - 추정 vs 실측 gap 은 절차 보강으로 흡수하고 전제 재검토 trigger 로 삼지 않는다 (adr-writing.md M3).
 
 ## §4. 사각 목록 — 확정 (격자가 못 여는 축, Phase 3 에서 layout-engine.md 이관)
@@ -161,8 +166,11 @@ expect(keys).toEqual(KNOWN_DIVERGENCES); // 정확 일치 (superset/subset 모�
 | grid `%` 트랙 **내부 배분**                          | 기존 명시 이연 (layout-engine.md §그리드 자신의 min/max-content 잔존 — 실사용 0건). 트랙 sizing 2-pass 재설계 필요                                    |
 | grid `auto-flow: column` 의 행 extent                | 기존 명시 잔존 (`shrinkToFitInline` `[잔존]`) — 신규 격자는 row-flow 고정                                                                             |
 | `gap` / `padding` / `border` 조합                    | 기본 축 밖 — 격자는 0 리셋 고정 (`gridTrackContribution`/`gridMinmaxTracks` 가 부분 커버)                                                             |
+| **내용 leaf 의 `height:auto`** (Phase 1 추가)        | **엔진 leg 에 높이 스칼라 채널이 없다** — ADR-165 계약은 폭만 (`contentMin/MaxWidth`). 격자는 leaf 높이를 항상 명시하거나 손자로 확정 (아래 근거)     |
 
 > **판정 변경 (초안 대비)**: `aspect-ratio` 는 사각이 **아니다** — 엔진 지원 확인 (`tree.rs:4063 apply_aspect_to_dims`) + 기존 2케이스 (`phase5` E15). 얇은 커버라 부분 격자 1 의 소블록 30 조합으로 **편입**한다.
+>
+> **사각 추가 (Phase 1 실측)**: 내용을 가진 leaf 의 `height:auto` 는 engine leg 으로 측정할 수 없다. TS 파이프라인은 `calculateContentHeight` 로 높이를 공급하지만 **엔진에 대응 채널이 없어** DOM 은 원자 높이를, 엔진은 0 을 낸다. 격자 2 의 초안 발산 165건 중 **135건이 이 산출물**이었다 — 하니스 사각을 엔진 결함으로 잘못 귀속할 뻔한 실사례라, 격자 설계 원칙 §1-4 ("격자는 자기가 열거한 축만 증명한다") 가 **오라클 쪽에도** 적용된다는 근거로 남긴다. 높이 축의 엔진 정합은 `pipelineLeg` 이 담당한다.
 
 ## §5. Phase 목록
 
@@ -174,16 +182,16 @@ expect(keys).toEqual(KNOWN_DIVERGENCES); // 정확 일치 (superset/subset 모�
 - [x] 기존 parity 스위트 실행 시간 실측 (4.8초) → HC3 상한을 절대 수치로 고정 (§3.7) + ADR 본문 HC3 갱신
 - [x] **G1**: 본 breakdown freeze
 
-### Phase 1 — 격자 구현 + 발산 인벤토리 (엔진 수정 0)
+### Phase 1 — 격자 구현 + 발산 인벤토리 (엔진 수정 0) — 완료 2026-07-28
 
-- [ ] `apps/builder/tests/parity/basicAxisContainerSize.browser.test.ts` (부분 격자 1 + aspect 소블록)
-- [ ] `apps/builder/tests/parity/basicAxisChildSize.browser.test.ts` (부분 격자 2)
-- [ ] `apps/builder/tests/parity/basicAxisNesting.browser.test.ts` (부분 격자 3)
-- [ ] harness 재사용 — 신규 harness 헬퍼가 필요하면 `harness.ts` 에 추가 (별도 harness 금지)
-- [ ] 첫 실행 → 발산 전수 수집 → **ratchet 목록으로 잠금** (§3.5, 스위트 green 유지)
-- [ ] 발산 군집화 보고: 군집별 {대표 케이스, 발산 수치, 추정 거처 (엔진 solve\_\* / TS 공급 / 스펙 조문), 케이스 수} — §7 부록에 기록
-- [ ] 기존 parity 전체 (911 it) 회귀 0 + 실행 시간 HC3 상한 내 확인
-- [ ] **G2**: 격자 green + 인벤토리 보고 완료
+- [x] `apps/builder/tests/parity/basicAxisContainerSize.browser.test.ts` (부분 격자 1 + aspect 소블록 + pipeline)
+- [x] `apps/builder/tests/parity/basicAxisChildSize.browser.test.ts` (부분 격자 2 + pipeline)
+- [x] `apps/builder/tests/parity/basicAxisNesting.browser.test.ts` (부분 격자 3 + pipeline)
+- [x] harness 재사용 — `harness.ts` **무변경** (기존 `domLeg`/`engineLeg`/`pipelineLeg`/`diffCase` + `domAtoms`/측정 스칼라로 충분)
+- [x] 첫 실행 → 발산 전수 수집 → **ratchet 목록으로 잠금** (`tests/parity/basicAxis.known.ts`, 스위트 green)
+- [x] 발산 군집화 보고 → §7
+- [x] 기존 parity 전체 회귀 0 (29→32파일 / 911→918 it 전건 PASS) + 실행 시간 상한 내 (§3.7 실측)
+- [x] **G2**: 격자 green + 인벤토리 보고 완료
 
 ### Phase 2 — 군집별 수정 wave
 
@@ -210,11 +218,45 @@ expect(keys).toEqual(KNOWN_DIVERGENCES); // 정확 일치 (superset/subset 모�
 | `.claude/rules/layout-engine.md`                                                          | 3     | 사각 목록 + 신규 규칙 절      |
 | `docs/CHANGELOG.md` / `docs/adr/README.md`                                                | 3     | 종결 기록                     |
 
-## §7. 발산 인벤토리 (Phase 1 산출 — 착수 전 공란)
+## §7. 발산 인벤토리 (Phase 1 산출 — 2026-07-28 실측)
 
-> Phase 1 종료 시 군집 표를 여기에 기록한다. 형식:
->
-> | 군집 | 대표 케이스 | Chrome | 엔진 | 추정 거처 | 케이스 수 | 판정 (수정/이연) |
+**총계: 2,702 조합 중 727 발산 (26.9%)** — 격자 1 644/1,890 · 격자 2 53/740 · 격자 3 **0**/72.
+
+격자 3 (중첩 전파) 이 engine·pipeline 양쪽 **전건 정합**이라는 것이 이번 인벤토리의 가장 큰 결과다. 발산은 전부 **한 노드가 자기 크기를 정하는 단계**에 있고, 정해진 크기가 아래로 전파되는 경로는 이미 닫혀 있다.
+
+### 군집 표
+
+| #   | 군집                                         | 대표 케이스                                                    | Chrome |    엔진 | 추정 거처 (Phase 2 확정 대상)                                                                     | 케이스 |   판정 |
+| --- | -------------------------------------------- | -------------------------------------------------------------- | -----: | ------: | ------------------------------------------------------------------------------------------------- | -----: | -----: |
+| A   | **인라인 축 clamp 후 재분배 부재**           | `scalar\|definite\|block\|w=120px\|h=auto\|minW200` (자식 폭)  |    200 | **120** | layout-engine.md §"clamp 뒤 값" 이 flex main/cross + grid block 3축만 — **인라인 축 미포함**      |    339 |   수정 |
+| B   | **컨테이너 intrinsic 이 스칼라 기여 미소비** | `scalar\|definite\|block\|w=min-content\|h=auto\|none` (box.w) |     50 | **300** | ADR-169 `measure_intrinsic_width` ↔ ADR-165 스칼라 채널 접점. plain leaf 는 정합                  |    157 |   수정 |
+| C   | **`%` 높이가 auto 부모에서 순환 해소**       | `plain\|shrink\|block\|w=auto\|h=50%\|none` (box.h)            |     50 |  **25** | 블록 축 definite 판정 (`explicit_h > 0.0`) 누수 — 자기 content 높이를 base 로 씀                  |    108 |   수정 |
+| D   | **`1fr` 트랙이 auto 최소를 안 잡음**         | `plain\|definite\|grid-1fr\|w=120px\|h=auto\|none` (leafB.x)   |     90 |  **60** | CSS-GRID §12.7.1 — `1fr` = `minmax(auto, 1fr)` 의 base(min-content 기여) 미반영                   |     29 |   수정 |
+| E   | **flex 교차축 stretch 가 스칼라에 짐**       | `scalar\|definite\|flex-col\|w=auto\|h=auto\|none` (leafA.w)   |    300 |  **90** | `resolve_leaf_intrinsic_width`(auto→max-content) 가 §9.4 step 11 stretch 를 이김                  |     16 |   수정 |
+| F   | **aspect-ratio: stretch 폭에서 미적용**      | `aspect\|block\|none-given\|none` (box.h)                      |    150 |  **50** | `apply_aspect_to_dims` 가 명시 크기에만 걸림 — stretch 로 정해진 폭은 입력이 안 됨                |      5 |   수정 |
+| G   | **aspect-ratio: clamp 전 폭으로 파생**       | `aspect\|block\|w-given\|maxW60` (box.h)                       |     50 |  **60** | 군집 A 의 aspect 갈래 + CSS-SIZING-4 자동 최소 크기 (내용 50 이 하한)                             |      5 |   수정 |
+| H   | **grid auto 트랙 stretch 가 margin 누락**    | `grid-auto\|w=auto\|h=auto\|ml-10px\|none` (subject.w)         |    165 | **160** | CSS-GRID §12.8 여유 산출이 item **outer** 크기(margin 포함)를 안 씀 — Δ = margin/2                |     45 |   수정 |
+| I   | **TS 선해석이 엔진 값을 근사로 덮음**        | `pipe\|scalar\|block\|w=min-content` (leafA.w)                 |     50 |  **80** | `calculateContentWidth` 컨테이너 키워드 근사 (layout-engine.md §TS 잔존 계약 "flex/block 선해석") |     23 | 재판정 |
+
+- 케이스 수 합 = 339+157+108+29+16+5+5+45+23 = **727** ✓ (군집 C = 격자 1 의 102 + definite 부모 6 / 군집 D = grid 트랙 24 + aspect 소블록의 트랙 갈래 5 / 군집 I = pipeline leg 15+8).
+- **군집 I 만 판정이 다르다** — 여기서 엔진을 고치면 TS 선해석이 여전히 덮으므로, Phase 2 는 **엔진 수정(B) 이 선행**하고 그 다음 TS 선해석 제거 가능 여부를 판정한다. 선해석은 layout-engine.md 가 명시한 잔존 계약이라 제거는 그 문서의 갱신을 동반한다.
+
+### 원인 축으로 본 요약
+
+세 갈래로 모인다 — Phase 2 의 커밋 단위도 이 갈래를 따른다.
+
+1. **clamp 순서** (A + G, 344건) — `min-*`/`max-*` 로 정해진 used size 가 내부 분배·파생의 입력이 되어야 한다. 기존 규칙의 **인라인 축 확장**이라 스펙 근거와 처방이 이미 문서에 있다.
+2. **content 기여 공급** (B + D + E + H, 247건) — 자식의 min/max-content 기여가 컨테이너 알고리즘에 도달하지 않거나(B), 트랙 base 로 안 쓰이거나(D), stretch 에 지거나(E), margin 을 빼먹는다(H).
+3. **definite 판정 누수** (C + F, 113건) — 미결정이어야 할 축이 자기 결과로 확정 취급된다(C), 또는 확정된 값이 파생 입력이 못 된다(F).
+
+### 하니스 판정 (엔진 결함 아님 — 인벤토리 제외)
+
+| 항목                           | 초안 발산 | 원인                                                        | 조치                                   |
+| ------------------------------ | --------: | ----------------------------------------------------------- | -------------------------------------- |
+| 내용 leaf 의 `height:auto`     |       135 | 엔진 leg 에 높이 스칼라 채널 부재 (ADR-165 는 폭만)         | 격자 2 subject 를 손자 보유 컨테이너로 |
+| 컨테이너 intrinsic 키워드 귀속 |    (전량) | 초기 판정 "엔진이 키워드 무시" → plain leaf 대조로 **반증** | leaf 축 신설 (§3 부분 격자 1)          |
+
+둘 다 **대조군이 없었으면 잘못된 원인으로 인벤토리에 굳었을** 항목이다. 대조 probe 를 인벤토리 확정 전에 돌리는 것이 이 격자 운영의 필수 절차다.
 
 ## §8. 검증 계획
 
