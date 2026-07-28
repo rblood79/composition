@@ -95,4 +95,69 @@ describe("TransformSection sizing controls", () => {
       within(heightListbox).queryByRole("option", { name: "fit-content" }),
     ).toBeNull();
   });
+
+  it("keeps unset Min/Max constraints blank instead of defaulting to zero", () => {
+    setTestElements([
+      {
+        id: "button-1",
+        type: "Button",
+        parent_id: "frame-1",
+        props: {
+          style: {
+            width: "200px",
+            height: "100px",
+            aspectRatio: "2 / 1",
+          },
+        },
+      } as Element,
+      {
+        id: "frame-1",
+        type: "Frame",
+        parent_id: null,
+        props: { style: { display: "flex", flexDirection: "row" } },
+      } as Element,
+    ]);
+
+    render(<TransformSection />);
+
+    for (const label of ["Min W", "Max W", "Min H", "Max H"]) {
+      const input = screen.getByRole("combobox", { name: label });
+      expect((input as HTMLInputElement).value).toBe("");
+    }
+  });
+
+  it("omits rem from every Min/Max constraint unit menu", async () => {
+    setTestElements([
+      {
+        id: "button-1",
+        type: "Button",
+        parent_id: "frame-1",
+        props: {
+          style: {
+            width: "200px",
+            height: "100px",
+            aspectRatio: "2 / 1",
+          },
+        },
+      } as Element,
+      {
+        id: "frame-1",
+        type: "Frame",
+        parent_id: null,
+        props: { style: { display: "flex", flexDirection: "row" } },
+      } as Element,
+    ]);
+
+    for (const label of ["Min W", "Max W", "Min H", "Max H"]) {
+      render(<TransformSection />);
+
+      const group = screen.getByRole("group", { name: label });
+      within(group).getByRole("button").click();
+
+      const listbox = await screen.findByRole("listbox");
+      expect(within(listbox).queryByRole("option", { name: "rem" })).toBeNull();
+
+      cleanup();
+    }
+  });
 });

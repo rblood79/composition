@@ -16,14 +16,14 @@ import type { PrimitiveBinding } from "../types";
  * **DOM parity = 변화 0**: rendererMap 에서 InlineAlert 제거 → generic fallback 경로(INTERNAL_RENDERERS
  *   미등록). isSpecOrCatalogBacked true → `react-aria-InlineAlert` + data-size/data-variant 주입
  *   보존 → generated/InlineAlert.css(index.css:108 import 됨) selector 매칭 불변. heading/description
- *   은 자식 Element 가 `.alert-heading`/`.react-aria-Description` selector 로 처리. resolveGenericHtmlTag
- *   InlineAlert 키 없음 → type.toLowerCase() = "inlinealert"(올바른 커스텀 태그, div 류 block).
+ *   은 자식 Element 가 `.alert-heading`/`.react-aria-Description` selector 로 처리.
+ *   resolveGenericHtmlTag/resolveHtmlTag 는 InlineAlert 를 표준 `<div>`로 매핑한다.
  *
  * **staticAttrs (role 보강)**: renderInlineAlert(LayoutRenderers.tsx:1413) 와 spec.react()(L233-237)
  *   이 부여하던 role="alert"/aria-live="polite" D1 metadata 는 generic fallback 경로에 부여처가 없다
  *   (단순 styled div, RAC 아님). staticAttrs 로 데이터 기반 부여 — 스크린리더 alert 접근성 보존.
  *
- * D1: composition `<div role="alert">` (internal source, generic DOM via lowercase fallback).
+ * D1: composition `<div role="alert">` (internal source, generic DOM via explicit mapping).
  * D2: variant(5종 neutral/info/positive/notice/negative) + size(sm/md/lg) + heading + children 편집.
  * D3: 시각(variant 별 배경/테두리/패딩)은 theme rule(COMPONENT_RULES_TABLE.InlineAlert).
  */

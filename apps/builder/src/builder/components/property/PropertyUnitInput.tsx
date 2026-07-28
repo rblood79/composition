@@ -27,6 +27,11 @@ interface PropertyUnitInputProps {
   units?: string[];
   defaultUnit?: string;
   allowKeywords?: boolean;
+  /**
+   * 빈 optional 값에서 단위만 선택했을 때 0을 커밋하지 않고,
+   * 숫자가 입력될 때까지 선택 단위를 로컬 draft로 유지한다.
+   */
+  preserveEmptyValueOnUnitChange?: boolean;
   min?: number;
   max?: number;
 }
@@ -89,27 +94,34 @@ export const PropertyUnitInput = memo(
     units = DEFAULT_UNITS,
     defaultUnit = "",
     allowKeywords = true,
+    preserveEmptyValueOnUnitChange = false,
     min = 0,
     max = 9999,
   }: PropertyUnitInputProps) {
     const selectedElementId = useStore((state) => state.selectedElementId);
+    const isPreservedEmptyValue =
+      preserveEmptyValueOnUnitChange && value.trim() === "";
     // useMemo로 value prop에서 파생값 계산 (useLayoutEffect + setState 대체)
     const parsed = useMemo(() => parseUnitValue(value), [value]);
     const numericValue = parsed.numericValue;
     // 단위 해석: parsed.unit이 비어있고 숫자가 있으면 units 목록에서 첫 번째 비키워드 단위로 폴백
     // (e.g., borderWidth: "1" → unit="" → "px" 폴백)
-    const unit =
+    const resolvedUnit =
       parsed.unit ||
       (parsed.numericValue !== null
         ? defaultUnit ||
           units.find((u) => u !== "" && !KEYWORDS.includes(u)) ||
           ""
         : parsed.unit);
+    const [draftUnit, setDraftUnit] = useState<string | null>(null);
+    const unit = draftUnit ?? resolvedUnit;
     const isKeyword = parsed.numericValue === null;
     const [inputValue, setInputValue] = useState(
-      parsed.numericValue !== null
-        ? String(parsed.numericValue)
-        : (INPUT_DISPLAY_LABELS[parsed.unit] ?? parsed.unit),
+      isPreservedEmptyValue
+        ? ""
+        : parsed.numericValue !== null
+          ? String(parsed.numericValue)
+          : (INPUT_DISPLAY_LABELS[parsed.unit] ?? parsed.unit),
     );
     // ⭐ useRef로 변경: Enter 키로 저장했는지 추적 (useState는 비동기!)
     const justSavedViaEnterRef = useRef(false);
@@ -131,12 +143,22 @@ export const PropertyUnitInput = memo(
       justSavedViaEnterRef.current = false;
       lastSavedValueRef.current = value;
       focusedElementIdRef.current = null;
-      const nextDisplay =
-        parsed.numericValue !== null
+      const nextDisplay = isPreservedEmptyValue
+        ? ""
+        : parsed.numericValue !== null
           ? String(parsed.numericValue)
           : (INPUT_DISPLAY_LABELS[parsed.unit] ?? parsed.unit);
-      queueMicrotask(() => setInputValue(nextDisplay));
-    }, [value, selectedElementId, parsed.numericValue, parsed.unit]);
+      queueMicrotask(() => {
+        setInputValue(nextDisplay);
+        setDraftUnit(null);
+      });
+    }, [
+      value,
+      selectedElementId,
+      parsed.numericValue,
+      parsed.unit,
+      isPreservedEmptyValue,
+    ]);
 
     const handleInputChange = (newValue: string) => {
       setInputValue(newValue);
@@ -229,6 +251,18 @@ export const PropertyUnitInput = memo(
     };
 
     const handleUnitChange = (selectedUnit: string) => {
+      if (isPreservedEmptyValue && selectedUnit === "reset") {
+        setDraftUnit(null);
+        setInputValue("");
+        return;
+      }
+
+      if (isPreservedEmptyValue && !KEYWORDS.includes(selectedUnit)) {
+        setDraftUnit(selectedUnit);
+        setInputValue("");
+        return;
+      }
+
       if (KEYWORDS.includes(selectedUnit)) {
         // "reset" 선택 시 inline style 제거 (빈 문자열 전달)
         const newValue = selectedUnit === "reset" ? "" : selectedUnit;
@@ -362,11 +396,12 @@ export const PropertyUnitInput = memo(
               }
             }}
             selectedKey={
-              value === "" && units.includes("reset")
+              draftUnit ??
+              (value === "" && units.includes("reset")
                 ? "reset"
                 : unit === ""
                   ? "—"
-                  : unit
+                  : unit)
             }
             aria-label="Unit"
           >
@@ -419,6 +454,8 @@ export const PropertyUnitInput = memo(
       prevProps.min === nextProps.min &&
       prevProps.max === nextProps.max &&
       prevProps.allowKeywords === nextProps.allowKeywords &&
+      prevProps.preserveEmptyValueOnUnitChange ===
+        nextProps.preserveEmptyValueOnUnitChange &&
       JSON.stringify(prevProps.units) === JSON.stringify(nextProps.units)
     );
   },

@@ -341,7 +341,8 @@ const TransformSectionContent = memo(function TransformSectionContent() {
             label="Min W"
             className="min-width"
             value={styleValues.minWidth}
-            units={["reset", "px", "%", "rem", "vw"]}
+            units={["reset", "px", "%", "vw"]}
+            preserveEmptyValueOnUnitChange
             onChange={(value) => updateStyleImmediate("minWidth", value)}
             onDrag={(value) => updateStylePreview("minWidth", value)}
             min={0}
@@ -351,7 +352,8 @@ const TransformSectionContent = memo(function TransformSectionContent() {
             label="Max W"
             className="max-width"
             value={styleValues.maxWidth}
-            units={["reset", "px", "%", "rem", "vw"]}
+            units={["reset", "px", "%", "vw"]}
+            preserveEmptyValueOnUnitChange
             onChange={(value) => updateStyleImmediate("maxWidth", value)}
             onDrag={(value) => updateStylePreview("maxWidth", value)}
             min={0}
@@ -362,7 +364,8 @@ const TransformSectionContent = memo(function TransformSectionContent() {
             label="Min H"
             className="min-height"
             value={styleValues.minHeight}
-            units={["reset", "px", "%", "rem", "vh"]}
+            units={["reset", "px", "%", "vh"]}
+            preserveEmptyValueOnUnitChange
             onChange={(value) => updateStyleImmediate("minHeight", value)}
             onDrag={(value) => updateStylePreview("minHeight", value)}
             min={0}
@@ -372,7 +375,8 @@ const TransformSectionContent = memo(function TransformSectionContent() {
             label="Max H"
             className="max-height"
             value={styleValues.maxHeight}
-            units={["reset", "px", "%", "rem", "vh"]}
+            units={["reset", "px", "%", "vh"]}
+            preserveEmptyValueOnUnitChange
             onChange={(value) => updateStyleImmediate("maxHeight", value)}
             onDrag={(value) => updateStylePreview("maxHeight", value)}
             min={0}

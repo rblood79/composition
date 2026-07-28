@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Transform Min/Max 빈 값의 단위 선택 동작 수정] - 2026-07-29
+
+### Bug Fixes
+
+- `Min W`, `Max W`, `Min H`, `Max H`가 unset 상태에서 `0`으로 표시되고 단위만 선택해도 `0` 값이 저장되던 문제를 수정
+- 빈 constraint의 단위 선택은 로컬 draft로만 유지하고, 숫자를 입력해 Enter 또는 blur할 때 선택한 단위와 함께 처음 저장
+- constraint 단위 목록에서 기본 W/H sizing과 일관되지 않던 `rem`을 제거
+
 ## [Style Panel breakpoint 중복 배지 제거] - 2026-07-29
 
 ### Changed

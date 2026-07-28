@@ -113,4 +113,34 @@ describe("PropertyUnitInput numeric editing", () => {
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith("13px");
   });
+
+  it("keeps an empty constraint unset until a number is entered", () => {
+    const onChange = vi.fn();
+
+    useStore.setState({ selectedElementId: "element-1" } as never);
+    render(
+      <PropertyUnitInput
+        label="Min W"
+        value=""
+        units={["reset", "px", "%", "vw"]}
+        preserveEmptyValueOnUnitChange
+        onChange={onChange}
+      />,
+    );
+
+    const input = screen.getByRole("combobox", { name: "Min W" });
+    expect((input as HTMLInputElement).value).toBe("");
+
+    fireEvent.click(screen.getByRole("button", { name: "Show suggestions" }));
+    fireEvent.click(screen.getByRole("option", { name: "%" }));
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect((input as HTMLInputElement).value).toBe("");
+
+    fireEvent.change(input, { target: { value: "24" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith("24%");
+  });
 });

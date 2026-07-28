@@ -787,6 +787,8 @@ function CanvasContent() {
             return "div";
           case "FieldError":
             return "span";
+          case "InlineAlert":
+            return "div";
           // Collection 자식 태그
           case "Tab":
             return "button";
