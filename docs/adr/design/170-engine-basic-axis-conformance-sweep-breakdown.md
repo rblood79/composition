@@ -101,9 +101,10 @@
 
 ### Phase 0 — 격자 설계 freeze (수정 0, 문서만)
 
-- [ ] 기존 30 fixture 의 축 커버리지 맵 실측 확정 (§2 표 갱신)
+- [ ] 기존 29 fixture 의 축 커버리지 맵 실측 확정 (§2 표 갱신)
 - [ ] 부분 격자 1~3 축 배열 + 케이스 수 확정 (§3 표 갱신)
 - [ ] 사각 목록 확정 (§4 표 갱신, `aspect-ratio` 판정 포함)
+- [ ] 기존 parity 스위트 실행 시간 실측 → HC3 상한을 절대 수치 (분) 로 고정하고 ADR 본문 HC3 갱신
 - [ ] **G1**: 본 breakdown freeze — 리뷰 후 Phase 1 진입
 
 ### Phase 1 — 격자 구현 + 발산 인벤토리 (엔진 수정 0)
@@ -121,7 +122,7 @@
 
 - [ ] 군집당: 원인 확정 (스펙 조문 병기) → 엔진(`tree.rs`/`flex.rs`/`grid.rs`) 또는 TS(`fullTreeLayout.ts`/`utils.ts`) 수정 → 해당 스냅샷을 parity 단언으로 교체 → 민감도 (수정 되돌리면 red N건) → 커밋 1개
 - [ ] 이연 판정 군집: 사유 필수 (실사용 0건 / 미지원 표면 편입 등) + 스냅샷 유지 + §4 사각 목록 편입
-- [ ] cargo 유닛 + layout 유닛 회귀 0 유지
+- [ ] cargo 유닛 + layout 유닛 회귀 0 유지 + **엔진 마이크로벤치 회귀 0** (ADR-164 G3 벤치 — `packages/composition-engine/benches/{flex_shrink,tree_solve}.rs`. 수정 wave 는 재진입 pass 추가 등 perf-relevant — ADR-164/165 관행 승계)
 - [ ] **G3**: 스냅샷 잔여 전건이 "명시 이연 + 사유" 상태
 - 군집 수·수정 규모는 Phase 1 실측이 확정 — 비대 시 군집 단위로 커밋 분할 (phase 분할 원칙), wave 자체의 별도 ADR 분리는 하지 않는다 (결정 지점 아님)
 
@@ -151,6 +152,6 @@
 ## §8. 검증 계획
 
 - 실행: `apps/builder` 에서 `npx vitest run --config vitest.browser.config.ts tests/parity/basicAxis*` (Playwright/Chromium)
-- 회귀: 기존 parity 전체 + `cargo test` (composition-engine) + layout/canonical 유닛
+- 회귀: 기존 parity 전체 + `cargo test` (composition-engine) + layout/canonical 유닛 + 엔진 마이크로벤치 (`cargo bench` — flex_shrink/tree_solve, Phase 2 한정)
 - 민감도: Phase 2 각 군집 커밋 메시지에 "되돌리면 red N건" 명시 (기존 관행)
 - G4 live: components 페이지가 아닌 **신규 빈 페이지** 에서 기본 축 편집 시나리오 (테스트 수준 공통 컴포넌트를 오라클로 쓰지 않는다 — memory 정본)

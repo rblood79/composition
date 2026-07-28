@@ -2,11 +2,11 @@
 
 ## Status
 
-Proposed — 2026-07-28
+Accepted — 2026-07-28 (Proposed → Accepted 같은 날 — 리뷰 round 1 승인, 이슈 3건 전건 라운드 내 fixed: [reviews/170.md](reviews/170.md))
 
 ## Context
 
-composition-engine (ADR-916) 의 Chrome/CSS 발산은 **반응형 발견** 사이클로 해소되어 왔다: components 페이지 라이브 증상 → 역추적 → 좁은 parity fixture → 수정. 최근 30일 engine 34 + layout 19 fix 가 이 사이클의 산출이고, 각 수정은 Chrome 오라클 fixture (현재 parity 30파일 / 911 케이스) 로 잠기지만, **발견 자체가 증상 주도라 기본 축 (display × width/height) 의 잔여 발산 규모를 아무도 모른다** — 종결 조건이 없는 반복이다 (사용자 제기 2026-07-28: "step by step 접근은 끝없는 수정의 반복").
+composition-engine (ADR-916) 의 Chrome/CSS 발산은 **반응형 발견** 사이클로 해소되어 왔다: components 페이지 라이브 증상 → 역추적 → 좁은 parity fixture → 수정. 최근 30일 engine 34 + layout 19 fix 가 이 사이클의 산출이고, 각 수정은 Chrome 오라클 fixture (현재 parity fixture 29파일 / 911 케이스 — 2026-07-28 실측, 커밋 `e37ad3aee` 검증 블록) 로 잠기지만, **발견 자체가 증상 주도라 기본 축 (display × width/height) 의 잔여 발산 규모를 아무도 모른다** — 종결 조건이 없는 반복이다 (사용자 제기 2026-07-28: "step by step 접근은 끝없는 수정의 반복").
 
 여기에 두 번째 축이 겹친다: components 페이지 공통 컴포넌트는 완성형이 아니라 **테스트 수준** (사용자 확인 2026-07-28, memory `project-components-page-origins-are-test-level`) 이라 라이브 증상이 오라클이 못 되고, 매 증상마다 엔진/데이터 귀속 판정 비용이 붙는다. 본 ADR 은 두 축 분리의 **1단계 (엔진 축)** 다 — 2단계 (공통 컴포넌트 완성형 재구축) 는 본 격자의 green 을 전제로 하는 후속 별도 ADR 로 분리한다.
 
