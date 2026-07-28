@@ -100,6 +100,7 @@ function domViewportBodyLeg(
 function pipelineBodyLeg(
   bodyStyle: StyleRecord,
   childStyles: StyleRecord[],
+  pageH: number = PAGE_H,
 ): { body: Rect; children: Rect[] } {
   const nodes: CaseNode[] = [
     ...childStyles.map((style, i) => ({ label: `c${i}`, style })),
@@ -110,7 +111,7 @@ function pipelineBodyLeg(
       children: childStyles.map((_, i) => i),
     },
   ];
-  const res = pipelineLeg(nodes, PAGE_W, PAGE_H);
+  const res = pipelineLeg(nodes, PAGE_W, pageH);
   const rootIdx = nodes.length - 1;
   const toRect = (b: (typeof res)[number]): Rect => ({
     x: b.x,
@@ -231,6 +232,83 @@ describe("body 뷰포트 상자 ↔ 내용 배치 분리", () => {
     it("내용이 짧아도 페이지 높이", () => {
       const pipe = pipelineBodyLeg(COLUMN_FLEX, [{ height: "100px" }]);
       expect(pipe.body.h).toBeCloseTo(PAGE_H, 1);
+    });
+  });
+
+  describe("breakpoint height 가 아직 정하는 것 / 더는 정하지 않는 것", () => {
+    // 수정 후 pageH 의 역할은 셋이다: ① 뷰포트 상자(위 describe) ② 내용이 짧을 때의
+    // **하한** ③ 아트보드 사각형(`buildSceneSnapshot`). 잃은 것은 하나 — **내용이 넘칠 때
+    // 자식 크기를 정하는 힘**. 그게 이번 수정의 목적이고 Chrome 의 역할 분담이다.
+    const TALL = [
+      { height: "400px" },
+      { height: "400px" },
+      { height: "400px" },
+    ];
+
+    it("넘칠 때: pageH 를 바꿔도 자식 배치가 그대로", () => {
+      const a = pipelineBodyLeg(COLUMN_FLEX, TALL, 400);
+      const b = pipelineBodyLeg(COLUMN_FLEX, TALL, 900);
+      expect(b.children.map((c) => Math.round(c.y))).toEqual(
+        a.children.map((c) => Math.round(c.y)),
+      );
+      expect(b.children.map((c) => Math.round(c.h))).toEqual(
+        a.children.map((c) => Math.round(c.h)),
+      );
+      // 상자만 따라 움직인다.
+      expect(Math.round(a.body.h)).toBe(400);
+      expect(Math.round(b.body.h)).toBe(900);
+    });
+
+    it("짧을 때: pageH 가 여유를 정한다 (justify-content / flex-grow)", () => {
+      // DOM 실측 — H400 자식 y=150 / H900 y=400, grow 자식 400 / 900.
+      const c400 = pipelineBodyLeg(
+        { ...COLUMN_FLEX, justifyContent: "center" },
+        [{ height: "100px" }],
+        400,
+      );
+      const c900 = pipelineBodyLeg(
+        { ...COLUMN_FLEX, justifyContent: "center" },
+        [{ height: "100px" }],
+        900,
+      );
+      expect(Math.round(c400.children[0].y)).toBe(150);
+      expect(Math.round(c900.children[0].y)).toBe(400);
+
+      const g400 = pipelineBodyLeg(
+        COLUMN_FLEX,
+        [{ flexGrow: 1, minHeight: "0px" }],
+        400,
+      );
+      const g900 = pipelineBodyLeg(
+        COLUMN_FLEX,
+        [{ flexGrow: 1, minHeight: "0px" }],
+        900,
+      );
+      expect(Math.round(g400.children[0].h)).toBe(400);
+      expect(Math.round(g900.children[0].h)).toBe(900);
+    });
+
+    it("세로 flex body 의 `height:%` 자식은 해소되지 않는다 (Chrome 동형)", () => {
+      // `min-height` 는 블록 축을 definite 로 만들지 않는다 — Chrome 도 0 (실측).
+      const dom = domViewportBodyLeg(COLUMN_FLEX, [{ height: "50%" }]);
+      const pipe = pipelineBodyLeg(COLUMN_FLEX, [{ height: "50%" }]);
+      expect(Math.round(dom.children[0].h)).toBe(0);
+      expect(diffChildren("", dom.children, pipe.children)).toEqual([]);
+    });
+
+    it("[잔존] block body 는 `height:%` 자식을 해소한다 — Chrome 은 0", () => {
+      // Step 1.5 주석이 들던 근거("자식의 height:100% 가 페이지 크기 기준")는 **Chrome 에
+      // 없는 의미**다. body 가 `min-height:100vh` 인 실제 페이지에서 백분율 높이는 풀리지
+      // 않는다. 세로 flex 축에서는 이번에 사라졌고 block 축에만 남아 있다.
+      //
+      // 실사용 0건이라 이번 수정 범위에서 제외 — catalog 의 `height:"100%"` 2건은
+      // ProgressBar/Meter `.fill` 이고 부모가 확정 높이 트랙이라 무관하다. 이 스냅샷이
+      // 그 발산을 고정한다(고치려면 block 축 주입까지 min-height 로 옮겨야 하고, 그러면
+      // 상자 크기가 내용으로 바뀌어 별도 판정이 필요하다).
+      const dom = domViewportBodyLeg({ overflow: "auto" }, [{ height: "50%" }]);
+      const pipe = pipelineBodyLeg({ overflow: "auto" }, [{ height: "50%" }]);
+      expect(Math.round(dom.children[0].h)).toBe(0);
+      expect(Math.round(pipe.children[0].h)).toBe(200); // = PAGE_H * 0.5
     });
   });
 

@@ -157,7 +157,8 @@ Chrome 은 페이지를 **두 노드**로 처리한다.
 - **주입 축은 배치 문법으로 갈린다**: 세로 flex(`isColumnFlexBatchStyle`)면 `min-height`, 그 외(block / row flex / grid)는 종전대로 `height`. 블록 축이 **예산**이 되는 것은 세로 flex 뿐이고, 나머지에서는 확정 높이가 오히려 필요하다 — grid 는 `1fr` 행과 `align-content` 가 그 확정성에 매달려 있고, row flex 는 프레임 슬롯의 `height:100%`(`resolvePageSlotStyle`)가 그렇다(`min-height` 로 바꾸면 **Chrome 도 0 으로 접는다** — 실측).
 - **보고 높이는 뷰포트 상자로 되돌린다** (Step 5). 이 값이 clip 높이이자 `maxScrollTop = 내용 extent − 이 높이` 의 기준이다. 내용 높이를 그대로 보고하면 스크롤이 0 이 되고 넘친 내용이 프레임 밖 캔버스로 흘러나온다 — **도달 수단이 없다**. 프레임 높이는 `input.pageHeight` 고정이라(`buildSceneSnapshot.ts`) 내용 따라 자라지 않는다.
 - 짧은 내용에서는 `min-height` 가 body 를 페이지 높이로 채워 `justify-content` 가 종전대로 산다. 단 그러려면 위 §9.4→§9.7 재분배가 **먼저** 있어야 한다.
-- 주입 주석이 들던 근거("자식의 `height:100%` 가 페이지 크기 기준")는 실사용이 없다 — catalog 의 `height:"100%"` 2건은 ProgressBar/Meter `.fill` 이고 부모가 `height: var(--spacing-sm)` 로 확정된 트랙 내부다.
+- **breakpoint height 가 아직 정하는 것 / 더는 정하지 않는 것**: ① 뷰포트 상자(clip + `maxScrollTop` 기준) ② 내용이 짧을 때의 **하한** — `justify-content`/`flex-grow` 여유가 여기서 나온다(실측 pageH 400→900: center 자식 y 150→400, grow 자식 400→900) ③ 아트보드 사각형. 잃은 것은 하나 — **내용이 넘칠 때 자식 크기를 정하는 힘**(실측: pageH 400 ↔ 900 이 자식 배치를 전혀 바꾸지 않는다). 그게 이번 분리의 목적이다.
+- 주입 주석이 들던 근거("자식의 `height:100%` 가 페이지 크기 기준")는 **Chrome 에 없는 의미**다 — body 가 `min-height:100vh` 인 실제 페이지에서 백분율 높이는 풀리지 않는다(실측 DOM 0). 세로 flex 축에서는 이번에 사라졌고(Chrome 동형), **block 축에는 잔존**한다(`height:50%` 자식이 pageH 의 절반으로 해소 — DOM 0 / 엔진 200). 실사용 0건이라 범위 밖에 뒀다 — catalog 의 `height:"100%"` 2건은 ProgressBar/Meter `.fill` 이고 부모가 `height: var(--spacing-sm)` 로 확정된 트랙 내부다. 고치려면 block 축 주입까지 `min-height` 로 옮겨야 하고 그러면 상자 크기가 내용으로 바뀌어 별도 판정이 필요하다 — fixture 스냅샷이 그 발산을 고정한다.
 - Chrome 실측 fixture: `bodyViewportBox.browser.test.ts` — 자식 좌표는 `viewport(확정) > body(min-height:100%)` DOM 오라클과 대조하고, body 상자 높이는 오라클 대응물이 없어 **빌더 계약**으로 따로 단언한다. 주입 축을 되돌리면 3 red.
 
 ### 금지 패턴
