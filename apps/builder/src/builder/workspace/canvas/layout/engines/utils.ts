@@ -4774,16 +4774,21 @@ export function enrichWithIntrinsicSize(
     //   버리는 게 아니라 **min-width:auto 상당의 하한**으로만 남긴다 — free space 가 없으면
     //   콘텐츠 폭을 지키고, 있으면 그 위로 grow 한다. minWidth 를 사용자가 명시했으면 그게 우선
     //   (`flex:1 minWidth:0` 은 "콘텐츠 밑으로도 줄어도 된다"는 명시적 의사표시 → 하한 0 유지).
-    // **grid 컨테이너의 intrinsic 키워드는 엔진 소유** (2026-07-28): `calculateContentWidth`
-    //   는 트랙을 모른다 — 자식 폭을 합치는 근사라 `width:max-content` 그리드가 실제
-    //   트랙 합과 어긋난다(실측 자식 120·60 / `auto auto` → DOM 180, 주입값 80). 엔진은
-    //   §12.5–§12.7.1 로 이 크기를 스스로 산출하므로(`solve_grid` intrinsic 경로) 키워드를
-    //   그대로 넘긴다. flex/block 컨테이너의 선해석은 잔존 — 그쪽은 별도 판정이다.
+    // **컨테이너의 intrinsic 키워드는 엔진 소유** (2026-07-28, ADR-170 군집 I 재판정):
+    //   `calculateContentWidth` 는 자식 폭을 합치는 근사다 — grid 는 트랙을 몰라
+    //   (실측 자식 120·60 / `auto auto` → DOM 180, 주입값 80), flex/block 도 자식
+    //   margin·stretch 상호작용을 몰라 어긋난다 (실측 손자 70px 를 품은 block 의
+    //   `fit-content` — DOM 70 / 주입값 80). 엔진이 `measure_intrinsic_width` +
+    //   solve_node 키워드 해소(군집 B)로 컨테이너 키워드를 스스로 정확 산출하므로
+    //   **자식 보유 컨테이너 전체**를 통과시킨다. 자식 없는 합성 leaf(INLINE_BLOCK/
+    //   CIRCLE 등)는 엔진이 content 를 모르므로 주입 잔존 (layout-engine.md §TS 잔존 계약).
     const isIntrinsicGrid =
       hasExplicitIntrinsicWidthKeyword &&
       typeof style?.display === "string" &&
       (style.display === "grid" || style.display === "inline-grid");
-    if (!growsInFlex && !isIntrinsicGrid) {
+    const isIntrinsicContainer =
+      hasExplicitIntrinsicWidthKeyword && (childElements?.length ?? 0) > 0;
+    if (!growsInFlex && !isIntrinsicGrid && !isIntrinsicContainer) {
       injectedStyle.width = ceiledWidth;
     }
     // leaf content 제안값 전달 채널 — 비텍스트 leaf(INLINE_BLOCK/CIRCLE 등) 잔존분:

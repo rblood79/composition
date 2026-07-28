@@ -998,9 +998,13 @@ impl LayoutTree {
                                 // fit-content = clamp(min-content, stretch-fit, max-content).
                                 // stretch-fit = available − margin (mn/mx 와 같은 border-box 산술).
                                 let ctx = self.ctx_for(avail_w);
-                                let s = self.get(handle).map(|n| n.style.clone()).unwrap_or_default();
-                                let m = resolve_signed(s.margin_left.as_deref(), &ctx)
-                                    + resolve_signed(s.margin_right.as_deref(), &ctx);
+                                let m = self
+                                    .get(handle)
+                                    .map(|n| {
+                                        resolve_signed(n.style.margin_left.as_deref(), &ctx)
+                                            + resolve_signed(n.style.margin_right.as_deref(), &ctx)
+                                    })
+                                    .unwrap_or(0.0);
                                 (avail_w - m).clamp(mn, mx)
                             } else {
                                 // avail indefinite → max-content (CSS-SIZING-3 §5).
@@ -1037,10 +1041,39 @@ impl LayoutTree {
         // (block.rs `clamp_size` / flex.rs off 10·12) 에만 걸려, **상자만 clamp 되고
         // 자식들은 clamp 이전 폭 기준으로 배치**됐다 (실측 `w=120px+minW200`: 상자 200 /
         // 자식 120 · `w=auto+maxW60`: 상자 60 / 자식 300).
-        let own_style = self.get(handle).map(|n| n.style.clone()).unwrap_or_default();
+        // 필요한 값을 **borrow 한 번**으로 해소 — NodeStyle 전체 clone 은 solve_node
+        // 가 노드마다 도는 hot path 라 bench 회귀를 만든다 (Option<String> 50필드 힙 복제).
         let ctx_w_own = self.ctx_for(avail_w);
-        let own_min_w = resolve_dimension_opt(own_style.min_width.as_deref(), &ctx_w_own);
-        let own_max_w = resolve_dimension_opt(own_style.max_width.as_deref(), &ctx_w_own);
+        let ctx_h_own = self.ctx_for(avail_h);
+        let (
+            own_min_w,
+            own_max_w,
+            own_min_h,
+            own_max_h,
+            own_margin_h,
+            own_aspect,
+            own_min_h_absent,
+            own_overflow_y_visible,
+        ) = match self.get(handle) {
+            Some(node) => {
+                let s = &node.style;
+                (
+                    resolve_dimension_opt(s.min_width.as_deref(), &ctx_w_own),
+                    resolve_dimension_opt(s.max_width.as_deref(), &ctx_w_own),
+                    resolve_dimension_opt(s.min_height.as_deref(), &ctx_h_own),
+                    resolve_dimension_opt(s.max_height.as_deref(), &ctx_h_own),
+                    resolve_signed(s.margin_left.as_deref(), &ctx_w_own)
+                        + resolve_signed(s.margin_right.as_deref(), &ctx_w_own),
+                    s.aspect_ratio.filter(|r| *r > 0.0),
+                    s.min_height.is_none(),
+                    s.overflow_y
+                        .as_deref()
+                        .map(|o| o.eq_ignore_ascii_case("visible"))
+                        .unwrap_or(true),
+                )
+            }
+            None => (None, None, None, None, 0.0, None, true, true),
+        };
         if explicit_w > 0.0 {
             // 명시 폭 (키워드 해소값 포함) — max 먼저, min 이 이긴다 (CSS §5.1).
             if let Some(mx) = own_max_w {
@@ -1061,8 +1094,7 @@ impl LayoutTree {
             // 유지 (flex item main 등 stretch 가 아닌 문맥에서 폭을 강제하지 않기 위함).
             // 부모가 block 일 때만 — flex/grid item 의 used 크기는 그 커널 소관이다.
             // aspect 의 h→w 전송이 예정된 상자는 제외 (전송값이 stretch 를 이긴다 — §5).
-            let aspect_needs_w =
-                own_style.aspect_ratio.map(|r| r > 0.0).unwrap_or(false) && explicit_h <= 0.0;
+            let aspect_needs_w = own_aspect.is_some() && explicit_h <= 0.0;
             if own_min_w.is_some() || own_max_w.is_some() || aspect_needs_w {
                 let parent_is_block = self
                     .get(handle)
@@ -1073,13 +1105,9 @@ impl LayoutTree {
                             == ContainerDisplay::Block
                     })
                     .unwrap_or(false);
-                let aspect_transfers_w =
-                    own_style.aspect_ratio.map(|r| r > 0.0).unwrap_or(false)
-                        && explicit_h > 0.0;
+                let aspect_transfers_w = own_aspect.is_some() && explicit_h > 0.0;
                 if parent_is_block && !aspect_transfers_w {
-                    let m = resolve_signed(own_style.margin_left.as_deref(), &ctx_w_own)
-                        + resolve_signed(own_style.margin_right.as_deref(), &ctx_w_own);
-                    let tentative = avail_w - m;
+                    let tentative = avail_w - own_margin_h;
                     let mut clamped = tentative;
                     if let Some(mx) = own_max_w {
                         clamped = clamped.min(mx);
@@ -1096,11 +1124,10 @@ impl LayoutTree {
         // 블록 축 — 명시 높이의 clamp. 자식 `%` base (`child_containing_h`) / grid definite
         // 게이트 / flex main 이 이 값을 소비한다 (flex 3.6 재-clamp 는 멱등).
         if explicit_h > 0.0 {
-            let ctx_h_own = self.ctx_for(avail_h);
-            if let Some(mx) = resolve_dimension_opt(own_style.max_height.as_deref(), &ctx_h_own) {
+            if let Some(mx) = own_max_h {
                 explicit_h = explicit_h.min(mx);
             }
-            if let Some(mn) = resolve_dimension_opt(own_style.min_height.as_deref(), &ctx_h_own) {
+            if let Some(mn) = own_min_h {
                 explicit_h = explicit_h.max(mn);
             }
         }
@@ -1114,17 +1141,12 @@ impl LayoutTree {
         //   상자는 전송값을 explicit 로 굳히지 않고 dispatch 뒤 content 와 max 한다
         //   (실측 `w:120px + maxW60 + ratio 2`: 전송 30 < 내용 50 → Chrome 50).
         let mut aspect_h_floor: Option<f32> = None;
-        if let Some(ratio) = self.get(handle).and_then(|n| n.style.aspect_ratio) {
-            if ratio > 0.0 {
+        if let Some(ratio) = own_aspect {
+            {
                 if explicit_w > 0.0 && explicit_h <= 0.0 {
                     let transferred = explicit_w / ratio;
-                    let floor_applies = !children.is_empty()
-                        && own_style.min_height.is_none()
-                        && own_style
-                            .overflow_y
-                            .as_deref()
-                            .map(|o| o.eq_ignore_ascii_case("visible"))
-                            .unwrap_or(true);
+                    let floor_applies =
+                        !children.is_empty() && own_min_h_absent && own_overflow_y_visible;
                     if floor_applies {
                         aspect_h_floor = Some(transferred);
                     } else {
