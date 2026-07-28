@@ -5154,6 +5154,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
         flexDirection: "column",
         minWidth: 0,
+        // ADR-171 Phase 2 (2026-07-29): 실효 DOM(`GridList.css`/`collections.css`)이
+        //   `justify-content: center` 인데 catalog 에 없어 Skia 는 flex-start 였다.
+        //   지금은 L1 게이트(composition 부재)에 막혀 무효 — Phase 3 에서 전달되며
+        //   그 시점의 시각 변화는 Phase 5 fixture 가 감시한다.
+        justifyContent: "center",
       },
     },
     // ADR-912 collection sub-part cutover (2026-06-14, TreeItem escape 선례 동형):

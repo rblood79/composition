@@ -158,11 +158,15 @@ describe("resolveCatalogContainerBase — collection-item base-axis (3-A-3b 재�
   // ADR-912 Phase 3-A-3b (2026-06-20): GridListItem 에 structure.containerStyles 추가
   //   (권위 source = starter GridList.css:112 display:flex/flex-direction:column/min-width:0).
   //   collection 분기가 resolveCatalogContainerBase 경유로 base-axis 도달 → 인라인 자족화 제거.
-  it("GridListItem → base-axis 3개 (3-A-3b structure 추가, camelCase)", () => {
+  // ADR-171 Phase 2 (2026-07-29): `justifyContent: "center"` 추가 — 실효 DOM
+  //   (`GridList.css`/`collections.css`)이 이미 center 인데 catalog 에 없어 Skia 만
+  //   flex-start 였다. 지금은 L1 게이트에 막혀 반환되지 않고, Phase 3 에서 전달된다.
+  it("GridListItem → base-axis 4개 (3-A-3b structure 추가, camelCase)", () => {
     expect(resolveCatalogContainerBase("GridListItem")).toEqual({
       display: "flex",
       flexDirection: "column",
       minWidth: 0,
+      justifyContent: "center",
     });
   });
 

@@ -74,11 +74,14 @@ describe("collection item 시각 metric (catalog SSOT)", () => {
       expect(variant?.textWeight).toBe(600);
     });
 
-    it("containerStyles — flex column (minWidth 0 로 grid track 축소 허용)", () => {
+    // ADR-171 Phase 2 (2026-07-29): `justifyContent: "center"` 는 실효 DOM 이 이미
+    //   갖고 있던 값의 catalog 이관이다 (Skia 도달은 Phase 3).
+    it("containerStyles — flex column + 수직 중앙 (minWidth 0 로 grid track 축소 허용)", () => {
       expect(rule?.structure?.containerStyles).toEqual({
         display: "flex",
         flexDirection: "column",
         minWidth: 0,
+        justifyContent: "center",
       });
     });
   });

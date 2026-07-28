@@ -54,7 +54,7 @@ ADR 본문 Hard Constraint 1 의 `height:32 · inline-flex · padding 4/12 · ga
 
 - 구 추정 "미import 32 중 layout 값 보유 30" → **32종 전부** core layout 선언 보유 (방향 불변, 수치만 정정).
 - `Skeleton.css`/`Toast.css` 는 존재하지만 `.react-aria-{X}` 루트에 layout 을 걸지 않는다 — 파일 존재를 채널 보유로 세면 안 된다.
-- **23종은 "값이 두 소비자 모두에 도달하지 않는" 상태**다. 비대칭이 아니라 **양쪽 미도달** — Phase 2 판정 표의 "어느 채널도 없음 → import 추가" 행이 여기에 해당한다.
+- **23종은 "값이 두 소비자 모두에 도달하지 않는" 상태**다. 비대칭이 아니라 **양쪽 미도달**. 여기서 자연스러운 처방은 "import 를 추가한다" 였는데, **Phase 2 가 그 처방을 기각했다** — 이들의 `.react-aria-{X}` selector 는 DOM 에 아예 존재하지 않아 import 가 no-op 이다 (§3 Phase 2). 도달 경로는 Phase 3 의 Skia 채널뿐이다.
 
 ### 2-2. I2 — 팔레트 도달 범위 (`paletteItems.ts` 등록 61 type 대조)
 
@@ -141,17 +141,36 @@ ADR 본문 Hard Constraint 2 의 "9종" 은 생성 CSS root 파싱 결함에서 
 
 **Why 값이 안 바뀌는데 고치는가**: 이 정정이 옮기는 것은 값이 아니라 **소유권**이다. 실효값이 수동 CSS 에만 있으면 catalog 를 읽는 소비자(Style Panel · Skia · Phase 3 이후의 resolver)가 그 값을 **모른다**. Popover 의 `boxShadow` 가 같은 이유로 2026-07-25 에 이관됐고(`Popover.css:27` 주석), Phase 1 은 같은 작업을 layout 축으로 넓힌 것이다.
 
-### Phase 2 — 미import 30종 판정 (I1 결과 소비)
+### Phase 2 — 미import 32종 판정 — **판정 완료 2026-07-29 (import 추가 0건)**
 
-생성 CSS 94개 중 62개만 `index.css` 에 import 됨. 나머지 32개(그중 layout 값 보유 30종)는 DOM 도 못 받는다.
+생성 CSS 94개 중 62개만 `index.css` 에 import 됨. 나머지 32개는 DOM 도 못 받는다.
 
-| 판정                                                                            | 처리                                                                                     |
-| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| 수동 CSS 가 이미 담당 (`.react-aria-X` 존재 — FieldError/Input/GridListItem 등) | 생성 CSS 파일 **삭제 또는 미import 유지 명문화** + catalog 값을 수동 CSS 실효값으로 정정 |
-| 어느 채널도 없음                                                                | import 추가 → DOM·엔진 동시 도달                                                         |
-| factory 인라인이 유일 공급원                                                    | Phase 4 의 인라인 제거 대상에 편입                                                       |
+#### 판정을 뒤집은 사실 — 미import 32종의 selector 는 **DOM 에 존재하지 않는다**
 
-- **판정 없이 일괄 import 금지** — 수동 CSS 와 충돌하면 DOM 시각이 바뀐다.
+"import 를 추가하면 DOM 에 도달한다" 는 전제가 성립하려면 DOM 요소가 `.react-aria-{X}` 클래스를 달아야 한다. 실측 결과 32종 중 **어느 것도 RAC 컴포넌트가 아니다** (`renderers/*.tsx` 가 `react-aria-components` 에서 import 하는 심볼 10개에 32종이 0건 포함) — 전부 composition 자체 렌더러가 그리고, 그 렌더러는 `className={element.props.className}` 을 통과시킬 뿐이다. Card 계열은 아예 **다른 이름**을 쓴다 (`renderCardHeader` → `className="card-header"`, `LayoutRenderers.tsx:372`).
+
+즉 이 32개 생성 CSS 는 **selector 가 아무것도 매치하지 않는 dead CSS** 이고, import 를 추가해도 DOM 은 변하지 않는다. R4("일괄 import 하면 수동 CSS 와 충돌해 DOM 이 바뀐다")가 걱정한 충돌은 발생 자체가 불가능하다 — 대신 **import 가 해결책이 아니라는** 더 근본적인 사실이 드러났다.
+
+| 판정                                             | 수     | 처리                                                                                               |
+| ------------------------------------------------ | ------ | -------------------------------------------------------------------------------------------------- |
+| **A. dead selector** — DOM 에 클래스 자체가 없음 | **30** | **import 추가 불요** (no-op). 미import 유지 명문화. catalog 값은 Phase 3 의 Skia 채널로만 소비된다 |
+| **B. DOM 채널 보유 + 실효 layout 있음**          | 2      | GridListItem · Input — 수동 CSS 실효값이 정본, catalog 정정                                        |
+
+- DropZone / FieldError / Skeleton / Toast 는 소스에 `react-aria-{X}` 문자열이 있지만 **실측 computed 는 브라우저 기본**이다 (해당 CSS 가 layout 을 걸지 않음) → A 로 분류.
+- A 30종의 생성 CSS 파일 **삭제는 하지 않는다**. 파일이 catalog→CSS 생성기의 출력물이라 지워도 재생성되고, Phase 3 이후 catalog 값의 정합성 점검에 대조본으로 쓰인다. `index.css` 미import 상태를 유지하는 것이 결론이다.
+
+#### 적용한 정정 (1종) + 보류 (1종)
+
+| 컴포넌트     | 판정                                                                          | 처리                                            |
+| ------------ | ----------------------------------------------------------------------------- | ----------------------------------------------- |
+| GridListItem | 실효 DOM 이 `justify-content: center` 인데 catalog 에 없어 Skia 만 flex-start | `structure.containerStyles.justifyContent` 추가 |
+| Input        | **보류** — 측정 방법의 한계                                                   | Phase 5 fixture 로 재측정 후 판정               |
+
+**Input 보류 사유 — bare probe 는 부모 문맥을 못 잡는다**: `base.css:9` 는 `padding: var(--input-padding, var(--spacing))` 이고 `--input-padding` 은 **부모 field 의 생성 CSS** 가 정한다 (`TextField.css:137` · `ComboBox.css:220` · `ColorField.css:141` · `NumberField.css:186` — NumberField 는 `0`). 빈 div 에 클래스만 붙인 측정은 fallback(`--spacing` = 4px)을 읽으므로 실효값이 아니다. catalog `Input.sizes.md.paddingX = 12` 를 이 4px 로 "정정" 하면 오히려 틀어진다.
+
+> 이 한계는 **Phase 5 fixture 설계 제약**이기도 하다 — fixture 는 클래스만 붙인 probe 가 아니라 **실제 컴포넌트 트리**를 렌더해야 한다 (부모가 정하는 custom property 가 값의 일부다).
+
+- **판정 없이 일괄 import 금지** 원칙은 유지된다. 이번 판정의 결론이 "추가할 대상 0건" 이었을 뿐이다.
 
 ### Phase 3 — 전달 경로 일원화 (비대칭 19 + 양쪽 미도달 23 + I3 편입분)
 
@@ -217,7 +236,7 @@ ADR 본문 Hard Constraint 2 의 "9종" 은 생성 CSS root 파싱 결함에서 
 
 - [x] **Phase 0 — I1/I2/I3 인벤토리 확정 (2026-07-29)** — 차단 3층(L1 게이트 / L2 키 allowlist / L3 `sizes` 축) 발견, 대상 목록 확정 (§2)
 - [x] **Phase 1 — catalog 정정 6종 + 재빌드 + 실효값 불변 재측정 (G1 PASS, 2026-07-29)** — 대상이 9종이 아니라 7종(생성 CSS 파싱 결함 정정)이고 TextArea 는 클래스 역할 충돌로 Phase 2 이관
-- [ ] Phase 2 — 양쪽 미도달 23종 + DOM 채널만 보유 2종 판정 표 확정 + 처리 (+ `TextArea`/`Input` 클래스 역할 충돌 판정)
+- [x] **Phase 2 — 판정 표 확정 + 처리 (2026-07-29)** — 미import 32종은 selector 가 DOM 에 없는 dead CSS 라 **import 추가 0건**. GridListItem `justifyContent` 정정 1건 · Input 은 부모 custom property 문맥 탓 Phase 5 재측정 보류 · TextArea 클래스 역할 충돌 기록
 - [ ] Phase 3 — L1·L2·L3 3층 개방 + 수기 배선 정리 + `resolveContainerStylesFallback.test.ts` 47 케이스 갱신 (G2)
 - [ ] Phase 5 — parity fixture 신설 (**Phase 4 앞**) + Phase 3 일시 되돌림으로 RED 확인 (G3)
 - [ ] Phase 4 — factory 인라인 제거 + `useResetStyles` baseline 동시 정리 (fixture GREEN + 패널 live 확인, G4)

@@ -20,6 +20,7 @@
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   display: flex;
   flex-direction: column;
+  justify-content: center;
 
   /* Default variant */
   background: var(--bg-overlay);
