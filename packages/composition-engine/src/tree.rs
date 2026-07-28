@@ -1901,6 +1901,25 @@ impl LayoutTree {
         // (2)+(3) 자식 placement 직렬화 (area_name|grid_column|grid_row 개행 구분).
         let placement_spec = self.build_grid_placement_spec(children);
 
+        // 자식 → 셀 매핑은 **grid.rs 의 실제 배치**로 구한다. 트랙 sizing 은 "어느 자식이
+        // 어느 트랙에 있는가" 를 알아야 하는데, `i / col_count` 근사는 CSS §8.5 커서 규칙
+        // (definite column 이 커서보다 왼쪽이면 다음 행)을 모른다 — 측정한 행과 배치된 행이
+        // 갈리면 컨테이너 크기가 어긋난다 (실측: definite-column 자식 2개가 CSS 는 2행인데
+        // 근사는 1행 → DOM 400 / 근사 200).
+        let flow_column = style
+            .grid_auto_flow
+            .as_deref()
+            .map(|f| f.contains("column"))
+            .unwrap_or(false);
+        let placed_cells = grid::resolve_child_cells(
+            &placement_spec,
+            children.len(),
+            "",
+            grid::parse_tracks(&template_cols, container_w, col_gap).len().max(1),
+            grid::tokenize_template(&template_rows).len().max(1),
+            flow_column,
+        );
+
         // 아래 intrinsic 측정 pass 들은 자식 서브트리를 **컨테이너 크기**로 solve 한다.
         // solve_* 는 말미에 dirty=false 를 찍으므로, 그 뒤 셀 크기로 다시 부르면 증분 skip
         // 이 stale 캐시를 돌려준다 — 측정이 돌았는지 기록해 최종 pass 에서 되살린다.
@@ -1938,10 +1957,7 @@ impl LayoutTree {
                 let mut col_min = vec![0.0f32; col_count];
                 let mut col_max = vec![0.0f32; col_count];
                 for (i, &c) in children.iter().enumerate() {
-                    let col = grid_line_to_track_index(
-                        self.get(c).and_then(|n| n.style.grid_column_start.as_deref()),
-                        i % col_count,
-                    );
+                    let col = placed_cells.get(i).map(|p| p.1).unwrap_or(i % col_count);
                     let fixed_max = toks.get(col).and_then(|t| track_fixed_max(t, 0.0));
                     let (mn, mx, solved_with_container) =
                         self.col_contribution(c, container_w, container_h, fixed_max);
@@ -1973,100 +1989,70 @@ impl LayoutTree {
             }
         }
 
-        // auto row intrinsic 측정. 두 케이스를 통합 처리한다:
-        //  (A) implicit auto row (gridTemplateRows 미명시) + 전부 auto-placement:
-        //      row-major 로 자식 → row 매핑, 각 row = 그 자식들 max intrinsic content height.
-        //  (B) **명시** auto row (`gridTemplateRows:["auto",...]`) — placement 유무 무관:
-        //      자식의 gridRowStart(1-based line)로 row 결정, auto 토큰 row 만 max intrinsic
-        //      으로 치환(px/fr/% row 는 보존).
-        // grid.rs 는 auto 를 1fr 로 근사(available 분배)하므로, 측정 없이는 height:auto
-        // 컨테이너에서 auto row 가 availH 를 나눠 가져 폭발(availH>0) 또는 0 붕괴(availH<0).
-        // ProgressBar/Meter 실구조(1fr auto / auto auto + placement)가 (B) 케이스.
+        // ── 행 트랙 sizing (블록 축) — 트랙 목록의 소유자는 tree.rs 다 ──
+        //
+        // grid.rs 는 **자식을 모른다**. `auto` 를 1fr 로 근사(available 분배)하므로 측정 없이는
+        // `height:auto` 컨테이너에서 auto row 가 상속 available 을 나눠 가져 폭발(availH>0)
+        // 하거나 0 으로 붕괴(availH<0)한다. 그래서 여기서 자식 기여로 행을 px 로 확정해 넘긴다.
         // 토큰화는 grid.rs 와 **같은 함수**를 쓴다 — `split_whitespace` 는 `minmax(50px, 80px)`
         // 처럼 내부에 공백이 있는 토큰을 두 조각으로 쪼갠다.
-        let row_tokens: Vec<String> = grid::tokenize_template(&template_rows);
-        let has_intrinsic_row = row_tokens.iter().any(|t| track_needs_contribution(t));
-        // (A) implicit auto row: `gridTemplateRows` 미명시. placement 유무 **무관**:
-        //   - placement 없음 → row-major (자식 i → row = i / col_count).
-        //   - placement 있음 (Slider: gridRowStart 로 label=row1, track=row2 명시) →
-        //     자식 gridRowStart 로 row 결정. 행 수는 명시된 max row 까지 확장.
-        //   각 행 = 그 행 자식들 max intrinsic content height 를 px 트랙으로 주입.
-        //   (기존엔 `placement_spec.is_empty()` 도 요구해 Slider 처럼 rows 미명시 +
-        //    placement 명시인 케이스가 미측정 → template_rows 빈 문자열 그대로 grid.rs
-        //    전달 → row_tracks 0개 → cell_bounds height=100 fallback + row 겹침. 2026-07-06)
-        let implicit_rows = template_rows.is_empty() && !children.is_empty();
-
-        // §12.8 stretch 대상 인덱스 — 측정으로 `{n}px` 가 되기 **전에** 어느 트랙이 auto
-        // 였는지 기록해 둔다. 치환 후에는 토큰만으로 구분할 수 없다.
-        let mut row_auto_idx: Vec<usize> = Vec::new();
-        let mut col_auto_idx: Vec<usize> = Vec::new();
-
-        if implicit_rows {
-            measured_with_container = true;
-            let col_count = grid::parse_tracks(&template_cols, container_w, col_gap).len().max(1);
-            let mut row_heights: Vec<f32> = Vec::new();
-            for (i, &c) in children.iter().enumerate() {
-                // gridRowStart 1-based line → row index (미명시면 row-major i/col_count).
-                // solve_node(&mut) 전에 필드만 읽어 NodeStyle 전체 clone 회피.
-                let row = grid_line_to_track_index(
-                    self.get(c).and_then(|n| n.style.grid_row_start.as_deref()),
-                    i / col_count,
-                );
-                let (cw, ch) = self.solve_node(c, container_w, container_h);
-                let (_, ch) = self.track_contribution(c, cw, ch, container_w, container_h);
-                if row >= row_heights.len() {
-                    row_heights.resize(row + 1, 0.0);
-                }
-                row_heights[row] = row_heights[row].max(ch);
-            }
-            // 암묵 트랙의 크기는 **`grid-auto-rows` 가 정한다** (기본 `auto`, 값이 여러 개면
-            // 순환). 종전엔 자식 intrinsic 을 그대로 px 로 박아 `gridAutoRows:30px` 가 무시됐다
-            // (실측 DOM 30 / 엔진 20). 명시 트랙과 같은 해소기를 태워 `30px` / `minmax(auto,60px)`
-            // / `min-content` 를 모두 같은 규칙으로 처리한다 — 측정값이 content 기여다.
-            let auto_row_tokens: Vec<String> = style
-                .grid_auto_rows
-                .as_deref()
-                .map(|v| v.iter().map(|t| t.trim().to_string()).collect())
-                .filter(|v: &Vec<String>| !v.is_empty())
-                .unwrap_or_else(|| vec!["auto".to_string()]);
-            let auto_row_token = |r: usize| &auto_row_tokens[r % auto_row_tokens.len()];
-            row_auto_idx = (0..row_heights.len())
-                .filter(|&r| track_max_sizing_is_auto(auto_row_token(r)))
-                .collect();
-            template_rows = row_heights
+        //
+        // **행 목록 = 명시 토큰 ++ 암묵 토큰**. 암묵 행의 크기는 `grid-auto-rows` 가 정하고
+        // (기본 `auto`, 값이 여러 개면 첫 암묵 행부터 순환), 자식이 쓰는 최대 row 까지 만든다.
+        // 종전엔 명시 토큰이 하나라도 있으면 암묵 행을 아예 만들지 않아 grid.rs 의
+        // `cell_bounds_for_child` 가 범위 밖 트랙을 0 으로 읽었다 — 자식이 같은 y 에 겹치고
+        // 컨테이너도 그만큼 짧아진다 (실측 `30px` 1행 + 자식 3개: DOM 70 / 엔진 50, k2 가 k1 위).
+        //
+        // **블록 축이 미결정이면 전 토큰을 기여로 세운다** (§12.5–§12.7.1, 인라인 축과 동형).
+        // `1fr`/`%` 는 나눠 줄 여유가 없으니 content 크기가 되어야 하는데 종전 경로는 그 둘을
+        // 상속 available 로 풀었다. 미결정 축에서는 이 확정 결과가 곧 컨테이너 높이다(`final_h`).
+        let explicit_row_tokens: Vec<String> = grid::tokenize_template(&template_rows);
+        let auto_row_tokens: Vec<String> = style
+            .grid_auto_rows
+            .as_deref()
+            .map(|v| {
+                v.iter()
+                    .map(|t| t.trim().to_string())
+                    .filter(|t| !t.is_empty())
+                    .collect()
+            })
+            .filter(|v: &Vec<String>| !v.is_empty())
+            .unwrap_or_else(|| vec!["auto".to_string()]);
+        let child_rows: Vec<usize> = placed_cells.iter().map(|p| p.0).collect();
+        // 암묵 행은 **row-flow 에서만** 생긴다 — col-flow 는 행을 명시 트랙으로 고정하고
+        // 열을 늘린다 (그 확장은 grid.rs 소관).
+        let row_count = if flow_column {
+            explicit_row_tokens.len()
+        } else {
+            child_rows
                 .iter()
-                .enumerate()
-                .map(|(r, &h)| {
-                    let tok = auto_row_token(r);
-                    // §6.6 — 고정 max 트랙만 span 하는 auto-height 아이템의 최소 기여 clamp.
-                    //   행 단위라 아이템별 판정을 못 하지만, 암묵 행은 그 행 자식들의 max 를
-                    //   이미 합쳐 둔 뒤라 여기서 한 번 거는 것이 최선의 근사다.
-                    let mn = match track_fixed_max(tok, container_h) {
-                        Some(limit) => h.min(limit),
-                        None => h,
-                    };
-                    resolve_track_with_contribution(tok, mn, h)
-                })
-                .collect::<Vec<_>>()
-                .join(" ");
-        } else if has_intrinsic_row && !children.is_empty() {
+                .map(|&r| r + 1)
+                .max()
+                .unwrap_or(0)
+                .max(explicit_row_tokens.len())
+        };
+        let row_tokens: Vec<String> = (0..row_count)
+            .map(|r| match explicit_row_tokens.get(r) {
+                Some(t) => t.clone(),
+                None => auto_row_tokens
+                    [(r - explicit_row_tokens.len()) % auto_row_tokens.len()]
+                .clone(),
+            })
+            .collect();
+
+        let block_indefinite = explicit_h <= 0.0;
+        let needs_row_measure =
+            block_indefinite || row_tokens.iter().any(|t| track_needs_contribution(t));
+
+        // 행별 content 기여. **블록 축은 min-content == max-content** 로 둔다 — 높이는 폭이
+        // 정해진 뒤의 내용 크기 하나뿐이라 두 값이 갈리지 않는다 (인라인 축과 다른 점).
+        let mut row_intrinsic: Vec<f32> = vec![0.0; row_count];
+        if needs_row_measure && !children.is_empty() {
             measured_with_container = true;
-            // (B) 명시 track 안의 content 기반 row: 자식 gridRowStart 로 row 결정 후 측정.
-            // gridRowStart 미명시 자식은 row-major fallback(col_count 기준).
-            //
-            // **블록 축은 min-content == max-content** 로 둔다 — 높이는 폭이 정해진 뒤의
-            // 내용 크기 하나뿐이라 두 값이 갈리지 않는다. `(h, h)` 를 넣으면 `auto` row 는
-            // base == 상한이 되어 종전과 같이 측정값에 고정되고, `minmax(auto, 80px)` row 는
-            // base 가 0 대신 실측 높이가 된다.
-            let col_count = grid::parse_tracks(&template_cols, container_w, col_gap).len().max(1);
-            let mut row_intrinsic: Vec<f32> = vec![0.0; row_tokens.len()];
             for (i, &c) in children.iter().enumerate() {
-                // gridRowStart 1-based line → row index (미명시면 row-major i/col_count).
-                let row = grid_line_to_track_index(
-                    self.get(c).and_then(|n| n.style.grid_row_start.as_deref()),
-                    i / col_count,
-                );
+                let row = child_rows[i];
                 let (cw, ch) = self.solve_node(c, container_w, container_h);
+                // §6.6 — 고정 max 트랙만 span 하는 auto-height 아이템의 최소 기여 clamp.
                 let fixed_max = row_tokens
                     .get(row)
                     .and_then(|t| track_fixed_max(t, container_h));
@@ -2076,14 +2062,35 @@ impl LayoutTree {
                     row_intrinsic[row] = row_intrinsic[row].max(ch);
                 }
             }
-            row_auto_idx = row_tokens
+        }
+
+        let row_auto_idx: Vec<usize> = row_tokens
+            .iter()
+            .enumerate()
+            .filter(|(_, t)| track_max_sizing_is_auto(t))
+            .map(|(r, _)| r)
+            .collect();
+
+        // 블록 축 트랙 extent — 미결정 축에서는 이것이 곧 컨테이너 높이다.
+        let mut row_extent: Option<f32> = None;
+        template_rows = if block_indefinite {
+            let sizes = grid_intrinsic_track_sizes(
+                &row_tokens,
+                &row_intrinsic,
+                &row_intrinsic,
+                IntrinsicMode::Max,
+            );
+            row_extent =
+                Some(sizes.iter().sum::<f32>() + row_gap * (row_count as f32 - 1.0).max(0.0));
+            sizes
                 .iter()
-                .enumerate()
-                .filter(|(_, t)| track_max_sizing_is_auto(t))
-                .map(|(r, _)| r)
-                .collect();
-            // content 기반 토큰만 측정값으로 해소, px/fr/% 는 원본 유지.
-            template_rows = row_tokens
+                .map(|s| format!("{s}px"))
+                .collect::<Vec<_>>()
+                .join(" ")
+        } else {
+            // definite 축 — content 기반 토큰만 측정값으로 해소, px/fr/% 는 원본 유지
+            // (그 뒤 §12.8 stretch 가 auto 트랙에 여유를 분배한다).
+            row_tokens
                 .iter()
                 .enumerate()
                 .map(|(r, tok)| {
@@ -2091,8 +2098,8 @@ impl LayoutTree {
                     resolve_track_with_contribution(tok, h, h)
                 })
                 .collect::<Vec<_>>()
-                .join(" ");
-        }
+                .join(" ")
+        };
 
         // auto **column** intrinsic 측정 (row 와 대칭). `gridTemplateColumns:"1fr auto"`
         // 에서 auto col 은 CSS 상 그 col 자식들의 max content width. grid.rs 는 auto 를 1fr
@@ -2100,6 +2107,9 @@ impl LayoutTree {
         // content 보다 크게(ProgressBar value: CSS 29 vs 근사 168) → col 폭 발산 + 배치 밀림.
         // 자식 gridColumnStart(1-based line)로 col 결정, auto 토큰 col 만 max intrinsic width
         // 로 치환(1fr/px/% col 보존). placement 없는 자식은 col-major fallback.
+        // §12.8 stretch 대상 인덱스 — 측정으로 `{n}px` 가 되기 **전에** 어느 트랙이 auto
+        // 였는지 기록해 둔다. 치환 후에는 토큰만으로 구분할 수 없다.
+        let mut col_auto_idx: Vec<usize> = Vec::new();
         let col_tokens: Vec<String> = grid::tokenize_template(&template_cols);
         let has_intrinsic_col = col_tokens.iter().any(|t| track_needs_contribution(t));
         let template_cols = if has_intrinsic_col && !children.is_empty() {
@@ -2109,11 +2119,7 @@ impl LayoutTree {
             let mut col_min: Vec<f32> = vec![0.0; col_tokens.len()];
             let mut col_max: Vec<f32> = vec![0.0; col_tokens.len()];
             for (i, &c) in children.iter().enumerate() {
-                // gridColumnStart 1-based line → col index (미명시면 col-major i%col_count).
-                let col = grid_line_to_track_index(
-                    self.get(c).and_then(|n| n.style.grid_column_start.as_deref()),
-                    i % col_count,
-                );
+                let col = placed_cells.get(i).map(|p| p.1).unwrap_or(i % col_count);
                 let fixed_max = col_tokens
                     .get(col)
                     .and_then(|t| track_fixed_max(t, container_w));
@@ -2202,6 +2208,9 @@ impl LayoutTree {
         let auto_flow = style.grid_auto_flow.as_deref().unwrap_or("");
         let auto_columns = join_tracks(style.grid_auto_columns.as_deref());
         let auto_rows = join_tracks(style.grid_auto_rows.as_deref());
+        // 미결정 블록 축에서는 트랙 extent 가 곧 컨테이너 크기다 — 상속 available 을 넘기면
+        // `track_distribution` 이 없는 여유를 트랙 사이에 나눠 넣는다.
+        let grid_container_h = row_extent.unwrap_or(container_h);
         let bounds = grid::grid_layout(
             &template_cols,
             &template_rows,
@@ -2209,7 +2218,7 @@ impl LayoutTree {
             &placement_spec,
             children.len() as u32,
             container_w,
-            container_h,
+            grid_container_h,
             col_gap,
             row_gap,
             justify_content,
@@ -2231,7 +2240,6 @@ impl LayoutTree {
         let grid_align_items = parse_align_items(style.align_items.as_deref());
         let grid_justify_items = parse_justify_items(style.justify_items.as_deref());
         let mut max_right: f32 = 0.0;
-        let mut max_bottom: f32 = 0.0;
         for (i, &c) in children.iter().enumerate() {
             let off = i * 4;
             let (x, y, w, h) = (bounds[off], bounds[off + 1], bounds[off + 2], bounds[off + 3]);
@@ -2327,7 +2335,6 @@ impl LayoutTree {
                 max: resolve_dimension_opt(cstyle.max_width.as_deref(), &mctx),
             });
             max_right = max_right.max(x + w);
-            max_bottom = max_bottom.max(fy + fh);
             if let Some(n) = self.get_mut(c) {
                 n.layout = NodeLayout { x: fx + off_x, y: fy + off_y, width: fw, height: fh };
             }
@@ -2346,7 +2353,16 @@ impl LayoutTree {
         } else {
             max_right
         };
-        let final_h = if explicit_h > 0.0 { explicit_h } else { max_bottom };
+        // **블록 크기도 트랙 extent** 다 (CSS-GRID §11.1) — 셀 bounding box 가 아니다.
+        // 셀 bbox 는 (a) 빈 트랙을 빼먹고 (b) 트랙보다 큰 자식을 따라 늘어난다. CSS 는 둘 다
+        // 아니다 — 넘치는 자식은 흘러넘치고(실측 30px 행 + 100px 자식 → DOM 30), 자식 없는
+        // 트랙도 자리를 차지한다(실측 `30px 40px` + 자식 1개 → DOM 70). 자식 margin 도
+        // 컨테이너를 늘리지 않는다(실측 marginBottom:50 → DOM 30).
+        let final_h = if explicit_h > 0.0 {
+            explicit_h
+        } else {
+            row_extent.unwrap_or(0.0)
+        };
         if let Some(n) = self.get_mut(handle) {
             n.layout = NodeLayout { x: 0.0, y: 0.0, width: final_w, height: final_h };
             n.dirty = false;
@@ -3095,24 +3111,6 @@ fn normalize_grid_line_part(v: Option<&str>) -> Option<String> {
         return None;
     }
     Some(v.to_string())
-}
-
-/// grid `*Start` line 문자열 → 0-based track index. auto row/column 측정에서
-/// 자식이 어느 트랙에 속하는지 결정하는 단일 정의(row·column 대칭).
-///
-/// - `grid_row_start:"2"` (1-based CSS line) → index 1. `(line - 1).max(0)` 로
-///   음수 line 은 0 으로 clamp(`usize` 캐스트 전 방어 — 미클램프 시 resize OOM).
-/// - 미명시("auto"/빈 문자열) → `major_fallback` (row-major `i / col_count`
-///   또는 col-major `i % col_count`).
-///
-/// **주의(측정 한정)**: `*End`/span 은 미고려 — 측정 pass 는 자식을 시작 트랙에만
-/// 귀속시킨다. span 을 가진 자식(`gridRowEnd:"3"`)의 실 배치는 grid.rs
-/// `place_children` 가 담당. 측정↔배치 이 부분 정합은 grid.rs 쪽 계약.
-fn grid_line_to_track_index(start: Option<&str>, major_fallback: usize) -> usize {
-    normalize_grid_line_part(start)
-        .and_then(|s| s.parse::<i32>().ok())
-        .map(|line| (line - 1).max(0) as usize)
-        .unwrap_or(major_fallback)
 }
 
 /// padding+border 한 축 합 (main 또는 cross).

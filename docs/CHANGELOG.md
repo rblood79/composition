@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [그리드 컨테이너의 블록 크기 = 행 트랙 extent] - 2026-07-28
+
+### Bug Fixes
+
+- **`height:auto` 그리드의 높이가 셀 bounding box 였던 문제** (CSS-GRID-1 §11.1):
+  - 컨테이너 높이를 자식 셀들의 bounding box(`max_bottom`)로 잡아 CSS 와 **두 방향으로** 어긋났다 — 트랙보다 작은 자식이면 짧아지고(30px 행 + 20px 자식 → 20), 넘치는 자식이면 따라 늘어났다(30px 행 + 100px 자식 → 100). 빈 트랙은 통째로 빠지고(`30px 40px` + 자식 1개 → 20, CSS 70), 자식 margin 까지 컨테이너를 늘렸다
+  - 블록 크기를 **행 트랙 합 + row gap + 자기 padding/border** 로 정정. 넘치는 자식은 흘러넘치고 빈 트랙도 자리를 차지한다
+  - **미결정 블록 축의 행 토큰을 자식 기여로 세운다** — 인라인 축의 §12.5–§12.7.1 과 같은 규칙. `1fr`/`%` 는 여유가 없으니 content 크기, `minmax(auto,60px)` 는 §12.6 으로 상한까지. 종전엔 `1fr` 이 상속 available 로 0 이 되고 그 0 위에서 셀 bbox 가 우연히 CSS 값과 맞아 가려져 있었다 — 두 변경이 한 묶음인 이유
+  - **암묵 행이 명시 트랙과 함께 만들어진다** — 종전엔 `gridTemplateRows` 가 하나라도 있으면 암묵 행을 아예 안 만들어 범위 밖 자식이 크기 0 트랙에 얹혔다(실측 `30px` 1행 + 자식 3개: DOM 70 / 엔진 50, 셋째 자식이 둘째 위에 겹침). 행 목록 = 명시 토큰 ++ `grid-auto-rows` 순환
+  - **자식 → 트랙 매핑을 실제 배치로 교체** — `grid::resolve_child_cells` 를 `place_children` 에서 추출해 트랙 sizing 과 공유한다. `i / col_count` 근사는 CSS §8.5 커서 규칙(definite column 이 커서보다 왼쪽이면 다음 행)을 몰라 **측정한 행과 배치된 행이 갈렸다**(실측: definite-column 자식 2개가 CSS 는 2행인데 근사는 1행 → DOM 400 / 근사 200)
+  - **Why**: 트랙 extent 만 고치면 `1fr`/`%` 의 우연한 정합이 깨지고, 배치 매핑을 근사로 두면 측정 대상 자체가 틀린다 — 셋이 한 규칙의 서로 다른 층이라 함께 반영해야 한다
+  - 위치: `packages/composition-engine/src/tree.rs` (`solve_grid` 행 트랙 sizing 통합 + `final_h`), `packages/composition-engine/src/grid.rs` (`resolve_child_cells` / `resolve_cells_from_intents` 추출)
+  - 검증: Chrome 대조 fixture 신설 `gridContainerBlockSize.browser.test.ts` (engine 30 + pipeline 16 + 잔존 1) / parity 837건 green / Rust 344건 green / builder unit 3012건 green / type-check PASS. 민감도 — 트랙 extent 되돌림 25 red, 미결정 축 기여 해소 무력화 130 red, 암묵 행 생성 무력화 4 red, 배치 매핑 근사 복원 6 red
+  - 라이브 확인: 실행 중인 빌더가 로드한 WASM 으로 13형태(트랙>내용 / 자식 넘침 / 빈 트랙 / rowGap / padding / 자식 margin / `1fr` / `50%` / `minmax(auto,60px)` / 암묵 행 / `gridAutoRows` / definite column 역순 / flow:column)를 Chrome 실측과 대조해 전건 일치
+  - 잔존: 자식이 **없는** 그리드는 트랙을 세우지 않는다 — `solve_node` 가 in-flow 자식 0 이면 leaf 로 조기 반환한다(실측 `30px 40px` → DOM 70 / 엔진 0). 거처가 트랙 sizing 이 아니라 dispatch
+
 ## [그리드 컨테이너의 min/max-content 산출 — ADR-169 grid 이연 해소] - 2026-07-28
 
 ### Bug Fixes

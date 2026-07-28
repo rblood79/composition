@@ -49,9 +49,8 @@ import {
  * - **블록 축(row)의 min/max 분리** — 높이는 폭이 정해진 뒤의 내용 크기 하나라 두 값이
  *   갈리지 않는다. row 는 `(h, h)` 를 공급하므로 `auto` row 는 종전과 동일하게 측정값에
  *   고정되고, 달라지는 것은 `minmax(auto, px)` row 의 base 뿐이다 (아래 R 그룹).
- * - **grid 자식의 기여** — `measure_intrinsic_width` 가 grid 서브트리에 `None` 을 돌려
- *   "컨테이너로 solve" 근사로 떨어진다 (ADR-169 이연). 그 경우 min == max 라 종전 동작.
- * - **stretch-fit definite 판정** — `gridItemBox.browser.test.ts` 잔존 ②.
+ * - **그리드 컨테이너 자신의 크기** — 인라인 축은 `gridContainerIntrinsic`, 블록 축은
+ *   `gridContainerBlockSize` 소관이다. 여기서는 컨테이너 크기를 명시로 고정해 둔다.
  */
 
 const box = (

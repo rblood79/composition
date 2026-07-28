@@ -34,9 +34,10 @@ import {
  *
  * ## 이 파일이 잠그지 않는 것
  *
- * 컨테이너 축이 definite 인지의 판정 자체는 `gridItemBox.browser.test.ts` 잔존 ② 소관이다
- * (block-level `width:auto` 는 CSS 상 definite 인데 엔진은 미구분 — `1fr` 이 이미 같은
- * 축에서 어긋나 있다). 그래서 여기 케이스는 전부 **명시 크기** 컨테이너다.
+ * 컨테이너 축이 definite 인지의 판정은 이제 `inline_intrinsic` 이 준다 (2026-07-28,
+ * `gridContainerIntrinsic.browser.test.ts`) — block-level `width:auto` 는 stretch-fit 이라
+ * definite, flex item 은 shrink-to-fit 이라 아니다. 여기 케이스는 전부 **명시 크기**
+ * 컨테이너라 그 판정과 무관하게 성립한다.
  */
 
 const box = (

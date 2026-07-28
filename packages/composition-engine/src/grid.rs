@@ -797,6 +797,83 @@ fn place_children(
         .iter()
         .map(|p| resolve_placement_intent(p, areas))
         .collect();
+    let resolved = resolve_cells_from_intents(&items, cols, rows, flow_column);
+
+    // ── 최종 bounds (child 순서) ──
+    items
+        .iter()
+        .enumerate()
+        .map(|(i, it)| {
+            let (r, c) = resolved[i];
+            cell_bounds_for_child(
+                c,
+                c + it.col_span,
+                r,
+                r + it.row_span,
+                tracks_x,
+                tracks_y,
+                col_gap,
+                row_gap,
+            )
+        })
+        .collect()
+}
+
+/// 자식 → 셀 `(row, col, row_span, col_span)` (0-based 트랙 인덱스). 트랙 sizing 진입점.
+///
+/// `grid_layout` 이 내부에서 하는 배치와 **같은 함수**를 쓴다 — 측정한 트랙과 배치된 트랙이
+/// 갈리면 컨테이너 크기가 어긋난다.
+pub(crate) fn resolve_child_cells(
+    placement_spec: &str,
+    child_count: usize,
+    template_areas: &str,
+    cols: usize,
+    rows: usize,
+    flow_column: bool,
+) -> Vec<(usize, usize, usize, usize)> {
+    let areas = if template_areas.trim().is_empty() {
+        Vec::new()
+    } else {
+        parse_template_areas(template_areas)
+    };
+    let placements = if placement_spec.trim().is_empty() {
+        vec![ChildPlacement::default(); child_count]
+    } else {
+        parse_placements(placement_spec)
+    };
+    let items: Vec<PlacementIntent> = placements
+        .iter()
+        .map(|p| resolve_placement_intent(p, &areas))
+        .collect();
+    let resolved =
+        resolve_cells_from_intents(&items, cols.max(1) as i32, rows.max(1) as i32, flow_column);
+    items
+        .iter()
+        .zip(resolved)
+        .map(|(it, (r, c))| {
+            (
+                (r - 1).max(0) as usize,
+                (c - 1).max(0) as usize,
+                it.row_span.max(1) as usize,
+                it.col_span.max(1) as usize,
+            )
+        })
+        .collect()
+}
+
+/// 자식 → 셀 (row, col) 해소 (CSS-GRID-1 §8.5). 1-based line 좌표.
+///
+/// **트랙 sizing 도 이 결과를 써야 한다** — 어느 자식이 어느 트랙에 있는지는 커서 규칙
+/// (definite column 이 커서보다 왼쪽이면 다음 행으로 내려감)까지 포함해야 정해지고, 그
+/// 판정은 여기에만 있다. tree.rs 가 `i / col_count` 로 근사하면 grid.rs 의 실제 배치와
+/// 어긋나 **측정한 행과 배치된 행이 달라진다** (실측: definite-column 자식 2개가 CSS 는
+/// 2행인데 근사는 1행 → 컨테이너 높이 400 vs 200).
+fn resolve_cells_from_intents(
+    items: &[PlacementIntent],
+    cols: i32,
+    rows: i32,
+    flow_column: bool,
+) -> Vec<(i32, i32)> {
 
     let mut occ: HashSet<(i32, i32)> = HashSet::new();
     let mut resolved: Vec<Option<(i32, i32)>> = vec![None; items.len()];
@@ -856,24 +933,7 @@ fn place_children(
         }
     }
 
-    // ── 최종 bounds (child 순서) ──
-    items
-        .iter()
-        .enumerate()
-        .map(|(i, it)| {
-            let (r, c) = resolved[i].unwrap_or((1, 1));
-            cell_bounds_for_child(
-                c,
-                c + it.col_span,
-                r,
-                r + it.row_span,
-                tracks_x,
-                tracks_y,
-                col_gap,
-                row_gap,
-            )
-        })
-        .collect()
+    resolved.into_iter().map(|r| r.unwrap_or((1, 1))).collect()
 }
 
 /// row-flow(기본) fully-auto 아이템 배치 — 커서에서 row-major 스캔.

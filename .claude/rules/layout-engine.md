@@ -188,6 +188,36 @@ flex item 의 automatic minimum size (min-width/height:auto = content 하한) �
 - ❌ 블록 축(`align_content`)에 stretch-fit definite 완화를 적용 → `height:auto` 는 진짜 미결정이다
 - ❌ TS 에서 grid 컨테이너의 `min-content`/`max-content`/`fit-content` 를 px 로 선해석해 주입 → 트랙을 모르는 근사가 엔진 결과를 덮는다
 
+## 그리드 컨테이너의 블록 크기는 **행 트랙 extent** 다 (CSS-GRID-1 §11.1, 2026-07-28)
+
+`height:auto` 그리드의 높이는 자식 셀들의 bounding box 가 아니라 **행 트랙 합 + row gap + 자기 padding/border** 다. 종전 엔진은 `max_bottom`(셀 bbox)을 썼고, 그건 CSS 와 **두 방향으로** 어긋난다.
+
+| 형태                       | 셀 bbox | CSS (트랙 extent) |
+| -------------------------- | ------: | ----------------: |
+| 30px 행 + 20px 자식        |      20 |            **30** |
+| 30px 행 + 100px 자식(넘침) |     100 |            **30** |
+| `30px 40px` + 자식 1개     |      20 |  **70** (빈 트랙) |
+| 자식 `marginBottom:50px`   |      10 |            **30** |
+
+넘치는 자식은 흘러넘치고(`overflow` 소관), 빈 트랙도 자리를 차지하며, margin 은 트랙을 늘리지 않는다 — "트랙이 크기를 정하고 자식은 그 안에 놓인다" 는 한 규칙의 세 얼굴이다.
+
+- **미결정 블록 축의 행 토큰은 전부 자식 기여로 세운다** — 인라인 축의 §12.5–§12.7.1 과 같은 규칙(위 §그리드 자신의 min/max-content). `1fr`/`%` 는 나눠 줄 여유가 없어 content 크기가 되고, `minmax(auto,60px)` 는 §12.6 으로 상한까지 자란다. **두 변경은 한 묶음**이다: 종전엔 `1fr` 이 상속 available 로 0 이 되고 그 0 위에서 셀 bbox 가 우연히 CSS 값과 맞았다 — extent 로 바꾸면 그 우연이 사라진다.
+- 블록 축은 **min-content == max-content** 다 (`(h, h)` 공급). 높이는 폭이 정해진 뒤의 내용 크기 하나뿐이다.
+- 반환값은 **content-box** 다 — 부모 커널(`write_block_item` off 15 `content_h` 등)이 자식의 pad_border 를 더한다. 여기서 `own_pb_v` 를 더하면 이중 계산이다(실측 padding 12 → 42 대신 54).
+- **행 목록 = 명시 토큰 ++ 암묵 토큰**. 암묵 행 크기는 `grid-auto-rows` 가 정하고(기본 `auto`, 여러 값이면 **첫 암묵 행부터** 순환), 자식이 쓰는 최대 row 까지 만든다. 종전엔 명시 토큰이 하나라도 있으면 암묵 행을 안 만들어 범위 밖 자식이 크기 0 트랙에 얹혔다 — 같은 y 에 겹치고 컨테이너도 짧아진다(실측 `30px` 1행 + 자식 3개: DOM 70 / 엔진 50). 암묵 **행**은 row-flow 에서만 생긴다 — col-flow 는 행을 명시 트랙으로 고정하고 열을 늘린다(그 확장은 grid.rs 소관).
+- **자식 → 트랙 매핑은 `grid::resolve_child_cells`** (실제 배치) 로 구한다. 트랙을 재려면 어느 자식이 어느 트랙에 있는지 알아야 하는데, 거기엔 CSS §8.5 커서 규칙(definite column 이 커서보다 왼쪽이면 다음 행)이 들어간다. `i / col_count` 근사는 그걸 몰라 **측정한 행과 배치된 행이 갈린다** (실측: definite-column 자식 2개가 CSS 는 2행인데 근사는 1행 → DOM 400 / 근사 200). `place_children` 과 **같은 함수**를 쓴다.
+- Chrome 실측 fixture: `gridContainerBlockSize.browser.test.ts` (engine 30 + pipeline 16 + 잔존 1). 민감도 — 트랙 extent 되돌림 25 red / 미결정 축 기여 해소 무력화 130 red / 암묵 행 생성 무력화 4 red / 배치 매핑 근사 복원 6 red.
+- **잔존**: 자식이 **없는** 그리드는 트랙을 세우지 않는다 — `solve_node` 가 in-flow 자식 0 이면 leaf 로 조기 반환해 `solve_grid` 자체가 안 돈다(실측 `30px 40px` → DOM 70 / 엔진 0). 같은 방향의 미구현이지만 거처가 트랙 sizing 이 아니라 dispatch 다.
+
+### 금지 패턴
+
+- ❌ 컨테이너 크기를 셀 bounding box(`max_bottom`/`max_right`)로 산출 → 빈 트랙 누락 + 넘치는 자식을 따라 늘어남
+- ❌ `final_h` 에 `own_pb_v` 를 더해 border-box 로 반환 → 부모 커널이 또 더한다 (auto 축 반환은 content-box 계약)
+- ❌ 미결정 블록 축에서 `1fr`/`%` 행을 상속 available 로 해소 → 없는 여유를 나눈다
+- ❌ 명시 행이 있을 때 암묵 행 생성을 건너뛰기 → 범위 밖 자식이 크기 0 트랙에 겹친다
+- ❌ 자식 → 트랙 매핑을 `i / col_count` 로 근사 → 측정한 행과 배치된 행이 갈린다 (`resolve_child_cells` 가 정본)
+- ❌ col-flow 에서 암묵 **행**을 늘리기 → 행은 명시 트랙 고정, 늘어나는 건 열이다
+
 ## 교차축 라인 cross 는 컨테이너 cross **대입** (CSS-FLEXBOX §9.4 step 8, 2026-07-27)
 
 single-line(`flex-wrap:nowrap`) + definite cross 컨테이너에서 flex 라인의 outer cross size 는 컨테이너의 inner cross size **그 자체**다 — "**is** the flex container's inner cross size". `flex.rs::flex_layout` 의 라인 승격은 `max` 가 아니라 대입이어야 한다.
