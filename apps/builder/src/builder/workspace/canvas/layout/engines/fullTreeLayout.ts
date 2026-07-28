@@ -138,6 +138,20 @@ const A2_WINDOWED_COLLECTION_TAGS = new Set(["ListBox", "GridList", "Table"]);
  */
 const SCROLL_EXTENT_MAX_DEPTH = 32;
 
+/**
+ * batch 노드 style 이 **세로 flex 컨테이너**인가 (body 뷰포트 주입 축 판정).
+ *
+ * 이 조건에서만 body 의 블록 축이 flex **main-size 예산**으로 재해석된다 — 다른 배치
+ * 문법(block / row flex / grid)에서 블록 축은 예산이 아니라 상자 크기라, 확정 높이가
+ * 오히려 필요하다(§"body 는 뷰포트가 아니다").
+ */
+function isColumnFlexBatchStyle(style: Record<string, unknown>): boolean {
+  const display = String(style.display ?? "").toLowerCase();
+  if (display !== "flex" && display !== "inline-flex") return false;
+  const dir = String(style.flexDirection ?? "row").toLowerCase();
+  return dir === "column" || dir === "column-reverse";
+}
+
 /** `computeScrollExtent` 가 읽는 레이아웃 최소 형태 (부모 상대 좌표). */
 interface ScrollExtentBox {
   x: number;
@@ -2465,6 +2479,9 @@ export function calculateFullTreeLayout(
 
   if (batch.length === 0) return null;
 
+  // body 뷰포트 상자 높이 (Step 1.5 에서 주입, Step 5 에서 보고값으로 사용).
+  let bodyViewportHeight: number | null = null;
+
   // ── Step 1.5: Body(root) 요소에 breakpoint 페이지 크기 명시 ─────────
   // CSS height:auto → block 요소는 콘텐츠 높이에 맞춤 (body 높이 = 24px 문제)
   // 빌더 특수 케이스: body 크기 = breakpoint 토글 크기
@@ -2482,7 +2499,14 @@ export function calculateFullTreeLayout(
       const pageW = availableWidth + bp.left + bp.right + bb.left + bb.right;
       const pageH = availableHeight + bp.top + bp.bottom + bb.top + bb.bottom;
       batch[rootIdx].style.width = `${pageW}px`;
-      batch[rootIdx].style.height = `${pageH}px`;
+      if (isColumnFlexBatchStyle(batch[rootIdx].style)) {
+        // 세로 flex body 는 **min-height** 로 준다 (아래 Step 5 주석 참조).
+        delete batch[rootIdx].style.height;
+        batch[rootIdx].style.minHeight = `${pageH}px`;
+      } else {
+        batch[rootIdx].style.height = `${pageH}px`;
+      }
+      bodyViewportHeight = pageH;
     }
   }
 
@@ -3007,12 +3031,30 @@ export function calculateFullTreeLayout(
         {}) as Record<string, unknown>;
       const margin = parseMargin(elementStyle);
 
+      // **body 는 뷰포트가 아니다 — 상자는 뷰포트, 배치는 내용** (2026-07-28).
+      //
+      // Chrome 은 이 상황을 두 노드로 처리한다: 뷰포트(확정 844 · clip + scroll)와
+      // body(`min-height:100vh` · height auto → 내용만큼 자람). 캔버스에는 뷰포트 노드가
+      // 없어 body 한 노드가 두 역할을 겸하는데, `display:block` 에서는 충돌하지 않던 것이
+      // body 가 **세로 flex 컨테이너**가 되는 순간 "뷰포트 크기"가 "main-size 예산" 으로
+      // 재해석되면서 자식을 압축한다(실측: 자식 합 1423 이 정확히 844 로 눌림 — ListBox
+      // 162→35.6 / Card 322→85.6, 카드 내용이 다음 형제 위로 넘침).
+      //
+      // 그래서 Step 1.5 는 세로 flex body 에 `min-height` 를 주고(→ 압축 소멸, Chrome 동형),
+      // 여기서는 **보고 높이를 뷰포트 상자로 되돌린다**. 이 값이 clip 높이이자
+      // `maxScrollTop = 내용 extent − 이 높이` 의 기준이라, 내용 높이를 그대로 보고하면
+      // 스크롤이 0 이 되고 넘친 내용이 프레임 밖 캔버스로 흘러나온다(도달 수단 없음).
+      // `display:block` 등 다른 경우엔 엔진 결과가 이미 pageH 라 no-op 이다.
+      const isBodyRoot =
+        bodyViewportHeight !== null && node.elementId === rootElementId;
       result.set(node.elementId, {
         elementId: node.elementId,
         x: sanitizeLayoutValue(layoutResult.x),
         y: sanitizeLayoutValue(layoutResult.y),
         width: sanitizeLayoutValue(layoutResult.width),
-        height: sanitizeLayoutValue(layoutResult.height),
+        height: sanitizeLayoutValue(
+          isBodyRoot ? bodyViewportHeight! : layoutResult.height,
+        ),
         margin: {
           top: sanitizeLayoutValue(margin.top),
           right: sanitizeLayoutValue(margin.right),

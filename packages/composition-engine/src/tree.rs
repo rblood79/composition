@@ -1438,7 +1438,7 @@ impl LayoutTree {
         // 넘기면 flexGrow 자식이 페이지 높이로 grow 한다(tree_golden N7, live Tabs
         // 844/1024 발산). row main(=width)은 auto 여도 블록 레벨 stretch 로 definite
         // → 상속 available 유지.
-        let (avail_main, avail_cross) = if is_row {
+        let (mut avail_main, avail_cross) = if is_row {
             (child_avail_w, child_avail_h)
         } else {
             let main_h = if explicit_h > 0.0 { child_avail_h } else { -1.0 };
@@ -1577,6 +1577,85 @@ impl LayoutTree {
             }
         }
 
+        // 3.6) **컨테이너 main 을 자기 min/max 로 clamp 한 뒤 재분배** (CSS-FLEXBOX-1 §9.4→§9.7).
+        //
+        // 컨테이너의 **used** main size = (명시 크기 또는 내용 크기) 를 자기 min/max 로 clamp 한
+        // 값이고, flexible length 는 **그 used 값**에 대해 풀린다. 엔진은 clamp 를 배치 **뒤에만**
+        // 걸고 있었다 — root 는 `fixup_root_self_size`, flex item 은 `flex.rs` off 10·12, grid
+        // 트랙은 `track_contribution`. 셋 다 "이미 배치된 결과의 상자만" 늘리고 줄이므로, 안쪽
+        // 분배는 clamp 이전 값 기준으로 굳는다.
+        //
+        // 실측(2026-07-28, Chrome 대조):
+        // - `column + minHeight:400` 안의 `flexGrow:1` 자식 → DOM **340** / 구 엔진 **0**
+        //   (미결정 main 은 여유가 없어 grow 가 no-op → 컨테이너만 min 으로 부풀었다)
+        // - `column + maxHeight:200` 안의 `height:100px` 자식 3개 → DOM **67**씩 / 구 엔진 100씩
+        //   (used main 200 에 대한 음수 여유 → shrink 가 돌아야 한다)
+        //
+        // **auto-main item 은 이 재분배로 찌그러지지 않는다** — §4.5 automatic minimum size 가
+        // min-content floor 를 걸기 때문이다. ListBox 형태(`maxHeight:300` + auto 높이 행)는
+        // clamp 후에도 행이 100 을 유지하고 넘쳐 스크롤한다(실측 DOM·엔진 동형). 압축되는 것은
+        // 위 두 번째 줄처럼 **주축 크기를 명시한** item 뿐이며, 그게 CSS 결과다.
+        // main 축이 auto 일 때의 used main size — 아래 4) 컨테이너 크기가 이 값을 쓴다.
+        // (main 이 명시면 그 값이 used 라 여기서 건드리지 않는다.)
+        let mut clamped_auto_main: Option<f32> = None;
+        if !children.is_empty() {
+            let ctx_main = self.ctx_for(if is_row { avail_w } else { avail_h });
+            let (min_raw, max_raw) = if is_row {
+                (style.min_width.as_deref(), style.max_width.as_deref())
+            } else {
+                (style.min_height.as_deref(), style.max_height.as_deref())
+            };
+            let min_main = resolve_dimension_opt(min_raw, &ctx_main);
+            let max_main = resolve_dimension_opt(max_raw, &ctx_main);
+            if min_main.is_some() || max_main.is_some() {
+                let own_pb_main = if is_row { own_pb_h } else { own_pb_v };
+                // 기준값: main 이 확정이면 그 값, 미결정이면 방금 배치한 내용 extent.
+                let base_main = if avail_main >= 0.0 {
+                    avail_main
+                } else {
+                    let mut extent: f32 = 0.0;
+                    for i in 0..children.len() {
+                        let off = i * 4;
+                        let e = if is_row {
+                            out[off] + out[off + 2]
+                        } else {
+                            out[off + 1] + out[off + 3]
+                        };
+                        extent = extent.max(e);
+                    }
+                    extent
+                };
+                let mut used = base_main;
+                if let Some(mn) = min_main {
+                    used = used.max(spec_to_content(mn, own_pb_main));
+                }
+                if let Some(mx) = max_main {
+                    used = used.min(spec_to_content(mx, own_pb_main));
+                }
+                let used = used.max(0.0);
+                let main_is_auto = if is_row { explicit_w <= 0.0 } else { explicit_h <= 0.0 };
+                if main_is_auto {
+                    clamped_auto_main = Some(used);
+                }
+                if (used - base_main).abs() > 0.5 {
+                    avail_main = used;
+                    out = flex::flex_layout(
+                        &data,
+                        avail_main,
+                        avail_cross,
+                        direction,
+                        justify,
+                        align_items,
+                        align_content,
+                        wrap,
+                        gap_main,
+                        gap_cross,
+                        cross_definite,
+                    );
+                }
+            }
+        }
+
         // 3.8) ~~main 축 margin:auto 후처리~~ — **flex 커널로 이관** (2026-07-27).
         //   구 구현은 tree.rs 가 flex_layout 출력 좌표를 통째로 다시 깔던 **단일 라인
         //   근사**라, wrap 컨테이너에서는 흡수 자체가 일어나지 않았다(실측: 250 폭 2줄
@@ -1649,8 +1728,21 @@ impl LayoutTree {
         }
 
         // 컨테이너 크기: 명시 있으면 명시, 없으면 자식 bounding box.
-        let container_w = if explicit_w > 0.0 { explicit_w } else { max_right };
-        let container_h = if explicit_h > 0.0 { explicit_h } else { max_bottom };
+        //   단 main 축은 3.6 이 min/max clamp 한 **used main size** 가 있으면 그 값 — 분배를
+        //   그 크기에 대해 돌렸으므로 상자도 같은 값이어야 한다(`minHeight` 로 커진 컨테이너의
+        //   내용이 60 이어도 상자는 400).
+        let auto_main_w = if is_row { clamped_auto_main } else { None };
+        let auto_main_h = if is_row { None } else { clamped_auto_main };
+        let container_w = if explicit_w > 0.0 {
+            explicit_w
+        } else {
+            auto_main_w.unwrap_or(max_right)
+        };
+        let container_h = if explicit_h > 0.0 {
+            explicit_h
+        } else {
+            auto_main_h.unwrap_or(max_bottom)
+        };
         if let Some(n) = self.get_mut(handle) {
             n.layout = NodeLayout { x: 0.0, y: 0.0, width: container_w, height: container_h };
             n.dirty = false;

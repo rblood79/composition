@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [body 는 뷰포트가 아니다 — 세로 flex 페이지의 자식 압축] - 2026-07-28
+
+### Bug Fixes
+
+- **페이지 body 를 `display:flex` + `flex-direction:column` 으로 두면 등록된 컴포넌트가 통째로 눌리던 문제**:
+  - 실측(components 페이지 390×844): 자식 높이 합 1423 이 정확히 페이지 높이 844 로 압축 — ListBox 162→35.6 / GridList 164→29.4 / Card 322→85.6. Card 는 **내용 305 가 85.6 상자를 넘어 다음 형제 위로 겹쳤다**
+  - **Why**: Chrome 은 페이지를 뷰포트(확정 높이 · clip + scroll)와 body(`min-height:100vh` · 내용만큼 자람) **두 노드**로 처리하는데, 캔버스에는 뷰포트 노드가 없어 `fullTreeLayout` Step 1.5 가 body 에 `height = pageH` 를 주입해 한 노드가 두 역할을 겸했다. `display:block` 에서는 충돌하지 않던 것이, body 가 세로 flex 컨테이너가 되는 순간 "뷰포트 크기"가 "flex main-size 예산"으로 재해석되며 자식이 예산에 맞춰 축소됐다. 압축을 전량 흡수한 3개(ListBox/GridList/Card)는 주축 `overflow` 가 `visible` 이 아니라 CSS-FLEXBOX §4.5 content floor 가 없는 요소였다
+  - 수정: 세로 flex body 에만 `min-height` 주입(압축 소멸, Chrome 동형) + **보고 높이는 뷰포트 상자로 환원** — clip 높이이자 `maxScrollTop` 기준이라, 내용 높이를 보고하면 스크롤이 0 이 되고 넘친 내용이 프레임 밖 캔버스로 도달 불가 상태로 유출된다. block / row flex / grid body 는 확정 높이가 필요해 종전 유지
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts` (Step 1.5 / Step 5)
+
+- **`min-height`·`max-height` 로 크기가 바뀐 flex 컨테이너 안에서 `flex-grow`/`flex-shrink` 가 안 돌던 문제** (CSS-FLEXBOX-1 §9.4→§9.7):
+  - `column + minHeight:400` 안의 `flexGrow:1` 자식이 Chrome 340 / 엔진 **0**. `column + maxHeight:200` 안의 `height:100px` 자식 3개가 Chrome 67씩 / 엔진 100씩
+  - **Why**: 컨테이너의 used main size 는 min/max clamp **뒤**의 값이고 flexible length 는 그 값에 대해 풀리는데, 엔진은 clamp 를 배치 **뒤에만** 걸었다(root `fixup_root_self_size` / flex item off 10·12 / grid `track_contribution` 셋 다 이미 배치된 상자만 조정). 프레임 페이지의 content 슬롯이 `flex:1 1 auto` 라 위 body 수정의 전제 조건이기도 하다
+  - auto 주축 item 은 §4.5 floor 가 막아 찌그러지지 않는다 — ListBox 형태(`maxHeight:300` + auto 높이 행)는 clamp 후에도 행 100 유지 + 넘침(실측 DOM·엔진 동형)
+  - 위치: `packages/composition-engine/src/tree.rs::solve_flex` (3.6)
+
+### Documentation
+
+- **`.claude/rules/layout-engine.md`**: §"컨테이너의 used main size 는 min/max clamp 뒤의 값이다" / §"body 는 뷰포트가 아니다 — 상자는 뷰포트, 배치는 내용" 2개 절 추가 (주입 축 판정 근거 + 금지 패턴)
+
+### Infrastructure
+
+- **Chrome 실측 fixture 신규**: `apps/builder/tests/parity/bodyViewportBox.browser.test.ts` (9건) — 자식 좌표는 `viewport(확정) > body(min-height:100%)` DOM 오라클 대조, body 상자 높이는 오라클 대응물이 없어 빌더 계약으로 분리 단언. 민감도 — 주입 축 되돌림 3 red / 엔진 재분배 무력화 2 red
+
 ## [그리드 컨테이너의 블록 크기 = 행 트랙 extent] - 2026-07-28
 
 ### Bug Fixes
