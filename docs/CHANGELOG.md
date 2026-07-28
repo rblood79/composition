@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [엔진 기본 축 전수 정합 — ADR-170 격자 2,702 조합 발산 0] - 2026-07-28
+
+레이아웃 엔진의 Chrome 발산을 "증상 발견 → 수정" 이 아니라 **직교 격자 전수 대조**로 닫았다. display × width × height × min/max × leaf 종류 × 부모 컨텍스트를 곱한 2,702 조합에서 도입 시점 **727 발산 (26.9%)** 이 나왔고, 9개 군집으로 나눠 wave 1~7 로 전건 해소했다 (이연 0건).
+
+### Bug Fixes
+
+- **컨테이너의 `width: min-content / max-content / fit-content` 가 자기 내용을 못 읽던 문제** (군집 B, 157건):
+  - 키워드 폭이 부모 intake 의 `CONTENT` 센티넬로만 처리되어, 실제로 소비된 값이 일반 solve 의 **content bounding box** — auto 자식이 stretch 된 폭까지 포함된 값이었다
+  - **Why**: 확정 폭 자식은 min==max==bbox 라 **우연히** 정합이었고, 측정 스칼라 leaf 에서만 stretch 폭이 bbox 를 밀어 올렸다 (`width:min-content` 상자가 부모 폭 전체가 됨 — Chrome 50 / 엔진 300). 대조군 없이 보면 "엔진이 키워드를 무시한다" 로 잘못 귀속된다
+  - 수정: `solve_node` 가 `measure_intrinsic_width` 로 해소해 definite 로 dispatch (CSS-SIZING-3 §5). 측정 패스 안에서는 재진입 대신 키워드가 요구하는 모드로 센티넬 교체 (§5.2)
+  - 위치: `packages/composition-engine/src/tree.rs`
+- **`min-width`/`max-width` 로 정해진 폭이 자식 배치에 반영되지 않던 문제** (군집 A, 339건):
+  - clamp 가 부모 intake 에만 걸려 **상자만 clamp 되고 자식들은 clamp 이전 폭 기준**으로 배치됐다 (`w=120px+minW200`: 상자 200 / 자식 120 · `w=auto+maxW60`: 상자 60 / 자식 300)
+  - **Why**: used size 는 clamp **뒤** 값이고 그것이 내부 배치·파생의 입력이다 (CSS-SIZING-3 §5.1). 기존 규칙이 flex main/cross + grid block 3축만 덮어 인라인 축이 비어 있었다
+  - 수정: `solve_node` 가 dispatch 전에 clamp. auto 폭은 block 부모 + clamp 바인딩 시에만 definite 승격 (flex/grid item 의 used 크기는 커널 소관 유지)
+- **`aspect-ratio` 가 clamp 전 폭으로 파생하고, stretch 로 정해진 폭에서는 아예 전송되지 않던 문제** (군집 G·F, 10건):
+  - 실측 (`ratio 2`, 내용 50): `w:120px+maxW60` → Chrome 50 / 엔진 60 · 양축 auto (부모 300) → Chrome 150 / 엔진 50
+  - **Why**: 전송 입력은 **used size** 다 (CSS-SIZING-4 §5) — clamp 뒤 값이어야 하고, block-level stretch 로 정해진 폭도 입력이 된다. w→h 전송은 §5.2.2 자동 최소(content 하한)의 대상이라 전송값을 굳히면 내용이 넘친다
+- **flex item 재-solve 가 `%` 높이를 컨테이너 content 크기에 풀던 문제** (군집 C, 108건):
+  - `flex-col(height:auto)` 안의 `h=50%` 상자가 content 50 의 절반인 **25** 로 붕괴하고 내부 자식까지 25 기준으로 축소됐다
+  - **Why**: `solve_flex` 3.5 의 auto-main fallback 이 음수 센티넬 기준이라 auto 컨테이너에서 **항상** 재-solve 가 발화했고, 그 재-solve 가 `used_main` 을 상속 available 로 내려 §10.5 게이트를 우회했다. fallback 을 "자식이 실제로 solve 된 available" 로 정정하니 불필요 재-solve 자체가 사라졌다
+- **column flex 의 라인 cross 가 content 로 떨어지던 문제** (군집 E, 16건): 커널 `cross_definite` 가 `explicit_w` 만 봐서, 명시 폭이 없어도 block-level stretch 로 확정인 column cross 를 놓쳤다 (§9.4 step 8 → step 11 stretch 가 auto-cross leaf 를 content 까지만 늘림 — Chrome 300 / 엔진 90)
+- **단독 `fr` 트랙이 자식 내용보다 작아지던 문제** (군집 D, 29건): `1fr` = `minmax(auto, 1fr)` (CSS-GRID-1 §7.2.4) 이 파서에 없어 base 를 채울 자리가 없었다. 2단계 분배도 §12.7.1 freeze-restart 가 아닌 근사였다 (`1fr 1fr`/120, 기여 90·30 → CSS 90·30 / 엔진 60·60)
+- **grid 트랙 기여가 margin 을 빼먹던 문제** (군집 H, 45건): §12.5 기여는 **margin-box** 인데 content-box 로 산출해, 누락된 margin 이 §12.8 균등 분배로 갈라져 정확히 절반씩 어긋났다 (실측 165 / 160). `%` margin 은 순환이라 0 으로 본다
+- **TS 선해석이 엔진의 정확값을 근사로 덮던 문제** (군집 I, 23건): `enrichWithIntrinsicSize` 의 `calculateContentWidth` 근사가 컨테이너 키워드 폭을 주입하고 있었다 (손자 70px 를 품은 block 의 `fit-content`: DOM 70 / 주입값 80). 통과 게이트를 grid 한정에서 **자식 보유 컨테이너 전체**로 확대 — 자식 없는 합성 leaf(INLINE_BLOCK/CIRCLE)는 엔진이 content 를 모르므로 주입 잔존
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`
+
+### Architecture
+
+- **결정적 전수 격자 도입** — `apps/builder/tests/parity/basicAxis{ContainerSize,ChildSize,Nesting}.browser.test.ts` (2,702 조합). 발산은 **양방향 ratchet** (`basicAxis.known.ts`) 로 잠근다 — 신규 발산도 red, 해소된 발산도 (목록에서 지우라고) red. 현재 전 목록 빈 배열
+  - 격자 3 (중첩 전파) 은 도입 시점부터 engine·pipeline **전건 정합** — 발산은 전부 "한 노드가 자기 크기를 정하는 단계" 에 있고, 정해진 크기가 아래로 전파되는 경로는 이미 닫혀 있었다
+- **grid 재진입의 트랙 freeze 제거** — freeze 는 §12.7.1 base 부재의 **우회**였음이 확인됐다. base 공급 후에는 원본 토큰 재계산이 같은 값을 알고리즘으로 재현하고(`1fr 1fr`/min-content → 40·30), clamp 로 커진 컨테이너의 §12.8 stretch 와 `%` 트랙 재해소가 함께 살아난다. 암묵 열(명시 template 없음)만 1차 합성 px 유지
+  - 이로써 **구 잔존 "grid `%` 트랙 내부 배분" 이 부수 해소**됐다 (`50% auto`/max-content → DOM 90·90 = 엔진). 같은 날 앞선 엔트리의 "grid 는 트랙을 얼려서 넘긴다" 서술은 본 변경으로 대체됨
+- **규칙 이관** — `.claude/rules/layout-engine.md` 에 신규 절 4개(컨테이너 키워드 소유권 / flex 재-solve 누수 / 단독 `fr` base / 격자 사각 목록) + 기존 절 정정(used size 네 축, freeze 관련 서술)
+
+### Performance
+
+- 엔진 마이크로벤치 동일-머신 A/B (수정 전 `605f856f7` 대비): **회귀 0** — `grow_nowrap` 19.0→17.1µs, `tree_solve` depth1 11.5→9.7µs 개선, 나머지 노이즈 밴드 내. wave 2 가 도입한 `NodeStyle` 전체 clone(50필드 힙 복제)을 단일 borrow 로 교체한 결과
+
 ## [shrink-to-fit 컨테이너 — 크기 확정 뒤 자식 재배치] - 2026-07-28
 
 ### Bug Fixes

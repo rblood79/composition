@@ -213,11 +213,13 @@ expect(keys).toEqual(KNOWN_DIVERGENCES); // 정확 일치 (superset/subset 모�
 | 6    | F       | `tree.rs::solve_node` — auto 폭 승격 조건에 `aspect_needs_w`(aspect 보유 + 양축 auto) 추가: block-level stretch 로 정해진 폭이 w→h 전송의 입력이 된다 (§5 preferred size + §5.2.2 content 하한은 wave 2 의 floor 재사용)                                                                                                                                                                                                                         |                                   aspect −5 (**0 도달 — 소블록 30 전건 정합**) | 실측 `ratio 2` + 양축 auto: Chrome h=150(=300/2) / 종전 엔진 h=content 50 (전송 미발화)                                                                                                      |
 | 7    | I       | 재판정 **제거 확정**: `utils.ts` 컨테이너 키워드 선해석을 자식 보유 컨테이너 전체에서 통과로 전환 (`isIntrinsicContainer` — grid 한정이던 기존 게이트 확장). 엔진이 `measure_intrinsic_width` + solve_node 키워드 해소(wave 1)로 정확값을 소유 — TS 근사(`calculateContentWidth`)가 그 값을 덮고 있었다. 합성 leaf(INLINE_BLOCK/CIRCLE, 자식 0)는 주입 잔존. + `solve_node` 의 NodeStyle 전체 clone 을 단일 borrow 해소로 교체 (bench 회귀 방지) |                                              pipeline −20 (**전 목록 0 도달**) | **총계 727 → 0 — 2,702 조합 전건 정합**. bench 동일-머신 A/B: 회귀 0 (grow −10% / tree depth1 −16% 개선, 나머지 노이즈 밴드 내)                                                              |
 
-### Phase 3 — 종결
+### Phase 3 — 종결 — 완료 2026-07-28
 
-- [ ] layout-engine.md: 사각 목록 절 + 수정 wave 에서 나온 신규 규칙 절 (기존 문서 관행대로 조문·실측·민감도 병기)
-- [ ] CHANGELOG 엔트리 (Architecture — 격자 도입 + 군집 수정 요약)
-- [ ] README 대시보드 갱신 + **G4**: live 1회 exercise (실제 builder 에서 기본 축 편집 시나리오 1건 — 완료 기준 규칙) 후 Implemented 승격
+- [x] layout-engine.md: 사각 목록 절 + 수정 wave 신규 규칙 절 4개 (컨테이너 키워드 소유권 / flex 재-solve 누수 / 단독 `fr` base / 격자 사각) + 기존 절 정정 (used size **네 축**, freeze 제거로 stale 해진 서술 3곳) — 커밋 `a5dfa5ba1`
+- [x] CHANGELOG 엔트리 (Bug Fixes 9군집 + Architecture 격자·freeze 제거 + Performance 벤치)
+- [x] README 대시보드 갱신 + **G4**: live 1회 exercise 통과 → Implemented 승격
+
+**G4 실측 (신규 빈 페이지 — components 페이지 미사용)**: frame + Text ×2 저작 → `Width: Fit` 편집에서 frame **390 → 31** (자식 기여 폭, 캔버스 badge `31 × 48`) · 새로고침 full rebuild 후 31 유지 (증분↔full 동형) · `Direction: row` 에서 **62 × 24** (=31+31). 콘솔 에러 0. 상세 표는 ADR 본문 §진행 로그.
 
 ## §6. 파일 변경표
 

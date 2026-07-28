@@ -2,7 +2,27 @@
 
 ## Status
 
-Accepted — 2026-07-28 (Proposed → Accepted 같은 날 — 리뷰 round 1 승인, 이슈 3건 전건 라운드 내 fixed: [reviews/170.md](reviews/170.md))
+Implemented — 2026-07-28 (Proposed → Accepted → Implemented 같은 날 — 리뷰 round 1 승인, 이슈 3건 전건 라운드 내 fixed: [reviews/170.md](../reviews/170.md))
+
+### 진행 로그
+
+| Phase | 상태            | 내용                                                                                                                                         |
+| ----- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | 완료 2026-07-28 | 축 배열 + 기존 커버리지 맵 + 사각 목록 freeze (G1). 기존 parity 4.8초 실측 → HC3 절대 수치 고정                                              |
+| 1     | 완료 2026-07-28 | 격자 3파일 (2,702 조합) + ratchet 잠금 + 발산 인벤토리 **727 (26.9%)** → 9군집 (G2). 엔진 수정 0                                             |
+| 2     | 완료 2026-07-28 | 군집별 수정 wave 1~7 — **727 → 0** (이연 0건, G3 자동 충족). cargo 344 / parity 918 / 유닛 3017 / 벤치 회귀 0                                |
+| 3     | 완료 2026-07-28 | layout-engine.md 규칙 이관 (신규 절 4 + 기존 절 정정) + CHANGELOG + **G4 live** (신규 빈 페이지 기본 축 편집 — fit-content 31 / row 62 실측) |
+
+**G4 live exercise 기록 (2026-07-28)**: 신규 빈 페이지 (components 페이지 미사용 — memory `project-components-page-origins-are-test-level`) 에 frame + Text ×2 저작 후 —
+
+| 편집                          | 결과 (레이아웃 맵 + 캔버스 badge)          | 판정                                          |
+| ----------------------------- | ------------------------------------------ | --------------------------------------------- |
+| 기본 (width auto)             | frame 390×48 / Text 390×24 ×2              | block stretch + column cross stretch          |
+| **Width → Fit** (fit-content) | frame **31×48**, 자식 31 — badge `31 × 48` | 컨테이너 키워드가 자식 기여로 해소 (군집 B·I) |
+| 새로고침 (full rebuild)       | 31×48 유지                                 | 증분 ↔ full 경로 동형                         |
+| **Direction → row**           | frame **62×24** (=31+31) — badge `62 × 24` | row 축 키워드 해소 + 자식 나란히 배치         |
+
+콘솔 에러 0, `[ADR-916] composition-engine WASM initialized` 정상.
 
 ## Context
 
@@ -95,7 +115,7 @@ composition-engine (ADR-916) 의 Chrome/CSS 발산은 **반응형 발견** 사�
 - **대안 C 기각**: 어댑터 + 미지원 표면 필터링 비용이 자체 격자 작성 비용을 상회하고, 하니스 형식이 이질적 (마이그레이션 HIGH 2축).
 - **대안 D 기각**: 커버리지 설명력 부재 — 종결 증명 목적과 구조적으로 불일치. 격자 완성 후 보조 수단으로의 재검토는 막지 않는다.
 
-> 구현 상세: [170-engine-basic-axis-conformance-sweep-breakdown.md](design/170-engine-basic-axis-conformance-sweep-breakdown.md) (부분 격자 3종 축 표 / 기존 커버리지 맵 / 사각 목록 / Phase 0~3 / 파일 변경표)
+> 구현 상세: [170-engine-basic-axis-conformance-sweep-breakdown.md](../design/170-engine-basic-axis-conformance-sweep-breakdown.md) (부분 격자 3종 축 표 / 기존 커버리지 맵 / 사각 목록 / Phase 0~3 / 파일 변경표)
 
 ## Risks
 
