@@ -122,7 +122,7 @@ React 축(P-1~P-3)만 고치면 blit 프레임에 `commandChildrenMap` O(N) 재�
 
 ---
 
-## 3. Phase 2 — `layoutInputKey` 메모이제이션 (P-1)
+## 3. Phase 2 — `layoutInputKey` 메모이제이션 (P-1) — **완료 2026-07-29 (`fc51d75a8`)**
 
 **Phase 1 + Phase 3 선행 필수.** `layoutInputKey` 를 `useMemo(..., [pages, framePages])` 로 감싸도 `pages`(= `layoutPublisherInputs`) identity 가 팬마다 바뀌면 매번 miss 다. Phase 1 은 직접 카메라 deps(`panOffset`/`zoom`)를 제거하고, Phase 3 이 deps 에 남는 `sceneSnapshot`/`visiblePages` 의 카메라 결합을 끊는다 — 둘 다 반영되어야 identity 가 안정된다. memo 자체는 Phase 3 전에 넣어도 무해하나(매 프레임 miss 로 현상 유지), G2 는 Phase 3 후에만 통과 가능하다.
 
@@ -139,6 +139,17 @@ React 축(P-1~P-3)만 고치면 blit 프레임에 `commandChildrenMap` O(N) 재�
 | `layoutInputKey` 를 `useMemo` 로 감쌈 (deps = `[pages, framePages]`)      | `hooks/useLayoutPublisher.ts:86-97` |
 | `dimensionKey` / `readinessKey` 도 동일 처리 (같은 렌더 본문 문자열 조립) | 〃 `:67-80`, `:101-106`             |
 | 주석 갱신 — 왜 deps 가 배열 identity 인지 (§3-1 근거) 명시                | 〃                                  |
+
+### 3-3. 반영 결과 + R1 재발 차단 가드
+
+세 키 모두 `useMemo(..., [framePages, pages])`. **정적 가드 2건**을 `useLayoutPublisher.static.test.ts` 에 추가해 계약을 기계 집행한다:
+
+1. 세 키가 `useMemo` 로 감싸져 있고 훅 본문 직접 조립(`const X = [...pages`)이 복귀하지 않음
+2. `[framePages, pages]` deps 가 정확히 3회 등장하고, **`[layoutVersion` 로 시작하는 deps 배열은 `useEffect` 단 1곳**뿐 — memo deps 로 새어 들어가면 2 이상이 되어 FAIL
+
+기존 첫 테스트의 `const layoutInputKey = [...pages, ...framePages]` 패턴 단언은 memo 로 형태가 바뀌어 `[...pages, ...framePages]` 존재 확인으로 완화했다 (형태가 아니라 **입력 구성**이 계약이므로).
+
+**G1 live 검증** (R1 의 직접 검증, 새로고침 후 재확인): 요소 추가 직후 신규 child 가 layoutMap 에 발행(82→83) + 좌표 `20,456 100x20` + Skia 노드 등록 → **투명/미등록 0건**. undo 정리 시 layoutMap 에서도 제거(83→82)되어 삭제 경로도 memo 를 빠져나가지 않음을 함께 확인.
 
 ---
 
