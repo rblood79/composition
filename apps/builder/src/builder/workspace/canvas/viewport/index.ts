@@ -12,7 +12,14 @@ export {
   resetViewportController,
   type ViewportState,
   type ViewportControllerOptions,
-} from './ViewportController';
+} from "./ViewportController";
 
-export { useViewportControl } from './useViewportControl';
-export { ViewportControlBridge, type ViewportControlBridgeProps } from './ViewportControlBridge';
+export { useViewportControl } from "./useViewportControl";
+export {
+  CAMERA_GESTURE_IDLE_MS,
+  useCameraGestureActive,
+} from "./useCameraGestureActive";
+export {
+  ViewportControlBridge,
+  type ViewportControlBridgeProps,
+} from "./ViewportControlBridge";

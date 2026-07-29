@@ -143,5 +143,5 @@ ADR-172(축 ① — 카메라 이동 중 파생 재구축 0)가 완결된 뒤 20
 | Phase 0 — inventory         | Implemented (07-30) | 소비자 전수(격상 지점 5곳) · 반경 실측(+21~23%) · R7 처방 판정 (a) freeze 채택 · R5/R6 소멸 (design §2-3)               |
 | Phase 1 — 컬링 기준면 정합  | Implemented (07-30) | `CONTENT_COVERAGE_PADDING_CSS_PX` 단일 소스 (scene/renderCoverage.ts). live A/B: layout publish 대상 14(200) → 17(512) |
 | Phase 2 — 무효화 사유 분리  | Implemented (07-30) | `resolveCameraStableVisibility` — 판정 축 = core identity. 신호 비활성이라 동작 변화 0                                  |
-| Phase 3 — 제스처 중 이연    | 미반영              | 신호 배선                                                                                                                |
+| Phase 3 — 제스처 중 이연    | Implemented (07-30) | `useCameraGestureActive` (store 변경 debounce 200ms). live A/B — 재래스터 14→2(사유 `coverage-refresh`) · 드롭 10→0 · G2 통과 |
 | Phase 4 — 재측정            | 미반영              | G1~G5                                                                                                                    |

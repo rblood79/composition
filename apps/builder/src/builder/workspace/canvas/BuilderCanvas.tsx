@@ -39,7 +39,7 @@ import { isUnifiedFlag } from "./wasm-bindings/featureFlags";
 import type { BoundingBox } from "./selection/types";
 import type { DropIndicatorSnapshot } from "./selection/dropTargetResolver";
 // GridLayer는 Skia gridRenderer로 대체됨
-import { ViewportControlBridge } from "./viewport";
+import { useCameraGestureActive, ViewportControlBridge } from "./viewport";
 import { screenToViewportPoint } from "./viewport/viewportTransforms";
 import { TextEditOverlay, useTextEdit } from "../overlay";
 import { DotBackground } from "../components/DotBackground";
@@ -495,9 +495,10 @@ export function BuilderCanvas({
   // `sceneStructureCore` identity 하나이며, 편집은 core 를 바꾸므로 게이트를
   // 그대로 통과한다 (Hard Constraint 2).
   //
-  // Phase 2 시점에는 신호가 항상 비활성이라 동작 변화가 0이다. 실제 배선은
-  // Phase 3 (제스처 활성 debounce).
-  const cameraGestureFrozen = false;
+  // Phase 3: 신호는 카메라 store 변경 debounce 하나다 — 팬/줌/프로그램 이동이
+  // 전부 같은 store 를 지나므로 소스별 분기가 없다. 신호가 만료되면 리렌더가
+  // 일어나 게이트가 열리고, 얼어 있던 카메라를 1회 재계산으로 따라잡는다.
+  const cameraGestureFrozen = useCameraGestureActive();
   const visibilityCacheRef = useRef<CameraStableVisibilityCache | null>(null);
   const sceneVisibility = useMemo(() => {
     const outcome = resolveCameraStableVisibility(
