@@ -19,12 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 이미 Group 내부에 있는 요소의 same-parent reorder와 현재 부모 hit 경로는 유지
 - Absolute 요소를 Group/Frame/ButtonGroup 등 Body가 아닌 유효한 container 위로 drag-drop하면 해당 container의 flow child로 reparent하고 `position` 선언을 제거
   - 기존 `Left`/`Top`과 나머지 style은 보존하며, Body 빈 공간 및 다른 Page로 이동하는 경로는 Absolute 상태를 유지
+  - Nodes panel reparent도 Skia와 같은 공용 Absolute-release 계약을 사용하고, canonical move와 style update를 하나의 history transaction으로 기록
 
 ### Verification
 
 - `pnpm -F @composition/builder exec vitest run src/builder/stores/__tests__/elementMove.test.ts src/builder/workspace/canvas/selection/dropTargetResolver.test.ts`
-- cross-check targeted Vitest: store/history/DragBridge/drop resolver/canonical mutation/Transform 11 files, 123 tests PASS
+- cross-check targeted Vitest: store/history/DragBridge/drop resolver/canonical mutation/Transform 12 files, 135 tests PASS
 - Builder browser: Nodes panel keyboard drag-drop로 동일 부모의 `frame`을 마지막 위치로 이동한 뒤 Layer 순서 변경 확인
+- Builder browser: Nodes panel keyboard drag-drop로 Absolute Button을 ButtonGroup의 level 3 child로 편입하면 `Absolute position`이 해제되고, Undo 한 번으로 level 2 및 Absolute 상태가 함께 복원됨을 확인
 - Builder browser: Skia pointer drag로 Absolute Button을 ButtonGroup에 드롭한 뒤 level 3 child 편입 및 `Absolute position` 해제 확인
 - `pnpm run codex:preflight` PASS
 

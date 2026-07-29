@@ -7,6 +7,7 @@ import {
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import type { CompositionDocument } from "@composition/shared";
 import type { Element } from "../../../types/core/store.types";
+import { historyManager } from "../history";
 import { useStore } from "../index";
 
 vi.mock("../../../lib/db", () => ({
@@ -41,6 +42,7 @@ function makeElement(
 }
 
 function resetStoreState(): void {
+  historyManager.clearAllHistory();
   resetCanonicalMutationStoreActions();
   useStore.getState().setElements([]);
   useStore.setState({
@@ -279,6 +281,74 @@ describe("moveElementToContainer", () => {
       ).toEqual([child.id]);
       // store element.parent_id 도 갱신
       expect(state.elementsMap.get(child.id)?.parent_id).toBe(containerB.id);
+    });
+
+    it("Absolute 요소를 container로 이동하면 position을 해제하고 Undo 한 번으로 함께 복원한다", async () => {
+      const body = makeElement("body", "page-1", { type: "body" });
+      const container = makeElement("container", "page-1", {
+        type: "ButtonGroup",
+        parent_id: body.id,
+      });
+      const child = makeElement("child", "page-1", {
+        type: "Button",
+        parent_id: body.id,
+        props: {
+          style: {
+            left: "24px",
+            position: "absolute",
+            top: "12px",
+          },
+        },
+      });
+      const elements = [body, container, child];
+
+      const doc: CompositionDocument = {
+        version: "composition-1.0",
+        children: [
+          makeCanonicalNode(body, [
+            makeCanonicalNode(container),
+            makeCanonicalNode(child),
+          ]),
+        ],
+      };
+      registerCanonical(doc, elements);
+      useStore.getState().setElements(elements);
+      useStore.setState({ currentPageId: "page-1" });
+      historyManager.setCurrentPage("page-1");
+
+      useStore.getState().moveElementToContainer(child.id, container.id, 0);
+
+      expect(useStore.getState().elementsMap.get(child.id)).toMatchObject({
+        parent_id: container.id,
+        props: {
+          style: {
+            left: "24px",
+            top: "12px",
+          },
+        },
+      });
+      expect(
+        useStore.getState().elementsMap.get(child.id)?.props.style,
+      ).not.toHaveProperty("position");
+
+      const entries = historyManager.getCurrentPageEntries();
+      expect(entries).toHaveLength(1);
+      expect(
+        entries[0].data.canonicalEvents?.map((event) => event.type),
+      ).toEqual(["move", "update"]);
+
+      await useStore.getState().undo();
+
+      expect(useStore.getState().elementsMap.get(child.id)).toMatchObject({
+        parent_id: body.id,
+        props: {
+          style: {
+            left: "24px",
+            position: "absolute",
+            top: "12px",
+          },
+        },
+      });
     });
 
     it("연속 move(A→B→다시 A) 시 store↔canonical split-brain 이 없다", () => {

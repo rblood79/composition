@@ -5,84 +5,81 @@
  * ============================================================ */
 
 @layer components {
-
-.react-aria-CardPreview {
-  /* Base styles — archetype: simple */
+  .react-aria-CardPreview {
+    /* Base styles — archetype: simple */
     display: inline-flex;
     align-items: center;
     box-sizing: border-box;
 
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  width: 100%;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
+    /* Container styles (ADR-071 + ADR-083 Phase 1) */
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
 
-  /* Default size */
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-CardPreview[data-size="xs"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-CardPreview[data-size="sm"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-CardPreview[data-size="md"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-CardPreview[data-size="lg"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-CardPreview[data-size="xl"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-CardPreview[data-hovered] {
-}
-
-.react-aria-CardPreview[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-CardPreview[data-pressed] {
-}
-
-.react-aria-CardPreview[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-CardPreview {
-    forced-color-adjust: auto;
+    /* Default size */
+    height: auto;
+    padding: 0px 0px;
+    font-size: var(--text-base);
+    border-radius: var(--radius-none);
   }
-}
 
+  .react-aria-CardPreview[data-size="xs"] {
+    height: auto;
+    padding: 0px 0px;
+    font-size: var(--text-xs);
+    border-radius: var(--radius-none);
+  }
 
+  .react-aria-CardPreview[data-size="sm"] {
+    height: auto;
+    padding: 0px 0px;
+    font-size: var(--text-sm);
+    border-radius: var(--radius-none);
+  }
+
+  .react-aria-CardPreview[data-size="md"] {
+    height: auto;
+    padding: 0px 0px;
+    font-size: var(--text-base);
+    border-radius: var(--radius-none);
+  }
+
+  .react-aria-CardPreview[data-size="lg"] {
+    height: auto;
+    padding: 0px 0px;
+    font-size: var(--text-lg);
+    border-radius: var(--radius-none);
+  }
+
+  .react-aria-CardPreview[data-size="xl"] {
+    height: auto;
+    padding: 0px 0px;
+    font-size: var(--text-lg);
+    border-radius: var(--radius-none);
+  }
+
+  .react-aria-CardPreview[data-hovered] {
+  }
+
+  .react-aria-CardPreview[data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .react-aria-CardPreview[data-pressed] {
+  }
+
+  .react-aria-CardPreview[data-disabled] {
+    opacity: 0.38;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  @media (forced-colors: active) {
+    .react-aria-CardPreview {
+      forced-color-adjust: auto;
+    }
+  }
 } /* @layer components */

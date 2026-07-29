@@ -84,7 +84,7 @@ import {
   areCanonicalMutationStoreActionsRegistered,
   moveElementCanonicalPrimary,
 } from "@/adapters/canonical/canonicalMutations";
-
+import { resolveAbsoluteFlowReparentProps } from "../utils/absolutePositioning";
 function pageLayoutId(page: Page): string | null {
   return getNullablePageFrameBindingId(page);
 }
@@ -1424,6 +1424,10 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       const oldParentId = element.parent_id;
       const newParent = sourceElementsById.get(newParentId);
       if (!newParent) return;
+      const absoluteReleaseProps =
+        oldParentId !== newParentId
+          ? resolveAbsoluteFlowReparentProps(element, newParent)
+          : null;
 
       if (oldParentId === newParentId) {
         const currentSiblingIds = (
@@ -1450,14 +1454,16 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       }
 
       if (areCanonicalMutationStoreActionsRegistered()) {
-        // from-location 은 canonical mutation 전에 캡처 (move event 용)
-        const fromLocations = captureCanonicalNodeLocations([elementId]);
-        const result = moveElementCanonicalPrimary(
-          elementId,
-          newParentId,
-          insertionIndex,
-        );
-        if (result.changed) {
+        const performCanonicalMove = (): boolean => {
+          // from-location 은 canonical mutation 전에 캡처 (move event 용)
+          const fromLocations = captureCanonicalNodeLocations([elementId]);
+          const result = moveElementCanonicalPrimary(
+            elementId,
+            newParentId,
+            insertionIndex,
+          );
+          if (!result.changed) return false;
+
           // LayerTree 이동/재배치 undo 지원 — canonical move event.
           // (과거 이 경로는 history 미기록으로 undo 자체가 불가했다)
           if (prevState.currentPageId) {
@@ -1482,18 +1488,35 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
             layoutVersion: state.layoutVersion + 1,
           }));
 
-          queueMicrotask(() => {
-            void (async () => {
-              try {
-                const db = await getDB();
-                await persistActiveCanonicalDocument(db);
-              } catch (error) {
-                console.error("[moveElementToContainer] DB persist:", error);
-              }
-            })();
-          });
-          return;
-        }
+          if (absoluteReleaseProps) {
+            void get().batchUpdateElementProps([
+              {
+                elementId,
+                props: absoluteReleaseProps,
+              },
+            ]);
+          } else {
+            queueMicrotask(() => {
+              void (async () => {
+                try {
+                  const db = await getDB();
+                  await persistActiveCanonicalDocument(db);
+                } catch (error) {
+                  console.error("[moveElementToContainer] DB persist:", error);
+                }
+              })();
+            });
+          }
+          return true;
+        };
+
+        const didMove = absoluteReleaseProps
+          ? historyManager.runInTransaction(
+              { type: "move", elementId },
+              performCanonicalMove,
+            )
+          : performCanonicalMove();
+        if (didMove) return;
       }
 
       const targetPageId = newParent.page_id ?? element.page_id ?? null;

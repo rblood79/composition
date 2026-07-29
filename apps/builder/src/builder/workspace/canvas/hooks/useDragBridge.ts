@@ -43,6 +43,7 @@ import type { BoundingBox } from "../selection/types";
 import { moveElementToCanonicalTarget } from "../../../../adapters/canonical/canonicalMutations";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
 import { resolveCanonicalMoveTarget } from "../interaction";
+import { resolveAbsoluteFlowReparentProps } from "../../../utils/absolutePositioning";
 
 type SceneBoundsResolver = (
   elementId: string,
@@ -242,9 +243,7 @@ export function resolveManualPositionDropProps(
   }
 
   if (isManualPositionFlowContainer(targetContainer)) {
-    const nextStyle = { ...asStyleRecord(element) };
-    delete nextStyle.position;
-    return { style: nextStyle };
+    return resolveAbsoluteFlowReparentProps(element, targetContainer);
   }
 
   return resolveManualPositionDragProps(
