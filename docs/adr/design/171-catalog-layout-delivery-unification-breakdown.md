@@ -494,6 +494,38 @@ Phase 5 가 "dead selector" 로 제외했던 추정이 실측으로 확정됐다
 - **미결**: type-check 가 이 시점에 1건 FAIL 인데 `stores/elements.ts`(사용자 병렬 drag 작업)의 `TS2322` 이고 본 변경과 무관하다. 2단계 파일만으로는 위반 0.
 - 2a 코드 4파일은 사용자의 병렬 커밋 `e7ceb2df6`(메시지는 drag-drop)에 함께 실려 push 됐다 — 내용은 온전하나 커밋 메시지로는 추적되지 않으므로 여기에 귀속을 남긴다.
 
+#### FormField — 이관 대상이 아니라 **존재 자체가 레퍼런스에 없다** (2026-07-29)
+
+`FormField.binding.ts:4` 가 스스로 밝힌다 — "Form 필드 그룹 슬롯 컨테이너 … composition 자체 추상, **RAC/starter 전용 컴포넌트 없음**". `CardHeader` 와 같은 부류다. 두 레퍼런스 모두 감싸는 요소가 없고, 필드를 Form 직계 자식으로 두며 Label↔입력 묶음은 **필드 컴포넌트가 소유**한다:
+
+```jsx
+<Form><TextField label="Name" …/><TextField label="Email" …/><버튼 행/></Form>
+```
+
+게다가 구 origin 은 `Label` 요소와 `TextField` 의 `label` prop 을 **둘 다** 렌더해 라벨이 두 겹이었다(캔버스에 "Field Label" 아래 "Text Field"). 그래서 인라인 4키를 catalog 로 올리는 것은 **없어질 것에 SSOT 를 세우는 일**이라, 래퍼를 없애는 쪽으로 갔다 (사용자 판단, 2026-07-29: "form 내에 textField 두개와 버튼그룹이면 끝나는거 아닌가" — components 페이지 전면 재작성 승인 범위 안).
+
+| 구 트리                                                            | 신 트리                            |
+| ------------------------------------------------------------------ | ---------------------------------- |
+| `Form > Heading + Description + FormField×2 > (Label + TextField)` | `Form > TextField×2 + ButtonGroup` |
+
+- 버튼 행은 composition `ButtonGroup`(factory 정본 = Cancel outline / Save accent)이 RAC 예제의 `<div>` 자리를 맡는다.
+- **드러난 선행 결함**: `TextField` 는 leaf 가 아니라 `Label + Input + FieldError` 를 **자식 Element** 로 갖는 조합인데(`createTextFieldDefinition`), 구 origin 의 TextField 는 자식이 0이었다 — 즉 **입력 박스가 처음부터 캔버스에 없었고** FormField 안의 별도 Label 이 그것을 필드처럼 보이게 가리고 있었다. 래퍼를 걷어내자 드러나서 factory 자식 트리를 미러했다.
+
+##### live 확인
+
+신규 프로젝트 fresh seed — `Form 390×174`:
+
+| 노드                  | box                        | 근거                                |
+| --------------------- | -------------------------- | ----------------------------------- |
+| field-1 (TextField)   | `0,0 390×56`               | Label 38×20 + Input 390×30 (간격 6) |
+| field-2               | `0,72 390×56`              | Form gap 16                         |
+| actions (ButtonGroup) | `0,144 137×30`             | Form gap 16                         |
+| action-1 / action-2   | `0,0 71×30` / `79,0 58×30` | ButtonGroup gap 8                   |
+
+캔버스 렌더도 `Name` + 입력박스 / `Email` + 입력박스 / `[Cancel] [Save]` 로 레퍼런스 모양이다. FieldError 는 `display:none` 이라 0×0.
+
+`FormField` **type 자체는 catalog·binding 에 그대로 둔다** — 삭제는 D1/D2 표면이라 ADR-171 scope 밖이고, Form origin 이 더 이상 쓰지 않을 뿐이다. 후속 ADR 의 이름 재편(`CardHeader`/`Content`/`Footer` · `density`) 항목에 함께 기록한다.
+
 ## 4. 실측 근거 (2026-07-28)
 
 | 측정              | 방법                                                           | 결과                                                         |
@@ -526,4 +558,4 @@ Phase 5 가 "dead selector" 로 제외했던 추정이 실측으로 확정됐다
 - [x] **Phase 5 — parity fixture 신설 (G3 PASS, 2026-07-29)** — `catalogComponentBox.browser.test.ts` 15 케이스(전체 918→933). Phase 3 되돌림 시 6종 중 5종 RED. 잔존 6종은 Phase 3-b(생성기 규칙 미러)로 분리
 - [x] **Phase 3-b — size 축 게이트를 생성기 규칙 미러로 교체 (2026-07-29)** — `structure` 보유 시 `ownsContainerBox`/`skipPadding`/`skipGap` 미러, 부재 시 Phase 3 게이트 유지(수동 CSS 축). Toolbar/Form 과잉 · TabPanel 미도달 · ListBox borderWidth 해소, A/B 29종 회귀 0. Checkbox/RadioGroup 은 오진(synthetic wrapper)으로 판정
 - [x] **Phase 4 — factory 인라인 제거 + baseline 미러 동시 정리 (G4 PASS, 2026-07-29)** — 3자 대조로 제거 대상은 6종 15선언(22종 71선언 중). 나머지는 DOM 채널 부재 7종 / catalog 미보유 4종 / 3자 불일치 7종으로 **유지 사유가 각각 다르다**. 라이브 A/B 29요소 byte-identical. 양방향 baseline 계약 테스트 신설
-- [ ] Phase 6 — components 페이지 정리 + live 확인 (G5) — **현황 조사 + 순서 점검 완료 (2026-07-29)**: 인라인 13노드 41키 중 DUP 25 · UNIQUE 16 · **MASK 0**. 재저작이 아니라 "중복 제거 + catalog 결손 판정". 구 1단계(실효 DOM 실측)는 선실행해 종결 — Card·Form 본체 13키는 3자 일치(제거 가능), Card 하위 부품 4종 + FormField 는 DOM 채널 부재로 16키가 **CSS 채널 판정 하나에 묶인다**. 순서 4단계로 정정 (§순서 점검). **1·2단계 완료 (2026-07-29)** — Card·Form origin 8선언(live 13키) 제거 + 미러 동시 정리, 프로젝트 2개 A/B 9/9 byte-identical, dirty 뱃지 0. 2단계는 전제가 틀렸다 — `structure` 부여가 아니라 **클래스명 회귀**(2026-06-24 delegating 등록이 `react-aria-{Type}` 계약을 kebab 으로 덮음)였고, 채널 복구(2a) + catalog 이관(2b)으로 두 채널 계측 일치. 존치 2키(`height:fit-content`/`paddingTop`)는 생성기 allowlist 미보유라 인라인이 유일한 무발산 거처. **FormField 는 미착수** (전용 렌더러 없음 + catalog `containerStyles: undefined` — 클래스 문제가 아니라 catalog 결손). 잔여 = FormField · 3단계(텍스트 leaf `display:block` 4키) · 4단계(G5)
+- [ ] Phase 6 — components 페이지 정리 + live 확인 (G5) — **현황 조사 + 순서 점검 완료 (2026-07-29)**: 인라인 13노드 41키 중 DUP 25 · UNIQUE 16 · **MASK 0**. 재저작이 아니라 "중복 제거 + catalog 결손 판정". 구 1단계(실효 DOM 실측)는 선실행해 종결 — Card·Form 본체 13키는 3자 일치(제거 가능), Card 하위 부품 4종 + FormField 는 DOM 채널 부재로 16키가 **CSS 채널 판정 하나에 묶인다**. 순서 4단계로 정정 (§순서 점검). **1·2단계 완료 (2026-07-29)** — Card·Form origin 8선언(live 13키) 제거 + 미러 동시 정리, 프로젝트 2개 A/B 9/9 byte-identical, dirty 뱃지 0. 2단계는 전제가 틀렸다 — `structure` 부여가 아니라 **클래스명 회귀**(2026-06-24 delegating 등록이 `react-aria-{Type}` 계약을 kebab 으로 덮음)였고, 채널 복구(2a) + catalog 이관(2b)으로 두 채널 계측 일치. 존치 2키(`height:fit-content`/`paddingTop`)는 생성기 allowlist 미보유라 인라인이 유일한 무발산 거처. **FormField 는 이관이 아니라 제거로 종결** — 어느 레퍼런스에도 없는 composition 자체 추상이라(binding 이 스스로 명시) Form 조합을 레퍼런스 모양(`Form > TextField×2 + ButtonGroup`)으로 재구성했다. 그 과정에서 구 origin 의 TextField 가 자식 0이라 **입력 박스가 처음부터 없었던** 선행 결함도 함께 해소. 잔여 = 3단계(텍스트 leaf `display:block` 4키) · 4단계(G5)
