@@ -68,6 +68,16 @@ export const PERF_LABEL = {
    */
   RENDER_DERIVED_LAYOUT_KEY: "render.derived.layout-key",
   RENDER_DERIVED_SCENE: "render.derived.scene",
+  /**
+   * ADR-172 Phase 4: Skia 축(P-4) — `commandChildrenMap` 조립. 커맨드 스트림
+   * 캐시가 miss 일 때만 돈다 (Phase 1.5).
+   *
+   * **횟수를 재는 라벨이지 비용을 재는 라벨이 아니다.** 실사용 규모(자식 80)에서
+   * 조립은 0.006ms 로 `performance.now()` 양자화(0.1ms) 아래라 duration 으로는
+   * hit/miss 가 구분되지 않는다 — 실측으로 캐시 강제 무효화 A/B 를 돌려도 mean
+   * 0.03 vs 0.02 로 판별 불가였다. `count` 가 유일한 판별 신호다.
+   */
+  RENDER_DERIVED_CHILDREN_MAP: "render.derived.children-map",
 } as const;
 
 // Long-task classification: observe() label prefix → longtask bucket.

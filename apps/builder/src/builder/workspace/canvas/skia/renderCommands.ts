@@ -28,6 +28,7 @@ import {
   applyMaskImage,
 } from "./nodeRendererMask";
 import { getSkImage, loadSkImage } from "./imageCache";
+import { observe, PERF_LABEL } from "../../../utils/perfMarks";
 import { getSkiaNode } from "./useSkiaNode";
 import { getDragVisualOffset, getSiblingOffset } from "./nodeRendererTree";
 import {
@@ -389,7 +390,13 @@ export function getCachedCommandStream(
     );
   }
 
-  const childrenMap = buildChildrenMap();
+  // ADR-172 Phase 4: miss 경로에서만 도는 조립 — 팬 프레임에서 count 가 0 이어야
+  // 캐시가 실제로 걸린 것이다 (G5 의 Skia 축 증거). duration 은 실사용 규모에서
+  // 측정 하한 아래라 신호가 되지 못한다 — PERF_LABEL 주석 참조.
+  const childrenMap = observe(
+    PERF_LABEL.RENDER_DERIVED_CHILDREN_MAP,
+    buildChildrenMap,
+  );
   const stream = buildRenderCommandStream(
     rootElementIds,
     childrenMap,
