@@ -16,10 +16,12 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from "@composition/shared/components";
-import { SwatchIconButton } from "../../../components/ui";
+import {
+  SwatchIconButton,
+  SwatchIconToggleButton,
+} from "../../../components/ui";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
-  EllipsisVertical,
   RulerDimensionLine,
   ArrowRightFromLine,
   ArrowDownFromLine,
@@ -31,6 +33,7 @@ import {
   Lock,
   Unlock,
 } from "lucide-react";
+import { LayoutFreeform } from "../../../components/icons";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useTransformValues } from "../hooks/useTransformValues";
 import {
@@ -51,9 +54,31 @@ import {
   buildAspectRatioStyleUpdates,
   hasEnabledAspectRatio,
 } from "../../../utils/aspectRatio";
+import { getSceneBounds } from "../../../workspace/canvas/skia/renderCommands";
+import type { BoundingBox } from "../../../workspace/canvas/selection/types";
 
 const ICON_SIZE = 14;
 const ICON_STROKE = 1.5;
+
+function formatAbsoluteOffsetPx(value: number): string {
+  const rounded = Math.round(value * 1000) / 1000;
+  return `${Number.isInteger(rounded) ? rounded : rounded.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")}px`;
+}
+
+export function resolveAbsolutePositionActivationStyles(
+  elementBounds: BoundingBox | null | undefined,
+  parentBounds: BoundingBox | null | undefined,
+): Record<string, string> | null {
+  if (!elementBounds || !parentBounds) {
+    return null;
+  }
+
+  return {
+    position: "absolute",
+    left: formatAbsoluteOffsetPx(elementBounds.x - parentBounds.x),
+    top: formatAbsoluteOffsetPx(elementBounds.y - parentBounds.y),
+  };
+}
 
 const ASPECT_RATIO_OPTIONS = [
   { value: "reset", label: "Auto" },
@@ -152,6 +177,11 @@ const TransformSectionContent = memo(function TransformSectionContent() {
     return {
       width: toStr(bundle.width.inline, bundle.width.specDefault, "auto"),
       height: toStr(bundle.height.inline, bundle.height.specDefault, "auto"),
+      position: toStr(
+        bundle.position.inline,
+        bundle.position.specDefault,
+        "static",
+      ),
       top: toStr(bundle.top.inline, bundle.top.specDefault, "auto"),
       left: toStr(bundle.left.inline, bundle.left.specDefault, "auto"),
       minWidth: toStr(bundle.minWidth.inline, bundle.minWidth.specDefault),
@@ -249,6 +279,39 @@ const TransformSectionContent = memo(function TransformSectionContent() {
     styleValues?.height,
     updateStylesImmediate,
   ]);
+
+  const handleAbsolutePositionChange = useCallback(
+    (isSelected: boolean) => {
+      if (!isSelected) {
+        updateStyleImmediate("position", "");
+        return;
+      }
+
+      const isFlexParent =
+        parentDisplay === "flex" || parentDisplay === "inline-flex";
+      if (isFlexParent) {
+        const state = useStore.getState();
+        const elementId = state.selectedElementId;
+        const element = elementId
+          ? state.elementsMap.get(elementId)
+          : undefined;
+        const parentId = element?.parent_id;
+        if (elementId && parentId) {
+          const activationStyles = resolveAbsolutePositionActivationStyles(
+            getSceneBounds(elementId),
+            getSceneBounds(parentId),
+          );
+          if (activationStyles) {
+            updateStylesImmediate(activationStyles);
+            return;
+          }
+        }
+      }
+
+      updateStyleImmediate("position", "absolute");
+    },
+    [parentDisplay, updateStyleImmediate, updateStylesImmediate],
+  );
 
   if (!styleValues) return null;
 
@@ -445,13 +508,17 @@ const TransformSectionContent = memo(function TransformSectionContent() {
           max={9999}
         />
         <div className="fieldset-actions actions-position">
-          <SwatchIconButton aria-label="More position options">
-            <EllipsisVertical
+          <SwatchIconToggleButton
+            aria-label="Absolute position"
+            isSelected={styleValues.position === "absolute"}
+            onChange={handleAbsolutePositionChange}
+          >
+            <LayoutFreeform
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
             />
-          </SwatchIconButton>
+          </SwatchIconToggleButton>
         </div>
       </div>
     </>
@@ -464,6 +531,7 @@ const TransformSectionContent = memo(function TransformSectionContent() {
 const TRANSFORM_PROPS = [
   "width",
   "height",
+  "position",
   "top",
   "left",
   "flexGrow",

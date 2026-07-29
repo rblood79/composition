@@ -71,6 +71,7 @@ export function toStyleNumericValue(
  */
 const ENUM_SEED_DEFAULTS: Record<string, string> = {
   display: "flex",
+  position: "static",
   flexDirection: "row",
   flexWrap: "nowrap",
   alignItems: "stretch",

@@ -32,6 +32,7 @@ import {
   updateAnimationTargets,
   clearAllAnimations,
 } from "../skia/dragAnimator";
+import { historyManager } from "../../../stores/history";
 import { captureCanonicalNodeLocations } from "../../../stores/history/canonicalHistoryEvents";
 import { trackCanonicalMove } from "../../../stores/utils/historyHelpers";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
@@ -179,6 +180,7 @@ export function resolveManualPositionDragProps(
   element: CanvasInteractionNode | undefined,
   delta: { x: number; y: number },
   getBounds: SceneBoundsResolver = getSceneBounds,
+  destinationBounds?: BoundingBox,
 ): Record<string, unknown> | null {
   if (!element || !isManualPositionDragTarget(element)) {
     return null;
@@ -190,14 +192,23 @@ export function resolveManualPositionDragProps(
 
   const style = asStyleRecord(element);
   const elementBounds = getBounds(element.id);
-  const parentBounds = element.parent_id ? getBounds(element.parent_id) : null;
+  if (destinationBounds && !elementBounds) {
+    return null;
+  }
+  const parentBounds =
+    destinationBounds ??
+    (element.parent_id ? getBounds(element.parent_id) : null);
   const fallbackLeft =
     elementBounds != null ? elementBounds.x - (parentBounds?.x ?? 0) : 0;
   const fallbackTop =
     elementBounds != null ? elementBounds.y - (parentBounds?.y ?? 0) : 0;
 
-  const baseLeft = parsePx(style.left) ?? fallbackLeft;
-  const baseTop = parsePx(style.top) ?? fallbackTop;
+  const baseLeft = destinationBounds
+    ? fallbackLeft
+    : (parsePx(style.left) ?? fallbackLeft);
+  const baseTop = destinationBounds
+    ? fallbackTop
+    : (parsePx(style.top) ?? fallbackTop);
 
   return {
     style: {
@@ -206,6 +217,25 @@ export function resolveManualPositionDragProps(
       top: formatPx(baseTop + delta.y),
     },
   };
+}
+
+export function resolveManualPositionDropTarget(
+  element: CanvasInteractionNode | undefined,
+  target: DropTarget | null,
+  readModel: DragReadModel,
+): DropTarget | null {
+  if (!isManualPositionDragTarget(element) || !target?.isReparent) {
+    return null;
+  }
+
+  const targetContainer = readModel.elementsById.get(target.containerId);
+  const sourcePageId = element?.page_id;
+  const targetPageId = targetContainer?.page_id;
+  if (!sourcePageId || !targetPageId || sourcePageId === targetPageId) {
+    return null;
+  }
+
+  return target;
 }
 
 export function useDragBridge({
@@ -241,8 +271,43 @@ export function useDragBridge({
         setDragVisualOffset(draggedId, delta.x, delta.y);
         updateAnimationTargets(null);
         setDragSiblingOffsets(null);
-        lastResolvedDropTargetRef.current = null;
-        dropIndicatorSnapshotRef.current = null;
+        const resolved = resolveDropTarget(
+          scenePoint,
+          draggedId,
+          dragStore,
+          hitTestPoint,
+        );
+        const manualDropTarget = resolveManualPositionDropTarget(
+          dragged,
+          resolved,
+          dragStore,
+        );
+        lastResolvedDropTargetRef.current = manualDropTarget;
+        if (manualDropTarget) {
+          const draggedBounds = getSceneBounds(draggedId);
+          dropIndicatorSnapshotRef.current = {
+            targetBounds: manualDropTarget.containerBounds,
+            insertIndex: manualDropTarget.insertionIndex,
+            childBounds: manualDropTarget.siblingBounds,
+            isHorizontal: manualDropTarget.isHorizontal,
+            isReparent: true,
+            dragSize: manualDropTarget.isHorizontal
+              ? (draggedBounds?.width ?? 0)
+              : (draggedBounds?.height ?? 0),
+            insertionLinePosition: computeInsertionLinePosition(
+              manualDropTarget,
+              draggedId,
+              dragStore,
+            ),
+            placeholderBounds: computeDropPlaceholderBounds(
+              manualDropTarget,
+              draggedId,
+              dragStore,
+            ),
+          };
+        } else {
+          dropIndicatorSnapshotRef.current = null;
+        }
         return;
       }
 
@@ -339,11 +404,13 @@ export function useDragBridge({
         getInteractiveElementsMap,
         getInteractiveChildrenMap,
       });
-      const manualPositionProps = resolveManualPositionDragProps(
-        dragStore.elementsById.get(elementId),
-        _delta,
-      );
       const finalTarget = lastResolvedDropTargetRef.current;
+      const dragged = dragStore.elementsById.get(elementId);
+      const manualDropTarget = resolveManualPositionDropTarget(
+        dragged,
+        finalTarget,
+        dragStore,
+      );
       // 시각적 상태 해제
       clearAllAnimations();
       setDragVisualOffset(null, 0, 0, true);
@@ -352,6 +419,52 @@ export function useDragBridge({
       lastResolvedDropTargetRef.current = null;
       dropIndicatorSnapshotRef.current = null;
 
+      if (manualDropTarget) {
+        const manualPositionProps = resolveManualPositionDragProps(
+          dragged,
+          _delta,
+          getSceneBounds,
+          manualDropTarget.containerBounds,
+        );
+        const canonicalTarget = resolveCanonicalMoveTarget({
+          renderTargetId: manualDropTarget.containerId,
+          insertionIndex: manualDropTarget.insertionIndex,
+          elementsMap: dragStore.elementsById,
+        });
+
+        let didMove = false;
+        if (manualPositionProps && canonicalTarget) {
+          historyManager.runInTransaction({ type: "move", elementId }, () => {
+            const fromLocations = captureCanonicalNodeLocations([elementId]);
+            const moveResult = moveElementToCanonicalTarget(
+              elementId,
+              canonicalTarget,
+            );
+            if (moveResult.document) {
+              useStore.getState()._rebuildIndexes?.();
+            }
+            if (!moveResult.changed) return;
+
+            didMove = true;
+            trackCanonicalMove(elementId, fromLocations.get(elementId));
+            void useStore.getState().batchUpdateElementProps([
+              {
+                elementId,
+                props: manualPositionProps,
+              },
+            ]);
+          });
+        }
+
+        if (didMove) {
+          return;
+        }
+      }
+
+      const manualPositionProps = resolveManualPositionDragProps(
+        dragged,
+        _delta,
+      );
       if (manualPositionProps) {
         void state.batchUpdateElementProps([
           {

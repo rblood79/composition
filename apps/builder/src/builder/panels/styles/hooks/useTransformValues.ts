@@ -45,6 +45,7 @@ export interface TransformTier {
 export interface TransformValuesBundle {
   width: TransformTier;
   height: TransformTier;
+  position: TransformTier;
   top: TransformTier;
   left: TransformTier;
   minWidth: TransformTier;
@@ -97,6 +98,7 @@ export function useTransformValues(
     return {
       width: tier("width", effWidth),
       height: heightTier,
+      position: tier("position"),
       top: tier("top", effTop),
       left: tier("left", effLeft),
       minWidth: tier("minWidth"),

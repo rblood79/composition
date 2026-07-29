@@ -129,6 +129,7 @@ describe("resolveEligibleSeedDefault — valueless-toggle seed (개정 1 후속)
     expect(resolveEligibleSeedDefault("marginLeft")).toBe("0");
     // enum / numeric
     expect(resolveEligibleSeedDefault("display")).toBe("flex");
+    expect(resolveEligibleSeedDefault("position")).toBe("static");
     expect(resolveEligibleSeedDefault("flexDirection")).toBe("row");
     expect(resolveEligibleSeedDefault("alignSelf")).toBe("auto");
     expect(resolveEligibleSeedDefault("flexGrow")).toBe("0");

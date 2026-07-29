@@ -4,8 +4,10 @@ import {
   isManualPositionDragTarget,
   resolveDragReadModel,
   resolveManualPositionDragProps,
+  resolveManualPositionDropTarget,
 } from "./useDragBridge";
 import type { BoundingBox } from "../selection/types";
+import type { DropTarget } from "../selection/dropTargetResolver";
 
 type LegacyOverrides = Partial<Element> & {
   order_num?: number;
@@ -97,6 +99,99 @@ describe("manual position drag semantics", () => {
         top: "46px",
       },
     });
+  });
+
+  it("recomputes left/top from the destination container when reparenting", () => {
+    const destinationBounds = {
+      x: 100,
+      y: 40,
+      width: 800,
+      height: 600,
+    };
+    const bounds = new Map<string, BoundingBox>([
+      ["source-body", { x: 900, y: 50, width: 800, height: 600 }],
+      ["element", { x: 930, y: 120, width: 40, height: 20 }],
+    ]);
+    const props = resolveManualPositionDragProps(
+      makeElement({
+        parent_id: "source-body",
+        props: {
+          style: {
+            left: "30px",
+            position: "absolute",
+            top: "70px",
+          },
+        },
+      }),
+      { x: -500, y: 20 },
+      (id) => bounds.get(id),
+      destinationBounds,
+    );
+
+    expect(props).toEqual({
+      style: {
+        left: "330px",
+        position: "absolute",
+        top: "100px",
+      },
+    });
+  });
+
+  it("accepts only cross-page reparent targets for manual-position drops", () => {
+    const dragged = makeElement({
+      id: "element",
+      page_id: "page-1",
+      parent_id: "page-1-body",
+      props: { style: { position: "absolute" } },
+    });
+    const page1Body = makeElement({
+      id: "page-1-body",
+      type: "body",
+      page_id: "page-1",
+      parent_id: null,
+    });
+    const page2Body = makeElement({
+      id: "page-2-body",
+      type: "body",
+      page_id: "page-2",
+      parent_id: null,
+    });
+    const model = {
+      elementsById: new Map([
+        [dragged.id, dragged],
+        [page1Body.id, page1Body],
+        [page2Body.id, page2Body],
+      ]),
+      childrenByParent: new Map(),
+    };
+    const baseTarget: DropTarget = {
+      containerId: page2Body.id,
+      insertionIndex: 0,
+      isAdjacentInsertion: false,
+      isHorizontal: false,
+      containerBounds: { x: 100, y: 40, width: 800, height: 600 },
+      siblingBounds: [],
+      isReparent: true,
+      originalParentId: page1Body.id,
+    };
+
+    expect(resolveManualPositionDropTarget(dragged, baseTarget, model)).toBe(
+      baseTarget,
+    );
+    expect(
+      resolveManualPositionDropTarget(
+        dragged,
+        { ...baseTarget, containerId: page1Body.id },
+        model,
+      ),
+    ).toBeNull();
+    expect(
+      resolveManualPositionDropTarget(
+        dragged,
+        { ...baseTarget, isReparent: false },
+        model,
+      ),
+    ).toBeNull();
   });
 });
 

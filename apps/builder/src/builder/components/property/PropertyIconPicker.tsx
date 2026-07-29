@@ -41,9 +41,9 @@ export const PropertyIconPicker = memo(function PropertyIconPicker({
   return (
     <fieldset className="properties-aria">
       <legend className="fieldset-legend">{label}</legend>
-      <IconPickerPopover value={value || "circle"} onSelect={onChange}>
-        <Button className="react-aria-control react-aria-Group">
-          <span className="react-aria-Button icon-picker-input-trigger">
+      <div className="react-aria-control react-aria-Group">
+        <IconPickerPopover value={value || "circle"} onSelect={onChange}>
+          <Button className="react-aria-Button icon-picker-input-trigger">
             {hasIcon && (
               <label className="control-label">
                 <IconPreview name={value} size={iconProps.size} />
@@ -52,18 +52,18 @@ export const PropertyIconPicker = memo(function PropertyIconPicker({
             <span className="icon-picker-value">
               {hasIcon ? value : "None"}
             </span>
-          </span>
-          {hasIcon && (
-            <Button
-              className="icon-picker-clear"
-              aria-label="Clear icon"
-              onPress={handleClear}
-            >
-              <X size={iconProps.size} strokeWidth={iconProps.strokeWidth} />
-            </Button>
-          )}
-        </Button>
-      </IconPickerPopover>
+          </Button>
+        </IconPickerPopover>
+        {hasIcon && (
+          <Button
+            className="icon-picker-clear"
+            aria-label="Clear icon"
+            onPress={handleClear}
+          >
+            <X size={iconProps.size} strokeWidth={iconProps.strokeWidth} />
+          </Button>
+        )}
+      </div>
     </fieldset>
   );
 });

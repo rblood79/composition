@@ -152,6 +152,7 @@ export const SECTION_EDITABLE_RESPONSIVE_PROPS: ReadonlySet<string> = new Set([
   // ── Transform 섹션 (TRANSFORM_PROPS 미러) ──
   "width",
   "height",
+  "position",
   "top",
   "left",
   "flexGrow",

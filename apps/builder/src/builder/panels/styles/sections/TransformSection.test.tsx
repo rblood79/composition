@@ -7,6 +7,12 @@ import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDo
 import { useSectionCollapse } from "../hooks/useSectionCollapse";
 import { TransformSection } from "./TransformSection";
 
+const getSceneBoundsMock = vi.hoisted(() => vi.fn());
+
+vi.mock("../../../workspace/canvas/skia/renderCommands", () => ({
+  getSceneBounds: getSceneBoundsMock,
+}));
+
 function setTestElements(elements: Element[]): void {
   useStore.setState({
     elements,
@@ -18,6 +24,7 @@ function setTestElements(elements: Element[]): void {
 
 describe("TransformSection sizing controls", () => {
   beforeEach(() => {
+    getSceneBoundsMock.mockReset();
     vi.stubGlobal("CSS", { escape: (value: string) => value });
     useCanonicalDocumentStore.setState({
       documents: new Map(),
@@ -159,5 +166,119 @@ describe("TransformSection sizing controls", () => {
 
       cleanup();
     }
+  });
+
+  it("preserves a flex child's visual position when enabling absolute positioning", () => {
+    const updateSelectedStyle = vi.fn();
+    const updateSelectedStyles = vi.fn();
+    getSceneBoundsMock.mockImplementation((id: string) => {
+      if (id === "button-1") {
+        return { x: 160, y: 95, width: 200, height: 100 };
+      }
+      if (id === "frame-1") {
+        return { x: 100, y: 50, width: 600, height: 400 };
+      }
+      return undefined;
+    });
+    useStore.setState({ updateSelectedStyle, updateSelectedStyles } as never);
+
+    render(<TransformSection />);
+
+    const toggle = screen.getByRole("button", {
+      name: "Absolute position",
+    });
+    expect(toggle.getAttribute("aria-pressed")).toBe("false");
+
+    toggle.click();
+
+    expect(updateSelectedStyles).toHaveBeenCalledWith({
+      position: "absolute",
+      left: "60px",
+      top: "45px",
+    });
+    expect(updateSelectedStyle).not.toHaveBeenCalledWith(
+      "position",
+      "absolute",
+    );
+  });
+
+  it("falls back to position-only activation when flex bounds are unavailable", () => {
+    const updateSelectedStyle = vi.fn();
+    const updateSelectedStyles = vi.fn();
+    useStore.setState({ updateSelectedStyle, updateSelectedStyles } as never);
+
+    render(<TransformSection />);
+
+    screen.getByRole("button", { name: "Absolute position" }).click();
+
+    expect(updateSelectedStyle).toHaveBeenCalledWith("position", "absolute");
+    expect(updateSelectedStyles).not.toHaveBeenCalled();
+  });
+
+  it("keeps non-flex activation on the position-only path", () => {
+    const updateSelectedStyle = vi.fn();
+    const updateSelectedStyles = vi.fn();
+    setTestElements([
+      {
+        id: "button-1",
+        type: "Button",
+        parent_id: "frame-1",
+        props: { style: { width: "200px", height: "100px" } },
+      } as Element,
+      {
+        id: "frame-1",
+        type: "Frame",
+        parent_id: null,
+        props: { style: { display: "block" } },
+      } as Element,
+    ]);
+    useStore.setState({ updateSelectedStyle, updateSelectedStyles } as never);
+
+    render(<TransformSection />);
+
+    screen.getByRole("button", { name: "Absolute position" }).click();
+
+    expect(updateSelectedStyle).toHaveBeenCalledWith("position", "absolute");
+    expect(updateSelectedStyles).not.toHaveBeenCalled();
+  });
+
+  it("disables absolute positioning without clearing offsets", () => {
+    const updateSelectedStyle = vi.fn();
+    setTestElements([
+      {
+        id: "button-1",
+        type: "Button",
+        parent_id: "frame-1",
+        props: {
+          style: {
+            width: "200px",
+            height: "100px",
+            position: "absolute",
+            left: "24px",
+            top: "12px",
+          },
+        },
+      } as Element,
+      {
+        id: "frame-1",
+        type: "Frame",
+        parent_id: null,
+        props: { style: { display: "flex", flexDirection: "row" } },
+      } as Element,
+    ]);
+    useStore.setState({ updateSelectedStyle } as never);
+
+    render(<TransformSection />);
+
+    const toggle = screen.getByRole("button", {
+      name: "Absolute position",
+    });
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+
+    toggle.click();
+
+    expect(updateSelectedStyle).toHaveBeenCalledWith("position", "");
+    expect(updateSelectedStyle).not.toHaveBeenCalledWith("left", "");
+    expect(updateSelectedStyle).not.toHaveBeenCalledWith("top", "");
   });
 });

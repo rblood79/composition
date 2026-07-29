@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Transform Absolute position 토글 추가] - 2026-07-29
+
+### Added
+
+- Style Panel의 `Transform` section에서 `Left`, `Top` 오른쪽 action을 `LayoutFreeform` 아이콘의 `Absolute position` 토글로 연결
+- Box Shadow의 `Inset shadow`와 같은 `SwatchIconToggleButton` 패턴을 사용하며, 활성화 시 `position: absolute`, 비활성화 시 `position` 선언만 제거
+- flex/inline-flex 자식에서 토글을 활성화하면 현재 scene x/y를 parent-local `Left`/`Top`으로 캡처해 flow에서 빠진 뒤에도 시각적 위치를 유지하고, 비활성화 시에는 offset을 보존
+- Transform reset/dirty 및 responsive style eligibility에 `position`을 포함
+
+### Bug Fixes
+
+- Absolute 요소를 다른 Page로 드롭할 때 canonical parent를 destination container로 이동하고 `Left`/`Top`을 destination-local 좌표로 변환
+- cross-page reparent와 좌표 갱신을 하나의 history transaction으로 묶어 Undo 한 번에 원래 Page와 좌표가 함께 복원되도록 수정
+
+## [Button icon picker 중첩 버튼 오류 수정] - 2026-07-29
+
+### Bug Fixes
+
+- Button 계열의 icon이 활성화된 inspector에서 picker trigger 내부에 clear button이 중첩되어 hydration warning이 발생하고, clear 클릭 시 icon picker까지 열리던 문제를 수정
+- **Why:** 공용 `PropertyIconPicker`의 trigger와 clear action이 하나의 React Aria `Button` 안에 구성되어 `<button>`이 중첩되었으므로, 두 action을 같은 control group의 sibling button으로 분리
+
 ## [Transform Min/Max 빈 값의 단위 선택 동작 수정] - 2026-07-29
 
 ### Bug Fixes
