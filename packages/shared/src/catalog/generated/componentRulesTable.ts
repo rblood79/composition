@@ -5104,6 +5104,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   GridList: {
+    // 2026-07-29 사용자 보고("components page 에서 Container Align 을 주면 GridList 자식이
+    //   전부 깨진다. home page 에서는 멀쩡하다") 의 근본 원인 — GridList 는 **catalog 에
+    //   containerStyles 가 아예 없었다**. 수동 CSS `.react-aria-GridList` 는 `width:100%` 를
+    //   갖는데(실효 DOM 정본) 캔버스는 그 값을 factory 인라인(`createGridListDefinition` 의
+    //   `style.width:"100%"`)으로만 받고 있었다. origin(`component-gridlist`)은 factory 를
+    //   거치지 않으므로 아무것도 못 받는다 — 그게 페이지 비대칭의 정체다(origin↔instance
+    //   차이지 페이지 차이가 아니다. 인스턴스에서 width 를 지우면 똑같이 깨진다).
+    //
+    //   왜 width 가 없으면 깨지는가: 부모에 Container Align(비-stretch `align-items`)이
+    //   걸리면 자식은 shrink-to-fit 이 된다. 투영 행(`projection:gridlist-row:*`)은 레이아웃
+    //   자식이 없어(내용은 렌더 층이 그린다) 미결정 available 에서 폭을 만들지 못하고 0 으로
+    //   접힌다 — layout-engine.md §"늘어날 available 이 없으면 기여는 content 다" 의 잔존 1건.
+    //   실측: rows-group 390→**12**, row 189→**0**. `alignSelf:"stretch"` 로는 안 고쳐진다
+    //   (owner 상자만 390 이 되고 subtree 는 여전히 12/0) — stretch 는 자식 측정이 끝난 뒤
+    //   상자를 정하기 때문이다. 확정 width 만이 측정 시점에 available 을 준다.
+    //
+    //   display/gap 은 여기 넣지 않는다 — `implicitStyles` 의 gridlist 분기가 rows-group 에
+    //   열 구성을 위임하려고 owner 를 의도적으로 flex-column 으로 두고 있다(그 분기 주석 참조).
+    //   catalog 가 `display:grid` 를 주면 그 의도와 충돌한다. 빠진 것은 box-model 채널 하나다.
+    containerStyles: {
+      width: "100%",
+    },
     defaultVariant: "default",
     defaultSize: "md",
     variants: {
