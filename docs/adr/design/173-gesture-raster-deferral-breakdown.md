@@ -34,6 +34,7 @@ ADR-172 범위 경계표(축 ②·③ 이연)의 후속 제안이므로 adr-writ
 - [ ] 반경 200 → 512 시 가시 페이지 수 변화 실측 (대표 줌 3점: 1.0 / 0.5 / 0.176) — 재래스터 1회 비용과 layout publish 대상 증가 폭
 - [ ] wheel 팬 경로의 활성/종료 판정 재료 확인 (`useViewportControl` wheel 분기 — debounce 타이머 필요 여부)
 - [ ] 편집 유발 무효화 경로 분리 가능성 — `visibleContentVersion` 입력 중 `contentVersion`(콘텐츠) 축과 가시 집합(카메라) 축의 분리 지점 (`resolveSceneVisibility` 의 key 구성)
+- [ ] **R7 처방 판정 (리뷰 round 1 MED)**: 가시 집합 변경의 React 축 — `layoutPublisherInputs` 가 `visiblePages` 기반(`BuilderCanvas.tsx:518-545`)이라 layout publish + `layoutInputKey`(실측 15ms) 가 재래스터 이연과 별개로 제스처 중 잔존. 선택지 (a) 카메라 유발 가시 집합 갱신 자체를 제스처 중 freeze — 전 하류(layout/scene/stream/surface) 자연 이연, 소비자별 게이트 불요 (b) 반경 확대(Phase 1)로 패딩 안 페이지 사전 발행 — 경계 통과 빈도는 불변이라 단독으론 부족. **freeze 안이 R5/R6 도 원천에서 흡수하는지 함께 판정**
 
 ## 3. Phase 1 — 컬링 기준면 정합 (레버 ①: 공백 제거)
 
@@ -47,6 +48,7 @@ ADR-172 범위 경계표(축 ②·③ 이연)의 후속 제안이므로 adr-writ
   - **콘텐츠 유발** (페이지 `contentVersion` 변경 = 편집): **즉시** — 현행 유지
   - **카메라 유발** (가시 집합 진입/이탈만으로 인한 version 변경): Phase 3 의 이연 대상
 - 분리 지점은 `resolveSceneVisibility` 의 key 구성 — `visibleContentVersion` 을 "가시 페이지 id 집합" 과 "가시 페이지들의 contentVersion 합" 으로 나누면 두 축이 독립 감지된다.
+- 무효화 **사유 분류 표가 이미 코드에 있다** — `skia/renderInvalidation.ts:38-52` (reason: content/viewport/layout/…). Phase 2 의 사유 분리는 이 표의 확장으로 구현한다 (신규 분류 체계 창설 금지).
 - **Hard Constraint 2 의 거처**: 편집 즉시성은 이 분리의 정확성에 달려 있다 (R1).
 
 ## 5. Phase 3 — 제스처 중 카메라 유발 재래스터 이연 (레버 ②+③)
@@ -69,6 +71,7 @@ ADR-172 범위 경계표(축 ②·③ 이연)의 후속 제안이므로 adr-writ
 | `skia/SkiaRenderer.ts`           | 1, 3  | 패딩 상수 공유 · 이연 게이트              |
 | `scene/buildSceneSnapshot.ts`    | 2     | visibility key 의 카메라/콘텐츠 축 분리   |
 | `skia/SkiaCanvas.tsx`            | 2, 3  | 무효화 트리거 분리 + pending 이연         |
+| `skia/renderInvalidation.ts`     | 2     | 사유 분류 표 확장 (카메라/콘텐츠 축)      |
 | `viewport/useViewportControl.ts` | 3     | 제스처 활성 신호 노출 (필요 시)           |
 | 벤치/테스트                      | 4     | 갈래 A/B 재실행 + 무효화 정책 계약 테스트 |
 
