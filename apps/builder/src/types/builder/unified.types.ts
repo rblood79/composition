@@ -1614,18 +1614,14 @@ export function createDefaultCardProps(): CardElementProps {
     orientation: "vertical",
     title: "Card Title",
     description: "Card description text goes here.",
-    // Factory(LayoutComponents.ts)와 동일한 기본값
-    // Card → CardHeader → Heading / CardContent → Description 구조
+    // dirty/reset baseline — Card reusable composite origin(cardTemplateOrigins.createCardOrigin)
+    //   의 루트 style 미러. ADR-171 Phase 6 에서 origin 이 layout 5선언(display/flexDirection/
+    //   padding/gap/overflow)을 catalog 로 넘겼으므로 미러도 같이 비운다 — 그 키들의 baseline 은
+    //   이제 catalog(`resolveSpecStyleDefaults` 의 layout/appearance preset)가 공급한다.
+    //   한쪽만 고치면 reset 목적지가 없는 값을 가리킨다(R7, factoryInlineDirtyBaseline.test.ts).
     style: {
-      display: "flex",
-      flexDirection: "column",
-      width: "100%", // factory 미러 (catalog 미채움 → false dirty 정정, 2026-06-23)
-      padding: "16px", // var(--spacing-lg) = 16px
+      width: "100%", // catalog 미채움 → false dirty 정정 (2026-06-23)
       borderWidth: "1px",
-      gap: "12px",
-      // S2 Card 정본: root overflow:clip + radius.lg 가 자식을 단일 radius 로 clip (2026-06-24).
-      //   factory(LayoutComponents.ts) 미러 — CardPreview 상단 모서리를 root clip 이 처리.
-      overflow: "hidden",
     },
   };
 }
@@ -2002,10 +1998,8 @@ export function createDefaultFormProps(): FormElementProps {
     // dirty/reset baseline — Form reusable composite origin(formTemplateOrigins.createFormOrigin)의
     //   루트 style 미러. origin 이 width:"100%" 를 주입하므로 baseline 도 포함해야 false dirty 없음
     //   (ADR-912 R-5 origin 전환 후 baseline width 누락 → Transform reset/modify 오활성, 2026-06-24).
+    //   ADR-171 Phase 6: display/flexDirection/gap 은 origin 이 catalog 로 넘겨 미러에서 제거.
     style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 16,
       width: "100%",
     },
   };

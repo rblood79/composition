@@ -392,12 +392,47 @@ Phase 5 가 "dead selector" 로 제외했던 추정이 실측으로 확정됐다
 
 **정정된 순서**:
 
-1. **Card·Form 본체 13키 제거** — 3자 일치가 이미 확인됐다. 선행 조건 없음, 지금 바로 가능. (구 2단계와 무관하게 독립)
+1. ~~**Card·Form 본체 13키 제거**~~ — **완료 2026-07-29** (아래 §1단계 실행 참조)
 2. **Card 하위 부품 4종 + FormField 의 CSS 채널 판정** — catalog `structure` 부여 여부. 판정 **하나가 16키를 결정**한다. 부여 시 생성 CSS 재빌드 동반 → Phase 1 의 "실효값이 정본" 절차 적용
 3. **텍스트 leaf `display:block` 4키 판정** — 별개 축이다. Heading/Description 은 컨테이너가 아니라 텍스트 leaf 라 "요소별 저작 값" 에 가깝고, catalog 에 넣으면 전 인스턴스에 강제된다 (ListBox `maxHeight` 를 뺀 것과 같은 판단이 필요)
 4. live 확인 (G5)
 
 **별도 축 1건** — body `overflow:auto`(DUP 1키)는 `.react-aria-*` 클래스 종이 아니라 **페이지 body** 다. 뷰포트 상자 규칙(layout-engine.md §"body 는 뷰포트가 아니다") 소관이라 위 순서에 섞지 않는다.
+
+#### 1단계 실행 — Card·Form 본체 13키 제거 (2026-07-29)
+
+인라인의 거처가 **factory 가 아니라 origin 템플릿**이다 — `createCardDefinition`/`createFormDefinition` 은 ADR-148 P3 / ADR-912 R-5 로 이미 삭제됐고, 지금은 `cardTemplateOrigins.ts` / `formTemplateOrigins.ts` 가 seed 한다. Phase 4 와 채널만 다르고 계약은 같다.
+
+| 종   | 제거한 선언                                          | live 키 | 존치                                             |
+| ---- | ---------------------------------------------------- | ------: | ------------------------------------------------ |
+| Card | `display` `flexDirection` `padding` `gap` `overflow` |   **9** | `width`(범위 밖) · `borderWidth`(catalog 미보유) |
+| Form | `display` `flexDirection` `gap`                      |   **4** | `width`(catalog 미보유 + 범위 밖)                |
+
+선언 8개가 live 13키인 것은 store 가 longhand 로 쪼개 갖기 때문이다(`padding`→4 · `gap`→2, style-ssot.md). §현황 조사의 "Card/md 9 · Form 4" 집계가 이 분해 기준이었다.
+
+- **미러 동시 정리 (R7)**: `createDefaultCardProps` / `createDefaultFormProps` 에서 같은 키를 뺐다. 그 키들의 baseline 은 이제 catalog(`resolveSpecStyleDefaults` 의 layout/appearance preset)가 공급한다.
+- **계약 테스트 확장**: `factoryInlineDirtyBaseline.test.ts` 에 origin 템플릿 축(Card/Form × 양방향) 4 케이스 추가 — 12 → **16**. 민감도 확인: 미러에 `display` 만 되돌리면 ② RED.
+
+#### 1단계 검증 — A/B 는 **프로젝트 두 개**로 잰다
+
+`repairOrigin` 이 `props: existing.props ?? base.props` 라 **기존 문서는 인라인을 그대로 유지**한다. 그래서 같은 프로젝트를 다시 열어서는 변화를 볼 수 없고, 반대로 그것이 BC 0%(ADR 본문 §BC 영향)의 실물 증거다. 신규 프로젝트를 만들어 fresh seed 와 대조했다:
+
+| 노드                  | 기존 프로젝트(인라인 有) | 신규 프로젝트(인라인 無) |
+| --------------------- | ------------------------ | ------------------------ |
+| component-card        | `0,897 390×322`          | `0,897 390×322`          |
+| \_\_preview           | `17,17 356×200`          | `17,17 356×200`          |
+| \_\_header            | `17,229 356×24`          | `17,229 356×24`          |
+| \_\_content           | `17,265 356×20`          | `17,265 356×20`          |
+| \_\_footer            | `17,297 356×8`           | `17,297 356×8`           |
+| component-form        | `0,609 390×168`          | `0,609 390×168`          |
+| \_\_heading           | `0,0 390×24`             | `0,0 390×24`             |
+| \_\_field-1 / field-2 | `0,56` / `0,120 390×48`  | `0,56` / `0,120 390×48`  |
+
+**9/9 byte-identical**. Card 322 는 Phase 4 라이브 기록치와 같다. 자식 x=17(padding 16 + border 1) · preview→header 간격 12 · field 간격 16 이 전부 catalog 에서 나온다.
+
+- **R7 live exercise**: 신규 프로젝트에서 Card 선택 → Styles 패널 `Gap 12` · `Padding 16` · `Border Width 1` 표시 유지, 4개 섹션(`transform`/`layout`/`appearance`/`typography`) 전부 `.section-actions` 비어 있음 = **"수정 N" 뱃지 0**.
+- parity **931 GREEN**(33 files, `Form` 케이스 포함) · builder unit 신규 4 포함 GREEN · type-check PASS(baseline 53).
+- 무관 기존 실패 1건: `panelStylePropsUnion.static.test.ts` 의 `position` 누락 — 본 변경 전(stash)에도 동일 RED 이고 `feat(transform): Absolute Position toggle`(6a2a5107a) 소관이다.
 
 ## 4. 실측 근거 (2026-07-28)
 
@@ -431,4 +466,4 @@ Phase 5 가 "dead selector" 로 제외했던 추정이 실측으로 확정됐다
 - [x] **Phase 5 — parity fixture 신설 (G3 PASS, 2026-07-29)** — `catalogComponentBox.browser.test.ts` 15 케이스(전체 918→933). Phase 3 되돌림 시 6종 중 5종 RED. 잔존 6종은 Phase 3-b(생성기 규칙 미러)로 분리
 - [x] **Phase 3-b — size 축 게이트를 생성기 규칙 미러로 교체 (2026-07-29)** — `structure` 보유 시 `ownsContainerBox`/`skipPadding`/`skipGap` 미러, 부재 시 Phase 3 게이트 유지(수동 CSS 축). Toolbar/Form 과잉 · TabPanel 미도달 · ListBox borderWidth 해소, A/B 29종 회귀 0. Checkbox/RadioGroup 은 오진(synthetic wrapper)으로 판정
 - [x] **Phase 4 — factory 인라인 제거 + baseline 미러 동시 정리 (G4 PASS, 2026-07-29)** — 3자 대조로 제거 대상은 6종 15선언(22종 71선언 중). 나머지는 DOM 채널 부재 7종 / catalog 미보유 4종 / 3자 불일치 7종으로 **유지 사유가 각각 다르다**. 라이브 A/B 29요소 byte-identical. 양방향 baseline 계약 테스트 신설
-- [ ] Phase 6 — components 페이지 정리 + live 확인 (G5) — **현황 조사 + 순서 점검 완료 (2026-07-29)**: 인라인 13노드 41키 중 DUP 25 · UNIQUE 16 · **MASK 0**. 재저작이 아니라 "중복 제거 + catalog 결손 판정". 구 1단계(실효 DOM 실측)는 선실행해 종결 — Card·Form 본체 13키는 3자 일치(제거 가능), Card 하위 부품 4종 + FormField 는 DOM 채널 부재로 16키가 **CSS 채널 판정 하나에 묶인다**. 순서 4단계로 정정 (§순서 점검). 실행은 사용자 승인 대기
+- [ ] Phase 6 — components 페이지 정리 + live 확인 (G5) — **현황 조사 + 순서 점검 완료 (2026-07-29)**: 인라인 13노드 41키 중 DUP 25 · UNIQUE 16 · **MASK 0**. 재저작이 아니라 "중복 제거 + catalog 결손 판정". 구 1단계(실효 DOM 실측)는 선실행해 종결 — Card·Form 본체 13키는 3자 일치(제거 가능), Card 하위 부품 4종 + FormField 는 DOM 채널 부재로 16키가 **CSS 채널 판정 하나에 묶인다**. 순서 4단계로 정정 (§순서 점검). **1단계 완료 (2026-07-29)** — Card·Form origin 8선언(live 13키) 제거 + 미러 동시 정리, 프로젝트 2개 A/B 9/9 byte-identical, dirty 뱃지 0. 잔여 = 2단계(Card 하위 부품 4종 + FormField 의 CSS 채널 판정 — 16키가 이 판정 하나에 묶임) · 3단계(텍스트 leaf `display:block` 4키) · 4단계(G5)

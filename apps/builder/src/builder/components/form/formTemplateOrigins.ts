@@ -146,10 +146,10 @@ function createFormOrigin(): CanonicalNode {
     reusable: true,
     props: {
       labelPosition: "top",
+      // ADR-171 Phase 6: layout 3선언(display / flexDirection / gap → live 4키)을 제거했다.
+      //   catalog `form` containerStyles 가 `flex column · gap 16px` 를 두 소비자에 공급하고
+      //   실효 DOM 도 같다(3자 일치). width 는 catalog 미보유 + 요소별 저작 값이라 존치.
       style: {
-        display: "flex",
-        flexDirection: "column",
-        gap: "16px",
         width: "100%",
       },
     },
