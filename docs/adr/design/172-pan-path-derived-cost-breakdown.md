@@ -66,18 +66,20 @@ P-1~P-3 은 React 축(리렌더 유발), P-4 는 Skia 축이다. `SkiaCanvas.tsx
 
 즉 P-3 의 카메라 결합은 **동작에 기여하지 않는 잔재**이고, 제거는 순수 삭제다. P-2 는 다르다 — `buildVisiblePageSet({ containerSize, pageFrames, panOffset, zoom })` 이 실제로 카메라를 쓴다 (§3).
 
-### 1-5. Phase 0 잔여 inventory (착수 시 수행)
+### 1-5. Phase 0 잔여 inventory — **완료 2026-07-29** (P-4 재측정만 이연)
 
-- [ ] `ScenePageSnapshot.isVisible` 소비자 전수 — §3 분리 설계의 계약 변경 범위 확정
-- [ ] `layoutPublisherInputs` / `frameLayoutPublisherInputs` 두 경로의 대칭 확인 (frame 경로도 동일 결함인지)
-- [ ] `createPageElementsSignature` 비용 (P-1 과 같은 루프에 있음, 미측정)
-- [ ] **P-4 `commandChildrenMap` 재구축 비용 — 대규모 N 재측정** (현 규모는 2026-07-27 프레임 분해로 실측 완료: JS 조립 합계 0.07~0.13ms/frame) — 프레임당 0.1ms 미만이면 Phase 1.5 skip (ADR §Risks R7)
-- [ ] **`childrenMap` 반환값 소비자 전수 + mutate 여부** — Phase 1.5 의 캐시 재사용 가능성 판정 (ADR §Risks R6)
-- [ ] 편집 경로 실측 baseline (Phase 6 판정 근거)
+- [x] `ScenePageSnapshot.isVisible` 소비자 전수 → **읽기 0건** (`.isVisible` 프로퍼티 접근 grep 0건. `builder/layout/types.ts:31` 은 패널 슬롯의 동명이필드로 무관). 생성만 되고 아무도 읽지 않는 dead 필드 → **4-1-a 확정**, 나아가 필드 자체 삭제
+- [x] 같은 확인에서 **`SceneStructureSnapshot.viewportVersion` 도 소비자 0건** 발견 (생성 `buildSceneSnapshot.ts:240` + 타입 선언뿐) → 카메라 직접 해싱이라 남기면 팬마다 snapshot identity 파괴. Phase 3 에서 함께 삭제
+- [x] `layoutPublisherInputs` / `frameLayoutPublisherInputs` 두 경로 대칭 → **동일 결함 확인**. 둘 다 deps 에 `panOffset`/`zoom` + `sceneSnapshot`, 둘 다 `new Map(elementById)` 방어 복사. Phase 1 에서 대칭 정리
+- [x] `createPageElementsSignature` 비용 → `id:parent_id` 만 이어붙임 (요소당 약 40B). P-1(`createPageLayoutSignature`, 요소당 1.4KB)의 **3% 미만** — 같은 memo 에 포함하되 별도 처방 불요
+- [ ] **P-4 `commandChildrenMap` 재구축 비용 — 대규모 N 재측정** (현 규모는 2026-07-27 프레임 분해로 실측 완료: JS 조립 합계 0.07~0.13ms/frame) — 프레임당 0.1ms 미만이면 Phase 1.5 skip (ADR §Risks R7). **이연** — 라이브 브라우저 벤치가 필요하고 Phase 1.5 착수 시점에 수행
+- [x] `childrenMap` 반환값 소비자 전수 + mutate 여부 → **mutate 0건** (`childrenMap.set/delete/clear` 는 `renderCommandStream.bench.ts:129` 픽스처뿐). 소비처는 `skiaFramePlan.ts:172` / `SkiaCanvas.tsx:273,294` / `buildSpecNodeData` 로 전부 읽기 → 캐시화 안전 (**R6 해소**)
+- [x] (추가) `elementById` mutate 소비자 → **0건** → `ReadonlyMap` 전환 안전 (**R3 해소**)
+- [ ] 편집 경로 실측 baseline (Phase 6 판정 근거) — 본 ADR 범위 밖, Phase 5 완료 후
 
 ---
 
-## 2. Phase 1 — 카메라 dead 필드 제거 (P-3)
+## 2. Phase 1 — 카메라 dead 필드 제거 (P-3) — **완료 2026-07-29 (`49b845089`)**
 
 **전제**: §1-4 에서 미소비 확인 완료.
 
@@ -140,9 +142,19 @@ React 축(P-1~P-3)만 고치면 blit 프레임에 `commandChildrenMap` O(N) 재�
 
 ---
 
-## 4. Phase 3 — `sceneStructureSnapshot` 카메라 축 분리 (P-2)
+## 4. Phase 3 — `sceneStructureSnapshot` 카메라 축 분리 (P-2) — **완료 2026-07-29 (`02f634f10`)**
 
 P-2 는 카메라를 **실제로 쓴다** — `buildVisiblePageSet({ containerSize, pageFrames, panOffset, zoom })`. 따라서 삭제가 아니라 **분리**다.
+
+### 4-0. 반영 결과
+
+`buildSceneSnapshot.ts` 를 세 함수로 갈랐다 — `buildSceneStructureCore`(카메라 인자 미수신) / `resolveSceneVisibility`(카메라 의존, O(페이지), visible set 대표 `key` 반환) / `composeSceneStructureSnapshot`(순수 조립). 기존 `buildSceneStructureSnapshot` 은 셋을 잇는 호환 wrapper 로 남아 테스트·벤치가 그대로 쓴다 — **라이브 렌더 경로에서는 쓰지 말 것** (카메라가 core 에 다시 묶인다).
+
+**identity 안정화는 ref 캐시가 아니라 key deps 다.** 초안은 `useRef` 로 `{core, key, snapshot}` 을 캐시했으나 `react-hooks/refs` 가 렌더 중 ref 접근을 금지해 11 error 가 났다 (오염이 `sceneSnapshot` 을 쓰는 하류 useMemo 로 전파). 대신 `sceneVisibility.key` 를 합성 useMemo 의 deps 로 쓴다 — key 가 같으면 visibility 내용(visible frame ids + content/position 버전 2종)이 동일해 어느 렌더의 객체를 써도 값이 같고, stale 이 없다. `exhaustive-deps` disable 1줄이 그 계약의 표시다.
+
+`isVisible` 제거로 `pageSnapshots` 전체가 카메라 무관이 되어 **4-1-b 의 얕은 복사조차 불필요**해졌다.
+
+ADR-136 signature 계약은 불변 — core 가 접두(`layoutVersion:pagePositionsVersion:elementCount:pageCount`)를 만들고 compose 가 뒤에 visible\* 2종 + projection signature 를 붙여 **기존과 동일한 해시 입력 문자열**을 만든다. `.claude/rules/canvas-rendering.md` §9 의 입력 목록에 `isVisible` 은 애초에 없었다.
 
 ### 4-1. 분리선
 
@@ -167,7 +179,7 @@ P-2 는 카메라를 **실제로 쓴다** — `buildVisiblePageSet({ containerSi
 - **4-1-a** — `isVisible` 을 `ScenePageSnapshot` 에서 빼고 소비자가 `visiblePageIds.has(id)` 로 조회 (계약 변경, 소비자 수정 필요)
 - **4-1-b** — core 결과를 얕은 복사해 `isVisible` 만 덧입히는 visibility 단계 (계약 유지, 페이지 수만큼 얕은 복사)
 
-`isVisible` 소비자가 적으면 4-1-a, 많으면 4-1-b.
+→ **4-1-a 채택** (2026-07-29). 읽는 소비자가 0건이라 "계약 변경, 소비자 수정 필요" 라는 4-1-a 의 유일한 비용이 실재하지 않았다. 삭제된 리터럴 5곳은 전부 픽스처(테스트 3 · 벤치 1)와 frame synthetic snapshot 1곳이다.
 
 ### 4-2. 작업
 

@@ -2,7 +2,19 @@
 
 ## Status
 
-Proposed — 2026-07-29
+Accepted — 2026-07-29 (리뷰 round 1 승인 — `reviews/172.md`, 이슈 2건 전건 fixed)
+
+### 진행 로그
+
+| Phase                             | 상태                   | 커밋              | 비고                                                                                         |
+| --------------------------------- | ---------------------- | ----------------- | -------------------------------------------------------------------------------------------- |
+| Phase 0 — inventory               | 완료 2026-07-29        | (Phase 1 에 동봉) | `isVisible`/`viewportVersion` 읽기 0건 · `childrenMap`·`elementById` mutate 0건 (R3·R6 해소) |
+| Phase 1 — 카메라 dead 필드 제거   | 완료 2026-07-29        | `49b845089`       | `LayoutPublisherInput` 카메라 2필드 삭제 + `ReadonlyMap` 전환                                |
+| Phase 3 — snapshot 카메라 축 분리 | 완료 2026-07-29        | `02f634f10`       | core / visibility / compose 3단계 + key 기반 identity 안정화. 4-1-a 채택                     |
+| Phase 1.5 — Skia 프레임 재사용    | **조건부 미착수**      | —                 | P-4 대규모 N 재측정 선행 (R7). 현 규모는 무해 실측 완료                                      |
+| Phase 2 — `layoutInputKey` memo   | **미착수 (승인 대기)** | —                 | R1 HIGH — G1(addElement 2-commit) 필수                                                       |
+| Phase 4 — 계측 상설화             | 미착수                 | —                 |                                                                                              |
+| Phase 5 — 검증                    | 미착수                 | —                 | G2/G5 는 visible 창(사용자 실행) 필요 (R4)                                                   |
 
 ## Context
 
