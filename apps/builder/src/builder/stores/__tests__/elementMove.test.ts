@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   registerCanonicalMutationStoreActions,
@@ -8,6 +8,14 @@ import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import type { CompositionDocument } from "@composition/shared";
 import type { Element } from "../../../types/core/store.types";
 import { useStore } from "../index";
+
+vi.mock("../../../lib/db", () => ({
+  getDB: vi.fn(async () => ({
+    documents: {
+      put: vi.fn(async () => undefined),
+    },
+  })),
+}));
 
 function makeElement(
   id: string,
@@ -314,6 +322,77 @@ describe("moveElementToContainer", () => {
       expect(
         (state.childrenMap.get(containerB.id) ?? []).map((c) => c.id),
       ).toEqual([]);
+    });
+
+    it("같은 부모 안의 임의 insertionIndex 이동을 canonical children 순서에 반영한다", () => {
+      const body = makeElement("body", "page-1", { type: "body" });
+      const first = makeElement("first", "page-1", {
+        parent_id: body.id,
+      });
+      const second = makeElement("second", "page-1", {
+        parent_id: body.id,
+      });
+      const third = makeElement("third", "page-1", {
+        parent_id: body.id,
+      });
+      const elements = [body, first, second, third];
+
+      const doc: CompositionDocument = {
+        version: "composition-1.0",
+        children: [
+          makeCanonicalNode(body, [
+            makeCanonicalNode(first),
+            makeCanonicalNode(second),
+            makeCanonicalNode(third),
+          ]),
+        ],
+      };
+      registerCanonical(doc, elements);
+      useStore.getState().setElements(elements);
+
+      useStore.getState().moveElementToContainer(third.id, body.id, 0);
+
+      const state = useStore.getState();
+      expect(
+        (state.childrenMap.get(body.id) ?? []).map((child) => child.id),
+      ).toEqual([third.id, first.id, second.id]);
+      expect(state.elementsMap.get(third.id)?.parent_id).toBe(body.id);
+    });
+
+    it("같은 부모의 현재 insertionIndex에 다시 드롭하면 no-op으로 유지한다", () => {
+      const body = makeElement("body", "page-1", { type: "body" });
+      const first = makeElement("first", "page-1", {
+        parent_id: body.id,
+      });
+      const second = makeElement("second", "page-1", {
+        parent_id: body.id,
+      });
+      const third = makeElement("third", "page-1", {
+        parent_id: body.id,
+      });
+      const elements = [body, first, second, third];
+
+      const doc: CompositionDocument = {
+        version: "composition-1.0",
+        children: [
+          makeCanonicalNode(body, [
+            makeCanonicalNode(first),
+            makeCanonicalNode(second),
+            makeCanonicalNode(third),
+          ]),
+        ],
+      };
+      registerCanonical(doc, elements);
+      useStore.getState().setElements(elements);
+      const beforeLayoutVersion = useStore.getState().layoutVersion;
+
+      useStore.getState().moveElementToContainer(second.id, body.id, 1);
+
+      const state = useStore.getState();
+      expect(
+        (state.childrenMap.get(body.id) ?? []).map((child) => child.id),
+      ).toEqual([first.id, second.id, third.id]);
+      expect(state.layoutVersion).toBe(beforeLayoutVersion);
     });
   });
 });

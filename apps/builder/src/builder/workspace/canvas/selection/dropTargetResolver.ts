@@ -568,10 +568,7 @@ export function resolveDropTarget(
         parentId,
         store.elementsById,
       );
-      if (
-        cursorOutsideParent ||
-        (crossTargetInsideParent && sameParentResult.isAdjacentInsertion)
-      ) {
+      if (cursorOutsideParent || crossTargetInsideParent) {
         return crossResult;
       }
     }

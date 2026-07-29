@@ -423,6 +423,59 @@ describe("resolveDropTarget cross-page body targets", () => {
     });
   });
 
+  it("reparents a body child into a hit Group even when body reorder is not adjacent", () => {
+    const pageBody = makeElement("page-body", {
+      type: "body",
+      page_id: "page-1",
+    });
+    const source = makeElement("source-card", {
+      parent_id: pageBody.id,
+    });
+    const group = makeElement("group", {
+      type: "Frame",
+      parent_id: pageBody.id,
+    });
+    const groupChild = makeElement("group-child", {
+      type: "Button",
+      parent_id: group.id,
+    });
+
+    mockBounds.set(pageBody.id, { x: 0, y: 0, width: 800, height: 600 });
+    mockBounds.set(source.id, { x: 40, y: 40, width: 160, height: 120 });
+    mockBounds.set(group.id, { x: 40, y: 220, width: 360, height: 280 });
+    mockBounds.set(groupChild.id, {
+      x: 64,
+      y: 244,
+      width: 160,
+      height: 120,
+    });
+
+    const result = resolveDropTarget(
+      { x: 80, y: 450 },
+      source.id,
+      {
+        childrenByParent: new Map([
+          [pageBody.id, [source, group]],
+          [group.id, [groupChild]],
+        ]),
+        elementsById: new Map([
+          [pageBody.id, pageBody],
+          [source.id, source],
+          [group.id, group],
+          [groupChild.id, groupChild],
+        ]),
+      },
+      () => [group.id, pageBody.id],
+    );
+
+    expect(result).toMatchObject({
+      containerId: group.id,
+      insertionIndex: 1,
+      isReparent: true,
+      originalParentId: pageBody.id,
+    });
+  });
+
   it("keeps current group reorder ahead of ancestor body reparent while the pointer is inside the group", () => {
     const pageBody = makeElement("page-body", {
       type: "body",

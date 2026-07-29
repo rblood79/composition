@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Nodes/Skia drag-drop 구조 이동 수정] - 2026-07-29
+
+### Bug Fixes
+
+- Nodes panel에서 같은 부모 안의 요소를 drag-drop해도 `moveElementToContainer`가 조기 종료해 순서가 바뀌지 않던 문제를 수정
+  - same-parent 이동도 전달된 `insertionIndex`로 canonical `children[]`를 재배치하고 store mirror 및 IndexedDB document를 동기화
+  - legacy fallback에서도 이동 요소를 기존 sibling 목록에서 먼저 제외해 중복 삽입을 방지
+- Skia canvas에서 Body의 요소를 Body 내부 Group/Frame 위로 drag-drop할 때 Group insert 대신 Body reorder로 남던 문제를 수정
+  - hit-test가 현재 부모의 descendant container를 가리키면 same-parent 인접 여부와 무관하게 해당 container reparent를 우선
+  - 이미 Group 내부에 있는 요소의 same-parent reorder와 현재 부모 hit 경로는 유지
+
+### Verification
+
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/__tests__/elementMove.test.ts src/builder/workspace/canvas/selection/dropTargetResolver.test.ts`
+- cross-check targeted Vitest: LayerTree/store/history/DragBridge/drop resolver/canonical mutation 9 files, 84 tests PASS
+- Builder browser: Nodes panel keyboard drag-drop로 동일 부모의 `frame`을 마지막 위치로 이동한 뒤 Layer 순서 변경 확인
+- `pnpm run codex:preflight` PASS
+
 ## [Transform Absolute position 토글 추가] - 2026-07-29
 
 ### Added

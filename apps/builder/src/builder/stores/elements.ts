@@ -1412,7 +1412,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     // Factory 함수로 생성된 addComplexElement 사용
     addComplexElement,
 
-    // cross-container 이동: parent_id 변경 + canonical children[] reorder
+    // 컨테이너 이동/같은 부모 재배치: canonical children[] reorder
     moveElementToContainer: (elementId, newParentId, insertionIndex) => {
       const prevState = get();
       const sourceIndexes = buildIndexes(prevState.elements);
@@ -1422,9 +1422,32 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       if (!element || !element.parent_id) return;
 
       const oldParentId = element.parent_id;
-      if (oldParentId === newParentId) return;
       const newParent = sourceElementsById.get(newParentId);
       if (!newParent) return;
+
+      if (oldParentId === newParentId) {
+        const currentSiblingIds = (
+          sourceChildrenByParent.get(newParentId) ?? []
+        ).map((child) => child.id);
+        const currentIndex = currentSiblingIds.indexOf(elementId);
+        if (currentIndex >= 0) {
+          const nextSiblingIds = currentSiblingIds.filter(
+            (siblingId) => siblingId !== elementId,
+          );
+          const targetIndex = Math.max(
+            0,
+            Math.min(insertionIndex, nextSiblingIds.length),
+          );
+          nextSiblingIds.splice(targetIndex, 0, elementId);
+          if (
+            nextSiblingIds.every(
+              (siblingId, index) => siblingId === currentSiblingIds[index],
+            )
+          ) {
+            return;
+          }
+        }
+      }
 
       if (areCanonicalMutationStoreActionsRegistered()) {
         // from-location 은 canonical mutation 전에 캡처 (move event 용)
@@ -1435,7 +1458,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
           insertionIndex,
         );
         if (result.changed) {
-          // LayerTree cross-container 이동 undo 지원 — canonical move event.
+          // LayerTree 이동/재배치 undo 지원 — canonical move event.
           // (과거 이 경로는 history 미기록으로 undo 자체가 불가했다)
           if (prevState.currentPageId) {
             trackCanonicalMove(elementId, fromLocations.get(elementId));
@@ -1450,14 +1473,25 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
           //   buildIndexes 는 elementsMap/childrenMap 인덱스만 반환하고 `elements`
           //   배열은 안 바꾼다. 그래서 인덱스만 갱신하면 연속 move 의 두 번째 호출이
           //   `buildIndexes(prevState.elements)`(stale elements)로 oldParentId 를
-          //   옛 부모로 읽어 `oldParentId === newParentId` early-return 으로 no-op
-          //   이 된다. elements 배열도 canonical derive 로 함께 갱신해야 한다.
+          //   옛 부모로 읽어 same-parent no-op 판정으로 종료된다. elements 배열도
+          //   canonical derive 로 함께 갱신해야 한다.
           const nextElements = getCanonicalOrStoreElements(get());
           set((state) => ({
             elements: nextElements,
             ...buildIndexes(nextElements),
             layoutVersion: state.layoutVersion + 1,
           }));
+
+          queueMicrotask(() => {
+            void (async () => {
+              try {
+                const db = await getDB();
+                await persistActiveCanonicalDocument(db);
+              } catch (error) {
+                console.error("[moveElementToContainer] DB persist:", error);
+              }
+            })();
+          });
           return;
         }
       }
@@ -1470,7 +1504,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
 
       const newSiblings = (sourceChildrenByParent.get(newParentId) ?? [])
         .map((c) => sourceElementsById.get(c.id))
-        .filter((c): c is Element => c !== undefined);
+        .filter((c): c is Element => c !== undefined && c.id !== elementId);
 
       // **ADR-125 Phase 5 — order_num 필드 재도입 금지 (ADR-122 HC.5 closure)**.
       // canonical children[] splice 가 primary path. legacy fallback 은 element
@@ -1541,9 +1575,9 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
 
     // 같은 부모 안에서 형제 순서를 한 칸 이동 (키보드 화살표 재배치).
     //
-    // **Why 별도 액션**: `moveElementToContainer` 는 `oldParentId === newParentId`
-    // 에서 early-return 하므로 같은 부모 재배치에 쓸 수 없다. flow 자식의 x/y 는
-    // 레이아웃 엔진이 소유하므로 "이동" = canonical children[] 순서 변경 (ADR-118).
+    // **Why 별도 액션**: 키보드 입력은 임의 insertion index가 아니라 방향만
+    // 제공하므로 경계/no-op 판정이 필요하다. flow 자식의 x/y 는 레이아웃 엔진이
+    // 소유하므로 "이동" = canonical children[] 순서 변경 (ADR-118).
     reorderElementWithinParent: (elementId, direction) => {
       if (isRenderProjectionId(elementId)) return false;
       if (!areCanonicalMutationStoreActionsRegistered()) return false;
