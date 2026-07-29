@@ -53,6 +53,13 @@
 
 /* Standalone Components (base.css only) */
 @import "./generated/Card.css";
+/* ADR-171 Phase 6 2a — Card 슬롯 4종. 파일은 ADR-912 cutover 때부터 있었으나 미import 였고,
+   렌더러가 kebab 클래스를 emit 해 selector 도 미매칭이라 이중으로 죽어 있었다. 클래스 회귀를
+   고치면서 함께 잇는다 (Phase 2 의 "dead CSS" 판정은 이 회귀의 결과였다). */
+@import "./generated/CardPreview.css";
+@import "./generated/CardHeader.css";
+@import "./generated/CardContent.css";
+@import "./generated/CardFooter.css";
 @import "./Content.css"; /* 구조 유틸리티 — Spec 없음 */
 @import "./Field.css"; /* 구조 유틸리티 — Spec 없음 */
 @import "./Group.css"; /* Container — skipCSSGeneration, 수동 CSS */

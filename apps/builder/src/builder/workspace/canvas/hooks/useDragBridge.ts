@@ -176,6 +176,12 @@ export function isManualPositionDragTarget(
   return style.position === "absolute";
 }
 
+function isManualPositionFlowContainer(
+  element: CanvasInteractionNode | undefined,
+): boolean {
+  return element != null && element.type.toLowerCase() !== "body";
+}
+
 export function resolveManualPositionDragProps(
   element: CanvasInteractionNode | undefined,
   delta: { x: number; y: number },
@@ -219,12 +225,45 @@ export function resolveManualPositionDragProps(
   };
 }
 
+export function resolveManualPositionDropProps(
+  element: CanvasInteractionNode | undefined,
+  target: DropTarget,
+  readModel: DragReadModel,
+  delta: { x: number; y: number },
+  getBounds: SceneBoundsResolver = getSceneBounds,
+): Record<string, unknown> | null {
+  if (!element || !isManualPositionDragTarget(element)) {
+    return null;
+  }
+
+  const targetContainer = readModel.elementsById.get(target.containerId);
+  if (!targetContainer) {
+    return null;
+  }
+
+  if (isManualPositionFlowContainer(targetContainer)) {
+    const nextStyle = { ...asStyleRecord(element) };
+    delete nextStyle.position;
+    return { style: nextStyle };
+  }
+
+  return resolveManualPositionDragProps(
+    element,
+    delta,
+    getBounds,
+    target.containerBounds,
+  );
+}
+
 export function resolveManualPositionDropTarget(
   element: CanvasInteractionNode | undefined,
   target: DropTarget | null,
   readModel: DragReadModel,
 ): DropTarget | null {
-  if (!isManualPositionDragTarget(element) || !target?.isReparent) {
+  if (!element || !isManualPositionDragTarget(element) || !target?.isReparent) {
+    return null;
+  }
+  if (target.containerId === element.parent_id) {
     return null;
   }
 
@@ -236,9 +275,14 @@ export function resolveManualPositionDropTarget(
   }
 
   const isCrossPage = sourcePageId !== targetPageId;
+  const isFlowContainer = isManualPositionFlowContainer(targetContainer);
   const isBodyEscape =
     targetContainer.type.toLowerCase() === "body" &&
     element?.parent_id !== targetContainer.id;
+
+  if (isFlowContainer) {
+    return target;
+  }
 
   if (isBodyEscape) {
     return target.insertionIndex === 0
@@ -431,11 +475,11 @@ export function useDragBridge({
       dropIndicatorSnapshotRef.current = null;
 
       if (manualDropTarget) {
-        const manualPositionProps = resolveManualPositionDragProps(
+        const manualPositionProps = resolveManualPositionDropProps(
           dragged,
+          manualDropTarget,
+          dragStore,
           _delta,
-          getSceneBounds,
-          manualDropTarget.containerBounds,
         );
         const canonicalTarget = resolveCanonicalMoveTarget({
           renderTargetId: manualDropTarget.containerId,

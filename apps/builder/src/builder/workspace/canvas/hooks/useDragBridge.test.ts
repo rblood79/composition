@@ -4,6 +4,7 @@ import {
   isManualPositionDragTarget,
   resolveDragReadModel,
   resolveManualPositionDragProps,
+  resolveManualPositionDropProps,
   resolveManualPositionDropTarget,
 } from "./useDragBridge";
 import type { BoundingBox } from "../selection/types";
@@ -195,6 +196,164 @@ describe("manual position drag semantics", () => {
         model,
       ),
     ).toBeNull();
+  });
+
+  it.each(["Group", "Frame", "ButtonGroup"])(
+    "accepts a same-page %s as a reparent target for an absolute element",
+    (containerType) => {
+      const dragged = makeElement({
+        id: "element",
+        page_id: "page-1",
+        parent_id: "page-1-body",
+        props: { style: { position: "absolute" } },
+      });
+      const pageBody = makeElement({
+        id: "page-1-body",
+        type: "body",
+        page_id: "page-1",
+        parent_id: null,
+      });
+      const container = makeElement({
+        id: "target-container",
+        type: containerType,
+        page_id: "page-1",
+        parent_id: pageBody.id,
+      });
+      const model = {
+        elementsById: new Map([
+          [dragged.id, dragged],
+          [pageBody.id, pageBody],
+          [container.id, container],
+        ]),
+        childrenByParent: new Map([[pageBody.id, [dragged, container]]]),
+      };
+      const target: DropTarget = {
+        containerId: container.id,
+        insertionIndex: 0,
+        isAdjacentInsertion: false,
+        isHorizontal: false,
+        containerBounds: { x: 100, y: 40, width: 320, height: 240 },
+        siblingBounds: [],
+        isReparent: true,
+        originalParentId: pageBody.id,
+      };
+
+      expect(resolveManualPositionDropTarget(dragged, target, model)).toEqual(
+        target,
+      );
+    },
+  );
+
+  it.each(["Group", "Frame", "ButtonGroup"])(
+    "releases absolute positioning when committing a drop into a %s",
+    (containerType) => {
+      const dragged = makeElement({
+        id: "element",
+        page_id: "page-1",
+        parent_id: "page-1-body",
+        props: {
+          style: {
+            color: "red",
+            left: "24px",
+            position: "absolute",
+            top: "12px",
+          },
+        },
+      });
+      const container = makeElement({
+        id: "target-container",
+        type: containerType,
+        page_id: "page-1",
+        parent_id: "page-1-body",
+      });
+      const model = {
+        elementsById: new Map([
+          [dragged.id, dragged],
+          [container.id, container],
+        ]),
+        childrenByParent: new Map<string, Element[]>(),
+      };
+      const target: DropTarget = {
+        containerId: container.id,
+        insertionIndex: 0,
+        isAdjacentInsertion: false,
+        isHorizontal: false,
+        containerBounds: { x: 100, y: 40, width: 320, height: 240 },
+        siblingBounds: [],
+        isReparent: true,
+        originalParentId: "page-1-body",
+      };
+
+      expect(
+        resolveManualPositionDropProps(dragged, target, model, {
+          x: 80,
+          y: 60,
+        }),
+      ).toEqual({
+        style: {
+          color: "red",
+          left: "24px",
+          top: "12px",
+        },
+      });
+    },
+  );
+
+  it("keeps absolute positioning when committing a cross-page Body drop", () => {
+    const dragged = makeElement({
+      id: "element",
+      page_id: "page-1",
+      parent_id: "page-1-body",
+      props: {
+        style: {
+          left: "30px",
+          position: "absolute",
+          top: "70px",
+        },
+      },
+    });
+    const destinationBody = makeElement({
+      id: "page-2-body",
+      type: "body",
+      page_id: "page-2",
+      parent_id: null,
+    });
+    const model = {
+      elementsById: new Map([
+        [dragged.id, dragged],
+        [destinationBody.id, destinationBody],
+      ]),
+      childrenByParent: new Map<string, Element[]>(),
+    };
+    const target: DropTarget = {
+      containerId: destinationBody.id,
+      insertionIndex: 0,
+      isAdjacentInsertion: false,
+      isHorizontal: false,
+      containerBounds: { x: 100, y: 40, width: 800, height: 600 },
+      siblingBounds: [],
+      isReparent: true,
+      originalParentId: "page-1-body",
+    };
+    const bounds = new Map<string, BoundingBox>([
+      ["element", { x: 930, y: 120, width: 40, height: 20 }],
+    ]);
+
+    expect(
+      resolveManualPositionDropProps(
+        dragged,
+        target,
+        model,
+        { x: -500, y: 20 },
+        (id) => bounds.get(id),
+      ),
+    ).toEqual({
+      style: {
+        left: "330px",
+        position: "absolute",
+        top: "100px",
+      },
+    });
   });
 
   it("promotes a nested absolute element to the top of the same-page body on an empty-canvas drop", () => {

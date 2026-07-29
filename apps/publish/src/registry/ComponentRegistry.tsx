@@ -551,23 +551,27 @@ export function registerSharedComponents(): void {
     displayName: "Description",
     category: "display",
   });
+  // ADR-171 Phase 6 2a (2026-07-29): kebab 클래스(`card-header` 등) → house convention
+  //   `react-aria-{Type}`. 생성 CSS(`.react-aria-CardHeader`)가 노리는 selector 이고,
+  //   preview 축(`LayoutRenderers.cardSlotChrome`)과 같은 값이어야 두 소비자가 대칭이다.
+  //   구 kebab 클래스를 잡는 CSS 는 저장소 전체 0건이라 대체 대상이 없다.
   registerComponent("CardHeader", {
-    component: createHtmlElementWithClass("div", "card-header"),
+    component: createHtmlElementWithClass("div", "react-aria-CardHeader"),
     displayName: "CardHeader",
     category: "layout",
   });
   registerComponent("CardContent", {
-    component: createHtmlElementWithClass("div", "card-content"),
+    component: createHtmlElementWithClass("div", "react-aria-CardContent"),
     displayName: "CardContent",
     category: "layout",
   });
   registerComponent("CardPreview", {
-    component: createHtmlElementWithClass("div", "card-preview"),
+    component: createHtmlElementWithClass("div", "react-aria-CardPreview"),
     displayName: "CardPreview",
     category: "layout",
   });
   registerComponent("CardFooter", {
-    component: createHtmlElementWithClass("div", "card-footer"),
+    component: createHtmlElementWithClass("div", "react-aria-CardFooter"),
     displayName: "CardFooter",
     category: "layout",
   });

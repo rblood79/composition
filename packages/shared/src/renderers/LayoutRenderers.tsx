@@ -354,6 +354,37 @@ export const renderCard = (
 };
 
 /**
+ * Card 슬롯 부품(CardPreview/CardHeader/CardContent/CardFooter)의 스타일 채널 계약.
+ *
+ * ADR-171 Phase 6 2a (2026-07-29) — 이 4종은 **회귀**로 클래스를 잃고 있었다.
+ * ADR-912 cutover 시점의 계약은 `{Type}.binding.ts` 주석이 명시한 대로
+ * "generic fallback 유지 → `react-aria-{Type}` className + data-size 보존" 이었는데,
+ * 2026-06-24 에 자식 미렌더(Heading/Image 누락)를 고치려고
+ * `renderFacetDeclaration.ts` 에 delegating 등록하면서 live path 가 아래 전용
+ * 렌더러로 바뀌었고, 그 렌더러들이 `card-header` 같은 kebab 클래스를 하드코딩해
+ * `react-aria-{Type}` 이 사라졌다. 생성 CSS 는 `.react-aria-CardHeader` 를 노리므로
+ * 그때부터 selector 가 영구 미매칭이었고, `.card-*` 를 잡는 CSS 는 저장소에 0건이라
+ * DOM 스타일 공급원이 인라인 하나만 남아 있었다(Phase 2 가 "dead CSS" 로 본 현상의 정체).
+ *
+ * 클래스 규약은 레퍼런스에서 오지 않는다 — S2 Card 는 `style()` 매크로라 클래스가 없고
+ * SWC 는 `<sp-card>` 커스텀 엘리먼트다. `react-aria-{Type}` 은 RAC 에서 온 composition
+ * house convention 이고, 생성기(`.react-aria-{Type}`)·`Card.tsx`·`CanonicalNodeRenderer`
+ * generic fallback 이 모두 그것을 쓴다. 그 규약에 되돌린다.
+ */
+function cardSlotChrome(
+  type: "CardPreview" | "CardHeader" | "CardContent" | "CardFooter",
+  element: PreviewElement,
+): { className: string; "data-size": string } {
+  const userClassName = element.props?.className as string | undefined;
+  return {
+    className: [`react-aria-${type}`, userClassName].filter(Boolean).join(" "),
+    // 생성 CSS 가 `.react-aria-{Type}[data-size="md"]` 로 size 축을 emit 한다.
+    // catalog `defaultSize: "md"` — generic fallback 의 resolveBackedDefaultSize 와 같은 기본값.
+    "data-size": (element.props?.size as string | undefined) ?? "md",
+  };
+}
+
+/**
  * CardHeader 렌더링
  * Card 새 구조에서 header 영역을 담당하는 투명 컨테이너
  */
@@ -369,7 +400,7 @@ export const renderCardHeader = (
     <div
       key={element.id}
       data-element-id={element.id}
-      className="card-header"
+      {...cardSlotChrome("CardHeader", element)}
       style={element.props?.style as React.CSSProperties}
     >
       {children.map((child) => renderElement(child, child.id))}
@@ -396,7 +427,7 @@ export const renderCardContent = (
     <div
       key={element.id}
       data-element-id={element.id}
-      className="card-content"
+      {...cardSlotChrome("CardContent", element)}
       style={element.props?.style as React.CSSProperties}
     >
       {children.map((child) => {
@@ -446,7 +477,7 @@ export const renderCardPreview = (
     <div
       key={element.id}
       data-element-id={element.id}
-      className="card-preview"
+      {...cardSlotChrome("CardPreview", element)}
       style={element.props?.style as React.CSSProperties}
     >
       {children.map((child) => renderElement(child, child.id))}
@@ -470,7 +501,7 @@ export const renderCardFooter = (
     <div
       key={element.id}
       data-element-id={element.id}
-      className="card-footer"
+      {...cardSlotChrome("CardFooter", element)}
       style={element.props?.style as React.CSSProperties}
     >
       {children.map((child) => renderElement(child, child.id))}
