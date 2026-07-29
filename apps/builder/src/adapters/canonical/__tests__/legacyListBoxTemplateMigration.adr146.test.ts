@@ -301,15 +301,17 @@ describe("bounded-scroll style repair — ensureListBoxScrollStyle", () => {
       ?.style;
   }
 
-  it("adds maxHeight/overflow to a pure-default instance (style = { width })", () => {
+  it("adds overflow to a pure-default instance (style = { width }) — maxHeight 는 심지 않는다", () => {
     const migrated = migrateLegacyListBoxTemplatesToOrigins(
       docWithListBoxInstance({ width: "100%" }),
     );
     expect(instanceStyle(migrated)).toMatchObject({
       width: "100%",
-      maxHeight: "300px",
       overflow: "auto",
     });
+    // 2026-07-29 사용자 결정: `maxHeight:"300px"` 고정값 제거. 이 함수는 hydration 마다
+    //   돌기 때문에, 여기 남으면 catalog·factory 에서 뺀 300 을 로드할 때마다 되살린다.
+    expect(instanceStyle(migrated)).not.toHaveProperty("maxHeight");
   });
 
   it("preserves an explicit overflow (auto-height 의도) — no maxHeight injection", () => {

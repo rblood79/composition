@@ -64,14 +64,17 @@ function isPageListBoxInstance(node: CanonicalNode): boolean {
 }
 
 /**
- * 페이지 ListBox instance 의 bounded-scroll 기본값 보강 (2026-07-22 사용자 보고).
+ * 페이지 ListBox instance 의 raw `overflow` 보강 (2026-07-22 사용자 보고).
  *
- * factory 이전 seed 의 instance 는 `props.style = { width: "100%" }` 만 가져 maxHeight/overflow
- * 가 real props.style 에 없다. catalog containerStyles(maxHeight:300px/overflow:auto)는
- * layout+패널만 소비하고, 스크롤 발화(collectionVirtualization 가상화 window) /
- * 휠(useScrollWheelInteraction) / scrollbar·clip(buildSpecNodeData)는 raw props.style 를 읽어
- * unbounded(auto-height) 로 판정 → 행이 300px 를 넘어도 clamp/스크롤 없이 넘쳐 보였다.
- * factory 신규 경로(createListBoxDefinition)와 정합하도록 real props.style 로 보강한다.
+ * factory 이전 seed 의 instance 는 `props.style = { width: "100%" }` 만 가져 overflow 가
+ * real props.style 에 없다. catalog containerStyles 는 layout+패널만 소비하고, 스크롤 발화
+ * (collectionVirtualization 가상화 window) / 휠(useScrollWheelInteraction) / scrollbar·clip
+ * (buildSpecNodeData)는 raw props.style 를 읽는다. factory 신규 경로
+ * (createListBoxDefinition)와 정합하도록 real props.style 로 보강한다.
+ *
+ * **2026-07-29 사용자 결정**: 같이 심던 `maxHeight:"300px"` 는 제거. 이 함수는 hydration
+ * 마다 도는데, 여기 남겨 두면 catalog·factory 에서 뺀 300 을 **로드할 때마다 되살린다**.
+ * 상한이 없으니 남는 것은 "높이를 저작하면 그때 4 소비자를 켜 둔다" 는 overflow 하나다.
  *
  * 보강 조건: height/overflow 를 **하나도** 명시하지 않은 순수 default instance 만 대상 —
  * 사용자가 커스텀 높이 또는 auto-height(overflow 명시)를 선택했으면 그 의도를 보존한다(멱등).
@@ -88,14 +91,14 @@ function ensureListBoxScrollStyle(node: CanonicalNode): CanonicalNode {
     ...node,
     props: {
       ...(props ?? {}),
-      style: { ...(style ?? {}), maxHeight: "300px", overflow: "auto" },
+      style: { ...(style ?? {}), overflow: "auto" },
     },
   };
 }
 
 /**
- * Option B: 모든 ListBox instance 에서 in-instance template anchor 를 strip 한다 + bounded-scroll
- * 기본값(maxHeight/overflow)을 순수 default instance 에 보강한다.
+ * Option B: 모든 ListBox instance 에서 in-instance template anchor 를 strip 한다 + raw
+ * `overflow` 를 순수 default instance 에 보강한다 (2026-07-29: maxHeight 보강은 제거).
  *
  * - origin(Components 시스템 노드)은 보존한다 (`isSystemListBoxOrigin`).
  * - `metadata.templateRole === "listbox-item-template-anchor"` 인 anchor 만 제거하므로
