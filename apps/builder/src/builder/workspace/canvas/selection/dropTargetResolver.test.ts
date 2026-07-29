@@ -585,6 +585,133 @@ describe("resolveDropTarget cross-page body targets", () => {
     ).toBe(232);
   });
 
+  it("keeps absolute siblings fixed and out of flex projection during flow reorder", () => {
+    const pageBody = makeElement("page-body", {
+      type: "body",
+      page_id: "page-1",
+      props: {
+        style: {
+          display: "flex",
+          flexDirection: "row",
+        },
+      },
+    });
+    const first = makeElement("first-card", {
+      parent_id: pageBody.id,
+    });
+    const source = makeElement("source-button", {
+      type: "Button",
+      parent_id: pageBody.id,
+    });
+    const pinned = makeElement("pinned-button", {
+      type: "Button",
+      parent_id: pageBody.id,
+      props: {
+        style: {
+          left: 220,
+          position: "absolute",
+          top: 0,
+        },
+      },
+    });
+    const last = makeElement("last-card", {
+      parent_id: pageBody.id,
+    });
+
+    mockBounds.set(pageBody.id, { x: 0, y: 0, width: 300, height: 40 });
+    mockBounds.set(first.id, { x: 0, y: 0, width: 50, height: 40 });
+    mockBounds.set(source.id, { x: 50, y: 0, width: 50, height: 40 });
+    mockBounds.set(pinned.id, { x: 220, y: 0, width: 30, height: 30 });
+    mockBounds.set(last.id, { x: 100, y: 0, width: 50, height: 40 });
+
+    const store = {
+      childrenByParent: new Map([[pageBody.id, [first, source, pinned, last]]]),
+      elementsById: new Map([
+        [pageBody.id, pageBody],
+        [first.id, first],
+        [source.id, source],
+        [pinned.id, pinned],
+        [last.id, last],
+      ]),
+    };
+    const target = {
+      containerId: pageBody.id,
+      insertionIndex: 3,
+      isAdjacentInsertion: false,
+      isHorizontal: true,
+      containerBounds: { x: 0, y: 0, width: 300, height: 40 },
+      siblingBounds: [],
+      isReparent: false,
+    };
+
+    expect(computeSiblingOffsets(target, source.id, store)).toEqual(
+      new Map([[last.id, { dx: -50, dy: 0 }]]),
+    );
+  });
+
+  it("keeps absolute siblings fixed in fallback sibling offsets", () => {
+    const pageBody = makeElement("page-body", {
+      type: "body",
+      page_id: "page-1",
+      props: {
+        style: {
+          flexDirection: "row",
+        },
+      },
+    });
+    const first = makeElement("first-card", {
+      parent_id: pageBody.id,
+    });
+    const source = makeElement("source-button", {
+      type: "Button",
+      parent_id: pageBody.id,
+    });
+    const pinned = makeElement("pinned-button", {
+      type: "Button",
+      parent_id: pageBody.id,
+      props: {
+        style: {
+          left: 220,
+          position: "absolute",
+          top: 40,
+        },
+      },
+    });
+    const last = makeElement("last-card", {
+      parent_id: pageBody.id,
+    });
+
+    mockBounds.set(pageBody.id, { x: 0, y: 0, width: 300, height: 120 });
+    mockBounds.set(first.id, { x: 0, y: 40, width: 50, height: 40 });
+    mockBounds.set(source.id, { x: 50, y: 40, width: 50, height: 40 });
+    mockBounds.set(pinned.id, { x: 220, y: 40, width: 30, height: 30 });
+    mockBounds.set(last.id, { x: 100, y: 40, width: 50, height: 40 });
+
+    const store = {
+      childrenByParent: new Map([[pageBody.id, [first, source, pinned, last]]]),
+      elementsById: new Map([
+        [pageBody.id, pageBody],
+        [first.id, first],
+        [source.id, source],
+        [pinned.id, pinned],
+        [last.id, last],
+      ]),
+    };
+    const target = {
+      containerId: pageBody.id,
+      insertionIndex: 3,
+      isAdjacentInsertion: false,
+      isHorizontal: true,
+      containerBounds: { x: 0, y: 0, width: 300, height: 120 },
+      siblingBounds: [],
+      isReparent: false,
+    };
+
+    expect(computeSiblingOffsets(target, source.id, store)).toEqual(
+      new Map([[last.id, { dx: -50, dy: 0 }]]),
+    );
+  });
+
   it("uses justify-content: space-between when projecting same-parent reorder feedback", () => {
     const pageBody = makeElement("page-body", {
       type: "body",

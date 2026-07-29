@@ -155,6 +155,28 @@ function normalizeCssKeyword(value: string | undefined): string {
     .toLowerCase();
 }
 
+function isAbsolutePositioned(element: DropTargetNode | undefined): boolean {
+  const style = asRecord(element?.props?.style);
+  return normalizeCssKeyword(asString(style?.position)) === "absolute";
+}
+
+function resolveLayoutInsertionIndex(
+  siblings: DropTargetNode[],
+  insertionIndex: number,
+  ignoreAbsoluteSiblings: boolean,
+): number {
+  const clampedIndex = Math.max(0, Math.min(insertionIndex, siblings.length));
+  if (!ignoreAbsoluteSiblings) return clampedIndex;
+
+  let flowIndex = 0;
+  for (let index = 0; index < clampedIndex; index++) {
+    if (!isAbsolutePositioned(siblings[index])) {
+      flowIndex++;
+    }
+  }
+  return flowIndex;
+}
+
 function getContainerStyleSources(element: DropTargetNode | undefined): {
   style: Record<string, unknown> | undefined;
   specStyles: Record<string, unknown> | undefined;
@@ -617,7 +639,7 @@ export function computeSiblingOffsets(
   store: DropTargetReadModel,
 ): Map<string, { dx: number; dy: number }> {
   const offsets = new Map<string, { dx: number; dy: number }>();
-  const { containerId, insertionIndex, isHorizontal } = dropTarget;
+  const { containerId, isHorizontal } = dropTarget;
 
   const projectedBounds = buildProjectedDropLayout(
     dropTarget,
@@ -645,8 +667,12 @@ export function computeSiblingOffsets(
   const container = store.elementsById.get(containerId);
   const spacing = getContainerAxisSpacing(container, isHorizontal);
 
-  // 전체 자식 (드래그 요소 포함, canonical/source order)
-  const sortedChildren = getSortedChildren(containerId, store);
+  const allChildren = getSortedChildren(containerId, store);
+  const dragged = store.elementsById.get(draggedElementId);
+  const ignoreAbsoluteSiblings = !isAbsolutePositioned(dragged);
+  const sortedChildren = ignoreAbsoluteSiblings
+    ? allChildren.filter((child) => !isAbsolutePositioned(child))
+    : allChildren;
   const origIdx = sortedChildren.findIndex((c) => c.id === draggedElementId);
   if (origIdx < 0) return offsets;
 
@@ -660,6 +686,12 @@ export function computeSiblingOffsets(
   const origIndexMap = buildOriginalIndexMap(sortedChildren);
 
   const siblings = sortedChildren.filter((c) => c.id !== draggedElementId);
+  const allSiblings = allChildren.filter((c) => c.id !== draggedElementId);
+  const insertionIndex = resolveLayoutInsertionIndex(
+    allSiblings,
+    dropTarget.insertionIndex,
+    ignoreAbsoluteSiblings,
+  );
 
   for (let i = 0; i < siblings.length; i++) {
     const sibling = siblings[i];
@@ -941,12 +973,17 @@ function buildProjectedDropLayout(
   const draggedBounds = getSceneBounds(draggedElementId);
   if (!dragged || !draggedBounds) return null;
 
-  const children = getSortedChildren(dropTarget.containerId, store).filter(
+  const siblings = getSortedChildren(dropTarget.containerId, store).filter(
     (child) => child.id !== draggedElementId,
   );
-  const insertionIndex = Math.max(
-    0,
-    Math.min(dropTarget.insertionIndex, children.length),
+  const ignoreAbsoluteSiblings = !isAbsolutePositioned(dragged);
+  const children = ignoreAbsoluteSiblings
+    ? siblings.filter((child) => !isAbsolutePositioned(child))
+    : siblings;
+  const insertionIndex = resolveLayoutInsertionIndex(
+    siblings,
+    dropTarget.insertionIndex,
+    ignoreAbsoluteSiblings,
   );
   const orderedChildren = [
     ...children.slice(0, insertionIndex),

@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - cross-page reparent와 좌표 갱신을 하나의 history transaction으로 묶어 Undo 한 번에 원래 Page와 좌표가 함께 복원되도록 수정
 - Pencil과 동일하게 Absolute 활성화만으로는 현재 Group/Frame/Container 레이어를 유지하고, 빈 canvas 영역으로 드롭할 때만 canonical Page Body의 첫 번째 직계 자식으로 승격해 Layers 최상단에 배치
 - Body 승격은 기존 destination-local `Left`/`Top` 변환과 history transaction을 재사용해 화면 위치를 유지하고 Undo 한 번으로 원래 레이어에 복귀
+- 일반 flow 요소를 reorder할 때 Absolute sibling을 placeholder와 sibling animation의 flow 계산에서 제외해 `Left`/`Top` 좌표에 고정
 
 ## [Button icon picker 중첩 버튼 오류 수정] - 2026-07-29
 
