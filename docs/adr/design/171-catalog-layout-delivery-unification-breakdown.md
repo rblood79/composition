@@ -366,21 +366,38 @@ Phase 5 는 두 종을 "sizes paddingY/gap 과잉" 으로 적었으나 **`sizes.
 
 | 분류                        | 키    | 내용                                                                                                                                                 |
 | --------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **DUP** — catalog 와 동일   | 22    | body `overflow` · Form 4 · Card/md 9 · CardPreview 2 · CardHeader 3 · CardContent 2 · CardFooter 4                                                   |
-| **UNIQUE** — catalog 미보유 | 19    | Heading/Description `display:block` ×4 · FormField 4 · CardPreview `overflow` · CardHeader gap 2 · CardContent gap 2 · CardFooter `paddingTop`+gap 3 |
+| **DUP** — catalog 와 동일   | 25    | body `overflow` · Form 4 · Card/md 9 · CardPreview 2 · CardHeader 3 · CardContent 2 · CardFooter 4                                                   |
+| **UNIQUE** — catalog 미보유 | 16    | Heading/Description `display:block` ×4 · FormField 4 · CardPreview `overflow` · CardHeader gap 2 · CardContent gap 2 · CardFooter `paddingTop`+gap 3 |
 | **MASK** — catalog 와 다름  | **0** | —                                                                                                                                                    |
 
-**MASK 가 0 이라는 것이 이 조사의 결론**이다. 페이지의 인라인은 catalog 를 **가리고 있지 않다** — 같은 값을 중복해 적었거나, catalog 에 없는 값을 채우고 있을 뿐이다. 그래서 Phase 6 은 "값이 틀렸으니 다시 그린다" 가 아니라 **① 중복 22키 삭제 + ② catalog 결손 19키 판정**이다. 페이지를 새로 만들 필요가 없다.
+**MASK 가 0 이라는 것이 이 조사의 결론**이다. 페이지의 인라인은 catalog 를 **가리고 있지 않다** — 같은 값을 중복해 적었거나, catalog 에 없는 값을 채우고 있을 뿐이다. 그래서 Phase 6 은 "값이 틀렸으니 다시 그린다" 가 아니라 **중복 삭제 + catalog 결손 판정**이다. 페이지를 새로 만들 필요가 없다.
 
 - 인라인 보유 노드는 13개뿐이고 전부 **평범한 요소 트리**다(`reusable=false`, `componentRole` 없음) — origin 재저작 대상이 아니다. 나머지 34 노드(MenuItem/ListBoxItem/GridListItem/Toolbar/InlineAlert 계열)는 이미 layout 인라인 0 으로 catalog 만으로 서 있다. Phase 1~4 가 한 일이 여기서 확인된다.
-- **DUP 22키를 그대로 지우면 안 된다** — Phase 4 가 배운 규칙이 그대로 적용된다. 제거 조건은 `①인라인 = ②실효 DOM = ③catalog` 3자 일치이고, 이 조사는 ①↔③ 만 봤다. Card 계열 하위 부품(CardHeader/CardContent/CardFooter/CardPreview)은 Phase 5 fixture 가 "dead selector — ground truth 가 브라우저 기본값" 으로 제외한 바로 그 종이라, ② 가 비어 있을 가능성이 높다.
-- UNIQUE 19키는 성격이 둘로 갈린다: **텍스트 leaf 의 `display:block` 4건**(요소별 저작 값에 가깝다)과 **컨테이너 gap/padding 15건**(catalog 결손 — FormField 는 규칙 자체에 layout 이 없고, Card 하위 부품은 gap/padding 축만 비어 있다).
+- 초안은 DUP 22 · UNIQUE 19 로 적었는데 **집계 오류**였다(합은 41 로 같다). 아래 순서 점검에서 키 단위로 다시 세어 25 · 16 으로 정정.
 
-**제안 순서** (승인 후 실행):
+#### 순서 점검 — 실효 DOM 실측으로 1단계를 앞당겨 끝냄 (2026-07-29)
 
-1. Card 계열 5종 + FormField 의 **실효 DOM 실측**(Phase 4 와 같은 iframe + 번들 CSS) → DUP 22키를 "3자 일치(제거)" / "DOM 채널 부재(존치)" 로 재분류
-2. UNIQUE 15키(컨테이너 gap/padding)를 catalog 에 채울지 판정 — 채우면 생성 CSS 재빌드 동반이라 Phase 1 의 "실효값이 정본" 절차를 그대로 적용
-3. 1·2 반영 후 페이지 live 확인 (G5)
+"제안 순서가 맞는지" 를 말로 확인하는 대신 1단계(Card 계열 실효 DOM 실측)를 실제로 돌렸다. Phase 4 와 같은 방법(번들 CSS 주입 iframe + `.react-aria-{X}` 빈 div `getComputedStyle`).
+
+| 종                                                  | 실효 DOM                                                | 판정                          |
+| --------------------------------------------------- | ------------------------------------------------------- | ----------------------------- |
+| **Card**                                            | `flex column · gap 12 · pad 16 · overflow hidden`       | ①=②=③ → **9키 제거 가능**     |
+| **Form**                                            | `flex column · gap 16`                                  | ①=②=③ → **4키 제거 가능**     |
+| CardPreview · CardHeader · CardContent · CardFooter | **전부 브라우저 기본값** (`block` · gap normal · pad 0) | DOM 채널 부재 → **11키 존치** |
+| FormField                                           | **전부 브라우저 기본값**                                | DOM 채널 부재                 |
+
+Phase 5 가 "dead selector" 로 제외했던 추정이 실측으로 확정됐다. 그래서 **제안 순서를 고친다** — 구 1·2 단계는 *같은 컴포넌트를 두 번 방문*하는 분할이었다:
+
+> Card 하위 부품 4종과 FormField 에서 DUP 11키(존치)와 UNIQUE 5키(catalog 결손)는 **한 결정의 앞뒷면**이다. 이 5종에 `structure` 를 주면 생성 CSS 가 생겨 DOM 채널이 열리고 16키가 한 번에 풀린다. 안 주기로 하면 16키 전부 인라인 존치로 확정된다. 키를 두 그룹으로 갈라 두 단계에 배치하면, 1단계에서 "존치" 로 찍은 키를 2단계에서 다시 뒤집게 된다.
+
+**정정된 순서**:
+
+1. **Card·Form 본체 13키 제거** — 3자 일치가 이미 확인됐다. 선행 조건 없음, 지금 바로 가능. (구 2단계와 무관하게 독립)
+2. **Card 하위 부품 4종 + FormField 의 CSS 채널 판정** — catalog `structure` 부여 여부. 판정 **하나가 16키를 결정**한다. 부여 시 생성 CSS 재빌드 동반 → Phase 1 의 "실효값이 정본" 절차 적용
+3. **텍스트 leaf `display:block` 4키 판정** — 별개 축이다. Heading/Description 은 컨테이너가 아니라 텍스트 leaf 라 "요소별 저작 값" 에 가깝고, catalog 에 넣으면 전 인스턴스에 강제된다 (ListBox `maxHeight` 를 뺀 것과 같은 판단이 필요)
+4. live 확인 (G5)
+
+**별도 축 1건** — body `overflow:auto`(DUP 1키)는 `.react-aria-*` 클래스 종이 아니라 **페이지 body** 다. 뷰포트 상자 규칙(layout-engine.md §"body 는 뷰포트가 아니다") 소관이라 위 순서에 섞지 않는다.
 
 ## 4. 실측 근거 (2026-07-28)
 
@@ -414,4 +431,4 @@ Phase 5 는 두 종을 "sizes paddingY/gap 과잉" 으로 적었으나 **`sizes.
 - [x] **Phase 5 — parity fixture 신설 (G3 PASS, 2026-07-29)** — `catalogComponentBox.browser.test.ts` 15 케이스(전체 918→933). Phase 3 되돌림 시 6종 중 5종 RED. 잔존 6종은 Phase 3-b(생성기 규칙 미러)로 분리
 - [x] **Phase 3-b — size 축 게이트를 생성기 규칙 미러로 교체 (2026-07-29)** — `structure` 보유 시 `ownsContainerBox`/`skipPadding`/`skipGap` 미러, 부재 시 Phase 3 게이트 유지(수동 CSS 축). Toolbar/Form 과잉 · TabPanel 미도달 · ListBox borderWidth 해소, A/B 29종 회귀 0. Checkbox/RadioGroup 은 오진(synthetic wrapper)으로 판정
 - [x] **Phase 4 — factory 인라인 제거 + baseline 미러 동시 정리 (G4 PASS, 2026-07-29)** — 3자 대조로 제거 대상은 6종 15선언(22종 71선언 중). 나머지는 DOM 채널 부재 7종 / catalog 미보유 4종 / 3자 불일치 7종으로 **유지 사유가 각각 다르다**. 라이브 A/B 29요소 byte-identical. 양방향 baseline 계약 테스트 신설
-- [ ] Phase 6 — components 페이지 정리 + live 확인 (G5) — **현황 조사 완료 (2026-07-29)**: 인라인 13노드 41키 중 DUP 22 · UNIQUE 19 · **MASK 0**. 재저작이 아니라 "중복 제거 + catalog 결손 판정" 으로 범위 축소. 실행은 사용자 승인 대기 (§Phase 6 제안 순서)
+- [ ] Phase 6 — components 페이지 정리 + live 확인 (G5) — **현황 조사 + 순서 점검 완료 (2026-07-29)**: 인라인 13노드 41키 중 DUP 25 · UNIQUE 16 · **MASK 0**. 재저작이 아니라 "중복 제거 + catalog 결손 판정". 구 1단계(실효 DOM 실측)는 선실행해 종결 — Card·Form 본체 13키는 3자 일치(제거 가능), Card 하위 부품 4종 + FormField 는 DOM 채널 부재로 16키가 **CSS 채널 판정 하나에 묶인다**. 순서 4단계로 정정 (§순서 점검). 실행은 사용자 승인 대기
