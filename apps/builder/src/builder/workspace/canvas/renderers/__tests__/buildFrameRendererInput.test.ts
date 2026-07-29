@@ -51,12 +51,12 @@ const makeSceneSnapshot = (
   ...overrides,
 });
 
+// ADR-172 Phase 1: panOffset/zoom 은 LayoutPublisherInput 계약에서 제거됐다
+// (소비자 0건 잔재). 다시 추가하지 말 것 — 팬 프레임마다 input 재생성 원인.
 const baseOptions = {
   dirtyElementIds: new Set<string>(),
   pagePositionVersion: 0,
-  panOffset: { x: 0, y: 0 },
   wasmLayoutReady: true,
-  zoom: 1,
 };
 
 type FrameScopeFixtureInput = Omit<

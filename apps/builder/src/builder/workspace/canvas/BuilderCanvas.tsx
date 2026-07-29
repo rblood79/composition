@@ -505,14 +505,15 @@ export function BuilderCanvas({
           pageId: page.id,
           pagePositionVersion: pagePositionsVersion,
           pageWidth,
-          panOffset,
           sceneSnapshot,
           wasmLayoutReady,
-          zoom,
         });
         return input ? { pageId: page.id, input } : null;
       })
       .filter((v): v is NonNullable<typeof v> => v !== null);
+    // ADR-172 Phase 1 — deps 에 카메라(panOffset/zoom)를 넣지 말 것. 레이아웃
+    // 발행은 카메라 무관 파생이고, 넣으면 팬 프레임마다 input 이 재생성되어
+    // useLayoutPublisher 의 memo 가 매 프레임 miss 한다.
   }, [
     visiblePages,
     elementById,
@@ -520,10 +521,8 @@ export function BuilderCanvas({
     pageHeight,
     pagePositionsVersion,
     pageWidth,
-    panOffset,
     sceneSnapshot,
     wasmLayoutReady,
-    zoom,
   ]);
 
   const workflowEdges = useMemo(() => {
@@ -595,24 +594,21 @@ export function BuilderCanvas({
           frameX: area.x,
           frameY: area.y,
           pagePositionVersion: framePositionsVersion,
-          panOffset,
           sceneSnapshot,
           wasmLayoutReady,
-          zoom,
         });
         return input ? { pageId: area.frameId, input } : null;
       })
       .filter((v): v is NonNullable<typeof v> => v !== null);
+    // ADR-172 Phase 1 — page 경로와 동일하게 카메라 deps 제외 (두 경로 대칭).
   }, [
     frameAreas,
     framePositionsVersion,
     dirtyElementIds,
     elementById,
     frameElementScopes,
-    panOffset,
     sceneSnapshot,
     wasmLayoutReady,
-    zoom,
   ]);
 
   useLayoutPublisher(
