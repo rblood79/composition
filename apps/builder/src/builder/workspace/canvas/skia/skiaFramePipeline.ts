@@ -255,10 +255,15 @@ function buildViaCommandStream(
   };
 
   // Fix 1: filteredChildrenMap 사용 (layoutMap과 동일 트리 소스)
-  const filteredChildIds = getSharedFilteredChildrenMap();
-  let commandChildrenMap: Map<string, CanvasSceneNode[]>;
-  if (filteredChildIds) {
-    commandChildrenMap = new Map();
+  //
+  // ADR-172 Phase 1.5: 이 재구축은 O(총 자식 수)이고 blit(카메라 전용) 프레임에도
+  // 매 rAF 돌았다 (실측 9,600 자식에서 p50 2.06ms — 60fps 예산 12%). 아래 builder 는
+  // 커맨드 스트림 캐시가 **miss 일 때만** 호출된다. 결과는 스트림과 같은 5중 키
+  // 엔트리에 동봉되므로 두 값의 세대가 갈리지 않는다.
+  const buildCommandChildrenMap = (): Map<string, CanvasSceneNode[]> => {
+    const filteredChildIds = getSharedFilteredChildrenMap();
+    if (!filteredChildIds) return rendererInput.childrenMap;
+    const commandChildrenMap = new Map<string, CanvasSceneNode[]>();
     const syntheticMap = getSyntheticElementsMap();
     for (const [parentId, childIds] of filteredChildIds) {
       const children: CanvasSceneNode[] = [];
@@ -269,13 +274,12 @@ function buildViaCommandStream(
       }
       commandChildrenMap.set(parentId, children);
     }
-  } else {
-    commandChildrenMap = rendererInput.childrenMap;
-  }
+    return commandChildrenMap;
+  };
 
-  const stream = getCachedCommandStream(
+  const { childrenMap: commandChildrenMap, stream } = getCachedCommandStream(
     rootElementIds,
-    commandChildrenMap,
+    buildCommandChildrenMap,
     sharedLayoutMap as Map<string, ComputedLayout>,
     bodyPagePositions,
     registryVersion,
