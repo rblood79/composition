@@ -1355,7 +1355,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "flex",
         flexDirection: "column",
+        // ADR-171 Phase 6 2b: CardPreview 와 같은 사유 — archetype base 의 center 를 덮는다.
+        alignItems: "stretch",
         width: "100%",
+        // origin 인라인에서 이관
+        gap: "8px",
       },
     },
   },
@@ -1398,6 +1402,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         alignItems: "center",
         justifyContent: "flex-end",
         width: "100%",
+        // ADR-171 Phase 6 2b: origin 인라인에서 이관
+        gap: "4px",
+        // paddingTop: "8px" 는 **이관 불가** — allowlist 에 4-way padding 키가 없고(shorthand
+        //   `padding` 만 지원), 있더라도 뒤따르는 sizes 블록의 `padding: 0px 0px` 가 덮는다.
+        //   CardPreview `height` 와 같은 사유로 인라인 존치.
       },
     },
   },
@@ -1439,6 +1448,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         flexDirection: "row",
         alignItems: "center",
         width: "100%",
+        // ADR-171 Phase 6 2b: origin 인라인에서 이관 (gap 4px — 제목과 action 사이)
+        gap: "4px",
       },
     },
   },
@@ -1478,7 +1489,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "flex",
         flexDirection: "column",
+        // ADR-171 Phase 6 2b: alignItems 는 archetype "simple" base 가 생성 CSS 에만 center 를
+        //   emit 하던 값이라 catalog(=Skia)에는 없었다 — 2a 로 CSS 채널이 열리자 DOM center ↔
+        //   Skia stretch 잠재 발산이 됐다. 채널이 끊겨 있던 동안의 두 소비자 실효값(stretch)을
+        //   명시해 base 를 덮는다. Phase 3 이 Card 본체에 한 처방과 동형.
+        alignItems: "stretch",
         width: "100%",
+        // origin 인라인에서 이관 (3자 대조: 인라인 = 실효 DOM = 이 값)
+        overflow: "hidden",
+        // height: "fit-content" 는 **이관 불가** — 생성기 `emitContainerStyles` allowlist 에
+        //   `height` 키가 없어 DOM 에 안 실린다(ADR-171 은 Generator 스키마를 확장하지 않는다).
+        //   catalog 에 두면 Skia 만 받아 역방향 발산이 되므로 인라인에 남긴다.
       },
     },
   },

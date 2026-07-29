@@ -434,6 +434,66 @@ Phase 5 가 "dead selector" 로 제외했던 추정이 실측으로 확정됐다
 - parity **931 GREEN**(33 files, `Form` 케이스 포함) · builder unit 신규 4 포함 GREEN · type-check PASS(baseline 53).
 - 무관 기존 실패 1건: `panelStylePropsUnion.static.test.ts` 의 `position` 누락 — 본 변경 전(stash)에도 동일 RED 이고 `feat(transform): Absolute Position toggle`(6a2a5107a) 소관이다.
 
+#### 2단계 — 전제가 틀렸다: `structure` 부여가 아니라 **클래스명 회귀**였다 (2026-07-29)
+
+구 2단계는 "이 5종에 `structure` 를 주면 생성 CSS 가 생겨 DOM 채널이 열린다" 를 전제로 했다. **실측하니 5종 모두 이미 `structure` 를 갖고 있고 생성 CSS 파일도 전부 존재한다**(각 80~87줄). 막힌 곳은 다른 데였다.
+
+| 층                 | 실제 값                                            | 결과                     |
+| ------------------ | -------------------------------------------------- | ------------------------ |
+| 생성 CSS selector  | `.react-aria-CardHeader`                           | —                        |
+| preview 렌더러     | `className="card-header"`                          | **영구 미매칭**          |
+| publish 레지스트리 | `createHtmlElementWithClass("div", "card-header")` | 동일                     |
+| `.card-*` 규칙     | 저장소 전체 **0건**                                | DOM 공급원 = 인라인 단독 |
+
+**회귀 경위**가 특정된다. `CardHeader.binding.ts:24` 가 계약을 명시해뒀다 — "INTERNAL_RENDERERS 미등록 → generic fallback 유지 → `react-aria-CardHeader` className + data-size 보존". 그런데 2026-06-24 에 **자식 미렌더**(Heading/Image 누락, Skia↔Preview 비대칭)를 고치려고 `renderFacetDeclaration.ts` 에 Card 패밀리 5종을 delegating 등록했고, 그 순간 live path 가 전용 렌더러로 바뀌면서 kebab 클래스가 계약을 덮었다. **정당한 수정이 다른 채널을 떨어뜨린 형태**이고, `.card-*` 를 잡는 CSS 가 0건이라 아무 테스트도 red 가 되지 않았다. Phase 2 의 "selector 가 DOM 에 없는 dead CSS" 판정은 이 회귀의 **결과를 원인으로 읽은 것**이다.
+
+**클래스 규약은 레퍼런스에서 오지 않는다** (2026-07-29 대조):
+
+| 구현체 | Card 조합                                                | 스타일 채널                       |
+| ------ | -------------------------------------------------------- | --------------------------------- |
+| RAC    | Card **없음**                                            | `react-aria-{Type}` 기본 class    |
+| RSP S2 | `Card > CardPreview / Content / Footer` · `density` prop | `style()` 매크로 — **class 없음** |
+| SWC    | `<sp-card>` + 슬롯(`heading`/`cover-photo`/`footer`/…)   | `--spectrum-card-*` custom prop   |
+
+`react-aria-{Type}` 은 RAC 에서 온 **composition house convention** 이고 생성기·`Card.tsx:164`·`CanonicalNodeRenderer` generic fallback 이 모두 그것을 쓴다. 그래서 이 축은 SSOT scope 결정이 아니라 **규약 위반 수정**이다 — 클래스는 스타일 채널(D3)이지 DOM 구조(D1)나 props(D2)가 아니다.
+
+> **별개 축으로 남는 것**: S2 정본은 `CardHeader` 가 **없고**(제목은 `Content` 안 `Text slot="title"`), 섹션 spacing 은 `density` prop 이 Card 에서 정한다. composition 은 `CardContent`/`CardFooter` 이름도 S2 의 `Content`/`Footer` 와 다르고 `density` 는 저장소 전체 0건이다. 이 재편은 D1/D2 와 저장 문서 type 마이그레이션을 포함하므로 ADR-171 §Context 의 "D3 단일" 선언 밖이다 — 후속 ADR 대상.
+
+##### 2a — 채널 복구
+
+- `LayoutRenderers.cardSlotChrome()` 신설 — 4 렌더러가 `react-aria-{Type}` + `data-size`(기본 md, 사용자 className 병기)를 낸다. publish `ComponentRegistry` 4건도 같은 값으로 맞췄다(두 소비자 대칭).
+- `index.css` 에 생성 CSS 4개 import. 실측 — preview 번들에서 매칭 규칙 **0 → 52개**.
+- **가드**: `packages/shared/src/renderers/__tests__/cardSlotClassContract.test.ts` 12 케이스. 잠그는 것은 클래스 문자열이 아니라 "생성 CSS 와 렌더러가 같은 selector 를 본다" 는 계약이다 — 이 회귀가 **아무 테스트도 red 로 만들지 않는 형태**였기 때문. 민감도: CardHeader 하나만 kebab 으로 되돌리면 3 RED.
+- `data-size` 는 Skia 와 갈리지 않는다 — Card 가 `size` 를 Header/Content/Footer 에 propagation(`override: true`, `propagationRegistry.ts`)하므로 두 채널이 같은 값을 읽는다.
+
+##### 2b — catalog 이관 + 인라인 제거
+
+채널을 잇자 **2a 가 만든 잠재 발산**이 드러났다: archetype `simple` base 가 생성 CSS 에만 `align-items: center` 를 emit 하는데 catalog(=Skia)에는 없어, CardPreview/CardContent 가 DOM center ↔ Skia stretch 가 됐다(자식이 `width:100%` 라 오늘 시각 영향은 0). 채널이 끊겨 있던 동안의 두 소비자 실효값인 `stretch` 를 catalog 에 명시해 base 를 덮었다 — Phase 3 이 Card 본체에 한 처방과 동형.
+
+| 종          | catalog 로 이관                                                 | 인라인 존치          | 존치 사유                                                 |
+| ----------- | --------------------------------------------------------------- | -------------------- | --------------------------------------------------------- |
+| CardPreview | display·flexDirection·width·overflow·**alignItems**             | `height:fit-content` | 생성기 allowlist 에 `height` 없음                         |
+| CardHeader  | display·flexDirection·alignItems·width·**gap 4**                | —                    | 인라인 0                                                  |
+| CardContent | display·flexDirection·width·**alignItems**·**gap 8**            | —                    | 인라인 0                                                  |
+| CardFooter  | display·flexDirection·alignItems·justifyContent·width·**gap 4** | `paddingTop:8px`     | allowlist 에 4-way padding 없고 sizes `padding:0` 이 덮음 |
+
+**존치 2키는 catalog 에 넣으면 오히려 해롭다** — `emitContainerStyles` 는 명시적 allowlist 이고(`padding` shorthand·`maxHeight` 는 있으나 `paddingTop`·`height` 는 없음) ADR-171 은 §Context 에서 Generator 스키마를 확장하지 않는다고 선언했다. catalog 에 두면 Skia 만 받는 **역방향 발산**이 된다. 인라인은 두 채널에 같이 실리므로 그 2키의 유일한 무발산 거처다.
+
+##### 2단계 검증 — 두 채널 계측 대조
+
+| 종          | 실효 DOM (`getComputedStyle`)                       | Skia (`resolveContainerStylesFallback`) |
+| ----------- | --------------------------------------------------- | --------------------------------------- |
+| CardPreview | `flex · column · stretch · w100% · overflow hidden` | 동일                                    |
+| CardHeader  | `flex · row · center · w100% · gap 4`               | 동일                                    |
+| CardContent | `flex · column · stretch · w100% · gap 8`           | 동일                                    |
+| CardFooter  | `flex · row · center · flex-end · w100% · gap 4`    | 동일                                    |
+
+`CardFooter` 의 `padding-top` 은 DOM 에서 **0** 으로 나온다 — 위 "이관 불가" 가 실측으로 확인된 지점이고, 인라인이 그 값을 공급한다.
+
+- parity **931 GREEN** · `cardSlotClassContract` 12 · `cardTemplateOrigins`+`factoryInlineDirtyBaseline` 21 GREEN.
+- **미결**: type-check 가 이 시점에 1건 FAIL 인데 `stores/elements.ts`(사용자 병렬 drag 작업)의 `TS2322` 이고 본 변경과 무관하다. 2단계 파일만으로는 위반 0.
+- 2a 코드 4파일은 사용자의 병렬 커밋 `e7ceb2df6`(메시지는 drag-drop)에 함께 실려 push 됐다 — 내용은 온전하나 커밋 메시지로는 추적되지 않으므로 여기에 귀속을 남긴다.
+
 ## 4. 실측 근거 (2026-07-28)
 
 | 측정              | 방법                                                           | 결과                                                         |
@@ -466,4 +526,4 @@ Phase 5 가 "dead selector" 로 제외했던 추정이 실측으로 확정됐다
 - [x] **Phase 5 — parity fixture 신설 (G3 PASS, 2026-07-29)** — `catalogComponentBox.browser.test.ts` 15 케이스(전체 918→933). Phase 3 되돌림 시 6종 중 5종 RED. 잔존 6종은 Phase 3-b(생성기 규칙 미러)로 분리
 - [x] **Phase 3-b — size 축 게이트를 생성기 규칙 미러로 교체 (2026-07-29)** — `structure` 보유 시 `ownsContainerBox`/`skipPadding`/`skipGap` 미러, 부재 시 Phase 3 게이트 유지(수동 CSS 축). Toolbar/Form 과잉 · TabPanel 미도달 · ListBox borderWidth 해소, A/B 29종 회귀 0. Checkbox/RadioGroup 은 오진(synthetic wrapper)으로 판정
 - [x] **Phase 4 — factory 인라인 제거 + baseline 미러 동시 정리 (G4 PASS, 2026-07-29)** — 3자 대조로 제거 대상은 6종 15선언(22종 71선언 중). 나머지는 DOM 채널 부재 7종 / catalog 미보유 4종 / 3자 불일치 7종으로 **유지 사유가 각각 다르다**. 라이브 A/B 29요소 byte-identical. 양방향 baseline 계약 테스트 신설
-- [ ] Phase 6 — components 페이지 정리 + live 확인 (G5) — **현황 조사 + 순서 점검 완료 (2026-07-29)**: 인라인 13노드 41키 중 DUP 25 · UNIQUE 16 · **MASK 0**. 재저작이 아니라 "중복 제거 + catalog 결손 판정". 구 1단계(실효 DOM 실측)는 선실행해 종결 — Card·Form 본체 13키는 3자 일치(제거 가능), Card 하위 부품 4종 + FormField 는 DOM 채널 부재로 16키가 **CSS 채널 판정 하나에 묶인다**. 순서 4단계로 정정 (§순서 점검). **1단계 완료 (2026-07-29)** — Card·Form origin 8선언(live 13키) 제거 + 미러 동시 정리, 프로젝트 2개 A/B 9/9 byte-identical, dirty 뱃지 0. 잔여 = 2단계(Card 하위 부품 4종 + FormField 의 CSS 채널 판정 — 16키가 이 판정 하나에 묶임) · 3단계(텍스트 leaf `display:block` 4키) · 4단계(G5)
+- [ ] Phase 6 — components 페이지 정리 + live 확인 (G5) — **현황 조사 + 순서 점검 완료 (2026-07-29)**: 인라인 13노드 41키 중 DUP 25 · UNIQUE 16 · **MASK 0**. 재저작이 아니라 "중복 제거 + catalog 결손 판정". 구 1단계(실효 DOM 실측)는 선실행해 종결 — Card·Form 본체 13키는 3자 일치(제거 가능), Card 하위 부품 4종 + FormField 는 DOM 채널 부재로 16키가 **CSS 채널 판정 하나에 묶인다**. 순서 4단계로 정정 (§순서 점검). **1·2단계 완료 (2026-07-29)** — Card·Form origin 8선언(live 13키) 제거 + 미러 동시 정리, 프로젝트 2개 A/B 9/9 byte-identical, dirty 뱃지 0. 2단계는 전제가 틀렸다 — `structure` 부여가 아니라 **클래스명 회귀**(2026-06-24 delegating 등록이 `react-aria-{Type}` 계약을 kebab 으로 덮음)였고, 채널 복구(2a) + catalog 이관(2b)으로 두 채널 계측 일치. 존치 2키(`height:fit-content`/`paddingTop`)는 생성기 allowlist 미보유라 인라인이 유일한 무발산 거처. **FormField 는 미착수** (전용 렌더러 없음 + catalog `containerStyles: undefined` — 클래스 문제가 아니라 catalog 결손). 잔여 = FormField · 3단계(텍스트 leaf `display:block` 4키) · 4단계(G5)

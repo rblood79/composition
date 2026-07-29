@@ -72,12 +72,13 @@ function cardOriginChildren(): CanonicalNode[] {
       name: "Preview",
       props: {
         slot: "preview",
+        // ADR-171 Phase 6 2b: display/flexDirection/width/overflow 는 catalog CardPreview
+        //   containerStyles 로 이관. `height:"fit-content"` 만 남는데, 생성기
+        //   `emitContainerStyles` allowlist 에 `height` 키가 없어 catalog 에 두면 Skia 만
+        //   받는 역방향 발산이 되기 때문이다(ADR-171 은 Generator 스키마 미확장). 인라인은
+        //   두 채널에 같이 실리므로 여기가 유일한 무발산 거처다.
         style: {
-          display: "flex",
-          flexDirection: "column",
-          width: "100%",
           height: "fit-content",
-          overflow: "hidden",
         },
       },
       metadata: {
@@ -111,14 +112,9 @@ function cardOriginChildren(): CanonicalNode[] {
       type: "CardHeader",
       name: "Header",
       props: {
+        // ADR-171 Phase 6 2b: layout 5키 전부 catalog CardHeader containerStyles 로 이관
+        //   (display/flexDirection/alignItems/gap/width) — 두 채널이 catalog 에서 받는다.
         slot: "header",
-        style: {
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "center",
-          gap: "4px",
-          width: "100%",
-        },
       },
       metadata: {
         type: "card-origin-child",
@@ -155,13 +151,10 @@ function cardOriginChildren(): CanonicalNode[] {
       type: "CardContent",
       name: "Content",
       props: {
+        // ADR-171 Phase 6 2b: layout 4키 전부 catalog CardContent containerStyles 로 이관.
+        //   alignItems 는 catalog 에 `stretch` 를 명시했다 — archetype base 가 생성 CSS 에만
+        //   center 를 emit 해 2a 직후 DOM↔Skia 잠재 발산이었다.
         slot: "content",
-        style: {
-          display: "flex",
-          flexDirection: "column",
-          gap: "8px",
-          width: "100%",
-        },
       },
       metadata: {
         type: "card-origin-child",
@@ -196,13 +189,11 @@ function cardOriginChildren(): CanonicalNode[] {
       name: "Footer",
       props: {
         slot: "footer",
+        // ADR-171 Phase 6 2b: display/flexDirection/alignItems/justifyContent/gap/width 는
+        //   catalog CardFooter 로 이관. `paddingTop` 만 남는다 — allowlist 에 4-way padding 키가
+        //   없고, 있더라도 뒤따르는 sizes 블록의 `padding: 0px 0px` 가 덮는다(CardPreview
+        //   `height` 와 같은 사유).
         style: {
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "flex-end",
-          gap: "4px",
-          width: "100%",
           paddingTop: "8px",
         },
       },

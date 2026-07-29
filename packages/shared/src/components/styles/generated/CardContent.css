@@ -13,9 +13,11 @@
     box-sizing: border-box;
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  gap: 8px;
   width: 100%;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
 
   /* Default size */
   height: auto;
