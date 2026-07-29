@@ -17,10 +17,22 @@ import {
  * R-5 의 중첩 조합 트리 처리를 검증하는 두 번째 proof — children 트리가 자식의 children 까지
  * 무손실로 origin 문서에 담기는지 확인한다.
  *
- * 종전 `createFormDefinition`(factory 코드)이 매 palette-add 마다 2단 중첩 트리를 하드코딩
+ * 종전 `createFormDefinition`(factory 코드)이 매 palette-add 마다 조합 트리를 하드코딩
  * 생성하던 seam 을 제거하고, 그 조합 트리를 본 reusable origin 1벌로 옮긴다. palette-add 는
  * `REUSABLE_COMPOSITE_ORIGINS` 레지스트리(데이터)를 보고 `type:"ref"` instance 만 생성한다 —
  * 신규 조합 추가 = origin 문서 + 레지스트리 1줄 (factory 코드 변경 0).
+ *
+ * **ADR-171 Phase 6 (2026-07-29) — 조합을 레퍼런스 모양으로 되돌렸다.**
+ * 구 트리는 `Form > Heading + Description + FormField×2 > (Label + TextField)` 였는데,
+ * `FormField` 는 어느 레퍼런스에도 없는 composition 자체 추상이다(`FormField.binding.ts` 가
+ * "RAC/starter 전용 컴포넌트 없음" 이라고 스스로 밝힌다). 게다가 `Label` 요소와 `TextField`
+ * 의 `label` prop 이 **둘 다** 렌더돼 라벨이 두 겹이었다("Field Label" 아래 "Text Field").
+ *
+ * RAC/RSP 는 필드를 Form 직계 자식으로 두고 Label↔입력 묶음은 필드 컴포넌트가 소유한다:
+ *   `<Form><TextField label="Name" …/><TextField label="Email" …/><버튼 행/></Form>`
+ * 그대로 따라 `Form > TextField×2 + ButtonGroup` 으로 재구성했다. 버튼 행은 composition 의
+ * `ButtonGroup`(factory 정본 = Cancel outline / Save accent)이 RAC 예제의 `<div>` 자리를 맡는다.
+ * 없어진 래퍼와 함께 그 인라인 layout 4키(FormField)도 사라져 ADR-171 이관 대상에서 빠진다.
  *
  * 선례: `toolbarTemplateOrigins.ts`(R-5 첫 proof) — origin seed + strip + ensure (멱등) 패턴 동형.
  */
@@ -41,52 +53,59 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * 자식(Label+TextField)을 가진 **2단 중첩** — R-5 중첩 조합 검증 대상.
  */
 function formOriginChildren(): CanonicalNode[] {
-  const formField = (childIndex: number, labelText: string): CanonicalNode => ({
-    id: `${FORM_ORIGIN_ID}__field-${childIndex}`,
-    // FormField 는 childSpec sub-part 라 `ComponentTag` union 비멤버(의도된 정책 —
-    // composition-vocabulary.ts:20 "child sub-part spec 은 union 비멤버"). R5 catalog
-    // cutover(2026-06-15)로 런타임 유효 type 이며 catalog 등록(primitiveEntry "FormField")됨.
-    // origin 문서의 1급 노드로 담으려면 union 정책 보존을 위해 캐스팅(Toolbar body 선례 동형).
-    type: "FormField" as CanonicalNode["type"],
-    name: "FormField",
+  const textField = (
+    index: number,
+    label: string,
+    type: string,
+    placeholder: string,
+  ): CanonicalNode => ({
+    id: `${FORM_ORIGIN_ID}__field-${index}`,
+    type: "TextField",
+    name: `TextField/${label}`,
     props: {
-      style: {
-        display: "flex",
-        flexDirection: "column",
-        gap: "4px",
-        width: "100%",
-      },
+      label,
+      name: "",
+      description: "",
+      errorMessage: "",
+      placeholder,
+      value: "",
+      type,
+      size: "md",
+      labelPosition: "top",
+      isRequired: true,
+      isDisabled: false,
+      isReadOnly: false,
+      isInvalid: false,
+      style: { width: "100%" },
     },
+    // `createTextFieldDefinition`(FormComponents.ts) 자식 트리 미러. TextField 는 leaf 가 아니라
+    //   Label + Input(+ FieldError) 를 **자식 Element** 로 갖는 조합이라, 자식 없이 저작하면
+    //   캔버스에 라벨만 그려지고 입력 박스가 없다. 구 origin 도 자식 0이라 같은 상태였는데
+    //   FormField 안의 별도 Label 이 필드처럼 보이게 가리고 있었다(ADR-171 Phase 6).
     children: [
       {
-        id: `${FORM_ORIGIN_ID}__field-${childIndex}-label`,
+        id: `${FORM_ORIGIN_ID}__field-${index}-label`,
         type: "Label",
-        name: `Label/${labelText}`,
+        name: `Label/${label}`,
         props: {
-          children: labelText,
+          children: label,
+          style: { width: "fit-content", fontWeight: 600 },
         },
-        metadata: {
-          type: "form-origin-child",
-          systemOwned: true,
-        },
+        metadata: { type: "form-origin-child", systemOwned: true },
       },
       {
-        id: `${FORM_ORIGIN_ID}__field-${childIndex}-input`,
-        type: "TextField",
-        name: "TextField",
-        props: {
-          label: "Text Field",
-          placeholder: "Enter value...",
-          value: "",
-          type: "text",
-          isRequired: false,
-          isDisabled: false,
-          isReadOnly: false,
-        },
-        metadata: {
-          type: "form-origin-child",
-          systemOwned: true,
-        },
+        id: `${FORM_ORIGIN_ID}__field-${index}-input`,
+        type: "Input",
+        name: "Input",
+        props: { type, placeholder, style: { width: "100%" } },
+        metadata: { type: "form-origin-child", systemOwned: true },
+      },
+      {
+        id: `${FORM_ORIGIN_ID}__field-${index}-error`,
+        type: "FieldError",
+        name: "FieldError",
+        props: { children: "", style: { fontSize: 12, display: "none" } },
+        metadata: { type: "form-origin-child", systemOwned: true },
       },
     ],
     metadata: {
@@ -95,46 +114,51 @@ function formOriginChildren(): CanonicalNode[] {
     },
   });
 
+  const button = (
+    index: number,
+    text: string,
+    variant: string,
+    fillStyle: string,
+  ): CanonicalNode => ({
+    id: `${FORM_ORIGIN_ID}__action-${index}`,
+    type: "Button",
+    name: `Button/${text}`,
+    props: { children: text, variant, fillStyle, size: "md" },
+    metadata: {
+      type: "form-origin-child",
+      systemOwned: true,
+    },
+  });
+
   return [
+    textField(1, "Name", "text", "Enter your full name"),
+    textField(2, "Email", "email", "Enter your email"),
     {
-      id: `${FORM_ORIGIN_ID}__heading`,
-      type: "Heading",
-      name: "Heading/Form Title",
+      id: `${FORM_ORIGIN_ID}__actions`,
+      type: "ButtonGroup",
+      name: "ButtonGroup",
+      // createButtonGroupDefinition(DisplayComponents.ts) 의 parent props 미러 —
+      //   layout 은 catalog ButtonGroup 이 아직 채우지 않아 인라인이 두 채널 공급원이다.
       props: {
-        children: "Form Title",
-        level: 3,
-        // fontSize 미주입 — catalog Heading specStyle(16px)이 SSOT. 종전 inline 18px 은 catalog 와
-        //   어긋나 false dirty(Typography reset/modify 오활성, 2026-06-24). display:block / fontWeight:600
-        //   은 catalog specStyle 과 일치하므로 유지.
+        size: "md",
+        orientation: "horizontal",
+        align: "end",
         style: {
-          display: "block",
-          fontWeight: "600",
+          display: "flex",
+          flexDirection: "row",
+          gap: 8,
+          width: "fit-content",
         },
       },
+      children: [
+        button(1, "Cancel", "secondary", "outline"),
+        button(2, "Save", "accent", "fill"),
+      ],
       metadata: {
         type: "form-origin-child",
         systemOwned: true,
       },
     },
-    {
-      id: `${FORM_ORIGIN_ID}__description`,
-      type: "Description",
-      name: "Description",
-      props: {
-        children: "",
-        // fontSize 미주입 — catalog Description specStyle(12px)이 SSOT. 종전 inline 14px 은 catalog 와
-        //   어긋나 false dirty(2026-06-24). display:block 은 catalog 와 일치하므로 유지.
-        style: {
-          display: "block",
-        },
-      },
-      metadata: {
-        type: "form-origin-child",
-        systemOwned: true,
-      },
-    },
-    formField(1, "Field Label"),
-    formField(2, "Another Field"),
   ];
 }
 

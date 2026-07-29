@@ -97,6 +97,44 @@ describe("project export canonical CompositionDocument payload", () => {
     ]);
   });
 
+  it("preserves fractional absolute offsets in the publish render model", () => {
+    const documentWithFractionalOffsets: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-home",
+          type: "frame",
+          name: "Home",
+          children: [
+            {
+              id: "absolute-button",
+              type: "Button",
+              props: {
+                style: {
+                  position: "absolute",
+                  left: "60.123px",
+                  top: "45.678px",
+                },
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    const renderModel = deriveProjectRenderModelFromDocument(
+      documentWithFractionalOffsets,
+      projectId,
+      "page-home",
+    );
+
+    expect(renderModel.elements[0]?.props.style).toEqual({
+      position: "absolute",
+      left: "60.123px",
+      top: "45.678px",
+    });
+  });
+
   it("carries CanonicalNode.responsive into the derived runtime element (ADR-154)", () => {
     const docWithResponsive: CompositionDocument = {
       version: "composition-1.0",

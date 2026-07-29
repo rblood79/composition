@@ -143,4 +143,34 @@ describe("PropertyUnitInput numeric editing", () => {
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith("24%");
   });
+
+  it.each(["Enter", "blur"] as const)(
+    "clears an optional positioned offset on %s",
+    (commitMethod) => {
+      const onChange = vi.fn();
+
+      useStore.setState({ selectedElementId: "element-1" } as never);
+      render(
+        <PropertyUnitInput
+          label="Left"
+          value="24px"
+          units={["px", "%", "vw"]}
+          allowEmptyReset
+          onChange={onChange}
+        />,
+      );
+
+      const input = screen.getByRole("combobox", { name: "Left" });
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: "" } });
+      if (commitMethod === "Enter") {
+        fireEvent.keyDown(input, { key: "Enter" });
+      } else {
+        fireEvent.blur(input);
+      }
+
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(onChange).toHaveBeenCalledWith("");
+    },
+  );
 });

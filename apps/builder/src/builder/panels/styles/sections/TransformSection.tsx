@@ -182,8 +182,8 @@ const TransformSectionContent = memo(function TransformSectionContent() {
         bundle.position.specDefault,
         "static",
       ),
-      top: toStr(bundle.top.inline, bundle.top.specDefault, "auto"),
-      left: toStr(bundle.left.inline, bundle.left.specDefault, "auto"),
+      top: toStr(bundle.top.inline, bundle.top.specDefault),
+      left: toStr(bundle.left.inline, bundle.left.specDefault),
       minWidth: toStr(bundle.minWidth.inline, bundle.minWidth.specDefault),
       maxWidth: toStr(bundle.maxWidth.inline, bundle.maxWidth.specDefault),
       minHeight: toStr(bundle.minHeight.inline, bundle.minHeight.specDefault),
@@ -315,6 +315,7 @@ const TransformSectionContent = memo(function TransformSectionContent() {
 
   if (!styleValues) return null;
 
+  const isAbsolutePositioned = styleValues.position === "absolute";
   const displayWidth =
     styleValues.isBody && styleValues.width === "auto"
       ? String(canvasSize.width)
@@ -489,8 +490,12 @@ const TransformSectionContent = memo(function TransformSectionContent() {
           icon={ArrowRightFromLine}
           label="Left"
           className="left"
-          value={styleValues.left}
-          units={["reset", "px", "%", "vh", "vw"]}
+          value={isAbsolutePositioned ? styleValues.left : "auto"}
+          units={["px", "%", "vw"]}
+          preserveEmptyValueOnUnitChange
+          allowEmptyReset
+          isDisabled={!isAbsolutePositioned}
+          placeholder="auto"
           onChange={(value) => updateStyleImmediate("left", value)}
           onDrag={(value) => updateStylePreview("left", value)}
           min={-9999}
@@ -500,8 +505,12 @@ const TransformSectionContent = memo(function TransformSectionContent() {
           icon={ArrowDownFromLine}
           label="Top"
           className="top"
-          value={styleValues.top}
-          units={["reset", "px", "%", "vh", "vw"]}
+          value={isAbsolutePositioned ? styleValues.top : "auto"}
+          units={["px", "%", "vh"]}
+          preserveEmptyValueOnUnitChange
+          allowEmptyReset
+          isDisabled={!isAbsolutePositioned}
+          placeholder="auto"
           onChange={(value) => updateStyleImmediate("top", value)}
           onDrag={(value) => updateStylePreview("top", value)}
           min={-9999}

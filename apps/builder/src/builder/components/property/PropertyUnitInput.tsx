@@ -32,6 +32,10 @@ interface PropertyUnitInputProps {
    * 숫자가 입력될 때까지 선택 단위를 로컬 draft로 유지한다.
    */
   preserveEmptyValueOnUnitChange?: boolean;
+  /** 빈 입력을 inline style 제거로 커밋한다. */
+  allowEmptyReset?: boolean;
+  isDisabled?: boolean;
+  placeholder?: string;
   min?: number;
   max?: number;
 }
@@ -95,6 +99,9 @@ export const PropertyUnitInput = memo(
     defaultUnit = "",
     allowKeywords = true,
     preserveEmptyValueOnUnitChange = false,
+    allowEmptyReset = false,
+    isDisabled = false,
+    placeholder = "reset",
     min = 0,
     max = 9999,
   }: PropertyUnitInputProps) {
@@ -203,6 +210,15 @@ export const PropertyUnitInput = memo(
       const trimmed = inputValue.trim();
       const resolved =
         INPUT_LABEL_TO_KEYWORD[trimmed.toLowerCase()] ?? trimmed.toLowerCase();
+
+      if (allowEmptyReset && trimmed === "") {
+        if (lastSavedValueRef.current !== "") {
+          lastSavedValueRef.current = "";
+          onChange("");
+        }
+        focusedElementIdRef.current = null;
+        return;
+      }
 
       if (allowKeywords && KEYWORDS.includes(resolved)) {
         const keyword = resolved;
@@ -316,7 +332,13 @@ export const PropertyUnitInput = memo(
           trimmed.toLowerCase();
         let shouldSave = false;
 
-        if (allowKeywords && KEYWORDS.includes(resolved)) {
+        if (allowEmptyReset && trimmed === "") {
+          if (lastSavedValueRef.current !== "") {
+            lastSavedValueRef.current = "";
+            onChange("");
+            shouldSave = true;
+          }
+        } else if (allowKeywords && KEYWORDS.includes(resolved)) {
           const keyword = resolved;
           const newVal = keyword === "reset" ? "" : keyword;
           if (newVal !== value) {
@@ -388,6 +410,7 @@ export const PropertyUnitInput = memo(
           <AriaComboBox
             className="react-aria-ComboBox react-aria-UnitComboBox"
             ref={comboBoxRef}
+            isDisabled={isDisabled}
             inputValue={unit === "" ? "—" : unit}
             onSelectionChange={(key) => {
               if (key !== null) {
@@ -416,7 +439,7 @@ export const PropertyUnitInput = memo(
                 onBlur={handleInputBlur}
                 onKeyDown={handleKeyDown}
                 aria-label={label || "Value"}
-                placeholder="reset"
+                placeholder={placeholder}
               />
               <Button className="react-aria-Button">
                 <ChevronDown size={iconProps.size} />
@@ -454,6 +477,9 @@ export const PropertyUnitInput = memo(
       prevProps.min === nextProps.min &&
       prevProps.max === nextProps.max &&
       prevProps.allowKeywords === nextProps.allowKeywords &&
+      prevProps.allowEmptyReset === nextProps.allowEmptyReset &&
+      prevProps.isDisabled === nextProps.isDisabled &&
+      prevProps.placeholder === nextProps.placeholder &&
       prevProps.preserveEmptyValueOnUnitChange ===
         nextProps.preserveEmptyValueOnUnitChange &&
       JSON.stringify(prevProps.units) === JSON.stringify(nextProps.units)

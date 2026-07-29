@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Box Shadow의 `Inset shadow`와 같은 `SwatchIconToggleButton` 패턴을 사용하며, 활성화 시 `position: absolute`, 비활성화 시 `position` 선언만 제거
 - flex/inline-flex 자식에서 토글을 활성화하면 현재 scene x/y를 parent-local `Left`/`Top`으로 캡처해 flow에서 빠진 뒤에도 시각적 위치를 유지하고, 비활성화 시에는 offset을 보존
 - Transform reset/dirty 및 responsive style eligibility에 `position`을 포함
+- `Left` 단위는 `px / % / vw`, `Top` 단위는 `px / % / vh`만 노출하고 unit selector의 `reset` action을 제거
+- Absolute 해제 상태에서는 `Left`/`Top`을 `auto`로 비활성 표시하되 저장된 offset은 보존하고, Absolute 상태에서 입력을 비우면 해당 inline offset만 제거
 
 ### Bug Fixes
 
@@ -46,6 +48,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pencil과 동일하게 Absolute 활성화만으로는 현재 Group/Frame/Container 레이어를 유지하고, 빈 canvas 영역으로 드롭할 때만 canonical Page Body의 첫 번째 직계 자식으로 승격해 Layers 최상단에 배치
 - Body 승격은 기존 destination-local `Left`/`Top` 변환과 history transaction을 재사용해 화면 위치를 유지하고 Undo 한 번으로 원래 레이어에 복귀
 - 일반 flow 요소를 reorder할 때 Absolute sibling을 placeholder와 sibling animation의 flow 계산에서 제외해 `Left`/`Top` 좌표에 고정
+
+### Verification
+
+- Transform/PropertyUnitInput/reset targeted Vitest 3 files, 85 tests PASS
+- Builder browser: `Left`를 `24`로 설정한 뒤 Absolute 해제 시 `auto` disabled 표시, 재활성화 시 `24` 복원 확인
+- Builder browser: Left unit `px / % / vw`, Top unit `px / % / vh`, 빈 입력 Enter의 inline offset 제거 확인
+- Publish render model과 standalone HTML payload가 fractional Absolute offset(`left: 60.123px`, `top: 45.678px`)을 반올림하거나 숫자로 강제 변환하지 않고 보존하는 회귀 테스트 추가
+- `pnpm run codex:preflight` PASS
 
 ## [Button icon picker 중첩 버튼 오류 수정] - 2026-07-29
 

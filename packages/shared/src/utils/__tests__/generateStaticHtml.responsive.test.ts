@@ -71,4 +71,40 @@ describe("generateStaticHtml — responsive @media", () => {
     expect(plainHtml).not.toContain("!important");
     expect(plainHtml).not.toContain('[data-element-id="el-plain"]');
   });
+
+  it("fractional Absolute offset을 standalone publish payload에 그대로 보존", () => {
+    const fractional: CompositionDocument = {
+      version: 1,
+      children: [
+        {
+          id: "page-1",
+          type: "page",
+          name: "Home",
+          metadata: { type: "page", pageRole: "page" },
+          children: [
+            {
+              id: "absolute-button",
+              type: "Button",
+              props: {
+                style: {
+                  position: "absolute",
+                  left: "60.123px",
+                  top: "45.678px",
+                },
+              },
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const fractionalHtml = generateStaticHtml(
+      "p",
+      "Fractional Absolute",
+      fractional,
+    );
+
+    expect(fractionalHtml).toContain('"left":"60.123px"');
+    expect(fractionalHtml).toContain('"top":"45.678px"');
+  });
 });

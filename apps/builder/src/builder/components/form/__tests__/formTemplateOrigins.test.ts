@@ -62,35 +62,58 @@ describe("ADR-912 R-5 Form reusable composite origin (2단 중첩)", () => {
       }),
     });
 
-    // 조합 자식 = Heading + Description + FormField×2 (종전 createFormDefinition 1:1)
+    // ADR-171 Phase 6: 조합 자식 = TextField×2 + ButtonGroup (RAC/RSP Form 예제 1:1).
+    //   구 트리(Heading + Description + FormField×2)의 FormField 는 어느 레퍼런스에도 없는
+    //   composition 자체 추상이었고, Label 요소와 TextField.label 이 둘 다 렌더돼 라벨이
+    //   두 겹이었다. 레퍼런스는 필드를 Form 직계 자식으로 두고 Label 은 필드가 소유한다.
     const children = origin?.children ?? [];
-    const types = children.map((c) => c.type);
-    expect(types).toEqual(["Heading", "Description", "FormField", "FormField"]);
-
-    const heading = children.find((c) => c.type === "Heading");
-    expect((heading?.props as { children?: string }).children).toBe(
-      "Form Title",
-    );
+    expect(children.map((c) => c.type)).toEqual([
+      "TextField",
+      "TextField",
+      "ButtonGroup",
+    ]);
   });
 
-  it("preserves the 2-level nested tree (FormField > Label + TextField) intact", () => {
+  it("라벨은 TextField.label 이 소유하고 별도 Label 요소를 두지 않는다", () => {
     const doc = ensureFormTemplateOrigins(makeDocument());
     const origin = findById(doc.children, FORM_ORIGIN_ID);
-    // FormField 는 childSpec 라 ComponentTag union 비멤버 → string 비교로 좁힘
     const fields = (origin?.children ?? []).filter(
-      (c) => (c.type as string) === "FormField",
+      (c) => (c.type as string) === "TextField",
     );
-    expect(fields).toHaveLength(2);
-
-    // 각 FormField 가 2단 중첩(Label + TextField)을 무손실 보존
-    const labels: string[] = [];
-    for (const field of fields) {
-      const inner = field.children ?? [];
-      expect(inner.map((c) => c.type)).toEqual(["Label", "TextField"]);
-      const label = inner.find((c) => c.type === "Label");
-      labels.push((label?.props as { children?: string }).children ?? "");
+    expect(fields.map((f) => (f.props as { label?: string }).label)).toEqual([
+      "Name",
+      "Email",
+    ]);
+    // TextField 는 leaf 가 아니라 Label + Input(+FieldError) 를 자식 Element 로 갖는 조합이다
+    //   (`createTextFieldDefinition` 미러). 자식 없이 저작하면 캔버스에 라벨만 그려지고 입력
+    //   박스가 없다 — 구 origin 이 그 상태였고, FormField 안의 별도 Label 이 그것을 가렸다.
+    for (const f of fields) {
+      expect((f.children ?? []).map((c) => c.type)).toEqual([
+        "Label",
+        "Input",
+        "FieldError",
+      ]);
     }
-    expect(labels).toEqual(["Field Label", "Another Field"]);
+    // 라벨 문구는 TextField.label 과 자식 Label 이 같은 값 — 구 트리처럼 서로 다른 문구가
+    //   두 겹으로 보이지 않는다("Field Label" 위에 "Text Field").
+    for (const f of fields) {
+      const inner = (f.children ?? []).find((c) => c.type === "Label");
+      expect((inner?.props as { children?: string }).children).toBe(
+        (f.props as { label?: string }).label,
+      );
+    }
+  });
+
+  it("버튼 행은 ButtonGroup(Cancel/Save)이 맡는다 — RAC 예제의 <div> 자리", () => {
+    const doc = ensureFormTemplateOrigins(makeDocument());
+    const origin = findById(doc.children, FORM_ORIGIN_ID);
+    const group = (origin?.children ?? []).find(
+      (c) => (c.type as string) === "ButtonGroup",
+    );
+    expect(group?.children?.map((c) => c.type)).toEqual(["Button", "Button"]);
+    expect(
+      group?.children?.map((c) => (c.props as { children?: string }).children),
+    ).toEqual(["Cancel", "Save"]);
   });
 
   it("is idempotent — re-running produces identical content (no duplicate origins)", () => {

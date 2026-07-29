@@ -103,6 +103,91 @@ describe("TransformSection sizing controls", () => {
     ).toBeNull();
   });
 
+  it("offers only axis-relevant offset units without reset actions", async () => {
+    setTestElements([
+      {
+        id: "button-1",
+        type: "Button",
+        parent_id: "frame-1",
+        props: {
+          style: {
+            position: "absolute",
+            left: "24px",
+            top: "12px",
+          },
+        },
+      } as Element,
+      {
+        id: "frame-1",
+        type: "Frame",
+        parent_id: null,
+        props: { style: { display: "flex", flexDirection: "row" } },
+      } as Element,
+    ]);
+
+    render(<TransformSection />);
+
+    const leftGroup = screen.getByRole("group", { name: "Left" });
+    within(leftGroup).getByRole("button").click();
+
+    const leftListbox = await screen.findByRole("listbox");
+    expect(
+      within(leftListbox).getByRole("option", { name: "vw" }),
+    ).not.toBeNull();
+    expect(
+      within(leftListbox).queryByRole("option", { name: "vh" }),
+    ).toBeNull();
+    expect(
+      within(leftListbox).queryByRole("option", { name: "reset" }),
+    ).toBeNull();
+
+    cleanup();
+    render(<TransformSection />);
+
+    const topGroup = screen.getByRole("group", { name: "Top" });
+    within(topGroup).getByRole("button").click();
+
+    const topListbox = await screen.findByRole("listbox");
+    expect(
+      within(topListbox).getByRole("option", { name: "vh" }),
+    ).not.toBeNull();
+    expect(within(topListbox).queryByRole("option", { name: "vw" })).toBeNull();
+    expect(
+      within(topListbox).queryByRole("option", { name: "reset" }),
+    ).toBeNull();
+  });
+
+  it("disables offset editing outside absolute mode without exposing stored coordinates", () => {
+    setTestElements([
+      {
+        id: "button-1",
+        type: "Button",
+        parent_id: "frame-1",
+        props: {
+          style: {
+            left: "24px",
+            top: "12px",
+          },
+        },
+      } as Element,
+      {
+        id: "frame-1",
+        type: "Frame",
+        parent_id: null,
+        props: { style: { display: "flex", flexDirection: "row" } },
+      } as Element,
+    ]);
+
+    render(<TransformSection />);
+
+    const left = screen.getByRole("combobox", { name: "Left" });
+    const top = screen.getByRole("combobox", { name: "Top" });
+    expect((left as HTMLInputElement).disabled).toBe(true);
+    expect((top as HTMLInputElement).disabled).toBe(true);
+    expect((left as HTMLInputElement).value).toBe("auto");
+    expect((top as HTMLInputElement).value).toBe("auto");
+  });
+
   it("keeps unset Min/Max constraints blank instead of defaulting to zero", () => {
     setTestElements([
       {

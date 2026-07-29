@@ -275,7 +275,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
           </ToggleButtonGroup>
         </div>
         <div className="direction-alignment-grid flex-alignment">
-          <legend className="fieldset-legend">Container Align</legend>
+          <legend className="fieldset-legend">Alignment</legend>
           <ToggleButtonGroup
             aria-label="Flex alignment"
             indicator
@@ -331,7 +331,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
           </SwatchIconButton>
         </div>
         <div className="justify-control justify-content">
-          <legend className="fieldset-legend">Justify</legend>
+          <legend className="fieldset-legend">Space</legend>
           <ToggleButtonGroup
             aria-label="Justify content alignment"
             indicator
