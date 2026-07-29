@@ -20,18 +20,20 @@ import {
  * 서로 다른 세대가 된다 — 그래서 키는 하나다.
  */
 
-const LAYOUT: ComputedLayout = { x: 0, y: 0, width: 100, height: 100 };
+function makeLayout(elementId: string): ComputedLayout {
+  return { x: 0, y: 0, width: 100, height: 100, elementId };
+}
 
 function makeNode(id: string): CanvasSceneNode {
   return {
     id,
-    type: "Box",
-    page_id: "page-1",
-    parent_id: null,
-    order_num: 0,
+    type: "Button",
     props: {},
-    deleted: false,
-  } as CanvasSceneNode;
+    parentId: "root",
+    pageId: "page-1",
+    layoutId: null,
+    sourceNode: { id, type: "Button", props: {} },
+  };
 }
 
 function registerNode(id: string): void {
@@ -76,8 +78,8 @@ describe("ADR-172 Phase 1.5 — commandChildrenMap 캐시 동봉", () => {
         ]);
       },
       new Map<string, ComputedLayout>([
-        ["root", LAYOUT],
-        ["child-a", LAYOUT],
+        ["root", makeLayout("root")],
+        ["child-a", makeLayout("child-a")],
       ]),
       { "page-1": { x: 0, y: 0 } },
       merged.registryVersion,

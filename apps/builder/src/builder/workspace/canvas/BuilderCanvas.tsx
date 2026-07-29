@@ -22,6 +22,7 @@ import {
   Suspense,
   type MouseEvent as ReactMouseEvent,
 } from "react";
+import { observe, PERF_LABEL } from "../../utils/perfMarks";
 import { useStore } from "../../stores";
 import { useDataStore } from "../../stores/data";
 import type { PageLayoutDirection } from "../../stores/canvasSettings";
@@ -449,22 +450,25 @@ export function BuilderCanvas({
   // ADR-172 Phase 3: 카메라 무관 core — 팬/줌 프레임에서 identity 가 유지된다.
   // deps 에 panOffset/zoom/containerSize 를 **넣지 말 것**. 넣는 순간 O(N)
   // 전체(depthMap·pageDataMap·pageFrames)가 팬마다 다시 돈다.
+  // ADR-172 Phase 4: 팬 프레임에 재실행되면 샘플이 쌓인다 — 그 count 가 G2 지표다.
   const sceneStructureCore = useMemo(() => {
     const scenePages = isFrameEditMode ? [] : pages;
-    return buildSceneStructureCore({
-      currentPageId: isFrameEditMode ? null : currentPageId,
-      elements: sceneNodes,
-      elementsMap: sceneNodesMap,
-      layoutVersion,
-      pageHeight,
-      pageIndex: scenePageIndex,
-      pagePositions,
-      pagePositionsVersion,
-      pageWidth,
-      pages: scenePages,
-      precomputedProjectionSignature: projectionContentSignature,
-      source: canonicalSceneModel ? "canonical" : "legacy-bootstrap",
-    });
+    return observe(PERF_LABEL.RENDER_DERIVED_SCENE, () =>
+      buildSceneStructureCore({
+        currentPageId: isFrameEditMode ? null : currentPageId,
+        elements: sceneNodes,
+        elementsMap: sceneNodesMap,
+        layoutVersion,
+        pageHeight,
+        pageIndex: scenePageIndex,
+        pagePositions,
+        pagePositionsVersion,
+        pageWidth,
+        pages: scenePages,
+        precomputedProjectionSignature: projectionContentSignature,
+        source: canonicalSceneModel ? "canonical" : "legacy-bootstrap",
+      }),
+    );
   }, [
     canonicalSceneModel,
     currentPageId,

@@ -32,6 +32,7 @@ import {
   buildChildrenIdMap,
 } from "../scene/layoutCache";
 import { resolveResponsiveLayoutNode } from "../layout/resolveResponsive";
+import { observe, PERF_LABEL } from "../../../utils/perfMarks";
 import { useStore } from "../../../stores";
 
 interface PageLayoutInput {
@@ -101,20 +102,26 @@ export function useLayoutPublisher(
   // commit 은 `elementsMap` 을 새로 만들고 그것이 `layoutPublisherInputs` →
   // `pages` 의 identity 를 바꾸므로 이 키가 다시 계산된다. deps 를
   // `layoutVersion` 으로 바꾸면 그 commit 이 통째로 누락된다.
+  //
+  // ADR-172 Phase 4: 이 memo 는 팬/줌 프레임에 **재실행되지 않는 것이 정상**이다.
+  // `observe()` 는 miss 시에만 샘플을 남기므로 정상 동작에서 오버헤드가 0 이고,
+  // 샘플 수(`snapshot(...).count`)가 그대로 G2 지표가 된다.
   const layoutInputKey = useMemo(
     () =>
-      [...pages, ...framePages]
-        .map(({ pageId, input }) => {
-          const pageElementsSignature = createPageElementsSignature(
-            input.pageElements,
-          );
-          const pageLayoutSignature = createPageLayoutSignature(
-            input.bodyElement,
-            input.pageElements,
-          );
-          return `${pageId}:${input.projectionVersion}:${input.bodyElement?.id ?? "no-body"}:${pageElementsSignature}:${pageLayoutSignature}`;
-        })
-        .join("||"),
+      observe(PERF_LABEL.RENDER_DERIVED_LAYOUT_KEY, () =>
+        [...pages, ...framePages]
+          .map(({ pageId, input }) => {
+            const pageElementsSignature = createPageElementsSignature(
+              input.pageElements,
+            );
+            const pageLayoutSignature = createPageLayoutSignature(
+              input.bodyElement,
+              input.pageElements,
+            );
+            return `${pageId}:${input.projectionVersion}:${input.bodyElement?.id ?? "no-body"}:${pageElementsSignature}:${pageLayoutSignature}`;
+          })
+          .join("||"),
+      ),
     [framePages, pages],
   );
 

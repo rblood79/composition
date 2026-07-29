@@ -51,6 +51,23 @@ export const PERF_LABEL = {
   RENDER_SKIA_RECORD_CONTENT: "render.skia.record.content",
   RENDER_SKIA_FLUSH_CONTENT: "render.skia.flush.content",
   RENDER_SKIA_FLUSH_MAIN: "render.skia.flush.main",
+  /**
+   * ADR-172 Phase 4: 팬 경로 파생 계층 감시 라벨 2종 (상시 — dev 게이트 없음).
+   *
+   * 두 지점 모두 **팬/줌 프레임에는 재실행되지 않는 것이 정상**이다 (Phase 1~3).
+   * 따라서 정상 동작에서 이 라벨의 오버헤드는 0 이고, 샘플이 쌓인다는 것 자체가
+   * 신호다 — 재계산 **횟수**가 곧 G2 지표이므로 별도 카운터를 두지 않고
+   * `snapshot(label).count` 를 쓴다.
+   *
+   * G2 확인 절차 (visible 창):
+   *   window.__composition_PERF__.reset("render.derived.layout-key")
+   *   window.__composition_PERF__.reset("render.derived.scene")
+   *   // ... 캔버스를 팬/줌 ...
+   *   window.__composition_PERF__.snapshot("render.derived.layout-key")  // count === 0
+   *   window.__composition_PERF__.snapshot("render.derived.scene")       // count === 0
+   */
+  RENDER_DERIVED_LAYOUT_KEY: "render.derived.layout-key",
+  RENDER_DERIVED_SCENE: "render.derived.scene",
 } as const;
 
 // Long-task classification: observe() label prefix → longtask bucket.
