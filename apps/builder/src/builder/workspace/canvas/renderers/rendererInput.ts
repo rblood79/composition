@@ -164,7 +164,6 @@ export function buildFrameLayoutPublisherInput({
       x: frameX,
       y: frameY,
     },
-    isVisible: true,
     pageElements,
     pageId: frameId,
     positionVersion: pagePositionVersion,

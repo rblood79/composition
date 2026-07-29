@@ -47,7 +47,6 @@ const makeSceneSnapshot = (
   pageSnapshots: new Map(),
   sceneVersion: 0,
   source: "canonical",
-  viewportVersion: 0,
   ...overrides,
 });
 

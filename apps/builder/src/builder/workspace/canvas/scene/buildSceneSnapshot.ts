@@ -8,12 +8,16 @@ import { buildSelectionSnapshot } from "./buildSelectionSnapshot";
 import { buildVisiblePageSet } from "./buildVisiblePageSet";
 import type {
   BuildSceneSnapshotInput,
+  BuildSceneStructureCoreInput,
   BuildSceneStructureInput,
   ScenePageData,
   ScenePageSnapshot,
   SceneSelectionState,
   SceneSnapshot,
+  SceneStructureCore,
   SceneStructureSnapshot,
+  SceneVisibilityCamera,
+  SceneVisibilityResult,
 } from "./sceneSnapshotTypes";
 
 interface BuildSceneSelectionInput {
@@ -100,15 +104,19 @@ export function createResolvedProjectionSignature(input: {
 }
 
 /**
- * ADR-074 Phase 2: selection-invariant structure snapshot.
+ * ADR-074 Phase 2: selection-invariant structure.
+ * ADR-172 Phase 3: **카메라 무관** 부분만 담당 — 카메라 인자를 받지 않는다.
  *
- * depthMap / pageDataMap / pageFrames / visiblePages / pageSnapshots /
- * document 전부 포함. selection 과 독립 계산되어 selection-only 변화 시
- * useMemo identity 유지가 가능.
+ * depthMap / pageDataMap / pageFrames / pageSnapshots / document core 를
+ * 계산한다. 팬/줌 프레임에서 이 결과의 identity 가 유지되는 것이 하류
+ * memo(`layoutPublisherInputs` → `layoutInputKey`) hit 의 전제다.
+ *
+ * 카메라를 쓰는 값(visible\*)은 `resolveSceneVisibility` 소관이며, 여기에
+ * 카메라 인자를 다시 들이지 말 것 — 그 순간 전체가 팬마다 재계산된다.
  */
-export function buildSceneStructureSnapshot(
-  input: BuildSceneStructureInput,
-): SceneStructureSnapshot {
+export function buildSceneStructureCore(
+  input: BuildSceneStructureCoreInput,
+): SceneStructureCore {
   const depthMap = buildDepthMap(input.elements, input.elementsMap);
   const pageDataMap = buildPageDataMap(
     input.pages,
@@ -122,15 +130,6 @@ export function buildSceneStructureSnapshot(
     input.pagePositions,
     input.pageWidth,
     input.pageHeight,
-  );
-  const visiblePageIds = buildVisiblePageSet({
-    containerSize: input.containerSize,
-    pageFrames: allPageFrames,
-    panOffset: input.panOffset,
-    zoom: input.zoom,
-  });
-  const visiblePageFrames = allPageFrames.filter((frame) =>
-    visiblePageIds.has(frame.id),
   );
   const pageFrameMap = new Map(
     allPageFrames.map((frame) => [frame.id, frame] as const),
@@ -176,7 +175,6 @@ export function buildSceneStructureSnapshot(
       ...pageData,
       contentVersion,
       frame,
-      isVisible: visiblePageIds.has(page.id),
       pageId: page.id,
       positionVersion,
     });
@@ -185,22 +183,6 @@ export function buildSceneStructureSnapshot(
   const currentPageSnapshot = input.currentPageId
     ? (pageSnapshots.get(input.currentPageId) ?? null)
     : null;
-  const visibleContentVersion = hashString(
-    visiblePageFrames
-      .map((frame) => {
-        const pageSnapshot = pageSnapshots.get(frame.id);
-        return `${frame.id}:${pageSnapshot?.contentVersion ?? 0}`;
-      })
-      .join(":"),
-  );
-  const visiblePagePositionVersion = hashString(
-    visiblePageFrames
-      .map((frame) => {
-        const pageSnapshot = pageSnapshots.get(frame.id);
-        return `${frame.id}:${pageSnapshot?.positionVersion ?? 0}`;
-      })
-      .join(":"),
-  );
   // ADR-916 2-C 안 A: 호출측(BuilderCanvas)이 pan/zoom 독립 useMemo 로 미리
   // 계산해 주입하면 전체 재직렬화 skip. 미주입(기존 호출·테스트)이면 내부 계산.
   const projectionContentSignature =
@@ -218,35 +200,114 @@ export function buildSceneStructureSnapshot(
       currentPageId: input.currentPageId,
       currentPageSnapshot,
       pageCount: input.pages.length,
-      visibleContentVersion,
-      visiblePageFrames,
-      visiblePageIds,
-      visiblePagePositionVersion,
     },
     layoutVersion: input.layoutVersion,
     pageSnapshots,
+    projectionContentSignature,
+    // ADR-136 signature 계약: 입력 순서 유지 (layoutVersion :
+    // pagePositionsVersion : elementCount : pageCount : visibleContentVersion :
+    // visiblePagePositionVersion : projectionContentSignature).
+    sceneVersionPrefix: [
+      input.layoutVersion,
+      input.pagePositionsVersion,
+      input.elements.length,
+      input.pages.length,
+    ].join(":"),
+    source: input.source,
+  };
+}
+
+/**
+ * ADR-172 Phase 3: 카메라 의존 산출물 — core 대비 O(페이지) 로 싸다.
+ *
+ * `key` 는 visible set 이 불변인 팬 프레임을 식별한다. 호출측은 이 키로
+ * `composeSceneStructureSnapshot` 결과를 캐시해 snapshot identity 를 유지해야
+ * 한다 (`BuilderCanvas` 의 `sceneStructureCacheRef` 참조).
+ */
+export function resolveSceneVisibility(
+  core: SceneStructureCore,
+  camera: SceneVisibilityCamera,
+): SceneVisibilityResult {
+  const allPageFrames = core.document.allPageFrames;
+  const visiblePageIds = buildVisiblePageSet({
+    containerSize: camera.containerSize,
+    pageFrames: allPageFrames,
+    panOffset: camera.panOffset,
+    zoom: camera.zoom,
+  });
+  const visiblePageFrames = allPageFrames.filter((frame) =>
+    visiblePageIds.has(frame.id),
+  );
+  const visibleContentVersion = hashString(
+    visiblePageFrames
+      .map((frame) => {
+        const pageSnapshot = core.pageSnapshots.get(frame.id);
+        return `${frame.id}:${pageSnapshot?.contentVersion ?? 0}`;
+      })
+      .join(":"),
+  );
+  const visiblePagePositionVersion = hashString(
+    visiblePageFrames
+      .map((frame) => {
+        const pageSnapshot = core.pageSnapshots.get(frame.id);
+        return `${frame.id}:${pageSnapshot?.positionVersion ?? 0}`;
+      })
+      .join(":"),
+  );
+
+  return {
+    key: `${visiblePageFrames.map((frame) => frame.id).join("|")}:${visibleContentVersion}:${visiblePagePositionVersion}`,
+    visibleContentVersion,
+    visiblePageFrames,
+    visiblePageIds,
+    visiblePagePositionVersion,
+  };
+}
+
+/** ADR-172 Phase 3: core + visibility 합성 — 순수 조립, 계산 없음. */
+export function composeSceneStructureSnapshot(
+  core: SceneStructureCore,
+  visibility: SceneVisibilityResult,
+): SceneStructureSnapshot {
+  return {
+    depthMap: core.depthMap,
+    document: {
+      ...core.document,
+      visibleContentVersion: visibility.visibleContentVersion,
+      visiblePageFrames: visibility.visiblePageFrames,
+      visiblePageIds: visibility.visiblePageIds,
+      visiblePagePositionVersion: visibility.visiblePagePositionVersion,
+    },
+    layoutVersion: core.layoutVersion,
+    pageSnapshots: core.pageSnapshots,
     sceneVersion: hashString(
       [
-        input.layoutVersion,
-        input.pagePositionsVersion,
-        input.elements.length,
-        input.pages.length,
-        visibleContentVersion,
-        visiblePagePositionVersion,
-        projectionContentSignature,
+        core.sceneVersionPrefix,
+        visibility.visibleContentVersion,
+        visibility.visiblePagePositionVersion,
+        core.projectionContentSignature,
       ].join(":"),
     ),
-    source: input.source,
-    viewportVersion: hashString(
-      [
-        input.zoom,
-        input.panOffset.x,
-        input.panOffset.y,
-        input.containerSize?.width ?? 0,
-        input.containerSize?.height ?? 0,
-      ].join(":"),
-    ),
+    source: core.source,
   };
+}
+
+/**
+ * 기존 호출처(테스트·벤치) 호환용 합성 entry point — core → visibility →
+ * compose 를 한 번에 수행한다. **라이브 렌더 경로에서는 쓰지 말 것**:
+ * 카메라가 core 계산에 다시 묶여 팬 프레임마다 전체가 재계산된다
+ * (`BuilderCanvas` 는 세 단계를 별도 useMemo 로 분리해 호출한다).
+ */
+export function buildSceneStructureSnapshot(
+  input: BuildSceneStructureInput,
+): SceneStructureSnapshot {
+  const core = buildSceneStructureCore(input);
+  const visibility = resolveSceneVisibility(core, {
+    containerSize: input.containerSize,
+    panOffset: input.panOffset,
+    zoom: input.zoom,
+  });
+  return composeSceneStructureSnapshot(core, visibility);
 }
 
 /**

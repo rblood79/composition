@@ -88,7 +88,6 @@ function makeSceneSnapshot(
     pageSnapshots,
     sceneVersion: 1,
     source: "canonical",
-    viewportVersion: 1,
   };
 }
 
@@ -156,7 +155,6 @@ describe("createSkiaRendererInput", () => {
               x: 0,
               y: 0,
             },
-            isVisible: true,
             pageElements: [page1Slot, page1ResolvedFill],
             pageId: "page-1",
             positionVersion: 1,
@@ -176,7 +174,6 @@ describe("createSkiaRendererInput", () => {
               x: 0,
               y: 820,
             },
-            isVisible: true,
             pageElements: [page2Slot, page2ResolvedFill],
             pageId: "page-2",
             positionVersion: 1,
@@ -260,7 +257,6 @@ describe("createSkiaRendererInput", () => {
               x: 0,
               y: 0,
             },
-            isVisible: true,
             pageElements: [second, first],
             pageId: "page-1",
             positionVersion: 1,

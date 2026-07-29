@@ -170,7 +170,6 @@ for (const nodeCount of [500, 1000, 3000]) {
             x: 0,
             y: 0,
           },
-          isVisible: true,
           pageId: PAGE_ID,
           positionVersion: 0,
         },
