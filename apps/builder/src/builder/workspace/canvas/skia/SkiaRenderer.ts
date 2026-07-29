@@ -31,6 +31,7 @@ import type { TransitionManager } from "./transitionManager";
 import type { AnimationEngine } from "./animationEngine";
 import { getSkiaNode } from "./useSkiaNode";
 import { setVolatileNodeIds } from "./nodePictureCache";
+import { CONTENT_COVERAGE_PADDING_CSS_PX } from "../scene/renderCoverage";
 
 /** classifyFrame 판정 결과 — content/full 프레임은 승격 사유를 동반한다 (ADR-153 Phase 1-a) */
 interface FrameClassification {
@@ -66,8 +67,13 @@ export class SkiaRenderer {
   private disposed = false;
   private dpr: number;
 
-  /** Content Surface 패딩 (CSS px) — camera-only blit 가장자리 아티팩트 방지 */
-  private readonly contentPaddingCssPx = 512;
+  /**
+   * Content Surface 패딩 (CSS px) — camera-only blit 가장자리 아티팩트 방지.
+   *
+   * ADR-173 Phase 1: 가시 페이지 판정 반경(`buildVisiblePageSet`)과 **같은
+   * 소스**여야 한다 — 여기만 키우면 그 차이는 빈 채로 래스터된다.
+   */
+  private readonly contentPaddingCssPx = CONTENT_COVERAGE_PADDING_CSS_PX;
   /** DPR 반영된 패딩 (device px) */
   private contentPaddingDevicePx = 0;
 
