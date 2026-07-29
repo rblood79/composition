@@ -166,7 +166,7 @@ describe("manual position drag semantics", () => {
     };
     const baseTarget: DropTarget = {
       containerId: page2Body.id,
-      insertionIndex: 0,
+      insertionIndex: 2,
       isAdjacentInsertion: false,
       isHorizontal: false,
       containerBounds: { x: 100, y: 40, width: 800, height: 600 },
@@ -175,8 +175,11 @@ describe("manual position drag semantics", () => {
       originalParentId: page1Body.id,
     };
 
-    expect(resolveManualPositionDropTarget(dragged, baseTarget, model)).toBe(
-      baseTarget,
+    expect(resolveManualPositionDropTarget(dragged, baseTarget, model)).toEqual(
+      {
+        ...baseTarget,
+        insertionIndex: 0,
+      },
     );
     expect(
       resolveManualPositionDropTarget(
@@ -191,6 +194,71 @@ describe("manual position drag semantics", () => {
         { ...baseTarget, isReparent: false },
         model,
       ),
+    ).toBeNull();
+  });
+
+  it("promotes a nested absolute element to the top of the same-page body on an empty-canvas drop", () => {
+    const dragged = makeElement({
+      id: "element",
+      page_id: "page-1",
+      parent_id: "group-1",
+      props: { style: { position: "absolute" } },
+    });
+    const group = makeElement({
+      id: "group-1",
+      type: "Group",
+      page_id: "page-1",
+      parent_id: "page-1-body",
+    });
+    const pageBody = makeElement({
+      id: "page-1-body",
+      type: "body",
+      page_id: "page-1",
+      parent_id: null,
+    });
+    const model = {
+      elementsById: new Map([
+        [dragged.id, dragged],
+        [group.id, group],
+        [pageBody.id, pageBody],
+      ]),
+      childrenByParent: new Map([
+        [pageBody.id, [group]],
+        [group.id, [dragged]],
+      ]),
+    };
+    const bodyTarget: DropTarget = {
+      containerId: pageBody.id,
+      insertionIndex: 1,
+      isAdjacentInsertion: false,
+      isHorizontal: false,
+      containerBounds: { x: 100, y: 40, width: 800, height: 600 },
+      siblingBounds: [{ x: 140, y: 80, width: 300, height: 200 }],
+      isReparent: true,
+      originalParentId: group.id,
+    };
+
+    expect(resolveManualPositionDropTarget(dragged, bodyTarget, model)).toEqual(
+      {
+        ...bodyTarget,
+        insertionIndex: 0,
+      },
+    );
+
+    expect(
+      resolveManualPositionDropTarget(
+        dragged,
+        { ...bodyTarget, containerId: group.id },
+        model,
+      ),
+    ).toBeNull();
+
+    const bodyChild = makeElement({
+      ...dragged,
+      parent_id: pageBody.id,
+    });
+    expect(
+      resolveManualPositionDropTarget(bodyChild, bodyTarget, model),
     ).toBeNull();
   });
 });

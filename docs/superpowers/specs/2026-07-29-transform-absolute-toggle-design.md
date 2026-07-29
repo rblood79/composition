@@ -31,6 +31,20 @@ Style Panel의 `Transform` section에서 `Left`, `Top` 오른쪽의 기존
   제거하고 기본 flow로 복귀한다.
 - 토글을 끌 때 `left`와 `top`은 변경하거나 제거하지 않는다. 다시 켤 때 flex
   자식이면 그 시점의 현재 위치로 `left`/`top`을 다시 캡처한다.
+- 토글을 켜는 것만으로 element의 canonical parent를 바꾸지 않는다. element는
+  기존 Group/Frame/Container의 `children[]`에 남아 해당 레이어 안에서 absolute로
+  배치된다.
+- absolute element를 현재 부모 밖의 빈 page 영역으로 드래그하면 기존
+  `resolveDropTarget()`이 반환한 page `body`를 destination으로 사용한다. 이때만
+  element를 canonical page `body.children[]`의 첫 위치(index `0`)로 이동해 모든
+  중간 Group/Frame/Container에서 빠져나오고 Layers의 body 바로 아래 최상단에
+  표시되게 한다.
+- 같은 page의 다른 일반 container를 맞힌 drop은 이 빈 공간 승격 계약에 포함하지
+  않는다. 기존 cross-page reparent 허용 범위는 유지한다.
+- body 승격 시 mutation 직전 element scene bounds와 destination body bounds로
+  새 body-local `left`/`top`을 계산해 시각적 x/y를 유지한다.
+- canonical move event와 `position`/`left`/`top` batch update를 하나의 동기
+  History transaction으로 묶어 Undo 한 번에 원래 부모와 좌표를 복원한다.
 - 현재 선택 요소와 active breakpoint의 write routing, history, persistence,
   layout invalidation은 기존 `updateSelectedStyle`/`updateSelectedStyles` 경로에
   맡긴다.
@@ -51,7 +65,12 @@ Style Panel의 `Transform` section에서 `Left`, `Top` 오른쪽의 기존
 - `Left`/`Top` 입력 UI는 그대로 유지한다.
 - 좌표 자동 캡처는 `flex`/`inline-flex` 직계 부모에만 적용하고 block/grid 부모의
   활성화 동작은 변경하지 않는다.
-- 기존 layout engine, Canvas, Preview의 absolute 처리 코드는 변경하지 않는다.
+- absolute element의 같은 부모 안 이동은 기존 manual `left`/`top` commit을
+  유지한다.
+- 빈 page 영역 승격은 page `body` 직계 자식이 되는 계층 변경이며, drop 좌표에서
+  계산된 insertion index와 관계없이 canonical `body.children[0]`으로 이동한다.
+  다른 container로 이동할 때는 기존 drop target insertion index를 유지한다.
+- 기존 layout engine, Canvas, Preview의 absolute 배치 계산은 변경하지 않는다.
 
 ## Verification
 
@@ -59,6 +78,11 @@ Style Panel의 `Transform` section에서 `Left`, `Top` 오른쪽의 기존
   `left`/`top`으로 변환되어 `position: absolute`와 함께 batch 저장되는 회귀 테스트
 - flex 자식의 bounds가 없으면 `position: absolute`만 저장되는 fallback 테스트
 - 활성 상태에서 클릭하면 `position`이 제거되는 회귀 테스트
+- 같은 page의 nested absolute element가 빈 body 영역에 드롭되면 page body
+  직계 자식의 첫 위치로 canonical reparent되는 회귀 테스트
+- cross-page body 이동도 destination body의 첫 위치로 정규화되는 회귀 테스트
+- 같은 page의 일반 container target은 빈 공간 승격으로 오인하지 않는 테스트
+- body 승격 시 destination-local `left`/`top`과 단일 Undo transaction 검증
 - `aria-pressed`가 현재 style과 동기화되는지 확인
 - Transform reset/dirty 목록에 `position`이 포함되는지 확인
 - focused Vitest, type-check, guard, cross-check, 실제 Builder 토글 검증

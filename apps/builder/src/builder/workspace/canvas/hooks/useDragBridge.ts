@@ -231,11 +231,22 @@ export function resolveManualPositionDropTarget(
   const targetContainer = readModel.elementsById.get(target.containerId);
   const sourcePageId = element?.page_id;
   const targetPageId = targetContainer?.page_id;
-  if (!sourcePageId || !targetPageId || sourcePageId === targetPageId) {
+  if (!sourcePageId || !targetPageId || !targetContainer) {
     return null;
   }
 
-  return target;
+  const isCrossPage = sourcePageId !== targetPageId;
+  const isBodyEscape =
+    targetContainer.type.toLowerCase() === "body" &&
+    element?.parent_id !== targetContainer.id;
+
+  if (isBodyEscape) {
+    return target.insertionIndex === 0
+      ? target
+      : { ...target, insertionIndex: 0 };
+  }
+
+  return isCrossPage ? target : null;
 }
 
 export function useDragBridge({

@@ -10,7 +10,10 @@
 **Architecture:** `useTransformValues`가 canonical style context에서 `position`
 tier를 읽고, `TransformSection`이 기존 `SwatchIconToggleButton`으로 상태를
 표시한다. 쓰기는 기존 `updateStyleImmediate`를 사용해 active breakpoint,
-history, persistence, layout invalidation 경로를 보존한다.
+history, persistence, layout invalidation 경로를 보존한다. 토글 활성화는 현재
+canonical parent를 유지하고, nested absolute element가 빈 page 영역의 `body`로
+드롭될 때만 기존 canonical move + batch style transaction으로 body 직계 자식으로
+승격한다.
 
 **Tech Stack:** React 19, TypeScript, React Aria Components, Zustand, Vitest,
 Testing Library, Lucide React
@@ -21,6 +24,10 @@ Testing Library, Lucide React
 - 활성화는 `position: "absolute"`, 비활성화는 `position: ""`이다.
 - flex/inline-flex 자식의 활성화는 mutation 직전 scene x/y를 parent-local
   `left`/`top` px로 캡처해 `position`과 batch 저장한다.
+- 토글 활성화만으로 canonical parent를 변경하지 않는다.
+- nested absolute element를 같은 page의 빈 body 영역에 드롭할 때만 body 직계
+  자식의 첫 위치(`body.children[0]`)로 canonical reparent한다.
+- body 승격과 destination-local `left`/`top` 저장은 Undo 한 번으로 복원한다.
 - 비활성화는 `left`와 `top`을 변경하지 않는다.
 - `fixed`, `relative`, `right`, `bottom`, 부모 style 변경은 범위 밖이다.
 - 사용자가 요청하지 않았으므로 commit이나 push를 수행하지 않는다.
@@ -331,6 +338,161 @@ Expected: 모든 테스트 통과.
 
 flex row의 자식을 Absolute로 전환해 전후 selection bounds의 x/y가 같은지 확인하고,
 `Left`/`Top` 값과 Undo 복원, console error/warning을 함께 확인한다.
+
+Run:
+
+```bash
+pnpm run codex:preflight
+```
+
+### Task 6: Body 승격 레이어를 최상단으로 정규화
+
+**Files:**
+
+- Modify: `apps/builder/src/builder/workspace/canvas/hooks/useDragBridge.ts`
+- Modify: `apps/builder/src/builder/workspace/canvas/hooks/useDragBridge.test.ts`
+- Modify: `docs/CHANGELOG.md`
+
+**Interfaces:**
+
+- Consumes: body destination `DropTarget.insertionIndex`
+- Produces: same-page/cross-page body escape target의 canonical
+  `insertionIndex: 0`
+
+- [x] **Step 1: body target의 drop-derived index가 0으로 정규화되는 failing test 작성**
+
+same-page body target은 `insertionIndex: 1`, cross-page body target은
+`insertionIndex: 2`를 입력하고 다음 literal 결과를 기대한다.
+
+```ts
+expect(resolveManualPositionDropTarget(dragged, bodyTarget, model)).toEqual({
+  ...bodyTarget,
+  insertionIndex: 0,
+});
+```
+
+- [x] **Step 2: focused test를 실행해 RED 확인**
+
+Run:
+
+```bash
+cd apps/builder
+pnpm exec vitest run src/builder/workspace/canvas/hooks/useDragBridge.test.ts
+```
+
+Expected: 기존 구현이 `1`과 `2`를 그대로 반환해 두 테스트가 실패한다.
+
+- [x] **Step 3: body escape의 insertion index를 최소 정규화**
+
+```ts
+const isBodyEscape =
+  targetContainer.type.toLowerCase() === "body" &&
+  element.parent_id !== targetContainer.id;
+
+if (isBodyEscape) {
+  return target.insertionIndex === 0
+    ? target
+    : { ...target, insertionIndex: 0 };
+}
+
+return isCrossPage ? target : null;
+```
+
+body가 아닌 cross-page container는 기존 insertion index를 유지한다.
+
+- [x] **Step 4: focused test를 실행해 GREEN 확인**
+
+Expected: manual position drag semantics 7개 전체 통과.
+
+- [x] **Step 5: 실제 Builder와 전체 gate 검증**
+
+- nested absolute element를 빈 body 영역으로 이동
+- Layers에서 이동한 element가 body 바로 아래 첫 row인지 확인
+- Undo 한 번으로 원래 parent와 순서/좌표가 복원되는지 확인
+- `pnpm run codex:preflight`
+
+### Task 5: 빈 page 영역 drop 시 Absolute 요소를 Body로 승격
+
+**Files:**
+
+- Modify: `apps/builder/src/builder/workspace/canvas/hooks/useDragBridge.ts`
+- Modify: `apps/builder/src/builder/workspace/canvas/hooks/useDragBridge.test.ts`
+- Modify: `docs/CHANGELOG.md`
+
+**Interfaces:**
+
+- Consumes:
+  `resolveManualPositionDropTarget(element, target, readModel)`,
+  `DropTarget.containerId`, destination element `type/page_id`,
+  source element `parent_id/page_id`
+- Produces: same-page nested absolute element에 대해 destination이 page `body`일
+  때만 기존 manual reparent transaction을 활성화
+
+- [x] **Step 1: 같은 page의 nested absolute element가 body target을 받는 failing test 작성**
+
+```ts
+expect(resolveManualPositionDropTarget(nestedAbsolute, bodyTarget, model)).toBe(
+  bodyTarget,
+);
+```
+
+이 테스트를 깨뜨리는 production regression은
+`sourcePageId === targetPageId`를 이유로 page body target을 다시 거부하는
+변경이다.
+
+- [x] **Step 2: focused test를 실행해 RED 확인**
+
+Run:
+
+```bash
+cd apps/builder
+pnpm exec vitest run src/builder/workspace/canvas/hooks/useDragBridge.test.ts
+```
+
+Expected: 현재 cross-page-only guard가 same-page body target에 `null`을 반환해
+실패한다.
+
+- [x] **Step 3: same-page body escape 조건을 최소 구현**
+
+`resolveManualPositionDropTarget`은 다음 두 경우만 target을 반환한다.
+
+```ts
+const isCrossPage = sourcePageId !== targetPageId;
+const isSamePageBodyEscape =
+  sourcePageId === targetPageId &&
+  targetContainer.type.toLowerCase() === "body" &&
+  element.parent_id !== targetContainer.id;
+
+return isCrossPage || isSamePageBodyEscape ? target : null;
+```
+
+- [x] **Step 4: 같은 page 일반 container와 이미 body 자식인 요소의 회귀 테스트 추가**
+
+같은 page의 Group/Frame target은 `null`이어야 하고, 이미 page body의 직계 자식인
+absolute element를 같은 body에 드롭해도 reparent target을 만들지 않아야 한다.
+
+- [x] **Step 5: focused test를 실행해 GREEN 확인**
+
+Run:
+
+```bash
+cd apps/builder
+pnpm exec vitest run src/builder/workspace/canvas/hooks/useDragBridge.test.ts
+```
+
+Expected: manual position drag semantics 전체 통과.
+
+- [x] **Step 6: transaction 경로와 실제 Builder 동작 검증**
+
+기존 `historyManager.runInTransaction` 안에서 canonical move event와
+`batchUpdateElementProps`가 합쳐지는지 확인한다. Builder의 flex Group 자식을
+Absolute로 전환한 뒤:
+
+- Group 안에서 이동하면 Layer parent 유지
+- Group 밖의 빈 page 영역으로 이동하면 page body 직계 자식
+- 이동 전후 scene x/y 연속성
+- Undo 한 번으로 원래 Group과 좌표 복원
+- console error/warning 없음
 
 Run:
 
