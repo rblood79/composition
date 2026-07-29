@@ -220,12 +220,46 @@ resolver 출력 ↔ `getComputedStyle`(번들 CSS iframe) 를 12키(display/flex
 
 `MenuItem` **h=96 → h=32**. ADR 본문 Hard Constraint 1 이 지목한 바로 그 수치이고, 실효 DOM `height:32px` 와 일치한다. 함께 측정한 값: ListBoxItem 76 · GridListItem 68 · Toolbar 263×29 · InlineAlert 90 · Card 322. 수기 배선 2분기 제거 전후 이 값들이 **완전히 동일**했다.
 
-### Phase 4 — factory 인라인 제거
+### Phase 4 — factory 인라인 제거 — **완료 2026-07-29 (G4 PASS)**
 
-- catalog 가 도달하면 factory 의 layout 인라인(`display`/`flexDirection`/`alignItems`/`justifyContent`/`gap`/`padding` 계열)은 중복이다. 제거해야 catalog 가 SSOT 로 실효를 갖는다(`resolveContainerStylesFallback` 은 `parentStyle[key] !== undefined` 면 catalog 를 건너뛴다).
-- 제거 전후 Skia box 가 **불변**임을 Phase 5 fixture 로 확증한 뒤 제거한다.
-- **Inspector baseline 을 같은 phase 에서 함께 정리한다** (R7): `useResetStyles.ts` 는 factory 인라인을 손으로 미러한 dirty/reset baseline 을 갖고 있다(`StylesPanel.tsx:96` — "factory 가 주입한 layout default 는 제외"). 인라인만 빼고 baseline 을 두면 "수정 N" 뱃지와 reset 목적지가 어긋난다 — 반대 방향(인라인만 넣고 baseline 누락)의 회귀 이력이 이미 있다(`useResetStyles.ts:292`). 종료 조건은 Skia box 불변 **＋** 패널 표시값·dirty·reset live 확인.
-- `width`/`height` 같은 layout-context 인라인은 대상 아님(요소별 저작 값).
+전제는 "catalog 가 도달하면 factory 인라인은 중복" 이었다. **소비자가 둘**이라 그 전제는 절반만 맞는다 — 인라인은 캔버스에도 DOM 에도 같이 실려 있어서, 빼도 되는 것은 **양쪽이 각자 채널로 같은 값을 갖는 키**뿐이다. 22종 · 71 선언을 3자(인라인 / 실효 DOM / catalog resolver)로 대조한 결과 제거 대상은 **6종 15선언**이다.
+
+#### 3자 대조 — 무엇이 왜 남는가
+
+측정: ① factory 인라인 = `create*Definition` 의 `parent.props.style` ② 실효 DOM = 번들 CSS 를 주입한 iframe 에서 `.react-aria-{Type}` 빈 div 의 `getComputedStyle` ③ catalog = `resolveContainerStylesFallback(tag, {}, size)`. shorthand 는 longhand 로 펼쳐 비교(`gap`→row/column, `padding`→4-way).
+
+| 판정                                  | 종                                                                                       | 사유                                                                                        |
+| ------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| **제거** (①=②=③)                      | Popover 4 · Tooltip 5 · Dialog 2 · DisclosureGroup 2 · Disclosure 1 · Pagination 1       | 두 채널 모두 자기 것으로 갖는다                                                             |
+| 유지 — **DOM 채널 없음** (②가 기본값) | Toast · Nav · StatusLight · IllustratedMessage · AvatarGroup · ButtonGroup · CardView    | 인라인이 **DOM 유일 공급원**. 빼면 캔버스만 catalog 로 살고 DOM 이 죽어 비대칭이 **커진다** |
+| 유지 — **catalog 미보유** (③ 부재)    | ColorPicker · ColorSwatchPicker · frame · ListBox(overflow)                              | 인라인이 **캔버스 유일 공급원**                                                             |
+| 유지 — **3자 불일치**                 | NumberField/SearchField/Select/ComboBox/ColorField `gap` · ProgressBar/Meter `columnGap` | 값 판정이 먼저다 (아래 잔존)                                                                |
+
+같은 종 안에서도 키마다 갈린다. Dialog 는 `padding`/`gap` 은 두 채널이 40/12 로 일치하지만 `display`/`flexDirection` 은 실효 DOM 이 `block`/`row` 라 인라인이 캔버스 유일 공급원이다. Tooltip 은 `display` 만 남는다 — 실효 DOM 은 `flex` 인데 catalog 는 `inline-flex` 라, 빼면 **DOM 이 바뀐다**. Pagination 은 `display` 만 뺐다.
+
+**"DOM 채널 없음" 7종은 Phase 2 가 이미 찾아 둔 그 축이다** — `.react-aria-{X}` selector 가 DOM 에 없어 import 가 no-op 이던 23종의 부분집합. 그래서 Phase 4 의 결론은 "인라인을 못 지운다" 가 아니라 **"그 종들은 Phase 6 (origin 재저작) 전까지 인라인이 DOM 채널 대역"** 이다.
+
+#### R7 — Inspector baseline 은 factory 인라인의 손 미러다
+
+`useResetStyles` 의 baseline 은 `getDefaultProps(type).style`(=`createDefault*Props`)이고, 그 표에는 `// factory(OverlayComponents) props.style 미러` 같은 주석이 붙어 있다. 두 표는 서로를 모르므로 한쪽만 고치면 조용히 어긋난다. 제거한 6종의 미러 항목을 같은 커밋에서 정리했다(Popover display/flexDirection · Dialog padding/gap · Disclosure display · DisclosureGroup display/flexDirection · Pagination display+gap).
+
+계약을 테스트로 고정했다 — `factories/__tests__/factoryInlineDirtyBaseline.test.ts` 가 **양방향**을 단언한다: ① 갓 만든 요소의 dirty 가 0(= "수정 N" 뱃지 0) ② 미러가 factory 미주입 layout 키를 주장하지 않음. 민감도 실측 — Disclosure 미러에 `display:"block"` 을 되살리면 ②가 RED.
+
+#### 곁가지로 드러난 것 — 패널이 px 문자열 길이를 못 읽는다
+
+Phase 3-b 가 ListBox top-level `containerStyles` 에 `borderWidth:"1px"` 를 넣자 `specPresetResolver.test.ts` 2건이 RED 가 됐다. 원인은 ListBox 가 아니라 `resolveToNumber` 로, TokenRef 와 `var(--…)` 만 해석하고 **평범한 px 길이는 버린다**. top-level `containerStyles` 는 타입이 `Record<string, string>` 이라 숫자를 담을 수 없어 box-model 값이 px 문자열로 저장되는데(`borderWidth:"1px"` — Calendar · ListBox · RangeCalendar · TableView · Tree **5종**), 그 5종의 border baseline 이 통째로 비어 있었다. `resolveToPxNumber` 로 border{Width,Radius} 축만 보강했다 — transform 축은 `maxHeight:"300px"` 처럼 px 문자열이 그대로 표시값이라 숫자로 바꾸면 단위를 잃는다.
+
+#### G4 — 라이브 A/B (실 builder, Home 페이지)
+
+6종을 팔레트로 실제 배치한 뒤 **같은 측정 창 안에서** 인라인을 복원/제거하며 29개 요소의 box 를 비교했다: **byte-identical**. Popover 자식이 `x=16`(padding 16), Heading bottom 56 → Description `y=68`(gap 12)로 앉는 것까지 catalog 값 그대로다.
+
+> 측정 중 다른 세션이 같은 프로젝트를 편집해 요소 일부가 사라지고 body layout 이 바뀌었다. A/B 는 한 호출 안에서 끝나 영향이 없지만, 호출 사이의 좌표 drift 는 그 탓이다(크기는 전부 동일). 이 때문에 패널 축은 화면 대신 위 계약 테스트로 고정했다.
+
+#### 잔존
+
+- **field 5종 `gap`** (NumberField/SearchField/Select/ComboBox/ColorField): 인라인 6·8 = 실효 DOM 6·8 ≠ catalog 4. 인라인과 DOM 이 일치하므로 **catalog 가 틀렸다** — Phase 1 의 "실효값이 정본" 방법으로 catalog 를 6·8 로 정정한 뒤 인라인을 빼면 두 채널이 그대로 유지된다. 생성 CSS 재빌드를 동반하므로 별도 단계.
+- **ProgressBar/Meter `columnGap`**: 인라인 12 · DOM 4 · catalog 16 — 3자가 전부 다르다. `labelPosition:"side"` grid 축이라 값 판정이 먼저다.
+- `width`/`height` 인라인은 대상 아님(요소별 저작 값).
 
 ### Phase 5 — end-to-end parity 오라클 신설 — **완료 2026-07-29 (G3 PASS)**
 
@@ -262,12 +296,12 @@ resolver 출력 ↔ `getComputedStyle`(번들 CSS iframe) 를 12키(display/flex
 - `ownsContainerBox` = `structure.composition` 이 layout/containerStyles/containerVariants 중 하나 보유 → **sizes 의 height·padding emit skip**
 - `skipPadding` = ownsContainerBox ∨ `containerStyles.padding` 존재 / `skipGap` = `containerStyles.gap` 존재
 
-| 종                                   | 발산                        | 원인                                                               |
-| ------------------------------------ | --------------------------- | ------------------------------------------------------------------ |
-| Toolbar · Form                       | sizes padding **과잉 도달** | `composition` 보유 → 생성 CSS 는 skip, 캔버스만 넣는다             |
-| TabPanel                             | sizes padding **미도달**    | `composition` 부재 → 생성 CSS 는 emit. top-level 이 있어 막혔다    |
-| ListBox                              | 높이 Δ2                     | `structure.containerStyles.borderWidth` 를 top-level 대체가 건너뜀 |
-| CheckboxGroup · RadioGroup           | 자식 y Δ12                  | **오진** — 아래 Phase 3-b 참조                                     |
+| 종                         | 발산                        | 원인                                                               |
+| -------------------------- | --------------------------- | ------------------------------------------------------------------ |
+| Toolbar · Form             | sizes padding **과잉 도달** | `composition` 보유 → 생성 CSS 는 skip, 캔버스만 넣는다             |
+| TabPanel                   | sizes padding **미도달**    | `composition` 부재 → 생성 CSS 는 emit. top-level 이 있어 막혔다    |
+| ListBox                    | 높이 Δ2                     | `structure.containerStyles.borderWidth` 를 top-level 대체가 건너뜀 |
+| CheckboxGroup · RadioGroup | 자식 y Δ12                  | **오진** — 아래 Phase 3-b 참조                                     |
 
 ### Phase 3-b — size 축 게이트를 생성기 규칙 미러로 교체 — **완료 2026-07-29 (G2 재확인)**
 
@@ -303,13 +337,13 @@ Phase 5 는 두 종을 "sizes paddingY/gap 과잉" 으로 적었으나 **`sizes.
 
 `catalogSizeAxisSkip` 을 무력화한 baseline 과 대조했다. **회귀 0**:
 
-| 결과       | 수  | 종                                                                                        |
-| ---------- | --- | ----------------------------------------------------------------------------------------- |
-| 발산 해소  | 3   | Form · TabPanel · Toolbar                                                                 |
-| 발산 감소  | 4   | ColorField(5→1) · FileTrigger(w Δ64→32) · Meter(h Δ20→4) · ProgressBar(h Δ20→4)          |
-| 불변       | 13  | Button/InlineAlert(GREEN 유지) · Calendar · RangeCalendar · Slider · TabList · 트랙 4종 등 |
-| 측정 불가  | 9   | 필드류(ComboBox/DateField/Select/TextField/…) — 수기 배선의 합성 자식이 fixture 를 throw  |
-| **새 발산** | **0** | —                                                                                       |
+| 결과        | 수    | 종                                                                                         |
+| ----------- | ----- | ------------------------------------------------------------------------------------------ |
+| 발산 해소   | 3     | Form · TabPanel · Toolbar                                                                  |
+| 발산 감소   | 4     | ColorField(5→1) · FileTrigger(w Δ64→32) · Meter(h Δ20→4) · ProgressBar(h Δ20→4)            |
+| 불변        | 13    | Button/InlineAlert(GREEN 유지) · Calendar · RangeCalendar · Slider · TabList · 트랙 4종 등 |
+| 측정 불가   | 9     | 필드류(ComboBox/DateField/Select/TextField/…) — 수기 배선의 합성 자식이 fixture 를 throw   |
+| **새 발산** | **0** | —                                                                                          |
 
 #### G2 재확인 — 라이브 실 builder (components 페이지)
 
@@ -357,5 +391,5 @@ Phase 5 는 두 종을 "sizes paddingY/gap 과잉" 으로 적었으나 **`sizes.
 - [x] **Phase 3 — L1·L2·L3 3층 개방 + 수기 배선 2분기 제거 + 계약 테스트 갱신 (G2 PASS, 2026-07-29)** — 실효 DOM 대조 17/20 일치, 잔존 3은 overlay `position:fixed`(의도적). MenuItem h 96→32 라이브 확증
 - [x] **Phase 5 — parity fixture 신설 (G3 PASS, 2026-07-29)** — `catalogComponentBox.browser.test.ts` 15 케이스(전체 918→933). Phase 3 되돌림 시 6종 중 5종 RED. 잔존 6종은 Phase 3-b(생성기 규칙 미러)로 분리
 - [x] **Phase 3-b — size 축 게이트를 생성기 규칙 미러로 교체 (2026-07-29)** — `structure` 보유 시 `ownsContainerBox`/`skipPadding`/`skipGap` 미러, 부재 시 Phase 3 게이트 유지(수동 CSS 축). Toolbar/Form 과잉 · TabPanel 미도달 · ListBox borderWidth 해소, A/B 29종 회귀 0. Checkbox/RadioGroup 은 오진(synthetic wrapper)으로 판정
-- [ ] Phase 4 — factory 인라인 제거 + `useResetStyles` baseline 동시 정리 (fixture GREEN + 패널 live 확인, G4)
+- [x] **Phase 4 — factory 인라인 제거 + baseline 미러 동시 정리 (G4 PASS, 2026-07-29)** — 3자 대조로 제거 대상은 6종 15선언(22종 71선언 중). 나머지는 DOM 채널 부재 7종 / catalog 미보유 4종 / 3자 불일치 7종으로 **유지 사유가 각각 다르다**. 라이브 A/B 29요소 byte-identical. 양방향 baseline 계약 테스트 신설
 - [ ] Phase 6 — origin 재저작 + components 페이지 live 확인 (G5)

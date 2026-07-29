@@ -258,6 +258,25 @@ function resolveToNumber(value: unknown): number | undefined {
   return undefined;
 }
 
+/**
+ * ADR-171 Phase 4 (2026-07-29): `resolveToNumber` + 평범한 px 길이(`"1px"`).
+ *
+ * top-level `containerStyles` 는 타입이 `Record<string, string>` 이라 숫자를 담을 수 없어
+ * box-model 값이 px 문자열로 저장된다 (`borderWidth:"1px"` — Calendar/ListBox/RangeCalendar/
+ * TableView/Tree 5종). TokenRef·CSS var 만 해석하면 이 5종의 border baseline 이 통째로 비어
+ * 패널이 false dirty 를 낸다.
+ *
+ * **transform 축에는 쓰지 않는다** — 거기서는 `maxHeight:"300px"` 처럼 px 문자열이 그대로
+ * 표시값이라, 숫자로 바꾸면 패널이 단위를 잃는다. 숫자 필드(border{Width,Radius})에 한정.
+ */
+function resolveToPxNumber(value: unknown): number | undefined {
+  const n = resolveToNumber(value);
+  if (n !== undefined) return n;
+  if (typeof value !== "string") return undefined;
+  const px = /^(-?\d*\.?\d+)px$/.exec(value);
+  return px ? Number.parseFloat(px[1]) : undefined;
+}
+
 /** ADR-082: containerStyles 의 CSS 값 (TokenRef or "var(--xxx)") 을 CSS var 문자열로 정규화. */
 function resolveToCSSVar(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
@@ -421,9 +440,9 @@ function appearanceFromContainerStyles(
   cs: Record<string, unknown>,
 ): AppearanceSpecPreset {
   const out: AppearanceSpecPreset = {};
-  const br = resolveToNumber(cs.borderRadius);
+  const br = resolveToPxNumber(cs.borderRadius);
   if (br !== undefined) out.borderRadius = br;
-  const bw = resolveToNumber(cs.borderWidth);
+  const bw = resolveToPxNumber(cs.borderWidth);
   if (bw !== undefined) out.borderWidth = bw;
   const bg = resolveToCSSVar(cs.background);
   if (bg) out.backgroundColor = bg;

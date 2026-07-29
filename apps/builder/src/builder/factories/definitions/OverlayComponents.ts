@@ -28,12 +28,14 @@ export function createDialogDefinition(
         // 2026-06-24 잔존 catalog 이관 — padding/gap 을 catalog md(=RSP var(--spacing-10)=40 정합,
         //   ADR-914 Tier1) 정본값으로 맞춤. factory 24/16 ≠ catalog 40/12 였던 false dirty + 시각
         //   비대칭 해소. width:400 은 RSP size M modal 폭(catalog 미보유) → createDefault 미러로 baseline.
+        // ADR-171 Phase 4 (2026-07-29): `padding:40px`/`gap:12px` 인라인 제거 — 두 소비자 모두
+        //   같은 값을 자기 채널로 갖는다(실측 DOM `.react-aria-Dialog` pad 40 · rowGap 12 /
+        //   catalog resolver pad 40 · gap 12). display/flexDirection 은 **유지** — 실측 DOM 은
+        //   `block`/`row` 라 인라인이 캔버스 쪽 유일 공급원이고, 빼면 DOM 만 남아 비대칭이 커진다.
         style: {
           display: "flex",
           flexDirection: "column",
           width: "400px",
-          padding: "40px",
-          gap: "12px",
         },
       } as ComponentElementProps,
       parent_id: parentId,
@@ -106,12 +108,12 @@ export function createPopoverDefinition(
         //   padding:16/gap:12 = catalog md. factory 가 size:sm 인데 padding 은 md(16) 값을 써서
         //   catalog sm(12/8) baseline 과 어긋난 false dirty 였음. size:md 면 padding16/gap12 양쪽 정합.
         size: "md",
+        // ADR-171 Phase 4 (2026-07-29): layout 인라인 4키(display/flexDirection/padding/gap) 전부
+        //   제거 — Popover 는 두 소비자가 모두 자기 채널로 같은 값을 갖는 유일한 종이다(실측
+        //   DOM `.react-aria-Popover` flex/column/pad 16/rowGap 12 = catalog resolver 동일).
+        //   width:240 은 catalog 미보유라 인라인 유지.
         style: {
-          display: "flex",
-          flexDirection: "column",
           width: "240px",
-          padding: "16px",
-          gap: "12px",
         },
       } as ComponentElementProps,
       parent_id: parentId,
@@ -177,13 +179,12 @@ export function createTooltipDefinition(
         //   shorthand "6px 10px" 면 specStyle 이 비대칭이라 padding shorthand baseline 미생성(uniform4Way
         //   undefined) → false dirty. longhand 면 specStyle.paddingTop/Left(catalog paddingY6/paddingX10)
         //   가 baseline 제공 → dirty 0.
+        // ADR-171 Phase 4 (2026-07-29): alignItems + padding 4키 제거 — 두 채널 값이 같다
+        //   (실측 DOM center/6·10 = catalog resolver center/6·10). `display` 만 **유지** —
+        //   실측 DOM 은 `flex` 인데 catalog 는 `inline-flex` 라 인라인을 빼면 DOM 이 inline-flex
+        //   에서 flex 로 **바뀐다**. 두 채널이 갈린 상태의 값 판정은 본 phase 밖(Phase 6).
         style: {
           display: "inline-flex",
-          alignItems: "center",
-          paddingTop: 6,
-          paddingBottom: 6,
-          paddingLeft: 10,
-          paddingRight: 10,
         },
       } as ComponentElementProps,
       parent_id: parentId,

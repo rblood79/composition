@@ -141,7 +141,9 @@ export function createPaginationDefinition(
         totalPages: 5,
         currentPage: 1,
         style: {
-          display: "flex",
+          // ADR-171 Phase 4 (2026-07-29): `display:flex` 제거 — 두 채널 모두 flex 보유.
+          //   `flexDirection`/`alignItems` 는 **유지** — 실효 DOM 은 row/center 인데 catalog
+          //   resolver 는 두 키를 공급하지 않아, 빼면 캔버스가 값을 잃는다.
           flexDirection: "row",
           alignItems: "center",
           // ADR-171 Phase 3 (2026-07-29): `gap: 6` 제거. 실효 DOM 은 `Table.css` 의
@@ -223,9 +225,9 @@ export function createDisclosureDefinition(
     parent: {
       type: "Disclosure",
       props: {
-        style: {
-          display: "block",
-        },
+        // ADR-171 Phase 4 (2026-07-29): `display:block` 인라인 제거 — 두 채널 모두 block 을
+        //   자기 것으로 갖는다(실측 DOM `.react-aria-Disclosure` block = catalog resolver block).
+        style: {},
       } as ComponentElementProps,
       parent_id: parentId,
     },
@@ -286,10 +288,9 @@ export function createDisclosureGroupDefinition(
       props: {
         // CSS 정본 — .react-aria-DisclosureGroup flex/column (Disclosure 세로 스택). factory(block)가
         //   CSS 와 시각 비대칭 + false dirty 였음 (2026-06-23 layout 방향 정정). createDefault 와 정합.
-        style: {
-          display: "flex",
-          flexDirection: "column",
-        },
+        // ADR-171 Phase 4 (2026-07-29): 그 정본이 이제 두 채널 모두에 있으므로 인라인 사본 제거
+        //   (실측 DOM flex/column = catalog resolver flex/column).
+        style: {},
       } as ComponentElementProps,
       parent_id: parentId,
     },
@@ -297,9 +298,8 @@ export function createDisclosureGroupDefinition(
       {
         type: "Disclosure",
         props: {
-          style: {
-            display: "block",
-          },
+          // ADR-171 Phase 4: 위 단독 Disclosure 와 동일 사유로 인라인 제거.
+          style: {},
         } as ComponentElementProps,
         children: [
           {
@@ -327,9 +327,8 @@ export function createDisclosureGroupDefinition(
       {
         type: "Disclosure",
         props: {
-          style: {
-            display: "block",
-          },
+          // ADR-171 Phase 4: 위 단독 Disclosure 와 동일 사유로 인라인 제거.
+          style: {},
         } as ComponentElementProps,
         children: [
           {

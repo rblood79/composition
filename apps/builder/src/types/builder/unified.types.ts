@@ -1948,11 +1948,11 @@ export function createDefaultSeparatorProps(): SeparatorElementProps {
 
 export function createDefaultDisclosureProps(): DisclosureElementProps {
   return {
-    // CSS base: width:100%. display:block 은 factory(NavigationComponents) props.style 미러
-    //   (단일 컨테이너 — block 정본, 2026-06-23 false dirty 정정).
+    // CSS base: width:100%.
+    // ADR-171 Phase 4 (2026-07-29): `display:block` 미러 제거 — factory 인라인이 사라져
+    //   미러할 대상이 없다. baseline 은 catalog specStyle 이 단일 소스로 공급한다(R7).
     style: {
       width: "100%",
-      display: "block",
     },
   };
 }
@@ -1960,9 +1960,8 @@ export function createDefaultDisclosureProps(): DisclosureElementProps {
 export function createDefaultDisclosureGroupProps(): DisclosureGroupElementProps {
   return {
     // CSS base: display:flex; flex-direction:column; width:100%
+    // ADR-171 Phase 4 (2026-07-29): display/flexDirection 미러 제거 — factory 인라인 동시 제거 (R7).
     style: {
-      display: "flex",
-      flexDirection: "column",
       width: "100%",
     },
   };
@@ -1987,12 +1986,12 @@ export function createDefaultDialogProps(): DialogElementProps {
     // 2026-06-24: factory(OverlayComponents) props.style 미러 — width:400(RSP size M modal 폭,
     //   catalog 미보유)/padding:40/gap:12(catalog md=RSP var(--spacing-10) 정합) 를 dirty baseline 으로
     //   제공. 미러 없으면 factory width:400 이 reset="" 대비 false dirty.
+    // ADR-171 Phase 4 (2026-07-29): padding/gap 미러 제거 — factory 인라인 동시 제거 (R7).
+    //   display/flexDirection 은 factory 가 계속 주입하므로 미러 유지.
     style: {
       display: "flex",
       flexDirection: "column",
       width: "400px",
-      padding: "40px",
-      gap: "12px",
     },
   };
 }
@@ -2167,9 +2166,8 @@ export function createDefaultPopoverProps(): PopoverElementProps {
     //   baseline 으로 제공. catalog Popover.structure.containerStyles=undefined 라 specStyle 에
     //   display/flexDirection 미포함 + width:240 catalog 미보유 → 미러 없으면 전부 false dirty.
     //   padding/gap 은 catalog md specStyle(16/12)이 채우므로 미러 불요(여기 미포함).
+    // ADR-171 Phase 4 (2026-07-29): display/flexDirection 미러 제거 — factory 인라인 동시 제거 (R7).
     style: {
-      display: "flex",
-      flexDirection: "column",
       width: "240px",
       borderWidth: "1px",
     },
@@ -2350,11 +2348,12 @@ export function createDefaultPaginationProps(): BaseElementProps {
   return {
     totalPages: 5,
     currentPage: 1,
+    // ADR-171 Phase 4 (2026-07-29): `display` 미러 제거 — factory 인라인 동시 제거 (R7).
+    //   flexDirection/alignItems 는 catalog 미공급이라 factory 가 계속 주입 → 미러 유지.
+    //   `gap:6` 은 Phase 3 이 factory 에서 지운 값의 잔재 — 실효 8(catalog)과 어긋나 함께 제거.
     style: {
-      display: "flex",
       flexDirection: "row",
       alignItems: "center",
-      gap: 6,
     },
   };
 }
