@@ -1375,6 +1375,10 @@ impl LayoutTree {
             let (mut w, mut h) = self.solve_node(c, cb_w, cb_h);
 
             let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
+            let child_is_container = self
+                .get(c)
+                .map(|node| !node.children.is_empty())
+                .unwrap_or(false);
             // inset % 는 containing block 기준 (CSS) — 축별 ctx.
             let ctx_x = self.ctx_for(cb_w);
             let ctx_y = self.ctx_for(cb_h);
@@ -1389,6 +1393,17 @@ impl LayoutTree {
             }
             if eh > 0.0 {
                 h = eh;
+            }
+
+            // solve_* 는 auto 크기 컨테이너의 content-box를 부모 배치 커널에 반환한다.
+            // 일반 flow에서는 그 커널이 padding/border를 더해 border-box를 기록하지만,
+            // absolute 자식은 이 경로에서 직접 layout을 기록하므로 같은 변환이 필요하다.
+            // leaf의 반환값은 이미 border-box일 수 있으므로 컨테이너에만 적용한다.
+            if child_is_container && !has_w {
+                w += axis_pad_border(&cstyle, &ctx_x, true);
+            }
+            if child_is_container && !has_h {
+                h += axis_pad_border(&cstyle, &ctx_y, false);
             }
 
             let left = resolve_inset(cstyle.inset_left.as_deref(), &ctx_x);
@@ -6100,6 +6115,31 @@ mod tests {
         tree.compute_layout(handles[1], 400.0, 400.0);
         let c = tree.get_layout(handles[0]);
         assert_eq!(c.x, 100.0, "left:50% = containing block 폭의 절반");
+    }
+
+    #[test]
+    fn absolute_flex_container_keeps_its_padding_and_border_in_border_box() {
+        let mut tree = LayoutTree::new();
+        // Live Builder regression: 두 Button(69×30)을 row Frame(gap 20, padding 20,
+        // border 2) 안에 둔 뒤 Frame 자체를 absolute로 전환한다. Frame의 content-box는
+        // 69 + 20 + 69 = 158, 30 이지만, CSS border-box는 202×74여야 한다.
+        let json = r#"[
+            {"style":{"width":"69px","height":"30px"},"children":[]},
+            {"style":{"width":"69px","height":"30px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","position":"absolute","insetLeft":"92px","insetTop":"224px","columnGap":"20px","paddingTop":"20px","paddingRight":"20px","paddingBottom":"20px","paddingLeft":"20px","borderTop":"2px","borderRight":"2px","borderBottom":"2px","borderLeft":"2px"},"children":[0,1]},
+            {"style":{"display":"block","position":"relative","width":"390px","height":"844px"},"children":[2]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[3], 390.0, 844.0);
+
+        let frame = tree.get_layout(handles[2]);
+        assert_eq!(frame.x, 92.0, "absolute left inset 유지");
+        assert_eq!(frame.y, 224.0, "absolute top inset 유지");
+        assert_eq!(
+            (frame.width, frame.height),
+            (202.0, 74.0),
+            "absolute Frame도 padding(40)과 border(4)를 포함한 border-box여야 한다",
+        );
     }
 
     #[test]

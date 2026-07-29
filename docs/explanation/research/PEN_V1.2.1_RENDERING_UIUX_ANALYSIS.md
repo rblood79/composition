@@ -358,6 +358,169 @@ renderScreenspace(t,e){ this.resizeHandles.render(t,e); this.guidesGraph.render(
 
 **종합** — 원 후보 12건 (렌더링 5 + UI/UX 7) 의 처분: **이미 동형 3** (줌 캐시 · canvas-bg · 단축키 SSOT) / **완료 2** (커서 · rAF 파생 정리) / **기각 1** (ADR-167) / **타 ADR 흡수·라우팅 3** (배치 API→153, AI 3종·온보딩 칩→134) / **조건부 유지 1** (2-pass 분리) / **실행 후보 3** (화살표 재배치 · 프리셋 갤러리 · container query 탭) / **제품 결정 1** (초경량 속성 패널).
 
+**2026-07-29 추가 4건** — §6-3-5 참조: 팬 deps 분리 (A, 유일하게 회수량이 측정된 후보) · 무효화 3단계 분류 (B) · `buildDepthMap` 증분화 (C) · 방어적 Map 복사 제거 (D).
+
+---
+
+## 6-3. Pen 장점 전수 카탈로그 + 팬 경로 실측 (2026-07-29)
+
+### 6-3-0. 이 절의 성격
+
+§6-1 이 축별 비교, §6-2 가 차용 후보 처분표라면 본 절은 **"Pen 이 잘 하는 것" 을 빠짐없이 나열한 카탈로그**다. 사용자 질문("요소가 많아도 성능 저하가 없는 이유")에서 출발해 추출본을 재조사했고, 그 과정에서 composition 측 신규 실측 1건을 얻었다.
+
+**핵심 판정**: Pen 의 장점은 "그리는 코드가 빠르다" 가 **아니다**. 그쪽은 오히려 순진하다 (§6-3-3). 장점은 전부 ① **실행 자체를 차단하는 게이트**와 ② **모델이 곧 렌더 소스인 단층 구조**에서 나온다.
+
+### 6-3-1. 신규 실측 — composition 의 팬 프레임당 O(N)
+
+**측정 방법**: MCP 탭이 hidden 이라 rAF 정지 + 타이머 1Hz 스로틀이 걸려 이벤트 구동 팬 측정은 불가능했다 (메모리 `reference-chrome-mcp-hidden-tab-raf-pause-stale-overlay`). 그래서 두 갈래로 분리했다.
+
+- **비용** — `buildSceneStructureSnapshot` 에 라이브 입력을 stash 해 **동기 반복 호출**로 측정 (타이머 무관). 스케일은 `page-components` 요소를 클론해 확장.
+- **빈도** — 코드로 확정. `useViewportControl.ts:349` 가 팬 델타를 rAF 당 1회 store 에 반영 → `BuilderCanvas` 리렌더 → 해당 useMemo deps 에 `panOffset`/`zoom` 포함 (`BuilderCanvas.tsx` 의 `sceneStructureSnapshot` / `layoutPublisherInputs`).
+
+| 노드 수            | snapshot p50 | p95   | `new Map(elementById)` |
+| ------------------ | ------------ | ----- | ---------------------- |
+| 62 (실제 프로젝트) | 0.1ms        | 0.6ms | ~0                     |
+| 224                | 0.1ms        | 0.2ms | ~0                     |
+| 980                | 0.3–0.5ms    | 0.6ms | ~0                     |
+| 4,868              | 1.3ms        | 1.4ms | 0.2ms                  |
+| 9,728              | 2.1–3.9ms    | 4.6ms | 0.4ms                  |
+
+노드당 약 0.3µs 선형. 하위 분해 (N=9,728): `buildDepthMap` 0.8ms (최대, 약 38%) · `buildPageDataMap` 0.4ms · `buildPageFrames` 0.2ms · 나머지 약 0.7ms (페이지별 `hashString` + visible set).
+
+`layoutPublisherInputs` 는 visible page 마다 `new Map(elementById)` 를 뜬다 (`renderers/rendererInput.ts`) → 10k·2페이지에서 약 0.8ms 추가. **합계 약 3~4.7ms/프레임 = 60fps 예산의 18~28%.** Pen 은 이 구간이 0ms 다 (§6-3-2 (a) #5).
+
+**측정 한계 (명시)**: end-to-end 팬 프레임은 측정하지 못했다 — 위는 "함수 비용 × 코드로 확인한 빈도" 다. `performance.now()` 가 0.1ms 로 양자화돼 소규모 값은 정밀도가 낮고, 10k 두 회차가 2.1/3.9 로 갈린 것은 JIT·GC 편차다. 스케일은 단일 페이지 클론이라 실제 문서의 형태 분포와 다르다. 계측 코드는 반영하지 않고 되돌렸다.
+
+**정정 1건**: `skiaRendererInput` useMemo 는 deps 에 `panOffset`/`zoom` 이 **없어** 팬에 재계산되지 않는다. 팬 경로에 걸리는 것은 위 두 개뿐이다.
+
+### 6-3-2. 장점 카탈로그
+
+composition 열의 표기: ✅ 이미 동형 / △ 부분 / ❌ 없음 / — 해당 없음.
+
+#### (a) 프레임 루프 · 카메라
+
+| #   | 장점                                                                                        | composition                                  |
+| --- | ------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| 1   | idle 시 rAF 체인 완전 정지 (`framesRequested` 0 → `activeRenderLoop=false`)                 | ❌ — 단 **기각됨** (ADR-167 G0 불통과, §6-2) |
+| 2   | 콘텐츠 서피스 캐시 (화면+512px, 특정 줌 래스터 후 snapshot blit)                            | ✅ 파라미터까지 일치                         |
+| 3   | 재래스터 게이트 4개 (줌×3 / bounds 이탈 / `invalidateContent()` / 이동 종료 200ms debounce) | ✅                                           |
+| 4   | 줌 제스처 중 stale 캐시를 `makeShaderCubic(.3,.3)` 로 리샘플만                              | ✅                                           |
+| 5   | **팬/줌 중 레이아웃 호출 0** — `updateLayout()` 이 `redrawContentIfNeeded()` 안에만 존재    | ❌ 팬 프레임마다 스냅샷 재구축 (§6-3-1)      |
+| 6   | 프레임 이벤트를 `queuedFrameEvents` Set 으로 프레임당 1회 debounce                          | △                                            |
+
+#### (b) 컬링
+
+| #   | 장점                                                                                               | composition                                 |
+| --- | -------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| 7   | **서브트리 진입 차단** — `beginRender` 실패 시 즉시 return, 자식 재귀 자체가 없음 (O(1))           | △ replay 중 `skipDepth` 로 커맨드 선형 스캔 |
+| 8   | 보수적·정확한 컬 박스 — frame 은 `clip:false` 일 때, group 은 항상 자식 visual bounds union        | ✅                                          |
+| 9   | 컬 박스 dirty 캐시 (`_visualLocalBoundsDirty`)                                                     | ✅                                          |
+| 10  | 월드 좌표 컬 rect 를 그대로 하강 — 레벨마다 좌표 재유도 없음 (`intersectsWithTransform` 이 역변환) | ✅                                          |
+| 11  | 오버레이 이펙트도 `camera.overlapsBounds()` 별도 컬링                                              | ✅                                          |
+
+#### (c) 레이아웃
+
+| #   | 장점                                                                                     | composition                                                                |
+| --- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| 12  | **조상 체인 dirty 마킹 + 조기 중단** — `for(e=parent; e && !e.layout.dirty; e=e.parent)` | ❌ 버전 카운터 + 시그니처 해싱                                             |
+| 13  | 하강도 매 레벨 게이트 — `Qq`/`eG`/`J1e` 3 pass 전부 `if(n.layout.dirty)` 로 진입 판정    | △ 엔진 증분은 있으나 TS 층은 페이지 단위                                   |
+| 14  | clean root 는 체크 1회로 반환 — 문서 전체를 순회해도 비용이 문서 크기에 비례하지 않음    | ❌ `createPageLayoutSignature` 가 편집마다 페이지 전 요소 × 키 문자열 생성 |
+| 15  | 월드 행렬 캐시 (`worldMatrix`, `onTransformChange` 에서만 갱신)                          | ✅                                                                         |
+
+#### (d) 무효화 분류 — 가장 정교한 항목
+
+`classifyVisualChange` 가 3단계를 돌리고 `invalidateVisualCaches(t)` 가 단계마다 다른 전파 규칙을 적용한다.
+
+```js
+invalidateVisualCaches(t){ let e = (t===1);
+  for(let r=this; r!=null; r=r.parent){
+    r._thumbnail = undefined;
+    e && (r._visualLocalBoundsDirty = true);
+    t===2 && (e = true);
+  }}
+```
+
+| 변경 종류                 | 단계 | bounds 무효화 범위                         |
+| ------------------------- | ---- | ------------------------------------------ |
+| 색 · 채움 · 텍스트 스타일 | 0    | **0개** — 썸네일만 폐기                    |
+| 크기 · 이펙트             | 1    | 자기 + 조상 전부                           |
+| 위치 · 회전 · enabled     | 2    | 자기는 **제외** (로컬 bounds 불변), 조상만 |
+
+composition 의 대응물은 `LAYOUT_AFFECTING_PROP_KEYS` / `NON_LAYOUT_PROPS_UPDATE` 2단계이며 그것도 레이아웃 축 전용이다. 씬 스냅샷 축에는 분류가 없다. → ❌
+
+#### (e) 노드별 캐시
+
+| #   | 장점                                                                                                      | composition                                                        |
+| --- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| 17  | `_fillPath`+`fillPathDirty`, `paragraph`+`dirtyParagraph`, `strokePath`, `_isPathOpenCache`, `_thumbnail` | ✅ **composition 이 더 많음** (LRU 측정 캐시 + `nodePictureCache`) |
+
+#### (f) 텍스트
+
+| #   | 장점                                                                          | composition                                       |
+| --- | ----------------------------------------------------------------------------- | ------------------------------------------------- |
+| 18  | 측정 엔진 단일 (skia textlayout Paragraph + ICU74) — 정합 대조 대상이 없음    | ❌ 이중 (Canvas 2D ↔ CanvasKit) — CSS 정합의 대가 |
+| 19  | 폰트 raw TTF 직접 fetch → `pencil_typeface_make_from_data`, Google Fonts 내장 | △                                                 |
+| 20  | DOM 오버레이 편집 (`transform: matrix()` 정합, Quill / `<input>`)             | ✅ TextEditOverlay 동형                           |
+| 21  | UI 폰트와 문서 폰트 완전 분리                                                 | ✅                                                |
+
+#### (g) 구조
+
+| #   | 장점                                                                                            | composition                                                     |
+| --- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| 22  | **파생 계층 0개** — 재래스터가 `getViewportNode().children → renderSkia` 로 씬 그래프 직접 순회 | ❌ 4겹 (store→sceneNodes→snapshot→rendererInput→command stream) |
+| 23  | 최상위 단위가 같은 기제 안에 있음 — frame 은 타입만 다른 노드라 컬링·dirty 게이트를 상속        | ❌ page 는 씬 그래프 밖 축이라 각 기제를 따로 구현              |
+| 24  | CSS 호환 목표 없음 — hug/fill/고정 3모드, margin·percent 불지원                                 | — 정반대가 제품 목표                                            |
+
+> #23 주의: "Pen 에는 페이지 개념이 없다" 는 서술은 **표의 차이**다 (2026-07-29 사용자 지적으로 정정). Pen 의 frame 과 composition 의 page 는 같은 의미이고, 실제로 갈리는 것은 **그 단위가 씬 그래프 안에 있느냐** 다. composition 도 레이아웃·컬링은 visible page 로 이미 제한한다 (`BuilderCanvas.tsx` `visiblePages`) — 빠진 것은 팬 경로뿐 (§6-3-1).
+
+#### (h) 오버레이 · 인터랙션
+
+| #   | 장점                                                                                 |
+| --- | ------------------------------------------------------------------------------------ |
+| 25  | 오버레이 chrome 전부 캔버스 렌더, worldspace/screenspace 2-pass 명시 분리 (§6-1-g)   |
+| 26  | 히트테스트 벡터 정밀 — `pencil_path_contains` point-in-path, 자식 역순 재귀          |
+| 27  | 픽셀 그리드를 SkSL runtime effect 로 content shader 를 감싸 렌더 (줌 4→5.5 페이드인) |
+
+#26 은 정밀도 우위이고 확장성은 composition 의 SpatialIndex 가 우위다 (Pen 은 공간 인덱스 없음).
+
+#### (i) 셸 · 내보내기 · AI
+
+| #   | 장점                                                                                                            |
+| --- | --------------------------------------------------------------------------------------------------------------- |
+| 28  | `--canvas-bg` 를 패널과 캔버스가 공유 (composition 은 이미 동형 — §6-2 UI/UX 1)                                 |
+| 29  | 속성 패널 212px, 선택 시에만 표시 (제품 UX 결정 대상)                                                           |
+| 30  | goodies = 셰이더 12종 × 99 프리셋, QuickJS 샌드박스 (`setMemoryLimit`/`setMaxStackSize`/시드 고정 RNG)          |
+| 31  | 스타일 갤러리 = 타입드 파라미터 세트 56종 ("프리셋 = 데이터")                                                   |
+| 32  | PDF 를 SkPDF 네이티브 벡터로 — `renderTarget===PDF` 분기 하나로 동일 렌더 경로 재사용                           |
+| 33  | HTML 자동 export 루프 상주 (4초 debounce / 최소 60초 간격)                                                      |
+| 34  | AI — 5계열 CLI + 자체 프록시, `spawn_agents` 병렬 오케스트레이션, `batch_design` 부분-JSON 스트리밍 라이브 렌더 |
+
+### 6-3-3. 장점이 **아닌** 것 — Pen 이 일부러 안 하는 것
+
+카탈로그만 보면 "최적화가 잘 된 앱" 으로 읽히지만 실측은 반대다. **최적화 대상 축을 잘못 잡지 않으려면 이쪽이 더 중요하다.**
+
+- `new ze.Paint` 를 fill 마다 새로 할당하고 delete — Paint 풀 없음 (할당 지점 47곳)
+- 노드별 Picture 캐시 없음 — 재래스터는 보이는 씬 전체 재기록
+- 공간 인덱스 없음 (rbush/quadtree 0건) — 최상위 frame 목록 선형 스캔
+- 타일링 없음 — 단일 패딩 서피스
+- 워커 0 / SharedArrayBuffer 0 — 완전 단일 스레드
+- 커맨드 스트림 같은 중간 표현 없음
+
+### 6-3-4. 대가 — 차용 불가 항목
+
+#22 · #24 · #18 은 **DOM/CSS 정합을 포기해서** 산 것이다. 파생 계층 0 = 브라우저와 대조할 두 번째 렌더 타겟이 없다는 뜻이고, 측정 엔진 단일 = CSS oracle 이 없다는 뜻이다. dirty 게이트를 좁게 걸 수 있는 이유도 hug/fill 2-pass 라 한 노드 변경이 형제·조상 크기를 되바꾸는 경로가 적기 때문이며, CSS 표준은 min/max clamp 재분배·shrink-to-fit 재진입·height-for-width 2-pass 가 있어 같은 폭의 게이트가 성립하지 않는다 (layout-engine.md 참조). §6-1-h 총평과 동일 결론.
+
+### 6-3-5. 신규 차용 후보 (§6-2 목록에 추가)
+
+| 후보                                                                                                             | 근거                                                              | 규모            |
+| ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | --------------- |
+| **A. `sceneStructureSnapshot` deps 에서 `panOffset`/`zoom` 분리** — `visiblePageIds` 산출만 별도 useMemo 로 분리 | §6-3-1 (10k 기준 3~4.7ms/프레임 회수, **유일하게 측정된 회수량**) | 소              |
+| **B. 무효화 3단계 분류 도입** — 색·텍스트 변경이 기하 캐시를 건드리지 않게                                       | §6-3-2 (d)                                                        | 중, 효과 미측정 |
+| C. `buildDepthMap` 증분화 (A 의 38%)                                                                             | §6-3-1 분해                                                       | 중              |
+| D. `new Map(elementById)` 방어적 복사 제거 (읽기 전용 소비자면 `ReadonlyMap`)                                    | §6-3-1                                                            | 소              |
+
+A 만으로 팬 경로의 측정된 비용 대부분이 사라진다. B~D 는 기제 개선이며 효과는 미측정이다. **#1 (idle rAF) 은 재론 금지** — ADR-167 로 기각 완료.
+
 ---
 
 ## 7. 선행 문서 델타 — 정정 표

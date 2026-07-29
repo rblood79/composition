@@ -16,6 +16,12 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from "@composition/shared/components";
+import { type BreakpointName } from "@composition/shared";
+import {
+  parseBorderWidth,
+  parsePadding4Way,
+  parsePxValue,
+} from "@composition/specs";
 import {
   SwatchIconButton,
   SwatchIconToggleButton,
@@ -56,6 +62,9 @@ import {
 } from "../../../utils/aspectRatio";
 import { getSceneBounds } from "../../../workspace/canvas/skia/renderCommands";
 import type { BoundingBox } from "../../../workspace/canvas/selection/types";
+import { resolveResponsiveStyleMap } from "../../../workspace/canvas/layout/resolveResponsive";
+import { resolveContainerStylesFallback } from "../../../workspace/canvas/layout/engines/implicitStyles";
+import type { CanvasLayoutNode } from "../../../workspace/canvas/layout/layoutNode";
 
 const ICON_SIZE = 14;
 const ICON_STROKE = 1.5;
@@ -77,6 +86,42 @@ export function resolveAbsolutePositionActivationStyles(
     position: "absolute",
     left: formatAbsoluteOffsetPx(elementBounds.x - parentBounds.x),
     top: formatAbsoluteOffsetPx(elementBounds.y - parentBounds.y),
+  };
+}
+
+function resolveAbsoluteContainingBlockBounds(
+  parent: CanvasLayoutNode,
+  parentBounds: BoundingBox,
+  activeBreakpoint: BreakpointName,
+): BoundingBox {
+  const rawStyle = (parent.props?.style ?? {}) as Record<string, unknown>;
+  const responsiveStyle = resolveResponsiveStyleMap(
+    rawStyle,
+    parent.responsive,
+    activeBreakpoint,
+  );
+  const type = parent.type.toLowerCase();
+  const style = {
+    ...resolveContainerStylesFallback(type, responsiveStyle),
+    ...responsiveStyle,
+  };
+  const padding = parsePadding4Way(style);
+  const borderWidth = parseBorderWidth(style.borderWidth ?? style.border, 0);
+  const borderLeft = parsePxValue(
+    style.borderLeftWidth ?? style.borderLeft,
+    borderWidth,
+  );
+  const borderTop = parsePxValue(
+    style.borderTopWidth ?? style.borderTop,
+    borderWidth,
+  );
+
+  // Skia absolute layout은 부모 border-box가 아닌 border+padding 이후의 콘텐츠
+  // 원점을 left/top 0으로 사용한다. 토글 전환도 동일 원점을 써야 시각 좌표가 보존된다.
+  return {
+    ...parentBounds,
+    x: parentBounds.x + borderLeft + padding.left,
+    y: parentBounds.y + borderTop + padding.top,
   };
 }
 
@@ -297,9 +342,17 @@ const TransformSectionContent = memo(function TransformSectionContent() {
           : undefined;
         const parentId = element?.parent_id;
         if (elementId && parentId) {
+          const parent = state.elementsMap.get(parentId);
+          const parentBounds = getSceneBounds(parentId);
           const activationStyles = resolveAbsolutePositionActivationStyles(
             getSceneBounds(elementId),
-            getSceneBounds(parentId),
+            parent && parentBounds
+              ? resolveAbsoluteContainingBlockBounds(
+                  parent,
+                  parentBounds,
+                  state.activeBreakpoint,
+                )
+              : parentBounds,
           );
           if (activationStyles) {
             updateStylesImmediate(activationStyles);

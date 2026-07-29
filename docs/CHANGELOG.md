@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Absolute Button 좌표 보존 복구] - 2026-07-29
+
+### Bug Fixes
+
+- padding 또는 border가 있는 flex Frame 안의 Button을 `Absolute position`으로 전환하면 좌표가 부모 inset만큼 다시 밀리던 문제를 수정
+  - 전환 시 `Left`/`Top`을 부모 border-box가 아니라 Skia absolute layout과 같은 콘텐츠 원점(`border + padding` 이후) 기준으로 기록
+  - 현재 breakpoint의 responsive padding과 catalog container fallback도 함께 반영
+
+### Verification
+
+- `TransformSection.test.tsx` — 부모 `padding: 12px 20px`, `borderWidth: 2px`에서 `Left: 38px`, `Top: 31px` 회귀 테스트 PASS
+- Builder browser: padding `20px`, border `2px` Frame의 첫 Button을 Absolute로 전환해 `Left: 0`, `Top: 0` 및 화면 위치 유지 확인
+
+## [Absolute Frame의 Hug border-box 크기 복구] - 2026-07-29
+
+### Bug Fixes
+
+- `position: absolute`로 전환한 Hug Frame이 자식 콘텐츠 영역만큼만 `158 × 30`으로 계산되어, 동일한 flow Frame의 `202 × 74`와 달라지던 문제를 수정
+  - **Why:** absolute 자식 배치가 auto 크기 컨테이너의 content-box 반환값을 곧바로 layout box로 기록해 padding `40px`과 border `4px`를 누락했다
+  - absolute 컨테이너는 배치 직전에 자체 padding·border를 한 번 반영해 CSS와 같은 border-box를 기록하며, leaf의 기존 intrinsic border-box 계약은 유지
+
+### Verification
+
+- `cargo test` (`packages/composition-engine`) — 320 unit, 15 golden, 11 tree golden PASS
+- `pnpm wasm:build:engine` PASS
+- Builder browser: 현재 Home의 absolute Frame 선택 크기 `202 × 74` 확인
+
 ## [Nodes/Skia drag-drop 구조 이동 수정] - 2026-07-29
 
 ### Bug Fixes

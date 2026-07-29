@@ -287,6 +287,55 @@ describe("TransformSection sizing controls", () => {
     );
   });
 
+  it("uses the flex parent's content origin when enabling absolute positioning", () => {
+    const updateSelectedStyle = vi.fn();
+    const updateSelectedStyles = vi.fn();
+    setTestElements([
+      {
+        id: "button-1",
+        type: "Button",
+        parent_id: "frame-1",
+        props: { style: { width: "200px", height: "100px" } },
+      } as Element,
+      {
+        id: "frame-1",
+        type: "Frame",
+        parent_id: null,
+        props: {
+          style: {
+            display: "flex",
+            padding: "12px 20px",
+            borderWidth: "2px",
+          },
+        },
+      } as Element,
+    ]);
+    getSceneBoundsMock.mockImplementation((id: string) => {
+      if (id === "button-1") {
+        return { x: 160, y: 95, width: 200, height: 100 };
+      }
+      if (id === "frame-1") {
+        return { x: 100, y: 50, width: 600, height: 400 };
+      }
+      return undefined;
+    });
+    useStore.setState({ updateSelectedStyle, updateSelectedStyles } as never);
+
+    render(<TransformSection />);
+
+    screen.getByRole("button", { name: "Absolute position" }).click();
+
+    expect(updateSelectedStyles).toHaveBeenCalledWith({
+      position: "absolute",
+      left: "38px",
+      top: "31px",
+    });
+    expect(updateSelectedStyle).not.toHaveBeenCalledWith(
+      "position",
+      "absolute",
+    );
+  });
+
   it("falls back to position-only activation when flex bounds are unavailable", () => {
     const updateSelectedStyle = vi.fn();
     const updateSelectedStyles = vi.fn();
