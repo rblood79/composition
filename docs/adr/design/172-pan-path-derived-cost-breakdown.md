@@ -72,7 +72,7 @@ P-1~P-3 은 React 축(리렌더 유발), P-4 는 Skia 축이다. `SkiaCanvas.tsx
 - [x] 같은 확인에서 **`SceneStructureSnapshot.viewportVersion` 도 소비자 0건** 발견 (생성 `buildSceneSnapshot.ts:240` + 타입 선언뿐) → 카메라 직접 해싱이라 남기면 팬마다 snapshot identity 파괴. Phase 3 에서 함께 삭제
 - [x] `layoutPublisherInputs` / `frameLayoutPublisherInputs` 두 경로 대칭 → **동일 결함 확인**. 둘 다 deps 에 `panOffset`/`zoom` + `sceneSnapshot`, 둘 다 `new Map(elementById)` 방어 복사. Phase 1 에서 대칭 정리
 - [x] `createPageElementsSignature` 비용 → `id:parent_id` 만 이어붙임 (요소당 약 40B). P-1(`createPageLayoutSignature`, 요소당 1.4KB)의 **3% 미만** — 같은 memo 에 포함하되 별도 처방 불요
-- [ ] **P-4 `commandChildrenMap` 재구축 비용 — 대규모 N 재측정** (현 규모는 2026-07-27 프레임 분해로 실측 완료: JS 조립 합계 0.07~0.13ms/frame) — 프레임당 0.1ms 미만이면 Phase 1.5 skip (ADR §Risks R7). **이연** — 라이브 브라우저 벤치가 필요하고 Phase 1.5 착수 시점에 수행
+- [x] **P-4 `commandChildrenMap` 재구축 비용 — 대규모 N 재측정** → **완료 2026-07-30**. 9,600 자식에서 p50 2.06ms / p95 3.72ms (60fps 예산 12~22%) 로 skip 기준(0.1ms) 크게 초과 → **Phase 1.5 진행** (R7 종결). 측정표·방법은 §2.5
 - [x] `childrenMap` 반환값 소비자 전수 + mutate 여부 → **mutate 0건** (`childrenMap.set/delete/clear` 는 `renderCommandStream.bench.ts:129` 픽스처뿐). 소비처는 `skiaFramePlan.ts:172` / `SkiaCanvas.tsx:273,294` / `buildSpecNodeData` 로 전부 읽기 → 캐시화 안전 (**R6 해소**)
 - [x] (추가) `elementById` mutate 소비자 → **0건** → `ReadonlyMap` 전환 안전 (**R3 해소**)
 - [ ] 편집 경로 실측 baseline (Phase 6 판정 근거) — 본 ADR 범위 밖, Phase 5 완료 후
@@ -98,9 +98,13 @@ P-1~P-3 은 React 축(리렌더 유발), P-4 는 Skia 축이다. `SkiaCanvas.tsx
 
 ---
 
-## 2.5. Phase 1.5 — Skia 프레임 콘텐츠 재사용 (P-4)
+## 2.5. Phase 1.5 — Skia 프레임 콘텐츠 재사용 (P-4) — **완료 2026-07-30 (`2e25a5acd`)**
 
-**Phase 0 의 대규모 N 재측정 결과에 조건부.** 현 규모에서는 2026-07-27 프레임 분해 실측이 이 구간을 "사실상 0"(JS 조립 합계 0.07~0.13ms/frame)으로 이미 격하 판정했다 — 본 Phase 의 근거는 대규모 N 스케일링뿐이다. 재측정이 프레임당 0.1ms 미만이면 skip 하고 그 사실을 ADR §Risks 에 기록한다 (R7).
+**R7 재측정 결과 진행 판정.** 현 규모에서는 2026-07-27 프레임 분해 실측이 이 구간을 "사실상 0"(JS 조립 합계 0.07~0.13ms/frame)으로 격하 판정했으나, 2026-07-30 대규모 N 재측정에서 **9,600 자식 p50 2.06ms / p95 3.72ms**(60fps 예산 12~22%)로 skip 기준(0.1ms)을 크게 초과했다. 측정표는 [ADR §"R7 종결"](../172-pan-path-derived-cost.md) 참조.
+
+측정 방법 — 원본 루프를 실제 입력으로 재현했다. `buildSkiaFrameContent` 는 hidden 탭에서 아예 돌지 않으므로(rAF 정지) 입력 stash 지점을 **rAF 밖(React 렌더 경로 `createSkiaRendererInput` + layout getter)** 으로 옮겨 임시 노출했고, 측정 후 제거했다. 동기 반복 벤치는 타이머 무관이라 hidden 탭에서도 유효하다 (§9).
+
+`min` 값이 40–58 ns/child 로 선형인 반면 p50/p95 가 초선형으로 뛰는 것은 **GC 압력**이다 — 매 프레임 Map + 배열 수천 개를 새로 할당하는 것이 실제 동작이므로 p50 을 실측치로 삼았다.
 
 React 축(P-1~P-3)만 고치면 blit 프레임에 `commandChildrenMap` O(N) 재구축이 남아 **Hard Constraint 1 이 성립하지 않는다** — 축 ① 을 닫으려면 4지점 전부가 필요하다.
 
@@ -119,6 +123,16 @@ React 축(P-1~P-3)만 고치면 blit 프레임에 `commandChildrenMap` O(N) 재�
 | 캐시 무효화 경로가 `invalidateCommandStreamCache()` 와 일치하는지 확인                            | `skia/renderCommands.ts`               |
 
 **금지**: `commandChildrenMap` 전용 캐시 키 신설 (스트림과 무효화 시점이 갈림). 반환 Map 을 소비자가 mutate 하고 있으면 캐시화 대신 그 소비자를 먼저 고친다.
+
+### 2.5-3. 반영 결과
+
+`getCachedCommandStream` 이 childrenMap 을 **lazy builder**(`() => Map`)로 받고 `{ childrenMap, stream }` 을 반환한다. 캐시 hit 이면 builder 를 호출하지 않고 동봉된 값을 그대로 돌려준다 — blit 프레임은 5중 키가 전부 그대로라 항상 hit 이다. **builder 를 미리 호출해 값으로 넘기면 lazy 가 무의미해진다.**
+
+**정합성 전제는 스트림 캐시가 이미 의존하던 것과 같다**: `filteredChildIds` 갱신은 항상 `publishLayoutMapsBatch`(→ `_sharedLayoutVersion++`)와 짝을 이루고, `renderNodesMap` 변경은 `SkiaCanvas.tsx:267` 의 `useEffect([rendererInput])` 명시 invalidate 가 덮는다. 스트림이 childrenMap 으로부터 만들어지는 이상 "스트림 재사용이 정당하면 childrenMap 재사용도 정당하다" 가 성립한다. 오히려 종전에는 캐시 hit 프레임에서 스트림(캐시)과 childrenMap(매번 새로 조립)의 **세대가 갈려** 있었고 이번 변경이 그 비대칭을 없앤다 (R6 해소).
+
+계약 테스트 7건 — `skia/commandStreamCache.test.ts`: miss 에서만 builder 호출 / hit 은 같은 identity / 5중 키 각각 변경 시 재호출(stale 반환 금지, 5 케이스) / `invalidateCommandStreamCache()` 가 둘 다 버림.
+
+**live 미검증**: blit 프레임 캐시 hit 은 rAF 가 필요한데 MCP 탭이 `visibilityState: hidden` 이라 Skia 프레임 자체가 돌지 않는다 (R4 와 동일 제약). 프레임 단위 확인은 Phase 5 에서 visible 창으로.
 
 ---
 

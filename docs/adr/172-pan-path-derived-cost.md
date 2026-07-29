@@ -6,17 +6,32 @@ Accepted — 2026-07-29 (리뷰 round 1 승인 — `reviews/172.md`, 이슈 2건
 
 ### 진행 로그
 
-| Phase                             | 상태              | 커밋              | 비고                                                                                         |
-| --------------------------------- | ----------------- | ----------------- | -------------------------------------------------------------------------------------------- |
-| Phase 0 — inventory               | 완료 2026-07-29   | (Phase 1 에 동봉) | `isVisible`/`viewportVersion` 읽기 0건 · `childrenMap`·`elementById` mutate 0건 (R3·R6 해소) |
-| Phase 1 — 카메라 dead 필드 제거   | 완료 2026-07-29   | `49b845089`       | `LayoutPublisherInput` 카메라 2필드 삭제 + `ReadonlyMap` 전환                                |
-| Phase 3 — snapshot 카메라 축 분리 | 완료 2026-07-29   | `02f634f10`       | core / visibility / compose 3단계 + key 기반 identity 안정화. 4-1-a 채택                     |
-| Phase 2 — `layoutInputKey` memo   | 완료 2026-07-29   | `fc51d75a8`       | R1 HIGH — **G1 통과** (신규 child 발행 82→83, 투명/미등록 0건) + 정적 가드 2건               |
-| Phase 1.5 — Skia 프레임 재사용    | **조건부 미착수** | —                 | P-4 대규모 N 재측정 선행 (R7). 현 규모는 무해 실측 완료                                      |
-| Phase 4 — 계측 상설화             | 미착수            | —                 | G2 카운터의 거처                                                                             |
-| Phase 5 — 검증                    | 미착수            | —                 | G2/G5 는 visible 창(사용자 실행) 필요 (R4)                                                   |
+| Phase                             | 상태            | 커밋              | 비고                                                                                         |
+| --------------------------------- | --------------- | ----------------- | -------------------------------------------------------------------------------------------- |
+| Phase 0 — inventory               | 완료 2026-07-29 | (Phase 1 에 동봉) | `isVisible`/`viewportVersion` 읽기 0건 · `childrenMap`·`elementById` mutate 0건 (R3·R6 해소) |
+| Phase 1 — 카메라 dead 필드 제거   | 완료 2026-07-29 | `49b845089`       | `LayoutPublisherInput` 카메라 2필드 삭제 + `ReadonlyMap` 전환                                |
+| Phase 3 — snapshot 카메라 축 분리 | 완료 2026-07-29 | `02f634f10`       | core / visibility / compose 3단계 + key 기반 identity 안정화. 4-1-a 채택                     |
+| Phase 2 — `layoutInputKey` memo   | 완료 2026-07-29 | `fc51d75a8`       | R1 HIGH — **G1 통과** (신규 child 발행 82→83, 투명/미등록 0건) + 정적 가드 2건               |
+| Phase 1.5 — Skia 프레임 재사용    | 완료 2026-07-30 | `2e25a5acd`       | R7 재측정 → **진행 판정**. 커맨드 스트림 캐시에 동봉 (lazy builder) + 계약 테스트 7건        |
+| Phase 4 — 계측 상설화             | 미착수          | —                 | G2 카운터의 거처                                                                             |
+| Phase 5 — 검증                    | 미착수          | —                 | G2/G5 는 visible 창(사용자 실행) 필요 (R4)                                                   |
 
-**축 ① 진행률**: 4지점 중 **P-1·P-2·P-3 반영 완료**, P-4(Skia 축)만 조건부 잔여. G5("팬 프레임당 파생 비용이 요소 수에 상수")는 P-4 판정 후 Phase 5 에서 확인한다.
+**축 ① 진행률**: 4지점 **전부 반영 완료** (P-1 Phase 2 / P-2 Phase 3 / P-3 Phase 1 / P-4 Phase 1.5). 남은 것은 계측(Phase 4)과 프레임 단위 확인(Phase 5) — G5("팬 프레임당 파생 비용이 요소 수에 상수")는 visible 창에서만 확인 가능하다.
+
+### R7 종결 — P-4 대규모 N 재측정 결과 (2026-07-30, 라이브 실측)
+
+원본 루프(`skiaFramePipeline.ts` P-4)를 실제 입력(`filteredChildIds` 82 entries / `renderNodesMap` 82)으로 재현해 K배 복제 스케일 벤치:
+
+|        자식 수 |        p50 |        p95 |      min | 60fps 예산(p50) |
+| -------------: | ---------: | ---------: | -------: | --------------: |
+| 80 (현 실사용) |    0.006ms |    0.020ms | 0.0045ms |           0.04% |
+|            960 |    0.045ms |    0.058ms |  0.040ms |           0.27% |
+|          2,400 |     0.27ms |     0.99ms |  0.090ms |            1.6% |
+|          4,800 |     0.21ms |     0.25ms |   0.19ms |            1.3% |
+|          7,200 |     1.77ms |     3.03ms |   0.42ms |           10.6% |
+|          9,600 | **2.06ms** | **3.72ms** |   0.54ms |       **12.4%** |
+
+`min` 기준으로는 40–58 ns/child 로 **선형**이고, p50/p95 의 초선형 급증은 매 프레임 Map + 배열 수천 개를 새로 할당하는 데서 오는 **GC 압력**이다 — 그 할당이 실제 동작이므로 p50 이 실측치다. R7 의 skip 기준(프레임당 0.1ms)을 대규모 N 에서 크게 초과하므로 **Phase 1.5 진행**으로 종결했다. 현 실사용 규모(80 자식)에서는 여전히 무해하며, 이 Phase 의 근거는 비례성이다.
 
 ## Context
 
@@ -33,7 +48,7 @@ Accepted — 2026-07-29 (리뷰 round 1 승인 — `reviews/172.md`, 이슈 2건
 | P-3  | `buildPageLayoutPublisherInput` 의 `new Map(elementById)`                                    | 방어적 복사 + 카메라 결합                 |
 | P-4  | `buildSkiaFrameContent` 의 `commandChildrenMap` 재구축 (`skia/skiaFramePipeline.ts:260-274`) | **Skia 축** — blit 프레임에도 매 rAF 실행 |
 
-P-1~P-3 은 React 축(리렌더 유발), P-4 는 Skia 축이다. `SkiaCanvas.tsx:665` 의 `buildSkiaFrameContent` 앞에 프레임 종류별 early return 이 없어, camera-only(blit) 프레임에서도 `filteredChildIds` 전체를 순회하며 새 `Map` + 새 배열을 만든다 (O(visible 요소)). **P-4 는 현 규모에서 무해로 이미 실측됐다** — 2026-07-27 프레임 분해 실측이 팬 중 JS 조립 구간(P-4 를 포함하는 content.build + plan.build)을 0.07~0.13ms/frame(약 7%)로 재고 "사실상 0" 으로 격하 판정했다. 본 ADR 이 문제 삼는 것은 절대값이 아니라 **비례성**이다 — 이 구간은 캐시 게이트 없이 매 프레임 O(N) 으로 도는 유일한 접두부라 대규모 N 스케일링만 미측정이며, Phase 0 에서 대규모 N 재측정 후 Phase 1.5 진행 여부를 판정한다 (R7). ADR-167(idle rAF 정지, 기각·재론 금지)과는 축이 다르다 — 167 은 프레임 **실행 여부**(유휴 6.7ms/s 쪽), 본 건은 실행되는 프레임의 **내부 비용**(상호작용 884ms/s 쪽)으로, 분포 실측이 최적화 대상으로 지목한 축이다.
+P-1~P-3 은 React 축(리렌더 유발), P-4 는 Skia 축이다. `SkiaCanvas.tsx:665` 의 `buildSkiaFrameContent` 앞에 프레임 종류별 early return 이 없어, camera-only(blit) 프레임에서도 `filteredChildIds` 전체를 순회하며 새 `Map` + 새 배열을 만든다 (O(visible 요소)). **P-4 는 현 규모에서 무해로 이미 실측됐다** — 2026-07-27 프레임 분해 실측이 팬 중 JS 조립 구간(P-4 를 포함하는 content.build + plan.build)을 0.07~0.13ms/frame(약 7%)로 재고 "사실상 0" 으로 격하 판정했다. 본 ADR 이 문제 삼는 것은 절대값이 아니라 **비례성**이다 — 이 구간은 캐시 게이트 없이 매 프레임 O(N) 으로 도는 유일한 접두부라 대규모 N 스케일링만 미측정이며, 그 스케일링은 2026-07-30 재측정으로 확인됐다 — 9,600 자식에서 p50 2.06ms(예산 12.4%)로 skip 기준을 크게 초과해 Phase 1.5 를 진행했다 (위 §"R7 종결"). ADR-167(idle rAF 정지, 기각·재론 금지)과는 축이 다르다 — 167 은 프레임 **실행 여부**(유휴 6.7ms/s 쪽), 본 건은 실행되는 프레임의 **내부 비용**(상호작용 884ms/s 쪽)으로, 분포 실측이 최적화 대상으로 지목한 축이다.
 
 팬 프레임당 합계 (P-1~P-3 만, P-4 제외):
 
@@ -167,8 +182,8 @@ P-1 은 요소당 `LAYOUT_STYLE_KEYS` 73개 + `LAYOUT_PROP_KEYS` 43개를 문자
 | R3  | `elementById` 를 `ReadonlyMap` 으로 전달할 때 mutate 하는 소비자가 존재 (`renderers/rendererInput.ts:67` 의 방어적 복사가 가리고 있었을 가능성)                                               |   MED    | Phase 1 착수 전 mutate 소비자 grep. 있으면 그 지점만 지역 복사 유지 + 사유 주석                                                                                                                                             |
 | R4  | 측정이 hidden 탭 제약으로 end-to-end 미검증 — 실제 프레임 개선폭이 추정과 다를 수 있음                                                                                                        |   MED    | **G2/G5** 를 visible 창(사용자 실행)에서 수행. Phase 4 계측 상설화로 재현 가능성 확보                                                                                                                                       |
 | R5  | ADR-136 `sceneVersion` signature 입력 목록에 `isVisible` 이동이 미반영되어 same-count phantom change 미감지                                                                                   |   MED    | Phase 3 에서 `.claude/rules/canvas-rendering.md` §9 입력 목록 대조 (§4-2 체크 항목)                                                                                                                                         |
-| R6  | P-4 재사용 시 `commandChildrenMap` 이 반환값 `childrenMap` 으로도 나가므로(`skia/skiaFramePipeline.ts:335`), 소비자가 프레임마다 새 identity 를 전제하거나 반환 Map 을 mutate 하면 stale/오염 |   MED    | Phase 1.5 착수 전 `childrenMap` 소비자 전수 + mutate 여부 grep. 캐시 키는 커맨드 스트림과 **동일 5중 키** 사용 (별도 키 신설 금지)                                                                                          |
-| R7  | P-4 는 현 규모 실측(JS 조립 0.07~0.13ms/frame, 2026-07-27 프레임 분해)에서 이미 "사실상 0" 격하 판정 — 대규모 N 에서도 작으면 Phase 1.5 가 비용 대비 무의미                                   |   LOW    | Phase 0 에서 대규모 N 재측정. 프레임당 0.1ms 미만이면 Phase 1.5 를 skip 하고 그 사실을 본 ADR §Risks 에 기록                                                                                                                |
+| R6  | P-4 재사용 시 `commandChildrenMap` 이 반환값 `childrenMap` 으로도 나가므로(`skia/skiaFramePipeline.ts:335`), 소비자가 프레임마다 새 identity 를 전제하거나 반환 Map 을 mutate 하면 stale/오염 |   MED    | **해소 (2026-07-29 Phase 0)** — `childrenMap` mutate 소비자 0건 확인(bench 픽스처만 `set`). Phase 1.5 는 커맨드 스트림과 **동일 5중 키 엔트리에 동봉**해 별도 키를 신설하지 않았고, 캐시 hit 시 이전 identity 를 반환한다 — 종전에는 스트림(캐시)과 childrenMap(매 프레임 새로 조립)의 세대가 갈려 있었으므로 오히려 비대칭이 해소됐다 |
+| R7  | P-4 는 현 규모 실측(JS 조립 0.07~0.13ms/frame, 2026-07-27 프레임 분해)에서 이미 "사실상 0" 격하 판정 — 대규모 N 에서도 작으면 Phase 1.5 가 비용 대비 무의미                                   |   LOW    | **종결 (2026-07-30)** — 대규모 N 재측정 결과 9,600 자식에서 p50 2.06ms(예산 12.4%)로 skip 기준(0.1ms) 크게 초과 → Phase 1.5 진행. 측정표는 위 §"R7 종결" |
 
 잔존 HIGH 는 R1 1건이며 G1 과 1:1 대응한다. R1 은 Phase 2 국소 변경에 한정되므로 별도 ADR 분리 대상이 아니다.
 
