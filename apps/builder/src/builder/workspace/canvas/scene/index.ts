@@ -21,6 +21,9 @@ export {
 } from "./buildSceneIndex";
 export { buildSelectionSnapshot } from "./buildSelectionSnapshot";
 export { buildVisiblePageSet } from "./buildVisiblePageSet";
+export { CONTENT_COVERAGE_PADDING_CSS_PX } from "./renderCoverage";
+export { resolveCameraStableVisibility } from "./cameraStableVisibility";
+export type { CameraStableVisibilityCache } from "./cameraStableVisibility";
 export {
   buildPageChildrenMap,
   buildChildrenIdMap,

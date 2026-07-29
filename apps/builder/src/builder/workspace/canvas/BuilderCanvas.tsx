@@ -74,8 +74,9 @@ import {
   buildSceneStructureCore,
   composeSceneStructureSnapshot,
   createResolvedProjectionSignature,
-  resolveSceneVisibility,
+  resolveCameraStableVisibility,
 } from "./scene";
+import type { CameraStableVisibilityCache } from "./scene";
 // ADR-150 A2: collection 가상화 window 해석 (bounded+overflow ListBox → window map).
 import {
   resolveVirtualizedCollectionWindows,
@@ -486,15 +487,28 @@ export function BuilderCanvas({
   ]);
 
   // ADR-172 Phase 3: 카메라 의존 단계는 O(페이지) 라 팬마다 돌아도 싸다.
-  const sceneVisibility = useMemo(
-    () =>
-      resolveSceneVisibility(sceneStructureCore, {
-        containerSize,
-        panOffset,
-        zoom,
-      }),
-    [containerSize, panOffset, sceneStructureCore, zoom],
-  );
+  //
+  // ADR-173 Phase 2: 단 이 값이 바뀌면 하류 5곳(layout publish / rendererInput
+  // 재생성 → 커맨드 스트림 캐시 통째 무효화 + content 무효화 / 스트림 캐시
+  // pagePosVersion 키 / surface 무효화 2종)이 한꺼번에 격상된다. 제스처 중에는
+  // 그 격상을 미루기 위해 카메라 유발 재계산만 게이트로 막는다 — 판정 축은
+  // `sceneStructureCore` identity 하나이며, 편집은 core 를 바꾸므로 게이트를
+  // 그대로 통과한다 (Hard Constraint 2).
+  //
+  // Phase 2 시점에는 신호가 항상 비활성이라 동작 변화가 0이다. 실제 배선은
+  // Phase 3 (제스처 활성 debounce).
+  const cameraGestureFrozen = false;
+  const visibilityCacheRef = useRef<CameraStableVisibilityCache | null>(null);
+  const sceneVisibility = useMemo(() => {
+    const outcome = resolveCameraStableVisibility(
+      visibilityCacheRef.current,
+      sceneStructureCore,
+      { containerSize, panOffset, zoom },
+      cameraGestureFrozen,
+    );
+    visibilityCacheRef.current = outcome.cache;
+    return outcome.result;
+  }, [cameraGestureFrozen, containerSize, panOffset, sceneStructureCore, zoom]);
   // 합성 결과의 **identity 는 유지되어야 한다** — visible set 이 그대로인 팬
   // 프레임에서 새 객체를 만들면 하류 layoutPublisherInputs 가 다시 팬마다
   // 재생성되어 Phase 1·2 의 이득이 사라진다 (design §4-1 CRITICAL).
