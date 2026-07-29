@@ -219,7 +219,7 @@ ADR-136 signature 계약은 불변 — core 가 접두(`layoutVersion:pagePositi
 
 ---
 
-## 5. Phase 4 — 계측 상설화
+## 5. Phase 4 — 계측 상설화 — **완료 2026-07-30 (`6886453ba` · `4d21e10a6`)**
 
 Phase 5 검증과 회귀 감시의 근거를 남긴다. ADR-153 (Implemented) 의 `perfMarks` 인프라를 그대로 쓴다.
 
@@ -233,7 +233,13 @@ Phase 5 검증과 회귀 감시의 근거를 남긴다. ADR-153 (Implemented) �
 
 ---
 
-## 6. Phase 5 — 검증
+## 6. Phase 5 — 검증 — **진행 중 (G1·G2·G3·G5 통과 2026-07-30)**
+
+> **반영 결과**: 라벨은 3종이다 — breakdown 이 원래 잡은 P-1/P-2 에 **P-4(`render.derived.children-map`)를 더했다**. Phase 1.5 가 P-4 를 축 ① 에 넣었으므로 계측도 3지점이어야 한다. 카운터는 신설하지 않았다 — `PerfStats.count`(`perfMarks.ts:106`)가 이미 호출 횟수를 낸다.
+>
+> **children-map 은 횟수 전용 라벨이다.** 실사용 규모에서 조립은 0.006ms 로 `performance.now()` 양자화(0.1ms) 아래라 duration 으로는 hit/miss 가 구분되지 않는다 (캐시 강제 무효화 A/B 실측: mean 0.03 vs 0.02).
+>
+> Gate 결과와 20배 규모 실측은 ADR 본문 §"G5 종결" 참조. **R4(hidden 탭)는 성립하지 않았다** — 탭이 visible 이고 rAF 가 120Hz 로 동작했다.
 
 ### 6-1. 정적
 
