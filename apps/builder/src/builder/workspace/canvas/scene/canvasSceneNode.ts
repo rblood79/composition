@@ -1383,7 +1383,8 @@ function appendGridListRowProjection(
 ): void {
   const props = gridListSceneNode.props;
   const { rows, sourceNode } = projection;
-  const layout = (props.layout as string) ?? "stack";
+  // 2026-07-29: prop 부재 fallback 도 grid (catalog `GridList.binding.ts` layout.default 정합).
+  const layout = (props.layout as string) ?? "grid";
   const numCols =
     layout === "grid" ? Math.max(1, Number(props.columns) || 2) : 1;
   const gap = typeof props.gap === "number" ? (props.gap as number) : 12;

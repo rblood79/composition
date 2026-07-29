@@ -334,7 +334,9 @@ export function createGridListDefinition(
       ref: GRIDLIST_ORIGIN_ID,
       componentName: "GridList",
       props: {
-        layout: "stack",
+        // 2026-07-29: 기본값 stack → grid. 이 값은 **instance override** 라 master
+        //   (`gridListTemplateOrigins`) 를 바꾸는 것만으로는 안 바뀐다 — 둘 다 옮긴다.
+        layout: "grid",
         columns: 2,
         selectionMode: "none",
         items,

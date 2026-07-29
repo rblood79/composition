@@ -51,13 +51,16 @@ export const gridListBinding: PrimitiveBinding = {
       },
       // RAC 공식 prop(react-aria.adobe.com/GridList) — 항목 배치 방식(수직 stack ↔ 카드 grid).
       //   GridList.tsx 가 `layout={layout}` 소비 → RAC GridList `data-layout` 방출 →
-      //   GridList.css `[data-layout=grid|stack]` 스타일. factory 기본 stack. RAC 소비 prop 이라
-      //   DOM raw attr 누출 없음(selectionMode 동형).
+      //   GridList.css `[data-layout=grid|stack]` 스타일. RAC 소비 prop 이라 DOM raw attr
+      //   누출 없음(selectionMode 동형).
+      // 2026-07-29 사용자 결정: 기본값 stack → **grid**. GridList 의 카드 배치가 이 컴포넌트를
+      //   ListBox 와 구분 짓는 지점인데 기본이 stack 이면 둘이 같은 모양으로 시작한다.
+      //   기본값은 한 곳에 없다 — 아래 9곳이 같이 움직여야 한다(§commit 참조).
       layout: {
         kind: "enum",
         label: "Layout",
         section: "appearance",
-        default: "stack",
+        default: "grid",
         options: [
           { value: "stack", label: "Stack" },
           { value: "grid", label: "Grid" },

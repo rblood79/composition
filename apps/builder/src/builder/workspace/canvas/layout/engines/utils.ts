@@ -2624,7 +2624,8 @@ export function calculateContentHeight(
             { id: "i4", label: "Item 4", description: "Description" },
           ];
 
-    const layout = String(props?.layout ?? "stack");
+    // 2026-07-29: prop 부재 fallback 도 grid (catalog `GridList.binding.ts` layout.default 정합).
+    const layout = String(props?.layout ?? "grid");
     // ADR-907 Phase 3 Wave B: Layer D resolver 단일 경로.
     //   style.gap/padding/borderWidth/fontSize 소비 + resolveGridListItemMetric 분기 캡슐화.
     //   4-way padding 지원 (paddingTop+paddingBottom) — 기존 paddingY*2 대칭 가정 해소.

@@ -376,9 +376,9 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     beforeEach(() => clearSpecPresetCache());
 
     it("ListBox (Non-composite containerStyles) — 4 section 집약", () => {
+      // 2026-07-29: `maxHeight:"300px"` 고정값 제거 — 컨테이너 높이는 내용이 정한다.
       expect(resolveSpecPreset("ListBox", undefined)).toMatchObject({
         width: "100%",
-        maxHeight: "300px",
       });
       expect(resolveAppearanceSpecPreset("ListBox", undefined)).toMatchObject({
         borderRadius: 8,
@@ -525,11 +525,14 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
   });
 
   describe("ADR-082 A2 — Transform extractor (containerStyles / composition string 값)", () => {
-    it("ListBox.containerStyles.width='100%' / maxHeight='300px' → string 통과", () => {
-      // ListBoxSpec.containerStyles 에 width: "100%", maxHeight: "300px" 선언
-      const preset = resolveSpecPreset("ListBox", undefined);
-      expect(preset.width).toBe("100%");
-      expect(preset.maxHeight).toBe("300px");
+    it("containerStyles 의 string 값 → preset 통과 (width / maxHeight)", () => {
+      // 2026-07-29: ListBox 의 `maxHeight:"300px"` 고정값이 catalog 에서 제거돼
+      //   maxHeight 검체는 같은 형태를 유지하는 Tree 로 옮겼다. 이 테스트가 지키는 것은
+      //   "containerStyles 의 string 값이 transform extractor 를 통과한다" 이지
+      //   ListBox 가 300 이라는 사실이 아니다.
+      expect(resolveSpecPreset("ListBox", undefined).width).toBe("100%");
+      expect(resolveSpecPreset("ListBox", undefined).maxHeight).toBeUndefined();
+      expect(resolveSpecPreset("Tree", undefined).maxHeight).toBe("300px");
     });
 
     it("Toolbar.composition.containerStyles.width='fit-content' → string 통과 (kebab 경로)", () => {

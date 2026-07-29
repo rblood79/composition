@@ -108,7 +108,6 @@ exports[`ADR-081 G2 — token consumer drift cross-reference > C3 — resolveCon
   "display": "flex",
   "flexDirection": "column",
   "gap": 2,
-  "maxHeight": "300px",
   "outline": "none",
   "overflow": "auto",
   "padding": 4,

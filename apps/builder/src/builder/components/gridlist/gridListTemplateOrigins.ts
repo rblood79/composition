@@ -84,9 +84,10 @@ function createGridListItemDefaultOrigin(): CanonicalNode {
 
 /**
  * ADR-161 Phase 1: GridList 컨테이너 master origin (ListBox `createListBoxOrigin` 동형).
- * 기본값은 현행 factory 행동 기본값(layout:"stack" / columns:2 / selectionMode:"none")과
+ * 기본값은 현행 factory 행동 기본값(layout:"grid" / columns:2 / selectionMode:"none")과
  * 일치시켜 Phase 2 인스턴스 override 부담을 최소화한다 (리뷰 round 1 LOW #1). width:100% 등
  * layout-context 는 Phase 2 에서 instance override 로 이관.
+ * 2026-07-29: layout 기본값 stack → grid (catalog `GridList.binding.ts` layout.default 정합).
  */
 /**
  * GridList origin 의 **기본 행 데이터**.
@@ -109,7 +110,7 @@ function createGridListOrigin(): CanonicalNode {
     name: "GridList",
     reusable: true,
     props: {
-      layout: "stack",
+      layout: "grid",
       columns: 2,
       selectionMode: "none",
       items: [...GRIDLIST_DEFAULT_ITEMS],

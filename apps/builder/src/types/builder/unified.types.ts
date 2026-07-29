@@ -1829,7 +1829,8 @@ export function createDefaultGridListProps(): GridListElementProps {
   return {
     variant: "default",
     size: "md",
-    layout: "stack",
+    // 2026-07-29: 기본값 stack → grid (catalog `GridList.binding.ts` layout.default 정합).
+    layout: "grid",
     columns: 2,
     items: [],
     selectedKeys: [],

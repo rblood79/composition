@@ -19,18 +19,19 @@ import {
 
 describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => {
   describe("listbox — ListBoxSpec.containerStyles SSOT", () => {
-    it("empty parentStyle → ListBoxSpec.containerStyles layout primitive 8 필드 반환", () => {
+    it("empty parentStyle → ListBox catalog containerStyles layout primitive 7 필드 반환", () => {
       const fb = resolveContainerStylesFallback("listbox", {});
       // ADR-083 Phase 0: 10 필드 lookup (display/flexDirection/alignItems/
       // justifyContent/width/maxHeight/overflow/outline/gap/padding) 중
-      // ListBoxSpec.containerStyles 에 선언된 8 필드 (alignItems/justifyContent 미선언).
+      // catalog 에 선언된 필드만 (alignItems/justifyContent 미선언).
+      // 2026-07-29 사용자 결정: `maxHeight:"300px"` 고정값 제거 → 8 → 7 필드.
+      //   높이는 내용이 정하고, 자르려면 요소별로 저작한다. `overflow:auto` 는 남는다.
       expect(fb).toEqual({
         display: "flex",
         flexDirection: "column",
         gap: 2, // {spacing.2xs}
         padding: 4, // {spacing.xs}
         width: "100%",
-        maxHeight: "300px",
         overflow: "auto",
         outline: "none",
         // ADR-171 Phase 3-b (2026-07-29): catalog top-level 에 borderWidth 복원.
@@ -51,7 +52,6 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         gap: 2,
         padding: 4,
         width: "100%",
-        maxHeight: "300px",
         overflow: "auto",
         outline: "none",
         borderWidth: "1px",
@@ -69,21 +69,21 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         display: "flex",
         flexDirection: "column",
         width: "100%",
-        maxHeight: "300px",
         overflow: "auto",
         outline: "none",
         borderWidth: "1px",
       });
     });
 
-    it("parentStyle 9속성 모두 명시 → 빈 객체 반환 (catalog 선언 필드 전부 override)", () => {
+    it("parentStyle 8속성 모두 명시 → 빈 객체 반환 (catalog 선언 필드 전부 override)", () => {
+      // maxHeight 는 2026-07-29 catalog 에서 제거 — parentStyle 에 남겨도 fallback 대상이
+      //   아니라 반환값에 영향이 없다. override 계약 자체는 나머지 7키로 그대로 성립.
       const fb = resolveContainerStylesFallback("listbox", {
         display: "block",
         flexDirection: "row",
         gap: 8,
         padding: 16,
         width: "50%",
-        maxHeight: "100px",
         overflow: "hidden",
         outline: "1px solid red",
         borderWidth: 2,
@@ -370,7 +370,8 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         gap: 2,
         padding: 4,
         width: "100%",
-        maxHeight: "300px",
+        // maxHeight 는 2026-07-29 제거 — Tree/Menu 는 그대로라 이 케이스가 "listbox 만
+        //   바뀌었고 재배선은 무오염" 을 계속 증명한다.
         overflow: "auto",
         outline: "none",
         borderWidth: "1px", // ADR-171 Phase 3-b — 위 listbox describe 참조

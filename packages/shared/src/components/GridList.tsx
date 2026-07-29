@@ -78,7 +78,8 @@ export function GridList<T extends object>({
   dataBinding,
   columnMapping,
   items,
-  layout = "stack",
+  // 2026-07-29: 기본값 stack → grid (catalog `GridList.binding.ts` layout.default 정합).
+  layout = "grid",
   columns = 2,
   variant = "primary",
   filter,

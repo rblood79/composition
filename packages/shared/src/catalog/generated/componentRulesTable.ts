@@ -6035,13 +6035,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   남아 있었다 — 실측 DOM h=52 / 캔버스 50 (Δ2, `catalogComponentBox.browser.test.ts`).
     //   생성기는 top-level 을 읽지 않고(`buildVirtualSpecs`) `resolveCatalogContainerBase` 는
     //   structure 에서 이미 같은 값을 받으므로, 변화는 캔버스 대체 경로 하나뿐이다.
+    // 2026-07-29 사용자 결정: `maxHeight: "300px"` 고정값 제거. 컨테이너 높이는 내용이
+    //   정하고, 잘라야 하면 요소별로 저작한다 — catalog 가 전 인스턴스에 300 을 강제할
+    //   근거가 없다. `overflow:auto` 는 남긴다(높이를 저작하면 그때 스크롤이 살아난다).
     containerStyles: {
       display: "flex",
       flexDirection: "column",
       gap: "{spacing.2xs}",
       padding: "{spacing.xs}",
       width: "100%",
-      maxHeight: "300px",
       overflow: "auto",
       outline: "none",
       // top-level `containerStyles` 는 `Record<string, string>` 이라 Calendar/RangeCalendar
@@ -6070,7 +6072,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
         flexDirection: "column",
         width: "100%",
-        maxHeight: "300px",
+        // maxHeight 제거 — 위 top-level 주석 참조 (2026-07-29). 두 층을 같이 지워야
+        //   생성 CSS(`.react-aria-ListBox { max-height }`)와 캔버스가 함께 풀린다.
         overflow: "auto",
         outline: "none",
       },

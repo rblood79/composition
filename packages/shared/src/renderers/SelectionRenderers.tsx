@@ -1022,7 +1022,7 @@ export const renderGridList = (
       className={element.props.className}
       style={element.props.style as React.CSSProperties | undefined}
       variant={(element.props.variant as "default" | "accent") || "default"}
-      layout={(element.props.layout as "stack" | "grid") || "stack"}
+      layout={(element.props.layout as "stack" | "grid") || "grid"}
       columns={(element.props.columns as number) || 2}
       selectionMode={
         (element.props.selectionMode as "none" | "single" | "multiple") ||

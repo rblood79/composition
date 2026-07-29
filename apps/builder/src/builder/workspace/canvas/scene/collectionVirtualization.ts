@@ -167,7 +167,8 @@ function resolveGridListRowStride(
 ): { rowHeight: number; columns: number } {
   const props = node.props as Record<string, unknown> | undefined;
   const style = props?.style as Record<string, unknown> | undefined;
-  const layout = String(props?.layout ?? "stack") === "grid" ? "grid" : "stack";
+  // 2026-07-29: prop 부재 fallback 도 grid (catalog `GridList.binding.ts` layout.default 정합).
+  const layout = String(props?.layout ?? "grid") === "grid" ? "grid" : "stack";
   const metric = resolveGridListSpacingMetric({
     style,
     layout,
