@@ -92,7 +92,7 @@ P-1~P-3 은 React 축(리렌더 유발), P-4 는 Skia 축이다. `SkiaCanvas.tsx
 
 **주의**: `ReadonlyMap` 전환 전에 소비자가 `elementById` 를 mutate 하지 않는지 grep 확인. mutate 하는 소비자가 있으면 그 지점만 지역 복사로 남기고 사유를 주석에 남긴다.
 
-**검증**: 이 Phase 만으로 `layoutPublisherInputs` 가 팬에 재생성되지 않아야 한다 — Phase 2 의 전제다.
+**검증**: 이 Phase 의 완료 기준은 "`layoutPublisherInputs` deps 에서 `panOffset`/`zoom` 이 사라짐"이다. **이 Phase 만으로는 팬 중 재생성이 멈추지 않는다** — deps 에 남는 `sceneSnapshot`(`BuilderCanvas.tsx:524`)과 `visiblePages`(`:517`)가 카메라 결합 스냅샷(`:466-483` deps 에 `panOffset`/`zoom`)의 산출물이라, identity 안정화는 Phase 3 까지 반영되어야 완성된다. Phase 2 의 실효 전제는 **Phase 1 + Phase 3 둘 다**다.
 
 ---
 
@@ -122,7 +122,7 @@ React 축(P-1~P-3)만 고치면 blit 프레임에 `commandChildrenMap` O(N) 재�
 
 ## 3. Phase 2 — `layoutInputKey` 메모이제이션 (P-1)
 
-**Phase 1 선행 필수.** `layoutInputKey` 를 `useMemo(..., [pages, framePages])` 로 감싸도 `pages`(= `layoutPublisherInputs`) identity 가 팬마다 바뀌면 매번 miss 다. Phase 1 이 그 identity 를 안정화한다.
+**Phase 1 + Phase 3 선행 필수.** `layoutInputKey` 를 `useMemo(..., [pages, framePages])` 로 감싸도 `pages`(= `layoutPublisherInputs`) identity 가 팬마다 바뀌면 매번 miss 다. Phase 1 은 직접 카메라 deps(`panOffset`/`zoom`)를 제거하고, Phase 3 이 deps 에 남는 `sceneSnapshot`/`visiblePages` 의 카메라 결합을 끊는다 — 둘 다 반영되어야 identity 가 안정된다. memo 자체는 Phase 3 전에 넣어도 무해하나(매 프레임 miss 로 현상 유지), G2 는 Phase 3 후에만 통과 가능하다.
 
 ### 3-1. 보존해야 할 계약 (CRITICAL)
 
@@ -153,7 +153,16 @@ P-2 는 카메라를 **실제로 쓴다** — `buildVisiblePageSet({ containerSi
 | **core** (카메라 무관)  | `buildDepthMap` · `buildPageDataMap` · `buildPageFrames` · `contentVersion` 해싱 | ❌          | O(N)      |
 | **visibility** (카메라) | `buildVisiblePageSet` → `visiblePageIds` → `pageSnapshots[].isVisible` 주입      | ✅          | O(페이지) |
 
-`pageSnapshots` 의 `isVisible` 이 두 단계에 걸치는 유일한 필드다 (`buildSceneSnapshot.ts:179`). 처리 방식 2안 중 Phase 0 잔여 inventory 결과로 택일:
+`pageSnapshots` **안에서는** `isVisible` 이 두 단계에 걸치는 유일한 필드다 (`buildSceneSnapshot.ts:179`). 단 카메라 의존 산출물은 그것만이 아니다 — visibility 단계가 함께 소유해야 하는 표면:
+
+- `document.visiblePageIds` / `document.visiblePageFrames` (`buildSceneSnapshot.ts:126-134`)
+- `document.visibleContentVersion` / `document.visiblePagePositionVersion` (`:188-203` — visiblePageFrames 를 순회해 해싱; `SkiaCanvas.tsx:623-641` 이 content 무효화 신호로 소비)
+- `sceneVersion` (`:228-238` — 위 visible\* 2종을 입력으로 함) — 이 값이 `projectionVersion`(`renderers/rendererInput.ts:74`)으로 publisher input 에 실려 `layoutInputKey`(`hooks/useLayoutPublisher.ts:95`)에 들어간다. 페이지 경계를 넘는 팬에서 visible set 이 바뀌면 sceneVersion 이 바뀌어 republish 가 트리거되는 것은 **의도 동작**이다 (신규 가시 페이지의 레이아웃 발행).
+- `viewportVersion` (`:240-248` — 카메라 직접 해싱)
+
+**visibility 단계 산출물의 identity 안정성 요구 (CRITICAL)**: visible set 이 불변인 팬 프레임에서는 이전 산출물(Set/배열/스냅샷 객체)의 identity 를 유지해야 한다 — 매 프레임 새 객체를 만들면 `visiblePages`(`BuilderCanvas.tsx:491-495`)와 `layoutPublisherInputs` 가 다시 팬마다 재생성되어 G2 가 통과 불가다. visible set 시그니처 비교 후 불변이면 이전 결과를 그대로 반환한다.
+
+`isVisible` 처리 방식 2안 중 Phase 0 잔여 inventory 결과로 택일:
 
 - **4-1-a** — `isVisible` 을 `ScenePageSnapshot` 에서 빼고 소비자가 `visiblePageIds.has(id)` 로 조회 (계약 변경, 소비자 수정 필요)
 - **4-1-b** — core 결과를 얕은 복사해 `isVisible` 만 덧입히는 visibility 단계 (계약 유지, 페이지 수만큼 얕은 복사)
@@ -238,7 +247,7 @@ Phase 5 완료 후 편집 경로를 실측한다. `createPageLayoutSignature` �
 | `builder/utils/perfMarks.ts`          | 4     | 라벨 추가            |
 | `scene/__tests__/` (신규 스케일 회귀) | 5     | 테스트               |
 
-Phase 1~4 는 각각 독립 커밋 가능하며, **Phase 1 → 2 순서만 강제**다 (§3 전제). Phase 1.5 는 Phase 0 측정 결과에 조건부이고 다른 Phase 와 순서 의존이 없다.
+Phase 1~4 는 각각 독립 커밋 가능하며, **Phase 1·3 → 2 순서가 강제**다 (§3 전제 — Phase 2 의 실효는 Phase 1 과 Phase 3 둘 다 필요. Phase 3 없이 Phase 2 만 넣으면 `pages` identity 가 팬마다 깨져 memo 가 매 프레임 miss). Phase 1.5 는 Phase 0 측정 결과에 조건부이고 다른 Phase 와 순서 의존이 없다.
 
 **축 ① 완결 조건**: Phase 1 + 1.5 + 2 + 3 이 모두 반영되어야 "팬 프레임당 파생 비용이 요소 수에 상수"(G5)가 성립한다. 하나라도 빠지면 그 지점이 O(N) 으로 남는다.
 
