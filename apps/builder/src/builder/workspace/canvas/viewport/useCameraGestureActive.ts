@@ -26,8 +26,11 @@ export function useCameraGestureActive(
   idleMs: number = CAMERA_GESTURE_IDLE_MS,
 ): boolean {
   const zoom = useViewportSyncStore((state) => state.zoom);
-  const panX = useViewportSyncStore((state) => state.panOffset.x);
-  const panY = useViewportSyncStore((state) => state.panOffset.y);
+  // 스칼라(panOffset.x/y)가 아니라 **객체 identity** 를 본다. `setViewportSnapshot`
+  // 은 카메라 이벤트마다 새 객체를 넣으므로, 좌표가 같은 값으로 되돌아와도
+  // identity 는 달라진다 — 왕복 제스처(줌 인↔아웃, 팬 왕복)에서 "값이 그대로라
+  // effect 가 안 돌고 타이머가 만료" 되는 구멍을 막는다.
+  const panOffset = useViewportSyncStore((state) => state.panOffset);
   const [active, setActive] = useState(false);
   const seenFirstRef = useRef(false);
 
@@ -42,7 +45,7 @@ export function useCameraGestureActive(
     setActive(true);
     const timer = setTimeout(() => setActive(false), idleMs);
     return () => clearTimeout(timer);
-  }, [idleMs, panX, panY, zoom]);
+  }, [idleMs, panOffset, zoom]);
 
   return active;
 }
