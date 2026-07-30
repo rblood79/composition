@@ -187,33 +187,10 @@ export function ensureNodePictureFontGeneration(fontMgr: FontMgr | null): void {
 }
 
 /**
- * content Picture 기록 중 일시 정지 플래그 (ADR-173 Phase 5).
- *
- * SkiaRenderer 가 콘텐츠 전체를 PictureRecorder 로 기록하는 동안 node Picture
- * 캐시를 우회한다 — record 중 node miss 가 발생하면 recorder 가 중첩되고,
- * 갓 기록된 node Picture 의 `drawPicture` 참조가 content Picture 안에 남아
- * 이후 node 캐시 무효화/LRU 퇴거와 수명이 얽혀 WASM memory OOB 크래시가
- * 난다 (2026-07-30 live 실측 — node 캐시 OFF A/B 로 격리). 우회하면 content
- * Picture 는 raw draw 명령만 담는 자기완결 상태가 되어 결합 자체가 사라진다.
- */
-let suspendedForContentRecord = false;
-
-export function runWithNodePictureCacheSuspended<T>(fn: () => T): T {
-  const prev = suspendedForContentRecord;
-  suspendedForContentRecord = true;
-  try {
-    return fn();
-  } finally {
-    suspendedForContentRecord = prev;
-  }
-}
-
-/**
  * dev 토글 — `window.__composition_NODE_PICTURE_CACHE__ = false` 로 비활성화.
  * cross-check A/B 스크린샷 비교(캐시 on/off 시각 동일성)용. production 은 항상 on.
  */
 export function isNodePictureCacheEnabled(): boolean {
-  if (suspendedForContentRecord) return false;
   if (process.env.NODE_ENV === "development") {
     return (
       (window as unknown as Record<string, unknown>)

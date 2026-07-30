@@ -7,18 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [제스처 중 재래스터 이연 — ADR-173 Phase 0~5] - 2026-07-30
-
-### Performance
-
-- **팬/줌 제스처 중 프레임 드롭 해소** (ADR-173 Implemented):
-  - 카메라 유발 가시 집합 갱신을 제스처 종료(200ms debounce)까지 freeze — 무효화 격상 지점 5곳이 `sceneVisibility` 한 게이트로 흡수. 편집은 `SceneStructureCore` identity 판정으로 항상 즉시 통과
-  - 컬링 반경(200px)과 캐시 패딩(512px)의 어긋남을 `CONTENT_COVERAGE_PADDING_CSS_PX` 단일 소스로 정합 — 패딩 영역이 빈 채 래스터되던 312px 띠 소멸
-  - content Picture replay (Phase 5): 재래스터 1회 비용의 지배 축이 커맨드 walk(mean 46.8ms ≫ flush 6.4ms)임을 분해 실측으로 확정 → 카메라 유발 재래스터(zoom/coverage-refresh/cleanup)를 scene 좌표 SkPicture 의 native replay 로 대체. 콘텐츠 변경은 walk 직행 + Picture 폐기 (편집 비용 무변). 구현 중 발견한 node Picture 캐시 수명 결합 WASM OOB 크래시는 기록 동안 node 캐시 우회(`runWithNodePictureCacheSuspended`)로 차단
-  - **Why**: 5,046 요소 문서에서 가시 집합 사건이 기하 필요분의 ~6.5배 빈도로 제스처 한복판에 65ms 재래스터를 꽂았다 (팬 드롭 70% — 사용자 체감 "줌 끊김, 이동 프레임 드랍")
-  - 실측: 팬 재래스터 14→2 · 드롭 10→0 · max 1130→16.1ms / 줌 드롭 26/32→0 · 프레임 갭 max 21ms(=rAF 주기)
-  - 위치: `apps/builder/src/builder/workspace/canvas/{scene/renderCoverage.ts, scene/cameraStableVisibility.ts, viewport/useCameraGestureActive.ts, skia/contentReplayPolicy.ts, skia/SkiaRenderer.ts, skia/nodePictureCache.ts}`
-
 ## [Absolute Button 좌표 보존 복구] - 2026-07-29
 
 ### Bug Fixes
