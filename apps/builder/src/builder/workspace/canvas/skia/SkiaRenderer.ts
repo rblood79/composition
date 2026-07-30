@@ -14,13 +14,23 @@
  * @see docs/RENDERING_ARCHITECTURE.md §5.10, §6.1, §6.2
  */
 
-import type { CanvasKit, Canvas, Surface, Image } from "canvaskit-wasm";
+import type {
+  CanvasKit,
+  Canvas,
+  Surface,
+  Image,
+  SkPicture,
+} from "canvaskit-wasm";
 import type {
   SkiaRenderable,
   FrameType,
   CameraState,
   OpacityEffect,
 } from "./types";
+import {
+  resolveContentPaintPath,
+  type ContentPictureKey,
+} from "./contentReplayPolicy";
 import { createGPUSurface } from "./createSurface";
 import { recordWasmMetric, flushWasmMetrics } from "../utils/gpuProfilerCore";
 import { getCacheMetrics } from "./cacheMetrics";
@@ -30,7 +40,10 @@ import { markBegin, markEnd, PERF_LABEL } from "../../../utils/perfMarks";
 import type { TransitionManager } from "./transitionManager";
 import type { AnimationEngine } from "./animationEngine";
 import { getSkiaNode } from "./useSkiaNode";
-import { setVolatileNodeIds } from "./nodePictureCache";
+import {
+  runWithNodePictureCacheSuspended,
+  setVolatileNodeIds,
+} from "./nodePictureCache";
 import { CONTENT_COVERAGE_PADDING_CSS_PX } from "../scene/renderCoverage";
 
 /** classifyFrame 판정 결과 — content/full 프레임은 승격 사유를 동반한다 (ADR-153 Phase 1-a) */
@@ -58,6 +71,17 @@ interface FrameClassification {
  */
 type SnapshotPolicy = "single" | "ping-pong";
 const DEFAULT_SNAPSHOT_POLICY: SnapshotPolicy = "ping-pong";
+
+/**
+ * content Picture replay 정책 (ADR-173 Phase 5)
+ *
+ * 카메라 유발 재래스터(zoom-refresh/coverage-refresh/cleanup)에서 커맨드 walk
+ * (실측 mean 46.8ms — 재래스터 비용의 ~75-85%) 를 scene 좌표 SkPicture 의
+ * native replay 로 대체한다. "off" 는 종전 walk 직행 — dev 는
+ * `window.__composition_CONTENT_PICTURE_POLICY__` 로 A/B 전환 가능.
+ */
+type ContentPicturePolicy = "replay" | "off";
+const DEFAULT_CONTENT_PICTURE_POLICY: ContentPicturePolicy = "replay";
 
 export class SkiaRenderer {
   private ck: CanvasKit;
@@ -103,6 +127,22 @@ export class SkiaRenderer {
   private standbySurface: Surface | null = null;
   private standbyCanvas: Canvas | null = null;
   private contentDirty = true;
+
+  // ============================================
+  // Content Picture 캐시 (ADR-173 Phase 5)
+  // ============================================
+  /**
+   * scene 좌표로 record 된 콘텐츠 커맨드 — 카메라 유발 재래스터의 replay 원본.
+   *
+   * 무효화 계약은 snapshot blit 캐시와 동일: 스트림을 바꾸는 모든 경로가
+   * `invalidateContent()`/registryVersion 을 거쳐 walk 경로로 들어오고, walk 가
+   * Picture 를 폐기한다. record 된 Picture 는 참조 SkImage 를 native ref 로
+   * 유지하므로 imageCache 퇴거 후에도 replay 는 안전하다 — GPU 메모리 pin 은
+   * 다음 콘텐츠 변경(walk)까지의 짧은 구간으로 한정된다.
+   */
+  private contentPicture: SkPicture | null = null;
+  private contentPictureKey: ContentPictureKey | null = null;
+
   private lastRegistryVersion = -1;
   private lastOverlayVersion = -1;
   private lastScreenOverlayVersion = -1;
@@ -368,10 +408,109 @@ export class SkiaRenderer {
     this.standbyCanvas = this.standbySurface.getCanvas();
   }
 
+  /** content Picture 정책 해석 — dev 는 window 전역으로 A/B 전환 가능 */
+  private resolveContentPicturePolicy(): ContentPicturePolicy {
+    if (process.env.NODE_ENV === "development") {
+      const override = (window as unknown as Record<string, unknown>)
+        .__composition_CONTENT_PICTURE_POLICY__;
+      if (override === "replay" || override === "off") return override;
+    }
+    return DEFAULT_CONTENT_PICTURE_POLICY;
+  }
+
+  private disposeContentPicture(): void {
+    this.contentPicture?.delete();
+    this.contentPicture = null;
+    this.contentPictureKey = null;
+  }
+
+  /**
+   * 콘텐츠를 target canvas 에 그린다 — walk / record-replay / replay 3경로.
+   *
+   * ADR-173 Phase 5: 카메라 유발 재래스터(reason zoom-refresh/coverage-refresh/
+   * cleanup/no-snapshot)는 커맨드 스트림이 불변이므로, 첫 회에 walk 를
+   * PictureRecorder 경유로 기록해 두고 이후에는 native `drawPicture` replay 로
+   * 대체한다. 콘텐츠 변경(invalidate/registry/animation)은 Picture 를 폐기하고
+   * 종전 walk 직행 — 편집 경로 비용은 변하지 않는다.
+   *
+   * Picture 는 scene 좌표로 기록된다 — 카메라는 target canvas 의 CTM 에만
+   * 있으므로 replay 시점의 CTM 이 새 zoom 으로 래스터화한다 (walk 와 동일 품질).
+   * `executeRenderCommands` 는 (stream, cullingBounds, fontMgr) 의 순수 함수라
+   * 기록/재생 출력이 동일하다 (카메라/디바이스 읽기 0건 — 2026-07-30 grep).
+   */
+  private paintContent(
+    targetCanvas: Canvas,
+    paddedBounds: DOMRect,
+    reason: string | null,
+    registryVersion: number,
+  ): void {
+    if (!this.contentNode) return;
+
+    const path =
+      this.resolveContentPicturePolicy() === "off"
+        ? "walk"
+        : resolveContentPaintPath(
+            reason,
+            this.contentPictureKey,
+            registryVersion,
+            paddedBounds,
+          );
+
+    if (path === "walk") {
+      // 콘텐츠 변경 — Picture stale. 폐기 후 종전 경로 그대로.
+      this.disposeContentPicture();
+      this.contentNode.renderSkia(targetCanvas, paddedBounds);
+      return;
+    }
+
+    if (path === "record-replay") {
+      const recorder = new this.ck.PictureRecorder();
+      // cullRect = record 커버리지. 경계를 걸치는 요소의 잘림은 padding 밖
+      // (오프스크린) 에서만 발생한다 — replay 유효성이 커버리지 ⊆ 기록 범위를
+      // 요구하므로 가시 영역은 항상 온전하다.
+      const recordCanvas = recorder.beginRecording(
+        this.ck.LTRBRect(
+          paddedBounds.x,
+          paddedBounds.y,
+          paddedBounds.x + paddedBounds.width,
+          paddedBounds.y + paddedBounds.height,
+        ),
+      );
+      // node Picture 캐시 우회 — record 중 node miss 의 recorder 중첩 +
+      // content Picture 가 node Picture 를 참조하는 수명 결합이 WASM OOB
+      // 크래시를 냈다 (2026-07-30 실측). 우회로 raw 명령만 담아 자기완결.
+      runWithNodePictureCacheSuspended(() => {
+        this.contentNode!.renderSkia(recordCanvas, paddedBounds);
+      });
+      const picture = recorder.finishRecordingAsPicture();
+      recorder.delete();
+      this.disposeContentPicture();
+      this.contentPicture = picture;
+      this.contentPictureKey = { bounds: paddedBounds, registryVersion };
+      if (process.env.NODE_ENV === "development") {
+        getCacheMetrics("contentPicture").recordMiss(reason ?? "unknown");
+      }
+    } else if (process.env.NODE_ENV === "development") {
+      getCacheMetrics("contentPicture").recordHit();
+    }
+
+    if (this.contentPicture) {
+      targetCanvas.drawPicture(this.contentPicture);
+    }
+  }
+
   /**
    * Content Surface에 씬을 렌더링한다.
+   *
+   * @param reason classifyFrame 의 재렌더 사유 — Picture replay 판정 축 (ADR-173 P5)
+   * @param registryVersion 이번 프레임의 콘텐츠 세대 — Picture 유효성 키
    */
-  private renderContent(cullingBounds: DOMRect, camera: CameraState): void {
+  private renderContent(
+    cullingBounds: DOMRect,
+    camera: CameraState,
+    reason: string | null,
+    registryVersion: number,
+  ): void {
     if (!this.contentCanvas || !this.contentSurface || !this.contentNode)
       return;
 
@@ -423,8 +562,10 @@ export class SkiaRenderer {
     targetCanvas.translate(camera.panX, camera.panY);
     targetCanvas.scale(camera.zoom, camera.zoom);
     // ADR-153 Phase 1-e: 씬 재기록 (WASM CPU) 구간 분해 라벨
+    // ADR-173 Phase 5: 카메라 유발 재래스터는 Picture replay 로 walk 를 생략한다
+    // — replay 프레임의 record 라벨은 drawPicture 비용(~0ms)만 남는다.
     const recordBegin = isDev ? markBegin() : 0;
-    this.contentNode.renderSkia(targetCanvas, paddedBounds);
+    this.paintContent(targetCanvas, paddedBounds, reason, registryVersion);
     if (isDev) {
       markEnd(PERF_LABEL.RENDER_SKIA_RECORD_CONTENT, recordBegin);
       // ADR-153 Phase 1-b: 이번 content 렌더의 커맨드/드로콜 수 회수
@@ -734,6 +875,14 @@ export class SkiaRenderer {
     if (frameType === "idle" && hasAnimationChanges) {
       frameType = "content";
       frameReason = "animation";
+    } else if (
+      hasAnimationChanges &&
+      (frameType === "content" || frameType === "full")
+    ) {
+      // ADR-173 Phase 5: 애니메이션 tick 이 노드를 in-place mutate 한 프레임은
+      // 카메라 유발 사유(zoom-refresh 등)였더라도 Picture replay 대상이 아니다
+      // — reason 을 animation 으로 격상해 walk 를 강제한다.
+      frameReason = "animation";
     }
 
     // ADR-153 Phase 1-a: contentSurface 캐시 hit(스냅샷 재사용) / miss(재렌더 + 사유)
@@ -767,7 +916,7 @@ export class SkiaRenderer {
 
       case "content":
       case "full":
-        this.renderContent(cullingBounds, camera);
+        this.renderContent(cullingBounds, camera, frameReason, registryVersion);
         this.present(cullingBounds, camera);
         break;
     }
@@ -917,6 +1066,7 @@ export class SkiaRenderer {
     }
     this.gpuTimer?.dispose();
     this.gpuTimer = null;
+    this.disposeContentPicture();
     this.disposeContentSurface();
     this.mainSurface.delete();
   }
