@@ -38,23 +38,9 @@ import {
   setLastParagraphFontMgr,
 } from "./nodeRendererState";
 import type { SkiaNodeData } from "./nodeRendererTypes";
-import {
-  getRetainedParagraphCount,
-  resolveRetainedParagraph,
-  retainParagraph,
-} from "./retainedParagraph";
 
 const paragraphCache = new Map<string, Paragraph>();
 const paragraphAlignOffsetCache = new Map<string, number>();
-
-/**
- * 소유 모델 전환 플래그 (ADR-174 Phase 2 — R4).
- *
- * `true` = paragraph 를 텍스트 노드가 소유 (상한 없음, 수명 = 노드).
- * `false` = 구 전역 content-키 LRU. Phase 3 에서 후자를 제거하며 플래그도 삭제한다.
- * 전환 구간 동안 A/B 를 서버 재시작 없이 하기 위한 dev 토글이다.
- */
-let retainedParagraphEnabled = true;
 
 // ── dev 계측 (ADR-174 Phase 0) ────────────────────────────────────────────
 // paragraph 는 유일하게 계측 채널이 없던 캐시였고, 그것이 상한 스래싱 →
@@ -88,11 +74,7 @@ function observeParagraphDraw(
 
 function syncParagraphMetricsSize(): void {
   if (PARAGRAPH_METRICS_DEV) {
-    getCacheMetrics("paragraph").setSize(
-      retainedParagraphEnabled
-        ? getRetainedParagraphCount()
-        : paragraphCache.size,
-    );
+    getCacheMetrics("paragraph").setSize(paragraphCache.size);
   }
 }
 
@@ -143,20 +125,8 @@ if (typeof window !== "undefined" && import.meta.env?.DEV) {
   (
     window as unknown as Record<string, unknown>
   ).__composition_PARAGRAPH_DEBUG__ = {
-    size: (): number =>
-      retainedParagraphEnabled
-        ? getRetainedParagraphCount()
-        : paragraphCache.size,
+    size: (): number => paragraphCache.size,
     maxSize: (): number => getMaxParagraphCacheSize(),
-    /** 소유 모델 A/B — 끄면 구 전역 LRU 경로 (ADR-174 Phase 3 에서 제거) */
-    setRetained(on: boolean): void {
-      if (retainedParagraphEnabled === on) return;
-      retainedParagraphEnabled = on;
-      // 반대 경로의 잔존 보유분이 섞이지 않게 전역 캐시는 비운다. retained
-      // 보유분은 노드가 살아 있는 한 유효하고 다음 draw 에서 그대로 hit 한다.
-      clearParagraphCache();
-      drainPendingWasmDisposals();
-    },
     census: {
       start(): void {
         censusActive = true;
@@ -169,18 +139,15 @@ if (typeof window !== "undefined" && import.meta.env?.DEV) {
       },
       report(): {
         active: boolean;
-        retained: boolean;
         draws: number;
         uniqueKeys: number;
         uniqueNodes: number;
         duplicationFactor: number;
         cacheSize: number;
-        retainedCount: number;
         maxCacheSize: number;
       } {
         return {
           active: censusActive,
-          retained: retainedParagraphEnabled,
           draws: censusDraws,
           uniqueKeys: censusKeys.size,
           uniqueNodes: censusNodes.size,
@@ -188,8 +155,6 @@ if (typeof window !== "undefined" && import.meta.env?.DEV) {
           duplicationFactor:
             censusKeys.size === 0 ? 0 : censusNodes.size / censusKeys.size,
           cacheSize: paragraphCache.size,
-          // 실제 보유량 (G1 재측정의 관측 지점) — 살아 있는 텍스트 노드 수와 같다
-          retainedCount: getRetainedParagraphCount(),
           maxCacheSize: getMaxParagraphCacheSize(),
         };
       },
@@ -441,30 +406,14 @@ export function renderText(
 
   observeParagraphDraw(key, node.elementId);
 
-  if (retainedParagraphEnabled) {
-    // 소유자는 이 텍스트 노드 객체다. 노드 identity 는 내용이 실제로 바뀔 때만
-    // 교체되므로 (StoreRenderBridge.registerBuiltNode — 이동은 교체하지 않는다),
-    // 팬/드래그 중에도 hit 이 유지된다.
-    const retained = resolveRetainedParagraph(node, key, fontMgr);
-    if (retained) {
-      if (PARAGRAPH_METRICS_DEV) getCacheMetrics("paragraph").recordHit();
-      const drawY = computeDrawY(retained.paragraph);
-      const drawX = node.text.paddingLeft + textIndent + retained.alignOffset;
-      renderTextShadows(retained.paragraph, drawX, drawY);
-      canvas.drawParagraph(retained.paragraph, drawX, drawY);
-      return;
-    }
-    if (PARAGRAPH_METRICS_DEV) getCacheMetrics("paragraph").recordMiss();
-  } else {
-    const cached = getCachedParagraph(key);
-    if (cached) {
-      const drawY = computeDrawY(cached);
-      const cachedOffset = paragraphAlignOffsetCache.get(key) ?? 0;
-      const drawX = node.text.paddingLeft + textIndent + cachedOffset;
-      renderTextShadows(cached, drawX, drawY);
-      canvas.drawParagraph(cached, drawX, drawY);
-      return;
-    }
+  const cached = getCachedParagraph(key);
+  if (cached) {
+    const drawY = computeDrawY(cached);
+    const cachedOffset = paragraphAlignOffsetCache.get(key) ?? 0;
+    const drawX = node.text.paddingLeft + textIndent + cachedOffset;
+    renderTextShadows(cached, drawX, drawY);
+    canvas.drawParagraph(cached, drawX, drawY);
+    return;
   }
 
   const scope = new SkiaDisposable();
@@ -794,13 +743,8 @@ export function renderText(
       }
     }
 
-    if (retainedParagraphEnabled) {
-      retainParagraph(node, paragraph, key, fontMgr, alignOffset);
-      syncParagraphMetricsSize();
-    } else {
-      setCachedParagraph(key, paragraph);
-      if (alignOffset !== 0) paragraphAlignOffsetCache.set(key, alignOffset);
-    }
+    setCachedParagraph(key, paragraph);
+    if (alignOffset !== 0) paragraphAlignOffsetCache.set(key, alignOffset);
     const drawY = computeDrawY(paragraph);
 
     const shouldClip = node.text.clipText && !isEllipsis;
