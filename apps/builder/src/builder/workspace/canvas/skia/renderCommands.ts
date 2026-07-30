@@ -29,6 +29,7 @@ import {
 } from "./nodeRendererMask";
 import { getSkImage, loadSkImage } from "./imageCache";
 import { getSkiaNode } from "./useSkiaNode";
+import { linkParagraphOwner } from "./retainedParagraph";
 import { getDragVisualOffset, getSiblingOffset } from "./nodeRendererTree";
 import {
   renderBox,
@@ -796,17 +797,21 @@ function emitDrawCommands(
 ): void {
   // 자체 렌더 (box, text, image 등)
   if (skiaData.type !== "container") {
+    const derived: SkiaNodeData = {
+      ...skiaData,
+      x: 0, // ELEMENT_BEGIN에서 이미 translate됨
+      y: 0,
+      width,
+      height,
+      children: undefined, // 내부 자식은 별도 처리
+    };
+    // paragraph 소유자는 레지스트리의 원본 노드다 — 이 파생본은 커맨드 재빌드
+    // 마다 새로 만들어지므로 소유자가 될 수 없다 (ADR-174 Phase 2).
+    if (skiaData.type === "text") linkParagraphOwner(derived, skiaData);
     commands.push({
       type: CMD_DRAW,
       nodeType: skiaData.type,
-      skiaData: {
-        ...skiaData,
-        x: 0, // ELEMENT_BEGIN에서 이미 translate됨
-        y: 0,
-        width,
-        height,
-        children: undefined, // 내부 자식은 별도 처리
-      },
+      skiaData: derived,
       width,
       height,
     });
@@ -846,15 +851,17 @@ function emitInternalChildDraw(
   });
 
   if (node.type !== "container") {
+    const derived: SkiaNodeData = {
+      ...node,
+      x: 0,
+      y: 0,
+      children: undefined,
+    };
+    if (node.type === "text") linkParagraphOwner(derived, node);
     commands.push({
       type: CMD_DRAW,
       nodeType: node.type,
-      skiaData: {
-        ...node,
-        x: 0,
-        y: 0,
-        children: undefined,
-      },
+      skiaData: derived,
       width: node.width,
       height: node.height,
     });
