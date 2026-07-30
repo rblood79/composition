@@ -465,13 +465,13 @@ composition 의 대응물은 `LAYOUT_AFFECTING_PROP_KEYS` / `NON_LAYOUT_PROPS_UP
 
 #### (g) 구조
 
-| #   | 장점                                                                                            | composition                                                     |
-| --- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| 22  | **파생 계층 0개** — 재래스터가 `getViewportNode().children → renderSkia` 로 씬 그래프 직접 순회 | ❌ 4겹 (store→sceneNodes→snapshot→rendererInput→command stream) |
-| 23  | 최상위 단위가 같은 기제 안에 있음 — frame 은 타입만 다른 노드라 컬링·dirty 게이트를 상속        | ❌ page 는 씬 그래프 밖 축이라 각 기제를 따로 구현              |
-| 24  | CSS 호환 목표 없음 — hug/fill/고정 3모드, margin·percent 불지원                                 | — 정반대가 제품 목표                                            |
+| #   | 장점                                                                                            | composition                                                                   |
+| --- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| 22  | **파생 계층 0개** — 재래스터가 `getViewportNode().children → renderSkia` 로 씬 그래프 직접 순회 | ❌ 4겹 (store→sceneNodes→snapshot→rendererInput→command stream) — 런타임 형상 |
+| 23  | 최상위 단위가 여느 노드와 같은 기제 — 컬링·dirty 게이트를 상속                                  | △ 모델은 동일 (트리 노드) — 런타임만 page 전용 축으로 특수화 (아래 주의)      |
+| 24  | CSS 호환 목표 없음 — hug/fill/고정 3모드, margin·percent 불지원                                 | — 정반대가 제품 목표                                                          |
 
-> #23 주의: "Pen 에는 페이지 개념이 없다" 는 서술은 **표의 차이**다 (2026-07-29 사용자 지적으로 정정). Pen 의 frame 과 composition 의 page 는 같은 의미이고, 실제로 갈리는 것은 **그 단위가 씬 그래프 안에 있느냐** 다. composition 도 레이아웃·컬링은 visible page 로 이미 제한한다 (`BuilderCanvas.tsx` `visiblePages`) — 빠진 것은 팬 경로뿐 (§6-3-1).
+> #23 주의 (2026-07-29 지적 → **2026-07-30 재정정**): page(composition)/frame(Pen) 은 **명칭만 다르다** — 둘 다 프로젝트 노드 아래 같은 트리 구조이고 format 도 1:1 (§5 컴포넌트 모델 정합 재확증). "씬 그래프 안/밖" 이분법도 모델 차이가 아니라 **빌더 런타임의 코드 형상**이다 — canonical 문서에서 page 는 이미 트리의 노드이고, 런타임이 그것을 전용 축(pagePositions/pageIndex/visiblePages/페이지별 layout publish)으로 특수화해 다뤘을 뿐이다. 따라서 이 행은 "구조가 달라 차용 불가" 가 아니라 **구현 통합 여부** 항목이다. composition 도 레이아웃·컬링은 visible page 로 이미 제한한다 (`BuilderCanvas.tsx` `visiblePages`) — 빠진 것은 팬 경로뿐 (§6-3-1).
 
 #### (h) 오버레이 · 인터랙션
 
@@ -506,9 +506,18 @@ composition 의 대응물은 `LAYOUT_AFFECTING_PROP_KEYS` / `NON_LAYOUT_PROPS_UP
 - 워커 0 / SharedArrayBuffer 0 — 완전 단일 스레드
 - 커맨드 스트림 같은 중간 표현 없음
 
-### 6-3-4. 대가 — 차용 불가 항목
+### 6-3-4. 대가 — 차용 불가 항목 (2026-07-30 축소 정정)
 
-#22 · #24 · #18 은 **DOM/CSS 정합을 포기해서** 산 것이다. 파생 계층 0 = 브라우저와 대조할 두 번째 렌더 타겟이 없다는 뜻이고, 측정 엔진 단일 = CSS oracle 이 없다는 뜻이다. dirty 게이트를 좁게 걸 수 있는 이유도 hug/fill 2-pass 라 한 노드 변경이 형제·조상 크기를 되바꾸는 경로가 적기 때문이며, CSS 표준은 min/max clamp 재분배·shrink-to-fit 재진입·height-for-width 2-pass 가 있어 같은 폭의 게이트가 성립하지 않는다 (layout-engine.md 참조). §6-1-h 총평과 동일 결론.
+> 초판은 #22·#24·#18 을 묶어 "DOM/CSS 정합 포기의 산물" 로 판정했다. **#22 를 여기 넣은 것은 과잉**이었고, ADR-172 가 이 문장을 인용해 구조 축(④)을 배제한 채 국소 축(①)만 최적화하는 근거가 됐다 (결과: 실사용 회귀로 전량 되돌림 — ADR-172/173 Deprecated).
+
+DOM/CSS 정합의 실제 대가는 둘뿐이다:
+
+- **#18 측정 oracle 이중화** (Canvas 2D ↔ CanvasKit) — Preview DOM 이 대등 consumer 인 이상 측정은 브라우저와 같아야 한다. 차용 불가 유지.
+- **#24 레이아웃 알고리즘 표면적** (CSS 표준 전체 ↔ hug/fill 3모드) — ADR-164/165/169/170 의 작업량이 그 대가. 차용 불가 유지 (제품 목표 자체).
+
+**#22(파생 계층 4겹)는 정합의 산물이 아니다** — React 호스팅 + 불변 store(canonical + undo) 라는 런타임 구현 선택이다. ②(편집 무효화 O(N))도 정합 탓이 아니다 — Rust 엔진은 이미 조상 체인 dirty 조기 중단 + 세대 카운터 증분 skip 을 갖고 있고(layout-engine.md), O(N) 은 TS 브리지(`createPageLayoutSignature` + 커맨드 스트림 전체 재구축)의 전략 선택이다. CSS 의 넓은 reflow 도달 범위는 무효화를 보수적으로 만들 뿐 게이트 자체를 막지 않는다.
+
+경계는 **해소가 레이아웃 단에서 끝난다**는 것이다 — catalog 저장값(CSS 의미값)과 .pen 저장값(3모드)의 차이는 엔진이 x/y/w/h 로 해소하는 비용까지이고, 그 뒤 렌더 경로(트리 순회·컬링·dirty·서브트리 skip)는 두 앱이 동형 조건이다. 축 ③, 그리고 ④의 렌더 경로 부분은 정합과 무관하게 차용 가능하다.
 
 ### 6-3-5. 신규 차용 후보 (§6-2 목록에 추가)
 
