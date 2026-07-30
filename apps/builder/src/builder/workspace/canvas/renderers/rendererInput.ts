@@ -12,21 +12,11 @@ import type {
   CanonicalFrameElementScopeMap,
 } from "../../../../adapters/canonical/frameElementScope";
 
-/**
- * ADR-172 Phase 1 — 카메라(`panOffset`/`zoom`)는 이 계약에 없다.
- *
- * 레이아웃 발행은 카메라와 무관한 순수 파생이며, 과거 선언돼 있던 두 필드는
- * 소비자가 0건인 잔재였다. 필드를 두면 `layoutPublisherInputs` useMemo 의
- * deps 에 카메라가 실려 팬 프레임마다 input 이 재생성된다 (P-3).
- *
- * `elementById` 는 **ReadonlyMap** 이다 — 과거의 `new Map(elementById)` 방어적
- * 복사는 mutate 소비자가 0건임을 확인하고 제거했다. 다시 복사를 넣지 말 것.
- */
 export interface LayoutPublisherInput {
   bodyElement: CanvasLayoutNode | null;
   depthMap: Map<string, number>;
   dirtyElementIds: Set<string>;
-  elementById: ReadonlyMap<string, CanvasLayoutNode>;
+  elementById: Map<string, CanvasLayoutNode>;
   layoutVersion: number;
   pageElements: CanvasLayoutNode[];
   pageHeight: number;
@@ -35,7 +25,9 @@ export interface LayoutPublisherInput {
   pageSnapshot: ScenePageSnapshot;
   projectionVersion: number;
   pageWidth: number;
+  panOffset: { x: number; y: number };
   wasmLayoutReady: boolean;
+  zoom: number;
 }
 
 interface BuildPageLayoutPublisherInputOptions {
@@ -45,8 +37,10 @@ interface BuildPageLayoutPublisherInputOptions {
   pageId: string;
   pagePositionVersion: number;
   pageWidth: number;
+  panOffset: { x: number; y: number };
   sceneSnapshot: SceneStructureSnapshot;
   wasmLayoutReady: boolean;
+  zoom: number;
 }
 
 export function buildPageLayoutPublisherInput({
@@ -56,8 +50,10 @@ export function buildPageLayoutPublisherInput({
   pageId,
   pagePositionVersion,
   pageWidth,
+  panOffset,
   sceneSnapshot,
   wasmLayoutReady,
+  zoom,
 }: BuildPageLayoutPublisherInputOptions): LayoutPublisherInput | null {
   const pageSnapshot = sceneSnapshot.pageSnapshots.get(pageId);
   if (!pageSnapshot?.bodyElement) {
@@ -68,7 +64,7 @@ export function buildPageLayoutPublisherInput({
     bodyElement: pageSnapshot.bodyElement,
     depthMap: sceneSnapshot.depthMap,
     dirtyElementIds,
-    elementById,
+    elementById: new Map(elementById),
     layoutVersion: sceneSnapshot.layoutVersion,
     pageElements: pageSnapshot.pageElements,
     pageHeight,
@@ -77,7 +73,9 @@ export function buildPageLayoutPublisherInput({
     pageSnapshot,
     projectionVersion: sceneSnapshot.sceneVersion,
     pageWidth,
+    panOffset,
     wasmLayoutReady,
+    zoom,
   };
 }
 
@@ -93,8 +91,10 @@ interface BuildFrameRendererInputOptions {
   frameX: number;
   frameY: number;
   pagePositionVersion: number;
+  panOffset: { x: number; y: number };
   sceneSnapshot: SceneStructureSnapshot;
   wasmLayoutReady: boolean;
+  zoom: number;
 }
 
 /**
@@ -126,13 +126,16 @@ export function buildFrameLayoutPublisherInput({
   frameX,
   frameY,
   pagePositionVersion,
+  panOffset,
   sceneSnapshot,
   wasmLayoutReady,
+  zoom,
 }: BuildFrameRendererInputOptions): LayoutPublisherInput | null {
   if (!frameElementScope) return null;
 
+  const layoutElementById = new Map(elementById);
   const bodyElement = frameElementScope.bodyElementId
-    ? (elementById.get(frameElementScope.bodyElementId) ?? null)
+    ? (layoutElementById.get(frameElementScope.bodyElementId) ?? null)
     : null;
   if (
     !bodyElement ||
@@ -147,7 +150,7 @@ export function buildFrameLayoutPublisherInput({
 
   for (const elementId of frameElementScope.elementIds) {
     if (elementId === bodyElement.id) continue;
-    const el = elementById.get(elementId);
+    const el = layoutElementById.get(elementId);
     if (!el || el.deleted || el.type.toLowerCase() === "body") continue;
     pageElements.push(el as CanvasSceneNode);
   }
@@ -164,6 +167,7 @@ export function buildFrameLayoutPublisherInput({
       x: frameX,
       y: frameY,
     },
+    isVisible: true,
     pageElements,
     pageId: frameId,
     positionVersion: pagePositionVersion,
@@ -173,7 +177,7 @@ export function buildFrameLayoutPublisherInput({
     bodyElement: bodySceneElement,
     depthMap: sceneSnapshot.depthMap,
     dirtyElementIds,
-    elementById,
+    elementById: layoutElementById,
     layoutVersion: sceneSnapshot.layoutVersion,
     pageElements,
     pageHeight: frameHeight,
@@ -182,7 +186,9 @@ export function buildFrameLayoutPublisherInput({
     pageSnapshot: frameSnapshot,
     projectionVersion: sceneSnapshot.sceneVersion,
     pageWidth: frameWidth,
+    panOffset,
     wasmLayoutReady,
+    zoom,
   };
 }
 

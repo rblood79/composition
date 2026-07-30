@@ -22,7 +22,6 @@ import {
   Suspense,
   type MouseEvent as ReactMouseEvent,
 } from "react";
-import { observe, PERF_LABEL } from "../../utils/perfMarks";
 import { useStore } from "../../stores";
 import { useDataStore } from "../../stores/data";
 import type { PageLayoutDirection } from "../../stores/canvasSettings";
@@ -71,10 +70,8 @@ import type { PageTitleBounds } from "./skia/skiaOverlayHelpers";
 import {
   buildCanonicalSceneModel,
   buildPageDataMap,
-  buildSceneStructureCore,
-  composeSceneStructureSnapshot,
+  buildSceneStructureSnapshot,
   createResolvedProjectionSignature,
-  resolveSceneVisibility,
 } from "./scene";
 // ADR-150 A2: collection 가상화 window 해석 (bounded+overflow ListBox → window map).
 import {
@@ -447,29 +444,27 @@ export function BuilderCanvas({
   // ADR-074 Phase 2: structure(selection-invariant) / selection 분리.
   // selection-only 변화 시 structure useMemo identity 유지 → 하위 useMemo
   // (skiaRendererInput / layoutPublisherInputs) 의 deps 변동 차단.
-  // ADR-172 Phase 3: 카메라 무관 core — 팬/줌 프레임에서 identity 가 유지된다.
-  // deps 에 panOffset/zoom/containerSize 를 **넣지 말 것**. 넣는 순간 O(N)
-  // 전체(depthMap·pageDataMap·pageFrames)가 팬마다 다시 돈다.
-  // ADR-172 Phase 4: 팬 프레임에 재실행되면 샘플이 쌓인다 — 그 count 가 G2 지표다.
-  const sceneStructureCore = useMemo(() => {
+  const sceneStructureSnapshot = useMemo(() => {
     const scenePages = isFrameEditMode ? [] : pages;
-    return observe(PERF_LABEL.RENDER_DERIVED_SCENE, () =>
-      buildSceneStructureCore({
-        currentPageId: isFrameEditMode ? null : currentPageId,
-        elements: sceneNodes,
-        elementsMap: sceneNodesMap,
-        layoutVersion,
-        pageHeight,
-        pageIndex: scenePageIndex,
-        pagePositions,
-        pagePositionsVersion,
-        pageWidth,
-        pages: scenePages,
-        precomputedProjectionSignature: projectionContentSignature,
-        source: canonicalSceneModel ? "canonical" : "legacy-bootstrap",
-      }),
-    );
+    return buildSceneStructureSnapshot({
+      containerSize,
+      currentPageId: isFrameEditMode ? null : currentPageId,
+      elements: sceneNodes,
+      elementsMap: sceneNodesMap,
+      layoutVersion,
+      pageHeight,
+      pageIndex: scenePageIndex,
+      pagePositions,
+      pagePositionsVersion,
+      pageWidth,
+      pages: scenePages,
+      panOffset,
+      precomputedProjectionSignature: projectionContentSignature,
+      source: canonicalSceneModel ? "canonical" : "legacy-bootstrap",
+      zoom,
+    });
   }, [
+    containerSize,
     canonicalSceneModel,
     currentPageId,
     isFrameEditMode,
@@ -480,34 +475,12 @@ export function BuilderCanvas({
     pagePositionsVersion,
     pageWidth,
     pages,
+    panOffset,
     projectionContentSignature,
     sceneNodes,
     sceneNodesMap,
+    zoom,
   ]);
-
-  // ADR-172 Phase 3: 카메라 의존 단계는 O(페이지) 라 팬마다 돌아도 싸다.
-  const sceneVisibility = useMemo(
-    () =>
-      resolveSceneVisibility(sceneStructureCore, {
-        containerSize,
-        panOffset,
-        zoom,
-      }),
-    [containerSize, panOffset, sceneStructureCore, zoom],
-  );
-  // 합성 결과의 **identity 는 유지되어야 한다** — visible set 이 그대로인 팬
-  // 프레임에서 새 객체를 만들면 하류 layoutPublisherInputs 가 다시 팬마다
-  // 재생성되어 Phase 1·2 의 이득이 사라진다 (design §4-1 CRITICAL).
-  //
-  // 그래서 deps 가 `sceneVisibility` 객체가 아니라 그 **key** 다. key 가 같으면
-  // visibility 의 내용(visible frame ids + content/position 버전 2종)이 동일해
-  // 어느 렌더의 객체를 써도 값이 같다 — identity 만 다를 뿐이라 stale 이 없다.
-  const sceneVisibilityKey = sceneVisibility.key;
-  const sceneStructureSnapshot = useMemo(
-    () => composeSceneStructureSnapshot(sceneStructureCore, sceneVisibility),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- sceneVisibilityKey 가 sceneVisibility 내용을 대표 (위 주석)
-    [sceneStructureCore, sceneVisibilityKey],
-  );
 
   // ADR-074 Phase 4: 합성 sceneSnapshot + sceneSelectionState 제거.
   // sceneSnapshot.selection 소비자 0 (rendererInput 경로는 structure 필드만 사용)
@@ -532,15 +505,14 @@ export function BuilderCanvas({
           pageId: page.id,
           pagePositionVersion: pagePositionsVersion,
           pageWidth,
+          panOffset,
           sceneSnapshot,
           wasmLayoutReady,
+          zoom,
         });
         return input ? { pageId: page.id, input } : null;
       })
       .filter((v): v is NonNullable<typeof v> => v !== null);
-    // ADR-172 Phase 1 — deps 에 카메라(panOffset/zoom)를 넣지 말 것. 레이아웃
-    // 발행은 카메라 무관 파생이고, 넣으면 팬 프레임마다 input 이 재생성되어
-    // useLayoutPublisher 의 memo 가 매 프레임 miss 한다.
   }, [
     visiblePages,
     elementById,
@@ -548,8 +520,10 @@ export function BuilderCanvas({
     pageHeight,
     pagePositionsVersion,
     pageWidth,
+    panOffset,
     sceneSnapshot,
     wasmLayoutReady,
+    zoom,
   ]);
 
   const workflowEdges = useMemo(() => {
@@ -621,21 +595,24 @@ export function BuilderCanvas({
           frameX: area.x,
           frameY: area.y,
           pagePositionVersion: framePositionsVersion,
+          panOffset,
           sceneSnapshot,
           wasmLayoutReady,
+          zoom,
         });
         return input ? { pageId: area.frameId, input } : null;
       })
       .filter((v): v is NonNullable<typeof v> => v !== null);
-    // ADR-172 Phase 1 — page 경로와 동일하게 카메라 deps 제외 (두 경로 대칭).
   }, [
     frameAreas,
     framePositionsVersion,
     dirtyElementIds,
     elementById,
     frameElementScopes,
+    panOffset,
     sceneSnapshot,
     wasmLayoutReady,
+    zoom,
   ]);
 
   useLayoutPublisher(

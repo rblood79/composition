@@ -51,33 +51,6 @@ export const PERF_LABEL = {
   RENDER_SKIA_RECORD_CONTENT: "render.skia.record.content",
   RENDER_SKIA_FLUSH_CONTENT: "render.skia.flush.content",
   RENDER_SKIA_FLUSH_MAIN: "render.skia.flush.main",
-  /**
-   * ADR-172 Phase 4: 팬 경로 파생 계층 감시 라벨 2종 (상시 — dev 게이트 없음).
-   *
-   * 두 지점 모두 **팬/줌 프레임에는 재실행되지 않는 것이 정상**이다 (Phase 1~3).
-   * 따라서 정상 동작에서 이 라벨의 오버헤드는 0 이고, 샘플이 쌓인다는 것 자체가
-   * 신호다 — 재계산 **횟수**가 곧 G2 지표이므로 별도 카운터를 두지 않고
-   * `snapshot(label).count` 를 쓴다.
-   *
-   * G2 확인 절차 (visible 창):
-   *   window.__composition_PERF__.reset("render.derived.layout-key")
-   *   window.__composition_PERF__.reset("render.derived.scene")
-   *   // ... 캔버스를 팬/줌 ...
-   *   window.__composition_PERF__.snapshot("render.derived.layout-key")  // count === 0
-   *   window.__composition_PERF__.snapshot("render.derived.scene")       // count === 0
-   */
-  RENDER_DERIVED_LAYOUT_KEY: "render.derived.layout-key",
-  RENDER_DERIVED_SCENE: "render.derived.scene",
-  /**
-   * ADR-172 Phase 4: Skia 축(P-4) — `commandChildrenMap` 조립. 커맨드 스트림
-   * 캐시가 miss 일 때만 돈다 (Phase 1.5).
-   *
-   * **횟수를 재는 라벨이지 비용을 재는 라벨이 아니다.** 실사용 규모(자식 80)에서
-   * 조립은 0.006ms 로 `performance.now()` 양자화(0.1ms) 아래라 duration 으로는
-   * hit/miss 가 구분되지 않는다 — 실측으로 캐시 강제 무효화 A/B 를 돌려도 mean
-   * 0.03 vs 0.02 로 판별 불가였다. `count` 가 유일한 판별 신호다.
-   */
-  RENDER_DERIVED_CHILDREN_MAP: "render.derived.children-map",
 } as const;
 
 // Long-task classification: observe() label prefix → longtask bucket.

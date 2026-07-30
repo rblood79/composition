@@ -9,50 +9,17 @@ describe("useLayoutPublisher invalidation contract", () => {
       "utf-8",
     );
 
-    expect(source).toMatch(/\[\.\.\.pages, \.\.\.framePages\]/);
+    expect(source).toMatch(
+      /const layoutInputKey = \[\.\.\.pages, \.\.\.framePages\]/,
+    );
     expect(source).toMatch(/createPageElementsSignature\(/);
     expect(source).toMatch(/createPageLayoutSignature\(/);
     expect(source).toMatch(
+      /const readinessKey = \[\.\.\.pages, \.\.\.framePages\]/,
+    );
+    expect(source).toMatch(
       /\}, \[layoutVersion, dimensionKey, layoutInputKey, readinessKey\]\);/,
     );
-  });
-
-  // ADR-172 Phase 2: 세 키는 훅 본문에서 매 렌더 조립되고 있었다. 팬/줌은 rAF
-  // 당 1회 리렌더를 유발하므로 요소당 116 키 문자열 조립이 프레임마다 돌았다
-  // (N=9,728 에서 프레임당 12.8MB). memo 가 빠지면 그 비용이 그대로 복귀한다.
-  it("memoizes the three publish keys (ADR-172 Phase 2)", async () => {
-    const source = await readFile(
-      resolve(__dirname, "useLayoutPublisher.ts"),
-      "utf-8",
-    );
-
-    for (const key of ["dimensionKey", "layoutInputKey", "readinessKey"]) {
-      expect(source).toMatch(new RegExp(`const ${key} = useMemo\\(`));
-    }
-    // 훅 본문 직접 조립 복귀 차단 — `const X = [...pages` / `const X = pages`
-    expect(source).not.toMatch(
-      /const (dimensionKey|layoutInputKey|readinessKey) =\s*(\[\.\.\.)?pages/,
-    );
-  });
-
-  // ADR-172 R1 (HIGH): addElement 는 elements/layoutVersion 갱신 후
-  // pageIndex/elementsMap 을 **별도 commit** 으로 rebuild 하고, 두 번째 commit 은
-  // layoutVersion 이 불변이다. deps 를 layoutVersion 으로 좁히면 그 commit 이
-  // 통째로 누락돼 신규 child 가 layoutMap 없이 투명/미등록으로 남는다.
-  // 배열 identity 를 deps 로 두는 것이 그 계약의 유일한 표현이다.
-  it("keys memo on page/frame array identity, never on layoutVersion alone (R1)", async () => {
-    const source = await readFile(
-      resolve(__dirname, "useLayoutPublisher.ts"),
-      "utf-8",
-    );
-
-    // 세 memo 의 deps 가 모두 [framePages, pages]
-    const depsOccurrences = source.match(/\[framePages, pages\]/g) ?? [];
-    expect(depsOccurrences.length).toBe(3);
-    // layoutVersion 이 deps 배열 선두로 등장하는 곳은 useEffect 단 1곳.
-    // memo deps 로 새어 들어가면 여기서 2 이상이 된다.
-    const layoutVersionDeps = source.match(/\[layoutVersion[,\]]/g) ?? [];
-    expect(layoutVersionDeps.length).toBe(1);
   });
 
   it("clears stale page/frame layout maps when the active render mode changes", async () => {

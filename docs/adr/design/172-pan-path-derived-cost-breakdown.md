@@ -1,6 +1,6 @@
 # ADR-172 구현 상세 — 팬 경로 파생 비용 제거
 
-> 본 문서는 [ADR-172](../172-pan-path-derived-cost.md) 의 구현 상세다. 결정·대안·위험은 ADR 본문 참조.
+> 본 문서는 [ADR-172](../completed/172-pan-path-derived-cost.md) 의 구현 상세다. 결정·대안·위험은 ADR 본문 참조.
 
 ## 1. Phase 0 — inventory (2026-07-29 실측 완료분)
 
@@ -75,7 +75,7 @@ P-1~P-3 은 React 축(리렌더 유발), P-4 는 Skia 축이다. `SkiaCanvas.tsx
 - [x] **P-4 `commandChildrenMap` 재구축 비용 — 대규모 N 재측정** → **완료 2026-07-30**. 9,600 자식에서 p50 2.06ms / p95 3.72ms (60fps 예산 12~22%) 로 skip 기준(0.1ms) 크게 초과 → **Phase 1.5 진행** (R7 종결). 측정표·방법은 §2.5
 - [x] `childrenMap` 반환값 소비자 전수 + mutate 여부 → **mutate 0건** (`childrenMap.set/delete/clear` 는 `renderCommandStream.bench.ts:129` 픽스처뿐). 소비처는 `skiaFramePlan.ts:172` / `SkiaCanvas.tsx:273,294` / `buildSpecNodeData` 로 전부 읽기 → 캐시화 안전 (**R6 해소**)
 - [x] (추가) `elementById` mutate 소비자 → **0건** → `ReadonlyMap` 전환 안전 (**R3 해소**)
-- [ ] 편집 경로 실측 baseline (Phase 6 판정 근거) — 본 ADR 범위 밖, Phase 5 완료 후
+- [x] 편집 경로 실측 baseline (Phase 6 판정 근거) → **완료 2026-07-30**. 편집당 signature 16ms 교차 임계 = visible 약 1,500 요소(실사용 62 의 24배)이고, 임계를 넘는 3,321 visible 에서도 편집 long task 372ms 중 **11%** 에 그친다 → **이연 판정**. 측정표·근거는 §7
 
 ---
 
@@ -100,7 +100,7 @@ P-1~P-3 은 React 축(리렌더 유발), P-4 는 Skia 축이다. `SkiaCanvas.tsx
 
 ## 2.5. Phase 1.5 — Skia 프레임 콘텐츠 재사용 (P-4) — **완료 2026-07-30 (`2e25a5acd`)**
 
-**R7 재측정 결과 진행 판정.** 현 규모에서는 2026-07-27 프레임 분해 실측이 이 구간을 "사실상 0"(JS 조립 합계 0.07~0.13ms/frame)으로 격하 판정했으나, 2026-07-30 대규모 N 재측정에서 **9,600 자식 p50 2.06ms / p95 3.72ms**(60fps 예산 12~22%)로 skip 기준(0.1ms)을 크게 초과했다. 측정표는 [ADR §"R7 종결"](../172-pan-path-derived-cost.md) 참조.
+**R7 재측정 결과 진행 판정.** 현 규모에서는 2026-07-27 프레임 분해 실측이 이 구간을 "사실상 0"(JS 조립 합계 0.07~0.13ms/frame)으로 격하 판정했으나, 2026-07-30 대규모 N 재측정에서 **9,600 자식 p50 2.06ms / p95 3.72ms**(60fps 예산 12~22%)로 skip 기준(0.1ms)을 크게 초과했다. 측정표는 [ADR §"R7 종결"](../completed/172-pan-path-derived-cost.md) 참조.
 
 측정 방법 — 원본 루프를 실제 입력으로 재현했다. `buildSkiaFrameContent` 는 hidden 탭에서 아예 돌지 않으므로(rAF 정지) 입력 stash 지점을 **rAF 밖(React 렌더 경로 `createSkiaRendererInput` + layout getter)** 으로 옮겨 임시 노출했고, 측정 후 제거했다. 동기 반복 벤치는 타이머 무관이라 hidden 탭에서도 유효하다 (§9).
 
@@ -233,7 +233,7 @@ Phase 5 검증과 회귀 감시의 근거를 남긴다. ADR-153 (Implemented) �
 
 ---
 
-## 6. Phase 5 — 검증 — **진행 중 (G1·G2·G3·G5 통과 2026-07-30)**
+## 6. Phase 5 — 검증 — **완료 2026-07-30 (G1~G5 전부 통과)**
 
 > **반영 결과**: 라벨은 3종이다 — breakdown 이 원래 잡은 P-1/P-2 에 **P-4(`render.derived.children-map`)를 더했다**. Phase 1.5 가 P-4 를 축 ① 에 넣었으므로 계측도 3지점이어야 한다. 카운터는 신설하지 않았다 — `PerfStats.count`(`perfMarks.ts:106`)가 이미 호출 횟수를 낸다.
 >
@@ -241,54 +241,100 @@ Phase 5 검증과 회귀 감시의 근거를 남긴다. ADR-153 (Implemented) �
 >
 > Gate 결과와 20배 규모 실측은 ADR 본문 §"G5 종결" 참조. **R4(hidden 탭)는 성립하지 않았다** — 탭이 visible 이고 rAF 가 120Hz 로 동작했다.
 
-### 6-1. 정적
+### 6-1. 정적 — 전부 통과 (2026-07-30)
 
-- [ ] `pnpm type-check` 통과
-- [ ] `LayoutPublisherInput` 에 `panOffset`/`zoom` 0건 (grep)
-- [ ] `useLayoutPublisher` 훅 본문에 비-memo 문자열 조립 0건 (grep)
-- [ ] `skiaFramePipeline` 의 `commandChildrenMap` 이 커맨드 스트림과 **동일 키**로 캐시됨 (별도 키 0건, Phase 1.5 반영 시)
-- [ ] 기존 테스트 그린 — 특히 `renderers/__tests__/buildFrameRendererInput.test.ts`
+- [x] `pnpm type-check` 통과 — 신규 위반 0 (baseline 53 known errors)
+- [x] `LayoutPublisherInput` 에 `panOffset`/`zoom` **0건** — 남은 것은 재도입 금지 주석 1줄뿐 (`rendererInput.ts:16`)
+- [x] `useLayoutPublisher` 훅 본문에 비-memo 문자열 조립 **0건** — `dimensionKey`/`layoutInputKey`/`readinessKey` 세 키 전부 `useMemo`
+- [x] `commandChildrenMap` 이 커맨드 스트림과 **동일 키** — `getCachedCommandStream` 이 `{ childrenMap, stream }` 을 한 엔트리로 반환, 별도 캐시 키 **0건**
+- [x] 기존 테스트 그린 — `scene`/`skia`/`renderers`/`hooks` **48 파일 444 PASS** (1 skipped). `renderers/__tests__/buildFrameRendererInput.test.ts` 포함
 
-### 6-2. live behavior (CLAUDE.md §완료 기준 — test PASS 단독 종결 금지)
+### 6-2. live behavior — 전부 통과 (CLAUDE.md §완료 기준)
 
-`visibilityState` 문제로 rAF 가 죽으므로 **사용자 실행 또는 visible 창**에서 수행한다.
+R4 가 성립하지 않아(탭 visible) 전 Gate 를 라이브에서 확인했다. G1~G3·G5 결과는 ADR 본문 §"G5 종결" 과 Gates 표 참조. **G4 실측 (2026-07-30, 5,046 요소 문서)**:
 
-- [ ] **G1** — `addElement` 2-commit 시나리오: 요소 추가 직후 신규 child 가 캔버스에 정상 렌더 (투명/미등록 0건). Phase 2 의 최대 위험.
-- [ ] **G2** — 팬 중 P-1/P-2 재계산 횟수 **0** (Phase 4 카운터)
-- [ ] **G3** — 페이지 경계를 넘는 팬에서 새 페이지가 진입/이탈 시 정상 렌더 (visibility 분리 회귀 감시)
-- [ ] **G4** — 프레임 편집 모드 / 브레이크포인트 전환 / undo·redo 후 레이아웃 발행 정상
-- [ ] **G5** — 60fps 유지 (`useGPUProfiler`)
+| 경로                 | 동작                   | layoutMap 반영                                               | `layout-key` 재계산 |
+| -------------------- | ---------------------- | ------------------------------------------------------------ | :-----------------: |
+| 브레이크포인트       | mobile → desktop       | body 390x844 → **1920x1080**, 자식 폭 350 → **1880**         |         +2          |
+| 〃                   | → tablet               | body **768x1024**, 자식 폭 **728**                           |         +2          |
+| 〃                   | → mobile (복귀)        | 390x844 / 350 복귀 · layoutMap 3321 복귀                     |          —          |
+| undo (`Cmd+Z`)       | `width:200px` → `100%` | 200 → **350**                                                |         +1          |
+| redo (`Cmd+Shift+Z`) | `100%` → `width:200px` | 350 → **200**                                                |         +1          |
+| 프레임 편집 진입     | Frames 탭              | frame 3요소 **3/3 발행** (body 390x844 · Slot 2개)           |         +9          |
+| 프레임 편집 중 편집  | slot `height:140px`    | 60 → **140** + 형제 Slot 724@100 → **644@180** (엔진 재계산) |         +2          |
+| 프레임 편집 undo     | 원복                   | 60 / 724@100 복귀                                            |          —          |
 
-### 6-3. 스케일 회귀
+**이 표가 보는 것은 "재계산이 0" 이 아니라 "재계산이 일어났는가" 다** — G2 와 방향이 반대다. G4 의 세 경로는 전부 콘텐츠·차원 변경이라 재발행이 **정상**이고, Phase 2 의 memo 가 이것들을 삼키면 무반영으로 나타난다. 그래서 지표가 `layout-key` count 의 **증가분**이다.
 
-Phase 0 의 클론 스케일러를 테스트로 승격해 N=1,000 / 5,000 에서 팬 프레임당 파생 비용이 **상수**임을 단언한다 (요소 수에 비례하면 FAIL).
+종료 시점에 요소 5,046 유지 · 두 편집 모두 원본 style 복구 · 콘솔 에러 0.
+
+### 6-3. 스케일 회귀 — 반영 완료
+
+`scene/panFrameScale.test.ts` (11 케이스). N=1,000 / 5,000 두 규모에서 팬 프레임 파생 비용이 상수임을 단언한다.
+
+**시간이 아니라 작업량을 센다.** 벽시계 측정은 CI 머신 편차로 flaky 하고 회귀의 형태(= 요소 배열을 다시 순회하는가)를 가리키지도 못한다. 요소를 Proxy 로 감싸 **프로퍼티 접근 횟수**를 세고, 팬 60프레임에서 그 수가 **0** 임을 단언한다 — 0 은 요소 수와 무관한 유일한 값이라 두 규모에서 같은 값이 나온다.
+
+| 단언                                         | 대응 지점         |
+| -------------------------------------------- | ----------------- |
+| 팬 프레임 요소 접근 **0**                    | P-1 · P-2         |
+| `sceneVersion` / visibility `key` 불변       | P-1 재발행 트리거 |
+| publisher input 필드 identity 불변           | P-3               |
+| childrenMap builder 호출 **1회** (첫 프레임) | P-4               |
+
+**계측 유효성 증거를 같이 둔다** — 계측이 죽어서 0 이 나오는 경우와 구분해야 하므로, `createPageLayoutSignature` 1회(= 요소 수 비례 작업)가 접근 N 이상을 만들고 규모를 따라 늘어나는 것을 대조군으로 단언한다.
+
+민감도 실측: 팬 프레임에서 `buildSceneStructureCore` 를 재호출하도록(= Phase 3 되돌림) 바꾸면 N=1,000 · 60프레임에서 접근이 **1,921,920** 으로 뜬다 (core 재사용 시 0).
 
 ---
 
-## 7. Phase 6 — 편집 경로 판정 (조건부)
+## 7. Phase 6 — 편집 경로 판정 — **판정 완료 2026-07-30: 이연 (별도 ADR 제안 안 함)**
 
-Phase 5 완료 후 편집 경로를 실측한다. `createPageLayoutSignature` 는 편집 경로에서는 **레이아웃 캐시 키라는 정당한 목적**이 있어 단순 제거 대상이 아니다.
+`createPageLayoutSignature` 는 편집 경로에서 **레이아웃 캐시 키라는 정당한 목적**이 있어 단순 제거 대상이 아니다. 판정 기준은 §7 이 미리 정한 두 갈래였다 — 임계가 실사용 규모 이하면 Pen #12/#14 형 mutation 시점 dirty 집합 전환을 별도 ADR 로 제안, 크게 상회하면 이연 사유를 ADR §Risks 에 기록하고 종결.
 
-- 편집당 비용이 **16ms 를 넘는 요소 수 임계**를 실측으로 확정
-- 임계가 실사용 규모(예: 1,000) 이하로 내려오면 → Pen #12/#14 형 **mutation 시점 dirty 집합** 전환을 별도 ADR 로 제안
-- 임계가 실사용 규모를 크게 상회하면 → 이연 사유를 본 ADR §Risks 에 기록하고 종결
+### 7-1. 실측 (2026-07-30, 5,046 요소 문서 / visible 3,213)
 
-**본 ADR 은 여기까지 하지 않는다** — 편집 경로 전환은 `layoutCache` 계약 전체를 바꾸는 별도 범위다.
+**signature 곡선** — 라이브 요소를 잘라 동기 반복 벤치 (§9 절차). 편집당 호출은 **visible page 당 2회**다 (`useLayoutPublisher` 의 `layoutInputKey` memo 1회 + publish `useEffect` 의 캐시 키 1회).
+
+| visible 요소 | p50/회 | min/회 | 편집당 (×2) |
+| -----------: | -----: | -----: | ----------: |
+|          250 |  1.1ms |  0.9ms |       2.2ms |
+|          500 |  2.0ms |  1.8ms |       4.0ms |
+|        1,000 |  3.0ms |  2.8ms |       6.0ms |
+|        2,000 | 11.8ms |  6.1ms |      23.6ms |
+|        3,213 | 19.6ms |  9.7ms |  **39.2ms** |
+
+live 계측(`render.derived.layout-key`)이 편집 1회에서 **2 샘플 × mean 20.5ms** 를 기록해 벤치값(19.6ms @ 3,213)과 일치한다 — 호출 횟수·비용 양쪽의 대표성 확인. `min` 대비 `p50` 이 N≥2,000 에서 2배로 벌어지는 것은 Phase 0 과 같은 GC 압력이다.
+
+**16ms 교차 임계**: 편집당 signature 기준 **visible 약 1,500 요소** (p50), min 기준 약 2,700.
+
+### 7-2. 판정 — 이연
+
+두 근거가 같은 방향이다.
+
+1. **임계가 실사용 규모를 24배 상회한다.** 현 실사용은 62 노드(ADR §Context)이고 임계는 visible 1,500 이다. 5,046 요소 문서는 스케일 측정용으로 만든 것이지 실사용 규모가 아니다.
+2. **임계를 넘는 규모에서도 지배 축이 아니다.** 3,321 visible 에서 편집 1회의 long task 는 **372ms** 인데 그중 signature 는 41ms(**11%**), `scene` 4.8ms 를 더해도 12% 다. 대안 C(dirty 집합 전환)로 이것을 0 으로 만들어도 편집은 372 → 331ms 다. 대안 C 의 위험은 기술 **HIGH** + 마이그레이션 **HIGH**("dirty 마킹 누락이 조용한 무반영") 이므로 11% 이득에 그 위험을 지불하는 거래가 성립하지 않는다.
+
+이 측정은 hidden 탭이라 **Skia 축이 분모에서 빠져 있다** — visible 창이면 콘텐츠 변경 프레임의 커맨드 walk(ADR-173 실측 mean 46.8ms)가 더해져 분모가 커지므로 signature 비중은 **더 작아진다**. 결론의 방향이 바뀌지 않는 쪽이라 재측정으로 뒤집힐 여지가 없다.
+
+### 7-3. 남긴 것 — 후속의 출발점 (본 ADR 범위 밖)
+
+- **편집당 372ms 중 89% 가 미계측 뭉치다.** 계측된 것은 파생 3축뿐이고, 나머지는 레이아웃 엔진 재계산 + store/canonical 파이프라인 + React 렌더가 섞여 있다. 편집 성능을 다룬다면 **여기부터 분해**해야 하며, signature 축이 아니다.
+- **signature 가 편집당 2회 호출된다.** memo(`layoutInputKey`)와 publish `useEffect` 가 각각 조립하는데, 후자는 `pagesRef.current` 의 fresh elements 를 쓴다. 두 입력이 같은 조건을 특정할 수 있으면 절반이 저위험으로 사라진다 — 대안 C 같은 계약 교체가 아니라 국소 개선이다.
 
 ---
 
 ## 8. 파일 변경 요약
 
-| 파일                                  | Phase | 성격                 |
-| ------------------------------------- | ----- | -------------------- |
-| `renderers/rendererInput.ts`          | 1     | 필드 삭제            |
-| `skia/skiaFramePipeline.ts`           | 1.5   | 캐시 재사용 (조건부) |
-| `BuilderCanvas.tsx`                   | 1, 3  | deps 정리·분리       |
-| `hooks/useLayoutPublisher.ts`         | 2     | 메모이제이션         |
-| `scene/buildSceneSnapshot.ts`         | 3     | 함수 분리            |
-| `scene/sceneSnapshotTypes.ts`         | 3     | 계약 (4-1-a 채택 시) |
-| `builder/utils/perfMarks.ts`          | 4     | 라벨 추가            |
-| `scene/__tests__/` (신규 스케일 회귀) | 5     | 테스트               |
+| 파일                                 | Phase | 성격                 |
+| ------------------------------------ | ----- | -------------------- |
+| `renderers/rendererInput.ts`         | 1     | 필드 삭제            |
+| `skia/skiaFramePipeline.ts`          | 1.5   | 캐시 재사용 (조건부) |
+| `BuilderCanvas.tsx`                  | 1, 3  | deps 정리·분리       |
+| `hooks/useLayoutPublisher.ts`        | 2     | 메모이제이션         |
+| `scene/buildSceneSnapshot.ts`        | 3     | 함수 분리            |
+| `scene/sceneSnapshotTypes.ts`        | 3     | 계약 (4-1-a 채택 시) |
+| `builder/utils/perfMarks.ts`         | 4     | 라벨 추가            |
+| `scene/panFrameScale.test.ts` (신규) | 5     | 스케일 회귀 테스트   |
 
 Phase 1~4 는 각각 독립 커밋 가능하며, **Phase 1·3 → 2 순서가 강제**다 (§3 전제 — Phase 2 의 실효는 Phase 1 과 Phase 3 둘 다 필요. Phase 3 없이 Phase 2 만 넣으면 `pages` identity 가 팬마다 깨져 memo 가 매 프레임 miss). Phase 1.5 는 Phase 0 측정 결과에 조건부이고 다른 Phase 와 순서 의존이 없다.
 

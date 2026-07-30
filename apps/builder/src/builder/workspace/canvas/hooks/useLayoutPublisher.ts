@@ -14,7 +14,7 @@
  * 으로 구분. dimensionKey 단일 통합 (D6=A).
  */
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 import type { LayoutPublisherInput } from "../renderers";
 import {
@@ -32,7 +32,6 @@ import {
   buildChildrenIdMap,
 } from "../scene/layoutCache";
 import { resolveResponsiveLayoutNode } from "../layout/resolveResponsive";
-import { observe, PERF_LABEL } from "../../../utils/perfMarks";
 import { useStore } from "../../../stores";
 
 interface PageLayoutInput {
@@ -65,78 +64,46 @@ export function useLayoutPublisher(
   // getCachedPageLayout의 cache key에 포함되므로 재발행이 필요하다.
   // D6=A: 단일 dimensionKey 에 frame entry 도 통합 — frame width/height 변경 시
   // 동일 useEffect flow 로 재발행.
-  //
-  // ADR-172 Phase 2: 아래 세 키는 전부 **훅 본문에서 매 렌더 조립**되고 있었다.
-  // 팬/줌은 rAF 당 1회 리렌더를 유발하므로 그 조립이 프레임마다 돌았고,
-  // `layoutInputKey` 는 요소당 `LAYOUT_STYLE_KEYS` 73 + `LAYOUT_PROP_KEYS` 43 을
-  // 문자열로 잇는다 (요소당 약 1.4KB — N=9,728 에서 프레임마다 12.8MB).
-  //
-  // deps 는 `pages`/`framePages` **배열 identity** 다. **`layoutVersion` 단독으로
-  // 좁히면 안 된다** — 아래 R1 계약 주석 참조. 그 identity 가 카메라와 무관해진
-  // 것은 Phase 1(카메라 dead 필드 제거)과 Phase 3(snapshot core/visibility 분리)의
-  // 결과이며, 둘 중 하나라도 되돌아가면 이 memo 는 팬마다 miss 로 복귀한다.
-  const dimensionKey = useMemo(
-    () =>
-      pages
-        .map(
-          ({ pageId, input }) =>
-            `p:${pageId}:${input.pageWidth}:${input.pageHeight}`,
-        )
-        .join("|") +
-      "||" +
-      framePages
-        .map(
-          ({ pageId, input }) =>
-            `f:${pageId}:${input.pageWidth}:${input.pageHeight}`,
-        )
-        .join("|"),
-    [framePages, pages],
-  );
+  const dimensionKey =
+    pages
+      .map(
+        ({ pageId, input }) =>
+          `p:${pageId}:${input.pageWidth}:${input.pageHeight}`,
+      )
+      .join("|") +
+    "||" +
+    framePages
+      .map(
+        ({ pageId, input }) =>
+          `f:${pageId}:${input.pageWidth}:${input.pageHeight}`,
+      )
+      .join("|");
 
   // addElement 는 elements/layoutVersion 갱신 후 pageIndex/elementsMap 을 별도
   // commit 으로 rebuild 한다. 두 번째 commit 은 layoutVersion 이 변하지 않으므로
   // page/frame input 구조 자체도 publish trigger 에 포함해야 신규 child 가
   // layoutMap 없이 투명/미등록 상태로 남지 않는다.
-  //
-  // ADR-172 R1 (HIGH): 그래서 memo deps 가 `[pages, framePages]` 다. 두 번째
-  // commit 은 `elementsMap` 을 새로 만들고 그것이 `layoutPublisherInputs` →
-  // `pages` 의 identity 를 바꾸므로 이 키가 다시 계산된다. deps 를
-  // `layoutVersion` 으로 바꾸면 그 commit 이 통째로 누락된다.
-  //
-  // ADR-172 Phase 4: 이 memo 는 팬/줌 프레임에 **재실행되지 않는 것이 정상**이다.
-  // `observe()` 는 miss 시에만 샘플을 남기므로 정상 동작에서 오버헤드가 0 이고,
-  // 샘플 수(`snapshot(...).count`)가 그대로 G2 지표가 된다.
-  const layoutInputKey = useMemo(
-    () =>
-      observe(PERF_LABEL.RENDER_DERIVED_LAYOUT_KEY, () =>
-        [...pages, ...framePages]
-          .map(({ pageId, input }) => {
-            const pageElementsSignature = createPageElementsSignature(
-              input.pageElements,
-            );
-            const pageLayoutSignature = createPageLayoutSignature(
-              input.bodyElement,
-              input.pageElements,
-            );
-            return `${pageId}:${input.projectionVersion}:${input.bodyElement?.id ?? "no-body"}:${pageElementsSignature}:${pageLayoutSignature}`;
-          })
-          .join("||"),
-      ),
-    [framePages, pages],
-  );
+  const layoutInputKey = [...pages, ...framePages]
+    .map(({ pageId, input }) => {
+      const pageElementsSignature = createPageElementsSignature(
+        input.pageElements,
+      );
+      const pageLayoutSignature = createPageLayoutSignature(
+        input.bodyElement,
+        input.pageElements,
+      );
+      return `${pageId}:${input.projectionVersion}:${input.bodyElement?.id ?? "no-body"}:${pageElementsSignature}:${pageLayoutSignature}`;
+    })
+    .join("||");
 
   // 새로고침 직후 frame inputs 가 먼저 생성되고 WASM layout 이 아직 pending 이면
   // effect 는 skip 된다. 이후 ready 전환만으로도 layoutMap 을 다시 publish 해야 한다.
-  const readinessKey = useMemo(
-    () =>
-      [...pages, ...framePages]
-        .map(
-          ({ pageId, input }) =>
-            `${pageId}:${input.wasmLayoutReady ? "ready" : "pending"}`,
-        )
-        .join("||"),
-    [framePages, pages],
-  );
+  const readinessKey = [...pages, ...framePages]
+    .map(
+      ({ pageId, input }) =>
+        `${pageId}:${input.wasmLayoutReady ? "ready" : "pending"}`,
+    )
+    .join("||");
 
   useEffect(() => {
     const all = [...pagesRef.current, ...framePagesRef.current];

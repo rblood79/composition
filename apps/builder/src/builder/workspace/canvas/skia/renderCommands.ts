@@ -28,7 +28,6 @@ import {
   applyMaskImage,
 } from "./nodeRendererMask";
 import { getSkImage, loadSkImage } from "./imageCache";
-import { observe, PERF_LABEL } from "../../../utils/perfMarks";
 import { getSkiaNode } from "./useSkiaNode";
 import { getDragVisualOffset, getSiblingOffset } from "./nodeRendererTree";
 import {
@@ -298,13 +297,6 @@ function updateTextChildren(
 
 // 캐시
 let _cachedStream: RenderCommandStream | null = null;
-/**
- * ADR-172 Phase 1.5: 스트림의 **입력**인 commandChildrenMap 을 같은 캐시 엔트리에
- * 동봉한다. 별도 캐시 키를 신설하지 않는 이유는 두 캐시의 무효화 시점이 갈리면
- * 스트림과 childrenMap 이 어긋나기 때문 — 여기 두면 `invalidateCommandStreamCache()`
- * 한 번으로 둘 다 무효화된다.
- */
-let _cachedCommandChildrenMap: Map<string, CanvasSceneNode[]> | null = null;
 let _cacheRegVersion = -1;
 let _cachePagePosVersion = -1;
 let _cacheFramePosVersion = -1;
@@ -340,32 +332,20 @@ function classifyCommandStreamMiss(
  * registryVersion + pagePositionsVersion + framePositionsVersion + sharedLayoutVersion 4중 키.
  * ADR-111 P3-δ: framePositionsVersion 추가 — frame 좌표 변경 시 invalidate (D3=A 단일 맵
  * 통합 후에도 frame 영역 카운터는 별도 추적, page-only 변경과 frame-only 변경을 구분 캐시).
- *
- * ADR-172 Phase 1.5: `childrenMap` 을 **lazy builder** 로 받는다. 이 맵은 스트림의
- * 입력이면서 자체도 O(총 자식 수) 재구축 비용을 갖는데(실측 9,600 자식에서 p50
- * 2.06ms / p95 3.72ms — 60fps 예산의 12~22%), 캐시 hit 프레임에서는 결과가 쓰이지
- * 않는다. blit(카메라 전용) 프레임은 5중 키가 전부 그대로라 항상 hit 이므로,
- * builder 를 호출하지 않는 것만으로 그 비용이 사라진다.
- *
- * **builder 를 미리 호출해 값으로 넘기지 말 것** — 그 순간 lazy 가 무의미해진다.
  */
 export function getCachedCommandStream(
   rootElementIds: string[],
-  buildChildrenMap: () => Map<string, CanvasSceneNode[]>,
+  childrenMap: Map<string, CanvasSceneNode[]>,
   layoutMap: Map<string, ComputedLayout>,
   pagePositions: Record<string, { x: number; y: number }>,
   registryVersion: number,
   pagePosVersion: number,
   framePosVersion: number,
   layoutVersion: number,
-): {
-  childrenMap: Map<string, CanvasSceneNode[]>;
-  stream: RenderCommandStream;
-} {
+): RenderCommandStream {
   const rootSignature = rootElementIds.join("|");
   if (
     _cachedStream &&
-    _cachedCommandChildrenMap &&
     registryVersion === _cacheRegVersion &&
     pagePosVersion === _cachePagePosVersion &&
     framePosVersion === _cacheFramePosVersion &&
@@ -375,7 +355,7 @@ export function getCachedCommandStream(
     if (process.env.NODE_ENV === "development") {
       getCacheMetrics("commandStream").recordHit();
     }
-    return { childrenMap: _cachedCommandChildrenMap, stream: _cachedStream };
+    return _cachedStream;
   }
 
   if (process.env.NODE_ENV === "development") {
@@ -390,13 +370,6 @@ export function getCachedCommandStream(
     );
   }
 
-  // ADR-172 Phase 4: miss 경로에서만 도는 조립 — 팬 프레임에서 count 가 0 이어야
-  // 캐시가 실제로 걸린 것이다 (G5 의 Skia 축 증거). duration 은 실사용 규모에서
-  // 측정 하한 아래라 신호가 되지 못한다 — PERF_LABEL 주석 참조.
-  const childrenMap = observe(
-    PERF_LABEL.RENDER_DERIVED_CHILDREN_MAP,
-    buildChildrenMap,
-  );
   const stream = buildRenderCommandStream(
     rootElementIds,
     childrenMap,
@@ -405,7 +378,6 @@ export function getCachedCommandStream(
   );
 
   _cachedStream = stream;
-  _cachedCommandChildrenMap = childrenMap;
   _cacheRegVersion = registryVersion;
   _cachePagePosVersion = pagePosVersion;
   _cacheFramePosVersion = framePosVersion;
@@ -413,18 +385,14 @@ export function getCachedCommandStream(
   _cacheRootSignature = rootSignature;
   _explicitInvalidate = false;
 
-  return { childrenMap, stream };
+  return stream;
 }
 
 /**
  * 커맨드 스트림 캐시 무효화 (pagePositions stale 프레임 등)
- *
- * ADR-172 Phase 1.5: 동봉된 `commandChildrenMap` 도 함께 버린다 — 한쪽만 남으면
- * 다음 프레임에서 스트림과 childrenMap 이 서로 다른 세대가 된다.
  */
 export function invalidateCommandStreamCache(): void {
   _cachedStream = null;
-  _cachedCommandChildrenMap = null;
   _cacheRootSignature = "";
   _explicitInvalidate = true;
 }

@@ -1,11 +1,8 @@
 export {
   buildSceneSnapshot,
-  buildSceneStructureCore,
   buildSceneStructureSnapshot,
   buildSceneSelectionState,
-  composeSceneStructureSnapshot,
   createResolvedProjectionSignature,
-  resolveSceneVisibility,
 } from "./buildSceneSnapshot";
 export {
   buildCanonicalSceneModel,
@@ -36,19 +33,14 @@ export {
 export { buildPageDirtyState } from "./subtreeInvalidation";
 export type {
   BuildSceneSnapshotInput,
-  BuildSceneStructureCoreInput,
   BuildSceneStructureInput,
-  SceneDocumentCore,
   SceneDocumentSnapshot,
   ScenePageData,
   ScenePageFrame,
   ScenePageSnapshot,
   SceneSelectionState,
   SceneSnapshot,
-  SceneStructureCore,
   SceneStructureSnapshot,
   SceneInputSource,
-  SceneVisibilityCamera,
-  SceneVisibilityResult,
   SelectionSnapshot,
 } from "./sceneSnapshotTypes";
