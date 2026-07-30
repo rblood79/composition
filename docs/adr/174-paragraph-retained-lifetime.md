@@ -8,7 +8,11 @@ Accepted — 2026-07-31 (리뷰 round 1 승인 — 이슈 3건 전건 fixed, HIG
 
 - Phase 0 (메모리 축 실측) — **G1 미통과, 재측정 필요**. 1차 측정에 쓴 문서가 소수 텍스트를 복제해 요소 수만 부풀린 합성물이라(2026-07-31 사용자 확인) 중복 계수·고유 키 수·보유 프로젝션이 무효다. 그 수치로 내렸던 소유 모델·스코프 결정은 **철회**했고, 소유 모델은 본 ADR 채택안(per-node retained)으로 복귀했다. 유효 산출은 계측 도구 · paragraph 단가 · 프레임 중 delete 6 지점 · 수명 지도 · 측정 함정 3종. 상세: [breakdown §실측 결과](design/174-paragraph-retained-lifetime-breakdown.md).
 - Phase 1 (안전 폐기 프리미티브) 완료 2026-07-31 — 프레임 중 WASM `.delete()` 를 전부 지연 폐기 큐 경유로 전환 (`fa4439739`). 측정 결과와 무관하게 성립하는 변경이라 위 철회의 영향을 받지 않는다.
-- Phase 2 (retained 소유 전환) 구현 완료 2026-07-31 (`d7b68a2e7`) — 소유자 = 텍스트 `SkiaNodeData` 객체, 무효화 = 텍스트 축 key + fontMgr, 해제 = 노드 폐기 3지점. 전역 LRU 는 dev 플래그로 공존 (Phase 3 에서 제거). **G3 통과** (계약 테스트 16). **G2 부분 통과** — 별도 서버 2대(`fed7e1838` 5175 / HEAD 5174, 상한 20)로 문턱 초과 A/B 실행: 같은 시드 문서 1 walk 에서 RED `evictions 33 / hitRate 5.71%` vs GREEN `evictions 0 / hitRate 100%`. 스래싱 조건은 대조 완료. **소실 재현은 미통과** — 주소 재사용에 달린 확률적 사건이라 35 draw 규모로는 안 나오고, 원 버그 규모(1,416 draw)의 대표 문서가 필요하다 (G1 재측정과 같은 전제). live 실측(hit 0 → 66.67%)이 잡아낸 소유자 배치 함정 2건은 [breakdown §Phase 2 답](design/174-paragraph-retained-lifetime-breakdown.md) 에 기록.
+- Phase 2 (retained 소유 전환) 구현 2026-07-31 (`d7b68a2e7`) → **당일 되돌림 (`954c17532`)**. 구현 자체는 계약을 만족했으나 (**G3 통과** — 계약 테스트 16, **G2 스래싱 A/B 통과** — 상한 20 서버 2대에서 RED `evictions 33 / hitRate 5.71%` vs GREEN `evictions 0 / hitRate 100%`), **실사용 문서에서 R2 가 그대로 발현해 텍스트가 소실**됐다. 사용자 보고 (2026-07-31) → 22 페이지 실문서에서 재현 → 런타임 플래그 A/B: `retained ON` 은 CanvasKit WASM 힙이 **2,147 MB (wasm32 주소공간 상한)** 에 닿아 `RuntimeError: Aborted()` 로 할당이 전부 실패 (프레임 다수 텍스트 소실 → 렌더 루프 정지), `retained OFF` 는 줌아웃·전 페이지 팬 내내 **1,090 MB 평탄** + 전 프레임 정상. 되돌림 후 실물 재확인 — 22 페이지 전체 렌더 · 힙 1,194 MB · 콘솔 에러 0. 상세: [breakdown §Phase 2 되돌림](design/174-paragraph-retained-lifetime-breakdown.md).
+  - **원인은 채택안을 절반만 구현한 것**이다. Decision 은 대안 C (retained + **walk 스코프 정책**) 인데 Phase 2 는 보유만 넣고 스코프를 Phase 3 으로 미뤘다 — 그 중간 상태가 정확히 **대안 B** 이고, B 의 유일 HIGH ("무스코프 보유는 대형 문서에서 상한 없는 증가") 가 그대로 실현됐다. 스코프 없는 retained 는 착지 가능한 중간 상태가 아니다.
+  - **"노드 소유면 상한 질문이 사라진다" 는 이 캔버스에서 성립하지 않는다.** 보유 상한 = 살아 있는 텍스트 노드 수인데, composition 캔버스는 22 페이지 프레임을 **동시에** 그리므로 그 집합이 곧 문서 전체다. 기존 경계인 `clearSkiaRegistry`(페이지 전환)는 여기서 아무것도 회수하지 않는다 — Pen 은 한 번에 한 화면을 그려 이 차이가 없었다 (대안 C 의 "composition 의 전 페이지 전역 등록 구조 차이 보정" 이 바로 이 지점).
+  - 따라서 **G1 은 Phase 2 의 선행 게이트**다 (권고가 아니라 차단 조건). G1 미통과 상태로 Phase 2 를 진행한 것이 이번 회귀의 절차적 원인이며, 재개는 G1 통과 + 스코프 정책 동반 구현이 조건이다.
+- Phase 1 은 되돌림 대상이 아니다 — 지연 폐기는 소유 모델과 독립적으로 성립하며 main 에 유지된다.
 
 ## Context
 

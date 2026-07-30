@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Paragraph 노드 소유 전환 되돌림 — ADR-174 Phase 2] - 2026-07-31
+
+### Bug Fixes
+
+- **텍스트가 다시 렌더되지 않던 회귀 해소 — paragraph 소유 전환 되돌림** (ADR-174 Phase 2, commit: `954c17532`):
+  - 증상: 실사용 다중 페이지 문서에서 **도형·버튼은 그려지는데 프레임 여럿의 텍스트만 통째로 빠짐**. 계속 조작하면 캔버스가 통째로 얼어붙고 콘솔에 `RuntimeError: Aborted()`.
+  - **Why**: paragraph 수명을 전역 LRU(상한 1,000 키)에서 **텍스트 노드 소유**로 옮기면서 상한이 사라졌는데, composition 캔버스는 22 페이지 프레임을 **동시에** 그리므로 보유 집합이 곧 문서 전체가 된다. CanvasKit WASM 힙이 **2,147 MB = wasm32 주소공간 상한**에 닿아 이후 모든 할당이 실패 → paragraph 생성 실패로 글자만 조용히 빠지고, 이어서 `PictureRecorder` 까지 실패해 렌더 루프가 정지했다. 페이지 전환(`clearSkiaRegistry`)은 이 캔버스에서 아무것도 회수하지 않아 기존 경계로는 회수가 일어나지 않는다.
+  - 실측 A/B (같은 문서·같은 뷰포트, 런타임 플래그): `retained ON` 힙 2,147 MB + 텍스트 소실 vs `retained OFF` 힙 1,090 MB 평탄 + 전 프레임 정상. 되돌림 후 재확인 — 22 페이지 전체 렌더 · 힙 1,194 MB · 콘솔 에러 0.
+  - 되돌림 범위는 Phase 2 (소유 전환) 한정. **Phase 1 (프레임 중 WASM `.delete()` 지연 폐기) 은 유지** — 소유 모델과 독립적으로 성립하며, 원 버그의 글리프 소실 기제를 끊는 부분이다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{nodeRendererText,renderCommands,useSkiaNode}.ts`
+
 ## [렌더링 성능 작업 되돌림 — ADR-172 / ADR-173 Deprecated] - 2026-07-30
 
 ### Bug Fixes
