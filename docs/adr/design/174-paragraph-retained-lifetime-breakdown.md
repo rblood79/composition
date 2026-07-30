@@ -160,6 +160,33 @@ RED 는 **한 walk 에서 33회 퇴거** = 프레임 중 WASM `.delete()` 33회�
 
 **재개 조건**: G1 (메모리 축 실측) 통과 + 스코프 정책 **동반** 구현. 스코프 기준은 페이지가 아니라 **가시 영역**이어야 한다 (페이지 경계는 이 캔버스에서 회수 지점이 아니다).
 
+#### 진범 확정 (2026-07-31 같은 날 오후) — 위 되돌림 서사의 정정
+
+사용자 이의("설계대로 노드가 소유하고, 텍스트 안 나오는 건 버그일 수도 있지 않은가")가 재조사의 계기였고, **그 가설이 맞았다**. 위 절의 "상한을 옮긴 것" 서사는 산수가 안 맞았다 — 설계 보유 비용은 `642 × 20 KB ≈ 13 MB` 인데 관측은 +1 GB (30~70배 gap).
+
+**판별 계측** (Phase 2 커밋 worktree + 카운터 probe + 실문서 사본을 별도 project id 로 주입):
+
+- 불변식 `created − drained == retained + pending` 은 **정확히 성립** — 고아 누수 없음 (실문서 첫 프레임: created 208 = retained 208).
+- 그런데 힙이 생성마다 ~7 MB 씩 자랐다 (+103 MB allocator 계단 × 18회). LRU 팔도 같은 단가 (74키 = 546 MB~1,090 MB) — **양쪽 팔 공통의 잠복 단가**.
+- 처녀 힙(iframe 새 CanvasKit 인스턴스) 격리 이분탐색: base 0 / +fontFeatures 0 / +strut 0 / **+pushStyle `fontVariations` 5.78 MB**. 스크립트(한글/라틴) 무관 — 중간에 관측된 한글/라틴 차이는 allocator ~100 MB 단위가 만든 앨리어싱이었다.
+- **기제**: `ParagraphBuilder.Make(style, fontMgr)` 는 호출마다 새 FontCollection 을 만들고, `fontVariations` 가 걸린 paragraph 는 그 collection 별로 **variable font 인스턴스를 각자 생성·보유**한다 — paragraph 수명 동안 산다. 공유 FontCollection 은 (typeface × variation) 을 캐시해 **0** (wght 4종 순환에도 0).
+
+**수리** (`a3414a526`, main): `SkiaFontManager.getFontCollection()` (fontMgr 수명 동기) + renderText `MakeFromFontCollection` 전환. 정적 가드 `nodeRendererText.static.test.ts`.
+
+| 실측 (실사용 22페이지 문서)      |         수리 전 |    수리 후 |
+| -------------------------------- | --------------: | ---------: |
+| LRU 팔 (main)                    |        1,090 MB | **134 MB** |
+| retained 팔 (worktree, 보유 345) | 2,147 MB (천장) | **134 MB** |
+
+**측정 함정 4종 (이번 조사에서 추가 확립)**:
+
+1. `HEAPU8.byteLength` 는 **고수위선** — free 공간이 쌓이면 재사용돼 delta 0 으로 읽힌다. 오염 힙에서의 소배치 측정은 무효 (처녀 힙 iframe 으로 격리).
+2. allocator 는 ~100 MB 단위로 자란다 — 8개 소배치는 "grow 경계를 밟았는가" 를 잴 뿐. 대량(60+) 생성의 기울기로 판별.
+3. `retainedCount` 는 이 축의 지표가 아니다 — 슬롯에 달린 개수만 세지 개당 부속 비용(폰트 인스턴스)을 모른다. 판정은 힙 총량 A/B.
+4. hidden 탭은 rAF 정지로 **drain/생성이 모두 멈춘다** — "drained 0" 이 배선 결함처럼 보인다 (`visibilityState` 확인 필수).
+
+**귀결**: Phase 2 의 노드 소유 설계는 이 사고로 반증되지 않았다. 재개 조건은 "수리 후 단가 기준 G1 재측정" 으로 완화된다 (스코프 정책은 재측정 결과에 따라 no-op 수렴 가능 — 대안 C 의 B 동치 조항).
+
 ## Phase 3 — 스코프 정책 적용 + LRU 제거
 
 - **스코프 확정 보류 (2026-07-31 철회)** — "≈3.2 MB 라 전 페이지 보유" 판정은 무효 픽스처 수치(고유 키 159) 파생이라 함께 철회한다. 재측정 후 결정한다.
