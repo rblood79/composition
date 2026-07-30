@@ -16,13 +16,8 @@ describe("BuilderCanvas canonical projection contract", () => {
     // canonical scene model 호출부는 collections 외에 collectionWindows(ADR-150 A2
     // 가상화) + activeBreakpoint(ADR-154 Bug3 responsive projection) 를 넘기는
     // 멀티라인 객체로 확장됨 — 첫 인자가 activeCanonicalDocument 인 계약만 고정 검증한다.
-    //
-    // `return` 접두는 매치에서 뺀다 — 호출부가 `observe(PERF_LABEL…, () => …)` 로
-    // 감싸여 계측 라벨을 다는 형태(편집 프레임 분해)를 허용하기 위해서다. 계약의
-    // 본질은 **첫 인자가 activeCanonicalDocument 라는 것**이지 호출이 return 문에
-    // 직접 붙어 있는지가 아니다.
     expect(source).toContain(
-      "buildCanonicalSceneModel(activeCanonicalDocument, {",
+      "return buildCanonicalSceneModel(activeCanonicalDocument, {",
     );
     expect(source).toContain("buildLegacyCanvasSceneGraph");
     expect(source).not.toContain("getSceneModelElementsLegacy");

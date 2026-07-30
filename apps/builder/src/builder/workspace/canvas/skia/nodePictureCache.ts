@@ -29,10 +29,6 @@
 
 import type { FontMgr, SkPicture, Image as SkImage } from "canvaskit-wasm";
 import { getCacheMetrics } from "./cacheMetrics";
-import {
-  drainPendingWasmDisposals,
-  scheduleWasmDisposal,
-} from "./deferredDisposal";
 import { registerSkiaCacheDestroy } from "./disposable";
 import { registerImageEvictionListener } from "./imageCache";
 
@@ -167,17 +163,10 @@ function invalidateNodePicturesByImage(image: SkImage): void {
   }
 }
 
-/**
- * 전체 폐기 — 페이지 전환(clearSkiaRegistry)/캔버스 teardown/fontMgr 교체.
- *
- * delete 는 `deferredDisposal` 큐 경유 — fontMgr 교체 경로가 walk 초입
- * (`executeRenderCommands`) 에서 불리므로 즉시 delete 는 같은 프레임에 이미
- * `drawPicture` 로 제출된 Picture 의 use-after-free 가 된다. teardown 처럼
- * 프레임 밖 정리는 호출측이 drain 을 이어 부른다.
- */
+/** 전체 폐기 — 페이지 전환(clearSkiaRegistry)/캔버스 teardown/fontMgr 교체 */
 export function clearNodePictureCache(): void {
   for (const entry of cache.values()) {
-    scheduleWasmDisposal(entry.picture);
+    entry.picture.delete();
   }
   cache.clear();
   imageIndex.clear();
@@ -269,9 +258,7 @@ function syncMetricsSize(): void {
 }
 
 function disposeEntry(elementId: string, entry: NodePictureEntry): void {
-  // 즉시 delete 금지 — walk 중 LRU 퇴거/교체가 이번 프레임에 이미 그려진
-  // (아직 flush 안 된) Picture 를 파괴하면 그 노드의 self-draw 가 소실된다.
-  scheduleWasmDisposal(entry.picture);
+  entry.picture.delete();
   if (entry.imageRefs) {
     for (const img of entry.imageRefs) {
       const ids = imageIndex.get(img);
@@ -282,12 +269,8 @@ function disposeEntry(elementId: string, entry: NodePictureEntry): void {
   }
 }
 
-// 통합 해제 경로 등록 (ADR-153 Phase 2 레지스트리) — 캔버스 teardown 시 전량 해제.
-// teardown 은 프레임 밖이므로 pending 폐기까지 즉시 배수해 WASM 누수를 막는다.
-registerSkiaCacheDestroy("nodePictureCache", () => {
-  clearNodePictureCache();
-  drainPendingWasmDisposals();
-});
+// 통합 해제 경로 등록 (ADR-153 Phase 2 레지스트리) — 캔버스 teardown 시 전량 해제
+registerSkiaCacheDestroy("nodePictureCache", clearNodePictureCache);
 
 // image 퇴거 역참조 — imageCache 가 SkImage.delete() 를 부르기 직전 통지 (R2)
 registerImageEvictionListener(invalidateNodePicturesByImage);
@@ -296,7 +279,6 @@ registerImageEvictionListener(invalidateNodePicturesByImage);
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     clearNodePictureCache();
-    drainPendingWasmDisposals();
   });
 }
 

@@ -9,7 +9,6 @@ import {
   publishSyntheticElementsMap,
 } from "../layout/engines/fullTreeLayout";
 import { parseBorder, parsePadding } from "../layout/engines/utils";
-import { getCacheMetrics } from "../skia/cacheMetrics";
 
 interface BuildPageChildrenMapInput {
   bodyElement: CanvasLayoutNode | null;
@@ -220,62 +219,13 @@ function serializeLayoutRelevantValue(value: unknown): string {
   }
 }
 
-/**
- * style 축 시그니처 캐시 — 키는 **style 객체 identity**.
- *
- * 편집 프레임 실측(2026-07-30): 시그니처 3종이 편집 1회당 51.8ms(long task 의
- * 21.7%)를 차지했고, 그중 layout signature 가 27.9ms 다. 그런데 store 는 불변
- * 업데이트라 편집으로 실제 바뀌는 요소는 1개이고, `signatureCacheKey.test.ts`
- * 실측으로 **미변경 요소의 `props.style` 객체가 200/201 재사용**됨을 확인했다
- * (scene 변환이 `props` 는 `_slots` 주입 때문에 새로 만들지만 `style` 은 원본을
- * 그대로 넘긴다). 그래서 여기만 캐시가 성립한다.
- *
- * 정확성은 자명하다 — 같은 style 객체면 73키를 어떻게 읽어도 같은 문자열이다.
- * 전제는 하나, **style 을 제자리 변경하지 않는 것**. 그 계약은
- * `signatureCacheKey.test.ts` 가 고정한다. 깨지면 캐시가 stale 문자열을 돌려주고
- * 레이아웃 편집이 조용히 무반영된다.
- *
- * `props` 축(43키)은 캐시하지 않는다 — props 객체가 편집마다 전량 새로 만들어져
- * (0/201) WeakMap 키로 쓸 수 없다.
- */
-const styleSignatureCache = new WeakMap<object, string>();
-
-/**
- * dev 전용 적중률 채널 — `window.__composition_CACHE_METRICS__.snapshotAll()`.
- * 캐시가 무력화돼도 화면과 테스트는 정상이라 **적중률이 유일한 조기 신호**다.
- * prod 는 null 이라 hot path 에 함수 호출이 남지 않는다.
- */
-const styleSignatureMetrics =
-  process.env.NODE_ENV === "development"
-    ? getCacheMetrics("layout-style-signature")
-    : null;
-
-/**
- * style 이 없는 요소가 매번 `{}` 리터럴을 만들면 키가 달라져 전량 미스가 된다.
- * 공유 상수를 쓰면 그 요소들이 한 엔트리로 수렴한다.
- */
-const EMPTY_STYLE: Record<string, unknown> = {};
-
-function createStyleAxisSignature(style: Record<string, unknown>): string {
-  const cached = styleSignatureCache.get(style);
-  if (cached !== undefined) {
-    styleSignatureMetrics?.recordHit();
-    return cached;
-  }
-  styleSignatureMetrics?.recordMiss();
-
-  const signature = LAYOUT_STYLE_KEYS.map(
-    (key) => `${key}=${serializeLayoutRelevantValue(style[key])}`,
-  ).join(";");
-  styleSignatureCache.set(style, signature);
-  return signature;
-}
-
 function createElementLayoutSignature(element: CanvasLayoutNode): string {
   const props = (element.props ?? {}) as Record<string, unknown>;
-  const style = (props.style ?? EMPTY_STYLE) as Record<string, unknown>;
+  const style = (props.style ?? {}) as Record<string, unknown>;
 
-  const styleSignature = createStyleAxisSignature(style);
+  const styleSignature = LAYOUT_STYLE_KEYS.map(
+    (key) => `${key}=${serializeLayoutRelevantValue(style[key])}`,
+  ).join(";");
   const propSignature = LAYOUT_PROP_KEYS.map(
     (key) => `${key}=${serializeLayoutRelevantValue(props[key])}`,
   ).join(";");

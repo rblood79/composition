@@ -139,127 +139,98 @@ export function useLayoutPublisher(
   );
 
   useEffect(() => {
-    // ADR-172 Phase 6 후속 — 편집 프레임의 최대 지분. 이 effect 는 편집마다
-    // 돌고, 안쪽 4단계 라벨의 합과 이 total 의 차이가 배선 밖 잔여(publish/batch)다.
-    observe(PERF_LABEL.LAYOUT_PUBLISH_TOTAL, () => {
-      const all = [...pagesRef.current, ...framePagesRef.current];
-      // ADR-154: 현재 activeBreakpoint 를 publish 시점에 읽어 resolve 에 사용.
-      // activeBreakpoint 변경은 bridge(invalidateLayout)로 layoutVersion 을 bump →
-      // 본 effect 가 재실행되고, resolve 된 style 로 시그니처가 달라져 캐시 miss.
-      const activeBreakpoint = useStore.getState().activeBreakpoint;
-      const activeKeys = new Set<string>();
-      const layoutUpdates: Array<{
-        key: string;
-        map: Map<string, ComputedLayout> | null;
-      }> = [];
+    const all = [...pagesRef.current, ...framePagesRef.current];
+    // ADR-154: 현재 activeBreakpoint 를 publish 시점에 읽어 resolve 에 사용.
+    // activeBreakpoint 변경은 bridge(invalidateLayout)로 layoutVersion 을 bump →
+    // 본 effect 가 재실행되고, resolve 된 style 로 시그니처가 달라져 캐시 miss.
+    const activeBreakpoint = useStore.getState().activeBreakpoint;
+    const activeKeys = new Set<string>();
+    const layoutUpdates: Array<{
+      key: string;
+      map: Map<string, ComputedLayout> | null;
+    }> = [];
 
-      for (const { input } of all) {
-        const {
-          bodyElement,
-          elementById,
-          pageElements,
-          pageWidth,
-          pageHeight,
-          wasmLayoutReady,
-        } = input;
+    for (const { input } of all) {
+      const {
+        bodyElement,
+        elementById,
+        pageElements,
+        pageWidth,
+        pageHeight,
+        wasmLayoutReady,
+      } = input;
 
-        if (!bodyElement || !wasmLayoutReady) continue;
-        const key =
-          bodyElement.page_id ??
-          getFrameElementMirrorId(bodyElement) ??
-          bodyElement.id;
-        activeKeys.add(key);
+      if (!bodyElement || !wasmLayoutReady) continue;
+      const key =
+        bodyElement.page_id ??
+        getFrameElementMirrorId(bodyElement) ??
+        bodyElement.id;
+      activeKeys.add(key);
 
-        // ADR-154: responsive override resolve (base ⊕ cascade). desktop 은 원본
-        // identity 반환이라 기존 경로 비용 0. 시그니처/엔진/children map 모두 resolved
-        // 노드로 계산 → activeBreakpoint·override 변경이 자연히 캐시 miss 를 유발.
-        // ADR-172 Phase 6 후속 — 편집 프레임 분해 계측. 네 단계의 duration 합이
-        // `layout.publish.total` 에 미달하는 몫이 배선되지 않은 잔여(publish/batch)다.
-        const { freshElements, resolvedBody, sourceElementById } = observe(
-          PERF_LABEL.LAYOUT_PUBLISH_RESOLVE,
-          () => {
-            const resolvedBody = resolveResponsiveLayoutNode(
-              bodyElement,
-              activeBreakpoint,
-            );
-            const sourceElementById = new Map<string, CanvasLayoutNode>();
-            for (const [id, node] of elementById) {
-              sourceElementById.set(
-                id,
-                resolveResponsiveLayoutNode(node, activeBreakpoint),
-              );
-            }
-            sourceElementById.set(resolvedBody.id, resolvedBody);
-            for (const element of pageElements) {
-              sourceElementById.set(
-                element.id,
-                resolveResponsiveLayoutNode(element, activeBreakpoint),
-              );
-            }
-            return {
-              freshElements: pageElements.map(
-                (el) => sourceElementById.get(el.id) ?? el,
-              ),
-              resolvedBody,
-              sourceElementById,
-            };
-          },
+      // ADR-154: responsive override resolve (base ⊕ cascade). desktop 은 원본
+      // identity 반환이라 기존 경로 비용 0. 시그니처/엔진/children map 모두 resolved
+      // 노드로 계산 → activeBreakpoint·override 변경이 자연히 캐시 miss 를 유발.
+      const resolvedBody = resolveResponsiveLayoutNode(
+        bodyElement,
+        activeBreakpoint,
+      );
+      const sourceElementById = new Map<string, CanvasLayoutNode>();
+      for (const [id, node] of elementById) {
+        sourceElementById.set(
+          id,
+          resolveResponsiveLayoutNode(node, activeBreakpoint),
         );
-        const { childrenIdMap, pageChildrenMap } = observe(
-          PERF_LABEL.LAYOUT_PUBLISH_CHILDREN_MAP,
-          () => {
-            const map = buildPageChildrenMap({
-              bodyElement: resolvedBody,
-              elementById: sourceElementById,
-              pageElements: freshElements,
-            });
-            return {
-              childrenIdMap: buildChildrenIdMap(map),
-              pageChildrenMap: map,
-            };
-          },
-        );
-        const { pageElementsSignature, pageLayoutSignature } = observe(
-          PERF_LABEL.LAYOUT_PUBLISH_SIGNATURE,
-          () => ({
-            pageElementsSignature: createPageElementsSignature(pageElements),
-            pageLayoutSignature: createPageLayoutSignature(
-              resolvedBody,
-              freshElements,
-            ),
-          }),
-        );
-
-        const layoutMap = observe(PERF_LABEL.LAYOUT_PUBLISH_ENGINE, () =>
-          getCachedPageLayout({
-            bodyElement: resolvedBody,
-            childrenIdMap,
-            elementById: sourceElementById,
-            pageChildrenMap,
-            pageElementsSignature,
-            pageLayoutSignature,
-            pageHeight,
-            pageWidth,
-            wasmLayoutReady,
-          }),
-        );
-
-        // D5=A: publishLayoutMap key fallback chain.
-        // - page bodyElement: page_id 확정 → 기존 동작 유지
-        // - frame bodyElement: frame mirror id → frameId 키로 발행
-        // - 양쪽 모두 미정 시 element id fallback (graceful degradation)
-        layoutUpdates.push({ key, map: layoutMap });
       }
-
-      const staleKeys: string[] = [];
-      for (const key of publishedKeysRef.current) {
-        if (activeKeys.has(key)) continue;
-        publishFilteredChildrenMap(null, key);
-        publishSyntheticElementsMap(null, key);
-        staleKeys.push(key);
+      sourceElementById.set(resolvedBody.id, resolvedBody);
+      for (const element of pageElements) {
+        sourceElementById.set(
+          element.id,
+          resolveResponsiveLayoutNode(element, activeBreakpoint),
+        );
       }
-      publishLayoutMapsBatch(layoutUpdates, staleKeys);
-      publishedKeysRef.current = activeKeys;
-    });
+      const resolvedPageElements = pageElements.map(
+        (el) => sourceElementById.get(el.id) ?? el,
+      );
+      const pageChildrenMap = buildPageChildrenMap({
+        bodyElement: resolvedBody,
+        elementById: sourceElementById,
+        pageElements: resolvedPageElements,
+      });
+      const pageElementsSignature = createPageElementsSignature(pageElements);
+      const freshElements = resolvedPageElements;
+      const pageLayoutSignature = createPageLayoutSignature(
+        resolvedBody,
+        freshElements,
+      );
+      const childrenIdMap = buildChildrenIdMap(pageChildrenMap);
+
+      const layoutMap = getCachedPageLayout({
+        bodyElement: resolvedBody,
+        childrenIdMap,
+        elementById: sourceElementById,
+        pageChildrenMap,
+        pageElementsSignature,
+        pageLayoutSignature,
+        pageHeight,
+        pageWidth,
+        wasmLayoutReady,
+      });
+
+      // D5=A: publishLayoutMap key fallback chain.
+      // - page bodyElement: page_id 확정 → 기존 동작 유지
+      // - frame bodyElement: frame mirror id → frameId 키로 발행
+      // - 양쪽 모두 미정 시 element id fallback (graceful degradation)
+      layoutUpdates.push({ key, map: layoutMap });
+    }
+
+    const staleKeys: string[] = [];
+    for (const key of publishedKeysRef.current) {
+      if (activeKeys.has(key)) continue;
+      publishFilteredChildrenMap(null, key);
+      publishSyntheticElementsMap(null, key);
+      staleKeys.push(key);
+    }
+    publishLayoutMapsBatch(layoutUpdates, staleKeys);
+    publishedKeysRef.current = activeKeys;
   }, [layoutVersion, dimensionKey, layoutInputKey, readinessKey]);
 }

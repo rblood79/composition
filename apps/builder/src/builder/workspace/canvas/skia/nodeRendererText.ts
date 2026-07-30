@@ -24,15 +24,10 @@ import {
   measureActualTextBounds,
   type TextMeasureStyle,
 } from "../utils/textMeasure";
-import {
-  drainPendingWasmDisposals,
-  scheduleWasmDisposal,
-} from "./deferredDisposal";
 import { SkiaDisposable } from "./disposable";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import { skiaFontManager } from "./fontManager";
 import {
-  countParagraphDraw,
   getLastParagraphFontMgr,
   getMaxParagraphCacheSize,
   setLastParagraphFontMgr,
@@ -49,12 +44,8 @@ function containsIdeographicText(text: string): boolean {
 }
 
 function clearParagraphCache(): void {
-  // 즉시 delete 금지 — fontMgr 교체 경로가 walk 도중(renderText 초입) 에
-  // 불리므로, 이번 프레임에 이미 `drawParagraph` 로 제출된(아직 flush 안 된)
-  // paragraph 를 파괴하면 그 텍스트가 화면에서 소실된다. 실제 폐기는
-  // SkiaRenderer 가 프레임 flush 후 drain 한다.
   for (const paragraph of paragraphCache.values()) {
-    scheduleWasmDisposal(paragraph);
+    paragraph.delete();
   }
   paragraphCache.clear();
   paragraphAlignOffsetCache.clear();
@@ -67,7 +58,6 @@ export function clearTextParagraphCache(): void {
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     clearParagraphCache();
-    drainPendingWasmDisposals();
   });
 }
 
@@ -82,23 +72,18 @@ function getCachedParagraph(key: string): Paragraph | undefined {
 function setCachedParagraph(key: string, paragraph: Paragraph): void {
   const existing = paragraphCache.get(key);
   if (existing) {
-    // 같은 프레임에서 이미 그려졌을 수 있다 — flush 후 폐기 (use-after-free 차단)
-    scheduleWasmDisposal(existing);
+    existing.delete();
     paragraphCache.delete(key);
   }
 
   paragraphCache.set(key, paragraph);
   if (paragraphCache.size <= getMaxParagraphCacheSize()) return;
 
-  // LRU 퇴거 — walk 앞쪽에서 그린 paragraph 일수록 여기 걸린다. 즉시 delete
-  // 하면 그 텍스트의 deferred draw 가 flush 전에 파괴되어 화면에서 사라진다
-  // (2026-07-30 실측: 가시 텍스트 1,416 > 상한 1000 → 앞 페이지 텍스트 소실).
   const oldestKey = paragraphCache.keys().next().value as string | undefined;
   if (!oldestKey) return;
   const oldest = paragraphCache.get(oldestKey);
-  if (oldest) scheduleWasmDisposal(oldest);
+  oldest?.delete();
   paragraphCache.delete(oldestKey);
-  paragraphAlignOffsetCache.delete(oldestKey);
 }
 
 export function renderText(
@@ -311,7 +296,6 @@ export function renderText(
     const drawX = node.text.paddingLeft + textIndent + cachedOffset;
     renderTextShadows(cached, drawX, drawY);
     canvas.drawParagraph(cached, drawX, drawY);
-    countParagraphDraw();
     return;
   }
 
@@ -659,7 +643,6 @@ export function renderText(
     const drawX = node.text.paddingLeft + textIndent + alignOffset;
     renderTextShadows(paragraph, drawX, drawY);
     canvas.drawParagraph(paragraph, drawX, drawY);
-    countParagraphDraw();
 
     if (shouldClip) {
       canvas.restore();

@@ -1,13 +1,7 @@
-import { BuilderCore } from "./main/BuilderCore";
-import { RenderProfiler } from "./utils/RenderProfiler";
-import { PERF_LABEL } from "./utils/perfMarks";
+import { BuilderCore } from './main/BuilderCore';
 
 function Builder() {
-  return (
-    <RenderProfiler id="root" label={PERF_LABEL.REACT_RENDER_ROOT}>
-      <BuilderCore />
-    </RenderProfiler>
-  );
+    return <BuilderCore />;
 }
 
-export default Builder;
+export default Builder; 

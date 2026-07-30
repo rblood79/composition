@@ -7,39 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [캔버스 텍스트 불특정 소실 수정 — paragraph 캐시 스래싱 + WASM 폐기 수명] - 2026-07-30
-
-### Bug Fixes
-
-- **재래스터 후 컴포넌트 텍스트가 불특정하게 렌더되지 않던 버그** (사용자 보고 2026-07-30):
-  - 증상: 줌/팬으로 재래스터가 돌면 일부 텍스트(버튼 라벨·필드·리스트 항목·캘린더 숫자)만 화면에서 사라지고, 같은 재현 절차에서는 항상 같은 텍스트가 사라짐. 새로고침 시 정상. 콘솔 에러 0.
-  - **Why**: 한 walk 의 가시 텍스트 수(실측 1,416)가 paragraph 캐시 고정 상한(1000)을 넘으면 캐시가 프레임마다 전량 스래싱 — 대량 delete/재생성 과정에서 delete 된 paragraph 의 WASM 힙 주소가 새 paragraph 에 재사용되며 CanvasKit(Ganesh) 내부 텍스트 blob 캐시가 stale 히트, 해당 글리프만 조용히 소실된다. `drawParagraph` 는 실행되고 같은 지점의 `drawRect` 는 표시되는 형태로 live 격리 확정. ADR-173 Phase 1 의 컬링 반경 확대(200→512)로 walk 당 텍스트 수가 상한을 넘기 시작하며 드러났다 (컬링·커맨드 스트림·가시 집합·Picture replay 는 전부 실측 무죄).
-  - 수정 ①: paragraph 캐시 상한을 **프레임 실사용량 기반 동적**으로 — `max(1000, 프레임 피크 draw 수 × 1.25)`. 상한이 항상 피크 위에 있어 정상 경로에서 LRU 퇴거(스래싱) 자체가 사라진다. 피크는 세션 단조 (왕복 줌에서 상한이 출렁이면 다시 스래싱).
-  - 수정 ②: 프레임 중 캐시 퇴거의 WASM `.delete()` 를 **flush 후로 지연** (`deferredDisposal` 큐 + `SkiaRenderer.render()` finally drain) — deferred canvas 에 제출된 Paragraph/SkPicture 를 flush 전에 파괴하는 use-after-free 경로 차단. `paragraphCache`(LRU/교체/fontMgr 교체 clear)와 `nodePictureCache`(교체/invalidate/전량 clear — evict 30만 회 실측) 양쪽 적용.
-  - 검증: 재현 절차(5,046 요소 문서, 줌 15%↔100% 왕복 ×2) live exercise — 전 텍스트 유지. skia 28 files / 217 tests PASS, 신규 계약 테스트 2종(`paragraphCacheLimit.test.ts` 동적 상한 3케이스, `nodePictureCache.deferredDisposal.test.ts` 폐기 지연 5케이스).
-  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{nodeRendererState,nodeRendererText,nodePictureCache,deferredDisposal,SkiaRenderer}.ts`
-
-## [팬 경로 파생 비용 제거 — ADR-172 Phase 0~5] - 2026-07-30
-
-### Performance
-
-- **카메라 이동(팬/줌) 중 요소 수 비례 파생 재구축 4지점 제거** (ADR-172 Implemented):
-  - `layoutInputKey` 메모이제이션 — 요소당 layout 키 73+43 개를 문자열로 잇는 조립이 매 리렌더 실행되고 있었다 (N=9,728 에서 63.1ms · 프레임당 12.8MB 문자열). deps 는 `layoutVersion` 이 아니라 `pages`/`framePages` **배열 identity** 다 — `addElement` 의 2-commit 계약상 두 번째 commit 은 `layoutVersion` 이 불변이라, 좁히면 신규 요소가 투명/미등록으로 남는다
-  - scene snapshot 을 **카메라 무관 core / 카메라 의존 visibility** 로 분리 — 팬 프레임에서 core identity 가 유지되는 것이 하류 memo hit 의 전제다. 소비자 0건이던 `ScenePageSnapshot.isVisible` · `SceneStructureSnapshot.viewportVersion` 은 함께 삭제 (후자는 카메라 직접 해싱이라 남기면 팬마다 snapshot identity 파괴)
-  - `LayoutPublisherInput` 의 `panOffset`/`zoom` 삭제 + `elementById` 를 `ReadonlyMap` 으로 — 선언만 되고 읽는 곳이 0건인 잔재였고, 필드가 있으면 useMemo deps 에 카메라가 실린다. 방어적 `new Map()` 복사도 mutate 소비자 0건 확인 후 제거
-  - Skia 축 `commandChildrenMap` 을 커맨드 스트림 캐시와 **동일 5중 키**에 lazy builder 로 동봉 — blit 프레임은 키가 그대로라 항상 hit. 별도 키를 두면 스트림과 childrenMap 의 세대가 갈린다
-  - **Why**: 카메라 이동은 rAF 당 1회 store 갱신 → 리렌더를 유발하는데, 그 리렌더마다 위 4지점이 요소 수에 비례해 돌았다. 980 노드에서 이미 프레임 예산의 38%, 4,868 노드에서 예산 초과(약 28fps)였고 노코드 빌더 산출물이 그 아래로 고정된다는 근거가 없다
-  - 실측(실문서 246 → **5,046 요소**, 20.5배): 가시 페이지 집합이 불변인 팬에서 파생 3축 count **0** · 커맨드 스트림 캐시 hit 100% · 16.7ms 초과 드롭 **0** · 프레임 간격 max **9.3ms**(246 요소일 때 9.4ms 와 동일) — 요소 수 무관이 end-to-end 로 실증됐다
-  - 위치: `apps/builder/src/builder/workspace/canvas/{hooks/useLayoutPublisher.ts, renderers/rendererInput.ts, scene/buildSceneSnapshot.ts, scene/sceneSnapshotTypes.ts, skia/renderCommands.ts, skia/skiaFramePipeline.ts, BuilderCanvas.tsx}`, `apps/builder/src/builder/utils/perfMarks.ts`
-
-### Infrastructure
-
-- **팬 프레임 파생 비용 스케일 회귀 테스트** (ADR-172 Phase 5):
-  - `scene/panFrameScale.test.ts` 11 케이스 — N=1,000 / 5,000 두 규모에서 팬 60프레임의 파생 작업량이 상수임을 단언
-  - **시간이 아니라 작업량을 센다**: 요소를 Proxy 로 감싸 프로퍼티 접근 횟수를 세고 그 수가 **0** 임을 단언한다. 벽시계 측정은 CI 머신 편차로 flaky 하고 회귀의 형태(= 요소 배열 재순회)를 가리키지도 못한다. 0 은 요소 수와 무관한 유일한 값이라 두 규모가 같은 값을 낸다
-  - 계측이 죽어서 0 이 나오는 경우와 구분하려 **대조군**을 같이 둔다 — `createPageLayoutSignature` 1회(요소 수 비례 작업)가 접근 N 이상을 만들고 규모를 따라 늘어난다. 민감도 실측: 팬 프레임에서 core 를 재호출하도록 되돌리면 N=1,000·60프레임 접근이 1,921,920
-  - 팬 경로 계측 라벨 3종 상설화 — `render.derived.{layout-key,scene,children-map}` (ADR-153 `perfMarks` 인프라 재사용). `children-map` 은 조립이 `performance.now()` 양자화 아래라 **횟수 전용** 라벨이다
-
 ## [제스처 중 재래스터 이연 — ADR-173 Phase 0~5] - 2026-07-30
 
 ### Performance

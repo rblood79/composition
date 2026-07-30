@@ -257,13 +257,11 @@ export function BuilderCanvas({
 
   const canonicalSceneModel = useMemo(() => {
     if (!activeCanonicalDocument) return null;
-    return observe(PERF_LABEL.RENDER_DERIVED_CANONICAL_SCENE, () =>
-      buildCanonicalSceneModel(activeCanonicalDocument, {
-        collections,
-        collectionWindows,
-        activeBreakpoint: sceneActiveBreakpoint,
-      }),
-    );
+    return buildCanonicalSceneModel(activeCanonicalDocument, {
+      collections,
+      collectionWindows,
+      activeBreakpoint: sceneActiveBreakpoint,
+    });
     // collectionWindows 는 window 경계 signature(collectionWindowSig)로 게이팅한다 — map
     //   identity 는 scroll 마다 바뀌지만 window 불변 구간은 rebuild 를 억제(pointer/scroll
     //   hot path 무회귀, ADR-136 §9). signature 변경 시 최신 map 을 읽어 재투영.
@@ -356,10 +354,7 @@ export function BuilderCanvas({
   // Builder store mirror 가 아니라 canonical document 에서 만든 scene model을
   // 직접 사용한다. store mirror 는 hydration fallback 으로만 남긴다.
   const legacySceneGraph = useMemo(
-    () =>
-      observe(PERF_LABEL.RENDER_DERIVED_LEGACY_SCENE_GRAPH, () =>
-        buildLegacyCanvasSceneGraph(storeElements),
-      ),
+    () => buildLegacyCanvasSceneGraph(storeElements),
     [storeElements],
   );
   const sceneNodes = canonicalSceneModel?.sceneNodes ?? legacySceneGraph.nodes;
@@ -431,17 +426,15 @@ export function BuilderCanvas({
   // 변경 시 재계산 skip. 입력 = elements(sceneNodes) + pageDataMap(bodyElement/
   // pageElements). isFrameEditMode 는 scenePages 를 비우므로 그 조건도 반영.
   const projectionContentSignature = useMemo(() => {
-    return observe(PERF_LABEL.RENDER_DERIVED_PROJECTION_SIGNATURE, () => {
-      const scenePages = isFrameEditMode ? [] : pages;
-      const pageDataMap = buildPageDataMap(
-        scenePages,
-        scenePageIndex,
-        sceneNodesMap,
-      );
-      return createResolvedProjectionSignature({
-        elements: sceneNodes,
-        pageSnapshots: pageDataMap,
-      });
+    const scenePages = isFrameEditMode ? [] : pages;
+    const pageDataMap = buildPageDataMap(
+      scenePages,
+      scenePageIndex,
+      sceneNodesMap,
+    );
+    return createResolvedProjectionSignature({
+      elements: sceneNodes,
+      pageSnapshots: pageDataMap,
     });
   }, [
     isFrameEditMode,
@@ -575,14 +568,10 @@ export function BuilderCanvas({
   ]);
 
   const workflowEdges = useMemo(() => {
-    return observe(PERF_LABEL.RENDER_DERIVED_WORKFLOW_EDGES, () =>
-      computeWorkflowEdges(pages, sceneNodes),
-    );
+    return computeWorkflowEdges(pages, sceneNodes);
   }, [pages, sceneNodes]);
   const dataSourceEdges = useMemo(() => {
-    return observe(PERF_LABEL.RENDER_DERIVED_DATA_SOURCE_EDGES, () =>
-      computeDataSourceEdges(sceneNodes),
-    );
+    return computeDataSourceEdges(sceneNodes);
   }, [sceneNodes]);
   const layoutGroups = useMemo(() => {
     return computeLayoutGroups(pages, layouts, activeCanonicalDocument);
@@ -671,27 +660,25 @@ export function BuilderCanvas({
   );
 
   const skiaRendererInput = useMemo(() => {
-    return observe(PERF_LABEL.RENDER_DERIVED_RENDERER_INPUT, () =>
-      createSkiaRendererInput({
-        childrenMap: sceneChildrenByParent,
-        dirtyElementIds,
-        editMode: currentEditMode,
-        elements: sceneNodes,
-        renderNodesMap: sceneNodesMap,
-        sceneChildrenByParent,
-        sceneNodes,
-        sceneNodesMap,
-        pageIndex: scenePageIndex,
-        pagePositions,
-        pagePositionsVersion,
-        pages,
-        sceneSnapshot,
-        framePositions,
-        framePositionsVersion,
-        frameAreas,
-        frameElementScopes,
-      }),
-    );
+    return createSkiaRendererInput({
+      childrenMap: sceneChildrenByParent,
+      dirtyElementIds,
+      editMode: currentEditMode,
+      elements: sceneNodes,
+      renderNodesMap: sceneNodesMap,
+      sceneChildrenByParent,
+      sceneNodes,
+      sceneNodesMap,
+      pageIndex: scenePageIndex,
+      pagePositions,
+      pagePositionsVersion,
+      pages,
+      sceneSnapshot,
+      framePositions,
+      framePositionsVersion,
+      frameAreas,
+      frameElementScopes,
+    });
   }, [
     currentEditMode,
     dirtyElementIds,
@@ -846,27 +833,25 @@ export function BuilderCanvas({
   // scene 부분만 소비하는 곳(현재는 SkiaCanvas 내부 signature 비교) 은 재평가 없음.
   // 합성 rendererInvalidationPacket 는 기존 SkiaCanvas prop 호환용 유지.
   const sceneInvalidationPacket = useMemo(() => {
-    return observe(PERF_LABEL.RENDER_DERIVED_INVALIDATION_PACKET, () =>
-      createSceneInvalidationPacket({
-        grid: {
-          gridSize,
-          showGrid,
-        },
-        workflow: {
-          dataSourceEdges,
-          focusedPageId: workflowFocusedPageId,
-          layoutGroups,
-          layouts,
-          showDataSources: showWorkflowDataSources,
-          showEvents: showWorkflowEvents,
-          showLayoutGroups: showWorkflowLayoutGroups,
-          showNavigation: showWorkflowNavigation,
-          showOverlay: showWorkflowOverlay,
-          straightEdges: workflowStraightEdges,
-          workflowEdges,
-        },
-      }),
-    );
+    return createSceneInvalidationPacket({
+      grid: {
+        gridSize,
+        showGrid,
+      },
+      workflow: {
+        dataSourceEdges,
+        focusedPageId: workflowFocusedPageId,
+        layoutGroups,
+        layouts,
+        showDataSources: showWorkflowDataSources,
+        showEvents: showWorkflowEvents,
+        showLayoutGroups: showWorkflowLayoutGroups,
+        showNavigation: showWorkflowNavigation,
+        showOverlay: showWorkflowOverlay,
+        straightEdges: workflowStraightEdges,
+        workflowEdges,
+      },
+    });
   }, [
     dataSourceEdges,
     gridSize,
