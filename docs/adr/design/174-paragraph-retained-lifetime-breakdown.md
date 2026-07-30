@@ -17,6 +17,8 @@
 2. **paragraph 1개당 WASM 힙 비용** — N개 생성 전후 heap delta / N. 대표 텍스트 3종 (짧은 라벨 / 문단 / 긴 목록 항목) 각각.
 3. **retained 총량 프로젝션 2종**: (a) 전 페이지 보유 시 (b) 가시(walk) 페이지 한정 보유 시.
 4. `nodePictureCache` 현행 수명 지도 — 동반 폐기 지연 대상 확인 (49d71dbd3 이 양쪽을 수정했던 계보).
+5. **중복 계수** — 고유 paragraph 캐시 키 수 vs 텍스트 노드 수 (컬렉션 페이지 포함). 현행 캐시는 content 키 (`nodeRendererText.ts:130` — processedText+layoutMaxWidth+font 축, 노드 id 미포함) 라 동일 텍스트·스타일이 노드 간 **공유**된다 — per-node retained 는 이 dedup 을 소실하므로, 계수가 높으면 (프로젝션이 G1 상한 초과) Phase 2 에서 content-키 refcount 공유 variant 로 분기 (2026-07-31 리뷰 round 1 M1).
+6. **프레임 중 delete 지점 전수** (Phase 1 큐 경유 대상 목록화, 2026-07-31 리뷰 round 1 M2): ① 퇴거 (`nodeRendererText.ts:82-86`) ② same-key 교체 시 `existing.delete()` (`nodeRendererText.ts:73-77`) ③ **fontMgr 변경 일괄 clear** — `renderText` 내부에서 즉시 delete (`nodeRendererText.ts:97-100` → `clearParagraphCache` 46-52). ③ 은 retained 전환 후에도 invalidation 축으로 남는다 (§Phase 2).
 
 산출: G1 통과 수치 + 스코프 정책 확정 (§Phase 3). 추정 vs 실측 gap 발견 시 본 Phase 안에서 inventory 보강으로 흡수 (adr-writing M3 — fork 사유 금지).
 
@@ -32,6 +34,8 @@
 - paragraph 소유를 전역 LRU → **skia node 단위**로: key = element id (registry entry), invalidate 신호 = `registerSkiaNode` 의 data identity 변경 (기존 registryVersion bump 과 동일 지점) → rebuild + 구 paragraph deferred delete.
 - `nodeRendererText.ts` 조회 경로: 전역 cache lookup → node-owned lookup 교체. miss 시 생성 후 노드에 부착 (lazy — 현행과 동일하게 첫 draw 시 생성).
 - **측정기 경로 불변**: `canvaskitTextMeasurer` 의 "WASM Paragraph 객체 캐싱 금지, 결과값 {width,height} 만 LRU" 계약 (canvas-rendering.md §3) 은 그대로 — 본 전환은 **렌더 측 paragraph 한정**.
+- **invalidation 축은 둘**: ① 노드 data identity 변경 (텍스트/스타일 — `registerSkiaNode`) ② **fontMgr 변경** — retained paragraph 는 생성 시점 fontMgr 에 종속되므로 (`renderText` 의 `getLastParagraphFontMgr() !== fontMgr` 분기가 현행 전량 clear 근거), fontMgr 교체 시 전 노드 retained paragraph 를 일괄 무효화 + deferred 폐기. 프레임 중 즉시 clear (현행 `nodeRendererText.ts:97-100`) 재생산 금지 (2026-07-31 리뷰 round 1 M2).
+- **소유 모델 분기 (Phase 0 중복 계수 판정)**: 계수가 낮으면 node-owned (기본), 높으면 content-키 refcount 공유 저장소 — 수명 규율은 동일 (참조 0 도달 + deferred 폐기, LRU/상한/프레임 중 퇴거 없음) (2026-07-31 리뷰 round 1 M1).
 - 전역 LRU 는 본 Phase 동안 fallback 플래그로 공존 — cutover 검증(G2/G3/G5) 후 Phase 3 에서 제거.
 - G2 절차: 전환 **전** `VITE_PARAGRAPH_CACHE_SIZE=50` + 줌 왕복으로 소실 RED 재현 기록 → 전환 후 동일 절차 GREEN.
 
