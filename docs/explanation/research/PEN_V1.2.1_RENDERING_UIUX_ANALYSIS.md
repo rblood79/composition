@@ -113,6 +113,52 @@ tick = () => { ...
 - **측정/레이아웃**: skia textlayout Paragraph + ICU74 임베드 (줄바꿈/word boundary). caret·선택은 `getRectsForRange` / `getGlyphPositionAtCoordinate` / `getWordBoundary`.
 - **편집 = DOM overlay** (Figma 형): 진입 시 캔버스 텍스트 숨김 (`node.hideText()` + `invalidateContent()`) → `camera.worldTransform × node.getWorldMatrix()` 를 CSS `transform: matrix(...)` 로 넘겨 정합 배치 → 멀티라인은 **Quill** (toolbar 비활성, plain text, 타이핑마다 scene 커밋 undo:false), 단일라인은 `<input>` + measure span. Cmd/Ctrl+Enter 커밋, Escape 취소. composition 의 TextEditOverlay 와 동일 계열.
 
+### 3-4-1. paragraph 수명 · 그리기 경로 — 노드 소유 + Path 렌더 (2026-07-30 추가 실측)
+
+> **동기**: composition 의 텍스트 불특정 소실 버그 (ADR-173 되돌림 사슬 — paragraph LRU 스래싱 + 프레임 중 WASM delete → Ganesh 텍스트 blob 캐시 stale 히트) 와 대조하기 위해, Pen 이 같은 문제를 어떻게 다루는지 번들(`index.js` 5.6MB 난독)에서 재추적했다. 결론: **Pen 은 이 문제를 캐시 정책으로 푼 것이 아니라, 문제가 성립할 수 없는 구조 두 개로 회피한다.**
+
+**① paragraph 수명 = 노드 수명 — 전역 캐시 부재**
+
+```js
+// 텍스트 노드 클래스 (난독 번들 복원)
+getParagraph(e) {
+  if (this.dirtyParagraph || !this.paragraph) {
+    // ParagraphBuilder.MakeFromFontCollection(...) → addText
+    this.paragraph && this.paragraph.delete(); // 재생성 시에만 폐기
+    this.paragraph = builder.build();
+  }
+  return this.paragraph; // 노드 필드로 상시 보유
+}
+destroy() {
+  this.paragraph && this.paragraph.delete(); // 노드 제거 시에만 폐기
+  this._fillPath && this._fillPath.delete();
+}
+```
+
+- paragraph 는 각 텍스트 노드의 **필드**다. 재생성은 텍스트/스타일 dirty 때만, 삭제는 rebuild 또는 `destroy()` 때만. 번들 전체에서 텍스트용 LRU/상한/퇴거 코드 **0건** (`Lru` 1건은 base64 블롭 내부 우연 문자열). 상한이 없으니 "walk 당 N개 초과" 스래싱 문턱 자체가 존재하지 않고, **사용 중 객체를 프레임 도중 delete 하는 경로가 구조적으로 없다**.
+
+**② 일반 렌더는 `drawParagraph` 를 쓰지 않는다 — 글리프를 Path 로 그린다**
+
+```js
+getFillPath(e) {
+  this._fillPath = this.getParagraph(e).getPath(); // 글리프 외곽선 → Skia Path (노드별 캐시)
+}
+render(e, r, s) {
+  e.renderFills(r, this.getFillPath(e), fills, ...); // 일반 도형 fill 파이프라인
+  if (s === Mv.PDF) r.drawParagraph(...);            // PDF export 전용
+}
+```
+
+- paragraph 의 textStyle color 가 `[0,0,0,0]`(투명) — paragraph 는 **shaping/측정/geometry 추출 전용**이고 화면 출력은 Path fill 이다. `drawParagraph` 는 번들 전체 3곳: 바인딩 정의 1 + PDF export + `renderAsPath===false` 명시 분기뿐.
+- 따라서 Ganesh **텍스트 blob 캐시(글리프 아틀라스)가 일반 렌더 파이프라인에 등장하지 않는다** — composition 소실 버그의 기제(재사용된 WASM 주소로 blob stale 히트)가 원천 불성립. 부수 이득: 텍스트에도 도형과 동일한 fill 체계(그라데이션/이미지)가 그대로 적용된다.
+- 폰트 fallback 은 `paragraph.unresolvedCodepoints()` → fallback 폰트 로드로 처리.
+
+**③ 완충층 — 제스처 중엔 텍스트 draw 자체가 없다**
+
+§3-2 의 content surface 캐시와 결합하면 팬/줌 중 paragraph/path draw ≈ 0 (blit 만), 재래스터는 정착 후 200ms 디바운스 1회. Path 렌더가 glyph atlas 방식보다 글리프당 비싼 거래인데 그 비용을 이 층이 흡수한다.
+
+**거래 (Pen 이 지불하는 것)**: 메모리가 텍스트 노드 수에 비례해 paragraph + fillPath 를 상시 보유 (상한 없음 — 문서 크기에 맡김) / LCD 서브픽셀 힌팅 포기 (path 렌더) / 대량 텍스트 일괄 재래스터 시 path fill 비용. composition 대조와 잠재 결함 현황은 `BUILDER_FRAME_DROP_BASELINE_5K.md` §8.
+
 ### 3-5. 워커/멀티스레드 — 없음
 
 - wasm `pthread` 0건, `SharedArrayBuffer` 0건, `new Worker(` 0건 — **완전 단일 스레드** (composition 과 동일).
@@ -454,14 +500,17 @@ composition 의 대응물은 `LAYOUT_AFFECTING_PROP_KEYS` / `NON_LAYOUT_PROPS_UP
 | --- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | 17  | `_fillPath`+`fillPathDirty`, `paragraph`+`dirtyParagraph`, `strokePath`, `_isPathOpenCache`, `_thumbnail` | ✅ **composition 이 더 많음** (LRU 측정 캐시 + `nodePictureCache`) |
 
+> **#17 정정 주의 (2026-07-30)**: "더 많음" 은 캐시 **개수**의 비교일 뿐 우위가 아니다. Pen 의 노드 소유(수명=노드) 모델은 상한·퇴거·프레임 중 delete 가 구조적으로 없어 composition 의 텍스트 소실 버그 부류(LRU 문턱 초과 → 스래싱 → WASM 주소 재사용 blob stale)가 성립 불가다. 상세 §3-4-1, composition 잔존 결함 현황은 `BUILDER_FRAME_DROP_BASELINE_5K.md` §8.
+
 #### (f) 텍스트
 
-| #   | 장점                                                                          | composition                                       |
-| --- | ----------------------------------------------------------------------------- | ------------------------------------------------- |
-| 18  | 측정 엔진 단일 (skia textlayout Paragraph + ICU74) — 정합 대조 대상이 없음    | ❌ 이중 (Canvas 2D ↔ CanvasKit) — CSS 정합의 대가 |
-| 19  | 폰트 raw TTF 직접 fetch → `pencil_typeface_make_from_data`, Google Fonts 내장 | △                                                 |
-| 20  | DOM 오버레이 편집 (`transform: matrix()` 정합, Quill / `<input>`)             | ✅ TextEditOverlay 동형                           |
-| 21  | UI 폰트와 문서 폰트 완전 분리                                                 | ✅                                                |
+| #   | 장점                                                                                                                                                                       | composition                                                                                                      |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| 18  | 측정 엔진 단일 (skia textlayout Paragraph + ICU74) — 정합 대조 대상이 없음                                                                                                 | ❌ 이중 (Canvas 2D ↔ CanvasKit) — CSS 정합의 대가                                                                |
+| 35  | paragraph 수명 = 노드 수명 (전역 LRU 없음) + 일반 렌더는 Path fill (`drawParagraph` 는 PDF 전용) — 스래싱 문턱·blob stale 부류가 구조적으로 부재 (§3-4-1, 2026-07-30 추가) | ❌ 전역 LRU 상한 1,000 + 프레임 중 즉시 delete + `drawParagraph` — 텍스트 소실 버그의 성립 조건 (기준선 문서 §8) |
+| 19  | 폰트 raw TTF 직접 fetch → `pencil_typeface_make_from_data`, Google Fonts 내장                                                                                              | △                                                                                                                |
+| 20  | DOM 오버레이 편집 (`transform: matrix()` 정합, Quill / `<input>`)                                                                                                          | ✅ TextEditOverlay 동형                                                                                          |
+| 21  | UI 폰트와 문서 폰트 완전 분리                                                                                                                                              | ✅                                                                                                               |
 
 #### (g) 구조
 
@@ -521,14 +570,16 @@ DOM/CSS 정합의 실제 대가는 둘뿐이다:
 
 ### 6-3-5. 신규 차용 후보 (§6-2 목록에 추가)
 
-| 후보                                                                                                             | 근거                                                              | 규모            |
-| ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | --------------- |
-| **A. `sceneStructureSnapshot` deps 에서 `panOffset`/`zoom` 분리** — `visiblePageIds` 산출만 별도 useMemo 로 분리 | §6-3-1 (10k 기준 3~4.7ms/프레임 회수, **유일하게 측정된 회수량**) | 소              |
-| **B. 무효화 3단계 분류 도입** — 색·텍스트 변경이 기하 캐시를 건드리지 않게                                       | §6-3-2 (d)                                                        | 중, 효과 미측정 |
-| C. `buildDepthMap` 증분화 (A 의 38%)                                                                             | §6-3-1 분해                                                       | 중              |
-| D. `new Map(elementById)` 방어적 복사 제거 (읽기 전용 소비자면 `ReadonlyMap`)                                    | §6-3-1                                                            | 소              |
+| 후보                                                                                                             | 근거                                                                                 | 규모            |
+| ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | --------------- |
+| **A. `sceneStructureSnapshot` deps 에서 `panOffset`/`zoom` 분리** — `visiblePageIds` 산출만 별도 useMemo 로 분리 | §6-3-1 (10k 기준 3~4.7ms/프레임 회수, **유일하게 측정된 회수량**)                    | 소              |
+| **B. 무효화 3단계 분류 도입** — 색·텍스트 변경이 기하 캐시를 건드리지 않게                                       | §6-3-2 (d)                                                                           | 중, 효과 미측정 |
+| C. `buildDepthMap` 증분화 (A 의 38%)                                                                             | §6-3-1 분해                                                                          | 중              |
+| D. `new Map(elementById)` 방어적 복사 제거 (읽기 전용 소비자면 `ReadonlyMap`)                                    | §6-3-1                                                                               | 소              |
+| E. paragraph **폐기 지연** (flush 후 WASM delete) — 성능 최적화가 아니라 use-after-free 계열 수명 결함의 수리    | §3-4-1 + 기준선 문서 §8 (되돌린 처치 중 유일하게 Pen 모델과 방향 일치)               | 소              |
+| F. paragraph 수명을 노드(registry entry)에 묶는 retained 전환 — 전역 LRU 폐지                                    | §3-4-1. 단 composition 은 전 페이지 4,969 노드 전역 등록이라 **메모리 축 검토 선행** | 중              |
 
-A 만으로 팬 경로의 측정된 비용 대부분이 사라진다. B~D 는 기제 개선이며 효과는 미측정이다. **#1 (idle rAF) 은 재론 금지** — ADR-167 로 기각 완료.
+A 만으로 팬 경로의 측정된 비용 대부분이 사라진다. B~D 는 기제 개선이며 효과는 미측정이다. E 는 성능 항목이 아니라 정합(텍스트 소실) 항목이다. **#1 (idle rAF) 은 재론 금지** — ADR-167 로 기각 완료.
 
 ---
 
