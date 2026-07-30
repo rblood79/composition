@@ -6,7 +6,7 @@ Accepted — 2026-07-31 (리뷰 round 1 승인 — 이슈 3건 전건 fixed, HIG
 
 ## Context
 
-Skia 렌더의 텍스트 paragraph 는 전역 LRU 캐시 (고정 상한 1,000, `nodeRendererState.ts:14-21`) 로 관리되고, 퇴거 시 **프레임 도중 즉시** WASM `.delete()` 를 호출한다 (`nodeRendererText.ts:80-85`). 이 구조는 잠재 결함 2단을 내장한다 — ① 한 프레임 walk 의 **고유 텍스트 수** (캐시 키 기준 — content 키라 동일 텍스트·스타일·폭은 노드 간 공유, `nodeRendererText.ts:130`) 가 상한을 넘으면 프레임마다 전량 스래싱 ② 프레임 중 delete 된 paragraph 의 WASM 힙 주소가 같은 프레임의 새 paragraph 에 재사용되면 CanvasKit(Ganesh) 텍스트 blob 캐시가 stale 히트하여 **글리프만 조용히 소실**된다. ADR-173 P1 (컬링 반경 512) 이 이 문턱을 넘겨 실버그로 드러났고 (walk 텍스트 1,416 > 1,000, `49d71dbd3` live 격리), 되돌림은 문턱을 넘게 한 원인만 제거했을 뿐 **문턱 자체와 프레임 중 즉시 폐기는 main 에 잔존**한다. 텍스트 밀도가 높은 문서를 줌아웃하면 반경 200 에서도 재현 가능하다. 문제 정의 정본: `docs/explanation/research/BUILDER_FRAME_DROP_BASELINE_5K.md` §8.
+Skia 렌더의 텍스트 paragraph 는 전역 LRU 캐시 (고정 상한 1,000, `nodeRendererState.ts:14-21`) 로 관리되고, 퇴거 시 **프레임 도중 즉시** WASM `.delete()` 를 호출한다 (`nodeRendererText.ts:80-85`). 이 구조는 잠재 결함 2단을 내장한다 — ① 한 프레임 walk 의 **고유 텍스트 수** (캐시 키 기준 — content 키라 동일 텍스트·스타일·폭은 노드 간 공유, `nodeRendererText.ts:130`) 가 상한을 넘으면 프레임마다 전량 스래싱 ② 프레임 중 delete 된 paragraph 의 WASM 힙 주소가 같은 프레임의 새 paragraph 에 재사용되면 CanvasKit(Ganesh) 텍스트 blob 캐시가 stale 히트하여 **글리프만 조용히 소실**된다. ADR-173 P1 (컬링 반경 512) 이 이 문턱을 넘겨 실버그로 드러났고 (walk 텍스트 draw 1,416 > 1,000 — **필러 5,046 문서 측정치**: 기제 격리(`49d71dbd3`)는 유효하나 bench-\* 텍스트는 고유 문자열이라 중복 계수 ≈ 1 이어서 경계 수치로는 실문서 일반화 불가, 실문서 문턱은 Phase 0 중복 계수 실측이 확정 — 2026-07-31 오염 점검 정정), 되돌림은 문턱을 넘게 한 원인만 제거했을 뿐 **문턱 자체와 프레임 중 즉시 폐기는 main 에 잔존**한다. 텍스트 밀도·고유도가 높은 문서를 줌아웃하면 반경 200 에서도 넘을 수 있다. 문제 정의 정본: `docs/explanation/research/BUILDER_FRAME_DROP_BASELINE_5K.md` §8.
 
 사용자 지시 (2026-07-30): 소실 기제만 끊는 최소 수리(폐기 지연 단독)가 아니라 **결함 부류의 구조 제거** — "단순한 눈가리기식 처리를 원하는게 아니다 완성도가 더 중요하다".
 
