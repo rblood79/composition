@@ -75,7 +75,7 @@ P-1~P-3 은 React 축(리렌더 유발), P-4 는 Skia 축이다. `SkiaCanvas.tsx
 - [x] **P-4 `commandChildrenMap` 재구축 비용 — 대규모 N 재측정** → **완료 2026-07-30**. 9,600 자식에서 p50 2.06ms / p95 3.72ms (60fps 예산 12~22%) 로 skip 기준(0.1ms) 크게 초과 → **Phase 1.5 진행** (R7 종결). 측정표·방법은 §2.5
 - [x] `childrenMap` 반환값 소비자 전수 + mutate 여부 → **mutate 0건** (`childrenMap.set/delete/clear` 는 `renderCommandStream.bench.ts:129` 픽스처뿐). 소비처는 `skiaFramePlan.ts:172` / `SkiaCanvas.tsx:273,294` / `buildSpecNodeData` 로 전부 읽기 → 캐시화 안전 (**R6 해소**)
 - [x] (추가) `elementById` mutate 소비자 → **0건** → `ReadonlyMap` 전환 안전 (**R3 해소**)
-- [ ] 편집 경로 실측 baseline (Phase 6 판정 근거) — 본 ADR 범위 밖, Phase 5 완료 후
+- [x] 편집 경로 실측 baseline (Phase 6 판정 근거) → **완료 2026-07-30**. 편집당 signature 16ms 교차 임계 = visible 약 1,500 요소(실사용 62 의 24배)이고, 임계를 넘는 3,321 visible 에서도 편집 long task 372ms 중 **11%** 에 그친다 → **이연 판정**. 측정표·근거는 §7
 
 ---
 
@@ -287,15 +287,39 @@ R4 가 성립하지 않아(탭 visible) 전 Gate 를 라이브에서 확인했�
 
 ---
 
-## 7. Phase 6 — 편집 경로 판정 (조건부)
+## 7. Phase 6 — 편집 경로 판정 — **판정 완료 2026-07-30: 이연 (별도 ADR 제안 안 함)**
 
-Phase 5 완료 후 편집 경로를 실측한다. `createPageLayoutSignature` 는 편집 경로에서는 **레이아웃 캐시 키라는 정당한 목적**이 있어 단순 제거 대상이 아니다.
+`createPageLayoutSignature` 는 편집 경로에서 **레이아웃 캐시 키라는 정당한 목적**이 있어 단순 제거 대상이 아니다. 판정 기준은 §7 이 미리 정한 두 갈래였다 — 임계가 실사용 규모 이하면 Pen #12/#14 형 mutation 시점 dirty 집합 전환을 별도 ADR 로 제안, 크게 상회하면 이연 사유를 ADR §Risks 에 기록하고 종결.
 
-- 편집당 비용이 **16ms 를 넘는 요소 수 임계**를 실측으로 확정
-- 임계가 실사용 규모(예: 1,000) 이하로 내려오면 → Pen #12/#14 형 **mutation 시점 dirty 집합** 전환을 별도 ADR 로 제안
-- 임계가 실사용 규모를 크게 상회하면 → 이연 사유를 본 ADR §Risks 에 기록하고 종결
+### 7-1. 실측 (2026-07-30, 5,046 요소 문서 / visible 3,213)
 
-**본 ADR 은 여기까지 하지 않는다** — 편집 경로 전환은 `layoutCache` 계약 전체를 바꾸는 별도 범위다.
+**signature 곡선** — 라이브 요소를 잘라 동기 반복 벤치 (§9 절차). 편집당 호출은 **visible page 당 2회**다 (`useLayoutPublisher` 의 `layoutInputKey` memo 1회 + publish `useEffect` 의 캐시 키 1회).
+
+| visible 요소 | p50/회 | min/회 | 편집당 (×2) |
+| -----------: | -----: | -----: | ----------: |
+|          250 |  1.1ms |  0.9ms |       2.2ms |
+|          500 |  2.0ms |  1.8ms |       4.0ms |
+|        1,000 |  3.0ms |  2.8ms |       6.0ms |
+|        2,000 | 11.8ms |  6.1ms |      23.6ms |
+|        3,213 | 19.6ms |  9.7ms |  **39.2ms** |
+
+live 계측(`render.derived.layout-key`)이 편집 1회에서 **2 샘플 × mean 20.5ms** 를 기록해 벤치값(19.6ms @ 3,213)과 일치한다 — 호출 횟수·비용 양쪽의 대표성 확인. `min` 대비 `p50` 이 N≥2,000 에서 2배로 벌어지는 것은 Phase 0 과 같은 GC 압력이다.
+
+**16ms 교차 임계**: 편집당 signature 기준 **visible 약 1,500 요소** (p50), min 기준 약 2,700.
+
+### 7-2. 판정 — 이연
+
+두 근거가 같은 방향이다.
+
+1. **임계가 실사용 규모를 24배 상회한다.** 현 실사용은 62 노드(ADR §Context)이고 임계는 visible 1,500 이다. 5,046 요소 문서는 스케일 측정용으로 만든 것이지 실사용 규모가 아니다.
+2. **임계를 넘는 규모에서도 지배 축이 아니다.** 3,321 visible 에서 편집 1회의 long task 는 **372ms** 인데 그중 signature 는 41ms(**11%**), `scene` 4.8ms 를 더해도 12% 다. 대안 C(dirty 집합 전환)로 이것을 0 으로 만들어도 편집은 372 → 331ms 다. 대안 C 의 위험은 기술 **HIGH** + 마이그레이션 **HIGH**("dirty 마킹 누락이 조용한 무반영") 이므로 11% 이득에 그 위험을 지불하는 거래가 성립하지 않는다.
+
+이 측정은 hidden 탭이라 **Skia 축이 분모에서 빠져 있다** — visible 창이면 콘텐츠 변경 프레임의 커맨드 walk(ADR-173 실측 mean 46.8ms)가 더해져 분모가 커지므로 signature 비중은 **더 작아진다**. 결론의 방향이 바뀌지 않는 쪽이라 재측정으로 뒤집힐 여지가 없다.
+
+### 7-3. 남긴 것 — 후속의 출발점 (본 ADR 범위 밖)
+
+- **편집당 372ms 중 89% 가 미계측 뭉치다.** 계측된 것은 파생 3축뿐이고, 나머지는 레이아웃 엔진 재계산 + store/canonical 파이프라인 + React 렌더가 섞여 있다. 편집 성능을 다룬다면 **여기부터 분해**해야 하며, signature 축이 아니다.
+- **signature 가 편집당 2회 호출된다.** memo(`layoutInputKey`)와 publish `useEffect` 가 각각 조립하는데, 후자는 `pagesRef.current` 의 fresh elements 를 쓴다. 두 입력이 같은 조건을 특정할 수 있으면 절반이 저위험으로 사라진다 — 대안 C 같은 계약 교체가 아니라 국소 개선이다.
 
 ---
 
