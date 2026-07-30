@@ -1,6 +1,6 @@
 # ADR-173 구현 상세 — 제스처 중 재래스터 이연
 
-> 본 문서는 [ADR-173](../173-gesture-raster-deferral.md) 의 구현 상세다. 결정·대안·위험은 ADR 본문 참조.
+> 본 문서는 [ADR-173](../completed/173-gesture-raster-deferral.md) 의 구현 상세다. 결정·대안·위험은 ADR 본문 참조.
 
 ## 1. 관점 점검 — fork checkpoint 4 질문 lock-in
 
@@ -114,7 +114,35 @@ Phase 0 판정(§2-3 B)에 따라 **분리 지점은 `visibleContentVersion` key
 ## 6. Phase 4 — 재측정 + 잔여 판정
 
 - ADR-172 G5 종결 절의 갈래 A/B 벤치를 **동일 조건**(5,046 요소 문서 — 측정용 요소 유지 결정)으로 재실행.
-- Gate 통과 후에도 제스처 종료 재래스터 1회(65ms 급)가 체감 hiccup 으로 남으면 — **비용 축**(content Picture 캐시 / 모션 중 `makeImageSnapshot` 생략, 2026-07-27 분해 실측 레버 ①②) 을 별도 판정. 본 ADR 범위 밖 (memory `project-render-frame-decomposition-flush-vs-js` 참조).
+- Gate 통과 후에도 제스처 종료 재래스터 1회(65ms 급)가 체감 hiccup 으로 남으면 — **비용 축**(content Picture 캐시 / 모션 중 `makeImageSnapshot` 생략, 2026-07-27 분해 실측 레버 ①②) 을 별도 판정. 본 ADR 범위 밖 (memory `project-render-frame-decomposition-flush-vs-js` 참조). → **2026-07-30 사용자 결정으로 본 ADR Phase 5 에 흡수** (새 ADR 분리 철회 — ADR 본문 §Phase 5 종결).
+
+## 6.5 Phase 5 — 대안 B 재판정·구현 (content Picture replay)
+
+> 재판정 근거·실측 표는 ADR 본문 §Phase 5 종결. 여기는 구현 상세만.
+
+### 구조
+
+| 파일 | 역할 |
+| --- | --- |
+| `skia/contentReplayPolicy.ts` | 순수 판정 — `resolveContentPaintPath(reason, key, registryVersion, requiredBounds)` → `replay` / `record-replay` / `walk`. 카메라 유발 사유 집합은 `classifyFrame` reason 문자열과 1:1 (`zoom-refresh`/`coverage-refresh`/`cleanup`/`no-snapshot`) |
+| `skia/SkiaRenderer.ts` | `paintContent()` — walk 직행(콘텐츠 변경, Picture 폐기) / recorder 경유 1회 기록 후 replay / 캐시 replay. `renderContent` 가 classify 의 reason·registryVersion 을 받아 전달 |
+| `skia/nodePictureCache.ts` | `runWithNodePictureCacheSuspended(fn)` — content 기록 동안 node Picture 캐시 우회 (자기완결 기록) |
+| `skia/contentReplayPolicy.test.ts` | 판정 매트릭스 8케이스 (사유 분류 / 커버리지 4변 / registryVersion 키 / epsilon 경계) |
+
+### 계약 (위반 시 stale 콘텐츠 또는 크래시)
+
+- **replay 유효성 = 사유 분류에 의존**: 스트림을 바꾸는 모든 경로가 `invalidateContent()`(→ reason `invalidate`) 또는 registryVersion(→ `registry`) 을 거친다는 §2-3 A 불변식이 전제다. 새 무효화 트리거를 추가할 때 이 깔때기를 우회하면 replay 가 stale 스트림을 그린다 — 기존 snapshot blit 캐시와 동일한 의무.
+- **콘텐츠 변경 walk 는 반드시 Picture 를 폐기**한다 (`disposeContentPicture`) — 폐기 없이 walk 만 하면 다음 카메라 재래스터가 옛 Picture 를 replay 한다.
+- **content 기록 중 node Picture 캐시 우회 필수**: record 중 node miss → recorder 중첩 + 갓 기록된 node Picture 의 `drawPicture` 참조가 content Picture 에 잔존 → node 캐시 무효화/LRU 퇴거와 수명 결합 → WASM memory OOB 크래시 (2026-07-30 live 실측, node 캐시 OFF A/B 격리). `runWithNodePictureCacheSuspended` 가 유일한 거처.
+- **애니메이션 프레임은 replay 금지**: tick 이 skiaData 를 in-place mutate 하므로 카메라 사유 프레임이라도 `hasAnimationChanges` 면 reason 을 `animation` 으로 격상 (renderDualSurface).
+- 기록은 scene 좌표 (카메라는 target canvas CTM 에만) — `executeRenderCommands` 는 (stream, cullingBounds, fontMgr) 순수 함수라 기록/재생 출력 동일 (카메라/디바이스 읽기 0건 grep 확인).
+- dev A/B 토글: `window.__composition_CONTENT_PICTURE_POLICY__ = "off"` (walk 직행 복귀). 캐시 계측: `__composition_CACHE_METRICS__` 의 `contentPicture` (hit = replay / miss = 재기록, missReasons 에 사유).
+
+### 측정 함정 (재현 시)
+
+- **hidden 탭은 rAF 가 멈춘다** — 벤치의 rAF 페이싱 promise 가 영원히 안 풀려 CDP eval 타임아웃. 측정 전 탭 활성화(스크린샷) 필수 + 벤치에 timeout race 안전판.
+- **새로고침 직후 벤치 금지** — 폰트/이미지 정착이 `invalidate` walk 를 벤치에 혼입시킨다 (실측 run1 p95 260ms vs 정착 후 run2 p95 21ms). 3s 정착 대기 후 측정.
+- 측정 창의 rAF 주기가 60Hz 가 아닐 수 있다 (실측 ~21ms 주기 창) — 드롭 판정은 절대값(>16.7ms)이 아니라 **주기 대비**(갭 > 1.5×주기)로.
 
 ## 7. 파일 변경 요약
 
@@ -125,6 +153,9 @@ Phase 0 판정(§2-3 B)에 따라 **분리 지점은 `visibleContentVersion` key
 | `BuilderCanvas.tsx`              | 2, 3  | `sceneVisibility` 게이트 도입 + 제스처 신호 배선            |
 | `skia/renderInvalidation.ts`     | 2     | 사유 분류 표 확장 (카메라 유발 이연 기록)                   |
 | 제스처 신호 훅 (신설)            | 3     | `useViewportSyncStore` 변경 debounce → 활성 state           |
+| `skia/contentReplayPolicy.ts` (신설) | 5 | replay/record-replay/walk 순수 판정 + 테스트 |
+| `skia/SkiaRenderer.ts` | 5 | `paintContent` — Picture 기록/replay/폐기 + reason 전달 |
+| `skia/nodePictureCache.ts` | 5 | content 기록 중 캐시 우회 (`runWithNodePictureCacheSuspended`) |
 | 벤치/테스트                      | 2, 4  | 게이트 계약 테스트 + 갈래 A/B 재실행                        |
 
 Phase 1 → 2 → 3 순서 강제 (3 의 신호 배선은 2 의 게이트를 전제, 1 의 반경 정합 없이는 3 이 공백을 키운다). Phase 4 는 종결 게이트.
