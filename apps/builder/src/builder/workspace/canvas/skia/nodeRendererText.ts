@@ -621,7 +621,17 @@ export function renderText(
       }
     }
 
-    const builder = scope.track(ck.ParagraphBuilder.Make(paraStyle, fontMgr));
+    // ⚠️ per-call builder (`Make` + fontMgr 직접 전달) 금지 — 호출마다 새
+    // FontCollection 이 만들어져, 아래 pushStyle 의 fontVariations 가 paragraph
+    // 마다 ~5.78 MB variable font 인스턴스를 따로 보유하게 된다 (2026-07-31
+    // 실측 — fontManager.getFontCollection() 주석 참조). 공유 collection 은
+    // (typeface × variation) 인스턴스를 paragraph 간 공유해 이 비용을 없앤다.
+    const builder = scope.track(
+      ck.ParagraphBuilder.MakeFromFontCollection(
+        paraStyle,
+        skiaFontManager.getFontCollection(),
+      ),
+    );
     // Variable font: fontFeatures + fontVariations(wght axis)를 pushStyle로 명시 적용.
     // ParagraphStyle.textStyle만으로는 CanvasKit에서 Variable font의
     // weight/fontFeatures가 렌더링에 반영되지 않는 문제 대응.

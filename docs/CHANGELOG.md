@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Paragraph 폰트 인스턴스 공유 — WASM 힙 88% 절감, 텍스트 소실 진범 수리] - 2026-07-31
+
+### Bug Fixes
+
+- **paragraph 마다 variable font 인스턴스 ~5.78 MB 가 생성·보유되던 결함 수리** (commit: 후속):
+  - **Why**: `ParagraphBuilder.Make(style, fontMgr)` 는 호출마다 새 FontCollection 을 만들고, renderText 가 variable font weight 적용을 위해 pushStyle 하는 `fontVariations: [{axis:"wght"}]` 가 그 collection 별로 **폰트 인스턴스를 복제**시켰다 — paragraph 가 사는 동안 개당 ~5.78 MB 가 함께 산다 (처녀 힙 실측: per-call 5.78 MB/개 vs 공유 collection 0, wght 4종 순환에도 0).
+  - 이것이 ADR-174 Phase 2 되돌림(같은 날 오전)의 **진짜 근본 원인** — 노드 소유 설계가 보유 수를 늘리자 잠복 단가가 증폭되어 wasm32 2 GiB 상한 도달 → 할당 전멸 → 텍스트 소실·렌더 정지. 설계 결함이 아니라 선행 잠복 버그였다 (사용자 지적 "버그일 수도 있지 않은가" 가 정확했음).
+  - 수리: `SkiaFontManager.getFontCollection()` — 공유 FontCollection (fontMgr 수명 동기, provider 는 resolveFamily 이름 공간 유지) + renderText 를 `MakeFromFontCollection` 으로 전환.
+  - 실측 (실사용 22페이지 문서): LRU 팔 **1,090 → 134 MB**, retained 팔(worktree 검증) **2,147(천장) → 134 MB** (보유 345개). 전 페이지 텍스트 정상 렌더 (한글 포함).
+  - 정적 가드: `nodeRendererText.static.test.ts` — per-call builder 재도입 차단.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{fontManager,nodeRendererText}.ts`
+
 ## [Paragraph 노드 소유 전환 되돌림 — ADR-174 Phase 2] - 2026-07-31
 
 ### Bug Fixes

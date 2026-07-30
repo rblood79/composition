@@ -11,7 +11,12 @@
  * @see docs/RENDERING_ARCHITECTURE.md §5.7 폰트 관리
  */
 
-import type { FontMgr, Typeface } from "canvaskit-wasm";
+import type {
+  FontCollection,
+  FontMgr,
+  Typeface,
+  TypefaceFontProvider,
+} from "canvaskit-wasm";
 import { getCanvasKit } from "./initCanvasKit";
 
 const IDB_NAME = "composition-fonts";
@@ -60,6 +65,11 @@ export class SkiaFontManager {
   /** userFamily → CanvasKit 내부 폰트 이름 매핑 (바이너리 name 테이블 기준) */
   private nameMap: Map<string, string> = new Map();
   private dirty = true;
+  /** 공유 FontCollection — paragraph 간 (typeface × fontVariations) 인스턴스 캐시 공유 */
+  private fontCollection: FontCollection | null = null;
+  private fontProvider: TypefaceFontProvider | null = null;
+  /** 이 fontMgr 인스턴스 기준으로 collection 이 구축됐는가 — mgr 교체 = collection 재구축 신호 */
+  private fontCollectionForMgr: FontMgr | null = null;
 
   /**
    * 폰트를 로드하고 CanvasKit Typeface로 등록한다.
@@ -191,6 +201,51 @@ export class SkiaFontManager {
   }
 
   /**
+   * 등록된 모든 폰트로 구성된 **공유 FontCollection** 을 반환한다.
+   *
+   * `ParagraphBuilder.Make(style, fontMgr)` 는 호출마다 새 FontCollection 을
+   * 만들어, `fontVariations` (variable font weight 적용) 가 걸린 paragraph 는
+   * **개당 ~5.78 MB 의 variable font 인스턴스를 각자 보유**하게 된다 —
+   * paragraph 가 사는 동안 함께 산다 (2026-07-31 처녀 힙 실측: per-call
+   * builder 5.78 MB/paragraph vs 공유 collection 0. 실문서 22페이지에서
+   * WASM 힙 1,090 MB 의 지배 성분이었고, ADR-174 Phase 2 의 retained 보유
+   * 확대와 결합해 wasm32 2 GiB 상한 도달 → 텍스트 소실·렌더 정지의 원인).
+   *
+   * 공유 collection 은 (typeface × variation) 인스턴스를 내부 캐시로
+   * 공유하므로 paragraph 수와 무관하게 인스턴스는 weight 당 1개다.
+   * 수명은 fontMgr 과 동일 — mgr 인스턴스가 교체되면 (폰트 로드/언로드)
+   * collection 도 재구축한다. 소비자는 `ParagraphBuilder.MakeFromFontCollection`
+   * 으로 이 collection 을 사용한다 (renderText — 정적 가드:
+   * `nodeRendererText.static.test.ts`).
+   */
+  getFontCollection(): FontCollection {
+    const mgr = this.getFontMgr();
+    if (this.fontCollection && this.fontCollectionForMgr === mgr) {
+      return this.fontCollection;
+    }
+
+    const ck = getCanvasKit();
+    this.fontCollection?.delete();
+    this.fontProvider?.delete();
+
+    const provider = ck.TypefaceFontProvider.Make();
+    for (const [key, buffer] of this.buffers) {
+      // FromData 는 바이너리 name 테이블 이름을 쓰므로 provider 등록도
+      // resolveFamily 로 같은 이름 공간을 유지한다 (fontFamilies 는 이미
+      // resolveFamily 경유로 전달됨 — renderText resolvedFamilies).
+      provider.registerFont(buffer, this.resolveFamily(familyFromKey(key)));
+    }
+    const collection = ck.FontCollection.Make();
+    collection.setDefaultFontManager(provider);
+    collection.enableFontFallback();
+
+    this.fontProvider = provider;
+    this.fontCollection = collection;
+    this.fontCollectionForMgr = mgr;
+    return collection;
+  }
+
+  /**
    * dirty 상태면 FontMgr을 즉시 재구축한다 — rAF 프레임 밖 선재구축용.
    *
    * getFontMgr()의 lazy 재구축(FromData 전체 재파싱)은 수백 ms 급이라
@@ -267,6 +322,15 @@ export class SkiaFontManager {
       this.fontMgr.delete();
       this.fontMgr = null;
     }
+    if (this.fontCollection) {
+      this.fontCollection.delete();
+      this.fontCollection = null;
+    }
+    if (this.fontProvider) {
+      this.fontProvider.delete();
+      this.fontProvider = null;
+    }
+    this.fontCollectionForMgr = null;
     this.dirty = true;
   }
 
