@@ -70,15 +70,119 @@ function createNodeProjectionSignature(node: CanvasSceneNode | null) {
   };
 }
 
+type ProjectionDescriptor = NonNullable<
+  ReturnType<typeof createNodeProjectionSignature>
+>;
+
+interface NodeSignatureEntry {
+  descriptor: ProjectionDescriptor;
+  serialized: string;
+}
+
+/**
+ * 노드별 직렬화 캐시 — 키는 **canonical 원본(`sourceNode`)**.
+ *
+ * scene node 자체는 편집마다 전량 새 객체(실측 0/201)라 키가 못 된다. 원본은
+ * 199/201 유지된다(`signatureCacheKey.test.ts`). 한 원본을 여러 scene node 가
+ * 공유할 수 있어(collection projection) 안쪽을 id 별 Map 으로 둔다 — 1:1 이면
+ * 엔트리 하나다.
+ */
+const nodeSignatureCache = new WeakMap<
+  object,
+  Map<string, NodeSignatureEntry>
+>();
+
+/**
+ * 적중 카운터 — **모듈 로컬**.
+ *
+ * `skia/cacheMetrics` 의 공용 채널을 쓰지 않는다: 본 모듈은 씬 파이프라인의
+ * 핵심이라 node 환경 테스트에서 그대로 로드되는데, 그 import 하나가 모듈 그래프를
+ * 넓혀 `@/` alias 해석이 깨진다(실측 30 파일 FAIL). 의존을 늘리는 대신 숫자 둘만
+ * 들고, 적중 자체는 `projectionSignatureCache.test.ts` 가 작업량으로 단언한다.
+ */
+let signatureCacheHits = 0;
+let signatureCacheMisses = 0;
+
+/** 테스트 전용 — 캐시가 실제로 히트하는지 확인한다 (적중률이 유일한 조기 신호) */
+export function readProjectionSignatureCacheStats(): {
+  hits: number;
+  misses: number;
+} {
+  return { hits: signatureCacheHits, misses: signatureCacheMisses };
+}
+
+/**
+ * 캐시 적중 판정 — **얕은 비교**.
+ *
+ * `props` 는 scene 변환이 매번 새 객체로 만들지만(실측 0/201) 그 **키 집합과 값
+ * identity 는 200/201 유지**된다. 그래서 한 단계만 얕게 비교하면 재귀
+ * `stableSerialize` 를 건너뛸 수 있다 — 비싼 쪽은 순회가 아니라 직렬화다.
+ *
+ * 비교 대상을 필드 이름으로 나열하지 않고 `createNodeProjectionSignature` 가
+ * 만든 descriptor 를 통째로 훑는다. 그래야 **시그니처 입력 필드가 늘어도 검증이
+ * 자동으로 따라온다** — 나열식이면 ADR-136 의 projection-relevant field 추가
+ * 규칙을 여기서 한 번 더 지켜야 하고, 놓치면 캐시가 stale 값을 돌려준다.
+ */
+function isProjectionDescriptorEqual(
+  a: ProjectionDescriptor,
+  b: ProjectionDescriptor,
+): boolean {
+  for (const key of Object.keys(a) as (keyof ProjectionDescriptor)[]) {
+    if (key === "props") continue;
+    if (a[key] !== b[key]) return false;
+  }
+
+  const prevProps = a.props as Record<string, unknown>;
+  const nextProps = b.props as Record<string, unknown>;
+  if (prevProps === nextProps) return true;
+  const prevKeys = Object.keys(prevProps);
+  if (prevKeys.length !== Object.keys(nextProps).length) return false;
+  for (const key of prevKeys) {
+    if (prevProps[key] !== nextProps[key]) return false;
+  }
+  return true;
+}
+
+function serializeNodeProjection(node: CanvasSceneNode | null): string {
+  const descriptor = createNodeProjectionSignature(node);
+  if (!descriptor) return "null";
+
+  // descriptor 조립은 필드 11개 복사라 싸다. 캐시가 막는 것은 그 다음의 재귀
+  // 직렬화(`Object.keys().sort()` + `JSON.stringify` 중첩)다.
+  const cacheKey = (node?.sourceNode ?? node) as object | undefined;
+  if (!cacheKey) return stableSerialize(descriptor);
+
+  let byId = nodeSignatureCache.get(cacheKey);
+  const cached = byId?.get(descriptor.id);
+  if (cached && isProjectionDescriptorEqual(cached.descriptor, descriptor)) {
+    signatureCacheHits += 1;
+    return cached.serialized;
+  }
+  signatureCacheMisses += 1;
+
+  const serialized = stableSerialize(descriptor);
+  if (!byId) {
+    byId = new Map();
+    nodeSignatureCache.set(cacheKey, byId);
+  }
+  byId.set(descriptor.id, { descriptor, serialized });
+  return serialized;
+}
+
 /**
  * projection content signature — sceneVersion 의 핵심 입력.
  *
  * **ADR-916 2-C 재평가 (2026-07-05)**: 벤치상 `buildSceneStructureSnapshot`
  * 프레임타임 비용의 대부분이 본 함수(전체 elements `stableSerialize` +
  * `hashString`) 에서 발생. 입력은 `elements`(sceneNodes) + `pageSnapshots` 의
- * node 참조뿐 — **pan/zoom/containerSize 와 독립**. 향후 최소 수정안은 본
- * 계산을 pan/zoom deps 에서 분리(별도 useMemo)하거나 증분 hash 로 대체한다.
- * 재평가 벤치(`sceneDirtyDetection.bench.ts`)가 본 export 를 소비.
+ * node 참조뿐 — **pan/zoom/containerSize 와 독립**. 재평가 벤치
+ * (`sceneDirtyDetection.bench.ts`)가 본 export 를 소비.
+ *
+ * **2026-07-30**: 편집 프레임 실측에서 편집 1회당 2회 × 17.3ms 로 파생 memo 중
+ * 최대였다. 전체를 한 덩어리로 직렬화하던 것을 **노드별 문자열 + 이어붙이기**로
+ * 바꿔 미변경 노드의 직렬화를 캐시가 흡수한다. 결과 해시의 절대값은 달라지지만
+ * 이 값은 변경 감지용이라 무해하다 — 같은 입력에 같은 값, 다른 입력에 다른 값이면
+ * 되고, 형식이 바뀐 첫 프레임에만 miss 가 한 번 난다.
  */
 export function createResolvedProjectionSignature(input: {
   elements: CanvasSceneNode[];
@@ -87,20 +191,19 @@ export function createResolvedProjectionSignature(input: {
   // useMemo)는 전체 snapshot 없이 pageDataMap(ScenePageData) 으로 호출.
   pageSnapshots: Map<string, ScenePageData>;
 }): number {
-  return hashString(
-    stableSerialize({
-      rawSceneNodes: input.elements.map(createNodeProjectionSignature),
-      resolvedPages: Array.from(input.pageSnapshots.entries()).map(
-        ([pageId, snapshot]) => ({
-          bodyElement: createNodeProjectionSignature(snapshot.bodyElement),
-          pageElements: snapshot.pageElements.map(
-            createNodeProjectionSignature,
-          ),
-          pageId,
-        }),
-      ),
-    }),
-  );
+  const parts: string[] = [];
+  for (const node of input.elements) {
+    parts.push(serializeNodeProjection(node));
+  }
+  parts.push("::pages::");
+  for (const [pageId, snapshot] of input.pageSnapshots) {
+    parts.push(pageId);
+    parts.push(serializeNodeProjection(snapshot.bodyElement));
+    for (const element of snapshot.pageElements) {
+      parts.push(serializeNodeProjection(element));
+    }
+  }
+  return hashString(parts.join(","));
 }
 
 /**

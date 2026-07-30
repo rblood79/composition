@@ -152,6 +152,39 @@ describe("시그니처 캐시 키 계약 — 편집 후 노드 identity 유지",
     expect(modelAfter.sceneNodes.length).toBe(LEAF_COUNT + 1);
   });
 
+  it("props 얕은 동등성: 새 객체여도 키 집합과 값 identity 가 유지된다", () => {
+    const before = makeLeaves(LEAF_COUNT);
+    const after = editOne(before, "el-7");
+
+    const modelBefore = buildCanonicalSceneModel(makeDocument(before));
+    const modelAfter = buildCanonicalSceneModel(makeDocument(after));
+
+    let shallowEqual = 0;
+    let differs = 0;
+    for (const node of modelAfter.sceneNodes) {
+      const prev = modelBefore.sceneNodesMap.get(node.id);
+      if (!prev) {
+        differs += 1;
+        continue;
+      }
+      const a = (prev.props ?? {}) as Record<string, unknown>;
+      const b = (node.props ?? {}) as Record<string, unknown>;
+      const keysA = Object.keys(a);
+      const keysB = Object.keys(b);
+      const same =
+        keysA.length === keysB.length && keysA.every((k) => a[k] === b[k]);
+      if (same) shallowEqual += 1;
+      else differs += 1;
+    }
+
+    // eslint-disable-next-line no-console
+    console.log(
+      `[props-shallow] equal=${shallowEqual} differs=${differs} / total=${modelAfter.sceneNodes.length}`,
+    );
+
+    expect(modelAfter.sceneNodes.length).toBe(LEAF_COUNT + 1);
+  });
+
   it("canonical nodes: 미변경 노드가 같은 객체로 재사용된다 (하한 대조군)", () => {
     const before = makeLeaves(LEAF_COUNT);
     const after = editOne(before, "el-7");
