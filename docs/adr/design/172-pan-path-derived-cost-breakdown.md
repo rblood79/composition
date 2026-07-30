@@ -233,7 +233,7 @@ Phase 5 검증과 회귀 감시의 근거를 남긴다. ADR-153 (Implemented) �
 
 ---
 
-## 6. Phase 5 — 검증 — **진행 중 (G1·G2·G3·G5 통과 2026-07-30)**
+## 6. Phase 5 — 검증 — **완료 2026-07-30 (G1~G5 전부 통과)**
 
 > **반영 결과**: 라벨은 3종이다 — breakdown 이 원래 잡은 P-1/P-2 에 **P-4(`render.derived.children-map`)를 더했다**. Phase 1.5 가 P-4 를 축 ① 에 넣었으므로 계측도 3지점이어야 한다. 카운터는 신설하지 않았다 — `PerfStats.count`(`perfMarks.ts:106`)가 이미 호출 횟수를 낸다.
 >
@@ -241,27 +241,49 @@ Phase 5 검증과 회귀 감시의 근거를 남긴다. ADR-153 (Implemented) �
 >
 > Gate 결과와 20배 규모 실측은 ADR 본문 §"G5 종결" 참조. **R4(hidden 탭)는 성립하지 않았다** — 탭이 visible 이고 rAF 가 120Hz 로 동작했다.
 
-### 6-1. 정적
+### 6-1. 정적 — 전부 통과 (2026-07-30)
 
-- [ ] `pnpm type-check` 통과
-- [ ] `LayoutPublisherInput` 에 `panOffset`/`zoom` 0건 (grep)
-- [ ] `useLayoutPublisher` 훅 본문에 비-memo 문자열 조립 0건 (grep)
-- [ ] `skiaFramePipeline` 의 `commandChildrenMap` 이 커맨드 스트림과 **동일 키**로 캐시됨 (별도 키 0건, Phase 1.5 반영 시)
-- [ ] 기존 테스트 그린 — 특히 `renderers/__tests__/buildFrameRendererInput.test.ts`
+- [x] `pnpm type-check` 통과 — 신규 위반 0 (baseline 53 known errors)
+- [x] `LayoutPublisherInput` 에 `panOffset`/`zoom` **0건** — 남은 것은 재도입 금지 주석 1줄뿐 (`rendererInput.ts:16`)
+- [x] `useLayoutPublisher` 훅 본문에 비-memo 문자열 조립 **0건** — `dimensionKey`/`layoutInputKey`/`readinessKey` 세 키 전부 `useMemo`
+- [x] `commandChildrenMap` 이 커맨드 스트림과 **동일 키** — `getCachedCommandStream` 이 `{ childrenMap, stream }` 을 한 엔트리로 반환, 별도 캐시 키 **0건**
+- [x] 기존 테스트 그린 — `scene`/`skia`/`renderers`/`hooks` **48 파일 444 PASS** (1 skipped). `renderers/__tests__/buildFrameRendererInput.test.ts` 포함
 
-### 6-2. live behavior (CLAUDE.md §완료 기준 — test PASS 단독 종결 금지)
+### 6-2. live behavior — 전부 통과 (CLAUDE.md §완료 기준)
 
-`visibilityState` 문제로 rAF 가 죽으므로 **사용자 실행 또는 visible 창**에서 수행한다.
+R4 가 성립하지 않아(탭 visible) 전 Gate 를 라이브에서 확인했다. G1~G3·G5 결과는 ADR 본문 §"G5 종결" 과 Gates 표 참조. **G4 실측 (2026-07-30, 5,046 요소 문서)**:
 
-- [ ] **G1** — `addElement` 2-commit 시나리오: 요소 추가 직후 신규 child 가 캔버스에 정상 렌더 (투명/미등록 0건). Phase 2 의 최대 위험.
-- [ ] **G2** — 팬 중 P-1/P-2 재계산 횟수 **0** (Phase 4 카운터)
-- [ ] **G3** — 페이지 경계를 넘는 팬에서 새 페이지가 진입/이탈 시 정상 렌더 (visibility 분리 회귀 감시)
-- [ ] **G4** — 프레임 편집 모드 / 브레이크포인트 전환 / undo·redo 후 레이아웃 발행 정상
-- [ ] **G5** — 60fps 유지 (`useGPUProfiler`)
+| 경로                 | 동작                   | layoutMap 반영                                               | `layout-key` 재계산 |
+| -------------------- | ---------------------- | ------------------------------------------------------------ | :-----------------: |
+| 브레이크포인트       | mobile → desktop       | body 390x844 → **1920x1080**, 자식 폭 350 → **1880**         |         +2          |
+| 〃                   | → tablet               | body **768x1024**, 자식 폭 **728**                           |         +2          |
+| 〃                   | → mobile (복귀)        | 390x844 / 350 복귀 · layoutMap 3321 복귀                     |          —          |
+| undo (`Cmd+Z`)       | `width:200px` → `100%` | 200 → **350**                                                |         +1          |
+| redo (`Cmd+Shift+Z`) | `100%` → `width:200px` | 350 → **200**                                                |         +1          |
+| 프레임 편집 진입     | Frames 탭              | frame 3요소 **3/3 발행** (body 390x844 · Slot 2개)           |         +9          |
+| 프레임 편집 중 편집  | slot `height:140px`    | 60 → **140** + 형제 Slot 724@100 → **644@180** (엔진 재계산) |         +2          |
+| 프레임 편집 undo     | 원복                   | 60 / 724@100 복귀                                            |          —          |
 
-### 6-3. 스케일 회귀
+**이 표가 보는 것은 "재계산이 0" 이 아니라 "재계산이 일어났는가" 다** — G2 와 방향이 반대다. G4 의 세 경로는 전부 콘텐츠·차원 변경이라 재발행이 **정상**이고, Phase 2 의 memo 가 이것들을 삼키면 무반영으로 나타난다. 그래서 지표가 `layout-key` count 의 **증가분**이다.
 
-Phase 0 의 클론 스케일러를 테스트로 승격해 N=1,000 / 5,000 에서 팬 프레임당 파생 비용이 **상수**임을 단언한다 (요소 수에 비례하면 FAIL).
+종료 시점에 요소 5,046 유지 · 두 편집 모두 원본 style 복구 · 콘솔 에러 0.
+
+### 6-3. 스케일 회귀 — 반영 완료
+
+`scene/panFrameScale.test.ts` (11 케이스). N=1,000 / 5,000 두 규모에서 팬 프레임 파생 비용이 상수임을 단언한다.
+
+**시간이 아니라 작업량을 센다.** 벽시계 측정은 CI 머신 편차로 flaky 하고 회귀의 형태(= 요소 배열을 다시 순회하는가)를 가리키지도 못한다. 요소를 Proxy 로 감싸 **프로퍼티 접근 횟수**를 세고, 팬 60프레임에서 그 수가 **0** 임을 단언한다 — 0 은 요소 수와 무관한 유일한 값이라 두 규모에서 같은 값이 나온다.
+
+| 단언                                         | 대응 지점         |
+| -------------------------------------------- | ----------------- |
+| 팬 프레임 요소 접근 **0**                    | P-1 · P-2         |
+| `sceneVersion` / visibility `key` 불변       | P-1 재발행 트리거 |
+| publisher input 필드 identity 불변           | P-3               |
+| childrenMap builder 호출 **1회** (첫 프레임) | P-4               |
+
+**계측 유효성 증거를 같이 둔다** — 계측이 죽어서 0 이 나오는 경우와 구분해야 하므로, `createPageLayoutSignature` 1회(= 요소 수 비례 작업)가 접근 N 이상을 만들고 규모를 따라 늘어나는 것을 대조군으로 단언한다.
+
+민감도 실측: 팬 프레임에서 `buildSceneStructureCore` 를 재호출하도록(= Phase 3 되돌림) 바꾸면 N=1,000 · 60프레임에서 접근이 **1,921,920** 으로 뜬다 (core 재사용 시 0).
 
 ---
 
@@ -279,16 +301,16 @@ Phase 5 완료 후 편집 경로를 실측한다. `createPageLayoutSignature` �
 
 ## 8. 파일 변경 요약
 
-| 파일                                  | Phase | 성격                 |
-| ------------------------------------- | ----- | -------------------- |
-| `renderers/rendererInput.ts`          | 1     | 필드 삭제            |
-| `skia/skiaFramePipeline.ts`           | 1.5   | 캐시 재사용 (조건부) |
-| `BuilderCanvas.tsx`                   | 1, 3  | deps 정리·분리       |
-| `hooks/useLayoutPublisher.ts`         | 2     | 메모이제이션         |
-| `scene/buildSceneSnapshot.ts`         | 3     | 함수 분리            |
-| `scene/sceneSnapshotTypes.ts`         | 3     | 계약 (4-1-a 채택 시) |
-| `builder/utils/perfMarks.ts`          | 4     | 라벨 추가            |
-| `scene/__tests__/` (신규 스케일 회귀) | 5     | 테스트               |
+| 파일                                 | Phase | 성격                 |
+| ------------------------------------ | ----- | -------------------- |
+| `renderers/rendererInput.ts`         | 1     | 필드 삭제            |
+| `skia/skiaFramePipeline.ts`          | 1.5   | 캐시 재사용 (조건부) |
+| `BuilderCanvas.tsx`                  | 1, 3  | deps 정리·분리       |
+| `hooks/useLayoutPublisher.ts`        | 2     | 메모이제이션         |
+| `scene/buildSceneSnapshot.ts`        | 3     | 함수 분리            |
+| `scene/sceneSnapshotTypes.ts`        | 3     | 계약 (4-1-a 채택 시) |
+| `builder/utils/perfMarks.ts`         | 4     | 라벨 추가            |
+| `scene/panFrameScale.test.ts` (신규) | 5     | 스케일 회귀 테스트   |
 
 Phase 1~4 는 각각 독립 커밋 가능하며, **Phase 1·3 → 2 순서가 강제**다 (§3 전제 — Phase 2 의 실효는 Phase 1 과 Phase 3 둘 다 필요. Phase 3 없이 Phase 2 만 넣으면 `pages` identity 가 팬마다 깨져 memo 가 매 프레임 miss). Phase 1.5 는 Phase 0 측정 결과에 조건부이고 다른 Phase 와 순서 의존이 없다.
 
