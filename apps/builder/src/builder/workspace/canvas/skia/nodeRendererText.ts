@@ -27,6 +27,7 @@ import {
 import { SkiaDisposable } from "./disposable";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import { skiaFontManager } from "./fontManager";
+import { getCacheMetrics } from "./cacheMetrics";
 import {
   getLastParagraphFontMgr,
   getMaxParagraphCacheSize,
@@ -36,6 +37,42 @@ import type { SkiaNodeData } from "./nodeRendererTypes";
 
 const paragraphCache = new Map<string, Paragraph>();
 const paragraphAlignOffsetCache = new Map<string, number>();
+
+// ── dev 계측 (ADR-174 Phase 0) ────────────────────────────────────────────
+// paragraph 는 유일하게 계측 채널이 없던 캐시였고, 그것이 상한 스래싱 →
+// 텍스트 소실이 조용히 진행된 이유이기도 하다. hit/miss/eviction/size 는 다른
+// 캐시(nodePicture/paintPool)와 같은 `__composition_CACHE_METRICS__` 채널로,
+// walk 당 draw 수와 고유 키 수(= 중복 계수, G1)는 census 로 노출한다.
+const PARAGRAPH_METRICS_DEV = process.env.NODE_ENV === "development";
+
+let censusActive = false;
+let censusDraws = 0;
+const censusKeys = new Set<string>();
+const censusNodes = new Set<string>();
+
+/**
+ * 캐시 조회 직전에 호출 — hit/miss 와 무관하게 "이 프레임이 그린 텍스트" 1건.
+ *
+ * `nodes` 는 per-node retained 소유 시의 보유 개수, `keys` 는 현행 content 키의
+ * 보유 개수다. 둘의 비가 retained 전환으로 잃는 dedup 크기 = 중복 계수 (G1).
+ * 프레임을 가로질러 누적하므로 여러 프레임/여러 페이지를 훑어 문서 전체 집계에
+ * 쓸 수 있다 (draws 만 프레임 반복에 비례해 부풀어난다).
+ */
+function observeParagraphDraw(
+  key: string,
+  elementId: string | undefined,
+): void {
+  if (!censusActive) return;
+  censusDraws++;
+  censusKeys.add(key);
+  if (elementId !== undefined) censusNodes.add(elementId);
+}
+
+function syncParagraphMetricsSize(): void {
+  if (PARAGRAPH_METRICS_DEV) {
+    getCacheMetrics("paragraph").setSize(paragraphCache.size);
+  }
+}
 
 function containsIdeographicText(text: string): boolean {
   return /[\u1100-\u11ff\u3130-\u318f\u3400-\u9fff\uac00-\ud7af\u3040-\u30ff]/.test(
@@ -49,6 +86,7 @@ function clearParagraphCache(): void {
   }
   paragraphCache.clear();
   paragraphAlignOffsetCache.clear();
+  syncParagraphMetricsSize();
 }
 
 export function clearTextParagraphCache(): void {
@@ -61,9 +99,57 @@ if (import.meta.hot) {
   });
 }
 
+// dev 전용 디버그 전역 — ADR-174 실측/검증 probe (nodePictureCache 와 동일 패턴).
+// census 는 "한 walk 이 그린 텍스트 draw 수 / 그 중 고유 캐시 키 수" 를 재며,
+// 둘의 비(중복 계수)가 per-node retained 전환 시 잃는 dedup 크기다 (G1).
+if (typeof window !== "undefined" && import.meta.env?.DEV) {
+  (
+    window as unknown as Record<string, unknown>
+  ).__composition_PARAGRAPH_DEBUG__ = {
+    size: (): number => paragraphCache.size,
+    maxSize: (): number => getMaxParagraphCacheSize(),
+    census: {
+      start(): void {
+        censusActive = true;
+        censusDraws = 0;
+        censusKeys.clear();
+        censusNodes.clear();
+      },
+      stop(): void {
+        censusActive = false;
+      },
+      report(): {
+        active: boolean;
+        draws: number;
+        uniqueKeys: number;
+        uniqueNodes: number;
+        duplicationFactor: number;
+        cacheSize: number;
+        maxCacheSize: number;
+      } {
+        return {
+          active: censusActive,
+          draws: censusDraws,
+          uniqueKeys: censusKeys.size,
+          uniqueNodes: censusNodes.size,
+          // per-node retained ÷ content-키 retained — retained 전환이 잃는 dedup
+          duplicationFactor:
+            censusKeys.size === 0 ? 0 : censusNodes.size / censusKeys.size,
+          cacheSize: paragraphCache.size,
+          maxCacheSize: getMaxParagraphCacheSize(),
+        };
+      },
+    },
+  };
+}
+
 function getCachedParagraph(key: string): Paragraph | undefined {
   const cached = paragraphCache.get(key);
-  if (!cached) return undefined;
+  if (!cached) {
+    if (PARAGRAPH_METRICS_DEV) getCacheMetrics("paragraph").recordMiss();
+    return undefined;
+  }
+  if (PARAGRAPH_METRICS_DEV) getCacheMetrics("paragraph").recordHit();
   paragraphCache.delete(key);
   paragraphCache.set(key, cached);
   return cached;
@@ -77,13 +163,18 @@ function setCachedParagraph(key: string, paragraph: Paragraph): void {
   }
 
   paragraphCache.set(key, paragraph);
-  if (paragraphCache.size <= getMaxParagraphCacheSize()) return;
+  if (paragraphCache.size <= getMaxParagraphCacheSize()) {
+    syncParagraphMetricsSize();
+    return;
+  }
 
   const oldestKey = paragraphCache.keys().next().value as string | undefined;
   if (!oldestKey) return;
   const oldest = paragraphCache.get(oldestKey);
   oldest?.delete();
   paragraphCache.delete(oldestKey);
+  if (PARAGRAPH_METRICS_DEV) getCacheMetrics("paragraph").recordEviction();
+  syncParagraphMetricsSize();
 }
 
 export function renderText(
@@ -288,6 +379,8 @@ export function renderText(
       canvas.restore(); // translate
     }
   };
+
+  observeParagraphDraw(key, node.elementId);
 
   const cached = getCachedParagraph(key);
   if (cached) {
