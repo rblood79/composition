@@ -2,16 +2,9 @@ import {
   viewportToScreenPoint,
   viewportToScreenSize,
 } from "../viewport/viewportTransforms";
-import { CONTENT_COVERAGE_PADDING_CSS_PX } from "./renderCoverage";
 import type { ScenePageFrame } from "./sceneSnapshotTypes";
 
-/**
- * ADR-173 Phase 1 — 컬링 반경은 content surface 패딩과 **같은 값**이다.
- *
- * 구 값 200 은 패딩(512)보다 좁아, 그 차이인 312px 띠는 페이지가 있어도 빈
- * 채로 래스터됐다. 여기를 독립 리터럴로 되돌리지 말 것 (`renderCoverage.ts`).
- */
-const DEFAULT_MARGIN = CONTENT_COVERAGE_PADDING_CSS_PX;
+const DEFAULT_MARGIN = 200;
 
 interface BuildVisiblePageSetInput {
   containerSize?: { height: number; width: number };

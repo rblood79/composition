@@ -39,7 +39,7 @@ import { isUnifiedFlag } from "./wasm-bindings/featureFlags";
 import type { BoundingBox } from "./selection/types";
 import type { DropIndicatorSnapshot } from "./selection/dropTargetResolver";
 // GridLayer는 Skia gridRenderer로 대체됨
-import { useCameraGestureActive, ViewportControlBridge } from "./viewport";
+import { ViewportControlBridge } from "./viewport";
 import { screenToViewportPoint } from "./viewport/viewportTransforms";
 import { TextEditOverlay, useTextEdit } from "../overlay";
 import { DotBackground } from "../components/DotBackground";
@@ -74,9 +74,8 @@ import {
   buildSceneStructureCore,
   composeSceneStructureSnapshot,
   createResolvedProjectionSignature,
-  resolveCameraStableVisibility,
+  resolveSceneVisibility,
 } from "./scene";
-import type { CameraStableVisibilityCache } from "./scene";
 // ADR-150 A2: collection 가상화 window 해석 (bounded+overflow ListBox → window map).
 import {
   resolveVirtualizedCollectionWindows,
@@ -487,29 +486,15 @@ export function BuilderCanvas({
   ]);
 
   // ADR-172 Phase 3: 카메라 의존 단계는 O(페이지) 라 팬마다 돌아도 싸다.
-  //
-  // ADR-173 Phase 2: 단 이 값이 바뀌면 하류 5곳(layout publish / rendererInput
-  // 재생성 → 커맨드 스트림 캐시 통째 무효화 + content 무효화 / 스트림 캐시
-  // pagePosVersion 키 / surface 무효화 2종)이 한꺼번에 격상된다. 제스처 중에는
-  // 그 격상을 미루기 위해 카메라 유발 재계산만 게이트로 막는다 — 판정 축은
-  // `sceneStructureCore` identity 하나이며, 편집은 core 를 바꾸므로 게이트를
-  // 그대로 통과한다 (Hard Constraint 2).
-  //
-  // Phase 3: 신호는 카메라 store 변경 debounce 하나다 — 팬/줌/프로그램 이동이
-  // 전부 같은 store 를 지나므로 소스별 분기가 없다. 신호가 만료되면 리렌더가
-  // 일어나 게이트가 열리고, 얼어 있던 카메라를 1회 재계산으로 따라잡는다.
-  const cameraGestureFrozen = useCameraGestureActive();
-  const visibilityCacheRef = useRef<CameraStableVisibilityCache | null>(null);
-  const sceneVisibility = useMemo(() => {
-    const outcome = resolveCameraStableVisibility(
-      visibilityCacheRef.current,
-      sceneStructureCore,
-      { containerSize, panOffset, zoom },
-      cameraGestureFrozen,
-    );
-    visibilityCacheRef.current = outcome.cache;
-    return outcome.result;
-  }, [cameraGestureFrozen, containerSize, panOffset, sceneStructureCore, zoom]);
+  const sceneVisibility = useMemo(
+    () =>
+      resolveSceneVisibility(sceneStructureCore, {
+        containerSize,
+        panOffset,
+        zoom,
+      }),
+    [containerSize, panOffset, sceneStructureCore, zoom],
+  );
   // 합성 결과의 **identity 는 유지되어야 한다** — visible set 이 그대로인 팬
   // 프레임에서 새 객체를 만들면 하류 layoutPublisherInputs 가 다시 팬마다
   // 재생성되어 Phase 1·2 의 이득이 사라진다 (design §4-1 CRITICAL).

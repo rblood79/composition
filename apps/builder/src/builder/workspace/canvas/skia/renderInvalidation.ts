@@ -57,18 +57,6 @@ export type InvalidationReason = (typeof INVALIDATION_REASONS)[number];
  * stale 보정:
  * - _pagePosStaleFrames: viewport 변경 후 3프레임간 강제 무효화
  *   (React ↔ PixiJS Container 동기화 지연 회피)
- *
- * 카메라 유발 vs 콘텐츠 유발 (ADR-173 Phase 2):
- * - 위 표의 visibleContentVersion / visiblePagePosition 행은 **두 축이 섞여
- *   있다** — 편집(페이지 contentVersion 변경)과 카메라 이동(가시 집합 진입/이탈)
- *   이 같은 version 을 흔든다. 카메라 축은 제스처 중 65ms 급 재래스터를 매
- *   경계 통과마다 꽂으므로, `BuilderCanvas` 의 sceneVisibility 게이트
- *   (`scene/cameraStableVisibility.ts`)가 **카메라 유발 갱신만** 제스처 종료까지
- *   미룬다. 판정 축은 SceneStructureCore identity — 편집은 core 를 바꾸므로
- *   게이트를 통과해 즉시 반영된다.
- * - 즉 이연된 프레임에서는 위 표의 무효화가 **일어나지 않는다**. 제스처 중
- *   남는 재래스터 사유는 SkiaRenderer.classifyFrame 의 기하 조건
- *   (zoom-refresh / coverage-refresh) 뿐이다.
  */
 
 // ---------------------------------------------------------------------------
