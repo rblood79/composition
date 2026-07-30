@@ -79,7 +79,19 @@
 - **소유 모델 — content-키 refcount 공유로 확정** (Phase 0 실측 중복 계수 **21.2×**, 2026-07-31): 저장소 키는 현행 content 키를 유지하고, 노드는 그 entry 를 **참조**한다. 참조 카운트가 0 이 되면 (노드 unregister / data identity 변경으로 다른 키로 이동) deferred 폐기. **LRU·상한·프레임 중 퇴거 없음** — 본 ADR 이 없애는 것은 상한과 프레임 중 폐기이지 content 키가 아니다. node-owned 안은 기각 (동시 보유 3.2 MB → 67 MB, 20배). 리뷰 round 1 M1 이 예고한 분기의 실측 확정.
 - 따라서 §Phase 2 의 "key = element id" 는 **"key = content 키 + 노드별 참조 등록"** 으로 대체된다. invalidate 신호(`registerSkiaNode` data identity 변경)는 그대로 — 노드가 참조를 옮기는 계기로 쓰인다.
 - 전역 LRU 는 본 Phase 동안 fallback 플래그로 공존 — cutover 검증(G2/G3/G5) 후 Phase 3 에서 제거.
+
+### 소유 모델 정정 2건 (2026-07-31 Phase 1 종료 시점 코드 확인)
+
+착수 전 확인에서 위 서술의 전제 두 개가 코드와 어긋났다. **Phase 2 는 아래를 반영해 설계한다.**
+
+1. **소유는 1:1 이 아니라 1:N** — `specShapeConverter.ts:817` 이 spec shape 마다 `type:"text"` 노드를 만들고 **같은 `elementId` 를 공유**한다 (Card 제목+설명, ListBoxItem 라벨+설명 등). 따라서 소유 표현은 `elementId → key` 가 아니라 **`elementId → Set<key>` + `key → Set<elementId>`** 양방향이어야 하고, 해제는 "그 요소가 가진 키 전부" 를 대상으로 한다. 1:1 로 짜면 한 요소의 둘째 텍스트가 소유자 없이 남아 영구 보유되거나, 첫째 키를 덮어써 조기 폐기된다.
+
+2. **즉시 해제는 드래그 churn 을 만든다** — invalidate 신호(`registerSkiaNode` data identity 변경)는 **이동/리사이즈에서도** 발생하지만 그때 텍스트 키는 그대로다. 신호 즉시 해제하면 매 드래그 프레임마다 같은 paragraph 를 폐기하고 다시 만든다 (현행 content 키 캐시는 이 경우 hit 이라 비용 0 — 즉 **회귀**). 따라서 해제는 **지연 판정**이다: 신호 시점에는 "해제 예정" 으로만 표시하고, 다음 walk 에서 같은 키를 다시 취득하면 취소, 끝까지 취득되지 않은 것만 폐기한다. 판정 시점은 프레임 경계(drain 지점)와 같은 곳에 둔다.
+   - 주의: "이번 프레임에 안 그려졌다" 를 해제 근거로 쓰면 안 된다 — 컬링/페이지 이탈로 안 그려질 뿐 필요한 키가 죽는다. 해제 근거는 **invalidate 신호를 받았고 그 뒤 재취득이 없었다** 는 조합이어야 한다 (Phase 3 의 "전 페이지 보유" 와 정합).
+
 - G2 절차: 전환 **전** `VITE_PARAGRAPH_CACHE_SIZE=50` + 줌 왕복으로 소실 RED 재현 기록 → 전환 후 동일 절차 GREEN.
+  - **절차 정정 (Phase 1 반영)**: Phase 1 이 프레임 중 폐기(기제 ②)를 이미 제거해, HEAD 에서는 상한을 낮춰도 소실이 재현되지 않을 수 있다. 그때 RED 는 **Phase 1 이전 커밋**(`fed7e1838`)에서 잡아 기록하고, HEAD 의 무재현 자체를 Phase 1 의 효과 증거로 병기한다. 무재현을 이유로 절차를 생략하지 않는다 (G2 실패 분기).
+  - `VITE_PARAGRAPH_CACHE_SIZE` 는 `import.meta.env` 라 서버 재시작이 필요하다. 사용자의 5173 dev 서버를 건드리지 말고 **별도 포트로 띄운다** (`VITE_PARAGRAPH_CACHE_SIZE=50 pnpm dev --port 5174`).
 
 ## Phase 3 — 스코프 정책 적용 + LRU 제거
 
