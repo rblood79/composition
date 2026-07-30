@@ -51,6 +51,16 @@ describe("paint pool 규약 (ADR-153 Phase 2)", () => {
     );
   });
 
+  it("paragraph 캐시도 통합 해제 레지스트리에 등록한다 (ADR-174 Phase 1)", () => {
+    // nodeRendererText 는 fontManager 를 통해 모듈 스코프에서 `window` 를 잡아
+    // node 환경으로 로드할 수 없다 — 이 항목만 소스 검사로 대체한다.
+    // 종전 미등록이라 캔버스 unmount 시 WASM Paragraph 가 그대로 남았다.
+    const src = readFileSync(join(skiaDir, "nodeRendererText.ts"), "utf8");
+    expect(src).toContain(
+      'registerSkiaCacheDestroy("paragraphCache", clearTextParagraphCache)',
+    );
+  });
+
   it("nodePictureCache 는 image 퇴거 역참조를 구독한다 (ADR-153 Phase 3 R2 — 해제 순서 Picture→Image)", () => {
     const src = readFileSync(join(skiaDir, "nodePictureCache.ts"), "utf8");
     expect(src).toContain(

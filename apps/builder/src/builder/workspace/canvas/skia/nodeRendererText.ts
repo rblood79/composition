@@ -24,10 +24,14 @@ import {
   measureActualTextBounds,
   type TextMeasureStyle,
 } from "../utils/textMeasure";
-import { SkiaDisposable } from "./disposable";
+import { registerSkiaCacheDestroy, SkiaDisposable } from "./disposable";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import { skiaFontManager } from "./fontManager";
 import { getCacheMetrics } from "./cacheMetrics";
+import {
+  drainPendingWasmDisposals,
+  scheduleWasmDisposal,
+} from "./deferredDisposal";
 import {
   getLastParagraphFontMgr,
   getMaxParagraphCacheSize,
@@ -81,21 +85,36 @@ function containsIdeographicText(text: string): boolean {
 }
 
 function clearParagraphCache(): void {
+  // 즉시 delete 금지 — fontMgr 교체 경로가 walk 도중(renderText 초입) 에
+  // 불리므로, 이번 프레임에 이미 `drawParagraph` 로 제출된(아직 flush 안 된)
+  // paragraph 를 파괴하면 그 텍스트가 화면에서 소실된다. 실제 폐기는
+  // SkiaRenderer 가 프레임 flush 후 drain 한다 (ADR-174 Phase 1).
   for (const paragraph of paragraphCache.values()) {
-    paragraph.delete();
+    scheduleWasmDisposal(paragraph);
   }
   paragraphCache.clear();
   paragraphAlignOffsetCache.clear();
   syncParagraphMetricsSize();
 }
 
+/**
+ * 프레임 밖 전량 폐기 — 캔버스 teardown / 명시 정리.
+ * 프레임 밖이므로 pending 까지 즉시 배수해 WASM 누수를 막는다 (R3).
+ */
 export function clearTextParagraphCache(): void {
   clearParagraphCache();
+  drainPendingWasmDisposals();
 }
+
+// 통합 해제 경로 등록 (ADR-153 Phase 2 레지스트리) — 캔버스 teardown 시 전량 해제.
+// paragraph 는 종전 이 레지스트리에 없어 unmount 시 WASM Paragraph 가 그대로
+// 남았다 (ADR-174 Phase 1 에서 해소 — 폐기 경로 단일화의 일부).
+registerSkiaCacheDestroy("paragraphCache", clearTextParagraphCache);
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     clearParagraphCache();
+    drainPendingWasmDisposals();
   });
 }
 
@@ -158,7 +177,8 @@ function getCachedParagraph(key: string): Paragraph | undefined {
 function setCachedParagraph(key: string, paragraph: Paragraph): void {
   const existing = paragraphCache.get(key);
   if (existing) {
-    existing.delete();
+    // 같은 프레임에서 이미 그려졌을 수 있다 — flush 후 폐기 (use-after-free 차단)
+    scheduleWasmDisposal(existing);
     paragraphCache.delete(key);
   }
 
@@ -168,11 +188,15 @@ function setCachedParagraph(key: string, paragraph: Paragraph): void {
     return;
   }
 
+  // LRU 퇴거 — walk 앞쪽에서 그린 paragraph 일수록 여기 걸린다. 즉시 delete
+  // 하면 그 텍스트의 deferred draw 가 flush 전에 파괴되어 화면에서 사라진다.
+  // (상한 자체는 ADR-174 Phase 3 에서 제거된다 — 그때까지의 안전망)
   const oldestKey = paragraphCache.keys().next().value as string | undefined;
   if (!oldestKey) return;
   const oldest = paragraphCache.get(oldestKey);
-  oldest?.delete();
+  if (oldest) scheduleWasmDisposal(oldest);
   paragraphCache.delete(oldestKey);
+  paragraphAlignOffsetCache.delete(oldestKey);
   if (PARAGRAPH_METRICS_DEV) getCacheMetrics("paragraph").recordEviction();
   syncParagraphMetricsSize();
 }

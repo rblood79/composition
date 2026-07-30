@@ -22,6 +22,7 @@ import type {
   OpacityEffect,
 } from "./types";
 import { createGPUSurface } from "./createSurface";
+import { drainPendingWasmDisposals } from "./deferredDisposal";
 import { recordWasmMetric, flushWasmMetrics } from "../utils/gpuProfilerCore";
 import { getCacheMetrics } from "./cacheMetrics";
 import { takeDrawStats } from "./drawStats";
@@ -843,13 +844,20 @@ export class SkiaRenderer {
     overlayVersion: number,
     screenOverlayVersion = 0,
   ): void {
-    this.renderDualSurface(
-      cullingBounds,
-      registryVersion,
-      camera,
-      overlayVersion,
-      screenOverlayVersion,
-    );
+    try {
+      this.renderDualSurface(
+        cullingBounds,
+        registryVersion,
+        camera,
+        overlayVersion,
+        screenOverlayVersion,
+      );
+    } finally {
+      // 프레임 중 캐시 퇴거가 미뤄 둔 WASM 폐기(Paragraph/SkPicture)를 모든
+      // surface flush 뒤에 일괄 수행한다. flush 전 delete 는 deferred draw 의
+      // use-after-free — 해당 텍스트/노드가 화면에서 조용히 소실된다 (ADR-174).
+      drainPendingWasmDisposals();
+    }
   }
 
   // ============================================
@@ -913,5 +921,7 @@ export class SkiaRenderer {
     this.gpuTimer = null;
     this.disposeContentSurface();
     this.mainSurface.delete();
+    // 마지막 프레임이 미뤄 둔 폐기가 남아 있을 수 있다 — 프레임 밖이므로 즉시 배수
+    drainPendingWasmDisposals();
   }
 }

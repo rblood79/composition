@@ -19,6 +19,7 @@
 import { useLayoutEffect } from "react";
 import type { SkiaNodeData } from "./nodeRenderers";
 import { recordInvalidation } from "./renderInvalidation";
+import { drainPendingWasmDisposals } from "./deferredDisposal";
 import {
   clearNodePictureCache,
   invalidateNodePicture,
@@ -73,6 +74,10 @@ export function clearSkiaRegistry(): void {
   skiaNodeRegistry.clear();
   registryVersion++;
   clearNodePictureCache();
+  // 페이지 전환은 프레임 밖(React commit) 이고 한 번에 캐시 전량을 폐기 큐로
+  // 보낸다. hidden 탭처럼 rAF 가 멈춰 flush 가 오래 없는 상태에서도 큐가
+  // 적체하지 않도록 여기서 배수한다 (ADR-174 R3).
+  drainPendingWasmDisposals();
   recordInvalidation("content", "clearSkiaRegistry");
 }
 
