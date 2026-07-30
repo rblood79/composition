@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-07-29 (리뷰 round 1 승인 — `reviews/172.md`, 이슈 2건 전건 fixed)
+Implemented — 2026-07-30 (Phase 0~5 전부 반영 — **G1~G5 전부 통과**. 리뷰 round 1 승인 — `reviews/172.md`, 이슈 2건 전건 fixed)
 
 ### 진행 로그
 
@@ -14,7 +14,7 @@ Accepted — 2026-07-29 (리뷰 round 1 승인 — `reviews/172.md`, 이슈 2건
 | Phase 2 — `layoutInputKey` memo   | 완료 2026-07-29 | `fc51d75a8`               | R1 HIGH — **G1 통과** (신규 child 발행 82→83, 투명/미등록 0건) + 정적 가드 2건                               |
 | Phase 1.5 — Skia 프레임 재사용    | 완료 2026-07-30 | `2e25a5acd`               | R7 재측정 → **진행 판정**. 커맨드 스트림 캐시에 동봉 (lazy builder) + 계약 테스트 7건                        |
 | Phase 4 — 계측 상설화             | 완료 2026-07-30 | `6886453ba` · `4d21e10a6` | 라벨 3종 (`render.derived.{layout-key,scene,children-map}`). 카운터는 신설 안 함 — `PerfStats.count` 가 지표 |
-| Phase 5 — 검증                    | 진행 중         | —                         | **G1·G2·G3·G5 통과** (라이브 실측). 6-1 정적 · 6-3 CI 테스트 · G4 잔여                                       |
+| Phase 5 — 검증                    | 완료 2026-07-30 | `045e7c157`               | **G1~G5 전부 통과**. 6-1 정적 5항목 · 6-3 스케일 회귀 테스트 11건 (작업량 기반) · G4 live 8경로              |
 
 **축 ① 진행률**: 4지점 **전부 반영 완료** (P-1 Phase 2 / P-2 Phase 3 / P-3 Phase 1 / P-4 Phase 1.5). **20배 규모 실측으로 Hard Constraint 1 실증** (아래 §"G5 종결").
 
@@ -79,6 +79,20 @@ Soft Constraint 의 "end-to-end 프레임 미검증" 을 해소한다. 실문서
 - 브라우저 콘솔에서 `import("/src/.../renderCommands.ts")` 로 얻은 모듈은 앱과 **다른 인스턴스**라 앱 캐시를 무효화하지 못한다. 런타임 캐시 확인은 `window.__composition_CACHE_METRICS__` 를 쓸 것.
 - 측정용 요소 4,800개는 문서에 **그대로 남긴다** (사용자 결정 2026-07-30) — 후속 재측정에 재사용한다.
 
+### Phase 5 종결 — G4 와 스케일 회귀 (2026-07-30)
+
+#### G4 는 G2 와 **반대 방향** 단언이다
+
+G2 는 팬 프레임에서 재계산이 **0** 이어야 통과하고, G4 의 세 경로(프레임 편집 / 브레이크포인트 전환 / undo·redo)는 재계산이 **일어나야** 통과한다. 셋 다 콘텐츠·차원 변경이라 재발행이 정상이고, Phase 2 의 memo 가 그것을 삼키면 **조용한 무반영**으로 나타난다 — R1 이 경고한 실패 양식과 같은 형태다. 그래서 지표는 `render.derived.layout-key` count 의 **증가분**이다.
+
+5,046 요소 문서에서 8 경로를 실측했고 전부 재발행됐다 (상세표: [design §6-2](../design/172-pan-path-derived-cost-breakdown.md)). 대표값 — 브레이크포인트 mobile→desktop 에서 body 390x844 → **1920x1080** · 자식 폭 350 → **1880**, 프레임 편집 중 slot `height:140px` 편집에서 형제 Slot 이 724@100 → **644@180** 으로 밀려 엔진 재계산까지 반영. 종료 시점 요소 5,046 유지 · 편집 전건 원상복구 · 콘솔 에러 0.
+
+#### 스케일 회귀는 시간이 아니라 **작업량**을 센다
+
+`scene/panFrameScale.test.ts` (11 케이스). 벽시계 측정은 CI 머신 편차로 flaky 하고, 회귀의 형태(= 요소 배열을 다시 순회하는가)를 가리키지도 못한다. 요소를 Proxy 로 감싸 **프로퍼티 접근 횟수**를 세고 팬 60프레임에서 **0** 임을 N=1,000 / 5,000 두 규모에서 단언한다 — 0 은 요소 수와 무관한 유일한 값이라 두 규모가 같은 값을 낸다. P-1·P-2(접근 0) / P-3(publisher input 필드 identity 불변) / P-4(childrenMap builder 1회)를 한 파일이 덮는다.
+
+**계측 유효성 증거를 같이 둔다** — 계측이 죽어서 0 이 나오는 경우와 구분해야 하므로, `createPageLayoutSignature` 1회(= 요소 수 비례 작업)가 접근 N 이상을 만들고 규모를 따라 늘어나는 것을 대조군으로 단언한다. 민감도 실측: 팬 프레임에서 `buildSceneStructureCore` 를 재호출하도록(= Phase 3 되돌림) 바꾸면 N=1,000·60프레임에서 접근이 **1,921,920** 으로 뜬다.
+
 ## Context
 
 빌더에서 카메라를 이동(팬/줌)하면 rAF 당 1회 Zustand viewport store 가 갱신되고(`viewport/useViewportControl.ts:349`), 그 구독으로 `BuilderCanvas` 가 리렌더된다. 리렌더마다 **요소 수에 비례하는 파생 계층 재구축 3건**(P-1~P-3, React 축)이 실행되고, 이와 별개로 Skia 프레임 루프가 blit 프레임에도 파생 1건(P-4, Skia 축)을 매 rAF 재구축한다 — **합계 4지점**이다.
@@ -107,7 +121,7 @@ P-1~P-3 은 React 축(리렌더 유발), P-4 는 Skia 축이다. `SkiaCanvas.tsx
 
 P-1 은 요소당 `LAYOUT_STYLE_KEYS` 73개 + `LAYOUT_PROP_KEYS` 43개를 문자열로 잇는다(요소당 약 1.4KB) — N=9,728 에서 **프레임마다 12.8MB 문자열**을 만들어 useEffect deps 비교에만 쓴다. GC 압력은 미측정이다.
 
-**대조군**: Pen v1.2.1 은 같은 구간이 0ms 다 — `scenegraph.updateLayout()` 호출부가 렌더 경로에서는 `redrawContentIfNeeded()` 안에만 있어, 팬/줌(blit) 중에는 레이아웃도 파생 재구축도 실행되지 않는다. 재래스터 시에도 씬 그래프를 직접 순회하며 중간 파생 계층이 0개다. 상세: [PEN_V1.2.1_RENDERING_UIUX_ANALYSIS.md §6-3](../explanation/research/PEN_V1.2.1_RENDERING_UIUX_ANALYSIS.md).
+**대조군**: Pen v1.2.1 은 같은 구간이 0ms 다 — `scenegraph.updateLayout()` 호출부가 렌더 경로에서는 `redrawContentIfNeeded()` 안에만 있어, 팬/줌(blit) 중에는 레이아웃도 파생 재구축도 실행되지 않는다. 재래스터 시에도 씬 그래프를 직접 순회하며 중간 파생 계층이 0개다. 상세: [PEN_V1.2.1_RENDERING_UIUX_ANALYSIS.md §6-3](../../explanation/research/PEN_V1.2.1_RENDERING_UIUX_ANALYSIS.md).
 
 **핵심 실측 1건** — `LayoutPublisherInput.panOffset` / `.zoom` 은 선언만 되고 **어디서도 읽히지 않는다** (`hooks/useLayoutPublisher.ts` 참조 0건, `hooks/` + `renderers/` 전체에서 `input.panOffset`/`input.zoom` 소비 0건). P-3 의 카메라 결합은 동작에 기여하지 않는 잔재다.
 
@@ -218,7 +232,7 @@ P-1 은 요소당 `LAYOUT_STYLE_KEYS` 73개 + `LAYOUT_PROP_KEYS` 43개를 문자
 - **대안 C 기각**: 측정된 비용의 대부분이 편집 경로가 아니라 **매 렌더 실행**에서 오고, 그것은 메모이제이션만으로 해소된다. 시그니처 교체는 편집 경로 실측 후 별도 ADR 로 판정한다 (design §7).
 - **대안 D 기각**: 현 규모에서 무해한 것은 맞으나 P-3(미소비 필드)는 비용과 무관하게 잔재이고, P-1 은 980 노드에서 이미 예산 38% 다. ADR-167 과 달리 여기서는 **실측된 비용이 규모에 선형으로 증가**한다 — 기각 근거가 성립하지 않는다.
 
-> 구현 상세: [172-pan-path-derived-cost-breakdown.md](design/172-pan-path-derived-cost-breakdown.md)
+> 구현 상세: [172-pan-path-derived-cost-breakdown.md](../design/172-pan-path-derived-cost-breakdown.md)
 
 ## Risks
 
@@ -241,7 +255,7 @@ P-1 은 요소당 `LAYOUT_STYLE_KEYS` 73개 + `LAYOUT_PROP_KEYS` 43개를 문자
 | G1   | Phase 2 직후 | live builder 에서 요소 추가 직후 신규 child 정상 렌더 — 투명/미등록 **0건** (2-commit 시나리오) | Phase 2 revert. deps 를 배열 identity 가 아닌 구조 해시로 재설계 후 재시도 | **통과** 2026-07-29 (82→83 발행)                                                |
 | G2   | Phase 5      | 팬 중 P-1/P-2 재계산 횟수 **0** (Phase 4 카운터)                                                | 잔존 재계산 유발 dep 을 식별해 Phase 1/3 보강                              | **통과** 2026-07-30 (팬 180프레임 0회 / 페이지 전환 1회씩 — 대조군 확인)        |
 | G3   | Phase 5      | 페이지 경계를 넘는 팬에서 새 페이지 진입/이탈 정상 렌더                                         | 4-1-b(계약 유지, 얕은 복사)로 전환                                         | **통과** 2026-07-30 (전환·복귀 왕복 + 대폭 팬 정상 렌더)                        |
-| G4   | Phase 5      | 프레임 편집 모드 / 브레이크포인트 전환 / undo·redo 후 레이아웃 발행 정상                        | 해당 경로의 publish trigger 를 deps 에 명시 추가                           | 잔여                                                                            |
+| G4   | Phase 5      | 프레임 편집 모드 / 브레이크포인트 전환 / undo·redo 후 레이아웃 발행 정상                        | 해당 경로의 publish trigger 를 deps 에 명시 추가                           | **통과** 2026-07-30 (8경로 실측 — design §6-2 표)                               |
 | G5   | Phase 5      | visible 창에서 60fps 유지 (`useGPUProfiler`) + 팬 프레임당 파생 비용이 요소 수에 **상수**       | 스케일 회귀 테스트(design §6-3)가 지목한 잔존 O(N) 지점 처리               | **통과** 2026-07-30 — 20배 규모(5,046) 갈래 A 에서 드롭 0 · 파생 0 (§"G5 종결") |
 
 ## Consequences

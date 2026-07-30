@@ -1,6 +1,6 @@
 # ADR-172 구현 상세 — 팬 경로 파생 비용 제거
 
-> 본 문서는 [ADR-172](../172-pan-path-derived-cost.md) 의 구현 상세다. 결정·대안·위험은 ADR 본문 참조.
+> 본 문서는 [ADR-172](../completed/172-pan-path-derived-cost.md) 의 구현 상세다. 결정·대안·위험은 ADR 본문 참조.
 
 ## 1. Phase 0 — inventory (2026-07-29 실측 완료분)
 
@@ -100,7 +100,7 @@ P-1~P-3 은 React 축(리렌더 유발), P-4 는 Skia 축이다. `SkiaCanvas.tsx
 
 ## 2.5. Phase 1.5 — Skia 프레임 콘텐츠 재사용 (P-4) — **완료 2026-07-30 (`2e25a5acd`)**
 
-**R7 재측정 결과 진행 판정.** 현 규모에서는 2026-07-27 프레임 분해 실측이 이 구간을 "사실상 0"(JS 조립 합계 0.07~0.13ms/frame)으로 격하 판정했으나, 2026-07-30 대규모 N 재측정에서 **9,600 자식 p50 2.06ms / p95 3.72ms**(60fps 예산 12~22%)로 skip 기준(0.1ms)을 크게 초과했다. 측정표는 [ADR §"R7 종결"](../172-pan-path-derived-cost.md) 참조.
+**R7 재측정 결과 진행 판정.** 현 규모에서는 2026-07-27 프레임 분해 실측이 이 구간을 "사실상 0"(JS 조립 합계 0.07~0.13ms/frame)으로 격하 판정했으나, 2026-07-30 대규모 N 재측정에서 **9,600 자식 p50 2.06ms / p95 3.72ms**(60fps 예산 12~22%)로 skip 기준(0.1ms)을 크게 초과했다. 측정표는 [ADR §"R7 종결"](../completed/172-pan-path-derived-cost.md) 참조.
 
 측정 방법 — 원본 루프를 실제 입력으로 재현했다. `buildSkiaFrameContent` 는 hidden 탭에서 아예 돌지 않으므로(rAF 정지) 입력 stash 지점을 **rAF 밖(React 렌더 경로 `createSkiaRendererInput` + layout getter)** 으로 옮겨 임시 노출했고, 측정 후 제거했다. 동기 반복 벤치는 타이머 무관이라 hidden 탭에서도 유효하다 (§9).
 
