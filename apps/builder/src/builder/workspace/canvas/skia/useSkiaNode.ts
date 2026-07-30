@@ -20,6 +20,7 @@ import { useLayoutEffect } from "react";
 import type { SkiaNodeData } from "./nodeRenderers";
 import { recordInvalidation } from "./renderInvalidation";
 import { drainPendingWasmDisposals } from "./deferredDisposal";
+import { releaseParagraphsIn } from "./retainedParagraph";
 import {
   clearNodePictureCache,
   invalidateNodePicture,
@@ -41,6 +42,9 @@ export function registerSkiaNode(elementId: string, data: SkiaNodeData): void {
   const oldData = skiaNodeRegistry.get(elementId);
   if (oldData === data) return;
 
+  // 버려지는 노드가 소유하던 paragraph 를 함께 폐기한다 — "수명 = 노드 수명"
+  // 계약의 집행 지점 (ADR-174 Phase 2). 실제 delete 는 프레임 flush 후.
+  if (oldData) releaseParagraphsIn(oldData);
   skiaNodeRegistry.set(elementId, data);
   registryVersion++;
   // 내용 교체 = record 된 self-draw Picture stale — 즉시 해제 (ADR-153 Phase 3).
@@ -50,6 +54,8 @@ export function registerSkiaNode(elementId: string, data: SkiaNodeData): void {
 
 /** 레지스트리에서 Skia 렌더 데이터 해제 */
 export function unregisterSkiaNode(elementId: string): void {
+  const data = skiaNodeRegistry.get(elementId);
+  if (data) releaseParagraphsIn(data);
   skiaNodeRegistry.delete(elementId);
   registryVersion++;
   invalidateNodePicture(elementId);
@@ -71,6 +77,7 @@ export function getSkiaRegistrySize(): number {
  * 전환 프레임에서 stale 노드가 렌더링되는 것을 방지한다.
  */
 export function clearSkiaRegistry(): void {
+  for (const data of skiaNodeRegistry.values()) releaseParagraphsIn(data);
   skiaNodeRegistry.clear();
   registryVersion++;
   clearNodePictureCache();
