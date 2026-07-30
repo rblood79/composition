@@ -124,6 +124,26 @@ export const PERF_LABEL = {
   LAYOUT_PUBLISH_SIGNATURE: "layout.publish.signature",
   LAYOUT_PUBLISH_CHILDREN_MAP: "layout.publish.children-map",
   LAYOUT_PUBLISH_ENGINE: "layout.publish.engine",
+  /**
+   * React 렌더 커밋 분해 (dev 전용 — `<Profiler>` 배선).
+   *
+   * 편집 프레임 분해에서 계측 밖 잔여가 약 46% 였고, 소거법상 그 정체가 **React
+   * 렌더 커밋 + 구독자 fan-out** 이었다. 그러나 소거법은 "어디가 아닌지" 만 말해
+   * 대상을 특정하지 못한다 — 실제로 A(시그니처 캐시)에서 키 개수 비율로 한 추정이
+   * 3배 빗나갔다. 그래서 추정 대신 잰다.
+   *
+   * - `root` — Builder 트리 전체 (패널·인스펙터·노드트리 포함)
+   * - `canvas` — `BuilderCanvas` 서브트리만
+   *
+   * 두 값의 **차이가 캔버스 밖 fan-out** 이다. 편집이 캔버스만 바꾸는데 패널이
+   * 통째로 리렌더된다면 그 차이가 크게 나온다.
+   *
+   * `actualDuration` 은 그 커밋에서 실제로 렌더링한 시간이라 memo 로 걸러진
+   * 서브트리는 빠진다 — 즉 이 값이 곧 "막지 못한 렌더"다. longtask 분류에는 넣지
+   * 않는다: onRender 는 커밋 **후** 콜백이라 그 시점 귀속이 왜곡된다.
+   */
+  REACT_RENDER_ROOT: "react.render.root",
+  REACT_RENDER_CANVAS: "react.render.canvas",
 } as const;
 
 // Long-task classification: observe() label prefix → longtask bucket.
@@ -285,6 +305,16 @@ export async function observeAsync<T>(
     record(label, end - start);
     pushTrace(label, start, end);
   }
+}
+
+/**
+ * 이미 측정된 duration 을 그대로 기록한다.
+ *
+ * `observe`/`markEnd` 는 구간을 직접 재지만, React `<Profiler>` 의 `onRender` 처럼
+ * **호출 시점에 duration 을 인자로 받는** 계측원은 감쌀 구간이 없다.
+ */
+export function recordDuration(label: string, durationMs: number): void {
+  record(label, durationMs);
 }
 
 /**

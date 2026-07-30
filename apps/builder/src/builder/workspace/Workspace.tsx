@@ -18,6 +18,9 @@
  */
 
 import { useRef } from "react";
+
+import { RenderProfiler } from "../utils/RenderProfiler";
+import { PERF_LABEL } from "../utils/perfMarks";
 import { BuilderCanvas } from "./canvas/BuilderCanvas";
 import { useCanvasLifecycleStore, useCompareModeStore } from "./canvas/stores";
 import { isWebGLCanvas } from "../../utils/featureFlags";
@@ -90,10 +93,12 @@ export function Workspace({
   return (
     <main ref={containerRef} className="workspace">
       {/* WebGL Canvas (DOM depth 최소화: .workspace → .builder-canvas-container → canvas) */}
-      <BuilderCanvas
-        pageWidth={canvasSize.width}
-        pageHeight={canvasSize.height}
-      />
+      <RenderProfiler id="canvas" label={PERF_LABEL.REACT_RENDER_CANVAS}>
+        <BuilderCanvas
+          pageWidth={canvasSize.width}
+          pageHeight={canvasSize.height}
+        />
+      </RenderProfiler>
 
       {/* DOM Overlay Layer (B1.5에서 구현) */}
       <div className="workspace-overlay">
