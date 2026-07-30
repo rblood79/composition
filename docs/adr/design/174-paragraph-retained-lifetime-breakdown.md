@@ -22,24 +22,32 @@
 
 산출: G1 통과 수치 + 스코프 정책 확정 (§Phase 3). 추정 vs 실측 gap 발견 시 본 Phase 안에서 inventory 보강으로 흡수 (adr-writing M3 — fork 사유 금지).
 
-### 실측 결과 (2026-07-31 — G1 통과)
+### 실측 결과 (2026-07-31 — **G1 미통과 · 픽스처 한정**)
+
+> **측정 대상이 대표성이 없다 (2026-07-31 사용자 확인).** 사용된 5,069 요소 문서는 "Button / Home / About / Contact" 같은 **소수 텍스트를 복제해 요소 수만 부풀린 합성물**이다. 따라서 여기서 나온 **중복 계수 21.2× 는 문서의 성질이 아니라 픽스처의 성질**이며, 이 수치로 소유 모델이나 스코프 정책을 정할 수 없다. ADR Context 가 이미 "필러 문서 경계 수치는 실문서로 일반화 불가" 라고 적어 둔 바로 그 함정에 같은 세션에서 다시 빠진 것이다 — 필러의 종류(고유 문자열 bench ↔ 복제 합성)만 바뀌었을 뿐이다.
+>
+> 아래는 **픽스처 무관 사실**(계측 도구 / 단가 / delete 지점 / 수명 지도 / 측정 함정)과 **픽스처 종속 수치**(노드 수 · 고유 키 수 · 중복 계수 · 프로젝션)를 구분해 남긴다. 후자는 재측정 전까지 어떤 결정의 근거로도 쓰지 않는다.
 
 계측 도구는 본 Phase 에서 신설했다: `nodeRendererText.ts` 가 `getCacheMetrics("paragraph")` 로 hit/miss/eviction/size 를 다른 캐시와 같은 `__composition_CACHE_METRICS__` 채널에 싣고, `__composition_PARAGRAPH_DEBUG__.census` 가 walk 당 draw 수 / 고유 캐시 키 수 / 고유 노드 수를 센다 (dev 전용). paragraph 는 유일하게 계측 채널이 없던 캐시였고, 그것이 상한 스래싱이 조용히 진행된 이유이기도 하다.
 
 측정 대상은 기준선 §1 과 같은 문서 (5,069 요소 / 23 페이지). 측정 중 `window.__composition_NODE_PICTURE_CACHE__ = false` 로 picture replay 를 껐다 — **replay 는 record 된 Picture 안에서 텍스트를 재생하므로 `renderText` 를 지나지 않는다**. 이 토글 없이는 walk 수치가 실제보다 작게 잡힌다 (측정 함정).
 
-| #   | 항목                  | 실측                                                                                                                 |
-| --- | --------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| 1   | 텍스트 draw 노드 총수 | **3,372** (10% 줌 walk = 23 중 ~20 페이지). 문서 전체 환산 ≈ **3,900**                                               |
-| 5   | 고유 캐시 키          | **159** → **중복 계수 21.2×**                                                                                        |
-| 2   | paragraph 단가        | 짧은 라벨 ≈ **20 KB** (5,000개 증분 기울기), 4문장 문단 ≈ 160 KB (600개 성장 이벤트 — allocator slack 포함 **상한**) |
-| 3   | retained 프로젝션     | per-node: walk 3,372 × 20 KB ≈ **67 MB**, 문서 전체 ≈ **78 MB** / content-키: 159 × 20 KB ≈ **3.2 MB**               |
-| 4   | nodePictureCache 수명 | delete 지점 4종 — 아래 표 (3종이 프레임 중)                                                                          |
-| 6   | 프레임 중 delete      | paragraph 3 지점 + nodePicture 3 지점 — 아래 표                                                                      |
+| #   | 항목                  | 값                                                                                                                   |   유효성    |
+| --- | --------------------- | -------------------------------------------------------------------------------------------------------------------- | :---------: |
+| 2   | paragraph 단가        | 짧은 라벨 ≈ **20 KB** (5,000개 증분 기울기), 4문장 문단 ≈ 160 KB (600개 성장 이벤트 — allocator slack 포함 **상한**) | 픽스처 무관 |
+| 4   | nodePictureCache 수명 | delete 지점 4종 — 아래 표 (3종이 프레임 중)                                                                          | 픽스처 무관 |
+| 6   | 프레임 중 delete      | paragraph 3 지점 + nodePicture 3 지점 — 아래 표                                                                      | 픽스처 무관 |
+| 1   | 텍스트 draw 노드 총수 | 3,372 (10% 줌 walk = 23 중 ~20 페이지)                                                                               | 픽스처 종속 |
+| 5   | 고유 캐시 키          | 159 → 중복 계수 21.2×                                                                                                |  **무효**   |
+| 3   | retained 프로젝션     | per-node 67 MB / content-키 3.2 MB — #5 파생이라 함께 무효                                                           |  **무효**   |
 
-**소유 모델 확정 (M1 분기 판정)** — 중복 계수 21× 는 per-node retained 가 동시 보유 paragraph 를 20배로 늘린다는 뜻이다 (3.2 MB → 67 MB). Phase 2 는 **content-키 refcount 공유 variant** 로 간다. 수명 규율은 node-owned 안과 동일 — 참조 0 도달 + deferred 폐기, LRU·상한·프레임 중 퇴거 없음. 즉 본 ADR 이 없애는 것은 **상한과 프레임 중 폐기**이지 content 키 자체가 아니다.
+**소유 모델 — 결정 철회, ADR 본문의 채택안(per-node retained)으로 복귀**. 중복 계수 21× 를 근거로 content-키 공유를 확정했던 판정은 픽스처 산물이므로 무효다. 실문서에서 텍스트는 화면마다 달라 중복도가 1 에 가깝고, 그러면 두 모델의 **메모리는 사실상 같다** — 공유가 사는 유일한 구간이 이 합성 픽스처였다.
 
-**문턱은 요소 수가 아니라 텍스트 고유도** — 상한 1,000 을 넘으려면 고유 키가 1,000 종을 넘어야 하고, 텍스트 노드 ~3,900 기준 그 경계는 **중복 계수 3.9** 다. 관측된 두 극단: 컴포넌트 복제형 문서 **21.2** (경계 안쪽, 안전) ↔ bench 필러(고유 문자열) **≈ 1.0** (walk 1,416 draw 로 초과 — ADR Context 의 그 수치). 실사용 문서는 화면마다 카피가 달라 1~3 대에 놓이므로 **경계 바깥이 기본값**이다. 본 문서에서 퇴거가 0건인 것(159/1,000)은 위험 부재가 아니라 문서 형태 덕이다 — 이것이 ADR Context 의 "필러 문서 경계 수치는 실문서로 일반화 불가" 를 실측으로 확정한 형태다.
+게다가 방향 자체가 틀렸다. 본 ADR 이 고치려는 병은 **content 키에 자연스러운 사망 시점이 없다**는 것이다. 키는 내용에서 파생되므로 "이 키가 더는 필요 없다" 를 아무도 알려주지 않고, 그래서 구현이 둘 중 하나로 몰린다 — **상한**(→ 퇴거 → 프레임 중 폐기 → 지금 이 버그) 또는 **refcount**(→ 1:N 소유 · 드래그 churn 지연 판정 · 재취득 취소 규칙). 노드 소유는 그 질문 자체를 없앤다: **paragraph 수명 = 노드 수명**, 노드가 죽을 때 같이 죽는다. Pen 이 전역 LRU/상한/퇴거를 하나도 두지 않고 노드 필드로 소유하는 이유가 이것이다 (`PEN_V1.2.1_RENDERING_UIUX_ANALYSIS.md` §3-4-1 — `dirtyParagraph` 재생성과 `destroy()` 폐기 두 경로뿐).
+
+**1:N 문제도 소유자를 바꾸면 소멸한다** — 소유자는 element 가 아니라 **텍스트 `SkiaNodeData` 객체**다. `specShapeConverter.ts:817` 이 spec text shape 마다 별도 노드를 만들므로 (한 element 가 여러 텍스트를 그리는 경우가 여기서 갈린다) 노드 : paragraph 는 정확히 1:1 이고, invalidate 신호(`registerSkiaNode` data identity 변경)가 곧 소유자 교체 신호다. 앞서 기록한 "1:N 양방향 집합 + 해제 지연 판정" 은 content-키 공유안에서만 필요한 장치이므로 함께 철회한다.
+
+**남은 미지 (재측정 대상)** — 절대 보유량이다. `보유 paragraph 수 × 단가` 이고, 보유 수의 상한은 **텍스트 draw 노드 수**(중복도 1 가정)다. 이 수는 문서에 달렸으므로 **대표성 있는 실문서**에서 다시 재야 한다. 계측 도구(census: draws / uniqueKeys / uniqueNodes)는 그대로 쓰고, 함께 볼 것은 ② 드래그·리사이즈 시 노드 객체 identity 가 프레임마다 바뀌는지 (바뀌면 per-node 소유가 매 프레임 재생성 — Phase 2 가 반드시 확인할 축).
 
 **프레임 중 `.delete()` 전수** (Phase 1 큐 경유 대상):
 
@@ -72,22 +80,20 @@
 
 ## Phase 2 — retained 소유 전환 (G2 RED→GREEN, G3)
 
-- paragraph 소유를 전역 LRU → **skia node 단위**로: key = element id (registry entry), invalidate 신호 = `registerSkiaNode` 의 data identity 변경 (기존 registryVersion bump 과 동일 지점) → rebuild + 구 paragraph deferred delete.
+- paragraph 소유를 전역 LRU → **skia node 단위**로: 소유자 = **텍스트 `SkiaNodeData` 객체**(`specShapeConverter.ts:817` 이 spec text shape 마다 하나씩 만든다 — 노드 : paragraph 1:1), invalidate 신호 = `registerSkiaNode` 의 data identity 변경 (기존 registryVersion bump 과 동일 지점) → rebuild + 구 paragraph deferred delete. **소유자를 element id 로 잡지 말 것** — 한 element 가 여러 텍스트를 그리므로 1:N 이 되어 둘째 텍스트가 소유자를 잃는다.
 - `nodeRendererText.ts` 조회 경로: 전역 cache lookup → node-owned lookup 교체. miss 시 생성 후 노드에 부착 (lazy — 현행과 동일하게 첫 draw 시 생성).
 - **측정기 경로 불변**: `canvaskitTextMeasurer` 의 "WASM Paragraph 객체 캐싱 금지, 결과값 {width,height} 만 LRU" 계약 (canvas-rendering.md §3) 은 그대로 — 본 전환은 **렌더 측 paragraph 한정**.
 - **invalidation 축은 둘**: ① 노드 data identity 변경 (텍스트/스타일 — `registerSkiaNode`) ② **fontMgr 변경** — retained paragraph 는 생성 시점 fontMgr 에 종속되므로 (`renderText` 의 `getLastParagraphFontMgr() !== fontMgr` 분기가 현행 전량 clear 근거), fontMgr 교체 시 전 노드 retained paragraph 를 일괄 무효화 + deferred 폐기. 프레임 중 즉시 clear (현행 `nodeRendererText.ts:97-100`) 재생산 금지 (2026-07-31 리뷰 round 1 M2).
-- **소유 모델 — content-키 refcount 공유로 확정** (Phase 0 실측 중복 계수 **21.2×**, 2026-07-31): 저장소 키는 현행 content 키를 유지하고, 노드는 그 entry 를 **참조**한다. 참조 카운트가 0 이 되면 (노드 unregister / data identity 변경으로 다른 키로 이동) deferred 폐기. **LRU·상한·프레임 중 퇴거 없음** — 본 ADR 이 없애는 것은 상한과 프레임 중 폐기이지 content 키가 아니다. node-owned 안은 기각 (동시 보유 3.2 MB → 67 MB, 20배). 리뷰 round 1 M1 이 예고한 분기의 실측 확정.
-- 따라서 §Phase 2 의 "key = element id" 는 **"key = content 키 + 노드별 참조 등록"** 으로 대체된다. invalidate 신호(`registerSkiaNode` data identity 변경)는 그대로 — 노드가 참조를 옮기는 계기로 쓰인다.
+- **소유 모델 = per-node retained (ADR 본문 채택안 · Pen 동형)**. 한때 "content-키 refcount 공유 확정" 으로 적었으나 그 근거(중복 계수 21.2×)가 합성 픽스처 산물이라 **철회**했다 (§Phase 0 실측 결과 상단 주의). 되돌아온 이유는 메모리가 아니라 **수명**이다 — content 키는 내용 파생이라 "더는 필요 없다" 를 알려 줄 주체가 없어 상한(→ 퇴거 → 프레임 중 폐기 = 본 ADR 이 고치는 병) 또는 refcount(→ 소유 집합 · 재취득 취소 규칙) 를 강제한다. 노드 소유는 그 질문을 없앤다.
 - 전역 LRU 는 본 Phase 동안 fallback 플래그로 공존 — cutover 검증(G2/G3/G5) 후 Phase 3 에서 제거.
 
-### 소유 모델 정정 2건 (2026-07-31 Phase 1 종료 시점 코드 확인)
+### Phase 2 가 반드시 확인할 축 — 노드 객체 identity 의 교체 빈도
 
-착수 전 확인에서 위 서술의 전제 두 개가 코드와 어긋났다. **Phase 2 는 아래를 반영해 설계한다.**
+per-node 소유의 유일한 실패 모드는 **소유자가 너무 자주 교체되는 것**이다. `registerSkiaNode` 의 data identity 가 이동/리사이즈처럼 텍스트와 무관한 변경에서도 프레임마다 새 객체로 바뀐다면, 텍스트가 그대로인데도 paragraph 가 매 프레임 폐기·재생성된다 (현행 content 키 캐시는 이 경우 hit 이라 비용 0 — 즉 **회귀**). 착수 시 먼저 잴 것:
 
-1. **소유는 1:1 이 아니라 1:N** — `specShapeConverter.ts:817` 이 spec shape 마다 `type:"text"` 노드를 만들고 **같은 `elementId` 를 공유**한다 (Card 제목+설명, ListBoxItem 라벨+설명 등). 따라서 소유 표현은 `elementId → key` 가 아니라 **`elementId → Set<key>` + `key → Set<elementId>`** 양방향이어야 하고, 해제는 "그 요소가 가진 키 전부" 를 대상으로 한다. 1:1 로 짜면 한 요소의 둘째 텍스트가 소유자 없이 남아 영구 보유되거나, 첫째 키를 덮어써 조기 폐기된다.
-
-2. **즉시 해제는 드래그 churn 을 만든다** — invalidate 신호(`registerSkiaNode` data identity 변경)는 **이동/리사이즈에서도** 발생하지만 그때 텍스트 키는 그대로다. 신호 즉시 해제하면 매 드래그 프레임마다 같은 paragraph 를 폐기하고 다시 만든다 (현행 content 키 캐시는 이 경우 hit 이라 비용 0 — 즉 **회귀**). 따라서 해제는 **지연 판정**이다: 신호 시점에는 "해제 예정" 으로만 표시하고, 다음 walk 에서 같은 키를 다시 취득하면 취소, 끝까지 취득되지 않은 것만 폐기한다. 판정 시점은 프레임 경계(drain 지점)와 같은 곳에 둔다.
-   - 주의: "이번 프레임에 안 그려졌다" 를 해제 근거로 쓰면 안 된다 — 컬링/페이지 이탈로 안 그려질 뿐 필요한 키가 죽는다. 해제 근거는 **invalidate 신호를 받았고 그 뒤 재취득이 없었다** 는 조합이어야 한다 (Phase 3 의 "전 페이지 보유" 와 정합).
+- 드래그/리사이즈 1초 동안 텍스트 노드의 `registerSkiaNode` 호출 수와 그 중 **텍스트 내용·스타일이 실제로 바뀐 비율** (계측은 Phase 0 census 확장으로 충분).
+- 교체가 잦다면 대응은 refcount 도입이 아니라 **소유자 판정을 노드 객체 identity 대신 텍스트 서브키(content+layout)로 좁히는 것** — 즉 "노드가 들고 있되, 텍스트 축이 안 바뀌면 기존 paragraph 를 넘겨받는다". 상한도 전역 저장소도 되살리지 않는다.
+- `nodePictureCache` 가 같은 identity 키로 이미 살아 있으므로(`dataRef`), 그 캐시의 hit/miss 비율이 이 축의 1차 프록시다 — Phase 0 관측에서 nodePicture miss 가 압도적이었던 것이 "identity 가 자주 바뀐다" 의 신호일 수 있다 (다만 그 관측은 상한 1,024 퇴거와 섞여 있어 분리 측정 필요).
 
 - G2 절차: 전환 **전** `VITE_PARAGRAPH_CACHE_SIZE=50` + 줌 왕복으로 소실 RED 재현 기록 → 전환 후 동일 절차 GREEN.
   - **절차 정정 (Phase 1 반영)**: Phase 1 이 프레임 중 폐기(기제 ②)를 이미 제거해, HEAD 에서는 상한을 낮춰도 소실이 재현되지 않을 수 있다. 그때 RED 는 **Phase 1 이전 커밋**(`fed7e1838`)에서 잡아 기록하고, HEAD 의 무재현 자체를 Phase 1 의 효과 증거로 병기한다. 무재현을 이유로 절차를 생략하지 않는다 (G2 실패 분기).
@@ -95,8 +101,9 @@
 
 ## Phase 3 — 스코프 정책 적용 + LRU 제거
 
-- Phase 0 수치로 **"소" 확정** (2026-07-31): content-키 공유 보유의 프로젝션이 문서 전체 **≈ 3.2 MB** (고유 키 159 × 20 KB) 로 상한 대비 무시 가능 → **전 페이지 보유, 스코프 퇴거 no-op**. walk 스코프 퇴거 코드는 도입하지 않는다 (필요 없는 기제를 넣으면 그 자체가 새 수명 축이 된다).
-  - 재개 조건: 고유 키 수가 페이지 이탈 후에도 계속 누적되어 동시 보유가 프로젝션을 크게 넘는 문서가 나오면 (G4 메모리 판정 실패) 그때 walk 스코프 도입 — 판정 기준은 힙 절대값이 아니라 동시 보유 키 수 × 단가.
+- **스코프 확정 보류 (2026-07-31 철회)** — "≈3.2 MB 라 전 페이지 보유" 판정은 무효 픽스처 수치(고유 키 159) 파생이라 함께 철회한다. 재측정 후 결정한다.
+  - 판정식은 유지: 보유 바이트 ≈ **보유 paragraph 수 × 단가(짧은 라벨 ≈20 KB)**, 보유 수의 상한은 텍스트 draw 노드 수. 대표성 있는 실문서에서 이 수를 재면 곧바로 "소/대" 가 갈린다.
+  - per-node 소유에서 보유 수는 **살아 있는 텍스트 노드 수**와 같다 — 즉 스코프 정책은 "노드를 언제까지 등록해 두는가" 와 같은 질문이 되고, 이미 `clearSkiaRegistry`(페이지 전환)가 그 경계를 갖고 있다. 새 퇴거 기제를 만들기 전에 이 기존 경계로 충분한지부터 본다.
 - 전역 `paragraphCache` (상한 1,000) 제거 + `VITE_PARAGRAPH_CACHE_SIZE` env 제거 (`nodeRendererState.ts:14-21`).
 - **규칙 갱신**: canvas-rendering.md §3 의 "WASM Paragraph 객체 캐싱 금지 (메모리 누수)" 문구를 "측정 경로 한정. 렌더 측은 노드 소유 retained + deferred 폐기 (ADR-174)" 로 정정 — 현행 문구는 측정기 맥락인데 렌더 측 전역 LRU 존재와 이미 불일치했다.
 
