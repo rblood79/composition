@@ -78,6 +78,52 @@ export const PERF_LABEL = {
    * 0.03 vs 0.02 로 판별 불가였다. `count` 가 유일한 판별 신호다.
    */
   RENDER_DERIVED_CHILDREN_MAP: "render.derived.children-map",
+  /**
+   * ADR-172 Phase 6 후속: **편집 시 무효화되는 O(N) 파생 memo** 4종 (상시).
+   *
+   * `BuilderCanvas` 의 memo 18개 중 편집마다 재계산되면서 전체 요소를 순회하는
+   * 것들이다. 팬 라벨(`render.derived.{layout-key,scene}`)이 카메라 축을 덮고
+   * 이 4개가 편집 축을 덮는다.
+   *
+   * - `canonical-scene` — `buildCanonicalSceneModel` (deps 에 activeCanonicalDocument)
+   * - `legacy-scene-graph` — `buildLegacyCanvasSceneGraph`. canonical 모드에서는
+   *   **결과가 fallback 으로만 쓰이는데 memo 는 매번 실행된다** — 낭비 여부 판정용
+   * - `projection-signature` — 전체 elements `stableSerialize` + 해싱 (ADR-916 2-C)
+   * - `renderer-input` — `createSkiaRendererInput` (렌더 트리 재조립 + Map 복사)
+   */
+  RENDER_DERIVED_CANONICAL_SCENE: "render.derived.canonical-scene",
+  RENDER_DERIVED_LEGACY_SCENE_GRAPH: "render.derived.legacy-scene-graph",
+  RENDER_DERIVED_PROJECTION_SIGNATURE: "render.derived.projection-signature",
+  RENDER_DERIVED_RENDERER_INPUT: "render.derived.renderer-input",
+  /** 편집마다 `sceneNodes` 로 무효화되는 그래프 파생 3종 (ADR-172 Phase 6 후속) */
+  RENDER_DERIVED_WORKFLOW_EDGES: "render.derived.workflow-edges",
+  RENDER_DERIVED_DATA_SOURCE_EDGES: "render.derived.data-source-edges",
+  RENDER_DERIVED_INVALIDATION_PACKET: "render.derived.invalidation-packet",
+  /**
+   * ADR-172 Phase 6 후속: **편집 프레임 분해** 라벨 5종 (상시).
+   *
+   * Phase 6 판정에서 편집 1회의 long task 가 372ms 인데 그중 계측된 것이 파생 3축
+   * 46ms(12%)뿐이라, 나머지 89% 가 어디인지 특정할 수단이 없었다. 그 뭉치의 최대
+   * 지분은 `useLayoutPublisher` 의 publish `useEffect` 이며 아래 4단계로 갈린다:
+   *
+   * - `resolve` — responsive override 해소 + `sourceElementById` 재구축.
+   *   **`elementById` 전체를 순회하는데 그 루프가 visible page 마다 반복된다** —
+   *   O(visible page × 전체 요소). 편집 지연의 1순위 용의자다.
+   * - `signature` — `createPageElementsSignature` + `createPageLayoutSignature`
+   *   (P-1 과 같은 함수의 두 번째 호출. `render.derived.layout-key` 는 memo 쪽 1회분)
+   * - `children-map` — `buildPageChildrenMap` + `buildChildrenIdMap`
+   * - `engine` — `getCachedPageLayout` (캐시 miss 시 WASM 레이아웃 계산)
+   *
+   * `total` 은 useEffect 본문 전체라 위 4개의 상위 집합이고, `total` 과 4개 합의
+   * 차이가 곧 배선되지 않은 잔여(publish/batch)다. 팬 라벨과 달리 **정상 동작에서도
+   * 매 편집 샘플이 쌓이는 것이 정상**이다 — 여기서 count 는 지표가 아니라 duration 이
+   * 지표다.
+   */
+  LAYOUT_PUBLISH_TOTAL: "layout.publish.total",
+  LAYOUT_PUBLISH_RESOLVE: "layout.publish.resolve",
+  LAYOUT_PUBLISH_SIGNATURE: "layout.publish.signature",
+  LAYOUT_PUBLISH_CHILDREN_MAP: "layout.publish.children-map",
+  LAYOUT_PUBLISH_ENGINE: "layout.publish.engine",
 } as const;
 
 // Long-task classification: observe() label prefix → longtask bucket.
@@ -85,11 +131,13 @@ export const PERF_LABEL = {
 const LONGTASK_CATEGORIES = [
   { prefix: "input.", label: "longtask.input" },
   { prefix: "render.", label: "longtask.render" },
+  { prefix: "layout.", label: "longtask.layout" },
 ] as const;
 
 const LONGTASK_LABELS = [
   "longtask.input",
   "longtask.render",
+  "longtask.layout",
   "longtask.unclassified",
 ] as const;
 type LongTaskLabel = (typeof LONGTASK_LABELS)[number];
