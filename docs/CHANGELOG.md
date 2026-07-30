@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [캔버스 텍스트 불특정 소실 수정 — paragraph 캐시 스래싱 + WASM 폐기 수명] - 2026-07-30
+
+### Bug Fixes
+
+- **재래스터 후 컴포넌트 텍스트가 불특정하게 렌더되지 않던 버그** (사용자 보고 2026-07-30):
+  - 증상: 줌/팬으로 재래스터가 돌면 일부 텍스트(버튼 라벨·필드·리스트 항목·캘린더 숫자)만 화면에서 사라지고, 같은 재현 절차에서는 항상 같은 텍스트가 사라짐. 새로고침 시 정상. 콘솔 에러 0.
+  - **Why**: 한 walk 의 가시 텍스트 수(실측 1,416)가 paragraph 캐시 고정 상한(1000)을 넘으면 캐시가 프레임마다 전량 스래싱 — 대량 delete/재생성 과정에서 delete 된 paragraph 의 WASM 힙 주소가 새 paragraph 에 재사용되며 CanvasKit(Ganesh) 내부 텍스트 blob 캐시가 stale 히트, 해당 글리프만 조용히 소실된다. `drawParagraph` 는 실행되고 같은 지점의 `drawRect` 는 표시되는 형태로 live 격리 확정. ADR-173 Phase 1 의 컬링 반경 확대(200→512)로 walk 당 텍스트 수가 상한을 넘기 시작하며 드러났다 (컬링·커맨드 스트림·가시 집합·Picture replay 는 전부 실측 무죄).
+  - 수정 ①: paragraph 캐시 상한을 **프레임 실사용량 기반 동적**으로 — `max(1000, 프레임 피크 draw 수 × 1.25)`. 상한이 항상 피크 위에 있어 정상 경로에서 LRU 퇴거(스래싱) 자체가 사라진다. 피크는 세션 단조 (왕복 줌에서 상한이 출렁이면 다시 스래싱).
+  - 수정 ②: 프레임 중 캐시 퇴거의 WASM `.delete()` 를 **flush 후로 지연** (`deferredDisposal` 큐 + `SkiaRenderer.render()` finally drain) — deferred canvas 에 제출된 Paragraph/SkPicture 를 flush 전에 파괴하는 use-after-free 경로 차단. `paragraphCache`(LRU/교체/fontMgr 교체 clear)와 `nodePictureCache`(교체/invalidate/전량 clear — evict 30만 회 실측) 양쪽 적용.
+  - 검증: 재현 절차(5,046 요소 문서, 줌 15%↔100% 왕복 ×2) live exercise — 전 텍스트 유지. skia 28 files / 217 tests PASS, 신규 계약 테스트 2종(`paragraphCacheLimit.test.ts` 동적 상한 3케이스, `nodePictureCache.deferredDisposal.test.ts` 폐기 지연 5케이스).
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{nodeRendererState,nodeRendererText,nodePictureCache,deferredDisposal,SkiaRenderer}.ts`
+
 ## [팬 경로 파생 비용 제거 — ADR-172 Phase 0~5] - 2026-07-30
 
 ### Performance
