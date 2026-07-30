@@ -95,7 +95,25 @@ per-node 소유의 유일한 실패 모드는 **소유자가 너무 자주 교�
 - 교체가 잦다면 대응은 refcount 도입이 아니라 **소유자 판정을 노드 객체 identity 대신 텍스트 서브키(content+layout)로 좁히는 것** — 즉 "노드가 들고 있되, 텍스트 축이 안 바뀌면 기존 paragraph 를 넘겨받는다". 상한도 전역 저장소도 되살리지 않는다.
 - `nodePictureCache` 가 같은 identity 키로 이미 살아 있으므로(`dataRef`), 그 캐시의 hit/miss 비율이 이 축의 1차 프록시다 — Phase 0 관측에서 nodePicture miss 가 압도적이었던 것이 "identity 가 자주 바뀐다" 의 신호일 수 있다 (다만 그 관측은 상한 1,024 퇴거와 섞여 있어 분리 측정 필요).
 
+#### 답 (2026-07-31 구현 · live 실측) — identity 는 안정적이고, 위험은 다른 곳에 있었다
+
+**노드 identity 는 이미 안정화돼 있다.** `StoreRenderBridge.registerBuiltNode` 가 `skiaNodeContentEqualsIgnoringPosition` 으로 내용을 deep 비교해 **같으면 기존 객체를 유지하고 x/y 만 동기화**한다 (ADR-153 Phase 3 — 노드 Picture 캐시 키를 지키려고 도입된 장치). 즉 이동·드래그는 소유자를 교체하지 않는다. 우려하던 실패 모드는 선행 ADR 이 이미 막아 둔 상태였다.
+
+대신 **소유자를 어디에 둘 것인가**에서 함정 둘이 나왔고, 둘 다 이 안정화 장치와의 상호작용이었다:
+
+| 함정                                                                                                                                                               | 증상                           | 처방                                                      |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ | --------------------------------------------------------- |
+| 슬롯이 **열거 가능**하면 `Object.keys` 비교에 걸린다 — "보유한 prev" 와 "미보유 new" 가 영구 불일치                                                                | 노드가 매 프레임 교체 → 재생성 | 심볼 키 + `non-enumerable` (`Object.defineProperty`)      |
+| `renderCommands` 는 DRAW 커맨드마다 `{...node, x:0, y:0, children:undefined}` **파생본**을 만든다 (`emitDrawCommands` / `emitInternalChildDraw`) — 소유자가 파생본 | 커맨드 재빌드마다 소유권 증발  | `linkParagraphOwner(derived, origin)` 로 원본 노드에 고정 |
+
+두 번째는 **live 계측이 아니었으면 못 잡았다** — 단위 테스트는 전부 GREEN 인데 실측이 `hit 0 / miss 24` 였다. 고친 뒤 같은 페이지에서 `hitRate 66.67%` = 첫 walk 만 miss(1,331), 이후 2 walk 전량 hit(2,662), eviction 0, 재생성 0.
+
+**부수 관측 — nodePicture 가 hit 이면 텍스트 walk 자체가 없다.** replay 가 `renderText` 를 우회하므로 paragraph 재생성 압력은 nodePicture miss 구간에만 걸린다. 측정할 때는 `__composition_NODE_PICTURE_CACHE__ = false` 가 필요하다 (측정 함정 3종에 이어 4번째).
+
 - G2 절차: 전환 **전** `VITE_PARAGRAPH_CACHE_SIZE=50` + 줌 왕복으로 소실 RED 재현 기록 → 전환 후 동일 절차 GREEN.
+  - **이 문서로는 재현 불가 (2026-07-31 실측)**: 구 LRU 경로로 되돌려 같은 페이지를 walk 시키면 **고유 키 147** (1,331 draw → content 키 dedup) 로 상한 1,000 에 한참 못 미친다. 문턱 초과가 성립하지 않으므로 상한을 낮춘 별도 서버 절차가 그대로 남는다.
+  - 같은 실측이 **보유 단위의 차이**를 확정한다 — retained 는 **노드** 단위(1,331), LRU 는 **키** 단위(147). 상한 1,000 은 키 수에 걸리므로 "retained 수가 상한을 넘었다" 는 스래싱 근거가 되지 않는다 (착수 직후 그렇게 잘못 읽었다가 정정).
+  - 이 픽스처는 중복도가 높아(1,331 draw / 147 키 ≈ 9배) **retained 에 가장 불리한 문서**다. 실문서는 중복도가 1 에 가까워 두 모델의 보유 수가 수렴한다 — 이 9배는 상한이지 예상치가 아니다.
   - **절차 정정 (Phase 1 반영)**: Phase 1 이 프레임 중 폐기(기제 ②)를 이미 제거해, HEAD 에서는 상한을 낮춰도 소실이 재현되지 않을 수 있다. 그때 RED 는 **Phase 1 이전 커밋**(`fed7e1838`)에서 잡아 기록하고, HEAD 의 무재현 자체를 Phase 1 의 효과 증거로 병기한다. 무재현을 이유로 절차를 생략하지 않는다 (G2 실패 분기).
   - `VITE_PARAGRAPH_CACHE_SIZE` 는 `import.meta.env` 라 서버 재시작이 필요하다. 사용자의 5173 dev 서버를 건드리지 말고 **별도 포트로 띄운다** (`VITE_PARAGRAPH_CACHE_SIZE=50 pnpm dev --port 5174`).
 

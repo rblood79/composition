@@ -8,6 +8,7 @@ Accepted — 2026-07-31 (리뷰 round 1 승인 — 이슈 3건 전건 fixed, HIG
 
 - Phase 0 (메모리 축 실측) — **G1 미통과, 재측정 필요**. 1차 측정에 쓴 문서가 소수 텍스트를 복제해 요소 수만 부풀린 합성물이라(2026-07-31 사용자 확인) 중복 계수·고유 키 수·보유 프로젝션이 무효다. 그 수치로 내렸던 소유 모델·스코프 결정은 **철회**했고, 소유 모델은 본 ADR 채택안(per-node retained)으로 복귀했다. 유효 산출은 계측 도구 · paragraph 단가 · 프레임 중 delete 6 지점 · 수명 지도 · 측정 함정 3종. 상세: [breakdown §실측 결과](design/174-paragraph-retained-lifetime-breakdown.md).
 - Phase 1 (안전 폐기 프리미티브) 완료 2026-07-31 — 프레임 중 WASM `.delete()` 를 전부 지연 폐기 큐 경유로 전환 (`fa4439739`). 측정 결과와 무관하게 성립하는 변경이라 위 철회의 영향을 받지 않는다.
+- Phase 2 (retained 소유 전환) 구현 완료 2026-07-31 (`d7b68a2e7`) — 소유자 = 텍스트 `SkiaNodeData` 객체, 무효화 = 텍스트 축 key + fontMgr, 해제 = 노드 폐기 3지점. 전역 LRU 는 dev 플래그로 공존 (Phase 3 에서 제거). **G3 통과** (계약 테스트 16). **G2 미통과** — 절차 자체가 남았다: 이 문서는 구 LRU 고유 키가 147 뿐이라 상한 1,000 문턱을 못 넘어 RED 재현이 불가능하고, 상한을 낮춘 별도 서버 절차가 필요하다. live 실측(hit 0 → 66.67%)이 잡아낸 소유자 배치 함정 2건은 [breakdown §Phase 2 답](design/174-paragraph-retained-lifetime-breakdown.md) 에 기록.
 
 ## Context
 
