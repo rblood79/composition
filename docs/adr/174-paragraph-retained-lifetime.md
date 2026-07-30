@@ -13,6 +13,9 @@ Accepted — 2026-07-31 (리뷰 round 1 승인 — 이슈 3건 전건 fixed, HIG
   - 유지되는 교훈 두 가지: ① G1 (메모리 축 실측) 은 Phase 2 의 **선행 차단 게이트**다 — 단가 가정(20 KB)이 350배 틀려 있었는데 미실측으로 진행했다. ② R2 (dedup 소실) 는 실재한다 — 이 문서 실측 배수 2.8× (208 노드 / 74 키). 단가가 정상(수 KB~수십 KB)이면 2.8× 는 무해하고, 수리 후 실측이 그것을 확인했다 (345개 보유 = 힙 증가 측정 불가 수준).
 - Phase 1 은 되돌림 대상이 아니다 — 지연 폐기는 소유 모델과 독립적으로 성립하며 main 에 유지된다.
 - **Phase 2 재개 조건 갱신 (2026-07-31)**: 단가 수리(`a3414a526`)로 "무스코프 보유 = 상한 없는 증가" 위험의 실측 크기가 소멸했다 (retained 345개 = 134 MB). 재개 시 G1 을 수리 후 단가 기준으로 재측정 → 스코프 정책 필요 여부 재판정 (예상: no-op 수렴 = 대안 C 의 B 동치 조항).
+- **Phase 2 재적용 완료 2026-07-31 (`30c6661fb`)** — 사용자 승인 ("텍스트가 잘 보인다면 설계대로 진행해야지") 으로 되돌림(`954c17532`)의 되돌림. 공유 FontCollection 수리와 병합 — per-call `ParagraphBuilder.Make` 0건 유지 (정적 가드 PASS), 계약 테스트 12 PASS.
+- **G1 재측정 (수리 후 단가 기준, 2026-07-31)** — 실사용 22 페이지 문서를 사용자 5173 서버에서 로드: **retained 3,807개 보유 = 힙 128 MB** (구 단가였다면 3,807 × 5.78 MB ≈ 22 GB 로 즉사 규모). 보유 수가 전 페이지 텍스트 노드 규모에 도달해도 힙이 평탄하므로 **스코프 정책은 no-op 수렴 확정** — 대안 C 의 B 동치 조항 성립, 기존 경계(`clearSkiaRegistry`)로 충분. **G1 통과.**
+- **Phase 3 (LRU 제거 + 규칙 정정) 완료 2026-07-31** — 전역 `paragraphCache`/`paragraphAlignOffsetCache`/전환 플래그/`setRetained` 토글/`VITE_PARAGRAPH_CACHE_SIZE` env/`MAX_PARAGRAPH_CACHE_SIZE` 상한 전량 제거. fontMgr 교체 일괄 clear 는 per-entry lazy 무효 판정(`resolveRetainedParagraph`)으로 대체 (retained ON 상태에서 이미 동작하던 경로 — 행동 변화 없음). canvas-rendering.md §3 문구를 "측정 경로 한정 + 렌더 측 노드 소유 retained" 로 정정.
 
 ## Context
 

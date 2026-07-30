@@ -1,5 +1,3 @@
-import type { FontMgr } from "canvaskit-wasm";
-
 let editingElementId: string | null = null;
 
 export function setEditingElementId(id: string | null): void {
@@ -11,25 +9,6 @@ export function getEditingElementId(): string | null {
   return editingElementId;
 }
 
-const MAX_PARAGRAPH_CACHE_SIZE = (() => {
-  const env = import.meta.env.VITE_PARAGRAPH_CACHE_SIZE;
-  if (env) {
-    const parsed = parseInt(env, 10);
-    if (!isNaN(parsed) && parsed > 0) return parsed;
-  }
-  return 1000;
-})();
-
-let lastParagraphFontMgr: FontMgr | null = null;
-
-export function getLastParagraphFontMgr(): FontMgr | null {
-  return lastParagraphFontMgr;
-}
-
-export function setLastParagraphFontMgr(fontMgr: FontMgr | null): void {
-  lastParagraphFontMgr = fontMgr;
-}
-
-export function getMaxParagraphCacheSize(): number {
-  return MAX_PARAGRAPH_CACHE_SIZE;
-}
+// 구 전역 paragraph LRU 의 상한(MAX_PARAGRAPH_CACHE_SIZE / VITE_PARAGRAPH_CACHE_SIZE)
+// 과 fontMgr 스냅샷은 ADR-174 Phase 3 에서 제거됨 — paragraph 는 텍스트 노드가
+// 소유하며 (retainedParagraph.ts), fontMgr 무효화는 per-entry 검사로 대체.

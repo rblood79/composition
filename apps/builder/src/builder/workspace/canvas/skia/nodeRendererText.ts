@@ -28,15 +28,7 @@ import { registerSkiaCacheDestroy, SkiaDisposable } from "./disposable";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import { skiaFontManager } from "./fontManager";
 import { getCacheMetrics } from "./cacheMetrics";
-import {
-  drainPendingWasmDisposals,
-  scheduleWasmDisposal,
-} from "./deferredDisposal";
-import {
-  getLastParagraphFontMgr,
-  getMaxParagraphCacheSize,
-  setLastParagraphFontMgr,
-} from "./nodeRendererState";
+import { drainPendingWasmDisposals } from "./deferredDisposal";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import {
   getRetainedParagraphCount,
@@ -44,17 +36,9 @@ import {
   retainParagraph,
 } from "./retainedParagraph";
 
-const paragraphCache = new Map<string, Paragraph>();
-const paragraphAlignOffsetCache = new Map<string, number>();
-
-/**
- * 소유 모델 전환 플래그 (ADR-174 Phase 2 — R4).
- *
- * `true` = paragraph 를 텍스트 노드가 소유 (상한 없음, 수명 = 노드).
- * `false` = 구 전역 content-키 LRU. Phase 3 에서 후자를 제거하며 플래그도 삭제한다.
- * 전환 구간 동안 A/B 를 서버 재시작 없이 하기 위한 dev 토글이다.
- */
-let retainedParagraphEnabled = true;
+// paragraph 소유 = 텍스트 노드 (ADR-174). 구 전역 content-키 LRU 와 전환
+// 플래그는 Phase 3 에서 제거됨 — 상한/퇴거 개념 자체가 사라졌고, 수명은
+// 노드 수명이다 (해제 경로: retainedParagraph.releaseParagraphsIn).
 
 // ── dev 계측 (ADR-174 Phase 0) ────────────────────────────────────────────
 // paragraph 는 유일하게 계측 채널이 없던 캐시였고, 그것이 상한 스래싱 →
@@ -88,11 +72,7 @@ function observeParagraphDraw(
 
 function syncParagraphMetricsSize(): void {
   if (PARAGRAPH_METRICS_DEV) {
-    getCacheMetrics("paragraph").setSize(
-      retainedParagraphEnabled
-        ? getRetainedParagraphCount()
-        : paragraphCache.size,
-    );
+    getCacheMetrics("paragraph").setSize(getRetainedParagraphCount());
   }
 }
 
@@ -102,36 +82,25 @@ function containsIdeographicText(text: string): boolean {
   );
 }
 
-function clearParagraphCache(): void {
-  // 즉시 delete 금지 — fontMgr 교체 경로가 walk 도중(renderText 초입) 에
-  // 불리므로, 이번 프레임에 이미 `drawParagraph` 로 제출된(아직 flush 안 된)
-  // paragraph 를 파괴하면 그 텍스트가 화면에서 소실된다. 실제 폐기는
-  // SkiaRenderer 가 프레임 flush 후 drain 한다 (ADR-174 Phase 1).
-  for (const paragraph of paragraphCache.values()) {
-    scheduleWasmDisposal(paragraph);
-  }
-  paragraphCache.clear();
-  paragraphAlignOffsetCache.clear();
-  syncParagraphMetricsSize();
-}
-
 /**
- * 프레임 밖 전량 폐기 — 캔버스 teardown / 명시 정리.
- * 프레임 밖이므로 pending 까지 즉시 배수해 WASM 누수를 막는다 (R3).
+ * 프레임 밖 pending 폐기 배수 — 캔버스 teardown / 명시 정리.
+ *
+ * retained paragraph 자체의 해제는 노드 사망 경로가 담당한다
+ * (`releaseParagraphsIn` — registerSkiaNode 교체 / unregisterSkiaNode /
+ * clearSkiaRegistry). 여기서는 그 경로가 예약해 둔 pending 폐기를 프레임
+ * 밖에서 즉시 배수해 WASM 누수를 막는다 (R3).
  */
 export function clearTextParagraphCache(): void {
-  clearParagraphCache();
   drainPendingWasmDisposals();
 }
 
-// 통합 해제 경로 등록 (ADR-153 Phase 2 레지스트리) — 캔버스 teardown 시 전량 해제.
+// 통합 해제 경로 등록 (ADR-153 Phase 2 레지스트리) — 캔버스 teardown 시 배수.
 // paragraph 는 종전 이 레지스트리에 없어 unmount 시 WASM Paragraph 가 그대로
 // 남았다 (ADR-174 Phase 1 에서 해소 — 폐기 경로 단일화의 일부).
 registerSkiaCacheDestroy("paragraphCache", clearTextParagraphCache);
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
-    clearParagraphCache();
     drainPendingWasmDisposals();
   });
 }
@@ -143,20 +112,7 @@ if (typeof window !== "undefined" && import.meta.env?.DEV) {
   (
     window as unknown as Record<string, unknown>
   ).__composition_PARAGRAPH_DEBUG__ = {
-    size: (): number =>
-      retainedParagraphEnabled
-        ? getRetainedParagraphCount()
-        : paragraphCache.size,
-    maxSize: (): number => getMaxParagraphCacheSize(),
-    /** 소유 모델 A/B — 끄면 구 전역 LRU 경로 (ADR-174 Phase 3 에서 제거) */
-    setRetained(on: boolean): void {
-      if (retainedParagraphEnabled === on) return;
-      retainedParagraphEnabled = on;
-      // 반대 경로의 잔존 보유분이 섞이지 않게 전역 캐시는 비운다. retained
-      // 보유분은 노드가 살아 있는 한 유효하고 다음 draw 에서 그대로 hit 한다.
-      clearParagraphCache();
-      drainPendingWasmDisposals();
-    },
+    size: (): number => getRetainedParagraphCount(),
     census: {
       start(): void {
         censusActive = true;
@@ -169,71 +125,26 @@ if (typeof window !== "undefined" && import.meta.env?.DEV) {
       },
       report(): {
         active: boolean;
-        retained: boolean;
         draws: number;
         uniqueKeys: number;
         uniqueNodes: number;
         duplicationFactor: number;
-        cacheSize: number;
         retainedCount: number;
-        maxCacheSize: number;
       } {
         return {
           active: censusActive,
-          retained: retainedParagraphEnabled,
           draws: censusDraws,
           uniqueKeys: censusKeys.size,
           uniqueNodes: censusNodes.size,
-          // per-node retained ÷ content-키 retained — retained 전환이 잃는 dedup
+          // per-node retained ÷ content-키 dedup — 노드 소유가 지불하는 중복 배수
           duplicationFactor:
             censusKeys.size === 0 ? 0 : censusNodes.size / censusKeys.size,
-          cacheSize: paragraphCache.size,
           // 실제 보유량 (G1 재측정의 관측 지점) — 살아 있는 텍스트 노드 수와 같다
           retainedCount: getRetainedParagraphCount(),
-          maxCacheSize: getMaxParagraphCacheSize(),
         };
       },
     },
   };
-}
-
-function getCachedParagraph(key: string): Paragraph | undefined {
-  const cached = paragraphCache.get(key);
-  if (!cached) {
-    if (PARAGRAPH_METRICS_DEV) getCacheMetrics("paragraph").recordMiss();
-    return undefined;
-  }
-  if (PARAGRAPH_METRICS_DEV) getCacheMetrics("paragraph").recordHit();
-  paragraphCache.delete(key);
-  paragraphCache.set(key, cached);
-  return cached;
-}
-
-function setCachedParagraph(key: string, paragraph: Paragraph): void {
-  const existing = paragraphCache.get(key);
-  if (existing) {
-    // 같은 프레임에서 이미 그려졌을 수 있다 — flush 후 폐기 (use-after-free 차단)
-    scheduleWasmDisposal(existing);
-    paragraphCache.delete(key);
-  }
-
-  paragraphCache.set(key, paragraph);
-  if (paragraphCache.size <= getMaxParagraphCacheSize()) {
-    syncParagraphMetricsSize();
-    return;
-  }
-
-  // LRU 퇴거 — walk 앞쪽에서 그린 paragraph 일수록 여기 걸린다. 즉시 delete
-  // 하면 그 텍스트의 deferred draw 가 flush 전에 파괴되어 화면에서 사라진다.
-  // (상한 자체는 ADR-174 Phase 3 에서 제거된다 — 그때까지의 안전망)
-  const oldestKey = paragraphCache.keys().next().value as string | undefined;
-  if (!oldestKey) return;
-  const oldest = paragraphCache.get(oldestKey);
-  if (oldest) scheduleWasmDisposal(oldest);
-  paragraphCache.delete(oldestKey);
-  paragraphAlignOffsetCache.delete(oldestKey);
-  if (PARAGRAPH_METRICS_DEV) getCacheMetrics("paragraph").recordEviction();
-  syncParagraphMetricsSize();
 }
 
 export function renderText(
@@ -244,10 +155,8 @@ export function renderText(
 ): void {
   if (!node.text) return;
 
-  if (getLastParagraphFontMgr() !== fontMgr) {
-    clearParagraphCache();
-    setLastParagraphFontMgr(fontMgr);
-  }
+  // fontMgr 교체 시 일괄 clear 는 없다 — retained entry 가 생성 시점 fontMgr 을
+  // 들고 있어 resolveRetainedParagraph 가 per-entry 로 무효 판정 + 지연 폐기한다.
 
   const whiteSpace = node.text.whiteSpace ?? "normal";
   let processedText = node.text.content;
@@ -441,31 +350,19 @@ export function renderText(
 
   observeParagraphDraw(key, node.elementId);
 
-  if (retainedParagraphEnabled) {
-    // 소유자는 이 텍스트 노드 객체다. 노드 identity 는 내용이 실제로 바뀔 때만
-    // 교체되므로 (StoreRenderBridge.registerBuiltNode — 이동은 교체하지 않는다),
-    // 팬/드래그 중에도 hit 이 유지된다.
-    const retained = resolveRetainedParagraph(node, key, fontMgr);
-    if (retained) {
-      if (PARAGRAPH_METRICS_DEV) getCacheMetrics("paragraph").recordHit();
-      const drawY = computeDrawY(retained.paragraph);
-      const drawX = node.text.paddingLeft + textIndent + retained.alignOffset;
-      renderTextShadows(retained.paragraph, drawX, drawY);
-      canvas.drawParagraph(retained.paragraph, drawX, drawY);
-      return;
-    }
-    if (PARAGRAPH_METRICS_DEV) getCacheMetrics("paragraph").recordMiss();
-  } else {
-    const cached = getCachedParagraph(key);
-    if (cached) {
-      const drawY = computeDrawY(cached);
-      const cachedOffset = paragraphAlignOffsetCache.get(key) ?? 0;
-      const drawX = node.text.paddingLeft + textIndent + cachedOffset;
-      renderTextShadows(cached, drawX, drawY);
-      canvas.drawParagraph(cached, drawX, drawY);
-      return;
-    }
+  // 소유자는 이 텍스트 노드 객체다. 노드 identity 는 내용이 실제로 바뀔 때만
+  // 교체되므로 (StoreRenderBridge.registerBuiltNode — 이동은 교체하지 않는다),
+  // 팬/드래그 중에도 hit 이 유지된다.
+  const retained = resolveRetainedParagraph(node, key, fontMgr);
+  if (retained) {
+    if (PARAGRAPH_METRICS_DEV) getCacheMetrics("paragraph").recordHit();
+    const drawY = computeDrawY(retained.paragraph);
+    const drawX = node.text.paddingLeft + textIndent + retained.alignOffset;
+    renderTextShadows(retained.paragraph, drawX, drawY);
+    canvas.drawParagraph(retained.paragraph, drawX, drawY);
+    return;
   }
+  if (PARAGRAPH_METRICS_DEV) getCacheMetrics("paragraph").recordMiss();
 
   const scope = new SkiaDisposable();
   try {
@@ -804,13 +701,8 @@ export function renderText(
       }
     }
 
-    if (retainedParagraphEnabled) {
-      retainParagraph(node, paragraph, key, fontMgr, alignOffset);
-      syncParagraphMetricsSize();
-    } else {
-      setCachedParagraph(key, paragraph);
-      if (alignOffset !== 0) paragraphAlignOffsetCache.set(key, alignOffset);
-    }
+    retainParagraph(node, paragraph, key, fontMgr, alignOffset);
+    syncParagraphMetricsSize();
     const drawY = computeDrawY(paragraph);
 
     const shouldClip = node.text.clipText && !isEllipsis;

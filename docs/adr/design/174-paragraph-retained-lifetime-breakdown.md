@@ -195,6 +195,27 @@ RED 는 **한 walk 에서 33회 퇴거** = 프레임 중 WASM `.delete()` 33회�
 - 전역 `paragraphCache` (상한 1,000) 제거 + `VITE_PARAGRAPH_CACHE_SIZE` env 제거 (`nodeRendererState.ts:14-21`).
 - **규칙 갱신**: canvas-rendering.md §3 의 "WASM Paragraph 객체 캐싱 금지 (메모리 누수)" 문구를 "측정 경로 한정. 렌더 측은 노드 소유 retained + deferred 폐기 (ADR-174)" 로 정정 — 현행 문구는 측정기 맥락인데 렌더 측 전역 LRU 존재와 이미 불일치했다.
 
+### 실행 기록 (2026-07-31 — Phase 2 재적용 + G1 재측정 + Phase 3 완료)
+
+**Phase 2 재적용 (`30c6661fb`)**: 진범 수리(`a3414a526` — 공유 FontCollection) 확정 후 사용자 승인으로 되돌림(`954c17532`)을 되돌렸다. 병합 결과 builder 생성은 `MakeFromFontCollection` + 공유 collection 1곳뿐 (정적 가드 PASS), retained 경로는 원안 그대로.
+
+**G1 재측정 — 스코프 정책 no-op 수렴 확정**: 실사용 22 페이지 문서(사용자 5173 서버, 사고 재현에 쓰인 그 문서)에서 **retained 3,807개 = 힙 128 MB**. 판정식의 두 항이 모두 실측으로 채워졌다 — 보유 수 3,807 (전 페이지 텍스트 노드 규모), 단가 ≈ 측정 불가 수준 (128 MB 는 폰트 baseline 지배). 구 단가(5.78 MB)였다면 22 GB 급이라 이 보유 수 자체가 불가능했다. **새 퇴거 기제 불요 — 기존 `clearSkiaRegistry` 경계로 충분.**
+
+**Phase 3 제거 목록**:
+
+| 제거                                                         | 위치                 | 대체                                                             |
+| ------------------------------------------------------------ | -------------------- | ---------------------------------------------------------------- |
+| `paragraphCache` / `paragraphAlignOffsetCache`               | nodeRendererText.ts  | 노드 소유 (`retainedParagraph.ts` — alignOffset 은 entry 필드)   |
+| `retainedParagraphEnabled` 플래그 + `setRetained` 토글       | nodeRendererText.ts  | 무조건 retained (A/B 는 git 커밋 경계로만)                       |
+| `getCachedParagraph` / `setCachedParagraph` (LRU + 퇴거)     | nodeRendererText.ts  | `resolveRetainedParagraph` / `retainParagraph`                   |
+| fontMgr 교체 일괄 `clearParagraphCache()`                    | renderText 초입      | per-entry `entry.fontMgr !== fontMgr` lazy 무효 (기존 활성 경로) |
+| `MAX_PARAGRAPH_CACHE_SIZE` + `VITE_PARAGRAPH_CACHE_SIZE` env | nodeRendererState.ts | 상한 개념 소멸                                                   |
+| `getLastParagraphFontMgr` / `setLastParagraphFontMgr`        | nodeRendererState.ts | (소비자 소멸)                                                    |
+
+- `clearTextParagraphCache` 는 이름 유지한 채 pending 배수 전용으로 축소 — teardown 레지스트리(`registerSkiaCacheDestroy`) / HMR dispose 가 소비. retained 해제는 노드 사망 경로(`releaseParagraphsIn` 3지점) 단독.
+- fontMgr 일괄 clear 제거는 **행동 변화가 아니다** — retained ON 상태에서 일괄 clear 는 비어 있는 LRU 만 비웠고, retained entry 는 이미 per-entry 검사로만 무효화되고 있었다.
+- 검증: type-check 0 error / vitest 18 PASS (retained 계약 12 + 정적 가드 + deferredDisposal) / live probe — 5173 HMR 반영 후 debug 전역에서 `setRetained`/`maxSize` 소멸 확인, 힙 128 MB 평탄. 시각 전수 exercise (G5) 는 Phase 4 에서 수행.
+
 ## Phase 4 — 검증 (G4/G5) + 종결
 
 - G4 성능 비회귀: 기준선 문서 §1 경로 전부 (유휴 / 팬 집합 불변 / 팬 집합 변경 / 스크롤 / 줌 / 편집) frame gap 재측정. **불리 경로 + 프레임 총비용 의무 포함** — 기준선 §6 게이트 설계 제약 (`feedback-perf-gate-favorable-case-only-measurement` 3실패 재생산 금지).
