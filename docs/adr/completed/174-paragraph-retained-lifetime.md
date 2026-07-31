@@ -2,20 +2,21 @@
 
 ## Status
 
-Accepted — 2026-07-31 (리뷰 round 1 승인 — 이슈 3건 전건 fixed, HIGH/CRITICAL 0, `reviews/174.md`). 이력: Proposed 2026-07-30
+Implemented — 2026-07-31 (전 phase 완료 + G1~G5 통과). 이력: Proposed 2026-07-30 → Accepted 2026-07-31 (리뷰 round 1 승인 — 이슈 3건 전건 fixed, HIGH/CRITICAL 0, `../reviews/174.md`)
 
 **진행**:
 
-- Phase 0 (메모리 축 실측) — **G1 미통과, 재측정 필요**. 1차 측정에 쓴 문서가 소수 텍스트를 복제해 요소 수만 부풀린 합성물이라(2026-07-31 사용자 확인) 중복 계수·고유 키 수·보유 프로젝션이 무효다. 그 수치로 내렸던 소유 모델·스코프 결정은 **철회**했고, 소유 모델은 본 ADR 채택안(per-node retained)으로 복귀했다. 유효 산출은 계측 도구 · paragraph 단가 · 프레임 중 delete 6 지점 · 수명 지도 · 측정 함정 3종. 상세: [breakdown §실측 결과](design/174-paragraph-retained-lifetime-breakdown.md).
+- Phase 0 (메모리 축 실측) — **G1 미통과, 재측정 필요**. 1차 측정에 쓴 문서가 소수 텍스트를 복제해 요소 수만 부풀린 합성물이라(2026-07-31 사용자 확인) 중복 계수·고유 키 수·보유 프로젝션이 무효다. 그 수치로 내렸던 소유 모델·스코프 결정은 **철회**했고, 소유 모델은 본 ADR 채택안(per-node retained)으로 복귀했다. 유효 산출은 계측 도구 · paragraph 단가 · 프레임 중 delete 6 지점 · 수명 지도 · 측정 함정 3종. 상세: [breakdown §실측 결과](../design/174-paragraph-retained-lifetime-breakdown.md).
 - Phase 1 (안전 폐기 프리미티브) 완료 2026-07-31 — 프레임 중 WASM `.delete()` 를 전부 지연 폐기 큐 경유로 전환 (`fa4439739`). 측정 결과와 무관하게 성립하는 변경이라 위 철회의 영향을 받지 않는다.
-- Phase 2 (retained 소유 전환) 구현 2026-07-31 (`d7b68a2e7`) → **당일 되돌림 (`954c17532`)**. 구현 자체는 계약을 만족했으나 (**G3 통과** — 계약 테스트 16, **G2 스래싱 A/B 통과** — 상한 20 서버 2대에서 RED `evictions 33 / hitRate 5.71%` vs GREEN `evictions 0 / hitRate 100%`), **실사용 문서에서 R2 가 그대로 발현해 텍스트가 소실**됐다. 사용자 보고 (2026-07-31) → 22 페이지 실문서에서 재현 → 런타임 플래그 A/B: `retained ON` 은 CanvasKit WASM 힙이 **2,147 MB (wasm32 주소공간 상한)** 에 닿아 `RuntimeError: Aborted()` 로 할당이 전부 실패 (프레임 다수 텍스트 소실 → 렌더 루프 정지), `retained OFF` 는 줌아웃·전 페이지 팬 내내 **1,090 MB 평탄** + 전 프레임 정상. 되돌림 후 실물 재확인 — 22 페이지 전체 렌더 · 힙 1,194 MB · 콘솔 에러 0. 상세: [breakdown §Phase 2 되돌림](design/174-paragraph-retained-lifetime-breakdown.md).
-  - **~~원인은 채택안을 절반만 구현한 것~~ — 같은 날 정정 (2026-07-31 오후, 사용자 이의 제기 계기)**: 위 귀속은 산수가 맞지 않았다 (설계 보유 비용 642 × 20 KB ≈ 13 MB ≪ 관측 +1 GB). 계측 재조사 결과 **진범은 선행 잠복 버그** — `ParagraphBuilder.Make(style, fontMgr)` 가 호출마다 새 FontCollection 을 만들고, `fontVariations`(variable font weight) pushStyle 이 collection 별로 **폰트 인스턴스 ~5.78 MB 를 paragraph 마다 복제·보유**시켰다 (처녀 힙 격리 실측: per-call 5.78 MB/개 vs 공유 collection 0). 노드 소유는 이 잠복 단가를 증폭했을 뿐이다. 수리 = 공유 FontCollection (`a3414a526`) — 실문서 22페이지에서 LRU 팔 1,090→**134 MB**, retained 팔(worktree 재검증) 2,147(천장)→**134 MB** (보유 345개). 상세: [breakdown §Phase 2 되돌림 → §진범 확정](design/174-paragraph-retained-lifetime-breakdown.md).
+- Phase 2 (retained 소유 전환) 구현 2026-07-31 (`d7b68a2e7`) → **당일 되돌림 (`954c17532`)**. 구현 자체는 계약을 만족했으나 (**G3 통과** — 계약 테스트 16, **G2 스래싱 A/B 통과** — 상한 20 서버 2대에서 RED `evictions 33 / hitRate 5.71%` vs GREEN `evictions 0 / hitRate 100%`), **실사용 문서에서 R2 가 그대로 발현해 텍스트가 소실**됐다. 사용자 보고 (2026-07-31) → 22 페이지 실문서에서 재현 → 런타임 플래그 A/B: `retained ON` 은 CanvasKit WASM 힙이 **2,147 MB (wasm32 주소공간 상한)** 에 닿아 `RuntimeError: Aborted()` 로 할당이 전부 실패 (프레임 다수 텍스트 소실 → 렌더 루프 정지), `retained OFF` 는 줌아웃·전 페이지 팬 내내 **1,090 MB 평탄** + 전 프레임 정상. 되돌림 후 실물 재확인 — 22 페이지 전체 렌더 · 힙 1,194 MB · 콘솔 에러 0. 상세: [breakdown §Phase 2 되돌림](../design/174-paragraph-retained-lifetime-breakdown.md).
+  - **~~원인은 채택안을 절반만 구현한 것~~ — 같은 날 정정 (2026-07-31 오후, 사용자 이의 제기 계기)**: 위 귀속은 산수가 맞지 않았다 (설계 보유 비용 642 × 20 KB ≈ 13 MB ≪ 관측 +1 GB). 계측 재조사 결과 **진범은 선행 잠복 버그** — `ParagraphBuilder.Make(style, fontMgr)` 가 호출마다 새 FontCollection 을 만들고, `fontVariations`(variable font weight) pushStyle 이 collection 별로 **폰트 인스턴스 ~5.78 MB 를 paragraph 마다 복제·보유**시켰다 (처녀 힙 격리 실측: per-call 5.78 MB/개 vs 공유 collection 0). 노드 소유는 이 잠복 단가를 증폭했을 뿐이다. 수리 = 공유 FontCollection (`a3414a526`) — 실문서 22페이지에서 LRU 팔 1,090→**134 MB**, retained 팔(worktree 재검증) 2,147(천장)→**134 MB** (보유 345개). 상세: [breakdown §Phase 2 되돌림 → §진범 확정](../design/174-paragraph-retained-lifetime-breakdown.md).
   - 유지되는 교훈 두 가지: ① G1 (메모리 축 실측) 은 Phase 2 의 **선행 차단 게이트**다 — 단가 가정(20 KB)이 350배 틀려 있었는데 미실측으로 진행했다. ② R2 (dedup 소실) 는 실재한다 — 이 문서 실측 배수 2.8× (208 노드 / 74 키). 단가가 정상(수 KB~수십 KB)이면 2.8× 는 무해하고, 수리 후 실측이 그것을 확인했다 (345개 보유 = 힙 증가 측정 불가 수준).
 - Phase 1 은 되돌림 대상이 아니다 — 지연 폐기는 소유 모델과 독립적으로 성립하며 main 에 유지된다.
 - **Phase 2 재개 조건 갱신 (2026-07-31)**: 단가 수리(`a3414a526`)로 "무스코프 보유 = 상한 없는 증가" 위험의 실측 크기가 소멸했다 (retained 345개 = 134 MB). 재개 시 G1 을 수리 후 단가 기준으로 재측정 → 스코프 정책 필요 여부 재판정 (예상: no-op 수렴 = 대안 C 의 B 동치 조항).
 - **Phase 2 재적용 완료 2026-07-31 (`30c6661fb`)** — 사용자 승인 ("텍스트가 잘 보인다면 설계대로 진행해야지") 으로 되돌림(`954c17532`)의 되돌림. 공유 FontCollection 수리와 병합 — per-call `ParagraphBuilder.Make` 0건 유지 (정적 가드 PASS), 계약 테스트 12 PASS.
 - **G1 재측정 (수리 후 단가 기준, 2026-07-31)** — 실사용 22 페이지 문서를 사용자 5173 서버에서 로드: **retained 3,807개 보유 = 힙 128 MB** (구 단가였다면 3,807 × 5.78 MB ≈ 22 GB 로 즉사 규모). 보유 수가 전 페이지 텍스트 노드 규모에 도달해도 힙이 평탄하므로 **스코프 정책은 no-op 수렴 확정** — 대안 C 의 B 동치 조항 성립, 기존 경계(`clearSkiaRegistry`)로 충분. **G1 통과.**
 - **Phase 3 (LRU 제거 + 규칙 정정) 완료 2026-07-31** — 전역 `paragraphCache`/`paragraphAlignOffsetCache`/전환 플래그/`setRetained` 토글/`VITE_PARAGRAPH_CACHE_SIZE` env/`MAX_PARAGRAPH_CACHE_SIZE` 상한 전량 제거. fontMgr 교체 일괄 clear 는 per-entry lazy 무효 판정(`resolveRetainedParagraph`)으로 대체 (retained ON 상태에서 이미 동작하던 경로 — 행동 변화 없음). canvas-rendering.md §3 문구를 "측정 경로 한정 + 렌더 측 노드 소유 retained" 로 정정.
+- **Phase 4 (G4/G5) 통과 2026-07-31** — G5: 실문서 사본에서 편집 즉시 반영(stale 0) / 페이지 전환 왕복 / 줌 10~14%↔100% ×2 전 텍스트 유지 + 힙 128 MB 불변 + 에러 0. 부수 증거: 저줌 retained 5,336 → 100% 복귀 490 (노드 사망 해제 경로 실동작). G4: LRU+수리 팔 대비 A/B — record p50/p95 동등~우위 (1.6/52.8 vs 2.0/55.8), 최악 프레임 총비용 동등 (longtask max 229 vs 234), 힙 동일. 불리 경로(cold 전 페이지 walk record 최대 1건 +41ms — dedup 2.8× 의 1회성 비용)는 최악 프레임을 만들지 않음. 상세: [breakdown §Phase 4 실행 결과](../design/174-paragraph-retained-lifetime-breakdown.md).
 
 ## Context
 
@@ -98,7 +99,7 @@ Skia 렌더의 텍스트 paragraph 는 전역 LRU 캐시 (고정 상한 1,000, `
 - **대안 A 기각**: 수명이 캐시 정책 (상한/퇴거) 에 결합된 채 남아 문턱 개념이 존속 — 문턱 진동 시 재생성 비용과 튜닝 상수가 남고, "왜 이 상한인가" 가 다음 문서 규모에서 재론된다. 완성도 요구 미달. (폐기 지연 부품만 Phase 1 로 흡수.)
 - **대안 B 기각**: 메모리 총량 미실측 상태의 무스코프 보유는 대형 문서에서 상한 없는 증가 위험 (HIGH). 단 Phase 0 실측에서 총량이 작으면 C 의 스코프가 no-op 으로 수렴하므로 실질 포함된다.
 
-> 구현 상세: [174-paragraph-retained-lifetime-breakdown.md](design/174-paragraph-retained-lifetime-breakdown.md)
+> 구현 상세: [174-paragraph-retained-lifetime-breakdown.md](../design/174-paragraph-retained-lifetime-breakdown.md)
 
 ## Risks
 

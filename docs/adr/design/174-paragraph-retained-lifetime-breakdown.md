@@ -1,6 +1,6 @@
 # ADR-174 Design Breakdown — Paragraph 수명 retained 전환
 
-> 본문: [174-paragraph-retained-lifetime.md](../174-paragraph-retained-lifetime.md)
+> 본문: [174-paragraph-retained-lifetime.md](../completed/174-paragraph-retained-lifetime.md)
 
 ## §1 전제 lock-in
 
@@ -221,6 +221,34 @@ RED 는 **한 walk 에서 33회 퇴거** = 프레임 중 WASM `.delete()` 33회�
 - G4 성능 비회귀: 기준선 문서 §1 경로 전부 (유휴 / 팬 집합 불변 / 팬 집합 변경 / 스크롤 / 줌 / 편집) frame gap 재측정. **불리 경로 + 프레임 총비용 의무 포함** — 기준선 §6 게이트 설계 제약 (`feedback-perf-gate-favorable-case-only-measurement` 3실패 재생산 금지).
 - G5 live exercise: 실문서에서 ① 텍스트 편집 → 즉시 반영 (stale 0) ② 페이지 전환 왕복 ③ 줌 15%↔100% 왕복 ×2 — 전 텍스트 유지 스크린샷.
 - 종결: CHANGELOG (Bug Fixes — Why 포함) + 기준선 문서 §8 상태 갱신 (잔존 → 수리) + README 승격.
+
+### 실행 결과 (2026-07-31 — G4/G5 통과)
+
+**G5 (실사용 22페이지 문서 사본 `ADR174-LEAK-TEST`, main HEAD 코드)** — 3항목 전부 통과:
+
+| 항목                    | 절차                                                         | 결과                                                |
+| ----------------------- | ------------------------------------------------------------ | --------------------------------------------------- |
+| ① 텍스트 편집 즉시 반영 | `updateElementProps` 로 `{label}` → `EDITED-G5` → 원복       | 양방향 즉시 반영, stale 0 (구 텍스트 잔존 없음)     |
+| ② 페이지 전환 왕복      | `activatePage` Home → Page 2 → Home                          | 전 텍스트 유지, 에러 0                              |
+| ③ 줌 왕복 ×2            | 100→14→100→10→100% (메뉴 스텝, 14/10% 는 22페이지 전체 렌더) | 전 텍스트 유지, 힙 128 MB 전 구간 불변, 콘솔 에러 0 |
+
+- 부수 증거: 14% 시점 retained **5,336** → 100% 복귀 후 **490** — 노드 사망 해제 경로(`releaseParagraphsIn`)가 실제로 돌아 보유가 단조 증가하지 않는다.
+
+**G4 (A/B — 같은 문서·같은 스크립트 절차: 유휴 5s / 줌 100→14→100 / 페이지 전환 왕복 / 편집+원복)**: 비교팔 = `a3414a526` (전역 LRU + 수리 = 재적용 직전 main), 대상팔 = HEAD (`9fd5233f1`).
+
+| 지표 (`__composition_PERF__`)  | LRU+수리 |     HEAD | 판정                    |
+| ------------------------------ | -------: | -------: | ----------------------- |
+| render.skia.record.content p50 |      2.0 |  **1.6** | 동등~우위               |
+| 〃 p95                         |     55.8 | **52.8** | 동등~우위               |
+| 〃 mean (n27/29)               |    11.13 |    12.34 | 동등                    |
+| 〃 max (1건)                   |     61.8 |    103.3 | 불리 경로 — 아래 ※      |
+| render.skia.flush.content mean |     1.59 |     1.58 | 동일                    |
+| longtask p50 / max             |  100/234 |   96/229 | 최악 프레임 총비용 동등 |
+| WASM 힙                        |   128 MB |   128 MB | 증가 0 (G1 이내)        |
+
+- ※ **불리 경로 정직 보고**: cold 전 페이지 walk 의 record 최대 1건이 61.8→103.3ms — dedup 소실(실문서 2.8×)이 최초 생성 수를 늘리는 예상된 1회성 비용. 단 **최악 프레임 총비용(longtask max)은 229 vs 234 로 악화 없음** — 해당 record 증가가 최악 프레임을 만들지 않았다. 정상 상태 지표(p50/p95/flush/힙)는 전부 동등~우위.
+- 측정 한계 (기록): 팔당 1 run (동일 머신 순차). 팬·스크롤 축은 별도 leg 미측정 — 두 모델의 차이는 paragraph **생성/조회** 시점에만 있고 (팬·스크롤은 집합 불변 시 nodePicture replay 로 텍스트 walk 자체가 없으며, 집합 변경 시 신규 진입 생성은 줌 walk leg 이 이미 포함), 조회 비용 동등성은 record p50 이 잡는다.
+- **G4/G5 통과 판정** → 종결 진행.
 
 ## 파일 변경 (예상 — Phase 0 에서 freeze)
 

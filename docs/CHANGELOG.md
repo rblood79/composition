@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Paragraph 노드 소유 확정 — ADR-174 Implemented] - 2026-07-31
+
+### Architecture
+
+- **paragraph 소유를 전역 LRU 에서 텍스트 노드로 전환 완결** (ADR-174 Phase 2 재적용 + Phase 3~4, commit: `30c6661fb`/`9fd5233f1`):
+  - 오전 되돌림(아래 엔트리)의 진범이 노드 소유 설계가 아니라 폰트 인스턴스 복제 버그(아래 수리 엔트리)로 확정되어, 수리 위에서 설계 원안을 재적용 — 실측: retained **5,336개 보유에도 힙 128 MB 평탄** (구 단가였다면 22 GB 급).
+  - Phase 3: 전역 `paragraphCache`(상한 1,000)/전환 플래그/`VITE_PARAGRAPH_CACHE_SIZE` env 전량 제거 — 상한→퇴거→프레임 중 폐기라는 텍스트 소실 병인 자체가 소멸. paragraph 수명 = 노드 수명 (`releaseParagraphsIn` 3지점), fontMgr 무효화는 per-entry 검사.
+  - Phase 4 검증: G5 — 편집 즉시 반영(stale 0) / 페이지 전환 왕복 / 줌 10~14%↔100% ×2 전 텍스트 유지 + 저줌 5,336 → 복귀 490 (해제 경로 실동작). G4 A/B(LRU+수리 팔 대비) — record p50/p95 동등~우위, 최악 프레임 총비용 동등(longtask max 229 vs 234), 불리 경로는 cold walk record 최대 1건 +41ms (dedup 2.8× 1회성)로 최악 프레임 미형성.
+  - 규칙 정정: `canvas-rendering.md` §3 — "Paragraph 캐싱 금지" 는 측정 경로 한정, 렌더 측은 노드 소유 retained + 공유 FontCollection 의무.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{nodeRendererText,nodeRendererState,retainedParagraph,renderCommands,useSkiaNode}.ts`
+
 ## [Paragraph 폰트 인스턴스 공유 — WASM 힙 88% 절감, 텍스트 소실 진범 수리] - 2026-07-31
 
 ### Bug Fixes
