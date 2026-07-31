@@ -17,6 +17,7 @@ import {
   type ViewportController,
   getViewportController,
 } from "./ViewportController";
+import { getViewportInteractionSession } from "./ViewportInteractionSession";
 import {
   isCanvasViewportSnapshotEqual,
   selectCanvasViewportSnapshot,
@@ -90,15 +91,10 @@ export function useViewportControl(
     gestureSession,
   } = options;
   const isPanningRef = useRef(false);
-  // 🚀 Phase 6.1: 줌 종료 디바운스 타이머
-  const zoomEndTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastPanPointRef = useRef<{ x: number; y: number } | null>(null);
+  // 휠 interaction 종료 디바운스 타이머
+  const wheelEndTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isZoomingRef = useRef(false);
-
-  // Fix 6: wheel 팬 시 setPanOffset을 RAF로 배칭하여 React 리렌더 최소화.
-  // 트랙패드는 120Hz+로 wheel 이벤트를 발생시키지만, React 리렌더는 프레임당 1회로 충분.
-  // controller.setPosition()은 즉시 호출하여 PixiJS/Skia 시각 렌더링은 지연 없이 유지.
-  const pendingPanRef = useRef<{ x: number; y: number } | null>(null);
-  const rafPanRef = useRef<number | null>(null);
 
   // 🚀 Phase 6.1: 콜백 ref (의존성 배열에서 제외하여 useEffect 재실행 방지)
   const onInteractionStartRef = useRef(onInteractionStart);
@@ -128,6 +124,21 @@ export function useViewportControl(
   const controller = useMemo(() => {
     return getViewportController({ minZoom, maxZoom });
   }, [minZoom, maxZoom]);
+
+  const viewportSession = useMemo(
+    () =>
+      getViewportInteractionSession({
+        controller,
+        commitMirror: handleStateSync,
+        onControllerApply: () => recordViewportInteractionTransientApply(),
+        onFrame: (timestamp) => recordViewportInteractionRafFrame(timestamp),
+        readMirror: () => {
+          const { panOffset, zoom } = useViewportSyncStore.getState();
+          return { x: panOffset.x, y: panOffset.y, scale: zoom };
+        },
+      }),
+    [controller, handleStateSync],
+  );
 
   // onStateSync 콜백을 싱글톤에 설정 (싱글톤 생성 후 지연 바인딩)
   useEffect(() => {
@@ -242,24 +253,33 @@ export function useViewportControl(
         e.preventDefault();
         // 🚀 Phase 6.1: 인터랙션 시작 알림 (ref 사용)
         onInteractionStartRef.current?.();
-        controller.startPan(e.clientX, e.clientY);
+        viewportSession.begin("drag");
+        lastPanPointRef.current = { x: e.clientX, y: e.clientY };
         isPanningRef.current = true;
         applyPanCursorRef.current("grabbing");
       }
     };
 
     const handleWindowPointerMove = (e: PointerEvent) => {
-      if (!controller.isPanningActive()) return;
+      const lastPanPoint = lastPanPointRef.current;
+      if (!isPanningRef.current || !lastPanPoint) return;
       observe(PERF_LABEL.INPUT_VIEWPORT_DRAG, () => {
+        const delta = {
+          x: e.clientX - lastPanPoint.x,
+          y: e.clientY - lastPanPoint.y,
+        };
+        lastPanPointRef.current = { x: e.clientX, y: e.clientY };
         recordViewportInteractionRawInput();
-        controller.updatePan(e.clientX, e.clientY);
-        recordViewportInteractionTransientApply();
+        viewportSession.queuePan(delta);
       });
     };
 
     const handleWindowPointerEnd = (e: PointerEvent) => {
-      if (controller.isPanningActive()) {
-        controller.endPan();
+      if (isPanningRef.current) {
+        viewportSession.finish(
+          e.type === "pointercancel" ? "interrupted" : "pointerup",
+        );
+        lastPanPointRef.current = null;
         isPanningRef.current = false;
         // Space가 여전히 눌려있으면 grab, 아니면 null
         applyPanCursorRef.current(gestureSession.spacePressed ? "grab" : null);
@@ -279,12 +299,38 @@ export function useViewportControl(
       window.removeEventListener("pointermove", handleWindowPointerMove);
       window.removeEventListener("pointerup", handleWindowPointerEnd);
       window.removeEventListener("pointercancel", handleWindowPointerEnd);
+      if (isPanningRef.current) {
+        viewportSession.finish("interrupted");
+        lastPanPointRef.current = null;
+        isPanningRef.current = false;
+      }
     };
-  }, [containerEl, controller, gestureSession]);
+  }, [containerEl, gestureSession, viewportSession]);
 
   // 휠 이벤트 핸들러 (줌/팬) - Figma/Photoshop 스타일
   useEffect(() => {
     if (!containerEl || !controller) return;
+
+    const finishWheelInteraction = (reason: "idle" | "interrupted") => {
+      if (wheelEndTimeoutRef.current) {
+        clearTimeout(wheelEndTimeoutRef.current);
+        wheelEndTimeoutRef.current = null;
+      }
+      viewportSession.finish(reason);
+      if (isZoomingRef.current) {
+        isZoomingRef.current = false;
+        onInteractionEndRef.current?.();
+      }
+    };
+
+    const scheduleWheelEnd = () => {
+      if (wheelEndTimeoutRef.current) {
+        clearTimeout(wheelEndTimeoutRef.current);
+      }
+      wheelEndTimeoutRef.current = setTimeout(() => {
+        finishWheelInteraction("idle");
+      }, 150);
+    };
 
     const handleWheel = (e: WheelEvent) => {
       const label =
@@ -305,18 +351,6 @@ export function useViewportControl(
             onInteractionStartRef.current?.();
           }
 
-          // 기존 종료 타임아웃 취소
-          if (zoomEndTimeoutRef.current) {
-            clearTimeout(zoomEndTimeoutRef.current);
-          }
-
-          // 150ms 동안 휠 이벤트 없으면 종료로 간주
-          zoomEndTimeoutRef.current = setTimeout(() => {
-            isZoomingRef.current = false;
-            onInteractionEndRef.current?.();
-            zoomEndTimeoutRef.current = null;
-          }, 150);
-
           const rect = containerEl.getBoundingClientRect();
 
           // Pencil 방식: deltaY 클램핑 + 0.012 계수
@@ -327,8 +361,15 @@ export function useViewportControl(
           const clamped = Math.max(-clampRange, Math.min(clampRange, e.deltaY));
           const delta = clamped * -0.012;
 
-          controller.zoomAtPoint(e.clientX, e.clientY, rect, delta, true);
-          recordViewportInteractionTransientApply();
+          viewportSession.begin("wheel-zoom");
+          viewportSession.queueZoomAt({
+            anchor: {
+              x: e.clientX - rect.left,
+              y: e.clientY - rect.top,
+            },
+            delta,
+          });
+          scheduleWheelEnd();
         } else {
           // 일반 휠 = 팬 (Figma/Photoshop 스타일)
           e.preventDefault();
@@ -359,35 +400,13 @@ export function useViewportControl(
           const rawDeltaX = e.shiftKey ? e.deltaY : e.deltaX;
           const rawDeltaY = e.shiftKey ? 0 : e.deltaY;
 
-          // Fix 6: 동일 프레임 내 다중 wheel 이벤트 누적 처리.
-          // pendingPanRef가 있으면 이전 누적값 기준, 없으면 Zustand 현재값 기준.
-          const current =
-            pendingPanRef.current ?? useViewportSyncStore.getState().panOffset;
-          const { zoom } = useViewportSyncStore.getState();
-          const newX = current.x - rawDeltaX;
-          const newY = current.y - rawDeltaY;
-
-          // PixiJS Container 즉시 업데이트 (Skia 시각 렌더링 지연 없음)
-          controller.setPosition(newX, newY, zoom);
-          recordViewportInteractionTransientApply();
-
-          // Zustand 업데이트를 RAF로 배칭 (React 리렌더 프레임당 1회 제한)
-          pendingPanRef.current = { x: newX, y: newY };
-          if (rafPanRef.current === null) {
-            rafPanRef.current = requestAnimationFrame((timestamp) => {
-              recordViewportInteractionRafFrame(timestamp);
-              if (pendingPanRef.current) {
-                const latestZoom = useViewportSyncStore.getState().zoom;
-                recordViewportInteractionMirrorCommit();
-                setViewportSnapshot({
-                  panOffset: pendingPanRef.current,
-                  zoom: latestZoom,
-                });
-                pendingPanRef.current = null;
-              }
-              rafPanRef.current = null;
-            });
+          if (isZoomingRef.current) {
+            isZoomingRef.current = false;
+            onInteractionEndRef.current?.();
           }
+          viewportSession.begin("wheel-pan");
+          viewportSession.queuePan({ x: -rawDeltaX, y: -rawDeltaY });
+          scheduleWheelEnd();
         }
       });
     };
@@ -399,32 +418,50 @@ export function useViewportControl(
 
     return () => {
       containerEl.removeEventListener("wheel", handleWheel, { capture: true });
-      // cleanup 시 타임아웃 정리
-      if (zoomEndTimeoutRef.current) {
-        clearTimeout(zoomEndTimeoutRef.current);
-        zoomEndTimeoutRef.current = null;
+      finishWheelInteraction("interrupted");
+    };
+  }, [containerEl, controller, viewportSession]);
+
+  useEffect(() => {
+    const interruptViewportInteraction = () => {
+      if (wheelEndTimeoutRef.current) {
+        clearTimeout(wheelEndTimeoutRef.current);
+        wheelEndTimeoutRef.current = null;
       }
-      // Fix 6: 배칭 RAF 정리
-      if (rafPanRef.current !== null) {
-        cancelAnimationFrame(rafPanRef.current);
-        // 마지막 누적값 반영 (언마운트 전 최종 상태 동기화)
-        if (pendingPanRef.current) {
-          const { zoom } = useViewportSyncStore.getState();
-          recordViewportInteractionMirrorCommit();
-          setViewportSnapshot({
-            panOffset: pendingPanRef.current,
-            zoom,
-          });
-          pendingPanRef.current = null;
-        }
-        rafPanRef.current = null;
+
+      const wasPanning = isPanningRef.current;
+      const wasZooming = isZoomingRef.current;
+      viewportSession.finish("interrupted");
+      lastPanPointRef.current = null;
+      isPanningRef.current = false;
+      isZoomingRef.current = false;
+
+      if (wasPanning) {
+        applyPanCursorRef.current(gestureSession.spacePressed ? "grab" : null);
+      }
+      if (wasPanning || wasZooming) {
+        onInteractionEndRef.current?.();
       }
     };
-  }, [containerEl, controller, setViewportSnapshot]);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        interruptViewportInteraction();
+      }
+    };
+
+    window.addEventListener("blur", interruptViewportInteraction);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("blur", interruptViewportInteraction);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [gestureSession, viewportSession]);
 
   // 외부 React state 변경 시 Controller에 반영
   useEffect(() => {
-    if (!controller || controller.isPanningActive()) return;
+    if (!controller || viewportSession.isActive()) return;
 
     const viewport = selectCanvasViewportSnapshot(
       useViewportSyncStore.getState(),
@@ -434,7 +471,7 @@ export function useViewportControl(
       viewport.panOffset.y,
       viewport.zoom,
     );
-  }, [controller]);
+  }, [controller, viewportSession]);
 
   // Zustand store 변경 구독 (외부에서 줌/팬 변경 시)
   useEffect(() => {
@@ -443,7 +480,7 @@ export function useViewportControl(
     const unsubscribe = useViewportSyncStore.subscribe(
       selectCanvasViewportSnapshot,
       (viewport) => {
-        if (!controller || controller.isPanningActive()) return;
+        if (!controller || viewportSession.isActive()) return;
         controller.setPosition(
           viewport.panOffset.x,
           viewport.panOffset.y,
@@ -454,7 +491,7 @@ export function useViewportControl(
     );
 
     return unsubscribe;
-  }, [controller]);
+  }, [controller, viewportSession]);
 
   // 스페이스바 팬 모드 (cursor만 변경)
   useKeyboardShortcutsRegistry(

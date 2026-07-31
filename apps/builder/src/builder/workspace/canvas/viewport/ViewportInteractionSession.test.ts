@@ -106,6 +106,34 @@ describe("ViewportInteractionSession", () => {
     expect(commitMirror).toHaveBeenCalledTimes(1);
   });
 
+  it("reports one transient apply per scheduled frame", () => {
+    const controller = new ViewportController();
+    const scheduler = createFrameScheduler();
+    const onControllerApply = vi.fn();
+    const onFrame = vi.fn();
+    const session = new ViewportInteractionSession({
+      controller,
+      scheduler,
+      commitMirror: vi.fn(),
+      onControllerApply,
+      onFrame,
+      readMirror: () => ({ x: 0, y: 0, scale: 1 }),
+    });
+
+    session.begin("wheel-pan");
+    session.queuePan({ x: 2, y: 0 });
+    session.queuePan({ x: 3, y: 0 });
+    scheduler.flush();
+
+    expect(onFrame).toHaveBeenCalledTimes(1);
+    expect(onControllerApply).toHaveBeenCalledTimes(1);
+    expect(onControllerApply).toHaveBeenLastCalledWith({
+      x: 5,
+      y: 0,
+      scale: 1,
+    });
+  });
+
   it("commits an interrupted session before applying an external command", () => {
     const { commitMirror, controller, session } = createSession();
 

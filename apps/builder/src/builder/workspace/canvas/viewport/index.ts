@@ -20,6 +20,8 @@ export {
   type ViewportControlBridgeProps,
 } from "./ViewportControlBridge";
 export {
+  getViewportInteractionSession,
+  resetViewportInteractionSession,
   ViewportInteractionSession,
   type ViewportFrameScheduler,
   type ViewportInteractionFinishReason,

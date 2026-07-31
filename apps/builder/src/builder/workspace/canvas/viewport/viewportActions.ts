@@ -3,6 +3,8 @@ import {
   getViewportController,
   type ViewportState,
 } from "./ViewportController";
+import { getViewportInteractionSession } from "./ViewportInteractionSession";
+import { recordViewportInteractionMirrorCommit } from "./viewportInteractionMetrics";
 
 export interface ViewportCanvasSize {
   height: number;
@@ -113,12 +115,35 @@ export function offsetViewportStateX(
   };
 }
 
-export function applyViewportState(nextState: ViewportState): void {
+export function runViewportCommand(
+  command: (state: ViewportState) => ViewportState,
+): void {
   const controller = getViewportController();
   if (controller.isAttached()) {
-    controller.setPosition(nextState.x, nextState.y, nextState.scale);
+    const session = getViewportInteractionSession({
+      controller,
+      commitMirror: (state) => {
+        recordViewportInteractionMirrorCommit();
+        useViewportSyncStore.getState().setViewportSnapshot({
+          panOffset: { x: state.x, y: state.y },
+          zoom: state.scale,
+        });
+      },
+      readMirror: () => {
+        const { panOffset, zoom } = useViewportSyncStore.getState();
+        return { x: panOffset.x, y: panOffset.y, scale: zoom };
+      },
+    });
+    session.runCommand(command);
+    return;
   }
 
+  const state = useViewportSyncStore.getState();
+  const nextState = command({
+    x: state.panOffset.x,
+    y: state.panOffset.y,
+    scale: state.zoom,
+  });
   const { setViewportSnapshot } = useViewportSyncStore.getState();
   setViewportSnapshot({
     panOffset: { x: nextState.x, y: nextState.y },
@@ -126,26 +151,27 @@ export function applyViewportState(nextState: ViewportState): void {
   });
 }
 
+export function applyViewportState(nextState: ViewportState): void {
+  runViewportCommand(() => nextState);
+}
+
 export function zoomViewportAtContainerCenter(nextZoom: number): void {
   const state = useViewportSyncStore.getState();
   const zoom = clampViewportZoom(nextZoom);
 
-  if (state.containerSize.width === 0 || state.containerSize.height === 0) {
-    applyViewportState({
+  runViewportCommand((current) => {
+    if (state.containerSize.width === 0 || state.containerSize.height === 0) {
+      return { scale: zoom, x: current.x, y: current.y };
+    }
+
+    const centerX = state.containerSize.width / 2;
+    const centerY = state.containerSize.height / 2;
+    const zoomRatio = zoom / current.scale;
+
+    return {
       scale: zoom,
-      x: state.panOffset.x,
-      y: state.panOffset.y,
-    });
-    return;
-  }
-
-  const centerX = state.containerSize.width / 2;
-  const centerY = state.containerSize.height / 2;
-  const zoomRatio = zoom / state.zoom;
-
-  applyViewportState({
-    scale: zoom,
-    x: centerX - (centerX - state.panOffset.x) * zoomRatio,
-    y: centerY - (centerY - state.panOffset.y) * zoomRatio,
+      x: centerX - (centerX - current.x) * zoomRatio,
+      y: centerY - (centerY - current.y) * zoomRatio,
+    };
   });
 }

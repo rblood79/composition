@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Viewport 입력 스케줄링 통합 — ADR-175 Phase 2 진행] - 2026-07-31
+
+### Performance
+
+- Space-drag, wheel pan, Ctrl/Cmd+wheel zoom을 공통 `ViewportInteractionSession`으로
+  이관했다. 원시 이벤트마다 발생하던 controller listener fan-out과 canonical
+  `setViewportSnapshot()` write를 display frame 및 interaction 종료 경계로 분리했다.
+- 상단 zoom popover와 keyboard zoom이 사용하는 `viewportActions`도 동일 command
+  arbitration을 거친다. 진행 중 wheel/drag는 먼저 final state를 mirror한 뒤 command를
+  적용하므로 stale store state로 zoom을 계산하지 않는다.
+
+### Verification
+
+- `ViewportInteractionSession`/`viewportActions`/metrics targeted Vitest 15개 PASS
+- `pnpm run codex:typecheck` PASS (기존 baseline 53건 외 신규 오류 0)
+
 ## [Paragraph 노드 소유 확정 — ADR-174 Implemented] - 2026-07-31
 
 ### Architecture

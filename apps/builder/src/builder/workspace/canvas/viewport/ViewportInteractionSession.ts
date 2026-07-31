@@ -37,6 +37,8 @@ type ViewportOperation = PanOperation | ZoomOperation;
 export interface ViewportInteractionSessionOptions {
   commitMirror(state: ViewportState): void;
   controller: ViewportController;
+  onControllerApply?(state: ViewportState): void;
+  onFrame?(timestamp: number): void;
   readMirror(): ViewportState;
   scheduler?: ViewportFrameScheduler;
 }
@@ -56,24 +58,47 @@ function isViewportStateEqual(
 /**
  * 연속 viewport input의 transient controller 적용과 canonical mirror commit을 분리한다.
  *
- * Phase 1에서는 adapter를 이관하지 않는다. 이 class의 contract test가 이후 drag/wheel과
- * external command가 공유할 단일 scheduling path를 고정한다.
+ * drag, wheel, external command adapter가 이 class를 통해 동일한 scheduling path를 공유한다.
  */
 export class ViewportInteractionSession {
   private activeKind: ViewportInteractionKind | null = null;
   private pendingOperations: ViewportOperation[] = [];
   private rafHandle: number | null = null;
 
-  private readonly commitMirror: (state: ViewportState) => void;
+  private commitMirror: (state: ViewportState) => void;
   private readonly controller: ViewportController;
-  private readonly readMirror: () => ViewportState;
+  private onControllerApply: ((state: ViewportState) => void) | undefined;
+  private onFrame: ((timestamp: number) => void) | undefined;
+  private readMirror: () => ViewportState;
   private readonly scheduler: ViewportFrameScheduler;
 
   constructor(options: ViewportInteractionSessionOptions) {
     this.commitMirror = options.commitMirror;
     this.controller = options.controller;
+    this.onControllerApply = options.onControllerApply;
+    this.onFrame = options.onFrame;
     this.readMirror = options.readMirror;
     this.scheduler = options.scheduler ?? browserFrameScheduler;
+  }
+
+  updateBridge(
+    options: Pick<
+      ViewportInteractionSessionOptions,
+      "commitMirror" | "onControllerApply" | "onFrame" | "readMirror"
+    >,
+  ): void {
+    this.commitMirror = options.commitMirror;
+    if (options.onControllerApply) {
+      this.onControllerApply = options.onControllerApply;
+    }
+    if (options.onFrame) {
+      this.onFrame = options.onFrame;
+    }
+    this.readMirror = options.readMirror;
+  }
+
+  usesController(controller: ViewportController): boolean {
+    return this.controller === controller;
   }
 
   begin(kind: ViewportInteractionKind): void {
@@ -112,11 +137,15 @@ export class ViewportInteractionSession {
       this.controller.getState(),
       operations,
     );
-    return this.controller.setPosition(
+    const changed = this.controller.setPosition(
       nextState.x,
       nextState.y,
       nextState.scale,
     );
+    if (changed) {
+      this.onControllerApply?.(this.controller.getState());
+    }
+    return changed;
   }
 
   finish(reason: ViewportInteractionFinishReason): void {
@@ -139,8 +168,9 @@ export class ViewportInteractionSession {
       nextState.scale,
     );
     if (changed) {
-      this.commitCurrentStateIfChanged("discrete");
+      this.onControllerApply?.(this.controller.getState());
     }
+    this.commitCurrentStateIfChanged("discrete");
   }
 
   private applyOperations(
@@ -197,9 +227,39 @@ export class ViewportInteractionSession {
 
   private scheduleFrame(): void {
     if (this.rafHandle !== null) return;
-    this.rafHandle = this.scheduler.request(() => {
+    this.rafHandle = this.scheduler.request((timestamp) => {
       this.rafHandle = null;
+      this.onFrame?.(timestamp);
       this.flushFrame();
     });
   }
+}
+
+let viewportInteractionSession: ViewportInteractionSession | null = null;
+
+/**
+ * workspace 수명 동안 drag, wheel, command adapter가 공유하는 session을 반환한다.
+ * controller가 교체되면 진행 중 interaction을 종료한 뒤 새 session으로 교체한다.
+ */
+export function getViewportInteractionSession(
+  options: ViewportInteractionSessionOptions,
+): ViewportInteractionSession {
+  if (!viewportInteractionSession) {
+    viewportInteractionSession = new ViewportInteractionSession(options);
+    return viewportInteractionSession;
+  }
+
+  if (!viewportInteractionSession.usesController(options.controller)) {
+    viewportInteractionSession.finish("interrupted");
+    viewportInteractionSession = new ViewportInteractionSession(options);
+    return viewportInteractionSession;
+  }
+
+  viewportInteractionSession.updateBridge(options);
+  return viewportInteractionSession;
+}
+
+export function resetViewportInteractionSession(): void {
+  viewportInteractionSession?.finish("interrupted");
+  viewportInteractionSession = null;
 }

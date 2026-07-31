@@ -344,6 +344,14 @@ minimap, scrollbar thumb drag, `panToPage`, fit/restore/breakpoint 전환이다.
   이관한다. breakpoint persistence는 session finish 뒤의 final mirror만 저장한다.
 - `pointercancel`, wheel idle, blur, visibility change, unmount cleanup을 G2 fixture로
   고정한다.
+- **진행 중 (2026-07-31)**: `useViewportControl`의 Space-drag, wheel pan, Ctrl/Cmd
+  wheel zoom을 session queue로 이관했다. selected internal scroll 판정은 queue 이전에
+  유지하며, session active 중 store→controller bridge는 차단한다. wheel idle,
+  pointercancel, window blur, document hidden, unmount는 같은 interrupted/finish 경로로
+  final mirror를 보존한다. `applyViewportState`와 center zoom은 `runViewportCommand`를
+  통해 active session을 먼저 flush·finish한 controller state에서 계산·commit한다.
+  `panToPage`, minimap, scrollbar thumb, breakpoint persistence 및 browser G4는 이 phase의
+  잔여 항목으로 남긴다.
 
 ### Phase 3 — browser verification and performance decision
 
