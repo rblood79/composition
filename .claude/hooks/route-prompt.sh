@@ -88,11 +88,15 @@ if echo "$prompt" | grep -qiE "테스트|test|E2E|storybook|playwright|vitest"; 
 - 구현 중 → TDD (RED-GREEN-REFACTOR) — 실패하는 테스트 먼저"
 fi
 
-# 레이아웃 / Taffy
+# 레이아웃 / 엔진 (자체 Rust WASM — ADR-916, JS 어댑터 심볼명만 Taffy* 유지)
 if echo "$prompt" | grep -qiE "레이아웃|layout|Taffy|flex|grid|align|정렬"; then
   hints="${hints}
 - 레이아웃 작업 → rules/layout-engine.md 자동 로드 (packages/composition-engine/**)
-- layoutVersion 3-심볼 체인: LAYOUT_PROP_KEYS (캐시) + NON_LAYOUT_PROPS_UPDATE (블랙리스트) + INHERITED_LAYOUT_PROPS_UPDATE (상속) 동시 점검"
+- layoutVersion **5-심볼 2계층** 체인 — 계층 A·B 는 AND, 한쪽만 등재하면 무반영. 먼저 축 판정: \`props.foo\` 인가 \`props.style.foo\` 인가
+  - A 트리거: props축 \`LAYOUT_AFFECTING_PROP_KEYS\` (layoutInvalidation.ts, allowlist — 추가 필수) / style축 \`NON_LAYOUT_PROPS_UPDATE\` (elementUpdate.ts, blacklist — layout 영향 키를 **넣지 말 것**) / 상속 \`INHERITED_LAYOUT_PROPS_UPDATE\`
+  - B 캐시 시그니처 (layoutCache.ts): style축 \`LAYOUT_STYLE_KEYS\` / props축 \`LAYOUT_PROP_KEYS\` (**style 축 키 금지** — props[key] 만 읽으므로 style 키를 넣어도 항상 undefined)
+  - 증상 구분: A 누락 = 재계산 자체를 안 함 / B 누락 = 재계산은 돌지만 시그니처 동일 → 캐시 히트로 이전 결과 재사용. **새로고침 후에만 반영되면 B 를 의심**
+  - 심볼명 주의: \`LAYOUT_AFFECTING_PROPS\` (뒤에 _KEYS 없음) 는 코드에 0건 — 과거 심볼"
 fi
 
 # 상태관리 / Zustand
