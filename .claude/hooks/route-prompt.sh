@@ -56,9 +56,9 @@ fi
 if echo "$prompt" | grep -qiE "새 컴포넌트|컴포넌트 (구현|만들|추가|설계)|new component|implement component|S2 전환"; then
   hints="${hints}
 - 새 컴포넌트 워크플로:
-  1. \`superpowers:brainstorming\` — 요구사항/설계 탐색
+  1. 요구사항/대안 탐색 — 대안 2개 이상 비교 (아키텍처 판단이면 \`architect\` agent)
   2. \`component-design\` skill — React Aria/Spectrum 문서 참조
-  3. \`superpowers:writing-plans\` — 다단계 계획
+  3. 다단계면 ADR design breakdown 으로 phase 분할
   4. \`implementer\` agent → \`reviewer\` agent → \`evaluator\` agent"
 fi
 
@@ -66,7 +66,7 @@ fi
 if echo "$prompt" | grep -qiE "버그|bug|에러|error|실패|fail|crash|broken|안 ?(됨|되|나와)|망가"; then
   hints="${hints}
 - 버그 수정 워크플로:
-  1. \`superpowers:systematic-debugging\` skill (4단계 root-cause)
+  1. root-cause 4단계 (재현 → 가설 → 검증 → 수정) — 수정 전 원인 확정. \`.claude/rules/\` 의 실측 \"Why\" 기록부터 조회
   2. \`debugger\` agent 위임 고려
   3. 수정 후 \`/cross-check\` (렌더링 관련인 경우)
   - ❌ 금지: 증상만 덮는 workaround, eslint-disable"
@@ -76,8 +76,8 @@ fi
 if echo "$prompt" | grep -qiE "리팩토링|refactor|재구조|이동|migration|마이그레이션"; then
   hints="${hints}
 - 리팩토링 워크플로:
-  - 대규모 → \`refactorer\` agent + \`superpowers:using-git-worktrees\` (격리)
-  - 2+ 독립 작업 → \`superpowers:dispatching-parallel-agents\`
+  - 대규모 → \`refactorer\` agent + worktree 격리 (\`.claude/rules/git-workflow.md\` §3)
+  - 2+ 독립 작업 → 독립 agent 병렬 실행 (CLAUDE.md §병렬 워크플로)
   - 완료 후 \`reviewer\` agent 검증"
 fi
 
@@ -85,7 +85,7 @@ fi
 if echo "$prompt" | grep -qiE "테스트|test|E2E|storybook|playwright|vitest"; then
   hints="${hints}
 - 테스트 작업 → \`tester\` agent (Vitest/RTL/Storybook/Playwright)
-- 구현 중 → \`superpowers:test-driven-development\` (RED-GREEN-REFACTOR)"
+- 구현 중 → TDD (RED-GREEN-REFACTOR) — 실패하는 테스트 먼저"
 fi
 
 # 레이아웃 / Taffy
@@ -138,8 +138,8 @@ if echo "$prompt" | grep -qiE "완료|끝났|마무리|머지|merge|PR|커밋|co
      || [ -n "$(git -C "${CLAUDE_PROJECT_DIR:-.}" ls-files --others --exclude-standard 2>/dev/null)" ]; then
     hints="${hints}
 - 완료 직전 체크:
-  - \`superpowers:verification-before-completion\` (evidence before assertions)
-  - \`superpowers:requesting-code-review\` 또는 \`reviewer\` agent
+  - 검증 명령을 실제로 실행한 출력을 근거로 제시 (CLAUDE.md §완료 기준 — live behavior 1회 exercise)
+  - \`reviewer\` agent 또는 \`/review\`
   - pnpm type-check 통과 확인"
   fi
 fi

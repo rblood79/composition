@@ -42,11 +42,11 @@ description: 계획 전용 모드 — 코드 수정 금지. 구조/대안/위험
 [실패 시 복구 방법]
 ```
 
-## 필수 skill 연계
+## 필수 연계
 
-- `superpowers:writing-plans` — 다단계 계획 템플릿
+- 다단계 계획 → ADR design breakdown (`docs/adr/design/*-breakdown.md`) 이 정본 템플릿 — 별도 계획 문서 계층 신설 금지
 - ADR 수준 결정 → `create-adr` skill
-- 브레인스톰 필요 → `superpowers:brainstorming`
+- 요구사항/대안 탐색 필요 → 대안 2개 이상 비교 후 선택, 아키텍처 판단이면 `architect` agent
 
 ## 전환 조건
 

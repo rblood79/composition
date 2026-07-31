@@ -1,12 +1,12 @@
 ---
-description: 완료 직전 품질 검증 — reviewer agent + verification-before-completion
+description: 완료 직전 품질 검증 — reviewer agent + 실행 근거 확인
 ---
 
 현재 작업을 완료 선언 전 품질 검증한다.
 
 절차:
 
-1. `superpowers:verification-before-completion` skill — evidence before assertions
+1. 근거 우선 — "통과했다 / 고쳤다" 주장 전에 해당 검증 명령을 **실제로 실행**하고 그 출력을 확인. 실행하지 않은 것을 통과로 서술 금지 (CLAUDE.md §완료 기준)
 2. `reviewer` agent 위임 — 9개 체크리스트 (스타일/TS/Canvas/보안/상태/성능/레이아웃/검증/ADR)
 3. `pnpm type-check` 실행 결과 첨부
 4. 렌더링 변경 포함 시 `/cross-check`

@@ -8,13 +8,11 @@ user-invocable: true
 
 본 skill은 [ssot-hierarchy.md](../../rules/ssot-hierarchy.md) 3-domain 중 **D3(시각 스타일) symmetric consumer 대칭 집행 수단**. Builder(Skia)와 Preview(DOM+CSS)가 동일 Spec source에서 **시각 결과의 동일성**을 생성하는지 검증. 한쪽을 다른 쪽의 "기준"으로 취급 금지.
 
-## Superpowers Integration (중요)
+## 호출 시점 (중요)
 
-이 스킬은 Superpowers 프레임워크와 함께 사용되도록 설계되었습니다.
-
-- Systematic Debugging 스킬 실행 중 rendering parity 관련 이슈 발견 시 **즉시** 이 스킬 호출
+- 버그 추적 중 rendering parity 관련 이슈 발견 시 **즉시** 이 skill 호출
 - TDD (RED-GREEN-REFACTOR) 사이클의 REFACTOR 단계 종료 후 **반드시** cross-check 실행
-- Structured Planning 완료 후 rendering 관련 작업인 경우 cross-check를 verification step으로 포함
+- 렌더링 관련 작업이면 계획 단계에서 cross-check 를 검증 step 으로 미리 포함
 - CRITICAL 이슈 발견 시 즉시 수정 후 `pnpm build:specs && pnpm type-check` 실행
 
 # Cross-Check: 렌더링 경로 정합성 검증

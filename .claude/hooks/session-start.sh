@@ -82,14 +82,15 @@ cat <<EOF
 - \`create-adr\` / \`review-adr\` — 아키텍처 결정 문서
 - \`react-aria\` / \`react-spectrum\` — 공식 API 레퍼런스
 - \`match-target\` — Vision-based visual tuning 루프 (참조 이미지 + budget)
-- \`execute-adr\` — ADR design breakdown 의 미-land phase 자율 실행 (type-check + cross-check + main 직접 push)
+- \`execute-adr\` — ADR design breakdown 의 미반영 phase 자율 실행 (type-check + cross-check + main 직접 push)
 
-## Superpowers Skills (워크플로 프로세스)
-- \`brainstorming\` → \`writing-plans\` → \`executing-plans\` (다단계 구현)
-- \`systematic-debugging\` — 버그 root-cause 4단계
-- \`test-driven-development\` — RED-GREEN-REFACTOR
-- \`verification-before-completion\` — 완료 직전 evidence 검증
-- \`using-git-worktrees\` — 격리된 리팩토링
+## 프로세스 규율 (프로젝트 정본 — 외부 플러그인 아님)
+- 다단계 구현 → ADR design breakdown 으로 phase 분할 (CLAUDE.md §대규모 작업 phase 분할)
+- 버그 root-cause 4단계 → \`/fix\` + \`.claude/rules/\` 의 실측 \"Why\" 기록 우선 조회
+- TDD (RED-GREEN-REFACTOR) → \`tester\` agent
+- 완료 직전 검증 → CLAUDE.md §완료 기준 (test PASS 단독 종결 금지 + live behavior 1회 exercise)
+- 격리 리팩토링 → worktree (\`.claude/rules/git-workflow.md\` §3)
+- 질문 의무는 4개 결정 지점 한정 → 그 외는 자율 진행 + 사후 보고 (CLAUDE.md §전제·관점 의문 처리)
 
 ## Agents (작업 유형별 라우팅)
 | 상황 | 1차 agent | 2차 검증 |

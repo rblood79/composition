@@ -1,5 +1,5 @@
 ---
-description: 버그 수정 파이프라인 — systematic-debugging → debugger → cross-check
+description: 버그 수정 파이프라인 — root-cause 추적 → debugger → cross-check
 argument-hint: [버그 설명]
 ---
 
@@ -7,7 +7,7 @@ argument-hint: [버그 설명]
 
 파이프라인:
 
-1. `superpowers:systematic-debugging` skill — 4단계 root-cause 프로세스 (재현 → 가설 → 검증 → 수정)
+1. root-cause 4단계 — 재현 (일관된 트리거 확보) → 가설 (해당 코드 경로 실측 인용) → 검증 (가설이 증상을 설명하는지 확인) → 수정. **수정 전에 원인 확정 필수**. 도메인 병인은 `.claude/rules/` 의 실측 "Why" 기록부터 조회 — 같은 증상이 이미 진단돼 있는 경우가 많다
 2. 복잡한 경우 `debugger` agent 위임
 3. 렌더링 관련이면 수정 후 `/cross-check` 필수
 4. 동일 패턴 이슈 → codebase grep → 한 번에 일괄 sweep

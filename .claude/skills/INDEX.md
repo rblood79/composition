@@ -17,23 +17,24 @@
 | [match-target](match-target/SKILL.md)                 | Vision-based visual tuning 루프   | "이 이미지처럼", "match target", "참조에 맞춰" | 시각 정합/픽셀 조정 반복 |
 | [execute-adr](execute-adr/SKILL.md)                   | ADR phase 자율 실행               | "ADR 실행", "execute adr", "Phase 실행"        | ADR 다단계 자동 실행     |
 
-## Superpowers (프로세스)
+## 프로세스 규율 (프로젝트 정본 — 2026-07-31 superpowers 플러그인 비활성화)
 
-| Skill                          | 용도                       |
-| ------------------------------ | -------------------------- |
-| brainstorming                  | 요구사항/설계 탐색         |
-| writing-plans                  | 다단계 계획                |
-| executing-plans                | 계획 실행                  |
-| systematic-debugging           | 버그 root-cause 4단계      |
-| test-driven-development        | RED-GREEN-REFACTOR         |
-| verification-before-completion | 완료 직전 evidence 검증    |
-| requesting-code-review         | PR 전 리뷰 요청            |
-| receiving-code-review          | 리뷰 피드백 처리           |
-| using-git-worktrees            | 격리된 작업 공간           |
-| dispatching-parallel-agents    | 2+ 독립 작업 병렬          |
-| subagent-driven-development    | 계획을 서브에이전트로 실행 |
-| finishing-a-development-branch | 머지 전 정리               |
-| writing-skills                 | 새 skill 작성              |
+외부 플러그인 skill 을 호출하지 않는다. 아래가 각 프로세스의 거처다.
+
+| 프로세스           | 거처                                                                    |
+| ------------------ | ----------------------------------------------------------------------- |
+| 요구사항/대안 탐색 | 대안 2개 이상 비교 + `architect` agent — CLAUDE.md §전제·관점 의문 처리 |
+| 다단계 계획·실행   | ADR design breakdown (`docs/adr/design/*-breakdown.md`) + `execute-adr` |
+| 버그 root-cause    | `/fix` + `.claude/rules/` 의 실측 "Why" 기록                            |
+| TDD                | `tester` agent (RED-GREEN-REFACTOR)                                     |
+| 완료 직전 검증     | CLAUDE.md §완료 기준 (live behavior 게이트) + `/review`                 |
+| 코드 리뷰          | `reviewer` agent / ADR 은 `review-adr`                                  |
+| 격리 작업 공간     | worktree — `.claude/rules/git-workflow.md` §3                           |
+| 2+ 독립 작업 병렬  | CLAUDE.md §병렬 워크플로 (Boris 패턴)                                   |
+| 머지 전 정리       | `.claude/rules/git-workflow.md` (main 직접 push, web PR 금지)           |
+
+> **Why**: 플러그인의 강제 호출 규범이 CLAUDE.md 의 자율 진행 종결 계약과 충돌했다. 상세: CLAUDE.md §작업 워크플로.
+> 아래 usage-stats 블록의 `superpowers:*` 항목은 비활성화 이전 기록이며 `update-index.sh` 재실행 시 정리된다.
 
 <!-- usage-stats-begin -->
 <!-- 자동 생성: .claude/hooks/update-index.sh — 수동 편집 금지 -->
@@ -42,46 +43,46 @@
 
 ### Skills
 
-| Skill | 호출 수 |
-| --- | ---: |
-| composition-patterns | 12 |
-| superpowers:systematic-debugging | 10 |
-| systematic-debugging | 7 |
-| review-adr | 6 |
-| execute-adr | 6 |
-| cross-check | 6 |
-| create-adr | 5 |
-| superpowers:brainstorming | 4 |
-| brainstorming | 4 |
-| writing-plans | 3 |
-| superpowers:writing-plans | 3 |
-| react-aria | 3 |
-| test-driven-development | 2 |
-| superpowers:subagent-driven-development | 2 |
-| executing-plans | 2 |
-| using-superpowers | 1 |
-| superpowers:writing-skills | 1 |
-| superpowers:test-driven-development | 1 |
-| superpowers:finishing-a-development-branch | 1 |
-| superpowers:executing-plans | 1 |
-| superpowers:dispatching-parallel-agents | 1 |
-| new-adr | 1 |
-| codex:setup | 1 |
-| codex:rescue | 1 |
+| Skill                                      | 호출 수 |
+| ------------------------------------------ | ------: |
+| composition-patterns                       |      12 |
+| superpowers:systematic-debugging           |      10 |
+| systematic-debugging                       |       7 |
+| review-adr                                 |       6 |
+| execute-adr                                |       6 |
+| cross-check                                |       6 |
+| create-adr                                 |       5 |
+| superpowers:brainstorming                  |       4 |
+| brainstorming                              |       4 |
+| writing-plans                              |       3 |
+| superpowers:writing-plans                  |       3 |
+| react-aria                                 |       3 |
+| test-driven-development                    |       2 |
+| superpowers:subagent-driven-development    |       2 |
+| executing-plans                            |       2 |
+| using-superpowers                          |       1 |
+| superpowers:writing-skills                 |       1 |
+| superpowers:test-driven-development        |       1 |
+| superpowers:finishing-a-development-branch |       1 |
+| superpowers:executing-plans                |       1 |
+| superpowers:dispatching-parallel-agents    |       1 |
+| new-adr                                    |       1 |
+| codex:setup                                |       1 |
+| codex:rescue                               |       1 |
 
 ### Agents
 
-| Agent | 호출 수 |
-| --- | ---: |
-| Explore | 205 |
-| reviewer | 40 |
-| general-purpose | 36 |
-| implementer | 29 |
-| debugger | 13 |
-| Plan | 3 |
-| codex:codex-rescue | 3 |
-| claude-code-guide | 3 |
-| documenter | 2 |
-| architect | 2 |
+| Agent              | 호출 수 |
+| ------------------ | ------: |
+| Explore            |     205 |
+| reviewer           |      40 |
+| general-purpose    |      36 |
+| implementer        |      29 |
+| debugger           |      13 |
+| Plan               |       3 |
+| codex:codex-rescue |       3 |
+| claude-code-guide  |       3 |
+| documenter         |       2 |
+| architect          |       2 |
 
 <!-- usage-stats-end -->
