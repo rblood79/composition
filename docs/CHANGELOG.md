@@ -33,6 +33,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   바뀌되 canonical mirror·persistence는 idle 종료 때만 commit하며, pan-only frame은
   zoom UI notification을 만들지 않는다.
 
+### Interaction
+
+- Hand/Pan mode는 drag가 시작되기 전 `Space` keydown만으로도 element와 workflow hover를
+  즉시 clear한다. 대기 중인 hover rAF도 취소하며, keyup 뒤에는 다음 pointer move부터만
+  hover hit-test를 재개한다. Space를 먼저 놓은 active pan은 pointerup까지 계속 차단한다.
+
 ### Verification
 
 - `ViewportInteractionSession`/`viewportActions`/metrics targeted Vitest 18개 PASS

@@ -256,3 +256,8 @@ camera SSOT를 둘로 나눠 CRITICAL에 가까운 정합 위험을 만든다. �
   zoom-only external subscription으로 `%`를 읽게 했다. wheel zoom smoke에서 60ms에는
   `100% → 136%`가 표시되고 canonical mirror commit은 0회였으며, idle 뒤 1회만
   commit됐다. pan-only frame은 zoom presentation subscriber를 notify하지 않는다.
+- **2026-08-01 Hand/Pan hover gate**: shared `CanvasGestureSession`이 `Space` keydown과
+  pan pointer lifecycle을 구독 가능 상태로 발행한다. `useElementHoverInteraction`과
+  `useWorkflowInteraction`은 armed 즉시 pending hover rAF를 취소하고 기존 highlight를
+  clear한다. keyup만으로 이전 좌표를 재-hit-test하지 않으며 다음 pointer move에서만
+  재개한다. Space를 먼저 놓아도 active pan은 pointerup까지 hover를 억제한다.

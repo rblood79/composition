@@ -39,7 +39,7 @@ export interface ElementHoverState {
 interface UseElementHoverInteractionOptions {
   /** 부모 컨테이너 DOM 요소 */
   containerEl: HTMLDivElement | null;
-  /** Space pan 중 element hit-test를 막는 pointer session */
+  /** Hand/Pan mode가 armed된 동안 element hover hit-test를 막는 session */
   gestureSession?: CanvasGestureSession;
   /** Frames tab multi-canvas overview 에서 frame body 빈 영역 hover 판정용 */
   frameAreasRef?: RefObject<ReadonlyArray<FrameHoverArea>>;
@@ -252,8 +252,37 @@ export function useElementHoverInteraction({
   const rafRef = useRef<number | null>(null);
   const lastMouseRef = useRef({ x: 0, y: 0 });
 
+  const clearHover = useCallback(() => {
+    if (clearElementHoverState(hoverStateRef.current)) {
+      overlayVersionRef.current++;
+    }
+  }, [hoverStateRef, overlayVersionRef]);
+
+  useEffect(() => {
+    if (!gestureSession) return;
+
+    const clearSuppressedHover = () => {
+      if (!gestureSession.shouldSuppressElementHover()) return;
+
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      clearHover();
+    };
+
+    const unsubscribe = gestureSession.subscribe(clearSuppressedHover);
+    clearSuppressedHover();
+    return unsubscribe;
+  }, [clearHover, gestureSession]);
+
   const handlePointerMove = useCallback(
     (e: PointerEvent) => {
+      if (gestureSession?.shouldSuppressElementHover()) {
+        clearHover();
+        return;
+      }
+
       // 좌표 변화 없으면 스킵 (subpixel jitter 방지)
       if (
         e.clientX === lastMouseRef.current.x &&
@@ -261,7 +290,6 @@ export function useElementHoverInteraction({
       )
         return;
       lastMouseRef.current = { x: e.clientX, y: e.clientY };
-      const pointerId = e.pointerId;
 
       // RAF 스로틀: 프레임당 1회
       if (rafRef.current !== null) return;
@@ -269,10 +297,8 @@ export function useElementHoverInteraction({
         rafRef.current = null;
         if (!containerEl) return;
 
-        if (gestureSession?.shouldSuppressElementInteraction(pointerId)) {
-          if (clearElementHoverState(hoverStateRef.current)) {
-            overlayVersionRef.current++;
-          }
+        if (gestureSession?.shouldSuppressElementHover()) {
+          clearHover();
           return;
         }
 
@@ -284,9 +310,7 @@ export function useElementHoverInteraction({
         // 렌더링은 transient drag/sibling offset을 쓰지만 hover bounds는 raw scene
         // bounds 기반이므로, drag 활성 중에는 hover 상태를 명시적으로 비운다.
         if (getDragVisualOffset()) {
-          if (clearElementHoverState(hoverStateRef.current)) {
-            overlayVersionRef.current++;
-          }
+          clearHover();
           return;
         }
 
@@ -297,9 +321,7 @@ export function useElementHoverInteraction({
           mouseY < rect.top ||
           mouseY > rect.bottom
         ) {
-          if (clearElementHoverState(hoverStateRef.current)) {
-            overlayVersionRef.current++;
-          }
+          clearHover();
           return;
         }
 
@@ -397,6 +419,7 @@ export function useElementHoverInteraction({
     },
     [
       containerEl,
+      clearHover,
       gestureSession,
       frameAreasRef,
       pageFramesRef,

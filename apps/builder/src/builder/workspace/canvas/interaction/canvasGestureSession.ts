@@ -24,13 +24,26 @@ export class CanvasGestureSession {
   private activePointerId: number | null = null;
   private mode: CanvasGestureMode = "idle";
   private isSpacePressed = false;
+  private readonly listeners = new Set<() => void>();
 
   setSpacePressed(isPressed: boolean): void {
+    if (this.isSpacePressed === isPressed) {
+      return;
+    }
+
     this.isSpacePressed = isPressed;
+    this.notify();
   }
 
   get spacePressed(): boolean {
     return this.isSpacePressed;
+  }
+
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
   }
 
   beginPointer(pointerId: number, button: number): CanvasGestureMode {
@@ -43,6 +56,7 @@ export class CanvasGestureSession {
       button,
       isSpacePressed: this.isSpacePressed,
     });
+    this.notify();
     return this.mode;
   }
 
@@ -53,15 +67,39 @@ export class CanvasGestureSession {
 
     this.activePointerId = null;
     this.mode = "idle";
+    this.notify();
   }
 
   reset(): void {
+    const didChange =
+      this.activePointerId !== null ||
+      this.mode !== "idle" ||
+      this.isSpacePressed;
     this.activePointerId = null;
     this.mode = "idle";
     this.isSpacePressed = false;
+    if (didChange) {
+      this.notify();
+    }
   }
 
   shouldSuppressElementInteraction(pointerId: number): boolean {
     return this.activePointerId === pointerId && this.mode === "pan";
+  }
+
+  /**
+   * Hand/Pan mode가 armed된 동안 hover hit-test를 막는다.
+   *
+   * 실제 pointer가 아직 없어도 Space keydown부터 hover를 비우고, Space를 먼저
+   * 놓은 pan pointer는 pointerup까지 계속 차단한다.
+   */
+  shouldSuppressElementHover(): boolean {
+    return this.isSpacePressed || this.mode === "pan";
+  }
+
+  private notify(): void {
+    for (const listener of this.listeners) {
+      listener();
+    }
   }
 }

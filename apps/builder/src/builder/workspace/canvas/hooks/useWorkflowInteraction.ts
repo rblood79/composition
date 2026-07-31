@@ -47,7 +47,7 @@ export interface WorkflowHoverState {
 export interface UseWorkflowInteractionOptions {
   /** 부모 컨테이너 DOM 요소 */
   containerEl: HTMLDivElement | null;
-  /** Space pan 중 workflow hit-test를 막는 pointer session */
+  /** Hand/Pan mode가 armed된 동안 workflow hover hit-test를 막는 session */
   gestureSession?: CanvasGestureSession;
   /** 엣지 지오메트리 캐시 ref */
   edgeGeometryCacheRef: RefObject<CachedEdgeGeometry[]>;
@@ -87,6 +87,13 @@ export function useWorkflowInteraction({
     x: number;
     y: number;
   } | null>(null);
+
+  const clearHover = useCallback(() => {
+    if (hoverStateRef.current.hoveredEdgeId !== null) {
+      hoverStateRef.current.hoveredEdgeId = null;
+      overlayVersionRef.current++;
+    }
+  }, [hoverStateRef, overlayVersionRef]);
 
   // animateToPage → panToPage 유틸로 통합 (viewport/panToPage.ts)
   const animateToPage = panToPage;
@@ -153,11 +160,8 @@ export function useWorkflowInteraction({
     (e: PointerEvent) => {
       if (!containerEl) return;
 
-      if (gestureSession?.shouldSuppressElementInteraction(e.pointerId)) {
-        if (hoverStateRef.current.hoveredEdgeId !== null) {
-          hoverStateRef.current.hoveredEdgeId = null;
-          overlayVersionRef.current++;
-        }
+      if (gestureSession?.shouldSuppressElementHover()) {
+        clearHover();
         return;
       }
 
@@ -182,13 +186,15 @@ export function useWorkflowInteraction({
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = null;
 
+        if (gestureSession?.shouldSuppressElementHover()) {
+          clearHover();
+          return;
+        }
+
         const cache = edgeGeometryCacheRef.current;
         if (!cache || cache.length === 0) {
           // 캐시 없으면 호버 클리어
-          if (hoverStateRef.current.hoveredEdgeId !== null) {
-            hoverStateRef.current.hoveredEdgeId = null;
-            overlayVersionRef.current++;
-          }
+          clearHover();
           return;
         }
 
@@ -210,6 +216,7 @@ export function useWorkflowInteraction({
     },
     [
       containerEl,
+      clearHover,
       gestureSession,
       edgeGeometryCacheRef,
       hoverStateRef,
@@ -217,6 +224,24 @@ export function useWorkflowInteraction({
       moveCameraToMinimapPoint,
     ],
   );
+
+  useEffect(() => {
+    if (!gestureSession) return;
+
+    const clearSuppressedHover = () => {
+      if (!gestureSession.shouldSuppressElementHover()) return;
+
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      clearHover();
+    };
+
+    const unsubscribe = gestureSession.subscribe(clearSuppressedHover);
+    clearSuppressedHover();
+    return unsubscribe;
+  }, [clearHover, gestureSession]);
 
   // ============================================
   // pointerdown: 페이지 프레임 클릭 (capture phase)
