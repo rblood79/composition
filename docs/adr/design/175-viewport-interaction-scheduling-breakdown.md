@@ -321,12 +321,18 @@ minimap, scrollbar thumb drag, `panToPage`, fit/restore/breakpoint 전환이다.
   coordinate reader 또는 직접 writer가 하나라도 남으면 Phase 1로 진행하지 않는다.
 - scene/culling/cache 파일이 필요하다는 판단이 나오면 stop condition을 발동한다.
 
-### Phase 1 — session primitives and contract tests
+### Phase 1 — session primitives and contract tests (Implemented 2026-07-31)
 
 - session lifecycle, RAF coalescing, ordered transform queue, `flushThenCommit`, equality
   guard, external arbitration을 unit test와 함께 도입한다.
 - 기존 controller 직접 호출과 동시에 살아 있는 dual path를 만들지 않는다. adapter migration
   전에는 test-only seam 또는 one controlled entry만 사용한다.
+- `ViewportInteractionSession`과 contract test를 도입했다. raw pan은 frame당 한 번의
+  controller listener dispatch로 합치고, pan/zoom mixed queue는 수신 순서를 보존한다.
+  `finish()`는 pending frame을 먼저 flush한 뒤 mirror가 다를 때만 commit하며,
+  `runCommand()`는 active session의 final commit 뒤 command commit을 적용한다.
+  `ViewportController.setPosition()` equality guard가 store subscription echo의 listener
+  notification을 막는다. 기존 adapter는 아직 이 session을 호출하지 않는다.
 
 ### Phase 2 — input adapter migration
 

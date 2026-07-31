@@ -223,7 +223,15 @@ export class ViewportController {
   /**
    * 절대 위치/스케일 설정 (외부에서 React state가 변경될 때)
    */
-  setPosition(x: number, y: number, scale: number): void {
+  setPosition(x: number, y: number, scale: number): boolean {
+    if (
+      this.currentState.x === x &&
+      this.currentState.y === y &&
+      this.currentState.scale === scale
+    ) {
+      return false;
+    }
+
     // Container 직접 조작 (PixiJS 경로)
     if (this.container) {
       this.container.x = x;
@@ -234,6 +242,15 @@ export class ViewportController {
     this.currentState = { x, y, scale };
 
     this.notifyUpdateListeners();
+    return true;
+  }
+
+  /** Viewport interaction session이 사용하는 zoom clamp 경계 */
+  clampZoom(scale: number): number {
+    return Math.min(
+      Math.max(scale, this.options.minZoom),
+      this.options.maxZoom,
+    );
   }
 
   /**

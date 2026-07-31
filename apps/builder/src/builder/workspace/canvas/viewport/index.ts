@@ -12,7 +12,17 @@ export {
   resetViewportController,
   type ViewportState,
   type ViewportControllerOptions,
-} from './ViewportController';
+} from "./ViewportController";
 
-export { useViewportControl } from './useViewportControl';
-export { ViewportControlBridge, type ViewportControlBridgeProps } from './ViewportControlBridge';
+export { useViewportControl } from "./useViewportControl";
+export {
+  ViewportControlBridge,
+  type ViewportControlBridgeProps,
+} from "./ViewportControlBridge";
+export {
+  ViewportInteractionSession,
+  type ViewportFrameScheduler,
+  type ViewportInteractionFinishReason,
+  type ViewportInteractionKind,
+  type ViewportInteractionSessionOptions,
+} from "./ViewportInteractionSession";
