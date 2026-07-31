@@ -22,8 +22,12 @@ import {
 } from "../skia/workflowHitTest";
 import type { PageFrame } from "../skia/workflowRenderer";
 import { getViewportController } from "../viewport/ViewportController";
+import type { ViewportInteractionSession } from "../viewport/ViewportInteractionSession";
 import { panToPage, cancelPanToPage } from "../viewport/panToPage";
-import { applyViewportState } from "../viewport/viewportActions";
+import {
+  applyViewportState,
+  beginViewportInteraction,
+} from "../viewport/viewportActions";
 import {
   isPointInMinimap,
   minimapScreenToWorld,
@@ -77,6 +81,12 @@ export function useWorkflowInteraction({
   const rafRef = useRef<number | null>(null);
   const isMinimapDraggingRef = useRef(false);
   const lastMouseRef = useRef({ x: 0, y: 0 });
+  const minimapSessionRef = useRef<ViewportInteractionSession | null>(null);
+  const minimapQueuedViewportRef = useRef<{
+    scale: number;
+    x: number;
+    y: number;
+  } | null>(null);
 
   // animateToPage → panToPage 유틸로 통합 (viewport/panToPage.ts)
   const animateToPage = panToPage;
@@ -96,7 +106,8 @@ export function useWorkflowInteraction({
       const vc = getViewportController();
       if (!vc.isAttached()) return;
 
-      const { zoom, containerSize } = useViewportSyncStore.getState();
+      const { containerSize } = useViewportSyncStore.getState();
+      const currentViewport = minimapQueuedViewportRef.current ?? vc.getState();
 
       // 미니맵 좌표 → 씬(월드) 좌표
       const transform = computeMinimapTransform(
@@ -113,14 +124,22 @@ export function useWorkflowInteraction({
       );
 
       // 월드 좌표가 화면 중심에 오도록 카메라 pan 계산
-      const targetPanX = containerSize.width / 2 - worldX * zoom;
-      const targetPanY = containerSize.height / 2 - worldY * zoom;
+      const targetViewport = {
+        scale: currentViewport.scale,
+        x: containerSize.width / 2 - worldX * currentViewport.scale,
+        y: containerSize.height / 2 - worldY * currentViewport.scale,
+      };
+      const session = minimapSessionRef.current;
 
-      applyViewportState({
-        scale: zoom,
-        x: targetPanX,
-        y: targetPanY,
-      });
+      if (session?.isActiveKind("minimap")) {
+        session.queuePan({
+          x: targetViewport.x - currentViewport.x,
+          y: targetViewport.y - currentViewport.y,
+        });
+        minimapQueuedViewportRef.current = targetViewport;
+      } else {
+        applyViewportState(targetViewport);
+      }
       overlayVersionRef.current++;
     },
     [minimapConfigRef, pageFrameMapRef, overlayVersionRef],
@@ -228,7 +247,11 @@ export function useWorkflowInteraction({
       if (config && isPointInMinimap(localX, localY, config, containerSize)) {
         e.stopPropagation();
         e.preventDefault();
+        const session = beginViewportInteraction("minimap");
+        if (!session) return;
         isMinimapDraggingRef.current = true;
+        minimapSessionRef.current = session;
+        minimapQueuedViewportRef.current = getViewportController().getState();
         moveCameraToMinimapPoint(localX, localY);
         return;
       }
@@ -302,6 +325,11 @@ export function useWorkflowInteraction({
   const handlePointerUp = useCallback(() => {
     if (isMinimapDraggingRef.current) {
       isMinimapDraggingRef.current = false;
+      if (minimapSessionRef.current?.isActiveKind("minimap")) {
+        minimapSessionRef.current.finish("pointerup");
+      }
+      minimapSessionRef.current = null;
+      minimapQueuedViewportRef.current = null;
     }
   }, []);
 
@@ -315,13 +343,20 @@ export function useWorkflowInteraction({
     const addListeners = () => {
       window.addEventListener("pointermove", handlePointerMove);
       window.addEventListener("pointerup", handlePointerUp);
+      window.addEventListener("pointercancel", handlePointerUp);
       containerEl.addEventListener("pointerdown", handlePointerDown, true);
     };
 
     const removeListeners = () => {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
       containerEl.removeEventListener("pointerdown", handlePointerDown, true);
+      if (minimapSessionRef.current?.isActiveKind("minimap")) {
+        minimapSessionRef.current.finish("interrupted");
+      }
+      minimapSessionRef.current = null;
+      minimapQueuedViewportRef.current = null;
       isMinimapDraggingRef.current = false;
     };
 

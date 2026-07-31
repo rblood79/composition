@@ -3,7 +3,11 @@ import {
   getViewportController,
   type ViewportState,
 } from "./ViewportController";
-import { getViewportInteractionSession } from "./ViewportInteractionSession";
+import {
+  getViewportInteractionSession,
+  type ViewportInteractionKind,
+  type ViewportInteractionSession,
+} from "./ViewportInteractionSession";
 import { recordViewportInteractionMirrorCommit } from "./viewportInteractionMetrics";
 
 export interface ViewportCanvasSize {
@@ -115,25 +119,41 @@ export function offsetViewportStateX(
   };
 }
 
+function getAttachedViewportSession(): ViewportInteractionSession | null {
+  const controller = getViewportController();
+  if (!controller.isAttached()) return null;
+
+  return getViewportInteractionSession({
+    controller,
+    commitMirror: (state) => {
+      recordViewportInteractionMirrorCommit();
+      useViewportSyncStore.getState().setViewportSnapshot({
+        panOffset: { x: state.x, y: state.y },
+        zoom: state.scale,
+      });
+    },
+    readMirror: () => {
+      const { panOffset, zoom } = useViewportSyncStore.getState();
+      return { x: panOffset.x, y: panOffset.y, scale: zoom };
+    },
+  });
+}
+
+export function beginViewportInteraction(
+  kind: ViewportInteractionKind,
+): ViewportInteractionSession | null {
+  const session = getAttachedViewportSession();
+  if (session) {
+    session.begin(kind);
+  }
+  return session;
+}
+
 export function runViewportCommand(
   command: (state: ViewportState) => ViewportState,
 ): void {
-  const controller = getViewportController();
-  if (controller.isAttached()) {
-    const session = getViewportInteractionSession({
-      controller,
-      commitMirror: (state) => {
-        recordViewportInteractionMirrorCommit();
-        useViewportSyncStore.getState().setViewportSnapshot({
-          panOffset: { x: state.x, y: state.y },
-          zoom: state.scale,
-        });
-      },
-      readMirror: () => {
-        const { panOffset, zoom } = useViewportSyncStore.getState();
-        return { x: panOffset.x, y: panOffset.y, scale: zoom };
-      },
-    });
+  const session = getAttachedViewportSession();
+  if (session) {
     session.runCommand(command);
     return;
   }

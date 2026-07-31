@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 상단 zoom popover와 keyboard zoom이 사용하는 `viewportActions`도 동일 command
   arbitration을 거친다. 진행 중 wheel/drag는 먼저 final state를 mirror한 뒤 command를
   적용하므로 stale store state로 zoom을 계산하지 않는다.
+- Workflow page focus의 `panToPage` animation, minimap drag, canvas scrollbar thumb drag도
+  같은 session lifecycle으로 수렴했다. 새 input/command가 들어오면 진행 중 animation의
+  final state를 먼저 보존하고 ownership을 넘긴다.
+- breakpoint 전환은 active session의 final mirror를 저장한 뒤 전환·restore command를
+  수행해, interaction 중 이전 breakpoint가 stale viewport를 저장하지 않게 했다.
 
 ### Verification
 

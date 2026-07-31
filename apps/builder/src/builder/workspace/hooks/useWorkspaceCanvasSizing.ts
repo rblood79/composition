@@ -11,6 +11,7 @@ import {
   computeFitViewport,
   resolveBreakpointViewport,
 } from "../canvas/viewport/viewportActions";
+import { finishActiveViewportInteraction } from "../canvas/viewport/ViewportInteractionSession";
 import type { Breakpoint } from "../types";
 import { subscribeToPanelLayoutChanges } from "../utils/panelLayoutRuntime";
 import {
@@ -248,6 +249,8 @@ export function useWorkspaceCanvasSizing({
       return;
     }
 
+    // 이전 breakpoint snapshot은 active transient state를 마감한 뒤에만 저장한다.
+    finishActiveViewportInteraction();
     clearViewportPersistenceTimer();
     if (previousBreakpointId) {
       flushViewportPersistence(previousBreakpointId);

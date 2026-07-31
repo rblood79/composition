@@ -350,8 +350,10 @@ minimap, scrollbar thumb drag, `panToPage`, fit/restore/breakpoint 전환이다.
   pointercancel, window blur, document hidden, unmount는 같은 interrupted/finish 경로로
   final mirror를 보존한다. `applyViewportState`와 center zoom은 `runViewportCommand`를
   통해 active session을 먼저 flush·finish한 controller state에서 계산·commit한다.
-  `panToPage`, minimap, scrollbar thumb, breakpoint persistence 및 browser G4는 이 phase의
-  잔여 항목으로 남긴다.
+  `panToPage` animation, minimap drag, scrollbar thumb drag도 shared session을 사용해
+  이동 중 mirror write를 하지 않고 종료 때 한 번만 commit한다. breakpoint persistence와
+  전환은 active session을 먼저 finish한 final mirror를 저장한다. adapter migration은
+  완료했으며 browser G4 검증만 다음 Phase 3의 잔여 항목으로 남긴다.
 
 ### Phase 3 — browser verification and performance decision
 

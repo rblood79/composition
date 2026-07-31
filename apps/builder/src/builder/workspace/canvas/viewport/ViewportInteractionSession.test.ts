@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { ViewportController, type ViewportState } from "./ViewportController";
 import {
+  finishActiveViewportInteraction,
+  getViewportInteractionSession,
+  resetViewportInteractionSession,
   ViewportInteractionSession,
   type ViewportFrameScheduler,
 } from "./ViewportInteractionSession";
@@ -148,6 +151,41 @@ describe("ViewportInteractionSession", () => {
       [{ x: 20, y: 0, scale: 1 }],
       [{ x: 20, y: 0, scale: 2 }],
     ]);
+  });
+
+  it("commits a programmatic session before a new input kind takes ownership", () => {
+    const { commitMirror, controller, session } = createSession();
+
+    session.begin("programmatic");
+    session.queuePan({ x: 18, y: 6 });
+
+    session.begin("wheel-pan");
+
+    expect(session.isActiveKind("wheel-pan")).toBe(true);
+    expect(controller.getState()).toEqual({ x: 18, y: 6, scale: 1 });
+    expect(commitMirror).toHaveBeenCalledTimes(1);
+    expect(commitMirror).toHaveBeenLastCalledWith({ x: 18, y: 6, scale: 1 });
+  });
+
+  it("flushes an active singleton session before a persistence boundary", () => {
+    resetViewportInteractionSession();
+    const controller = new ViewportController();
+    const scheduler = createFrameScheduler();
+    const commitMirror = vi.fn();
+    const session = getViewportInteractionSession({
+      controller,
+      scheduler,
+      commitMirror,
+      readMirror: () => ({ x: 0, y: 0, scale: 1 }),
+    });
+
+    session.begin("wheel-pan");
+    session.queuePan({ x: 32, y: 16 });
+    finishActiveViewportInteraction();
+
+    expect(controller.getState()).toEqual({ x: 32, y: 16, scale: 1 });
+    expect(commitMirror).toHaveBeenLastCalledWith({ x: 32, y: 16, scale: 1 });
+    resetViewportInteractionSession();
   });
 
   it("does not notify listeners when an external mirror repeats controller state", () => {

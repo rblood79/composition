@@ -5,6 +5,8 @@ import {
 
 export type ViewportInteractionKind =
   | "drag"
+  | "minimap"
+  | "scrollbar"
   | "wheel-pan"
   | "wheel-zoom"
   | "discrete"
@@ -110,6 +112,10 @@ export class ViewportInteractionSession {
 
   isActive(): boolean {
     return this.activeKind !== null;
+  }
+
+  isActiveKind(kind: ViewportInteractionKind): boolean {
+    return this.activeKind === kind;
   }
 
   queuePan(delta: { x: number; y: number }): void {
@@ -262,4 +268,10 @@ export function getViewportInteractionSession(
 export function resetViewportInteractionSession(): void {
   viewportInteractionSession?.finish("interrupted");
   viewportInteractionSession = null;
+}
+
+export function finishActiveViewportInteraction(
+  reason: ViewportInteractionFinishReason = "interrupted",
+): void {
+  viewportInteractionSession?.finish(reason);
 }

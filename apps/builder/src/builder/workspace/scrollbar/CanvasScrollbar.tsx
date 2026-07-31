@@ -14,7 +14,11 @@
 
 import { useRef, useEffect } from "react";
 import { getViewportController } from "../canvas/viewport/ViewportController";
-import { applyViewportState } from "../canvas/viewport/viewportActions";
+import type { ViewportInteractionSession } from "../canvas/viewport/ViewportInteractionSession";
+import {
+  applyViewportState,
+  beginViewportInteraction,
+} from "../canvas/viewport/viewportActions";
 import {
   measureWorkspacePanelInsets,
   subscribeToPanelLayoutChanges,
@@ -54,6 +58,7 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
     if (!track || !thumb) return;
 
     const isHorizontal = direction === "horizontal";
+    let scrollbarSession: ViewportInteractionSession | null = null;
 
     // ========================================
     // 패널 오프셋 측정
@@ -159,6 +164,9 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
     const handlePointerDown = (e: PointerEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      const session = beginViewportInteraction("scrollbar");
+      if (!session) return;
+
       thumb.setPointerCapture(e.pointerId);
       isDraggingRef.current = true;
       thumb.classList.add("canvas-scrollbar__thumb--dragging");
@@ -166,12 +174,18 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
 
       const startPos = isHorizontal ? e.clientX : e.clientY;
       const vc = getViewportController();
+      scrollbarSession = session;
       const startState = vc.getState();
+      let queuedViewport = startState;
       const startMetrics = getScrollbarViewportMetrics(
         panelInsetRef.current,
         startState,
       );
       if (!startMetrics) {
+        session.finish("interrupted");
+        scrollbarSession = null;
+        isDraggingRef.current = false;
+        thumb.classList.remove("canvas-scrollbar__thumb--dragging");
         return;
       }
 
@@ -205,14 +219,26 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
             startMetrics.viewportState.scale;
         }
 
-        applyViewportState({
+        if (!session.isActiveKind("scrollbar")) return;
+        const nextViewport = {
           scale: startMetrics.viewportState.scale,
           x: newX,
           y: newY,
+        };
+        session.queuePan({
+          x: nextViewport.x - queuedViewport.x,
+          y: nextViewport.y - queuedViewport.y,
         });
+        queuedViewport = nextViewport;
       };
 
       const onUp = () => {
+        if (session.isActiveKind("scrollbar")) {
+          session.finish("pointerup");
+        }
+        if (scrollbarSession === session) {
+          scrollbarSession = null;
+        }
         isDraggingRef.current = false;
         thumb.classList.remove("canvas-scrollbar__thumb--dragging");
         thumb.removeEventListener("pointermove", onMove);
@@ -300,6 +326,9 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
       track.removeEventListener("click", handleTrackClick);
       if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
       if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+      if (scrollbarSession?.isActiveKind("scrollbar")) {
+        scrollbarSession.finish("interrupted");
+      }
     };
   }, [direction]);
 
