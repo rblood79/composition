@@ -353,7 +353,9 @@ minimap, scrollbar thumb drag, `panToPage`, fit/restore/breakpoint 전환이다.
   `panToPage` animation, minimap drag, scrollbar thumb drag도 shared session을 사용해
   이동 중 mirror write를 하지 않고 종료 때 한 번만 commit한다. breakpoint persistence와
   전환은 active session을 먼저 finish한 final mirror를 저장한다. adapter migration은
-  완료했으며 browser G4 검증만 다음 Phase 3의 잔여 항목으로 남긴다.
+  완료했으며, Unified Skia처럼 controller가 display container에 attach되지 않은 경로도
+  `viewportActions`가 session을 우회하지 않는다. browser G4 검증만 다음 Phase 3의
+  잔여 항목으로 남긴다.
 
 ### Phase 3 — browser verification and performance decision
 

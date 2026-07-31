@@ -9,6 +9,10 @@ import {
   resetViewportInteractionSession,
 } from "./ViewportInteractionSession";
 import {
+  getViewportInteractionMetricsSnapshot,
+  resetViewportInteractionMetrics,
+} from "./viewportInteractionMetrics";
+import {
   applyViewportState,
   resolveBreakpointViewport,
   zoomViewportAtContainerCenter,
@@ -17,6 +21,7 @@ import {
 afterEach(() => {
   resetViewportInteractionSession();
   resetViewportController();
+  resetViewportInteractionMetrics();
   useViewportSyncStore.getState().reset();
 });
 
@@ -63,6 +68,19 @@ describe("resolveBreakpointViewport", () => {
       panOffset: { x: 40, y: 80 },
       zoom: 1.5,
     });
+  });
+
+  it("unattached controller에서도 discrete command는 session mirror를 사용한다", () => {
+    const controller = getViewportController();
+
+    applyViewportState({ x: 12, y: 24, scale: 1.1 });
+
+    expect(controller.getState()).toEqual({ x: 12, y: 24, scale: 1.1 });
+    expect(useViewportSyncStore.getState()).toMatchObject({
+      panOffset: { x: 12, y: 24 },
+      zoom: 1.1,
+    });
+    expect(getViewportInteractionMetricsSnapshot().mirrorCommitCount).toBe(1);
   });
 
   it("zoom command는 active session을 flush한 최신 controller state를 기준으로 계산한다", () => {

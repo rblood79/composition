@@ -119,9 +119,8 @@ export function offsetViewportStateX(
   };
 }
 
-function getAttachedViewportSession(): ViewportInteractionSession | null {
+function getViewportSession(): ViewportInteractionSession {
   const controller = getViewportController();
-  if (!controller.isAttached()) return null;
 
   return getViewportInteractionSession({
     controller,
@@ -141,34 +140,16 @@ function getAttachedViewportSession(): ViewportInteractionSession | null {
 
 export function beginViewportInteraction(
   kind: ViewportInteractionKind,
-): ViewportInteractionSession | null {
-  const session = getAttachedViewportSession();
-  if (session) {
-    session.begin(kind);
-  }
+): ViewportInteractionSession {
+  const session = getViewportSession();
+  session.begin(kind);
   return session;
 }
 
 export function runViewportCommand(
   command: (state: ViewportState) => ViewportState,
 ): void {
-  const session = getAttachedViewportSession();
-  if (session) {
-    session.runCommand(command);
-    return;
-  }
-
-  const state = useViewportSyncStore.getState();
-  const nextState = command({
-    x: state.panOffset.x,
-    y: state.panOffset.y,
-    scale: state.zoom,
-  });
-  const { setViewportSnapshot } = useViewportSyncStore.getState();
-  setViewportSnapshot({
-    panOffset: { x: nextState.x, y: nextState.y },
-    zoom: nextState.scale,
-  });
+  getViewportSession().runCommand(command);
 }
 
 export function applyViewportState(nextState: ViewportState): void {

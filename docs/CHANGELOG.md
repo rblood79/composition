@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   final state를 먼저 보존하고 ownership을 넘긴다.
 - breakpoint 전환은 active session의 final mirror를 저장한 뒤 전환·restore command를
   수행해, interaction 중 이전 breakpoint가 stale viewport를 저장하지 않게 했다.
+- Unified Skia 경로에서 controller의 display-container attach 여부로 상단 Zoom menu와
+  keyboard command가 session을 우회하던 결함을 제거했다. 실제 `확대` smoke에서 `110%`,
+  controller listener 1회, mirror commit 1회를 확인했다.
 
 ### Verification
 
