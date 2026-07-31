@@ -285,9 +285,11 @@ pan과 zoom은 교환법칙이 성립하지 않는다. 따라서 frame 안의 op
 - `BuilderCanvas.tsx`의 `screenToCanvasPoint`와 §2.2의 coordinate consumer는 transient
   getter를 사용한다. 이 좁은 wiring 변경은 허용하지만 scene snapshot/layout publisher가
   read하는 canonical mirror는 바꾸지 않는다.
-- `ZoomControls.tsx`는 editor input이 아닐 때 controller listener의 isolated subscription을
-  표시값으로 사용한다. `DotBackground.tsx`는 같은 listener를 통해 CSS variable을 갱신한다.
-  둘 다 session 종료까지 stale 값을 보여 주는 선택지는 허용하지 않는다.
+- `ZoomControls.tsx`는 editor input이 아닐 때 `ViewportController`가 publish하는
+  `ViewportPresentationStore`의 zoom-only subscription을 표시값으로 사용한다. pan-only
+  frame은 ZoomControls subscriber를 notify하지 않는다. `DotBackground.tsx`는 같은
+  transient authority를 통해 CSS variable을 갱신한다. 둘 다 session 종료까지 stale 값을
+  보여 주는 선택지는 허용하지 않는다.
 
 ### 3.4 External command arbitration
 
@@ -369,6 +371,9 @@ minimap, scrollbar thumb drag, `panToPage`, fit/restore/breakpoint 전환이다.
 - session의 ordered queue, finish/arbitration, equality/echo 및 unattached command
   회귀는 targeted Vitest 18개와 `pnpm run codex:preflight`로 고정했다. renderer long
   task는 G6b 관찰값으로 분류하고 ADR-172/173 범위로 확장하지 않는다.
+- 후속 presentation 보강에서 controller notification이 `ViewportPresentationStore`에
+  transient snapshot을 publish하도록 연결했다. browser smoke의 wheel zoom은 60ms에
+  `100% → 136%`로 표시됐지만 mirror commit은 0회였고, 150ms idle 뒤에만 1회가 됐다.
 
 ## 5. Verification matrix
 

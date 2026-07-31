@@ -13,6 +13,10 @@
 
 import { viewportState } from "./viewportState";
 import { recordViewportInteractionListenerFanout } from "./viewportInteractionMetrics";
+import {
+  publishViewportPresentation,
+  resetViewportPresentation,
+} from "./viewportPresentation";
 
 /** PixiJS Container에서 필요한 최소 인터페이스 */
 interface PixiContainerLike {
@@ -90,6 +94,7 @@ export class ViewportController {
       y: container.y,
       scale: container.scale.x,
     };
+    publishViewportPresentation(this.currentState);
   }
 
   /**
@@ -297,6 +302,7 @@ export class ViewportController {
     viewportState.x = state.x;
     viewportState.y = state.y;
     viewportState.zoom = state.scale;
+    publishViewportPresentation(state);
     recordViewportInteractionListenerFanout(this.updateListeners.size);
     for (const listener of this.updateListeners) {
       listener(state);
@@ -337,6 +343,7 @@ export function resetViewportController(): void {
     viewportControllerInstance.detach();
     viewportControllerInstance = null;
   }
+  resetViewportPresentation();
 }
 
 export default ViewportController;

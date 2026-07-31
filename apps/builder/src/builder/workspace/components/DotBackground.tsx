@@ -1,10 +1,9 @@
 import { useEffect, useRef } from "react";
 
 import {
-  isCanvasViewportSnapshotEqual,
-  selectCanvasViewportSnapshot,
-  useViewportSyncStore,
-} from "../canvas/stores/viewportSync";
+  getViewportPresentationSnapshot,
+  subscribeViewportPresentation,
+} from "../canvas/viewport/viewportPresentation";
 
 export const DOT_BACKGROUND_BASE_GAP = 16;
 export const DOT_BACKGROUND_DOT_SIZE = 1;
@@ -63,11 +62,12 @@ export function DotBackground() {
       el.style.setProperty("--dot-inset", `${DOT_BACKGROUND_INSET}px`);
     }
 
-    const apply = (s: {
-      panOffset: { x: number; y: number };
-      zoom: number;
-    }) => {
-      const { gap, tx, ty, dotSize } = calculateDotBackgroundMetrics(s);
+    const apply = () => {
+      const { x, y, scale } = getViewportPresentationSnapshot();
+      const { gap, tx, ty, dotSize } = calculateDotBackgroundMetrics({
+        panOffset: { x, y },
+        zoom: scale,
+      });
       for (const el of targets) {
         el.style.setProperty("--dot-gap", `${gap}px`);
         el.style.setProperty("--dot-tx", `${tx}px`);
@@ -87,12 +87,8 @@ export function DotBackground() {
         willChangeTimerRef.current = null;
       }, WILL_CHANGE_IDLE_MS);
     };
-    apply(selectCanvasViewportSnapshot(useViewportSyncStore.getState()));
-    const unsubscribe = useViewportSyncStore.subscribe(
-      selectCanvasViewportSnapshot,
-      apply,
-      { equalityFn: isCanvasViewportSnapshotEqual },
-    );
+    apply();
+    const unsubscribe = subscribeViewportPresentation(apply);
     return () => {
       unsubscribe();
       if (willChangeTimerRef.current !== null) {

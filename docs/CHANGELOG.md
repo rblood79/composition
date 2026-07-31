@@ -28,11 +28,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phase 3 smoke에서 wheel pan 20회, Ctrl/Cmd+wheel zoom 12회, Space-drag 20회는 각각
   continuous interaction당 mirror commit 1회로 수렴했다. Skia renderer의 잔여 long task는
   input scheduling과 분리해 관찰만 유지하며 ADR-172/173 범위는 변경하지 않았다.
+- 상단 ZoomControls는 canonical Zustand가 아니라 controller의
+  `ViewportPresentationStore`를 zoom-only로 구독한다. wheel zoom 중 `%`는 rAF 뒤 즉시
+  바뀌되 canonical mirror·persistence는 idle 종료 때만 commit하며, pan-only frame은
+  zoom UI notification을 만들지 않는다.
 
 ### Verification
 
 - `ViewportInteractionSession`/`viewportActions`/metrics targeted Vitest 18개 PASS
 - `pnpm run codex:preflight` PASS (기존 type-check baseline 53건 외 신규 오류 0)
+- `viewportPresentation` unit/UI contract 4개 PASS 및 local Builder wheel zoom smoke PASS
 
 ## [Paragraph 노드 소유 확정 — ADR-174 Implemented] - 2026-07-31
 

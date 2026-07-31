@@ -251,3 +251,8 @@ camera SSOT를 둘로 나눠 CRITICAL에 가까운 정합 위험을 만든다. �
 - targeted Vitest 18개와 `pnpm run codex:preflight`를 통과했다. 전체 문서의 Skia
   renderer long task는 scheduling 계약 밖의 관찰값으로 남기며, ADR-172/173의
   scene/culling/raster/cache를 재도입하거나 수정하지 않았다.
+- 후속 presentation 보강은 `ViewportController` notification에서
+  `ViewportPresentationStore`로 transient snapshot을 publish하고, `ZoomControls`는
+  zoom-only external subscription으로 `%`를 읽게 했다. wheel zoom smoke에서 60ms에는
+  `100% → 136%`가 표시되고 canonical mirror commit은 0회였으며, idle 뒤 1회만
+  commit됐다. pan-only frame은 zoom presentation subscriber를 notify하지 않는다.

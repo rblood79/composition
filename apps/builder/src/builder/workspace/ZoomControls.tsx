@@ -16,6 +16,10 @@ import {
   computeFitViewport,
   zoomViewportAtContainerCenter,
 } from "./canvas/viewport/viewportActions";
+import {
+  getViewportPresentationSnapshot,
+  useViewportPresentationZoom,
+} from "./canvas/viewport/viewportPresentation";
 import { iconProps } from "../../utils/ui/uiConstants";
 
 // ============================================
@@ -42,7 +46,7 @@ export interface ZoomControlsProps {
 export const ZoomControls = memo(function ZoomControls({
   className,
 }: ZoomControlsProps) {
-  const zoom = useViewportSyncStore((state) => state.zoom);
+  const zoom = useViewportPresentationZoom();
 
   const zoomPercent = Math.round(zoom * 100);
   // null = 편집 중 아님, string = 편집 중인 값
@@ -60,12 +64,12 @@ export const ZoomControls = memo(function ZoomControls({
   }, []);
 
   const zoomIn = useCallback(() => {
-    const currentZoom = useViewportSyncStore.getState().zoom;
+    const currentZoom = getViewportPresentationSnapshot().scale;
     zoomTo(currentZoom + ZOOM_STEP);
   }, [zoomTo]);
 
   const zoomOut = useCallback(() => {
-    const currentZoom = useViewportSyncStore.getState().zoom;
+    const currentZoom = getViewportPresentationSnapshot().scale;
     zoomTo(currentZoom - ZOOM_STEP);
   }, [zoomTo]);
 
