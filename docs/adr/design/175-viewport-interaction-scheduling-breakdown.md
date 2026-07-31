@@ -334,7 +334,7 @@ minimap, scrollbar thumb drag, `panToPage`, fit/restore/breakpoint 전환이다.
   `ViewportController.setPosition()` equality guard가 store subscription echo의 listener
   notification을 막는다. 기존 adapter는 아직 이 session을 호출하지 않는다.
 
-### Phase 2 — input adapter migration
+### Phase 2 — input adapter migration (Implemented 2026-07-31)
 
 - pointer drag, wheel pan, wheel zoom을 session으로 이관한다.
 - toolbar/keyboard/`viewportActions`의 discrete command를 같은 finish path로 이관한다.
@@ -354,15 +354,21 @@ minimap, scrollbar thumb drag, `panToPage`, fit/restore/breakpoint 전환이다.
   이동 중 mirror write를 하지 않고 종료 때 한 번만 commit한다. breakpoint persistence와
   전환은 active session을 먼저 finish한 final mirror를 저장한다. adapter migration은
   완료했으며, Unified Skia처럼 controller가 display container에 attach되지 않은 경로도
-  `viewportActions`가 session을 우회하지 않는다. browser G4 검증만 다음 Phase 3의
-  잔여 항목으로 남긴다.
+  `viewportActions`가 session을 우회하지 않는다.
 
-### Phase 3 — browser verification and performance decision
+### Phase 3 — browser verification and performance decision (Implemented 2026-07-31)
 
 - G4~G6 matrix를 local Builder에서 실행한다.
 - 실패가 session implementation이면 해당 adapter/primitive만 rollback한다.
 - 실패가 scene visibility 또는 Skia raster 비용이면 이 ADR을 확장하지 않고
   ADR-172/173 재검토 작업으로 분리한다.
+- local Builder smoke에서 wheel pan 20회, wheel zoom 12회, Space-drag 20회는 각각
+  raw input당 transient apply 1회, continuous interaction당 mirror commit 1회로
+  관측됐다. Zoom popover `확대`가 Unified Skia의 unattached controller에서 session을
+  우회하던 결함을 발견·수정한 뒤, listener 1회·mirror 1회·`110%`를 확인했다.
+- session의 ordered queue, finish/arbitration, equality/echo 및 unattached command
+  회귀는 targeted Vitest 18개와 `pnpm run codex:preflight`로 고정했다. renderer long
+  task는 G6b 관찰값으로 분류하고 ADR-172/173 범위로 확장하지 않는다.
 
 ## 5. Verification matrix
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-07-31
+Implemented — 2026-07-31
 
 ## Context
 
@@ -185,7 +185,7 @@ camera SSOT를 둘로 나눠 CRITICAL에 가까운 정합 위험을 만든다. �
 - **대안 D 기각**: visual transform과 실제 Skia camera가 갈라져 좌표·selection·scrollbar
   정합을 보장할 수 없다.
 
-> 구현 상세: [175-viewport-interaction-scheduling-breakdown.md](design/175-viewport-interaction-scheduling-breakdown.md)
+> 구현 상세: [175-viewport-interaction-scheduling-breakdown.md](../design/175-viewport-interaction-scheduling-breakdown.md)
 
 ## Risks
 
@@ -233,3 +233,21 @@ camera SSOT를 둘로 나눠 CRITICAL에 가까운 정합 위험을 만든다. �
   point inventory를 지속 관리해야 한다.
 - real-time coordinate consumer와 presentation consumer를 구분해 이관해야 하므로, Phase
   0 inventory·test 범위가 기존 제안보다 넓어진다.
+
+## Implementation record — 2026-07-31
+
+- Phase 0은 사용자 재현, DevTools violation, input counter, controller→mirror→store
+  subscription echo를 같은 인과로 확인해 구현을 승인했다.
+- Phase 1은 `ViewportInteractionSession`의 RAF coalescing, ordered pan/zoom queue,
+  final mirror commit, equality/echo guard, external command arbitration을 unit test로
+  고정했다.
+- Phase 2는 Space-drag, wheel pan, Ctrl/Cmd+wheel zoom, toolbar/keyboard zoom,
+  `panToPage`, minimap, scrollbar thumb, breakpoint persistence를 session 경계로
+  이관했다. Unified Skia에서는 controller의 display-container attach 여부와 무관하게
+  `viewportActions`가 session을 사용하도록 보정했다.
+- Phase 3 smoke에서 wheel pan 20회, wheel zoom 12회, Space-drag 20회는 각각 raw input과
+  transient apply가 1:1이고 continuous interaction의 mirror commit은 1회였다. 상단 Zoom
+  popover의 `확대`도 listener 1회, mirror commit 1회와 `110%` 결과를 확인했다.
+- targeted Vitest 18개와 `pnpm run codex:preflight`를 통과했다. 전체 문서의 Skia
+  renderer long task는 scheduling 계약 밖의 관찰값으로 남기며, ADR-172/173의
+  scene/culling/raster/cache를 재도입하거나 수정하지 않았다.

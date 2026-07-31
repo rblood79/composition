@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [Viewport 입력 스케줄링 통합 — ADR-175 Phase 2 진행] - 2026-07-31
+## [Viewport 입력 스케줄링 통합 — ADR-175 Implemented] - 2026-07-31
 
 ### Performance
 
@@ -25,11 +25,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unified Skia 경로에서 controller의 display-container attach 여부로 상단 Zoom menu와
   keyboard command가 session을 우회하던 결함을 제거했다. 실제 `확대` smoke에서 `110%`,
   controller listener 1회, mirror commit 1회를 확인했다.
+- Phase 3 smoke에서 wheel pan 20회, Ctrl/Cmd+wheel zoom 12회, Space-drag 20회는 각각
+  continuous interaction당 mirror commit 1회로 수렴했다. Skia renderer의 잔여 long task는
+  input scheduling과 분리해 관찰만 유지하며 ADR-172/173 범위는 변경하지 않았다.
 
 ### Verification
 
-- `ViewportInteractionSession`/`viewportActions`/metrics targeted Vitest 15개 PASS
-- `pnpm run codex:typecheck` PASS (기존 baseline 53건 외 신규 오류 0)
+- `ViewportInteractionSession`/`viewportActions`/metrics targeted Vitest 18개 PASS
+- `pnpm run codex:preflight` PASS (기존 type-check baseline 53건 외 신규 오류 0)
 
 ## [Paragraph 노드 소유 확정 — ADR-174 Implemented] - 2026-07-31
 
