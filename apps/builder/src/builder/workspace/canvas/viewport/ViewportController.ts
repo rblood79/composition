@@ -12,6 +12,7 @@
  */
 
 import { viewportState } from "./viewportState";
+import { recordViewportInteractionListenerFanout } from "./viewportInteractionMetrics";
 
 /** PixiJS Container에서 필요한 최소 인터페이스 */
 interface PixiContainerLike {
@@ -279,6 +280,7 @@ export class ViewportController {
     viewportState.x = state.x;
     viewportState.y = state.y;
     viewportState.zoom = state.scale;
+    recordViewportInteractionListenerFanout(this.updateListeners.size);
     for (const listener of this.updateListeners) {
       listener(state);
     }

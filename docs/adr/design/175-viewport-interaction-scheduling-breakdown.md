@@ -109,6 +109,110 @@ ADR-175 acceptance 조건이 아니다. 이 ADR의 blocking performance assertio
 zoom in/out, breakpoint 전환 뒤 재시작을 포함한다. `bench-*` filler 또는 one-path
 measurement만으로 G1을 통과시킬 수 없다.
 
+### 2.4 Phase 0 progress log — 2026-07-31 (Approved)
+
+- **정적 inventory 고정**: continuous input은 `useViewportControl.ts`, direct external
+  writer는 `viewportActions.ts`, `panToPage.ts`, `ZoomControls.tsx`,
+  `useGlobalKeyboardShortcuts.ts`, `CanvasScrollbar.tsx`,
+  `useWorkflowInteraction.ts`, `useWorkspaceCanvasSizing.ts`에 남아 있다. canonical
+  mirror reader와 real-time candidate는 `BuilderCanvas.tsx`,
+  `useElementHoverInteraction.ts`, `useScrollWheelInteraction.ts`,
+  `useWorkflowInteraction.ts`, `CanvasScrollbar.tsx`, `DotBackground.tsx`,
+  `ZoomControls.tsx`로 고정했다. 이 목록 밖의 direct writer/real-time reader를 발견하면
+  Phase 1 진입 전에 이 표를 갱신한다.
+- **관측 배선 완료**: `viewportInteractionMetrics.ts`가 raw input, transient apply,
+  listener dispatch/invocation, mirror commit, RAF wall interval을 독립 수집한다.
+  현재 drag/wheel pan/wheel zoom은 `input.viewport.*` handler-body label과 함께 이
+  counter를 기록하며, `ViewportController`는 listener fan-out을 기록한다.
+  `INPUT_VIEWPORT_COMMAND` label은 Phase 2의 external command 이관 전까지 선언만
+  존재한다. 관측 자체는 scheduling 정책을 변경하지 않는다.
+- **브라우저 probe**: 제공된 route의 `?viewportMetrics=1`은 idle 뒤
+  `document.documentElement.dataset.compositionViewportMetrics`에 같은 snapshot을
+  노출한다. 이 query가 없을 때는 DOM 변경·timer가 없어 product/runtime 동작에 영향을
+  주지 않는다. 이는 자동 브라우저의 DOM realm이 page-owned 전역을 읽지 못하는 제약을
+  우회한 Phase 0 전용 관측 surface다.
+- **예비 wheel pan 결과 (G1 미승인)**: Chrome automation으로 canvas `1800×884 CSS px`에서
+  20px wheel pan 40회를 재생해 `rawInput=40`, `transientApply=40`,
+  `mirrorCommit=40`, `listenerDispatch=82`, `listenerInvocation=164`를 확인했다.
+  `input.viewport.wheel-pan` handler body는 p95 `0.5ms`였지만,
+  `longtask.render`는 42 samples / p95 `362ms`, `render.frame`은 1,000 retained samples /
+  p95 `4.6ms`였다. 이는 event-level mirror write와 그 뒤 render task의 분리를 뒷받침하는
+  원인 신호일 뿐, CUA가 입력을 직렬 주입해 `rafWallInterval` p50 `412.7ms`가 display
+  cadence가 아니므로 performance gate 증적으로 사용할 수 없다.
+- **실제 wheel-pan baseline (G1 일부 충족)**: 제공된 Builder route에서 사용자가 일반
+  wheel-pan을 직접 수행해 `rawInput=89`, `transientApply=89`,
+  `mirrorCommit=52`를 얻었다. `listenerFanout=141`은 정확히
+  `rawInput + mirrorCommit`이고, listener가 2개이므로
+  `listenerInvocation=282`가 됐다. 이는 현재 input의 즉시
+  `controller.setPosition()` notify와 RAF mirror 뒤 store subscription의
+  `controller.setPosition()` echo가 모두 fan-out을 만든다는 코드 경로와 일치한다.
+  `rafWallInterval`은 p50 `110.3ms`/p95 `227.8ms`였고,
+  `longtask.render`는 39 samples 모두 50ms 초과(p50 `123ms`, p95 `227ms`,
+  max `288ms`)였다. 같은 실제 run의 DevTools Console은 React wheel task
+  `179–737ms`와 `SkiaCanvas.tsx:761` RAF `50–291ms` violation도 보고했다.
+  이 값은 scheduling 개선의 실제 source baseline이지만, device/OS/refresh-rate
+  metadata, wheel zoom/Space-drag, 실제 다페이지 문서 scenario가 아직 없어 G1 전체
+  통과나 Phase 1 진입 근거로 사용하지 않는다.
+- **실제 Control + wheel zoom baseline (G1 일부 충족)**: 새 reset 뒤 사용자가
+  `Control + wheel`만 수행해 `rawInput=33`, `transientApply=33`,
+  `mirrorCommit=25`, `listenerFanout=50`, `listenerInvocation=100`을 얻었다.
+  zoom limit에서 state가 변하지 않은 8 raw input을 제외하면, 상태가 변한 25회 각각이
+  immediate mirror와 store subscription echo로 정확히 2회의 fan-out을 만들었다.
+  `rafWallInterval=0`은 현행 zoom이 RAF가 아니라
+  `controller.zoomAtPoint(..., true)`의 즉시 React mirror 경로라는 뜻이다.
+  `longtask.input`은 25 samples 모두 50ms 초과(p50 `112ms`, p95 `200ms`)였고,
+  `longtask.render`도 23 samples 중 22회가 50ms 초과(p50 `117ms`, p95 `180ms`)였다.
+  따라서 wheel zoom도 pan과 같은 session/finish commit 정책의 대상임을 실제 입력으로
+  확인했다. device/OS/refresh-rate metadata, Space-drag, 실제 다페이지 문서 scenario는
+  여전히 남아 있어 G1 전체 통과로 표시하지 않는다.
+- **실제 Space + drag baseline (G1 일부 충족)**: 새 reset 뒤 사용자가
+  `Space + drag`만 수행해 `rawInput=328`, `transientApply=328`,
+  `mirrorCommit=6`, `listenerFanout=334`, `listenerInvocation=668`을 얻었다.
+  6개의 continuous drag는 이미 종료 시 한 번만 mirror하지만, 각 pointer move가
+  `controller.updatePan()`을 통해 즉시 listener를 깨우고 종료 mirror의 store echo가
+  6회를 더해 `328 + 6 = 334` fan-out이 됐다. 따라서 drag는 canonical commit 정책은
+  이미 목표와 같지만 listener dispatch는 RAF coalescing 대상이다.
+  `longtask.input`은 없었지만 `longtask.render`는 22 samples 모두 50ms 초과
+  (p50 `147ms`, p95 `204ms`, max `234ms`)였다. `rafWallInterval=0`은 이 counter가
+  현재 wheel-pan RAF에만 배선돼 있기 때문이며, drag render loop가 frame stall이 없다는
+  뜻은 아니다. device/OS/refresh-rate metadata와 실제 다페이지 문서 scenario가 남아
+  있어 G1 전체 통과로 표시하지 않는다.
+- **실제 multi-page 문서 확인**: 제공 route의 canonical document에는 `Components`와
+  `Home`, `Page 2`부터 `Page 22`까지 총 23개의 legacy-page frame이 존재한다. 따라서
+  synthetic fixture 없이 가시 페이지 집합 유지와 새 페이지 진입을 포함한 G1 scenario를
+  같은 실제 문서에서 재생할 수 있다. 이전 pageRole 위주 조회는 `Home`과 `Page 2`~`Page 22`를
+  놓쳤으므로, 이후 inventory는 `metadata.type === "page" | "legacy-page"` 및
+  `type === "frame" && reusable !== true`를 함께 사용한다. 아직 각 scenario의 physical
+  baseline과 장비 metadata는 기록되지 않았으므로 G1 전체 통과로 표시하지 않는다.
+- **자동 multi-page probe (G1 성능 증거 제외)**: Browser UI에서 `Page 2` selection과
+  transition 완료를 확인했고, 해당 실제 canvas에는 다수의 page가 가시 상태였다. fresh reload
+  뒤 overview에는 23개 page가 같은 canvas에 배치된 것도 확인했다. 이어 자동 scroll 20회를
+  재생했을 때 browser automation은 `Ctrl` modifier를 wheel zoom으로 전달하지 않고
+  `wheel-pan` 40개로 관측했다. `rawInput=40`, `transientApply=40`,
+  `mirrorCommit=40`, `listenerFanout=82`, `listenerInvocation=164`였으며,
+  fan-out의 추가 2회는 reload 뒤 page command notification이다. 이 경로의 RAF wall p50은
+  `166.7ms`, p95는 `2554ms`였고 long task가 automation dispatch 간격을 포함하므로 physical
+  frame 성능을 뜻하지 않는다. reverse scroll의 page re-entry 확인은 automation timeout으로
+  완료되지 않아 G1 scenario 통과 증거나 performance baseline으로 사용하지 않는다.
+- **Chrome OS-level multi-page smoke (G1 일부 충족)**: DevTools Console에서 counters를
+  reset한 뒤, zoom `10%`의 실제 23-page canvas에 normal scroll down 1회와 up 1회를
+  입력했다. screenshot으로 전체 page 집합이 가시 상태에서 canvas 밖으로 이동한 뒤 다시
+  같은 집합으로 재진입하는 것을 확인했다. snapshot은 `rawInput=2`,
+  `transientApply=2`, `mirrorCommit=2`, `listenerFanout=4`,
+  `listenerInvocation=8`로, 각 입력의 즉시 controller notification과 RAF mirror echo를
+  그대로 보였다. `rafWallInterval=22592.5ms`는 두 입력 사이 Console 전환 시간을 포함하므로
+  frame cadence가 아니다. 이 OS-level automation은 human wheel/trackpad의 input rate가
+  아니며 sample 수가 2이고 hardware metadata도 없으므로, multi-page 기능 smoke로만
+  기록하고 G1 성능 baseline 또는 통과로 사용하지 않는다.
+- **Phase 0 승인 결정**: 사용자의 실제 frame-drop 재현, DevTools의 React wheel 및
+  `SkiaCanvas.tsx:761` violation, wheel pan/zoom의 input counter, 그리고 즉시
+  controller notify → canonical mirror → subscription echo라는 코드 경로가 한 원인을
+  독립적으로 확정한다. 따라서 사용자는 2026-07-31 Phase 0을 승인하고 Phase 1 착수를
+  지시했다. 위 기록 중 sample 수·hardware metadata·automation cadence 관련 제한은
+  Phase 3 전후 비교의 관찰 품질에만 적용하며, Phase 1 진입을 막지 않는다. 이전의
+  `G1 일부 충족` 또는 `Phase 1 진입 근거로 사용하지 않는다`라는 표현은 이 승인으로
+  supersede한다.
+
 ## 3. Target interaction contract
 
 ### 3.1 Public execution model

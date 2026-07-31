@@ -32,6 +32,10 @@
  */
 export const PERF_LABEL = {
   INPUT_POINTERDOWN: "input.pointerdown",
+  INPUT_VIEWPORT_DRAG: "input.viewport.drag",
+  INPUT_VIEWPORT_WHEEL_PAN: "input.viewport.wheel-pan",
+  INPUT_VIEWPORT_WHEEL_ZOOM: "input.viewport.wheel-zoom",
+  INPUT_VIEWPORT_COMMAND: "input.viewport.command",
   /**
    * ADR-074 Phase 5: 페이지 전환 경로 전용 계측.
    * setCurrentPageId / selectElementWithPageTransition 에서 페이지 전환

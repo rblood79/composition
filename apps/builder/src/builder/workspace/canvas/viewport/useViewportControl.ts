@@ -27,7 +27,14 @@ import { useKeyboardShortcutsRegistry } from "@/builder/hooks";
 import { useScrollState, isScrollable } from "../../../stores/scrollState";
 import { useStore } from "../../../stores";
 import { getCanonicalNode } from "../../../stores/canonical/canonicalElementsBridge";
+import { observe, PERF_LABEL } from "../../../utils/perfMarks";
 import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
+import {
+  recordViewportInteractionMirrorCommit,
+  recordViewportInteractionRafFrame,
+  recordViewportInteractionRawInput,
+  recordViewportInteractionTransientApply,
+} from "./viewportInteractionMetrics";
 
 // ============================================
 // Types
@@ -109,6 +116,7 @@ export function useViewportControl(
   // React state로 동기화하는 콜백
   const handleStateSync = useCallback(
     (state: ViewportState) => {
+      recordViewportInteractionMirrorCommit();
       setViewportSnapshot({
         panOffset: { x: state.x, y: state.y },
         zoom: state.scale,
@@ -242,7 +250,11 @@ export function useViewportControl(
 
     const handleWindowPointerMove = (e: PointerEvent) => {
       if (!controller.isPanningActive()) return;
-      controller.updatePan(e.clientX, e.clientY);
+      observe(PERF_LABEL.INPUT_VIEWPORT_DRAG, () => {
+        recordViewportInteractionRawInput();
+        controller.updatePan(e.clientX, e.clientY);
+        recordViewportInteractionTransientApply();
+      });
     };
 
     const handleWindowPointerEnd = (e: PointerEvent) => {
@@ -275,95 +287,109 @@ export function useViewportControl(
     if (!containerEl || !controller) return;
 
     const handleWheel = (e: WheelEvent) => {
-      // Ctrl/Cmd + wheel = Zoom
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        e.stopPropagation();
+      const label =
+        e.ctrlKey || e.metaKey
+          ? PERF_LABEL.INPUT_VIEWPORT_WHEEL_ZOOM
+          : PERF_LABEL.INPUT_VIEWPORT_WHEEL_PAN;
 
-        // 🚀 Phase 6.1: 줌 시작 알림 (최초 1회만, ref 사용)
-        if (!isZoomingRef.current) {
-          isZoomingRef.current = true;
-          onInteractionStartRef.current?.();
-        }
+      observe(label, () => {
+        // Ctrl/Cmd + wheel = Zoom
+        if (e.ctrlKey || e.metaKey) {
+          recordViewportInteractionRawInput();
+          e.preventDefault();
+          e.stopPropagation();
 
-        // 기존 종료 타임아웃 취소
-        if (zoomEndTimeoutRef.current) {
-          clearTimeout(zoomEndTimeoutRef.current);
-        }
+          // 🚀 Phase 6.1: 줌 시작 알림 (최초 1회만, ref 사용)
+          if (!isZoomingRef.current) {
+            isZoomingRef.current = true;
+            onInteractionStartRef.current?.();
+          }
 
-        // 150ms 동안 휠 이벤트 없으면 종료로 간주
-        zoomEndTimeoutRef.current = setTimeout(() => {
-          isZoomingRef.current = false;
-          onInteractionEndRef.current?.();
-          zoomEndTimeoutRef.current = null;
-        }, 150);
+          // 기존 종료 타임아웃 취소
+          if (zoomEndTimeoutRef.current) {
+            clearTimeout(zoomEndTimeoutRef.current);
+          }
 
-        const rect = containerEl.getBoundingClientRect();
+          // 150ms 동안 휠 이벤트 없으면 종료로 간주
+          zoomEndTimeoutRef.current = setTimeout(() => {
+            isZoomingRef.current = false;
+            onInteractionEndRef.current?.();
+            zoomEndTimeoutRef.current = null;
+          }, 150);
 
-        // Pencil 방식: deltaY 클램핑 + 0.012 계수
-        // ctrlKey(마우스 휠) → ±30 클램핑, metaKey(트랙패드 핀치) → ±15 클램핑
-        // 마우스 휠 1클릭(deltaY=120) → clamp=30 → 36% 줌 변화
-        // 트랙패드 핀치(deltaY=3) → clamp=3 → 3.6% 줌 변화
-        const clampRange = e.metaKey ? 15 : 30;
-        const clamped = Math.max(-clampRange, Math.min(clampRange, e.deltaY));
-        const delta = clamped * -0.012;
+          const rect = containerEl.getBoundingClientRect();
 
-        controller.zoomAtPoint(e.clientX, e.clientY, rect, delta, true);
-      } else {
-        // 일반 휠 = 팬 (Figma/Photoshop 스타일)
-        e.preventDefault();
-        e.stopPropagation();
+          // Pencil 방식: deltaY 클램핑 + 0.012 계수
+          // ctrlKey(마우스 휠) → ±30 클램핑, metaKey(트랙패드 핀치) → ±15 클램핑
+          // 마우스 휠 1클릭(deltaY=120) → clamp=30 → 36% 줌 변화
+          // 트랙패드 핀치(deltaY=3) → clamp=3 → 3.6% 줌 변화
+          const clampRange = e.metaKey ? 15 : 30;
+          const clamped = Math.max(-clampRange, Math.min(clampRange, e.deltaY));
+          const delta = clamped * -0.012;
 
-        // Phase E: 선택된 스크롤 가능 요소에 wheel 라우팅
-        const selectedIds = useStore.getState().selectedElementIds;
-        if (selectedIds.length === 1) {
-          const selectedId = selectedIds[0];
-          const node = getCanonicalNode(selectedId);
-          const overflow = (
-            node?.props?.style as Record<string, unknown> | undefined
-          )?.overflow;
-          if (
-            (overflow === "scroll" || overflow === "auto") &&
-            isScrollable(selectedId)
-          ) {
-            const deltaX = e.shiftKey ? e.deltaY : e.deltaX;
-            const deltaY = e.shiftKey ? 0 : e.deltaY;
-            useScrollState.getState().scrollBy(selectedId, deltaX, deltaY);
-            return;
+          controller.zoomAtPoint(e.clientX, e.clientY, rect, delta, true);
+          recordViewportInteractionTransientApply();
+        } else {
+          // 일반 휠 = 팬 (Figma/Photoshop 스타일)
+          e.preventDefault();
+          e.stopPropagation();
+
+          // Phase E: 선택된 스크롤 가능 요소에 wheel 라우팅
+          const selectedIds = useStore.getState().selectedElementIds;
+          if (selectedIds.length === 1) {
+            const selectedId = selectedIds[0];
+            const node = getCanonicalNode(selectedId);
+            const overflow = (
+              node?.props?.style as Record<string, unknown> | undefined
+            )?.overflow;
+            if (
+              (overflow === "scroll" || overflow === "auto") &&
+              isScrollable(selectedId)
+            ) {
+              const deltaX = e.shiftKey ? e.deltaY : e.deltaX;
+              const deltaY = e.shiftKey ? 0 : e.deltaY;
+              useScrollState.getState().scrollBy(selectedId, deltaX, deltaY);
+              return;
+            }
+          }
+
+          recordViewportInteractionRawInput();
+
+          // Shift + wheel = 좌우 팬, 일반 wheel = 상하 팬
+          const rawDeltaX = e.shiftKey ? e.deltaY : e.deltaX;
+          const rawDeltaY = e.shiftKey ? 0 : e.deltaY;
+
+          // Fix 6: 동일 프레임 내 다중 wheel 이벤트 누적 처리.
+          // pendingPanRef가 있으면 이전 누적값 기준, 없으면 Zustand 현재값 기준.
+          const current =
+            pendingPanRef.current ?? useViewportSyncStore.getState().panOffset;
+          const { zoom } = useViewportSyncStore.getState();
+          const newX = current.x - rawDeltaX;
+          const newY = current.y - rawDeltaY;
+
+          // PixiJS Container 즉시 업데이트 (Skia 시각 렌더링 지연 없음)
+          controller.setPosition(newX, newY, zoom);
+          recordViewportInteractionTransientApply();
+
+          // Zustand 업데이트를 RAF로 배칭 (React 리렌더 프레임당 1회 제한)
+          pendingPanRef.current = { x: newX, y: newY };
+          if (rafPanRef.current === null) {
+            rafPanRef.current = requestAnimationFrame((timestamp) => {
+              recordViewportInteractionRafFrame(timestamp);
+              if (pendingPanRef.current) {
+                const latestZoom = useViewportSyncStore.getState().zoom;
+                recordViewportInteractionMirrorCommit();
+                setViewportSnapshot({
+                  panOffset: pendingPanRef.current,
+                  zoom: latestZoom,
+                });
+                pendingPanRef.current = null;
+              }
+              rafPanRef.current = null;
+            });
           }
         }
-
-        // Shift + wheel = 좌우 팬, 일반 wheel = 상하 팬
-        const rawDeltaX = e.shiftKey ? e.deltaY : e.deltaX;
-        const rawDeltaY = e.shiftKey ? 0 : e.deltaY;
-
-        // Fix 6: 동일 프레임 내 다중 wheel 이벤트 누적 처리.
-        // pendingPanRef가 있으면 이전 누적값 기준, 없으면 Zustand 현재값 기준.
-        const current =
-          pendingPanRef.current ?? useViewportSyncStore.getState().panOffset;
-        const { zoom } = useViewportSyncStore.getState();
-        const newX = current.x - rawDeltaX;
-        const newY = current.y - rawDeltaY;
-
-        // PixiJS Container 즉시 업데이트 (Skia 시각 렌더링 지연 없음)
-        controller.setPosition(newX, newY, zoom);
-
-        // Zustand 업데이트를 RAF로 배칭 (React 리렌더 프레임당 1회 제한)
-        pendingPanRef.current = { x: newX, y: newY };
-        if (rafPanRef.current === null) {
-          rafPanRef.current = requestAnimationFrame(() => {
-            if (pendingPanRef.current) {
-              const latestZoom = useViewportSyncStore.getState().zoom;
-              setViewportSnapshot({
-                panOffset: pendingPanRef.current,
-                zoom: latestZoom,
-              });
-              pendingPanRef.current = null;
-            }
-            rafPanRef.current = null;
-          });
-        }
-      }
+      });
     };
 
     containerEl.addEventListener("wheel", handleWheel, {
@@ -384,6 +410,7 @@ export function useViewportControl(
         // 마지막 누적값 반영 (언마운트 전 최종 상태 동기화)
         if (pendingPanRef.current) {
           const { zoom } = useViewportSyncStore.getState();
+          recordViewportInteractionMirrorCommit();
           setViewportSnapshot({
             panOffset: pendingPanRef.current,
             zoom,
