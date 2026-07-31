@@ -123,12 +123,19 @@ export function buildSceneStructureSnapshot(
     input.pageWidth,
     input.pageHeight,
   );
-  const visiblePageIds = buildVisiblePageSet({
+  const calculatedVisiblePageIds = buildVisiblePageSet({
     containerSize: input.containerSize,
     pageFrames: allPageFrames,
     panOffset: input.panOffset,
     zoom: input.zoom,
   });
+  const visiblePageIds = input.visiblePageIdsOverride
+    ? new Set(
+        allPageFrames
+          .filter((frame) => input.visiblePageIdsOverride?.has(frame.id))
+          .map((frame) => frame.id),
+      )
+    : calculatedVisiblePageIds;
   const visiblePageFrames = allPageFrames.filter((frame) =>
     visiblePageIds.has(frame.id),
   );

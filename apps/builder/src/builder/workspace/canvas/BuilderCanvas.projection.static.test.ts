@@ -115,4 +115,16 @@ describe("BuilderCanvas canonical projection contract", () => {
       'source: canonicalSceneModel ? "canonical" : "legacy-bootstrap"',
     );
   });
+
+  it("uses the transient viewport presentation for live page culling", async () => {
+    const source = await readFile(
+      resolve(__dirname, "BuilderCanvas.tsx"),
+      "utf-8",
+    );
+
+    expect(source).toContain("getViewportPresentationSnapshot");
+    expect(source).toContain("subscribeViewportPresentation");
+    expect(source).toContain("buildVisiblePageSet({");
+    expect(source).toContain("visiblePageIdsOverride:");
+  });
 });

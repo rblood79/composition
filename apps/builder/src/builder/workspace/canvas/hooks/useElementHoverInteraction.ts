@@ -22,6 +22,7 @@ import { isLegacyFrameElementForFrame } from "../../../../adapters/canonical/fra
 import { getDragVisualOffset } from "../skia/nodeRendererTree";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
 import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
+import { useGestureHoverSuppression } from "./useGestureHoverSuppression";
 
 // ============================================
 // Types
@@ -40,7 +41,7 @@ interface UseElementHoverInteractionOptions {
   /** 부모 컨테이너 DOM 요소 */
   containerEl: HTMLDivElement | null;
   /** Hand/Pan mode가 armed된 동안 element hover hit-test를 막는 session */
-  gestureSession?: CanvasGestureSession;
+  gestureSession: CanvasGestureSession;
   /** Frames tab multi-canvas overview 에서 frame body 빈 영역 hover 판정용 */
   frameAreasRef?: RefObject<ReadonlyArray<FrameHoverArea>>;
   /** Page mode multi-page canvas 에서 page body 빈 영역 hover 판정용 */
@@ -258,27 +259,11 @@ export function useElementHoverInteraction({
     }
   }, [hoverStateRef, overlayVersionRef]);
 
-  useEffect(() => {
-    if (!gestureSession) return;
-
-    const clearSuppressedHover = () => {
-      if (!gestureSession.shouldSuppressElementHover()) return;
-
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-      clearHover();
-    };
-
-    const unsubscribe = gestureSession.subscribe(clearSuppressedHover);
-    clearSuppressedHover();
-    return unsubscribe;
-  }, [clearHover, gestureSession]);
+  useGestureHoverSuppression(gestureSession, rafRef, clearHover);
 
   const handlePointerMove = useCallback(
     (e: PointerEvent) => {
-      if (gestureSession?.shouldSuppressElementHover()) {
+      if (gestureSession.shouldSuppressElementHover()) {
         clearHover();
         return;
       }
@@ -297,7 +282,7 @@ export function useElementHoverInteraction({
         rafRef.current = null;
         if (!containerEl) return;
 
-        if (gestureSession?.shouldSuppressElementHover()) {
+        if (gestureSession.shouldSuppressElementHover()) {
           clearHover();
           return;
         }

@@ -72,8 +72,13 @@ import {
   buildCanonicalSceneModel,
   buildPageDataMap,
   buildSceneStructureSnapshot,
+  buildVisiblePageSet,
   createResolvedProjectionSignature,
 } from "./scene";
+import {
+  getViewportPresentationSnapshot,
+  subscribeViewportPresentation,
+} from "./viewport/viewportPresentation";
 // ADR-150 A2: collection 가상화 window 해석 (bounded+overflow ListBox → window map).
 import {
   resolveVirtualizedCollectionWindows,
@@ -132,6 +137,17 @@ function computeStackedCanvasPosition(
   }
 
   return { x: index * (width + gap), y: 0 };
+}
+
+function arePageIdSetsEqual(
+  left: ReadonlySet<string>,
+  right: ReadonlySet<string>,
+): boolean {
+  if (left.size !== right.size) return false;
+  for (const id of left) {
+    if (!right.has(id)) return false;
+  }
+  return true;
 }
 
 type CanvasContextMenuState = {
@@ -328,6 +344,9 @@ export function BuilderCanvas({
 
   const zoom = useViewportSyncStore((state) => state.zoom);
   const panOffset = useViewportSyncStore((state) => state.panOffset);
+  const [transientVisiblePageIds, setTransientVisiblePageIds] =
+    useState<ReadonlySet<string> | null>(null);
+  const transientVisiblePageIdsRef = useRef<ReadonlySet<string> | null>(null);
 
   // ADR-100 Phase 9 회귀 복구: <PageContainer> 제거로 끊겼던 page-title drag
   // 경로를 Skia overlay 경유로 재배선. SkiaCanvas renderSkia 가 매 프레임
@@ -463,6 +482,7 @@ export function BuilderCanvas({
       panOffset,
       precomputedProjectionSignature: projectionContentSignature,
       source: canonicalSceneModel ? "canonical" : "legacy-bootstrap",
+      visiblePageIdsOverride: transientVisiblePageIds ?? undefined,
       zoom,
     });
   }, [
@@ -481,6 +501,52 @@ export function BuilderCanvas({
     projectionContentSignature,
     sceneNodes,
     sceneNodesMap,
+    transientVisiblePageIds,
+    zoom,
+  ]);
+
+  useEffect(() => {
+    const updateTransientVisiblePageIds = () => {
+      const presentation = getViewportPresentationSnapshot();
+      const nextVisiblePageIds = buildVisiblePageSet({
+        containerSize,
+        pageFrames: sceneStructureSnapshot.document.allPageFrames,
+        panOffset: { x: presentation.x, y: presentation.y },
+        zoom: presentation.scale,
+      });
+
+      const mirrorMatchesPresentation =
+        presentation.x === panOffset.x &&
+        presentation.y === panOffset.y &&
+        presentation.scale === zoom;
+
+      if (mirrorMatchesPresentation) {
+        transientVisiblePageIdsRef.current = null;
+        setTransientVisiblePageIds((current) =>
+          current === null ? current : null,
+        );
+        return;
+      }
+
+      const previousVisiblePageIds =
+        transientVisiblePageIdsRef.current ??
+        sceneStructureSnapshot.document.visiblePageIds;
+      if (arePageIdSetsEqual(previousVisiblePageIds, nextVisiblePageIds)) {
+        return;
+      }
+
+      const nextSnapshot = new Set(nextVisiblePageIds);
+      transientVisiblePageIdsRef.current = nextSnapshot;
+      setTransientVisiblePageIds(nextSnapshot);
+    };
+
+    updateTransientVisiblePageIds();
+    return subscribeViewportPresentation(updateTransientVisiblePageIds);
+  }, [
+    containerSize,
+    panOffset,
+    sceneStructureSnapshot.document.allPageFrames,
+    sceneStructureSnapshot.document.visiblePageIds,
     zoom,
   ]);
 

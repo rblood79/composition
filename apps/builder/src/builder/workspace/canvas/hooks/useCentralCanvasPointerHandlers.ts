@@ -512,42 +512,9 @@ export function useCentralCanvasPointerHandlers({
       isDraggingRef.current = false;
     };
 
-    const handlePointerMove = (event: PointerEvent) => {
-      if (gestureSession.shouldSuppressElementInteraction(event.pointerId)) {
-        return;
-      }
-
-      // pendingDrag가 없을 때만 커서 업데이트 (드래그 중 window 핸들러가 처리)
-      if (pendingDragRef.current) return;
-
-      const rect = element.getBoundingClientRect();
-      const canvasPos = screenToCanvasPoint({
-        x: event.clientX - rect.left,
-        y: event.clientY - rect.top,
-      });
-
-      const state = useStore.getState();
-      const hasSelection = state.selectedElementIds.length >= 1;
-
-      if (hasSelection) {
-        const selectionBounds =
-          selectionBoundsRef.current ?? computeSelectionBoundsForHitTest();
-        const { hitHandle } = resolveSelectionHit(
-          canvasPos,
-          selectionBounds,
-          zoom,
-        );
-        if (hitHandle) {
-          setCursor(resolveHandleCursor(hitHandle));
-          return;
-        }
-      }
-
-      setCursor("default");
-    };
-
+    // pointermove 는 window 리스너 하나만 둔다 — element 에 같은 리스너를 걸면
+    // 버블링으로 두 번 발화해 hit-test/커서 계산이 이벤트마다 2회 돈다.
     element.addEventListener("pointerdown", handlePointerDown);
-    element.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointermove", handleWindowPointerMove);
     window.addEventListener("pointerup", handleWindowPointerUp);
 
@@ -556,7 +523,6 @@ export function useCentralCanvasPointerHandlers({
       pendingDragRef.current = null;
       isDraggingRef.current = false;
       element.removeEventListener("pointerdown", handlePointerDown);
-      element.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointermove", handleWindowPointerMove);
       window.removeEventListener("pointerup", handleWindowPointerUp);
     };

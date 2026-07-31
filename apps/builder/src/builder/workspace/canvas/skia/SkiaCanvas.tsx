@@ -82,7 +82,7 @@ export interface SkiaCanvasProps {
   /** 부모 컨테이너 DOM 요소 */
   containerEl: HTMLDivElement;
   /** Canvas pointer session 제스처 소유권 */
-  gestureSession?: CanvasGestureSession;
+  gestureSession: CanvasGestureSession;
   /** PixiJS Application (과도기 호환, 미사용) */
   app?: unknown;
   /** Layout 무효화 콜백 */

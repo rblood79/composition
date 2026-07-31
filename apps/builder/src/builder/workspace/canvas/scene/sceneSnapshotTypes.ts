@@ -92,6 +92,8 @@ export interface BuildSceneStructureInput {
   pageWidth: number;
   pages: Page[];
   panOffset: { x: number; y: number };
+  /** Controller의 transient viewport가 mirror보다 앞설 때 사용하는 live culling 결과. */
+  visiblePageIdsOverride?: ReadonlySet<string>;
   /**
    * ADR-916 2-C 안 A: projection content signature 를 호출측이 pan/zoom 독립
    * useMemo 로 미리 계산해 주입. 주입 시 `buildSceneStructureSnapshot` 내부의

@@ -35,6 +35,7 @@ import {
   type MinimapConfig,
 } from "../skia/workflowMinimap";
 import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
+import { useGestureHoverSuppression } from "./useGestureHoverSuppression";
 
 // ============================================
 // Types
@@ -48,7 +49,7 @@ export interface UseWorkflowInteractionOptions {
   /** 부모 컨테이너 DOM 요소 */
   containerEl: HTMLDivElement | null;
   /** Hand/Pan mode가 armed된 동안 workflow hover hit-test를 막는 session */
-  gestureSession?: CanvasGestureSession;
+  gestureSession: CanvasGestureSession;
   /** 엣지 지오메트리 캐시 ref */
   edgeGeometryCacheRef: RefObject<CachedEdgeGeometry[]>;
   /** 페이지 프레임 맵 ref */
@@ -160,7 +161,7 @@ export function useWorkflowInteraction({
     (e: PointerEvent) => {
       if (!containerEl) return;
 
-      if (gestureSession?.shouldSuppressElementHover()) {
+      if (gestureSession.shouldSuppressElementHover()) {
         clearHover();
         return;
       }
@@ -186,7 +187,7 @@ export function useWorkflowInteraction({
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = null;
 
-        if (gestureSession?.shouldSuppressElementHover()) {
+        if (gestureSession.shouldSuppressElementHover()) {
           clearHover();
           return;
         }
@@ -225,23 +226,7 @@ export function useWorkflowInteraction({
     ],
   );
 
-  useEffect(() => {
-    if (!gestureSession) return;
-
-    const clearSuppressedHover = () => {
-      if (!gestureSession.shouldSuppressElementHover()) return;
-
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-      clearHover();
-    };
-
-    const unsubscribe = gestureSession.subscribe(clearSuppressedHover);
-    clearSuppressedHover();
-    return unsubscribe;
-  }, [clearHover, gestureSession]);
+  useGestureHoverSuppression(gestureSession, rafRef, clearHover);
 
   // ============================================
   // pointerdown: 페이지 프레임 클릭 (capture phase)
@@ -251,7 +236,7 @@ export function useWorkflowInteraction({
     (e: PointerEvent) => {
       if (!containerEl) return;
 
-      if (gestureSession?.beginPointer(e.pointerId, e.button) === "pan") {
+      if (gestureSession.beginPointer(e.pointerId, e.button) === "pan") {
         return;
       }
 
@@ -273,7 +258,6 @@ export function useWorkflowInteraction({
         e.stopPropagation();
         e.preventDefault();
         const session = beginViewportInteraction("minimap");
-        if (!session) return;
         isMinimapDraggingRef.current = true;
         minimapSessionRef.current = session;
         minimapQueuedViewportRef.current = getViewportController().getState();

@@ -296,6 +296,91 @@ describe("ADR-916 2-C 안 A — precomputedProjectionSignature 주입 정합성"
   });
 });
 
+describe("transient viewport page culling", () => {
+  it("uses live visible page ids while the viewport mirror is stale", () => {
+    const pages = [makePage({ id: "page-1" }), makePage({ id: "page-2" })];
+    const elements: CanvasSceneNode[] = [];
+    const elementsMap = new Map<string, CanvasSceneNode>();
+    const pageIndex = rebuildPageIndex(elements, elementsMap);
+
+    const livePanSnapshot = buildSceneStructureSnapshot({
+      containerSize: { height: 900, width: 1200 },
+      currentPageId: "page-1",
+      elements,
+      elementsMap,
+      layoutVersion: 1,
+      pageHeight: 600,
+      pageIndex,
+      pagePositions: {
+        "page-1": { x: 0, y: 0 },
+        "page-2": { x: 1500, y: 0 },
+      },
+      pagePositionsVersion: 1,
+      pageWidth: 800,
+      pages,
+      panOffset: { x: -1500, y: 0 },
+      source: "canonical",
+      zoom: 1,
+    });
+
+    expect(livePanSnapshot.document.visiblePageIds).toEqual(
+      new Set(["page-2"]),
+    );
+
+    const liveZoomSnapshot = buildSceneStructureSnapshot({
+      containerSize: { height: 900, width: 1200 },
+      currentPageId: "page-1",
+      elements,
+      elementsMap,
+      layoutVersion: 1,
+      pageHeight: 600,
+      pageIndex,
+      pagePositions: {
+        "page-1": { x: 0, y: 0 },
+        "page-2": { x: 1500, y: 0 },
+      },
+      pagePositionsVersion: 1,
+      pageWidth: 800,
+      pages,
+      panOffset: { x: -3000, y: 0 },
+      source: "canonical",
+      zoom: 2,
+    });
+
+    expect(liveZoomSnapshot.document.visiblePageIds).toEqual(
+      new Set(["page-2"]),
+    );
+
+    const snapshot = buildSceneStructureSnapshot({
+      containerSize: { height: 900, width: 1200 },
+      currentPageId: "page-1",
+      elements,
+      elementsMap,
+      layoutVersion: 1,
+      pageHeight: 600,
+      pageIndex,
+      pagePositions: {
+        "page-1": { x: 0, y: 0 },
+        "page-2": { x: 1500, y: 0 },
+      },
+      pagePositionsVersion: 1,
+      pageWidth: 800,
+      pages,
+      panOffset: { x: 0, y: 0 },
+      source: "canonical",
+      visiblePageIdsOverride: new Set(["page-2"]),
+      zoom: 1,
+    });
+
+    expect(snapshot.document.visiblePageIds).toEqual(new Set(["page-2"]));
+    expect(
+      snapshot.document.visiblePageFrames.map((frame) => frame.id),
+    ).toEqual(["page-2"]);
+    expect(snapshot.pageSnapshots.get("page-2")?.isVisible).toBe(true);
+    expect(snapshot.pageSnapshots.get("page-1")?.isVisible).toBe(false);
+  });
+});
+
 describe("Background(fills) projection signature (2026-07-15)", () => {
   const makeFillNode = (fills?: unknown[]): CanvasSceneNode =>
     ({

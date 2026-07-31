@@ -70,19 +70,6 @@ export class CanvasGestureSession {
     this.notify();
   }
 
-  reset(): void {
-    const didChange =
-      this.activePointerId !== null ||
-      this.mode !== "idle" ||
-      this.isSpacePressed;
-    this.activePointerId = null;
-    this.mode = "idle";
-    this.isSpacePressed = false;
-    if (didChange) {
-      this.notify();
-    }
-  }
-
   shouldSuppressElementInteraction(pointerId: number): boolean {
     return this.activePointerId === pointerId && this.mode === "pan";
   }
