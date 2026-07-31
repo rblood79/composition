@@ -10,6 +10,7 @@
  */
 
 import { useViewportControl } from "./useViewportControl";
+import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
 
 export interface ViewportControlBridgeProps {
   /** HTML 컨테이너 요소 (이벤트 바인딩용) */
@@ -30,6 +31,8 @@ export interface ViewportControlBridgeProps {
   onInteractionEnd?: () => void;
   /** 초기 Pan Offset X (비교 모드 등에서 사용) */
   initialPanOffsetX?: number;
+  /** Canvas pointer session 제스처 소유권 */
+  gestureSession: CanvasGestureSession;
 }
 
 /**
@@ -47,6 +50,7 @@ export function ViewportControlBridge({
   onInteractionStart,
   onInteractionEnd,
   initialPanOffsetX,
+  gestureSession,
 }: ViewportControlBridgeProps): null {
   // ViewportController 연결 및 이벤트 핸들링
   useViewportControl({
@@ -59,6 +63,7 @@ export function ViewportControlBridge({
     onInteractionStart,
     onInteractionEnd,
     initialPanOffsetX,
+    gestureSession,
   });
 
   // 렌더링 출력 없음

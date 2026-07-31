@@ -21,6 +21,7 @@ import type { BoundingBox } from "../selection/types";
 import { isLegacyFrameElementForFrame } from "../../../../adapters/canonical/frameElementLoader";
 import { getDragVisualOffset } from "../skia/nodeRendererTree";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
+import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
 
 // ============================================
 // Types
@@ -38,6 +39,8 @@ export interface ElementHoverState {
 interface UseElementHoverInteractionOptions {
   /** 부모 컨테이너 DOM 요소 */
   containerEl: HTMLDivElement | null;
+  /** Space pan 중 element hit-test를 막는 pointer session */
+  gestureSession?: CanvasGestureSession;
   /** Frames tab multi-canvas overview 에서 frame body 빈 영역 hover 판정용 */
   frameAreasRef?: RefObject<ReadonlyArray<FrameHoverArea>>;
   /** Page mode multi-page canvas 에서 page body 빈 영역 hover 판정용 */
@@ -237,6 +240,7 @@ export function clearElementHoverState(state: ElementHoverState): boolean {
 
 export function useElementHoverInteraction({
   containerEl,
+  gestureSession,
   frameAreasRef,
   pageFramesRef,
   getHoverElementsMap,
@@ -257,12 +261,20 @@ export function useElementHoverInteraction({
       )
         return;
       lastMouseRef.current = { x: e.clientX, y: e.clientY };
+      const pointerId = e.pointerId;
 
       // RAF 스로틀: 프레임당 1회
       if (rafRef.current !== null) return;
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = null;
         if (!containerEl) return;
+
+        if (gestureSession?.shouldSuppressElementInteraction(pointerId)) {
+          if (clearElementHoverState(hoverStateRef.current)) {
+            overlayVersionRef.current++;
+          }
+          return;
+        }
 
         const rect = containerEl.getBoundingClientRect();
         const mouseX = lastMouseRef.current.x;
@@ -385,6 +397,7 @@ export function useElementHoverInteraction({
     },
     [
       containerEl,
+      gestureSession,
       frameAreasRef,
       pageFramesRef,
       getHoverChildrenMap,

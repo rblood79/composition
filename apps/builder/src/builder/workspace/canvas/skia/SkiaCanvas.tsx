@@ -65,6 +65,7 @@ import { getSharedLayoutMap } from "../layout/engines/fullTreeLayout";
 import { useStore } from "../../../stores";
 import { useAIVisualFeedbackStore } from "../../../stores/aiVisualFeedback";
 import { observe, PERF_LABEL } from "../../../utils/perfMarks";
+import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
 import {
   useThemeConfigStore,
   resolveSkiaTheme,
@@ -80,6 +81,8 @@ import "../benchmarks/devProfiler";
 export interface SkiaCanvasProps {
   /** 부모 컨테이너 DOM 요소 */
   containerEl: HTMLDivElement;
+  /** Canvas pointer session 제스처 소유권 */
+  gestureSession?: CanvasGestureSession;
   /** PixiJS Application (과도기 호환, 미사용) */
   app?: unknown;
   /** Layout 무효화 콜백 */
@@ -121,6 +124,7 @@ export interface SkiaCanvasProps {
  */
 export function SkiaCanvas({
   containerEl,
+  gestureSession,
   app,
   invalidateLayout,
   sceneInvalidationPacket,
@@ -332,6 +336,7 @@ export function SkiaCanvas({
 
   useWorkflowInteraction({
     containerEl,
+    gestureSession,
     edgeGeometryCacheRef,
     pageFrameMapRef,
     hoverStateRef: workflowHoverStateRef,
@@ -341,6 +346,7 @@ export function SkiaCanvas({
 
   useElementHoverInteraction({
     containerEl,
+    gestureSession,
     frameAreasRef,
     pageFramesRef: visiblePageFramesRef,
     getHoverElementsMap: () => rendererInputRef.current.interactionNodesMap,

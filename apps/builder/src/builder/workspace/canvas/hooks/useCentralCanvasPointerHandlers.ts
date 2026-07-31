@@ -21,6 +21,7 @@ import { hitTestPoint } from "../wasm-bindings/spatialIndex";
 import { useKeyboardShortcutsRegistry } from "../../../hooks/useKeyboardShortcutsRegistry";
 import { observe, PERF_LABEL } from "../../../utils/perfMarks";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
+import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
 
 interface ModifierState {
   ctrlKey: boolean;
@@ -32,6 +33,7 @@ interface ModifierState {
 const DRAG_THRESHOLD = 3;
 
 interface UseCentralCanvasPointerHandlersOptions {
+  gestureSession: CanvasGestureSession;
   completeEditRef: MutableRefObject<(elementId: string) => void>;
   computeSelectionBoundsForHitTest: () => BoundingBox | null;
   containerRef: RefObject<HTMLDivElement | null>;
@@ -91,6 +93,7 @@ type PendingDrag = {
 };
 
 export function useCentralCanvasPointerHandlers({
+  gestureSession,
   completeEditRef,
   computeSelectionBoundsForHitTest,
   containerRef,
@@ -167,6 +170,12 @@ export function useCentralCanvasPointerHandlers({
         return;
       }
       guardedEvent.__handled = true;
+
+      if (
+        gestureSession.beginPointer(event.pointerId, event.button) === "pan"
+      ) {
+        return;
+      }
 
       if (isEditingRef.current) {
         const target = event.target as HTMLElement;
@@ -430,6 +439,10 @@ export function useCentralCanvasPointerHandlers({
     };
 
     const handleWindowPointerMove = (event: PointerEvent) => {
+      if (gestureSession.shouldSuppressElementInteraction(event.pointerId)) {
+        return;
+      }
+
       const pending = pendingDragRef.current;
       if (pending) {
         const dx = event.clientX - pending.startClientX;
@@ -487,7 +500,11 @@ export function useCentralCanvasPointerHandlers({
       setCursor("default");
     };
 
-    const handleWindowPointerUp = () => {
+    const handleWindowPointerUp = (event: PointerEvent) => {
+      if (gestureSession.shouldSuppressElementInteraction(event.pointerId)) {
+        return;
+      }
+
       if (isDraggingRef.current) {
         onEndDrag.current();
       }
@@ -496,6 +513,10 @@ export function useCentralCanvasPointerHandlers({
     };
 
     const handlePointerMove = (event: PointerEvent) => {
+      if (gestureSession.shouldSuppressElementInteraction(event.pointerId)) {
+        return;
+      }
+
       // pendingDrag가 없을 때만 커서 업데이트 (드래그 중 window 핸들러가 처리)
       if (pendingDragRef.current) return;
 
@@ -541,6 +562,7 @@ export function useCentralCanvasPointerHandlers({
     };
   }, [
     completeEditRef,
+    gestureSession,
     computeSelectionBoundsForHitTest,
     containerRef,
     editingElementIdRef,

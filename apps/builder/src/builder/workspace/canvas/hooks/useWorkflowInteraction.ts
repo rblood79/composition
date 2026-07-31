@@ -11,16 +11,26 @@
  * @see usePageDrag.ts — 동일 패턴 (window-level 리스너, RAF 스로틀)
  */
 
-import { useEffect, useRef, useCallback } from 'react';
-import type { RefObject, MutableRefObject } from 'react';
-import { useStore } from '../../../stores';
-import { useViewportSyncStore } from '../stores';
-import { hitTestEdges, hitTestPageFrame, type CachedEdgeGeometry } from '../skia/workflowHitTest';
-import type { PageFrame } from '../skia/workflowRenderer';
-import { getViewportController } from '../viewport/ViewportController';
-import { panToPage, cancelPanToPage } from '../viewport/panToPage';
-import { applyViewportState } from '../viewport/viewportActions';
-import { isPointInMinimap, minimapScreenToWorld, computeMinimapTransform, type MinimapConfig } from '../skia/workflowMinimap';
+import { useEffect, useRef, useCallback } from "react";
+import type { RefObject, MutableRefObject } from "react";
+import { useStore } from "../../../stores";
+import { useViewportSyncStore } from "../stores";
+import {
+  hitTestEdges,
+  hitTestPageFrame,
+  type CachedEdgeGeometry,
+} from "../skia/workflowHitTest";
+import type { PageFrame } from "../skia/workflowRenderer";
+import { getViewportController } from "../viewport/ViewportController";
+import { panToPage, cancelPanToPage } from "../viewport/panToPage";
+import { applyViewportState } from "../viewport/viewportActions";
+import {
+  isPointInMinimap,
+  minimapScreenToWorld,
+  computeMinimapTransform,
+  type MinimapConfig,
+} from "../skia/workflowMinimap";
+import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
 
 // ============================================
 // Types
@@ -33,6 +43,8 @@ export interface WorkflowHoverState {
 export interface UseWorkflowInteractionOptions {
   /** 부모 컨테이너 DOM 요소 */
   containerEl: HTMLDivElement | null;
+  /** Space pan 중 workflow hit-test를 막는 pointer session */
+  gestureSession?: CanvasGestureSession;
   /** 엣지 지오메트리 캐시 ref */
   edgeGeometryCacheRef: RefObject<CachedEdgeGeometry[]>;
   /** 페이지 프레임 맵 ref */
@@ -49,13 +61,13 @@ export interface UseWorkflowInteractionOptions {
 // Animation Constants
 // ============================================
 
-
 // ============================================
 // Hook
 // ============================================
 
 export function useWorkflowInteraction({
   containerEl,
+  gestureSession,
   edgeGeometryCacheRef,
   pageFrameMapRef,
   hoverStateRef,
@@ -73,71 +85,56 @@ export function useWorkflowInteraction({
   // moveCameraToMinimapPoint: 미니맵 클릭/드래그 → 카메라 이동
   // ============================================
 
-  const moveCameraToMinimapPoint = useCallback((screenX: number, screenY: number) => {
-    const config = minimapConfigRef.current;
-    if (!config) return;
+  const moveCameraToMinimapPoint = useCallback(
+    (screenX: number, screenY: number) => {
+      const config = minimapConfigRef.current;
+      if (!config) return;
 
-    const pageFrameMap = pageFrameMapRef.current;
-    if (!pageFrameMap || pageFrameMap.size === 0) return;
+      const pageFrameMap = pageFrameMapRef.current;
+      if (!pageFrameMap || pageFrameMap.size === 0) return;
 
-    const vc = getViewportController();
-    if (!vc.isAttached()) return;
+      const vc = getViewportController();
+      if (!vc.isAttached()) return;
 
-    const { zoom, containerSize } = useViewportSyncStore.getState();
+      const { zoom, containerSize } = useViewportSyncStore.getState();
 
-    // 미니맵 좌표 → 씬(월드) 좌표
-    const transform = computeMinimapTransform(
-      pageFrameMap,
-      config.width,
-      config.height,
-    );
-    const { worldX, worldY } = minimapScreenToWorld(
-      screenX,
-      screenY,
-      config,
-      transform,
-      containerSize,
-    );
+      // 미니맵 좌표 → 씬(월드) 좌표
+      const transform = computeMinimapTransform(
+        pageFrameMap,
+        config.width,
+        config.height,
+      );
+      const { worldX, worldY } = minimapScreenToWorld(
+        screenX,
+        screenY,
+        config,
+        transform,
+        containerSize,
+      );
 
-    // 월드 좌표가 화면 중심에 오도록 카메라 pan 계산
-    const targetPanX = containerSize.width / 2 - worldX * zoom;
-    const targetPanY = containerSize.height / 2 - worldY * zoom;
+      // 월드 좌표가 화면 중심에 오도록 카메라 pan 계산
+      const targetPanX = containerSize.width / 2 - worldX * zoom;
+      const targetPanY = containerSize.height / 2 - worldY * zoom;
 
-    applyViewportState({
-      scale: zoom,
-      x: targetPanX,
-      y: targetPanY,
-    });
-    overlayVersionRef.current++;
-  }, [minimapConfigRef, pageFrameMapRef, overlayVersionRef]);
+      applyViewportState({
+        scale: zoom,
+        x: targetPanX,
+        y: targetPanY,
+      });
+      overlayVersionRef.current++;
+    },
+    [minimapConfigRef, pageFrameMapRef, overlayVersionRef],
+  );
 
   // ============================================
   // pointermove: 엣지 호버 감지 + 미니맵 드래그 (window, RAF 스로틀)
   // ============================================
 
-  const handlePointerMove = useCallback((e: PointerEvent) => {
-    if (!containerEl) return;
+  const handlePointerMove = useCallback(
+    (e: PointerEvent) => {
+      if (!containerEl) return;
 
-    // 좌표 변화 없으면 스킵 (subpixel jitter 방지 → idle 프레임 복원)
-    if (e.clientX === lastMouseRef.current.x && e.clientY === lastMouseRef.current.y) return;
-    lastMouseRef.current = { x: e.clientX, y: e.clientY };
-
-    // Phase 4: 미니맵 드래그 중이면 카메라 이동만 처리
-    if (isMinimapDraggingRef.current) {
-      const rect = containerEl.getBoundingClientRect();
-      moveCameraToMinimapPoint(e.clientX - rect.left, e.clientY - rect.top);
-      return;
-    }
-
-    // RAF 스로틀: 프레임당 1회
-    if (rafRef.current !== null) return;
-
-    rafRef.current = requestAnimationFrame(() => {
-      rafRef.current = null;
-
-      const cache = edgeGeometryCacheRef.current;
-      if (!cache || cache.length === 0) {
-        // 캐시 없으면 호버 클리어
+      if (gestureSession?.shouldSuppressElementInteraction(e.pointerId)) {
         if (hoverStateRef.current.hoveredEdgeId !== null) {
           hoverStateRef.current.hoveredEdgeId = null;
           overlayVersionRef.current++;
@@ -145,100 +142,158 @@ export function useWorkflowInteraction({
         return;
       }
 
-      // 스크린 → 씬-로컬 좌표 변환
-      const rect = containerEl.getBoundingClientRect();
-      const { zoom, panOffset } = useViewportSyncStore.getState();
-      const sceneX = (e.clientX - rect.left - panOffset.x) / zoom;
-      const sceneY = (e.clientY - rect.top - panOffset.y) / zoom;
+      // 좌표 변화 없으면 스킵 (subpixel jitter 방지 → idle 프레임 복원)
+      if (
+        e.clientX === lastMouseRef.current.x &&
+        e.clientY === lastMouseRef.current.y
+      )
+        return;
+      lastMouseRef.current = { x: e.clientX, y: e.clientY };
 
-      // 히트 테스트 (threshold: 10 / zoom — 씬 좌표로 일정한 픽셀 크기 유지)
-      const hit = hitTestEdges(sceneX, sceneY, cache, 10 / zoom);
-      const newHoveredId = hit?.edgeId ?? null;
-
-      if (newHoveredId !== hoverStateRef.current.hoveredEdgeId) {
-        hoverStateRef.current.hoveredEdgeId = newHoveredId;
-        overlayVersionRef.current++;
+      // Phase 4: 미니맵 드래그 중이면 카메라 이동만 처리
+      if (isMinimapDraggingRef.current) {
+        const rect = containerEl.getBoundingClientRect();
+        moveCameraToMinimapPoint(e.clientX - rect.left, e.clientY - rect.top);
+        return;
       }
-    });
-  }, [containerEl, edgeGeometryCacheRef, hoverStateRef, overlayVersionRef, moveCameraToMinimapPoint]);
+
+      // RAF 스로틀: 프레임당 1회
+      if (rafRef.current !== null) return;
+
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+
+        const cache = edgeGeometryCacheRef.current;
+        if (!cache || cache.length === 0) {
+          // 캐시 없으면 호버 클리어
+          if (hoverStateRef.current.hoveredEdgeId !== null) {
+            hoverStateRef.current.hoveredEdgeId = null;
+            overlayVersionRef.current++;
+          }
+          return;
+        }
+
+        // 스크린 → 씬-로컬 좌표 변환
+        const rect = containerEl.getBoundingClientRect();
+        const { zoom, panOffset } = useViewportSyncStore.getState();
+        const sceneX = (e.clientX - rect.left - panOffset.x) / zoom;
+        const sceneY = (e.clientY - rect.top - panOffset.y) / zoom;
+
+        // 히트 테스트 (threshold: 10 / zoom — 씬 좌표로 일정한 픽셀 크기 유지)
+        const hit = hitTestEdges(sceneX, sceneY, cache, 10 / zoom);
+        const newHoveredId = hit?.edgeId ?? null;
+
+        if (newHoveredId !== hoverStateRef.current.hoveredEdgeId) {
+          hoverStateRef.current.hoveredEdgeId = newHoveredId;
+          overlayVersionRef.current++;
+        }
+      });
+    },
+    [
+      containerEl,
+      gestureSession,
+      edgeGeometryCacheRef,
+      hoverStateRef,
+      overlayVersionRef,
+      moveCameraToMinimapPoint,
+    ],
+  );
 
   // ============================================
   // pointerdown: 페이지 프레임 클릭 (capture phase)
   // ============================================
 
-  const handlePointerDown = useCallback((e: PointerEvent) => {
-    if (!containerEl) return;
+  const handlePointerDown = useCallback(
+    (e: PointerEvent) => {
+      if (!containerEl) return;
 
-    const pageFrameMap = pageFrameMapRef.current;
-    if (!pageFrameMap || pageFrameMap.size === 0) return;
+      if (gestureSession?.beginPointer(e.pointerId, e.button) === "pan") {
+        return;
+      }
 
-    // 스크린 → 씬-로컬 좌표 변환
-    const rect = containerEl.getBoundingClientRect();
-    const { zoom, panOffset, containerSize } = useViewportSyncStore.getState();
-    const localX = e.clientX - rect.left;
-    const localY = e.clientY - rect.top;
-    const sceneX = (localX - panOffset.x) / zoom;
-    const sceneY = (localY - panOffset.y) / zoom;
+      const pageFrameMap = pageFrameMapRef.current;
+      if (!pageFrameMap || pageFrameMap.size === 0) return;
 
-    // 0) Phase 4: 미니맵 영역 클릭 → 카메라 이동 + 드래그 모드 진입
-    const config = minimapConfigRef.current;
-    if (config && isPointInMinimap(localX, localY, config, containerSize)) {
-      e.stopPropagation();
-      e.preventDefault();
-      isMinimapDraggingRef.current = true;
-      moveCameraToMinimapPoint(localX, localY);
-      return;
-    }
+      // 스크린 → 씬-로컬 좌표 변환
+      const rect = containerEl.getBoundingClientRect();
+      const { zoom, panOffset, containerSize } =
+        useViewportSyncStore.getState();
+      const localX = e.clientX - rect.left;
+      const localY = e.clientY - rect.top;
+      const sceneX = (localX - panOffset.x) / zoom;
+      const sceneY = (localY - panOffset.y) / zoom;
 
-    // 1) 엣지 호버 중 클릭 → 연결 페이지 포커스
-    const hoveredEdgeId = hoverStateRef.current.hoveredEdgeId;
-    if (hoveredEdgeId) {
-      // 엣지의 소스/타겟 페이지 중 하나로 포커스
-      const cache = edgeGeometryCacheRef.current;
-      if (cache) {
-        const entry = cache.find((c) => c.edgeId === hoveredEdgeId);
-        if (entry) {
-          // 클릭 위치에 더 가까운 페이지 프레임을 찾아서 포커스
-          const hitPageId = hitTestPageFrame(sceneX, sceneY, pageFrameMap);
-          if (hitPageId) {
-            e.stopPropagation();
-            const state = useStore.getState();
-            state.setWorkflowFocusedPageId(hitPageId);
-            state.setCurrentPageId(hitPageId);
-            animateToPage(hitPageId);
-            return;
+      // 0) Phase 4: 미니맵 영역 클릭 → 카메라 이동 + 드래그 모드 진입
+      const config = minimapConfigRef.current;
+      if (config && isPointInMinimap(localX, localY, config, containerSize)) {
+        e.stopPropagation();
+        e.preventDefault();
+        isMinimapDraggingRef.current = true;
+        moveCameraToMinimapPoint(localX, localY);
+        return;
+      }
+
+      // 1) 엣지 호버 중 클릭 → 연결 페이지 포커스
+      const hoveredEdgeId = hoverStateRef.current.hoveredEdgeId;
+      if (hoveredEdgeId) {
+        // 엣지의 소스/타겟 페이지 중 하나로 포커스
+        const cache = edgeGeometryCacheRef.current;
+        if (cache) {
+          const entry = cache.find((c) => c.edgeId === hoveredEdgeId);
+          if (entry) {
+            // 클릭 위치에 더 가까운 페이지 프레임을 찾아서 포커스
+            const hitPageId = hitTestPageFrame(sceneX, sceneY, pageFrameMap);
+            if (hitPageId) {
+              e.stopPropagation();
+              const state = useStore.getState();
+              state.setWorkflowFocusedPageId(hitPageId);
+              state.setCurrentPageId(hitPageId);
+              animateToPage(hitPageId);
+              return;
+            }
           }
         }
       }
-    }
 
-    // 2) 페이지 프레임 빈 영역 클릭 → 카메라 애니메이션
-    const hitPageId = hitTestPageFrame(sceneX, sceneY, pageFrameMap);
-    if (hitPageId) {
-      const currentFocused = useStore.getState().workflowFocusedPageId;
-      if (currentFocused !== hitPageId) {
-        // 새 페이지 포커스
-        e.stopPropagation();
-        const state = useStore.getState();
-        state.setWorkflowFocusedPageId(hitPageId);
-        state.setCurrentPageId(hitPageId);
-        animateToPage(hitPageId);
+      // 2) 페이지 프레임 빈 영역 클릭 → 카메라 애니메이션
+      const hitPageId = hitTestPageFrame(sceneX, sceneY, pageFrameMap);
+      if (hitPageId) {
+        const currentFocused = useStore.getState().workflowFocusedPageId;
+        if (currentFocused !== hitPageId) {
+          // 새 페이지 포커스
+          e.stopPropagation();
+          const state = useStore.getState();
+          state.setWorkflowFocusedPageId(hitPageId);
+          state.setCurrentPageId(hitPageId);
+          animateToPage(hitPageId);
+          return;
+        }
+        // 이미 포커스된 페이지 클릭 → 포커스 해제
+        // 이벤트는 전파하여 요소 선택 등 기존 동작 유지
+        useStore.getState().setWorkflowFocusedPageId(null);
+        overlayVersionRef.current++;
         return;
       }
-      // 이미 포커스된 페이지 클릭 → 포커스 해제
-      // 이벤트는 전파하여 요소 선택 등 기존 동작 유지
-      useStore.getState().setWorkflowFocusedPageId(null);
-      overlayVersionRef.current++;
-      return;
-    }
 
-    // 3) 빈 영역 클릭 → 포커스 해제 + 이벤트 전파 (기존 PixiJS 동작 유지)
-    if (useStore.getState().workflowFocusedPageId !== null) {
-      useStore.getState().setWorkflowFocusedPageId(null);
-      overlayVersionRef.current++;
-    }
-    // 이벤트 전파 — 기존 요소 선택 유지
-  }, [containerEl, pageFrameMapRef, hoverStateRef, edgeGeometryCacheRef, overlayVersionRef, animateToPage, minimapConfigRef, moveCameraToMinimapPoint]);
+      // 3) 빈 영역 클릭 → 포커스 해제 + 이벤트 전파 (기존 PixiJS 동작 유지)
+      if (useStore.getState().workflowFocusedPageId !== null) {
+        useStore.getState().setWorkflowFocusedPageId(null);
+        overlayVersionRef.current++;
+      }
+      // 이벤트 전파 — 기존 요소 선택 유지
+    },
+    [
+      containerEl,
+      gestureSession,
+      pageFrameMapRef,
+      hoverStateRef,
+      edgeGeometryCacheRef,
+      overlayVersionRef,
+      animateToPage,
+      minimapConfigRef,
+      moveCameraToMinimapPoint,
+    ],
+  );
 
   // ============================================
   // pointerup: 미니맵 드래그 해제 (window)
@@ -258,15 +313,15 @@ export function useWorkflowInteraction({
     if (!containerEl) return;
 
     const addListeners = () => {
-      window.addEventListener('pointermove', handlePointerMove);
-      window.addEventListener('pointerup', handlePointerUp);
-      containerEl.addEventListener('pointerdown', handlePointerDown, true);
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerup", handlePointerUp);
+      containerEl.addEventListener("pointerdown", handlePointerDown, true);
     };
 
     const removeListeners = () => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-      containerEl.removeEventListener('pointerdown', handlePointerDown, true);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      containerEl.removeEventListener("pointerdown", handlePointerDown, true);
       isMinimapDraggingRef.current = false;
     };
 
@@ -311,5 +366,12 @@ export function useWorkflowInteraction({
       }
       cancelPanToPage();
     };
-  }, [containerEl, handlePointerMove, handlePointerDown, handlePointerUp, hoverStateRef, overlayVersionRef]);
+  }, [
+    containerEl,
+    handlePointerMove,
+    handlePointerDown,
+    handlePointerUp,
+    hoverStateRef,
+    overlayVersionRef,
+  ]);
 }

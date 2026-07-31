@@ -27,6 +27,7 @@ import { useKeyboardShortcutsRegistry } from "@/builder/hooks";
 import { useScrollState, isScrollable } from "../../../stores/scrollState";
 import { useStore } from "../../../stores";
 import { getCanonicalNode } from "../../../stores/canonical/canonicalElementsBridge";
+import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
 
 // ============================================
 // Types
@@ -51,6 +52,8 @@ export interface UseViewportControlOptions {
   onInteractionEnd?: () => void;
   /** 초기 Pan Offset X (비교 모드 등에서 사용) */
   initialPanOffsetX?: number;
+  /** Canvas pointer session 제스처 소유권 */
+  gestureSession: CanvasGestureSession;
 }
 
 export interface UseViewportControlReturn {
@@ -77,9 +80,9 @@ export function useViewportControl(
     onInteractionStart,
     onInteractionEnd,
     initialPanOffsetX,
+    gestureSession,
   } = options;
   const isPanningRef = useRef(false);
-  const isSpacePressedRef = useRef(false);
   // 🚀 Phase 6.1: 줌 종료 디바운스 타이머
   const zoomEndTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isZoomingRef = useRef(false);
@@ -226,9 +229,8 @@ export function useViewportControl(
   useEffect(() => {
     if (!containerEl || !controller) return;
 
-    const handleMouseDown = (e: MouseEvent) => {
-      // Space + 클릭 또는 중간 버튼 = 팬 시작
-      if ((isSpacePressedRef.current && e.button === 0) || e.button === 1) {
+    const handlePointerDown = (e: PointerEvent) => {
+      if (gestureSession.beginPointer(e.pointerId, e.button) === "pan") {
         e.preventDefault();
         // 🚀 Phase 6.1: 인터랙션 시작 알림 (ref 사용)
         onInteractionStartRef.current?.();
@@ -238,32 +240,35 @@ export function useViewportControl(
       }
     };
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleWindowPointerMove = (e: PointerEvent) => {
       if (!controller.isPanningActive()) return;
       controller.updatePan(e.clientX, e.clientY);
     };
 
-    const handleMouseUp = () => {
+    const handleWindowPointerEnd = (e: PointerEvent) => {
       if (controller.isPanningActive()) {
         controller.endPan();
         isPanningRef.current = false;
         // Space가 여전히 눌려있으면 grab, 아니면 null
-        applyPanCursorRef.current(isSpacePressedRef.current ? "grab" : null);
+        applyPanCursorRef.current(gestureSession.spacePressed ? "grab" : null);
         // 🚀 Phase 6.1: 인터랙션 종료 알림 (ref 사용)
         onInteractionEndRef.current?.();
       }
+      gestureSession.endPointer(e.pointerId);
     };
 
-    containerEl.addEventListener("mousedown", handleMouseDown);
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
+    containerEl.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("pointermove", handleWindowPointerMove);
+    window.addEventListener("pointerup", handleWindowPointerEnd);
+    window.addEventListener("pointercancel", handleWindowPointerEnd);
 
     return () => {
-      containerEl.removeEventListener("mousedown", handleMouseDown);
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
+      containerEl.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("pointermove", handleWindowPointerMove);
+      window.removeEventListener("pointerup", handleWindowPointerEnd);
+      window.removeEventListener("pointercancel", handleWindowPointerEnd);
     };
-  }, [containerEl, controller]);
+  }, [containerEl, controller, gestureSession]);
 
   // 휠 이벤트 핸들러 (줌/팬) - Figma/Photoshop 스타일
   useEffect(() => {
@@ -434,13 +439,13 @@ export function useViewportControl(
         preventDefault: false,
         disabled: !containerEl,
         handler: () => {
-          if (isSpacePressedRef.current) return;
-          isSpacePressedRef.current = true;
+          if (gestureSession.spacePressed) return;
+          gestureSession.setSpacePressed(true);
           applyPanCursor("grab");
         },
       },
     ],
-    [containerEl, applyPanCursor],
+    [containerEl, gestureSession, applyPanCursor],
   );
 
   useKeyboardShortcutsRegistry(
@@ -452,14 +457,14 @@ export function useViewportControl(
         preventDefault: false,
         disabled: !containerEl,
         handler: () => {
-          isSpacePressedRef.current = false;
+          gestureSession.setSpacePressed(false);
           if (!isPanningRef.current) {
             applyPanCursor(null);
           }
         },
       },
     ],
-    [containerEl, applyPanCursor],
+    [containerEl, gestureSession, applyPanCursor],
     { eventType: "keyup" },
   );
 

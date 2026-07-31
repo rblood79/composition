@@ -43,6 +43,7 @@ import { screenToViewportPoint } from "./viewport/viewportTransforms";
 import { TextEditOverlay, useTextEdit } from "../overlay";
 import { DotBackground } from "../components/DotBackground";
 import {
+  CanvasGestureSession,
   computeSelectionBounds,
   resolveCanvasDetachContextTarget,
   resolveSelectedElementsForPage,
@@ -158,6 +159,7 @@ const SkiaCanvasComponent = lazy(skiaCanvasImport);
 
 function SkiaCanvasLazy(props: {
   containerEl: HTMLDivElement;
+  gestureSession: CanvasGestureSession;
   invalidateLayout: () => void;
   sceneInvalidationPacket: RendererSceneInvalidation;
   rendererInput: SkiaRendererInput;
@@ -839,6 +841,7 @@ export function BuilderCanvas({
   // ============================================
   const lastClickTimeRef = useRef(0);
   const lastClickTargetRef = useRef<string | null>(null);
+  const [canvasGestureSession] = useState(() => new CanvasGestureSession());
 
   // SelectionLayer의 selectionBounds를 ref로 저장 (중앙 핸들러에서 접근)
   const selectionBoundsRef = useRef<BoundingBox | null>(null);
@@ -933,6 +936,13 @@ export function BuilderCanvas({
       const target = event.target as HTMLElement;
       if (target.closest('input, textarea, [contenteditable="true"]')) return;
 
+      if (
+        canvasGestureSession.beginPointer(event.pointerId, event.button) ===
+        "pan"
+      ) {
+        return;
+      }
+
       const rect = element.getBoundingClientRect();
       const scenePoint = screenToCanvasPoint({
         x: event.clientX - rect.left,
@@ -957,9 +967,15 @@ export function BuilderCanvas({
     return () => {
       element.removeEventListener("pointerdown", onPointerDownCapture, true);
     };
-  }, [isFrameEditMode, screenToCanvasPoint, startPageDrag]);
+  }, [
+    canvasGestureSession,
+    isFrameEditMode,
+    screenToCanvasPoint,
+    startPageDrag,
+  ]);
 
   useCentralCanvasPointerHandlers({
+    gestureSession: canvasGestureSession,
     completeEditRef,
     computeSelectionBoundsForHitTest,
     containerRef,
@@ -1091,6 +1107,7 @@ export function BuilderCanvas({
       {containerEl && (
         <SkiaCanvasLazy
           containerEl={containerEl}
+          gestureSession={canvasGestureSession}
           invalidateLayout={invalidateLayout}
           sceneInvalidationPacket={sceneInvalidationPacket}
           rendererInput={skiaRendererInput}
@@ -1110,6 +1127,7 @@ export function BuilderCanvas({
           maxZoom={5}
           app={null}
           initialPanOffsetX={initialPanOffsetX}
+          gestureSession={canvasGestureSession}
         />
       )}
 
