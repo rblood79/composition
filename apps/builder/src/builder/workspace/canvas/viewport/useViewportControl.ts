@@ -249,10 +249,7 @@ export function useViewportControl(
     if (!containerEl || !controller) return;
 
     const handlePointerDown = (e: PointerEvent) => {
-      if (
-        gestureSession.ownerFor(e.pointerId) === "page" ||
-        gestureSession.isOwnedByAnotherPointer(e.pointerId)
-      ) {
+      if (gestureSession.blocksPointerDown(e.pointerId)) {
         return;
       }
 

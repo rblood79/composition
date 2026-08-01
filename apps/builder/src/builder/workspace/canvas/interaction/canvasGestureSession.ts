@@ -2,7 +2,6 @@ export type CanvasGestureMode = "element" | "idle" | "page" | "pan";
 
 export interface PageGestureOwner {
   pageId: string;
-  pointerId: number;
   startBreakpoint: string;
 }
 
@@ -83,11 +82,7 @@ export class CanvasGestureSession {
 
     this.activePointerId = pointerId;
     this.mode = "page";
-    this.pageOwner = {
-      pageId,
-      pointerId,
-      startBreakpoint,
-    };
+    this.pageOwner = { pageId, startBreakpoint };
     this.notify();
     return true;
   }
@@ -97,7 +92,7 @@ export class CanvasGestureSession {
   }
 
   pageOwnerFor(pointerId: number): PageGestureOwner | null {
-    if (this.pageOwner?.pointerId !== pointerId) {
+    if (!this.pageOwner || this.activePointerId !== pointerId) {
       return null;
     }
 
@@ -106,6 +101,20 @@ export class CanvasGestureSession {
 
   isOwnedByAnotherPointer(pointerId: number): boolean {
     return this.activePointerId !== null && this.activePointerId !== pointerId;
+  }
+
+  /**
+   * 이 pointerdown이 새 제스처를 시작할 수 없는지 판정한다.
+   *
+   * 이미 다른 pointer가 소유 중이거나, 이 pointer가 자기 lifecycle을 따로 가진
+   * mode(page)로 claim된 경우다. 어떤 mode가 여기 해당하는지는 session만 안다 —
+   * 호출부가 `ownerFor(id) === "page"` 로 재판정하면 mode 추가 시 누락된다.
+   */
+  blocksPointerDown(pointerId: number): boolean {
+    return (
+      this.isOwnedByAnotherPointer(pointerId) ||
+      (this.activePointerId === pointerId && this.mode === "page")
+    );
   }
 
   endPage(pointerId: number): void {

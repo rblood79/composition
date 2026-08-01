@@ -5,7 +5,6 @@ import {
   finishPagePositionPresentation,
   getPagePositionPresentationSnapshot,
   publishPagePositionPresentation,
-  readPageFramePosition,
   readPagePosition,
   resetPagePositionPresentation,
   subscribePagePositionPresentation,
@@ -32,10 +31,6 @@ describe("pagePositionPresentation", () => {
     const current = getPagePositionPresentationSnapshot();
     expect(current.canonical).toBe(canonical);
     expect(readPagePosition("page-1", current)).toEqual({ x: 30, y: 40 });
-    expect(readPageFramePosition("page-1", current)).toEqual({
-      x: 30,
-      y: 40,
-    });
     expect(readPagePosition("page-2", current)).toBe(canonical["page-2"]);
   });
 

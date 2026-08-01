@@ -61,9 +61,11 @@ describe("CanvasGestureSession", () => {
     expect(session.ownerFor(11)).toBe("page");
     expect(session.pageOwnerFor(11)).toEqual({
       pageId: "page-1",
-      pointerId: 11,
       startBreakpoint: "desktop",
     });
+    expect(session.pageOwnerFor(12)).toBeNull();
+    expect(session.blocksPointerDown(11)).toBe(true);
+    expect(session.blocksPointerDown(12)).toBe(true);
     expect(session.beginPointer(11, 0)).toBe("page");
     expect(session.shouldSuppressElementInteraction(11)).toBe(true);
     expect(session.shouldSuppressElementHover()).toBe(true);

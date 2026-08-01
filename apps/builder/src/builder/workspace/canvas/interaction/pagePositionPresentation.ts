@@ -1,5 +1,3 @@
-import { useSyncExternalStore } from "react";
-
 export interface PagePosition {
   x: number;
   y: number;
@@ -34,7 +32,7 @@ const INITIAL_SNAPSHOT: PagePositionPresentationSnapshot = Object.freeze({
 let snapshot: PagePositionPresentationSnapshot = INITIAL_SNAPSHOT;
 const listeners = new Set<() => void>();
 
-function isSamePosition(
+export function isSamePosition(
   left: PagePosition | null | undefined,
   right: PagePosition | null | undefined,
 ): boolean {
@@ -175,22 +173,6 @@ export function readPagePositionDelta(
   }
 
   return { dx, dy };
-}
-
-/** page frame/title/hit-test consumer가 동일한 page coordinate reader를 사용한다. */
-export function readPageFramePosition(
-  pageId: string,
-  currentSnapshot: PagePositionPresentationSnapshot = snapshot,
-): PagePosition | undefined {
-  return readPagePosition(pageId, currentSnapshot);
-}
-
-export function usePagePositionPresentation(): PagePositionPresentationSnapshot {
-  return useSyncExternalStore(
-    subscribePagePositionPresentation,
-    getPagePositionPresentationSnapshot,
-    () => INITIAL_SNAPSHOT,
-  );
 }
 
 export function resetPagePositionPresentation(): void {

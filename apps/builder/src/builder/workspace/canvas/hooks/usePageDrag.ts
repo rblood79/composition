@@ -15,6 +15,7 @@ import {
   cancelPagePositionPresentation,
   finishPagePositionPresentation,
   getPagePositionPresentationSnapshot,
+  isSamePosition,
   publishPagePositionPresentation,
   type PagePosition,
   type PagePositionMap,
@@ -48,10 +49,6 @@ const EMPTY_PAGE_DRAG_STATE: PageDragState = {
   canonical: null,
   startBreakpoint: null,
 };
-
-function isSamePosition(left: PagePosition, right: PagePosition): boolean {
-  return left.x === right.x && left.y === right.y;
-}
 
 export function usePageDrag(
   zoom: number,
@@ -178,6 +175,11 @@ export function usePageDrag(
         release();
       };
 
+      const abort = () => {
+        cancelPagePositionPresentation();
+        release();
+      };
+
       const finish = (position: PagePosition | null) => {
         const state = stateRef.current;
         const currentOwner = gestureSession.pageOwnerFor(pointerId);
@@ -191,8 +193,7 @@ export function usePageDrag(
           !state.pageId ||
           !state.startPagePos
         ) {
-          cancelPagePositionPresentation();
-          release();
+          abort();
           return;
         }
 
@@ -202,11 +203,10 @@ export function usePageDrag(
           currentStore.pagePositions === state.canonical &&
           currentStore.pagePositions[state.pageId] !== undefined;
         if (!canCommit) {
-          cancelPagePositionPresentation();
-          release();
+          abort();
           return;
         }
-        if (canCommit && !isSamePosition(position, state.startPagePos)) {
+        if (!isSamePosition(position, state.startPagePos)) {
           isFinishingRef.current = true;
           try {
             currentStore.updatePagePosition(
@@ -293,16 +293,7 @@ export function usePageDrag(
   );
 
   useEffect(() => {
-    const subscribe = (
-      useStore as unknown as {
-        subscribe?: (listener: (state: unknown) => void) => () => void;
-      }
-    ).subscribe;
-    if (!subscribe) {
-      return;
-    }
-
-    return subscribe((state) => {
+    return useStore.subscribe((state) => {
       const drag = stateRef.current;
       if (
         isFinishingRef.current ||
@@ -313,13 +304,9 @@ export function usePageDrag(
         return;
       }
 
-      const next = state as {
-        activeBreakpoint?: string;
-        pagePositions?: PagePositionMap;
-      };
       if (
-        next.pagePositions !== drag.canonical ||
-        next.activeBreakpoint !== drag.startBreakpoint
+        state.pagePositions !== drag.canonical ||
+        state.activeBreakpoint !== drag.startBreakpoint
       ) {
         cleanupRef.current?.();
       }

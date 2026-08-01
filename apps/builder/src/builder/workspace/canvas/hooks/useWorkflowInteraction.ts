@@ -240,10 +240,7 @@ export function useWorkflowInteraction({
         return;
       }
 
-      if (
-        gestureSession.ownerFor(e.pointerId) === "page" ||
-        gestureSession.isOwnedByAnotherPointer(e.pointerId)
-      ) {
+      if (gestureSession.blocksPointerDown(e.pointerId)) {
         return;
       }
 

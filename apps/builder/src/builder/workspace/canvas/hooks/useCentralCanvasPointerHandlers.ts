@@ -165,10 +165,7 @@ export function useCentralCanvasPointerHandlers({
         return;
       }
 
-      if (
-        gestureSession.ownerFor(event.pointerId) === "page" ||
-        gestureSession.isOwnedByAnotherPointer(event.pointerId)
-      ) {
+      if (gestureSession.blocksPointerDown(event.pointerId)) {
         return;
       }
 
