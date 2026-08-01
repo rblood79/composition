@@ -36,8 +36,8 @@
 현재 read-only audit에서 확인한 연결은 다음과 같다.
 
 | 경로                                                                                 | 현재 동작                                                                                                       | 설계상 관심사                                                          |
-| ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | --------------------------------------- | --------------------------------------------------------- |
-| `apps/builder/src/builder/workspace/canvas/interaction/canvasGestureSession.ts`      | `idle                                                                                                           | element                                                                | pan`과 active pointer/Space 상태를 추적 | page owner를 추가할 때 pointer id와 종료 lifecycle을 보존 |
+| ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `apps/builder/src/builder/workspace/canvas/interaction/canvasGestureSession.ts`      | `idle`, `element`, `pan`과 active pointer/Space 상태를 추적                                                     | page owner를 추가할 때 pointer id와 종료 lifecycle을 보존              |
 | `apps/builder/src/builder/workspace/canvas/hooks/usePageDrag.ts`                     | 자체 `window pointermove`/`pointerup`, RAF별 `updatePagePosition`                                               | shared owner, cancel 경로, transient adapter의 진입점                  |
 | `apps/builder/src/builder/stores/elements.ts`                                        | `updatePagePosition`이 매 호출 새 positions map과 `pagePositionsVersion`을 생성                                 | canonical writer의 성공 finish-only 호출과 same-value guard            |
 | `apps/builder/src/builder/workspace/canvas/BuilderCanvas.tsx`                        | `pagePositions`/version을 scene snapshot·renderer input에 전달; `frameAreas`/selection bounds dependency에 포함 | transient source와 canonical source의 의존성 분리                      |
@@ -57,8 +57,10 @@ source가 다르면 변경 전에 breakdown과 allow-list를 갱신하고 review
 ### 3.1 Gesture owner
 
 `CanvasGestureSession`의 owner 상태는 `idle`, `pan`, `element`, `page`로
-표현한다. `page`는 page title hit-test가 성공한 뒤에만 획득하며, owner가
-획득한 `pointerId`와 대상 `pageId`를 pointer 종료까지 유지한다.
+표현한다. page title capture는 generic `beginPointer()`를 먼저 호출하지 않고
+`tryClaimPage(pointerId, pageId, startBreakpoint)`를 먼저 호출한다. claim이
+실패하면 기존 `pan`/`element` resolution으로 내려간다. owner가 획득한
+`pointerId`, 대상 `pageId`, `startBreakpoint`를 pointer 종료까지 유지한다.
 
 | owner     | 허용되는 연속 동작               | 억제되는 경로                                                       | 종료 시 commit                              |
 | --------- | -------------------------------- | ------------------------------------------------------------------- | ------------------------------------------- |
@@ -71,7 +73,29 @@ page owner는 viewport `pan`과 동시에 살아 있지 않다. Space가 pointer
 눌리거나 해제되는 경우에도 active pointer의 owner를 중간에 바꾸지 않으며,
 기존 ADR-175의 Space/pan semantics를 우선한다.
 
-### 3.2 Lifecycle and cancellation
+### 3.2 Capture arbitration and finalizer
+
+capture 순서는 listener 등록 순서가 아니라 다음 contract로 고정한다.
+
+1. page title capture가 scene coordinate를 계산하고 title bounds를 검사한다.
+2. hit이면 `tryClaimPage()`가 성공하고 native event에는 보조적으로
+   `__handled`를 표시한다.
+3. workflow, central, viewport capture는 `gestureSession.ownerFor(pointerId)`를
+   확인한 뒤 `page`이면 즉시 return한다. `__handled`만 보고 안전하다고 판단하지
+   않는다.
+4. page gesture controller만 page presentation publish, finish, cancel, owner
+   release를 수행한다. viewport listener의 일반 `endPointer()`는 page controller의
+   종료를 대체하지 않는다.
+
+`pointerup`/`pointercancel`은 pointer id를 검사한다. `Escape`, blur,
+`visibilitychange`, unmount는 같은 `cancelPageGesture(reason)` 경로로 들어간다.
+breakpoint switch와 explicit “화면 정렬” command는 page controller를 먼저
+cancel/finish한 후 canonical action을 실행한다. finish 시 현재 breakpoint가
+`startBreakpoint`와 다르면 stale page gesture로 간주해 canonical commit하지
+않는다. page add/delete, project refresh, canonical document replace도 같은
+cancel 경계를 먼저 통과해야 한다.
+
+### 3.3 Lifecycle and cancellation
 
 - 시작: page title hit-test 성공 → owner lock → 시작 page coordinate와
   breakpoint를 snapshot.
@@ -86,29 +110,38 @@ page owner는 viewport `pan`과 동시에 살아 있지 않다. Space가 pointer
 - 모든 종료 경로는 pointer id를 검증하고 owner를 release한다. 종료 뒤 다음
   pointerdown에서 stale page id, stale cursor, stale hover가 남아 있지 않아야 한다.
 
-### 3.3 Page position presentation
+### 3.4 Page position presentation
 
-새 presentation module은 `viewportPresentation.ts`와 같은 mutable publish 패턴을
-후보로 삼되 page coordinate와 viewport camera를 하나의 object로 합치지 않는다.
+새 `PagePositionPresentation` module은 `viewportPresentation.ts`의 mutable publish
+패턴을 재사용하되 page coordinate와 viewport camera를 하나의 object로 합치지
+않는다. 전체 positions map을 복사하지 않고 canonical map reference와 active
+page override만 보유한다.
 
-| 필드           | 의미                                                              | lifetime                  |
-| -------------- | ----------------------------------------------------------------- | ------------------------- |
-| `activePageId` | 현재 page owner의 대상                                            | gesture 중                |
-| `positions`    | canonical positions 위에 active page의 transient 위치를 덮은 view | gesture 중, frame publish |
-| `version`      | presentation 변경 감지용 monotonic version                        | owner 시작부터 종료까지   |
-| `isActive`     | transient read 허용 여부                                          | gesture 중                |
+| 필드              | 의미                                       | lifetime                  |
+| ----------------- | ------------------------------------------ | ------------------------- |
+| `activePageId`    | 현재 page owner의 대상                     | gesture 중                |
+| `canonical`       | canonical page positions map reference     | gesture 시작 시 고정      |
+| `activeOverride`  | `{ pageId, x, y }` 한 건의 transient 위치  | gesture 중, frame publish |
+| `version`         | presentation 변경 감지용 monotonic version | owner 시작부터 종료까지   |
+| `isActive`        | transient read 허용 여부                   | gesture 중                |
+| `startBreakpoint` | gesture 시작 시 active breakpoint          | owner 시작부터 종료까지   |
 
 canonical `pagePositions`는 저장·history·breakpoint hydration의 SSOT로 남긴다.
 presentation은 document store를 직접 mutate하지 않고, 정상 종료 때만 기존
 `updatePagePosition` 경계로 내려간다. same-value publish와 same-value canonical
-write는 no-op이어야 한다.
+write는 no-op이어야 한다. `readPagePosition(pageId)`와
+`readPageFramePosition(pageId)`는 active page만 override하고 나머지는 canonical
+reference를 읽는다. 기존 `allPageFrames` 순회는 필요한 consumer에서 유지할 수
+있지만, presentation layer가 전체 positions map을 복사하거나 새 O(N) frame
+array를 매 input frame마다 생성하면 안 된다. 추가 override allocation은 O(1)이어야
+한다.
 
 ## 4. Render and hit-test contract
 
 ### 4.1 Single coordinate source during page drag
 
-page drag 중 다음 consumer가 동일한 `readPagePositions()` 계약을 사용하도록
-inventory하고 연결한다.
+page drag 중 다음 consumer가 동일한 `PagePositionPresentation` snapshot을
+사용하도록 연결한다.
 
 - Skia page root와 page title drawing
 - DOM overlay/page title bounds
@@ -116,10 +149,23 @@ inventory하고 연결한다.
 - transient visible-page culling
 - minimap 또는 workflow가 page position을 읽는 경로
 
-canonical store를 직접 읽는 legacy consumer가 남으면 G4 실패다. renderer에
-presentation을 전달하기 위해 root transform과 renderer input field 중 어느 쪽이
-현재 command stream에 맞는지는 Phase 0의 실제 trace로 결정한다. 결정 전에는
-`renderCommands` cache key나 command lifetime을 바꾸지 않는다.
+구현 injection point는 **Skia RAF의 frame-local presentation snapshot**으로
+고정한다. `SkiaCanvas`는 매 frame adapter snapshot과 page-position reader를
+`buildSkiaFrameContent`, `buildFrameRenderPlan`, `buildRenderCommandStream`, page
+title overlay, workflow page-frame map에 같은 frame으로 전달한다. 각 consumer는
+기존 page frame metadata를 순회하되 위치는 reader로 resolve한다. cached command
+stream과 tree fallback은 content를 page-local 좌표로 기록하고, execution/render
+root에서 active page position을 late transform으로 적용한다. 이 transform은
+content cache key·cache lifetime·culling radius를 변경하지 않는다. 기존
+`pagePosVersion` cache key는 canonical commit version으로 유지하고 transient
+presentation version은 cache key에 추가하지 않는다.
+`BuilderCanvas` 중앙 hit-test와 body/page selection은 adapter의
+`readPagePosition()`을 사용하고, Skia가 갱신한 bounds/map ref를 읽는다.
+
+React `sceneStructureSnapshot`과 Zustand canonical mirror는 page drag 중
+재계산하지 않는다. 따라서 transient page position을 React dependency로 다시
+넣는 방식은 금지한다. canonical store를 직접 읽는 legacy consumer가 남으면
+G4 실패다.
 
 ### 4.2 Dependency stability
 
@@ -130,6 +176,9 @@ presentation을 전달하기 위해 root transform과 renderer input field 중 �
 - cursor style은 next value가 current value와 같으면 DOM style write를 생략한다.
 - page owner가 살아 있는 동안 hover/workflow RAF는 취소하거나 결과를 버리고,
   owner release 뒤 첫 valid pointer event에서 다시 예약한다.
+- `PagePositionPresentation`의 active override와 page-position reader는 page count
+  1/10/50/100 tier에서 추가 positions map clone이 0건이어야 한다. 기존 frame
+  traversal 비용과 새 presentation 비용을 별도 counter로 기록한다.
 
 이 항목은 기능을 바꾸는 memoization이 아니라 owner lifecycle과 same-value
 invalidation을 줄이는 범위다. stale selection 또는 hover가 발견되면 해당
@@ -148,6 +197,10 @@ invalidation을 줄이는 범위다. stale selection 또는 hover가 발견되�
 이 금지 항목이 필요해지는 순간 ADR-176의 G5가 실패하고 별도 ADR 설계로
 분리한다.
 
+단, **page-local content + page-root late transform**은 이번 ADR에서 허용하는
+좁은 renderer wiring이다. 이를 위해 cache key/lifetime을 바꾸거나 page content를
+재래스터하는 정책이 필요해지면 G5 실패로 처리한다.
+
 ## 5. Implementation phases
 
 ### Phase 0 — Inventory and baseline
@@ -156,7 +209,8 @@ invalidation을 줄이는 범위다. stale selection 또는 hover가 발견되�
 - multi-page populated Builder에서 G0 counter와 Chrome trace를 기록
 - page position을 읽는 모든 renderer/overlay/hit-test/culling consumer를 grep와
   runtime probe로 대조
-- root transform vs renderer input projection의 현재 사실을 결정
+- `PagePositionPresentation` reader가 모든 page position consumer에 도달하는지
+  static/runtime inventory로 확인
 
 완료 조건: G0 baseline, dependency map, forbidden scope checklist가 저장되고,
 다음 phase의 변경 allow-list가 source 사실과 일치한다.
@@ -193,6 +247,8 @@ canonical write count와 final equality가 계측된다.
 
 - page position을 읽는 renderer/page title/hit-test/culling을 presentation source로
   통일
+- command stream/tree fallback의 page-local content와 page-root late transform을
+  분리하고, transient presentation version을 cached content key에 추가하지 않음
 - Skia/DOM parity와 page/text visibility를 실제 document에서 검증
 - 기존 command cache/culling/raster policy가 변하지 않았는지 scope diff와 counter
   로 확인
@@ -218,7 +274,10 @@ canonical write count와 final equality가 계측된다.
 
 - `apps/builder/src/builder/workspace/canvas/interaction/canvasGestureSession.ts`
 - `apps/builder/src/builder/workspace/canvas/interaction/canvasGestureSession.test.ts`
+- 신규 `apps/builder/src/builder/workspace/canvas/interaction/pagePositionPresentation.ts`
+  및 lifecycle/presentation tests
 - `apps/builder/src/builder/workspace/canvas/hooks/usePageDrag.ts`
+- `apps/builder/src/builder/workspace/canvas/hooks/usePageDrag.test.ts`
 - `apps/builder/src/builder/workspace/canvas/hooks/useCentralCanvasPointerHandlers.ts`
 - `apps/builder/src/builder/workspace/canvas/hooks/useElementHoverInteraction.ts`
 - `apps/builder/src/builder/workspace/canvas/hooks/useWorkflowInteraction.ts`
@@ -227,7 +286,12 @@ canonical write count와 final equality가 계측된다.
 - 신규 `apps/builder/src/builder/workspace/canvas/interaction/` 또는 `viewport/`
   presentation module/test
 - 필요한 경우에 한해 `apps/builder/src/builder/workspace/canvas/skia/SkiaCanvas.tsx`,
-  `skia/renderCommands.ts`, `renderers/rendererInput.ts` 및 해당 static tests
+  `skia/skiaFramePipeline.ts`, `skia/skiaFramePlan.ts`, `skia/skiaOverlayBuilder.ts`,
+  `skia/visiblePageRoots.ts`, `skia/skiaTreeBuilder.ts`, `skia/renderCommands.ts`,
+  `renderers/rendererInput.ts`
+  및 해당 static tests
+- 필요한 경우에 한해 `interaction/selectionModel.ts`, `scene/buildPageFrames`와
+  `scene/buildVisiblePageSet` 호출 경계
 - 구현이 user-visible 최적화로 완료될 때 `docs/CHANGELOG.md`
 
 ### Forbidden paths and changes
@@ -255,7 +319,9 @@ canonical write count와 final equality가 계측된다.
 각 1종, page add, manual move, explicit screen alignment, breakpoint switch,
 reload, Space pan, zoom in/out을 포함한다. 특히 breakpoint switch가 page를
 자동 정렬하지 않고 explicit “화면 정렬” 동작에서 active breakpoint만 정렬하는
-기존 계약을 보존해야 한다.
+기존 계약을 보존해야 한다. 추가로 page title pointerdown과 workflow page-frame
+pointerdown을 동일 좌표에서 각각 재현하고, page count 1/10/50/100에서 transient
+map allocation과 frame timing을 기록한다.
 
 ## 8. Rollback plan
 
@@ -272,18 +338,18 @@ reload, Space pan, zoom in/out을 포함한다. 특히 breakpoint switch가 page
    breakpoint snapshot을 복구할 수 있어야 하며 데이터 migration rollback은
    필요하지 않다.
 
-## 9. Decisions required before implementation
+## 9. Implementation invariants before implementation
 
-다음 결정은 사용자 확인을 기다리는 질문이 아니라 Phase 0에서 증거로 lock할
-구현 선택이다.
+다음은 구현 전 이미 lock된 계약이며, Phase 0에서는 이 계약의 성능·정합성
+수치만 측정한다.
 
-1. **Presentation injection point**: 현재 renderer command stream이 root
-   transform을 허용하는지, 아니면 `rendererInput`의 page positions projection이
-   최소 변경인지 trace와 static consumer inventory로 선택한다.
-2. **Priority contract**: page title hit-test가 성공한 pointerdown은 page owner가
-   우선이고, page frame 내부의 workflow/minimap click은 title hit-test 실패
-   및 기존 owner 규칙을 따르는지 fixture로 고정한다.
-3. **History/persistence boundary**: finish-only canonical writer가 기존
+1. **Presentation injection point**: Skia RAF의 frame-local
+   `PagePositionPresentation` snapshot을 사용한다. root transform과 React
+   `rendererInput` canonical rewrite 중 선택하지 않는다.
+2. **Priority contract**: page title hit-test가 성공한 pointerdown은
+   `tryClaimPage()`로 먼저 page owner가 된다. workflow/minimap/central은 owner
+   registry를 확인하고 competing action을 시작하지 않는다.
+3. **Breakpoint transaction**: finish-only canonical writer가 기존
    `updatePagePosition`의 history/save semantics와 동일한지 확인한다. 다르면
    새 history API를 만들지 말고 기존 action contract를 먼저 해석한다.
 4. **No-op policy**: 시작 좌표와 최종 좌표가 같을 때 presentation publish와
