@@ -236,6 +236,17 @@ export function useWorkflowInteraction({
     (e: PointerEvent) => {
       if (!containerEl) return;
 
+      if ((e as PointerEvent & { __handled?: boolean }).__handled) {
+        return;
+      }
+
+      if (
+        gestureSession.ownerFor(e.pointerId) === "page" ||
+        gestureSession.isOwnedByAnotherPointer(e.pointerId)
+      ) {
+        return;
+      }
+
       if (gestureSession.beginPointer(e.pointerId, e.button) === "pan") {
         return;
       }

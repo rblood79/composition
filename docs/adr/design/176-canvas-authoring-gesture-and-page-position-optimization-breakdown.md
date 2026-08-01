@@ -206,9 +206,9 @@ invalidation을 줄이는 범위다. stale selection 또는 hover가 발견되�
 ### Phase 0 — Inventory and baseline
 
 - gesture owner별 실제 pointerdown/move/up/cancel/escape/blur 경로를 inventory
-- 기존 source audit 결과를 기준으로 하고, 원인 재발견을 반복하지 않는다. 실제
-  populated multi-page Builder의 대표 재현 1회에서 G0 counter와 필요한 최소
-  frame trace만 기록한다.
+- 기존 source audit와 앞선 원인 분석 결과를 기준선으로 재사용하고, 원인
+  재발견을 반복하지 않는다. 이미 확보된 runtime 수치가 없으면 새 수치를
+  만들지 않고 `not measured`로 기록한다.
 - page position을 읽는 모든 renderer/overlay/hit-test/culling consumer를 grep로
   대조하고, static path가 모호한 경우에만 runtime probe로 보완
 - 아직 구현되지 않은 `PagePositionPresentation` reader는 현재 consumer별
@@ -216,9 +216,11 @@ invalidation을 줄이는 범위다. stale selection 또는 hover가 발견되�
   검증한다.
 
 완료 조건: dependency map, forbidden scope checklist가 저장되고, 다음 phase의
-변경 allow-list가 source 사실과 일치한다. G0 대표 baseline은 정량적인 전후 성능
-주장이 필요할 때만 Phase 1 구현 전에 추가한다. full regression matrix와
-page-count tier 검증은 Phase 5/G6의 책임이며 Phase 1 착수를 차단하지 않는다.
+변경 allow-list가 source 사실과 일치한다. G0는 새 측정 gate가 아니라 기존
+분석 evidence를 고정하는 문서 gate다. Phase 1 착수 전에 runtime baseline을
+다시 만들지 않는다. 정량적인 전후 성능 주장을 선택한 경우에만 별도 trace를
+추가하고, full regression matrix와 page-count tier 검증은 그 주장에 필요한
+범위에서만 Phase 5/G6가 수행한다.
 
 ### Phase 1 — Shared page gesture lifecycle
 
@@ -263,14 +265,14 @@ canonical write count와 final equality가 계측된다.
 
 ### Phase 5 — Performance, regression, and rollback verification
 
-- G0 대표 시나리오를 구현 전후 재측정해 정량 비교
-- verification matrix의 full matrix로 page drag, Space pan, zoom,
-  breakpoint switch, page add, reload를 구현 후 검증하고, page count
-  1/10/50/100 tier는 확장성·allocation·counter를 기록
+- G0를 다시 측정하지 않고, verification matrix에서 page drag, Space pan,
+  zoom, breakpoint switch, page add, reload의 구현 후 회귀를 검증
+- page count 1/10/50/100 tier와 allocation/counter 비교는 확장성 또는 수치
+  성능 개선을 주장하는 경우에만 기록
 - targeted tests, type-check, preflight, browser smoke 수행
-- G0 baseline이 있으면 p95/최악 frame과 write/fan-out counter를 전후 비교한다.
-  baseline이 없으면 full tier의 성능 개선을 주장하지 않고 post-change 측정
-  한계로 기록한다.
+- 수치 성능 주장을 선택하지 않으면 p95/최악 frame 전후 비교를 요구하지 않고
+  `not measured`와 주장 범위를 문서화한다. 수치 주장을 선택한 경우에만 같은
+  시나리오의 before/after trace를 추가한다.
 - user-visible 변경이면 changelog를 갱신하고 phase별 rollback checkpoint를 남김
 
 완료 조건: G6/G7 통과 및 ADR-176을 Implemented로 승격할 근거가 문서화된다.
@@ -315,22 +317,23 @@ canonical write count와 final equality가 계측된다.
 
 ## 7. Verification matrix
 
-| 영역                | 정적/단위 검증                                                             | live 검증                                                                                    | 실패 시 조치                                               |
-| ------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| owner lifecycle     | `canvasGestureSession.test.ts`, page drag lifecycle test                   | page title/Space/element/minimap/workflow matrix                                             | Phase 1 중단, owner contract 수정                          |
-| presentation/commit | presentation store test, `elements` writer equality test                   | 100 raw move, success/cancel/escape/blur/unmount, breakpoint/reload                          | canonical adapter rollback                                 |
-| suppression         | hover/central handler static + interaction tests                           | drag 중 hover/cursor/workflow counter, 종료 후 resume                                        | Phase 3 rollback                                           |
-| render/hit-test     | renderer/Skia static tests와 coordinate fixture                            | multi-page page/text visibility, selection bounds, zoom/pan                                  | G4 실패; renderer policy 변경 금지                         |
-| performance         | counter assertions, no-op equality tests                                   | G0 동일 시나리오의 Chrome trace, full matrix의 p95/max frame·render command/content counters | G0 baseline이 있으면 전후 비교, 없으면 정량 개선 주장 금지 |
-| quality             | `pnpm run codex:typecheck`, `pnpm run codex:preflight`, `git diff --check` | console error 0 browser smoke                                                                | phase를 완료 처리하지 않음                                 |
+| 영역                | 정적/단위 검증                                                             | live 검증                                                                                                                                                        | 실패 시 조치                                                         |
+| ------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| owner lifecycle     | `canvasGestureSession.test.ts`, page drag lifecycle test                   | page title/Space/element/minimap/workflow matrix                                                                                                                 | Phase 1 중단, owner contract 수정                                    |
+| presentation/commit | presentation store test, `elements` writer equality test                   | 100 raw move, success/cancel/escape/blur/unmount, breakpoint/reload                                                                                              | canonical adapter rollback                                           |
+| suppression         | hover/central handler static + interaction tests                           | drag 중 hover/cursor/workflow counter, 종료 후 resume                                                                                                            | Phase 3 rollback                                                     |
+| render/hit-test     | renderer/Skia static tests와 coordinate fixture                            | multi-page page/text visibility, selection bounds, zoom/pan                                                                                                      | G4 실패; renderer policy 변경 금지                                   |
+| performance         | counter assertions, no-op equality tests                                   | 구현 후 contract 회귀와 browser smoke; 수치 성능 주장을 선택한 경우에만 동일 시나리오의 Chrome trace와 full matrix p95/max frame·render command/content counters | 수치 주장을 선택하지 않으면 `not measured`로 기록하고 G0 재측정 금지 |
+| quality             | `pnpm run codex:typecheck`, `pnpm run codex:preflight`, `git diff --check` | console error 0 browser smoke                                                                                                                                    | phase를 완료 처리하지 않음                                           |
 
 최소 회귀 matrix는 page 1/여러 page, page overlap/비-overlap, active breakpoint
 각 1종, page add, manual move, explicit screen alignment, breakpoint switch,
 reload, Space pan, zoom in/out을 포함한다. 특히 breakpoint switch가 page를
 자동 정렬하지 않고 explicit “화면 정렬” 동작에서 active breakpoint만 정렬하는
 기존 계약을 보존해야 한다. 추가로 page title pointerdown과 workflow page-frame
-pointerdown을 동일 좌표에서 각각 재현하고, page count 1/10/50/100에서 transient
-map allocation과 frame timing을 기록한다.
+pointerdown을 동일 좌표에서 각각 재현한다. page count 1/10/50/100의 transient
+map allocation과 frame timing은 확장성 또는 수치 성능 주장을 선택한 경우에만
+추가로 기록한다.
 
 ## 8. Rollback plan
 
@@ -349,8 +352,9 @@ map allocation과 frame timing을 기록한다.
 
 ## 9. Implementation invariants before implementation
 
-다음은 구현 전 이미 lock된 계약이다. Phase 0에서는 대표 재현의 최소 기준선만
-기록하고, 계약의 full 성능·정합성 비교는 Phase 5/G6에서 수행한다.
+다음은 구현 전 이미 lock된 계약이다. Phase 0에서는 기존 source audit와 원인
+분석 evidence만 고정한다. runtime baseline을 다시 측정하지 않으며, full 성능
+비교는 수치 성능 주장을 선택한 경우에만 Phase 5/G6에서 수행한다.
 
 1. **Presentation injection point**: Skia RAF의 frame-local
    `PagePositionPresentation` snapshot을 사용한다. root transform과 React

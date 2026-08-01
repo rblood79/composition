@@ -62,6 +62,11 @@ import {
 import { WASM_FLAGS } from "../wasm-bindings/featureFlags";
 import * as spatialIndex from "../wasm-bindings/spatialIndex";
 import { resolveStickyY, resolveStickyX } from "../layout/stickyResolver";
+import {
+  getPagePositionPresentationSnapshot,
+  readPagePositionDelta,
+  type PagePositionPresentationSnapshot,
+} from "../interaction/pagePositionPresentation";
 
 // ── Command 타입 ──────────────────────────────────────────────────────
 
@@ -899,6 +904,8 @@ export function executeRenderCommands(
   cullingBounds: DOMRect,
   fontMgr?: FontMgr,
   selfSpans?: ReadonlyMap<string, SelfSpan>,
+  pageRootPageIds?: ReadonlyMap<string, string>,
+  pagePositionSnapshot: PagePositionPresentationSnapshot = getPagePositionPresentationSnapshot(),
 ): void {
   if (process.env.NODE_ENV === "development") {
     addCommandCount(commands.length);
@@ -918,6 +925,8 @@ export function executeRenderCommands(
     cullingBounds,
     fontMgr,
     spans,
+    pageRootPageIds,
+    pagePositionSnapshot,
   );
 }
 
@@ -936,6 +945,8 @@ function executeCommandRange(
   cullingBounds: DOMRect,
   fontMgr?: FontMgr,
   selfSpans?: ReadonlyMap<string, SelfSpan>,
+  pageRootPageIds?: ReadonlyMap<string, string>,
+  pagePositionSnapshot?: PagePositionPresentationSnapshot,
 ): void {
   const cullLeft = cullingBounds.x;
   const cullTop = cullingBounds.y;
@@ -998,8 +1009,20 @@ function executeCommandRange(
         const sibOff = !hasDragOffset
           ? getSiblingOffset(cmd.elementId)
           : undefined;
-        const dox = hasDragOffset ? dragOff.dx : (sibOff?.dx ?? 0);
-        const doy = hasDragOffset ? dragOff.dy : (sibOff?.dy ?? 0);
+        const pageId =
+          stackTop === 0 ? pageRootPageIds?.get(cmd.elementId) : undefined;
+        const pageDelta = pageId
+          ? readPagePositionDelta(
+              pageId,
+              pagePositionSnapshot ?? getPagePositionPresentationSnapshot(),
+            )
+          : null;
+        const dox =
+          (hasDragOffset ? dragOff.dx : (sibOff?.dx ?? 0)) +
+          (pageDelta?.dx ?? 0);
+        const doy =
+          (hasDragOffset ? dragOff.dy : (sibOff?.dy ?? 0)) +
+          (pageDelta?.dy ?? 0);
 
         // AABB 컬링 (width/height=0 가상 컨테이너는 스킵)
         if (cmd.width > 0 || cmd.height > 0) {

@@ -16,7 +16,25 @@ export {
   CanvasGestureSession,
   resolveCanvasGestureMode,
   type CanvasGestureMode,
+  type PageGestureOwner,
 } from "./canvasGestureSession";
+export {
+  beginPagePositionPresentation,
+  cancelPagePositionPresentation,
+  finishPagePositionPresentation,
+  getPagePositionPresentationSnapshot,
+  publishPagePositionPresentation,
+  readPageFramePosition,
+  readPagePosition,
+  readPagePositionDelta,
+  resetPagePositionPresentation,
+  subscribePagePositionPresentation,
+  usePagePositionPresentation,
+  type PagePosition,
+  type PagePositionDelta,
+  type PagePositionMap,
+  type PagePositionPresentationSnapshot,
+} from "./pagePositionPresentation";
 export {
   commitPointerClick,
   isPointerDoubleClick,

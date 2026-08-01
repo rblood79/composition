@@ -15,6 +15,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useMemo,
   useState,
@@ -45,6 +46,7 @@ import { DotBackground } from "../components/DotBackground";
 import {
   CanvasGestureSession,
   computeSelectionBounds,
+  readPagePosition,
   resolveCanvasDetachContextTarget,
   resolveSelectedElementsForPage,
 } from "./interaction";
@@ -353,7 +355,8 @@ export function BuilderCanvas({
   // pageTitleBoundsMapRef.current 에 scene 좌표 bounds 를 populate 하고,
   // BuilderCanvas pointerdown(capture) 가 이 Map 을 조회해 usePageDrag 를 트리거.
   const pageTitleBoundsMapRef = useRef<Map<string, PageTitleBounds>>(new Map());
-  const { startDrag: startPageDrag } = usePageDrag(zoom);
+  const [canvasGestureSession] = useState(() => new CanvasGestureSession());
+  const { startDrag: startPageDrag } = usePageDrag(zoom, canvasGestureSession);
 
   // Canvas sync actions
   const setCanvasReady = useCanvasLifecycleStore(
@@ -878,7 +881,6 @@ export function BuilderCanvas({
   // ============================================
   const lastClickTimeRef = useRef(0);
   const lastClickTargetRef = useRef<string | null>(null);
-  const [canvasGestureSession] = useState(() => new CanvasGestureSession());
 
   // SelectionLayer의 selectionBounds를 ref로 저장 (중앙 핸들러에서 접근)
   const selectionBoundsRef = useRef<BoundingBox | null>(null);
@@ -924,6 +926,7 @@ export function BuilderCanvas({
       getBounds: getElementBoundsSimple,
       pageHeight,
       pagePositions,
+      pagePositionReader: (pageId) => readPagePosition(pageId),
       pageWidth,
       selectedElements,
       zoom,
@@ -963,7 +966,7 @@ export function BuilderCanvas({
   // Page title drag hit-test (capture phase).
   // Capture 단계에서 먼저 발화하므로 useCentralCanvasPointerHandlers 보다 우선.
   // hit 이면 event.__handled = true 로 중앙 핸들러가 early-return 하도록 막는다.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const element = containerRef.current;
     if (!element) return;
 
@@ -972,13 +975,6 @@ export function BuilderCanvas({
       if (event.button !== 0) return;
       const target = event.target as HTMLElement;
       if (target.closest('input, textarea, [contenteditable="true"]')) return;
-
-      if (
-        canvasGestureSession.beginPointer(event.pointerId, event.button) ===
-        "pan"
-      ) {
-        return;
-      }
 
       const rect = element.getBoundingClientRect();
       const scenePoint = screenToCanvasPoint({
@@ -993,10 +989,36 @@ export function BuilderCanvas({
           scenePoint.y >= bounds.sceneY &&
           scenePoint.y <= bounds.sceneY + bounds.sceneHeight
         ) {
+          if (
+            !canvasGestureSession.tryClaimPage(
+              event.pointerId,
+              bounds.pageId,
+              sceneActiveBreakpoint,
+            )
+          ) {
+            return;
+          }
+
           (event as PointerEvent & { __handled?: boolean }).__handled = true;
-          startPageDrag(bounds.pageId, event.clientX, event.clientY);
+          startPageDrag(
+            bounds.pageId,
+            event.pointerId,
+            event.clientX,
+            event.clientY,
+          );
           return;
         }
+      }
+
+      if (canvasGestureSession.isOwnedByAnotherPointer(event.pointerId)) {
+        return;
+      }
+
+      if (
+        canvasGestureSession.beginPointer(event.pointerId, event.button) ===
+        "pan"
+      ) {
+        return;
       }
     };
 
@@ -1008,6 +1030,7 @@ export function BuilderCanvas({
     canvasGestureSession,
     isFrameEditMode,
     screenToCanvasPoint,
+    sceneActiveBreakpoint,
     startPageDrag,
   ]);
 

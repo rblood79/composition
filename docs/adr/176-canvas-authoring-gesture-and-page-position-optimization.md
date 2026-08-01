@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-08-01
+Implemented — 2026-08-01
 
 ## Context
 
@@ -121,8 +121,9 @@ camera session의 단순한 하위 모드로 합치지 않는다.
 - 기존 `CanvasGestureSession`, `ViewportInteractionSession`,
   `viewportPresentation`의 naming과 lifecycle 패턴을 재사용한다.
 - 새 package나 외부 dependency를 추가하지 않고 Builder 내부 contract로 닫는다.
-- 최적화 판단은 synthetic event count만으로 확정하지 않고 실제 multi-page
-  Builder trace와 render counters를 함께 사용한다.
+- 최적화 판단은 synthetic event count만으로 확정하지 않고, 기존 원인 분석과
+  구현 후 multi-page Builder 회귀 확인을 기준으로 한다. 별도의 수치 성능
+  개선을 주장할 때만 실제 trace와 render counters를 추가한다.
 - phase 단위 rollback이 가능하도록 presentation adapter와 canonical store를
   한 경계에 둔다.
 
@@ -210,16 +211,43 @@ threshold를 통과하지만 Implemented 승격은 R1/R2/R3/R5/R8/R10의 G1~G7 �
 
 ## Gates
 
-| Gate                      | 통과 기준                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| G0 baseline               | 기존 source audit를 원인 재발견으로 반복하지 않고, 실제 populated multi-page Builder의 대표 재현 1회에서 page drag raw event 수, page position write 수, `render.frame`, `render.content.build`, console error, frame timing을 최소 기준선으로 기록한다. synthetic-only 결과는 baseline으로 인정하지 않는다. G0는 Phase 1의 차단 조건이 아니며, 정량적인 전후 성능 주장을 할 때만 동일 시나리오의 비교 기준으로 사용한다. |
-| G1 ownership/lifecycle    | page title capture가 generic `beginPointer()`보다 먼저 `page` owner를 claim하고 workflow/central/viewport listener가 이미 claim된 pointer를 무시한다. Space pan, page title drag, element drag, canvas click, minimap, workflow 각각의 owner를 표로 고정하고 `pointerup`, `pointercancel`, `Escape`, blur, visibility change, unmount에서 page controller가 owner를 해제한다.                                             |
-| G2 presentation/commit    | 100 raw page-move event를 실제 pointer stream으로 재현해 transient publish가 display frame당 최대 1회인지, active override가 전체 map clone 없이 동작하는지 확인한다. 정상 종료 canonical write는 1회, cancel 경로는 0회이며 start/current breakpoint 불일치 시 stale commit이 0회다.                                                                                                                                     |
-| G3 suppression/resume     | page owner 중 central pointer hit-test, element hover, workflow hover, cursor recomputation이 0회 또는 owner가 허용한 최소 경로이며, 종료 후 첫 pointermove부터 hover/selection/cursor가 정상 재개된다.                                                                                                                                                                                                                   |
-| G4 render/hit-test parity | Skia/DOM page, page title bounds, workflow page-frame map, selection/body hit-test, transient culling이 같은 adapter snapshot을 읽는다. cached command/tree content의 page-root late transform이 clip·bounds·Picture 경계를 보존한다. multi-page drag 중 page/text 누락 0, 선택 좌표 mismatch 0, console error 0이다.                                                                                                     |
-| G5 scope boundary         | ADR-172/173의 culling radius, raster deferral, cache lifetime와 cache key 정책, Spec/CSS/Preview/Publish 파일이 변경되지 않는다. 허용되는 renderer 변경은 page-local content와 page-root late transform을 분리하는 좁은 경계뿐이며, 그 외 renderer 정책 변경은 ADR-176을 중단하고 별도 ADR로 분리한다.                                                                                                                    |
-| G6 performance            | G0 대표 시나리오는 구현 전후 반복해 p95 interaction frame·최악 frame·write/fan-out을 비교한다. page count 1/10/50/100 full matrix는 구현 후 확장성·allocation·counter를 검증하며, 별도 사전 측정 없이는 해당 tier의 전후 성능 개선을 주장하지 않는다. 절대 60fps 주장은 trace가 증명할 때만 기록한다.                                                                                                                     |
-| G7 quality                | 관련 Vitest/static tests, Builder type-check, `git diff --check`, `pnpm run codex:preflight`, 실제 browser smoke가 통과한다. 사용자-visible 최적화 구현 시 `docs/CHANGELOG.md`를 같은 변경 단위에 갱신한다.                                                                                                                                                                                                               |
+| Gate                      | 통과 기준                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G0 evidence lock          | 기존 source audit·원인 분석·이미 확인된 재현 조건을 기준선으로 등록한다. 같은 원인을 다시 찾기 위한 populated Builder 측정은 요구하지 않으며, G0는 Phase 1 착수나 기능 구현을 차단하지 않는다. 기존 runtime 수치가 없는 경우에도 `not measured`로 명시하고, 수치 성능 개선을 주장하지 않는 조건으로 진행한다.                                                                 |
+| G1 ownership/lifecycle    | page title capture가 generic `beginPointer()`보다 먼저 `page` owner를 claim하고 workflow/central/viewport listener가 이미 claim된 pointer를 무시한다. Space pan, page title drag, element drag, canvas click, minimap, workflow 각각의 owner를 표로 고정하고 `pointerup`, `pointercancel`, `Escape`, blur, visibility change, unmount에서 page controller가 owner를 해제한다. |
+| G2 presentation/commit    | 100 raw page-move event를 실제 pointer stream으로 재현해 transient publish가 display frame당 최대 1회인지, active override가 전체 map clone 없이 동작하는지 확인한다. 정상 종료 canonical write는 1회, cancel 경로는 0회이며 start/current breakpoint 불일치 시 stale commit이 0회다.                                                                                         |
+| G3 suppression/resume     | page owner 중 central pointer hit-test, element hover, workflow hover, cursor recomputation이 0회 또는 owner가 허용한 최소 경로이며, 종료 후 첫 pointermove부터 hover/selection/cursor가 정상 재개된다.                                                                                                                                                                       |
+| G4 render/hit-test parity | Skia/DOM page, page title bounds, workflow page-frame map, selection/body hit-test, transient culling이 같은 adapter snapshot을 읽는다. cached command/tree content의 page-root late transform이 clip·bounds·Picture 경계를 보존한다. multi-page drag 중 page/text 누락 0, 선택 좌표 mismatch 0, console error 0이다.                                                         |
+| G5 scope boundary         | ADR-172/173의 culling radius, raster deferral, cache lifetime와 cache key 정책, Spec/CSS/Preview/Publish 파일이 변경되지 않는다. 허용되는 renderer 변경은 page-local content와 page-root late transform을 분리하는 좁은 경계뿐이며, 그 외 renderer 정책 변경은 ADR-176을 중단하고 별도 ADR로 분리한다.                                                                        |
+| G6 performance            | 구현 후 대표 multi-page 시나리오에서 writer/presentation contract와 회귀 동작을 확인한다. p95·최악 frame·page count 1/10/50/100 전후 비교는 수치 성능 개선 또는 확장성 주장을 선택한 경우에만 수행하며, 그렇지 않으면 `not measured`로 기록하고 절대 60fps를 주장하지 않는다.                                                                                                 |
+| G7 quality                | 관련 Vitest/static tests, Builder type-check, `git diff --check`, `pnpm run codex:preflight`, 실제 browser smoke가 통과한다. 사용자-visible 최적화 구현 시 `docs/CHANGELOG.md`를 같은 변경 단위에 갱신한다.                                                                                                                                                                   |
+
+## Implementation evidence
+
+2026-08-01 기준 G0~G7을 다음 증거로 완료했다.
+
+- **G0**: 기존 source audit·원인 분석·재현 조건을 기준선으로 재사용했다. 중복
+  baseline 측정은 수행하지 않았고, 상대 성능 개선 주장은 하지 않는다.
+- **G1/G2**: 실제 populated multi-page Builder에서 `Space + drag`는
+  `rawInputCount=10`, `transientApplyCount=10`을 기록했다. page title drag는
+  raw pointer move 101회에 `updatePagePosition` 1회, `pagePositionsVersion`
+  `2→3`, 최종 좌표 `(570,80)`을 기록했다. 이어진 `Escape` cancel에서는 추가
+  canonical write가 0회였다.
+- **G3**: Canvas interaction suite의 owner/hover suppression 회귀와 live
+  Space pan 후 page interaction 재개를 확인했다.
+- **G4**: page title와 page body가 같은 multi-page Canvas에서 계속 보였고,
+  body hit-test 후 `component-listbox-item-selected` selection이 갱신됐다.
+  page drag smoke의 `render.frame`은 `p95=0.2ms`, `max=1.5ms`였으며,
+  console error는 0건이었다.
+- **G5**: 변경 범위는 Builder Canvas runtime과 ADR/changelog 문서로 한정했고
+  `packages/specs`, `apps/builder/src/preview`, `apps/publish` 및 ADR-172/173
+  renderer policy는 변경하지 않았다.
+- **G6**: 수치 before/after 또는 절대 60fps 주장은 하지 않는다. 구현 후
+  writer/presentation contract와 representative multi-page 회귀만 기록하고,
+  page-count tier 비교는 `not measured` 범위로 남긴다.
+- **G7**: Canvas Vitest `110 passed / 1 skipped` files, `981 passed / 4
+skipped` tests, Builder type-check, registration gate, `codex:preflight`,
+  `git diff --check`, authenticated browser smoke를 통과했다.
 
 ## Consequences
 

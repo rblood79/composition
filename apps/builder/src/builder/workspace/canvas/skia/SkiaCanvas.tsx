@@ -70,6 +70,7 @@ import {
   useThemeConfigStore,
   resolveSkiaTheme,
 } from "../../../../stores/themeConfigStore";
+import { getPagePositionPresentationSnapshot } from "../interaction/pagePositionPresentation";
 
 // Dev profiler — window.__composition_PROFILER 노출 (side-effect import)
 import "../benchmarks/devProfiler";
@@ -468,6 +469,7 @@ export function SkiaCanvas({
       const registryVersion = getRegistryVersion();
       const packet = invalidationPacketRef.current;
       const currentRendererInput = rendererInputRef.current;
+      const pagePositionSnapshot = getPagePositionPresentationSnapshot();
       const sceneDocument = currentRendererInput.sceneSnapshot.document;
       const contentPagePositionVersion =
         sceneDocument.visiblePagePositionVersion;
@@ -680,6 +682,7 @@ export function SkiaCanvas({
           ck,
           fontMgr,
           rendererInput: currentRendererInput,
+          pagePositionSnapshot,
         }),
       );
 
@@ -727,6 +730,7 @@ export function SkiaCanvas({
           dpr,
           prevEdgeGeometryCache: edgeGeometryCacheRef.current,
           prevEdgeGeometryCacheKey: edgeGeometryCacheKeyRef.current,
+          pagePositionSnapshot,
         }),
       );
 

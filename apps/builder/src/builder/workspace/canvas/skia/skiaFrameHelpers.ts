@@ -3,6 +3,10 @@ import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { BoundingBox } from "../selection/types";
 import type { SkiaNodeData } from "./nodeRenderers";
 import type { ElementBounds, PageFrame } from "./workflowRenderer";
+import {
+  readPagePositionDelta,
+  type PagePositionPresentationSnapshot,
+} from "../interaction/pagePositionPresentation";
 
 export function buildTreeBoundsMap(
   tree: SkiaNodeData,
@@ -44,10 +48,19 @@ export function buildTreeBoundsMap(
 
 export function buildPageFrameMap(
   pageFrames: PageFrame[],
+  pagePositionSnapshot?: PagePositionPresentationSnapshot,
 ): Map<string, PageFrame> {
   const pageFrameMap = new Map<string, PageFrame>();
   for (const frame of pageFrames) {
-    pageFrameMap.set(frame.id, frame);
+    const delta = pagePositionSnapshot
+      ? readPagePositionDelta(frame.id, pagePositionSnapshot)
+      : null;
+    pageFrameMap.set(
+      frame.id,
+      delta
+        ? { ...frame, x: frame.x + delta.dx, y: frame.y + delta.dy }
+        : frame,
+    );
   }
   return pageFrameMap;
 }

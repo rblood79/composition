@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 import { afterEach, describe, expect, it } from "vitest";
 import type { Canvas, CanvasKit } from "canvaskit-wasm";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
@@ -12,6 +14,11 @@ import {
   buildRenderCommandStream,
   executeRenderCommands,
 } from "./renderCommands";
+import {
+  beginPagePositionPresentation,
+  publishPagePositionPresentation,
+  resetPagePositionPresentation,
+} from "../interaction/pagePositionPresentation";
 import type { SkiaNodeData } from "./nodeRenderers";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 
@@ -105,6 +112,7 @@ describe("buildRenderCommandStream drag top layer", () => {
 describe("executeRenderCommands scroll-aware culling", () => {
   afterEach(() => {
     clearSkiaRegistry();
+    resetPagePositionPresentation();
   });
 
   const stubCk = {
@@ -173,6 +181,40 @@ describe("executeRenderCommands scroll-aware culling", () => {
     executeRenderCommands(stubCk, canvas, stream.commands, viewport);
 
     expect(translates).not.toContainEqual([0, 2400]);
+  });
+
+  it("applies transient page position only at the page root", () => {
+    const body = makeElement("presented-body", { type: "body" });
+    const child = makeElement("presented-child", { parent_id: body.id });
+
+    registerNode(body.id, { width: 800, height: 600 });
+    registerNode(child.id, { width: 100, height: 100 });
+
+    const stream = buildRenderCommandStream(
+      [body.id],
+      new Map([[body.id, [child]]]),
+      new Map([
+        [child.id, { x: 12, y: 18, width: 100, height: 100 } as ComputedLayout],
+      ]),
+      { [body.id]: { x: 10, y: 20 } },
+    );
+    const canonical = { "page-1": { x: 10, y: 20 } };
+    beginPagePositionPresentation(canonical, "page-1", "desktop");
+    publishPagePositionPresentation("page-1", { x: 50, y: 75 });
+
+    const { canvas, translates } = makeRecordingCanvas();
+    executeRenderCommands(
+      stubCk,
+      canvas,
+      stream.commands,
+      viewport,
+      undefined,
+      undefined,
+      new Map([[body.id, "page-1"]]),
+    );
+
+    expect(translates).toContainEqual([50, 75]);
+    expect(translates).toContainEqual([12, 18]);
   });
 });
 

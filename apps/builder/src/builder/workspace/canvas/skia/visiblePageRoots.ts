@@ -1,6 +1,7 @@
 import type { SkiaRendererInput } from "../renderers";
 
 export interface VisiblePageRootBuildResult {
+  bodyPageIds: Map<string, string>;
   bodyPagePositions: Record<string, { x: number; y: number }>;
   rootElementIds: string[];
 }
@@ -9,10 +10,11 @@ export function collectVisiblePageRoots(
   rendererInput: SkiaRendererInput,
 ): VisiblePageRootBuildResult {
   const rootElementIds: string[] = [];
+  const bodyPageIds = new Map<string, string>();
   const bodyPagePositions: Record<string, { x: number; y: number }> = {};
 
   if (rendererInput.editMode === "layout") {
-    return { bodyPagePositions, rootElementIds };
+    return { bodyPageIds, bodyPagePositions, rootElementIds };
   }
 
   const visiblePageIds = rendererInput.sceneSnapshot.document.visiblePageIds;
@@ -29,11 +31,12 @@ export function collectVisiblePageRoots(
     }
 
     rootElementIds.push(bodyElement.id);
+    bodyPageIds.set(bodyElement.id, page.id);
     const pos = rendererInput.pagePositions[page.id];
     if (pos) {
       bodyPagePositions[bodyElement.id] = pos;
     }
   }
 
-  return { bodyPagePositions, rootElementIds };
+  return { bodyPageIds, bodyPagePositions, rootElementIds };
 }

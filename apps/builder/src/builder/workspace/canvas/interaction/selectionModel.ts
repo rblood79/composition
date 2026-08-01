@@ -23,6 +23,10 @@ import { getViewportController } from "../viewport/ViewportController";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 import { resolveClickTarget } from "../../../utils/hierarchicalSelection";
 import type { CanvasInteractionNode } from "./interactionNode";
+import {
+  getPagePositionPresentationSnapshot,
+  readPagePosition,
+} from "./pagePositionPresentation";
 
 interface ResolveSelectedElementsForPageInput {
   currentPageId: string | null;
@@ -37,6 +41,7 @@ interface ComputeSelectionBoundsOptions {
   getCurrentZoom?: () => number | undefined;
   pageHeight: number;
   pagePositions?: Record<string, { x: number; y: number } | undefined>;
+  pagePositionReader?: (pageId: string) => { x: number; y: number } | undefined;
   pageWidth: number;
   selectedElements: CanvasInteractionNode[];
   zoom?: number;
@@ -116,6 +121,7 @@ export function computeSelectionBounds({
   getCurrentZoom,
   pageHeight,
   pagePositions,
+  pagePositionReader,
   pageWidth,
   selectedElements,
   zoom = 1,
@@ -135,7 +141,8 @@ export function computeSelectionBounds({
         ? frameAreas.find((area) => area.frameId === frameId)
         : undefined;
       const position = element.page_id
-        ? pagePositions?.[element.page_id]
+        ? (pagePositionReader?.(element.page_id) ??
+          pagePositions?.[element.page_id])
         : undefined;
       boxes.push({
         x: frameArea?.x ?? position?.x ?? 0,
@@ -263,5 +270,10 @@ export function resolveTopmostHitElementId(
 export function resolveBodySelection(
   options: Parameters<typeof findBodySelectionAtCanvasPoint>[0],
 ): BodySelectionResult {
-  return findBodySelectionAtCanvasPoint(options);
+  const presentationSnapshot = getPagePositionPresentationSnapshot();
+  return findBodySelectionAtCanvasPoint({
+    ...options,
+    pagePositionReader: (pageId) =>
+      readPagePosition(pageId, presentationSnapshot),
+  });
 }

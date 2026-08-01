@@ -84,6 +84,7 @@ describe("collectVisiblePageRoots edit mode isolation", () => {
     );
 
     expect(result.rootElementIds).toEqual(["page-body"]);
+    expect(result.bodyPageIds).toEqual(new Map([["page-body", page.id]]));
     expect(result.bodyPagePositions["page-body"]).toEqual({ x: 10, y: 20 });
   });
 

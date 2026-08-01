@@ -165,6 +165,13 @@ export function useCentralCanvasPointerHandlers({
         return;
       }
 
+      if (
+        gestureSession.ownerFor(event.pointerId) === "page" ||
+        gestureSession.isOwnedByAnotherPointer(event.pointerId)
+      ) {
+        return;
+      }
+
       const guardedEvent = event as PointerEvent & { __handled?: boolean };
       if (guardedEvent.__handled) {
         return;

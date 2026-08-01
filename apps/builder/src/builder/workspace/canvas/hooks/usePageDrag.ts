@@ -3,105 +3,339 @@
  *
  * 페이지 타이틀 영역에서 pointerdown → pointermove → pointerup으로
  * 페이지 위치를 자유롭게 변경한다.
- * 요소 드래그와 분리되며, RAF 스로틀링으로 프레임당 1회만 업데이트.
+ * 요소 드래그와 분리되며, RAF 스로틀링으로 프레임당 1회만 presentation을
+ * 갱신하고 정상 종료 시에만 canonical page position을 commit한다.
  */
 
-import { useCallback, useRef } from 'react';
-import { useStore } from '../../../stores';
+import { useCallback, useEffect, useRef } from "react";
+import { useStore } from "../../../stores";
+import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
+import {
+  beginPagePositionPresentation,
+  cancelPagePositionPresentation,
+  finishPagePositionPresentation,
+  getPagePositionPresentationSnapshot,
+  publishPagePositionPresentation,
+  type PagePosition,
+  type PagePositionMap,
+} from "../interaction/pagePositionPresentation";
 
 interface PageDragState {
   isDragging: boolean;
   pageId: string | null;
+  pointerId: number | null;
   startPointer: { x: number; y: number } | null;
-  startPagePos: { x: number; y: number } | null;
+  startPagePos: PagePosition | null;
+  canonical: PagePositionMap | null;
+  startBreakpoint: string | null;
 }
 
 interface UsePageDragReturn {
-  startDrag: (pageId: string, pointerX: number, pointerY: number) => void;
+  startDrag: (
+    pageId: string,
+    pointerId: number,
+    pointerX: number,
+    pointerY: number,
+  ) => void;
 }
 
-export function usePageDrag(zoom: number): UsePageDragReturn {
-  const stateRef = useRef<PageDragState>({
-    isDragging: false,
-    pageId: null,
-    startPointer: null,
-    startPagePos: null,
-  });
-  const rafRef = useRef<number | null>(null);
-  // isDragging은 내부에서만 사용 — 커서 변경은 CSS로 처리
+const EMPTY_PAGE_DRAG_STATE: PageDragState = {
+  isDragging: false,
+  pageId: null,
+  pointerId: null,
+  startPointer: null,
+  startPagePos: null,
+  canonical: null,
+  startBreakpoint: null,
+};
 
+function isSamePosition(left: PagePosition, right: PagePosition): boolean {
+  return left.x === right.x && left.y === right.y;
+}
+
+export function usePageDrag(
+  zoom: number,
+  gestureSession: CanvasGestureSession,
+): UsePageDragReturn {
+  const stateRef = useRef<PageDragState>({ ...EMPTY_PAGE_DRAG_STATE });
+  const rafRef = useRef<number | null>(null);
+  const isFinishingRef = useRef(false);
   // 이벤트 핸들러 cleanup 함수 ref (self-reference 회피)
   const cleanupRef = useRef<(() => void) | null>(null);
 
-  const startDrag = useCallback((pageId: string, pointerX: number, pointerY: number) => {
-    const pos = useStore.getState().pagePositions[pageId];
-    if (!pos) return;
+  const startDrag = useCallback(
+    (pageId: string, pointerId: number, pointerX: number, pointerY: number) => {
+      const owner = gestureSession.pageOwnerFor(pointerId);
+      if (!owner || owner.pageId !== pageId) {
+        return;
+      }
 
-    stateRef.current = {
-      isDragging: true,
-      pageId,
-      startPointer: { x: pointerX, y: pointerY },
-      startPagePos: { x: pos.x, y: pos.y },
-    };
+      cleanupRef.current?.();
+      const canonical = useStore.getState().pagePositions;
+      const pos = canonical[pageId];
+      if (!pos) {
+        gestureSession.endPage(pointerId);
+        return;
+      }
 
-    const onPointerMove = (e: PointerEvent) => {
-      const s = stateRef.current;
-      if (!s.isDragging || !s.pageId || !s.startPointer || !s.startPagePos) return;
+      if (
+        !beginPagePositionPresentation(canonical, pageId, owner.startBreakpoint)
+      ) {
+        gestureSession.endPage(pointerId);
+        return;
+      }
 
-      // RAF 스로틀: 프레임당 1회 업데이트
-      if (rafRef.current !== null) return;
-      rafRef.current = requestAnimationFrame(() => {
+      stateRef.current = {
+        isDragging: true,
+        pageId,
+        pointerId,
+        startPointer: { x: pointerX, y: pointerY },
+        startPagePos: { x: pos.x, y: pos.y },
+        canonical,
+        startBreakpoint: owner.startBreakpoint,
+      };
+
+      let latestPointer: { x: number; y: number } | null = null;
+
+      const resetState = () => {
+        stateRef.current = { ...EMPTY_PAGE_DRAG_STATE };
+      };
+
+      const removeListeners = () => {
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerup", onPointerUp);
+        window.removeEventListener("pointercancel", onPointerCancel);
+        window.removeEventListener("blur", onBlur);
+        window.removeEventListener("keydown", onKeyDown);
+        document.removeEventListener("visibilitychange", onVisibilityChange);
+      };
+
+      const release = () => {
+        removeListeners();
+        resetState();
+        cleanupRef.current = null;
+        gestureSession.endPage(pointerId);
+      };
+
+      const cancelAnimation = () => {
+        latestPointer = null;
+        if (rafRef.current === null) {
+          return;
+        }
+
+        cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
-        const dx = (e.clientX - s.startPointer!.x) / zoom;
-        const dy = (e.clientY - s.startPointer!.y) / zoom;
-        let newX = s.startPagePos!.x + dx;
-        let newY = s.startPagePos!.y + dy;
+      };
+
+      const calculatePosition = (
+        clientX: number,
+        clientY: number,
+      ): PagePosition | null => {
+        const state = stateRef.current;
+        if (
+          !state.isDragging ||
+          state.pointerId !== pointerId ||
+          !state.pageId ||
+          !state.startPointer ||
+          !state.startPagePos
+        ) {
+          return null;
+        }
+
+        const dx = (clientX - state.startPointer.x) / zoom;
+        const dy = (clientY - state.startPointer.y) / zoom;
+        let x = state.startPagePos.x + dx;
+        let y = state.startPagePos.y + dy;
         const { snapToGrid, gridSize } = useStore.getState();
         if (snapToGrid) {
-          newX = Math.round(newX / gridSize) * gridSize;
-          newY = Math.round(newY / gridSize) * gridSize;
+          x = Math.round(x / gridSize) * gridSize;
+          y = Math.round(y / gridSize) * gridSize;
         }
-        useStore.getState().updatePagePosition(s.pageId!, newX, newY);
-      });
-    };
+        return { x, y };
+      };
 
-    const onPointerUp = (e: PointerEvent) => {
-      const s = stateRef.current;
-      // 보류 중인 RAF 취소
+      const publishPosition = (clientX: number, clientY: number) => {
+        const state = stateRef.current;
+        if (!state.pageId) {
+          return null;
+        }
+
+        const position = calculatePosition(clientX, clientY);
+        if (position) {
+          publishPagePositionPresentation(state.pageId, position);
+        }
+        return position;
+      };
+
+      const cancel = () => {
+        const state = stateRef.current;
+        if (!state.isDragging || state.pointerId !== pointerId) {
+          return;
+        }
+
+        cancelAnimation();
+        cancelPagePositionPresentation();
+        release();
+      };
+
+      const finish = (position: PagePosition | null) => {
+        const state = stateRef.current;
+        const currentOwner = gestureSession.pageOwnerFor(pointerId);
+        if (!state.isDragging || state.pointerId !== pointerId) {
+          return;
+        }
+
+        if (
+          !currentOwner ||
+          !position ||
+          !state.pageId ||
+          !state.startPagePos
+        ) {
+          cancelPagePositionPresentation();
+          release();
+          return;
+        }
+
+        const currentStore = useStore.getState();
+        const canCommit =
+          currentStore.activeBreakpoint === currentOwner.startBreakpoint &&
+          currentStore.pagePositions === state.canonical &&
+          currentStore.pagePositions[state.pageId] !== undefined;
+        if (!canCommit) {
+          cancelPagePositionPresentation();
+          release();
+          return;
+        }
+        if (canCommit && !isSamePosition(position, state.startPagePos)) {
+          isFinishingRef.current = true;
+          try {
+            currentStore.updatePagePosition(
+              state.pageId,
+              position.x,
+              position.y,
+            );
+          } finally {
+            isFinishingRef.current = false;
+          }
+        }
+
+        const committedSnapshot = getPagePositionPresentationSnapshot();
+        finishPagePositionPresentation(
+          committedSnapshot.canonical === state.canonical
+            ? useStore.getState().pagePositions
+            : currentStore.pagePositions,
+        );
+        release();
+      };
+
+      const onPointerMove = (event: PointerEvent) => {
+        if (event.pointerId !== pointerId) {
+          return;
+        }
+
+        latestPointer = { x: event.clientX, y: event.clientY };
+        // RAF 스로틀: 프레임당 최신 위치만 presentation에 반영
+        if (rafRef.current !== null) {
+          return;
+        }
+
+        rafRef.current = requestAnimationFrame(() => {
+          rafRef.current = null;
+          const nextPointer = latestPointer;
+          latestPointer = null;
+          if (nextPointer) {
+            publishPosition(nextPointer.x, nextPointer.y);
+          }
+        });
+      };
+
+      const onPointerUp = (event: PointerEvent) => {
+        if (event.pointerId !== pointerId) {
+          return;
+        }
+
+        cancelAnimation();
+        finish(publishPosition(event.clientX, event.clientY));
+      };
+
+      const onPointerCancel = (event: PointerEvent) => {
+        if (event.pointerId === pointerId) {
+          cancel();
+        }
+      };
+
+      const onBlur = () => {
+        cancel();
+      };
+
+      const onKeyDown = (event: KeyboardEvent) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          cancel();
+        }
+      };
+
+      const onVisibilityChange = () => {
+        if (document.visibilityState === "hidden") {
+          cancel();
+        }
+      };
+
+      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("pointerup", onPointerUp);
+      window.addEventListener("pointercancel", onPointerCancel);
+      window.addEventListener("blur", onBlur);
+      window.addEventListener("keydown", onKeyDown);
+      document.addEventListener("visibilitychange", onVisibilityChange);
+      cleanupRef.current = cancel;
+    },
+    [gestureSession, zoom],
+  );
+
+  useEffect(() => {
+    const subscribe = (
+      useStore as unknown as {
+        subscribe?: (listener: (state: unknown) => void) => () => void;
+      }
+    ).subscribe;
+    if (!subscribe) {
+      return;
+    }
+
+    return subscribe((state) => {
+      const drag = stateRef.current;
+      if (
+        isFinishingRef.current ||
+        !drag.isDragging ||
+        !drag.canonical ||
+        !drag.startBreakpoint
+      ) {
+        return;
+      }
+
+      const next = state as {
+        activeBreakpoint?: string;
+        pagePositions?: PagePositionMap;
+      };
+      if (
+        next.pagePositions !== drag.canonical ||
+        next.activeBreakpoint !== drag.startBreakpoint
+      ) {
+        cleanupRef.current?.();
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      cleanupRef.current?.();
+      cleanupRef.current = null;
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
-      // 최종 위치 업데이트 (RAF 취소로 누락된 마지막 이동분 반영 + 스냅 적용)
-      if (s.isDragging && s.pageId && s.startPointer && s.startPagePos) {
-        const dx = (e.clientX - s.startPointer.x) / zoom;
-        const dy = (e.clientY - s.startPointer.y) / zoom;
-        let newX = s.startPagePos.x + dx;
-        let newY = s.startPagePos.y + dy;
-        const { snapToGrid, gridSize } = useStore.getState();
-        if (snapToGrid) {
-          newX = Math.round(newX / gridSize) * gridSize;
-          newY = Math.round(newY / gridSize) * gridSize;
-        }
-        useStore.getState().updatePagePosition(s.pageId, newX, newY);
-      }
-      stateRef.current.isDragging = false;
-      stateRef.current.pageId = null;
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
-      cleanupRef.current = null;
     };
-
-    // 이전 리스너 정리
-    cleanupRef.current?.();
-
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-    cleanupRef.current = () => {
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
-    };
-  }, [zoom]);
+  }, []);
 
   return {
     startDrag,

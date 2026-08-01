@@ -16,6 +16,11 @@ import {
 import { renderText } from "./nodeRendererText";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import { notifyLayoutChange } from "./useSkiaNode";
+import {
+  getPagePositionPresentationSnapshot,
+  readPagePositionDelta,
+  type PagePositionPresentationSnapshot,
+} from "../interaction/pagePositionPresentation";
 
 // ============================================
 // Drag Visual Offset (Pencil deferred-drop 패턴)
@@ -101,6 +106,8 @@ export function renderNode(
   node: SkiaNodeData,
   cullingBounds: DOMRect,
   fontMgr?: FontMgr,
+  pageRootPageIds?: ReadonlyMap<string, string>,
+  pagePositionSnapshot: PagePositionPresentationSnapshot = getPagePositionPresentationSnapshot(),
 ): void {
   const left = cullingBounds.x;
   const top = cullingBounds.y;
@@ -113,6 +120,8 @@ export function renderNode(
     left + cullingBounds.width,
     top + cullingBounds.height,
     fontMgr,
+    pageRootPageIds,
+    pagePositionSnapshot,
   );
 }
 
@@ -125,25 +134,39 @@ function renderNodeInternal(
   cullRight: number,
   cullBottom: number,
   fontMgr?: FontMgr,
+  pageRootPageIds?: ReadonlyMap<string, string>,
+  pagePositionSnapshot?: PagePositionPresentationSnapshot,
 ): void {
   if (!node.visible) return;
 
+  const pageId = node.elementId
+    ? pageRootPageIds?.get(node.elementId)
+    : undefined;
+  const pageDelta = pageId
+    ? readPagePositionDelta(
+        pageId,
+        pagePositionSnapshot ?? getPagePositionPresentationSnapshot(),
+      )
+    : null;
+  const nodeX = node.x + (pageDelta?.dx ?? 0);
+  const nodeY = node.y + (pageDelta?.dy ?? 0);
+
   // ADR-043: 드래그 오프셋은 skiaTreeBuilder에서 node.x/y에 반영됨
   if (node.width > 0 || node.height > 0) {
-    const nodeRight = node.x + node.width;
-    const nodeBottom = node.y + node.height;
+    const nodeRight = nodeX + node.width;
+    const nodeBottom = nodeY + node.height;
     if (
       cullLeft > nodeRight ||
-      cullRight < node.x ||
+      cullRight < nodeX ||
       cullTop > nodeBottom ||
-      cullBottom < node.y
+      cullBottom < nodeY
     ) {
       return;
     }
   }
 
   canvas.save();
-  canvas.translate(node.x, node.y);
+  canvas.translate(nodeX, nodeY);
 
   if (node.transform) {
     canvas.concat(node.transform);
@@ -225,12 +248,12 @@ function renderNodeInternal(
     }
 
     const childCullLeft =
-      cullLeft - node.x + (node.scrollOffset?.scrollLeft ?? 0);
-    const childCullTop = cullTop - node.y + (node.scrollOffset?.scrollTop ?? 0);
+      cullLeft - nodeX + (node.scrollOffset?.scrollLeft ?? 0);
+    const childCullTop = cullTop - nodeY + (node.scrollOffset?.scrollTop ?? 0);
     const childCullRight =
-      cullRight - node.x + (node.scrollOffset?.scrollLeft ?? 0);
+      cullRight - nodeX + (node.scrollOffset?.scrollLeft ?? 0);
     const childCullBottom =
-      cullBottom - node.y + (node.scrollOffset?.scrollTop ?? 0);
+      cullBottom - nodeY + (node.scrollOffset?.scrollTop ?? 0);
     const hasZIndex = node.children.some((c) => c.zIndex !== undefined);
     const childrenToRender = hasZIndex
       ? sortByStackingOrder(node.children)
@@ -245,6 +268,8 @@ function renderNodeInternal(
         childCullRight,
         childCullBottom,
         fontMgr,
+        pageRootPageIds,
+        pagePositionSnapshot,
       );
     }
 

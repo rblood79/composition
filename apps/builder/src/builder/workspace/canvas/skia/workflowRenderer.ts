@@ -15,6 +15,10 @@ import type {
   DataSourceEdge,
   LayoutGroup,
 } from "./workflowEdges";
+import {
+  readPagePositionDelta,
+  type PagePositionPresentationSnapshot,
+} from "../interaction/pagePositionPresentation";
 
 // ============================================
 // Types
@@ -31,6 +35,7 @@ export interface PageFrame {
 }
 
 export interface FrameBorderArea {
+  id?: string;
   x: number;
   y: number;
   width: number;
@@ -811,6 +816,7 @@ export function renderFrameAreaBorder(
   frameAreas: FrameBorderArea[],
   zoom: number,
   color: readonly [number, number, number],
+  pagePositionSnapshot?: PagePositionPresentationSnapshot,
 ): void {
   if (frameAreas.length === 0) return;
 
@@ -828,9 +834,13 @@ export function renderFrameAreaBorder(
     const halfStroke = strokeWidth / 2;
 
     for (const frame of frameAreas) {
+      const delta =
+        frame.id && pagePositionSnapshot
+          ? readPagePositionDelta(frame.id, pagePositionSnapshot)
+          : null;
       const rect = ck.XYWHRect(
-        frame.x - halfStroke,
-        frame.y - halfStroke,
+        frame.x + (delta?.dx ?? 0) - halfStroke,
+        frame.y + (delta?.dy ?? 0) - halfStroke,
         frame.width + strokeWidth,
         frame.height + strokeWidth,
       );

@@ -33,6 +33,10 @@ import {
   buildOverlayNode,
 } from "./skiaOverlayBuilder";
 import type { PageTitleBounds } from "./skiaOverlayHelpers";
+import {
+  getPagePositionPresentationSnapshot,
+  type PagePositionPresentationSnapshot,
+} from "../interaction/pagePositionPresentation";
 
 export interface CreateFrameInputOptions {
   registryVersion: number;
@@ -100,6 +104,7 @@ export interface BuildFrameRenderPlanInput {
   dpr: number;
   prevEdgeGeometryCache: CachedEdgeGeometry[];
   prevEdgeGeometryCacheKey: string;
+  pagePositionSnapshot?: PagePositionPresentationSnapshot;
 }
 
 export function buildFrameRenderPlan(
@@ -129,7 +134,11 @@ export function buildFrameRenderPlan(
     dpr,
     prevEdgeGeometryCache,
     prevEdgeGeometryCacheKey,
+    pagePositionSnapshot,
   } = input;
+
+  const currentPagePositionSnapshot =
+    pagePositionSnapshot ?? getPagePositionPresentationSnapshot();
 
   const selection = buildSelectionOverlayData(
     snapshot,
@@ -149,6 +158,7 @@ export function buildFrameRenderPlan(
         workflowStraightEdges: invalidationPacket.workflow.straightEdges,
         prevEdgeGeometryCache,
         prevEdgeGeometryCacheKey,
+        pagePositionSnapshot: currentPagePositionSnapshot,
       })
     : null;
 
@@ -175,6 +185,7 @@ export function buildFrameRenderPlan(
     visiblePageFrames,
     frameAreas,
     pageTitleBoundsMap,
+    pagePositionSnapshot: currentPagePositionSnapshot,
     minimapVisible,
     minimapConfig,
     skiaCanvasWidth,
@@ -250,6 +261,7 @@ interface BuildWorkflowOverlayBuildResultInput {
   workflowStraightEdges: boolean;
   prevEdgeGeometryCache: CachedEdgeGeometry[];
   prevEdgeGeometryCacheKey: string;
+  pagePositionSnapshot: PagePositionPresentationSnapshot;
 }
 
 function buildWorkflowOverlayBuildResult(
@@ -258,6 +270,7 @@ function buildWorkflowOverlayBuildResult(
   const wfData = buildWorkflowOverlayData(
     input.treeBoundsMap,
     input.pageFrames,
+    input.pagePositionSnapshot,
   );
   const cacheResult = buildFrameCaches(
     input.workflowEdges,
@@ -268,6 +281,7 @@ function buildWorkflowOverlayBuildResult(
     input.workflowStraightEdges,
     input.prevEdgeGeometryCacheKey,
     input.prevEdgeGeometryCache,
+    input.pagePositionSnapshot.version,
   );
 
   return {

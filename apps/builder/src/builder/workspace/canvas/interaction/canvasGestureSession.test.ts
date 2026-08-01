@@ -53,4 +53,47 @@ describe("CanvasGestureSession", () => {
     expect(session.shouldSuppressElementInteraction(7)).toBe(false);
     expect(session.shouldSuppressElementHover()).toBe(false);
   });
+
+  it("page title hit-test는 generic owner보다 먼저 page owner를 claim한다", () => {
+    const session = new CanvasGestureSession();
+
+    expect(session.tryClaimPage(11, "page-1", "desktop")).toBe(true);
+    expect(session.ownerFor(11)).toBe("page");
+    expect(session.pageOwnerFor(11)).toEqual({
+      pageId: "page-1",
+      pointerId: 11,
+      startBreakpoint: "desktop",
+    });
+    expect(session.beginPointer(11, 0)).toBe("page");
+    expect(session.shouldSuppressElementInteraction(11)).toBe(true);
+    expect(session.shouldSuppressElementHover()).toBe(true);
+  });
+
+  it("active page owner가 있으면 다른 pointer와 generic owner가 경쟁하지 않는다", () => {
+    const session = new CanvasGestureSession();
+
+    expect(session.tryClaimPage(11, "page-1", "desktop")).toBe(true);
+    expect(session.tryClaimPage(12, "page-2", "mobile")).toBe(false);
+    expect(session.beginPointer(12, 0)).toBe("idle");
+    expect(session.isOwnedByAnotherPointer(12)).toBe(true);
+    expect(session.ownerFor(12)).toBe("idle");
+    expect(session.ownerFor(11)).toBe("page");
+
+    session.endPointer(11);
+    expect(session.ownerFor(11)).toBe("page");
+    session.endPage(11);
+    expect(session.ownerFor(11)).toBe("idle");
+  });
+
+  it("page owner는 pointercancel 경로에서 page controller만 release할 수 있다", () => {
+    const session = new CanvasGestureSession();
+
+    session.tryClaimPage(11, "page-1", "desktop");
+    session.endPointer(11);
+    expect(session.ownerFor(11)).toBe("page");
+
+    session.endPage(11);
+    expect(session.ownerFor(11)).toBe("idle");
+    expect(session.shouldSuppressElementHover()).toBe(false);
+  });
 });

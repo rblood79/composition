@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Canvas page drag presentation 최적화 — ADR-176 Implemented] - 2026-08-01
+
+### Performance
+
+- page title drag 중에는 active page 위치만 transient presentation으로 갱신하고,
+  정상 종료 시 canonical `updatePagePosition`을 한 번만 호출하도록 변경했다.
+- cached Skia command/tree content는 유지하고 page root late transform만 적용해
+  drag 중 scene snapshot·renderer input·content cache fan-out을 줄였다.
+
+### Interaction
+
+- page drag를 shared gesture owner에 연결하고 `pointercancel`, `Escape`, blur,
+  visibility change, unmount 및 breakpoint/canonical position 교체 시 stale commit을
+  차단한다.
+- page title, workflow frame, body selection/hit-test가 같은 presentation position을
+  읽도록 정렬했다.
+- 실제 multi-page Builder에서 page drag success/cancel, Space pan, body hit-test,
+  breakpoint snapshot 보존 및 active breakpoint 전용 `화면 정렬`을 확인했다.
+
 ## [명시적 Page 화면 정렬] - 2026-08-01
 
 ### Changed

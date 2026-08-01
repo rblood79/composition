@@ -333,6 +333,15 @@ export interface FrameInputSnapshot {
 export interface SelectionOverlayBuildResult {
   bounds: import("../selection/types").BoundingBox | null;
   lasso: import("./selectionRenderer").LassoRenderData | null;
+  semanticTargets: Array<{
+    bounds: import("../selection/types").BoundingBox;
+    semanticRole:
+      | import("../../../utils/editingSemantics").EditingSemanticsRole
+      | null;
+    slotMarkerRole:
+      | import("../../../utils/editingSemantics").EditingSemanticsRole
+      | null;
+  }>;
   semanticRole:
     | import("../../../utils/editingSemantics").EditingSemanticsRole
     | null;

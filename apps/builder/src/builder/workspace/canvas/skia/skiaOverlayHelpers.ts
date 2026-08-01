@@ -25,6 +25,10 @@ import {
 } from "./workflowMinimap";
 import type { FrameAreaGroup, WorkflowEdge } from "./workflowEdges";
 import type { PageFrame } from "./workflowRenderer";
+import {
+  readPagePositionDelta,
+  type PagePositionPresentationSnapshot,
+} from "../interaction/pagePositionPresentation";
 
 export interface HoverHighlightTarget {
   dashed: boolean;
@@ -98,6 +102,7 @@ export function buildHoverHighlightTargets(
   elementsMap: Map<string, CanvasSceneNode> = new Map(),
   pageFrames: PageFrame[] = [],
   hitBoundsMap: Map<string, BoundingBox> = treeBoundsMap,
+  pagePositionSnapshot?: PagePositionPresentationSnapshot,
 ): HoverHighlightTarget[] {
   const targets: HoverHighlightTarget[] = [];
 
@@ -109,7 +114,12 @@ export function buildHoverHighlightTargets(
     //   있어 `resolvePageBodyBounds` 폴백(프레임 경계)이 그대로 유지된다.
     const contextBounds =
       hitBoundsMap.get(hoveredContextId) ??
-      resolvePageBodyBounds(hoveredContextId, elementsMap, pageFrames);
+      resolvePageBodyBounds(
+        hoveredContextId,
+        elementsMap,
+        pageFrames,
+        pagePositionSnapshot,
+      );
     if (contextBounds) {
       targets.push({
         bounds: contextBounds,
@@ -149,6 +159,7 @@ function resolvePageBodyBounds(
   elementId: string,
   elementsMap: Map<string, CanvasSceneNode>,
   pageFrames: PageFrame[],
+  pagePositionSnapshot?: PagePositionPresentationSnapshot,
 ): BoundingBox | null {
   const element = elementsMap.get(elementId);
   if (element?.type.toLowerCase() !== "body" || !element.page_id) {
@@ -158,9 +169,13 @@ function resolvePageBodyBounds(
   const pageFrame = pageFrames.find((frame) => frame.id === element.page_id);
   if (!pageFrame) return null;
 
+  const delta = pagePositionSnapshot
+    ? readPagePositionDelta(pageFrame.id, pagePositionSnapshot)
+    : null;
+
   return {
-    x: pageFrame.x,
-    y: pageFrame.y,
+    x: pageFrame.x + (delta?.dx ?? 0),
+    y: pageFrame.y + (delta?.dy ?? 0),
     width: pageFrame.width,
     height: pageFrame.height,
   };
@@ -409,19 +424,25 @@ export function buildPageTitleRenderItems(
   pageFrames: PageFrame[],
   activePageId: string | null,
   hasSelection: boolean,
+  pagePositionSnapshot?: PagePositionPresentationSnapshot,
 ): PageTitleRenderItem[] {
   return pageFrames
     .filter((frame): frame is PageFrame & { title: string } =>
       Boolean(frame.title),
     )
-    .map((frame) => ({
-      pageId: frame.id,
-      title: frame.title,
-      x: frame.x,
-      y: frame.y,
-      elementCount: frame.elementCount ?? 0,
-      highlighted: hasSelection && frame.id === activePageId,
-    }));
+    .map((frame) => {
+      const delta = pagePositionSnapshot
+        ? readPagePositionDelta(frame.id, pagePositionSnapshot)
+        : null;
+      return {
+        pageId: frame.id,
+        title: frame.title,
+        x: frame.x + (delta?.dx ?? 0),
+        y: frame.y + (delta?.dy ?? 0),
+        elementCount: frame.elementCount ?? 0,
+        highlighted: hasSelection && frame.id === activePageId,
+      };
+    });
 }
 
 export function buildFrameTitleRenderItems(

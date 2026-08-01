@@ -235,6 +235,7 @@ export function findBodySelectionAtCanvasPoint({
   pageWidth,
   pages,
   frameAreas = [],
+  pagePositionReader,
 }: {
   canvasPoint: CanvasPoint;
   currentPageId: string | null;
@@ -244,6 +245,7 @@ export function findBodySelectionAtCanvasPoint({
   pageIndexElementsByPage: Map<string, Set<string>>;
   pageSelectionEnabled?: boolean;
   pagePositions: PagePositionMap;
+  pagePositionReader?: (pageId: string) => { x: number; y: number } | undefined;
   pageWidth: number;
   pages: PageLike[];
 }): BodySelectionResult {
@@ -263,7 +265,7 @@ export function findBodySelectionAtCanvasPoint({
   let pageId: string | null = null;
 
   for (const page of pages) {
-    const position = pagePositions[page.id];
+    const position = pagePositionReader?.(page.id) ?? pagePositions[page.id];
     if (!position) {
       continue;
     }

@@ -81,6 +81,7 @@ import {
   getCSSVariable,
 } from "../utils/cssVariableReader";
 import { hexToColor4fChannels } from "./themeWatcher";
+import type { PagePositionPresentationSnapshot } from "../interaction/pagePositionPresentation";
 
 // ============================================
 // Workflow Overlay Data
@@ -104,8 +105,9 @@ export function buildWorkflowOverlayData(
     width: number;
     height: number;
   }>,
+  pagePositionSnapshot?: PagePositionPresentationSnapshot,
 ): WorkflowOverlayData {
-  const pfMap = buildPageFrameMap(pageFrames);
+  const pfMap = buildPageFrameMap(pageFrames, pagePositionSnapshot);
   const workflowElementBoundsMap = buildWorkflowElementBounds(treeBoundsMap);
   return { pageFrameMap: pfMap, workflowElementBoundsMap };
 }
@@ -132,12 +134,13 @@ export function buildFrameCaches(
   workflowStraightEdges: boolean,
   prevCacheKey: string,
   prevCache: CachedEdgeGeometry[],
+  presentationVersion = 0,
 ): FrameCacheState {
   if (workflowEdges.length === 0) {
     return { edgeGeometryCache: [], edgeGeometryCacheKey: "" };
   }
 
-  const cacheKey = `${workflowGraphSignature}:${pagePosVersion}:${workflowStraightEdges}`;
+  const cacheKey = `${workflowGraphSignature}:${pagePosVersion}:${presentationVersion}:${workflowStraightEdges}`;
   if (cacheKey === prevCacheKey) {
     return { edgeGeometryCache: prevCache, edgeGeometryCacheKey: prevCacheKey };
   }
@@ -200,6 +203,7 @@ export interface OverlayBuildInput {
    * BuilderCanvas pointerdown 핸들러가 pageId 를 조회하여 usePageDrag 를 트리거.
    */
   pageTitleBoundsMap?: Map<string, PageTitleBounds>;
+  pagePositionSnapshot?: PagePositionPresentationSnapshot;
   // Minimap
   minimapVisible: boolean;
   minimapConfig: MinimapConfig;
@@ -258,6 +262,7 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
     visiblePageFrames,
     frameAreas,
     pageTitleBoundsMap,
+    pagePositionSnapshot,
     minimapVisible,
     skiaCanvasWidth,
     skiaCanvasHeight,
@@ -295,12 +300,14 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
           frames,
           cameraZoom,
           resolveCanvasBorderColor(),
+          pagePositionSnapshot,
         );
 
         const pageTitleItems = buildPageTitleRenderItems(
           frames,
           selection.currentPageId,
           selection.selectedElementIds.length > 0,
+          pagePositionSnapshot,
         );
         const invZoom = cameraZoom === 0 ? 1 : 1 / cameraZoom;
         // PAGE_TITLE_OFFSET_Y / FONT_SIZE 는 selectionRenderer.ts 상수와 동일하게 유지.
@@ -352,6 +359,7 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
           reusableFrameAreas,
           cameraZoom,
           resolveCanvasBorderColor(),
+          pagePositionSnapshot,
         );
       }
 
@@ -516,6 +524,7 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
           elementsMap,
           frames,
           hitBoundsMap,
+          pagePositionSnapshot,
         );
         for (const target of hoverTargets) {
           renderHoverHighlight(

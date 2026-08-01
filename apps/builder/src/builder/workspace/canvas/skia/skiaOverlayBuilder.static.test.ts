@@ -89,7 +89,9 @@ describe("skiaOverlayBuilder page/frame border contract", () => {
     expect(workflowRendererSource).toContain(
       "const halfStroke = strokeWidth / 2;",
     );
-    expect(workflowRendererSource).toContain("frame.x - halfStroke");
+    expect(workflowRendererSource).toContain(
+      "frame.x + (delta?.dx ?? 0) - halfStroke",
+    );
     expect(workflowRendererSource).toContain("frame.width + strokeWidth");
     expect(workflowRendererSource).toContain(
       "canvas.drawRect(rect, borderPaint);",

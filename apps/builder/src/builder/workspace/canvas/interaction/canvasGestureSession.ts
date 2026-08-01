@@ -1,4 +1,10 @@
-export type CanvasGestureMode = "element" | "idle" | "pan";
+export type CanvasGestureMode = "element" | "idle" | "page" | "pan";
+
+export interface PageGestureOwner {
+  pageId: string;
+  pointerId: number;
+  startBreakpoint: string;
+}
 
 export function resolveCanvasGestureMode({
   button,
@@ -24,6 +30,7 @@ export class CanvasGestureSession {
   private activePointerId: number | null = null;
   private mode: CanvasGestureMode = "idle";
   private isSpacePressed = false;
+  private pageOwner: PageGestureOwner | null = null;
   private readonly listeners = new Set<() => void>();
 
   setSpacePressed(isPressed: boolean): void {
@@ -51,7 +58,12 @@ export class CanvasGestureSession {
       return this.mode;
     }
 
+    if (this.activePointerId !== null) {
+      return "idle";
+    }
+
     this.activePointerId = pointerId;
+    this.pageOwner = null;
     this.mode = resolveCanvasGestureMode({
       button,
       isSpacePressed: this.isSpacePressed,
@@ -60,18 +72,64 @@ export class CanvasGestureSession {
     return this.mode;
   }
 
-  endPointer(pointerId: number): void {
-    if (this.activePointerId !== pointerId) {
+  tryClaimPage(
+    pointerId: number,
+    pageId: string,
+    startBreakpoint: string,
+  ): boolean {
+    if (this.activePointerId !== null) {
+      return false;
+    }
+
+    this.activePointerId = pointerId;
+    this.mode = "page";
+    this.pageOwner = {
+      pageId,
+      pointerId,
+      startBreakpoint,
+    };
+    this.notify();
+    return true;
+  }
+
+  ownerFor(pointerId: number): CanvasGestureMode {
+    return this.activePointerId === pointerId ? this.mode : "idle";
+  }
+
+  pageOwnerFor(pointerId: number): PageGestureOwner | null {
+    if (this.pageOwner?.pointerId !== pointerId) {
+      return null;
+    }
+
+    return { ...this.pageOwner };
+  }
+
+  isOwnedByAnotherPointer(pointerId: number): boolean {
+    return this.activePointerId !== null && this.activePointerId !== pointerId;
+  }
+
+  endPage(pointerId: number): void {
+    if (this.mode !== "page" || this.activePointerId !== pointerId) {
       return;
     }
 
-    this.activePointerId = null;
-    this.mode = "idle";
-    this.notify();
+    this.releasePointer();
+  }
+
+  endPointer(pointerId: number): void {
+    if (this.mode === "page" || this.activePointerId !== pointerId) {
+      return;
+    }
+
+    this.releasePointer();
   }
 
   shouldSuppressElementInteraction(pointerId: number): boolean {
-    return this.activePointerId === pointerId && this.mode === "pan";
+    return (
+      this.isOwnedByAnotherPointer(pointerId) ||
+      (this.activePointerId === pointerId &&
+        (this.mode === "page" || this.mode === "pan"))
+    );
   }
 
   /**
@@ -81,7 +139,14 @@ export class CanvasGestureSession {
    * 놓은 pan pointer는 pointerup까지 계속 차단한다.
    */
   shouldSuppressElementHover(): boolean {
-    return this.isSpacePressed || this.mode === "pan";
+    return this.isSpacePressed || this.mode === "page" || this.mode === "pan";
+  }
+
+  private releasePointer(): void {
+    this.activePointerId = null;
+    this.mode = "idle";
+    this.pageOwner = null;
+    this.notify();
   }
 
   private notify(): void {

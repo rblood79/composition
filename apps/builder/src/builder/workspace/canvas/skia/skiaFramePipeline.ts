@@ -49,6 +49,10 @@ import {
 import { recordWasmMetric } from "../utils/gpuProfilerCore";
 import { collectVisiblePageRoots } from "./visiblePageRoots";
 import { collectVisibleFrameRoots } from "./visibleFrameRoots";
+import {
+  getPagePositionPresentationSnapshot,
+  type PagePositionPresentationSnapshot,
+} from "../interaction/pagePositionPresentation";
 
 // ============================================
 // Content Build — 입력/출력 타입
@@ -68,6 +72,7 @@ export interface ContentBuildInput {
   ck: CanvasKit;
   fontMgr: FontMgr | undefined;
   rendererInput: SkiaRendererInput;
+  pagePositionSnapshot?: PagePositionPresentationSnapshot;
 }
 
 // ============================================
@@ -96,6 +101,7 @@ export function buildSkiaFrameContent(
     ck,
     fontMgr,
     rendererInput,
+    pagePositionSnapshot,
   } = input;
 
   const sharedLayoutMap = getSharedLayoutMap();
@@ -121,6 +127,7 @@ export function buildSkiaFrameContent(
       rendererInput,
       ck,
       fontMgr,
+      pagePositionSnapshot,
     );
     if (!result) return null;
     treeBoundsMap = result.treeBoundsMap;
@@ -140,6 +147,8 @@ export function buildSkiaFrameContent(
       aiState,
       ck,
       fontMgr,
+      collectVisiblePageRoots(rendererInput).bodyPageIds,
+      pagePositionSnapshot,
     );
     if (!result) return null;
     treeBoundsMap = result.treeBoundsMap;
@@ -236,6 +245,7 @@ function buildViaCommandStream(
   rendererInput: SkiaRendererInput,
   ck: CanvasKit,
   fontMgr: FontMgr | undefined,
+  pagePositionSnapshot?: PagePositionPresentationSnapshot,
 ): InternalBuildResult | null {
   const treeBuildStart =
     process.env.NODE_ENV === "development" ? performance.now() : 0;
@@ -253,6 +263,7 @@ function buildViaCommandStream(
     ...pageResult.bodyPagePositions,
     ...frameResult.bodyPagePositions,
   };
+  const bodyPageIds = pageResult.bodyPageIds;
 
   // Fix 1: filteredChildrenMap 사용 (layoutMap과 동일 트리 소스)
   const filteredChildIds = getSharedFilteredChildrenMap();
@@ -265,7 +276,7 @@ function buildViaCommandStream(
       for (const cid of childIds) {
         const el =
           rendererInput.renderNodesMap.get(cid) ?? syntheticMap.get(cid);
-        if (el) children.push(el);
+        if (el) children.push(el as CanvasSceneNode);
       }
       commandChildrenMap.set(parentId, children);
     }
@@ -325,6 +336,8 @@ function buildViaCommandStream(
         bounds,
         fontMgr,
         stream.selfSpans,
+        bodyPageIds,
+        pagePositionSnapshot ?? getPagePositionPresentationSnapshot(),
       );
     },
   };
@@ -353,6 +366,8 @@ function buildViaTree(
   aiState: RendererAIInvalidation,
   ck: CanvasKit,
   fontMgr: FontMgr | undefined,
+  pageRootPageIds: ReadonlyMap<string, string> = new Map(),
+  pagePositionSnapshot: PagePositionPresentationSnapshot = getPagePositionPresentationSnapshot(),
 ): InternalBuildResult | null {
   const treeBuildStart =
     process.env.NODE_ENV === "development" ? performance.now() : 0;
@@ -402,7 +417,15 @@ function buildViaTree(
 
   const contentNode: SkiaRenderable = {
     renderSkia(canvas, bounds) {
-      renderNode(ck, canvas, tree, bounds, fontMgr);
+      renderNode(
+        ck,
+        canvas,
+        tree,
+        bounds,
+        fontMgr,
+        pageRootPageIds,
+        pagePositionSnapshot,
+      );
     },
   };
 

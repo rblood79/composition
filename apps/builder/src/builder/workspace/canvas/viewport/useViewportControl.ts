@@ -249,6 +249,13 @@ export function useViewportControl(
     if (!containerEl || !controller) return;
 
     const handlePointerDown = (e: PointerEvent) => {
+      if (
+        gestureSession.ownerFor(e.pointerId) === "page" ||
+        gestureSession.isOwnedByAnotherPointer(e.pointerId)
+      ) {
+        return;
+      }
+
       if (gestureSession.beginPointer(e.pointerId, e.button) === "pan") {
         e.preventDefault();
         // 🚀 Phase 6.1: 인터랙션 시작 알림 (ref 사용)
@@ -275,17 +282,22 @@ export function useViewportControl(
     };
 
     const handleWindowPointerEnd = (e: PointerEvent) => {
-      if (isPanningRef.current) {
-        viewportSession.finish(
-          e.type === "pointercancel" ? "interrupted" : "pointerup",
-        );
-        lastPanPointRef.current = null;
-        isPanningRef.current = false;
-        // Space가 여전히 눌려있으면 grab, 아니면 null
-        applyPanCursorRef.current(gestureSession.spacePressed ? "grab" : null);
-        // 🚀 Phase 6.1: 인터랙션 종료 알림 (ref 사용)
-        onInteractionEndRef.current?.();
+      if (
+        !isPanningRef.current ||
+        gestureSession.ownerFor(e.pointerId) !== "pan"
+      ) {
+        return;
       }
+
+      viewportSession.finish(
+        e.type === "pointercancel" ? "interrupted" : "pointerup",
+      );
+      lastPanPointRef.current = null;
+      isPanningRef.current = false;
+      // Space가 여전히 눌려있으면 grab, 아니면 null
+      applyPanCursorRef.current(gestureSession.spacePressed ? "grab" : null);
+      // 🚀 Phase 6.1: 인터랙션 종료 알림 (ref 사용)
+      onInteractionEndRef.current?.();
       gestureSession.endPointer(e.pointerId);
     };
 
