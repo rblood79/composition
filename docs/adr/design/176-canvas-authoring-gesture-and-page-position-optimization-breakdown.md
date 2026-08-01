@@ -206,14 +206,19 @@ invalidation을 줄이는 범위다. stale selection 또는 hover가 발견되�
 ### Phase 0 — Inventory and baseline
 
 - gesture owner별 실제 pointerdown/move/up/cancel/escape/blur 경로를 inventory
-- multi-page populated Builder에서 G0 counter와 Chrome trace를 기록
-- page position을 읽는 모든 renderer/overlay/hit-test/culling consumer를 grep와
-  runtime probe로 대조
-- `PagePositionPresentation` reader가 모든 page position consumer에 도달하는지
-  static/runtime inventory로 확인
+- 기존 source audit 결과를 기준으로 하고, 원인 재발견을 반복하지 않는다. 실제
+  populated multi-page Builder의 대표 재현 1회에서 G0 counter와 필요한 최소
+  frame trace만 기록한다.
+- page position을 읽는 모든 renderer/overlay/hit-test/culling consumer를 grep로
+  대조하고, static path가 모호한 경우에만 runtime probe로 보완
+- 아직 구현되지 않은 `PagePositionPresentation` reader는 현재 consumer별
+  injection point를 static map으로 고정한다. 실제 reader 도달 여부는 Phase 4에서
+  검증한다.
 
-완료 조건: G0 baseline, dependency map, forbidden scope checklist가 저장되고,
-다음 phase의 변경 allow-list가 source 사실과 일치한다.
+완료 조건: dependency map, forbidden scope checklist가 저장되고, 다음 phase의
+변경 allow-list가 source 사실과 일치한다. G0 대표 baseline은 정량적인 전후 성능
+주장이 필요할 때만 Phase 1 구현 전에 추가한다. full regression matrix와
+page-count tier 검증은 Phase 5/G6의 책임이며 Phase 1 착수를 차단하지 않는다.
 
 ### Phase 1 — Shared page gesture lifecycle
 
@@ -258,10 +263,14 @@ canonical write count와 final equality가 계측된다.
 
 ### Phase 5 — Performance, regression, and rollback verification
 
-- G0와 동일한 matrix로 page drag, Space pan, zoom, breakpoint switch, page add,
-  reload를 재측정
+- G0 대표 시나리오를 구현 전후 재측정해 정량 비교
+- verification matrix의 full matrix로 page drag, Space pan, zoom,
+  breakpoint switch, page add, reload를 구현 후 검증하고, page count
+  1/10/50/100 tier는 확장성·allocation·counter를 기록
 - targeted tests, type-check, preflight, browser smoke 수행
-- p95/최악 frame과 write/fan-out counter를 비교해 G6 판정
+- G0 baseline이 있으면 p95/최악 frame과 write/fan-out counter를 전후 비교한다.
+  baseline이 없으면 full tier의 성능 개선을 주장하지 않고 post-change 측정
+  한계로 기록한다.
 - user-visible 변경이면 changelog를 갱신하고 phase별 rollback checkpoint를 남김
 
 완료 조건: G6/G7 통과 및 ADR-176을 Implemented로 승격할 근거가 문서화된다.
@@ -306,14 +315,14 @@ canonical write count와 final equality가 계측된다.
 
 ## 7. Verification matrix
 
-| 영역                | 정적/단위 검증                                                             | live 검증                                                           | 실패 시 조치                       |
-| ------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------- | ---------------------------------- |
-| owner lifecycle     | `canvasGestureSession.test.ts`, page drag lifecycle test                   | page title/Space/element/minimap/workflow matrix                    | Phase 1 중단, owner contract 수정  |
-| presentation/commit | presentation store test, `elements` writer equality test                   | 100 raw move, success/cancel/escape/blur/unmount, breakpoint/reload | canonical adapter rollback         |
-| suppression         | hover/central handler static + interaction tests                           | drag 중 hover/cursor/workflow counter, 종료 후 resume               | Phase 3 rollback                   |
-| render/hit-test     | renderer/Skia static tests와 coordinate fixture                            | multi-page page/text visibility, selection bounds, zoom/pan         | G4 실패; renderer policy 변경 금지 |
-| performance         | counter assertions, no-op equality tests                                   | Chrome trace, p95/max frame, render command/content counters        | baseline과 비교 후 phase 판정      |
-| quality             | `pnpm run codex:typecheck`, `pnpm run codex:preflight`, `git diff --check` | console error 0 browser smoke                                       | phase를 완료 처리하지 않음         |
+| 영역                | 정적/단위 검증                                                             | live 검증                                                                                    | 실패 시 조치                                               |
+| ------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| owner lifecycle     | `canvasGestureSession.test.ts`, page drag lifecycle test                   | page title/Space/element/minimap/workflow matrix                                             | Phase 1 중단, owner contract 수정                          |
+| presentation/commit | presentation store test, `elements` writer equality test                   | 100 raw move, success/cancel/escape/blur/unmount, breakpoint/reload                          | canonical adapter rollback                                 |
+| suppression         | hover/central handler static + interaction tests                           | drag 중 hover/cursor/workflow counter, 종료 후 resume                                        | Phase 3 rollback                                           |
+| render/hit-test     | renderer/Skia static tests와 coordinate fixture                            | multi-page page/text visibility, selection bounds, zoom/pan                                  | G4 실패; renderer policy 변경 금지                         |
+| performance         | counter assertions, no-op equality tests                                   | G0 동일 시나리오의 Chrome trace, full matrix의 p95/max frame·render command/content counters | G0 baseline이 있으면 전후 비교, 없으면 정량 개선 주장 금지 |
+| quality             | `pnpm run codex:typecheck`, `pnpm run codex:preflight`, `git diff --check` | console error 0 browser smoke                                                                | phase를 완료 처리하지 않음                                 |
 
 최소 회귀 matrix는 page 1/여러 page, page overlap/비-overlap, active breakpoint
 각 1종, page add, manual move, explicit screen alignment, breakpoint switch,
@@ -340,8 +349,8 @@ map allocation과 frame timing을 기록한다.
 
 ## 9. Implementation invariants before implementation
 
-다음은 구현 전 이미 lock된 계약이며, Phase 0에서는 이 계약의 성능·정합성
-수치만 측정한다.
+다음은 구현 전 이미 lock된 계약이다. Phase 0에서는 대표 재현의 최소 기준선만
+기록하고, 계약의 full 성능·정합성 비교는 Phase 5/G6에서 수행한다.
 
 1. **Presentation injection point**: Skia RAF의 frame-local
    `PagePositionPresentation` snapshot을 사용한다. root transform과 React
