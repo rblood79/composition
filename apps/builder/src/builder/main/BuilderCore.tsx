@@ -22,7 +22,11 @@ function toResponsiveBreakpoint(value: string): BreakpointName {
 import "../panels";
 
 import { BuilderHeader, Breakpoint } from "./BuilderHeader";
-import { CANVAS_BREAKPOINTS } from "../workspace/canvasBreakpoints";
+import {
+  CANVAS_BREAKPOINTS,
+  CANVAS_VIEWPORT,
+} from "../workspace/canvasBreakpoints";
+import { PAGE_STACK_GAP } from "../workspace/canvas/pageLayoutConstants";
 import { CanvasSelectionShortcutsHost } from "../panels/properties/CanvasSelectionShortcuts";
 import { BuilderCanvas } from "./BuilderCanvas";
 
@@ -187,6 +191,9 @@ export const BuilderCore: React.FC = () => {
   const setSelectedElement = useStore((state) => state.setSelectedElement);
   // ADR-154: 반응형 breakpoint bridge (기존 선택기 → activeBreakpoint SSOT)
   const setActiveBreakpoint = useStore((state) => state.setActiveBreakpoint);
+  const switchPagePositionsBreakpoint = useStore(
+    (state) => state.switchPagePositionsBreakpoint,
+  );
   const invalidateLayout = useStore((state) => state.invalidateLayout);
   const historyInfo = useStore((state) => state.historyInfo);
 
@@ -423,10 +430,18 @@ export const BuilderCore: React.FC = () => {
       localStorage.setItem("builder-breakpoint", String(value));
       // ADR-154: 반응형 override resolve SSOT 동기화 + 전역 재레이아웃.
       // desktop → desktop tier, tablet/mobile → 동명 tier.
-      setActiveBreakpoint(toResponsiveBreakpoint(String(value)));
+      const nextBreakpoint = toResponsiveBreakpoint(String(value));
+      const currentBreakpoint = useStore.getState().activeBreakpoint;
+      switchPagePositionsBreakpoint(currentBreakpoint, nextBreakpoint, {
+        pageWidth: CANVAS_VIEWPORT[nextBreakpoint].width,
+        pageHeight: CANVAS_VIEWPORT[nextBreakpoint].height,
+        gap: PAGE_STACK_GAP,
+        direction: useStore.getState().pageLayoutDirection,
+      });
+      setActiveBreakpoint(nextBreakpoint);
       invalidateLayout();
     },
-    [setActiveBreakpoint, invalidateLayout],
+    [invalidateLayout, setActiveBreakpoint, switchPagePositionsBreakpoint],
   );
 
   // ADR-154: 마운트/복원 시 활성 breakpoint 를 store 에 1회 동기화
@@ -434,11 +449,19 @@ export const BuilderCore: React.FC = () => {
   useEffect(() => {
     const initial = Array.from(breakpoint)[0];
     if (initial != null) {
-      setActiveBreakpoint(toResponsiveBreakpoint(String(initial)));
+      const nextBreakpoint = toResponsiveBreakpoint(String(initial));
+      const currentBreakpoint = useStore.getState().activeBreakpoint;
+      switchPagePositionsBreakpoint(currentBreakpoint, nextBreakpoint, {
+        pageWidth: CANVAS_VIEWPORT[nextBreakpoint].width,
+        pageHeight: CANVAS_VIEWPORT[nextBreakpoint].height,
+        gap: PAGE_STACK_GAP,
+        direction: useStore.getState().pageLayoutDirection,
+      });
+      setActiveBreakpoint(nextBreakpoint);
     }
     // 마운트 1회만 — 이후 변경은 handleBreakpointChange 경유
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [setActiveBreakpoint, switchPagePositionsBreakpoint]);
 
   // 프로젝트 정보 가져오기 (IndexedDB만 조회 - Supabase 동기화는 대시보드에서 처리)
   useEffect(() => {

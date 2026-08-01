@@ -92,6 +92,7 @@ import {
   computeLayoutGroups,
   computeFrameAreas,
 } from "./skia/workflowEdges";
+import { PAGE_STACK_GAP } from "./pageLayoutConstants";
 
 import { useGPUProfiler } from "./utils/gpuProfilerCore";
 import { hitTestPoint } from "./wasm-bindings/spatialIndex";
@@ -115,7 +116,6 @@ export interface BuilderCanvasProps {
 
 const DEFAULT_WIDTH = 1920;
 const DEFAULT_HEIGHT = 1080;
-const PAGE_STACK_GAP = 80;
 const EMPTY_ELEMENTS: never[] = [];
 
 function computeStackedCanvasPosition(
@@ -398,44 +398,15 @@ export function BuilderCanvas({
   // 🆕 Multi-page: 모든 페이지의 데이터 (body + elements) 사전 계산
   const pagePositions = useStore((state) => state.pagePositions);
   const pagePositionsVersion = useStore((state) => state.pagePositionsVersion);
-  const initializePagePositions = useStore(
-    (state) => state.initializePagePositions,
-  );
-
   // ADR-111 P3-δ: reusable frame canvas authoring 시각 path
   const framePositions = useStore((state) => state.framePositions);
   const framePositionsVersion = useStore(
     (state) => state.framePositionsVersion,
   );
   const pageLayoutDirection = useStore((state) => state.pageLayoutDirection);
-  const previousLayoutKeyRef = useRef(
-    `${pageWidth}:${pageHeight}:${pageLayoutDirection}`,
-  );
 
   const pageIndex = useStore((state) => state.pageIndex);
   const scenePageIndex = canonicalSceneModel?.pageIndex ?? pageIndex;
-
-  useEffect(() => {
-    const layoutKey = `${pageWidth}:${pageHeight}:${pageLayoutDirection}`;
-    if (previousLayoutKeyRef.current === layoutKey || pages.length === 0) {
-      return;
-    }
-
-    previousLayoutKeyRef.current = layoutKey;
-    initializePagePositions(
-      pages,
-      pageWidth,
-      pageHeight,
-      PAGE_STACK_GAP,
-      pageLayoutDirection,
-    );
-  }, [
-    initializePagePositions,
-    pageHeight,
-    pageLayoutDirection,
-    pageWidth,
-    pages,
-  ]);
 
   // ADR-916 2-C 안 A: projection content signature 를 pan/zoom 독립 useMemo 로
   // 분리. 벤치상 이 계산(전체 elements stableSerialize)이 buildScene 비용의

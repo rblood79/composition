@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Element } from "../../../types/core/store.types";
 import type { Page } from "../../../types/builder/unified.types";
 import { useStore } from "../../stores";
+import { useViewportSyncStore } from "../../workspace/canvas/stores";
 import { usePageManager } from "../usePageManager";
 
 function makePage(id: string): Page {
@@ -42,7 +43,10 @@ function resetStoreState(): void {
     selectedTab: null,
     multiSelectMode: false,
     pagePositions: {},
+    pagePositionsByBreakpoint: {},
+    pageLayoutDirection: "horizontal",
   });
+  useViewportSyncStore.getState().reset();
 }
 
 describe("usePageManager page creation activation", () => {
@@ -129,5 +133,38 @@ describe("usePageManager page creation activation", () => {
 
     expect(activateSpy).not.toHaveBeenCalled();
     expect(useStore.getState().currentPageId).not.toBe(home.id);
+  });
+
+  it("현재 pageLayoutDirection에 맞춰 새 page를 gap과 함께 배치한다", async () => {
+    const first = makePage("page-1");
+    const second = makePage("page-2");
+    useStore.setState({
+      pageLayoutDirection: "vertical",
+    });
+    useStore
+      .getState()
+      .appendPageShell(first, makeBody("body-1", first.id), { x: 0, y: 0 });
+    useStore.getState().appendPageShell(second, makeBody("body-2", second.id), {
+      x: 0,
+      y: 1160,
+    });
+    useViewportSyncStore.getState().setCanvasSize({
+      width: 640,
+      height: 480,
+    });
+
+    const { result } = renderHook(() => usePageManager());
+
+    await act(async () => {
+      const addResult = await result.current.addPage("project-1");
+      expect(addResult.success).toBe(true);
+    });
+
+    const pages = useStore.getState().pages;
+    const createdPage = pages[pages.length - 1];
+    expect(useStore.getState().pagePositions[createdPage.id]).toEqual({
+      x: 0,
+      y: 1720,
+    });
   });
 });

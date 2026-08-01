@@ -16,6 +16,7 @@ import {
   computeFitViewport,
   zoomViewportAtContainerCenter,
 } from "./canvas/viewport/viewportActions";
+import { alignPagesToScreen } from "./canvas/viewport/pageLayoutActions";
 import {
   getViewportPresentationSnapshot,
   useViewportPresentationZoom,
@@ -115,6 +116,9 @@ export const ZoomControls = memo(function ZoomControls({
           break;
         case "fill-screen":
           zoomToFill();
+          break;
+        case "align-pages":
+          alignPagesToScreen();
           break;
       }
     },
@@ -223,6 +227,9 @@ export const ZoomControls = memo(function ZoomControls({
               </MenuItem>
               <MenuItem id="fill-screen" className="zoom-menu-item">
                 <span>화면 채우기</span>
+              </MenuItem>
+              <MenuItem id="align-pages" className="zoom-menu-item">
+                <span>화면 정렬</span>
               </MenuItem>
             </Menu>
           </Popover>

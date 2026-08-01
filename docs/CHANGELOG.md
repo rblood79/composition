@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [명시적 Page 화면 정렬] - 2026-08-01
+
+### Changed
+
+- breakpoint 전환이나 Settings의 page 방향 변경만으로 기존 page 위치를 재배치하지 않도록 변경했다.
+- 상단 Zoom popover에 `화면 정렬`을 추가해 현재 breakpoint canvas 크기와 Settings의 방향으로 page들을 명시적으로 재배치한다.
+
+### Bug Fixes
+
+- 최초 project hydration과 breakpoint 전환 초기에 빈 page-position snapshot이 저장되어 page가 `(0, 0)`에 겹치던 문제를 수정했다.
+- 아직 snapshot이 없는 breakpoint에 최초 진입할 때 이전 breakpoint의 page 좌표를 재사용해 page가 겹치던 문제를 수정했다.
+- page 추가 시 horizontal 전용 계산으로 `vertical`·`zigzag` 배치와 `PAGE_STACK_GAP`이 깨지던 문제를 수정했다.
+
 ## [Viewport 입력 스케줄링 통합 — ADR-175 Implemented] - 2026-07-31
 
 ### Performance

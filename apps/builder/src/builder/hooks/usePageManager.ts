@@ -17,6 +17,7 @@ interface ApiPage {
 }
 import { getDB } from "../../lib/db";
 import { useStore } from "../stores";
+import { calculateNextPagePosition } from "../stores/elements";
 // ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
 import { useViewportSyncStore } from "../workspace/canvas/stores";
@@ -35,8 +36,7 @@ import { migrateCheckboxRadioItemsStructure } from "../../adapters/canonical/che
 import { migrateFieldInlineLayout } from "../../adapters/canonical/fieldInlineLayoutMigration";
 import { migrateCircleLeafInlineSize } from "../../adapters/canonical/circleLeafInlineSizeMigration";
 import { ensureReusableCompositeOrigins } from "../components/reusableCompositeOrigins";
-
-const PAGE_STACK_GAP = 80;
+import { PAGE_STACK_GAP } from "../workspace/canvas/pageLayoutConstants";
 
 function normalizePageSlug(slug: string | null | undefined): string {
   if (!slug) return "";
@@ -150,18 +150,16 @@ export const usePageManager = ({
   );
 
   const computeNextPagePosition = useCallback(() => {
-    const { pagePositions } = useStore.getState();
+    const { pageLayoutDirection, pagePositions, pages } = useStore.getState();
     const canvasSize = useViewportSyncStore.getState().canvasSize;
-    let maxX = 0;
-
-    for (const pos of Object.values(pagePositions)) {
-      const endX = pos.x + canvasSize.width + PAGE_STACK_GAP;
-      if (endX > maxX) {
-        maxX = endX;
-      }
-    }
-
-    return { x: maxX, y: 0 };
+    return calculateNextPagePosition(
+      pages,
+      pagePositions,
+      canvasSize.width,
+      canvasSize.height,
+      PAGE_STACK_GAP,
+      pageLayoutDirection,
+    );
   }, []);
 
   /**
@@ -427,8 +425,6 @@ export const usePageManager = ({
         const canonicalElements = canonicalDocumentToElements(document);
         hydrateProjectSnapshot(canonicalElements as Element[]);
         apiPages.forEach((page) => pageList.append(page));
-        setPages(storePages);
-
         // 🆕 Multi-page: 페이지 위치 초기화 (현재 방향 + canvasSize 기반)
         const currentCanvasSize = useViewportSyncStore.getState().canvasSize;
         initializePagePositions(
@@ -438,6 +434,9 @@ export const usePageManager = ({
           PAGE_STACK_GAP,
           pageLayoutDirection,
         );
+        // 위치를 먼저 준비한 뒤 page 목록을 publish하여 미초기화 page가
+        // 렌더 단계에서 (0, 0)으로 겹치는 중간 상태를 만들지 않는다.
+        setPages(storePages);
 
         setLazyLoadingEnabled(false);
 

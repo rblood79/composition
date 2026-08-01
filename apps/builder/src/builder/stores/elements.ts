@@ -487,6 +487,148 @@ function getElementForItemsAction(
   return findElementById(getCanonicalOrStoreElements(state), elementId);
 }
 
+type BreakpointName = import("@composition/shared").BreakpointName;
+type PagePositions = Record<string, { x: number; y: number }>;
+
+export interface ElementsState {
+  /** 활성 breakpoint별 page 위치 snapshot. 현재 pagePositions는 active map이다. */
+  pagePositionsByBreakpoint: Partial<Record<BreakpointName, PagePositions>>;
+  switchPagePositionsBreakpoint: (
+    from: BreakpointName,
+    to: BreakpointName,
+    options?: PagePositionBreakpointSwitchOptions,
+  ) => void;
+}
+
+export type PagePosition = { x: number; y: number };
+
+export interface PagePositionBreakpointSwitchOptions {
+  pageWidth: number;
+  pageHeight: number;
+  gap: number;
+  direction: PageLayoutDirection;
+}
+
+export function calculatePagePositions(
+  pages: readonly Pick<Page, "id">[],
+  pageWidth: number,
+  pageHeight: number,
+  gap: number,
+  direction: PageLayoutDirection = "horizontal",
+): PagePositions {
+  const positions: PagePositions = {};
+
+  if (direction === "vertical") {
+    let currentY = 0;
+    for (const page of pages) {
+      positions[page.id] = { x: 0, y: currentY };
+      currentY += pageHeight + gap;
+    }
+    return positions;
+  }
+
+  if (direction === "zigzag") {
+    for (let index = 0; index < pages.length; index++) {
+      const column = index % 2;
+      const row = Math.floor(index / 2);
+      positions[pages[index].id] = {
+        x: column * (pageWidth + gap),
+        y: row * (pageHeight + gap),
+      };
+    }
+    return positions;
+  }
+
+  let currentX = 0;
+  for (const page of pages) {
+    positions[page.id] = { x: currentX, y: 0 };
+    currentX += pageWidth + gap;
+  }
+  return positions;
+}
+
+export function calculateNextPagePosition(
+  pages: readonly Pick<Page, "id">[],
+  pagePositions: PagePositions,
+  pageWidth: number,
+  pageHeight: number,
+  gap: number,
+  direction: PageLayoutDirection,
+): PagePosition {
+  const positionedPages = pages
+    .map((page) => ({ page, position: pagePositions[page.id] }))
+    .filter(
+      (entry): entry is { page: Pick<Page, "id">; position: PagePosition } =>
+        entry.position !== undefined,
+    );
+
+  if (direction === "vertical") {
+    let maxBottom = 0;
+    let anchorX = 0;
+    for (const { position } of positionedPages) {
+      const bottom = position.y + pageHeight;
+      if (bottom > maxBottom) {
+        maxBottom = bottom;
+        anchorX = position.x;
+      }
+    }
+    return { x: anchorX, y: maxBottom === 0 ? 0 : maxBottom + gap };
+  }
+
+  if (direction === "zigzag") {
+    let index = pages.length;
+    while (true) {
+      const column = index % 2;
+      const row = Math.floor(index / 2);
+      const candidate = {
+        x: column * (pageWidth + gap),
+        y: row * (pageHeight + gap),
+      };
+      const collides = positionedPages.some(({ position }) => {
+        const separatedX =
+          candidate.x + pageWidth + gap <= position.x ||
+          position.x + pageWidth + gap <= candidate.x;
+        const separatedY =
+          candidate.y + pageHeight + gap <= position.y ||
+          position.y + pageHeight + gap <= candidate.y;
+        return !separatedX && !separatedY;
+      });
+      if (!collides) return candidate;
+      index += 1;
+    }
+  }
+
+  let maxRight = 0;
+  let anchorY = 0;
+  for (const { position } of positionedPages) {
+    const right = position.x + pageWidth;
+    if (right > maxRight) {
+      maxRight = right;
+      anchorY = position.y;
+    }
+  }
+  return { x: maxRight === 0 ? 0 : maxRight + gap, y: anchorY };
+}
+
+function getActiveBreakpoint(state: ElementsState): BreakpointName {
+  return (state as ElementsState & { activeBreakpoint: BreakpointName })
+    .activeBreakpoint;
+}
+
+function withActivePagePositionSnapshot(
+  state: ElementsState,
+  pagePositions: PagePositions,
+): Pick<ElementsState, "pagePositions" | "pagePositionsByBreakpoint"> {
+  const activeBreakpoint = getActiveBreakpoint(state);
+  return {
+    pagePositions,
+    pagePositionsByBreakpoint: {
+      ...state.pagePositionsByBreakpoint,
+      [activeBreakpoint]: pagePositions,
+    },
+  };
+}
+
 function resolveCurrentPageSelectionTarget(
   state: ElementsState,
   pageId: string,
@@ -786,6 +928,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
 
     // 🆕 Multi-page: 페이지별 캔버스 위치
     pagePositions: {},
+    pagePositionsByBreakpoint: {},
     pagePositionsVersion: 0,
 
     // ADR-111 P3-α: reusable frame 캔버스 영역 초기값
@@ -1135,6 +1278,10 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         const nextPages = [...state.pages, page];
         const nextIndexes = buildIndexes(nextElements);
 
+        const nextPagePositions = {
+          ...state.pagePositions,
+          [page.id]: position,
+        };
         return {
           pages: nextPages,
           currentPageId: activate ? page.id : state.currentPageId,
@@ -1154,10 +1301,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
             ? createCompleteProps(bodyElement)
             : state.selectedElementProps,
           editingContextId: activate ? null : state.editingContextId,
-          pagePositions: {
-            ...state.pagePositions,
-            [page.id]: position,
-          },
+          ...withActivePagePositionSnapshot(state, nextPagePositions),
           pagePositionsVersion: state.pagePositionsVersion + 1,
           layoutVersion: state.layoutVersion + 1,
         };
@@ -1242,11 +1386,22 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
               ? null
               : state.currentPageId;
 
+        const nextPagePositionsByBreakpoint = Object.fromEntries(
+          Object.entries(state.pagePositionsByBreakpoint).map(
+            ([breakpoint, positions]) => {
+              const nextPositions = { ...positions };
+              delete nextPositions[pageId];
+              return [breakpoint, nextPositions];
+            },
+          ),
+        ) as Partial<Record<BreakpointName, PagePositions>>;
+
         return {
           pages: nextPages,
           elements: nextElements,
           ...nextIndexes,
           pagePositions: nextPagePositions,
+          pagePositionsByBreakpoint: nextPagePositionsByBreakpoint,
           pagePositionsVersion: state.pagePositionsVersion + 1,
           currentPageId: nextCurrentPageId,
           selectedElementId: nextSelectedElementId,
@@ -1779,7 +1934,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       });
     },
 
-    // 🆕 Multi-page: 페이지 위치 초기화 (canonical 입력 순서 → 수평 스택)
+    // 🆕 Multi-page: 페이지 위치 초기화 (canonical 입력 순서 → 방향별 스택)
     initializePagePositions: (
       pages: Page[],
       pageWidth: number,
@@ -1787,45 +1942,99 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       gap: number,
       direction: PageLayoutDirection = "horizontal",
     ) => {
-      const ordered = pages;
-      const positions: Record<string, { x: number; y: number }> = {};
+      const positions = calculatePagePositions(
+        pages,
+        pageWidth,
+        pageHeight,
+        gap,
+        direction,
+      );
 
-      if (direction === "vertical") {
-        let currentY = 0;
-        for (const page of ordered) {
-          positions[page.id] = { x: 0, y: currentY };
-          currentY += pageHeight + gap;
-        }
-      } else if (direction === "zigzag") {
-        for (let i = 0; i < ordered.length; i++) {
-          const col = i % 2;
-          const row = Math.floor(i / 2);
-          positions[ordered[i].id] = {
-            x: col * (pageWidth + gap),
-            y: row * (pageHeight + gap),
-          };
-        }
-      } else {
-        // horizontal (기본)
-        let currentX = 0;
-        for (const page of ordered) {
-          positions[page.id] = { x: currentX, y: 0 };
-          currentX += pageWidth + gap;
-        }
-      }
+      set((state) => {
+        const currentPageIds = new Set(state.pages.map((page) => page.id));
+        const nextPageIds = new Set(pages.map((page) => page.id));
+        const hasSamePageSet =
+          currentPageIds.size === nextPageIds.size &&
+          pages.every((page) => currentPageIds.has(page.id));
+        const activeBreakpoint = getActiveBreakpoint(state);
 
-      set((state) => ({
-        pagePositions: positions,
-        pagePositionsVersion: state.pagePositionsVersion + 1,
-      }));
+        return {
+          pagePositions: positions,
+          pagePositionsByBreakpoint: hasSamePageSet
+            ? {
+                ...state.pagePositionsByBreakpoint,
+                [activeBreakpoint]: positions,
+              }
+            : { [activeBreakpoint]: positions },
+          pagePositionsVersion: state.pagePositionsVersion + 1,
+        };
+      });
+    },
+
+    switchPagePositionsBreakpoint: (from, to, options) => {
+      if (from === to) return;
+
+      const currentState = get();
+      if (currentState.pages.length === 0) return;
+
+      const hasCompleteCurrentPositions = currentState.pages.every(
+        (page) => currentState.pagePositions[page.id] !== undefined,
+      );
+      if (!hasCompleteCurrentPositions) return;
+
+      set((state) => {
+        const currentPositions = { ...state.pagePositions };
+        const targetPositions = state.pagePositionsByBreakpoint[to];
+        const hasTargetSnapshot =
+          targetPositions !== undefined &&
+          state.pages.some((page) => targetPositions[page.id] !== undefined);
+        const firstEntryPositions =
+          !hasTargetSnapshot && options
+            ? calculatePagePositions(
+                state.pages,
+                options.pageWidth,
+                options.pageHeight,
+                options.gap,
+                options.direction,
+              )
+            : undefined;
+        const targetPositionMap =
+          firstEntryPositions ??
+          (hasTargetSnapshot ? targetPositions : undefined);
+        const nextPositions: PagePositions = {};
+
+        for (const page of state.pages) {
+          const position =
+            targetPositionMap?.[page.id] ?? currentPositions[page.id];
+          if (position) {
+            nextPositions[page.id] = position;
+          }
+        }
+
+        return {
+          pagePositions: nextPositions,
+          pagePositionsByBreakpoint: {
+            ...state.pagePositionsByBreakpoint,
+            [from]: currentPositions,
+            [to]: nextPositions,
+          },
+          pagePositionsVersion: state.pagePositionsVersion + 1,
+        };
+      });
     },
 
     // 🆕 Multi-page: 단일 페이지 위치 업데이트 (드래그용)
     updatePagePosition: (pageId: string, x: number, y: number) => {
-      set((state) => ({
-        pagePositions: { ...state.pagePositions, [pageId]: { x, y } },
-        pagePositionsVersion: state.pagePositionsVersion + 1,
-      }));
+      set((state) => {
+        const nextPagePositions = {
+          ...state.pagePositions,
+          [pageId]: { x, y },
+        };
+        return {
+          ...withActivePagePositionSnapshot(state, nextPagePositions),
+          pagePositionsVersion: state.pagePositionsVersion + 1,
+        };
+      });
     },
 
     // ADR-111 P3-α: reusable frame 좌표/크기 갱신 (drag/resize 통합)

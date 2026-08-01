@@ -50,8 +50,8 @@ updatePagePosition(pageId, x, y); // 단일 페이지 위치 업데이트
   - `vertical`: `currentY += pageHeight + gap` 수직 배치.
   - `zigzag`: 2열 그리드 배치 (`col = i % 2`, `row = Math.floor(i / 2)`).
 - `usePageManager.initializeProject()` 완료 후 `initializePagePositions()` 호출.
-- `addPage()` 시 기존 페이지들의 최대 X + 현재 `canvasSize.width` + gap 위치에 새 페이지 추가.
-- 상단 바에서 breakpoint(사이즈) 변경 또는 Settings 패널에서 배치 방향 변경 시 `BuilderCanvas`의 `useEffect`가 `pageWidth`/`pageHeight`/`pageLayoutDirection` 변경을 감지하여 `initializePagePositions()` 재호출 → 모든 페이지 위치를 새 사이즈/방향 기준으로 재배치.
+- `addPage()` 시 현재 `pageLayoutDirection`에 맞춰 마지막 page 다음 위치에 `PAGE_STACK_GAP`을 유지하며 새 페이지를 추가한다.
+- breakpoint(사이즈) 변경과 Settings 패널의 배치 방향 변경은 기존 page 위치를 유지한다. 상단 `ZoomControls` popover의 `화면 정렬` command가 현재 canvas 크기와 Settings의 방향을 사용해 `initializePagePositions()`를 호출하고 모든 페이지를 명시적으로 재배치한다.
 - 페이지 너비는 `useCanvasSyncStore.getState().canvasSize.width`에서 동적으로 읽음 (하드코딩 없음).
 
 ### Phase 2: 다중 페이지 PixiJS 씬 그래프
