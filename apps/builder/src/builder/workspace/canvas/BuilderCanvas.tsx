@@ -999,6 +999,7 @@ export function BuilderCanvas({
             return;
           }
 
+          setCurrentPageId(bounds.pageId);
           (event as PointerEvent & { __handled?: boolean }).__handled = true;
           startPageDrag(
             bounds.pageId,
@@ -1031,6 +1032,7 @@ export function BuilderCanvas({
     isFrameEditMode,
     screenToCanvasPoint,
     sceneActiveBreakpoint,
+    setCurrentPageId,
     startPageDrag,
   ]);
 

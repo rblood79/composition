@@ -127,4 +127,26 @@ describe("BuilderCanvas canonical projection contract", () => {
     expect(source).toContain("buildVisiblePageSet({");
     expect(source).toContain("visiblePageIdsOverride:");
   });
+
+  it("selects the page before starting a title drag", async () => {
+    const source = await readFile(
+      resolve(__dirname, "BuilderCanvas.tsx"),
+      "utf-8",
+    );
+    const titleDragBlock = source.slice(
+      source.indexOf("// Page title drag hit-test"),
+      source.indexOf("if (canvasGestureSession.isOwnedByAnotherPointer"),
+    );
+    const claimIndex = titleDragBlock.indexOf(
+      "canvasGestureSession.tryClaimPage",
+    );
+    const selectIndex = titleDragBlock.indexOf(
+      "setCurrentPageId(bounds.pageId);",
+    );
+    const dragIndex = titleDragBlock.indexOf("startPageDrag(");
+
+    expect(claimIndex).toBeGreaterThanOrEqual(0);
+    expect(selectIndex).toBeGreaterThan(claimIndex);
+    expect(dragIndex).toBeGreaterThan(selectIndex);
+  });
 });

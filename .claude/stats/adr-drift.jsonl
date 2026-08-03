@@ -56,3 +56,4 @@
 {"sha":"8612f1a29657643e4172d936b2caf0955ba1fe9e","date":"2026-07-30T10:58:32+09:00","promoted_adrs":["docs/adr/completed/172-pan-path-derived-cost.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"acb3b9fcfa093cbd478c34a5b111b520485f552a","date":"2026-07-31T10:27:49+09:00","promoted_adrs":["docs/adr/completed/174-paragraph-retained-lifetime.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"2f2310c8e0532a67c9cfedd240bd29ab9f013b61","date":"2026-07-31T23:26:44+09:00","promoted_adrs":["docs/adr/completed/175-viewport-interaction-scheduling.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
+{"sha":"24522f44496f8cc8f2be501b7d4ac3722d110473","date":"2026-08-01T22:29:13+09:00","promoted_adrs":["docs/adr/176-canvas-authoring-gesture-and-page-position-optimization.md"],"readme_updated":true,"changelog_updated":true,"synced":true}

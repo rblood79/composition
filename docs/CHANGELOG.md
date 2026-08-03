@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Canvas page title 선택·드래그 복구] - 2026-08-02
+
+### Bug Fixes
+
+- Canvas page title pointer 경로가 drag owner만 claim하고 `currentPageId`를 갱신하지 않아, title을 클릭해도 해당 page가 선택되지 않던 문제를 수정했다.
+  - **Why**: title hit-test가 중앙 selection handler를 `__handled`로 막은 뒤 page selection을 수행하지 않아 active page가 이전 값에 남았다.
+- title을 클릭하면 해당 page가 선택되고, 같은 title에서 바로 drag하면 기존 page-position drag가 이어서 동작한다.
+
+### Verification
+
+- page title selection/page drag/gesture/Skia overlay targeted Vitest 확인
+- local Builder에서 title click의 page selection 및 title drag에 따른 page 좌표 저장 확인
+- `pnpm run codex:preflight` PASS
+
 ## [Canvas page drag presentation 최적화 — ADR-176 Implemented] - 2026-08-01
 
 ### Performance
