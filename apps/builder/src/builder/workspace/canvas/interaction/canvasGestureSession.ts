@@ -87,6 +87,29 @@ export class CanvasGestureSession {
     return true;
   }
 
+  /**
+   * 이미 element로 시작한 pointer를 page drag owner로 승격한다.
+   *
+   * 페이지 body를 선택한 뒤 빈 page 영역에서 drag를 시작할 때 사용한다.
+   * pointerdown capture 단계가 generic element owner를 먼저 만들기 때문에,
+   * 소유권을 release/reclaim하지 않고 같은 pointer session 안에서 원자적으로
+   * page owner로 전환한다.
+   */
+  promoteElementToPage(
+    pointerId: number,
+    pageId: string,
+    startBreakpoint: string,
+  ): boolean {
+    if (this.activePointerId !== pointerId || this.mode !== "element") {
+      return false;
+    }
+
+    this.mode = "page";
+    this.pageOwner = { pageId, startBreakpoint };
+    this.notify();
+    return true;
+  }
+
   ownerFor(pointerId: number): CanvasGestureMode {
     return this.activePointerId === pointerId ? this.mode : "idle";
   }

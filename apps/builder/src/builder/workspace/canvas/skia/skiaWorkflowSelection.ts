@@ -13,6 +13,11 @@ import { computeConnectedEdges } from "./workflowGraphUtils";
 import type { WorkflowEdge } from "./workflowEdges";
 import type { WorkflowHighlightState } from "./workflowRenderer";
 import { hasFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
+import {
+  getPagePositionPresentationSnapshot,
+  readPagePositionDelta,
+  type PagePositionPresentationSnapshot,
+} from "../interaction/pagePositionPresentation";
 
 export interface SelectionRenderResult {
   bounds: BoundingBox | null;
@@ -126,6 +131,7 @@ export function buildSelectionRenderData(
   selection: RendererSelectionInvalidation,
   elementsMap: Map<string, CanvasSceneNode>,
   pageFrames?: PageFrameLike[],
+  pagePositionSnapshot: PagePositionPresentationSnapshot = getPagePositionPresentationSnapshot(),
 ): SelectionRenderResult {
   const selectedIds = selection.selectedElementIds;
 
@@ -158,14 +164,25 @@ export function buildSelectionRenderData(
         slotMarkerRole = elementSlotMarkerRole;
       }
 
+      const pageId = element.pageId ?? element.page_id;
+      const pageDelta = pageId
+        ? readPagePositionDelta(pageId, pagePositionSnapshot)
+        : null;
+      const translateForPresentedPage = (bounds: BoundingBox): BoundingBox => ({
+        x: bounds.x + (pageDelta?.dx ?? 0),
+        y: bounds.y + (pageDelta?.dy ?? 0),
+        width: bounds.width,
+        height: bounds.height,
+      });
+
       const treeBounds = treeBoundsMap.get(id);
       if (treeBounds) {
-        const bounds = {
+        const bounds = translateForPresentedPage({
           x: treeBounds.x,
           y: treeBounds.y,
           width: treeBounds.width,
           height: treeBounds.height,
-        };
+        });
         boxes.push(bounds);
         if (
           selectedIds.length > 1 &&
@@ -182,12 +199,12 @@ export function buildSelectionRenderData(
 
       const globalBounds = getElementBoundsSimple(id);
       if (globalBounds) {
-        const bounds = {
+        const bounds = translateForPresentedPage({
           x: (globalBounds.x - cameraX) / cameraZoom,
           y: (globalBounds.y - cameraY) / cameraZoom,
           width: globalBounds.width / cameraZoom,
           height: globalBounds.height / cameraZoom,
-        };
+        });
         boxes.push(bounds);
         if (
           selectedIds.length > 1 &&
@@ -203,16 +220,16 @@ export function buildSelectionRenderData(
       }
 
       if (element.type.toLowerCase() === "body" && pageFrames) {
-        const pageFrame = pageFrames.find(
-          (frame) => frame.id === element.page_id,
-        );
+        const pageFrame = pageFrames.find((frame) => frame.id === pageId);
         if (pageFrame) {
-          boxes.push({
-            x: pageFrame.x,
-            y: pageFrame.y,
-            width: pageFrame.width,
-            height: pageFrame.height,
-          });
+          boxes.push(
+            translateForPresentedPage({
+              x: pageFrame.x,
+              y: pageFrame.y,
+              width: pageFrame.width,
+              height: pageFrame.height,
+            }),
+          );
         }
       }
     }

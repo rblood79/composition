@@ -60,6 +60,13 @@ interface UseCentralCanvasPointerHandlersOptions {
   onUpdateDrag: MutableRefObject<(position: { x: number; y: number }) => void>;
   /** 드래그 종료 콜백 (SelectionLayer로 전달) */
   onEndDrag: MutableRefObject<() => void>;
+  /** 선택된 page body의 빈 영역 drag를 page-position drag로 연결한다. */
+  startPageDrag: (
+    pageId: string,
+    pointerId: number,
+    pointerX: number,
+    pointerY: number,
+  ) => void;
   /** ADR-043 Phase 5: 드래그 취소 콜백 (Escape 키) */
   onCancelDrag: MutableRefObject<() => void>;
   pageSelectionEnabled?: boolean;
@@ -110,6 +117,7 @@ export function useCentralCanvasPointerHandlers({
   onUpdateDrag,
   onCancelDrag,
   onEndDrag,
+  startPageDrag,
   pageSelectionEnabled = true,
   pageHeight,
   pageWidth,
@@ -221,6 +229,14 @@ export function useCentralCanvasPointerHandlers({
       }
       const selectedIds = state.selectedElementIds;
       const hasSelection = selectedIds.length >= 1;
+      const selectedElement =
+        selectedIds.length === 1 ? hitElementsMap.get(selectedIds[0]) : null;
+      const selectedPageId =
+        pageSelectionEnabled && selectedElement?.type.toLowerCase() === "body"
+          ? (selectedElement.page_id ??
+            selectedElement.pageId ??
+            state.currentPageId)
+          : null;
       const now = Date.now();
 
       if (hasSelection && selectionBounds) {
@@ -230,6 +246,24 @@ export function useCentralCanvasPointerHandlers({
           zoom,
         );
         if (hitHandle) {
+          // Page body의 selection outline은 resize 대상이 아니다. page 전체 선택
+          // 상태에서는 이 edge drag를 page-position drag로 승격해, 자식이 page를
+          // 가득 채운 문서에서도 위치 이동 진입점을 제공한다.
+          if (
+            selectedPageId &&
+            gestureSession.promoteElementToPage(
+              event.pointerId,
+              selectedPageId,
+              state.activeBreakpoint,
+            )
+          ) {
+            startPageDrag(
+              selectedPageId,
+              event.pointerId,
+              event.clientX,
+              event.clientY,
+            );
+          }
           // 리사이즈 핸들 히트 — 드래그 기능 비활성 상태 (single/multi 공통)
           return;
         }
@@ -276,9 +310,6 @@ export function useCentralCanvasPointerHandlers({
           : null;
       const hitTargetPageId =
         interactionTarget.kind === "select" ? interactionTarget.pageId : null;
-
-      const selectedElement =
-        selectedIds.length === 1 ? hitElementsMap.get(selectedIds[0]) : null;
 
       // 드래그 의도 판정은 선택 박스(bbox)가 아니라 **계층 정규화된 클릭 타깃** 기준이다.
       // bbox 기준이면 선택 박스에 겹쳐 있을 뿐인 다른 요소 클릭까지 삼켜서 선택이 무시된다.
@@ -407,6 +438,28 @@ export function useCentralCanvasPointerHandlers({
             pages: state.pages,
           });
 
+          // Pages 패널의 전체 선택은 page body를 선택한다. body 자체는 element
+          // drag 대상이 아니므로, 빈 page 영역에서 시작한 gesture만 page owner로
+          // 승격해 위치 이동으로 연결한다. 자식 요소를 누른 경우는 위에서
+          // hitElementId 경로로 이미 분기되어 개별 선택/drag를 그대로 유지한다.
+          if (
+            bodySelection.pageId &&
+            selectedPageId === bodySelection.pageId &&
+            gestureSession.promoteElementToPage(
+              event.pointerId,
+              bodySelection.pageId,
+              state.activeBreakpoint,
+            )
+          ) {
+            startPageDrag(
+              bodySelection.pageId,
+              event.pointerId,
+              event.clientX,
+              event.clientY,
+            );
+            return;
+          }
+
           if (bodySelection.bodyElementId) {
             handleElementClickRef.current(bodySelection.bodyElementId, {
               ctrlKey: event.ctrlKey,
@@ -496,6 +549,17 @@ export function useCentralCanvasPointerHandlers({
           zoom,
         );
         if (hitHandle) {
+          const selectedElement =
+            state.selectedElementIds.length === 1
+              ? getHitElementsMap?.().get(state.selectedElementIds[0])
+              : null;
+          if (
+            pageSelectionEnabled &&
+            selectedElement?.type.toLowerCase() === "body"
+          ) {
+            setCursor("move");
+            return;
+          }
           setCursor(resolveHandleCursor(hitHandle));
           return;
         }
@@ -556,6 +620,7 @@ export function useCentralCanvasPointerHandlers({
     setCurrentPageId,
     setCursor,
     setSelectedElements,
+    startPageDrag,
     zoom,
   ]);
 }

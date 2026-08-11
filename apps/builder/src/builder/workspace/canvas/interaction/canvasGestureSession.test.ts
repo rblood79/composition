@@ -71,6 +71,29 @@ describe("CanvasGestureSession", () => {
     expect(session.shouldSuppressElementHover()).toBe(true);
   });
 
+  it("선택된 page body의 빈 영역 gesture는 같은 pointer를 page owner로 승격한다", () => {
+    const session = new CanvasGestureSession();
+
+    expect(session.beginPointer(11, 0)).toBe("element");
+    expect(session.promoteElementToPage(11, "page-1", "desktop")).toBe(true);
+    expect(session.ownerFor(11)).toBe("page");
+    expect(session.pageOwnerFor(11)).toEqual({
+      pageId: "page-1",
+      startBreakpoint: "desktop",
+    });
+    expect(session.shouldSuppressElementInteraction(11)).toBe(true);
+  });
+
+  it("pan 또는 다른 pointer owner는 page owner로 승격하지 않는다", () => {
+    const session = new CanvasGestureSession();
+    session.setSpacePressed(true);
+
+    expect(session.beginPointer(11, 0)).toBe("pan");
+    expect(session.promoteElementToPage(11, "page-1", "desktop")).toBe(false);
+    expect(session.promoteElementToPage(12, "page-1", "desktop")).toBe(false);
+    expect(session.ownerFor(11)).toBe("pan");
+  });
+
   it("active page owner가 있으면 다른 pointer와 generic owner가 경쟁하지 않는다", () => {
     const session = new CanvasGestureSession();
 

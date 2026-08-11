@@ -14,4 +14,19 @@ describe("skiaFramePipeline page-resolved render tree contract", () => {
       /buildSharedSceneDerivedData\(\s*treeBoundsMap,\s*rendererInput\.renderNodesMap,/,
     );
   });
+
+  it("reads page position presentation when the cached content node renders", async () => {
+    const source = await readFile(
+      resolve(__dirname, "skiaFramePipeline.ts"),
+      "utf-8",
+    );
+
+    const renderTimeSnapshotReads = source.match(
+      /renderSkia\(canvas, bounds\) \{\s*const currentPagePositionSnapshot =\s*getPagePositionPresentationSnapshot\(\);/g,
+    );
+
+    expect(renderTimeSnapshotReads).toHaveLength(2);
+    expect(source).not.toContain("pagePositionSnapshot?:");
+    expect(source).not.toContain("pagePositionSnapshot ??");
+  });
 });

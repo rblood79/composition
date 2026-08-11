@@ -35,6 +35,24 @@ describe("selectionModel frame body selection", () => {
     expect(selectedElements).toEqual([body]);
   });
 
+  it("resolves a page body through its camelCase pageId alias", () => {
+    const body: CanvasInteractionNode = {
+      id: "page-body",
+      type: "body",
+      pageId: "page-1",
+      parent_id: null,
+      props: {},
+    };
+
+    const selectedElements = resolveSelectedElementsForPage({
+      currentPageId: "page-1",
+      elementsMap: new Map([[body.id, body]]),
+      selectedElementIds: [body.id],
+    });
+
+    expect(selectedElements).toEqual([body]);
+  });
+
   it("keeps element selection bounds in scene coordinates (pan/zoom 무보정)", () => {
     // getBounds(=getElementBoundsSimple) 는 이미 **scene 좌표**를 반환하고,
     // 히트 판정 상대인 canvasPos 도 screenToCanvasPoint 결과라 scene 좌표다.

@@ -49,10 +49,7 @@ import {
 import { recordWasmMetric } from "../utils/gpuProfilerCore";
 import { collectVisiblePageRoots } from "./visiblePageRoots";
 import { collectVisibleFrameRoots } from "./visibleFrameRoots";
-import {
-  getPagePositionPresentationSnapshot,
-  type PagePositionPresentationSnapshot,
-} from "../interaction/pagePositionPresentation";
+import { getPagePositionPresentationSnapshot } from "../interaction/pagePositionPresentation";
 
 // ============================================
 // Content Build — 입력/출력 타입
@@ -72,7 +69,6 @@ export interface ContentBuildInput {
   ck: CanvasKit;
   fontMgr: FontMgr | undefined;
   rendererInput: SkiaRendererInput;
-  pagePositionSnapshot?: PagePositionPresentationSnapshot;
 }
 
 // ============================================
@@ -101,7 +97,6 @@ export function buildSkiaFrameContent(
     ck,
     fontMgr,
     rendererInput,
-    pagePositionSnapshot,
   } = input;
 
   const sharedLayoutMap = getSharedLayoutMap();
@@ -127,7 +122,6 @@ export function buildSkiaFrameContent(
       rendererInput,
       ck,
       fontMgr,
-      pagePositionSnapshot,
     );
     if (!result) return null;
     treeBoundsMap = result.treeBoundsMap;
@@ -148,7 +142,6 @@ export function buildSkiaFrameContent(
       ck,
       fontMgr,
       collectVisiblePageRoots(rendererInput).bodyPageIds,
-      pagePositionSnapshot,
     );
     if (!result) return null;
     treeBoundsMap = result.treeBoundsMap;
@@ -245,7 +238,6 @@ function buildViaCommandStream(
   rendererInput: SkiaRendererInput,
   ck: CanvasKit,
   fontMgr: FontMgr | undefined,
-  pagePositionSnapshot?: PagePositionPresentationSnapshot,
 ): InternalBuildResult | null {
   const treeBuildStart =
     process.env.NODE_ENV === "development" ? performance.now() : 0;
@@ -328,6 +320,7 @@ function buildViaCommandStream(
 
   const contentNode: SkiaRenderable = {
     renderSkia(canvas, bounds) {
+      const currentPagePositionSnapshot = getPagePositionPresentationSnapshot();
       // selfSpans 전달 = 노드 Picture 캐시 활성 (ADR-153 Phase 3 — command stream 경로 한정)
       executeRenderCommands(
         ck,
@@ -337,7 +330,7 @@ function buildViaCommandStream(
         fontMgr,
         stream.selfSpans,
         bodyPageIds,
-        pagePositionSnapshot ?? getPagePositionPresentationSnapshot(),
+        currentPagePositionSnapshot,
       );
     },
   };
@@ -367,7 +360,6 @@ function buildViaTree(
   ck: CanvasKit,
   fontMgr: FontMgr | undefined,
   pageRootPageIds: ReadonlyMap<string, string> = new Map(),
-  pagePositionSnapshot: PagePositionPresentationSnapshot = getPagePositionPresentationSnapshot(),
 ): InternalBuildResult | null {
   const treeBuildStart =
     process.env.NODE_ENV === "development" ? performance.now() : 0;
@@ -417,6 +409,7 @@ function buildViaTree(
 
   const contentNode: SkiaRenderable = {
     renderSkia(canvas, bounds) {
+      const currentPagePositionSnapshot = getPagePositionPresentationSnapshot();
       renderNode(
         ck,
         canvas,
@@ -424,7 +417,7 @@ function buildViaTree(
         bounds,
         fontMgr,
         pageRootPageIds,
-        pagePositionSnapshot,
+        currentPagePositionSnapshot,
       );
     },
   };

@@ -1,9 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { withFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import { resolveCanonicalRefElementsMap } from "../../../utils/canonicalRefResolution";
 import type { RendererSelectionInvalidation } from "../renderers";
 import { buildSelectionRenderData } from "./skiaWorkflowSelection";
+import {
+  beginPagePositionPresentation,
+  publishPagePositionPresentation,
+  resetPagePositionPresentation,
+} from "../interaction/pagePositionPresentation";
 
 function makeElement(
   id: string,
@@ -39,6 +44,32 @@ function makeSelection(
 }
 
 describe("buildSelectionRenderData editing semantics", () => {
+  afterEach(() => {
+    resetPagePositionPresentation();
+  });
+
+  it("moves selected page bounds with the active transient page position", () => {
+    const canonical = { "page-1": { x: 10, y: 20 } };
+    beginPagePositionPresentation(canonical, "page-1", "desktop");
+    publishPagePositionPresentation("page-1", { x: 40, y: 60 });
+
+    const result = buildSelectionRenderData(
+      0,
+      0,
+      1,
+      new Map([["page-body", { x: 10, y: 20, width: 320, height: 200 }]]),
+      makeSelection(["page-body"]),
+      new Map([
+        [
+          "page-body",
+          makeElement("page-body", { pageId: "page-1", type: "body" }),
+        ],
+      ]),
+    );
+
+    expect(result.bounds).toEqual({ x: 40, y: 60, width: 320, height: 200 });
+  });
+
   it("single selected reusable element exposes origin semantic role", () => {
     const result = buildSelectionRenderData(
       0,

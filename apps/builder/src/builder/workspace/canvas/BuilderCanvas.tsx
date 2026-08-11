@@ -1054,6 +1054,7 @@ export function BuilderCanvas({
     onStartMove: onStartMoveRef,
     onUpdateDrag: onUpdateDragRef,
     onEndDrag: onEndDragRef,
+    startPageDrag,
     pageSelectionEnabled: !isFrameEditMode,
     pageHeight,
     pageWidth,

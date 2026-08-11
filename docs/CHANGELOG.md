@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Canvas page 전체 선택 위치 이동 복구] - 2026-08-03
+
+### Bug Fixes
+
+- Pages 패널에서 page 전체를 선택한 뒤, page의 빈 영역 또는 selection outline을 drag하면 해당 page 위치가 이동하도록 복구했다. page title drag와 같은 transient presentation 및 종료 시 canonical position commit 경로를 사용한다.
+  - **Why**: page 전체 선택은 `body`를 선택하지만 중앙 pointer handler가 `body`를 element drag 대상에서 제외해, 빈 영역의 drag도 다시 body 선택으로만 처리했다. 또한 selection hit-test가 projection의 `pageId` 별칭을 읽지 않아 Page body outline을 누락할 수 있었다.
+- page body drag 중에는 Skia content cache와 selection/title overlay도 transient page position을 매 frame 소비하도록 연결했다.
+  - **Why**: content render closure가 build 시점의 presentation snapshot을 캡처하고, snapshot 변경이 content cache invalidation을 일으키지 않아 pointerup의 canonical update 뒤에만 page가 이동해 보였다.
+- 자식 요소를 누르는 동작과 Frame edit mode는 기존 selection/drag 경로를 유지한다.
+
+### Verification
+
+- page-body drag gesture, transient Skia render/cache, selection outline targeted Vitest PASS
+
 ## [Canvas page title 선택·드래그 복구] - 2026-08-02
 
 ### Bug Fixes

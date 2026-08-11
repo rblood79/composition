@@ -102,7 +102,11 @@ export function resolveSelectedElementsForPage({
   for (const id of selectedElementIds) {
     const element = elementsMap.get(id);
     if (!element) continue;
-    if (currentPageId !== null && element.page_id === currentPageId) {
+    // Scene projection은 canonical snake_case를 우선하지만, interaction node는
+    // compatibility camelCase도 함께 보장한다. selection hit-test가 한 쪽만 읽으면
+    // Page body outline이 누락되어 page-position drag 진입점도 사라진다.
+    const elementPageId = element.page_id ?? element.pageId;
+    if (currentPageId !== null && elementPageId === currentPageId) {
       resolved.push(element);
       continue;
     }

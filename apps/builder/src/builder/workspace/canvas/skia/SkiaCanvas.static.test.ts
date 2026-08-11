@@ -23,6 +23,18 @@ describe("SkiaCanvas render invalidation contract", () => {
     ).not.toBeNull();
   });
 
+  it("invalidates the content cache when page position presentation changes", async () => {
+    const source = await readFile(
+      resolve(__dirname, "SkiaCanvas.tsx"),
+      "utf-8",
+    );
+
+    expect(source).toContain("subscribePagePositionPresentation");
+    expect(source).toMatch(
+      /subscribePagePositionPresentation\(\(\) => \{[\s\S]*?getPagePositionPresentationSnapshot\(\)\.version;[\s\S]*?rendererRef\.current\?\.invalidateContent\(\);[\s\S]*?overlayVersionRef\.current\+\+;/,
+    );
+  });
+
   it("feeds StoreRenderBridge from page-resolved rendererInput maps", async () => {
     const source = await readFile(
       resolve(__dirname, "SkiaCanvas.tsx"),

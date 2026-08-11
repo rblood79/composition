@@ -70,7 +70,10 @@ import {
   useThemeConfigStore,
   resolveSkiaTheme,
 } from "../../../../stores/themeConfigStore";
-import { getPagePositionPresentationSnapshot } from "../interaction/pagePositionPresentation";
+import {
+  getPagePositionPresentationSnapshot,
+  subscribePagePositionPresentation,
+} from "../interaction/pagePositionPresentation";
 
 // Dev profiler — window.__composition_PROFILER 노출 (side-effect import)
 import "../benchmarks/devProfiler";
@@ -210,6 +213,9 @@ export function SkiaCanvas({
   const lastVisiblePagePositionVersionRef = useRef(
     rendererInput.sceneSnapshot.document.visiblePagePositionVersion,
   );
+  const pagePositionPresentationVersionRef = useRef(
+    getPagePositionPresentationSnapshot().version,
+  );
 
   // Workflow/hover 캐시
   const invalidationPacketRef = useRef(invalidationPacket);
@@ -285,6 +291,23 @@ export function SkiaCanvas({
   useEffect(() => {
     invalidationPacketRef.current = invalidationPacket;
   }, [invalidationPacket]);
+
+  // Page drag는 canonical pagePositions를 pointerup에서만 갱신한다. 따라서
+  // presentation snapshot 변경은 content surface cache를 직접 무효화해야 다음
+  // frame에서 transient page root transform과 selection/title overlay가 함께 그려진다.
+  useEffect(() => {
+    return subscribePagePositionPresentation(() => {
+      const nextVersion = getPagePositionPresentationSnapshot().version;
+      if (nextVersion === pagePositionPresentationVersionRef.current) {
+        return;
+      }
+
+      pagePositionPresentationVersionRef.current = nextVersion;
+      rendererRef.current?.invalidateContent();
+      overlayVersionRef.current++;
+      recordInvalidation("content", "pagePositionPresentation");
+    });
+  }, []);
 
   // ---------- StoreRenderBridge (Phase 6) ----------
   // PixiJS Application이 없을 때 store에서 직접 skiaNodeRegistry를 채운다.
@@ -682,7 +705,6 @@ export function SkiaCanvas({
           ck,
           fontMgr,
           rendererInput: currentRendererInput,
-          pagePositionSnapshot,
         }),
       );
 

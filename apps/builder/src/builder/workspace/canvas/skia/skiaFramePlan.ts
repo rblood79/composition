@@ -146,6 +146,7 @@ export function buildFrameRenderPlan(
     invalidationPacket,
     elementsMap,
     visiblePageFrames,
+    currentPagePositionSnapshot,
   );
 
   const workflow = invalidationPacket.workflow.showOverlay
@@ -232,6 +233,7 @@ export function buildSelectionOverlayData(
     height: number;
     elementCount: number;
   }>,
+  pagePositionSnapshot?: PagePositionPresentationSnapshot,
 ): SelectionOverlayBuildResult {
   return buildSelectionRenderData(
     sharedScene.cameraX,
@@ -241,6 +243,7 @@ export function buildSelectionOverlayData(
     invalidationPacket.selection,
     elementsMap,
     pageFrames,
+    pagePositionSnapshot,
   );
 }
 
