@@ -4,6 +4,7 @@ export {
   resolveSelectedElementsForPage,
   resolveSelectionDragIntent,
   resolveSelectionHit,
+  resolveTopPageIdAtPoint,
   resolveTopmostHitElementId,
 } from "./selectionModel";
 export { resolveCanvasDetachContextTarget } from "./canvasContextMenu";

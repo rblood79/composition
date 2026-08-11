@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [겹친 page 는 활성 page 가 최상단 — 페인트·히트 동기화] - 2026-08-11
+
+### Features
+
+- page 가 겹쳐 있을 때 **활성(선택된) page 가 겹침 최상단에 그려진다** — 생성/문서 순서와 무관하게 지금 작업 중인 page 가 항상 위로 올라온다 (OS 창 click-to-raise 멘탈 모델). canonical page 순서(패널 목록/저장)는 불변 — 순수 workspace 표시 축.
+  - 페인트: `collectVisiblePageRoots` 가 활성 page body 를 마지막 root 로 재배열 (`pagePaintOrder.ts` 신설, rootSignature 로 커맨드 스트림 캐시 자동 무효화). page 전환 시 content invalidate — overlayVersion 만으로는 `classifyFrame` 이 snapshot blit 을 유지.
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/pagePaintOrder.ts`, `skia/{visiblePageRoots,SkiaCanvas}.tsx?`
+
+### Bug Fixes
+
+- **겹침 영역 빈 클릭이 아래 깔린 page 를 선택하던 비대칭 수정**: body 히트가 문서 순서 정방향 + 첫 매치라 페인트(뒤쪽이 위)와 반대였다. top-first(페인트 역순) 순회로 교체 — `findTopPageIdAtCanvasPoint` 단일 수식.
+  - 위치: `apps/builder/src/builder/workspace/canvas/selection/selectionHitTest.ts`
+- **위 page body 에 가려진 아래 page 요소가 클릭/호버되던 문제 수정** (live 실측): page 간 tie-break 만으로는 위 page 에 요소가 없는 지점에서 아래 page 요소가 유일 후보로 남아 "안 보이는데 클릭"됐다. 히트 지점을 덮는 최상단 page rank 미만의 후보를 제외하는 occlusion 필터 추가 — 클릭(`pickTopmostHitElementId`)/컨텍스트 메뉴/호버 3경로 동일 적용.
+  - **Why**: canvas-rendering.md §8.5 — 포인터 판정은 렌더러가 실제로 그린 영역만 대상.
+  - 위치: `selection/selectionHitTest.ts`, `interaction/{selectionModel,resolveCanvasInteractionTarget,canvasContextMenu}.ts`, `hooks/{useCentralCanvasPointerHandlers,useElementHoverInteraction}.ts`
+- **아래 page 의 바깥 테두리선이 위 page body 를 가로질러 보이던 문제 수정** (사용자 보고): 테두리는 overlay 패스에서 전 page 일괄로 content 위에 그려졌다. `renderFrameAreaBorder` 가 페인트 순서 기반으로 위 page rect 를 clip difference 제외 — 테두리는 아트보드의 콘텐츠성 chrome 이라 content 와 같이 잘린다 (page 타이틀은 조작 표식이라 항상 표시 유지).
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{workflowRenderer,skiaOverlayBuilder}.ts`
+
+### Verification
+
+- `pagePaintOrder.test.ts` 6 + `visiblePageRoots.test.ts` 3 + `selectionHitTest.test.ts` 15 등 42 PASS + `pnpm type-check` PASS
+- live builder 실측 (Chrome MCP): Page 2↔Page 3 겹침 상태에서 ① 활성 전환 시 상단 교대 ② 겹침 클릭이 위 page 요소(InlineAlert) 선택 ③ 위 page 가 덮은 지점 클릭이 아래 page 요소 대신 위 page body 유지 ④ 아래 page 테두리 미표출 확인
+
 ## [Page 드래그 중 slot chrome 추적 — transient delta 적용] - 2026-08-11
 
 ### Bug Fixes

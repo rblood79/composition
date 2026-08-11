@@ -20,6 +20,7 @@ import type { CachedEdgeGeometry } from "./workflowHitTest";
 import type { SelectionRenderResult } from "./skiaWorkflowSelection";
 import type { ElementHoverState } from "../hooks/useElementHoverInteraction";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
+import { orderPagesForPaint } from "../scene/pagePaintOrder";
 import {
   renderDropIndicator,
   type DropIndicatorState,
@@ -297,10 +298,13 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
       if (pageTitleBoundsMap) pageTitleBoundsMap.clear();
       const frames = visiblePageFrames ?? [];
       if (frames.length > 0) {
+        // 테두리는 페인트 순서(활성 페이지 마지막)로 — 아래 페이지 테두리가
+        // 위 페이지 body 를 가로지르지 않도록 renderFrameAreaBorder 가
+        // 순서 기반 occlusion clip 을 적용한다 (pagePaintOrder.ts).
         renderFrameAreaBorder(
           ck,
           canvas,
-          frames,
+          orderPagesForPaint(frames, selection.currentPageId),
           cameraZoom,
           resolveCanvasBorderColor(),
           pagePositionSnapshot,

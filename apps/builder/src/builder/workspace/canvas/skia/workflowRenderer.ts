@@ -809,6 +809,12 @@ export function renderLayoutGroups(
  * 페이지/프레임과 캔버스 배경을 구분하기 위한 시각 전용 경계선을 렌더링한다.
  *
  * overlay chrome 이므로 layout, hit-test, canonical document에는 영향을 주지 않는다.
+ *
+ * `frameAreas` 는 **페인트 순서(아래→위)** 로 전달한다. overlay 패스는 content 위에
+ * 그려지므로, 아래 페이지의 테두리를 그대로 그리면 위 페이지 body 를 가로질러
+ * 보인다 (2026-08-11 사용자 보고). 각 테두리는 자기보다 위에 그려지는 페이지
+ * rect 를 clip difference 로 제외하고 그린다 — 테두리는 아트보드의 "내용 자리"
+ * chrome 이라 content 와 같이 잘려야 한다 (페이지 타이틀은 조작 표식이라 예외).
  */
 export function renderFrameAreaBorder(
   ck: CanvasKit,
@@ -833,18 +839,44 @@ export function renderFrameAreaBorder(
 
     const halfStroke = strokeWidth / 2;
 
-    for (const frame of frameAreas) {
-      const delta =
-        frame.id && pagePositionSnapshot
-          ? readPagePositionDelta(frame.id, pagePositionSnapshot)
-          : null;
+    const resolveDelta = (frame: FrameBorderArea) =>
+      frame.id && pagePositionSnapshot
+        ? readPagePositionDelta(frame.id, pagePositionSnapshot)
+        : null;
+
+    for (let i = 0; i < frameAreas.length; i++) {
+      const frame = frameAreas[i];
+      const delta = resolveDelta(frame);
       const rect = ck.XYWHRect(
         frame.x + (delta?.dx ?? 0) - halfStroke,
         frame.y + (delta?.dy ?? 0) - halfStroke,
         frame.width + strokeWidth,
         frame.height + strokeWidth,
       );
+
+      const hasAbove = i < frameAreas.length - 1;
+      if (hasAbove) {
+        canvas.save();
+        for (let j = i + 1; j < frameAreas.length; j++) {
+          const above = frameAreas[j];
+          const aboveDelta = resolveDelta(above);
+          // 위 페이지의 테두리 외곽까지 포함해 제외 (테두리 중심선 ± halfStroke)
+          canvas.clipRect(
+            ck.XYWHRect(
+              above.x + (aboveDelta?.dx ?? 0) - strokeWidth,
+              above.y + (aboveDelta?.dy ?? 0) - strokeWidth,
+              above.width + strokeWidth * 2,
+              above.height + strokeWidth * 2,
+            ),
+            ck.ClipOp.Difference,
+            true,
+          );
+        }
+      }
       canvas.drawRect(rect, borderPaint);
+      if (hasAbove) {
+        canvas.restore();
+      }
     }
   } finally {
     scope.dispose();

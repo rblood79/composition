@@ -88,6 +88,51 @@ describe("collectVisiblePageRoots edit mode isolation", () => {
     expect(result.bodyPagePositions["page-body"]).toEqual({ x: 10, y: 20 });
   });
 
+  it("활성 페이지 body 를 마지막 root 로 배치한다 (겹침 페인트 최상단)", () => {
+    const pageA = makePage("page-a");
+    const pageB = makePage("page-b");
+    const makeSnapshot = (page: Page, bodyId: string): ScenePageSnapshot => ({
+      bodyElement: makeElement({ id: bodyId, page_id: page.id }),
+      contentVersion: 1,
+      frame: {
+        elementCount: 0,
+        height: 844,
+        id: page.id,
+        title: page.title,
+        width: 390,
+        x: 0,
+        y: 0,
+      },
+      isVisible: true,
+      pageElements: [],
+      pageId: page.id,
+      positionVersion: 1,
+    });
+
+    const result = collectVisiblePageRoots(
+      makeInput({
+        pages: [pageA, pageB],
+        pagePositions: {
+          [pageA.id]: { x: 0, y: 0 },
+          [pageB.id]: { x: 20, y: 20 },
+        },
+        pageSnapshots: new Map([
+          [pageA.id, makeSnapshot(pageA, "body-a")],
+          [pageB.id, makeSnapshot(pageB, "body-b")],
+        ]),
+        sceneSnapshot: {
+          document: {
+            visiblePageIds: new Set([pageA.id, pageB.id]),
+            currentPageId: pageA.id,
+          },
+        } as never,
+      }),
+    );
+
+    // 문서 순서는 [A, B] 지만 활성 페이지 A 가 마지막(위에 그려짐)
+    expect(result.rootElementIds).toEqual(["body-b", "body-a"]);
+  });
+
   it("frame mode 에서는 visible page snapshot 이 남아 있어도 page roots 를 렌더하지 않는다", () => {
     const page = makePage();
     const body = makeElement({ id: "page-body" });

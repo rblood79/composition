@@ -19,6 +19,10 @@ import { useStore } from "../../../stores";
 import { useViewportSyncStore } from "../stores";
 import type { BoundingBox } from "../selection/types";
 import { isLegacyFrameElementForFrame } from "../../../../adapters/canonical/frameElementLoader";
+import {
+  buildPagePaintRank,
+  orderPagesForPaint,
+} from "../scene/pagePaintOrder";
 import { getDragVisualOffset } from "../skia/nodeRendererTree";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
 import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
@@ -161,14 +165,19 @@ export function resolvePageBodyHoverTarget({
   pageFrames,
   sceneX,
   sceneY,
+  activePageId = null,
 }: {
   elementsMap: ReadonlyMap<string, CanvasInteractionNode>;
   pageFrames: ReadonlyArray<PageHoverFrame>;
   sceneX: number;
   sceneY: number;
+  /** 겹침 영역 top-first 판정 — 활성 페이지가 페인트 최상단 (pagePaintOrder.ts) */
+  activePageId?: string | null;
 }): string | null {
-  for (let i = pageFrames.length - 1; i >= 0; i--) {
-    const frame = pageFrames[i];
+  // 페인트 역순(top-first): 활성 페이지가 마지막에 그려지므로 히트는 먼저 본다
+  const orderedFrames = orderPagesForPaint(pageFrames, activePageId);
+  for (let i = orderedFrames.length - 1; i >= 0; i--) {
+    const frame = orderedFrames[i];
     if (!containsPoint(frame, sceneX, sceneY)) continue;
 
     for (const element of elementsMap.values()) {
@@ -322,13 +331,25 @@ export function useElementHoverInteraction({
 
         // Context 레벨 후보 수집 (editingContext 직계 자식 또는 body 직계 자식)
         let candidates: ReadonlyArray<{ id: string }>;
+        let pagePaintRank: Map<string, number> | null = null;
+        let topPageRank: number | null = null;
         if (editingContextId) {
           candidates = childrenMap.get(editingContextId) ?? [];
         } else {
-          // 루트: 모든 body의 직계 자식 수집
-          const rootCandidates: Array<{ id: string }> = [];
+          // 루트: 모든 body의 직계 자식 수집 — body 를 페이지 페인트 순서로 정렬해
+          // 아래 역순(z-order 높은 것 우선) AABB 판정이 겹침 영역에서 위에 그려진
+          // (활성) 페이지의 요소를 잡게 한다 (pagePaintOrder.ts).
+          pagePaintRank = buildPagePaintRank(state.pages, state.currentPageId);
+          const bodies: Array<{ rank: number; el: CanvasInteractionNode }> = [];
           for (const [, el] of elementsMap) {
             if (el.type.toLowerCase() !== "body") continue;
+            const pageId = el.page_id ?? el.pageId ?? null;
+            const rank = pageId ? (pagePaintRank.get(pageId) ?? -1) : -1;
+            bodies.push({ rank, el });
+          }
+          bodies.sort((a, b) => a.rank - b.rank);
+          const rootCandidates: Array<{ id: string }> = [];
+          for (const { el } of bodies) {
             const bodyChildren = childrenMap.get(el.id);
             if (bodyChildren) {
               for (const child of bodyChildren) {
@@ -337,6 +358,20 @@ export function useElementHoverInteraction({
             }
           }
           candidates = rootCandidates;
+
+          // hover 지점을 덮는 최상단 페이지 rank — 위 페이지 body 에 가려진
+          // 아래 페이지 요소는 hover 대상에서 제외한다 (클릭 occlusion 과 동일 규칙).
+          const orderedFrames = orderPagesForPaint(
+            pageFramesRef?.current ?? [],
+            state.currentPageId,
+          );
+          for (let i = orderedFrames.length - 1; i >= 0; i--) {
+            const frame = orderedFrames[i];
+            if (containsPoint(frame, sceneX, sceneY)) {
+              topPageRank = pagePaintRank.get(frame.id) ?? null;
+              break;
+            }
+          }
         }
 
         // Context 레벨 AABB 히트 테스트 (역순 = z-order 높은 것 우선)
@@ -346,6 +381,17 @@ export function useElementHoverInteraction({
         if (boundsMap && boundsMap.size > 0) {
           for (let i = candidates.length - 1; i >= 0; i--) {
             const candidate = candidates[i];
+            if (topPageRank !== null && pagePaintRank) {
+              const candidateNode = elementsMap.get(candidate.id);
+              const candidatePageId =
+                candidateNode?.page_id ?? candidateNode?.pageId ?? null;
+              const candidateRank = candidatePageId
+                ? pagePaintRank.get(candidatePageId)
+                : undefined;
+              if (candidateRank !== undefined && candidateRank < topPageRank) {
+                continue;
+              }
+            }
             const bounds = boundsMap.get(candidate.id);
             if (!bounds) continue;
 
@@ -381,6 +427,7 @@ export function useElementHoverInteraction({
               pageFrames: pageFramesRef?.current ?? [],
               sceneX,
               sceneY,
+              activePageId: state.currentPageId,
             });
           }
         }

@@ -16,8 +16,10 @@ import {
   resolveCanvasInteractionTarget,
   resolveSelectionDragIntent,
   resolveSelectionHit,
+  resolveTopPageIdAtPoint,
 } from "../interaction";
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
+import { buildPagePaintRank } from "../scene/pagePaintOrder";
 import { useKeyboardShortcutsRegistry } from "../../../hooks/useKeyboardShortcutsRegistry";
 import { observe, PERF_LABEL } from "../../../utils/perfMarks";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
@@ -269,10 +271,27 @@ export function useCentralCanvasPointerHandlers({
         }
       }
 
+      // 페이지 겹침 영역에서는 위에 그려진(활성) 페이지의 요소가 잡혀야 하고,
+      // 위 페이지 body 에 가려진 아래 페이지 요소는 히트에서 제외해야 한다.
+      const pagePaintRank = buildPagePaintRank(
+        state.pages,
+        state.currentPageId,
+      );
+      const topPageId = resolveTopPageIdAtPoint({
+        canvasPoint: canvasPos,
+        activePageId: state.currentPageId,
+        pageHeight,
+        pagePositions: state.pagePositions,
+        pageWidth,
+        pages: state.pages,
+      });
       const interactionTarget = resolveCanvasInteractionTarget({
         candidateIds: hitTestPoint(canvasPos.x, canvasPos.y),
         elementsMap: hitElementsMap,
         childrenMap: hitChildrenMap,
+        pagePaintRank,
+        occludingPageRank:
+          topPageId !== null ? (pagePaintRank.get(topPageId) ?? null) : null,
       });
       if (interactionTarget.kind === "slot-guard") {
         if (!event.shiftKey) {

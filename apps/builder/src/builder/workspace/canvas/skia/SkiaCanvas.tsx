@@ -835,6 +835,10 @@ export function SkiaCanvas({
     if (prevPageIdRef.current !== currentPageId) {
       prevPageIdRef.current = currentPageId;
       overlayVersionRef.current++;
+      // 활성 페이지가 페인트 최상단으로 재배열되므로 (pagePaintOrder.ts) content
+      // 재렌더 필수 — overlayVersion 만으로는 classifyFrame 이 "present"(snapshot
+      // blit)로 분류해 이전 겹침 순서의 스냅샷이 남는다.
+      rendererRef.current?.invalidateContent();
       recordInvalidation("overlay", "pageSwitch");
     }
   }, [rendererInput.sceneSnapshot.document.currentPageId]);

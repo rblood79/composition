@@ -14,10 +14,12 @@ import {
 } from "../selection/types";
 import {
   findBodySelectionAtCanvasPoint,
+  findTopPageIdAtCanvasPoint,
   pickTopmostHitElementId,
   type BodySelectionResult,
   type CanvasPoint,
   type FrameBodySelectionArea,
+  type TopPageAtPointOptions,
 } from "../selection/selectionHitTest";
 import { getViewportController } from "../viewport/ViewportController";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
@@ -267,8 +269,31 @@ export function resolveTopmostHitElementId(
   hitCandidates: string[],
   elementsMap: ReadonlyMap<string, CanvasInteractionNode>,
   childrenMap?: ReadonlyMap<string, readonly CanvasInteractionNode[]> | null,
+  pagePaintRank?: ReadonlyMap<string, number> | null,
+  occludingPageRank?: number | null,
 ): string | null {
-  return pickTopmostHitElementId(hitCandidates, elementsMap, childrenMap);
+  return pickTopmostHitElementId(
+    hitCandidates,
+    elementsMap,
+    childrenMap,
+    pagePaintRank,
+    occludingPageRank,
+  );
+}
+
+/**
+ * 지점을 덮는 페인트 최상단 페이지 id (드래그 중 transient 위치 반영).
+ * 요소 히트 occlusion 필터 (pickTopmostHitElementId 의 occludingPageRank) 입력용.
+ */
+export function resolveTopPageIdAtPoint(
+  options: Omit<TopPageAtPointOptions, "pagePositionReader">,
+): string | null {
+  const presentationSnapshot = getPagePositionPresentationSnapshot();
+  return findTopPageIdAtCanvasPoint({
+    ...options,
+    pagePositionReader: (pageId) =>
+      readPagePosition(pageId, presentationSnapshot),
+  });
 }
 
 export function resolveBodySelection(

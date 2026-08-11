@@ -111,11 +111,17 @@ export function resolveCanvasInteractionTarget(input: {
   candidateIds: readonly string[];
   elementsMap: ReadonlyMap<string, CanvasInteractionNode>;
   childrenMap?: ReadonlyMap<string, readonly CanvasInteractionNode[]> | null;
+  /** 페이지 겹침 tie-break — 위에 그려진 페이지의 요소 우선 (pagePaintOrder.ts) */
+  pagePaintRank?: ReadonlyMap<string, number> | null;
+  /** 히트 지점을 덮는 최상단 페이지 rank — 이보다 낮은 페이지 요소는 가려져 히트 제외 */
+  occludingPageRank?: number | null;
 }): CanvasInteractionTarget {
   const hitId = resolveTopmostHitElementId(
     [...input.candidateIds],
     input.elementsMap,
     input.childrenMap,
+    input.pagePaintRank,
+    input.occludingPageRank,
   );
   if (!hitId) return { kind: "none" };
 

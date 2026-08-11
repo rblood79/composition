@@ -49,6 +49,7 @@ import {
   readPagePosition,
   resolveCanvasDetachContextTarget,
   resolveSelectedElementsForPage,
+  resolveTopPageIdAtPoint,
 } from "./interaction";
 import {
   buildFrameLayoutPublisherInput,
@@ -59,6 +60,7 @@ import {
   type SkiaRendererInput,
 } from "./renderers";
 import { getElementBoundsSimple } from "./elementRegistry";
+import { buildPagePaintRank } from "./scene/pagePaintOrder";
 import { GPUDebugOverlay } from "./utils/GPUDebugOverlay";
 import { useCanvasElementSelectionHandlers } from "./hooks/useCanvasElementSelectionHandlers";
 import { useCentralCanvasPointerHandlers } from "./hooks/useCentralCanvasPointerHandlers";
@@ -777,10 +779,26 @@ export function BuilderCanvas({
       const state = useStore.getState();
       const hitElementsMap = getInteractiveElementsMap();
       const hitChildrenMap = getInteractiveChildrenMap();
+      const contextPagePaintRank = buildPagePaintRank(
+        state.pages,
+        state.currentPageId,
+      );
+      const contextTopPageId = resolveTopPageIdAtPoint({
+        canvasPoint,
+        activePageId: state.currentPageId,
+        pageHeight,
+        pagePositions: state.pagePositions,
+        pageWidth,
+        pages: state.pages,
+      });
       const elementId = resolveCanvasDetachContextTarget(
         hitTestPoint(canvasPoint.x, canvasPoint.y),
         hitElementsMap,
         hitChildrenMap,
+        contextPagePaintRank,
+        contextTopPageId !== null
+          ? (contextPagePaintRank.get(contextTopPageId) ?? null)
+          : null,
       );
 
       if (!elementId) {
@@ -807,6 +825,8 @@ export function BuilderCanvas({
     [
       getInteractiveChildrenMap,
       getInteractiveElementsMap,
+      pageHeight,
+      pageWidth,
       screenToCanvasPoint,
       selectElementWithPageTransition,
       setSelectedElement,
