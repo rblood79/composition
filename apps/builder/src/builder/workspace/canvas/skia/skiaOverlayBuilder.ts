@@ -81,7 +81,10 @@ import {
   getCSSVariable,
 } from "../utils/cssVariableReader";
 import { hexToColor4fChannels } from "./themeWatcher";
-import type { PagePositionPresentationSnapshot } from "../interaction/pagePositionPresentation";
+import {
+  readPagePositionDelta,
+  type PagePositionPresentationSnapshot,
+} from "../interaction/pagePositionPresentation";
 
 // ============================================
 // Workflow Overlay Data
@@ -465,11 +468,14 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
       }
 
       // ── Slot Markers (Pencil-style authoring chrome) ──
+      // 페이지 드래그 중 transient 위치를 반영해야 content 와 함께 움직인다
+      // (미전달 시 드롭 후에만 한 번에 이동 — 2026-08-11 사용자 보고).
       const slotMarkerTargets = buildSlotMarkerTargets(
         treeBoundsMap,
         elementsMap,
         childrenMap,
         hitBoundsMap,
+        pagePositionSnapshot,
       );
       for (const target of slotMarkerTargets) {
         renderSlotHatchPattern(
@@ -487,6 +493,7 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
         treeBoundsMap,
         elementsMap,
         hitBoundsMap,
+        pagePositionSnapshot,
       );
       for (const target of remainderTargets) {
         renderCollectionRemainderMarker(
@@ -503,7 +510,26 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
       const editingContextId = selection.editingContextId;
       if (editingContextId && treeBoundsMap.has(editingContextId)) {
         const contextBounds = treeBoundsMap.get(editingContextId)!;
-        renderEditingContextBorder(ck, canvas, contextBounds, cameraZoom);
+        const contextElement = elementsMap.get(editingContextId);
+        const contextPageId =
+          contextElement?.pageId ?? contextElement?.page_id ?? null;
+        const contextDelta =
+          contextPageId && pagePositionSnapshot
+            ? readPagePositionDelta(contextPageId, pagePositionSnapshot)
+            : null;
+        renderEditingContextBorder(
+          ck,
+          canvas,
+          contextDelta
+            ? {
+                x: contextBounds.x + contextDelta.dx,
+                y: contextBounds.y + contextDelta.dy,
+                width: contextBounds.width,
+                height: contextBounds.height,
+              }
+            : contextBounds,
+          cameraZoom,
+        );
       }
 
       // ── Hover Highlights ──

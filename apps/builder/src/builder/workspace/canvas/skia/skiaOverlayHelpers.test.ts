@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
+import type { PagePositionPresentationSnapshot } from "../interaction/pagePositionPresentation";
 import {
   buildCollectionRemainderTargets,
   buildFrameTitleRenderItems,
@@ -783,6 +784,117 @@ describe("slot / remainder chrome 은 조상 clip 을 따른다", () => {
         new Map(),
       ),
     ).toEqual([
+      {
+        bounds: { x: 0, y: 0, width: 100, height: 40 },
+        showHatch: true,
+        slotMarkerRole: "origin",
+      },
+    ]);
+  });
+});
+
+describe("slot / remainder chrome 은 페이지 드래그 transient 위치를 따른다", () => {
+  // boundsMap 은 스트림 빌드 시점(canonical pagePositions) 좌표라 드래그 중 stale 하다.
+  // content/selection 은 렌더 시점 delta 를 받으므로, 콘텐츠성 chrome 도 같은 delta 를
+  // 받아야 슬롯 해치가 드래그 중 제자리에 남지 않는다 (2026-08-11 사용자 보고).
+  const dragSnapshot: PagePositionPresentationSnapshot = {
+    canonical: { "page-1": { x: 100, y: 200 } },
+    activePageId: "page-1",
+    activeOverride: { x: 130, y: 250 }, // delta = (+30, +50)
+    version: 1,
+    isActive: true,
+    startBreakpoint: "desktop",
+  };
+  const slotElements = new Map([
+    [
+      "slot-header",
+      makeElement("slot-header", { props: { name: "header" }, type: "Slot" }),
+    ],
+    [
+      "slot-other-page",
+      makeElement("slot-other-page", {
+        page_id: "page-2",
+        props: { name: "header" },
+        type: "Slot",
+      }),
+    ],
+  ]);
+
+  it("shifts slot marker chrome on the dragged page by the transient delta; other pages stay put", () => {
+    const targets = buildSlotMarkerTargets(
+      new Map([
+        ["slot-header", { x: 0, y: 0, width: 100, height: 40 }],
+        ["slot-other-page", { x: 500, y: 0, width: 100, height: 40 }],
+      ]),
+      slotElements,
+      new Map(),
+      undefined,
+      dragSnapshot,
+    );
+
+    expect(targets).toEqual([
+      {
+        bounds: { x: 30, y: 50, width: 100, height: 40 },
+        showHatch: true,
+        slotMarkerRole: "origin",
+      },
+      {
+        bounds: { x: 500, y: 0, width: 100, height: 40 },
+        showHatch: true,
+        slotMarkerRole: "origin",
+      },
+    ]);
+  });
+
+  it("translates after the visible-bounds clip (clip 수식은 canonical 좌표계에서 종결)", () => {
+    const targets = buildSlotMarkerTargets(
+      new Map([["slot-header", { x: 0, y: 0, width: 100, height: 40 }]]),
+      slotElements,
+      new Map(),
+      new Map([["slot-header", { x: 0, y: 0, width: 100, height: 25 }]]),
+      dragSnapshot,
+    );
+
+    expect(targets).toEqual([
+      {
+        bounds: { x: 30, y: 50, width: 100, height: 25 },
+        showHatch: true,
+        slotMarkerRole: "origin",
+      },
+    ]);
+  });
+
+  it("shifts collection remainder chrome by the same delta", () => {
+    const targets = buildCollectionRemainderTargets(
+      new Map([["remainder", { x: 10, y: 100, width: 200, height: 80 }]]),
+      new Map([
+        [
+          "remainder",
+          makeElement("remainder", {
+            projection: { kind: "collection-remainder", hiddenRows: 7 },
+            type: "Box",
+          } as Partial<CanvasSceneNode>),
+        ],
+      ]),
+      undefined,
+      dragSnapshot,
+    );
+
+    expect(targets).toEqual([
+      { bounds: { x: 40, y: 150, width: 200, height: 80 }, hiddenRows: 7 },
+    ]);
+  });
+
+  it("keeps chrome unchanged when the presentation is inactive", () => {
+    const targets = buildSlotMarkerTargets(
+      new Map([["slot-header", { x: 0, y: 0, width: 100, height: 40 }]]),
+      slotElements,
+      new Map(),
+      undefined,
+      { ...dragSnapshot, isActive: false },
+    );
+
+    expect(targets).toEqual([
       {
         bounds: { x: 0, y: 0, width: 100, height: 40 },
         showHatch: true,

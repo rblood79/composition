@@ -205,11 +205,43 @@ function clipChromeBounds(
   return intersectBoxes(bounds, visible);
 }
 
+/**
+ * 페이지 드래그 중 transient 위치(presentation snapshot)를 chrome bounds 에 반영한다.
+ *
+ * boundsMap/hitBoundsMap 은 스트림 빌드 시점의 canonical pagePositions 기준이라
+ * 드래그 중에는 stale 하다. content 패스(executeRenderCommands)와 selection overlay
+ * 는 렌더 시점에 delta 를 더해 함께 움직이므로, 콘텐츠성 chrome 도 동일 delta 를
+ * 받아야 한다 — 미적용 시 슬롯 해치/테두리가 드래그 중 제자리에 남고 드롭 후에만
+ * 한 번에 이동한다 (2026-08-11 사용자 보고).
+ *
+ * inset/클립 산출은 canonical 좌표계 안에서 끝낸 뒤 **최종 결과만** 평행이동한다 —
+ * 조상 clip(페이지 body)도 같은 delta 로 움직이므로 클립 수식을 섞을 필요가 없다.
+ */
+function translateByPageDelta(
+  bounds: BoundingBox,
+  element: CanvasSceneNode | undefined,
+  pagePositionSnapshot?: PagePositionPresentationSnapshot,
+): BoundingBox {
+  if (!pagePositionSnapshot || !element) return bounds;
+  const pageId = element.pageId ?? element.page_id;
+  const delta = pageId
+    ? readPagePositionDelta(pageId, pagePositionSnapshot)
+    : null;
+  if (!delta) return bounds;
+  return {
+    x: bounds.x + delta.dx,
+    y: bounds.y + delta.dy,
+    width: bounds.width,
+    height: bounds.height,
+  };
+}
+
 export function buildSlotMarkerTargets(
   treeBoundsMap: Map<string, BoundingBox>,
   elementsMap: Map<string, CanvasSceneNode> = new Map(),
   childrenMap: Map<string, CanvasSceneNode[]> = new Map(),
   hitBoundsMap: Map<string, BoundingBox> = treeBoundsMap,
+  pagePositionSnapshot?: PagePositionPresentationSnapshot,
 ): SlotMarkerTarget[] {
   const targets: SlotMarkerTarget[] = [];
 
@@ -236,7 +268,7 @@ export function buildSlotMarkerTargets(
     if (!chromeBounds) continue;
 
     targets.push({
-      bounds: chromeBounds,
+      bounds: translateByPageDelta(chromeBounds, element, pagePositionSnapshot),
       showHatch: true,
       slotMarkerRole,
     });
@@ -255,15 +287,20 @@ export function buildCollectionRemainderTargets(
   treeBoundsMap: Map<string, BoundingBox>,
   elementsMap: Map<string, CanvasSceneNode> = new Map(),
   hitBoundsMap: Map<string, BoundingBox> = treeBoundsMap,
+  pagePositionSnapshot?: PagePositionPresentationSnapshot,
 ): CollectionRemainderTarget[] {
   const targets: CollectionRemainderTarget[] = [];
 
   for (const [id, bounds] of treeBoundsMap) {
-    const projection = elementsMap.get(id)?.projection;
+    const element = elementsMap.get(id);
+    const projection = element?.projection;
     if (projection?.kind !== "collection-remainder") continue;
     const chromeBounds = clipChromeBounds(bounds, id, hitBoundsMap);
     if (!chromeBounds) continue;
-    targets.push({ bounds: chromeBounds, hiddenRows: projection.hiddenRows });
+    targets.push({
+      bounds: translateByPageDelta(chromeBounds, element, pagePositionSnapshot),
+      hiddenRows: projection.hiddenRows,
+    });
   }
 
   return targets;

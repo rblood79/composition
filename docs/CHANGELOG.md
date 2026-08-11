@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Page 드래그 중 slot chrome 추적 — transient delta 적용] - 2026-08-11
+
+### Bug Fixes
+
+- page body/title 드래그 중 slot 영역(해치+테두리), collection remainder("+N more"), editing-context border 가 페이지와 함께 움직이지 않고 드롭 후에만 한 번에 이동하던 문제를 수정했다.
+  - **Why**: overlay 의 콘텐츠성 chrome 은 스트림 빌드 시점의 canonical `pagePositions` 기준 boundsMap/hitBoundsMap 을 그대로 소비했다. content 패스(`executeRenderCommands`)와 selection overlay 는 렌더 시점에 presentation snapshot delta 를 더해 움직이지만, `buildSlotMarkerTargets`/`buildCollectionRemainderTargets`/editing-context border 는 delta 미적용 → 드롭 시 canonical commit + 스트림 재빌드 후에만 새 위치로 점프.
+  - 수정: 세 chrome 에 `readPagePositionDelta` 를 적용 — inset/클립 산출은 canonical 좌표계에서 종결 후 최종 bounds 만 평행이동 (조상 clip 도 같은 delta 로 움직이므로 정합).
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{skiaOverlayHelpers,skiaOverlayBuilder}.ts`
+
+### Verification
+
+- `skiaOverlayHelpers.test.ts` 27 PASS (신규 transient delta 4건: active page 이동 / 타 페이지 불변 / clip 후 이동 순서 / inactive 불변) + `pnpm type-check` PASS
+
 ## [Canvas page 전체 선택 위치 이동 복구] - 2026-08-03
 
 ### Bug Fixes
