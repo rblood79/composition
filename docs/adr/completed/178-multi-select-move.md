@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-12 (리뷰 round 1 승인 — [reviews/178.md](reviews/178.md), 이슈 2건 전부 fixed)
+Implemented — 2026-08-12 (리뷰 round 1 승인 [reviews/178.md](../reviews/178.md) → Accepted → Phase 0~4 당일 종결)
 
 ## Context
 
@@ -65,7 +65,7 @@ Figma/Pencil 은 다중 선택 드래그·Shift 축 고정·Alt 드래그 복제
 
 기각 사유 — B: 드래그라는 transient 행위가 canonical 구조를 두 번 mutate 하는 설계는 취소·크래시 경로에서 임시 구조 잔류 위험과 히스토리 노이즈를 남긴다. C: 다중 이동의 목적(전 대상 동시 피드백) 자체를 포기하는 안이다.
 
-> 구현 상세: [178-multi-select-move-breakdown.md](design/178-multi-select-move-breakdown.md)
+> 구현 상세: [178-multi-select-move-breakdown.md](../design/178-multi-select-move-breakdown.md)
 
 ## Risks
 
@@ -93,7 +93,7 @@ Figma/Pencil 은 다중 선택 드래그·Shift 축 고정·Alt 드래그 복제
 | 1 | 요소 다중 드래그 (정규화 + 오프셋 Map + batch move) | **Implemented 2026-08-12** — `resolveMultiDragTargets` 정규화 + 오프셋 Set(공유 델타) + top-layer 다중 유예 + `moveElementsToCanonicalTarget` batch + body 엣지 폐쇄. live: batch 연속 삽입 + entry 1개 + Cmd+Z 1회 원순서 복원 (track 내림차순 기록). 사전 결함 1건 기록 — 슬롯 드롭 redo 훼손 (단일 경로 동형, breakdown §4.1) |
 | 2 | 페이지 다중 선택·드래그 | **Implemented 2026-08-12** — owner `pageIds` 집합 + presentation `activeOverrides` 소집합 Map (R3 유지) + `updatePagePositionsBatch` (ADR-177 batch entry 1개). 타이틀 shift 클릭 = body 직접 토글 (cross-page 다중). live: 2 페이지 동일 델타 + Cmd+Z 1회 전체 복귀 + 문서 batch 추종. 사전 결함 해소 동반 — element 세션 잔류로 tryClaimPage 상시 실패 → promote fallback (breakdown §4.2) |
 | 3 | modifier (Shift 축 고정 + Alt 복제) | **Implemented 2026-08-12** — `dragModifiers.ts` (applyAxisLock 순수 함수 + Alt arm 플래그). 요소=드롭 판정 좌표까지 일괄 고정, 페이지=리더 델타 고정 (다중 동반). Alt 복제 = 기존 duplicate 파이프라인 재사용, trackMultiPaste entry 1개 (복제+이동 합산, undo 1회). live: y 불변 실측 + 원본 잔류 + undo 1회 전체 취소 (breakdown §4.3) |
-| 4     | 검증 종결 (성능 + CHANGELOG)                        | 미착수                                                                                                                                                                                                                                              |
+| 4 | 검증 종결 (성능 + CHANGELOG) | **Implemented 2026-08-12** — G3: 오프셋 Set+공유 델타 = 전체 map clone 0 구조적 (비례 항목은 top-layer 재방문·형제 벌림 뿐), 페이지 publish RAF 1회 유지 — 60 move 연사 (72.6ms) 프리즈 0 + 최종 위치 정확 추종 실측. G4: type-check + 유닛 124 + CHANGELOG |
 
 ## Consequences
 

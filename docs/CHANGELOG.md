@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [캔버스 다중 선택 이동 — ADR-178 Implemented] - 2026-08-12
+
+### Features
+
+- **다중 선택 드래그 — 요소·페이지가 집합으로 함께 움직임** (ADR-178 Phase 0~4):
+  - 요소 2+개 다중 선택 드래그: 전 대상이 같은 델타로 이동, 드롭 시 canonical batch move + **히스토리 1 entry** (Cmd+Z 1회 전체 복귀). 대상 집합은 정규화 — 조상 선택 시 자손 제외(이중 이동 방지), body 는 요소 드래그에서 제외
+  - **페이지 다중 선택·드래그 신설**: 페이지 타이틀 **Shift 클릭** = 그 페이지를 다중 선택에 토글 (cross-page). 선택된 페이지 중 하나를 잡아 끌면 전체가 같은 델타로 이동 — batch entry 1개 (ADR-177 `pagePositionEvent.entries[]`), undo 1회 전체 복귀 + 문서 batch 저장
+  - **이동 modifier**: 드래그 중 **Shift = 축 고정** (시작점 기준 지배 축 — 요소는 드롭 판정 좌표까지, 페이지는 리더 델타에 적용되어 다중 동반 고정), **Alt/Option 드래그 = 복제** (원본 잔류, 복제본이 델타 위치에 생성 — 기존 duplicate 파이프라인 재사용, 복제+이동 = entry 1개)
+  - **Why**: 드래그 파이프라인이 구조적 단일 대상(`selectedElementIds[0]` / 시각 오프셋 전역 단일 슬롯 / `pageOwner` 단수)이라 다중 선택을 해도 하나만 움직였다 — Figma/Pencil 이동 문법과의 격차 축. 시각 오프셋은 `Set + 공유 델타` 로 확장 (프레임당 갱신 델타 2필드 — 전체 map clone 0)
+  - 위치: `workspace/canvas/interaction/{selectionModel,dragModifiers,canvasGestureSession,pagePositionPresentation}.ts`, `workspace/canvas/hooks/{useDragBridge,usePageDrag,useCentralCanvasPointerHandlers}.ts`, `workspace/canvas/skia/{nodeRendererTree,renderCommands}.ts`, `adapters/canonical/canonicalMutations.ts` (`moveElementsToCanonicalTarget`), `stores/elements.ts` (`updatePagePositionsBatch`)
+
+### Bug Fixes
+
+- **body 혼합 다중 선택 드래그 엣지 폐쇄** (ADR-178 Phase 1):
+  - 다중 선택에 body 가 섞이면 body 가드가 통과해 `selectedIds[0]`(body 가능)로 드래그가 시작돼 페이지 전체가 시각 이동하는 혼란 상태가 있었다
+  - **Why**: body 가드가 선택 1개일 때만 `selectedElement` 를 조회 — 다중에서 무조건 통과. 정규화 단일 진입점이 body 를 제외해 폐쇄
+- **다중 드롭 undo 의 형제 순서 뒤집힘** (ADR-178 Phase 1):
+  - **Why**: move event 를 이동 순서(from index 오름차순)로 기록하면 undo 의 역순 적용이 큰 자리부터 삽입해 순서가 뒤집힌다 — 기록을 from index **내림차순**으로 정렬 (undo=오름차순 복원, redo=최종 문서 기준 내림차순 재적용 양방향 정합)
+- **페이지 타이틀 드래그 간헐 실패 해소** (ADR-178 Phase 2 — 사전 결함):
+  - **Why**: pointerdown 마다 열리는 element gesture 세션을 pointerup 에서 아무도 닫지 않아 같은 pointerId 로 잔류 — `tryClaimPage` 가 첫 press 이후 구조적으로 실패했다 (계측 실측). 타이틀 경로에 `promoteElementToPage` fallback (같은 pointer 의 element 제스처를 page 로 승격하는 기존 API) 연결
+
 ## [페이지 위치의 문서 데이터화 — ADR-177 Implemented] - 2026-08-12
 
 ### Features

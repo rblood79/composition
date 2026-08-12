@@ -93,7 +93,7 @@
 | 1     | 요소 다중 드래그 — 정규화 + 오프셋 Map + batch move + body 혼합 엣지 폐쇄                                                                    | **Implemented 2026-08-12** — live: batch 연속 삽입 + entry 1개 + Cmd+Z 1회 원순서 복원 + body 엣지 재현 불가 (§4.1 기록) |
 | 2     | 페이지 다중 선택·드래그 — gestureSession 대상 집합 + presentation 다중 override                                                              | **Implemented 2026-08-12** — live: 2 페이지 동일 델타 이동 + batch entry 1 + Cmd+Z 1회 전체 복귀 (§4.2 기록)             |
 | 3     | modifier — Shift 축 고정 + Alt 드래그 복제                                                                                                   | **Implemented 2026-08-12** — live: 축 고정 y 불변 실측 + Alt 복제 원본 잔류·undo 1회 전체 취소 (§4.3 기록)               |
-| 4     | 검증 종결 — 성능(오프셋 Map 프레임 비용) + CHANGELOG                                                                                         | live behavior 게이트                                                                                                     |
+| 4     | 검증 종결 — 성능(오프셋 Map 프레임 비용) + CHANGELOG                                                                                         | **Implemented 2026-08-12** — G3 실측 (60 move 연사 프리즈 0, RAF publish 1회 유지) + closure                             |
 
 ### 4.1 Phase 1 구현 기록 (2026-08-12)
 
