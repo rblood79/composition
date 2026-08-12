@@ -72,6 +72,7 @@ import { useDragBridge } from "./hooks/useDragBridge";
 import { usePageDrag } from "./hooks/usePageDrag";
 import { useKeyboardShortcutsRegistry } from "../../hooks/useKeyboardShortcutsRegistry";
 import type { PageTitleBounds } from "./skia/skiaOverlayHelpers";
+import type { SnapCandidateRect } from "./interaction/snapGuides";
 
 import {
   buildCanonicalSceneModel,
@@ -359,7 +360,18 @@ export function BuilderCanvas({
   // BuilderCanvas pointerdown(capture) 가 이 Map 을 조회해 usePageDrag 를 트리거.
   const pageTitleBoundsMapRef = useRef<Map<string, PageTitleBounds>>(new Map());
   const [canvasGestureSession] = useState(() => new CanvasGestureSession());
-  const { startDrag: startPageDrag } = usePageDrag(zoom, canvasGestureSession);
+  // ADR-179 C3: 스냅 후보 공급 — buildPageFrames 산출(allPageFrames)을 ref 로
+  // 전달. usePageDrag 가 드래그 시작 시 1회만 읽는다 (R1 상한).
+  const snapCandidateFramesRef = useRef<readonly SnapCandidateRect[]>([]);
+  const getSnapCandidateFrames = useCallback(
+    () => snapCandidateFramesRef.current,
+    [],
+  );
+  const { startDrag: startPageDrag } = usePageDrag(
+    zoom,
+    canvasGestureSession,
+    getSnapCandidateFrames,
+  );
 
   // Canvas sync actions
   const setCanvasReady = useCanvasLifecycleStore(
@@ -532,6 +544,13 @@ export function BuilderCanvas({
   // 이므로 selection state 생성 자체가 불필요. 하위 consumer 는 이제
   // sceneStructureSnapshot 을 직접 소비.
   const sceneSnapshot = sceneStructureSnapshot;
+
+  // ADR-179 C3: 스냅 후보 = 전 페이지 rect (stacked 기본값 + canonical
+  // override — buildPageFrames 산출). 가시 필터 없이 전수 (수십 규모).
+  useEffect(() => {
+    snapCandidateFramesRef.current =
+      sceneStructureSnapshot.document.allPageFrames;
+  }, [sceneStructureSnapshot]);
 
   const visiblePageIds = sceneStructureSnapshot.document.visiblePageIds;
   const visiblePages = useMemo(() => {

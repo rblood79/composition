@@ -38,6 +38,13 @@ export interface SettingsState {
   /** Grid에 스냅 활성화 여부 (기본값: false) */
   snapToGrid: boolean;
 
+  /**
+   * 객체(다른 페이지/요소) 스냅 활성화 여부 (기본값: true — Figma 기본 관례).
+   * ADR-179: 드래그 중 다른 페이지 가장자리·중앙 6축 흡착 + 정렬선.
+   * 우선순위는 객체 > snap-to-grid, Cmd/Ctrl 홀드 시 전 스냅 억제.
+   */
+  snapToObjects: boolean;
+
   /** Grid 크기 (기본값: 8px) */
   gridSize: 8 | 16 | 24;
 
@@ -49,6 +56,9 @@ export interface SettingsState {
 
   /** Grid 스냅 토글 */
   setSnapToGrid: (snap: boolean) => void;
+
+  /** 객체 스냅 토글 (ADR-179) */
+  setSnapToObjects: (snap: boolean) => void;
 
   /** Grid 크기 설정 */
   setGridSize: (size: 8 | 16 | 24) => void;
@@ -126,6 +136,7 @@ export interface SettingsState {
 export const createSettingsSlice: StateCreator<SettingsState> = (set) => ({
   showGrid: false,
   snapToGrid: false,
+  snapToObjects: true,
   showWorkflowOverlay: false,
   showWorkflowNavigation: true,
   showWorkflowEvents: true,
@@ -155,6 +166,13 @@ export const createSettingsSlice: StateCreator<SettingsState> = (set) => ({
    */
   setSnapToGrid: (snap: boolean) => {
     set({ snapToGrid: snap });
+  },
+
+  /**
+   * 객체 스냅 토글 (ADR-179)
+   */
+  setSnapToObjects: (snap: boolean) => {
+    set({ snapToObjects: snap });
   },
 
   /**

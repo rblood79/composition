@@ -1,0 +1,170 @@
+/**
+ * ADR-179 G4 — 스냅 순수 함수 유닛 (축별 / 임계 / 최근접 / guides 구간)
+ *
+ * 우선순위(객체 > 그리드)와 Cmd 억제는 usePageDrag 배선 소관 — 여기서는
+ * resolveSnappedPosition 의 축별 독립 판정 계약만 검증한다.
+ */
+
+import { describe, it, expect } from "vitest";
+import { resolveSnappedPosition, type SnapCandidateRect } from "./snapGuides";
+
+const SIZE = { width: 100, height: 200 };
+
+function candidate(
+  id: string,
+  x: number,
+  y: number,
+  width = 100,
+  height = 200,
+): SnapCandidateRect {
+  return { id, x, y, width, height };
+}
+
+describe("resolveSnappedPosition", () => {
+  it("임계 내 left-left 흡착 — x 만 보정되고 y 는 raw 유지", () => {
+    const result = resolveSnappedPosition(
+      { x: 104, y: 500 },
+      SIZE,
+      [candidate("a", 100, 100)],
+      8,
+    );
+    expect(result.position).toEqual({ x: 100, y: 500 });
+    expect(result.snappedX).toBe(true);
+    expect(result.snappedY).toBe(false);
+  });
+
+  it("임계 밖이면 raw 유지 + guides 없음", () => {
+    const result = resolveSnappedPosition(
+      { x: 120, y: 500 },
+      SIZE,
+      [candidate("a", 100, 100)],
+      8,
+    );
+    expect(result.position).toEqual({ x: 120, y: 500 });
+    expect(result.snappedX).toBe(false);
+    expect(result.guides).toHaveLength(0);
+  });
+
+  it("임계 경계값(== threshold)은 흡착된다", () => {
+    const result = resolveSnappedPosition(
+      { x: 108, y: 500 },
+      SIZE,
+      [candidate("a", 100, 100)],
+      8,
+    );
+    expect(result.position.x).toBe(100);
+  });
+
+  it("right-left 인접 배치 흡착 — 이동 박스 right 가 후보 left 에", () => {
+    // 이동 박스 right = 95 + 100 = 195, 후보 left = 200 → delta 5
+    const result = resolveSnappedPosition(
+      { x: 95, y: 500 },
+      SIZE,
+      [candidate("a", 200, 500)],
+      8,
+    );
+    expect(result.position.x).toBe(100); // right(200) - width(100)
+    expect(result.snappedX).toBe(true);
+  });
+
+  it("centerX-centerX 흡착", () => {
+    // 후보 center = 150, 이동 raw center = 153 → x = 153-3-50 = 100
+    const result = resolveSnappedPosition(
+      { x: 103, y: 500 },
+      SIZE,
+      [candidate("a", 100, 100)],
+      8,
+    );
+    expect(result.position.x).toBe(100);
+  });
+
+  it("y 축 top-bottom 흡착 — 축별 독립", () => {
+    // 후보 bottom = 100 + 200 = 300, 이동 top raw = 305 → y = 300
+    const result = resolveSnappedPosition(
+      { x: 500, y: 305 },
+      SIZE,
+      [candidate("a", 100, 100)],
+      8,
+    );
+    expect(result.position).toEqual({ x: 500, y: 300 });
+    expect(result.snappedY).toBe(true);
+    expect(result.snappedX).toBe(false);
+  });
+
+  it("최근접 후보 채택 — 더 가까운 라인이 이긴다", () => {
+    const result = resolveSnappedPosition(
+      { x: 104, y: 500 },
+      SIZE,
+      [candidate("far", 110, 100), candidate("near", 102, 100)],
+      8,
+    );
+    expect(result.position.x).toBe(102);
+  });
+
+  it("양축 동시 흡착", () => {
+    const result = resolveSnappedPosition(
+      { x: 104, y: 305 },
+      SIZE,
+      [candidate("a", 100, 100)],
+      8,
+    );
+    expect(result.position).toEqual({ x: 100, y: 300 });
+    expect(result.snappedX).toBe(true);
+    expect(result.snappedY).toBe(true);
+    expect(result.guides).toHaveLength(2);
+  });
+
+  it("guide 구간 — 이동 박스(스냅 반영)와 매칭 후보의 직교 구간 합집합", () => {
+    // 수직 정렬선 x=100: 후보 y [100, 300], 이동 박스 y [500, 700]
+    const result = resolveSnappedPosition(
+      { x: 104, y: 500 },
+      SIZE,
+      [candidate("a", 100, 100)],
+      8,
+    );
+    const guide = result.guides[0];
+    expect(guide.axis).toBe("x");
+    expect(guide.position).toBe(100);
+    expect(guide.start).toBe(100);
+    expect(guide.end).toBe(700);
+  });
+
+  it("같은 라인을 공유하는 다중 후보로 guide 구간 확장", () => {
+    const result = resolveSnappedPosition(
+      { x: 104, y: 500 },
+      SIZE,
+      [candidate("a", 100, 100), candidate("b", 100, 900)],
+      8,
+    );
+    const guide = result.guides[0];
+    // a top=100 ~ 이동 700 ~ b bottom=1100
+    expect(guide.start).toBe(100);
+    expect(guide.end).toBe(1100);
+  });
+
+  it("후보 없음 — raw 그대로", () => {
+    const result = resolveSnappedPosition({ x: 104, y: 500 }, SIZE, [], 8);
+    expect(result.position).toEqual({ x: 104, y: 500 });
+    expect(result.guides).toHaveLength(0);
+  });
+
+  it("scene 임계 환산 — 낮은 zoom(넓은 scene 임계)에서만 흡착되는 거리", () => {
+    const candidates = [candidate("a", 100, 100)];
+    // 거리 12: zoom 1 (임계 8) → 미흡착, zoom 0.5 (임계 16) → 흡착
+    const atZoom1 = resolveSnappedPosition(
+      { x: 112, y: 500 },
+      SIZE,
+      candidates,
+      8 / 1,
+    );
+    const atZoomHalf = resolveSnappedPosition(
+      { x: 112, y: 500 },
+      SIZE,
+      candidates,
+      8 / 0.5,
+    );
+    expect(atZoom1.snappedX).toBe(false);
+    expect(atZoomHalf.snappedX).toBe(true);
+    expect(atZoomHalf.position.x).toBe(100);
+  });
+});

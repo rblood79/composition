@@ -27,6 +27,16 @@ import {
   type PagePosition,
   type PagePositionMap,
 } from "../interaction/pagePositionPresentation";
+import {
+  resolveSnappedPosition,
+  SNAP_THRESHOLD_SCREEN_PX,
+  type SnapCandidateRect,
+  type SnapGuide,
+} from "../interaction/snapGuides";
+import {
+  clearSnapGuides,
+  publishSnapGuides,
+} from "../interaction/snapGuidePresentation";
 
 interface PageDragState {
   isDragging: boolean;
@@ -38,6 +48,10 @@ interface PageDragState {
   startPagePosById: ReadonlyMap<string, PagePosition> | null;
   canonical: PagePositionMap | null;
   startBreakpoint: string | null;
+  /** ADR-179: 드래그 시작 시 1회 수집된 객체 스냅 후보 (드래그 대상 제외) */
+  snapCandidates: readonly SnapCandidateRect[] | null;
+  /** ADR-179: 리더 페이지 프레임 크기 (이동 박스) */
+  movingSize: { width: number; height: number } | null;
 }
 
 interface UsePageDragReturn {
@@ -59,11 +73,18 @@ const EMPTY_PAGE_DRAG_STATE: PageDragState = {
   startPagePosById: null,
   canonical: null,
   startBreakpoint: null,
+  snapCandidates: null,
+  movingSize: null,
 };
 
 export function usePageDrag(
   zoom: number,
   gestureSession: CanvasGestureSession,
+  /**
+   * ADR-179 C3: 스냅 후보 공급자 — buildPageFrames 산출(allPageFrames) 을
+   * ref 경유로 반환. 드래그 시작 시 1회만 호출한다 (R1 상한).
+   */
+  getSnapCandidateFrames?: () => readonly SnapCandidateRect[],
 ): UsePageDragReturn {
   const stateRef = useRef<PageDragState>({ ...EMPTY_PAGE_DRAG_STATE });
   const rafRef = useRef<number | null>(null);
@@ -109,6 +130,15 @@ export function usePageDrag(
         return;
       }
 
+      // ADR-179: 스냅 후보는 드래그 시작 시 1회 수집 (R1 상한) — 전 페이지
+      // 전수에서 드래그 대상 집합만 제외 (C3). 리더 프레임 크기가 이동 박스.
+      const allFrames = getSnapCandidateFrames?.() ?? [];
+      const dragIdSet = new Set(dragPageIds);
+      const snapCandidates = allFrames.filter(
+        (frame) => !dragIdSet.has(frame.id),
+      );
+      const leaderFrame = allFrames.find((frame) => frame.id === pageId);
+
       stateRef.current = {
         isDragging: true,
         pageId,
@@ -119,10 +149,18 @@ export function usePageDrag(
         startPagePosById,
         canonical,
         startBreakpoint: owner.startBreakpoint,
+        snapCandidates,
+        movingSize: leaderFrame
+          ? { width: leaderFrame.width, height: leaderFrame.height }
+          : null,
       };
 
-      let latestPointer: { x: number; y: number; shiftKey: boolean } | null =
-        null;
+      let latestPointer: {
+        x: number;
+        y: number;
+        shiftKey: boolean;
+        suppressSnap: boolean;
+      } | null = null;
 
       const resetState = () => {
         stateRef.current = { ...EMPTY_PAGE_DRAG_STATE };
@@ -157,12 +195,16 @@ export function usePageDrag(
       /**
        * 리더 위치 (스냅 반영) 를 계산한다. 다중 대상의 위치는 리더 델타
        * (스냅 후) 를 각 시작 위치에 더해 파생한다 — calculatePositions.
+       *
+       * ADR-179 순서 (C2/C5): Shift 축 고정 → 객체 스냅 → (미흡착 축만)
+       * snap-to-grid. Cmd/Ctrl 홀드는 전 스냅 억제.
        */
       const calculateLeaderPosition = (
         clientX: number,
         clientY: number,
         axisLock: boolean,
-      ): PagePosition | null => {
+        suppressSnap: boolean,
+      ): { position: PagePosition; guides: SnapGuide[] } | null => {
         const state = stateRef.current;
         if (
           !state.isDragging ||
@@ -185,49 +227,94 @@ export function usePageDrag(
         }
         let x = state.startPagePos.x + dx;
         let y = state.startPagePos.y + dy;
-        const { snapToGrid, gridSize } = useStore.getState();
-        if (snapToGrid) {
-          x = Math.round(x / gridSize) * gridSize;
-          y = Math.round(y / gridSize) * gridSize;
+        const { snapToGrid, gridSize, snapToObjects } = useStore.getState();
+        let guides: SnapGuide[] = [];
+        let snappedX = false;
+        let snappedY = false;
+        if (
+          !suppressSnap &&
+          snapToObjects &&
+          state.movingSize &&
+          state.snapCandidates &&
+          state.snapCandidates.length > 0
+        ) {
+          const snapped = resolveSnappedPosition(
+            { x, y },
+            state.movingSize,
+            state.snapCandidates,
+            SNAP_THRESHOLD_SCREEN_PX / (zoom === 0 ? 1 : zoom),
+          );
+          x = snapped.position.x;
+          y = snapped.position.y;
+          snappedX = snapped.snappedX;
+          snappedY = snapped.snappedY;
+          guides = snapped.guides;
         }
-        return { x, y };
+        // 객체 스냅이 성사되지 않은 축에만 그리드 스냅 (객체 > 그리드)
+        if (!suppressSnap && snapToGrid) {
+          if (!snappedX) x = Math.round(x / gridSize) * gridSize;
+          if (!snappedY) y = Math.round(y / gridSize) * gridSize;
+        }
+        return { position: { x, y }, guides };
       };
 
       const calculatePositions = (
         clientX: number,
         clientY: number,
         axisLock: boolean,
-      ): Array<{ pageId: string; position: PagePosition }> | null => {
+        suppressSnap: boolean,
+      ): {
+        positions: Array<{ pageId: string; position: PagePosition }>;
+        guides: SnapGuide[];
+      } | null => {
         const state = stateRef.current;
-        const leaderPosition = calculateLeaderPosition(clientX, clientY, axisLock);
-        if (!leaderPosition || !state.startPagePos || !state.startPagePosById) {
+        const leader = calculateLeaderPosition(
+          clientX,
+          clientY,
+          axisLock,
+          suppressSnap,
+        );
+        if (!leader || !state.startPagePos || !state.startPagePosById) {
           return null;
         }
 
+        const leaderPosition = leader.position;
         const deltaX = leaderPosition.x - state.startPagePos.x;
         const deltaY = leaderPosition.y - state.startPagePos.y;
-        return state.pageIds.map((id) => {
-          const start = state.startPagePosById!.get(id)!;
-          return {
-            pageId: id,
-            position:
-              id === state.pageId
-                ? leaderPosition
-                : { x: start.x + deltaX, y: start.y + deltaY },
-          };
-        });
+        return {
+          positions: state.pageIds.map((id) => {
+            const start = state.startPagePosById!.get(id)!;
+            return {
+              pageId: id,
+              position:
+                id === state.pageId
+                  ? leaderPosition
+                  : { x: start.x + deltaX, y: start.y + deltaY },
+            };
+          }),
+          guides: leader.guides,
+        };
       };
 
       const publishPositions = (
         clientX: number,
         clientY: number,
         axisLock: boolean,
+        suppressSnap: boolean,
       ) => {
-        const positions = calculatePositions(clientX, clientY, axisLock);
-        if (positions) {
-          publishPagePositionPresentation(positions);
+        const result = calculatePositions(
+          clientX,
+          clientY,
+          axisLock,
+          suppressSnap,
+        );
+        if (result) {
+          // 정렬선 먼저 — position notify 가 트리거하는 rerender 가 최신
+          // guides 를 읽도록 (snapGuidePresentation 순서 계약)
+          publishSnapGuides(result.guides);
+          publishPagePositionPresentation(result.positions);
         }
-        return positions;
+        return result?.positions ?? null;
       };
 
       const cancel = () => {
@@ -237,11 +324,13 @@ export function usePageDrag(
         }
 
         cancelAnimation();
+        clearSnapGuides();
         cancelPagePositionPresentation();
         release();
       };
 
       const abort = () => {
+        clearSnapGuides();
         cancelPagePositionPresentation();
         release();
       };
@@ -310,6 +399,7 @@ export function usePageDrag(
           }
         }
 
+        clearSnapGuides();
         const committedSnapshot = getPagePositionPresentationSnapshot();
         finishPagePositionPresentation(
           committedSnapshot.canonical === state.canonical
@@ -328,6 +418,7 @@ export function usePageDrag(
           x: event.clientX,
           y: event.clientY,
           shiftKey: event.shiftKey,
+          suppressSnap: event.metaKey || event.ctrlKey,
         };
         // RAF 스로틀: 프레임당 최신 위치만 presentation에 반영
         if (rafRef.current !== null) {
@@ -339,7 +430,12 @@ export function usePageDrag(
           const nextPointer = latestPointer;
           latestPointer = null;
           if (nextPointer) {
-            publishPositions(nextPointer.x, nextPointer.y, nextPointer.shiftKey);
+            publishPositions(
+              nextPointer.x,
+              nextPointer.y,
+              nextPointer.shiftKey,
+              nextPointer.suppressSnap,
+            );
           }
         });
       };
@@ -350,7 +446,14 @@ export function usePageDrag(
         }
 
         cancelAnimation();
-        finish(publishPositions(event.clientX, event.clientY, event.shiftKey));
+        finish(
+          publishPositions(
+            event.clientX,
+            event.clientY,
+            event.shiftKey,
+            event.metaKey || event.ctrlKey,
+          ),
+        );
       };
 
       const onPointerCancel = (event: PointerEvent) => {
@@ -384,7 +487,7 @@ export function usePageDrag(
       document.addEventListener("visibilitychange", onVisibilityChange);
       cleanupRef.current = cancel;
     },
-    [gestureSession, zoom],
+    [gestureSession, zoom, getSnapCandidateFrames],
   );
 
   useEffect(() => {

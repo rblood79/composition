@@ -42,6 +42,9 @@ function SettingsContent() {
   const snapToGrid = useStore((state) => state.snapToGrid);
   const setSnapToGrid = useStore((state) => state.setSnapToGrid);
 
+  const snapToObjects = useStore((state) => state.snapToObjects);
+  const setSnapToObjects = useStore((state) => state.setSnapToObjects);
+
   const gridSize = useStore((state) => state.gridSize);
   const setGridSize = useStore((state) => state.setGridSize);
 
@@ -131,6 +134,13 @@ function SettingsContent() {
             label="Snap to Grid"
             isSelected={snapToGrid}
             onChange={setSnapToGrid}
+            icon={Magnet}
+          />
+
+          <PropertySwitch
+            label="Snap to Objects"
+            isSelected={snapToObjects}
+            onChange={setSnapToObjects}
             icon={Magnet}
           />
 
