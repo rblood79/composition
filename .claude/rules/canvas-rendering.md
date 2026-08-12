@@ -220,6 +220,7 @@ ParagraphStyle 변경 시 **3곳 동시 업데이트** 필수: canvaskitTextMeas
 
 - 호버 아웃라인은 **선택 박스와 다르다**. 선택 박스는 핸들을 잡아야 하므로 부분 클립돼도 원본 박스를 유지하지만, 호버 아웃라인은 조작 대상이 없는 순간 피드백이라 가시 영역만 그린다. 전부 잘리면 아웃라인 자체를 생성하지 않는다. **Why (2026-07-24 사용자 보고)**: slot 컴포넌트에 마우스를 올린 채 스크롤해 컨테이너가 프레임 밖으로 밀리면, 자식 점선만 사라지고 **실선 아웃라인은 캔버스 배경에 그대로 남았다** (context 분기만 `treeBoundsMap` 을 쓰고 있었음).
 - 단 **page body 는 예외** — 조상이 없어 clip 대상이 아니고 두 맵 모두에 없을 수 있다. `resolvePageBodyBounds` 프레임 경계 폴백을 그대로 둔다.
+- **페이지끼리는 조상 관계가 아니라 `hitBoundsMap` 클립이 잡지 못한다** (2026-08-12). 겹친 페이지의 가림은 페인트 순서(활성 페이지 최상단 — `pagePaintOrder.ts::orderPagesForPaint`)의 산물이므로, 콘텐츠성 chrome(슬롯 해치/테두리, collection remainder, hover 아웃라인)은 target 에 소유 `pageId` 를 싣고 오버레이 패스에서 `withPageOcclusionClip`(`skiaOverlayBuilder.ts`) 이 소유 페이지보다 페인트 순서가 뒤인 페이지 rect 를 `ClipOp.Difference` 로 제외하고 그린다 — 페이지 테두리 `renderFrameAreaBorder` 의 순서 기반 occlusion 과 동일 규칙. **Why (2026-08-12 사용자 보고)**: 아래 페이지의 빈 슬롯 해치가 위(활성) 페이지 body 위에 그대로 그려졌다.
 
 - 클립 교차는 `intersectBoxes()` (`selection/types.ts`) 단일 수식. 렌더 커맨드의 조상 clip 교차와 오버레이 가시 영역 산출이 같은 함수를 쓴다.
 - padding inset 같은 **요소 상대** 변환은 원본 박스 기준으로 먼저 하고, 가시 영역 클립은 **그 다음**이다. 순서를 바꾸면 잘린 요소의 inset 이 잘린 박스 기준이 돼 어긋난다.
@@ -236,6 +237,7 @@ ParagraphStyle 변경 시 **3곳 동시 업데이트** 필수: canvaskitTextMeas
 - ❌ 포인터 판정에 `boundsMap` / `getSceneBounds` 사용 → `hitBoundsMap` / `getSceneHitBounds` 필수
 - ❌ **선택 박스·핸들·프레임 타이틀**·측정에 `hitBoundsMap` 사용 → 부분 클립 요소의 선택 박스·텍스트 편집 위치가 잘림
 - ❌ **콘텐츠성 오버레이 chrome**(slot 해치/테두리, collection remainder, 자식 가이드라인)에 `boundsMap` 사용 → 오버레이 패스는 씬 clip 밖이라 프레임·overflow 컨테이너를 뚫고 그려진다
+- ❌ 콘텐츠성 chrome 을 `withPageOcclusionClip` 없이 직접 render → 조상 clip(`hitBoundsMap`)은 페이지 간 가림을 모른다 — 아래 페이지 chrome 이 위 페이지 body 를 가로지른다
 - ❌ 오버레이 chrome 에서 요소 상대 변환(padding inset 등)을 클립 **뒤**에 적용 → 잘린 박스 기준 inset 으로 어긋남
 - ❌ 클립 교차를 지역 헬퍼로 재구현 → `intersectBoxes()` (`selection/types.ts`) 단일 수식 사용
 - ❌ `visitElement` 에 clip 파라미터를 추가하면서 자식 재귀에 전달 누락 → 조상 clip 이 한 단계에서 끊김

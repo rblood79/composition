@@ -479,21 +479,25 @@ describe("buildSlotMarkerTargets", () => {
     expect(targets).toEqual([
       {
         bounds: { x: 0, y: 0, width: 100, height: 40 },
+        pageId: "page-1",
         showHatch: true,
         slotMarkerRole: "origin",
       },
       {
         bounds: { x: 0, y: 120, width: 100, height: 40 },
+        pageId: "page-1",
         showHatch: true,
         slotMarkerRole: "origin",
       },
       {
         bounds: { x: 0, y: 180, width: 100, height: 40 },
+        pageId: "page-1",
         showHatch: true,
         slotMarkerRole: "origin",
       },
       {
         bounds: { x: 0, y: 420, width: 100, height: 40 },
+        pageId: "page-1",
         showHatch: true,
         slotMarkerRole: "origin",
       },
@@ -535,6 +539,7 @@ describe("buildSlotMarkerTargets", () => {
     expect(targets).toEqual([
       {
         bounds: { x: 4, y: 4, width: 192, height: 32 },
+        pageId: "page-1",
         showHatch: true,
         slotMarkerRole: "instance",
       },
@@ -623,21 +628,25 @@ describe("buildSlotMarkerTargets", () => {
     expect(targets).toEqual([
       {
         bounds: { x: 12, y: 12, width: 76, height: 16 },
+        pageId: "page-1",
         showHatch: true,
         slotMarkerRole: "origin",
       },
       {
         bounds: { x: 20, y: 65, width: 70, height: 20 },
+        pageId: "page-1",
         showHatch: true,
         slotMarkerRole: "origin",
       },
       {
         bounds: { x: 30, y: 128, width: 62, height: 24 },
+        pageId: "page-1",
         showHatch: true,
         slotMarkerRole: "origin",
       },
       {
         bounds: { x: 0, y: 180, width: 100, height: 40 },
+        pageId: "page-1",
         showHatch: true,
         slotMarkerRole: "origin",
       },
@@ -668,6 +677,7 @@ describe("buildSlotMarkerTargets", () => {
     expect(targets).toEqual([
       {
         bounds: { x: 4, y: 4, width: 92, height: 32 },
+        pageId: "page-1",
         showHatch: true,
         slotMarkerRole: "origin",
       },
@@ -695,6 +705,7 @@ describe("buildSlotMarkerTargets", () => {
     expect(targets).toEqual([
       {
         bounds: { x: 10, y: 10, width: 80, height: 20 },
+        pageId: "page-1",
         showHatch: true,
         slotMarkerRole: "origin",
       },
@@ -737,6 +748,7 @@ describe("slot / remainder chrome 은 조상 clip 을 따른다", () => {
     expect(targets).toEqual([
       {
         bounds: { x: 0, y: 0, width: 100, height: 25 },
+        pageId: "page-1",
         showHatch: true,
         slotMarkerRole: "origin",
       },
@@ -762,7 +774,11 @@ describe("slot / remainder chrome 은 조상 clip 을 따른다", () => {
     );
 
     expect(targets).toEqual([
-      { bounds: { x: 10, y: 100, width: 200, height: 30 }, hiddenRows: 7 },
+      {
+        bounds: { x: 10, y: 100, width: 200, height: 30 },
+        hiddenRows: 7,
+        pageId: "page-1",
+      },
     ]);
   });
 
@@ -786,6 +802,7 @@ describe("slot / remainder chrome 은 조상 clip 을 따른다", () => {
     ).toEqual([
       {
         bounds: { x: 0, y: 0, width: 100, height: 40 },
+        pageId: "page-1",
         showHatch: true,
         slotMarkerRole: "origin",
       },
@@ -835,11 +852,13 @@ describe("slot / remainder chrome 은 페이지 드래그 transient 위치를 �
     expect(targets).toEqual([
       {
         bounds: { x: 30, y: 50, width: 100, height: 40 },
+        pageId: "page-1",
         showHatch: true,
         slotMarkerRole: "origin",
       },
       {
         bounds: { x: 500, y: 0, width: 100, height: 40 },
+        pageId: "page-2",
         showHatch: true,
         slotMarkerRole: "origin",
       },
@@ -858,6 +877,7 @@ describe("slot / remainder chrome 은 페이지 드래그 transient 위치를 �
     expect(targets).toEqual([
       {
         bounds: { x: 30, y: 50, width: 100, height: 25 },
+        pageId: "page-1",
         showHatch: true,
         slotMarkerRole: "origin",
       },
@@ -881,7 +901,11 @@ describe("slot / remainder chrome 은 페이지 드래그 transient 위치를 �
     );
 
     expect(targets).toEqual([
-      { bounds: { x: 40, y: 150, width: 200, height: 80 }, hiddenRows: 7 },
+      {
+        bounds: { x: 40, y: 150, width: 200, height: 80 },
+        hiddenRows: 7,
+        pageId: "page-1",
+      },
     ]);
   });
 
@@ -897,6 +921,7 @@ describe("slot / remainder chrome 은 페이지 드래그 transient 위치를 �
     expect(targets).toEqual([
       {
         bounds: { x: 0, y: 0, width: 100, height: 40 },
+        pageId: "page-1",
         showHatch: true,
         slotMarkerRole: "origin",
       },

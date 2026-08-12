@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [겹친 page 의 콘텐츠성 chrome 페이지 간 occlusion — 빈 slot 해치] - 2026-08-12
+
+### Bug Fixes
+
+- **아래 page 의 빈 slot 해치가 위(활성) page body 위에 그려지던 문제**:
+  - 콘텐츠성 오버레이 chrome(슬롯 해치/테두리, collection remainder, hover 아웃라인)의 가시성 클립(`hitBoundsMap`)은 **조상** clip 만 반영한다 — 페이지끼리는 조상 관계가 아니라 페이지 간 occlusion 이 걸리지 않았고, 오버레이 패스는 씬 content 위에서 돌아 아래 페이지의 chrome 이 위 페이지 body 를 그대로 가로질렀다
+  - **Why**: 페이지 간 가림은 페인트 순서(활성 페이지 최상단 — `orderPagesForPaint`)의 산물이라 조상 clip 모델 밖 — 페이지 테두리(`renderFrameAreaBorder`)에 이미 적용한 순서 기반 `ClipOp.Difference` occlusion 을 콘텐츠성 chrome 에도 적용해야 한다
+  - 수정: chrome target 에 소유 `pageId` 를 싣고, `withPageOcclusionClip` 이 소유 페이지보다 페인트 순서가 뒤인 페이지 rect 를 제외하고 그림 — 슬롯 해치 / collection remainder / hover 아웃라인 3종 적용. 소유 페이지가 활성(최상단)이면 클립 없음
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{skiaOverlayBuilder,skiaOverlayHelpers}.ts`
+
 ## [Page body 첫 클릭 제스처에서 바로 드래그] - 2026-08-12
 
 ### Bug Fixes

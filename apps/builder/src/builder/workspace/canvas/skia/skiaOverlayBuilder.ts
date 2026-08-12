@@ -237,6 +237,63 @@ function resolveCanvasBorderColor(): readonly [number, number, number] {
   );
 }
 
+interface OcclusionPageFrame {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * 콘텐츠성 오버레이 chrome(슬롯 해치/테두리, collection remainder, hover 아웃라인)의
+ * 페이지 간 occlusion clip.
+ *
+ * 오버레이 패스는 씬 content 위에서 돌므로, 페인트 순서상 아래인 페이지의 chrome 이
+ * 위 페이지 body 를 가로질러 그려진다. `hitBoundsMap` 클립(§8.5)은 **조상** clip 만
+ * 반영하고 페이지끼리는 조상 관계가 아니라서 여기서만 잡을 수 있다 — 2026-08-12
+ * 사용자 보고: 아래 페이지의 빈 슬롯 해치가 위(활성) 페이지 body 위에 그대로 표시.
+ *
+ * renderFrameAreaBorder 의 순서 기반 occlusion 과 같은 규칙: 소유 페이지보다 페인트
+ * 순서(orderPagesForPaint — 활성 페이지 최상단)가 뒤인 페이지 rect 를 ClipOp.Difference
+ * 로 제외하고 그린다. 소유 페이지가 최상단이거나 프레임 목록에 없으면 클립 없이 그린다.
+ */
+function withPageOcclusionClip(
+  ck: CanvasKit,
+  canvas: Canvas,
+  ownerPageId: string | null,
+  paintOrderedFrames: readonly OcclusionPageFrame[],
+  pagePositionSnapshot: PagePositionPresentationSnapshot | undefined,
+  draw: () => void,
+): void {
+  const ownerIndex = ownerPageId
+    ? paintOrderedFrames.findIndex((frame) => frame.id === ownerPageId)
+    : -1;
+  if (ownerIndex < 0 || ownerIndex >= paintOrderedFrames.length - 1) {
+    draw();
+    return;
+  }
+  canvas.save();
+  for (let i = ownerIndex + 1; i < paintOrderedFrames.length; i++) {
+    const above = paintOrderedFrames[i];
+    const delta = pagePositionSnapshot
+      ? readPagePositionDelta(above.id, pagePositionSnapshot)
+      : null;
+    canvas.clipRect(
+      ck.XYWHRect(
+        above.x + (delta?.dx ?? 0),
+        above.y + (delta?.dy ?? 0),
+        above.width,
+        above.height,
+      ),
+      ck.ClipOp.Difference,
+      true,
+    );
+  }
+  draw();
+  canvas.restore();
+}
+
 /**
  * 오버레이 SkiaRenderable을 빌드한다.
  * AI 이펙트, 페이지 타이틀, 워크플로우, 호버, 선택, 미니맵을
@@ -297,6 +354,12 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
       // bounds Map 은 매 프레임 갱신 — stale pageId (예: 페이지 삭제 후) 가 남지 않도록 clear.
       if (pageTitleBoundsMap) pageTitleBoundsMap.clear();
       const frames = visiblePageFrames ?? [];
+      // 페인트 순서(활성 페이지 마지막) — 테두리 occlusion + 콘텐츠성 chrome
+      // (슬롯 해치 / remainder / hover) 의 페이지 간 occlusion clip 이 공유한다.
+      const paintOrderedFrames = orderPagesForPaint(
+        frames,
+        selection.currentPageId,
+      );
       if (frames.length > 0) {
         // 테두리는 페인트 순서(활성 페이지 마지막)로 — 아래 페이지 테두리가
         // 위 페이지 body 를 가로지르지 않도록 renderFrameAreaBorder 가
@@ -304,7 +367,7 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
         renderFrameAreaBorder(
           ck,
           canvas,
-          orderPagesForPaint(frames, selection.currentPageId),
+          paintOrderedFrames,
           cameraZoom,
           resolveCanvasBorderColor(),
           pagePositionSnapshot,
@@ -474,6 +537,8 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
       // ── Slot Markers (Pencil-style authoring chrome) ──
       // 페이지 드래그 중 transient 위치를 반영해야 content 와 함께 움직인다
       // (미전달 시 드롭 후에만 한 번에 이동 — 2026-08-11 사용자 보고).
+      // 페이지 간 occlusion 은 withPageOcclusionClip — 아래 페이지의 빈 슬롯
+      // 해치가 위 페이지 body 위에 그려지지 않도록 (2026-08-12 사용자 보고).
       const slotMarkerTargets = buildSlotMarkerTargets(
         treeBoundsMap,
         elementsMap,
@@ -482,13 +547,21 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
         pagePositionSnapshot,
       );
       for (const target of slotMarkerTargets) {
-        renderSlotHatchPattern(
+        withPageOcclusionClip(
           ck,
           canvas,
-          target.bounds,
-          cameraZoom,
-          target.slotMarkerRole,
-          target.showHatch,
+          target.pageId,
+          paintOrderedFrames,
+          pagePositionSnapshot,
+          () =>
+            renderSlotHatchPattern(
+              ck,
+              canvas,
+              target.bounds,
+              cameraZoom,
+              target.slotMarkerRole,
+              target.showHatch,
+            ),
         );
       }
 
@@ -500,13 +573,21 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
         pagePositionSnapshot,
       );
       for (const target of remainderTargets) {
-        renderCollectionRemainderMarker(
+        withPageOcclusionClip(
           ck,
           canvas,
-          target.bounds,
-          target.hiddenRows,
-          cameraZoom,
-          fontMgr,
+          target.pageId,
+          paintOrderedFrames,
+          pagePositionSnapshot,
+          () =>
+            renderCollectionRemainderMarker(
+              ck,
+              canvas,
+              target.bounds,
+              target.hiddenRows,
+              cameraZoom,
+              fontMgr,
+            ),
         );
       }
 
@@ -557,13 +638,21 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
           pagePositionSnapshot,
         );
         for (const target of hoverTargets) {
-          renderHoverHighlight(
+          withPageOcclusionClip(
             ck,
             canvas,
-            target.bounds,
-            cameraZoom,
-            target.dashed,
-            target.semanticRole ?? target.slotMarkerRole,
+            target.pageId,
+            paintOrderedFrames,
+            pagePositionSnapshot,
+            () =>
+              renderHoverHighlight(
+                ck,
+                canvas,
+                target.bounds,
+                cameraZoom,
+                target.dashed,
+                target.semanticRole ?? target.slotMarkerRole,
+              ),
           );
         }
 

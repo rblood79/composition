@@ -33,12 +33,16 @@ import {
 export interface HoverHighlightTarget {
   dashed: boolean;
   bounds: BoundingBox;
+  /** 소유 페이지 — 페인트 순서상 위 페이지에 가려지는 부분을 clip 하기 위한 키 */
+  pageId: string | null;
   semanticRole: EditingSemanticsRole | null;
   slotMarkerRole: EditingSemanticsRole | null;
 }
 
 export interface SlotMarkerTarget {
   bounds: BoundingBox;
+  /** 소유 페이지 — 페인트 순서상 위 페이지에 가려지는 부분을 clip 하기 위한 키 */
+  pageId: string | null;
   showHatch: boolean;
   slotMarkerRole: EditingSemanticsRole;
 }
@@ -46,6 +50,18 @@ export interface SlotMarkerTarget {
 export interface CollectionRemainderTarget {
   bounds: BoundingBox;
   hiddenRows: number;
+  /** 소유 페이지 — 페인트 순서상 위 페이지에 가려지는 부분을 clip 하기 위한 키 */
+  pageId: string | null;
+}
+
+/**
+ * chrome 소유 페이지 판독. 페이지 간 occlusion clip(skiaOverlayBuilder
+ * `withPageOcclusionClip`)의 키 — hitBoundsMap 은 **조상** clip 만 알고
+ * 페이지끼리는 조상 관계가 아니라서, 아래 페이지의 콘텐츠성 chrome 이
+ * 위 페이지 body 를 가로지르는 것은 여기 실린 pageId 로만 잡을 수 있다.
+ */
+function readOwnerPageId(element: CanvasSceneNode | undefined): string | null {
+  return element?.pageId ?? element?.page_id ?? null;
 }
 
 export interface PageTitleRenderItem {
@@ -124,6 +140,7 @@ export function buildHoverHighlightTargets(
       targets.push({
         bounds: contextBounds,
         dashed: false,
+        pageId: readOwnerPageId(elementsMap.get(hoveredContextId)),
         semanticRole: getEditingSemanticsRole(
           elementsMap.get(hoveredContextId),
         ),
@@ -142,6 +159,7 @@ export function buildHoverHighlightTargets(
         targets.push({
           bounds: leafBounds,
           dashed: true,
+          pageId: readOwnerPageId(elementsMap.get(leafId)),
           semanticRole: getEditingSemanticsRole(elementsMap.get(leafId)),
           slotMarkerRole: getEditingSlotMarkerRole(
             elementsMap.get(leafId),
@@ -269,6 +287,7 @@ export function buildSlotMarkerTargets(
 
     targets.push({
       bounds: translateByPageDelta(chromeBounds, element, pagePositionSnapshot),
+      pageId: readOwnerPageId(element),
       showHatch: true,
       slotMarkerRole,
     });
@@ -300,6 +319,7 @@ export function buildCollectionRemainderTargets(
     targets.push({
       bounds: translateByPageDelta(chromeBounds, element, pagePositionSnapshot),
       hiddenRows: projection.hiddenRows,
+      pageId: readOwnerPageId(element),
     });
   }
 
