@@ -86,6 +86,8 @@ import {
   readPagePositionDelta,
   type PagePositionPresentationSnapshot,
 } from "../interaction/pagePositionPresentation";
+import { getSnapGuidePresentationSnapshot } from "../interaction/snapGuidePresentation";
+import { renderSnapGuides } from "./snapGuideRenderer";
 
 // ============================================
 // Workflow Overlay Data
@@ -741,6 +743,15 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
             renderOverflowHatching(ck, canvas, ctx, cameraZoom);
           }
         }
+      }
+
+      // ── Snap Guides (ADR-179 — 드래그 흡착 정렬선) ──
+      // 조작 표식이라 withPageOcclusionClip 미적용 (breakdown §3.3 판정).
+      // guides 는 position publish 와 동행 변경이므로 별도 invalidation 채널
+      // 없이 렌더 시점 snapshot 을 읽는다 (snapGuidePresentation 순서 계약).
+      const snapGuides = getSnapGuidePresentationSnapshot().guides;
+      if (snapGuides.length > 0) {
+        renderSnapGuides(ck, canvas, snapGuides, cameraZoom);
       }
 
       // ── Minimap ──
