@@ -37,8 +37,19 @@ import { captureCanonicalNodeLocations } from "../../../stores/history/canonical
 import { trackCanonicalMove } from "../../../stores/utils/historyHelpers";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { getDB } from "../../../../lib/db";
-import { hitTestPoint } from "../wasm-bindings/spatialIndex";
+import { hitTestPoint, queryRect } from "../wasm-bindings/spatialIndex";
 import { getSceneBounds } from "../skia/renderCommands";
+import { useViewportSyncStore } from "../stores";
+import {
+  resolveSnappedPosition,
+  SNAP_THRESHOLD_SCREEN_PX,
+  type SnapCandidateRect,
+} from "../interaction/snapGuides";
+import {
+  clearSnapGuides,
+  publishSnapGuides,
+} from "../interaction/snapGuidePresentation";
+import { isDragSnapSuppressed } from "../interaction/dragModifiers";
 import type { BoundingBox } from "../selection/types";
 import {
   moveElementToCanonicalTarget,
@@ -344,6 +355,80 @@ async function cloneDragTargetsAtDrop(
 interface MultiDragSession {
   ids: string[];
   idSet: ReadonlySet<string>;
+  /**
+   * ADR-179 Phase 3: absolute 리더의 스냅 컨텍스트 — 첫 manual 프레임 1회
+   * 수집 (R1 동형). null = 수집 불가 (부모 bounds 부재 등), undefined = 미시도.
+   */
+  snapContext?: {
+    leaderStart: BoundingBox;
+    candidates: SnapCandidateRect[];
+  } | null;
+  /**
+   * ADR-179: 마지막 프레임의 스냅 반영 델타 — 드롭 커밋이 시각적 위치와
+   * 같은 좌표를 쓰도록 onMoveEnd 가 raw delta 대신 소비한다.
+   */
+  snapDelta?: { x: number; y: number };
+}
+
+/**
+ * ADR-179 Phase 3: absolute 드래그 스냅 후보 — 리더의 형제(같은 부모) +
+ * 부모 컨테이너 박스. SpatialIndex `queryRect`(부모 rect) 로 좁힌 뒤 형제만
+ * 남긴다 (C9). 드래그 시작 시 1회 수집 (R1 상한), bounds 는 원본 박스
+ * (`getSceneBounds` — 스냅 기하는 클립과 무관).
+ */
+function buildManualSnapContext(
+  leaderId: string,
+  leader: CanvasInteractionNode,
+  targetIdSet: ReadonlySet<string>,
+  dragStore: DragReadModel,
+): { leaderStart: BoundingBox; candidates: SnapCandidateRect[] } | null {
+  const leaderStart = getSceneBounds(leaderId);
+  if (!leaderStart) {
+    return null;
+  }
+
+  const parentId = leader.parent_id ?? null;
+  const parentBounds = parentId ? getSceneBounds(parentId) : null;
+  const candidates: SnapCandidateRect[] = [];
+  if (parentId && parentBounds) {
+    candidates.push({
+      id: parentId,
+      x: parentBounds.x,
+      y: parentBounds.y,
+      width: parentBounds.width,
+      height: parentBounds.height,
+    });
+    const nearby = queryRect(
+      parentBounds.x,
+      parentBounds.y,
+      parentBounds.x + parentBounds.width,
+      parentBounds.y + parentBounds.height,
+    );
+    for (const id of nearby) {
+      if (id === leaderId || id === parentId || targetIdSet.has(id)) continue;
+      if (dragStore.elementsById.get(id)?.parent_id !== parentId) continue;
+      const bounds = getSceneBounds(id);
+      if (bounds) {
+        candidates.push({
+          id,
+          x: bounds.x,
+          y: bounds.y,
+          width: bounds.width,
+          height: bounds.height,
+        });
+      }
+    }
+  }
+
+  return {
+    leaderStart: {
+      x: leaderStart.x,
+      y: leaderStart.y,
+      width: leaderStart.width,
+      height: leaderStart.height,
+    },
+    candidates,
+  };
 }
 
 /**
@@ -527,7 +612,49 @@ export function useDragBridge({
 
       const dragged = dragStore.elementsById.get(draggedId);
       if (isManualPositionDragTarget(dragged)) {
-        setDragVisualOffset(session.idSet, delta.x, delta.y);
+        // ADR-179 Phase 3: 객체 스냅 — 리더 시작 bounds 를 형제/부모 후보의
+        // 6축에 흡착시킨 델타를 시각 오프셋·커밋(session.snapDelta) 이 공유.
+        // 다중 드래그는 리더 스냅 델타를 전 대상이 공유 (페이지 축과 동형).
+        if (session.snapContext === undefined) {
+          session.snapContext = dragged
+            ? buildManualSnapContext(
+                draggedId,
+                dragged,
+                session.idSet,
+                dragStore,
+              )
+            : null;
+        }
+        let effectiveDelta = delta;
+        const snapContext = session.snapContext;
+        if (
+          snapContext &&
+          !isDragSnapSuppressed() &&
+          snapContext.candidates.length > 0
+        ) {
+          const zoom = useViewportSyncStore.getState().zoom;
+          const snapped = resolveSnappedPosition(
+            {
+              x: snapContext.leaderStart.x + delta.x,
+              y: snapContext.leaderStart.y + delta.y,
+            },
+            {
+              width: snapContext.leaderStart.width,
+              height: snapContext.leaderStart.height,
+            },
+            snapContext.candidates,
+            SNAP_THRESHOLD_SCREEN_PX / (zoom === 0 ? 1 : zoom),
+          );
+          effectiveDelta = {
+            x: snapped.position.x - snapContext.leaderStart.x,
+            y: snapped.position.y - snapContext.leaderStart.y,
+          };
+          publishSnapGuides(snapped.guides);
+        } else {
+          publishSnapGuides([]);
+        }
+        session.snapDelta = effectiveDelta;
+        setDragVisualOffset(session.idSet, effectiveDelta.x, effectiveDelta.y);
         updateAnimationTargets(null);
         setDragSiblingOffsets(null);
         let resolved = resolveDropTarget(
@@ -694,6 +821,11 @@ export function useDragBridge({
       const finalTarget = lastResolvedDropTargetRef.current;
       const session = dragSessionRef.current;
       dragSessionRef.current = null;
+      // ADR-179: 시각적 위치와 같은 좌표로 커밋 — 마지막 프레임의 스냅 델타
+      // 소비 (endDrag 의 delta 는 마지막 pointermove 와 동일 좌표에서 파생).
+      // flow 드래그는 snapDelta 미설정이라 raw delta 그대로.
+      const effectiveDelta = session?.snapDelta ?? _delta;
+      clearSnapGuides();
 
       // ADR-178 Phase 3: Alt 드래그 복제 — 원본 무변경, 복제본을 델타
       // 위치에 생성 (시각 해제로 원본은 제자리 복귀)
@@ -704,7 +836,10 @@ export function useDragBridge({
         setDragSiblingOffsets(null);
         lastResolvedDropTargetRef.current = null;
         dropIndicatorSnapshotRef.current = null;
-        void cloneDragTargetsAtDrop(session?.ids ?? [elementId], _delta);
+        void cloneDragTargetsAtDrop(
+          session?.ids ?? [elementId],
+          effectiveDelta,
+        );
         return;
       }
 
@@ -716,7 +851,7 @@ export function useDragBridge({
         lastResolvedDropTargetRef.current = null;
         dropIndicatorSnapshotRef.current = null;
         commitMultiDragDrop({
-          delta: _delta,
+          delta: effectiveDelta,
           dragStore,
           finalTarget,
           session,
@@ -743,7 +878,7 @@ export function useDragBridge({
           dragged,
           manualDropTarget,
           dragStore,
-          _delta,
+          effectiveDelta,
         );
         const canonicalTarget = resolveCanonicalMoveTarget({
           renderTargetId: manualDropTarget.containerId,
@@ -782,7 +917,7 @@ export function useDragBridge({
 
       const manualPositionProps = resolveManualPositionDragProps(
         dragged,
-        _delta,
+        effectiveDelta,
       );
       if (manualPositionProps) {
         void state.batchUpdateElementProps([
@@ -857,6 +992,7 @@ export function useDragBridge({
       lastResolvedDropTargetRef.current = null;
       dragSessionRef.current = null;
       armDragAltClone(false);
+      clearSnapGuides();
     };
   }, [
     enabled,

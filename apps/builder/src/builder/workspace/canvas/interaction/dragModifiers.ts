@@ -31,6 +31,19 @@ export function applyAxisLockToDelta(dx: number, dy: number): DragPoint {
   return Math.abs(dx) >= Math.abs(dy) ? { x: dx, y: 0 } : { x: 0, y: dy };
 }
 
+// ADR-179: Cmd/Ctrl 홀드 = 전 스냅 억제 — pointer handler(pointermove 세팅)와
+// useDragBridge(스냅 판정 소비)가 공유하는 세션 플래그 (Alt arm 동형).
+// pointerup 시 반드시 해제된다.
+let snapSuppressed = false;
+
+export function setDragSnapSuppressed(suppressed: boolean): void {
+  snapSuppressed = suppressed;
+}
+
+export function isDragSnapSuppressed(): boolean {
+  return snapSuppressed;
+}
+
 // Alt 드래그 복제 arm — pointerdown(요소 pendingDrag 설정 시점)의 altKey.
 // pointer handler(세팅)와 useDragBridge(드롭 소비)가 모듈 경계를 넘어
 // 공유하는 세션 플래그다. 드롭/취소 시 반드시 해제된다.

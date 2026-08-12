@@ -16,6 +16,8 @@ export {
   applyAxisLockToDelta,
   armDragAltClone,
   isDragAltCloneArmed,
+  setDragSnapSuppressed,
+  isDragSnapSuppressed,
   type DragPoint,
 } from "./dragModifiers";
 export {

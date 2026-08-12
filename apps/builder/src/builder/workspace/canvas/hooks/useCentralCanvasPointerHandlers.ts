@@ -15,6 +15,7 @@ import {
   resolveDoubleClickTargetId,
   applyAxisLock,
   armDragAltClone,
+  setDragSnapSuppressed,
   resolveCanvasInteractionTarget,
   resolveMultiDragTargets,
   resolveSelectedPageIds,
@@ -625,6 +626,8 @@ export function useCentralCanvasPointerHandlers({
           if (event.shiftKey) {
             canvasPos = applyAxisLock(pending.startCanvasPos, canvasPos);
           }
+          // ADR-179: Cmd/Ctrl 홀드 = 전 스냅 억제 (useDragBridge 스냅 판정 소비)
+          setDragSnapSuppressed(event.metaKey || event.ctrlKey);
           onUpdateDrag.current(canvasPos);
         }
         return;
@@ -679,6 +682,8 @@ export function useCentralCanvasPointerHandlers({
         // 드래그로 승격되지 않은 press — Alt 복제 arm 잔류 방지
         armDragAltClone(false);
       }
+      // ADR-179: 스냅 억제 플래그 세션 잔류 방지
+      setDragSnapSuppressed(false);
       pendingDragRef.current = null;
       isDraggingRef.current = false;
     };
