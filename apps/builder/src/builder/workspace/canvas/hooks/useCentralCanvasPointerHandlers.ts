@@ -14,6 +14,7 @@ import {
   resolveBodySelection,
   resolveDoubleClickTargetId,
   resolveCanvasInteractionTarget,
+  resolveMultiDragTargets,
   resolveSelectionDragIntent,
   resolveSelectionHit,
   resolveTopPageIdAtPoint,
@@ -376,13 +377,18 @@ export function useCentralCanvasPointerHandlers({
         handleElementClickRef.current(hitElementId, modifiers);
 
         // ADR-043: 선택 즉시 pendingDrag 설정 — 첫 클릭에서 바로 드래그 가능
-        // handleElementClick이 동기적으로 store를 갱신한 후 bounds 재계산
-        const hitElement = hitElementsMap.get(hitElementId);
-        if (hitElement && hitElement.type.toLowerCase() !== "body") {
+        // handleElementClick이 동기적으로 store를 갱신한 후 bounds 재계산.
+        // ADR-178: shift 클릭으로 다중 확장된 직후에도 정규화 리더로 잡는다
+        // (body 제외 + 조상 우선 — resolveMultiDragTargets 단일 진입점).
+        const freshDragTargets = resolveMultiDragTargets({
+          elementsMap: hitElementsMap,
+          selectedIds: useStore.getState().selectedElementIds,
+        });
+        if (freshDragTargets.length > 0) {
           const freshBounds = computeSelectionBoundsForHitTest();
           if (freshBounds) {
             pendingDragRef.current = {
-              elementId: hitElementId,
+              elementId: freshDragTargets[0],
               bounds: freshBounds,
               startCanvasPos: canvasPos,
               startClientX: event.clientX,
@@ -425,10 +431,17 @@ export function useCentralCanvasPointerHandlers({
           lastClickTargetRef.current = session.lastClickTargetId;
           lastClickTimeRef.current = session.lastClickTime;
 
-          // Body 요소는 drag 대상에서 제외
-          if (targetId && selectedElement?.type.toLowerCase() !== "body") {
+          // ADR-178: 정규화 리더로 pendingDrag — body 는 요소 드래그 대상이
+          // 아니다. 종전에는 다중 선택 시 body 가드(selectedElement 는 선택
+          // 1개일 때만 조회)가 무조건 통과해 selectedIds[0](body 가능)로
+          // 드래그가 시작되는 엣지가 있었다 (breakdown §2.1).
+          const dragTargets = resolveMultiDragTargets({
+            elementsMap: hitElementsMap,
+            selectedIds,
+          });
+          if (dragTargets.length > 0) {
             pendingDragRef.current = {
-              elementId: targetId,
+              elementId: dragTargets[0],
               bounds: selectionBounds,
               startCanvasPos: canvasPos,
               startClientX: event.clientX,
@@ -550,9 +563,17 @@ export function useCentralCanvasPointerHandlers({
         if (!isDraggingRef.current && dist >= DRAG_THRESHOLD) {
           // threshold 초과 → 드래그 시작
           isDraggingRef.current = true;
-          // store에서 최신 selectedElementIds 읽기 (stale closure 방지)
-          const currentId =
-            useStore.getState().selectedElementIds[0] ?? pending.elementId;
+          // store에서 최신 selectedElementIds 읽기 (stale closure 방지) —
+          // ADR-178: 정규화 리더 (body 제외 + 조상 우선). pendingDrag 설정
+          // 시점과 같은 판정이라 통상 일치하고, 선택이 그새 바뀐 경우를 보정.
+          const currentMap = getHitElementsMap?.();
+          const currentTargets = currentMap
+            ? resolveMultiDragTargets({
+                elementsMap: currentMap,
+                selectedIds: useStore.getState().selectedElementIds,
+              })
+            : [];
+          const currentId = currentTargets[0] ?? pending.elementId;
           onStartMove.current(
             currentId,
             pending.bounds,

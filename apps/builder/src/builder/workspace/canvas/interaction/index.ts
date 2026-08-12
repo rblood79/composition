@@ -1,6 +1,8 @@
 export {
   computeSelectionBounds,
+  isContainerWithinDragTargets,
   resolveBodySelection,
+  resolveMultiDragTargets,
   resolveSelectedElementsForPage,
   resolveSelectionDragIntent,
   resolveSelectionHit,

@@ -40,9 +40,16 @@ import { getDB } from "../../../../lib/db";
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
 import { getSceneBounds } from "../skia/renderCommands";
 import type { BoundingBox } from "../selection/types";
-import { moveElementToCanonicalTarget } from "../../../../adapters/canonical/canonicalMutations";
+import {
+  moveElementToCanonicalTarget,
+  moveElementsToCanonicalTarget,
+} from "../../../../adapters/canonical/canonicalMutations";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
-import { resolveCanonicalMoveTarget } from "../interaction";
+import {
+  isContainerWithinDragTargets,
+  resolveCanonicalMoveTarget,
+  resolveMultiDragTargets,
+} from "../interaction";
 import { resolveAbsoluteFlowReparentProps } from "../../../utils/absolutePositioning";
 
 type SceneBoundsResolver = (
@@ -292,6 +299,147 @@ export function resolveManualPositionDropTarget(
   return isCrossPage ? target : null;
 }
 
+/** ADR-178: 드래그 세션당 1회 정규화된 다중 드래그 대상 (ids[0] = 리더). */
+interface MultiDragSession {
+  ids: string[];
+  idSet: ReadonlySet<string>;
+}
+
+/**
+ * 다중 드래그 드롭 커밋 — ADR-178 HC2: canonical batch move 1회 + 히스토리
+ * 1 entry (`runInTransaction` 병합). 대상별 현행 규칙 유지 — flow 는 순서/
+ * 재부모화, absolute 는 left/top (reparent 된 absolute 만 drop 규칙).
+ */
+function commitMultiDragDrop({
+  delta,
+  dragStore,
+  finalTarget,
+  session,
+}: {
+  delta: { x: number; y: number };
+  dragStore: DragReadModel;
+  finalTarget: DropTarget | null;
+  session: MultiDragSession;
+}): void {
+  const leaderId = session.ids[0];
+
+  // R2 lock — 타겟이 대상 집합의 자신/자손이면 무효 (부분 적용 대신 전체 취소)
+  let target = finalTarget;
+  if (
+    target &&
+    isContainerWithinDragTargets({
+      containerId: target.containerId,
+      elementsMap: dragStore.elementsById,
+      targetIds: session.idSet,
+    })
+  ) {
+    target = null;
+  }
+
+  const leader = dragStore.elementsById.get(leaderId);
+  const leaderIsManual = isManualPositionDragTarget(leader);
+  // 리더가 absolute 면 단일 경로와 같은 가드 (flow 컨테이너 / body escape /
+  // cross-page 만 reparent) 를 통과해야 canonical 이동 대상이다.
+  const reparentTarget = leaderIsManual
+    ? resolveManualPositionDropTarget(leader, target, dragStore)
+    : target && !target.isAdjacentInsertion
+      ? target
+      : null;
+  const canonicalTarget = reparentTarget
+    ? resolveCanonicalMoveTarget({
+        renderTargetId: reparentTarget.containerId,
+        insertionIndex: reparentTarget.insertionIndex,
+        elementsMap: dragStore.elementsById,
+      })
+    : null;
+
+  // canonical 이동 대상 — flow 는 항상 (재배열 포함), absolute 는 부모가
+  // 바뀔 때만 (same-parent 재배열에서 absolute 의 canonical 순서 불변).
+  const moveIds =
+    canonicalTarget && reparentTarget
+      ? session.ids.filter((id) => {
+          const element = dragStore.elementsById.get(id);
+          if (!element) return false;
+          if (!isManualPositionDragTarget(element)) return true;
+          return element.parent_id !== reparentTarget.containerId;
+        })
+      : [];
+
+  // absolute props 는 move 전에 계산 (bounds 캐시가 drop 이전 상태 — 단일 경로 동일)
+  const absoluteUpdates: Array<{
+    elementId: string;
+    props: Record<string, unknown>;
+  }> = [];
+  for (const id of session.ids) {
+    const element = dragStore.elementsById.get(id);
+    if (!isManualPositionDragTarget(element)) continue;
+    const props =
+      reparentTarget && element?.parent_id !== reparentTarget.containerId
+        ? resolveManualPositionDropProps(
+            element,
+            reparentTarget,
+            dragStore,
+            delta,
+          )
+        : resolveManualPositionDragProps(element, delta);
+    if (props) {
+      absoluteUpdates.push({ elementId: id, props });
+    }
+  }
+
+  if (moveIds.length === 0 && absoluteUpdates.length === 0) {
+    return;
+  }
+
+  let didCanonicalMove = false;
+  historyManager.runInTransaction({ type: "move", elementId: leaderId }, () => {
+    if (canonicalTarget && moveIds.length > 0) {
+      const fromLocations = captureCanonicalNodeLocations(moveIds);
+      const moveResult = moveElementsToCanonicalTarget(
+        moveIds,
+        canonicalTarget,
+      );
+      if (moveResult.document) {
+        useStore.getState()._rebuildIndexes?.();
+      }
+      if (moveResult.changed) {
+        didCanonicalMove = true;
+        // 기록은 from index **내림차순** — undo 는 events 를 역순 적용하므로
+        // (applyCanonicalHistoryEventsToDocument) 복원이 from index 오름차순
+        // (작은 자리부터 삽입) 이 되어 원 순서가 정확히 재현된다. 오름차순
+        // 기록이면 undo 가 형제 순서를 뒤집는다 (live 실측 — [Nav, refA]
+        // 복원 시 refA 가 형제 뒤로 밀림). redo (정순 적용) 도 내림차순이
+        // 정확 — to index 가 최종 문서 기준이라 큰 자리부터 재적용해야 한다.
+        const trackOrder = [...moveResult.movedIds].sort(
+          (left, right) =>
+            (fromLocations.get(right)?.index ?? 0) -
+            (fromLocations.get(left)?.index ?? 0),
+        );
+        for (const id of trackOrder) {
+          trackCanonicalMove(id, fromLocations.get(id));
+        }
+      }
+    }
+
+    if (absoluteUpdates.length > 0) {
+      void useStore.getState().batchUpdateElementProps(absoluteUpdates);
+    }
+  });
+
+  if (didCanonicalMove) {
+    queueMicrotask(() => {
+      void (async () => {
+        try {
+          const db = await getDB();
+          await persistActiveCanonicalDocument(db);
+        } catch (error) {
+          console.error("[DragBridge] multi-drop DB persist:", error);
+        }
+      })();
+    });
+  }
+}
+
 export function useDragBridge({
   onStartMoveRef,
   onUpdateDragRef,
@@ -303,6 +451,8 @@ export function useDragBridge({
   enabled = true,
 }: UseDragBridgeOptions): void {
   const lastResolvedDropTargetRef = useRef<DropTarget | null>(null);
+  // ADR-178: 드래그 세션 동안 고정되는 정규화 대상 집합 (드래그 중 선택 불변)
+  const dragSessionRef = useRef<MultiDragSession | null>(null);
 
   const { startMove, updateDrag, endDrag, cancelDrag } = useDragInteraction({
     onDragUpdate: (operation, data) => {
@@ -310,8 +460,6 @@ export function useDragBridge({
 
       const { delta } = data;
       const dragState = useStore.getState();
-      const draggedId = dragState.selectedElementIds[0];
-      if (!draggedId) return;
 
       const scenePoint = data.current;
       if (!scenePoint) return;
@@ -320,17 +468,44 @@ export function useDragBridge({
         getInteractiveElementsMap,
         getInteractiveChildrenMap,
       });
+
+      // ADR-178: 세션당 1회 대상 집합 정규화 (조상 우선 + body 제외 —
+      // 드래그 중 선택은 불변이라 첫 프레임 결과를 캐시)
+      let session = dragSessionRef.current;
+      if (!session) {
+        const ids = resolveMultiDragTargets({
+          elementsMap: dragStore.elementsById,
+          selectedIds: dragState.selectedElementIds,
+        });
+        if (ids.length === 0) return;
+        session = { ids, idSet: new Set(ids) };
+        dragSessionRef.current = session;
+      }
+      const draggedId = session.ids[0];
+      const isMulti = session.ids.length > 1;
+
       const dragged = dragStore.elementsById.get(draggedId);
       if (isManualPositionDragTarget(dragged)) {
-        setDragVisualOffset(draggedId, delta.x, delta.y);
+        setDragVisualOffset(session.idSet, delta.x, delta.y);
         updateAnimationTargets(null);
         setDragSiblingOffsets(null);
-        const resolved = resolveDropTarget(
+        let resolved = resolveDropTarget(
           scenePoint,
           draggedId,
           dragStore,
           hitTestPoint,
         );
+        if (
+          resolved &&
+          isMulti &&
+          isContainerWithinDragTargets({
+            containerId: resolved.containerId,
+            elementsMap: dragStore.elementsById,
+            targetIds: session.idSet,
+          })
+        ) {
+          resolved = null;
+        }
         const manualDropTarget = resolveManualPositionDropTarget(
           dragged,
           resolved,
@@ -365,8 +540,8 @@ export function useDragBridge({
         return;
       }
 
-      // 드래그 요소 시각적 오프셋 (store 변경 없음)
-      setDragVisualOffset(draggedId, delta.x, delta.y);
+      // 드래그 대상 시각적 오프셋 (store 변경 없음 — 전 대상 동일 델타)
+      setDragVisualOffset(session.idSet, delta.x, delta.y);
 
       // dead zone
       const prevTarget = lastResolvedDropTargetRef.current;
@@ -405,18 +580,35 @@ export function useDragBridge({
       }
 
       // drop target resolve
-      const resolved = resolveDropTarget(
+      let resolved = resolveDropTarget(
         scenePoint,
         draggedId,
         dragStore,
         hitTestPoint,
       );
+      if (
+        resolved &&
+        isMulti &&
+        isContainerWithinDragTargets({
+          containerId: resolved.containerId,
+          elementsMap: dragStore.elementsById,
+          targetIds: session.idSet,
+        })
+      ) {
+        resolved = null;
+      }
 
       lastResolvedDropTargetRef.current = resolved;
 
-      // 형제 시각적 오프셋 갱신
+      // 형제 시각적 오프셋 갱신 — 드래그 대상 자신은 벌림 대상이 아니다
+      // (드래그 오프셋이 우선이라 시각은 같지만 이중 계산 제거)
       if (resolved) {
         const offsets = computeSiblingOffsets(resolved, draggedId, dragStore);
+        if (isMulti) {
+          for (const id of session.ids) {
+            offsets.delete(id);
+          }
+        }
         updateAnimationTargets(offsets.size > 0 ? offsets : null);
       } else {
         updateAnimationTargets(null);
@@ -459,6 +651,25 @@ export function useDragBridge({
         getInteractiveChildrenMap,
       });
       const finalTarget = lastResolvedDropTargetRef.current;
+      const session = dragSessionRef.current;
+      dragSessionRef.current = null;
+
+      // ADR-178: 다중 드래그 커밋 — batch move 1회 + 히스토리 1 entry
+      if (session && session.ids.length > 1) {
+        clearAllAnimations();
+        setDragVisualOffset(null, 0, 0, true);
+        setDragSiblingOffsets(null);
+        lastResolvedDropTargetRef.current = null;
+        dropIndicatorSnapshotRef.current = null;
+        commitMultiDragDrop({
+          delta: _delta,
+          dragStore,
+          finalTarget,
+          session,
+        });
+        return;
+      }
+
       const dragged = dragStore.elementsById.get(elementId);
       const manualDropTarget = resolveManualPositionDropTarget(
         dragged,
@@ -590,6 +801,7 @@ export function useDragBridge({
       setDragSiblingOffsets(null);
       dropIndicatorSnapshotRef.current = null;
       lastResolvedDropTargetRef.current = null;
+      dragSessionRef.current = null;
     };
   }, [
     enabled,

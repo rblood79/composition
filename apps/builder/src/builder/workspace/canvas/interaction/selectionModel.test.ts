@@ -3,6 +3,8 @@ import { withFrameElementMirrorId } from "../../../../adapters/canonical/frameMi
 import type { Element } from "../../../../types/core/store.types";
 import {
   computeSelectionBounds,
+  isContainerWithinDragTargets,
+  resolveMultiDragTargets,
   resolveSelectedElementsForPage,
   resolveSelectionDragIntent,
 } from "./selectionModel";
@@ -193,5 +195,131 @@ describe("resolveSelectionDragIntent", () => {
     // listbox 안으로 진입한 상태에서는 row 가 선택 단위가 된다.
     expect(intent(["listbox-row"], "listbox-row", "listbox")).toBe(true);
     expect(intent(["listbox-row"], "form-input", "listbox")).toBe(false);
+  });
+});
+
+describe("resolveMultiDragTargets (ADR-178 §3.1 정규화)", () => {
+  const node = (
+    id: string,
+    parentId: string | null,
+    type = "Card",
+  ): CanvasInteractionNode =>
+    ({ id, type, parent_id: parentId, props: {} }) as CanvasInteractionNode;
+
+  const makeMap = (nodes: CanvasInteractionNode[]) =>
+    new Map(nodes.map((n) => [n.id, n]));
+
+  it("excludes body from element drag targets (다중 body 혼합 엣지 폐쇄)", () => {
+    const elementsMap = makeMap([
+      node("body-1", null, "body"),
+      node("card-1", "body-1"),
+    ]);
+
+    expect(
+      resolveMultiDragTargets({
+        elementsMap,
+        selectedIds: ["body-1", "card-1"],
+      }),
+    ).toEqual(["card-1"]);
+  });
+
+  it("returns empty when only body is selected (단일 body 가드와 동일 결과)", () => {
+    const elementsMap = makeMap([node("body-1", null, "body")]);
+
+    expect(
+      resolveMultiDragTargets({ elementsMap, selectedIds: ["body-1"] }),
+    ).toEqual([]);
+  });
+
+  it("drops descendants when an ancestor is also selected (이중 이동 방지)", () => {
+    const elementsMap = makeMap([
+      node("body-1", null, "body"),
+      node("parent", "body-1"),
+      node("child", "parent"),
+      node("grandchild", "child"),
+      node("sibling", "body-1"),
+    ]);
+
+    expect(
+      resolveMultiDragTargets({
+        elementsMap,
+        selectedIds: ["parent", "grandchild", "sibling"],
+      }),
+    ).toEqual(["parent", "sibling"]);
+  });
+
+  it("preserves selection order — 첫 요소가 드래그 리더", () => {
+    const elementsMap = makeMap([
+      node("body-1", null, "body"),
+      node("a", "body-1"),
+      node("b", "body-1"),
+    ]);
+
+    expect(
+      resolveMultiDragTargets({ elementsMap, selectedIds: ["b", "a"] }),
+    ).toEqual(["b", "a"]);
+  });
+
+  it("skips deleted or missing elements", () => {
+    const deleted = {
+      ...node("gone", "body-1"),
+      deleted: true,
+    } as CanvasInteractionNode;
+    const elementsMap = makeMap([node("body-1", null, "body"), deleted]);
+
+    expect(
+      resolveMultiDragTargets({
+        elementsMap,
+        selectedIds: ["gone", "missing"],
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("isContainerWithinDragTargets (ADR-178 R2 — 자기 안으로 드롭 금지)", () => {
+  const node = (
+    id: string,
+    parentId: string | null,
+    type = "Card",
+  ): CanvasInteractionNode =>
+    ({ id, type, parent_id: parentId, props: {} }) as CanvasInteractionNode;
+
+  const elementsMap = new Map(
+    [
+      node("body-1", null, "body"),
+      node("card", "body-1"),
+      node("card-inner", "card"),
+      node("other", "body-1"),
+    ].map((n) => [n.id, n]),
+  );
+
+  it("rejects the drag target itself as a container", () => {
+    expect(
+      isContainerWithinDragTargets({
+        containerId: "card",
+        elementsMap,
+        targetIds: new Set(["card"]),
+      }),
+    ).toBe(true);
+  });
+
+  it("rejects descendants of a drag target", () => {
+    expect(
+      isContainerWithinDragTargets({
+        containerId: "card-inner",
+        elementsMap,
+        targetIds: new Set(["card"]),
+      }),
+    ).toBe(true);
+  });
+
+  it("allows unrelated containers", () => {
+    expect(
+      isContainerWithinDragTargets({
+        containerId: "other",
+        elementsMap,
+        targetIds: new Set(["card"]),
+      }),
+    ).toBe(false);
   });
 });

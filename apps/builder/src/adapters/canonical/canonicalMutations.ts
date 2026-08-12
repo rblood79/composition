@@ -1931,6 +1931,60 @@ export function moveElementToCanonicalTarget(
 }
 
 /**
+ * 다중 드래그 드롭 — 여러 요소를 같은 canonical target 에 연속 삽입한다
+ * (ADR-178 HC2). `applyElementOrderCanonicalPrimary` 와 같은 "doc 체인 N회
+ * 적용 → setDocument 1회" 패턴이라 문서 재작성/재파생은 1회다.
+ *
+ * `elementIds` 순서대로 `target.insertionIndex` 부터 연속 배치한다 (이동
+ * 성공마다 index+1). 개별 이동이 no-op 인 대상(자기 자손으로의 순환 등 —
+ * `moveCanonicalChild` 커널 가드)은 건너뛰고 `movedIds` 에서 빠진다.
+ */
+export function moveElementsToCanonicalTarget(
+  elementIds: readonly string[],
+  target: CanonicalMoveTarget,
+): CanonicalMutationResult & { movedIds: string[] } {
+  for (const elementId of elementIds) {
+    assertCanonicalMoveTarget(elementId, target);
+  }
+
+  const actions = getActions();
+  const projectId = actions.getCurrentProjectId();
+  if (!projectId || elementIds.length === 0) {
+    return { changed: false, document: null, movedIds: [] };
+  }
+
+  const currentDoc = getCurrentDocument(projectId);
+  let doc = currentDoc;
+  let insertionIndex = target.insertionIndex;
+  const movedIds: string[] = [];
+
+  for (const elementId of elementIds) {
+    const result =
+      target.kind === "node-children"
+        ? moveCanonicalChild(doc, elementId, target.parentId, insertionIndex)
+        : moveCanonicalChildToDescendants(
+            doc,
+            elementId,
+            target.refNodeId,
+            target.descendantPath,
+            insertionIndex,
+          );
+    if (!result.changed) continue;
+    doc = result.document;
+    movedIds.push(elementId);
+    insertionIndex += 1;
+  }
+
+  if (movedIds.length === 0) {
+    return { changed: false, document: currentDoc, movedIds };
+  }
+
+  useCanonicalDocumentStore.getState().setDocument(projectId, doc);
+
+  return { changed: true, document: doc, movedIds };
+}
+
+/**
  * tree DnD/update batch 에서 계산된 parent/source-order intent 를 canonical
  * `children[]` splice 로 직접 반영한다. 입력 배열은 같은 parent 내 최종 sibling
  * source order 여야 한다.

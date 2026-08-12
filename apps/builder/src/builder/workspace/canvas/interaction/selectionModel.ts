@@ -252,6 +252,85 @@ export function resolveSelectionDragIntent({
   return resolved !== null && selectedIds.includes(resolved);
 }
 
+/**
+ * 다중 드래그 대상 정규화 — ADR-178 §3.1 단일 진입점.
+ *
+ * - body 는 요소 드래그 대상이 아니다 (페이지 이동은 별도 page gesture 축).
+ *   다중 선택에 body 가 섞여도 요소 집합에서 제외한다 — 종전에는 다중 선택 시
+ *   body 가드가 통과해 `selectedIds[0]`(body 가능)로 드래그가 시작되는 엣지가
+ *   있었다 (breakdown §2.1 재현 기록).
+ * - 조상이 집합에 있으면 자손은 제외한다 (조상 이동이 자손을 함께 옮기므로
+ *   이중 이동 방지 — Figma 동형).
+ * - 반환 순서는 입력 `selectedIds` 순서를 보존한다 — 첫 요소가 드래그 리더
+ *   (드롭 타겟 판정 기준).
+ */
+export function resolveMultiDragTargets({
+  elementsMap,
+  selectedIds,
+}: {
+  elementsMap: ReadonlyMap<string, CanvasInteractionNode>;
+  selectedIds: readonly string[];
+}): string[] {
+  if (selectedIds.length === 0) {
+    return [];
+  }
+
+  // 1차: 드래그 자격이 있는 선택만 (body/삭제/부재 제외). 조상 판정은 이
+  // 집합 기준이어야 한다 — body 를 selectedIds 그대로 조상으로 치면 body 의
+  // 자손 전부가 오제외된다 (body 는 이동 대상이 아니므로 조상 자격도 없다).
+  const eligible: CanvasInteractionNode[] = [];
+  const eligibleIds = new Set<string>();
+  for (const id of selectedIds) {
+    const element = elementsMap.get(id);
+    if (!element || element.deleted) continue;
+    if (element.type.toLowerCase() === "body") continue;
+    eligible.push(element);
+    eligibleIds.add(id);
+  }
+
+  // 2차: 조상이 자격 집합에 있으면 자손 제외
+  const targets: string[] = [];
+  for (const element of eligible) {
+    let ancestorSelected = false;
+    let parentId = element.parent_id ?? null;
+    while (parentId) {
+      if (eligibleIds.has(parentId)) {
+        ancestorSelected = true;
+        break;
+      }
+      parentId = elementsMap.get(parentId)?.parent_id ?? null;
+    }
+    if (!ancestorSelected) {
+      targets.push(element.id);
+    }
+  }
+  return targets;
+}
+
+/**
+ * 다중 드래그의 드롭 타겟 필터 — 타겟 컨테이너가 드래그 대상 집합의 **자신
+ * 또는 자손**이면 무효다 (ADR-178 R2 lock: 자기 안으로 드롭 금지 — Figma 동형.
+ * 부분 적용 대신 타겟 자체를 무효화해 전체 취소로 흐른다).
+ */
+export function isContainerWithinDragTargets({
+  containerId,
+  elementsMap,
+  targetIds,
+}: {
+  containerId: string;
+  elementsMap: ReadonlyMap<string, CanvasInteractionNode>;
+  targetIds: ReadonlySet<string>;
+}): boolean {
+  let currentId: string | null = containerId;
+  while (currentId) {
+    if (targetIds.has(currentId)) {
+      return true;
+    }
+    currentId = elementsMap.get(currentId)?.parent_id ?? null;
+  }
+  return false;
+}
+
 export function resolveSelectionHit(
   canvasPoint: CanvasPoint,
   selectionBounds: BoundingBox | null,

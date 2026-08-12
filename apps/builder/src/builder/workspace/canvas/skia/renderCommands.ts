@@ -198,8 +198,10 @@ interface DeferredDragRootVisit {
 }
 
 interface VisitOptions {
-  deferredDragRoot?: { current: DeferredDragRootVisit | null };
-  dragRootId?: string | null;
+  // ADR-178: 다중 선택 드래그 — 드래그 root 마다 top-layer 재방문을 유예한다.
+  // 정규화(조상 포함 시 자손 제외)된 집합이라 유예 root 간 조상-자손 중복 없음.
+  deferredDragRoots?: DeferredDragRootVisit[];
+  dragRootIds?: ReadonlySet<string> | null;
   renderAsTopLayer?: boolean;
 }
 
@@ -419,11 +421,11 @@ export function buildRenderCommandStream(
   const selfSpans = new Map<string, SelfSpan>();
   const boundsMap = new Map<string, BoundingBox>();
   const hitBoundsMap = new Map<string, BoundingBox>();
-  const dragRootId = getDragVisualOffset()?.elementId ?? null;
-  const deferredDragRoot = { current: null as DeferredDragRootVisit | null };
+  const dragRootIds = getDragVisualOffset()?.elementIds ?? null;
+  const deferredDragRoots: DeferredDragRootVisit[] = [];
   const visitOptions: VisitOptions = {
-    deferredDragRoot,
-    dragRootId,
+    deferredDragRoots,
+    dragRootIds,
   };
 
   for (const bodyId of rootElementIds) {
@@ -449,9 +451,9 @@ export function buildRenderCommandStream(
     );
   }
 
-  if (deferredDragRoot.current) {
-    const deferred = deferredDragRoot.current;
-    // top-layer 재방문은 조상의 clip save/restore 밖에서 그려진다 → clip 미적용
+  // top-layer 재방문은 조상의 clip save/restore 밖에서 그려진다 → clip 미적용.
+  // ADR-178: 유예 목록은 드래그 대상 수 비례 (정규화 집합 — G3 상한 축).
+  for (const deferred of deferredDragRoots) {
     visitElement(
       deferred.elementId,
       deferred.parentAbsX,
@@ -538,13 +540,13 @@ function visitElement(
   const skiaData = getSkiaNode(elementId);
   if (!skiaData) return;
 
-  if (options.dragRootId === elementId && options.deferredDragRoot) {
-    options.deferredDragRoot.current = {
+  if (options.dragRootIds?.has(elementId) && options.deferredDragRoots) {
+    options.deferredDragRoots.push({
       elementId,
       parentAbsX,
       parentAbsY,
       parentElementId,
-    };
+    });
     return;
   }
 
@@ -1005,7 +1007,7 @@ function executeCommandRange(
         // Pencil deferred-drop: 드래그 대상/형제 오프셋은 culling에도 반영한다.
         const dragOff = getDragVisualOffset();
         const hasDragOffset =
-          dragOff !== null && cmd.elementId === dragOff.elementId;
+          dragOff !== null && dragOff.elementIds.has(cmd.elementId);
         const sibOff = !hasDragOffset
           ? getSiblingOffset(cmd.elementId)
           : undefined;

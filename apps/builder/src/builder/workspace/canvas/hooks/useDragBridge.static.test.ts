@@ -33,13 +33,19 @@ describe("useDragBridge persistence contract", () => {
     // drop commit 블록 = canonical move 호출부터 changed 분기 진입 직전까지.
     // (과거 앵커였던 `postMoveStore = buildDragReadModelFromCanonicalDocument` 는
     //  canonical move event 전환 때 삭제됨 — 계약은 그대로, 앵커만 이동)
-    const commitBlock = source.match(
-      /const moveResult =[\s\S]*?if \(moveResult\.changed\)/,
-    )?.[0];
+    // ADR-178: 다중 드롭(commitMultiDragDrop)의 batch move 블록까지 포함해
+    // **모든** canonical move 호출부가 직후 재구축 계약을 지키는지 검사한다.
+    const commitBlocks = [
+      ...source.matchAll(
+        /const moveResult =[\s\S]*?if \((?:!)?moveResult\.changed\)/g,
+      ),
+    ].map((match) => match[0]);
 
-    expect(commitBlock).toBeTruthy();
-    expect(commitBlock).toContain("moveElementToCanonicalTarget(");
-    expect(commitBlock).toContain("useStore.getState()._rebuildIndexes?.()");
+    expect(commitBlocks.length).toBeGreaterThanOrEqual(2);
+    for (const block of commitBlocks) {
+      expect(block).toMatch(/moveElements?ToCanonicalTarget\(/);
+      expect(block).toContain("useStore.getState()._rebuildIndexes?.()");
+    }
   });
 
   it("does not use mutable store maps as drag/drop authority", async () => {
