@@ -40,6 +40,25 @@
 | `apps/builder/src/builder/workspace/canvas/wasm-bindings/spatialIndex.ts` (동기화: `skia/renderCommands.ts::syncSpatialIndex`) | 요소 히트 공간 인덱스 (Rust WASM 래퍼 — `queryRect` 제공)                                | absolute 확장 시 스냅 후보 검색 재사용                          |
 | `docs/reference/audits/2026-07-16-figma-benchmark-gap-analysis.md:41, 107, 151`                                                | H1 — smart guides/거리 측정 전무, 우선순위 4순위 백로그                                  | 본 ADR 이 그 축의 착수 결정                                     |
 
+### 2.1 Phase 0 inventory freeze — 계약 표 (2026-08-12 실측)
+
+> **ADR-178 Implemented (2026-08-12, 본 freeze 직전) 반영**: §2 표의 `usePageDrag.ts:146-150 calculatePosition` 은 `calculateLeaderPosition` (리더 위치 계산 + 다중 대상 델타 공유) 로 개칭됨. 스냅을 리더에만 걸고 델타를 공유하는 구조는 usePageDrag 헤더 주석에 이미 예정 기록 — ADR Decision 3 의 "축 고정 먼저 → 고정 축만 스냅" 순서는 코드상 성립 (`applyAxisLockToDelta` 가 스냅 삽입 지점 앞).
+
+| ID  | 계약               | 확정 내용                                                                                                                                                                                                           |
+| --- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C1  | 순수 함수 거처     | 신규 `interaction/snapGuides.ts` — `resolveSnappedPosition(raw, movingBounds, candidates, config) → { position, guides }`. 훅 밖 순수 함수 (`resolveSelectionDragIntent` 동형 단일 진입점)                          |
+| C2  | 삽입 지점          | `usePageDrag.calculateLeaderPosition` — Shift 축 고정 → 객체 스냅 → (미흡착 축만) snap-to-grid. 리더에만 스냅, 다중 대상은 델타 공유 (ADR-178 계약)                                                                 |
+| C3  | 후보 수집          | 드래그 시작 1회 — **전 페이지 전수** (가시 필터 없음: 수십 규모라 HC2 상한 내 + 드래그 중 뷰포트 진입 페이지 누락 회피). rect = stacked 기본값 + canonical override (`buildPageFrames` 동형), 드래그 대상 집합 제외 |
+| C4  | 임계값             | 8 screen px 시작값 (Figma 관례 근사) — scene 임계 = 8 / zoom. G1 live 조작감에서 조정                                                                                                                               |
+| C5  | 억제·우선순위      | Cmd(mac)/Ctrl(win) 홀드 = 전 스냅 억제 (PointerEvent `metaKey`/`ctrlKey` — RAF `latestPointer` 에 동승). 축별로 객체 스냅 성사 시 그리드 미적용, 실패 축만 그리드                                                   |
+| C6  | guides 채널        | 신규 `interaction/snapGuidePresentation.ts` (module-level snapshot + version + subscribe — pagePositionPresentation 동형 축소판). positions publish 와 같은 RAF 콜백에서 프레임당 1회, finish/cancel 시 clear       |
+| C7  | 오버레이 렌더      | `skiaOverlayBuilder.buildOverlayNode` 에 guide 레이어 — scene 좌표, strokeWidth = 1/cameraZoom (1 screen px), 색 `--accent` (builder 무채색 — 명도 대비). 조작 표식: `withPageOcclusionClip` 미적용 (§3.3 판정)     |
+| C8  | 설정               | `canvasSettings.snapToObjects: boolean` 기본 **true** (Figma 기본 관례) + `setSnapToObjects` + SettingsPanel "Snap to Objects" 스위치 (Grid & Guides 섹션). 비영속 slice — 기존 showGrid/snapToGrid 와 동일 취급    |
+| C9  | absolute 확장 좌석 | Phase 3 — `useDragBridge` 경로, 후보 = SpatialIndex `queryRect` (`wasm-bindings/spatialIndex.ts:94`). 판정 함수·오버레이 공유                                                                                       |
+| C10 | commit 무변경      | finish 는 스냅 반영 positions 를 기존 `updatePagePosition`/`updatePagePositionsBatch` 로 commit — 기존 grid snap 과 동일 취급 (ADR-176 HC3·HC10 / ADR-177 계약 무변경)                                              |
+
+**R2 lock (Figma 관례)**: 6축 edge/center 스냅, 임계 8 screen px, Cmd/Ctrl 억제, stateless (raw 포인터 기준 — 리뷰 round 1 판정, §3.1 해제 상태 불필요 / 히스테리시스 필요 여부는 G1 live 조작감에서 재판정).
+
 ## 3. 계약 설계
 
 ### 3.1 스냅 계산 (순수 함수)
