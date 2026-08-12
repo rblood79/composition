@@ -29,16 +29,16 @@
 
 ## 2. Current evidence (2026-08-12 실측)
 
-| 경로                                                                                | 현재 동작                                                                                | 관심사                                                          |
-| ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `apps/builder/src/builder/workspace/canvas/hooks/usePageDrag.ts:146-150`            | `snapToGrid` 켜져 있으면 `Math.round(x/gridSize)*gridSize` — 유일한 스냅                 | 스냅 보정 삽입 지점 (`calculatePosition`)                       |
-| `apps/builder/src/builder/panels/settings/SettingsPanel.tsx:121-145`                | snap-to-grid 설정 (8/16/24px), 기본 OFF (`stores/canvasSettings.ts:128`)                 | 객체 스냅 설정 항목 추가 거처                                   |
-| 리포지토리 전체                                                                     | `alignmentGuide`/`smartGuide`/`snapLine`/등간격 grep 0건                                 | 신규 서브시스템                                                 |
-| `apps/builder/src/builder/workspace/canvas/interaction/pagePositionPresentation.ts` | 드래그 중 transient 좌표 publish (ADR-176)                                               | 스냅 보정은 publish 직전 순수 함수                              |
-| `apps/builder/src/builder/workspace/canvas/skia/skiaOverlayBuilder.ts`              | 오버레이 패스 — 2026-08-12 `withPageOcclusionClip` (콘텐츠성 chrome 페이지 간 occlusion) | 정렬선 렌더 거처 + chrome 분류 (드래그 순간 피드백 = 조작 표식) |
-| `apps/builder/src/builder/workspace/canvas/hooks/useDragBridge.ts:169-227`          | absolute 요소 left/top 드래그 — 스냅 없음                                                | 확장 phase 의 삽입 지점                                         |
-| `apps/builder/src/builder/workspace/canvas/selection/` SpatialIndex                 | 요소 히트 공간 인덱스                                                                    | absolute 확장 시 스냅 후보 검색 재사용                          |
-| `docs/reference/audits/2026-07-16-figma-benchmark-gap-analysis.md:41, 107, 151`     | H1 — smart guides/거리 측정 전무, 우선순위 4순위 백로그                                  | 본 ADR 이 그 축의 착수 결정                                     |
+| 경로                                                                                                                           | 현재 동작                                                                                | 관심사                                                          |
+| ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `apps/builder/src/builder/workspace/canvas/hooks/usePageDrag.ts:146-150`                                                       | `snapToGrid` 켜져 있으면 `Math.round(x/gridSize)*gridSize` — 유일한 스냅                 | 스냅 보정 삽입 지점 (`calculatePosition`)                       |
+| `apps/builder/src/builder/panels/settings/SettingsPanel.tsx:121-145`                                                           | snap-to-grid 설정 (8/16/24px), 기본 OFF (`stores/canvasSettings.ts:128`)                 | 객체 스냅 설정 항목 추가 거처                                   |
+| 리포지토리 전체                                                                                                                | `alignmentGuide`/`smartGuide`/`snapLine`/등간격 grep 0건                                 | 신규 서브시스템                                                 |
+| `apps/builder/src/builder/workspace/canvas/interaction/pagePositionPresentation.ts`                                            | 드래그 중 transient 좌표 publish (ADR-176)                                               | 스냅 보정은 publish 직전 순수 함수                              |
+| `apps/builder/src/builder/workspace/canvas/skia/skiaOverlayBuilder.ts`                                                         | 오버레이 패스 — 2026-08-12 `withPageOcclusionClip` (콘텐츠성 chrome 페이지 간 occlusion) | 정렬선 렌더 거처 + chrome 분류 (드래그 순간 피드백 = 조작 표식) |
+| `apps/builder/src/builder/workspace/canvas/hooks/useDragBridge.ts:169-227`                                                     | absolute 요소 left/top 드래그 — 스냅 없음                                                | 확장 phase 의 삽입 지점                                         |
+| `apps/builder/src/builder/workspace/canvas/wasm-bindings/spatialIndex.ts` (동기화: `skia/renderCommands.ts::syncSpatialIndex`) | 요소 히트 공간 인덱스 (Rust WASM 래퍼 — `queryRect` 제공)                                | absolute 확장 시 스냅 후보 검색 재사용                          |
+| `docs/reference/audits/2026-07-16-figma-benchmark-gap-analysis.md:41, 107, 151`                                                | H1 — smart guides/거리 측정 전무, 우선순위 4순위 백로그                                  | 본 ADR 이 그 축의 착수 결정                                     |
 
 ## 3. 계약 설계
 
@@ -48,6 +48,7 @@
 - 후보: **가시 페이지의 6축** (left/centerX/right × top/centerY/bottom) — 페이지 수 규모(수십)라 O(N) 전수로 충분. absolute 확장 시 후보 수집만 SpatialIndex 로 교체.
 - 임계값은 **screen px 기준** (scene 임계 = screenThreshold / zoom) — zoom 무관하게 화면상 같은 흡착 거리.
 - 축별 독립 스냅 (x 는 수직선 후보, y 는 수평선 후보) — 최근접 1개만 채택, 임계 밖이면 raw 유지.
+- 기본은 stateless — 판정 기준이 raw 포인터 위치라 raw 가 임계 밖으로 나가면 즉시 해제되어 별도 해제 상태가 필요 없다. 부착/해제 임계 차등(히스테리시스) 필요 여부는 Phase 0 Figma 관례 실측에서 판정 — 필요 시 직전 스냅 상태를 명시 인자로 추가 (순수성 유지, R2/G4 연계).
 
 ### 3.2 우선순위·상호작용
 
