@@ -39,7 +39,7 @@
 | `apps/builder/src/builder/workspace/canvas/hooks/useCentralCanvasPointerHandlers.ts:232-240` | 선택이 정확히 1개일 때만 `selectedElement` 조회 — 다중 선택 + body 혼합 시 가드 우회 엣지 | 엣지 폐쇄 (본 ADR 에서 함께)                               |
 | `apps/builder/src/builder/workspace/canvas/selection/dropTargetResolver.ts:443, 548+`        | 단일 요소 기준 drop 판정 (same-parent index / cross-container)                            | 다중 대상의 타겟 판정 규칙 (리더 기준 + 전 대상 유효성)    |
 | `apps/builder/src/builder/workspace/canvas/skia/dragAnimator.ts`                             | 형제 벌림 애니메이션 — 단일 드래그 전제                                                   | 다중 시 벌림 대상 계산                                     |
-| `apps/builder/src/builder/hooks/useGlobalKeyboardShortcuts.ts:331`                           | 다중 선택 시 화살표 순서 변경 no-op                                                       | (변경 없음 — 관찰만)                                       |
+| `apps/builder/src/builder/hooks/useGlobalKeyboardShortcuts.ts:331` | 다중 선택 시 화살표 no-op (유지). ADR-177 Phase 3 이후 화살표=`handleArrowMove` — 페이지(body) 단일 선택 시 nudge 분기 | 페이지 **다중** 선택 모델 도입 시 nudge/인스펙터 X/Y 의 다중 대상 동작 정의 (후속 접점) |
 | 캔버스 포인터 경로 전체                                                                      | `altKey` 사용 0건, `shiftKey` 는 다중 선택 클릭/스크롤 용도                               | modifier 신설 — 기존 의미와 컨텍스트 분리 (드래그 중 한정) |
 | `apps/builder/src/builder/workspace/canvas/hooks/usePageDrag.ts:127-152`                     | `calculatePosition(clientX, clientY)` — PointerEvent 미수신, modifier 접근 경로 없음      | 시그니처 확장 (Shift 축 고정 지점)                         |
 
@@ -55,6 +55,7 @@
 - 시각: 오프셋 단일 슬롯 → `Map<elementId, {dx,dy}>` (같은 델타지만 top-layer 재방문·dragAnimator 가 개별 조회). 프레임당 갱신 1회 (RAF 스로틀 현행).
 - 드롭: 리더(포인터가 잡은 요소) 기준으로 타겟 판정 → 전 대상에 같은 타겟 적용 가능성 검사 (불가 대상 존재 시 전체 취소 또는 가능 대상만 — Phase 0 에서 Figma 동작 실측 후 lock) → canonical batch move 1회 + 히스토리 1 entry.
 - absolute 요소 혼합 집합: absolute 는 left/top 델타, flow 는 순서/재부모화 — 리더 종류 기준으로 동작 분기하지 않고 **대상별 현행 규칙 유지**.
+- **페이지 다중 드래그의 히스토리 (리뷰 round 1 — ADR-177 Implemented 접점)**: finish 에서 페이지별 `updatePagePosition` 을 N회 반복 호출하면 안 된다 — ADR-177 Phase 2 이후 그 함수는 **호출당 히스토리 entry 1개 + persist** 를 기록하므로 entry N개 = HC1/HC2 (Cmd+Z 1회 전체 복귀) 위반. 다중 페이지의 기록은 ADR-177 의 `page-position` **batch entry** (`pagePositionEvent.entries[]` N건 → entry 1개) 로 낸다 — `alignPagesToScreen` (`pageLayoutActions.ts`) 의 batch 경로가 정확한 전례. 177/178 은 착수 직교였으나 177 완료로 페이지 축 히스토리의 거처는 확정됐다.
 
 ### 3.3 Modifier
 
