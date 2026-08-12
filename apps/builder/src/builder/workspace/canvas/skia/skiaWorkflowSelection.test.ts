@@ -50,8 +50,8 @@ describe("buildSelectionRenderData editing semantics", () => {
 
   it("moves selected page bounds with the active transient page position", () => {
     const canonical = { "page-1": { x: 10, y: 20 } };
-    beginPagePositionPresentation(canonical, "page-1", "desktop");
-    publishPagePositionPresentation("page-1", { x: 40, y: 60 });
+    beginPagePositionPresentation(canonical, ["page-1"], "desktop");
+    publishPagePositionPresentation([{ pageId: "page-1", position: { x: 40, y: 60 } }]);
 
     const result = buildSelectionRenderData(
       0,

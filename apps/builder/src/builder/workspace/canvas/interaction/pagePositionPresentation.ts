@@ -12,8 +12,12 @@ export type PagePositionMap = Record<string, PagePosition | undefined>;
 
 export interface PagePositionPresentationSnapshot {
   canonical: PagePositionMap;
-  activePageId: string | null;
-  activeOverride: PagePosition | null;
+  /**
+   * ADR-178: 드래그 중인 페이지들의 transient override — 드래그 대상 수만큼의
+   * **소집합** Map (선택 페이지 수 ≤ 전체). 전체 positions map 은 복사하지
+   * 않는다 (ADR-176 O(1) 계약 승계 — R3).
+   */
+  activeOverrides: ReadonlyMap<string, PagePosition> | null;
   version: number;
   isActive: boolean;
   startBreakpoint: string | null;
@@ -22,8 +26,7 @@ export interface PagePositionPresentationSnapshot {
 const EMPTY_PAGE_POSITIONS: PagePositionMap = Object.freeze({});
 const INITIAL_SNAPSHOT: PagePositionPresentationSnapshot = Object.freeze({
   canonical: EMPTY_PAGE_POSITIONS,
-  activePageId: null,
-  activeOverride: null,
+  activeOverrides: null,
   version: 0,
   isActive: false,
   startBreakpoint: null,
@@ -46,23 +49,31 @@ function notify(): void {
 }
 
 /**
- * 현재 canonical page position map을 고정하고 active page 한 건만 transient로
- * 표시한다. 전체 positions map은 복사하지 않는다.
+ * 현재 canonical page position map을 고정하고 드래그 대상 페이지(들)만
+ * transient로 표시한다. 전체 positions map은 복사하지 않는다.
+ *
+ * ADR-178: 다중 페이지 드래그 — canonical 에 위치가 없는 pageId 는 제외하고,
+ * 전부 없으면 false (드래그 불가). 단일은 요소 1개 배열로 동일 경로.
  */
 export function beginPagePositionPresentation(
   canonical: PagePositionMap,
-  pageId: string,
+  pageIds: readonly string[],
   startBreakpoint: string,
 ): boolean {
-  const position = canonical[pageId];
-  if (!position) {
+  const overrides = new Map<string, PagePosition>();
+  for (const pageId of pageIds) {
+    const position = canonical[pageId];
+    if (position) {
+      overrides.set(pageId, { x: position.x, y: position.y });
+    }
+  }
+  if (overrides.size === 0) {
     return false;
   }
 
   snapshot = {
     canonical,
-    activePageId: pageId,
-    activeOverride: { x: position.x, y: position.y },
+    activeOverrides: overrides,
     version: snapshot.version + 1,
     isActive: true,
     startBreakpoint,
@@ -71,21 +82,35 @@ export function beginPagePositionPresentation(
   return true;
 }
 
-/** 현재 active page의 최신 transient 위치를 frame 단위로 publish한다. */
+/**
+ * 드래그 대상 페이지들의 최신 transient 위치를 frame 단위로 publish한다 —
+ * 프레임당 1회 호출 (ADR-176 G2 계약). begin 에 없던 pageId 는 무시.
+ */
 export function publishPagePositionPresentation(
-  pageId: string,
-  position: PagePosition,
+  positions: ReadonlyArray<{ pageId: string; position: PagePosition }>,
 ): boolean {
-  if (!snapshot.isActive || snapshot.activePageId !== pageId) {
+  const current = snapshot.activeOverrides;
+  if (!snapshot.isActive || !current) {
     return false;
   }
-  if (isSamePosition(snapshot.activeOverride, position)) {
+
+  let changed = false;
+  const next = new Map(current);
+  for (const { pageId, position } of positions) {
+    const existing = current.get(pageId);
+    if (!existing || isSamePosition(existing, position)) {
+      continue;
+    }
+    next.set(pageId, { x: position.x, y: position.y });
+    changed = true;
+  }
+  if (!changed) {
     return false;
   }
 
   snapshot = {
     ...snapshot,
-    activeOverride: { x: position.x, y: position.y },
+    activeOverrides: next,
     version: snapshot.version + 1,
   };
   notify();
@@ -98,8 +123,7 @@ export function finishPagePositionPresentation(
 ): void {
   snapshot = {
     canonical,
-    activePageId: null,
-    activeOverride: null,
+    activeOverrides: null,
     version: snapshot.version + 1,
     isActive: false,
     startBreakpoint: null,
@@ -115,8 +139,7 @@ export function cancelPagePositionPresentation(): void {
 
   snapshot = {
     ...snapshot,
-    activePageId: null,
-    activeOverride: null,
+    activeOverrides: null,
     version: snapshot.version + 1,
     isActive: false,
     startBreakpoint: null,
@@ -141,12 +164,11 @@ export function readPagePosition(
   pageId: string,
   currentSnapshot: PagePositionPresentationSnapshot = snapshot,
 ): PagePosition | undefined {
-  if (
-    currentSnapshot.isActive &&
-    currentSnapshot.activePageId === pageId &&
-    currentSnapshot.activeOverride
-  ) {
-    return currentSnapshot.activeOverride;
+  if (currentSnapshot.isActive && currentSnapshot.activeOverrides) {
+    const override = currentSnapshot.activeOverrides.get(pageId);
+    if (override) {
+      return override;
+    }
   }
 
   return currentSnapshot.canonical[pageId];

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   beginPagePositionPresentation,
   cancelPagePositionPresentation,
@@ -21,10 +21,10 @@ describe("pagePositionPresentation", () => {
       "page-2": { x: 100, y: 200 },
     };
 
-    expect(beginPagePositionPresentation(canonical, "page-1", "desktop")).toBe(
+    expect(beginPagePositionPresentation(canonical, ["page-1"], "desktop")).toBe(
       true,
     );
-    expect(publishPagePositionPresentation("page-1", { x: 30, y: 40 })).toBe(
+    expect(publishPagePositionPresentation([{ pageId: "page-1", position: { x: 30, y: 40 } }])).toBe(
       true,
     );
 
@@ -39,9 +39,9 @@ describe("pagePositionPresentation", () => {
     const listener = vi.fn();
     const unsubscribe = subscribePagePositionPresentation(listener);
 
-    beginPagePositionPresentation(canonical, "page-1", "desktop");
-    publishPagePositionPresentation("page-1", { x: 30, y: 40 });
-    publishPagePositionPresentation("page-1", { x: 30, y: 40 });
+    beginPagePositionPresentation(canonical, ["page-1"], "desktop");
+    publishPagePositionPresentation([{ pageId: "page-1", position: { x: 30, y: 40 } }]);
+    publishPagePositionPresentation([{ pageId: "page-1", position: { x: 30, y: 40 } }]);
 
     expect(listener).toHaveBeenCalledTimes(2);
     unsubscribe();
@@ -49,8 +49,8 @@ describe("pagePositionPresentation", () => {
 
   it("cancel clears the override without replacing the canonical reference", () => {
     const canonical = { "page-1": { x: 10, y: 20 } };
-    beginPagePositionPresentation(canonical, "page-1", "desktop");
-    publishPagePositionPresentation("page-1", { x: 30, y: 40 });
+    beginPagePositionPresentation(canonical, ["page-1"], "desktop");
+    publishPagePositionPresentation([{ pageId: "page-1", position: { x: 30, y: 40 } }]);
 
     cancelPagePositionPresentation();
 
@@ -63,8 +63,8 @@ describe("pagePositionPresentation", () => {
   it("finish installs the post-commit canonical reference and clears the override", () => {
     const initial = { "page-1": { x: 10, y: 20 } };
     const committed = { "page-1": { x: 30, y: 40 } };
-    beginPagePositionPresentation(initial, "page-1", "desktop");
-    publishPagePositionPresentation("page-1", { x: 30, y: 40 });
+    beginPagePositionPresentation(initial, ["page-1"], "desktop");
+    publishPagePositionPresentation([{ pageId: "page-1", position: { x: 30, y: 40 } }]);
 
     finishPagePositionPresentation(committed);
 
@@ -72,5 +72,73 @@ describe("pagePositionPresentation", () => {
     expect(current.isActive).toBe(false);
     expect(current.canonical).toBe(committed);
     expect(readPagePosition("page-1", current)).toBe(committed["page-1"]);
+  });
+});
+
+describe("다중 페이지 드래그 override (ADR-178 Phase 2)", () => {
+  beforeEach(() => {
+    resetPagePositionPresentation();
+  });
+
+  it("begin은 canonical 위치가 있는 대상만 override 소집합에 담는다", () => {
+    const canonical = {
+      "page-1": { x: 10, y: 20 },
+      "page-2": { x: 100, y: 200 },
+    };
+
+    expect(
+      beginPagePositionPresentation(
+        canonical,
+        ["page-1", "page-2", "page-missing"],
+        "desktop",
+      ),
+    ).toBe(true);
+
+    const current = getPagePositionPresentationSnapshot();
+    expect(current.activeOverrides?.size).toBe(2);
+    expect(current.canonical).toBe(canonical);
+  });
+
+  it("publish 1회로 전 대상이 갱신되고, 무변경 항목만 있으면 false", () => {
+    const canonical = {
+      "page-1": { x: 10, y: 20 },
+      "page-2": { x: 100, y: 200 },
+    };
+    beginPagePositionPresentation(canonical, ["page-1", "page-2"], "desktop");
+
+    expect(
+      publishPagePositionPresentation([
+        { pageId: "page-1", position: { x: 40, y: 70 } },
+        { pageId: "page-2", position: { x: 130, y: 250 } },
+      ]),
+    ).toBe(true);
+
+    const current = getPagePositionPresentationSnapshot();
+    expect(readPagePosition("page-1", current)).toEqual({ x: 40, y: 70 });
+    expect(readPagePosition("page-2", current)).toEqual({ x: 130, y: 250 });
+
+    expect(
+      publishPagePositionPresentation([
+        { pageId: "page-1", position: { x: 40, y: 70 } },
+        { pageId: "page-2", position: { x: 130, y: 250 } },
+      ]),
+    ).toBe(false);
+  });
+
+  it("begin 에 없던 pageId 의 publish 는 무시된다 (드래그 집합 밖)", () => {
+    const canonical = {
+      "page-1": { x: 10, y: 20 },
+      "page-2": { x: 100, y: 200 },
+    };
+    beginPagePositionPresentation(canonical, ["page-1"], "desktop");
+
+    expect(
+      publishPagePositionPresentation([
+        { pageId: "page-2", position: { x: 1, y: 2 } },
+      ]),
+    ).toBe(false);
+    expect(
+      readPagePosition("page-2", getPagePositionPresentationSnapshot()),
+    ).toBe(canonical["page-2"]);
   });
 });

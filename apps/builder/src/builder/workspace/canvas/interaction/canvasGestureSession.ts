@@ -1,8 +1,23 @@
 export type CanvasGestureMode = "element" | "idle" | "page" | "pan";
 
 export interface PageGestureOwner {
+  /** 드래그 리더 페이지 (포인터가 잡은 페이지 — 스냅/타겟 판정 기준) */
   pageId: string;
+  /**
+   * ADR-178: 이 gesture 가 함께 움직이는 페이지 집합 (리더 포함).
+   * pointer 당 owner 1 계약(ADR-176 HC2)은 유지 — owner 가 집합을 보유한다.
+   */
+  pageIds: readonly string[];
   startBreakpoint: string;
+}
+
+/** 리더가 항상 집합의 첫 요소가 되도록 정규화 (중복 제거 포함). */
+function normalizePageIds(
+  leaderPageId: string,
+  pageIds: readonly string[],
+): readonly string[] {
+  const rest = pageIds.filter((id) => id !== leaderPageId);
+  return rest.length > 0 ? [leaderPageId, ...new Set(rest)] : [leaderPageId];
 }
 
 export function resolveCanvasGestureMode({
@@ -75,6 +90,7 @@ export class CanvasGestureSession {
     pointerId: number,
     pageId: string,
     startBreakpoint: string,
+    pageIds: readonly string[] = [pageId],
   ): boolean {
     if (this.activePointerId !== null) {
       return false;
@@ -82,7 +98,11 @@ export class CanvasGestureSession {
 
     this.activePointerId = pointerId;
     this.mode = "page";
-    this.pageOwner = { pageId, startBreakpoint };
+    this.pageOwner = {
+      pageId,
+      pageIds: normalizePageIds(pageId, pageIds),
+      startBreakpoint,
+    };
     this.notify();
     return true;
   }
@@ -99,13 +119,18 @@ export class CanvasGestureSession {
     pointerId: number,
     pageId: string,
     startBreakpoint: string,
+    pageIds: readonly string[] = [pageId],
   ): boolean {
     if (this.activePointerId !== pointerId || this.mode !== "element") {
       return false;
     }
 
     this.mode = "page";
-    this.pageOwner = { pageId, startBreakpoint };
+    this.pageOwner = {
+      pageId,
+      pageIds: normalizePageIds(pageId, pageIds),
+      startBreakpoint,
+    };
     this.notify();
     return true;
   }

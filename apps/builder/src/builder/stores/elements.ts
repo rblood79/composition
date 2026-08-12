@@ -283,6 +283,9 @@ export interface ElementsState {
     >,
   ) => void;
   updatePagePosition: (pageId: string, x: number, y: number) => void;
+  updatePagePositionsBatch: (
+    entries: Array<{ pageId: string; x: number; y: number }>,
+  ) => void;
 
   // ADR-111 P3-α: reusable frame 캔버스 영역 setter
   /** frame id 의 좌표/크기 partial 갱신. 기존 entry 보존 후 patch merge. 신규 frame 은 미주입 필드를 0 으로 초기화. */
@@ -2117,6 +2120,66 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
             await persistActiveCanonicalDocument(db);
           } catch (error) {
             console.error("[updatePagePosition] DB persist:", error);
+          }
+        })();
+      });
+    },
+
+    // ADR-178 Phase 2: 페이지 다중 드래그 finish — updatePagePosition 을
+    // 페이지별 N회 호출하면 히스토리 entry N개 (HC1/HC2 위반) 라, ADR-177 의
+    // page-position **batch entry** (`pagePositionEvent.entries[]`) 로
+    // 한 번에 기록한다 (alignPagesToScreen 과 같은 계약 — Cmd+Z 1회 전체 복귀).
+    // set 1회 + canonical batch 1회 + entry 1개 + persist 1회.
+    updatePagePositionsBatch: (entries) => {
+      const prevPositions = get().pagePositions;
+      const moved = entries.filter((entry) => {
+        const prev = prevPositions[entry.pageId];
+        return prev && (prev.x !== entry.x || prev.y !== entry.y);
+      });
+      if (moved.length === 0) return;
+
+      set((state) => {
+        const nextPagePositions = { ...state.pagePositions };
+        for (const entry of moved) {
+          nextPagePositions[entry.pageId] = { x: entry.x, y: entry.y };
+        }
+        return {
+          ...withActivePagePositionSnapshot(state, nextPagePositions),
+          pagePositionsVersion: state.pagePositionsVersion + 1,
+        };
+      });
+
+      const activeBreakpoint = getActiveBreakpoint(get());
+      useCanonicalDocumentStore.getState().setPagePositions(
+        moved.map((entry) => ({
+          pageId: entry.pageId,
+          breakpoint: activeBreakpoint,
+          position: { x: entry.x, y: entry.y },
+        })),
+      );
+
+      historyManager.addEntry({
+        type: "page-position",
+        elementId: moved[0].pageId,
+        data: {
+          pagePositionEvent: {
+            entries: moved.map((entry) => ({
+              pageId: entry.pageId,
+              breakpoint: activeBreakpoint,
+              before: { ...prevPositions[entry.pageId] },
+              after: { x: entry.x, y: entry.y },
+            })),
+          },
+        },
+      });
+
+      queueMicrotask(() => {
+        void (async () => {
+          try {
+            const db = await getDB();
+            await persistActiveCanonicalDocument(db);
+          } catch (error) {
+            console.error("[updatePagePositionsBatch] DB persist:", error);
           }
         })();
       });

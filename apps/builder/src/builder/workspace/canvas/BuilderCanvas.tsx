@@ -49,6 +49,7 @@ import {
   readPagePosition,
   resolveCanvasDetachContextTarget,
   resolveSelectedElementsForPage,
+  resolveSelectedPageIds,
   resolveTopPageIdAtPoint,
 } from "./interaction";
 import {
@@ -1038,11 +1039,71 @@ export function BuilderCanvas({
               continue;
             }
           }
+          // ADR-178: 타이틀 shift 클릭 = 그 페이지 body 를 다중 선택에 토글
+          // (요소 shift 클릭과 같은 문법 — 드래그 시작 없음). body 는
+          // resolveClickTarget 을 통과하지 못해 handleElementClick 경유 시
+          // handleUnresolvedTarget(단독 대체 + 페이지 전환)로 빠지므로,
+          // selection 을 직접 토글한다 (selectResolvedTarget shift 분기와
+          // 같은 계약 — currentPageId 무변경, cross-page 유지).
+          if (event.shiftKey) {
+            const pageElementIds = titleState.pageIndex.elementsByPage.get(
+              bounds.pageId,
+            );
+            let bodyElementId: string | null = null;
+            if (pageElementIds) {
+              for (const candidateId of pageElementIds) {
+                const candidate = titleState.elementsMap.get(candidateId);
+                if (candidate?.type?.toLowerCase() === "body") {
+                  bodyElementId = candidateId;
+                  break;
+                }
+              }
+            }
+            if (bodyElementId) {
+              const selectedSet = new Set(titleState.selectedElementIds);
+              if (selectedSet.has(bodyElementId)) {
+                selectedSet.delete(bodyElementId);
+              } else {
+                selectedSet.add(bodyElementId);
+              }
+              titleState.setSelectedElements(Array.from(selectedSet));
+              (event as PointerEvent & { __handled?: boolean }).__handled =
+                true;
+            }
+            return;
+          }
+
+          // ADR-178: 잡은 타이틀의 페이지가 다중 선택 집합에 포함돼 있으면
+          // 집합 전체가 함께 움직인다 (리더 = 잡은 페이지). 아니면 현행 단독.
+          const selectedTitlePageIds = resolveSelectedPageIds({
+            currentPageId: titleState.currentPageId,
+            elementsMap: titleState.elementsMap as unknown as ReadonlyMap<
+              string,
+              import("./interaction/interactionNode").CanvasInteractionNode
+            >,
+            selectedIds: titleState.selectedElementIds,
+          });
+          const titleDragPageIds = selectedTitlePageIds.includes(bounds.pageId)
+            ? selectedTitlePageIds
+            : [bounds.pageId];
+          // 잔류 element 세션 승격 fallback — pointerdown 마다
+          // useViewportControl/중앙 핸들러가 beginPointer(element) 로 세션을
+          // 열지만 element 세션은 pointerup 에서 닫히지 않아 같은 pointerId 로
+          // 잔류한다 (2026-08-12 계측: 첫 press 이후 tryClaimPage 가 항상
+          // 실패). promoteElementToPage 가 정확히 이 상태(같은 pointer 의
+          // element 제스처)를 page 로 승격하는 API 다.
           if (
             !canvasGestureSession.tryClaimPage(
               event.pointerId,
               bounds.pageId,
               sceneActiveBreakpoint,
+              titleDragPageIds,
+            ) &&
+            !canvasGestureSession.promoteElementToPage(
+              event.pointerId,
+              bounds.pageId,
+              sceneActiveBreakpoint,
+              titleDragPageIds,
             )
           ) {
             return;

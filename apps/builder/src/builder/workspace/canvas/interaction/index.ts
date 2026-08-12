@@ -4,6 +4,7 @@ export {
   resolveBodySelection,
   resolveMultiDragTargets,
   resolveSelectedElementsForPage,
+  resolveSelectedPageIds,
   resolveSelectionDragIntent,
   resolveSelectionHit,
   resolveTopPageIdAtPoint,

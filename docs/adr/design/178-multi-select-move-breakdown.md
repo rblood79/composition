@@ -91,7 +91,7 @@
 | ----- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | 0     | inventory freeze — 오프셋 소비자 전수(top-layer/dragAnimator/renderCommands), drop 판정 경로, Figma 다중 드롭 동작 실측, body 혼합 엣지 재현 | **Implemented 2026-08-12** — §2.1 계약 표 + 엣지 재현 기록 + R2 lock                                                     |
 | 1     | 요소 다중 드래그 — 정규화 + 오프셋 Map + batch move + body 혼합 엣지 폐쇄                                                                    | **Implemented 2026-08-12** — live: batch 연속 삽입 + entry 1개 + Cmd+Z 1회 원순서 복원 + body 엣지 재현 불가 (§4.1 기록) |
-| 2     | 페이지 다중 선택·드래그 — gestureSession 대상 집합 + presentation 다중 override                                                              | live: 2 페이지 동시 이동, ADR-176 G2 계약(프레임당 publish 1회) 유지                                                     |
+| 2     | 페이지 다중 선택·드래그 — gestureSession 대상 집합 + presentation 다중 override                                                              | **Implemented 2026-08-12** — live: 2 페이지 동일 델타 이동 + batch entry 1 + Cmd+Z 1회 전체 복귀 (§4.2 기록)             |
 | 3     | modifier — Shift 축 고정 + Alt 드래그 복제                                                                                                   | live: 축 고정 좌표 실측 + Alt 복제 → 원본 잔류 + undo 1회                                                                |
 | 4     | 검증 종결 — 성능(오프셋 Map 프레임 비용) + CHANGELOG                                                                                         | live behavior 게이트                                                                                                     |
 
@@ -112,3 +112,19 @@
 
 1. **batch undo 형제 순서 뒤집힘 (Phase 1 에서 수정)** — `trackCanonicalMove` 를 이동 순서(=from index 오름차순)로 기록하면 undo 의 역순 적용 (`applyCanonicalHistoryEventsToDocument`) 이 큰 index 부터 삽입해 형제 순서가 뒤집힌다 (live 실측: [Nav@0, refA@1] 복원 시 refA 가 형제 뒤로). 기록을 **from index 내림차순**으로 정렬해 undo(역순=오름차순 복원)/redo(정순=내림차순 재적용, to 는 최종 문서 기준) 양방향 정합 — live 재검증 완료.
 2. **[사전 결함 — scope 외] frame 슬롯 드롭의 redo 가 ref 직접 children 으로 훼손** — 슬롯(ref-descendants)으로 요소를 드롭 후 undo→redo 하면 요소가 `RefNode.descendants[path].children` 이 아니라 **ref 노드의 직접 `children`** 으로 들어간다. 원인은 `buildCanonicalMoveEvents` 의 to 해석이 descendants 좌표를 표현하지 못하는 알려진 한계 (본문 주석 "대상은 일반 트리 노드 전용 — ref override 내부 노드 금지"). **단일 드래그 대조군으로 동일 재현 확증** — 다중 경로가 만들거나 악화시킨 것 아님 (동형). 후속 수정 대상: move event 에 ref-descendants 좌표 확장 또는 슬롯 드롭의 replace-event 기록.
+
+### 4.2 Phase 2 구현 기록 (2026-08-12)
+
+**구현 형태**:
+
+- `PageGestureOwner.pageIds` (리더 포함 집합 — 리더가 항상 첫 요소로 정규화) + `tryClaimPage`/`promoteElementToPage` 4번째 인자. pointer 당 owner 1 계약(HC1) 유지 — owner 가 집합을 보유.
+- presentation `activePageId/activeOverride` → **`activeOverrides: ReadonlyMap`** (드래그 대상 수만큼의 소집합 — R3 전체 map clone 금지 유지). `begin(canonical, pageIds[], bp)` / `publish(positions[])` (프레임당 1회 — ADR-176 G2). `readPagePosition/Delta` 소비자 10곳은 함수 경유라 무수정 호환.
+- `usePageDrag`: 리더 위치(스냅 포함)의 델타를 전 대상이 공유 (Figma 동형). finish 는 단일=`updatePagePosition` / 다중=**`updatePagePositionsBatch`** (elements.ts 신설 — set 1회 + canonical batch 1회 + ADR-177 `pagePositionEvent.entries[]` entry 1개 + persist 1회, 리뷰 round 1 lock 그대로).
+- 페이지 다중 선택 진입: **타이틀 shift 클릭 = 그 페이지 body 를 선택에 직접 토글** (body 는 `resolveClickTarget` 을 통과하지 못해 `handleElementClick` 경유 시 `handleUnresolvedTarget` 단독 대체+페이지 전환으로 빠짐 — 직접 `setSelectedElements` 토글이 `selectResolvedTarget` shift 분기와 같은 계약). cross-page body 다중 선택은 기존 selection 모델이 이미 수용.
+- 승격 3지점(타이틀/엣지 핸들/빈 영역)이 `resolveSelectedPageIds`(전 선택이 body 일 때만 pageId 집합) 로 집합 전달 — 잡은 페이지가 리더.
+
+**live 검증 (Chrome MCP)**: 페이지 body 선택 → 다른 페이지 타이틀 shift 클릭 → [body, body] cross-page 다중 (currentPageId 무변경) → 타이틀 드래그 → **두 페이지 동일 델타 (+123.05, +152.8) 동시 이동** → 카운터 +1 (batch entry 1) → Cmd+Z 1회 전체 복귀 → redo 재적용 → IndexedDB 문서 `pagePositions` 두 페이지 모두 breakpoint 별 batch 기록 추종.
+
+**발견 1건 — [사전 결함, 본 phase 에서 실동작 해소] element gesture 세션 잔류**: `useViewportControl`/중앙 핸들러가 pointerdown 마다 `beginPointer`(element) 로 세션을 열지만 element 세션은 pointerup 에서 아무도 `endPointer` 로 닫지 않는다 — 같은 pointerId 로 잔류해 **`tryClaimPage` 가 첫 press 이후 구조적으로 실패** (2026-08-12 계측 실측: 타이틀 클릭이 reload 직후에만 성공). 타이틀 경로에 `promoteElementToPage` fallback (정확히 이 상태를 승격하는 기존 API) 을 연결해 타이틀 드래그가 항상 동작하게 됨 — 단일 타이틀 드래그의 간헐 실패도 함께 해소. 잔류 자체의 근본 정리 (element 세션의 pointerup 해제 계약) 는 후속 대상.
+
+**후속 다듬기 (기록)**: 다중 드래그 finish 후 `setCurrentPageId`(리더) 의 page activation patch 가 다중 선택을 리더 body 단독으로 대체한다 — 이동은 완성되나 연속 다중 드래그엔 재선택 필요. 선택 보존은 page activation 의 선택 대체 정책과 얽혀 별도 판단.

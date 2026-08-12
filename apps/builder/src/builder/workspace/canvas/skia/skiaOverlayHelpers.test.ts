@@ -816,8 +816,7 @@ describe("slot / remainder chrome 은 페이지 드래그 transient 위치를 �
   // 받아야 슬롯 해치가 드래그 중 제자리에 남지 않는다 (2026-08-11 사용자 보고).
   const dragSnapshot: PagePositionPresentationSnapshot = {
     canonical: { "page-1": { x: 100, y: 200 } },
-    activePageId: "page-1",
-    activeOverride: { x: 130, y: 250 }, // delta = (+30, +50)
+    activeOverrides: new Map([["page-1", { x: 130, y: 250 }]]), // delta = (+30, +50)
     version: 1,
     isActive: true,
     startBreakpoint: "desktop",

@@ -61,6 +61,7 @@ describe("CanvasGestureSession", () => {
     expect(session.ownerFor(11)).toBe("page");
     expect(session.pageOwnerFor(11)).toEqual({
       pageId: "page-1",
+      pageIds: ["page-1"],
       startBreakpoint: "desktop",
     });
     expect(session.pageOwnerFor(12)).toBeNull();
@@ -79,6 +80,7 @@ describe("CanvasGestureSession", () => {
     expect(session.ownerFor(11)).toBe("page");
     expect(session.pageOwnerFor(11)).toEqual({
       pageId: "page-1",
+      pageIds: ["page-1"],
       startBreakpoint: "desktop",
     });
     expect(session.shouldSuppressElementInteraction(11)).toBe(true);

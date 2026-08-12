@@ -5,6 +5,12 @@
  * 페이지 위치를 자유롭게 변경한다.
  * 요소 드래그와 분리되며, RAF 스로틀링으로 프레임당 1회만 presentation을
  * 갱신하고 정상 종료 시에만 canonical page position을 commit한다.
+ *
+ * ADR-178 Phase 2: gesture owner 가 대상 **집합**(pageIds — 리더 포함)을
+ * 보유하면 전 대상이 리더와 같은 델타로 움직인다. 스냅은 리더 위치에 걸고
+ * 그 결과 델타를 전 대상이 공유한다 (Figma 동형). commit 은 단일이면
+ * `updatePagePosition` (현행 — entry 1), 다중이면 `updatePagePositionsBatch`
+ * (ADR-177 page-position batch entry — Cmd+Z 1회 전체 복귀).
  */
 
 import { useCallback, useEffect, useRef } from "react";
@@ -24,9 +30,11 @@ import {
 interface PageDragState {
   isDragging: boolean;
   pageId: string | null;
+  pageIds: readonly string[];
   pointerId: number | null;
   startPointer: { x: number; y: number } | null;
   startPagePos: PagePosition | null;
+  startPagePosById: ReadonlyMap<string, PagePosition> | null;
   canonical: PagePositionMap | null;
   startBreakpoint: string | null;
 }
@@ -43,9 +51,11 @@ interface UsePageDragReturn {
 const EMPTY_PAGE_DRAG_STATE: PageDragState = {
   isDragging: false,
   pageId: null,
+  pageIds: [],
   pointerId: null,
   startPointer: null,
   startPagePos: null,
+  startPagePosById: null,
   canonical: null,
   startBreakpoint: null,
 };
@@ -75,8 +85,24 @@ export function usePageDrag(
         return;
       }
 
+      // ADR-178: canonical 위치가 있는 대상만 드래그 집합에 남는다 (리더는
+      // 위에서 확인됨). owner.pageIds 는 리더가 항상 첫 요소.
+      const dragPageIds = owner.pageIds.filter(
+        (id) => canonical[id] !== undefined,
+      );
+      const startPagePosById = new Map<string, PagePosition>(
+        dragPageIds.map((id) => [
+          id,
+          { x: canonical[id]!.x, y: canonical[id]!.y },
+        ]),
+      );
+
       if (
-        !beginPagePositionPresentation(canonical, pageId, owner.startBreakpoint)
+        !beginPagePositionPresentation(
+          canonical,
+          dragPageIds,
+          owner.startBreakpoint,
+        )
       ) {
         gestureSession.endPage(pointerId);
         return;
@@ -85,9 +111,11 @@ export function usePageDrag(
       stateRef.current = {
         isDragging: true,
         pageId,
+        pageIds: dragPageIds,
         pointerId,
         startPointer: { x: pointerX, y: pointerY },
         startPagePos: { x: pos.x, y: pos.y },
+        startPagePosById,
         canonical,
         startBreakpoint: owner.startBreakpoint,
       };
@@ -124,7 +152,11 @@ export function usePageDrag(
         rafRef.current = null;
       };
 
-      const calculatePosition = (
+      /**
+       * 리더 위치 (스냅 반영) 를 계산한다. 다중 대상의 위치는 리더 델타
+       * (스냅 후) 를 각 시작 위치에 더해 파생한다 — calculatePositions.
+       */
+      const calculateLeaderPosition = (
         clientX: number,
         clientY: number,
       ): PagePosition | null => {
@@ -151,17 +183,36 @@ export function usePageDrag(
         return { x, y };
       };
 
-      const publishPosition = (clientX: number, clientY: number) => {
+      const calculatePositions = (
+        clientX: number,
+        clientY: number,
+      ): Array<{ pageId: string; position: PagePosition }> | null => {
         const state = stateRef.current;
-        if (!state.pageId) {
+        const leaderPosition = calculateLeaderPosition(clientX, clientY);
+        if (!leaderPosition || !state.startPagePos || !state.startPagePosById) {
           return null;
         }
 
-        const position = calculatePosition(clientX, clientY);
-        if (position) {
-          publishPagePositionPresentation(state.pageId, position);
+        const deltaX = leaderPosition.x - state.startPagePos.x;
+        const deltaY = leaderPosition.y - state.startPagePos.y;
+        return state.pageIds.map((id) => {
+          const start = state.startPagePosById!.get(id)!;
+          return {
+            pageId: id,
+            position:
+              id === state.pageId
+                ? leaderPosition
+                : { x: start.x + deltaX, y: start.y + deltaY },
+          };
+        });
+      };
+
+      const publishPositions = (clientX: number, clientY: number) => {
+        const positions = calculatePositions(clientX, clientY);
+        if (positions) {
+          publishPagePositionPresentation(positions);
         }
-        return position;
+        return positions;
       };
 
       const cancel = () => {
@@ -180,7 +231,9 @@ export function usePageDrag(
         release();
       };
 
-      const finish = (position: PagePosition | null) => {
+      const finish = (
+        positions: Array<{ pageId: string; position: PagePosition }> | null,
+      ) => {
         const state = stateRef.current;
         const currentOwner = gestureSession.pageOwnerFor(pointerId);
         if (!state.isDragging || state.pointerId !== pointerId) {
@@ -189,9 +242,10 @@ export function usePageDrag(
 
         if (
           !currentOwner ||
-          !position ||
+          !positions ||
+          positions.length === 0 ||
           !state.pageId ||
-          !state.startPagePos
+          !state.startPagePosById
         ) {
           abort();
           return;
@@ -201,19 +255,41 @@ export function usePageDrag(
         const canCommit =
           currentStore.activeBreakpoint === currentOwner.startBreakpoint &&
           currentStore.pagePositions === state.canonical &&
-          currentStore.pagePositions[state.pageId] !== undefined;
+          positions.every(
+            (entry) => currentStore.pagePositions[entry.pageId] !== undefined,
+          );
         if (!canCommit) {
           abort();
           return;
         }
-        if (!isSamePosition(position, state.startPagePos)) {
+
+        const moved = positions.filter(
+          (entry) =>
+            !isSamePosition(
+              entry.position,
+              state.startPagePosById!.get(entry.pageId),
+            ),
+        );
+        if (moved.length > 0) {
           isFinishingRef.current = true;
           try {
-            currentStore.updatePagePosition(
-              state.pageId,
-              position.x,
-              position.y,
-            );
+            if (moved.length === 1) {
+              currentStore.updatePagePosition(
+                moved[0].pageId,
+                moved[0].position.x,
+                moved[0].position.y,
+              );
+            } else {
+              // ADR-178: 다중 페이지 finish — batch entry 1개 (Cmd+Z 1회
+              // 전체 복귀, ADR-177 pagePositionEvent.entries[] 계약)
+              currentStore.updatePagePositionsBatch(
+                moved.map((entry) => ({
+                  pageId: entry.pageId,
+                  x: entry.position.x,
+                  y: entry.position.y,
+                })),
+              );
+            }
           } finally {
             isFinishingRef.current = false;
           }
@@ -244,7 +320,7 @@ export function usePageDrag(
           const nextPointer = latestPointer;
           latestPointer = null;
           if (nextPointer) {
-            publishPosition(nextPointer.x, nextPointer.y);
+            publishPositions(nextPointer.x, nextPointer.y);
           }
         });
       };
@@ -255,7 +331,7 @@ export function usePageDrag(
         }
 
         cancelAnimation();
-        finish(publishPosition(event.clientX, event.clientY));
+        finish(publishPositions(event.clientX, event.clientY));
       };
 
       const onPointerCancel = (event: PointerEvent) => {

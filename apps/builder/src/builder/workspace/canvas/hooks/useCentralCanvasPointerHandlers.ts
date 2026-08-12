@@ -15,6 +15,7 @@ import {
   resolveDoubleClickTargetId,
   resolveCanvasInteractionTarget,
   resolveMultiDragTargets,
+  resolveSelectedPageIds,
   resolveSelectionDragIntent,
   resolveSelectionHit,
   resolveTopPageIdAtPoint,
@@ -234,11 +235,18 @@ export function useCentralCanvasPointerHandlers({
       const hasSelection = selectedIds.length >= 1;
       const selectedElement =
         selectedIds.length === 1 ? hitElementsMap.get(selectedIds[0]) : null;
+      // ADR-178 Phase 2: 전 선택이 page body 면 페이지 드래그 대상 집합
+      // (단일이면 기존 selectedPageId 파생과 동일 — currentPageId 폴백 포함)
+      const selectedPageIds = pageSelectionEnabled
+        ? resolveSelectedPageIds({
+            currentPageId: state.currentPageId,
+            elementsMap: hitElementsMap,
+            selectedIds,
+          })
+        : [];
       const selectedPageId =
-        pageSelectionEnabled && selectedElement?.type.toLowerCase() === "body"
-          ? (selectedElement.page_id ??
-            selectedElement.pageId ??
-            state.currentPageId)
+        selectedIds.length === 1 && selectedPageIds.length === 1
+          ? selectedPageIds[0]
           : null;
       const now = Date.now();
 
@@ -252,16 +260,19 @@ export function useCentralCanvasPointerHandlers({
           // Page body의 selection outline은 resize 대상이 아니다. page 전체 선택
           // 상태에서는 이 edge drag를 page-position drag로 승격해, 자식이 page를
           // 가득 채운 문서에서도 위치 이동 진입점을 제공한다.
+          // ADR-178: 페이지 다중 선택이면 집합 전체가 함께 움직인다 (리더 =
+          // 집합 첫 페이지).
           if (
-            selectedPageId &&
+            selectedPageIds.length > 0 &&
             gestureSession.promoteElementToPage(
               event.pointerId,
-              selectedPageId,
+              selectedPageIds[0],
               state.activeBreakpoint,
+              selectedPageIds,
             )
           ) {
             startPageDrag(
-              selectedPageId,
+              selectedPageIds[0],
               event.pointerId,
               event.clientX,
               event.clientY,
@@ -474,13 +485,16 @@ export function useCentralCanvasPointerHandlers({
           // drag 대상이 아니므로, 빈 page 영역에서 시작한 gesture만 page owner로
           // 승격해 위치 이동으로 연결한다. 자식 요소를 누른 경우는 위에서
           // hitElementId 경로로 이미 분기되어 개별 선택/drag를 그대로 유지한다.
+          // ADR-178: 다중 페이지 선택에 포함된 페이지의 빈 영역을 잡으면 그
+          // 페이지가 리더가 되어 집합 전체가 함께 움직인다.
           if (
             bodySelection.pageId &&
-            selectedPageId === bodySelection.pageId &&
+            selectedPageIds.includes(bodySelection.pageId) &&
             gestureSession.promoteElementToPage(
               event.pointerId,
               bodySelection.pageId,
               state.activeBreakpoint,
+              selectedPageIds,
             )
           ) {
             startPageDrag(
@@ -505,20 +519,32 @@ export function useCentralCanvasPointerHandlers({
             // 필요했다 (2026-08-12 사용자 보고). 클릭만 하고 안 움직이면 commit
             // 없음 (usePageDrag finish 의 isSamePosition 가드) 이라 클릭 의미는
             // 그대로다.
-            if (
-              bodySelection.pageId &&
-              gestureSession.promoteElementToPage(
-                event.pointerId,
-                bodySelection.pageId,
-                state.activeBreakpoint,
-              )
-            ) {
-              startPageDrag(
-                bodySelection.pageId,
-                event.pointerId,
-                event.clientX,
-                event.clientY,
-              );
+            // ADR-178: shift 클릭으로 다중 body 선택이 된 직후일 수 있어
+            // 선택을 fresh 재파생해 집합으로 승격한다.
+            if (bodySelection.pageId) {
+              const freshPageIds = resolveSelectedPageIds({
+                currentPageId: useStore.getState().currentPageId,
+                elementsMap: hitElementsMap,
+                selectedIds: useStore.getState().selectedElementIds,
+              });
+              const dragPageIds = freshPageIds.includes(bodySelection.pageId)
+                ? freshPageIds
+                : [bodySelection.pageId];
+              if (
+                gestureSession.promoteElementToPage(
+                  event.pointerId,
+                  bodySelection.pageId,
+                  state.activeBreakpoint,
+                  dragPageIds,
+                )
+              ) {
+                startPageDrag(
+                  bodySelection.pageId,
+                  event.pointerId,
+                  event.clientX,
+                  event.clientY,
+                );
+              }
             }
           } else if (bodySelection.pageId) {
             // ADR-074 Phase 1: 페이지 영역 내부 빈 공간 클릭

@@ -308,6 +308,49 @@ export function resolveMultiDragTargets({
 }
 
 /**
+ * 페이지 다중 드래그 대상 파생 — ADR-178 Phase 2.
+ *
+ * **전 선택이 page body** 일 때만 pageId 집합을 반환한다 (요소가 하나라도
+ * 섞이면 빈 배열 — 페이지 드래그 아님). 단일 body 가 page id 를 갖지 않으면
+ * currentPageId 로 폴백한다 (기존 단일 `selectedPageId` 파생과 동일 규칙 —
+ * 다중에서는 page id 없는 body 를 제외해 frame/projection body 혼입을 막는다).
+ */
+export function resolveSelectedPageIds({
+  currentPageId,
+  elementsMap,
+  selectedIds,
+}: {
+  currentPageId: string | null;
+  elementsMap: ReadonlyMap<string, CanvasInteractionNode>;
+  selectedIds: readonly string[];
+}): string[] {
+  if (selectedIds.length === 0) {
+    return [];
+  }
+
+  const pageIds: string[] = [];
+  const seen = new Set<string>();
+  for (const id of selectedIds) {
+    const element = elementsMap.get(id) as
+      | (CanvasInteractionNode & { pageId?: string | null })
+      | undefined;
+    if (!element || element.type.toLowerCase() !== "body") {
+      return [];
+    }
+    const pageId =
+      element.page_id ??
+      element.pageId ??
+      (selectedIds.length === 1 ? currentPageId : null);
+    if (!pageId || seen.has(pageId)) {
+      continue;
+    }
+    seen.add(pageId);
+    pageIds.push(pageId);
+  }
+  return pageIds;
+}
+
+/**
  * 다중 드래그의 드롭 타겟 필터 — 타겟 컨테이너가 드래그 대상 집합의 **자신
  * 또는 자손**이면 무효다 (ADR-178 R2 lock: 자기 안으로 드롭 금지 — Figma 동형.
  * 부분 적용 대신 타겟 자체를 무효화해 전체 취소로 흐른다).

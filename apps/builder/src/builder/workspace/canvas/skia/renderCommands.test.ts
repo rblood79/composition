@@ -199,8 +199,8 @@ describe("executeRenderCommands scroll-aware culling", () => {
       { [body.id]: { x: 10, y: 20 } },
     );
     const canonical = { "page-1": { x: 10, y: 20 } };
-    beginPagePositionPresentation(canonical, "page-1", "desktop");
-    publishPagePositionPresentation("page-1", { x: 50, y: 75 });
+    beginPagePositionPresentation(canonical, ["page-1"], "desktop");
+    publishPagePositionPresentation([{ pageId: "page-1", position: { x: 50, y: 75 } }]);
 
     const { canvas, translates } = makeRecordingCanvas();
     executeRenderCommands(

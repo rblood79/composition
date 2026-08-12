@@ -156,7 +156,7 @@ describe("usePageDrag", () => {
       rafCallback?.(0);
     });
 
-    expect(getPagePositionPresentationSnapshot().activeOverride).toEqual({
+    expect(getPagePositionPresentationSnapshot().activeOverrides?.get("page-1")).toEqual({
       x: 199,
       y: 299,
     });
