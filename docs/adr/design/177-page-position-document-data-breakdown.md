@@ -1,0 +1,66 @@
+# ADR-177 설계 Breakdown: 페이지 위치의 문서 데이터화 — 히스토리 기록 + 영속화
+
+## 1. Scope and dependency lock
+
+### 1.1 In scope
+
+- 페이지 캔버스 위치(breakpoint 별)를 canonical document 의 additive 필드로 편입
+- `updatePagePosition` commit 시점의 히스토리 기록 (canonical event 확장) + undo/redo 배선
+- 새로고침/프로젝트 재로드 시 저장된 배치 복원 (필드 부재 시 현행 재계산 폴백)
+- `alignPagesToScreen` 일괄 재배치의 단일 히스토리 entry 기록
+- 위치 데이터의 소비자 노출: 인스펙터 페이지 X/Y 입력 + 페이지 선택 시 화살표 nudge (1px / Shift 10px)
+
+### 1.2 Explicitly out of scope
+
+- ADR-176 의 gesture owner / transient presentation / finish-only commit 계약 변경
+- 드래그 중(연속 인터랙션 중) 히스토리·persist 기록 (finish 1회 원칙 유지)
+- 다중 페이지 선택·이동 (ADR-178), 스냅/정렬 가이드 (ADR-179)
+- Preview/Publish 출력 — 페이지 캔버스 배치는 authoring 데이터로 배포 산출물에 영향 없음
+- element 노드 히스토리 스키마의 기존 이벤트 의미 변경
+
+### 1.3 Four-question fork lock
+
+| 질문                                          | 판정                                                                                                                                                                            |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| base/application 관계인가?                    | ADR-176(gesture/presentation)이 sibling base — 본 ADR 은 그 commit 지점 뒤에 붙는 데이터 축이다. ADR-178/179 와는 직교(의존 없음).                                              |
+| schema 가 specialization 관계인가?            | 아니다. document 에 additive 필드 1종 + 히스토리 event kind 1종 추가 — 기존 element 노드 이벤트의 specialization 이 아니다.                                                     |
+| predecessor premise 를 reverse verify 했는가? | ADR-176 은 "document schema migration·새 저장 필드를 만들지 않는다"를 명시적 경계로 뒀다 — 본 ADR 이 그 이연분의 스키마 결정이며, ADR-176 의 commit 1회 계약은 그대로 승계한다. |
+| 나중 review 까지 미룰 경계가 있는가?          | 없다. 저장 위치(document additive)·기록 시점(finish 1회)·BC(필드 부재 폴백)를 Phase 0 전에 lock 한다.                                                                           |
+
+3-ADR 분리(177/178/179)는 사용자 confirm 완료 — 2026-08-12 AskUserQuestion "3개 분리 (권장)" 선택.
+
+## 2. Current evidence (2026-08-12 실측)
+
+| 경로                                                                      | 현재 동작                                                                                                           | 관심사                                       |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `apps/builder/src/builder/stores/elements.ts:2026-2038`                   | `updatePagePosition` 이 `pagePositions` + `pagePositionsByBreakpoint` + version 만 set — 히스토리/persist 호출 없음 | commit 지점에 기록 삽입                      |
+| `apps/builder/src/builder/stores/history.ts:46-88`                        | `HistoryEntry.type` 이 `add\|update\|remove\|move\|batch\|group\|ungroup` + `elementId` 필수 — element 노드 전용    | event kind 확장 지점                         |
+| `apps/builder/src/builder/stores/history/historyActions.ts`               | undo/redo 적용 분기가 canonical 노드 이벤트 전제                                                                    | page-position event 적용 분기 신설           |
+| `apps/builder/src/builder/stores/elements.ts:495, 618-630`                | `pagePositionsByBreakpoint` 인메모리 맵                                                                             | document 필드와의 hydrate/mirror 경계        |
+| `apps/builder/src/builder/stores/elements.ts:1938`                        | `initializePagePositions` — 로드 시 재계산 (저장 경로 미발견, 새로고침 시 배치 소실 실측)                           | 필드 존재 시 hydrate 우선, 부재 시 현행 폴백 |
+| `apps/builder/src/builder/hooks/usePageManager.ts:153-161`                | 신규 페이지 생성 시 다음 슬롯 계산                                                                                  | 신규 페이지의 초기 위치 기록 규칙            |
+| `apps/builder/src/builder/workspace/canvas/viewport/pageLayoutActions.ts` | `alignPagesToScreen` 전 페이지 일괄 재배치                                                                          | batch 1 entry 기록                           |
+| `apps/builder/src/builder/workspace/canvas/hooks/usePageDrag.ts:200-228`  | finish 에서 `updatePagePosition` 1회 (ADR-176 계약)                                                                 | 기록 시점 재사용 (드래그 중 기록 금지)       |
+| `apps/builder/src/builder/panels/styles/sections/TransformSection.tsx`    | 요소 CSS position 편집 — 페이지 좌표 UI 없음                                                                        | 페이지 X/Y 입력의 거처 판정 (Phase 3)        |
+| `apps/builder/src/builder/config/keyboardShortcuts.ts:555-602`            | 화살표 = 형제 순서 변경 (`canvas-focused`, element 선택 전제) — 페이지 선택 상태에서는 no-op                        | 페이지 선택 시 화살표 분기 신설 (충돌 없음)  |
+
+## 3. Phase 분해
+
+| Phase | 내용                                                                                                                                                                | 산출 검증                                                                  |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| 0     | inventory freeze — 히스토리 소비자 전수(grep `HistoryEntry` / canonical event 소비 분기), persist/hydrate 경로, breakpoint 맵 구조, 신규 페이지 초기 위치 규칙 확정 | 대상 파일 목록 + 계약 표                                                   |
+| 1     | document additive 필드 + persist/hydrate — 로드 시 필드 존재 → hydrate, 부재 → `initializePagePositions` 폴백 (lazy write: 다음 위치 변경 시에만 필드 기록)         | 새로고침 후 배치 유지 / 구 문서 로드 무변경 (재직렬화 0)                   |
+| 2     | 히스토리 canonical event (`page-position-set`, batch 지원) + undo/redo 적용 분기 + `alignPagesToScreen` batch 1 entry                                               | 드래그 → Cmd+Z 원위치 / redo 재적용, 정적 가드 (event kind 소비 분기 전수) |
+| 3     | 소비자 — 인스펙터 페이지 X/Y 입력(active breakpoint) + 페이지 선택 시 화살표 nudge 1px / Shift 10px (기존 화살표=형제 순서와 scope 분리: 페이지 선택 상태 한정)     | live: X/Y 입력 반영 + nudge + 각각 히스토리 entry                          |
+| 4     | 검증 종결 — G1~G4 전수 + CHANGELOG                                                                                                                                  | live behavior 게이트 (§완료 기준)                                          |
+
+## 4. 데이터 형식 (Phase 0 에서 최종 확정)
+
+- 후보: document 수준 `pagePositions: { [pageId]: { [breakpoint]: {x,y} } }` root 필드 (ADR-131 root collection 패턴) 또는 page node 필드. **root 필드 우선 검토** — 페이지 노드 스키마 오염 없이 authoring 데이터로 격리되고, 삭제된 페이지 정리 규칙이 단순.
+- 좌표는 scene px, breakpoint 키는 기존 `pagePositionsByBreakpoint` 키와 동일.
+- 히스토리 payload: `{ kind: "page-position-set", entries: [{ pageId, breakpoint, before: {x,y} | null, after: {x,y} }] }` — batch(정렬/다중) 대응.
+
+## 5. BC 수식화
+
+- 기존 프로젝트 영향 **0%** — 필드 부재 문서는 현행 재계산 경로 그대로, 로드 시 재직렬화 0 (lazy write).
+- 필드 보유 문서를 구 빌드로 열 경우: 미지 필드 무시(현행 파서가 additive 필드 허용인지 Phase 0 확인 — 거부라면 마이그레이션 버전 게이트 추가).
