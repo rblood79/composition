@@ -840,6 +840,53 @@ export const useCanonicalDocumentStore = create<CanonicalDocumentStore>(
         return { ...doc, actions: filtered };
       });
     },
+
+    // ─────────────────────────────────────────────
+    // ADR-177 — 페이지 위치 root 필드 mutation
+    // ─────────────────────────────────────────────
+
+    setPagePositions: (entries) => {
+      mutateActiveDoc(set, "setPagePositions", (doc) => {
+        if (entries.length === 0) return doc;
+        const next = { ...(doc.pagePositions ?? {}) };
+        let changed = false;
+        for (const entry of entries) {
+          const current = next[entry.pageId];
+          if (entry.position === null) {
+            if (!current || current[entry.breakpoint] === undefined) continue;
+            const byBreakpoint = { ...current };
+            delete byBreakpoint[entry.breakpoint];
+            if (Object.keys(byBreakpoint).length === 0) {
+              delete next[entry.pageId];
+            } else {
+              next[entry.pageId] = byBreakpoint;
+            }
+            changed = true;
+          } else {
+            const prev = current?.[entry.breakpoint];
+            if (
+              prev &&
+              prev.x === entry.position.x &&
+              prev.y === entry.position.y
+            ) {
+              continue;
+            }
+            next[entry.pageId] = {
+              ...(current ?? {}),
+              [entry.breakpoint]: { ...entry.position },
+            };
+            changed = true;
+          }
+        }
+        if (!changed) return doc;
+        if (Object.keys(next).length === 0) {
+          const cleared = { ...doc };
+          delete cleared.pagePositions;
+          return cleared;
+        }
+        return { ...doc, pagePositions: next };
+      });
+    },
   }),
 );
 

@@ -276,6 +276,11 @@ export interface ElementsState {
     pageHeight: number,
     gap: number,
     direction?: PageLayoutDirection,
+    /** ADR-177: document `pagePositions` 필드 — 페이지 단위로 재계산 결과를 override 병합. */
+    persisted?: Record<
+      string,
+      Partial<Record<BreakpointName, { x: number; y: number }>>
+    >,
   ) => void;
   updatePagePosition: (pageId: string, x: number, y: number) => void;
 
@@ -1941,6 +1946,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       pageHeight: number,
       gap: number,
       direction: PageLayoutDirection = "horizontal",
+      persisted,
     ) => {
       const positions = calculatePagePositions(
         pages,
@@ -1950,6 +1956,24 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         direction,
       );
 
+      // ADR-177: document `pagePositions` 를 breakpoint 축으로 뒤집어 페이지 단위
+      // 병합 준비. 삭제된 pageId entry 는 무시 (breakdown §5 C4).
+      const validPageIds = new Set(pages.map((page) => page.id));
+      const persistedByBreakpoint: Partial<
+        Record<BreakpointName, PagePositions>
+      > = {};
+      if (persisted) {
+        for (const [pageId, byBreakpoint] of Object.entries(persisted)) {
+          if (!validPageIds.has(pageId)) continue;
+          for (const [breakpoint, position] of Object.entries(byBreakpoint)) {
+            if (!position) continue;
+            (persistedByBreakpoint[breakpoint as BreakpointName] ??= {})[
+              pageId
+            ] = { x: position.x, y: position.y };
+          }
+        }
+      }
+
       set((state) => {
         const currentPageIds = new Set(state.pages.map((page) => page.id));
         const nextPageIds = new Set(pages.map((page) => page.id));
@@ -1958,14 +1982,30 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
           pages.every((page) => currentPageIds.has(page.id));
         const activeBreakpoint = getActiveBreakpoint(state);
 
+        const activePersisted = persistedByBreakpoint[activeBreakpoint];
+        const mergedActive = activePersisted
+          ? { ...positions, ...activePersisted }
+          : positions;
+
+        const nextByBreakpoint: Partial<Record<BreakpointName, PagePositions>> =
+          hasSamePageSet ? { ...state.pagePositionsByBreakpoint } : {};
+        for (const [breakpoint, persistedPositions] of Object.entries(
+          persistedByBreakpoint,
+        )) {
+          if (breakpoint === activeBreakpoint) continue;
+          // 비-active breakpoint 는 계산 결과가 없으므로 persisted 를 스냅샷에
+          // 병합만 — 부재 페이지는 switchPagePositionsBreakpoint 의 현행
+          // per-page 폴백 (`targetPositionMap?.[id] ?? current[id]`) 이 처리.
+          nextByBreakpoint[breakpoint as BreakpointName] = {
+            ...(nextByBreakpoint[breakpoint as BreakpointName] ?? {}),
+            ...persistedPositions,
+          };
+        }
+        nextByBreakpoint[activeBreakpoint] = mergedActive;
+
         return {
-          pagePositions: positions,
-          pagePositionsByBreakpoint: hasSamePageSet
-            ? {
-                ...state.pagePositionsByBreakpoint,
-                [activeBreakpoint]: positions,
-              }
-            : { [activeBreakpoint]: positions },
+          pagePositions: mergedActive,
+          pagePositionsByBreakpoint: nextByBreakpoint,
           pagePositionsVersion: state.pagePositionsVersion + 1,
         };
       });
@@ -2034,6 +2074,26 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
           ...withActivePagePositionSnapshot(state, nextPagePositions),
           pagePositionsVersion: state.pagePositionsVersion + 1,
         };
+      });
+
+      // ADR-177: 페이지 위치는 문서 데이터 — finish commit 지점 1곳 (ADR-176
+      // 계약: 드래그 중 경로는 transient presentation, 본 함수는 finish 1회).
+      // lazy write — 위치가 실제로 변경된 시점에만 document 필드 기록.
+      const activeBreakpoint = getActiveBreakpoint(get());
+      useCanonicalDocumentStore
+        .getState()
+        .setPagePositions([
+          { pageId, breakpoint: activeBreakpoint, position: { x, y } },
+        ]);
+      queueMicrotask(() => {
+        void (async () => {
+          try {
+            const db = await getDB();
+            await persistActiveCanonicalDocument(db);
+          } catch (error) {
+            console.error("[updatePagePosition] DB persist:", error);
+          }
+        })();
       });
     },
 

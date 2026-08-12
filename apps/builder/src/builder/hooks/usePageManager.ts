@@ -425,7 +425,9 @@ export const usePageManager = ({
         const canonicalElements = canonicalDocumentToElements(document);
         hydrateProjectSnapshot(canonicalElements as Element[]);
         apiPages.forEach((page) => pageList.append(page));
-        // 🆕 Multi-page: 페이지 위치 초기화 (현재 방향 + canvasSize 기반)
+        // 🆕 Multi-page: 페이지 위치 초기화 (현재 방향 + canvasSize 기반).
+        // ADR-177: document 에 저장된 배치가 있으면 페이지 단위로 재계산 결과를
+        // override 병합 (entry 부재 페이지만 재계산 폴백 — lazy write 대응).
         const currentCanvasSize = useViewportSyncStore.getState().canvasSize;
         initializePagePositions(
           storePages,
@@ -433,6 +435,7 @@ export const usePageManager = ({
           currentCanvasSize.height,
           PAGE_STACK_GAP,
           pageLayoutDirection,
+          document.pagePositions,
         );
         // 위치를 먼저 준비한 뒤 page 목록을 publish하여 미초기화 page가
         // 렌더 단계에서 (0, 0)으로 겹치는 중간 상태를 만들지 않는다.

@@ -868,6 +868,99 @@ describe("canonicalDocumentStore — selectors", () => {
   });
 });
 
+describe("canonicalDocumentStore — setPagePositions (ADR-177)", () => {
+  beforeEach(resetStore);
+
+  function setupActiveDoc(overrides?: Partial<CompositionDocument>) {
+    const doc = makeDoc(overrides);
+    const store = useCanonicalDocumentStore.getState();
+    store.setDocument("p", doc);
+    store.setCurrentProject("p");
+    return doc;
+  }
+
+  it("records entries into pagePositions root field (batch)", () => {
+    setupActiveDoc();
+    useCanonicalDocumentStore.getState().setPagePositions([
+      { pageId: "page-1", breakpoint: "desktop", position: { x: 10, y: 20 } },
+      { pageId: "page-2", breakpoint: "desktop", position: { x: 500, y: 20 } },
+    ]);
+
+    const active = selectActiveCanonicalDocument();
+    expect(active?.pagePositions).toEqual({
+      "page-1": { desktop: { x: 10, y: 20 } },
+      "page-2": { desktop: { x: 500, y: 20 } },
+    });
+  });
+
+  it("merges per-breakpoint without clobbering other breakpoints", () => {
+    setupActiveDoc({
+      pagePositions: { "page-1": { desktop: { x: 1, y: 2 } } },
+    });
+    useCanonicalDocumentStore.getState().setPagePositions([
+      { pageId: "page-1", breakpoint: "mobile", position: { x: 30, y: 40 } },
+    ]);
+
+    expect(selectActiveCanonicalDocument()?.pagePositions?.["page-1"]).toEqual({
+      desktop: { x: 1, y: 2 },
+      mobile: { x: 30, y: 40 },
+    });
+  });
+
+  it("is a no-op (documentVersion unchanged) when values are identical — lazy write", () => {
+    setupActiveDoc({
+      pagePositions: { "page-1": { desktop: { x: 1, y: 2 } } },
+    });
+    const before = useCanonicalDocumentStore.getState().documentVersion;
+    useCanonicalDocumentStore.getState().setPagePositions([
+      { pageId: "page-1", breakpoint: "desktop", position: { x: 1, y: 2 } },
+    ]);
+    expect(useCanonicalDocumentStore.getState().documentVersion).toBe(before);
+  });
+
+  it("position: null removes the breakpoint entry and empty page keys", () => {
+    setupActiveDoc({
+      pagePositions: {
+        "page-1": { desktop: { x: 1, y: 2 }, mobile: { x: 3, y: 4 } },
+        "page-2": { desktop: { x: 5, y: 6 } },
+      },
+    });
+    useCanonicalDocumentStore.getState().setPagePositions([
+      { pageId: "page-1", breakpoint: "mobile", position: null },
+      { pageId: "page-2", breakpoint: "desktop", position: null },
+    ]);
+
+    const positions = selectActiveCanonicalDocument()?.pagePositions;
+    expect(positions).toEqual({ "page-1": { desktop: { x: 1, y: 2 } } });
+  });
+
+  it("removes the pagePositions field entirely when the last entry is cleared", () => {
+    setupActiveDoc({
+      pagePositions: { "page-1": { desktop: { x: 1, y: 2 } } },
+    });
+    useCanonicalDocumentStore.getState().setPagePositions([
+      { pageId: "page-1", breakpoint: "desktop", position: null },
+    ]);
+
+    const active = selectActiveCanonicalDocument();
+    expect(active && "pagePositions" in active).toBe(false);
+  });
+
+  it("does not mutate the previous document (clone-on-write)", () => {
+    const original = setupActiveDoc({
+      pagePositions: { "page-1": { desktop: { x: 1, y: 2 } } },
+    });
+    useCanonicalDocumentStore.getState().setPagePositions([
+      { pageId: "page-1", breakpoint: "desktop", position: { x: 9, y: 9 } },
+    ]);
+
+    expect(original.pagePositions?.["page-1"]?.desktop).toEqual({ x: 1, y: 2 });
+    expect(
+      selectActiveCanonicalDocument()?.pagePositions?.["page-1"]?.desktop,
+    ).toEqual({ x: 9, y: 9 });
+  });
+});
+
 afterEach(() => {
   resetStore();
 });

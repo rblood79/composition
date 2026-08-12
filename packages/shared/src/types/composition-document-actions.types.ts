@@ -29,8 +29,22 @@ import type {
   CompositionExtension,
   CompositionDocument,
   DescendantOverride,
+  PagePositionPoint,
   SerializedAction,
 } from "./composition-document.types";
+import type { BreakpointName } from "./responsive.types";
+
+/**
+ * `setPagePositions` 입력 entry — ADR-177.
+ *
+ * `position: null` 은 해당 (pageId × breakpoint) entry 제거 (삭제된 페이지
+ * 정리 / undo 의 `before: null` 복원).
+ */
+export interface PagePositionSetEntry {
+  pageId: string;
+  breakpoint: BreakpointName;
+  position: PagePositionPoint | null;
+}
 
 // ─────────────────────────────────────────────
 // CanonicalDocumentActions — Phase 1 mutation surface
@@ -250,4 +264,18 @@ export interface CanonicalDocumentActions {
 
   /** 활성 document 의 `actions[].id === actionId` 항목을 제거. */
   removeAction(actionId: string): void;
+
+  // ─────────────────────────────────────────────
+  // ADR-177 — 페이지 위치 root 필드 mutation surface
+  // ─────────────────────────────────────────────
+
+  /**
+   * 활성 document 의 `pagePositions` root 필드에 entry 를 병합 기록.
+   *
+   * - batch 입력 (드래그 finish 1건 / `alignPagesToScreen` 전 페이지 N건).
+   * - `position: null` entry 는 해당 (pageId × breakpoint) 를 제거하고, 그
+   *   결과 페이지 entry 가 비면 pageId 키 자체를 제거.
+   * - 값 무변경 entry 만 있으면 no-op (documentVersion 미증가 — lazy write).
+   */
+  setPagePositions(entries: PagePositionSetEntry[]): void;
 }

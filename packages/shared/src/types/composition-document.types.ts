@@ -35,7 +35,10 @@
 
 import type { InteractionRule } from "../interactions/interactionRule.types";
 import type { ComponentTag } from "./composition-vocabulary";
-import type { ElementResponsiveConfig } from "./responsive.types";
+import type {
+  BreakpointName,
+  ElementResponsiveConfig,
+} from "./responsive.types";
 
 // ─────────────────────────────────────────────
 // ThemeSnapshot — ADR-110 Phase 1
@@ -782,6 +785,12 @@ export interface RefNode extends CanonicalNode {
  * - additive 변경 시 `"composition-1.1"` (minor 증가).
  * - read-through adapter 는 `"composition-"` 접두사 검사 후 migration 경로 선택.
  */
+/** 페이지 캔버스 좌표 (scene px) — ADR-177 `pagePositions` entry 값. */
+export interface PagePositionPoint {
+  x: number;
+  y: number;
+}
+
 export interface CompositionDocument {
   /**
    * 문서 포맷 버전.
@@ -835,6 +844,20 @@ export interface CompositionDocument {
    * 처리한다. shared 타입은 저장 schema 계약만 정의한다.
    */
   imports?: Record<string, string>;
+
+  /**
+   * 페이지(아트보드) 캔버스 배치 — ADR-177 (authoring 데이터).
+   *
+   * breakpoint 별 scene px 좌표. Preview/Publish 산출물에 영향 없음 (Figma 와
+   * 동일 — 문서 데이터지만 배포 무관). **lazy write** — 사용자가 위치를 변경한
+   * 페이지·breakpoint 만 기록되며, entry 부재 페이지는 로드 시 현행 재계산
+   * (`initializePagePositions`)으로 폴백한다 (페이지 단위 병합 — 문서 단위
+   * 이분법 아님, ADR-177 breakdown §4).
+   */
+  pagePositions?: Record<
+    string,
+    Partial<Record<BreakpointName, PagePositionPoint>>
+  >;
 
   /** Canonical primary storage marker. */
   _meta?: {
