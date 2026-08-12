@@ -92,7 +92,7 @@
 | 0     | inventory freeze — 오프셋 소비자 전수(top-layer/dragAnimator/renderCommands), drop 판정 경로, Figma 다중 드롭 동작 실측, body 혼합 엣지 재현 | **Implemented 2026-08-12** — §2.1 계약 표 + 엣지 재현 기록 + R2 lock                                                     |
 | 1     | 요소 다중 드래그 — 정규화 + 오프셋 Map + batch move + body 혼합 엣지 폐쇄                                                                    | **Implemented 2026-08-12** — live: batch 연속 삽입 + entry 1개 + Cmd+Z 1회 원순서 복원 + body 엣지 재현 불가 (§4.1 기록) |
 | 2     | 페이지 다중 선택·드래그 — gestureSession 대상 집합 + presentation 다중 override                                                              | **Implemented 2026-08-12** — live: 2 페이지 동일 델타 이동 + batch entry 1 + Cmd+Z 1회 전체 복귀 (§4.2 기록)             |
-| 3     | modifier — Shift 축 고정 + Alt 드래그 복제                                                                                                   | live: 축 고정 좌표 실측 + Alt 복제 → 원본 잔류 + undo 1회                                                                |
+| 3     | modifier — Shift 축 고정 + Alt 드래그 복제                                                                                                   | **Implemented 2026-08-12** — live: 축 고정 y 불변 실측 + Alt 복제 원본 잔류·undo 1회 전체 취소 (§4.3 기록)               |
 | 4     | 검증 종결 — 성능(오프셋 Map 프레임 비용) + CHANGELOG                                                                                         | live behavior 게이트                                                                                                     |
 
 ### 4.1 Phase 1 구현 기록 (2026-08-12)
@@ -128,3 +128,15 @@
 **발견 1건 — [사전 결함, 본 phase 에서 실동작 해소] element gesture 세션 잔류**: `useViewportControl`/중앙 핸들러가 pointerdown 마다 `beginPointer`(element) 로 세션을 열지만 element 세션은 pointerup 에서 아무도 `endPointer` 로 닫지 않는다 — 같은 pointerId 로 잔류해 **`tryClaimPage` 가 첫 press 이후 구조적으로 실패** (2026-08-12 계측 실측: 타이틀 클릭이 reload 직후에만 성공). 타이틀 경로에 `promoteElementToPage` fallback (정확히 이 상태를 승격하는 기존 API) 을 연결해 타이틀 드래그가 항상 동작하게 됨 — 단일 타이틀 드래그의 간헐 실패도 함께 해소. 잔류 자체의 근본 정리 (element 세션의 pointerup 해제 계약) 는 후속 대상.
 
 **후속 다듬기 (기록)**: 다중 드래그 finish 후 `setCurrentPageId`(리더) 의 page activation patch 가 다중 선택을 리더 body 단독으로 대체한다 — 이동은 완성되나 연속 다중 드래그엔 재선택 필요. 선택 보존은 page activation 의 선택 대체 정책과 얽혀 별도 판단.
+
+### 4.3 Phase 3 구현 기록 (2026-08-12)
+
+**구현 형태**:
+
+- `interaction/dragModifiers.ts` 신설 — `applyAxisLock`(점 형태)/`applyAxisLockToDelta`(델타 형태) 순수 함수 + Alt 복제 arm 플래그 (`armDragAltClone`/`isDragAltCloneArmed` — pointer handler 세팅 ↔ useDragBridge 소비의 모듈 경계 공유).
+- **Shift 축 고정**: 요소 축은 pointermove 에서 시작 scene 좌표 기준 `applyAxisLock` — delta(시각 오프셋)와 scenePoint(드롭 판정)가 같은 좌표에서 파생되므로 **한 지점 고정으로 둘 다** 잠긴다. 페이지 축은 `usePageDrag` 리더 델타에 `applyAxisLockToDelta` (스냅 전) — 전 대상이 리더 델타를 공유하므로 다중 드래그도 함께 잠김. HC5 (Shift 클릭 토글과 충돌 금지): 클릭은 threshold 미만이라 축 고정 코드에 도달하지 않음 — 시점 분리 구조 그대로.
+- **Alt 드래그 복제**: pointerdown 시점 altKey 를 arm (pendingDrag 설정 2곳) → 드롭 시점 소비 — **기존 duplicate 파이프라인 재사용** (`copyMultipleElements`/`pasteMultipleElements`/`addElement(skipHistory)`/`trackMultiPaste`). 복제본이 곧바로 델타 위치에 생성되므로 복제+이동이 **trackMultiPaste entry 1개**로 합산 (undo 1회 전체 취소) + 원본 canonical mutation 0 (잔류). Cmd+D 단축키의 duplicate 정의는 있으나 핸들러 미배선 상태였음 — 실체 파이프라인은 `CanvasSelectionShortcuts.handleDuplicate` 와 동일.
+
+**live 검증 (Chrome MCP)**: ① 페이지 타이틀 Shift 드래그 (합성 PointerEvent — MCP left_click_drag 의 modifiers 는 move/up 에 shift 를 싣지 않는 도구 한계) → 대각선 입력에서 **y 정확 불변** (340.135... 그대로, x 만 +317.5) ② Nav Alt 드래그 → 원본 잔류 + 복제본 트리 5요소 생성 (`clone 1 copied 5 new 5`) → **undo 1회로 복제본 전체 소거** ③ Shift 클릭 다중 선택 회귀 0 (Phase 2 토글 실측 유효 — 클릭은 축 고정 미개입).
+
+**후속 다듬기 (기록)**: ① flow 요소 Alt 복제본은 paste 표준대로 원본 부모 끝에 추가 (드롭 타겟 재부모화 복제는 `pasteMultipleElements` 의 `targetParentId` 옵션으로 확장 가능 — 미배선) ② 복제 후 선택이 복제본 **트리 전체** (기존 duplicate 파이프라인 동작 그대로 — 루트만 선택으로 다듬기 여지).

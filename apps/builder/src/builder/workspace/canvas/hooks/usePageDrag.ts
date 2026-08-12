@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useStore } from "../../../stores";
 import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
+import { applyAxisLockToDelta } from "../interaction/dragModifiers";
 import {
   beginPagePositionPresentation,
   cancelPagePositionPresentation,
@@ -120,7 +121,8 @@ export function usePageDrag(
         startBreakpoint: owner.startBreakpoint,
       };
 
-      let latestPointer: { x: number; y: number } | null = null;
+      let latestPointer: { x: number; y: number; shiftKey: boolean } | null =
+        null;
 
       const resetState = () => {
         stateRef.current = { ...EMPTY_PAGE_DRAG_STATE };
@@ -159,6 +161,7 @@ export function usePageDrag(
       const calculateLeaderPosition = (
         clientX: number,
         clientY: number,
+        axisLock: boolean,
       ): PagePosition | null => {
         const state = stateRef.current;
         if (
@@ -171,8 +174,15 @@ export function usePageDrag(
           return null;
         }
 
-        const dx = (clientX - state.startPointer.x) / zoom;
-        const dy = (clientY - state.startPointer.y) / zoom;
+        let dx = (clientX - state.startPointer.x) / zoom;
+        let dy = (clientY - state.startPointer.y) / zoom;
+        // ADR-178 Phase 3: 드래그 중 Shift = 축 고정 (스냅 전 델타에 적용 —
+        // 전 대상이 리더 델타를 공유하므로 다중 드래그도 함께 잠긴다)
+        if (axisLock) {
+          const locked = applyAxisLockToDelta(dx, dy);
+          dx = locked.x;
+          dy = locked.y;
+        }
         let x = state.startPagePos.x + dx;
         let y = state.startPagePos.y + dy;
         const { snapToGrid, gridSize } = useStore.getState();
@@ -186,9 +196,10 @@ export function usePageDrag(
       const calculatePositions = (
         clientX: number,
         clientY: number,
+        axisLock: boolean,
       ): Array<{ pageId: string; position: PagePosition }> | null => {
         const state = stateRef.current;
-        const leaderPosition = calculateLeaderPosition(clientX, clientY);
+        const leaderPosition = calculateLeaderPosition(clientX, clientY, axisLock);
         if (!leaderPosition || !state.startPagePos || !state.startPagePosById) {
           return null;
         }
@@ -207,8 +218,12 @@ export function usePageDrag(
         });
       };
 
-      const publishPositions = (clientX: number, clientY: number) => {
-        const positions = calculatePositions(clientX, clientY);
+      const publishPositions = (
+        clientX: number,
+        clientY: number,
+        axisLock: boolean,
+      ) => {
+        const positions = calculatePositions(clientX, clientY, axisLock);
         if (positions) {
           publishPagePositionPresentation(positions);
         }
@@ -309,7 +324,11 @@ export function usePageDrag(
           return;
         }
 
-        latestPointer = { x: event.clientX, y: event.clientY };
+        latestPointer = {
+          x: event.clientX,
+          y: event.clientY,
+          shiftKey: event.shiftKey,
+        };
         // RAF 스로틀: 프레임당 최신 위치만 presentation에 반영
         if (rafRef.current !== null) {
           return;
@@ -320,7 +339,7 @@ export function usePageDrag(
           const nextPointer = latestPointer;
           latestPointer = null;
           if (nextPointer) {
-            publishPositions(nextPointer.x, nextPointer.y);
+            publishPositions(nextPointer.x, nextPointer.y, nextPointer.shiftKey);
           }
         });
       };
@@ -331,7 +350,7 @@ export function usePageDrag(
         }
 
         cancelAnimation();
-        finish(publishPositions(event.clientX, event.clientY));
+        finish(publishPositions(event.clientX, event.clientY, event.shiftKey));
       };
 
       const onPointerCancel = (event: PointerEvent) => {

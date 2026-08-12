@@ -12,6 +12,13 @@ export {
 } from "./selectionModel";
 export { resolveCanvasDetachContextTarget } from "./canvasContextMenu";
 export {
+  applyAxisLock,
+  applyAxisLockToDelta,
+  armDragAltClone,
+  isDragAltCloneArmed,
+  type DragPoint,
+} from "./dragModifiers";
+export {
   resolveCanvasInteractionTarget,
   type CanvasInteractionTarget,
 } from "./resolveCanvasInteractionTarget";

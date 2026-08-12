@@ -13,6 +13,8 @@ import {
   resetPointerClick,
   resolveBodySelection,
   resolveDoubleClickTargetId,
+  applyAxisLock,
+  armDragAltClone,
   resolveCanvasInteractionTarget,
   resolveMultiDragTargets,
   resolveSelectedPageIds,
@@ -405,6 +407,8 @@ export function useCentralCanvasPointerHandlers({
               startClientX: event.clientX,
               startClientY: event.clientY,
             };
+            // ADR-178 Phase 3: Alt 드래그 복제는 pointerdown 시점 판정
+            armDragAltClone(event.altKey);
           }
         } else if (hitTargetPageId && hitTargetPageId !== state.currentPageId) {
           selectElementWithPageTransition(hitElementId, hitTargetPageId);
@@ -458,6 +462,8 @@ export function useCentralCanvasPointerHandlers({
               startClientX: event.clientX,
               startClientY: event.clientY,
             };
+            // ADR-178 Phase 3: Alt 드래그 복제는 pointerdown 시점 판정
+            armDragAltClone(event.altKey);
           }
         }
         return;
@@ -609,10 +615,16 @@ export function useCentralCanvasPointerHandlers({
 
         if (isDraggingRef.current) {
           const rect = element.getBoundingClientRect();
-          const canvasPos = screenToCanvasPoint({
+          let canvasPos = screenToCanvasPoint({
             x: event.clientX - rect.left,
             y: event.clientY - rect.top,
           });
+          // ADR-178 Phase 3: 드래그 중 Shift = 축 고정. 시작 scene 좌표 기준
+          // 지배 축만 남긴다 — delta(시각 오프셋)와 scenePoint(드롭 판정)가
+          // 같은 좌표에서 파생되므로 한 지점 고정으로 둘 다 잠긴다.
+          if (event.shiftKey) {
+            canvasPos = applyAxisLock(pending.startCanvasPos, canvasPos);
+          }
           onUpdateDrag.current(canvasPos);
         }
         return;
@@ -663,6 +675,9 @@ export function useCentralCanvasPointerHandlers({
 
       if (isDraggingRef.current) {
         onEndDrag.current();
+      } else {
+        // 드래그로 승격되지 않은 press — Alt 복제 arm 잔류 방지
+        armDragAltClone(false);
       }
       pendingDragRef.current = null;
       isDraggingRef.current = false;

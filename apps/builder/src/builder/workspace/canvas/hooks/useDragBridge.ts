@@ -46,10 +46,17 @@ import {
 } from "../../../../adapters/canonical/canonicalMutations";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
 import {
+  armDragAltClone,
   isContainerWithinDragTargets,
+  isDragAltCloneArmed,
   resolveCanonicalMoveTarget,
   resolveMultiDragTargets,
 } from "../interaction";
+import {
+  copyMultipleElements,
+  pasteMultipleElements,
+} from "../../../utils/multiElementCopy";
+import { trackMultiPaste } from "../../../stores/utils/historyHelpers";
 import { resolveAbsoluteFlowReparentProps } from "../../../utils/absolutePositioning";
 
 type SceneBoundsResolver = (
@@ -297,6 +304,40 @@ export function resolveManualPositionDropTarget(
   }
 
   return isCrossPage ? target : null;
+}
+
+/**
+ * ADR-178 Phase 3 — Alt 드래그 복제. pointerdown 시 arm 된 Alt 를 드롭
+ * 시점에 소비해 대상 집합의 복제본을 **델타 위치**에 생성한다. 원본은
+ * 무변경(잔류 — canonical mutation 0). 기존 duplicate 파이프라인
+ * (copy/paste + addElement(skipHistory) + trackMultiPaste) 재사용 —
+ * 복제본이 곧바로 이동 후 위치에 생성되므로 복제+이동이 **entry 1개**
+ * (trackMultiPaste batch) 로 합산되고 undo 1회로 전체 취소된다.
+ */
+async function cloneDragTargetsAtDrop(
+  targetIds: readonly string[],
+  delta: { x: number; y: number },
+): Promise<void> {
+  const state = useStore.getState();
+  const currentPageId = state.currentPageId;
+  if (!currentPageId || targetIds.length === 0) return;
+
+  const copied = copyMultipleElements([...targetIds], state.elementsMap);
+  const newElements = pasteMultipleElements(
+    copied,
+    currentPageId,
+    { x: delta.x, y: delta.y },
+    state.elements,
+  );
+  if (newElements.length === 0) return;
+
+  await Promise.all(
+    newElements.map((element) =>
+      state.addElement(element, { skipHistory: true }),
+    ),
+  );
+  trackMultiPaste(newElements);
+  state.setSelectedElements(newElements.map((element) => element.id));
 }
 
 /** ADR-178: 드래그 세션당 1회 정규화된 다중 드래그 대상 (ids[0] = 리더). */
@@ -654,6 +695,19 @@ export function useDragBridge({
       const session = dragSessionRef.current;
       dragSessionRef.current = null;
 
+      // ADR-178 Phase 3: Alt 드래그 복제 — 원본 무변경, 복제본을 델타
+      // 위치에 생성 (시각 해제로 원본은 제자리 복귀)
+      if (isDragAltCloneArmed()) {
+        armDragAltClone(false);
+        clearAllAnimations();
+        setDragVisualOffset(null, 0, 0, true);
+        setDragSiblingOffsets(null);
+        lastResolvedDropTargetRef.current = null;
+        dropIndicatorSnapshotRef.current = null;
+        void cloneDragTargetsAtDrop(session?.ids ?? [elementId], _delta);
+        return;
+      }
+
       // ADR-178: 다중 드래그 커밋 — batch move 1회 + 히스토리 1 entry
       if (session && session.ids.length > 1) {
         clearAllAnimations();
@@ -802,6 +856,7 @@ export function useDragBridge({
       dropIndicatorSnapshotRef.current = null;
       lastResolvedDropTargetRef.current = null;
       dragSessionRef.current = null;
+      armDragAltClone(false);
     };
   }, [
     enabled,
