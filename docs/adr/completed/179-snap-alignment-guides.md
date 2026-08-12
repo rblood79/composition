@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-12 (리뷰 round 1 승인 — [reviews/179.md](reviews/179.md), 이슈 LOW 3건 전부 fixed)
+Implemented — 2026-08-12 (리뷰 round 1 승인 [reviews/179.md](../reviews/179.md) → Accepted → Phase 0~3·5 당일 종결, Phase 4 등간격은 이연)
 
 ## Context
 
@@ -63,7 +63,7 @@ Figma/Pencil 에서 겹치지 않게 페이지를 배치하고 요소를 정돈�
 
 기각 사유 — B: 표면 5개 동시 착수는 sub-group 다분할·부분 미완 잔류의 전형 (M4 선차단). C: 객체 정렬 요구를 격자가 대체하지 못한다.
 
-> 구현 상세: [179-snap-alignment-guides-breakdown.md](design/179-snap-alignment-guides-breakdown.md)
+> 구현 상세: [179-snap-alignment-guides-breakdown.md](../design/179-snap-alignment-guides-breakdown.md)
 
 ## Risks
 
@@ -91,8 +91,8 @@ Figma/Pencil 에서 겹치지 않게 페이지를 배치하고 요소를 정돈�
 | 1     | 스냅 순수 함수 + 페이지 드래그 배선    | **Implemented 2026-08-12** — `resolveSnappedPosition` 6축 + `usePageDrag.calculateLeaderPosition` 배선 (축 고정 → 객체 → 그리드 순서) + Cmd/Ctrl 억제 + `snapToObjects` 설정 (기본 ON). 유닛 12건 + live: y=0 정밀 흡착 / Cmd 억제 raw 유지 / 그리드 동시 활성 시 y 객체(0)·x 그리드(2136) 축별 우선 실측 |
 | 2     | 정렬선 오버레이 렌더                   | **Implemented 2026-08-12** — `snapGuidePresentation` (publish/clear 순서 계약) + `renderSnapGuides` (1 screen px, `--accent`, occlusion clip 미적용). live: 흡착 순간 두 페이지 관통 정렬선 표시 + Cmd 토글·pointerup 해제 (guides 1↔0 왕복 실측) |
 | 3     | absolute 요소 확장 (SpatialIndex 후보) | **Implemented 2026-08-12** — `useDragBridge` 스냅 배선: 세션당 1회 후보 수집 (형제/부모 — `queryRect` 경유 C9) + 리더 시작 bounds 기준 델타 흡착 (시각 오프셋·커밋 공유 `session.snapDelta`) + `setDragSnapSuppressed` (Cmd/Ctrl — 중앙 pointer handler 세팅). live: center→형제 라인 238.2/body centerX 325.7 정확 커밋 + 억제 시 raw 커밋 + 정렬선 표시                                                                                                                                                                                                               |
-| 4     | 등간격 스냅·표시 (선택 phase)          | 미착수                                                                                                                                                                                                               |
-| 5     | 검증 종결 (성능 + CHANGELOG)           | 미착수                                                                                                                                                                                                               |
+| 4     | 등간격 스냅·표시 (선택 phase)          | **이연 2026-08-12** — 사용자 확정 (AskUserQuestion "이연 + Phase 5 종결"). 핵심 스냅 UX 완성 후 사용 패턴 확인 뒤 별도 착수 — 재개 시 같은 스냅 엔진/정렬선 채널 재사용                                                                                                                                                                                                               |
+| 5     | 검증 종결 (성능 + CHANGELOG)           | **Implemented 2026-08-12** — G2 실측: 판정 0.56µs(10 후보)/1.80µs(50 후보) per call — 프레임 예산 16.6ms 의 0.011% 이하, 후보 수집은 드래그 시작 1회 (구조 계약). CHANGELOG entry + closure                                                                                                                                                                                                               |
 
 ## Consequences
 

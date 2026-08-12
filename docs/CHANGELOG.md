@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [캔버스 스냅·정렬 가이드 — ADR-179 Implemented] - 2026-08-12
+
+### Features
+
+- **객체 스냅 + 정렬선(스마트 가이드) 신설 — 페이지·absolute 요소 드래그** (ADR-179 Phase 0~3·5, Phase 4 등간격 이연):
+  - 페이지 드래그: 다른 페이지의 가장자리·중앙 6축(left/centerX/right × top/centerY/bottom)에 흡착 + 흡착 순간 두 박스를 관통하는 정렬선 표시. absolute 요소 드래그: 형제·부모 컨테이너 기준 같은 흡착 (같은 스냅 엔진 — `resolveSnappedPosition` 순수 함수 공유)
+  - **우선순위**: 객체 스냅 > snap-to-grid (축별 — 객체 흡착 성사 축은 그리드 미적용), **Cmd/Ctrl 홀드 = 전 스냅 억제**, Shift 축 고정 먼저 → 고정 축만 스냅 (Figma 관례)
+  - 임계 8 screen px (scene 임계 = 8/zoom — zoom 무관 화면상 동일 흡착 거리), stateless 판정 (raw 포인터 기준 — 임계 밖 즉시 해제, "달라붙어 못 떼는" 조작감 없음)
+  - 신규 설정: Settings 패널 **Snap to Objects** (기본 ON)
+  - **Why**: 정렬 보조가 snap-to-grid(기본 OFF) 하나뿐 — 페이지 자유 배치 모델에서 나란히 놓는 조작이 눈대중이었다 (2026-07-16 감사 H1 축의 첫 착수). 다중 드래그는 리더에 스냅 + 델타 공유 (ADR-178 문법 승계)
+  - 성능: 후보 수집 드래그 시작 1회, 프레임당 판정 0.56µs(10 후보)/1.80µs(50 후보) — 프레임 예산 16.6ms 의 0.011% 이하 (R1/G2). ADR-176 publish 1회·map clone 금지 계약 무변경
+  - 정렬선은 조작 표식(드래그 순간 피드백) — 페이지 간 occlusion clip 미적용 분류 (§8.5), 색은 builder 무채색 `--accent` 1 screen px
+  - 위치: `workspace/canvas/interaction/{snapGuides,snapGuidePresentation,dragModifiers}.ts`, `workspace/canvas/hooks/{usePageDrag,useDragBridge,useCentralCanvasPointerHandlers}.ts`, `workspace/canvas/skia/{snapGuideRenderer,skiaOverlayBuilder}.ts`, `stores/canvasSettings.ts`, `panels/settings/SettingsPanel.tsx`
+
 ## [캔버스 다중 선택 이동 — ADR-178 Implemented] - 2026-08-12
 
 ### Features
