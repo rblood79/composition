@@ -2065,6 +2065,8 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
 
     // 🆕 Multi-page: 단일 페이지 위치 업데이트 (드래그용)
     updatePagePosition: (pageId: string, x: number, y: number) => {
+      const prevPosition = get().pagePositions[pageId];
+
       set((state) => {
         const nextPagePositions = {
           ...state.pagePositions,
@@ -2085,6 +2087,29 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         .setPagePositions([
           { pageId, breakpoint: activeBreakpoint, position: { x, y } },
         ]);
+
+      // ADR-177 Phase 2: 히스토리 기록 — 기존 파이프라인 편입 (기록 시점
+      // 활성 페이지 스택, breakdown §5 C6). undo/redo 적용은
+      // historyActions.applyPagePositionHistoryEntry (재기록 없음 — 본 함수
+      // 미경유).
+      if (prevPosition && (prevPosition.x !== x || prevPosition.y !== y)) {
+        historyManager.addEntry({
+          type: "page-position",
+          elementId: pageId,
+          data: {
+            pagePositionEvent: {
+              entries: [
+                {
+                  pageId,
+                  breakpoint: activeBreakpoint,
+                  before: { ...prevPosition },
+                  after: { x, y },
+                },
+              ],
+            },
+          },
+        });
+      }
       queueMicrotask(() => {
         void (async () => {
           try {

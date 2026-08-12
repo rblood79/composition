@@ -43,9 +43,34 @@ import { type CanonicalHistoryNodeEvent } from "./history/canonicalHistoryEvents
  * @see docs/adr/124-canonical-only-history-schema.md
  * @see apps/builder/src/builder/stores/history/historyEntryMigration.ts
  */
+/**
+ * ADR-177 — `page-position` entry 의 항목 (batch 지원).
+ *
+ * `before: null` 은 이동 전 문서/스토어 entry 부재 (undo 시 해당 breakpoint
+ * entry 제거 — 스토어 위치는 유지, 문서 축만 정리).
+ */
+export interface PagePositionHistoryEntryItem {
+  pageId: string;
+  breakpoint: import("@composition/shared").BreakpointName;
+  before: { x: number; y: number } | null;
+  after: { x: number; y: number };
+}
+
 export interface HistoryEntry {
   id: string;
-  type: "add" | "update" | "remove" | "move" | "batch" | "group" | "ungroup";
+  type:
+    | "add"
+    | "update"
+    | "remove"
+    | "move"
+    | "batch"
+    | "group"
+    | "ungroup"
+    | "page-position";
+  /**
+   * element 노드 id — `page-position` entry 는 첫 pageId 를 넣는다 (소비자
+   * 미해석 무해값, ADR-177 breakdown §5 C5).
+   */
   elementId: string;
   elementIds?: string[]; // For multi-element operations
   data: {
@@ -81,6 +106,12 @@ export interface HistoryEntry {
     diffs?: SerializableElementDiff[];
     /** **ADR-124 primary** — canonical event sequence (apply 우선 path). */
     canonicalEvents?: CanonicalHistoryNodeEvent[];
+    /**
+     * **ADR-177** — `type: "page-position"` 전용 payload. element 노드 이벤트
+     * (`CanonicalHistoryNodeEvent`) 와 별개 축 — undo/redo 는 element 경로
+     * 진입 전 early-branch 로 처리한다 (`historyActions.ts`).
+     */
+    pagePositionEvent?: { entries: PagePositionHistoryEntryItem[] };
   };
   timestamp: number;
   /** Entry size tracking */

@@ -8,7 +8,7 @@ Accepted — 2026-08-12 (리뷰 round 1 승인 — `docs/adr/reviews/177.md`, �
 
 - Phase 0 (inventory freeze): Implemented 2026-08-12 — breakdown §5 계약 표 C1~C10 (R2 파서 additive 안전 확정 포함)
 - Phase 1 (document 필드 + persist/hydrate): Implemented 2026-08-12 — `pagePositions` root 필드 + `setPagePositions` + hydrate 페이지 단위 병합. live: 드래그 → IndexedDB 기록(lazy write 1 entry) → 새로고침 → 배치 유지 실측
-- Phase 2 (히스토리 canonical event + undo/redo): 진행 전
+- Phase 2 (히스토리 canonical event + undo/redo): Implemented 2026-08-12 — `page-position` entry (batch) + 3 진입점 early-branch + `alignPagesToScreen` batch 1 entry + 정적 가드. live: 드래그→Cmd+Z 원위치→redo 재적용 + align→Cmd+Z 1회 전체 복귀 + 문서 축 before/after 정합 실측
 - Phase 3 (인스펙터 X/Y + nudge): 진행 전
 - Phase 4 (검증 종결): 진행 전
 

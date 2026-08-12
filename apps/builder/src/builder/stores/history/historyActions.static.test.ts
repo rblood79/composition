@@ -73,3 +73,37 @@ describe("historyActions canonical compatibility sync contract", () => {
     }
   });
 });
+
+describe("ADR-177: page-position entry 소비 분기 (element 노드 경로 미진입 계약)", () => {
+  it("undo/redo/goToIndex 3 진입점 + syncDatabaseForEntries 에 page-position 분기 존재", async () => {
+    const source = await readFile(
+      resolve(__dirname, "historyActions.ts"),
+      "utf-8",
+    );
+
+    // 적용 헬퍼 정의 (스토어 스냅샷 + canonical setPagePositions + persist)
+    expect(source).toContain("function applyPagePositionHistoryEntry");
+    expect(source).toContain(".setPagePositions(");
+
+    // 진입점 분기 — undo/redo 는 early-return, goToIndex 는 continue,
+    // syncDatabaseForEntries 는 skip. 최소 4곳.
+    const branches = [
+      ...source.matchAll(/entry\.type === "page-position"/g),
+    ];
+    expect(branches.length).toBeGreaterThanOrEqual(4);
+
+    // undo/redo early-branch 는 element 경로 진입 전 (historyManager.undo/redo
+    // 획득 직후 30줄 안)에 있어야 한다.
+    for (const acquire of ["historyManager.undo()", "historyManager.redo()"]) {
+      const idx = source.indexOf(acquire);
+      expect(idx).toBeGreaterThan(-1);
+      const windowAfter = source
+        .slice(idx)
+        .split("\n")
+        .slice(0, 30)
+        .join("\n");
+      expect(windowAfter).toContain('entry.type === "page-position"');
+      expect(windowAfter).toContain("applyPagePositionHistoryEntry");
+    }
+  });
+});

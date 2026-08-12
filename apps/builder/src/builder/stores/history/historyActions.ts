@@ -101,6 +101,74 @@ function syncHistoryElementsToCanonical(elements: Element[]): void {
   setElementsCanonicalPrimary(elements);
 }
 
+/**
+ * ADR-177 — `page-position` entry 적용 (undo/redo/goToIndex 공용).
+ *
+ * element 노드 경로와 별개 축: 스토어 breakpoint 스냅샷 + canonical
+ * `pagePositions` root 필드 + persist 를 함께 갱신한다. 삭제된 pageId entry
+ * 는 무시 (R3), 비-active breakpoint entry 는 스냅샷만 갱신 (화면 무변화).
+ */
+function applyPagePositionHistoryEntry(
+  set: SetState,
+  get: GetState,
+  entry: NonNullable<ReturnType<typeof historyManager.undo>>,
+  direction: "undo" | "redo",
+): void {
+  const event = entry.data.pagePositionEvent;
+  if (!event || event.entries.length === 0) return;
+
+  const state = get();
+  const validPageIds = new Set(state.pages.map((page) => page.id));
+  const activeBreakpoint = (
+    state as ElementsState & {
+      activeBreakpoint: import("@composition/shared").BreakpointName;
+    }
+  ).activeBreakpoint;
+
+  const canonicalEntries: Array<{
+    pageId: string;
+    breakpoint: import("@composition/shared").BreakpointName;
+    position: { x: number; y: number } | null;
+  }> = [];
+
+  set((prev) => {
+    const nextByBreakpoint = { ...prev.pagePositionsByBreakpoint };
+    let activeTouched = false;
+
+    for (const item of event.entries) {
+      if (!validPageIds.has(item.pageId)) continue;
+      const position = direction === "undo" ? item.before : item.after;
+      canonicalEntries.push({
+        pageId: item.pageId,
+        breakpoint: item.breakpoint,
+        position: position ? { ...position } : null,
+      });
+      if (position === null) continue; // 문서 축만 정리 — 스토어 위치 유지
+      const snapshot = { ...(nextByBreakpoint[item.breakpoint] ?? {}) };
+      snapshot[item.pageId] = { ...position };
+      nextByBreakpoint[item.breakpoint] = snapshot;
+      if (item.breakpoint === activeBreakpoint) activeTouched = true;
+    }
+
+    return {
+      pagePositions: activeTouched
+        ? { ...(nextByBreakpoint[activeBreakpoint] ?? {}) }
+        : prev.pagePositions,
+      pagePositionsByBreakpoint: nextByBreakpoint,
+      pagePositionsVersion: prev.pagePositionsVersion + 1,
+    };
+  });
+
+  if (canonicalEntries.length > 0) {
+    useCanonicalDocumentStore.getState().setPagePositions(canonicalEntries);
+  }
+  queueMicrotask(() => {
+    void persistActiveCanonicalDocument().catch((error) => {
+      console.error("[applyPagePositionHistoryEntry] DB persist:", error);
+    });
+  });
+}
+
 function getHistorySourceElements(get: GetState): Element[] {
   const { elements: legacyElements } = get();
   return getActiveCanonicalHistoryElements() ?? legacyElements;
@@ -271,7 +339,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
     // 히스토리 작업 시작 표시
     set({ historyOperationInProgress: true });
 
-
     // historyManager에서 항목 가져오기
     const entry = historyManager.undo();
     if (!entry) {
@@ -279,6 +346,12 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
       return;
     }
 
+    // ADR-177: page-position entry 는 element 노드 경로 미진입 (early-branch)
+    if (entry.type === "page-position") {
+      applyPagePositionHistoryEntry(set, get, entry, "undo");
+      set({ historyOperationInProgress: false });
+      return;
+    }
 
     // 1. 메모리 상태 업데이트 (우선) - 안전한 데이터 복사
     let elementIdsToRemove: string[] = [];
@@ -300,7 +373,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
         }
 
         case "update": {
-
           // 🚀 Phase 2: structuredClone 사용
           if (entry.data.prevProps) {
             prevProps = cloneForHistory(entry.data.prevProps);
@@ -346,7 +418,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
           break;
         }
       }
-
     } catch (error: unknown) {
       console.error("⚠️ 히스토리 데이터 준비 중 오류:", error);
       console.error("⚠️ 오류 상세:", {
@@ -358,7 +429,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
       set({ historyOperationInProgress: false });
       return;
     }
-
 
     // 🚀 Phase 1: Immer → 함수형 업데이트
     const currentState = {
@@ -401,7 +471,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
         }
 
         case "update": {
-
           if (entry.data.diff) {
             updatedElements = applySerializedHistoryDiff(
               currentState.elements,
@@ -454,8 +523,7 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
         case "remove": {
           // 삭제된 요소와 자식 요소들 복원
 
-          elementsToRestore.forEach((el, index) => {
-          });
+          elementsToRestore.forEach((el, index) => {});
 
           updatedElements = [...currentState.elements, ...elementsToRestore];
           break;
@@ -651,7 +719,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
     } catch (dbError) {
       console.warn("⚠️ 데이터베이스 업데이트 실패 (메모리는 정상):", dbError);
     }
-
   } catch (error) {
     console.error("Undo 시 오류:", error);
   } finally {
@@ -675,9 +742,15 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
     // 히스토리 작업 시작 표시
     set({ historyOperationInProgress: true });
 
-
     const entry = historyManager.redo();
     if (!entry) {
+      set({ historyOperationInProgress: false });
+      return;
+    }
+
+    // ADR-177: page-position entry 는 element 노드 경로 미진입 (early-branch)
+    if (entry.type === "page-position") {
+      applyPagePositionHistoryEntry(set, get, entry, "redo");
       set({ historyOperationInProgress: false });
       return;
     }
@@ -1019,7 +1092,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
     } catch (dbError) {
       console.warn("⚠️ 데이터베이스 업데이트 실패 (메모리는 정상):", dbError);
     }
-
   } catch (error) {
     console.error("Redo 시 오류:", error);
   } finally {
@@ -1051,7 +1123,6 @@ export const createGoToHistoryIndexAction =
       // 히스토리 작업 시작 표시
       set({ historyOperationInProgress: true });
 
-
       // historyManager에서 모든 엔트리를 한 번에 가져옴
       const result = historyManager.goToIndex(targetIndex);
       if (!result) {
@@ -1070,6 +1141,12 @@ export const createGoToHistoryIndexAction =
 
       // 모든 엔트리를 순차적으로 메모리에 적용 (렌더링 없이)
       for (const entry of entries) {
+        // ADR-177: page-position entry 는 element 경로 미진입 — 자체 적용 후
+        // canonical full-sync 판정에서도 제외 (element 축 무변경).
+        if (entry.type === "page-position") {
+          applyPagePositionHistoryEntry(set, get, entry, direction);
+          continue;
+        }
         if (!entry.data.canonicalEvents?.length) {
           allEntriesAppliedAsCanonicalEvents = false;
         }
@@ -1121,7 +1198,6 @@ export const createGoToHistoryIndexAction =
 
       // 데이터베이스 동기화 (마지막 상태만)
       await syncDatabaseForEntries(entries, direction, get);
-
     } catch (error) {
       console.error("GoToHistoryIndex 시 오류:", error);
     } finally {
@@ -1603,6 +1679,9 @@ async function syncDatabaseForEntries(
 
   for (const entry of entries) {
     if (!entry) continue;
+    // ADR-177: page-position entry 는 element DB 동기화 대상 아님 — persist 는
+    // applyPagePositionHistoryEntry 가 자체 수행 (elementId=pageId 오인 방지).
+    if (entry.type === "page-position") continue;
     if (entry.data.canonicalEvents?.length) {
       const { upsertIds, deleteIds } = getCanonicalHistoryEventIds(
         entry.data.canonicalEvents,
