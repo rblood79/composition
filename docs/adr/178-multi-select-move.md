@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-08-12
+Accepted — 2026-08-12 (리뷰 round 1 승인 — [reviews/178.md](reviews/178.md), 이슈 2건 전부 fixed)
 
 ## Context
 
@@ -84,6 +84,16 @@ Figma/Pencil 은 다중 선택 드래그·Shift 축 고정·Alt 드래그 복제
 | G2   | live: 페이지 2개 동시 드래그 + Shift 축 고정 좌표 실측 + Alt 복제(원본 잔류, undo 1회) — 기존 Shift 클릭 다중 선택 회귀 0 |
 | G3   | 드래그 프레임 비용 — 대상 10/50 tier 에서 프레임당 오프셋 갱신 1회 + 전체 map clone 0 (ADR-176 G2 동형 카운터)            |
 | G4   | type-check + 정규화/유효성 판정 유닛 테스트 + `docs/CHANGELOG.md` 갱신 (Implemented 승격 시)                              |
+
+## Phase 진행 로그
+
+| Phase | 내용                                                | 상태                                                                                                                                                                                                                                                |
+| ----- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | inventory freeze                                    | **Implemented 2026-08-12** — 오프셋 소비자 5곳 전수(Tree 경로 미소비 확인) + batch 전례(`applyElementOrderCanonicalPrimary`·`runInTransaction` 1-entry 병합) + body 혼합 엣지 코드 추적 + R2 lock (자신·자손 후보 제외 + 전체 취소). breakdown §2.1 |
+| 1     | 요소 다중 드래그 (정규화 + 오프셋 Map + batch move) | 미착수                                                                                                                                                                                                                                              |
+| 2     | 페이지 다중 선택·드래그                             | 미착수                                                                                                                                                                                                                                              |
+| 3     | modifier (Shift 축 고정 + Alt 복제)                 | 미착수                                                                                                                                                                                                                                              |
+| 4     | 검증 종결 (성능 + CHANGELOG)                        | 미착수                                                                                                                                                                                                                                              |
 
 ## Consequences
 

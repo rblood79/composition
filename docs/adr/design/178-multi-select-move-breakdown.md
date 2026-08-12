@@ -30,18 +30,40 @@
 
 ## 2. Current evidence (2026-08-12 실측)
 
-| 경로                                                                                         | 현재 동작                                                                                 | 관심사                                                     |
-| -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `apps/builder/src/builder/workspace/canvas/hooks/useDragBridge.ts:313`                       | `const draggedId = dragState.selectedElementIds[0]` — 첫 요소만 이동                      | 대상 집합화 진입점                                         |
-| `apps/builder/src/builder/workspace/canvas/skia/nodeRendererTree.ts:37, 60-83`               | 드래그 시각 오프셋이 전역 단일 슬롯 `{elementId, dx, dy}`                                 | 오프셋 Map 화 — 렌더 비용 축                               |
-| `apps/builder/src/builder/workspace/canvas/interaction/canvasGestureSession.ts:32, 74-112`   | `pageOwner` 단수 — `tryClaimPage`/`promoteElementToPage` 모두 단일 pageId                 | owner 의 대상 집합 확장                                    |
-| `apps/builder/src/builder/workspace/canvas/interaction/pagePositionPresentation.ts:16-17`    | transient override 가 `activePageId` + `activeOverride` 1건 (ADR-176 O(1) 계약)           | 다중 override 로 확장하되 map clone 금지 계약 유지         |
-| `apps/builder/src/builder/workspace/canvas/hooks/useCentralCanvasPointerHandlers.ts:232-240` | 선택이 정확히 1개일 때만 `selectedElement` 조회 — 다중 선택 + body 혼합 시 가드 우회 엣지 | 엣지 폐쇄 (본 ADR 에서 함께)                               |
-| `apps/builder/src/builder/workspace/canvas/selection/dropTargetResolver.ts:443, 548+`        | 단일 요소 기준 drop 판정 (same-parent index / cross-container)                            | 다중 대상의 타겟 판정 규칙 (리더 기준 + 전 대상 유효성)    |
-| `apps/builder/src/builder/workspace/canvas/skia/dragAnimator.ts`                             | 형제 벌림 애니메이션 — 단일 드래그 전제                                                   | 다중 시 벌림 대상 계산                                     |
-| `apps/builder/src/builder/hooks/useGlobalKeyboardShortcuts.ts:331` | 다중 선택 시 화살표 no-op (유지). ADR-177 Phase 3 이후 화살표=`handleArrowMove` — 페이지(body) 단일 선택 시 nudge 분기 | 페이지 **다중** 선택 모델 도입 시 nudge/인스펙터 X/Y 의 다중 대상 동작 정의 (후속 접점) |
-| 캔버스 포인터 경로 전체                                                                      | `altKey` 사용 0건, `shiftKey` 는 다중 선택 클릭/스크롤 용도                               | modifier 신설 — 기존 의미와 컨텍스트 분리 (드래그 중 한정) |
-| `apps/builder/src/builder/workspace/canvas/hooks/usePageDrag.ts:127-152`                     | `calculatePosition(clientX, clientY)` — PointerEvent 미수신, modifier 접근 경로 없음      | 시그니처 확장 (Shift 축 고정 지점)                         |
+| 경로                                                                                         | 현재 동작                                                                                                              | 관심사                                                                                  |
+| -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `apps/builder/src/builder/workspace/canvas/hooks/useDragBridge.ts:313`                       | `const draggedId = dragState.selectedElementIds[0]` — 첫 요소만 이동                                                   | 대상 집합화 진입점                                                                      |
+| `apps/builder/src/builder/workspace/canvas/skia/nodeRendererTree.ts:37, 60-83`               | 드래그 시각 오프셋이 전역 단일 슬롯 `{elementId, dx, dy}`                                                              | 오프셋 Map 화 — 렌더 비용 축                                                            |
+| `apps/builder/src/builder/workspace/canvas/interaction/canvasGestureSession.ts:32, 74-112`   | `pageOwner` 단수 — `tryClaimPage`/`promoteElementToPage` 모두 단일 pageId                                              | owner 의 대상 집합 확장                                                                 |
+| `apps/builder/src/builder/workspace/canvas/interaction/pagePositionPresentation.ts:16-17`    | transient override 가 `activePageId` + `activeOverride` 1건 (ADR-176 O(1) 계약)                                        | 다중 override 로 확장하되 map clone 금지 계약 유지                                      |
+| `apps/builder/src/builder/workspace/canvas/hooks/useCentralCanvasPointerHandlers.ts:232-240` | 선택이 정확히 1개일 때만 `selectedElement` 조회 — 다중 선택 + body 혼합 시 가드 우회 엣지                              | 엣지 폐쇄 (본 ADR 에서 함께)                                                            |
+| `apps/builder/src/builder/workspace/canvas/selection/dropTargetResolver.ts:443, 548+`        | 단일 요소 기준 drop 판정 (same-parent index / cross-container)                                                         | 다중 대상의 타겟 판정 규칙 (리더 기준 + 전 대상 유효성)                                 |
+| `apps/builder/src/builder/workspace/canvas/skia/dragAnimator.ts`                             | 형제 벌림 애니메이션 — 단일 드래그 전제                                                                                | 다중 시 벌림 대상 계산                                                                  |
+| `apps/builder/src/builder/hooks/useGlobalKeyboardShortcuts.ts:331`                           | 다중 선택 시 화살표 no-op (유지). ADR-177 Phase 3 이후 화살표=`handleArrowMove` — 페이지(body) 단일 선택 시 nudge 분기 | 페이지 **다중** 선택 모델 도입 시 nudge/인스펙터 X/Y 의 다중 대상 동작 정의 (후속 접점) |
+| 캔버스 포인터 경로 전체                                                                      | `altKey` 사용 0건, `shiftKey` 는 다중 선택 클릭/스크롤 용도                                                            | modifier 신설 — 기존 의미와 컨텍스트 분리 (드래그 중 한정)                              |
+| `apps/builder/src/builder/workspace/canvas/hooks/usePageDrag.ts:127-152`                     | `calculatePosition(clientX, clientY)` — PointerEvent 미수신, modifier 접근 경로 없음                                   | 시그니처 확장 (Shift 축 고정 지점)                                                      |
+
+### 2.1 Phase 0 inventory freeze (2026-08-12 — 코드 실측)
+
+**오프셋 소비자 전수** (시각 오프셋 Map 화의 영향 지점 — R1). grep 전수: `getDragVisualOffset`/`getSiblingOffset` 소비자는 아래 5곳뿐이며, `nodeRendererTree.ts` 의 Tree 렌더 경로(`renderNodeInternal`)는 드래그 오프셋을 **소비하지 않는다** (page delta 만 — "ADR-043: skiaTreeBuilder 반영" 주석은 잔재):
+
+| 소비자                | 위치                                                                                      | 현행                             | Map 화 방향                                            |
+| --------------------- | ----------------------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------ |
+| 스트림 빌드 top-layer | `renderCommands.ts:422` `dragRootId` 단수 — `visitElement:541` 유예 → `:452` 재방문 1회   | 드래그 root 1개만 clip 밖 재방문 | root **Set** + 유예 목록 순회 (대상 수 비례 상한 — G3) |
+| 커맨드 실행 오프셋    | `renderCommands.ts:1006-1010` (`CMD_ELEMENT_BEGIN`) — 단일 슬롯 비교 + `getSiblingOffset` | cmd 당 O(1)                      | `Map.get(cmd.elementId)` O(1) 유지                     |
+| 형제 벌림 애니메이터  | `dragAnimator.ts` (`updateAnimationTargets`/`tickAnimations`)                             | **이미 Map 기반**                | 무변경 — 리더 기준 `computeSiblingOffsets` 결과 그대로 |
+| RAF 보간 publish      | `SkiaCanvas.tsx:687-689`                                                                  | 프레임당 1회                     | 무변경                                                 |
+| 드래그 중 hover 억제  | `useElementHoverInteraction.ts:306`                                                       | non-null 체크                    | "드래그 활성" 판정 유지 (의미 동일)                    |
+
+**드롭/커밋 경로**:
+
+- `resolveDropTarget(scenePoint, draggedElementId, store)` — 드래그 요소의 **부모 기준** 형제 판정 (`dropTargetResolver.ts:443`). 다중은 **리더 id** 로 호출 (시그니처 유지). `computeReorderFromDropTarget`/`computeSiblingOffsets`/`computeInsertionLinePosition`/`computeDropPlaceholderBounds` 전부 `(target, draggedId, store)` — 리더 기준 유지, 형제 벌림의 draggedId 제외만 **집합 제외**로 확장.
+- **canonical batch 전례**: `applyElementOrderCanonicalPrimary` (`canonicalMutations.ts`) 가 "`moveCanonicalChild` 를 doc 체인으로 N회 적용 → `setDocument` 1회" 패턴. 다중 드롭용 `moveElementsToCanonicalTarget(elementIds, target)` 를 같은 패턴으로 신설 (setDocument/persist 1회 — HC2).
+- **히스토리 1 entry**: `historyManager.runInTransaction` 이 창 안 `addEntry` 전부를 entry 1개로 병합 (`history.ts:273-343`) — 현행 단일 드롭도 이 창 안에서 `trackCanonicalMove`. 다중은 같은 창에서 대상별 track (HC2 충족).
+
+**body 혼합 엣지 재현 (코드 추적)**: `useCentralCanvasPointerHandlers.ts:232-241` 이 선택 1개일 때만 `selectedElement` 를 조회해, 다중 선택에서는 `:428-431` 의 body 가드(`selectedElement?.type !== "body"`)가 무조건 통과 → `pendingDrag.elementId = selectedIds[0]`. body 가 첫 요소면 body 로 `startMove` → `useDragBridge` 가 body 에 시각 오프셋 (페이지 전체가 움직여 보임), 드롭 시 `resolveDropTarget` 이 parent 부재로 null → 커밋 없음 — **시각만 이동하고 커밋은 안 되는 혼란 상태**. Phase 1 정규화(§3.1)가 폐쇄, G1 에서 재현 불가 확인.
+
+**R2 lock (다중 드롭 유효성 — Figma 모델)**: Figma 는 부분 적용을 하지 않는다 — 선택이 계층 정규화(조상만 이동, 자손은 따라감)되고, 드래그 집합의 자신/자손 컨테이너는 드롭 후보에서 제외된다 (자기 안으로 드롭 불가). lock: **타겟 판정 단계에서 대상 집합의 자신·자손을 후보 제외** + 남은 타겟에 전 대상 적용 불가면 **전체 취소** (가능 대상만 부분 적용 금지 — R2 데이터 불일치 차단). 검증: G1.
 
 ## 3. 계약 설계
 
@@ -67,7 +89,7 @@
 
 | Phase | 내용                                                                                                                                         | 산출 검증                                                            |
 | ----- | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| 0     | inventory freeze — 오프셋 소비자 전수(top-layer/dragAnimator/renderCommands), drop 판정 경로, Figma 다중 드롭 동작 실측, body 혼합 엣지 재현 | 계약 표 + 엣지 재현 기록                                             |
+| 0     | inventory freeze — 오프셋 소비자 전수(top-layer/dragAnimator/renderCommands), drop 판정 경로, Figma 다중 드롭 동작 실측, body 혼합 엣지 재현 | **Implemented 2026-08-12** — §2.1 계약 표 + 엣지 재현 기록 + R2 lock |
 | 1     | 요소 다중 드래그 — 정규화 + 오프셋 Map + batch move + body 혼합 엣지 폐쇄                                                                    | live: 2+ 요소 동일 델타 이동 + Cmd+Z 1회 복귀                        |
 | 2     | 페이지 다중 선택·드래그 — gestureSession 대상 집합 + presentation 다중 override                                                              | live: 2 페이지 동시 이동, ADR-176 G2 계약(프레임당 publish 1회) 유지 |
 | 3     | modifier — Shift 축 고정 + Alt 드래그 복제                                                                                                   | live: 축 고정 좌표 실측 + Alt 복제 → 원본 잔류 + undo 1회            |
