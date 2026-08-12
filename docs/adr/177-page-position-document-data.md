@@ -2,7 +2,15 @@
 
 ## Status
 
-Proposed — 2026-08-12
+Accepted — 2026-08-12 (리뷰 round 1 승인 — `docs/adr/reviews/177.md`, 이슈 전부 fixed)
+
+### Phase 진행 로그
+
+- Phase 0 (inventory freeze): Implemented 2026-08-12 — breakdown §5 계약 표 C1~C10 (R2 파서 additive 안전 확정 포함)
+- Phase 1 (document 필드 + persist/hydrate): 진행 전
+- Phase 2 (히스토리 canonical event + undo/redo): 진행 전
+- Phase 3 (인스펙터 X/Y + nudge): 진행 전
+- Phase 4 (검증 종결): 진행 전
 
 ## Context
 
