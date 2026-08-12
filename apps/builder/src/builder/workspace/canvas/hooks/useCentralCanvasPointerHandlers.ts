@@ -485,6 +485,28 @@ export function useCentralCanvasPointerHandlers({
               metaKey: event.metaKey,
               shiftKey: event.shiftKey,
             });
+
+            // 첫 press 에서도 같은 제스처로 page 를 잡아 끌 수 있게 — 선택 직후
+            // 바로 page drag 세션으로 승격한다. 위의 promote 분기는 "이전 press
+            // 에서 이미 선택된 page" 만 잡아서, 클릭(선택)-해제-재클릭 두 제스처가
+            // 필요했다 (2026-08-12 사용자 보고). 클릭만 하고 안 움직이면 commit
+            // 없음 (usePageDrag finish 의 isSamePosition 가드) 이라 클릭 의미는
+            // 그대로다.
+            if (
+              bodySelection.pageId &&
+              gestureSession.promoteElementToPage(
+                event.pointerId,
+                bodySelection.pageId,
+                state.activeBreakpoint,
+              )
+            ) {
+              startPageDrag(
+                bodySelection.pageId,
+                event.pointerId,
+                event.clientX,
+                event.clientY,
+              );
+            }
           } else if (bodySelection.pageId) {
             // ADR-074 Phase 1: 페이지 영역 내부 빈 공간 클릭
             // - Case A (페이지 전환 + body 선택): selectElementWithPageTransition

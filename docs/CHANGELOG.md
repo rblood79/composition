@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Page body 첫 클릭 제스처에서 바로 드래그] - 2026-08-12
+
+### Bug Fixes
+
+- page 빈 영역을 **처음 누른 제스처에서 바로 page 를 잡아 끌 수 있다** — 기존에는 클릭(선택) → 해제 → 재클릭 두 제스처가 필요했다.
+  - **Why**: 빈 영역 press 의 page drag 승격 조건이 "이전 press 에서 이미 선택된 page" (`selectedPageId === bodySelection.pageId`) 라, 첫 press 는 body 선택만 하고 드래그 세션을 시작하지 않았다.
+  - 수정: body 선택 직후 같은 제스처에서 `promoteElementToPage` + `startPageDrag` 승격. 클릭만 하고 안 움직이면 canonical commit 없음 (`usePageDrag` finish 의 `isSamePosition` 가드) — 클릭 의미 불변.
+  - 위치: `apps/builder/src/builder/workspace/canvas/hooks/useCentralCanvasPointerHandlers.ts`
+
+### Verification
+
+- `pnpm type-check` PASS + live builder 실측 (Chrome MCP): 미선택 page 빈 영역 press+드래그 한 제스처로 선택과 동시에 드래그 델타만큼 이동 (Page 3/Page 5 × 2회, 전후 좌표 대조)
+
 ## [겹친 page 는 활성 page 가 최상단 — 페인트·히트 동기화] - 2026-08-11
 
 ### Features
