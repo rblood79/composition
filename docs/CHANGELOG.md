@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [페이지 위치의 문서 데이터화 — ADR-177 Implemented] - 2026-08-12
+
+### Features
+
+- **페이지(아트보드) 이동이 저장·undo 대상이 됨** (ADR-177 Phase 0~4):
+  - 페이지 드래그·화면 정렬·인스펙터 X/Y 입력·화살표 nudge 가 전부 히스토리 entry 로 기록 — Cmd+Z/Cmd+Shift+Z 로 복귀/재적용. 화면 정렬은 **batch 1 entry** (Cmd+Z 1회로 전체 복귀)
+  - 새로고침/재로드 후 사용자 배치 유지 — canonical document `pagePositions` root 필드 (breakpoint 별 scene px, **lazy write** — 이동한 페이지만 기록)
+  - **Why**: 페이지 위치가 인메모리 뷰 상태라 새로고침 시 배치가 초기 정렬로 소실되고 이동을 되돌릴 수 없었다 (2026-08-12 실측). Figma/Pencil 은 프레임 위치가 문서 데이터 — ADR-176 이 의도적으로 이연한 스키마 축의 완결
+  - 신규 UI: 페이지(body) 선택 시 인스펙터 **Position X/Y** + 화살표 **nudge 1px / Shift 10px** (element 선택 시 화살표=형제 순서 변경은 현행 유지)
+  - BC 0% — 필드 없는 기존 문서는 현행 재계산 폴백, 로드 시 재직렬화 0. 히스토리는 `page-position` entry 로 element 노드 경로 미진입 (early-branch + 정적 가드)
+  - 위치: `stores/elements.ts` (`updatePagePosition`/`initializePagePositions`), `stores/history/historyActions.ts`, `stores/canonical/canonicalDocumentStore.ts` (`setPagePositions`), `panels/properties/editors/PageBodyEditor.tsx`, `hooks/useGlobalKeyboardShortcuts.ts`, `workspace/canvas/viewport/pageLayoutActions.ts`
+
 ## [겹친 page 의 콘텐츠성 chrome 페이지 간 occlusion — 빈 slot 해치] - 2026-08-12
 
 ### Bug Fixes

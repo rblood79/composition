@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-12 (리뷰 round 1 승인 — `docs/adr/reviews/177.md`, 이슈 전부 fixed)
+Implemented — 2026-08-12 (리뷰 round 1 승인 `docs/adr/reviews/177.md` → Accepted → Phase 0~4 같은 날 완료)
 
 ### Phase 진행 로그
 
@@ -10,7 +10,7 @@ Accepted — 2026-08-12 (리뷰 round 1 승인 — `docs/adr/reviews/177.md`, �
 - Phase 1 (document 필드 + persist/hydrate): Implemented 2026-08-12 — `pagePositions` root 필드 + `setPagePositions` + hydrate 페이지 단위 병합. live: 드래그 → IndexedDB 기록(lazy write 1 entry) → 새로고침 → 배치 유지 실측
 - Phase 2 (히스토리 canonical event + undo/redo): Implemented 2026-08-12 — `page-position` entry (batch) + 3 진입점 early-branch + `alignPagesToScreen` batch 1 entry + 정적 가드. live: 드래그→Cmd+Z 원위치→redo 재적용 + align→Cmd+Z 1회 전체 복귀 + 문서 축 before/after 정합 실측
 - Phase 3 (인스펙터 X/Y + nudge): Implemented 2026-08-12 — PageBodyEditor Position 섹션(page body 한정) + 화살표 nudge 1px/Shift 10px (페이지 선택 분기 — element 형제 순서 무변경). live: nudge X 470→473 + Shift Y 0→10 + undo/redo 왕복 + X 입력 600 반영, entry 5개(조작당 1개) + 문서 축 정합 실측
-- Phase 4 (검증 종결): 진행 전
+- Phase 4 (검증 종결): Implemented 2026-08-12 — G1 (드래그/정렬/입력/nudge 전 경로 undo·redo live) / G2 (새로고침 배치 유지 + 구 문서 폴백·재직렬화 0) / G3 (`updatePagePosition` 호출처 3곳 전부 finish 지점 — 드래그 중·cancel 경로 기록 0, 조작당 entry 1개 카운터 실측 18→23) / G4 (type-check + 유닛 52·57 + 정적 가드 + CHANGELOG) 전수 통과
 
 ## Context
 
@@ -21,7 +21,7 @@ Accepted — 2026-08-12 (리뷰 round 1 승인 — `docs/adr/reviews/177.md`, �
 - 저장/복원 경로 미발견 — 로드 시 `initializePagePositions` (`elements.ts:1938`) 가 배치를 **재계산**한다. 같은 날 라이브 세션에서 새로고침 후 사용자 배치가 초기 정렬로 소실되는 것을 실측 확인.
 - Figma/Pencil 은 프레임(페이지) 위치가 문서 데이터다 — 이동은 undo 대상이고 재로드 후 유지된다.
 
-[ADR-176](176-canvas-authoring-gesture-and-page-position-optimization.md) (Implemented 2026-08-01) 은 페이지 드래그의 gesture/presentation 축을 결정하면서 "document schema migration 이나 새 저장 필드를 만들지 않는다" 를 명시적 경계로 뒀다. 본 ADR 은 그 의도적 이연분인 **데이터 모델 축**의 결정이다.
+[ADR-176](../176-canvas-authoring-gesture-and-page-position-optimization.md) (Implemented 2026-08-01) 은 페이지 드래그의 gesture/presentation 축을 결정하면서 "document schema migration 이나 새 저장 필드를 만들지 않는다" 를 명시적 경계로 뒀다. 본 ADR 은 그 의도적 이연분인 **데이터 모델 축**의 결정이다.
 
 **3-domain**: D1/D2/D3 무관 — canonical document 의 authoring 데이터 + builder-system 상태 축. 페이지 캔버스 배치는 Preview/Publish 출력에 영향이 없다 (Figma 와 동일 — 문서 데이터지만 산출물 무관).
 
@@ -73,7 +73,7 @@ Accepted — 2026-08-12 (리뷰 round 1 승인 — `docs/adr/reviews/177.md`, �
 
 기각 사유 — B: undo 이원화가 사용자 모델(Cmd+Z 일원)을 깨고 두 스택의 순서 결합이 영구 유지보수 부담. C: "이동이 저장되고 되돌려진다" 는 본 ADR 의 존재 이유를 충족하지 못함.
 
-> 구현 상세: [177-page-position-document-data-breakdown.md](design/177-page-position-document-data-breakdown.md)
+> 구현 상세: [177-page-position-document-data-breakdown.md](../design/177-page-position-document-data-breakdown.md)
 
 ## Risks
 
