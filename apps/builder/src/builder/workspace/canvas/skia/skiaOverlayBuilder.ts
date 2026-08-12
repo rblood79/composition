@@ -258,20 +258,19 @@ interface OcclusionPageFrame {
  * 순서(orderPagesForPaint — 활성 페이지 최상단)가 뒤인 페이지 rect 를 ClipOp.Difference
  * 로 제외하고 그린다. 소유 페이지가 최상단이거나 프레임 목록에 없으면 클립 없이 그린다.
  */
-function withPageOcclusionClip(
+function withPageOcclusionClip<T>(
   ck: CanvasKit,
   canvas: Canvas,
   ownerPageId: string | null,
   paintOrderedFrames: readonly OcclusionPageFrame[],
   pagePositionSnapshot: PagePositionPresentationSnapshot | undefined,
-  draw: () => void,
-): void {
+  draw: () => T,
+): T {
   const ownerIndex = ownerPageId
     ? paintOrderedFrames.findIndex((frame) => frame.id === ownerPageId)
     : -1;
   if (ownerIndex < 0 || ownerIndex >= paintOrderedFrames.length - 1) {
-    draw();
-    return;
+    return draw();
   }
   canvas.save();
   for (let i = ownerIndex + 1; i < paintOrderedFrames.length; i++) {
@@ -290,8 +289,9 @@ function withPageOcclusionClip(
       true,
     );
   }
-  draw();
+  const result = draw();
   canvas.restore();
+  return result;
 }
 
 /**
@@ -388,17 +388,32 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
         const HIT_PAD_X = 6;
         const HIT_PAD_Y = 4;
         for (const item of pageTitleItems) {
-          canvas.save();
-          canvas.translate(item.x, item.y);
-          const measured = renderPageTitle(
+          // 타이틀도 페이지 간 occlusion 대상 — 겹침에서 아래 페이지의 타이틀이
+          // 위(활성) 페이지 body 위에 떠 보이지 않도록 (2026-08-12 사용자 보고,
+          // 슬롯 해치와 동일 결함 계열). 히트 측 대칭은 BuilderCanvas pointerdown
+          // capture 의 paint-rank guard 가 유지한다 — boundsMap 등록은 클립과
+          // 무관하게 유지하고 포인터 판정에서 point 단위로 거른다.
+          const measured = withPageOcclusionClip(
             ck,
             canvas,
-            item.title,
-            cameraZoom,
-            fontMgr,
-            item.highlighted,
+            item.pageId,
+            paintOrderedFrames,
+            pagePositionSnapshot,
+            () => {
+              canvas.save();
+              canvas.translate(item.x, item.y);
+              const titleMetrics = renderPageTitle(
+                ck,
+                canvas,
+                item.title,
+                cameraZoom,
+                fontMgr,
+                item.highlighted,
+              );
+              canvas.restore();
+              return titleMetrics;
+            },
           );
-          canvas.restore();
 
           if (pageTitleBoundsMap && measured) {
             const sceneTextTop =

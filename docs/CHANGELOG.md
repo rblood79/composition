@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: 페이지 간 가림은 페인트 순서(활성 페이지 최상단 — `orderPagesForPaint`)의 산물이라 조상 clip 모델 밖 — 페이지 테두리(`renderFrameAreaBorder`)에 이미 적용한 순서 기반 `ClipOp.Difference` occlusion 을 콘텐츠성 chrome 에도 적용해야 한다
   - 수정: chrome target 에 소유 `pageId` 를 싣고, `withPageOcclusionClip` 이 소유 페이지보다 페인트 순서가 뒤인 페이지 rect 를 제외하고 그림 — 슬롯 해치 / collection remainder / hover 아웃라인 3종 적용. 소유 페이지가 활성(최상단)이면 클립 없음
   - 위치: `apps/builder/src/builder/workspace/canvas/skia/{skiaOverlayBuilder,skiaOverlayHelpers}.ts`
+- **아래 page 의 상단 title 도 위 page body 위에 떠 보이던 문제** (같은 결함 계열, 후속 사용자 보고):
+  - page title 은 조상-clip 축에서는 조작 표식(항상 표시)이지만 **페이지 간 축에서는 occlusion 대상** — 가려진 page 의 "Page N" 텍스트가 활성 page body 한가운데 떠 위 page 의 내용처럼 읽혔다
+  - 수정: title 렌더도 `withPageOcclusionClip` 경유 + 히트 대칭으로 BuilderCanvas title pointerdown capture 에 paint-rank guard 추가 (가려진 지점의 title press 는 무시되고 위 page 일반 히트로 폴백 — 부분 가림은 point 판정이라 보이는 구간은 여전히 잡힘). 활성 page title 은 영향 없음
+  - 위치: `apps/builder/src/builder/workspace/canvas/{skia/skiaOverlayBuilder.ts,BuilderCanvas.tsx}`
 
 ## [Page body 첫 클릭 제스처에서 바로 드래그] - 2026-08-12
 

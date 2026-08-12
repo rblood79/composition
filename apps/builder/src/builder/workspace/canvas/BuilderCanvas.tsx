@@ -1002,6 +1002,11 @@ export function BuilderCanvas({
         y: event.clientY - rect.top,
       });
 
+      const titleState = useStore.getState();
+      const titlePagePaintRank = buildPagePaintRank(
+        titleState.pages,
+        titleState.currentPageId,
+      );
       for (const bounds of pageTitleBoundsMapRef.current.values()) {
         if (
           scenePoint.x >= bounds.sceneX &&
@@ -1009,6 +1014,30 @@ export function BuilderCanvas({
           scenePoint.y >= bounds.sceneY &&
           scenePoint.y <= bounds.sceneY + bounds.sceneHeight
         ) {
+          // 페이지 간 occlusion — 페인트 순서상 위 페이지에 덮인 지점의 타이틀은
+          // 그려지지 않으므로(skiaOverlayBuilder withPageOcclusionClip) 히트도
+          // 무시한다 (§8.5 paint↔hit 대칭). continue: 같은 지점에 겹친 다른
+          // 타이틀(가려지지 않은 쪽)이 있으면 그쪽이 잡히고, 없으면 중앙
+          // 핸들러의 일반 히트(위 페이지 요소/body)로 폴백한다.
+          const topPageIdAtPoint = resolveTopPageIdAtPoint({
+            canvasPoint: scenePoint,
+            activePageId: titleState.currentPageId,
+            pageHeight,
+            pagePositions: titleState.pagePositions,
+            pageWidth,
+            pages: titleState.pages,
+          });
+          if (topPageIdAtPoint && topPageIdAtPoint !== bounds.pageId) {
+            const topRank = titlePagePaintRank.get(topPageIdAtPoint);
+            const ownRank = titlePagePaintRank.get(bounds.pageId);
+            if (
+              topRank !== undefined &&
+              ownRank !== undefined &&
+              topRank > ownRank
+            ) {
+              continue;
+            }
+          }
           if (
             !canvasGestureSession.tryClaimPage(
               event.pointerId,
@@ -1050,6 +1079,8 @@ export function BuilderCanvas({
   }, [
     canvasGestureSession,
     isFrameEditMode,
+    pageHeight,
+    pageWidth,
     screenToCanvasPoint,
     sceneActiveBreakpoint,
     setCurrentPageId,
