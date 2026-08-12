@@ -602,6 +602,54 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinitions = {
   },
 
   // ==========================================
+  // Canvas — 페이지 nudge (ADR-177 Phase 3)
+  //
+  // 페이지(body) 선택 상태에서 화살표는 형제 순서가 아니라 페이지 위치 이동이다
+  // (무수정 1px — 위 arrow* 핸들러가 선택 대상에 따라 분기). Shift 조합은
+  // 페이지 선택 상태 전용 10px — element 선택 상태에서는 no-op.
+  // ==========================================
+
+  arrowUpShift: {
+    key: "ArrowUp",
+    modifier: "shift",
+    category: "canvas",
+    scope: "canvas-focused",
+    priority: SHORTCUT_PRIORITY.CANVAS,
+    description: "Nudge Page Up 10px",
+    i18n: { ko: "페이지 위로 10px 이동" },
+  },
+
+  arrowDownShift: {
+    key: "ArrowDown",
+    modifier: "shift",
+    category: "canvas",
+    scope: "canvas-focused",
+    priority: SHORTCUT_PRIORITY.CANVAS,
+    description: "Nudge Page Down 10px",
+    i18n: { ko: "페이지 아래로 10px 이동" },
+  },
+
+  arrowLeftShift: {
+    key: "ArrowLeft",
+    modifier: "shift",
+    category: "canvas",
+    scope: "canvas-focused",
+    priority: SHORTCUT_PRIORITY.CANVAS,
+    description: "Nudge Page Left 10px",
+    i18n: { ko: "페이지 왼쪽으로 10px 이동" },
+  },
+
+  arrowRightShift: {
+    key: "ArrowRight",
+    modifier: "shift",
+    category: "canvas",
+    scope: "canvas-focused",
+    priority: SHORTCUT_PRIORITY.CANVAS,
+    description: "Nudge Page Right 10px",
+    i18n: { ko: "페이지 오른쪽으로 10px 이동" },
+  },
+
+  // ==========================================
   // Events Panel (priority: 50)
   //
   // 실제 처리는 패널 자체 훅(`useBlockKeyboard`)의 raw key 분기 — 아래 정의는

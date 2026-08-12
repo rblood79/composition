@@ -336,13 +336,79 @@ export function useGlobalKeyboardShortcuts() {
     reorderElementWithinParent(targetId, direction);
   }, []);
 
-  const handleReorderSiblingPrev = useCallback(
-    () => handleReorderSibling(-1),
-    [handleReorderSibling],
+  /**
+   * ADR-177 Phase 3 — 페이지 nudge 대상 판정.
+   *
+   * 선택이 페이지 body(page_id 보유) 단일이면 화살표는 형제 순서가 아니라
+   * 페이지 위치 이동이다. projection/frame body(page_id 없음)는 대상 아님.
+   */
+  const resolveSelectedPageForNudge = useCallback((): string | null => {
+    const { selectedElementIds, selectedElementId, elementsMap } =
+      useStore.getState();
+    if (selectedElementIds.length > 1) return null;
+    const targetId = selectedElementId ?? selectedElementIds[0] ?? null;
+    if (!targetId) return null;
+    const element = elementsMap.get(targetId);
+    if (!element || element.type.toLowerCase() !== "body") return null;
+    return element.page_id ?? null;
+  }, []);
+
+  /**
+   * 화살표 공통 진입점 — 페이지 선택이면 nudge(1px / Shift 10px, 위치는
+   * `updatePagePosition` 경유라 히스토리·persist 자동 편입), element 선택이면
+   * 형제 순서 재배치 (Shift 조합은 페이지 전용 — element 에서는 no-op).
+   */
+  const handleArrowMove = useCallback(
+    (dx: -1 | 0 | 1, dy: -1 | 0 | 1, direction: -1 | 1, step: 1 | 10) => {
+      const pageId = resolveSelectedPageForNudge();
+      if (pageId) {
+        const state = useStore.getState();
+        const position = state.pagePositions[pageId];
+        if (!position) return;
+        state.updatePagePosition(
+          pageId,
+          position.x + dx * step,
+          position.y + dy * step,
+        );
+        return;
+      }
+      if (step !== 1) return;
+      handleReorderSibling(direction);
+    },
+    [resolveSelectedPageForNudge, handleReorderSibling],
   );
-  const handleReorderSiblingNext = useCallback(
-    () => handleReorderSibling(1),
-    [handleReorderSibling],
+
+  const handleArrowUp = useCallback(
+    () => handleArrowMove(0, -1, -1, 1),
+    [handleArrowMove],
+  );
+  const handleArrowDown = useCallback(
+    () => handleArrowMove(0, 1, 1, 1),
+    [handleArrowMove],
+  );
+  const handleArrowLeft = useCallback(
+    () => handleArrowMove(-1, 0, -1, 1),
+    [handleArrowMove],
+  );
+  const handleArrowRight = useCallback(
+    () => handleArrowMove(1, 0, 1, 1),
+    [handleArrowMove],
+  );
+  const handleArrowUpShift = useCallback(
+    () => handleArrowMove(0, -1, -1, 10),
+    [handleArrowMove],
+  );
+  const handleArrowDownShift = useCallback(
+    () => handleArrowMove(0, 1, 1, 10),
+    [handleArrowMove],
+  );
+  const handleArrowLeftShift = useCallback(
+    () => handleArrowMove(-1, 0, -1, 10),
+    [handleArrowMove],
+  );
+  const handleArrowRightShift = useCallback(
+    () => handleArrowMove(1, 0, 1, 10),
+    [handleArrowMove],
   );
 
   /**
@@ -440,11 +506,15 @@ export function useGlobalKeyboardShortcuts() {
       toggleComponentOrigin: handleToggleComponentOrigin,
       detachInstance: handleDetachInstance,
       escape: handleEscape,
-      // 형제 순서 재배치 — 4방향 모두 축 무관 이전/다음 매핑
-      arrowUp: handleReorderSiblingPrev,
-      arrowLeft: handleReorderSiblingPrev,
-      arrowDown: handleReorderSiblingNext,
-      arrowRight: handleReorderSiblingNext,
+      // 화살표 — 페이지 선택 시 nudge(ADR-177), element 선택 시 형제 순서
+      arrowUp: handleArrowUp,
+      arrowLeft: handleArrowLeft,
+      arrowDown: handleArrowDown,
+      arrowRight: handleArrowRight,
+      arrowUpShift: handleArrowUpShift,
+      arrowLeftShift: handleArrowLeftShift,
+      arrowDownShift: handleArrowDownShift,
+      arrowRightShift: handleArrowRightShift,
     }),
     [
       handleUndo,
@@ -466,8 +536,14 @@ export function useGlobalKeyboardShortcuts() {
       handleEventsPaste,
       handleEventsDelete,
       handleEscape,
-      handleReorderSiblingPrev,
-      handleReorderSiblingNext,
+      handleArrowUp,
+      handleArrowDown,
+      handleArrowLeft,
+      handleArrowRight,
+      handleArrowUpShift,
+      handleArrowDownShift,
+      handleArrowLeftShift,
+      handleArrowRightShift,
     ],
   );
 
@@ -497,11 +573,15 @@ export function useGlobalKeyboardShortcuts() {
       "delete",
       "deleteAlt",
       "escape",
-      // 형제 순서 재배치 (canvas-focused)
+      // 화살표 — 형제 순서 재배치 + 페이지 nudge (canvas-focused)
       "arrowUp",
       "arrowDown",
       "arrowLeft",
       "arrowRight",
+      "arrowUpShift",
+      "arrowDownShift",
+      "arrowLeftShift",
+      "arrowRightShift",
     ];
 
     return bindHandlersToDefinitions(shortcutIds, handlers);
