@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: 캔버스 preview 채널(`updateStylePreview` — RAF 배칭·히스토리/DB 무접촉·layoutVersion bump, borderWidth 드래그가 이미 사용 중)이 색상 피커에만 배선돼 있지 않았다. FillSection(배경)은 자체 preview 경로 보유로 무관
   - 수정: `PropertyColor` 에 `onPreview` prop 신설 + 3개 섹션 배선. 드래그 세션 중 외부 value 동기화를 차단하는 가드 동반 — preview 가 value prop 을 미리 바꾸면 `lastSavedValue` 가 덮여 드롭 커밋이 "변경 없음" 으로 소실된다 (style-ssot PropertyUnitInput commit-skip 함정과 동형)
   - 위치: `apps/builder/src/builder/components/property/PropertyColor.tsx`, `panels/styles/sections/{AppearanceSection,TypographySection,ModifiedStylesSection}.tsx`
+- **배경(fill) 드래그도 캔버스 무반영이던 두 번째 축 해소** (사용자 실측 후속):
+  - fill preview 액션 2종 (`updateSelectedFillsPreview`/`updateSelectedFillsPreviewLightweight`) 이 elements/elementsMap 만 갱신하고 **layoutVersion bump + canonical sync 가 없어** Skia 재렌더 trigger 부재 — DOM preview iframe 만 반영되는 비대칭 (Skia 는 `element.fills` 를 직접 소비하므로 데이터는 도달, trigger 만 결손)
+  - 수정: 두 액션에 `updateSelectedStylePreview` 와 동일 tail (layoutVersion + dirtyElementIds + canonical sync) 부여 — CSS 변환 생략 최적화는 유지, RAF throttle 은 호출부 보장
+  - 위치: `apps/builder/src/builder/stores/inspectorActions.ts` (+ `inspectorFills.test.ts` 의 stale featureFlags mock 수리 — `isCanvasCompareMode` 미등재로 스위트 전체가 로드 실패하던 기존 결함)
 
 ## [페이지 위치 입력 적응형 통합 — Transform position row] - 2026-08-13
 

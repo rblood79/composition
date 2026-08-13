@@ -1400,10 +1400,24 @@ export const createInspectorActionsSlice: StateCreator<
       const newElementsMap = buildInspectorElementMap(newElements);
       newElementsMap.set(selectedElementId, updatedElement);
 
-      set({
-        elements: newElements,
-        elementsMap: newElementsMap,
-      } as Partial<CombinedState>);
+      // updateSelectedStylePreview 와 동일 tail — layoutVersion bump + canonical
+      // sync 가 없으면 Skia 재렌더 trigger 부재로 캔버스 preview 무반영 (DOM
+      // preview iframe 만 elements 구독으로 반영되던 비대칭, 2026-08-13 실측).
+      set((prevState) => {
+        const dirtyIds = new Set(prevState.dirtyElementIds);
+        collectDirtyElementSubtree(
+          selectedElementId,
+          buildInspectorChildrenByParent(prevState.elements),
+          dirtyIds,
+        );
+        return {
+          elements: newElements,
+          elementsMap: newElementsMap,
+          layoutVersion: prevState.layoutVersion + 1,
+          dirtyElementIds: dirtyIds,
+        } as Partial<CombinedState>;
+      });
+      syncInspectorElementToCanonical(updatedElement);
     },
 
     updateSelectedFillsPreviewLightweight: (fills) => {
@@ -1431,10 +1445,26 @@ export const createInspectorActionsSlice: StateCreator<
       const newElementsMap = buildInspectorElementMap(newElements);
       newElementsMap.set(selectedElementId, updatedElement);
 
-      set({
-        elements: newElements,
-        elementsMap: newElementsMap,
-      } as Partial<CombinedState>);
+      // updateSelectedStylePreview 와 동일 tail (위 updateSelectedFillsPreview
+      // 주석 참조) — Skia 는 element.fills 를 직접 소비하므로 (buildBoxNodeData /
+      // buildSpecNodeData::fillsToSkia*) CSS 변환 생략은 유지하고 재렌더
+      // trigger 만 보강한다. RAF throttle 은 호출부 (updateFillPreviewThrottled)
+      // 가 보장 — 프레임당 1회.
+      set((prevState) => {
+        const dirtyIds = new Set(prevState.dirtyElementIds);
+        collectDirtyElementSubtree(
+          selectedElementId,
+          buildInspectorChildrenByParent(prevState.elements),
+          dirtyIds,
+        );
+        return {
+          elements: newElements,
+          elementsMap: newElementsMap,
+          layoutVersion: prevState.layoutVersion + 1,
+          dirtyElementIds: dirtyIds,
+        } as Partial<CombinedState>;
+      });
+      syncInspectorElementToCanonical(updatedElement);
     },
 
     // ============================================

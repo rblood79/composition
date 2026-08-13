@@ -13,6 +13,10 @@ vi.mock("../../../env/supabase.client", () => ({
 
 vi.mock("../../../utils/featureFlags", () => ({
   isFillV2Enabled: () => true,
+  isWebGLCanvas: () => false,
+  enableDebugLogs: () => false,
+  isCanvasCompareMode: () => false,
+  isReactQueryDevtoolsEnabled: () => false,
 }));
 
 import { FillType } from "../../../types/builder/fill.types";
@@ -408,5 +412,30 @@ describe("inspectorActions fill write-through", () => {
       (element?.props?.style as { backgroundImage?: string } | undefined)
         ?.backgroundImage,
     ).toBeUndefined();
+  });
+
+  // 2026-08-13 — fills preview 가 layoutVersion 을 올리지 않으면 Skia 재렌더
+  // trigger 부재로 캔버스 preview 무반영 (DOM preview iframe 만 반영되는 비대칭)
+  it("fills preview 2종은 layoutVersion 을 올려 Skia 재렌더를 트리거한다", () => {
+    const colorFill = {
+      id: "preview-c1",
+      type: FillType.Color,
+      enabled: true,
+      opacity: 1,
+      blendMode: "normal",
+      color: "#FF0000FF",
+    } as never;
+
+    const v0 = useStore.getState().layoutVersion;
+    useStore.getState().updateSelectedFillsPreviewLightweight([colorFill]);
+    expect(useStore.getState().layoutVersion).toBe(v0 + 1);
+    expect(
+      useStore.getState().elementsMap.get("fill-target")?.fills,
+    ).toHaveLength(1);
+    expect(useStore.getState().dirtyElementIds.has("fill-target")).toBe(true);
+
+    const v1 = useStore.getState().layoutVersion;
+    useStore.getState().updateSelectedFillsPreview([colorFill]);
+    expect(useStore.getState().layoutVersion).toBe(v1 + 1);
   });
 });
