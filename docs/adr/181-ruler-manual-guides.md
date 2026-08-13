@@ -18,6 +18,8 @@ Accepted — 2026-08-13 (리뷰 round 1 승인 — 이슈 0건, `docs/adr/review
 
 - **Phase 5 (인터랙션) Implemented 2026-08-14** — 생성(눈금자 스트립 드래그)·이동(캔버스 히트)·삭제(눈금자로 되돌리기)가 **한 세션**(`useGuideDrag`). 삭제는 별도 조작이 아니라 드래그의 한 결말이라 확인 UI 가 없다. 히트는 "포인터가 올라간 페이지" 의 가이드만 본다 — 가려진 가이드는 잡히지 않아야 하므로(§8.5 paint↔hit 대칭) 페이지 판정을 호출부가 하고 `resolveGuideHit` 에는 페이지 간 순서 규칙이 **없다**. **R1 가드 4곳**(pointerdown capture / hover / contextmenu 는 조기 반환, bubble pointerdown 은 유지)이고, C10 게이트로 **눈금자 OFF 면 pointer 체인이 ADR-181 이전과 바이트 동등**하다. **HC1(c) 계측**: 드래그 중 canonical write 0 / 히스토리 0, pointerup 에서 각 1. 유닛 28건 + 캔버스 suite 1115 passed(G2) + live 실제 마우스 왕복(생성→이동→삭제→Cmd+Z 복원, 눈금자 ON 에서 캔버스 선택 정상).
 
+- **Phase 6 (스냅 편입) Implemented 2026-08-14** — `resolveSnappedPosition` 에 `guideLines` 선택 인자 추가. **가이드는 rect 가 아니라 선**이라 들어가는 자리가 흡착 판정과 정렬선 방출 둘뿐이고, 등간격 경로에는 전달하지 않는다(대조군 유닛으로 고정). 흡착 시 정렬선을 방출한다 — 가이드는 상시 표시라 위치만으론 "근처" 와 "붙음" 이 구분되지 않는다. 동률이면 가이드가 이기고, rect 후보 0 이어도 흡착한다(게이트를 `|| hasGuideLines` 로 확장). 수집은 드래그당 1회(C2). **페이지 드래그만 자기 가이드를 제외한다** — 가이드가 페이지와 함께 움직이는데 scene 라인은 시작 시점에 얼어 있어, 제외하지 않으면 시작 위치로 계속 끌려간다. 유닛 9건(32 passed) + live 대조군 확증(가이드 有 770 정확 착지 / 無 773.39 raw).
+
 ## Context
 
 캔버스 정렬 보조는 [ADR-179](completed/179-snap-alignment-guides.md) (Implemented 2026-08-12) 로 **객체 스냅** (드래그 순간의 정렬선·등간격) 까지 도달했지만, 사용자가 **미리 놓아두는 고정 기준선** 이 없다 — Figma/Pen 의 ruler + 수동 가이드에 해당하는 표면이 0 이다 (2026-08-13 실측: `ruler`/`guide` 렌더·문서 필드 grep 0건, `snapGuides.ts` 후보는 rect 전용).

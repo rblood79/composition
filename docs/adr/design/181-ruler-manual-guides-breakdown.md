@@ -255,12 +255,20 @@ live 검증 (Chrome MCP):
 - **함정 (재발 감시)**: 합성 pointer 이벤트로 캔버스를 조작하면 `canvasGestureSession` 이 그 pointerId 를 잡은 채 남아 **이후 실제 클릭이 전부 무시된다**. 이 세션에서 "선택이 안 된다" 로 20분을 썼는데 새로고침 후 실제 클릭은 정상이었다 — 회귀로 오판하기 쉬운 형태다. `window` 에 dispatch 한 pointerup 은 target 이 Window 라 컨테이너 리스너가 못 받는 것이 원인. **캔버스 인터랙션 검증은 실제 이벤트(`computer` 도구)로** 하고, 합성 이벤트는 window 리스너만 쓰는 경로(가이드 드래그 등)에 한정한다. 메모리 `feedback-synthetic-pointer-drag-testing-traps` 의 "pointerId 고정 재사용" 항목과 같은 병인.
 - **관찰 (스코프 밖)**: 히스토리 entry 는 `historyManager.currentPageId` 기준으로 쌓이므로, A 페이지를 보면서 B 페이지에 가이드를 만들면 그 entry 는 A 의 히스토리에 남는다. `page-position`(ADR-177) 도 동일하고 per-page 히스토리 모델의 성질이라 여기서 고치지 않는다.
 
-### Phase 6 — 스냅 편입 (MED — R2)
+### Phase 6 — 스냅 편입 (MED — R2) — **Implemented 2026-08-14**
 
-- `snapGuides.ts` 에 축별 라인 입력 추가 (1차안): `resolveSnappedPosition(raw, movingSize, candidates, threshold, extraLines?: { x: number[]; y: number[] })`.
-- 가이드 라인은 **정렬선 판정에만** 참여 — 등간격(spacing) 이웃 아님 (rect 아님, `projectCandidate:270` 미통과).
-- 소비처 2곳 (`usePageDrag:241` / `useDragBridge:636`) 이 드래그 세션 시작 시 활성 페이지·활성 breakpoint 가이드를 scene 좌표로 환산해 주입 (후보 수집 드래그당 1회 계약 C2 유지).
-- 검증: 유닛 — 라인 흡착 + 기존 rect 12건 GREEN + spacing 미오염.
+- `resolveSnappedPosition(raw, movingSize, candidates, threshold, guideLines?)` — `guideLines` 는 `{ x, y }` scene 좌표 배열. 인자를 생략하면 기존 동작과 **동일**(BC 유닛으로 고정).
+- **가이드는 rect 가 아니라 크기 없는 선**이라 들어가는 자리가 둘뿐이다: `resolveAxisSnap`(흡착 판정)과 `collectMatchedLineGuides`(정렬선 방출). `resolveAxisSpacingSnap` 에는 전달하지 않는다 — 등간격은 이웃 rect 의 간격 리듬이고 선에는 폭이 없다 (`projectCandidate` 미통과). "spacing 미오염" 유닛이 대조군 비교로 이걸 고정한다.
+- **흡착하면 정렬선(웜 레드)을 방출한다.** 가이드 자체는 상시 표시라 위치만으로는 "근처에 있을 뿐" 과 "붙었다" 가 구분되지 않는다. 두 선이 겹치는 순간이 곧 피드백이다.
+- **동률이면 가이드가 이긴다** — 가이드 라인을 rect 보다 먼저 훑고 비교는 `<` 유지. 사용자가 명시적으로 놓은 선이 파생된 rect 라인에 밀리지 않는다.
+- **rect 후보 0 이어도 흡착한다.** 두 소비처의 게이트가 `candidates.length > 0` 였는데 가이드는 형제 유무와 무관하므로 `|| hasGuideLines` 로 넓혔다. 이걸 빼면 형제 없는 요소·단독 페이지에서 가이드가 통째로 죽는다.
+- **수집은 드래그당 1회** (`collectGuideSnapLines`, C2). 프레임 경로에서 부르면 ADR-179 R1 이 막아 둔 비용이 그대로 돌아온다.
+- **페이지 드래그는 자기 가이드를 제외한다** (`excludePageIds`). 가이드가 페이지-로컬이라 페이지와 함께 움직이는데, scene 라인은 드래그 시작 시점에 얼어 있어서 제외하지 않으면 **시작 위치로 계속 끌려간다**. 요소 드래그는 반대로 자기 페이지 가이드가 주 후보다 — 요소는 페이지와 함께 움직이지 않는다. 두 소비처가 갈리는 유일한 지점.
+- 검증:
+  - 유닛 9건 추가 (`snapGuides.test.ts` 32 passed) — rect 0 흡착 / 3축(min·center·max) / 축 독립 / 임계 밖 / 정렬선 방출 / rect 우선(거리) / 동률 시 가이드 / **spacing 미오염 대조군** / **인자 생략 BC**.
+  - 민감도: `resolveAxisSnap` 의 가이드 루프를 제거하면 5 red.
+  - live (실제 마우스): Home 가이드(scene 770)에 Page 2 드래그 → **정확히 770** 착지. **대조군** — 가이드를 지우고 같은 드래그를 반복하면 **773.39**(raw) 착지라, 흡착이 가이드 때문임이 분리 확인된다. 자기 가이드 제외 — Page 2 에 가이드를 주고 그 위로 드래그하면 1039.80 (1040 미흡착).
+- **관찰**: 요소 드래그 경로는 `isManualPositionDragTarget` 게이트가 있어 flow 배치 요소에는 스냅이 애초에 걸리지 않는다 (ADR-179 계약). 이 프로젝트 페이지들이 대부분 flow 라 live 확인은 페이지 드래그로 했다 — 요소 축은 유닛(공유 순수 함수)과 배선 대칭으로 갈음.
 
 ### Phase 7 — 검증 종결 (Gates 전수)
 

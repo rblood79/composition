@@ -32,7 +32,9 @@ import {
   SNAP_THRESHOLD_SCREEN_PX,
   type SnapCandidateRect,
   type SnapGuide,
+  type SnapGuideLines,
 } from "../interaction/snapGuides";
+import { collectGuideSnapLines } from "../viewport/pageGuideActions";
 import {
   clearSnapGuides,
   publishSnapGuides,
@@ -52,6 +54,8 @@ interface PageDragState {
   snapCandidates: readonly SnapCandidateRect[] | null;
   /** ADR-179: 리더 페이지 프레임 크기 (이동 박스) */
   movingSize: { width: number; height: number } | null;
+  /** ADR-181 Phase 6: 드래그 시작 시 1회 수집한 수동 가이드 라인 (드래그 대상 제외) */
+  guideLines: SnapGuideLines | null;
 }
 
 interface UsePageDragReturn {
@@ -75,6 +79,7 @@ const EMPTY_PAGE_DRAG_STATE: PageDragState = {
   startBreakpoint: null,
   snapCandidates: null,
   movingSize: null,
+  guideLines: null,
 };
 
 export function usePageDrag(
@@ -153,6 +158,13 @@ export function usePageDrag(
         movingSize: leaderFrame
           ? { width: leaderFrame.width, height: leaderFrame.height }
           : null,
+        // ADR-181 C2: 드래그당 1회 수집. 드래그 대상 페이지의 가이드는 제외 —
+        // 함께 움직이므로 자기 가이드에 붙으면 떨어지지 않는다.
+        guideLines: collectGuideSnapLines(
+          useStore.getState().activeBreakpoint,
+          canonical,
+          new Set(dragPageIds),
+        ),
       };
 
       let latestPointer: {
@@ -231,18 +243,24 @@ export function usePageDrag(
         let guides: SnapGuide[] = [];
         let snappedX = false;
         let snappedY = false;
+        const guideLines = state.guideLines;
+        const hasGuideLines =
+          (guideLines?.x.length ?? 0) + (guideLines?.y.length ?? 0) > 0;
         if (
           !suppressSnap &&
           snapToObjects &&
           state.movingSize &&
-          state.snapCandidates &&
-          state.snapCandidates.length > 0
+          // rect 후보가 없어도 가이드만으로 흡착한다 — 가이드는 사용자가 직접
+          // 놓은 기준선이라 형제 유무와 무관하다
+          ((state.snapCandidates && state.snapCandidates.length > 0) ||
+            hasGuideLines)
         ) {
           const snapped = resolveSnappedPosition(
             { x, y },
             state.movingSize,
-            state.snapCandidates,
+            state.snapCandidates ?? [],
             SNAP_THRESHOLD_SCREEN_PX / (zoom === 0 ? 1 : zoom),
+            guideLines ?? undefined,
           );
           x = snapped.position.x;
           y = snapped.position.y;

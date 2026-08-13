@@ -390,3 +390,119 @@ describe("등간격 스냅 (Phase 4)", () => {
     expect(spacingGuide.cross).toBe(550);
   });
 });
+
+/**
+ * ADR-181 Phase 6 — 수동 가이드 라인 흡착.
+ *
+ * 가이드는 rect 가 아니라 **크기 없는 선**이라 정렬선 판정에만 들어간다.
+ * 그래서 여기서 특히 보는 것은 두 가지다: (a) rect 없이도 흡착하는가,
+ * (b) 등간격(spacing) 판정에 새어 들어가지 않는가.
+ */
+describe("resolveSnappedPosition — 수동 가이드 라인 (ADR-181)", () => {
+  it("후보 rect 가 하나도 없어도 가이드에 흡착한다", () => {
+    const result = resolveSnappedPosition({ x: 304, y: 500 }, SIZE, [], 8, {
+      x: [300],
+      y: [],
+    });
+    expect(result.position).toEqual({ x: 300, y: 500 });
+    expect(result.snappedX).toBe(true);
+    expect(result.snappedY).toBe(false);
+  });
+
+  it("이동 박스의 3축(min/center/max) 이 모두 가이드에 걸린다", () => {
+    // center 흡착: center = x + 50 → x = 250 이면 center 300
+    expect(
+      resolveSnappedPosition({ x: 253, y: 0 }, SIZE, [], 8, { x: [300], y: [] })
+        .position.x,
+    ).toBe(250);
+    // max 흡착: max = x + 100
+    expect(
+      resolveSnappedPosition({ x: 203, y: 0 }, SIZE, [], 8, { x: [300], y: [] })
+        .position.x,
+    ).toBe(200);
+  });
+
+  it("축이 독립이다 — y 가이드는 y 만 보정", () => {
+    const result = resolveSnappedPosition({ x: 500, y: 402 }, SIZE, [], 8, {
+      x: [],
+      y: [400],
+    });
+    expect(result.position).toEqual({ x: 500, y: 400 });
+    expect(result.snappedY).toBe(true);
+    expect(result.snappedX).toBe(false);
+  });
+
+  it("임계 밖 가이드는 무시한다", () => {
+    const result = resolveSnappedPosition({ x: 320, y: 0 }, SIZE, [], 8, {
+      x: [300],
+      y: [],
+    });
+    expect(result.position.x).toBe(320);
+    expect(result.snappedX).toBe(false);
+  });
+
+  it("흡착하면 정렬선을 방출한다 — 가이드는 상시 표시라 위치만으론 흡착 여부를 모른다", () => {
+    const result = resolveSnappedPosition({ x: 304, y: 500 }, SIZE, [], 8, {
+      x: [300],
+      y: [],
+    });
+    const line = asLine(result.guides[0]);
+    expect(line.axis).toBe("x");
+    expect(line.position).toBe(300);
+  });
+
+  it("더 가까운 rect 가 있으면 rect 가 이긴다 (거리 우선, 종류 무관)", () => {
+    const result = resolveSnappedPosition(
+      { x: 304, y: 500 },
+      SIZE,
+      [candidate("a", 305, 500)],
+      8,
+      { x: [300], y: [] },
+    );
+    expect(result.position.x).toBe(305);
+  });
+
+  it("거리가 같으면 가이드가 남는다 (사용자가 놓은 선)", () => {
+    // raw.x=300: 가이드 296 과 rect 304 가 각각 거리 4
+    const result = resolveSnappedPosition(
+      { x: 300, y: 500 },
+      SIZE,
+      [candidate("a", 304, 500)],
+      8,
+      { x: [296], y: [] },
+    );
+    expect(result.position.x).toBe(296);
+  });
+
+  it("등간격 판정에는 참여하지 않는다 (rect 아님 — spacing 후보 미오염)", () => {
+    // 두 이웃 사이 등간격 지점이 성립하는 배치에 가이드를 얹어도 spacing
+    // 제안이 가이드 좌표로 바뀌지 않는다
+    const withoutGuides = resolveSnappedPosition(
+      { x: 252, y: 0 },
+      SIZE,
+      [candidate("a", 0, 0), candidate("b", 500, 0)],
+      8,
+    );
+    const withGuides = resolveSnappedPosition(
+      { x: 252, y: 0 },
+      SIZE,
+      [candidate("a", 0, 0), candidate("b", 500, 0)],
+      8,
+      { x: [], y: [9999] },
+    );
+    expect(withGuides.position).toEqual(withoutGuides.position);
+    expect(withGuides.guides.map((g) => g.kind)).toEqual(
+      withoutGuides.guides.map((g) => g.kind),
+    );
+  });
+
+  it("가이드 인자를 생략하면 기존 동작과 동일 (BC)", () => {
+    const rects = [candidate("a", 100, 100)];
+    expect(resolveSnappedPosition({ x: 104, y: 500 }, SIZE, rects, 8)).toEqual(
+      resolveSnappedPosition({ x: 104, y: 500 }, SIZE, rects, 8, {
+        x: [],
+        y: [],
+      }),
+    );
+  });
+});

@@ -23,6 +23,22 @@
  */
 export const SNAP_THRESHOLD_SCREEN_PX = 5;
 
+/**
+ * 수동 가이드 라인 (ADR-181 Phase 6) — scene 좌표.
+ *
+ * rect 후보와 **다른 입력**이다: 가이드는 크기가 없는 선이라 6축 투영도,
+ * 등간격 이웃도 될 수 없다 (`projectCandidate` 미통과). 그래서 정렬선 판정에만
+ * 들어가고 spacing 경로에는 전달되지 않는다.
+ */
+export interface SnapGuideLines {
+  /** 세로 가이드의 x 좌표들 */
+  x: readonly number[];
+  /** 가로 가이드의 y 좌표들 */
+  y: readonly number[];
+}
+
+const EMPTY_GUIDE_LINES: SnapGuideLines = { x: [], y: [] };
+
 export interface SnapCandidateRect {
   id: string;
   x: number;
@@ -98,8 +114,22 @@ function resolveAxisSnap(
   candidates: readonly SnapCandidateRect[],
   axis: "x" | "y",
   threshold: number,
+  guideLines: readonly number[] = [],
 ): AxisSnap | null {
   let best: AxisSnap | null = null;
+  // 수동 가이드가 먼저 — 동률이면 뒤에 오는 rect 가 이기지 않도록 `<` 비교를
+  // 유지한다. 사용자가 명시적으로 놓은 선이므로 파생된 rect 라인과 같은
+  // 거리면 가이드를 남긴다.
+  for (const line of guideLines) {
+    for (const edge of movingEdges) {
+      const delta = line - edge;
+      const distance = Math.abs(delta);
+      if (distance > threshold) continue;
+      if (!best || distance < Math.abs(best.delta)) {
+        best = { delta, line };
+      }
+    }
+  }
   for (const candidate of candidates) {
     const lines =
       axis === "x"
@@ -211,9 +241,21 @@ function collectMatchedLineGuides(
   movingOrthoMin: number,
   movingOrthoMax: number,
   candidates: readonly SnapCandidateRect[],
+  guideLines: readonly number[] = [],
 ): SnapLineGuide[] {
   const movingEdges = rectLines(movingAxisMin, movingAxisSize);
   const linePositions: number[] = [];
+  // 가이드에 맞았으면 그 선도 방출한다 — 안 그리면 "가이드 근처에 있을 뿐"과
+  // "가이드에 붙었다" 가 구분되지 않는다 (가이드 자체는 상시 표시라 위치만으로
+  // 흡착 여부를 알 수 없다).
+  for (const line of guideLines) {
+    if (!movingEdges.some((edge) => Math.abs(edge - line) <= LINE_MATCH_EPS)) {
+      continue;
+    }
+    if (!linePositions.some((p) => Math.abs(p - line) <= LINE_MATCH_EPS)) {
+      linePositions.push(line);
+    }
+  }
   for (const candidate of candidates) {
     const lines =
       axis === "x"
@@ -485,6 +527,7 @@ export function resolveSnappedPosition(
   movingSize: { width: number; height: number },
   candidates: readonly SnapCandidateRect[],
   threshold: number,
+  guideLines: SnapGuideLines = EMPTY_GUIDE_LINES,
 ): SnappedPositionResult {
   const resolvedX = pickAxisResolution(
     resolveAxisSnap(
@@ -492,6 +535,7 @@ export function resolveSnappedPosition(
       candidates,
       "x",
       threshold,
+      guideLines.x,
     ),
     resolveAxisSpacingSnap(
       "x",
@@ -509,6 +553,7 @@ export function resolveSnappedPosition(
       candidates,
       "y",
       threshold,
+      guideLines.y,
     ),
     resolveAxisSpacingSnap(
       "y",
@@ -537,6 +582,7 @@ export function resolveSnappedPosition(
         y,
         y + movingSize.height,
         candidates,
+        guideLines.x,
       ),
     );
   } else if (resolvedX?.spacing) {
@@ -557,6 +603,7 @@ export function resolveSnappedPosition(
         x,
         x + movingSize.width,
         candidates,
+        guideLines.y,
       ),
     );
   } else if (resolvedY?.spacing) {

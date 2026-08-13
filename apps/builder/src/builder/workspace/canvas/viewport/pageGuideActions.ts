@@ -123,6 +123,34 @@ export function readPageGuidesByPage(
   return result ?? EMPTY_GUIDE_MAP;
 }
 
+/**
+ * 드래그 스냅용 가이드 라인 (scene 좌표) — ADR-181 Phase 6.
+ *
+ * **드래그 시작 시 1회만** 부른다 (C2 — 후보 수집 상한 계약). 프레임 경로에서
+ * 부르면 ADR-179 R1 이 막아 둔 그 비용이 그대로 돌아온다.
+ *
+ * `excludePageIds` 는 **드래그 대상 페이지**다. 가이드는 페이지-로컬이라
+ * 페이지와 함께 움직이므로, 자기 가이드에 자기가 흡착하면 어디서도 떨어지지
+ * 않는다.
+ */
+export function collectGuideSnapLines(
+  breakpoint: BreakpointName,
+  pagePositions: Readonly<Record<string, { x: number; y: number } | undefined>>,
+  excludePageIds?: ReadonlySet<string>,
+): { x: number[]; y: number[] } {
+  const lines = { x: [] as number[], y: [] as number[] };
+  for (const [pageId, guides] of readPageGuidesByPage(breakpoint)) {
+    if (excludePageIds?.has(pageId)) continue;
+    const origin = pagePositions[pageId];
+    if (!origin) continue;
+    for (const guide of guides) {
+      if (guide.axis === "x") lines.x.push(origin.x + guide.position);
+      else lines.y.push(origin.y + guide.position);
+    }
+  }
+  return lines;
+}
+
 const EMPTY_GUIDE_MAP: ReadonlyMap<string, readonly PageGuideLine[]> =
   new Map();
 

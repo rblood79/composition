@@ -44,7 +44,9 @@ import {
   resolveSnappedPosition,
   SNAP_THRESHOLD_SCREEN_PX,
   type SnapCandidateRect,
+  type SnapGuideLines,
 } from "../interaction/snapGuides";
+import { collectGuideSnapLines } from "../viewport/pageGuideActions";
 import {
   clearSnapGuides,
   publishSnapGuides,
@@ -362,6 +364,8 @@ interface MultiDragSession {
   snapContext?: {
     leaderStart: BoundingBox;
     candidates: SnapCandidateRect[];
+    /** ADR-181 Phase 6: 수동 가이드 라인 (scene) — 같은 1회 수집에 포함 */
+    guideLines: SnapGuideLines;
   } | null;
   /**
    * ADR-179: 마지막 프레임의 스냅 반영 델타 — 드롭 커밋이 시각적 위치와
@@ -381,7 +385,11 @@ function buildManualSnapContext(
   leader: CanvasInteractionNode,
   targetIdSet: ReadonlySet<string>,
   dragStore: DragReadModel,
-): { leaderStart: BoundingBox; candidates: SnapCandidateRect[] } | null {
+): {
+  leaderStart: BoundingBox;
+  candidates: SnapCandidateRect[];
+  guideLines: SnapGuideLines;
+} | null {
   const leaderStart = getSceneBounds(leaderId);
   if (!leaderStart) {
     return null;
@@ -428,6 +436,12 @@ function buildManualSnapContext(
       height: leaderStart.height,
     },
     candidates,
+    // ADR-181 C2: 드래그당 1회. 요소는 페이지와 함께 움직이지 않으므로
+    // 자기 페이지 가이드도 후보다 (페이지 드래그와 갈리는 지점).
+    guideLines: collectGuideSnapLines(
+      useStore.getState().activeBreakpoint,
+      useStore.getState().pagePositions,
+    ),
   };
 }
 
@@ -627,10 +641,14 @@ export function useDragBridge({
         }
         let effectiveDelta = delta;
         const snapContext = session.snapContext;
+        const snapGuideLineCount = snapContext
+          ? snapContext.guideLines.x.length + snapContext.guideLines.y.length
+          : 0;
         if (
           snapContext &&
           !isDragSnapSuppressed() &&
-          snapContext.candidates.length > 0
+          // 형제가 없어도 가이드만으로 흡착한다 (사용자가 놓은 기준선)
+          (snapContext.candidates.length > 0 || snapGuideLineCount > 0)
         ) {
           const zoom = useViewportSyncStore.getState().zoom;
           const snapped = resolveSnappedPosition(
@@ -644,6 +662,7 @@ export function useDragBridge({
             },
             snapContext.candidates,
             SNAP_THRESHOLD_SCREEN_PX / (zoom === 0 ? 1 : zoom),
+            snapContext.guideLines,
           );
           effectiveDelta = {
             x: snapped.position.x - snapContext.leaderStart.x,
