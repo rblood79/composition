@@ -49,7 +49,7 @@
 | C1  | 순수 함수 거처     | 신규 `interaction/snapGuides.ts` — `resolveSnappedPosition(raw, movingBounds, candidates, config) → { position, guides }`. 훅 밖 순수 함수 (`resolveSelectionDragIntent` 동형 단일 진입점)                          |
 | C2  | 삽입 지점          | `usePageDrag.calculateLeaderPosition` — Shift 축 고정 → 객체 스냅 → (미흡착 축만) snap-to-grid. 리더에만 스냅, 다중 대상은 델타 공유 (ADR-178 계약)                                                                 |
 | C3  | 후보 수집          | 드래그 시작 1회 — **전 페이지 전수** (가시 필터 없음: 수십 규모라 HC2 상한 내 + 드래그 중 뷰포트 진입 페이지 누락 회피). rect = stacked 기본값 + canonical override (`buildPageFrames` 동형), 드래그 대상 집합 제외 |
-| C4  | 임계값             | 8 screen px 시작값 (Figma 관례 근사) — scene 임계 = 8 / zoom. G1 live 조작감에서 조정                                                                                                                               |
+| C4  | 임계값             | ~~8 screen px 시작값 (Figma 관례 근사)~~ → **5 screen px (2026-08-13 G1 조정 — Pen v1.2.1 실측값 채택, 사용자 결정)**. scene 임계 = 5 / zoom                                                                       |
 | C5  | 억제·우선순위      | Cmd(mac)/Ctrl(win) 홀드 = 전 스냅 억제 (PointerEvent `metaKey`/`ctrlKey` — RAF `latestPointer` 에 동승). 축별로 객체 스냅 성사 시 그리드 미적용, 실패 축만 그리드                                                   |
 | C6  | guides 채널        | 신규 `interaction/snapGuidePresentation.ts` (module-level snapshot + version + subscribe — pagePositionPresentation 동형 축소판). positions publish 와 같은 RAF 콜백에서 프레임당 1회, finish/cancel 시 clear       |
 | C7  | 오버레이 렌더      | `skiaOverlayBuilder.buildOverlayNode` 에 guide 레이어 — scene 좌표, strokeWidth = 1/cameraZoom (1 screen px), 색 `--accent` (builder 무채색 — 명도 대비). 조작 표식: `withPageOcclusionClip` 미적용 (§3.3 판정)     |
@@ -57,7 +57,7 @@
 | C9  | absolute 확장 좌석 | Phase 3 — `useDragBridge` 경로, 후보 = SpatialIndex `queryRect` (`wasm-bindings/spatialIndex.ts:94`). 판정 함수·오버레이 공유                                                                                       |
 | C10 | commit 무변경      | finish 는 스냅 반영 positions 를 기존 `updatePagePosition`/`updatePagePositionsBatch` 로 commit — 기존 grid snap 과 동일 취급 (ADR-176 HC3·HC10 / ADR-177 계약 무변경)                                              |
 
-**R2 lock (Figma 관례)**: 6축 edge/center 스냅, 임계 8 screen px, Cmd/Ctrl 억제, stateless (raw 포인터 기준 — 리뷰 round 1 판정, §3.1 해제 상태 불필요 / 히스테리시스 필요 여부는 G1 live 조작감에서 재판정).
+**R2 lock (Figma 관례)**: 6축 edge/center 스냅, 임계 5 screen px (2026-08-13 G1 조정 — 시작값 8 에서 Pen 실측값으로 하향), Cmd/Ctrl 억제, stateless (raw 포인터 기준 — 리뷰 round 1 판정, §3.1 해제 상태 불필요 / 히스테리시스 필요 여부는 G1 live 조작감에서 재판정).
 
 ## 3. 계약 설계
 

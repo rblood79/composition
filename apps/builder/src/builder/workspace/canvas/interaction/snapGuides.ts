@@ -17,8 +17,11 @@
  *   연장하는 배치) 두 패턴. 동률이면 정렬선이 이긴다.
  */
 
-/** 흡착 임계 시작값 (screen px, Figma 관례 근사 — G1 live 조작감에서 조정) */
-export const SNAP_THRESHOLD_SCREEN_PX = 8;
+/**
+ * 흡착 임계 (screen px) — Pen v1.2.1 실측값 5 채택 (2026-08-13 사용자 결정,
+ * G1 조정 절차). 시작값 8(Figma 관례 근사)은 조작감 대비 흡착 반경이 넓었다.
+ */
+export const SNAP_THRESHOLD_SCREEN_PX = 5;
 
 export interface SnapCandidateRect {
   id: string;
