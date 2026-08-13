@@ -1,7 +1,7 @@
 # ADR-181 Design Breakdown: 눈금자(Ruler) + 수동 가이드
 
-> 본문: [181-ruler-manual-guides.md](../181-ruler-manual-guides.md)
-> 상태: Accepted — 2026-08-13 (리뷰 round 1 이슈 0건 승인). **Phase 0 완료 2026-08-13** — §2 계약 표 실측 freeze, C9/C10/C11 확정.
+> 본문: [181-ruler-manual-guides.md](../completed/181-ruler-manual-guides.md)
+> 상태: **Implemented — 2026-08-14** (Accepted 2026-08-13, 리뷰 round 1·2 승인). Phase 0~7 종결 — §2 계약 표 실측 freeze, C9/C10/C11 확정.
 
 ## §1. 문제 정의 확인 (fork checkpoint — 신규 주제, fork 아님)
 
@@ -270,9 +270,35 @@ live 검증 (Chrome MCP):
   - live (실제 마우스): Home 가이드(scene 770)에 Page 2 드래그 → **정확히 770** 착지. **대조군** — 가이드를 지우고 같은 드래그를 반복하면 **773.39**(raw) 착지라, 흡착이 가이드 때문임이 분리 확인된다. 자기 가이드 제외 — Page 2 에 가이드를 주고 그 위로 드래그하면 1039.80 (1040 미흡착).
 - **관찰**: 요소 드래그 경로는 `isManualPositionDragTarget` 게이트가 있어 flow 배치 요소에는 스냅이 애초에 걸리지 않는다 (ADR-179 계약). 이 프로젝트 페이지들이 대부분 flow 라 live 확인은 페이지 드래그로 했다 — 요소 축은 유닛(공유 순수 함수)과 배선 대칭으로 갈음.
 
-### Phase 7 — 검증 종결 (Gates 전수)
+### Phase 7 — 검증 종결 (Gates 전수) — **Implemented 2026-08-14**
 
-- G1~G6 전수 실행 + ADR Status 승격 + CHANGELOG + README.
+| Gate | 결과 | 실측                                                                                                                                                                                                                     |
+| ---- | :--: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| G1   | PASS | Shift+R 토글 → 스트립 드래그 생성(local 194) → Cmd+Z 소거 → Cmd+Shift+Z 복원 → 이동(194→313) → Cmd+Z/Shift+Z 왕복 → 스트립 복귀 삭제 → Cmd+Z 복원 → **새로고침 후 313 유지**. 패널 라벨 3종 정상                        |
+| G2   | PASS | ruler OFF: pointer 체인이 ADR-181 이전과 **바이트 동등**(C10 게이트가 전 분기를 감싼다). ruler ON + **가이드 0** 문서에서 실제 클릭 선택 정상(`ref` 선택). 캔버스 suite 1103 passed                                       |
+| G3   | PASS | 페이지 드래그가 가이드(scene 770)에 **정확히 770** 착지, 가이드 제거 후 같은 드래그는 773.39(raw) — 대조군 분리. spacing 미오염 유닛 + rect 스냅 유닛 32 passed                                                          |
+| G4   | PASS | 겹친 페이지에서 아래 가이드가 위 body 를 가로지르지 않음(세로 전면 가림 / 가로는 겹친 구간만 절단), 페이지 rect 에서 절단, breakpoint 전환 시 목록 교체(mobile 4 → desktop 0)                                            |
+| G5   | PASS | 아래 §Gate 5 실측                                                                                                                                                                                                          |
+| G6   | PASS | type-check 0 new violation / 전체 3337 passed (실패 2건은 **선행 결함** — 아래)                                                                                                                                            |
+
+#### Gate 5 실측 (HC1)
+
+측정법은 **ON/OFF 순서 교대 4쌍 × 2s** — Phase 4 에서 단발 A/B 가 +1.26% 를 냈다가 교대 반복에서 사라진 전례가 있어 이 방식으로 고정한다.
+
+| 항목                                  | OFF   | ON    | 증가분             | 예산 대비 |
+| ------------------------------------- | ----- | ----- | ------------------ | --------- |
+| (a) ruler ON/OFF (가이드 0), p50      | 4.075 | 4.100 | +0.025ms           | **0.15%** |
+| (a) 가이드 **20개** (2 페이지), p50   | 4.125 | 4.150 | +0.025ms           | **0.15%** |
+
+- (a′) **will-change 수명 확인**: 팬 전 `auto` → 팬 중 `background-position` → idle 120ms 유지 → **idle 300ms 후 `auto` 복귀**. 팬이 건드리는 속성은 스트립 `background-position` 과 라벨 `transform` 둘뿐 (레이아웃 속성 0).
+  - **미검증 잔여**: 실제 paint flashing 계측은 DevTools Rendering 패널이 필요해 MCP 로 구동할 수 없었다. 속성 수준(컴포지터 친화 속성만 변경) + will-change 수명까지만 확인했다.
+- (c) **드래그 100 move**: canonical write **0** / 히스토리 entry **0** / persist **0**. pointerup 후 write 1 · entry 1 · persist 2.
+  - persist 2 는 **선행 동작**이다 — `updatePagePosition`(ADR-177) 도 동일하게 2회(명시 persist + 앱 autosave). ADR-181 이 만든 것이 아니다.
+
+#### 선행 결함 2건 (ADR-181 무관, 미수정)
+
+- `panelStylePropsUnion.static.test.ts` — `position` 이 섹션 PROPS 에 있으나 `PANEL_STYLE_PROPS` 누락. 마지막 변경 `e33d84005`, 스타일 패널 축.
+- `__adr171Phase6Probe.test.ts` — 다른 세션의 scratchpad 절대 경로에 기록. 마지막 변경 2026-07-29.
 
 ## §4. Gate 상세 (ADR 본문 Gate 표의 실행 절차)
 

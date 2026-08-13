@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-13 (리뷰 round 1 승인 — 이슈 0건, `docs/adr/reviews/181.md`)
+Implemented — 2026-08-14 (Accepted 2026-08-13, 리뷰 round 1·2 승인 — `docs/adr/reviews/181.md`)
 
 - **Phase 0 (inventory freeze) Implemented 2026-08-13** — 계약 표 C1~C11 실측 freeze. 판정 3건 확정: C9 가이드 좌표는 **breakpoint 별** (페이지 크기가 breakpoint 별이라 공유 시 rect 밖 가이드가 스냅에만 참여) / C10 `showRulers` 기본 `false` + 가이드 **표시는 ruler 와 독립, 조작은 ruler ON 한정** (R1 노출면 축소 → G2 강화) / C11 ruler 는 전용 카운터 불요, 가이드는 `overlayVersion` 만 bump(`invalidateContent` 불요). 비-element 히스토리 kind 소비 지점은 초안 3곳 → **실측 6곳** 으로 확대 (breakdown §2 C4).
 
@@ -20,14 +20,16 @@ Accepted — 2026-08-13 (리뷰 round 1 승인 — 이슈 0건, `docs/adr/review
 
 - **Phase 6 (스냅 편입) Implemented 2026-08-14** — `resolveSnappedPosition` 에 `guideLines` 선택 인자 추가. **가이드는 rect 가 아니라 선**이라 들어가는 자리가 흡착 판정과 정렬선 방출 둘뿐이고, 등간격 경로에는 전달하지 않는다(대조군 유닛으로 고정). 흡착 시 정렬선을 방출한다 — 가이드는 상시 표시라 위치만으론 "근처" 와 "붙음" 이 구분되지 않는다. 동률이면 가이드가 이기고, rect 후보 0 이어도 흡착한다(게이트를 `|| hasGuideLines` 로 확장). 수집은 드래그당 1회(C2). **페이지 드래그만 자기 가이드를 제외한다** — 가이드가 페이지와 함께 움직이는데 scene 라인은 시작 시점에 얼어 있어, 제외하지 않으면 시작 위치로 계속 끌려간다. 유닛 9건(32 passed) + live 대조군 확증(가이드 有 770 정확 착지 / 無 773.39 raw).
 
+- **Phase 7 (검증 종결) Implemented 2026-08-14** — G1~G6 전수 PASS. **G5 실측**(ON/OFF 순서 교대 4쌍 × 2s): ruler ON/OFF `render.frame` p50 +0.025ms(**0.15%**), 가이드 **20개**에서도 +0.025ms(**0.15%**) — HC1(a) 1% 기준 충족. will-change 는 팬 중에만 서고 idle 300ms 에 해제, 팬이 건드리는 속성은 `background-position`·`transform` 둘뿐. 드래그 **100 move** 에서 canonical write/히스토리/persist 각 **0**, pointerup 후 1·1·2 (persist 2 는 `updatePagePosition` 도 동일한 선행 동작). **미검증 잔여 1건** — 실제 paint flashing 계측은 DevTools Rendering 패널이 필요해 구동하지 못했고, 속성 수준까지만 확인했다. 전체 테스트 3337 passed (실패 2건은 ADR-181 무관 선행 결함).
+
 ## Context
 
-캔버스 정렬 보조는 [ADR-179](completed/179-snap-alignment-guides.md) (Implemented 2026-08-12) 로 **객체 스냅** (드래그 순간의 정렬선·등간격) 까지 도달했지만, 사용자가 **미리 놓아두는 고정 기준선** 이 없다 — Figma/Pen 의 ruler + 수동 가이드에 해당하는 표면이 0 이다 (2026-08-13 실측: `ruler`/`guide` 렌더·문서 필드 grep 0건, `snapGuides.ts` 후보는 rect 전용).
+캔버스 정렬 보조는 [ADR-179](179-snap-alignment-guides.md) (Implemented 2026-08-12) 로 **객체 스냅** (드래그 순간의 정렬선·등간격) 까지 도달했지만, 사용자가 **미리 놓아두는 고정 기준선** 이 없다 — Figma/Pen 의 ruler + 수동 가이드에 해당하는 표면이 0 이다 (2026-08-13 실측: `ruler`/`guide` 렌더·문서 필드 grep 0건, `snapGuides.ts` 후보는 rect 전용).
 
 두 산출물은 성격이 갈린다:
 
 - **Ruler (눈금자)**: 순수 뷰포트 chrome — 문서 데이터 없음, `panOffset`/`zoom` 의 함수. 토글 상태만 빌더 UI 설정. 씬 콘텐츠와 공간적으로 묶이지 않는다.
-- **수동 가이드**: 페이지(아트보드) 귀속 **문서 데이터** — 저장·복원되고 undo 대상이어야 한다. [ADR-177](completed/177-page-position-document-data.md) 이 페이지 위치로 확립한 5계층 (document 필드 / persist·hydrate / 히스토리 canonical entry / 소비 UI / 검증) 과 동형 문제다.
+- **수동 가이드**: 페이지(아트보드) 귀속 **문서 데이터** — 저장·복원되고 undo 대상이어야 한다. [ADR-177](177-page-position-document-data.md) 이 페이지 위치로 확립한 5계층 (document 필드 / persist·hydrate / 히스토리 canonical entry / 소비 UI / 검증) 과 동형 문제다.
 
 이 성격 차이가 **렌더 표면까지 가른다** — 가이드는 페이지 rect 클립·페이지 간 occlusion·콘텐츠와 함께 컬링돼야 하므로 씬을 아는 Skia 층이어야 하고, ruler 는 카메라만 알면 되므로 그럴 필요가 없다 (§Alternatives 축 2).
 
@@ -98,7 +100,7 @@ Accepted — 2026-08-13 (리뷰 round 1 승인 — 이슈 0건, `docs/adr/review
 #### 대안 A-DOM: 캔버스 위 DOM 레이어 (채택)
 
 - 설명: `.canvas-container` 위 절대 배치 스트립 2개. 눈금선은 `repeating-linear-gradient` 반복 패턴 + 위상 이동(`pan mod gap`), 라벨은 절대 배치 span 풀. 카메라는 `subscribeViewportPresentation` 구독.
-- 근거: **같은 기법이 이 코드베이스에서 이미 동작 중** ([ADR-902](completed/902-workspace-dot-background-layer.md) Implemented) — `DotBackground.tsx` + `Workspace.css` 가 캔버스 **뒤**에서 도트 패턴을 `--dot-gap`/`--dot-tx` (=`positiveModulo(pan, gap)`) 로 이동시키며, 주석이 위상을 "Skia 의 `pan + world * zoom` 과 같도록" 보정한다고 명시한다. Skia 와의 팬 정합이 이미 확립·테스트(`DotBackground.test.ts`, `viewportPresentation.test.tsx`)되어 있다. Figma 는 캔버스 내부에 그리지만, composition 은 빌더 chrome 이 이미 DOM (ADR-163 패널 구조) 이고 캔버스 위 DOM 오버레이 전례도 있다 (`TextEditOverlay`).
+- 근거: **같은 기법이 이 코드베이스에서 이미 동작 중** ([ADR-902](902-workspace-dot-background-layer.md) Implemented) — `DotBackground.tsx` + `Workspace.css` 가 캔버스 **뒤**에서 도트 패턴을 `--dot-gap`/`--dot-tx` (=`positiveModulo(pan, gap)`) 로 이동시키며, 주석이 위상을 "Skia 의 `pan + world * zoom` 과 같도록" 보정한다고 명시한다. Skia 와의 팬 정합이 이미 확립·테스트(`DotBackground.test.ts`, `viewportPresentation.test.tsx`)되어 있다. Figma 는 캔버스 내부에 그리지만, composition 은 빌더 chrome 이 이미 DOM (ADR-163 패널 구조) 이고 캔버스 위 DOM 오버레이 전례도 있다 (`TextEditOverlay`).
 - 위험:
   - 기술: L — 참조 구현 존재. 도트 배경에 없는 것은 **라벨(값이 팬에 따라 변함)** 하나 — span 풀 `textContent` 갱신
   - 성능: L — Skia 프레임 증가분 **0**. 팬은 컴포지터 변환 (리페인트 없음), `will-change` 는 팬 중에만 (ADR-047 규율 승계)
@@ -106,7 +108,7 @@ Accepted — 2026-08-13 (리뷰 round 1 승인 — 이슈 0건, `docs/adr/review
   - 마이그레이션: L — 1차 Skia 구현 되돌림 (토글·단축키·설정 스위치·인셋 모듈은 그대로 재사용)
 - 부수 이득 (정정 2026-08-13): pointer 가드가 **소멸하지는 않는다** — 캡처 리스너가 캔버스가 아니라 `.canvas-container` 에 붙어 있고(`BuilderCanvas.tsx:1155`, `capture: true`) hover 는 `window` 에 붙어 있어(`useElementHoverInteraction.ts:550`) DOM 층위가 조상 캡처를 막지 못한다. 달라지는 것은 **판정의 성격**이다: 기하 우선순위 경쟁(포인트를 zoom/pan/inset 으로 환산해 스트립 rect 판정 후 씬 히트와 경쟁 — §8.7/§8.8 실수 유형에 노출)에서 **소속 조기 반환**(`rulerRoot.contains(event.target)`, 좌표 무관)으로 축소된다. 같은 어법의 선례가 인접에 있다 (`handleCanvasContextMenu:791` 의 `target.closest(...)`).
 
-#### 선행 결정과의 관계 — [ADR-902](completed/902-workspace-dot-background-layer.md) 축 2 대안 V1 (기각) 재검토
+#### 선행 결정과의 관계 — [ADR-902](902-workspace-dot-background-layer.md) 축 2 대안 V1 (기각) 재검토
 
 ADR-902 (Implemented 2026-04-25) 는 도트 배경을 두면서 **같은 질문**을 이미 다뤘고, "DOM 레이어를 캔버스 **위로** 얹기"(축 2 대안 V1, `:108-114`) 를 **기각**했다. 본 ADR 이 그 배치를 채택하므로 기각 사유가 전이되는지 먼저 판정한다.
 
@@ -144,7 +146,7 @@ ADR-902 (Implemented 2026-04-25) 는 도트 배경을 두면서 **같은 질문*
 
 기각 사유 — **B**: undo 불일치가 사용자 모델(Cmd+Z 일원)을 깨고 문서 이동성을 잃는다 (ADR-177 대안 B 기각과 동일 논거). **C**: 페이지 이동이 일상 조작인 캔버스에서 가이드가 페이지를 추종하지 못하면 기준선 기능 자체가 무너진다. **A-Skia**: 프레임 예산 1% 를 4.9배 초과하고, 남은 비용이 래스터화라 오프스크린 Image 캐시(픽셀 정렬·surface 수명 관리) 없이는 도달 불가 — 같은 결과를 참조 구현이 있는 DOM 경로가 비용 0 으로 낸다.
 
-> 구현 상세: [181-ruler-manual-guides-breakdown.md](design/181-ruler-manual-guides-breakdown.md)
+> 구현 상세: [181-ruler-manual-guides-breakdown.md](../design/181-ruler-manual-guides-breakdown.md)
 
 ## Risks
 

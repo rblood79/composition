@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [눈금자 + 수동 가이드 — ADR-181 Phase 0~7] - 2026-08-14
+
+### Features
+
+- **눈금자(Ruler)** (ADR-181 Phase 1 Implemented):
+  - 캔버스 상단·좌측에 눈금 스트립 — Shift+R 또는 설정 패널 "Show Rulers" 로 토글 (기본 OFF)
+  - 눈금 간격은 줌에 따라 1-2-5×10ⁿ 계열로 자동 전환, 라벨이 겹칠 만큼 촘촘해지면 보조 눈금을 생략
+  - **Why (렌더 표면 판정)**: 1차로 Skia 오버레이에 그렸으나 최적화 4단계(틱 Path 배칭 → TextBlob 캐시 → `Path.MakeFromCmds` → Picture 캐시) 후에도 `render.frame` 이 0.40→1.21ms(예산 4.9%)로 HC1(1%) 에 못 미쳤다 — 잔여분이 **래스터화 비용**이라 같은 계열로는 더 줄지 않는다. 사용자 판정으로 DOM 레이어로 전환해 Skia 증가분이 **0** 이 됐다 (도트 배경 ADR-902 의 반복 패턴 + 위상 이동 기법 승계)
+  - 위치: `apps/builder/src/builder/workspace/components/{RulerOverlay.tsx,rulerMetrics.ts}`
+
+- **수동 가이드 — 페이지 귀속 기준선** (ADR-181 Phase 2~6 Implemented):
+  - 눈금자 스트립에서 캔버스로 끌어내면 가이드 생성, 캔버스에서 끌면 이동, 눈금자로 되돌리면 삭제. 각 조작이 Cmd+Z/Cmd+Shift+Z 대상이고 새로고침 후에도 유지된다
+  - 요소·페이지 드래그가 가이드에 흡착 (ADR-179 스냅 체계 편입 — 정렬선 판정에만 참여)
+  - 가이드는 **페이지에 귀속**되고 breakpoint 별로 따로 관리된다 — 페이지를 옮기면 함께 따라오고, 겹친 페이지에서는 위 페이지에 가려진 구간이 그려지지 않는다
+  - **표시는 눈금자와 독립, 조작만 눈금자 ON 한정**: 가이드는 스냅에 참여하므로 숨기면 "보이지 않는 선에 흡착" 이 되어 원인 추적이 불가능해진다. 반대로 조작은 진입점(생성·삭제)이 전부 눈금자에 있어 ON 한정이 자연스럽고, 그 덕에 눈금자 OFF 면 pointer 체인이 도입 이전과 **바이트 동등**하다
+  - 위치: `packages/shared/src/types/composition-document.types.ts` (`pageGuides`), `apps/builder/src/builder/workspace/canvas/{skia/guideRenderer.ts,hooks/useGuideDrag.ts,interaction/guide*.ts,viewport/pageGuideActions.ts}`
+
+### Architecture
+
+- **`page-guide` 히스토리 kind 추가 — 비-element 축 3번째** (ADR-181 Phase 3):
+  - `page-position`(ADR-177) / `snapshot-restore`(ADR-180) 에 이어 element 노드 경로를 타지 않는 세 번째 entry kind
+  - 소비 지점이 초안의 3곳(undo/redo/goToIndex)이 아니라 **6곳** 이었다 — `syncDatabaseForEntries` skip, addEntry DEV guard 면제, 패널 라벨·아이콘까지. 그중 타입 시스템이 잡아 주는 것은 아이콘 맵 하나뿐이라 나머지 5곳을 정적 가드로 고정
+  - `page-position` 과 갈리는 지점 둘: 스토어 미러가 없어 canonical 만 되돌리고, 목록 **전체**가 before/after 라 생성·이동·삭제가 한 어법이다
+  - 위치: `apps/builder/src/builder/stores/history.ts`, `stores/history/historyActions.ts`
+
+### Performance
+
+- **눈금자·가이드의 프레임 예산 영향** (ADR-181 HC1, G5 실측):
+  - 눈금자 ON/OFF `render.frame` p50 +0.025ms(**0.15%**), 가이드 20개에서도 +0.025ms(0.15%) — 기준 1% 충족
+  - 가이드 드래그 100 move 동안 canonical write·히스토리·persist 각 **0** (pointerup 1회 commit)
+  - **측정법 주의**: 단발 A/B 는 믿을 수 없다 — 첫 1쌍은 +1.26%(게이트 초과)로 보였고 ON/OFF 순서를 교대해 4쌍 반복하자 사라졌다. 이후 전 측정을 교대 반복으로 고정
+
 ## [히스토리 스냅샷 — ADR-180 Phase 0~4] - 2026-08-13
 
 ### Features
