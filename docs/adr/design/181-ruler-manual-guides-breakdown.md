@@ -179,12 +179,23 @@ subscribeViewportPresentation(apply);   // Skia 카메라와 동일 채널
 
 ### Phase 5 — 인터랙션 (HIGH — R1)
 
-- **생성은 DOM 에서 시작한다** — ruler 스트립(`RulerOverlay`)에 `pointerdown` → `setPointerCapture` 로 캔버스 위까지 이어 받는다. 스트립이 캔버스 **위** DOM 이라 우선순위가 **자동**이다: 종전 설계가 요구하던 "ruler 영역은 씬 히트보다 항상 우선" 수동 가드가 **불요**해진다 (R1 노출면 축소 — ADR 축 2 부수 이득).
+- **생성은 DOM 에서 시작한다** — ruler 스트립(`RulerOverlay`)에 `pointerdown` → `setPointerCapture` 로 캔버스 위까지 이어 받는다.
+- **가드는 소멸하지 않는다 (정정 2026-08-13)** — 캡처 리스너가 캔버스가 아니라 `.canvas-container` 에 `capture: true` 로 붙어 있어(`BuilderCanvas.tsx:1010,1155`) 조상 캡처가 스트립 자신의 핸들러보다 **먼저** 실행되고, hover 는 아예 `window` 에 붙어 있다(`useElementHoverInteraction.ts:550`). DOM z-order 는 target 만 정할 뿐 이 둘을 막지 못한다. 달라지는 것은 판정의 성격이다.
+
+  | 리스너                                        | 조치                                                                    |
+  | --------------------------------------------- | ----------------------------------------------------------------------- |
+  | 컨테이너 `pointerdown` capture (`:1155`)      | `rulerRoot.contains(event.target)` 조기 반환                            |
+  | 컨테이너 `onPointerDown` bubble (`:1256`)     | **그대로** — 컨테이너 포커스는 눈금자 드래그 중에도 필요 (Cmd+Z 등)     |
+  | 컨테이너 `onContextMenu` (`:1255`)            | 기존 `target.closest(...)` 조기 반환(`:791`)에 선택자 추가 (LOW)        |
+  | `window` pointermove — hover (`:550`)         | 조기 반환. 누락 시 §8.6 빈 영역 fallback 으로 page body 아웃라인이 뜬다 |
+  | `window` pointermove — 드래그 3종             | 없음 — 세션이 pointerdown 으로 열리므로 위 가드가 연쇄 차단             |
+
+  Skia 였다면 "포인트를 zoom/pan/inset 으로 환산해 스트립 rect 판정 → 씬 히트와 우선순위 경쟁" 이 필요했고 §8.7(좌표계)·§8.8(드래그 의도) 실수 유형에 노출된다. DOM 이면 **좌표 무관 소속 판정**이고, 같은 어법의 선례가 인접에 있다 (`handleCanvasContextMenu:791`).
 - **씬 안 조작만 캔버스 히트** — 기존 가이드 이동/삭제. 단일 판정 함수 `resolveGuideHit(point, guides, thresholdScenePx)` 순수 함수로 분리 (테스트 우선), 기존 `resolveSelectionDragIntent`/페이지 타이틀 경로 진입 **전에** 판정하고 미스 시 기존 체인 무변경 통과 (±4 screen px 한정).
 - **진입 게이트 (C10)**: `showRulers === false` 면 히트 판정 자체를 **수행하지 않는다** — 기존 pointer 체인 무변경 통과. 가이드는 그려지되 조작 불가.
 - 삭제: ruler 스트립으로 되돌리면 삭제 (DOM 영역 판정 — 캔버스 히트 불요). hover 시 resize 커서.
 - 드래그 중 transient 채널 (C6 전례 동형 — `guidePresentation` 신설) — canonical write 는 finish 1회.
-- 검증: 기존 인터랙션 유닛 전수 GREEN (G2) + live 생성/이동/삭제 + **DOM↔캔버스 경계 통과** (스트립에서 시작한 드래그가 캔버스 위에서 계속되는지).
+- 검증: 기존 인터랙션 유닛 전수 GREEN (G2) + live 생성/이동/삭제 + **DOM↔캔버스 경계 통과** (스트립에서 시작한 드래그가 캔버스 위에서 계속되는지) + **눈금자 위 hover 시 캔버스 아웃라인 미발생** (위 표 4행 회귀 감시).
 
 ### Phase 6 — 스냅 편입 (MED — R2)
 

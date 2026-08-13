@@ -93,7 +93,7 @@ Accepted — 2026-08-13 (리뷰 round 1 승인 — 이슈 0건, `docs/adr/review
   - 성능: L — Skia 프레임 증가분 **0**. 팬은 컴포지터 변환 (리페인트 없음), `will-change` 는 팬 중에만 (ADR-047 규율 승계)
   - 유지보수: M — ruler(DOM) 와 가이드(Skia) 가 다른 층에 존재. 단 본 ADR 의 핵심 구분(뷰포트 chrome ↔ 페이지 귀속 데이터)과 같은 선이라 정합적
   - 마이그레이션: L — 1차 Skia 구현 되돌림 (토글·단축키·설정 스위치·인셋 모듈은 그대로 재사용)
-- 부수 이득: ruler 스트립이 캔버스 **위** DOM 이라 pointer 우선순위가 **자동** — R1 이 요구하던 "ruler 영역은 씬 히트보다 우선" 수동 가드가 불요해진다.
+- 부수 이득 (정정 2026-08-13): pointer 가드가 **소멸하지는 않는다** — 캡처 리스너가 캔버스가 아니라 `.canvas-container` 에 붙어 있고(`BuilderCanvas.tsx:1155`, `capture: true`) hover 는 `window` 에 붙어 있어(`useElementHoverInteraction.ts:550`) DOM 층위가 조상 캡처를 막지 못한다. 달라지는 것은 **판정의 성격**이다: 기하 우선순위 경쟁(포인트를 zoom/pan/inset 으로 환산해 스트립 rect 판정 후 씬 히트와 경쟁 — §8.7/§8.8 실수 유형에 노출)에서 **소속 조기 반환**(`rulerRoot.contains(event.target)`, 좌표 무관)으로 축소된다. 같은 어법의 선례가 인접에 있다 (`handleCanvasContextMenu:791` 의 `target.closest(...)`).
 
 ### Risk Threshold Check
 
@@ -115,7 +115,7 @@ Accepted — 2026-08-13 (리뷰 round 1 승인 — 이슈 0건, `docs/adr/review
 2. **가이드**: `pageGuides` canonical additive root 필드 (breakpoint 별 페이지-로컬 px — 페이지 이동 자동 추종) + `page-guide` 히스토리 entry (ADR-177 early-branch 패턴) + finish-only commit.
 3. **스냅**: `resolveSnappedPosition` 에 축별 라인 입력 추가 — **정렬선 판정에만** 참여 (등간격 이웃 아님), 소비처 2곳이 드래그 세션 시작 시 1회 주입.
 4. **가이드 렌더**: Skia 오버레이 — 상시 표시 콘텐츠성 chrome, 페이지 rect 클립 + `withPageOcclusionClip` 경유 (canvas-rendering.md §8.5. 스냅 정렬선의 "조작 표식 미적용" 판정과 다름).
-5. **인터랙션**: ruler 스트립(DOM) 드래그로 생성 — pointer capture 로 캔버스 위까지 이어 받는다. 씬 안의 가이드 이동·삭제는 캔버스 히트 판정 순수 함수 단일 진입점, 미스 시 기존 pointer 체인 무변경 통과.
+5. **인터랙션**: ruler 스트립(DOM) 드래그로 생성 — `setPointerCapture` 로 캔버스 위까지 이어 받는다. 기존 캔버스 pointer 경로는 **소속 조기 반환 2곳**으로 분리한다 (컨테이너 pointerdown 캡처 `:1155` / hover `window` pointermove `:550` — 둘 다 `rulerRoot.contains(target)`). 씬 안의 가이드 이동·삭제는 캔버스 히트 판정 순수 함수 단일 진입점, 미스 시 기존 pointer 체인 무변경 통과.
 
 선택 근거 (위험 수용): 축 1 잔존 위험이 전 축 M 이하이고, M 2건 (히스토리 kind 확장 / pointer 체인 분기) 은 각각 ADR-177 확립 패턴과 단일 판정 함수 격리로 상쇄된다. 축 2 는 A-Skia 의 성능 HIGH 가 실측으로 확정됐고 그 해소책(Image blit)이 새 machinery 를 요구하는 반면, A-DOM 은 참조 구현이 이미 있어 기술 위험이 낮고 성능 문제 자체를 소멸시킨다.
 
@@ -127,7 +127,7 @@ Accepted — 2026-08-13 (리뷰 round 1 승인 — 이슈 0건, `docs/adr/review
 
 | ID  | 위험                                                                                                                                                                                                                    | 심각도 | 대응                                                                                                                                                                                                 |
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1  | pointer 체인 경합 — 가이드 히트 분기가 기존 캡처 체인 (`BuilderCanvas.tsx:1013` onPointerDownCapture / `resolveSelectionDragIntent` / 페이지 타이틀 paint-rank guard / `usePageDrag.ts` / `useDragBridge.ts`) 을 오탈취 |  HIGH  | ruler 영역은 DOM 우선순위로 **자동 분리** (수동 가드 불요 — 축 2 부수 이득). 씬 안 가이드 히트만 순수 함수 단일 진입점 (±4 screen px 한정, 미스 시 무변경 통과) + 기존 인터랙션 유닛 전수 GREEN (G2) |
+| R1  | pointer 체인 경합 — 가이드 히트 분기가 기존 캡처 체인 (`BuilderCanvas.tsx:1013` onPointerDownCapture / `resolveSelectionDragIntent` / 페이지 타이틀 paint-rank guard / `usePageDrag.ts` / `useDragBridge.ts`) 을 오탈취 |  HIGH  | ruler 영역은 **소속 조기 반환 2곳** 으로 분리 (컨테이너 pointerdown 캡처 / hover window pointermove — `rulerRoot.contains(target)`. 조상 캡처·window 리스너라 DOM 층위만으로는 안 막힌다). 씬 안 가이드 히트는 순수 함수 단일 진입점 (±4 screen px 한정, 미스 시 무변경 통과) + 기존 인터랙션 유닛 전수 GREEN (G2) |
 | R2  | 스냅 계약 오염 — rect 전제 (`snapGuides.ts:85` rectLines) 에 라인 입력 추가 시 등간격(spacing) 판정 오염 또는 기존 rect 판정 회귀                                                                                       |  MED   | 라인은 정렬선 판정에만 참여 (별도 파라미터 — `projectCandidate` 미통과) + 기존 유닛 GREEN + spacing 미오염 유닛 (G3)                                                                                 |
 | R3  | 히스토리 비-element kind 3번째 — 소비 분기 누락 시 undo 에서 무시/크래시                                                                                                                                                |  MED   | ADR-177 확립 패턴 (early-branch + 정적 가드) 재적용 + Phase 0 소비 분기 전수 (**6곳** — breakdown §2 C4)                                                                                             |
 | R4  | occlusion/클립 누락 — 겹친 페이지에서 아래 페이지 가이드가 위 페이지 body 위에 표시                                                                                                                                     |  MED   | `withPageOcclusionClip` (`skiaOverlayBuilder.ts:264`) 경유 + 페이지 rect 클립 (G4)                                                                                                                   |
