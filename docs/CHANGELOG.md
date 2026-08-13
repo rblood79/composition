@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [색상 피커 드래그 캔버스 실시간 반영 — PropertyColor preview 채널] - 2026-08-13
+
+### Bug Fixes
+
+- **색상 드래그가 캔버스에 드롭 시점에만 반영되던 공백 해소**:
+  - `PropertyColor` (Appearance borderColor / Typography color / ModifiedStyles 색상) 의 드래그 중 `handleChange` 가 로컬 state 만 갱신 — 패널 스와치는 실시간인데 Skia 캔버스는 `onChangeEnd` 커밋까지 무반영이었다
+  - **Why**: 캔버스 preview 채널(`updateStylePreview` — RAF 배칭·히스토리/DB 무접촉·layoutVersion bump, borderWidth 드래그가 이미 사용 중)이 색상 피커에만 배선돼 있지 않았다. FillSection(배경)은 자체 preview 경로 보유로 무관
+  - 수정: `PropertyColor` 에 `onPreview` prop 신설 + 3개 섹션 배선. 드래그 세션 중 외부 value 동기화를 차단하는 가드 동반 — preview 가 value prop 을 미리 바꾸면 `lastSavedValue` 가 덮여 드롭 커밋이 "변경 없음" 으로 소실된다 (style-ssot PropertyUnitInput commit-skip 함정과 동형)
+  - 위치: `apps/builder/src/builder/components/property/PropertyColor.tsx`, `panels/styles/sections/{AppearanceSection,TypographySection,ModifiedStylesSection}.tsx`
+
 ## [페이지 위치 입력 적응형 통합 — Transform position row] - 2026-08-13
 
 ### Features

@@ -132,6 +132,7 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
           className="border-color"
           value={styleValues.borderColor}
           onChange={(value) => updateStyle("borderColor", value)}
+          onPreview={(value) => updateStylePreview("borderColor", value)}
           placeholder="#000000"
         />
         <PropertyUnitInput

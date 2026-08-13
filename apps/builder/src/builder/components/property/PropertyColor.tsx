@@ -17,6 +17,11 @@ interface PropertyColorProps {
   label?: string;
   value: string; // Hex color string (e.g., "#FF0000")
   onChange: (value: string) => void;
+  /**
+   * 드래그 중 연속 호출 — 캔버스 preview 채널 (updateStylePreview) 배선용.
+   * 생략 시 기존 커밋-only 동작 (드롭 시점에만 캔버스 반영).
+   */
+  onPreview?: (value: string) => void;
   icon?: React.ComponentType<{
     color?: string;
     size?: number;
@@ -34,10 +39,12 @@ interface PropertyColorProps {
 function ColorPickerInner({
   initialValue,
   onChange,
+  onPreview,
   label,
 }: {
   initialValue: string;
   onChange: (value: string) => void;
+  onPreview?: (value: string) => void;
   label?: string;
 }) {
   const selectedElementId = useStore((state) => state.selectedElementId);
@@ -45,6 +52,9 @@ function ColorPickerInner({
   const [inputValue, setInputValue] = React.useState<string>(initialValue);
   const lastSavedValue = useRef<string>(initialValue);
   const focusedElementIdRef = useRef<string | null>(null);
+  // preview 드래그 세션 (첫 handleChange ~ handleChangeEnd) 추적 —
+  // 세션 중에는 아래 useEffect 의 외부 value 동기화를 건너뛴다.
+  const isPreviewSessionRef = useRef(false);
 
   React.useEffect(() => {
     // preview / 커밋 경로가 store 를 mutate 하면서 initialValue 가 편집값으로
@@ -55,6 +65,10 @@ function ColorPickerInner({
       focusedElementIdRef.current !== null &&
       focusedElementIdRef.current === currentSelectedId;
     if (isFocusedOnSameElement) return;
+    // preview 드래그 중에는 동기화 금지 — lastSavedValue 가 preview 반영값으로
+    // 덮이면 onChangeEnd 의 변경 감지가 "변경 없음" 으로 오판해 커밋(히스토리/DB)
+    // 이 소실된다 (style-ssot.md PropertyUnitInput commit skip 함정과 동형).
+    if (isPreviewSessionRef.current) return;
 
     queueMicrotask(() => {
       setLocalColor(initialValue);
@@ -64,17 +78,27 @@ function ColorPickerInner({
     });
   }, [initialValue, selectedElementId]);
 
-  // 드래그 중: 로컬 상태만 업데이트 (UI 실시간 반영)
-  const handleChange = useCallback((color: Color | null) => {
-    if (!color) return;
-    const hexValue = color.toString("hex");
-    setLocalColor(hexValue);
-    setInputValue(hexValue);
-  }, []);
+  // 드래그 중: 로컬 상태 + (배선 시) 캔버스 preview 채널 — updateStylePreview 가
+  // RAF 배칭(프레임당 1회) / 히스토리·DB 무접촉을 보장한다.
+  const handleChange = useCallback(
+    (color: Color | null) => {
+      if (!color) return;
+      const hexValue = color.toString("hex");
+      setLocalColor(hexValue);
+      setInputValue(hexValue);
+      if (onPreview) {
+        isPreviewSessionRef.current = true;
+        onPreview(hexValue);
+      }
+    },
+    [onPreview],
+  );
 
-  // 드래그 종료: 실제 저장 (onChangeEnd)
+  // 드래그 종료: 실제 저장 (onChangeEnd) — lastSavedValue 는 세션 시작 전
+  // 커밋값이 보존돼 있어 최종값과의 diff 가 정확하다.
   const handleChangeEnd = useCallback(
     (color: Color) => {
+      isPreviewSessionRef.current = false;
       const hexValue = color.toString("hex");
       if (hexValue !== lastSavedValue.current) {
         lastSavedValue.current = hexValue;
@@ -170,6 +194,7 @@ export const PropertyColor = memo(
     label,
     value,
     onChange,
+    onPreview,
     className,
   }: PropertyColorProps) {
     const selectedElementId = useStore((state) => state.selectedElementId);
@@ -185,6 +210,7 @@ export const PropertyColor = memo(
           key={selectedElementId ?? "none"}
           initialValue={value}
           onChange={onChange}
+          onPreview={onPreview}
           label={label}
         />
       </fieldset>

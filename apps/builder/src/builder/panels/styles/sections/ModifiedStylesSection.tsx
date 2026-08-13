@@ -14,6 +14,7 @@ import {
 import type { SelectedElement } from "../../../inspector/types";
 import { useDirtyStyleProps } from "../hooks/useResetStyles";
 import { useStyleActions } from "../hooks/useStyleActions";
+import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { Type, Square, RulerDimensionLine } from "lucide-react";
 import {
   FONT_FAMILIES,
@@ -40,6 +41,7 @@ export function ModifiedStylesSection({
   //   reset 버튼과 비대칭이었음(2026-06-24). useDirtyStyleProps 가 reset 판정과 동일 baseline 공유.
   const modifiedProperties = useDirtyStyleProps();
   const { updateStyle } = useStyleActions();
+  const { updateStylePreview } = useOptimizedStyleActions();
 
   if (modifiedProperties.length === 0) {
     return (
@@ -144,6 +146,7 @@ export function ModifiedStylesSection({
           label={formatLabel(property)}
           value={String(value)}
           onChange={(newValue) => updateStyle(property, newValue)}
+          onPreview={(newValue) => updateStylePreview(property, newValue)}
         />
       );
     }

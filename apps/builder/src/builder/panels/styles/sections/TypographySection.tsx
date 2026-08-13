@@ -186,6 +186,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         className="color"
         value={styleValues.color}
         onChange={(value) => updateStyle("color", value)}
+        onPreview={(value) => updateStylePreview("color", value)}
         placeholder="#000000"
       />
 
