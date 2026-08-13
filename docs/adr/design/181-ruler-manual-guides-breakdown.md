@@ -25,7 +25,7 @@
 | C8  | 스냅 임계 단일 상수 (screen px, zoom 환산은 호출측)                                               | `snapGuides.ts:24` `SNAP_THRESHOLD_SCREEN_PX = 5`                                                                                                                 |
 | C9  | **확정** — 가이드 좌표는 **breakpoint 별** (`pagePositions` 동형 2단 Record)                      | 페이지 크기가 breakpoint 별 (`useLayoutPublisher.ts:63` "breakpoint(pageWidth/Height)") — 공유 시 타 breakpoint 에서 페이지 rect 밖 가이드가 스냅에만 참여 (아래) |
 | C10 | **확정** — `showRulers` 기본 `false` / 가이드 **표시는 ruler 와 독립** / **조작은 ruler ON 한정** | `canvasSettings.ts:137-140` 시각 chrome 계열 전부 기본 false (`showGrid`/`showWorkflowOverlay`), 동작 보조만 true (`snapToObjects`)                               |
-| C11 | **확정** — ruler 는 전용 카운터 불요 / 가이드는 `overlayVersionRef.current++` 재사용              | `SkiaCanvas.tsx:719-726` 프레임 스냅샷 키에 `cameraX/Y/Zoom` + `overlayVersion` 동시 포함, `:785-791` renderer.render 인자                                        |
+| C11 | **확정** — 가이드는 `overlayVersionRef.current++` 재사용 (ruler 는 DOM 이라 Skia invalidation 대상 아님 — 2026-08-13 축 2 전환)              | `SkiaCanvas.tsx:719-726` 프레임 스냅샷 키에 `cameraX/Y/Zoom` + `overlayVersion` 동시 포함, `:785-791` renderer.render 인자                                        |
 
 ### C4 — 비-element 히스토리 kind 소비 지점 전수 (`page-guide` 추가 시 필수 대응 6곳)
 
@@ -58,7 +58,7 @@ breakpoint 별로 두면 그 상태가 구조적으로 성립하지 않고, `pag
 
 `SkiaCanvas.tsx` 의 RAF 루프는 상시 도는 대신 프레임 스냅샷 키로 재작업 범위를 가른다. 키에 `cameraX/cameraY/cameraZoom` 과 `overlayVersion` 이 **함께** 들어간다 (`:719-726`, `:785-791`).
 
-- **Ruler**: `panOffset`/`zoom` 의 순수 함수이고 카메라가 이미 키에 있으므로 **전용 카운터 불요** (ADR 본문 HC1 가정 확증).
+- **Ruler**: `panOffset`/`zoom` 의 순수 함수이고 카메라가 이미 키에 있으므로 Skia 로 그릴 경우에도 전용 카운터가 불요했다 (1차 구현에서 확증). **축 2 전환 후에는 DOM 레이어라 이 축 자체가 해당 없음** — 갱신은 `subscribeViewportPresentation` 구독이 담당한다 (HC6).
 - **가이드**: 카메라와 무관하게 변하므로 전용 트리거가 필요하다. 기존 어법인 `overlayVersionRef.current++` 를 재사용한다 (코드 내 18곳 전례). **`invalidateContent()` 는 부르지 않는다** — `pagePositionPresentation` 구독(`:298-310`)이 content 까지 무효화하는 것은 page root transform 이 바뀌어 본문 렌더가 달라지기 때문이고, 가이드는 오버레이 패스 전용이라 content surface 를 건드리지 않는다 (더 싼 경로 — HC1 정합).
 - notify 호출 지점은 3곳: (a) 드래그 중 transient publish, (b) finish 후 canonical write, (c) 히스토리 undo/redo 적용 후.
 
@@ -71,17 +71,20 @@ breakpoint 별로 두면 그 상태가 구조적으로 성립하지 않고, `pag
 - ✅ canonical 파서 additive 허용은 ADR-177 R2 확정분 승계 (재검증 불요).
 - 산출: 본 문서 §2 갱신 + ADR 본문 진행 로그 1줄.
 
-### Phase 1 — Ruler 렌더 + 토글 (LOW) — **Implemented 2026-08-13 (잔존 1건)**
+### Phase 1 — Ruler 렌더 + 토글 (LOW) — **1차 Skia 구현 → DOM 재설계 (2026-08-13)**
 
-착수 후 실측으로 드러난 것 3건 (초안에 없던 항목):
+#### 1차 구현에서 확보한 것 (DOM 경로에 승계)
 
-1. **캔버스는 full-bleed 라 좌측 패널이 세로 스트립을 덮는다** — `main.workspace` 가 `position: fixed; x=0` 이고 `aside.sidebar`(접힘 48px / 패널 열림 281px)가 그 위에 겹친다. 스트립을 캔버스 좌단에 붙이면 세로 자가 **통째로 가려진다**. 가시 영역 오프셋을 `canvasViewportInset.ts` 한 곳에서 관측(ResizeObserver)해 `insetLeft` 로 넘긴다.
-2. **보이는 페이지가 0개면 프레임 전체가 skip 된다** — `skiaFramePipeline.ts:295` (`treeBoundsMap.size === 0` → null) → `SkiaCanvas` 가 `clearFrame()` 후 early return 하므로 오버레이 패스가 아예 돌지 않는다. 눈금자는 씬이 아니라 카메라의 함수라 그 상태에서도 있어야 하므로 `SkiaRenderer.clearFrameWithChrome()` (additive — 기존 렌더 경로 무변경) 로 chrome 한 겹만 얹는다.
-3. **HC1(a) 미달 — 아래 잔존**.
+착수 후 실측으로 드러난 결함 2건. **표면이 DOM 으로 바뀌어도 그대로 유효**하다.
 
-#### Phase 1 잔존 — HC1(a) 프레임 예산 1% 미달 (사용자 판정 대기)
+1. **캔버스는 full-bleed 라 좌측 패널이 세로 스트립을 덮는다** — `main.workspace` 가 `position: fixed; x=0` 이고 `aside.sidebar`(접힘 48px / 패널 열림 281px)가 그 위에 겹친다. 스트립을 캔버스 좌단에 붙이면 세로 자가 **통째로 가려진다**. 가시 영역 오프셋은 `canvasViewportInset.ts` 가 ResizeObserver 로 관측한다 — DOM 경로에서는 이 값이 스트립의 CSS `left` 가 되므로 더 단순해진다.
+2. **보이는 페이지가 0개면 Skia 프레임 전체가 skip 된다** — `skiaFramePipeline.ts:295` (`treeBoundsMap.size === 0` → null) → `SkiaCanvas` 가 `clearFrame()` 후 early return 하므로 오버레이 패스가 아예 돌지 않는다. **DOM 경로에서는 이 문제 자체가 소멸**한다 (Skia 프레임과 무관하게 그려짐) — `clearFrameWithChrome()` 도 함께 되돌린다.
 
-`__composition_PERF__` 의 `render.frame` mean 실측 (동일 카메라, 4초 × 2 왕복):
+토글·단축키·설정 스위치는 표면과 무관하므로 **그대로 유지**한다.
+
+#### DOM 전환 근거 — 실측 (사용자 판정 2026-08-13)
+
+`__composition_PERF__` 의 `render.frame` mean (동일 카메라, 4초 × 2 왕복):
 
 | 단계                                | idle mean  | 증가분      | 예산 대비 |
 | ----------------------------------- | ---------- | ----------- | --------- |
@@ -90,22 +93,55 @@ breakpoint 별로 두면 그 상태가 구조적으로 성립하지 않고, `pag
 | + 틱 Path 배칭                      | 2.22ms     | +1.82ms     | 10.9%     |
 | + TextBlob 캐시                     | 2.05ms     | +1.65ms     | 9.9%      |
 | + `Path.MakeFromCmds` (WASM 왕복 1) | 1.69ms     | +1.29ms     | 7.7%      |
-| + Picture 캐시 (현재)               | **1.21ms** | **+0.81ms** | **4.9%**  |
+| + Picture 캐시 (최종)               | **1.21ms** | **+0.81ms** | **4.9%**  |
 
-팬 중은 +1.20ms (7.2%). **HC1(a) 기준 0.167ms(1%) 를 아직 4.9배 초과**한다.
+팬 중은 +1.20ms (7.2%). 최적화 4단계는 모두 **구성 비용**(JS 배열 생성 / WASM 왕복 / blob 생성 / display list 기록)을 걷어낸 것이고, 남은 0.81ms 는 **래스터화**다 — Picture 는 display list 만 캐시하므로 틱 ~350 세그먼트 + 라벨 ~58 글리프가 매 프레임 다시 그려진다. Skia 안에서 1% 로 가려면 오프스크린 Surface → Image blit 이 필요하고, 픽셀 정렬(어긋나면 눈금·글자가 뿌옇게 보임)과 surface 수명 관리(리사이즈/DPR/컨텍스트 손실)가 새 표면으로 붙는다.
 
-- 남은 비용은 **래스터화**다 — Picture 는 display list 만 캐시하므로 프레임마다 틱 ~350 세그먼트 + 라벨 ~58 글리프를 다시 그린다. 더 줄이려면 오프스크린 Surface 에 한 번 그려 **Image 로 blit** 해야 한다 (Phase 1 범위 밖 machinery).
-- **기본 상태 영향은 0** — `showRulers` 기본 `false` 라 켠 사용자만 부담한다.
-- 프레임 **cadence 는 불변** — rAF 간격 p50 20.0ms / p95 21.8ms(off) vs 20.0 / 21.9(on), `violations50ms` 0건. 사용자-가시 FPS 저하 없음.
-- 판정 필요: (a) Image blit 캐시 추가 / (b) 보조 눈금·라벨 축소로 작업량 절감 / (c) HC1(a) 를 "기본 상태 증가분 0 + cadence 불변" 으로 재정의. **Phase 7 G5 이전에 사용자 결정 필요.**
+DOM 경로는 그 비용을 **0** 으로 만들고, 참조 구현이 이미 옆에서 돌고 있다.
 
-#### 원안 항목
+#### 참조 구현 — `DotBackground` (캔버스 **뒤**, 같은 기법)
 
-- `canvas/skia/rulerRenderer.ts` 신규 — 상단/좌측 눈금 스트립 (screen 좌표 고정), 틱·라벨은 `panOffset`/`zoom` 의 순수 함수. 라벨 typeface 는 `resolveOverlayTypeface` 재사용 (`selectionRenderer.ts` export).
-- `skiaOverlayBuilder.ts` 오버레이 패스 말미 배선 (씬 clip 밖 — 항상 최상단).
-- 토글: `canvasSettings.ts` slice 에 `showRulers` 필드 (**기본 `false` — C10**) + **`SettingsPanel.tsx` 에 on/off 스위치 노출 (사용자 지정 2026-08-13)** — 기존 `showGrid`/`snapToGrid`/`snapToObjects` 와 같은 섹션 (`setShowGrid` 어법 동형). 보조로 단축키 Shift+R (`keyboardShortcuts.ts` — 기존 바인딩 충돌 grep 선행, Phase 0 확인분: `alignRight` 가 `cmdShift+r` 이라 Shift 단독과 무충돌).
-- **성능 계약 (HC1)**: 별도 버전 카운터 없음 (**C11 확증** — 카메라가 프레임 스냅샷 키에 이미 포함), paint 는 `acquirePooledPaint` 풀 재사용, 틱 라벨 문자열은 눈금 간격 단위 캐시 (per-frame 할당 최소화).
-- 검증: live 토글 + 팬/줌 눈금 동기 + G5 측정 1차 (ruler on/off 프레임 시간 diff).
+`workspace/components/DotBackground.tsx` + `workspace/Workspace.css:64-99`:
+
+```css
+.dot-background {
+  position: absolute;
+  inset: calc(-1 * var(--dot-inset, 96px));
+  pointer-events: none;
+  background-image: radial-gradient(circle, var(--dot-color) var(--dot-size), transparent …);
+  background-size: var(--dot-gap) var(--dot-gap);          /* 반복 패턴 */
+  transform: translate3d(var(--dot-tx), var(--dot-ty), 0); /* 위상만 이동 */
+}
+```
+
+```ts
+gap: DOT_BACKGROUND_BASE_GAP * zoom,
+tx: positiveModulo(panOffset.x + DOT_BACKGROUND_INSET, gap),  // 팬 → 위상
+…
+subscribeViewportPresentation(apply);   // Skia 카메라와 동일 채널
+```
+
+승계할 것 4가지:
+
+| 항목             | DotBackground                                              | RulerOverlay 적용                                          |
+| ---------------- | ---------------------------------------------------------- | ---------------------------------------------------------- |
+| 반복 패턴 + 위상 | `background-size` + `positiveModulo(pan, gap)`             | 보조/주 눈금 2겹 `repeating-linear-gradient`, 각각 위상    |
+| 카메라 소스      | `subscribeViewportPresentation` (Skia 와 동일 — HC6)       | 동일 채널 재사용. 별도 카메라 사본 금지                   |
+| 컴포지터 규율    | 팬 중에만 `will-change`, 200ms idle 후 해제 (ADR-047)      | 동일                                                       |
+| 순수 함수 + 유닛 | `calculateDotBackgroundMetrics` + `DotBackground.test.ts`  | `calculateRulerMetrics` 동형 (gap/tx/ty/라벨 시작값)      |
+
+**도트 배경에 없는 것 하나 — 라벨.** 값이 팬에 따라 변하므로 `background-position` 트릭이 통하지 않는다. 절대 배치 `<span>` 풀(개수는 뷰포트/간격으로 고정)을 만들어 같은 `apply()` 콜백에서 `textContent` + `transform` 만 갱신한다 — DOM 생성·파괴 없음.
+
+#### 작업 항목 (재구현)
+
+1. **되돌림**: `skia/rulerRenderer.ts`, `skia/rulerRenderer.test.ts`, `SkiaRenderer.clearFrameWithChrome`, `skiaFramePlan`/`skiaOverlayBuilder`/`SkiaCanvas` 의 ruler 배선. **유지**: `canvasSettings.showRulers`+setter, `SettingsPanel` 스위치, `keyboardShortcuts.toggleRulers`+핸들러, `canvasViewportInset.ts`.
+2. **`workspace/components/RulerOverlay.tsx` 신규** — `DotBackground` 어법. 스트립 2개(상단 가로 / 좌측 세로) + 코너. `pointer-events: none` 기본, 스트립만 `auto` (Phase 5 드래그 진입점).
+3. **CSS** — `Workspace.css` 인접에 `repeating-linear-gradient` 2겹 + `--ruler-*` 커스텀 프로퍼티. 색은 기존 Skia 상수(slate-500 계열)를 시맨틱 토큰으로 대체 (`--fg-muted` / `--border` — css-tokens.md 준수. DOM 이므로 테마 자동 대응).
+4. **`calculateRulerMetrics` 순수 함수 + 유닛** — 눈금 간격 결정(1-2-5×10^n, `LABEL_MIN_SPACING_PX`/`MINOR_MIN_SPACING_PX`)은 1차 구현의 `resolveTickPlan`/`niceInterval` 과 그 9개 테스트를 **그대로 이관**한다 (렌더 표면과 무관한 순수 로직).
+5. **좌측 인셋** — `canvasViewportInset` 값을 스트립의 CSS `left` 로 (Skia 좌표 역산 불요).
+6. **마운트** — `BuilderCanvas` 의 `<DotBackground />` 인접, 단 캔버스 **뒤가 아니라 앞** (z-index).
+
+- 검증: live 토글(설정 스위치 + Shift+R) / 팬·줌 눈금 동기 (Skia 콘텐츠와 눈금 정합 스크린샷 대조) / 좌측 패널 개폐 인셋 추종 / **G5 (a) ruler ON·OFF 로 `render.frame` 불변** + (a′) 팬 중 리페인트 0 (DevTools Rendering → Paint flashing).
 
 ### Phase 2 — 가이드 document 필드 + persist/hydrate (LOW)
 
@@ -143,12 +179,12 @@ breakpoint 별로 두면 그 상태가 구조적으로 성립하지 않고, `pag
 
 ### Phase 5 — 인터랙션 (HIGH — R1)
 
-- 신규 훅 `useGuideInteraction` (또는 BuilderCanvas capture 체인 내 분기) — 단일 판정 함수 `resolveGuideHit(point, guides, thresholdScenePx)` 순수 함수로 분리 (테스트 우선).
-- 동작: ruler 스트립에서 드래그 시작 → 가이드 생성 / 기존 가이드 ±4 screen px 히트 → 이동 / ruler 로 되돌리면 삭제 / hover 시 resize 커서.
+- **생성은 DOM 에서 시작한다** — ruler 스트립(`RulerOverlay`)에 `pointerdown` → `setPointerCapture` 로 캔버스 위까지 이어 받는다. 스트립이 캔버스 **위** DOM 이라 우선순위가 **자동**이다: 종전 설계가 요구하던 "ruler 영역은 씬 히트보다 항상 우선" 수동 가드가 **불요**해진다 (R1 노출면 축소 — ADR 축 2 부수 이득).
+- **씬 안 조작만 캔버스 히트** — 기존 가이드 이동/삭제. 단일 판정 함수 `resolveGuideHit(point, guides, thresholdScenePx)` 순수 함수로 분리 (테스트 우선), 기존 `resolveSelectionDragIntent`/페이지 타이틀 경로 진입 **전에** 판정하고 미스 시 기존 체인 무변경 통과 (±4 screen px 한정).
 - **진입 게이트 (C10)**: `showRulers === false` 면 히트 판정 자체를 **수행하지 않는다** — 기존 pointer 체인 무변경 통과. 가이드는 그려지되 조작 불가.
+- 삭제: ruler 스트립으로 되돌리면 삭제 (DOM 영역 판정 — 캔버스 히트 불요). hover 시 resize 커서.
 - 드래그 중 transient 채널 (C6 전례 동형 — `guidePresentation` 신설) — canonical write 는 finish 1회.
-- **우선순위 규칙 (R1 핵심)**: ruler 영역은 뷰포트 chrome 이라 씬 히트보다 항상 우선. 씬 안의 기존 가이드 히트는 요소 히트보다 우선하되 임계 ±4px 한정 — 기존 `resolveSelectionDragIntent`/페이지 타이틀 경로 진입 **전에** 판정하고, 미스 시 기존 체인 무변경 통과.
-- 검증: 기존 인터랙션 유닛 전수 GREEN (G2) + live 생성/이동/삭제.
+- 검증: 기존 인터랙션 유닛 전수 GREEN (G2) + live 생성/이동/삭제 + **DOM↔캔버스 경계 통과** (스트립에서 시작한 드래그가 캔버스 위에서 계속되는지).
 
 ### Phase 6 — 스냅 편입 (MED — R2)
 
@@ -165,11 +201,11 @@ breakpoint 별로 두면 그 상태가 구조적으로 성립하지 않고, `pag
 
 | Gate | 절차                                                                                                                                                                                          |
 | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| G1   | live: Shift+R 토글 → ruler 드래그 생성 → 가이드 이동 → ruler 복귀 삭제 → 각 조작 Cmd+Z/Cmd+Shift+Z 왕복 → 새로고침 배치 유지                                                                  |
+| G1   | live: 설정 스위치·Shift+R 토글 → ruler 스트립 드래그 생성 → 가이드 이동 → ruler 복귀 삭제 → 각 조작 Cmd+Z/Cmd+Shift+Z 왕복 → 새로고침 배치 유지                                              |
 | G2   | **ruler OFF 이면 가이드 유무와 무관하게** 기존 선택/드래그/더블클릭/페이지 타이틀 유닛 전수 GREEN + live 스모크 (경로 무변경 — C10 진입 게이트로 강화). ruler ON + 가이드 0 문서도 동일 단언  |
 | G3   | 요소·페이지 드래그가 가이드 라인에 흡착 (live) + 기존 rect 스냅 유닛 GREEN + spacing 판정에 가이드 미참여 유닛                                                                                |
 | G4   | 겹친 페이지에서 아래 페이지 가이드가 위 페이지 body 위 미표시 (live) + 가이드가 페이지 rect 밖 미유출 + breakpoint 전환 시 타 breakpoint 가이드 미표시 (C9)                                   |
-| G5   | **성능 (HC1)**: ruler on/off + 가이드 20개 문서의 오버레이 패스 증가분 측정 — 프레임 예산(16.7ms) 1% 이하. 가이드 드래그 100 move 재현에서 canonical write/히스토리/persist 각 0 (finish 1회) |
+| G5   | **성능 (HC1)**: (a) `__composition_PERF__.snapshotAll()` 의 `render.frame` 이 ruler ON/OFF 로 **불변** (ruler=DOM 이므로 Skia 증가분 0) + 가이드 20개 문서의 Skia 오버레이 증가분 1% 이하. (a′) 팬 중 ruler 레이어 리페인트 0 (DevTools Rendering → Paint flashing) + `will-change` 가 idle 에서 해제되는지. (c) 가이드 드래그 100 move 재현에서 canonical write/히스토리/persist 각 0 (finish 1회) |
 | G6   | type-check + 신규 유닛·정적 가드 PASS + CHANGELOG (Implemented 승격 시)                                                                                                                       |
 
 ## §5. BC 수식화
