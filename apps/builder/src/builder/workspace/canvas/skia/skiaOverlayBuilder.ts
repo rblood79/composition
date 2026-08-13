@@ -89,6 +89,8 @@ import {
 import { getSnapGuidePresentationSnapshot } from "../interaction/snapGuidePresentation";
 import { getMeasureGuidePresentationSnapshot } from "../interaction/measureGuidePresentation";
 import { renderMeasureGuides, renderSnapGuides } from "./snapGuideRenderer";
+import { renderRulers } from "./rulerRenderer";
+import type { CanvasViewportInset } from "./canvasViewportInset";
 
 // ============================================
 // Workflow Overlay Data
@@ -214,6 +216,10 @@ export interface OverlayBuildInput {
   // Minimap
   minimapVisible: boolean;
   minimapConfig: MinimapConfig;
+  /** 눈금자 표시 (ADR-181) — 뷰포트 chrome, 씬 clip 밖 최상단 */
+  showRulers: boolean;
+  /** 캔버스 가시 영역 좌상단 오프셋 (ADR-181) */
+  viewportInset: CanvasViewportInset;
   skiaCanvasWidth: number;
   skiaCanvasHeight: number;
   dpr: number;
@@ -328,6 +334,8 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
     pageTitleBoundsMap,
     pagePositionSnapshot,
     minimapVisible,
+    showRulers,
+    viewportInset,
     skiaCanvasWidth,
     skiaCanvasHeight,
     dpr,
@@ -792,6 +800,26 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
           { zoom: cameraZoom, panX: cameraX, panY: cameraY },
           { width: mmScreenW, height: mmScreenH },
           cameraZoom,
+        );
+      }
+
+      // ── Rulers (ADR-181 — 뷰포트 chrome) ──
+      // 화면 고정이라 최상단. 카메라의 순수 함수라 별도 invalidation 채널이
+      // 없고(C11), 토글 변경만 SkiaCanvas 가 overlayVersion 으로 반영한다.
+      if (showRulers) {
+        renderRulers(
+          ck,
+          canvas,
+          {
+            cameraX,
+            cameraY,
+            zoom: cameraZoom,
+            screenWidth: skiaCanvasWidth / dpr,
+            screenHeight: skiaCanvasHeight / dpr,
+            insetLeft: viewportInset.left,
+            insetTop: viewportInset.top,
+          },
+          fontMgr,
         );
       }
     },

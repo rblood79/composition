@@ -14,6 +14,7 @@ import {
   Grid3x3,
   Magnet,
   Ruler,
+  RulerDimensionLine,
   LayoutGrid,
   ZoomIn,
   Moon,
@@ -44,6 +45,9 @@ function SettingsContent() {
 
   const snapToObjects = useStore((state) => state.snapToObjects);
   const setSnapToObjects = useStore((state) => state.setSnapToObjects);
+
+  const showRulers = useStore((state) => state.showRulers);
+  const setShowRulers = useStore((state) => state.setShowRulers);
 
   const gridSize = useStore((state) => state.gridSize);
   const setGridSize = useStore((state) => state.setGridSize);
@@ -123,6 +127,15 @@ function SettingsContent() {
       <div className="panel-settings">
         {/* Grid & Guides Section */}
         <PropertySection title="Grid & Guides">
+          {/* ADR-181 — 눈금자는 뷰포트 chrome (문서 데이터 아님).
+              가이드 표시는 이 토글과 독립, 조작만 ON 을 요구한다 (C10). */}
+          <PropertySwitch
+            label="Show Rulers"
+            isSelected={showRulers}
+            onChange={setShowRulers}
+            icon={RulerDimensionLine}
+          />
+
           <PropertySwitch
             label="Show Grid"
             isSelected={showGrid}

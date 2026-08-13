@@ -45,6 +45,15 @@ export interface SettingsState {
    */
   snapToObjects: boolean;
 
+  /**
+   * 눈금자(Ruler) 표시 여부 (기본값: false — 시각 chrome 계열 어법).
+   * ADR-181: 상단/좌측 눈금 스트립. 뷰포트 chrome 이라 문서 데이터 아님.
+   * 수동 가이드의 **표시**는 이 토글과 독립이고, **조작**(생성/이동/삭제)만
+   * ruler ON 을 요구한다 (breakdown C10 — ruler OFF 면 가이드 히트 판정이
+   * pointer 체인에 진입하지 않아 기존 경로가 무변경으로 남는다).
+   */
+  showRulers: boolean;
+
   /** Grid 크기 (기본값: 8px) */
   gridSize: 8 | 16 | 24;
 
@@ -59,6 +68,9 @@ export interface SettingsState {
 
   /** 객체 스냅 토글 (ADR-179) */
   setSnapToObjects: (snap: boolean) => void;
+
+  /** 눈금자 표시 토글 (ADR-181) */
+  setShowRulers: (show: boolean) => void;
 
   /** Grid 크기 설정 */
   setGridSize: (size: 8 | 16 | 24) => void;
@@ -137,6 +149,7 @@ export const createSettingsSlice: StateCreator<SettingsState> = (set) => ({
   showGrid: false,
   snapToGrid: false,
   snapToObjects: true,
+  showRulers: false,
   showWorkflowOverlay: false,
   showWorkflowNavigation: true,
   showWorkflowEvents: true,
@@ -173,6 +186,13 @@ export const createSettingsSlice: StateCreator<SettingsState> = (set) => ({
    */
   setSnapToObjects: (snap: boolean) => {
     set({ snapToObjects: snap });
+  },
+
+  /**
+   * 눈금자 표시 토글 (ADR-181)
+   */
+  setShowRulers: (show: boolean) => {
+    set({ showRulers: show });
   },
 
   /**

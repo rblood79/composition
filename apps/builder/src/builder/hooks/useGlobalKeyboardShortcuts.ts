@@ -152,6 +152,12 @@ export function useGlobalKeyboardShortcuts() {
     toggleBottomPanel("monitor");
   }, [toggleBottomPanel]);
 
+  /** ADR-181 — 눈금자 토글 (설정 패널 스위치와 같은 상태) */
+  const handleToggleRulers = useCallback(() => {
+    const { showRulers, setShowRulers } = useStore.getState();
+    setShowRulers(!showRulers);
+  }, []);
+
   // ----------------------------------------
   // Copy/Paste/Delete Handlers (Phase 6)
   // ----------------------------------------
@@ -497,6 +503,7 @@ export function useGlobalKeyboardShortcuts() {
       zoom100: handleZoom100,
       zoom200: handleZoom200,
       toggleMonitor: handleToggleMonitor,
+      toggleRulers: handleToggleRulers,
 
       // Canvas (Phase 6: 스코프 기반)
       copy: getScopedHandler(handleCanvasCopy, handleEventsCopy),
@@ -525,6 +532,7 @@ export function useGlobalKeyboardShortcuts() {
       handleZoom100,
       handleZoom200,
       handleToggleMonitor,
+      handleToggleRulers,
       // Phase 6
       getScopedHandler,
       handleCanvasCopy,
@@ -565,6 +573,7 @@ export function useGlobalKeyboardShortcuts() {
       "zoom200",
       // Panels
       "toggleMonitor",
+      "toggleRulers",
       // Canvas (Phase 6)
       "copy",
       "paste",

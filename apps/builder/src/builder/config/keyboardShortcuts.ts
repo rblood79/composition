@@ -205,6 +205,20 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinitions = {
     i18n: { ko: "모니터 패널 토글" },
   },
 
+  /**
+   * ADR-181 — 눈금자 토글. 노출 정본은 설정 패널 스위치이고 본 단축키는 보조다.
+   * Figma 관례(Shift+R) 승계. `alignRight` 가 cmdShift+r 이라 무충돌.
+   */
+  toggleRulers: {
+    key: "r",
+    modifier: "shift",
+    category: "panels",
+    scope: "global",
+    priority: SHORTCUT_PRIORITY.PANELS,
+    description: "Toggle Rulers",
+    i18n: { ko: "눈금자 토글" },
+  },
+
   openSettings: {
     key: ",",
     modifier: "cmd",

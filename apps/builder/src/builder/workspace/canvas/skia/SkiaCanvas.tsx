@@ -39,6 +39,11 @@ import { tickAnimations, getInterpolatedOffsets } from "./dragAnimator";
 import { setDragSiblingOffsets } from "./nodeRendererTree";
 import { buildSkiaFrameContent } from "./skiaFramePipeline";
 import { invalidateCommandStreamCache } from "./renderCommands";
+import {
+  measureCanvasViewportInset,
+  observeCanvasViewportInset,
+} from "./canvasViewportInset";
+import { renderRulers } from "./rulerRenderer";
 import { type PageFrame } from "./workflowRenderer";
 import { type CachedEdgeGeometry } from "./workflowHitTest";
 import {
@@ -144,6 +149,9 @@ export function SkiaCanvas({
   const selectedElementId = useStore((state) => state.selectedElementId);
   const selectedElementIds = useStore((state) => state.selectedElementIds);
   const editingContextId = useStore((state) => state.editingContextId);
+  // ADR-181: 눈금자는 오버레이 축 chrome — overlay packet 과 같은 이유로
+  // SkiaCanvas 가 직접 구독한다 (BuilderCanvas 경유 불요).
+  const showRulers = useStore((state) => state.showRulers);
   const aiFlashAnimations = useAIVisualFeedbackStore(
     (state) => state.flashAnimations,
   );
@@ -216,6 +224,8 @@ export function SkiaCanvas({
   const pagePositionPresentationVersionRef = useRef(
     getPagePositionPresentationSnapshot().version,
   );
+  const showRulersRef = useRef(showRulers);
+  const viewportInsetRef = useRef(measureCanvasViewportInset());
 
   // Workflow/hover 캐시
   const invalidationPacketRef = useRef(invalidationPacket);
@@ -291,6 +301,23 @@ export function SkiaCanvas({
   useEffect(() => {
     invalidationPacketRef.current = invalidationPacket;
   }, [invalidationPacket]);
+
+  // ADR-181: 눈금자 토글은 카메라·씬 어느 쪽도 바꾸지 않으므로 프레임 스냅샷
+  // 키에 잡히지 않는다 — 오버레이만 다시 그리도록 overlayVersion 을 올린다
+  // (content surface 는 무관하므로 invalidateContent() 는 부르지 않는다).
+  useEffect(() => {
+    showRulersRef.current = showRulers;
+    overlayVersionRef.current++;
+  }, [showRulers]);
+
+  // 좌측 패널 개폐로 캔버스 가시 영역의 좌단이 움직인다 — 눈금자 스트립은
+  // 캔버스 좌단이 아니라 가시 영역 좌단에 붙어야 한다 (ADR-181).
+  useEffect(() => {
+    return observeCanvasViewportInset((inset) => {
+      viewportInsetRef.current = inset;
+      overlayVersionRef.current++;
+    });
+  }, []);
 
   // Page drag는 canonical pagePositions를 pointerup에서만 갱신한다. 따라서
   // presentation snapshot 변경은 content surface cache를 직접 무효화해야 다음
@@ -709,7 +736,28 @@ export function SkiaCanvas({
       );
 
       if (!contentResult) {
-        renderer.clearFrame();
+        // 보이는 페이지가 0개여도 눈금자는 카메라의 함수라 남아야 한다 (ADR-181).
+        // 씬을 전혀 읽지 않으므로 이 경로에서 직접 그려도 계약이 깨지지 않는다.
+        if (showRulersRef.current) {
+          renderer.clearFrameWithChrome(cameraState, (chromeCanvas) => {
+            renderRulers(
+              ck,
+              chromeCanvas,
+              {
+                cameraX,
+                cameraY,
+                zoom: cameraZoom,
+                screenWidth: skiaCanvas.width / dpr,
+                screenHeight: skiaCanvas.height / dpr,
+                insetLeft: viewportInsetRef.current.left,
+                insetTop: viewportInsetRef.current.top,
+              },
+              fontMgr,
+            );
+          });
+        } else {
+          renderer.clearFrame();
+        }
         renderer.invalidateContent();
         return;
       }
@@ -747,6 +795,8 @@ export function SkiaCanvas({
           dropIndicatorState: dropIndicator,
           minimapVisible: minimapVisibleRef.current,
           minimapConfig: minimapConfigRef.current,
+          showRulers: showRulersRef.current,
+          viewportInset: viewportInsetRef.current,
           skiaCanvasWidth: skiaCanvas.width,
           skiaCanvasHeight: skiaCanvas.height,
           dpr,

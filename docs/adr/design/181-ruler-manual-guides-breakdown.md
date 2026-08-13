@@ -71,7 +71,35 @@ breakpoint 별로 두면 그 상태가 구조적으로 성립하지 않고, `pag
 - ✅ canonical 파서 additive 허용은 ADR-177 R2 확정분 승계 (재검증 불요).
 - 산출: 본 문서 §2 갱신 + ADR 본문 진행 로그 1줄.
 
-### Phase 1 — Ruler 렌더 + 토글 (LOW)
+### Phase 1 — Ruler 렌더 + 토글 (LOW) — **Implemented 2026-08-13 (잔존 1건)**
+
+착수 후 실측으로 드러난 것 3건 (초안에 없던 항목):
+
+1. **캔버스는 full-bleed 라 좌측 패널이 세로 스트립을 덮는다** — `main.workspace` 가 `position: fixed; x=0` 이고 `aside.sidebar`(접힘 48px / 패널 열림 281px)가 그 위에 겹친다. 스트립을 캔버스 좌단에 붙이면 세로 자가 **통째로 가려진다**. 가시 영역 오프셋을 `canvasViewportInset.ts` 한 곳에서 관측(ResizeObserver)해 `insetLeft` 로 넘긴다.
+2. **보이는 페이지가 0개면 프레임 전체가 skip 된다** — `skiaFramePipeline.ts:295` (`treeBoundsMap.size === 0` → null) → `SkiaCanvas` 가 `clearFrame()` 후 early return 하므로 오버레이 패스가 아예 돌지 않는다. 눈금자는 씬이 아니라 카메라의 함수라 그 상태에서도 있어야 하므로 `SkiaRenderer.clearFrameWithChrome()` (additive — 기존 렌더 경로 무변경) 로 chrome 한 겹만 얹는다.
+3. **HC1(a) 미달 — 아래 잔존**.
+
+#### Phase 1 잔존 — HC1(a) 프레임 예산 1% 미달 (사용자 판정 대기)
+
+`__composition_PERF__` 의 `render.frame` mean 실측 (동일 카메라, 4초 × 2 왕복):
+
+| 단계                                | idle mean  | 증가분      | 예산 대비 |
+| ----------------------------------- | ---------- | ----------- | --------- |
+| ruler OFF (기준)                    | 0.40ms     | —           | —         |
+| 초안 (drawLine/label 개별 호출)     | 2.87ms     | +2.47ms     | 14.8%     |
+| + 틱 Path 배칭                      | 2.22ms     | +1.82ms     | 10.9%     |
+| + TextBlob 캐시                     | 2.05ms     | +1.65ms     | 9.9%      |
+| + `Path.MakeFromCmds` (WASM 왕복 1) | 1.69ms     | +1.29ms     | 7.7%      |
+| + Picture 캐시 (현재)               | **1.21ms** | **+0.81ms** | **4.9%**  |
+
+팬 중은 +1.20ms (7.2%). **HC1(a) 기준 0.167ms(1%) 를 아직 4.9배 초과**한다.
+
+- 남은 비용은 **래스터화**다 — Picture 는 display list 만 캐시하므로 프레임마다 틱 ~350 세그먼트 + 라벨 ~58 글리프를 다시 그린다. 더 줄이려면 오프스크린 Surface 에 한 번 그려 **Image 로 blit** 해야 한다 (Phase 1 범위 밖 machinery).
+- **기본 상태 영향은 0** — `showRulers` 기본 `false` 라 켠 사용자만 부담한다.
+- 프레임 **cadence 는 불변** — rAF 간격 p50 20.0ms / p95 21.8ms(off) vs 20.0 / 21.9(on), `violations50ms` 0건. 사용자-가시 FPS 저하 없음.
+- 판정 필요: (a) Image blit 캐시 추가 / (b) 보조 눈금·라벨 축소로 작업량 절감 / (c) HC1(a) 를 "기본 상태 증가분 0 + cadence 불변" 으로 재정의. **Phase 7 G5 이전에 사용자 결정 필요.**
+
+#### 원안 항목
 
 - `canvas/skia/rulerRenderer.ts` 신규 — 상단/좌측 눈금 스트립 (screen 좌표 고정), 틱·라벨은 `panOffset`/`zoom` 의 순수 함수. 라벨 typeface 는 `resolveOverlayTypeface` 재사용 (`selectionRenderer.ts` export).
 - `skiaOverlayBuilder.ts` 오버레이 패스 말미 배선 (씬 clip 밖 — 항상 최상단).
