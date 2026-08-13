@@ -28,7 +28,7 @@ Accepted — 2026-08-13 (리뷰 round 1 승인 — 이슈 0건, `docs/adr/review
 3. **undo 일원화** — 기존 히스토리 파이프라인 편입 (per-page 50 depth, jump-to-index). 별도 undo 스택 금지 (ADR-177 HC4 동형).
 4. **ADR-179 스냅 계약 보존** — `SNAP_THRESHOLD_SCREEN_PX` 단일 임계, 축별 독립 최근접, 기존 rect 후보 판정 무변경 (기존 유닛 GREEN 유지).
 5. **기존 pointer 체인 회귀 0** — ruler OFF + 가이드 0 상태에서 선택/드래그/더블클릭/페이지 타이틀 경로 무변경.
-6. **카메라 단일 소스** — ruler DOM 레이어와 Skia 씬이 같은 카메라 채널(`viewportPresentation`)을 구독한다. 별도 카메라 상태 사본 금지 (팬 중 어긋남 차단).
+6. **카메라 단일 소스** — ruler DOM 레이어와 Skia 씬은 이미 **같은 출처**를 쓴다: `ViewportController.notifyUpdateListeners()` 가 한 동기 블록에서 `viewportState`(SkiaCanvas RAF 가 읽는 mutable ref — `SkiaCanvas.tsx:515-517`) 갱신과 `publishViewportPresentation(state)`(DOM 레이어 구독) 을 **둘 다** 수행한다 (`ViewportController.ts:298-306`). 별도 카메라 상태 사본 금지.
 
 ### Soft Constraints
 
@@ -82,18 +82,29 @@ Accepted — 2026-08-13 (리뷰 round 1 승인 — 이슈 0건, `docs/adr/review
   - 성능: **H** — **실측**: `render.frame` mean 0.40ms(off) → 2.87ms(초안) → 최적화 4단계 후 **1.21ms** (증가분 예산 4.9%). Picture 는 display list 만 캐시하므로 틱 ~350 세그먼트 + 라벨 ~58 글리프가 **매 프레임 재래스터** — HC1(a) 1% 를 같은 계열 최적화로는 도달 불가. 오프스크린 Image blit 로 가야 하나 픽셀 정렬·surface 수명 관리가 새로 붙는다.
   - 유지보수: M — 씬 없는 프레임(보이는 페이지 0개)에 별도 chrome 경로 필요 (`clearFrameWithChrome`)
   - 마이그레이션: L
-- 위험: 기술(L) / 성능(**H**) / 유지보수(M) / 마이그레이션(L)
 
 #### 대안 A-DOM: 캔버스 위 DOM 레이어 (채택)
 
 - 설명: `.canvas-container` 위 절대 배치 스트립 2개. 눈금선은 `repeating-linear-gradient` 반복 패턴 + 위상 이동(`pan mod gap`), 라벨은 절대 배치 span 풀. 카메라는 `subscribeViewportPresentation` 구독.
-- 근거: **같은 기법이 이 코드베이스에서 이미 동작 중** — `DotBackground.tsx` + `Workspace.css` 가 캔버스 **뒤**에서 도트 패턴을 `--dot-gap`/`--dot-tx` (=`positiveModulo(pan, gap)`) 로 이동시키며, 주석이 위상을 "Skia 의 `pan + world * zoom` 과 같도록" 보정한다고 명시한다. Skia 와의 팬 정합이 이미 확립·테스트(`DotBackground.test.ts`, `viewportPresentation.test.tsx`)되어 있다. Figma 는 캔버스 내부에 그리지만, composition 은 빌더 chrome 이 이미 DOM (ADR-163 패널 구조) 이고 캔버스 위 DOM 오버레이 전례도 있다 (`TextEditOverlay`).
+- 근거: **같은 기법이 이 코드베이스에서 이미 동작 중** ([ADR-902](completed/902-workspace-dot-background-layer.md) Implemented) — `DotBackground.tsx` + `Workspace.css` 가 캔버스 **뒤**에서 도트 패턴을 `--dot-gap`/`--dot-tx` (=`positiveModulo(pan, gap)`) 로 이동시키며, 주석이 위상을 "Skia 의 `pan + world * zoom` 과 같도록" 보정한다고 명시한다. Skia 와의 팬 정합이 이미 확립·테스트(`DotBackground.test.ts`, `viewportPresentation.test.tsx`)되어 있다. Figma 는 캔버스 내부에 그리지만, composition 은 빌더 chrome 이 이미 DOM (ADR-163 패널 구조) 이고 캔버스 위 DOM 오버레이 전례도 있다 (`TextEditOverlay`).
 - 위험:
   - 기술: L — 참조 구현 존재. 도트 배경에 없는 것은 **라벨(값이 팬에 따라 변함)** 하나 — span 풀 `textContent` 갱신
   - 성능: L — Skia 프레임 증가분 **0**. 팬은 컴포지터 변환 (리페인트 없음), `will-change` 는 팬 중에만 (ADR-047 규율 승계)
   - 유지보수: M — ruler(DOM) 와 가이드(Skia) 가 다른 층에 존재. 단 본 ADR 의 핵심 구분(뷰포트 chrome ↔ 페이지 귀속 데이터)과 같은 선이라 정합적
   - 마이그레이션: L — 1차 Skia 구현 되돌림 (토글·단축키·설정 스위치·인셋 모듈은 그대로 재사용)
 - 부수 이득 (정정 2026-08-13): pointer 가드가 **소멸하지는 않는다** — 캡처 리스너가 캔버스가 아니라 `.canvas-container` 에 붙어 있고(`BuilderCanvas.tsx:1155`, `capture: true`) hover 는 `window` 에 붙어 있어(`useElementHoverInteraction.ts:550`) DOM 층위가 조상 캡처를 막지 못한다. 달라지는 것은 **판정의 성격**이다: 기하 우선순위 경쟁(포인트를 zoom/pan/inset 으로 환산해 스트립 rect 판정 후 씬 히트와 경쟁 — §8.7/§8.8 실수 유형에 노출)에서 **소속 조기 반환**(`rulerRoot.contains(event.target)`, 좌표 무관)으로 축소된다. 같은 어법의 선례가 인접에 있다 (`handleCanvasContextMenu:791` 의 `target.closest(...)`).
+
+#### 선행 결정과의 관계 — [ADR-902](completed/902-workspace-dot-background-layer.md) 축 2 대안 V1 (기각) 재검토
+
+ADR-902 (Implemented 2026-04-25) 는 도트 배경을 두면서 **같은 질문**을 이미 다뤘고, "DOM 레이어를 캔버스 **위로** 얹기"(축 2 대안 V1, `:108-114`) 를 **기각**했다. 본 ADR 이 그 배치를 채택하므로 기각 사유가 전이되는지 먼저 판정한다.
+
+| ADR-902 V1 기각 사유 (`:184`, `:114`)                            | ADR-181 ruler 로 전이되는가                                                                                                                                                                                     |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "사용자 콘텐츠 위에 도트가 덧씌워지는 **semantic mismatch**"       | **아니오.** 도트는 뷰포트 전면을 덮는 **배경 텍스처**라 콘텐츠 위에 오면 의미가 뒤집힌다. 눈금자는 뷰포트 **가장자리 20px 스트립**이고 콘텐츠 위에 있는 것이 정의 그대로다 (Figma/Pen 동일). 덮는 면적·의미가 다르다. |
+| "테마별 `mix-blend-mode` 튜닝 부담"                                | **아니오.** V1 이 blend 를 요구한 건 전면 텍스처를 콘텐츠와 합성해야 했기 때문이다. 눈금자는 스트립 영역을 **불투명하게 점유**하므로 blend 불요 — 시맨틱 토큰(`--bg-raised`/`--border`/`--fg-muted`) 직접 사용.      |
+| HC#4 "**pointer-events 무간섭**" (`:26`)                           | **부분 전이 — 본 ADR 이 명시적으로 완화한다.** 도트는 이벤트를 절대 받지 않아야 하지만(그래서 `pointer-events: none`), 눈금자 스트립은 Phase 5 에서 드래그 진입점이라 `auto` 가 필요하다. 대신 컨테이너 이벤트 체인과의 충돌을 **소속 조기 반환 2곳**으로 국한한다 (아래 A-DOM 부수 이득 / Decision 5). 스트립 **밖**은 종전대로 `none`. |
+
+승계할 계약: z-index 스택은 ADR-902 `:41` 기준 — skia canvas = 2, DotBackground = 0/1 이므로 **RulerOverlay = 3**. `will-change` 상시 금지(ADR-047 → ADR-902 `:277` 재확인) 도 동일 적용.
 
 ### Risk Threshold Check
 
