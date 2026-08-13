@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-08-13
+Accepted — 2026-08-13 (리뷰 round 1 승인 — [reviews/180.md](reviews/180.md), 이슈 전부 종결) / Proposed — 2026-08-13
 
 ## Context
 
