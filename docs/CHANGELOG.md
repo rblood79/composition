@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [색상 피커 popover 공용화 — PropertyColor → ColorPickerPanel] - 2026-08-14
+
+### Features
+
+- **border/text 색상 피커를 배경(fill) 피커와 동일한 공용 패널로 통합** (사용자 지적 — 두 popover 의 디자인 비대칭):
+  - `PropertyColor` (Appearance borderColor / Typography color / ModifiedStyles 색상) 의 자체 구현 피커(ColorArea+Hue+맨 hex input, 미스타일 ~130줄)를 fill popover 가 쓰는 공용 `ColorPickerPanel` 소비로 교체
+  - 획득 능력: Alpha 슬라이더 + EyeDropper(스포이드) + HEX/RGBA/CSS 포맷 탭 + 빌더 디자인 스타일
+  - commit-skip 함정 가드가 수동 ref 에서 `resetKey` 설계 차단으로 격상 (외부 value 재동기화는 요소 전환 시에만). 저장 포맷은 불투명 색이면 종전 `#RRGGBB` 유지 (알파 사용 시에만 hex8)
+  - 위치: `apps/builder/src/builder/components/property/PropertyColor.tsx`
+
 ## [색상 피커 드래그 캔버스 실시간 반영 — PropertyColor preview 채널] - 2026-08-13
 
 ### Bug Fixes
