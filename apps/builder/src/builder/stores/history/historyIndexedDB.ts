@@ -21,6 +21,7 @@ import {
   migrateV1EntriesToV2,
   migrateV1EntryToV2,
 } from "./historyEntryMigration";
+import type { HistorySnapshot } from "./snapshots";
 
 // ============================================
 // Types
@@ -49,9 +50,12 @@ const DB_NAME = "composition-history";
 // v1 entry (legacy snapshot field) 를 v2 canonical event sequence 로 one-shot
 // 변환. in-memory fallback (`migrateV1EntriesToV2` from Phase 3) 은 유지하되
 // 본격 변환은 onupgradeneeded 시점에 영속화.
-const DB_VERSION = 2;
+// **ADR-180 Phase 1 — v2 → v3 upgrade**: `snapshots` store 신규 추가만
+// (기존 entries/meta 무변경 — G4 게이트).
+const DB_VERSION = 3;
 const STORE_ENTRIES = "history-entries";
 const STORE_META = "page-meta";
+const STORE_SNAPSHOTS = "snapshots";
 const MAX_AGE_DAYS = 90;
 
 // ============================================
@@ -127,6 +131,16 @@ export class HistoryIndexedDB {
         // 페이지 메타데이터 스토어
         if (!db.objectStoreNames.contains(STORE_META)) {
           db.createObjectStore(STORE_META, { keyPath: "pageId" });
+        }
+
+        // **ADR-180 Phase 1 — 스냅샷 스토어 (v3 신규)**
+        if (!db.objectStoreNames.contains(STORE_SNAPSHOTS)) {
+          const snapshotsStore = db.createObjectStore(STORE_SNAPSHOTS, {
+            keyPath: "id",
+          });
+          snapshotsStore.createIndex("projectId", "projectId", {
+            unique: false,
+          });
         }
 
         // **ADR-124 Phase 5 — v1 → v2 entry migration**.
@@ -603,6 +617,96 @@ export class HistoryIndexedDB {
     } catch (error) {
       console.error("❌ [HistoryIDB] getStats error:", error);
       return { totalEntries: 0, totalPages: 0, estimatedSize: 0 };
+    }
+  }
+
+  // ============================================
+  // Snapshot Operations (ADR-180 — SnapshotStorage 구현)
+  // ============================================
+
+  /**
+   * 스냅샷 저장 (신규 + rename 덮어쓰기 겸용)
+   */
+  async saveSnapshot(snapshot: HistorySnapshot): Promise<void> {
+    try {
+      const db = await this.getDB();
+
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_SNAPSHOTS], "readwrite");
+        const store = transaction.objectStore(STORE_SNAPSHOTS);
+        const request = store.put(snapshot);
+
+        request.onsuccess = () => resolve();
+        request.onerror = () => {
+          console.error(
+            "❌ [HistoryIDB] Failed to save snapshot:",
+            request.error,
+          );
+          reject(request.error);
+        };
+      });
+    } catch (error) {
+      console.error("❌ [HistoryIDB] saveSnapshot error:", error);
+      // 실패해도 메모리에는 유지되므로 throw하지 않음 (entry 관례 동일)
+    }
+  }
+
+  /**
+   * 프로젝트의 모든 스냅샷 조회 (최신순 정렬)
+   */
+  async getSnapshotsByProject(projectId: string): Promise<HistorySnapshot[]> {
+    try {
+      const db = await this.getDB();
+
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_SNAPSHOTS], "readonly");
+        const store = transaction.objectStore(STORE_SNAPSHOTS);
+        const index = store.index("projectId");
+        const request = index.getAll(projectId);
+
+        request.onsuccess = () => {
+          const records = request.result as HistorySnapshot[];
+          records.sort((a, b) => b.createdAt - a.createdAt);
+          resolve(records);
+        };
+
+        request.onerror = () => {
+          console.error(
+            "❌ [HistoryIDB] Failed to get snapshots:",
+            request.error,
+          );
+          reject(request.error);
+        };
+      });
+    } catch (error) {
+      console.error("❌ [HistoryIDB] getSnapshotsByProject error:", error);
+      return [];
+    }
+  }
+
+  /**
+   * 스냅샷 삭제
+   */
+  async deleteSnapshot(id: string): Promise<void> {
+    try {
+      const db = await this.getDB();
+
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_SNAPSHOTS], "readwrite");
+        const store = transaction.objectStore(STORE_SNAPSHOTS);
+        const request = store.delete(id);
+
+        request.onsuccess = () => resolve();
+        request.onerror = () => {
+          console.error(
+            "❌ [HistoryIDB] Failed to delete snapshot:",
+            request.error,
+          );
+          reject(request.error);
+        };
+      });
+    } catch (error) {
+      console.error("❌ [HistoryIDB] deleteSnapshot error:", error);
     }
   }
 

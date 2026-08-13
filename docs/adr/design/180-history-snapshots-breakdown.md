@@ -20,11 +20,11 @@
 
 - [x] **직렬화 재사용 지점**: persist 는 `db.documents.put(projectId, doc)` — JSON 직렬화 없이 IndexedDB structured clone 에 위임 (`pageLayoutActions.ts:14` 등 동명 로컬 헬퍼 관례). 스냅샷 `doc` 필드도 `CompositionDocument` 그대로 (별도 Serialized 타입 불요), 캡처 시 `structuredClone(doc)` 로 격리 (store 는 immutable update 관례지만 캡처본 독립성을 계약으로 보장)
 - [x] **문서 교체 → 재파생 경로**: 단일 진입점 **없음** — Phase 2 신설 확정. 조립 부품 실측: `setDocument` (canonicalDocumentStore.ts:249 — documentVersion 증가) → `canonicalDocumentToElements(doc)` (canonicalElementsView.ts) → `hydrateProjectSnapshot(elements)` (elements.ts:962 → `applyFullSnapshot` :829 — 전체 mirror 교체 + buildIndexes + layoutVersion+1) → `pagePositionsVersion` bump 는 별도 필요 (applyFullSnapshot 미포함) → persist (`db.documents.put`). **preview 재송신은 자동** — `useIframeMessenger` 의 `[activeCanonicalDocument]` effect (:1099-1106) 가 setDocument 를 감지해 `UPDATE_CANONICAL_DOCUMENT` 재송신, 별도 호출 불요. lazy loading 상태 (`loadedPages`/`pageElementsSnapshot`) 는 복원 후 재정합 필요 (Phase 2 처리 — 미갱신 시 레이어 패널 유령 항목 축)
-- [x] **historyManager 확장점**: 기존 `subscribe` (history.ts:733) 단일 채널 재사용 — 스냅샷 CRUD 도 같은 notify 로 통지 (패널이 이미 이 채널로 리렌더, 변경 빈도 낮아 채널 분리 이득 없음)
+- [x] **historyManager 확장점**: `snapshotManager` **자체 `subscribe` 채널** (HistoryManager.subscribe :733 과 대칭 패턴) — history.ts 와의 cross-wiring 은 모듈 순환을 만들므로 패널이 양쪽을 구독한다 (Phase 1 구현 확정 — Phase 0 초기 판정 '단일 채널 재사용' 을 정정)
 - [x] **HistoryEntry union 확장 영향면**: `historyEntryLabel.ts` / `historyEntryMigration.ts` / `historyEntryCanonicalEvents.static.test.ts` / `historyActions` 분기 4곳 (349/751/1146 + 1682 persist skip — 리뷰 round 1 실측) — 전수 확정
 - [x] **entry 제거 지점 전수** (R5 fallback 빈도 추정 근거): truncation slice (history.ts:449) / maxSize 초과 shift (:459) / `clearPageHistory` (:680) — system 상한은 rolling 5 (§1) 가 보장, 참조-추적 GC **불요 판정 확정**
 
-## §3 Phase 1 — 스냅샷 코어 (CRUD + 영속)
+## §3 Phase 1 — 스냅샷 코어 (CRUD + 영속) — Implemented 2026-08-13
 
 - `apps/builder/src/builder/stores/history/snapshots.ts` 신설:
 
