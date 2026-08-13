@@ -60,3 +60,4 @@
 {"sha":"4615211b5e555e64afefae6f7db82ff70a47ff20","date":"2026-08-12T12:38:41+09:00","promoted_adrs":["docs/adr/completed/177-page-position-document-data.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"d62a07101db2e8cee635cb4ac7189fe484b4bbc9","date":"2026-08-12T15:19:43+09:00","promoted_adrs":["docs/adr/completed/178-multi-select-move.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"6b3f9401a11539357ad021b626f964877a384da0","date":"2026-08-12T22:58:14+09:00","promoted_adrs":["docs/adr/completed/179-snap-alignment-guides.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
+{"sha":"db9cfe7c774e8e2ec88684f5ccab767cb95a7ad7","date":"2026-08-13T18:37:42+09:00","promoted_adrs":["docs/adr/completed/180-history-snapshots.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
