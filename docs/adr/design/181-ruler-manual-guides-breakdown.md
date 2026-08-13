@@ -1,7 +1,7 @@
 # ADR-181 Design Breakdown: 눈금자(Ruler) + 수동 가이드
 
 > 본문: [181-ruler-manual-guides.md](../181-ruler-manual-guides.md)
-> 상태: Proposed — 2026-08-13 (Phase 0 inventory freeze 전 — 계약 표는 착수 시 실측 고정)
+> 상태: Accepted — 2026-08-13 (리뷰 round 1 이슈 0건 승인. Phase 0 inventory freeze 전 — 계약 표는 착수 시 실측 고정)
 
 ## §1. 문제 정의 확인 (fork checkpoint — 신규 주제, fork 아님)
 
