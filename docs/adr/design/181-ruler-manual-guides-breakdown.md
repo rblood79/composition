@@ -40,7 +40,7 @@
 
 - `canvas/skia/rulerRenderer.ts` 신규 — 상단/좌측 눈금 스트립 (screen 좌표 고정), 틱·라벨은 `panOffset`/`zoom` 의 순수 함수. 라벨 typeface 는 `resolveOverlayTypeface` 재사용 (`selectionRenderer.ts` export).
 - `skiaOverlayBuilder.ts` 오버레이 패스 말미 배선 (씬 clip 밖 — 항상 최상단).
-- 토글: 빌더 UI 설정 store 1 필드 (`showRulers`, 기본값 C10 판정) + 단축키 Shift+R (`keyboardShortcuts.ts` — 기존 바인딩 충돌 grep 선행).
+- 토글: `canvasSettings.ts` slice 에 `showRulers` 필드 (기본값 C10 판정) + **`SettingsPanel.tsx` 에 on/off 스위치 노출 (사용자 지정 2026-08-13)** — 기존 `showGrid`/`snapToGrid`/`snapToObjects` 와 같은 섹션 (`setShowGrid` 어법 동형). 보조로 단축키 Shift+R (`keyboardShortcuts.ts` — 기존 바인딩 충돌 grep 선행).
 - **성능 계약 (HC1)**: 별도 버전 카운터 없음 (뷰포트 변경이 이미 프레임을 굴림), paint 는 `acquirePooledPaint` 풀 재사용, 틱 라벨 문자열은 눈금 간격 단위 캐시 (per-frame 할당 최소화).
 - 검증: live 토글 + 팬/줌 눈금 동기 + G5 측정 1차 (ruler on/off 프레임 시간 diff).
 

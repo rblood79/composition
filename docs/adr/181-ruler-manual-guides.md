@@ -74,7 +74,7 @@ Proposed — 2026-08-13
 
 **대안 A 채택 — ruler 는 뷰포트 chrome, 가이드는 페이지 귀속 문서 데이터.**
 
-1. Ruler: `rulerRenderer` 신규 + 오버레이 패스 배선. 문서 데이터 없음 — 토글(기본값·단축키 Shift+R)만 빌더 UI 설정. 별도 버전 카운터 없음 (뷰포트 변경이 이미 프레임을 굴림).
+1. Ruler: `rulerRenderer` 신규 + 오버레이 패스 배선. 문서 데이터 없음 — 토글은 `canvasSettings` slice 필드 + **설정 패널 on/off 스위치 노출** (기존 Grid/스냅 설정과 같은 곳 — 사용자 지정 2026-08-13) + 보조 단축키 Shift+R. 별도 버전 카운터 없음 (뷰포트 변경이 이미 프레임을 굴림).
 2. 가이드: `pageGuides` canonical additive root 필드 (페이지-로컬 px — 페이지 이동 자동 추종) + `page-guide` 히스토리 entry (ADR-177 early-branch 패턴) + finish-only commit.
 3. 스냅: `resolveSnappedPosition` 에 축별 라인 입력 추가 — **정렬선 판정에만** 참여 (등간격 이웃 아님), 소비처 2곳이 드래그 세션 시작 시 1회 주입.
 4. 렌더: 상시 표시 콘텐츠성 chrome — 페이지 rect 클립 + `withPageOcclusionClip` 경유 (canvas-rendering.md §8.5. 스냅 정렬선의 "조작 표식 미적용" 판정과 다름).
