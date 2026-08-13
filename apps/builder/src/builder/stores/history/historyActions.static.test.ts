@@ -87,9 +87,7 @@ describe("ADR-177: page-position entry 소비 분기 (element 노드 경로 미�
 
     // 진입점 분기 — undo/redo 는 early-return, goToIndex 는 continue,
     // syncDatabaseForEntries 는 skip. 최소 4곳.
-    const branches = [
-      ...source.matchAll(/entry\.type === "page-position"/g),
-    ];
+    const branches = [...source.matchAll(/entry\.type === "page-position"/g)];
     expect(branches.length).toBeGreaterThanOrEqual(4);
 
     // undo/redo early-branch 는 element 경로 진입 전 (historyManager.undo/redo
@@ -97,13 +95,64 @@ describe("ADR-177: page-position entry 소비 분기 (element 노드 경로 미�
     for (const acquire of ["historyManager.undo()", "historyManager.redo()"]) {
       const idx = source.indexOf(acquire);
       expect(idx).toBeGreaterThan(-1);
-      const windowAfter = source
-        .slice(idx)
-        .split("\n")
-        .slice(0, 30)
-        .join("\n");
+      const windowAfter = source.slice(idx).split("\n").slice(0, 30).join("\n");
       expect(windowAfter).toContain('entry.type === "page-position"');
       expect(windowAfter).toContain("applyPagePositionHistoryEntry");
     }
+  });
+});
+
+describe("ADR-180: snapshot-restore entry 소비 분기 (문서 전체 교체 계약)", () => {
+  it("undo/redo/goToIndex 3 진입점 + syncDatabaseForEntries 에 snapshot-restore 분기 존재", async () => {
+    const source = await readFile(
+      resolve(__dirname, "historyActions.ts"),
+      "utf-8",
+    );
+
+    expect(source).toContain("applySnapshotRestoreHistoryEntry");
+
+    // 진입점 분기 — undo/redo 는 early-return, goToIndex 는 store 재취득 후
+    // continue, syncDatabaseForEntries 는 skip. 최소 4곳.
+    const branches = [
+      ...source.matchAll(/entry\.type === "snapshot-restore"/g),
+    ];
+    expect(branches.length).toBeGreaterThanOrEqual(4);
+
+    // undo/redo early-branch 는 element 경로 진입 전 (page-position 분기 직후)
+    for (const acquire of ["historyManager.undo()", "historyManager.redo()"]) {
+      const idx = source.indexOf(acquire);
+      expect(idx).toBeGreaterThan(-1);
+      const windowAfter = source.slice(idx).split("\n").slice(0, 40).join("\n");
+      expect(windowAfter).toContain('entry.type === "snapshot-restore"');
+      expect(windowAfter).toContain("applySnapshotRestoreHistoryEntry");
+    }
+  });
+
+  it("snapshotRestore.ts — 복원 시퀀스 계약 (boot hydrate 동형 + allowShrink + 순환 차단)", async () => {
+    const source = await readFile(
+      resolve(__dirname, "snapshotRestore.ts"),
+      "utf-8",
+    );
+
+    // canonical 1차 → mirror 재파생 → 페이지 위치 → 페이지 재정합 조립 심볼
+    // (usePageManager boot hydrate 동형 — G2 근거)
+    expect(source).toContain(".setDocument(projectId, docCopy)");
+    expect(source).toContain("deriveProjectEditorPageModelFromDocument");
+    expect(source).toContain("hydrateProjectSnapshot");
+    expect(source).toContain("initializePagePositions");
+    expect(source).toContain("setPages(storePages)");
+    expect(source).toContain("activatePage");
+
+    // 복원 persist 는 의도된 문서 교체 — 급감 가드 명시 escape + 출처 기록
+    expect(source).toContain("allowShrink: true");
+    expect(source).toContain('reason: "snapshot-restore"');
+
+    // R4 — 타 페이지 히스토리 clear / entry 는 스냅샷 참조 id 만 (직렬화 본 금지)
+    expect(source).toContain("clearOtherPageHistories");
+    expect(source).toContain("beforeSnapshotId: before.id");
+
+    // 순환 차단 — useStore 직접 import 금지 (get 주입 계약, ADR-116 G6-2 축)
+    expect(source).not.toContain('from "../index"');
+    expect(source).not.toContain("import { useStore }");
   });
 });

@@ -6,6 +6,7 @@ import {
   ComponentElementProps,
 } from "../../../types/core/store.types";
 import { historyManager, type HistoryEntry } from "../history";
+import { applySnapshotRestoreHistoryEntry } from "./snapshotRestore";
 import { sanitizeElement } from "../../../adapters/canonical/legacyElementSanitizer";
 import { getElementById, createCompleteProps } from "../utils/elementHelpers";
 import {
@@ -349,6 +350,14 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
     // ADR-177: page-position entry 는 element 노드 경로 미진입 (early-branch)
     if (entry.type === "page-position") {
       applyPagePositionHistoryEntry(set, get, entry, "undo");
+      set({ historyOperationInProgress: false });
+      return;
+    }
+
+    // ADR-180: snapshot-restore entry 는 문서 전체 교체 (early-branch) —
+    // undo = beforeSnapshot 재적용 (persist 포함, snapshotRestore.ts)
+    if (entry.type === "snapshot-restore") {
+      await applySnapshotRestoreHistoryEntry(get, entry, "undo");
       set({ historyOperationInProgress: false });
       return;
     }
@@ -755,6 +764,14 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
       return;
     }
 
+    // ADR-180: snapshot-restore entry 는 문서 전체 교체 (early-branch) —
+    // redo = afterSnapshot 재적용 (persist 포함, snapshotRestore.ts)
+    if (entry.type === "snapshot-restore") {
+      await applySnapshotRestoreHistoryEntry(get, entry, "redo");
+      set({ historyOperationInProgress: false });
+      return;
+    }
+
     // 1. 메모리 상태 업데이트 (우선) - 안전한 데이터 복사
     const elementsToAdd: Element[] = [];
     let elementIdsToRemove: string[] = [];
@@ -1145,6 +1162,17 @@ export const createGoToHistoryIndexAction =
         // canonical full-sync 판정에서도 제외 (element 축 무변경).
         if (entry.type === "page-position") {
           applyPagePositionHistoryEntry(set, get, entry, direction);
+          continue;
+        }
+        // ADR-180: snapshot-restore entry 는 문서 전체 교체 — 적용 후 누적
+        // 기준(updatedElements)을 store 에서 재취득하고 계속 진행. canonical
+        // full-sync 판정 제외 (applySnapshotDocument 가 canonical 1차 수행).
+        if (entry.type === "snapshot-restore") {
+          await applySnapshotRestoreHistoryEntry(get, entry, direction);
+          const refreshed = get();
+          updatedElements = refreshed.elements;
+          updatedSelectedElementId = refreshed.selectedElementId;
+          updatedSelectedElementProps = refreshed.selectedElementProps;
           continue;
         }
         if (!entry.data.canonicalEvents?.length) {
@@ -1682,6 +1710,9 @@ async function syncDatabaseForEntries(
     // ADR-177: page-position entry 는 element DB 동기화 대상 아님 — persist 는
     // applyPagePositionHistoryEntry 가 자체 수행 (elementId=pageId 오인 방지).
     if (entry.type === "page-position") continue;
+    // ADR-180: snapshot-restore 도 동일 — persist 는 applySnapshotDocument 가
+    // allowShrink 명시로 자체 수행 (elementId=pageId 무해값).
+    if (entry.type === "snapshot-restore") continue;
     if (entry.data.canonicalEvents?.length) {
       const { upsertIds, deleteIds } = getCanonicalHistoryEventIds(
         entry.data.canonicalEvents,

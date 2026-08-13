@@ -66,7 +66,8 @@ export interface HistoryEntry {
     | "batch"
     | "group"
     | "ungroup"
-    | "page-position";
+    | "page-position"
+    | "snapshot-restore";
   /**
    * element 노드 id — `page-position` entry 는 첫 pageId 를 넣는다 (소비자
    * 미해석 무해값, ADR-177 breakdown §5 C5).
@@ -112,6 +113,17 @@ export interface HistoryEntry {
      * 진입 전 early-branch 로 처리한다 (`historyActions.ts`).
      */
     pagePositionEvent?: { entries: PagePositionHistoryEntryItem[] };
+    /**
+     * **ADR-180** — `type: "snapshot-restore"` 전용 payload. 직렬화 본 없이
+     * 스냅샷 참조 id 만 담는다 (undo = before / redo = after 재적용 —
+     * `snapshotRestore.ts` early-branch). `snapshotName` 은 라벨용 사본 —
+     * 스냅샷 삭제 후에도 라벨 유지 (R5).
+     */
+    snapshotRestoreEvent?: {
+      beforeSnapshotId: string;
+      afterSnapshotId: string;
+      snapshotName: string;
+    };
   };
   timestamp: number;
   /** Entry size tracking */
@@ -420,9 +432,16 @@ export class HistoryManager {
       return;
     }
 
-    // 회귀 감지 (DEV 전용): 모든 신규 entry 는 canonicalEvents 필수 —
+    // 회귀 감지 (DEV 전용): element 축 신규 entry 는 canonicalEvents 필수 —
     // 미부착 entry 는 undo 시 legacy full-replace fallback 을 유발한다.
-    if (import.meta.env?.DEV && !entry.data.canonicalEvents?.length) {
+    // page-position(ADR-177)/snapshot-restore(ADR-180) 는 비-element 축
+    // 전용 payload 라 대상 아님.
+    if (
+      import.meta.env?.DEV &&
+      entry.type !== "page-position" &&
+      entry.type !== "snapshot-restore" &&
+      !entry.data.canonicalEvents?.length
+    ) {
       console.warn(
         "[History] entry without canonicalEvents (legacy fallback 유발):",
         entry.type,
@@ -672,6 +691,21 @@ export class HistoryManager {
     if (!this.currentPageId) return [];
     const pageHistory = this.pageHistories.get(this.currentPageId);
     return pageHistory ? [...pageHistory.entries] : [];
+  }
+
+  /**
+   * 지정 페이지를 제외한 모든 페이지 히스토리 초기화 — ADR-180 복원 시퀀스
+   * 5단계 (R4: 문서 전체 교체가 타 페이지 delta 의 전제 상태를 무효화하므로
+   * stale delta 적용을 차단). 반환값은 clear 된 pageId 목록 (보고용).
+   */
+  clearOtherPageHistories(keepPageId: string): string[] {
+    const cleared: string[] = [];
+    for (const pageId of Array.from(this.pageHistories.keys())) {
+      if (pageId === keepPageId) continue;
+      cleared.push(pageId);
+      this.clearPageHistory(pageId);
+    }
+    return cleared;
   }
 
   /**

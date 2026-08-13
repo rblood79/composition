@@ -193,6 +193,30 @@ describe("getHistoryEntryLabel", () => {
     expect(getHistoryEntryLabel(multi, null)).toBe("페이지 이동 (2)");
   });
 
+  it("snapshot-restore entry: 스냅샷 이름 사본으로 라벨 (스냅샷 삭제와 무관)", () => {
+    const entry = makeEntry({
+      type: "snapshot-restore",
+      elementId: "page-1",
+      data: {
+        snapshotRestoreEvent: {
+          beforeSnapshotId: "snapshot_before",
+          afterSnapshotId: "snapshot_after",
+          snapshotName: "로그인 화면 v1",
+        },
+      },
+    } as unknown as Partial<HistoryEntry>);
+    expect(getHistoryEntryLabel(entry, null)).toBe(
+      "스냅샷 복원 — 로그인 화면 v1",
+    );
+
+    const withoutEvent = makeEntry({
+      type: "snapshot-restore",
+      elementId: "page-1",
+      data: {},
+    });
+    expect(getHistoryEntryLabel(withoutEvent, null)).toBe("스냅샷 복원");
+  });
+
   it("batch entry: canonicalEvents 의 고유 노드 수로 카운트", () => {
     const entry = makeEntry({
       type: "batch",

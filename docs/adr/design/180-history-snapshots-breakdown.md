@@ -44,7 +44,9 @@ interface HistorySnapshot {
 - `historyIndexedDB.ts`: `DB_VERSION 2 → 3`, `snapshots` store (`keyPath: "id"`, index `projectId`) — upgrade 분기는 기존 store 존재 검사 패턴 (historyIndexedDB.ts:114/128) 과 동일
 - 테스트: `snapshots.test.ts` — 생성/조회 정렬(최신순)/상한 차단/rename/삭제/system kind 상한 제외 + rolling 5 순환
 
-## §4 Phase 2 — 복원 + `snapshot-restore` entry
+## §4 Phase 2 — 복원 + `snapshot-restore` entry — Implemented 2026-08-13
+
+> **구현 확정 사항 (Phase 2 실측)**: ① 복원 persist 는 `documentPersistGuard` 급감 가드의 명시 escape (`allowShrink: true` + `reason: "snapshot-restore"`) — 과거 문서로의 복원은 node 수 급감이 **의도된** 문서 교체라 옵션 계약("대량 삭제가 의도된 흐름에서만 true") 의 정본 사례. ② `snapshotRestore.ts` 는 `useStore` 직접 import 금지 — `get` 주입 (index → elements → historyActions → snapshotRestore → index 순환 차단, 정적 가드로 잠금). ③ 적용 시퀀스는 `usePageManager` boot hydrate 동형 + 현재 페이지 재정합 (복원본에 없으면 첫 페이지 activate). ④ goToIndex 는 snapshot-restore 적용 후 누적 기준을 store 재취득으로 재정렬.
 
 - 복원 시퀀스 (state-management.md canonical 1차 순서 준수):
   1. 복원 직전 상태를 `kind: "system"` 스냅샷으로 자동 캡처 (`beforeSnapshotId`)

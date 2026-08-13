@@ -123,6 +123,12 @@ export function getHistoryEntryLabel(
       ).size;
       return count > 1 ? `페이지 이동 (${count})` : "페이지 이동";
     }
+    case "snapshot-restore": {
+      // ADR-180 — snapshotName 은 entry 에 담긴 사본이라 스냅샷 삭제 후에도
+      // 라벨 유지 (R5)
+      const name = entry.data.snapshotRestoreEvent?.snapshotName;
+      return name ? `스냅샷 복원 — ${name}` : "스냅샷 복원";
+    }
     default:
       return "변경";
   }

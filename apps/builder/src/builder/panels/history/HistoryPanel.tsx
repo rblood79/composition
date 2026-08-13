@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ArchiveRestore,
   Clock,
   File,
   Group,
@@ -45,6 +46,7 @@ const ENTRY_TYPE_ICONS: Record<HistoryEntry["type"], LucideIcon> = {
   group: Group,
   ungroup: Ungroup,
   "page-position": LayoutTemplate,
+  "snapshot-restore": ArchiveRestore,
 };
 
 function entryIcon(item: HistoryListItem): LucideIcon {
