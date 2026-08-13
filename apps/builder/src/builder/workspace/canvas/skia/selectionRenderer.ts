@@ -10,7 +10,7 @@
  * @see docs/RENDERING_ARCHITECTURE.md §5.11
  */
 
-import type { CanvasKit, Canvas, FontMgr } from "canvaskit-wasm";
+import type { CanvasKit, Canvas, FontMgr, FontStyle } from "canvaskit-wasm";
 import { SkiaDisposable } from "./disposable";
 import { acquireScopedPaint } from "./paints";
 import type { BoundingBox } from "../selection/types";
@@ -35,14 +35,11 @@ function setSemanticStrokeColor(
  * fontMgr 로드 시점/이름 표기 차이에 견고하도록 Variable → static → generic
  * 순으로 6단계 fallback 한다. bc499fc4 이후 fontMgr 는 "Pretendard Variable"
  * / "Inter Variable" 로 로드되므로 legacy 이름과 generic fallback 도 포함.
+ * (snapGuideRenderer 의 간격 수치 배지도 공유 — ADR-179 Phase 4)
  */
-function resolveOverlayTypeface(
+export function resolveOverlayTypeface(
   fontMgr: FontMgr,
-  fontStyle: {
-    weight: number;
-    width: number;
-    slant: number;
-  },
+  fontStyle: FontStyle,
 ): ReturnType<FontMgr["matchFamilyStyle"]> | null {
   return (
     fontMgr.matchFamilyStyle("Pretendard Variable", fontStyle) ??

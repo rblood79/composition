@@ -37,8 +37,23 @@ function notify(): void {
 
 function guidesSignature(guides: readonly SnapGuide[]): string {
   return guides
-    .map((g) => `${g.axis}:${g.position}:${g.start}:${g.end}`)
+    .map((g) =>
+      g.kind === "line"
+        ? `L:${g.axis}:${g.position}:${g.start}:${g.end}`
+        : `S:${g.axis}:${g.value}:${g.cross}:${g.segments
+            .map((s) => `${s.start}-${s.end}`)
+            .join(",")}`,
+    )
     .join("|");
+}
+
+function cloneGuide(guide: SnapGuide): SnapGuide {
+  return guide.kind === "line"
+    ? { ...guide }
+    : {
+        ...guide,
+        segments: [{ ...guide.segments[0] }, { ...guide.segments[1] }],
+      };
 }
 
 /** 동일 guides 재publish 는 no-op (version 불변 + notify 생략) */
@@ -47,7 +62,7 @@ export function publishSnapGuides(guides: readonly SnapGuide[]): boolean {
     return false;
   }
   snapshot = {
-    guides: guides.map((g) => ({ ...g })),
+    guides: guides.map(cloneGuide),
     version: snapshot.version + 1,
   };
   notify();

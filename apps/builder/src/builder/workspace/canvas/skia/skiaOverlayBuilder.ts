@@ -751,7 +751,8 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
       // 없이 렌더 시점 snapshot 을 읽는다 (snapGuidePresentation 순서 계약).
       const snapGuides = getSnapGuidePresentationSnapshot().guides;
       if (snapGuides.length > 0) {
-        renderSnapGuides(ck, canvas, snapGuides, cameraZoom);
+        // fontMgr 는 등간격 수치 배지용 (Phase 4) — 미로드면 선·틱만 그린다
+        renderSnapGuides(ck, canvas, snapGuides, cameraZoom, fontMgr);
       }
 
       // ── Minimap ──

@@ -6,9 +6,29 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { resolveSnappedPosition, type SnapCandidateRect } from "./snapGuides";
+import {
+  resolveSnappedPosition,
+  type SnapCandidateRect,
+  type SnapGuide,
+  type SnapLineGuide,
+  type SnapSpacingGuide,
+} from "./snapGuides";
 
 const SIZE = { width: 100, height: 200 };
+
+function asLine(guide: SnapGuide | undefined): SnapLineGuide {
+  if (guide?.kind !== "line") {
+    throw new Error(`line guide 기대 — 실제: ${guide?.kind}`);
+  }
+  return guide;
+}
+
+function asSpacing(guide: SnapGuide | undefined): SnapSpacingGuide {
+  if (guide?.kind !== "spacing") {
+    throw new Error(`spacing guide 기대 — 실제: ${guide?.kind}`);
+  }
+  return guide;
+}
 
 function candidate(
   id: string,
@@ -122,7 +142,7 @@ describe("resolveSnappedPosition", () => {
       [candidate("a", 100, 100)],
       8,
     );
-    const guide = result.guides[0];
+    const guide = asLine(result.guides[0]);
     expect(guide.axis).toBe("x");
     expect(guide.position).toBe(100);
     expect(guide.start).toBe(100);
@@ -136,7 +156,7 @@ describe("resolveSnappedPosition", () => {
       [candidate("a", 100, 100), candidate("b", 100, 900)],
       8,
     );
-    const guide = result.guides[0];
+    const guide = asLine(result.guides[0]);
     // a top=100 ~ 이동 700 ~ b bottom=1100
     expect(guide.start).toBe(100);
     expect(guide.end).toBe(1100);
@@ -166,5 +186,157 @@ describe("resolveSnappedPosition", () => {
     expect(atZoom1.snappedX).toBe(false);
     expect(atZoomHalf.snappedX).toBe(true);
     expect(atZoomHalf.position.x).toBe(100);
+  });
+});
+
+describe("등간격 스냅 (Phase 4)", () => {
+  it("sequence — 인접 쌍의 간격 리듬 연장 (A|B|moving)", () => {
+    // A x[0,100], B x[150,250] — gap 50. target = 250 + 50 = 300
+    // y=520 은 라인 스냅 밖 (거리 20), 직교 겹침은 성립 (180)
+    const result = resolveSnappedPosition(
+      { x: 305, y: 520 },
+      SIZE,
+      [candidate("a", 0, 500), candidate("b", 150, 500)],
+      8,
+    );
+    expect(result.position).toEqual({ x: 300, y: 520 });
+    expect(result.snappedX).toBe(true);
+    expect(result.snappedY).toBe(false);
+    expect(result.guides).toHaveLength(1);
+    const guide = asSpacing(result.guides[0]);
+    expect(guide.axis).toBe("x");
+    expect(guide.value).toBe(50);
+    expect(guide.segments).toEqual([
+      { start: 100, end: 150 },
+      { start: 250, end: 300 },
+    ]);
+    // cross = 직교 겹침 [520,700] 중앙
+    expect(guide.cross).toBe(610);
+  });
+
+  it("sequence — 앞쪽 배치 (moving|A|B)", () => {
+    // A x[0,100], B x[150,250] — gap 50. target = 0 - 50 - 100 = -150
+    const result = resolveSnappedPosition(
+      { x: -145, y: 520 },
+      SIZE,
+      [candidate("a", 0, 500), candidate("b", 150, 500)],
+      8,
+    );
+    expect(result.position.x).toBe(-150);
+    const guide = asSpacing(result.guides[0]);
+    expect(guide.value).toBe(50);
+    expect(guide.segments).toEqual([
+      { start: -50, end: 0 },
+      { start: 100, end: 150 },
+    ]);
+  });
+
+  it("between — 두 이웃 사이 등간격 중앙", () => {
+    // L x[0,100], R x[300,400] — span 200, gap (200-100)/2 = 50, target 150
+    const result = resolveSnappedPosition(
+      { x: 154, y: 560 },
+      SIZE,
+      [candidate("l", 0, 500), candidate("r", 300, 520)],
+      8,
+    );
+    expect(result.position).toEqual({ x: 150, y: 560 });
+    const guide = asSpacing(result.guides[0]);
+    expect(guide.value).toBe(50);
+    expect(guide.segments).toEqual([
+      { start: 100, end: 150 },
+      { start: 250, end: 300 },
+    ]);
+    // cross = [560,760] ∩ [500,700] ∩ [520,720] = [560,700] 중앙
+    expect(guide.cross).toBe(630);
+  });
+
+  it("임계 밖 등간격 지점은 무시", () => {
+    const result = resolveSnappedPosition(
+      { x: 310, y: 520 },
+      SIZE,
+      [candidate("a", 0, 500), candidate("b", 150, 500)],
+      8,
+    );
+    expect(result.snappedX).toBe(false);
+    expect(result.guides).toHaveLength(0);
+  });
+
+  it("동일 축 경합 — 더 가까운 정렬선이 등간격을 이긴다", () => {
+    // spacing target 300 (delta -3) vs D left=405 라인 (이동 right 403, delta +2)
+    const result = resolveSnappedPosition(
+      { x: 303, y: 520 },
+      SIZE,
+      [
+        candidate("a", 0, 500),
+        candidate("b", 150, 500),
+        candidate("d", 405, 500),
+      ],
+      8,
+    );
+    expect(result.position.x).toBe(305);
+    const guide = asLine(result.guides[0]);
+    expect(guide.position).toBe(405);
+  });
+
+  it("직교 겹침 없는 후보는 등간격 문맥에서 제외", () => {
+    // moving y[800,1000] vs 후보 y[500,700] — 겹침 없음
+    const result = resolveSnappedPosition(
+      { x: 305, y: 800 },
+      SIZE,
+      [candidate("a", 0, 500), candidate("b", 150, 500)],
+      8,
+    );
+    expect(result.snappedX).toBe(false);
+    expect(result.guides).toHaveLength(0);
+  });
+
+  it("쌍 사이 간격에 포함된 이웃이 있으면 인접이 아니다", () => {
+    // A x[0,100], B x[300,400] gap 200 → after target 600.
+    // C x[120,180] 가 간격 (100,300) 에 포함 → (A,B) 쌍 차단
+    const blocked = resolveSnappedPosition(
+      { x: 595, y: 520 },
+      SIZE,
+      [
+        candidate("a", 0, 500),
+        candidate("b", 300, 500),
+        candidate("c", 120, 500, 60),
+      ],
+      8,
+    );
+    expect(blocked.snappedX).toBe(false);
+    // 대조군: C 없으면 600 으로 흡착
+    const control = resolveSnappedPosition(
+      { x: 595, y: 520 },
+      SIZE,
+      [candidate("a", 0, 500), candidate("b", 300, 500)],
+      8,
+    );
+    expect(control.position.x).toBe(600);
+  });
+
+  it("y 축 등간격 — x 라인 스냅과 동시 성립 (축별 독립)", () => {
+    // 세로 스택: A y[0,100], B y[150,250] gap 50 → target y 300.
+    // x=500 은 후보 left 와 정확히 정렬 (delta 0 라인 스냅)
+    const result = resolveSnappedPosition(
+      { x: 500, y: 305 },
+      SIZE,
+      [candidate("a", 500, 0, 100, 100), candidate("b", 500, 150, 100, 100)],
+      8,
+    );
+    expect(result.position).toEqual({ x: 500, y: 300 });
+    expect(result.snappedX).toBe(true);
+    expect(result.snappedY).toBe(true);
+    expect(result.guides).toHaveLength(2);
+    const lineGuide = asLine(result.guides[0]);
+    expect(lineGuide.axis).toBe("x");
+    const spacingGuide = asSpacing(result.guides[1]);
+    expect(spacingGuide.axis).toBe("y");
+    expect(spacingGuide.value).toBe(50);
+    expect(spacingGuide.segments).toEqual([
+      { start: 100, end: 150 },
+      { start: 250, end: 300 },
+    ]);
+    // cross = x 겹침 [500,600] 중앙
+    expect(spacingGuide.cross).toBe(550);
   });
 });

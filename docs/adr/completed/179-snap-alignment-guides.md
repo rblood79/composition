@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented — 2026-08-12 (리뷰 round 1 승인 [reviews/179.md](../reviews/179.md) → Accepted → Phase 0~3·5 당일 종결, Phase 4 등간격은 이연)
+Implemented — 2026-08-12 (리뷰 round 1 승인 [reviews/179.md](../reviews/179.md) → Accepted → Phase 0~3·5 당일 종결, Phase 4 등간격은 이연 후 2026-08-13 사용자 재개 지시로 종결 — 전 phase 완료)
 
 ## Context
 
@@ -85,14 +85,14 @@ Figma/Pencil 에서 겹치지 않게 페이지를 배치하고 요소를 정돈�
 
 ## Phase 진행 로그
 
-| Phase | 내용                                   | 상태                                                                                                                                                                                                                 |
-| ----- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0     | inventory freeze                       | **Implemented 2026-08-12** — 배선 3지점 실측 freeze (계약 표 C1~C10, breakdown §2.1). ADR-178 Implemented 반영: 삽입 지점 = `calculateLeaderPosition` (리더 스냅 + 델타 공유), Shift 축 고정 → 스냅 순서 코드상 성립 |
-| 1     | 스냅 순수 함수 + 페이지 드래그 배선    | **Implemented 2026-08-12** — `resolveSnappedPosition` 6축 + `usePageDrag.calculateLeaderPosition` 배선 (축 고정 → 객체 → 그리드 순서) + Cmd/Ctrl 억제 + `snapToObjects` 설정 (기본 ON). 유닛 12건 + live: y=0 정밀 흡착 / Cmd 억제 raw 유지 / 그리드 동시 활성 시 y 객체(0)·x 그리드(2136) 축별 우선 실측 |
-| 2     | 정렬선 오버레이 렌더                   | **Implemented 2026-08-12** — `snapGuidePresentation` (publish/clear 순서 계약) + `renderSnapGuides` (1 screen px, `--accent`, occlusion clip 미적용). live: 흡착 순간 두 페이지 관통 정렬선 표시 + Cmd 토글·pointerup 해제 (guides 1↔0 왕복 실측) |
-| 3     | absolute 요소 확장 (SpatialIndex 후보) | **Implemented 2026-08-12** — `useDragBridge` 스냅 배선: 세션당 1회 후보 수집 (형제/부모 — `queryRect` 경유 C9) + 리더 시작 bounds 기준 델타 흡착 (시각 오프셋·커밋 공유 `session.snapDelta`) + `setDragSnapSuppressed` (Cmd/Ctrl — 중앙 pointer handler 세팅). live: center→형제 라인 238.2/body centerX 325.7 정확 커밋 + 억제 시 raw 커밋 + 정렬선 표시                                                                                                                                                                                                               |
-| 4     | 등간격 스냅·표시 (선택 phase)          | **이연 2026-08-12** — 사용자 확정 (AskUserQuestion "이연 + Phase 5 종결"). 핵심 스냅 UX 완성 후 사용 패턴 확인 뒤 별도 착수 — 재개 시 같은 스냅 엔진/정렬선 채널 재사용                                                                                                                                                                                                               |
-| 5     | 검증 종결 (성능 + CHANGELOG)           | **Implemented 2026-08-12** — G2 실측: 판정 0.56µs(10 후보)/1.80µs(50 후보) per call — 프레임 예산 16.6ms 의 0.011% 이하, 후보 수집은 드래그 시작 1회 (구조 계약). CHANGELOG entry + closure                                                                                                                                                                                                               |
+| Phase | 내용                                   | 상태                                                                                                                                                                                                                                                                                                                                                      |
+| ----- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | inventory freeze                       | **Implemented 2026-08-12** — 배선 3지점 실측 freeze (계약 표 C1~C10, breakdown §2.1). ADR-178 Implemented 반영: 삽입 지점 = `calculateLeaderPosition` (리더 스냅 + 델타 공유), Shift 축 고정 → 스냅 순서 코드상 성립                                                                                                                                      |
+| 1     | 스냅 순수 함수 + 페이지 드래그 배선    | **Implemented 2026-08-12** — `resolveSnappedPosition` 6축 + `usePageDrag.calculateLeaderPosition` 배선 (축 고정 → 객체 → 그리드 순서) + Cmd/Ctrl 억제 + `snapToObjects` 설정 (기본 ON). 유닛 12건 + live: y=0 정밀 흡착 / Cmd 억제 raw 유지 / 그리드 동시 활성 시 y 객체(0)·x 그리드(2136) 축별 우선 실측                                                 |
+| 2     | 정렬선 오버레이 렌더                   | **Implemented 2026-08-12** — `snapGuidePresentation` (publish/clear 순서 계약) + `renderSnapGuides` (1 screen px, `--accent`, occlusion clip 미적용). live: 흡착 순간 두 페이지 관통 정렬선 표시 + Cmd 토글·pointerup 해제 (guides 1↔0 왕복 실측)                                                                                                         |
+| 3     | absolute 요소 확장 (SpatialIndex 후보) | **Implemented 2026-08-12** — `useDragBridge` 스냅 배선: 세션당 1회 후보 수집 (형제/부모 — `queryRect` 경유 C9) + 리더 시작 bounds 기준 델타 흡착 (시각 오프셋·커밋 공유 `session.snapDelta`) + `setDragSnapSuppressed` (Cmd/Ctrl — 중앙 pointer handler 세팅). live: center→형제 라인 238.2/body centerX 325.7 정확 커밋 + 억제 시 raw 커밋 + 정렬선 표시 |
+| 4     | 등간격 스냅·표시 (선택 phase)          | **Implemented 2026-08-13** (2026-08-12 이연 → 사용자 재개 지시) — `resolveSnappedPosition` 에 등간격 판정 통합: between(이웃 사이 등간격 중앙) + sequence(인접 쌍 간격 리듬 연장) 패턴, 직교 겹침 문맥 필터, 정렬선과 축별 최근접 경합 (동률은 정렬선). 표시 = 간격 세그먼트 + 양끝 틱 + 수치 배지 (`--accent`/`--fg-on-accent`, Figma 어법 — Pen v1.2.1 은 수치 없음 실측). 유닛 8건 추가 (총 20) + live: P4·P5 간격 리듬(160.248…) 연장 지점에 P3 흡착 — 세그먼트 2개·배지 "160" 2개 렌더, 커밋 gap1==gap2 float 동일값, pointerup 소거, undo 원복 |
+| 5     | 검증 종결 (성능 + CHANGELOG)           | **Implemented 2026-08-12** — G2 실측: 판정 0.56µs(10 후보)/1.80µs(50 후보) per call — 프레임 예산 16.6ms 의 0.011% 이하, 후보 수집은 드래그 시작 1회 (구조 계약). CHANGELOG entry + closure                                                                                                                                                               |
 
 ## Consequences
 

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [등간격 스냅·간격 수치 배지 — ADR-179 Phase 4] - 2026-08-13
+
+### Features
+
+- **등간격(equal spacing) 스냅 + 간격 수치 배지** (ADR-179 Phase 4 — 2026-08-12 이연분 재개 종결, 전 phase 완료):
+  - 드래그 중 이웃들의 간격 리듬에 흡착: **between** (두 이웃 사이 양쪽 간격이 같아지는 중앙) + **sequence** (인접 쌍의 간격을 연장하는 지점 — A|B|이동 대상). 직교축이 겹치는 이웃("행/열" 문맥)만 대상, 축별 독립, 정렬선 스냅과 최근접 경합 (동률은 정렬선)
+  - 흡착 순간 **간격 세그먼트(양끝 틱) + 간격 수치 배지** 표시 — Figma 어법 (Pen v1.2.1 실측: 수치 표시 없음, 정렬선+정렬점 마커뿐). 배지는 `--accent` 배경 + `--fg-on-accent` 텍스트, 페이지·absolute 요소 공통 (같은 스냅 엔진)
+  - **Why**: "정렬선의 경우 Figma 에서는 간격 수치 값이 나타나지 않나?" (2026-08-12 사용자) — Pen 대조 실측 후 재개 지시. 등간격 배치(3 페이지 나란히)가 눈대중이던 마지막 축
+  - live 실측: P4·P5 간격(160.248…) 리듬 연장 지점에 P3 정확 흡착 — 커밋 gap 두 개 float 동일값, 배지 "160" 2개 렌더, pointerup 소거, undo 원복
+  - 위치: `workspace/canvas/interaction/{snapGuides,snapGuidePresentation}.ts`, `workspace/canvas/skia/{snapGuideRenderer,skiaOverlayBuilder,selectionRenderer}.ts`
+
 ## [캔버스 스냅·정렬 가이드 — ADR-179 Implemented] - 2026-08-12
 
 ### Features
