@@ -32,6 +32,7 @@ import {
   commitPageGuideChanges,
   filterChangedGuideEntries,
   readPageGuides,
+  readPageGuidesByPage,
 } from "./pageGuideActions";
 
 const g = (id: string, axis: "x" | "y", position: number): PageGuideLine => ({
@@ -229,5 +230,37 @@ describe("commitPageGuideChanges — 기록", () => {
       historyManager.getCurrentPageEntries()[0].data.pageGuideEvent?.entries[0]
         .after,
     ).toEqual([g("a", "x", 100)]);
+  });
+});
+
+describe("readPageGuidesByPage — 렌더 패스 read (Phase 4)", () => {
+  it("필드가 없으면 빈 map 을 재사용한다 (통상 경로 할당 0)", () => {
+    setupActiveDoc();
+    const first = readPageGuidesByPage("desktop");
+    const second = readPageGuidesByPage("desktop");
+    expect(first.size).toBe(0);
+    expect(first).toBe(second);
+  });
+
+  it("활성 breakpoint 의 목록만 모은다 (C9)", () => {
+    setupActiveDoc({
+      pageGuides: {
+        "page-1": { desktop: [g("a", "x", 100)], mobile: [g("m", "y", 10)] },
+        "page-2": { mobile: [g("b", "x", 20)] },
+      },
+    });
+
+    expect([...readPageGuidesByPage("desktop")]).toEqual([
+      ["page-1", [g("a", "x", 100)]],
+    ]);
+    expect([...readPageGuidesByPage("mobile")]).toEqual([
+      ["page-1", [g("m", "y", 10)]],
+      ["page-2", [g("b", "x", 20)]],
+    ]);
+  });
+
+  it("빈 목록 페이지는 map 에 넣지 않는다", () => {
+    setupActiveDoc({ pageGuides: { "page-1": { desktop: [] } } });
+    expect(readPageGuidesByPage("desktop").size).toBe(0);
   });
 });

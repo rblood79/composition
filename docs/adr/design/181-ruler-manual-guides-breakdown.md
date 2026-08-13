@@ -217,13 +217,20 @@ live 검증 (Chrome MCP):
   - live (Chrome MCP): 생성→이동 기록 후 새로고침에서 값 보존 → undo 2회로 260→120→없음 → redo 2회로 복귀 → 패널 항목 클릭(goToIndex)으로 120 복원. 패널 라벨 "가이드 추가"/"가이드 이동" + 눈금자 아이콘 표시 확인. probe 데이터는 정리(문서 필드·히스토리 entry 2건 제거 후 새로고침 확인).
 - **함정 (재발 감시)**: Vite 가 편집된 모듈을 `?t=<mtime>` 로 서빙하는데 이 쿼리는 **새로고침해도 유지**된다. 페이지 콘솔에서 `import('/src/.../history.ts')` 로 평범하게 부르면 앱이 쓰는 인스턴스와 **다른 사본**이 잡힌다 (실측: `currentPageId` 가 null 인 빈 매니저). live 진단 전 `performance.getEntriesByType('resource')` 로 앱이 실제 로드한 URL 을 확인하고 그 URL 로 import 할 것 — Phase 2 의 `__canonical_STORE__` 중복 인스턴스와 **같은 병인**이다.
 
-### Phase 4 — 가이드 렌더 (MED)
+### Phase 4 — 가이드 렌더 (MED) — **Implemented 2026-08-14**
 
-- `canvas/skia/guideRenderer.ts` 신규 — 상시 표시 선 (1 screen px, `snapGuideRenderer.ts` 어법 재사용하되 색 분리 — 스냅 웜 레드와 구분되는 가이드 고유색, Figma #59A8D7 계열 대조 후 상수 확정).
-- 좌표: 페이지-로컬 px → scene 변환 (페이지 위치 + 가이드 position) — **페이지 이동(ADR-177) 시 자동 추종**. 활성 breakpoint 목록만 읽는다 (C9).
-- 클립: 페이지 rect 로 클립 + `withPageOcclusionClip` 경유 (콘텐츠성 chrome — canvas-rendering.md §8.5 표 준수. 스냅 정렬선의 "조작 표식 미적용" 판정과 **다르다** — 가이드는 상시 표시).
-- 재렌더: `overlayVersionRef.current++` 만 (`invalidateContent()` 금지 — C11).
-- 검증: 겹친 페이지 occlusion live + 페이지 드래그 추종 live + breakpoint 전환 시 목록 교체.
+- `canvas/skia/guideRenderer.ts` 신규 — 1 screen px 선, `snapGuideRenderer.ts` 어법 재사용.
+- **색은 시안 #59A8D7** (Figma 가이드 계열 대조 후 확정). 스냅 웜 레드(#F24822) 재사용을 기각한 이유는 취향이 아니라 **혼동 시점**이다 — 두 표식이 동시에 보이는 순간이 정확히 드래그 중이라, 같은 색이면 "여기 기준선이 있다" 와 "지금 흡착 중" 이 구분되지 않는다. 선택 파랑(#3B82F6)과는 색상(시안 편향) + **형태**(핸들 없는 페이지 길이 가는 선)로 갈린다 — 라이브 대조에서 비선택 페이지의 회색 테두리·파랑 Tab 밑줄 모두와 구분 확인.
+- 좌표 변환은 `buildPageGuideTargets` (`skiaOverlayHelpers.ts`) — 페이지-로컬 px + 페이지 원점, **축마다 더하는 원점이 다르다** (axis `"x"` = 세로선이라 `originX` 를 더한다). 페이지 드래그 transient delta 도 함께 반영 — 슬롯 마커·collection remainder 와 같은 계약이라 미반영 시 드롭 후에야 따라온다.
+- 클립은 **두 겹**이고 잡는 것이 서로 다르다:
+  - **페이지 rect** (`guideRenderer` 안, 페이지당 save/restore 1회 — 선마다 걸면 개수만큼 상태 전환이 는다). 선 길이가 rect 와 같아 보여도 stroke 가 양쪽으로 반폭씩 번지고, breakpoint 크기를 줄인 뒤 남은 가이드가 페이지 밖 좌표를 가질 수 있다.
+  - **`withPageOcclusionClip`** (호출부) — 페이지끼리는 조상 관계가 아니라 앞의 rect 클립이 잡지 못한다 (canvas-rendering.md §8.5). 콘텐츠성 chrome 열이라 슬롯 해치와 같은 처리이고, 스냅 정렬선의 "조작 표식 미적용" 과 갈린다.
+- 읽기는 `readPageGuidesByPage(breakpoint)` — 활성 breakpoint 만 (C9). **문서에 `pageGuides` 가 없는 통상 경로에서 할당 0** (공유 빈 map 재사용) — 프레임마다 불리는 자리라 이 경로가 기본값이어야 한다.
+- 재렌더는 Phase 3 의 개정 카운터가 이미 담당 (`overlayVersion` 만 — C11).
+- 검증:
+  - 유닛 7건 — `skiaOverlayHelpers.test.ts` 4 (축별 원점 / 드래그 delta / 빈 목록·부재 페이지 / 비가시 프레임) + `pageGuideActions.test.ts` 3 (빈 map 재사용 / breakpoint 격리 / 빈 목록 제외). 영향 suite 전체 508 passed.
+  - live (Chrome MCP): 세로·가로 가이드 렌더 → **페이지 rect 에서 절단** 확인 → 겹친 페이지에서 아래 페이지 가이드가 위(활성) 페이지 body 를 **가로지르지 않음** (세로 가이드 전면 가림 / 가로 가이드는 겹친 구간만 잘리고 나머지는 표시) → 페이지 드래그 transient 중 가이드가 본문과 같이 이동 → breakpoint 전환 시 목록 전체 교체(mobile 4건 → desktop 0건).
+  - **HC1(a) 실측**: `render.frame` p50 **4.100 → 4.175ms (+0.075 = 예산의 0.45%)** — ON/OFF 순서 교대 4쌍 × 2s, 가이드 4개(2 페이지). mean 은 오히려 감소(4.593 → 4.548)해 노이즈 바닥 아래다. **단발 A/B 는 믿을 수 없다** — 첫 1쌍 측정은 mean +0.21ms(1.26%)로 게이트 초과처럼 보였고, 순서 교대로 반복하자 사라졌다.
 
 ### Phase 5 — 인터랙션 (HIGH — R1)
 

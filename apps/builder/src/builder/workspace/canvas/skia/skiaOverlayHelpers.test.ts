@@ -5,6 +5,7 @@ import {
   buildCollectionRemainderTargets,
   buildFrameTitleRenderItems,
   buildHoverHighlightTargets,
+  buildPageGuideTargets,
   buildSlotMarkerTargets,
 } from "./skiaOverlayHelpers";
 
@@ -968,5 +969,82 @@ describe("buildFrameTitleRenderItems", () => {
         highlighted: true,
       },
     ]);
+  });
+});
+
+describe("buildPageGuideTargets — 수동 가이드 좌표 변환 (ADR-181 Phase 4)", () => {
+  const FRAMES = [
+    { id: "page-1", x: 100, y: 200, width: 390, height: 844 },
+    { id: "page-2", x: 600, y: 200, width: 390, height: 844 },
+  ];
+
+  it("페이지-로컬 position 을 scene 으로 옮긴다 (축별로 더하는 원점이 다르다)", () => {
+    const targets = buildPageGuideTargets(
+      new Map([
+        [
+          "page-1",
+          [
+            { axis: "x" as const, position: 40 },
+            { axis: "y" as const, position: 120 },
+          ],
+        ],
+      ]),
+      FRAMES,
+    );
+
+    expect(targets).toEqual([
+      {
+        pageId: "page-1",
+        pageRect: { x: 100, y: 200, width: 390, height: 844 },
+        lines: [
+          { axis: "x", position: 140 }, // 100 + 40
+          { axis: "y", position: 320 }, // 200 + 120
+        ],
+      },
+    ]);
+  });
+
+  it("드래그 중 페이지의 transient delta 를 따른다 (본문과 같이 움직인다)", () => {
+    const dragSnapshot: PagePositionPresentationSnapshot = {
+      canonical: { "page-1": { x: 100, y: 200 } },
+      activeOverrides: new Map([["page-1", { x: 130, y: 250 }]]), // +30, +50
+      version: 1,
+      isActive: true,
+      startBreakpoint: "desktop",
+    };
+    const targets = buildPageGuideTargets(
+      new Map([
+        ["page-1", [{ axis: "x" as const, position: 40 }]],
+        ["page-2", [{ axis: "x" as const, position: 40 }]],
+      ]),
+      FRAMES,
+      dragSnapshot,
+    );
+
+    // 드래그 중인 페이지만 이동 — rect 와 선이 같은 delta 를 받는다
+    expect(targets[0].pageRect).toEqual({
+      x: 130,
+      y: 250,
+      width: 390,
+      height: 844,
+    });
+    expect(targets[0].lines[0].position).toBe(170);
+    expect(targets[1].pageRect.x).toBe(600);
+    expect(targets[1].lines[0].position).toBe(640);
+  });
+
+  it("가이드 없는 페이지·빈 목록은 타깃을 만들지 않는다", () => {
+    expect(buildPageGuideTargets(new Map(), FRAMES)).toEqual([]);
+    expect(
+      buildPageGuideTargets(new Map([["page-2", []]]), FRAMES),
+    ).toEqual([]);
+  });
+
+  it("보이는 프레임에 없는 pageId 는 건너뛴다 (삭제·비가시 페이지)", () => {
+    const targets = buildPageGuideTargets(
+      new Map([["page-gone", [{ axis: "x" as const, position: 10 }]]]),
+      FRAMES,
+    );
+    expect(targets).toEqual([]);
   });
 });

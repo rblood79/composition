@@ -68,6 +68,7 @@ import {
   buildPageTitleRenderItems,
   buildSlotMarkerTargets,
   buildCollectionRemainderTargets,
+  buildPageGuideTargets,
   shouldRenderWorkflowMinimap,
   type PageTitleBounds,
 } from "./skiaOverlayHelpers";
@@ -89,6 +90,9 @@ import {
 import { getSnapGuidePresentationSnapshot } from "../interaction/snapGuidePresentation";
 import { getMeasureGuidePresentationSnapshot } from "../interaction/measureGuidePresentation";
 import { renderMeasureGuides, renderSnapGuides } from "./snapGuideRenderer";
+import { renderPageGuides } from "./guideRenderer";
+import { readPageGuidesByPage } from "../viewport/pageGuideActions";
+import { useStore } from "../../../stores";
 
 // ============================================
 // Workflow Overlay Data
@@ -607,6 +611,32 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
               fontMgr,
             ),
         );
+      }
+
+      // ── Manual Guides (ADR-181: 눈금자에서 끌어낸 상시 기준선) ──
+      // 콘텐츠성 chrome — 슬롯 해치와 같은 열이라 withPageOcclusionClip 을
+      // 거친다. 스냅 정렬선(아래)은 조작 표식이라 미적용인 것과 갈린다.
+      // 통상 문서에는 pageGuides 자체가 없어 map 이 비고, 그 경로는 타깃
+      // 생성까지 통째로 건너뛴다.
+      const guidesByPage = readPageGuidesByPage(
+        useStore.getState().activeBreakpoint,
+      );
+      if (guidesByPage.size > 0) {
+        const guideTargets = buildPageGuideTargets(
+          guidesByPage,
+          frames,
+          pagePositionSnapshot,
+        );
+        for (const target of guideTargets) {
+          withPageOcclusionClip(
+            ck,
+            canvas,
+            target.pageId,
+            paintOrderedFrames,
+            pagePositionSnapshot,
+            () => renderPageGuides(ck, canvas, target, cameraZoom),
+          );
+        }
       }
 
       // ── Editing Context Border ──

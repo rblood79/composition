@@ -57,6 +57,37 @@ export function readPageGuides(
   return doc?.pageGuides?.[pageId]?.[breakpoint] ?? [];
 }
 
+/**
+ * 활성 breakpoint 의 전 페이지 가이드 — 렌더 패스용 (ADR-181 Phase 4).
+ *
+ * **빈 map 을 재사용한다**. `pageGuides` 필드가 아예 없는 것이 통상이고 이
+ * 함수는 프레임마다 불리므로, 그 경로에서 할당이 0 이어야 한다.
+ *
+ * breakpoint 를 인자로 받는 이유는 의존을 드러내기 위해서다 — 활성
+ * breakpoint 가 바뀌면 목록이 통째로 갈린다는 것(C9)이 시그니처에 보이고,
+ * 테스트가 store 없이 돈다.
+ */
+export function readPageGuidesByPage(
+  breakpoint: BreakpointName,
+): ReadonlyMap<string, readonly PageGuideLine[]> {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId) return EMPTY_GUIDE_MAP;
+  const pageGuides = canonical.documents.get(projectId)?.pageGuides;
+  if (!pageGuides) return EMPTY_GUIDE_MAP;
+
+  let result: Map<string, readonly PageGuideLine[]> | null = null;
+  for (const pageId of Object.keys(pageGuides)) {
+    const guides = pageGuides[pageId]?.[breakpoint];
+    if (!guides || guides.length === 0) continue;
+    (result ??= new Map()).set(pageId, guides);
+  }
+  return result ?? EMPTY_GUIDE_MAP;
+}
+
+const EMPTY_GUIDE_MAP: ReadonlyMap<string, readonly PageGuideLine[]> =
+  new Map();
+
 function sameGuideList(
   left: readonly PageGuideLine[],
   right: readonly PageGuideLine[],

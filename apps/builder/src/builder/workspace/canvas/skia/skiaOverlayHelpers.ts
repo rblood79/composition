@@ -54,6 +54,15 @@ export interface CollectionRemainderTarget {
   pageId: string | null;
 }
 
+/** ADR-181 — 한 페이지의 수동 가이드 렌더 입력 (scene 좌표) */
+export interface PageGuideRenderTarget {
+  pageId: string;
+  /** 페이지 rect (드래그 delta 반영) — 선 길이이자 클립 영역 */
+  pageRect: BoundingBox;
+  /** axis "x" = x 좌표를 고정하는 세로선 (snapGuides 와 같은 어법) */
+  lines: ReadonlyArray<{ axis: "x" | "y"; position: number }>;
+}
+
 /**
  * chrome 소유 페이지 판독. 페이지 간 occlusion clip(skiaOverlayBuilder
  * `withPageOcclusionClip`)의 키 — hitBoundsMap 은 **조상** clip 만 알고
@@ -252,6 +261,57 @@ function translateByPageDelta(
     width: bounds.width,
     height: bounds.height,
   };
+}
+
+/**
+ * 수동 가이드 렌더 타깃 — ADR-181 Phase 4.
+ *
+ * 가이드 position 은 **페이지-로컬 px** 이므로 페이지 위치를 더해 scene 으로
+ * 옮긴다. 드래그 중 페이지의 transient delta 도 함께 반영해야 본문과 같이
+ * 움직인다 (슬롯 마커·collection remainder 와 같은 계약 — 미반영 시 드롭
+ * 후에야 한 번에 따라온다).
+ *
+ * 가이드가 없는 페이지는 타깃을 만들지 않는다. 문서에 `pageGuides` 자체가
+ * 없는 것이 통상이므로 호출부에서 빈 map 이면 아예 부르지 않는 것이 맞다.
+ */
+export function buildPageGuideTargets(
+  guidesByPage: ReadonlyMap<string, readonly { axis: "x" | "y"; position: number }[]>,
+  frames: ReadonlyArray<{
+    id: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }>,
+  pagePositionSnapshot?: PagePositionPresentationSnapshot,
+): PageGuideRenderTarget[] {
+  if (guidesByPage.size === 0) return [];
+
+  const targets: PageGuideRenderTarget[] = [];
+  for (const frame of frames) {
+    const guides = guidesByPage.get(frame.id);
+    if (!guides || guides.length === 0) continue;
+    const delta = pagePositionSnapshot
+      ? readPagePositionDelta(frame.id, pagePositionSnapshot)
+      : null;
+    const originX = frame.x + (delta?.dx ?? 0);
+    const originY = frame.y + (delta?.dy ?? 0);
+    targets.push({
+      pageId: frame.id,
+      pageRect: {
+        x: originX,
+        y: originY,
+        width: frame.width,
+        height: frame.height,
+      },
+      lines: guides.map((guide) => ({
+        axis: guide.axis,
+        position:
+          guide.axis === "x" ? originX + guide.position : originY + guide.position,
+      })),
+    });
+  }
+  return targets;
 }
 
 export function buildSlotMarkerTargets(

@@ -14,6 +14,8 @@ Accepted — 2026-08-13 (리뷰 round 1 승인 — 이슈 0건, `docs/adr/review
 
 - **Phase 3 (히스토리 편입) Implemented 2026-08-14** — `page-guide` entry kind + **C4 6곳 전부 대응**. `page-position` 과 갈리는 지점 둘: (a) **스토어 미러가 없어** canonical 만 되돌린다, (b) 목록 **전체**가 before/after 라 생성·이동·삭제가 한 어법이다. 화면 갱신은 개정 카운터(`pageGuideRevision`) → `overlayVersion` 만 bump (C11 — `invalidateContent` 미호출). 기록 진입점 `commitPageGuideChanges` 제공(Phase 5 호출 예정). 유닛 17건 + 정적 가드 5건 + live undo/redo/패널 점프 왕복.
 
+- **Phase 4 (가이드 렌더) Implemented 2026-08-14** — `guideRenderer.ts` + `buildPageGuideTargets`. 색은 시안 **#59A8D7** — 스냅 웜 레드 재사용을 기각한 이유는 두 표식이 동시에 보이는 순간이 정확히 드래그 중이라, 같은 색이면 "기준선이 있다" 와 "지금 흡착 중" 이 구분되지 않기 때문이다. 클립은 **두 겹**이고 잡는 것이 다르다 — 페이지 rect(stroke 번짐 + breakpoint 축소 후 범위 밖 좌표)와 `withPageOcclusionClip`(페이지끼리는 조상 관계가 아니라 앞의 클립이 못 잡는다, §8.5). 읽기는 활성 breakpoint 만(C9)이고 `pageGuides` 부재 경로는 **할당 0**. **HC1(a) 실측**: `render.frame` p50 4.100 → 4.175ms (**+0.45%**, 순서 교대 4쌍) — 단발 A/B 의 +1.26% 는 노이즈였다.
+
 ## Context
 
 캔버스 정렬 보조는 [ADR-179](completed/179-snap-alignment-guides.md) (Implemented 2026-08-12) 로 **객체 스냅** (드래그 순간의 정렬선·등간격) 까지 도달했지만, 사용자가 **미리 놓아두는 고정 기준선** 이 없다 — Figma/Pen 의 ruler + 수동 가이드에 해당하는 표면이 0 이다 (2026-08-13 실측: `ruler`/`guide` 렌더·문서 필드 grep 0건, `snapGuides.ts` 후보는 rect 전용).
