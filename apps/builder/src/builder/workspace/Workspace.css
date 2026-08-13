@@ -124,6 +124,8 @@
 }
 
 .ruler-strip--h {
+  /* 가로 자에서 끌면 **세로** 가이드 — 좌우로 움직일 선이라 col-resize */
+  cursor: col-resize;
   left: var(--ruler-inset-left, 0px);
   right: 0;
   top: var(--ruler-inset-top, 0px);
@@ -141,6 +143,7 @@
 }
 
 .ruler-strip--v {
+  cursor: row-resize;
   left: var(--ruler-inset-left, 0px);
   top: calc(var(--ruler-inset-top, 0px) + var(--ruler-size, 20px));
   bottom: 0;

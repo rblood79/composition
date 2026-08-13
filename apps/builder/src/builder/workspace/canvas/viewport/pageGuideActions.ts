@@ -31,6 +31,44 @@ async function persistActiveCanonicalDocument(
   await db.documents.put(projectId, doc);
 }
 
+/**
+ * 드래그 결과를 문서에 반영한다 — 생성/이동/삭제가 한 진입점 (ADR-181 Phase 5).
+ *
+ * 세 조작이 결국 "그 페이지의 목록이 어떻게 바뀌었나" 하나로 수렴하기 때문에
+ * 분기가 여기 한 곳에만 있다. `commitPageGuideChanges` 가 무변경을 걸러내므로
+ * 제자리에 놓은 드래그는 히스토리에 남지 않는다.
+ *
+ * **커밋하지 않는 경우**: 페이지 위가 아닌 곳에 놓은 생성 드래그. 소속이
+ * 없는 가이드는 표현할 수 없다 (C9 — 가이드는 페이지 귀속).
+ */
+export function commitGuideDrag(
+  drag: {
+    kind: "create" | "move";
+    guideId: string;
+    axis: "x" | "y";
+    pageId: string | null;
+    position: number;
+    removing: boolean;
+    originPageId: string | null;
+  },
+  breakpoint: BreakpointName,
+): void {
+  const owner = drag.removing ? drag.originPageId : (drag.pageId ?? null);
+  if (!owner) return;
+
+  const before = readPageGuides(owner, breakpoint);
+  const without = before.filter((line) => line.id !== drag.guideId);
+  const after =
+    drag.removing || (!drag.pageId && drag.kind === "create")
+      ? without
+      : [
+          ...without,
+          { id: drag.guideId, axis: drag.axis, position: drag.position },
+        ];
+
+  commitPageGuideChanges([{ pageId: owner, breakpoint, before, after }]);
+}
+
 export interface PageGuideChange {
   pageId: string;
   breakpoint: BreakpointName;

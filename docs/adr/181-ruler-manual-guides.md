@@ -16,6 +16,8 @@ Accepted — 2026-08-13 (리뷰 round 1 승인 — 이슈 0건, `docs/adr/review
 
 - **Phase 4 (가이드 렌더) Implemented 2026-08-14** — `guideRenderer.ts` + `buildPageGuideTargets`. 색은 시안 **#59A8D7** — 스냅 웜 레드 재사용을 기각한 이유는 두 표식이 동시에 보이는 순간이 정확히 드래그 중이라, 같은 색이면 "기준선이 있다" 와 "지금 흡착 중" 이 구분되지 않기 때문이다. 클립은 **두 겹**이고 잡는 것이 다르다 — 페이지 rect(stroke 번짐 + breakpoint 축소 후 범위 밖 좌표)와 `withPageOcclusionClip`(페이지끼리는 조상 관계가 아니라 앞의 클립이 못 잡는다, §8.5). 읽기는 활성 breakpoint 만(C9)이고 `pageGuides` 부재 경로는 **할당 0**. **HC1(a) 실측**: `render.frame` p50 4.100 → 4.175ms (**+0.45%**, 순서 교대 4쌍) — 단발 A/B 의 +1.26% 는 노이즈였다.
 
+- **Phase 5 (인터랙션) Implemented 2026-08-14** — 생성(눈금자 스트립 드래그)·이동(캔버스 히트)·삭제(눈금자로 되돌리기)가 **한 세션**(`useGuideDrag`). 삭제는 별도 조작이 아니라 드래그의 한 결말이라 확인 UI 가 없다. 히트는 "포인터가 올라간 페이지" 의 가이드만 본다 — 가려진 가이드는 잡히지 않아야 하므로(§8.5 paint↔hit 대칭) 페이지 판정을 호출부가 하고 `resolveGuideHit` 에는 페이지 간 순서 규칙이 **없다**. **R1 가드 4곳**(pointerdown capture / hover / contextmenu 는 조기 반환, bubble pointerdown 은 유지)이고, C10 게이트로 **눈금자 OFF 면 pointer 체인이 ADR-181 이전과 바이트 동등**하다. **HC1(c) 계측**: 드래그 중 canonical write 0 / 히스토리 0, pointerup 에서 각 1. 유닛 28건 + 캔버스 suite 1115 passed(G2) + live 실제 마우스 왕복(생성→이동→삭제→Cmd+Z 복원, 눈금자 ON 에서 캔버스 선택 정상).
+
 ## Context
 
 캔버스 정렬 보조는 [ADR-179](completed/179-snap-alignment-guides.md) (Implemented 2026-08-12) 로 **객체 스냅** (드래그 순간의 정렬선·등간격) 까지 도달했지만, 사용자가 **미리 놓아두는 고정 기준선** 이 없다 — Figma/Pen 의 ruler + 수동 가이드에 해당하는 표면이 0 이다 (2026-08-13 실측: `ruler`/`guide` 렌더·문서 필드 grep 0건, `snapGuides.ts` 후보는 rect 전용).

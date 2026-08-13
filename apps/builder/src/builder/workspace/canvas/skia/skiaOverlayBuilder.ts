@@ -92,6 +92,7 @@ import { getMeasureGuidePresentationSnapshot } from "../interaction/measureGuide
 import { renderMeasureGuides, renderSnapGuides } from "./snapGuideRenderer";
 import { renderPageGuides } from "./guideRenderer";
 import { readPageGuidesByPage } from "../viewport/pageGuideActions";
+import { getGuideDrag, mergeGuideDrag } from "../interaction/guidePresentation";
 import { useStore } from "../../../stores";
 
 // ============================================
@@ -618,8 +619,11 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
       // 거친다. 스냅 정렬선(아래)은 조작 표식이라 미적용인 것과 갈린다.
       // 통상 문서에는 pageGuides 자체가 없어 map 이 비고, 그 경로는 타깃
       // 생성까지 통째로 건너뛴다.
-      const guidesByPage = readPageGuidesByPage(
-        useStore.getState().activeBreakpoint,
+      // 드래그 중이면 transient 를 얹는다 — canonical 은 pointerup 까지
+      // 손대지 않으므로(HC1(c)) 미리보기는 이 합성에만 있다.
+      const guidesByPage = mergeGuideDrag(
+        readPageGuidesByPage(useStore.getState().activeBreakpoint),
+        getGuideDrag(),
       );
       if (guidesByPage.size > 0) {
         const guideTargets = buildPageGuideTargets(

@@ -47,6 +47,13 @@ import {
   RulerOverlay,
   isRulerEventTarget,
 } from "../components/RulerOverlay";
+import { useGuideDrag, useGuideHoverCursor } from "./hooks/useGuideDrag";
+import {
+  GUIDE_HIT_THRESHOLD_SCREEN_PX,
+  buildGuideHitTargets,
+  resolveGuideHit,
+} from "./interaction/guideHitTest";
+import { readPageGuides } from "./viewport/pageGuideActions";
 import {
   CanvasGestureSession,
   computeSelectionBounds,
@@ -757,6 +764,23 @@ export function BuilderCanvas({
     },
     [panOffset, zoom],
   );
+  // ADR-181 Phase 5: 가이드 생성(눈금자 DOM)·이동/삭제(캔버스 히트)가 한 세션
+  const { startCreate: startGuideCreate, startMove: startGuideMove } =
+    useGuideDrag({
+      screenToCanvasPoint,
+      containerRef,
+      pageWidth,
+      pageHeight,
+    });
+
+  useGuideHoverCursor({
+    screenToCanvasPoint,
+    containerRef,
+    pageWidth,
+    pageHeight,
+    zoom,
+  });
+
   const closeCanvasContextMenu = useCallback(() => {
     setCanvasContextMenu(null);
   }, []);
@@ -792,6 +816,11 @@ export function BuilderCanvas({
 
       const target = event.target as HTMLElement;
       if (target.closest('input, textarea, [contenteditable="true"]')) {
+        return;
+      }
+      // ADR-181 R1: 눈금자 위 우클릭은 캔버스 컨텍스트 메뉴가 아니다
+      // (씬 좌표로 환산하면 스트립 아래 요소가 잡힌다)
+      if (isRulerEventTarget(target)) {
         return;
       }
 
@@ -1030,6 +1059,48 @@ export function BuilderCanvas({
         y: event.clientY - rect.top,
       });
 
+      // ADR-181 Phase 5: 가이드 히트는 선택/페이지 타이틀 **앞**에서 판정하고,
+      // 미스면 아래 기존 체인을 그대로 통과시킨다 (HC5 회귀 0).
+      // C10 — 눈금자 OFF 면 판정 자체를 하지 않는다: 가이드는 그려지되 조작
+      // 진입점(생성/삭제)이 전부 눈금자에 있어 이동만 남으면 어휘가 불완전하고,
+      // 무엇보다 R1 노출면이 "가이드 유무" 가 아니라 "눈금자 ON" 으로 좁아진다.
+      const guideState = useStore.getState();
+      if (guideState.showRulers) {
+        const guidePageId = resolveTopPageIdAtPoint({
+          canvasPoint: scenePoint,
+          activePageId: guideState.currentPageId,
+          pageHeight,
+          pageWidth,
+          pagePositions: guideState.pagePositions,
+          pages: guideState.pages,
+        });
+        const guideOrigin = guidePageId
+          ? guideState.pagePositions[guidePageId]
+          : null;
+        if (guidePageId && guideOrigin) {
+          const guides = readPageGuides(
+            guidePageId,
+            guideState.activeBreakpoint,
+          );
+          const hit =
+            guides.length > 0
+              ? resolveGuideHit(
+                  scenePoint,
+                  buildGuideHitTargets(guidePageId, guides, guideOrigin, {
+                    width: pageWidth,
+                    height: pageHeight,
+                  }),
+                  GUIDE_HIT_THRESHOLD_SCREEN_PX / (zoom === 0 ? 1 : zoom),
+                )
+              : null;
+          if (hit) {
+            (event as PointerEvent & { __handled?: boolean }).__handled = true;
+            startGuideMove(hit, event.pointerId, event.clientX, event.clientY);
+            return;
+          }
+        }
+      }
+
       const titleState = useStore.getState();
       const titlePagePaintRank = buildPagePaintRank(
         titleState.pages,
@@ -1172,7 +1243,9 @@ export function BuilderCanvas({
     screenToCanvasPoint,
     sceneActiveBreakpoint,
     setCurrentPageId,
+    startGuideMove,
     startPageDrag,
+    zoom,
   ]);
 
   useCentralCanvasPointerHandlers({
@@ -1322,7 +1395,7 @@ export function BuilderCanvas({
       <DotBackground />
 
       {/* ADR-181: Skia canvas 앞 눈금자 레이어 (뷰포트 chrome — 문서 데이터 아님) */}
-      <RulerOverlay />
+      <RulerOverlay onStartGuideCreate={startGuideCreate} />
 
       {containerEl && (
         <ViewportControlBridge

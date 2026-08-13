@@ -984,8 +984,8 @@ describe("buildPageGuideTargets — 수동 가이드 좌표 변환 (ADR-181 Phas
         [
           "page-1",
           [
-            { axis: "x" as const, position: 40 },
-            { axis: "y" as const, position: 120 },
+            { id: "gx", axis: "x" as const, position: 40 },
+            { id: "gy", axis: "y" as const, position: 120 },
           ],
         ],
       ]),
@@ -997,8 +997,8 @@ describe("buildPageGuideTargets — 수동 가이드 좌표 변환 (ADR-181 Phas
         pageId: "page-1",
         pageRect: { x: 100, y: 200, width: 390, height: 844 },
         lines: [
-          { axis: "x", position: 140 }, // 100 + 40
-          { axis: "y", position: 320 }, // 200 + 120
+          { id: "gx", axis: "x", position: 140 }, // 100 + 40
+          { id: "gy", axis: "y", position: 320 }, // 200 + 120
         ],
       },
     ]);
@@ -1014,8 +1014,8 @@ describe("buildPageGuideTargets — 수동 가이드 좌표 변환 (ADR-181 Phas
     };
     const targets = buildPageGuideTargets(
       new Map([
-        ["page-1", [{ axis: "x" as const, position: 40 }]],
-        ["page-2", [{ axis: "x" as const, position: 40 }]],
+        ["page-1", [{ id: "gx", axis: "x" as const, position: 40 }]],
+        ["page-2", [{ id: "gx", axis: "x" as const, position: 40 }]],
       ]),
       FRAMES,
       dragSnapshot,
@@ -1042,7 +1042,7 @@ describe("buildPageGuideTargets — 수동 가이드 좌표 변환 (ADR-181 Phas
 
   it("보이는 프레임에 없는 pageId 는 건너뛴다 (삭제·비가시 페이지)", () => {
     const targets = buildPageGuideTargets(
-      new Map([["page-gone", [{ axis: "x" as const, position: 10 }]]]),
+      new Map([["page-gone", [{ id: "gz", axis: "x" as const, position: 10 }]]]),
       FRAMES,
     );
     expect(targets).toEqual([]);

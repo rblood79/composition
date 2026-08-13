@@ -232,25 +232,28 @@ live 검증 (Chrome MCP):
   - live (Chrome MCP): 세로·가로 가이드 렌더 → **페이지 rect 에서 절단** 확인 → 겹친 페이지에서 아래 페이지 가이드가 위(활성) 페이지 body 를 **가로지르지 않음** (세로 가이드 전면 가림 / 가로 가이드는 겹친 구간만 잘리고 나머지는 표시) → 페이지 드래그 transient 중 가이드가 본문과 같이 이동 → breakpoint 전환 시 목록 전체 교체(mobile 4건 → desktop 0건).
   - **HC1(a) 실측**: `render.frame` p50 **4.100 → 4.175ms (+0.075 = 예산의 0.45%)** — ON/OFF 순서 교대 4쌍 × 2s, 가이드 4개(2 페이지). mean 은 오히려 감소(4.593 → 4.548)해 노이즈 바닥 아래다. **단발 A/B 는 믿을 수 없다** — 첫 1쌍 측정은 mean +0.21ms(1.26%)로 게이트 초과처럼 보였고, 순서 교대로 반복하자 사라졌다.
 
-### Phase 5 — 인터랙션 (HIGH — R1)
+### Phase 5 — 인터랙션 (HIGH — R1) — **Implemented 2026-08-14**
 
-- **생성은 DOM 에서 시작한다** — ruler 스트립(`RulerOverlay`)에 `pointerdown` → `setPointerCapture` 로 캔버스 위까지 이어 받는다.
-- **가드는 소멸하지 않는다 (정정 2026-08-13)** — 캡처 리스너가 캔버스가 아니라 `.canvas-container` 에 `capture: true` 로 붙어 있어(`BuilderCanvas.tsx:1010,1155`) 조상 캡처가 스트립 자신의 핸들러보다 **먼저** 실행되고, hover 는 아예 `window` 에 붙어 있다(`useElementHoverInteraction.ts:550`). DOM z-order 는 target 만 정할 뿐 이 둘을 막지 못한다. 달라지는 것은 판정의 성격이다.
+- **생성·이동·삭제가 한 세션**이다 (`useGuideDrag`). 시작 지점만 다르고 move/up/취소가 전부 같아서, 나누면 transient publish·commit·cleanup 이 두 벌이 되고 한쪽만 고쳐지는 형태로 어긋난다. **삭제는 별도 조작이 아니라 드래그의 한 결말**이다 — 눈금자 위로 되돌리면 `removing` 이 서고 놓으면 삭제된다 (되돌리는 동작 자체가 확인이라 별도 확인 UI 가 없다).
+- **이동은 소속 페이지를 바꾸지 않는다.** 가이드 좌표가 페이지-로컬(C9)이라 페이지를 넘나들면 한 드래그 안에서 기준계가 갈린다. 포인터가 다른 페이지 위로 가도 원래 페이지 좌표계로 계속 읽는다.
+- **가드는 예고대로 소멸하지 않았다** — 4곳 처리, 그중 2곳은 Phase 1 에서 이미 반영:
 
-  | 리스너                                        | 조치                                                                    |
-  | --------------------------------------------- | ----------------------------------------------------------------------- |
-  | 컨테이너 `pointerdown` capture (`:1155`)      | `rulerRoot.contains(event.target)` 조기 반환                            |
-  | 컨테이너 `onPointerDown` bubble (`:1256`)     | **그대로** — 컨테이너 포커스는 눈금자 드래그 중에도 필요 (Cmd+Z 등)     |
-  | 컨테이너 `onContextMenu` (`:1255`)            | 기존 `target.closest(...)` 조기 반환(`:791`)에 선택자 추가 (LOW)        |
-  | `window` pointermove — hover (`:550`)         | 조기 반환. 누락 시 §8.6 빈 영역 fallback 으로 page body 아웃라인이 뜬다 |
-  | `window` pointermove — 드래그 3종             | 없음 — 세션이 pointerdown 으로 열리므로 위 가드가 연쇄 차단             |
+  | 리스너                                   | 조치                                                             |
+  | ---------------------------------------- | ---------------------------------------------------------------- |
+  | 컨테이너 `pointerdown` capture           | `isRulerEventTarget` 조기 반환 (Phase 1)                         |
+  | `window` pointermove — hover             | 조기 반환 + `clearHover()` (Phase 1)                             |
+  | 컨테이너 `onContextMenu`                 | `isRulerEventTarget` 조기 반환 (Phase 5 — 씬 좌표 환산 시 스트립 아래 요소가 잡힌다) |
+  | 컨테이너 `onPointerDown` bubble          | **그대로** — 눈금자 드래그 중에도 컨테이너 포커스는 필요하다     |
 
-  Skia 였다면 "포인트를 zoom/pan/inset 으로 환산해 스트립 rect 판정 → 씬 히트와 우선순위 경쟁" 이 필요했고 §8.7(좌표계)·§8.8(드래그 의도) 실수 유형에 노출된다. DOM 이면 **좌표 무관 소속 판정**이고, 같은 어법의 선례가 인접에 있다 (`handleCanvasContextMenu:791`).
-- **씬 안 조작만 캔버스 히트** — 기존 가이드 이동/삭제. 단일 판정 함수 `resolveGuideHit(point, guides, thresholdScenePx)` 순수 함수로 분리 (테스트 우선), 기존 `resolveSelectionDragIntent`/페이지 타이틀 경로 진입 **전에** 판정하고 미스 시 기존 체인 무변경 통과 (±4 screen px 한정).
-- **진입 게이트 (C10)**: `showRulers === false` 면 히트 판정 자체를 **수행하지 않는다** — 기존 pointer 체인 무변경 통과. 가이드는 그려지되 조작 불가.
-- 삭제: ruler 스트립으로 되돌리면 삭제 (DOM 영역 판정 — 캔버스 히트 불요). hover 시 resize 커서.
-- 드래그 중 transient 채널 (C6 전례 동형 — `guidePresentation` 신설) — canonical write 는 finish 1회.
-- 검증: 기존 인터랙션 유닛 전수 GREEN (G2) + live 생성/이동/삭제 + **DOM↔캔버스 경계 통과** (스트립에서 시작한 드래그가 캔버스 위에서 계속되는지) + **눈금자 위 hover 시 캔버스 아웃라인 미발생** (위 표 4행 회귀 감시).
+- **히트 판정은 "포인터가 올라간 페이지" 의 가이드만** 본다. 겹친 페이지에서 아래 가이드는 위 페이지에 가려 보이지 않으므로(Phase 4 occlusion) 히트도 되면 안 된다 — §8.5 paint↔hit 대칭. 페이지 판정은 호출부의 `resolveTopPageIdAtPoint` 가 하고 `resolveGuideHit` 에는 페이지 간 우선순위 규칙이 **없다** (두 곳에 순서 규칙이 생기면 갈린다). 좌표 변환은 렌더(`buildPageGuideTargets`)와 같은 식(`buildGuideHitTargets`).
+- **C10 진입 게이트**: `showRulers === false` 면 히트 판정 자체를 하지 않는다 — 눈금자 OFF 에서 pointer 체인은 ADR-181 이전과 **바이트 동등**하다. hover 커서 리스너도 같은 조건에서만 붙어, 기본 세션에는 pointermove 리스너가 아예 없다.
+- 드래그 중 transient 는 `guidePresentation` (드래그 **1건**만 — 페이지 드래그와 달리 다중이 없다). 재렌더 신호는 `pageGuideRevision` 재사용 — 가이드가 바뀐 사실은 출처(편집/히스토리/드래그)와 무관하게 오버레이엔 같은 의미다.
+- 검증:
+  - 유닛 28건 — `guideHitTest.test.ts` 9 (임계·rect·교차점·동률·좌표 변환) + `guidePresentation.test.ts` 19 (합성 규칙 8 + 신호 4, 이동/삭제/생성/미소속). 캔버스 suite 1115 passed (기존 인터랙션 전수 GREEN — G2).
+  - live (Chrome MCP, **실제 마우스 이벤트**): 눈금자 드래그로 생성(드롭 지점 페이지에 귀속) → 캔버스 드래그로 이동(125→295) → 눈금자로 되돌려 삭제 → Cmd+Z 로 복원. **눈금자 ON 상태에서 캔버스 클릭 선택 정상**(G2) · 가이드 드래그가 선택을 바꾸지 않음 · 눈금자 hover 시 캔버스 아웃라인 미발생.
+  - **HC1(c) 계측**: 생성·이동 드래그 각각 pointermove 4~5회 동안 canonical write **0** / 히스토리 entry **0**, pointerup 에서 write 1 · entry 1.
+- **함정 (재발 감시)**: 합성 pointer 이벤트로 캔버스를 조작하면 `canvasGestureSession` 이 그 pointerId 를 잡은 채 남아 **이후 실제 클릭이 전부 무시된다**. 이 세션에서 "선택이 안 된다" 로 20분을 썼는데 새로고침 후 실제 클릭은 정상이었다 — 회귀로 오판하기 쉬운 형태다. `window` 에 dispatch 한 pointerup 은 target 이 Window 라 컨테이너 리스너가 못 받는 것이 원인. **캔버스 인터랙션 검증은 실제 이벤트(`computer` 도구)로** 하고, 합성 이벤트는 window 리스너만 쓰는 경로(가이드 드래그 등)에 한정한다. 메모리 `feedback-synthetic-pointer-drag-testing-traps` 의 "pointerId 고정 재사용" 항목과 같은 병인.
+- **관찰 (스코프 밖)**: 히스토리 entry 는 `historyManager.currentPageId` 기준으로 쌓이므로, A 페이지를 보면서 B 페이지에 가이드를 만들면 그 entry 는 A 의 히스토리에 남는다. `page-position`(ADR-177) 도 동일하고 per-page 히스토리 모델의 성질이라 여기서 고치지 않는다.
 
 ### Phase 6 — 스냅 편입 (MED — R2)
 

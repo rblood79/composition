@@ -114,7 +114,20 @@ function syncLabels(
   }
 }
 
-export function RulerOverlay() {
+export interface RulerOverlayProps {
+  /**
+   * 눈금자 스트립 드래그로 가이드를 만든다 (ADR-181 Phase 5).
+   * axis 는 스트립 방향이 정한다 — 가로 자에서 끌면 세로 가이드("x").
+   */
+  onStartGuideCreate?: (
+    axis: "x" | "y",
+    pointerId: number,
+    clientX: number,
+    clientY: number,
+  ) => void;
+}
+
+export function RulerOverlay({ onStartGuideCreate }: RulerOverlayProps = {}) {
   const showRulers = useStore((state) => state.showRulers);
 
   const rootRef = useRef<HTMLDivElement>(null);
@@ -232,16 +245,34 @@ export function RulerOverlay() {
 
   if (!showRulers) return null;
 
+  // 가로 자에서 끌어내면 **세로** 가이드다 (자가 재는 축과 만드는 선이 직교).
+  // pointer capture 는 걸지 않는다 — 세션이 window 리스너로 이어지고, capture
+  // 를 걸면 캔버스 위에서 `elementFromPoint` 대신 캡처 대상이 잡혀 되돌리기
+  // 판정이 죽는다.
+  const startCreate = (axis: "x" | "y") => (event: React.PointerEvent) => {
+    if (event.button !== 0 || !onStartGuideCreate) return;
+    event.preventDefault();
+    onStartGuideCreate(axis, event.pointerId, event.clientX, event.clientY);
+  };
+
   return (
     <div
       className="ruler-overlay"
       ref={rootRef}
       {...{ [RULER_OVERLAY_ATTR]: "" }}
     >
-      <div className="ruler-strip ruler-strip--h" ref={hStripRef}>
+      <div
+        className="ruler-strip ruler-strip--h"
+        ref={hStripRef}
+        onPointerDown={startCreate("x")}
+      >
         <div className="ruler-labels" ref={hLabelsRef} />
       </div>
-      <div className="ruler-strip ruler-strip--v" ref={vStripRef}>
+      <div
+        className="ruler-strip ruler-strip--v"
+        ref={vStripRef}
+        onPointerDown={startCreate("y")}
+      >
         <div className="ruler-labels" ref={vLabelsRef} />
       </div>
       <div className="ruler-corner" />

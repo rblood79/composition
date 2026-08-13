@@ -60,7 +60,7 @@ export interface PageGuideRenderTarget {
   /** 페이지 rect (드래그 delta 반영) — 선 길이이자 클립 영역 */
   pageRect: BoundingBox;
   /** axis "x" = x 좌표를 고정하는 세로선 (snapGuides 와 같은 어법) */
-  lines: ReadonlyArray<{ axis: "x" | "y"; position: number }>;
+  lines: ReadonlyArray<{ id: string; axis: "x" | "y"; position: number }>;
 }
 
 /**
@@ -275,7 +275,10 @@ function translateByPageDelta(
  * 없는 것이 통상이므로 호출부에서 빈 map 이면 아예 부르지 않는 것이 맞다.
  */
 export function buildPageGuideTargets(
-  guidesByPage: ReadonlyMap<string, readonly { axis: "x" | "y"; position: number }[]>,
+  guidesByPage: ReadonlyMap<
+    string,
+    readonly { id: string; axis: "x" | "y"; position: number }[]
+  >,
   frames: ReadonlyArray<{
     id: string;
     x: number;
@@ -305,6 +308,7 @@ export function buildPageGuideTargets(
         height: frame.height,
       },
       lines: guides.map((guide) => ({
+        id: guide.id,
         axis: guide.axis,
         position:
           guide.axis === "x" ? originX + guide.position : originY + guide.position,
