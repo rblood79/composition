@@ -37,6 +37,12 @@ export interface SnapLineGuide {
   /** 정렬선이 걸치는 직교 축 구간 (수직선은 y 구간, 수평선은 x 구간) */
   start: number;
   end: number;
+  /**
+   * 정렬점 마커의 직교 축 좌표 (Pen 어법 — 어느 점들이 맞았는지 표식).
+   * edge 매칭 = 그 변의 코너 2점, center 매칭 = 중심 1점. 이동 박스 +
+   * 매칭 후보 전부, 근접 중복 제거.
+   */
+  markers: number[];
 }
 
 export interface SnapSpacingSegment {
@@ -113,18 +119,52 @@ function resolveAxisSnap(
 }
 
 /**
+ * rect 하나의 정렬점 마커 수집 — 그 rect 의 어느 라인이 정렬선과 맞았는지에
+ * 따라 edge(min/max) 매칭 = 그 변의 코너 2점, center 매칭 = 중심 1점
+ * (Pen snapPointsForBounds 동형: 코너 4 + 중심 1 중 라인 위에 놓인 점).
+ */
+function collectMarkersForRect(
+  axisLines: readonly [number, number, number],
+  line: number,
+  orthoMin: number,
+  orthoMax: number,
+  out: number[],
+): void {
+  if (
+    Math.abs(axisLines[0] - line) <= LINE_MATCH_EPS ||
+    Math.abs(axisLines[2] - line) <= LINE_MATCH_EPS
+  ) {
+    out.push(orthoMin, orthoMax);
+  }
+  if (Math.abs(axisLines[1] - line) <= LINE_MATCH_EPS) {
+    out.push((orthoMin + orthoMax) / 2);
+  }
+}
+
+/**
  * 흡착된 정렬선의 표시 구간 — 이동 박스(스냅 반영)와, 같은 라인을 공유하는
  * 모든 후보의 직교 축 구간 합집합 (Figma 동형: 정렬된 두 박스를 관통).
+ * 정렬점 마커(직교 좌표)도 함께 수집한다 — 근접 중복은 제거.
  */
 function buildGuide(
   axis: "x" | "y",
   line: number,
-  movingMin: number,
-  movingMax: number,
+  movingAxisMin: number,
+  movingAxisSize: number,
+  movingOrthoMin: number,
+  movingOrthoMax: number,
   candidates: readonly SnapCandidateRect[],
 ): SnapLineGuide {
-  let start = movingMin;
-  let end = movingMax;
+  let start = movingOrthoMin;
+  let end = movingOrthoMax;
+  const rawMarkers: number[] = [];
+  collectMarkersForRect(
+    rectLines(movingAxisMin, movingAxisSize),
+    line,
+    movingOrthoMin,
+    movingOrthoMax,
+    rawMarkers,
+  );
   for (const candidate of candidates) {
     const lines =
       axis === "x"
@@ -140,8 +180,19 @@ function buildGuide(
         : candidate.x + candidate.width;
     start = Math.min(start, min);
     end = Math.max(end, max);
+    collectMarkersForRect(lines, line, min, max, rawMarkers);
   }
-  return { kind: "line", axis, position: line, start, end };
+  rawMarkers.sort((a, b) => a - b);
+  const markers: number[] = [];
+  for (const marker of rawMarkers) {
+    if (
+      markers.length === 0 ||
+      marker - markers[markers.length - 1] > LINE_MATCH_EPS
+    ) {
+      markers.push(marker);
+    }
+  }
+  return { kind: "line", axis, position: line, start, end, markers };
 }
 
 // ============================================
@@ -430,6 +481,8 @@ export function resolveSnappedPosition(
       buildGuide(
         "x",
         resolvedX.line.line,
+        x,
+        movingSize.width,
         y,
         y + movingSize.height,
         candidates,
@@ -446,7 +499,15 @@ export function resolveSnappedPosition(
   }
   if (resolvedY?.line) {
     guides.push(
-      buildGuide("y", resolvedY.line.line, x, x + movingSize.width, candidates),
+      buildGuide(
+        "y",
+        resolvedY.line.line,
+        y,
+        movingSize.height,
+        x,
+        x + movingSize.width,
+        candidates,
+      ),
     );
   } else if (resolvedY?.spacing) {
     guides.push({

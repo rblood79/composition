@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: "정렬선의 경우 Figma 에서는 간격 수치 값이 나타나지 않나?" (2026-08-12 사용자) — Pen 대조 실측 후 재개 지시. 등간격 배치(3 페이지 나란히)가 눈대중이던 마지막 축
   - live 실측: P4·P5 간격(160.248…) 리듬 연장 지점에 P3 정확 흡착 — 커밋 gap 두 개 float 동일값, 배지 "160" 2개 렌더, pointerup 소거, undo 원복
   - **스냅 가이드 색 웜 레드 전환**: 정렬선·등간격 표시·수치 배지 색을 무채색 `--accent` 에서 웜 레드 `#F24822` 상수로 변경 (배지 텍스트 흰색). **Why**: Figma `#F24822`/Pen `#DD3F17` 픽셀·코드 실측 대조 — 드래그 중 순간 피드백은 콘텐츠·선택 파랑과 혼동되지 않는 이질색이 두 도구 공통 관례, 무채색은 명도로만 겨뤄 식별성 열세 (사용자 결정)
+  - **정렬점 × 마커**: 정렬선 위에 실제로 맞은 점들(edge 매칭 = 그 변의 코너 2점, center 매칭 = 중심 1점 — 이동 박스 + 매칭 후보 전부, 근접 중복 제거)을 × 마크로 표시. **Why**: 선만으로는 "어느 점이 붙었는지" 가 안 보인다 — Pen v1.2.1 어법 차용 (선 위 × 가 등을 맞댄 화살촉처럼 읽혀 구간 분절 게슈탈트)
   - 위치: `workspace/canvas/interaction/{snapGuides,snapGuidePresentation}.ts`, `workspace/canvas/skia/{snapGuideRenderer,skiaOverlayBuilder,selectionRenderer}.ts`
 
 ## [캔버스 스냅·정렬 가이드 — ADR-179 Implemented] - 2026-08-12

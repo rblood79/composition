@@ -29,6 +29,8 @@ const SNAP_GUIDE_HEX = 0xf24822;
 
 /** 간격 세그먼트 양끝 틱 반길이 (screen px) */
 const SPACING_TICK_HALF_PX = 4;
+/** 정렬점 × 마커 반길이 (screen px — Pen F5t=4 전체 크기보다 약간 크게) */
+const MARKER_HALF_PX = 3;
 /** 수치 배지 설정 (screen px — invZoom 스케일) */
 const BADGE_FONT_SIZE_PX = 10;
 const BADGE_LINE_HEIGHT_PX = 12;
@@ -55,6 +57,7 @@ export function renderSnapGuides(
   paint.setAntiAlias(true);
   paint.setStyle(ck.PaintStyle.Stroke);
   paint.setStrokeWidth(invZoom);
+  const markerHalf = MARKER_HALF_PX * invZoom;
   for (const guide of guides) {
     if (guide.kind === "line") {
       if (guide.axis === "x") {
@@ -71,6 +74,26 @@ export function renderSnapGuides(
           guide.position,
           guide.end,
           guide.position,
+          paint,
+        );
+      }
+      // 정렬점 × 마커 — 어느 점들이 맞았는지 표식 (Pen 어법: 선 위에
+      // 중심 배치되어 등을 맞댄 화살촉처럼 읽힌다)
+      for (const marker of guide.markers) {
+        const cx = guide.axis === "x" ? guide.position : marker;
+        const cy = guide.axis === "x" ? marker : guide.position;
+        canvas.drawLine(
+          cx - markerHalf,
+          cy - markerHalf,
+          cx + markerHalf,
+          cy + markerHalf,
+          paint,
+        );
+        canvas.drawLine(
+          cx + markerHalf,
+          cy - markerHalf,
+          cx - markerHalf,
+          cy + markerHalf,
           paint,
         );
       }

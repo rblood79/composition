@@ -39,7 +39,7 @@ function guidesSignature(guides: readonly SnapGuide[]): string {
   return guides
     .map((g) =>
       g.kind === "line"
-        ? `L:${g.axis}:${g.position}:${g.start}:${g.end}`
+        ? `L:${g.axis}:${g.position}:${g.start}:${g.end}:${g.markers.join(",")}`
         : `S:${g.axis}:${g.value}:${g.cross}:${g.segments
             .map((s) => `${s.start}-${s.end}`)
             .join(",")}`,
@@ -49,7 +49,7 @@ function guidesSignature(guides: readonly SnapGuide[]): string {
 
 function cloneGuide(guide: SnapGuide): SnapGuide {
   return guide.kind === "line"
-    ? { ...guide }
+    ? { ...guide, markers: [...guide.markers] }
     : {
         ...guide,
         segments: [{ ...guide.segments[0] }, { ...guide.segments[1] }],

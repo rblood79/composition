@@ -168,6 +168,47 @@ describe("resolveSnappedPosition", () => {
     expect(result.guides).toHaveLength(0);
   });
 
+  it("정렬점 마커 — edge 매칭은 양쪽 코너, 이동+후보 전부 수집", () => {
+    // left-left 정렬선 x=100: 이동 y[500,700] 코너 2점 + 후보 y[100,300] 코너 2점
+    const result = resolveSnappedPosition(
+      { x: 104, y: 500 },
+      SIZE,
+      [candidate("a", 100, 100)],
+      8,
+    );
+    const guide = asLine(result.guides[0]);
+    expect(guide.markers).toEqual([100, 300, 500, 700]);
+  });
+
+  it("정렬점 마커 — center 매칭은 중심 1점", () => {
+    // 후보 x[300,400] center=350, 이동 폭 200 raw x=252 → center-center 만 매칭
+    const result = resolveSnappedPosition(
+      { x: 252, y: 500 },
+      { width: 200, height: 200 },
+      [candidate("a", 300, 100, 100, 200)],
+      8,
+    );
+    expect(result.position.x).toBe(250);
+    const guide = asLine(result.guides[0]);
+    expect(guide.position).toBe(350);
+    // 후보 중심 y=200, 이동 중심 y=600
+    expect(guide.markers).toEqual([200, 600]);
+  });
+
+  it("정렬점 마커 — 근접 중복 제거 (이동 top == 후보 bottom)", () => {
+    // right-left 인접: 이동 x=100 (right=200) 이 후보 left=200 에 정렬,
+    // 후보 y[300,500] bottom=500 == 이동 top=500 → 마커 500 은 1개
+    const result = resolveSnappedPosition(
+      { x: 95, y: 500 },
+      SIZE,
+      [candidate("a", 200, 300)],
+      8,
+    );
+    const guide = asLine(result.guides[0]);
+    expect(guide.position).toBe(200);
+    expect(guide.markers).toEqual([300, 500, 700]);
+  });
+
   it("scene 임계 환산 — 낮은 zoom(넓은 scene 임계)에서만 흡착되는 거리", () => {
     const candidates = [candidate("a", 100, 100)];
     // 거리 12: zoom 1 (임계 8) → 미흡착, zoom 0.5 (임계 16) → 흡착
