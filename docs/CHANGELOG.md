@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 흡착 순간 **간격 세그먼트(양끝 틱) + 간격 수치 배지** 표시 — Figma 어법 (Pen v1.2.1 실측: 수치 표시 없음, 정렬선+정렬점 마커뿐). 배지는 `--accent` 배경 + `--fg-on-accent` 텍스트, 페이지·absolute 요소 공통 (같은 스냅 엔진)
   - **Why**: "정렬선의 경우 Figma 에서는 간격 수치 값이 나타나지 않나?" (2026-08-12 사용자) — Pen 대조 실측 후 재개 지시. 등간격 배치(3 페이지 나란히)가 눈대중이던 마지막 축
   - live 실측: P4·P5 간격(160.248…) 리듬 연장 지점에 P3 정확 흡착 — 커밋 gap 두 개 float 동일값, 배지 "160" 2개 렌더, pointerup 소거, undo 원복
+  - **스냅 가이드 색 웜 레드 전환**: 정렬선·등간격 표시·수치 배지 색을 무채색 `--accent` 에서 웜 레드 `#F24822` 상수로 변경 (배지 텍스트 흰색). **Why**: Figma `#F24822`/Pen `#DD3F17` 픽셀·코드 실측 대조 — 드래그 중 순간 피드백은 콘텐츠·선택 파랑과 혼동되지 않는 이질색이 두 도구 공통 관례, 무채색은 명도로만 겨뤄 식별성 열세 (사용자 결정)
   - 위치: `workspace/canvas/interaction/{snapGuides,snapGuidePresentation}.ts`, `workspace/canvas/skia/{snapGuideRenderer,skiaOverlayBuilder,selectionRenderer}.ts`
 
 ## [캔버스 스냅·정렬 가이드 — ADR-179 Implemented] - 2026-08-12

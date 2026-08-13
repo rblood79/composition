@@ -4,26 +4,28 @@
  * 드래그 중 흡착 순간의 정렬선(line)과 등간격 표시(spacing)를 scene 좌표에
  * 1 screen px 선으로 그린다. 조작 표식(드래그 순간 피드백)이라
  * `withPageOcclusionClip` 미적용 — §8.5 선택 박스 열 분류 (breakdown §3.3
- * 판정). 색은 builder 시맨틱 `--accent` (무채색 — 명도 대비, css-tokens.md
- * §builder accent).
+ * 판정).
+ *
+ * 색은 웜 레드 상수 (2026-08-13 사용자 결정 — 초기 `--accent` 무채색에서
+ * 전환). Figma #F24822 / Pen #DD3F17 실측 대조 후 Figma 값 채택: 드래그 중
+ * 순간 피드백은 콘텐츠·선택 파랑·페이지 크롬과 혼동되지 않는 이질색이라는
+ * 두 도구 공통 관례. 선택 파랑(OVERLAY_BLUE)과 같은 Skia 층 상수 어법 —
+ * 테마 무관 신호색이라 CSS 변수 조회 없음.
  *
  * 등간격 표시 = 간격 구간 세그먼트 + 양끝 수직 틱 + 간격 수치 배지
  * (Figma 어법 — Pen v1.2.1 은 수치 없음, 실측 메모리
- * project-pen-v121-extraction-analysis 참조). 배지는 `--accent` 배경 +
- * `--fg-on-accent` 텍스트 (`.list-item.applied` 페어링과 동일).
+ * project-pen-v121-extraction-analysis 참조). 배지는 웜 레드 배경 + 흰색
+ * 텍스트.
  */
 
 import type { CanvasKit, Canvas, FontMgr, Paint } from "canvaskit-wasm";
 import type { SnapGuide, SnapSpacingGuide } from "../interaction/snapGuides";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
-import { cssColorToHex, getCSSVariable } from "../utils/cssVariableReader";
 import { hexToColor4fChannels } from "./themeWatcher";
 import { resolveOverlayTypeface } from "./selectionRenderer";
 
-/** --accent 미해석 시 폴백 — builder light accent (gray-700) */
-const ACCENT_FALLBACK_HEX = 0x374151;
-/** --fg-on-accent 미해석 시 폴백 — 흰색 (light accent 는 어두운 회색) */
-const ON_ACCENT_FALLBACK_HEX = 0xffffff;
+/** 스냅 가이드 웜 레드 (#F24822 — Figma 측정/가이드 실측값, 양 테마 공용) */
+const SNAP_GUIDE_HEX = 0xf24822;
 
 /** 간격 세그먼트 양끝 틱 반길이 (screen px) */
 const SPACING_TICK_HALF_PX = 4;
@@ -47,11 +49,9 @@ export function renderSnapGuides(
   }
 
   const invZoom = 1 / (zoom === 0 ? 1 : zoom);
-  const accent = hexToColor4fChannels(
-    cssColorToHex(getCSSVariable("--accent"), ACCENT_FALLBACK_HEX),
-  );
+  const guideColor = hexToColor4fChannels(SNAP_GUIDE_HEX);
   const paint = acquirePooledPaint(ck);
-  paint.setColor(ck.Color4f(accent[0], accent[1], accent[2], 0.9));
+  paint.setColor(ck.Color4f(guideColor[0], guideColor[1], guideColor[2], 0.9));
   paint.setAntiAlias(true);
   paint.setStyle(ck.PaintStyle.Stroke);
   paint.setStrokeWidth(invZoom);
@@ -84,7 +84,7 @@ export function renderSnapGuides(
   if (fontMgr) {
     for (const guide of guides) {
       if (guide.kind === "spacing") {
-        renderSpacingBadges(ck, canvas, guide, invZoom, accent, fontMgr);
+        renderSpacingBadges(ck, canvas, guide, invZoom, guideColor, fontMgr);
       }
     }
   }
@@ -156,7 +156,7 @@ function renderSpacingBadges(
   canvas: Canvas,
   guide: SnapSpacingGuide,
   invZoom: number,
-  accent: readonly [number, number, number],
+  guideColor: readonly [number, number, number],
   fontMgr: FontMgr,
 ): void {
   const typeface = resolveOverlayTypeface(fontMgr, {
@@ -174,14 +174,14 @@ function renderSpacingBadges(
   const bgPaint = acquirePooledPaint(ck);
   bgPaint.setAntiAlias(true);
   bgPaint.setStyle(ck.PaintStyle.Fill);
-  bgPaint.setColor(ck.Color4f(accent[0], accent[1], accent[2], 0.95));
-  const [tr, tg, tb] = hexToColor4fChannels(
-    cssColorToHex(getCSSVariable("--fg-on-accent"), ON_ACCENT_FALLBACK_HEX),
+  bgPaint.setColor(
+    ck.Color4f(guideColor[0], guideColor[1], guideColor[2], 0.95),
   );
+  // 웜 레드 배경 위 텍스트는 양 테마 공통 흰색 (dimension label 어법)
   const textPaint = acquirePooledPaint(ck);
   textPaint.setAntiAlias(true);
   textPaint.setStyle(ck.PaintStyle.Fill);
-  textPaint.setColor(ck.Color4f(tr, tg, tb, 1));
+  textPaint.setColor(ck.Color4f(1, 1, 1, 1));
 
   try {
     const text = `${Math.round(guide.value)}`;
