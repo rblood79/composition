@@ -29,6 +29,7 @@ import type {
   CompositionExtension,
   CompositionDocument,
   DescendantOverride,
+  PageGuideLine,
   PagePositionPoint,
   SerializedAction,
 } from "./composition-document.types";
@@ -44,6 +45,18 @@ export interface PagePositionSetEntry {
   pageId: string;
   breakpoint: BreakpointName;
   position: PagePositionPoint | null;
+}
+
+/**
+ * `setPageGuides` 입력 entry — ADR-181.
+ *
+ * `guides` 는 해당 (pageId × breakpoint) 의 **전체 목록**이다. `null` 또는
+ * 빈 배열은 entry 제거 (마지막 가이드 삭제 / undo 의 `before: null` 복원).
+ */
+export interface PageGuideSetEntry {
+  pageId: string;
+  breakpoint: BreakpointName;
+  guides: PageGuideLine[] | null;
 }
 
 // ─────────────────────────────────────────────
@@ -278,4 +291,19 @@ export interface CanonicalDocumentActions {
    * - 값 무변경 entry 만 있으면 no-op (documentVersion 미증가 — lazy write).
    */
   setPagePositions(entries: PagePositionSetEntry[]): void;
+
+  // ─────────────────────────────────────────────
+  // ADR-181 — 수동 가이드 root 필드 mutation surface
+  // ─────────────────────────────────────────────
+
+  /**
+   * 활성 document 의 `pageGuides` root 필드에 entry 를 병합 기록.
+   *
+   * - (pageId × breakpoint) 단위 **목록 전체 교체** — 히스토리 payload 가
+   *   before/after 라인 배열이라 부분 patch 보다 이 형태가 정합적이다.
+   * - `guides: null` 또는 빈 배열은 해당 (pageId × breakpoint) 를 제거하고,
+   *   그 결과 페이지 entry 가 비면 pageId 키 자체를 제거.
+   * - 목록 무변경 entry 만 있으면 no-op (documentVersion 미증가 — lazy write).
+   */
+  setPageGuides(entries: PageGuideSetEntry[]): void;
 }

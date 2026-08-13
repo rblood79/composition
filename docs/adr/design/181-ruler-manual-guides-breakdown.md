@@ -172,7 +172,7 @@ live 검증 (Chrome MCP):
 
 - 검증: live 토글(설정 스위치 + Shift+R) / 팬·줌 눈금 동기 (Skia 콘텐츠와 눈금 정합 스크린샷 대조) / 좌측 패널 개폐 인셋 추종 / **G5 (a) ruler ON·OFF 로 `render.frame` 불변** + (a′) 팬 중 리페인트 0 (DevTools Rendering → Paint flashing).
 
-### Phase 2 — 가이드 document 필드 + persist/hydrate (LOW)
+### Phase 2 — 가이드 document 필드 + persist/hydrate (LOW) — **Implemented 2026-08-14**
 
 - `composition-document.types.ts` 에 additive root 필드 (**C9 확정 반영 — `pagePositions` 동형 2단 Record**):
 
@@ -187,7 +187,10 @@ live 검증 (Chrome MCP):
 
 - `canonicalDocumentStore.ts` 에 `setPageGuides` (ADR-177 `setPagePositions:848` 동형 — `mutateActiveDoc` + 빈 entry 정리) + hydrate 페이지 단위 병합.
 - BC: 필드 부재 문서 = 가이드 없음 (현행과 동일 동작), 로드 시 재직렬화 0. entry 부재 breakpoint 도 빈 목록 — 재계산 폴백 불요 (C9).
-- 검증: 유닛 (set/clear/hydrate 병합 + breakpoint 격리) + live 시드 → 새로고침 유지.
+- **persist/hydrate 는 추가 작업이 없었다** — `persistActiveCanonicalDocument` 가 `db.documents.put(projectId, doc)` 로 **문서 전체**를 저장하므로 additive root 필드가 자동으로 실려 간다. C9 가 "entry 부재 = 빈 목록, 재계산 폴백 불요" 로 정해 둔 덕에 hydrate 측 병합 로직도 불요 (`pagePositions` 는 `initializePagePositions` 폴백이 필요했던 것과 갈리는 지점).
+- 검증: 유닛 9건 (`canonicalDocumentStore.test.ts` — batch 기록 / breakpoint 격리(C9) / 목록 전체 교체 / null·빈 배열 제거 + 페이지 키 정리 / lazy write no-op / 부재 entry 제거 no-op / 빈 batch / 호출자 배열 alias 차단 / 필드 부재 BC). 전체 61 passed.
+- live (Chrome MCP): `setPageGuides` → IndexedDB persist → 새로고침 → hydrate 왕복에서 값 동일, `version` 은 `composition-1.0` 유지(additive — BC 0%), 기존 필드 무손상. 삭제 시 문서에서 **필드 자체가 사라짐** (`hasOwnProperty("pageGuides") === false`).
+- **함정 (다음 phase 주의)**: `__canonical_STORE__` 전역은 HMR 후 **중복 인스턴스**가 물릴 수 있다 (실측: documents 0건 / documentVersion 0). live 시드 전 `documents.size`·`documentVersion` 으로 실인스턴스인지 먼저 확인할 것 — 아니면 죽은 인스턴스에 기록된다.
 
 ### Phase 3 — 히스토리 편입 (MED)
 

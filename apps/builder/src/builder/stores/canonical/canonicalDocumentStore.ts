@@ -25,6 +25,7 @@ import type {
   CompositionExtendedNode,
   CompositionDocument,
   DescendantOverride,
+  PageGuideLine,
   RefNode,
   SerializedAction,
   SerializedEvent,
@@ -887,8 +888,66 @@ export const useCanonicalDocumentStore = create<CanonicalDocumentStore>(
         return { ...doc, pagePositions: next };
       });
     },
+
+    // ─────────────────────────────────────────────
+    // ADR-181 — 수동 가이드 root 필드 mutation
+    // ─────────────────────────────────────────────
+
+    setPageGuides: (entries) => {
+      mutateActiveDoc(set, "setPageGuides", (doc) => {
+        if (entries.length === 0) return doc;
+        const next = { ...(doc.pageGuides ?? {}) };
+        let changed = false;
+        for (const entry of entries) {
+          const current = next[entry.pageId];
+          const guides = entry.guides;
+          if (!guides || guides.length === 0) {
+            if (!current || current[entry.breakpoint] === undefined) continue;
+            const byBreakpoint = { ...current };
+            delete byBreakpoint[entry.breakpoint];
+            if (Object.keys(byBreakpoint).length === 0) {
+              delete next[entry.pageId];
+            } else {
+              next[entry.pageId] = byBreakpoint;
+            }
+            changed = true;
+            continue;
+          }
+          if (sameGuideList(current?.[entry.breakpoint], guides)) continue;
+          next[entry.pageId] = {
+            ...(current ?? {}),
+            // 호출자 배열을 그대로 들고 있으면 이후 mutation 이 문서에 샌다
+            [entry.breakpoint]: guides.map((g) => ({ ...g })),
+          };
+          changed = true;
+        }
+        if (!changed) return doc;
+        if (Object.keys(next).length === 0) {
+          const cleared = { ...doc };
+          delete cleared.pageGuides;
+          return cleared;
+        }
+        return { ...doc, pageGuides: next };
+      });
+    },
   }),
 );
+
+/** 가이드 목록 동일성 — lazy write 판정 (순서 포함) */
+function sameGuideList(
+  prev: PageGuideLine[] | undefined,
+  next: PageGuideLine[],
+): boolean {
+  if (!prev || prev.length !== next.length) return false;
+  for (let i = 0; i < prev.length; i++) {
+    const a = prev[i];
+    const b = next[i];
+    if (a.id !== b.id || a.axis !== b.axis || a.position !== b.position) {
+      return false;
+    }
+  }
+  return true;
+}
 
 /**
  * ADR-131 Phase 3 — shared mutation helper for root collection actions.

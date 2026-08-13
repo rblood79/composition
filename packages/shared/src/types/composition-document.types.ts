@@ -791,6 +791,21 @@ export interface PagePositionPoint {
   y: number;
 }
 
+/**
+ * 수동 가이드 라인 1개 — ADR-181 `pageGuides` entry 값.
+ *
+ * `position` 은 **페이지-로컬 px** 다. 페이지 위치(ADR-177 `pagePositions`)와
+ * 독립이라 페이지를 옮겨도 가이드가 함께 따라간다.
+ */
+export interface PageGuideLine {
+  /** 안정 id — 히스토리 payload / 드래그 중 추적 대상 */
+  id: string;
+  /** "x" = 세로선(x 좌표 고정), "y" = 가로선(y 좌표 고정) */
+  axis: "x" | "y";
+  /** 페이지-로컬 px */
+  position: number;
+}
+
 export interface CompositionDocument {
   /**
    * 문서 포맷 버전.
@@ -857,6 +872,23 @@ export interface CompositionDocument {
   pagePositions?: Record<
     string,
     Partial<Record<BreakpointName, PagePositionPoint>>
+  >;
+
+  /**
+   * 수동 가이드 — ADR-181.
+   *
+   * breakpoint 별 **페이지-로컬 px**. `pagePositions` 와 같은 2단 Record 인
+   * 이유는 페이지 크기가 breakpoint 별로 다르기 때문이다 — 공유하면 다른
+   * breakpoint 에서 페이지 rect 밖으로 나간 가이드가 렌더에서는 클립되고
+   * 스냅에는 참여하는 비대칭이 생긴다 (ADR-181 breakdown C9).
+   *
+   * **lazy write** — 사용자가 가이드를 만든 (페이지 × breakpoint) 만 기록되며,
+   * entry 부재는 "가이드 없음" 이다 (재계산 폴백 없음). Preview/Publish 산출물
+   * 에는 영향 없다 (Figma 와 동일 — 문서 데이터지만 배포 무관).
+   */
+  pageGuides?: Record<
+    string,
+    Partial<Record<BreakpointName, PageGuideLine[]>>
   >;
 
   /** Canonical primary storage marker. */

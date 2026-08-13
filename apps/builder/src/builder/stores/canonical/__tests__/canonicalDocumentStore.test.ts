@@ -964,3 +964,165 @@ describe("canonicalDocumentStore — setPagePositions (ADR-177)", () => {
 afterEach(() => {
   resetStore();
 });
+
+
+describe("canonicalDocumentStore — setPageGuides (ADR-181)", () => {
+  beforeEach(resetStore);
+
+  function setupActiveDoc(overrides?: Partial<CompositionDocument>) {
+    const doc = makeDoc(overrides);
+    const store = useCanonicalDocumentStore.getState();
+    store.setDocument("p", doc);
+    store.setCurrentProject("p");
+    return doc;
+  }
+
+  const g = (id: string, axis: "x" | "y", position: number) => ({
+    id,
+    axis,
+    position,
+  });
+
+  it("records guide lists into pageGuides root field (batch)", () => {
+    setupActiveDoc();
+    useCanonicalDocumentStore.getState().setPageGuides([
+      { pageId: "page-1", breakpoint: "desktop", guides: [g("a", "x", 100)] },
+      {
+        pageId: "page-2",
+        breakpoint: "desktop",
+        guides: [g("b", "y", 40), g("c", "y", 80)],
+      },
+    ]);
+
+    expect(selectActiveCanonicalDocument()?.pageGuides).toEqual({
+      "page-1": { desktop: [g("a", "x", 100)] },
+      "page-2": { desktop: [g("b", "y", 40), g("c", "y", 80)] },
+    });
+  });
+
+  it("keeps breakpoints independent for the same page (C9)", () => {
+    setupActiveDoc();
+    const store = () => useCanonicalDocumentStore.getState();
+    store().setPageGuides([
+      { pageId: "page-1", breakpoint: "desktop", guides: [g("a", "x", 1400)] },
+    ]);
+    store().setPageGuides([
+      { pageId: "page-1", breakpoint: "mobile", guides: [g("b", "x", 16)] },
+    ]);
+
+    expect(selectActiveCanonicalDocument()?.pageGuides).toEqual({
+      "page-1": { desktop: [g("a", "x", 1400)], mobile: [g("b", "x", 16)] },
+    });
+  });
+
+  it("replaces the whole list for a (page × breakpoint)", () => {
+    setupActiveDoc();
+    const store = () => useCanonicalDocumentStore.getState();
+    store().setPageGuides([
+      {
+        pageId: "page-1",
+        breakpoint: "desktop",
+        guides: [g("a", "x", 10), g("b", "x", 20)],
+      },
+    ]);
+    store().setPageGuides([
+      { pageId: "page-1", breakpoint: "desktop", guides: [g("b", "x", 25)] },
+    ]);
+
+    expect(selectActiveCanonicalDocument()?.pageGuides).toEqual({
+      "page-1": { desktop: [g("b", "x", 25)] },
+    });
+  });
+
+  it("null/empty removes the breakpoint entry, and the page key when it empties", () => {
+    setupActiveDoc();
+    const store = () => useCanonicalDocumentStore.getState();
+    store().setPageGuides([
+      { pageId: "page-1", breakpoint: "desktop", guides: [g("a", "x", 10)] },
+      { pageId: "page-1", breakpoint: "mobile", guides: [g("b", "x", 20)] },
+    ]);
+
+    store().setPageGuides([
+      { pageId: "page-1", breakpoint: "mobile", guides: [] },
+    ]);
+    expect(selectActiveCanonicalDocument()?.pageGuides).toEqual({
+      "page-1": { desktop: [g("a", "x", 10)] },
+    });
+
+    store().setPageGuides([
+      { pageId: "page-1", breakpoint: "desktop", guides: null },
+    ]);
+    // 마지막 entry 가 사라지면 필드 자체를 제거한다 (lazy write — BC 0%)
+    expect(selectActiveCanonicalDocument()?.pageGuides).toBeUndefined();
+  });
+
+  it("no-op when the list is unchanged (lazy write — documentVersion 미증가)", () => {
+    setupActiveDoc();
+    const store = () => useCanonicalDocumentStore.getState();
+    const entries = [
+      { pageId: "page-1", breakpoint: "desktop" as const, guides: [g("a", "x", 10)] },
+    ];
+    store().setPageGuides(entries);
+    const afterFirst = useCanonicalDocumentStore.getState().documentVersion;
+
+    store().setPageGuides([
+      { pageId: "page-1", breakpoint: "desktop", guides: [g("a", "x", 10)] },
+    ]);
+    expect(useCanonicalDocumentStore.getState().documentVersion).toBe(
+      afterFirst,
+    );
+
+    // 값이 하나라도 다르면 기록된다
+    store().setPageGuides([
+      { pageId: "page-1", breakpoint: "desktop", guides: [g("a", "x", 11)] },
+    ]);
+    expect(useCanonicalDocumentStore.getState().documentVersion).not.toBe(
+      afterFirst,
+    );
+  });
+
+  it("removing an absent entry is a no-op", () => {
+    setupActiveDoc();
+    const before = useCanonicalDocumentStore.getState().documentVersion;
+    useCanonicalDocumentStore
+      .getState()
+      .setPageGuides([
+        { pageId: "ghost", breakpoint: "desktop", guides: null },
+      ]);
+    expect(useCanonicalDocumentStore.getState().documentVersion).toBe(before);
+    expect(selectActiveCanonicalDocument()?.pageGuides).toBeUndefined();
+  });
+
+  it("empty batch is a no-op", () => {
+    setupActiveDoc();
+    const before = useCanonicalDocumentStore.getState().documentVersion;
+    useCanonicalDocumentStore.getState().setPageGuides([]);
+    expect(useCanonicalDocumentStore.getState().documentVersion).toBe(before);
+  });
+
+  it("does not alias the caller array (later mutation must not leak)", () => {
+    setupActiveDoc();
+    const guides = [g("a", "x", 10)];
+    useCanonicalDocumentStore
+      .getState()
+      .setPageGuides([{ pageId: "page-1", breakpoint: "desktop", guides }]);
+
+    guides[0].position = 999;
+    guides.push(g("z", "y", 5));
+
+    expect(selectActiveCanonicalDocument()?.pageGuides).toEqual({
+      "page-1": { desktop: [g("a", "x", 10)] },
+    });
+  });
+
+  it("문서에 필드가 없으면 가이드 없음 — 기존 문서 무영향 (BC 0%)", () => {
+    setupActiveDoc();
+    expect(selectActiveCanonicalDocument()?.pageGuides).toBeUndefined();
+    expect(
+      Object.prototype.hasOwnProperty.call(
+        selectActiveCanonicalDocument() ?? {},
+        "pageGuides",
+      ),
+    ).toBe(false);
+  });
+});
