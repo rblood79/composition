@@ -697,11 +697,25 @@ export class HistoryManager {
    * 지정 페이지를 제외한 모든 페이지 히스토리 초기화 — ADR-180 복원 시퀀스
    * 5단계 (R4: 문서 전체 교체가 타 페이지 delta 의 전제 상태를 무효화하므로
    * stale delta 적용을 차단). 반환값은 clear 된 pageId 목록 (보고용).
+   *
+   * `additionalPageIds` — 호출부가 아는 프로젝트 페이지 전수. 페이지 히스토리는
+   * lazy 로드라 `pageHistories` 키만 순회하면 **이 세션에서 방문하지 않은
+   * 페이지가 빠진다** — IndexedDB 잔존분이 재방문 시 부활해 R4 가 뚫린다
+   * (2026-08-13 live 실측: 복원 후 미방문 Page 4 히스토리 50건 부활).
+   * `clearPageHistory` 는 미로드 페이지에도 안전하다 (메모리 delete 는 no-op,
+   * IndexedDB 삭제는 pageId 직접).
    */
-  clearOtherPageHistories(keepPageId: string): string[] {
+  clearOtherPageHistories(
+    keepPageId: string,
+    additionalPageIds?: Iterable<string>,
+  ): string[] {
+    const targets = new Set(this.pageHistories.keys());
+    if (additionalPageIds) {
+      for (const pageId of additionalPageIds) targets.add(pageId);
+    }
+    targets.delete(keepPageId);
     const cleared: string[] = [];
-    for (const pageId of Array.from(this.pageHistories.keys())) {
-      if (pageId === keepPageId) continue;
+    for (const pageId of targets) {
       cleared.push(pageId);
       this.clearPageHistory(pageId);
     }

@@ -121,6 +121,11 @@ export async function restoreSnapshot(
   const target = snapshotManager.getSnapshot(projectId, snapshotId);
   if (!target) return false;
 
+  // 복원 전 페이지 목록 캡처 — R4 clear 는 메모리 로드 페이지만으로는 부족하다
+  // (히스토리 lazy 로드: 미방문 페이지의 IndexedDB 잔존분이 재방문 시 부활).
+  // 복원 전/후 페이지 합집합을 전달해 프로젝트 페이지 전수를 clear 한다.
+  const prevPageIds = get().pages.map((page) => page.id);
+
   // 1. 복원 직전 상태 자동 캡처 (undo 안전망 — system rolling 대상)
   const before = await snapshotManager.createSnapshot({
     projectId,
@@ -137,7 +142,11 @@ export async function restoreSnapshot(
   //    before 전체본이 구 delta 의 전제 상태를 정확히 복원하므로 일관.
   const currentPageId = get().currentPageId;
   if (currentPageId) {
-    historyManager.clearOtherPageHistories(currentPageId);
+    const restoredPageIds = get().pages.map((page) => page.id);
+    historyManager.clearOtherPageHistories(currentPageId, [
+      ...prevPageIds,
+      ...restoredPageIds,
+    ]);
     historyManager.addEntry({
       type: "snapshot-restore",
       // 소비자 미해석 무해값 — page-position 의 elementId=pageId 관례 동일

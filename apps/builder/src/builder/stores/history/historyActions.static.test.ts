@@ -148,7 +148,11 @@ describe("ADR-180: snapshot-restore entry 소비 분기 (문서 전체 교체 �
     expect(source).toContain('reason: "snapshot-restore"');
 
     // R4 — 타 페이지 히스토리 clear / entry 는 스냅샷 참조 id 만 (직렬화 본 금지)
-    expect(source).toContain("clearOtherPageHistories");
+    // clear 는 프로젝트 페이지 전수 (복원 전/후 합집합) 전달 — 메모리 로드
+    // 페이지만 지우면 lazy 미로드 페이지의 IndexedDB 잔존분이 재방문 시 부활
+    // (2026-08-13 live 실측)
+    expect(source).toContain("clearOtherPageHistories(currentPageId, [");
+    expect(source).toContain("const prevPageIds");
     expect(source).toContain("beforeSnapshotId: before.id");
 
     // 순환 차단 — useStore 직접 import 금지 (get 주입 계약, ADR-116 G6-2 축)
