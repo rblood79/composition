@@ -4,6 +4,8 @@
 
 Accepted — 2026-08-13 (리뷰 round 1 승인 — 이슈 0건, `docs/adr/reviews/181.md`)
 
+- **Phase 0 (inventory freeze) Implemented 2026-08-13** — 계약 표 C1~C11 실측 freeze. 판정 3건 확정: C9 가이드 좌표는 **breakpoint 별** (페이지 크기가 breakpoint 별이라 공유 시 rect 밖 가이드가 스냅에만 참여) / C10 `showRulers` 기본 `false` + 가이드 **표시는 ruler 와 독립, 조작은 ruler ON 한정** (R1 노출면 축소 → G2 강화) / C11 ruler 는 전용 카운터 불요(카메라가 프레임 스냅샷 키에 포함), 가이드는 `overlayVersion` 만 bump(`invalidateContent` 불요). 비-element 히스토리 kind 소비 지점은 초안 3곳 → **실측 6곳** 으로 확대 (breakdown §2 C4).
+
 ## Context
 
 캔버스 정렬 보조는 [ADR-179](completed/179-snap-alignment-guides.md) (Implemented 2026-08-12) 로 **객체 스냅** (드래그 순간의 정렬선·등간격) 까지 도달했지만, 사용자가 **미리 놓아두는 고정 기준선** 이 없다 — Figma/Pen 의 ruler + 수동 가이드에 해당하는 표면이 0 이다 (2026-08-13 실측: `ruler`/`guide` 렌더·문서 필드 grep 0건, `snapGuides.ts` 후보는 rect 전용).
