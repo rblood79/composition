@@ -57,43 +57,8 @@ export const PageBodyEditor = memo(
       [onUpdate],
     );
 
-    // ADR-177 Phase 3 — 페이지 캔버스 위치 (active breakpoint). 실제 page body
-    // (page_id 보유 + stale mismatch 아님) 에만 노출 — projection/frame body 는
-    // 페이지 이동 대상이 아니다. commit 은 updatePagePosition 경유라
-    // 히스토리 entry + document 기록 + persist 가 자동 편입된다 (blur/Enter
-    // commit — entry 는 commit 당 1개).
-    const pagePositionPageId =
-      !hasStalePageMismatch && selectedElementPageId != null
-        ? selectedElementPageId
-        : null;
-    const pagePosition = useStore((state) =>
-      pagePositionPageId ? state.pagePositions[pagePositionPageId] : undefined,
-    );
-
-    const handlePagePositionCommit = useCallback(
-      (axis: "x" | "y", value: string) => {
-        if (!pagePositionPageId) return;
-        const parsed = Number.parseFloat(value);
-        if (!Number.isFinite(parsed)) return;
-        const state = useStore.getState();
-        const current = state.pagePositions[pagePositionPageId];
-        if (!current) return;
-        state.updatePagePosition(
-          pagePositionPageId,
-          axis === "x" ? parsed : current.x,
-          axis === "y" ? parsed : current.y,
-        );
-      },
-      [pagePositionPageId],
-    );
-    const handlePageXCommit = useCallback(
-      (value: string) => handlePagePositionCommit("x", value),
-      [handlePagePositionCommit],
-    );
-    const handlePageYCommit = useCallback(
-      (value: string) => handlePagePositionCommit("y", value),
-      [handlePagePositionCommit],
-    );
+    // ADR-177 페이지 캔버스 위치 입력은 Styles 패널 TransformSection 으로 이동
+    // (적응형 통합 — body 선택 시 position row 가 pagePositions 를 편집).
 
     return (
       <>
@@ -111,26 +76,6 @@ export const PageBodyEditor = memo(
 
         {/* ⭐ Nested Routes & Slug System: Parent Page 선택 */}
         {targetPageId && <PageParentSelector pageId={targetPageId} />}
-
-        {/* ADR-177: 페이지 캔버스 위치 (X/Y — active breakpoint) */}
-        {pagePositionPageId && pagePosition && (
-          <PropertySection title="Position">
-            {/* String 변환 필수 — PropertyInput 의 `String(value || "")` 가
-                숫자 0 을 빈 문자열로 삼킨다 (y=0 페이지가 빈 칸으로 표시) */}
-            <PropertyInput
-              label="X"
-              type="number"
-              value={String(Math.round(pagePosition.x))}
-              onChange={handlePageXCommit}
-            />
-            <PropertyInput
-              label="Y"
-              type="number"
-              value={String(Math.round(pagePosition.y))}
-              onChange={handlePageYCommit}
-            />
-          </PropertySection>
-        )}
 
         {/* Layout Section */}
         <PropertySection title="Layout">

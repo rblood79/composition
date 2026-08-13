@@ -49,6 +49,7 @@ import {
   useParentFlexDirection,
 } from "../hooks/useTransformAuxiliary";
 import { useStore } from "../../../stores";
+import { useCanonicalPropertyElement } from "../../properties/hooks/useCanonicalPropertyRead";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { useViewportSyncStore } from "../../../workspace/canvas/stores";
 import {
@@ -242,6 +243,52 @@ const TransformSectionContent = memo(function TransformSectionContent() {
   }, [bundle]);
 
   const canvasSize = useViewportSyncStore((state) => state.canvasSize);
+
+  // ADR-177 적응형 통합 — body 선택 시 position row 는 CSS left/top 이 아니라
+  // 페이지 캔버스 위치(pagePositions)를 편집한다 (Pen/Figma 단일 Position 어법).
+  // 실제 page body (page_id 보유 + stale mismatch 아님) 한정 — projection/frame
+  // body 는 페이지 이동 대상이 아니므로 position row 자체를 숨긴다.
+  const selectedElement = useCanonicalPropertyElement(selectedId ?? "");
+  const currentPageId = useStore((s) => s.currentPageId);
+  const selectedElementPageId = selectedElement?.page_id ?? null;
+  const hasStalePageMismatch =
+    selectedElementPageId != null &&
+    currentPageId != null &&
+    selectedElementPageId !== currentPageId;
+  const pagePositionPageId =
+    styleValues?.isBody &&
+    !hasStalePageMismatch &&
+    selectedElementPageId != null
+      ? selectedElementPageId
+      : null;
+  const pagePosition = useStore((s) =>
+    pagePositionPageId ? s.pagePositions[pagePositionPageId] : undefined,
+  );
+
+  const handlePagePositionCommit = useCallback(
+    (axis: "x" | "y", value: string) => {
+      if (!pagePositionPageId) return;
+      const parsed = Number.parseFloat(value);
+      if (!Number.isFinite(parsed)) return;
+      const state = useStore.getState();
+      const current = state.pagePositions[pagePositionPageId];
+      if (!current) return;
+      state.updatePagePosition(
+        pagePositionPageId,
+        axis === "x" ? parsed : current.x,
+        axis === "y" ? parsed : current.y,
+      );
+    },
+    [pagePositionPageId],
+  );
+  const handlePageXCommit = useCallback(
+    (value: string) => handlePagePositionCommit("x", value),
+    [handlePagePositionCommit],
+  );
+  const handlePageYCommit = useCallback(
+    (value: string) => handlePagePositionCommit("y", value),
+    [handlePagePositionCommit],
+  );
   const hasConstraints = !!(
     styleValues?.minWidth ||
     styleValues?.maxWidth ||
@@ -538,51 +585,78 @@ const TransformSectionContent = memo(function TransformSectionContent() {
         </div>
       )}
 
-      <div className="transform-row">
-        <PropertyUnitInput
-          icon={ArrowRightFromLine}
-          label="Left"
-          className="left"
-          value={isAbsolutePositioned ? styleValues.left : "auto"}
-          units={["px", "%", "vw"]}
-          preserveEmptyValueOnUnitChange
-          allowEmptyReset
-          isDisabled={!isAbsolutePositioned}
-          placeholder="auto"
-          onChange={(value) => updateStyleImmediate("left", value)}
-          onDrag={(value) => updateStylePreview("left", value)}
-          min={-9999}
-          max={9999}
-        />
-        <PropertyUnitInput
-          icon={ArrowDownFromLine}
-          label="Top"
-          className="top"
-          value={isAbsolutePositioned ? styleValues.top : "auto"}
-          units={["px", "%", "vh"]}
-          preserveEmptyValueOnUnitChange
-          allowEmptyReset
-          isDisabled={!isAbsolutePositioned}
-          placeholder="auto"
-          onChange={(value) => updateStyleImmediate("top", value)}
-          onDrag={(value) => updateStylePreview("top", value)}
-          min={-9999}
-          max={9999}
-        />
-        <div className="fieldset-actions actions-position">
-          <SwatchIconToggleButton
-            aria-label="Absolute position"
-            isSelected={styleValues.position === "absolute"}
-            onChange={handleAbsolutePositionChange}
-          >
-            <LayoutFreeform
-              color={iconProps.color}
-              size={iconProps.size}
-              strokeWidth={iconProps.strokeWidth}
-            />
-          </SwatchIconToggleButton>
+      {pagePositionPageId && pagePosition ? (
+        <div className="transform-row">
+          {/* 페이지 캔버스 위치 — 값/undo 는 updatePagePosition 계약 그대로 (ADR-177) */}
+          <PropertyUnitInput
+            icon={ArrowRightFromLine}
+            label="X"
+            className="left"
+            value={`${Math.round(pagePosition.x)}px`}
+            units={["px"]}
+            onChange={handlePageXCommit}
+            min={-99999}
+            max={99999}
+          />
+          <PropertyUnitInput
+            icon={ArrowDownFromLine}
+            label="Y"
+            className="top"
+            value={`${Math.round(pagePosition.y)}px`}
+            units={["px"]}
+            onChange={handlePageYCommit}
+            min={-99999}
+            max={99999}
+          />
+          <div className="fieldset-actions actions-position" />
         </div>
-      </div>
+      ) : styleValues.isBody ? null : (
+        <div className="transform-row">
+          <PropertyUnitInput
+            icon={ArrowRightFromLine}
+            label="Left"
+            className="left"
+            value={isAbsolutePositioned ? styleValues.left : "auto"}
+            units={["px", "%", "vw"]}
+            preserveEmptyValueOnUnitChange
+            allowEmptyReset
+            isDisabled={!isAbsolutePositioned}
+            placeholder="auto"
+            onChange={(value) => updateStyleImmediate("left", value)}
+            onDrag={(value) => updateStylePreview("left", value)}
+            min={-9999}
+            max={9999}
+          />
+          <PropertyUnitInput
+            icon={ArrowDownFromLine}
+            label="Top"
+            className="top"
+            value={isAbsolutePositioned ? styleValues.top : "auto"}
+            units={["px", "%", "vh"]}
+            preserveEmptyValueOnUnitChange
+            allowEmptyReset
+            isDisabled={!isAbsolutePositioned}
+            placeholder="auto"
+            onChange={(value) => updateStyleImmediate("top", value)}
+            onDrag={(value) => updateStylePreview("top", value)}
+            min={-9999}
+            max={9999}
+          />
+          <div className="fieldset-actions actions-position">
+            <SwatchIconToggleButton
+              aria-label="Absolute position"
+              isSelected={styleValues.position === "absolute"}
+              onChange={handleAbsolutePositionChange}
+            >
+              <LayoutFreeform
+                color={iconProps.color}
+                size={iconProps.size}
+                strokeWidth={iconProps.strokeWidth}
+              />
+            </SwatchIconToggleButton>
+          </div>
+        </div>
+      )}
     </>
   );
 });

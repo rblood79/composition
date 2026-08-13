@@ -1,5 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Element } from "../../../../types/core/store.types";
 import { useStore } from "../../../stores";
@@ -414,5 +420,65 @@ describe("TransformSection sizing controls", () => {
     expect(updateSelectedStyle).toHaveBeenCalledWith("position", "");
     expect(updateSelectedStyle).not.toHaveBeenCalledWith("left", "");
     expect(updateSelectedStyle).not.toHaveBeenCalledWith("top", "");
+  });
+
+  // ADR-177 적응형 통합 — body 선택 시 position row 는 pagePositions 를 편집
+  it("shows page X/Y for a real page body and commits via updatePagePosition", () => {
+    const updatePagePosition = vi.fn();
+    setTestElements([
+      {
+        id: "body-1",
+        type: "body",
+        parent_id: null,
+        page_id: "page-1",
+        props: { style: {} },
+      } as never,
+    ]);
+    useStore.setState({
+      selectedElementId: "body-1",
+      currentPageId: "page-1",
+      pagePositions: { "page-1": { x: 120, y: 40 } },
+      updatePagePosition,
+    } as never);
+
+    render(<TransformSection />);
+
+    // Left/Top + Absolute 토글은 부재, X/Y 가 페이지 위치를 표시
+    expect(screen.queryByRole("combobox", { name: "Left" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Absolute position" }),
+    ).toBeNull();
+    const xInput = screen.getByRole("combobox", { name: "X" });
+    const yInput = screen.getByRole("combobox", { name: "Y" });
+    expect((xInput as HTMLInputElement).value).toBe("120");
+    expect((yInput as HTMLInputElement).value).toBe("40");
+
+    fireEvent.change(xInput, { target: { value: "300" } });
+    fireEvent.blur(xInput);
+    expect(updatePagePosition).toHaveBeenCalledWith("page-1", 300, 40);
+  });
+
+  it("hides the position row for projection/frame bodies without page_id", () => {
+    setTestElements([
+      {
+        id: "body-2",
+        type: "body",
+        parent_id: null,
+        props: { style: {} },
+      } as Element,
+    ]);
+    useStore.setState({
+      selectedElementId: "body-2",
+      currentPageId: "page-1",
+      pagePositions: {},
+    } as never);
+
+    render(<TransformSection />);
+
+    expect(screen.queryByRole("combobox", { name: "X" })).toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Left" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Absolute position" }),
+    ).toBeNull();
   });
 });

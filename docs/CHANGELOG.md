@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [페이지 위치 입력 적응형 통합 — Transform position row] - 2026-08-13
+
+### Features
+
+- **페이지 X/Y 입력을 Styles 패널 Transform 으로 통합** (Pen/Figma 단일 Position 어법):
+  - body 선택 시 Transform position row 가 CSS left/top 대신 페이지 캔버스 위치(`pagePositions`)를 X/Y 로 표시·편집 — commit 은 `updatePagePosition` 경유라 히스토리 entry·persist·undo 는 ADR-177 계약 그대로
+  - Properties 패널(PageBodyEditor)의 Position 섹션 제거 — 위치 입력을 한 곳으로 단일화
+  - projection/frame body (page_id 없음) 는 position row 자체를 숨김, 일반 요소는 현행 Left/Top + Absolute 토글 유지
+  - **Why**: 페이지 위치(빌더 전용 배치)와 CSS left/top(출판 스타일)은 별개 데이터인데 두 패널에 병렬 노출되어 혼동 축이었고, body 에 살아 있던 Absolute 토글이 body style 에 무의미한 `position:absolute` 를 기록해 preview 발산 축이던 결함도 함께 소멸
+  - 위치: `apps/builder/src/builder/panels/styles/sections/TransformSection.tsx`, `apps/builder/src/builder/panels/properties/editors/PageBodyEditor.tsx`
+
 ## [히스토리 패널 시각 어법 — 미래 state 흐림·타입 아이콘·라벨 가시화] - 2026-08-13
 
 ### Bug Fixes
