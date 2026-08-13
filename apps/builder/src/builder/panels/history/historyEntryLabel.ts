@@ -123,6 +123,27 @@ export function getHistoryEntryLabel(
       ).size;
       return count > 1 ? `페이지 이동 (${count})` : "페이지 이동";
     }
+    case "page-guide": {
+      // ADR-181 — 목록 전체 교체라 before/after 길이 차로 생성/삭제를 가른다.
+      // 같은 길이면 이동 (한 entry 안에 생성과 삭제가 섞이지 않는다 — 조작
+      // 단위가 가이드 1개이고 batch 는 같은 종류만 묶는다).
+      const entries = entry.data.pageGuideEvent?.entries ?? [];
+      let before = 0;
+      let after = 0;
+      for (const item of entries) {
+        before += item.before.length;
+        after += item.after.length;
+      }
+      if (after > before) {
+        const count = after - before;
+        return count > 1 ? `가이드 추가 (${count})` : "가이드 추가";
+      }
+      if (after < before) {
+        const count = before - after;
+        return count > 1 ? `가이드 삭제 (${count})` : "가이드 삭제";
+      }
+      return "가이드 이동";
+    }
     case "snapshot-restore": {
       // ADR-180 — snapshotName 은 entry 에 담긴 사본이라 스냅샷 삭제 후에도
       // 라벨 유지 (R5)

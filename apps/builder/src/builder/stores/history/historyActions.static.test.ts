@@ -160,3 +160,86 @@ describe("ADR-180: snapshot-restore entry 소비 분기 (문서 전체 교체 �
     expect(source).not.toContain("import { useStore }");
   });
 });
+
+/**
+ * ADR-181 §2 C4 — 비-element 히스토리 kind 의 소비 지점은 **6곳**이다.
+ *
+ * 초안은 "undo/redo/goToIndex 3 진입점" 으로 잡았으나 `page-position`/
+ * `snapshot-restore` 두 전례의 실측이 6곳이었다. 6곳은 파일 3개에 흩어져 있고
+ * 그중 타입 시스템이 잡아 주는 것은 패널 아이콘 맵(Record 완전성) 하나뿐이라,
+ * 나머지 5곳을 여기서 정적으로 고정한다.
+ */
+describe("ADR-181: page-guide entry 소비 지점 6곳 (C4 커버리지)", () => {
+  const readSource = (relativePath: string) =>
+    readFile(resolve(__dirname, relativePath), "utf-8");
+
+  it("C4 #1~#3 — undo/redo/goToIndex early-branch (element 경로 진입 전)", async () => {
+    const source = await readSource("historyActions.ts");
+
+    expect(source).toContain("function applyPageGuideHistoryEntry");
+    expect(source).toContain(".setPageGuides(");
+
+    // undo/redo 는 early-return, goToIndex 는 continue, syncDatabaseForEntries
+    // 는 skip — 최소 4곳
+    const branches = [...source.matchAll(/entry\.type === "page-guide"/g)];
+    expect(branches.length).toBeGreaterThanOrEqual(4);
+
+    // undo/redo 분기는 entry 획득 직후 40줄 안 (page-position/snapshot-restore
+    // 분기와 같은 구역) — element 경로보다 뒤로 밀리면 legacy fallback 진입
+    for (const acquire of ["historyManager.undo()", "historyManager.redo()"]) {
+      const idx = source.indexOf(acquire);
+      expect(idx).toBeGreaterThan(-1);
+      const windowAfter = source.slice(idx).split("\n").slice(0, 40).join("\n");
+      expect(windowAfter).toContain('entry.type === "page-guide"');
+      expect(windowAfter).toContain("applyPageGuideHistoryEntry");
+    }
+
+    // goToIndex 루프 분기 — 적용 후 continue (element 누적 경로 미진입)
+    expect(source).toContain(
+      'if (entry.type === "page-guide") {\n          applyPageGuideHistoryEntry(get, entry, direction);\n          continue;\n        }',
+    );
+  });
+
+  it("C4 #4 — syncDatabaseForEntries skip (elementId=pageId 오인 차단)", async () => {
+    const source = await readSource("historyActions.ts");
+    expect(source).toContain('if (entry.type === "page-guide") continue;');
+  });
+
+  it("C4 #5 — addEntry DEV guard 면제 (비-element 축은 canonicalEvents 없음이 정상)", async () => {
+    const source = await readSource("../history.ts");
+    expect(source).toContain('entry.type !== "page-guide"');
+    // 면제 3종이 한 조건에 모여 있어야 한다 (하나만 빠지면 콘솔 경고 오탐)
+    const guardIdx = source.indexOf("import.meta.env?.DEV &&");
+    expect(guardIdx).toBeGreaterThan(-1);
+    const guardBlock = source.slice(guardIdx, guardIdx + 400);
+    for (const kind of ["page-position", "page-guide", "snapshot-restore"]) {
+      expect(guardBlock).toContain(`entry.type !== "${kind}"`);
+    }
+  });
+
+  it("C4 #6 — 패널 라벨/아이콘 (라벨 없는 entry 방지)", async () => {
+    const label = await readSource("../../panels/history/historyEntryLabel.ts");
+    expect(label).toContain('case "page-guide"');
+    // 목록 전체 교체라 길이 차로 생성/삭제/이동을 가른다
+    expect(label).toContain("가이드 추가");
+    expect(label).toContain("가이드 삭제");
+    expect(label).toContain("가이드 이동");
+
+    const panel = await readSource("../../panels/history/HistoryPanel.tsx");
+    // ENTRY_TYPE_ICONS 는 Record<HistoryEntry["type"], LucideIcon> 이라 누락 시
+    // type-check 가 먼저 잡지만, 아이콘 선택 자체를 계약으로 고정한다
+    expect(panel).toContain('"page-guide": RulerDimensionLine');
+  });
+
+  it("C11 — 가이드 무효화는 overlay 만 (content surface 미관여)", async () => {
+    const canvas = await readSource(
+      "../../workspace/canvas/skia/SkiaCanvas.tsx",
+    );
+    const idx = canvas.indexOf("subscribePageGuideRevision(");
+    expect(idx).toBeGreaterThan(-1);
+    const block = canvas.slice(idx, canvas.indexOf("}, []);", idx));
+    expect(block).toContain("overlayVersionRef.current++");
+    // pagePositionPresentation 구독과 갈리는 지점 — content 는 그대로다
+    expect(block).not.toContain("invalidateContent");
+  });
+});

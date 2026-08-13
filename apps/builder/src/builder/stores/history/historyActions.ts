@@ -29,6 +29,7 @@ import {
   type CanonicalHistoryNodeEvent,
 } from "./canonicalHistoryEvents";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
+import { bumpPageGuideRevision } from "../../workspace/canvas/interaction/pageGuideRevision";
 import { visitCanonicalDocumentElements } from "../canonical/canonicalElementsView";
 // 🚀 Phase 11: Feature Flags for WebGL-only mode
 import {
@@ -166,6 +167,48 @@ function applyPagePositionHistoryEntry(
   queueMicrotask(() => {
     void persistActiveCanonicalDocument().catch((error) => {
       console.error("[applyPagePositionHistoryEntry] DB persist:", error);
+    });
+  });
+}
+
+/**
+ * ADR-181 — `page-guide` entry 적용 (undo/redo/goToIndex 공용).
+ *
+ * `page-position` 과 같은 비-element 축이되 **스토어 미러가 없다** — 가이드는
+ * canonical `pageGuides` 에만 살기 때문에 `set()` 없이 canonical 만 되돌리고,
+ * 화면 갱신은 개정 카운터로 알린다 (C11 (c) — 오버레이 패스 전용이라
+ * `invalidateContent()` 는 부르지 않는다).
+ *
+ * 삭제된 pageId entry 는 무시한다 (ADR-177 R3 동형 — 페이지를 지운 뒤 undo 로
+ * 그 페이지 가이드만 되살아나면 소유자 없는 데이터가 남는다).
+ */
+function applyPageGuideHistoryEntry(
+  get: GetState,
+  entry: NonNullable<ReturnType<typeof historyManager.undo>>,
+  direction: "undo" | "redo",
+): void {
+  const event = entry.data.pageGuideEvent;
+  if (!event || event.entries.length === 0) return;
+
+  const validPageIds = new Set(get().pages.map((page) => page.id));
+  const canonicalEntries = event.entries
+    .filter((item) => validPageIds.has(item.pageId))
+    .map((item) => ({
+      pageId: item.pageId,
+      breakpoint: item.breakpoint,
+      // 배열/원소 모두 복사 — entry 는 히스토리에 남아 재적용되므로 소비자와
+      // 저장소가 같은 객체를 공유하면 안 된다
+      guides: (direction === "undo" ? item.before : item.after).map(
+        (guide) => ({ ...guide }),
+      ),
+    }));
+  if (canonicalEntries.length === 0) return;
+
+  useCanonicalDocumentStore.getState().setPageGuides(canonicalEntries);
+  bumpPageGuideRevision();
+  queueMicrotask(() => {
+    void persistActiveCanonicalDocument().catch((error) => {
+      console.error("[applyPageGuideHistoryEntry] DB persist:", error);
     });
   });
 }
@@ -350,6 +393,13 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
     // ADR-177: page-position entry 는 element 노드 경로 미진입 (early-branch)
     if (entry.type === "page-position") {
       applyPagePositionHistoryEntry(set, get, entry, "undo");
+      set({ historyOperationInProgress: false });
+      return;
+    }
+
+    // ADR-181: page-guide entry 도 element 노드 경로 미진입 (early-branch)
+    if (entry.type === "page-guide") {
+      applyPageGuideHistoryEntry(get, entry, "undo");
       set({ historyOperationInProgress: false });
       return;
     }
@@ -764,6 +814,13 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
       return;
     }
 
+    // ADR-181: page-guide entry 도 element 노드 경로 미진입 (early-branch)
+    if (entry.type === "page-guide") {
+      applyPageGuideHistoryEntry(get, entry, "redo");
+      set({ historyOperationInProgress: false });
+      return;
+    }
+
     // ADR-180: snapshot-restore entry 는 문서 전체 교체 (early-branch) —
     // redo = afterSnapshot 재적용 (persist 포함, snapshotRestore.ts)
     if (entry.type === "snapshot-restore") {
@@ -1162,6 +1219,12 @@ export const createGoToHistoryIndexAction =
         // canonical full-sync 판정에서도 제외 (element 축 무변경).
         if (entry.type === "page-position") {
           applyPagePositionHistoryEntry(set, get, entry, direction);
+          continue;
+        }
+        // ADR-181: page-guide 도 동일 — canonical 만 갱신 (스토어 미러 없음),
+        // canonical full-sync 판정 제외 (element 축 무변경).
+        if (entry.type === "page-guide") {
+          applyPageGuideHistoryEntry(get, entry, direction);
           continue;
         }
         // ADR-180: snapshot-restore entry 는 문서 전체 교체 — 적용 후 누적
@@ -1710,6 +1773,9 @@ async function syncDatabaseForEntries(
     // ADR-177: page-position entry 는 element DB 동기화 대상 아님 — persist 는
     // applyPagePositionHistoryEntry 가 자체 수행 (elementId=pageId 오인 방지).
     if (entry.type === "page-position") continue;
+    // ADR-181: page-guide 도 동일 — persist 는 applyPageGuideHistoryEntry 가
+    // 자체 수행 (elementId=pageId 오인 방지).
+    if (entry.type === "page-guide") continue;
     // ADR-180: snapshot-restore 도 동일 — persist 는 applySnapshotDocument 가
     // allowShrink 명시로 자체 수행 (elementId=pageId 무해값).
     if (entry.type === "snapshot-restore") continue;

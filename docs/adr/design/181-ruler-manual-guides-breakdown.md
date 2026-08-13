@@ -192,14 +192,30 @@ live 검증 (Chrome MCP):
 - live (Chrome MCP): `setPageGuides` → IndexedDB persist → 새로고침 → hydrate 왕복에서 값 동일, `version` 은 `composition-1.0` 유지(additive — BC 0%), 기존 필드 무손상. 삭제 시 문서에서 **필드 자체가 사라짐** (`hasOwnProperty("pageGuides") === false`).
 - **함정 (다음 phase 주의)**: `__canonical_STORE__` 전역은 HMR 후 **중복 인스턴스**가 물릴 수 있다 (실측: documents 0건 / documentVersion 0). live 시드 전 `documents.size`·`documentVersion` 으로 실인스턴스인지 먼저 확인할 것 — 아니면 죽은 인스턴스에 기록된다.
 
-### Phase 3 — 히스토리 편입 (MED)
+### Phase 3 — 히스토리 편입 (MED) — **Implemented 2026-08-14**
 
-- `history.ts` 에 `page-guide` entry kind (add/move/remove, batch 지원) — ADR-177 `page-position` payload 어법 동형 (before/after 라인 배열).
-- **§2 C4 표의 6곳 전부 대응** (초안 3곳 아님) — undo/redo/goToIndex early-branch 3곳 + `syncDatabaseForEntries` skip + DEV guard 면제 + 패널 라벨·아이콘.
-- 정적 가드 테스트 (`historyActions.static.test.ts` 전례) + C4 6곳 커버리지 단언.
-- 기록 시점: 가이드 생성/이동 finish 1회 + 삭제 즉시 1회 (드래그 중 기록 0 — HC1).
-- 적용 후 `overlayVersionRef` 트리거 (C11 (c)).
-- 검증: 유닛 + live undo/redo 왕복.
+- `history.ts` 에 `page-guide` entry kind + `PageGuideHistoryEntryItem` (`pageGuideEvent` payload). **`page-position` 과 두 곳이 갈린다**:
+  - **null 이 없다** — 문서에서 entry 부재와 빈 목록이 구분되지 않으므로(C9) `[]` 하나면 충분하다. `page-position` 의 `before: null`(=entry 부재) 어법을 복제하면 표현할 수 없는 상태가 하나 생긴다.
+  - **스토어 미러가 없다** — `applyPageGuideHistoryEntry` 는 `set()` 없이 canonical `pageGuides` 만 되돌린다 (`applyPagePositionHistoryEntry` 는 `pagePositionsByBreakpoint` 스냅샷을 함께 되돌린다). 그래서 화면 갱신 신호를 나를 채널이 따로 필요했다 — 아래 개정 카운터.
+- 목록 **전체**를 before/after 로 담는다 (부분 diff 아님). 생성·이동·삭제가 한 어법이 되고 `setPageGuides` 의 "목록 전체 교체" 계약과 1:1 이다. 라벨은 before/after **길이 차**로 세 어휘를 가른다 (추가/삭제/이동).
+- **§2 C4 표 6곳 전부 대응**:
+
+  | #   | 위치                                                          | 조치                                                                    |
+  | --- | ------------------------------------------------------------- | ----------------------------------------------------------------------- |
+  | 1~3 | `historyActions.ts` undo/redo/goToIndex                       | early-branch → `applyPageGuideHistoryEntry` (element 경로 진입 전)      |
+  | 4   | `historyActions.ts::syncDatabaseForEntries`                   | `continue` skip (persist 는 apply 가 자체 수행)                         |
+  | 5   | `history.ts` addEntry DEV guard                               | `entry.type !== "page-guide"` 면제 (canonicalEvents 없음이 정상)        |
+  | 6   | `historyEntryLabel.ts` + `HistoryPanel.tsx`                   | 라벨 3종 + `RulerDimensionLine` 아이콘 (눈금자 토글과 같은 기능군 표시) |
+
+  6곳 중 타입 시스템이 잡아 주는 것은 아이콘 맵(`Record<HistoryEntry["type"], LucideIcon>` 완전성) **하나뿐**이라 나머지 5곳을 정적 가드로 고정했다.
+- **개정 카운터** `interaction/pageGuideRevision.ts` 신설 — 문서를 바꾼 쪽이 bump, `SkiaCanvas` 가 구독해 `overlayVersionRef.current++`. **`invalidateContent()` 는 부르지 않는다** (C11 — 가이드는 오버레이 패스 전용이라 content surface 무관. `pagePositionPresentation` 구독이 content 까지 무효화하는 것과 갈리는 지점이고, 이 비대칭을 정적 가드가 잠근다).
+- **기록 진입점** `viewport/pageGuideActions.ts` 신설 (`pageLayoutActions.ts` 동형 층) — `commitPageGuideChanges` 가 히스토리 1 entry + canonical batch + persist + 개정 bump 를 한 묶음으로 낸다. 변경 없는 항목은 걸러내고 전부 없으면 **아무것도 하지 않는다** (빈 entry 는 Cmd+Z 가 무반응인 구간을 만든다). Phase 5 가 호출한다.
+- 검증:
+  - 유닛 17건 — `pageGuideActions.test.ts` 10 (lazy write / batch / 사본 격리 / C9 read) + `pageGuideHistoryRoundtrip.test.ts` 7 (생성·이동·삭제 왕복 / breakpoint 격리 / 삭제 페이지 skip / 개정 bump / goToIndex).
+  - 정적 가드 5건 (`historyActions.static.test.ts`) — C4 6곳 + C11 비대칭.
+  - **민감도 실측**: undo early-branch 제거 시 5 red, goToIndex 분기 제거 시 1 red.
+  - live (Chrome MCP): 생성→이동 기록 후 새로고침에서 값 보존 → undo 2회로 260→120→없음 → redo 2회로 복귀 → 패널 항목 클릭(goToIndex)으로 120 복원. 패널 라벨 "가이드 추가"/"가이드 이동" + 눈금자 아이콘 표시 확인. probe 데이터는 정리(문서 필드·히스토리 entry 2건 제거 후 새로고침 확인).
+- **함정 (재발 감시)**: Vite 가 편집된 모듈을 `?t=<mtime>` 로 서빙하는데 이 쿼리는 **새로고침해도 유지**된다. 페이지 콘솔에서 `import('/src/.../history.ts')` 로 평범하게 부르면 앱이 쓰는 인스턴스와 **다른 사본**이 잡힌다 (실측: `currentPageId` 가 null 인 빈 매니저). live 진단 전 `performance.getEntriesByType('resource')` 로 앱이 실제 로드한 URL 을 확인하고 그 URL 로 import 할 것 — Phase 2 의 `__canonical_STORE__` 중복 인스턴스와 **같은 병인**이다.
 
 ### Phase 4 — 가이드 렌더 (MED)
 

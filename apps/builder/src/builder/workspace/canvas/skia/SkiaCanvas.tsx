@@ -74,6 +74,10 @@ import {
   getPagePositionPresentationSnapshot,
   subscribePagePositionPresentation,
 } from "../interaction/pagePositionPresentation";
+import {
+  getPageGuideRevision,
+  subscribePageGuideRevision,
+} from "../interaction/pageGuideRevision";
 
 // Dev profiler — window.__composition_PROFILER 노출 (side-effect import)
 import "../benchmarks/devProfiler";
@@ -216,6 +220,7 @@ export function SkiaCanvas({
   const pagePositionPresentationVersionRef = useRef(
     getPagePositionPresentationSnapshot().version,
   );
+  const pageGuideRevisionRef = useRef(getPageGuideRevision());
 
   // Workflow/hover 캐시
   const invalidationPacketRef = useRef(invalidationPacket);
@@ -306,6 +311,19 @@ export function SkiaCanvas({
       rendererRef.current?.invalidateContent();
       overlayVersionRef.current++;
       recordInvalidation("content", "pagePositionPresentation");
+    });
+  }, []);
+
+  // ADR-181 C11 — 수동 가이드는 오버레이 패스 전용이라 overlay 만 무효화한다.
+  // 위 page position 과 달리 `invalidateContent()` 를 부르지 않는다: page root
+  // transform 이 바뀌는 축이 아니라 본문 렌더가 그대로다 (더 싼 경로, HC1).
+  useEffect(() => {
+    return subscribePageGuideRevision(() => {
+      const nextRevision = getPageGuideRevision();
+      if (nextRevision === pageGuideRevisionRef.current) return;
+      pageGuideRevisionRef.current = nextRevision;
+      overlayVersionRef.current++;
+      recordInvalidation("overlay", "pageGuideRevision");
     });
   }, []);
 

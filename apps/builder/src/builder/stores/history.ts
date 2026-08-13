@@ -56,6 +56,23 @@ export interface PagePositionHistoryEntryItem {
   after: { x: number; y: number };
 }
 
+/**
+ * ADR-181 — `page-guide` entry 의 항목 (batch 지원).
+ *
+ * 목록 **전체**를 before/after 로 담는다 (부분 diff 아님) — 생성/이동/삭제가
+ * 한 어법으로 처리되고, `setPageGuides` 의 "목록 전체 교체" 계약과 1:1 이다.
+ *
+ * `page-position` 과 달리 **null 이 없다**. 문서에서 entry 부재와 빈 목록이
+ * 구분되지 않기 때문이다 (C9 — `setPageGuides` 가 빈 목록을 받으면 entry 를
+ * 지우고, hydrate 는 부재를 빈 목록으로 읽는다). 따라서 `[]` 하나로 충분하다.
+ */
+export interface PageGuideHistoryEntryItem {
+  pageId: string;
+  breakpoint: import("@composition/shared").BreakpointName;
+  before: import("@composition/shared").PageGuideLine[];
+  after: import("@composition/shared").PageGuideLine[];
+}
+
 export interface HistoryEntry {
   id: string;
   type:
@@ -67,6 +84,7 @@ export interface HistoryEntry {
     | "group"
     | "ungroup"
     | "page-position"
+    | "page-guide"
     | "snapshot-restore";
   /**
    * element 노드 id — `page-position` entry 는 첫 pageId 를 넣는다 (소비자
@@ -113,6 +131,13 @@ export interface HistoryEntry {
      * 진입 전 early-branch 로 처리한다 (`historyActions.ts`).
      */
     pagePositionEvent?: { entries: PagePositionHistoryEntryItem[] };
+    /**
+     * **ADR-181** — `type: "page-guide"` 전용 payload. `pagePositionEvent` 와
+     * 같은 비-element 축 (undo/redo 는 element 경로 진입 전 early-branch).
+     * 스토어 미러가 없어 canonical `pageGuides` 만 갱신한다 —
+     * `pagePositionEvent` 가 스토어 스냅샷을 함께 되돌리는 것과 갈리는 지점.
+     */
+    pageGuideEvent?: { entries: PageGuideHistoryEntryItem[] };
     /**
      * **ADR-180** — `type: "snapshot-restore"` 전용 payload. 직렬화 본 없이
      * 스냅샷 참조 id 만 담는다 (undo = before / redo = after 재적용 —
@@ -434,11 +459,12 @@ export class HistoryManager {
 
     // 회귀 감지 (DEV 전용): element 축 신규 entry 는 canonicalEvents 필수 —
     // 미부착 entry 는 undo 시 legacy full-replace fallback 을 유발한다.
-    // page-position(ADR-177)/snapshot-restore(ADR-180) 는 비-element 축
-    // 전용 payload 라 대상 아님.
+    // page-position(ADR-177)/page-guide(ADR-181)/snapshot-restore(ADR-180) 는
+    // 비-element 축 전용 payload 라 대상 아님.
     if (
       import.meta.env?.DEV &&
       entry.type !== "page-position" &&
+      entry.type !== "page-guide" &&
       entry.type !== "snapshot-restore" &&
       !entry.data.canonicalEvents?.length
     ) {
