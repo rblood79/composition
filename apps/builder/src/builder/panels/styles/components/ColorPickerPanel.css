@@ -6,11 +6,12 @@
  */
 
 @layer components {
+  /* padding 은 host 컨테이너 소유 (.fill-detail-popover / .property-color-popover)
+     — panel 자체가 갖으면 형제 fieldset(Type/Blend)과 inset 이 어긋난다 (2026-08-14) */
   .color-picker-panel {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 8px;
   }
 
   .color-picker-panel__inputs {

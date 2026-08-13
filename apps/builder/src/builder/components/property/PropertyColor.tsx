@@ -95,7 +95,9 @@ export const PropertyColor = memo(
           >
             <ColorSwatch color={safeSwatchColor(value)} />
           </AriaButton>
-          <Popover placement="bottom start" className="color-picker-popover">
+          {/* 전용 클래스 — 공용 Popover/타 popover 무영향으로 inset 을 이 popover 만 소유.
+              (구 color-picker-popover 는 shared ColorPicker.css 의 dead Dialog 규칙과 이름 충돌) */}
+          <Popover placement="bottom start" className="property-color-popover">
             <ColorPickerPanel
               // 요소 전환 시에만 외부 value 로 재동기화 (편집 세션 보존)
               key={selectedElementId ?? "none"}

@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **fill popover 의 Type 선택기를 fieldset+legend 표준 구조로 정합** (사용자 지적 — footer 의 Blend 는 `fieldset.properties-aria`+legend 인데 상단 `.fill-type-selector` 는 bare ToggleButtonGroup):
   - `FillTypeSelector` 를 `fieldset.properties-aria.fill-type-selector` + `legend "Type"` 으로 감싸 ADR-163 패널 표준 (라벨 있는 필드 그룹 계약) 정합. fieldset `min-inline-size` 기본값 해제는 고유 클래스가 공급 (panel-system 어법)
   - 위치: `apps/builder/src/builder/panels/styles/components/{FillTypeSelector.tsx,FillDetailPopover.css}`
+- **popover 내부 inset 을 컨테이너 단일 소유로 통일** (사용자 지적 — `.color-picker-panel` 만 8px 을 갖고 Type/Blend fieldset 은 popover 벽에 붙는 불일치):
+  - `.color-picker-panel`/`.image-fill-editor` 의 보상 padding 제거 → `.fill-detail-popover` 가 8px 단일 공급 (모든 탭·fieldset 균일 inset)
+  - PropertyColor popover 는 전용 클래스 `.property-color-popover` 신설 + 8px — **공용 Popover/타 popover 무영향** (구 `.color-picker-popover` 는 shared ColorPicker.css 의 dead Dialog 규칙과 이름 충돌이라 분리)
+  - 위치: `panels/styles/components/{ColorPickerPanel,FillDetailPopover,ImageFillEditor}.css`, `components/property/PropertyColor.tsx`, `components/styles/form-controls.css`
 
 ## [색상 피커 드래그 캔버스 실시간 반영 — PropertyColor preview 채널] - 2026-08-13
 

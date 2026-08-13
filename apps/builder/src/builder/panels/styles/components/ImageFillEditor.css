@@ -5,11 +5,11 @@
  */
 
 @layer components {
+  /* 세로 padding 제거 — inset 은 .fill-detail-popover 컨테이너 소유 (2026-08-14) */
   .image-fill-editor {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 8px 0;
   }
 
   .image-fill-editor__preview {
@@ -22,7 +22,9 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: border-color 0.15s, background-color 0.15s;
+    transition:
+      border-color 0.15s,
+      background-color 0.15s;
 
     &[data-drag-over] {
       border-color: var(--accent);
@@ -115,7 +117,9 @@
     border: none;
     border-right: 1px solid var(--border);
     cursor: pointer;
-    transition: background-color 0.1s, color 0.1s;
+    transition:
+      background-color 0.1s,
+      color 0.1s;
 
     &:last-child {
       border-right: none;

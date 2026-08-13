@@ -445,3 +445,13 @@
     }
   }
 }
+
+@layer builder-system {
+  /* PropertyColor 전용 popover — inset 을 이 popover 만 소유한다 (공용 Popover/
+     타 popover 무영향). portal 로 패널 DOM 밖에 렌더되므로 .section 스코프 밖
+     top-level 규칙이어야 매칭된다. 내부 ColorPickerPanel 은 padding 을 갖지
+     않는다 (host 컨테이너 소유 계약 — ColorPickerPanel.css, 2026-08-14) */
+  .property-color-popover {
+    padding: 8px;
+  }
+}

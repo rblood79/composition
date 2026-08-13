@@ -5,6 +5,12 @@
  */
 
 @layer components {
+  /* popover 내부 inset 은 이 컨테이너가 단일 소유 — 자식(Type fieldset /
+     ColorPickerPanel / 각 에디터 / Blend)이 균일한 8px 를 받는다 (2026-08-14) */
+  .fill-detail-popover {
+    padding: 8px;
+  }
+
   .fill-detail-popover__divider {
     height: 1px;
     background: var(--bg-muted);
