@@ -98,6 +98,110 @@
   );
 }
 
+/* ── 눈금자 오버레이 (ADR-181 축 2 = A-DOM) ──
+   캔버스 **위** 레이어 (ADR-902 :41 스택 — skia canvas = 2 위).
+   눈금선은 한 주기짜리 linear-gradient 를 background-repeat 로 타일링하고
+   팬은 background-position 위상 이동만 한다 — 리페인트 없이 컴포지터 처리
+   (DotBackground 와 같은 기법). 위상/간격은 JS 가 --ruler-* 로 주입. */
+.ruler-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  /* 스트립 밖은 캔버스 이벤트를 그대로 통과시킨다 (ADR-902 HC#4 준수) */
+  pointer-events: none;
+  /* light 에서 --bg-raised 는 --bg 와 같은 값이라 캔버스와 구분되지 않는다
+     (css-tokens.md Surface Elevation) — 패널과 같은 --bg-overlay 를 쓴다 */
+  --ruler-tick: var(--fg-muted);
+  --ruler-tick-minor: var(--border);
+}
+
+.ruler-strip {
+  position: absolute;
+  background-color: var(--bg-overlay);
+  background-repeat: repeat-x;
+  /* 스트립만 이벤트를 받는다 — Phase 5 가이드 드래그 진입점 */
+  pointer-events: auto;
+}
+
+.ruler-strip--h {
+  left: var(--ruler-inset-left, 0px);
+  right: 0;
+  top: var(--ruler-inset-top, 0px);
+  height: var(--ruler-size, 20px);
+  border-bottom: 1px solid var(--border);
+  background-image:
+    linear-gradient(to right, var(--ruler-tick) 0 1px, transparent 1px),
+    linear-gradient(to right, var(--ruler-tick-minor) 0 1px, transparent 1px);
+  background-size:
+    var(--ruler-major-gap, 50px) var(--ruler-major-len, 8px),
+    var(--ruler-minor-gap, 10px) var(--ruler-minor-len, 4px);
+  background-position:
+    var(--ruler-major-phase, 0px) 100%,
+    var(--ruler-minor-phase, 0px) 100%;
+}
+
+.ruler-strip--v {
+  left: var(--ruler-inset-left, 0px);
+  top: calc(var(--ruler-inset-top, 0px) + var(--ruler-size, 20px));
+  bottom: 0;
+  width: var(--ruler-size, 20px);
+  border-right: 1px solid var(--border);
+  background-repeat: repeat-y;
+  background-image:
+    linear-gradient(to bottom, var(--ruler-tick) 0 1px, transparent 1px),
+    linear-gradient(to bottom, var(--ruler-tick-minor) 0 1px, transparent 1px);
+  background-size:
+    var(--ruler-major-len, 8px) var(--ruler-major-gap, 50px),
+    var(--ruler-minor-len, 4px) var(--ruler-minor-gap, 10px);
+  background-position:
+    100% var(--ruler-major-phase, 0px),
+    100% var(--ruler-minor-phase, 0px);
+}
+
+/* 두 스트립이 만나는 모서리 — 가로 자의 눈금·라벨을 덮어 겹침을 막는다 */
+.ruler-corner {
+  position: absolute;
+  left: var(--ruler-inset-left, 0px);
+  top: var(--ruler-inset-top, 0px);
+  width: var(--ruler-size, 20px);
+  height: var(--ruler-size, 20px);
+  background-color: var(--bg-overlay);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  pointer-events: auto;
+}
+
+.ruler-labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ruler-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.ruler-label--x {
+  top: 3px;
+}
+
+/* 세로 자 라벨은 CSS 세로쓰기로 — rotate(90deg) + transform-origin:0 0 은
+   회전 박스를 원점 **왼쪽**으로 보내 스트립 밖으로 나간다 (실측 -6px).
+   vertical-rl 은 글자를 90° 눕히면서 박스도 세로로 잡아 준다. */
+.ruler-label--y {
+  writing-mode: vertical-rl;
+  left: 3px;
+}
+
 .workspace-overlay {
   position: absolute;
   inset: 0;

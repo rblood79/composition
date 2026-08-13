@@ -44,6 +44,10 @@ import { screenToViewportPoint } from "./viewport/viewportTransforms";
 import { TextEditOverlay, useTextEdit } from "../overlay";
 import { DotBackground } from "../components/DotBackground";
 import {
+  RulerOverlay,
+  isRulerEventTarget,
+} from "../components/RulerOverlay";
+import {
   CanvasGestureSession,
   computeSelectionBounds,
   readPagePosition,
@@ -1011,6 +1015,10 @@ export function BuilderCanvas({
     if (!element) return;
 
     const onPointerDownCapture = (event: PointerEvent) => {
+      // ADR-181 R1: 눈금자는 캔버스 **위** DOM 이지만, 이 리스너가 컨테이너에
+      // capture 로 붙어 있어 조상 캡처가 스트립 핸들러보다 먼저 돈다 —
+      // DOM z-order 로는 안 막히므로 소속 판정으로 조기 반환한다.
+      if (isRulerEventTarget(event.target)) return;
       if (isFrameEditMode) return;
       if (event.button !== 0) return;
       const target = event.target as HTMLElement;
@@ -1312,6 +1320,9 @@ export function BuilderCanvas({
 
       {/* ADR-902: Skia canvas 뒤 도트 배경 레이어 (P0에서 투명 clear 전제) */}
       <DotBackground />
+
+      {/* ADR-181: Skia canvas 앞 눈금자 레이어 (뷰포트 chrome — 문서 데이터 아님) */}
+      <RulerOverlay />
 
       {containerEl && (
         <ViewportControlBridge

@@ -177,30 +177,6 @@ export class SkiaRenderer {
     this.mainSurface.flush();
   }
 
-  /**
-   * 콘텐츠 없는 프레임에 **뷰포트 chrome 만** 그린다 (ADR-181).
-   *
-   * 씬에 보이는 페이지가 하나도 없으면 프레임 파이프라인이 통째로 건너뛰고
-   * `clearFrame()` 만 돈다 (`skiaFramePipeline.ts` 의 `treeBoundsMap.size === 0`).
-   * 눈금자는 **씬이 아니라 카메라의 함수** 라 그 상태에서도 그려져야 하므로,
-   * clear 뒤에 chrome 한 겹만 얹는 자리를 둔다 — 기존 렌더 경로는 무변경.
-   *
-   * 변환은 `renderScreenOverlay`/`renderOverlay` 와 동일 (dpr → pan → zoom).
-   */
-  clearFrameWithChrome(
-    camera: CameraState,
-    draw: (canvas: Canvas) => void,
-  ): void {
-    this.mainCanvas.clear(this.ck.Color4f(0, 0, 0, 0));
-    this.mainCanvas.save();
-    this.mainCanvas.scale(this.dpr, this.dpr);
-    this.mainCanvas.translate(camera.panX, camera.panY);
-    this.mainCanvas.scale(camera.zoom, camera.zoom);
-    draw(this.mainCanvas);
-    this.mainCanvas.restore();
-    this.mainSurface.flush();
-  }
-
   // ============================================
   // Phase 6: 이중 Surface 렌더링
   // ============================================

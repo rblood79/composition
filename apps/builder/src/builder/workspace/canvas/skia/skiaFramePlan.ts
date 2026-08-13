@@ -25,7 +25,6 @@ import type { ElementHoverState } from "../hooks/useElementHoverInteraction";
 import type { DropIndicatorState } from "./dropIndicatorRenderer";
 import type { FrameAreaGroup } from "./workflowEdges";
 import { renderGrid } from "./gridRenderer";
-import type { CanvasViewportInset } from "./canvasViewportInset";
 import { buildGridRenderInput } from "./skiaOverlayHelpers";
 import { buildSelectionRenderData } from "./skiaWorkflowSelection";
 import {
@@ -100,10 +99,6 @@ export interface BuildFrameRenderPlanInput {
   dropIndicatorState: DropIndicatorState | null;
   minimapVisible: boolean;
   minimapConfig: import("./workflowMinimap").MinimapConfig;
-  /** 눈금자 표시 (ADR-181) — 뷰포트 chrome, 오버레이 패스 최상단 */
-  showRulers: boolean;
-  /** 캔버스 가시 영역 좌상단 오프셋 (ADR-181 — 좌측 패널이 캔버스를 덮는다) */
-  viewportInset: CanvasViewportInset;
   skiaCanvasWidth: number;
   skiaCanvasHeight: number;
   dpr: number;
@@ -134,8 +129,6 @@ export function buildFrameRenderPlan(
     dropIndicatorState,
     minimapVisible,
     minimapConfig,
-    showRulers,
-    viewportInset,
     skiaCanvasWidth,
     skiaCanvasHeight,
     dpr,
@@ -196,8 +189,6 @@ export function buildFrameRenderPlan(
     pagePositionSnapshot: currentPagePositionSnapshot,
     minimapVisible,
     minimapConfig,
-    showRulers,
-    viewportInset,
     skiaCanvasWidth,
     skiaCanvasHeight,
     dpr,

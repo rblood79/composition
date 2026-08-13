@@ -71,7 +71,7 @@ breakpoint 별로 두면 그 상태가 구조적으로 성립하지 않고, `pag
 - ✅ canonical 파서 additive 허용은 ADR-177 R2 확정분 승계 (재검증 불요).
 - 산출: 본 문서 §2 갱신 + ADR 본문 진행 로그 1줄.
 
-### Phase 1 — Ruler 렌더 + 토글 (LOW) — **1차 Skia 구현 → DOM 재설계 (2026-08-13)**
+### Phase 1 — Ruler 렌더 + 토글 (LOW) — **Implemented 2026-08-14 (DOM)**
 
 #### 1차 구현에서 확보한 것 (DOM 경로에 승계)
 
@@ -131,6 +131,35 @@ subscribeViewportPresentation(apply);   // Skia 카메라와 동일 채널
 | 순수 함수 + 유닛 | `calculateDotBackgroundMetrics` + `DotBackground.test.ts`  | `calculateRulerMetrics` 동형 (gap/tx/ty/라벨 시작값)      |
 
 **도트 배경에 없는 것 하나 — 라벨.** 값이 팬에 따라 변하므로 `background-position` 트릭이 통하지 않는다. 절대 배치 `<span>` 풀(개수는 뷰포트/간격으로 고정)을 만들어 같은 `apply()` 콜백에서 `textContent` + `transform` 만 갱신한다 — DOM 생성·파괴 없음.
+
+#### 재구현 결과 (2026-08-14)
+
+**HC1(a) 충족** — `render.frame` mean 실측 (동일 카메라, 4초 × 2 왕복):
+
+| 상태 | ruler OFF | ruler ON | 증가분     |
+| ---- | --------- | -------- | ---------- |
+| idle | 0.33 / 0.36ms | 0.34 / 0.34ms | **0** (노이즈 내) |
+| 팬   | 0.35ms    | 0.32ms   | **0**      |
+
+Skia 구현의 +0.81ms(예산 4.9%) 가 **0** 으로 소멸했다.
+
+착수 후 실측으로 잡은 것 2건:
+
+1. **스트립 배경 토큰** — `--bg-raised` 는 light 테마에서 `--bg` 와 **같은 값**이라(css-tokens.md Surface Elevation: `bg(gray-100) → raised(gray-100)`) 캔버스와 구분되지 않았다. 패널과 같은 `--bg-overlay` 로 교체.
+2. **세로 라벨이 스트립 밖으로 이탈** — `rotate(90deg)` + `transform-origin: 0 0` 은 회전 박스를 원점 **왼쪽**으로 보낸다 (실측 x=275, 스트립은 281 — 18/18 이탈). CSS `writing-mode: vertical-rl` 로 교체 (글자를 눕히면서 박스도 세로로 잡아 준다) → 이탈 **0/18**.
+
+live 검증 (Chrome MCP):
+
+| 항목 | 결과 |
+| --- | --- |
+| 설정 스위치 ON/OFF | 양방향 동작, OFF 시 overlay DOM·라벨 span 완전 제거 (누수 0) |
+| 좌측 패널 개폐 인셋 추종 | sidebar 281 → 48 → 281, 스트립 x 정확 추종 |
+| hover 가드 | 눈금자 위 hover 시 캔버스 hover chrome (점선 가이드라인 + 실선 아웃라인) 미발생 |
+| pointerdown 가드 | 눈금자 클릭 시 `selectedElementId`/`selectedElementIds` 불변 |
+| 페이지 0개 상태 | 눈금자 유지 (Skia 프레임 skip 과 무관 — DOM 경로에서 문제 소멸) |
+| 눈금 위상/라벨 | 팬·줌에 동기, 라벨 위치 = `pan + value*zoom - origin` 실측 일치 |
+
+유닛: `rulerMetrics.test.ts` 20건 (1차 구현에서 이관 9 + 위상/라벨 신규 11).
 
 #### 작업 항목 (재구현)
 

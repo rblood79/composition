@@ -14,6 +14,7 @@
  */
 
 import { useCallback, useEffect, useRef } from "react";
+import { isRulerEventTarget } from "../../components/RulerOverlay";
 import type { MutableRefObject, RefObject } from "react";
 import { useStore } from "../../../stores";
 import { useViewportSyncStore } from "../stores";
@@ -334,6 +335,13 @@ export function useElementHoverInteraction({
   const handlePointerMove = useCallback(
     (e: PointerEvent) => {
       altKeyRef.current = e.altKey;
+      // ADR-181 R1: 눈금자 위 hover 는 캔버스 hover 가 아니다. 이 리스너는
+      // window 에 붙어 있어 DOM z-order 로 막히지 않으므로 소속으로 거른다.
+      // 누락 시 §8.6 빈 영역 fallback 이 page body 아웃라인을 그린다.
+      if (isRulerEventTarget(e.target)) {
+        clearHover();
+        return;
+      }
       if (gestureSession.shouldSuppressElementHover()) {
         clearHover();
         return;
