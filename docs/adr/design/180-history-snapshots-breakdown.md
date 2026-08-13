@@ -1,6 +1,6 @@
 # ADR-180: 히스토리 스냅샷 — design breakdown
 
-> 본문: [../180-history-snapshots.md](../180-history-snapshots.md)
+> 본문: [../180-history-snapshots.md](../completed/180-history-snapshots.md)
 > 배경 조사: Adobe Photoshop 웹 History 패널 실측 (2026-08-13 세션 — 스냅샷 = 선형 truncation 의 분기 보존 장치, 즉시 생성 + 인라인 rename + 클릭 복원 + truncation 생존 실측). 1단계 (시각 어법 — 미래 state 흐림/타입 아이콘) 는 `6405722d9` 로 반영 완료, 본 ADR 이 2단계.
 
 ## §1 결정 요약 + 스코프 lock
@@ -58,7 +58,9 @@ interface HistorySnapshot {
 - `historyEntryLabel.ts`: `case "snapshot-restore"` → "스냅샷 복원 {name}" (스냅샷 삭제됨이면 "(삭제됨)" — 삭제 시 restore entry 는 잔존하므로 라벨만 표기)
 - 테스트: 복원→undo→redo 왕복 (문서 동일성), 타 페이지 히스토리 clear, entry 크기 상한 (직렬화 본 미포함 — 참조 2개)
 
-## §5 Phase 3 — 패널 UI (Photoshop 웹 동형)
+## §5 Phase 3 — 패널 UI (Photoshop 웹 동형) — Implemented 2026-08-13
+
+> **구현 확정 사항**: ① 복원 클릭은 250ms 지연 후 발화 — 더블클릭 rename 이 타이머를 취소해 복원 오발 (문서 전체 교체 2회) 차단. ② 삭제 버튼은 행 Button 과 **형제** 배치 (button-in-button invalid HTML 회피) + hover/focus-within 노출. ③ data-active 판정 = 현재 히스토리 위치 entry 의 `snapshotRestoreEvent.afterSnapshotId` (복원 직후 상태에서만 점등, undo 로 지나가면 소등). ④ 빈 히스토리에서도 스냅샷 섹션 유지 (EmptyState 는 편집 리스트 자리만). ⑤ R4 clear 는 복원 전/후 페이지 합집합 전달 (`a0e213653` — §4 시퀀스 5 보강).
 
 - `HistoryPanel.tsx`: "편집" 리스트 위에 스냅샷 섹션
   - 헤더 액션: 스냅샷 생성 버튼 (Camera 아이콘) — 이름 대화상자 없이 즉시 "스냅숏 N" 생성 (Photoshop 웹 실측 동형)
@@ -68,14 +70,16 @@ interface HistorySnapshot {
 - 썸네일 (선택 — defer 허용): Skia surface 캡처 경로 실측 후 별도 판단. 1차 반영은 텍스트 행
 - 테스트: 기존 `historyEntryLabel.test.ts` 확장 + 패널은 live 검증 위주
 
-## §6 Phase 4 — 검증 게이트 (본문 Gates 와 1:1)
+## §6 Phase 4 — 검증 게이트 (본문 Gates 와 1:1) — 전부 통과 2026-08-13 (live Chrome MCP, 프로젝트 1234)
 
-| Gate    | 내용                                                         | 통과 기준                                                                                                             |
-| ------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| G1 성능 | 스냅샷 생성 소요 (components 페이지급 실문서 + 5k 합성 문서) | 5k 에서 직렬화+저장 p50 < 800ms (기존 편집 persist 205ms/35MB 실측 대비 동일 자릿수), 생성 후 캔버스 조작 프리즈 무감 |
-| G2 정합 | 복원 결과 == 같은 문서 새로고침 hydrate 결과                 | store/canonical/Skia 렌더 diff 0 (live Chrome MCP)                                                                    |
-| G3 왕복 | 복원 → Cmd+Z → Cmd+Shift+Z                                   | 문서·캔버스 원복, entry 1개                                                                                           |
-| G4 영속 | 새로고침 후 스냅샷 목록 유지 + 복원 동작                     | IndexedDB v3 upgrade 후 기존 히스토리 entry 무손실 포함                                                               |
+| Gate    | 통과 기준                                     | 실측 결과                                                                                                                                                                                 |
+| ------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G1 성능 | 5k 직렬화+저장 p50 < 800ms + 조작 프리즈 무감 | **PASS** — 실문서 (78노드/50KB) round-trip p50 0.20ms, 5,003노드 합성 (3.6MB JSON) p50 9.4ms/max 18.7ms. 저장은 비동기 write-through. 생성 직후 조작 무감                                 |
+| G2 정합 | 복원 == 새로고침 hydrate (diff 0)             | **PASS** — 복원 doc JSON == 스냅샷 원본 (완전 일치) / 새로고침 hydrate JSON == 동일 (완전 일치, 3회 확인). Skia 시각도 원위치 복원                                                        |
+| G3 왕복 | 복원 → Cmd+Z → Cmd+Shift+Z 원복, entry 1개    | **PASS** — undo == 복원 직전 JSON, redo == 스냅샷 JSON, entry 1개 (`snapshot-restore`). 새로고침 후 IDB 로드 entry + 영속 system 스냅샷 조합의 undo/redo 도 성공                          |
+| G4 영속 | v3 upgrade 무손실 + 새로고침 후 목록/복원     | **PASS** — upgrade 후 기존 entry 무손실 (43건 표시 확인), 스냅샷 목록·rename 영속, 복원 재동작. R4 전수 clear 는 이 프로젝트 타 페이지만 삭제 (34/4/69/20/32→0), 타 프로젝트 259건 무손상 |
+
+라이브에서 발견·즉시 수정: R4 clear 가 메모리 로드 페이지만 순회 → 미방문 페이지 IDB 잔존 부활 (`a0e213653` 보강). 스코프 밖 관찰 2건은 본문 §잔존 관찰 참조.
 
 ## §7 파일 변경표 (추정 — Phase 0 에서 freeze)
 

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [히스토리 스냅샷 — ADR-180 Phase 0~4] - 2026-08-13
+
+### Features
+
+- **히스토리 스냅샷 — 선형 truncation 생존 복원 지점** (ADR-180 Implemented):
+  - 히스토리 패널에 스냅샷 섹션 신설 — 카메라 버튼 즉시 생성 ("스냅숏 N", 프로젝트당 user 10개 상한 + 도달 시 생성 차단·삭제 유도), 행 클릭 복원, 더블클릭 인라인 rename, hover 삭제 (confirm 1회)
+  - 스냅샷 = canonical `CompositionDocument` 전체 캡처본 — undo 후 재편집으로 폐기되는 redo 분기를 명시 시점으로 보존/복원 (Photoshop 웹 History 어법 동형). IndexedDB `composition-history` v3 `snapshots` store 영속 — 새로고침 후에도 유지
+  - 복원은 boot hydrate 동형 문서 전체 교체 + `snapshot-restore` 히스토리 entry 로 **undo 가능** (복원 직전 상태를 system 스냅샷으로 자동 캡처, 프로젝트당 최신 5개 rolling)
+  - **Why**: 선형 히스토리는 undo 후 새 편집 시 redo 분기를 폐기 (`history.ts` truncation) 하며 복구 수단이 없었다 — 스냅샷이 그 구조적 손실 경로의 표준 보상 장치
+  - live 게이트 (Chrome MCP): 복원 doc == 스냅샷 원본 JSON 완전 일치, 복원↔undo↔redo 왕복 정합, 새로고침 hydrate 동일성, 5,003노드 합성 직렬화 p50 9.4ms (< 800ms 예산)
+  - 위치: `apps/builder/src/builder/stores/history/{snapshots,snapshotRestore}.ts`, `panels/history/HistoryPanel.tsx`
+
+### Bug Fixes
+
+- **복원 시 타 페이지 히스토리 clear 가 미방문 페이지를 놓침** (ADR-180 R4 보강):
+  - `clearOtherPageHistories` 가 메모리 로드된 페이지만 순회 — lazy 미로드 페이지의 IndexedDB 히스토리가 잔존해 재방문 시 부활 (stale delta 적용 위험)
+  - **Why**: 페이지 히스토리는 방문 시점 lazy 로드라 메모리 키 순회로는 프로젝트 전수가 안 잡힌다
+  - 수정: 복원 전/후 페이지 id 합집합을 전달해 전수 clear — 타 프로젝트 히스토리는 보존 (live IDB 실측 확증)
+
 ## [색상 피커 popover 공용화 — PropertyColor → ColorPickerPanel] - 2026-08-14
 
 ### Features

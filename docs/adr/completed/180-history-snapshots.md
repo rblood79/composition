@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-13 (리뷰 round 1 승인 — [reviews/180.md](reviews/180.md), 이슈 전부 종결) / Proposed — 2026-08-13
+Implemented — 2026-08-13 (Phase 0~4 전체: `cdfeea45e` inventory freeze / `09c6c1735` 스냅샷 코어 / `e2bec8228` 복원 + entry / `f71990c5d` 패널 UI / `a0e213653` R4 전수 clear 보강. G1~G4 live 게이트 통과 — breakdown §6) / Accepted — 2026-08-13 (리뷰 round 1 승인 — [reviews/180.md](../reviews/180.md), 이슈 전부 종결) / Proposed — 2026-08-13
 
 ## Context
 
@@ -79,17 +79,17 @@ composition 의 히스토리는 페이지 스코프 선형 모델이다: undo �
 - **대안 B 기각**: 목적 (폐기 분기의 선택적 보존) 대비 히스토리 체계 전면 재설계가 과잉. Photoshop 웹도 비선형을 탑재하지 않고 스냅샷으로 보상하는 동일 선택을 했다 (실측). 필요가 실증되면 후속 ADR 로 재론.
 - **대안 C 기각**: cross-page reusable/instance split-brain (기술 HIGH) — 문서 전체본 대비 절감되는 것이 직렬화 비용뿐인데, 그 비용은 A 에서 이미 수용 가능 판정.
 
-> 구현 상세: [180-history-snapshots-breakdown.md](design/180-history-snapshots-breakdown.md)
+> 구현 상세: [180-history-snapshots-breakdown.md](../design/180-history-snapshots-breakdown.md)
 
 ## Risks
 
-| ID  | 위험                                                                                                        | 심각도 | 대응                                                                                                                                                                                                        |
-| --- | ----------------------------------------------------------------------------------------------------------- | :----: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1  | 대형 문서 스냅샷 생성 시 메인 스레드 블로킹 (직렬화 205ms 자릿수@5k)                                        |  MED   | 명시 액션 1회 비용으로 국한 + G1 성능 게이트 (프리즈 무감 기준)                                                                                                                                             |
-| R2  | IndexedDB 용량 누적 (35MB × N) — user 상한 밖의 system(before 자동 캡처) 스냅샷이 복원 횟수만큼 무상한 누적 |  MED   | user 상한 10 + 초과 시 생성 차단·삭제 유도 (자동 삭제 금지는 **user kind 한정**). system kind 는 프로젝트당 최신 **5개 rolling** 자동 순환 — 복원 안전망이지 사용자 산출물이 아니므로 자동 삭제 원칙의 예외 |
-| R3  | 복원 후 파생 상태 (Skia/layout/preview) 동기화 누락                                                         |  MED   | 새로고침 hydrate 와 동일 진입점 재사용 (Phase 0 에서 확정) + G2 정합 게이트                                                                                                                                 |
-| R4  | 복원이 타 페이지 히스토리의 stale nodeId delta 를 무효화 — 적용 시 corruption 가능                          |  MED   | 복원 시 타 페이지 히스토리 clear (트레이드오프 명시). 복원 자체의 undo 는 before 자동 스냅샷이 보장 (G3 왕복)                                                                                               |
-| R5  | `snapshot-restore` entry 가 참조하는 스냅샷 삭제 시 undo 불능                                               |  LOW   | 라벨 "(삭제됨)" 표기 + undo 시도 시 no-op 안내 — system rolling (R2) 으로 오래된 before 참조가 소실되는 경우도 동일 fallback. entry 제거 지점 전수 나열은 Phase 0 inventory 항목 유지                       |
+| ID  | 위험                                                                                                        | 심각도 | 대응                                                                                                                                                                                                                                                                                                   |
+| --- | ----------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R1  | 대형 문서 스냅샷 생성 시 메인 스레드 블로킹 (직렬화 205ms 자릿수@5k)                                        |  MED   | 명시 액션 1회 비용으로 국한 + G1 성능 게이트 (프리즈 무감 기준)                                                                                                                                                                                                                                        |
+| R2  | IndexedDB 용량 누적 (35MB × N) — user 상한 밖의 system(before 자동 캡처) 스냅샷이 복원 횟수만큼 무상한 누적 |  MED   | user 상한 10 + 초과 시 생성 차단·삭제 유도 (자동 삭제 금지는 **user kind 한정**). system kind 는 프로젝트당 최신 **5개 rolling** 자동 순환 — 복원 안전망이지 사용자 산출물이 아니므로 자동 삭제 원칙의 예외                                                                                            |
+| R3  | 복원 후 파생 상태 (Skia/layout/preview) 동기화 누락                                                         |  MED   | 새로고침 hydrate 와 동일 진입점 재사용 (Phase 0 에서 확정) + G2 정합 게이트                                                                                                                                                                                                                            |
+| R4  | 복원이 타 페이지 히스토리의 stale nodeId delta 를 무효화 — 적용 시 corruption 가능                          |  MED   | 복원 시 타 페이지 히스토리 clear — **프로젝트 페이지 전수** (복원 전/후 페이지 합집합 전달, `a0e213653`). 메모리 로드분만 순회하면 lazy 미로드 페이지의 IndexedDB 잔존분이 재방문 시 부활한다 (live 실측 — Page 4 히스토리 50건 부활 후 보강). 복원 자체의 undo 는 before 자동 스냅샷이 보장 (G3 왕복) |
+| R5  | `snapshot-restore` entry 가 참조하는 스냅샷 삭제 시 undo 불능                                               |  LOW   | 라벨 "(삭제됨)" 표기 + undo 시도 시 no-op 안내 — system rolling (R2) 으로 오래된 before 참조가 소실되는 경우도 동일 fallback. entry 제거 지점 전수 나열은 Phase 0 inventory 항목 유지                                                                                                                  |
 
 잔존 HIGH 위험 없음.
 
@@ -115,3 +115,8 @@ composition 의 히스토리는 페이지 스코프 선형 모델이다: undo �
 - IndexedDB 사용량 증가 (문서 크기 × 최대 10) — `panels/history` 사용자에게 상한·용량 노출 필요.
 - 복원 시 타 페이지 히스토리 소실 (R4 트레이드오프) — 문서 전체 교체의 대가로, 패널에서 복원 전 안내 필요.
 - `HistoryEntry` union 확장 (`snapshot-restore`) 으로 히스토리 소비자 (label/migration/static test) 표면 +1.
+
+## 잔존 관찰 (스코프 밖 — live 게이트 중 발견, 본 ADR 코드와 무관)
+
+- **historyManager 메모리↔IndexedDB 재로드 경합 (기존 축)**: addEntry 직후 페이지 재활성화가 IndexedDB lazy 로드 (백그라운드 저장 완료 전 스냅샷) 로 메모리 히스토리를 덮어, 방금 만든 entry 가 패널에서 일시 소실되거나 (재로드 후 복귀) 일부 세션에서 메모리 entries 가 IndexedDB 에 반영되지 않는 관찰 (live 실측 — Home 히스토리 4건 미영속 1회, entry 1건은 IDB 저장·메모리 소실 1회). `setCurrentPage`/`saveToIndexedDB` 는 ADR-180 커밋이 건드리지 않은 기존 영역 — 별도 정비 대상.
+- **비활성 페이지 ref 렌더 일시 소실 1회**: 새로고침 직후 IDB 로드 entry 를 undo 한 뒤 미방문 페이지의 ref (컴포넌트 인스턴스) 내용이 Skia 에서 안 그려진 관찰 1회. 데이터·씬 해석 (`buildCanonicalSceneModel` 재구축) 은 정합 확인, 동일 순서 재현 3회 실패, 최종 상태 정상 — viewport/페이지 배치 재계산과 얽힌 일시 상태로 추정. 재발 시 `/fix` 진입.
