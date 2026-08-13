@@ -5,16 +5,16 @@
 
 ## §1 결정 요약 + 스코프 lock
 
-| 축                 | 결정                                                                                                           |
-| ------------------ | -------------------------------------------------------------------------------------------------------------- |
-| 스냅샷 표현        | **canonical `CompositionDocument` 전체 직렬화 본** (프로젝트 스코프) — 페이지 서브트리 아님 (본문 대안 C 기각) |
-| 저장               | IndexedDB `composition-history` DB **v3** 신규 `snapshots` object store (기존 `entries`/`meta` 무변경)         |
-| 복원               | 문서 전체 교체 (새로고침 hydrate 와 동일 경로) + `snapshot-restore` 히스토리 entry — **undo 가능**             |
-| 복원 undo 표현     | entry 에 직렬화 본을 담지 않고 `{ beforeSnapshotId, afterSnapshotId }` 참조만 (before 는 복원 직전 자동 캡처)  |
-| 타 페이지 히스토리 | **복원 시 clear** (R4 — stale nodeId delta 적용 차단. 복원 자체의 undo 는 beforeSnapshot 이 보장)              |
-| 상한               | 프로젝트당 **10개** (system 자동 캡처 제외) — 초과 시 생성 차단 + 삭제 유도. 자동 삭제 금지 (사용자 데이터)    |
-| UI                 | HistoryPanel 에 스냅샷 섹션 (Photoshop 웹 동형: 생성 버튼 / 클릭 복원 / 더블클릭 인라인 rename / 삭제)         |
-| 어휘               | entry type `"snapshot-restore"`, 라벨 "스냅샷 복원 {이름}"                                                     |
+| 축                 | 결정                                                                                                                                                                        |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 스냅샷 표현        | **canonical `CompositionDocument` 전체 직렬화 본** (프로젝트 스코프) — 페이지 서브트리 아님 (본문 대안 C 기각)                                                              |
+| 저장               | IndexedDB `composition-history` DB **v3** 신규 `snapshots` object store (기존 `entries`/`meta` 무변경)                                                                      |
+| 복원               | 문서 전체 교체 (새로고침 hydrate 와 동일 경로) + `snapshot-restore` 히스토리 entry — **undo 가능**                                                                          |
+| 복원 undo 표현     | entry 에 직렬화 본을 담지 않고 `{ beforeSnapshotId, afterSnapshotId }` 참조만 (before 는 복원 직전 자동 캡처)                                                               |
+| 타 페이지 히스토리 | **복원 시 clear** (R4 — stale nodeId delta 적용 차단. 복원 자체의 undo 는 beforeSnapshot 이 보장)                                                                           |
+| 상한               | user **10개** — 초과 시 생성 차단 + 삭제 유도, 자동 삭제 금지 (사용자 데이터) / system(복원 안전망) 은 프로젝트당 최신 **5개 rolling** 자동 순환 — 참조 소실 시 R5 fallback |
+| UI                 | HistoryPanel 에 스냅샷 섹션 (Photoshop 웹 동형: 생성 버튼 / 클릭 복원 / 더블클릭 인라인 rename / 삭제)                                                                      |
+| 어휘               | entry type `"snapshot-restore"`, 라벨 "스냅샷 복원 {이름}"                                                                                                                  |
 
 ## §2 Phase 0 — inventory freeze (착수 게이트)
 
@@ -23,8 +23,8 @@
 - [ ] **직렬화 재사용 지점**: canonical persist 경로가 쓰는 직렬화 형태 (`persistActiveCanonicalDocument` 계열) — 스냅샷 저장이 같은 포맷을 재사용할 수 있는지, deep-clone 필요 여부 (structuredClone vs JSON round-trip)
 - [ ] **문서 교체 → 재파생 경로**: `canonicalDocumentStore.setDocument` (canonicalDocumentStore.ts:249) 이후 store mirror 재파생 (`canonicalDocumentToElements` → `_rebuildIndexes`) + `layoutVersion`/`pagePositionsVersion`/preview 재송신이 한 진입점으로 묶인 함수가 있는지 (새로고침 hydrate 경로와 동일해야 함 — 없으면 Phase 2 에서 단일 진입점 신설)
 - [ ] **historyManager 확장점**: `subscribe` 채널이 스냅샷 목록 변경도 통지할지, 별도 snapshot subscribe 를 둘지
-- [ ] **HistoryEntry union 확장 영향면**: `historyEntryLabel.ts` / `historyEntryMigration.ts` / `historyEntryCanonicalEvents.static.test.ts` / `historyActions` 3분기 (349/751/1146) 전수 나열
-- [ ] **entry 제거 지점 전수** (system before-스냅샷 GC 대상): maxSize 초과 shift (history.ts:459 부근) / truncation slice (history.ts:449) / `clearPageHistory` — restore entry 소멸 시 참조 system 스냅샷 삭제 여부 판정 (1차 구현은 GC 생략 + 용량 계상만 해도 무방 — 판정 결과 기록)
+- [ ] **HistoryEntry union 확장 영향면**: `historyEntryLabel.ts` / `historyEntryMigration.ts` / `historyEntryCanonicalEvents.static.test.ts` / `historyActions` 분기 4곳 (349/751/1146 + 1682 persist skip — 리뷰 round 1 실측) 전수 나열
+- [ ] **entry 제거 지점 전수** (R5 fallback 빈도 추정 근거): maxSize 초과 shift (history.ts:459 부근) / truncation slice (history.ts:449) / `clearPageHistory` (history.ts:680) — system 상한은 rolling 5 (§1) 가 보장하므로 참조-추적 GC 는 불요 판정이 기본값. 나열 결과는 rolling 임계값 재조정 근거로 기록
 
 ## §3 Phase 1 — 스냅샷 코어 (CRUD + 영속)
 
@@ -42,9 +42,9 @@ interface HistorySnapshot {
 }
 ```
 
-- API: `createSnapshot(name?)` / `listSnapshots(projectId)` / `renameSnapshot(id, name)` / `deleteSnapshot(id)` — user kind 상한 10 검사
+- API: `createSnapshot(name?)` / `listSnapshots(projectId)` / `renameSnapshot(id, name)` / `deleteSnapshot(id)` — user kind 상한 10 검사 + system kind rolling 5 (초과 시 가장 오래된 system 자동 삭제)
 - `historyIndexedDB.ts`: `DB_VERSION 2 → 3`, `snapshots` store (`keyPath: "id"`, index `projectId`) — upgrade 분기는 기존 store 존재 검사 패턴 (historyIndexedDB.ts:114/128) 과 동일
-- 테스트: `snapshots.test.ts` — 생성/조회 정렬(최신순)/상한 차단/rename/삭제/system kind 상한 제외
+- 테스트: `snapshots.test.ts` — 생성/조회 정렬(최신순)/상한 차단/rename/삭제/system kind 상한 제외 + rolling 5 순환
 
 ## §4 Phase 2 — 복원 + `snapshot-restore` entry
 
