@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 획득 능력: Alpha 슬라이더 + EyeDropper(스포이드) + HEX/RGBA/CSS 포맷 탭 + 빌더 디자인 스타일
   - commit-skip 함정 가드가 수동 ref 에서 `resetKey` 설계 차단으로 격상 (외부 value 재동기화는 요소 전환 시에만). 저장 포맷은 불투명 색이면 종전 `#RRGGBB` 유지 (알파 사용 시에만 hex8)
   - 위치: `apps/builder/src/builder/components/property/PropertyColor.tsx`
+- **fill popover 의 Type 선택기를 fieldset+legend 표준 구조로 정합** (사용자 지적 — footer 의 Blend 는 `fieldset.properties-aria`+legend 인데 상단 `.fill-type-selector` 는 bare ToggleButtonGroup):
+  - `FillTypeSelector` 를 `fieldset.properties-aria.fill-type-selector` + `legend "Type"` 으로 감싸 ADR-163 패널 표준 (라벨 있는 필드 그룹 계약) 정합. fieldset `min-inline-size` 기본값 해제는 고유 클래스가 공급 (panel-system 어법)
+  - 위치: `apps/builder/src/builder/panels/styles/components/{FillTypeSelector.tsx,FillDetailPopover.css}`
 
 ## [색상 피커 드래그 캔버스 실시간 반영 — PropertyColor preview 채널] - 2026-08-13
 

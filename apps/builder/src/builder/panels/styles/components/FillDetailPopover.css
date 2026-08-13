@@ -10,4 +10,14 @@
     background: var(--bg-muted);
     margin: 2px 0;
   }
+
+  /* fieldset(.properties-aria) — 레이아웃은 고유 클래스가 직접 공급한다
+     (panel-system.css `.component-semantics-overrides` 어법).
+     min-width 는 fieldset min-content 기본값 해제. */
+  .fill-type-selector {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    width: 100%;
+  }
 }
