@@ -46,7 +46,22 @@
     font-style: italic;
   }
 
+  /* 미래 state (redo 가능 구간) — 새 편집 시 폐기 예정임을 흐림으로 표시 */
+  .history-item[data-future="true"] {
+    opacity: 0.45;
+  }
+
+  .history-item[data-future="true"]:hover {
+    opacity: 0.85;
+  }
+
   .history-item-btn {
+    /* 공유 Button 에 ghost variant 부재 → button-base 기본 --button-color(--fg)
+       가 배경을 어둡게 칠해 라벨(--fg)과 동색으로 비가시. 패널 한정 중화 —
+       hover/pressed 는 button-base color-mix 파생(15%/25% black wash) 유지. */
+    --button-color: transparent;
+    --button-text: var(--fg);
+    --button-border: transparent;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -56,8 +71,20 @@
     text-align: left;
   }
 
+  .history-item-icon {
+    display: inline-flex;
+    flex: none;
+    color: var(--fg-muted);
+  }
+
+  .history-item[data-active="true"] .history-item-icon {
+    color: var(--fg);
+  }
+
   .history-item-main {
     display: flex;
+    flex: 1;
+    min-width: 0;
     flex-direction: column;
     gap: var(--spacing-2xs);
   }

@@ -117,6 +117,12 @@ export function getHistoryEntryLabel(
         entry.data.groupData?.childIds?.length ?? entry.elementIds?.length ?? 0;
       return `그룹 해제 (${count})`;
     }
+    case "page-position": {
+      const count = new Set(
+        entry.data.pagePositionEvent?.entries.map((item) => item.pageId) ?? [],
+      ).size;
+      return count > 1 ? `페이지 이동 (${count})` : "페이지 이동";
+    }
     default:
       return "변경";
   }

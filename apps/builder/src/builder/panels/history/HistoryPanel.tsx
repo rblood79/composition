@@ -1,5 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Clock, History, Redo, Trash2, Undo } from "lucide-react";
+import {
+  Clock,
+  File,
+  Group,
+  History,
+  Layers,
+  LayoutTemplate,
+  Minus,
+  Move,
+  Pencil,
+  Plus,
+  Redo,
+  Trash2,
+  Undo,
+  Ungroup,
+  type LucideIcon,
+} from "lucide-react";
 import { PanelHeader, EmptyState } from "../../components";
 import { ActionIconButton } from "../../components/ui";
 import { Button } from "@composition/shared/components";
@@ -14,9 +30,27 @@ type HistoryListItem = {
   id: string;
   index: number;
   label: string;
+  type?: HistoryEntry["type"];
   timestamp?: number;
   isStart?: boolean;
 };
+
+// entry 타입 → 아이콘 (Photoshop History 패널의 도구 아이콘 어법)
+const ENTRY_TYPE_ICONS: Record<HistoryEntry["type"], LucideIcon> = {
+  add: Plus,
+  remove: Minus,
+  update: Pencil,
+  move: Move,
+  batch: Layers,
+  group: Group,
+  ungroup: Ungroup,
+  "page-position": LayoutTemplate,
+};
+
+function entryIcon(item: HistoryListItem): LucideIcon {
+  if (item.isStart) return File;
+  return (item.type && ENTRY_TYPE_ICONS[item.type]) || Pencil;
+}
 
 function formatTimestamp(timestamp: number): string {
   const date = new Date(timestamp);
@@ -101,6 +135,7 @@ function HistoryPanelContent() {
       id: entry.id,
       index,
       label: getHistoryEntryLabel(entry, activeDoc),
+      type: entry.type,
       timestamp: entry.timestamp,
     }));
 
@@ -182,6 +217,9 @@ function HistoryPanelContent() {
             const isActive = item.index === historyInfo.currentIndex;
             const isStart = item.isStart;
             const timestamp = !isStart ? item.timestamp : undefined;
+            // 미래 state (redo 가능 구간) — 새 편집 시 폐기됨을 흐림으로 예고
+            const isFuture = !isStart && item.index > historyInfo.currentIndex;
+            const Icon = entryIcon(item);
 
             return (
               <div
@@ -189,6 +227,7 @@ function HistoryPanelContent() {
                 className="history-item"
                 data-active={isActive}
                 data-start={isStart}
+                data-future={isFuture}
               >
                 <Button
                   variant="ghost"
@@ -197,6 +236,9 @@ function HistoryPanelContent() {
                   isDisabled={historyOperationInProgress}
                   className="history-item-btn"
                 >
+                  <span className="history-item-icon">
+                    <Icon size={iconSmall.size} />
+                  </span>
                   <span className="history-item-main">
                     <span className="history-label">{item.label}</span>
                     {!isStart && timestamp !== undefined && (

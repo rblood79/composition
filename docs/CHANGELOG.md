@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [히스토리 패널 시각 어법 — 미래 state 흐림·타입 아이콘·라벨 가시화] - 2026-08-13
+
+### Bug Fixes
+
+- **히스토리 패널 라벨 완전 비가시 수리**:
+  - 공유 `Button` 에 `ghost` variant 가 정의돼 있지 않아 `variant="ghost"` 가 기본 `--button-color: var(--fg)` 로 폴백 → `.button-base` 가 행 배경을 어둡게 칠하고, 라벨 색(`--fg`)과 동색이 되어 텍스트가 보이지 않았다
+  - **Why**: `.button-base` 는 `--button-color` 를 배경으로 칠하는 filled 색 시스템 — variant 매핑(`Button.css`)에 ghost 부재 시 default 로 떨어진다
+  - 수정: 패널 한정 `--button-color: transparent` + `--button-text: var(--fg)` 중화 (공유 Button 표면 무변경, hover/pressed 는 button-base color-mix 파생 유지)
+- **`page-position` entry 라벨이 "변경" 으로 표기**: ADR-177 페이지 이동 entry 가 라벨 매핑에 없어 default 폴백 → "페이지 이동" (+다중 페이지 카운트) 케이스 추가
+
+### Features
+
+- **히스토리 패널 시각 어법 개선** (Adobe Photoshop 웹 History 패널 조사 1단계 적용):
+  - **미래 state 흐림 처리**: undo 후 redo 가능 구간(`index > currentIndex`)을 `data-future` + opacity 로 흐리게 표시 — "새로 편집하면 이 구간이 폐기된다" 를 예고하는 Photoshop 선형 히스토리 어법 (hover 시 복원 가능성 표시로 흐림 완화)
+  - **entry 타입 아이콘**: add/remove/update/move/batch/group/ungroup/page-position → lucide 아이콘 매핑, 시작 상태는 File 아이콘
+  - live 실측: 28/35 시점에서 미래 7건 흐림 + 타입별 아이콘 렌더, 항목 27 클릭 jump 시 카운트·흐림 즉시 재분류, redo 원복 정상
+  - 위치: `apps/builder/src/builder/panels/history/{HistoryPanel.tsx,HistoryPanel.css,historyEntryLabel.ts}`
+
 ## [등간격 스냅·간격 수치 배지 — ADR-179 Phase 4] - 2026-08-13
 
 ### Features

@@ -149,6 +149,50 @@ describe("getHistoryEntryLabel", () => {
     expect(getHistoryEntryLabel(batchEntry, null)).toBe("일괄 수정 (3)");
   });
 
+  it("page-position entry: 페이지 이동 라벨 + 다중 페이지 카운트", () => {
+    const single = makeEntry({
+      type: "page-position",
+      elementId: "page-1",
+      data: {
+        pagePositionEvent: {
+          entries: [
+            {
+              pageId: "page-1",
+              breakpoint: "desktop",
+              before: { x: 0, y: 0 },
+              after: { x: 10, y: 20 },
+            },
+          ],
+        },
+      },
+    } as unknown as Partial<HistoryEntry>);
+    expect(getHistoryEntryLabel(single, null)).toBe("페이지 이동");
+
+    const multi = makeEntry({
+      type: "page-position",
+      elementId: "page-1",
+      data: {
+        pagePositionEvent: {
+          entries: [
+            {
+              pageId: "page-1",
+              breakpoint: "desktop",
+              before: { x: 0, y: 0 },
+              after: { x: 10, y: 20 },
+            },
+            {
+              pageId: "page-2",
+              breakpoint: "desktop",
+              before: { x: 5, y: 5 },
+              after: { x: 15, y: 25 },
+            },
+          ],
+        },
+      },
+    } as unknown as Partial<HistoryEntry>);
+    expect(getHistoryEntryLabel(multi, null)).toBe("페이지 이동 (2)");
+  });
+
   it("batch entry: canonicalEvents 의 고유 노드 수로 카운트", () => {
     const entry = makeEntry({
       type: "batch",
