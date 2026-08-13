@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Properties 패널(PageBodyEditor)의 Position 섹션 제거 — 위치 입력을 한 곳으로 단일화
   - projection/frame body (page_id 없음) 는 position row 자체를 숨김, 일반 요소는 현행 Left/Top + Absolute 토글 유지
   - **Why**: 페이지 위치(빌더 전용 배치)와 CSS left/top(출판 스타일)은 별개 데이터인데 두 패널에 병렬 노출되어 혼동 축이었고, body 에 살아 있던 Absolute 토글이 body style 에 무의미한 `position:absolute` 를 기록해 preview 발산 축이던 결함도 함께 소멸
+  - **드래그 중 실시간 X/Y 갱신**: 페이지 드래그 중 패널 X/Y 가 commit 시점까지 멈춰 있던 공백 해소 — X/Y row 를 소형 컴포넌트로 분리해 ADR-176/178 transient 채널(`pagePositionPresentation`)을 `useSyncExternalStore` 로 직접 구독. Zustand set 무경유(드래그 프레임이 전역 셀렉터 sweep 을 유발하지 않음) + 스냅샷을 반올림 정수 문자열로 잘라 표시값이 실제 바뀐 프레임에만 해당 row 하나만 재렌더 (드래그 외 시간 비용 0)
   - 위치: `apps/builder/src/builder/panels/styles/sections/TransformSection.tsx`, `apps/builder/src/builder/panels/properties/editors/PageBodyEditor.tsx`
 
 ## [히스토리 패널 시각 어법 — 미래 state 흐림·타입 아이콘·라벨 가시화] - 2026-08-13

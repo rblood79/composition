@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -11,6 +12,12 @@ import type { Element } from "../../../../types/core/store.types";
 import { useStore } from "../../../stores";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { useSectionCollapse } from "../hooks/useSectionCollapse";
+import {
+  beginPagePositionPresentation,
+  cancelPagePositionPresentation,
+  publishPagePositionPresentation,
+  resetPagePositionPresentation,
+} from "../../../workspace/canvas/interaction/pagePositionPresentation";
 import { TransformSection } from "./TransformSection";
 
 const getSceneBoundsMock = vi.hoisted(() => vi.fn());
@@ -61,6 +68,9 @@ describe("TransformSection sizing controls", () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+    act(() => {
+      resetPagePositionPresentation();
+    });
   });
 
   it("names the intrinsic sizing mode Hug and removes Self Align from Transform", () => {
@@ -456,6 +466,48 @@ describe("TransformSection sizing controls", () => {
     fireEvent.change(xInput, { target: { value: "300" } });
     fireEvent.blur(xInput);
     expect(updatePagePosition).toHaveBeenCalledWith("page-1", 300, 40);
+  });
+
+  it("updates page X/Y live from the transient drag channel", async () => {
+    setTestElements([
+      {
+        id: "body-1",
+        type: "body",
+        parent_id: null,
+        page_id: "page-1",
+        props: { style: {} },
+      } as never,
+    ]);
+    useStore.setState({
+      selectedElementId: "body-1",
+      currentPageId: "page-1",
+      pagePositions: { "page-1": { x: 120, y: 40 } },
+    } as never);
+
+    render(<TransformSection />);
+    const readX = () =>
+      (screen.getByRole("combobox", { name: "X" }) as HTMLInputElement).value;
+    expect(readX()).toBe("120");
+
+    // 드래그 프레임 publish → store 무경유로 표시값 실시간 반영
+    // (async act — PropertyUnitInput 의 value 동기화가 queueMicrotask 경유)
+    await act(async () => {
+      beginPagePositionPresentation(
+        { "page-1": { x: 120, y: 40 } },
+        ["page-1"],
+        "desktop",
+      );
+      publishPagePositionPresentation([
+        { pageId: "page-1", position: { x: 300.4, y: 40 } },
+      ]);
+    });
+    expect(readX()).toBe("300");
+
+    // 취소 → committed store 값으로 복귀
+    await act(async () => {
+      cancelPagePositionPresentation();
+    });
+    expect(readX()).toBe("120");
   });
 
   it("hides the position row for projection/frame bodies without page_id", () => {

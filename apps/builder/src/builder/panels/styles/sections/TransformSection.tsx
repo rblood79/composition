@@ -5,7 +5,13 @@
  * Alignment는 Layout 섹션의 3x3 Flex alignment로 통합됨.
  */
 
-import { memo, useCallback, useMemo, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import type { Key } from "react-aria-components";
 import {
   PropertySection,
@@ -50,6 +56,10 @@ import {
 } from "../hooks/useTransformAuxiliary";
 import { useStore } from "../../../stores";
 import { useCanonicalPropertyElement } from "../../properties/hooks/useCanonicalPropertyRead";
+import {
+  getPagePositionPresentationSnapshot,
+  subscribePagePositionPresentation,
+} from "../../../workspace/canvas/interaction/pagePositionPresentation";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { useViewportSyncStore } from "../../../workspace/canvas/stores";
 import {
@@ -196,6 +206,92 @@ const SizeModeToggle = memo(function SizeModeToggle({
   );
 });
 
+/**
+ * 페이지 X/Y row (ADR-177 적응형 통합) — 드래그 중 실시간 표시.
+ *
+ * 커밋 값은 store pagePositions 를 구독하고, 드래그 중에는 ADR-176/178 의
+ * transient 채널(pagePositionPresentation.activeOverrides)을 직접 구독한다 —
+ * Zustand set 무경유라 드래그 프레임이 전역 셀렉터 sweep 을 유발하지 않고,
+ * 스냅샷을 반올림 정수 문자열로 잘라 표시값이 실제 바뀐 프레임에만 이 row
+ * 하나가 재렌더된다 (드래그 중이 아닐 땐 notify 자체가 없음 — 비용 0).
+ */
+const PagePositionRow = memo(function PagePositionRow({
+  pageId,
+}: {
+  pageId: string;
+}) {
+  const pagePosition = useStore((s) => s.pagePositions[pageId]);
+  const liveKey = useSyncExternalStore(
+    subscribePagePositionPresentation,
+    () => {
+      const snap = getPagePositionPresentationSnapshot();
+      const override = snap.isActive
+        ? snap.activeOverrides?.get(pageId)
+        : undefined;
+      return override
+        ? `${Math.round(override.x)}:${Math.round(override.y)}`
+        : null;
+    },
+  );
+
+  const handleCommit = useCallback(
+    (axis: "x" | "y", value: string) => {
+      const parsed = Number.parseFloat(value);
+      if (!Number.isFinite(parsed)) return;
+      const state = useStore.getState();
+      const current = state.pagePositions[pageId];
+      if (!current) return;
+      state.updatePagePosition(
+        pageId,
+        axis === "x" ? parsed : current.x,
+        axis === "y" ? parsed : current.y,
+      );
+    },
+    [pageId],
+  );
+  const handleXCommit = useCallback(
+    (value: string) => handleCommit("x", value),
+    [handleCommit],
+  );
+  const handleYCommit = useCallback(
+    (value: string) => handleCommit("y", value),
+    [handleCommit],
+  );
+
+  if (!pagePosition) return null;
+
+  const live = liveKey ? liveKey.split(":") : null;
+  const displayX = live ? live[0] : String(Math.round(pagePosition.x));
+  const displayY = live ? live[1] : String(Math.round(pagePosition.y));
+
+  return (
+    <div className="transform-row">
+      {/* 페이지 캔버스 위치 — 값/undo 는 updatePagePosition 계약 그대로 (ADR-177) */}
+      <PropertyUnitInput
+        icon={ArrowRightFromLine}
+        label="X"
+        className="left"
+        value={`${displayX}px`}
+        units={["px"]}
+        onChange={handleXCommit}
+        min={-99999}
+        max={99999}
+      />
+      <PropertyUnitInput
+        icon={ArrowDownFromLine}
+        label="Y"
+        className="top"
+        value={`${displayY}px`}
+        units={["px"]}
+        onChange={handleYCommit}
+        min={-99999}
+        max={99999}
+      />
+      <div className="fieldset-actions actions-position" />
+    </div>
+  );
+});
+
 const TransformSectionContent = memo(function TransformSectionContent() {
   const { updateStyleImmediate, updateStylePreview, updateStylesImmediate } =
     useOptimizedStyleActions();
@@ -261,34 +357,6 @@ const TransformSectionContent = memo(function TransformSectionContent() {
     selectedElementPageId != null
       ? selectedElementPageId
       : null;
-  const pagePosition = useStore((s) =>
-    pagePositionPageId ? s.pagePositions[pagePositionPageId] : undefined,
-  );
-
-  const handlePagePositionCommit = useCallback(
-    (axis: "x" | "y", value: string) => {
-      if (!pagePositionPageId) return;
-      const parsed = Number.parseFloat(value);
-      if (!Number.isFinite(parsed)) return;
-      const state = useStore.getState();
-      const current = state.pagePositions[pagePositionPageId];
-      if (!current) return;
-      state.updatePagePosition(
-        pagePositionPageId,
-        axis === "x" ? parsed : current.x,
-        axis === "y" ? parsed : current.y,
-      );
-    },
-    [pagePositionPageId],
-  );
-  const handlePageXCommit = useCallback(
-    (value: string) => handlePagePositionCommit("x", value),
-    [handlePagePositionCommit],
-  );
-  const handlePageYCommit = useCallback(
-    (value: string) => handlePagePositionCommit("y", value),
-    [handlePagePositionCommit],
-  );
   const hasConstraints = !!(
     styleValues?.minWidth ||
     styleValues?.maxWidth ||
@@ -585,31 +653,8 @@ const TransformSectionContent = memo(function TransformSectionContent() {
         </div>
       )}
 
-      {pagePositionPageId && pagePosition ? (
-        <div className="transform-row">
-          {/* 페이지 캔버스 위치 — 값/undo 는 updatePagePosition 계약 그대로 (ADR-177) */}
-          <PropertyUnitInput
-            icon={ArrowRightFromLine}
-            label="X"
-            className="left"
-            value={`${Math.round(pagePosition.x)}px`}
-            units={["px"]}
-            onChange={handlePageXCommit}
-            min={-99999}
-            max={99999}
-          />
-          <PropertyUnitInput
-            icon={ArrowDownFromLine}
-            label="Y"
-            className="top"
-            value={`${Math.round(pagePosition.y)}px`}
-            units={["px"]}
-            onChange={handlePageYCommit}
-            min={-99999}
-            max={99999}
-          />
-          <div className="fieldset-actions actions-position" />
-        </div>
+      {pagePositionPageId ? (
+        <PagePositionRow pageId={pagePositionPageId} />
       ) : styleValues.isBody ? null : (
         <div className="transform-row">
           <PropertyUnitInput
