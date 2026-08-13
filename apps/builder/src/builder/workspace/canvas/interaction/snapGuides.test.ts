@@ -121,7 +121,7 @@ describe("resolveSnappedPosition", () => {
     expect(result.position.x).toBe(102);
   });
 
-  it("양축 동시 흡착", () => {
+  it("양축 동시 흡착 — 성립 라인 전부 방출 (같은 폭 = x 3선)", () => {
     const result = resolveSnappedPosition(
       { x: 104, y: 305 },
       SIZE,
@@ -131,7 +131,15 @@ describe("resolveSnappedPosition", () => {
     expect(result.position).toEqual({ x: 100, y: 300 });
     expect(result.snappedX).toBe(true);
     expect(result.snappedY).toBe(true);
-    expect(result.guides).toHaveLength(2);
+    // x: 같은 폭 정렬이라 left/center/right 3선, y: bottom-top 인접 1선
+    const xLines = result.guides.filter(
+      (g) => g.kind === "line" && g.axis === "x",
+    );
+    const yLines = result.guides.filter(
+      (g) => g.kind === "line" && g.axis === "y",
+    );
+    expect(xLines.map((g) => asLine(g).position)).toEqual([100, 150, 200]);
+    expect(yLines.map((g) => asLine(g).position)).toEqual([300]);
   });
 
   it("guide 구간 — 이동 박스(스냅 반영)와 매칭 후보의 직교 구간 합집합", () => {
@@ -367,10 +375,11 @@ describe("등간격 스냅 (Phase 4)", () => {
     expect(result.position).toEqual({ x: 500, y: 300 });
     expect(result.snappedX).toBe(true);
     expect(result.snappedY).toBe(true);
-    expect(result.guides).toHaveLength(2);
+    // x: 같은 폭 정렬 3선 + y: 등간격 1건
+    expect(result.guides).toHaveLength(4);
     const lineGuide = asLine(result.guides[0]);
     expect(lineGuide.axis).toBe("x");
-    const spacingGuide = asSpacing(result.guides[1]);
+    const spacingGuide = asSpacing(result.guides[3]);
     expect(spacingGuide.axis).toBe("y");
     expect(spacingGuide.value).toBe(50);
     expect(spacingGuide.segments).toEqual([

@@ -198,6 +198,52 @@ function buildGuide(
   return { kind: "line", axis, position: line, start, end, markers };
 }
 
+/**
+ * 흡착 확정 위치에서 성립하는 정렬선 전부 수집 — 이동 박스의 3라인과
+ * 어느 후보 라인이든 일치(EPS)하는 라인 위치를 중복 제거 후 각각
+ * buildGuide 한다. 같은 크기 박스 정렬이면 상·중·하(또는 좌·중·우)
+ * 3선이 동시에 나온다 (Figma/Pen recordedSnaps 동형).
+ */
+function collectMatchedLineGuides(
+  axis: "x" | "y",
+  movingAxisMin: number,
+  movingAxisSize: number,
+  movingOrthoMin: number,
+  movingOrthoMax: number,
+  candidates: readonly SnapCandidateRect[],
+): SnapLineGuide[] {
+  const movingEdges = rectLines(movingAxisMin, movingAxisSize);
+  const linePositions: number[] = [];
+  for (const candidate of candidates) {
+    const lines =
+      axis === "x"
+        ? rectLines(candidate.x, candidate.width)
+        : rectLines(candidate.y, candidate.height);
+    for (const line of lines) {
+      if (
+        !movingEdges.some((edge) => Math.abs(edge - line) <= LINE_MATCH_EPS)
+      ) {
+        continue;
+      }
+      if (!linePositions.some((p) => Math.abs(p - line) <= LINE_MATCH_EPS)) {
+        linePositions.push(line);
+      }
+    }
+  }
+  linePositions.sort((a, b) => a - b);
+  return linePositions.map((line) =>
+    buildGuide(
+      axis,
+      line,
+      movingAxisMin,
+      movingAxisSize,
+      movingOrthoMin,
+      movingOrthoMax,
+      candidates,
+    ),
+  );
+}
+
 // ============================================
 // 등간격 스냅 (Phase 4)
 // ============================================
@@ -478,12 +524,14 @@ export function resolveSnappedPosition(
   const y = raw.y + (resolvedY?.delta ?? 0);
   const guides: SnapGuide[] = [];
   // 구간·cross 는 스냅 반영 후 좌표 기준 — 양축이 동시에 흡착돼도 가이드가
-  // 최종 박스를 기준으로 그려진다
+  // 최종 박스를 기준으로 그려진다. 정렬선은 흡착 확정 위치에서 **성립하는
+  // 라인 전부** 방출 (Figma/Pen 동형 — 같은 크기 정렬 시 상·중·하 3선.
+  // Pen 은 recordedSnaps 배열로 동률 다중 기록, 단일 최근접 라인만 그리면
+  // 나머지 성립 라인이 침묵한다).
   if (resolvedX?.line) {
     guides.push(
-      buildGuide(
+      ...collectMatchedLineGuides(
         "x",
-        resolvedX.line.line,
         x,
         movingSize.width,
         y,
@@ -502,9 +550,8 @@ export function resolveSnappedPosition(
   }
   if (resolvedY?.line) {
     guides.push(
-      buildGuide(
+      ...collectMatchedLineGuides(
         "y",
-        resolvedY.line.line,
         y,
         movingSize.height,
         x,

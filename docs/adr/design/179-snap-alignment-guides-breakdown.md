@@ -49,7 +49,7 @@
 | C1  | 순수 함수 거처     | 신규 `interaction/snapGuides.ts` — `resolveSnappedPosition(raw, movingBounds, candidates, config) → { position, guides }`. 훅 밖 순수 함수 (`resolveSelectionDragIntent` 동형 단일 진입점)                          |
 | C2  | 삽입 지점          | `usePageDrag.calculateLeaderPosition` — Shift 축 고정 → 객체 스냅 → (미흡착 축만) snap-to-grid. 리더에만 스냅, 다중 대상은 델타 공유 (ADR-178 계약)                                                                 |
 | C3  | 후보 수집          | 드래그 시작 1회 — **전 페이지 전수** (가시 필터 없음: 수십 규모라 HC2 상한 내 + 드래그 중 뷰포트 진입 페이지 누락 회피). rect = stacked 기본값 + canonical override (`buildPageFrames` 동형), 드래그 대상 집합 제외 |
-| C4  | 임계값             | ~~8 screen px 시작값 (Figma 관례 근사)~~ → **5 screen px (2026-08-13 G1 조정 — Pen v1.2.1 실측값 채택, 사용자 결정)**. scene 임계 = 5 / zoom                                                                       |
+| C4  | 임계값             | ~~8 screen px 시작값 (Figma 관례 근사)~~ → **5 screen px (2026-08-13 G1 조정 — Pen v1.2.1 실측값 채택, 사용자 결정)**. scene 임계 = 5 / zoom                                                                        |
 | C5  | 억제·우선순위      | Cmd(mac)/Ctrl(win) 홀드 = 전 스냅 억제 (PointerEvent `metaKey`/`ctrlKey` — RAF `latestPointer` 에 동승). 축별로 객체 스냅 성사 시 그리드 미적용, 실패 축만 그리드                                                   |
 | C6  | guides 채널        | 신규 `interaction/snapGuidePresentation.ts` (module-level snapshot + version + subscribe — pagePositionPresentation 동형 축소판). positions publish 와 같은 RAF 콜백에서 프레임당 1회, finish/cancel 시 clear       |
 | C7  | 오버레이 렌더      | `skiaOverlayBuilder.buildOverlayNode` 에 guide 레이어 — scene 좌표, strokeWidth = 1/cameraZoom (1 screen px), 색 `--accent` (builder 무채색 — 명도 대비). 조작 표식: `withPageOcclusionClip` 미적용 (§3.3 판정)     |
@@ -66,7 +66,7 @@
 - `resolveSnappedPosition(raw, movingBounds, candidates, threshold) → { position, guides[] }` — 훅 밖 순수 함수 (테스트 가능).
 - 후보: **가시 페이지의 6축** (left/centerX/right × top/centerY/bottom) — 페이지 수 규모(수십)라 O(N) 전수로 충분. absolute 확장 시 후보 수집만 SpatialIndex 로 교체.
 - 임계값은 **screen px 기준** (scene 임계 = screenThreshold / zoom) — zoom 무관하게 화면상 같은 흡착 거리.
-- 축별 독립 스냅 (x 는 수직선 후보, y 는 수평선 후보) — 최근접 1개만 채택, 임계 밖이면 raw 유지.
+- 축별 독립 스냅 (x 는 수직선 후보, y 는 수평선 후보) — **위치 보정은** 최근접 1개만 채택, 임계 밖이면 raw 유지. **정렬선 표시는** 흡착 확정 위치에서 성립하는 라인 전부 방출 (2026-08-13 사용자 보고 — 같은 크기 정렬 시 상·중·하 3선, Figma/Pen `recordedSnaps` 동률 다중 기록 동형).
 - 기본은 stateless — 판정 기준이 raw 포인터 위치라 raw 가 임계 밖으로 나가면 즉시 해제되어 별도 해제 상태가 필요 없다. 부착/해제 임계 차등(히스테리시스) 필요 여부는 Phase 0 Figma 관례 실측에서 판정 — 필요 시 직전 스냅 상태를 명시 인자로 추가 (순수성 유지, R2/G4 연계).
 
 ### 3.2 우선순위·상호작용

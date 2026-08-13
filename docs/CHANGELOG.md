@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **스냅 가이드 색 웜 레드 전환**: 정렬선·등간격 표시·수치 배지 색을 무채색 `--accent` 에서 웜 레드 `#F24822` 상수로 변경 (배지 텍스트 흰색). **Why**: Figma `#F24822`/Pen `#DD3F17` 픽셀·코드 실측 대조 — 드래그 중 순간 피드백은 콘텐츠·선택 파랑과 혼동되지 않는 이질색이 두 도구 공통 관례, 무채색은 명도로만 겨뤄 식별성 열세 (사용자 결정)
   - **정렬점 × 마커**: 정렬선 위에 실제로 맞은 점들(edge 매칭 = 그 변의 코너 2점, center 매칭 = 중심 1점 — 이동 박스 + 매칭 후보 전부, 근접 중복 제거)을 × 마크로 표시. **Why**: 선만으로는 "어느 점이 붙었는지" 가 안 보인다 — Pen v1.2.1 어법 차용 (선 위 × 가 등을 맞댄 화살촉처럼 읽혀 구간 분절 게슈탈트)
   - **흡착 임계 8 → 5 screen px 하향**: `SNAP_THRESHOLD_SCREEN_PX = 5` (scene 임계 = 5/zoom). **Why**: 시작값 8 은 Figma 관례 근사였으나 흡착 반경이 조작감 대비 넓었다 — Pen v1.2.1 실측값(`Tce=5`) 채택 (breakdown C4/R2 의 G1 조정 절차, 사용자 결정)
+  - **성립 정렬선 전부 방출** (사용자 보고): 축당 최근접 1선만 그리던 것을 흡착 확정 위치에서 성립하는 모든 라인으로 확장 — 같은 크기 페이지 정렬 시 상·중·하(가로) / 좌·중·우(세로) 동시 표시, 마커도 라인별 수집. **Why**: Figma/Pen 은 동률 성립 라인을 전부 그린다 (Pen `recordedSnaps` 배열 동형) — 1선만 그리면 나머지 성립 정렬이 침묵해 정렬 상태가 과소 전달
   - 위치: `workspace/canvas/interaction/{snapGuides,snapGuidePresentation}.ts`, `workspace/canvas/skia/{snapGuideRenderer,skiaOverlayBuilder,selectionRenderer}.ts`
 
 ## [캔버스 스냅·정렬 가이드 — ADR-179 Implemented] - 2026-08-12
