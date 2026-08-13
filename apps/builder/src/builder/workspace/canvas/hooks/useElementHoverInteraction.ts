@@ -24,8 +24,14 @@ import {
   orderPagesForPaint,
 } from "../scene/pagePaintOrder";
 import { getDragVisualOffset } from "../skia/nodeRendererTree";
+import { getSceneBounds } from "../skia/renderCommands";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
 import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
+import { resolveMeasureGuides } from "../interaction/measureGuides";
+import {
+  clearMeasureGuides,
+  publishMeasureGuides,
+} from "../interaction/measureGuidePresentation";
 import { useGestureHoverSuppression } from "./useGestureHoverSuppression";
 
 // ============================================
@@ -261,9 +267,64 @@ export function useElementHoverInteraction({
 }: UseElementHoverInteractionOptions): void {
   const rafRef = useRef<number | null>(null);
   const lastMouseRef = useRef({ x: 0, y: 0 });
+  /** Alt 홀드 거리 측정 (Figma Alt-measure) — pointermove·keydown 양쪽에서 갱신 */
+  const altKeyRef = useRef(false);
+
+  /**
+   * 현재 (선택 bbox, hover 대상) 으로 측정 세그먼트를 재계산해 publish 한다.
+   * 측정 rect 는 원본 박스(getSceneBounds) — §8.5 측정 열 분류 (클립 무관
+   * 전체 범위 기준 거리).
+   */
+  const refreshMeasure = useCallback(() => {
+    let changed: boolean;
+    const targetId = hoverStateRef.current.hoveredElementId;
+    const { selectedElementIds } = useStore.getState();
+    if (
+      !altKeyRef.current ||
+      !targetId ||
+      selectedElementIds.length === 0 ||
+      selectedElementIds.includes(targetId) ||
+      getDragVisualOffset()
+    ) {
+      changed = clearMeasureGuides();
+    } else {
+      let selection: BoundingBox | null = null;
+      for (const id of selectedElementIds) {
+        const bounds = getSceneBounds(id);
+        if (!bounds) continue;
+        if (!selection) {
+          selection = { ...bounds };
+        } else {
+          const right = Math.max(
+            selection.x + selection.width,
+            bounds.x + bounds.width,
+          );
+          const bottom = Math.max(
+            selection.y + selection.height,
+            bounds.y + bounds.height,
+          );
+          selection.x = Math.min(selection.x, bounds.x);
+          selection.y = Math.min(selection.y, bounds.y);
+          selection.width = right - selection.x;
+          selection.height = bottom - selection.y;
+        }
+      }
+      const target = getSceneBounds(targetId);
+      changed =
+        selection && target
+          ? publishMeasureGuides(resolveMeasureGuides(selection, target))
+          : clearMeasureGuides();
+    }
+    if (changed) {
+      overlayVersionRef.current++;
+    }
+  }, [hoverStateRef, overlayVersionRef]);
 
   const clearHover = useCallback(() => {
     if (clearElementHoverState(hoverStateRef.current)) {
+      overlayVersionRef.current++;
+    }
+    if (clearMeasureGuides()) {
       overlayVersionRef.current++;
     }
   }, [hoverStateRef, overlayVersionRef]);
@@ -272,6 +333,7 @@ export function useElementHoverInteraction({
 
   const handlePointerMove = useCallback(
     (e: PointerEvent) => {
+      altKeyRef.current = e.altKey;
       if (gestureSession.shouldSuppressElementHover()) {
         clearHover();
         return;
@@ -447,6 +509,10 @@ export function useElementHoverInteraction({
 
           overlayVersionRef.current++;
         }
+
+        // Alt 거리 측정 — hover 무변경이어도 Alt/선택 상태가 바뀔 수 있어
+        // 프레임당 재판정 (publish 는 signature no-op 라 무변경 시 무비용)
+        refreshMeasure();
       });
     },
     [
@@ -460,20 +526,39 @@ export function useElementHoverInteraction({
       hoverStateRef,
       overlayVersionRef,
       hitBoundsMapRef,
+      refreshMeasure,
     ],
   );
 
   useEffect(() => {
     if (!containerEl) return;
 
+    // Alt 단독 키 전이 — 포인터 정지 상태에서도 측정 표시/해제가 즉시 반영
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Alt" && !altKeyRef.current) {
+        altKeyRef.current = true;
+        refreshMeasure();
+      }
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "Alt" && altKeyRef.current) {
+        altKeyRef.current = false;
+        refreshMeasure();
+      }
+    };
+
     window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
 
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
     };
-  }, [containerEl, handlePointerMove]);
+  }, [containerEl, handlePointerMove, refreshMeasure]);
 }

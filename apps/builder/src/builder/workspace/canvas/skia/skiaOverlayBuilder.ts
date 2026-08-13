@@ -87,7 +87,8 @@ import {
   type PagePositionPresentationSnapshot,
 } from "../interaction/pagePositionPresentation";
 import { getSnapGuidePresentationSnapshot } from "../interaction/snapGuidePresentation";
-import { renderSnapGuides } from "./snapGuideRenderer";
+import { getMeasureGuidePresentationSnapshot } from "../interaction/measureGuidePresentation";
+import { renderMeasureGuides, renderSnapGuides } from "./snapGuideRenderer";
 
 // ============================================
 // Workflow Overlay Data
@@ -753,6 +754,12 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
       if (snapGuides.length > 0) {
         // fontMgr 는 등간격 수치 배지용 (Phase 4) — 미로드면 선·틱만 그린다
         renderSnapGuides(ck, canvas, snapGuides, cameraZoom, fontMgr);
+      }
+
+      // ── Alt 거리 측정 (선택 bbox ↔ 호버 대상 — 정적 오버레이) ──
+      const measureGuides = getMeasureGuidePresentationSnapshot().guides;
+      if (measureGuides.length > 0) {
+        renderMeasureGuides(ck, canvas, measureGuides, cameraZoom, fontMgr);
       }
 
       // ── Minimap ──

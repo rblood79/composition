@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **정렬점 × 마커**: 정렬선 위에 실제로 맞은 점들(edge 매칭 = 그 변의 코너 2점, center 매칭 = 중심 1점 — 이동 박스 + 매칭 후보 전부, 근접 중복 제거)을 × 마크로 표시. **Why**: 선만으로는 "어느 점이 붙었는지" 가 안 보인다 — Pen v1.2.1 어법 차용 (선 위 × 가 등을 맞댄 화살촉처럼 읽혀 구간 분절 게슈탈트)
   - **흡착 임계 8 → 5 screen px 하향**: `SNAP_THRESHOLD_SCREEN_PX = 5` (scene 임계 = 5/zoom). **Why**: 시작값 8 은 Figma 관례 근사였으나 흡착 반경이 조작감 대비 넓었다 — Pen v1.2.1 실측값(`Tce=5`) 채택 (breakdown C4/R2 의 G1 조정 절차, 사용자 결정)
   - **성립 정렬선 전부 방출** (사용자 보고): 축당 최근접 1선만 그리던 것을 흡착 확정 위치에서 성립하는 모든 라인으로 확장 — 같은 크기 페이지 정렬 시 상·중·하(가로) / 좌·중·우(세로) 동시 표시, 마커도 라인별 수집. **Why**: Figma/Pen 은 동률 성립 라인을 전부 그린다 (Pen `recordedSnaps` 배열 동형) — 1선만 그리면 나머지 성립 정렬이 침묵해 정렬 상태가 과소 전달
+  - **Alt 홀드 거리 측정 신설** (Figma Alt-measure 어법 — ADR-179 §1.2 의 인접 항목, 사용자 지시로 반영): 요소/페이지 body 선택 후 **Alt/Option 홀드 + 다른 요소 호버** = 선택 bbox 와 호버 대상 사이 거리를 세그먼트(양끝 틱) + 수치 배지로 표시. 분리 시 축별 마주 보는 edge 간격, 포함 시 4방 inset (부모/컨테이너 측정). 다중 선택은 합집합 bbox 기준, Alt 해제·호버 이탈·드래그 시작 시 즉시 소거. deep hover 와 결합 — 컨테이너 안 리프를 호버하면 그 리프까지의 거리
+  - 위치(추가분): `workspace/canvas/interaction/{measureGuides,measureGuidePresentation}.ts`, `workspace/canvas/hooks/useElementHoverInteraction.ts`
   - 위치: `workspace/canvas/interaction/{snapGuides,snapGuidePresentation}.ts`, `workspace/canvas/skia/{snapGuideRenderer,skiaOverlayBuilder,selectionRenderer}.ts`
 
 ## [캔버스 스냅·정렬 가이드 — ADR-179 Implemented] - 2026-08-12
