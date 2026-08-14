@@ -63,7 +63,6 @@ export class SkiaRenderer {
   private ck: CanvasKit;
   private contentNode: SkiaRenderable | null = null;
   private overlayNode: SkiaRenderable | null = null;
-  private screenOverlayNode: SkiaRenderable | null = null;
   private disposed = false;
   private dpr: number;
 
@@ -157,11 +156,6 @@ export class SkiaRenderer {
   /** 오버레이(Selection/AI) 렌더러를 설정한다. */
   setOverlayNode(node: SkiaRenderable | null): void {
     this.overlayNode = node;
-  }
-
-  /** 씬 좌표계 오버레이(그리드 등) 렌더러를 설정한다. 카메라 변환이 적용된다. */
-  setScreenOverlayNode(node: SkiaRenderable | null): void {
-    this.screenOverlayNode = node;
   }
 
   /** 컨텐츠 캐시를 무효화하여 다음 프레임에서 전체 재렌더링하도록 한다. */
@@ -529,9 +523,10 @@ export class SkiaRenderer {
   /**
    * 오버레이 노드 1개를 카메라 변환(DPR 스케일 + pan/zoom) 안에서 렌더링한다.
    *
-   * 씬 좌표계 오버레이(그리드 = screenOverlayNode, 선택/호버 chrome =
-   * overlayNode)가 요소와 동일한 좌표계에서 동작하도록 한다 — 두 노드가
-   * 같은 변환 시퀀스를 쓰므로 한 루틴이다.
+   * 선택/호버 chrome(`overlayNode`)이 요소와 동일한 좌표계에서 동작하도록
+   * 한다. 종전에는 씬 좌표계 그리드(`screenOverlayNode`)도 같은 변환
+   * 시퀀스를 써서 한 루틴으로 묶여 있었고, 그리드 제거(2026-08-14) 후
+   * 남은 소비자는 `overlayNode` 뿐이다.
    */
   private renderNodeWithCamera(
     node: SkiaRenderable | null,
@@ -548,11 +543,10 @@ export class SkiaRenderer {
   }
 
   private present(cullingBounds: DOMRect, camera: CameraState): void {
-    // 렌더링 순서: (투명 clear) → 그리드 → 콘텐츠 → 오버레이
+    // 렌더링 순서: (투명 clear) → 콘텐츠 → 오버레이
     // ADR-902: void 영역 투명화로 전환. 페이지 배경은 element 트리의 body fill 로 유지,
     // canvas 뒤 DOM DotBackground 레이어가 void 영역에서 노출된다.
     this.mainCanvas.clear(this.ck.Color4f(0, 0, 0, 0));
-    this.renderNodeWithCamera(this.screenOverlayNode, cullingBounds, camera);
 
     const cameraMatchesSnapshot =
       camera.zoom === this.snapshotCamera.zoom &&
@@ -809,7 +803,6 @@ export class SkiaRenderer {
 
     // ADR-902: void 영역 투명화. 페이지 body fill 은 element 트리에서 유지.
     this.mainCanvas.clear(this.ck.Color4f(0, 0, 0, 0));
-    this.renderNodeWithCamera(this.screenOverlayNode, cullingBounds, camera);
     this.mainCanvas.save();
     this.mainCanvas.scale(this.dpr, this.dpr);
     this.mainCanvas.translate(camera.panX, camera.panY);

@@ -196,10 +196,6 @@ export function buildFrameRenderPlan(
     sharedScene,
     contentNode,
     overlayNode,
-    // 2026-08-14: 캔버스 월드 격자 제거로 이 슬롯의 유일한 공급자가 사라졌다.
-    // 슬롯 자체(SkiaRenderer.setScreenOverlayNode)의 철거는 후속 — 해당 파일이
-    // 다른 작업으로 편집 중이라 이번 변경에서 분리한다.
-    screenOverlayNode: null,
     cullingBounds: createCullingBounds(
       snapshot.cameraX,
       snapshot.cameraY,

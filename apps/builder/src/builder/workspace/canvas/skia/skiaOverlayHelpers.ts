@@ -628,16 +628,3 @@ export function buildFrameTitleRenderItems(
       highlighted: frame.frameId === activeFrameId,
     }));
 }
-
-export function buildGridRenderInput(
-  cullingBounds: DOMRect,
-  gridSize: number,
-  zoom: number,
-) {
-  return {
-    cullingBounds,
-    gridSize,
-    zoom,
-    showGrid: true as const,
-  };
-}

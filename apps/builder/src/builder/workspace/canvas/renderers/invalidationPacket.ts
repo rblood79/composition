@@ -56,19 +56,8 @@ export interface RendererSceneInvalidationInput {
 }
 
 export interface RendererSceneInvalidation {
-  /**
-   * 캔버스 월드 격자 제거(2026-08-14)의 tombstone — 시그니처가 상수라 무효화를
-   * 유발하지 않는다. 유일 소비처(`SkiaCanvas` 의 grid 시그니처 비교)와 함께
-   * 지우는 것이 맞지만, 그 파일이 다른 작업으로 편집 중이라 분리했다.
-   */
-  grid: { signature: string };
   workflow: RendererWorkflowInvalidation;
 }
-
-/** 격자가 없으므로 영구 불변 — 위 tombstone 과 함께 제거 대상 */
-const REMOVED_GRID_INVALIDATION: RendererSceneInvalidation["grid"] = {
-  signature: "",
-};
 
 export interface RendererOverlayInvalidationInput {
   ai: RendererAIInvalidation;
@@ -186,7 +175,6 @@ export function createSceneInvalidationPacket(
   input: RendererSceneInvalidationInput,
 ): RendererSceneInvalidation {
   return {
-    grid: REMOVED_GRID_INVALIDATION,
     workflow: {
       ...input.workflow,
       graphSignature: buildWorkflowGraphSignature(input.workflow),

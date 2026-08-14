@@ -245,9 +245,6 @@ export function SkiaCanvas({
   const lastHoveredEdgeRef = useRef<string | null>(null);
   const lastFocusedPageRef = useRef<string | null>(null);
 
-  // Grid
-  const lastGridSignatureRef = useRef("");
-
   // Minimap
   const minimapConfigRef = useRef<MinimapConfig>(DEFAULT_MINIMAP_CONFIG);
   const minimapVisibleRef = useRef(false);
@@ -599,14 +596,6 @@ export function SkiaCanvas({
       }
       lastAIActiveRef.current = currentAIActive;
 
-      // Grid 상태
-      const currentGridSignature = packet.grid.signature;
-      if (currentGridSignature !== lastGridSignatureRef.current) {
-        overlayVersionRef.current++;
-        recordInvalidation("overlay", "grid");
-        lastGridSignatureRef.current = currentGridSignature;
-      }
-
       // 드래그 중 오버레이 갱신
       if (packet.dragActive) {
         overlayVersionRef.current++;
@@ -766,7 +755,6 @@ export function SkiaCanvas({
       hitBoundsMapRef.current = framePlan.sharedScene.hitBoundsMap;
       renderer.setContentNode(framePlan.contentNode);
       renderer.setOverlayNode(framePlan.overlayNode);
-      renderer.setScreenOverlayNode(framePlan.screenOverlayNode);
 
       if (framePlan.workflow) {
         pageFrameMapRef.current = framePlan.workflow.pageFrameMap;

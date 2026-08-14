@@ -350,13 +350,12 @@ export interface WorkflowOverlayBuildResult {
 
 /**
  * 한 프레임의 렌더 플랜.
- * content build 이후 overlay/screen overlay/culling bounds를 한 번에 조합한다.
+ * content build 이후 overlay/culling bounds를 한 번에 조합한다.
  */
 export interface FrameRenderPlan {
   sharedScene: SharedSceneDerivedData;
   contentNode: SkiaRenderable;
   overlayNode: SkiaRenderable;
-  screenOverlayNode: SkiaRenderable | null;
   cullingBounds: DOMRect;
   selection: SelectionOverlayBuildResult;
   workflow: WorkflowOverlayBuildResult | null;
