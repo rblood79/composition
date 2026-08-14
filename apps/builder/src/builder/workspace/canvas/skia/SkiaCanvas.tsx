@@ -58,7 +58,6 @@ import {
   createFrameInputSnapshot,
   buildFrameRenderPlan,
 } from "./skiaFramePlan";
-import { Camera } from "../viewport/Camera";
 import { viewportState as mutableViewport } from "../viewport/viewportState";
 import { StoreRenderBridge } from "./StoreRenderBridge";
 import { getSharedLayoutMap } from "../layout/engines/fullTreeLayout";
@@ -91,8 +90,6 @@ export interface SkiaCanvasProps {
   containerEl: HTMLDivElement;
   /** Canvas pointer session 제스처 소유권 */
   gestureSession: CanvasGestureSession;
-  /** PixiJS Application (과도기 호환, 미사용) */
-  app?: unknown;
   /** Layout 무효화 콜백 */
   invalidateLayout: () => void;
   /**
@@ -113,8 +110,6 @@ export interface SkiaCanvasProps {
   pageTitleBoundsMapRef?: React.MutableRefObject<
     Map<string, import("./skiaOverlayHelpers").PageTitleBounds>
   >;
-  /** 외부 Camera 인스턴스 (미지정 시 내부 생성) */
-  camera?: Camera;
 }
 
 // ---------------------------------------------------------------------------
@@ -133,13 +128,11 @@ export interface SkiaCanvasProps {
 export function SkiaCanvas({
   containerEl,
   gestureSession,
-  app,
   invalidateLayout,
   sceneInvalidationPacket,
   rendererInput,
   dropIndicatorSnapshotRef,
   pageTitleBoundsMapRef,
-  camera: externalCamera,
 }: SkiaCanvasProps) {
   // ADR-074 Phase 4: overlay sub-packet 을 SkiaCanvas 내부에서 자체 구독/생성.
   // BuilderCanvas 루트의 selection/editing/ai 구독을 제거하여 루트 리렌더
@@ -194,13 +187,11 @@ export function SkiaCanvas({
   const rendererRef = useRef<SkiaRenderer | null>(null);
   const [ready, setReady] = useState(false);
   const contextLostRef = useRef(false);
-  const _cameraRef = useRef<Camera>(externalCamera ?? new Camera());
 
   // Phase 6: Selection/AI 상태 변경 감지용 ref
   const overlayVersionRef = useRef(0);
   const lastSelectionSignatureRef = useRef("");
   const lastAIActiveRef = useRef(0);
-  const _lastPageFramesSignatureRef = useRef("");
   const allPageFramesRef = useRef(
     rendererInput.sceneSnapshot.document.allPageFrames,
   );
@@ -331,7 +322,6 @@ export function SkiaCanvas({
   // PixiJS Application이 없을 때 store에서 직접 skiaNodeRegistry를 채운다.
 
   useEffect(() => {
-    if (app) return; // PixiJS가 있으면 기존 Sprite 경로 사용
     const bridge = new StoreRenderBridge();
     storeRenderBridgeRef.current = bridge;
     bridge.connect({
@@ -368,7 +358,7 @@ export function SkiaCanvas({
       }
       bridge.dispose();
     };
-  }, [app]);
+  }, []);
 
   // Camera ↔ viewport 동기화는 viewportState 뮤터블 ref로 대체 (Phase 5.4)
   // ViewportController.notifyUpdateListeners()가 viewportState를 동기 갱신

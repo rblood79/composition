@@ -34,6 +34,7 @@ import {
   fillsToSkiaFillStyle,
   cssBgImageToSkia,
 } from "../../../panels/styles/utils/fillToSkia";
+import { hexToColor4fChannels } from "./themeWatcher";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -183,9 +184,7 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
   } else if (isCollectionItem && fill.alpha === 0) {
     fillColor = Float32Array.of(0.98, 0.98, 0.98, 1);
   } else {
-    const r = ((fill.color >> 16) & 0xff) / 255;
-    const g = ((fill.color >> 8) & 0xff) / 255;
-    const b = (fill.color & 0xff) / 255;
+    const [r, g, b] = hexToColor4fChannels(fill.color);
     const bgAlpha = skiaEffects.effects?.some(
       (e: EffectStyle) => e.type === "opacity",
     )
@@ -276,9 +275,7 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
   const strokeColor =
     !suppressBorder && stroke?.color
       ? Float32Array.of(
-          ((stroke.color >> 16) & 0xff) / 255,
-          ((stroke.color >> 8) & 0xff) / 255,
-          (stroke.color & 0xff) / 255,
+          ...hexToColor4fChannels(stroke.color),
           stroke.alpha ?? 1,
         )
       : !suppressBorder && (isCardItem || isCollectionItem)

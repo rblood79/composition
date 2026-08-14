@@ -10,7 +10,13 @@
  * @see docs/RENDERING_ARCHITECTURE.md §5.11
  */
 
-import type { CanvasKit, Canvas, FontMgr, FontStyle } from "canvaskit-wasm";
+import type {
+  CanvasKit,
+  Canvas,
+  Font,
+  FontMgr,
+  FontStyle,
+} from "canvaskit-wasm";
 import { SkiaDisposable } from "./disposable";
 import { acquireScopedPaint } from "./paints";
 import type { BoundingBox } from "../selection/types";
@@ -29,6 +35,18 @@ function setSemanticStrokeColor(
   semanticRole: EditingSemanticsRole | null,
 ): void {
   paint.setColor(getSemanticOverlayColor(ck, semanticRole, 1));
+}
+
+/**
+ * 글리프 폭 합으로 텍스트 실폭을 잰다.
+ *
+ * 오버레이 배지/레이블은 CanvasKit Paragraph 를 쓰지 않고 Font 로 직접 그리므로
+ * 폭 측정도 글리프 합산이다 — 네 곳(치수 레이블 / 프레임 타이틀 / 스냅 배지 /
+ * collection remainder)이 같은 식을 쓴다.
+ */
+export function measureGlyphRunWidth(font: Font, text: string): number {
+  const glyphIds = font.getGlyphIDs(text);
+  return font.getGlyphWidths(glyphIds).reduce((sum, w) => sum + w, 0);
 }
 
 /**
@@ -290,10 +308,7 @@ export function renderDimensionLabels(
     const font = scope.track(new ck.Font(typeface, fontSize));
     font.setSubpixel(true);
 
-    // 텍스트 너비 측정 (glyphWidths 합산)
-    const glyphIds = font.getGlyphIDs(dimensionText);
-    const glyphWidths = font.getGlyphWidths(glyphIds);
-    const textWidth = glyphWidths.reduce((sum, w) => sum + w, 0);
+    const textWidth = measureGlyphRunWidth(font, dimensionText);
     const textHeight = DIMENSION_LABEL_LINE_HEIGHT * invZoom;
 
     // 레이블 배경 크기 및 위치 계산
@@ -454,9 +469,7 @@ export function renderPageTitle(
     canvas.drawText(title, textX, textY, textPaint, font);
 
     // 타이틀 폭은 drag hit-test 에서도 재사용되므로 항상 계산하여 반환한다.
-    const titleGlyphIds = font.getGlyphIDs(title);
-    const titleGlyphWidths = font.getGlyphWidths(titleGlyphIds);
-    const titleWidth = titleGlyphWidths.reduce((sum, w) => sum + w, 0);
+    const titleWidth = measureGlyphRunWidth(font, title);
 
     canvas.restore();
     return { titleWidth };

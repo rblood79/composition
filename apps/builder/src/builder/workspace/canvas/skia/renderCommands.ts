@@ -20,6 +20,7 @@ import type { ClipPathShape } from "../sprites/styleConverter";
 import type { EffectStyle, MaskImageStyle } from "./types";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import type { BoundingBox } from "../selection/types";
+import { intersectBoxes } from "../selection/types";
 import type { AIEffectNodeBounds } from "./types";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import {
@@ -179,15 +180,7 @@ function intersectBounds(
   clip: ClipRect,
 ): BoundingBox | null {
   if (!clip) return bounds;
-
-  const left = Math.max(bounds.x, clip.x);
-  const top = Math.max(bounds.y, clip.y);
-  const right = Math.min(bounds.x + bounds.width, clip.x + clip.width);
-  const bottom = Math.min(bounds.y + bounds.height, clip.y + clip.height);
-
-  if (right <= left || bottom <= top) return null;
-
-  return { x: left, y: top, width: right - left, height: bottom - top };
+  return intersectBoxes(bounds, clip);
 }
 
 interface DeferredDragRootVisit {

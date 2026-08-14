@@ -17,6 +17,7 @@ import {
 import { getSkImage, loadSkImage } from "./imageCache";
 import { measureWrappedTextHeight } from "../utils/textMeasure";
 import { getLabelLineHeight } from "@composition/specs";
+import { hexToColor4fChannels } from "./themeWatcher";
 import {
   parseTextDecoration,
   parseDecorationColor,
@@ -85,9 +86,7 @@ function colorValueToFloat32(
   } else {
     hex = resolved;
   }
-  const r = ((hex >> 16) & 0xff) / 255;
-  const g = ((hex >> 8) & 0xff) / 255;
-  const b = (hex & 0xff) / 255;
+  const [r, g, b] = hexToColor4fChannels(hex);
   return Float32Array.of(r, g, b, alpha);
 }
 

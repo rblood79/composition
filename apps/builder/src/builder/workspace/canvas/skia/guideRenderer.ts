@@ -51,6 +51,28 @@ import {
 } from "../interaction/guideEmphasis";
 import { isGuideWithinPage } from "../interaction/guidePresentation";
 
+/**
+ * 한 축을 고정하고 나머지 축으로 뻗는 선 1개.
+ *
+ * axis "x" = x 좌표를 고정하는 **세로선** (snapGuides 와 같은 어법).
+ * 좌표 전치는 이 파일이 실제로 겪은 회귀(커밋 7582f78e6 — 눈금자↔가이드 축
+ * 매핑 반전)라, 어법을 한 곳에 가둬 호출부가 좌표 순서를 다시 쓰지 않게 한다.
+ */
+function drawAxisLine(
+  canvas: Canvas,
+  axis: "x" | "y",
+  position: number,
+  from: number,
+  to: number,
+  paint: Parameters<Canvas["drawLine"]>[4],
+): void {
+  if (axis === "x") {
+    canvas.drawLine(position, from, position, to, paint);
+  } else {
+    canvas.drawLine(from, position, to, position, paint);
+  }
+}
+
 /** 강조 없음 — 호출부가 생략했을 때의 기본값 (전부 default 로 그린다) */
 const NO_GUIDE_EMPHASIS: GuideEmphasisIds = {
   selectedGuideId: null,
@@ -133,12 +155,14 @@ export function renderPageGuides(
     for (const line of target.lines) {
       // 선택 > hover 우선순위는 `resolveGuideEmphasis` 한 곳이 정한다
       paint.setColor(colorOf[resolveGuideEmphasis(line.id, emphasisIds)]);
-      // axis "x" = x 좌표를 고정하는 **세로선** (snapGuides 와 같은 어법)
-      if (line.axis === "x") {
-        canvas.drawLine(line.position, y, line.position, y + height, paint);
-      } else {
-        canvas.drawLine(x, line.position, x + width, line.position, paint);
-      }
+      drawAxisLine(
+        canvas,
+        line.axis,
+        line.position,
+        line.axis === "x" ? y : x,
+        line.axis === "x" ? y + height : x + width,
+        paint,
+      );
     }
   } finally {
     canvas.restore();
@@ -173,23 +197,16 @@ export function renderGuideDragPreview(
   paint.setStrokeWidth(invZoom);
 
   try {
-    if (preview.axis === "x") {
-      canvas.drawLine(
-        preview.scenePosition,
-        viewport.y,
-        preview.scenePosition,
-        viewport.y + viewport.height,
-        paint,
-      );
-    } else {
-      canvas.drawLine(
-        viewport.x,
-        preview.scenePosition,
-        viewport.x + viewport.width,
-        preview.scenePosition,
-        paint,
-      );
-    }
+    drawAxisLine(
+      canvas,
+      preview.axis,
+      preview.scenePosition,
+      preview.axis === "x" ? viewport.y : viewport.x,
+      preview.axis === "x"
+        ? viewport.y + viewport.height
+        : viewport.x + viewport.width,
+      paint,
+    );
   } finally {
     releasePooledPaint(paint);
   }
@@ -260,32 +277,28 @@ export function renderGuideExtension(
 
     // 페이지 앞뒤로 남는 구간만 그린다. 페이지가 뷰포트를 넘어가면 한쪽 또는
     // 양쪽이 음수 길이가 되므로 그 세그먼트는 건너뛴다.
-    if (line.axis === "x") {
-      const top = viewport.y;
-      const bottom = viewport.y + viewport.height;
-      if (pageRect.y > top) {
-        canvas.drawLine(line.position, top, line.position, pageRect.y, paint);
-      }
-      const pageBottom = pageRect.y + pageRect.height;
-      if (pageBottom < bottom) {
-        canvas.drawLine(
-          line.position,
-          pageBottom,
-          line.position,
-          bottom,
-          paint,
-        );
-      }
-    } else {
-      const left = viewport.x;
-      const right = viewport.x + viewport.width;
-      if (pageRect.x > left) {
-        canvas.drawLine(left, line.position, pageRect.x, line.position, paint);
-      }
-      const pageRight = pageRect.x + pageRect.width;
-      if (pageRight < right) {
-        canvas.drawLine(pageRight, line.position, right, line.position, paint);
-      }
+    const isVertical = line.axis === "x";
+    const viewStart = isVertical ? viewport.y : viewport.x;
+    const viewEnd = isVertical
+      ? viewport.y + viewport.height
+      : viewport.x + viewport.width;
+    const pageStart = isVertical ? pageRect.y : pageRect.x;
+    const pageEnd = isVertical
+      ? pageRect.y + pageRect.height
+      : pageRect.x + pageRect.width;
+
+    if (pageStart > viewStart) {
+      drawAxisLine(
+        canvas,
+        line.axis,
+        line.position,
+        viewStart,
+        pageStart,
+        paint,
+      );
+    }
+    if (pageEnd < viewEnd) {
+      drawAxisLine(canvas, line.axis, line.position, pageEnd, viewEnd, paint);
     }
   } finally {
     // PathEffect 는 WASM 객체 — paint 를 풀에 돌려주기 전에 떼고 지운다

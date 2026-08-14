@@ -11,6 +11,7 @@
 import type { CanvasKit, Canvas } from "canvaskit-wasm";
 import { SkiaDisposable } from "./disposable";
 import { acquireScopedPaint } from "./paints";
+import { OVERLAY_BLUE_RGB } from "./semanticOverlayColors";
 import type { PageFrame } from "./workflowRenderer";
 import type { WorkflowEdge } from "./workflowEdges";
 
@@ -85,18 +86,10 @@ const PAGE_DEFAULT_COLOR: [number, number, number] = [
 ];
 
 /** blue-500 (#3b82f6) */
-const PAGE_FOCUSED_COLOR: [number, number, number] = [
-  0x3b / 255,
-  0x82 / 255,
-  0xf6 / 255,
-];
+const PAGE_FOCUSED_COLOR = OVERLAY_BLUE_RGB;
 
 /** blue-500 for navigation edges */
-const NAVIGATION_COLOR: [number, number, number] = [
-  0x3b / 255,
-  0x82 / 255,
-  0xf6 / 255,
-];
+const NAVIGATION_COLOR = OVERLAY_BLUE_RGB;
 
 /** purple-500 (#a855f7) for event-navigation edges */
 const EVENT_NAV_COLOR: [number, number, number] = [

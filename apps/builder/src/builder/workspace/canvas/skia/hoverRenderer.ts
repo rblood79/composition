@@ -45,6 +45,49 @@ const CONTEXT_ALPHA = 0.3;
 // ============================================
 
 /**
+ * bounds 테두리를 1회 stroke 하는 공통 루틴.
+ *
+ * dash 는 WASM 객체라 paint 를 풀에 돌려주기 전에 떼고 지워야 한다 —
+ * 그 수명 처리를 한 곳에 가둬 오버레이가 늘어도 반복되지 않게 한다.
+ */
+function strokeBoundsRect(
+  ck: CanvasKit,
+  canvas: Canvas,
+  bounds: BoundingBox,
+  color: Float32Array,
+  strokeWidth: number,
+  dashIntervals: number[] | null,
+): void {
+  const scope = new SkiaDisposable();
+  let dashEffect: ReturnType<typeof ck.PathEffect.MakeDash> | null = null;
+  try {
+    const paint = acquireScopedPaint(scope, ck);
+    paint.setAntiAlias(true);
+    paint.setStyle(ck.PaintStyle.Stroke);
+    paint.setStrokeWidth(strokeWidth);
+    paint.setColor(color);
+
+    if (dashIntervals) {
+      dashEffect = ck.PathEffect.MakeDash(dashIntervals);
+      paint.setPathEffect(dashEffect);
+    }
+
+    canvas.drawRect(
+      ck.LTRBRect(
+        bounds.x,
+        bounds.y,
+        bounds.x + bounds.width,
+        bounds.y + bounds.height,
+      ),
+      paint,
+    );
+  } finally {
+    dashEffect?.delete();
+    scope.dispose();
+  }
+}
+
+/**
  * 호버 요소의 테두리를 CanvasKit으로 렌더링한다.
  *
  * 씬-로컬 좌표계에서 호출. strokeWidth = 1/zoom으로 화면상 1px 유지.
@@ -58,33 +101,14 @@ export function renderHoverHighlight(
   dashed = false,
   semanticRole: EditingSemanticsRole | null = null,
 ): void {
-  const scope = new SkiaDisposable();
-  let dashEffect: ReturnType<typeof ck.PathEffect.MakeDash> | null = null;
-  try {
-    const sw = dashed ? 1 / zoom : 2 / zoom;
-    const paint = acquireScopedPaint(scope, ck);
-    paint.setAntiAlias(true);
-    paint.setStyle(ck.PaintStyle.Stroke);
-    paint.setStrokeWidth(sw);
-    paint.setColor(getSemanticOverlayColor(ck, semanticRole, HOVER_ALPHA));
-
-    if (dashed) {
-      dashEffect = ck.PathEffect.MakeDash([4 / zoom, 3 / zoom]);
-      paint.setPathEffect(dashEffect);
-    }
-
-    const rect = ck.LTRBRect(
-      bounds.x,
-      bounds.y,
-      bounds.x + bounds.width,
-      bounds.y + bounds.height,
-    );
-
-    canvas.drawRect(rect, paint);
-  } finally {
-    dashEffect?.delete();
-    scope.dispose();
-  }
+  strokeBoundsRect(
+    ck,
+    canvas,
+    bounds,
+    getSemanticOverlayColor(ck, semanticRole, HOVER_ALPHA),
+    (dashed ? 1 : 2) / zoom,
+    dashed ? [4 / zoom, 3 / zoom] : null,
+  );
 }
 
 // ============================================
@@ -247,28 +271,12 @@ export function renderEditingContextBorder(
   bounds: BoundingBox,
   zoom: number,
 ): void {
-  const scope = new SkiaDisposable();
-  let dashEffect: ReturnType<typeof ck.PathEffect.MakeDash> | null = null;
-  try {
-    const sw = 1 / zoom;
-    const paint = acquireScopedPaint(scope, ck);
-    paint.setAntiAlias(true);
-    paint.setStyle(ck.PaintStyle.Stroke);
-    paint.setStrokeWidth(sw);
-    paint.setColor(ck.Color4f(CONTEXT_R, CONTEXT_G, CONTEXT_B, CONTEXT_ALPHA));
-
-    dashEffect = ck.PathEffect.MakeDash([6 / zoom, 4 / zoom]);
-    paint.setPathEffect(dashEffect);
-
-    const rect = ck.LTRBRect(
-      bounds.x,
-      bounds.y,
-      bounds.x + bounds.width,
-      bounds.y + bounds.height,
-    );
-    canvas.drawRect(rect, paint);
-  } finally {
-    dashEffect?.delete();
-    scope.dispose();
-  }
+  strokeBoundsRect(
+    ck,
+    canvas,
+    bounds,
+    ck.Color4f(CONTEXT_R, CONTEXT_G, CONTEXT_B, CONTEXT_ALPHA),
+    1 / zoom,
+    [6 / zoom, 4 / zoom],
+  );
 }

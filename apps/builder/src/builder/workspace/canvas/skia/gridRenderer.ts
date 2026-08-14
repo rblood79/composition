@@ -15,6 +15,7 @@
 
 import type { CanvasKit, Canvas } from "canvaskit-wasm";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
+import { OVERLAY_BLUE_RGB } from "./semanticOverlayColors";
 
 // ============================================
 // Types
@@ -53,7 +54,7 @@ const CENTER_LINE_ALPHA = 0.6;
 const CENTER_LINE_WIDTH = 1;
 
 /** blue-500 */
-const SNAP_GRID_COLOR = [0x3b / 255, 0x82 / 255, 0xf6 / 255] as const;
+const SNAP_GRID_COLOR = OVERLAY_BLUE_RGB;
 const SNAP_GRID_ALPHA = 0.2;
 
 // ============================================

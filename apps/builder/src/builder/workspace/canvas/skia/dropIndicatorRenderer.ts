@@ -10,11 +10,16 @@
 import type { CanvasKit, Canvas } from "canvaskit-wasm";
 import type { BoundingBox } from "../selection/types";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
+import {
+  OVERLAY_BLUE_R,
+  OVERLAY_BLUE_G,
+  OVERLAY_BLUE_B,
+} from "./semanticOverlayColors";
 
 // blue-500 (#3b82f6) — same-parent reorder
-const DROP_R = 0x3b / 255;
-const DROP_G = 0x82 / 255;
-const DROP_B = 0xf6 / 255;
+const DROP_R = OVERLAY_BLUE_R;
+const DROP_G = OVERLAY_BLUE_G;
+const DROP_B = OVERLAY_BLUE_B;
 
 // green-500 (#22c55e) — cross-container reparent
 const REPARENT_R = 0x22 / 255;

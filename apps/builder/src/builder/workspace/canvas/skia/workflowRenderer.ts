@@ -10,6 +10,7 @@
 import type { CanvasKit, Canvas, FontMgr } from "canvaskit-wasm";
 import { SkiaDisposable } from "./disposable";
 import { acquireScopedPaint } from "./paints";
+import { OVERLAY_BLUE_RGB } from "./semanticOverlayColors";
 import type {
   WorkflowEdge,
   DataSourceEdge,
@@ -97,11 +98,7 @@ const LAYOUT_LABEL_FONT_SIZE = 10; // screen px
 const ORTHO_BORDER_RADIUS = 8; // screen px — smoothstep 꺾임 둥글기
 
 /** blue-500 (#3b82f6) */
-const NAVIGATION_COLOR: [number, number, number] = [
-  0x3b / 255,
-  0x82 / 255,
-  0xf6 / 255,
-];
+const NAVIGATION_COLOR = OVERLAY_BLUE_RGB;
 
 /** purple-500 (#a855f7) */
 const EVENT_NAV_COLOR: [number, number, number] = [

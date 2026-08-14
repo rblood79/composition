@@ -1,6 +1,7 @@
 import type { CanvasKit, Canvas } from "canvaskit-wasm";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
+import { clampCornerRadii } from "./nodeRendererClip";
 
 export function renderLine(
   ck: CanvasKit,
@@ -97,12 +98,7 @@ export function renderPartialBorder(
   const w = node.width;
   const h = node.height;
 
-  const maxR = Math.min(w, h) / 2;
-  const [rawTL, rawTR, rawBR, rawBL] = borderRadius;
-  const rTL = Math.min(Math.max(0, rawTL), maxR);
-  const rTR = Math.min(Math.max(0, rawTR), maxR);
-  const rBR = Math.min(Math.max(0, rawBR), maxR);
-  const rBL = Math.min(Math.max(0, rawBL), maxR);
+  const [rTL, rTR, rBR, rBL] = clampCornerRadii(borderRadius, w, h);
 
   const paint = acquirePooledPaint(ck);
   paint.setAntiAlias(true);

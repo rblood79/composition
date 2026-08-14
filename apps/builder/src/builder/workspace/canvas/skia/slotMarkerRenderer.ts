@@ -4,6 +4,10 @@ import type { BoundingBox } from "../selection/types";
 import { SkiaDisposable } from "./disposable";
 import { acquireScopedPaint } from "./paints";
 import { getSemanticOverlayColor } from "./semanticOverlayColors";
+import {
+  resolveOverlayTypeface,
+  measureGlyphRunWidth,
+} from "./selectionRenderer";
 
 const SLOT_HATCH_ALPHA = 0.42;
 const SLOT_HATCH_SPACING = 7;
@@ -100,13 +104,7 @@ export function renderCollectionRemainderMarker(
       width: ck.FontWidth.Normal,
       slant: ck.FontSlant.Upright,
     };
-    const typeface =
-      fontMgr.matchFamilyStyle("Pretendard Variable", fontStyle) ??
-      fontMgr.matchFamilyStyle("Inter Variable", fontStyle) ??
-      fontMgr.matchFamilyStyle("Pretendard", fontStyle) ??
-      fontMgr.matchFamilyStyle("Inter", fontStyle) ??
-      fontMgr.matchFamilyStyle("sans-serif", fontStyle) ??
-      fontMgr.matchFamilyStyle("", fontStyle);
+    const typeface = resolveOverlayTypeface(fontMgr, fontStyle);
     if (!typeface) return;
 
     const font = scope.track(new ck.Font(typeface, REMAINDER_LABEL_FONT_SIZE));
@@ -117,9 +115,7 @@ export function renderCollectionRemainderMarker(
     paint.setStyle(ck.PaintStyle.Fill);
     paint.setColor(getSemanticOverlayColor(ck, null, REMAINDER_LABEL_ALPHA));
 
-    const glyphIds = font.getGlyphIDs(label);
-    const glyphWidths = font.getGlyphWidths(glyphIds);
-    const textWidth = glyphWidths.reduce((sum, w) => sum + w, 0);
+    const textWidth = measureGlyphRunWidth(font, label);
 
     // 나머지 영역 중앙에 줌 독립 고정 폰트로 배치 (scene 좌표 → invZoom 스케일 후 screen px).
     const invZoom = 1 / zoom;

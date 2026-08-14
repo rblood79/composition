@@ -13,6 +13,22 @@ export function sortByStackingOrder(children: SkiaNodeData[]): SkiaNodeData[] {
   return indexed.map((item) => item.child);
 }
 
+/**
+ * 코너 반경 4개를 `[0, min(w,h)/2]` 로 clamp 한다.
+ *
+ * 이 상한을 넘기면 `arcToTangent` 가 퇴화 경로를 만든다 — clip 경로와
+ * partial border 경로가 같은 기하 규칙을 쓰도록 한 곳에 둔다.
+ */
+export function clampCornerRadii(
+  radii: readonly [number, number, number, number],
+  width: number,
+  height: number,
+): [number, number, number, number] {
+  const maxRadius = Math.min(width, height) / 2;
+  const clamp = (r: number) => Math.min(Math.max(0, r), maxRadius);
+  return [clamp(radii[0]), clamp(radii[1]), clamp(radii[2]), clamp(radii[3])];
+}
+
 export function createRoundRectPath(
   ck: CanvasKit,
   x: number,
@@ -21,12 +37,7 @@ export function createRoundRectPath(
   height: number,
   radii: [number, number, number, number],
 ): ReturnType<CanvasKit["Path"]["prototype"]["constructor"]> {
-  const [tl, tr, br, bl] = radii;
-  const maxRadius = Math.min(width, height) / 2;
-  const rTL = Math.min(Math.max(0, tl), maxRadius);
-  const rTR = Math.min(Math.max(0, tr), maxRadius);
-  const rBR = Math.min(Math.max(0, br), maxRadius);
-  const rBL = Math.min(Math.max(0, bl), maxRadius);
+  const [rTL, rTR, rBR, rBL] = clampCornerRadii(radii, width, height);
 
   const path = new ck.Path();
   path.moveTo(x + rTL, y);

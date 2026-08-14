@@ -22,7 +22,10 @@ import type { SnapGuide } from "../interaction/snapGuides";
 import type { MeasureGuide } from "../interaction/measureGuides";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import { hexToColor4fChannels } from "./themeWatcher";
-import { resolveOverlayTypeface } from "./selectionRenderer";
+import {
+  resolveOverlayTypeface,
+  measureGlyphRunWidth,
+} from "./selectionRenderer";
 
 /** 스냅 가이드 웜 레드 (#F24822 — Figma 측정/가이드 실측값, 양 테마 공용) */
 const SNAP_GUIDE_HEX = 0xf24822;
@@ -132,9 +135,7 @@ function renderValueBadges(
 
     for (const item of items) {
       const text = `${Math.round(item.value)}`;
-      const glyphIds = font.getGlyphIDs(text);
-      const glyphWidths = font.getGlyphWidths(glyphIds);
-      const textWidth = glyphWidths.reduce((sum, w) => sum + w, 0);
+      const textWidth = measureGlyphRunWidth(font, text);
       const badgeWidth = textWidth + paddingX * 2;
       const badgeHeight = textHeight + paddingY * 2;
       // axis "x" = 수평 세그먼트 → 배지를 선 위쪽에, "y" = 수직 세그먼트 →

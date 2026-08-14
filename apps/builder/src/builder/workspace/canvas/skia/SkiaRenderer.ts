@@ -682,7 +682,7 @@ export class SkiaRenderer {
    * - camera-only → 캐시 blit(아핀) + 오버레이
    * - content/full → 컨텐츠 재렌더 + 캐시 갱신
    */
-  renderDualSurface(
+  private renderDualSurface(
     cullingBounds: DOMRect,
     registryVersion: number,
     camera: CameraState,
@@ -708,7 +708,7 @@ export class SkiaRenderer {
       this.initContentSurface();
       // Content surface 실패 시 레거시 폴백
       if (!this.contentSurface) {
-        this.renderLegacy(cullingBounds, camera);
+        this.renderSingleSurface(cullingBounds, camera);
         return;
       }
     }
@@ -803,11 +803,16 @@ export class SkiaRenderer {
   // ============================================
 
   /**
-   * 단일 Surface로 한 프레임을 렌더링한다 (Phase 5 레거시).
+   * 단일 Surface로 한 프레임을 렌더링한다.
    *
-   * DUAL_SURFACE_CACHE가 비활성화된 경우 또는 content surface 생성 실패 시 사용.
+   * DUAL_SURFACE_CACHE가 비활성화된 경우 또는 content surface 생성 실패 시
+   * `renderDualSurface` 가 폴백으로 호출하는 **현역 경로** — 이름의 "legacy"
+   * 가 지원 중단을 뜻하지 않는다.
    */
-  renderLegacy(cullingBounds: DOMRect, camera: CameraState): void {
+  private renderSingleSurface(
+    cullingBounds: DOMRect,
+    camera: CameraState,
+  ): void {
     if (this.disposed || !this.contentNode) return;
 
     const start = performance.now();

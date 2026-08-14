@@ -8,6 +8,7 @@ import type { Shape, TokenRef } from "@composition/specs";
 import { resolveToken } from "@composition/specs";
 import { cssColorToHex } from "../sprites/styleConverter";
 import { measureWrappedTextHeight } from "../utils/textMeasure";
+import { hexToColor4fChannels } from "./themeWatcher";
 
 // ---------------------------------------------------------------------------
 // rearrangeShapesForColumn — Column layout shapes 세로 재배치
@@ -256,9 +257,7 @@ export function parseOutlineShorthand(
 
   // hex → Float32Array RGBA
   const hex = cssColorToHex(colorStr, 0x6750a4);
-  const r = ((hex >> 16) & 0xff) / 255;
-  const g = ((hex >> 8) & 0xff) / 255;
-  const b = (hex & 0xff) / 255;
+  const [r, g, b] = hexToColor4fChannels(hex);
 
   const offset =
     typeof outlineOffset === "number"
