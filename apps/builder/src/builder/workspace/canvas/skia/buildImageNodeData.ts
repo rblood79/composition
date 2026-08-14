@@ -16,7 +16,9 @@ import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { Image as SkImage } from "canvaskit-wasm";
 import { parsePadding, getContentBounds } from "../sprites/paddingUtils";
-import { colorIntToFloat32 } from "../sprites/styleConverter";
+import { colorIntToFloat32, cssColorToAlpha } from "../sprites/styleConverter";
+import { fillsToSkiaFillColor } from "../../../panels/styles/utils/fillToSkia";
+import { hexToColor4fChannels } from "./themeWatcher";
 import { buildBaseNodeProps } from "./buildBaseNodeProps";
 import { resolveSkiaVisualRule } from "./resolveSkiaVisualRule";
 
@@ -144,18 +146,58 @@ export function buildImageNodeData(
   // ---------- Object-fit ----------
   const imageContent = computeObjectFit(skImage, objectFit, contentBounds);
 
-  // ---------- Placeholder 배경 (D3) ----------
-  // catalog fill base 를 theme 해석 — Image/Avatar 는 {color.neutral-subtle} (DOM 대응:
-  //   generated Image.css `background: var(--bg-muted)`). catalog 미보유 IMAGE_TAGS
-  //   (Logo/Thumbnail)는 동일 토큰 fallback. 리터럴 고정 시 dark 캔버스에 light 회색.
-  const placeholderToken =
-    resolveSkiaVisualRule(element.type, props?.variant as string | undefined)
-      ?.fill?.default.base ?? ("{color.neutral-subtle}" as TokenRef);
-  const placeholderResolved = resolveColor(placeholderToken, theme);
-  const placeholderHex =
-    typeof placeholderResolved === "number"
-      ? placeholderResolved
-      : hexStringToNumber(placeholderResolved);
+  // ---------- 배경 (D3) ----------
+  // DOM oracle: `.react-aria-Image` 가 `background: var(--bg-muted)` 를 항상 깔고,
+  //   사용자 배경이 이를 override 한다. 사용자 배경 채널은 둘 —
+  //   ① canonical `fills` (현행 Style 패널 Background — commit sanitize 가
+  //     style.backgroundColor 를 비우고 fills 에 기록. DOM 은 preview 가
+  //     `fillsToCssBackgroundStyle(fills)` 를 style 위에 merge)
+  //   ② legacy inline style.background(-Color) (구 문서 잔존 + shorthand 는 sanitize
+  //     필터 대상 아님. DOM 은 `...element.props.style` spread)
+  //   우선순위는 buildBoxNodeData 와 동일: fills → solid style bg → catalog fill base
+  //   토큰 theme 해석 (Image/Avatar {color.neutral-subtle}, catalog 미보유
+  //   Logo/Thumbnail 은 동일 토큰 fallback — 리터럴 고정 시 dark 캔버스에 light 회색).
+  //   gradient/url 문자열은 이 경로가 그리지 못하므로(box 경로의 cssBgImageToSkia
+  //   미탑재) 토큰 fallback — cssColorToHex 실패 fallback(흰색) 오염 방지.
+  const fills = (element as unknown as { fills?: unknown[] }).fills;
+  const fillV2Color =
+    fills && fills.length > 0
+      ? fillsToSkiaFillColor(
+          fills as Parameters<typeof fillsToSkiaFillColor>[0],
+        )
+      : null;
+
+  const userBg = (style.backgroundColor ?? style.background) as
+    | string
+    | undefined;
+  const isSolidUserBg =
+    typeof userBg === "string" &&
+    userBg !== "" &&
+    !userBg.includes("gradient(") &&
+    !userBg.includes("url(");
+
+  let fillColor: Float32Array;
+  if (fillV2Color) {
+    fillColor = fillV2Color;
+  } else if (isSolidUserBg) {
+    const [r, g, b] = hexToColor4fChannels(converted.fill.color);
+    // opacity 는 OpacityEffect 로 노드 전체에 걸린다 — fill 에 이중 적용 금지
+    //   (buildBoxNodeData 동일 어법: effect 존재 시 bg 자체 alpha 만 사용)
+    const bgAlpha = effects?.some((e) => e.type === "opacity")
+      ? cssColorToAlpha(userBg)
+      : converted.fill.alpha;
+    fillColor = Float32Array.of(r, g, b, bgAlpha);
+  } else {
+    const placeholderToken =
+      resolveSkiaVisualRule(element.type, props?.variant as string | undefined)
+        ?.fill?.default.base ?? ("{color.neutral-subtle}" as TokenRef);
+    const placeholderResolved = resolveColor(placeholderToken, theme);
+    const placeholderHex =
+      typeof placeholderResolved === "number"
+        ? placeholderResolved
+        : hexStringToNumber(placeholderResolved);
+    fillColor = colorIntToFloat32(placeholderHex, 1);
+  }
 
   // ---------- Assemble SkiaNodeData ----------
   const nodeData: SkiaNodeData = {
@@ -166,9 +208,9 @@ export function buildImageNodeData(
     width: w,
     height: h,
     visible,
-    // placeholder 렌더링용 box (skImage 미로드 시 fillColor로 배경 표시)
+    // 배경 box — placeholder(미로드)와 로드 경로 양쪽에서 이미지 뒤 배경으로 그린다
     box: {
-      fillColor: colorIntToFloat32(placeholderHex, 1),
+      fillColor,
       borderRadius: borderRadius ?? 0,
     },
     image: {

@@ -121,6 +121,18 @@ export function renderImage(
       return;
     }
 
+    // 배경 fill — DOM `.react-aria-Image` background 대칭 (사용자 지정 또는 muted 기본,
+    //   이미지 **뒤** 레이어 — object-fit contain/none 여백·투명 PNG 에서 가시).
+    //   transparent(alpha 0) 배경은 skip. radius clip 은 위에서 이미 적용돼 배경도
+    //   함께 클립된다 (DOM border-radius 동일).
+    if (node.box && node.box.fillColor[3] > 0) {
+      const bgPaint = acquireScopedPaint(scope, ck);
+      bgPaint.setAntiAlias(true);
+      bgPaint.setStyle(ck.PaintStyle.Fill);
+      bgPaint.setColor(node.box.fillColor);
+      canvas.drawRect(ck.LTRBRect(0, 0, node.width, node.height), bgPaint);
+    }
+
     const needsOverflowClip =
       !hasRadius &&
       (node.image.contentWidth > node.width ||

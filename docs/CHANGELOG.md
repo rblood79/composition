@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Bug Fixes
 
+- **Image 요소의 사용자 지정 배경을 캔버스(Skia)만 무시했다** (simplify 관찰 후속 `/fix`):
+  - Style 패널 Background(fills)를 설정해도 Preview(DOM)에만 배경이 보이고 캔버스는 미표시 — `object-fit: contain/none` 여백(letterbox)·투명 PNG 에서 가시적 발산
+  - **Why**: 사용자 배경 채널 2개가 모두 image 경로에 미배선 — ① canonical `fills`(현행 Style 패널 경로, box 경로는 `fillsToSkiaFillColor` 소비하는데 `buildImageNodeData` 는 미소비) ② legacy `style.background(-Color)`(`converted.fill` 로 변환돼 오지만 버려짐). 더해서 렌더러(`renderImage`)가 skImage 로드 경로에서 배경 rect 자체를 그리지 않았다. DOM oracle 은 `.react-aria-Image` 기본 배경 + `fillsToCssBackgroundStyle` merge + inline style spread — 배경이 이미지 **뒤** 레이어
+  - 수정: builder 는 fills → solid style bg → catalog placeholder 토큰 우선순위로 `box.fillColor` 산출 (buildBoxNodeData 동일 어법 — opacity effect 이중 적용 방지, gradient/url 문자열은 토큰 fallback), 렌더러는 로드 경로에서 `drawImageRect` 전에 배경 rect (transparent alpha 0 은 skip, radius clip 승계)
+  - 검증: 라이브 — Image(contain, 1×1 이미지) + `updateSelectedFills` 빨강 → Skia `box.fillColor [1,0,0,1]` probe + 캔버스 스크린샷에서 letterbox 좌우 빨강 확인 (undo 원복). 계약 테스트 12건 (fills 우선/legacy style/opacity 분리/transparent/gradient fallback/렌더 순서)
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{buildImageNodeData.ts,nodeRendererImage.ts}`
+
 - **이미지 placeholder 배경이 dark mode 에서 light 회색으로 남았다** (simplify 보류 항목 후속):
   - Image/Avatar/Logo/Thumbnail 의 미로드 placeholder 배경이 `#e5e7eb` 리터럴 고정이라 theme 를 무시했다
   - **Why**: `buildImageNodeData` 가 theme 입력 자체가 없어 catalog fill 토큰(`{color.neutral-subtle}` — DOM `Image.css` 의 `var(--bg-muted)` 대응)을 해석할 수 없었다
