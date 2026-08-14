@@ -38,6 +38,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `buildBoxNodeData` 의 `isCollectionItem` 분기(카드 배경 `0.98` 근백색 / 테두리 `0.83` 연회색 / borderRadius 8 / strokeWidth 1 강제)와 `StoreRenderBridge` 의 `COLLECTION_ITEM_TAGS` 삭제
   - **Why**: 대상 태그(GridListItem/ListBoxItem)가 catalog cutover 상수라 `isSpecPath` 게이트를 항상 통과 — box fallback 분기에 도달 불가. theme-bypass 리터럴로 지목됐으나 실측 결과 죽은 코드였다
 
+- **InlineAlert 자식 font 위임을 bridge 라우팅에서 resolver 층으로 이관** (simplify 보류 항목 후속):
+  - `StoreRenderBridge` 요소 라우팅 함수 안에 인라인이던 InlineAlert → Heading/Description font 위임(heading/desc fontSize·fontWeight 4필드 read-through)을 `buildSpecNodeData` 의 `resolveInlineAlertChildFont` resolver 로 이동
+  - **Why**: 부모→자식 위임의 거처는 propagation registry 또는 buildSpecNodeData resolver 층 둘인데 InlineAlert 만 세 번째 층(bridge)에 살아 신규 위임 추가 시 거처 자체가 모호했다. registry rule 화는 기각 — Inspector 가 자식 store style 에 기록해 시스템 주입이 "사용자 수정" 으로 읽히는 축이 열림 (렌더 시점 주입 의미 보존). 구 근거 "spec/text 양쪽 경로 lift-up"(ADR-058 P2)은 buildTextNodeData 폐지로 소멸
+  - 검증: 라이브 lg InlineAlert 생성 → Heading 18/700 · Description 16/400 (자체 기본 16/14 와 구분되는 위임값) 실측 후 undo 복원 + 회귀 테스트 (lg 위임 + 사용자 style.fontSize 우선)
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{StoreRenderBridge.ts,buildSpecNodeData.ts}`
+
 - **`.button-base` membership 3벌 손 미러 → catalog 단일 선언** (simplify 보류 항목 후속):
   - preview `BUTTON_BASE_TYPES` / Skia `BUTTON_BASE_PARENT_TAGS` 두 로컬 Set("신규 추가 시 동시 갱신" 주석 의존) 삭제 — shared `usesButtonBaseUtility()` 가 catalog `structure.cssEmitMode === "button-base"`(Button/ToggleButton) + 신설 `structure.buttonBase`(ToggleButtonGroup — emit 은 direct, utility 착용만) 에서 파생
   - **Why**: 동일 membership 이 3곳(generate-css 는 이미 catalog 읽음 + 미러 2벌)에 있어 누락 시 신규 button-base 컴포넌트의 자식 색 상속이 Skia 에서만 조용히 빠지는 구조. 미러 주석의 "STRUCTURE_META 와 1:1" 은 ADR-912 Phase 2(generator-local Map 삭제) 이후 stale — ToggleButtonGroup 은 catalog cssEmitMode 에 없어 이미 3벌이 발산해 있었다

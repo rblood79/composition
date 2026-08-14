@@ -47,9 +47,6 @@ import { ANIMATABLE_NUMERIC_PROPERTIES } from "./interpolators";
 import type { CanonicalNode } from "@composition/shared";
 import { isCatalogCutover } from "@composition/shared";
 import { parsePxValue } from "@composition/specs";
-// ADR-912 단계5 step4 (2026-06-17): InlineAlertSpec import 제거 — InlineAlert 자식 font 분기를
-//   resolveSkiaRule("InlineAlert").sizes read-through 로 이관(spec 삭제 선행, rule fallback).
-import { resolveSkiaRule } from "./resolveSkiaVisualRule";
 import { resolveInstanceWithSharedCache } from "@/resolvers/canonical/storeBridge";
 import { resolveCanonicalRefElement } from "../../../utils/canonicalRefResolution";
 
@@ -723,50 +720,11 @@ export class StoreRenderBridge {
       }
     }
 
-    // InlineAlert → Heading/Description font delegation (Skia 렌더링 경로)
-    // fullTreeLayout + implicitStyles의 주입은 레이아웃 계산용이라 store에 반영 안됨.
-    // ADR-058 Phase 2: Heading이 spec 경로로 이동했으므로 lift-up 필수 — spec/text
-    // 양쪽 경로가 동일한 effectiveElement를 바라보게 한다.
-    //
-    // ADR-903 P2 D-C: instance resolution 결과(effectiveElement) 기반으로 spread.
-    if (
-      (effectiveElement.type === "Heading" ||
-        effectiveElement.type === "Description") &&
-      effectiveElement.parent_id
-    ) {
-      const parent = elementsMap.get(effectiveElement.parent_id);
-      if (parent?.type === "InlineAlert") {
-        const parentSize =
-          ((parent.props as Record<string, unknown>)?.size as string) ?? "md";
-        // ADR-912 단계5 step4 (2026-06-17): InlineAlertSpec.sizes 직독 → resolveSkiaRule read-through.
-        const inlineAlertRule = resolveSkiaRule("InlineAlert");
-        const specSize = (inlineAlertRule?.sizes[parentSize] ??
-          inlineAlertRule?.sizes[inlineAlertRule.defaultSize ?? "md"] ??
-          {}) as unknown as Record<string, unknown>;
-        const cs = (effectiveElement.props?.style ?? {}) as Record<
-          string,
-          unknown
-        >;
-        const isHeading = effectiveElement.type === "Heading";
-        const fontSize = isHeading
-          ? (specSize.headingFontSize as number)
-          : (specSize.descFontSize as number);
-        const fontWeight = isHeading
-          ? (specSize.headingFontWeight as number)
-          : (specSize.descFontWeight as number);
-        effectiveElement = {
-          ...effectiveElement,
-          props: {
-            ...effectiveElement.props,
-            style: {
-              ...cs,
-              fontSize: cs.fontSize ?? fontSize,
-              fontWeight: cs.fontWeight ?? fontWeight,
-            },
-          },
-        };
-      }
-    }
+    // 구 InlineAlert → Heading/Description font 인라인 분기는 buildSpecNodeData 의
+    //   resolveInlineAlertChildFont resolver 로 이관 (2026-08-14) — 위임 로직의 거처를
+    //   registry/resolver 2개 층으로 한정 (bridge 라우팅이 세 번째 레이어가 되던 것 해소).
+    //   구 근거였던 "spec/text 양쪽 경로 lift-up 필수"(ADR-058 P2)는 buildTextNodeData
+    //   폐지(ADR-058 P4)로 소멸 — Heading/Description 은 항상 spec 경로 단일.
 
     // overflow:scroll/auto 스크롤 상태 — spec/box 양 경로에 공급 (sprite 시대 배선이 bridge
     // 이관 때 탈락했던 부분). scrollBy(wheel) 후 아래 scrollState 구독이 이 요소를 재빌드한다.

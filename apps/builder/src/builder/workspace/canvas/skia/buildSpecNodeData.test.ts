@@ -933,6 +933,47 @@ describe("buildSpecNodeData", () => {
       expect(findIconPath(node)).not.toBeNull();
     });
 
+    it("InlineAlert size → Heading headingFontSize 위임 (bridge 인라인 분기 이관 회귀)", () => {
+      // catalog InlineAlert.sizes.lg.headingFontSize = 18 (Heading 자체 md 기본 16 과 구분).
+      //   구 StoreRenderBridge 인라인 분기 → resolveInlineAlertChildFont resolver 이관 검증.
+      function collectFontSizes(
+        node: SkiaNodeData | undefined | null,
+      ): number[] {
+        if (!node) return [];
+        const own = node.text ? [node.text.fontSize] : [];
+        return [
+          ...own,
+          ...(node.children ?? []).flatMap((c) => collectFontSizes(c)),
+        ];
+      }
+      function buildHeading(style?: Record<string, unknown>) {
+        const alert = makeElement("ia", {
+          type: "InlineAlert",
+          props: { size: "lg" },
+        });
+        const heading = makeElement("h", {
+          type: "Heading",
+          parent_id: "ia",
+          props: { children: "Alert title", ...(style ? { style } : {}) },
+        });
+        return buildSpecNodeData({
+          element: heading,
+          layout: makeLayout({ x: 0, y: 0, width: 200, height: 28 }),
+          theme: "light",
+          elementsMap: new Map([
+            [alert.id, alert],
+            [heading.id, heading],
+          ]),
+        });
+      }
+
+      expect(collectFontSizes(buildHeading())).toContain(18);
+      // 사용자 명시 style.fontSize 는 위임보다 우선.
+      const userSizes = collectFontSizes(buildHeading({ fontSize: 13 }));
+      expect(userSizes).toContain(13);
+      expect(userSizes).not.toContain(18);
+    });
+
     it("TagGroup allowsRemoving 미설정이면 손자 Tag 에 remove X 없음", () => {
       const group = makeElement("tg", { type: "TagGroup", props: {} });
       const list = makeElement("tl", {

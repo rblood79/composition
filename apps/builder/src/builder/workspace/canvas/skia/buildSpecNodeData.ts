@@ -870,6 +870,45 @@ function resolveIconDelegation(
   return "chevron-down";
 }
 
+/**
+ * InlineAlert → Heading/Description font 위임 (render-time).
+ *
+ * 구 StoreRenderBridge 인라인 분기 이관 (2026-08-14) — 부모→자식 위임의 거처는 registry
+ * (applyParentPropagationProps) 또는 본 resolver 층 둘로 한정한다 (bridge 라우팅 함수가
+ * 세 번째 레이어가 되던 것을 해소). registry rule 화하지 않는 이유: Inspector
+ * buildPropagationUpdates 가 자식 store style 에 fontSize 를 기록해 시스템 주입이
+ * "사용자 수정" 으로 읽히는 축이 열린다 — 렌더 시점 주입(store 미기록) 의미 보존.
+ *
+ * catalog `InlineAlert.sizes` 의 headingFontSize/headingFontWeight/descFontSize/
+ * descFontWeight 4필드(숫자 — `.alert-heading`/desc 자식 CSS 대응) read-through.
+ */
+function resolveInlineAlertChildFont(
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
+): { fontSize?: unknown; fontWeight?: unknown } | null {
+  if (
+    (element.type !== "Heading" && element.type !== "Description") ||
+    !element.parent_id
+  ) {
+    return null;
+  }
+  const parent = elementsMap.get(element.parent_id);
+  if (parent?.type !== "InlineAlert") return null;
+
+  const parentSize = (getProps(parent).size as string) ?? "md";
+  const rule = resolveSkiaRule("InlineAlert");
+  const sizeSpec = (rule?.sizes[parentSize] ??
+    rule?.sizes[rule.defaultSize ?? "md"] ??
+    {}) as unknown as Record<string, unknown>;
+  const isHeading = element.type === "Heading";
+  return {
+    fontSize: isHeading ? sizeSpec.headingFontSize : sizeSpec.descFontSize,
+    fontWeight: isHeading
+      ? sizeSpec.headingFontWeight
+      : sizeSpec.descFontWeight,
+  };
+}
+
 /** Label in nowrap parent detection */
 function isLabelInNowrapParent(
   element: CanvasSceneNode,
@@ -1214,6 +1253,20 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
       style: {
         ...existingStyle,
         color: existingStyle.color ?? buttonChildColor,
+      },
+    };
+  }
+
+  // InlineAlert → Heading/Description font 위임 — 사용자 명시 style 우선 (?? fallback).
+  const inlineAlertFont = resolveInlineAlertChildFont(element, elementsMap);
+  if (inlineAlertFont) {
+    const existingStyle = (specProps.style || {}) as Record<string, unknown>;
+    specProps = {
+      ...specProps,
+      style: {
+        ...existingStyle,
+        fontSize: existingStyle.fontSize ?? inlineAlertFont.fontSize,
+        fontWeight: existingStyle.fontWeight ?? inlineAlertFont.fontWeight,
       },
     };
   }
