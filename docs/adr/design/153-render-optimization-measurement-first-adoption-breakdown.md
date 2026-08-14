@@ -28,14 +28,14 @@
 
 ### 0-3. 렌더링 외 차용 후보 처분 (ecosystem 문서 §8)
 
-| 후보                                          | 처분                                                                                |
-| --------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Pencil.app AI dual embed (Codex + Claude SDK) | **본 ADR 범위 밖** — ADR-134 (Proposed) 의 reference 로 이미 등재                   |
-| openpencil RefNode/reusable/slot schema       | **조치 불요** — ADR-116/122/130/142 로 이미 정합 (문서 §6 이 검증 완료로 판정)      |
-| Pencil.app helper process 분리 (Worker 격리)  | **범위 밖** — 향후 별도 ADR 제안 영역 (web Worker 대안, 영향 범위가 본 ADR 과 직교) |
-| open-pencil P2P 협업 / Kiwi override          | **범위 밖** — composition scope 외 (기존 결론 유지)                                 |
-| Pencil.app native koffi Skia                  | **기각** — web browser 환경 불가 (WASM 필수)                                        |
-| openpencil Paper.js boolean ops fallback      | **기각** — fallback 회피 원칙 (메모리 `feedback-no-fallback-thinking`)              |
+| 후보                                          | 처분                                                                                                                                                   |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Pencil.app AI dual embed (Codex + Claude SDK) | **본 ADR 범위 밖** — ADR-134 (Proposed) 의 reference 로 이미 등재                                                                                      |
+| openpencil RefNode/reusable/slot schema       | **조치 불요** — ADR-116/122/130/142 로 이미 정합 (문서 §6 이 검증 완료로 판정)                                                                         |
+| Pencil.app helper process 분리 (Worker 격리)  | **범위 밖** — 향후 별도 ADR 제안 영역 (web Worker 대안, 영향 범위가 본 ADR 과 직교)                                                                    |
+| open-pencil 실시간 협업 / Kiwi override       | **범위 밖** — composition scope 외 (기존 결론 유지). 2026-08-15 실측 정정: 협업 실체는 **yjs CRDT over WebSocket** 이며 P2P 아님 (ecosystem 문서 §4-2) |
+| Pencil.app native koffi Skia                  | **기각** — web browser 환경 불가 (WASM 필수)                                                                                                           |
+| openpencil Paper.js boolean ops fallback      | **기각** — fallback 회피 원칙 (메모리 `feedback-no-fallback-thinking`)                                                                                 |
 
 ---
 
