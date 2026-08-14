@@ -49,6 +49,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: 연장이 답하는 질문은 "이 선이 어디까지 가는가" 이고, 그게 필요한 때는 선택했을 때가 아니라 그 선을 **만지는 모든 순간**이다
   - 끌고 있는 가이드는 hover 로 취급한다 — 눈금자에서 막 끌어낸 가이드는 hover 이벤트를 거치지 않으므로, 그러지 않으면 강조가 "hover 가 먼저 왔는지" 라는 우연에 좌우된다
 
+- **선택한 가이드를 Delete 로 지운다** (ADR-181 후속, 2026-08-14 사용자 요청):
+  - 가이드를 선택하고 Delete/Backspace 를 누르면 지워진다. 종전에는 눈금자로 되돌리는 드래그가 유일한 삭제 경로였다
+  - 드래그 삭제와 **같은 커밋 경로**(`deletePageGuide` → `commitPageGuideChanges`)라 히스토리 1 entry + persist + 재렌더가 한 묶음이고, 어느 쪽으로 지웠든 Cmd+Z 가 같게 동작한다
+  - 우선순위는 Escape 와 같은 어법이다 — 가이드 선택과 요소 선택은 배타라 둘 중 하나만 서 있고, 가이드가 선택돼 있으면 Delete 는 그쪽을 향한다. 입력 필드 포커스 중에는 종전대로 단축키가 발화하지 않는다
+  - 위치: `apps/builder/src/builder/{workspace/canvas/viewport/pageGuideActions.ts,hooks/useGlobalKeyboardShortcuts.ts}`
+
 - **가이드 위 hover 커서 복구** (ADR-181 후속, 2026-08-14 사용자 요청):
   - **가이드 위 hover 커서가 아예 안 뜨던 것**을 고쳤다. 커서를 쓰는 곳이 둘이라 — 중앙 pointer 핸들러가 이동마다 `setCursor("default")` 로 되돌려 가이드 훅이 세운 값이 같은 프레임에 덮였다. 우선순위 판정을 `BuilderCanvas.setCursor` **한 곳**으로 모으고, "default"(= 아무것도 없다는 뜻)일 때만 가이드 커서가 이긴다 — move/resize 처럼 잡을 수 있는 대상을 가리키는 커서는 그대로 통과
   - 캔버스를 벗어날 때(`pointerleave`) 커서를 정리한다 — 히트 판정이 RAF 뒤에 도는데 탭이 가려지면 RAF 가 멈춰 마지막 상태로 굳는다

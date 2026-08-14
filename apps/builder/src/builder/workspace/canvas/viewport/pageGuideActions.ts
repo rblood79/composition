@@ -69,6 +69,30 @@ export function commitGuideDrag(
   commitPageGuideChanges([{ pageId: owner, breakpoint, before, after }]);
 }
 
+/**
+ * 가이드 1개를 지운다 — Delete 키 경로 (2026-08-14 사용자 요청).
+ *
+ * 드래그 삭제(눈금자로 되돌리기 / 페이지 밖)와 **같은 커밋 경로**를 쓴다:
+ * 히스토리 1 entry + canonical + persist + 재렌더가 한 묶음이라, 어느 쪽으로
+ * 지웠든 Cmd+Z 가 같게 동작한다. 이미 없는 id 면 `commitPageGuideChanges` 의
+ * 무변경 필터가 걸러 히스토리에 빈 entry 가 남지 않는다.
+ */
+export function deletePageGuide(
+  pageId: string,
+  guideId: string,
+  breakpoint: BreakpointName,
+): void {
+  const before = readPageGuides(pageId, breakpoint);
+  commitPageGuideChanges([
+    {
+      pageId,
+      breakpoint,
+      before,
+      after: before.filter((line) => line.id !== guideId),
+    },
+  ]);
+}
+
 export interface PageGuideChange {
   pageId: string;
   breakpoint: BreakpointName;

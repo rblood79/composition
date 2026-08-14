@@ -30,6 +30,7 @@ import {
 } from "../interaction/pageGuideRevision";
 import {
   commitPageGuideChanges,
+  deletePageGuide,
   filterChangedGuideEntries,
   readPageGuides,
   readPageGuidesByPage,
@@ -262,5 +263,60 @@ describe("readPageGuidesByPage — 렌더 패스 read (Phase 4)", () => {
   it("빈 목록 페이지는 map 에 넣지 않는다", () => {
     setupActiveDoc({ pageGuides: { "page-1": { desktop: [] } } });
     expect(readPageGuidesByPage("desktop").size).toBe(0);
+  });
+});
+
+describe("deletePageGuide — Delete 키 삭제", () => {
+  it("해당 가이드만 지우고 형제는 남긴다", () => {
+    setupActiveDoc({
+      pageGuides: {
+        home: { desktop: [g("a", "x", 10), g("b", "y", 20), g("c", "x", 30)] },
+      },
+    });
+
+    deletePageGuide("home", "b", "desktop");
+
+    expect(readPageGuides("home", "desktop")).toEqual([
+      g("a", "x", 10),
+      g("c", "x", 30),
+    ]);
+  });
+
+  it("드래그 삭제와 **같은 커밋 경로** — 히스토리 1 entry + 재렌더 1회", () => {
+    setupActiveDoc({ pageGuides: { home: { desktop: [g("a", "x", 10)] } } });
+
+    deletePageGuide("home", "a", "desktop");
+
+    const entries = historyManager.getCurrentPageEntries();
+    expect(entries).toHaveLength(1);
+    expect(entries[0].type).toBe("page-guide");
+    expect(entries[0].data.pageGuideEvent?.entries).toEqual([
+      { pageId: "home", breakpoint: "desktop", before: [g("a", "x", 10)], after: [] },
+    ]);
+    expect(getPageGuideRevision()).toBe(1);
+    expect(readPageGuides("home", "desktop")).toEqual([]);
+  });
+
+  it("없는 id 는 무변경 — 빈 히스토리 entry 를 남기지 않는다", () => {
+    setupActiveDoc({ pageGuides: { home: { desktop: [g("a", "x", 10)] } } });
+
+    deletePageGuide("home", "없는-id", "desktop");
+
+    expect(historyManager.getCurrentPageEntries()).toHaveLength(0);
+    expect(getPageGuideRevision()).toBe(0);
+    expect(readPageGuides("home", "desktop")).toEqual([g("a", "x", 10)]);
+  });
+
+  it("breakpoint 가 다르면 건드리지 않는다 (C9)", () => {
+    setupActiveDoc({
+      pageGuides: {
+        home: { desktop: [g("a", "x", 10)], mobile: [g("a", "x", 10)] },
+      },
+    });
+
+    deletePageGuide("home", "a", "mobile");
+
+    expect(readPageGuides("home", "desktop")).toEqual([g("a", "x", 10)]);
+    expect(readPageGuides("home", "mobile")).toEqual([]);
   });
 });
