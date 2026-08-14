@@ -5,81 +5,84 @@
  * ============================================================ */
 
 @layer components {
-  .react-aria-CardHeader {
-    /* Base styles — archetype: simple */
+
+.react-aria-CardHeader {
+  /* Base styles — archetype: simple */
     display: inline-flex;
     align-items: center;
     box-sizing: border-box;
 
-    /* Container styles (ADR-071 + ADR-083 Phase 1) */
-    gap: 4px;
-    width: 100%;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  gap: 4px;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 
-    /* Default size */
-    height: auto;
-    padding: 0px 0px;
-    font-size: var(--text-base);
-    border-radius: var(--radius-none);
-  }
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-none);
+}
 
-  .react-aria-CardHeader[data-size="xs"] {
-    height: auto;
-    padding: 0px 0px;
-    font-size: var(--text-xs);
-    border-radius: var(--radius-none);
-  }
+.react-aria-CardHeader[data-size="xs"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-xs);
+  border-radius: var(--radius-none);
+}
 
-  .react-aria-CardHeader[data-size="sm"] {
-    height: auto;
-    padding: 0px 0px;
-    font-size: var(--text-sm);
-    border-radius: var(--radius-none);
-  }
+.react-aria-CardHeader[data-size="sm"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-none);
+}
 
-  .react-aria-CardHeader[data-size="md"] {
-    height: auto;
-    padding: 0px 0px;
-    font-size: var(--text-base);
-    border-radius: var(--radius-none);
-  }
+.react-aria-CardHeader[data-size="md"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-none);
+}
 
-  .react-aria-CardHeader[data-size="lg"] {
-    height: auto;
-    padding: 0px 0px;
-    font-size: var(--text-lg);
-    border-radius: var(--radius-none);
-  }
+.react-aria-CardHeader[data-size="lg"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-lg);
+  border-radius: var(--radius-none);
+}
 
-  .react-aria-CardHeader[data-size="xl"] {
-    height: auto;
-    padding: 0px 0px;
-    font-size: var(--text-lg);
-    border-radius: var(--radius-none);
-  }
+.react-aria-CardHeader[data-size="xl"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-lg);
+  border-radius: var(--radius-none);
+}
 
-  .react-aria-CardHeader[data-hovered] {
-  }
+.react-aria-CardHeader[data-hovered] {
+}
 
-  .react-aria-CardHeader[data-focus-visible] {
-    outline: var(--focus-ring-width) solid var(--focus-ring);
-    outline-offset: var(--focus-ring-offset);
-  }
+.react-aria-CardHeader[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
 
-  .react-aria-CardHeader[data-pressed] {
-  }
+.react-aria-CardHeader[data-pressed] {
+}
 
-  .react-aria-CardHeader[data-disabled] {
-    opacity: 0.38;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
+.react-aria-CardHeader[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
 
-  @media (forced-colors: active) {
-    .react-aria-CardHeader {
-      forced-color-adjust: auto;
-    }
+@media (forced-colors: active) {
+  .react-aria-CardHeader {
+    forced-color-adjust: auto;
   }
+}
+
+
 } /* @layer components */
