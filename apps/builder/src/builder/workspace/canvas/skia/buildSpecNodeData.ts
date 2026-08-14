@@ -38,6 +38,7 @@ import {
   getPrimitiveBinding,
   isDisclosureExpandedInContext,
   toSkiaStyle,
+  usesButtonBaseUtility,
 } from "@composition/shared";
 import {
   fillsToSkiaFillColor,
@@ -708,18 +709,9 @@ function resolveLabelAlignment(
   return null;
 }
 
-/**
- * `.button-base` utility 컴포넌트 집합 (Skia 자식 color 상속 게이트).
- *
- * SSOT: `apps/builder/src/preview/utils/specCatalogBacked.ts` 의 `BUTTON_BASE_TYPES`
- *   (= generate-css STRUCTURE_META `cssEmitMode: "button-base"`) 와 1:1. preview→builder
- *   layer 역전 회피 위해 본 모듈에 미러. 신규 button-base 컴포넌트 추가 시 동시 갱신.
- */
-const BUTTON_BASE_PARENT_TAGS = new Set([
-  "Button",
-  "ToggleButton",
-  "ToggleButtonGroup",
-]);
+// `.button-base` membership 은 catalog `structure.cssEmitMode`/`structure.buttonBase` 파생의
+//   shared `usesButtonBaseUtility` 단일 진입점 — 구 로컬 `BUTTON_BASE_PARENT_TAGS` 미러
+//   ("동시 갱신" 주석 의존) 는 2026-08-14 삭제. preview generic 경로와 같은 predicate 공유.
 
 /** Button color 를 상속할 직계 자식 leaf 태그 (Text/Icon/Label). */
 const BUTTON_CHILD_INHERIT_TAGS = new Set(["Text", "Icon", "Label"]);
@@ -753,7 +745,7 @@ export function resolveButtonChildColor(
   }
 
   const parent = elementsMap.get(element.parent_id);
-  if (!parent || !BUTTON_BASE_PARENT_TAGS.has(parent.type)) return null;
+  if (!parent || !usesButtonBaseUtility(parent.type)) return null;
 
   const parentProps = getProps(parent);
   const parentVariant = parentProps.variant as string | undefined;

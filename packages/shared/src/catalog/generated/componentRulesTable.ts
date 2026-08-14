@@ -12621,6 +12621,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
       },
+      // button-base utility 착용 (usesButtonBaseUtility 소비) — CSS emit 은 direct 유지
+      //   (cssEmitMode 미설정). DOM shared 컴포넌트(ToggleButtonGroup.tsx)가 wrapper 에
+      //   `.button-base` 를 붙이고 Skia 자식(Text/Icon/Label) color 상속 게이트가 같은
+      //   membership 을 공유한다. 구 3벌 손 미러(preview BUTTON_BASE_TYPES / Skia
+      //   BUTTON_BASE_PARENT_TAGS) 를 본 선언으로 단일화 (2026-08-14).
+      buttonBase: true,
       indicatorMode: {
         fill: {
           base: "{color.layer-1}",

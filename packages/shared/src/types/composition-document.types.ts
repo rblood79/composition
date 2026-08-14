@@ -438,6 +438,12 @@ export interface ComponentRuleStructure {
   states?: ComponentRuleStates;
   /** CSS emit 모드. button-base = `--button-color` 변수 + utility color-mix 자동 파생. */
   cssEmitMode?: "direct" | "button-base";
+  /**
+   * `.button-base` utility 착용 대상 명시 선언 — CSS emit 은 direct 인데 markup 클래스와
+   * Skia 자식 color 상속 게이트만 필요한 컴포넌트용 (ToggleButtonGroup). `cssEmitMode:
+   * "button-base"` 는 이 선언을 함의하므로 중복 지정 불요. 소비는 `usesButtonBaseUtility()`.
+   */
+  buttonBase?: boolean;
   /** selection indicator 구조 메타 (ToggleButtonGroup pill 위치/box-shadow). */
   indicatorMode?: Record<string, unknown>;
 }
@@ -886,10 +892,7 @@ export interface CompositionDocument {
    * entry 부재는 "가이드 없음" 이다 (재계산 폴백 없음). Preview/Publish 산출물
    * 에는 영향 없다 (Figma 와 동일 — 문서 데이터지만 배포 무관).
    */
-  pageGuides?: Record<
-    string,
-    Partial<Record<BreakpointName, PageGuideLine[]>>
-  >;
+  pageGuides?: Record<string, Partial<Record<BreakpointName, PageGuideLine[]>>>;
 
   /** Canonical primary storage marker. */
   _meta?: {

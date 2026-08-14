@@ -33,6 +33,23 @@ export function getComponentRulesTable(): ComponentRulesTable {
 }
 
 /**
+ * `.button-base` utility 대상 여부 — DOM `button-base` 클래스 부여(preview generic 경로 +
+ * shared 컴포넌트)와 Skia 자식(Text/Icon/Label) color 상속 게이트가 공유하는 단일 membership.
+ *
+ * 파생 규칙: `structure.cssEmitMode === "button-base"` (Button/ToggleButton — CSS emit 도
+ * utility color-mix 파생) 또는 `structure.buttonBase` (ToggleButtonGroup — emit 은 direct,
+ * utility 착용만). 구 3벌 손 미러(preview `BUTTON_BASE_TYPES` / Skia
+ * `BUTTON_BASE_PARENT_TAGS` — "신규 추가 시 동시 갱신" 주석 의존)를 대체한다 (2026-08-14).
+ * 신규 button-base 컴포넌트는 테이블 선언 1곳으로 세 소비자에 동시 반영된다.
+ */
+export function usesButtonBaseUtility(type: string): boolean {
+  const structure = COMPONENT_RULES_TABLE[type]?.structure;
+  return (
+    structure?.cssEmitMode === "button-base" || structure?.buttonBase === true
+  );
+}
+
+/**
  * ADR-916 P2-CAT ① (조항 4) — doc override 를 소비하지 않는 theme rule base 진입점.
  *
  * catalog 정적 참조 계약(`buildCatalogStaticSnapshot` + 조상 체인 propagation 소비자)은

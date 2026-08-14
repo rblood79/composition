@@ -47,31 +47,18 @@ export function resolveBackedDefaultSize(type: string): string | undefined {
 }
 
 /**
- * `.button-base` utility 클래스를 generic Preview 렌더 경로에 추가해야 하는 type 집합.
+ * generic Preview 렌더 경로의 `.button-base` utility 클래스 부여 판정.
  *
- * **배경 (ADR-913 slice 1, 2026-06-18)**: generated 컴포넌트 CSS 의 `cssEmitMode: "button-base"`
- *   (`generate-css.ts` STRUCTURE_META — Button/ToggleButton/ToggleButtonGroup) 는 `--button-color`
- *   변수만 emit 하고 `background: var(--button-color)` 는 `utilities.css .button-base` 에 위임한다.
- *   따라서 DOM 요소가 `react-aria-{Type} button-base` 2 클래스를 모두 가져야 배경이 칠해진다.
- *   shared 컴포넌트(`Button.tsx:75` / `ToggleButton.tsx:60` / `ToggleButtonGroup.tsx:81`)는
- *   publish 경로에서 이 짝을 붙이지만, **빌더 Preview 의 generic 렌더(CanonicalNodeRenderer)는
- *   `react-aria-{Type}` 만 붙이고 `button-base` 를 누락** → `--button-color` 는 설정되나 background
- *   미적용(기본 회색) → publish↔Preview 발산(사용자 보고 "primary 회색"). 본 Set 으로 generic
- *   경로에서도 button-base 를 부여해 cssEmitMode SSOT 와 정합시킨다.
- *
- * SSOT: `generate-css.ts` STRUCTURE_META 의 `cssEmitMode: "button-base"` entry 와 1:1.
- *   런타임에서 STRUCTURE_META(generate-css 스크립트 내부)·spec(삭제됨) 직접 접근 불가 →
- *   builder 측 명시 Set. 신규 button-base 컴포넌트 추가 시 STRUCTURE_META 와 동시 갱신.
+ * **배경 (ADR-913 slice 1, 2026-06-18)**: `cssEmitMode: "button-base"` 컴포넌트 CSS 는
+ *   `--button-color` 변수만 emit 하고 `background: var(--button-color)` 는 `utilities.css
+ *   .button-base` 에 위임한다 — DOM 요소가 `react-aria-{Type} button-base` 2 클래스를 모두
+ *   가져야 배경이 칠해진다. shared 컴포넌트는 publish 경로에서 이 짝을 붙이지만 빌더 Preview
+ *   의 generic 렌더(CanonicalNodeRenderer)는 누락했었다 (사용자 보고 "primary 회색").
  *   (Menu 의 트리거 Button 은 `rendererMap` MenuButton 으로 위임돼 shared 가 button-base 부여 —
  *   generic 경로 대상 아님.)
+ *
+ * 구 로컬 `BUTTON_BASE_TYPES` Set(손 미러, "동시 갱신" 주석 의존)은 catalog
+ * `structure.cssEmitMode`/`structure.buttonBase` 파생의 shared `usesButtonBaseUtility` 로
+ * 대체됨 (2026-08-14) — membership 선언은 `componentRulesTable.ts` 1곳.
  */
-const BUTTON_BASE_TYPES: ReadonlySet<string> = new Set([
-  "Button",
-  "ToggleButton",
-  "ToggleButtonGroup",
-]);
-
-/** generic Preview 렌더 경로에서 `button-base` utility 클래스를 추가할 type 인지. */
-export function usesButtonBaseUtility(type: string): boolean {
-  return BUTTON_BASE_TYPES.has(type);
-}
+export { usesButtonBaseUtility } from "@composition/shared";

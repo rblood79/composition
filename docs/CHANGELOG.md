@@ -38,6 +38,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `buildBoxNodeData` 의 `isCollectionItem` 분기(카드 배경 `0.98` 근백색 / 테두리 `0.83` 연회색 / borderRadius 8 / strokeWidth 1 강제)와 `StoreRenderBridge` 의 `COLLECTION_ITEM_TAGS` 삭제
   - **Why**: 대상 태그(GridListItem/ListBoxItem)가 catalog cutover 상수라 `isSpecPath` 게이트를 항상 통과 — box fallback 분기에 도달 불가. theme-bypass 리터럴로 지목됐으나 실측 결과 죽은 코드였다
 
+- **`.button-base` membership 3벌 손 미러 → catalog 단일 선언** (simplify 보류 항목 후속):
+  - preview `BUTTON_BASE_TYPES` / Skia `BUTTON_BASE_PARENT_TAGS` 두 로컬 Set("신규 추가 시 동시 갱신" 주석 의존) 삭제 — shared `usesButtonBaseUtility()` 가 catalog `structure.cssEmitMode === "button-base"`(Button/ToggleButton) + 신설 `structure.buttonBase`(ToggleButtonGroup — emit 은 direct, utility 착용만) 에서 파생
+  - **Why**: 동일 membership 이 3곳(generate-css 는 이미 catalog 읽음 + 미러 2벌)에 있어 누락 시 신규 button-base 컴포넌트의 자식 색 상속이 Skia 에서만 조용히 빠지는 구조. 미러 주석의 "STRUCTURE_META 와 1:1" 은 ADR-912 Phase 2(generator-local Map 삭제) 이후 stale — ToggleButtonGroup 은 catalog cssEmitMode 에 없어 이미 3벌이 발산해 있었다
+  - 검증: membership 계약 테스트 신설(정확히 3개 잠금) + 라이브 Button(primary) 자식 Text 상속 색 white 유지, variant 토글 재빌드 2회 정상
+  - 위치: `packages/shared/src/{types/composition-document.types.ts,catalog/{generated/componentRulesTable.ts,resolvers/resolveComponentRule.ts}}`, `apps/builder/src/{preview/utils/specCatalogBacked.ts,builder/workspace/canvas/skia/buildSpecNodeData.ts}`
+
 - **Slider/TagGroup 수동 전파 resolver 삭제 — registry 단일 메커니즘으로 통합** (simplify 보류 항목 후속):
   - `buildSpecNodeData` 의 `resolveSliderProps` / `resolveTagGroupAllowsRemoving` / `resolveTagListItemsFromParent` 3개 삭제 (−140줄)
   - **Why**: 같은 함수 안의 `applyParentPropagationProps`(registry 일반 경로)가 동일 규칙(`sliderPropagationRules` value/minValue/maxValue → SliderTrack, `tagGroupPropagationRules` items/variant/size/maxRows/allowsRemoving → TagList)을 이미 적용한 뒤 resolver 가 재수행하는 이중 구현이었다. Slider 기본값(50/0/100)은 소비처 `slider_fill_bar` escape 내장값과 동일, variant 전파는 Slider catalog `variants:{}` + SliderTrack default 단일 variant 라 사어
