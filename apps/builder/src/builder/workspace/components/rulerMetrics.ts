@@ -149,3 +149,24 @@ export function collectRulerLabels(
   }
   return labels;
 }
+
+/**
+ * 눈금자 스트립에서 끌어냈을 때 생기는 가이드의 축.
+ *
+ * **자와 나란한 선이 나온다** — 가로 자에서 끌면 가로 가이드, 세로 자에서
+ * 끌면 세로 가이드다. 은유는 "눈금자 자체를 캔버스로 끌어당긴다" 이고
+ * Figma·Photoshop·Illustrator·Sketch 가 공통으로 쓴다.
+ *
+ * 도입 때 "자가 재는 축과 직교" 로 잘못 잡았다 (가로 자는 x 를 재니 x 를
+ * 고정하는 세로선, 이라는 논리). 그럴듯하지만 **끄는 방향과 선이 반응하는
+ * 축이 어긋난다** — 위쪽 자를 아래로 끄는데 세로선이 나오면 그 선의 위치는
+ * x 로만 정해지므로 드래그 내내 꿈쩍도 하지 않는다 (2026-08-14 사용자 지적).
+ *
+ * 한 줄짜리 매핑을 함수로 빼 둔 이유가 그것이다. JSX 리터럴로 두면 두 값이
+ * 서로 바뀌어도 타입이 잡아 주지 않고, 잘못된 쪽도 그럴듯한 설명이 붙는다.
+ */
+export function guideAxisForRulerStrip(
+  strip: "horizontal" | "vertical",
+): "x" | "y" {
+  return strip === "horizontal" ? "y" : "x";
+}

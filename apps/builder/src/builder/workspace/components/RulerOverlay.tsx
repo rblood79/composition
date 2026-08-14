@@ -30,6 +30,7 @@ import {
   RULER_SIZE_PX,
   calculateRulerAxisMetrics,
   collectRulerLabels,
+  guideAxisForRulerStrip,
   type RulerLabel,
 } from "./rulerMetrics";
 import {
@@ -117,7 +118,10 @@ function syncLabels(
 export interface RulerOverlayProps {
   /**
    * 눈금자 스트립 드래그로 가이드를 만든다 (ADR-181 Phase 5).
-   * axis 는 스트립 방향이 정한다 — 가로 자에서 끌면 세로 가이드("x").
+   *
+   * **자와 나란한 선이 나온다** — 가로 자에서 끌면 가로 가이드("y"),
+   * 세로 자에서 끌면 세로 가이드("x"). 은유는 "눈금자 자체를 캔버스로
+   * 끌어당긴다" 이고 Figma·Photoshop·Illustrator·Sketch 가 공통이다.
    */
   onStartGuideCreate?: (
     axis: "x" | "y",
@@ -245,7 +249,12 @@ export function RulerOverlay({ onStartGuideCreate }: RulerOverlayProps = {}) {
 
   if (!showRulers) return null;
 
-  // 가로 자에서 끌어내면 **세로** 가이드다 (자가 재는 축과 만드는 선이 직교).
+  // 자에서 끌어내면 **그 자와 나란한** 선이 나온다 — 가로 자 → 가로 가이드.
+  // 끄는 방향과 선이 반응하는 축이 같아야 하기 때문이다: 위쪽 자를 아래로
+  // 끄는데 세로선이 나오면 그 선은 x 로만 정해지므로 드래그 내내 꿈쩍도
+  // 하지 않는다 (2026-08-14 사용자 지적으로 정정 — 도입 시 "자가 재는 축과
+  // 직교" 로 잘못 잡았다).
+  //
   // pointer capture 는 걸지 않는다 — 세션이 window 리스너로 이어지고, capture
   // 를 걸면 캔버스 위에서 `elementFromPoint` 대신 캡처 대상이 잡혀 되돌리기
   // 판정이 죽는다.
@@ -264,14 +273,14 @@ export function RulerOverlay({ onStartGuideCreate }: RulerOverlayProps = {}) {
       <div
         className="ruler-strip ruler-strip--h"
         ref={hStripRef}
-        onPointerDown={startCreate("x")}
+        onPointerDown={startCreate(guideAxisForRulerStrip("horizontal"))}
       >
         <div className="ruler-labels" ref={hLabelsRef} />
       </div>
       <div
         className="ruler-strip ruler-strip--v"
         ref={vStripRef}
-        onPointerDown={startCreate("y")}
+        onPointerDown={startCreate(guideAxisForRulerStrip("vertical"))}
       >
         <div className="ruler-labels" ref={vLabelsRef} />
       </div>

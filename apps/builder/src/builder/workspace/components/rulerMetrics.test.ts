@@ -14,6 +14,7 @@ import {
   MINOR_MIN_SPACING_PX,
   calculateRulerAxisMetrics,
   collectRulerLabels,
+  guideAxisForRulerStrip,
   niceInterval,
   positiveModulo,
   resolveTickPlan,
@@ -189,6 +190,24 @@ describe("collectRulerLabels", () => {
   it("같은 입력은 같은 결과 (순수 함수)", () => {
     expect(collectRulerLabels(AXIS, 500)).toEqual(
       collectRulerLabels(AXIS, 500),
+    );
+  });
+});
+
+describe("guideAxisForRulerStrip — 자와 나란한 선이 나온다", () => {
+  it("가로 자에서 끌면 가로 가이드", () => {
+    // axis "y" = y 좌표를 고정하는 가로선 (guideRenderer 와 같은 어법)
+    expect(guideAxisForRulerStrip("horizontal")).toBe("y");
+  });
+
+  it("세로 자에서 끌면 세로 가이드", () => {
+    expect(guideAxisForRulerStrip("vertical")).toBe("x");
+  });
+
+  it("두 스트립의 축은 서로 달라야 한다", () => {
+    // 매핑이 통째로 한쪽으로 쏠리는 실수(둘 다 "x")를 잡는다
+    expect(guideAxisForRulerStrip("horizontal")).not.toBe(
+      guideAxisForRulerStrip("vertical"),
     );
   });
 });
