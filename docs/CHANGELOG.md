@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **눈금자와 가이드의 축이 반대였다** (ADR-181 후속, 2026-08-14 사용자 지적):
   - 위쪽(가로) 자에서 끌어내리면 **세로** 가이드가 나왔다. Figma·Photoshop·Illustrator·Sketch 는 모두 **자와 나란한** 선을 준다 (은유 = "눈금자 자체를 캔버스로 끌어당긴다")
   - **Why**: 도입 때 "자가 재는 축과 직교" 로 잡았다 — 가로 자는 x 를 재니 x 를 고정하는 세로선, 이라는 논리. 그럴듯하지만 **끄는 방향과 선이 반응하는 축이 어긋난다**: 위쪽 자를 아래로 끄는 내내 세로선은 x 로만 정해지므로 꿈쩍도 하지 않았다
+  - **커서도 같이 뒤집혔다** — 스트립 커서가 CSS 에 하드코딩돼 있어(`.ruler-strip--h { cursor: col-resize }`) 축만 고치면 "커서는 좌우인데 끌면 위아래로 나오는" 어긋남이 남았다. 이제 `guideCursorForAxis(guideAxisForRulerStrip(...))` 로 **축 매핑에서 파생**한다 (캔버스의 기존 가이드 hover 커서와도 같은 함수)
   - 매핑을 `guideAxisForRulerStrip()` 순수 함수로 분리했다 — JSX 리터럴 두 줄로 두면 서로 바뀌어도 타입이 잡아 주지 않고, 잘못된 쪽에도 그럴듯한 설명이 붙는다
   - 위치: `apps/builder/src/builder/workspace/components/{rulerMetrics.ts,RulerOverlay.tsx}`
 

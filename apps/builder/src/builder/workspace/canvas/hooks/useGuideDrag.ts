@@ -25,6 +25,7 @@ import {
   type GuideDragState,
 } from "../interaction/guidePresentation";
 import { isRulerEventTarget } from "../../components/RulerOverlay";
+import { guideCursorForAxis } from "../../components/rulerMetrics";
 import { resolveTopPageIdAtPoint } from "../interaction/selectionModel";
 import { commitGuideDrag } from "../viewport/pageGuideActions";
 import {
@@ -371,7 +372,9 @@ export function useGuideHoverCursor({
         }),
         GUIDE_HIT_THRESHOLD_SCREEN_PX / (zoom === 0 ? 1 : zoom),
       );
-      setCursor(hit ? (hit.axis === "x" ? "col-resize" : "row-resize") : "");
+      // 눈금자 스트립 hover 와 같은 함수 — 두 곳이 갈리면 "커서는 좌우인데
+      // 끌면 위아래" 같은 어긋남이 생긴다 (rulerMetrics 주석 참조)
+      setCursor(hit ? guideCursorForAxis(hit.axis) : "");
     };
 
     const onPointerMove = (event: PointerEvent) => {

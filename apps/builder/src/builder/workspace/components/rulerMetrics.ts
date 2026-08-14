@@ -170,3 +170,19 @@ export function guideAxisForRulerStrip(
 ): "x" | "y" {
   return strip === "horizontal" ? "y" : "x";
 }
+
+/**
+ * 가이드 축에 대응하는 커서.
+ *
+ * **선이 움직일 수 있는 방향**을 가리킨다 — 세로선(`"x"`)은 좌우로만
+ * 움직이니 `col-resize`, 가로선(`"y"`)은 위아래로만 움직이니 `row-resize`.
+ *
+ * 눈금자 스트립 hover 와 캔버스의 기존 가이드 hover 가 **같은 함수**를 쓴다.
+ * 한때 스트립 커서는 CSS 에(`.ruler-strip--h { cursor: col-resize }`), 가이드
+ * 커서는 훅 안에 따로 있었고, 축 매핑을 정정할 때 CSS 쪽이 구 매핑으로 남아
+ * "커서는 좌우인데 끌면 위아래로 나오는" 어긋남이 생겼다 (2026-08-14).
+ * 축을 정하는 곳과 커서를 정하는 곳이 갈리면 반드시 한쪽만 고쳐진다.
+ */
+export function guideCursorForAxis(axis: "x" | "y"): string {
+  return axis === "x" ? "col-resize" : "row-resize";
+}

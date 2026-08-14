@@ -31,6 +31,7 @@ import {
   calculateRulerAxisMetrics,
   collectRulerLabels,
   guideAxisForRulerStrip,
+  guideCursorForAxis,
   type RulerLabel,
 } from "./rulerMetrics";
 import {
@@ -264,6 +265,11 @@ export function RulerOverlay({ onStartGuideCreate }: RulerOverlayProps = {}) {
     onStartGuideCreate(axis, event.pointerId, event.clientX, event.clientY);
   };
 
+  // 커서는 그 스트립이 만드는 가이드의 축에서 파생한다 — CSS 에 따로 두면
+  // 축을 바꿀 때 한쪽만 고쳐진다 (2026-08-14 실제 발생)
+  const hAxis = guideAxisForRulerStrip("horizontal");
+  const vAxis = guideAxisForRulerStrip("vertical");
+
   return (
     <div
       className="ruler-overlay"
@@ -273,14 +279,16 @@ export function RulerOverlay({ onStartGuideCreate }: RulerOverlayProps = {}) {
       <div
         className="ruler-strip ruler-strip--h"
         ref={hStripRef}
-        onPointerDown={startCreate(guideAxisForRulerStrip("horizontal"))}
+        style={{ cursor: guideCursorForAxis(hAxis) }}
+        onPointerDown={startCreate(hAxis)}
       >
         <div className="ruler-labels" ref={hLabelsRef} />
       </div>
       <div
         className="ruler-strip ruler-strip--v"
         ref={vStripRef}
-        onPointerDown={startCreate(guideAxisForRulerStrip("vertical"))}
+        style={{ cursor: guideCursorForAxis(vAxis) }}
+        onPointerDown={startCreate(vAxis)}
       >
         <div className="ruler-labels" ref={vLabelsRef} />
       </div>

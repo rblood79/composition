@@ -15,6 +15,7 @@ import {
   calculateRulerAxisMetrics,
   collectRulerLabels,
   guideAxisForRulerStrip,
+  guideCursorForAxis,
   niceInterval,
   positiveModulo,
   resolveTickPlan,
@@ -208,6 +209,27 @@ describe("guideAxisForRulerStrip — 자와 나란한 선이 나온다", () => {
     // 매핑이 통째로 한쪽으로 쏠리는 실수(둘 다 "x")를 잡는다
     expect(guideAxisForRulerStrip("horizontal")).not.toBe(
       guideAxisForRulerStrip("vertical"),
+    );
+  });
+});
+
+describe("guideCursorForAxis — 선이 움직일 수 있는 방향", () => {
+  it("세로선은 좌우로만 움직인다", () => {
+    expect(guideCursorForAxis("x")).toBe("col-resize");
+  });
+
+  it("가로선은 위아래로만 움직인다", () => {
+    expect(guideCursorForAxis("y")).toBe("row-resize");
+  });
+
+  it("스트립 커서는 그 스트립이 만드는 가이드의 커서와 같다", () => {
+    // 한때 스트립 커서가 CSS 에 따로 있어 축 정정 때 구 매핑으로 남았다
+    // ("커서는 좌우인데 끌면 위아래로 나오는" 어긋남, 2026-08-14)
+    expect(guideCursorForAxis(guideAxisForRulerStrip("horizontal"))).toBe(
+      "row-resize",
+    );
+    expect(guideCursorForAxis(guideAxisForRulerStrip("vertical"))).toBe(
+      "col-resize",
     );
   });
 });
