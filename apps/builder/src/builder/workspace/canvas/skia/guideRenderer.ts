@@ -10,14 +10,21 @@
  * | §8.5 분류         | 조작 표식             | **콘텐츠성 chrome**                |
  * | occlusion / 클립  | 미적용                | `withPageOcclusionClip` + 페이지 rect |
  *
- * **색은 스냅 정렬선과 같은 웜 레드**(#F24822)다. 도입 때는 "동시에 보이면
- * 구분이 안 된다" 는 이유로 시안(#59A8D7)으로 갈랐는데, Figma 는 가이드와
- * 스냅 표식에 같은 빨강을 쓰고 그 대비를 받아들인다 — 사용자 요청으로
- * Figma 정합을 택했다 (2026-08-14). 둘의 구분은 색이 아니라 **수명**이
- * 진다: 스냅 정렬선은 드래그 중에만 잠깐 서고 가이드는 계속 남아 있다.
+ * **색이 선택 상태를 진다** (Figma 실측값):
  *
- * 선택 파랑(#3B82F6)과는 색상만이 아니라 **형태**로도 갈린다 — 가이드는
- * 페이지를 가로지르는 가는 선이고 핸들이 없다.
+ * | 상태 | 색               | 비고                                    |
+ * | ---- | ---------------- | --------------------------------------- |
+ * | 기본 | #F24822 웜 레드  | 스냅 정렬선과 **같은 빨강**             |
+ * | 선택 | #6DC1FF 하늘색   | 연장 점선도 같은 색                     |
+ *
+ * 기본색이 스냅 정렬선과 겹치는 것은 Figma 어법 그대로다 — 도입 때는
+ * "동시에 보이면 구분이 안 된다" 며 시안(#59A8D7)으로 갈랐는데, 둘의 구분은
+ * 색이 아니라 **수명**이 진다: 스냅 정렬선은 드래그 중에만 잠깐 서고 가이드는
+ * 계속 남아 있다. 알파 차이(0.7 vs 1.0)로 선택을 표현하던 중간 단계도
+ * 폐기했다 — 같은 빨강의 명도 차이는 실사용에서 구분되지 않았다.
+ *
+ * 선택색 #6DC1FF 는 요소 선택 파랑(#3B82F6)과 가깝지만 **형태**로 갈린다 —
+ * 가이드는 페이지를 가로지르는 가는 선이고 핸들이 없다.
  *
  * 좌표는 scene 이다. 가이드 position 은 페이지-로컬 px 이므로 페이지 위치를
  * 더해 변환하며(빌더 `buildPageGuideTargets`), 그 덕에 페이지를 옮기면
@@ -30,15 +37,12 @@ import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import { hexToColor4fChannels } from "./themeWatcher";
 import type { PageGuideRenderTarget } from "./skiaOverlayHelpers";
 
-/** 수동 가이드 웜 레드 (#F24822 — Figma 가이드 실측값, 스냅 표식과 공용) */
+/** 기본 — 웜 레드 (#F24822, Figma 가이드 실측값. 스냅 표식과 공용) */
 const PAGE_GUIDE_HEX = 0xf24822;
-/**
- * 기본(비선택) — 계속 떠 있는 선이라 콘텐츠를 덮지 않을 만큼만 선명하게.
- * 선택(1.0)과의 간격이 상태 차이를 만든다.
- */
-const PAGE_GUIDE_ALPHA = 0.7;
-/** 선택 — 완전 불투명. 연장선(점선)도 같은 값이라 한 선으로 읽힌다 */
-const PAGE_GUIDE_SELECTED_ALPHA = 1;
+/** 선택 — 하늘색 (#6DC1FF, Figma 실측값). 연장 점선도 같은 색 */
+const PAGE_GUIDE_SELECTED_HEX = 0x6dc1ff;
+/** 확정 가이드는 상태를 **색**이 지므로 둘 다 불투명 */
+const PAGE_GUIDE_ALPHA = 1;
 /** 소속 미정 미리보기 — 같은 색·같은 두께, 알파만 낮춰 "아직 잠정" 을 표현 */
 const PAGE_GUIDE_PREVIEW_ALPHA = 0.45;
 
@@ -62,9 +66,14 @@ export function renderPageGuides(
   }
 
   const invZoom = 1 / (zoom === 0 ? 1 : zoom);
-  const [r, g, b] = hexToColor4fChannels(PAGE_GUIDE_HEX);
+  const [br, bg, bb] = hexToColor4fChannels(PAGE_GUIDE_HEX);
+  const [sr, sg, sb] = hexToColor4fChannels(PAGE_GUIDE_SELECTED_HEX);
+  // 두 색은 루프 밖에서 한 번만 만든다 — setColor 는 값을 복사해 간다
+  const baseColor = ck.Color4f(br, bg, bb, PAGE_GUIDE_ALPHA);
+  const selectedColor = ck.Color4f(sr, sg, sb, PAGE_GUIDE_ALPHA);
+
   const paint = acquirePooledPaint(ck);
-  paint.setColor(ck.Color4f(r, g, b, PAGE_GUIDE_ALPHA));
+  paint.setColor(baseColor);
   paint.setAntiAlias(true);
   paint.setStyle(ck.PaintStyle.Stroke);
   paint.setStrokeWidth(invZoom);
@@ -74,18 +83,9 @@ export function renderPageGuides(
   canvas.clipRect(ck.XYWHRect(x, y, width, height), ck.ClipOp.Intersect, true);
   try {
     for (const line of target.lines) {
-      // 선택된 선만 불투명하게 — 페이지 밖 연장선과 같은 알파라 경계에서
+      // 선택된 선만 하늘색 — 페이지 밖 연장선도 같은 색이라 경계에서
       // 실선↔점선만 갈리고 색은 이어진다
-      paint.setColor(
-        ck.Color4f(
-          r,
-          g,
-          b,
-          line.id === selectedGuideId
-            ? PAGE_GUIDE_SELECTED_ALPHA
-            : PAGE_GUIDE_ALPHA,
-        ),
-      );
+      paint.setColor(line.id === selectedGuideId ? selectedColor : baseColor);
       // axis "x" = x 좌표를 고정하는 **세로선** (snapGuides 와 같은 어법)
       if (line.axis === "x") {
         canvas.drawLine(line.position, y, line.position, y + height, paint);
@@ -176,12 +176,13 @@ export function renderSelectedGuideExtension(
   zoom: number,
 ): void {
   const invZoom = 1 / (zoom === 0 ? 1 : zoom);
-  const [r, g, b] = hexToColor4fChannels(PAGE_GUIDE_HEX);
+  // 본체와 **같은 선택색** — 페이지 경계에서 색은 이어지고 형태만 갈린다
+  const [r, g, b] = hexToColor4fChannels(PAGE_GUIDE_SELECTED_HEX);
 
   const paint = acquirePooledPaint(ck);
   let dash: ReturnType<typeof ck.PathEffect.MakeDash> | null = null;
   try {
-    paint.setColor(ck.Color4f(r, g, b, PAGE_GUIDE_SELECTED_ALPHA));
+    paint.setColor(ck.Color4f(r, g, b, PAGE_GUIDE_ALPHA));
     paint.setAntiAlias(true);
     paint.setStyle(ck.PaintStyle.Stroke);
     paint.setStrokeWidth(invZoom);
@@ -201,7 +202,13 @@ export function renderSelectedGuideExtension(
       }
       const pageBottom = pageRect.y + pageRect.height;
       if (pageBottom < bottom) {
-        canvas.drawLine(line.position, pageBottom, line.position, bottom, paint);
+        canvas.drawLine(
+          line.position,
+          pageBottom,
+          line.position,
+          bottom,
+          paint,
+        );
       }
     } else {
       const left = viewport.x;
