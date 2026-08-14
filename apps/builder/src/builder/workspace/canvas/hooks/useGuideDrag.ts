@@ -35,6 +35,12 @@ import {
   type GuideHitTarget,
 } from "../interaction/guideHitTest";
 import { readPageGuides } from "../viewport/pageGuideActions";
+import {
+  clearGuideSelection,
+  getSelectedGuide,
+  setHoveredGuide,
+  setSelectedGuide,
+} from "../interaction/guideEmphasis";
 
 /**
  * 클릭 ↔ 드래그 갈림 (screen px).
@@ -201,14 +207,23 @@ export function useGuideDrag({
 
         const origin = state.pagePositions[pageId];
         if (!origin) return { pageId: null, removing: false, scenePosition };
-        return {
-          pageId,
-          position: Math.round(
-            axis === "x" ? scene.x - origin.x : scene.y - origin.y,
-          ),
-          removing: false,
-          scenePosition,
-        };
+        const position = Math.round(
+          axis === "x" ? scene.x - origin.x : scene.y - origin.y,
+        );
+
+        // **페이지 밖으로 끌어내면 삭제**다 — 눈금자로 되돌리는 것과 같은
+        // 결말. 남겨 두면 본체는 페이지 클립에 잘려 보이지 않는데 스냅에는
+        // 계속 참여하는 "보이지 않는 선" 이 된다 (C10 이 막으려던 바로 그
+        // 상태다: 숨기면 원인 추적이 불가능해진다). 2026-08-14 사용자 보고.
+        //
+        // create 에는 걸지 않는다 — 페이지 밖이면 `resolveTopPageIdAtPoint`
+        // 가 이미 pageId 를 주지 않아 아무것도 만들어지지 않는다.
+        const extent = axis === "x" ? pageWidth : pageHeight;
+        if (drag?.kind === "move" && (position < 0 || position > extent)) {
+          return { pageId, position, removing: true, scenePosition };
+        }
+
+        return { pageId, position, removing: false, scenePosition };
       };
 
       const publishAt = (clientX: number, clientY: number) => {
@@ -234,13 +249,37 @@ export function useGuideDrag({
         });
       };
 
+      /**
+       * 선택은 **드래그가 끝난 뒤에** 선다 (Figma 어법 — 2026-08-14 사용자 확인).
+       *
+       * 잡고 있는 동안은 웜 컬러로 남고 놓는 순간 하늘색이 된다. 선택이
+       * "무엇을 조작 중인가" 가 아니라 **"무엇을 조작했나"** 의 결과이기
+       * 때문이다 — pointerdown 에 붙이면 아직 결과가 없는데 결과 표식이 먼저
+       * 선다. 잡고 있다는 신호는 이미 hover 알파와 커서가 준다.
+       */
+      const applyDragEndSelection = (drag: GuideDragState) => {
+        if (drag.removing) {
+          // 삭제됐다 — 그 가이드가 선택돼 있었다면 같이 걷는다
+          if (getSelectedGuide()?.guideId === drag.guideId) {
+            clearGuideSelection();
+          }
+          return;
+        }
+        // move 는 소속을 바꾸지 않는다 (C9). create 는 붙은 페이지가 소속이고,
+        // 안 붙었으면 아무것도 만들어지지 않았으므로 선택도 건드리지 않는다.
+        const pageId = drag.kind === "move" ? drag.originPageId : drag.pageId;
+        if (!pageId) return;
+        setSelectedGuide({ pageId, guideId: drag.guideId });
+      };
+
       const onPointerUp = (event: PointerEvent) => {
         if (event.pointerId !== pointerId) return;
-        // 임계를 못 넘은 pointerup = 클릭. 기존 가이드면 선택만 남기고
-        // (호출부가 pointerdown 에서 이미 세웠다), 눈금자에서 시작한
-        // 생성이면 아무것도 만들지 않는다.
+        // 임계를 못 넘은 pointerup = 클릭. 기존 가이드면 위치를 건드리지 않고
+        // 선택만 세우고, 눈금자에서 시작한 생성이면 아무것도 만들지 않는다.
         if (!passedThreshold(event.clientX, event.clientY)) {
+          const clicked = getGuideDrag();
           release();
+          if (clicked?.kind === "move") applyDragEndSelection(clicked);
           return;
         }
         publishAt(event.clientX, event.clientY);
@@ -252,6 +291,7 @@ export function useGuideDrag({
           const snapshot = { ...finalDrag };
           release();
           commitGuideDrag(snapshot, breakpoint);
+          applyDragEndSelection(snapshot);
           return;
         }
         release();
@@ -385,6 +425,20 @@ export function useGuideHoverCursor({
       container.style.cursor = cursor;
     };
 
+    /**
+     * 히트 결과를 커서와 강조 상태에 **같이** 반영한다.
+     *
+     * 둘을 따로 세우면 "커서는 잡을 수 있다는데 선은 흐린" 어긋남이 생긴다 —
+     * 알파와 커서가 같은 것(=잡을 수 있음)을 말하므로 갱신 지점도 하나여야
+     * 한다. 강조 쪽은 값이 바뀔 때만 재렌더 신호를 낸다 (guideEmphasis).
+     */
+    const applyHit = (hit: GuideHitTarget | null) => {
+      setCursor(hit ? guideCursorForAxis(hit.axis) : "");
+      setHoveredGuide(
+        hit ? { pageId: hit.pageId, guideId: hit.guideId } : null,
+      );
+    };
+
     const evaluate = () => {
       const point = latest;
       latest = null;
@@ -406,12 +460,12 @@ export function useGuideHoverCursor({
       });
       const origin = pageId ? state.pagePositions[pageId] : null;
       if (!pageId || !origin) {
-        setCursor("");
+        applyHit(null);
         return;
       }
       const guides = readPageGuides(pageId, state.activeBreakpoint);
       if (guides.length === 0) {
-        setCursor("");
+        applyHit(null);
         return;
       }
       const hit = resolveGuideHit(
@@ -422,9 +476,9 @@ export function useGuideHoverCursor({
         }),
         GUIDE_HIT_THRESHOLD_SCREEN_PX / (zoom === 0 ? 1 : zoom),
       );
-      // 눈금자 스트립 hover 와 같은 함수 — 두 곳이 갈리면 "커서는 좌우인데
-      // 끌면 위아래" 같은 어긋남이 생긴다 (rulerMetrics 주석 참조)
-      setCursor(hit ? guideCursorForAxis(hit.axis) : "");
+      // 커서는 눈금자 스트립 hover 와 같은 함수를 쓴다 — 두 곳이 갈리면
+      // "커서는 좌우인데 끌면 위아래" 같은 어긋남이 생긴다 (rulerMetrics 주석)
+      applyHit(hit);
     };
 
     const onPointerMove = (event: PointerEvent) => {
@@ -446,7 +500,7 @@ export function useGuideHoverCursor({
         cancelAnimationFrame(frame);
         frame = null;
       }
-      setCursor("");
+      applyHit(null);
     };
 
     container.addEventListener("pointermove", onPointerMove);
@@ -456,6 +510,9 @@ export function useGuideHoverCursor({
       container.removeEventListener("pointerleave", onPointerLeave);
       if (frame !== null) cancelAnimationFrame(frame);
       guideHoverCursor = null;
+      // 눈금자를 끄면 hover 도 걷는다 — 히트 판정이 ON 한정이라 남겨 두면
+      // "잡을 수 있다" 는 표시만 고정된 채 실제로는 잡히지 않는다
+      setHoveredGuide(null);
       container.style.cursor = "";
     };
   }, [

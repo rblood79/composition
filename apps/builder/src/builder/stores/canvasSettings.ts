@@ -12,7 +12,7 @@
 
 import { StateCreator } from "zustand";
 import type { BreakpointName } from "@composition/shared";
-import { clearGuideSelection } from "../workspace/canvas/interaction/guideSelection";
+import { clearGuideSelection } from "../workspace/canvas/interaction/guideEmphasis";
 
 /** 페이지 배치 방향 */
 export type PageLayoutDirection = "horizontal" | "vertical" | "zigzag";

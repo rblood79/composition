@@ -18,6 +18,7 @@ import {
   publishGuideDrag,
   resetGuideDragForTest,
   resolveGuideDragPreview,
+  isGuideWithinPage,
   type GuideDragState,
 } from "./guidePresentation";
 import {
@@ -257,5 +258,34 @@ describe("publish — 눈금자 위 이동도 재렌더 신호여야 한다", ()
 
     publishGuideDrag({ pageId: null, removing: false, scenePosition: 140 });
     expect(getPageGuideRevision()).toBe(2);
+  });
+});
+
+describe("isGuideWithinPage — 지워진 줄 알았는데 점선만 남는 상태 차단", () => {
+  const PAGE = { width: 390, height: 844 };
+
+  it("페이지 안이면 true", () => {
+    expect(isGuideWithinPage("x", 200, PAGE)).toBe(true);
+    expect(isGuideWithinPage("y", 400, PAGE)).toBe(true);
+  });
+
+  it("경계는 **안쪽**이다 — 가장자리 정렬이 가장 흔한 사용", () => {
+    expect(isGuideWithinPage("x", 0, PAGE)).toBe(true);
+    expect(isGuideWithinPage("x", 390, PAGE)).toBe(true);
+    expect(isGuideWithinPage("y", 0, PAGE)).toBe(true);
+    expect(isGuideWithinPage("y", 844, PAGE)).toBe(true);
+  });
+
+  it("밖이면 false — 이 상태를 남기면 본체는 잘리고 연장선만 뜬다", () => {
+    expect(isGuideWithinPage("x", -1, PAGE)).toBe(false);
+    expect(isGuideWithinPage("x", 391, PAGE)).toBe(false);
+    expect(isGuideWithinPage("y", -1, PAGE)).toBe(false);
+    expect(isGuideWithinPage("y", 845, PAGE)).toBe(false);
+  });
+
+  it("축마다 다른 변을 본다 — 세로선은 width, 가로선은 height", () => {
+    // 세로선(axis "x")이 y 범위를 봤다면 500 이 통과했을 것
+    expect(isGuideWithinPage("x", 500, PAGE)).toBe(false);
+    expect(isGuideWithinPage("y", 500, PAGE)).toBe(true);
   });
 });

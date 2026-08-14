@@ -46,7 +46,7 @@ import { useCopyPaste } from "./useCopyPaste";
 import {
   clearGuideSelection,
   getSelectedGuide,
-} from "../workspace/canvas/interaction/guideSelection";
+} from "../workspace/canvas/interaction/guideEmphasis";
 
 // ============================================
 // Constants

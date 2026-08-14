@@ -54,10 +54,7 @@ import {
   buildGuideHitTargets,
   resolveGuideHit,
 } from "./interaction/guideHitTest";
-import {
-  clearGuideSelection,
-  setSelectedGuide,
-} from "./interaction/guideSelection";
+import { clearGuideSelection } from "./interaction/guideEmphasis";
 import { readPageGuides } from "./viewport/pageGuideActions";
 import {
   CanvasGestureSession,
@@ -1107,14 +1104,14 @@ export function BuilderCanvas({
               : null;
           if (hit) {
             (event as PointerEvent & { __handled?: boolean }).__handled = true;
-            // 클릭 = 선택, 끌면 이동. 제자리에서 놓으면 커밋이 걸러지므로
-            // (filterChangedGuideEntries) 선택만 남는다 — Figma 어법.
-            // 요소 선택과 배타다: 둘 다 "지금 무엇을 조작 중인가" 라서 동시에
-            // 서면 Escape 가 어느 쪽을 향하는지 알 수 없다.
-            setSelectedGuide({
-              pageId: hit.pageId,
-              guideId: hit.guideId,
-            });
+            // **선택은 여기서 세우지 않는다** — 드래그가 끝난 뒤 `useGuideDrag`
+            // 의 pointerup 이 세운다. 잡는 동안은 웜 컬러로 남고 놓는 순간
+            // 하늘색이 되는 것이 Figma 어법이다 (2026-08-14 사용자 확인):
+            // 선택은 "무엇을 조작 중인가" 가 아니라 **"무엇을 조작했나"** 의
+            // 결과다. 제자리에서 놓으면(클릭) 커밋이 걸러지고 선택만 남는다.
+            //
+            // 요소 선택 해제는 여기서 한다 — 가이드를 잡은 순간 요소 조작이
+            // 아니라는 것은 확정이라 미룰 이유가 없다.
             useStore.getState().setSelectedElement(null);
             startGuideMove(hit, event.pointerId, event.clientX, event.clientY);
             return;

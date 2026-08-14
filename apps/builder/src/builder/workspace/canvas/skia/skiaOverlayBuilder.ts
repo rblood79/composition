@@ -93,7 +93,7 @@ import { renderMeasureGuides, renderSnapGuides } from "./snapGuideRenderer";
 import {
   renderGuideDragPreview,
   renderPageGuides,
-  renderSelectedGuideExtension,
+  renderGuideExtension,
 } from "./guideRenderer";
 import { readPageGuidesByPage } from "../viewport/pageGuideActions";
 import {
@@ -101,7 +101,10 @@ import {
   mergeGuideDrag,
   resolveGuideDragPreview,
 } from "../interaction/guidePresentation";
-import { getSelectedGuide } from "../interaction/guideSelection";
+import {
+  resolveGuideEmphasis,
+  resolveGuideEmphasisIdsForPage,
+} from "../interaction/guideEmphasis";
 import { useStore } from "../../../stores";
 
 // ============================================
@@ -641,48 +644,57 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
           frames,
           pagePositionSnapshot,
         );
-        const selectedGuide = getSelectedGuide();
         for (const target of guideTargets) {
+          // 끌고 있는 가이드도 hover 와 같은 취급이다 — 잡고 있다는 점에서
+          // 같고, 이렇게 두면 hover 이벤트가 먼저 왔는지 여부에 강조가
+          // 좌우되지 않는다 (눈금자에서 막 끌어낸 가이드는 hover 를 거치지
+          // 않는다). 삭제 중(removing)은 제외 — 곧 사라질 선이다.
+          const emphasisIds =
+            guideDrag &&
+            !guideDrag.removing &&
+            guideDrag.pageId === target.pageId
+              ? {
+                  ...resolveGuideEmphasisIdsForPage(target.pageId),
+                  hoveredGuideId: guideDrag.guideId,
+                }
+              : resolveGuideEmphasisIdsForPage(target.pageId);
+
           withPageOcclusionClip(
             ck,
             canvas,
             target.pageId,
             paintOrderedFrames,
             pagePositionSnapshot,
-            () =>
-              renderPageGuides(
-                ck,
-                canvas,
-                target,
-                cameraZoom,
-                selectedGuide?.pageId === target.pageId
-                  ? selectedGuide.guideId
-                  : null,
-              ),
+            () => renderPageGuides(ck, canvas, target, cameraZoom, emphasisIds),
           );
 
-          // 선택된 가이드는 선의 방향 끝까지 연장한다 (페이지 밖 = 점선).
-          // 선택 표식이라 클립 밖에서 그린다 — 본체는 콘텐츠성 chrome 이라
-          // occlusion 을 받지만 이건 선택 박스와 같은 열이다 (§8.5).
-          if (selectedGuide?.pageId !== target.pageId) continue;
-          const selectedLine = target.lines.find(
-            (line) => line.id === selectedGuide.guideId,
-          );
-          if (!selectedLine) continue;
-          renderSelectedGuideExtension(
-            ck,
-            canvas,
-            selectedLine,
-            target.pageRect,
-            buildViewportSceneRect(
-              cameraX,
-              cameraY,
-              cameraZoom,
-              skiaCanvasWidth / dpr,
-              skiaCanvasHeight / dpr,
-            ),
+          // 강조된 가이드(hover·드래그·선택)는 선의 방향 끝까지 연장한다
+          // (페이지 밖 = 점선). 조작 표식이라 클립 밖에서 그린다 — 본체는
+          // 콘텐츠성 chrome 이라 occlusion 을 받지만 이건 선택 박스와 같은
+          // 열이다 (§8.5). 강조가 없는 통상 프레임은 여기서 통째로 빠진다.
+          if (!emphasisIds.selectedGuideId && !emphasisIds.hoveredGuideId) {
+            continue;
+          }
+          const guideViewport = buildViewportSceneRect(
+            cameraX,
+            cameraY,
             cameraZoom,
+            skiaCanvasWidth / dpr,
+            skiaCanvasHeight / dpr,
           );
+          for (const line of target.lines) {
+            const emphasis = resolveGuideEmphasis(line.id, emphasisIds);
+            if (emphasis === "default") continue;
+            renderGuideExtension(
+              ck,
+              canvas,
+              line,
+              target.pageRect,
+              guideViewport,
+              cameraZoom,
+              emphasis,
+            );
+          }
         }
       }
 

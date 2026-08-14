@@ -139,6 +139,27 @@ export function resolveGuideDragPreview(
   return { axis: drag.axis, scenePosition: drag.scenePosition };
 }
 
+/**
+ * 이 가이드가 페이지를 지나는가 (position 은 **페이지-로컬**, C9).
+ *
+ * 두 곳이 이 판정을 쓴다 — 드래그가 "페이지 밖으로 나갔으니 삭제" 를 정할 때
+ * (`useGuideDrag`) 와, 렌더러가 "연장할 본체가 없다" 를 정할 때
+ * (`renderGuideExtension`). 같은 규칙이므로 한 함수여야 한다: 갈리면 한쪽은
+ * 지웠다고 보고 다른 쪽은 계속 그리는, **지워진 줄 알았는데 점선만 남는**
+ * 상태가 된다 (2026-08-14 사용자 보고).
+ *
+ * 경계(0 / extent)는 **안쪽**이다 — 페이지 가장자리에 맞춘 가이드는 정당한
+ * 사용이고, 실제로 가장 자주 놓이는 자리다.
+ */
+export function isGuideWithinPage(
+  axis: "x" | "y",
+  position: number,
+  page: { width: number; height: number },
+): boolean {
+  const extent = axis === "x" ? page.width : page.height;
+  return position >= 0 && position <= extent;
+}
+
 /** 테스트 전용 */
 export function resetGuideDragForTest(): void {
   dragState = null;
