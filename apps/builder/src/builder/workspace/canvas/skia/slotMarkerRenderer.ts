@@ -5,7 +5,7 @@ import { SkiaDisposable } from "./disposable";
 import { acquireScopedPaint } from "./paints";
 import { getSemanticOverlayColor } from "./semanticOverlayColors";
 import {
-  resolveOverlayTypeface,
+  acquireOverlayFont,
   measureGlyphRunWidth,
 } from "./selectionRenderer";
 
@@ -99,16 +99,14 @@ export function renderCollectionRemainderMarker(
   const label = `+${hiddenRows} more`;
   const scope = new SkiaDisposable();
   try {
-    const fontStyle = {
-      weight: ck.FontWeight.Medium,
-      width: ck.FontWidth.Normal,
-      slant: ck.FontSlant.Upright,
-    };
-    const typeface = resolveOverlayTypeface(fontMgr, fontStyle);
-    if (!typeface) return;
-
-    const font = scope.track(new ck.Font(typeface, REMAINDER_LABEL_FONT_SIZE));
-    font.setSubpixel(true);
+    // 캐시 소유 Font — scope.track 금지 (acquireOverlayFont 주석 참조).
+    const font = acquireOverlayFont(
+      ck,
+      fontMgr,
+      ck.FontWeight.Medium,
+      REMAINDER_LABEL_FONT_SIZE,
+    );
+    if (!font) return;
 
     const paint = acquireScopedPaint(scope, ck);
     paint.setAntiAlias(true);

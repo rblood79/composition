@@ -23,7 +23,7 @@ import type { MeasureGuide } from "../interaction/measureGuides";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import { hexToColor4fChannels } from "./themeWatcher";
 import {
-  resolveOverlayTypeface,
+  acquireOverlayFont,
   measureGlyphRunWidth,
 } from "./selectionRenderer";
 import { OVERLAY_WARM_RED_HEX } from "./semanticOverlayColors";
@@ -101,18 +101,12 @@ function renderValueBadges(
   if (items.length === 0) {
     return;
   }
-  const typeface = resolveOverlayTypeface(fontMgr, {
-    weight: ck.FontWeight.Medium,
-    width: ck.FontWidth.Normal,
-    slant: ck.FontSlant.Upright,
-  });
-  if (!typeface) {
+  const fontSize = BADGE_FONT_SIZE_PX * invZoom;
+  // 캐시 소유 Font — delete 금지 (acquireOverlayFont 주석 참조).
+  const font = acquireOverlayFont(ck, fontMgr, ck.FontWeight.Medium, fontSize);
+  if (!font) {
     return;
   }
-
-  const fontSize = BADGE_FONT_SIZE_PX * invZoom;
-  const font = new ck.Font(typeface, fontSize);
-  font.setSubpixel(true);
   const bgPaint = acquirePooledPaint(ck);
   bgPaint.setAntiAlias(true);
   bgPaint.setStyle(ck.PaintStyle.Fill);
@@ -158,7 +152,6 @@ function renderValueBadges(
       canvas.drawText(text, badgeX + paddingX, textY, textPaint, font);
     }
   } finally {
-    font.delete();
     releasePooledPaint(textPaint);
     releasePooledPaint(bgPaint);
   }

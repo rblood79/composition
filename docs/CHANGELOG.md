@@ -59,6 +59,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Performance
 
+- **오버레이 라벨 Font 를 (fontMgr, weight) 키 캐시로 — 프레임당 WASM Font 생성/삭제 제거** (simplify 효율 항목 후속):
+  - 오버레이 라벨 6곳(치수/페이지 타이틀/collection remainder/스냅 배지/workflow ×2)이 호출마다 `matchFamilyStyle`(1–6회 WASM) + `new ck.Font()` 생성 → 프레임 끝 delete 반복 — 팬 1초 기준 Font 생성/삭제 ≈ 360회/초
+  - 수정: `acquireOverlayFont` 신설 — weight 축은 Normal/Medium 2종뿐이라 (fontMgr 참조, weight) 당 Font 1개 유지 + zoom 종속 크기는 `setSize` 로 갱신. fontMgr 교체는 참조 비교로 전체 재구축. workflow 2곳의 bare `matchFamilyStyle("Pretendard")`(Variable 명 로드 시 라벨 조용히 소실)도 공용 fallback 체인으로 정합
+  - 검증: 캐시 계약 테스트 4건 (인스턴스 재사용/weight 분리/fontMgr 교체 재구축/미해소 미캐시) + skia 스위트 241 PASS. 라이브 스크린샷 — 페이지 타이틀(Normal+활성 Medium)·치수 라벨 정상, 콘솔 오류 0
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{selectionRenderer,slotMarkerRenderer,snapGuideRenderer,workflowRenderer}.ts`
+
 - **빈 슬롯 해치 판정의 프레임당 elementsMap 전수 스캔 제거** (simplify 효율 항목 후속):
   - `hasVisibleSlotContent` 의 폴백이 빈 슬롯 하나당 `elementsMap.values()` 전수 순회 — hatch 대상은 정의상 빈 슬롯이라 매칭 없이 항상 끝까지 돌아 빈 슬롯 E × 요소 N 이 비-idle 프레임(팬/줌/드래그)마다 반복 (5k 문서 기준 ~0.3–0.5ms/프레임 추정)
   - 수정: elementsMap **참조**를 키로 한 "자식 보유 parent_id 집합" 역인덱스 캐시 (`getCachedOverflowInfoMap` 참조-키 어법) — 슬롯당 O(1) 조회. 폴백 자체는 보존 — childrenMap 이 layout-filtered 소스(`getSharedFilteredChildrenMap`)일 때 layout 제외 자식을 놓치는 간극을 메우는 load-bearing 경로

@@ -7,9 +7,10 @@
  * 카메라 변환(translate + scale) 내부에서 씬-로컬 좌표로 호출된다.
  */
 
-import type { CanvasKit, Canvas, FontMgr } from "canvaskit-wasm";
+import type { CanvasKit, Canvas, Font, FontMgr } from "canvaskit-wasm";
 import { SkiaDisposable } from "./disposable";
 import { acquireScopedPaint } from "./paints";
+import { acquireOverlayFont } from "./selectionRenderer";
 import {
   OVERLAY_BLUE_RGB,
   EVENT_NAV_PURPLE_RGB,
@@ -602,19 +603,12 @@ export function renderDataSourceEdges(
     const lineDash = scope.track(ck.PathEffect.MakeDash([3 / zoom, 3 / zoom]));
     linePaint.setPathEffect(lineDash);
 
-    // 폰트 (1회 생성)
-    let font: InstanceType<typeof ck.Font> | null = null;
-    if (fontMgr) {
-      const typeface = fontMgr.matchFamilyStyle("Pretendard", {
-        weight: ck.FontWeight.Normal,
-        width: ck.FontWidth.Normal,
-        slant: ck.FontSlant.Upright,
-      });
-      if (typeface) {
-        font = scope.track(new ck.Font(typeface, fontSize));
-        font.setSubpixel(true);
-      }
-    }
+    // 폰트 — 캐시 소유 Font, scope.track 금지 (acquireOverlayFont 주석 참조).
+    //   구 bare matchFamilyStyle("Pretendard") 는 Variable 명 로드 시 null 로
+    //   라벨이 조용히 빠졌다 — 공용 fallback 체인(resolveOverlayTypeface)으로 정합.
+    const font: Font | null = fontMgr
+      ? acquireOverlayFont(ck, fontMgr, ck.FontWeight.Normal, fontSize)
+      : null;
 
     // 인덱스별로 인디케이터를 수직 오프셋하여 겹침 방지
     let dsIndex = 0;
@@ -776,16 +770,16 @@ export function renderLayoutGroups(
       canvas.drawRRect(rrect, fillPaint);
       canvas.drawRRect(rrect, strokePaint);
 
-      // 레이아웃 이름 라벨 (좌상단)
+      // 레이아웃 이름 라벨 (좌상단) — 캐시 소유 Font, scope.track 금지.
+      //   bare matchFamilyStyle("Pretendard") → 공용 fallback 체인 정합 (위와 동일).
       if (fontMgr) {
-        const typeface = fontMgr.matchFamilyStyle("Pretendard", {
-          weight: ck.FontWeight.Normal,
-          width: ck.FontWidth.Normal,
-          slant: ck.FontSlant.Upright,
-        });
-        if (typeface) {
-          const font = scope.track(new ck.Font(typeface, fontSize));
-          font.setSubpixel(true);
+        const font = acquireOverlayFont(
+          ck,
+          fontMgr,
+          ck.FontWeight.Normal,
+          fontSize,
+        );
+        if (font) {
           const labelX = minX - padding + 6 / zoom;
           const labelY = minY - padding - 6 / zoom;
           canvas.drawText(group.layoutName, labelX, labelY, labelPaint, font);

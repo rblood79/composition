@@ -70,6 +70,65 @@ export function resolveOverlayTypeface(
   );
 }
 
+// ── Overlay Font 캐시 (simplify 효율 항목, 2026-08-14) ──
+//
+// 오버레이 라벨 6곳(치수/페이지 타이틀/collection remainder/스냅 배지/workflow ×2)이
+// 호출마다 matchFamilyStyle(1–6회 WASM) + `new ck.Font()` 생성 → 프레임 끝 delete 를
+// 반복했다 — 팬 1초(60fps, 타이틀 5개 + 선택 1개) 기준 Font 생성/삭제 ≈ 360회/초.
+// weight 축은 Normal/Medium 2종뿐이고 zoom 종속 크기는 `font.setSize` 로 갈아끼울 수
+// 있으므로 (fontMgr 참조, weight.value) 당 Font 1개를 유지한다. 렌더는 단일 스레드
+// 순차라 acquire → 사용 사이에 다른 acquire 가 끼어들 수 없어 크기 mutate 가 안전.
+// fontMgr 교체(폰트 로드 완료 등 — nodePictureCache 의 font generation 과 같은 신호)는
+// 참조 비교로 감지해 전체 재구축한다. 반환 Font 는 캐시 소유 — 호출부 delete/track 금지.
+
+interface OverlayFontEntry {
+  typeface: NonNullable<ReturnType<FontMgr["matchFamilyStyle"]>>;
+  font: Font;
+}
+
+let _overlayFontMgr: FontMgr | null = null;
+const _overlayFontByWeight = new Map<number, OverlayFontEntry>();
+
+export function acquireOverlayFont(
+  ck: CanvasKit,
+  fontMgr: FontMgr,
+  weight: NonNullable<FontStyle["weight"]>,
+  fontSize: number,
+): Font | null {
+  if (_overlayFontMgr !== fontMgr) {
+    clearOverlayFontCache();
+    _overlayFontMgr = fontMgr;
+  }
+  const key = weight.value;
+  const cached = _overlayFontByWeight.get(key);
+  if (cached) {
+    cached.font.setSize(fontSize);
+    return cached.font;
+  }
+  const typeface = resolveOverlayTypeface(fontMgr, {
+    weight,
+    width: ck.FontWidth.Normal,
+    slant: ck.FontSlant.Upright,
+  });
+  // 미해소(폰트 로드 전) 는 캐시하지 않는다 — 같은 fontMgr 에 폰트가 늦게 실려도
+  // 다음 호출이 재시도한다.
+  if (!typeface) return null;
+  const font = new ck.Font(typeface, fontSize);
+  font.setSubpixel(true);
+  _overlayFontByWeight.set(key, { typeface, font });
+  return font;
+}
+
+/** overlay font 캐시 해제 (fontMgr 교체 시 내부 호출 / 테스트·teardown 용). */
+export function clearOverlayFontCache(): void {
+  for (const entry of _overlayFontByWeight.values()) {
+    entry.font.delete();
+    entry.typeface.delete();
+  }
+  _overlayFontByWeight.clear();
+  _overlayFontMgr = null;
+}
+
 /** Page Title 레이블 설정 */
 const PAGE_TITLE_FONT_SIZE = 12; // 화면상 폰트 크기 (px)
 const PAGE_TITLE_OFFSET_Y = 20; // 페이지 상단 위로 오프셋 (px)
@@ -281,16 +340,14 @@ export function renderDimensionLabels(
     const height = Math.round(bounds.height);
     const dimensionText = `${width} × ${height}`;
 
-    const fontStyle = {
-      weight: ck.FontWeight.Medium,
-      width: ck.FontWidth.Normal,
-      slant: ck.FontSlant.Upright,
-    };
-    const typeface = resolveOverlayTypeface(fontMgr, fontStyle);
-    if (!typeface) return;
-
-    const font = scope.track(new ck.Font(typeface, fontSize));
-    font.setSubpixel(true);
+    // 캐시 소유 Font — scope.track 금지 (acquireOverlayFont 주석 참조).
+    const font = acquireOverlayFont(
+      ck,
+      fontMgr,
+      ck.FontWeight.Medium,
+      fontSize,
+    );
+    if (!font) return;
 
     const textWidth = measureGlyphRunWidth(font, dimensionText);
     const textHeight = DIMENSION_LABEL_LINE_HEIGHT * invZoom;
@@ -409,17 +466,15 @@ export function renderPageTitle(
   try {
     const invZoom = 1 / zoom;
 
-    const fontStyle = {
-      weight: isActive ? ck.FontWeight.Medium : ck.FontWeight.Normal,
-      width: ck.FontWidth.Normal,
-      slant: ck.FontSlant.Upright,
-    };
-    const typeface = resolveOverlayTypeface(fontMgr, fontStyle);
-    if (!typeface) return null;
-
-    // 고정 폰트 사이즈로 렌더링하여 줌 시 글리프 간격 흔들림 방지
-    const font = scope.track(new ck.Font(typeface, PAGE_TITLE_FONT_SIZE));
-    font.setSubpixel(true);
+    // 고정 폰트 사이즈로 렌더링하여 줌 시 글리프 간격 흔들림 방지.
+    // 캐시 소유 Font — scope.track 금지 (acquireOverlayFont 주석 참조).
+    const font = acquireOverlayFont(
+      ck,
+      fontMgr,
+      isActive ? ck.FontWeight.Medium : ck.FontWeight.Normal,
+      PAGE_TITLE_FONT_SIZE,
+    );
+    if (!font) return null;
 
     // 활성 페이지: selection 색상, 비활성: slate-500
     const textPaint = acquireScopedPaint(scope, ck);
