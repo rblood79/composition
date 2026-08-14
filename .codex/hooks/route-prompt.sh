@@ -54,9 +54,9 @@ fi
 if echo "$prompt" | grep -qiE "새 컴포넌트|컴포넌트 (구현|만들|추가|설계)|new component|implement component|S2 전환"; then
   hints="${hints}
 - 새 컴포넌트 워크플로:
-  1. \`superpowers:brainstorming\` — 요구사항/설계 탐색
+  1. 요구사항과 설계 제약 확인
   2. \`component-design\` skill — React Aria/Spectrum 문서 참조
-  3. \`superpowers:writing-plans\` — 다단계 계획
+  3. 구현 전 단계별 계획 수립
   4. \`implementer\` agent → \`reviewer\` agent → \`evaluator\` agent"
 fi
 
@@ -64,7 +64,7 @@ fi
 if echo "$prompt" | grep -qiE "버그|bug|에러|error|실패|fail|crash|broken|안 ?(됨|되|나와)|망가"; then
   hints="${hints}
 - 버그 수정 워크플로:
-  1. \`superpowers:systematic-debugging\` skill (4단계 root-cause)
+  1. 4단계 root-cause 분석
   2. \`debugger\` agent 위임 고려
   3. 수정 후 \`/cross-check\` (렌더링 관련인 경우)
   - ❌ 금지: 증상만 덮는 workaround, eslint-disable"
@@ -74,8 +74,8 @@ fi
 if echo "$prompt" | grep -qiE "리팩토링|refactor|재구조|이동|migration|마이그레이션"; then
   hints="${hints}
 - 리팩토링 워크플로:
-  - 대규모 → \`refactorer\` agent + \`superpowers:using-git-worktrees\` (격리)
-  - 2+ 독립 작업 → \`superpowers:dispatching-parallel-agents\`
+  - 대규모 → \`refactorer\` agent + 격리 worktree
+  - 2+ 독립 작업 → 병렬 작업 분리 검토
   - 완료 후 \`reviewer\` agent 검증"
 fi
 
@@ -83,7 +83,7 @@ fi
 if echo "$prompt" | grep -qiE "테스트|test|E2E|storybook|playwright|vitest"; then
   hints="${hints}
 - 테스트 작업 → \`tester\` agent (Vitest/RTL/Storybook/Playwright)
-- 구현 중 → \`superpowers:test-driven-development\` (RED-GREEN-REFACTOR)"
+- 구현 중 → RED-GREEN-REFACTOR"
 fi
 
 # 레이아웃 / Taffy
@@ -136,8 +136,8 @@ if echo "$prompt" | grep -qiE "완료|끝났|마무리|머지|merge|PR|커밋|co
      || [ -n "$(git -C "$PROJECT_DIR" ls-files --others --exclude-standard 2>/dev/null)" ]; then
     hints="${hints}
 - 완료 직전 체크:
-  - \`superpowers:verification-before-completion\` (evidence before assertions)
-  - \`superpowers:requesting-code-review\` 또는 \`reviewer\` agent
+  - evidence before assertions
+  - \`reviewer\` agent
   - pnpm type-check 통과 확인"
   fi
 fi

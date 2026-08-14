@@ -91,10 +91,6 @@ composition은 3개 독립 domain으로 구성된다. 모든 코드/문서 작�
 - **단순 작업** (한 줄 수정, 설정 변경): 위 절차 스킵 가능
 - CRITICAL/HIGH 이슈: 즉시 수정, 스킵 금지
 
-> **superpowers 플러그인 비활성화 (2026-07-31)**: composition 에서 `.claude/settings.json` 의 `enabledPlugins` 로 해제됨. 프로세스 규율은 본 문서 §완료 기준 / §전제·관점 의문 처리 / §대규모 작업 phase 분할 + `.claude/rules/` + agent 라우팅이 담당한다.
-> **Why**: 플러그인의 `using-superpowers` 가 매 세션 "1% 확률이라도 해당하면 반드시 skill 호출, 협상 불가 — clarifying question 보다도 먼저" 를 주입해, 본 문서의 **자율 진행 + 전제 확정 종결 계약** 과 정면 충돌했다. 질문 의무를 4개 결정 지점으로 좁힌 2026-07-11 재조정 이후 ADR 리뷰 반복이 **16 round (ADR-912) / 11 round (ADR-913) → round 1 (ADR-164~174 중 10/12)** 로 떨어졌다. 호출 빈도 (30일 24회) 는 효용이 아니라 그 강제 규범의 산물이므로 유지 근거가 되지 않는다. 재도입하려면 이 충돌을 먼저 해소할 것.
-> **주의**: `docs/superpowers/` 디렉터리는 플러그인과 무관한 **프로젝트 계획·스펙 문서** (plans/ + specs/) 이며 보존 대상이다.
-
 ### 완료 기준 — test/type-check PASS 단독으로 ADR·task 종결 금지 (CRITICAL)
 
 unit-test / type-check / codex:preflight 통과는 **"코드가 자기 자신과 정합한가"** 만 확인한다 — **live behavior (실제 builder 동작) 는 검증하지 않는다.** ADR Implemented 승격 또는 task "완료" 선언 전에 다음을 만족하지 않으면 종결 금지:

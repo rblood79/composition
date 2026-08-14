@@ -54,13 +54,6 @@ cat <<EOF
 - \`match-target\` — Vision-based visual tuning 루프 (참조 이미지 + budget)
 - \`execute-adr\` — ADR design breakdown 의 미-land phase 자율 실행 (type-check + cross-check + main 직접 push)
 
-## Superpowers Skills (워크플로 프로세스)
-- \`brainstorming\` → \`writing-plans\` → \`executing-plans\` (다단계 구현)
-- \`systematic-debugging\` — 버그 root-cause 4단계
-- \`test-driven-development\` — RED-GREEN-REFACTOR
-- \`verification-before-completion\` — 완료 직전 evidence 검증
-- \`using-git-worktrees\` — 격리된 리팩토링
-
 ## Agents (작업 유형별 라우팅)
 | 상황 | 1차 agent | 2차 검증 |
 |---|---|---|

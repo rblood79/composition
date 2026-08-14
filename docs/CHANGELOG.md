@@ -3548,7 +3548,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **ADR-916 본문 파일이 Status=Implemented(2026-07-06) 인데도 `docs/adr/completed/`로 이동되지 않고 루트에 잔존**:
   - **Why**: 900번대 다른 Implemented ADR(900/902~909/912~914)은 모두 `completed/`에 있는데 916만 예외로 남아 있어 디렉터리 컨벤션과 실제 상태가 어긋났다. 정본 조회 시 "Implemented는 completed/에 있다"는 가정이 깨지는 지점.
-  - 조치: `git mv docs/adr/916-unified-rust-engine.md docs/adr/completed/916-unified-rust-engine.md`. 참조 경로 갱신 — `.claude/skills/composition-patterns/SKILL.md`, `.claude/skills/composition-patterns/reference/layout-engine.md`, `docs/reference/components/SPEC_CSS_BOUNDARY.md`, `docs/adr/design/916-unified-rust-engine-breakdown.md`, `docs/adr/README.md` 완료 표 링크. `docs/superpowers/plans/*`, `docs/adr/reviews/916.md`는 실행 당시 시점 기록이라 경로 유지(historical).
+  - 조치: `git mv docs/adr/916-unified-rust-engine.md docs/adr/completed/916-unified-rust-engine.md`. 참조 경로 갱신 — `.claude/skills/composition-patterns/SKILL.md`, `.claude/skills/composition-patterns/reference/layout-engine.md`, `docs/reference/components/SPEC_CSS_BOUNDARY.md`, `docs/adr/design/916-unified-rust-engine-breakdown.md`, `docs/adr/README.md` 완료 표 링크. 별도 계획 문서와 `docs/adr/reviews/916.md`는 실행 당시 시점 기록으로만 보존한다.
   - design/reviews 하위 폴더(`docs/adr/design/`, `docs/adr/reviews/`)는 completed 여부와 무관하게 ADR 번호 기준으로 유지되는 기존 컨벤션 확인 — 916도 동일 패턴이라 본문 파일만 이동.
 
 ### Infrastructure

@@ -10,9 +10,6 @@
   },
   "alwaysThinkingEnabled": true,
   "autoDreamEnabled": true,
-  "enabledPlugins": {
-    "superpowers@claude-plugins-official": false
-  },
   "statusLine": {
     "type": "command",
     "command": "bash /Users/admin/.claude/statusline-command.sh"

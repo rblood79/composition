@@ -1,6 +1,6 @@
 # ADR-067 Phase 1 — Transform Pilot Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> Historical execution record. The completed ADR's current guidance is maintained in the repository rules and skills.
 
 **Goal:** Transform 섹션과 4개 보조 selector(widthSizeMode/heightSizeMode/parentDisplay/parentFlexDirection/selfAlignmentKeys)를 Jotai atom 의존 없이 Zustand 직접 구독 + Spec 직접 lookup 기반으로 전환해, `computeSyntheticStyle` 호출을 이 섹션에서 완전히 제거한다.
 
@@ -991,8 +991,8 @@ pnpm dev
 결과를 다음에 기록:
 
 ```bash
-mkdir -p docs/superpowers/measurements
-cat > docs/superpowers/measurements/2026-04-15-adr067-phase1-csy-calls.md <<'EOF'
+mkdir -p docs/adr/evidence
+cat > docs/adr/evidence/067-phase1-csy-calls.md <<'EOF'
 # ADR-067 Phase 1 — computeSyntheticStyle Call Count
 
 Date: 2026-04-15
@@ -1027,7 +1027,7 @@ git commit -m "refactor(styles): remove Transform-only Jotai atoms + useTransfor
 - transformValuesAtom/widthSizeModeAtom/heightSizeModeAtom/parentDisplayAtom/parentFlexDirectionAtom/selfAlignmentKeysAtom 제거 (Transform 전용)
 - G1 (a) 통과: computeSyntheticStyle 호출 0회 (Transform 섹션)
 
-측정: docs/superpowers/measurements/2026-04-15-adr067-phase1-csy-calls.md"
+측정: docs/adr/evidence/067-phase1-csy-calls.md"
 ```
 
 ---
@@ -1036,7 +1036,7 @@ git commit -m "refactor(styles): remove Transform-only Jotai atoms + useTransfor
 
 **Files:**
 
-- Create: `docs/superpowers/measurements/2026-04-15-adr067-phase1-paint-latency.md`
+- Create: `docs/adr/evidence/067-phase1-paint-latency.md`
 
 **배경**: G1 지표 (b) **Transform value resolve 전용 시간** (bridge 비용 제외, React Profiler 기반) + (c) Canvas FPS 60 유지 (drag/resize 중). end-to-end paint latency의 30–40% 개선은 **G3(Phase 6 종결 시점)에서 최종 평가**하므로 본 Task에서 측정하지 않음. Phase 1 단독으로는 bridge가 아직 남아있어 end-to-end 측정 시 bridge 비용이 지배하기 때문.
 
@@ -1110,7 +1110,7 @@ G1 (b) 또는 (c)가 실패하면:
 - [ ] **Step 5: 커밋**
 
 ```bash
-git add docs/superpowers/measurements/2026-04-15-adr067-phase1-paint-latency.md
+git add docs/adr/evidence/067-phase1-paint-latency.md
 git commit -m "measure(adr067): Phase 1 G1 metrics — paint latency + FPS"
 ```
 
@@ -1190,9 +1190,7 @@ Transform 섹션과 보조 selector 5종(widthSizeMode/heightSizeMode/parentDisp
 
 ## 참조
 
-- Spec: `docs/superpowers/specs/2026-04-15-style-panel-skia-native-read-path-design.md`
-- Plan: `docs/superpowers/plans/2026-04-15-adr067-phase1-transform-pilot.md`
-- 측정: `docs/superpowers/measurements/2026-04-15-adr067-phase1-*.md`
+- 측정: `docs/adr/evidence/067-phase1-*.md`
 EOF
 ```
 
@@ -1224,7 +1222,7 @@ git commit -m "memory(adr067): Phase 1 transform pilot complete"
 
 ## Dependencies / Preconditions
 
-- ADR-067 spec이 승인되어 있음 (`docs/superpowers/specs/2026-04-15-style-panel-skia-native-read-path-design.md`)
+- ADR-067이 승인되어 있음
 - 프로젝트 로컬 ESLint 룰이 `useStore(useShallow(...))`를 금지함을 숙지 (`apps/builder/eslint-local-rules/index.js:55-80`)
 - `getSharedLayoutMap` / `onLayoutPublished` API가 안정적 (ADR-100 Phase 6 완료 이후)
 
@@ -1237,12 +1235,14 @@ git commit -m "memory(adr067): Phase 1 transform pilot complete"
 **대상**: `apps/builder/src/builder/panels/styles/sections/LayoutSection.tsx` (Spacing 통합됨 — Layout 6 props + Spacing 10 props = 16 props)
 
 **제거 atoms** (`atoms/styleAtoms.ts`):
+
 - `layoutValuesAtom` (16 props 집약)
 - `flexDirectionKeysAtom` / `flexAlignmentKeysAtom` / `justifyContentSpacingKeysAtom` / `flexWrapKeysAtom`
 - 개별 `paddingTopAtom` ~ `marginLeftAtom` (8개) — LayoutSection 외 미사용 확인 후 제거
 - `useLayoutValuesJotai.ts` 삭제
 
 **신규 훅**:
+
 - `useLayoutValues()` — 6 layout + 10 spacing 집약 (3-tier: inline / effective / specDefault)
 - `useLayoutAuxiliary()` — 4 derived key arrays (flexDirection, flexAlignment, justifyContentSpacing, flexWrap)
 
@@ -1254,37 +1254,44 @@ git commit -m "memory(adr067): Phase 1 transform pilot complete"
 ## Task 분할
 
 ### Task 1: `specPresetResolver` Layout preset 확장
+
 - `LayoutSpecPreset` 인터페이스 추가 (gap, paddingTop/Right/Bottom/Left, marginTop/Right/Bottom/Left — number)
 - `resolveLayoutSpecPreset(type, size)` 함수 추가 (기존 Transform resolver와 동일 패턴, 별도 캐시)
 - 단위 테스트: 실존 spec 1개 (gap 있음) + flat spec fallback + missing type → {}
 
 ### Task 2: `useLayoutValues` 훅
+
 - 16 props × 3-tier 집약, primitive selector + useSyncExternalStore + resolveLayoutSpecPreset
 - 리턴: `{ [prop]: { inline, effective, specDefault } }` 구조 (Phase 1 `useTransformValues`와 동형)
 - 테스트: inline 우선 / layout fallback / specDefault fallback
 
 ### Task 3: `useLayoutAuxiliary` 훅
+
 - `useFlexDirectionKeys` / `useFlexAlignmentKeys` / `useJustifyContentSpacingKeys` / `useFlexWrapKeys`
 - primitive selector로 display/flexDirection/justifyContent/alignItems 구독 후 useMemo 조립
 - 테스트: display=block → ["block"], flex row center-left → ["leftCenter"] 등
 
 ### Task 4: LayoutSection 전환
+
 - `useLayoutValuesJotai()` + 4 `useAtomValue` 제거
 - `useLayoutValues()` + `useLayoutAuxiliary()` 사용
 - 기존 string 인터페이스 유지용 adapter `styleValues` useMemo (Phase 1 패턴 그대로)
 - 수동 검증: display 토글 / alignment 9-grid / padding/margin 값 표시
 
 ### Task 5: Jotai atoms 제거
+
 - `layoutValuesAtom` + 4 keys atoms 삭제
 - 개별 padding*/margin* atoms 사용처 grep → 없으면 삭제
 - `useLayoutValuesJotai.ts` 삭제 + `hooks/index.ts`(있다면) export 정리
 
 ### Task 6: G1 (a)(b) 측정
+
 - Layout 섹션만 펼친 상태 (`localStorage.styles-panel-collapse` transform+others collapsed)
 - (a) `computeSyntheticStyle` 호출 0회 (계측 후 revert)
 - (b) resolve 시간 median ≤ 4ms / p95 ≤ 8ms (30 samples 권장, 분포 안정 시 12+ OK)
 
 ### Task 7: 문서화
-- `docs/superpowers/measurements/2026-04-15-adr067-phase2-g1-metrics.md` 작성
+
+- `docs/adr/evidence/067-phase2-g1-metrics.md` 작성
 - ADR-067 Status에 "Phase 2 Implemented — YYYY-MM-DD" 추가
 - memory `adr067-phase2-layout-spacing.md` 신규 + `next-session-prompt.md` Phase 3용 갱신

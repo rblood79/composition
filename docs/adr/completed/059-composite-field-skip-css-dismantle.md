@@ -419,5 +419,5 @@ Pre-Phase 4단계:
 선행 조사 결과는 MEMORY.md/adr059-launch-plan.md 및 본 ADR §Context 참조.
 breakdown 문서는 v2 기준으로 재작성 필요.
 
-Pre-Phase 0-A 착수 전 worktree 진입 권장 (superpowers:using-git-worktrees).
+Pre-Phase 0-A 착수 전 격리 worktree 진입 권장.
 ```

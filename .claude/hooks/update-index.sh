@@ -17,6 +17,7 @@ cd "$proj_sessions"
 skill_counts=$(find . -name "*.jsonl" -mtime -"$days" -maxdepth 2 -print0 \
   | xargs -0 grep -h '"name":"Skill"' 2>/dev/null \
   | grep -oE '"skill":"[^"]+"' | sed 's/"skill":"//; s/"$//' \
+  | awk '$0 !~ /^(superpowers:|using-superpowers$)/' \
   | sort | uniq -c | awk '{print $2"\t"$1}')
 
 # agent 호출 집계 (transcript 기반 — 가장 포괄적)
