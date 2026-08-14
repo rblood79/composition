@@ -179,7 +179,8 @@ function Q1e(n) {
 
 ### 3-7. 내보내기
 
-- **HTML**: 생성기는 index.js 내 JS (scene node → HTML/CSS·Tailwind 코드), `html.js`(165KB) 는 **Prettier HTML 플러그인** — 출력 포맷만 담당. Electron 에선 문서 변경 4초 debounce / 최소 60초 간격 **자동 HTML export 루프** 상주.
+- **HTML**: 생성기는 index.js 내 JS (scene node → HTML/CSS·Tailwind 코드), `html.js`(165KB) 는 **Prettier HTML 플러그인** — 출력 포맷만 담당. 심층 분석: §8.
+  - **정정 (2026-08-14)**: 구 서술의 "문서 변경 4초 debounce / 최소 60초 간격 자동 HTML export 루프" 는 **틀림** — 그 루프 (4s/60s 상수) 는 HTML 이 아니라 **512px PNG 프리뷰 자동 저장** (`save-preview` IPC → `previews.js` 파일 썸네일) 이다. HTML 내보내기는 전부 on-demand (§8-1).
 - **PDF**: SkPDF 네이티브 벡터 — 동일 renderSkia 경로에 `renderTarget===PDF` 분기.
 - **이미지**: PNG/JPEG/WEBP, 기본 2x, 상한 `min(8192, maxTextureSize)`.
 
@@ -541,7 +542,7 @@ composition 의 대응물은 `LAYOUT_AFFECTING_PROP_KEYS` / `NON_LAYOUT_PROPS_UP
 | 30  | goodies = 셰이더 12종 × 99 프리셋, QuickJS 샌드박스 (`setMemoryLimit`/`setMaxStackSize`/시드 고정 RNG)          |
 | 31  | 스타일 갤러리 = 타입드 파라미터 세트 56종 ("프리셋 = 데이터")                                                   |
 | 32  | PDF 를 SkPDF 네이티브 벡터로 — `renderTarget===PDF` 분기 하나로 동일 렌더 경로 재사용                           |
-| 33  | HTML 자동 export 루프 상주 (4초 debounce / 최소 60초 간격)                                                      |
+| 33  | ~~HTML 자동 export 루프 상주~~ → **정정 (2026-08-14)**: 4s/60s 루프는 PNG 프리뷰 저장 (§8-8). HTML 은 on-demand |
 | 34  | AI — 5계열 CLI + 자체 프록시, `spawn_agents` 병렬 오케스트레이션, `batch_design` 부분-JSON 스트리밍 라이브 렌더 |
 
 ### 6-3-3. 장점이 **아닌** 것 — Pen 이 일부러 안 하는 것
@@ -597,3 +598,122 @@ A 만으로 팬 경로의 측정된 비용 대부분이 사라진다. B~D 는 �
 | Selection UX     | SelectionManager/더블클릭 drill-in/300ms (v1.1.10 관측) | 동일 유지 + Enter/Shift+Enter 계층 이동, ⌘A 형제 인지                                  | 유지·보강            |
 
 **선행 문서 원문은 보존** (역사 기록) — 각 문서 상단에 본 문서로의 stale 경고 포인터만 추가한다. openpencil / open-pencil 서술은 이번 추출본과 무관하므로 유효 유지.
+
+---
+
+## 8. 코드 제너레이터 심층 분석 (2026-08-14 실측)
+
+> app.asar 재추출 후 minified `index.js` (5.6MB) 바이트 오프셋 추적으로 확인. 심볼명은 minified 식별자 그대로 병기 — 버전이 바뀌면 이름은 달라지지만 구조 추적의 재현 좌표로 남긴다.
+
+### 8-0. 요약 — 코드 생성은 3개 축이다
+
+| 축                             | 산출물                             | 주체                                    | 거처                                                   |
+| ------------------------------ | ---------------------------------- | --------------------------------------- | ------------------------------------------------------ |
+| ① 결정론적 HTML 내보내기       | HTML+Tailwind / HTML+CSS 단일 파일 | 앱 내장 엔진 (노드 다형성 `exportCode`) | `index.js` (본 절 §8-1~8-8)                            |
+| ② MCP `export_html`            | 위와 동일 파이프라인, 파일로 기록  | 외부 AI 에이전트가 호출                 | `@ha/mcp` 스키마 + IPC `export-html` 핸들러            |
+| ③ design-to-code 가이드 corpus | 마크다운 지침 (코드 아님)          | 외부 코딩 CLI (Claude Code 등) 가 소비  | `get_guidelines` guide 카테고리 (`Code`/`Tailwind` 등) |
+
+**React/Vue 등 프레임워크 코드 생성기는 없다.** 결정론 엔진의 산출물은 HTML 스냅샷 하나이고, 실제 코드베이스로의 변환 (React `.tsx` 생성 등) 은 전적으로 **LLM 에이전트에 위임** — 앱은 ① 참조 스냅샷, ③ 절차 규범, `get_screenshot` 검증 oracle 세 가지를 공급하는 구조다.
+
+### 8-1. 진입점 4곳 + 옵션
+
+- **컨텍스트 메뉴 "Copy as"**: Copy as HTML + CSS / Copy as HTML + Tailwind / Copy as PNG — 선택 노드를 클립보드로 (`copyAsCode`).
+- **Export 패널**: 포맷 select + "Include HTML scaffold" / "Include layer names" / "Include layer IDs" 체크박스 + **Copy HTML** (Mod+Alt+C) / **Export HTML** (파일 저장 — 파일명은 `문서명.pen → 문서명.html`, 브라우저 빌드는 `<a download>` 폴백) 버튼.
+- **커맨드 팔레트** "Export HTML".
+- **MCP `export_html`**: `{filePath, nodeIds, outputPath, format?, includeHtmlScaffold?, includeLayerNames?, includeLayerIds?}`. `conversationId` 가 있으면 AI 대화의 placeholder 바인딩을 실노드 ID 로 해석 (`tryResolveBinding`). **자산 모드는 `relative` 하드코딩** (스키마 문구도 "never embedded") — UI 경로와 다르다.
+- 설정 기본값 (`pencil-config` localStorage): `codeExportFormatter: "html-tailwind"` / `codeExportAssetMode: "embed"` / scaffold ✓ / layerNames ✓ / layerIds ✗.
+
+### 8-2. 파이프라인 구조 (`BD`)
+
+```
+formatter 해석 (X9 레지스트리: html-tailwind가 기본, html-css)
+→ skiaRenderer.waitForAllAssets + scenegraph.updateLayout   ← 최신 레이아웃 확정 후 export
+→ ExportWriter(Vkt) 생성 — 가상 요소 트리 {tag, attributes, style, text, children} 빌더
+→ 루트 노드들 exportCode(writer) 다형성 순회
+→ 자산 3종 병렬 해석: 이미지 URL / 폰트 CSS / 복합 fill 래스터(WEBP)
+→ URL 재작성 (rewriteAssetUrls)
+→ 직렬화 emitNode (2-space 들여쓰기, void 태그, 이스케이프, 개행→<br/>, 연속 공백→&nbsp;)
+→ formatter.finalize (scaffold 래핑)
+→ Prettier (parser:"html", printWidth:100, html.js lazy-load — 실패 시 원문 그대로)
+```
+
+- **formatter 는 얇은 후처리 층**이다: 노드들은 전부 **CSS 스타일 객체**를 만들고, formatter 가 마지막에 그 객체를 class (Tailwind) 또는 inline style (CSS) 로 바꾼다. 두 formatter 의 차이는 이 마지막 변환뿐.
+- **루트 선택 규칙**: 단일 노드 = 그대로 (회전/flip 이면 transform wrapper). 다중 노드 = bounding box 크기의 `position:relative` 래퍼 + 각 노드 절대배치. **frame 을 선택하면 그 frame 과 시각적으로 겹치는 enabled 형제를 자동 포함** (`h5t` — 부모 children 순서 유지). 떠 있는 FAB/모달류가 frame export 에 같이 실리는 UX.
+- 레이어 메타: 옵션에 따라 `data-pencil-name` / `data-pencil-id` 속성 부착.
+
+### 8-3. 레이아웃 매핑 — Figma 3모드 → flex (`cZ`/`z7`)
+
+| .pen                   | CSS                                                                                                                                                 |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `layout: horizontal`   | `display:flex; flex-direction:row` + gap/padding(1·2·4값 축약)/justify-content(5종)/align-items(3종)                                                |
+| `layout: vertical`     | 〃 `column`                                                                                                                                         |
+| `layout: none` 의 자식 | `position:absolute; left/top` — 부모에 `position:relative` + **전 자식 `zIndex=배열순서`** 부여 (`markRelativeStackingIfNeeded` — 페인트 순서 보존) |
+| `width/height` fixed   | `Npx` (+ 부모 flex 주축이면 `flex-shrink:0`)                                                                                                        |
+| `fit_content`          | `fit-content` — 단 **자식 전원이 fill_container 면 측정된 px 로 고정** (`c6t` 가드)                                                                 |
+| `fill_container`       | 주축 `flex:1 1 0` / 교차축 `100%` / 레이아웃 밖이면 측정 px 폴백                                                                                    |
+| 회전/flip              | transformed bounds 크기의 wrapper div + 내부 절대배치 + `transform: rotate()/scale(-1)` `transform-origin: top left`                                |
+
+- margin/percent/grid 는 스키마부터 없으므로 (§3-6) 매핑 자체가 없다. **출력은 전부 고정 px — 반응형 산출 없음.**
+- 텍스트: `textGrowth:auto` → `white-space:nowrap`, `fixed-width-height` + 세로 정렬 → flex column justify. lineHeight 는 배율 저장 → `round(배율×fontSize)px` 로 방출 (0 = `normal`).
+
+### 8-4. 노드 타입별 출력
+
+| 노드                    | 출력                                                                                                                                                                         |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| frame                   | `div` + flex/fills/border/cornerRadius, `clip` → `overflow:hidden`                                                                                                           |
+| group                   | `div` — 자식 bounds 로 minX/minY 정규화 후 offset 재배치                                                                                                                     |
+| text                    | `div` (시맨틱 태그 아님) + 폰트 스타일. fill 단색 → `color`, gradient/다층 → **`background-clip:text`** 트릭                                                                 |
+| rectangle               | `div` + background/border/border-radius                                                                                                                                      |
+| ellipse                 | `div` + `border-radius:50%`. 호/도넛 (innerRadius/startAngle/sweep) → **CSS `clip-path`**                                                                                    |
+| polygon                 | `div` + `clip-path` (꼭짓점 수 + cornerRadius 반영)                                                                                                                          |
+| path                    | **inline `<svg>`** — viewBox + `fill-rule` + gradient `<defs>` + `vector-effect:non-scaling-stroke`. inside/outside stroke 는 Skia 로 **아웃라인 확장 후 fill path** 로 방출 |
+| line                    | `<svg><line>` + non-scaling-stroke                                                                                                                                           |
+| icon                    | inline `<svg>` + `data-icon-name`/`data-icon-set` (아이콘 폰트 path 추출)                                                                                                    |
+| script                  | `div` + 스크립트가 생성해 둔 자식 트리 (스크립트 자체는 미실행·미포함)                                                                                                       |
+| note / prompt / context | **미출력** (`exportCode(){}` — AI-네이티브 노드는 HTML 에 존재하지 않음)                                                                                                     |
+| Ref (인스턴스)          | **해석된 트리 평탄 출력** — 컴포넌트 추상 없음. 재사용 컴포넌트가 HTML 클래스/부품으로 남지 않는다                                                                           |
+
+### 8-5. fill / stroke / effect 매핑
+
+- **fills 스택**: 첫 레이어가 Color 면 `background-color`, 나머지는 **역순** (CSS 는 첫 항목이 최상층) 으로 `background-image` 다층 합성 — Linear/Radial → CSS gradient, Angular → `conic-gradient`, Image → `url()`. blendMode 는 CSS 표현 가능하면 `background-blend-mode`, 레이어별 독립 합성이 필요하면 **자식 div 스택 + `mix-blend-mode`** 로 강등.
+- **래스터 폴백**: MeshGradient / Shader / 투명도 있는 Image fill / CSS 불가 blend 조합 → **Skia 로 2x WEBP 래스터** 후 data URL 배경 + 경고 ("Complex image fill was rasterized and embedded as a WebP data URL").
+- **stroke**: 단색 → `border` (4방 개별 폭 지원). Center/Outside 정렬 → 균일 폭이면 `outline` (+`outline-offset`), 비균일이면 `content-box` + **음수 margin** 보정. gradient stroke → `border-image` 또는 SVG 아웃라인 path. Image/Mesh/Shader stroke → **탈락** (출력 없음).
+- **effects**: DropShadow → `box-shadow` (**Skia radius×2 를 CSS blur 로 근사**), 텍스트/SVG 는 `filter:drop-shadow`. LayerBlur → `filter:blur`. BackgroundBlur → `backdrop-filter:blur` — 텍스트에 걸리면 `mask-clip:text` 트릭으로 유지.
+
+### 8-6. Tailwind 방출기 — 디자인 스케일을 쓰지 않는다
+
+- 방식: CSS 스타일 객체 → property 별 lookup 표 (`i5t`) 로 클래스 후처리. **Tailwind-native 생성이 아니다.**
+- 명명 클래스는 소수 (`flex`/`flex-col`/`items-center`/`justify-between`/`font-bold`/`rounded-full`/`bg-cover`/`shrink-0`…). **색·크기·간격은 전부 arbitrary value** — `w-[375px]`, `bg-[#ff0000]`, `text-[15px]/[1.4]`, `p-[12px_16px]`. **Tailwind 스케일 (p-4, text-sm, 팔레트명) 매핑은 0건** — black/white 만 `bg-black`/`text-white`.
+- lookup 에 없는 속성은 arbitrary property (`[box-shadow:0px_4px_8px_...]`).
+- **inline style 로 분리되는 클러스터** (`e5t`): data URI 배경/borderImage, `background-clip:text` 묶음, `mix-blend-mode`/`background-blend-mode` 묶음 — 클래스 문자열 오염 방지.
+- scaffold: **`cdn.tailwindcss.com` CDN 스크립트** (v3 어법) + `preflight:false` + 최소 리셋 (`box-sizing` + `body{margin:0}`). `class=` 가 하나도 없으면 CDN 삽입 생략.
+- html-css formatter: 동일 스타일 객체를 alphabetical 정렬 inline `style=""` 로 방출 + 동일 리셋 `<style>`.
+
+### 8-7. 자산 파이프라인
+
+- **이미지**: `assetExportMode` — `embed` (data URI) / `relative` (문서 기준 상대경로) / `absolute`. 내부 스킴 자산은 가능하면 항상 embed.
+- **폰트**: 시스템 스택 제외. Google Fonts 계열 → `preconnect` + `fonts.googleapis.com/css2` link (family+weights, `display=swap`). 커스텀 폰트 → `@font-face` data URI embed, variable font 는 wght 축을 `font-weight: <min> <max>` 레인지로.
+- 사용 폰트는 텍스트 exportCode 가 `registerFontUsage` 로 수집 — 실제 쓰인 것만 실린다.
+
+### 8-8. "자동 HTML export 루프" 정정 (자기 정정)
+
+본 문서 구 §3-7 의 "4초 debounce / 최소 60초 간격 자동 HTML export 루프 상주" 는 **오독이었다**. 해당 상수 (`uhe=4e3`/`dhe=6e4`) 의 루프 (`ezt`) 는 `document-modified` 이벤트 → **512px PNG 프리뷰** 를 `skiaRenderer.exportToImage` 로 뽑아 `save-preview` IPC → `previews.js` 가 파일 썸네일로 저장하는 것이다 (최근 파일/새 파일 창용). **HTML 내보내기는 전부 on-demand** — 상주 루프 없음. main process 에는 html 관련 코드가 사실상 없다 (전 파이프라인이 renderer 소유).
+
+### 8-9. AI 축 — design-to-code 가이드 corpus (`get_guidelines`)
+
+`get_guidelines` 는 `guide`/`style` 2 카테고리 동적 목록. guide 중 코드 생성 관련 2종:
+
+- **`Code`** ("Generating code from .pen files", ~8.5KB): 외부 코딩 에이전트용 5-step 워크플로 — ① 프로젝트 프레임워크/스타일 시스템 탐지 (React/Vue/… 기존 관례 준수 강제) ② 컴포넌트 **1개씩** 추출→React `.tsx` 생성→검증 통과 후 다음 ③ 검증은 `get_screenshot` 시각 대조 포함 ④ 프레임 통합 — ref 인스턴스의 `descendants` override 전수 분석으로 **"어느 인스턴스도 override 로 제거 안 함 → required render / 하나라도 제거 → optional render"** 판정 규칙 ⑤ 최종 검증 (fill_container→flex-1, overflow, 콘솔 에러). "기존 코드베이스에 이미 있으면 새로 만들지 말고 갱신" / "변경 문서 마크다운 생성 금지" 등 운영 규범 포함.
+- **`Tailwind`**: Tailwind **v4 전용** 구현 세칙 — v4 `@import "tailwindcss"` vs v3 지시어 감지 후 적응, .pen 변수 → CSS custom property 매핑, Next.js `next/font` 충돌 주의 등.
+- 나머지 guide 는 디자인 측 (design-system 합성 / landing / mobile / web app / slides / table).
+
+**구조적 의미**: 결정론 HTML export (§8-1~8-7, Tailwind v3 CDN 어법) 와 에이전트 가이드 (Tailwind v4 어법) 는 **서로 다른 소비자를 향한 별개 산출물**이다. 전자는 "디자인의 시각 스냅샷", 후자는 "사용자 코드베이스에 맞춘 실제 코드"용 절차 — 프레임워크 코드 품질은 LLM 역량에 위임하고 앱은 구조 데이터 (`export_nodes`)·스냅샷 (`export_html`)·oracle (`get_screenshot`)·규범 (guide) 공급자로 남는다.
+
+### 8-10. composition 관점 시사점
+
+- **Pen HTML export = 단방향 근사 산출물** — 라운드트립 불가 (§3-6 재확인), 컴포넌트 추상 소실 (인스턴스 평탄화), 반응형 없음 (고정 px), 시맨틱 태그 없음 (text 도 div). composition 은 DOM 이 D3 의 1급 대칭 소비자라 이 축의 "코드 생성기" 가 필요 없다 — Pen 의 export 는 캔버스 단일 렌더 아키텍처의 보상 기제다.
+- 차용 후보 (우선순위순):
+  1. **`markRelativeStackingIfNeeded` 패턴** — absolute 자식 존재 시 부모 relative + 전 자식 배열순 zIndex 로 페인트 순서를 DOM 에 보존. composition publish/export 계열에 동형 문제가 생기면 참조.
+  2. **CSS 불가 fill 의 래스터 폴백 + 경고 채널** — "완벽 변환 불가 → 시각 보존 우선 + 명시 경고" 라는 실패 처리 어법.
+  3. **formatter 2단 구조** — 스타일 객체를 먼저 완성하고 출력 문법 (class/inline) 은 얇은 후처리로 분리. 출력 타깃 추가가 O(1).
+  4. **agent-facing 가이드 corpus 패턴** — 구조 데이터·스냅샷·검증 oracle 은 앱이, 프레임워크 코드는 LLM 이. ADR-134 (LLM 통합) 설계 시 참조 가치.
