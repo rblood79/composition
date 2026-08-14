@@ -301,8 +301,8 @@ export class StoreRenderBridge {
     // 스크롤 구독: wheel(scrollBy)로 scrollTop/scrollLeft 가 바뀌면 해당 요소만 재빌드한다.
     //   메인 store subscribe 는 별도 store(useScrollState) 변경에 반응하지 않으므로 필요.
     //   재빌드된 노드가 fresh scrollOffset 을 담고, registerSkiaNode 가 registryVersion 을
-    //   올려 다음 프레임에서 command stream 이 갱신된다(hit-test 는 scrollVersion 으로 이미
-    //   무효화됨 — 렌더↔인터랙션 split-brain 해소). maxScroll(콘텐츠 크기) 변경은 layout
+    //   올려 다음 프레임에서 command stream 이 갱신된다 — hit-test bounds(hitBoundsMap)도
+    //   같은 재빌드가 재생성하므로 렌더↔인터랙션 split-brain 없음. maxScroll(콘텐츠 크기) 변경은 layout
     //   publish(onLayoutPublished→fullRebuild)가 커버하므로 여기서는 위치 변경만 감지한다.
     let prevScrollMap = useScrollState.getState().scrollMap;
     this.unsubscribeScroll = useScrollState.subscribe((state) => {

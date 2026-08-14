@@ -197,7 +197,7 @@ ParagraphStyle 변경 시 **3곳 동시 업데이트** 필수: canvaskitTextMeas
 
 ## 8. Overflow Scroll 가이드라인 동기화
 
-> **2026-08-14**: 구 Tree 경로 (`buildTreeBoundsMap` — PixiJS 씬 그래프 DFS fallback) 는 ADR-900 완결 후 도달 불가로 남았다가 제거됨. 렌더/bounds 산출은 Command Stream 단일 경로. `scrollState.scrollVersion` 카운터는 마지막 판독자(tree 경로 bounds 캐시)가 사라져 현재 기록-전용 — 스크롤 무효화는 registryVersion 경유.
+> **2026-08-14**: 구 Tree 경로 (`buildTreeBoundsMap` — PixiJS 씬 그래프 DFS fallback) 는 ADR-900 완결 후 도달 불가로 남았다가 제거됨. 렌더/bounds 산출은 Command Stream 단일 경로. `scrollState.scrollVersion` 카운터는 마지막 판독자(tree 경로 bounds 캐시)가 사라져 기록-전용으로 남았다가 제거됨 — 스크롤 무효화는 registryVersion 경유.
 
 - `renderCommands.ts` (Command Stream 경로): `visitElement`에서 자식 boundsMap 좌표에 부모 `scrollOffset` 차감 필수. **Why**: boundsMap은 절대 좌표 → 렌더링의 `canvas.translate`와 동기화 필요
 - `executeRenderCommands` AABB 컬링 (`translateStack`): `CMD_CHILDREN_BEGIN` 의 scroll translate 를 컬링 절대좌표 스택에도 반영 필수 (`scrollDeltaStack` push → `CMD_CHILDREN_END` 복원). **Why**: 미반영 시 스크롤로 뷰포트에 들어온 자식이 스크롤 전 좌표로 판정되어 오컬링 — hover outline (boundsMap 경로) 만 보이고 본체 미렌더 (2026-07-16 수정)
