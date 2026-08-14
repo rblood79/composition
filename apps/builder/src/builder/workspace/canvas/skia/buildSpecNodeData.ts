@@ -1681,12 +1681,29 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
 
   // ---------- Disabled opacity ----------
   if (componentState === "disabled") {
+    // D3 정본: catalog `structure.states.disabled.opacity` (DOM generated CSS 의
+    //   `[data-disabled] { opacity }` 와 동일 source — Breadcrumbs 는 1 로 dim 없음).
+    //   잔존 spec 3개는 spec.states 우선. 테이블 값은 number/string("0.38") 혼재라 coerce.
+    //   구 코드는 spec 만 읽어 catalog 컴포넌트 전부가 0.38 리터럴로 떨어졌다 (Breadcrumbs 발산).
+    const rawOpacity =
+      (spec?.states?.disabled?.opacity as number | string | undefined) ??
+      (catalogRule?.structure?.states?.disabled?.opacity as
+        | number
+        | string
+        | undefined);
+    const parsed =
+      typeof rawOpacity === "string"
+        ? Number.parseFloat(rawOpacity)
+        : rawOpacity;
     const opacityVal =
-      (spec?.states?.disabled?.opacity as number | undefined) ?? 0.38;
-    specNode.effects = [
-      ...(specNode.effects ?? []),
-      { type: "opacity" as const, value: opacityVal },
-    ];
+      parsed != null && Number.isFinite(parsed) ? parsed : 0.38;
+    // opacity 1 = 시각 no-op — effect 를 아예 얹지 않아 save layer 를 피한다 (DOM 도 dim 없음).
+    if (opacityVal < 1) {
+      specNode.effects = [
+        ...(specNode.effects ?? []),
+        { type: "opacity" as const, value: opacityVal },
+      ];
+    }
   }
 
   // ---------- Overflow: clipChildren (컨테이너 요소 자식 클리핑) ----------

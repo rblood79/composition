@@ -830,4 +830,36 @@ describe("buildSpecNodeData", () => {
       expect(node?.box?.fill).toBeUndefined();
     });
   });
+
+  describe("disabled opacity — catalog structure.states.disabled.opacity 소비", () => {
+    function buildDisabled(type: string): SkiaNodeData | null {
+      const el = makeElement(`disabled-${type}`, {
+        type,
+        props: { isDisabled: true },
+      });
+      return buildSpecNodeData({
+        element: el,
+        layout: makeLayout({ x: 0, y: 0, width: 200, height: 40 }),
+        theme: "light",
+        elementsMap: new Map([[el.id, el]]),
+      });
+    }
+
+    it("Button 은 catalog 0.38 dim effect 부착", () => {
+      const effects = buildDisabled("Button")?.effects ?? [];
+      expect(effects).toContainEqual({ type: "opacity", value: 0.38 });
+    });
+
+    it("Breadcrumbs 는 catalog opacity 1 → dim effect 미부착 (DOM [data-disabled] opacity:1 대칭)", () => {
+      const node = buildDisabled("Breadcrumbs");
+      expect(node).not.toBeNull();
+      const effects = node?.effects ?? [];
+      expect(effects.some((e) => e.type === "opacity")).toBe(false);
+    });
+
+    it('테이블 문자열 값("0.38", Select)도 number 로 coerce', () => {
+      const effects = buildDisabled("Select")?.effects ?? [];
+      expect(effects).toContainEqual({ type: "opacity", value: 0.38 });
+    });
+  });
 });

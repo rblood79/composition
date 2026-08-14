@@ -18,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 검증: 라이브 dark 토글 왕복 — placeholder fillColor `#e5e5e5 → #404040 → #e5e5e5` 실측 (`__composition_SKIA_DEBUG__` probe)
   - 위치: `apps/builder/src/builder/workspace/canvas/skia/{buildImageNodeData.ts,StoreRenderBridge.ts}`
 
+- **disabled 요소의 dim 이 컴포넌트별 catalog 값을 무시하고 0.38 일괄이었다** (simplify 보류 항목 후속):
+  - 캔버스에서 disabled 컴포넌트 전부가 opacity 0.38 로 dim — Breadcrumbs 는 DOM 이 `[data-disabled] { opacity: 1 }` (dim 없음, 톤 변화로만 표현) 인데 Skia 만 흐려졌다
+  - **Why**: `buildSpecNodeData` 의 disabled 분기가 spec(`spec.states.disabled.opacity`)만 읽었는데, ADR-142 이후 잔존 spec 은 3개뿐이라 catalog 컴포넌트 전부가 0.38 리터럴 fallback 으로 떨어졌다. catalog `structure.states.disabled.opacity` 는 60개 컴포넌트에 존재 (Breadcrumbs=1, 문자열 `"0.38"` 4건 혼재)
+  - 수정: spec → catalog rule → 0.38 순 fallback + 문자열 coerce + opacity ≥ 1 이면 effect 미부착 (불필요 save layer 회피)
+  - 검증: 라이브 Button isDisabled 토글 왕복 (effects `null → [{opacity, 0.38}] → null`) + 회귀 테스트 3건 (Button 0.38 / Breadcrumbs 미부착 / Select 문자열 coerce)
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts`
+
 ### Architecture
 
 - **box 경로의 도달 불가 collection item 리터럴 분기 제거**:
