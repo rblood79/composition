@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { PagePositionPresentationSnapshot } from "../interaction/pagePositionPresentation";
 import {
+  _resetSlotContentParentIndexCache,
   buildCollectionRemainderTargets,
   buildFrameTitleRenderItems,
   buildHoverHighlightTargets,
@@ -1035,16 +1036,57 @@ describe("buildPageGuideTargets — 수동 가이드 좌표 변환 (ADR-181 Phas
 
   it("가이드 없는 페이지·빈 목록은 타깃을 만들지 않는다", () => {
     expect(buildPageGuideTargets(new Map(), FRAMES)).toEqual([]);
-    expect(
-      buildPageGuideTargets(new Map([["page-2", []]]), FRAMES),
-    ).toEqual([]);
+    expect(buildPageGuideTargets(new Map([["page-2", []]]), FRAMES)).toEqual(
+      [],
+    );
   });
 
   it("보이는 프레임에 없는 pageId 는 건너뛴다 (삭제·비가시 페이지)", () => {
     const targets = buildPageGuideTargets(
-      new Map([["page-gone", [{ id: "gz", axis: "x" as const, position: 10 }]]]),
+      new Map([
+        ["page-gone", [{ id: "gz", axis: "x" as const, position: 10 }]],
+      ]),
       FRAMES,
     );
     expect(targets).toEqual([]);
+  });
+});
+
+// ── slot content parent index 캐시 계약 (simplify 효율 항목, 2026-08-14) ──
+//
+// hasVisibleSlotContent 의 elementsMap 폴백은 빈 슬롯당 전수 스캔에서 참조-키 캐시
+// 역인덱스로 대체됐다. 계약: elementsMap **참조**가 캐시 키 — scene 빌드는 변경 시 새
+// renderNodesMap 을 내므로(BuilderCanvas useMemo) 같은 참조의 in-place 변이는 상정 밖.
+describe("slot content parent index — 참조-키 캐시 계약", () => {
+  const slotBounds = new Map([["s1", { x: 0, y: 0, width: 100, height: 40 }]]);
+
+  function buildTargets(elementsMap: Map<string, CanvasSceneNode>) {
+    return buildSlotMarkerTargets(slotBounds, elementsMap, new Map());
+  }
+
+  it("새 elementsMap 참조는 인덱스를 재구축한다 (빈 → 채움 반영)", () => {
+    _resetSlotContentParentIndexCache();
+    const slot = makeElement("s1", { type: "Slot", props: { name: "c" } });
+    const empty = new Map([["s1", slot]]);
+    expect(buildTargets(empty)).toHaveLength(1); // 빈 슬롯 → hatch
+
+    const filled = new Map([
+      ["s1", slot],
+      ["child", makeElement("child", { parent_id: "s1", type: "Text" })],
+    ]);
+    expect(buildTargets(filled)).toHaveLength(0); // 새 참조 → 재구축 → filled
+  });
+
+  it("같은 참조는 캐시를 재사용한다 (in-place 변이 미반영 — 참조 교체가 무효화 신호)", () => {
+    _resetSlotContentParentIndexCache();
+    const slot = makeElement("s1", { type: "Slot", props: { name: "c" } });
+    const map = new Map([["s1", slot]]);
+    expect(buildTargets(map)).toHaveLength(1);
+
+    map.set("child", makeElement("child", { parent_id: "s1", type: "Text" }));
+    expect(buildTargets(map)).toHaveLength(1); // 같은 참조 → 캐시 유지 (계약)
+
+    _resetSlotContentParentIndexCache();
+    expect(buildTargets(map)).toHaveLength(0); // 리셋 후 재구축 → filled
   });
 });

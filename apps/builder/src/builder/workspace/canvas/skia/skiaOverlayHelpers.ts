@@ -449,6 +449,49 @@ function insetBoundsByPadding(
   };
 }
 
+// ── Slot content parent index (참조-키 캐시) ──
+let _cachedSlotParentIndex: Set<string> | null = null;
+let _cachedSlotParentSource: Map<string, CanvasSceneNode> | null = null;
+
+/**
+ * elementsMap → "비-anchor 가시 자식을 가진 parent_id 집합" 역인덱스.
+ *
+ * hasVisibleSlotContent 의 elementsMap 폴백은 childrenMap 이 layout-filtered 소스
+ * (`getSharedFilteredChildrenMap` 경유 시 layout 제외 자식 누락 가능)라 못 보는 자식을
+ * 잡기 위해 남는데, 종전엔 빈 슬롯 하나당 전수 스캔이었다 — hatch 대상은 정의상 빈
+ * 슬롯이라 매칭 없이 항상 끝까지 돌아 빈 슬롯 E × 요소 N 이 비-idle 프레임마다 반복
+ * (simplify 효율 항목, 2026-08-14). elementsMap **참조**가 같으면 인덱스를 재사용해
+ * 슬롯당 O(1) 조회로 대체한다. scene 빌드는 변경 시 새 renderNodesMap 을 내므로
+ * (BuilderCanvas useMemo) 참조 비교가 곧 무효화 신호다 — `getCachedOverflowInfoMap`
+ * 의 참조-키 어법.
+ */
+function getCachedSlotContentParentIndex(
+  elementsMap: Map<string, CanvasSceneNode>,
+): Set<string> {
+  if (
+    _cachedSlotParentIndex !== null &&
+    _cachedSlotParentSource === elementsMap
+  ) {
+    return _cachedSlotParentIndex;
+  }
+  const index = new Set<string>();
+  for (const element of elementsMap.values()) {
+    if (!element.parent_id) continue;
+    if (element.deleted) continue;
+    if (isListBoxTemplateAnchor(element)) continue;
+    index.add(element.parent_id);
+  }
+  _cachedSlotParentIndex = index;
+  _cachedSlotParentSource = elementsMap;
+  return index;
+}
+
+/** 테스트용: slot content parent index 캐시 초기화. */
+export function _resetSlotContentParentIndexCache(): void {
+  _cachedSlotParentIndex = null;
+  _cachedSlotParentSource = null;
+}
+
 function hasVisibleSlotContent(
   slotHostId: string,
   elementsMap: Map<string, CanvasSceneNode>,
@@ -468,14 +511,7 @@ function hasVisibleSlotContent(
     return true;
   }
 
-  for (const element of elementsMap.values()) {
-    if (element.parent_id !== slotHostId) continue;
-    if (element.deleted) continue;
-    if (isListBoxTemplateAnchor(element)) continue;
-    return true;
-  }
-
-  return false;
+  return getCachedSlotContentParentIndex(elementsMap).has(slotHostId);
 }
 
 export function shouldRenderWorkflowMinimap(

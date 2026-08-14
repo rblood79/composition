@@ -57,6 +57,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 검증: 라이브 Slider 생성 → fill bar 60=200×30% → value 70 편집 → 140=200×70% 실측 후 undo 복원. 회귀 테스트 3건 (Slider value 전파 / Tag 손자 remove X / 미설정 시 X 없음)
   - 위치: `apps/builder/src/builder/{workspace/canvas/skia/buildSpecNodeData.ts,utils/propagationRegistry.ts}`
 
+### Performance
+
+- **빈 슬롯 해치 판정의 프레임당 elementsMap 전수 스캔 제거** (simplify 효율 항목 후속):
+  - `hasVisibleSlotContent` 의 폴백이 빈 슬롯 하나당 `elementsMap.values()` 전수 순회 — hatch 대상은 정의상 빈 슬롯이라 매칭 없이 항상 끝까지 돌아 빈 슬롯 E × 요소 N 이 비-idle 프레임(팬/줌/드래그)마다 반복 (5k 문서 기준 ~0.3–0.5ms/프레임 추정)
+  - 수정: elementsMap **참조**를 키로 한 "자식 보유 parent_id 집합" 역인덱스 캐시 (`getCachedOverflowInfoMap` 참조-키 어법) — 슬롯당 O(1) 조회. 폴백 자체는 보존 — childrenMap 이 layout-filtered 소스(`getSharedFilteredChildrenMap`)일 때 layout 제외 자식을 놓치는 간극을 메우는 load-bearing 경로
+  - 검증: 기존 slot marker 테스트 31건(스캔 의존 fixture 포함) 판정 동등 PASS + 캐시 계약 테스트 2건 신설. 라이브 스크린샷 — 빈 슬롯 해치 정상 / 채워진 슬롯 해치 없음 / 콘솔 오류 0
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/skiaOverlayHelpers.ts`
+
 ## [캔버스 월드 격자 제거 — Settings 패널 정리] - 2026-08-14
 
 ### Breaking Changes
