@@ -70,6 +70,7 @@ import {
   buildCollectionRemainderTargets,
   buildPageGuideTargets,
   shouldRenderWorkflowMinimap,
+  readOwnerPageId,
   type PageTitleBounds,
 } from "./skiaOverlayHelpers";
 import {
@@ -723,8 +724,7 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
       if (editingContextId && treeBoundsMap.has(editingContextId)) {
         const contextBounds = treeBoundsMap.get(editingContextId)!;
         const contextElement = elementsMap.get(editingContextId);
-        const contextPageId =
-          contextElement?.pageId ?? contextElement?.page_id ?? null;
+        const contextPageId = readOwnerPageId(contextElement);
         const contextDelta =
           contextPageId && pagePositionSnapshot
             ? readPagePositionDelta(contextPageId, pagePositionSnapshot)

@@ -40,18 +40,59 @@ import { hexToColor4fChannels } from "./themeWatcher";
 // Types
 // ---------------------------------------------------------------------------
 
+export interface ScrollNodeState {
+  scrollTop: number;
+  scrollLeft: number;
+  maxScrollTop: number;
+  maxScrollLeft: number;
+}
+
 interface BoxBuildInput {
   element: CanvasSceneNode;
   layout: ComputedLayout | undefined;
-  scrollState?: {
-    scrollTop: number;
-    scrollLeft: number;
-    maxScrollTop: number;
-    maxScrollLeft: number;
-  } | null;
+  scrollState?: ScrollNodeState | null;
   isCollectionItem?: boolean;
-  isCardItem?: boolean;
   theme?: "light" | "dark";
+}
+
+/**
+ * overflow: scroll/auto 컨테이너의 scrollOffset + scrollbar(thumb 기하) 산출.
+ *
+ * box 경로(아래)와 spec 경로(buildSpecNodeData)가 같은 계약을 공유한다 —
+ * 종전엔 두 파일이 "동일 계약" 주석으로만 묶인 verbatim 사본이라 한쪽만
+ * 조정될 수 있었다. renderCommands 가 scrollOffset 으로 자식 좌표를 이동하고
+ * scrollbar 를 그린다. min thumb 20px.
+ */
+export function buildScrollNodeFields(
+  width: number,
+  height: number,
+  scrollState: ScrollNodeState,
+): {
+  scrollOffset: { scrollTop: number; scrollLeft: number };
+  scrollbar?: NonNullable<SkiaNodeData["scrollbar"]>;
+} {
+  const scrollOffset = {
+    scrollTop: scrollState.scrollTop,
+    scrollLeft: scrollState.scrollLeft,
+  };
+  const sb: NonNullable<SkiaNodeData["scrollbar"]> = {};
+  if (scrollState.maxScrollTop > 0) {
+    const contentH = height + scrollState.maxScrollTop;
+    const thumbH = Math.max(20, (height / contentH) * height);
+    const thumbY =
+      (scrollState.scrollTop / scrollState.maxScrollTop) * (height - thumbH);
+    sb.vertical = { trackHeight: height, thumbHeight: thumbH, thumbY };
+  }
+  if (scrollState.maxScrollLeft > 0) {
+    const contentW = width + scrollState.maxScrollLeft;
+    const thumbW = Math.max(20, (width / contentW) * width);
+    const thumbX =
+      (scrollState.scrollLeft / scrollState.maxScrollLeft) * (width - thumbW);
+    sb.horizontal = { trackWidth: width, thumbWidth: thumbW, thumbX };
+  }
+  return Object.keys(sb).length > 0
+    ? { scrollOffset, scrollbar: sb }
+    : { scrollOffset };
 }
 
 // ---------------------------------------------------------------------------
@@ -64,7 +105,6 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
     layout,
     scrollState,
     isCollectionItem,
-    isCardItem,
     theme = "light",
   } = input;
 
@@ -196,7 +236,7 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
   // Border radius
   const defaultBr = borderRadius ?? 0;
   const br =
-    (isCardItem || isCollectionItem) &&
+    isCollectionItem &&
     (typeof defaultBr === "number" ? defaultBr : (defaultBr?.[0] ?? 0)) === 0
       ? 8
       : defaultBr;
@@ -224,36 +264,13 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
     overflow === "scroll" ||
     overflow === "auto";
 
-  // Scroll
-  let scrollOffset: { scrollTop: number; scrollLeft: number } | undefined;
-  let scrollbar: Record<string, unknown> | undefined;
-
-  if (scrollState && (overflow === "scroll" || overflow === "auto")) {
-    scrollOffset = {
-      scrollTop: scrollState.scrollTop,
-      scrollLeft: scrollState.scrollLeft,
-    };
-    const sb: Record<string, unknown> = {};
-    if (scrollState.maxScrollTop > 0) {
-      const contentH = h + scrollState.maxScrollTop;
-      const thumbH = Math.max(20, (h / contentH) * h);
-      const thumbY =
-        scrollState.maxScrollTop > 0
-          ? (scrollState.scrollTop / scrollState.maxScrollTop) * (h - thumbH)
-          : 0;
-      sb.vertical = { trackHeight: h, thumbHeight: thumbH, thumbY };
-    }
-    if (scrollState.maxScrollLeft > 0) {
-      const contentW = w + scrollState.maxScrollLeft;
-      const thumbW = Math.max(20, (w / contentW) * w);
-      const thumbX =
-        scrollState.maxScrollLeft > 0
-          ? (scrollState.scrollLeft / scrollState.maxScrollLeft) * (w - thumbW)
-          : 0;
-      sb.horizontal = { trackWidth: w, thumbWidth: thumbW, thumbX };
-    }
-    if (Object.keys(sb).length > 0) scrollbar = sb;
-  }
+  // Scroll — spec 경로(buildSpecNodeData)와 공유 helper (동일 계약)
+  const scrollFields =
+    scrollState && (overflow === "scroll" || overflow === "auto")
+      ? buildScrollNodeFields(w, h, scrollState)
+      : undefined;
+  const scrollOffset = scrollFields?.scrollOffset;
+  const scrollbar = scrollFields?.scrollbar;
 
   // Clip path
   const clipPath =
@@ -278,7 +295,7 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
           ...hexToColor4fChannels(stroke.color),
           stroke.alpha ?? 1,
         )
-      : !suppressBorder && (isCardItem || isCollectionItem)
+      : !suppressBorder && isCollectionItem
         ? Float32Array.of(0.83, 0.83, 0.83, 1)
         : undefined;
 
@@ -310,7 +327,7 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
       strokeColor,
       strokeWidth: suppressBorder
         ? undefined
-        : (stroke?.width ?? (isCardItem || isCollectionItem ? 1 : undefined)),
+        : (stroke?.width ?? (isCollectionItem ? 1 : undefined)),
       ...(strokeStyleValue ? { strokeStyle: strokeStyleValue } : {}),
     },
   } as SkiaNodeData;

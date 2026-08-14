@@ -527,33 +527,23 @@ export class SkiaRenderer {
   }
 
   /**
-   * 씬 좌표계 오버레이를 렌더링한다 (카메라 변환 적용).
+   * 오버레이 노드 1개를 카메라 변환(DPR 스케일 + pan/zoom) 안에서 렌더링한다.
    *
-   * 그리드 등 씬 좌표계에서 렌더링되는 요소를 그린다.
-   * DPR 스케일 + 카메라 pan/zoom을 적용하여
-   * 요소와 동일한 좌표계에서 동작하도록 한다.
+   * 씬 좌표계 오버레이(그리드 = screenOverlayNode, 선택/호버 chrome =
+   * overlayNode)가 요소와 동일한 좌표계에서 동작하도록 한다 — 두 노드가
+   * 같은 변환 시퀀스를 쓰므로 한 루틴이다.
    */
-  private renderScreenOverlay(
+  private renderNodeWithCamera(
+    node: SkiaRenderable | null,
     cullingBounds: DOMRect,
     camera: CameraState,
   ): void {
-    if (!this.screenOverlayNode) return;
+    if (!node) return;
     this.mainCanvas.save();
     this.mainCanvas.scale(this.dpr, this.dpr);
     this.mainCanvas.translate(camera.panX, camera.panY);
     this.mainCanvas.scale(camera.zoom, camera.zoom);
-    this.screenOverlayNode.renderSkia(this.mainCanvas, cullingBounds);
-    this.mainCanvas.restore();
-  }
-
-  private renderOverlay(cullingBounds: DOMRect, camera: CameraState): void {
-    if (!this.overlayNode) return;
-
-    this.mainCanvas.save();
-    this.mainCanvas.scale(this.dpr, this.dpr);
-    this.mainCanvas.translate(camera.panX, camera.panY);
-    this.mainCanvas.scale(camera.zoom, camera.zoom);
-    this.overlayNode.renderSkia(this.mainCanvas, cullingBounds);
+    node.renderSkia(this.mainCanvas, cullingBounds);
     this.mainCanvas.restore();
   }
 
@@ -562,7 +552,7 @@ export class SkiaRenderer {
     // ADR-902: void 영역 투명화로 전환. 페이지 배경은 element 트리의 body fill 로 유지,
     // canvas 뒤 DOM DotBackground 레이어가 void 영역에서 노출된다.
     this.mainCanvas.clear(this.ck.Color4f(0, 0, 0, 0));
-    this.renderScreenOverlay(cullingBounds, camera);
+    this.renderNodeWithCamera(this.screenOverlayNode, cullingBounds, camera);
 
     const cameraMatchesSnapshot =
       camera.zoom === this.snapshotCamera.zoom &&
@@ -579,7 +569,7 @@ export class SkiaRenderer {
     if (isDev) {
       recordWasmMetric("blitTime", performance.now() - blitStart);
     }
-    this.renderOverlay(cullingBounds, camera);
+    this.renderNodeWithCamera(this.overlayNode, cullingBounds, camera);
     // ADR-153 Phase 1-e: 화면 surface 제출 구간 분해 라벨
     const flushMainBegin = isDev ? markBegin() : 0;
     this.mainSurface.flush();
@@ -819,7 +809,7 @@ export class SkiaRenderer {
 
     // ADR-902: void 영역 투명화. 페이지 body fill 은 element 트리에서 유지.
     this.mainCanvas.clear(this.ck.Color4f(0, 0, 0, 0));
-    this.renderScreenOverlay(cullingBounds, camera);
+    this.renderNodeWithCamera(this.screenOverlayNode, cullingBounds, camera);
     this.mainCanvas.save();
     this.mainCanvas.scale(this.dpr, this.dpr);
     this.mainCanvas.translate(camera.panX, camera.panY);

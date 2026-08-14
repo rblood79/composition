@@ -390,15 +390,13 @@ export class StoreRenderBridge {
         ? null
         : this.detectChangedIds(elementsMap);
 
-    if (changedIds === null) {
-      // 첫 실행, theme 변경, layout publish, image load: 전체 rebuild
+    if (changedIds === null || changedIds.size === 0) {
+      // null(첫 실행, theme 변경, layout publish, image load)과 빈 집합(동일
+      // 참조 = 요소 변경 없음, layout만 변경) 모두 전체 rebuild.
       // layout publish는 layout-dependent Spec node를 materialize한다.
       // addElement 직후 첫 store sync에서 layout이 아직 없으면
       // buildSpecNodeData가 null을 반환할 수 있으므로 incremental sync로
       // 빠지면 "selection은 있으나 보이지 않음" 상태가 남는다.
-      this.fullRebuild(elementsMap, layoutMap, theme, childrenMap);
-    } else if (changedIds.size === 0) {
-      // 동일 참조 = 요소 변경 없음, layout만 변경 → 전체 rebuild
       this.fullRebuild(elementsMap, layoutMap, theme, childrenMap);
     } else {
       // 증분 갱신: 변경된 요소만 rebuild

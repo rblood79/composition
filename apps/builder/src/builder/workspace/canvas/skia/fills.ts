@@ -67,6 +67,37 @@ export function resolveRadialExtent(
   }
 }
 
+/** mesh-gradient SkSL: 4코너 bilinear interpolation (좌상·우상·좌하·우하) */
+const MESH_GRADIENT_SKSL = `
+  uniform half4 uTL, uTR, uBL, uBR;
+  uniform float2 uSize;
+
+  half4 main(float2 coord) {
+    float u = clamp(coord.x / uSize.x, 0.0, 1.0);
+    float v = clamp(coord.y / uSize.y, 0.0, 1.0);
+    half4 top = mix(uTL, uTR, half(u));
+    half4 bottom = mix(uBL, uBR, half(u));
+    return mix(top, bottom, half(v));
+  }
+`;
+
+/**
+ * mesh-gradient RuntimeEffect — 소스가 상수이므로 모듈 수명 동안 1회만
+ * 컴파일한다 (nodeRendererMask.getMaskEffect 와 같은 캐시 어법 — 종전엔
+ * 프레임마다 재컴파일 후 delete). 색·크기는 uniforms 로만 달라진다.
+ */
+let cachedMeshEffect: ReturnType<CanvasKit["RuntimeEffect"]["Make"]> | null =
+  null;
+
+function getMeshGradientEffect(
+  ck: CanvasKit,
+): ReturnType<CanvasKit["RuntimeEffect"]["Make"]> {
+  if (!cachedMeshEffect) {
+    cachedMeshEffect = ck.RuntimeEffect.Make(MESH_GRADIENT_SKSL);
+  }
+  return cachedMeshEffect;
+}
+
 /**
  * FillStyle에 따라 CanvasKit Paint의 색상/셰이더를 설정한다.
  *
@@ -221,21 +252,7 @@ export function applyFill(
       if (!c || c.length < 4 || fill.width <= 0 || fill.height <= 0)
         return null;
 
-      // SkSL: 4코너 bilinear interpolation (좌상·우상·좌하·우하)
-      const sksl = `
-        uniform half4 uTL, uTR, uBL, uBR;
-        uniform float2 uSize;
-
-        half4 main(float2 coord) {
-          float u = clamp(coord.x / uSize.x, 0.0, 1.0);
-          float v = clamp(coord.y / uSize.y, 0.0, 1.0);
-          half4 top = mix(uTL, uTR, half(u));
-          half4 bottom = mix(uBL, uBR, half(u));
-          return mix(top, bottom, half(v));
-        }
-      `;
-
-      const effect = ck.RuntimeEffect.Make(sksl);
+      const effect = getMeshGradientEffect(ck);
       if (!effect) {
         if (process.env.NODE_ENV === "development") {
           console.warn(
@@ -268,7 +285,6 @@ export function applyFill(
       ]);
 
       const shader = effect.makeShader(uniforms);
-      effect.delete(); // shader가 컴파일된 코드를 독립 보유
       paint.setShader(shader);
       return shader;
     }

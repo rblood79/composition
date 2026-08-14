@@ -26,9 +26,11 @@ import {
   resolveOverlayTypeface,
   measureGlyphRunWidth,
 } from "./selectionRenderer";
+import { OVERLAY_WARM_RED_HEX } from "./semanticOverlayColors";
+import { drawAxisLine } from "./guideRenderer";
 
-/** 스냅 가이드 웜 레드 (#F24822 — Figma 측정/가이드 실측값, 양 테마 공용) */
-const SNAP_GUIDE_HEX = 0xf24822;
+/** 스냅 가이드 웜 레드 (수동 가이드와 공용 — semanticOverlayColors 정본) */
+const SNAP_GUIDE_HEX = OVERLAY_WARM_RED_HEX;
 
 /** 간격/측정 세그먼트 양끝 틱 반길이 (screen px) */
 const SPACING_TICK_HALF_PX = 4;
@@ -181,23 +183,14 @@ export function renderSnapGuides(
   const badges: ValueBadgeItem[] = [];
   for (const guide of guides) {
     if (guide.kind === "line") {
-      if (guide.axis === "x") {
-        canvas.drawLine(
-          guide.position,
-          guide.start,
-          guide.position,
-          guide.end,
-          paint,
-        );
-      } else {
-        canvas.drawLine(
-          guide.start,
-          guide.position,
-          guide.end,
-          guide.position,
-          paint,
-        );
-      }
+      drawAxisLine(
+        canvas,
+        guide.axis,
+        guide.position,
+        guide.start,
+        guide.end,
+        paint,
+      );
       // 정렬점 × 마커 — 어느 점들이 맞았는지 표식 (Pen 어법: 선 위에
       // 중심 배치되어 등을 맞댄 화살촉처럼 읽힌다)
       for (const marker of guide.markers) {

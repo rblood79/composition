@@ -49,8 +49,9 @@ const CONTEXT_ALPHA = 0.3;
  *
  * dash 는 WASM 객체라 paint 를 풀에 돌려주기 전에 떼고 지워야 한다 —
  * 그 수명 처리를 한 곳에 가둬 오버레이가 늘어도 반복되지 않게 한다.
+ * (selectionRenderer 의 선택 박스도 같은 루틴을 쓴다)
  */
-function strokeBoundsRect(
+export function strokeBoundsRect(
   ck: CanvasKit,
   canvas: Canvas,
   bounds: BoundingBox,

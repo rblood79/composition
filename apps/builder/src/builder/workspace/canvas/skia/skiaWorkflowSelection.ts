@@ -9,6 +9,7 @@ import type { RendererSelectionInvalidation } from "../renderers";
 import { calculateCombinedBounds } from "../selection/types";
 import type { BoundingBox } from "../selection/types";
 import type { LassoRenderData } from "./selectionRenderer";
+import { readOwnerPageId } from "./skiaOverlayHelpers";
 import { computeConnectedEdges } from "./workflowGraphUtils";
 import type { WorkflowEdge } from "./workflowEdges";
 import type { WorkflowHighlightState } from "./workflowRenderer";
@@ -164,7 +165,7 @@ export function buildSelectionRenderData(
         slotMarkerRole = elementSlotMarkerRole;
       }
 
-      const pageId = element.pageId ?? element.page_id;
+      const pageId = readOwnerPageId(element);
       const pageDelta = pageId
         ? readPagePositionDelta(pageId, pagePositionSnapshot)
         : null;

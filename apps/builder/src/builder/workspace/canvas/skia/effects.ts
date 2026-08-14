@@ -53,13 +53,6 @@ export function beginRenderEffects(
   let layerCount = 0;
   const scope = new SkiaDisposable();
 
-  if (import.meta.env.DEV && effects.length > 0) {
-    console.log(
-      "[Skia Effects] beginRenderEffects:",
-      effects.map((e) => e.type),
-    );
-  }
-
   try {
     for (const effect of effects) {
       // inset(inner) drop-shadow 는 saveLayer 를 열지 않는다(renderBox 가 지오메트리로 그림).
@@ -74,7 +67,8 @@ export function beginRenderEffects(
           break;
         }
 
-        case "background-blur": {
+        case "background-blur":
+        case "layer-blur": {
           const filter = scope.track(
             ck.ImageFilter.MakeBlur(
               effect.sigma,
@@ -114,22 +108,6 @@ export function beginRenderEffects(
           break;
         }
 
-        case "layer-blur": {
-          const filter = scope.track(
-            ck.ImageFilter.MakeBlur(
-              effect.sigma,
-              effect.sigma,
-              ck.TileMode.Clamp,
-              null,
-            ),
-          );
-          const paint = acquireScopedPaint(scope, ck);
-          paint.setImageFilter(filter);
-          canvas.saveLayer(paint);
-          layerCount++;
-          break;
-        }
-
         case "drop-shadow": {
           // outer drop-shadow 만 도달한다(inner 는 loop 상단 effectOpensLayer 에서 skip →
           //   renderBox 가 지오메트리로 그림). MakeDropShadow 는 saveLayer 에 캡처된 콘텐츠
@@ -155,18 +133,6 @@ export function beginRenderEffects(
                       null,
                     ),
                   );
-          }
-
-          if (import.meta.env.DEV) {
-            console.log("[Skia Effects] MakeDropShadow params:", {
-              dx: effect.dx,
-              dy: effect.dy,
-              sigmaX: effect.sigmaX,
-              sigmaY: effect.sigmaY,
-              color: Array.from(effect.color),
-              inner: effect.inner,
-              spread: effect.spread,
-            });
           }
 
           const filter = scope.track(

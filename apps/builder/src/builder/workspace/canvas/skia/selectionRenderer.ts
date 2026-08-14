@@ -19,6 +19,7 @@ import type {
 } from "canvaskit-wasm";
 import { SkiaDisposable } from "./disposable";
 import { acquireScopedPaint } from "./paints";
+import { strokeBoundsRect } from "./hoverRenderer";
 import type { BoundingBox } from "../selection/types";
 import { HANDLE_SIZE, HANDLE_CONFIGS } from "../selection/types";
 import type { EditingSemanticsRole } from "../../../utils/editingSemantics";
@@ -136,32 +137,15 @@ export function renderSelectionBox(
   zoom: number,
   semanticRole: EditingSemanticsRole | null = null,
 ): void {
-  const scope = new SkiaDisposable();
-  let dashEffect: ReturnType<typeof ck.PathEffect.MakeDash> | null = null;
-  try {
-    const sw = 1 / zoom;
-    const paint = acquireScopedPaint(scope, ck);
-    paint.setAntiAlias(true);
-    paint.setStyle(ck.PaintStyle.Stroke);
-    paint.setStrokeWidth(sw);
-    setSemanticStrokeColor(ck, paint, semanticRole);
-
-    if (semanticRole === "instance") {
-      dashEffect = ck.PathEffect.MakeDash([sw, sw * 1.8]);
-      paint.setPathEffect(dashEffect);
-    }
-
-    const rect = ck.LTRBRect(
-      bounds.x,
-      bounds.y,
-      bounds.x + bounds.width,
-      bounds.y + bounds.height,
-    );
-    canvas.drawRect(rect, paint);
-  } finally {
-    dashEffect?.delete();
-    scope.dispose();
-  }
+  const sw = 1 / zoom;
+  strokeBoundsRect(
+    ck,
+    canvas,
+    bounds,
+    getSemanticOverlayColor(ck, semanticRole, 1),
+    sw,
+    semanticRole === "instance" ? [sw, sw * 1.8] : null,
+  );
 }
 
 // ============================================

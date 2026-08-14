@@ -17,6 +17,7 @@
 
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { SkiaNodeData } from "./nodeRendererTypes";
+import { buildScrollNodeFields } from "./buildBoxNodeData";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import {
   buildCatalogShapes,
@@ -251,6 +252,12 @@ export const SYNTHETIC_CHILD_PROP_MERGE_TAGS = new Set([
   "Toolbar",
   "Tree",
 ]);
+
+/**
+ * `rearrangeShapesForColumn` 대상 화이트리스트 (ADR-079 Phase 4) —
+ * indicator↔label 수직 재배치 전용. 다른 column 컴포넌트에 적용하면 파손.
+ */
+const COLUMN_REARRANGE_TAGS = new Set(["Checkbox", "Radio", "Switch"]);
 
 const NOWRAP_PARENTS = new Set([
   "Checkbox",
@@ -1206,7 +1213,6 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   //   rearrange 가 items text 를 indicator 아래로 강제 + 가운데 정렬 + maxWidth 부여하여
   //   파손. 블랙리스트 방식은 신규 column collection 추가 시 재발 위험 → 사용처 태그만 명시.
   const flexDir = (style.flexDirection as string) || "";
-  const COLUMN_REARRANGE_TAGS = new Set(["Checkbox", "Radio", "Switch"]);
   const isColumn =
     COLUMN_REARRANGE_TAGS.has(element.type) &&
     (flexDir === "column" || flexDir === "column-reverse");
@@ -1704,32 +1710,15 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     }
 
     // ---------- Overflow: scroll (scrollOffset / scrollbar) ----------
-    // box 경로(buildBoxNodeData:175-204)와 동일 계약. scrollState 는 StoreRenderBridge 가
-    // useScrollState.scrollMap 에서 조회해 주입. renderCommands.ts:535/549 가 scrollOffset 으로
-    // 자식 좌표를 이동하고 :570-571 이 scrollbar 를 그린다. 컨테이너 폭/높이는 spec 노드 기준
-    // (w × specHeight) — DOM overflow 컨테이너와 동일 기준.
+    // box 경로(buildBoxNodeData)와 공유 helper (동일 계약). scrollState 는
+    // StoreRenderBridge 가 useScrollState.scrollMap 에서 조회해 주입.
+    // renderCommands 가 scrollOffset 으로 자식 좌표를 이동하고 scrollbar 를
+    // 그린다. 컨테이너 폭/높이는 spec 노드 기준 (w × specHeight) — DOM
+    // overflow 컨테이너와 동일 기준.
     if (scrollState && (overflow === "scroll" || overflow === "auto")) {
-      specNode.scrollOffset = {
-        scrollTop: scrollState.scrollTop,
-        scrollLeft: scrollState.scrollLeft,
-      };
-      const sb: NonNullable<SkiaNodeData["scrollbar"]> = {};
-      if (scrollState.maxScrollTop > 0) {
-        const contentH = specHeight + scrollState.maxScrollTop;
-        const thumbH = Math.max(20, (specHeight / contentH) * specHeight);
-        const thumbY =
-          (scrollState.scrollTop / scrollState.maxScrollTop) *
-          (specHeight - thumbH);
-        sb.vertical = { trackHeight: specHeight, thumbHeight: thumbH, thumbY };
-      }
-      if (scrollState.maxScrollLeft > 0) {
-        const contentW = w + scrollState.maxScrollLeft;
-        const thumbW = Math.max(20, (w / contentW) * w);
-        const thumbX =
-          (scrollState.scrollLeft / scrollState.maxScrollLeft) * (w - thumbW);
-        sb.horizontal = { trackWidth: w, thumbWidth: thumbW, thumbX };
-      }
-      if (Object.keys(sb).length > 0) specNode.scrollbar = sb;
+      const scrollFields = buildScrollNodeFields(w, specHeight, scrollState);
+      specNode.scrollOffset = scrollFields.scrollOffset;
+      if (scrollFields.scrollbar) specNode.scrollbar = scrollFields.scrollbar;
     }
   }
 

@@ -69,7 +69,9 @@ export interface PageGuideRenderTarget {
  * 페이지끼리는 조상 관계가 아니라서, 아래 페이지의 콘텐츠성 chrome 이
  * 위 페이지 body 를 가로지르는 것은 여기 실린 pageId 로만 잡을 수 있다.
  */
-function readOwnerPageId(element: CanvasSceneNode | undefined): string | null {
+export function readOwnerPageId(
+  element: CanvasSceneNode | undefined,
+): string | null {
   return element?.pageId ?? element?.page_id ?? null;
 }
 
@@ -250,7 +252,7 @@ function translateByPageDelta(
   pagePositionSnapshot?: PagePositionPresentationSnapshot,
 ): BoundingBox {
   if (!pagePositionSnapshot || !element) return bounds;
-  const pageId = element.pageId ?? element.page_id;
+  const pageId = readOwnerPageId(element);
   const delta = pageId
     ? readPagePositionDelta(pageId, pagePositionSnapshot)
     : null;

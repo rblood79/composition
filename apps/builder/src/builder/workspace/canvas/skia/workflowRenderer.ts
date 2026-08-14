@@ -10,7 +10,10 @@
 import type { CanvasKit, Canvas, FontMgr } from "canvaskit-wasm";
 import { SkiaDisposable } from "./disposable";
 import { acquireScopedPaint } from "./paints";
-import { OVERLAY_BLUE_RGB } from "./semanticOverlayColors";
+import {
+  OVERLAY_BLUE_RGB,
+  EVENT_NAV_PURPLE_RGB,
+} from "./semanticOverlayColors";
 import type {
   WorkflowEdge,
   DataSourceEdge,
@@ -100,12 +103,8 @@ const ORTHO_BORDER_RADIUS = 8; // screen px — smoothstep 꺾임 둥글기
 /** blue-500 (#3b82f6) */
 const NAVIGATION_COLOR = OVERLAY_BLUE_RGB;
 
-/** purple-500 (#a855f7) */
-const EVENT_NAV_COLOR: [number, number, number] = [
-  0xa8 / 255,
-  0x55 / 255,
-  0xf7 / 255,
-];
+/** purple-500 (#a855f7) — 미니맵과 공용 (semanticOverlayColors 정본) */
+const EVENT_NAV_COLOR = EVENT_NAV_PURPLE_RGB;
 
 // ============================================
 // Endpoint Computation

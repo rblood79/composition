@@ -197,6 +197,12 @@ export function observe<T>(label: string, fn: () => T): T {
     } catch {
       // User Timing API quota exceeded — safe to ignore
     }
+    // measure 는 DevTools Performance 녹화 트레이스에 이미 실렸다 — 엔트리
+    // 버퍼는 자동 퇴거가 없어 즉시 비운다 (rAF 틱당 4×observe = 시간당
+    // 수백만 엔트리 무한 누적 방지. stylePanelMetrics 와 같은 어법).
+    performance.clearMarks(beginMark);
+    performance.clearMarks(endMark);
+    performance.clearMeasures(`composition:${label}`);
     record(label, duration);
     pushTrace(label, start, end);
   }

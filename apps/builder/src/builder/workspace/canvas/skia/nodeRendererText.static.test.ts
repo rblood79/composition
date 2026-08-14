@@ -1,6 +1,6 @@
 // @vitest-environment node
 /**
- * renderText paragraph builder — 공유 FontCollection 정적 가드
+ * paragraph builder — 공유 FontCollection 정적 가드
  *
  * `ParagraphBuilder.Make(style, fontMgr)` 는 호출마다 새 FontCollection 을
  * 만든다. renderText 는 pushStyle 로 `fontVariations`(variable font weight)
@@ -12,24 +12,46 @@
  * ADR-174 Phase 2 의 retained 보유 확대와 결합해 wasm32 2 GiB 상한 도달 →
  * paragraph/PictureRecorder 할당 실패 → 텍스트 소실·렌더 정지가 됐다.
  *
- * 계약: renderText 의 paragraph 생성은 `MakeFromFontCollection` +
+ * 계약: paragraph 생성은 `MakeFromFontCollection` +
  * `skiaFontManager.getFontCollection()` (공유, fontMgr 수명 동기) 경유만.
+ *
+ * 스캔 범위는 skia/ 디렉터리 전체다 — nodeRendererText 단일 파일만 보던
+ * 시절 nodeRendererImage(alt 텍스트 렌더)가 사각지대로 남아 per-call
+ * `ParagraphBuilder.Make` 가 잔존했다 (2026-08-14 simplify 리뷰 발견).
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const src = readFileSync(
-  new URL("./nodeRendererText.ts", import.meta.url),
-  "utf8",
+const skiaDir = dirname(fileURLToPath(import.meta.url));
+const sourceFiles = readdirSync(skiaDir).filter(
+  (f) =>
+    (f.endsWith(".ts") || f.endsWith(".tsx")) &&
+    !f.includes(".test.") &&
+    !f.endsWith(".bench.ts"),
 );
 
-describe("renderText 공유 FontCollection 계약", () => {
-  it("paragraph builder 는 MakeFromFontCollection 경유만 사용한다", () => {
-    expect(src).toContain("MakeFromFontCollection");
-    expect(src).toContain("skiaFontManager.getFontCollection()");
+const textSrc = readFileSync(join(skiaDir, "nodeRendererText.ts"), "utf8");
+
+describe("paragraph builder 공유 FontCollection 계약", () => {
+  it("renderText 는 MakeFromFontCollection + 공유 collection 경유", () => {
+    expect(textSrc).toContain("MakeFromFontCollection");
+    expect(textSrc).toContain("skiaFontManager.getFontCollection()");
   });
 
-  it("per-call collection 을 만드는 ParagraphBuilder.Make 는 없다", () => {
-    expect(src).not.toMatch(/ParagraphBuilder\.Make\(/);
+  it("skia/ 어디에도 per-call ParagraphBuilder.Make 가 없다", () => {
+    // 주석 줄(위험을 설명하는 문서 인용 — fontManager.ts 등)은 제외하고
+    // 실제 코드 줄만 검사한다.
+    const offenders = sourceFiles.filter((f) =>
+      readFileSync(join(skiaDir, f), "utf8")
+        .split("\n")
+        .some(
+          (line) =>
+            !/^\s*(\*|\/\/)/.test(line) &&
+            /ParagraphBuilder\.Make\(/.test(line),
+        ),
+    );
+    expect(offenders).toEqual([]);
   });
 });

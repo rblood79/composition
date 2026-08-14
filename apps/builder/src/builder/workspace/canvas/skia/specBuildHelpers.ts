@@ -6,9 +6,7 @@
 
 import type { Shape, TokenRef } from "@composition/specs";
 import { resolveToken } from "@composition/specs";
-import { cssColorToHex } from "../sprites/styleConverter";
 import { measureWrappedTextHeight } from "../utils/textMeasure";
-import { hexToColor4fChannels } from "./themeWatcher";
 
 // ---------------------------------------------------------------------------
 // rearrangeShapesForColumn — Column layout shapes 세로 재배치
@@ -218,53 +216,4 @@ export function measureSpecTextMinHeight(
   }
 
   return undefined;
-}
-
-// ---------------------------------------------------------------------------
-// parseOutlineShorthand — CSS outline 축약형 파싱
-// ---------------------------------------------------------------------------
-
-/**
- * "2px solid #6750A4" → { width, color: Float32Array, offset }
- */
-export function parseOutlineShorthand(
-  outline: string,
-  outlineOffset?: string | number,
-): { width: number; color: Float32Array; offset: number } | null {
-  const parts = outline.trim().split(/\s+/);
-  if (parts.length < 2) return null;
-
-  const width = parseFloat(parts[0]);
-  if (isNaN(width) || width <= 0) return null;
-
-  // 색상: 마지막 파트 (style 토큰 "solid" 등 건너뛰기)
-  let colorStr = parts.length >= 3 ? parts.slice(2).join(" ") : parts[1];
-
-  // var(--xxx) → CSS custom property 해석 시도
-  const varMatch = colorStr.match(/^var\(\s*(--.+?)\s*\)$/);
-  if (varMatch) {
-    try {
-      const resolved = getComputedStyle(document.documentElement)
-        .getPropertyValue(varMatch[1])
-        .trim();
-      if (resolved) colorStr = resolved;
-    } catch {
-      /* ignore */
-    }
-    // 해석 실패 시 기본 primary 색상
-    if (colorStr.startsWith("var(")) colorStr = "#6750A4";
-  }
-
-  // hex → Float32Array RGBA
-  const hex = cssColorToHex(colorStr, 0x6750a4);
-  const [r, g, b] = hexToColor4fChannels(hex);
-
-  const offset =
-    typeof outlineOffset === "number"
-      ? outlineOffset
-      : typeof outlineOffset === "string"
-        ? parseFloat(outlineOffset) || 0
-        : 0;
-
-  return { width, color: Float32Array.of(r, g, b, 1), offset };
 }

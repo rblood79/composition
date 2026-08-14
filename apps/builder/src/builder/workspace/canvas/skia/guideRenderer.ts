@@ -43,6 +43,7 @@ import type { CanvasKit, Canvas } from "canvaskit-wasm";
 
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import { hexToColor4fChannels } from "./themeWatcher";
+import { OVERLAY_WARM_RED_HEX } from "./semanticOverlayColors";
 import type { PageGuideRenderTarget } from "./skiaOverlayHelpers";
 import {
   resolveGuideEmphasis,
@@ -57,8 +58,9 @@ import { isGuideWithinPage } from "../interaction/guidePresentation";
  * axis "x" = x 좌표를 고정하는 **세로선** (snapGuides 와 같은 어법).
  * 좌표 전치는 이 파일이 실제로 겪은 회귀(커밋 7582f78e6 — 눈금자↔가이드 축
  * 매핑 반전)라, 어법을 한 곳에 가둬 호출부가 좌표 순서를 다시 쓰지 않게 한다.
+ * (snapGuideRenderer 의 정렬선도 같은 어법 — 여기서 import)
  */
-function drawAxisLine(
+export function drawAxisLine(
   canvas: Canvas,
   axis: "x" | "y",
   position: number,
@@ -79,8 +81,8 @@ const NO_GUIDE_EMPHASIS: GuideEmphasisIds = {
   hoveredGuideId: null,
 };
 
-/** 기본·hover — 웜 레드 (#F24822, Figma 실측값. 스냅 표식과 공용) */
-const PAGE_GUIDE_HEX = 0xf24822;
+/** 기본·hover — 웜 레드 (스냅 표식과 공용 — semanticOverlayColors 정본) */
+const PAGE_GUIDE_HEX = OVERLAY_WARM_RED_HEX;
 /** 선택 — 하늘색 (#6DC1FF, Figma 실측값). 연장 점선도 같은 색 */
 const PAGE_GUIDE_SELECTED_HEX = 0x6dc1ff;
 /** 기본 — 계속 떠 있는 선이라 콘텐츠를 덮지 않을 만큼만 */

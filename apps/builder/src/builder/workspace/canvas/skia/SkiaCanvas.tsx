@@ -469,7 +469,7 @@ export function SkiaCanvas({
 
     // 테마 변경 동기화 — Skia 캐시 무효화 + invalidation 트리거 (background color 직접
     // 갱신은 BodySpec TokenRef resolve 가 자동 처리, 본 watcher 는 frame 재렌더만 보장)
-    const themeWatcherHandle = setupThemeWatcher(containerEl, {
+    const themeWatcherHandle = setupThemeWatcher({
       onThemeChange: () => {
         renderer.invalidateContent();
         recordInvalidation("theme", "builderThemeChange");

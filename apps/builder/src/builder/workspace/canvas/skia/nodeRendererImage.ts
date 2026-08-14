@@ -3,6 +3,7 @@ import { SkiaDisposable } from "./disposable";
 import { acquireScopedPaint } from "./paints";
 import { createRoundRectPath } from "./nodeRendererClip";
 import type { SkiaNodeData } from "./nodeRendererTypes";
+import { skiaFontManager } from "./fontManager";
 import { DEFAULT_FONT_FEATURES } from "../layout/engines/cssResolver";
 
 export function renderImage(
@@ -89,7 +90,13 @@ export function renderImage(
             fontFamilies: ["Pretendard", "sans-serif"],
           },
         });
-        const builder = ck.ParagraphBuilder.Make(paraStyle, fontMgr);
+        // per-call `ParagraphBuilder.Make` 는 호출마다 새 FontCollection 을 만든다 —
+        //   공유 collection 경유가 계약 (canvas-rendering.md §3, ADR-174.
+        //   정적 가드: nodeRendererText.static.test.ts 가 skia/ 전체를 스캔).
+        const builder = ck.ParagraphBuilder.MakeFromFontCollection(
+          paraStyle,
+          skiaFontManager.getFontCollection(),
+        );
         builder.pushStyle(
           new ck.TextStyle({
             color: ck.Color(156, 163, 175, 1),
