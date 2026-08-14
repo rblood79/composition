@@ -97,6 +97,9 @@ export function buildMaskGradientShader(
           flattenColors(fillColors),
           fillPositions,
           fill.repeating ? ck.TileMode.Repeat : ck.TileMode.Clamp,
+          // localMatrix — 비대칭 radius(타원) y-scale. fills.ts applyFill 와 동일
+          // 계약 (누락 시 타원 radial mask 가 원형으로 렌더).
+          fill.matrix,
         ) ?? null
       );
     }
