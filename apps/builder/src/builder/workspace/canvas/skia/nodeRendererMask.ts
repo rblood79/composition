@@ -1,8 +1,8 @@
 /**
- * SkSL RuntimeEffect 기반 mask-image 렌더링.
+ * CanvasKit DstIn 기반 mask-image 렌더링.
  *
  * CSS mask-image(gradient/image)를 alpha/luminance 모드로 적용한다.
- * mesh-gradient 패턴(fills.ts)과 동일하게 CanvasKit RuntimeEffect.Make(SkSL) 사용.
+ * alpha는 native DstIn, luminance는 RuntimeEffect로 mask alpha를 변환한다.
  *
  * @see fills.ts — mesh-gradient SkSL 패턴 참조
  * @see docs/RENDERING_ARCHITECTURE.md §5.5 Fill 시스템
@@ -19,21 +19,19 @@ import { acquirePooledPaint, releasePooledPaint } from "./paints";
 // ============================================
 
 /**
- * content + mask 두 shader를 합성하는 SkSL.
+ * mask shader를 DstIn source로 변환하는 SkSL.
  *
  * mode == 0 → alpha 모드 (mask.a 사용)
  * mode == 1 → luminance 모드 (CSS luminance 공식: ITU-R BT.709 계수)
  */
 export const MASK_SKSL = `
-  uniform shader content;
   uniform shader mask;
   uniform int mode;
 
   half4 main(float2 coord) {
-    half4 c = content.eval(coord);
     half4 m = mask.eval(coord);
     half a = (mode == 0) ? m.a : dot(m.rgb, half3(0.2126, 0.7152, 0.0722));
-    return c * a;
+    return half4(1.0, 1.0, 1.0, a);
   }
 `;
 
@@ -148,75 +146,17 @@ export function determineMaskMode(
 }
 
 // ============================================
-// Offscreen Surface Pool (GPU 리소스 재사용)
-// ============================================
-
-interface PooledSurface {
-  surface: {
-    getCanvas(): Canvas;
-    flush(): void;
-    makeImageSnapshot(): unknown;
-    delete(): void;
-  };
-  width: number;
-  height: number;
-}
-
-/** 동일 크기 surface를 재사용하여 매 프레임 GPU alloc/dealloc 방지 */
-let surfacePool: PooledSurface | null = null;
-
-function acquireSurface(
-  ck: CanvasKit,
-  w: number,
-  h: number,
-): PooledSurface | null {
-  const cw = Math.ceil(w);
-  const ch = Math.ceil(h);
-
-  // 기존 surface가 같은 크기이면 재사용
-  if (surfacePool && surfacePool.width === cw && surfacePool.height === ch) {
-    return surfacePool;
-  }
-
-  // 크기 다르면 이전 surface 해제 후 새로 생성
-  if (surfacePool) {
-    surfacePool.surface.delete();
-    surfacePool = null;
-  }
-
-  const surface = ck.MakeSurface(cw, ch);
-  if (!surface) return null;
-
-  surfacePool = {
-    surface: surface as PooledSurface["surface"],
-    width: cw,
-    height: ch,
-  };
-  return surfacePool;
-}
-
-/** mask surface pool 해제 (HMR/teardown 시 호출) */
-export function clearMaskSurfacePool(): void {
-  if (surfacePool) {
-    surfacePool.surface.delete();
-    surfacePool = null;
-  }
-}
-
-// ============================================
 // Core: applyMaskImage
 // ============================================
 
 /**
- * mask-image를 canvas에 적용한다.
+ * 현재 열려 있는 mask saveLayer에 mask-image를 적용한다.
  *
- * 처리 순서:
- * 1. offscreen surface에 content 렌더 → snapshot → content shader
- * 2. maskShader (gradient 또는 image — 호출자 책임으로 전달)
- * 3. RuntimeEffect로 alpha/luminance 합성 후 main canvas에 drawRect
+ * 호출자는 요소 content를 먼저 그린 뒤 이 함수를 호출해야 한다. mask shader를
+ * DstIn source로 그려 destination(content)의 alpha를 mask alpha와 교차시키며,
+ * 호출자가 이후 saveLayer를 restore해 부모 layer에 합성한다.
  *
- * 리소스 관리: 생성한 SkObject는 모두 함수 내에서 delete() 처리.
- * offscreen surface는 pooling으로 재사용 (동일 크기 시 GPU alloc 스킵).
+ * luminance 모드만 RuntimeEffect로 mask shader를 alpha shader로 변환한다.
  */
 export function applyMaskImage(
   ck: CanvasKit,
@@ -225,60 +165,32 @@ export function applyMaskImage(
   height: number,
   maskShader: unknown,
   mode: "alpha" | "luminance",
-  renderContent: (offCanvas: Canvas) => void,
 ): void {
-  const pooled = acquireSurface(ck, width, height);
-  if (!pooled) return;
-
-  const offCanvas = pooled.surface.getCanvas();
-  offCanvas.clear(ck.TRANSPARENT);
-  renderContent(offCanvas);
-  pooled.surface.flush();
-
-  const snapshot = pooled.surface.makeImageSnapshot();
-  if (!snapshot) return;
-
-  let contentShader: { delete(): void } | null = null;
-  let resultShader: { delete(): void } | null = null;
+  let luminanceShader: { delete(): void } | null = null;
   const paint = acquirePooledPaint(ck);
 
   try {
-    contentShader = (
-      snapshot as {
-        makeShaderOptions(
-          tx: unknown,
-          ty: unknown,
-          fm: unknown,
-          mm: unknown,
-        ): { delete(): void };
-      }
-    ).makeShaderOptions(
-      ck.TileMode.Clamp,
-      ck.TileMode.Clamp,
-      ck.FilterMode.Linear,
-      ck.MipmapMode.None,
-    );
+    let sourceShader = maskShader;
+    if (mode === "luminance") {
+      const effect = getMaskEffect(ck) as {
+        makeShaderWithChildren(
+          uniforms: Float32Array,
+          children: unknown[],
+        ): { delete(): void } | null;
+      };
+      luminanceShader = effect.makeShaderWithChildren(new Float32Array([1]), [
+        maskShader,
+      ]);
+      if (!luminanceShader) return;
+      sourceShader = luminanceShader;
+    }
 
-    const effect = getMaskEffect(ck) as {
-      makeShaderWithChildren(
-        uniforms: Float32Array,
-        children: unknown[],
-      ): { delete(): void };
-    };
-    const uniforms = new Float32Array([mode === "alpha" ? 0 : 1]);
-    resultShader = effect.makeShaderWithChildren(uniforms, [
-      contentShader,
-      maskShader,
-    ]);
-
-    paint.setShader(resultShader as Parameters<typeof paint.setShader>[0]);
+    paint.setShader(sourceShader as Parameters<typeof paint.setShader>[0]);
+    paint.setBlendMode(ck.BlendMode.DstIn);
     canvas.drawRect(ck.LTRBRect(0, 0, width, height), paint);
   } finally {
     releasePooledPaint(paint);
-    resultShader?.delete();
-    contentShader?.delete();
-    (snapshot as { delete(): void }).delete();
-    // surface는 pool에 유지 (delete 안 함)
+    luminanceShader?.delete();
   }
 }
 
@@ -298,5 +210,4 @@ export function clearMaskCache(): void {
     (cachedEffect as { delete(): void }).delete();
   }
   cachedEffect = null;
-  clearMaskSurfacePool();
 }

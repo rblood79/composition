@@ -16,6 +16,8 @@ import {
 const SPATIAL_CELL_SIZE = 256;
 
 let spatialIndex: RawSpatialIndex | null = null;
+/** 마지막 full snapshot에 포함되어 SpatialIndex에 남아 있는 string ID. */
+const indexedElementIds = new Set<string>();
 
 /**
  * SpatialIndex 인스턴스 초기화. initCompositionEngineWasm() 호출 후에 사용.
@@ -49,17 +51,46 @@ export function updateElement(
   if (!spatialIndex) return;
   const numId = idMapper.getNumericId(stringId);
   spatialIndex.upsert(numId, x, y, w, h);
+  if (w > 0 && h > 0) {
+    indexedElementIds.add(stringId);
+  } else {
+    indexedElementIds.delete(stringId);
+  }
 }
 
-/** 배치 삽입/갱신 */
+/**
+ * full snapshot 배치 삽입/갱신.
+ *
+ * 다음 snapshot에서 사라진 ID는 upsert만으로 제거되지 않으므로, 이전 snapshot과
+ * 비교해 먼저 WASM index와 UUID mapper에서 제거한다. renderCommands의 clip 교차 결과가
+ * 줄어드는 프레임(요소 삭제/클립 아웃)도 stale hit entry를 남기지 않는다.
+ */
 export function batchUpdate(
   elements: Array<{ id: string; x: number; y: number; w: number; h: number }>,
 ): void {
-  if (!spatialIndex || elements.length === 0) return;
+  if (!spatialIndex) return;
 
-  const data = new Float32Array(elements.length * 5);
-  for (let i = 0; i < elements.length; i++) {
-    const el = elements[i];
+  const activeElements = elements.filter(
+    (element) => element.w > 0 && element.h > 0,
+  );
+  const nextIndexedElementIds = new Set(
+    activeElements.map((element) => element.id),
+  );
+  for (const previousId of indexedElementIds) {
+    if (!nextIndexedElementIds.has(previousId)) {
+      removeElement(previousId);
+    }
+  }
+  indexedElementIds.clear();
+  for (const nextId of nextIndexedElementIds) {
+    indexedElementIds.add(nextId);
+  }
+
+  if (activeElements.length === 0) return;
+
+  const data = new Float32Array(activeElements.length * 5);
+  for (let i = 0; i < activeElements.length; i++) {
+    const el = activeElements[i];
     const offset = i * 5;
     data[offset] = idMapper.getNumericId(el.id);
     data[offset + 1] = el.x;
@@ -115,6 +146,7 @@ export function hitTestPoint(x: number, y: number): string[] {
 
 /** 요소 제거 */
 export function removeElement(stringId: string): void {
+  indexedElementIds.delete(stringId);
   if (!spatialIndex) return;
 
   const numId = idMapper.tryGetNumericId(stringId);
@@ -126,6 +158,7 @@ export function removeElement(stringId: string): void {
 
 /** 전체 초기화 (페이지 전환 등) */
 export function clearAll(): void {
+  indexedElementIds.clear();
   if (spatialIndex) {
     spatialIndex.clear();
   }

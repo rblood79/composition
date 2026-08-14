@@ -671,7 +671,43 @@ export function useCentralCanvasPointerHandlers({
       setCursor("default");
     };
 
+    const finishElementPointer = (
+      pointerId: number,
+      cancelled: boolean,
+    ): boolean => {
+      if (gestureSession.ownerFor(pointerId) !== "element") {
+        return false;
+      }
+
+      // element owner는 viewport/page lifecycle의 pointerup 경로를 타지 않으므로
+      // 중앙 handler가 반드시 세션을 해제한다. 이 누락이 남으면 activePointerId가
+      // 영구 점유되어 이후 pointerdown이 모두 차단된다.
+      try {
+        if (isDraggingRef.current) {
+          if (cancelled) {
+            onCancelDrag.current();
+          } else {
+            onEndDrag.current();
+          }
+        } else {
+          // 드래그로 승격되지 않은 press — Alt 복제 arm 잔류 방지
+          armDragAltClone(false);
+        }
+      } finally {
+        // ADR-179: 스냅 억제 플래그 세션 잔류 방지
+        setDragSnapSuppressed(false);
+        pendingDragRef.current = null;
+        isDraggingRef.current = false;
+        gestureSession.endPointer(pointerId);
+      }
+      return true;
+    };
+
     const handleWindowPointerUp = (event: PointerEvent) => {
+      if (finishElementPointer(event.pointerId, false)) {
+        return;
+      }
+
       if (gestureSession.shouldSuppressElementInteraction(event.pointerId)) {
         return;
       }
@@ -688,11 +724,16 @@ export function useCentralCanvasPointerHandlers({
       isDraggingRef.current = false;
     };
 
+    const handleWindowPointerCancel = (event: PointerEvent) => {
+      finishElementPointer(event.pointerId, true);
+    };
+
     // pointermove 는 window 리스너 하나만 둔다 — element 에 같은 리스너를 걸면
     // 버블링으로 두 번 발화해 hit-test/커서 계산이 이벤트마다 2회 돈다.
     element.addEventListener("pointerdown", handlePointerDown);
     window.addEventListener("pointermove", handleWindowPointerMove);
     window.addEventListener("pointerup", handleWindowPointerUp);
+    window.addEventListener("pointercancel", handleWindowPointerCancel);
 
     return () => {
       // effect 재실행/언마운트 시 드래그 상태 초기화
@@ -701,6 +742,7 @@ export function useCentralCanvasPointerHandlers({
       element.removeEventListener("pointerdown", handlePointerDown);
       window.removeEventListener("pointermove", handleWindowPointerMove);
       window.removeEventListener("pointerup", handleWindowPointerUp);
+      window.removeEventListener("pointercancel", handleWindowPointerCancel);
     };
   }, [
     completeEditRef,

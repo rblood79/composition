@@ -1,6 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
-import type { CanvasKit } from "canvaskit-wasm";
-import { buildMaskGradientShader } from "./nodeRendererMask";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { Canvas, CanvasKit } from "canvaskit-wasm";
+import {
+  applyMaskImage,
+  buildMaskGradientShader,
+  clearMaskCache,
+} from "./nodeRendererMask";
 import type { RadialGradientFill } from "./types";
 
 /**
@@ -30,6 +34,51 @@ function mockCk() {
   };
 }
 
+function mockMaskApplyCk() {
+  const resultShader = { delete: vi.fn() };
+  const makeShaderWithChildren = vi.fn(() => resultShader);
+
+  class MockPaint {
+    blendMode: unknown = null;
+    shader: unknown = null;
+
+    setAntiAlias(): void {}
+    setStyle(): void {}
+    setColor(): void {}
+    setStrokeWidth(): void {}
+    setStrokeCap(): void {}
+    setStrokeJoin(): void {}
+    setBlendMode(mode: unknown): void {
+      this.blendMode = mode;
+    }
+    setPathEffect(): void {}
+    setShader(shader: unknown): void {
+      this.shader = shader;
+    }
+    setImageFilter(): void {}
+    setColorFilter(): void {}
+  }
+
+  const ck = {
+    Paint: MockPaint,
+    PaintStyle: { Fill: 0 },
+    StrokeCap: { Butt: 0 },
+    StrokeJoin: { Miter: 0 },
+    BlendMode: { SrcOver: 0, DstIn: 1 },
+    BLACK: Float32Array.of(0, 0, 0, 1),
+    LTRBRect: vi.fn((...args: number[]) => args),
+    RuntimeEffect: {
+      Make: vi.fn(() => ({ makeShaderWithChildren })),
+    },
+  };
+
+  return { ck, makeShaderWithChildren, resultShader };
+}
+
+afterEach(() => {
+  clearMaskCache();
+});
+
 describe("buildMaskGradientShader — radial localMatrix 계약", () => {
   function makeRadial(matrix?: Float32Array): RadialGradientFill {
     return {
@@ -58,5 +107,56 @@ describe("buildMaskGradientShader — radial localMatrix 계약", () => {
 
     const call = ck.Shader.MakeTwoPointConicalGradient.mock.calls[0];
     expect(call[7]).toBeUndefined();
+  });
+});
+
+describe("applyMaskImage — 현재 mask layer DstIn 합성", () => {
+  it("alpha mask는 offscreen 재캡처 없이 현재 layer에 DstIn으로 그린다", () => {
+    const { ck } = mockMaskApplyCk();
+    const canvas = { drawRect: vi.fn() };
+    const maskShader = { delete: vi.fn() };
+
+    applyMaskImage(
+      ck as unknown as CanvasKit,
+      canvas as unknown as Canvas,
+      100,
+      80,
+      maskShader,
+      "alpha",
+    );
+
+    const drawnPaint = canvas.drawRect.mock.calls[0]?.[1] as
+      | { blendMode: unknown; shader: unknown }
+      | undefined;
+    expect(canvas.drawRect).toHaveBeenCalledTimes(1);
+    expect(drawnPaint?.shader).toBe(maskShader);
+    expect(drawnPaint?.blendMode).toBe(ck.BlendMode.DstIn);
+    expect(ck.RuntimeEffect.Make).not.toHaveBeenCalled();
+  });
+
+  it("luminance mask는 mask shader를 alpha source로 변환한 뒤 DstIn으로 그린다", () => {
+    const { ck, makeShaderWithChildren, resultShader } = mockMaskApplyCk();
+    const canvas = { drawRect: vi.fn() };
+    const maskShader = { delete: vi.fn() };
+
+    applyMaskImage(
+      ck as unknown as CanvasKit,
+      canvas as unknown as Canvas,
+      100,
+      80,
+      maskShader,
+      "luminance",
+    );
+
+    const drawnPaint = canvas.drawRect.mock.calls[0]?.[1] as
+      | { blendMode: unknown; shader: unknown }
+      | undefined;
+    expect(makeShaderWithChildren).toHaveBeenCalledWith(
+      expect.any(Float32Array),
+      [maskShader],
+    );
+    expect(drawnPaint?.shader).toBe(resultShader);
+    expect(drawnPaint?.blendMode).toBe(ck.BlendMode.DstIn);
+    expect(resultShader.delete).toHaveBeenCalledTimes(1);
   });
 });

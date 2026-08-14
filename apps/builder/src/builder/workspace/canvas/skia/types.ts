@@ -205,7 +205,7 @@ export interface TextShadow {
  * CSS mask-image 스타일 정의.
  *
  * gradient 또는 image URL 기반 마스크를 alpha/luminance 모드로 적용한다.
- * SkSL RuntimeEffect로 합성 (nodeRendererMask.ts).
+ * alpha는 CanvasKit DstIn, luminance는 nodeRendererMask.ts의 SkSL로 합성한다.
  */
 export interface MaskImageStyle {
   type: "gradient" | "image";

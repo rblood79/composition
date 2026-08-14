@@ -122,18 +122,78 @@ describe("executeRenderCommands scroll-aware culling", () => {
 
   function makeRecordingCanvas() {
     const translates: Array<[number, number]> = [];
+    const events: string[] = [];
+    let saveCount = 0;
+    let restoreCount = 0;
     const canvas = {
-      save() {},
-      restore() {},
-      saveLayer() {},
+      save() {
+        saveCount++;
+        events.push("save");
+      },
+      restore() {
+        restoreCount++;
+        events.push("restore");
+      },
+      saveLayer() {
+        events.push("saveLayer");
+      },
       concat() {},
       clipRect() {},
       clipPath() {},
+      drawRect() {
+        events.push("drawRect");
+      },
       translate(x: number, y: number) {
         translates.push([x, y]);
       },
     } as unknown as Canvas;
-    return { canvas, translates };
+    return {
+      canvas,
+      translates,
+      events,
+      get saveCount() {
+        return saveCount;
+      },
+      get restoreCount() {
+        return restoreCount;
+      },
+    };
+  }
+
+  function makeMaskCanvasKit() {
+    class MockPaint {
+      setAntiAlias(): void {}
+      setStyle(): void {}
+      setColor(): void {}
+      setAlphaf(): void {}
+      setStrokeWidth(): void {}
+      setStrokeCap(): void {}
+      setStrokeJoin(): void {}
+      setBlendMode(): void {}
+      setPathEffect(): void {}
+      setShader(): void {}
+      setImageFilter(): void {}
+      setColorFilter(): void {}
+    }
+
+    return {
+      Paint: MockPaint,
+      PaintStyle: { Fill: 0 },
+      StrokeCap: { Butt: 0 },
+      StrokeJoin: { Miter: 0 },
+      BlendMode: {
+        SrcOver: 0,
+        DstIn: 1,
+        Multiply: 2,
+      },
+      BLACK: Float32Array.of(0, 0, 0, 1),
+      TileMode: { Clamp: 0, Repeat: 1 },
+      Shader: {
+        MakeLinearGradient: () => ({ delete() {} }),
+      },
+      LTRBRect: (...args: number[]) => args,
+      ClipOp: { Intersect: 0 },
+    } as unknown as CanvasKit;
   }
 
   function buildScrolledPageStream(childY: number) {
@@ -183,6 +243,92 @@ describe("executeRenderCommands scroll-aware culling", () => {
     expect(translates).not.toContainEqual([0, 2400]);
   });
 
+  it("does not restore a clip layer that was not saved for zero-size children", () => {
+    const body = makeElement("zero-clip-body", { type: "body" });
+    const owner = makeElement("zero-clip-owner", { parent_id: body.id });
+    const child = makeElement("zero-clip-child", { parent_id: owner.id });
+
+    registerNode(body.id, { width: 800, height: 600 });
+    registerNode(owner.id, {
+      width: 0,
+      height: 100,
+      clipChildren: true,
+    });
+    registerNode(child.id, { width: 10, height: 10 });
+
+    const stream = buildRenderCommandStream(
+      [body.id],
+      new Map([
+        [body.id, [owner]],
+        [owner.id, [child]],
+      ]),
+      new Map([
+        [owner.id, { x: 0, y: 0, width: 0, height: 100 } as ComputedLayout],
+        [child.id, { x: 0, y: 0, width: 10, height: 10 } as ComputedLayout],
+      ]),
+      { [body.id]: { x: 0, y: 0 } },
+    );
+    const recording = makeRecordingCanvas();
+
+    executeRenderCommands(stubCk, recording.canvas, stream.commands, {
+      x: 0,
+      y: 0,
+      width: 800,
+      height: 600,
+    } as DOMRect);
+
+    // body, owner, child element saves only; the zero-width clip opens no save.
+    expect(recording.saveCount).toBe(3);
+    expect(recording.restoreCount).toBe(3);
+  });
+
+  it("applies mask before restoring blend and element layers", () => {
+    const body = makeElement("mask-stack-body", { type: "body" });
+    const maskImage = {
+      type: "gradient",
+      mode: "alpha",
+      gradient: {
+        type: "linear-gradient",
+        start: [0, 0],
+        end: [100, 0],
+        colors: [Float32Array.of(0, 0, 0, 0), Float32Array.of(1, 1, 1, 1)],
+        positions: [0, 1],
+      },
+    } as NonNullable<SkiaNodeData["maskImage"]>;
+
+    registerNode(body.id, {
+      width: 100,
+      height: 100,
+      blendMode: "multiply",
+      effects: [{ type: "opacity", value: 0.5 }],
+      maskImage,
+    });
+
+    const stream = buildRenderCommandStream([body.id], new Map(), new Map(), {
+      [body.id]: { x: 0, y: 0 },
+    });
+    const recording = makeRecordingCanvas();
+
+    executeRenderCommands(
+      makeMaskCanvasKit(),
+      recording.canvas,
+      stream.commands,
+      { x: 0, y: 0, width: 100, height: 100 } as DOMRect,
+    );
+
+    expect(recording.events).toEqual([
+      "save",
+      "saveLayer",
+      "saveLayer",
+      "saveLayer",
+      "drawRect",
+      "restore",
+      "restore",
+      "restore",
+      "restore",
+    ]);
+  });
+
   it("applies transient page position only at the page root", () => {
     const body = makeElement("presented-body", { type: "body" });
     const child = makeElement("presented-child", { parent_id: body.id });
@@ -200,7 +346,9 @@ describe("executeRenderCommands scroll-aware culling", () => {
     );
     const canonical = { "page-1": { x: 10, y: 20 } };
     beginPagePositionPresentation(canonical, ["page-1"], "desktop");
-    publishPagePositionPresentation([{ pageId: "page-1", position: { x: 50, y: 75 } }]);
+    publishPagePositionPresentation([
+      { pageId: "page-1", position: { x: 50, y: 75 } },
+    ]);
 
     const { canvas, translates } = makeRecordingCanvas();
     executeRenderCommands(

@@ -50,6 +50,15 @@ function createPointerDown(
   return event;
 }
 
+function createPointerUp(
+  pointerId: number,
+  type: "pointerup" | "pointercancel" = "pointerup",
+): Event {
+  const event = new Event(type, { bubbles: true });
+  Object.defineProperty(event, "pointerId", { value: pointerId });
+  return event;
+}
+
 describe("useCentralCanvasPointerHandlers page body drag", () => {
   let container: HTMLDivElement;
 
@@ -269,5 +278,110 @@ describe("useCentralCanvasPointerHandlers page body drag", () => {
 
     expect(startPageDrag).toHaveBeenCalledWith("page-1", 9, 0, 400);
     expect(gestureSession.ownerFor(9)).toBe("page");
+  });
+
+  it("element owner는 pointerup에서 중앙 handler가 세션을 해제한다", () => {
+    const element: CanvasInteractionNode = {
+      id: "element-1",
+      type: "button",
+      pageId: "page-1",
+      parent_id: null,
+      props: {},
+    };
+    const elementsMap = new Map([[element.id, element]]);
+    const gestureSession = new CanvasGestureSession();
+
+    getStateMock.mockReturnValue({
+      activeBreakpoint: "desktop",
+      currentPageId: "page-1",
+      editingContextId: null,
+      pageIndex: {
+        elementsByPage: new Map([["page-1", new Set([element.id])]]),
+      },
+      pagePositions: { "page-1": { x: 0, y: 0 } },
+      pages: [{ id: "page-1" }],
+      selectedElementIds: [],
+    });
+    hitTestPointMock.mockReturnValue([element.id]);
+
+    renderHook(() =>
+      useCentralCanvasPointerHandlers({
+        gestureSession,
+        completeEditRef: ref(() => {}),
+        computeSelectionBoundsForHitTest: () => null,
+        containerRef: ref(container),
+        editingElementIdRef: ref(null),
+        handleElementClickRef: ref(() => {}),
+        handleElementDoubleClickRef: ref(() => {}),
+        getHitChildrenMap: () => new Map(),
+        getHitElementsMap: () => elementsMap,
+        isEditingRef: ref(false),
+        lastClickTargetRef: ref(null),
+        lastClickTimeRef: ref(0),
+        onCancelDrag: ref(() => {}),
+        onEndDrag: ref(() => {}),
+        onStartMove: ref(() => {}),
+        onUpdateDrag: ref(() => {}),
+        pageHeight: 844,
+        pageWidth: 390,
+        screenToCanvasPoint: (position) => position,
+        selectionBoundsRef: ref(null),
+        selectElementWithPageTransition: () => {},
+        setCurrentPageId: () => {},
+        setCursor: () => {},
+        setSelectedElements: () => {},
+        startPageDrag: () => {},
+        zoom: 1,
+      }),
+    );
+
+    expect(gestureSession.beginPointer(10, 0)).toBe("element");
+    act(() => {
+      container.dispatchEvent(createPointerDown(10, 20, 20));
+      window.dispatchEvent(createPointerUp(10));
+    });
+
+    expect(gestureSession.ownerFor(10)).toBe("idle");
+  });
+
+  it("element owner는 pointercancel에서도 중앙 handler가 세션을 해제한다", () => {
+    const gestureSession = new CanvasGestureSession();
+    renderHook(() =>
+      useCentralCanvasPointerHandlers({
+        gestureSession,
+        completeEditRef: ref(() => {}),
+        computeSelectionBoundsForHitTest: () => null,
+        containerRef: ref(container),
+        editingElementIdRef: ref(null),
+        handleElementClickRef: ref(() => {}),
+        handleElementDoubleClickRef: ref(() => {}),
+        getHitChildrenMap: () => new Map(),
+        getHitElementsMap: () => new Map(),
+        isEditingRef: ref(false),
+        lastClickTargetRef: ref(null),
+        lastClickTimeRef: ref(0),
+        onCancelDrag: ref(() => {}),
+        onEndDrag: ref(() => {}),
+        onStartMove: ref(() => {}),
+        onUpdateDrag: ref(() => {}),
+        pageHeight: 844,
+        pageWidth: 390,
+        screenToCanvasPoint: (position) => position,
+        selectionBoundsRef: ref(null),
+        selectElementWithPageTransition: () => {},
+        setCurrentPageId: () => {},
+        setCursor: () => {},
+        setSelectedElements: () => {},
+        startPageDrag: () => {},
+        zoom: 1,
+      }),
+    );
+
+    expect(gestureSession.beginPointer(11, 0)).toBe("element");
+    act(() => {
+      window.dispatchEvent(createPointerUp(11, "pointercancel"));
+    });
+
+    expect(gestureSession.ownerFor(11)).toBe("idle");
   });
 });

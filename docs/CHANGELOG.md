@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Canvas pointer/hit lifecycle — element owner 및 stale SpatialIndex 정리] - 2026-08-15
+
+### Bug Fixes
+
+- **요소 pointer 세션과 Skia hit index가 이전 입력/프레임을 영구 보유하던 문제 수정**:
+  - **Why**: `endPointer()`가 pan 분기에서만 호출되어 element owner의 `activePointerId`가 pointerup 뒤에도 남았고, SpatialIndex `batchUpdate`는 이전 snapshot에만 있던 ID를 제거하지 않았다
+  - 수정: 중앙 pointer handler가 element owner의 pointerup/pointercancel을 직접 종료하고, SpatialIndex batch snapshot이 생략된 ID를 WASM index와 mapper에서 제거하도록 변경
+  - 검증: element pointerup/pointercancel lifecycle 및 stale/empty snapshot 회귀 테스트
+  - 위치: `apps/builder/src/builder/workspace/canvas/{hooks/useCentralCanvasPointerHandlers.ts,wasm-bindings/spatialIndex.ts}`
+
+## [Canvas 휠 라우팅 — overflow longhand·catalog 해석] - 2026-08-15
+
+### Bug Fixes
+
+- **선택된 overflow 컨테이너가 휠 스크롤되지 않던 문제 수정**:
+  - **Why**: 선택 기반 휠 라우팅이 `style.overflow` shorthand 만 읽어, store 가 longhand(`overflowX`/`overflowY`)로 저장한 값과 catalog `containerStyles` 에만 overflow 를 둔 컬렉션 컨테이너(ListBox 등)가 미해석 → 전부 뷰포트 팬으로 흘렀다
+  - 수정: `resolveEffectiveOverflow(node.type, style)` 경유로 shorthand + longhand + catalog 를 함께 해석
+  - **미변경(사양)**: 캔버스 휠 스크롤은 대상이 **선택된 상태에서만** 동작한다. 포인터를 올려두는 것만으로는 스크롤되지 않으며, viewport handler 가 containerEl 의 capture 소유자로 남는다. 이를 "hover 경로를 삼키는 버그" 로 보고 위상을 맞바꾼 변경은 되돌렸다 — 사용자 가시 동작은 동일한 채 의도치 않은 hover 스크롤만 무장시켰다
+  - 검증: 라이브 빌더 실측 — 동일 좌표·동일 휠에서 미선택 `scrollTop 0→0`(뷰포트 팬) / page body 선택 `0→200`. 계약은 `useViewportControl.wheelRouting.static.test.ts` 가 고정
+  - 위치: `apps/builder/src/builder/workspace/canvas/viewport/useViewportControl.ts`
+
+## [Skia mask layer LIFO — DstIn 합성 대상 정정] - 2026-08-15
+
+### Bug Fixes
+
+- **mask-image가 effects/blend/drag 레이어 조합에서 부모 layer를 오염시키던 문제 수정**:
+  - **Why**: END가 effects/blend restore를 먼저 수행해 최상단 mask layer를 먼저 닫았고, 이후 mask 합성을 바깥 layer에서 실행했다. 기존 offscreen callback도 비어 있어 실제 content를 mask shader에 공급하지 못했다
+  - 수정: mask layer에서 먼저 DstIn 합성 후 restore하고, effects → blend → drag alpha → element save 순으로 LIFO 복원. alpha mask는 native DstIn, luminance mask는 단일 child RuntimeEffect로 변환
+  - 검증: alpha/luminance 합성 계약 + blend/effect/mask command 순서 회귀 테스트, Skia 관련 테스트 및 `codex:typecheck`
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{nodeRendererMask.ts,renderCommands.ts}`
+
+## [Skia clip save/restore 대칭 — zero-size overflow 컨테이너] - 2026-08-15
+
+### Bug Fixes
+
+- **zero-size `clipChildren` 컨테이너가 이후 Canvas 렌더링의 save 스택을 손상시키던 문제 수정**:
+  - **Why**: `CMD_CHILDREN_BEGIN`은 양수 크기에서만 clip save를 열었지만 `CMD_CHILDREN_END`는 `clipChildren`만 보고 무조건 restore해 부모 element save까지 제거할 수 있었다
+  - 수정: command 생성 시 BEGIN과 동일한 clip 조건을 `hasClip`으로 기록하고 END에서 해당 플래그만 restore
+  - 검증: zero-width clipping owner의 save/restore 균형 회귀 테스트 + Skia 관련 27 tests + `codex:typecheck` + `codex:preflight`
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts`
+
 ## [기본 폰트 fallback 체인 정정 — monospace 오타 제거] - 2026-08-15
 
 ### Bug Fixes

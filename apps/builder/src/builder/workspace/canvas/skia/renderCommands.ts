@@ -115,6 +115,7 @@ interface ChildrenBeginCmd {
 interface ChildrenEndCmd {
   type: typeof CMD_CHILDREN_END;
   clipChildren: boolean;
+  hasClip: boolean;
   hasScrollOffset: boolean;
   scrollbar?: SkiaNodeData["scrollbar"];
   scrollbarNode?: SkiaNodeData;
@@ -504,6 +505,8 @@ function syncSpatialIndex(boundsMap: Map<string, BoundingBox>): void {
       });
     }
   }
+  // batchUpdate는 full snapshot 계약이므로, 이전 frame에만 존재하던 clip-out/삭제
+  // 요소도 wrapper가 diff를 계산해 SpatialIndex에서 제거한다.
   spatialIndex.batchUpdate(items);
 }
 
@@ -731,6 +734,7 @@ function visitElement(
     commands.push({
       type: CMD_CHILDREN_END,
       clipChildren: skiaData.clipChildren ?? false,
+      hasClip: !!(skiaData.clipChildren && clipWidth > 0 && clipHeight > 0),
       hasScrollOffset: !!(
         skiaData.scrollOffset &&
         (skiaData.scrollOffset.scrollTop !== 0 ||
@@ -969,9 +973,6 @@ function executeCommandRange(
   // mask-image 레이어 스택: 요소별 마스크 정보 저장
   // ELEMENT_BEGIN에서 mask 있으면 push, ELEMENT_END에서 pop 후 합성
   interface MaskLayerEntry {
-    maskImage: MaskImageStyle;
-    width: number;
-    height: number;
     /** mask를 실제로 적용하는 함수 (저장 시점의 canvas context 캡처) */
     apply: () => void;
   }
@@ -1108,8 +1109,8 @@ function executeCommandRange(
           beginRenderEffects(ck, canvas, cmd.effects);
         }
 
-        // mask-image: 이 요소의 모든 드로콜을 offscreen에 캡처하기 위해
-        // saveLayer를 추가로 호출한다. ELEMENT_END에서 mask 합성 후 restore.
+        // mask-image: 이 요소의 모든 드로콜을 별도 layer에 캡처한다.
+        // ELEMENT_END에서 현재 layer에 DstIn mask를 적용한 뒤 restore.
         if (
           cmd.maskImage &&
           cmd.maskImage.type === "gradient" &&
@@ -1120,9 +1121,6 @@ function executeCommandRange(
           const maskHeight = cmd.height;
           canvas.saveLayer();
           maskLayerStack.push({
-            maskImage: maskInfo,
-            width: maskWidth,
-            height: maskHeight,
             apply: () => {
               // saveLayer로 캡처된 layer 위에 DstIn 블렌드로 gradient mask 그리기
               const maskShader = buildMaskGradientShader(
@@ -1143,9 +1141,6 @@ function executeCommandRange(
                   maskHeight,
                   maskShader,
                   mode,
-                  // content는 이미 saveLayer로 캡처되어 있으므로 빈 콜백
-                  // 실제 합성은 applyMaskImage 내부의 drawRect(DstIn)로 처리
-                  () => {},
                 );
               } finally {
                 maskShader.delete();
@@ -1165,9 +1160,6 @@ function executeCommandRange(
             const maskHeight = cmd.height;
             canvas.saveLayer();
             maskLayerStack.push({
-              maskImage: maskInfo,
-              width: maskWidth,
-              height: maskHeight,
               apply: () => {
                 const imgShader = (
                   maskSkImage as {
@@ -1197,7 +1189,6 @@ function executeCommandRange(
                     maskHeight,
                     imgShader,
                     mode,
-                    () => {},
                   );
                 } finally {
                   imgShader.delete();
@@ -1318,24 +1309,28 @@ function executeCommandRange(
           renderScrollbar(ck, canvas, cmd.scrollbarNode);
         }
 
-        if (cmd.clipChildren) {
+        if (cmd.hasClip) {
           canvas.restore();
         }
         break;
       }
 
       case CMD_ELEMENT_END: {
+        // mask layer는 BEGIN에서 가장 안쪽에 열리므로 먼저 적용·복원해야 한다.
+        // 이후 effects → blend → drag alpha → element save 순으로 LIFO를 유지한다.
+        const maskEntry = maskLayerStack.pop();
+        if (maskEntry) {
+          try {
+            maskEntry.apply();
+          } finally {
+            canvas.restore(); // mask layer(content) 복원
+          }
+        }
         endRenderEffects(canvas, cmd.effectLayerCount);
         if (cmd.hasBlend) canvas.restore();
         // A-8: 드래그 반투명 레이어 복원
         const hadDragAlpha = dragAlphaStack.pop();
         if (hadDragAlpha) canvas.restore();
-        // mask-image: saveLayer 복원 후 mask gradient 합성
-        const maskEntry = maskLayerStack.pop();
-        if (maskEntry) {
-          canvas.restore(); // saveLayer(content) 복원
-          maskEntry.apply(); // DstIn gradient 드로콜
-        }
         canvas.restore();
         if (stackTop > 0) stackTop--;
         if (eidTop > 0) eidTop--;

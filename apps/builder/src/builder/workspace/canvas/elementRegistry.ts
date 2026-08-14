@@ -90,8 +90,8 @@ export function updateElementBounds(id: string, bounds: ElementBounds): void {
 export function unregisterElement(id: string): void {
   elementRegistry.delete(id);
   layoutBoundsRegistry.delete(id);
-  // NOTE: SpatialIndex 항목은 renderCommands.ts의 syncSpatialIndex()가
-  // 다음 프레임에 batchUpdate로 덮어쓰므로 개별 removeElement() 불필요.
+  // NOTE: 다음 frame의 renderCommands.syncSpatialIndex()가 full snapshot diff로
+  // SpatialIndex 항목을 제거한다. 별도 screen-coordinate remove는 하지 않는다.
 }
 
 /**
@@ -183,8 +183,8 @@ export function getRegistrySize(): number {
 export function clearRegistry(): void {
   elementRegistry.clear();
   layoutBoundsRegistry.clear();
-  // NOTE: SpatialIndex는 renderCommands.ts의 syncSpatialIndex()가
-  // 다음 렌더 프레임에 batchUpdate로 재구성한다.
+  // NOTE: SpatialIndex는 renderCommands.ts의 syncSpatialIndex()가 다음 렌더
+  // 프레임에 full snapshot diff로 재구성·stale 항목 제거한다.
 }
 
 // ============================================

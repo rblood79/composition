@@ -28,6 +28,7 @@ import { useKeyboardShortcutsRegistry } from "@/builder/hooks";
 import { useScrollState, isScrollable } from "../../../stores/scrollState";
 import { useStore } from "../../../stores";
 import { getCanonicalNode } from "../../../stores/canonical/canonicalElementsBridge";
+import { resolveEffectiveOverflow } from "../layout/engines/implicitStyles";
 import { observe, PERF_LABEL } from "../../../utils/perfMarks";
 import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
 import {
@@ -389,9 +390,10 @@ export function useViewportControl(
           if (selectedIds.length === 1) {
             const selectedId = selectedIds[0];
             const node = getCanonicalNode(selectedId);
-            const overflow = (
-              node?.props?.style as Record<string, unknown> | undefined
-            )?.overflow;
+            const overflow = resolveEffectiveOverflow(
+              node?.type,
+              node?.props?.style as Record<string, unknown> | undefined,
+            );
             if (
               (overflow === "scroll" || overflow === "auto") &&
               isScrollable(selectedId)
