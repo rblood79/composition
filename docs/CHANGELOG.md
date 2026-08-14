@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Skia 이미지 캐시 — 참조 중 SkImage 강제 퇴거 제거] - 2026-08-15
+
+### Bug Fixes
+
+- **서로 다른 이미지가 100개를 넘는 문서에서 캔버스가 크래시하던 문제 수정**:
+  - **Why**: `evictLRU`가 미참조 후보를 못 찾으면 **가장 오래된 엔트리를 강제 퇴거**했다. SkImage 는 `SkiaNodeData.image.skImage` 에 핸들로 저장돼 다음 프레임에도 그려지므로, 삭제된 핸들에 `.width()` 를 부르는 순간 WASM 이 죽는다. 게다가 `releaseSkImage` 가 refCount 0 에서 즉시 폐기해 **후보 풀이 항상 비어 있었고**, 그래서 상한을 넘는 순간부터 살아 있는 이미지가 매번 하나씩 파괴됐다
+  - 수정: 퇴거 대상을 미참조(refCount 0) 엔트리로 한정하고, 후보가 없으면 퇴거를 건너뛴 뒤 상한 초과를 1회 경고한다. `releaseSkImage` 는 엔트리를 캐시에 남겨 퇴거 후보로 만든다
+  - 함께: 퇴거 시 `.delete()` 를 지연 큐(`scheduleWasmDisposal`) 경유로 변경 — 퇴거는 비동기 로드 완료 안에서도 일어나 프레임의 record 와 flush 사이에 낄 수 있고, 이미 제출된 이미지를 flush 전에 파괴하면 그 draw 가 소실된다. 참조를 소유하지 않고 핸들만 싣는 경로(specShapeConverter)를 위해 렌더러가 폐기 핸들을 만나면 placeholder 로 떨어진다
+  - 검증: 라이브 빌더 실측 — 실제 CanvasKit 에 서로 다른 PNG 101개 로드 시 `cacheSize 101` / 최초 이미지 생존(`width() === 4`) / 경고 1회. release 후 102번째 로드에서 그 엔트리만 퇴거되고 폐기는 drain 까지 지연(`pendingDisposal 1`), 나머지 참조 이미지 생존. 회귀 3건은 구 동작 복원 시 전부 RED
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{imageCache.ts,nodeRendererImage.ts}`
+
 ## [Canvas pointer/hit lifecycle — element owner 및 stale SpatialIndex 정리] - 2026-08-15
 
 ### Bug Fixes

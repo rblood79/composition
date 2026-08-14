@@ -45,7 +45,12 @@ export function renderImage(
       }
     }
 
-    if (!node.image?.skImage) {
+    // 노드 데이터는 SkImage 를 **핸들로 보관**한다. 캐시 퇴거는 참조 중 이미지를
+    //   건드리지 않지만(imageCache.evictLRU), specShapeConverter 경로는 참조를
+    //   소유하지 않은 채 핸들만 싣는다 — 그 사이 퇴거되면 여기서 폐기된 핸들을
+    //   만난다. `.width()` 호출이 WASM 크래시라 그리기 전에 확인하고 placeholder
+    //   로 떨어진다 (다음 sync 에서 재로드).
+    if (!node.image?.skImage || node.image.skImage.isDeleted()) {
       if (node.box) {
         const placeholderPaint = acquireScopedPaint(scope, ck);
         placeholderPaint.setAntiAlias(true);

@@ -38,9 +38,17 @@ interface DrawOp {
   color?: Float32Array;
 }
 
+class MockPath {
+  moveTo(): void {}
+  lineTo(): void {}
+  close(): void {}
+  delete(): void {}
+}
+
 function makeMockCk(): CanvasKit {
   return {
     Paint: MockPaint,
+    Path: MockPath,
     PaintStyle: { Fill: 0, Stroke: 1 },
     StrokeCap: { Butt: 0 },
     StrokeJoin: { Miter: 0 },
@@ -76,7 +84,10 @@ function makeRecordingCanvas(ops: DrawOp[]): Canvas {
   } as unknown as Canvas;
 }
 
-function makeLoadedNode(fillColor: Float32Array): SkiaNodeData {
+function makeLoadedNode(
+  fillColor: Float32Array,
+  deleted = false,
+): SkiaNodeData {
   return {
     type: "image",
     elementId: "img-1",
@@ -90,6 +101,7 @@ function makeLoadedNode(fillColor: Float32Array): SkiaNodeData {
       skImage: {
         width: () => 40,
         height: () => 40,
+        isDeleted: () => deleted,
       } as unknown as NonNullable<SkiaNodeData["image"]>["skImage"],
       contentX: 50,
       contentY: 10,
@@ -122,5 +134,25 @@ describe("renderImage — 로드 경로 배경 fill", () => {
     renderImage(ck, makeRecordingCanvas(ops), makeLoadedNode(fill));
 
     expect(ops.map((o) => o.op)).toEqual(["drawImageRect"]);
+  });
+
+  /**
+   * 노드 데이터는 SkImage 를 핸들로 보관한다. specShapeConverter 경로는 참조를
+   * 소유하지 않은 채 핸들만 실으므로 그 사이 캐시 퇴거가 일어나면 폐기된 핸들이
+   * 남는다. 폐기 핸들에 `.width()` 를 부르면 WASM 이 크래시하므로 placeholder 로
+   * 떨어져야 한다.
+   */
+  it("폐기된 SkImage 핸들이면 그리지 않고 placeholder 로 떨어진다", () => {
+    const fill = Float32Array.of(1, 0, 0, 1);
+    const node = makeLoadedNode(fill, true);
+    (node.image as NonNullable<SkiaNodeData["image"]>).skImage!.width =
+      (): number => {
+        throw new Error("Cannot pass deleted object as a pointer");
+      };
+
+    expect(() => renderImage(ck, makeRecordingCanvas(ops), node)).not.toThrow();
+    expect(ops.map((o) => o.op)).not.toContain("drawImageRect");
+    // placeholder 배경 rect 는 그려진다
+    expect(ops.map((o) => o.op)).toContain("drawRect");
   });
 });
