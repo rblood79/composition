@@ -7,6 +7,7 @@
 import type { Shape, TokenRef } from "@composition/specs";
 import { resolveToken } from "@composition/specs";
 import { measureWrappedTextHeight } from "../utils/textMeasure";
+import { DEFAULT_FONT_FAMILY } from "../../../fonts/customFonts";
 
 // ---------------------------------------------------------------------------
 // rearrangeShapesForColumn — Column layout shapes 세로 재배치
@@ -182,7 +183,7 @@ export function measureSpecTextMinHeight(
 
     const fontWeight =
       typeof shape.fontWeight === "number" ? shape.fontWeight : 500;
-    const fontFamily = shape.fontFamily || "Pretendard";
+    const fontFamily = shape.fontFamily || DEFAULT_FONT_FAMILY;
 
     // maxWidth 계산: specShapesToSkia와 동일한 로직 + border-box 보정
     let maxWidth = shape.maxWidth ?? containerWidth;

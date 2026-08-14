@@ -5,6 +5,7 @@ import { createRoundRectPath } from "./nodeRendererClip";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import { skiaFontManager } from "./fontManager";
 import { DEFAULT_FONT_FEATURES } from "../layout/engines/cssResolver";
+import { CANVAS_FONT_FALLBACK_FAMILIES } from "../../../fonts/customFonts";
 
 export function renderImage(
   ck: CanvasKit,
@@ -87,7 +88,7 @@ export function renderImage(
           textStyle: {
             color: ck.Color(156, 163, 175, 1),
             fontSize: altFontSize,
-            fontFamilies: ["Pretendard", "sans-serif"],
+            fontFamilies: [...CANVAS_FONT_FALLBACK_FAMILIES],
           },
         });
         // per-call `ParagraphBuilder.Make` 는 호출마다 새 FontCollection 을 만든다 —
@@ -101,7 +102,7 @@ export function renderImage(
           new ck.TextStyle({
             color: ck.Color(156, 163, 175, 1),
             fontSize: altFontSize,
-            fontFamilies: ["Pretendard", "sans-serif"],
+            fontFamilies: [...CANVAS_FONT_FALLBACK_FAMILIES],
             fontFeatures: DEFAULT_FONT_FEATURES,
           }),
         );

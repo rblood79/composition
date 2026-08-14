@@ -20,6 +20,7 @@ import type {
 } from "canvaskit-wasm";
 import { getCanvasKit, isCanvasKitInitialized } from "../skia/initCanvasKit";
 import { skiaFontManager } from "../skia/fontManager";
+import { DEFAULT_FONT_FAMILY } from "../../../fonts/customFonts";
 import {
   resolveFontVariantFeatures,
   resolveFontStretchWidth,
@@ -83,7 +84,7 @@ function resolveWeight(ck: any, fw?: number | string): any {
  * 측정기도 동일 처리해야 CanvasKit text shaping 결과(폭)가 일치한다.
  */
 function buildFontFamilies(fontFamilyCSS: string | undefined): string[] {
-  const rawFamilies = (fontFamilyCSS ?? "Pretendard")
+  const rawFamilies = (fontFamilyCSS ?? DEFAULT_FONT_FAMILY)
     .split(",")
     .map((f) => f.trim().replace(/['"]/g, ""))
     .filter(Boolean);
@@ -96,7 +97,7 @@ function buildFontFamilies(fontFamilyCSS: string | undefined): string[] {
       result.push(f);
     }
   }
-  if (!seen.has("Pretendard")) result.push("Pretendard");
+  if (!seen.has(DEFAULT_FONT_FAMILY)) result.push(DEFAULT_FONT_FAMILY);
   return result;
 }
 

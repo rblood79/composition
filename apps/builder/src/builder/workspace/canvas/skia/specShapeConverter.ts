@@ -16,6 +16,10 @@ import {
 } from "@composition/specs";
 import { getSkImage, loadSkImage } from "./imageCache";
 import { measureWrappedTextHeight } from "../utils/textMeasure";
+import {
+  DEFAULT_FONT_FAMILY,
+  CANVAS_FONT_FALLBACK_FAMILIES,
+} from "../../../fonts/customFonts";
 import { getLabelLineHeight } from "@composition/specs";
 import { hexToColor4fChannels } from "./themeWatcher";
 import {
@@ -713,7 +717,7 @@ export function specShapesToSkia(
             shape.maxWidth ??
             (shape.x > 0 ? containerWidth - shape.x * 2 : containerWidth);
           if (effectiveMaxWidth > 0 && effectiveMaxWidth < containerWidth) {
-            const ff = shape.fontFamily ?? "Inter";
+            const ff = shape.fontFamily ?? DEFAULT_FONT_FAMILY;
             const fw =
               typeof shape.fontWeight === "number" ? shape.fontWeight : 400;
             const measured = measureWrappedTextHeight(
@@ -788,11 +792,9 @@ export function specShapesToSkia(
               ...shape.fontFamily
                 .split(",")
                 .map((f: string) => f.trim().replace(/['"]/g, "")),
-              "Inter",
-              "system-ui",
-              "sans-serif",
+              ...CANVAS_FONT_FALLBACK_FAMILIES,
             ]
-          : ["Inter", "system-ui", "sans-serif"];
+          : [...CANVAS_FONT_FALLBACK_FAMILIES];
 
         // textDecoration → CanvasKit 비트마스크 변환 (ADR-057 Phase B 풀셋)
         // underline=1, overline=2, lineThrough=4, 조합 지원

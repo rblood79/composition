@@ -25,6 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 검증: 라이브 Button isDisabled 토글 왕복 (effects `null → [{opacity, 0.38}] → null`) + 회귀 테스트 3건 (Button 0.38 / Breadcrumbs 미부착 / Select 문자열 coerce)
   - 위치: `apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts`
 
+- **기본 폰트 텍스트의 측정↔렌더 폰트 발산** (simplify 보류 항목 후속):
+  - fontFamily 미지정 spec 텍스트가 측정은 Pretendard, 렌더는 Inter 로 갈라져 폭·줄바꿈 위치가 미세하게 어긋날 수 있었다 (canvas-rendering §3 "측정기와 렌더러가 동일한 배열" 위반)
+  - **Why**: 기본값 리터럴이 4곳에 제각각 — 렌더러(`specShapeConverter`)만 `"Inter"`/`["Inter","system-ui","sans-serif"]`, 측정기 2곳(`specBuildHelpers`/`canvaskitTextMeasurer`)은 `"Pretendard"`. DOM 정본(`DEFAULT_BASE_TYPOGRAPHY`)은 Pretendard 선두
+  - 수정: `customFonts.ts` 에 `CANVAS_FONT_FALLBACK_FAMILIES`(Pretendard 선두) 단일 소스 신설, 4곳 + 이미지 altText 2곳이 공유. 렌더 기본이 Inter → Pretendard 로 정렬 (D3 DOM 대칭)
+  - 검증: 라이브 전수 probe — 텍스트 노드 43개 중 Inter 선두 체인 0건
+  - 위치: `apps/builder/src/builder/{fonts/customFonts.ts,workspace/canvas/skia/{specShapeConverter,specBuildHelpers,nodeRendererImage}.ts,workspace/canvas/utils/canvaskitTextMeasurer.ts}`
+
 ### Architecture
 
 - **box 경로의 도달 불가 collection item 리터럴 분기 제거**:
