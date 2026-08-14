@@ -1,22 +1,17 @@
 /**
- * Skia 렌더 데이터 레지스트리 + React hook
+ * Skia 렌더 데이터 전역 레지스트리
  *
- * @pixi/react의 커스텀 reconciler에서 callback ref가 호출되지 않는 문제를 우회하여
- * 전역 레지스트리(Map) 방식으로 Skia 렌더 데이터를 관리한다.
+ * element.id → SkiaNodeData 매핑 + registryVersion 카운터.
+ * StoreRenderBridge 가 register/unregister 로 채우고, command stream
+ * (renderCommands) 이 getSkiaNode 로 조회한다.
  *
- * 각 Sprite 컴포넌트에서 useSkiaNode()를 호출하면:
- * 1. element.id 키로 SkiaNodeData를 레지스트리에 등록
- * 2. 언마운트 시 자동 해제
- *
- * SkiaOverlay 렌더 루프에서 buildSkiaTree()를 호출하면:
- * 1. Store의 elements 배열로 트리 구조 구성
- * 2. 레지스트리에서 렌더 데이터 조회
- * 3. PixiJS stage의 Camera 변환을 적용
+ * (구 useSkiaNode() React hook — Sprite 컴포넌트별 등록 — 은 Sprite 계층
+ * 소멸 후 호출 0 으로 남았다가 2026-08-14 simplify 에서 제거됨. 파일명은
+ * import 4곳+ 의 churn 을 피해 유지.)
  *
  * @see docs/RENDERING_ARCHITECTURE.md §5.11 renderSkia() React 컴포넌트 통합
  */
 
-import { useLayoutEffect } from "react";
 import type { SkiaNodeData } from "./nodeRenderers";
 import { recordInvalidation } from "./renderInvalidation";
 import { drainPendingWasmDisposals } from "./deferredDisposal";
@@ -102,39 +97,6 @@ export function getRegistryVersion(): number {
 export function notifyLayoutChange(): void {
   registryVersion++;
   recordInvalidation("content", "notifyLayoutChange");
-}
-
-// ============================================
-// React Hook
-// ============================================
-
-/**
- * element의 Skia 렌더 데이터를 전역 레지스트리에 등록하는 hook.
- *
- * 사용법:
- * ```tsx
- * useSkiaNode(element.id, {
- *   type: 'box',
- *   x: 0, y: 0,
- *   width: 100, height: 100,
- *   visible: true,
- *   box: { fillColor: Float32Array.of(1,0,0,1), borderRadius: 0 },
- * });
- * ```
- */
-export function useSkiaNode(
-  elementId: string,
-  data: SkiaNodeData | null,
-): void {
-  useLayoutEffect(() => {
-    if (!data) return;
-
-    registerSkiaNode(elementId, data);
-
-    return () => {
-      unregisterSkiaNode(elementId);
-    };
-  }, [elementId, data]);
 }
 
 // dev 전용 디버그 전역 — CSS↔Skia parity 검증 하니스(콘솔/Chrome MCP)가 render 결과

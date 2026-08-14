@@ -700,13 +700,12 @@ export function SkiaCanvas({
         }
       }
 
-      // Content build — Command Stream 경로 (cameraContainer: null → PixiJS 불필요)
+      // Content build — Command Stream 경로
       const contentResult = observe(PERF_LABEL.RENDER_CONTENT_BUILD, () =>
         buildSkiaFrameContent({
           aiState: packet.ai,
           registryVersion,
           pagePosVersion: contentPagePositionVersion,
-          cameraContainer: null, // Skia 단독 모드: PixiJS Container 불필요
           cameraX,
           cameraY,
           cameraZoom,

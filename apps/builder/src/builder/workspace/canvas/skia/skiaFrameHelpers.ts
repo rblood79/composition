@@ -1,50 +1,11 @@
 import { resolveEffectiveOverflow } from "../layout/engines/implicitStyles";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { BoundingBox } from "../selection/types";
-import type { SkiaNodeData } from "./nodeRenderers";
 import type { ElementBounds, PageFrame } from "./workflowRenderer";
 import {
   readPagePositionDelta,
   type PagePositionPresentationSnapshot,
 } from "../interaction/pagePositionPresentation";
-
-export function buildTreeBoundsMap(
-  tree: SkiaNodeData,
-): Map<string, BoundingBox> {
-  const boundsMap = new Map<string, BoundingBox>();
-
-  function traverse(
-    node: SkiaNodeData,
-    parentX: number,
-    parentY: number,
-  ): void {
-    const absX = parentX + node.x;
-    const absY = parentY + node.y;
-
-    if (node.elementId) {
-      boundsMap.set(node.elementId, {
-        x: absX,
-        y: absY,
-        width: node.width,
-        height: node.height,
-      });
-    }
-
-    // 부모의 scrollOffset을 자식 좌표에 반영
-    // overflow: scroll 컨테이너의 자식은 스크롤만큼 이동한 위치에 렌더링됨
-    const scrollX = node.scrollOffset?.scrollLeft ?? 0;
-    const scrollY = node.scrollOffset?.scrollTop ?? 0;
-
-    if (node.children) {
-      for (const child of node.children) {
-        traverse(child, absX - scrollX, absY - scrollY);
-      }
-    }
-  }
-
-  traverse(tree, 0, 0);
-  return boundsMap;
-}
 
 export function buildPageFrameMap(
   pageFrames: PageFrame[],
@@ -250,10 +211,10 @@ let _cachedOverflowInfoSource: Map<string, BoundingBox> | null = null;
  * buildOverflowInfoMap()의 캐시 래퍼.
  * registryVersion + pagePosVersion + **treeBoundsMap 참조**가 같으면 이전 결과를 반환한다.
  *
- * **Why 참조까지 보는가**: `getCachedTreeBoundsMap` 은 `scrollVersion` 까지 캐시 키에 넣어
- * 스크롤할 때마다 새 맵을 낸다 (자식 좌표에서 부모 `scrollOffset` 을 차감하므로). 버전 두 개만
- * 비교하면 스크롤 후에도 **스크롤 전 좌표로 만든** 오버레이가 그대로 재사용된다. 상류 캐시 키를
- * 여기서 다시 나열해 맞추는 대신 결과 참조를 그대로 키로 삼는다 — 상류가 키를 늘려도 어긋나지
+ * **Why 참조까지 보는가**: 상류(command stream 의 boundsMap)는 스크롤이 바뀌면 새 맵을
+ * 낸다 (자식 좌표에서 부모 `scrollOffset` 을 차감하므로). 버전 두 개만 비교하면 스크롤
+ * 후에도 **스크롤 전 좌표로 만든** 오버레이가 그대로 재사용된다. 상류 캐시 키를 여기서
+ * 다시 나열해 맞추는 대신 결과 참조를 그대로 키로 삼는다 — 상류가 키를 늘려도 어긋나지
  * 않는다 (`getCachedChildOverflowContextMap` 과 같은 어법).
  */
 export function getCachedOverflowInfoMap(

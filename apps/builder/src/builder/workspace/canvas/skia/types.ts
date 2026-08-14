@@ -6,7 +6,7 @@
  * @see docs/RENDERING_ARCHITECTURE.md §5.3 renderSkia() 패턴 도입
  */
 
-import type { CanvasKit, Canvas } from "canvaskit-wasm";
+import type { Canvas } from "canvaskit-wasm";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 
 // ============================================
@@ -21,15 +21,6 @@ import type { CanvasSceneNode } from "../scene/canvasSceneNode";
  */
 export interface SkiaRenderable {
   renderSkia(canvas: Canvas, cullingBounds: DOMRect): void;
-}
-
-/**
- * SkiaRenderer에서 renderSkia() 호출 시 전달되는 컨텍스트
- */
-export interface SkiaRenderContext {
-  canvasKit: CanvasKit;
-  canvas: Canvas;
-  cullingBounds: DOMRect;
 }
 
 // ============================================
@@ -283,16 +274,8 @@ export interface AIEffectNodeBounds {
 }
 
 // ============================================
-// Phase 6: Dirty Rect / Frame Classification Types
+// Phase 6: Frame Classification Types
 // ============================================
-
-/** Dirty rect — 변경된 영역의 바운딩 박스 (씬 좌표) */
-export interface DirtyRect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
 
 /** 렌더 프레임 분류 */
 export type FrameType =
@@ -426,50 +409,4 @@ export interface ContentBuildResult {
   hasAIEffects: boolean;
   /** 빈 트리 여부 (빈 경우 렌더링 스킵) */
   empty: boolean;
-}
-
-// ============================================
-// Utility Functions
-// ============================================
-
-/**
- * PixiJS Matrix (2x3) → CanvasKit SkMatrix (3x3 flat array) 변환
- *
- * PixiJS: { a, b, c, d, tx, ty } → 2x3 affine
- * CanvasKit: Float32Array(9) → [scaleX, skewX, transX, skewY, scaleY, transY, persp0, persp1, persp2]
- */
-export function toSkMatrix(m: {
-  a: number;
-  b: number;
-  c: number;
-  d: number;
-  tx: number;
-  ty: number;
-}): Float32Array {
-  return Float32Array.of(
-    m.a,
-    m.c,
-    m.tx, // row 0: scaleX, skewX, transX
-    m.b,
-    m.d,
-    m.ty, // row 1: skewY, scaleY, transY
-    0,
-    0,
-    1, // row 2: perspective (항상 identity)
-  );
-}
-
-/**
- * 두 AABB(Axis-Aligned Bounding Box)가 교차하는지 검사
- *
- * renderSkia()의 뷰포트 컬링에 사용한다.
- * cullingBounds와 요소의 worldBounds를 비교하여 화면 밖 요소를 건너뛴다.
- */
-export function intersectsAABB(a: DOMRect, b: DOMRect): boolean {
-  return (
-    a.left <= b.right &&
-    a.right >= b.left &&
-    a.top <= b.bottom &&
-    a.bottom >= b.top
-  );
 }

@@ -11,4 +11,3 @@ export {
   renderScrollbar,
 } from "./nodeRendererShapes";
 export { renderImage } from "./nodeRendererImage";
-export { renderNode } from "./nodeRendererTree";

@@ -4,9 +4,10 @@
  * SkiaOverlay의 renderFrame() 내부에서 매 프레임 실행되는
  * content build 로직을 독립 모듈로 추출.
  *
- * 두 가지 빌드 경로:
- * 1. Command Stream 경로: elementsMap + layoutMap → RenderCommand[]
- * 2. Tree 경로: PixiJS 씬 그래프 DFS → 계층적 Skia 트리
+ * 빌드 경로는 Command Stream 단일: elementsMap + layoutMap → RenderCommand[].
+ * (구 Tree 경로 — PixiJS 씬 그래프 DFS — 는 ADR-900 으로 PixiJS 가 제거되며
+ * cameraContainer 생산자가 null 고정이 되어 도달 불가로 남았다가 2026-08-14
+ * simplify 에서 제거됨. layout publish 전에는 null 을 반환해 빈 프레임.)
  *
  * 공용 산출물(treeBoundsMap)을 1회 생성하여
  * selection/workflow/AI overlay가 재사용한다.
@@ -30,18 +31,11 @@ import {
   getSharedFilteredChildrenMap,
   getSyntheticElementsMap,
 } from "../layout/engines/fullTreeLayout";
-import { useScrollState } from "../../../stores/scrollState";
 import {
   getCachedCommandStream,
   executeRenderCommands,
   buildAIBoundsFromStream,
 } from "./renderCommands";
-import {
-  buildSkiaTreeHierarchical,
-  getCachedTreeBoundsMap,
-} from "./skiaTreeBuilder";
-import { buildNodeBoundsMap } from "./aiEffects";
-import { renderNode } from "./nodeRenderers";
 import {
   buildElementBoundsMapFromTreeBounds,
   getCachedOverflowInfoMap,
@@ -55,14 +49,10 @@ import { getPagePositionPresentationSnapshot } from "../interaction/pagePosition
 // Content Build — 입력/출력 타입
 // ============================================
 
-/** PixiJS Container에서 buildViaTree에 필요한 최소 인터페이스 */
-type PixiContainerLike = Parameters<typeof buildSkiaTreeHierarchical>[0];
-
 export interface ContentBuildInput {
   aiState: RendererAIInvalidation;
   registryVersion: number;
   pagePosVersion: number;
-  cameraContainer: PixiContainerLike | null;
   cameraX: number;
   cameraY: number;
   cameraZoom: number;
@@ -90,7 +80,6 @@ export function buildSkiaFrameContent(
     aiState,
     registryVersion,
     pagePosVersion,
-    cameraContainer,
     cameraX,
     cameraY,
     cameraZoom,
@@ -100,55 +89,30 @@ export function buildSkiaFrameContent(
   } = input;
 
   const sharedLayoutMap = getSharedLayoutMap();
-  const useCommandStream = sharedLayoutMap !== null;
+  if (sharedLayoutMap === null) {
+    // layout publish 전 — 그릴 콘텐츠가 없다. caller(clearFrame)가 빈 프레임 처리.
+    return null;
+  }
 
   const hasAIEffects =
     aiState.generatingNodes.size > 0 || aiState.flashAnimations.size > 0;
 
-  let treeBoundsMap: Map<string, BoundingBox>;
-  let hitBoundsMap: Map<string, BoundingBox>;
-  let nodeBoundsMap: Map<string, AIEffectNodeBounds> | null;
-  let contentNode: SkiaRenderable;
-  let renderChildrenMap: Map<string, CanvasSceneNode[]> =
-    rendererInput.childrenMap;
-
-  if (useCommandStream) {
-    const result = buildViaCommandStream(
-      sharedLayoutMap,
-      registryVersion,
-      pagePosVersion,
-      hasAIEffects,
-      aiState,
-      rendererInput,
-      ck,
-      fontMgr,
-    );
-    if (!result) return null;
-    treeBoundsMap = result.treeBoundsMap;
-    hitBoundsMap = result.hitBoundsMap;
-    renderChildrenMap = result.childrenMap ?? renderChildrenMap;
-    nodeBoundsMap = result.nodeBoundsMap;
-    contentNode = result.contentNode;
-  } else {
-    const result = buildViaTree(
-      cameraContainer,
-      registryVersion,
-      cameraX,
-      cameraY,
-      cameraZoom,
-      pagePosVersion,
-      hasAIEffects,
-      aiState,
-      ck,
-      fontMgr,
-      collectVisiblePageRoots(rendererInput).bodyPageIds,
-    );
-    if (!result) return null;
-    treeBoundsMap = result.treeBoundsMap;
-    hitBoundsMap = result.hitBoundsMap;
-    nodeBoundsMap = result.nodeBoundsMap;
-    contentNode = result.contentNode;
-  }
+  const result = buildViaCommandStream(
+    sharedLayoutMap,
+    registryVersion,
+    pagePosVersion,
+    hasAIEffects,
+    aiState,
+    rendererInput,
+    ck,
+    fontMgr,
+  );
+  if (!result) return null;
+  const treeBoundsMap = result.treeBoundsMap;
+  const hitBoundsMap = result.hitBoundsMap;
+  const renderChildrenMap = result.childrenMap ?? rendererInput.childrenMap;
+  const nodeBoundsMap = result.nodeBoundsMap;
+  const contentNode = result.contentNode;
 
   return {
     sharedScene: buildSharedSceneDerivedData(
@@ -170,9 +134,6 @@ export function buildSkiaFrameContent(
   };
 }
 
-// 하위 호환성 유지
-export const buildFrameContent = buildSkiaFrameContent;
-
 export function buildSharedSceneDerivedData(
   treeBoundsMap: Map<string, BoundingBox>,
   elementsMap: Map<string, CanvasSceneNode>,
@@ -182,8 +143,8 @@ export function buildSharedSceneDerivedData(
   cameraX: number,
   cameraY: number,
   cameraZoom: number,
-  /** 조상 clip 교차 히트 영역. 미전달 시 treeBoundsMap 동일 (clip 미추적 경로) */
-  hitBoundsMap: Map<string, BoundingBox> = treeBoundsMap,
+  /** 조상 clip 교차 히트 영역 (renderCommands 산출) */
+  hitBoundsMap: Map<string, BoundingBox>,
 ): SharedSceneDerivedData {
   return {
     treeBoundsMap,
@@ -347,86 +308,3 @@ function buildViaCommandStream(
 // ============================================
 // Internal — Tree 경로
 // ============================================
-
-function buildViaTree(
-  cameraContainer: PixiContainerLike | null,
-  registryVersion: number,
-  cameraX: number,
-  cameraY: number,
-  cameraZoom: number,
-  pagePosVersion: number,
-  hasAIEffects: boolean,
-  aiState: RendererAIInvalidation,
-  ck: CanvasKit,
-  fontMgr: FontMgr | undefined,
-  pageRootPageIds: ReadonlyMap<string, string> = new Map(),
-): InternalBuildResult | null {
-  const treeBuildStart =
-    process.env.NODE_ENV === "development" ? performance.now() : 0;
-  const tree = cameraContainer
-    ? buildSkiaTreeHierarchical(
-        cameraContainer,
-        registryVersion,
-        cameraX,
-        cameraY,
-        cameraZoom,
-        pagePosVersion,
-      )
-    : null;
-  if (process.env.NODE_ENV === "development") {
-    recordWasmMetric("skiaTreeBuildTime", performance.now() - treeBuildStart);
-  }
-  if (!tree) return null;
-
-  const selectionBuildStart =
-    process.env.NODE_ENV === "development" ? performance.now() : 0;
-  const scrollVersion = useScrollState.getState().scrollVersion;
-  const treeBoundsMap = getCachedTreeBoundsMap(
-    tree,
-    registryVersion,
-    pagePosVersion,
-    scrollVersion,
-  );
-  if (process.env.NODE_ENV === "development") {
-    recordWasmMetric(
-      "selectionBuildTime",
-      performance.now() - selectionBuildStart,
-    );
-  }
-
-  let nodeBoundsMap: Map<string, AIEffectNodeBounds> | null = null;
-  if (hasAIEffects) {
-    const aiBuildStart =
-      process.env.NODE_ENV === "development" ? performance.now() : 0;
-    nodeBoundsMap = buildNodeBoundsMap(
-      tree,
-      aiState as unknown as Parameters<typeof buildNodeBoundsMap>[1],
-    );
-    if (process.env.NODE_ENV === "development") {
-      recordWasmMetric("aiBoundsBuildTime", performance.now() - aiBuildStart);
-    }
-  }
-
-  const contentNode: SkiaRenderable = {
-    renderSkia(canvas, bounds) {
-      const currentPagePositionSnapshot = getPagePositionPresentationSnapshot();
-      renderNode(
-        ck,
-        canvas,
-        tree,
-        bounds,
-        fontMgr,
-        pageRootPageIds,
-        currentPagePositionSnapshot,
-      );
-    },
-  };
-
-  // tree 경로(legacy fallback)는 clip 추적이 없어 히트 영역 = 원본 박스.
-  return {
-    treeBoundsMap,
-    hitBoundsMap: treeBoundsMap,
-    nodeBoundsMap,
-    contentNode,
-  };
-}

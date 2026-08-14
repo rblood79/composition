@@ -17,8 +17,6 @@ import type {
 } from "./types";
 import { SkiaDisposable } from "./disposable";
 import { acquireScopedPaint } from "./paints";
-import type { SkiaNodeData } from "./nodeRenderers";
-import type { AIVisualFeedbackState } from "../../../stores/aiVisualFeedback";
 
 // ============================================
 // Constants
@@ -28,61 +26,6 @@ const PARTICLE_ORBIT_RADIUS = 20; // 파티클 공전 반경 (px)
 const PARTICLE_DOT_RADIUS = 3; // 각 파티클 점 반경 (px)
 const SCANLINE_SPEED = 200; // 스캔라인 이동 속도 (px/s)
 const SCANLINE_HEIGHT = 4; // 스캔라인 높이 (px)
-
-// ============================================
-// Node Bounds Extraction
-// ============================================
-
-/**
- * Skia 렌더 트리에서 AI 이펙트 대상 노드의 바운딩 정보를 추출한다.
- *
- * generating/flash 대상이 없으면 빈 Map을 즉시 반환한다.
- */
-export function buildNodeBoundsMap(
-  tree: SkiaNodeData,
-  aiState: AIVisualFeedbackState,
-): Map<string, AIEffectNodeBounds> {
-  const boundsMap = new Map<string, AIEffectNodeBounds>();
-
-  // 대상 ID 수집
-  const targetIds = new Set<string>();
-  for (const id of aiState.generatingNodes.keys()) targetIds.add(id);
-  for (const id of aiState.flashAnimations.keys()) targetIds.add(id);
-
-  if (targetIds.size === 0) return boundsMap;
-
-  // 계층 트리 순회 — 부모 오프셋을 누적하여 씬-로컬 절대 좌표를 복원한다.
-  // (Skia 트리가 계층적이므로 node.x/y는 부모 기준 상대 좌표)
-  function traverse(
-    node: SkiaNodeData,
-    parentX: number,
-    parentY: number,
-  ): void {
-    const absX = parentX + node.x;
-    const absY = parentY + node.y;
-
-    if (node.elementId && targetIds.has(node.elementId)) {
-      boundsMap.set(node.elementId, {
-        elementId: node.elementId,
-        x: absX,
-        y: absY,
-        width: node.width,
-        height: node.height,
-        borderRadius: Array.isArray(node.box?.borderRadius)
-          ? node.box.borderRadius[0]
-          : (node.box?.borderRadius ?? 0),
-      });
-    }
-    if (node.children) {
-      for (const child of node.children) {
-        traverse(child, absX, absY);
-      }
-    }
-  }
-
-  traverse(tree, 0, 0);
-  return boundsMap;
-}
 
 // ============================================
 // Generating Effect

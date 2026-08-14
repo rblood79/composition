@@ -27,46 +27,6 @@ export function flattenColors(colors: Float32Array[]): Float32Array {
   return result;
 }
 
-/**
- * CSS radial-gradient 키워드를 반지름 수치로 변환.
- *
- * @param keyword - CSS extent-keyword (closest-side, farthest-side, closest-corner, farthest-corner)
- * @param cx - 중심 x (요소 내 좌표)
- * @param cy - 중심 y (요소 내 좌표)
- * @param w  - 요소 너비
- * @param h  - 요소 높이
- * @returns rx, ry (ellipse 반지름)
- */
-export function resolveRadialExtent(
-  keyword: string,
-  cx: number,
-  cy: number,
-  w: number,
-  h: number,
-): { rx: number; ry: number } {
-  const left = cx,
-    right = w - cx,
-    top = cy,
-    bottom = h - cy;
-  switch (keyword) {
-    case "closest-side":
-      return { rx: Math.min(left, right), ry: Math.min(top, bottom) };
-    case "farthest-side":
-      return { rx: Math.max(left, right), ry: Math.max(top, bottom) };
-    case "closest-corner":
-      return {
-        rx: Math.sqrt(Math.min(left, right) ** 2 + Math.min(top, bottom) ** 2),
-        ry: Math.sqrt(Math.min(left, right) ** 2 + Math.min(top, bottom) ** 2),
-      };
-    case "farthest-corner":
-    default:
-      return {
-        rx: Math.sqrt(Math.max(left, right) ** 2 + Math.max(top, bottom) ** 2),
-        ry: Math.sqrt(Math.max(left, right) ** 2 + Math.max(top, bottom) ** 2),
-      };
-  }
-}
-
 /** mesh-gradient SkSL: 4코너 bilinear interpolation (좌상·우상·좌하·우하) */
 const MESH_GRADIENT_SKSL = `
   uniform half4 uTL, uTR, uBL, uBR;

@@ -280,44 +280,6 @@ export function applyMaskImage(
 }
 
 // ============================================
-// saveLayer + DstIn 기반 mask 합성
-// ============================================
-
-/**
- * saveLayer로 캡처된 content 레이어 위에 DstIn 블렌드로 gradient mask를 그린다.
- *
- * 사용 패턴:
- *   canvas.saveLayer()         ← CMD_ELEMENT_BEGIN에서 mask 감지 시
- *   ... content draw calls ...
- *   canvas.restore()           ← CMD_ELEMENT_END에서 content 레이어 복원
- *   applyMaskLayerGradient(...)← 복원 직후 DstIn으로 mask 그리기
- *
- * DstIn 블렌드: result.a = dst.a * src.a → content에 gradient alpha 적용.
- *
- * @param ck         - CanvasKit 인스턴스
- * @param canvas     - 렌더 대상 Canvas (content restore 후 상태)
- * @param width      - 마스크 영역 너비
- * @param height     - 마스크 영역 높이
- * @param maskShader - gradient Shader (buildMaskGradientShader 반환값). 호출 후 delete 호출자 책임
- */
-export function applyMaskLayerGradient(
-  ck: CanvasKit,
-  canvas: Canvas,
-  width: number,
-  height: number,
-  maskShader: { delete(): void },
-): void {
-  const paint = acquirePooledPaint(ck);
-  try {
-    paint.setBlendMode(ck.BlendMode.DstIn);
-    paint.setShader(maskShader as Parameters<typeof paint.setShader>[0]);
-    canvas.drawRect(ck.LTRBRect(0, 0, width, height), paint);
-  } finally {
-    releasePooledPaint(paint);
-  }
-}
-
-// ============================================
 // Cache Cleanup
 // ============================================
 

@@ -25,7 +25,8 @@ describe("skiaFramePipeline page-resolved render tree contract", () => {
       /renderSkia\(canvas, bounds\) \{\s*const currentPagePositionSnapshot =\s*getPagePositionPresentationSnapshot\(\);/g,
     );
 
-    expect(renderTimeSnapshotReads).toHaveLength(2);
+    // 1 = command stream contentNode (구 tree fallback closure 는 2026-08-14 제거)
+    expect(renderTimeSnapshotReads).toHaveLength(1);
     expect(source).not.toContain("pagePositionSnapshot?:");
     expect(source).not.toContain("pagePositionSnapshot ??");
   });
