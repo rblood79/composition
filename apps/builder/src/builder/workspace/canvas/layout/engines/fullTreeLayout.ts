@@ -1316,8 +1316,9 @@ function traversePostOrder(
   // 영향: `calculateContentHeight` taglist 분기(utils.ts) 는 `element.props.items` /
   //   `element.props.maxRows` 를 직접 소비. items 누락 시 row-wrap 결과 0 반환 →
   //   TagGroup 컨테이너 높이 = Label 단독으로 고정. maxRows 누락 시 행 제한 미적용.
-  //   Skia 렌더는 `resolveTagListItemsFromParent` (buildSpecNodeData.ts) 에서 동일
-  //   방어 패치를 수행하므로 chip 시각은 정상 — Skia ↔ Layout 비대칭 발생 원인.
+  //   Skia 렌더는 `applyParentPropagationProps` (buildSpecNodeData.ts — registry
+  //   tagGroupPropagationRules 일반 적용) 가 동일 방어 패치를 수행하므로 chip 시각은
+  //   정상 — Skia ↔ Layout 비대칭 발생 원인.
   //
   // 처리: Tag/Checkbox/Radio 의 부모 size delegation 과 동일하게 DFS 진입 시 rawElement
   //   props 를 부모값으로 보강. 자식 명시값(override:true 가 아닌 필드는 자식 우선)은 유지.

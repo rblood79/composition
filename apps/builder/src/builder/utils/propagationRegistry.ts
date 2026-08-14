@@ -888,6 +888,16 @@ const tagGroupPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "Tag", override: true },
   { parentProp: "size", childPath: "TagList", override: true },
   { parentProp: "allowsRemoving", childPath: "Tag", override: true },
+  // factory 트리는 TagGroup > TagList > Tag(손자) — string childPath "Tag" 는 직계만
+  //   매칭하므로 위 규칙은 legacy 평면 트리 전용이고, 손자는 중첩 경로가 필수
+  //   (Slider ["SliderTrack","SliderThumb"] / Card ["CardHeader","Heading"] 선례).
+  //   2026-08-14: 구 Skia 우회 resolver(buildSpecNodeData.resolveTagGroupAllowsRemoving)
+  //   삭제 대체 — 전파는 registry 한 메커니즘만.
+  {
+    parentProp: "allowsRemoving",
+    childPath: ["TagList", "Tag"],
+    override: true,
+  },
   { parentProp: "allowsRemoving", childPath: "TagList", override: true },
   { parentProp: "size", childPath: "Label", override: true },
   {

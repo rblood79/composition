@@ -38,6 +38,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `buildBoxNodeData` 의 `isCollectionItem` 분기(카드 배경 `0.98` 근백색 / 테두리 `0.83` 연회색 / borderRadius 8 / strokeWidth 1 강제)와 `StoreRenderBridge` 의 `COLLECTION_ITEM_TAGS` 삭제
   - **Why**: 대상 태그(GridListItem/ListBoxItem)가 catalog cutover 상수라 `isSpecPath` 게이트를 항상 통과 — box fallback 분기에 도달 불가. theme-bypass 리터럴로 지목됐으나 실측 결과 죽은 코드였다
 
+- **Slider/TagGroup 수동 전파 resolver 삭제 — registry 단일 메커니즘으로 통합** (simplify 보류 항목 후속):
+  - `buildSpecNodeData` 의 `resolveSliderProps` / `resolveTagGroupAllowsRemoving` / `resolveTagListItemsFromParent` 3개 삭제 (−140줄)
+  - **Why**: 같은 함수 안의 `applyParentPropagationProps`(registry 일반 경로)가 동일 규칙(`sliderPropagationRules` value/minValue/maxValue → SliderTrack, `tagGroupPropagationRules` items/variant/size/maxRows/allowsRemoving → TagList)을 이미 적용한 뒤 resolver 가 재수행하는 이중 구현이었다. Slider 기본값(50/0/100)은 소비처 `slider_fill_bar` escape 내장값과 동일, variant 전파는 Slider catalog `variants:{}` + SliderTrack default 단일 variant 라 사어
+  - registry 보강: `tagGroupPropagationRules` 에 중첩 childPath `["TagList","Tag"]` allowsRemoving 규칙 추가 — string `"Tag"` 는 직계만 매칭이라 factory 트리(TagGroup > TagList > Tag)에서 dead 였고, Skia 레이어 우회 resolver 가 그 구멍을 메우고 있었다 (Slider `["SliderTrack","SliderThumb"]` 선례)
+  - 검증: 라이브 Slider 생성 → fill bar 60=200×30% → value 70 편집 → 140=200×70% 실측 후 undo 복원. 회귀 테스트 3건 (Slider value 전파 / Tag 손자 remove X / 미설정 시 X 없음)
+  - 위치: `apps/builder/src/builder/{workspace/canvas/skia/buildSpecNodeData.ts,utils/propagationRegistry.ts}`
+
 ## [캔버스 월드 격자 제거 — Settings 패널 정리] - 2026-08-14
 
 ### Breaking Changes

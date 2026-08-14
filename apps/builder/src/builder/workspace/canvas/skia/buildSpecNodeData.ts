@@ -834,25 +834,6 @@ function resolveProgressProps(
   };
 }
 
-/** Slider → SliderTrack value propagation */
-function resolveSliderProps(
-  element: CanvasSceneNode,
-  elementsMap: Map<string, CanvasSceneNode>,
-): Record<string, unknown> | null {
-  if (element.type !== "SliderTrack" || !element.parent_id) return null;
-
-  const parent = elementsMap.get(element.parent_id);
-  if (!parent) return null;
-
-  const pp = getProps(parent);
-  return {
-    value: pp.value ?? 50,
-    minValue: (pp.minValue as number) ?? 0,
-    maxValue: (pp.maxValue as number) ?? 100,
-    variant: (pp.variant as string) ?? "default",
-  };
-}
-
 /**
  * SelectIcon → parent/grandparent iconName
  *
@@ -895,86 +876,6 @@ function resolveIconDelegation(
   // NumberField/SearchField 의 SelectIcon 은 factory 에서 자기 iconName 을 명시하므로 위 분기에서
   // 이미 반환됨 → 본 기본값은 Select/ComboBox 의 미설정 SelectIcon 에만 적용.
   return "chevron-down";
-}
-
-/** TagGroup allowsRemoving → Tag child */
-function resolveTagGroupAllowsRemoving(
-  element: CanvasSceneNode,
-  elementsMap: Map<string, CanvasSceneNode>,
-): boolean {
-  if (element.type !== "Tag" || !element.parent_id) return false;
-
-  const tagList = elementsMap.get(element.parent_id);
-  if (!tagList?.parent_id) return false;
-
-  const ancestor =
-    tagList.type === "TagList"
-      ? elementsMap.get(tagList.parent_id)
-      : tagList.type === "TagGroup"
-        ? tagList
-        : null;
-  if (!ancestor || ancestor.type !== "TagGroup") return false;
-
-  return Boolean(getProps(ancestor).allowsRemoving);
-}
-
-/**
- * ADR-097 Phase 4A: TagList → 부모 TagGroup 의 items/variant/size/allowsRemoving 전파.
- *
- * TagList spec.shapes 는 `props.items` 기반 chip self-render. Skia 렌더 경로에서
- * TagList.props.items 가 비어 있으면 chip 이 렌더되지 않는다.
- * Inspector edit 경로는 `buildPropagationUpdates` 로 Store 갱신되지만, migration
- * short-circuit (이미 마이그레이션된 프로젝트 — Tag child 없음) / 순수 로드
- * 시점에는 Store 값이 없어 Canvas 가 빈 TagList 를 그린다.
- * 본 resolver 는 `resolveTagGroupAllowsRemoving` 과 대칭으로 TagGroup propagation
- * rule 을 Skia 시점에서 방어적으로 해석 — React/CSS 경로와 Canvas 경로의 SSOT 정합성 보장.
- */
-function resolveTagListItemsFromParent(
-  element: CanvasSceneNode,
-  elementsMap: Map<string, CanvasSceneNode>,
-): Record<string, unknown> | null {
-  if (element.type !== "TagList" || !element.parent_id) return null;
-  const parent = elementsMap.get(element.parent_id);
-  if (!parent || parent.type !== "TagGroup") return null;
-
-  const parentProps = getProps(parent);
-  const patch: Record<string, unknown> = {};
-  let hasPatch = false;
-
-  const parentItems = parentProps.items;
-  if (Array.isArray(parentItems) && parentItems.length > 0) {
-    patch.items = parentItems;
-    hasPatch = true;
-  }
-
-  const parentVariant = parentProps.variant;
-  if (typeof parentVariant === "string" && !getProps(element).variant) {
-    patch.variant = parentVariant;
-    hasPatch = true;
-  }
-
-  const parentSize = parentProps.size;
-  if (typeof parentSize === "string" && !getProps(element).size) {
-    patch.size = parentSize;
-    hasPatch = true;
-  }
-
-  if (parentProps.allowsRemoving === true) {
-    patch.allowsRemoving = true;
-    hasPatch = true;
-  }
-
-  // ADR-097 Phase 4A propagation rule `{ parentProp: "maxRows", childPath: "TagList" }`
-  // 와 정합. Store 에 TagList.props.maxRows 가 누락된 경로 (legacy migration 직후 등)
-  // 에서도 Skia chip 행 제한 + "Show all" 동작이 부모 TagGroup.maxRows 와 동일하게 적용되도록
-  // 방어적 fallback. Inspector edit 경로는 buildPropagationUpdates 가 store 직접 갱신.
-  const parentMaxRows = parentProps.maxRows;
-  if (typeof parentMaxRows === "number" && parentMaxRows > 0) {
-    patch.maxRows = parentMaxRows;
-    hasPatch = true;
-  }
-
-  return hasPatch ? patch : null;
 }
 
 /** Label in nowrap parent detection */
@@ -1349,32 +1250,19 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     }
   }
 
-  // Slider value propagation
-  const sliderProps = resolveSliderProps(element, elementsMap);
-  if (sliderProps) {
-    specProps = { ...specProps, ...sliderProps };
-  }
-
   // SelectIcon/ComboBoxTrigger icon delegation
   const delegatedIcon = resolveIconDelegation(element, elementsMap);
   if (delegatedIcon && !specProps.iconName) {
     specProps = { ...specProps, iconName: delegatedIcon };
   }
 
-  // TagGroup allowsRemoving
-  if (resolveTagGroupAllowsRemoving(element, elementsMap)) {
-    specProps = { ...specProps, allowsRemoving: true };
-  }
-
-  // ADR-097 Phase 4A: TagList ← TagGroup items/variant/size/allowsRemoving propagation.
-  //   자식 명시값 있으면 skip (items 는 override:true — 부모 우선). React/CSS 경로 대칭.
-  const tagListParentPatch = resolveTagListItemsFromParent(
-    element,
-    elementsMap,
-  );
-  if (tagListParentPatch) {
-    specProps = { ...specProps, ...tagListParentPatch };
-  }
+  // 구 Slider/TagGroup 수동 전파 resolver(resolveSliderProps/resolveTagGroupAllowsRemoving/
+  //   resolveTagListItemsFromParent)는 registry 중복으로 삭제 (2026-08-14) — 위
+  //   applyParentPropagationProps 가 같은 규칙을 이미 적용한다: sliderPropagationRules
+  //   (value/minValue/maxValue → SliderTrack) + tagGroupPropagationRules(items/variant/
+  //   size/maxRows/allowsRemoving → TagList, allowsRemoving → Tag 직계+["TagList","Tag"]
+  //   손자). Slider 기본값(50/0/100)은 소비처 slider_fill_bar escape 내장값과 동일해 불요,
+  //   variant 전파는 Slider catalog variants:{} + SliderTrack default 단일 variant 라 사어.
 
   // Tab/TabList: 조상 Tabs 1회 조회 → _isSelected, _showIndicator, orientation 주입
   //

@@ -862,4 +862,102 @@ describe("buildSpecNodeData", () => {
       expect(effects).toContainEqual({ type: "opacity", value: 0.38 });
     });
   });
+
+  // 구 수동 전파 resolver(resolveSliderProps/resolveTagGroupAllowsRemoving/
+  // resolveTagListItemsFromParent) 삭제 회귀 (2026-08-14): 같은 전파를
+  // applyParentPropagationProps(registry 일반 경로)가 담당하는지 잠근다.
+  describe("propagation registry 일반 경로 — 수동 resolver 삭제 회귀", () => {
+    function collectBoxWidths(node: SkiaNodeData | undefined | null): number[] {
+      if (!node) return [];
+      const own = node.type === "box" ? [node.width] : [];
+      return [
+        ...own,
+        ...(node.children ?? []).flatMap((c) => collectBoxWidths(c)),
+      ];
+    }
+
+    it("Slider value → SliderTrack: registry 규칙으로 fill bar 폭이 부모 value 비례", () => {
+      const slider = makeElement("slider", {
+        type: "Slider",
+        props: { value: 30, minValue: 0, maxValue: 100 },
+      });
+      const track = makeElement("track", {
+        type: "SliderTrack",
+        parent_id: "slider",
+        props: {},
+      });
+      const node = buildSpecNodeData({
+        element: track,
+        layout: makeLayout({ x: 0, y: 0, width: 200, height: 8 }),
+        theme: "light",
+        elementsMap: new Map([
+          [slider.id, slider],
+          [track.id, track],
+        ]),
+      });
+
+      // slider_fill_bar escape: fill 폭 = 200 × 30% = 60. 전파 결손 시 escape 내장
+      // 기본값(value ?? 50)으로 100 이 그려진다 — 60 존재 + 100 부재로 전파를 판정.
+      const widths = collectBoxWidths(node);
+      expect(widths).toContain(60);
+      expect(widths).not.toContain(100);
+    });
+
+    it('TagGroup allowsRemoving → 손자 Tag: 중첩 childPath ["TagList","Tag"] 규칙으로 remove X 렌더', () => {
+      const group = makeElement("tg", {
+        type: "TagGroup",
+        props: { allowsRemoving: true },
+      });
+      const list = makeElement("tl", {
+        type: "TagList",
+        parent_id: "tg",
+        props: {},
+      });
+      const tag = makeElement("t1", {
+        type: "Tag",
+        parent_id: "tl",
+        props: { children: "One" },
+      });
+      const node = buildSpecNodeData({
+        element: tag,
+        layout: makeLayout({ x: 0, y: 0, width: 80, height: 24 }),
+        theme: "light",
+        elementsMap: new Map([
+          [group.id, group],
+          [list.id, list],
+          [tag.id, tag],
+        ]),
+      });
+
+      // catalog Tag rule.trailingIcon(showProp: allowsRemoving) → Lucide "x" glyph.
+      expect(findIconPath(node)).not.toBeNull();
+    });
+
+    it("TagGroup allowsRemoving 미설정이면 손자 Tag 에 remove X 없음", () => {
+      const group = makeElement("tg", { type: "TagGroup", props: {} });
+      const list = makeElement("tl", {
+        type: "TagList",
+        parent_id: "tg",
+        props: {},
+      });
+      const tag = makeElement("t1", {
+        type: "Tag",
+        parent_id: "tl",
+        props: { children: "One" },
+      });
+      const node = buildSpecNodeData({
+        element: tag,
+        layout: makeLayout({ x: 0, y: 0, width: 80, height: 24 }),
+        theme: "light",
+        elementsMap: new Map([
+          [group.id, group],
+          [list.id, list],
+          [tag.id, tag],
+        ]),
+      });
+
+      expect(node).not.toBeNull();
+      expect(findIconPath(node)).toBeNull();
+    });
+  });
 });
