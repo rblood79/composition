@@ -64,7 +64,7 @@ import {
   buildFrameTitleRenderItems,
   buildMinimapConfig,
   buildMinimapRenderData,
-  buildMinimapViewportBounds,
+  buildViewportSceneRect,
   buildPageTitleRenderItems,
   buildSlotMarkerTargets,
   buildCollectionRemainderTargets,
@@ -90,9 +90,13 @@ import {
 import { getSnapGuidePresentationSnapshot } from "../interaction/snapGuidePresentation";
 import { getMeasureGuidePresentationSnapshot } from "../interaction/measureGuidePresentation";
 import { renderMeasureGuides, renderSnapGuides } from "./snapGuideRenderer";
-import { renderPageGuides } from "./guideRenderer";
+import { renderGuideDragPreview, renderPageGuides } from "./guideRenderer";
 import { readPageGuidesByPage } from "../viewport/pageGuideActions";
-import { getGuideDrag, mergeGuideDrag } from "../interaction/guidePresentation";
+import {
+  getGuideDrag,
+  mergeGuideDrag,
+  resolveGuideDragPreview,
+} from "../interaction/guidePresentation";
 import { useStore } from "../../../stores";
 
 // ============================================
@@ -621,9 +625,10 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
       // 생성까지 통째로 건너뛴다.
       // 드래그 중이면 transient 를 얹는다 — canonical 은 pointerup 까지
       // 손대지 않으므로(HC1(c)) 미리보기는 이 합성에만 있다.
+      const guideDrag = getGuideDrag();
       const guidesByPage = mergeGuideDrag(
         readPageGuidesByPage(useStore.getState().activeBreakpoint),
-        getGuideDrag(),
+        guideDrag,
       );
       if (guidesByPage.size > 0) {
         const guideTargets = buildPageGuideTargets(
@@ -641,6 +646,26 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
             () => renderPageGuides(ck, canvas, target, cameraZoom),
           );
         }
+      }
+
+      // 소속이 아직 없는 드래그 — 뷰포트를 가로지르는 미리보기 (위와 배타).
+      // 드래그는 늘 눈금자 위에서 시작하므로 이게 없으면 "끌기 시작 →
+      // 아무 일도 없음" 구간이 생긴다 (2026-08-14 사용자 보고).
+      const guidePreview = resolveGuideDragPreview(guideDrag);
+      if (guidePreview) {
+        renderGuideDragPreview(
+          ck,
+          canvas,
+          guidePreview,
+          buildViewportSceneRect(
+            cameraX,
+            cameraY,
+            cameraZoom,
+            skiaCanvasWidth / dpr,
+            skiaCanvasHeight / dpr,
+          ),
+          cameraZoom,
+        );
       }
 
       // ── Editing Context Border ──
@@ -814,7 +839,7 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
             pageFrameMap,
             workflow.workflowEdges,
             workflow.focusedPageId,
-            buildMinimapViewportBounds(
+            buildViewportSceneRect(
               cameraX,
               cameraY,
               cameraZoom,

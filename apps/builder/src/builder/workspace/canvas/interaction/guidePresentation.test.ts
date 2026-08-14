@@ -17,6 +17,7 @@ import {
   mergeGuideDrag,
   publishGuideDrag,
   resetGuideDragForTest,
+  resolveGuideDragPreview,
   type GuideDragState,
 } from "./guidePresentation";
 import {
@@ -44,6 +45,7 @@ const MOVE: GuideDragState = {
   removing: false,
   originPageId: "page-1",
   originPosition: 100,
+  scenePosition: 460,
 };
 
 beforeEach(() => {
@@ -77,6 +79,7 @@ describe("mergeGuideDrag", () => {
       removing: true,
       originPageId: "page-2",
       originPosition: 20,
+      scenePosition: 220,
     });
     expect(merged.has("page-2")).toBe(false);
   });
@@ -91,6 +94,7 @@ describe("mergeGuideDrag", () => {
       removing: false,
       originPageId: null,
       originPosition: 0,
+      scenePosition: 12,
     };
     expect(mergeGuideDrag(CANONICAL, create).get("page-1")).toEqual(
       CANONICAL.get("page-1"),
@@ -107,6 +111,7 @@ describe("mergeGuideDrag", () => {
       removing: false,
       originPageId: null,
       originPosition: 0,
+      scenePosition: 700,
     });
     expect(merged.get("page-2")).toEqual([g("c", "x", 20), g("new", "y", 300)]);
   });
@@ -121,6 +126,7 @@ describe("mergeGuideDrag", () => {
       removing: false,
       originPageId: null,
       originPosition: 0,
+      scenePosition: 810,
     });
     expect(merged.get("page-3")).toEqual([g("new", "x", 10)]);
   });
@@ -162,6 +168,94 @@ describe("begin/publish/end — 값이 바뀐 때만 재렌더 신호", () => {
     expect(getGuideDrag()).toBeNull();
     expect(getPageGuideRevision()).toBe(2);
     endGuideDrag();
+    expect(getPageGuideRevision()).toBe(2);
+  });
+});
+
+describe("resolveGuideDragPreview — 소속 미정 구간의 미리보기", () => {
+  const CREATE_OVER_RULER: GuideDragState = {
+    kind: "create",
+    guideId: "new",
+    axis: "x",
+    pageId: null,
+    position: 0,
+    removing: false,
+    originPageId: null,
+    originPosition: 0,
+    scenePosition: 640,
+  };
+
+  it("소속이 없으면 커서 축 좌표로 미리보기를 낸다", () => {
+    expect(resolveGuideDragPreview(CREATE_OVER_RULER)).toEqual({
+      axis: "x",
+      scenePosition: 640,
+    });
+  });
+
+  it("가로 가이드도 같은 어법 (axis 를 그대로 전달)", () => {
+    expect(
+      resolveGuideDragPreview({
+        ...CREATE_OVER_RULER,
+        axis: "y",
+        scenePosition: 305,
+      }),
+    ).toEqual({ axis: "y", scenePosition: 305 });
+  });
+
+  it("소속이 정해지면 null — mergeGuideDrag 와 배타 (이중 렌더 금지)", () => {
+    expect(
+      resolveGuideDragPreview({ ...CREATE_OVER_RULER, pageId: "page-2" }),
+    ).toBeNull();
+    // 이동 드래그는 항상 소속이 있으므로 미리보기 경로를 타지 않는다
+    expect(resolveGuideDragPreview(MOVE)).toBeNull();
+  });
+
+  it("되돌리는 중이면 null — 사라지는 것이 '놓으면 삭제' 피드백", () => {
+    expect(
+      resolveGuideDragPreview({
+        ...MOVE,
+        pageId: null,
+        removing: true,
+      }),
+    ).toBeNull();
+  });
+
+  it("좌표가 아직 없거나 드래그가 없으면 null", () => {
+    expect(
+      resolveGuideDragPreview({ ...CREATE_OVER_RULER, scenePosition: null }),
+    ).toBeNull();
+    expect(resolveGuideDragPreview(null)).toBeNull();
+  });
+
+  it("scenePosition 0 을 '없음' 으로 읽지 않는다", () => {
+    expect(
+      resolveGuideDragPreview({ ...CREATE_OVER_RULER, scenePosition: 0 }),
+    ).toEqual({ axis: "x", scenePosition: 0 });
+  });
+});
+
+describe("publish — 눈금자 위 이동도 재렌더 신호여야 한다", () => {
+  it("scenePosition 만 바뀌어도 개정이 오른다", () => {
+    // 눈금자 위를 좌우로 끄는 구간: pageId/position/removing 은 전부 그대로라
+    // scenePosition 비교가 없으면 미리보기가 커서를 따라오지 않는다
+    beginGuideDrag({
+      kind: "create",
+      guideId: "new",
+      axis: "x",
+      pageId: null,
+      position: 0,
+      removing: false,
+      originPageId: null,
+      originPosition: 0,
+      scenePosition: 100,
+    });
+    expect(getPageGuideRevision()).toBe(1);
+
+    publishGuideDrag({ pageId: null, removing: false, scenePosition: 140 });
+    expect(getPageGuideRevision()).toBe(2);
+    expect(getGuideDrag()?.scenePosition).toBe(140);
+
+    publishGuideDrag({ pageId: null, removing: false, scenePosition: 140 });
     expect(getPageGuideRevision()).toBe(2);
   });
 });

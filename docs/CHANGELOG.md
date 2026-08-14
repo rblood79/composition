@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [눈금자 + 수동 가이드 — ADR-181 Phase 0~7] - 2026-08-14
 
+### Bug Fixes
+
+- **가이드를 끄는 동안 페이지 밖에서는 아무 표시도 없었다** (ADR-181 후속, 2026-08-14 사용자 보고):
+  - 눈금자에서 손을 대고 끌어도 **페이지 사각형 안에 들어가기 전까지** 선이 보이지 않았다. 드래그는 언제나 눈금자 위(=페이지 밖)에서 시작하므로 사용자가 처음 겪는 것이 "끌기 시작 → 아무 일도 없음" 이었고, 그래서 기능 자체가 없는 것으로 읽혔다
+  - **Why**: 미리보기가 `mergeGuideDrag` 하나로만 나왔는데, 그것은 소속 페이지가 정해진 뒤에야 목록에 항목을 얹는다. 가이드 좌표가 페이지-로컬(C9)이라 소속 없는 구간을 표현할 방법이 없었던 것 — 커밋 거부(의도)와 **피드백 부재**(누락)를 한 조건이 겸하고 있었다
+  - 수정: 드래그 상태가 소속과 무관한 커서 scene 좌표(`scenePosition`)를 항상 싣고, 소속이 없는 동안 뷰포트를 가로지르는 선을 그린다. 소속이 정해지면 종전대로 그 페이지에 클립된 선으로 바뀐다 — **선이 잘리기 시작하는 순간이 곧 "여기 놓으면 붙는다" 는 신호**라 두 표현을 통일하지 않았다
+  - 미리보기는 순간 피드백이라 §8.5 의 **조작 표식** 열이다 (스냅 정렬선과 같은 취급 — occlusion·페이지 클립 미적용). 확정 가이드가 콘텐츠성 chrome 인 것과 갈린다
+  - 위치: `apps/builder/src/builder/workspace/canvas/{interaction/guidePresentation.ts,hooks/useGuideDrag.ts,skia/guideRenderer.ts,skia/skiaOverlayBuilder.ts}`
+
 ### Features
 
 - **눈금자(Ruler)** (ADR-181 Phase 1 Implemented):

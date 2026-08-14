@@ -24,7 +24,7 @@ export interface GuideDragState {
   axis: "x" | "y";
   /**
    * 현재 소속 페이지. create 드래그가 아직 어느 페이지 위에도 없으면 null —
-   * 이때는 미리보기를 그리지 않는다 (놓아도 커밋하지 않는다).
+   * 놓아도 커밋하지 않는다 (C9 — 가이드 좌표는 페이지-로컬).
    */
   pageId: string | null;
   /** 페이지-로컬 px */
@@ -34,6 +34,21 @@ export interface GuideDragState {
   /** move 시작 시점의 소속 페이지·위치 (커밋 시 before 목록 산출) */
   originPageId: string | null;
   originPosition: number;
+  /**
+   * 커서의 scene 좌표 (해당 축). **소속 페이지와 무관하게 항상 채운다.**
+   *
+   * 드래그는 언제나 눈금자 위 = 페이지 밖에서 시작하므로, 소속이 정해진
+   * 뒤에만 그리면 사용자는 "끌기 시작 → 아무 일도 없음" 을 먼저 겪는다
+   * (2026-08-14 사용자 보고 — "드래그 시작시 바로 가이드가 나타나는 것을
+   * 기대"). 이 값이 그 구간의 미리보기 좌표다.
+   */
+  scenePosition: number | null;
+}
+
+/** 소속 없는 드래그의 미리보기 — 뷰포트를 가로지르는 선 1개 */
+export interface GuideDragPreview {
+  axis: "x" | "y";
+  scenePosition: number;
 }
 
 let dragState: GuideDragState | null = null;
@@ -49,14 +64,17 @@ export function beginGuideDrag(state: GuideDragState): void {
 
 /** 드래그 중 갱신 — 값이 바뀐 프레임에만 notify (pagePositionPresentation 어법) */
 export function publishGuideDrag(
-  patch: Partial<Pick<GuideDragState, "pageId" | "position" | "removing">>,
+  patch: Partial<
+    Pick<GuideDragState, "pageId" | "position" | "removing" | "scenePosition">
+  >,
 ): void {
   if (!dragState) return;
   const next = { ...dragState, ...patch };
   if (
     next.pageId === dragState.pageId &&
     next.position === dragState.position &&
-    next.removing === dragState.removing
+    next.removing === dragState.removing &&
+    next.scenePosition === dragState.scenePosition
   ) {
     return;
   }
@@ -100,6 +118,25 @@ export function mergeGuideDrag(
     { id: drag.guideId, axis: drag.axis, position: drag.position },
   ]);
   return merged;
+}
+
+/**
+ * 아직 소속이 없는 드래그의 미리보기 — 뷰포트를 가로지르는 선.
+ *
+ * `mergeGuideDrag` 와 **배타**다. 소속이 정해지면 그쪽이 페이지에 클립된
+ * 선으로 그리고, 여기서는 null 을 준다. 두 표현이 갈리는 것이 이 설계의
+ * 요점이다: 선이 페이지 안으로 들어가 잘리는 순간이 곧 "여기 놓으면
+ * 붙는다" 는 신호다. 전부 뷰포트 선으로 통일하면 그 정보가 사라진다.
+ *
+ * `removing`(이동 중 눈금자로 되돌림)이면 그리지 않는다 — 사라지는 것이
+ * "놓으면 삭제" 의 피드백이다.
+ */
+export function resolveGuideDragPreview(
+  drag: GuideDragState | null,
+): GuideDragPreview | null {
+  if (!drag || drag.removing || drag.pageId !== null) return null;
+  if (drag.scenePosition === null) return null;
+  return { axis: drag.axis, scenePosition: drag.scenePosition };
 }
 
 /** 테스트 전용 */

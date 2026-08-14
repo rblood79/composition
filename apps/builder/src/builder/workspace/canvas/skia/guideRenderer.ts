@@ -31,6 +31,8 @@ import type { PageGuideRenderTarget } from "./skiaOverlayHelpers";
 /** 수동 가이드 시안 (#59A8D7 — 스냅 레드/선택 파랑과 분리, 양 테마 공용) */
 const PAGE_GUIDE_HEX = 0x59a8d7;
 const PAGE_GUIDE_ALPHA = 0.9;
+/** 소속 미정 미리보기 — 같은 색·같은 두께, 알파만 낮춰 "아직 잠정" 을 표현 */
+const PAGE_GUIDE_PREVIEW_ALPHA = 0.45;
 
 /**
  * 한 페이지의 가이드 전부를 그린다.
@@ -72,6 +74,55 @@ export function renderPageGuides(
     }
   } finally {
     canvas.restore();
+    releasePooledPaint(paint);
+  }
+}
+
+/**
+ * 드래그 중 **소속 미정** 미리보기 — 뷰포트를 가로지르는 선 1개.
+ *
+ * 확정 가이드와 성격이 갈린다. 이건 순간 피드백이라 §8.5 의 **조작 표식**
+ * 열이고, 그래서 `withPageOcclusionClip` 도 페이지 rect 클립도 걸지 않는다
+ * (스냅 정렬선과 같은 취급). 소속 페이지가 없으니 클립할 rect 자체가 없다.
+ *
+ * 소속이 정해지면 이 함수는 호출되지 않는다 — `resolveGuideDragPreview` 가
+ * null 을 주고, 대신 `renderPageGuides` 가 그 페이지에 클립된 선을 그린다.
+ * 선이 잘리기 시작하는 순간이 곧 "여기 놓으면 붙는다" 는 신호다.
+ */
+export function renderGuideDragPreview(
+  ck: CanvasKit,
+  canvas: Canvas,
+  preview: { axis: "x" | "y"; scenePosition: number },
+  viewport: { x: number; y: number; width: number; height: number },
+  zoom: number,
+): void {
+  const invZoom = 1 / (zoom === 0 ? 1 : zoom);
+  const [r, g, b] = hexToColor4fChannels(PAGE_GUIDE_HEX);
+  const paint = acquirePooledPaint(ck);
+  paint.setColor(ck.Color4f(r, g, b, PAGE_GUIDE_PREVIEW_ALPHA));
+  paint.setAntiAlias(true);
+  paint.setStyle(ck.PaintStyle.Stroke);
+  paint.setStrokeWidth(invZoom);
+
+  try {
+    if (preview.axis === "x") {
+      canvas.drawLine(
+        preview.scenePosition,
+        viewport.y,
+        preview.scenePosition,
+        viewport.y + viewport.height,
+        paint,
+      );
+    } else {
+      canvas.drawLine(
+        viewport.x,
+        preview.scenePosition,
+        viewport.x + viewport.width,
+        preview.scenePosition,
+        paint,
+      );
+    }
+  } finally {
     releasePooledPaint(paint);
   }
 }

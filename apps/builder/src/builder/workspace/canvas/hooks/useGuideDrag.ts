@@ -101,19 +101,31 @@ export function useGuideDrag({
       /**
        * 포인터 위치 → 드래그 상태.
        *
-       * 눈금자 위면 `removing` (되돌리기), 아니면 포인터가 올라간 페이지의
-       * 로컬 좌표. 페이지 밖이면 소속 없음(null) — 생성 드래그는 그대로 놓으면
-       * 커밋되지 않고, 이동은 원래 페이지를 유지한 채 그 축만 벗어난다.
+       * 소속 페이지가 있으면 그 페이지-로컬 좌표, 없으면 소속 없음(null).
+       * 어느 쪽이든 **커서의 scene 좌표는 항상 채운다** — 드래그는 늘 눈금자
+       * 위(=페이지 밖)에서 시작하므로, 그 구간에 미리보기를 그리려면 소속과
+       * 무관한 좌표가 필요하다.
+       *
+       * 눈금자 위의 의미는 드래그 종류마다 다르다:
+       * - **move**: 되돌리기 → `removing` (놓으면 삭제)
+       * - **create**: 아직 안 끌어냄 → 소속 없음 (놓으면 그냥 취소)
+       *
+       * create 에서 `removing` 을 세우지 않는 것은 커밋 결과가 같기 때문이다
+       * (`commitGuideDrag` — 소속 없는 create 는 어느 쪽이든 아무것도 만들지
+       * 않는다). 대신 미리보기가 살아 있어 "끌리고 있다" 가 보인다.
        */
       const resolveAt = (
         clientX: number,
         clientY: number,
         overRuler: boolean,
-      ): Partial<Pick<GuideDragState, "pageId" | "position" | "removing">> => {
-        if (overRuler) return { removing: true };
-
+      ): Partial<
+        Pick<
+          GuideDragState,
+          "pageId" | "position" | "removing" | "scenePosition"
+        >
+      > => {
         const container = containerRef.current;
-        if (!container) return { removing: false };
+        if (!container) return { removing: overRuler };
         const rect = container.getBoundingClientRect();
         const scene = screenToCanvasPoint({
           x: clientX - rect.left,
@@ -122,6 +134,16 @@ export function useGuideDrag({
 
         const state = useStore.getState();
         const drag = getGuideDrag();
+        const axis = drag?.axis ?? initial.axis;
+        // axis "x" = x 를 고정하는 세로선 → scene x 가 그 선의 위치
+        const scenePosition = axis === "x" ? scene.x : scene.y;
+
+        if (overRuler) {
+          return drag?.kind === "move"
+            ? { removing: true, scenePosition }
+            : { pageId: null, removing: false, scenePosition };
+        }
+
         // **이동은 소속을 바꾸지 않는다** — 가이드 좌표가 페이지-로컬(C9)이라
         // 페이지를 넘나들면 같은 드래그 안에서 기준계가 갈린다. 포인터가 다른
         // 페이지 위로 가도 원래 페이지 좌표계로 계속 읽는다.
@@ -136,17 +158,17 @@ export function useGuideDrag({
                 pagePositions: state.pagePositions,
                 pages: state.pages,
               });
-        if (!pageId) return { pageId: null, removing: false };
+        if (!pageId) return { pageId: null, removing: false, scenePosition };
 
         const origin = state.pagePositions[pageId];
-        if (!origin) return { pageId: null, removing: false };
-        const axis = drag?.axis ?? initial.axis;
+        if (!origin) return { pageId: null, removing: false, scenePosition };
         return {
           pageId,
           position: Math.round(
             axis === "x" ? scene.x - origin.x : scene.y - origin.y,
           ),
           removing: false,
+          scenePosition,
         };
       };
 
@@ -228,6 +250,8 @@ export function useGuideDrag({
           removing: false,
           originPageId: null,
           originPosition: 0,
+          // 첫 publishAt 이 즉시 채운다 (begin 말미 1회 호출)
+          scenePosition: null,
         },
         pointerId,
         clientX,
@@ -255,6 +279,7 @@ export function useGuideDrag({
           removing: false,
           originPageId: target.pageId,
           originPosition: localPosition,
+          scenePosition: target.scenePosition,
         },
         pointerId,
         clientX,
@@ -365,5 +390,12 @@ export function useGuideHoverCursor({
       if (frame !== null) cancelAnimationFrame(frame);
       container.style.cursor = "";
     };
-  }, [containerRef, pageHeight, pageWidth, screenToCanvasPoint, showRulers, zoom]);
+  }, [
+    containerRef,
+    pageHeight,
+    pageWidth,
+    screenToCanvasPoint,
+    showRulers,
+    zoom,
+  ]);
 }
