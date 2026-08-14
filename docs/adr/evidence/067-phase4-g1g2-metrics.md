@@ -77,4 +77,4 @@
 
 - ADR-067: `docs/adr/067-style-panel-skia-native-read-path.md` §Gates G1/G2
 - ADR-048: `docs/adr/048-declarative-props-propagation.md`
-- Phase 3 measurements: `2026-04-15-adr067-phase3-g1-metrics.md`
+- Phase 3 measurements: `067-phase3-g1-metrics.md`

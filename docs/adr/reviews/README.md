@@ -2,7 +2,7 @@
 
 > This directory stores structured review results for ADRs in `docs/adr/`. Written by `review-adr` skill Phase 4.5 (Layer 0); consumed by future Layer 1 pattern-extraction agents.
 >
-> **Schema SSOT**: this file. Design rationale: [docs/superpowers/specs/2026-04-20-adr-review-layer0-schema-design.md](../../superpowers/specs/2026-04-20-adr-review-layer0-schema-design.md).
+> **Schema SSOT**: this file. Design rationale: [docs/reference/schemas/ADR_REVIEW_LAYER0.md](../../reference/schemas/ADR_REVIEW_LAYER0.md).
 > **Writer**: `.claude/scripts/adr-review/writer.mjs` | **Validator**: `.claude/scripts/adr-review/validate.mjs`
 
 ## File Naming
@@ -82,6 +82,6 @@ node .claude/scripts/adr-review/validate.mjs
 
 ## Related
 
-- Design spec: [2026-04-20-adr-review-layer0-schema-design.md](../../superpowers/specs/2026-04-20-adr-review-layer0-schema-design.md)
+- Design spec: [ADR_REVIEW_LAYER0.md](../../reference/schemas/ADR_REVIEW_LAYER0.md)
 - Checklist seed: `.claude/rules/adr-writing.md` (§반복 패턴 선차단)
 - Skill: `.claude/skills/review-adr/SKILL.md` (Phase 4.5)

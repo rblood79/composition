@@ -6,12 +6,12 @@
 
 **Phase 1 결과** (Transform pilot):
 
-- G1 (a) ✅ PASS — `computeSyntheticStyle` 호출 0회 (`docs/superpowers/measurements/2026-04-15-adr067-phase1-csy-calls.md`)
+- G1 (a) ✅ PASS — `computeSyntheticStyle` 호출 0회 (`docs/adr/evidence/067-phase1-csy-calls.md`)
 - G1 (b) ✅ PASS — Transform value resolve median 0.1ms / p95 0.1ms (기준 ≤4ms / ≤8ms 대비 40~80배 여유)
 - G1 (c) ⚠️ Phase 1 변경이 Skia 렌더 path 외부이므로 회귀 가능성 매우 낮음 (수동 검증 권고)
 - G3 baseline 측정 완료 — end-to-end paint latency median 119.1ms / p95 125ms (Phase 6 종결 시 30~40% 개선 목표)
 
-상세: `docs/superpowers/measurements/2026-04-15-adr067-phase1-paint-latency.md`
+상세: `docs/adr/evidence/067-phase1-paint-latency.md`
 
 ## Context
 

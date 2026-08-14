@@ -6,7 +6,7 @@
  * with round auto-increment and fail-soft error handling.
  *
  * Usage: cat payload.json | node writer.mjs
- * Spec:  docs/superpowers/specs/2026-04-20-adr-review-layer0-schema-design.md
+ * Spec:  docs/reference/schemas/ADR_REVIEW_LAYER0.md
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';

@@ -10,7 +10,7 @@
 
 **측정 방법 (baseline 대비 변경점)**:
 
-- Baseline(`2026-04-15-adr067-g3-baseline.md`): Chrome Performance trace Interaction → Next Paint
+- Baseline(`067-g3-baseline.md`): Chrome Performance trace Interaction → Next Paint
 - Phase 6 (자동화): `store.setState({ selectedElementId })` → 2×`requestAnimationFrame` 완료까지의 duration
 
 두 방법은 측정 시점 정의가 다르지만 모두 "선택 커밋 → 패널 paint 완료" 주기를 캡처한다. Baseline이 click 처리 overhead를 포함하는 만큼 Phase 6 자동화 값은 해당 부분을 제외한 하한 근사치로 해석한다.
@@ -67,6 +67,6 @@
 
 ## 참조
 
-- Baseline: `2026-04-15-adr067-g3-baseline.md`
-- Phase 1~5 measurements: `2026-04-15-adr067-phase*-*-metrics.md`
+- Baseline: `067-g3-baseline.md`
+- Phase 1~5 measurements: `067-phase*-*-metrics.md`
 - ADR-067 §Gates G3: `docs/adr/067-style-panel-skia-native-read-path.md`

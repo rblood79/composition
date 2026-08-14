@@ -258,7 +258,7 @@ EOF
 ### 스키마 / taxonomy
 
 - **Schema SSOT**: [docs/adr/reviews/README.md](../../../docs/adr/reviews/README.md)
-- **Design rationale**: [docs/superpowers/specs/2026-04-20-adr-review-layer0-schema-design.md](../../../docs/superpowers/specs/2026-04-20-adr-review-layer0-schema-design.md)
+- **Design rationale**: [docs/reference/schemas/ADR_REVIEW_LAYER0.md](../../../docs/reference/schemas/ADR_REVIEW_LAYER0.md)
 - **Validator**: `node .claude/scripts/adr-review/validate.mjs`
 
 ---

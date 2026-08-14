@@ -8,7 +8,7 @@
 
 ## G1 (a) — `computeSyntheticStyle` 호출 0회
 
-별도 문서: [2026-04-15-adr067-phase1-csy-calls.md](./2026-04-15-adr067-phase1-csy-calls.md)
+별도 문서: [067-phase1-csy-calls.md](./067-phase1-csy-calls.md)
 
 **결과**: ✅ **PASS** — Transform 섹션만 펼친 상태에서 요소 선택 5회, csy 호출 0회 (`window.__csyCalls` 자체가 미생성).
 
@@ -93,5 +93,5 @@
 
 - ADR-067: `docs/adr/067-style-panel-skia-native-read-path.md` §Gates G1
 - Phase 1 breakdown: `docs/adr/design/067-style-panel-skia-native-read-path-breakdown.md` Task 8
-- baseline (G3): `2026-04-15-adr067-g3-baseline.md` (median 119.1ms / p95 125ms)
-- csy 호출 (G1 a): `2026-04-15-adr067-phase1-csy-calls.md`
+- baseline (G3): `067-g3-baseline.md` (median 119.1ms / p95 125ms)
+- csy 호출 (G1 a): `067-phase1-csy-calls.md`
