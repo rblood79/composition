@@ -2,12 +2,17 @@
  * Canvas Settings Slice
  *
  * 빌더 캔버스 환경 설정 관리
- * - showGrid, snapToGrid, gridSize, workflow overlay 등
+ * - snapToObjects, showRulers, workflow overlay 등
  *
  * @since 2024-12-29
  * @updated 2025-12-29 - overlay/visualization 설정 제거 (WebGL 전환으로 불필요)
  * @updated 2026-02-10 - viewMode 제거 (레거시 ReactFlow 워크플로우 삭제)
  * @updated 2026-02-11 - pageLayoutDirection 추가 (가로/세로/지그재그 페이지 배치, Settings 패널에서 제어)
+ * @updated 2026-08-14 - showGrid / snapToGrid / gridSize 제거. 캔버스 월드 격자는
+ *   맞출 대상이 없었다 — 요소 좌표는 레이아웃 엔진 소유고, 격자가 기준이 될 수
+ *   있는 유일한 대상인 페이지 위치는 자동 배치 간격(470px)이 8/16/24 어느 쪽과도
+ *   안 떨어져 실측 8개 중 3개만 8px 격자 위에 있었다. 정렬은 snapToObjects
+ *   (ADR-179) + 수동 가이드 (ADR-181), 배경 텍스처는 DotBackground 가 담당.
  */
 
 import { StateCreator } from "zustand";
@@ -33,12 +38,6 @@ export interface HistoryInfo {
  * Note: viewMode, setViewMode, toggleViewMode 제거됨 (레거시 ReactFlow 워크플로우 삭제)
  */
 export interface SettingsState {
-  /** Grid 표시 여부 (기본값: false) */
-  showGrid: boolean;
-
-  /** Grid에 스냅 활성화 여부 (기본값: false) */
-  snapToGrid: boolean;
-
   /**
    * 객체(다른 페이지/요소) 스냅 활성화 여부 (기본값: true — Figma 기본 관례).
    * ADR-179: 드래그 중 다른 페이지 가장자리·중앙 6축 흡착 + 정렬선.
@@ -55,26 +54,14 @@ export interface SettingsState {
    */
   showRulers: boolean;
 
-  /** Grid 크기 (기본값: 8px) */
-  gridSize: 8 | 16 | 24;
-
   /** History 정보 (Monitor에서 사용) */
   historyInfo: HistoryInfo;
-
-  /** Grid 표시 토글 */
-  setShowGrid: (show: boolean) => void;
-
-  /** Grid 스냅 토글 */
-  setSnapToGrid: (snap: boolean) => void;
 
   /** 객체 스냅 토글 (ADR-179) */
   setSnapToObjects: (snap: boolean) => void;
 
   /** 눈금자 표시 토글 (ADR-181) */
   setShowRulers: (show: boolean) => void;
-
-  /** Grid 크기 설정 */
-  setGridSize: (size: 8 | 16 | 24) => void;
 
   /** History 정보 업데이트 */
   setHistoryInfo: (info: HistoryInfo) => void;
@@ -147,8 +134,6 @@ export interface SettingsState {
  * Settings Slice 생성
  */
 export const createSettingsSlice: StateCreator<SettingsState> = (set) => ({
-  showGrid: false,
-  snapToGrid: false,
   snapToObjects: true,
   showRulers: false,
   showWorkflowOverlay: false,
@@ -160,26 +145,11 @@ export const createSettingsSlice: StateCreator<SettingsState> = (set) => ({
   workflowFocusedPageId: null,
   pageLayoutDirection: "horizontal" as PageLayoutDirection,
   activeBreakpoint: "desktop" as BreakpointName,
-  gridSize: 8,
   historyInfo: {
     canUndo: false,
     canRedo: false,
     totalEntries: 0,
     currentIndex: -1,
-  },
-
-  /**
-   * Grid 표시 토글
-   */
-  setShowGrid: (show: boolean) => {
-    set({ showGrid: show });
-  },
-
-  /**
-   * Grid 스냅 토글
-   */
-  setSnapToGrid: (snap: boolean) => {
-    set({ snapToGrid: snap });
   },
 
   /**
@@ -198,13 +168,6 @@ export const createSettingsSlice: StateCreator<SettingsState> = (set) => ({
     // 선택은 조작 상태이므로, 끄면 "선택돼 있는데 바꿀 수 없는" 상태가
     // 남지 않도록 같이 푼다. 가이드 자체는 그대로 보인다.
     if (!show) clearGuideSelection();
-  },
-
-  /**
-   * Grid 크기 설정
-   */
-  setGridSize: (size: 8 | 16 | 24) => {
-    set({ gridSize: size });
   },
 
   /**

@@ -11,9 +11,7 @@
  */
 
 import {
-  Grid3x3,
   Magnet,
-  Ruler,
   RulerDimensionLine,
   LayoutGrid,
   ZoomIn,
@@ -37,20 +35,11 @@ function SettingsContent() {
   const { sendDarkMode } = useThemeMessenger();
 
   // Grid & Guides 설정
-  const showGrid = useStore((state) => state.showGrid);
-  const setShowGrid = useStore((state) => state.setShowGrid);
-
-  const snapToGrid = useStore((state) => state.snapToGrid);
-  const setSnapToGrid = useStore((state) => state.setSnapToGrid);
-
   const snapToObjects = useStore((state) => state.snapToObjects);
   const setSnapToObjects = useStore((state) => state.setSnapToObjects);
 
   const showRulers = useStore((state) => state.showRulers);
   const setShowRulers = useStore((state) => state.setShowRulers);
-
-  const gridSize = useStore((state) => state.gridSize);
-  const setGridSize = useStore((state) => state.setGridSize);
 
   // Page Layout 설정
   const pageLayoutDirection = useStore((state) => state.pageLayoutDirection);
@@ -87,22 +76,11 @@ function SettingsContent() {
     { value: "120", label: "Large" },
   ];
 
-  const gridSizeOptions = [
-    { value: "8", label: "8px" },
-    { value: "16", label: "16px" },
-    { value: "24", label: "24px" },
-  ];
-
   const pageLayoutOptions = [
     { value: "horizontal", label: "Horizontal" },
     { value: "vertical", label: "Vertical" },
     { value: "zigzag", label: "Zigzag" },
   ];
-
-  const handleGridSizeChange = (value: string) => {
-    const size = parseInt(value) as 8 | 16 | 24;
-    setGridSize(size);
-  };
 
   const handleThemeModeChange = (value: string) => {
     const mode = value as "light" | "dark" | "auto";
@@ -125,8 +103,8 @@ function SettingsContent() {
       <PanelHeader icon={<Settings size={iconProps.size} />} title="Settings" />
 
       <div className="panel-settings">
-        {/* Grid & Guides Section */}
-        <PropertySection title="Grid & Guides">
+        {/* Rulers & Guides Section */}
+        <PropertySection title="Rulers & Guides">
           {/* ADR-181 — 눈금자는 뷰포트 chrome (문서 데이터 아님).
               가이드 표시는 이 토글과 독립, 조작만 ON 을 요구한다 (C10). */}
           <PropertySwitch
@@ -136,33 +114,13 @@ function SettingsContent() {
             icon={RulerDimensionLine}
           />
 
-          <PropertySwitch
-            label="Show Grid"
-            isSelected={showGrid}
-            onChange={setShowGrid}
-            icon={Grid3x3}
-          />
-
-          <PropertySwitch
-            label="Snap to Grid"
-            isSelected={snapToGrid}
-            onChange={setSnapToGrid}
-            icon={Magnet}
-          />
-
+          {/* ADR-179 — 페이지 간 가장자리·중앙 흡착 + 정렬선. 수동 가이드도
+              흡착 후보로 참여한다 (`usePageDrag` 의 `guideLines`). */}
           <PropertySwitch
             label="Snap to Objects"
             isSelected={snapToObjects}
             onChange={setSnapToObjects}
             icon={Magnet}
-          />
-
-          <PropertySelect
-            label="Grid Size"
-            value={String(gridSize)}
-            onChange={handleGridSizeChange}
-            options={gridSizeOptions}
-            icon={Ruler}
           />
 
           <PropertySelect

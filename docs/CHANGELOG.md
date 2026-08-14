@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [캔버스 월드 격자 제거 — Settings 패널 정리] - 2026-08-14
+
+### Breaking Changes
+
+- **Settings 패널의 Show Grid / Snap to Grid / Grid Size 3개 제거** (2026-08-14 사용자 요청 — "의미가 있나? 체크해줘"):
+  - store 필드 `showGrid` / `snapToGrid` / `gridSize` 와 setter 3종 삭제. 남는 캔버스 설정은 **Show Rulers + Snap to Objects** 둘
+  - 섹션명 `Grid & Guides` → `Rulers & Guides`
+  - **Why — 맞출 대상이 없었다**: 격자는 scene 원점 기준 **월드 격자**인데, 페이지 안 요소 좌표는 레이아웃 엔진 소유라 격자와 무관하다. 격자가 기준이 될 수 있는 유일한 대상은 페이지(아트보드) 위치인데, 자동 배치 간격이 **470px**(페이지 390 + 여백 80)이라 8/16/24 어느 쪽과도 안 떨어진다 — 라이브 실측 8개 페이지 중 8px 격자 위에 놓인 것은 **3개**, 16px 은 1개, 24px 은 1개. 켜도 아트보드가 격자에 얹히지 않았다
+  - **Snap to Grid 는 페이지 드래그 한 곳에만 걸려 있었다** (`usePageDrag`) — 요소에는 적용되지 않고 될 수도 없다(자유 배치가 아님). 페이지에 걸면 위 470 간격을 8의 배수로 반올림해 자동 배치를 깨뜨렸고, 우선순위상 객체 스냅이 먼저 잡아 실제 발화도 드물었다
+  - **배경 격자는 이미 따로 있었다** — `DotBackground` 가 16 scene px 점 배경을 상시 그린다. Show Grid 는 그 위에 얹는 **두 번째 격자**였고, gridSize 8/24 에서는 간격이 다른 두 격자가 겹쳐 보였다
+  - 대체 수단: 정렬은 `Snap to Objects`(ADR-179, 페이지 간 6축 흡착 + 정렬선) + 수동 가이드(ADR-181), 배경 텍스처는 `DotBackground`
+  - 위치: `apps/builder/src/builder/{panels/settings/SettingsPanel.tsx,stores/canvasSettings.ts,workspace/canvas/hooks/usePageDrag.ts}`
+
+### Architecture
+
+- **격자 제거로 드러난 죽은 코드 정리**:
+  - `skia/gridRenderer.ts` **삭제** — 유일 호출자(`skiaFramePlan` 의 `buildGridScreenOverlayNode`)와 함께. 내부에 도달 불가 분기도 있었다: `if (zoom > 2) return baseSize/2; if (zoom > 4) return baseSize/4` 에서 뒤 줄은 앞 줄이 항상 먼저 잡았고, 함수 주석이 약속한 "gridSize 의 정수 배수" 와 달리 `/2`·`/4` 는 약수라 **줌 200% 초과에서 표시선의 절반이 snap 위치가 아니었다**. `GridRenderOptions.showSnapGrid` / `snapSize` 도 전달자가 없어 점 격자 루프가 통째로 죽어 있었다
+  - `workspace/canvas/grid/index.ts` **삭제** — `ZOOM_PRESETS` / `DEFAULT_GRID_SIZE` / `DEFAULT_SNAP_SIZE` 3개 상수 전부 소비처 0 (재export 경로만 존재)
+  - `canvasStore.ts` 의 `useCanvasGridSettings` / `useCanvasSetGridSettings` 제거 — `stores/index.ts` · `workspace/index.ts` 재export 외 소비처 0
+  - `invalidationPacket` 의 grid sub-packet 제거 (`RendererGridInvalidation*`, `buildGridSignature`)
+  - **잔여 2건은 분리**: `skiaOverlayHelpers.buildGridRenderInput` 과 `SkiaRenderer` 의 `screenOverlayNode` 슬롯(격자가 유일 공급자였다). 해당 파일들이 다른 작업으로 편집 중이라 이번 커밋에서 뺐고, packet 에는 상수 시그니처 tombstone 을 남겨 소비처가 무효화를 유발하지 않게 했다
+
 ## [눈금자 + 수동 가이드 — ADR-181 Phase 0~7] - 2026-08-14
 
 ### Bug Fixes

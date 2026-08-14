@@ -70,33 +70,6 @@ export const useCanvasStore = create<CanvasState>()(
 );
 
 // ============================================
-// Grid Settings (from canvasSettings.ts - Single Source of Truth)
-// ============================================
-
-/**
- * 그리드 설정 가져오기 (canvasSettings.ts에서)
- * canvasStore에서 중복 제거, canvasSettings.ts를 Single Source of Truth로 사용
- */
-export function useCanvasGridSettings() {
-  const showGrid = useStore((state) => state.showGrid);
-  const snapToGrid = useStore((state) => state.snapToGrid);
-  const gridSize = useStore((state) => state.gridSize);
-
-  return { showGrid, snapToGrid, gridSize };
-}
-
-/**
- * 그리드 설정 변경 (canvasSettings.ts로 위임)
- */
-export function useCanvasSetGridSettings() {
-  const setShowGrid = useStore((state) => state.setShowGrid);
-  const setSnapToGrid = useStore((state) => state.setSnapToGrid);
-  const setGridSize = useStore((state) => state.setGridSize);
-
-  return { setShowGrid, setSnapToGrid, setGridSize };
-}
-
-// ============================================
 // Selectors (Direct Builder Store Access)
 // ============================================
 

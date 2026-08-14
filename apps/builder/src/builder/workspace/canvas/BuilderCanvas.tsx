@@ -38,7 +38,6 @@ import { isWebGLCanvas } from "../../../utils/featureFlags";
 import { isUnifiedFlag } from "./wasm-bindings/featureFlags";
 import type { BoundingBox } from "./selection/types";
 import type { DropIndicatorSnapshot } from "./selection/dropTargetResolver";
-// GridLayer는 Skia gridRenderer로 대체됨
 import { ViewportControlBridge } from "./viewport";
 import { screenToViewportPoint } from "./viewport/viewportTransforms";
 import { TextEditOverlay, useTextEdit } from "../overlay";
@@ -332,8 +331,6 @@ export function BuilderCanvas({
     useState<CanvasContextMenuState | null>(null);
 
   // Settings state (SettingsPanel 연동)
-  const showGrid = useStore((state) => state.showGrid);
-  const gridSize = useStore((state) => state.gridSize);
   const showWorkflowOverlay = useStore((state) => state.showWorkflowOverlay);
   const showWorkflowNavigation = useStore(
     (state) => state.showWorkflowNavigation,
@@ -913,10 +910,6 @@ export function BuilderCanvas({
   // 합성 rendererInvalidationPacket 는 기존 SkiaCanvas prop 호환용 유지.
   const sceneInvalidationPacket = useMemo(() => {
     return createSceneInvalidationPacket({
-      grid: {
-        gridSize,
-        showGrid,
-      },
       workflow: {
         dataSourceEdges,
         focusedPageId: workflowFocusedPageId,
@@ -933,10 +926,8 @@ export function BuilderCanvas({
     });
   }, [
     dataSourceEdges,
-    gridSize,
     layoutGroups,
     layouts,
-    showGrid,
     showWorkflowDataSources,
     showWorkflowEvents,
     showWorkflowLayoutGroups,

@@ -51,8 +51,6 @@ describe("usePageDrag", () => {
       pagePositions: {
         "page-1": { x: 100, y: 200 },
       },
-      snapToGrid: false,
-      gridSize: 8,
       updatePagePosition: updatePagePositionMock,
     });
     subscribeMock.mockImplementation(() => () => {});
@@ -174,8 +172,6 @@ describe("usePageDrag", () => {
         pagePositions: {
           "page-1": { x: 100, y: 200 },
         },
-        snapToGrid: false,
-        gridSize: 8,
         updatePagePosition: updatePagePositionMock,
       });
       window.dispatchEvent(createPointerEvent("pointerup", 1, 30, 40));

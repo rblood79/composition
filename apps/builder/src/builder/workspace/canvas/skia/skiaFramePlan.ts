@@ -24,8 +24,6 @@ import type { WorkflowHoverState } from "../hooks/useWorkflowInteraction";
 import type { ElementHoverState } from "../hooks/useElementHoverInteraction";
 import type { DropIndicatorState } from "./dropIndicatorRenderer";
 import type { FrameAreaGroup } from "./workflowEdges";
-import { renderGrid } from "./gridRenderer";
-import { buildGridRenderInput } from "./skiaOverlayHelpers";
 import { buildSelectionRenderData } from "./skiaWorkflowSelection";
 import {
   buildWorkflowOverlayData,
@@ -194,18 +192,14 @@ export function buildFrameRenderPlan(
     dpr,
   });
 
-  const screenOverlayNode = buildGridScreenOverlayNode(
-    ck,
-    snapshot.cameraZoom,
-    invalidationPacket.grid.showGrid,
-    invalidationPacket.grid.gridSize,
-  );
-
   return {
     sharedScene,
     contentNode,
     overlayNode,
-    screenOverlayNode,
+    // 2026-08-14: 캔버스 월드 격자 제거로 이 슬롯의 유일한 공급자가 사라졌다.
+    // 슬롯 자체(SkiaRenderer.setScreenOverlayNode)의 철거는 후속 — 해당 파일이
+    // 다른 작업으로 편집 중이라 이번 변경에서 분리한다.
+    screenOverlayNode: null,
     cullingBounds: createCullingBounds(
       snapshot.cameraX,
       snapshot.cameraY,
@@ -292,27 +286,6 @@ function buildWorkflowOverlayBuildResult(
     workflowElementBoundsMap: wfData.workflowElementBoundsMap,
     edgeGeometryCache: cacheResult.edgeGeometryCache,
     edgeGeometryCacheKey: cacheResult.edgeGeometryCacheKey,
-  };
-}
-
-function buildGridScreenOverlayNode(
-  ck: CanvasKit,
-  cameraZoom: number,
-  showGrid: boolean,
-  gridSize: number,
-): SkiaRenderable | null {
-  if (!showGrid) {
-    return null;
-  }
-
-  return {
-    renderSkia(canvas: Canvas, cullingBounds: DOMRect) {
-      renderGrid(
-        ck,
-        canvas,
-        buildGridRenderInput(cullingBounds, gridSize, cameraZoom),
-      );
-    },
   };
 }
 

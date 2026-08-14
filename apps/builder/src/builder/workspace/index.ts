@@ -24,8 +24,6 @@ export {
 } from './canvas/stores';
 export {
   useCanvasStore,
-  useCanvasGridSettings,
-  useCanvasSetGridSettings,
   useCanvasElements,
   useCanvasSelectedElement,
   useCanvasSelectedElementIds,
@@ -49,9 +47,6 @@ export * from './canvas/sprites';
 
 // Selection (B1.3)
 export * from './canvas/selection';
-
-// Grid + Zoom/Pan (B1.4)
-export * from './canvas/grid';
 
 // Text Edit Overlay (B1.5)
 export * from './overlay';

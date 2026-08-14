@@ -18,15 +18,6 @@ export interface RendererSelectionInvalidation extends RendererSelectionInvalida
   selectionSignature: string;
 }
 
-export interface RendererGridInvalidationInput {
-  gridSize: number;
-  showGrid: boolean;
-}
-
-export interface RendererGridInvalidation extends RendererGridInvalidationInput {
-  signature: string;
-}
-
 export interface RendererWorkflowInvalidationInput {
   dataSourceEdges: DataSourceEdge[];
   focusedPageId: string | null;
@@ -55,18 +46,29 @@ export interface RendererAIInvalidation {
 
 /**
  * ADR-074 Phase 3: scene/overlay 분리.
- * - Scene: grid + workflow (scene structure 의존, selection-invariant)
+ * - Scene: workflow (scene structure 의존, selection-invariant)
  * - Overlay: ai + dragActive + selection (selection/transient 의존)
+ *
+ * 2026-08-14: grid sub-packet 제거 (캔버스 월드 격자 삭제와 동반).
  */
 export interface RendererSceneInvalidationInput {
-  grid: RendererGridInvalidationInput;
   workflow: RendererWorkflowInvalidationInput;
 }
 
 export interface RendererSceneInvalidation {
-  grid: RendererGridInvalidation;
+  /**
+   * 캔버스 월드 격자 제거(2026-08-14)의 tombstone — 시그니처가 상수라 무효화를
+   * 유발하지 않는다. 유일 소비처(`SkiaCanvas` 의 grid 시그니처 비교)와 함께
+   * 지우는 것이 맞지만, 그 파일이 다른 작업으로 편집 중이라 분리했다.
+   */
+  grid: { signature: string };
   workflow: RendererWorkflowInvalidation;
 }
+
+/** 격자가 없으므로 영구 불변 — 위 tombstone 과 함께 제거 대상 */
+const REMOVED_GRID_INVALIDATION: RendererSceneInvalidation["grid"] = {
+  signature: "",
+};
 
 export interface RendererOverlayInvalidationInput {
   ai: RendererAIInvalidation;
@@ -107,10 +109,6 @@ function buildSelectionSignature(
       selection.selectedElementIds.join(","),
     ].join("|"),
   );
-}
-
-function buildGridSignature(grid: RendererGridInvalidationInput): string {
-  return `${grid.showGrid ? 1 : 0}:${grid.gridSize}`;
 }
 
 function buildWorkflowEdgeSignature(edges: WorkflowEdge[]): string {
@@ -181,17 +179,14 @@ function buildWorkflowGraphSignature(
 }
 
 /**
- * ADR-074 Phase 3: scene sub-packet (grid + workflow).
+ * ADR-074 Phase 3: scene sub-packet (workflow).
  * selection-invariant — selection 변화 시 identity 유지 목표.
  */
 export function createSceneInvalidationPacket(
   input: RendererSceneInvalidationInput,
 ): RendererSceneInvalidation {
   return {
-    grid: {
-      ...input.grid,
-      signature: buildGridSignature(input.grid),
-    },
+    grid: REMOVED_GRID_INVALIDATION,
     workflow: {
       ...input.workflow,
       graphSignature: buildWorkflowGraphSignature(input.workflow),
@@ -233,7 +228,6 @@ export function createRendererInvalidationPacket(
   packet: RendererInvalidationPacketInput,
 ): RendererInvalidationPacket {
   const scene = createSceneInvalidationPacket({
-    grid: packet.grid,
     workflow: packet.workflow,
   });
   const overlay = createOverlayInvalidationPacket({

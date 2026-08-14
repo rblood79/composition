@@ -239,10 +239,8 @@ export function usePageDrag(
         }
         let x = state.startPagePos.x + dx;
         let y = state.startPagePos.y + dy;
-        const { snapToGrid, gridSize, snapToObjects } = useStore.getState();
+        const { snapToObjects } = useStore.getState();
         let guides: SnapGuide[] = [];
-        let snappedX = false;
-        let snappedY = false;
         const guideLines = state.guideLines;
         const hasGuideLines =
           (guideLines?.x.length ?? 0) + (guideLines?.y.length ?? 0) > 0;
@@ -264,14 +262,7 @@ export function usePageDrag(
           );
           x = snapped.position.x;
           y = snapped.position.y;
-          snappedX = snapped.snappedX;
-          snappedY = snapped.snappedY;
           guides = snapped.guides;
-        }
-        // 객체 스냅이 성사되지 않은 축에만 그리드 스냅 (객체 > 그리드)
-        if (!suppressSnap && snapToGrid) {
-          if (!snappedX) x = Math.round(x / gridSize) * gridSize;
-          if (!snappedY) y = Math.round(y / gridSize) * gridSize;
         }
         return { position: { x, y }, guides };
       };

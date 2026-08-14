@@ -583,8 +583,6 @@ export type { ElementScrollState } from "./scrollState";
 // ============================================
 export {
   useCanvasStore,
-  useCanvasGridSettings,
-  useCanvasSetGridSettings,
   useCanvasElements,
   useCanvasSelectedElement,
   useCanvasSelectedElementIds,

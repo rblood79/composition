@@ -10,7 +10,6 @@ export {
   createRendererInvalidationPacket,
   createSceneInvalidationPacket,
   type RendererAIInvalidation,
-  type RendererGridInvalidation,
   type RendererInvalidationPacket,
   type RendererOverlayInvalidation,
   type RendererSceneInvalidation,
